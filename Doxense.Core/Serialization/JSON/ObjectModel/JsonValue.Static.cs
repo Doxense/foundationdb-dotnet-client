@@ -840,19 +840,22 @@ namespace Doxense.Serialization.Json
 		public static JsonValue FromValue<T1>(ValueTuple<T1> tuple) => JsonArray.Return(tuple);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue FromValue<T1, T2>(ValueTuple<T1, T2> tuple) => JsonArray.Return(tuple);
+		public static JsonValue FromValue<T1, T2>(in ValueTuple<T1, T2> tuple) => JsonArray.Return(in tuple);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue FromValue<T1, T2, T3>(ValueTuple<T1, T2, T3> tuple) => JsonArray.Return(tuple);
+		public static JsonValue FromValue<T1, T2, T3>(in ValueTuple<T1, T2, T3> tuple) => JsonArray.Return(in tuple);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue FromValue<T1, T2, T3, T4>(ValueTuple<T1, T2, T3, T4> tuple) => JsonArray.Return(tuple);
+		public static JsonValue FromValue<T1, T2, T3, T4>(in ValueTuple<T1, T2, T3, T4> tuple) => JsonArray.Return(in tuple);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue FromValue<T1, T2, T3, T4, T5>(ValueTuple<T1, T2, T3, T4, T5> tuple) => JsonArray.Return(tuple);
+		public static JsonValue FromValue<T1, T2, T3, T4, T5>(in ValueTuple<T1, T2, T3, T4, T5> tuple) => JsonArray.Return(in tuple);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue FromValue<T1, T2, T3, T4, T5, T6>(ValueTuple<T1, T2, T3, T4, T5, T6> tuple) => JsonArray.Return(tuple);
+		public static JsonValue FromValue<T1, T2, T3, T4, T5, T6>(in ValueTuple<T1, T2, T3, T4, T5, T6> tuple) => JsonArray.Return(in tuple);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue FromValue<T1, T2, T3, T4, T5, T6, T7>(in ValueTuple<T1, T2, T3, T4, T5, T6, T7> tuple) => JsonArray.Return(in tuple);
 
 		#endregion
 

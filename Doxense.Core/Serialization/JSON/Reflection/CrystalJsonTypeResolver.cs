@@ -367,14 +367,19 @@ namespace Doxense.Serialization.Json
 				// if we are called with type == typeof(int[]), we must output a 2-dimensional array of type 'int[][]'
 
 				Type elementType = type.GetElementType()!;
-				if (elementType == typeof(bool)) return (_, array) => array?.ToBoolArray();
-				if (elementType == typeof(string)) return (_, array) => array?.ToStringArray();
-				if (elementType == typeof(int)) return (_, array) => array?.ToInt32Array();
-				if (elementType == typeof(long)) return (_, array) => array?.ToInt64Array();
-				if (elementType == typeof(double)) return (_, array) => array?.ToDoubleArray();
-				if (elementType == typeof(float)) return (_, array) => array?.ToSingleArray();
-				if (elementType == typeof(Guid)) return (_, array) => array?.ToGuidArray();
-				if (elementType == typeof(NodaTime.Instant)) return (_, array) => array?.ToInstantArray();
+				if (elementType == typeof(bool)) return static (_, array) => array?.ToBoolArray();
+				if (elementType == typeof(string)) return static (_, array) => array?.ToStringArray();
+				if (elementType == typeof(int)) return static (_, array) => array?.ToInt32Array();
+				if (elementType == typeof(long)) return static (_, array) => array?.ToInt64Array();
+				if (elementType == typeof(double)) return static (_, array) => array?.ToDoubleArray();
+				if (elementType == typeof(float)) return static (_, array) => array?.ToSingleArray();
+				if (elementType == typeof(Guid)) return static (_, array) => array?.ToGuidArray();
+				if (elementType == typeof(Uuid128)) return static (_, array) => array?.ToUuid128Array();
+				if (elementType == typeof(DateTime)) return static (_, array) => array?.ToDateTimeArray();
+				if (elementType == typeof(DateTimeOffset)) return static (_, array) => array?.ToDateTimeOffsetArray();
+				if (elementType == typeof(NodaTime.Instant)) return static (_, array) => array?.ToInstantArray();
+				if (elementType == typeof(decimal)) return static (_, array) => array?.ToDecimalArray();
+				if (elementType == typeof(Half)) return static (_, array) => array?.ToHalfArray();
 				return CreateDefaultJsonArrayBinder_Filler(nameof(FillArray), elementType);
 			}
 
@@ -468,13 +473,19 @@ namespace Doxense.Serialization.Json
 					var elementType = type.GetGenericArguments()[0];
 					if (filler == nameof(FillList))
 					{ // special cases!
-						if (elementType == typeof(bool)) return (_, array) => array?.ToBoolList();
-						if (elementType == typeof(string)) return (_, array) => array?.ToStringList();
-						if (elementType == typeof(int)) return (_, array) => array?.ToInt32List();
-						if (elementType == typeof(long)) return (_, array) => array?.ToInt64List();
-						if (elementType == typeof(double)) return (_, array) => array?.ToDoubleList();
-						if (elementType == typeof(float)) return (_, array) => array?.ToSingleList();
-						if (elementType == typeof(Guid)) return (_, array) => array?.ToGuidList();
+						if (elementType == typeof(bool)) return static (_, array) => array?.ToBoolList();
+						if (elementType == typeof(string)) return static (_, array) => array?.ToStringList();
+						if (elementType == typeof(int)) return static (_, array) => array?.ToInt32List();
+						if (elementType == typeof(long)) return static (_, array) => array?.ToInt64List();
+						if (elementType == typeof(double)) return static (_, array) => array?.ToDoubleList();
+						if (elementType == typeof(float)) return static (_, array) => array?.ToSingleList();
+						if (elementType == typeof(Guid)) return static (_, array) => array?.ToGuidList();
+						if (elementType == typeof(Uuid128)) return static (_, array) => array?.ToUuid128List();
+						if (elementType == typeof(DateTime)) return static (_, array) => array?.ToDateTimeList();
+						if (elementType == typeof(DateTimeOffset)) return static (_, array) => array?.ToDateTimeOffsetList();
+						if (elementType == typeof(NodaTime.Instant)) return static (_, array) => array?.ToInstantList();
+						if (elementType == typeof(decimal)) return static (_, array) => array?.ToDecimalList();
+						if (elementType == typeof(Half)) return static (_, array) => array?.ToHalfList();
 					}
 					return CreateDefaultJsonArrayBinder_Filler(filler, elementType);
 				}

@@ -896,25 +896,25 @@ namespace Doxense.Serialization.Json
 		#region Tuples...
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray Return<T1>(ValueTuple<T1> tuple) => new([FromValue<T1>(tuple.Item1)], 1, readOnly: false);
+		public static JsonArray Return<T1>(ValueTuple<T1> tuple) => new([ FromValue<T1>(tuple.Item1) ], 1, readOnly: false);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray Return<T1, T2>(ValueTuple<T1, T2> tuple) => new([FromValue<T1>(tuple.Item1), FromValue<T2>(tuple.Item2)], 2, readOnly: false);
+		public static JsonArray Return<T1, T2>(in ValueTuple<T1, T2> tuple) => new([ FromValue<T1>(tuple.Item1), FromValue<T2>(tuple.Item2) ], 2, readOnly: false);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray Return<T1, T2, T3>(ValueTuple<T1, T2, T3> tuple) => new([FromValue<T1>(tuple.Item1), FromValue<T2>(tuple.Item2), FromValue<T3>(tuple.Item3)], 3, readOnly: false);
+		public static JsonArray Return<T1, T2, T3>(in ValueTuple<T1, T2, T3> tuple) => new([ FromValue<T1>(tuple.Item1), FromValue<T2>(tuple.Item2), FromValue<T3>(tuple.Item3) ], 3, readOnly: false);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray Return<T1, T2, T3, T4>(ValueTuple<T1, T2, T3, T4> tuple) => new([FromValue<T1>(tuple.Item1), FromValue<T2>(tuple.Item2), FromValue<T3>(tuple.Item3), FromValue<T4>(tuple.Item4)], 4, readOnly: false);
+		public static JsonArray Return<T1, T2, T3, T4>(in ValueTuple<T1, T2, T3, T4> tuple) => new([ FromValue<T1>(tuple.Item1), FromValue<T2>(tuple.Item2), FromValue<T3>(tuple.Item3), FromValue<T4>(tuple.Item4) ], 4, readOnly: false);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray Return<T1, T2, T3, T4, T5>(ValueTuple<T1, T2, T3, T4, T5> tuple) => new([FromValue<T1>(tuple.Item1), FromValue<T2>(tuple.Item2), FromValue<T3>(tuple.Item3), FromValue<T4>(tuple.Item4), FromValue<T5>(tuple.Item5)], 5, readOnly: false);
+		public static JsonArray Return<T1, T2, T3, T4, T5>(in ValueTuple<T1, T2, T3, T4, T5> tuple) => new([ FromValue<T1>(tuple.Item1), FromValue<T2>(tuple.Item2), FromValue<T3>(tuple.Item3), FromValue<T4>(tuple.Item4), FromValue<T5>(tuple.Item5) ], 5, readOnly: false);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray Return<T1, T2, T3, T4, T5, T6>(ValueTuple<T1, T2, T3, T4, T5, T6> tuple) => new([FromValue<T1>(tuple.Item1), FromValue<T2>(tuple.Item2), FromValue<T3>(tuple.Item3), FromValue<T4>(tuple.Item4), FromValue<T5>(tuple.Item5), FromValue<T6>(tuple.Item6)], 6, readOnly: false);
+		public static JsonArray Return<T1, T2, T3, T4, T5, T6>(in ValueTuple<T1, T2, T3, T4, T5, T6> tuple) => new([ FromValue<T1>(tuple.Item1), FromValue<T2>(tuple.Item2), FromValue<T3>(tuple.Item3), FromValue<T4>(tuple.Item4), FromValue<T5>(tuple.Item5), FromValue<T6>(tuple.Item6) ], 6, readOnly: false);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray Return<T1, T2, T3, T4, T5, T6, T7>(ValueTuple<T1, T2, T3, T4, T5, T6, T7> tuple) => new([FromValue<T1>(tuple.Item1), FromValue<T2>(tuple.Item2), FromValue<T3>(tuple.Item3), FromValue<T4>(tuple.Item4), FromValue<T5>(tuple.Item5), FromValue<T6>(tuple.Item6), FromValue<T7>(tuple.Item7)], 7, readOnly: false);
+		public static JsonArray Return<T1, T2, T3, T4, T5, T6, T7>(in ValueTuple<T1, T2, T3, T4, T5, T6, T7> tuple) => new([ FromValue<T1>(tuple.Item1), FromValue<T2>(tuple.Item2), FromValue<T3>(tuple.Item3), FromValue<T4>(tuple.Item4), FromValue<T5>(tuple.Item5), FromValue<T6>(tuple.Item6), FromValue<T7>(tuple.Item7) ], 7, readOnly: false);
 
 		#endregion
 
@@ -3714,7 +3714,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns the equivalent <see langword="bool[]"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public bool[] ToBoolArray(bool defaultValue = default)
+		public bool[] ToBoolArray(bool defaultValue = false)
 		{
 			var items = this.AsSpan();
 			if (items.Length == 0) return [];
@@ -4212,220 +4212,180 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Deserializes this <see cref="JsonArray">JSON Array</see> into a list of <see cref="bool"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public List<bool> ToBoolList()
+		public List<bool> ToBoolList(bool defaultValue = false)
 		{
 			var result = new List<bool>(this.Count);
 			foreach (var item in this.AsSpan())
 			{
-				result.Add(item.ToBoolean());
+				result.Add(item.ToBoolean(defaultValue));
 			}
 			return result;
 		}
 
 		/// <summary>Deserializes this <see cref="JsonArray">JSON Array</see> into a list of <see cref="int"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public List<int> ToInt32List()
+		public List<int> ToInt32List(int defaultValue = 0)
 		{
 			var result = new List<int>(this.Count);
 			foreach (var item in this.AsSpan())
 			{
-				result.Add(item.ToInt32());
+				result.Add(item.ToInt32(defaultValue));
 			}
 			return result;
-		}
-
-		/// <summary>Returns the sum of all the items in <see cref="JsonArray">JSON Array</see> interpreted as 32-bit signed integers</summary>
-		/// <remarks>This is equivalent to calling <c>array.ToArray&lt;int&gt;().Sum()</c></remarks>
-		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public int SumInt32()
-		{
-			int total = 0;
-			foreach (var item in this.AsSpan())
-			{
-				total += item.ToInt32();
-			}
-			return total;
 		}
 
 		/// <summary>Deserializes this <see cref="JsonArray">JSON Array</see> into a list of <see cref="uint"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public List<uint> ToUInt32List()
+		public List<uint> ToUInt32List(uint defaultValue = 0)
 		{
 			var result = new List<uint>(this.Count);
 			foreach (var item in this.AsSpan())
 			{
-				result.Add(item.ToUInt32());
+				result.Add(item.ToUInt32(defaultValue));
 			}
 			return result;
-		}
-
-		/// <summary>Returns the sum of all the items in <see cref="JsonArray">JSON Array</see> interpreted as 32-bit unsigned integers</summary>
-		/// <remarks>This is equivalent to calling <c>array.ToArray&lt;uint&gt;().Sum()</c></remarks>
-		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public uint SumUInt32()
-		{
-			uint total = 0;
-			foreach (var item in this.AsSpan())
-			{
-				total += item.ToUInt32();
-			}
-			return total;
 		}
 
 		/// <summary>Deserializes this <see cref="JsonArray">JSON Array</see> into a list of <see cref="long"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public List<long> ToInt64List()
+		public List<long> ToInt64List(long defaultValue = 0)
 		{
 			var result = new List<long>(this.Count);
 			foreach (var item in this.AsSpan())
 			{
-				result.Add(item.ToInt64());
+				result.Add(item.ToInt64(defaultValue));
 			}
 			return result;
-		}
-
-		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public long SumInt64()
-		{
-			long total = 0;
-			foreach (var item in this.AsSpan())
-			{
-				total += item.ToInt64();
-			}
-			return total;
 		}
 
 		/// <summary>Deserializes this <see cref="JsonArray">JSON Array</see> into a list of <see cref="ulong"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public List<ulong> ToUInt64List()
+		public List<ulong> ToUInt64List(ulong defaultValue = 0)
 		{
 			var result = new List<ulong>(this.Count);
 			foreach (var item in this.AsSpan())
 			{
-				result.Add(item.ToUInt64());
+				result.Add(item.ToUInt64(defaultValue));
 			}
 			return result;
-		}
-
-		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public ulong SumUInt64()
-		{
-			ulong total = 0;
-			foreach (var item in this.AsSpan())
-			{
-				total += item.ToUInt64();
-			}
-			return total;
 		}
 
 		/// <summary>Deserializes this <see cref="JsonArray">JSON Array</see> into a list of <see cref="float"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public List<float> ToSingleList()
+		public List<float> ToSingleList(float defaultValue = 0f)
 		{
 			var result = new List<float>(this.Count);
 			foreach (var item in this.AsSpan())
 			{
-				result.Add(item.ToSingle());
+				result.Add(item.ToSingle(defaultValue));
 			}
 			return result;
-		}
-
-		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public float SumSingle() => (float) SumDouble(); // use higher precision
-
-		/// <summary>Deserializes this <see cref="JsonArray">JSON Array</see> into a list of <see cref="double"/></summary>
-		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public List<double> ToDoubleList()
-		{
-			var result = new List<double>(this.Count);
-			foreach (var item in this.AsSpan())
-			{
-				result.Add(item.ToDouble());
-			}
-			return result;
-		}
-
-		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public double SumDouble()
-		{
-			double total = 0;
-			foreach (var item in this.AsSpan())
-			{
-				total += item.ToDouble();
-			}
-			return total;
 		}
 
 		/// <summary>Deserializes this <see cref="JsonArray">JSON Array</see> into a list of <see cref="double"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public List<double> ToHalfList()
+		public List<double> ToDoubleList(double defaultValue = 0d)
 		{
 			var result = new List<double>(this.Count);
 			foreach (var item in this.AsSpan())
 			{
-				result.Add(item.ToDouble());
+				result.Add(item.ToDouble(defaultValue));
 			}
 			return result;
 		}
 
+		/// <summary>Deserializes this <see cref="JsonArray">JSON Array</see> into a list of <see cref="double"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public Half SumHalf() => (Half) SumDouble(); // use the best precision
+		public List<Half> ToHalfList(Half defaultValue = default)
+		{
+			var result = new List<Half>(this.Count);
+			foreach (var item in this.AsSpan())
+			{
+				result.Add(item.ToHalf(defaultValue));
+			}
+			return result;
+		}
 
 		/// <summary>Deserializes this <see cref="JsonArray">JSON Array</see> into a list of <see cref="decimal"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public List<decimal> ToDecimalList()
+		public List<decimal> ToDecimalList(decimal defaultValue = 0m)
 		{
 			var result = new List<decimal>(this.Count);
 			foreach (var item in this.AsSpan())
 			{
-				result.Add(item.ToDecimal());
+				result.Add(item.ToDecimal(defaultValue));
 			}
 			return result;
 		}
 
-		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public decimal SumDecimal()
-		{
-			decimal total = 0;
-			foreach (var item in this.AsSpan())
-			{
-				total += item.ToDecimal();
-			}
-			return total;
-		}
-
 		/// <summary>Deserializes this <see cref="JsonArray">JSON Array</see> into a list of <see cref="Guid"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public List<Guid> ToGuidList()
+		public List<Guid> ToGuidList(Guid defaultValue = default)
 		{
 			var result = new List<Guid>(this.Count);
 			foreach (var item in this.AsSpan())
 			{
-				result.Add(item.ToGuid());
+				result.Add(item.ToGuid(defaultValue));
+			}
+			return result;
+		}
+
+		/// <summary>Deserializes this <see cref="JsonArray">JSON Array</see> into a list of <see cref="ulong"/></summary>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		public List<Uuid128> ToUuid128List(Uuid128 defaultValue = default)
+		{
+			var result = new List<Uuid128>(this.Count);
+			foreach (var item in this.AsSpan())
+			{
+				result.Add(item.ToUuid128(defaultValue));
+			}
+			return result;
+		}
+
+		/// <summary>Deserializes this <see cref="JsonArray">JSON Array</see> into a list of <see cref="ulong"/></summary>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		public List<DateTime> ToDateTimeList(DateTime defaultValue = default)
+		{
+			var result = new List<DateTime>(this.Count);
+			foreach (var item in this.AsSpan())
+			{
+				result.Add(item.ToDateTime(defaultValue));
+			}
+			return result;
+		}
+
+		/// <summary>Deserializes this <see cref="JsonArray">JSON Array</see> into a list of <see cref="ulong"/></summary>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		public List<DateTimeOffset> ToDateTimeOffsetList(DateTimeOffset defaultValue = default)
+		{
+			var result = new List<DateTimeOffset>(this.Count);
+			foreach (var item in this.AsSpan())
+			{
+				result.Add(item.ToDateTimeOffset(defaultValue));
 			}
 			return result;
 		}
 
 		/// <summary>Deserializes this <see cref="JsonArray">JSON Array</see> into a list of <see cref="Instant"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public List<Instant> ToInstantList()
+		public List<Instant> ToInstantList(NodaTime.Instant defaultValue = default)
 		{
 			var result = new List<Instant>(this.Count);
 			foreach (var item in this.AsSpan())
 			{
-				result.Add(item.ToInstant());
+				result.Add(item.ToInstant(defaultValue));
 			}
 			return result;
 		}
 
 		/// <summary>Deserializes this <see cref="JsonArray">JSON Array</see> into a list of <see cref="string"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public List<string?> ToStringList()
+		public List<string?> ToStringList(string? defaultValue = null)
 		{
 			var result = new List<string?>(this.Count);
 			foreach (var item in this.AsSpan())
 			{
-				result.Add(item.ToStringOrDefault());
+				result.Add(item.ToStringOrDefault(defaultValue));
 			}
 			return result;
 		}
