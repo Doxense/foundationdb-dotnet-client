@@ -512,11 +512,20 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static Slice ToSlice<T>(T? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			using var writer = new CrystalJsonWriter(0, settings, resolver);
+			var writer = WriterPool.Allocate();
+			try
+			{
+				writer.Initialize(0, settings, resolver);
 
-			CrystalJsonVisitor.VisitValue(value, writer);
+				CrystalJsonVisitor.VisitValue(value, writer);
 
-			return writer.Buffer.ToUtf8Slice(clear: true);
+				return writer.GetUtf8Slice();
+			}
+			finally
+			{
+				writer.Dispose();
+				WriterPool.Free(writer);
+			}
 		}
 
 		private static ObjectPool<CrystalJsonWriter> WriterPool = new(() => new CrystalJsonWriter());
@@ -538,7 +547,7 @@ namespace Doxense.Serialization.Json
 					CrystalJsonVisitor.VisitValue(value, writer);
 				}
 
-				return writer.Buffer.ToUtf8Slice(clear: true);
+				return writer.GetUtf8Slice();
 			}
 			finally
 			{
@@ -562,7 +571,7 @@ namespace Doxense.Serialization.Json
 					CrystalJsonVisitor.VisitValue(value, writer);
 				}
 
-				return writer.Buffer.ToUtf8SliceOwner(clear: true, pool);
+				return writer.GetUtf8Slice(pool);
 			}
 			finally
 			{

@@ -42,7 +42,13 @@ namespace System
 		private Slice m_data;
 
 		/// <summary>The pool where the buffer should be returned</summary>
-		private ArrayPool<byte> m_pool;
+		private ArrayPool<byte>? m_pool;
+
+		public SliceOwner(Slice data)
+		{
+			m_data = data;
+			m_pool = null;
+		}
 
 		public SliceOwner(Slice data, ArrayPool<byte> pool)
 		{
@@ -54,7 +60,7 @@ namespace System
 		/// <inheritdoc />
 		public void Dispose()
 		{
-			var array = m_data.Array;
+			byte[]? array = m_data.Array;
 			var pool = m_pool;
 			m_data = default;
 			m_pool = null!;
@@ -65,21 +71,21 @@ namespace System
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private void ThrowIfDisposed()
+		private readonly void ThrowIfDisposed()
 		{
 			if (m_pool == null) throw ThrowHelper.ObjectDisposedException<SliceOwner>("The content has already been returned to the pool");
 		}
 
 		/// <summary>Returns <see langword="true"/> if the buffer is still usable, or <see langword="false"/> if <see cref="Dispose"/> has been called at least once.</summary>
-		public bool IsValid => m_pool != null;
+		public readonly bool IsValid => m_data.Array != null!;
 
 		/// <summary>Size (in bytes) of the content</summary>
 		/// <remarks>Returns <see langword="0"/> once the container is disposed.</remarks>
-		public int Count => m_data.Count;
+		public readonly int Count => m_data.Count;
 
 		/// <summary>Returns the content as a <see cref="Slice"/></summary>
 		/// <exception cref="T:System.ObjectDisposedException">If the container has already been disposed</exception>
-		public Slice Data
+		public readonly Slice Data
 		{
 			get
 			{
@@ -89,7 +95,7 @@ namespace System
 		}
 
 		/// <summary>Returns the content as a <see cref="Slice"/>, unless the container has been disposed.</summary>
-		public bool TryGetSlice(out Slice data)
+		public readonly bool TryGetSlice(out Slice data)
 		{
 			if (m_pool == null)
 			{
@@ -102,7 +108,7 @@ namespace System
 		}
 
 		/// <summary>Returns the content as a <see cref="T:System.ReadOnlySpan`1"/>, unless the container has been disposed.</summary>
-		public bool TryGetSpan(out ReadOnlySpan<byte> data)
+		public readonly bool TryGetSpan(out ReadOnlySpan<byte> data)
 		{
 			if (m_pool == null)
 			{
@@ -116,7 +122,7 @@ namespace System
 
 		/// <summary>Returns the content as a <see cref="T:System.ReadOnlySpan`1"/></summary>
 		/// <exception cref="T:System.ObjectDisposedException">If the container has already been disposed</exception>
-		public ReadOnlySpan<byte> Span
+		public readonly ReadOnlySpan<byte> Span
 		{
 			get
 			{
@@ -126,7 +132,7 @@ namespace System
 		}
 
 		/// <summary>Returns the content as a <see cref="T:System.ReadOnlyMemory`1"/>, unless the container has been disposed.</summary>
-		public bool TryGetMemory(out ReadOnlyMemory<byte> data)
+		public readonly bool TryGetMemory(out ReadOnlyMemory<byte> data)
 		{
 			if (m_pool == null)
 			{
@@ -140,7 +146,7 @@ namespace System
 
 		/// <summary>Returns the content as a <see cref="T:System.ReadOnlyMemory`1"/></summary>
 		/// <exception cref="T:System.ObjectDisposedException">If the container has already been disposed</exception>
-		public ReadOnlyMemory<byte> Memory
+		public readonly ReadOnlyMemory<byte> Memory
 		{
 			get
 			{
@@ -151,16 +157,36 @@ namespace System
 
 		/// <summary>Returns a copy of the content</summary>
 		/// <exception cref="T:System.ObjectDisposedException">If the container has already been disposed</exception>
-		public byte[] ToArray() => this.Span.ToArray();
+		public readonly byte[] ToArray() => this.Span.ToArray();
 
 		/// <summary>Copies the content to a destination <see cref="T:System.Span`1"/></summary>
 		/// <exception cref="T:System.ArgumentException"> <paramref name="destination" /> is not large enough.</exception>
 		/// <exception cref="T:System.ObjectDisposedException"> the container has already been disposed</exception>
-		public void CopyTo(Span<byte> destination) => this.Span.CopyTo(destination);
+		public readonly int CopyTo(Span<byte> destination)
+		{
+			var span = this.Span;
+			span.CopyTo(destination);
+			return span.Length;
+		}
 
 		/// <summary>Copies the content to a destination <see cref="T:System.Span`1"/>, if it is large enough.</summary>
 		/// <exception cref="T:System.ObjectDisposedException"> the container has already been disposed</exception>
-		public bool TryCopyTo(Span<byte> destination) => this.Span.TryCopyTo(destination);
+		public readonly bool TryCopyTo(Span<byte> destination) => this.Span.TryCopyTo(destination);
+
+		/// <summary>Copies the content to a destination <see cref="T:System.Span`1"/>, if it is large enough.</summary>
+		/// <exception cref="T:System.ObjectDisposedException"> the container has already been disposed</exception>
+		public readonly bool TryCopyTo(Span<byte> destination, out int bytesWritten)
+		{
+			var span = Span;
+			if (!span.TryCopyTo(destination))
+			{
+				bytesWritten = 0;
+				return false;
+			}
+
+			bytesWritten = span.Length;
+			return true;
+		}
 
 	}
 

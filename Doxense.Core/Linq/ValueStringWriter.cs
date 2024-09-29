@@ -70,16 +70,16 @@ namespace Doxense.Linq
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
 		/// <summary>Returns a span with all the items already written to this buffer</summary>
-		public Span<char> Span => this.Count > 0 ? this.Buffer.AsSpan(0, this.Count) : default;
+		public readonly Span<char> Span => this.Count > 0 ? this.Buffer.AsSpan(0, this.Count) : default;
 
 		/// <summary>Returns a span with all the items already written to this buffer</summary>
-		public Memory<char> Memory => this.Count > 0 ? this.Buffer.AsMemory(0, this.Count) : default;
+		public readonly Memory<char> Memory => this.Count > 0 ? this.Buffer.AsMemory(0, this.Count) : default;
 
 		/// <summary>Returns a span with all the items already written to this buffer</summary>
-		public ArraySegment<char> Segment => this.Count > 0 ? new ArraySegment<char>(this.Buffer, 0, this.Count) : default;
+		public readonly ArraySegment<char> Segment => this.Count > 0 ? new ArraySegment<char>(this.Buffer, 0, this.Count) : default;
 
 		/// <summary>Returns the current capacity of the buffer</summary>
-		public int Capacity => this.Buffer.Length;
+		public readonly int Capacity => this.Buffer.Length;
 
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public void Write(char item)
@@ -293,34 +293,19 @@ namespace Doxense.Linq
 		/// <summary>Returns the content of the buffer as an array</summary>
 		/// <returns>Array of size <see cref="Count"/> containing all the items in this buffer</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public override string ToString() => this.Span.ToString();
+		public readonly override string ToString() => this.Span.ToString();
 
-		[Pure, CollectionAccess(CollectionAccessType.ModifyExistingContent)]
-		public string ToString(bool clear)
-		{
-			var res = this.Span.ToString();
-			if (clear)
-			{
-				Clear(release: true);
-			}
-			return res;
-		}
-
-		public Slice ToUtf8Slice(bool clear, ArrayPool<byte>? pool = null)
+		public readonly Slice ToUtf8Slice(ArrayPool<byte>? pool = null)
 		{
 			var enc = CrystalJson.Utf8NoBom;
 			var span = this.Span;
 			int size = enc.GetByteCount(span);
 			var tmp = pool?.Rent(size) ?? new byte[size];
 			var written = enc.GetBytes(span, tmp);
-			if (clear)
-			{
-				Clear(release: true);
-			}
 			return tmp.AsSlice(0, written);
 		}
 
-		public SliceOwner ToUtf8SliceOwner(bool clear, ArrayPool<byte>? pool = null)
+		public readonly SliceOwner ToUtf8SliceOwner(ArrayPool<byte>? pool = null)
 		{
 			pool ??= ArrayPool<byte>.Shared;
 			var enc = CrystalJson.Utf8NoBom;
@@ -328,16 +313,12 @@ namespace Doxense.Linq
 			int size = enc.GetByteCount(span);
 			var tmp = pool.Rent(size);
 			var written = enc.GetBytes(span, tmp);
-			if (clear)
-			{
-				Clear(release: true);
-			}
 			return new SliceOwner(tmp.AsSlice(0, written), pool);
 		}
 
 		/// <summary>Copies the content of the buffer into a destination span</summary>
 		[CollectionAccess(CollectionAccessType.Read)]
-		public int CopyTo(Span<char> destination, bool clear = false)
+		public readonly int CopyTo(Span<char> destination)
 		{
 			if (this.Count < destination.Length)
 			{
@@ -346,16 +327,12 @@ namespace Doxense.Linq
 
 			this.Span.CopyTo(destination);
 			var count = this.Count;
-			if (clear)
-			{
-				Clear(release: true);
-			}
 			return count;
 		}
 
 		/// <summary>Copies the content of the buffer into a destination span, if it is large enough</summary>
 		[CollectionAccess(CollectionAccessType.Read)]
-		public bool TryCopyTo(Span<char> destination, out int written, bool clear = false)
+		public readonly bool TryCopyTo(Span<char> destination, out int written)
 		{
 			int count = this.Count;
 			if (count < destination.Length)
@@ -366,24 +343,15 @@ namespace Doxense.Linq
 
 			this.Span.TryCopyTo(destination);
 			written = count;
-			if (clear)
-			{
-				Clear(release: true);
-			}
 			return true;
 		}
 
-		public int CopyToUtf8(Span<byte> destination, bool clear = false)
+		public readonly int CopyToUtf8(Span<byte> destination)
 		{
-			int written = CrystalJson.Utf8NoBom.GetBytes(this.Span, destination);
-			if (clear)
-			{
-				Clear(release: true);
-			}
-			return written;
+			return CrystalJson.Utf8NoBom.GetBytes(this.Span, destination);
 		}
 
-		public bool TryCopyToUtf8(Span<byte> destination, out int written, bool clear = false)
+		public readonly bool TryCopyToUtf8(Span<byte> destination, out int written)
 		{
 #if NET8_0_OR_GREATER
 			if (!CrystalJson.Utf8NoBom.TryGetBytes(this.Span, destination, out written))
@@ -400,55 +368,39 @@ namespace Doxense.Linq
 
 			written = CrystalJson.Utf8NoBom.GetBytes(this.Span, destination);
 #endif
-			if (clear)
-			{
-				Clear(release: true);
-			}
 			return true;
 		}
 
 		/// <summary>Copies the content of the buffer into a destination span</summary>
 		[CollectionAccess(CollectionAccessType.Read)]
-		public int CopyTo(StringBuilder destination, bool clear = false)
+		public readonly int CopyTo(StringBuilder destination)
 		{
 			destination.Append(this.Span);
 			var count = this.Count;
-			if (clear)
-			{
-				Clear(release: true);
-			}
 			return count;
 		}
 
-		public void CopyTo(IBufferWriter<byte> destination, bool clear = false)
+		public readonly void CopyTo(IBufferWriter<byte> destination)
 		{
-			var data = this.Span;
-
-			CrystalJson.Utf8NoBom.GetBytes(data, destination);
-
-			if (clear)
-			{
-				Clear(release: true);
-			}
+			CrystalJson.Utf8NoBom.GetBytes(this.Span, destination);
 		}
 
-		public void CopyTo(Stream destination, bool clear = false)
+		public readonly void CopyTo(Stream destination)
 		{
 			Contract.NotNull(destination);
 			if (!destination.CanWrite) throw new InvalidOperationException("Cannot write to destination stream");
 
-			using var data = ToUtf8SliceOwner(clear);
+			using var data = ToUtf8SliceOwner();
 			destination.Write(data.Span);
-
 		}
 
-		public async Task CopyToAsync(Stream destination, bool clear, CancellationToken ct)
+		public readonly async Task CopyToAsync(Stream destination, CancellationToken ct)
 		{
 			Contract.NotNull(destination);
 			ct.ThrowIfCancellationRequested();
 			if (!destination.CanWrite) throw new InvalidOperationException("Cannot write to destination stream");
 
-			using var data = ToUtf8SliceOwner(clear);
+			using var data = ToUtf8SliceOwner();
 
 			if (destination is MemoryStream ms)
 			{
@@ -464,14 +416,14 @@ namespace Doxense.Linq
 		#region IReadOnlyList<T>...
 
 		[Pure, CollectionAccess(CollectionAccessType.ModifyExistingContent)]
-		public ref char this[int index]
+		public readonly ref char this[int index]
 		{
 			[Pure, CollectionAccess(CollectionAccessType.Read)]
 			get => ref this.Buffer.AsSpan(0, this.Count)[index];
 			//note: the span will perform the bound-checking for us
 		}
 
-		public Span<char>.Enumerator GetEnumerator()
+		public readonly Span<char>.Enumerator GetEnumerator()
 		{
 			return this.Span.GetEnumerator();
 		}
