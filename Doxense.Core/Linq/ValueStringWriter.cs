@@ -54,12 +54,20 @@ namespace Doxense.Linq
 		/// <summary>Number of items in the buffer</summary>
 		public int Count;
 
-		public ValueStringWriter(int capacity = 0)
+		public ValueStringWriter(int capacity)
 		{
 			Contract.Positive(capacity);
 			this.Count = 0;
 			this.Buffer = capacity > 0 ? ArrayPool<char>.Shared.Rent(capacity) : [ ];
 		}
+
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+
+		/// <summary><c>YOU MUST PROVIDE AN INITIAL CAPACITY!</c></summary>
+		[Obsolete("You must specify an initial capacity", error: true)]
+		public ValueStringWriter() { }
+
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
 		/// <summary>Returns a span with all the items already written to this buffer</summary>
 		public Span<char> Span => this.Count > 0 ? this.Buffer.AsSpan(0, this.Count) : default;

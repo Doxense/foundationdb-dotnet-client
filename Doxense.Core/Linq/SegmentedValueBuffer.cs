@@ -71,12 +71,11 @@ namespace Doxense.Linq
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
-		/// <summary>YOU MUST PROVIDE AN INITIAL SCRATCH SPACE!</summary>
+		/// <summary><c>YOU MUST PROVIDE AN INITIAL SCRATCH SPACE!</c></summary>
 		[Obsolete("You must specify an initial scratch buffer", error: true)]
 		public SegmentedValueBuffer() { }
 
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-
 
 		#region Fields...
 

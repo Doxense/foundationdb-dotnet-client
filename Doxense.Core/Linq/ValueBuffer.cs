@@ -68,13 +68,21 @@ namespace Doxense.Linq
 			this.Buffer = initialBuffer;
 		}
 
-		public ValueBuffer(int capacity = 0)
+		public ValueBuffer(int capacity)
 		{
 			Contract.Positive(capacity);
 			this.Count = 0;
 			this.Array = capacity > 0 ? ArrayPool<T>.Shared.Rent(capacity) : [ ];
 			this.Buffer = this.Array;
 		}
+
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+
+		/// <summary><c>YOU MUST PROVIDE AN INITIAL CAPACITY OR SCRATCH SPACE!</c></summary>
+		[Obsolete("You must specify an initial capacity or scratch buffer", error: true)]
+		public ValueBuffer() { }
+
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
 		/// <summary>Returns a span with all the items already written to this buffer</summary>
 		public Span<T> Span => this.Count > 0 ? this.Buffer.Slice(0, this.Count) : default;
@@ -420,6 +428,7 @@ namespace Doxense.Linq
 
 		#region IBufferWriter<T>...
 
+		/// <summary>Notifies the <see cref="ValueBuffer{T}" /> that <paramref name="count" /> data items were written to the output <see cref="T:System.Span`1" />.</summary>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public void Advance(int count)
 		{
@@ -433,6 +442,7 @@ namespace Doxense.Linq
 			Contract.Debug.Ensures((uint) this.Count <= this.Buffer.Length);
 		}
 
+		/// <summary>Returns a <see cref="T:System.Span`1" /> to write to that is at least the requested size (specified by <paramref name="sizeHint" />).</summary>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public Span<T> GetSpan(int sizeHint = 0)
 		{

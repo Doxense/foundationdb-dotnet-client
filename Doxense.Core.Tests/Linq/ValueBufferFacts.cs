@@ -26,7 +26,6 @@
 
 namespace Doxense.Linq.Tests
 {
-	using System.Linq;
 	using System.Runtime.CompilerServices;
 
 	[TestFixture]
@@ -142,7 +141,7 @@ namespace Doxense.Linq.Tests
 		public void Test_Buffer_ToArray()
 		{
 			// start with an empty buffer (no allocations yet)
-			var buffer = new ValueBuffer<int>();
+			var buffer = new ValueBuffer<int>(0);
 			Assert.That(buffer.Count, Is.EqualTo(0));
 			Assert.That(buffer.Capacity, Is.EqualTo(0));
 
@@ -180,7 +179,7 @@ namespace Doxense.Linq.Tests
 		public void Test_Buffer_ToArrayAndClear()
 		{
 			// start with an empty buffer (no allocations yet)
-			var buffer = new ValueBuffer<int>();
+			var buffer = new ValueBuffer<int>(0);
 			Assert.That(buffer.Count, Is.EqualTo(0));
 			Assert.That(buffer.Capacity, Is.EqualTo(0));
 
@@ -336,7 +335,7 @@ namespace Doxense.Linq.Tests
 			var randomItems= GetRandomNumbers(1000);
 			Dump(randomItems);
 
-			using var buffer = new ValueBuffer<int>();
+			using var buffer = new ValueBuffer<int>(0);
 
 			ReadOnlySpan<int> remaining = randomItems;
 			while (remaining.Length > 0)
