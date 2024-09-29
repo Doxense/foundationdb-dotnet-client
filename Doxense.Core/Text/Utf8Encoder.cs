@@ -446,6 +446,22 @@ namespace Doxense.Text
 			return 0;
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal static int GetNumberOfEncodedBytes(char codePoint)
+		{
+			if (codePoint <= 0x7F)
+			{
+				return 1;
+			}
+
+			if (codePoint <= 0x7FF)
+			{
+				return 2;
+			}
+
+			return 3;
+		}
+
 		public static bool TryEncodeCodePoint(UnicodeCodePoint cp, ref byte buffer, int capacity, out int length)
 		{
 			return TryEncodeCodePoint(cp.Value, ref buffer, capacity, out length);
@@ -531,6 +547,91 @@ namespace Doxense.Text
 				default:
 				{
 					return false;
+				}
+			}
+		}
+
+		public static bool TryWriteCodePoint(Span<byte> destination, UnicodeCodePoint cp, out int bytesWritten)
+		{
+			int len = GetNumberOfEncodedBytes(cp);
+			if (destination.Length < len)
+			{
+				bytesWritten = 0;
+				return false;
+			}
+
+			uint value = cp.Value;
+			switch (len)
+			{
+				case 1:
+				{
+					destination[0] = (byte) (value & 0x7F);
+					bytesWritten = 1;
+					return true;
+				}
+				case 2:
+				{
+					destination[0] = (byte) (((value >> 6) & 0x1F) | 0xC0);
+					destination[1] = (byte) (((value >> 0) & 0x3F) | 0x80);
+					bytesWritten = 2;
+					return true;
+				}
+				case 3:
+				{
+					destination[0] = (byte) (((value >> 12) & 0xF) | 0xE0);
+					destination[1] = (byte) (((value >> 6) & 0x3F) | 0x80);
+					destination[2] = (byte) (((value >> 0) & 0x3F) | 0x80);
+					bytesWritten = 3;
+					return true;
+				}
+				case 4:
+				{
+					destination[0] = (byte) (((value >> 18) & 0x7) | 0xE0);
+					destination[1] = (byte) (((value >> 12) & 0x3F) | 0x80);
+					destination[2] = (byte) (((value >> 6) & 0x3F) | 0x80);
+					destination[3] = (byte) (((value >> 0) & 0x3F) | 0x80);
+					bytesWritten = 4;
+					return true;
+				}
+				default:
+				{
+					bytesWritten = 0;
+					return false;
+				}
+			}
+		}
+
+		public static bool TryWriteCodePoint(Span<byte> destination, char value, out int bytesWritten)
+		{
+			int len = GetNumberOfEncodedBytes(value);
+			if (destination.Length < len)
+			{
+				bytesWritten = 0;
+				return false;
+			}
+
+			switch (len)
+			{
+				case 1:
+				{
+					destination[0] = (byte) (value & 0x7F);
+					bytesWritten = 1;
+					return true;
+				}
+				case 2:
+				{
+					destination[0] = (byte) (((value >> 6) & 0x1F) | 0xC0);
+					destination[1] = (byte) (((value >> 0) & 0x3F) | 0x80);
+					bytesWritten = 2;
+					return true;
+				}
+				default:
+				{
+					destination[0] = (byte) (((value >> 12) & 0xF) | 0xE0);
+					destination[1] = (byte) (((value >> 6) & 0x3F) | 0x80);
+					destination[2] = (byte) (((value >> 0) & 0x3F) | 0x80);
+					bytesWritten = 3;
+					return true;
 				}
 			}
 		}

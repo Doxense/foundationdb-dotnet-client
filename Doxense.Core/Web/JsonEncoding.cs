@@ -31,6 +31,7 @@ namespace Doxense.Serialization.Json
 	using System.Runtime.InteropServices;
 	using System.Text;
 	using Doxense.Linq;
+	using Doxense.Memory;
 	using Doxense.Text;
 
 	public static partial class JsonEncoding
@@ -378,7 +379,7 @@ namespace Doxense.Serialization.Json
 			span[written] = '"';
 		}
 
-		public static bool TryEncodeTo(Span<char> destination, ReadOnlySpan<char> text, out int written, bool withQuotes = true)
+		public static bool TryEncodeTo(Span<char> destination, ReadOnlySpan<char> text, out int charsWritten, bool withQuotes = true)
 		{
 			// in all cases, we need space for two double quotes!
 			if (withQuotes && destination.Length < 2)
@@ -392,11 +393,11 @@ namespace Doxense.Serialization.Json
 				{
 					destination[0] = '"';
 					destination[1] = '"';
-					written = 2;
+					charsWritten = 2;
 				}
 				else
 				{
-					written = 0;
+					charsWritten = 0;
 				}
 				return true;
 			}
@@ -418,7 +419,7 @@ namespace Doxense.Serialization.Json
 					destination[0] = '"';
 					text.CopyTo(destination[1..]);
 					destination[text.Length + 1] = '"';
-					written = text.Length + 2;
+					charsWritten = text.Length + 2;
 					return true;
 				}
 
@@ -426,7 +427,7 @@ namespace Doxense.Serialization.Json
 				{
 					goto too_small;
 				}
-				written = text.Length;
+				charsWritten = text.Length;
 				return true;
 			}
 
@@ -459,21 +460,21 @@ namespace Doxense.Serialization.Json
 			if (withQuotes)
 			{ // close double quotes
 				destination[extra] = '"';
-				written = first + extra + 2;
+				charsWritten = first + extra + 2;
 				return true;
 			}
 			else
 			{
-				written = first + extra;
+				charsWritten = first + extra;
 				return true;
 			}
 
 		too_small:
-			written = 0;
+			charsWritten = 0;
 			return false;
 		}
 
-		private static bool TryEncodeToSlow(Span<char> output, ReadOnlySpan<char> s, out int written)
+		private static bool TryEncodeToSlow(Span<char> output, ReadOnlySpan<char> s, out int charsWritten)
 		{
 			ref int map = ref EscapingLookupTable[0];
 			ref char start = ref output[0];
@@ -558,11 +559,246 @@ namespace Doxense.Serialization.Json
 					}
 				}	
 			}
-			written = output.Length - remaining;
+			charsWritten = output.Length - remaining;
 			return true;
 			
 		too_small:
-			written = 0;
+			charsWritten = 0;
+			return false;
+		}
+
+		public static void EncodeTo(ref SliceWriter destination, ReadOnlySpan<char> text, bool withQuotes = true)
+		{
+			// it is somewhat possible to get an estimate of the escaped _byte size_ from the number of escaped chars
+			// - any "non-ASCII" character will either be converted to UTF-8 bytes (up to 3 bytes), OR will be escaped as \uXXXX (6 bytes)
+			// - any escaped character will always be ASCII, so it will always take 1 byte
+			// So, if we computed en UTF-8 encoded size of the original string, and the escaped string length minus the original string length,
+			// we should always have an upper bound for the required size
+
+			var nonEscapedByteCount = CrystalJson.Utf8NoBom.GetByteCount(text);
+			var escapedCharsCount = ComputeEscapedSize(text, withQuotes);
+			var escapedByteUpperBound = checked(nonEscapedByteCount + (escapedCharsCount - text.Length));
+
+			var span = destination.GetSpan(escapedByteUpperBound);
+			if (!TryEncodeTo(span, text, out int bytesWritten, withQuotes))
+			{
+				throw new InvalidOperationException();
+			}
+			destination.Advance(bytesWritten);
+		}
+
+		public static void EncodeTo(ref ValueBuffer<byte> destination, ReadOnlySpan<char> text, bool withQuotes = true)
+		{
+			var span = destination.GetSpan(ComputeEscapedSize(text, withQuotes));
+			if (!TryEncodeTo(span, text, out int bytesWritten, withQuotes))
+			{
+				throw new InvalidOperationException();
+			}
+			destination.Advance(bytesWritten);
+		}
+
+		public static bool TryEncodeTo(Span<byte> destination, ReadOnlySpan<char> text, out int bytesWritten, bool withQuotes = true)
+		{
+			// in all cases, we need space for two double quotes!
+			if (withQuotes && destination.Length < 2)
+			{
+				goto too_small;
+			}
+
+			if (text.Length == 0)
+			{ // empty string
+				if (withQuotes)
+				{
+					destination[0] = (byte) '"';
+					destination[1] = (byte) '"';
+					bytesWritten = 2;
+				}
+				else
+				{
+					bytesWritten = 0;
+				}
+				return true;
+			}
+
+			// look for the first invalid character
+			// - either they are all valid, then we simply copy everything
+			// - or we can at least copy up to this position, and then start converting with a slow loop
+
+			int first = IndexOfFirstInvalidChar(text);
+			if (first < 0)
+			{ // the string is clean, no need for escaping
+
+				int bytesNeeded = CrystalJson.Utf8NoBom.GetByteCount(text);
+				if (withQuotes)
+				{
+					if (destination.Length < checked(bytesNeeded + 2))
+					{
+						goto too_small;
+					}
+					destination[0] = (byte) '"';
+					bytesNeeded = CrystalJson.Utf8NoBom.GetBytes(text, destination[1..]);
+					destination[bytesNeeded + 1] = (byte) '"';
+					bytesWritten = bytesNeeded + 2;
+					return true;
+				}
+
+				if (destination.Length < bytesNeeded)
+				{
+					goto too_small;
+				}
+				bytesNeeded = CrystalJson.Utf8NoBom.GetBytes(text, destination);
+				bytesWritten = bytesNeeded;
+				return true;
+			}
+
+			// open double quotes
+			if (withQuotes)
+			{
+				destination[0] = (byte) '"';
+				destination = destination[1..];
+			}
+
+			if (first > 0)
+			{ // copy the first clean portion of the string
+
+				int bytesNeeded = CrystalJson.Utf8NoBom.GetByteCount(text[..first]);
+				if (destination.Length < bytesNeeded)
+				{
+					goto too_small;
+				}
+
+				bytesNeeded = CrystalJson.Utf8NoBom.GetBytes(text[..first], destination);
+				text = text[first..];
+				destination = destination[bytesNeeded..];
+			}
+
+			if (!TryEncodeToSlow(destination, text, out int extra)
+				|| extra >= destination.Length)
+			{
+				goto too_small;
+			}
+
+			if (withQuotes)
+			{ // close double quotes
+				destination[extra] = (byte) '"';
+				bytesWritten = first + extra + 2;
+				return true;
+			}
+			else
+			{
+				bytesWritten = first + extra;
+				return true;
+			}
+
+		too_small:
+			bytesWritten = 0;
+			return false;
+		}
+
+		private static bool TryEncodeToSlow(Span<byte> output, ReadOnlySpan<char> s, out int bytesWritten)
+		{
+			ref int map = ref EscapingLookupTable[0];
+			ref byte start = ref output[0];
+			ref byte ptr = ref start;
+			int remaining = output.Length;
+
+			foreach (var c in s)
+			{
+				switch (Unsafe.Add(ref map, c))
+				{
+					case 0:
+					{
+						if (c <= 0x7F)
+						{
+							if (remaining < 1)
+							{
+								goto too_small;
+							}
+
+							ptr = (byte) c;
+							ptr = ref Unsafe.Add(ref ptr, 1);
+							--remaining;
+						}
+						else
+						{
+							if (!Utf8Encoder.TryWriteCodePoint(MemoryMarshal.CreateSpan(ref ptr, remaining), c, out int n))
+							{
+								goto too_small;
+							}
+							ptr = ref Unsafe.Add(ref ptr, n);
+							remaining -= n;
+						}
+
+						break;
+					}
+					case 1:
+					{
+						if (remaining < 2)
+						{
+							goto too_small;
+						}
+						ptr = (byte) '\\';
+
+						if (c is '\\' or '"')
+							Unsafe.Add(ref ptr, 1) = (byte) c;
+						else
+							Unsafe.Add(ref ptr, 1) = c switch
+							{
+								'\n' => (byte) 'n',
+								'\r' => (byte) 'r',
+								'\t' => (byte) 't',
+								'\b' => (byte) 'b',
+								_ => (byte) 'f',
+							};
+						ptr = ref Unsafe.Add(ref ptr, 2);
+						remaining -= 2;
+						break;
+					}
+					default:
+					{
+						if (remaining < 6)
+						{
+							goto too_small;
+						}
+
+						Unsafe.WriteUnaligned<ushort>(ref ptr, 0x755C); // '\u' => 5C 75
+
+						ptr = ref Unsafe.Add(ref ptr, 2);
+
+						int b1, b2;
+						// most ASCII chars are < 256
+						if (c <= 0xFF)
+						{
+							Unsafe.WriteUnaligned<ushort>(ref ptr, 0x3030); // "00" => 30 30
+						}
+						else
+						{
+							b1 = (c >> 12) & 0xF;
+							b2 = (c >> 8) & 0xF;
+							b1 += (b1 < 10 ? 48 : 87);
+							b2 += (b2 < 10 ? 48 : 87);
+							Unsafe.WriteUnaligned<ushort>(ref ptr, (ushort) (b2 << 8 | b1));
+						}
+
+						ptr = ref Unsafe.Add(ref ptr, 2);
+
+						b1 = (c >> 4) & 0xF;
+						b2 = c & 0xF;
+						b1 += (b1 < 10 ? 48 : 87);
+						b2 += (b2 < 10 ? 48 : 87);
+						Unsafe.WriteUnaligned<ushort>(ref ptr, (ushort) (b2 << 8 | b1));
+
+						ptr = ref Unsafe.Add(ref ptr, 2);
+						remaining -= 6;
+						break;
+					}
+				}
+			}
+			bytesWritten = output.Length - remaining;
+			return true;
+
+		too_small:
+			bytesWritten = 0;
 			return false;
 		}
 
