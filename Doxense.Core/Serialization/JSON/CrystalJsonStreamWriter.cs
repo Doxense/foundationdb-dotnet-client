@@ -35,7 +35,7 @@ namespace Doxense.Serialization.Json
 	/// <summary>Classe capable d'écrire des fragments de JSON, en mode stream</summary>
 	[PublicAPI]
 	[DebuggerNonUserCode]
-	public sealed class CrystalJsonStreamWriter : IDisposable //TODO: IAsyncDisposable !
+	public sealed class CrystalJsonStreamWriter : IDisposable, IAsyncDisposable
 	{
 		// On utilise un CrystalJsonWriter classique, qui va écrire dans un MemoryStream qui sert de tampon, de manière classique.
 		// Le writer écrit dans un TextWriter, qui lui même flush périodiquement dans le MemoryStream. Jusque la, tout reste en non-async et ne bloque jamais.
@@ -810,8 +810,7 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		//note: en prévision de IAsyncDisposable
-		public async Task DisposeAsync(CancellationToken ct) //REVIEW: pas sur pour le CT...
+		public async ValueTask DisposeAsync()
 		{
 			if (!m_disposed)
 			{
@@ -819,7 +818,7 @@ namespace Doxense.Serialization.Json
 				//note: on ne peut pas fermer la hiérachie automatiquement, car Dispose() peut être appelé suite à une erreur I/O sur le stream lui-même !
 				try
 				{
-					await FlushInternalAsync(true, ct).ConfigureAwait(true);
+					await FlushInternalAsync(true, CancellationToken.None).ConfigureAwait(true);
 				}
 				finally
 				{
