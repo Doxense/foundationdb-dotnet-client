@@ -31,7 +31,7 @@ namespace Doxense.Serialization.Json
 	{
 		//IMPORTANT: the order of these values has an impact on the ordering of JSON values when sorting (except Null which is always last)
 
-		/// <summary>Empty value, can either by an <see cref="JsonNull.Null">explicit null</see> (usually denoted by the <c>null</c> literal in the source document), a <see cref="JsonNull.Missing">missing value</see> (ex: <c>obj["does_not_exist"]</c>), or <see cref="JsonNull.Error">an error</see> of some kind</summary>
+		/// <summary>Empty value, can either be an <see cref="JsonNull.Null">explicit null</see> (usually denoted by the <c>null</c> literal in the source document), a <see cref="JsonNull.Missing">missing value</see> (ex: <c>obj["does_not_exist"]</c>), or <see cref="JsonNull.Error">an error</see> of some kind</summary>
 		/// <remarks>The <see cref="JsonNull.Missing"/> is used when chaining (ex: <c>obj["foo"]["bar"]["baz"]) and allows distinguishing between explicit null entries denoted by <see cref="JsonNull.Null"/>, vs missing fields.</c></remarks>
 		Null,
 
@@ -46,7 +46,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>
 		/// <para>This type only exists in memory while serializing CLR objects (for optimization purpose), and is serialized as a string literal.</para>
 		/// <para>The same field will be parsed back as a <see cref="JsonType.String"/> value.</para>
-		/// <para>This type behaves the same way as a <see cref="JsonString"/>, and the developper should not use this type explicitely.</para>
+		/// <para>This type behaves the same way as a <see cref="JsonString"/>, and the caller should not use this type explicitly.</para>
 		/// </remarks>
 		DateTime,
 

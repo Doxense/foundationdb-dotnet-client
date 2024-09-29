@@ -4814,14 +4814,31 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonNumber_CompareTo()
 		{
-			JsonValue x0 = 0;
-			JsonValue x1 = 1;
-			JsonValue x2 = 2;
-
 			#pragma warning disable CS1718
+			#pragma warning disable NUnit2010
+			#pragma warning disable NUnit2043
 			// ReSharper disable EqualExpressionComparison
+			// ReSharper disable CannotApplyEqualityOperatorToType
 
-			// JsonValue vs JsonValue
+			// use random numbers, so that we don't end up just testing reference equality between cached small numbers
+			int[] nums = [ NextInt32(), NextInt32(), NextInt32() ];
+			Assume.That(nums, Is.Unique);
+			Array.Sort(nums);
+
+			JsonNumber x0 = JsonNumber.Return(nums[0]);
+			JsonNumber x1 = JsonNumber.Return(nums[1]);
+			JsonNumber x2 = JsonNumber.Return(nums[2]);
+
+			// JsonNumber vs JsonNumber
+
+			Assert.That(x0 == x0, Is.True);
+			Assert.That(x0 == x1, Is.False);
+			Assert.That(x0 == x2, Is.False);
+
+			Assert.That(x0 != x0, Is.False);
+			Assert.That(x0 != x1, Is.True);
+			Assert.That(x0 != x2, Is.True);
+
 			Assert.That(x0 < x0, Is.False);
 			Assert.That(x0 < x1, Is.True);
 			Assert.That(x0 < x2, Is.True);
@@ -4838,29 +4855,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(x0 >= x1, Is.False);
 			Assert.That(x0 >= x2, Is.False);
 
-			// ReSharper restore EqualExpressionComparison
-			#pragma warning restore CS1718
-
-			// JsonValue vs valuetype (allocation)
-			// => the integer is automatically converted into a JsonValue, which triggers a memory allocation during the operation
-
-			Expression<Func<JsonValue, int, bool>> expr2 = (jval, x) => jval < x;
-			Assert.That(expr2.Body.NodeType, Is.EqualTo(ExpressionType.LessThan));
-			Assert.That(((BinaryExpression)expr2.Body).Method?.Name, Is.EqualTo("op_LessThan"));
-			Assert.That(((BinaryExpression)expr2.Body).Method?.GetParameters()[0].ParameterType, Is.EqualTo(typeof(JsonValue)));
-			Assert.That(((BinaryExpression)expr2.Body).Method?.GetParameters()[1].ParameterType, Is.EqualTo(typeof(JsonValue)));
-
-			Assert.That(x1 < 1, Is.False);
-			Assert.That(x1 <= 1, Is.True);
-			Assert.That(x1 > 1, Is.False);
-			Assert.That(x1 >= 1, Is.True);
-
-			Assert.That(x1 < 2, Is.True);
-			Assert.That(x1 <= 2, Is.True);
-			Assert.That(x1 > 2, Is.False);
-			Assert.That(x1 >= 2, Is.False);
-
-			// JsonNumber vs valuetype (no allocations)
+			// JsonNumber vs ValueType (no allocations)
 			// => this comparisons should not allocate any JsonValue instance during the operation
 
 			Expression<Func<JsonNumber, int, bool>> expr1 = (jnum, x) => jnum < x;
@@ -4869,16 +4864,23 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(((BinaryExpression)expr1.Body).Method?.GetParameters()[0].ParameterType, Is.EqualTo(typeof(JsonNumber)));
 			Assert.That(((BinaryExpression)expr1.Body).Method?.GetParameters()[1].ParameterType, Is.EqualTo(typeof(long)));
 
-			var n1 = (JsonNumber) x1;
-			Assert.That(n1 < 1, Is.False);
-			Assert.That(n1 <= 1, Is.True);
-			Assert.That(n1 > 1, Is.False);
-			Assert.That(n1 >= 1, Is.True);
+			JsonNumber x = 1;
 
-			Assert.That(n1 < 2, Is.True);
-			Assert.That(n1 <= 2, Is.True);
-			Assert.That(n1 > 2, Is.False);
-			Assert.That(n1 >= 2, Is.False);
+			Assert.That(x < 1, Is.False);
+			Assert.That(x <= 1, Is.True);
+			Assert.That(x > 1, Is.False);
+			Assert.That(x >= 1, Is.True);
+
+			Assert.That(x < 2, Is.True);
+			Assert.That(x <= 2, Is.True);
+			Assert.That(x > 2, Is.False);
+			Assert.That(x >= 2, Is.False);
+
+			// ReSharper restore CannotApplyEqualityOperatorToType
+			// ReSharper restore EqualExpressionComparison
+			#pragma warning restore NUnit2043
+			#pragma warning restore NUnit2010
+			#pragma warning restore CS1718
 		}
 
 		[Test]
@@ -5076,140 +5078,6 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(arr1[i].ToInt32(), Is.EqualTo(t1[i]), $"arr1[{i}] == t1[{i}]");
 			}
 		}
-
-		[Test]
-		public void Test_JsonNumber_INumber_Additions()
-		{
-			// Validate the INumber<T> arithmetic for addition
-
-			Assert.That(JsonNumber.Zero + JsonNumber.Zero, Is.EqualTo(0));
-			Assert.That(JsonNumber.Zero + JsonNumber.One, Is.EqualTo(1));
-			Assert.That(JsonNumber.One + JsonNumber.Zero, Is.EqualTo(1));
-			Assert.That(JsonNumber.One + JsonNumber.One, Is.EqualTo(2));
-
-			Assert.That(JsonNumber.Return(123) + JsonNumber.Return(456), Is.EqualTo(579));
-			Assert.That(JsonNumber.Return(-123) + JsonNumber.Return(123), Is.EqualTo(0));
-			Assert.That(JsonNumber.Return(+123) + JsonNumber.Return(-123), Is.EqualTo(0));
-			Assert.That(JsonNumber.Return(0) + JsonNumber.Return(long.MaxValue), Is.EqualTo(long.MaxValue));
-			Assert.That(JsonNumber.Return(0) + JsonNumber.Return(ulong.MaxValue), Is.EqualTo(ulong.MaxValue));
-			Assert.That(JsonNumber.Return(1) + JsonNumber.Return(long.MaxValue), Is.EqualTo(9223372036854775808UL));
-			Assert.That(JsonNumber.Return(long.MaxValue) + JsonNumber.Return(0), Is.EqualTo(long.MaxValue));
-			Assert.That(JsonNumber.Return(long.MaxValue) + JsonNumber.Return(1), Is.EqualTo(9223372036854775808UL));
-			Assert.That(JsonNumber.Return(long.MaxValue) + JsonNumber.Return(long.MaxValue), Is.EqualTo(2UL * long.MaxValue));
-			Assert.That(JsonNumber.Return(long.MaxValue) + JsonNumber.Return(-long.MaxValue), Is.EqualTo(0));
-			Assert.That(JsonNumber.Return(ulong.MaxValue) + JsonNumber.Return(0), Is.EqualTo(ulong.MaxValue));
-			Assert.That(JsonNumber.Return(ulong.MaxValue) + JsonNumber.Return(-1), Is.EqualTo(ulong.MaxValue - 1));
-			Assert.That(JsonNumber.Return(ulong.MaxValue) + JsonNumber.Return(-1), Is.EqualTo(ulong.MaxValue - 1));
-
-			Assert.That(JsonNumber.Zero + JsonNumber.NaN, Is.EqualTo(double.NaN));
-			Assert.That(JsonNumber.One + JsonNumber.NaN, Is.EqualTo(double.NaN));
-			Assert.That(JsonNumber.Return(2) + JsonNumber.NaN, Is.EqualTo(double.NaN));
-			Assert.That(JsonNumber.NaN + JsonNumber.Zero, Is.EqualTo(double.NaN));
-			Assert.That(JsonNumber.NaN + JsonNumber.One, Is.EqualTo(double.NaN));
-			Assert.That(JsonNumber.NaN + JsonNumber.Return(2), Is.EqualTo(double.NaN));
-			Assert.That(JsonNumber.NaN + JsonNumber.NaN, Is.EqualTo(double.NaN));
-		}
-
-		[Test]
-		public void Test_JsonNumber_INumber_Subtractions()
-		{
-			// Validate the INumber<T> arithmetic for subtraction
-
-			Assert.That(JsonNumber.Zero - JsonNumber.Zero, Is.EqualTo(0));
-			Assert.That(JsonNumber.Zero - JsonNumber.One, Is.EqualTo(-1));
-			Assert.That(JsonNumber.One - JsonNumber.Zero, Is.EqualTo(1));
-			Assert.That(JsonNumber.One - JsonNumber.One, Is.EqualTo(0));
-
-			Assert.That(JsonNumber.Return(456) - JsonNumber.Return(123), Is.EqualTo(333));
-			Assert.That(JsonNumber.Return(123) - JsonNumber.Return(456), Is.EqualTo(-333));
-			Assert.That(JsonNumber.Return(+123) - JsonNumber.Return(+123), Is.EqualTo(0));
-			Assert.That(JsonNumber.Return(+123) - JsonNumber.Return(-123), Is.EqualTo(246));
-			Assert.That(JsonNumber.Return(-123) - JsonNumber.Return(+123), Is.EqualTo(-246));
-			Assert.That(JsonNumber.Return(-123) - JsonNumber.Return(-123), Is.EqualTo(0));
-			Assert.That(JsonNumber.Return(0) - JsonNumber.Return(long.MaxValue), Is.EqualTo(-9223372036854775807));
-			Assert.That(JsonNumber.Return(-1) - JsonNumber.Return(long.MaxValue), Is.EqualTo(long.MinValue));
-			Assert.That(JsonNumber.Return(long.MaxValue) - JsonNumber.Return(0), Is.EqualTo(9223372036854775807));
-			Assert.That(JsonNumber.Return(long.MaxValue) - JsonNumber.Return(1), Is.EqualTo(9223372036854775806));
-			Assert.That(JsonNumber.Return(long.MaxValue) - JsonNumber.Return(long.MaxValue), Is.EqualTo(0));
-			Assert.That(JsonNumber.Return(ulong.MaxValue) - JsonNumber.Return(0), Is.EqualTo(ulong.MaxValue));
-			Assert.That(JsonNumber.Return(ulong.MaxValue) - JsonNumber.Return(1), Is.EqualTo(ulong.MaxValue - 1));
-			Assert.That(JsonNumber.Return(ulong.MaxValue) - JsonNumber.Return(ulong.MaxValue), Is.EqualTo(0));
-			Assert.That(JsonNumber.Return(ulong.MaxValue) - JsonNumber.Return(ulong.MaxValue - 1), Is.EqualTo(1));
-			Assert.That(JsonNumber.Return(ulong.MaxValue - 1) - JsonNumber.Return(ulong.MaxValue), Is.EqualTo(-1));
-
-			Assert.That(JsonNumber.Zero - JsonNumber.NaN, Is.EqualTo(double.NaN));
-			Assert.That(JsonNumber.One - JsonNumber.NaN, Is.EqualTo(double.NaN));
-			Assert.That(JsonNumber.Return(2) - JsonNumber.NaN, Is.EqualTo(double.NaN));
-			Assert.That(JsonNumber.NaN - JsonNumber.Zero, Is.EqualTo(double.NaN));
-			Assert.That(JsonNumber.NaN - JsonNumber.One, Is.EqualTo(double.NaN));
-			Assert.That(JsonNumber.NaN - JsonNumber.Return(2), Is.EqualTo(double.NaN));
-			Assert.That(JsonNumber.NaN - JsonNumber.NaN, Is.EqualTo(double.NaN));
-		}
-
-		[Test]
-		public void Test_JsonNumber_INumber_Multiplications()
-		{
-			// Validate the INumber<T> arithmetic for multiplication
-
-			Assert.That(JsonNumber.Zero * JsonNumber.Zero, Is.EqualTo(0));
-			Assert.That(JsonNumber.Zero * JsonNumber.One, Is.EqualTo(0));
-			Assert.That(JsonNumber.One * JsonNumber.Zero, Is.EqualTo(0));
-			Assert.That(JsonNumber.One * JsonNumber.One, Is.EqualTo(1));
-
-			Assert.That(JsonNumber.Return(123) * JsonNumber.Return(456), Is.EqualTo(56088));
-			Assert.That(JsonNumber.Return(456) * JsonNumber.Return(123), Is.EqualTo(56088));
-			Assert.That(JsonNumber.One * JsonNumber.Return(long.MaxValue), Is.EqualTo(long.MaxValue));
-			Assert.That(JsonNumber.Return(2) * JsonNumber.Return(long.MaxValue), Is.EqualTo(2UL * long.MaxValue));
-
-			Assert.That(JsonNumber.Zero * JsonNumber.PI, Is.EqualTo(0.0));
-			Assert.That(JsonNumber.One * JsonNumber.PI, Is.EqualTo(Math.PI));
-			Assert.That(JsonNumber.Return(2) * JsonNumber.PI, Is.EqualTo(2.0 * Math.PI));
-			Assert.That(JsonNumber.PI * JsonNumber.Zero, Is.EqualTo(0.0));
-			Assert.That(JsonNumber.PI * JsonNumber.One, Is.EqualTo(Math.PI));
-			Assert.That(JsonNumber.PI * JsonNumber.Return(2), Is.EqualTo(Math.PI * 2.0));
-
-			Assert.That(JsonNumber.DecimalZero * JsonNumber.PI, Is.EqualTo(0.0));
-			Assert.That(JsonNumber.DecimalOne * JsonNumber.PI, Is.EqualTo(Math.PI));
-			Assert.That(JsonNumber.Return(2.0) * JsonNumber.PI, Is.EqualTo(2.0 * Math.PI));
-			Assert.That(JsonNumber.PI * JsonNumber.DecimalZero, Is.EqualTo(0.0));
-			Assert.That(JsonNumber.PI * JsonNumber.DecimalOne, Is.EqualTo(Math.PI));
-			Assert.That(JsonNumber.PI * JsonNumber.Return(2.0), Is.EqualTo(Math.PI * 2.0));
-			Assert.That(JsonNumber.PI * JsonNumber.PI, Is.EqualTo(Math.PI * Math.PI));
-
-			Assert.That(JsonNumber.Zero * JsonNumber.NaN, Is.EqualTo(double.NaN));
-			Assert.That(JsonNumber.One * JsonNumber.NaN, Is.EqualTo(double.NaN));
-			Assert.That(JsonNumber.Return(2) * JsonNumber.NaN, Is.EqualTo(double.NaN));
-			Assert.That(JsonNumber.NaN * JsonNumber.Zero, Is.EqualTo(double.NaN));
-			Assert.That(JsonNumber.NaN * JsonNumber.One, Is.EqualTo(double.NaN));
-			Assert.That(JsonNumber.NaN * JsonNumber.Return(2), Is.EqualTo(double.NaN));
-			Assert.That(JsonNumber.NaN * JsonNumber.NaN, Is.EqualTo(double.NaN));
-		}
-
-		//TODO: INumber<T> divisions
-
-#if NET8_0_OR_GREATER
-
-		[Test]
-		public void Test_JsonNumber_Can_By_Used_With_Generic_Arithmethic()
-		{
-			GenericINumber(JsonNumber.One, JsonNumber.PI);
-		}
-
-		private static void GenericINumber<T>(T x, T y) where T : INumberBase<T>
-		{
-			_ = x + T.Zero;
-			_ = x + y;
-			_ = x - y;
-			_ = x * T.One;
-			_ = x * y;
-			_ = x / y;
-			_ = x++;
-			_ = ++x;
-			_ = y--;
-			_ = --y;
-		}
-
-#endif
 
 		#endregion
 

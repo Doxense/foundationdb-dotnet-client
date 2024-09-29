@@ -298,227 +298,151 @@ namespace Doxense.Serialization.Json
 
 		#region Int32
 
-		[Pure]
-		public static implicit operator JsonValue(int value)
-		{
-			return JsonNumber.Return(value);
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonValue(int value) => JsonNumber.Return(value);
 
-		[Pure]
-		public static explicit operator int(JsonValue? value)
-		{
-			return (value ?? JsonNull.Null).ToInt32();
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static explicit operator int(JsonValue? value) => (value ?? JsonNull.Null).ToInt32();
 
-		[Pure]
-		public static implicit operator JsonValue(int? value)
-		{
-			return JsonNumber.Return(value);
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonValue(int? value) => JsonNumber.Return(value);
 
-		[Pure]
-		public static explicit operator int?(JsonValue? value)
-		{
-			return (value ?? JsonNull.Null).ToInt32OrDefault();
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static explicit operator int?(JsonValue? value) => (value ?? JsonNull.Null).ToInt32OrDefault();
 
 		#endregion
 
 		#region UInt32
 
-		[Pure]
-		public static implicit operator JsonValue(uint value)
-		{
-			return JsonNumber.Return(value);
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonValue(uint value) => JsonNumber.Return(value);
 
-		[Pure]
-		public static explicit operator uint(JsonValue? value)
-		{
-			return (value ?? JsonNull.Null).ToUInt32();
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static explicit operator uint(JsonValue? value) => (value ?? JsonNull.Null).ToUInt32();
 
-		[Pure]
-		public static implicit operator JsonValue(uint? value)
-		{
-			return JsonNumber.Return(value);
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonValue(uint? value) => JsonNumber.Return(value);
 
-		[Pure]
-		public static explicit operator uint?(JsonValue? value)
-		{
-			return (value ?? JsonNull.Null).ToUInt32OrDefault();
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static explicit operator uint?(JsonValue? value) => (value ?? JsonNull.Null).ToUInt32OrDefault();
 
 		#endregion
 
 		#region Int64
 
-		[Pure]
-		public static implicit operator JsonValue(long value)
-		{
-			return JsonNumber.Return(value);
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonValue(long value) => JsonNumber.Return(value);
 
-		[Pure]
-		public static explicit operator long(JsonValue? value)
-		{
-			return (value ?? JsonNull.Null).ToInt64();
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static explicit operator long(JsonValue? value) => (value ?? JsonNull.Null).ToInt64();
 
-		[Pure]
-		public static implicit operator JsonValue(long? value)
-		{
-			return JsonNumber.Return(value);
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonValue(long? value) => JsonNumber.Return(value);
 
-		[Pure]
-		public static explicit operator long?(JsonValue? value)
-		{
-			return (value ?? JsonNull.Null).ToInt64OrDefault();
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static explicit operator long?(JsonValue? value) => (value ?? JsonNull.Null).ToInt64OrDefault();
 
 		#endregion
 
 		#region UInt64
 
-		[Pure]
-		public static implicit operator JsonValue(ulong value)
-		{
-			return JsonNumber.Return(value);
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonValue(ulong value) => JsonNumber.Return(value);
 
-		[Pure]
-		public static explicit operator ulong(JsonValue? value)
-		{
-			return (value ?? JsonNull.Null).ToUInt64();
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static explicit operator ulong(JsonValue? value) => (value ?? JsonNull.Null).ToUInt64();
 
-		[Pure]
-		public static implicit operator JsonValue(ulong? value)
-		{
-			return JsonNumber.Return(value);
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonValue(ulong? value) => JsonNumber.Return(value);
 
-		[Pure]
-		public static explicit operator ulong?(JsonValue? value)
-		{
-			return (value ?? JsonNull.Null).ToUInt64OrDefault();
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static explicit operator ulong?(JsonValue? value) => (value ?? JsonNull.Null).ToUInt64OrDefault();
 
 		#endregion
 
 		#region Single
 
-		[Pure]
-		public static implicit operator JsonValue(float value)
-		{
-			return JsonNumber.Return(value);
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonValue(float value) => JsonNumber.Return(value);
 
-		[Pure]
-		public static explicit operator float(JsonValue? value)
-		{
-			return (value ?? JsonNull.Null).ToSingle();
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static explicit operator float(JsonValue? value) => (value ?? JsonNull.Null).ToSingle();
 
-		[Pure]
-		public static implicit operator JsonValue(float? value)
-		{
-			return JsonNumber.Return(value);
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonValue(float? value) => JsonNumber.Return(value);
 
-		[Pure]
-		public static explicit operator float?(JsonValue? value)
-		{
-			return (value ?? JsonNull.Null).ToSingleOrDefault();
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static explicit operator float?(JsonValue? value) => (value ?? JsonNull.Null).ToSingleOrDefault();
 
 		#endregion
 
 		#region Double
 
-		[Pure]
-		public static implicit operator JsonValue(double value)
-		{
-			return JsonNumber.Return(value);
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonValue(double value) => JsonNumber.Return(value);
 
-		[Pure]
-		public static explicit operator double(JsonValue? value)
-		{
-			return (value ?? JsonNull.Null).ToDouble();
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static explicit operator double(JsonValue? value) => (value ?? JsonNull.Null).ToDouble();
 
-		[Pure]
-		public static implicit operator JsonValue(double? value)
-		{
-			return JsonNumber.Return(value);
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonValue(double? value) => JsonNumber.Return(value);
 
-		[Pure]
-		public static explicit operator double?(JsonValue? value)
-		{
-			return (value ?? JsonNull.Null).ToDoubleOrDefault();
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static explicit operator double?(JsonValue? value) => (value ?? JsonNull.Null).ToDoubleOrDefault();
 
 		#endregion
 
 		#region Half
 
-		[Pure]
-		public static implicit operator JsonValue(Half value)
-		{
-			return JsonNumber.Return(value);
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonValue(Half value) => JsonNumber.Return(value);
 
-		[Pure]
-		public static explicit operator Half(JsonValue? value)
-		{
-			return (value ?? JsonNull.Null).ToHalf();
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static explicit operator Half(JsonValue? value) => (value ?? JsonNull.Null).ToHalf();
 
-		[Pure]
-		public static implicit operator JsonValue(Half? value)
-		{
-			return JsonNumber.Return(value);
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonValue(Half? value) => JsonNumber.Return(value);
 
-		[Pure]
-		public static explicit operator Half?(JsonValue? value)
-		{
-			return (value ?? JsonNull.Null).ToHalfOrDefault();
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static explicit operator Half?(JsonValue? value) => (value ?? JsonNull.Null).ToHalfOrDefault();
 
 		#endregion
 
 		#region Decimal
 
-		[Pure]
-		public static implicit operator JsonValue(decimal value)
-		{
-			return JsonNumber.Return(value);
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonValue(decimal value) => JsonNumber.Return(value);
 
-		[Pure]
-		public static explicit operator decimal(JsonValue? value)
-		{
-			return (value ?? JsonNull.Null).ToDecimal();
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static explicit operator decimal(JsonValue? value) => (value ?? JsonNull.Null).ToDecimal();
 
-		[Pure]
-		public static implicit operator JsonValue(decimal? value)
-		{
-			return JsonNumber.Return(value);
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonValue(decimal? value) => JsonNumber.Return(value);
 
-		[Pure]
-		public static explicit operator decimal?(JsonValue? value)
-		{
-			return (value ?? JsonNull.Null).ToDecimalOrDefault();
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static explicit operator decimal?(JsonValue? value) => (value ?? JsonNull.Null).ToDecimalOrDefault();
 
 		#endregion
+
+		#region Int128
+
+#if NET8_0_OR_GREATER
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonValue(Int128 value) => JsonNumber.Return(value);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static explicit operator Int128(JsonValue? value) => (value ?? JsonNull.Null).ToInt128();
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonValue(Int128? value) => JsonNumber.Return(value);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static explicit operator Int128?(JsonValue? value) => (value ?? JsonNull.Null).ToInt128OrDefault();
+
+#endif
+
+#endregion
 
 		#region Guid...
 

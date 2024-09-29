@@ -1533,52 +1533,6 @@ namespace Doxense.Serialization.Json
 			return GetPathCore(path, JsonNull.Missing, required: false).As(defaultValue);
 		}
 
-		//BLACK MAGIC!
-
-		// In order to be able to write "if (obj["Hello"]) ... else ...", then JsonValue must implement or operators 'op_true' and 'op_false'
-		// In order to be able to write "if (obj["Hello"] && obj["World"]) ...." (resp. '||') then JsonValue must implements the operator 'op_&' (resp: 'op_|'),
-		// and it must return a JsonValue instance (which will then be passed to 'op_true'/'op_false' to produce a boolean).
-
-		/// <summary>Test if this value is logically equivalent to <see langword="true"/></summary>
-		public static bool operator true(JsonValue? obj) => obj != null && obj.ToBoolean();
-
-		/// <summary>Test if this value is logically equivalent to <see langword="false"/></summary>
-		public static bool operator false(JsonValue? obj) => obj == null || obj.ToBoolean();
-
-		/// <summary>Perform a logical AND operation between two JSON values</summary>
-		public static JsonValue operator &(JsonValue? left, JsonValue? right)
-		{
-			//REVIEW:TODO: maybe handle the cases were both values are JSON Numbers, and perform a bit-wise AND instead?
-			return left != null && right!= null && left.ToBoolean() && right.ToBoolean() ? JsonBoolean.True : JsonBoolean.False;
-		}
-
-		/// <summary>Perform a logical OR operation between two JSON values</summary>
-		public static JsonValue operator |(JsonValue? left, JsonValue? right)
-		{
-			//REVIEW:TODO: maybe handle the cases were both values are JSON Numbers, and perform a bit-wise OR instead?
-			return (left != null && left.ToBoolean()) || (right != null && right.ToBoolean()) ? JsonBoolean.True : JsonBoolean.False;
-		}
-
-		public static bool operator <(JsonValue? left, JsonValue? right)
-		{
-			return (left ?? JsonNull.Null).CompareTo(right ?? JsonNull.Null) < 0;
-		}
-
-		public static bool operator <=(JsonValue? left, JsonValue? right)
-		{
-			return (left ?? JsonNull.Null).CompareTo(right ?? JsonNull.Null) <= 0;
-		}
-
-		public static bool operator >(JsonValue? left, JsonValue? right)
-		{
-			return (left ?? JsonNull.Null).CompareTo(right ?? JsonNull.Null) > 0;
-		}
-
-		public static bool operator >=(JsonValue? left, JsonValue? right)
-		{
-			return (left ?? JsonNull.Null).CompareTo(right ?? JsonNull.Null) >= 0;
-		}
-
 		#region IJsonSerializable
 
 		public abstract void JsonSerialize(CrystalJsonWriter writer);

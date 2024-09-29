@@ -32,6 +32,7 @@ namespace Doxense.Serialization.Json
 	using System.Collections.Generic;
 	using System.Collections.Immutable;
 	using System.ComponentModel;
+	using System.Buffers;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
@@ -4108,6 +4109,73 @@ namespace Doxense.Serialization.Json
 			return array.ToList<TValue?>(default, resolver);
 		}
 
+#if NET8_0_OR_GREATER
+
+		/// <summary>Returns the sum of all the items in <see cref="JsonArray">JSON Array</see> interpreted as the corresponding <typeparamref name="TNumber"/></summary>
+		/// <remarks>This is equivalent to calling <c>array.ToArray&lt;TNumber&gt;().Sum()</c></remarks>
+		public TNumber Sum<TNumber>() where TNumber : System.Numerics.INumberBase<TNumber>
+		{
+			var total = TNumber.Zero;
+			foreach (var item in this.AsSpan())
+			{
+				total += item.As<TNumber>(TNumber.Zero);
+			}
+			return total;
+		}
+
+		/// <summary>Returns the average of all the items in <see cref="JsonArray">JSON Array</see> interpreted as the corresponding <typeparamref name="TNumber"/></summary>
+		/// <remarks>This is equivalent to calling <c>array.ToArray&lt;TNumber&gt;().Average()</c></remarks>
+		public TNumber Average<TNumber>() where TNumber : System.Numerics.INumberBase<TNumber>
+		{
+			return Sum<TNumber>() / TNumber.CreateChecked(this.Count);
+		}
+
+		/// <summary>Returns the sum of all the items in <see cref="JsonArray">JSON Array</see> interpreted as the corresponding <typeparamref name="TNumber"/></summary>
+		/// <remarks>This is equivalent to calling <c>array.ToArray&lt;TNumber&gt;().Sum()</c></remarks>
+		public TNumber Min<TNumber>() where TNumber : System.Numerics.INumberBase<TNumber>, System.Numerics.IComparisonOperators<TNumber, TNumber, bool>
+		{
+			var span = this.AsSpan();
+			if (span.Length <= 0)
+			{
+				throw ThrowHelper.InvalidOperationNoElements();
+			}
+
+			var min = span[0].As<TNumber>(TNumber.Zero);
+			for (int i = 1; i < span.Length; i++)
+			{
+				var x = span[i].As<TNumber>(TNumber.Zero);
+				if (x < min)
+				{
+					min = x;
+				}
+			}
+			return min;
+		}
+
+		/// <summary>Returns the sum of all the items in <see cref="JsonArray">JSON Array</see> interpreted as the corresponding <typeparamref name="TNumber"/></summary>
+		/// <remarks>This is equivalent to calling <c>array.ToArray&lt;TNumber&gt;().Sum()</c></remarks>
+		public TNumber Max<TNumber>() where TNumber : System.Numerics.INumberBase<TNumber>, System.Numerics.IComparisonOperators<TNumber, TNumber, bool>
+		{
+			var span = this.AsSpan();
+			if (span.Length <= 0)
+			{
+				throw ThrowHelper.InvalidOperationNoElements();
+			}
+
+			var max = span[0].As<TNumber>(TNumber.Zero);
+			for (int i = 1; i < span.Length; i++)
+			{
+				var x = span[i].As<TNumber>(TNumber.Zero);
+				if (x > max)
+				{
+					max = x;
+				}
+			}
+			return max;
+		}
+
+#endif
+
 #if !DEBUG // <JIT_HACK>
 
 		[Pure, CollectionAccess(CollectionAccessType.Read), UsedImplicitly]
@@ -4138,29 +4206,6 @@ namespace Doxense.Serialization.Json
 #endif
 
 			return result;
-		}
-
-#endif
-
-#if NET8_0_OR_GREATER
-
-		/// <summary>Returns the sum of all the items in <see cref="JsonArray">JSON Array</see> interpreted as the corresponding <typeparamref name="TNumber"/></summary>
-		/// <remarks>This is equivalent to calling <c>array.ToArray&lt;TNumber&gt;().Sum()</c></remarks>
-		public TNumber Sum<TNumber>() where TNumber : System.Numerics.INumberBase<TNumber>
-		{
-			var total = TNumber.Zero;
-			foreach (var item in this.AsSpan())
-			{
-				total += item.As<TNumber>(TNumber.Zero);
-			}
-			return total;
-		}
-
-		/// <summary>Returns the average of all the items in <see cref="JsonArray">JSON Array</see> interpreted as the corresponding <typeparamref name="TNumber"/></summary>
-		/// <remarks>This is equivalent to calling <c>array.ToArray&lt;TNumber&gt;().Average()</c></remarks>
-		public TNumber Average<TNumber>() where TNumber : System.Numerics.INumberBase<TNumber>
-		{
-			return Sum<TNumber>() / TNumber.CreateChecked(this.Count);
 		}
 
 #endif

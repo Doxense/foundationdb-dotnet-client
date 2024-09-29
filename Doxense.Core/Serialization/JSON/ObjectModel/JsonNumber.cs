@@ -179,6 +179,16 @@ namespace Doxense.Serialization.Json
 			[FieldOffset(0)]
 			public readonly ulong Unsigned;
 
+#if NET8_0_OR_GREATER
+
+			[FieldOffset(0)]
+			public readonly Int128 Signed128;
+
+			[FieldOffset(0)]
+			public readonly UInt128 Unsigned128;
+
+#endif
+
 			//TODO: another view for Int128/UInt28?
 
 			#endregion
@@ -186,32 +196,56 @@ namespace Doxense.Serialization.Json
 			#region Constructors...
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public Number(decimal value)
-				: this()
+			public Number(decimal value) : this()
 			{
 				this.Decimal = value;
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public Number(double value)
-				: this()
+			public Number(double value) : this()
 			{
 				this.Double = value;
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public Number(long value)
-				: this()
+			public Number(int value) : this()
 			{
 				this.Signed = value;
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public Number(ulong value)
-				: this()
+			public Number(uint value) : this()
 			{
 				this.Unsigned = value;
 			}
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public Number(long value) : this()
+			{
+				this.Signed = value;
+			}
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public Number(ulong value) : this()
+			{
+				this.Unsigned = value;
+			}
+
+#if NET8_0_OR_GREATER
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public Number(Int128 value)
+			{
+				this.Signed128 = value;
+			}
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public Number(UInt128 value)
+			{
+				this.Unsigned128 = value;
+			}
+
+#endif
 
 			#endregion
 
@@ -1416,6 +1450,22 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Return(decimal? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
 
+#if NET8_0_OR_GREATER
+
+		[Pure]
+		public static JsonNumber Return(Int128 value) => new(new Number(value), Kind.Signed, StringConverters.ToString(value));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(Int128? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
+
+		[Pure]
+		public static JsonNumber Return(UInt128 value) => new(new Number(value), Kind.Unsigned, StringConverters.ToString(value));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(UInt128? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
+
+#endif
+
 		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds in the interval</summary>
 		/// <param name="value">Interval (in seconds)</param>
 		/// <returns>JSON value that will be serialized as an decimal value.</returns>
@@ -1953,12 +2003,11 @@ namespace Doxense.Serialization.Json
 			if (literal is not null)
 			{ // we will output the original literal unless we need to do some special formatting...
 
-				if (literal.Length > destination.Length)
+				if (!literal.TryCopyTo(destination))
 				{
 					charsWritten = 0;
 					return false;
 				}
-				literal.CopyTo(destination);
 				charsWritten = literal.Length;
 				return true;
 			}
@@ -2241,40 +2290,40 @@ namespace Doxense.Serialization.Json
 		{
 			if (default(TValue) is null)
 			{
-
-				if (typeof(TValue) == typeof(int?)) return Equals((int) (object) value!);
-				if (typeof(TValue) == typeof(long?)) return Equals((long) (object) value!);
-				if (typeof(TValue) == typeof(uint?)) return Equals((uint) (object) value!);
-				if (typeof(TValue) == typeof(ulong?)) return Equals((ulong) (object) value!);
-				if (typeof(TValue) == typeof(float?)) return Equals((float) (object) value!);
-				if (typeof(TValue) == typeof(double?)) return Equals((double) (object) value!);
-				if (typeof(TValue) == typeof(short?)) return Equals((short) (object) value!);
-				if (typeof(TValue) == typeof(ushort?)) return Equals((ushort) (object) value!);
-				if (typeof(TValue) == typeof(decimal?)) return Equals((decimal) (object) value!);
 				if (value is null) return false;
+
+				if (typeof(TValue) == typeof(int?)) return comparer?.Equals((TValue) (object) ToInt32(), value) ?? Equals((int) (object) value!);
+				if (typeof(TValue) == typeof(long?)) return comparer?.Equals((TValue) (object) ToInt64(), value) ?? Equals((long) (object) value!);
+				if (typeof(TValue) == typeof(uint?)) return comparer?.Equals((TValue) (object) ToUInt32(), value) ?? Equals((uint) (object) value!);
+				if (typeof(TValue) == typeof(ulong?)) return comparer?.Equals((TValue) (object) ToUInt64(), value) ?? Equals((ulong) (object) value!);
+				if (typeof(TValue) == typeof(float?)) return comparer?.Equals((TValue) (object) ToSingle(), value) ?? Equals((float) (object) value!);
+				if (typeof(TValue) == typeof(double?)) return comparer?.Equals((TValue) (object) ToDouble(), value) ?? Equals((double) (object) value!);
+				if (typeof(TValue) == typeof(short?)) return comparer?.Equals((TValue) (object) ToInt16(), value) ?? Equals((short) (object) value!);
+				if (typeof(TValue) == typeof(ushort?)) return comparer?.Equals((TValue) (object) ToUInt16(), value) ?? Equals((ushort) (object) value!);
+				if (typeof(TValue) == typeof(decimal?)) return comparer?.Equals((TValue) (object) ToDecimal(), value) ?? Equals((decimal) (object) value!);
+				if (typeof(TValue) == typeof(Half?)) return comparer?.Equals((TValue) (object) ToHalf(), value) ?? Equals((Half) (object) value!);
 #if NET8_0_OR_GREATER
-				if (typeof(TValue) == typeof(Half?)) return Equals((Half) (object) value!);
-				if (typeof(TValue) == typeof(Int128?)) return Equals((Int128) (object) value!);
-				if (typeof(TValue) == typeof(UInt128?)) return Equals((UInt128) (object) value!);
+				if (typeof(TValue) == typeof(Int128?)) return comparer?.Equals((TValue) (object) ToInt128(), value) ?? Equals((Int128) (object) value!);
+				if (typeof(TValue) == typeof(UInt128?)) return comparer?.Equals((TValue) (object) ToUInt128(), value) ?? Equals((UInt128) (object) value!);
 #endif
 
 				if (value is JsonValue j) return Equals(j);
 			}
 			else
 			{
-				if (typeof(TValue) == typeof(int)) return Equals((int) (object) value!);
-				if (typeof(TValue) == typeof(long)) return Equals((long) (object) value!);
-				if (typeof(TValue) == typeof(uint)) return Equals((uint) (object) value!);
-				if (typeof(TValue) == typeof(ulong)) return Equals((ulong) (object) value!);
-				if (typeof(TValue) == typeof(float)) return Equals((float) (object) value!);
-				if (typeof(TValue) == typeof(double)) return Equals((double) (object) value!);
-				if (typeof(TValue) == typeof(short)) return Equals((short) (object) value!);
-				if (typeof(TValue) == typeof(ushort)) return Equals((ushort) (object) value!);
-				if (typeof(TValue) == typeof(decimal)) return Equals((decimal) (object) value!);
+				if (typeof(TValue) == typeof(int)) return comparer?.Equals((TValue) (object) ToInt32(), value) ?? Equals((int) (object) value!);
+				if (typeof(TValue) == typeof(long)) return comparer?.Equals((TValue) (object) ToInt64(), value) ?? Equals((long) (object) value!);
+				if (typeof(TValue) == typeof(uint)) return comparer?.Equals((TValue) (object) ToUInt32(), value) ?? Equals((uint) (object) value!);
+				if (typeof(TValue) == typeof(ulong)) return comparer?.Equals((TValue) (object) ToUInt64(), value) ?? Equals((ulong) (object) value!);
+				if (typeof(TValue) == typeof(float)) return comparer?.Equals((TValue) (object) ToSingle(), value) ?? Equals((float) (object) value!);
+				if (typeof(TValue) == typeof(double)) return comparer?.Equals((TValue) (object) ToDouble(), value) ?? Equals((double) (object) value!);
+				if (typeof(TValue) == typeof(short)) return comparer?.Equals((TValue) (object) ToInt16(), value) ?? Equals((short) (object) value!);
+				if (typeof(TValue) == typeof(ushort)) return comparer?.Equals((TValue) (object) ToUInt16(), value) ?? Equals((ushort) (object) value!);
+				if (typeof(TValue) == typeof(decimal)) return comparer?.Equals((TValue) (object) ToDecimal(), value) ?? Equals((decimal) (object) value!);
+				if (typeof(TValue) == typeof(Half)) return comparer?.Equals((TValue) (object) ToHalf(), value) ?? Equals((Half) (object) value!);
 #if NET8_0_OR_GREATER
-				if (typeof(TValue) == typeof(Half)) return Equals((Half) (object) value!);
-				if (typeof(TValue) == typeof(Int128)) return Equals((Int128) (object) value!);
-				if (typeof(TValue) == typeof(UInt128)) return Equals((UInt128) (object) value!);
+				if (typeof(TValue) == typeof(Int128)) return comparer?.Equals((TValue) (object) ToInt128(), value) ?? Equals((Int128) (object) value!);
+				if (typeof(TValue) == typeof(UInt128)) return comparer?.Equals((TValue) (object) ToUInt128(), value) ?? Equals((UInt128) (object) value!);
 #endif
 			}
 
@@ -2510,7 +2559,7 @@ namespace Doxense.Serialization.Json
 			var text = other.Value;
 			if (string.IsNullOrEmpty(text)) return +1; //REVIEW: ??
 
-			// shortcut si le premier char n'est pas un nombre
+			// shortcut if the first character is not valid for a number
 			var c = text[0];
 			if (char.IsDigit(c) || c == '-' || c == '+')
 			{
@@ -2559,9 +2608,53 @@ namespace Doxense.Serialization.Json
 
 		#region Arithmetic operators
 
-		public static bool operator ==(JsonNumber? left, JsonNumber? right) => left?.Equals(right) ?? right is null;
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonNumber(int value) => Return(value);
 
-		public static bool operator !=(JsonNumber? left, JsonNumber? right) => !left?.Equals(right) ?? right is not null;
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonNumber(long value) => Return(value);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonNumber(uint value) => Return(value);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonNumber(ulong value) => Return(value);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonNumber(float value) => Return(value);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonNumber(double value) => Return(value);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonNumber(decimal value) => Return(value);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonNumber(System.Half value) => Return(value);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(JsonNumber? left, JsonNumber? right)
+			=> left?.Equals(right) ?? right is null;
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(JsonNumber? left, JsonNumber? right)
+			=> !(left?.Equals(right) ?? right is null);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <(JsonNumber? left, JsonNumber? right)
+			=> (left ?? JsonNull.Null).CompareTo(right ?? JsonNull.Null) < 0;
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <=(JsonNumber? left, JsonNumber? right)
+			=> (left ?? JsonNull.Null).CompareTo(right ?? JsonNull.Null) <= 0;
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >(JsonNumber? left, JsonNumber? right)
+			=> (left ?? JsonNull.Null).CompareTo(right ?? JsonNull.Null) > 0;
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >=(JsonNumber? left, JsonNumber? right)
+			=> (left ?? JsonNull.Null).CompareTo(right ?? JsonNull.Null) >= 0;
 
 		public static JsonNumber operator +(JsonNumber value) => value;
 
@@ -2780,9 +2873,10 @@ namespace Doxense.Serialization.Json
 			return Return(value, kind);
 		}
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonNumber operator *(JsonNumber left, JsonNumber right) => left.Multiply(right);
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure]
 		public static JsonNumber operator *(JsonNumber left, long right)
 		{
 			if (right == 1) return left;
@@ -2792,7 +2886,7 @@ namespace Doxense.Serialization.Json
 			return Return(value, kind);
 		}
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure]
 		public static JsonNumber operator *(JsonNumber left, ulong right)
 		{
 			if (right == 1) return left;
@@ -2802,7 +2896,7 @@ namespace Doxense.Serialization.Json
 			return Return(value, kind);
 		}
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure]
 		public static JsonNumber operator *(JsonNumber left, double right)
 		{
 			if (right == 1) return left;
@@ -2812,7 +2906,7 @@ namespace Doxense.Serialization.Json
 			return Return(value, kind);
 		}
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure]
 		public static JsonNumber operator *(JsonNumber left, float right)
 		{
 			if (right == 1) return left;
@@ -2822,7 +2916,7 @@ namespace Doxense.Serialization.Json
 			return Return(value, kind);
 		}
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure]
 		public static JsonNumber operator *(JsonNumber left, decimal right)
 		{
 			if (right == 1) return left;
@@ -2845,9 +2939,10 @@ namespace Doxense.Serialization.Json
 			return Return(value, kind);
 		}
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonNumber operator /(JsonNumber left, JsonNumber right) => left.Divide(right);
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure]
 		public static JsonNumber operator /(JsonNumber left, long right)
 		{
 			if (right == 1) return left;
@@ -2857,7 +2952,7 @@ namespace Doxense.Serialization.Json
 			return Return(value, kind);
 		}
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure]
 		public static JsonNumber operator /(JsonNumber left, ulong right)
 		{
 			if (right == 1) return left;
@@ -2867,7 +2962,7 @@ namespace Doxense.Serialization.Json
 			return Return(value, kind);
 		}
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure]
 		public static JsonNumber operator /(JsonNumber left, double right)
 		{
 			if (right == 1) return left;
@@ -2877,7 +2972,7 @@ namespace Doxense.Serialization.Json
 			return Return(value, kind);
 		}
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure]
 		public static JsonNumber operator /(JsonNumber left, float right)
 		{
 			if (right == 1) return left;
@@ -2887,7 +2982,7 @@ namespace Doxense.Serialization.Json
 			return Return(value, kind);
 		}
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure]
 		public static JsonNumber operator /(JsonNumber left, decimal right)
 		{
 			if (right == 1) return left;
@@ -2897,6 +2992,7 @@ namespace Doxense.Serialization.Json
 			return Return(value, kind);
 		}
 		/// <summary>Special helper to create a number from its constituents</summary>
+		[Pure]
 		private static JsonNumber Return(in Number value, Kind kind)
 		{
 			switch (kind)
@@ -2915,7 +3011,11 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
-		public override string ToJson(CrystalJsonSettings? settings = null) => this.Literal;
+		public override string ToJson(CrystalJsonSettings? settings = null)
+		{
+			//TODO: if javascript we have to special case for thins like NaN, infitinies, ... !
+			return this.Literal;
+		}
 
 		#region ISliceSerializable...
 
@@ -2928,50 +3028,9 @@ namespace Doxense.Serialization.Json
 
 #if NET8_0_OR_GREATER
 
-		bool ISpanFormattable.TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
-		{
-			// From the documentation:
-			// - An implementation of this interface should produce the same string of characters as an implementation of ToString(String, IFormatProvider) on the same type.
-			// - TryFormat should return false only if there is not enough space in the destination buffer. Any other failures should throw an exception.
-			// The last point is very important, or else it could create an infinite loop!
-			// For example, DefaultInterpolatedStringHandler will call Grow() in an infinite loop, trying to produce a buffer large enough until TryFormat returns true (or throws)
+		public new static JsonNumber Parse(string s, IFormatProvider? provider) => Return(s);
 
-			var len = this.Literal.Length;
-
-			if (format.Length == 0 || (format.Length == 1 && format[0] is 'D' or 'd' or 'C' or 'c' or 'P' or 'p' or 'Q' or 'q'))
-			{
-				if (destination.Length < len)
-				{
-					charsWritten = 0;
-					return false;
-				}
-				this.Literal.CopyTo(destination);
-				charsWritten = len;
-				return true;
-			}
-
-			if (format.Length == 1 && format[0] is 'B' or 'b')
-			{
-				if (destination.Length < checked(len + 2))
-				{
-					charsWritten = 0;
-					return false;
-				}
-
-				destination[0] = '"';
-				this.Literal.CopyTo(destination[1..]);
-				destination[len + 1] = '"';
-				charsWritten = len + 2;
-				return true;
-			}
-
-			// the format is not recognized
-			throw new ArgumentException("Unsupported format", nameof(format));
-		}
-
-		static JsonNumber IParsable<JsonNumber>.Parse(string s, IFormatProvider? provider) => Return(s);
-
-		static bool IParsable<JsonNumber>.TryParse(string? s, IFormatProvider? provider, [MaybeNullWhen(false)] out JsonNumber result)
+		public static bool TryParse(string? s, IFormatProvider? provider, [MaybeNullWhen(false)] out JsonNumber result)
 		{
 			try
 			{
@@ -2985,9 +3044,9 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		static JsonNumber ISpanParsable<JsonNumber>.Parse(ReadOnlySpan<char> s, IFormatProvider? provider) => Return(s.ToString());
+		public new static JsonNumber Parse(ReadOnlySpan<char> s, IFormatProvider? provider) => Return(s.ToString());
 
-		static bool ISpanParsable<JsonNumber>.TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, [MaybeNullWhen(false)] out JsonNumber result)
+		public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, [MaybeNullWhen(false)] out JsonNumber result)
 		{
 			try
 			{
@@ -3008,7 +3067,6 @@ namespace Doxense.Serialization.Json
 		static bool System.Numerics.INumberBase<JsonNumber>.TryParse(ReadOnlySpan<char> s, NumberStyles style, IFormatProvider? provider, out JsonNumber result) => throw new NotSupportedException();
 
 		static bool System.Numerics.INumberBase<JsonNumber>.TryParse(string? s, NumberStyles style, IFormatProvider? provider, out JsonNumber result) => throw new NotSupportedException();
-
 
 		static int System.Numerics.INumberBase<JsonNumber>.Radix => 2;
 		// note: this is wrong if we store a decimal, which has Radix == 10, but we can't really do anything here
@@ -3041,7 +3099,6 @@ namespace Doxense.Serialization.Json
 #endif
 			_ => false,
 		};
-
 
 		public static bool IsInteger(JsonNumber value) => value.m_kind switch
 		{
@@ -3114,17 +3171,18 @@ namespace Doxense.Serialization.Json
 
 		public static bool IsSubnormal(JsonNumber value) => value.m_kind == Kind.Double && double.IsSubnormal(value.m_value.Double);
 
-		public static JsonNumber MaxMagnitude(JsonNumber x, JsonNumber y) => Abs(x) < Abs(y) ? y : x;
+		public static JsonNumber MaxMagnitude(JsonNumber x, JsonNumber y) => Abs(x).CompareTo(Abs(y)) < 0 ? y : x;
 
-		public static JsonNumber MaxMagnitudeNumber(JsonNumber x, JsonNumber y) => IsNaN(x) ? y : IsNaN(y) ? x : Abs(x) < Abs(y) ? y : x;
+		public static JsonNumber MaxMagnitudeNumber(JsonNumber x, JsonNumber y) => IsNaN(x) ? y : IsNaN(y) ? x : Abs(x).CompareTo(Abs(y)) < 0 ? y : x;
 
-		public static JsonNumber MinMagnitude(JsonNumber x, JsonNumber y) => Abs(x) > Abs(y) ? y : x;
+		public static JsonNumber MinMagnitude(JsonNumber x, JsonNumber y) => Abs(x).CompareTo(Abs(y)) > 0 ? y : x;
 
-		public static JsonNumber MinMagnitudeNumber(JsonNumber x, JsonNumber y) => IsNaN(x) ? y : IsNaN(y) ? x : Abs(x) > Abs(y) ? y : x;
+		public static JsonNumber MinMagnitudeNumber(JsonNumber x, JsonNumber y) => IsNaN(x) ? y : IsNaN(y) ? x : Abs(x).CompareTo(Abs(y)) > 0 ? y : x;
 
 #if NET8_0_OR_GREATER
 
-		private static bool TryConvertFrom<TOther>(TOther value, [MaybeNullWhen(false)] out JsonNumber result) where TOther : System.Numerics.INumberBase<TOther>
+		public static bool TryConvertFrom<TOther>(TOther value, [MaybeNullWhen(false)] out JsonNumber result)
+			where TOther : System.Numerics.INumberBase<TOther>
 		{
 			//note: this will be optimized by the JIT in Release builds, but will be VERY slow in DEBUG builds
 			if (typeof(TOther) == typeof(int))
@@ -3194,13 +3252,21 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
-		static bool System.Numerics.INumberBase<JsonNumber>.TryConvertFromChecked<TOther>(TOther value, [MaybeNullWhen(false)] out JsonNumber result) => TryConvertFrom<TOther>(value, out result);
+		public static bool TryConvertFromChecked<TOther>(TOther value, [MaybeNullWhen(false)] out JsonNumber result)
+			where TOther : System.Numerics.INumberBase<TOther>
+			=> TryConvertFrom<TOther>(value, out result);
 
-		static bool System.Numerics.INumberBase<JsonNumber>.TryConvertFromSaturating<TOther>(TOther value, [MaybeNullWhen(false)] out JsonNumber result) => TryConvertFrom<TOther>(value, out result);
+		public static bool TryConvertFromSaturating<TOther>(TOther value, [MaybeNullWhen(false)] out JsonNumber result)
+			where TOther : System.Numerics.INumberBase<TOther>
+			=> TryConvertFrom<TOther>(value, out result);
 
-		static bool System.Numerics.INumberBase<JsonNumber>.TryConvertFromTruncating<TOther>(TOther value, [MaybeNullWhen(false)] out JsonNumber result) => TryConvertFrom<TOther>(value, out result);
+		public static bool TryConvertFromTruncating<TOther>(TOther value, [MaybeNullWhen(false)] out JsonNumber result)
+			where TOther : System.Numerics.INumberBase<TOther>
+			=> TryConvertFrom<TOther>(value, out result);
 
-		static bool System.Numerics.INumberBase<JsonNumber>.TryConvertToChecked<TOther>(JsonNumber value, [MaybeNullWhen(false)] out TOther result) =>
+		public static bool TryConvertToChecked<TOther>(JsonNumber value, [MaybeNullWhen(false)] out TOther result)
+			where TOther : System.Numerics.INumberBase<TOther>
+			=>
 			value.m_kind switch
 			{
 				Kind.Signed => TOther.TryConvertFromChecked(value.m_value.Signed, out result),
@@ -3210,7 +3276,9 @@ namespace Doxense.Serialization.Json
 				_ => throw new InvalidOperationException()
 			};
 
-		static bool System.Numerics.INumberBase<JsonNumber>.TryConvertToSaturating<TOther>(JsonNumber value, [MaybeNullWhen(false)] out TOther result) =>
+		public static bool TryConvertToSaturating<TOther>(JsonNumber value, [MaybeNullWhen(false)] out TOther result)
+			where TOther : System.Numerics.INumberBase<TOther>
+			=>
 			value.m_kind switch
 			{
 				Kind.Signed => TOther.TryConvertFromSaturating(value.m_value.Signed, out result),
@@ -3220,7 +3288,9 @@ namespace Doxense.Serialization.Json
 				_ => throw new InvalidOperationException()
 			};
 
-		static bool System.Numerics.INumberBase<JsonNumber>.TryConvertToTruncating<TOther>(JsonNumber value, [MaybeNullWhen(false)] out TOther result) =>
+		public static bool TryConvertToTruncating<TOther>(JsonNumber value, [MaybeNullWhen(false)] out TOther result)
+			where TOther : System.Numerics.INumberBase<TOther>
+			=>
 			value.m_kind switch
 			{
 				Kind.Signed => TOther.TryConvertFromTruncating(value.m_value.Signed, out result),
