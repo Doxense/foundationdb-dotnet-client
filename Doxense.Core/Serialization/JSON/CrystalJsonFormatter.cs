@@ -199,7 +199,7 @@ namespace Doxense.Serialization.Json
 
 		public static string ToIso8601String(DateTimeOffset date)
 		{
-			if (date == DateTime.MinValue) return string.Empty;
+			if (date == DateTimeOffset.MinValue) return string.Empty;
 
 			Span<char> buf = stackalloc char[ISO8601_MAX_FORMATTED_SIZE];
 			return new string(FormatIso8601DateTime(buf, date.DateTime, DateTimeKind.Local, date.Offset, quotes: '\0'));
