@@ -24,6 +24,10 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+// ReSharper disable StringLiteralTypo
+// ReSharper disable SuspiciousTypeConversion.Global
+#pragma warning disable NUnit2010 // Use EqualConstraint for better assertion messages in case of failure
+
 namespace Doxense.Core.Tests
 {
 	using System.Collections.Generic;
@@ -158,6 +162,62 @@ namespace Doxense.Core.Tests
 		}
 
 		[Test]
+		public void Test_Uuid_ParseExact()
+		{
+
+			Assert.That(Uuid128.ParseExact("00000000-0000-0000-0000-000000000000", "D"), Is.EqualTo(Uuid128.Empty));
+			Assert.That(Uuid128.ParseExact("00000000000000000000000000000000", "N"), Is.EqualTo(Uuid128.Empty));
+			Assert.That(Uuid128.ParseExact("{00000000-0000-0000-0000-000000000000}", "B"), Is.EqualTo(Uuid128.Empty));
+			Assert.That(Uuid128.ParseExact("(00000000-0000-0000-0000-000000000000)", "P"), Is.EqualTo(Uuid128.Empty));
+			Assert.That(Uuid128.ParseExact("{0x00000000,0x0000,0x0000,{0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00}}", "X"), Is.EqualTo(Uuid128.Empty));
+#if NET8_0_OR_GREATER
+			Assert.That(Uuid128.ParseExact("0", "C"), Is.EqualTo(Uuid128.Empty));
+			Assert.That(Uuid128.ParseExact("0000000000000000000000", "C"), Is.EqualTo(Uuid128.Empty));
+			Assert.That(Uuid128.ParseExact("0000000000000000000000", "Z"), Is.EqualTo(Uuid128.Empty));
+#endif
+
+			var g = Uuid128.NewUuid();
+			Log($"D: {g:D}");
+			Log($"N: {g:N}");
+			Log($"B: {g:B}");
+			Log($"P: {g:P}");
+			Log($"X: {g:X}");
+#if NET8_0_OR_GREATER
+			Log($"Z: {g:Z}");
+			Log($"C: {g:C}");
+#endif
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(Uuid128.ParseExact(g.ToString("D"), "D"), Is.EqualTo(g));
+				Assert.That(Uuid128.ParseExact(g.ToString("N"), "N"), Is.EqualTo(g));
+				Assert.That(Uuid128.ParseExact(g.ToString("B"), "B"), Is.EqualTo(g));
+				Assert.That(Uuid128.ParseExact(g.ToString("P"), "P"), Is.EqualTo(g));
+				Assert.That(Uuid128.ParseExact(g.ToString("X"), "X"), Is.EqualTo(g));
+			});
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(() => Uuid128.ParseExact("", "D"), Throws.InstanceOf<FormatException>());
+				Assert.That(() => Uuid128.ParseExact("1valid", "D"), Throws.InstanceOf<FormatException>());
+				Assert.That(() => Uuid128.ParseExact("1valid", "N"), Throws.InstanceOf<FormatException>());
+				Assert.That(() => Uuid128.ParseExact("1valid", "B"), Throws.InstanceOf<FormatException>());
+				Assert.That(() => Uuid128.ParseExact("1valid", "P"), Throws.InstanceOf<FormatException>());
+				Assert.That(() => Uuid128.ParseExact("1valid", "X"), Throws.InstanceOf<FormatException>());
+#if NET8_0_OR_GREATER
+				Assert.That(() => Uuid128.ParseExact("", "C"), Throws.InstanceOf<FormatException>());
+				Assert.That(Uuid128.ParseExact("1valid", "C").ToString(), Is.EqualTo("00000000-0000-0000-0000-0000695486db"));
+				Assert.That(() => Uuid128.ParseExact("1valid!", "C"), Throws.InstanceOf<FormatException>());
+
+				Assert.That(() => Uuid128.ParseExact("", "Z"), Throws.InstanceOf<FormatException>());
+				Assert.That(() => Uuid128.ParseExact("1valid", "Z"), Throws.InstanceOf<FormatException>());
+				Assert.That(Uuid128.ParseExact("1valid0000000000000000", "Z").ToString(), Is.EqualTo("3f60d566-2ad5-2b5e-0f59-2cd970db0000"));
+				Assert.That(() => Uuid128.ParseExact("1valid!000000000000000", "Z"), Throws.InstanceOf<FormatException>());
+#endif
+			});
+		}
+
+		[Test]
 		public void Test_Uuid_From_Bytes()
 		{
 			{
@@ -217,9 +277,9 @@ namespace Doxense.Core.Tests
 			Assert.That(uuid1.Equals((object)uuid2), Is.False);
 			Assert.That(uuid2.Equals((object)uuid1), Is.False);
 
-			var uuid1b = Uuid128.Parse(uuid1.ToString());
-			Assert.That(uuid1b.Equals(uuid1), Is.True);
-			Assert.That(uuid1b.Equals((object)uuid1), Is.True);
+			var uuid1Bis = Uuid128.Parse(uuid1.ToString());
+			Assert.That(uuid1Bis.Equals(uuid1), Is.True);
+			Assert.That(uuid1Bis.Equals((object)uuid1), Is.True);
 
 		}
 
@@ -297,8 +357,6 @@ namespace Doxense.Core.Tests
 		[Test]
 		public void Test_Uuid_Timestamp_And_ClockSequence()
 		{
-			DateTime now = DateTime.UtcNow;
-
 			// UUID V1 : 60-bit timestamp, in 100-ns ticks since 1582-10-15T00:00:00.000
 
 			// note: this uuid was generated in Python as 'uuid.uuid1(None, 12345)' on the 2013-09-09 at 14:33:50 GMT+2
@@ -334,7 +392,7 @@ namespace Doxense.Core.Tests
 		{
 			const int N = 1000;
 
-			// create a a list of random ids
+			// create a list of random ids
 			var source = new List<Uuid128>(N);
 			for (int i = 0; i < N; i++) source.Add(Uuid128.NewUuid());
 
@@ -366,11 +424,31 @@ namespace Doxense.Core.Tests
 			ReadOnlySpan<char> chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 			Assert.That(chars.Length, Is.EqualTo(62));
 
+			// quick ref output
+			{
+				var small = Uuid128.FromUInt32(0x1234);
+				var medium = Uuid128.FromUInt64(0x0123456789ABCDEF);
+				var big = Uuid128.NewUuid();
+				Log($"D:`{Uuid128.Empty:D} | Z:`{Uuid128.Empty:Z}` | C:`{Uuid128.Empty:C}`");
+				Log($"D:`{small:D} | Z:`{small:Z}` | C:`{small:C}`");
+				Log($"D:`{medium:D} | Z:`{medium:Z}` | C:`{medium:C}`");
+				Log($"D:`{big:D} | Z:`{big:Z}` | C:`{big:C}`");
+				Log($"D:`{Uuid128.AllBitsSet:D} | Z:`{Uuid128.AllBitsSet:Z}` | C:`{Uuid128.AllBitsSet:C}`");
+			}
+
+			var buf = new char[22];
+
 			// single digit
 			for (int i = 0; i < 62;i++)
 			{
-				Assert.That(new Uuid128(i).ToString("C"), Is.EqualTo(chars[i].ToString()));
-				Assert.That(new Uuid128(i).ToString("Z"), Is.EqualTo("000000000000000000000" + chars[i]));
+				var g = new Uuid128(i);
+				Assert.That(g.ToString("C"), Is.EqualTo(chars[i].ToString()));
+				Assert.That(g.ToString("Z"), Is.EqualTo("000000000000000000000" + chars[i]));
+
+				Assert.That(g.TryFormat(buf, out int written, "C"), Is.True);
+				Assert.That(buf.AsSpan(0, written).ToString(), Is.EqualTo(chars[i].ToString()));
+				Assert.That(g.TryFormat(buf, out written, "Z"), Is.True);
+				Assert.That(buf.AsSpan(0, written).ToString(), Is.EqualTo("000000000000000000000" + chars[i]));
 			}
 
 			// two digits
@@ -379,8 +457,14 @@ namespace Doxense.Core.Tests
 				var prefix = chars[j].ToString();
 				for (int i = 0; i < 62; i++)
 				{
-					Assert.That(new Uuid128(j * 62 + i).ToString("C"), Is.EqualTo(prefix + chars[i]));
-					Assert.That(new Uuid128(j * 62 + i).ToString("Z"), Is.EqualTo("00000000000000000000" + prefix + chars[i]));
+					var g = new Uuid128(j * 62 + i);
+					Assert.That(g.ToString("C"), Is.EqualTo(prefix + chars[i]));
+					Assert.That(g.ToString("Z"), Is.EqualTo("00000000000000000000" + prefix + chars[i]));
+
+					Assert.That(g.TryFormat(buf, out int written, "C"), Is.True);
+					Assert.That(buf.AsSpan(0, written).ToString(), Is.EqualTo(prefix + chars[i].ToString()));
+					Assert.That(g.TryFormat(buf, out written, "Z"), Is.True);
+					Assert.That(buf.AsSpan(0, written).ToString(), Is.EqualTo("00000000000000000000" + prefix + chars[i]));
 				}
 			}
 
@@ -406,9 +490,14 @@ namespace Doxense.Core.Tests
 					b > 0 ? ("" + chars[b] + chars[a]) :
 					("" + chars[a]);
 				Assert.That(uuid.ToString("C"), Is.EqualTo(expected));
+				Assert.That(uuid.TryFormat(buf, out int written, "C"), Is.True);
+				Assert.That(buf.AsSpan(0, written).ToString(), Is.EqualTo(expected));
 
 				// padding
-				Assert.That(uuid.ToString("Z"), Is.EqualTo("000000000000000000" + chars[d] + chars[c] + chars[b] + chars[a]));
+				expected = "000000000000000000" + chars[d] + chars[c] + chars[b] + chars[a];
+				Assert.That(uuid.ToString("Z"), Is.EqualTo(expected));
+				Assert.That(uuid.TryFormat(buf, out written, "Z"), Is.True);
+				Assert.That(buf.AsSpan(0, written).ToString(), Is.EqualTo(expected));
 			}
 
 			// Numbers of the form 62^n should be encoded as '1' followed by n x '0', for n from 0 to 10
@@ -452,6 +541,12 @@ namespace Doxense.Core.Tests
 				Assert.That(Uuid128.Parse("c46f15e3-a389-4fd6-bc4b-3718ec3cbfe9").ToString("C"), Is.EqualTo("5yfGGJ5WrviUM0D5Y3KNZ3"));
 				Assert.That(Uuid128.Parse("680e98d4-a35a-40b6-9870-e55821e5c618").ToString("C"), Is.EqualTo("3ALs7F1Ki9Sm26snO9IFRI"));
 				Assert.That(Uuid128.Parse("3469ed5b-917c-460a-9cac-76901371f2dc").ToString("C"), Is.EqualTo("1au0btiNg6WMhGPKoJDYYG"));
+
+				Assert.That(Uuid128.Parse("00112233-4455-6677-8899-AABBCCDDEEFF").ToString("Z"), Is.EqualTo("007pSo2b9TNg1cedavCe7z"));
+				Assert.That(Uuid128.Parse("c46f15e3-a389-4fd6-bc4b-3718ec3cbfe9").ToString("Z"), Is.EqualTo("5yfGGJ5WrviUM0D5Y3KNZ3"));
+				Assert.That(Uuid128.Parse("680e98d4-a35a-40b6-9870-e55821e5c618").ToString("Z"), Is.EqualTo("3ALs7F1Ki9Sm26snO9IFRI"));
+				Assert.That(Uuid128.Parse("3469ed5b-917c-460a-9cac-76901371f2dc").ToString("Z"), Is.EqualTo("1au0btiNg6WMhGPKoJDYYG"));
+
 			});
 		}
 

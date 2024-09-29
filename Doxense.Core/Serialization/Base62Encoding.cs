@@ -94,6 +94,11 @@ namespace Doxense.Serialization
 			return Encode128(value, 128, options);
 		}
 
+		public static bool TryEncodeTo(Span<char> destination, out int charsWritten, UInt128 value, Base62FormattingOptions options = default)
+		{
+			return TryEncode128(destination, out charsWritten, value, 128, options);
+		}
+
 #endif
 
 		public static string EncodeSortable(uint value)
@@ -220,6 +225,43 @@ namespace Doxense.Serialization
 			Contract.Debug.Ensures(value == 0);
 
 			return new string(chars);
+		}
+
+		private static bool TryEncode128(Span<char> destination, out int charsWritten, UInt128 value, int bits, Base62FormattingOptions options)
+		{
+			int size = GetMaxSize(bits);
+
+			if (!options.HasFlag(Base62FormattingOptions.Padded))
+			{ // no padding: may be smaller!
+
+				int actualSize = 0;
+				var tmp = value;
+				for (int pc = size - 1; pc >= 0; --pc)
+				{
+					actualSize++;
+					tmp /= 62;
+					if (tmp == 0) break;
+				}
+				size = actualSize;
+			}
+
+			if (destination.Length < size)
+			{
+				charsWritten = 0;
+				return false;
+			}
+
+			ref char map = ref Unsafe.AsRef(ref MemoryMarshal.GetReference(GetEncodeMap(options)));
+
+			for (int pc = size - 1; pc >= 0; --pc)
+			{
+				destination[pc] = Unsafe.Add(ref map, (int) (value % 62));
+				value /= 62;
+			}
+
+			Contract.Debug.Ensures(value == 0);
+			charsWritten = size;
+			return true;
 		}
 
 #endif

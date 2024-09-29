@@ -183,10 +183,19 @@ namespace System
 #endif
 
 		/// <summary>Uuid128 with all bits set to zero: <c>00000000-0000-0000-0000-000000000000</c></summary>
+		[EditorBrowsable(EditorBrowsableState.Always)]
 		public static readonly Uuid128 Empty;
 
 		/// <summary>Uuid128 with all bits set to one: <c>FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF</c></summary>
-		public static readonly Uuid128 MaxValue = new (new Guid(-1, -1, -1, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue));
+		public static readonly Uuid128 AllBitsSet = new(new Guid(-1, -1, -1, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue));
+
+		/// <summary>Uuid128 with all bits set to one: <c>FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF</c></summary>
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		public static readonly Uuid128 MinValue;
+
+		/// <summary>Uuid128 with all bits set to one: <c>FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF</c></summary>
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		public static readonly Uuid128 MaxValue = new(new Guid(-1, -1, -1, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue));
 
 		/// <summary>Size is 16 bytes</summary>
 		public const int SizeOf = 16;
@@ -422,10 +431,35 @@ namespace System
 		}
 
 		/// <summary>Parses a string representation of an UUid128</summary>
-		public static Uuid128 ParseExact(string input, string format) => new(Guid.ParseExact(input, format));
+		public static Uuid128 ParseExact(
+			string input,
+#if NET8_0_OR_GREATER
+			[StringSyntax(StringSyntaxAttribute.GuidFormat)]
+#endif
+			string format
+		)
+		{
+#if NET8_0_OR_GREATER
+			if (format.Length == 1)
+			{
+				var c = format[0] | 0x20;
+				if (c == 'd') goto parse_guid;
+				if (c == 'c') return input.Length is > 0 and <= 22 ? FromBase62(input) : throw FailInvalidFormat();
+				if (c == 'z') return input.Length == 22 ? FromBase62(input) : throw FailInvalidFormat();
+			}
+#endif
+		parse_guid:
+			return new(Guid.ParseExact(input, format));
+		}
 
 		/// <summary>Parses a string representation of an UUid128</summary>
-		public static Uuid128 ParseExact(ReadOnlySpan<char> input, ReadOnlySpan<char> format) => new(Guid.ParseExact(input, format));
+		public static Uuid128 ParseExact(
+			ReadOnlySpan<char> input,
+#if NET8_0_OR_GREATER
+			[StringSyntax(StringSyntaxAttribute.GuidFormat)]
+#endif
+			ReadOnlySpan<char> format
+		) => new(Guid.ParseExact(input, format));
 
 		/// <summary>Tries to parse a string into a <see cref="Uuid128"/></summary>
 		/// <param name="input">The string to parse.</param>
@@ -534,7 +568,7 @@ namespace System
 
 #endif
 
-		#endregion
+#endregion
 
 		public long Timestamp
 		{
@@ -840,6 +874,7 @@ namespace System
 #if NET8_0_OR_GREATER
 			return format switch
 			{
+				null or "D" => m_packed.ToString(),
 				"C" or "c" => ToBase62(padded: false), // base 62, compact, up to 22 characters
 				"Z" or "z" => ToBase62(padded: true),  // base 62, padded to 22 characters
 				_ => m_packed.ToString(format)
@@ -850,10 +885,17 @@ namespace System
 		}
 
 #if NET8_0_OR_GREATER
+
 		public string ToBase62(bool padded = false)
 		{
-			return Base62Encoding.Encode(ToUInt128(), padded ? Base62FormattingOptions.Lexicographic | Base62FormattingOptions.Padded : Base62FormattingOptions.Lexicographic);
+			return Base62Encoding.Encode(this.ToUInt128(), padded ? Base62FormattingOptions.Lexicographic | Base62FormattingOptions.Padded : Base62FormattingOptions.Lexicographic);
 		}
+
+		private bool TryFormatToBase62(Span<char> destination, out int charsWritten, bool padded = false)
+		{
+			return Base62Encoding.TryEncodeTo(destination, out charsWritten, this.ToUInt128(), padded ? Base62FormattingOptions.Lexicographic | Base62FormattingOptions.Padded : Base62FormattingOptions.Lexicographic);
+		}
+
 #endif
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -881,7 +923,20 @@ namespace System
 #endif
 			ReadOnlySpan<char> format = default,
 			IFormatProvider? provider = null
-		) => m_packed.TryFormat(destination, out charsWritten, format);
+		)
+		{
+#if NET8_0_OR_GREATER
+			return format switch
+			{
+				"" or "D" => m_packed.TryFormat(destination, out charsWritten),
+				"C" or "c" => TryFormatToBase62(destination, out charsWritten, padded: false), // base 62, compact, up to 22 characters
+				"Z" or "z" => TryFormatToBase62(destination, out charsWritten, padded: true), // base 62, padded to 22 characters
+				_ => m_packed.TryFormat(destination, out charsWritten, format)
+			};
+#else
+			return m_packed.TryFormat(destination, out charsWritten, format);
+#endif
+		}
 
 #if NET8_0_OR_GREATER
 
