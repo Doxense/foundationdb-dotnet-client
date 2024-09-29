@@ -109,13 +109,17 @@ namespace Doxense.Memory
 		/// </remarks>
 		public void Clear()
 		{
-			if (m_current == null) throw ThrowObjectDisposedException();
+			if (m_current is null)
+			{
+				throw ThrowObjectDisposedException();
+			}
 
 			if (m_index > 0)
 			{ // the current slab was used previously, replace it with a new one
 				m_current = m_current.Length > 0 ? new byte[m_current.Length] : [ ];
 				m_index = 0;
 			}
+
 			m_slabs?.Clear();
 			m_slabWritten = 0;
 		}

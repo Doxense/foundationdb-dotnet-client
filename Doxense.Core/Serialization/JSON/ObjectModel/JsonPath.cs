@@ -56,7 +56,7 @@ namespace Doxense.Serialization.Json
 		public static JsonPath Create(Index index) => !index.IsFromEnd ? Create(index.Value) : index.Value == 1 ? new("[^1]") : new JsonPath($"[{index}]");
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static explicit operator JsonPath(string? path) => path == null ? default : new(path.AsMemory());
+		public static explicit operator JsonPath(string? path) => path is null ? default : new(path.AsMemory());
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Tokenizer GetEnumerator() => new(this);
@@ -553,7 +553,7 @@ namespace Doxense.Serialization.Json
 			}
 
 			var res = buf[..p].ToString();
-			if (array != null)
+			if (array is not null)
 			{
 				buf[..p].Clear();
 				ArrayPool<char>.Shared.Return(array);
@@ -561,7 +561,7 @@ namespace Doxense.Serialization.Json
 			return res;
 		}
 
-		/// <summary>Appends an field to this path (ex: <c>JsonPath.Return("user")["id"]</c> => "user.id")</summary>
+		/// <summary>Appends a field to this path (ex: <c>JsonPath.Return("user")["id"]</c> => "user.id")</summary>
 		public JsonPath this[string key]
 		{
 			get

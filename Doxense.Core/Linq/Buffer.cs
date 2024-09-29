@@ -68,7 +68,7 @@ namespace Doxense.Linq
 		public bool IsSingleSegment
 		{
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			get => this.Chunks == null;
+			get => this.Chunks is null;
 		}
 
 		public Buffer(int capacity = 0)
@@ -269,7 +269,7 @@ namespace Doxense.Linq
 		/// <returns><see langword="true"/> if the buffer is empty, or its content is stored in a single continuous chunk, available in <see cref="segment"/>; otherwise, <see langword="false"/></returns>
 		public bool TryGetSpan(out Span<T> segment)
 		{
-			if (this.Chunks == null)
+			if (this.Chunks is null)
 			{
 				Contract.Debug.Assert(this.Count == this.Index);
 				segment = this.Current.AsSpan(0, this.Index);
@@ -287,7 +287,7 @@ namespace Doxense.Linq
 		{
 			int count = this.Count;
 
-			if (this.Chunks == null)
+			if (this.Chunks is null)
 			{ // a single buffer page was used
 				Contract.Debug.Assert(count == this.Index);
 				return Current.AsMemory(0, count);
@@ -306,7 +306,7 @@ namespace Doxense.Linq
 		{
 			int count = this.Count;
 
-			if (this.Chunks == null)
+			if (this.Chunks is null)
 			{ // a single buffer page was used
 				Contract.Debug.Assert(count == this.Index);
 				return this.Current.Length == count
@@ -1031,7 +1031,7 @@ namespace Doxense.Linq
 			{
 				throw this.Count == 0 ? BufferHasNoElements() : BufferHasMoreThanOneElement();
 			}
-			return this.Chunks == null
+			return this.Chunks is null
 				? this.Current[0]
 				: this.Chunks[0].Span[0];
 		}
@@ -1048,7 +1048,7 @@ namespace Doxense.Linq
 			{
 				throw BufferHasNoElements();
 			}
-			return this.Chunks == null
+			return this.Chunks is null
 				? this.Current[0]
 				: this.Chunks[0].Span[0];
 		}
@@ -1062,7 +1062,7 @@ namespace Doxense.Linq
 				throw BufferHasNoElements();
 			}
 
-			return this.Chunks == null
+			return this.Chunks is null
 				? this.Current[0]
 				: this.Chunks[0].Span[0];
 		}
@@ -1076,7 +1076,7 @@ namespace Doxense.Linq
 				return default;
 			}
 
-			return this.Chunks == null
+			return this.Chunks is null
 				? this.Current[0]
 				: this.Chunks[0].Span[0];
 		}
@@ -1090,7 +1090,7 @@ namespace Doxense.Linq
 				throw BufferHasNoElements();
 			}
 
-			return this.Chunks == null
+			return this.Chunks is null
 				? this.Current[this.Index - 1]
 				: this.Chunks[^1].Span[^1];
 		}
@@ -1104,7 +1104,7 @@ namespace Doxense.Linq
 				return default;
 			}
 
-			return this.Chunks == null
+			return this.Chunks is null
 				? this.Current[this.Index - 1]
 				: this.Chunks[^1].Span[^1];
 		}

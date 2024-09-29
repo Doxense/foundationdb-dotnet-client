@@ -613,7 +613,7 @@ namespace Doxense.Text
 			int curIdx = idx;
 			for (int i = 1; i < SharedBucketSize + 1; i++)
 			{
-				if (arr[curIdx].Text == null)
+				if (arr[curIdx].Text is null)
 				{
 					idx = curIdx;
 					goto foundIdx;

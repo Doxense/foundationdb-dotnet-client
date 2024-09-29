@@ -144,12 +144,12 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal JsonArray(JsonValue[] items, int count, bool readOnly)
 		{
-			Contract.Debug.Requires(items != null && count <= items.Length);
+			Contract.Debug.Requires(items is not null && count <= items.Length);
 			m_items = items;
 			m_size = count;
 			m_readOnly = readOnly;
 #if FULL_DEBUG
-			for (int i = 0; i < count; i++) Contract.Debug.Requires(items[i] != null, "Array cannot contain nulls");
+			for (int i = 0; i < count; i++) Contract.Debug.Requires(items[i] is not null, "Array cannot contain nulls");
 #endif
 		}
 
@@ -1162,7 +1162,7 @@ namespace Doxense.Serialization.Json
 				EnsureCapacity(size + values.Length);
 
 				var items = m_items;
-				Contract.Debug.Assert(items != null && size + values.Length <= items.Length);
+				Contract.Debug.Assert(items is not null && size + values.Length <= items.Length);
 
 				var tail = items.AsSpan(size, values.Length);
 				values.CopyTo(tail!);
@@ -1183,7 +1183,7 @@ namespace Doxense.Serialization.Json
 				EnsureCapacity(size + values.Length);
 
 				var items = m_items;
-				Contract.Debug.Assert(items != null && size + values.Length <= items.Length);
+				Contract.Debug.Assert(items is not null && size + values.Length <= items.Length);
 
 				var tail = items.AsSpan(size, values.Length);
 				for (int i = 0; i < values.Length; i++)
@@ -1207,7 +1207,7 @@ namespace Doxense.Serialization.Json
 				int size = m_size;
 				EnsureCapacity(size + values.Length);
 				var items = m_items;
-				Contract.Debug.Assert(items != null && size + values.Length <= items.Length);
+				Contract.Debug.Assert(items is not null && size + values.Length <= items.Length);
 
 				// append
 				var tail = items.AsSpan(size, values.Length);
@@ -1232,7 +1232,7 @@ namespace Doxense.Serialization.Json
 				int size = m_size;
 				EnsureCapacity(size + values.Length);
 				var items = m_items;
-				Contract.Debug.Assert(items != null && size + values.Length <= items.Length);
+				Contract.Debug.Assert(items is not null && size + values.Length <= items.Length);
 
 				// append
 				var tail = items.AsSpan(size, values.Length);
@@ -3089,7 +3089,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public int IndexOf(JsonValue? item)
 		{
-			return item != null
+			return item is not null
 				?  this.AsSpan().IndexOf(item)
 				: IndexOfNullLike(this.AsSpan());
 
@@ -3118,7 +3118,7 @@ namespace Doxense.Serialization.Json
 		public override bool Contains(JsonValue? item)
 		{
 			// if item is null, we want _any_ types of null (Null, Missing, Error)
-			return item != null
+			return item is not null
 				? this.AsSpan().Contains(item)
 				: ContainsNullLike(this.AsSpan());
 
@@ -3703,7 +3703,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (value is not JsonArray array)
 			{
-				return value == null || value.IsNull
+				return value is null || value.IsNull
 					? (required ? JsonValueExtensions.FailRequiredValueIsNullOrMissing<TValue[]>() : null)
 					: throw JsonBindingException.CannotBindJsonValueToArrayOfThisType(value, typeof(TValue));
 			}
@@ -4086,7 +4086,7 @@ namespace Doxense.Serialization.Json
 				}
 			}
 
-			if (copy == null)
+			if (copy is null)
 			{ // already mutable
 				return this;
 			}
@@ -4103,7 +4103,7 @@ namespace Doxense.Serialization.Json
 		[Pure, ContractAnnotation("value:null => null")]
 		public static List<TValue?>? BindList<TValue>(JsonValue? value, ICrystalJsonTypeResolver? resolver = null, bool required = false)
 		{
-			if (value == null || value.IsNull) return required ? JsonValueExtensions.FailRequiredValueIsNullOrMissing<List<TValue?>>() : null;
+			if (value is null || value.IsNull) return required ? JsonValueExtensions.FailRequiredValueIsNullOrMissing<List<TValue?>>() : null;
 			if (value is not JsonArray array) throw JsonBindingException.CannotBindJsonValueToArrayOfThisType(value, typeof(TValue));
 			return array.ToList<TValue?>(default, resolver);
 		}
@@ -4483,7 +4483,7 @@ namespace Doxense.Serialization.Json
 				var t = item.Type;
 				if (t == JsonType.Null) continue;
 
-				if (type == null)
+				if (type is null)
 				{ // first non-null
 					type = t;
 				}
@@ -4738,13 +4738,13 @@ namespace Doxense.Serialization.Json
 		[CollectionAccess(CollectionAccessType.Read)]
 		internal static JsonArray Project(IEnumerable<JsonValue?> source, KeyValuePair<string, JsonValue?>[] defaults)
 		{
-			Contract.Debug.Requires(source != null && defaults != null);
+			Contract.Debug.Requires(source is not null && defaults is not null);
 
 			var array = source is ICollection<JsonValue> coll ? new JsonArray(coll.Count) : new JsonArray();
 
 			foreach (var item in source)
 			{
-				if (item == null)
+				if (item is null)
 				{
 					array.Add(JsonNull.Null);
 					continue;
@@ -4789,7 +4789,7 @@ namespace Doxense.Serialization.Json
 
 		private static void FlattenRecursive(JsonArray items, JsonArray output, int limit)
 		{
-			Contract.Debug.Requires(items != null && output != null);
+			Contract.Debug.Requires(items is not null && output is not null);
 			foreach(var item in items.AsSpan())
 			{
 				if (limit > 0 && item is JsonArray arr)
@@ -4897,7 +4897,7 @@ namespace Doxense.Serialization.Json
 		public bool Equals(JsonArray? other)
 		{
 			int n = m_size;
-			if (other == null || other.Count != n)
+			if (other is null || other.Count != n)
 			{
 				return false;
 			}
@@ -4916,7 +4916,7 @@ namespace Doxense.Serialization.Json
 		public bool Equals(JsonArray? other, IEqualityComparer<JsonValue>? comparer)
 		{
 			int n = m_size;
-			if (other == null || other.Count != n)
+			if (other is null || other.Count != n)
 			{
 				return false;
 			}
@@ -5309,7 +5309,7 @@ namespace Doxense.Serialization.Json
 			int index = 0;
 			foreach (var item in source)
 			{
-				if (item == null || item.IsNull)
+				if (item is null || item.IsNull)
 				{
 					throw JsonArray.Error_CannotMapNullValuesToDictionary(index);
 				}

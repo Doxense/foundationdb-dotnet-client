@@ -167,7 +167,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>If <paramref name="readOnly"/> is <see langword="true"/> then all elements in <paramref name="items"/> MUST also be read-only!</remarks>
 		internal JsonObject(Dictionary<string, JsonValue> items, bool readOnly)
 		{
-			Contract.Debug.Requires(items != null);
+			Contract.Debug.Requires(items is not null);
 			m_items = items;
 			m_readOnly = readOnly;
 			CheckInvariants();
@@ -283,7 +283,7 @@ namespace Doxense.Serialization.Json
 				}
 			}
 
-			if (copy == null)
+			if (copy is null)
 			{ // already mutable
 				return this;
 			}
@@ -1094,7 +1094,7 @@ namespace Doxense.Serialization.Json
 					{ // compact mode: "NAME: VALUE"
 
 						// since we don't care to be deserializable, we can ommit 'null' items
-						if (x == null) continue;
+						if (x is null) continue;
 
 						var v = x is System.Runtime.Serialization.ISerializable ser
 							? FromISerializable(ser, includeTypes: false, settings: settings, resolver: resolver)
@@ -1240,7 +1240,7 @@ namespace Doxense.Serialization.Json
 		public void Add(string key, JsonValue? value)
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
-			Contract.Debug.Requires(key != null && !ReferenceEquals(this, value));
+			Contract.Debug.Requires(key is not null && !ReferenceEquals(this, value));
 			m_items.Add(key, value ?? JsonNull.Null);
 		}
 
@@ -1593,7 +1593,7 @@ namespace Doxense.Serialization.Json
 
 			foreach (var item in items)
 			{
-				Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
+				Contract.Debug.Requires(item.Key is not null && !ReferenceEquals(this, item.Value));
 				// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
 				self.Add(item.Key, item.Value ?? JsonNull.Null);
 			}
@@ -1612,7 +1612,7 @@ namespace Doxense.Serialization.Json
 
 			foreach (var item in items)
 			{
-				Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
+				Contract.Debug.Requires(item.Key is not null && !ReferenceEquals(this, item.Value));
 				self.Add(item.Key, item.Value ?? JsonNull.Null);
 			}
 
@@ -1630,7 +1630,7 @@ namespace Doxense.Serialization.Json
 
 			foreach (var item in items)
 			{
-				Contract.Debug.Requires(item.Key != null);
+				Contract.Debug.Requires(item.Key is not null);
 				self.Add(item.Key, FromValue<TValue>(item.Value, settings, resolver));
 			}
 
@@ -1670,7 +1670,7 @@ namespace Doxense.Serialization.Json
 				{
 					foreach (var item in obj.m_items)
 					{
-						Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
+						Contract.Debug.Requires(item.Key is not null && !ReferenceEquals(this, item.Value));
 						self.Add(item.Key, item.Value);
 					}
 
@@ -1680,7 +1680,7 @@ namespace Doxense.Serialization.Json
 				{
 					foreach (var item in dict)
 					{
-						Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
+						Contract.Debug.Requires(item.Key is not null && !ReferenceEquals(this, item.Value));
 						// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
 						self.Add(item.Key, item.Value ?? JsonNull.Null);
 					}
@@ -1691,7 +1691,7 @@ namespace Doxense.Serialization.Json
 				{
 					foreach (var item in dict)
 					{
-						Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
+						Contract.Debug.Requires(item.Key is not null && !ReferenceEquals(this, item.Value));
 						// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
 						self.Add(item.Key, item.Value ?? JsonNull.Null);
 					}
@@ -1702,7 +1702,7 @@ namespace Doxense.Serialization.Json
 				{
 					foreach (var item in immu)
 					{
-						Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
+						Contract.Debug.Requires(item.Key is not null && !ReferenceEquals(this, item.Value));
 						// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
 						self.Add(item.Key, item.Value ?? JsonNull.Null);
 					}
@@ -1713,7 +1713,7 @@ namespace Doxense.Serialization.Json
 				{
 					foreach (var item in items)
 					{
-						Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
+						Contract.Debug.Requires(item.Key is not null && !ReferenceEquals(this, item.Value));
 						// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
 						self.Add(item.Key, item.Value ?? JsonNull.Null);
 					}
@@ -1765,7 +1765,7 @@ namespace Doxense.Serialization.Json
 
 				foreach (var item in items)
 				{
-					Contract.Debug.Requires(item.Key != null && !ReferenceEquals(obj, item.Value));
+					Contract.Debug.Requires(item.Key is not null && !ReferenceEquals(obj, item.Value));
 					// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
 					self.Add(item.Key, item.Value ?? JsonNull.Null);
 				}
@@ -1808,7 +1808,7 @@ namespace Doxense.Serialization.Json
 
 				foreach (var item in items)
 				{
-					Contract.Debug.Requires(item.Key != null && !ReferenceEquals(obj, item.Value));
+					Contract.Debug.Requires(item.Key is not null && !ReferenceEquals(obj, item.Value));
 					// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
 					self.Add(item.Key, item.Value ?? JsonNull.Null);
 				}
@@ -1832,7 +1832,7 @@ namespace Doxense.Serialization.Json
 
 			foreach (var item in items)
 			{
-				Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
+				Contract.Debug.Requires(item.Key is not null && !ReferenceEquals(this, item.Value));
 				// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
 				self.Add(item.Key, (item.Value ?? JsonNull.Null).ToReadOnly());
 			}
@@ -1851,7 +1851,7 @@ namespace Doxense.Serialization.Json
 
 			foreach (var item in items)
 			{
-				Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
+				Contract.Debug.Requires(item.Key is not null && !ReferenceEquals(this, item.Value));
 				// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
 				self.Add(item.Key, (item.Value ?? JsonNull.Null).ToReadOnly());
 			}
@@ -1898,7 +1898,7 @@ namespace Doxense.Serialization.Json
 						// we assume that the values are already guaranteed to be read-only, so we can skip the ToReadOnly() call!
 						foreach (var item in obj.m_items)
 						{
-							Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value) && item.Value.IsReadOnly);
+							Contract.Debug.Requires(item.Key is not null && !ReferenceEquals(this, item.Value) && item.Value.IsReadOnly);
 							self.Add(item.Key, item.Value);
 						}
 					}
@@ -1906,7 +1906,7 @@ namespace Doxense.Serialization.Json
 					{
 						foreach (var item in obj.m_items)
 						{
-							Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
+							Contract.Debug.Requires(item.Key is not null && !ReferenceEquals(this, item.Value));
 							self.Add(item.Key, item.Value.ToReadOnly());
 						}
 					}
@@ -1916,7 +1916,7 @@ namespace Doxense.Serialization.Json
 				{
 					foreach (var item in dict)
 					{
-						Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
+						Contract.Debug.Requires(item.Key is not null && !ReferenceEquals(this, item.Value));
 						// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
 						self.Add(item.Key, (item.Value ?? JsonNull.Null).ToReadOnly());
 					}
@@ -1926,7 +1926,7 @@ namespace Doxense.Serialization.Json
 				{
 					foreach (var item in dict)
 					{
-						Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
+						Contract.Debug.Requires(item.Key is not null && !ReferenceEquals(this, item.Value));
 						// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
 						self.Add(item.Key, (item.Value ?? JsonNull.Null).ToReadOnly());
 					}
@@ -1936,7 +1936,7 @@ namespace Doxense.Serialization.Json
 				{
 					foreach (var item in dict)
 					{
-						Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
+						Contract.Debug.Requires(item.Key is not null && !ReferenceEquals(this, item.Value));
 						// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
 						self.Add(item.Key, (item.Value ?? JsonNull.Null).ToReadOnly());
 					}
@@ -1946,7 +1946,7 @@ namespace Doxense.Serialization.Json
 				{
 					foreach (var item in items)
 					{
-						Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
+						Contract.Debug.Requires(item.Key is not null && !ReferenceEquals(this, item.Value));
 						// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
 						self.Add(item.Key, (item.Value ?? JsonNull.Null).ToReadOnly());
 					}
@@ -1987,7 +1987,7 @@ namespace Doxense.Serialization.Json
 
 					foreach (var item in items)
 					{
-						Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
+						Contract.Debug.Requires(item.Key is not null && !ReferenceEquals(this, item.Value));
 						// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
 						self.Add(item.Key, (item.Value ?? JsonNull.Null).ToReadOnly());
 					}
@@ -2023,7 +2023,7 @@ namespace Doxense.Serialization.Json
 
 					foreach (var item in items)
 					{
-						Contract.Debug.Requires(item.Key != null && !ReferenceEquals(this, item.Value));
+						Contract.Debug.Requires(item.Key is not null && !ReferenceEquals(this, item.Value));
 						// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
 						self.Add(item.Key, (item.Value ?? JsonNull.Null).ToReadOnly());
 					}
@@ -2252,7 +2252,7 @@ namespace Doxense.Serialization.Json
 		public bool Remove(string key)
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
-			Contract.Debug.Requires(key != null);
+			Contract.Debug.Requires(key is not null);
 			return m_items.Remove(key);
 		}
 
@@ -2353,7 +2353,7 @@ namespace Doxense.Serialization.Json
 		public bool Remove(KeyValuePair<string, JsonValue> keyValuePair)
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
-			Contract.Debug.Requires(keyValuePair.Key != null);
+			Contract.Debug.Requires(keyValuePair.Key is not null);
 			if (!m_items.TryGetValue(keyValuePair.Key, out var prev) || !prev.Equals(keyValuePair.Value))
 			{
 				return false;
@@ -2577,7 +2577,7 @@ namespace Doxense.Serialization.Json
 							throw ThrowHelper.InvalidOperationException($"Cannot set key '{key.ToString()}' because parent '{parent}' is not an object");
 						}
 
-						if (prevNode == null)
+						if (prevNode is null)
 						{
 							throw ThrowHelper.InvalidOperationException("Cannot update a null root object");
 						}
@@ -2605,7 +2605,7 @@ namespace Doxense.Serialization.Json
 
 					if (last)
 					{ // the last token is a field access
-						if (valueToSet == null)
+						if (valueToSet is null)
 						{ // we need to return the value or create it if required
 
 							var actual = obj.GetValueOrDefault(key);
@@ -2648,7 +2648,7 @@ namespace Doxense.Serialization.Json
 						{ // incompatible type!
 							throw ThrowHelper.InvalidOperationException($"Cannot set index {idx} because parent '{parent}' is not an array");
 						}
-						if (prevNode == null)
+						if (prevNode is null)
 						{
 							throw ThrowHelper.InvalidOperationException("Cannot update a null root array");
 						}
@@ -2676,7 +2676,7 @@ namespace Doxense.Serialization.Json
 
 					if (last)
 					{ // the last token is an array index
-						if (valueToSet == null)
+						if (valueToSet is null)
 						{ // we need to return the value or create it if required
 
 							var actual = arr[idx];
@@ -3240,7 +3240,7 @@ namespace Doxense.Serialization.Json
 			Contract.NotNull(defaults);
 
 			var obj = FromObjectReadOnly(defaults);
-			Contract.Debug.Assert(obj != null);
+			Contract.Debug.Assert(obj is not null);
 			//note: garantit sans doublons et sans clés vides
 			return obj.ToArray()!;
 		}
@@ -3256,7 +3256,7 @@ namespace Doxense.Serialization.Json
 		/// </code></remarks>
 		internal static JsonObject Project(JsonObject item, ReadOnlySpan<KeyValuePair<string, JsonValue?>> defaults, bool removeFromSource = false, bool keepMutable = false)
 		{
-			Contract.Debug.Requires(item != null);
+			Contract.Debug.Requires(item is not null);
 
 			if (removeFromSource && item.IsReadOnly)
 			{
@@ -3274,7 +3274,7 @@ namespace Doxense.Serialization.Json
 						item.Remove(prop.Key);
 					}
 				}
-				else if (prop.Value != null)
+				else if (prop.Value is not null)
 				{
 					obj[prop.Key] = prop.Value;
 				}
@@ -3296,7 +3296,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>New object that contains the selected fields from the source, or their default values.</returns>
 		internal static JsonObject Project(JsonObject item, ReadOnlySpan<(string Name, JsonPath Path, JsonValue? Fallback)> defaults, bool keepMutable = false)
 		{
-			Contract.Debug.Requires(item != null);
+			Contract.Debug.Requires(item is not null);
 
 			var obj = new JsonObject(defaults.Length, item.Comparer);
 			foreach (var prop in defaults)
@@ -3305,7 +3305,7 @@ namespace Doxense.Serialization.Json
 				{
 					obj[prop.Name] = value;
 				}
-				else if (prop.Fallback != null)
+				else if (prop.Fallback is not null)
 				{
 					obj[prop.Name] = prop.Fallback;
 				}
@@ -3332,7 +3332,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>If all fields are discarded, the returned object will be empty.</remarks>
 		internal static JsonObject Without(JsonObject value, Func<string, bool> filter, bool deepCopy)
 		{
-			Contract.Debug.Requires(value != null && filter != null);
+			Contract.Debug.Requires(value is not null && filter is not null);
 
 			var obj = new JsonObject(value.Count, value.Comparer);
 			foreach(var item in value)
@@ -3353,7 +3353,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>If all fields are discarded, the returned object will be empty.</remarks>
 		internal static JsonObject Without(JsonObject value, HashSet<string> filtered, bool deepCopy)
 		{
-			Contract.Debug.Requires(value != null && filtered != null);
+			Contract.Debug.Requires(value is not null && filtered is not null);
 
 			var obj = new JsonObject(value.Count, value.Comparer);
 			foreach (var item in value)
@@ -3374,7 +3374,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>If all fields are discarded, the returned object will be empty.</remarks>
 		internal static JsonObject Without(JsonObject value, string field, bool deepCopy)
 		{
-			Contract.Debug.Requires(value != null && field != null);
+			Contract.Debug.Requires(value is not null && field is not null);
 
 			var obj = Copy(value, deepCopy, readOnly: false);
 			obj.Remove(field);
@@ -3444,7 +3444,7 @@ namespace Doxense.Serialization.Json
 						}
 					}
 
-					if (items != null)
+					if (items is not null)
 					{ // at least one change
 						result = new JsonArray(items, items.Length, arr.IsReadOnly);
 						return true;
@@ -3467,7 +3467,7 @@ namespace Doxense.Serialization.Json
 			//ATTENTION: this assumes that currently (as of .NET 8) a Dictionary<TKey,TValue> preserves the insertion order of keys, as long as there are no deletions, meaning that enumerating the Dictionary will yield the same order.
 			// => it is unlikely that this will ever change, because it would break a lot of code. But if this happens, we will need to find a different solution!
 
-			Contract.Debug.Requires(items != null && comparer != null);
+			Contract.Debug.Requires(items is not null && comparer is not null);
 			result = null!;
 
 			int count = items.Count;

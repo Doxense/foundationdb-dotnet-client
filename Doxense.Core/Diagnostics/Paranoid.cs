@@ -155,7 +155,7 @@ namespace Doxense.Diagnostics.Contracts
 			where TValue : class
 		{
 #if PARANOID_ANDROID
-			if (value == null) throw Contract.FailArgumentNull(paramName!, message!);
+			if (value is null) throw Contract.FailArgumentNull(paramName!, message!);
 #endif
 		}
 
@@ -166,7 +166,7 @@ namespace Doxense.Diagnostics.Contracts
 		public static void NotNull([AssertionCondition(AssertionConditionType.IS_NOT_NULL)] string value, [InvokerParameterName] string? paramName = null, string? message = null)
 		{
 #if PARANOID_ANDROID
-			if (value == null) throw Contract.FailArgumentNull(paramName!, message!);
+			if (value is null) throw Contract.FailArgumentNull(paramName!, message!);
 #endif
 		}
 
@@ -177,7 +177,7 @@ namespace Doxense.Diagnostics.Contracts
 		public static void NotNull([AssertionCondition(AssertionConditionType.IS_NOT_NULL)] byte[] value, [InvokerParameterName] string? paramName = null, string? message = null)
 		{
 #if PARANOID_ANDROID
-			if (value == null) throw Contract.FailArgumentNull(paramName!, message!);
+			if (value is null) throw Contract.FailArgumentNull(paramName!, message!);
 #endif
 		}
 

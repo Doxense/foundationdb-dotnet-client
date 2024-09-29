@@ -58,7 +58,7 @@ namespace Doxense.Serialization.Json
 
 		internal JsonString(string value)
 		{
-			Contract.Debug.Requires(value != null);
+			Contract.Debug.Requires(value is not null);
 			m_value = value;
 		}
 
@@ -66,7 +66,7 @@ namespace Doxense.Serialization.Json
 
 		public static JsonValue Return(string? value)
 		{
-			return value == null ? JsonNull.Null : value.Length == 0 ? JsonString.Empty : new JsonString(value);
+			return value is null ? JsonNull.Null : value.Length == 0 ? JsonString.Empty : new JsonString(value);
 		}
 
 		public static JsonValue Return(ReadOnlySpan<char> value)
@@ -76,7 +76,7 @@ namespace Doxense.Serialization.Json
 
 		public static JsonValue Return(System.Text.StringBuilder? value)
 		{
-			return value == null ? JsonNull.Null : value.Length == 0 ? JsonString.Empty : new JsonString(value.ToString());
+			return value is null ? JsonNull.Null : value.Length == 0 ? JsonString.Empty : new JsonString(value.ToString());
 		}
 
 		public static JsonString Return(char value)
@@ -88,23 +88,24 @@ namespace Doxense.Serialization.Json
 		public static JsonValue Return(char? value)
 		{
 			//note: pas vraiment d'intérêt à optimiser, je ne pense pas que des chaînes d'un seul caractère soit si fréquentes que ça...
-			return value == null ? JsonNull.Null : Return(value.Value);
+			return value is null ? JsonNull.Null : Return(value.Value);
 		}
 
 		public static JsonValue Return(char[]? value, int offset, int count)
 		{
-			return count == 0 ? (value == null ? JsonNull.Null : JsonString.Empty) : new JsonString(new string(value!, offset, count));
+			return count == 0 ? (value is null ? JsonNull.Null : JsonString.Empty) : new JsonString(new string(value!, offset, count));
 		}
 
 		public static JsonValue Return(byte[]? value)
 		{
-			return value == null ? JsonNull.Null : value.Length == 0 ? JsonString.Empty : new JsonString(Convert.ToBase64String(value));
+			return value is null ? JsonNull.Null : value.Length == 0 ? JsonString.Empty : new JsonString(Convert.ToBase64String(value));
 		}
 
 		public static JsonValue Return(Slice value)
 		{
 			return value.Count == 0
-				? (value.Array == null! ? JsonNull.Null : JsonString.Empty)
+				// ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+				? (value.Array is null ? JsonNull.Null : JsonString.Empty)
 				: new JsonString(value.ToBase64()!);
 		}
 
@@ -118,7 +119,7 @@ namespace Doxense.Serialization.Json
 		public static JsonValue Return(ArraySegment<byte> value)
 		{
 			return value.Count == 0
-				? (value.Array == null ? JsonNull.Null : JsonString.Empty)
+				? (value.Array is null ? JsonNull.Null : JsonString.Empty)
 				: new JsonString(Convert.ToBase64String(value.Array!, value.Offset, value.Count));
 		}
 
@@ -200,21 +201,21 @@ namespace Doxense.Serialization.Json
 
 		public static JsonValue Return(System.Net.IPAddress? value)
 		{
-			return value != null
+			return value is not null
 				? new JsonString(value.ToString())
 				: JsonNull.Null;
 		}
 
 		public static JsonValue Return(Uri? value)
 		{
-			return value != null
+			return value is not null
 				? new JsonString(value.OriginalString)
 				: JsonNull.Null;
 		}
 
 		public static JsonValue Return(Version? value)
 		{
-			return value != null
+			return value is not null
 				? new JsonString(value.ToString())
 				: JsonNull.Null;
 		}
@@ -227,7 +228,7 @@ namespace Doxense.Serialization.Json
 			[ContractAnnotation("type:notnull => notnull")]
 			public static JsonString? FromType(Type? type)
 			{
-				if (type == null) return null;
+				if (type is null) return null;
 				return Names.TryGetValue(type, out var value)
 					? value
 					: CreateTypeNameSingleton(type);
@@ -329,7 +330,7 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static JsonValue Return(DateTime? value)
 		{
-			return value == null ? JsonNull.Null : value.Value == DateTime.MinValue ? JsonString.Empty : new JsonString(value.Value.ToString("O"));
+			return value is null ? JsonNull.Null : value.Value == DateTime.MinValue ? JsonString.Empty : new JsonString(value.Value.ToString("O"));
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
@@ -341,7 +342,7 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static JsonValue Return(DateTimeOffset? value)
 		{
-			return value == null ? JsonNull.Null : value.Value == DateTime.MinValue ? JsonString.Empty : new JsonString(value.Value.ToString("O"));
+			return value is null ? JsonNull.Null : value.Value == DateTime.MinValue ? JsonString.Empty : new JsonString(value.Value.ToString("O"));
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
@@ -353,7 +354,7 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static JsonValue Return(DateOnly? value)
 		{
-			return value == null ? JsonNull.Null : value.Value == DateOnly.MinValue ? JsonString.Empty : new JsonString(value.Value.ToString("O"));
+			return value is null ? JsonNull.Null : value.Value == DateOnly.MinValue ? JsonString.Empty : new JsonString(value.Value.ToString("O"));
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
@@ -365,7 +366,7 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static JsonValue Return(TimeOnly? value)
 		{
-			return value == null ? JsonNull.Null : value.Value == TimeOnly.MinValue ? JsonString.Empty : new JsonString(value.Value.ToString("O"));
+			return value is null ? JsonNull.Null : value.Value == TimeOnly.MinValue ? JsonString.Empty : new JsonString(value.Value.ToString("O"));
 		}
 
 		#region Noda Types...
@@ -396,7 +397,7 @@ namespace Doxense.Serialization.Json
 
 		public static JsonValue Return(NodaTime.DateTimeZone? value)
 		{
-			return value != null
+			return value is not null
 				? new JsonString(value.Id)
 				: JsonNull.Null;
 		}
@@ -604,7 +605,7 @@ namespace Doxense.Serialization.Json
 
 		public override object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null)
 		{
-			if (type == null || typeof(string) == type || typeof(object) == type)
+			if (type is null || typeof(string) == type || typeof(object) == type)
 			{
 				//TODO: si object, heuristics pour convertir en DateTime ?
 				return m_value;
@@ -741,7 +742,7 @@ namespace Doxense.Serialization.Json
 				//TODO: XmlNode ?
 
 				var nullableType = Nullable.GetUnderlyingType(type);
-				if (nullableType != null)
+				if (nullableType is not null)
 				{
 					//note: missing/null or "" returns default(T?), which is already null
 					if (string.IsNullOrEmpty(m_value)) return null;
@@ -759,7 +760,7 @@ namespace Doxense.Serialization.Json
 			if (typeof(IJsonBindable).IsAssignableFrom(type))
 			{ // HACKHACK: pour les type qui se sérialisent en string (par ex: Oid)
 				var typeDef = resolver.ResolveJsonType(type);
-				if (typeDef?.CustomBinder != null)
+				if (typeDef?.CustomBinder is not null)
 				{
 					return typeDef.CustomBinder(this, type, resolver);
 				}
@@ -769,7 +770,7 @@ namespace Doxense.Serialization.Json
 			// does it use a custom binder?
 			// => for classes with a ducktyped ctor, or static factory methods
 			var def = resolver.ResolveJsonType(type);
-			if (def?.CustomBinder != null)
+			if (def?.CustomBinder is not null)
 			{
 				return def.CustomBinder(this, type, resolver);
 			}
@@ -836,7 +837,7 @@ namespace Doxense.Serialization.Json
 		public override bool Equals(JsonValue? obj)
 		{
 			if (ReferenceEquals(obj, this)) return true;
-			if (obj == null) return false;
+			if (obj is null) return false;
 			switch (obj)
 			{
 				case JsonString str:    return Equals(str);
@@ -848,7 +849,7 @@ namespace Doxense.Serialization.Json
 
 		public bool Equals(JsonString? obj)
 		{
-			return obj != null && string.Equals(m_value, obj.m_value, StringComparison.Ordinal);
+			return obj is not null && string.Equals(m_value, obj.m_value, StringComparison.Ordinal);
 		}
 
 		/// <inheritdoc />
@@ -894,7 +895,7 @@ namespace Doxense.Serialization.Json
 
 		public bool Equals(string? obj)
 		{
-			return obj != null && string.Equals(m_value, obj, StringComparison.Ordinal);
+			return obj is not null && string.Equals(m_value, obj, StringComparison.Ordinal);
 		}
 
 		public bool Equals(Guid obj) => ToGuid() == obj;
@@ -934,7 +935,7 @@ namespace Doxense.Serialization.Json
 
 		public int CompareTo(JsonString? other)
 		{
-			return other != null ? string.CompareOrdinal(m_value, other.Value) : +1;
+			return other is not null ? string.CompareOrdinal(m_value, other.Value) : +1;
 		}
 
 		#endregion

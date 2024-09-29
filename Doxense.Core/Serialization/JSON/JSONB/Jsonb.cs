@@ -1556,7 +1556,7 @@ namespace Doxense.Serialization.Json.Binary
 
 			public uint WriteValue(JsonValue value, int level)
 			{
-				Contract.Debug.Requires(value != null && level >= 0);
+				Contract.Debug.Requires(value is not null && level >= 0);
 
 				JsonType type;
 				switch ((type = value.Type))
@@ -1587,7 +1587,7 @@ namespace Doxense.Serialization.Json.Binary
 
 			public uint WriteScalar(JsonValue value, JsonType type)
 			{
-				Contract.Debug.Requires(value != null);
+				Contract.Debug.Requires(value is not null);
 				switch (type)
 				{
 					case JsonType.Null:
@@ -1657,12 +1657,12 @@ namespace Doxense.Serialization.Json.Binary
 					array = jsonArr;
 					numElems = array.Count;
 				}
-				Contract.Debug.Assert(array != null || numElems == 1);
+				Contract.Debug.Assert(array is not null || numElems == 1);
 
 				if ((uint) numElems > JENTRY_OFFLENMASK) throw FailContainerTooManyElements();
 
 				uint header = (uint) numElems | JCONTAINER_FLAG_ARRAY;
-				if (array == null) header |= JCONTAINER_FLAG_SCALAR;
+				if (array is null) header |= JCONTAINER_FLAG_SCALAR;
 				m_output.WriteFixed32(header);
 
 				// reserve some space for the entries of each element
@@ -1672,7 +1672,7 @@ namespace Doxense.Serialization.Json.Binary
 				int totalLen = 0;
 				for (int i = 0; i < numElems; i++)
 				{
-					var elem = array != null ? array[i] : arrayOrScalar;
+					var elem = array is not null ? array[i] : arrayOrScalar;
 
 					uint meta = WriteValue(elem, level + 1);
 
@@ -1888,7 +1888,7 @@ namespace Doxense.Serialization.Json.Binary
 					throw FailContainerSizeTooBig();
 				}
 
-				if (hashBuffer != null)
+				if (hashBuffer is not null)
 				{
 					ArrayPool<int>.Shared.Return(hashBuffer);
 				}
@@ -2020,7 +2020,7 @@ namespace Doxense.Serialization.Json.Binary
 				Utf8.FromUtf16(text, buf, out int _, out int written, false) != OperationStatus.InvalidData
 				&& token.SequenceEqual(buf.Slice(0, written));
 
-			if (array != null)
+			if (array is not null)
 			{
 				buf.Slice(0, written).Clear();
 				ArrayPool<byte>.Shared.Return(array);
@@ -2054,7 +2054,7 @@ namespace Doxense.Serialization.Json.Binary
 			if (data.Length == 0) return string.Empty;
 			unsafe
 			{
-				if (table == null)
+				if (table is null)
 				{
 					fixed (byte* ptr = data)
 					{
@@ -2071,7 +2071,7 @@ namespace Doxense.Serialization.Json.Binary
 			if (data.Length == 0) return string.Empty;
 			unsafe
 			{
-				if (table == null)
+				if (table is null)
 				{
 					fixed (byte* ptr = data)
 					{

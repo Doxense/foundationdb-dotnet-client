@@ -43,7 +43,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Limite de taille du tampon au delà de laquelle on va faire un flush implicite</summary>
 		/// <remarks>Ce n'est qu'une limite indicatif, et non pas une limite absolue! Si un item génère 1GB de JSON d'un seul coup, le tampon devra quand même grossir jusqu'à cette taille.</remarks>
-		private const int AUTOFLUSH_THRESHOLD = 256 * 1024;
+		private const int AUTO_FLUSH_THRESHOLD = 256 * 1024;
 
 		/// <summary>Stream sous-jacent (dans lequel on flush le tampon de manière asynchrone)</summary>
 		private readonly Stream m_stream;
@@ -102,7 +102,7 @@ namespace Doxense.Serialization.Json
 			cancellationToken.ThrowIfCancellationRequested();
 
 			var visitor = GetVisitor(typeof(T));
-			visitor(item, typeof(T), item != null ? item.GetType() : null, m_writer);
+			visitor(item, typeof(T), item is not null ? item.GetType() : null, m_writer);
 			m_writer.Buffer.Write(m_newLine);
 
 			FlushInternal(true);
@@ -118,7 +118,7 @@ namespace Doxense.Serialization.Json
 			cancellationToken.ThrowIfCancellationRequested();
 
 			var visitor = GetVisitor(typeof(T));
-			visitor(item, typeof(T), item != null ? item.GetType() : null, m_writer);
+			visitor(item, typeof(T), item is not null ? item.GetType() : null, m_writer);
 			m_writer.Buffer.Write(m_newLine);
 
 			return FlushInternalAsync(true, cancellationToken);
@@ -189,7 +189,7 @@ namespace Doxense.Serialization.Json
 				}
 				writer.WritePropertyName(name, knownSafe: true);
 
-				if (item == null || visitor == null)
+				if (item is null || visitor is null)
 				{
 					writer.WriteNull();
 				}
@@ -457,7 +457,7 @@ namespace Doxense.Serialization.Json
 				{
 					writer.Buffer.Write(' ');
 				}
-				visitor(item, type, item != null ? item.GetType() : typeof(object), writer);
+				visitor(item, type, item is not null ? item.GetType() : typeof(object), writer);
 			}
 
 			/// <summary>Ajoute un JsonValue dans un tableau ouvert</summary>
@@ -711,19 +711,19 @@ namespace Doxense.Serialization.Json
 
 		private CrystalJsonTypeVisitor GetVisitor(Type declaredType)
 		{
-			Contract.Debug.Requires(declaredType != null);
+			Contract.Debug.Requires(declaredType is not null);
 
 			if (declaredType != m_lastType)
 			{
 				m_lastType = declaredType;
 				m_visitor = CrystalJsonVisitor.GetVisitorForType(declaredType);
 			}
-			Contract.Debug.Ensures(m_visitor != null && m_lastType != null);
+			Contract.Debug.Ensures(m_visitor is not null && m_lastType is not null);
 			return m_visitor;
 		}
 
 		/// <summary>Indique si le tampon mémoire dépasse la limite de taille acceptable</summary>
-		private bool ShouldFlush => !m_disposed && m_scratch.Length >= AUTOFLUSH_THRESHOLD;
+		private bool ShouldFlush => !m_disposed && m_scratch.Length >= CrystalJsonStreamWriter.AUTO_FLUSH_THRESHOLD;
 
 		/// <summary>Fait en sorte que toutes les données écrites jusqu'a présent soient flushées dans le stream de destination</summary>
 		private async Task FlushInternalAsync(bool flushStream, CancellationToken cancellationToken)

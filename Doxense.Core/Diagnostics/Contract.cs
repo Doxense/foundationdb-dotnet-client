@@ -94,7 +94,7 @@ namespace Doxense.Diagnostics.Contracts
 		private static Exception? MapToNUnitAssertion(string message, Exception? exception)
 		{
 			// => new NUnit.Framework.AssertionException(...)
-			return exception == null
+			return exception is null
 				? (Exception?) s_constructorNUnitException.One?.Invoke([ message ])
 				: (Exception?) s_constructorNUnitException.Two?.Invoke([ message, exception ])
 				;
@@ -215,7 +215,7 @@ namespace Doxense.Diagnostics.Contracts
 			[InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null
 		)
 		{
-			if (value == null) throw FailArgumentNull(paramName!, message);
+			if (value is null) throw FailArgumentNull(paramName!, message);
 		}
 
 		/// <summary>The specified pointer must not be null (assert: pointer != null)</summary>
@@ -226,7 +226,7 @@ namespace Doxense.Diagnostics.Contracts
 			string? message = null,
 			[InvokerParameterName, CallerArgumentExpression(nameof(pointer))] string? paramName = null)
 		{
-			if (pointer == null) throw FailArgumentNull(paramName!, message);
+			if (pointer is null) throw FailArgumentNull(paramName!, message);
 		}
 
 		/// <summary>The specified value cannot be null (assert: value != null)</summary>
@@ -259,7 +259,7 @@ namespace Doxense.Diagnostics.Contracts
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static Exception FailStringNullOrEmpty(string? value, string? paramName, string? message = null)
 		{
-			return value == null
+			return value is null
 				? ReportFailure(typeof(ArgumentNullException), ContractMessages.ValueCannotBeNull, message, paramName, ContractMessages.ConditionNotNull)
 				: ReportFailure(typeof(ArgumentException), ContractMessages.StringCannotBeEmpty, message, paramName, ContractMessages.ConditionNotEmptyLength);
 		}
@@ -277,7 +277,7 @@ namespace Doxense.Diagnostics.Contracts
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static Exception FailStringNullOrWhiteSpace(string? value, string? paramName, string? message = null)
 		{
-			return value == null ? ReportFailure(typeof(ArgumentNullException), ContractMessages.ValueCannotBeNull, message, paramName, ContractMessages.ConditionNotNull)
+			return value is null ? ReportFailure(typeof(ArgumentNullException), ContractMessages.ValueCannotBeNull, message, paramName, ContractMessages.ConditionNotNull)
 				: value.Length == 0 ? ReportFailure(typeof(ArgumentException), ContractMessages.StringCannotBeEmpty, message, paramName, ContractMessages.ConditionNotEmptyLength)
 				: ReportFailure(typeof(ArgumentException), ContractMessages.StringCannotBeWhiteSpaces, message, paramName, ContractMessages.ConditionNotWhiteSpace);
 		}
@@ -295,7 +295,7 @@ namespace Doxense.Diagnostics.Contracts
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static Exception FailArrayNullOrEmpty(object? collection, string? paramName, string? message = null)
 		{
-			return collection == null
+			return collection is null
 				? ReportFailure(typeof(ArgumentNullException), ContractMessages.ValueCannotBeNull, message, paramName, ContractMessages.ConditionNotNull)
 				: ReportFailure(typeof(ArgumentException), ContractMessages.CollectionCannotBeEmpty, message, paramName, ContractMessages.ConditionNotEmptyCount);
 		}
@@ -308,13 +308,13 @@ namespace Doxense.Diagnostics.Contracts
 			[InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null
 		)
 		{
-			if (value == null || value.Length == 0) throw FailArrayNullOrEmpty(value, paramName, message);
+			if (value is null || value.Length == 0) throw FailArrayNullOrEmpty(value, paramName, message);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static Exception FailCollectionNullOrEmpty(object? collection, string paramName, string? message = null)
 		{
-			return collection == null
+			return collection is null
 				? ReportFailure(typeof(ArgumentNullException), ContractMessages.ValueCannotBeNull, message, paramName, ContractMessages.ConditionNotNull)
 				: ReportFailure(typeof(ArgumentException), ContractMessages.CollectionCannotBeEmpty, message, paramName, ContractMessages.ConditionNotEmptyCount);
 		}
@@ -327,7 +327,7 @@ namespace Doxense.Diagnostics.Contracts
 			[InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null
 		)
 		{
-			if (value == null || value.Count == 0) throw FailCollectionNullOrEmpty(value, paramName!, message!);
+			if (value is null || value.Count == 0) throw FailCollectionNullOrEmpty(value, paramName!, message!);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
@@ -339,7 +339,7 @@ namespace Doxense.Diagnostics.Contracts
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static Exception FailBufferNullOrEmpty(object? array, string paramName, string? message = null)
 		{
-			return array == null
+			return array is null
 				? ReportFailure(typeof(ArgumentNullException), ContractMessages.BufferCannotBeNull, message, paramName, ContractMessages.ConditionNotNull)
 				: ReportFailure(typeof(ArgumentException), ContractMessages.BufferCannotBeEmpty, message, paramName, ContractMessages.ConditionNotEmptyCount);
 		}
@@ -348,14 +348,14 @@ namespace Doxense.Diagnostics.Contracts
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void NotNullOrEmpty(Slice buffer, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(buffer))] string? paramName = null)
 		{
-			if (buffer.Array == null | buffer.Count == 0) throw FailBufferNullOrEmpty(buffer.Array, paramName!, message);
+			if (buffer.Array is null | buffer.Count == 0) throw FailBufferNullOrEmpty(buffer.Array, paramName!, message);
 		}
 
 		/// <summary>The specified buffer must not be null or empty (assert: buffer.Array != null &amp;&amp; buffer.Count != 0)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void NotNullOrEmpty<T>(ArraySegment<T> buffer, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(buffer))] string? paramName = null)
 		{
-			if (buffer.Array == null || buffer.Count == 0) throw FailBufferNullOrEmpty(buffer.Array, paramName!, message);
+			if (buffer.Array is null || buffer.Count == 0) throw FailBufferNullOrEmpty(buffer.Array, paramName!, message);
 		}
 
 		#endregion
@@ -760,7 +760,7 @@ namespace Doxense.Diagnostics.Contracts
 			[InvokerParameterName, CallerArgumentExpression(nameof(count))] string? paramCount = null
 		)
 		{
-			if (buffer == null) throw FailArgumentNull(paramBuffer!, message);
+			if (buffer is null) throw FailArgumentNull(paramBuffer!, message);
 			if (index < 0 || count < 0) throw FailArgumentNotNonNegative(index < 0 ? paramIndex! : paramCount!, message);
 			if ((buffer.Length - index) < count) throw FailBufferTooSmall(paramCount!, message);
 		}
@@ -794,7 +794,7 @@ namespace Doxense.Diagnostics.Contracts
 			[InvokerParameterName, CallerArgumentExpression(nameof(count))] string? paramCount = null
 		)
 		{
-			if (buffer == null) throw FailArgumentNull(paramBuffer!, message);
+			if (buffer is null) throw FailArgumentNull(paramBuffer!, message);
 			if (offset < 0 || count < 0) throw FailArgumentNotNonNegative(offset < 0 ? paramOffset! : paramCount!, message);
 			if ((buffer.Length - offset) < count) throw FailBufferTooSmall(paramCount!, message);
 		}
@@ -809,7 +809,7 @@ namespace Doxense.Diagnostics.Contracts
 			if (buffer.Offset < 0 || buffer.Count < 0) throw FailArgumentNotNonNegative(paramName + (buffer.Offset < 0 ? ".Offset" : ".Count"), message);
 			if (buffer.Count > 0)
 			{
-				if (buffer.Array == null) throw FailBufferNull(paramName!, message);
+				if (buffer.Array is null) throw FailBufferNull(paramName!, message);
 				if ((buffer.Array.Length - buffer.Offset) < buffer.Count) throw FailBufferTooSmall(paramName + ".Count", message);
 			}
 			else
@@ -831,7 +831,7 @@ namespace Doxense.Diagnostics.Contracts
 			[InvokerParameterName, CallerArgumentExpression(nameof(count))] string? paramCount = null
 		)
 		{
-			if (buffer == null) throw FailArgumentNull(paramBuffer!, message);
+			if (buffer is null) throw FailArgumentNull(paramBuffer!, message);
 			if (offset < 0 || count < 0) throw FailArgumentNotNonNegative(offset < 0 ? paramOffset! : paramCount!, message);
 			if ((buffer.Count - offset) < count) throw FailBufferTooSmall(paramCount!, message);
 		}
@@ -886,12 +886,12 @@ namespace Doxense.Diagnostics.Contracts
 
 			var exception = ThrowHelper.TryMapToKnownException(exceptionType, description, paramName, details);
 
-			if (exception == null)
+			if (exception is null)
 			{ // Is this a complex exception type ?
 				exception = ThrowHelper.TryMapToComplexException(exceptionType, description, paramName);
 			}
 
-			if (exception == null)
+			if (exception is null)
 			{ // still not know? we'll try to wrap it with a proxy exception
 				exception = FallbackForUnknownException(description, paramName);
 			}
@@ -916,9 +916,9 @@ namespace Doxense.Diagnostics.Contracts
 		[StackTraceHidden]
 		internal static Exception RaiseContractFailure(SDC.ContractFailureKind kind, string? msg, string? conditionText = null, Exception? exception = null)
 		{
-			//note: currently in .NET Core 3.x, if conditionText == null, the formatted message will not have the "kind" section!
+			//note: currently in .NET Core 3.x, if conditionText is null, the formatted message will not have the "kind" section!
 			// => the workaround is to pass the message itself, instead of the condition text, which will slightly change the generated string, but will still be readable!
-			string? str = conditionText == null
+			string? str = conditionText is null
 				? ContractHelper.RaiseContractFailedEvent(kind, msg, null, exception)
 				: ContractHelper.RaiseContractFailedEvent(kind, msg, conditionText, exception);
 			if (str != null)

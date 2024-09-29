@@ -1465,7 +1465,7 @@ namespace Doxense.Serialization.Json
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Return(DateTime? value)
-			=> value != null ? Return(value.Value) : JsonNull.Null;
+			=> value is not null ? Return(value.Value) : JsonNull.Null;
 
 		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds elapsed since UNIX Epoch</summary>
 		/// <param name="value">DateTimeOffset to convert</param>
@@ -1496,7 +1496,7 @@ namespace Doxense.Serialization.Json
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Return(DateTimeOffset? value)
-			=> value != null ? Return(value.Value) : JsonNull.Null;
+			=> value is not null ? Return(value.Value) : JsonNull.Null;
 
 		[Pure]
 		public static JsonValue Return(DateOnly value)
@@ -1506,7 +1506,7 @@ namespace Doxense.Serialization.Json
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static JsonValue Return(DateOnly? value)
-			=> value != null ? Return(value.Value) : JsonNull.Null;
+			=> value is not null ? Return(value.Value) : JsonNull.Null;
 
 		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds elapsed since midnight</summary>
 		/// <param name="value">Time to convert</param>
@@ -1528,7 +1528,7 @@ namespace Doxense.Serialization.Json
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static JsonValue Return(TimeOnly? value)
-			=> value == null ? JsonNull.Null : Return(value.Value.ToTimeSpan());
+			=> value is null ? JsonNull.Null : Return(value.Value.ToTimeSpan());
 
 		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds elapsed since UNIX Epoch</summary>
 		/// <param name="value">Instant to convert</param>
@@ -1772,7 +1772,7 @@ namespace Doxense.Serialization.Json
 
 		public override object? Bind([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type? type, ICrystalJsonTypeResolver? resolver = null)
 		{
-			if (type == null || type == typeof(object))
+			if (type is null || type == typeof(object))
 			{
 				return ToObject();
 			}
@@ -1865,7 +1865,7 @@ namespace Doxense.Serialization.Json
 			}
 
 			var nullableType = Nullable.GetUnderlyingType(type);
-			if (nullableType != null)
+			if (nullableType is not null)
 			{ // si on est dans un JsonNumber c'est qu'on n'est pas null, donc traite les Nullable<T> comme des T
 				Contract.Debug.Assert(nullableType != type);
 				// rappel recursivement avec le type de base
@@ -1888,7 +1888,7 @@ namespace Doxense.Serialization.Json
 			// passe par un custom binder?
 			// => gère le cas des classes avec un ctor DuckTyping, ou des méthodes statiques
 			var def = resolver.ResolveJsonType(type);
-			if (def?.CustomBinder != null)
+			if (def?.CustomBinder is not null)
 			{
 				return def.CustomBinder(this, type, resolver);
 			}
@@ -1909,7 +1909,7 @@ namespace Doxense.Serialization.Json
 			// We want to keep the original literal intact, in order to maximize the chances of "perfect" round-tripping.
 			// -> for example, if the original JSON contained either '42', '42.0', '4.2E1' etc... we should try to output the same token (as long as it was legal JSON)
 
-			if (m_literal != null)
+			if (m_literal is not null)
 			{ // we will output the original literal unless we need to do some special formatting...
 
 				if (m_kind == Kind.Double)
@@ -1950,7 +1950,7 @@ namespace Doxense.Serialization.Json
 		public override bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
 		{
 			var literal = m_literal;
-			if (literal != null)
+			if (literal is not null)
 			{ // we will output the original literal unless we need to do some special formatting...
 
 				if (literal.Length > destination.Length)
@@ -2169,7 +2169,7 @@ namespace Doxense.Serialization.Json
 
 		public override bool Equals(object? value)
 		{
-			if (value == null) return false;
+			if (value is null) return false;
 			switch (System.Type.GetTypeCode(value.GetType()))
 			{
 				case TypeCode.Int32: return Equals((int) value);
@@ -2202,7 +2202,6 @@ namespace Doxense.Serialization.Json
 		{
 			if (default(TValue) is null)
 			{
-				if (value == null) return false;
 
 				if (typeof(TValue) == typeof(int?)) return Equals((int) (object) value!);
 				if (typeof(TValue) == typeof(long?)) return Equals((long) (object) value!);
@@ -2213,6 +2212,7 @@ namespace Doxense.Serialization.Json
 				if (typeof(TValue) == typeof(short?)) return Equals((short) (object) value!);
 				if (typeof(TValue) == typeof(ushort?)) return Equals((ushort) (object) value!);
 				if (typeof(TValue) == typeof(decimal?)) return Equals((decimal) (object) value!);
+				if (value is null) return false;
 #if NET8_0_OR_GREATER
 				if (typeof(TValue) == typeof(Half?)) return Equals((Half) (object) value!);
 				if (typeof(TValue) == typeof(Int128?)) return Equals((Int128) (object) value!);
@@ -2246,7 +2246,7 @@ namespace Doxense.Serialization.Json
 
 		public bool Equals(JsonString? value)
 		{
-			if (value == null) return false;
+			if (value is null) return false;
 
 			var text = value.Value;
 			if (string.IsNullOrEmpty(text)) return false;
@@ -2278,9 +2278,9 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
-		public bool Equals(JsonBoolean? value) => value != null && ToBoolean() == value.Value;
+		public bool Equals(JsonBoolean? value) => value is not null && ToBoolean() == value.Value;
 
-		public bool Equals(JsonDateTime? value) => value != null && ToDouble() == value.ToDouble();
+		public bool Equals(JsonDateTime? value) => value is not null && ToDouble() == value.ToDouble();
 
 		public bool Equals(short value) => m_kind switch
 		{
@@ -2466,7 +2466,7 @@ namespace Doxense.Serialization.Json
 
 		public int CompareTo(JsonString? other)
 		{
-			if (other == null) return +1;
+			if (other is null) return +1;
 
 			var text = other.Value;
 			if (string.IsNullOrEmpty(text)) return +1; //REVIEW: ??

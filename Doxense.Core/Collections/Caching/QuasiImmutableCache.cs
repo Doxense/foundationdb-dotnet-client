@@ -121,12 +121,12 @@ namespace Doxense.Collections.Caching
 			// il n'y a pas de méthode sur Dictionary<,> qui accepte un IEqualityComparer<TValue>, donc on est obligé de scanner nous même :(
 			// a priori, le foreach sur la collection Values d'un dictionnaire est optimisé, donc ce n'est pas si dramatique...
 
-			if (value == null)
+			if (value is null)
 			{ // cas spécial pour null
 				// ReSharper disable once LoopCanBeConvertedToQuery
 				foreach (var item in m_root.Values)
 				{
-					if (item == null) return true;
+					if (item is null) return true;
 				}
 			}
 			else
@@ -172,7 +172,7 @@ namespace Doxense.Collections.Caching
 		{
 			// on sait déjà qu'elle n'existe pas dans le cache
 			var factory = m_valueFactory;
-			if (factory == null) throw new InvalidOperationException("The cache does not have a default Value factory");
+			if (factory is null) throw new InvalidOperationException("The cache does not have a default Value factory");
 			result = factory(key);
 			TryAddInternal(key, result, false, out result);
 			return result;

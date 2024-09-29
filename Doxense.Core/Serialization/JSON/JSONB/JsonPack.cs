@@ -384,7 +384,7 @@ namespace Doxense.Serialization.Json.Binary
 
 		public static void WriteValue(ref SliceWriter writer, JsonValue value, CrystalJsonSettings settings)
 		{
-			Contract.Debug.Requires(value != null);
+			Contract.Debug.Requires(value is not null);
 
 			switch (value)
 			{
@@ -548,7 +548,7 @@ namespace Doxense.Serialization.Json.Binary
 
 		private static void WriteSmallString(ref SliceWriter writer, string value)
 		{
-			Contract.Debug.Requires(value != null);
+			Contract.Debug.Requires(value is not null);
 			int n = value.Length;
 			if (n == 0)
 			{
@@ -602,7 +602,7 @@ namespace Doxense.Serialization.Json.Binary
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private static void Mark(object[] map, TypeTokens token, ParseTokenDelegate handler)
 		{
-			Contract.Debug.Assert(map[(int) token] == null, "oh noes "  + token);
+			Contract.Debug.Assert(map[(int) token] is null);
 			map[(int) token] = handler;
 		}
 
@@ -841,7 +841,7 @@ namespace Doxense.Serialization.Json.Binary
 
 				// next must be an identifier: either SMALL_STRING or VAR_STRING
 				string? key = ParseSmallString(ref reader, next);
-				if (key == null) throw new FormatException("Object key cannot be null.");
+				if (key is null) throw new FormatException("Object key cannot be null.");
 
 				next = reader.ReadByte();
 				if (next < 0) throw new FormatException("Unexpected end of JSONPack Object: missing value.");
@@ -852,7 +852,7 @@ namespace Doxense.Serialization.Json.Binary
 				items.Add(key, val);
 			}
 			// skip the OBJECT_STOP token
-			return items != null ? new JsonObject(items, readOnly: true) : JsonObject.EmptyReadOnly;
+			return items is not null ? new(items, readOnly: true) : JsonObject.EmptyReadOnly;
 		}
 
 		#endregion

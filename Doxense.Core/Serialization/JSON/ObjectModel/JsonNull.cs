@@ -230,7 +230,7 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		public override bool Equals(JsonValue? value)
 		{
-			if (value == null)
+			if (value is null)
 			{ // explicit null reference is considered equal to any kind of nulls
 				return true;
 			}
@@ -247,7 +247,7 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		public bool Equals(JsonNull? value)
 		{
-			return value == null || m_kind == value.m_kind;
+			return value is null || m_kind == value.m_kind;
 		}
 
 		/// <inheritdoc />

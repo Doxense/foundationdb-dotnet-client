@@ -318,7 +318,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public virtual int CompareTo(JsonValue? other)
 		{
-			if (other == null) return this.IsNull ? 0 : +1;
+			if (other is null) return this.IsNull ? 0 : +1;
 			if (ReferenceEquals(this, other)) return 0;
 
 			// cannot compare a value type directly with an object or array

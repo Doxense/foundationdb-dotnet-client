@@ -56,7 +56,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns either <see cref="JsonBoolean.True"/>, <see cref="JsonBoolean.False"/> or <see cref="JsonNull.Null"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Return(bool? value) => value == null ? JsonNull.Null : value.Value ? JsonBoolean.True : JsonBoolean.False;
+		public static JsonValue Return(bool? value) => value is null ? JsonNull.Null : value.Value ? JsonBoolean.True : JsonBoolean.False;
 
 		public bool Value => m_value;
 
@@ -190,7 +190,7 @@ namespace Doxense.Serialization.Json
 
 		public int CompareTo(JsonBoolean? other)
 		{
-			return other != null ? m_value.CompareTo(other.Value) : +1;
+			return other is not null ? m_value.CompareTo(other.Value) : +1;
 		}
 
 		#endregion

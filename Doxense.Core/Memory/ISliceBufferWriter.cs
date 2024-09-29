@@ -141,7 +141,7 @@ namespace Doxense.Memory
 			if (data.Count == 0)
 			{
 				// note: we don't memoize the suffix, because in most case, it comes from a constant, and it would be a waste to copy it other and other again...
-				return suffix.Count > 0 ? suffix : data.Array == null! ? default : Slice.Empty;
+				return suffix.Count > 0 ? suffix : data.IsNull ? default : Slice.Empty;
 			}
 			var tmp = writer.Allocate(checked(data.Count + suffix.Count));
 			data.CopyTo(tmp.Span);

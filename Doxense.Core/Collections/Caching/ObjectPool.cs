@@ -125,7 +125,7 @@ namespace Doxense.Collections.Caching
 			var items = m_items;
 			for (int i = 0; i < items.Length; i++)
 			{
-				if (items[i].Value == null)
+				if (items[i].Value is null)
 				{
 					// Intentionally not using interlocked here.
 					// In a worst case scenario two objects may be stored into same slot.

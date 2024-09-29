@@ -615,7 +615,7 @@ namespace Doxense.Serialization.Json
 			var map = new Dictionary<string, JsonValue>(items.TryGetNonEnumeratedCount(out var count) ? count : 0, comparer);
 			foreach (var item in items)
 			{
-				Contract.Debug.Assert(item.Key != null, "Item cannot have a null key");
+				Contract.Debug.Assert(item.Key is not null, "Item cannot have a null key");
 				map.Add(item.Key, valueSelector(item.Value) ?? JsonNull.Null);
 			}
 			return new JsonObject(map, readOnly: false);
@@ -634,7 +634,7 @@ namespace Doxense.Serialization.Json
 			foreach (var item in source)
 			{
 				var key = keySelector(item);
-				Contract.Debug.Assert(key != null, "key selector should not return null");
+				Contract.Debug.Assert(key is not null, "key selector should not return null");
 				var child = valueSelector(item) ?? JsonNull.Null;
 				map.Add(key, child);
 			}
@@ -655,7 +655,7 @@ namespace Doxense.Serialization.Json
 			foreach (var item in source)
 			{
 				var key = keySelector(item);
-				Contract.Debug.Assert(key != null, "key selector should not return null");
+				Contract.Debug.Assert(key is not null, "key selector should not return null");
 				var child = valueSelector(item);
 				map.Add(key, JsonValue.FromValue(CrystalJsonDomWriter.Default, ref context, child));
 			}
@@ -752,7 +752,7 @@ namespace Doxense.Serialization.Json
 		[Pure, ContractAnnotation("null => halt")]
 		public static JsonString AsString(this JsonValue? value)
 		{
-			if (value == null || value.Type != JsonType.String) return FailValueIsNotAString(value);
+			if (value is null || value.Type != JsonType.String) return FailValueIsNotAString(value);
 			return (JsonString)value;
 		}
 

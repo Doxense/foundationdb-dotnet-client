@@ -42,7 +42,7 @@ namespace Doxense.Serialization.Json
 			if (type.IsEnum) return Convert.ChangeType(value, type);
 			// nullable ??
 			var nullableType = Nullable.GetUnderlyingType(type);
-			if (nullableType != null)
+			if (nullableType is not null)
 			{ // Nullable<T> => retry with the underlying value type
 				// note: we will not reach here if the value is null, so we are guaranteed that it is "proper" value
 				return BindValueType(value, nullableType, resolver);
@@ -56,12 +56,12 @@ namespace Doxense.Serialization.Json
 			// Note: Since TNative is a ValueType, we will have many different JITed versions of this method in memory, one for each value type, which may cost a lost of first-time initialization cost?
 			// in early .NET Framework versions, the JIT seemed to be in O(N^2) whith the number of generic types for the same call site, not sure if this is still an issue with modern .NET Core ?
 
-			if (jsonValue == null)
+			if (jsonValue is null)
 			{
 				return null;
 			}
 
-			if (type == null || type == typeof(object))
+			if (type is null || type == typeof(object))
 			{
 				return jsonValue.ToObject();
 			}
@@ -117,7 +117,7 @@ namespace Doxense.Serialization.Json
 			}
 
 			var nullableType = Nullable.GetUnderlyingType(type);
-			if (nullableType != null)
+			if (nullableType is not null)
 			{ // if this is a JsonNumber then we already know we are not null, so we handle Nullable<T> just like a regular non-nullable T
 
 				// bind to the non-nullable type (ex: Int32 for Nullable<Int32>)
@@ -155,7 +155,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>Corresponding JSON categoriy (ex: JsonType.Number)</returns>
 		internal static JsonType GetJsonTypeFromClrType(Type type)
 		{
-			if (type == null) throw ThrowHelper.ArgumentNullException(nameof(type));
+			if (type is null) throw ThrowHelper.ArgumentNullException(nameof(type));
 
 			switch(System.Type.GetTypeCode(type))
 			{
@@ -555,7 +555,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static JsonValue FromValue(object? value, Type declaredType, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return value != null
+			return value is not null
 				? CrystalJsonDomWriter.Create(settings, resolver).ParseObject(value, declaredType, value.GetType())
 				: JsonNull.Null;
 		}
@@ -569,7 +569,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static JsonValue FromValueReadOnly(object? value, Type declaredType, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return value != null
+			return value is not null
 				? CrystalJsonDomWriter.CreateReadOnly(settings, resolver).ParseObject(value, declaredType, value.GetType())
 				: JsonNull.Null;
 		}
@@ -816,7 +816,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static JsonValue FromValue<T>(T? value, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return value != null ? CrystalJsonDomWriter.Create(settings, resolver).ParseObject(value, typeof(T)) : JsonNull.Null;
+			return value is not null ? CrystalJsonDomWriter.Create(settings, resolver).ParseObject(value, typeof(T)) : JsonNull.Null;
 		}
 
 		/// <summary>Convertit un objet CLR de type bien déterminé, en une valeur JSON, avec des paramètres de conversion spécifiques</summary>
@@ -829,7 +829,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static JsonValue FromValueReadOnly<T>(T? value, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return value != null ? CrystalJsonDomWriter.CreateReadOnly(settings, resolver).ParseObject(value, typeof(T)) : JsonNull.Null;
+			return value is not null ? CrystalJsonDomWriter.CreateReadOnly(settings, resolver).ParseObject(value, typeof(T)) : JsonNull.Null;
 		}
 
 		#region Specialized Converters...
