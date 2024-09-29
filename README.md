@@ -15,7 +15,7 @@ For local development, using [.NET Aspire](https://learn.microsoft.com/en-us/dot
 
 ## Using Dependency Injection
 
-Even though it is possible to use the driver without dependency injection, the main way to use the binding is by registering the `IFdbDatabaseProvider` service with the DI, an inject this service into any controller, razor pages or any other service that will need to query the database.
+Even though it is possible to use the binding without dependency injection, it is very easy to register the `IFdbDatabaseProvider` service with the DI, and inject it into any controller, razor pages or any other service that will need to query the database.
 
 You can either manually setup the services, in which case you will need to provide a valid set of settings (API level, root path, ...) as well as copy a valid `fdb.cluster` file so that the process can connect to an existing FoundationDB cluster.
 
@@ -140,10 +140,6 @@ namespace MyWebApp.Pages
 
 ### Using Aspire
 
-***Note: Aspire is currently in preview, so things may change at any time!***
-
-_At the time of this writing, you need at least Preview 4 (8.0.0-preview.4.24156.9) of the Aspire SDK !_
-
 It is possible to add a FoundationDB cluster resource to your Aspire application model, and pass a reference to this cluster to the projects that need it.
 
 For local development, a local FoundationDB node will be started using the `foundationdb/foundationdb` Docker image, and all projects that use the cluster reference will have a temporary Cluster file pointing to the local instance.
@@ -169,6 +165,10 @@ private static void Main(string[] args)
     // ...
 }
 ```
+
+Note: A FoundationDB node will be available on port 4550, while the Aspire Host is running, and can be reached with the `docker:docker@127.0.0.1:4550` connection string.
+
+On the very first start, the cluster will be unavailable until a `create single ssd` command is executed. The most simple solution is to use `Docker Desktop` to execute a command in the running docker image. Simply run `fdbcli` from within the docker container. Once this is done, you should stop and restart the Aspire host.
 
 For testing/staging/production, or "non local" development, it is also possible to configure a FoundationDB connection resource that will pass the specified Cluster file to the projects that reference the cluster resource.
 
