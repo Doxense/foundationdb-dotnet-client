@@ -104,68 +104,74 @@ namespace Doxense.Mathematics.Statistics
 			return table[k - 1];
 		}
 
-		public static double StandardDeviation(double[] source, out double mean)
+		public static double StandardDeviation(ReadOnlySpan<double> source, out double mean)
 		{
-			var avg = mean = source.Average();
+			double sum = 0d;
+			foreach (var x in source)
+			{
+				sum += x;
+			}
+			var avg = sum / source.Length;
 
-			var fromAvg = source.Select(i => Math.Abs((i - avg) * (i - avg)));
+			double sumAvg = 0d;
+			foreach (var x in source)
+			{
+				var delta = x - avg;
+				sumAvg += delta * delta;
+			}
 			// assume a randomly sampled data set, so divide by count - 1
 			// a complete data set should divide by count instead
-			var stdDev = Math.Sqrt(fromAvg.Sum() / (source.Length - 1));
+			var stdDev = Math.Sqrt(sumAvg / (source.Length - 1));
+
+			mean = avg;
 			return stdDev;
 		}
 
-		public static IEnumerable<T> FilterOutliers<T>(IList<T> source, [InstantHandle] Func<T, double> selector, out IEnumerable<int> outliers, out int eliminated)
+		public static List<double> FilterOutliers(IEnumerable<double> source, out List<int> outliers)
+			=> FilterOutliers<double>(source, null, out outliers);
+
+		public static List<TSource> FilterOutliers<TSource>(IEnumerable<TSource> source, Func<TSource, double>? selector, out List<int> outliers)
 		{
 			Contract.NotNull(source);
-			Contract.NotNull(selector);
+			if (selector == null && typeof(TSource) != typeof(double))
+			{
+				throw new ArgumentException("You must provide a valid selector when both types are not equal", nameof(selector));
+			}
 
-			int count = source.Count;
-			if (count < 3) throw new ArgumentOutOfRangeException(nameof(source), "Source must have at least 3 elements");
-			if (count > 60) throw new ArgumentOutOfRangeException(nameof(source), "Source cannot have more than 60 elements");
+			var items = (source as TSource[]) ?? source.ToArray();
+			Contract.GreaterOrEqual(items.Length, 3, "Source must have at least 3 elements");
+			Contract.LessOrEqual(items.Length, 60, "Source cannot have more than 60 elements");
 
-			var values = source.Select(selector).ToArray();
+			var values = selector != null ? items.Select(selector).ToArray() : (double[]) (object) items;
 
-			double stdDev = StandardDeviation(values, out double mean);
+			var stdDev = StandardDeviation(values, out var mean);
 
 			int last = 0;
-			while(true)
+			while (true)
 			{
-				var r = PeircesTable(count, last + 1);
+				double r = PeircesTable(values.Length, last + 1);
 
-				var maxDeviation = r * stdDev;
-				eliminated = values.Count(v => Math.Abs(v - mean) > maxDeviation);
+				double maxDeviation = r * stdDev;
+				var eliminated = values.Count(v => Math.Abs(v - mean) > maxDeviation);
 				if (last >= eliminated)
 				{
-					outliers = FilterAndApply(values, (v) => Math.Abs(v - mean) > maxDeviation, (j) => j);
-					return FilterAndApply(values, (v) => Math.Abs(v - mean) <= maxDeviation, (j) => source[j]);
+					var res = new List<TSource>(values.Length);
+					outliers = [ ];
+
+					for(int i = 0; i < values.Length; i++)
+					{
+						if (Math.Abs(values[i] - mean) > maxDeviation)
+						{
+							outliers.Add(i);
+						}
+						else
+						{
+							res.Add(items[i]);
+						}
+					}
+					return res;
 				}
 				last = eliminated;
-			}
-		}
-
-		/// <summary>Filtre puis transforme les éléments d'une source</summary>
-		/// <typeparam name="TSource">Type des éléments sources</typeparam>
-		/// <typeparam name="TResult">Type des éléments retournés</typeparam>
-		/// <param name="source">Source à convertir</param>
-		/// <param name="filter">Fonction qui filtre les éléments source</param>
-		/// <param name="selector">Function qui convertit les éléments</param>
-		/// <returns>Liste des résultats qui matchent le filtre (AVANT conversion)</returns>
-		[LinqTunnel]
-		private static IEnumerable<TResult> FilterAndApply<TSource, TResult>(IEnumerable<TSource> source, Func<TSource, bool> filter, Func<int, TResult> selector)
-		{
-			Contract.NotNull(source);
-			Contract.NotNull(filter);
-			Contract.NotNull(selector);
-
-			int p = 0;
-			foreach (var item in source)
-			{
-				if (filter(item))
-				{
-					yield return selector(p);
-				}
-				++p;
 			}
 		}
 
