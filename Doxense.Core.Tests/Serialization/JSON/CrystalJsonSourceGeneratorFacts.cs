@@ -121,6 +121,8 @@ namespace Doxense.Serialization.Json.Tests
 	}
 
 	[TestFixture]
+	[Category("Core-SDK")]
+	[Category("Core-JSON")]
 	public class CrystalJsonSourceGeneratorFacts : SimpleTest
 	{
 

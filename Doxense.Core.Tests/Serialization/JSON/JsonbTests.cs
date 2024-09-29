@@ -84,99 +84,50 @@ namespace Doxense.Serialization.Json.Binary.Tests
 			// mini-bench (uniquement en mode RELEASE)
 #if !DEBUG
 			// WARMUP
-			var jbytes = value.ToJsonBytes(CrystalJsonSettings.JsonCompact).AsSlice();
-			_ = CrystalJson.Parse(jbytes);
+			var jsonBytes = value.ToJsonBytes(CrystalJsonSettings.JsonCompact).AsSlice();
+			_ = CrystalJson.Parse(jsonBytes);
 #if FULL_DEBUG
-			DumpVersus(bytes, jbytes);
+			DumpVersus(bytes, jsonBytes);
 #endif
 
 			const int N = 1000;
-			var sw = System.Diagnostics.Stopwatch.StartNew();
-			for (int i = 0; i < N; i++)
+			long start = GetTimestamp();
+			for (int i = N; i > 0; i--)
 			{
 				_ = Jsonb.Encode(value);
 			}
-			sw.Stop();
-			Log($"Bench: jsonb encode {sw.Elapsed.TotalMilliseconds * 1000000 / N:N1} nanos");
-			sw = System.Diagnostics.Stopwatch.StartNew();
-			for (int i = 0; i < N; i++)
+			var elapsed = GetElapsedTime(start);
+			Log($"Bench: jsonb encode {elapsed.TotalMilliseconds * 1000000 / N:N1} nanos");
+			start = GetTimestamp();
+			for (int i = N; i > 0; i--)
 			{
 				_ = Jsonb.Decode(bytes);
 			}
-			sw.Stop();
-			Log($"Bench: jsonb decode {sw.Elapsed.TotalMilliseconds * 1000000 / N:N1} nanos");
+			elapsed = GetElapsedTime(start); 
+			Log($"Bench: jsonb decode {elapsed.TotalMilliseconds * 1000000 / N:N1} nanos");
 
-			sw = System.Diagnostics.Stopwatch.StartNew();
-			for (int i = 0; i < N; i++)
+			start = GetTimestamp();
+			for (int i = N; i > 0; i--)
 			{
 				_ = value.ToJsonBytes(CrystalJsonSettings.JsonCompact);
 			}
-			sw.Stop();
-			Log($"Bench: JSON  encode {sw.Elapsed.TotalMilliseconds * 1000000 / N:N1} nanos");
-			sw = System.Diagnostics.Stopwatch.StartNew();
-			for (int i = 0; i < N; i++)
+			elapsed = GetElapsedTime(start);
+			Log($"Bench: JSON  encode {elapsed.TotalMilliseconds * 1000000 / N:N1} nanos");
+
+			start = GetTimestamp();
+			for (int i = N; i > 0; i--)
 			{
-				_ = CrystalJson.Parse(jbytes);
+				_ = CrystalJson.Parse(jsonBytes);
 			}
-			sw.Stop();
-			Log($"Bench: JSON  decode {sw.Elapsed.TotalMilliseconds * 1000000 / N:N1} nanos");
+			elapsed = GetElapsedTime(start);
+			Log($"Bench: JSON  decode {elapsed.TotalMilliseconds * 1000000 / N:N1} nanos");
 #endif
-		}
-
-		private static long HexDecode(string hexa)
-		{
-			if (string.IsNullOrEmpty(hexa)) return 0;
-
-			int offset = 0;
-			if (hexa.Length > 2 && hexa[0] == '0' && (hexa[1] == 'X' || hexa[1] == 'x'))
-			{ // forme "0x..."
-				offset = 2;
-			}
-
-			long res = 0;
-			for (int i = offset; i < hexa.Length; i++)
-			{
-				// 4 bits par caractère
-				res <<= 4;
-				int c = hexa[i];
-				switch (c)
-				{
-					// '0'..'9'
-					case >= 48 and <= 57: res += c - 48; break;
-					// 'A'..'F'
-					case >= 65 and <= 90: res += c - 55; break;
-					// 'a'..'f'
-					case >= 97 and <= 102: res += c - 87; break;
-					// invalid
-					default: return res >> 4;
-				}
-			}
-			return res;
-		}
-
-		[return: NotNullIfNotNull(nameof(value))]
-		private static byte[]? HexDecodeArray(string? value)
-		{
-			if (string.IsNullOrEmpty(value))
-			{
-				return value == null ? null : [ ];
-			}
-			value = value.Trim().Replace(" ", string.Empty);
-			int n = value.Length;
-			if ((n & 1) > 0) throw new ArgumentException("Invalid input size! Hexadecimal string size must be even!");
-			byte[] r = new byte[n >> 1];
-			int p = 0;
-			for (int i = 0; i < n; i += 2)
-			{
-				r[p++] = (byte) HexDecode(value.Substring(i, 2));
-			}
-			return r;
 		}
 
 		private void VerifyReferenceEncoding(string packed, JsonValue expected)
 		{
 			Log(packed);
-			var bytes = HexDecodeArray(packed);
+			var bytes = Slice.FromHexString(packed, ' ');
 #if FULL_DEBUG
 			DumpHexa(bytes);
 #endif
@@ -189,7 +140,7 @@ namespace Doxense.Serialization.Json.Binary.Tests
 		public void Test_Encode_Scalars()
 		{
 			VerifyRoundtrip("hello");
-			VerifyRoundtrip(String.Empty);
+			VerifyRoundtrip(string.Empty);
 			VerifyRoundtrip("しのぶ一番");
 			VerifyRoundtrip(true);
 			VerifyRoundtrip(false);

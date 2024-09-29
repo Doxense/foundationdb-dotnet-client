@@ -32,6 +32,7 @@ namespace Doxense.Serialization.Json.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
+	[Category("Core-JSON")]
 	[Parallelizable(ParallelScope.All)]
 	public sealed class JsonPathFacts : SimpleTest
 	{

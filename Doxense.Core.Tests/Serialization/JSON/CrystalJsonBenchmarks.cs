@@ -27,6 +27,7 @@
 // ReSharper disable UnusedParameter.Local
 // ReSharper disable UnusedMember.Global
 // ReSharper disable ReturnValueOfPureMethodIsNotUsed
+// ReSharper disable StringLiteralTypo
 
 #define ENABLE_NEWTONSOFT
 
@@ -52,6 +53,7 @@ namespace Doxense.Serialization.Json.Tests
 
 	[TestFixture]
 	[Category("Core-SDK")]
+	[Category("Core-JSON")]
 	[Category("Benchmark")]
 	[Parallelizable(ParallelScope.None)]
 	public class CrystalJsonBenchmarks : SimpleTest
@@ -158,12 +160,12 @@ namespace Doxense.Serialization.Json.Tests
 #if ENABLE_NEWTONSOFT
 			var njs = new NJ.JsonSerializer();
 			bool newtonOk = true;
-			string? njsonText = null;
+			string? newtonJsonText = null;
 			try
 			{
 				sb.Clear();
 				njs.Serialize(new StringWriter(sb), data);
-				njsonText = sb.ToString();
+				newtonJsonText = sb.ToString();
 				Log($"NSJ $ [{sb.Length}] {sb}");
 				jsonValue = njs.Deserialize<T>(new NJ.JsonTextReader(new StringReader(sb.ToString())));
 				Log($"NSJ > {jsonValue}");
@@ -232,9 +234,9 @@ namespace Doxense.Serialization.Json.Tests
 			if (newtonOk)
 			{
 				report = RobustBenchmark.Run(
-					njsonText ?? "",
+					newtonJsonText ?? "",
 					(text) => njs.Deserialize<T>(new NJ.JsonTextReader(new StringReader(text))),
-					(text) => text?.Length ?? 0,
+					(text) => text.Length,
 					runs,
 					iterations
 				);
@@ -269,10 +271,10 @@ namespace Doxense.Serialization.Json.Tests
 
 #if DEBUG
 		public const int BENCH_RUNS = 25; // (max 60 a cause du Pierce Criterion)
-		public const int BENCH_ITERS = 1_000;
+		public const int BENCH_ITERATIONS = 1_000;
 #else
 		public const int BENCH_RUNS = 50; // (max 60 a cause du Pierce Criterion)
-		public const int BENCH_ITERS = 10_000;
+		public const int BENCH_ITERATIONS = 10_000;
 #endif
 
 		public void Bench_Everything()
@@ -336,13 +338,13 @@ namespace Doxense.Serialization.Json.Tests
 				var b = CrystalJson.Serialize(media, CrystalJsonSettings.JsonCompact);
 				Log(b);
 				var c = CrystalJson.Deserialize<MediaContent>(b);
-				Log("json/doxense-runtime: size  = " + b.Length + " chars");
+				Log($"json/doxense-runtime: size  = {b.Length:N0} chars");
 				Assert.That(media, Is.EqualTo(c), "clone != media ??");
 
 				using var w = new CrystalJsonWriter(0, CrystalJsonSettings.JsonCompact, CrystalJson.DefaultResolver);
 				media.Manual(w);
 				b = w.GetString();
-				Log("json/doxense-manual : size  = " + b?.Length + " chars");
+				Log($"json/doxense-manual : size  = {b.Length:N0} chars");
 			}
 
 			#endregion
@@ -389,6 +391,7 @@ namespace Doxense.Serialization.Json.Tests
 		}
 
 		[Test]
+		// ReSharper disable once IdentifierTypo
 		public void Bench_DomificationTime()
 		{
 			// Create an object, serialize it to a byte array
@@ -537,21 +540,21 @@ namespace Doxense.Serialization.Json.Tests
 			GC.WaitForPendingFinalizers();
 			GC.Collect();
 
-			var histo = measure ? new RobustHistogram() : null;
+			var h = measure ? new RobustHistogram() : null;
 
 			var report = RobustBenchmark.Run(
 				method,
 				(m) => { m(); },
 				(_) => 0,
 				BENCH_RUNS,
-				BENCH_ITERS,
-				histo
+				BENCH_ITERATIONS,
+				h
 			);
 
 			Log($"{name} = {report.BestIterationsNanos:N0} nanos [{report.MedianIterationsNanos:N0}] (~ {report.BestIterationsPerSecond:N0} ips [{report.MedianIterationsPerSecond:N0}], allocated {report.GcAllocatedOnThread:N0} bytes, GC={report.GC0:N0}/{report.GC0:N0}/{report.GC0:N0})");
-			if (histo != null)
+			if (h != null)
 			{
-				Log(histo.GetReport(true));
+				Log(h.GetReport(true));
 			}
 			return report.BestIterationsNanos;
 		}
@@ -570,23 +573,23 @@ namespace Doxense.Serialization.Json.Tests
 			All = Serialize | Parse | Deserialize
 		}
 
-		public void RunTestMethod<T>(T model, TestMode mode = TestMode.All, bool histos = false)
+		public void RunTestMethod<T>(T model, TestMode mode = TestMode.All, bool instrument = false)
 			where T : notnull
 		{
 #if DEBUG
 			// Build TeamCity
-			const int RUNS = 30;
-			const int ITER_FAST = 500;
-			const int ITER_NORMAL = 250;
-			const int ITER_MEDIUM = 100;
-			const int ITER_SLOW = 50;
+			const int RUNS = 20;
+			const int ITERATIONS_FAST = 500;
+			const int ITERATIONS_NORMAL = 250;
+			const int ITERATIONS_MEDIUM = 100;
+			const int ITERATIONS_SLOW = 50;
 #else
 			// Benchmarks
 			const int RUNS = 60;
-			const int ITER_FAST = 1000;
-			const int ITER_NORMAL = 500;
-			const int ITER_MEDIUM = 250;
-			const int ITER_SLOW = 100;
+			const int ITERATIONS_FAST = 1000;
+			const int ITERATIONS_NORMAL = 500;
+			const int ITERATIONS_MEDIUM = 250;
+			const int ITERATIONS_SLOW = 100;
 #endif
 
 			var settings = CrystalJsonSettings.JsonCompact;
@@ -607,7 +610,7 @@ namespace Doxense.Serialization.Json.Tests
 				_ = JsonValue.FromValue<T>(model, settings, resolver);
 			}
 
-			int iterationsPerRun = jsonText.Length <= 100 ? ITER_FAST : jsonText.Length <= 1000 ? ITER_NORMAL : jsonText.Length <= 10000 ? ITER_MEDIUM : ITER_SLOW;
+			int iterationsPerRun = jsonText.Length <= 100 ? ITERATIONS_FAST : jsonText.Length <= 1000 ? ITERATIONS_NORMAL : jsonText.Length <= 10000 ? ITERATIONS_MEDIUM : ITERATIONS_SLOW;
 			//Log("{0} => {1}", sw.Elapsed.Ticks, ITER_PER_RUN);
 
 			//fullGC();
@@ -617,7 +620,7 @@ namespace Doxense.Serialization.Json.Tests
 				(value) => value,
 				RUNS,
 				iterationsPerRun,
-				histos ? new RobustHistogram(RobustHistogram.TimeScale.Ticks) : null
+				instrument ? new RobustHistogram(RobustHistogram.TimeScale.Ticks) : null
 			);
 
 			DoFullGc();
@@ -627,17 +630,17 @@ namespace Doxense.Serialization.Json.Tests
 				(text) => text,
 				RUNS,
 				iterationsPerRun,
-				histos ? new RobustHistogram(RobustHistogram.TimeScale.Ticks) : null
+				instrument ? new RobustHistogram(RobustHistogram.TimeScale.Ticks) : null
 			);
 
 			DoFullGc();
-			var deserReport = RobustBenchmark.Run(
+			var deserializeReport = RobustBenchmark.Run(
 				jsonText,
 				(text) => CrystalJson.Deserialize<T>(text, settings, resolver),
 				(text) => text,
 				RUNS,
 				iterationsPerRun,
-				histos ? new RobustHistogram(RobustHistogram.TimeScale.Ticks) : null
+				instrument ? new RobustHistogram(RobustHistogram.TimeScale.Ticks) : null
 			);
 
 			DoFullGc();
@@ -647,7 +650,7 @@ namespace Doxense.Serialization.Json.Tests
 				(value) => value,
 				RUNS,
 				iterationsPerRun,
-				histos ? new RobustHistogram(RobustHistogram.TimeScale.Ticks) : null
+				instrument ? new RobustHistogram(RobustHistogram.TimeScale.Ticks) : null
 			);
 
 			string name = typeof(T).GetFriendlyName();
@@ -664,18 +667,18 @@ namespace Doxense.Serialization.Json.Tests
 				serReport.MedianIterationsNanos,
 				parseReport.BestIterationsNanos,
 				parseReport.MedianIterationsNanos,
-				deserReport.BestIterationsNanos,
-				deserReport.MedianIterationsNanos,
+				deserializeReport.BestIterationsNanos,
+				deserializeReport.MedianIterationsNanos,
 				domReport.BestIterationsNanos,
 				domReport.MedianIterationsNanos,
 				Truncate(jsonText),
 				serReport.StdDevIterationNanos,
 				parseReport.StdDevIterationNanos,
-				deserReport.StdDevIterationNanos,
+				deserializeReport.StdDevIterationNanos,
 				domReport.StdDevIterationNanos,
 				serReport.GcAllocatedOnThread / iterationsPerRun, //string.Format(CultureInfo.InvariantCulture, "{0,5} {1,3} {2,3}", serReport.GC0, serReport.GC1, serReport.GC2),
 				parseReport.GcAllocatedOnThread / iterationsPerRun, //string.Format(CultureInfo.InvariantCulture, "{0,5} {1,3} {2,3}", parseReport.GC0, parseReport.GC1, parseReport.GC2),
-				deserReport.GcAllocatedOnThread / iterationsPerRun, //string.Format(CultureInfo.InvariantCulture, "{0,5} {1,3} {2,3}", deserReport.GC0, deserReport.GC1, deserReport.GC2),
+				deserializeReport.GcAllocatedOnThread / iterationsPerRun, //string.Format(CultureInfo.InvariantCulture, "{0,5} {1,3} {2,3}", deserReport.GC0, deserReport.GC1, deserReport.GC2),
 				domReport.GcAllocatedOnThread / iterationsPerRun, //string.Format(CultureInfo.InvariantCulture, "{0,5} {1,3} {2,3}", domReport.GC0, domReport.GC1, domReport.GC2),
 				iterationsPerRun
 			));
@@ -857,7 +860,7 @@ namespace Doxense.Serialization.Json.Tests
 			var sw = Stopwatch.StartNew();
 			for (int i = 0; i < iterations; i++)
 			{
-				var _ = CrystalJson.Parse(data);
+				_ = CrystalJson.Parse(data);
 			}
 			sw.Stop();
 			return sw.Elapsed;
@@ -869,10 +872,8 @@ namespace Doxense.Serialization.Json.Tests
 			var sw = Stopwatch.StartNew();
 			for (int i = 0; i < iterations; i++)
 			{
-				using (var sr = new StreamReader(new MemoryStream(data.Array, data.Offset, data.Count), Encoding.UTF8))
-				{
-					var _ = CrystalJson.ParseFrom(sr);
-				}
+				using var sr = new StreamReader(new MemoryStream(data.Array, data.Offset, data.Count), Encoding.UTF8);
+				_ = CrystalJson.ParseFrom(sr);
 			}
 			sw.Stop();
 			return sw.Elapsed;
@@ -884,7 +885,7 @@ namespace Doxense.Serialization.Json.Tests
 			var sw = Stopwatch.StartNew();
 			for (int i = 0; i < iterations; i++)
 			{
-				var _ = CrystalJson.Parse(data);
+				_ = CrystalJson.Parse(data);
 			}
 			sw.Stop();
 			return sw.Elapsed;
@@ -903,9 +904,9 @@ namespace Doxense.Serialization.Json.Tests
 			Log("Saving simple flat object...");
 			var path = GetTemporaryPath("empty.json");
 			File.Delete(path);
-			using (var fs = File.Create(path))
+			await using (var fs = File.Create(path))
 			{
-				using (var writer = new CrystalJsonStreamWriter(fs, CrystalJsonSettings.Json, null, true))
+				await using (var writer = new CrystalJsonStreamWriter(fs, CrystalJsonSettings.Json, null, true))
 				{
 					using (writer.BeginObjectFragment(cancel))
 					{
@@ -916,6 +917,7 @@ namespace Doxense.Serialization.Json.Tests
 				}
 				Assert.That(fs.CanWrite, Is.False, "Stream should have been closed");
 			}
+
 			// verify
 			Log("> reloading...");
 			var verify = CrystalJson.ParseFrom(path).AsObject();
@@ -929,7 +931,7 @@ namespace Doxense.Serialization.Json.Tests
 			path = GetTemporaryPath("hello_world.json");
 			File.Delete(path);
 			var now = DateTimeOffset.Now;
-			using (var writer = CrystalJsonStreamWriter.Create(path))
+			await using (var writer = CrystalJsonStreamWriter.Create(path))
 			{
 				using (var obj = writer.BeginObjectFragment(cancel))
 				{
@@ -937,6 +939,7 @@ namespace Doxense.Serialization.Json.Tests
 					obj.WriteField("PowerLevel", 8001); // Over 8000 !!!!
 					obj.WriteField("Date", now);
 				}
+
 				await writer.FlushAsync(cancel);
 			}
 			Log($"> {new FileInfo(path).Length:N0} bytes");
@@ -956,12 +959,13 @@ namespace Doxense.Serialization.Json.Tests
 			Log("Saving object with large streamed array...");
 			File.Delete(path);
 			clock.Restart();
-			using (var writer = CrystalJsonStreamWriter.Create(path))
+			await using (var writer = CrystalJsonStreamWriter.Create(path))
 			{
 				using (var obj = writer.BeginObjectFragment(cancel))
 				{
 					obj.WriteField("Id", "FOOBAR9000");
 					obj.WriteField("Date", now);
+
 					using (var arr = obj.BeginArrayStream("Values"))
 					{
 						// we simulate a dump of 365 days woth of de data, with a precision of 1 minute, with a batch per day (1440 values)
@@ -972,6 +976,7 @@ namespace Doxense.Serialization.Json.Tests
 						}
 					}
 				}
+
 				await writer.FlushAsync(cancel);
 			}
 			clock.Stop();
@@ -996,9 +1001,9 @@ namespace Doxense.Serialization.Json.Tests
 			Log("Saving object with large streamed array to compressed file...");
 			File.Delete(path + ".gz");
 			clock.Restart();
-			using (var fs = File.Create(path + ".gz"))
-			using (var gz = new GZipStream(fs, CompressionMode.Compress, false))
-			using (var writer = new CrystalJsonStreamWriter(gz, CrystalJsonSettings.Json))
+			await using (var fs = File.Create(path + ".gz"))
+			await using (var gz = new GZipStream(fs, CompressionMode.Compress, false))
+			await using (var writer = new CrystalJsonStreamWriter(gz, CrystalJsonSettings.Json))
 			{
 				using (var obj = writer.BeginObjectFragment(cancel))
 				{
@@ -1006,7 +1011,7 @@ namespace Doxense.Serialization.Json.Tests
 					obj.WriteField("Date", now);
 					using (var arr = obj.BeginArrayStream("Values"))
 					{
-						// we simulate a dump of 365 days woth of de data, with a precision of 1 minute, with a batch per day (1440 values)
+						// we simulate a dump of 365 days worth of de data, with a precision of 1 minute, with a batch per day (1440 values)
 						for (int i = 0; i < 365; i++)
 						{
 							var batch = Enumerable.Range(0, 1440).Select(_ => KeyValuePair.Create(Stopwatch.GetTimestamp(), Math.Round(rnd.NextDouble() * 100000.0, 1)));
@@ -1023,8 +1028,8 @@ namespace Doxense.Serialization.Json.Tests
 
 			// verify
 			Log("> reloading...");
-			using(var fs = File.OpenRead(path + ".gz"))
-			using (var gs = new GZipStream(fs, CompressionMode.Decompress, false))
+			await using(var fs = File.OpenRead(path + ".gz"))
+			await using (var gs = new GZipStream(fs, CompressionMode.Decompress, false))
 			{
 				verify = CrystalJson.ParseFrom(gs).AsObject();
 			}
@@ -1109,8 +1114,10 @@ namespace Doxense.Serialization.Json.Tests
 		public required string Format { get; init; }
 		public required long Duration { get; init; }
 		public required long Size { get; init; }
+		// ReSharper disable IdentifierTypo
 		public int Bitrate { get; init; }
 		public bool HasBitrate { get; init; }
+		// ReSharper restore IdentifierTypo
 		public List<string>? Persons { get; init; }
 		public PlayerType Player { get; init; }
 		public string? Copyright { get; init; }
@@ -1244,8 +1251,7 @@ namespace Doxense.Serialization.Json.Tests
 		public required DateTime Joined { get; init; }
 	}
 
-	public class UserDerived : UserAbstract
-	{ }
+	public class UserDerived : UserAbstract;
 
 	#endregion
 
