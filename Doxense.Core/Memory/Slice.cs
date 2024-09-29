@@ -2791,8 +2791,9 @@ namespace System
 		}
 
 		[UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
-		private sealed class DebugView
+		private readonly struct DebugView
 		{
+
 			private readonly Slice m_slice;
 
 			public DebugView(Slice slice)
@@ -2800,44 +2801,35 @@ namespace System
 				m_slice = slice;
 			}
 
-			public int Count => m_slice.Count;
+			public int _Count => m_slice.Count;
 
-			public byte[]? Data
-			{
-				get
-				{
-					if (m_slice.Count == 0) return m_slice.Array == null! ? null : [ ];
-					if (m_slice.Offset == 0 && m_slice.Count == m_slice.Array.Length) return m_slice.Array;
-					var tmp = new byte[m_slice.Count];
-					System.Array.Copy(m_slice.Array, m_slice.Offset, tmp, 0, m_slice.Count);
-					return tmp;
-				}
-			}
+			public int _Offset => m_slice.Offset;
+
+			public byte[] _Array => m_slice.Array;
+
+			public ReadOnlySpan<byte> Data => m_slice.Span;
 
 			public string Content => Slice.Dump(m_slice, maxSize: DefaultPrettyPrintSize);
 
-			/// <summary>Encoding using only for display purpose: we don't want to throw in the 'Text' property if the input is not text!</summary>
-			private static readonly UTF8Encoding Utf8NoBomEncodingNoThrow = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: false);
+			public string? TextUtf8
+				=> m_slice.Count == 0
+					? (m_slice.IsNull ? null : string.Empty)
+					: Utf8NoBomEncodingNoThrow.GetString(m_slice.Span);
 
-			public string? Text
-			{
-				get
-				{
-					if (m_slice.Count == 0) return m_slice.Array == null! ? null : string.Empty;
-					return EscapeString(new StringBuilder(m_slice.Count + 16), m_slice.Span, Utf8NoBomEncodingNoThrow).ToString();
-				}
-			}
+			public string? TextLatin1
+				=> m_slice.Count == 0
+					? (m_slice.IsNull ? null : string.Empty)
+					: Encoding.Latin1.GetString(m_slice.Span);
 
-			public string? Hexa
-			{
-				get
-				{
-					if (m_slice.Count == 0) return m_slice.Array == null! ? null : string.Empty;
-					return m_slice.Count <= DefaultPrettyPrintSize
+			public string? Hex =>
+				m_slice.Count == 0
+					? (m_slice.IsNull ? null : string.Empty)
+					: m_slice.Count <= Slice.DefaultPrettyPrintSize
 						? m_slice.ToHexString(' ')
-						: m_slice.Substring(0, DefaultPrettyPrintSize).ToHexString(' ') + "[\u2026]";
-				}
-			}
+						: m_slice.Substring(0, Slice.DefaultPrettyPrintSize).ToHexString(' ') + "[\u2026]";
+
+			/// <summary>Encoding using only for display purpose: we don't want to throw in the 'Text' property if the input is not text!</summary>
+			internal static readonly UTF8Encoding Utf8NoBomEncodingNoThrow = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: false);
 
 		}
 

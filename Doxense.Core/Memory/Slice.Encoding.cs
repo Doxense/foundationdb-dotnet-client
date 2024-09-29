@@ -1521,7 +1521,7 @@ namespace System
 
 		internal static StringBuilder EscapeString(StringBuilder? sb, ReadOnlySpan<char> chars)
 		{
-			sb ??= new StringBuilder(chars.Length + 16);
+			sb ??= new(chars.Length + 16);
 			foreach (var c in chars)
 			{
 				switch (c)
