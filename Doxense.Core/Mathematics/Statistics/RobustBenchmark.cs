@@ -28,6 +28,7 @@ namespace Doxense.Mathematics.Statistics
 {
 	using System;
 	using System.Diagnostics;
+	using System.Linq;
 	using Doxense.Runtime;
 
 	[PublicAPI]
@@ -61,7 +62,7 @@ namespace Doxense.Mathematics.Statistics
 
 			public TimeSpan RawTotal { get; set; }
 
-			public required List<long> RawTimes { get; set; }
+			public required List<TimeSpan> RawTimes { get; set; }
 
 			public required List<TResult> Results { get; set; }
 
@@ -111,56 +112,6 @@ namespace Doxense.Mathematics.Statistics
 			public TimeSpan BestRunTotalTime { get; set; }
 
 			public RobustHistogram? Histogram { get; set; }
-
-		}
-
-
-		private struct RobustStopWatch
-		{
-
-			/// <summary>Conversion ratio from timestamp ticks to TimeSpan ticks</summary>
-			private static readonly double TicksFrequency = (double) TimeSpan.TicksPerSecond / Stopwatch.Frequency;
-
-			/// <summary>Minimum number of TimeSpan ticks that can accurately be measured</summary>
-			public static readonly long EpsilonDuration = (long) TicksFrequency;
-
-			public long StartTimeStamp;
-
-			public long Total;
-
-			public bool IsRunning;
-
-			public void Restart()
-			{
-				this.StartTimeStamp = Stopwatch.GetTimestamp();
-				this.Total = 0;
-				this.IsRunning = true;
-			}
-
-			public void Start()
-			{
-				if (!this.IsRunning)
-				{
-					this.StartTimeStamp = Stopwatch.GetTimestamp();
-					this.IsRunning = true;
-				}
-			}
-
-			public void Stop()
-			{
-				if (this.IsRunning)
-				{
-					Total += Stopwatch.GetTimestamp() - this.StartTimeStamp;
-					if (Total < 0L) Total = 0;
-					IsRunning = false;
-				}
-			}
-
-			public readonly long ElapsedRawTicks => (this.IsRunning ? (Stopwatch.GetTimestamp() - this.StartTimeStamp) : 0) + this.Total;
-
-			public readonly TimeSpan Elapsed => GetDuration(this.ElapsedRawTicks);
-
-			public static TimeSpan GetDuration(long ticks) => TimeSpan.FromTicks((long)Math.Round(ticks * TicksFrequency, MidpointRounding.AwayFromZero));
 
 		}
 
@@ -258,18 +209,28 @@ namespace Doxense.Mathematics.Statistics
 			);
 		}
 
+		private static TimeSpan GetElapsedTime(long startingTimestamp)
+			=> GetElapsedTime(startingTimestamp, Stopwatch.GetTimestamp());
+
+		private static TimeSpan GetElapsedTime(long startingTimestamp, long endingTimestamp)
+#if NET8_0_OR_GREATER
+			=> Stopwatch.GetElapsedTime(startingTimestamp, endingTimestamp);
+#else
+			=> new TimeSpan((long) ((endingTimestamp - startingTimestamp) * s_tickFrequency));
+
+		private static readonly double s_tickFrequency = (double) TimeSpan.TicksPerSecond / Stopwatch.Frequency;
+#endif
+
 		public static Report<TResult> Run<TGlobal, TState, TResult, TIntermediate>(TGlobal global, Func<TGlobal, TState> setup, Func<TGlobal, TState, int, TIntermediate> test, Func<TGlobal, TState, TResult> cleanup, int runs, int iterations, RobustHistogram? histo = null)
 		{
-			var times = new List<long>(runs);
+			var times = new List<TimeSpan>(runs);
 			var results = new List<TResult>(runs);
 
-			var clock = Stopwatch.StartNew();
-			// note: au cas où ca serait le premier hit sur Stopwatch, on appelle une deuxième fois !
-			clock.Restart();
-
+			// first call to ensure JIT has already done at least Tier 0
+			long startTimestamp = Stopwatch.GetTimestamp();
+			_ = GetElapsedTime(startTimestamp);
+			
 			TimeSpan bestRunTotalTime = TimeSpan.MaxValue;
-			var totalTimePerRun = new Stopwatch();
-			var iterTimePerRun = new Stopwatch();
 
 			int totalGc0 = 0;
 			int totalGc1 = 0;
@@ -277,66 +238,47 @@ namespace Doxense.Mathematics.Statistics
 
 			long totalAllocatedOnThread = 0;
 
-#if !NET8_0_OR_GREATER
-			var sw = new Stopwatch();
-#endif
-
-			var swOverhead = new Stopwatch();
+			var totalElapsed = TimeSpan.Zero;
+			startTimestamp = Stopwatch.GetTimestamp();
 
 			// note: le premier run est toujours ignoré !
 			for (int k = -1; k < runs; k++)
 			{
-				swOverhead.Reset();
+				long runStart = Stopwatch.GetTimestamp();
+				long ts = runStart;
 
-				totalTimePerRun.Restart();
 				var state = setup(global);
 
 				var gcCount0 = GC.CollectionCount(0);
 				var gcCount1 = GC.CollectionCount(1);
 				var gcCount2 = GC.CollectionCount(2);
+				long allocatedAtStart = GC.GetAllocatedBytesForCurrentThread();
 
-				long allocatedOnThread;
-				iterTimePerRun.Restart();
+				var overhead = GetElapsedTime(ts);
+				long iterStart = Stopwatch.GetTimestamp();
 				if (histo != null)
 				{
-					long allocatedAtStart = GC.GetAllocatedBytesForCurrentThread();
 					for (int i = 0; i < iterations; i++)
 					{
 
-#if NET8_0_OR_GREATER
-						long ts = Stopwatch.GetTimestamp();
+						ts = Stopwatch.GetTimestamp();
 						test(global, state, i);
-						var dt = Stopwatch.GetElapsedTime(ts);
+						var testElapsed = GetElapsedTime(ts);
 
-						swOverhead.Start();
-						histo.Add(dt);
-						swOverhead.Stop();
-#else
-
-						sw.Restart();
-						test(global, state, i);
-						sw.Stop();
-
-						swOverhead.Start();
-						histo.Add(sw.Elapsed);
-						swOverhead.Stop();
-#endif
+						histo.Add(testElapsed);
+						overhead += GetElapsedTime(ts) - testElapsed;
 					}
-
-					long allocatedAtStop = GC.GetAllocatedBytesForCurrentThread();
-					allocatedOnThread = allocatedAtStop - allocatedAtStart;
 				}
 				else
 				{
-					long allocatedAtStart = GC.GetAllocatedBytesForCurrentThread();
 					for (int i = 0; i < iterations; i++)
 					{
 						test(global, state, i);
 					}
-					long allocatedAtStop = GC.GetAllocatedBytesForCurrentThread();
-					allocatedOnThread = allocatedAtStop - allocatedAtStart;
 				}
-				iterTimePerRun.Stop();
+				var iterElapsed = GetElapsedTime(iterStart);
+
+				long allocatedOnThread = GC.GetAllocatedBytesForCurrentThread() - allocatedAtStart;
 
 				if (k >= 0)
 				{
@@ -347,19 +289,16 @@ namespace Doxense.Mathematics.Statistics
 				}
 
 				var result = cleanup(global, state);
-				totalTimePerRun.Stop();
-				if (totalTimePerRun.Elapsed < bestRunTotalTime) bestRunTotalTime = totalTimePerRun.Elapsed;
+				totalElapsed += iterElapsed;
 
 				if (k >= 0)
 				{
-					var t = iterTimePerRun.Elapsed.Ticks - swOverhead.Elapsed.Ticks;
-					if (t < RobustStopWatch.EpsilonDuration) t = RobustStopWatch.EpsilonDuration; // minimum !!!
-					times.Add(t);
+					var t = iterElapsed - overhead;
+					if (t.Ticks < 1) t = new TimeSpan(1);
+					times.Add(iterElapsed - overhead);
 					results.Add(result);
 				}
 			}
-
-			clock.Stop();
 
 			var report = new Report<TResult>
 			{
@@ -367,7 +306,7 @@ namespace Doxense.Mathematics.Statistics
 				IterationsPerRun = iterations,
 				Results = results,
 				RawTimes = times,
-				RawTotal = clock.Elapsed,
+				RawTotal = GetElapsedTime(startTimestamp),
 				BestRunTotalTime = bestRunTotalTime,
 				Histogram = histo,
 				GcAllocatedOnThread = totalAllocatedOnThread,
@@ -376,63 +315,63 @@ namespace Doxense.Mathematics.Statistics
 				GC2 = totalGc2, //(totalGC2 * 1000000.0) / (runs * iterations),
 			};
 
-			var filtered = PeirceCriterion.FilterOutliers(times, x => x, out var outliers, out var rejected).ToList();
-			//var filtered = DixonTest.ComputeOutliers(times, x => (double)x, DixonTest.Confidence.CL95, DixonTest.Mode.Upper, out _outliers, out rejected).ToList();
+			var filtered = PeirceCriterion.FilterOutliers(times, x => (double) x.Ticks, out var outliers);
+
 			var outliersMap = outliers.ToArray();
 
-			report.Times = filtered.Select(RobustStopWatch.GetDuration).ToList();
-			report.RejectedRuns = rejected;
+			report.Times = filtered;
+			report.RejectedRuns = outliers.Count;
 			report.Runs = times.Select((ticks, i) => new RunData<TResult>
 			{
 				Index = i,
 				Iterations = iterations,
-				Duration = RobustStopWatch.GetDuration(ticks),
+				Duration = ticks,
 				Rejected = outliersMap.Contains(i),
 				Result = results[i],
 			}).ToList();
 
-			report.TotalDuration = RobustStopWatch.GetDuration(filtered.Sum());
-			report.TotalIterations = (long)iterations * filtered.Count;
+			report.TotalDuration = TimeSpan.FromTicks(filtered.Sum(x => x.Ticks));
+			report.TotalIterations = (long) iterations * filtered.Count;
 
 			// medianne
 			var sorted = filtered.ToArray();
 			Array.Sort(sorted);
-			report.BestDuration = RobustStopWatch.GetDuration(times.Min());
-			report.AverageDuration = RobustStopWatch.GetDuration((long) sorted.Average());
-			long median = Median(sorted);
-			report.MedianDuration = RobustStopWatch.GetDuration(median);
-			report.StdDevDuration = RobustStopWatch.GetDuration(MeanAbsoluteDeviation(sorted, median));
+			report.BestDuration = times.Min();
+			report.AverageDuration = TimeSpan.FromTicks((long) sorted.Average(x => (double) x.Ticks));
+			var median = Median(sorted);
+			report.MedianDuration = median;
+			report.StdDevDuration = MeanAbsoluteDeviation(sorted, median);
 
 			report.MedianIterationsPerSecond = report.TotalIterations / report.TotalDuration.TotalSeconds;
-			report.MedianIterationsNanos = (double)(report.TotalDuration.Ticks * 100) / report.TotalIterations;
+			report.MedianIterationsNanos = (double) (report.TotalDuration.Ticks * 100) / report.TotalIterations;
 
 			report.BestIterationsPerSecond = report.IterationsPerRun / report.BestDuration.TotalSeconds;
-			report.BestIterationsNanos = (double)(report.BestDuration.Ticks * 100) / report.IterationsPerRun;
+			report.BestIterationsNanos = (double) (report.BestDuration.Ticks * 100) / report.IterationsPerRun;
 
-			report.StdDevIterationNanos = (double)(report.StdDevDuration.Ticks * 100) / report.TotalIterations;
+			report.StdDevIterationNanos = (double) (report.StdDevDuration.Ticks * 100) / report.TotalIterations;
 
 			return report;
 		}
 
-		private static long Median(long[] sortedData)
+		private static TimeSpan Median(TimeSpan[] sortedData)
 		{
 			int n = sortedData.Length;
-			return n == 0 ? 0 : (n & 1) == 1 ? sortedData[n >> 1] : (sortedData[n >> 1] + sortedData[(n >> 1) - 1]) >> 1;
+			return n == 0 ? default : (n & 1) == 1 ? sortedData[n >> 1] : TimeSpan.FromTicks((sortedData[n >> 1].Ticks + sortedData[(n >> 1) - 1].Ticks) >> 1);
 		}
 
-		private static long MeanAbsoluteDeviation(long[] sortedData, long med)
+		private static TimeSpan MeanAbsoluteDeviation(TimeSpan[] sortedData, TimeSpan med)
 		{
 			// calcule la variance
 			// NOTE: on la calcule par rpt au median, *PAS* la moyenne arithmétique !
 			long sum = 0;
-			foreach (long data in sortedData)
+			foreach (var data in sortedData)
 			{
-				long x = data - med;
+				var x = (data - med).Ticks;
 				sum += x * x;
 			}
 
-			double variance = sortedData.Length == 0 ? 0.0 : ((double)sum / sortedData.Length);
-			return (long)Math.Sqrt(variance);
+			var variance = sortedData.Length == 0 ? 0.0 : ((double) sum / sortedData.Length);
+			return System.TimeSpan.FromTicks((long) Math.Sqrt(variance));
 		}
 
 	}

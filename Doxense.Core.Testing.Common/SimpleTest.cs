@@ -54,8 +54,9 @@ namespace SnowBank.Testing
 	[FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
 	public abstract class SimpleTest
 	{
-		private Stopwatch? m_testTimer;
-		private Instant m_testStart;
+		private long m_testStartTimestamp;
+		private long m_testEndTimestamp;
+		private Instant m_testStartInstant;
 		private CancellationTokenSource? m_cts;
 
 		public IClock Clock { get; set; } = SystemClock.Instance;
@@ -96,8 +97,11 @@ namespace SnowBank.Testing
 		public void BeforeEachTest()
 		{
 			WriteToLog($"=>= {TestContext.CurrentContext.Test.FullName} @ {DateTime.Now.TimeOfDay}");
-			m_cts = new CancellationTokenSource();
-			m_testTimer = new Stopwatch();
+			m_cts = new();
+
+			// first we measure the startup duration
+			m_testEndTimestamp = 0;
+			m_testStartTimestamp = GetTimestamp();
 			try
 			{
 				OnBeforeEachTest();
@@ -109,8 +113,9 @@ namespace SnowBank.Testing
 			}
 			finally
 			{
-				m_testStart = this.Clock.GetCurrentInstant();
-				m_testTimer.Start();
+				// now we measure start time of the actual test execution
+				m_testStartInstant = this.Clock.GetCurrentInstant();
+				m_testStartTimestamp = GetTimestamp();
 			}
 		}
 
@@ -123,7 +128,7 @@ namespace SnowBank.Testing
 			var currentContext = TestContext.CurrentContext;
 			try
 			{
-				m_testTimer?.Stop();
+				m_testEndTimestamp = GetTimestamp();
 				m_cts?.Cancel();
 
 				// dispose any IDisposable services that were used during the execution
@@ -152,8 +157,8 @@ namespace SnowBank.Testing
 			}
 			finally
 			{
-				var elapsed = m_testTimer?.Elapsed;
-				WriteToLog($"=<= {currentContext.Result.Outcome} {currentContext.Test.Name}() in {elapsed?.TotalMilliseconds:N1} ms ({currentContext.AssertCount} asserts, {currentContext.Result.FailCount} failed)");
+				var elapsed = this.TestElapsed;
+				WriteToLog($"=<= {currentContext.Result.Outcome} {currentContext.Test.Name}() in {elapsed.TotalMilliseconds:N1} ms ({currentContext.AssertCount} asserts, {currentContext.Result.FailCount} failed)");
 				m_cts?.Dispose();
 			}
 		}
@@ -173,14 +178,14 @@ namespace SnowBank.Testing
 
 		public void ResetTimer()
 		{
-			m_testTimer = Stopwatch.StartNew();
+			m_testStartTimestamp = GetTimestamp();
 		}
 
-		protected TimeSpan TestElapsed => m_testTimer?.Elapsed ?? TimeSpan.Zero;
+		protected TimeSpan TestElapsed => m_testEndTimestamp >= m_testStartTimestamp ? GetElapsedTime(m_testStartTimestamp, m_testEndTimestamp) : TimeSpan.Zero;
 
-		protected Instant TestStartedAt => m_testStart;
+		protected Instant TestStartedAt => m_testStartInstant;
 
-		protected Duration ElapsedSinceTestStart(Instant now) => now - m_testStart;
+		protected Duration ElapsedSinceTestStart(Instant now) => now - m_testStartInstant;
 
 		public CancellationToken Cancellation
 		{
@@ -199,15 +204,39 @@ namespace SnowBank.Testing
 			}, TaskContinuationOptions.NotOnCanceled);
 		}
 
-		/// <summary>Mesure la durée d'exécution d'une fonction de test</summary>
-		/// <param name="handler">Function invoquée</param>
-		/// <returns>Durée d'exécution</returns>
+		/// <summary>Returns a hi-resolution timestamp, for measure execution time</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static long GetTimestamp() => Stopwatch.GetTimestamp();
+
+		/// <summary>Gets the elapsed time since the <paramref name="startingTimestamp"/> value retrieved using <see cref="GetTimestamp"/>.</summary>
+		/// <param name="startingTimestamp">The timestamp marking the beginning of the time period.</param>
+		/// <returns>A <see cref="TimeSpan"/> for the elapsed time between the starting timestamp and the time of this call.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static TimeSpan GetElapsedTime(long startingTimestamp)
+			=> GetElapsedTime(startingTimestamp, GetTimestamp());
+
+		/// <summary>Gets the elapsed time between two timestamps retrieved using <see cref="GetTimestamp"/>.</summary>
+		/// <param name="startingTimestamp">The timestamp marking the beginning of the time period.</param>
+		/// <param name="endingTimestamp">The timestamp marking the end of the time period.</param>
+		/// <returns>A <see cref="TimeSpan"/> for the elapsed time between the starting and ending timestamps.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static TimeSpan GetElapsedTime(long startingTimestamp, long endingTimestamp) =>
+#if NET8_0_OR_GREATER
+			Stopwatch.GetElapsedTime(startingTimestamp, endingTimestamp);
+#else
+			new TimeSpan((long) ((endingTimestamp - startingTimestamp) * s_tickFrequency));
+
+		private static readonly double s_tickFrequency = (double) TimeSpan.TicksPerSecond / Stopwatch.Frequency;
+#endif
+
+		/// <summary>Measures the execution time of a test function</summary>
+		/// <param name="handler">Function to invoke</param>
+		/// <returns>Execution time</returns>
 		public static TimeSpan Time(Action  handler)
 		{
-			var sw = Stopwatch.StartNew();
+			long start = GetTimestamp();
 			handler();
-			sw.Stop();
-			return sw.Elapsed;
+			return GetElapsedTime(start, GetTimestamp());
 		}
 
 		/// <summary>Mesure la durée d'exécution d'une fonction de test</summary>
@@ -215,10 +244,9 @@ namespace SnowBank.Testing
 		/// <returns>Durée d'exécution</returns>
 		public static async Task<TimeSpan> Time(Func<Task> handler)
 		{
-			var sw = Stopwatch.StartNew();
+			long start = GetTimestamp();
 			await handler().ConfigureAwait(false);
-			sw.Stop();
-			return sw.Elapsed;
+			return GetElapsedTime(start, GetTimestamp());
 		}
 
 		/// <summary>Mesure la durée d'exécution d'une fonction de test</summary>
@@ -227,10 +255,10 @@ namespace SnowBank.Testing
 		/// <returns>Tuple contenant le résultat de la fonction, et sa durée d'execution</returns>
 		public static (TResult Result, TimeSpan Elapsed) Time<TResult>(Func<TResult> handler)
 		{
-			var sw = Stopwatch.StartNew();
+			long start = GetTimestamp();
 			var result = handler();
-			sw.Stop();
-			return (result, sw.Elapsed);
+			long end = GetTimestamp();
+			return (result, GetElapsedTime(start, end));
 		}
 
 		/// <summary>Mesure la durée d'exécution d'une fonction de test</summary>
@@ -239,10 +267,10 @@ namespace SnowBank.Testing
 		/// <returns>Tuple contenant le résultat de la fonction, et sa durée d'execution</returns>
 		public static async Task<(TResult Result, TimeSpan Elapsed)> Time<TResult>(Func<Task<TResult>> handler)
 		{
-			var sw = Stopwatch.StartNew();
+			long start = GetTimestamp();
 			var result = await handler().ConfigureAwait(false);
-			sw.Stop();
-			return (result, sw.Elapsed);
+			long end = GetTimestamp();
+			return (result, GetElapsedTime(start, end));
 		}
 
 		/// <summary>Pause l'exécution du test pendant un certain temps</summary>
@@ -312,48 +340,54 @@ namespace SnowBank.Testing
 			// heuristic to get a sensible value
 			if (max <= TimeSpan.FromMilliseconds(50)) Assert.Fail("Ticks must be at least greater than 50ms!");
 
-			var start = this.Clock.GetCurrentInstant();
+			var startInstant = this.Clock.GetCurrentInstant();
+			long startTimestamp = GetTimestamp();
+			long endTimestamp = 0;
 			bool success = false;
 			Exception? error = null;
 			try
 			{
-				var sw = Stopwatch.StartNew();
 				while (!ct.IsCancellationRequested)
 				{
 					try
 					{
 						if (condition())
 						{
-							sw.Stop();
+							endTimestamp = GetTimestamp();
 							success = true;
 							break;
 						}
 					}
 					catch (Exception e)
 					{
+						endTimestamp = GetTimestamp();
 						error = e;
 						if (e is AssertionException) throw;
-						onFail(sw.Elapsed, e);
+						onFail(GetElapsedTime(startTimestamp, endTimestamp), e);
 						Assert.Fail($"Operation failed will polling expression '{conditionExpression}': {e}");
 					}
 
 					await Task.Delay(delay, this.Cancellation).ConfigureAwait(false);
-					if (sw.Elapsed >= timeout)
+					var elapsed = GetElapsedTime(startTimestamp);
+					if (elapsed >= timeout)
 					{
-						onFail(sw.Elapsed, null);
+						onFail(elapsed, null);
 					}
 
 					delay += delay;
-					if (delay > max) delay = max;
+					if (delay > max)
+					{
+						delay = max;
+					}
 				}
 
 				ct.ThrowIfCancellationRequested();
-				return sw.Elapsed;
+				return GetElapsedTime(startTimestamp, endTimestamp);
 			}
 			finally
 			{
-				var end = this.Clock.GetCurrentInstant();
-				await OnWaitOperationCompleted(nameof(WaitUntil), conditionExpression!, success, error, start, end).ConfigureAwait(false);
+				var endInstant = this.Clock.GetCurrentInstant();
+				await OnWaitOperationCompleted(nameof(WaitUntil), conditionExpression!, success, error, startInstant, endInstant).ConfigureAwait(false);
 			}
 		}
 
@@ -368,33 +402,36 @@ namespace SnowBank.Testing
 			// heuristic to get a sensible value
 			if (max <= TimeSpan.FromMilliseconds(50)) Assert.Fail("Ticks must be at least greater than 50ms!");
 
-			var start = this.Clock.GetCurrentInstant();
+			var startInstant = this.Clock.GetCurrentInstant();
 			bool success = false;
 			Exception? error = null;
 			try
 			{
-				var sw = Stopwatch.StartNew();
+				long startTimestamp = GetTimestamp();
+				long endTimestamp = 0;
 				while (!ct.IsCancellationRequested)
 				{
 					try
 					{
 						if (await condition().ConfigureAwait(false))
 						{
-							sw.Stop();
+							endTimestamp = GetTimestamp();
 							break;
 						}
 					}
 					catch (Exception e)
 					{
+						endTimestamp = GetTimestamp();
 						error = e;
 						if (e is AssertionException) throw;
 						Assert.Fail($"Operation failed will polling expression '{conditionExpression}': {e}");
 					}
 
 					await Task.Delay(delay, this.Cancellation).ConfigureAwait(false);
-					if (sw.Elapsed >= timeout)
+					var elapsed = GetElapsedTime(startTimestamp);
+					if (elapsed >= timeout)
 					{
-						Assert.Fail($"Operation took too lonk to execute: {message}{Environment.NewLine}Condition: {conditionExpression}{Environment.NewLine}Elapsed: {sw.Elapsed}");
+						Assert.Fail($"Operation took too long to execute: {message}{Environment.NewLine}Condition: {conditionExpression}{Environment.NewLine}Elapsed: {elapsed}");
 					}
 
 					delay += delay;
@@ -403,12 +440,12 @@ namespace SnowBank.Testing
 
 				ct.ThrowIfCancellationRequested();
 				success = true;
-				return sw.Elapsed;
+				return GetElapsedTime(startTimestamp, endTimestamp);
 			}
 			finally
 			{
-				var end = this.Clock.GetCurrentInstant();
-				await OnWaitOperationCompleted(nameof(WaitUntil), conditionExpression!, success, error, start, end).ConfigureAwait(false);
+				var endInstant = this.Clock.GetCurrentInstant();
+				await OnWaitOperationCompleted(nameof(WaitUntil), conditionExpression!, success, error, startInstant, endInstant).ConfigureAwait(false);
 			}
 		}
 
@@ -417,7 +454,7 @@ namespace SnowBank.Testing
 			return Task.CompletedTask;
 		}
 
-		#endregion
+#endregion
 
 		#region Async Stuff...
 
@@ -1753,7 +1790,7 @@ namespace SnowBank.Testing
 		protected static void It(string what, Action action)
 		{
 			Log($"=== `{what}` {new string('-', Math.Max(0, 60 - what.Length))}");
-			var sw = Stopwatch.StartNew();
+			long start = GetTimestamp();
 			try
 			{
 				action();
@@ -1765,8 +1802,8 @@ namespace SnowBank.Testing
 			}
 			finally
 			{
-				sw.Stop();
-				Log($"> ({sw.Elapsed})");
+				var elapsed = GetElapsedTime(start);
+				Log($"> ({elapsed})");
 			}
 		}
 
@@ -1780,7 +1817,7 @@ namespace SnowBank.Testing
 		protected static TResult It<TResult>(string what, Func<TResult> action)
 		{
 			Log($"=== `{what}` {new string('-', Math.Max(0, 60 - what.Length))}");
-			var sw = Stopwatch.StartNew();
+			long start = GetTimestamp();
 			try
 			{
 				return action();
@@ -1793,8 +1830,8 @@ namespace SnowBank.Testing
 			}
 			finally
 			{
-				sw.Stop();
-				Log($"> ({sw.Elapsed})");
+				var elapsed = GetElapsedTime(start);
+				Log($"> ({elapsed})");
 			}
 		}
 
@@ -1808,7 +1845,7 @@ namespace SnowBank.Testing
 		protected static async Task It(string what, Func<Task> action)
 		{
 			Log($"--- `{what}` {new string('-', Math.Max(0, 60 - what.Length))}");
-			var sw = Stopwatch.StartNew();
+			long start = GetTimestamp();
 			try
 			{
 				await action().ConfigureAwait(false);
@@ -1820,8 +1857,8 @@ namespace SnowBank.Testing
 			}
 			finally
 			{
-				sw.Stop();
-				Log($"> ({sw.Elapsed})");
+				var elapsed = GetElapsedTime(start);
+				Log($"> ({elapsed})");
 			}
 		}
 
@@ -1835,7 +1872,7 @@ namespace SnowBank.Testing
 		protected static async Task<TResult> It<TResult>(string what, Func<Task<TResult>> action)
 		{
 			Log($"--- `{what}` {new string('-', Math.Max(0, 60 - what.Length))}");
-			var sw = Stopwatch.StartNew();
+			long start = GetTimestamp();
 			try
 			{
 				return await action().ConfigureAwait(false);
@@ -1848,8 +1885,8 @@ namespace SnowBank.Testing
 			}
 			finally
 			{
-				sw.Stop();
-				Log($"> ({sw.Elapsed})");
+				var elapsed = GetElapsedTime(start);
+				Log($"> ({elapsed})");
 			}
 		}
 
