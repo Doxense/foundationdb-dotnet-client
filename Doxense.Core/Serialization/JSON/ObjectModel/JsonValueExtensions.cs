@@ -223,7 +223,10 @@ namespace Doxense.Serialization.Json
 		/// <param name="value">JSON value to serialize</param>
 		/// <returns><see cref="Slice"/> that contains the utf-8 encoded text represention of the JSON value</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice ToJsonSlice(this JsonValue? value) => CrystalJson.ToSlice(value);
+		public static Slice ToJsonSlice(this JsonValue? value)
+		{
+			return CrystalJson.ToJsonSlice(value);
+		}
 
 		/// <summary>Serializes a JSON value into a <see cref="Slice"/>, using custom settings</summary>
 		/// <param name="value">JSON value to serialize</param>

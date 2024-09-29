@@ -965,7 +965,6 @@ namespace Doxense.Serialization.Json
 #endif
 			#endregion </JIT_HACK>
 
-
 			VisitValue(value, typeof(T), writer);
 		}
 
@@ -984,6 +983,12 @@ namespace Doxense.Serialization.Json
 			if (value is string s)
 			{
 				writer.WriteValue(s);
+				return;
+			}
+
+			if (value is JsonValue j)
+			{
+				j.JsonSerialize(writer);
 				return;
 			}
 

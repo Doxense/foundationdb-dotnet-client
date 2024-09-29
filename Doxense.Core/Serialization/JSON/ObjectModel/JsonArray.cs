@@ -4832,6 +4832,18 @@ namespace Doxense.Serialization.Json
 			_ => false
 		};
 
+
+		/// <inheritdoc />
+		public override string ToJson(CrystalJsonSettings? settings = null)
+		{
+			if (m_size == 0)
+			{
+				return settings.IsCompactLayout() ? "[]" : "[ ]";
+			}
+
+			return CrystalJson.SerializeJson(this, settings);
+		}
+
 		public override void JsonSerialize(CrystalJsonWriter writer)
 		{
 			var items = GetSpan();
@@ -4887,6 +4899,20 @@ namespace Doxense.Serialization.Json
 			charsWritten = literal.Length;
 			return true;
 		}
+
+#if NET8_0_OR_GREATER
+
+		/// <inheritdoc />
+		public override bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+		{
+			//TODO: maybe attempt to do it without allocating?
+			// => for the moment, we will serialize the object into memory, and copy the result
+
+			var data = CrystalJson.ToSlice(this, null, ArrayPool<byte>.Shared);
+			return data.TryCopyTo(destination, out bytesWritten);
+		}
+
+#endif
 
 		#endregion
 

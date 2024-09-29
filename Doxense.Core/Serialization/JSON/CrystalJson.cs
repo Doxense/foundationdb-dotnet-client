@@ -26,6 +26,8 @@
 
 //#define DEBUG_JSON_PARSER
 
+// ReSharper disable ArrangeStaticMemberQualifier
+
 namespace Doxense.Serialization.Json
 {
 	using System.Buffers;
@@ -36,9 +38,6 @@ namespace Doxense.Serialization.Json
 	using System.Runtime.CompilerServices;
 	using System.Text;
 	using Doxense.Collections.Caching;
-	using Doxense.IO;
-	using Doxense.Memory;
-	using Doxense.Memory.Text;
 	using Doxense.Runtime;
 
 	/// <summary>Helper class to serialize, parse or deserialize JSON documents</summary>
@@ -95,7 +94,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static string Serialize(object? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return SerializeToString(value, typeof(object), null, settings, resolver);
+			return SerializeToString(value, typeof(object), settings, resolver);
 		}
 
 		/// <summary>Serializes a boxed value (of any type)</summary>
@@ -108,7 +107,58 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static string Serialize(object? value, Type declaredType, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return SerializeToString(value, declaredType, null, settings, resolver);
+			return SerializeToString(value, declaredType, settings, resolver);
+		}
+
+		/// <summary>Serializes a value (of any type)</summary>
+		/// <param name="value">Instance to serialize (can be null)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+		/// <returns><c>`123`</c>, <c>`true`</c>, <c>`"ABC"`</c>, <c>`{ "foo":..., "bar": ... }`</c>, <c>`[ ... ]`</c>, ...</returns>
+		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
+		[Pure]
+		public static string SerializeJson(JsonValue value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			switch (value)
+			{
+				case null or JsonNull:
+				{
+					return "null";
+				}
+				case JsonString str:
+				{
+					return str.ToJson(settings);
+				}
+				case JsonBoolean b:
+				{
+					return b.Value ? JsonTokens.True : JsonTokens.False;
+				}
+				case JsonNumber n:
+				{
+					return n.ToJson(settings);
+				}
+				case JsonDateTime dt:
+				{
+					return dt.ToJson(settings);
+				}
+				default:
+				{ // Object or Array
+					var writer = WriterPool.Allocate();
+					try
+					{
+						writer.Initialize(0, settings, resolver);
+
+						value.JsonSerialize(writer);
+
+						return writer.GetString();
+					}
+					finally
+					{
+						writer.Dispose();
+						WriterPool.Free(writer);
+					}
+				}
+			}
 		}
 
 		/// <summary>Serializes a value (of any type)</summary>
@@ -344,27 +394,30 @@ namespace Doxense.Serialization.Json
 		/// <summary>Serializes a boxed value (of any type) into the specified buffer</summary>
 		/// <param name="value">Class, struct, Enumerable, Nullable&lt;T&gt;, ...</param>
 		/// <param name="declaredType"></param>
-		/// <param name="buffer">Destination buffer (created automatically if null)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
-		/// <returns>Value of <paramref name="buffer"/>, or of the newly created buffer if it was null (for call chaining)</returns>
 		[Pure]
-		private static string SerializeToString(object? value, Type declaredType, StringBuilder? buffer, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		private static string SerializeToString(object? value, Type declaredType, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (value == null)
 			{ // special case for null instances
 				return JsonTokens.Null;
 			}
 
-			//try
+			var writer = WriterPool.Allocate();
+			try
 			{
-				using var writer = new CrystalJsonWriter(0, settings, resolver);
+				writer.Initialize(0, settings, resolver);
+
 				CrystalJsonVisitor.VisitValue(value, declaredType, writer);
-				return writer.Buffer.ToString();
+
+				return writer.GetString();
 			}
-			//finally
-			//{
-			//}
+			finally
+			{
+				writer.Dispose();
+				WriterPool.Free(writer);
+			}
 		}
 
 		/// <summary>Serializes a boxed value (of any type) into the specified output</summary>
@@ -400,10 +453,10 @@ namespace Doxense.Serialization.Json
 		public static void SerializeTo<T>(Stream output, T? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			Contract.NotNull(output);
-			using (var sw = new StreamWriter(output, Utf8NoBom))
-			{
-				SerializeToTextWriter(sw, value, typeof(T), settings, resolver);
-			}
+
+			using var sw = new StreamWriter(output, CrystalJson.Utf8NoBom);
+
+			SerializeToTextWriter(sw, value, typeof(T), settings, resolver);
 		}
 
 		/// <summary>Serializes a boxed <paramref name="value"/> (of any type) into the file at the specified <paramref name="path"/></summary>
@@ -449,7 +502,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static byte[] ToBytes(object? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return ToBytesInternal(value, typeof(object), settings, resolver);
+			return ToSlice(value, settings, resolver).ToArray();
 		}
 
 		/// <summary>Serializes a value into an in-memory buffer</summary>
@@ -457,54 +510,34 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static byte[] ToBytes<T>(T? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return ToBytesInternal(value, typeof(T), settings, resolver);
+			return ToSlice<T>(value, settings, resolver).ToArray();
 		}
 
+		/// <summary>Serializes a value into an in-memory buffer</summary>
+		/// <returns>Byte array that contains the resulting JSON document</returns>
 		[Pure]
-		private static byte[] ToBytesInternal(object? value, Type declaredType, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static byte[] ToBytes<T>(T? value, IJsonSerializer<T> serializer, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			var bufferSize = 256;
-			if (settings != null && settings.OptimizeForLargeData)
-			{
-				bufferSize = 0x14000; // 80 K
-			}
-
-			//REVIEW: we would need a custom TextWriter+MemoryStream combo that writes text straight to UTF8 in memory!
-			// => profiling shows a lot of waste in the internal buffer of the StreamWriter, that is only used to copy again to the buffer of the MemoryStream.
-
-			// Assumption: 80K buffer for "large" documents, 256 bytes for smaller documents
-			using (var ms = new MemoryStream(bufferSize))
-			{
-				// note: we are serializing to memory, the size of the StreamWriter's buffer does not matter so make it as small as possible
-				using (var sw = new StreamWriter(ms, Utf8NoBom, bufferSize, leaveOpen: true))
-				{
-					SerializeToTextWriter(sw, value, declaredType, settings, resolver);
-				}
-
-				if (ms.Position == 0) return [ ];
-				if (ms.Position == ms.Capacity) return ms.GetBuffer();
-				return ms.ToArray();
-			}
+			return ToSlice<T>(value, serializer, settings, resolver).ToArray();
 		}
 
 		/// <summary>Serializes a boxed value into an UTF-8 encoded Slice</summary>
 		/// <param name="value">Instance to serialize (of any type)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">if the serialization fails</exception>
 		[Pure]
 		public static Slice ToSlice(object? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			byte[]? _ = null;
-			return ToSliceInternal(value, typeof(object), settings, resolver, ref _);
-		}
+			=> ToSlice(value, typeof(object), settings, resolver);
+
+		private static ObjectPool<CrystalJsonWriter> WriterPool = new(() => new CrystalJsonWriter());
 
 		/// <summary>Serializes a value into an UTF-8 encoded Slice</summary>
 		/// <typeparam name="T">Advertized type of the instance.</typeparam>
 		/// <param name="value">Instance to serialize (of any type)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
 		/// <remarks>
 		/// <para>If <typeparamref name="T"/> is an interface or abstract class, or if <paramref name="value"/> is a derived type of <typeparamref name="T"/>, the serialized document may include an additional attribute with the original type name, which may not be recognized by other libraries or platforms.</para>
@@ -528,11 +561,54 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		private static ObjectPool<CrystalJsonWriter> WriterPool = new(() => new CrystalJsonWriter());
+		/// <summary>Serializes a JSON value into an UTF-8 encoded Slice</summary>
+		/// <param name="value">Instance to serialize (of any type)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
+		[Pure]
+		public static Slice ToJsonSlice(JsonValue value, CrystalJsonSettings? settings = null)
+		{
+			var writer = WriterPool.Allocate();
+			try
+			{
+				writer.Initialize(0, settings, null);
+
+				(value ?? JsonNull.Null).JsonSerialize(writer);
+
+				return writer.GetUtf8Slice();
+			}
+			finally
+			{
+				writer.Dispose();
+				WriterPool.Free(writer);
+			}
+		}
+
+		/// <summary>Serializes a JSON value into an UTF-8 encoded Slice</summary>
+		/// <param name="value">Instance to serialize (of any type)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
+		[Pure]
+		public static SliceOwner ToJsonSlice(JsonValue value, ArrayPool<byte> pool, CrystalJsonSettings? settings = null)
+		{
+			var writer = WriterPool.Allocate();
+			try
+			{
+				writer.Initialize(0, settings, null);
+
+				(value ?? JsonNull.Null).JsonSerialize(writer);
+
+				return writer.GetUtf8Slice(pool);
+			}
+			finally
+			{
+				writer.Dispose();
+				WriterPool.Free(writer);
+			}
+		}
 
 		public static Slice ToSlice<T>(T? value, IJsonSerializer<T>? serializer, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-
 			var writer = WriterPool.Allocate();
 			try
 			{
@@ -556,6 +632,24 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		public static SliceOwner ToSlice<T>(T? value, ArrayPool<byte> pool, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			var writer = WriterPool.Allocate();
+			try
+			{
+				writer.Initialize(0, settings, resolver);
+
+				CrystalJsonVisitor.VisitValue(value, writer);
+				
+				return writer.GetUtf8Slice(pool);
+			}
+			finally
+			{
+				writer.Dispose();
+				WriterPool.Free(writer);
+			}
+		}
+
 		public static SliceOwner ToSlice<T>(T? value, IJsonSerializer<T>? serializer, ArrayPool<byte> pool, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			var writer = WriterPool.Allocate();
@@ -565,6 +659,10 @@ namespace Doxense.Serialization.Json
 				if (serializer != null)
 				{
 					serializer.JsonSerialize(writer, value);
+				}
+				else if (value is JsonValue j)
+				{
+					j.JsonSerialize(writer);
 				}
 				else
 				{
@@ -583,113 +681,58 @@ namespace Doxense.Serialization.Json
 		/// <summary>Serializes a boxed value into an UTF-8 encoded Slice</summary>
 		/// <param name="value">Instance to serialize (of any type)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
-		/// <param name="buffer">Pre-allocated buffer used for the serialization. If <see langword="null"/> or too small, it will be replaced with a newly allocated buffer.</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+		/// <param name="pool">Pool used to allocate the content of the slice.</param>
 		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">if the serialization fails</exception>
-		/// <remarks>
-		/// <para>The Slice that is returned will use <paramref name="buffer"/> as its backing store. The caller should fully consume the result before reusing the buffer, or risk data corruption!</para>
-		/// </remarks>
 		[Pure]
-		public static Slice ToSlice(object? value, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ref byte[]? buffer)
+		public static SliceOwner ToSlice(object? value, ArrayPool<byte> pool, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
-			return ToSliceInternal(value, typeof(object), settings, resolver, ref buffer);
+			return ToSlice(value, typeof(object), pool, settings, resolver);
 		}
 
 		/// <summary>Serializes a boxed value into an UTF-8 encoded Slice</summary>
 		/// <param name="value">Instance to serialize (of any type)</param>
 		/// <param name="type">Advertized type of the instance, or <see langword="null"/> if it is not known.</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
-		/// <param name="buffer">Pre-allocated buffer used for the serialization. If <see langword="null"/> or too small, it will be replaced with a newly allocated buffer.</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+		/// <param name="pool">Pool used to allocate the content of the slice.</param>
 		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">if the serialization fails</exception>
 		/// <remarks>
-		/// <para>The Slice that is returned will use <paramref name="buffer"/> as its backing store. The caller <b>MUST</b> fully consume the result before reusing the buffer, or risk data corruption!</para>
+		/// <para>The <see cref="SliceOwner"/> returned <b>MUST</b> be disposed; otherwise, the rented buffer will not be returned to the <paramref name="pool"/>.</para>
 		/// <para>If <paramref name="type"/> is an interface or abstract class, or if <paramref name="value"/> is a derived type of <paramref name="type"/>, the serialized document may include an additional attribute with the original type name, which may not be recognized by other libraries or platforms.</para>
 		/// </remarks>
 		[Pure]
-		public static Slice ToSlice(object? value, Type? type, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ref byte[]? buffer)
+		public static SliceOwner ToSlice(object? value, Type? type, ArrayPool<byte> pool, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
-			return ToSliceInternal(value, type ?? value?.GetType() ?? typeof(object), settings, resolver, ref buffer);
-		}
-
-		/// <summary>Serializes a value into an UTF-8 encoded Slice</summary>
-		/// <typeparam name="T">Advertized type of the instance.</typeparam>
-		/// <param name="value">Instance to serialize (of any type)</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
-		/// <param name="buffer">Pre-allocated buffer used for the serialization. If <see langword="null"/> or too small, it will be replaced with a newly allocated buffer.</param>
-		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
-		/// <remarks>
-		/// <para>The Slice that is returned will use <paramref name="buffer"/> as its backing store. The caller <b>MUST</b> fully consume the result before reusing the buffer, or risk data corruption!</para>
-		/// <para>If <typeparamref name="T"/> is an interface or abstract class, or if <paramref name="value"/> is a derived type of <typeparamref name="T"/>, the serialized document may include an additional attribute with the original type name, which may not be recognized by other libraries or platforms.</para>
-		/// </remarks>
-		[Pure]
-		public static Slice ToSlice<T>(T? value, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ref byte[]? buffer)
-		{
-			return ToSliceInternal(value, typeof(T), settings, resolver, ref buffer);
-		}
-
-		/// <summary>Serializes a boxed value into an UTF-8 encoded Slice</summary>
-		/// <param name="value">Instance to serialize (of any type)</param>
-		/// <param name="declaredType">Advertized type of the serialize instance.</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
-		/// <param name="buffer">Pre-allocated buffer used for the serialization. If <see langword="null"/> or too small, it will be replaced with a newly allocated buffer.</param>
-		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
-		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">if the serialization fails</exception>
-		/// <remarks>
-		/// <para>The Slice that is returned will use <paramref name="buffer"/> as its backing store. The caller <b>MUST</b> fully consume the result before reusing the buffer, or risk data corruption!</para>
-		/// </remarks>
-		[Pure]
-		private static Slice ToSliceInternal(object? value, Type declaredType, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ref byte[]? buffer)
-		{
-			//REVIEW: on a besoin de coder un TextWriter+MemoryStream qui écrit directement en UTF8 en mémoire!
-			// => le profiler montre qu'on gaspille beaucoup de mémoire dans le buffer du StreamWriter, qui ne fait que copier les bytes directement dans le MemoryStream,
-			// pour au final recopier tout ca dans un byte[] :(
-
-			int bufferSize = 256;
-			if (settings != null && settings.OptimizeForLargeData)
+			var writer = WriterPool.Allocate();
+			try
 			{
-				bufferSize = 0x14000; // 80 K
-			}
-			//note: le StreamWriter va allouer un char[buffSize] et un byte[bufferSize*3 + 3] !
+				writer.Initialize(0, settings, resolver);
 
-			if (buffer == null || buffer.Length < bufferSize)
-			{ // recycle le MemoryStream
-				buffer = new byte[bufferSize];
+				if (value is JsonValue j)
+				{
+					j.JsonSerialize(writer);
+				}
+				else
+				{
+					CrystalJsonVisitor.VisitValue(value, writer);
+				}
+				return writer.GetUtf8Slice(pool);
 			}
-
-			// note: vu qu'on sérialise en mémoire, la taille du buffer du StreamWriter importe peu donc autant la réduire le plus possible pour éviter d'allouer 1K par défaut !
-			using (var sw = new Utf8StringWriter(new SliceWriter(buffer)))
+			finally
 			{
-				SerializeToTextWriter(sw, value, declaredType, settings, resolver);
-				return sw.GetBuffer();
+				writer.Dispose();
+				WriterPool.Free(writer);
 			}
-		}
-
-		/// <summary>Serializes a boxed value into an UTF-8 encoded Slice</summary>
-		/// <param name="value">Instance to serialize (of any type)</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
-		/// <param name="pool">Pool that will provide a buffer for the result. If <see langword="null"/>, will use the default shared pool.</param>
-		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
-		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">if the serialization fails</exception>
-		/// <remarks>
-		/// <para>The slice that is returned will use a buffer obtained from the <paramref name="pool"/> as its backing store. The caller <b>MUST</b> return the buffer to the pool after use, and <b>MUST NOT</b> expose this buffer in any way after the opertaion, or risk data corruption!</para>
-		/// </remarks>
-		[Pure]
-		public static Slice ToSlice(object? value, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ArrayPool<byte>? pool)
-		{
-			return ToSliceInternal(value, typeof(object), settings, resolver, pool);
 		}
 
 		/// <summary>Serializes a boxed value into an UTF-8 encoded Slice</summary>
 		/// <param name="value">Instance to serialize (of any type)</param>
 		/// <param name="type">Advertized type of the instance, or <see langword="null"/> if it is not known.</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">if the serialization fails</exception>
 		/// <remarks>
@@ -698,87 +741,34 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static Slice ToSlice(object? value, Type? type, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
-			byte[]? _ = null;
-			return ToSliceInternal(value, type ?? value?.GetType() ?? typeof(object), settings, resolver, ref _);
-		}
-
-		/// <summary>Serializes a boxed value into an UTF-8 encoded Slice</summary>
-		/// <param name="value">Instance to serialize (of any type)</param>
-		/// <param name="type">Advertized type of the instance, or <see langword="null"/> if it is not known.</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
-		/// <param name="pool">Pool that will provide a buffer for the result. If <see langword="null"/>, will use the default shared pool.</param>
-		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
-		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">if the serialization fails</exception>
-		/// <remarks>
-		/// <para>The slice that is returned will use a buffer obtained from the <paramref name="pool"/> as its backing store. The caller <b>MUST</b> return the buffer to the pool after use, and <b>MUST NOT</b> expose this buffer in any way after the opertaion, or risk data corruption!</para>
-		/// <para>If <paramref name="type"/> is an interface or abstract class, or if <paramref name="value"/> is a derived type of <paramref name="type"/>, the serialized document may include an additional attribute with the original type name, which may not be recognized by other libraries or platforms.</para>
-		/// </remarks>
-		[Pure]
-		public static Slice ToSlice(object? value, Type? type, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ArrayPool<byte>? pool)
-		{
-			return ToSliceInternal(value, type ?? value?.GetType() ?? typeof(object), settings, resolver, pool);
-		}
-
-		/// <summary>Serializes a boxed value into an UTF-8 encoded Slice</summary>
-		/// <typeparam name="T">Advertized type of the instance.</typeparam>
-		/// <param name="value">Instance to serialize (of any type)</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
-		/// <param name="pool">Pool that will provide a buffer for the result. If <see langword="null"/>, will use the default shared pool.</param>
-		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
-		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">if the serialization fails</exception>
-		/// <remarks>
-		/// <para>The slice that is returned will use a buffer obtained from the <paramref name="pool"/> as its backing store. The caller <b>MUST</b> return the buffer to the pool after use, and <b>MUST NOT</b> expose this buffer in any way after the opertaion, or risk data corruption!</para>
-		/// <para>If <typeparamref name="T"/> is an interface or abstract class, or if <paramref name="value"/> is a derived type of <typeparamref name="T"/>, the serialized document may include an additional attribute with the original type name, which may not be recognized by other libraries or platforms.</para>
-		/// </remarks>
-		[Pure]
-		public static Slice ToSlice<T>(T? value, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ArrayPool<byte>? pool)
-		{
-			return ToSliceInternal(value, typeof(T), settings, resolver, pool);
-		}
-
-		/// <summary>Serializes a boxed value into an UTF-8 encoded Slice</summary>
-		/// <param name="value">Instance to serialize (of any type)</param>
-		/// <param name="declaredType">Advertized type of the instance, or <see langword="null"/> if it is not known.</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
-		/// <param name="pool">Pool that will provide a buffer for the result. If <see langword="null"/>, will use the default shared pool.</param>
-		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
-		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">if the serialization fails</exception>
-		/// <remarks>
-		/// <para>The slice that is returned will use a buffer obtained from the <paramref name="pool"/> as its backing store. The caller <b>MUST</b> return the buffer to the pool after use, and <b>MUST NOT</b> expose this buffer in any way after the opertaion, or risk data corruption!</para>
-		/// <para>If <paramref name="declaredType"/> is an interface or abstract class, or if <paramref name="value"/> is a derived type of <paramref name="declaredType"/>, the serialized document may include an additional attribute with the original type name, which may not be recognized by other libraries or platforms.</para>
-		/// </remarks>
-		[Pure]
-		private static Slice ToSliceInternal(object? value, Type declaredType, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, ArrayPool<byte>? pool)
-		{
-			//REVIEW: on a besoin de coder un TextWriter+MemoryStream qui écrit directement en UTF8 en mémoire!
-			// => le profiler montre qu'on gaspille beaucoup de mémoire dans le buffer du StreamWriter, qui ne fait que copier les bytes directement dans le MemoryStream,
-			// pour au final recopier tout ca dans un byte[] :(
-
-			int bufferSize = 256;
-			if (settings != null && settings.OptimizeForLargeData)
+			var writer = WriterPool.Allocate();
+			try
 			{
-				bufferSize = 0x14000; // 80 K
+				writer.Initialize(0, settings, resolver);
+
+				if (value is JsonValue j)
+				{
+					j.JsonSerialize(writer);
+				}
+				else
+				{
+					CrystalJsonVisitor.VisitValue(value, type ?? typeof(object), writer);
+				}
+				return writer.GetUtf8Slice();
 			}
-			//note: le StreamWriter va allouer un char[buffSize] et un byte[bufferSize*3 + 3] !
-
-			pool ??= ArrayPool<byte>.Shared;
-
-			// note: vu qu'on sérialise en mémoire, la taille du buffer du StreamWriter importe peu donc autant la réduire le plus possible pour éviter d'allouer 1K par défaut !
-			using (var sw = new Utf8StringWriter(new SliceWriter(bufferSize, pool)))
+			finally
 			{
-				SerializeToTextWriter(sw, value, declaredType, settings, resolver);
-				return sw.GetBuffer();
+				writer.Dispose();
+				WriterPool.Free(writer);
 			}
 		}
+
 		/// <summary>Serializes a boxed value into a <see cref="TextWriter"/></summary>
 		/// <param name="output">Destination where the serialized JSON document will be written</param>
 		/// <param name="value">Instance to serialize, can be <see langword="null"/></param>
 		/// <param name="declaredType">Advertized type of the instance. Use <c>typeof(object)</c> is unknown.</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Custom Resolver utilisé pour la sérialisation (par défaut si null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>The same instance as <paramref name="output"/></returns>
 		private static TextWriter SerializeToTextWriter(TextWriter output, object? value, Type declaredType, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
@@ -791,14 +781,7 @@ namespace Doxense.Serialization.Json
 			else
 			{
 				using var writer = new CrystalJsonWriter(output, 0, settings, resolver);
-				if (value is JsonValue jval)
-				{ // shortcurt pour la sérialisation de DOM json
-					jval.JsonSerialize(writer);
-				}
-				else
-				{
-					CrystalJsonVisitor.VisitValue(value, declaredType, writer);
-				}
+				CrystalJsonVisitor.VisitValue(value, declaredType, writer);
 			}
 			return output;
 		}

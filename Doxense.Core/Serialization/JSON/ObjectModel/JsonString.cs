@@ -814,6 +814,18 @@ namespace Doxense.Serialization.Json
 			return JsonEncoding.TryEncodeTo(destination, m_value, out charsWritten);
 		}
 
+#if NET8_0_OR_GREATER
+
+		/// <inheritdoc />
+		public override bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+		{
+			return JsonEncoding.TryEncodeTo(destination, m_value, out bytesWritten);
+		}
+
+#endif
+
+
+
 		#endregion
 
 		#region IEquatable<...>...

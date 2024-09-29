@@ -167,7 +167,7 @@ namespace Doxense.Serialization.Json
 				m_buffer.Dispose();
 			}
 
-			if (this.m_visitedCursor > 0)
+			if (m_visitedCursor > 0)
 			{
 				m_visitedObjects.AsSpan(0, m_visitedCursor).Clear();
 			}
@@ -225,69 +225,69 @@ namespace Doxense.Serialization.Json
 		public string GetString()
 		{
 			return m_output == null
-				? m_buffer.ToString(clear: true)
+				? m_buffer.ToString()
 				: throw ErrorCannotBeUsedWhenWritingToTextWriter();
 		}
 
-		public Slice GetUtf8Slice(ArrayPool<byte>? pool = null)
+		public Slice GetUtf8Slice()
 		{
 			return m_output == null
-				? m_buffer.ToUtf8Slice(clear: true, pool)
+				? m_buffer.ToUtf8Slice()
 				: throw ErrorCannotBeUsedWhenWritingToTextWriter();
 		}
 
-		public SliceOwner GetUft8SliceOwner(ArrayPool<byte>? pool = null)
+		public SliceOwner GetUtf8Slice(ArrayPool<byte>? pool)
 		{
 			return m_output == null
-				? m_buffer.ToUtf8SliceOwner(clear: true, pool)
+				? m_buffer.ToUtf8SliceOwner(pool)
 				: throw ErrorCannotBeUsedWhenWritingToTextWriter();
 		}
 
 		public int CopyTo(Span<char> buffer)
 		{
 			return m_output == null
-				? m_buffer.CopyTo(buffer, clear: true)
+				? m_buffer.CopyTo(buffer)
 				: throw ErrorCannotBeUsedWhenWritingToTextWriter();
 		}
 
 		public bool TryCopyTo(Span<char> buffer, out int written)
 		{
 			return m_output == null
-				? m_buffer.TryCopyTo(buffer, out written, clear: true)
+				? m_buffer.TryCopyTo(buffer, out written)
 				: throw ErrorCannotBeUsedWhenWritingToTextWriter();
 		}
 
 		public int CopyTo(StringBuilder buffer)
 		{
 			return m_output == null
-				? m_buffer.CopyTo(buffer, clear: true)
+				? m_buffer.CopyTo(buffer)
 				: throw ErrorCannotBeUsedWhenWritingToTextWriter();
 		}
 
 		public int CopyToUtf8(Span<byte> buffer)
 		{
 			return m_output == null
-				? m_buffer.CopyToUtf8(buffer, clear: true)
+				? m_buffer.CopyToUtf8(buffer)
 				: throw ErrorCannotBeUsedWhenWritingToTextWriter();
 		}
 
 		public bool TryCopyToUtf8(Span<byte> buffer, out int written)
 		{
 			return m_output == null
-				? m_buffer.TryCopyToUtf8(buffer, out written, clear: true)
+				? m_buffer.TryCopyToUtf8(buffer, out written)
 				: throw ErrorCannotBeUsedWhenWritingToTextWriter();
 		}
 
 		public void CopyTo(IBufferWriter<byte> buffer)
 		{
 			if (m_output != null) throw ErrorCannotBeUsedWhenWritingToTextWriter();
-			m_buffer.CopyTo(buffer, clear: true);
+			m_buffer.CopyTo(buffer);
 		}
 
 		public void CopyTo(Stream destination)
 		{
 			if (m_output != null) throw ErrorCannotBeUsedWhenWritingToTextWriter();
-			m_buffer.CopyTo(destination, clear: true);
+			m_buffer.CopyTo(destination);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]

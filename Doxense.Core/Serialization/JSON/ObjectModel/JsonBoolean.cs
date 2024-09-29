@@ -275,6 +275,24 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
+#if NET8_0_OR_GREATER
+
+		/// <inheritdoc />
+		public override bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+		{
+			var literal = m_value ? "true"u8 : "false"u8;
+			if (!literal.TryCopyTo(destination))
+			{
+				bytesWritten = 0;
+				return false;
+			}
+
+			bytesWritten = literal.Length;
+			return true;
+		}
+
+#endif
+
 		#endregion
 
 		#region ISliceSerializable

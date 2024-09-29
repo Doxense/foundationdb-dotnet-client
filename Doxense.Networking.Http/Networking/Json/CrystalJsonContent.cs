@@ -87,9 +87,9 @@ namespace Doxense.Serialization.Json
 		public static CrystalJsonContent Create<T>(T? inputValue, MediaTypeHeaderValue? mediaType = null, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 			=> new CrystalJsonContent(inputValue, typeof(T), mediaType, settings, resolver);
 
-		private (Slice Bytes, ArrayPool<byte>? Pool) CachedBytes;
+		private SliceOwner CachedBytes;
 
-		private (Slice Bytes, ArrayPool<byte>? Pool) RenderBytes()
+		private SliceOwner RenderBytes()
 		{
 			using var activity = ActivitySource.StartActivity("JSON Serialize");
 
@@ -102,14 +102,14 @@ namespace Doxense.Serialization.Json
 					string jsonText = CrystalJson.Serialize(this.Value, this.ObjectType, this.JsonSettings, this.JsonResolver);
 					var bytes = targetEncoding.GetBytes(jsonText).AsSlice();
 					activity?.SetTag("json.length", bytes.Count);
-					return (bytes, null);
+					return new SliceOwner(bytes);
 				}
 				else
 				{ // UTF-8: direct to bytes
 					var pool = ArrayPool<byte>.Shared;
-					var bytes = CrystalJson.ToSlice(this.Value, this.ObjectType, this.JsonSettings, this.JsonResolver, pool: pool);
+					var bytes = CrystalJson.ToSlice(this.Value, this.ObjectType, pool, this.JsonSettings, this.JsonResolver);
 					activity?.SetTag("json.length", bytes.Count);
-					return (bytes, pool);
+					return bytes;
 				}
 			}
 			catch (Exception ex)
@@ -123,7 +123,7 @@ namespace Doxense.Serialization.Json
 		protected override async Task SerializeToStreamAsync(Stream stream, TransportContext? context)
 		{
 			var cached = this.CachedBytes;
-			if (cached.Bytes.IsNull)
+			if (!cached.IsValid)
 			{
 				this.CachedBytes = cached = RenderBytes();
 			}
@@ -131,11 +131,11 @@ namespace Doxense.Serialization.Json
 			try
 			{
 				//REVIEW: where can we get a valid cancellation token??
-				await stream.WriteAsync(cached.Bytes.Memory).ConfigureAwait(false);
+				await stream.WriteAsync(cached.Memory).ConfigureAwait(false);
 			}
 			finally
 			{
-				cached.Pool?.Return(cached.Bytes.Array);
+				cached.Dispose();
 				// on part du principe qu'il va appeler SerializeToStreamAsync qu'une seule fois, donc on peut pré-emptivement retourner notre buffer!
 				this.CachedBytes = default;
 			}
@@ -148,12 +148,12 @@ namespace Doxense.Serialization.Json
 			// => idéalement tester a l'avance si le json est "petit" ou "gros" (de manière cheap), et en fonction décider si on pre-render (et on specifie le Content-Length) ou non (et c'est du chunked?)
 
 			var cached = this.CachedBytes;
-			if (cached.Bytes.IsNull)
+			if (!cached.IsValid)
 			{
 				this.CachedBytes = cached = RenderBytes();
 			}
 
-			length = cached.Bytes.Count;
+			length = cached.Count;
 			return true;
 		}
 

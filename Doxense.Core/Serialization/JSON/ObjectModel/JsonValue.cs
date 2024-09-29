@@ -40,8 +40,10 @@ namespace Doxense.Serialization.Json
 	[JetBrains.Annotations.CannotApplyEqualityOperator]
 	public abstract partial class JsonValue : IEquatable<JsonValue>, IComparable<JsonValue>, IJsonSerializable, IFormattable, ISliceSerializable, IConvertible
 #if NET8_0_OR_GREATER
-		, IParsable<JsonValue>, ISpanParsable<JsonValue>
+		, IParsable<JsonValue>
+		, ISpanParsable<JsonValue>
 		, ISpanFormattable
+		, IUtf8SpanFormattable
 #endif
 #pragma warning disable CS0618 // Type or member is obsolete
 		, IJsonDynamic
@@ -159,22 +161,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public virtual string ToJson(CrystalJsonSettings? settings = null)
 		{
-			// implémentation générique
-			if (this.IsNull)
-			{
-				return JsonTokens.Null;
-			}
-
-			return CrystalJson.Convert(
-				state: this,
-				handler: static (writer, self) =>
-				{
-					self.JsonSerialize(writer);
-					return writer.GetString();
-				},
-				settings: settings ?? CrystalJsonSettings.Json,
-				resolver: CrystalJson.DefaultResolver
-			);
+			return CrystalJson.SerializeJson(this, settings);
 		}
 		//TODO: REVIEW: rename as "ToJsonText()" or something else? "ToXYZ" usually means that XYZ is the final result, but here it is a string, and not a JsonValue
 
@@ -1915,6 +1902,12 @@ namespace Doxense.Serialization.Json
 
 		/// <inheritdoc />
 		public abstract bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider);
+
+#if NET8_0_OR_GREATER
+
+		public abstract bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider);
+
+#endif
 
 	}
 

@@ -57,6 +57,7 @@
 // ReSharper disable VariableLengthStringHexEscapeSequence
 // ReSharper disable StringLiteralTypo
 // ReSharper disable IdentifierTypo
+
 #pragma warning disable JSON001
 #pragma warning disable IDE0044
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
@@ -78,7 +79,6 @@ namespace Doxense.Serialization.Json.Tests
 	using System.Linq;
 	using System.Linq.Expressions;
 	using System.Net;
-	using System.Numerics;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.Serialization;
 	using System.Text;
@@ -88,10 +88,12 @@ namespace Doxense.Serialization.Json.Tests
 	using Doxense.Collections.Tuples;
 	using Doxense.Memory;
 	using Doxense.Runtime.Converters;
+	using NodaTime;
 	using NUnit.Framework.Constraints;
 
 	[TestFixture]
 	[Category("Core-SDK")]
+	[Category("Core-JSON")]
 	[Parallelizable(ParallelScope.All)]
 	[SetInvariantCulture]
 	public class CrystalJsonTest : SimpleTest
@@ -361,15 +363,6 @@ namespace Doxense.Serialization.Json.Tests
 
 		#region Serialization...
 
-		/// <summary>Helper to wrap calls to SerializeTo(...), using a StringWriter, and returning the generated string</summary>
-		private static string SerializeToString(Func<TextWriter, TextWriter> action)
-		{
-			using var sw = new StringWriter();
-			var rw = action(sw);
-			Assert.That(rw, Is.SameAs(sw), "SerializeTo should return the input TextWriter!");
-			return sw.ToString();
-		}
-
 		private static Slice SerializeToSlice(JsonValue value)
 		{
 			var writer = new SliceWriter();
@@ -606,16 +599,96 @@ namespace Doxense.Serialization.Json.Tests
 			#endregion
 		}
 
+		static void CheckSerialize<T>(
+			T? value,
+			CrystalJsonSettings? settings,
+			string expected,
+			string? message = null,
+			[CallerArgumentExpression(nameof(value))] string valueExpression = "",
+			[CallerArgumentExpression(nameof(settings))] string settingsExpression = "",
+			[CallerArgumentExpression(nameof(expected))] string constraintExpression = ""
+		)
+		{
+			settings ??= CrystalJsonSettings.Json;
+
+			string? expr = value?.ToString();
+			if (string.IsNullOrEmpty(expr))
+			{
+				expr = valueExpression;
+			}
+
+			if (value is IFormattable fmt)
+			{
+				Log($"# <{settings}> {typeof(T).GetFriendlyName()}: {fmt}");
+			}
+			else
+			{
+				Log($"# <{settings}> {typeof(T).GetFriendlyName()}");
+			}
+
+			var expectedSlice = Slice.FromStringUtf8(expected);
+
+#pragma warning disable NUnit2050
+
+			{ // CrystalJson.Serialize<T>
+				string actual = CrystalJson.Serialize<T>(value, settings);
+				Log($"> {actual}");
+				if (actual != expected)
+				{
+					Assert.That(actual, Is.EqualTo(expected), message, actualExpression: $"{nameof(CrystalJson)}.{nameof(CrystalJson.Serialize)}({expr}, {settingsExpression})", constraintExpression: "Is.EqualTo(\"\"\"" + expected + "\"\"\")");
+				}
+			}
+
+			{ // CrystalJson.Serialize(object, Type)
+				string actual = CrystalJson.Serialize(value, typeof(T), settings);
+				if (actual != expected)
+				{
+					Assert.That(actual, Is.EqualTo(expected), message, actualExpression: $"{nameof(CrystalJson)}.{nameof(CrystalJson.Serialize)}({expr}, {settingsExpression})", constraintExpression: "Is.EqualTo(\"\"\"" + expected + "\"\"\")");
+				}
+			}
+
+			{ // CrystalJson.ToSlice<T>
+				Slice actualSlice = CrystalJson.ToSlice<T>(value, settings);
+				if (!expectedSlice.Equals(actualSlice))
+				{
+					Assert.That(actualSlice.ToArray(), Is.EqualTo(expectedSlice.ToArray()), message, actualExpression: $"{nameof(CrystalJson)}.{nameof(CrystalJson.ToSlice)}({expr}, {settingsExpression})", constraintExpression: "Is.EqualTo(\"\"\"" + expected + "\"\"\")");
+				}
+			}
+
+			{ // CrystalJsonWriter.VisitValue<T>
+				using var sw = new StringWriter();
+				{
+					using (var writer = new CrystalJsonWriter(sw, 0, settings, CrystalJson.DefaultResolver))
+					{
+						writer.VisitValue(value);
+					}
+					string actual = sw.ToString();
+					if (actual != expected)
+					{
+						Assert.That(actual, Is.EqualTo(expected), message, actualExpression: $"(writer) => writer.{nameof(CrystalJsonWriter.VisitValue)}({expr})", constraintExpression: "Is.EqualTo(\"\"\"" + expected + "\"\"\")");
+					}
+				}
+			}
+
+			{ // Output to TextWriter
+				using var ms = new MemoryStream();
+				CrystalJson.SerializeTo(ms, value, settings);
+				var actualStream = ms.ToArray();
+				if (!expectedSlice.Equals(actualStream))
+				{
+					Assert.That(actualStream, Is.EqualTo(expectedSlice.ToArray()), message, actualExpression: $"{nameof(CrystalJson)}.{nameof(CrystalJson.SerializeTo)}(ms, {expr}, {settingsExpression})", constraintExpression: "Is.EqualTo(\"\"\"" + expected + "\"\"\")");
+				}
+			}
+
+#pragma warning restore NUnit2050
+		}
+
 		[Test]
 		public void Test_JsonSerialize_Null()
 		{
-			Assert.That(CrystalJson.Serialize(null), Is.EqualTo("null"));
-			Assert.That(CrystalJson.Serialize(null, CrystalJsonSettings.Json), Is.EqualTo("null"));
-			Assert.That(CrystalJson.Serialize(null, CrystalJsonSettings.JsonCompact), Is.EqualTo("null"));
-
-			Assert.That(SerializeToString(sw => CrystalJson.SerializeTo<string?>(sw, null, default(CrystalJsonSettings))), Is.EqualTo("null"));
-			Assert.That(SerializeToString(sw => CrystalJson.SerializeTo<string?>(sw, null, CrystalJsonSettings.Json)), Is.EqualTo("null"));
-			Assert.That(SerializeToString(sw => CrystalJson.SerializeTo<string?>(sw, null, CrystalJsonSettings.JsonCompact)), Is.EqualTo("null"));
+			CheckSerialize<string>(null, default, "null");
+			CheckSerialize<string>(null, CrystalJsonSettings.Json, "null");
+			CheckSerialize<string>(null, CrystalJsonSettings.JsonCompact, "null");
 		}
 
 		[Test]
@@ -625,28 +698,16 @@ namespace Doxense.Serialization.Json.Tests
 			Assume.That(typeof(string).IsPrimitive, Is.False);
 
 			// string
-
-			Assert.That(CrystalJson.Serialize(string.Empty), Is.EqualTo("\"\""));
-			Assert.That(CrystalJson.Serialize("foo"), Is.EqualTo("\"foo\""));
-			Assert.That(CrystalJson.Serialize("foo\"bar"), Is.EqualTo("\"foo\\\"bar\""));
-			Assert.That(CrystalJson.Serialize("foo'bar"), Is.EqualTo("\"foo'bar\""));
-
-			Assert.That(SerializeToString(sw => CrystalJson.SerializeTo(sw, String.Empty)), Is.EqualTo("\"\""));
-			Assert.That(SerializeToString(sw => CrystalJson.SerializeTo(sw, "foo")), Is.EqualTo("\"foo\""));
-			Assert.That(SerializeToString(sw => CrystalJson.SerializeTo(sw, "foo\"bar")), Is.EqualTo("\"foo\\\"bar\""));
-			Assert.That(SerializeToString(sw => CrystalJson.SerializeTo(sw, "foo'bar")), Is.EqualTo("\"foo'bar\""));
+			CheckSerialize(string.Empty, default, "\"\"");
+			CheckSerialize("foo", default, "\"foo\"");
+			CheckSerialize("foo\"bar", default, "\"foo\\\"bar\"");
+			CheckSerialize("foo'bar", default, "\"foo'bar\"");
 
 			// StringBuilder
-
-			Assert.That(CrystalJson.Serialize(new StringBuilder()), Is.EqualTo("\"\""));
-			Assert.That(CrystalJson.Serialize(new StringBuilder("Foo")), Is.EqualTo("\"Foo\""));
-			Assert.That(CrystalJson.Serialize(new StringBuilder("Foo").Append('"').Append("Bar")), Is.EqualTo("\"Foo\\\"Bar\""));
-			Assert.That(CrystalJson.Serialize(new StringBuilder("Foo").Append('\'').Append("Bar")), Is.EqualTo("\"Foo'Bar\""));
-
-			Assert.That(SerializeToString(sw => CrystalJson.SerializeTo(sw, new StringBuilder())), Is.EqualTo("\"\""));
-			Assert.That(SerializeToString(sw => CrystalJson.SerializeTo(sw, new StringBuilder("Foo"))), Is.EqualTo("\"Foo\""));
-			Assert.That(SerializeToString(sw => CrystalJson.SerializeTo(sw, new StringBuilder("Foo").Append('"').Append("Bar"))), Is.EqualTo("\"Foo\\\"Bar\""));
-			Assert.That(SerializeToString(sw => CrystalJson.SerializeTo(sw, new StringBuilder("Foo").Append('\'').Append("Bar"))), Is.EqualTo("\"Foo'Bar\""));
+			CheckSerialize(new StringBuilder(), default, "\"\"");
+			CheckSerialize(new StringBuilder("Foo"), default, "\"Foo\"");
+			CheckSerialize(new StringBuilder("Foo").Append('"').Append("Bar"), default, "\"Foo\\\"Bar\"");
+			CheckSerialize(new StringBuilder("Foo").Append('\'').Append("Bar"), default, "\"Foo'Bar\"");
 		}
 
 		[Test]
@@ -656,143 +717,131 @@ namespace Doxense.Serialization.Json.Tests
 			Assume.That(typeof(string).IsPrimitive, Is.False);
 
 			// string
-
-			Assert.That(CrystalJson.Serialize(String.Empty, CrystalJsonSettings.JavaScript), Is.EqualTo("''"));
-			Assert.That(CrystalJson.Serialize("foo", CrystalJsonSettings.JavaScript), Is.EqualTo("'foo'"));
-			Assert.That(CrystalJson.Serialize("foo\"bar", CrystalJsonSettings.JavaScript), Is.EqualTo("'foo\\x22bar'"));
-			Assert.That(CrystalJson.Serialize("foo'bar", CrystalJsonSettings.JavaScript), Is.EqualTo("'foo\\x27bar'"));
-
-			Assert.That(SerializeToString(sw => CrystalJson.SerializeTo(sw, String.Empty, CrystalJsonSettings.JavaScript)), Is.EqualTo("''"));
-			Assert.That(SerializeToString(sw => CrystalJson.SerializeTo(sw, "foo", CrystalJsonSettings.JavaScript)), Is.EqualTo("'foo'"));
-			Assert.That(SerializeToString(sw => CrystalJson.SerializeTo(sw, "foo\"bar", CrystalJsonSettings.JavaScript)), Is.EqualTo("'foo\\x22bar'"));
-			Assert.That(SerializeToString(sw => CrystalJson.SerializeTo(sw, "foo'bar", CrystalJsonSettings.JavaScript)), Is.EqualTo("'foo\\x27bar'"));
+			CheckSerialize(string.Empty, CrystalJsonSettings.JavaScript, "''");
+			CheckSerialize("foo", CrystalJsonSettings.JavaScript, "'foo'");
+			CheckSerialize("foo\"bar", CrystalJsonSettings.JavaScript, "'foo\\x22bar'");
+			CheckSerialize("foo'bar", CrystalJsonSettings.JavaScript, "'foo\\x27bar'");
 
 			// StringBuilder
-
-			Assert.That(CrystalJson.Serialize(new StringBuilder(), CrystalJsonSettings.JavaScript), Is.EqualTo("''"));
-			Assert.That(CrystalJson.Serialize(new StringBuilder("Foo"), CrystalJsonSettings.JavaScript), Is.EqualTo("'Foo'"));
-			Assert.That(CrystalJson.Serialize(new StringBuilder("Foo").Append('"').Append("Bar"), CrystalJsonSettings.JavaScript), Is.EqualTo("'Foo\\x22Bar'"));
-			Assert.That(CrystalJson.Serialize(new StringBuilder("Foo").Append('\'').Append("Bar"), CrystalJsonSettings.JavaScript), Is.EqualTo("'Foo\\x27Bar'"));
-
-			Assert.That(SerializeToString(sw => CrystalJson.SerializeTo(sw, new StringBuilder(), CrystalJsonSettings.JavaScript)), Is.EqualTo("''"));
-			Assert.That(SerializeToString(sw => CrystalJson.SerializeTo(sw, new StringBuilder("Foo"), CrystalJsonSettings.JavaScript)), Is.EqualTo("'Foo'"));
-			Assert.That(SerializeToString(sw => CrystalJson.SerializeTo(sw, new StringBuilder("Foo").Append('"').Append("Bar"), CrystalJsonSettings.JavaScript)), Is.EqualTo("'Foo\\x22Bar'"));
-			Assert.That(SerializeToString(sw => CrystalJson.SerializeTo(sw, new StringBuilder("Foo").Append('\'').Append("Bar"), CrystalJsonSettings.JavaScript)), Is.EqualTo("'Foo\\x27Bar'"));
+			CheckSerialize(new StringBuilder(), CrystalJsonSettings.JavaScript, "''");
+			CheckSerialize(new StringBuilder("Foo"), CrystalJsonSettings.JavaScript, "'Foo'");
+			CheckSerialize(new StringBuilder("Foo").Append('"').Append("Bar"), CrystalJsonSettings.JavaScript, "'Foo\\x22Bar'");
+			CheckSerialize(new StringBuilder("Foo").Append('\'').Append("Bar"), CrystalJsonSettings.JavaScript, "'Foo\\x27Bar'");
 		}
 
 		[Test]
 		public void Test_JsonSerialize_Primitive_Types()
 		{
 			// boolean
-			Assert.That(CrystalJson.Serialize(true), Is.EqualTo("true"));
-			Assert.That(CrystalJson.Serialize(false), Is.EqualTo("false"));
+			CheckSerialize(true, default, "true");
+			CheckSerialize(false, default, "false");
 
 			// int32
-			Assert.That(CrystalJson.Serialize((int)0), Is.EqualTo("0"));
-			Assert.That(CrystalJson.Serialize((int)1), Is.EqualTo("1"));
-			Assert.That(CrystalJson.Serialize((int)-1), Is.EqualTo("-1"));
-			Assert.That(CrystalJson.Serialize((int)123), Is.EqualTo("123"));
-			Assert.That(CrystalJson.Serialize((int)-999), Is.EqualTo("-999"));
-			Assert.That(CrystalJson.Serialize(int.MaxValue), Is.EqualTo("2147483647"));
-			Assert.That(CrystalJson.Serialize(int.MinValue), Is.EqualTo("-2147483648"));
+			CheckSerialize((int)0, default, "0");
+			CheckSerialize((int)1, default, "1");
+			CheckSerialize((int)-1, default, "-1");
+			CheckSerialize((int)123, default, "123");
+			CheckSerialize((int)-999, default, "-999");
+			CheckSerialize(int.MaxValue, default, "2147483647");
+			CheckSerialize(int.MinValue, default, "-2147483648");
 
 			// int64
-			Assert.That(CrystalJson.Serialize((long)0), Is.EqualTo("0"));
-			Assert.That(CrystalJson.Serialize((long)1), Is.EqualTo("1"));
-			Assert.That(CrystalJson.Serialize((long)-1), Is.EqualTo("-1"));
-			Assert.That(CrystalJson.Serialize((long)123), Is.EqualTo("123"));
-			Assert.That(CrystalJson.Serialize((long)-999), Is.EqualTo("-999"));
-			Assert.That(CrystalJson.Serialize(long.MaxValue), Is.EqualTo("9223372036854775807"));
-			Assert.That(CrystalJson.Serialize(long.MinValue), Is.EqualTo("-9223372036854775808"));
+			CheckSerialize((long)0, default, "0");
+			CheckSerialize((long)1, default, "1");
+			CheckSerialize((long)-1, default, "-1");
+			CheckSerialize((long)123, default, "123");
+			CheckSerialize((long)-999, default, "-999");
+			CheckSerialize(long.MaxValue, default, "9223372036854775807");
+			CheckSerialize(long.MinValue, default, "-9223372036854775808");
 
 			// single
-			Assert.That(CrystalJson.Serialize(0f), Is.EqualTo("0"));
-			Assert.That(CrystalJson.Serialize(1f), Is.EqualTo("1"));
-			Assert.That(CrystalJson.Serialize(-1f), Is.EqualTo("-1"));
-			Assert.That(CrystalJson.Serialize(123f), Is.EqualTo("123"));
-			Assert.That(CrystalJson.Serialize(123.456f), Is.EqualTo("123.456"));
-			Assert.That(CrystalJson.Serialize(-999.9f), Is.EqualTo("-999.9"));
-			Assert.That(CrystalJson.Serialize(float.MaxValue), Is.EqualTo(float.MaxValue.ToString("R")));
-			Assert.That(CrystalJson.Serialize(float.MinValue), Is.EqualTo(float.MinValue.ToString("R")));
-			Assert.That(CrystalJson.Serialize(float.Epsilon), Is.EqualTo(float.Epsilon.ToString("R")));
-			Assert.That(CrystalJson.Serialize(float.NaN), Is.EqualTo("NaN"), "Pas standard, mais la plupart des serializers se comportent comme cela");
-			Assert.That(CrystalJson.Serialize(float.PositiveInfinity), Is.EqualTo("Infinity"), "Pas standard, mais la plupart des serializers se comportent comme cela");
-			Assert.That(CrystalJson.Serialize(float.NegativeInfinity), Is.EqualTo("-Infinity"), "Pas standard, mais la plupart des serializers se comportent comme cela");
+			CheckSerialize(0f, default, "0");
+			CheckSerialize(1f, default, "1");
+			CheckSerialize(-1f, default, "-1");
+			CheckSerialize(123f, default, "123");
+			CheckSerialize(123.456f, default, "123.456");
+			CheckSerialize(-999.9f, default, "-999.9");
+			CheckSerialize(float.MaxValue, default, float.MaxValue.ToString("R"));
+			CheckSerialize(float.MinValue, default, float.MinValue.ToString("R"));
+			CheckSerialize(float.Epsilon, default, float.Epsilon.ToString("R"));
+			CheckSerialize(float.NaN, default, "NaN", "Pas standard, mais la plupart des serializers se comportent comme cela");
+			CheckSerialize(float.PositiveInfinity, default, "Infinity", "Pas standard, mais la plupart des serializers se comportent comme cela");
+			CheckSerialize(float.NegativeInfinity, default, "-Infinity", "Pas standard, mais la plupart des serializers se comportent comme cela");
 			{ // NaN => 'NaN'
 				var settings = CrystalJsonSettings.Json.WithFloatFormat(CrystalJsonSettings.FloatFormat.Symbol);
-				Assert.That(CrystalJson.Serialize(float.NaN, settings), Is.EqualTo("NaN"), "Pas standard, mais la plupart des serializers se comportent comme cela");
-				Assert.That(CrystalJson.Serialize(float.PositiveInfinity, settings), Is.EqualTo("Infinity"), "Pas standard, mais la plupart des serializers se comportent comme cela");
-				Assert.That(CrystalJson.Serialize(float.NegativeInfinity, settings), Is.EqualTo("-Infinity"), "Pas standard, mais la plupart des serializers se comportent comme cela");
+				CheckSerialize(float.NaN, settings, "NaN", "Pas standard, mais la plupart des serializers se comportent comme cela");
+				CheckSerialize(float.PositiveInfinity, settings, "Infinity", "Pas standard, mais la plupart des serializers se comportent comme cela");
+				CheckSerialize(float.NegativeInfinity, settings, "-Infinity", "Pas standard, mais la plupart des serializers se comportent comme cela");
 			}
 			{ // NaN => '"NaN"'
 				var settings = CrystalJsonSettings.Json.WithFloatFormat(CrystalJsonSettings.FloatFormat.String);
-				Assert.That(CrystalJson.Serialize(float.NaN, settings), Is.EqualTo("\"NaN\""), "Comme le fait JSON.Net");
-				Assert.That(CrystalJson.Serialize(float.PositiveInfinity, settings), Is.EqualTo("\"Infinity\""), "Comme le fait JSON.Net");
-				Assert.That(CrystalJson.Serialize(float.NegativeInfinity, settings), Is.EqualTo("\"-Infinity\""), "Comme le fait JSON.Net");
+				CheckSerialize(float.NaN, settings, "\"NaN\"", "Comme le fait JSON.Net");
+				CheckSerialize(float.PositiveInfinity, settings, "\"Infinity\"", "Comme le fait JSON.Net");
+				CheckSerialize(float.NegativeInfinity, settings, "\"-Infinity\"", "Comme le fait JSON.Net");
 			}
 			{ // NaN => 'null'
 				var settings = CrystalJsonSettings.Json.WithFloatFormat(CrystalJsonSettings.FloatFormat.Null);
-				Assert.That(CrystalJson.Serialize(float.NaN, settings), Is.EqualTo("null"), "A défaut d'autre chose...");
-				Assert.That(CrystalJson.Serialize(float.PositiveInfinity, settings), Is.EqualTo("null"), "A défaut d'autre chose...");
-				Assert.That(CrystalJson.Serialize(float.NegativeInfinity, settings), Is.EqualTo("null"), "A défaut d'autre chose...");
+				CheckSerialize(float.NaN, settings, "null", "A défaut d'autre chose...");
+				CheckSerialize(float.PositiveInfinity, settings, "null", "A défaut d'autre chose...");
+				CheckSerialize(float.NegativeInfinity, settings, "null", "A défaut d'autre chose...");
 			}
 
 			// double
-			Assert.That(CrystalJson.Serialize(0d), Is.EqualTo("0"));
-			Assert.That(CrystalJson.Serialize(1d), Is.EqualTo("1"));
-			Assert.That(CrystalJson.Serialize(-1d), Is.EqualTo("-1"));
-			Assert.That(CrystalJson.Serialize(123d), Is.EqualTo("123"));
-			Assert.That(CrystalJson.Serialize(123.456d), Is.EqualTo("123.456"));
-			Assert.That(CrystalJson.Serialize(-999.9d), Is.EqualTo("-999.9"));
-			Assert.That(CrystalJson.Serialize(double.MaxValue), Is.EqualTo(double.MaxValue.ToString("R")));
-			Assert.That(CrystalJson.Serialize(double.MinValue), Is.EqualTo(double.MinValue.ToString("R")));
-			Assert.That(CrystalJson.Serialize(double.Epsilon), Is.EqualTo(double.Epsilon.ToString("R")));
+			CheckSerialize(0d, default, "0");
+			CheckSerialize(1d, default, "1");
+			CheckSerialize(-1d, default, "-1");
+			CheckSerialize(123d, default, "123");
+			CheckSerialize(123.456d, default, "123.456");
+			CheckSerialize(-999.9d, default, "-999.9");
+			CheckSerialize(double.MaxValue, default, double.MaxValue.ToString("R"));
+			CheckSerialize(double.MinValue, default, double.MinValue.ToString("R"));
+			CheckSerialize(double.Epsilon, default, double.Epsilon.ToString("R"));
 			//BUGBUG: pour l'instant "default" utilise FloatFormat.Symbol mais on risque de changer en String par défaut!
-			Assert.That(CrystalJson.Serialize(double.NaN), Is.EqualTo("NaN"), "Pas standard, mais la plupart des serializers se comportent comme cela");
-			Assert.That(CrystalJson.Serialize(double.PositiveInfinity), Is.EqualTo("Infinity"), "Pas standard, mais la plupart des serializers se comportent comme cela");
-			Assert.That(CrystalJson.Serialize(double.NegativeInfinity), Is.EqualTo("-Infinity"), "Pas standard, mais la plupart des serializers se comportent comme cela");
+			CheckSerialize(double.NaN, default, "NaN", "Pas standard, mais la plupart des serializers se comportent comme cela");
+			CheckSerialize(double.PositiveInfinity, default, "Infinity", "Pas standard, mais la plupart des serializers se comportent comme cela");
+			CheckSerialize(double.NegativeInfinity, default, "-Infinity", "Pas standard, mais la plupart des serializers se comportent comme cela");
 			{ // NaN => 'NaN'
 				var settings = CrystalJsonSettings.Json.WithFloatFormat(CrystalJsonSettings.FloatFormat.Symbol);
-				Assert.That(CrystalJson.Serialize(double.NaN, settings), Is.EqualTo("NaN"), "Pas standard, mais la plupart des serializers se comportent comme cela");
-				Assert.That(CrystalJson.Serialize(double.PositiveInfinity, settings), Is.EqualTo("Infinity"), "Pas standard, mais la plupart des serializers se comportent comme cela");
-				Assert.That(CrystalJson.Serialize(double.NegativeInfinity, settings), Is.EqualTo("-Infinity"), "Pas standard, mais la plupart des serializers se comportent comme cela");
+				CheckSerialize(double.NaN, settings, "NaN", "Pas standard, mais la plupart des serializers se comportent comme cela");
+				CheckSerialize(double.PositiveInfinity, settings, "Infinity", "Pas standard, mais la plupart des serializers se comportent comme cela");
+				CheckSerialize(double.NegativeInfinity, settings, "-Infinity", "Pas standard, mais la plupart des serializers se comportent comme cela");
 			}
 			{ // NaN => '"NaN"'
 				var settings = CrystalJsonSettings.Json.WithFloatFormat(CrystalJsonSettings.FloatFormat.String);
-				Assert.That(CrystalJson.Serialize(double.NaN, settings), Is.EqualTo("\"NaN\""), "Comme le fait JSON.Net");
-				Assert.That(CrystalJson.Serialize(double.PositiveInfinity, settings), Is.EqualTo("\"Infinity\""), "Comme le fait JSON.Net");
-				Assert.That(CrystalJson.Serialize(double.NegativeInfinity, settings), Is.EqualTo("\"-Infinity\""), "Comme le fait JSON.Net");
+				CheckSerialize(double.NaN, settings, "\"NaN\"", "Comme le fait JSON.Net");
+				CheckSerialize(double.PositiveInfinity, settings, "\"Infinity\"", "Comme le fait JSON.Net");
+				CheckSerialize(double.NegativeInfinity, settings, "\"-Infinity\"", "Comme le fait JSON.Net");
 			}
 			{ // NaN => 'null'
 				var settings = CrystalJsonSettings.Json.WithFloatFormat(CrystalJsonSettings.FloatFormat.Null);
-				Assert.That(CrystalJson.Serialize(double.NaN, settings), Is.EqualTo("null")); // by convention
-				Assert.That(CrystalJson.Serialize(double.PositiveInfinity, settings), Is.EqualTo("null")); // by convention
-				Assert.That(CrystalJson.Serialize(double.NegativeInfinity, settings), Is.EqualTo("null")); // by convention
+				CheckSerialize(double.NaN, settings, "null"); // by convention
+				CheckSerialize(double.PositiveInfinity, settings, "null"); // by convention
+				CheckSerialize(double.NegativeInfinity, settings, "null"); // by convention
 			}
 
 			// char
-			Assert.That(CrystalJson.Serialize('A'), Is.EqualTo("\"A\""));
-			Assert.That(CrystalJson.Serialize('\0'), Is.EqualTo("null"));
-			Assert.That(CrystalJson.Serialize('\"'), Is.EqualTo("\"\\\"\""));
+			CheckSerialize('A', default, "\"A\"");
+			CheckSerialize('\0', default, "null");
+			CheckSerialize('\"', default, "\"\\\"\"");
 
 			// JavaScript exceptions:
-			Assert.That(CrystalJson.Serialize(double.NaN, CrystalJsonSettings.JavaScript), Is.EqualTo("Number.NaN")); // Not standard, but most serializers behave like this
-			Assert.That(CrystalJson.Serialize(double.PositiveInfinity, CrystalJsonSettings.JavaScript), Is.EqualTo("Number.POSITIVE_INFINITY")); // Not standard, but most serializers behave like this
-			Assert.That(CrystalJson.Serialize(double.NegativeInfinity, CrystalJsonSettings.JavaScript), Is.EqualTo("Number.NEGATIVE_INFINITY")); // Not standard, but most serializers behave like this
+			CheckSerialize(double.NaN, CrystalJsonSettings.JavaScript, "Number.NaN"); // Not standard, but most serializers behave like this
+			CheckSerialize(double.PositiveInfinity, CrystalJsonSettings.JavaScript, "Number.POSITIVE_INFINITY"); // Not standard, but most serializers behave like this
+			CheckSerialize(double.NegativeInfinity, CrystalJsonSettings.JavaScript, "Number.NEGATIVE_INFINITY"); // Not standard, but most serializers behave like this
 
 			var rnd = new Random();
 			for (int i = 0; i < 1000; i++)
 			{
-				Assert.That(CrystalJson.Serialize(i), Is.EqualTo(i.ToString()));
-				Assert.That(CrystalJson.Serialize(-i), Is.EqualTo((-i).ToString()));
+				CheckSerialize(i, default, i.ToString());
+				CheckSerialize(-i, default, (-i).ToString());
 
 				int x = rnd.Next() * (rnd.Next(2) == 1 ? -1 : 1);
-				Assert.That(CrystalJson.Serialize(x), Is.EqualTo(x.ToString()));
-				Assert.That(CrystalJson.Serialize((uint) x), Is.EqualTo(((uint) x).ToString()));
+				CheckSerialize(x, default, x.ToString());
+				CheckSerialize((uint) x, default, ((uint) x).ToString());
 
 				long y = (long)x * rnd.Next() * (rnd.Next(2) == 1 ? -1L : 1L);
-				Assert.That(CrystalJson.Serialize(y), Is.EqualTo(y.ToString()));
-				Assert.That(CrystalJson.Serialize((ulong) y), Is.EqualTo(((ulong) y).ToString()));
+				CheckSerialize(y, default, y.ToString());
+				CheckSerialize((ulong) y, default, ((ulong) y).ToString());
 			}
 		}
 
@@ -1370,33 +1419,63 @@ namespace Doxense.Serialization.Json.Tests
 			TimeSpan utcOffset = DateTimeOffset.Now.Offset;
 
 			// corner cases
-			Assert.That(CrystalJson.Serialize(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc), settings), Is.EqualTo("\"\\/Date(0)\\/\""));
-			Assert.That(CrystalJson.Serialize(new DateTime(0, DateTimeKind.Utc), settings), Is.EqualTo("\"\\/Date(-62135596800000)\\/\""));
-			Assert.That(CrystalJson.Serialize(DateTime.MinValue, settings), Is.EqualTo("\"\\/Date(-62135596800000)\\/\""));
-			Assert.That(CrystalJson.Serialize(new DateTime(3155378975999999999, DateTimeKind.Utc), settings), Is.EqualTo("\"\\/Date(253402300799999)\\/\""));
-			Assert.That(CrystalJson.Serialize(DateTime.MaxValue, settings), Is.EqualTo("\"\\/Date(253402300799999)\\/\""));
+			CheckSerialize(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc), settings, "\"\\/Date(0)\\/\"");
+			CheckSerialize(new DateTime(0, DateTimeKind.Utc), settings, "\"\\/Date(-62135596800000)\\/\"");
+			CheckSerialize(DateTime.MinValue, settings, "\"\\/Date(-62135596800000)\\/\"");
+			CheckSerialize(new DateTime(3155378975999999999, DateTimeKind.Utc), settings, "\"\\/Date(253402300799999)\\/\"");
+			CheckSerialize(DateTime.MaxValue, settings, "\"\\/Date(253402300799999)\\/\"");
 
 			// Now (UTC)
 			DateTime utcNow = DateTime.UtcNow;
 			Assert.That(utcNow.Kind, Is.EqualTo(DateTimeKind.Utc));
 			long ticks = (utcNow.Ticks - unixEpoch) / 10000;
-			Assert.That(CrystalJson.Serialize(utcNow, settings), Is.EqualTo("\"\\/Date(" + ticks.ToString() + ")\\/\""));
+			CheckSerialize(utcNow, settings, "\"\\/Date(" + ticks.ToString() + ")\\/\"");
 
 			// Now (local)
 			DateTime localNow = DateTime.Now;
 			Assert.That(localNow.Kind, Is.EqualTo(DateTimeKind.Local));
 			ticks = (localNow.Ticks - unixEpoch - utcOffset.Ticks) / 10000;
-			Assert.That(CrystalJson.Serialize(localNow, settings), Is.EqualTo("\"\\/Date(" + ticks.ToString() + GetTimeZoneSuffix(localNow) + ")\\/\""));
+			CheckSerialize(localNow, settings, "\"\\/Date(" + ticks.ToString() + GetTimeZoneSuffix(localNow) + ")\\/\"");
 
 			// Local vs Unspecified vs UTC
 			// * 1er Janvier 2000 = GMT + 1 car heure d'hiver
-			Assert.That(CrystalJson.Serialize(new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc), settings), Is.EqualTo("\"\\/Date(946684800000)\\/\""), "2000-01-01 UTC");
-			Assert.That(CrystalJson.Serialize(new DateTime(2000, 1, 1, 0, 0, 0), settings), Is.EqualTo("\"\\/Date(" + (946684800000 - 1 * 3600 * 1000).ToString() + "+0100)\\/\""), "2000-01-01 GMT+1 (Paris)");
-			Assert.That(CrystalJson.Serialize(new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Local), settings), Is.EqualTo("\"\\/Date(" + (946684800000 - 1 * 3600 * 1000).ToString() + "+0100)\\/\""), "2000-01-01 GMT+1 (Paris)");
+			CheckSerialize(
+				new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+				settings,
+				"\"\\/Date(946684800000)\\/\"",
+				"2000-01-01 UTC"
+			);
+			CheckSerialize(
+				new DateTime(2000, 1, 1, 0, 0, 0),
+				settings,
+				"\"\\/Date(" + (946684800000 - 1 * 3600 * 1000).ToString() + "+0100)\\/\"",
+				"2000-01-01 GMT+1 (Paris)"
+			);
+			CheckSerialize(
+				new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Local),
+				settings,
+				"\"\\/Date(" + (946684800000 - 1 * 3600 * 1000).ToString() + "+0100)\\/\"",
+				"2000-01-01 GMT+1 (Paris)"
+			);
 			// * 1er Août 2000 = GMT + 2 car heure d'été
-			Assert.That(CrystalJson.Serialize(new DateTime(2000, 9, 1, 0, 0, 0, DateTimeKind.Utc), settings), Is.EqualTo("\"\\/Date(967766400000)\\/\""), "2000-09-01 UTC");
-			Assert.That(CrystalJson.Serialize(new DateTime(2000, 9, 1, 0, 0, 0), settings), Is.EqualTo("\"\\/Date(" + (967766400000 - 2 * 3600 * 1000).ToString() + "+0200)\\/\""), "2000-08-01 GMT+2 (Paris, DST)");
-			Assert.That(CrystalJson.Serialize(new DateTime(2000, 9, 1, 0, 0, 0, DateTimeKind.Local), settings), Is.EqualTo("\"\\/Date(" + (967766400000 - 2 * 3600 * 1000).ToString() + "+0200)\\/\""), "2000-08-01 GMT+2 (Paris, DST)");
+			CheckSerialize(
+				new DateTime(2000, 9, 1, 0, 0, 0, DateTimeKind.Utc),
+				settings,
+				"\"\\/Date(967766400000)\\/\"",
+				"2000-09-01 UTC"
+			);
+			CheckSerialize(
+				new DateTime(2000, 9, 1, 0, 0, 0),
+				settings,
+				"\"\\/Date(" + (967766400000 - 2 * 3600 * 1000).ToString() + "+0200)\\/\"",
+				"2000-08-01 GMT+2 (Paris, DST)"
+			);
+			CheckSerialize(
+				new DateTime(2000, 9, 1, 0, 0, 0, DateTimeKind.Local),
+				settings,
+				"\"\\/Date(967759200000" + "+0200)\\/\"",
+				"2000-08-01 GMT+2 (Paris, DST)"
+			);
 
 			//TODO: DateTimeOffset ?
 		}
@@ -1415,49 +1494,64 @@ namespace Doxense.Serialization.Json.Tests
 
 			// MinValue: must be serialized as an empty string
 			// will handle the case where we have serialized DateTime.MinValue, but we are deserializing as Nullable<DateTime>
-			Assert.That(CrystalJson.Serialize(DateTime.MinValue, settings), Is.EqualTo("\"\""));
-			Assert.That(CrystalJson.Serialize(DateTime.SpecifyKind(DateTime.MinValue, DateTimeKind.Utc), settings), Is.EqualTo("\"\""));
-			Assert.That(CrystalJson.Serialize(DateTime.SpecifyKind(DateTime.MinValue, DateTimeKind.Local), settings), Is.EqualTo("\"\""));
+			CheckSerialize(DateTime.MinValue, settings, "\"\"");
+			CheckSerialize(DateTime.SpecifyKind(DateTime.MinValue, DateTimeKind.Utc), settings, "\"\"");
+			CheckSerialize(DateTime.SpecifyKind(DateTime.MinValue, DateTimeKind.Local), settings, "\"\"");
 
 			// MaxValue: must NOT specify a timezone
-			Assert.That(CrystalJson.Serialize(DateTime.MaxValue, settings), Is.EqualTo("\"9999-12-31T23:59:59.9999999\""));
-			Assert.That(CrystalJson.Serialize(DateTime.SpecifyKind(DateTime.MaxValue, DateTimeKind.Utc), settings), Is.EqualTo("\"9999-12-31T23:59:59.9999999\""), "DateTime.MaxValue should not specify UTC 'Z'");
-			Assert.That(CrystalJson.Serialize(DateTime.SpecifyKind(DateTime.MaxValue, DateTimeKind.Local), settings), Is.EqualTo("\"9999-12-31T23:59:59.9999999\""), "DateTime.MaxValue should not specify local TimeZone");
+			CheckSerialize(DateTime.MaxValue, settings, "\"9999-12-31T23:59:59.9999999\"");
+			CheckSerialize(DateTime.SpecifyKind(DateTime.MaxValue, DateTimeKind.Utc), settings, "\"9999-12-31T23:59:59.9999999\"", "DateTime.MaxValue should not specify UTC 'Z'");
+			CheckSerialize(DateTime.SpecifyKind(DateTime.MaxValue, DateTimeKind.Local), settings, "\"9999-12-31T23:59:59.9999999\"", "DateTime.MaxValue should not specify local TimeZone");
 
 			// Unix Epoch
-			Assert.That(CrystalJson.Serialize(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc), settings), Is.EqualTo("\"1970-01-01T00:00:00Z\""));
+			CheckSerialize(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc), settings, "\"1970-01-01T00:00:00Z\"");
 
 			// Unspecified
-			Assert.That(CrystalJson.Serialize(new DateTime(2013, 3, 11, 12, 34, 56, 768, DateTimeKind.Unspecified), settings), Is.EqualTo("\"2013-03-11T12:34:56.7680000\""), "Dates with Unspecified timezone must NOT end with 'Z', NOR include a timezone");
+			CheckSerialize(
+				new DateTime(2013, 3, 11, 12, 34, 56, 768, DateTimeKind.Unspecified),
+				settings,
+				"\"2013-03-11T12:34:56.7680000\"",
+				"Dates with Unspecified timezone must NOT end with 'Z', NOR include a timezone"
+			);
 
 			// UTC
-			Assert.That(CrystalJson.Serialize(new DateTime(2013, 3, 11, 12, 34, 56, 768, DateTimeKind.Utc), settings), Is.EqualTo("\"2013-03-11T12:34:56.7680000Z\""), "UTC dates must end with 'Z'");
+			CheckSerialize(
+				new DateTime(2013, 3, 11, 12, 34, 56, 768, DateTimeKind.Utc),
+				settings,
+				"\"2013-03-11T12:34:56.7680000Z\"",
+				"UTC dates must end with 'Z'"
+			);
 
 			// Local
 			var dt = new DateTime(2013, 3, 11, 12, 34, 56, 768, DateTimeKind.Local);
-			Assert.That(CrystalJson.Serialize(dt, settings), Is.EqualTo("\"2013-03-11T12:34:56.7680000" + ToUtcOffset(new DateTimeOffset(dt).Offset) + "\""), "Local dates must specify a timezone");
+			CheckSerialize(
+				dt,
+				settings,
+				"\"2013-03-11T12:34:56.7680000" + ToUtcOffset(new DateTimeOffset(dt).Offset) + "\"",
+				"Local dates must specify a timezone"
+			);
 
 			// Now (UTC)
 			DateTime utcNow = DateTime.UtcNow;
-			Assert.That(CrystalJson.Serialize(utcNow, settings), Is.EqualTo("\"" + utcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffffff") + "Z\""), "DateTime.UtcNow must end with 'Z'");
+			CheckSerialize(utcNow, settings, "\"" + utcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffffff") + "Z\"", "DateTime.UtcNow must end with 'Z'");
 
 			// Now (local)
 			DateTime localNow = DateTime.Now;
-			Assert.That(CrystalJson.Serialize(localNow, settings), Is.EqualTo("\"" + localNow.ToString("yyyy-MM-ddTHH:mm:ss.fffffff") + ToUtcOffset(DateTimeOffset.Now.Offset) + "\""), "DateTime.Now doit inclure la TimeZone");
+			CheckSerialize(localNow, settings, "\"" + localNow.ToString("yyyy-MM-ddTHH:mm:ss.fffffff") + ToUtcOffset(DateTimeOffset.Now.Offset) + "\"", "DateTime.Now doit inclure la TimeZone");
 
 			// Local vs Unspecified vs UTC
 			// IMPORTANT: this test only works if you are in the "Romance Standard Time" (Paris, Bruxelles, ...), sorry! (or use the pretext to visit Paris, all expenses paid by the QA dept. !)
 			// Paris: GMT+1 l'hivers, GMT+2 l'état
 
 			// * 1er Janvier 2000 = GMT + 1 car heure d'hiver
-			Assert.That(CrystalJson.Serialize(new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc), settings), Is.EqualTo("\"2000-01-01T00:00:00Z\""), "2000-01-01 UTC");
-			Assert.That(CrystalJson.Serialize(new DateTime(2000, 1, 1, 0, 0, 0), settings), Is.EqualTo("\"2000-01-01T00:00:00\""), "2000-01-01 (unspecified)");
-			Assert.That(CrystalJson.Serialize(new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Local), settings), Is.EqualTo("\"2000-01-01T00:00:00+01:00\""), "2000-01-01 GMT+1 (Paris)");
+			CheckSerialize(new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc), settings, "\"2000-01-01T00:00:00Z\"", "2000-01-01 UTC");
+			CheckSerialize(new DateTime(2000, 1, 1, 0, 0, 0), settings, "\"2000-01-01T00:00:00\"", "2000-01-01 (unspecified)");
+			CheckSerialize(new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Local), settings, "\"2000-01-01T00:00:00+01:00\"", "2000-01-01 GMT+1 (Paris)");
 
 			// * 1er Septembre 2000 = GMT + 2 car heure d'été
-			Assert.That(CrystalJson.Serialize(new DateTime(2000, 9, 1, 0, 0, 0, DateTimeKind.Utc), settings), Is.EqualTo("\"2000-09-01T00:00:00Z\""), "2000-09-01 UTC");
-			Assert.That(CrystalJson.Serialize(new DateTime(2000, 9, 1, 0, 0, 0), settings), Is.EqualTo("\"2000-09-01T00:00:00\""), "2000-09-01 (unspecified)");
-			Assert.That(CrystalJson.Serialize(new DateTime(2000, 9, 1, 0, 0, 0, DateTimeKind.Local), settings), Is.EqualTo("\"2000-09-01T00:00:00+02:00\""), "2000-09-01 GMT+2 (Paris, DST)");
+			CheckSerialize(new DateTime(2000, 9, 1, 0, 0, 0, DateTimeKind.Utc), settings, "\"2000-09-01T00:00:00Z\"", "2000-09-01 UTC");
+			CheckSerialize(new DateTime(2000, 9, 1, 0, 0, 0), settings, "\"2000-09-01T00:00:00\"", "2000-09-01 (unspecified)");
+			CheckSerialize(new DateTime(2000, 9, 1, 0, 0, 0, DateTimeKind.Local), settings, "\"2000-09-01T00:00:00+02:00\"", "2000-09-01 GMT+2 (Paris, DST)");
 		}
 
 		[Test]
@@ -1467,44 +1561,44 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(settings.DateFormatting, Is.EqualTo(CrystalJsonSettings.DateFormat.TimeStampIso8601));
 
 			// MinValue: must be serialized as the empty string
-			Assert.That(CrystalJson.Serialize(DateTimeOffset.MinValue, settings), Is.EqualTo("\"\""));
+			CheckSerialize(DateTimeOffset.MinValue, settings, "\"\"");
 
 			// MaxValue: should NOT specify a timezone
-			Assert.That(CrystalJson.Serialize(DateTimeOffset.MaxValue, settings), Is.EqualTo("\"9999-12-31T23:59:59.9999999\""));
+			CheckSerialize(DateTimeOffset.MaxValue, settings, "\"9999-12-31T23:59:59.9999999\"");
 
 			// Unix Epoch
-			Assert.That(CrystalJson.Serialize(new DateTimeOffset(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)), settings), Is.EqualTo("\"1970-01-01T00:00:00Z\""));
+			CheckSerialize(new DateTimeOffset(new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)), settings, "\"1970-01-01T00:00:00Z\"");
 
 			// Now (Utc, Local)
-			Assert.That(CrystalJson.Serialize(new DateTimeOffset(new DateTime(2013, 3, 11, 12, 34, 56, 768, DateTimeKind.Utc)), settings), Is.EqualTo("\"2013-03-11T12:34:56.7680000Z\""));
-			Assert.That(CrystalJson.Serialize(new DateTimeOffset(new DateTime(2013, 3, 11, 12, 34, 56, 768, DateTimeKind.Local)), settings), Is.EqualTo("\"2013-03-11T12:34:56.7680000" + ToUtcOffset(TimeZoneInfo.Local.BaseUtcOffset) + "\""));
+			CheckSerialize(new DateTimeOffset(new(2013, 3, 11, 12, 34, 56, 768, DateTimeKind.Utc)), settings, "\"2013-03-11T12:34:56.7680000Z\"");
+			CheckSerialize(new DateTimeOffset(new(2013, 3, 11, 12, 34, 56, 768, DateTimeKind.Local)), settings, "\"2013-03-11T12:34:56.7680000" + ToUtcOffset(TimeZoneInfo.Local.BaseUtcOffset) + "\"");
 
 			// TimeZones
-			Assert.That(CrystalJson.Serialize(new DateTimeOffset(2013, 3, 11, 12, 34, 56, 768, TimeSpan.Zero), settings), Is.EqualTo("\"2013-03-11T12:34:56.7680000Z\""));
-			Assert.That(CrystalJson.Serialize(new DateTimeOffset(2013, 3, 11, 12, 34, 56, 768, TimeSpan.FromHours(1)), settings), Is.EqualTo("\"2013-03-11T12:34:56.7680000+01:00\""));
-			Assert.That(CrystalJson.Serialize(new DateTimeOffset(2013, 3, 11, 12, 34, 56, 768, TimeSpan.FromHours(-1)), settings), Is.EqualTo("\"2013-03-11T12:34:56.7680000-01:00\""));
-			Assert.That(CrystalJson.Serialize(new DateTimeOffset(2013, 3, 11, 12, 34, 56, 768, TimeSpan.FromMinutes(11 * 60 + 30)), settings), Is.EqualTo("\"2013-03-11T12:34:56.7680000+11:30\""));
-			Assert.That(CrystalJson.Serialize(new DateTimeOffset(2013, 3, 11, 12, 34, 56, 768, TimeSpan.FromMinutes(-11 * 60 - 30)), settings), Is.EqualTo("\"2013-03-11T12:34:56.7680000-11:30\""));
+			CheckSerialize(new DateTimeOffset(2013, 3, 11, 12, 34, 56, 768, TimeSpan.Zero), settings, "\"2013-03-11T12:34:56.7680000Z\"");
+			CheckSerialize(new DateTimeOffset(2013, 3, 11, 12, 34, 56, 768, TimeSpan.FromHours(1)), settings, "\"2013-03-11T12:34:56.7680000+01:00\"");
+			CheckSerialize(new DateTimeOffset(2013, 3, 11, 12, 34, 56, 768, TimeSpan.FromHours(-1)), settings, "\"2013-03-11T12:34:56.7680000-01:00\"");
+			CheckSerialize(new DateTimeOffset(2013, 3, 11, 12, 34, 56, 768, TimeSpan.FromMinutes(11 * 60 + 30)), settings, "\"2013-03-11T12:34:56.7680000+11:30\"");
+			CheckSerialize(new DateTimeOffset(2013, 3, 11, 12, 34, 56, 768, TimeSpan.FromMinutes(-11 * 60 - 30)), settings, "\"2013-03-11T12:34:56.7680000-11:30\"");
 
 			// Now (UTC)
 			var utcNow = DateTimeOffset.Now.ToUniversalTime();
-			Assert.That(CrystalJson.Serialize(utcNow, settings), Is.EqualTo("\"" + utcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffffff") + "Z\""), "DateTime.UtcNow doit finir par Z");
+			CheckSerialize(utcNow, settings, "\"" + utcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffffff") + "Z\"", "DateTime.UtcNow doit finir par Z");
 
 			// Now (local)
 			var localNow = DateTimeOffset.Now;
-			Assert.That(CrystalJson.Serialize(localNow, settings), Is.EqualTo("\"" + localNow.ToString("yyyy-MM-ddTHH:mm:ss.fffffff") + ToUtcOffset(localNow.Offset) + "\""), "DateTime.Now doit inclure la TimeZone");
+			CheckSerialize(localNow, settings, "\"" + localNow.ToString("yyyy-MM-ddTHH:mm:ss.fffffff") + ToUtcOffset(localNow.Offset) + "\"", "DateTime.Now doit inclure la TimeZone");
 			//note: this test will not work if the server is running int the UTC/GMT+0 timezone !
 
 			// Local vs Unspecified vs UTC
 			// Paris: GMT+1 l'hivers, GMT+2 l'état
 
 			// * 1er Janvier 2000 = GMT + 1 car heure d'hiver
-			Assert.That(CrystalJson.Serialize(new DateTimeOffset(2000, 1, 1, 0, 0, 0, TimeSpan.Zero), settings), Is.EqualTo("\"2000-01-01T00:00:00Z\""), "2000-01-01 UTC");
-			Assert.That(CrystalJson.Serialize(new DateTimeOffset(2000, 1, 1, 0, 0, 0, TimeSpan.FromHours(1)), settings), Is.EqualTo("\"2000-01-01T00:00:00+01:00\""), "2000-01-01 GMT+1 (Paris)");
+			CheckSerialize(new DateTimeOffset(2000, 1, 1, 0, 0, 0, TimeSpan.Zero), settings, "\"2000-01-01T00:00:00Z\"", "2000-01-01 UTC");
+			CheckSerialize(new DateTimeOffset(2000, 1, 1, 0, 0, 0, TimeSpan.FromHours(1)), settings, "\"2000-01-01T00:00:00+01:00\"", "2000-01-01 GMT+1 (Paris)");
 
 			// * 1er Septembre 2000 = GMT + 2 car heure d'été
-			Assert.That(CrystalJson.Serialize(new DateTimeOffset(2000, 9, 1, 0, 0, 0, TimeSpan.Zero), settings), Is.EqualTo("\"2000-09-01T00:00:00Z\""), "2000-09-01 UTC");
-			Assert.That(CrystalJson.Serialize(new DateTimeOffset(2000, 9, 1, 0, 0, 0, TimeSpan.FromHours(2)), settings), Is.EqualTo("\"2000-09-01T00:00:00+02:00\""), "2000-09-01 GMT+2 (Paris, DST)");
+			CheckSerialize(new DateTimeOffset(2000, 9, 1, 0, 0, 0, TimeSpan.Zero), settings, "\"2000-09-01T00:00:00Z\"", "2000-09-01 UTC");
+			CheckSerialize(new DateTimeOffset(2000, 9, 1, 0, 0, 0, TimeSpan.FromHours(2)), settings, "\"2000-09-01T00:00:00+02:00\"", "2000-09-01 GMT+2 (Paris, DST)");
 		}
 
 		[Test]
@@ -1517,34 +1611,34 @@ namespace Doxense.Serialization.Json.Tests
 			Assume.That(unixEpoch, Is.EqualTo(621355968000000000));
 
 			// corner cases
-			Assert.That(CrystalJson.Serialize(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc), CrystalJsonSettings.JavaScript), Is.EqualTo("new Date(0)"));
-			Assert.That(CrystalJson.Serialize(new DateTime(0, DateTimeKind.Utc), CrystalJsonSettings.JavaScript), Is.EqualTo("new Date(-62135596800000)"));
-			Assert.That(CrystalJson.Serialize(DateTime.MinValue, CrystalJsonSettings.JavaScript), Is.EqualTo("new Date(-62135596800000)"));
-			Assert.That(CrystalJson.Serialize(new DateTime(3155378975999999999, DateTimeKind.Utc), CrystalJsonSettings.JavaScript), Is.EqualTo("new Date(253402300799999)"));
-			Assert.That(CrystalJson.Serialize(DateTime.MaxValue, CrystalJsonSettings.JavaScript), Is.EqualTo("new Date(253402300799999)"));
+			CheckSerialize(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc), CrystalJsonSettings.JavaScript, "new Date(0)");
+			CheckSerialize(new DateTime(0, DateTimeKind.Utc), CrystalJsonSettings.JavaScript, "new Date(-62135596800000)");
+			CheckSerialize(DateTime.MinValue, CrystalJsonSettings.JavaScript, "new Date(-62135596800000)");
+			CheckSerialize(new DateTime(3155378975999999999, DateTimeKind.Utc), CrystalJsonSettings.JavaScript, "new Date(253402300799999)");
+			CheckSerialize(DateTime.MaxValue, CrystalJsonSettings.JavaScript, "new Date(253402300799999)");
 
 			// Now (UTC)
 			DateTime utcNow = DateTime.UtcNow;
 			Assert.That(utcNow.Kind, Is.EqualTo(DateTimeKind.Utc));
 			long ticks = (utcNow.Ticks - unixEpoch) / 10000;
-			Assert.That(CrystalJson.Serialize(utcNow, CrystalJsonSettings.JavaScript), Is.EqualTo("new Date(" + ticks.ToString() + ")"));
+			CheckSerialize(utcNow, CrystalJsonSettings.JavaScript, $"new Date({ticks})");
 
 			// Now (local)
 			DateTime localNow = DateTime.Now;
 			Assert.That(localNow.Kind, Is.EqualTo(DateTimeKind.Local));
 			TimeSpan utcOffset = new DateTimeOffset(localNow).Offset;
 			ticks = (localNow.Ticks - unixEpoch - utcOffset.Ticks) / 10000;
-			Assert.That(CrystalJson.Serialize(localNow, CrystalJsonSettings.JavaScript), Is.EqualTo("new Date(" + ticks.ToString() + ")"));
+			CheckSerialize(localNow, CrystalJsonSettings.JavaScript, $"new Date({ticks})");
 
 			// Local vs Unspecified vs UTC
 			// * 1er Janvier 2000 = GMT + 1 car heure d'hiver
-			Assert.That(CrystalJson.Serialize(new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc), CrystalJsonSettings.JavaScript), Is.EqualTo("new Date(946684800000)"), "2000-01-01 UTC");
-			Assert.That(CrystalJson.Serialize(new DateTime(2000, 1, 1, 0, 0, 0), CrystalJsonSettings.JavaScript), Is.EqualTo("new Date(" + (946684800000 - 1 * 3600 * 1000).ToString() + ")"), "2000-01-01 GMT+1 (Paris)");
-			Assert.That(CrystalJson.Serialize(new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Local), CrystalJsonSettings.JavaScript), Is.EqualTo("new Date(" + (946684800000 - 1 * 3600 * 1000).ToString() + ")"), "2000-01-01 GMT+1 (Paris)");
+			CheckSerialize(new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc), CrystalJsonSettings.JavaScript, "new Date(946684800000)", "2000-01-01 UTC");
+			CheckSerialize(new DateTime(2000, 1, 1, 0, 0, 0), CrystalJsonSettings.JavaScript, "new Date(946681200000)", "2000-01-01 GMT+1 (Paris)");
+			CheckSerialize(new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Local), CrystalJsonSettings.JavaScript, "new Date(946681200000)", "2000-01-01 GMT+1 (Paris)");
 			// * 1er Août 2000 = GMT + 2 car heure d'été
-			Assert.That(CrystalJson.Serialize(new DateTime(2000, 9, 1, 0, 0, 0, DateTimeKind.Utc), CrystalJsonSettings.JavaScript), Is.EqualTo("new Date(967766400000)"), "2000-09-01 UTC");
-			Assert.That(CrystalJson.Serialize(new DateTime(2000, 9, 1, 0, 0, 0), CrystalJsonSettings.JavaScript), Is.EqualTo("new Date(" + (967766400000 - 2 * 3600 * 1000).ToString() + ")"), "2000-08-01 GMT+2 (Paris, DST)");
-			Assert.That(CrystalJson.Serialize(new DateTime(2000, 9, 1, 0, 0, 0, DateTimeKind.Local), CrystalJsonSettings.JavaScript), Is.EqualTo("new Date(" + (967766400000 - 2 * 3600 * 1000).ToString() + ")"), "2000-08-01 GMT+2 (Paris, DST)");
+			CheckSerialize(new DateTime(2000, 9, 1, 0, 0, 0, DateTimeKind.Utc), CrystalJsonSettings.JavaScript, "new Date(967766400000)", "2000-09-01 UTC");
+			CheckSerialize(new DateTime(2000, 9, 1, 0, 0, 0), CrystalJsonSettings.JavaScript, "new Date(967759200000)", "2000-08-01 GMT+2 (Paris, DST)");
+			CheckSerialize(new DateTime(2000, 9, 1, 0, 0, 0, DateTimeKind.Local), CrystalJsonSettings.JavaScript, "new Date(967759200000)", "2000-08-01 GMT+2 (Paris, DST)");
 
 			//TODO: DateTimeOffset ?
 		}
@@ -1553,12 +1647,14 @@ namespace Doxense.Serialization.Json.Tests
 		public void Test_JsonSerialize_TimeSpan()
 		{
 			// TimeSpan
-			Assert.That(CrystalJson.Serialize(TimeSpan.Zero), Is.EqualTo("0"));
-			Assert.That(CrystalJson.Serialize(TimeSpan.FromSeconds(1)), Is.EqualTo("1"));
-			Assert.That(CrystalJson.Serialize(TimeSpan.FromSeconds(1.5)), Is.EqualTo("1.5"));
-			Assert.That(CrystalJson.Serialize(TimeSpan.FromMinutes(1)), Is.EqualTo("60"));
-			Assert.That(CrystalJson.Serialize(TimeSpan.FromMilliseconds(1)), Is.EqualTo("0.001"));
-			Assert.That(CrystalJson.Serialize(TimeSpan.FromTicks(1)), Is.EqualTo("1E-07"));
+			CheckSerialize(TimeSpan.Zero, default, "0");
+			CheckSerialize(TimeSpan.FromSeconds(1), default, "1");
+			CheckSerialize(TimeSpan.FromSeconds(1.5), default, "1.5");
+			CheckSerialize(TimeSpan.FromMinutes(1), default, "60");
+			CheckSerialize(TimeSpan.FromMilliseconds(1), default, "0.001");
+			CheckSerialize(TimeSpan.FromTicks(1), default, "1E-07");
+			CheckSerialize(TimeSpan.MinValue, default, TimeSpan.MinValue.TotalSeconds.ToString("R"));
+			CheckSerialize(TimeSpan.MaxValue, default, TimeSpan.MaxValue.TotalSeconds.ToString("R"));
 		}
 
 		[Test]
@@ -1571,49 +1667,49 @@ namespace Doxense.Serialization.Json.Tests
 			// As Integers
 
 			// enum
-			Assert.That(CrystalJson.Serialize(MidpointRounding.AwayFromZero), Is.EqualTo("1"));
-			Assert.That(CrystalJson.Serialize(DayOfWeek.Friday), Is.EqualTo("5"));
+			CheckSerialize(MidpointRounding.AwayFromZero, default, "1");
+			CheckSerialize(DayOfWeek.Friday, default, "5");
 			// custom enum
-			Assert.That(CrystalJson.Serialize(DummyJsonEnum.None), Is.EqualTo("0"));
-			Assert.That(CrystalJson.Serialize(DummyJsonEnum.Foo), Is.EqualTo("1"));
-			Assert.That(CrystalJson.Serialize(DummyJsonEnum.Bar), Is.EqualTo("42"));
-			Assert.That(CrystalJson.Serialize((DummyJsonEnum)123), Is.EqualTo("123"));
+			CheckSerialize(DummyJsonEnum.None, default, "0");
+			CheckSerialize(DummyJsonEnum.Foo, default, "1");
+			CheckSerialize(DummyJsonEnum.Bar, default, "42");
+			CheckSerialize((DummyJsonEnum)123, default, "123");
 			// custom [Flags] enum
-			Assert.That(CrystalJson.Serialize(DummyJsonEnumFlags.None), Is.EqualTo("0"));
-			Assert.That(CrystalJson.Serialize(DummyJsonEnumFlags.Foo), Is.EqualTo("1"));
-			Assert.That(CrystalJson.Serialize(DummyJsonEnumFlags.Bar), Is.EqualTo("2"));
-			Assert.That(CrystalJson.Serialize(DummyJsonEnumFlags.Narf), Is.EqualTo("4"));
-			Assert.That(CrystalJson.Serialize(DummyJsonEnumFlags.Foo | DummyJsonEnumFlags.Bar), Is.EqualTo("3"));
-			Assert.That(CrystalJson.Serialize(DummyJsonEnumFlags.Bar | DummyJsonEnumFlags.Narf), Is.EqualTo("6"));
-			Assert.That(CrystalJson.Serialize((DummyJsonEnumFlags)255), Is.EqualTo("255"));
+			CheckSerialize(DummyJsonEnumFlags.None, default, "0");
+			CheckSerialize(DummyJsonEnumFlags.Foo, default, "1");
+			CheckSerialize(DummyJsonEnumFlags.Bar, default, "2");
+			CheckSerialize(DummyJsonEnumFlags.Narf, default, "4");
+			CheckSerialize(DummyJsonEnumFlags.Foo | DummyJsonEnumFlags.Bar, default, "3");
+			CheckSerialize(DummyJsonEnumFlags.Bar | DummyJsonEnumFlags.Narf, default, "6");
+			CheckSerialize((DummyJsonEnumFlags)255, default, "255");
 
 			// As Strings
 
 			var settings = CrystalJsonSettings.Json.WithEnumAsStrings();
 
 			// enum
-			Assert.That(CrystalJson.Serialize(MidpointRounding.AwayFromZero, settings), Is.EqualTo("\"AwayFromZero\""));
-			Assert.That(CrystalJson.Serialize(DayOfWeek.Friday, settings), Is.EqualTo("\"Friday\""));
+			CheckSerialize(MidpointRounding.AwayFromZero, settings, "\"AwayFromZero\"");
+			CheckSerialize(DayOfWeek.Friday, settings, "\"Friday\"");
 			// custom enum
-			Assert.That(CrystalJson.Serialize(DummyJsonEnum.None, settings), Is.EqualTo("\"None\""));
-			Assert.That(CrystalJson.Serialize(DummyJsonEnum.Foo, settings), Is.EqualTo("\"Foo\""));
-			Assert.That(CrystalJson.Serialize(DummyJsonEnum.Bar, settings), Is.EqualTo("\"Bar\""));
-			Assert.That(CrystalJson.Serialize((DummyJsonEnum)123, settings), Is.EqualTo("\"123\""));
+			CheckSerialize(DummyJsonEnum.None, settings, "\"None\"");
+			CheckSerialize(DummyJsonEnum.Foo, settings, "\"Foo\"");
+			CheckSerialize(DummyJsonEnum.Bar, settings, "\"Bar\"");
+			CheckSerialize((DummyJsonEnum)123, settings, "\"123\"");
 			// custom [Flags] enum
-			Assert.That(CrystalJson.Serialize(DummyJsonEnumFlags.None, settings), Is.EqualTo("\"None\""));
-			Assert.That(CrystalJson.Serialize(DummyJsonEnumFlags.Foo, settings), Is.EqualTo("\"Foo\""));
-			Assert.That(CrystalJson.Serialize(DummyJsonEnumFlags.Bar, settings), Is.EqualTo("\"Bar\""));
-			Assert.That(CrystalJson.Serialize(DummyJsonEnumFlags.Narf, settings), Is.EqualTo("\"Narf\""));
-			Assert.That(CrystalJson.Serialize(DummyJsonEnumFlags.Foo | DummyJsonEnumFlags.Bar, settings), Is.EqualTo("\"Foo, Bar\""));
-			Assert.That(CrystalJson.Serialize(DummyJsonEnumFlags.Bar | DummyJsonEnumFlags.Narf, settings), Is.EqualTo("\"Bar, Narf\""));
-			Assert.That(CrystalJson.Serialize((DummyJsonEnumFlags)255, settings), Is.EqualTo("\"255\""));
+			CheckSerialize(DummyJsonEnumFlags.None, settings, "\"None\"");
+			CheckSerialize(DummyJsonEnumFlags.Foo, settings, "\"Foo\"");
+			CheckSerialize(DummyJsonEnumFlags.Bar, settings, "\"Bar\"");
+			CheckSerialize(DummyJsonEnumFlags.Narf, settings, "\"Narf\"");
+			CheckSerialize(DummyJsonEnumFlags.Foo | DummyJsonEnumFlags.Bar, settings, "\"Foo, Bar\"");
+			CheckSerialize(DummyJsonEnumFlags.Bar | DummyJsonEnumFlags.Narf, settings, "\"Bar, Narf\"");
+			CheckSerialize((DummyJsonEnumFlags)255, settings, "\"255\"");
 
 			// Duplicate Values
 
 			settings = CrystalJsonSettings.Json.WithEnumAsStrings();
-			Assert.That(CrystalJson.Serialize(DummyJsonEnumTypo.Bar, settings), Is.EqualTo("\"Bar\""));
-			Assert.That(CrystalJson.Serialize(DummyJsonEnumTypo.Barrh, settings), Is.EqualTo("\"Bar\""));
-			Assert.That(CrystalJson.Serialize((DummyJsonEnumTypo)2, settings), Is.EqualTo("\"Bar\""));
+			CheckSerialize(DummyJsonEnumTypo.Bar, settings, "\"Bar\"");
+			CheckSerialize(DummyJsonEnumTypo.Barrh, settings, "\"Bar\"");
+			CheckSerialize((DummyJsonEnumTypo)2, settings, "\"Bar\"");
 		}
 
 		[Test]
@@ -1625,80 +1721,94 @@ namespace Doxense.Serialization.Json.Tests
 
 			// empty struct
 			var x = new DummyJsonStruct();
-			Assert.That(
-				CrystalJson.Serialize(x),
-				Is.EqualTo("""{ "Valid": false, "Index": 0, "Size": 0, "Height": 0, "Amount": 0, "Created": "", "State": 0, "RatioOfStuff": 0 }"""),
+			CheckSerialize(
+				x,
+				default,
+				"""{ "Valid": false, "Index": 0, "Size": 0, "Height": 0, "Amount": 0, "Created": "", "State": 0, "RatioOfStuff": 0 }""",
 				"Serialize(EMPTY, JSON)"
 			);
-			Assert.That(
-				CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript),
-				Is.EqualTo("""{ Valid: false, Index: 0, Size: 0, Height: 0, Amount: 0, Created: new Date(-62135596800000), State: 0, RatioOfStuff: 0 }"""),
+			CheckSerialize(
+				x,
+				CrystalJsonSettings.JavaScript,
+				"{ Valid: false, Index: 0, Size: 0, Height: 0, Amount: 0, Created: new Date(-62135596800000), State: 0, RatioOfStuff: 0 }",
 				"Serialize(EMPTY, JS)"
 			);
 
 			// with explicit nulls
-			Assert.That(
-				CrystalJson.Serialize(x, CrystalJsonSettings.Json.WithNullMembers()),
-				Is.EqualTo("""{ "Valid": false, "Name": null, "Index": 0, "Size": 0, "Height": 0, "Amount": 0, "Created": "", "Modified": null, "DateOfBirth": null, "State": 0, "RatioOfStuff": 0 }"""),
+			CheckSerialize(
+				x,
+				CrystalJsonSettings.Json.WithNullMembers(),
+				"""{ "Valid": false, "Name": null, "Index": 0, "Size": 0, "Height": 0, "Amount": 0, "Created": "", "Modified": null, "DateOfBirth": null, "State": 0, "RatioOfStuff": 0 }""",
 				"Serialize(EMPTY, JSON+ShowNull)"
 			);
-			Assert.That(
-				CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript.WithNullMembers()),
-				Is.EqualTo("{ Valid: false, Name: null, Index: 0, Size: 0, Height: 0, Amount: 0, Created: new Date(-62135596800000), Modified: null, DateOfBirth: null, State: 0, RatioOfStuff: 0 }"),
+			CheckSerialize(
+				x,
+				CrystalJsonSettings.JavaScript.WithNullMembers(),
+				"{ Valid: false, Name: null, Index: 0, Size: 0, Height: 0, Amount: 0, Created: new Date(-62135596800000), Modified: null, DateOfBirth: null, State: 0, RatioOfStuff: 0 }",
 				"Serialize(EMPTY, JS+ShowNull)"
 			);
 
 			// hide default values
-			Assert.That(
-				CrystalJson.Serialize(x, CrystalJsonSettings.Json.WithoutDefaultValues()),
-				Is.EqualTo("{ }"),
+			CheckSerialize(
+				x,
+				CrystalJsonSettings.Json.WithoutDefaultValues(),
+				"{ }",
 				"Serialize(EMPTY, JSON+HideDefaults)"
 			);
-			Assert.That(
-				CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript.WithoutDefaultValues()),
-				Is.EqualTo("{ }"),
+			CheckSerialize(
+				x,
+				CrystalJsonSettings.JavaScript.WithoutDefaultValues(),
+				"{ }",
 				"Serialize(EMPTY, JS+HideDefaults)"
 			);
 
 			// compact mode
-			Assert.That(
-				CrystalJson.Serialize(x, CrystalJsonSettings.JsonCompact),
-				Is.EqualTo("""{"Valid":false,"Index":0,"Size":0,"Height":0,"Amount":0,"Created":"","State":0,"RatioOfStuff":0}"""),
+			CheckSerialize(
+				x,
+				CrystalJsonSettings.JsonCompact,
+				"""{"Valid":false,"Index":0,"Size":0,"Height":0,"Amount":0,"Created":"","State":0,"RatioOfStuff":0}""",
 				"Serialize(EMPTY, JSON+Compact)"
 			);
-			Assert.That(
-				CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript.Compacted()),
-				Is.EqualTo("{Valid:false,Index:0,Size:0,Height:0,Amount:0,Created:new Date(-62135596800000),State:0,RatioOfStuff:0}"),
+			CheckSerialize(
+				x,
+				CrystalJsonSettings.JavaScript.Compacted(),
+				"{Valid:false,Index:0,Size:0,Height:0,Amount:0,Created:new Date(-62135596800000),State:0,RatioOfStuff:0}",
 				"Serialize(EMPTY, JS+Compact)"
 			);
 
 			// indented
-			Assert.That(
-				CrystalJson.Serialize(x, CrystalJsonSettings.JsonIndented),
-				Is.EqualTo("{\r\n" +
-				           "\t\"Valid\": false,\r\n" +
-				           "\t\"Index\": 0,\r\n" +
-				           "\t\"Size\": 0,\r\n" +
-				           "\t\"Height\": 0,\r\n" +
-				           "\t\"Amount\": 0,\r\n" +
-				           "\t\"Created\": \"\",\r\n" +
-				           "\t\"State\": 0,\r\n" +
-				           "\t\"RatioOfStuff\": 0\r\n" +
-				           "}"),
+			CheckSerialize(
+				x,
+				CrystalJsonSettings.JsonIndented,
+				"""
+				{
+					"Valid": false,
+					"Index": 0,
+					"Size": 0,
+					"Height": 0,
+					"Amount": 0,
+					"Created": "",
+					"State": 0,
+					"RatioOfStuff": 0
+				}
+				""",
 				"Serialize(X, JSON+Indented)"
 			);
-			Assert.That(
-				CrystalJson.Serialize(x, CrystalJsonSettings.JavaScriptIndented),
-				Is.EqualTo("{\r\n" +
-				           "\tValid: false,\r\n" +
-				           "\tIndex: 0,\r\n" +
-				           "\tSize: 0,\r\n" +
-				           "\tHeight: 0,\r\n" +
-				           "\tAmount: 0,\r\n" +
-				           "\tCreated: new Date(-62135596800000),\r\n" +
-				           "\tState: 0,\r\n" +
-				           "\tRatioOfStuff: 0\r\n" +
-				           "}"),
+			CheckSerialize(
+				x,
+				CrystalJsonSettings.JavaScriptIndented,
+				"""
+				{
+					Valid: false,
+					Index: 0,
+					Size: 0,
+					Height: 0,
+					Amount: 0,
+					Created: new Date(-62135596800000),
+					State: 0,
+					RatioOfStuff: 0
+				}
+				""",
 				"Serialize(X, JS+Indented)"
 			);
 
@@ -1712,26 +1822,30 @@ namespace Doxense.Serialization.Json.Tests
 			x.Created = new DateTime(1968, 5, 8);
 			x.State = DummyJsonEnum.Foo;
 
-			Assert.That(
-				CrystalJson.Serialize(x),
-				Is.EqualTo("""{ "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00", "State": 1, "RatioOfStuff": 8641975.23 }"""),
+			CheckSerialize(
+				x,
+				default,
+				"""{ "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00", "State": 1, "RatioOfStuff": 8641975.23 }""",
 				"Serialize(BOND, JSON)"
 			);
-			Assert.That(
-				CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript),
-				Is.EqualTo("{ Valid: true, Name: 'James Bond', Index: 7, Size: 123456789, Height: 1.8, Amount: 0.07, Created: new Date(-52106400000), State: 1, RatioOfStuff: 8641975.23 }"),
+			CheckSerialize(
+				x,
+				CrystalJsonSettings.JavaScript,
+				"{ Valid: true, Name: 'James Bond', Index: 7, Size: 123456789, Height: 1.8, Amount: 0.07, Created: new Date(-52106400000), State: 1, RatioOfStuff: 8641975.23 }",
 				"Serialize(BOND, JS)"
 			);
 
 			// compact mode
-			Assert.That(
-				CrystalJson.Serialize(x, CrystalJsonSettings.Json.Compacted()),
-				Is.EqualTo("""{"Valid":true,"Name":"James Bond","Index":7,"Size":123456789,"Height":1.8,"Amount":0.07,"Created":"1968-05-08T00:00:00","State":1,"RatioOfStuff":8641975.23}"""),
+			CheckSerialize(
+				x,
+				CrystalJsonSettings.Json.Compacted(),
+				"""{"Valid":true,"Name":"James Bond","Index":7,"Size":123456789,"Height":1.8,"Amount":0.07,"Created":"1968-05-08T00:00:00","State":1,"RatioOfStuff":8641975.23}""",
 				"Serialize(BOND, JSON+Compact)"
 			);
-			Assert.That(
-				CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript.Compacted()),
-				Is.EqualTo("{Valid:true,Name:'James Bond',Index:7,Size:123456789,Height:1.8,Amount:0.07,Created:new Date(-52106400000),State:1,RatioOfStuff:8641975.23}"),
+			CheckSerialize(
+				x,
+				CrystalJsonSettings.JavaScript.Compacted(),
+				"{Valid:true,Name:'James Bond',Index:7,Size:123456789,Height:1.8,Amount:0.07,Created:new Date(-52106400000),State:1,RatioOfStuff:8641975.23}",
 				"Serialize(BOND, JS+Compact)"
 			);
 		}
@@ -1741,41 +1855,71 @@ namespace Doxense.Serialization.Json.Tests
 		{
 			var x = new DummyNullableStruct();
 			// since all members are null, the object should be empty
-			string expected = "{ }";
-			string jsonText = CrystalJson.Serialize(x);
-			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(EMPTY,JSON)");
-			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript);
-			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(EMPTY,JS)");
-			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.Json.WithoutDefaultValues());
-			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(EMPTY,JSON+HideDefaults)");
-			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript.WithoutDefaultValues());
-			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(EMPTY,JS+HideDefaults)");
+			CheckSerialize(
+				x,
+				default,
+				"{ }",
+				"Serialize(EMPTY,JSON)"
+			);
+			CheckSerialize(
+				x,
+				CrystalJsonSettings.JavaScript,
+				"{ }",
+				"Serialize(EMPTY,JS)"
+			);
+			CheckSerialize(
+				x,
+				CrystalJsonSettings.Json.WithoutDefaultValues(),
+				"{ }",
+				"Serialize(EMPTY,JSON+HideDefaults)"
+			);
+			CheckSerialize(
+				x,
+				CrystalJsonSettings.JavaScript.WithoutDefaultValues(),
+				"{ }",
+				"Serialize(EMPTY,JS+HideDefaults)"
+			);
 
 			// by default, all should be null
-			expected = """{ "Bool": null, "Int32": null, "Int64": null, "Single": null, "Double": null, "DateTime": null, "TimeSpan": null, "Guid": null, "Enum": null, "Struct": null }""";
-			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.Json.WithNullMembers());
-			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(EMPTY,JSON+ShowNull)");
-			expected = "{ Bool: null, Int32: null, Int64: null, Single: null, Double: null, DateTime: null, TimeSpan: null, Guid: null, Enum: null, Struct: null }";
-			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript.WithNullMembers());
-			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(EMPTY,JS+ShowNull)");
+			CheckSerialize(
+				x,
+				CrystalJsonSettings.Json.WithNullMembers(),
+				"""{ "Bool": null, "Int32": null, "Int64": null, "Single": null, "Double": null, "DateTime": null, "TimeSpan": null, "Guid": null, "Enum": null, "Struct": null }""",
+				"Serialize(EMPTY,JSON+ShowNull)"
+			);
+			CheckSerialize(
+				x,
+				CrystalJsonSettings.JavaScript.WithNullMembers(),
+				"{ Bool: null, Int32: null, Int64: null, Single: null, Double: null, DateTime: null, TimeSpan: null, Guid: null, Enum: null, Struct: null }",
+				"Serialize(EMPTY,JS+ShowNull)"
+			);
 
 			// fill the object with non-null values
-			x.Bool = true;
-			x.Int32 = 123;
-			x.Int64 = 123;
-			x.Single = 1.23f;
-			x.Double = 1.23d;
-			x.Guid = new Guid("98bd4ed7-7337-4018-9551-ee0825ada7ba");
-			x.DateTime = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-			x.TimeSpan = TimeSpan.FromMinutes(1);
-			x.Enum = DummyJsonEnum.Bar;
-			x.Struct = new DummyJsonStruct(); // vide!
-			expected = @"{ ""Bool"": true, ""Int32"": 123, ""Int64"": 123, ""Single"": 1.23, ""Double"": 1.23, ""DateTime"": ""2000-01-01T00:00:00Z"", ""TimeSpan"": 60, ""Guid"": ""98bd4ed7-7337-4018-9551-ee0825ada7ba"", ""Enum"": 42, ""Struct"": { ""Valid"": false, ""Index"": 0, ""Size"": 0, ""Height"": 0, ""Amount"": 0, ""Created"": """", ""State"": 0, ""RatioOfStuff"": 0 } }";
-			jsonText = CrystalJson.Serialize(x);
-			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(FILLED, JSON)");
-			expected = "{ Bool: true, Int32: 123, Int64: 123, Single: 1.23, Double: 1.23, DateTime: new Date(946684800000), TimeSpan: 60, Guid: '98bd4ed7-7337-4018-9551-ee0825ada7ba', Enum: 42, Struct: { Valid: false, Index: 0, Size: 0, Height: 0, Amount: 0, Created: new Date(-62135596800000), State: 0, RatioOfStuff: 0 } }";
-			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript);
-			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(FILLED, JS)");
+			x = new DummyNullableStruct()
+			{
+				Bool = true,
+				Int32 = 123,
+				Int64 = 123,
+				Single = 1.23f,
+				Double = 1.23d,
+				Guid = new Guid("98bd4ed7-7337-4018-9551-ee0825ada7ba"),
+				DateTime = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+				TimeSpan = TimeSpan.FromMinutes(1),
+				Enum = DummyJsonEnum.Bar,
+				Struct = new DummyJsonStruct(), // empty
+			};
+			CheckSerialize(
+				x,
+				default,
+				"""{ "Bool": true, "Int32": 123, "Int64": 123, "Single": 1.23, "Double": 1.23, "DateTime": "2000-01-01T00:00:00Z", "TimeSpan": 60, "Guid": "98bd4ed7-7337-4018-9551-ee0825ada7ba", "Enum": 42, "Struct": { "Valid": false, "Index": 0, "Size": 0, "Height": 0, "Amount": 0, "Created": "", "State": 0, "RatioOfStuff": 0 } }""",
+				"Serialize(FILLED, JSON)"
+			);
+			CheckSerialize(
+				x,
+				CrystalJsonSettings.JavaScript,
+				"{ Bool: true, Int32: 123, Int64: 123, Single: 1.23, Double: 1.23, DateTime: new Date(946684800000), TimeSpan: 60, Guid: '98bd4ed7-7337-4018-9551-ee0825ada7ba', Enum: 42, Struct: { Valid: false, Index: 0, Size: 0, Height: 0, Amount: 0, Created: new Date(-62135596800000), State: 0, RatioOfStuff: 0 } }",
+				"Serialize(FILLED, JS)"
+			);
 		}
 
 		[Test]
@@ -1786,27 +1930,45 @@ namespace Doxense.Serialization.Json.Tests
 			Assume.That(typeof(DummyJsonClass).IsClass, Is.True);
 
 			var x = new DummyJsonClass();
-			string expected = """{ "Valid": false, "Index": 0, "Size": 0, "Height": 0, "Amount": 0, "Created": "", "State": 0, "RatioOfStuff": 0 }""";
-			string jsonText = CrystalJson.Serialize(x);
-			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(EMPTY, JSON)");
-			expected = """{ Valid: false, Index: 0, Size: 0, Height: 0, Amount: 0, Created: new Date(-62135596800000), State: 0, RatioOfStuff: 0 }""";
-			string jsText = CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript);
-			Assert.That(jsText, Is.EqualTo(expected), "Serialize(EMPTY, JS)");
+			CheckSerialize(
+				x,
+				default,
+				"""{ "Valid": false, "Index": 0, "Size": 0, "Height": 0, "Amount": 0, "Created": "", "State": 0, "RatioOfStuff": 0 }""",
+				"Serialize(EMPTY, JSON)"
+			);
+			CheckSerialize(
+				x,
+				CrystalJsonSettings.JavaScript,
+				"""{ Valid: false, Index: 0, Size: 0, Height: 0, Amount: 0, Created: new Date(-62135596800000), State: 0, RatioOfStuff: 0 }""",
+				"Serialize(EMPTY, JS)"
+			);
 
 			// hide default values
-			expected = "{ }";
-			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.Json.WithoutDefaultValues());
-			Assert.That(jsonText, Is.EqualTo(expected), "SerializeObject(EMPTY, JSON+HideDefaults)");
-			jsText = CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript.WithoutDefaultValues());
-			Assert.That(jsText, Is.EqualTo(expected), "SerializeObject(EMPTY, JS+HideDefaults)");
+			CheckSerialize(
+				x,
+				CrystalJsonSettings.Json.WithoutDefaultValues(),
+				"{ }",
+				"SerializeObject(EMPTY, JSON+HideDefaults)"
+			);
+			CheckSerialize(
+				x,
+				CrystalJsonSettings.JavaScript.WithoutDefaultValues(),
+				"{ }",
+				"SerializeObject(EMPTY, JS+HideDefaults)"
+			);
 
 			// with explicit nulls
-			expected = """{ "Valid": false, "Name": null, "Index": 0, "Size": 0, "Height": 0, "Amount": 0, "Created": "", "Modified": null, "DateOfBirth": null, "State": 0, "RatioOfStuff": 0 }""";
-			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.Json.WithNullMembers());
-			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(EMPTY, JSON+ShowNullMembers)");
-			expected = """{ Valid: false, Name: null, Index: 0, Size: 0, Height: 0, Amount: 0, Created: new Date(-62135596800000), Modified: null, DateOfBirth: null, State: 0, RatioOfStuff: 0 }""";
-			jsText = CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript.WithNullMembers());
-			Assert.That(jsText, Is.EqualTo(expected), "Serialize(EMPTY, JS+ShowNullMembers)");
+			CheckSerialize(
+				x, CrystalJsonSettings.Json.WithNullMembers(),
+				"""{ "Valid": false, "Name": null, "Index": 0, "Size": 0, "Height": 0, "Amount": 0, "Created": "", "Modified": null, "DateOfBirth": null, "State": 0, "RatioOfStuff": 0 }""",
+				"Serialize(EMPTY, JSON+ShowNullMembers)"
+			);
+			CheckSerialize(
+				x,
+				CrystalJsonSettings.JavaScript.WithNullMembers(),
+				"""{ Valid: false, Name: null, Index: 0, Size: 0, Height: 0, Amount: 0, Created: new Date(-62135596800000), Modified: null, DateOfBirth: null, State: 0, RatioOfStuff: 0 }""",
+				"Serialize(EMPTY, JS+ShowNullMembers)"
+			);
 
 			// filled with values
 			x.Name = "James Bond";
@@ -1817,114 +1979,159 @@ namespace Doxense.Serialization.Json.Tests
 			x.Created = new DateTime(1968, 5, 8, 0, 0, 0, DateTimeKind.Utc);
 			x.Modified = new DateTime(2010, 10, 28, 15, 39, 0, DateTimeKind.Utc);
 			x.State = DummyJsonEnum.Bar;
+
 			// formatted
-			expected = """{ "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00Z", "Modified": "2010-10-28T15:39:00Z", "State": 42, "RatioOfStuff": 8641975.23 }""";
-			jsonText = CrystalJson.Serialize(x);
-			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(class, JSON)");
-			expected = """{ Valid: true, Name: 'James Bond', Index: 7, Size: 123456789, Height: 1.8, Amount: 0.07, Created: new Date(-52099200000), Modified: new Date(1288280340000), State: 42, RatioOfStuff: 8641975.23 }""";
-			jsText = CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript);
-			Assert.That(jsText, Is.EqualTo(expected), "Serialize(class, JS)");
+			CheckSerialize(
+				x,
+				default,
+				"""{ "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00Z", "Modified": "2010-10-28T15:39:00Z", "State": 42, "RatioOfStuff": 8641975.23 }""",
+				"Serialize(class, JSON)"
+			);
+			CheckSerialize(
+				x,
+				CrystalJsonSettings.JavaScript,
+				"""{ Valid: true, Name: 'James Bond', Index: 7, Size: 123456789, Height: 1.8, Amount: 0.07, Created: new Date(-52099200000), Modified: new Date(1288280340000), State: 42, RatioOfStuff: 8641975.23 }""",
+				"Serialize(class, JS)"
+			);
+
 			// compact
-			expected = """{"Valid":true,"Name":"James Bond","Index":7,"Size":123456789,"Height":1.8,"Amount":0.07,"Created":"1968-05-08T00:00:00Z","Modified":"2010-10-28T15:39:00Z","State":42,"RatioOfStuff":8641975.23}""";
-			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.JsonCompact);
-			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(class, JSON+Compact)");
-			expected = """{Valid:true,Name:'James Bond',Index:7,Size:123456789,Height:1.8,Amount:0.07,Created:new Date(-52099200000),Modified:new Date(1288280340000),State:42,RatioOfStuff:8641975.23}""";
-			jsText = CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript.Compacted());
-			Assert.That(jsText, Is.EqualTo(expected), "Serialize(class, JS+Compact)");
+			CheckSerialize(
+				x,
+				CrystalJsonSettings.JsonCompact,
+				"""{"Valid":true,"Name":"James Bond","Index":7,"Size":123456789,"Height":1.8,"Amount":0.07,"Created":"1968-05-08T00:00:00Z","Modified":"2010-10-28T15:39:00Z","State":42,"RatioOfStuff":8641975.23}""",
+				"Serialize(class, JSON+Compact)"
+			);
+			CheckSerialize(
+				x,
+				CrystalJsonSettings.JavaScript.Compacted(),
+				"""{Valid:true,Name:'James Bond',Index:7,Size:123456789,Height:1.8,Amount:0.07,Created:new Date(-52099200000),Modified:new Date(1288280340000),State:42,RatioOfStuff:8641975.23}""",
+				"Serialize(class, JS+Compact)"
+			);
 
 			// indented
-			expected =
-				"{\r\n" +
-				"\t\"Valid\": true,\r\n" +
-				"\t\"Name\": \"James Bond\",\r\n" +
-				"\t\"Index\": 7,\r\n" +
-				"\t\"Size\": 123456789,\r\n" +
-				"\t\"Height\": 1.8,\r\n" +
-				"\t\"Amount\": 0.07,\r\n" +
-				"\t\"Created\": \"1968-05-08T00:00:00Z\",\r\n" +
-				"\t\"Modified\": \"2010-10-28T15:39:00Z\",\r\n" +
-				"\t\"State\": 42,\r\n" +
-				"\t\"RatioOfStuff\": 8641975.23\r\n" +
-				"}";
-			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.JsonIndented);
-			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(class, JSON+Indented)");
-			expected =
-				"{\r\n" +
-				"\tValid: true,\r\n" +
-				"\tName: 'James Bond',\r\n" +
-				"\tIndex: 7,\r\n" +
-				"\tSize: 123456789,\r\n" +
-				"\tHeight: 1.8,\r\n" +
-				"\tAmount: 0.07,\r\n" +
-				"\tCreated: new Date(-52099200000),\r\n" +
-				"\tModified: new Date(1288280340000),\r\n" +
-				"\tState: 42,\r\n" +
-				"\tRatioOfStuff: 8641975.23\r\n" +
-				"}";
-			jsText = CrystalJson.Serialize(x, CrystalJsonSettings.JavaScriptIndented);
-			Assert.That(jsText, Is.EqualTo(expected), "Serialize(class, JS+Indented)");
+			CheckSerialize(
+				x,
+				CrystalJsonSettings.JsonIndented,
+				"""
+				{
+					"Valid": true,
+					"Name": "James Bond",
+					"Index": 7,
+					"Size": 123456789,
+					"Height": 1.8,
+					"Amount": 0.07,
+					"Created": "1968-05-08T00:00:00Z",
+					"Modified": "2010-10-28T15:39:00Z",
+					"State": 42,
+					"RatioOfStuff": 8641975.23
+				}
+				""",
+				"Serialize(class, JSON+Indented)"
+			);
+
+			CheckSerialize(
+				x,
+				CrystalJsonSettings.JavaScriptIndented,
+				"""
+				{
+					Valid: true,
+					Name: 'James Bond',
+					Index: 7,
+					Size: 123456789,
+					Height: 1.8,
+					Amount: 0.07,
+					Created: new Date(-52099200000),
+					Modified: new Date(1288280340000),
+					State: 42,
+					RatioOfStuff: 8641975.23
+				}
+				""",
+				"Serialize(class, JS+Indented)"
+			);
 
 			// Camel Casing
-			expected = """{ "valid": true, "name": "James Bond", "index": 7, "size": 123456789, "height": 1.8, "amount": 0.07, "created": "1968-05-08T00:00:00Z", "modified": "2010-10-28T15:39:00Z", "state": 42, "ratioOfStuff": 8641975.23 }""";
-			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.Json.CamelCased());
-			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(class, JSON+CamelCasing)");
-			expected = "{ valid: true, name: 'James Bond', index: 7, size: 123456789, height: 1.8, amount: 0.07, created: new Date(-52099200000), modified: new Date(1288280340000), state: 42, ratioOfStuff: 8641975.23 }";
-			jsText = CrystalJson.Serialize(x, CrystalJsonSettings.JavaScript.CamelCased());
-			Assert.That(jsText, Is.EqualTo(expected), "Serialize(class, JS+CamelCasing)");
+			CheckSerialize(
+				x,
+				CrystalJsonSettings.Json.CamelCased(),
+				"""{ "valid": true, "name": "James Bond", "index": 7, "size": 123456789, "height": 1.8, "amount": 0.07, "created": "1968-05-08T00:00:00Z", "modified": "2010-10-28T15:39:00Z", "state": 42, "ratioOfStuff": 8641975.23 }""",
+				"Serialize(class, JSON+CamelCasing)"
+			);
+			CheckSerialize(
+				x,
+				CrystalJsonSettings.JavaScript.CamelCased(),
+				"{ valid: true, name: 'James Bond', index: 7, size: 123456789, height: 1.8, amount: 0.07, created: new Date(-52099200000), modified: new Date(1288280340000), state: 42, ratioOfStuff: 8641975.23 }",
+				"Serialize(class, JS+CamelCasing)"
+			);
 		}
 
 		[Test]
 		public void Test_JsonSerialize_InterfaceMember()
 		{
 			// Test: a class that contains a member with an interface type
-			// => we should not serilize only the members defined on that interface, but instead serialize the runtime type of the instance, which will not be known in advance
+			// => we should not serialize only the members defined on that interface, but instead serialize the runtime type of the instance, which will not be known in advance
 
-			var x = new DummyOuterClass();
-
-			string expected = """{ "Id": 0 }""";
-			string jsonText = CrystalJson.Serialize(x);
-			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(EMPTY, JSON)");
+			CheckSerialize(
+				new DummyOuterClass(),
+				default,
+				"""{ "Id": 0 }""",
+				"Serialize(EMPTY, JSON)"
+			);
 
 			// filled with values
-			x.Id = 7;
-			var agent = new DummyJsonClass();
-			agent.Name = "James Bond";
-			agent.Index = 7;
-			agent.Size = 123456789;
-			agent.Height = 1.8f;
-			agent.Amount = 0.07d;
-			agent.Created = new DateTime(1968, 5, 8, 0, 0, 0, DateTimeKind.Utc);
-			agent.Modified = new DateTime(2010, 10, 28, 15, 39, 0, DateTimeKind.Utc);
-			agent.State = DummyJsonEnum.Bar;
-			x.Agent = agent;
+			var agent = new DummyJsonClass()
+			{
+				Name = "James Bond",
+				Index = 7,
+				Size = 123456789,
+				Height = 1.8f,
+				Amount = 0.07d,
+				Created = new DateTime(1968, 5, 8, 0, 0, 0, DateTimeKind.Utc),
+				Modified = new DateTime(2010, 10, 28, 15, 39, 0, DateTimeKind.Utc),
+				State = DummyJsonEnum.Bar,
+			};
 
 			// Serialize the instance directly (known type)
 			// since the instance is top-level, and the type is known, it should not include the _class property.
-			string expectedAgent = """{ "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00Z", "Modified": "2010-10-28T15:39:00Z", "State": 42, "RatioOfStuff": 8641975.23 }""";
-			jsonText = CrystalJson.Serialize(agent);
-			Assert.That(jsonText, Is.EqualTo(expectedAgent), "Serialize(INNER, JSON)");
+			CheckSerialize(
+				agent,
+				default,
+				"""{ "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00Z", "Modified": "2010-10-28T15:39:00Z", "State": 42, "RatioOfStuff": 8641975.23 }""",
+				"Serialize(INNER, JSON)"
+			);
 
 			// Serialize the container type that references this instance via the interface
 			// since the instance is not top-level, and the type is not known, it should include the _class property!
-			expectedAgent = """{ "_class": "Doxense.Serialization.Json.Tests.DummyJsonClass, Doxense.Core.Tests", "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00Z", "Modified": "2010-10-28T15:39:00Z", "State": 42, "RatioOfStuff": 8641975.23 }""";
-			expected = "{ \"Id\": 7, \"Agent\": " + expectedAgent + " }";
-			jsonText = CrystalJson.Serialize(x);
-			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(OUTER, JSON)");
 
-			// deserialize the container instnace
-			var y = CrystalJson.Deserialize<DummyOuterClass>(expected);
+			var x = new DummyOuterClass()
+			{
+				Id = 7,
+				Agent = agent,
+			};
+
+			CheckSerialize(
+				x,
+				default,
+				"""{ "Id": 7, "Agent": { "_class": "Doxense.Serialization.Json.Tests.DummyJsonClass, Doxense.Core.Tests", "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00Z", "Modified": "2010-10-28T15:39:00Z", "State": 42, "RatioOfStuff": 8641975.23 } }""",
+				"Serialize(OUTER, JSON)"
+			);
+
+			// deserialize the container instance
+			var y = CrystalJson.Deserialize<DummyOuterClass>(CrystalJson.Serialize(x));
 			Assert.That(y, Is.Not.Null);
-			Assert.That(y.Id, Is.EqualTo(7));
-			Assert.That(y.Agent, Is.Not.Null);
-			Assert.That(y.Agent, Is.InstanceOf<DummyJsonClass>(), "Should have used the _class property to find the original type!");
-			Assert.That(y.Agent.Name, Is.EqualTo("James Bond"));
-			Assert.That(y.Agent.Index, Is.EqualTo(7));
-			Assert.That(y.Agent.Size, Is.EqualTo(123456789));
-			Assert.That(y.Agent.Height, Is.EqualTo(1.8f));
-			Assert.That(y.Agent.Amount, Is.EqualTo(0.07d));
-			Assert.That(y.Agent.Created, Is.EqualTo(new DateTime(1968, 5, 8, 0, 0, 0, DateTimeKind.Utc)));
-			Assert.That(y.Agent.Modified, Is.EqualTo(new DateTime(2010, 10, 28, 15, 39, 0, DateTimeKind.Utc)));
-			Assert.That(y.Agent.State, Is.EqualTo(DummyJsonEnum.Bar));
+			Assert.Multiple(() =>
+			{
+				Assert.That(y.Id, Is.EqualTo(7));
+				Assert.That(y.Agent, Is.Not.Null);
+				Assert.That(y.Agent, Is.InstanceOf<DummyJsonClass>(), "Should have used the _class property to find the original type!");
+				Assert.That(y.Agent.Name, Is.EqualTo("James Bond"));
+				Assert.That(y.Agent.Index, Is.EqualTo(7));
+				Assert.That(y.Agent.Size, Is.EqualTo(123456789));
+				Assert.That(y.Agent.Height, Is.EqualTo(1.8f));
+				Assert.That(y.Agent.Amount, Is.EqualTo(0.07d));
+				Assert.That(y.Agent.Created, Is.EqualTo(new DateTime(1968, 5, 8, 0, 0, 0, DateTimeKind.Utc)));
+				Assert.That(y.Agent.Modified, Is.EqualTo(new DateTime(2010, 10, 28, 15, 39, 0, DateTimeKind.Utc)));
+				Assert.That(y.Agent.State, Is.EqualTo(DummyJsonEnum.Bar));
+			});
 		}
 
 		[Test]
@@ -1932,60 +2139,77 @@ namespace Doxense.Serialization.Json.Tests
 		{
 			// We have a container type that points to a non-sealed class, but with an instance of the expected type (i.e.: not of a derived type)
 			// => Dans In this case, there should not be any "_class" property because there is no ambiguity
-			var x = new DummyOuterDerivedClass();
-			x.Id = 7;
-			x.Agent = new DummyJsonClass();
-			x.Agent.Name = "James Bond";
-			x.Agent.Index = 7;
-			x.Agent.Size = 123456789;
-			x.Agent.Height = 1.8f;
-			x.Agent.Amount = 0.07d;
-			x.Agent.Created = new DateTime(1968, 5, 8, 0, 0, 0, DateTimeKind.Utc);
-			x.Agent.Modified = new DateTime(2010, 10, 28, 15, 39, 0, DateTimeKind.Utc);
-			x.Agent.State = DummyJsonEnum.Bar;
+			var x = new DummyOuterDerivedClass()
+			{
+				Id = 7,
+				Agent = new DummyJsonClass()
+				{
+					Name = "James Bond",
+					Index = 7,
+					Size = 123456789,
+					Height = 1.8f,
+					Amount = 0.07d,
+					Created = new DateTime(1968, 5, 8, 0, 0, 0, DateTimeKind.Utc),
+					Modified = new DateTime(2010, 10, 28, 15, 39, 0, DateTimeKind.Utc),
+					State = DummyJsonEnum.Bar,
+				}
+			};
 
-			string expectedAgent = """{ "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00Z", "Modified": "2010-10-28T15:39:00Z", "State": 42, "RatioOfStuff": 8641975.23 }""";
-			string jsonText = CrystalJson.Serialize(x.Agent);
-			Assert.That(jsonText, Is.EqualTo(expectedAgent), "Serialize(INNER, JSON)");
+			CheckSerialize(
+				x.Agent,
+				default,
+				"""{ "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00Z", "Modified": "2010-10-28T15:39:00Z", "State": 42, "RatioOfStuff": 8641975.23 }""",
+				"Serialize(INNER, JSON)"
+			);
 
-			string expected = "{ \"Id\": 7, \"Agent\": " + expectedAgent + " }";
-			jsonText = CrystalJson.Serialize(x);
-			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(OUTER, JSON)");
+			CheckSerialize(
+				x,
+				default,
+				"""{ "Id": 7, "Agent": { "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00Z", "Modified": "2010-10-28T15:39:00Z", "State": 42, "RatioOfStuff": 8641975.23 } }""",
+				"Serialize(OUTER, JSON)"
+			);
 
 			// indented
-			expected =
-				"{\r\n" +
-				"\t\"Id\": 7,\r\n" +
-				"\t\"Agent\": {\r\n" +
-				"\t\t\"Valid\": true,\r\n" +
-				"\t\t\"Name\": \"James Bond\",\r\n" +
-				"\t\t\"Index\": 7,\r\n" +
-				"\t\t\"Size\": 123456789,\r\n" +
-				"\t\t\"Height\": 1.8,\r\n" +
-				"\t\t\"Amount\": 0.07,\r\n" +
-				"\t\t\"Created\": \"1968-05-08T00:00:00Z\",\r\n" +
-				"\t\t\"Modified\": \"2010-10-28T15:39:00Z\",\r\n" +
-				"\t\t\"State\": 42,\r\n" +
-				"\t\t\"RatioOfStuff\": 8641975.23\r\n" +
-				"\t}\r\n" +
-				"}";
-			jsonText = CrystalJson.Serialize(x, CrystalJsonSettings.Json.Indented());
-			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(OUTER, JSON)");
+			CheckSerialize(
+				x,
+				CrystalJsonSettings.Json.Indented(),
+				"""
+				{
+					"Id": 7,
+					"Agent": {
+						"Valid": true,
+						"Name": "James Bond",
+						"Index": 7,
+						"Size": 123456789,
+						"Height": 1.8,
+						"Amount": 0.07,
+						"Created": "1968-05-08T00:00:00Z",
+						"Modified": "2010-10-28T15:39:00Z",
+						"State": 42,
+						"RatioOfStuff": 8641975.23
+					}
+				}
+				""",
+				"Serialize(OUTER, JSON)"
+			);
 
 			// Deserialize
-			var y = CrystalJson.Deserialize<DummyOuterDerivedClass>(expected);
+			var y = CrystalJson.Deserialize<DummyOuterDerivedClass>(CrystalJson.Serialize(x, CrystalJsonSettings.Json.Indented()));
 			Assert.That(y, Is.Not.Null);
-			Assert.That(y.Id, Is.EqualTo(7), ".Id");
-			Assert.That(y.Agent, Is.Not.Null, ".Agent");
-			Assert.That(y.Agent, Is.InstanceOf<DummyJsonClass>(), ".Agent");
-			Assert.That(y.Agent.Name, Is.EqualTo("James Bond"), ".Agent.Name");
-			Assert.That(y.Agent.Index, Is.EqualTo(7), ".Agent.Index");
-			Assert.That(y.Agent.Size, Is.EqualTo(123456789), ".Agent.Size");
-			Assert.That(y.Agent.Height, Is.EqualTo(1.8f), ".Agent.Height");
-			Assert.That(y.Agent.Amount, Is.EqualTo(0.07d), ".Agent.Amount");
-			Assert.That(y.Agent.Created, Is.EqualTo(new DateTime(1968, 5, 8, 0, 0, 0, DateTimeKind.Utc)), ".Agent.Created");
-			Assert.That(y.Agent.Modified, Is.EqualTo(new DateTime(2010, 10, 28, 15, 39, 0, DateTimeKind.Utc)), ".Agent.Modified");
-			Assert.That(y.Agent.State, Is.EqualTo(DummyJsonEnum.Bar), ".Agent.State");
+			Assert.Multiple(() =>
+			{
+				Assert.That(y.Id, Is.EqualTo(7));
+				Assert.That(y.Agent, Is.Not.Null);
+				Assert.That(y.Agent, Is.InstanceOf<DummyJsonClass>());
+				Assert.That(y.Agent.Name, Is.EqualTo("James Bond"));
+				Assert.That(y.Agent.Index, Is.EqualTo(7));
+				Assert.That(y.Agent.Size, Is.EqualTo(123456789));
+				Assert.That(y.Agent.Height, Is.EqualTo(1.8f));
+				Assert.That(y.Agent.Amount, Is.EqualTo(0.07d));
+				Assert.That(y.Agent.Created, Is.EqualTo(new DateTime(1968, 5, 8, 0, 0, 0, DateTimeKind.Utc)));
+				Assert.That(y.Agent.Modified, Is.EqualTo(new DateTime(2010, 10, 28, 15, 39, 0, DateTimeKind.Utc)));
+				Assert.That(y.Agent.State, Is.EqualTo(DummyJsonEnum.Bar));
+			});
 		}
 
 		[Test]
@@ -1994,52 +2218,66 @@ namespace Doxense.Serialization.Json.Tests
 			// We have a container type with a member of type "FooBase", but at runtime it contains a "FooDerived" instance (class that derives from "FooBase")
 			// => in this case, all members of FooDerived must be serialized, and the _class attribute must be included with the FooDerived class id, so that deserializing will know which type to instantiate
 
-			var x = new DummyOuterDerivedClass();
-
-			string expected = """{ "Id": 0 }""";
-			string jsonText = CrystalJson.Serialize(x);
-			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(EMPTY, JSON)");
+			CheckSerialize(
+				new DummyOuterDerivedClass(),
+				default,
+				"""{ "Id": 0 }""",
+				"Serialize(EMPTY, JSON)"
+			);
 
 			// filled with values
-			x.Id = 7;
-			var agent = new DummyDerivedJsonClass("Janov Bondovicz");
-			x.Agent = agent;
-			x.Agent.Name = "James Bond";
-			x.Agent.Index = 7;
-			x.Agent.Size = 123456789;
-			x.Agent.Height = 1.8f;
-			x.Agent.Amount = 0.07d;
-			x.Agent.Created = new DateTime(1968, 5, 8, 0, 0, 0, DateTimeKind.Utc);
-			x.Agent.Modified = new DateTime(2010, 10, 28, 15, 39, 0, DateTimeKind.Utc);
-			x.Agent.State = DummyJsonEnum.Bar;
+			var agent = new DummyDerivedJsonClass("Janov Bondovicz")
+			{
+				Name = "James Bond",
+				Index = 7,
+				Size = 123456789,
+				Height = 1.8f,
+				Amount = 0.07d,
+				Created = new DateTime(1968, 5, 8, 0, 0, 0, DateTimeKind.Utc),
+				Modified = new DateTime(2010, 10, 28, 15, 39, 0, DateTimeKind.Utc),
+				State = DummyJsonEnum.Bar,
+			};
+			var x = new DummyOuterDerivedClass
+			{
+				Id = 7,
+				Agent = agent,
+			};
 
 			// serialize the derived type explicitly (known type)
 			// as it is top-level, the _class property should not be included
-			string expectedAgent = """{ "IsDoubleAgent": true, "DoubleAgentName": "Janov Bondovicz", "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00Z", "Modified": "2010-10-28T15:39:00Z", "State": 42, "RatioOfStuff": 8641975.23 }""";
-			jsonText = CrystalJson.Serialize(agent);
-			Assert.That(jsonText, Is.EqualTo(expectedAgent), "Serialize(INNER, JSON)");
+			CheckSerialize(
+				agent,
+				default,
+				"""{ "IsDoubleAgent": true, "DoubleAgentName": "Janov Bondovicz", "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00Z", "Modified": "2010-10-28T15:39:00Z", "State": 42, "RatioOfStuff": 8641975.23 }""",
+				"Serialize(INNER, JSON)"
+			);
 
 			// serialize the container, which references this instance via the base type
 			// as it is not top-level, the _class property should be included!
-			expectedAgent = """{ "_class": "Doxense.Serialization.Json.Tests.DummyDerivedJsonClass, Doxense.Core.Tests", "IsDoubleAgent": true, "DoubleAgentName": "Janov Bondovicz", "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00Z", "Modified": "2010-10-28T15:39:00Z", "State": 42, "RatioOfStuff": 8641975.23 }""";
-			expected = "{ \"Id\": 7, \"Agent\": " + expectedAgent + " }";
-			jsonText = CrystalJson.Serialize(x);
-			Assert.That(jsonText, Is.EqualTo(expected), "Serialize(OUTER, JSON)");
+			CheckSerialize(
+				x,
+				default,
+				"""{ "Id": 7, "Agent": { "_class": "Doxense.Serialization.Json.Tests.DummyDerivedJsonClass, Doxense.Core.Tests", "IsDoubleAgent": true, "DoubleAgentName": "Janov Bondovicz", "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00Z", "Modified": "2010-10-28T15:39:00Z", "State": 42, "RatioOfStuff": 8641975.23 } }""",
+				"Serialize(OUTER, JSON)"
+			);
 
 			// deserialize the container
-			var y = CrystalJson.Deserialize<DummyOuterDerivedClass>(expected);
+			var y = CrystalJson.Deserialize<DummyOuterDerivedClass>(CrystalJson.Serialize(x));
 			Assert.That(y, Is.Not.Null);
-			Assert.That(y.Id, Is.EqualTo(7));
 			Assert.That(y.Agent, Is.Not.Null);
-			Assert.That(y.Agent, Is.InstanceOf<DummyDerivedJsonClass>(), "Should have instantianted the derived inner class, not the base class!");
-			Assert.That(y.Agent.Name, Is.EqualTo("James Bond"));
-			Assert.That(y.Agent.Index, Is.EqualTo(7));
-			Assert.That(y.Agent.Size, Is.EqualTo(123456789));
-			Assert.That(y.Agent.Height, Is.EqualTo(1.8f));
-			Assert.That(y.Agent.Amount, Is.EqualTo(0.07d));
-			Assert.That(y.Agent.Created, Is.EqualTo(new DateTime(1968, 5, 8, 0, 0, 0, DateTimeKind.Utc)));
-			Assert.That(y.Agent.Modified, Is.EqualTo(new DateTime(2010, 10, 28, 15, 39, 0, DateTimeKind.Utc)));
-			Assert.That(y.Agent.State, Is.EqualTo(DummyJsonEnum.Bar));
+			Assert.Multiple(() =>
+			{
+				Assert.That(y.Id, Is.EqualTo(7));
+				Assert.That(y.Agent, Is.InstanceOf<DummyDerivedJsonClass>(), "Should have instantianted the derived inner class, not the base class!");
+				Assert.That(y.Agent.Name, Is.EqualTo("James Bond"));
+				Assert.That(y.Agent.Index, Is.EqualTo(7));
+				Assert.That(y.Agent.Size, Is.EqualTo(123456789));
+				Assert.That(y.Agent.Height, Is.EqualTo(1.8f));
+				Assert.That(y.Agent.Amount, Is.EqualTo(0.07d));
+				Assert.That(y.Agent.Created, Is.EqualTo(new DateTime(1968, 5, 8, 0, 0, 0, DateTimeKind.Utc)));
+				Assert.That(y.Agent.Modified, Is.EqualTo(new DateTime(2010, 10, 28, 15, 39, 0, DateTimeKind.Utc)));
+				Assert.That(y.Agent.State, Is.EqualTo(DummyJsonEnum.Bar));
+			});
 
 			var z = (DummyDerivedJsonClass) y.Agent;
 			Assert.That(z.DoubleAgentName, Is.EqualTo("Janov Bondovicz"), "Should have deserialized the members specific to the derived class");
@@ -2051,7 +2289,7 @@ namespace Doxense.Serialization.Json.Tests
 		{
 			// serialize
 			var x = new DummyJsonCustomClass("foo");
-			Assert.That(CrystalJson.Serialize(x), Is.EqualTo("""{ "custom":"foo" }"""));
+			CheckSerialize(x, default, """{ "custom":"foo" }""");
 
 			// deserialize
 			var y = CrystalJson.Deserialize<DummyJsonCustomClass>("""{ "custom":"bar" }""");
@@ -2082,7 +2320,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			// serialize
 			var x = new DummyStaticLegacyJson("foo");
-			Assert.That(CrystalJson.Serialize(x), Is.EqualTo("""{ "custom":"foo" }"""));
+			CheckSerialize(x, default, """{ "custom":"foo" }""");
 
 			// deserialize
 			var y = CrystalJson.Deserialize<DummyStaticLegacyJson>("""{ "custom":"bar" }""");
@@ -2099,7 +2337,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			// serialize
 			var foo = new DummyStaticCustomJson("foo");
-			Assert.That(CrystalJson.Serialize(foo), Is.EqualTo("""{ "custom":"foo" }"""));
+			CheckSerialize(foo, default, """{ "custom":"foo" }""");
 
 			// deserialize
 			var foo2 = CrystalJson.Deserialize<DummyStaticCustomJson>("""{ "custom":"bar" }""");
@@ -2110,7 +2348,7 @@ namespace Doxense.Serialization.Json.Tests
 			// arrays
 
 			var arr = new [] { new DummyStaticCustomJson("foo"), new DummyStaticCustomJson("bar"), };
-			Assert.That(CrystalJson.Serialize(arr), Is.EqualTo("""[ { "custom":"foo" }, { "custom":"bar" } ]"""));
+			CheckSerialize(arr, default, """[ { "custom":"foo" }, { "custom":"bar" } ]""");
 
 			var arr2 = CrystalJson.Deserialize<DummyStaticCustomJson[]>("""[ { "custom":"foo" }, { "custom":"bar" } ]""");
 			Assert.That(arr2, Is.Not.Null);
@@ -2258,39 +2496,39 @@ namespace Doxense.Serialization.Json.Tests
 		public void Test_JsonSerialize_Arrays()
 		{
 			// int[]
-			Assert.That(CrystalJson.Serialize(Array.Empty<int>()), Is.EqualTo("[ ]"));
-			Assert.That(CrystalJson.Serialize(new int[1]), Is.EqualTo("[ 0 ]"));
-			Assert.That(CrystalJson.Serialize(new int[] { 1, 2, 3 }), Is.EqualTo("[ 1, 2, 3 ]"));
+			CheckSerialize(Array.Empty<int>(), default, "[ ]");
+			CheckSerialize(new int[1], default, "[ 0 ]");
+			CheckSerialize(new int[] { 1, 2, 3 }, default, "[ 1, 2, 3 ]");
 
-			Assert.That(CrystalJson.Serialize(Array.Empty<int>(), CrystalJsonSettings.JsonCompact), Is.EqualTo("[]"));
-			Assert.That(CrystalJson.Serialize(new int[1], CrystalJsonSettings.JsonCompact), Is.EqualTo("[0]"));
-			Assert.That(CrystalJson.Serialize(new int[] { 1, 2, 3 }, CrystalJsonSettings.JsonCompact), Is.EqualTo("[1,2,3]"));
+			CheckSerialize(Array.Empty<int>(), CrystalJsonSettings.JsonCompact, "[]");
+			CheckSerialize(new int[1], CrystalJsonSettings.JsonCompact, "[0]");
+			CheckSerialize(new int[] { 1, 2, 3 }, CrystalJsonSettings.JsonCompact, "[1,2,3]");
 
 			// string[]
-			Assert.That(CrystalJson.Serialize(new string[0]), Is.EqualTo("[ ]"));
-			Assert.That(CrystalJson.Serialize(new string[1]), Is.EqualTo("[ null ]"));
-			Assert.That(CrystalJson.Serialize(new string[] { "foo" }), Is.EqualTo("""[ "foo" ]"""));
-			Assert.That(CrystalJson.Serialize(new string[] { "foo", "bar", "baz" }), Is.EqualTo("""[ "foo", "bar", "baz" ]"""));
-			Assert.That(CrystalJson.Serialize(new string[] { "foo" }, CrystalJsonSettings.JavaScript), Is.EqualTo("[ 'foo' ]"));
-			Assert.That(CrystalJson.Serialize(new string[] { "foo", "bar", "baz" }, CrystalJsonSettings.JavaScript), Is.EqualTo("[ 'foo', 'bar', 'baz' ]"));
+			CheckSerialize(new string[0], default, "[ ]");
+			CheckSerialize(new string[1], default, "[ null ]");
+			CheckSerialize(new string[] { "foo" }, default, """[ "foo" ]""");
+			CheckSerialize(new string[] { "foo", "bar", "baz" }, default, """[ "foo", "bar", "baz" ]""");
+			CheckSerialize(new string[] { "foo" }, CrystalJsonSettings.JavaScript, "[ 'foo' ]");
+			CheckSerialize(new string[] { "foo", "bar", "baz" }, CrystalJsonSettings.JavaScript, "[ 'foo', 'bar', 'baz' ]");
 
 			// compact
-			Assert.That(CrystalJson.Serialize(new string[0], CrystalJsonSettings.JsonCompact), Is.EqualTo("[]"));
-			Assert.That(CrystalJson.Serialize(new string[] { "foo", "bar", "baz" }, CrystalJsonSettings.JsonCompact), Is.EqualTo("""["foo","bar","baz"]"""));
-			Assert.That(CrystalJson.Serialize(new string[] { "foo", "bar", "baz" }, CrystalJsonSettings.JavaScriptCompact), Is.EqualTo("['foo','bar','baz']"));
+			CheckSerialize(new string[0], CrystalJsonSettings.JsonCompact, "[]");
+			CheckSerialize(new string[] { "foo", "bar", "baz" }, CrystalJsonSettings.JsonCompact, """["foo","bar","baz"]""");
+			CheckSerialize(new string[] { "foo", "bar", "baz" }, CrystalJsonSettings.JavaScriptCompact, "['foo','bar','baz']");
 		}
 
 		[Test]
 		public void Test_JsonSerialize_Jagged_Arrays()
 		{
-			Assert.That(CrystalJson.Serialize<int[][]>([ [ ], [ ] ]), Is.EqualTo("[ [ ], [ ] ]"));
-			Assert.That(CrystalJson.Serialize<int[][]>([ [ ], [ ] ], CrystalJsonSettings.JsonCompact), Is.EqualTo("[[],[]]"));
+			CheckSerialize((int[][]) [ [ ], [ ] ], default, "[ [ ], [ ] ]");
+			CheckSerialize((int[][]) [ [ ], [ ] ], CrystalJsonSettings.JsonCompact, "[[],[]]");
 
-			Assert.That(CrystalJson.Serialize<int[][]>([ [ 1, 2, 3 ], [ 4, 5, 6 ] ]), Is.EqualTo("[ [ 1, 2, 3 ], [ 4, 5, 6 ] ]"));
-			Assert.That(CrystalJson.Serialize<int[][]>([ [ 1, 2, 3 ], [ 4, 5, 6 ] ], CrystalJsonSettings.JsonCompact), Is.EqualTo("[[1,2,3],[4,5,6]]"));
+			CheckSerialize((int[][]) [ [ 1, 2, 3 ], [ 4, 5, 6 ] ], default, "[ [ 1, 2, 3 ], [ 4, 5, 6 ] ]");
+			CheckSerialize((int[][]) [ [ 1, 2, 3 ], [ 4, 5, 6 ] ], CrystalJsonSettings.JsonCompact, "[[1,2,3],[4,5,6]]");
 
 			// INCEPTION !
-			Assert.That(CrystalJson.Serialize<string[][][][]>([ [ [ [ "INCEPTION" ] ] ] ]), Is.EqualTo("""[ [ [ [ "INCEPTION" ] ] ] ]"""));
+			CheckSerialize((string[][][][]) [ [ [ [ "INCEPTION" ] ] ] ], default, """[ [ [ [ "INCEPTION" ] ] ] ]""");
 		}
 
 		[Test]
@@ -2298,21 +2536,21 @@ namespace Doxense.Serialization.Json.Tests
 		{
 			// Collections
 			var listOfStrings = new List<string>();
-			Assert.That(CrystalJson.Serialize(listOfStrings), Is.EqualTo("[ ]"));
+			CheckSerialize(listOfStrings, default, "[ ]");
 			listOfStrings.Add("foo");
-			Assert.That(CrystalJson.Serialize(listOfStrings), Is.EqualTo("""[ "foo" ]"""));
+			CheckSerialize(listOfStrings, default, """[ "foo" ]""");
 			listOfStrings.Add("bar");
 			listOfStrings.Add("baz");
-			Assert.That(CrystalJson.Serialize(listOfStrings), Is.EqualTo("""[ "foo", "bar", "baz" ]"""));
-			Assert.That(CrystalJson.Serialize(listOfStrings, CrystalJsonSettings.JavaScript), Is.EqualTo("[ 'foo', 'bar', 'baz' ]"));
+			CheckSerialize(listOfStrings, default, """[ "foo", "bar", "baz" ]""");
+			CheckSerialize(listOfStrings, CrystalJsonSettings.JavaScript, "[ 'foo', 'bar', 'baz' ]");
 
 			var listOfObjects = new List<object>();
 			listOfObjects.Add(123);
 			listOfObjects.Add("Narf");
 			listOfObjects.Add(true);
 			listOfObjects.Add(DummyJsonEnum.Bar);
-			Assert.That(CrystalJson.Serialize(listOfObjects), Is.EqualTo("""[ 123, "Narf", true, 42 ]"""));
-			Assert.That(CrystalJson.Serialize(listOfObjects, CrystalJsonSettings.JavaScript), Is.EqualTo("[ 123, 'Narf', true, 42 ]"));
+			CheckSerialize(listOfObjects, default, """[ 123, "Narf", true, 42 ]""");
+			CheckSerialize(listOfObjects, CrystalJsonSettings.JavaScript, "[ 123, 'Narf', true, 42 ]");
 		}
 
 		[Test]
@@ -2321,46 +2559,40 @@ namespace Doxense.Serialization.Json.Tests
 			// list of objects
 			var queryableOfAnonymous = new int[] { 1, 2, 3 }.Select((x) => new { Value = x, Square = x * x, Ascii = (char)(64 + x) });
 			// queryable
-			Assert.That(
-				CrystalJson.Serialize(queryableOfAnonymous),
-				Is.EqualTo("""[ { "Value": 1, "Square": 1, "Ascii": "A" }, { "Value": 2, "Square": 4, "Ascii": "B" }, { "Value": 3, "Square": 9, "Ascii": "C" } ]""")
-			);
+			CheckSerialize(queryableOfAnonymous, default, """[ { "Value": 1, "Square": 1, "Ascii": "A" }, { "Value": 2, "Square": 4, "Ascii": "B" }, { "Value": 3, "Square": 9, "Ascii": "C" } ]""");
 			// convert to list
-			Assert.That(
-				CrystalJson.Serialize(queryableOfAnonymous.ToList()),
-				Is.EqualTo("""[ { "Value": 1, "Square": 1, "Ascii": "A" }, { "Value": 2, "Square": 4, "Ascii": "B" }, { "Value": 3, "Square": 9, "Ascii": "C" } ]""")
-			);
+			CheckSerialize(queryableOfAnonymous.ToList(), default, """[ { "Value": 1, "Square": 1, "Ascii": "A" }, { "Value": 2, "Square": 4, "Ascii": "B" }, { "Value": 3, "Square": 9, "Ascii": "C" } ]""");
 		}
 
 		[Test]
 		public void Test_JsonSerialize_STuples()
 		{
 			// STuple<...>
-			Assert.That(CrystalJson.Serialize(new STuple()), Is.EqualTo("[ ]"));
-			Assert.That(CrystalJson.Serialize(STuple.Create(123)), Is.EqualTo("[ 123 ]"));
-			Assert.That(CrystalJson.Serialize(STuple.Create(123, "Hello")), Is.EqualTo("""[ 123, "Hello" ]"""));
-			Assert.That(CrystalJson.Serialize(STuple.Create(123, "Hello", true)), Is.EqualTo("""[ 123, "Hello", true ]"""));
-			Assert.That(CrystalJson.Serialize(STuple.Create(123, "Hello", true, -1.5)), Is.EqualTo("""[ 123, "Hello", true, -1.5 ]"""));
-			Assert.That(CrystalJson.Serialize(STuple.Create(123, "Hello", true, -1.5, 'Z')), Is.EqualTo("""[ 123, "Hello", true, -1.5, "Z" ]"""));
-			Assert.That(CrystalJson.Serialize(STuple.Create(123, "Hello", true, -1.5, 'Z', new DateTime(2016, 11, 24, 11, 07, 23))), Is.EqualTo("""[ 123, "Hello", true, -1.5, "Z", "2016-11-24T11:07:23" ]"""));
-			Assert.That(CrystalJson.Serialize(STuple.Create(123, "Hello", true, -1.5, 'Z', new DateTime(2016, 11, 24, 11, 07, 23), "World")), Is.EqualTo("""[ 123, "Hello", true, -1.5, "Z", "2016-11-24T11:07:23", "World" ]"""));
+			CheckSerialize(new STuple(), default, "[ ]");
+			CheckSerialize(STuple.Create(123), default, "[ 123 ]");
+			CheckSerialize(STuple.Create(123, "Hello"), default, """[ 123, "Hello" ]""");
+			CheckSerialize(STuple.Create(123, "Hello", true), default, """[ 123, "Hello", true ]""");
+			CheckSerialize(STuple.Create(123, "Hello", true, -1.5), default, """[ 123, "Hello", true, -1.5 ]""");
+			CheckSerialize(STuple.Create(123, "Hello", true, -1.5, 'Z'), default, """[ 123, "Hello", true, -1.5, "Z" ]""");
+			CheckSerialize(STuple.Create(123, "Hello", true, -1.5, 'Z', new DateTime(2016, 11, 24, 11, 07, 23)), default, """[ 123, "Hello", true, -1.5, "Z", "2016-11-24T11:07:23" ]""");
+			CheckSerialize(STuple.Create(123, "Hello", true, -1.5, 'Z', new DateTime(2016, 11, 24, 11, 07, 23), "World"), default, """[ 123, "Hello", true, -1.5, "Z", "2016-11-24T11:07:23", "World" ]""");
 
 			// (ITuple) STuple<...>
-			Assert.That(CrystalJson.Serialize(STuple.Empty), Is.EqualTo("[ ]"));
-			Assert.That(CrystalJson.Serialize((IVarTuple) STuple.Create(123)), Is.EqualTo("[ 123 ]"));
-			Assert.That(CrystalJson.Serialize((IVarTuple) STuple.Create(123, "Hello")), Is.EqualTo("""[ 123, "Hello" ]"""));
-			Assert.That(CrystalJson.Serialize((IVarTuple) STuple.Create(123, "Hello", true)), Is.EqualTo("""[ 123, "Hello", true ]"""));
-			Assert.That(CrystalJson.Serialize((IVarTuple) STuple.Create(123, "Hello", true, -1.5)), Is.EqualTo("""[ 123, "Hello", true, -1.5 ]"""));
-			Assert.That(CrystalJson.Serialize((IVarTuple) STuple.Create(123, "Hello", true, -1.5, 'Z')), Is.EqualTo("""[ 123, "Hello", true, -1.5, "Z" ]"""));
-			Assert.That(CrystalJson.Serialize((IVarTuple) STuple.Create(123, "Hello", true, -1.5, 'Z', new DateTime(2016, 11, 24, 11, 07, 23))), Is.EqualTo("""[ 123, "Hello", true, -1.5, "Z", "2016-11-24T11:07:23" ]"""));
-			Assert.That(CrystalJson.Serialize((IVarTuple) STuple.Create(123, "Hello", true, -1.5, 'Z', new DateTime(2016, 11, 24, 11, 07, 23), "World")), Is.EqualTo("""[ 123, "Hello", true, -1.5, "Z", "2016-11-24T11:07:23", "World" ]"""));
+			CheckSerialize(STuple.Empty, default, "[ ]");
+			CheckSerialize((IVarTuple) STuple.Create(123), default, "[ 123 ]");
+			CheckSerialize((IVarTuple) STuple.Create(123, "Hello"), default, """[ 123, "Hello" ]""");
+			CheckSerialize((IVarTuple) STuple.Create(123, "Hello", true), default, """[ 123, "Hello", true ]""");
+			CheckSerialize((IVarTuple) STuple.Create(123, "Hello", true, -1.5), default, """[ 123, "Hello", true, -1.5 ]""");
+			CheckSerialize((IVarTuple) STuple.Create(123, "Hello", true, -1.5, 'Z'), default, """[ 123, "Hello", true, -1.5, "Z" ]""");
+			CheckSerialize((IVarTuple) STuple.Create(123, "Hello", true, -1.5, 'Z', new DateTime(2016, 11, 24, 11, 07, 23)), default, """[ 123, "Hello", true, -1.5, "Z", "2016-11-24T11:07:23" ]""");
+			CheckSerialize((IVarTuple) STuple.Create(123, "Hello", true, -1.5, 'Z', new DateTime(2016, 11, 24, 11, 07, 23), "World"), default, """[ 123, "Hello", true, -1.5, "Z", "2016-11-24T11:07:23", "World" ]""");
 
 			// custom tuple types
-			Assert.That(CrystalJson.Serialize(new ListTuple<int>([ 1, 2, 3 ])), Is.EqualTo("[ 1, 2, 3 ]"));
-			Assert.That(CrystalJson.Serialize(new ListTuple<string>([ "foo", "bar", "baz" ])), Is.EqualTo("""[ "foo", "bar", "baz" ]"""));
-			Assert.That(CrystalJson.Serialize(new ListTuple<object>([ "hello world", 123, false ])), Is.EqualTo("""[ "hello world", 123, false ]"""));
-			Assert.That(CrystalJson.Serialize(new LinkedTuple<int>(STuple.Create(1, 2), 3)), Is.EqualTo("[ 1, 2, 3 ]"));
-			Assert.That(CrystalJson.Serialize(new JoinedTuple(STuple.Create(1, 2), STuple.Create(3))), Is.EqualTo("[ 1, 2, 3 ]"));
+			CheckSerialize(new ListTuple<int>([ 1, 2, 3 ]), default, "[ 1, 2, 3 ]");
+			CheckSerialize(new ListTuple<string>([ "foo", "bar", "baz" ]), default, """[ "foo", "bar", "baz" ]""");
+			CheckSerialize(new ListTuple<object>([ "hello world", 123, false ]), default, """[ "hello world", 123, false ]""");
+			CheckSerialize(new LinkedTuple<int>(STuple.Create(1, 2), 3), default, "[ 1, 2, 3 ]");
+			CheckSerialize(new JoinedTuple(STuple.Create(1, 2), STuple.Create(3)), default, "[ 1, 2, 3 ]");
 		}
 
 		[Test]
@@ -2368,25 +2600,25 @@ namespace Doxense.Serialization.Json.Tests
 		{
 			// STuple<...>
 			Log("ValueTuple...");
-			Assert.That(CrystalJson.Serialize(ValueTuple.Create()), Is.EqualTo("[ ]"));
-			Assert.That(CrystalJson.Serialize(ValueTuple.Create(123)), Is.EqualTo("[ 123 ]"));
-			Assert.That(CrystalJson.Serialize(ValueTuple.Create(123, "Hello")), Is.EqualTo("""[ 123, "Hello" ]"""));
-			Assert.That(CrystalJson.Serialize(ValueTuple.Create(123, "Hello", true)), Is.EqualTo("""[ 123, "Hello", true ]"""));
-			Assert.That(CrystalJson.Serialize(ValueTuple.Create(123, "Hello", true, -1.5)), Is.EqualTo("""[ 123, "Hello", true, -1.5 ]"""));
-			Assert.That(CrystalJson.Serialize(ValueTuple.Create(123, "Hello", true, -1.5, 'Z')), Is.EqualTo("""[ 123, "Hello", true, -1.5, "Z" ]"""));
-			Assert.That(CrystalJson.Serialize(ValueTuple.Create(123, "Hello", true, -1.5, 'Z', new DateTime(2016, 11, 24, 11, 07, 23))), Is.EqualTo("""[ 123, "Hello", true, -1.5, "Z", "2016-11-24T11:07:23" ]"""));
-			Assert.That(CrystalJson.Serialize(ValueTuple.Create(123, "Hello", true, -1.5, 'Z', new DateTime(2016, 11, 24, 11, 07, 23), "World")), Is.EqualTo("""[ 123, "Hello", true, -1.5, "Z", "2016-11-24T11:07:23", "World" ]"""));
+			CheckSerialize(ValueTuple.Create(), default, "[ ]");
+			CheckSerialize(ValueTuple.Create(123), default, "[ 123 ]");
+			CheckSerialize(ValueTuple.Create(123, "Hello"), default, """[ 123, "Hello" ]""");
+			CheckSerialize(ValueTuple.Create(123, "Hello", true), default, """[ 123, "Hello", true ]""");
+			CheckSerialize(ValueTuple.Create(123, "Hello", true, -1.5), default, """[ 123, "Hello", true, -1.5 ]""");
+			CheckSerialize(ValueTuple.Create(123, "Hello", true, -1.5, 'Z'), default, """[ 123, "Hello", true, -1.5, "Z" ]""");
+			CheckSerialize(ValueTuple.Create(123, "Hello", true, -1.5, 'Z', new DateTime(2016, 11, 24, 11, 07, 23)), default, """[ 123, "Hello", true, -1.5, "Z", "2016-11-24T11:07:23" ]""");
+			CheckSerialize(ValueTuple.Create(123, "Hello", true, -1.5, 'Z', new DateTime(2016, 11, 24, 11, 07, 23), "World"), default, """[ 123, "Hello", true, -1.5, "Z", "2016-11-24T11:07:23", "World" ]""");
 
 			// (ITuple) STuple<...>
 			Log("ITuple...");
-			Assert.That(CrystalJson.Serialize((ITuple) ValueTuple.Create()), Is.EqualTo("[ ]"));
-			Assert.That(CrystalJson.Serialize((ITuple) ValueTuple.Create(123)), Is.EqualTo("[ 123 ]"));
-			Assert.That(CrystalJson.Serialize((ITuple) ValueTuple.Create(123, "Hello")), Is.EqualTo("""[ 123, "Hello" ]"""));
-			Assert.That(CrystalJson.Serialize((ITuple) ValueTuple.Create(123, "Hello", true)), Is.EqualTo("""[ 123, "Hello", true ]"""));
-			Assert.That(CrystalJson.Serialize((ITuple) ValueTuple.Create(123, "Hello", true, -1.5)), Is.EqualTo("""[ 123, "Hello", true, -1.5 ]"""));
-			Assert.That(CrystalJson.Serialize((ITuple) ValueTuple.Create(123, "Hello", true, -1.5, 'Z')), Is.EqualTo("""[ 123, "Hello", true, -1.5, "Z" ]"""));
-			Assert.That(CrystalJson.Serialize((ITuple) ValueTuple.Create(123, "Hello", true, -1.5, 'Z', new DateTime(2016, 11, 24, 11, 07, 23))), Is.EqualTo("""[ 123, "Hello", true, -1.5, "Z", "2016-11-24T11:07:23" ]"""));
-			Assert.That(CrystalJson.Serialize((ITuple) ValueTuple.Create(123, "Hello", true, -1.5, 'Z', new DateTime(2016, 11, 24, 11, 07, 23), "World")), Is.EqualTo("""[ 123, "Hello", true, -1.5, "Z", "2016-11-24T11:07:23", "World" ]"""));
+			CheckSerialize((ITuple) ValueTuple.Create(), default, "[ ]");
+			CheckSerialize((ITuple) ValueTuple.Create(123), default, "[ 123 ]");
+			CheckSerialize((ITuple) ValueTuple.Create(123, "Hello"), default, """[ 123, "Hello" ]""");
+			CheckSerialize((ITuple) ValueTuple.Create(123, "Hello", true), default, """[ 123, "Hello", true ]""");
+			CheckSerialize((ITuple) ValueTuple.Create(123, "Hello", true, -1.5), default, """[ 123, "Hello", true, -1.5 ]""");
+			CheckSerialize((ITuple) ValueTuple.Create(123, "Hello", true, -1.5, 'Z'), default, """[ 123, "Hello", true, -1.5, "Z" ]""");
+			CheckSerialize((ITuple) ValueTuple.Create(123, "Hello", true, -1.5, 'Z', new DateTime(2016, 11, 24, 11, 07, 23)), default, """[ 123, "Hello", true, -1.5, "Z", "2016-11-24T11:07:23" ]""");
+			CheckSerialize((ITuple) ValueTuple.Create(123, "Hello", true, -1.5, 'Z', new DateTime(2016, 11, 24, 11, 07, 23), "World"), default, """[ 123, "Hello", true, -1.5, "Z", "2016-11-24T11:07:23", "World" ]""");
 		}
 
 		[Test]
@@ -2396,120 +2628,134 @@ namespace Doxense.Serialization.Json.Tests
 
 			// seconds (integer)
 			var duration = NodaTime.Duration.FromSeconds(3600);
-			Assert.That(CrystalJson.Serialize(duration), Is.EqualTo("3600"));
+			CheckSerialize(duration, default, "3600");
 
 			// seconds + miliseconds
 			duration = NodaTime.Duration.FromMilliseconds(3600272);
-			Assert.That(CrystalJson.Serialize(duration), Is.EqualTo("3600.272"));
+			CheckSerialize(duration, default, "3600.272");
 
 			// epsilon
 			duration = NodaTime.Duration.Epsilon;
-			Assert.That(CrystalJson.Serialize(duration), Is.EqualTo("1E-09"));
+			CheckSerialize(duration, default, "1E-09");
 
 			#endregion
 
 			#region Instant
 
 			var instant = default(NodaTime.Instant);
-			Assert.That(CrystalJson.Serialize(instant), Is.EqualTo("\"1970-01-01T00:00:00Z\""));
+			CheckSerialize(instant, default, "\"1970-01-01T00:00:00Z\"");
 
 			instant = NodaTime.Instant.FromUtc(2013, 6, 7, 11, 06, 58);
-			Assert.That(CrystalJson.Serialize(instant), Is.EqualTo("\"2013-06-07T11:06:58Z\""));
+			CheckSerialize(instant, default, "\"2013-06-07T11:06:58Z\"");
 
 			instant = NodaTime.Instant.FromUtc(-52, 8, 27, 12, 12);
-			Assert.That(CrystalJson.Serialize(instant), Is.EqualTo("\"-0052-08-27T12:12:00Z\""));
+			CheckSerialize(instant, default, "\"-0052-08-27T12:12:00Z\"");
 
 			#endregion
 
 			#region LocalDateTime
 
 			var time = default(NodaTime.LocalDateTime);
-			Assert.That(CrystalJson.Serialize(time), Is.EqualTo("\"0001-01-01T00:00:00\""));
+			CheckSerialize(time, default, "\"0001-01-01T00:00:00\"");
 
 			time = new NodaTime.LocalDateTime(1988, 04, 19, 00, 35, 56);
-			Assert.That(CrystalJson.Serialize(time), Is.EqualTo("\"1988-04-19T00:35:56\""));
+			CheckSerialize(time, default, "\"1988-04-19T00:35:56\"");
 
 			time = new NodaTime.LocalDateTime(0, 1, 1, 0, 0);
-			Assert.That(CrystalJson.Serialize(time), Is.EqualTo("\"0000-01-01T00:00:00\""));
+			CheckSerialize(time, default, "\"0000-01-01T00:00:00\"");
 
 			time = new NodaTime.LocalDateTime(-250, 02, 27, 18, 42);
-			Assert.That(CrystalJson.Serialize(time), Is.EqualTo("\"-0250-02-27T18:42:00\""));
+			CheckSerialize(time, default, "\"-0250-02-27T18:42:00\"");
 
 			#endregion
 
 			#region ZonedDateTime
 
-			Assert.That(
-				CrystalJson.Serialize(default(NodaTime.ZonedDateTime)),
-				Is.EqualTo("\"0001-01-01T00:00:00Z UTC\"")
+			CheckSerialize(
+				default(ZonedDateTime),
+				default,
+				"\"0001-01-01T00:00:00Z UTC\""
 			);
 
-			Assert.That(
-				CrystalJson.Serialize(new NodaTime.ZonedDateTime(NodaTime.Instant.FromUtc(1988, 04, 19, 00, 35, 56), NodaTime.DateTimeZoneProviders.Tzdb["Europe/Paris"])),
-				Is.EqualTo("\"1988-04-19T02:35:56+02 Europe/Paris\"") // note: GMT+2
+			CheckSerialize(
+				new ZonedDateTime(Instant.FromUtc(1988, 04, 19, 00, 35, 56), DateTimeZoneProviders.Tzdb["Europe/Paris"]),
+				default,
+				"\"1988-04-19T02:35:56+02 Europe/Paris\"" 
+				// note: GMT+2
 			);
 
-			Assert.That(
-				CrystalJson.Serialize(new NodaTime.ZonedDateTime(NodaTime.Instant.FromUtc(0, 1, 1, 0, 0), NodaTime.DateTimeZone.Utc)),
-				Is.EqualTo("\"0000-01-01T00:00:00Z UTC\"")
+			CheckSerialize(
+				new ZonedDateTime(Instant.FromUtc(0, 1, 1, 0, 0), DateTimeZone.Utc),
+				default,
+				"\"0000-01-01T00:00:00Z UTC\""
 			);
 
-			Assert.That(
-				CrystalJson.Serialize(new NodaTime.ZonedDateTime(NodaTime.Instant.FromUtc(-250, 02, 27, 18, 42), NodaTime.DateTimeZoneProviders.Tzdb["Africa/Cairo"])),
-				Is.EqualTo("\"-0250-02-27T20:47:09+02:05:09 Africa/Cairo\"") // note: gregorian calendars
+			CheckSerialize(
+				new ZonedDateTime(Instant.FromUtc(-250, 02, 27, 18, 42), DateTimeZoneProviders.Tzdb["Africa/Cairo"]),
+				default,
+				"\"-0250-02-27T20:47:09+02:05:09 Africa/Cairo\"" 
+				// note: gregorian calendars
 			);
 
 			// Intentionaly give it an ambiguous local time, in both ways.
 			var zone = NodaTime.DateTimeZoneProviders.Tzdb["Europe/London"];
-			Assert.That(
-				CrystalJson.Serialize(new NodaTime.ZonedDateTime(new NodaTime.LocalDateTime(2012, 10, 28, 1, 30), zone, NodaTime.Offset.FromHours(1))),
-				Is.EqualTo("\"2012-10-28T01:30:00+01 Europe/London\"")
+			CheckSerialize(
+				new ZonedDateTime(new LocalDateTime(2012, 10, 28, 1, 30), zone, Offset.FromHours(1)),
+				default,
+				"\"2012-10-28T01:30:00+01 Europe/London\""
 			);
-			Assert.That(
-				CrystalJson.Serialize(new NodaTime.ZonedDateTime(new NodaTime.LocalDateTime(2012, 10, 28, 1, 30), zone, NodaTime.Offset.FromHours(0))),
-				Is.EqualTo("\"2012-10-28T01:30:00Z Europe/London\"")
+			CheckSerialize(
+				new ZonedDateTime(new LocalDateTime(2012, 10, 28, 1, 30), zone, Offset.FromHours(0)),
+				default,
+				"\"2012-10-28T01:30:00Z Europe/London\""
 			);
 
 			#endregion
 
 			#region DateTimeZone
 
-			Assert.That(CrystalJson.Serialize(NodaTime.DateTimeZone.Utc), Is.EqualTo("\"UTC\""));
+			CheckSerialize(DateTimeZone.Utc, default, "\"UTC\"");
 			// with tzdb, the format is "Region/City"
-			Assert.That(CrystalJson.Serialize(NodaTime.DateTimeZoneProviders.Tzdb["Europe/Paris"]), Is.EqualTo("\"Europe/Paris\""));
-			Assert.That(CrystalJson.Serialize(NodaTime.DateTimeZoneProviders.Tzdb["America/New_York"]), Is.EqualTo("\"America/New_York\"")); // espace convertis en '_'
-			Assert.That(CrystalJson.Serialize(NodaTime.DateTimeZoneProviders.Tzdb["Asia/Tokyo"]), Is.EqualTo("\"Asia/Tokyo\""));
+			CheckSerialize(DateTimeZoneProviders.Tzdb["Europe/Paris"], default, "\"Europe/Paris\"");
+			CheckSerialize(DateTimeZoneProviders.Tzdb["America/New_York"], default, "\"America/New_York\""); // spaces converted to '_'
+			CheckSerialize(DateTimeZoneProviders.Tzdb["Asia/Tokyo"], default, "\"Asia/Tokyo\"");
 
 			#endregion
 
 			#region OffsetDateTime
 
-			Assert.That(
-				CrystalJson.Serialize(default(NodaTime.OffsetDateTime)),
-				Is.EqualTo("\"0001-01-01T00:00:00Z\"")
+			CheckSerialize(
+				default(OffsetDateTime),
+				default,
+				"\"0001-01-01T00:00:00Z\"",
+				""
 			);
 
-			Assert.That(
-				CrystalJson.Serialize(new NodaTime.LocalDateTime(2012, 1, 2, 3, 4, 5, 6).PlusTicks(7).WithOffset(NodaTime.Offset.Zero)),
-				Is.EqualTo("\"2012-01-02T03:04:05.0060007Z\""),
+			CheckSerialize(
+				new LocalDateTime(2012, 1, 2, 3, 4, 5, 6).PlusTicks(7).WithOffset(Offset.Zero),
+				default,
+				"\"2012-01-02T03:04:05.0060007Z\"",
 				"Offset of 0 means UTC"
 			);
 
-			Assert.That(
-				CrystalJson.Serialize(new NodaTime.LocalDateTime(2012, 1, 2, 3, 4, 5, 6).PlusTicks(7).WithOffset(NodaTime.Offset.FromHours(2))),
-				Is.EqualTo("\"2012-01-02T03:04:05.0060007+02:00\""),
+			CheckSerialize(
+				new LocalDateTime(2012, 1, 2, 3, 4, 5, 6).PlusTicks(7).WithOffset(Offset.FromHours(2)),
+				default,
+				"\"2012-01-02T03:04:05.0060007+02:00\"",
 				"Only HH:MM for the timezone offset"
 			);
 
-			Assert.That(
-				CrystalJson.Serialize(new NodaTime.LocalDateTime(2012, 1, 2, 3, 4, 5, 6).PlusTicks(7).WithOffset(NodaTime.Offset.FromHoursAndMinutes(-1, -30))),
-				Is.EqualTo("\"2012-01-02T03:04:05.0060007-01:30\""),
+			CheckSerialize(
+				new LocalDateTime(2012, 1, 2, 3, 4, 5, 6).PlusTicks(7).WithOffset(Offset.FromHoursAndMinutes(-1, -30)),
+				default,
+				"\"2012-01-02T03:04:05.0060007-01:30\"",
 				"Allow negative offsets"
 			);
 
-			Assert.That(
-				CrystalJson.Serialize(new NodaTime.LocalDateTime(2012, 1, 2, 3, 4, 5, 6).PlusTicks(7).WithOffset(NodaTime.Offset.FromHoursAndMinutes(-1, -30) + NodaTime.Offset.FromMilliseconds(-1234))),
-				Is.EqualTo("\"2012-01-02T03:04:05.0060007-01:30\""),
+			CheckSerialize(
+				new LocalDateTime(2012, 1, 2, 3, 4, 5, 6).PlusTicks(7).WithOffset(Offset.FromHoursAndMinutes(-1, -30) + Offset.FromMilliseconds(-1234)),
+				default,
+				"\"2012-01-02T03:04:05.0060007-01:30\"",
 				"Seconds and milliseconds in timezone offset should be dropped"
 			);
 
@@ -2517,10 +2763,10 @@ namespace Doxense.Serialization.Json.Tests
 
 			#region Offset...
 
-			Assert.That(CrystalJson.Serialize(NodaTime.Offset.Zero), Is.EqualTo("\"+00\""));
-			Assert.That(CrystalJson.Serialize(NodaTime.Offset.FromHours(2)), Is.EqualTo("\"+02\""));
-			Assert.That(CrystalJson.Serialize(NodaTime.Offset.FromHoursAndMinutes(1, 30)), Is.EqualTo("\"+01:30\""));
-			Assert.That(CrystalJson.Serialize(NodaTime.Offset.FromHoursAndMinutes(-1, -30)), Is.EqualTo("\"-01:30\""));
+			CheckSerialize(Offset.Zero, default, "\"+00\"");
+			CheckSerialize(Offset.FromHours(2), default, "\"+02\"");
+			CheckSerialize(Offset.FromHoursAndMinutes(1, 30), default, "\"+01:30\"");
+			CheckSerialize(Offset.FromHoursAndMinutes(-1, -30), default, "\"-01:30\"");
 
 			#endregion
 		}
@@ -2532,72 +2778,68 @@ namespace Doxense.Serialization.Json.Tests
 			int index = rnd.Next(NodaTime.DateTimeZoneProviders.Tzdb.Ids.Count);
 			var id = NodaTime.DateTimeZoneProviders.Tzdb.Ids[index];
 			var zone = NodaTime.DateTimeZoneProviders.Tzdb.GetZoneOrNull(id);
-			Assert.That(CrystalJson.Serialize(zone), Is.EqualTo("\"" + id + "\""));
+			CheckSerialize(zone, default, "\"" + id + "\"");
 		}
 
 		[Test]
 		public void Test_JsonSerialize_Bytes()
 		{
-			{ // byte[]
+			CheckSerialize(default(byte[]), default, "null");
+			CheckSerialize(Array.Empty<byte>(), default, @"""""");
 
-				Assert.That(CrystalJson.Serialize(default(byte[])), Is.EqualTo("null"));
-				Assert.That(CrystalJson.Serialize(Array.Empty<byte>()), Is.EqualTo(@""""""));
+			// note: binaries are encoded as Base64 text
+			byte[] arrayOfBytes = [ 65, 0, 42, 255, 32 ];
+			CheckSerialize(arrayOfBytes, default, @"""QQAq/yA=""");
 
-				// note: binaries are encoded as Base64 text
-				var arrayOfBytes = new byte[] {65, 0, 42, 255, 32};
-				Assert.That(CrystalJson.Serialize(arrayOfBytes), Is.EqualTo(@"""QQAq/yA="""));
+			// random
+			arrayOfBytes = new byte[16];
+			new Random().NextBytes(arrayOfBytes);
+			CheckSerialize(arrayOfBytes, default, "\"" + Convert.ToBase64String(arrayOfBytes) + "\"", "Random Data!");
+		}
 
-				// random
-				arrayOfBytes = new byte[16];
-				new Random().NextBytes(arrayOfBytes);
-				Assert.That(CrystalJson.Serialize(arrayOfBytes), Is.EqualTo("\"" + Convert.ToBase64String(arrayOfBytes) + "\""), "Random Data!");
-			}
+		[Test]
+		public void Test_JsonSerialize_Slices()
+		{
+			CheckSerialize(Slice.Nil, default, "null");
+			CheckSerialize(Slice.Empty, default, @"""""");
 
-			{ // Slice
-				Assert.That(CrystalJson.Serialize(Slice.Nil), Is.EqualTo("null"));
-				Assert.That(CrystalJson.Serialize(Slice.Empty), Is.EqualTo(@""""""));
+			var slice = new byte[] { 123, 123, 123, 65, 0, 42, 255, 32, 123 }.AsSlice(3, 5);
+			CheckSerialize(slice, default, @"""QQAq/yA=""");
 
-				var slice = new byte[] { 123, 123, 123, 65, 0, 42, 255, 32, 123 }.AsSlice(3, 5);
-				Assert.That(CrystalJson.Serialize(slice), Is.EqualTo(@"""QQAq/yA="""));
-
-				// random
-				var bytes = new byte[32];
-				new Random().NextBytes(bytes);
-				slice = bytes.AsSlice(8, 16);
-				Assert.That(CrystalJson.Serialize(slice), Is.EqualTo("\"" + Convert.ToBase64String(bytes, 8, 16) + "\""), "Random Data!");
-			}
-
+			// random
+			var bytes = new byte[32];
+			new Random().NextBytes(bytes);
+			slice = bytes.AsSlice(8, 16);
+			CheckSerialize(slice, default, "\"" + Convert.ToBase64String(bytes, 8, 16) + "\"", "Random Data!");
 		}
 
 		[Test]
 		public void Test_JsonDeserialize_Bytes()
 		{
-			{ // byte[]
+			Assert.That(CrystalJson.Deserialize<byte[]?>("null", null), Is.Null);
+			Assert.That(CrystalJson.Deserialize<byte[]>("\"\""), Is.EqualTo(Array.Empty<byte>()));
 
-				Assert.That(CrystalJson.Deserialize<byte[]?>("null", null), Is.Null);
-				Assert.That(CrystalJson.Deserialize<byte[]>("\"\""), Is.EqualTo(Array.Empty<byte>()));
+			// note: binaries are encoded as Base64 text
+			Assert.That(CrystalJson.Deserialize<byte[]>("\"QQAq/yA=\""), Is.EqualTo(new byte[] { 65, 0, 42, 255, 32 }));
 
-				// note: binaries are encoded as Base64 text
-				Assert.That(CrystalJson.Deserialize<byte[]>("\"QQAq/yA=\""), Is.EqualTo(new byte[] { 65, 0, 42, 255, 32 }));
+			// random
+			var bytes = new byte[16];
+			new Random().NextBytes(bytes);
+			Assert.That(CrystalJson.Deserialize<byte[]>("\"" + Convert.ToBase64String(bytes) + "\""), Is.EqualTo(bytes), "Random Data!");
+		}
 
-				// random
-				var bytes = new byte[16];
-				new Random().NextBytes(bytes);
-				Assert.That(CrystalJson.Deserialize<byte[]>("\"" + Convert.ToBase64String(bytes) + "\""), Is.EqualTo(bytes), "Random Data!");
-			}
+		[Test]
+		public void Test_JsonDeserialize_Slices()
+		{
+			Assert.That(CrystalJson.Deserialize<Slice>("null", default), Is.EqualTo(Slice.Nil));
+			Assert.That(CrystalJson.Deserialize<Slice>(@""""""), Is.EqualTo(Slice.Empty));
 
-			{ // Slice
-				Assert.That(CrystalJson.Deserialize<Slice>("null", default), Is.EqualTo(Slice.Nil));
-				Assert.That(CrystalJson.Deserialize<Slice>(@""""""), Is.EqualTo(Slice.Empty));
+			Assert.That(CrystalJson.Deserialize<Slice>(@"""QQAq/yA="""), Is.EqualTo(new byte[] { 65, 0, 42, 255, 32 }.AsSlice()));
 
-				Assert.That(CrystalJson.Deserialize<Slice>(@"""QQAq/yA="""), Is.EqualTo(new byte[] { 65, 0, 42, 255, 32 }.AsSlice()));
-
-				// random
-				var bytes = new byte[32];
-				new Random().NextBytes(bytes);
-				Assert.That(CrystalJson.Deserialize<Slice>("\"" + Convert.ToBase64String(bytes) + "\""), Is.EqualTo(bytes.AsSlice()), "Random Data!");
-			}
-
+			// random
+			var bytes = new byte[32];
+			new Random().NextBytes(bytes);
+			Assert.That(CrystalJson.Deserialize<Slice>("\"" + Convert.ToBase64String(bytes) + "\""), Is.EqualTo(bytes.AsSlice()), "Random Data!");
 		}
 
 		[Test]
@@ -2607,6 +2849,12 @@ namespace Doxense.Serialization.Json.Tests
 			// - JSON target: keys must always be escaped with double quotes (")
 			// - JavaScript target: keys are identifiers and usually do no require escaping, unless required, and in this case will use single quotes (')
 
+			CheckSerialize(new Dictionary<string, string>(), default, "{ }");
+			CheckSerialize(new Dictionary<string, string> { ["foo"] = "bar" }, default, """{ "foo": "bar" }""");
+
+			CheckSerialize(new Dictionary<string, string>(), CrystalJsonSettings.JavaScript, "{ }");
+			CheckSerialize(new Dictionary<string, string> { ["foo"] = "bar" }, CrystalJsonSettings.JavaScript, "{ foo: 'bar' }");
+
 			var dicOfStrings = new Dictionary<string, string>
 			{
 				["foo"] = "bar",
@@ -2615,27 +2863,76 @@ namespace Doxense.Serialization.Json.Tests
 				["all your bases"] = "are belong to us"
 			};
 			// JSON
-			Assert.That(CrystalJson.Serialize(dicOfStrings), Is.EqualTo("""{ "foo": "bar", "narf": "zort", "123": "456", "all your bases": "are belong to us" }"""), "JSON");
+			CheckSerialize(
+				dicOfStrings,
+				default,
+				"""{ "foo": "bar", "narf": "zort", "123": "456", "all your bases": "are belong to us" }"""
+			);
+			CheckSerialize(
+				dicOfStrings,
+				CrystalJsonSettings.Json.Compacted(),
+				"""{"foo":"bar","narf":"zort","123":"456","all your bases":"are belong to us"}"""
+			);
+			CheckSerialize(
+				dicOfStrings,
+				CrystalJsonSettings.Json.Indented(),
+				"""
+				{
+					"foo": "bar",
+					"narf": "zort",
+					"123": "456",
+					"all your bases": "are belong to us"
+				}
+				"""
+			);
 			// JS
-			Assert.That(CrystalJson.Serialize(dicOfStrings, CrystalJsonSettings.JavaScript), Is.EqualTo("{ foo: 'bar', narf: 'zort', '123': '456', 'all your bases': 'are belong to us' }"), "JavaScript");
+			CheckSerialize(
+				dicOfStrings,
+				CrystalJsonSettings.JavaScript,
+				"{ foo: 'bar', narf: 'zort', '123': '456', 'all your bases': 'are belong to us' }",
+				"JavaScript"
+			);
 
 			var dicOfInts = new Dictionary<string, int>
 			{
 				["foo"] = 123,
 				["bar"] = 456
 			};
-			// JSON
-			Assert.That(CrystalJson.Serialize(dicOfInts), Is.EqualTo("""{ "foo": 123, "bar": 456 }"""));
+			CheckSerialize(dicOfInts, default, """{ "foo": 123, "bar": 456 }""");
+			CheckSerialize(dicOfInts, CrystalJsonSettings.JavaScript, "{ 'foo': 123, 'bar': 456 }");
 
 			var dicOfObjects = new Dictionary<string, Tuple<int, string>>
 			{
 				["foo"] = new(123, "bar"),
 				["narf"] = new(456, "zort")
 			};
-			// JSON
-			Assert.That(CrystalJson.Serialize(dicOfObjects), Is.EqualTo("""{ "foo": { "Item1": 123, "Item2": "bar" }, "narf": { "Item1": 456, "Item2": "zort" } }"""));
-			// JS
-			Assert.That(CrystalJson.Serialize(dicOfObjects, CrystalJsonSettings.JavaScript), Is.EqualTo("{ 'foo': { Item1: 123, Item2: 'bar' }, 'narf': { Item1: 456, Item2: 'zort' } }"));
+			CheckSerialize(
+				dicOfObjects,
+				default,
+				"""{ "foo": { "Item1": 123, "Item2": "bar" }, "narf": { "Item1": 456, "Item2": "zort" } }"""
+			);
+			CheckSerialize(
+				dicOfObjects,
+				CrystalJsonSettings.JavaScript,
+				"{ 'foo': { Item1: 123, Item2: 'bar' }, 'narf': { Item1: 456, Item2: 'zort' } }"
+			);
+
+			var dicOfTuples = new Dictionary<string, (int, string)>
+			{
+				["foo"] = new(123, "bar"),
+				["narf"] = new(456, "zort")
+			};
+			CheckSerialize(
+				dicOfTuples,
+				default,
+				"""{ "foo": [ 123, "bar" ], "narf": [ 456, "zort" ] }"""
+			);
+			CheckSerialize(
+				dicOfTuples,
+				CrystalJsonSettings.JavaScript,
+				"{ 'foo': [ 123, 'bar' ], 'narf': [ 456, 'zort' ] }"
+			);
+
 		}
 
 		[Test]
@@ -2698,59 +2995,69 @@ namespace Doxense.Serialization.Json.Tests
 			};
 
 			// JSON
-			string expected = @"{ ""Id"": 1, ""Title"": ""The Big Bang Theory"", ""Cancelled"": false"
-			+ @", ""Cast"": [ "
-			+ /**/@"{ ""Character"": ""Sheldon Cooper"", ""Actor"": ""Jim Parsons"", ""Female"": false }, "
-			+ /**/@"{ ""Character"": ""Leonard Hofstadter"", ""Actor"": ""Johny Galecki"", ""Female"": false }, "
-			+ /**/@"{ ""Character"": ""Penny"", ""Actor"": ""Kaley Cuoco"", ""Female"": true }, "
-			+ /**/@"{ ""Character"": ""Howard Wolowitz"", ""Actor"": ""Simon Helberg"", ""Female"": false }, "
-			+ /**/@"{ ""Character"": ""Raj Koothrappali"", ""Actor"": ""Kunal Nayyar"", ""Female"": false } "
-			+ @"], ""Seasons"": 4, ""ScoreIMDB"": 8.4, ""Producer"": ""Chuck Lorre Productions"", ""PilotAirDate"": ""2007-09-24T00:00:00Z"" }";
-			Assert.That(CrystalJson.Serialize(composite), Is.EqualTo(expected));
+			CheckSerialize(
+				composite,
+				default,
+				"""{ "Id": 1, "Title": "The Big Bang Theory", "Cancelled": false, "Cast": [ { "Character": "Sheldon Cooper", "Actor": "Jim Parsons", "Female": false }, { "Character": "Leonard Hofstadter", "Actor": "Johny Galecki", "Female": false }, { "Character": "Penny", "Actor": "Kaley Cuoco", "Female": true }, { "Character": "Howard Wolowitz", "Actor": "Simon Helberg", "Female": false }, { "Character": "Raj Koothrappali", "Actor": "Kunal Nayyar", "Female": false } ], "Seasons": 4, "ScoreIMDB": 8.4, "Producer": "Chuck Lorre Productions", "PilotAirDate": "2007-09-24T00:00:00Z" }"""
+			);
 
 			// JS
-			expected = "{ Id: 1, Title: 'The Big Bang Theory', Cancelled: false"
-			+ ", Cast: [ "
-			+ /**/"{ Character: 'Sheldon Cooper', Actor: 'Jim Parsons', Female: false }, "
-			+ /**/"{ Character: 'Leonard Hofstadter', Actor: 'Johny Galecki', Female: false }, "
-			+ /**/"{ Character: 'Penny', Actor: 'Kaley Cuoco', Female: true }, "
-			+ /**/"{ Character: 'Howard Wolowitz', Actor: 'Simon Helberg', Female: false }, "
-			+ /**/"{ Character: 'Raj Koothrappali', Actor: 'Kunal Nayyar', Female: false } "
-			+ "], Seasons: 4, ScoreIMDB: 8.4, Producer: 'Chuck Lorre Productions', PilotAirDate: new Date(1190592000000) }";
-			Assert.That(CrystalJson.Serialize(composite, CrystalJsonSettings.JavaScript), Is.EqualTo(expected));
+			CheckSerialize(
+				composite,
+				CrystalJsonSettings.JavaScript,
+				"{ Id: 1, Title: 'The Big Bang Theory', Cancelled: false, Cast: [ { Character: 'Sheldon Cooper', Actor: 'Jim Parsons', Female: false }, { Character: 'Leonard Hofstadter', Actor: 'Johny Galecki', Female: false }, { Character: 'Penny', Actor: 'Kaley Cuoco', Female: true }, { Character: 'Howard Wolowitz', Actor: 'Simon Helberg', Female: false }, { Character: 'Raj Koothrappali', Actor: 'Kunal Nayyar', Female: false } ], Seasons: 4, ScoreIMDB: 8.4, Producer: 'Chuck Lorre Productions', PilotAirDate: new Date(1190592000000) }"
+			);
 		}
 
 		[Test]
 		public void Test_JsonSerialize_DataContract()
 		{
-			var x = new DummyDataContractClass();
-			Assert.That(CrystalJson.Serialize(x), Is.EqualTo("""{ "Id": 0, "Age": 0, "IsFemale": false, "VisibleProperty": "CanBeSeen" }"""));
+			CheckSerialize(new DummyDataContractClass(), default, """{ "Id": 0, "Age": 0, "IsFemale": false, "VisibleProperty": "CanBeSeen" }""");
 			// with explicit nulls
-			Assert.That(CrystalJson.Serialize(x, CrystalJsonSettings.Json.WithNullMembers()), Is.EqualTo("""{ "Id": 0, "Name": null, "Age": 0, "IsFemale": false, "CurrentLoveInterest": null, "VisibleProperty": "CanBeSeen" }"""));
+			CheckSerialize(new DummyDataContractClass(), CrystalJsonSettings.Json.WithNullMembers(), """{ "Id": 0, "Name": null, "Age": 0, "IsFemale": false, "CurrentLoveInterest": null, "VisibleProperty": "CanBeSeen" }""");
 
-			x.AgentId = 7;
-			x.Name = "James Bond";
-			x.Age = 69;
-			x.Female = false;
-			x.CurrentLoveInterest = "Miss Moneypenny";
-			x.InvisibleField = "007";
-			Assert.That(CrystalJson.Serialize(x), Is.EqualTo("""{ "Id": 7, "Name": "James Bond", "Age": 69, "IsFemale": false, "CurrentLoveInterest": "Miss Moneypenny", "VisibleProperty": "CanBeSeen" }"""));
+			CheckSerialize(
+				new DummyDataContractClass
+				{
+					AgentId = 7,
+					Name = "James Bond",
+					Age = 69,
+					Female = false,
+					CurrentLoveInterest = "Miss Moneypenny",
+					InvisibleField = "007",
+				},
+				default,
+				"""{ "Id": 7, "Name": "James Bond", "Age": 69, "IsFemale": false, "CurrentLoveInterest": "Miss Moneypenny", "VisibleProperty": "CanBeSeen" }"""
+			);
 		}
 
 		[Test]
 		public void Test_JsonSerialize_XmlIgnore()
 		{
-			var x = new DummyXmlSerializableContractClass();
 
-			Assert.That(CrystalJson.Serialize(x), Is.EqualTo("""{ "Id": 0, "Age": 0, "IsFemale": false, "VisibleProperty": "CanBeSeen" }"""));
-			Assert.That(CrystalJson.Serialize(x, CrystalJsonSettings.Json.WithNullMembers()), Is.EqualTo("""{ "Id": 0, "Name": null, "Age": 0, "IsFemale": false, "CurrentLoveInterest": null, "VisibleProperty": "CanBeSeen" }"""));
+			CheckSerialize(
+				new DummyXmlSerializableContractClass(),
+				default,
+				"""{ "Id": 0, "Age": 0, "IsFemale": false, "VisibleProperty": "CanBeSeen" }"""
+			);
+			CheckSerialize(
+				new DummyXmlSerializableContractClass(),
+				CrystalJsonSettings.Json.WithNullMembers(),
+				"""{ "Id": 0, "Name": null, "Age": 0, "IsFemale": false, "CurrentLoveInterest": null, "VisibleProperty": "CanBeSeen" }"""
+			);
 
-			x.AgentId = 7;
-			x.Name = "James Bond";
-			x.Age = 69;
-			x.CurrentLoveInterest = "Miss Moneypenny";
-			x.InvisibleField = "007";
-			Assert.That(CrystalJson.Serialize(x), Is.EqualTo("""{ "Id": 7, "Name": "James Bond", "Age": 69, "IsFemale": false, "CurrentLoveInterest": "Miss Moneypenny", "VisibleProperty": "CanBeSeen" }"""));
+			CheckSerialize(
+				new DummyXmlSerializableContractClass()
+				{
+					AgentId = 7,
+					Name = "James Bond",
+					Age = 69,
+					CurrentLoveInterest = "Miss Moneypenny",
+					InvisibleField = "007",
+				},
+				default,
+				"""{ "Id": 7, "Name": "James Bond", "Age": 69, "IsFemale": false, "CurrentLoveInterest": "Miss Moneypenny", "VisibleProperty": "CanBeSeen" }"""
+			);
 		}
 
 		[Test]
@@ -2895,16 +3202,10 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonSerialize_Version()
 		{
-			Version ver;
-
-			ver = new Version(1, 0);
-			Assert.That(CrystalJson.Serialize(ver), Is.EqualTo("\"1.0\""));
-
-			ver = new Version(1, 2, 3);
-			Assert.That(CrystalJson.Serialize(ver), Is.EqualTo("\"1.2.3\""));
-
-			ver = new Version(1, 2, 3, 4);
-			Assert.That(CrystalJson.Serialize(ver), Is.EqualTo("\"1.2.3.4\""));
+			CheckSerialize(new Version(1, 0), default, "\"1.0\"");
+			CheckSerialize(new Version(1, 2, 3), default, "\"1.2.3\"");
+			CheckSerialize(new Version(1, 2, 3, 4), default, "\"1.2.3.4\"");
+			CheckSerialize(new Version(int.MaxValue, int.MaxValue, int.MaxValue, int.MaxValue), default, "\"2147483647.2147483647.2147483647.2147483647\"");
 		}
 
 		[Test]
@@ -2913,17 +3214,17 @@ namespace Doxense.Serialization.Json.Tests
 			// KeyValuePair<K, V> instances, outside a dictionary, will be serialized as the array '[KEY, VALUE]', instead of '{ "Key": KEY, "Value": VALUE }', because it is more compact.
 			// The only exception is for a collection of KV pairs (all with the same type), which are serialized as an object
 
-			Assert.That(CrystalJson.Serialize(new KeyValuePair<string, int>("hello", 42), CrystalJsonSettings.Json), Is.EqualTo("""[ "hello", 42 ]"""));
-			Assert.That(CrystalJson.Serialize(new KeyValuePair<int, bool>(123, true), CrystalJsonSettings.Json), Is.EqualTo("[ 123, true ]"));
+			CheckSerialize(new KeyValuePair<string, int>("hello", 42), CrystalJsonSettings.Json, """[ "hello", 42 ]""");
+			CheckSerialize(new KeyValuePair<int, bool>(123, true), CrystalJsonSettings.Json, "[ 123, true ]");
 
-			Assert.That(CrystalJson.Serialize(default(KeyValuePair<string, int>), CrystalJsonSettings.Json), Is.EqualTo("[ null, 0 ]"));
-			Assert.That(CrystalJson.Serialize(default(KeyValuePair<int, bool>), CrystalJsonSettings.Json), Is.EqualTo("[ 0, false ]"));
+			CheckSerialize(default(KeyValuePair<string, int>), CrystalJsonSettings.Json, "[ null, 0 ]");
+			CheckSerialize(default(KeyValuePair<int, bool>), CrystalJsonSettings.Json, "[ 0, false ]");
 
-			Assert.That(CrystalJson.Serialize(default(KeyValuePair<string, int>), CrystalJsonSettings.Json.WithoutDefaultValues()), Is.EqualTo("[ null, 0 ]"));
-			Assert.That(CrystalJson.Serialize(default(KeyValuePair<int, bool>), CrystalJsonSettings.Json.WithoutDefaultValues()), Is.EqualTo("[ 0, false ]"));
+			CheckSerialize(default(KeyValuePair<string, int>), CrystalJsonSettings.Json.WithoutDefaultValues(), "[ null, 0 ]");
+			CheckSerialize(default(KeyValuePair<int, bool>), CrystalJsonSettings.Json.WithoutDefaultValues(), "[ 0, false ]");
 
 			var nested = KeyValuePair.Create(KeyValuePair.Create("hello", KeyValuePair.Create("narf", 42)), KeyValuePair.Create(123, KeyValuePair.Create("zort", TimeSpan.Zero)));
-			Assert.That(CrystalJson.Serialize(nested, CrystalJsonSettings.Json), Is.EqualTo("""[ [ "hello", [ "narf", 42 ] ], [ 123, [ "zort", 0 ] ] ]"""));
+			CheckSerialize(nested, CrystalJsonSettings.Json, """[ [ "hello", [ "narf", 42 ] ], [ 123, [ "zort", 0 ] ] ]""");
 		}
 
 		[Test]
@@ -2970,11 +3271,22 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonSerialize_Uri()
 		{
-			Assert.That(CrystalJson.Serialize(new Uri("http://google.com")), Is.EqualTo(@"""http://google.com"""));
-			Assert.That(CrystalJson.Serialize(new Uri("http://www.doxense.com/")), Is.EqualTo(@"""http://www.doxense.com/"""));
-			Assert.That(CrystalJson.Serialize(new Uri("https://www.youtube.com/watch?v=dQw4w9WgXcQ")), Is.EqualTo(@"""https://www.youtube.com/watch?v=dQw4w9WgXcQ"""));
-			Assert.That(CrystalJson.Serialize(new Uri("ftp://root:hunter2@ftp.corporate.com/public/_/COM1:/_/__/Warez/MovieZ/Valhalla_Rising_(2009)_1080p_BrRip_x264_-_YIFY.mkv")), Is.EqualTo(@"""ftp://root:hunter2@ftp.corporate.com/public/_/COM1:/_/__/Warez/MovieZ/Valhalla_Rising_(2009)_1080p_BrRip_x264_-_YIFY.mkv"""));
-			Assert.That(CrystalJson.Serialize(default(Uri)), Is.EqualTo("null"));
+			CheckSerialize(default(Uri), default, "null");
+			CheckSerialize(
+				new Uri("http://google.com"),
+				default,
+				@"""http://google.com"""
+			);
+			CheckSerialize(
+				new Uri("https://www.youtube.com/watch?v=dQw4w9WgXcQ"),
+				default,
+				@"""https://www.youtube.com/watch?v=dQw4w9WgXcQ"""
+			);
+			CheckSerialize(
+				new Uri("ftp://root:hunter2@ftp.corporate.com/public/_/COM1:/_/__/Warez/MovieZ/Valhalla_Rising_(2009)_1080p_BrRip_x264_-_YIFY.mkv"),
+				default,
+				@"""ftp://root:hunter2@ftp.corporate.com/public/_/COM1:/_/__/Warez/MovieZ/Valhalla_Rising_(2009)_1080p_BrRip_x264_-_YIFY.mkv"""
+			);
 		}
 
 		[Test]
@@ -7271,24 +7583,24 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonObject_SetPath_SubArray_Of_Arrays()
 		{
-			//{
-			//	var obj = JsonObject.Create();
-			//	obj.SetPath("Matrix[0][2]", 1);
-			//	obj.SetPath("Matrix[1][1]", 2);
-			//	obj.SetPath("Matrix[2][0]", 3);
-			//	DumpCompact(obj);
-			//	Assert.That(obj, Is.EqualTo(JsonValue._Parse(@"{ ""Matrix"" : [ [ null, null, 1 ], [ null, 2 ], [ 3 ] ] }")));
-			//	Assert.That(obj.GetPath<int?>("Matrix[0][2]"), Is.EqualTo(1));
-			//	Assert.That(obj.GetPath<int?>("Matrix[1][1]"), Is.EqualTo(2));
-			//	Assert.That(obj.GetPath<int?>("Matrix[2][0]"), Is.EqualTo(3));
+			{
+				var obj = JsonObject.Create();
+				obj.SetPath("Matrix[0][2]", 1);
+				obj.SetPath("Matrix[1][1]", 2);
+				obj.SetPath("Matrix[2][0]", 3);
+				DumpCompact(obj);
+				Assert.That(obj, Is.EqualTo(JsonValue.Parse("""{ "Matrix" : [ [ null, null, 1 ], [ null, 2 ], [ 3 ] ] }""")));
+				Assert.That(obj.GetPath<int?>("Matrix[0][2]"), Is.EqualTo(1));
+				Assert.That(obj.GetPath<int?>("Matrix[1][1]"), Is.EqualTo(2));
+				Assert.That(obj.GetPath<int?>("Matrix[2][0]"), Is.EqualTo(3));
 
-			//	obj.SetPath("Matrix[0][0]", 4);
-			//	obj.SetPath("Matrix[2][1]", 5);
-			//	DumpCompact(obj);
-			//	Assert.That(obj, Is.EqualTo(JsonValue._Parse(@"{ ""Matrix"" : [ [ 4, null, 1 ], [ null, 2 ], [ 3, 5 ] ] }")));
-			//	Assert.That(obj.GetPath<int?>("Matrix[0][0]"), Is.EqualTo(4));
-			//	Assert.That(obj.GetPath<int?>("Matrix[2][1]"), Is.EqualTo(5));
-			//}
+				obj.SetPath("Matrix[0][0]", 4);
+				obj.SetPath("Matrix[2][1]", 5);
+				DumpCompact(obj);
+				Assert.That(obj, Is.EqualTo(JsonValue.Parse("""{ "Matrix" : [ [ 4, null, 1 ], [ null, 2 ], [ 3, 5 ] ] }""")));
+				Assert.That(obj.GetPath<int?>("Matrix[0][0]"), Is.EqualTo(4));
+				Assert.That(obj.GetPath<int?>("Matrix[2][1]"), Is.EqualTo(5));
+			}
 
 			{
 				var obj = JsonObject.Create();
@@ -9733,39 +10045,44 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonDeserialize_EvilGadgetObject()
 		{
+			//note: this test uses System.Windows.Data.ObjectDataProvider, which may not be available in the latest .NET runtime...
+			//TODO: REVIEW: are there any other type of gadgets that works on .NET 8/9 and windows/linux?
+
 			string token = Guid.NewGuid().ToString();
 
 			string path = GetTemporaryPath(token + ".txt");
 			if (File.Exists(path)) File.Delete(path);
-			Log("Canary location: " + path);
+			Log("# Canary location:");
+			Log(path);
 
-			Log(CrystalJson.Serialize(@"""hello"""));
+			Log("# Gadget:");
+			var jsonGadget = new JsonObject()
+			{
+				["_class"] = "System.Windows.Data.ObjectDataProvider, PresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35",
+				["ObjectInstance"] = new JsonObject()
+				{
+					["_class"] = "System.Diagnostics.Process, System, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089",
+					["StartInfo"] = new JsonObject()
+					{
+						["_class"] = "System.Diagnostics.ProcessStartInfo, System, Version = 4.0.0.0, Culture = neutral, PublicKeyToken = b77a5c561934e089",
+						["FileName"] = "cmd",
+						["Arguments"] = $@"""/c echo foo > {path}""",
+					}
+				},
+				["MethodName"] = "Start",
+			};
 
-			string jsonText = @"{
-    ""_class"":""System.Windows.Data.ObjectDataProvider, PresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35"",
-    ""ObjectInstance"":{
-		""_class"":""System.Diagnostics.Process, System, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"",
-		""StartInfo"": {
-			""_class"": ""System.Diagnostics.ProcessStartInfo, System, Version = 4.0.0.0, Culture = neutral, PublicKeyToken = b77a5c561934e089"",
-			""FileName"": ""cmd"",
-			""Arguments"": " + CrystalJson.Serialize($@"""/c echo foo > {path}""") + @"
-		}
-	},
-    ""MethodName"":""Start""
-}";
-
-			Log(jsonText);
-
-			var parsed = JsonValue.Parse(jsonText);
-			Log("Parsed: " + parsed);
+			Dump(jsonGadget);
+			Log();
 			try
 			{
-				var gadget = parsed.Bind(typeof(object))!;
+				Log("# Deserializing...");
+				var gadget = jsonGadget.Bind(typeof(object))!;
 
 				// ATTENTION: ATTENTION: CRITICAL FAILURE!
 				// => if the deserialization does not fail here, it means we are able to execute arbitrary injected code when deserializing JSON!!!
 
-				Log("FATAL: Created a " + gadget.GetType());
+				Log($"FATAL: Created a {gadget.GetType()}");
 
 				// note: the command is executed asynchronously, so we need to wait a bit...
 				Thread.Sleep(2000);
@@ -9783,7 +10100,7 @@ namespace Doxense.Serialization.Json.Tests
 			}
 			catch (Exception e)
 			{
-				Log($"Binding attempt failed as expected : [{e.GetType().Name}] {e.Message}");
+				Log($"# Binding attempt failed as expected : [{e.GetType().Name}] {e.Message}");
 				// ATTENTION: ATTENTION: CRITICAL FAILURE!
 				// if this is not the expected error type, it could be because the exploit failed to run properly, which is still a HUGE issue!
 				Assert.That(e, Is.InstanceOf<JsonBindingException>(), "Deserialization should have failed with an expected JSON error");
@@ -10658,6 +10975,6 @@ namespace Doxense.Serialization.Json.Tests
 	}
 #pragma warning restore 649
 
-#endregion
+	#endregion
 
 }

@@ -339,18 +339,23 @@ namespace Doxense.Serialization.Json
 
 		#region IJsonSerializable
 
-		public override void JsonSerialize(CrystalJsonWriter writer)
+		/// <inheritdoc />
+		public override string ToJson(CrystalJsonSettings? settings = null)
 		{
-#if DISABLED
-			if (m_literal != null)
-			{ // retransforme sous forme '\/Date(...)\/'
-				if (m_literal.StartsWith("/") && m_literal.EndsWith("/"))
-					writer.WriteLiteral("\"" + m_literal.Replace("/", @"\/") + "\"");
-				else
-					writer.WriteString(m_literal);
+			if (m_offset == NO_TIMEZONE)
+			{ // DateTime
+				if (m_value == DateTime.MinValue) return "\"\"";
+				return "\"" + CrystalJsonFormatter.ToIso8601String(m_value) + "\"";
 			}
 			else
-#endif
+			{ // DateTimeOffset
+				if (m_value == DateTime.MinValue) return "''";
+				return "'" + CrystalJsonFormatter.ToIso8601String(this.DateWithOffset) + "'";
+			}
+		}
+
+		public override void JsonSerialize(CrystalJsonWriter writer)
+		{
 			if (m_offset == NO_TIMEZONE)
 			{ // DateTime
 				writer.WriteValue(m_value);
@@ -441,6 +446,26 @@ namespace Doxense.Serialization.Json
 			charsWritten = 0;
 			return false;
 		}
+
+#if NET8_0_OR_GREATER
+
+		/// <inheritdoc />
+		public override bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+		{
+			// we first convert to chars, then to utf-8
+
+			Span<char> chars = stackalloc char[48]; // "xxxx-xx-xxTxx:xx:xx.xxxxxxx+xx:xx"
+			if (!TryFormat(chars, out int charsWritten, format, provider) 
+			 || !CrystalJson.Utf8NoBom.TryGetBytes(chars, destination, out bytesWritten))
+			{
+				bytesWritten = 0;
+				return false;
+			}
+			return true;
+		}
+
+#endif
+
 
 		#endregion
 

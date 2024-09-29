@@ -1988,6 +1988,45 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+#if NET8_0_OR_GREATER
+
+		/// <inheritdoc />
+		public override bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+		{
+			var literal = m_literal;
+			if (literal is not null)
+			{ // we will output the original literal unless we need to do some special formatting...
+
+				return CrystalJson.Utf8NoBom.TryGetBytes(literal, destination, out bytesWritten);
+			}
+
+			switch (m_kind)
+			{
+				case Kind.Signed:
+				{
+					return m_value.Signed.TryFormat(destination, out bytesWritten, format, provider);
+				}
+				case Kind.Unsigned:
+				{
+					return m_value.Unsigned.TryFormat(destination, out bytesWritten, format, provider);
+				}
+				case Kind.Double:
+				{
+					return m_value.Double.TryFormat(destination, out bytesWritten, format, provider);
+				}
+				case Kind.Decimal:
+				{
+					return m_value.Decimal.TryFormat(destination, out bytesWritten, format, provider);
+				}
+				default:
+				{
+					throw new InvalidOperationException();
+				}
+			}
+		}
+
+#endif
+
 		#endregion
 
 		#region ToXXX() ...

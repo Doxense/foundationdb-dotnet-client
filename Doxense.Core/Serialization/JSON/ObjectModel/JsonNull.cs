@@ -203,16 +203,32 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		public override bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
 		{
-			if (destination.Length < 4)
+			if (!"null".TryCopyTo(destination))
 			{
 				charsWritten = 0;
 				return false;
 			}
 
-			JsonTokens.Null.CopyTo(destination);
 			charsWritten = 4;
 			return true;
 		}
+
+#if NET8_0_OR_GREATER
+
+		/// <inheritdoc />
+		public override bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+		{
+			if (!"null"u8.TryCopyTo(destination))
+			{
+				bytesWritten = 0;
+				return false;
+			}
+
+			bytesWritten = 4;
+			return true;
+		}
+
+#endif
 
 		#endregion
 
