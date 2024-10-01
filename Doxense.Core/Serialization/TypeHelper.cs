@@ -583,19 +583,25 @@ namespace Doxense.Serialization
 			return type.FullName + ", " + displayName;
 		}
 
-		/// <summary>Returns a "human readable" version of a type's name, including the generic arguments and nested types.</summary>
+		/// <summary>Returns a "human-readable" version of a type's name, including the generic arguments and nested types.</summary>
 		/// <returns>"string", "int", "FooBar", "FooBar.NestedBaz", "List&lt;int>", "Dictionary&lt;string, Something&lt;Foo, Bar>>"</returns>
 		/// <remarks>This name will NOT be in a format that easily allows retrieve it later, and should mostly be used in error message, logs or debug messages.</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static string GetFriendlyName(this Type type) => GetCompilableTypeName(type, ommitNamespace: true, global: false);
+		public static string GetFriendlyName(this Type type) => GetCompilableTypeName(type, omitNamespace: true, global: false);
 
-		/// <summary>Returns a "human readable" version of a type's name, including the generic arguments and nested types.</summary>
+		/// <summary>Returns a "human-readable" version of a type's name, including the generic arguments and nested types.</summary>
 		/// <returns>"string", "int", "FooBar", "FooBar.NestedBaz", "List&lt;int>", "Dictionary&lt;string, Something&lt;Foo, Bar>>"</returns>
 		/// <remarks>This name will NOT be in a format that easily allows retrieve it later, and should mostly be used in error message, logs or debug messages.</remarks>
 		[Pure]
-		public static string GetCompilableTypeName(Type type, bool ommitNamespace, bool global)
+		public static string GetCompilableTypeName(Type type, bool omitNamespace, bool global)
 		{
 			Contract.NotNull(type);
+
+			if (type.IsByRef)
+			{
+				//TODO: how can we detect "readonly" to use "in" instead?
+				return "ref " + GetCompilableTypeName(type.GetElementType()!, omitNamespace, global);
+			}
 
 			if (type.IsArray)
 			{ // => "Acme[]"
@@ -607,7 +613,7 @@ namespace Doxense.Serialization
 					2 => "[,]",
 					_ => type.Name[type.Name.IndexOf('[')..]
 				};
-				return GetCompilableTypeName(type.GetElementType()!, ommitNamespace, global) + suffix;
+				return GetCompilableTypeName(type.GetElementType()!, omitNamespace, global) + suffix;
 			}
 
 			if (type == typeof(string))
@@ -645,7 +651,7 @@ namespace Doxense.Serialization
 
 			if (type.IsNullableType())
 			{
-				return GetCompilableTypeName(type.GetGenericArguments()[0], ommitNamespace, global) + "?";
+				return GetCompilableTypeName(type.GetGenericArguments()[0], omitNamespace, global) + "?";
 			}
 
 			string? parentPrefix = null;
@@ -676,13 +682,13 @@ namespace Doxense.Serialization
 
 				if (type.Name.StartsWith("<>"))
 				{
-					return GetCompilableTypeName(outer, ommitNamespace, global);
+					return GetCompilableTypeName(outer, omitNamespace, global);
 				}
 
-				parentPrefix = GetCompilableTypeName(outer, ommitNamespace, false) + ".";
+				parentPrefix = GetCompilableTypeName(outer, omitNamespace, false) + ".";
 			}
 
-			if (!ommitNamespace)
+			if (!omitNamespace)
 			{
 				parentPrefix = type.Namespace + "." + parentPrefix;
 			}
@@ -718,17 +724,42 @@ namespace Doxense.Serialization
 				{
 					return globalPrefix + parentPrefix + baseName;
 				}
-				return $"{globalPrefix}{parentPrefix}{baseName}<{string.Join(", ", args.Select(arg => GetCompilableTypeName(arg, ommitNamespace, global)))}>";
+				return $"{globalPrefix}{parentPrefix}{baseName}<{string.Join(", ", args.Select(arg => GetCompilableTypeName(arg, omitNamespace, global)))}>";
 			}
 
 			if (type.IsPointer)
 			{ // => "Acme*"
-				string baseName = globalPrefix + parentPrefix + GetCompilableTypeName(type.GetElementType()!, ommitNamespace, global);
+				string baseName = globalPrefix + parentPrefix + GetCompilableTypeName(type.GetElementType()!, omitNamespace, global);
 				return baseName + type.Name[type.Name.IndexOf('*')..];
 			}
 
 			// standard case
 			return globalPrefix + parentPrefix + type.Name;
+		}
+
+		/// <summary>Returns a "human-readable" version of a method's name, including the parameters.</summary>
+		/// <returns>"</returns>
+		public static string GetFriendlyName(this MethodBase method, bool omitNamespace = true)
+		{
+			var declaringType = method.DeclaringType;
+			var typeName = declaringType != null ? GetCompilableTypeName(declaringType, omitNamespace, global: false) : null;
+			var parameters = method.GetParameters();
+
+			if (method.IsConstructor)
+			{
+				return $"{(method.IsStatic ? "static " : null)}{typeName}({string.Join(", ", parameters.Select(p => $"{p.ParameterType.GetFriendlyName()} {p.Name}"))})";
+			}
+
+			//if (parameters.Length == 1 && method.Name.StartsWith("get_"))
+			//{
+			//	return $"{typeName}.{method.Name}[{parameters[0].ParameterType.GetFriendlyName()} {parameters[0].Name}] {{ get; }}";
+			//}
+			//if (parameters.Length == 2 && method.Name.StartsWith("set_"))
+			//{
+			//	return $"{typeName}.{method.Name}[{parameters[0].ParameterType.GetFriendlyName()} {parameters[0].Name}] {{ set; }}";
+			//}
+
+			return $"{typeName}{(typeName != null ? "." : null)}{method.Name}({string.Join(", ", parameters.Select(p => $"{p.ParameterType.GetFriendlyName()} {p.Name}"))})";
 		}
 
 		/// <summary>Returns the generic version of a method</summary>
