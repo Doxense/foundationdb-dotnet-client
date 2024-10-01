@@ -80,7 +80,8 @@ namespace Doxense.Diagnostics.Contracts
 				[System.Diagnostics.CodeAnalysis.DoesNotReturnIf(false)]
 				bool condition,
 				string? userMessage = null,
-				[CallerArgumentExpression("condition")] string? conditionText = null)
+				[CallerArgumentExpression("condition")] string? conditionText = null
+			)
 			{
 #if DEBUG
 				if (!condition) throw RaiseContractFailure(System.Diagnostics.Contracts.ContractFailureKind.Assert, userMessage, conditionText);

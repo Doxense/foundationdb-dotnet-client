@@ -39,7 +39,8 @@ namespace Doxense.Diagnostics.Contracts
 	{
 		// https://www.youtube.com/watch?v=rF8khJ7P4Wg
 
-		/// <summary>Retourne false au runtime, et true en mode parano</summary>
+		/// <summary>Returns <see langword="true"/> at runtime if Paranoid checks are enforced</summary>
+		/// <remarks>Things may get a _lot_ slower!</remarks>
 		public static bool IsParanoid
 		{
 			get
@@ -52,132 +53,86 @@ namespace Doxense.Diagnostics.Contracts
 			}
 		}
 
-		/// <summary>[PARANOID MODE] Vérifie qu'une pré-condition est vrai, lors de l'entrée dans une méthode</summary>
-		/// <param name="condition">Condition qui ne doit jamais être fausse</param>
-		/// <remarks>Ne fait rien si la condition est vrai. Sinon déclenche une ContractException, après avoir essayé de breakpointer le debugger</remarks>
+		/// <summary>[PARANOID ANDROID] Test if a pre-condition is true, at the start of a method.</summary>
+		/// <param name="condition">Condition that should never be false</param>
+		/// <param name="userMessage">Message that describes the failed assertion (optional)</param>
+		/// <param name="conditionText">Text of the condition (optional, injected by the compiler)</param>
+		/// <remarks>No-op if <see cref="condition"/> is <c>true</c> or if running a Release build. Otherwise, throws a ContractException, after attempting to breakpoint (if a debugger is attached).</remarks>
 		[Conditional("PARANOID_ANDROID")]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[AssertionMethod]
-		public static void Requires([AssertionCondition(AssertionConditionType.IS_TRUE)] bool condition)
+		public static void Requires(
+			[AssertionCondition(AssertionConditionType.IS_TRUE)]
+			[System.Diagnostics.CodeAnalysis.DoesNotReturnIf(false)]
+			bool condition,
+			string? userMessage = null,
+			[CallerArgumentExpression("condition")] string? conditionText = null
+		)
 		{
 #if PARANOID_ANDROID
-			if (!condition) throw Contract.RaiseContractFailure(SDC.ContractFailureKind.Precondition, null);
+			if (!condition) throw RaiseContractFailure(System.Diagnostics.Contracts.ContractFailureKind.Precondition, userMessage, conditionText);
 #endif
 		}
 
-		/// <summary>[PARANOID MODE] Vérifie qu'une pré-condition est vrai, lors de l'entrée dans une méthode</summary>
-		/// <param name="condition">Condition qui ne doit jamais être fausse</param>
-		/// <param name="userMessage">Message décrivant l'erreur (optionnel)</param>
-		/// <remarks>Ne fait rien si la condition est vrai. Sinon déclenche une ContractException, après avoir essayé de breakpointer le debugger</remarks>
-		[Conditional("PARANOID_ANDROID")]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		/// <summary>[PARANOID ANDROID] Test if a condition is true, inside the body of a method.</summary>
+		/// <param name="condition">Condition that should never be false</param>
+		/// <param name="userMessage">Message that describes the failed assertion (optional)</param>
+		/// <param name="conditionText">Text of the condition (optional, injected by the compiler)</param>
+		/// <remarks>No-op if <see cref="condition"/> is <c>true</c> or if running a Release build. Otherwise, throws a ContractException, after attempting to breakpoint (if a debugger is attached).</remarks>
+		[Conditional("DEBUG")]
 		[AssertionMethod]
-		public static void Requires([AssertionCondition(AssertionConditionType.IS_TRUE)] bool condition, string userMessage)
+		[StackTraceHidden]
+		public static void Assert(
+			[AssertionCondition(AssertionConditionType.IS_TRUE)]
+			[System.Diagnostics.CodeAnalysis.DoesNotReturnIf(false)]
+			bool condition,
+			string? userMessage = null,
+			[CallerArgumentExpression("condition")] string? conditionText = null)
 		{
 #if PARANOID_ANDROID
-			if (!condition) throw Contract.RaiseContractFailure(SDC.ContractFailureKind.Precondition, userMessage);
+				if (!condition) throw RaiseContractFailure(System.Diagnostics.Contracts.ContractFailureKind.Assert, userMessage, conditionText);
 #endif
 		}
 
-		/// <summary>[PARANOID MODE] Vérifie qu'une condition est toujours vrai, dans le body dans une méthode</summary>
-		/// <param name="condition">Condition qui ne doit jamais être fausse</param>
-		/// <remarks>Ne fait rien si la condition est vrai. Sinon déclenche une ContractException, après avoir essayé de breakpointer le debugger</remarks>
-		[Conditional("PARANOID_ANDROID")]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		/// <summary>[PARANOID ANDROID] Test if a post-condition is true, at the end of a method.</summary>
+		/// <param name="condition">Condition that should never be false</param>
+		/// <param name="userMessage">Message that describes the failed assertion (optional)</param>
+		/// <param name="conditionText">Text of the condition (optional, injected by the compiler)</param>
+		/// <remarks>No-op if <see cref="condition"/> is <c>true</c> or if running a Release build. Otherwise, throws a ContractException, after attempting to breakpoint (if a debugger is attached).</remarks>
+		[Conditional("DEBUG")]
 		[AssertionMethod]
-		public static void Assert([AssertionCondition(AssertionConditionType.IS_TRUE)] bool condition)
+		[StackTraceHidden]
+		public static void Ensures(
+			[AssertionCondition(AssertionConditionType.IS_TRUE)]
+			[System.Diagnostics.CodeAnalysis.DoesNotReturnIf(false)]
+			bool condition,
+			string? userMessage = null,
+			[CallerArgumentExpression("condition")] string? conditionText = null
+		)
 		{
 #if PARANOID_ANDROID
-			if (!condition) throw Contract.RaiseContractFailure(SDC.ContractFailureKind.Assert, null);
+			if (!condition) throw RaiseContractFailure(System.Diagnostics.Contracts.ContractFailureKind.Postcondition, userMessage, conditionText);
 #endif
 		}
 
-		/// <summary>[PARANOID MODE] Vérifie qu'une condition est toujours vrai, dans le body dans une méthode</summary>
-		/// <param name="condition">Condition qui ne doit jamais être fausse</param>
-		/// <param name="userMessage">Message décrivant l'erreur (optionnel)</param>
-		/// <remarks>Ne fait rien si la condition est vrai. Sinon déclenche une ContractException, après avoir essayé de breakpointer le debugger</remarks>
-		[Conditional("PARANOID_ANDROID")]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		/// <summary>[DEBUG ONLY] Test that an invariant is met.</summary>
+		/// <param name="condition">Condition that should never be false</param>
+		/// <param name="userMessage">Message that describes the failed assertion (optional)</param>
+		/// <param name="conditionText">Text of the condition (optional, injected by the compiler)</param>
+		/// <remarks>No-op if <see cref="condition"/> is <c>true</c> or if running a Release build. Otherwise, throws a ContractException, after attempting to breakpoint (if a debugger is attached).</remarks>
+		[Conditional("DEBUG")]
 		[AssertionMethod]
-		public static void Assert([AssertionCondition(AssertionConditionType.IS_TRUE)] bool condition, string userMessage)
+		[StackTraceHidden]
+		public static void Invariant(
+			[AssertionCondition(AssertionConditionType.IS_TRUE)]
+			[System.Diagnostics.CodeAnalysis.DoesNotReturnIf(false)]
+			bool condition,
+			string? userMessage = null,
+			[CallerArgumentExpression("condition")] string? conditionText = null
+		)
 		{
 #if PARANOID_ANDROID
-			if (!condition) throw Contract.RaiseContractFailure(SDC.ContractFailureKind.Assert, userMessage);
-#endif
-		}
-
-		/// <summary>[PARANOID MODE] Vérifie qu'une condition est toujours vrai, lors de la sortie d'une méthode</summary>
-		/// <param name="condition">Condition qui ne doit jamais être fausse</param>
-		/// <remarks>Ne fait rien si la condition est vrai. Sinon déclenche une ContractException, après avoir essayé de breakpointer le debugger</remarks>
-		[Conditional("PARANOID_ANDROID")]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[AssertionMethod]
-		public static void Ensures([AssertionCondition(AssertionConditionType.IS_TRUE)] bool condition)
-		{
-#if PARANOID_ANDROID
-			if (!condition) throw Contract.RaiseContractFailure(SDC.ContractFailureKind.Postcondition, null);
-#endif
-		}
-
-		/// <summary>[PARANOID MODE] Vérifie qu'une condition est toujours vrai, lors de la sortie d'une méthode</summary>
-		/// <param name="condition">Condition qui ne doit jamais être fausse</param>
-		/// <param name="userMessage">Message décrivant l'erreur (optionnel)</param>
-		/// <remarks>Ne fait rien si la condition est vrai. Sinon déclenche une ContractException, après avoir essayé de breakpointer le debugger</remarks>
-		[Conditional("PARANOID_ANDROID")]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[AssertionMethod]
-		public static void Ensures([AssertionCondition(AssertionConditionType.IS_TRUE)] bool condition, string userMessage)
-		{
-#if PARANOID_ANDROID
-			if (!condition) throw Contract.RaiseContractFailure(SDC.ContractFailureKind.Postcondition, userMessage);
-#endif
-		}
-
-		/// <summary>[PARANOID MODE] Vérifie qu'une condition est toujours vrai pendant toute la vie d'une instance</summary>
-		/// <param name="condition">Condition qui ne doit jamais être fausse</param>
-		/// <param name="userMessage">Message décrivant l'erreur (optionnel)</param>
-		/// <remarks>Ne fait rien si la condition est vrai. Sinon déclenche une ContractException, après avoir essayé de breakpointer le debugger</remarks>
-		[Conditional("PARANOID_ANDROID")]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[AssertionMethod]
-		public static void Invariant([AssertionCondition(AssertionConditionType.IS_TRUE)] bool condition, string userMessage)
-		{
-#if PARANOID_ANDROID
-			if (!condition) throw Contract.RaiseContractFailure(SDC.ContractFailureKind.Invariant, userMessage);
-#endif
-		}
-
-		/// <summary>[PARANOID MODE] Vérifie qu'une instance n'est pas null (condition: "value != null")</summary>
-		[Conditional("PARANOID_ANDROID")]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[AssertionMethod]
-		public static void NotNull<TValue>([AssertionCondition(AssertionConditionType.IS_NOT_NULL)] TValue value, [InvokerParameterName] string? paramName = null, string? message = null)
-			where TValue : class
-		{
-#if PARANOID_ANDROID
-			if (value is null) throw Contract.FailArgumentNull(paramName!, message!);
-#endif
-		}
-
-		/// <summary>[PARANOID MODE] Vérifie qu'une string n'est pas null (condition: "value != null")</summary>
-		[Conditional("PARANOID_ANDROID")]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[AssertionMethod]
-		public static void NotNull([AssertionCondition(AssertionConditionType.IS_NOT_NULL)] string value, [InvokerParameterName] string? paramName = null, string? message = null)
-		{
-#if PARANOID_ANDROID
-			if (value is null) throw Contract.FailArgumentNull(paramName!, message!);
-#endif
-		}
-
-		/// <summary>[PARANOID MODE] Vérifie qu'un buffer n'est pas null (condition: "value != null")</summary>
-		[Conditional("PARANOID_ANDROID")]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[AssertionMethod]
-		public static void NotNull([AssertionCondition(AssertionConditionType.IS_NOT_NULL)] byte[] value, [InvokerParameterName] string? paramName = null, string? message = null)
-		{
-#if PARANOID_ANDROID
-			if (value is null) throw Contract.FailArgumentNull(paramName!, message!);
+			if (!condition) throw RaiseContractFailure(System.Diagnostics.Contracts.ContractFailureKind.Invariant, userMessage, conditionText);
 #endif
 		}
 
