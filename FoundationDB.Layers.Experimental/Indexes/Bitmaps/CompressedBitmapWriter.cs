@@ -27,10 +27,10 @@
 namespace FoundationDB.Layers.Experimental.Indexing
 {
 	using System;
+	using System.Buffers;
+	using System.Runtime.CompilerServices;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
-	using FoundationDB.Client;
-	using JetBrains.Annotations;
 
 	/// <summary>Writer that compresses a stream of bits into a <see cref="CompressedBitmap"/>, in memory</summary>
 	public sealed class CompressedBitmapWriter
@@ -41,18 +41,25 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 		/// <summary>Output buffer</summary>
 		private SliceWriter m_writer;
+
 		/// <summary>Offset of the header in the writer</summary>
 		private int m_head;
+
 		/// <summary>Last word written (NO_VALUE means none)</summary>
 		private uint m_current = NO_VALUE;
+
 		/// <summary>Number of repetitions of the current word</summary>
 		private int m_counter;
+
 		/// <summary>Number of input words written (excluding any trailing 0s)</summary>
 		private int m_words;
+
 		/// <summary>If true, the bitmap has been fully constructed. If false, new words can still be written.</summary>
 		private bool m_packed;
-		/// <summary>If true, the buffer is private. If false, it as been exposed to someone and cannot be modified anymore</summary>
+
+		/// <summary>If true, the buffer is private. If false, it has been exposed to someone and cannot be modified anymore</summary>
 		private bool m_ownsBuffer;
+
 		/// <summary>Bounds of the constructed bitmap (only when packed)</summary>
 		private BitRange m_bounds;
 
@@ -67,16 +74,17 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 		/// <summary>Create a new compressed bitmap writer, with a hint for the initial capacity</summary>
 		/// <param name="capacity">Hint of the estimated number of words that will be written.</param>
+		/// <param name="pool"></param>
 		/// <remarks>The size of the initial allocated buffer will be (<paramref name="capacity"/> + 1) * 4 bytes</remarks>
-		public CompressedBitmapWriter(int capacity)
-			: this(new SliceWriter(Math.Max(4 + capacity  * 4, 20)), true)
+		public CompressedBitmapWriter(int capacity, ArrayPool<byte>? pool = null)
+			: this(new(Math.Max(4 + capacity  * 4, 20), pool), true)
 		{
 			if (capacity < 0) throw new ArgumentOutOfRangeException(nameof(capacity));
 		}
 
 		/// <summary>Create a new compressed bitmap writer, with a specific underlying buffer</summary>
 		/// <param name="writer">Existing where the compressed words will be written to</param>
-		/// <param name="ownsBuffer">If true, the buffer is still private and and can modified at will. If false, the buffer has been exposed publicly and a new buffer must be allocated before reusing this writer</param>
+		/// <param name="ownsBuffer">If true, the buffer is still private and can be modified at will. If false, the buffer has been exposed publicly and a new buffer must be allocated before reusing this writer</param>
 		internal CompressedBitmapWriter(SliceWriter writer, bool ownsBuffer)
 		{
 			m_writer = writer;
@@ -90,17 +98,11 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		#region Public Properties...
 
 		/// <summary>Number of words written</summary>
-		public int Words
-		{
-			get { return m_words; }
-		}
+		public int Words => m_words;
 
 		/// <summary>Length (in bytes) of the Compressed Bitmap</summary>
-		/// <remarks>This may be off by 4 bytes if <see cref="Flush"/> hasn't been called since the last write.</remarks>
-		public int Length
-		{
-			get { return m_writer.Position; }
-		}
+		/// <remarks>This may be off by 4 bytes if <see cref="Flush"/> hasnt been called since the last write.</remarks>
+		public int Length => m_writer.Position;
 
 		#endregion
 
@@ -111,9 +113,9 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		public void Write(uint word)
 		{
 			Contract.Debug.Requires(word <= CompressedWord.ALL_ONES);
-			if (m_packed) ThrowAlreadyPacked();
+			if (m_packed) throw ErrorAlreadyPacked();
 
-			if (word == CompressedWord.ALL_ZEROES || word == CompressedWord.ALL_ONES)
+			if (word is CompressedWord.ALL_ZEROES or CompressedWord.ALL_ONES)
 			{ // all zero or all one
 				WriteFiller(word, 1);
 			}
@@ -128,11 +130,11 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <param name="count">Number of times <paramref name="word"/> is repeated in the output</param>
 		public void Write(uint word, int count)
 		{
-			// (NO_VALUE, 0) is used to flush the buffer by flushing the curent state
+			// (NO_VALUE, 0) is used to flush the buffer by flushing the current state
 			Contract.Debug.Requires(word <= CompressedWord.ALL_ONES && count > 0);
-			if (m_packed) ThrowAlreadyPacked();
+			if (m_packed) throw ErrorAlreadyPacked();
 
-			if (word == CompressedWord.ALL_ZEROES || word == CompressedWord.ALL_ONES)
+			if (word is CompressedWord.ALL_ZEROES or CompressedWord.ALL_ONES)
 			{
 				WriteFiller(word, count);
 			}
@@ -163,14 +165,11 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 			// switch from one type to the other
 			m_words += m_counter;
-			if (previous == CompressedWord.ALL_ZEROES)
-			{
-				m_writer.WriteFixed32(CompressedWord.MakeZeroes(m_counter));
-			}
-			else
-			{
-				m_writer.WriteFixed32(CompressedWord.MakeOnes(m_counter));
-			}
+			m_writer.WriteFixed32(
+				previous == CompressedWord.ALL_ZEROES
+					? CompressedWord.MakeZeroes(m_counter)
+					: CompressedWord.MakeOnes(m_counter)
+			);
 			m_counter = count;
 		}
 
@@ -219,7 +218,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// </remarks>
 		public void Flush()
 		{
-			if (m_packed) ThrowAlreadyPacked();
+			if (m_packed) throw ErrorAlreadyPacked();
 
 			// either previous was a literal, or a run of zeroes or ones.
 			Contract.Debug.Requires(m_counter == 0 ? (m_current == NO_VALUE) : (m_current == CompressedWord.ALL_ZEROES || m_current == CompressedWord.ALL_ONES));
@@ -239,7 +238,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <remarks>You cannot write any more words after Packing, until <see cref="Reset"/> is called.</remarks>
 		public void Pack()
 		{
-			if (m_packed) ThrowAlreadyPacked();
+			if (m_packed) throw ErrorAlreadyPacked();
 
 			// flush any pending word
 			Flush();
@@ -253,11 +252,10 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			else
 			{
 				// we need to find the lowest and highest bits
-				m_bounds = CompressedBitmap.ComputeBounds(m_writer.ToMutableSlice(), m_words);
+				m_bounds = CompressedBitmap.ComputeBounds(m_writer.ToSpan(), m_words);
 
 				// update the header
-				int p;
-				m_writer.Rewind(out p, m_head);
+				m_writer.Rewind(out var p, m_head);
 				//the last word is either a literal, or a 1-bit filler
 				m_writer.WriteFixed32(CompressedWord.MakeHeader(m_bounds.Highest));
 				m_writer.Position = p;
@@ -266,13 +264,11 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			m_packed = true;
 		}
 
-		private static void ThrowAlreadyPacked()
-		{
-			throw new InvalidOperationException("The compressed bitmap has already been packed");
-		}
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		private static InvalidOperationException ErrorAlreadyPacked() => new("The compressed bitmap has already been packed");
 
 		/// <summary>Flush the final words and return the bytes of the completed bitmap</summary>
-		public MutableSlice GetBuffer()
+		public SliceOwner GetBuffer()
 		{
 			if (!m_packed)
 			{
@@ -280,13 +276,13 @@ namespace FoundationDB.Layers.Experimental.Indexing
 				Pack();
 			}
 			m_ownsBuffer = false;
-			return m_writer.ToMutableSlice();
+			return m_writer.ToSliceOwner();
 		}
 
 		/// <summary>Flush the final words and return the compressed bitmap</summary>
 		public CompressedBitmap GetBitmap()
 		{
-			return new CompressedBitmap(GetBuffer(), m_bounds);
+			return new(GetBuffer(), m_bounds, ownsData: true);
 		}
 
 		/// <summary>Clear the content of the buffer, and start from scratch</summary>

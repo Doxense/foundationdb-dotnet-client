@@ -26,13 +26,13 @@
 
 namespace FoundationDB.Layers.Experimental.Indexing
 {
-	using System;
 	using System.Collections.Generic;
 	using Doxense.Diagnostics.Contracts;
 
 	/// <summary>View that reads the indexes of all the set bits in a bitmap</summary>
-	public class CompressedBitmapBitView : IEnumerable<int>
+	public class CompressedBitmapBitView : IEnumerable<long>
 	{
+
 		private readonly CompressedBitmap m_bitmap;
 
 		public CompressedBitmapBitView(CompressedBitmap bitmap)
@@ -43,9 +43,9 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 		public CompressedBitmap Bitmap => m_bitmap;
 
-		public IEnumerator<int> GetEnumerator()
+		public IEnumerator<long> GetEnumerator()
 		{
-			int offset = 0;
+			long offset = 0;
 			foreach (var word in m_bitmap)
 			{
 				if (word.IsLiteral)
@@ -76,10 +76,8 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			}
 		}
 
-		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
-		{
-			return this.GetEnumerator();
-		}
+		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => this.GetEnumerator();
+
 	}
 
 }

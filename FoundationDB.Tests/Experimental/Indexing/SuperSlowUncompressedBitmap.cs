@@ -29,6 +29,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Runtime.CompilerServices;
 	using System.Text;
 	using NUnit.Framework;
 
@@ -39,12 +40,12 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 	{
 
 		public bool[] Bits;
-		public int LowestBit = int.MaxValue;
-		public int HighestBit = -1;
+		public long LowestBit = long.MaxValue;
+		public long HighestBit = -1;
 
 		public SuperSlowUncompressedBitmap()
 		{
-			this.Bits = Array.Empty<bool>();
+			this.Bits = [ ];
 		}
 
 		public SuperSlowUncompressedBitmap(CompressedBitmap bitmap)
@@ -66,7 +67,8 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 				}
 				else if (word.FillBit == 1)
 				{
-					int n = word.FillCount;
+					//int n = word.FillCount;
+					throw new NotImplementedException();
 				}
 			}
 			this.Bits = bits;
@@ -83,26 +85,34 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 
 		public bool this[int index]
 		{
-			get { return Test(index); }
+			get => Test(index);
 			set { if (value) Set(index); else Clear(index); }
 		}
 
-		public bool Test(int index)
+		public bool Test(long index)
 		{
 			Assert.That(index, Is.GreaterThanOrEqualTo(0));
 			return index < this.Bits.Length && this.Bits[index];
 		}
 
-		public bool Set(int index)
+		public bool Set(long index)
 		{
 			Assert.That(index, Is.GreaterThanOrEqualTo(0));
 
-			if (index > this.HighestBit) this.HighestBit = index;
-			if (index < this.LowestBit) this.LowestBit = index;
+			if (this.HighestBit < 0)
+			{
+				this.HighestBit = index;
+				this.LowestBit = index;
+			}
+			else
+			{
+				if (index > this.HighestBit) this.HighestBit = index;
+				if (index < this.LowestBit) this.LowestBit = index;
+			}
 
 			if (index >= this.Bits.Length)
 			{
-				Array.Resize(ref this.Bits, index + 1);
+				Array.Resize(ref this.Bits, checked((int) (index + 1)));
 			}
 			else
 			{
@@ -124,11 +134,13 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 
 			bits[index] = false;
 			if (index == this.HighestBit)
-			{ // need to recompute highestbit
+			{
+				// need to recompute highestbit
 
 				this.HighestBit = FindHighestBit(bits, index);
 				//Console.WriteLine("new highest {0}", this.HighestBit);
 			}
+
 			if (index == this.LowestBit)
 			{
 				this.LowestBit = FindLowestBit(bits, index);
@@ -150,16 +162,16 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			return count;
 		}
 
-		private static int FindLowestBit(bool[] bits, int count)
+		private static long FindLowestBit(bool[] bits, int count)
 		{
 			for (int i = 0; i < count; i++)
 			{
 				if (bits[i]) return i;
 			}
-			return int.MaxValue;
+			return long.MaxValue;
 		}
 
-		private static int FindHighestBit(bool[] bits, int count)
+		private static long FindHighestBit(bool[] bits, int count)
 		{
 			int p = count - 1;
 			while (p >= 0)
@@ -242,7 +254,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 				}
 				//else ignore
 			}
-			return new SuperSlowUncompressedBitmap(bits.ToArray(), lsb, hsb);
+			return new(bits.ToArray(), lsb, hsb);
 		}
 
 		public StringBuilder Dump(StringBuilder? sb = null)
@@ -257,8 +269,8 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			int x = 0;
 			for (int p = 0; p <= bits.Length; p += 31)
 			{
-				if (x == 0) sb.AppendFormat("{0,7} ", p);
-				else if ((x & 7) == 0) sb.AppendFormat("\r\n{0,7} ", p);
+				if (x == 0) sb.Append($"{p,7} ");
+				else if ((x & 7) == 0) sb.Append($"\r\n{p,7} ");
 				else sb.Append(' ');
 
 				bool noBits = true;
@@ -279,7 +291,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 						sb.Append('_');
 					}
 				}
-				if (noBits) sb.Remove(sb.Length - 31, 31).Append(new string('.', 31));
+				if (noBits) sb.Remove(sb.Length - 31, 31).Append('.', 31);
 				x++;
 			}
 
@@ -287,25 +299,13 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 		}
 
 
-		public override bool Equals(object? obj)
-		{
-			var other = obj as SuperSlowUncompressedBitmap;
-			return other != null && Equals(other);
-		}
+		public override bool Equals(object? obj) => obj is SuperSlowUncompressedBitmap b && Equals(b);
 
-		public override int GetHashCode()
-		{
-			int h = 0;
-			var bits = this.Bits;
-			for (int i = 0; i < bits.Length;i++)
-			{
-				if (bits[i]) h = (h * 31) ^ i;
-			}
-			return h;
-		}
+		public override int GetHashCode() => RuntimeHelpers.GetHashCode(this);
 
 		public bool Equals(SuperSlowUncompressedBitmap? other)
 		{
+			if (ReferenceEquals(other, this)) return true;
 			if (other == null) return false;
 
 			var mBits = this.Bits;
@@ -315,7 +315,9 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			for (int i = 0; i < n; i++)
 			{
 				if ((i < mBits.Length && mBits[i]) != (i < oBits.Length && oBits[i]))
+				{
 					return false;
+				}
 			}
 			return true;
 		}

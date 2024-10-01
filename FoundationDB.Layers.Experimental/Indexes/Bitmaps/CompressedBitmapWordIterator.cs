@@ -43,11 +43,11 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			Contract.Debug.Requires((buffer.Count & 3) == 0 && (buffer.Count == 0 || buffer.Count >= 8));
 			if (buffer.Count == 0)
 			{
-				m_reader = new SliceReader();
+				m_reader = default;
 			}
 			else
 			{ // skip the header
-				m_reader = new SliceReader(buffer.Substring(4));
+				m_reader = new(buffer[4..]);
 			}
 			m_current = 0;
 		}
@@ -75,7 +75,57 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 		public void Dispose()
 		{
-			m_reader = default(SliceReader);
+			m_reader = default;
+			m_current = 0;
+		}
+
+	}
+
+	/// <summary>Iterator that reads 32-bit compressed words from a compressed bitmap</summary>
+	public ref struct CompressedBitmapWordSpanIterator : IEnumerator<CompressedWord>
+	{
+		/// <summary>Source of compressed words</summary>
+		private SpanReader m_reader;
+		private uint m_current;
+
+		internal CompressedBitmapWordSpanIterator(ReadOnlySpan<byte> buffer)
+		{
+			Contract.Debug.Requires((buffer.Length & 3) == 0 && buffer.Length is 0 or >= 8);
+			if (buffer.Length == 0)
+			{
+				m_reader = default;
+			}
+			else
+			{ // skip the header
+				m_reader = new(buffer[4..]);
+			}
+			m_current = 0;
+		}
+
+		public bool MoveNext()
+		{
+			if (m_reader.Remaining < 4)
+			{
+				m_current = 0;
+				return false;
+			}
+			m_current = m_reader.ReadUInt32();
+			return true;
+		}
+
+		public CompressedWord Current => new CompressedWord(m_current);
+
+		object System.Collections.IEnumerator.Current => this.Current;
+
+		public void Reset()
+		{
+			m_reader.Position = 0;
+			m_current = 0;
+		}
+
+		public void Dispose()
+		{
+			m_reader = default;
 			m_current = 0;
 		}
 

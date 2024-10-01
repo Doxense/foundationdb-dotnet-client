@@ -27,46 +27,55 @@
 namespace FoundationDB.Layers.Experimental.Indexing
 {
 	using System;
+	using System.Buffers;
+	using System.Buffers.Binary;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Runtime.CompilerServices;
 
 	/// <summary>Represents a compressed vector of bits</summary>
 	[DebuggerDisplay("{Count} words: {m_bounds.Lowest}..{m_bounds.Highest}")]
-	public sealed class CompressedBitmap : IEnumerable<CompressedWord>
+	public sealed class CompressedBitmap : IEnumerable<CompressedWord>, IDisposable
+	//TODO: convert to readonly struct!
 	{
 		// A compressed bitmap is IMMUTABLE and ReadOnly
 
 		/// <summary>Returns a new instance of an empty bitmap</summary>
-		public static readonly CompressedBitmap Empty = new CompressedBitmap(MutableSlice.Empty, BitRange.Empty);
+		public static readonly CompressedBitmap Empty = new(SliceOwner.Empty, BitRange.Empty, ownsData: false);
 
-		private readonly Slice m_data;
-		private readonly BitRange m_bounds;
+		private SliceOwner m_data;
+		private BitRange m_bounds;
+		private bool m_ownsData;
 
 		public CompressedBitmap(Slice data)
+			: this(SliceOwner.Create(data), ownsData: false)
+		{ }
+
+		public CompressedBitmap(SliceOwner data, bool ownsData)
 		{
-			if (data.IsNull) throw new ArgumentNullException(nameof(data));
-			if (data.Count > 0 && data.Count < 8) throw new ArgumentException("A compressed bitmap must either be empty, or at least 8 bytes long", nameof(data));
+			if (data.Count is > 0 and < 8) throw new ArgumentException("A compressed bitmap must either be empty, or at least 8 bytes long", nameof(data));
 			if ((data.Count & 3) != 0) throw new ArgumentException("A compressed bitmap size must be a multiple of 4 bytes", nameof(data));
 
 			if (data.Count == 0)
 			{
-				m_data = Slice.Empty;
+				m_data = SliceOwner.Empty;
 				m_bounds = BitRange.Empty;
 			}
 			else
 			{
 				m_data = data;
-				m_bounds = ComputeBounds(data);
+				m_bounds = ComputeBounds(data.Span);
+				m_ownsData = ownsData;
 			}
 		}
 
-		internal CompressedBitmap(MutableSlice data, BitRange bounds)
+		internal CompressedBitmap(SliceOwner data, BitRange bounds, bool ownsData)
 		{
-			if (data.IsNull) throw new ArgumentNullException(nameof(data));
+			if (!data.IsValid || data.Data.IsNull) throw new ArgumentNullException(nameof(data));
 
 			if (data.Count == 0)
 			{
-				m_data = MutableSlice.Empty;
+				m_data = SliceOwner.Empty;
 				m_bounds = BitRange.Empty;
 			}
 			else
@@ -75,26 +84,43 @@ namespace FoundationDB.Layers.Experimental.Indexing
 				if (data.Count < 4) throw new ArgumentException("A compressed bitmap must be at least 4 bytes long", nameof(data));
 				m_data = data;
 				m_bounds = bounds;
+				m_ownsData = ownsData;
 			}
 		}
 
-		/// <summary>Gets the compressed bitmap's data</summary>
-		public Slice ToSlice() { return m_data; }
-
-		public CompressedBitmapBuilder ToBuilder()
+		public void Dispose()
 		{
-			return new CompressedBitmapBuilder(this);
+			if (m_ownsData)
+			{
+				m_ownsData = false;
+				m_data.Dispose();
+			}
+			m_data = default;
+			m_bounds = BitRange.Empty;
 		}
+
+		/// <summary>Gets the compressed bitmap data</summary>
+		public Slice ToSlice() => m_data.GetOrCopy();
+
+		/// <summary>Gets the compressed bitmap data</summary>
+		public SliceOwner ToSlice(ArrayPool<byte> pool) => m_data.Copy(pool);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public CompressedBitmapBuilder ToBuilder(ArrayPool<CompressedWord>? pool = null) => new(this, pool);
 
 		/// <summary>Gets the underlying buffer of the compressed bitmap</summary>
 		/// <remarks>The content of the buffer MUST NOT be modified directly</remarks>
-		internal Slice Data => m_data;
+		internal Slice Data => m_data.Data;
+		
+		/// <summary>Gets the underlying buffer of the compressed bitmap</summary>
+		/// <remarks>The content of the buffer MUST NOT be modified directly</remarks>
+		internal ReadOnlySpan<byte> Span => m_data.Span;
 
 		/// <summary>Gets the bounds of the compressed bitmap</summary>
 		public BitRange Bounds => m_bounds;
 
 		/// <summary>Number of Data Words in the compressed bitmap</summary>
-		public int Count => m_data.IsNullOrEmpty ? 0 : (m_data.Count >> 2) - 1;
+		public int Count => m_data.Count == 0 ? 0 : (m_data.Count >> 2) - 1;
 
 		/// <summary>Number of bytes in the compressed bitmap</summary>
 		public int ByteCount => m_data.Count;
@@ -125,6 +151,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 						return word.FillBit == 1;
 					}
 				}
+				p = n;
 			}
 			return false;
 		}
@@ -141,9 +168,9 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		}
 
 		/// <summary>Returns the bounds of the uncompressed bitmap index</summary>
-		internal static BitRange ComputeBounds(Slice data, int words = -1)
+		internal static BitRange ComputeBounds(ReadOnlySpan<byte> data, int words = -1)
 		{
-			int count = data.Count;
+			int count = data.Length;
 			if (count > 0 && count < 8) throw new ArgumentException("Bitmap buffer size is too small", nameof(data));
 			if ((count & 3) != 0) throw new ArgumentException("Bitmap buffer size must be a multiple of 4 bytes", nameof(data));
 
@@ -154,24 +181,27 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			int highest;
 			if (words < 0)
 			{ // the bitmap is complete so we can read the header
-				highest = (int) data.ReadUInt32(0, 4);
+				highest = BinaryPrimitives.ReadInt32LittleEndian(data);
 				if (highest < 0 && highest != -1) throw new InvalidOperationException("Corrupted bitmap buffer (highest bit underflow)" + highest);
 			}
 			else
 			{ // the bitmap is not finished, we need to find it ourselves
 				highest = (words * 31) - 1;
 				// check the last word if it is a literal
-				int last = new CompressedWord(data.ReadUInt32(data.Count - 4, 4)).GetHighestBit();
-				if (last >= 0) highest += last - 30;
+				int last = new CompressedWord(BinaryPrimitives.ReadUInt32LittleEndian(data[^4..])).GetHighestBit();
+				if (last >= 0)
+				{
+					highest += last - 30;
+				}
 			}
 
 			// to compute the lowest bit, we need to look for initial fillers with 0-bit, and the check the first literal
 			int lowest = 0;
-			using(var iter = new CompressedBitmapWordIterator(data))
+			using(var it = new CompressedBitmapWordSpanIterator(data))
 			{
-				while (iter.MoveNext() && lowest >= 0)
+				while (it.MoveNext() && lowest >= 0)
 				{
-					var word = iter.Current;
+					var word = it.Current;
 					if (word.IsLiteral)
 					{ // count the lower bits that are 0 for the final tally
 						int first = word.GetLowestBit();
@@ -197,8 +227,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			}
 
 			//Console.WriteLine("Computed bounds are: {0}..{1}", lowest, highest);
-			return new BitRange(lowest, highest);
-
+			return new(lowest, highest);
 		}
 
 		/// <summary>Get some statistics on this bitmap</summary>
@@ -223,32 +252,17 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			ratio = (32.0 * words) /  m_bounds.Highest;
 		}
 
-		public string Dump()
-		{
-			return WordAlignHybridEncoder.DumpCompressed(m_data).ToString();
-		}
+		public string Dump(System.Text.StringBuilder? output = null) => WordAlignHybridEncoder.DumpCompressed(m_data.Data, output).ToString();
 
-		public CompressedBitmapBitView GetView()
-		{
-			return new CompressedBitmapBitView(this);
-		}
+		public CompressedBitmapBitView GetView() => new(this);
 
 		#region IEnumerable<CompressedWord>...
 
-		public CompressedBitmapWordIterator GetEnumerator()
-		{
-			return new CompressedBitmapWordIterator(m_data);
-		}
+		public CompressedBitmapWordIterator GetEnumerator() => new(m_data.Data);
 
-		IEnumerator<CompressedWord> IEnumerable<CompressedWord>.GetEnumerator()
-		{
-			return new CompressedBitmapWordIterator(m_data);
-		}
+		IEnumerator<CompressedWord> IEnumerable<CompressedWord>.GetEnumerator() => new CompressedBitmapWordIterator(m_data.Data);
 
-		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
-		{
-			return new CompressedBitmapWordIterator(m_data);
-		}
+		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => new CompressedBitmapWordIterator(m_data.Data);
 
 		#endregion
 

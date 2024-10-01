@@ -27,17 +27,24 @@
 namespace FoundationDB.Layers.Experimental.Indexing
 {
 	using System;
+	using System.Buffers;
+	using System.Buffers.Binary;
+	using System.Diagnostics;
+	using System.Diagnostics.CodeAnalysis;
+	using System.Numerics;
+	using System.Runtime.CompilerServices;
 	using System.Collections.Generic;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
-	using JetBrains.Annotations;
+	using System.Runtime.InteropServices;
 
 	/// <summary>Builder of compressed bitmaps that can set or clear bits in a random order, in memory</summary>
-	public sealed class CompressedBitmapBuilder
+	[DebuggerDisplay("Size={m_size}, Bounds={m_lowest}..{m_highest}")]
+	public struct CompressedBitmapBuilder : IDisposable
 	{
 
 		/// <summary>Returns a new instance of an empty bitmap builder</summary>
-		public static CompressedBitmapBuilder Empty => new CompressedBitmapBuilder(Array.Empty<CompressedWord>(), 0, BitRange.Empty);
+		public static CompressedBitmapBuilder Empty => new([ ], 0, BitRange.Empty);
 
 		/// <summary>Buffer of compressed words</summary>
 		private CompressedWord[] m_words;
@@ -46,27 +53,39 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		private int m_size;
 
 		/// <summary>Index of the lowest bit that is set (or int.MaxValue)</summary>
-		private int m_lowest;
+		private long m_lowest;
 
 		/// <summary>Index of the highest bit that is set (or -1)</summary>
-		private int m_highest;
+		private long m_highest;
 
-		public CompressedBitmapBuilder(CompressedBitmap bitmap)
+		/// <summary>Optional pool used to allocate <see cref="m_words"/></summary>
+		private ArrayPool<CompressedWord>? m_pool;
+
+		/// <summary></summary>
+		/// <param name="bitmap"></param>
+		/// <param name="pool">Optional pool used to allocate internal buffer</param>
+		/// <exception cref="ArgumentNullException">If <paramref name="bitmap"/> is <see langword="null"/></exception>
+		/// <exception cref="ArgumentException">If <paramref name="bitmap"/> does not have a valid size (must be multiple of 4 bytes)</exception>
+		/// <remarks>If <paramref name="pool"/> is not null, this instance <b>MUST</b> be disposed, otherwise the rented buffers will not be returned to the pool!</remarks>
+		public CompressedBitmapBuilder(CompressedBitmap bitmap, ArrayPool<CompressedWord>? pool = null)
 		{
-			if (bitmap == null) throw new ArgumentNullException(nameof(bitmap));
-			if ((bitmap.Data.Count & 3) != 0) throw new ArgumentException("Bitmap's underlying buffer size should be a multiple of 4 bytes", nameof(bitmap));
+			Contract.NotNull(bitmap);
+			Contract.Multiple(bitmap.ByteCount, 4, "The underlying buffer size should be a multiple of 4 bytes", nameof(bitmap));
 
 			if (bitmap.Count == 0)
-			{
-				m_words = Array.Empty<CompressedWord>();
+			{ // empty bitmap
+				m_words = [ ];
 				var range = BitRange.Empty;
 				m_lowest = range.Lowest;
 				m_highest = range.Highest;
+				m_pool = pool;
 			}
 			else
-			{
-				m_words = DecodeWords(bitmap.Data, bitmap.Count, bitmap.Bounds);
+			{ // decode the bimapt, extract the bounds
+
+				m_words = DecodeWords(bitmap.Data.Span, bitmap.Count, bitmap.Bounds, pool);
 				m_size = bitmap.Count;
+				m_pool = pool;
 
 				var bounds = bitmap.Bounds;
 				m_lowest = bounds.Lowest;
@@ -74,8 +93,12 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			}
 		}
 
-		public CompressedBitmapBuilder(Slice data)
-			: this(new CompressedBitmap(MutableSlice.Copy(data.Span)))
+		public CompressedBitmapBuilder(Slice data, ArrayPool<CompressedWord>? pool = null)
+			: this(new CompressedBitmap(SliceOwner.Create(data), ownsData: false), pool)
+		{ }
+
+		public CompressedBitmapBuilder(SliceOwner data, bool ownsData, ArrayPool<CompressedWord>? pool = null)
+			: this(new CompressedBitmap(data, ownsData), pool)
 		{ }
 
 		internal CompressedBitmapBuilder(CompressedWord[] words, int size, BitRange range)
@@ -87,48 +110,81 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			m_highest = range.Highest;
 		}
 
-		internal static CompressedWord[] DecodeWords(Slice data, int size, BitRange bounds)
+		public void Dispose()
 		{
-			Contract.Debug.Requires(size >= 0 && data.Count >= 4 && (data.Count & 3) == 0);
-
-			int capacity = BitHelpers.NextPowerOfTwo(size);
-			if (capacity < 0) capacity = size;
-			var words = new CompressedWord[capacity];
-
-			var end = data.Offset + data.Count;
-
-			for (int i = 0, p = data.Offset + 4; p < end; i++, p += 4)
+			var pool = m_pool;
+			if (pool != null)
 			{
-				words[i] = new CompressedWord(data.ReadUInt32(p, 4));
+				var words = m_words;
+				m_words = [ ];
+				m_pool = null;
+				if (words.Length != 0)
+				{
+					pool.Return(words);
+				}
+				m_size = 0;
+			}
+		}
+
+		public readonly ReadOnlySpan<CompressedWord> Words => m_words.AsSpan(0, m_size);
+
+		internal static CompressedWord[] DecodeWords(ReadOnlySpan<byte> data, int size, BitRange bounds, ArrayPool<CompressedWord>? pool)
+		{
+			Contract.Debug.Requires(size >= 0 && data.Length >= 4 && (data.Length & 3) == 0);
+
+			CompressedWord[] words;
+			if (pool == null)
+			{
+				int capacity = BitHelpers.NextPowerOfTwo(size);
+				if (capacity < 0) capacity = size;
+				words = new CompressedWord[capacity];
+			}
+			else
+			{
+				words = pool.Rent(size);
+				// we don't know if it was cleared by the previous user!
+				Array.Clear(words);
+			}
+
+			var buf = data[4..];
+
+			int i = 0;
+			while(buf.Length > 0)
+			{
+				words[i++] = new(BinaryPrimitives.ReadUInt32LittleEndian(buf));
+				buf = buf[4..];
 			}
 
 			return words;
 		}
 
 		/// <summary>Returns the number of compressed words in the builder</summary>
-		public int Count => m_size;
+		public readonly int Count => m_size;
 
-		/// <summary>Compute the word index, and mask of a bit offset</summary>
+		/// <summary>Compute the word index and mask, from a bit offset</summary>
 		/// <param name="offset">Bit offset (0-based)</param>
 		/// <param name="mask">Mask of the bit in the word</param>
 		/// <returns>Index of the data word (0-based)</returns>
-		private int GetWordIndex(int offset, out uint mask)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private static int GetWordIndex(long offset, out uint mask)
 		{
-			mask = 1U << (offset % 31);
-			return offset / 31;
+			mask = 1U << (int) (offset % 31);
+			return checked((int) (offset / 31));
 		}
 
 		/// <summary>Returns the index of where a data word is located in the current compressed bitmap</summary>
 		/// <param name="wordIndex">Data word index (0-based) in the uncompressed bitmap</param>
 		/// <param name="offset">Receives the index in the compressed word table that would need to be patched</param>
 		/// <param name="position">Receives the absolute index of the word at <paramref name="offset"/> (ie: compressed word #<paramref name="offset"/> is the <paramref name="position"/>th uncompressed data word)</param>
-		/// <returns>True if the modified word is inside the bitmap, or false it it falls outside</returns>
+		/// <returns>True if the modified word is inside the bitmap, or false if it falls outside</returns>
 		private bool GetCompressedWordIndex(int wordIndex, out int offset, out int position)
 		{
 			// we need to find the offset in the compressed word list, where this word index should be stored or inserted
 
+			//var words = new ReadOnlySpan<CompressedWord>(m_words, 0, m_size);
 			var words = m_words;
-			int size = m_size;
+			var size = m_size;
+
 			int p = 0;
 			for (int i = 0; i < size; i++)
 			{
@@ -147,13 +203,34 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			return false;
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void EnsureCapacity(int minSize)
 		{
 			if (minSize > m_size)
 			{
-				int newSize = BitHelpers.NextPowerOfTwo(minSize);
-				if (newSize < 0) newSize = minSize;
-				if (newSize < 8) newSize = 8;
+				Grow(minSize);
+			}
+		}
+
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		private void Grow(int minSize)
+		{
+			int newSize = (int) BitOperations.RoundUpToPowerOf2((uint) minSize);
+			if (newSize < 0) newSize = minSize;
+			if (newSize < 8) newSize = 8;
+			if (m_pool != null)
+			{
+				var prev = m_words;
+				var tmp = m_pool.Rent(newSize);
+				prev.AsSpan(0, m_size).CopyTo(tmp);
+				m_words = tmp;
+				if (prev.Length != 0)
+				{
+					m_pool.Return(prev);
+				}
+			}
+			else
+			{
 				Array.Resize(ref m_words, newSize);
 			}
 		}
@@ -163,14 +240,14 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <returns>True if the bit is set; otherwise, false.</returns>
 		public bool this[int index]
 		{
-			get => Test(index);
+			readonly get => Test(index);
 			set { if (value) Set(index); else Clear(index); }
 		}
 
 		/// <summary>Test the value of a bit in the bitmap.</summary>
 		/// <param name="index">Absolute index (0-based) of the bit to test</param>
 		/// <returns>True if the bit is set; otherwise, false.</returns>
-		public bool Test(int index)
+		public readonly bool Test(int index)
 		{
 			throw new NotImplementedException();
 		}
@@ -181,7 +258,9 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			// ensure we have enough space
 			EnsureCapacity(m_size + count);
 			// move everything to the right of position
-			Array.Copy(m_words, position, m_words, position + count, m_size - position);
+			var words = m_words;
+			words.AsSpan(position, m_size - position).CopyTo(words.AsSpan(position + count));
+			//Array.Copy(m_words, position, m_words, position + count, m_size - position);
 			// and update the size
 			m_size += count;
 		}
@@ -189,14 +268,22 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <summary>Set a bit in the bitmap.</summary>
 		/// <param name="index">Absolute index (0-based) of the bit to set</param>
 		/// <returns>True if the bit was changed from 0 to 1; or false if it was already set.</returns>
-		public bool Set(int index)
+		public bool Set(long index)
 		{
-			if (index < 0) throw new ArgumentException("Bit index cannot be less than zero.", nameof(index));
+			Contract.Positive(index);
 
 			//Console.WriteLine("Set({0}) on {1}-words bitmap", index, m_size);
 
-			if (index > m_highest) m_highest = index;
-			if (index < m_lowest) m_lowest = index;
+			if (m_highest < 0)
+			{ // first bit set in an empty builder
+				m_highest = index;
+				m_lowest = index;
+			}
+			else
+			{ // update the bounds
+				if (index > m_highest) m_highest = index;
+				if (index < m_lowest) m_lowest = index;
+			}
 
 			int wordIndex = GetWordIndex(index, out uint mask);
 			//Console.WriteLine("> bitOffset {0} is in data word #{1} with mask {2}", index, wordIndex, mask);
@@ -231,7 +318,10 @@ namespace FoundationDB.Layers.Experimental.Indexing
 				//Console.WriteLine("> PATCH [...] [{0}:0x{0:X8}] [...]", offset, mask);
 				var before = word.RawValue;
 				var after = before | mask;
-				if (before == after) return false;
+				if (before == after)
+				{
+					return false;
+				}
 
 				if (after == CompressedWord.ALL_ONES)
 				{ // convert to an all 1 literal!
@@ -243,7 +333,12 @@ namespace FoundationDB.Layers.Experimental.Indexing
 						{
 							m_words[offset - 1] = CompressedWord.MakeOnes(prev.FillCount + 1);
 							int r = m_size - offset - 1;
-							if (r > 0) Array.Copy(m_words, offset + 1, m_words, offset, r);
+							if (r > 0)
+							{
+								m_words.AsSpan(offset + 1, r).CopyTo(m_words.AsSpan(offset));
+								//Array.Copy(m_words, offset + 1, m_words, offset, r);
+							}
+
 							--m_size;
 							return true;
 						}
@@ -253,11 +348,11 @@ namespace FoundationDB.Layers.Experimental.Indexing
 					// convert this one to a filler
 					after = CompressedWord.MakeOnes(1);
 				}
-				m_words[offset] = new CompressedWord(after);
+				m_words[offset] = new(after);
 				return true;
 			}
 
-			// if it an all-1 filler, our job is already done
+			// if it is an all-1 filler, our job is already done
 			if (word.FillBit == 1)
 			{
 				//Console.WriteLine("> was already a 1-filler");
@@ -272,9 +367,9 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <summary>Clear a bit in the bitmap</summary>
 		/// <param name="index">Offset (0-based) of the bit to clear</param>
 		/// <returns>True if the bit was changed from 1 to 0; or false if it was already unset.</returns>
-		public bool Clear(int index)
+		public bool Clear(long index)
 		{
-			if (index < 0) throw new ArgumentException("Bit index cannot be less than zero.", nameof(index));
+			Contract.Positive(index);
 
 			int wordIndex = GetWordIndex(index, out uint mask);
 
@@ -313,24 +408,62 @@ namespace FoundationDB.Layers.Experimental.Indexing
 				{ // that was the last one, truncate!
 					// also kill any 0-fillers up until there
 					--m_size;
+					m_highest -= (m_highest % 31);
+
 					while(m_size > 0)
 					{
 						int p = m_size - 1;
-						if (m_words[p].FillBit != 0 || m_words[p].IsLiteral) break;
+						var ww = m_words[p];
+						if (!ww.IsZero)
+						{
+							break;
+						}
 						m_size = p;
+						m_highest -= 31;
 					}
-					//TODO: recompute lowest/highest!
+					if (m_lowest > m_highest)
+					{
+						m_lowest = m_highest;
+					}
 				}
 				else
 				{ // convert to filler
 					m_words[offset] = CompressedWord.MakeZeroes(1);
+					if ((index / 31) == (m_lowest / 31))
+					{ // we changed the lowest bit!
+						m_lowest = ((index / 31) + 1) * 31;
+						int p = offset + 1;
+						while (p < m_size)
+						{
+							var ww = m_words[p];
+							if (!ww.IsZero)
+							{
+								if (ww.IsLiteral)
+								{
+									// we need to compute the offset lowest bit!
+									int off = BitOperations.TrailingZeroCount(m_words[p].Literal);
+									m_lowest += off;
+								}
+								break;
+							}
+							m_lowest += 31;
+							++p;
+						}
+						//TODO: 
+					}
 					//TODO: merge!
 				}
 			}
-			else
-			{
-				m_words[offset] = CompressedWord.MakeLiteral(w);
+			else if ((index / 31) == (m_highest / 31))
+			{ // maybe we removed the highest bit?
+				m_highest += BitOperations.Log2(w) - BitOperations.Log2(o);
 			}
+			else if ((index / 31) == (m_lowest / 31))
+			{ // maybe we removed the lowest bit?
+				m_lowest += BitOperations.TrailingZeroCount(w) - BitOperations.TrailingZeroCount(o);
+			}
+
+			m_words[offset] = CompressedWord.MakeLiteral(w);
 			//TODO: update lowest/highest!
 			return true;
 
@@ -386,39 +519,43 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		}
 
 		/// <summary>Pack the builder back into a slice</summary>
-		/// <returns></returns>
-		public Slice ToSlice()
+		public readonly Slice ToSlice() => Pack(m_words, m_size, m_highest, null).Data;
+
+		/// <summary>Pack the builder back into a slice</summary>
+		public readonly SliceOwner ToSlice(ArrayPool<byte>? pool) => Pack(m_words, m_size, m_highest, null);
+
+		public readonly CompressedBitmap ToBitmap(ArrayPool<byte>? pool = null)
 		{
-			return Pack(m_words, m_size, m_highest);
+			return m_size == 0
+				? CompressedBitmap.Empty
+				: new(
+					data: Pack(m_words, m_size, m_highest, pool),
+					bounds: new(m_lowest, m_highest),
+					ownsData: true
+				  );
 		}
 
-		public CompressedBitmap ToBitmap()
-		{
-			if (m_size == 0) return CompressedBitmap.Empty;
-			return new CompressedBitmap(Pack(m_words, m_size, m_highest), new BitRange(m_lowest, m_highest));
-		}
-
-		internal static MutableSlice Pack(CompressedWord[] words, int size, int highest)
+		internal static SliceOwner Pack(CompressedWord[] words, int size, long highest, ArrayPool<byte>? pool)
 		{
 			Contract.Debug.Requires(size >= 0 && size <= words.Length);
 
 			if (size == 0)
 			{ // empty bitmap
-				return MutableSlice.Empty;
+				return SliceOwner.Empty;
 			}
 
-			var writer = new SliceWriter(checked((size + 1) << 2));
+			var writer = new SliceWriter(checked((size + 1) << 2), pool);
 			writer.WriteFixed32(CompressedWord.MakeHeader(highest));
 			for (int i = 0; i < size; i++)
 			{
 				writer.WriteFixed32(words[i].RawValue);
 			}
-			return writer.ToMutableSlice();
+			return writer.ToSliceOwner();
 		}
 
-		public bool[] ToBooleanArray()
+		public readonly bool[] ToBooleanArray()
 		{
-			int n = m_highest + 1;
+			int n = checked((int) (m_highest + 1));
 			var res = new List<bool>(n);
 
 			for (int i = 0; i < m_size; i++)
@@ -458,5 +595,58 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		}
 
 	}
+
+	public sealed class CompressedBitmapIndexBuilder<TKey> : IDisposable
+		where TKey : notnull
+	{
+
+		private Dictionary<TKey, CompressedBitmapBuilder> Builders { get; }
+
+		private ArrayPool<CompressedWord>? Pool { get; }
+
+		public CompressedBitmapIndexBuilder(int capacity = 0, IEqualityComparer<TKey>? comparer = null, ArrayPool<CompressedWord>? pool = null)
+		{
+			this.Builders = new(capacity, comparer);
+			this.Pool = pool;
+		}
+
+		public int Count => this.Builders.Count;
+
+		public void Add(TKey key, int index)
+		{
+			ref var builder = ref CollectionsMarshal.GetValueRefOrAddDefault(this.Builders, key, out var exists);
+			if (!exists)
+			{
+				builder = new(CompressedBitmap.Empty, this.Pool);
+			}
+			builder.Set(index);
+		}
+
+		public bool TryGetBitmap(TKey key, [MaybeNullWhen(false)] out CompressedBitmap bitmap, ArrayPool<byte>? pool = null)
+		{
+			if (this.Builders.TryGetValue(key, out var builder))
+			{
+				bitmap = builder.ToBitmap(pool);
+				return true;
+			}
+
+			bitmap = default;
+			return false;
+		}
+
+		public void Dispose()
+		{
+			if (this.Pool != null)
+			{
+				foreach (var builder in this.Builders.Values)
+				{
+					builder.Dispose();
+				}
+			}
+			this.Builders.Clear();
+		}
+
+	}
+
 
 }

@@ -27,6 +27,7 @@
 namespace FoundationDB.Layers.Experimental.Indexing
 {
 	using System;
+	using System.Buffers;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Globalization;
@@ -81,15 +82,15 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			{
 				var key = this.Subspace[value];
 				var data = await trans.GetAsync(key).ConfigureAwait(false);
-				var builder = data.HasValue ? new CompressedBitmapBuilder(data) : CompressedBitmapBuilder.Empty;
 
-				//TODO: wasteful to crate a builder to only set on bit ?
-				builder.Set((int)id); //BUGBUG: id should be 64-bit!
-
-				//TODO: if bit was already set, skip the set ?
-				trans.Set(key, builder.ToSlice());
-				return true;
+				using var builder = new CompressedBitmapBuilder(data, ArrayPool<CompressedWord>.Shared);
+				if (builder.Set(id))
+				{
+					trans.Set(key, builder.ToSlice());
+					return true;
+				}
 			}
+
 			return false;
 		}
 
@@ -113,9 +114,11 @@ namespace FoundationDB.Layers.Experimental.Indexing
 					var data = await trans.GetAsync(key).ConfigureAwait(false);
 					if (data.HasValue)
 					{
-						var builder = new CompressedBitmapBuilder(data);
-						builder.Clear((int) id); //BUGBUG: 64 bit id!
-						trans.Set(key, builder.ToSlice());
+						using var builder = new CompressedBitmapBuilder(data, ArrayPool<CompressedWord>.Shared);
+						if (builder.Clear(id))
+						{
+							trans.Set(key, builder.ToSlice());
+						}
 					}
 				}
 
@@ -124,12 +127,15 @@ namespace FoundationDB.Layers.Experimental.Indexing
 				{
 					var key = this.Subspace[newValue];
 					var data = await trans.GetAsync(key).ConfigureAwait(false);
-					var builder = data.HasValue ? new CompressedBitmapBuilder(data) : CompressedBitmapBuilder.Empty;
-					builder.Set((int) id); //BUGBUG: 64 bit id!
-					trans.Set(key, builder.ToSlice());
+
+					using var builder = new CompressedBitmapBuilder(data, ArrayPool<CompressedWord>.Shared);
+					if (builder.Set(id))
+					{
+						trans.Set(key, builder.ToSlice());
+					}
 				}
 
-				// cannot be both null, so we did at least something)
+				// cannot be both null, so we did at least something
 				return true;
 			}
 			return false;
@@ -147,10 +153,12 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			var data = await trans.GetAsync(key).ConfigureAwait(false);
 			if (data.HasValue)
 			{
-				var builder = new CompressedBitmapBuilder(data);
-				builder.Clear((int) id); //BUGBUG: 64 bit id!
-				trans.Set(key, builder.ToSlice());
-				return true;
+				using var builder = new CompressedBitmapBuilder(data, ArrayPool<CompressedWord>.Shared);
+				if (builder.Clear(id))
+				{
+					trans.Set(key, builder.ToSlice());
+					return true;
+				}
 			}
 			return false;
 		}
@@ -168,7 +176,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			if (data.IsEmpty) return Enumerable.Empty<long>();
 			var bitmap = new CompressedBitmap(data);
 			if (reverse) throw new NotImplementedException(); //TODO: GetView(reverse:true) !
-			return bitmap.GetView().Select(x => (long)x /*BUGBUG 64 bits*/);
+			return bitmap.GetView().Select(x => (long) x /*BUGBUG 64 bits*/);
 		}
 		
 		public override string ToString()

@@ -54,19 +54,19 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		// WIRE FORMAT:
 		//
 		// - The empty bitmap (no bit set) is the empty slice (0 bytes, no header, no data words).
-		// - A non empty bitmap (at least one bit set) is a slice of at least 8 bytes (a header and one data word)
+		// - A non-empty bitmap (at least one bit set) is a slice of at least 8 bytes (a header and one data word)
 		// - The first 4 bytes are the HEADER, and following groups of 4 bytes are the DATA words.
 		// - Word 0 contains the HEADER which encodes the offset of the HIGHEST_SET_BIT set in the bitmap
-		//   > If all bits (0..31) are set (1), the bounds are unknwon, which means that the bitmap is probably not yet complete (or is streamed).
+		//   > If all bits (0..31) are set (1), the bounds are unknown, which means that the bitmap is probably not yet complete (or is streamed).
 		//   > If all bits (0..31) are unset (0), the bitmap is empty and should not have any data words.
-		//   > By definition, this bit is in the last word (wich will either be a LITERAL, or a FILLER with fill bit 1.
+		//   > By definition, this bit is in the last word (which will either be a LITERAL, or a FILLER with fill bit 1.
 		//	 > The number of Data Words in the bitmap should be equal to "(HIGHEST_SET_BIT + 30) DIV 31"
 		//   > The offset of the highest bit in the last word will be "HIGHEST_SET_BIT % 31"
 		//   > The number of padding bits (0) inserted in the last word will then be "30 - (HIGHEST_BIT % 31)"
 		// - Data words with MSB unset (0) are LITERAL words that contain 31 consecutive bits from the uncompressed bitmap with at least one bit set (a LITERAL cannot be equal to 0 or 0x7FFFFFFF)
 		// - Data words with MSB set (1) are FILLER words that represent a run of N words with all bits either set (1) or unset(0).
-		//	 > A compressed bitmap cannot end by a FILLER word with fill bit of 0, but CAN start by one or more FILLER words with fill bit of 0.
-		//   > The index of the LOWEST word with at least a bit set is easy to determine by looking at the first consecuted FILLER words with fill bit 0
+		//	 > A compressed bitmap cannot end by a FILLER word with a fill bit of 0, but CAN start by one or more FILLER words with a fill bit of 0.
+		//   > The index of the LOWEST word with at least a bit set is easy to determine by looking at the first consecutive FILLER words with fill bit 0
 		//   > Optionally by counting the first bits of the following LITERAL can also help compute the LOWEST_SET_BIT index.
 		//
 		// Note: Bits below are ordered from 31 (right) to 0 (left) for convenience, but they are still written in little-endian in the byte buffer.
@@ -141,9 +141,9 @@ namespace FoundationDB.Layers.Experimental.Indexing
 					register |= (ulong)(*ptr++) << freeBits;
 					--remaining;
 				}
-				Contract.Debug.Assert(remaining >= 0);
+				Paranoid.Assert(remaining >= 0);
 				bits = 64 - freeBits;
-				Contract.Debug.Assert(bits > 0 && bits <= 64, "bits = " + bits + " freebits = " + freeBits);
+				Paranoid.Assert(bits > 0 && bits <= 64, $"bits = {bits} free_bits = {freeBits}");
 
 				m_buffer = ptr;
 				m_remaining = remaining;
@@ -286,7 +286,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			// 5) output a repeat word, with MSB set to 1, followed by FILL_BIT, and then LENGTH-1 (30 bit), and jump back to step 1)
 
 			// Optimizations:
-			// - for very small inputs (3 bytes or less) we return a single literal word
+			// - for very small inputs (3 bytes or fewer) we return a single literal word
 			// - we read 64 bits at a time in the buffer, because it fits nicely in an UInt64 register
 
 			var bucket = new UncompressedWordReader(buffer, count);
@@ -315,7 +315,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <summary>Outputs a debug version of a compressed segment</summary>
 		public static StringBuilder DumpCompressed(Slice compressed, StringBuilder? output = null)
 		{
-			output ??= new StringBuilder();
+			output ??= new();
 
 			if (compressed.Count == 0)
 			{
@@ -325,11 +325,11 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 			var reader = new SliceReader(compressed);
 
-			output.Append($"Compressed [{compressed.Count} bytes]:");
+			output.Append($"Compressed [{compressed.Count:N0} bytes]:");
 
 			uint header = reader.ReadFixed32();
 			int highestBit = (int)header;
-			output.Append($" {(compressed.Count >> 2) - 1} words");
+			output.Append($" {(compressed.Count >> 2) - 1:N0} words");
 
 			uint p = 0;
 			int i = 0;
@@ -338,13 +338,13 @@ namespace FoundationDB.Layers.Experimental.Indexing
 				uint word = reader.ReadFixed32();
 				if ((word & TYPE_MASK) == BIT_TYPE_LITERAL)
 				{
-					output.AppendFormat(", ({0}:{1}) 0x{2:X8}", i, p, word);
+					output.Append($", ({i}:{p}) 0x{word:X8}");
 					p += 31;
 				}
 				else
 				{
 					uint len = (word & LENGTH_MASK) + 1;
-					output.AppendFormat(", ({0}:{1}) {2} x {3}", i, p, ((word & FILL_MASK) >> FILL_SHIFT) == 0 ? "zero" : "one", len);
+					output.Append($", ({i}:{p}) {(((word & WordAlignHybridEncoder.FILL_MASK) >> WordAlignHybridEncoder.FILL_SHIFT) == 0 ? "zero" : "one")} x {len}");
 					p += len * 31;
 				}
 				i++;
@@ -352,7 +352,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			output.Append(", MSB ").Append(highestBit);
 			if (reader.Remaining > 0)
 			{
-				output.AppendLine($", ERROR: {reader.Remaining} trailing byte(s)");
+				output.AppendLine($", ERROR: {reader.Remaining:N0} trailing byte(s)");
 			}
 			return output;
 		}
@@ -498,8 +498,8 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			Contract.Debug.Requires(left != null && right != null && /*op != LogicalOperation.And &&*/ Enum.IsDefined(typeof(LogicalOperation), op));
 
 			var writer = new CompressedBitmapWriter();
-			using (var liter = left.GetEnumerator())
-			using (var riter = right.GetEnumerator())
+			using (var itLeft = left.GetEnumerator())
+			using (var itRight = right.GetEnumerator())
 			{
 				int ln = 0; // remaining count of current word in left
 				int rn = 0; // remaining count of current word in right
@@ -513,7 +513,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 				{
 					if (ln == 0)
 					{
-						if (!liter.MoveNext())
+						if (!itLeft.MoveNext())
 						{ // left is done
 							if (op == LogicalOperation.And || rn == DONE)
 							{ // no need to continue
@@ -524,12 +524,12 @@ namespace FoundationDB.Layers.Experimental.Indexing
 							lw = 0;
 							continue;
 						}
-						ln = liter.Current.WordCount;
-						lw = liter.Current.WordValue;
+						ln = itLeft.Current.WordCount;
+						lw = itLeft.Current.WordValue;
 					}
 					if (rn == 0)
 					{
-						if (!riter.MoveNext())
+						if (!itRight.MoveNext())
 						{ // right is done
 							if (op == LogicalOperation.And || ln == DONE)
 							{ // no need to continue
@@ -540,8 +540,8 @@ namespace FoundationDB.Layers.Experimental.Indexing
 							rw = 0;
 							continue;
 						}
-						rn = riter.Current.WordCount;
-						rw = riter.Current.WordValue;
+						rn = itRight.Current.WordCount;
+						rw = itRight.Current.WordValue;
 					}
 
 					if (ln == DONE)

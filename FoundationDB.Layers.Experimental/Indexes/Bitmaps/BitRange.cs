@@ -36,17 +36,17 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		private const int LOWEST_UNDEFINED = 0;
 		private const int HIGHEST_UNDEFINED = -1;
 
-		public static BitRange Empty => new BitRange(LOWEST_UNDEFINED, HIGHEST_UNDEFINED);
+		public static BitRange Empty => new(LOWEST_UNDEFINED, HIGHEST_UNDEFINED);
 
 		/// <summary>Index of the lowest bit that is set to 1 in the source Bitmap</summary>
-		public readonly int Lowest;
+		public readonly long Lowest;
 
 		/// <summary>Index of the highest bit that is set to 1 in the source Bitmap</summary>
-		public readonly int Highest;
+		public readonly long Highest;
 
 		public bool IsEmpty => this.Highest < this.Lowest;
 
-		public BitRange(int lowest, int highest)
+		public BitRange(long lowest, long highest)
 		{
 			this.Lowest = lowest;
 			this.Highest = highest;
@@ -56,25 +56,13 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 		//TODO: opérateurs de tests d'intersection, append, ...
 
-		public override string ToString()
-		{
-			return this.Lowest > this.Highest ? "[empty]" : $"[{this.Lowest}, {this.Highest}]";
-		}
+		public override string ToString() => this.Lowest > this.Highest ? "[empty]" : $"[{this.Lowest}, {this.Highest}]";
 
-		public bool Equals(BitRange other)
-		{
-			return other.Lowest == this.Lowest && other.Highest == this.Highest;
-		}
+		public bool Equals(BitRange other) => other.Lowest == this.Lowest && other.Highest == this.Highest;
 
-		public override bool Equals(object? obj)
-		{
-			return obj is BitRange range && Equals(range);
-		}
+		public override bool Equals(object? obj) => obj is BitRange range && Equals(range);
 
-		public override int GetHashCode()
-		{
-			return unchecked(this.Lowest * 31) ^ this.Highest;
-		}
+		public override int GetHashCode() => HashCode.Combine(this.Lowest, this.Highest);
 
 		#endregion
 
