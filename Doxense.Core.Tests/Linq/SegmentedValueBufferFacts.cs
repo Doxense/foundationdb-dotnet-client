@@ -95,7 +95,6 @@ namespace Doxense.Linq.Tests
 			Assert.That(Unsafe.AreSame(ref buffer[0], ref scratch[0]), "Should reference the scratch for the first item");
 
 			Assert.That(buffer.ToArray(), Is.EqualTo((int[]) [ 123 ]));
-
 		}
 
 		[Test]
@@ -195,12 +194,12 @@ namespace Doxense.Linq.Tests
 		[Test]
 		public void Test_Buffer_AddRange()
 		{
-			var pool = HistoryRecordingArrayPool.Create<int>();
+			var pool = HistoryRecordingArrayPool.CreateRoundNextPow2<int>();
 
 			var scratch = new SegmentedValueBuffer<int>.Scratch();
 			Span<int> initial = scratch;
 
-			using var buffer = new SegmentedValueBuffer<int>(scratch, pool);
+			var buffer = new SegmentedValueBuffer<int>(scratch, pool);
 			Assert.That(buffer.Count, Is.EqualTo(0));
 			Assert.That(buffer.Capacity, Is.EqualTo(8));
 
@@ -252,7 +251,7 @@ namespace Doxense.Linq.Tests
 			Assert.That(buffer.TryGetSpan(out span), Is.False);
 			pool.Dump();
 			Assert.That(pool.Rented, Has.Count.EqualTo(1), "Should have rented a buffer from the pool");
-			Assert.That(pool.Rented[0].Size, Is.EqualTo(16));
+			Assert.That(pool.Rented[0].RequestedSize, Is.EqualTo(16));
 
 			// should rent more pages
 			Log("AddRange([ 10 .. 40 ])");
@@ -264,8 +263,8 @@ namespace Doxense.Linq.Tests
 			Assert.That(buffer.TryGetSpan(out span), Is.False);
 			pool.Dump();
 			Assert.That(pool.Rented, Has.Count.EqualTo(2), "Should have rented 2 buffers from the pool");
-			Assert.That(pool.Rented[0].Size, Is.EqualTo(16));
-			Assert.That(pool.Rented[1].Size, Is.EqualTo(32));
+			Assert.That(pool.Rented[0].RequestedSize, Is.EqualTo(16));
+			Assert.That(pool.Rented[1].RequestedSize, Is.EqualTo(32));
 
 			// should rent more pages
 			Log("AddRange([ 41 .. 100 ])");
@@ -277,7 +276,7 @@ namespace Doxense.Linq.Tests
 			Assert.That(buffer.TryGetSpan(out span), Is.False);
 			pool.Dump();
 			Assert.That(pool.Rented, Has.Count.EqualTo(3), "Should have rented 3 buffers from the pool");
-			Assert.That(pool.Rented[2].Size, Is.EqualTo(64));
+			Assert.That(pool.Rented[2].RequestedSize, Is.EqualTo(64));
 
 			// should rent more pages
 			Log("AddRange([ 101 .. 1000 ])");
@@ -289,9 +288,13 @@ namespace Doxense.Linq.Tests
 			Assert.That(buffer.TryGetSpan(out span), Is.False);
 			pool.Dump();
 			Assert.That(pool.Rented, Has.Count.EqualTo(6), "Should have rented 6 buffers from the pool");
-			Assert.That(pool.Rented[3].Size, Is.EqualTo(128));
-			Assert.That(pool.Rented[4].Size, Is.EqualTo(256));
-			Assert.That(pool.Rented[5].Size, Is.EqualTo(512));
+			Assert.That(pool.Rented[3].RequestedSize, Is.EqualTo(128));
+			Assert.That(pool.Rented[4].RequestedSize, Is.EqualTo(256));
+			Assert.That(pool.Rented[5].RequestedSize, Is.EqualTo(512));
+
+			buffer.Dispose();
+			pool.Dump();
+			pool.AssertAllReturned();
 		}
 
 		[Test]
@@ -325,9 +328,11 @@ namespace Doxense.Linq.Tests
 		}
 
 		[Test]
-		public void Test_Buffer_Dispose()
+		public void Test_Buffer_Dispose_Primitive()
 		{
-			var pool = HistoryRecordingArrayPool.Create<int>();
+			// for "primitive" types (without refs), the buffer MUST NOT clear the rented segments before returning them
+
+			var pool = HistoryRecordingArrayPool.CreateRoundNextPow2<int>();
 
 			var scratch = new SegmentedValueBuffer<int>.Scratch();
 			var buffer = new SegmentedValueBuffer<int>(scratch, pool);
@@ -337,22 +342,59 @@ namespace Doxense.Linq.Tests
 			Assert.That(buffer.Count, Is.EqualTo(100));
 			Assert.That(buffer.Capacity, Is.EqualTo(120));
 			pool.Dump();
-			Assert.That(pool.NotReturned, Is.Not.Empty);
+			Assert.That(pool.NotReturned, Has.Count.GreaterThan(0));
 
 			Log("Dispose buffer...");
 			buffer.Dispose();
 
 			pool.Dump();
-			Assert.That(pool.NotReturned, Has.Count.Zero);
+			pool.AssertAllReturned();
+
+			// returned chunks MUST NOT be cleared before returning!
+			foreach (var rent in pool.Returned)
+			{
+				rent.AssertNotClearedAndNotZeroed();
+			}
+
+		}
+
+		[Test]
+		public void Test_Buffer_Dispose_RefType()
+		{
+			// for ref types the buffer MUST clear the rented segments before returning them
+
+			var pool = HistoryRecordingArrayPool.CreateRoundNextPow2<string>();
+
+			var scratch = new SegmentedValueBuffer<string>.Scratch();
+			var buffer = new SegmentedValueBuffer<string>(scratch, pool);
+
+			Log("Add 100 items...");
+			buffer.AddRange(Enumerable.Range(1, 100).Select(i => i.ToString()));
+			Assert.That(buffer.Count, Is.EqualTo(100));
+			Assert.That(buffer.Capacity, Is.EqualTo(120));
+			pool.Dump();
+			Assert.That(pool.NotReturned, Has.Count.GreaterThan(0));
+
+			Log("Dispose buffer...");
+			buffer.Dispose();
+
+			pool.Dump();
+			pool.AssertAllReturned();
+
+			// returned chunks MUST be cleared before returning
+			foreach (var rent in pool.Returned)
+			{
+				rent.AssertZeroed();
+			}
 		}
 
 		[Test]
 		public void Test_Buffer_Clear_Primitive()
 		{
-			var pool = HistoryRecordingArrayPool.Create<int>();
+			var pool = HistoryRecordingArrayPool.CreateRoundNextPow2<int>();
 
 			var scratch = new SegmentedValueBuffer<int>.Scratch();
-			using var buffer = new SegmentedValueBuffer<int>(scratch, pool);
+			var buffer = new SegmentedValueBuffer<int>(scratch, pool);
 
 			// single segment
 
@@ -380,23 +422,18 @@ namespace Doxense.Linq.Tests
 			buffer.Clear();
 			Assert.That(buffer.Count, Is.EqualTo(0));
 			Assert.That(buffer.Capacity, Is.EqualTo(8));
+
 			pool.Dump();
-			Assert.That(pool.Returned, Has.Count.EqualTo(3), "Should have returned all 3 buffers");
-			// buffers should not be cleared when returned
-			foreach (var returned in pool.Returned)
-			{
-				Assert.That(returned.Snapshot, Is.Not.All.Zero, "Should not clear returned buffers if they don't contain ref types");
-				Assert.That(returned.Cleared, Is.False, "Buffer does the clearing itself");
-			}
+			pool.AssertAllReturned();
 		}
 
 		[Test]
 		public void Test_Buffer_Clear_RefType()
 		{
-			var pool = HistoryRecordingArrayPool.Create<string>();
+			var pool = HistoryRecordingArrayPool.CreateRoundNextPow2<string>();
 
 			var scratch = new SegmentedValueBuffer<string>.Scratch();
-			using var buffer = new SegmentedValueBuffer<string>(scratch, pool);
+			var buffer = new SegmentedValueBuffer<string>(scratch, pool);
 
 			// single segment
 
@@ -410,27 +447,18 @@ namespace Doxense.Linq.Tests
 			Assert.That(buffer.Count, Is.EqualTo(0));
 			Assert.That(buffer.Capacity, Is.EqualTo(8));
 			Assert.That(buffer.ToArray(), Is.Empty);
-			Assert.That(buffer.Count, Is.EqualTo(0));
-			Assert.That(buffer.Capacity, Is.EqualTo(8));
 
 			pool.Dump();
-			Assert.That(pool.NotReturned, Has.Count.Zero, "Should returned everything");
-			Assert.That(pool.Returned, Has.Count.EqualTo(3), "Should have returned all 3 buffers");
-			// buffers should not be cleared when returned
-			foreach (var returned in pool.Returned)
-			{
-				Assert.That(returned.Snapshot, Is.All.Null, "Should have cleared returned buffers since they contain ref types");
-				Assert.That(returned.Cleared, Is.False, "Buffer does the clearing itself");
-			}
+			pool.AssertAllReturned();
 		}
 
 		[Test]
 		public void Test_Buffer_Clear_MixedType()
 		{
-			var pool = HistoryRecordingArrayPool.Create<(int, string)>();
+			var pool = HistoryRecordingArrayPool.CreateRoundNextPow2<(int, string)>();
 
 			var scratch = new SegmentedValueBuffer<(int, string)>.Scratch();
-			using var buffer = new SegmentedValueBuffer<(int, string)>(scratch, pool);
+			var buffer = new SegmentedValueBuffer<(int, string)>(scratch, pool);
 
 			// single segment
 
@@ -447,15 +475,9 @@ namespace Doxense.Linq.Tests
 			Assert.That(buffer.Count, Is.EqualTo(0));
 			Assert.That(buffer.Capacity, Is.EqualTo(8));
 
+			buffer.Dispose();
 			pool.Dump();
-			Assert.That(pool.NotReturned, Has.Count.Zero, "Should returned everything");
-			Assert.That(pool.Returned, Has.Count.EqualTo(3), "Should have returned all 3 buffers");
-			// buffers should not be cleared when returned
-			foreach (var returned in pool.Returned)
-			{
-				Assert.That(returned.Snapshot, Is.All.EqualTo((0, default(string))), "Should have cleared returned buffers since they have field that points to a ref type");
-				Assert.That(returned.Cleared, Is.False, "Buffer does the clearing itself");
-			}
+			pool.AssertAllReturned();
 		}
 
 		[Test]
