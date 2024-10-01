@@ -28,6 +28,7 @@ namespace Doxense.Collections.Tuples.Encoding
 {
 	using System.Buffers;
 	using System.Buffers.Binary;
+	using System.Numerics;
 	using System.Runtime.CompilerServices;
 	using System.Text;
 	using Doxense.Collections.Tuples;
@@ -1684,31 +1685,31 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		#region Bits Twiddling...
 
+#if !NET6_0_OR_GREATER
 		/// <summary>Lookup table used to compute the index of the most significant bit</summary>
 		private static readonly int[] MultiplyDeBruijnBitPosition =
 		[
 			0, 9, 1, 10, 13, 21, 2, 29, 11, 14, 16, 18, 22, 25, 3, 30,
 			8, 12, 20, 28, 15, 17, 24, 7, 19, 27, 23, 6, 26, 5, 4, 31
 		];
+#endif
 
 		/// <summary>Returns the minimum number of bytes needed to represent a value</summary>
 		/// <remarks>Note: will return 1 even for <param name="v"/> == 0</remarks>
-		public static int NumberOfBytes(uint v)
-		{
-			return (MostSignificantBit(v) + 8) >> 3;
-		}
-
-		/// <summary>Returns the minimum number of bytes needed to represent a value</summary>
-		/// <remarks>Note: will return 1 even for <param name="v"/> == 0</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int NumberOfBytes(long v)
 		{
-			return v >= 0 ? NumberOfBytes((ulong)v) : v != long.MinValue ? NumberOfBytes((ulong)-v) : 8;
+			return v >= 0 ? NumberOfBytes((ulong) v) : v != long.MinValue ? NumberOfBytes((ulong) - v) : 8;
 		}
 
 		/// <summary>Returns the minimum number of bytes needed to represent a value</summary>
 		/// <returns>Note: will return 1 even for <param name="v"/> == 0</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int NumberOfBytes(ulong v)
 		{
+#if NET6_0_OR_GREATER
+			return (BitOperations.Log2(v) + 8) >> 3;
+#else
 			int msb = 0;
 
 			if (v > 0xFFFFFFFF)
@@ -1716,14 +1717,16 @@ namespace Doxense.Collections.Tuples.Encoding
 				msb += 32;
 				v >>= 32;
 			}
-			msb += MostSignificantBit((uint)v);
+			msb += MostSignificantBit((uint) v);
 			return (msb + 8) >> 3;
+#endif
 		}
 
+#if !NET6_0_OR_GREATER
 		/// <summary>Returns the position of the most significant bit (0-based) in a 32-bit integer</summary>
 		/// <param name="v">32-bit integer</param>
 		/// <returns>Index of the most significant bit (0-based)</returns>
-		public static int MostSignificantBit(uint v)
+		private static int MostSignificantBit(uint v)
 		{
 			// from: http://graphics.stanford.edu/~seander/bithacks.html#IntegerLogDeBruijn
 
@@ -1736,6 +1739,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			var r = (v * 0x07C4ACDDU) >> 27;
 			return MultiplyDeBruijnBitPosition[r];
 		}
+#endif
 
 		#endregion
 

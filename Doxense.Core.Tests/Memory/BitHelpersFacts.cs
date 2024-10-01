@@ -122,6 +122,7 @@ namespace Doxense.Memory.Tests
 			}
 			Assert.That(BitHelpers.IsPowerOfTwo(int.MaxValue), Is.False);
 			Assert.That(BitHelpers.IsPowerOfTwo(-1), Is.False);
+			Assert.That(BitHelpers.IsPowerOfTwo(-2), Is.False);
 			Assert.That(BitHelpers.IsPowerOfTwo(-42), Is.False);
 			Assert.That(BitHelpers.IsPowerOfTwo(int.MinValue), Is.False);
 
@@ -137,6 +138,7 @@ namespace Doxense.Memory.Tests
 			Assert.That(BitHelpers.IsPowerOfTwo(long.MaxValue), Is.False);
 			Assert.That(BitHelpers.IsPowerOfTwo((long)int.MaxValue), Is.False);
 			Assert.That(BitHelpers.IsPowerOfTwo(-1L), Is.False);
+			Assert.That(BitHelpers.IsPowerOfTwo(-2L), Is.False);
 			Assert.That(BitHelpers.IsPowerOfTwo(-42L), Is.False);
 			Assert.That(BitHelpers.IsPowerOfTwo((long)int.MinValue), Is.False);
 			Assert.That(BitHelpers.IsPowerOfTwo(long.MinValue), Is.False);
@@ -448,6 +450,48 @@ namespace Doxense.Memory.Tests
 			Assert.That(BitHelpers.LeastSignificantBit(ulong.MaxValue), Is.EqualTo(0));
 			Assert.That(BitHelpers.LeastSignificantBit(0x8000000000000000UL), Is.EqualTo(63));
 			Assert.That(BitHelpers.LeastSignificantBit(0UL), Is.EqualTo(64), "By convention, LSB(0) is the word size!");
+		}
+
+		[Test]
+		public void Test_BitHelpers_LeastSignificantBitNonZero()
+		{
+			// int
+			Assert.That(BitHelpers.LeastSignificantBitNonZero32(1), Is.EqualTo(0));
+			Assert.That(BitHelpers.LeastSignificantBitNonZero32(2), Is.EqualTo(1));
+			Assert.That(BitHelpers.LeastSignificantBitNonZero32(3), Is.EqualTo(0));
+			Assert.That(BitHelpers.LeastSignificantBitNonZero32(4), Is.EqualTo(2));
+			Assert.That(BitHelpers.LeastSignificantBitNonZero32(42), Is.EqualTo(1));
+			Assert.That(BitHelpers.LeastSignificantBitNonZero32(int.MaxValue), Is.EqualTo(0));
+			Assert.That(BitHelpers.LeastSignificantBitNonZero32(int.MinValue >> 1), Is.EqualTo(30));
+			Assert.That(BitHelpers.LeastSignificantBitNonZero32(int.MinValue), Is.EqualTo(31));
+
+			// uint
+			Assert.That(BitHelpers.LeastSignificantBitNonZero32(1U), Is.EqualTo(0));
+			Assert.That(BitHelpers.LeastSignificantBitNonZero32(2U), Is.EqualTo(1));
+			Assert.That(BitHelpers.LeastSignificantBitNonZero32(3U), Is.EqualTo(0));
+			Assert.That(BitHelpers.LeastSignificantBitNonZero32(4U), Is.EqualTo(2));
+			Assert.That(BitHelpers.LeastSignificantBitNonZero32(42U), Is.EqualTo(1));
+			Assert.That(BitHelpers.LeastSignificantBitNonZero32(uint.MaxValue), Is.EqualTo(0));
+			Assert.That(BitHelpers.LeastSignificantBitNonZero32(0x80000000U), Is.EqualTo(31));
+
+			// long
+			Assert.That(BitHelpers.LeastSignificantBitNonZero64(1L), Is.EqualTo(0));
+			Assert.That(BitHelpers.LeastSignificantBitNonZero64(2L), Is.EqualTo(1));
+			Assert.That(BitHelpers.LeastSignificantBitNonZero64(3L), Is.EqualTo(0));
+			Assert.That(BitHelpers.LeastSignificantBitNonZero64(4L), Is.EqualTo(2));
+			Assert.That(BitHelpers.LeastSignificantBitNonZero64(42L), Is.EqualTo(1));
+			Assert.That(BitHelpers.LeastSignificantBitNonZero64(long.MaxValue), Is.EqualTo(0));
+			Assert.That(BitHelpers.LeastSignificantBitNonZero64(long.MinValue >> 1), Is.EqualTo(62));
+			Assert.That(BitHelpers.LeastSignificantBitNonZero64(long.MinValue), Is.EqualTo(63));
+
+			// ulong
+			Assert.That(BitHelpers.LeastSignificantBitNonZero64(1UL), Is.EqualTo(0));
+			Assert.That(BitHelpers.LeastSignificantBitNonZero64(2UL), Is.EqualTo(1));
+			Assert.That(BitHelpers.LeastSignificantBitNonZero64(3UL), Is.EqualTo(0));
+			Assert.That(BitHelpers.LeastSignificantBitNonZero64(4UL), Is.EqualTo(2));
+			Assert.That(BitHelpers.LeastSignificantBitNonZero64(42UL), Is.EqualTo(1));
+			Assert.That(BitHelpers.LeastSignificantBitNonZero64(ulong.MaxValue), Is.EqualTo(0));
+			Assert.That(BitHelpers.LeastSignificantBitNonZero64(0x8000000000000000UL), Is.EqualTo(63));
 		}
 
 		[Test]

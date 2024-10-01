@@ -28,6 +28,7 @@ namespace Doxense.Memory
 {
 	using System.Collections;
 	using System.Diagnostics;
+	using System.Numerics;
 	using System.Runtime.CompilerServices;
 
 	/// <summary>Represents a fixed-size bit map, backed by an array of 64-bit words</summary>
@@ -333,7 +334,7 @@ namespace Doxense.Memory
 				ulong w = *ptr++;
 				if (w != 0)
 				{
-					return ((ptr - 1 - words) * WordSize) + BitHelpers.LeastSignificantBit(w);
+					return ((ptr - 1 - words) * WordSize) + BitOperations.TrailingZeroCount(w);
 				}
 			}
 			return -1L;
@@ -367,7 +368,7 @@ namespace Doxense.Memory
 				ulong w = *ptr--;
 				if (w != 0)
 				{
-					return ((ptr + 1 - words) * WordSize) + BitHelpers.MostSignificantBit(w);
+					return ((ptr + 1 - words) * WordSize) + BitOperations.Log2(w);
 				}
 			}
 			return -1L;
@@ -383,7 +384,7 @@ namespace Doxense.Memory
 			//TODO: unroll ?
 			foreach (var w in this.Words.Span)
 			{
-				count += w != 0 ? BitHelpers.CountBits(w) : 0;
+				count += BitOperations.PopCount(w);
 			}
 			return count;
 		}
@@ -756,14 +757,14 @@ namespace Doxense.Memory
 				m &= (1UL << (int) (endExclusive & WordMask)) - 1;
 			}
 			ulong w = map[p] & m;
-			if (w != 0) return (p << IndexShift) + BitHelpers.LeastSignificantBit(w);
+			if (w != 0) return (p << IndexShift) + BitOperations.TrailingZeroCount(w);
 			++p;
 
 			// look at the intermediate words (if any)
 			while (p < last)
 			{
 				w = map[p]; // no masking needed
-				if (w != 0) return (p << IndexShift) + BitHelpers.LeastSignificantBit(w);
+				if (w != 0) return (p << IndexShift) + BitOperations.TrailingZeroCount(w);
 				++p;
 			}
 
@@ -773,7 +774,7 @@ namespace Doxense.Memory
 				m = (1UL << (int) (endExclusive & WordMask)) - 1;
 				//note: if m == 0, then we read a byte for nothing, but skip a branch
 				w = map[p] & m;
-				if (w != 0) return (p << IndexShift) + BitHelpers.LeastSignificantBit(w);
+				if (w != 0) return (p << IndexShift) + BitOperations.TrailingZeroCount(w);
 			}
 			return -1;
 		}

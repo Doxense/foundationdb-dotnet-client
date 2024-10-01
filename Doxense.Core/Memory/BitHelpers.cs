@@ -27,6 +27,7 @@
 namespace Doxense.Memory
 {
 	using System.Diagnostics;
+	using System.Numerics;
 	using System.Runtime.CompilerServices;
 
 	/// <summary>Helper methods to work with bits</summary>
@@ -42,9 +43,14 @@ namespace Doxense.Memory
 		/// <returns>Smallest power of 2 that is greater than or equal to <paramref name="x"/></returns>
 		/// <remarks>Will return 1 for <paramref name="x"/> = 0 (because 0 is not a power of 2 !), and will throw for <paramref name="x"/> &lt; 0</remarks>
 		/// <exception cref="System.ArgumentOutOfRangeException">If <paramref name="x"/> is greater than 2^31 and would overflow</exception>
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static uint NextPowerOfTwo(uint x)
 		{
+#if NET6_0_OR_GREATER
+			return x == 0 ? 1
+				: x < ((1U << 31) + 1) ? BitOperations.RoundUpToPowerOf2(x)
+				: throw UnsafeHelpers.Errors.PowerOfTwoOverflow();
+#else
 			// cf http://en.wikipedia.org/wiki/Power_of_two#Algorithm_to_round_up_to_power_of_two
 
 			// special cases
@@ -58,16 +64,22 @@ namespace Doxense.Memory
 			x |= (x >> 8);
 			x |= (x >> 16);
 			return x + 1;
+#endif
 		}
 
 		/// <summary>Round a number to the next power of 2</summary>
 		/// <param name="x">Positive integer that will be rounded up (if not already a power of 2)</param>
-		/// <returns>Smallest power of 2 that is greater then or equal to <paramref name="x"/></returns>
-		/// <remarks>Will return 1 for <paramref name="x"/> = 0 (because 0 is not a power 2 !), and will throws for <paramref name="x"/> &lt; 0</remarks>
+		/// <returns>Smallest power of 2 that is greater than or equal to <paramref name="x"/></returns>
+		/// <remarks>Will return 1 for <paramref name="x"/> = 0 (because 0 is not a power 2 !), and will throw for <paramref name="x"/> &lt; 0</remarks>
 		/// <exception cref="System.ArgumentOutOfRangeException">If <paramref name="x"/> is negative, or it is greater than 2^30 and would overflow.</exception>
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int NextPowerOfTwo(int x)
 		{
+#if NET6_0_OR_GREATER
+			return x == 0 ? 1
+				: unchecked((uint) x) <= (1U << 30) ? unchecked((int) BitOperations.RoundUpToPowerOf2((uint) x))
+				: throw UnsafeHelpers.Errors.PowerOfTwoOverflow();
+#else
 			// cf http://en.wikipedia.org/wiki/Power_of_two#Algorithm_to_round_up_to_power_of_two
 
 			// special cases
@@ -81,6 +93,7 @@ namespace Doxense.Memory
 			x |= (x >> 8);
 			x |= (x >> 16);
 			return x + 1;
+#endif
 		}
 
 		/// <summary>Round a number to the next power of 2</summary>
@@ -88,9 +101,14 @@ namespace Doxense.Memory
 		/// <returns>Smallest power of 2 that is greater than or equal to <paramref name="x"/></returns>
 		/// <remarks>Will return 1 for <paramref name="x"/> = 0 (because 0 is not a power of 2 !), and will throw for <paramref name="x"/> &lt; 0</remarks>
 		/// <exception cref="System.ArgumentOutOfRangeException">If <paramref name="x"/> is greater than 2^63 and would overflow</exception>
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ulong NextPowerOfTwo(ulong x)
 		{
+#if NET6_0_OR_GREATER
+			return x == 0 ? 1
+				: x <= (1UL << 63) ? BitOperations.RoundUpToPowerOf2(x)
+				: throw UnsafeHelpers.Errors.PowerOfTwoOverflow();
+#else
 			// cf http://en.wikipedia.org/wiki/Power_of_two#Algorithm_to_round_up_to_power_of_two
 
 			// special cases
@@ -105,16 +123,22 @@ namespace Doxense.Memory
 			x |= (x >> 16);
 			x |= (x >> 32);
 			return x + 1;
+#endif
 		}
 
 		/// <summary>Round a number to the next power of 2</summary>
 		/// <param name="x">Positive integer that will be rounded up (if not already a power of 2)</param>
-		/// <returns>Smallest power of 2 that is greater then or equal to <paramref name="x"/></returns>
-		/// <remarks>Will return 1 for <paramref name="x"/> = 0 (because 0 is not a power 2 !), and will throws for <paramref name="x"/> &lt; 0</remarks>
+		/// <returns>Smallest power of 2 that is greater than or equal to <paramref name="x"/></returns>
+		/// <remarks>Will return 1 for <paramref name="x"/> = 0 (because 0 is not a power 2 !), and will throw for <paramref name="x"/> &lt; 0</remarks>
 		/// <exception cref="System.ArgumentOutOfRangeException">If <paramref name="x"/> is negative, or it is greater than 2^62 and would overflow.</exception>
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static long NextPowerOfTwo(long x)
 		{
+#if NET6_0_OR_GREATER
+			return x == 0 ? 1
+				: unchecked((ulong) x) <= (1UL << 62) ? unchecked((long) BitOperations.RoundUpToPowerOf2((ulong) x))
+				: throw UnsafeHelpers.Errors.PowerOfTwoOverflow();
+#else
 			// cf http://en.wikipedia.org/wiki/Power_of_two#Algorithm_to_round_up_to_power_of_two
 
 			// special cases
@@ -129,6 +153,7 @@ namespace Doxense.Memory
 			x |= (x >> 16);
 			x |= (x >> 32);
 			return x + 1;
+#endif
 		}
 
 		/// <summary>Test if a number is a power of 2</summary>
@@ -137,7 +162,11 @@ namespace Doxense.Memory
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool IsPowerOfTwo(int x)
 		{
+#if NET6_0_OR_GREATER
+			return x > 0 && BitOperations.IsPow2(unchecked((uint) x));
+#else
 			return x > 0 & unchecked((x & (x - 1)) == 0);
+#endif
 		}
 
 		/// <summary>Test if a number is a power of 2</summary>
@@ -148,7 +177,11 @@ namespace Doxense.Memory
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool IsPowerOfTwo(uint x)
 		{
+#if NET6_0_OR_GREATER
+			return x > 0 && BitOperations.IsPow2(x);
+#else
 			return x != 0 & unchecked((x & (x - 1)) == 0);
+#endif
 		}
 
 		/// <summary>Test if a number is a power of 2</summary>
@@ -157,7 +190,11 @@ namespace Doxense.Memory
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool IsPowerOfTwo(long x)
 		{
+#if NET6_0_OR_GREATER
+			return x > 0 && BitOperations.IsPow2(unchecked((ulong) x));
+#else
 			return x > 0 & unchecked((x & (x - 1)) == 0);
+#endif
 		}
 
 		/// <summary>Test if a number is a power of 2</summary>
@@ -166,7 +203,11 @@ namespace Doxense.Memory
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool IsPowerOfTwo(ulong x)
 		{
+#if NET6_0_OR_GREATER
+			return x > 0 && BitOperations.IsPow2(x);
+#else
 			return x != 0 & unchecked((x & (x - 1)) == 0);
+#endif
 		}
 
 		#endregion
@@ -201,7 +242,7 @@ namespace Doxense.Memory
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int AlignPowerOfTwo(int size, [PowerOfTwo] int powerOfTwo = 16)
 		{
-			Paranoid.Requires(BitHelpers.IsPowerOfTwo(powerOfTwo));
+			Paranoid.Requires(BitOperations.IsPow2(powerOfTwo));
 			if (size <= 0)
 			{
 				return size < 0 ? 0 : powerOfTwo;
@@ -369,7 +410,7 @@ namespace Doxense.Memory
 			return (~size + 1) & (powerOfTwo - 1);
 		}
 
-		#endregion
+#endregion
 
 		#region CountBits...
 
@@ -384,12 +425,16 @@ namespace Doxense.Memory
 		[Pure] //REVIEW: force inline or not?
 		public static int CountBits(int value)
 		{
+#if NET6_0_OR_GREATER
+			return BitOperations.PopCount(unchecked((uint) value));
+#else
 			// cf https://graphics.stanford.edu/~seander/bithacks.html#CountBitsSet64
 			// PERF: this averages ~2ns/op OnMyMachine(tm)
 			value = value - ((value >> 1) & 0x55555555);
 			value = (value & 0x33333333) + ((value >> 2) & 0x33333333);
 			value = ((value + (value >> 4) & 0xF0F0F0F) * 0x1010101) >> (32 - 8);
 			return value;
+#endif
 		}
 
 		/// <summary>Count the number of bits set to 1 in a 32-bit unsigned integer</summary>
@@ -397,12 +442,16 @@ namespace Doxense.Memory
 		[Pure] //REVIEW: force inline or not?
 		public static int CountBits(uint value)
 		{
+#if NET6_0_OR_GREATER
+			return BitOperations.PopCount(value);
+#else
 			// cf https://graphics.stanford.edu/~seander/bithacks.html#CountBitsSet64
 			// PERF: this averages ~2ns/op OnMyMachine(tm)
 			value = value - ((value >> 1) & 0x55555555);
 			value = (value & 0x33333333) + ((value >> 2) & 0x33333333);
 			value = ((value + (value >> 4) & 0xF0F0F0F) * 0x1010101) >> (32 - 8);
 			return (int) value;
+#endif
 		}
 
 		/// <summary>Count the number of bits set to 1 in a 64-bit signed integer</summary>
@@ -410,12 +459,16 @@ namespace Doxense.Memory
 		[Pure] //REVIEW: force inline or not?
 		public static int CountBits(long value)
 		{
+#if NET6_0_OR_GREATER
+			return BitOperations.PopCount(unchecked((ulong) value));
+#else
 			// cf https://graphics.stanford.edu/~seander/bithacks.html#CountBitsSet64
 			// PERF: this averages ~2.5ns/op OnMyMachine(tm)
 			value = value - ((value >> 1) & 0x5555555555555555);
 			value = (value & 0x3333333333333333) + ((value >> 2) & 0x3333333333333333);
 			value = ((value + (value >> 4) & 0x0F0F0F0F0F0F0F0F) * 0x0101010101010101) >> (64 - 8);
 			return (int) value;
+#endif
 		}
 
 		/// <summary>Count the number of bits set to 1 in a 32-bit unsigned integer</summary>
@@ -423,12 +476,16 @@ namespace Doxense.Memory
 		[Pure] //REVIEW: force inline or not?
 		public static int CountBits(ulong value)
 		{
+#if NET6_0_OR_GREATER
+			return BitOperations.PopCount(value);
+#else
 			// cf https://graphics.stanford.edu/~seander/bithacks.html#CountBitsSet64
 			// PERF: this averages ~2.5ns/op OnMyMachine(tm)
 			value = value - ((value >> 1) & 0x5555555555555555);
 			value = (value & 0x3333333333333333) + ((value >> 2) & 0x3333333333333333);
 			value = ((value + (value >> 4) & 0x0F0F0F0F0F0F0F0F) * 0x0101010101010101) >> (64 - 8);
 			return (int) value;
+#endif
 		}
 
 		#endregion
@@ -444,6 +501,8 @@ namespace Doxense.Memory
 		// - MostSignificantBit(default(uint)) == 32
 		// - MostSignificantBit(default(ulong)) == 64
 		// MostSignificantBitNonZeroXX(x) is a no-branch variant which is undefined for x == 0
+
+#if !NET6_0_OR_GREATER
 
 		private static readonly int[] MultiplyDeBruijnBitPosition32 =
 		[
@@ -462,6 +521,7 @@ namespace Doxense.Memory
 			56, 45, 25, 31, 35, 16,  9, 12,
 			44, 24, 15,  8, 23,  7,  6,  5
 		];
+#endif
 
 		/// <summary>Return the position of the highest bit that is set</summary>
 		/// <returns>Value between 0 and 32</returns>
@@ -472,7 +532,11 @@ namespace Doxense.Memory
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int MostSignificantBit(int v)
 		{
+#if NET6_0_OR_GREATER
+			return v == 0 ? 32 : BitOperations.Log2(unchecked((uint) v));
+#else
 			return v == 0 ? 32 : MostSignificantBitNonZero32((uint) v);
+#endif
 		}
 
 		/// <summary>Return the position of the highest bit that is set</summary>
@@ -484,14 +548,21 @@ namespace Doxense.Memory
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int MostSignificantBit(uint v)
 		{
+#if NET6_0_OR_GREATER
+			return v == 0 ? 32 : BitOperations.Log2(v);
+#else
 			return v == 0 ? 32 : MostSignificantBitNonZero32(v);
+#endif
 		}
 
 		/// <summary>Return the position of the highest bit that is set</summary>
 		/// <remarks>Result is unspecified if <paramref name="v"/> is 0.</remarks>
-		[Pure] //REVIEW: force inline or not?
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int MostSignificantBitNonZero32(uint v)
 		{
+#if NET6_0_OR_GREATER
+			return BitOperations.Log2(0);
+#else
 			// from: http://graphics.stanford.edu/~seander/bithacks.html#IntegerLogDeBruijn
 			v |= v >> 1; // first round down to one less than a power of 2
 			v |= v >> 2;
@@ -501,6 +572,7 @@ namespace Doxense.Memory
 
 			var r = (v * 0x07C4ACDDU) >> 27;
 			return MultiplyDeBruijnBitPosition32[r & 31];
+#endif
 		}
 
 		/// <summary>Return the position of the highest bit that is set</summary>
@@ -512,7 +584,11 @@ namespace Doxense.Memory
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int MostSignificantBit(long v)
 		{
+#if NET6_0_OR_GREATER
+			return v == 0 ? 64 : BitOperations.Log2(unchecked((ulong) v));
+#else
 			return v == 0 ? 64 : MostSignificantBitNonZero64((ulong) v);
+#endif
 		}
 
 		/// <summary>Return the position of the highest bit that is set</summary>
@@ -524,14 +600,21 @@ namespace Doxense.Memory
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int MostSignificantBit(ulong v)
 		{
+#if NET6_0_OR_GREATER
+			return v == 0 ? 64 : BitOperations.Log2(v);
+#else
 			return v == 0 ? 64 : MostSignificantBitNonZero64(v);
+#endif
 		}
 
 		/// <summary>Return the position of the highest bit that is set</summary>
 		/// <remarks>Result is unspecified if <paramref name="nonZero"/> is 0.</remarks>
-		[Pure] //REVIEW: force inline or not?
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int MostSignificantBitNonZero64(ulong nonZero)
 		{
+#if NET6_0_OR_GREATER
+			return BitOperations.Log2(nonZero);
+#else
 			ulong v = nonZero;
 			v |= v >> 1;
 			v |= v >> 2;
@@ -542,6 +625,7 @@ namespace Doxense.Memory
 
 			var r = ((v - (v >> 1)) * 0x07EDD5E59A4E28C2UL) >> 58;
 			return MultiplyDeBruijnBitPosition64[r & 63];
+#endif
 		}
 
 		#endregion
@@ -564,7 +648,11 @@ namespace Doxense.Memory
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int LeastSignificantBit(int v)
 		{
+#if NET6_0_OR_GREATER
+			return BitOperations.TrailingZeroCount(unchecked((uint) v));
+#else
 			return v == 0 ? 32 : LeastSignificantBitNonZero32(v);
+#endif
 		}
 
 		/// <summary>Return the position of the lowest bit that is set</summary>
@@ -573,7 +661,11 @@ namespace Doxense.Memory
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int LeastSignificantBit(uint v)
 		{
+#if NET6_0_OR_GREATER
+			return BitOperations.TrailingZeroCount(v);
+#else
 			return v == 0 ? 32 : LeastSignificantBitNonZero32(v);
+#endif
 		}
 
 		/// <summary>Return the position of the lowest bit that is set</summary>
@@ -581,6 +673,9 @@ namespace Doxense.Memory
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int LeastSignificantBitNonZero32(long nonZero)
 		{
+#if NET6_0_OR_GREATER
+			return BitOperations.TrailingZeroCount(unchecked((ulong) nonZero));
+#else
 			// This solution does not have any branch, but conversion to float may not be fast enough on some architecture...
 			//PERF: this averages 2.5ns/op OnMyMachine()
 			unsafe
@@ -590,6 +685,7 @@ namespace Doxense.Memory
 				return (int) (((*(uint*) &d) >> 23) - 0x7f);
 				//note: this returns -127 if w == 0, which is "negative"
 			}
+#endif
 		}
 
 		/// <summary>Return the position of the lowest bit that is set</summary>
@@ -598,7 +694,11 @@ namespace Doxense.Memory
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int LeastSignificantBit(ulong v)
 		{
+#if NET6_0_OR_GREATER
+			return BitOperations.TrailingZeroCount(v);
+#else
 			return v == 0 ? 64 : LeastSignificantBitNonZero64((long) v);
+#endif
 		}
 
 		/// <summary>Return the position of the lowest bit that is set</summary>
@@ -607,7 +707,23 @@ namespace Doxense.Memory
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int LeastSignificantBit(long v)
 		{
+#if NET6_0_OR_GREATER
+			return BitOperations.TrailingZeroCount(unchecked((ulong) v));
+#else
 			return v == 0 ? 64 : LeastSignificantBitNonZero64(v);
+#endif
+		}
+
+		/// <summary>Return the position of the lowest bit that is set</summary>
+		/// <remarks>Result is unspecified if <paramref name="nonZero"/> is 0</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static int LeastSignificantBitNonZero64(ulong nonZero)
+		{
+#if NET6_0_OR_GREATER
+			return BitOperations.TrailingZeroCount(unchecked((ulong) nonZero));
+#else
+			return LeastSignificantBitNonZero64(unchecked((long) nonZero));
+#endif
 		}
 
 		/// <summary>Return the position of the lowest bit that is set</summary>
@@ -615,6 +731,9 @@ namespace Doxense.Memory
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int LeastSignificantBitNonZero64(long nonZero)
 		{
+#if NET6_0_OR_GREATER
+			return BitOperations.TrailingZeroCount(unchecked((ulong) nonZero));
+#else
 			// This solution does not have any branch, but conversion to double may not be fast enough on some architecture...
 			//PERF: this averages 2.5ns/op OnMyMachine()
 			unsafe
@@ -627,13 +746,14 @@ namespace Doxense.Memory
 				return (int)(exp - 1023);
 				//note: this returns -1023 if w == 0, which is "negative"
 			}
+#endif
 		}
 
 		#endregion
 
 		#region FirstNonZeroByte...
 
-		// FirstNonZeroByte(x) == offset of the first byte in a multi-byte word, that has at least one bit set to 1
+		// FirstNonZeroByte(x) == offset of the first byte in a multibyte word, that has at least one bit set to 1
 		// - FirstNonZeroByte(0x000042) == 0
 		// - FirstNonZeroByte(0x004200) == 1
 		// - FirstNonZeroByte(0x004201) == 0
@@ -683,7 +803,7 @@ namespace Doxense.Memory
 
 		#region LastNonZeroByte...
 
-		// LastNonZeroByte(x) == offset of the first byte in a multi-byte word, that has at least one bit set to 1
+		// LastNonZeroByte(x) == offset of the first byte in a multibyte word, that has at least one bit set to 1
 		// - LastNonZeroByte(0x000042) == 0
 		// - LastNonZeroByte(0x004200) == 1
 		// - LastNonZeroByte(0x004201) == 1
@@ -735,7 +855,11 @@ namespace Doxense.Memory
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static uint RotL32(uint x, int n)
 		{
+#if NET6_0_OR_GREATER
+			return BitOperations.RotateLeft(x, n);
+#else
 			return (x << n) | (x >> (32 - n));
+#endif
 		}
 
 		/// <summary>Rotate bits to the right (ROTR)</summary>
@@ -744,7 +868,11 @@ namespace Doxense.Memory
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static uint RotR32(uint x, int n)
 		{
+#if NET6_0_OR_GREATER
+			return BitOperations.RotateRight(x, n);
+#else
 			return (x >> n) | (x << (32 - n));
+#endif
 		}
 
 		/// <summary>Rotate bits to the left (ROTL64)</summary>
@@ -753,7 +881,11 @@ namespace Doxense.Memory
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ulong RotL64(ulong x, int n)
 		{
+#if NET6_0_OR_GREATER
+			return BitOperations.RotateLeft(x, n);
+#else
 			return (x << n) | (x >> (64 - n));
+#endif
 		}
 
 		/// <summary>Rotate bits to the right (ROTR64)</summary>
@@ -762,7 +894,11 @@ namespace Doxense.Memory
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ulong RotR64(ulong x, int n)
 		{
+#if NET6_0_OR_GREATER
+			return BitOperations.RotateRight(x, n);
+#else
 			return (x >> n) | (x << (64 - n));
+#endif
 		}
 
 		#endregion
