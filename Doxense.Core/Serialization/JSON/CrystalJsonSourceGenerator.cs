@@ -904,9 +904,9 @@ namespace Doxense.Serialization.Json
 		public string DefaultOf(string type) => $"default({type})";
 		public string DefaultOf<T>() => $"default({TypeName<T>()})";
 
-		public string TypeName(Type t) => TypeHelper.GetCompilableTypeName(t, ommitNamespace: false, global: true);
+		public string TypeName(Type t) => TypeHelper.GetCompilableTypeName(t, omitNamespace: false, global: true);
 
-		public string TypeName<T>() => TypeHelper.GetCompilableTypeName(typeof(T), ommitNamespace: false, global: true);
+		public string TypeName<T>() => TypeHelper.GetCompilableTypeName(typeof(T), omitNamespace: false, global: true);
 
 		public string Parameter(string type, string name, bool nullable = false) => !nullable ? $"{type} {name}" : $"{type}? {name} = default";
 

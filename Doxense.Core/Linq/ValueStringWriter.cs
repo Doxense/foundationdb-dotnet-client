@@ -313,7 +313,7 @@ namespace Doxense.Linq
 			int size = enc.GetByteCount(span);
 			var tmp = pool.Rent(size);
 			var written = enc.GetBytes(span, tmp);
-			return new SliceOwner(tmp.AsSlice(0, written), pool);
+			return SliceOwner.Create(tmp.AsSlice(0, written), pool);
 		}
 
 		/// <summary>Copies the content of the buffer into a destination span</summary>

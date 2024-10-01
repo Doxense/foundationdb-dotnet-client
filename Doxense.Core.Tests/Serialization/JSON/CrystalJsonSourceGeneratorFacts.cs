@@ -134,8 +134,8 @@ namespace Doxense.Serialization.Json.Tests
 			// => later we may have a fancy source code generator that does this automatically :)
 
 			Assume.That(typeof(string[]).GetFriendlyName(), Is.EqualTo("string[]"));
-			Assume.That(TypeHelper.GetCompilableTypeName(typeof(string[]), ommitNamespace: false, global: true), Is.EqualTo("string[]"));
-			Assume.That(TypeHelper.GetCompilableTypeName(typeof(bool?[]), ommitNamespace: false, global: true), Is.EqualTo("bool?[]"));
+			Assume.That(TypeHelper.GetCompilableTypeName(typeof(string[]), omitNamespace: false, global: true), Is.EqualTo("string[]"));
+			Assume.That(TypeHelper.GetCompilableTypeName(typeof(bool?[]), omitNamespace: false, global: true), Is.EqualTo("bool?[]"));
 
 			var gen = new CrystalJsonSourceGenerator()
 			{

@@ -24,6 +24,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+using System.Buffers;
+
 namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all perf history on TeamCity!
 {
 	using System.Text;
@@ -905,5 +907,142 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 			Verify(int.MinValue, "-2147483648"u8);
 		}
 
+		[Test]
+		public void Test_Pooled_Basics()
+		{
+			var pool = HistoryRecordingArrayPool
+				.Create<byte>()
+#if FULL_DEBUG
+				.WithFilter(
+					(e) => Log($"# allocated {e.AllocatedSize} as <{e.Tag}>"),
+					(e) => Log($"# returned <{e.Tag}>")
+				)
+#endif
+				;
+
+			Log("Creating initial empty reader");
+			var writer = new SliceWriter(pool);
+			pool.Dump();
+			Assert.That(writer.Pool, Is.SameAs(pool));
+			Assert.That(writer.Position, Is.Zero);
+			Assert.That(writer.Capacity, Is.Zero);
+			Log();
+
+			Log("Write some text...");
+			writer.WriteStringUtf8("Hello, there!");
+			pool.Dump();
+			Assert.That(pool.Rented, Has.Count.EqualTo(1), "Should have rented the first buffer");
+			pool.AssertRented(1);
+			pool.Rented[^1].AssertSame(writer.Buffer, "Writer should use the pooled buffer");
+			pool.AssertReturned(0);
+			pool.AssertPending(1);
+			Log();
+
+			Log("Write some large data...");
+			writer.Allocate(100 * 1024);
+			pool.Dump();
+			pool.AssertRented(2);
+			pool.Rented[^1].AssertSame(writer.Buffer, "Should use the new rented buffer");
+			pool.AssertReturned(1);
+			pool.AssertPending(1);
+			Log();
+
+			Log("Dispose...");
+			writer.Dispose();
+			pool.Dump();
+			Assert.That(writer.Pool, Is.SameAs(pool));
+			Assert.That(writer.Position, Is.Zero);
+			Assert.That(writer.Capacity, Is.Zero);
+			Assert.That(writer.Buffer, Is.Empty);
+			pool.AssertAllReturned();
+			Log();
+
+			// writer can be reused
+
+			Log("Reuse after dispose...");
+			writer.WriteStringUtf8("dQw4w9WgXcQ");
+			pool.Dump();
+			Assert.That(pool.Rented, Has.Count.EqualTo(3), "Should have rented the first buffer");
+			pool.Rented[^1].AssertSame(writer.Buffer);
+			Assert.That(pool.NotReturned, Has.Count.EqualTo(1));
+			Log();
+
+			writer.Dispose();
+			pool.Dump();
+			Assert.That(writer.Pool, Is.SameAs(pool));
+			Assert.That(writer.Position, Is.Zero);
+			Assert.That(writer.Capacity, Is.Zero);
+			Assert.That(writer.Buffer, Is.Empty);
+			pool.AssertAllReturned();
+		}
+
+		[Test]
+		public void Test_Pooled_Slow_Growth()
+		{
+			const int N = 1_000_000;
+
+			var pool = HistoryRecordingArrayPool
+				.Create<byte>()
+				//.WithStackTraces()
+				;
+
+			Log($"Writing {N:N0} small values...");
+
+			var writer = new SliceWriter(pool);
+
+			for (int i = 0; i < N; i++)
+			{
+				writer.WriteFixed32(i);
+			}
+
+			pool.Dump();
+			Assert.That(pool.Rented, Has.Count.GreaterThan(0));
+
+			writer.Dispose();
+			pool.AssertAllReturned();
+		}
+
+		[Test]
+		public void Test_Pooled_ToSliceOwner()
+		{
+			// test writing to a pooled writer, and extracting the content as a SliceOwner
+			// => the writer should release its "ownership" of the pooled buffer
+
+			var pool = HistoryRecordingArrayPool
+				.Create<byte>()
+				.WithStackTraces()
+				;
+
+			Log("Write some text...");
+			var writer = new SliceWriter(pool);
+			writer.WriteStringUtf8("Hello, there!");
+			pool.Dump();
+			pool.Rented[^1].AssertSame(writer.Buffer, "Writer should use the pooled buffer");
+			Log();
+
+			Log("Get the pooled buffer out of the writer...");
+			var slice = writer.ToSliceOwner();
+			pool.Dump();
+			Assert.That(slice.Pool, Is.SameAs(pool));
+			pool.Rented[^1].AssertSame(slice.Data.Array, "Buffer should have transferred the buffer to the slice");
+			Assert.That(writer.Buffer, Is.Empty, "Buffer should have released the buffer");
+			Log();
+
+			Log("Dispose the writer...");
+			writer.Dispose();
+			pool.Dump();
+			Assert.That(pool.Returned, Has.Count.Zero, "Nothing should have been returned to the pool");
+			Log();
+
+			Log("Dispose the extracted slice...");
+			slice.Dispose();
+			pool.Dump();
+			Assert.That(pool.Returned, Has.Count.EqualTo(1), "The buffer should have been returned to the pool");
+			Log();
+
+			pool.AssertAllReturned();
+		}
+
 	}
+
 }

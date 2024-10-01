@@ -9,3 +9,6 @@
 global using System;
 global using NUnit.Framework;
 global using SnowBank.Testing;
+
+global using PublicAPIAttribute = JetBrains.Annotations.PublicAPIAttribute;
+global using PureAttribute = System.Diagnostics.Contracts.PureAttribute;

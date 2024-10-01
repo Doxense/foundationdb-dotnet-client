@@ -42,7 +42,7 @@ namespace Doxense.Memory
 	/// <remarks>This struct MUST be passed by reference!</remarks>
 	[PublicAPI, DebuggerDisplay("Position={Position}, Capacity={Capacity}"), DebuggerTypeProxy(typeof(SliceWriter.DebugView))]
 	[DebuggerNonUserCode] //remove this when you need to troubleshoot this class!
-	public struct SliceWriter : IBufferWriter<byte>, ISliceSerializable
+	public struct SliceWriter : IBufferWriter<byte>, ISliceSerializable, IDisposable
 	{
 		// Invariant
 		// * Valid data always start at offset 0
@@ -70,7 +70,7 @@ namespace Doxense.Memory
 		{
 			Contract.Positive(capacity);
 
-			this.Buffer = capacity == 0 ? [ ] : ArrayPool<byte>.Shared.Rent(capacity); //REVIEW: BUGBUG: est-ce une bonne idée d'utiliser un pool ici?
+			this.Buffer = capacity == 0 ? [ ] : new byte[capacity];
 			this.Position = 0;
 			this.Pool = null;
 		}
@@ -78,12 +78,20 @@ namespace Doxense.Memory
 		/// <summary>Create a new empty binary buffer with an initial allocated size</summary>
 		/// <param name="capacity">Initial capacity of the buffer</param>
 		/// <param name="pool">Pool qui sera utilisé pour la gestion des buffers</param>
-		public SliceWriter([Positive] int capacity, ArrayPool<byte> pool)
+		public SliceWriter([Positive] int capacity, ArrayPool<byte>? pool)
 		{
 			Contract.Positive(capacity);
-			Contract.NotNull(pool);
 
-			this.Buffer = capacity == 0 ? [ ] : pool.Rent(capacity);
+			this.Buffer = capacity == 0 ? [ ] : (pool?.Rent(capacity) ?? new byte[capacity]);
+			this.Position = 0;
+			this.Pool = pool;
+		}
+
+		/// <summary>Create a new empty binary buffer with an initial allocated size</summary>
+		/// <param name="pool">Pool qui sera utilisé pour la gestion des buffers</param>
+		public SliceWriter(ArrayPool<byte>? pool)
+		{
+			this.Buffer = [ ];
 			this.Position = 0;
 			this.Pool = pool;
 		}
@@ -260,7 +268,21 @@ namespace Doxense.Memory
 				return Slice.Empty;
 			}
 			Contract.Debug.Assert(buffer.Length >= p, "Current position is outside of the buffer");
-			return new Slice(buffer, 0, p);
+			return new(buffer, 0, p);
+		}
+
+		/// <summary>Returns a <see cref="SliceOwner"/> with the content that was written to this writer</summary>
+		/// <remarks>
+		/// <para>The caller <b>MUST</b> dispose the returned instance, otherwise the buffer will not be returned to the pool</para>
+		/// <para>The writer is reset to 0, and can be reused immediately</para>
+		/// </remarks>
+		[Pure]
+		public SliceOwner ToSliceOwner()
+		{
+			var slice = ToSlice();
+			this.Buffer = [ ];
+			this.Position = 0;
+			return SliceOwner.Create(slice, this.Pool);
 		}
 
 		/// <summary>Returns a <see cref="MutableSlice"/> pointing to the content of the buffer</summary>
@@ -455,14 +477,21 @@ namespace Doxense.Memory
 			this.Position = 0;
 		}
 
-		/// <summary>Retourne le buffer actuel dans le pool utilisé par ce writer</summary>
-		/// <remarks>ATTENTION: l'appelant ne doit PLUS accéder (en read ou write) au buffer exposé par ce writer avant l'appel à cette méthode!</remarks>
+		/// <summary>Returns the current buffer to the pool</summary>
 		public void Release(bool clear = false)
 		{
 			var buffer = this.Buffer;
 			this.Buffer = [ ];
 			this.Position = 0;
-			if (buffer != null) this.Pool?.Return(buffer, clear);
+			if (buffer != null && buffer.Length != 0)
+			{
+				this.Pool?.Return(buffer, clear);
+			}
+		}
+
+		public void Dispose()
+		{
+			Release(clear: false);
 		}
 
 		/// <summary>Advance the cursor of the buffer without writing anything, and return the previous position</summary>
@@ -2176,10 +2205,12 @@ namespace Doxense.Memory
 		{
 			Contract.Debug.Requires(count >= 0);
 			var buffer = this.Buffer;
-			if (buffer == null || this.Position + count > buffer.Length)
+			var pos = this.Position;
+			var newPos = pos + count;
+			if (buffer == null || newPos > buffer.Length)
 			{
-				buffer = GrowBuffer(ref this.Buffer, this.Position + count, this.Pool);
-				Contract.Debug.Ensures(buffer != null && buffer.Length >= this.Position + count);
+				buffer = GrowBuffer(ref this.Buffer, pos, newPos, this.Pool);
+				Contract.Debug.Ensures(buffer != null && buffer.Length >= newPos);
 			}
 			return buffer;
 		}
@@ -2209,10 +2240,11 @@ namespace Doxense.Memory
 			Contract.Debug.Requires(minCapacity >= 0);
 			var buffer = this.Buffer;
 			int pos = this.Position;
-			if (buffer == null || pos + minCapacity > buffer.Length)
+			int newPos = pos + minCapacity;
+			if (buffer == null || newPos > buffer.Length)
 			{
-				buffer = GrowBuffer(ref this.Buffer, pos + minCapacity);
-				Contract.Debug.Ensures(buffer != null && buffer.Length >= pos + minCapacity);
+				buffer = GrowBuffer(ref this.Buffer, pos, newPos, this.Pool);
+				Paranoid.Ensures(buffer != null && buffer.Length >= newPos);
 			}
 			return buffer.AsSpan(pos);
 		}
@@ -2229,10 +2261,11 @@ namespace Doxense.Memory
 			Contract.Debug.Requires(minCapacity >= 0);
 			var buffer = this.Buffer;
 			int pos = this.Position;
-			if (buffer == null || pos + minCapacity > buffer.Length)
+			int newPos = pos + minCapacity;
+			if (buffer == null || newPos > buffer.Length)
 			{
-				buffer = GrowBuffer(ref this.Buffer, pos + minCapacity);
-				Contract.Debug.Ensures(buffer != null && buffer.Length >= pos + minCapacity);
+				buffer = GrowBuffer(ref this.Buffer, pos, newPos, this.Pool);
+				Contract.Debug.Ensures(buffer != null && buffer.Length >= newPos);
 			}
 			return buffer.AsMemory(pos);
 		}
@@ -2251,7 +2284,7 @@ namespace Doxense.Memory
 			int newPos = checked(pos + count);
 			if (buffer == null || newPos > buffer.Length)
 			{
-				buffer = GrowBuffer(ref this.Buffer, newPos);
+				buffer = GrowBuffer(ref this.Buffer, pos, newPos, this.Pool);
 				Contract.Debug.Ensures(buffer != null && buffer.Length >= newPos);
 			}
 			this.Position = newPos;
@@ -2272,7 +2305,7 @@ namespace Doxense.Memory
 			int newPos = checked(pos + count);
 			if (buffer == null || newPos > buffer.Length)
 			{
-				buffer = GrowBuffer(ref this.Buffer, newPos);
+				buffer = GrowBuffer(ref this.Buffer, pos, newPos, this.Pool);
 				Contract.Debug.Ensures(buffer != null && buffer.Length >= newPos);
 			}
 			this.Position = newPos;
@@ -2288,9 +2321,11 @@ namespace Doxense.Memory
 		{
 			Contract.Debug.Requires(count >= 0);
 			var buffer = this.Buffer;
-			if (buffer == null || this.Position + count > buffer.Length)
+			var pos = this.Position;
+			var newPos = pos + count;
+			if (buffer == null || newPos > buffer.Length)
 			{
-				buffer = GrowBuffer(ref this.Buffer, this.Position + count, pool);
+				buffer = GrowBuffer(ref this.Buffer, pos, newPos, pool);
 				Contract.Debug.Ensures(buffer != null && buffer.Length >= this.Position + count);
 			}
 			return buffer;
@@ -2313,9 +2348,9 @@ namespace Doxense.Memory
 		public void EnsureOffsetAndSize(int offset, int count)
 		{
 			Contract.Debug.Requires(offset >= 0 && count >= 0);
-			if (this.Buffer == null || offset + count > this.Buffer.Length)
+			if (checked(offset + count) > (this.Buffer?.Length ?? 0))
 			{
-				GrowBuffer(ref this.Buffer, offset + count, this.Pool);
+				GrowBuffer(ref this.Buffer, this.Position, offset + count, this.Pool);
 			}
 		}
 
@@ -2327,8 +2362,9 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.NoInlining)]
 		public static byte[] GrowBuffer(
 			ref byte[]? buffer,
-			int minimumCapacity = 0,
-			ArrayPool<byte>? pool = null
+			int keep,
+			int minimumCapacity,
+			ArrayPool<byte>? pool
 		)
 		{
 			Contract.Debug.Requires(minimumCapacity >= 0);
@@ -2342,12 +2378,32 @@ namespace Doxense.Memory
 			if (pool == null)
 			{ // use the heap
 				int size = BitHelpers.AlignPowerOfTwo((int) newSize, powerOfTwo: 16); // round up to 16 bytes, to reduce fragmentation
-				Array.Resize(ref buffer, size);
+				if (buffer == null || buffer.Length == 0)
+				{ // first buffer
+					buffer = new byte[size];
+				}
+				else
+				{ // resize and copy
+					var tmp = new byte[size];
+					buffer.AsSpan(0, keep).CopyTo(tmp);
+					buffer = tmp;
+				}
 			}
 			else
 			{ // use the pool to resize the buffer
 				int size = Math.Max((int) newSize, 64); // with a pool, we can ask for more bytes initially
-				ResizeUsingPool(pool, ref buffer, size);
+
+				if (buffer == null || buffer.Length == 0)
+				{ // first buffer
+					buffer = pool.Rent(size);
+				}
+				else
+				{ // resize and copy
+					var tmp = pool.Rent(size);
+					buffer.AsSpan(0, keep).CopyTo(tmp);
+					pool.Return(buffer);
+					buffer = tmp;
+				}
 			}
 			return buffer;
 		}
@@ -2366,26 +2422,6 @@ namespace Doxense.Memory
 			Contract.NotNull(pool);
 			Contract.Positive(newSize);
 
-			if (array == null)
-			{
-				array = pool.Rent(newSize);
-				return;
-			}
-
-			if (array.Length != newSize)
-			{
-				byte[] newArray = pool.Rent(newSize);
-				if (array.Length > 0)
-				{
-					array.AsSpan().CopyTo(newArray);
-				}
-				//note: we don't return empty buffers, because we may return Array.Empty<byte>() by mistake!
-				if (array.Length != 0)
-				{
-					pool.Return(array);
-				}
-				array = newArray;
-			}
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
