@@ -82,7 +82,7 @@ namespace FoundationDB.Client
 				if (name[0] == 0xFF) throw new ArgumentException("Tenant name cannot start with byte literal 0xFF.", paramName ?? nameof(name));
 				throw new ArgumentException("Tenant nant is invalid", paramName ?? nameof(name));
 			}
-			return name.Memoize();
+			return name.Copy();
 		}
 
 		/// <summary>Test if a tenant name is valid</summary>
@@ -199,17 +199,17 @@ namespace FoundationDB.Client
 		/// <summary>Create a copy of this name</summary>
 		/// <returns>Name that contains the same bytes as the original</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal FdbTenantName Copy() => new(this.Value.Memoize(), this.Tuple);
+		internal FdbTenantName Copy() => new(this.Value.Copy(), this.Tuple);
 
 		/// <summary>Create a copy of a tenant name</summary>
 		/// <returns>Name that contains the same bytes as the original</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTenantName Copy(FdbTenantName name) => new (name.Value.Memoize(), name.Tuple);
+		public static FdbTenantName Copy(FdbTenantName name) => new (name.Value.Copy(), name.Tuple);
 
 		#endregion
 
 		/// <summary>Return a copy of the binary representation of the name</summary>
-		public Slice ToSlice() => this.Value.Memoize();
+		public Slice ToSlice() => this.Value.Copy();
 
 		/// <summary>Return a hyman-readable name for this tenant name</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]

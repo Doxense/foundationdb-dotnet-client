@@ -734,8 +734,8 @@ namespace FoundationDB.Client
 				// > once the window size is small enough, we can switch to using GetRange to read the last segment in one shot, instead of iterating with window size 16, 8, 4, 2 and 1 (the wost case being 2^N - 1 items remaining)
 
 				// note: we make a copy of the keys because the operation could take a long time and the key's could prevent a potentially large underlying buffer from being GCed
-				var cursor = beginInclusive.Memoize();
-				var end = endExclusive.Memoize();
+				var cursor = beginInclusive.Copy();
+				var end = endExclusive.Copy();
 
 				using (var tr = db.BeginReadOnlyTransaction(ct))
 				{

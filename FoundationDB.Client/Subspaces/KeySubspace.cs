@@ -55,7 +55,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public static IKeySubspace FromKey(Slice prefix, ISubspaceContext? context = null)
 		{
-			return new KeySubspace(prefix.Memoize(), context ?? SubspaceContext.Default);
+			return new KeySubspace(prefix.Copy(), context ?? SubspaceContext.Default);
 		}
 
 		/// <summary>Create an unsafe copy of a directory by discarding its context</summary>
@@ -224,7 +224,7 @@ namespace FoundationDB.Client
 		{
 			//note: we don't want to leak our key!
 			var key = GetKeyPrefix();
-			if (relativeKey.Length == 0) return key.Memoize(); //TODO: better solution!
+			if (relativeKey.Length == 0) return key.Copy(); //TODO: better solution!
 			return key.Concat(relativeKey);
 		}
 

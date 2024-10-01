@@ -107,7 +107,7 @@ namespace FoundationDB.Filters.Logging
 				{ // not enough ?
 					if (slice.Count >= 2048)
 					{
-						return slice.Memoize();
+						return slice.Copy();
 					}
 					m_buffer = new byte[4096];
 					m_offset = 0;

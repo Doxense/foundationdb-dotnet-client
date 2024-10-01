@@ -211,8 +211,8 @@ namespace FoundationDB.Client
 		{
 			//note: we can workaround the 'security' in top directory partition by accessing their key prefix without triggering an exception!
 			return subspace is KeySubspace ks
-				? ks.GetPrefixUnsafe().Memoize()
-				: subspace.GetPrefix().Memoize();
+				? ks.GetPrefixUnsafe().Copy()
+				: subspace.GetPrefix().Copy();
 		}
 
 		/// <summary>Create a copy of a generic subspace, sharing the same binary prefix</summary>

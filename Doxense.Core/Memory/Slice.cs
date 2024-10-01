@@ -353,13 +353,17 @@ namespace System
 
 		/// <summary>Returns a new slice that contains an isolated copy of the buffer</summary>
 		/// <returns>Slice that is equivalent, but is isolated from any changes to the buffer</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("Use Slice.Copy() instead!")]
+		public Slice Memoize() => Copy();
+
+		/// <summary>Returns a new slice that contains an isolated copy of the buffer</summary>
+		/// <returns>Slice that is equivalent, but is isolated from any changes to the buffer</returns>
 		[Pure]
-		public Slice Memoize()
-		{
-			if (this.Count == 0) return this.IsNull ? default : Empty;
-			// ReSharper disable once AssignNullToNotNullAttribute
-			return new Slice(this.Span.ToArray());
-		}
+		public Slice Copy() =>
+			  this.Count != 0 ? new(this.Span.ToArray())
+			: this.IsNull ? default
+			: Empty;
 
 		/// <summary>Map an offset in the slice into the absolute offset in the buffer, without any bound checking</summary>
 		/// <param name="index">Relative offset (negative values mean from the end)</param>

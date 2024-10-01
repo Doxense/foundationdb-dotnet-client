@@ -180,7 +180,7 @@ namespace Doxense.Memory
 			if (data.Count == 0)
 			{
 				// transform into the corresponding Slice.Nil / Slice.Empty singleton
-				return data.Memoize();
+				return data.Copy();
 			}
 
 			data.EnsureSliceIsValid();
