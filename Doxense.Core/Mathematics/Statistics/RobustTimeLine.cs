@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Mathematics.Statistics // REVIEW: Doxense.Benchmarking ?
+namespace Doxense.Mathematics.Statistics // REVIEW: SnowBank.Benchmarking ?
 {
 	using System.Diagnostics;
 
