@@ -26,7 +26,9 @@
 
 namespace Doxense.Collections.Generic
 {
+	using System.Buffers;
 	using System.Diagnostics;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 
@@ -35,7 +37,7 @@ namespace Doxense.Collections.Generic
 	/// <remarks>Inserts are in O(LogN) amortized. Lookups are in O(Log(N))</remarks>
 	[PublicAPI]
 	[DebuggerDisplay("Count={m_items.Count}"), DebuggerTypeProxy(typeof(ColaOrderedSet<>.DebugView))]
-	public class ColaOrderedSet<T> : IEnumerable<T>
+	public class ColaOrderedSet<T> : IEnumerable<T>, IDisposable
 	{
 		private const int NOT_FOUND = -1;
 
@@ -46,22 +48,22 @@ namespace Doxense.Collections.Generic
 
 		#region Constructors...
 
-		public ColaOrderedSet()
-			: this(0, Comparer<T>.Default)
+		public ColaOrderedSet(ArrayPool<T>? pool = null)
+			: this(0, Comparer<T>.Default, pool)
 		{ }
 
-		public ColaOrderedSet(int capacity)
-			: this(capacity, Comparer<T>.Default)
+		public ColaOrderedSet(int capacity, ArrayPool<T>? pool = null)
+			: this(capacity, Comparer<T>.Default, pool)
 		{ }
 
-		public ColaOrderedSet(IComparer<T> comparer)
-			: this(0, comparer)
+		public ColaOrderedSet(IComparer<T>? comparer, ArrayPool<T>? pool = null)
+			: this(0, comparer, pool)
 		{ }
 
-		public ColaOrderedSet(int capacity, IComparer<T> comparer)
+		public ColaOrderedSet(int capacity, IComparer<T>? comparer, ArrayPool<T>? pool = null)
 		{
 			Contract.Positive(capacity);
-			m_items = new ColaStore<T>(capacity, comparer ?? Comparer<T>.Default);
+			m_items = new(capacity, comparer ?? Comparer<T>.Default, pool);
 		}
 
 		#endregion
@@ -81,9 +83,9 @@ namespace Doxense.Collections.Generic
 			get
 			{
 				if (index < 0 || index >= m_items.Count) ThrowIndexOutOfRangeException();
-				int level = ColaStore.MapOffsetToLocation(m_items.Count, index, out var offset);
-				Contract.Debug.Assert(level >= 0);
-				return m_items.GetAt(level, offset);
+				var (level, offset) = ColaStore.MapOffsetToLocation(m_items.Count, index);
+				if (level < 0) throw new IndexOutOfRangeException();
+				return m_items.GetReference(level, offset);
 			}
 		}
 
@@ -96,9 +98,15 @@ namespace Doxense.Collections.Generic
 
 		#region Public Methods...
 
+		public void Dispose()
+		{
+			m_version = int.MinValue;
+			m_items.Dispose();
+		}
+
 		public void Clear()
 		{
-			++m_version;
+			Interlocked.Increment(ref m_version);
 			m_items.Clear();
 		}
 
@@ -107,10 +115,10 @@ namespace Doxense.Collections.Generic
 		/// <remarks>If the value already exists in the set, it will not be overwritten</remarks>
 		public bool Add(T value)
 		{
-			++m_version;
+			Interlocked.Increment(ref m_version);
 			if (!m_items.SetOrAdd(value, overwriteExistingValue: false))
 			{
-				--m_version;
+				Interlocked.Decrement(ref m_version);
 				return false;
 			}
 			return true;
@@ -121,19 +129,22 @@ namespace Doxense.Collections.Generic
 		/// <remarks>If the value already exists in the set, it will be overwritten by <paramref name="value"/></remarks>
 		public bool Set(T value)
 		{
-			++m_version;
+			Interlocked.Increment(ref m_version);
 			return m_items.SetOrAdd(value, overwriteExistingValue: true);
 		}
 
-		public bool TryRemove(T value, out T actualValue)
+		public bool TryRemove(T value, [MaybeNullWhen(false)] out T actualValue)
 		{
-			int level = m_items.Find(value, out var offset, out actualValue);
-			if (level != NOT_FOUND)
+			ref var slot = ref m_items.Find(value, out var level, out var offset);
+			if (!Unsafe.IsNullRef(ref slot))
 			{
-				++m_version;
+				actualValue = slot;
+				Interlocked.Increment(ref m_version);
 				m_items.RemoveAt(level, offset);
 				return true;
 			}
+
+			actualValue = default!;
 			return false;
 		}
 
@@ -144,12 +155,15 @@ namespace Doxense.Collections.Generic
 
 		public T RemoveAt(int arrayIndex)
 		{
-			if (arrayIndex < 0 || arrayIndex >= m_items.Count) throw new ArgumentOutOfRangeException(nameof(arrayIndex), "Index is outside the array");
+			if (arrayIndex < 0 || arrayIndex >= m_items.Count)
+			{
+				throw new ArgumentOutOfRangeException(nameof(arrayIndex), "Index is outside the array");
+			}
 
-			int level = ColaStore.MapOffsetToLocation(m_items.Count, arrayIndex, out var offset);
+			var (level, offset) = ColaStore.MapOffsetToLocation(m_items.Count, arrayIndex);
 			Contract.Debug.Assert(level >= 0 && offset >= 0 && offset < 1 << level);
 
-			++m_version;
+			Interlocked.Increment(ref m_version);
 			return m_items.RemoveAt(level, offset);
 		}
 
@@ -158,7 +172,7 @@ namespace Doxense.Collections.Generic
 		/// <returns>true if the set contains the specified value; otherwise, false.</returns>
 		public bool Contains(T value)
 		{
-			return m_items.Find(value, out _, out _) >= 0;
+			return !Unsafe.IsNullRef(ref m_items.Find(value, out _,out _));
 		}
 
 		/// <summary>Find an element </summary>
@@ -166,8 +180,7 @@ namespace Doxense.Collections.Generic
 		/// <returns>The zero-based index of the first occurrence of <paramref name="value"/> within the entire list, if found; otherwise, –1.</returns>
 		public int IndexOf(T value)
 		{
-			int level = m_items.Find(value, out var offset, out _);
-			if (level >= 0)
+			if (!Unsafe.IsNullRef(ref m_items.Find(value, out var level, out var offset)))
 			{
 				return ColaStore.MapLocationToOffset(m_items.Count, level, offset);
 			}
@@ -178,9 +191,18 @@ namespace Doxense.Collections.Generic
 		/// <param name="value">The value to search for.</param>
 		/// <param name="actualValue">The value from the set that the search found, or the original value if the search yielded no match.</param>
 		/// <returns>A value indicating whether the search was successful.</returns>
-		public bool TryGetValue(T value, out T actualValue)
+		public bool TryGetValue(T value, [MaybeNullWhen(false)] out T actualValue)
 		{
-			return m_items.Find(value, out _, out actualValue) >= 0;
+			ref var slot = ref m_items.Find(value, out _, out _);
+
+			if (Unsafe.IsNullRef(ref slot))
+			{
+				actualValue = default;
+				return false;
+			}
+
+			actualValue = slot;
+			return true;
 		}
 
 		/// <summary>Copy the ordered elements of the set to an array</summary>
@@ -206,30 +228,20 @@ namespace Doxense.Collections.Generic
 			m_items.CopyTo(array, arrayIndex, count);
 		}
 
-		public ColaStore.Enumerator<T> GetEnumerator()
-		{
-			return new ColaStore.Enumerator<T>(m_items, reverse: false);
-		}
+		public ColaStore.Enumerator<T> GetEnumerator() => new(m_items, reverse: false);
 
-		IEnumerator<T> IEnumerable<T>.GetEnumerator()
-		{
-			return this.GetEnumerator();
-		}
+		IEnumerator<T> IEnumerable<T>.GetEnumerator() => this.GetEnumerator();
 
-		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
-		{
-			return this.GetEnumerator();
-		}
+		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => this.GetEnumerator();
 
 		#endregion
 
-		//TODO: remove or set to internal !
 		[Conditional("DEBUG")]
-		public void Debug_Dump()
+		public void Debug_Dump(TextWriter output)
 		{
 #if DEBUG
-			Trace.WriteLine("Dumping ColaOrderedSet<" + typeof(T).Name + "> filled at " + (100.0d * this.Count / this.Capacity).ToString("N2") + "%");
-			m_items.Debug_Dump();
+			output.WriteLine($"Dumping ColaOrderedSet<{typeof(T).Name}> filled at {(100.0d * this.Count / this.Capacity):N2}%");
+			m_items.Debug_Dump(output);
 #endif
 		}
 
@@ -256,7 +268,7 @@ namespace Doxense.Collections.Generic
 		}
 
 		[StructLayout(LayoutKind.Sequential)]
-		public struct Enumerator : IEnumerator<T>, IDisposable
+		public struct Enumerator : IEnumerator<T>
 		{
 			private readonly int m_version;
 			private readonly ColaOrderedSet<T> m_parent;

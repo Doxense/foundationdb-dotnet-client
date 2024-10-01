@@ -29,16 +29,17 @@
 
 namespace Doxense.Collections.Generic
 {
+	using System.Buffers;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
-	using System.Globalization;
 	using System.Runtime.CompilerServices;
+	using System.Runtime.InteropServices;
 
 	/// <summary>Store elements in a list of ordered levels</summary>
 	/// <typeparam name="T">Type of elements stored in the set</typeparam>
 	[PublicAPI]
-	[DebuggerDisplay("Count={m_count}, Depth={m_levels.Length}")]
-	public sealed class ColaStore<T>
+	[DebuggerDisplay("Count={m_count}, Depth={Depth}")]
+	public sealed class ColaStore<T> : IDisposable
 	{
 
 		#region Documentation
@@ -50,7 +51,7 @@ namespace Doxense.Collections.Generic
 			or levels, each of which is either completely full or completely empty. The kth array is of size 2^k and the arrays are stored contiguously in memory.
 
 			The COLA maintains the following invariants:
-			1. The kth array contains items if and only if the kth least signiﬁcant bit of the binary representation of N is a 1.
+			1. The kth array contains items if and only if the kth least-significant bit of the binary representation of N is a 1.
 			2. Each array contains its items in ascending order by key
 		 */
 
@@ -94,155 +95,270 @@ namespace Doxense.Collections.Generic
 
 		#endregion
 
-		private const int INITIAL_LEVELS = 5;	// 5 initial levels will pre-allocate space for 31 items
-		private const int MAX_SPARE_ORDER = 6;	// 6 levels of spares will satisfy ~98.4% of all insertions, while only allocating the space for 63 items (~500 bytes for reference types)
-		private const int NOT_FOUND = -1;
-
 		/// <summary>Number of elements in the store</summary>
 		private volatile int m_count;
 
-		/// <summary>Array of all the segments making up the levels</summary>
-		private T[][] m_levels;
+		/// <summary>Number of levels currently allocated</summary>
+		private int m_allocatedLevels;
 
-		/// <summary>Shortcut to level 0 (of size 1)</summary>
-		private readonly T[] m_root;
+		private T[] m_root;
 
-		/// <summary>List of spare temporary buffers, used during merging</summary>
-		private readonly T[]?[] m_spares;
-#if ENFORCE_INVARIANTS
-		private bool[] m_spareUsed;
+#if NET8_0_OR_GREATER
+		private Scratch m_scratch;
+#else
+		private T[] m_scratch; // used to perform temp operations with up to 2 items
 #endif
 
 		/// <summary>Key comparer</summary>
 		private readonly IComparer<T> m_comparer;
+
+		private readonly ArrayPool<T> m_pool;
+
+		/// <summary>Array of all the segments making up the levels</summary>
+#if NET8_0_OR_GREATER
+		private LevelsStack m_levels;
+#else
+		private T[]?[] m_levels;
+#endif
+
+#if NET8_0_OR_GREATER
+
+		[InlineArray(2)]
+		private struct Scratch
+		{
+			private T Item;
+		}
+
+		[InlineArray(ColaStore.MAX_LEVEL + 1)]
+		private struct LevelsStack
+		{
+			private T[]? Item;
+		}
+
+#endif
 
 		#region Constructors...
 
 		/// <summary>Allocates a new store</summary>
 		/// <param name="capacity">Initial capacity, or 0 for the default capacity</param>
 		/// <param name="comparer">Comparer used to order the elements</param>
-		public ColaStore(int capacity, IComparer<T> comparer)
+		/// <param name="pool">Pool used to allocate levels</param>
+		public ColaStore(int capacity, IComparer<T> comparer, ArrayPool<T>? pool = null)
 		{
 			Contract.Positive(capacity);
 			Contract.NotNull(comparer);
 
-			int levels;
-			if (capacity == 0)
-			{ // use the default capacity
-				levels = INITIAL_LEVELS;
-			}
-			else
-			{ // L levels will only store (2^L - 1)
-				// note: there is no real penalty if the capacity was not correctly estimated, appart from the fact that all levels will not be contiguous in memory
-				// 1 => 1
-				// 2..3 => 2
-				// 4..7 => 3
-				levels = ColaStore.HighestBit(capacity) + 1;
-			}
-			// allocating more than 31 levels would mean having an array of length 2^31, which is not possible
-			if (levels >= 31) throw new ArgumentOutOfRangeException(nameof(capacity), "Cannot allocate more than 30 levels");
+			pool ??= ArrayPool<T>.Shared;
+			m_pool = pool;
+
+			// how many levels required?
+
+			m_root = new T[1];
+#if !NET8_0_OR_GREATER
+			// allocate on the heap
+			m_levels = new T[ColaStore.MAX_LEVEL + 1][];
+			m_scratch = new T[2];
+#endif
+			int levels = Math.Max(ColaStore.GetLevelCount(capacity), ColaStore.INITIAL_LEVELS);
+			m_allocatedLevels = levels;
 
 			// pre-allocate the segments and spares at the same time, so that they are always at the same memory location
-			var segments = new T[levels][];
-			var spares = new T[MAX_SPARE_ORDER][];
-			for (int i = 0; i < segments.Length; i++)
+			Span<T[]?> segments = m_levels;
+			segments[0] = m_root;
+			for (int i = 1; i < levels; i++)
 			{
-				segments[i] = new T[1 << i];
-				if (i < spares.Length) spares[i] = new T[1 << i];
+				(segments[i], _) = RentLevel(i);
 			}
 
-			m_levels = segments;
-			m_root = segments[0];
-			m_spares = spares;
 			m_comparer = comparer;
-#if ENFORCE_INVARIANTS
-			m_spareUsed = new bool[spares.Length];
-#endif
+			CheckInvariants();
 		}
 
 		public ColaStore(ColaStore<T> copy)
 		{
+			var pool = copy.m_pool;
 			m_count = copy.m_count;
-			var levels = copy.m_levels;
-			var tmp = new T[levels.Length][];
-			for (int i = 0; i < levels.Length; i++)
-			{
-				tmp[i] = levels[i].ToArray();
-			}
-			m_levels = tmp;
-			m_root = tmp[0];
-			m_spares = copy.m_spares.ToArray();
-			m_comparer = copy.m_comparer;
-#if ENFORCE_INVARIANTS
-			m_spareUsed = copy.m_spareUsed.ToArray();
+
+			// copy the levels from the original
+			var levels = ColaStore.GetLevelCount(m_count);
+
+#if NET8_0_OR_GREATER
+			// levels already initialized
+#else
+			m_levels = new T[ColaStore.MAX_LEVEL + 1][];
+			m_scratch = new T[2];
 #endif
+			m_root = copy.m_root.ToArray();
+			m_levels[0] = m_root;
+			for (int i = 1; i < levels; i++)
+			{
+				var (tmp, _) = RentLevel(i);
+				if (!IsFree(i))
+				{
+					copy.GetLevel(i).CopyTo(tmp);
+				}
+				m_levels[i] = tmp;
+			}
+
+			m_comparer = copy.m_comparer;
+			m_pool = pool;
 		}
 
 		public ColaStore<T> Copy() => new(this);
+
+		public void Dispose()
+		{
+			Span<T[]?> levels = m_levels;
+			m_root = null!;
+			for (int i = 1; i < levels.Length; i++)
+			{
+				var level = levels[i];
+				if (level == null) continue;
+
+				levels[i] = null;
+				if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+				{
+					level.AsSpan(0, ColaStore.GetLevelSize(i)).Clear();
+				}
+				if (i > 0)
+				{
+					m_pool.Return(level);
+				}
+			}
+			m_allocatedLevels = 0;
+			m_count = 0;
+		}
+
+		private Span<T[]?> LevelsAllocated => GetLevels();
+
+		private Span<T[]?> LevelsAll => (Span<T[]?>) m_levels;
+
+		private (T[] Array, int Size) RentLevel(int level)
+		{
+			Contract.Debug.Requires(level >= 1 && level <= ColaStore.MAX_LEVEL);
+
+			// note: the pool may return arrays that are LARGER, but the rest of the code will only use Spans that have the correct size
+			int size = ColaStore.GetLevelSize(level);
+			var tmp = m_pool.Rent(size);
+			tmp.AsSpan(0, size).Clear();
+			return (tmp, size);
+		}
+
+		private void ReturnLevel(int level)
+		{
+			Contract.Debug.Requires((uint) level <= ColaStore.MAX_LEVEL);
+
+			if (level == 0)
+			{ // we NEVER return the level 0 !
+				return;
+			}
+
+			var array = m_levels[level];
+			m_levels[level] = null;
+			if (array != null)
+			{
+				if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+				{
+					array.AsSpan(0, ColaStore.GetLevelSize(level)).Clear();
+				}
+				m_pool.Return(array);
+			}
+
+			if (level + 1 == m_allocatedLevels)
+			{
+				m_allocatedLevels--;
+			}
+		}
+
+		private (T[] Array, int Size) RentSpare(int level) => RentLevel(level);
+
+		private void ReturnSpare(int level, T[]? spare)
+		{
+			Contract.Debug.Requires((uint) level <= ColaStore.MAX_LEVEL);
+
+			if (spare != null)
+			{
+				if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+				{
+					spare.AsSpan(0, ColaStore.GetLevelSize(level)).Clear();
+				}
+
+				m_pool.Return(spare);
+			}
+		}
 
 		[Conditional("ENFORCE_INVARIANTS")]
 		private void CheckInvariants()
 		{
 #if ENFORCE_INVARIANTS
 			Contract.Debug.Invariant(m_count >= 0, "Count cannot be less than zero");
-			Contract.Debug.Invariant(m_levels != null, "Storage array should not be null");
-			Contract.Debug.Invariant(m_levels.Length > 0, "Storage array should always at least contain one level");
-			Contract.Debug.Invariant(object.ReferenceEquals(m_root, m_levels[0]), "The root should always be the first level");
-			Contract.Debug.Invariant(m_count < 1 << m_levels.Length, "Count should not exceed the current capacity");
-
-			for (int i = 0; i < m_levels.Length; i++)
+			Contract.Debug.Invariant(m_allocatedLevels >= ColaStore.GetLevelCount(m_count));
+			for (int i = 0; i <= ColaStore.MAX_LEVEL; i++)
 			{
-				var segment = m_levels[i];
-				Contract.Debug.Invariant(segment != null, "All segments should be allocated in memory");
-				Contract.Debug.Invariant(segment.Length == 1 << i, "The size of a segment should be 2^LEVEL");
+				var segment = m_levelsZOBI[i];
+				var expectedSize = ColaStore.GetLevelSize(i);
+
+				if (i == 0)
+				{
+					Contract.Debug.Requires(ReferenceEquals(segment, m_root), "Level 0 should be the same as m_root");
+				}
+				else if (i >= m_allocatedLevels)
+				{
+					Contract.Debug.Invariant(segment == null, "Non allocated levels should be null");
+					continue;
+				}
+				else
+				{
+					Contract.Debug.Invariant(segment != null, "All segments should be allocated in memory");
+					Contract.Debug.Invariant(segment.Length >= expectedSize, "The size of a segment should be able to store 2^LEVEL items"); // maybe larger since this is rented from a pool!
+				}
 
 				if (IsFree(i))
-				{ // All unallocated segments SHOULD be filled with default(T)
-					for (int j = 0; j < segment.Length; j++)
+				{ // All unused segments SHOULD be filled with default(T)
+					for (int j = 0; j < expectedSize; j++)
 					{
 						if (!EqualityComparer<T>.Default.Equals(segment[j], default(T)))
 						{
-							if (Debugger.IsAttached) { Debug_Dump(); Debugger.Break(); }
-							Contract.Debug.Invariant(false, String.Format("Non-zero value at offset {0} of unused level {1} : {2}", j, i, String.Join(", ", segment)));
+							if (Debugger.IsAttached)
+							{
+								Debugger.Break(); // STEP ONCE TO READ THE DUMP!
+								var sw = new System.IO.StringWriter();
+								Debug_Dump(sw);
+								string dump = sw.ToString();
+								Debug.WriteLine(dump);
+								Debugger.Break();
+							}
+							Contract.Debug.Invariant(false, $"Non-zero value at offset {j} of unused level {i} : {string.Join(", ", segment)}");
 						}
 					}
 				}
 				else
-				{ // All allocated segments SHOULD be sorted
+				{ // All used segments SHOULD be sorted
 					T previous = segment[0];
-					for (int j = 1; j < segment.Length; j++)
+					for (int j = 1; j < expectedSize; j++)
 					{
 						T x = segment[j];
 						if (m_comparer.Compare(previous, x) >= 0)
 						{
-							if (Debugger.IsAttached) { Debug_Dump(); Debugger.Break(); }
-							Contract.Debug.Invariant(false, String.Format("Unsorted value {3} at offset {0} of allocated level {1} : {2}", j, i, String.Join(", ", segment), segment[j]));
+							if (Debugger.IsAttached)
+							{
+								Debugger.Break(); // STEP ONCE TO READ THE DUMP!
+								var sw = new System.IO.StringWriter();
+								Debug_Dump(sw);
+								string dump = sw.ToString();
+								Debug.WriteLine(dump);
+								Debugger.Break();
+							}
+							Contract.Debug.Invariant(false, $"Unsorted value {segment[j]} at offset {j} of allocated level {i} : {string.Join(", ", segment)}");
 						}
 						previous = segment[j];
 					}
-				}
-
-				if (i < m_spares.Length)
-				{
-					Contract.Debug.Invariant(!m_spareUsed[i], "A spare level wasn't returned after being used!");
-					var spare = m_spares[i];
-					if (spare == null) continue;
-					// All spare segments SHOULD be filled with default(T)
-					for (int j = 0; j < spare.Length; j++)
-					{
-						if (!EqualityComparer<T>.Default.Equals(spare[j], default(T)))
-						{
-							if (Debugger.IsAttached) { Debug_Dump(); Debugger.Break(); }
-							Contract.Debug.Invariant(false, String.Format("Non-zero value at offset {0} of spare level {1} : {2}", j, i, String.Join(", ", spare)));
-						}
-					}
-
 				}
 			}
 #endif
 		}
 
-		#endregion
+#endregion
 
 		#region Public Properties...
 
@@ -250,7 +366,7 @@ namespace Doxense.Collections.Generic
 		public int Count => m_count;
 
 		/// <summary>Gets the current capacity of the store.</summary>
-		public int Capacity => (1 << m_levels.Length) - 1;
+		public int Capacity => (int) ((1U << m_allocatedLevels) - 1);
 		// note: the capacity is always 2^L - 1 where L is the number of levels
 
 		/// <summary>Gets the comparer used to sort the elements in the store</summary>
@@ -258,33 +374,54 @@ namespace Doxense.Collections.Generic
 
 		/// <summary>Gets the current number of levels</summary>
 		/// <remarks>Note that the last level may not be currently used!</remarks>
-		public int Depth => m_levels.Length;
+		public int Depth => ColaStore.GetLevelCount(m_count);
 
 		/// <summary>Gets the index of the first currently allocated level</summary>
-		public int MinLevel => ColaStore.HighestBit(m_count);
+		public int MinLevel => ColaStore.LowestBit(m_count);
 
 		/// <summary>Gets the index of the last currently allocated level</summary>
 		public int MaxLevel => ColaStore.HighestBit(m_count);
 
-		/// <summary>Gets the list of all levels</summary>
-		public T[][] Levels => m_levels;
+		///// <summary>Gets the list of all levels</summary>
+		//public T[][] Levels => m_levels;
 
 		/// <summary>Returns the content of a level</summary>
 		/// <param name="level">Index of the level (0-based)</param>
 		/// <returns>Segment that contains all the elements of that level</returns>
-		public T[] GetLevel(int level)
+		internal Span<T> GetLevel(int level)
 		{
-			Contract.Debug.Requires(level >= 0 && level < m_levels.Length);
-			return m_levels[level];
+			Contract.Debug.Requires((uint) level <= ColaStore.MAX_LEVEL);
+			return m_levels[level].AsSpan(0, ColaStore.GetLevelSize(level));
 		}
 
-		/// <summary>Gets of sets the value store at the specified index</summary>
-		/// <param name="arrayIndex">Absolute index in the vector-array</param>
-		/// <returns>Value stored at that location, or default(T) if the location is in an unallocated level</returns>
-		public T this[int arrayIndex]
+		/// <summary>Returns the content of a level</summary>
+		/// <param name="level">Index of the level (0-based)</param>
+		/// <returns>Segment that contains all the elements of that level</returns>
+		internal Memory<T> GetLevelMemory(int level)
 		{
-			get => m_count == 1 && arrayIndex == 0 ? m_root[0] : GetAt(arrayIndex);
-			set => SetAt(arrayIndex, value);
+			Contract.Debug.Requires((uint) level <= ColaStore.MAX_LEVEL);
+			return m_levels[level].AsMemory(0, ColaStore.GetLevelSize(level));
+		}
+
+		internal Span<T[]?> GetLevels()
+		{
+			Span<T[]?> levels = m_levels;
+			return levels.Slice(0, m_allocatedLevels);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private static Span<T> GetLevel(T[]? span, int level)
+		{
+			return span.AsSpan(0, ColaStore.GetLevelSize(level));
+		}
+
+		/// <summary>Gets a reference to the value stored at the specified index.</summary>
+		/// <param name="arrayIndex">Absolute index in the vector-array</param>
+		/// <returns>Reference to the value stored at that location, or <see cref="Unsafe.NullRef{T}"/> if the location is in an unallocated level</returns>
+		public ref T this[int arrayIndex]
+		{
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => ref GetReference(arrayIndex);
 		}
 
 		#endregion
@@ -293,43 +430,44 @@ namespace Doxense.Collections.Generic
 
 		/// <summary>Finds the location of an element in the array</summary>
 		/// <param name="value">Value of the element to search for.</param>
+		/// <param name="level">Receives the level that contains the element if found; otherwise, -1.</param>
 		/// <param name="offset">Receives the offset of the element inside the level if found; otherwise, 0.</param>
-		/// <param name="actualValue">Receives the original instance of the value that was found</param>
-		/// <returns>Level that contains the element if found; otherwise, -1.</returns>
-		public int Find(T value, out int offset, out T actualValue)
-		//REVIEW => TryFind?
+		/// <returns>Reference to the entry, or <c>null</c> if not found.</returns>
+		public ref T Find(T value, out int level, out int offset)
 		{
 			if ((m_count & 1) != 0)
 			{
 				// If someone gets the last inserted key, there is a 50% change that it is in the root
 				// (if not, it will the last one of the first non-empty level)
-				if (m_comparer.Compare(value, m_root[0]) == 0)
+				ref var last = ref m_root[0];
+				if (m_comparer.Compare(value, last) == 0)
 				{
+					level = 0;
 					offset = 0;
-					actualValue = m_root[0];
-					return 0;
+					return ref last;
 				}
 			}
 
-			var levels = m_levels;
-			for (int i = 1; i < levels.Length; i++)
+			for (int i = 1; i < m_allocatedLevels; i++)
 			{
 				if (IsFree(i))
 				{ // this segment is not allocated
 					continue;
 				}
 
-				int p = ColaStore.BinarySearch<T>(levels[i], 0, 1 << i, value, m_comparer);
+				var span = GetLevel(i);
+				int p = span.BinarySearch(value, m_comparer);
 				if (p >= 0)
 				{
+					level = i;
 					offset = p;
-					actualValue = levels[i][p];
-					return i;
+					return ref span[p];
 				}
 			}
+
+			level = ColaStore.NOT_FOUND;
 			offset = 0;
-			actualValue = default!;
-			return NOT_FOUND;
+			return ref Unsafe.NullRef<T>();
 		}
 
 		/// <summary>Search for the smallest element that is larger than a reference element</summary>
@@ -341,7 +479,7 @@ namespace Doxense.Collections.Generic
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int FindNext(T value, bool orEqual, out int offset, out T result)
 		{
-			return ColaStore.FindNext<T>(m_levels, m_count, value, orEqual, m_comparer, out offset, out result);
+			return ColaStore.FindNext(this, m_count, value, orEqual, m_comparer, out offset, out result);
 		}
 		
 		/// <summary>Search for the smallest element that is larger than a reference element</summary>
@@ -354,7 +492,7 @@ namespace Doxense.Collections.Generic
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int FindNext(T value, bool orEqual, IComparer<T>? comparer, out int offset, out T result)
 		{
-			return ColaStore.FindNext<T>(m_levels, m_count, value, orEqual, comparer ?? m_comparer, out offset, out result);
+			return ColaStore.FindNext(this, m_count, value, orEqual, comparer ?? m_comparer, out offset, out result);
 		}
 
 		/// <summary>Search for the largest element that is smaller than a reference element</summary>
@@ -364,9 +502,9 @@ namespace Doxense.Collections.Generic
 		/// <param name="result">Receive the value of the previous element, or default(T) if not found</param>
 		/// <returns>Level of the previous element, or -1 if <param name="result"/> was already the smallest</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int FindPrevious(T value, bool orEqual, out int offset, out T? result)
+		public int FindPrevious(T value, bool orEqual, out int offset, out T result)
 		{
-			return ColaStore.FindPrevious<T>(m_levels, m_count, value, orEqual, m_comparer, out offset, out result);
+			return ColaStore.FindPrevious(this, m_count, value, orEqual, m_comparer, out offset, out result);
 		}
 
 		/// <summary>Search for the largest element that is smaller than a reference element</summary>
@@ -377,116 +515,93 @@ namespace Doxense.Collections.Generic
 		/// <param name="result">Receive the value of the previous element, or default(T) if not found</param>
 		/// <returns>Level of the previous element, or -1 if <param name="result"/> was already the smallest</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int FindPrevious(T value, bool orEqual, IComparer<T>? comparer, out int offset, out T? result)
+		public int FindPrevious(T value, bool orEqual, IComparer<T>? comparer, out int offset, out T result)
 		{
-			return ColaStore.FindPrevious<T>(m_levels, m_count, value, orEqual, comparer ?? m_comparer, out offset, out result);
+			return ColaStore.FindPrevious<T>(this, m_count, value, orEqual, comparer ?? m_comparer, out offset, out result);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public IEnumerable<T> FindBetween(T beginInclusive, T endExclusive, int limit)
 		{
-			return ColaStore.FindBetween<T>(m_levels, m_count, beginInclusive, true, endExclusive, false, limit, m_comparer);
+			return ColaStore.FindBetween<T>(this, m_count, beginInclusive, true, endExclusive, false, limit, m_comparer);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public IEnumerable<T> FindBetween(T begin, bool beginOrEqual, T end, bool endOrEqual, int limit, IComparer<T>? comparer = null)
 		{
-			return ColaStore.FindBetween<T>(m_levels, m_count, begin, beginOrEqual, end, endOrEqual, limit, comparer ?? m_comparer);
+			return ColaStore.FindBetween<T>(this, m_count, begin, beginOrEqual, end, endOrEqual, limit, comparer ?? m_comparer);
 		}
 
 		/// <summary>Return the value stored at a specific location in the array</summary>
 		/// <param name="arrayIndex">Absolute index in the vector-array</param>
 		/// <returns>Value stored at this location, or default(T) if the level is not allocated</returns>
-		public T GetAt(int arrayIndex)
+		public ref T GetReference(int arrayIndex)
 		{
 			Contract.Debug.Requires(arrayIndex >= 0 && arrayIndex <= this.Capacity);
 
-			int level = ColaStore.FromIndex(arrayIndex, out var offset);
+			var (level, offset) = ColaStore.FromIndex(arrayIndex);
 
-			return GetAt(level, offset);
+			return ref GetReference(level, offset);
 		}
 
 		/// <summary>Returns the value at a specific location in the array</summary>
 		/// <param name="level">Index of the level (0-based)</param>
 		/// <param name="offset">Offset in the level (0-based)</param>
-		/// <returns>Returns the value at this location, or default(T) if the level is not allocated</returns>
-		public T GetAt(int level, int offset)
+		/// <returns>Returns a reference to the value at this location, or <c>null</c> if not found</returns>
+		public ref T GetReference(int level, int offset)
 		{
-			Contract.Debug.Requires(level >= 0 && level < m_levels.Length && offset >= 0 && offset < 1 << level);
-			//TODO: check if level is allocated ?
+			Contract.Debug.Requires((uint) level <= ColaStore.MAX_LEVEL && (uint) offset < (1U << level));
 
-			var segment = m_levels[level];
-			Contract.Debug.Assert(segment != null && segment.Length == 1 << level);
-			return segment[offset];
-		}
-
-		/// <summary>Store a value at a specific location in the array</summary>
-		/// <param name="arrayIndex">Absolute index in the vector-array</param>
-		/// <param name="value">Value to store</param>
-		/// <returns>Previous value at that location</returns>
-		public T SetAt(int arrayIndex, T value)
-		{
-			Contract.Debug.Requires(arrayIndex >= 0 && arrayIndex <= this.Capacity);
-
-			int level = ColaStore.FromIndex(arrayIndex, out var offset);
-
-			return SetAt(level, offset, value);
-		}
-
-		/// <summary>Overwrites a specific location in the array with a new value, and returns its previous value</summary>
-		/// <param name="level">Index of the level (0-based)</param>
-		/// <param name="offset">Offset in the level (0-based)</param>
-		/// <param name="value">New value for this location</param>
-		/// <returns>Previous value at this location</returns>
-		public T SetAt(int level, int offset, T value)
-		{
-			Contract.Debug.Requires(level >= 0 && level < m_levels.Length && offset >= 0 && offset < 1 << level);
-			//TODO: check if level is allocated ?
-
-			var segment = m_levels[level];
-			Contract.Debug.Assert(segment != null && segment.Length == 1 << level);
-			T previous = segment[offset];
-			segment[offset] = value;
-			return previous;
+			return ref (IsFree(level) ? ref Unsafe.NullRef<T>() : ref GetLevel(level)[offset]);
 		}
 
 		/// <summary>Clear the array</summary>
 		public void Clear()
 		{
-			var levels = m_levels;
-			for (int i = 0; i < levels.Length; i++)
+			for (int i = 0; i < m_allocatedLevels; i++)
 			{
-				if (i < MAX_SPARE_ORDER)
-				{
-					Array.Clear(levels[i], 0, 1 << i);
+				var level = m_levels[i];
+				if (level is null) continue;
+
+				if (i < ColaStore.INITIAL_LEVELS)
+				{ // we will keep this level
+					if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+					{
+						GetLevel(level, i).Clear();
+					}
 				}
 				else
-				{
-					//note: array will be truncated at the end, we just want to help the GC by cutting the link to the array!
-					levels[i] = default!;
+				{ // we will return this level to the pool
+
+					// only need to clear if T is a ref type, or has ref type members
+					if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+					{
+						GetLevel(level, i).Clear();
+					}
+					m_pool.Return(level);
+					m_levels[i] = null;
 				}
 			}
 			m_count = 0;
-			if (levels.Length > MAX_SPARE_ORDER)
-			{
-				Array.Resize(ref m_levels, MAX_SPARE_ORDER);
-			}
-
+			m_allocatedLevels = ColaStore.INITIAL_LEVELS;
 			CheckInvariants();
 		}
 
 		/// <summary>Add a value to the array</summary>
 		/// <param name="value">Value to add to the array</param>
-		/// <param name="overwriteExistingValue">If <paramref name="value"/> already exists in the array and <paramref name="overwriteExistingValue"/> is true, it will be overwritten with <paramref name="value"/></param>
+		/// <param name="overwriteExistingValue">If <paramref name="value"/> already exists in the array and <paramref name="overwriteExistingValue"/> is true, it will be overwritten with <paramref name="value"/>.</param>
 		/// <returns><c>true</c>if the value was added to the array, or <c>false</c> if it was already there.</returns>
-		public bool SetOrAdd(T value, bool overwriteExistingValue)
+		/// <remarks>
+		/// <para>Setting <paramref name="overwriteExistingValue"/> to <c>true</c> only makes sense for ValueTypes where the caller wants to update the existing entry with an update value, that has the same logical key value!</para>
+		/// </remarks>
+		public bool SetOrAdd(T value, bool overwriteExistingValue = false)
 		{
-			int level = Find(value, out var offset, out _);
-			if (level >= 0)
+			ref var entry = ref Find(value, out int level, out int offset);
+			if (!Unsafe.IsNullRef(ref entry))
 			{
 				if (overwriteExistingValue)
 				{
-					m_levels[level][offset] = value;
+					entry = value;
 				}
 				return false;
 			}
@@ -506,20 +621,13 @@ namespace Doxense.Collections.Generic
 			}
 			else if (IsFree(1))
 			{ // a quarter of the inserts only need to move the root and the value to level 1
-				ColaStore.MergeSimple<T>(m_levels[1], m_root[0], value, m_comparer);
+				ColaStore.MergeSimple(GetLevel(1), m_root[0], value, m_comparer);
 				m_root[0] = default!;
 			}
 			else
 			{ // we need to merge one or more levels
 
-				var spare = GetSpare(0);
-#if DEBUG
-				if (object.ReferenceEquals(spare, m_root) && System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
-#endif
-				Contract.Debug.Assert(spare != null && spare.Length == 1);
-				spare[0] = value;
-				MergeCascade(1, m_root, spare);
-				PutSpare(0, spare);
+				MergeCascade(1, m_root, MemoryMarshal.CreateSpan(ref value, 1));
 				m_root[0] = default!;
 			}
 
@@ -535,19 +643,21 @@ namespace Doxense.Collections.Generic
 
 			if (IsFree(1))
 			{
-				ColaStore.MergeSimple<T>(m_levels[1], first, second, m_comparer);
+				ColaStore.MergeSimple(GetLevel(1), first, second, m_comparer);
 			}
 			else
 			{
 				//Console.WriteLine("InsertItems([2]) Cascade");
-				var spare = GetSpare(1);
+				Span<T> spare = m_scratch;
 				spare[0] = first;
 				spare[1] = second;
-				var segment = m_levels[1];
+				var segment = GetLevel(1);
 				MergeCascade(2, segment, spare);
-				segment[0] = default!;
-				segment[1] = default!;
-				PutSpare(1, spare);
+				if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+				{
+					segment.Clear();
+					spare.Clear();
+				}
 			}
 
 			Interlocked.Add(ref m_count, 2);
@@ -566,7 +676,6 @@ namespace Doxense.Collections.Generic
 			Contract.NotNull(values);
 
 			int count = values.Count;
-			T[] segment, spare;
 
 			if (count < 2)
 			{
@@ -581,7 +690,7 @@ namespace Doxense.Collections.Generic
 			{
 				if (IsFree(1))
 				{
-					segment = m_levels[1];
+					var segment = GetLevel(1);
 					if (ordered)
 					{
 						segment[0] = values[0];
@@ -594,14 +703,16 @@ namespace Doxense.Collections.Generic
 				}
 				else
 				{
-					spare = GetSpare(1);
+					Span<T> spare = m_scratch;
 					spare[0] = values[0];
 					spare[1] = values[1];
-					segment = m_levels[1];
+					var segment = GetLevel(1);
 					MergeCascade(2, segment, spare);
-					segment[0] = default!;
-					segment[1] = default!;
-					PutSpare(1, spare);
+					if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+					{
+						segment.Clear();
+						spare.Clear();
+					}
 				}
 			}
 			else
@@ -614,7 +725,7 @@ namespace Doxense.Collections.Generic
 				int min = ColaStore.LowestBit(count);
 				int max = ColaStore.HighestBit(count);
 
-				if (max >= m_levels.Length)
+				if (max >= m_allocatedLevels)
 				{ // we need to allocate new levels
 					Grow(max);
 				}
@@ -624,23 +735,44 @@ namespace Doxense.Collections.Generic
 				{
 					if (ColaStore.IsFree(i, count)) continue;
 
-					segment = m_levels[i];
+					var segment = GetLevel(i);
 					if (IsFree(i))
 					{ // the target level is free, we can copy and sort in place
-						values.CopyTo(p, segment, 0, segment.Length);
-						if (!ordered) Array.Sort(segment, 0, segment.Length, m_comparer);
+
+						CollectionsMarshal.AsSpan(values).Slice(p).CopyTo(segment);
+						//values.CopyTo(p, segment, 0, segment.Length);
+
+						if (!ordered)
+						{
+							segment.Sort(m_comparer);
+							//Array.Sort(segment, 0, segment.Length, m_comparer);
+						}
+
 						p += segment.Length;
 						Interlocked.Add(ref m_count, segment.Length);
 					}
 					else
 					{ // the target level is used, we will have to do a cascade merge, using a spare
-						spare = GetSpare(i);
-						values.CopyTo(p, spare, 0, spare.Length);
-						if (!ordered) Array.Sort(spare, 0, spare.Length, m_comparer);
+
+						var (array, size) = RentLevel(i);
+						var spare = array.AsSpan(0, size);
+						CollectionsMarshal.AsSpan(values).Slice(p).CopyTo(spare);
+						//values.CopyTo(p, spare, 0, spare.Length);
+
+						if (!ordered)
+						{
+							spare.Sort(m_comparer);
+							//Array.Sort(spare, 0, spare.Length, m_comparer);
+						}
+
 						p += segment.Length;
 						MergeCascade(i + 1, segment, spare);
-						Array.Clear(segment, 0, segment.Length);
-						PutSpare(i, spare);
+						if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+						{
+							segment.Clear();
+						}
+
+						ReturnSpare(i, array);
 						Interlocked.Add(ref m_count, segment.Length);
 					}
 				}
@@ -656,7 +788,7 @@ namespace Doxense.Collections.Generic
 		public T RemoveAt(int arrayIndex)
 		{
 			Contract.Debug.Requires(arrayIndex >= 0 && arrayIndex <= this.Capacity);
-			int level = ColaStore.FromIndex(arrayIndex, out var offset);
+			var (level, offset) = ColaStore.FromIndex(arrayIndex);
 			return RemoveAt(level, offset);
 		}
 
@@ -669,8 +801,7 @@ namespace Doxense.Collections.Generic
 			Contract.Debug.Requires(level >= 0 && offset >= 0 && offset < 1 << level);
 			//TODO: check if level is allocated ?
 
-			var segment = m_levels[level];
-			Contract.Debug.Assert(segment != null && segment.Length == 1 << level);
+			var segment = GetLevel(level);
 			T removed = segment[offset];
 
 			if (level == 0)
@@ -730,26 +861,30 @@ namespace Doxense.Collections.Generic
 				{ // we are the first level, this is easy !
 
 					// move the empty spot at the start
-					if (offset > 0) Array.Copy(segment, 0, segment, 1, offset);
+					if (offset > 0)
+					{
+						segment[..offset].CopyTo(segment[1..]);
+						//Array.Copy(segment, 0, segment, 1, offset);
+					}
 
 					// and spread the rest to all the previous levels
-					ColaStore.SpreadLevel(level, m_levels);
+					ColaStore.SpreadLevel(this, level);
 					//TODO: modify SpreadLevel(..) to take the offset of the value to skip ?
 				}
 				else
 				{ // break that level, and merge its last item with the level that is missing one spot
 
 					// break down this level
-					T tmp = ColaStore.SpreadLevel(firstNonEmptyLevel, m_levels);
+					T tmp = ColaStore.SpreadLevel(this, firstNonEmptyLevel);
 
 					// merge its last item with the empty spot in the modified level
-					ColaStore.MergeInPlace(m_levels[level], offset, tmp, m_comparer);
+					ColaStore.MergeInPlace(GetLevel(level), offset, tmp, m_comparer);
 				}
 			}
 
 			Interlocked.Decrement(ref m_count);
 
-			if (m_levels.Length > MAX_SPARE_ORDER)
+			if (m_allocatedLevels > ColaStore.INITIAL_LEVELS)
 			{ // maybe release the last level if it is empty
 				ShrinkIfRequired();
 			}
@@ -761,8 +896,11 @@ namespace Doxense.Collections.Generic
 
 		public bool RemoveItem(T item)
 		{
-			int level = Find(item, out var offset, out _);
-			if (level < 0) return false;
+			if (Unsafe.IsNullRef(ref Find(item, out int level, out int offset)))
+			{ // not found
+				return false;
+			}
+
 			_ = RemoveAt(level, offset);
 			CheckInvariants();
 			return true;
@@ -774,11 +912,9 @@ namespace Doxense.Collections.Generic
 
 			int count = 0;
 
-			//TODO: optimize this !!!!
 			foreach (var item in items)
 			{
-				int level = Find(item, out var offset, out _);
-				if (level >= 0)
+				if (!Unsafe.IsNullRef(ref Find(item, out int level, out int offset)))
 				{
 					RemoveAt(level, offset);
 					++count;
@@ -797,17 +933,16 @@ namespace Doxense.Collections.Generic
 			if (arrayIndex > array.Length || count > (array.Length - arrayIndex)) throw new ArgumentException("Destination array is too small");
 
 			int p = arrayIndex;
-			count = Math.Min(count, m_count);
-			foreach (var item in ColaStore.IterateOrdered(count, m_levels, m_comparer, false))
+			foreach (var item in ColaStore.IterateOrdered(this, reverse: false))
 			{
 				array[p++] = item;
 			}
-			Contract.Debug.Ensures(p == arrayIndex + count);
+			Contract.Debug.Ensures(p == arrayIndex + Math.Min(count, m_count));
 		}
 
 		/// <summary>Checks if a level is currently not allocated</summary>
 		/// <param name="level">Index of the level (0-based)</param>
-		/// <returns>True is the level is unallocated and does not store any elements; otherwise, false.</returns>
+		/// <returns><see langword="true"/> is the level is unallocated and does not store any elements; otherwise, <see langword="false"/>.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool IsFree(int level)
 		{
@@ -815,75 +950,15 @@ namespace Doxense.Collections.Generic
 			return (m_count & (1 << level)) == 0;
 		}
 
-		/// <summary>Gets a temporary buffer with the length corresponding to the specified level</summary>
-		/// <param name="level">Level of this spare buffer</param>
-		/// <returns>Temporary buffer whose size is 2^level</returns>
-		/// <remarks>The buffer should be returned after use by calling <see cref="PutSpare"/></remarks>
-		public T[] GetSpare(int level)
+		/// <summary>Checks if a level is currently not allocated</summary>
+		/// <param name="level">Index of the level (0-based)</param>
+		/// <param name="count">Current number of items in the store</param>
+		/// <returns><see langword="true"/> is the level is unallocated and does not store any elements; otherwise, <see langword="false"/>.</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private static bool IsFree(int level, int count)
 		{
-			Contract.Debug.Requires(level >= 0 && m_spares != null);
-
-			if (level < m_spares.Length)
-			{ // this level is kept in the spare list
-
-#if ENFORCE_INVARIANTS
-				Contract.Debug.Assert(!m_spareUsed[level], "this spare is already in use!");
-#endif
-
-				var t = m_spares[level];
-				if (t == null)
-				{ // allocate a new one
-					t = new T[1 << level];
-					m_spares[level] = t;
-				}
-#if ENFORCE_INVARIANTS
-				m_spareUsed[level] = true;
-#endif
-				return t;
-			}
-			else
-			{ // this level is always allocated
-				return new T[1 << level];
-			}
-		}
-
-		/// <summary>Return a temporary buffer after use</summary>
-		/// <param name="level">Level of the temporary buffer</param>
-		/// <param name="spare"></param>
-		/// <returns>True if the buffer has been cleared and returned to the spare list, false if it was discarded</returns>
-		/// <remarks>Kept buffers are cleared to prevent values from being kept alive and not garbage collected.</remarks>
-		public bool PutSpare(int level, T?[] spare)
-		{
-			Contract.Debug.Requires(level >= 0 && spare != null);
-
-#if ENFORCE_INVARIANTS
-			// make sure that we do not mix levels and spares
-			for (int i = 0; i < m_levels.Length; i++)
-			{
-				if (object.ReferenceEquals(m_levels[i], spare)) Debugger.Break();
-			}
-#endif
-
-			// only clear spares that are kept alive
-			if (level < m_spares.Length)
-			{
-#if ENFORCE_INVARIANTS
-				Contract.Debug.Assert(m_spareUsed[level], "this spare wasn't used");
-#endif
-
-				// clear it in case it holds onto dead values that could be garbage collected
-				spare[0] = default!;
-				if (level > 0)
-				{
-					spare[1] = default!;
-					if (level > 1) Array.Clear(spare, 2, spare.Length - 2);
-				}
-#if ENFORCE_INVARIANTS
-				m_spareUsed[level] = false;
-#endif
-				return true;
-			}
-			return false;
+			Contract.Debug.Requires(level >= 0);
+			return (count & (1 << level)) == 0;
 		}
 
 		/// <summary>Find the smallest element in the store</summary>
@@ -894,18 +969,22 @@ namespace Doxense.Collections.Generic
 			{
 				case 0: return default!;
 				case 1: return m_root[0];
-				case 2: return m_levels[1][0];
+				case 2: return GetLevel(1)[0];
 				default:
 				{
 
 					int level = ColaStore.LowestBit(m_count);
 					int end = ColaStore.HighestBit(m_count);
-					T min = m_levels[level][0];
+					T min = GetLevel(level)[0];
 					while (level <= end)
 					{
-						if (!IsFree(level) && m_comparer.Compare(min, m_levels[level][0]) > 0)
+						if (!IsFree(level))
 						{
-							min = m_levels[level][0];
+							var candidate = GetLevel(level)[0];
+							if (m_comparer.Compare(min, candidate) > 0)
+							{
+								min = candidate;
+							}
 						}
 						++level;
 					}
@@ -922,17 +1001,21 @@ namespace Doxense.Collections.Generic
 			{
 				case 0: return default!;
 				case 1: return m_root[0];
-				case 2: return m_levels[1][1];
+				case 2: return GetLevel(1)[1];
 				default:
 				{
 					int level = ColaStore.LowestBit(m_count);
 					int end = ColaStore.HighestBit(m_count);
-					T max = m_levels[level][0];
+					T max = GetLevel(level)[^1];
 					while (level <= end)
 					{
-						if (!IsFree(level) && m_comparer.Compare(max, m_levels[level][0]) < 0)
+						if (!IsFree(level))
 						{
-							max = m_levels[level][0];
+							var candidate = GetLevel(level)[^1];
+							if (m_comparer.Compare(max, candidate) < 0)
+							{
+								max = candidate;
+							}
 						}
 						++level;
 					}
@@ -964,8 +1047,9 @@ namespace Doxense.Collections.Generic
 				}
 				case 2:
 				{
-					min = m_levels[1][0];
-					max = m_levels[1][1];
+					var segment = GetLevel(1);
+					min = segment[0];
+					max = segment[1];
 					return true;
 				}
 				default:
@@ -973,13 +1057,13 @@ namespace Doxense.Collections.Generic
 
 					int level = ColaStore.LowestBit(m_count);
 					int end = ColaStore.HighestBit(m_count);
-					var segment = m_levels[level];
+					var segment = GetLevel(level);
 					min = segment[0];
 					max = segment[^1];
 					while (level <= end)
 					{
 						if (IsFree(level)) continue;
-						segment = m_levels[level];
+						segment = GetLevel(level);
 						if (m_comparer.Compare(min, segment[0]) > 0) min = segment[0];
 						if (m_comparer.Compare(max, segment[^1]) < 0) min = segment[^1];
 						++level;
@@ -999,10 +1083,13 @@ namespace Doxense.Collections.Generic
 		/// <param name="minimumRequired">Number of items that will be inserted in the store</param>
 		public void EnsureCapacity(int minimumRequired)
 		{
-			int level = ColaStore.HighestBit(minimumRequired);
-			if ((1 << level) < minimumRequired) ++level;
+			int level = ColaStore.GetLevelCount(minimumRequired);
+			if ((1 << level) < minimumRequired)
+			{
+				++level;
+			}
 
-			if (level >= m_levels.Length)
+			if (level >= m_allocatedLevels)
 			{
 				Grow(level);
 			}
@@ -1010,47 +1097,58 @@ namespace Doxense.Collections.Generic
 
 		#endregion
 
-		private void MergeCascade(int level, T[] left, T[] right)
+		private void MergeCascade(int level, Span<T> left, Span<T> right)
 		{
 			Contract.Debug.Requires(level > 0, "level");
-			Contract.Debug.Requires(left != null && left.Length == (1 << (level - 1)), "left");
-			Contract.Debug.Requires(right != null && right.Length == (1 << (level - 1)), "right");
+			Contract.Debug.Requires(left.Length == (1 << (level - 1)), "left");
+			Contract.Debug.Requires(right.Length == (1 << (level - 1)), "right");
 
 			if (IsFree(level))
 			{ // target level is empty
 
-				if (level >= m_levels.Length) Grow(level);
-				Contract.Debug.Assert(level < m_levels.Length);
+				if (level >= m_allocatedLevels)
+				{
+					Grow(level);
+				}
+				Contract.Debug.Assert(level < m_allocatedLevels);
 
-				ColaStore.MergeSort(m_levels[level], left, right, m_comparer);
+				ColaStore.MergeSort(GetLevel(level), left, right, m_comparer);
 			}
 			else if (IsFree(level + 1))
 			{ // the next level is empty
 
-				if (level + 1 >= m_levels.Length) Grow(level + 1);
-				Contract.Debug.Assert(level + 1 < m_levels.Length);
+				if (level + 1 >= m_allocatedLevels) Grow(level + 1);
+				Contract.Debug.Assert(level + 1 < m_allocatedLevels);
 
-				var spare = GetSpare(level);
+				var (array, size) = RentSpare(level);
+				var spare = array.AsSpan(0, size);
 				ColaStore.MergeSort(spare, left, right, m_comparer);
-				var next = m_levels[level];
-				ColaStore.MergeSort(m_levels[level + 1], next, spare, m_comparer);
-				Array.Clear(next, 0, next.Length);
-				PutSpare(level, spare);
+				var next = GetLevel(level);
+				ColaStore.MergeSort(GetLevel(level + 1), next, spare, m_comparer);
+				if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+				{
+					next.Clear();
+				}
+				ReturnSpare(level, array);
 			}
 			else
 			{ // both are full, need to do a cascade merge
 
-				Contract.Debug.Assert(level < m_levels.Length);
+				Contract.Debug.Assert(level < m_allocatedLevels);
 
 				// merge N and N +1
-				var spare = GetSpare(level);
+				var (array, size) = RentSpare(level);
+				var spare = array.AsSpan(0, size);
 				ColaStore.MergeSort(spare, left, right, m_comparer);
 
 				// and cascade to N + 2 ...
-				var next = m_levels[level];
+				var next = GetLevel(level);
 				MergeCascade(level + 1, next, spare);
-				Array.Clear(next, 0, next.Length);
-				PutSpare(level, spare);
+				if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+				{
+					next.Clear();
+				}
+				ReturnSpare(level, array);
 			}
 		}
 
@@ -1058,28 +1156,25 @@ namespace Doxense.Collections.Generic
 		/// <param name="level">Minimum level required</param>
 		private void Grow(int level)
 		{
-			Contract.Debug.Requires(level >= 0);
+			Contract.Debug.Requires((uint) level <= ColaStore.MAX_LEVEL);
 
 			// note: we want m_segments[level] to not be empty, which means there must be at least (level + 1) entries in the level array
-			int current = m_levels.Length;
-			int required = level + 1;
+			int current = m_allocatedLevels;
+			int required = checked(level + 1);
 			Contract.Debug.Assert(current < required);
 
-			var tmpSegments = m_levels;
-			Array.Resize(ref tmpSegments, required);
 			for (int i = current; i < required; i++)
 			{
-				tmpSegments[i] = new T[1 << i];
+				(m_levels[i], _) = RentLevel(i);
 			}
-			m_levels = tmpSegments;
 
-			Contract.Debug.Ensures(m_levels != null && m_levels.Length > level);
+			m_allocatedLevels = required;
 		}
 
 		private void ShrinkIfRequired()
 		{
-			int n = m_levels.Length - 1;
-			if (n <= MAX_SPARE_ORDER) return;
+			int n = m_allocatedLevels - 1;
+			if (n <= ColaStore.INITIAL_LEVELS) return;
 			if (IsFree(n))
 			{ // less than 50% full
 
@@ -1089,10 +1184,7 @@ namespace Doxense.Collections.Generic
 				if (IsFree(n - 1))
 				{ // less than 25% full
 
-					// remove the last level
-					var tmpSegments = new T[n][];
-					Array.Copy(m_levels, tmpSegments, n);
-					m_levels = tmpSegments;
+					ReturnLevel(n);
 				}
 			}
 		}
@@ -1100,35 +1192,38 @@ namespace Doxense.Collections.Generic
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal IEnumerable<T> IterateOrdered(bool reverse = false)
 		{
-			return ColaStore.IterateOrdered(m_count, m_levels, m_comparer, reverse);
+			return ColaStore.IterateOrdered(this, reverse);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal IEnumerable<T> IterateUnordered()
 		{
-			return ColaStore.IterateUnordered(m_count, m_levels);
+			return ColaStore.IterateUnordered(this);
 		}
 
 		//TODO: remove or set to internal !
 		[Conditional("DEBUG")]
-		public void Debug_Dump(Func<T, string>? dump = null)
+		public void Debug_Dump(TextWriter output, Func<T, string>? dump = null)
 		{
 #if DEBUG
-			System.Diagnostics.Trace.WriteLine("> " + m_levels.Length + " levels:");
-			for(int i = 0; i < m_levels.Length; i++)
+			var numLevels = this.MaxLevel + 1;
+			output.WriteLine($"> Levels: {numLevels} used, {m_allocatedLevels} allocated");
+			for(int i = 0; i < numLevels; i++)
 			{
-				string s = dump == null ? string.Join(", ", m_levels[i]) : string.Join(", ", m_levels[i].Select(dump));
-				System.Diagnostics.Trace.WriteLine(string.Format(CultureInfo.InvariantCulture, "  - {0,2}|{1}: {2}", i, IsFree(i) ? "_" : "#", s));
+				output.Write($"  - {i,2}|{(IsFree(i) ? "_" : "#")}: ");
+				if (!IsFree(i))
+				{
+					bool first = true;
+					foreach (var item in GetLevel(i))
+					{
+						if (first) first = false;
+						else output.Write(", ");
+						output.Write(dump != null ? dump(item) : item?.ToString());
+					}
+				}
+				output.WriteLine();
 			}
-#if false
-			System.Diagnostics.Trace.WriteLine("> " + m_spares.Length + " spares:");
-			for (int i = 0; i < m_spares.Length; i++)
-			{
-				var spare = m_spares[i];
-				System.Diagnostics.Trace.WriteLine(string.Format(CultureInfo.InvariantCulture, "> {0,2}: {1}", i, spare == null ? "<unallocated>" : String.Join(", ", spare)));
-			}
-#endif
-			System.Diagnostics.Trace.WriteLine("> " + m_count + " items");
+			output.WriteLine($"> {m_count:N0} items");
 #endif
 		}
 
@@ -1139,7 +1234,7 @@ namespace Doxense.Collections.Generic
 			private const int DIRECTION_SEEK = 0;
 			private const int DIRECTION_NEXT = +1;
 
-			private readonly T[][] m_levels;
+			private readonly ColaStore<T> m_store;
 			private readonly int m_count;
 			private readonly IComparer<T> m_comparer;
 			private readonly int[] m_cursors;
@@ -1154,7 +1249,7 @@ namespace Doxense.Collections.Generic
 			internal Iterator(ColaStore<T> store)
 			{
 				Contract.Debug.Requires(store != null);
-				m_levels = store.m_levels;
+				m_store = store;
 				m_count = store.m_count;
 				m_comparer = store.m_comparer;
 
@@ -1206,7 +1301,7 @@ namespace Doxense.Collections.Generic
 				{
 					cursors[i] = 1 << i;
 				}
-				m_currentLevel = NOT_FOUND;
+				m_currentLevel = ColaStore.NOT_FOUND;
 				m_current = default(T);
 				m_direction = DIRECTION_SEEK;
 			}
@@ -1215,10 +1310,9 @@ namespace Doxense.Collections.Generic
 			public bool SeekFirst()
 			{
 				var min = default(T);
-				int minLevel = NOT_FOUND;
+				int minLevel = ColaStore.NOT_FOUND;
 
 				var cursors = m_cursors;
-				var levels = m_levels;
 				var cmp = m_comparer;
 				var count = m_count;
 
@@ -1227,8 +1321,7 @@ namespace Doxense.Collections.Generic
 					if (ColaStore.IsFree(i, count)) continue;
 
 					cursors[i] = 0;
-					var segment = levels[i];
-					Contract.Debug.Assert(segment != null && segment.Length == 1 << i);
+					var segment = m_store.GetLevel(i);
 					if (minLevel < 0 || cmp.Compare(segment[0], min) < 0)
 					{
 						min = segment[0];
@@ -1249,15 +1342,14 @@ namespace Doxense.Collections.Generic
 			public bool SeekLast()
 			{
 				var max = default(T);
-				int maxLevel = NOT_FOUND;
+				int maxLevel = ColaStore.NOT_FOUND;
 
 				var cursors = m_cursors;
 
 				for (int i = m_min; i < cursors.Length; i++)
 				{
 					if (ColaStore.IsFree(i, m_count)) continue;
-					var segment = m_levels[i];
-					Contract.Debug.Assert(segment != null && segment.Length == 1 << i);
+					var segment = m_store.GetLevel(i);
 					int pos = segment.Length - 1;
 					cursors[i] = pos;
 					if (maxLevel < 0 || m_comparer.Compare(segment[pos], max) > 0)
@@ -1289,7 +1381,7 @@ namespace Doxense.Collections.Generic
 				// - backward: from the current location, find the largest key that is smaller than the current cursor position
 
 				var max = default(T);
-				int maxLevel = NOT_FOUND;
+				int maxLevel = ColaStore.NOT_FOUND;
 				bool exact = false;
 
 				var cursors = m_cursors;
@@ -1299,9 +1391,9 @@ namespace Doxense.Collections.Generic
 				{
 					if (ColaStore.IsFree(i, count)) continue;
 
-					var segment = m_levels[i];
+					var segment = m_store.GetLevel(i);
 
-					int pos = ColaStore.BinarySearch(segment, 0, segment.Length, item, m_comparer);
+					int pos = segment.BinarySearch(item, m_comparer);
 
 					if (pos >= 0)
 					{ // we found a match in this segment
@@ -1360,12 +1452,11 @@ namespace Doxense.Collections.Generic
 				if (m_currentLevel < 0) return false;
 
 				var cursors = m_cursors;
-				var levels = m_levels;
 				var count = m_count;
 
 				var prev = m_current;
 				var min = default(T);
-				int minLevel = NOT_FOUND;
+				int minLevel = ColaStore.NOT_FOUND;
 				int pos;
 
 				if (m_direction >= DIRECTION_SEEK)
@@ -1378,7 +1469,7 @@ namespace Doxense.Collections.Generic
 					// we know that the current is the largest value of all the current cursors. Since we want even larger than that, we have to increment ALL the cursors
 					for (int i = m_min; i < cursors.Length; i++)
 					{
-						if (!ColaStore.IsFree(i, count) && ((pos = cursors[i]) < levels[i].Length))
+						if (!ColaStore.IsFree(i, count) && ((pos = cursors[i]) < ColaStore.GetLevelSize(i)))
 						{
 							cursors[i] = pos + 1;
 						}
@@ -1394,7 +1485,7 @@ namespace Doxense.Collections.Generic
 					pos = cursors[i];
 					if (pos < 0) continue; //??
 
-					var segment = levels[i];
+					var segment = m_store.GetLevel(i);
 
 					var x = default(T);
 					while(pos < segment.Length && cmp.Compare((x = segment[pos]), prev) < 0)
@@ -1423,13 +1514,12 @@ namespace Doxense.Collections.Generic
 				if (m_currentLevel < 0) return false;
 
 				var cursors = m_cursors;
-				var levels = m_levels;
 				var count = m_count;
 
 				var prev = m_current;
 				var max = default(T);
 				int pos;
-				int maxLevel = NOT_FOUND;
+				int maxLevel = ColaStore.NOT_FOUND;
 
 				if (m_direction <= DIRECTION_SEEK)
 				{ // we know that the current position CANNOT be the next value, so decrement that cursor
@@ -1455,7 +1545,7 @@ namespace Doxense.Collections.Generic
 					if (ColaStore.IsFree(i, count)) continue;
 
 					pos = cursors[i];
-					var segment = levels[i];
+					var segment = m_store.GetLevel(i);
 					if (pos >= segment.Length) continue; //??
 
 					var x = default(T);

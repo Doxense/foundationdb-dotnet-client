@@ -24,6 +24,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+using System.Buffers;
+
 namespace Doxense.Collections.Generic
 {
 	using System.Diagnostics;
@@ -36,7 +38,7 @@ namespace Doxense.Collections.Generic
 	/// <typeparam name="TValue">Type of values stored in the dictionary.</typeparam>
 	[PublicAPI]
 	[DebuggerDisplay("Count={m_items.Count}"), DebuggerTypeProxy(typeof(ColaOrderedDictionary<,>.DebugView))]
-	public class ColaOrderedDictionary<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>
+	public class ColaOrderedDictionary<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>, IDisposable
 	{
 
 		/// <summary>Debug view helper</summary>
@@ -90,19 +92,19 @@ namespace Doxense.Collections.Generic
 
 		#region Constructors...
 
-		public ColaOrderedDictionary(IComparer<TKey>? keyComparer = null, IEqualityComparer<TValue>? valueComparer = null)
-			: this(0, keyComparer, valueComparer)
+		public ColaOrderedDictionary(IComparer<TKey>? keyComparer = null, IEqualityComparer<TValue>? valueComparer = null, ArrayPool<KeyValuePair<TKey, TValue>>? pool = null)
+			: this(0, keyComparer, valueComparer, pool)
 		{ }
 
-		public ColaOrderedDictionary(int capacity)
-			: this(capacity, null, null)
+		public ColaOrderedDictionary(int capacity, ArrayPool<KeyValuePair<TKey, TValue>>? pool = null)
+			: this(capacity, null, null, pool)
 		{ }
 
-		public ColaOrderedDictionary(int capacity, IComparer<TKey>? keyComparer, IEqualityComparer<TValue>? valueComparer)
+		public ColaOrderedDictionary(int capacity, IComparer<TKey>? keyComparer, IEqualityComparer<TValue>? valueComparer, ArrayPool<KeyValuePair<TKey, TValue>>? pool = null)
 		{
 			m_keyComparer = keyComparer ?? Comparer<TKey>.Default;
 			m_valueComparer = valueComparer ?? EqualityComparer<TValue>.Default;
-			m_items = new ColaStore<KeyValuePair<TKey, TValue>>(capacity, new KeyOnlyComparer(m_keyComparer));
+			m_items = new(capacity, new KeyOnlyComparer(m_keyComparer), pool);
 		}
 
 		public ColaOrderedDictionary(ColaOrderedDictionary<TKey, TValue> copy)
@@ -130,6 +132,12 @@ namespace Doxense.Collections.Generic
 
 		#endregion
 
+		public void Dispose()
+		{
+			m_version = int.MinValue;
+			m_items.Dispose();
+		}
+
 		public void Clear()
 		{
 			Interlocked.Increment(ref m_version);
@@ -151,7 +159,7 @@ namespace Doxense.Collections.Generic
 			Contract.NotNull(key);
 
 			Interlocked.Increment(ref m_version);
-			if (!m_items.SetOrAdd(new KeyValuePair<TKey, TValue>(key, value), overwriteExistingValue: false))
+			if (!m_items.SetOrAdd(new(key, value), overwriteExistingValue: false))
 			{
 				Interlocked.Decrement(ref m_version);
 				throw ErrorKeyAlreadyExists();
@@ -165,7 +173,7 @@ namespace Doxense.Collections.Generic
 		{
 			Contract.NotNull(key);
 			Interlocked.Increment(ref m_version);
-			m_items.SetOrAdd(new KeyValuePair<TKey, TValue>(key, value), overwriteExistingValue: true);
+			m_items.SetOrAdd(new(key, value), overwriteExistingValue: true);
 		}
 
 		/// <summary>Try to add an entry with the specified key and value to the sorted dictionary, or update its value if it already exists.</summary>
@@ -176,17 +184,17 @@ namespace Doxense.Collections.Generic
 		{
 			Contract.NotNull(key);
 
-			int level = m_items.Find(new KeyValuePair<TKey, TValue>(key, default!), out int offset, out var entry);
+			ref var entry = ref m_items.Find(new(key, default!), out int level, out int offset);
 			if (level >= 0)
 			{ // already exists
 				// keep the old key, and update the value
 				Interlocked.Increment(ref m_version);
-				m_items.SetAt(level, offset, new KeyValuePair<TKey, TValue>(entry.Key, value));
+				m_items.GetReference(level, offset) = new(entry.Key, value);
 				return false;
 			}
 
 			Interlocked.Increment(ref m_version);
-			m_items.Insert(new KeyValuePair<TKey, TValue>(key, value));
+			m_items.Insert(new(key, value));
 			return true;
 		}
 
@@ -199,15 +207,15 @@ namespace Doxense.Collections.Generic
 		{
 			Contract.NotNull(key);
 
-			int level = m_items.Find(new KeyValuePair<TKey, TValue>(key, default!), out _, out var entry);
-			if (level >= 0)
+			ref var entry = ref m_items.Find(new(key, default!), out _, out _);
+			if (!Unsafe.IsNullRef(ref entry))
 			{ // already exists
 				actualValue = entry.Value;
 				return false;
 			}
 
 			Interlocked.Increment(ref m_version);
-			m_items.Insert(new KeyValuePair<TKey, TValue>(key, value));
+			m_items.Insert(new(key, value));
 			actualValue = value;
 			return true;
 		}
@@ -216,7 +224,7 @@ namespace Doxense.Collections.Generic
 		{
 			Contract.NotNull(key);
 
-			return m_items.Find(new KeyValuePair<TKey, TValue>(key, default!), out _, out _) >= 0;
+			return !Unsafe.IsNullRef(ref m_items.Find(new(key, default!), out _, out _));
 		}
 
 		public bool ContainsValue(TValue value)
@@ -236,8 +244,9 @@ namespace Doxense.Collections.Generic
 		{
 			Contract.NotNull(equalKey);
 
-			int level = m_items.Find(new KeyValuePair<TKey, TValue>(equalKey, default!), out _, out var entry);
-			if (level < 0)
+			ref var entry = ref m_items.Find(new(equalKey, default!), out _, out _);
+
+			if (Unsafe.IsNullRef(ref entry))
 			{
 				actualKey = equalKey;
 				return false;
@@ -254,8 +263,8 @@ namespace Doxense.Collections.Generic
 		{
 			Contract.NotNull(key);
 
-			int level = m_items.Find(new KeyValuePair<TKey, TValue>(key, default!), out _, out var entry);
-			if (level < 0)
+			ref var entry = ref m_items.Find(new(key, default!), out _, out _);
+			if (Unsafe.IsNullRef(ref entry))
 			{
 				value = default!;
 				return false;
@@ -269,8 +278,8 @@ namespace Doxense.Collections.Generic
 		{
 			Contract.NotNull(key);
 
-			int level = m_items.Find(new KeyValuePair<TKey, TValue>(key, default!), out _, out var entry);
-			if (level < 0)
+			ref var entry = ref m_items.Find(new(key, default!), out _, out _);
+			if (Unsafe.IsNullRef(ref entry))
 			{
 				throw ErrorKeyNotFound();
 			}
@@ -285,8 +294,15 @@ namespace Doxense.Collections.Generic
 		{
 			Contract.NotNull(key);
 
-			int level = m_items.Find(new KeyValuePair<TKey, TValue>(key, default!), out _, out entry);
-			return level >= 0;
+			ref var slot = ref m_items.Find(new(key, default!), out _, out _);
+			if (Unsafe.IsNullRef(ref slot))
+			{
+				entry = default;
+				return false;
+			}
+
+			entry = slot;
+			return true;
 		}
 
 		/// <summary>Removes the entry with the specified key from the dictionary.</summary>
@@ -297,9 +313,8 @@ namespace Doxense.Collections.Generic
 		{
 			Contract.NotNull(key);
 
-			int level = m_items.Find(new KeyValuePair<TKey, TValue>(key, default!), out int offset, out _);
-
-			if (level >= 0)
+			ref var entry = ref m_items.Find(new(key, default!), out int level, out int offset);
+			if (!Unsafe.IsNullRef(ref entry))
 			{
 				Interlocked.Increment(ref m_version);
 				m_items.RemoveAt(level, offset);
@@ -356,7 +371,7 @@ namespace Doxense.Collections.Generic
 
 		public bool Lookup(TKey key, bool orEqual, out KeyValuePair<TKey, TValue> item)
 		{
-			return -1 != m_items.FindNext(new KeyValuePair<TKey, TValue>(key, default!), orEqual, out _, out item);
+			return -1 != m_items.FindNext(new(key, default!), orEqual, out _, out item);
 		}
 
 		/// <summary>Enumerate all the keys in the dictionary that are in the specified range</summary>
@@ -368,29 +383,29 @@ namespace Doxense.Collections.Generic
 		/// <remarks>There is no guarantee in the actual order of the keys returned. It is also not allowed to remove keys while iterating over the sequence.</remarks>
 		public IEnumerable<KeyValuePair<TKey, TValue>> Scan(TKey begin, bool beginOrEqual, TKey end, bool endOrEqual)
 		{
-			// return the unordered list of all the keys that are between the begin/end pair.
+			// return the unordered list of all the keys that are between the 'begin' and 'end' pair.
 			// each bound is included in the list if its corresponding 'orEqual' is set to true
 
 			if (m_items.Count > 0)
 			{
-				var iter = m_items.GetIterator();
-				if (!iter.Seek(new KeyValuePair<TKey, TValue>(begin, default!), beginOrEqual))
+				var it = m_items.GetIterator();
+				if (!it.Seek(new(begin, default!), beginOrEqual))
 				{ // starts before
-					iter.SeekFirst();
+					it.SeekFirst();
 				}
 
 				var cmp = m_keyComparer;
 				do
 				{
-					int p = cmp.Compare(iter.Current.Key, end);
+					int p = cmp.Compare(it.Current.Key, end);
 					if (endOrEqual ? (p > 0) : (p >= 0))
 					{
 						yield break;
 					}
 
-					yield return iter.Current;
+					yield return it.Current;
 				}
-				while (iter.Next());
+				while (it.Next());
 			}
 		}
 
@@ -403,29 +418,29 @@ namespace Doxense.Collections.Generic
 		/// <remarks>There is no guarantee in the actual order of the keys returned. It is also not allowed to remove keys while iterating over the sequence.</remarks>
 		public IEnumerable<KeyValuePair<TKey, TValue>> ScanReverse(TKey begin, bool beginOrEqual, TKey end, bool endOrEqual)
 		{
-			// return the unordered list of all the keys that are between the begin/end pair.
+			// return the unordered list of all the keys that are between the 'begin' and 'end' pair.
 			// each bound is included in the list if its corresponding 'orEqual' is set to true
 
 			if (m_items.Count > 0)
 			{
-				var iter = m_items.GetIterator();
-				if (!iter.Seek(new KeyValuePair<TKey, TValue>(end, default!), endOrEqual))
+				var it = m_items.GetIterator();
+				if (!it.Seek(new(end, default!), endOrEqual))
 				{ // starts at the end
-					iter.SeekAfterLast();
+					it.SeekAfterLast();
 				}
 
 				var cmp = m_keyComparer;
 				do
 				{
-					int p = cmp.Compare(iter.Current.Key, begin);
+					int p = cmp.Compare(it.Current.Key, begin);
 					if (beginOrEqual ? (p < 0) : (p <= 0))
 					{
 						yield break;
 					}
 
-					yield return iter.Current;
+					yield return it.Current;
 				}
-				while (iter.Previous());
+				while (it.Previous());
 			}
 		}
 
@@ -454,24 +469,17 @@ namespace Doxense.Collections.Generic
 		}
 
 		[MethodImpl(MethodImplOptions.NoInlining)]
-		private static Exception ErrorKeyNotFound()
-		{
-			return new KeyNotFoundException();
-		}
+		private static Exception ErrorKeyNotFound() => new KeyNotFoundException();
 
 		[MethodImpl(MethodImplOptions.NoInlining)]
-		private static Exception ErrorKeyAlreadyExists()
-		{
-			return new InvalidOperationException("An entry with the same key but a different value already exists.");
-		}
+		private static Exception ErrorKeyAlreadyExists() => new InvalidOperationException("An entry with the same key but a different value already exists.");
 
-		//TODO: remove or set to internal !
 		[Conditional("DEBUG")]
-		public void Debug_Dump()
+		public void Debug_Dump(TextWriter output)
 		{
 #if DEBUG
-			System.Diagnostics.Trace.WriteLine("Dumping ColaOrderedDictionary<" + typeof(TKey).Name + ", " + typeof(TValue).Name + "> filled at " + (100.0d * this.Count / this.Capacity).ToString("N2") + "%");
-			m_items.Debug_Dump();
+			output.WriteLine($"Dumping ColaOrderedDictionary<{typeof(TKey).Name}, {typeof(TValue).Name}> filled at {(100.0d * this.Count / this.Capacity):N2}%");
+			m_items.Debug_Dump(output);
 #endif
 		}
 

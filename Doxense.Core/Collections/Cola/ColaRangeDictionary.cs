@@ -29,6 +29,7 @@
 
 namespace Doxense.Collections.Generic
 {
+	using System.Buffers;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
@@ -40,26 +41,31 @@ namespace Doxense.Collections.Generic
 	/// <typeparam name="TValue">Type of the values associated with each range</typeparam>
 	[PublicAPI]
 	[DebuggerDisplay("Count={m_items.Count}, Bounds={m_bounds.Begin}..{m_bounds.End}")]
-	public sealed class ColaRangeDictionary<TKey, TValue> : IEnumerable<ColaRangeDictionary<TKey, TValue>.Entry>
+	public sealed class ColaRangeDictionary<TKey, TValue> : IEnumerable<ColaRangeDictionary<TKey, TValue>.Entry>, IDisposable
 	{
 		// This class is equivalent to ColaRangeSet<TKey>, except that we have an extra value stored in each range.
 		// That means that we only merge ranges with the same value, and split/truncate/overwrite ranges with different values
 
 		// INVARIANTS
 		// * If there is at least on range, the set is not empty (ie: Begin <= End)
-		// * The Begin key is INCLUDED in range, but the End key is EXCLUDED from the range (ie: Begin <= K < End)
-		// * The End key of a range MUST be GREATER THAN or EQUAL TO the Begin key of a range (ie: ranges are not backwards)
-		// * The End key of a range CANNOT be GREATER THAN the Begin key of the next range (ie: ranges do not overlap)
-		// * If the End key of a range is EQUAL TO the Begin key of the next range, then they MUST have a DIFFERENT value
+		// * The 'Begin' key is INCLUDED in range, but the 'End' key is EXCLUDED from the range (ie: Begin <= K < End)
+		// * The 'End' key of a range MUST be GREATER THAN or EQUAL TO the 'Begin' key of a range (ie: ranges are not backwards)
+		// * The 'End' key of a range CANNOT be GREATER THAN the 'Begin' key of the next range (ie: ranges do not overlap)
+		// * If the 'End' key of a range is EQUAL TO the 'Begin' key of the next range, then they MUST have a DIFFERENT value
 
 		/// <summary>Mutable range</summary>
 		[DebuggerDisplay("{ToString(),nq}")]
 		public sealed record Entry
 		{
+			//REVIEW: consider making this a struct, if we refactor the rest of the code to use "ref Entry" ?
+
+			/// <summary>Begin key of this range (inclusive)</summary>
 			public TKey? Begin { get; internal set; }
 
+			/// <summary>End key of this range (exclusive)</summary>
 			public TKey? End { get; internal set; }
 
+			/// <summary>Value for this range</summary>
 			public TValue? Value { get; set; }
 
 			public Entry(TKey? begin, TKey? end, TValue? value)
@@ -134,25 +140,25 @@ namespace Doxense.Collections.Generic
 		private readonly IEqualityComparer<TValue> m_valueComparer;
 		private readonly Entry m_bounds;
 
-		public ColaRangeDictionary()
-			: this(0, null)
+		public ColaRangeDictionary(ArrayPool<Entry>? pool = null)
+			: this(0, null, null, pool)
 		{ }
 
-		public ColaRangeDictionary(int capacity)
-			: this(capacity, null)
+		public ColaRangeDictionary(int capacity, ArrayPool<Entry>? pool = null)
+			: this(capacity, null, null, pool)
 		{ }
 
-		public ColaRangeDictionary(IComparer<TKey>? keyComparer, IEqualityComparer<TValue>? valueComparer = null)
-			: this(0, keyComparer, valueComparer)
+		public ColaRangeDictionary(IComparer<TKey>? keyComparer, IEqualityComparer<TValue>? valueComparer = null, ArrayPool<Entry>? pool = null)
+			: this(0, keyComparer, valueComparer, pool)
 		{ }
 
-		public ColaRangeDictionary(int capacity, IComparer<TKey>? keyComparer, IEqualityComparer<TValue>? valueComparer = null)
+		public ColaRangeDictionary(int capacity, IComparer<TKey>? keyComparer, IEqualityComparer<TValue>? valueComparer = null, ArrayPool<Entry>? pool = null)
 		{
 			m_keyComparer = keyComparer ?? Comparer<TKey>.Default;
 			m_valueComparer = valueComparer ?? EqualityComparer<TValue>.Default;
 			if (capacity == 0) capacity = 15;
-			m_items = new ColaStore<Entry>(capacity, new BeginKeyComparer(m_keyComparer));
-			m_bounds = new Entry(default(TKey), default(TKey), default(TValue));
+			m_items = new(capacity, new BeginKeyComparer(m_keyComparer), pool);
+			m_bounds = new(default(TKey), default(TKey), default(TValue));
 		}
 
 		public ColaRangeDictionary(ColaRangeDictionary<TKey, TValue> copy)
@@ -160,10 +166,19 @@ namespace Doxense.Collections.Generic
 			m_keyComparer = copy.m_keyComparer;
 			m_valueComparer = copy.m_valueComparer;
 			m_items = copy.m_items.Copy();
-			m_bounds = new Entry(copy.m_bounds.Begin, copy.m_bounds.End, copy.m_bounds.Value);
+			m_bounds = new(copy.m_bounds.Begin, copy.m_bounds.End, copy.m_bounds.Value);
 		}
 
 		public ColaRangeDictionary<TKey, TValue> Copy() => new(this);
+
+		public void Dispose()
+		{
+			m_items.Dispose();
+
+			m_bounds.Value = default;
+			m_bounds.Begin = default;
+			m_bounds.End = default;
+		}
 
 		[Conditional("ENFORCE_INVARIANTS")]
 		private void CheckInvariants()
@@ -270,19 +285,22 @@ namespace Doxense.Collections.Generic
 			CheckInvariants();
 		}
 
-		/// <summary>Removes everything between <paramref name="begin"/> and <paramref name="end"/> then translates everything</summary>
-		/// <param name="begin">begin key</param>
-		/// <param name="end">end key</param>
-		/// <param name="offset">offset to apply</param>
-		/// <param name="applyOffset">func to apply offset to a key</param>
+		/// <summary>Removes everything between <paramref name="beginInclusive"/> and <paramref name="endExclusive"/> then translates everything</summary>
+		/// <param name="beginInclusive">Begin key (inclusive)</param>
+		/// <param name="endExclusive">End key (exclusive)</param>
+		/// <param name="offset">Offset to apply</param>
+		/// <param name="applyOffset">Func to apply offset to a key</param>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public void Remove(TKey begin, TKey end, TKey offset, Func<TKey?, TKey, TKey> applyOffset)
+		public void Remove(TKey beginInclusive, TKey endExclusive, TKey offset, Func<TKey?, TKey, TKey> applyOffset)
 		{
-			if (m_keyComparer.Compare(begin, end) >= 0) throw new InvalidOperationException("End key must be greater than the Begin key.");
+			if (m_keyComparer.Compare(beginInclusive, endExclusive) >= 0)
+			{
+				throw new InvalidOperationException("End key must be greater than the Begin key.");
+			}
 
 			try
 			{
-				var entry = new Entry(begin, end, default(TValue));
+				var entry = new Entry(beginInclusive, endExclusive, default(TValue));
 				var iterator = m_items.GetIterator();
 				var comparer = m_keyComparer;
 				if (!iterator.Seek(entry, true))
@@ -291,13 +309,13 @@ namespace Doxense.Collections.Generic
 					iterator.SeekFirst();
 				}
 				var cursor = iterator.Current!;
-				var c1 = comparer.Compare(begin, cursor.Begin);
-				var c2 = comparer.Compare(end, cursor.End);
+				var c1 = comparer.Compare(beginInclusive, cursor.Begin);
+				var c2 = comparer.Compare(endExclusive, cursor.End);
 				List<Entry>? toRemove = null;
 				//begin < cursor.Begin
 				if (c1 < 0)
 				{
-					var c3 = comparer.Compare(end, cursor.Begin);
+					var c3 = comparer.Compare(endExclusive, cursor.Begin);
 					//end <= cursor.Begin
 					//         [++++++++++
 					// ------[
@@ -314,7 +332,7 @@ namespace Doxense.Collections.Generic
 					//-----------[
 					if (c2 < 0)
 					{
-						cursor.Begin = applyOffset(end, offset);
+						cursor.Begin = applyOffset(endExclusive, offset);
 						cursor.End = applyOffset(cursor.End, offset);
 						TranslateAfter(cursor, offset, applyOffset);
 						return;
@@ -331,13 +349,12 @@ namespace Doxense.Collections.Generic
 					//end > cursor.End
 					//      [+++++++++[
 					//-------------------...
-					toRemove = new List<Entry>();
-					toRemove.Add(cursor);
+					toRemove = [ cursor ];
 					while (iterator.Next())
 					{
 						cursor = iterator.Current!;
-						c2 = comparer.Compare(end, cursor.End);
-						c3 = comparer.Compare(end, cursor.Begin);
+						c2 = comparer.Compare(endExclusive, cursor.End);
+						c3 = comparer.Compare(endExclusive, cursor.Begin);
 						//end <= cursor.Begin
 						//       [+++++
 						// ----[
@@ -355,7 +372,7 @@ namespace Doxense.Collections.Generic
 						// ----------[
 						if (c2 < 0)
 						{
-							cursor.Begin = begin;
+							cursor.Begin = beginInclusive;
 							cursor.End = applyOffset(cursor.End, offset);
 							break;
 						}
@@ -379,7 +396,7 @@ namespace Doxense.Collections.Generic
 					// [-----[
 					if (c2 < 0)
 					{
-						cursor.Begin = begin;
+						cursor.Begin = beginInclusive;
 						cursor.End = applyOffset(cursor.End, offset);
 						TranslateAfter(cursor, offset, applyOffset);
 						return;
@@ -400,8 +417,8 @@ namespace Doxense.Collections.Generic
 						while (iterator.Next())
 						{
 							cursor = iterator.Current!;
-							var c3 = comparer.Compare(end, cursor.Begin);
-							c2 = comparer.Compare(end, cursor.End);
+							var c3 = comparer.Compare(endExclusive, cursor.Begin);
+							c2 = comparer.Compare(endExclusive, cursor.End);
 							//end < cursor.Begin
 							//                [++++++++[
 							//---------[
@@ -419,7 +436,7 @@ namespace Doxense.Collections.Generic
 								//-----[
 								if (c2 < 0)
 								{
-									cursor.Begin = begin;
+									cursor.Begin = beginInclusive;
 									cursor.End = applyOffset(cursor.End, offset);
 									break;
 								}
@@ -447,9 +464,9 @@ namespace Doxense.Collections.Generic
 					if (c2 < 0)
 					{
 						var oldEnd = cursor.End;
-						cursor.End = begin;
+						cursor.End = beginInclusive;
 						TranslateAfter(cursor, offset, applyOffset);
-						m_items.Insert(new Entry(begin, applyOffset(oldEnd, offset), cursor.Value));
+						m_items.Insert(new Entry(beginInclusive, applyOffset(oldEnd, offset), cursor.Value));
 						return;
 					}
 					//end == cursor.End
@@ -457,7 +474,7 @@ namespace Doxense.Collections.Generic
 					//       [-------[
 					if (c2 == 0)
 					{
-						cursor.End = begin;
+						cursor.End = beginInclusive;
 						TranslateAfter(cursor, offset, applyOffset);
 						return;
 					}
@@ -466,12 +483,12 @@ namespace Doxense.Collections.Generic
 					//       [-------------
 					else
 					{
-						cursor.End = begin;
+						cursor.End = beginInclusive;
 						while (iterator.Next())
 						{
 							cursor = iterator.Current!;
-							var c3 = comparer.Compare(end, cursor.Begin);
-							c2 = comparer.Compare(end, cursor.End);
+							var c3 = comparer.Compare(endExclusive, cursor.Begin);
+							c2 = comparer.Compare(endExclusive, cursor.End);
 							//end <= cursor.Begin
 							//      [++++++++++++[
 							// --[
@@ -489,7 +506,7 @@ namespace Doxense.Collections.Generic
 								// ------------[
 								if (c2 < 0)
 								{
-									cursor.Begin = begin;
+									cursor.Begin = beginInclusive;
 									cursor.End = applyOffset(cursor.End, offset);
 									break;
 								}
@@ -567,10 +584,15 @@ namespace Doxense.Collections.Generic
 			if (iterator.SeekLast()) m_bounds.End = iterator.Current!.End;
 		}
 
+		/// <summary>Mark a range with a new value</summary>
+		/// <param name="beginInclusive">Begin key of the range (included)</param>
+		/// <param name="endExclusive">End key of the range (excluded)</param>
+		/// <param name="value">New value for this range</param>
+		/// <exception cref="InvalidOperationException">If <paramref name="endExclusive"/> is less than or equal to <paramref name="beginInclusive"/></exception>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-		public void Mark(TKey begin, TKey end, TValue value)
+		public void Mark(TKey beginInclusive, TKey endExclusive, TValue value)
 		{
-			if (m_keyComparer.Compare(begin, end) >= 0) throw new InvalidOperationException("End key must be greater than the Begin key.");
+			if (m_keyComparer.Compare(beginInclusive, endExclusive) >= 0) throw new InvalidOperationException("End key must be greater than the Begin key.");
 
 			// adds a new interval to the dictionary by overwriting or splitting any previous interval
 			// * if there are no interval, or the interval is disjoint from all other intervals, it is inserted as-is
@@ -585,12 +607,12 @@ namespace Doxense.Collections.Generic
 			// { [2..4,A], [6..8,B] } + [3..7,C] => { [2..3,A], [3..7,C], [7..8,B] }
 			// { [1..2,A], [2..3,B], ..., [9..10,Y] } + [0..10,Z] => { [0..10,Z] }
 
-			var entry = new Entry(begin, end, value);
+			var entry = new Entry(beginInclusive, endExclusive, value);
 			var cmp = m_keyComparer;
 
 			try
 			{
-				Entry cursor;
+				Entry cursor; //TODO: REVIEW: => ref Entry ?
 				int c1, c2;
 				switch (m_items.Count)
 				{
@@ -607,43 +629,43 @@ namespace Doxense.Collections.Generic
 					case 1:
 					{ // there is only one value
 
-						cursor = m_items[0];
+						cursor = m_items.GetReference(0);
 
-						c1 = cmp.Compare(begin, cursor.End);
+						c1 = cmp.Compare(beginInclusive, cursor.End);
 						if (c1 >= 0)
 						{
 							// [--------)  [========)
 							// or [--------|========)
 							if (c1 == 0 && m_valueComparer.Equals(cursor.Value, value))
 							{
-								cursor.End = end;
+								cursor.End = endExclusive;
 							}
 							else
 							{
 								m_items.Insert(entry);
 							}
-							m_bounds.End = end;
+							m_bounds.End = endExclusive;
 							return;
 						}
-						c1 = cmp.Compare(end, cursor.Begin);
+						c1 = cmp.Compare(endExclusive, cursor.Begin);
 						if (c1 <= 0)
 						{
 							// [========)  [--------)
 							// or [========|--------)
 							if (c1 == 0 && m_valueComparer.Equals(cursor.Value, value))
 							{
-								cursor.Begin = begin;
+								cursor.Begin = beginInclusive;
 							}
 							else
 							{
 								m_items.Insert(entry);
 							}
-							m_bounds.Begin = begin;
+							m_bounds.Begin = beginInclusive;
 							return;
 						}
 
-						c1 = cmp.Compare(begin, cursor.Begin);
-						c2 = cmp.Compare(end, cursor.End);
+						c1 = cmp.Compare(beginInclusive, cursor.Begin);
+						c2 = cmp.Compare(endExclusive, cursor.End);
 						if (c1 == 0)
 						{ // same start
 							if (c2 == 0)
@@ -661,7 +683,7 @@ namespace Doxense.Collections.Generic
 									// + [======)
 									// = [======|---)
 
-									cursor.Begin = end;
+									cursor.Begin = endExclusive;
 									m_items.Insert(entry);
 								}
 								else
@@ -679,7 +701,7 @@ namespace Doxense.Collections.Generic
 								// + [==========)
 								// = [==========)
 								cursor.Set(entry);
-								m_bounds.End = end;
+								m_bounds.End = endExclusive;
 							}
 						}
 						else if (c1 > 0)
@@ -691,17 +713,17 @@ namespace Doxense.Collections.Generic
 									//   [------)
 									// +     [=======)
 									// = [---|=======)
-									cursor.End = begin;
+									cursor.End = beginInclusive;
 									m_items.Insert(entry);
-									if (c2 > 0) m_bounds.End = end;
+									if (c2 > 0) m_bounds.End = endExclusive;
 								}
 								else
 								{
 									//   [======)
 									// +     [=======)
 									// = [===========)
-									cursor.End = end;
-									m_bounds.End = end;
+									cursor.End = endExclusive;
+									m_bounds.End = endExclusive;
 								}
 							}
 							else
@@ -712,8 +734,8 @@ namespace Doxense.Collections.Generic
 									// +     [====)
 									// = [---|====|--)
 
-									var tmp = new Entry(end, cursor.End, cursor.Value);
-									cursor.End = begin;
+									var tmp = new Entry(endExclusive, cursor.End, cursor.Value);
+									cursor.End = beginInclusive;
 									m_items.InsertItems(entry, tmp);
 								}
 								else
@@ -731,14 +753,14 @@ namespace Doxense.Collections.Generic
 							if (c2 >= 0)
 							{
 								cursor.Set(entry);
-								m_bounds.End = end;
+								m_bounds.End = endExclusive;
 							}
 							else
 							{
-								cursor.Begin = end;
+								cursor.Begin = endExclusive;
 								m_items.Insert(entry);
 							}
-							m_bounds.Begin = begin;
+							m_bounds.Begin = beginInclusive;
 						}
 						break;
 					}
@@ -747,19 +769,19 @@ namespace Doxense.Collections.Generic
 					{
 						// check with the bounds first
 
-						if (cmp.Compare(begin, m_bounds.End) > 0)
+						if (cmp.Compare(beginInclusive, m_bounds.End) > 0)
 						{ // completely to the right
 							m_items.Insert(entry);
-							m_bounds.End = end;
+							m_bounds.End = endExclusive;
 							break;
 						}
-						if (cmp.Compare(end, m_bounds.Begin) < 0)
+						if (cmp.Compare(endExclusive, m_bounds.Begin) < 0)
 						{ // completely to the left
 							m_items.Insert(entry);
-							m_bounds.Begin = begin;
+							m_bounds.Begin = beginInclusive;
 							break;
 						}
-						if (cmp.Compare(begin, m_bounds.Begin) <= 0 && cmp.Compare(end, m_bounds.End) >= 0)
+						if (cmp.Compare(beginInclusive, m_bounds.Begin) <= 0 && cmp.Compare(endExclusive, m_bounds.End) >= 0)
 						{ // overlaps with all the ranges
 							// note :if we are here, there was at least 2 items, so just clear everything
 							m_items.Clear();
@@ -781,16 +803,15 @@ namespace Doxense.Collections.Generic
 						{ // the new range will go into first position
 							// => still need to check if we are overlapping with the next ranges
 							iterator.SeekFirst();
-							//Console.WriteLine("  . new lower bound, but intersects with first range...");
-							m_bounds.Begin = begin;
+							m_bounds.Begin = beginInclusive;
 						}
 
-						m_bounds.End = Max(m_bounds.End, end);
+						m_bounds.End = Max(m_bounds.End, endExclusive);
 
 						cursor = iterator.Current!;
 
-						c1 = cmp.Compare(cursor.Begin, begin);
-						c2 = cmp.Compare(cursor.End, end);
+						c1 = cmp.Compare(cursor.Begin, beginInclusive);
+						c2 = cmp.Compare(cursor.End, endExclusive);
 						if (c1 >= 0)
 						{
 							if (c2 == 0)
@@ -819,9 +840,9 @@ namespace Doxense.Collections.Generic
 										next = iterator.Current;
 									}
 
-									if (prev != null && cmp.Compare(prev.End, begin) == 0 && m_valueComparer.Equals(prev.Value, value))
+									if (prev != null && cmp.Compare(prev.End, beginInclusive) == 0 && m_valueComparer.Equals(prev.Value, value))
 									{ // the previous is contiguous and with the same value, it can be merged!
-										if (next != null && cmp.Compare(next.Begin, end) == 0 && m_valueComparer.Equals(next.Value, value))
+										if (next != null && cmp.Compare(next.Begin, endExclusive) == 0 && m_valueComparer.Equals(next.Value, value))
 										{ // merge all three into a single contiguous
 
 											//   [=======)       [=====)..
@@ -839,32 +860,32 @@ namespace Doxense.Collections.Generic
 											// +         [=======)                          [=======)
 											// = [===============)  [=====)..       [===============|-------)..
 
-											prev.End = end;
+											prev.End = endExclusive;
 											m_items.RemoveAt(pos.Level, pos.Offset);
 										}
 									}
-									else if (next != null && cmp.Compare(next.Begin, end) == 0 && m_valueComparer.Equals(next.Value, value))
+									else if (next != null && cmp.Compare(next.Begin, endExclusive) == 0 && m_valueComparer.Equals(next.Value, value))
 									{ // the next one is contigious and with the same value, it can be merged!
 
 										//   [=======)          [=====)..       [-------)       [=====)..
 										// +            [=======)                       [=======)
 										// = [=======)  [=============)..       [-------|=============)
 
-										next.Begin = begin;
+										next.Begin = beginInclusive;
 										m_items.RemoveAt(pos.Level, pos.Offset);
 									}
 								}
 								else if (iterator.SeekFirst() && iterator.Next())
 								{ // there was no previous entry, but still check the next one
 									var next = iterator.Current;
-									if (next != null && cmp.Compare(next.Begin, end) == 0 && m_valueComparer.Equals(next.Value, value))
+									if (next != null && cmp.Compare(next.Begin, endExclusive) == 0 && m_valueComparer.Equals(next.Value, value))
 									{ // the next one is contiguous and with the same value, it can be merged!
 
 										//   x        [=====)..
 										// + x[=======)
 										// = x[=============)..
 
-										next.Begin = begin;
+										next.Begin = beginInclusive;
 										m_items.RemoveAt(pos.Level, pos.Offset);
 									}
 								}
@@ -876,7 +897,7 @@ namespace Doxense.Collections.Generic
 								//   [----------)..        [----------)..
 								// + [=======)	      + [=======)
 								// = [=======|--)..   = [=======|-----)..
-								cursor.Begin = end;
+								cursor.Begin = endExclusive;
 								m_items.Insert(entry);
 								return;
 							}
@@ -902,7 +923,7 @@ namespace Doxense.Collections.Generic
 
 								if (!m_valueComparer.Equals(cursor.Value, value))
 								{
-									cursor.End = begin;
+									cursor.End = beginInclusive;
 									m_items.Insert(entry);
 								}
 								return;
@@ -916,19 +937,19 @@ namespace Doxense.Collections.Generic
 
 								if (!m_valueComparer.Equals(cursor.Value, value))
 								{
-									var tmp = new Entry(end, cursor.End, cursor.Value);
-									cursor.End = begin;
+									var tmp = new Entry(endExclusive, cursor.End, cursor.Value);
+									cursor.End = beginInclusive;
 									m_items.InsertItems(entry, tmp);
 								}
 								return;
 							}
 
-							int c3 = cmp.Compare(begin, cursor.End);
+							int c3 = cmp.Compare(beginInclusive, cursor.End);
 							if (c3 >= 0)
 							{
 								if (c3 == 0 && m_valueComparer.Equals(value, cursor.Value))
 								{ // touching same value => merge
-									cursor.End = end;
+									cursor.End = endExclusive;
 									entry = cursor;
 									inserted = true;
 								}
@@ -944,7 +965,7 @@ namespace Doxense.Collections.Generic
 								//   [--------????
 								//       [====????
 								// = [---|====????
-								cursor.End = begin;
+								cursor.End = beginInclusive;
 							}
 						}
 
@@ -964,7 +985,7 @@ namespace Doxense.Collections.Generic
 							// cursor: existing range that we need to either delete or mutate
 							cursor = iterator.Current!;
 
-							c1 = cmp.Compare(cursor.Begin, end);
+							c1 = cmp.Compare(cursor.Begin, endExclusive);
 							if (c1 == 0)
 							{ // touching the next range
 								if (m_valueComparer.Equals(value, cursor.Value))
@@ -984,7 +1005,7 @@ namespace Doxense.Collections.Generic
 									}
 									else
 									{
-										cursor.Begin = begin;
+										cursor.Begin = beginInclusive;
 										entry = cursor;
 										inserted = true;
 									}
@@ -1007,7 +1028,7 @@ namespace Doxense.Collections.Generic
 								break;
 							}
 
-							c1 = cmp.Compare(cursor.End, end);
+							c1 = cmp.Compare(cursor.End, endExclusive);
 							if (c1 <= 0)
 							{ // we are completely covered => delete
 
@@ -1035,7 +1056,7 @@ namespace Doxense.Collections.Generic
 								//   [....========)
 								// = [....========|---)
 
-								cursor.Begin = end;
+								cursor.Begin = endExclusive;
 								break;
 							}
 						}
@@ -1357,11 +1378,11 @@ namespace Doxense.Collections.Generic
 		[Conditional("DEBUG")]
 		[CollectionAccess(CollectionAccessType.Read)]
 		//TODO: remove or set to internal !
-		public void Debug_Dump()
+		public void Debug_Dump(TextWriter output)
 		{
 #if DEBUG
-			Debug.WriteLine("Dumping ColaRangeDictionary<" + typeof(TKey).Name + "> filled at " + (100.0d * this.Count / m_items.Capacity).ToString("N2") + "%");
-			m_items.Debug_Dump();
+			output.WriteLine($"Dumping ColaRangeDictionary<{typeof(TKey).Name}> filled at {(100.0d * this.Count / m_items.Capacity):N2}%");
+			m_items.Debug_Dump(output);
 #endif
 		}
 

@@ -24,11 +24,10 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-// enables consistency checks after each operation to the set
-#define ENFORCE_INVARIANTS
-
 namespace Doxense.Collections.Generic
 {
+	using System;
+	using System.Buffers;
 	using System.Diagnostics;
 	using System.Globalization;
 
@@ -36,7 +35,7 @@ namespace Doxense.Collections.Generic
 	/// <typeparam name="TKey">Type of keys stored in the set</typeparam>
 	[PublicAPI]
 	[DebuggerDisplay("Count={m_items.Count}, Bounds={m_bounds.Begin}..{m_bounds.End}")]
-	public sealed class ColaRangeSet<TKey> : IEnumerable<ColaRangeSet<TKey>.Entry>
+	public sealed class ColaRangeSet<TKey> : IEnumerable<ColaRangeSet<TKey>.Entry>, IDisposable
 	{
 		// We store the ranges in a COLA array that is sorted by the Begin keys
 		// The range are mutable, which allows for efficient merging
@@ -106,29 +105,32 @@ namespace Doxense.Collections.Generic
 		private readonly IComparer<TKey> m_comparer;
 		private readonly Entry m_bounds;
 
-		public ColaRangeSet()
-			: this(0, null)
+		public ColaRangeSet(ArrayPool<Entry>? pool = null)
+			: this(0, null, pool)
 		{ }
 
-		public ColaRangeSet(int capacity)
-			: this(capacity, null)
+		public ColaRangeSet(int capacity, ArrayPool<Entry>? pool = null)
+			: this(capacity, null, pool)
 		{ }
 
-		public ColaRangeSet(IComparer<TKey>? keyComparer)
-			: this(0, keyComparer)
+		public ColaRangeSet(IComparer<TKey>? keyComparer, ArrayPool<Entry>? pool = null)
+			: this(0, keyComparer, pool)
 		{ }
 
-		public ColaRangeSet(int capacity, IComparer<TKey>? keyComparer)
+		public ColaRangeSet(int capacity, IComparer<TKey>? keyComparer, ArrayPool<Entry>? pool = null)
 		{
 			m_comparer = keyComparer ?? Comparer<TKey>.Default;
 			if (capacity == 0) capacity = 15;
-			m_items = new ColaStore<Entry>(capacity, new BeginKeyComparer(m_comparer));
-			m_bounds = new Entry(default(TKey), default(TKey));
+			m_items = new(capacity, new BeginKeyComparer(m_comparer), pool);
+			m_bounds = new(default(TKey), default(TKey));
 		}
 
-		[Conditional("ENFORCE_INVARIANTS")]
-		private void CheckInvariants()
+		public void Dispose()
 		{
+			m_items.Dispose();
+	
+			m_bounds.Begin = default;
+			m_bounds.End = default;
 		}
 
 		public int Count => m_items.Count;
@@ -198,7 +200,8 @@ namespace Doxense.Collections.Generic
 			if (m_comparer.Compare(begin, end) >= 0) throw new InvalidOperationException($"End key `{begin}` must be greater than the Begin key `{end}`.");
 
 			var entry = new Entry(begin, end);
-			Entry? cursor;
+
+			Entry? cursor; //TODO: REVIEW: ref Entry ?
 
 			switch (m_items.Count)
 			{
@@ -214,7 +217,7 @@ namespace Doxense.Collections.Generic
 				case 1:
 				{ // there is only one value
 
-					cursor = m_items[0];
+					cursor = m_items.GetReference(0);
 					if (!Resolve(cursor, entry))
 					{ // no conflict
 						m_items.Insert(entry);
@@ -279,7 +282,6 @@ namespace Doxense.Collections.Generic
 						{ // we already have inserted the key so conflicts will remove the next segment
 							if (Resolve(entry, cursor))
 							{ // next segment has been removed
-								//Console.WriteLine("  > folded with previous: " + entry);
 								m_items.RemoveAt(level, offset);
 							}
 							else
@@ -291,7 +293,6 @@ namespace Doxense.Collections.Generic
 						{ // we haven't inserted the key yet, so in case of conflict, we will use the next segment's slot
 							if (Resolve(cursor, entry))
 							{
-								//Console.WriteLine("  > merged in place: " + cursor);
 								inserted = true;
 							}
 							else
@@ -325,39 +326,26 @@ namespace Doxense.Collections.Generic
 		{
 			if (m_bounds.Contains(key, m_comparer))
 			{
-				int level = m_items.FindPrevious(new Entry(key, key), true, out _, out var entry);
+				int level = m_items.FindPrevious(new(key, key), orEqual: true, out _, out var entry);
 				return level >= 0 && entry!.Contains(key, m_comparer);
 			}
 			return false;
 		}
 
-		public ColaStore.Enumerator<Entry> GetEnumerator()
-		{
-			return new ColaStore.Enumerator<Entry>(m_items, reverse: false);
-		}
+		public ColaStore.Enumerator<Entry> GetEnumerator() => new(m_items, reverse: false);
 
-		public IEnumerable<Entry> IterateOrdered()
-		{
-			return m_items.IterateOrdered();
-		}
+		public IEnumerable<Entry> IterateOrdered() => m_items.IterateOrdered();
 
-		IEnumerator<Entry> IEnumerable<Entry>.GetEnumerator()
-		{
-			return this.GetEnumerator();
-		}
+		IEnumerator<Entry> IEnumerable<Entry>.GetEnumerator() => this.GetEnumerator();
 
-		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
-		{
-			return this.GetEnumerator();
-		}
+		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => this.GetEnumerator();
 
 		[Conditional("DEBUG")]
-		//TODO: remove or set to internal !
-		public void Debug_Dump()
+		public void Debug_Dump(TextWriter output)
 		{
 #if DEBUG
-			Console.WriteLine("Dumping ColaRangeSet<" + typeof(TKey).Name + "> filled at " + (100.0d * this.Count / this.Capacity).ToString("N2") + "%");
-			m_items.Debug_Dump();
+			output.WriteLine($"Dumping ColaRangeSet<{typeof(TKey).Name}> filled at {(100.0d * this.Count / this.Capacity):N2}%");
+			m_items.Debug_Dump(output);
 #endif
 		}
 
