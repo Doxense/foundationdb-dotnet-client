@@ -29,7 +29,8 @@ namespace FoundationDB.Client.Tests
 	using FoundationDB.Client.Native;
 
 	[TestFixture]
-	public class ErrorFacts
+	[Parallelizable(ParallelScope.All)]
+	public class ErrorFacts : FdbSimpleTest
 	{
 
 		[Test]

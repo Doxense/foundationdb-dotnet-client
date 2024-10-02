@@ -29,7 +29,8 @@ namespace FoundationDB.Client.Tests
 	using SnowBank.Testing;
 
 	[TestFixture]
-	public class VersionStampFacts : SimpleTest
+	[Parallelizable(ParallelScope.All)]
+	public class VersionStampFacts : FdbSimpleTest
 	{
 
 		[Test]

@@ -37,7 +37,6 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 
 	[TestFixture]
 	[Category("LongRunning")]
-	[Parallelizable(ParallelScope.All)]
 	public class CompressedBitmapsFacts : FdbTest
 	{
 
