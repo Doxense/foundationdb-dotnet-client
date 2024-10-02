@@ -26,7 +26,7 @@
 
 namespace FoundationDB.Layers.Documents.Tests
 {
-	using FoundationDB.Types.Json;
+	using Doxense.Serialization.Json.Encoders;
 	using FoundationDB.Types.ProtocolBuffers;
 
 	[TestFixture]
@@ -36,9 +36,13 @@ namespace FoundationDB.Layers.Documents.Tests
 		private sealed record Book
 		{
 			public required int Id { get; init; }
+
 			public required string Title { get; init; }
+
 			public required string Author { get; init; }
-			public DateTime Published { get; init; }
+
+			public DateOnly Published { get; init; }
+
 			public int Pages { get; init; }
 		}
 
@@ -46,20 +50,20 @@ namespace FoundationDB.Layers.Documents.Tests
 		{
 			return
 			[
-				new Book
+				new()
 				{
 					Id = 42,
 					Title = "On the Origin of Species",
 					Author = "Charles Darwin",
-					Published = new DateTime(1859, 11, 24),
+					Published = new DateOnly(1859, 11, 24),
 					Pages = 502,
 				},
-				new Book
+				new()
 				{
 					Id = 43,
 					Title = "Foundation and Empire",
 					Author = "Isaac Asimov",
-					Published = new DateTime(1952, 1, 1),
+					Published = new DateOnly(1952, 1, 1),
 					Pages = 247
 				}
 			];
@@ -68,90 +72,86 @@ namespace FoundationDB.Layers.Documents.Tests
 		[Test]
 		public async Task Test_Can_Insert_And_Retrieve_Json_Documents()
 		{
-			using (var db = await OpenTestPartitionAsync())
-			{
-				var location = db.Root["Books"]["JSON"];
-				await CleanLocation(db, location);
+			using var db = await OpenTestPartitionAsync();
+			var location = db.Root["Books"]["JSON"];
+			await CleanLocation(db, location);
 
-				var docs = new FdbDocumentCollection<Book, int>(
-					location,
-					(book) => book.Id,
-					new JsonNetCodec<Book>()
-				);
+			var docs = new FdbDocumentCollection<Book, int>(
+				location,
+				(book) => book.Id,
+				CrystalJsonCodec.GetEncoder<Book>()
+			);
 
-				var books = GetBooks();
+			var books = GetBooks();
 
-				// store a document
-				var book1 = books[0];
-				await db.WriteAsync((tr) => docs.InsertAsync(tr, book1), this.Cancellation);
+			// store a document
+			var book1 = books[0];
+			await db.WriteAsync((tr) => docs.InsertAsync(tr, book1), this.Cancellation);
 #if DEBUG
-				await DumpSubspace(db, location);
+			await DumpSubspace(db, location);
 #endif
 
-				// retrieve the document
-				var copy = await db.ReadAsync((tr) =>docs.LoadAsync(tr, book1.Id), this.Cancellation);
+			// retrieve the document
+			var copy = await db.ReadAsync((tr) =>docs.LoadAsync(tr, book1.Id), this.Cancellation);
 
-				Assert.That(copy, Is.Not.Null);
-				Assert.That(copy.Id, Is.EqualTo(book1.Id));
-				Assert.That(copy.Title, Is.EqualTo(book1.Title));
-				Assert.That(copy.Author, Is.EqualTo(book1.Author));
-				Assert.That(copy.Published, Is.EqualTo(book1.Published));
-				Assert.That(copy.Pages, Is.EqualTo(book1.Pages));
+			Assert.That(copy, Is.Not.Null);
+			Assert.That(copy.Id, Is.EqualTo(book1.Id));
+			Assert.That(copy.Title, Is.EqualTo(book1.Title));
+			Assert.That(copy.Author, Is.EqualTo(book1.Author));
+			Assert.That(copy.Published, Is.EqualTo(book1.Published));
+			Assert.That(copy.Pages, Is.EqualTo(book1.Pages));
 
-				// store another document
-				var book2 = books[1];
-				await db.WriteAsync((tr) => docs.InsertAsync(tr, book2), this.Cancellation);
+			// store another document
+			var book2 = books[1];
+			await db.WriteAsync((tr) => docs.InsertAsync(tr, book2), this.Cancellation);
 #if DEBUG
-				await DumpSubspace(db, location);
+			await DumpSubspace(db, location);
 #endif
-			}
 		}
 
 		[Test]
 		public async Task Test_Can_Insert_And_Retrieve_ProtoBuf_Documents()
 		{
-			using (var db = await OpenTestPartitionAsync())
-			{
-				var location = db.Root["Books"]["ProtoBuf"];
-				await CleanLocation(db, location);
+			using var db = await OpenTestPartitionAsync();
+			var location = db.Root["Books"]["ProtoBuf"];
+			await CleanLocation(db, location);
 
-				// quickly define the metatype for Books, because I'm too lazy to write a .proto for this, or add [ProtoMember] attributes everywhere
-				var metaType = ProtoBuf.Meta.RuntimeTypeModel.Default.Add(typeof(Book), false);
-				metaType.Add("Id", "Title", "Author", "Published", "Pages");
-				metaType.CompileInPlace();
+			// quickly define the metatype for Books, because I'm too lazy to write a .proto for this, or add [ProtoMember] attributes everywhere
+			var metaType = ProtoBuf.Meta.RuntimeTypeModel.Default.Add(typeof(Book), false);
+			metaType.Add("Id", "Title", "Author", "Published", "Pages");
+			metaType.CompileInPlace();
 
-				var docs = new FdbDocumentCollection<Book, int>(
-					location,
-					(book) => book.Id,
-					new ProtobufCodec<Book>()
-				);
+			var docs = new FdbDocumentCollection<Book, int>(
+				location,
+				(book) => book.Id,
+				new ProtobufCodec<Book>()
+			);
 
-				var books = GetBooks();
+			var books = GetBooks();
 
-				// store a document
-				var book1 = books[0];
-				await db.WriteAsync((tr) => docs.InsertAsync(tr, book1), this.Cancellation);
+			// store a document
+			var book1 = books[0];
+			await db.WriteAsync((tr) => docs.InsertAsync(tr, book1), this.Cancellation);
 #if DEBUG
-				await DumpSubspace(db, location);
+			await DumpSubspace(db, location);
 #endif
 
-				// retrieve the document
-				var copy = await db.ReadAsync((tr) => docs.LoadAsync(tr, 42), this.Cancellation);
+			// retrieve the document
+			var copy = await db.ReadAsync((tr) => docs.LoadAsync(tr, 42), this.Cancellation);
 
-				Assert.That(copy, Is.Not.Null);
-				Assert.That(copy.Id, Is.EqualTo(book1.Id));
-				Assert.That(copy.Title, Is.EqualTo(book1.Title));
-				Assert.That(copy.Author, Is.EqualTo(book1.Author));
-				Assert.That(copy.Published, Is.EqualTo(book1.Published));
-				Assert.That(copy.Pages, Is.EqualTo(book1.Pages));
+			Assert.That(copy, Is.Not.Null);
+			Assert.That(copy.Id, Is.EqualTo(book1.Id));
+			Assert.That(copy.Title, Is.EqualTo(book1.Title));
+			Assert.That(copy.Author, Is.EqualTo(book1.Author));
+			Assert.That(copy.Published, Is.EqualTo(book1.Published));
+			Assert.That(copy.Pages, Is.EqualTo(book1.Pages));
 
-				// store another document
-				var book2 = books[1];
-				await db.WriteAsync((tr) => docs.InsertAsync(tr, book2), this.Cancellation);
+			// store another document
+			var book2 = books[1];
+			await db.WriteAsync((tr) => docs.InsertAsync(tr, book2), this.Cancellation);
 #if DEBUG
-				await DumpSubspace(db, location);
+			await DumpSubspace(db, location);
 #endif
-			}
 		}
 
 	}
