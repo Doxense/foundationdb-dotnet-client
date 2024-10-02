@@ -441,14 +441,14 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		private int GetHashCode(IEqualityComparer comparer)
 		{
-			int h = 0;
 			var slices = m_slices;
 			var buffer = m_buffer;
+			var hc = new HashCode();
 			for (int i = 0; i < slices.Length; i++)
 			{
-				h = HashCodes.Combine(h, TupleHelpers.ComputeHashCode(TuplePackers.DeserializeBoxed(buffer[slices[i]]), comparer));
+				hc.Add(TupleHelpers.ComputeHashCode(TuplePackers.DeserializeBoxed(buffer[slices[i]]), comparer));
 			}
-			return h;
+			return hc.ToHashCode();
 		}
 
 		int IVarTuple.GetItemHashCode(int index, IEqualityComparer comparer) => comparer.GetHashCode(m_slices[index]);

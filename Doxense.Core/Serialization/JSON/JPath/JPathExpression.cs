@@ -329,7 +329,7 @@ namespace Doxense.Serialization.Json.JPath
 
 		public override bool Equals(JPathExpression? other) => other is JPathObjectIndexer idx && idx.Name == this.Name && idx.Node.Equals(this.Node);
 
-		public override int GetHashCode() => HashCodes.Combine(this.Node.GetHashCode(), this.Node.GetHashCode());
+		public override int GetHashCode() => HashCode.Combine(this.Node.GetHashCode(), this.Node.GetHashCode());
 		//TODO: cache!
 
 		internal override IEnumerable<JsonValue> Iterate(JsonValue root, JsonValue current)
@@ -414,7 +414,7 @@ namespace Doxense.Serialization.Json.JPath
 
 		public override bool Equals(JPathExpression? other) => other is JPathArrayRange range && range.StartInclusive == this.StartInclusive && range.EndExclusive == this.EndExclusive && range.Node.Equals(this.Node);
 
-		public override int GetHashCode() => HashCodes.Combine(this.StartInclusive ?? 0, this.EndExclusive ?? 0, this.Node.GetHashCode());
+		public override int GetHashCode() => HashCode.Combine(this.StartInclusive ?? 0, this.EndExclusive ?? 0, this.Node.GetHashCode());
 
 		public override string ToString()
 		{
@@ -463,7 +463,7 @@ namespace Doxense.Serialization.Json.JPath
 
 		public override bool Equals(JPathExpression? other) => other is JPathArrayIndexer idx && idx.Index == this.Index && idx.Node.Equals(this.Node);
 
-		public override int GetHashCode() => HashCodes.Combine(this.Index, this.Node.GetHashCode());
+		public override int GetHashCode() => HashCode.Combine(this.Index, this.Node.GetHashCode());
 
 		public override string ToString() => $"{this.Node}[{this.Index}]";
 
@@ -497,7 +497,7 @@ namespace Doxense.Serialization.Json.JPath
 
 		public override bool Equals(JPathExpression? other) => other is JPathFilterExpression filter && filter.Filter.Equals(this.Filter) && filter.Node.Equals(this.Node);
 
-		public override int GetHashCode() => HashCodes.Combine(this.Node.GetHashCode(), this.Filter.GetHashCode());
+		public override int GetHashCode() => HashCode.Combine(this.Node.GetHashCode(), this.Filter.GetHashCode());
 
 		public override string ToString() => $"{this.Node}.Where(@ => {this.Filter})";
 
@@ -571,7 +571,7 @@ namespace Doxense.Serialization.Json.JPath
 
 		public override bool Equals(JPathExpression? other) => other is JPathBinaryOperator op && op.Operator == this.Operator && Equals(op.Right, this.Right) && op.Left.Equals(this.Left);
 
-		public override int GetHashCode() => HashCodes.Combine((int) this.Operator, this.Left.GetHashCode(), 123 /*TODO: Right?*/);
+		public override int GetHashCode() => HashCode.Combine((int) this.Operator, this.Left.GetHashCode(), 123 /*TODO: Right?*/);
 
 		private IEnumerable<JsonValue> IterateStringLiteral(string literal, JsonValue root, JsonValue current)
 		{
@@ -817,7 +817,7 @@ namespace Doxense.Serialization.Json.JPath
 
 		public override bool Equals(JPathExpression? obj) => obj is JPathUnaryOperator op && op.Operator == this.Operator && op.Node.Equals(this.Node);
 
-		public override int GetHashCode() => HashCodes.Combine((int) this.Operator, this.Node.GetHashCode());
+		public override int GetHashCode() => HashCode.Combine((int) this.Operator, this.Node.GetHashCode());
 
 		public override string ToString() => $"Not({this.Node})";
 
@@ -863,7 +863,7 @@ namespace Doxense.Serialization.Json.JPath
 
 		public override bool Equals(JPathExpression? other) => other is JPathQuoteExpression quote && quote.Node.Equals(this.Node);
 
-		public override int GetHashCode() => HashCodes.Combine(0xC0FFEEE, this.Node.GetHashCode());
+		public override int GetHashCode() => HashCode.Combine(0xC0FFEEE, this.Node.GetHashCode());
 
 		public override string ToString() => $"Quote({this.Node})";
 

@@ -30,7 +30,7 @@ namespace Doxense.Runtime.Converters
 	using System.Globalization;
 	using Doxense.Collections.Tuples;
 
-	/// <summary>Helper classe used to compare object of "compatible" types</summary>
+	/// <summary>Helper class used to compare object of "compatible" types</summary>
 	[PublicAPI]
 	public static class ComparisonHelper
 	{
@@ -47,45 +47,29 @@ namespace Doxense.Runtime.Converters
 				this.Right = right;
 			}
 
-			public override bool Equals(object? obj)
-			{
-				return obj is TypePair tp && Equals(tp);
-			}
+			public override bool Equals(object? obj) => obj is TypePair tp && Equals(tp);
 
-			public bool Equals(TypePair other)
-			{
-				return this.Left == other.Left
-					&& this.Right == other.Right;
-			}
+			public bool Equals(TypePair other) => this.Left == other.Left && this.Right == other.Right;
 
-			public override int GetHashCode()
-			{
-				return HashCodes.Combine(this.Left.GetHashCode(), this.Right.GetHashCode());
-			}
+			public override int GetHashCode() => HashCode.Combine(this.Left, this.Right);
 		}
 
 		/// <summary>Helper class to use TypePair as keys in a dictionary</summary>
 		public sealed class TypePairComparer : IEqualityComparer<TypePair>
 		{ // REVIEW: this is redundant with TypeConverters.TypePairComparer!
 
-			public static readonly TypePairComparer Default = new TypePairComparer();
+			public static readonly TypePairComparer Default = new();
 
 			private TypePairComparer() { }
 
-			public bool Equals(TypePair x, TypePair y)
-			{
-				return x.Left == y.Left && x.Right == y.Right;
-			}
+			public bool Equals(TypePair x, TypePair y) => x.Left == y.Left && x.Right == y.Right;
 
-			public int GetHashCode(TypePair obj)
-			{
-				return obj.GetHashCode();
-			}
+			public int GetHashCode(TypePair obj) => HashCode.Combine(obj.Left, obj.Right);
 		}
 
 		/// <summary>Cache of all the comparison lambda for a pair of types</summary>
 		/// <remarks>Contains lambda that can compare two objects (of different types) for "similarity"</remarks>
-		private static readonly ConcurrentDictionary<TypePair, Func<object?, object?, bool>> EqualityComparers = new ConcurrentDictionary<TypePair, Func<object?, object?, bool>>(TypePairComparer.Default);
+		private static readonly ConcurrentDictionary<TypePair, Func<object?, object?, bool>> EqualityComparers = new(TypePairComparer.Default);
 
 		/// <summary>Tries to convert an object into an equivalent string representation (for equality comparison)</summary>
 		/// <param name="value">Object to adapt</param>
@@ -202,7 +186,7 @@ namespace Doxense.Runtime.Converters
 				}
 				else
 				{
-					//TODO: handle UInt64 with values > long.MaxValue that will overflow to negative values when casted down to Int64
+					//TODO: handle UInt64 with values > long.MaxValue that will overflow to negative values when cast down to Int64
 					return (x, y) => x == null ? y == null : y != null && TryAdaptToInteger(x, t1, out long l1) && TryAdaptToInteger(y, t2, out long l2) && l1 == l2;
 				}
 			}
@@ -269,7 +253,7 @@ namespace Doxense.Runtime.Converters
 		}
 
 		/// <summary>Returns true if the specified type is considered to be a "number"</summary>
-		/// <returns>True for integers (8, 16, 32 or 64 bits, signed or unsigned) and their Nullable versions. Bytes and Chars are not considered to be numbers because they a custom serialized</returns>
+		/// <returns>True for integers (8, 16, 32 or 64 bits, signed or unsigned) and their Nullable versions. Bytes and Chars are not considered to be numbers because they are custom serialized</returns>
 		private static bool IsNumericType(Type t)
 		{
 			// Return true for valuetypes that are considered numbers.

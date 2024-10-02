@@ -58,7 +58,7 @@ namespace Doxense.Networking
 
 		public int GetHashCode(IPEndPoint? obj)
 		{
-			return obj != null ? HashCodes.Combine(obj.Address.GetHashCode(), obj.Port) : -1;
+			return obj != null ? HashCode.Combine(obj.Address, obj.Port) : -1;
 		}
 
 	}

@@ -378,12 +378,13 @@ namespace Doxense.Collections.Tuples.Encoding
 				return m_hashCode.Value;
 			}
 
-			int h = 0;
 			var slices = m_slices.Span;
+			var hc = new HashCode();
 			for (int i = 0; i < slices.Length; i++)
 			{
-				h = HashCodes.Combine(h, comparer.GetHashCode(slices[i]));
+				hc.Add(comparer.GetHashCode(slices[i]));
 			}
+			int h = hc.ToHashCode();
 			if (canUseCache)
 			{
 				m_hashCode = h;

@@ -143,7 +143,7 @@ namespace FoundationDB.Client
 			: base(path, suffix)
 		{ }
 
-		public override int GetHashCode() => HashCodes.Combine(this.Path.GetHashCode(), this.Prefix.GetHashCode(), 0x12345678);
+		public override int GetHashCode() => HashCode.Combine(this.Path.GetHashCode(), this.Prefix.GetHashCode(), 0x12345678);
 
 		public override bool Equals(ISubspaceLocation? other) =>
 			ReferenceEquals(other, this)
@@ -210,7 +210,7 @@ namespace FoundationDB.Client
 
 		public static DynamicKeySubspaceLocation Create(Slice prefix, IDynamicKeyEncoding? encoding) => new DynamicKeySubspaceLocation(prefix, (encoding ?? TuPack.Encoding).GetDynamicKeyEncoder());
 
-		public override int GetHashCode() => HashCodes.Combine(this.Path.GetHashCode(), this.Prefix.GetHashCode(), 0x12344321);
+		public override int GetHashCode() => HashCode.Combine(this.Path.GetHashCode(), this.Prefix.GetHashCode(), 0x12344321);
 
 		public override bool Equals(ISubspaceLocation? other) =>
 			ReferenceEquals(other, this)
@@ -279,7 +279,7 @@ namespace FoundationDB.Client
 
 		public override bool Equals(object? obj) => obj is ISubspaceLocation path && Equals(path);
 
-		public override int GetHashCode() => HashCodes.Combine(this.Path.GetHashCode(), this.Prefix.GetHashCode(), 0x1111);
+		public override int GetHashCode() => HashCode.Combine(this.Path.GetHashCode(), this.Prefix.GetHashCode(), 0x1111);
 
 		public override bool Equals(ISubspaceLocation? other) =>
 			ReferenceEquals(other, this)
@@ -333,7 +333,7 @@ namespace FoundationDB.Client
 			this.Encoder = encoder;
 		}
 
-		public override int GetHashCode() => HashCodes.Combine(this.Path.GetHashCode(), this.Prefix.GetHashCode(), 0x2222);
+		public override int GetHashCode() => HashCode.Combine(this.Path.GetHashCode(), this.Prefix.GetHashCode(), 0x2222);
 
 		public override bool Equals(ISubspaceLocation? other) =>
 			ReferenceEquals(other, this)
@@ -390,7 +390,7 @@ namespace FoundationDB.Client
 			this.Encoder = encoder;
 		}
 
-		public override int GetHashCode() => HashCodes.Combine(this.Path.GetHashCode(), this.Prefix.GetHashCode(), 0x3333);
+		public override int GetHashCode() => HashCode.Combine(this.Path.GetHashCode(), this.Prefix.GetHashCode(), 0x3333);
 
 		public override bool Equals(ISubspaceLocation? other) =>
 			ReferenceEquals(other, this)
@@ -447,7 +447,7 @@ namespace FoundationDB.Client
 			this.Encoder = encoder;
 		}
 
-		public override int GetHashCode() => HashCodes.Combine(this.Path.GetHashCode(), this.Prefix.GetHashCode(), 0x4444);
+		public override int GetHashCode() => HashCode.Combine(this.Path.GetHashCode(), this.Prefix.GetHashCode(), 0x4444);
 
 		public override bool Equals(ISubspaceLocation? other) =>
 			ReferenceEquals(other, this)

@@ -421,7 +421,7 @@ namespace System
 
 		public override int GetHashCode()
 		{
-			return HashCodes.Combine(this.TransactionVersion.GetHashCode(), this.TransactionOrder, this.UserVersion, this.Flags);
+			return HashCode.Combine(this.TransactionVersion.GetHashCode(), (int) this.TransactionOrder, (int) this.UserVersion, (int) this.Flags);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]

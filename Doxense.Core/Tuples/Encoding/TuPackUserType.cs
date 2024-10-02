@@ -83,7 +83,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		public override int GetHashCode()
 		{
-			return HashCodes.Combine(this.Type, this.Value.GetHashCode());
+			return HashCode.Combine(this.Type, this.Value.GetHashCode());
 		}
 
 		#endregion

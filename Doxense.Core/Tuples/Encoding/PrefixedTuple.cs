@@ -188,7 +188,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		int IStructuralEquatable.GetHashCode(System.Collections.IEqualityComparer comparer)
 		{
-			return HashCodes.Combine(
+			return HashCode.Combine(
 				m_prefix.GetHashCode(),
 				comparer.GetHashCode(m_items)
 			);

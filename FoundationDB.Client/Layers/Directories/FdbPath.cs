@@ -782,9 +782,9 @@ namespace FoundationDB.Client
 			return segments.Length switch
 			{
 				0 => this.IsAbsolute ? -1 : 0,
-				1 => HashCodes.Combine(this.IsAbsolute ? -1 : 1, segments[0].GetHashCode()),
-				2 => HashCodes.Combine(this.IsAbsolute ? -2 : 2, segments[0].GetHashCode(), segments[1].GetHashCode()),
-				_ => HashCodes.Combine(this.IsAbsolute ? -3 : 3, segments[0].GetHashCode(), segments[segments.Length >> 1].GetHashCode(), segments[^1].GetHashCode())
+				1 => HashCode.Combine(this.IsAbsolute, segments[0].GetHashCode()),
+				2 => HashCode.Combine(this.IsAbsolute, segments[0].GetHashCode(), segments[1].GetHashCode()),
+				_ => HashCode.Combine(this.IsAbsolute, segments[0].GetHashCode(), segments[segments.Length >> 1].GetHashCode(), segments[^1].GetHashCode())
 			};
 		}
 

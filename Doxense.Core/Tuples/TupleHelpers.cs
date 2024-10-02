@@ -254,12 +254,12 @@ namespace Doxense.Collections.Tuples
 				return comparer.GetHashCode(null!);
 			}
 
-			int h = 0;
+			var hc = new HashCode();
 			foreach (var item in tuple)
 			{
-				h = HashCodes.Combine(h, comparer.GetHashCode(item!));
+				hc.Add(comparer.GetHashCode(item!));
 			}
-			return h;
+			return hc.ToHashCode();
 		}
 
 		public static int StructuralCompare(IVarTuple? x, IVarTuple? y, IComparer comparer)

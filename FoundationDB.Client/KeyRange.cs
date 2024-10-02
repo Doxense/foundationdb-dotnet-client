@@ -124,7 +124,7 @@ namespace FoundationDB.Client
 
 		public override int GetHashCode()
 		{
-			return HashCodes.Combine(this.Begin.GetHashCode(), this.End.GetHashCode());
+			return HashCode.Combine(this.Begin.GetHashCode(), this.End.GetHashCode());
 		}
 
 		public bool Equals(KeyRange other)

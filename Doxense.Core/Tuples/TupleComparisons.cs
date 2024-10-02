@@ -60,9 +60,9 @@ namespace Doxense.Collections.Tuples
 				return x.Equals(y, m_comparer);
 			}
 
-			public int GetHashCode(IVarTuple obj)
+			public int GetHashCode(IVarTuple? obj)
 			{
-				return HashCodes.Compute(obj, m_comparer);
+				return obj?.GetHashCode(m_comparer) ?? 0;
 			}
 
 			public new bool Equals(object? x, object? y)

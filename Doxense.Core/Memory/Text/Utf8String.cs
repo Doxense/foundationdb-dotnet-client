@@ -239,8 +239,16 @@ namespace Doxense.Memory.Text
 		public bool Equals(Utf8String other)
 		{
 			return this.Length == other.Length
-			    && HashCodes.SameOrMissing(this.HashCode, other.HashCode)
+			    && SameOrMissingHashcode(this.HashCode, other.HashCode)
 			    && this.Buffer.Equals(other.Buffer);
+		}
+
+		/// <summary>Test that both hash codes, if present, have the same value</summary>
+		/// <returns>False IIF h1 != nul && h2 != null && h1 != h2; otherwise, True</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private static bool SameOrMissingHashcode(int? h1, int? h2)
+		{
+			return !h1.HasValue || !h2.HasValue || h1.Value == h2.Value;
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]

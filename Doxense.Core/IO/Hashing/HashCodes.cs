@@ -30,10 +30,11 @@ namespace System
 	using System.Runtime.CompilerServices;
 
 	/// <summary>Helper methods to work with hashcodes</summary>
+	/// <remarks>Use <see cref="System.HashCode"/> instead!</remarks>
 	[PublicAPI]
+	[Obsolete("You can now use System.Hashcode which is available via the runtime")]
 	public static class HashCodes
 	{
-		//REVIEW: déplacer dans le namespace "Doxense" tout court? => c'est utilisé dans des tonnes de classes Model POCO
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int Compute(long value)
@@ -148,7 +149,7 @@ namespace System
 		}
 
 		/// <summary>Test that both hash codes, if present, have the same value</summary>
-		/// <returns>False IIF h1 != nul && h2 != null && h1 != h2; otherisse, True</returns>
+		/// <returns>False IIF h1 != nul && h2 != null && h1 != h2; otherwise, True</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool SameOrMissing(int? h1, int? h2)
 		{

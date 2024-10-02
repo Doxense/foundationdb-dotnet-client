@@ -99,7 +99,7 @@ namespace FoundationDB.Client
 
 		public override int GetHashCode()
 		{
-			return HashCodes.Combine(this.Path.GetHashCode(), this.Layer.GetHashCode());
+			return HashCode.Combine(this.Path.GetHashCode(), this.Layer.GetHashCode());
 		}
 
 		public override bool Equals(object? obj)
