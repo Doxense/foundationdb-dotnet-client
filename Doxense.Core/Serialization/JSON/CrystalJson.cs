@@ -31,6 +31,7 @@
 namespace Doxense.Serialization.Json
 {
 	using System.Buffers;
+	using System.ComponentModel;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.IO;
@@ -1316,27 +1317,19 @@ namespace Doxense.Serialization.Json
 
 		#region Désérialisation directe...
 
-		/// <summary>Désérialise une chaîne de texte JSON en l'objet CLR le plus approprié</summary>
-		/// <param name="jsonText">Texte JSON à désérialiser</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Resolver optionnel</param>
-		/// <returns>Objet correspondant (dont le type dépend du contexte)</returns>
-		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
-		/// <remarks>A n'utiliser que si vous ne connaissez absolument pas le type attendu!</remarks>
+		/// <summary><b>DO NOT USE!</b></summary>
 		[Pure]
 		[Obsolete("Please avoid doing untyped deserialization!")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static object? DeserializeBoxed(string jsonText, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			return BindBoxed(Parse(jsonText, settings), null, resolver);
 		}
 
-		/// <summary>Désérialise une valeure JSON en l'objet CLR le plus approprié</summary>
-		/// <param name="value">Valeure JSON à désérialiser</param>
-		/// <param name="type"></param>
-		/// <param name="resolver">Resolver optionnel</param>
-		/// <returns>Objet correspondant (dont le type dépend du contexte)</returns>
-		/// <remarks>A n'utiliser que si vous ne connaissez absolument pas le type attendu!</remarks>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		/// <summary><b>DO NOT USE!</b></summary>
+		[Pure]
+		[Obsolete("Please avoid doing untyped deserialization!")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static object? BindBoxed(JsonValue? value, Type? type, ICrystalJsonTypeResolver? resolver = null)
 		{
 			return value == null ? null : (resolver ?? CrystalJson.DefaultResolver).BindJsonValue(type, value);
