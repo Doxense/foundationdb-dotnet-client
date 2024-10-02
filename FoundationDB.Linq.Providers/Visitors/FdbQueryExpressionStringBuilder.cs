@@ -26,10 +26,7 @@
 
 namespace FoundationDB.Linq.Expressions
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Collections.ObjectModel;
-	using System.Linq.Expressions;
 
 	/// <summary>Helper class for building a string representation of a FoundationDB LINQ Expression Tree</summary>
 	public class FdbQueryExpressionStringBuilder : FdbQueryExpressionVisitor

@@ -26,14 +26,9 @@
 
 namespace FoundationDB.Layers.Messaging
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Diagnostics;
 	using System.Security.Cryptography;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using FoundationDB.Client;
-	using FoundationDB.Filters.Logging;
 	using FoundationDB.Layers.Counters;
 
 	public class FdbWorkerMessage

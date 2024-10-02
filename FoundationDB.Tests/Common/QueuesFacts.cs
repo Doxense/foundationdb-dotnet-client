@@ -28,19 +28,7 @@
 
 namespace FoundationDB.Layers.Collections.Tests
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Diagnostics;
-	using System.Linq;
-	using System.Threading;
-	using System.Threading.Tasks;
 	using Doxense.Async;
-	using FoundationDB.Client;
-	using FoundationDB.Client.Tests;
-#if ENABLE_LOGGING
-	using FoundationDB.Filters.Logging;
-#endif
-	using NUnit.Framework;
 
 	[TestFixture]
 	public class QueuesFacts : FdbTest
@@ -54,34 +42,32 @@ namespace FoundationDB.Layers.Collections.Tests
 				await CleanLocation(db, location);
 
 #if ENABLE_LOGGING
-				var logged = db.Logged((tr) => Log(tr.Log.GetTimingsReport(true)));
-#else
-				var logged = db;
+				db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
 #endif
 
 				var queue = new FdbQueue<int>(location);
 
-				Log("Empty? " + queue.ReadAsync(logged, (tr, state) => state.EmptyAsync(tr), this.Cancellation));
+				Log("Empty? " + queue.ReadAsync(db, (tr, state) => state.EmptyAsync(tr), this.Cancellation));
 
 				Log("Push 10, 8, 6 in separate transactions");
-				await queue.WriteAsync(logged, (tr, state) => state.Push(tr, 10), this.Cancellation);
-				await queue.WriteAsync(logged, (tr, state) => state.Push(tr, 8), this.Cancellation);
-				await queue.WriteAsync(logged, (tr, state) => state.Push(tr, 6), this.Cancellation);
+				await queue.WriteAsync(db, (tr, state) => state.Push(tr, 10), this.Cancellation);
+				await queue.WriteAsync(db, (tr, state) => state.Push(tr, 8), this.Cancellation);
+				await queue.WriteAsync(db, (tr, state) => state.Push(tr, 6), this.Cancellation);
 
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
 
 				// Empty?
-				bool empty = await queue.ReadAsync(logged, (tr, state) => state.EmptyAsync(tr), this.Cancellation);
+				bool empty = await queue.ReadAsync(db, (tr, state) => state.EmptyAsync(tr), this.Cancellation);
 				Log("Empty? " + empty);
 				Assert.That(empty, Is.False);
 
-				var item = await queue.ReadWriteAsync(logged, (tr, state) => state.PopAsync(tr), this.Cancellation);
+				var item = await queue.ReadWriteAsync(db, (tr, state) => state.PopAsync(tr), this.Cancellation);
 				Log($"Pop item: {item}");
 				Assert.That(item.HasValue, Is.True);
 				Assert.That(item.Value, Is.EqualTo(10));
-				item = await queue.ReadWriteAsync(logged, (tr, state) => state.PeekAsync(tr), this.Cancellation);
+				item = await queue.ReadWriteAsync(db, (tr, state) => state.PeekAsync(tr), this.Cancellation);
 				Log($"Next item: {item}");
 				Assert.That(item.HasValue, Is.True);
 				Assert.That(item.Value, Is.EqualTo(8));
@@ -89,7 +75,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				await DumpSubspace(db, location);
 #endif
 
-				item = await queue.ReadWriteAsync(logged, (tr, state) => state.PopAsync(tr), this.Cancellation);
+				item = await queue.ReadWriteAsync(db, (tr, state) => state.PopAsync(tr), this.Cancellation);
 				Log($"Pop item: {item}");
 				Assert.That(item.HasValue, Is.True);
 				Assert.That(item.Value, Is.EqualTo(8));
@@ -97,7 +83,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				await DumpSubspace(db, location);
 #endif
 
-				item = await queue.ReadWriteAsync(logged, (tr, state) => state.PopAsync(tr), this.Cancellation);
+				item = await queue.ReadWriteAsync(db, (tr, state) => state.PopAsync(tr), this.Cancellation);
 				Log($"Pop item: {item}");
 				Assert.That(item.HasValue, Is.True);
 				Assert.That(item.Value, Is.EqualTo(6));
@@ -105,23 +91,23 @@ namespace FoundationDB.Layers.Collections.Tests
 				await DumpSubspace(db, location);
 #endif
 
-				empty = await queue.ReadAsync(logged, (tr, state) => state.EmptyAsync(tr), this.Cancellation);
+				empty = await queue.ReadAsync(db, (tr, state) => state.EmptyAsync(tr), this.Cancellation);
 				Log("Empty? " + empty);
 				Assert.That(empty, Is.True);
 
 				Log("Push 5");
-				await queue.WriteAsync(logged, (tr, state) => state.Push(tr, 5), this.Cancellation);
+				await queue.WriteAsync(db, (tr, state) => state.Push(tr, 5), this.Cancellation);
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
 
 				Log("Clear Queue");
-				await queue.WriteAsync(logged, (tr, state) => state.Clear(tr), this.Cancellation);
+				await queue.WriteAsync(db, (tr, state) => state.Clear(tr), this.Cancellation);
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
 
-				empty = await queue.ReadAsync(logged, (tr, state) => state.EmptyAsync(tr), this.Cancellation);
+				empty = await queue.ReadAsync(db, (tr, state) => state.EmptyAsync(tr), this.Cancellation);
 				Log("Empty? " + empty);
 				Assert.That(empty, Is.True);
 			}
@@ -136,15 +122,13 @@ namespace FoundationDB.Layers.Collections.Tests
 				await CleanLocation(db, location);
 
 #if ENABLE_LOGGING
-				var logged = db.Logged((tr) => Log(tr.Log.GetTimingsReport(true)));
-#else
-				var logged = db;
+				db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
 #endif
 
 				var queue = new FdbQueue<int>(location);
 
 				Log("Pushing 10 items in a batch...");
-				await queue.WriteAsync(logged, (tr, state) =>
+				await queue.WriteAsync(db, (tr, state) =>
 				{
 					for (int i = 0; i < 10; i++)
 					{
@@ -156,7 +140,7 @@ namespace FoundationDB.Layers.Collections.Tests
 #endif
 
 				Log("Popping 7 items in same transaction...");
-				await queue.WriteAsync(logged, async (tr, state) =>
+				await queue.WriteAsync(db, async (tr, state) =>
 				{
 					for (int i = 0; i < 7; i++)
 					{
@@ -170,11 +154,11 @@ namespace FoundationDB.Layers.Collections.Tests
 				await DumpSubspace(db, queue.Location);
 #endif
 
-				bool empty = await queue.ReadAsync(logged, (tr, state) => state.EmptyAsync(tr), this.Cancellation);
+				bool empty = await queue.ReadAsync(db, (tr, state) => state.EmptyAsync(tr), this.Cancellation);
 				Assert.That(empty, Is.False);
 
 				Log("Popping 3 + 1 items in another transaction...");
-				await queue.WriteAsync(logged, async (tr, state) =>
+				await queue.WriteAsync(db, async (tr, state) =>
 				{
 					// should be able to pop 3 items..
 
@@ -201,7 +185,7 @@ namespace FoundationDB.Layers.Collections.Tests
 
 				}, this.Cancellation);
 
-				empty = await queue.ReadAsync(logged, (tr, state) => state.EmptyAsync(tr), this.Cancellation);
+				empty = await queue.ReadAsync(db, (tr, state) => state.EmptyAsync(tr), this.Cancellation);
 				Assert.That(empty, Is.True);
 			}
 		}
@@ -355,12 +339,10 @@ namespace FoundationDB.Layers.Collections.Tests
 				await CleanLocation(db, location);
 
 #if ENABLE_LOGGING
-				var logged = db.Logged((tr) => Log(tr.Log.GetTimingsReport(true)));
-#else
-				var logged = db;
+				db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
 #endif
 
-				await RunMultiClientTest(logged, location, "simple queue", 4, NUM, this.Cancellation);
+				await RunMultiClientTest(db, location, "simple queue", 4, NUM, this.Cancellation);
 			}
 
 		}

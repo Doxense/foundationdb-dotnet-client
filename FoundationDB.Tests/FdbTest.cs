@@ -26,23 +26,15 @@
 
 namespace FoundationDB.Client.Tests
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Diagnostics;
-	using System.Globalization;
-	using System.Linq;
+
 	using System.Reflection;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 	using System.Text;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics;
 	using Doxense.Runtime.Comparison;
 	using Doxense.Serialization;
 	using Doxense.Serialization.Json;
-	using NUnit.Framework;
 	using NUnit.Framework.Internal;
 
 	/// <summary>Base class for all FoundationDB tests</summary>

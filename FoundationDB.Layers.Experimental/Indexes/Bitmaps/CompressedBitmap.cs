@@ -26,18 +26,16 @@
 
 namespace FoundationDB.Layers.Experimental.Indexing
 {
-	using System;
 	using System.Buffers;
 	using System.Buffers.Binary;
-	using System.Collections.Generic;
-	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
 
 	/// <summary>Represents a compressed vector of bits</summary>
 	[DebuggerDisplay("{Count} words: {m_bounds.Lowest}..{m_bounds.Highest}")]
 	public sealed class CompressedBitmap : IEnumerable<CompressedWord>, IDisposable
-	//TODO: convert to readonly struct!
 	{
+		//TODO: convert to readonly struct!
+
 		// A compressed bitmap is IMMUTABLE and ReadOnly
 
 		/// <summary>Returns a new instance of an empty bitmap</summary>

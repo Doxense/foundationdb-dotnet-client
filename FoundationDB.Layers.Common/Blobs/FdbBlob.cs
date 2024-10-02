@@ -26,19 +26,14 @@
 
 namespace FoundationDB.Layers.Blobs
 {
-	using System;
-	using System.Diagnostics;
 	using System.Globalization;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
-	using FoundationDB.Client;
-	using JetBrains.Annotations;
 
 	/// <summary>Represents a potentially large binary value in FoundationDB.</summary>
 	[DebuggerDisplay("Subspace={" + nameof(FdbBlob.Location) + "}")]
 	[PublicAPI]
 	public class FdbBlob : IFdbLayer<FdbBlob.State>
 	{
+
 		private const long CHUNK_LARGE = 10000; // all chunks will be not greater than this size
 		private const long CHUNK_SMALL = 200; // all adjacent chunks will sum to more than this size
 
@@ -63,6 +58,7 @@ namespace FoundationDB.Layers.Blobs
 
 		private readonly struct Chunk
 		{
+
 			public readonly Slice Key;
 
 			public readonly Slice Data;
@@ -75,6 +71,7 @@ namespace FoundationDB.Layers.Blobs
 				this.Data = data;
 				this.Offset = offset;
 			}
+
 		}
 
 		public async ValueTask<State> Resolve(IFdbReadOnlyTransaction tr)
@@ -218,7 +215,7 @@ namespace FoundationDB.Layers.Blobs
 			/// </summary>
 			public void Delete(IFdbTransaction trans)
 			{
-				if (trans == null) throw new ArgumentNullException(nameof(trans));
+				Contract.NotNull(trans);
 
 				trans.ClearRange(this.Subspace.ToRange());
 			}
@@ -229,7 +226,8 @@ namespace FoundationDB.Layers.Blobs
 			/// <returns>Return null if the blob does not exists, 0 if is empty, or the size in bytes</returns>
 			public Task<long?> GetSizeAsync(IFdbReadOnlyTransaction trans)
 			{
-				if (trans == null) throw new ArgumentNullException(nameof(trans));
+				Contract.NotNull(trans);
+
 				return GetSizeInternalAsync(trans);
 			}
 
@@ -241,7 +239,7 @@ namespace FoundationDB.Layers.Blobs
 				if (value.IsNullOrEmpty) return default(long?);
 
 				//note: python code stores the size as a string
-				long size = Int64.Parse(value.ToString());
+				long size = long.Parse(value.ToString());
 				if (size < 0) throw new InvalidOperationException("The internal blob size cannot be negative");
 				return size;
 			}
@@ -251,8 +249,8 @@ namespace FoundationDB.Layers.Blobs
 			/// </summary>
 			public async Task<Slice> ReadAsync(IFdbReadOnlyTransaction trans, long offset, int n)
 			{
-				if (trans == null) throw new ArgumentNullException(nameof(trans));
-				if (offset < 0) throw new ArgumentNullException(nameof(offset), "Offset cannot be less than zero");
+				Contract.NotNull(trans);
+				Contract.Positive(offset);
 
 				long? size = await GetSizeInternalAsync(trans).ConfigureAwait(false);
 				if (size == null) return Slice.Nil; // not found
@@ -302,8 +300,8 @@ namespace FoundationDB.Layers.Blobs
 			/// <summary>Write <paramref name="data"/> to the blob, starting at <paramref name="offset"/> and overwriting any existing data at that location. The length of the blob is increased if necessary.</summary>
 			public async Task WriteAsync(IFdbTransaction trans, long offset, ReadOnlyMemory<byte> data)
 			{
-				if (trans == null) throw new ArgumentNullException(nameof(trans));
-				if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset), "Offset cannot be less than zero");
+				Contract.NotNull(trans);
+				Contract.Positive(offset);
 
 				if (data.Length == 0) return;
 
@@ -334,7 +332,7 @@ namespace FoundationDB.Layers.Blobs
 			/// </summary>
 			public async Task AppendAsync(IFdbTransaction trans, ReadOnlyMemory<byte> data)
 			{
-				if (trans == null) throw new ArgumentNullException(nameof(trans));
+				Contract.NotNull(trans);
 
 				if (data.Length == 0) return;
 
@@ -357,8 +355,8 @@ namespace FoundationDB.Layers.Blobs
 			/// </summary>
 			public async Task TruncateAsync(IFdbTransaction trans, long newLength)
 			{
-				if (trans == null) throw new ArgumentNullException(nameof(trans));
-				if (newLength < 0) throw new ArgumentOutOfRangeException(nameof(newLength), "Length cannot be less than zero");
+				Contract.NotNull(trans);
+				Contract.Positive(newLength);
 
 				long? length = await GetSizeAsync(trans).ConfigureAwait(false);
 				if (length != null)

@@ -26,12 +26,8 @@
 
 namespace FoundationDB.Layers.Documents.Tests
 {
-	using System;
-	using System.Threading.Tasks;
-	using FoundationDB.Client.Tests;
 	using FoundationDB.Types.Json;
 	using FoundationDB.Types.ProtocolBuffers;
-	using NUnit.Framework;
 
 	[TestFixture]
 	public class DocumentCollectionFacts : FdbTest
@@ -48,8 +44,8 @@ namespace FoundationDB.Layers.Documents.Tests
 
 		private static Book[] GetBooks()
 		{
-			return new Book[]
-			{
+			return
+			[
 				new Book
 				{
 					Id = 42,
@@ -66,7 +62,7 @@ namespace FoundationDB.Layers.Documents.Tests
 					Published = new DateTime(1952, 1, 1),
 					Pages = 247
 				}
-			};
+			];
 		}
 
 		[Test]

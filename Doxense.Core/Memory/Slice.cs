@@ -297,6 +297,16 @@ namespace System
 			get => this.Count != 0;
 		}
 
+		public static void ThrowIfNull(Slice argument, string? message = null, [CallerArgumentExpression("argument")] string? paramName = null)
+		{
+			if (argument.IsNull) throw ThrowHelper.ArgumentException(paramName!, message ?? "Slice cannot be Nil");
+		}
+
+		public static void ThrowIfNullOrEmpty(Slice argument, string? message = null, [CallerArgumentExpression("argument")] string? paramName = null)
+		{
+			if (argument.IsNullOrEmpty) throw ThrowHelper.ArgumentException(paramName!, message ?? "Slice cannot be Nil or Empty");
+		}
+
 		/// <summary>Replace <see cref="Nil"/> with <see cref="Empty"/></summary>
 		/// <returns>The same slice if it is not <see cref="Nil"/>; otherwise, <see cref="Empty"/></returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]

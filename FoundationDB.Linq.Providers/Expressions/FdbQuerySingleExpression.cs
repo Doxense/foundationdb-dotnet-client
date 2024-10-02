@@ -26,14 +26,7 @@
 
 namespace FoundationDB.Linq.Expressions
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Globalization;
-	using System.Linq.Expressions;
 	using System.Reflection;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using FoundationDB.Client;
 
 	/// <summary>Base class of all queries that return a single element</summary>
 	/// <typeparam name="TSource">Type of the elements of the source sequence</typeparam>

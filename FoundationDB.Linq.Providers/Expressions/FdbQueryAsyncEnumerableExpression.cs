@@ -26,12 +26,6 @@
 
 namespace FoundationDB.Linq.Expressions
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Linq.Expressions;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using FoundationDB.Client;
 
 	/// <summary>Expression that uses an async sequence as the source of elements</summary>
 	public sealed class FdbQueryAsyncEnumerableExpression<T> : FdbQuerySequenceExpression<T>

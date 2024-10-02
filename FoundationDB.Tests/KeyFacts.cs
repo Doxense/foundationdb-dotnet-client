@@ -29,15 +29,7 @@
 
 namespace FoundationDB.Client.Tests
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Globalization;
-	using System.Linq;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Doxense.Collections.Tuples;
-	using FoundationDB.Client;
-	using NUnit.Framework;
 
 	[TestFixture]
 	public class KeyFacts : FdbTest

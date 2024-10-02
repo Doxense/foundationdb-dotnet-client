@@ -26,9 +26,7 @@
 
 namespace FoundationDB.Layers.Experimental.Indexing
 {
-	using System;
 	using System.Text;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
 
 	public static class WordAlignHybridEncoder
@@ -123,7 +121,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 			private bool FillRegister(ref ulong register, ref int bits)
 			{
-				Contract.Debug.Requires(bits >= 0 && bits < 31, "Bad bits " + bits);
+				Contract.Debug.Requires((uint) bits < 31, "Bad bits " + bits);
 
 				int remaining = m_remaining;
 				if (remaining == 0)
@@ -143,7 +141,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 				}
 				Paranoid.Assert(remaining >= 0);
 				bits = 64 - freeBits;
-				Paranoid.Assert(bits > 0 && bits <= 64, $"bits = {bits} free_bits = {freeBits}");
+				Paranoid.Assert((uint) bits <= 64, $"bits = {bits} free_bits = {freeBits}");
 
 				m_buffer = ptr;
 				m_remaining = remaining;
@@ -154,7 +152,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			/// <returns>Value of the next word, or <see cref="NotEnough"/> if there are not enough bits remaining</returns>
 			public uint Peek()
 			{
-				Contract.Debug.Requires(m_bits >= 0 && m_bits <= 64, "Number of bits is invalid " + m_bits);
+				Contract.Debug.Requires((uint) m_bits <= 64);
 
 				int bits = m_bits;
 				ulong register = m_register;

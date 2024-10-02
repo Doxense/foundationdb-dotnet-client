@@ -26,14 +26,7 @@
 
 namespace FoundationDB.Layers.Collections.Tests
 {
-	using System;
-	using System.Diagnostics;
 	using System.Text;
-	using System.Threading.Tasks;
-	using Doxense.Collections.Tuples;
-	using FoundationDB.Client;
-	using FoundationDB.Client.Tests;
-	using NUnit.Framework;
 
 	[TestFixture]
 	[Obsolete]

@@ -26,10 +26,8 @@
 
 namespace FoundationDB.Layers.Experimental.Indexing
 {
-	using System;
 	using System.Buffers;
 	using System.Runtime.CompilerServices;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
 
 	/// <summary>Writer that compresses a stream of bits into a <see cref="CompressedBitmap"/>, in memory</summary>

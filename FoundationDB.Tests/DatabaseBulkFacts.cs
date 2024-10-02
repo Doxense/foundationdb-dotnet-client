@@ -24,21 +24,17 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+#if DISABLED
+
 namespace FoundationDB.Client.Tests
 {
-	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.IO;
-	using System.Linq;
 	using System.Text;
 	using System.Threading;
-	using System.Threading.Tasks;
-	using FoundationDB.Client;
 	using FoundationDB.Filters.Logging;
-	using NUnit.Framework;
 
-#if DISABLED
 	[TestFixture]
 	public class DatabaseBulkFacts : FdbTest
 	{
@@ -720,11 +716,11 @@ namespace FoundationDB.Client.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var logged = db.Logged((tr) => Log(tr.Log.GetTimingsReport(true)));
+				db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
 
 				Log($"Bulk inserting {N:N0} items...");
 				var location = db.Directory["Bulk"]["Export"];
-				await CleanDirectory(logged, location);
+				await CleanDirectory(db, location);
 
 				Log("Preparing...");
 
@@ -737,7 +733,7 @@ namespace FoundationDB.Client.Tests
 				Log("Inserting...");
 
 				await Fdb.Bulk.WriteAsync(
-					logged.WithoutLogging(),
+					db.WithoutLogging(),
 					source.Select((x) => (location.Keys.Encode(x.Key), x.Value)),
 					this.Cancellation
 				);
@@ -749,7 +745,7 @@ namespace FoundationDB.Client.Tests
 				using (var file = File.CreateText(path))
 				{
 					double average = await Fdb.Bulk.ExportAsync(
-						logged,
+						db,
 						location.Keys.ToRange(),
 						async (xs, pos, ct) =>
 						{
@@ -777,12 +773,14 @@ namespace FoundationDB.Client.Tests
 				Log($"File size is {new FileInfo(path).Length:N0} bytes");
 
 				// cleanup because this test can produce a lot of data
-				await CleanDirectory(logged, location);
+				await CleanDirectory(db, location);
 
 				File.Delete(path);
 			}
 		}
 
 	}
-#endif
+
 }
+
+#endif

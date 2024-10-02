@@ -26,11 +26,6 @@
 
 namespace FoundationDB.Linq.Expressions
 {
-	using System;
-	using System.Linq.Expressions;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using FoundationDB.Client;
 
 	/// <summary>Base class of all query expression extensions</summary>
 	public abstract class FdbQueryExpression : Expression

@@ -26,12 +26,6 @@
 
 namespace FoundationDB.Layers.Counters
 {
-	using System;
-	using System.Diagnostics;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
-	using FoundationDB.Client;
-	using JetBrains.Annotations;
 
 	/// <summary>Providers a dictionary of 64-bit counters that can be updated atomically</summary>
 	/// <typeparam name="TKey">Type of the key in the counter map</typeparam>
@@ -66,8 +60,8 @@ namespace FoundationDB.Layers.Counters
 		/// <remarks>This operation will not cause the current transaction to conflict. It may create conflicts for transactions that would read the value of the counter.</remarks>
 		public void Add(IFdbTransaction transaction, TKey counterKey, long value)
 		{
-			if (transaction == null) throw new ArgumentNullException(nameof(transaction));
-			if (counterKey == null) throw new ArgumentNullException(nameof(counterKey));
+			Contract.NotNull(transaction);
+			Contract.NotNull(counterKey);
 
 			//REVIEW: we could no-op if value == 0 but this may change conflict behaviour for other transactions...
 			transaction.AtomicAdd64(this.Location[counterKey], value);
@@ -79,27 +73,21 @@ namespace FoundationDB.Layers.Counters
 		/// <param name="value">Value that will be subtracted. If the value is zero</param>
 		/// <remarks>This operation will not cause the current transaction to conflict. It may create conflicts for transactions that would read the value of the counter.</remarks>
 		public void Subtract(IFdbTransaction transaction, TKey counterKey, long value)
-		{
-			Add(transaction, counterKey, -value);
-		}
+			=> Add(transaction, counterKey, -value);
 
 		/// <summary>Increment the value of a counter in one atomic operation</summary>
 		/// <param name="transaction">Transaction to use for the operation</param>
 		/// <param name="counterKey">Key of the counter, relative to the list's subspace</param>
 		/// <remarks>This operation will not cause the current transaction to conflict. It may create conflicts for transactions that would read the value of the counter.</remarks>
 		public void Increment(IFdbTransaction transaction, TKey counterKey)
-		{
-			Add(transaction, counterKey, 1);
-		}
+			=> Add(transaction, counterKey, 1);
 
 		/// <summary>Decrement the value of a counter in one atomic operation</summary>
 		/// <param name="transaction">Transaction to use for the operation</param>
 		/// <param name="counterKey">Key of the counter, relative to the list's subspace</param>
 		/// <remarks>This operation will not cause the current transaction to conflict. It may create conflicts for transactions that would read the value of the counter.</remarks>
 		public void Decrement(IFdbTransaction transaction, TKey counterKey)
-		{
-			Add(transaction, counterKey, -1);
-		}
+			=> Add(transaction, counterKey, -1);
 
 		/// <summary>Read the value of a counter</summary>
 		/// <param name="transaction">Transaction to use for the operation</param>
@@ -107,8 +95,8 @@ namespace FoundationDB.Layers.Counters
 		/// <returns></returns>
 		public async Task<long?> ReadAsync(IFdbReadOnlyTransaction transaction, TKey counterKey)
 		{
-			if (transaction == null) throw new ArgumentNullException(nameof(transaction));
-			if (counterKey == null) throw new ArgumentNullException(nameof(counterKey));
+			Contract.NotNull(transaction);
+			Contract.NotNull(counterKey);
 
 			var data = await transaction.GetAsync(this.Location[counterKey]).ConfigureAwait(false);
 			if (data.IsNullOrEmpty) return default;
@@ -123,8 +111,8 @@ namespace FoundationDB.Layers.Counters
 		/// <remarks>This method WILL conflict with other transactions!</remarks>
 		public async Task<long> AddThenReadAsync(IFdbTransaction transaction, TKey counterKey, long value)
 		{
-			if (transaction == null) throw new ArgumentNullException(nameof(transaction));
-			if (counterKey == null) throw new ArgumentNullException(nameof(counterKey));
+			Contract.NotNull(transaction);
+			Contract.NotNull(counterKey);
 
 			var key = this.Location[counterKey];
 			var res = await transaction.GetAsync(key).ConfigureAwait(false);
@@ -136,19 +124,13 @@ namespace FoundationDB.Layers.Counters
 		}
 
 		public Task<long> SubtractThenReadAsync(IFdbTransaction transaction, TKey counterKey, long value)
-		{
-			return AddThenReadAsync(transaction, counterKey, -value);
-		}
+			=> AddThenReadAsync(transaction, counterKey, -value);
 
 		public Task<long> IncrementThenReadAsync(IFdbTransaction transaction, TKey counterKey)
-		{
-			return AddThenReadAsync(transaction, counterKey, 1);
-		}
+			=> AddThenReadAsync(transaction, counterKey, 1);
 
 		public Task<long> DecrementThenReadAsync(IFdbTransaction transaction, TKey counterKey)
-		{
-			return AddThenReadAsync(transaction, counterKey, -1);
-		}
+			=> AddThenReadAsync(transaction, counterKey, -1);
 
 		/// <summary>Adds a value to a counter, but return its previous value.</summary>
 		/// <param name="transaction">Transaction to use for the operation</param>
@@ -158,8 +140,8 @@ namespace FoundationDB.Layers.Counters
 		/// <remarks>This method WILL conflict with other transactions!</remarks>
 		public async Task<long> ReadThenAddAsync(IFdbTransaction transaction, TKey counterKey, long value)
 		{
-			if (transaction == null) throw new ArgumentNullException(nameof(transaction));
-			if (counterKey == null) throw new ArgumentNullException(nameof(counterKey));
+			Contract.NotNull(transaction);
+			Contract.NotNull(counterKey);
 
 			var key = this.Location[counterKey];
 			var res = await transaction.GetAsync(key).ConfigureAwait(false);
@@ -171,19 +153,13 @@ namespace FoundationDB.Layers.Counters
 		}
 
 		public Task<long> ReadThenSubtractAsync(IFdbTransaction transaction, TKey counterKey, long value)
-		{
-			return ReadThenAddAsync(transaction, counterKey, -value);
-		}
+			=> ReadThenAddAsync(transaction, counterKey, -value);
 
 		public Task<long> ReadThenIncrementAsync(IFdbTransaction transaction, TKey counterKey)
-		{
-			return ReadThenAddAsync(transaction, counterKey, 1);
-		}
+			=> ReadThenAddAsync(transaction, counterKey, 1);
 
 		public Task<long> ReadThenDecrementAsync(IFdbTransaction transaction, TKey counterKey)
-		{
-			return ReadThenAddAsync(transaction, counterKey, -1);
-		}
+			=> ReadThenAddAsync(transaction, counterKey, -1);
 
 	}
 

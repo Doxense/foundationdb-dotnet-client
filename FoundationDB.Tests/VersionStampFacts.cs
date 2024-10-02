@@ -26,9 +26,6 @@
 
 namespace FoundationDB.Client.Tests
 {
-	using System;
-	using Doxense.Memory;
-	using NUnit.Framework;
 
 	[TestFixture]
 	public class VersionStampFacts : FdbTest

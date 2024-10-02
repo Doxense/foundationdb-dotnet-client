@@ -26,17 +26,17 @@
 
 namespace FoundationDB.Layers.Experimental.Indexing
 {
-	using System.Diagnostics;
 	using System.Globalization;
 	using System.Numerics;
 	using System.Runtime.CompilerServices;
-	using Doxense.Diagnostics.Contracts;
 
 	/// <summary>Represent a 32-bit word in a Compressed Bitmap</summary>
 	[DebuggerDisplay("Literal={IsLiteral}, {WordCount} x {WordValue}")]
 	public readonly struct CompressedWord
 	{
+
 		internal const uint ALL_ZEROES = 0x0;
+
 		internal const uint ALL_ONES = 0x7FFFFFFF;
 
 		/// <summary>Return the raw 32-bit value of this word</summary>

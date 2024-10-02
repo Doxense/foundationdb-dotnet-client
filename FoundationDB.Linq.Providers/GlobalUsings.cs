@@ -1,4 +1,13 @@
+global using System;
+global using System.Collections.Generic;
+global using System.Globalization;
+global using System.Linq.Expressions;
+global using System.Threading;
+global using System.Threading.Tasks;
 global using Doxense.Diagnostics.Contracts;
+global using Doxense.Linq;
+global using FoundationDB.Client;
+global using FoundationDB.Linq.Expressions;
 
 // JetBrains Annotations
 global using CollectionAccessAttribute = JetBrains.Annotations.CollectionAccessAttribute;

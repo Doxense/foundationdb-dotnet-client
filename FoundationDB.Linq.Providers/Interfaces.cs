@@ -26,12 +26,7 @@
 
 namespace FoundationDB.Linq
 {
-	using System;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using FoundationDB.Client;
 	using FoundationDB.Layers.Indexing;
-	using FoundationDB.Linq.Expressions;
 
 	/// <summary>Base interface of all queryable objects</summary>
 	public interface IFdbAsyncQueryable
@@ -69,13 +64,13 @@ namespace FoundationDB.Linq
 		IFdbAsyncQueryable CreateQuery(FdbQueryExpression expression);
 
 		/// <summary>Wraps a typed query expression into a new queryable</summary>
-		IFdbAsyncQueryable<R> CreateQuery<R>(FdbQueryExpression<R> expression);
+		IFdbAsyncQueryable<TResult> CreateQuery<TResult>(FdbQueryExpression<TResult> expression);
 
 		/// <summary>Wraps a type sequence query expression into a new queryable</summary>
-		IFdbAsyncSequenceQueryable<R> CreateSequenceQuery<R>(FdbQuerySequenceExpression<R> expression);
+		IFdbAsyncSequenceQueryable<TResult> CreateSequenceQuery<TResult>(FdbQuerySequenceExpression<TResult> expression);
 
 		/// <summary>Execute a query expression into a typed result</summary>
-		Task<R> ExecuteAsync<R>(FdbQueryExpression expression, CancellationToken ct = default(CancellationToken));
+		Task<TResult> ExecuteAsync<TResult>(FdbQueryExpression expression, CancellationToken ct = default);
 	}
 
 	/// <summary>Queryable transaction</summary>

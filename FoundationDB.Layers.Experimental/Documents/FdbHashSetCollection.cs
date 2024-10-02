@@ -26,13 +26,8 @@
 
 namespace FoundationDB.Layers.Blobs
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Threading.Tasks;
 	using Doxense.Collections.Tuples;
-	using Doxense.Diagnostics.Contracts;
-	using FoundationDB.Client;
-	using JetBrains.Annotations;
 
 	// THIS IS NOT AN OFFICIAL LAYER, JUST A PROTOTYPE TO TEST A FEW THINGS !
 
@@ -43,7 +38,7 @@ namespace FoundationDB.Layers.Blobs
 
 		public FdbHashSetCollection(IKeySubspace subspace)
 		{
-			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
+			Contract.NotNull(subspace);
 
 			this.Subspace = subspace.AsDynamic();
 		}
@@ -52,8 +47,6 @@ namespace FoundationDB.Layers.Blobs
 		public IDynamicKeySubspace Subspace { get; }
 
 		/// <summary>Returns the key prefix of an HashSet: (subspace, id, )</summary>
-		/// <param name="id"></param>
-		/// <returns></returns>
 		protected virtual Slice GetKey(IVarTuple id)
 		{
 			//REVIEW: should the id be encoded as a an embedded tuple or not?
@@ -61,9 +54,6 @@ namespace FoundationDB.Layers.Blobs
 		}
 
 		/// <summary>Returns the key of a specific field of an HashSet: (subspace, id, field, )</summary>
-		/// <param name="id"></param>
-		/// <param name="field"></param>
-		/// <returns></returns>
 		protected virtual Slice GetFieldKey(IVarTuple id, string field)
 		{
 			//REVIEW: should the id be encoded as a an embedded tuple or not?
@@ -77,28 +67,28 @@ namespace FoundationDB.Layers.Blobs
 
 		#region Get
 
-		/// <summary>Return the value of a specific field of an hashset</summary>
+		/// <summary>Returns the value of a specific field of an hashset</summary>
 		/// <param name="trans">Transaction that will be used for this request</param>
 		/// <param name="id">Unique identifier of the hashset</param>
 		/// <param name="field">Name of the field to read</param>
 		/// <returns>Value of the corresponding field, or <see cref="Slice.Nil"/> if it the hashset does not exist, or doesn't have a field with this name</returns>
 		public Task<Slice> GetValueAsync(IFdbReadOnlyTransaction trans, IVarTuple id, string field)
 		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
-			if (id == null) throw new ArgumentNullException(nameof(id));
-			if (string.IsNullOrEmpty(field)) throw new ArgumentNullException(nameof(field));
+			Contract.NotNull(trans);
+			Contract.NotNull(id);
+			Contract.NotNullOrEmpty(field);
 
 			return trans.GetAsync(GetFieldKey(id, field));
 		}
 
-		/// <summary>Return all fields of an hashset</summary>
+		/// <summary>Returns all fields of an hashset</summary>
 		/// <param name="trans">Transaction that will be used for this request</param>
 		/// <param name="id">Unique identifier of the hashset</param>
 		/// <returns>Dictionary containing, for all fields, their associated values</returns>
 		public async Task<IDictionary<string, Slice>> GetAsync(IFdbReadOnlyTransaction trans, IVarTuple id)
 		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
-			if (id == null) throw new ArgumentNullException(nameof(id));
+			Contract.NotNull(trans);
+			Contract.NotNull(id);
 
 			var prefix = GetKey(id);
 			var results = new Dictionary<string, Slice>(StringComparer.OrdinalIgnoreCase);
@@ -115,16 +105,16 @@ namespace FoundationDB.Layers.Blobs
 			return results;
 		}
 
-		/// <summary>Return one or more fields of an hashset</summary>
+		/// <summary>Returns one or more fields of an hashset</summary>
 		/// <param name="trans">Transaction that will be used for this request</param>
 		/// <param name="id">Unique identifier of the hashset</param>
 		/// <param name="fields">List of the fields to read</param>
 		/// <returns>Dictionary containing the values of the selected fields, or <see cref="Slice.Empty"/> if that particular field does not exist.</returns>
 		public async Task<IDictionary<string, Slice>> GetAsync(IFdbReadOnlyTransaction trans, IVarTuple id, params string[] fields)
 		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
-			if (id == null) throw new ArgumentNullException(nameof(id));
-			if (fields == null) throw new ArgumentNullException(nameof(fields));
+			Contract.NotNull(trans);
+			Contract.NotNull(id);
+			Contract.NotNull(fields);
 
 			var keys = TuPack.EncodePrefixedKeys(GetKey(id), fields);
 
@@ -145,18 +135,18 @@ namespace FoundationDB.Layers.Blobs
 
 		public void SetValue(IFdbTransaction trans, IVarTuple id, string field, Slice value)
 		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
-			if (id == null) throw new ArgumentNullException(nameof(id));
-			if (string.IsNullOrEmpty(field)) throw new ArgumentNullException(nameof(field));
+			Contract.NotNull(trans);
+			Contract.NotNull(id);
+			Contract.NotNullOrEmpty(field);
 
 			trans.Set(GetFieldKey(id, field), value);
 		}
 
 		public void Set(IFdbTransaction trans, IVarTuple id, IEnumerable<KeyValuePair<string, Slice>> fields)
 		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
-			if (id == null) throw new ArgumentNullException(nameof(id));
-			if (fields == null) throw new ArgumentNullException(nameof(fields));
+			Contract.NotNull(trans);
+			Contract.NotNull(id);
+			Contract.NotNull(fields);
 
 			foreach (var field in fields)
 			{
@@ -169,32 +159,32 @@ namespace FoundationDB.Layers.Blobs
 
 		#region Delete
 
-		/// <summary>Remove a field of an hashset</summary>
+		/// <summary>Removes a field of an hashset</summary>
 		public void DeleteValue(IFdbTransaction trans, IVarTuple id, string field)
 		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
-			if (id == null) throw new ArgumentNullException(nameof(id));
-			if (string.IsNullOrEmpty(field)) throw new ArgumentNullException(nameof(field));
+			Contract.NotNull(trans);
+			Contract.NotNull(id);
+			Contract.NotNullOrEmpty(field);
 
 			trans.Clear(GetFieldKey(id, field));
 		}
 
-		/// <summary>Remove all fields of an hashset</summary>
+		/// <summary>Removes all fields of an hashset</summary>
 		public void Delete(IFdbTransaction trans, IVarTuple id)
 		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
-			if (id == null) throw new ArgumentNullException(nameof(id));
+			Contract.NotNull(trans);
+			Contract.NotNull(id);
 
 			// remove all fields of the hash
 			trans.ClearRange(KeyRange.StartsWith(GetKey(id)));
 		}
 
-		/// <summary>Remove one or more fields of an hashset</summary>
+		/// <summary>Removes one or more fields of an hashset</summary>
 		public void Delete(IFdbTransaction trans, IVarTuple id, params string[] fields)
 		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
-			if (id == null) throw new ArgumentNullException(nameof(id));
-			if (fields == null) throw new ArgumentNullException(nameof(fields));
+			Contract.NotNull(trans);
+			Contract.NotNull(id);
+			Contract.NotNull(fields);
 
 			foreach (var field in fields)
 			{
@@ -207,14 +197,14 @@ namespace FoundationDB.Layers.Blobs
 
 		#region Keys
 
-		/// <summary>Return the list the names of all fields of an hashset</summary>
+		/// <summary>Returns the list the names of all fields of an hashset</summary>
 		/// <param name="trans">Transaction that will be used for this request</param>
 		/// <param name="id">Unique identifier of the hashset</param>
 		/// <returns>List of all fields. If the list is empty, the hashset does not exist</returns>
 		public Task<List<string>> GetKeys(IFdbReadOnlyTransaction trans, IVarTuple id)
 		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
-			if (id == null) throw new ArgumentNullException(nameof(id));
+			Contract.NotNull(trans);
+			Contract.NotNull(id);
 
 			var prefix = GetKey(id);
 			return trans
@@ -224,6 +214,7 @@ namespace FoundationDB.Layers.Blobs
 		}
 
 		#endregion
+
 	}
 
 }

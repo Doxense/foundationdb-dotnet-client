@@ -26,13 +26,7 @@
 
 namespace FoundationDB.Layers.Collections
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Diagnostics;
-	using System.Threading.Tasks;
 	using Doxense.Linq;
-	using FoundationDB.Client;
-	using JetBrains.Annotations;
 
 	/// <summary>Multimap that tracks the number of times a specific key/value pair has been inserted or removed.</summary>
 	/// <typeparam name="TKey">Type of the keys of the map</typeparam>
@@ -41,6 +35,7 @@ namespace FoundationDB.Layers.Collections
 	[PublicAPI]
 	public class FdbMultiMap<TKey, TValue> : IFdbLayer<FdbMultiMap<TKey, TValue>.State>
 	{
+
 		// Inspired by https://apple.github.io/foundationdb/multimaps.html
 		// It is the logical equivalent of a Map<KeyValuePair<TKey, TValue>, long> where the value would be incremented each time a specific pair of (key, value) is added (and subtracted when removed)
 
@@ -98,7 +93,7 @@ namespace FoundationDB.Layers.Collections
 			public void Add(IFdbTransaction trans, TKey key, TValue value)
 			{
 				//note: this method does not need to be async, but subtract is, so it's better if both methods have the same shape.
-				if (trans == null) throw new ArgumentNullException(nameof(trans));
+				Contract.NotNull(trans);
 
 				trans.AtomicIncrement64(this.Subspace[key, value]);
 			}
@@ -110,7 +105,7 @@ namespace FoundationDB.Layers.Collections
 			/// <remarks>If the updated count reaches zero or less, and AllowNegativeValues is not set, the key will be cleared from the map.</remarks>
 			public void Subtract(IFdbTransaction trans, TKey key, TValue value)
 			{
-				if (trans == null) throw new ArgumentNullException(nameof(trans));
+				Contract.NotNull(trans);
 
 				// decrement, and optionally clear the key if it reaches zero
 				trans.AtomicDecrement64(this.Subspace[key, value], clearIfZero: !this.AllowNegativeValues);
@@ -119,7 +114,7 @@ namespace FoundationDB.Layers.Collections
 			/// <summary>Checks if a (key, value) pair exists</summary>
 			public async Task<bool> ContainsAsync(IFdbReadOnlyTransaction trans, TKey key, TValue value)
 			{
-				if (trans == null) throw new ArgumentNullException(nameof(trans));
+				Contract.NotNull(trans);
 
 				var v = await trans.GetAsync(this.Subspace[key, value]).ConfigureAwait(false);
 				return this.AllowNegativeValues ? v.IsPresent : v.ToInt64() > 0;
@@ -133,7 +128,7 @@ namespace FoundationDB.Layers.Collections
 			/// <remarks>The count can be zero or negative if AllowNegativeValues is enable.</remarks>
 			public async Task<long?> GetCountAsync(IFdbReadOnlyTransaction trans, TKey key, TValue value)
 			{
-				if (trans == null) throw new ArgumentNullException(nameof(trans));
+				Contract.NotNull(trans);
 
 				var v = await trans.GetAsync(this.Subspace[key, value]).ConfigureAwait(false);
 				if (v.IsNullOrEmpty) return null;
@@ -147,7 +142,7 @@ namespace FoundationDB.Layers.Collections
 			/// <returns></returns>
 			public IAsyncEnumerable<TValue?> Get(IFdbReadOnlyTransaction trans, TKey key)
 			{
-				if (trans == null) throw new ArgumentNullException(nameof(trans));
+				Contract.NotNull(trans);
 
 				var range = KeyRange.StartsWith(this.Subspace.EncodePartial(key));
 				if (this.AllowNegativeValues)
@@ -194,7 +189,7 @@ namespace FoundationDB.Layers.Collections
 			/// <summary>Remove all the values for a specific key</summary>
 			public void Remove(IFdbTransaction trans, TKey key)
 			{
-				if (trans == null) throw new ArgumentNullException(nameof(trans));
+				Contract.NotNull(trans);
 
 				trans.ClearRange(KeyRange.StartsWith(this.Subspace.EncodePartial(key)));
 			}
@@ -202,7 +197,7 @@ namespace FoundationDB.Layers.Collections
 			/// <summary>Remove a value for a specific key</summary>
 			public void Remove(IFdbTransaction trans, TKey key, TValue value)
 			{
-				if (trans == null) throw new ArgumentNullException(nameof(trans));
+				Contract.NotNull(trans);
 
 				trans.Clear(this.Subspace[key, value]);
 			}
@@ -214,7 +209,8 @@ namespace FoundationDB.Layers.Collections
 		public async ValueTask<State> Resolve(IFdbReadOnlyTransaction tr)
 		{
 			var subspace = await this.Location.Resolve(tr);
-			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location} referenced by MultiMap Layer was not found.");
+			if (subspace is null) throw new InvalidOperationException($"Location '{this.Location} referenced by MultiMap Layer was not found.");
+
 			return new State(subspace, this.AllowNegativeValues);
 		}
 

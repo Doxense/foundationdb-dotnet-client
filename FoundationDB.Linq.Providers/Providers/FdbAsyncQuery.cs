@@ -26,14 +26,7 @@
 
 namespace FoundationDB.Linq.Providers
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Runtime.CompilerServices;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Doxense.Linq;
-	using FoundationDB.Client;
-	using FoundationDB.Linq.Expressions;
 
 	/// <summary>Base class for all Async LINQ queries</summary>
 	/// <typeparam name="T">Type of the items returned by this query. Single queries return a single <typeparamref name="T"/> while Sequence queries will return a <see cref="List{T}"/></typeparam>

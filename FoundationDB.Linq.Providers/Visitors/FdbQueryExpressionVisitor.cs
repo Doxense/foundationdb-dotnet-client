@@ -26,8 +26,6 @@
 
 namespace FoundationDB.Linq.Expressions
 {
-	using System;
-	using System.Linq.Expressions;
 
 	/// <summary>Base class for FoundationDB LINQ Expression Tree visitors</summary>
 	public abstract class FdbQueryExpressionVisitor:  ExpressionVisitor

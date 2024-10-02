@@ -26,12 +26,8 @@
 
 namespace Doxense.Collections.Tuples.Tests
 {
-	using System;
-	using Doxense.Collections.Tuples;
 	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Memory;
-	using FoundationDB.Client.Tests;
-	using NUnit.Framework;
 
 	[TestFixture]
 	public class TupleTypeCodecFacts : FdbTest

@@ -26,16 +26,10 @@
 
 namespace FoundationDB.Layers.Experimental.Indexing
 {
-	using System;
 	using System.Buffers;
-	using System.Collections.Generic;
-	using System.Diagnostics;
 	using System.Globalization;
 	using System.Linq;
 	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
-	using FoundationDB.Client;
-	using JetBrains.Annotations;
 
 	/// <summary>Simple index that maps values of type <typeparamref name="TValue"/> into lists of numerical ids</summary>
 	/// <typeparam name="TValue">Type of the value being indexed</typeparam>
@@ -65,11 +59,11 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 		public IEqualityComparer<TValue> ValueComparer { get; }
 
-		/// <summary>If true, null values are inserted in the index. If false (default), they are ignored</summary>
+		/// <summary>If <see langword="true"/>, null values are inserted in the index. If <see langword="false"/> (default), they are ignored</summary>
 		/// <remarks>This has no effect if <typeparamref name="TValue" /> is not a reference type</remarks>
 		public bool IndexNullValues { get; }
 
-		/// <summary>Insert a newly created entity to the index</summary>
+		/// <summary>Inserts a newly created entity to the index</summary>
 		/// <param name="trans">Transaction to use</param>
 		/// <param name="id">Id of the new entity (that was never indexed before)</param>
 		/// <param name="value">Value of this entity in the index</param>
@@ -94,7 +88,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			return false;
 		}
 
-		/// <summary>Update the indexed values of an entity</summary>
+		/// <summary>Updates the indexed values of an entity</summary>
 		/// <param name="trans">Transaction to use</param>
 		/// <param name="id">Id of the entity that has changed</param>
 		/// <param name="newValue">Previous value of this entity in the index</param>
@@ -141,7 +135,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			return false;
 		}
 
-		/// <summary>Remove an entity from the index</summary>
+		/// <summary>Removes an entity from the index</summary>
 		/// <param name="trans">Transaction to use</param>
 		/// <param name="id">Id of the entity that has been deleted</param>
 		/// <param name="value">Previous value of the entity in the index</param>
@@ -176,13 +170,10 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			if (data.IsEmpty) return Enumerable.Empty<long>();
 			var bitmap = new CompressedBitmap(data);
 			if (reverse) throw new NotImplementedException(); //TODO: GetView(reverse:true) !
-			return bitmap.GetView().Select(x => (long) x /*BUGBUG 64 bits*/);
+			return bitmap.GetView();
 		}
 		
-		public override string ToString()
-		{
-			return string.Format(CultureInfo.InvariantCulture, "BitmapIndex['{0}']", this.Name);
-		}
+		public override string ToString() => string.Create(CultureInfo.InvariantCulture, $"BitmapIndex['{this.Name}']");
 
 	}
 

@@ -28,13 +28,8 @@
 
 namespace FoundationDB.Layers.Interning
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Diagnostics;
 	using System.Security.Cryptography;
 	using System.Threading;
-	using System.Threading.Tasks;
-	using FoundationDB.Client;
 
 	/// <summary>Provides a class for interning (aka normalizing, aliasing) commonly-used long strings into shorter representations.</summary>
 	[DebuggerDisplay("Location={Location}")]

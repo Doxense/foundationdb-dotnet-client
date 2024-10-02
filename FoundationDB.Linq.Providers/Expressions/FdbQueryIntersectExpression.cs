@@ -26,10 +26,6 @@
 
 namespace FoundationDB.Linq.Expressions
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Linq.Expressions;
-	using FoundationDB.Client;
 
 	/// <summary>Mode of execution of a merge operation</summary>
 	public enum FdbQueryMergeType

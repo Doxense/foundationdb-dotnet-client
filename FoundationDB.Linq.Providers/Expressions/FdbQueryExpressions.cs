@@ -26,13 +26,7 @@
 
 namespace FoundationDB.Linq.Expressions
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Linq.Expressions;
-	using System.Threading;
-	using System.Threading.Tasks;
 	using Doxense.Collections.Tuples;
-	using FoundationDB.Client;
 
 	/// <summary>Helper class to construct Query Expressions</summary>
 	public static class FdbQueryExpressions

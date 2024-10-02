@@ -26,15 +26,9 @@
 
 namespace FoundationDB.Linq.Tests
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Threading.Tasks;
-	using FoundationDB.Client;
-	using FoundationDB.Client.Tests;
 	using FoundationDB.Layers.Indexing;
 	using FoundationDB.Linq.Expressions;
 	using FoundationDB.Linq.Providers;
-	using NUnit.Framework;
 
 	[TestFixture]
 	public class AsyncQueryableFacts : FdbTest

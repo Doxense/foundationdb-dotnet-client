@@ -32,17 +32,8 @@
 
 namespace FoundationDB.Client.Tests
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
-	using System.Linq;
-	using System.Threading.Tasks;
-	using Doxense.Collections.Tuples;
-	using FoundationDB.Client;
-	using FoundationDB.Filters.Logging;
 	using FoundationDB.Layers.Allocators;
-	using NUnit.Framework;
 	using NUnit.Framework.Constraints;
 
 	[TestFixture]

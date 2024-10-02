@@ -26,18 +26,9 @@
 
 namespace FoundationDB.Layers.Collections
 {
-	using System;
-	using System.Diagnostics;
 	using System.Threading;
-	using System.Threading.Tasks;
 	using Doxense.Collections.Tuples;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization.Encoders;
-	using FoundationDB.Client;
-	using JetBrains.Annotations;
-#if DEBUG
-	using FoundationDB.Filters.Logging;
-#endif
 
 	/// <summary>Provides a high-contention Queue class</summary>
 	[DebuggerDisplay("Location={Location}")]
@@ -102,7 +93,7 @@ namespace FoundationDB.Layers.Collections
 				Contract.NotNull(tr);
 
 #if DEBUG
-				tr.Annotate("Push({0})", value);
+				tr.Annotate($"Push({value})");
 #endif
 
 				//BUGBUG: can be called multiple times per transaction, so need a unique stamp _per_ transaction!!

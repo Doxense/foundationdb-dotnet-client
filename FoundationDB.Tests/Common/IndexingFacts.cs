@@ -26,15 +26,7 @@
 
 namespace FoundationDB.Layers.Tables.Tests
 {
-	using System.Collections.Generic;
-	using System.Linq;
-	using System.Threading.Tasks;
-	using System;
-	using Doxense.Linq;
-	using FoundationDB.Client;
-	using FoundationDB.Client.Tests;
 	using FoundationDB.Layers.Indexing;
-	using NUnit.Framework;
 
 	[TestFixture]
 	public class IndexingFacts : FdbTest

@@ -26,11 +26,6 @@
 
 namespace FoundationDB.Linq.Expressions
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Globalization;
-	using System.Linq.Expressions;
-	using FoundationDB.Client;
 	using FoundationDB.Layers.Indexing;
 
 	/// <summary>Expression that represents a lookup on an FdbIndex</summary>

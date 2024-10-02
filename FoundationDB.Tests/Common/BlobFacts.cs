@@ -26,11 +26,6 @@
 
 namespace FoundationDB.Layers.Blobs.Tests
 {
-	using System;
-	using System.Threading.Tasks;
-	using FoundationDB.Client;
-	using FoundationDB.Client.Tests;
-	using NUnit.Framework;
 
 	[TestFixture]
 	public class BlobFacts : FdbTest

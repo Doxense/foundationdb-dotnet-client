@@ -26,16 +26,9 @@
 
 namespace FoundationDB.Layers.Collections
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Diagnostics;
 	using System.Linq;
 	using System.Threading;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization.Encoders;
-	using FoundationDB.Client;
-	using JetBrains.Annotations;
 
 	[DebuggerDisplay("Location={Location}")]
 	[PublicAPI]
@@ -72,7 +65,7 @@ namespace FoundationDB.Layers.Collections
 
 			internal State(ITypedKeySubspace<TKey> subspace, IValueEncoder<TValue?> encoder)
 			{
-				Contract.Debug.Requires(subspace != null && encoder != null);
+				Contract.Debug.Requires(subspace is not null && encoder is not null);
 				this.Subspace = subspace;
 				this.ValueEncoder = encoder;
 			}
@@ -87,8 +80,8 @@ namespace FoundationDB.Layers.Collections
 			/// <exception cref="System.Collections.Generic.KeyNotFoundException">If the map does not contain an entry with this key.</exception>
 			public async Task<TValue> GetAsync(IFdbReadOnlyTransaction trans, TKey id)
 			{
-				if (trans == null) throw new ArgumentNullException(nameof(trans));
-				if (id == null) throw new ArgumentNullException(nameof(id));
+				Contract.NotNull(trans);
+				Contract.NotNull(id);
 
 				var data = await trans.GetAsync(this.Subspace[id]).ConfigureAwait(false);
 
@@ -102,8 +95,8 @@ namespace FoundationDB.Layers.Collections
 			/// <returns>Optional with the value of the entry it it exists, or an empty result if it is not present in the map.</returns>
 			public async Task<(TValue? Value, bool HasValue)> TryGetAsync(IFdbReadOnlyTransaction trans, TKey id)
 			{
-				if (trans == null) throw new ArgumentNullException(nameof(trans));
-				if (id == null) throw new ArgumentNullException(nameof(id));
+				Contract.NotNull(trans);
+				Contract.NotNull(id);
 
 				var data = await trans.GetAsync(this.Subspace[id]).ConfigureAwait(false);
 
@@ -118,8 +111,8 @@ namespace FoundationDB.Layers.Collections
 			/// <remarks>If the entry did not exist, it will be created. If not, its value will be replace with <paramref name="value"/>.</remarks>
 			public void Set(IFdbTransaction trans, TKey id, TValue value)
 			{
-				if (trans == null) throw new ArgumentNullException(nameof(trans));
-				if (id == null) throw new ArgumentNullException(nameof(id));
+				Contract.NotNull(trans);
+				Contract.NotNull(id);
 
 				trans.Set(this.Subspace[id], this.ValueEncoder.EncodeValue(value));
 			}
@@ -130,8 +123,8 @@ namespace FoundationDB.Layers.Collections
 			/// <remarks>If the entry did not exist, the operation will not do anything.</remarks>
 			public void Remove(IFdbTransaction trans, TKey id)
 			{
-				if (trans == null) throw new ArgumentNullException(nameof(trans));
-				if (id == null) throw new ArgumentNullException(nameof(id));
+				Contract.NotNull(trans);
+				Contract.NotNull(id);
 
 				trans.Clear(this.Subspace[id]);
 			}
@@ -143,7 +136,7 @@ namespace FoundationDB.Layers.Collections
 			/// <remarks>CAUTION: This can be dangerous if the map contains a lot of entries! You should always use .Take() to limit the number of results returned.</remarks>
 			public IAsyncEnumerable<KeyValuePair<TKey, TValue?>> All(IFdbReadOnlyTransaction trans, FdbRangeOptions? options = null)
 			{
-				if (trans == null) throw new ArgumentNullException(nameof(trans));
+				Contract.NotNull(trans);
 
 				return trans
 					.GetRange(this.Subspace.ToRange(), options)
@@ -156,8 +149,8 @@ namespace FoundationDB.Layers.Collections
 			/// <returns>Array of results, in the same order as specified in <paramref name="ids"/>.</returns>
 			public async Task<TValue?[]> GetValuesAsync(IFdbReadOnlyTransaction trans, IEnumerable<TKey> ids)
 			{
-				if (trans == null) throw new ArgumentNullException(nameof(trans));
-				if (ids == null) throw new ArgumentNullException(nameof(ids));
+				Contract.NotNull(trans);
+				Contract.NotNull(ids);
 
 				var kv = await trans.GetValuesAsync(ids.Select(id => this.Subspace[id])).ConfigureAwait(false);
 				if (kv.Length == 0) return Array.Empty<TValue>();
@@ -181,7 +174,7 @@ namespace FoundationDB.Layers.Collections
 			/// <remarks>This will delete EVERYTHING in the map!</remarks>
 			public void Clear(IFdbTransaction trans)
 			{
-				if (trans == null) throw new ArgumentNullException(nameof(trans));
+				Contract.NotNull(trans);
 
 				trans.ClearRange(this.Subspace.ToRange());
 			}
@@ -199,8 +192,8 @@ namespace FoundationDB.Layers.Collections
 			/// </remarks>
 			public Task ImportAsync(IFdbDatabase db, IEnumerable<KeyValuePair<TKey, TValue>> items, CancellationToken ct)
 			{
-				if (db == null) throw new ArgumentNullException(nameof(db));
-				if (items == null) throw new ArgumentNullException(nameof(items));
+				Contract.NotNull(db);
+				Contract.NotNull(items);
 
 				return Fdb.Bulk.InsertAsync(
 					db,
@@ -222,9 +215,9 @@ namespace FoundationDB.Layers.Collections
 			/// </remarks>
 			public Task ImportAsync(IFdbDatabase db, IEnumerable<TValue> items, Func<TValue, TKey> keySelector, CancellationToken ct)
 			{
-				if (db == null) throw new ArgumentNullException(nameof(db));
-				if (items == null) throw new ArgumentNullException(nameof(items));
-				if (keySelector == null) throw new ArgumentException(nameof(keySelector));
+				Contract.NotNull(db);
+				Contract.NotNull(items);
+				Contract.NotNull(keySelector);
 
 				return Fdb.Bulk.InsertAsync(
 					db,
@@ -247,10 +240,10 @@ namespace FoundationDB.Layers.Collections
 			/// </remarks>
 			public Task ImportAsync<TElement>(IFdbDatabase db, IEnumerable<TElement> items, Func<TElement, TKey> keySelector, Func<TElement, TValue> valueSelector, CancellationToken ct)
 			{
-				if (db == null) throw new ArgumentNullException(nameof(db));
-				if (items == null) throw new ArgumentNullException(nameof(items));
-				if (keySelector == null) throw new ArgumentException(nameof(keySelector));
-				if (valueSelector == null) throw new ArgumentException(nameof(valueSelector));
+				Contract.NotNull(db);
+				Contract.NotNull(items);
+				Contract.NotNull(keySelector);
+				Contract.NotNull(valueSelector);
 
 				return Fdb.Bulk.InsertAsync(
 					db,
@@ -269,7 +262,8 @@ namespace FoundationDB.Layers.Collections
 		public async ValueTask<State> Resolve(IFdbReadOnlyTransaction tr)
 		{
 			var subspace = await this.Location.Resolve(tr);
-			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location} referenced by Map Layer was not found.");
+			if (subspace is null) throw new InvalidOperationException($"Location '{this.Location} referenced by Map Layer was not found.");
+
 			//TODO: store in transaction context?
 			return new State(subspace, this.ValueEncoder);
 		}
@@ -284,8 +278,8 @@ namespace FoundationDB.Layers.Collections
 		/// <remarks>This method does not guarantee that the export will be a complete and coherent snapshot of the map. Any change made to the map while the export is running may be partially exported.</remarks>
 		public Task ExportAsync(IFdbDatabase db, Action<KeyValuePair<TKey, TValue?>> handler, CancellationToken ct)
 		{
-			if (db == null) throw new ArgumentNullException(nameof(db));
-			if (handler == null) throw new ArgumentNullException(nameof(handler));
+			Contract.NotNull(db);
+			Contract.NotNull(handler);
 
 			return Fdb.Bulk.ExportAsync(
 				db,
@@ -311,8 +305,8 @@ namespace FoundationDB.Layers.Collections
 		/// <remarks>This method does not guarantee that the export will be a complete and coherent snapshot of the map. Any change made to the map while the export is running may be partially exported.</remarks>
 		public Task ExportAsync(IFdbDatabase db, Func<KeyValuePair<TKey, TValue?>, CancellationToken, Task> handler, CancellationToken ct)
 		{
-			if (db == null) throw new ArgumentNullException(nameof(db));
-			if (handler == null) throw new ArgumentNullException(nameof(handler));
+			Contract.NotNull(db);
+			Contract.NotNull(handler);
 
 			return Fdb.Bulk.ExportAsync(
 				db,
@@ -337,8 +331,8 @@ namespace FoundationDB.Layers.Collections
 		/// <remarks>This method does not guarantee that the export will be a complete and coherent snapshot of the map, except that all the items in a single batch are from the same snapshot. Any change made to the map while the export is running may be partially exported.</remarks>
 		public Task ExportAsync(IFdbDatabase db, Action<KeyValuePair<TKey, TValue?>[]> handler, CancellationToken ct)
 		{
-			if (db == null) throw new ArgumentNullException(nameof(db));
-			if (handler == null) throw new ArgumentNullException(nameof(handler));
+			Contract.NotNull(db);
+			Contract.NotNull(handler);
 
 			return Fdb.Bulk.ExportAsync(
 				db,
@@ -363,8 +357,8 @@ namespace FoundationDB.Layers.Collections
 		/// <remarks>This method does not guarantee that the export will be a complete and coherent snapshot of the map, except that all the items in a single batch are from the same snapshot. Any change made to the map while the export is running may be partially exported.</remarks>
 		public Task ExportAsync(IFdbDatabase db, Func<KeyValuePair<TKey, TValue?>[], CancellationToken, Task> handler, CancellationToken ct)
 		{
-			if (db == null) throw new ArgumentNullException(nameof(db));
-			if (handler == null) throw new ArgumentNullException(nameof(handler));
+			Contract.NotNull(db);
+			Contract.NotNull(handler);
 
 			return Fdb.Bulk.ExportAsync(
 				db,
@@ -383,11 +377,11 @@ namespace FoundationDB.Layers.Collections
 		/// <remarks>This method does not guarantee that the export will be a complete and coherent snapshot of the map, except that all the items in a single batch are from the same snapshot. Any change made to the map while the export is running may be partially exported.</remarks>
 		public async Task<TResult> AggregateAsync<TResult>(IFdbDatabase db, Func<TResult>? init, Func<TResult, KeyValuePair<TKey, TValue?>[], TResult> handler, CancellationToken ct)
 		{
-			if (db == null) throw new ArgumentNullException(nameof(db));
-			if (handler == null) throw new ArgumentNullException(nameof(handler));
+			Contract.NotNull(db);
+			Contract.NotNull(handler);
 
 			var state = default(TResult);
-			if (init != null)
+			if (init is not null)
 			{
 				state = init();
 			}
@@ -416,11 +410,11 @@ namespace FoundationDB.Layers.Collections
 		/// <remarks>This method does not guarantee that the export will be a complete and coherent snapshot of the map, except that all the items in a single batch are from the same snapshot. Any change made to the map while the export is running may be partially exported.</remarks>
 		public async Task<TResult> AggregateAsync<TState, TResult>(IFdbDatabase db, Func<TState>? init, Func<TState, KeyValuePair<TKey, TValue?>[], TState> handler, Func<TState, TResult>? finish, CancellationToken ct)
 		{
-			if (db == null) throw new ArgumentNullException(nameof(db));
-			if (handler == null) throw new ArgumentNullException(nameof(handler));
+			Contract.NotNull(db);
+			Contract.NotNull(handler);
 
 			var state = default(TState);
-			if (init != null)
+			if (init is not null)
 			{
 				state = init();
 			}
@@ -439,7 +433,7 @@ namespace FoundationDB.Layers.Collections
 			ct.ThrowIfCancellationRequested();
 
 			var result = default(TResult);
-			if (finish != null)
+			if (finish is not null)
 			{
 				result = finish(state!);
 			}
@@ -457,7 +451,7 @@ namespace FoundationDB.Layers.Collections
 
 		private static KeyValuePair<TKey, TValue?>[] DecodeItems(ITypedKeySubspace<TKey> subspace, IValueEncoder<TValue?> valueEncoder, KeyValuePair<Slice, Slice>[] batch)
 		{
-			Contract.Debug.Requires(batch != null);
+			Contract.Debug.Requires(batch is not null);
 
 			var items = new KeyValuePair<TKey, TValue?>[batch.Length];
 			for (int i = 0; i < batch.Length; i++)

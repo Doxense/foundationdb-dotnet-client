@@ -26,11 +26,6 @@
 
 namespace FoundationDB.Linq.Expressions
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Globalization;
-	using System.Linq.Expressions;
-	using FoundationDB.Client;
 
 	/// <summary>Expression that represents a GetRange query using a pair of key selectors</summary>
 	public class FdbQueryRangeExpression : FdbQuerySequenceExpression<KeyValuePair<Slice, Slice>>

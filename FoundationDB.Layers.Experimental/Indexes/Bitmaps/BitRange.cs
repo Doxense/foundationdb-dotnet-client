@@ -26,8 +26,6 @@
 
 namespace FoundationDB.Layers.Experimental.Indexing
 {
-	using System;
-	using System.Diagnostics;
 
 	/// <summary>Bounds of a Compressed Bitmaps, from the Lowest Set Bit to the Highest Set Bit</summary>
 	[DebuggerDisplay("[{Lowest}, {Highest}]")]
@@ -53,8 +51,6 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		}
 
 		#region Boilerplate code...
-
-		//TODO: opérateurs de tests d'intersection, append, ...
 
 		public override string ToString() => this.Lowest > this.Highest ? "[empty]" : $"[{this.Lowest}, {this.Highest}]";
 

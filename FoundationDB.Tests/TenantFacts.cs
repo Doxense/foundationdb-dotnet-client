@@ -26,13 +26,7 @@
 
 namespace FoundationDB.Client.Tests
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Threading.Tasks;
-	using Doxense.Collections.Tuples;
 	using Doxense.Collections.Tuples.Encoding;
-	using Doxense.Linq;
-	using NUnit.Framework;
 
 	[TestFixture]
 	public class TenantFacts : FdbTest

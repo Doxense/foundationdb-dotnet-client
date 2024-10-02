@@ -26,13 +26,7 @@
 
 namespace FoundationDB.Layers.Indexing
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Diagnostics;
-	using System.Threading.Tasks;
 	using Doxense.Linq;
-	using FoundationDB.Client;
-	using JetBrains.Annotations;
 
 	/// <summary>Simple index that maps values of type <typeparamref name="TValue"/> into lists of ids of type <typeparamref name="TId"/></summary>
 	/// <typeparam name="TId">Type of the unique id of each document or entity</typeparam>
@@ -78,7 +72,7 @@ namespace FoundationDB.Layers.Indexing
 
 			public bool Add(IFdbTransaction trans, TId id, TValue? value)
 			{
-				if (this.Schema.IndexNullValues || value != null)
+				if (this.Schema.IndexNullValues || value is not null)
 				{
 					trans.Set(this.Subspace[value, id], Slice.Empty);
 					return true;
@@ -92,13 +86,13 @@ namespace FoundationDB.Layers.Indexing
 				if (!this.Schema.ValueComparer.Equals(newValue, previousValue))
 				{
 					// remove previous value
-					if (this.Schema.IndexNullValues || previousValue != null)
+					if (this.Schema.IndexNullValues || previousValue is not null)
 					{
 						trans.Clear(this.Subspace[previousValue, id]);
 					}
 
 					// add new value
-					if (this.Schema.IndexNullValues || newValue != null)
+					if (this.Schema.IndexNullValues || newValue is not null)
 					{
 						trans.Set(this.Subspace[newValue, id], Slice.Empty);
 					}
@@ -161,12 +155,13 @@ namespace FoundationDB.Layers.Indexing
 
 		public async ValueTask<State> Resolve(IFdbReadOnlyTransaction trans)
 		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			Contract.NotNull(trans);
 
 			//TODO: cache the instance on the transaction!
 
 			var subspace = await this.Location.Resolve(trans);
-			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location} referenced by Index Layer was not found.");
+			if (subspace is null) throw new InvalidOperationException($"Location '{this.Location} referenced by Index Layer was not found.");
+
 			return new State(this, subspace);
 		}
 
@@ -211,7 +206,7 @@ namespace FoundationDB.Layers.Indexing
 		/// <returns>List of the ids of entities that match the value</returns>
 		public IAsyncEnumerable<TId> Lookup(IFdbReadOnlyTransaction trans, TValue? value, bool reverse = false)
 		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			Contract.NotNull(trans);
 			return AsyncEnumerable.Defer<TId, IFdbRangeQuery<TId>>((_) => CreateLookupQuery(trans, value, reverse));
 		}
 
@@ -228,7 +223,7 @@ namespace FoundationDB.Layers.Indexing
 
 		public IAsyncEnumerable<TId> LookupGreaterThan(IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
 		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			Contract.NotNull(trans);
 			return AsyncEnumerable.Defer<TId, IFdbRangeQuery<TId>>((_) => CreateLookupGreaterThanQuery(trans, value, orEqual, reverse));
 		}
 
@@ -240,7 +235,7 @@ namespace FoundationDB.Layers.Indexing
 
 		public IAsyncEnumerable<TId> LookupLessThan(IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
 		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			Contract.NotNull(trans);
 			return AsyncEnumerable.Defer<TId, IFdbRangeQuery<TId>>((_) => CreateLookupLessThanQuery(trans, value, orEqual, reverse));
 		}
 

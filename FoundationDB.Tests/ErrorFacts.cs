@@ -26,9 +26,6 @@
 
 namespace FoundationDB.Client.Tests
 {
-	using System;
-	using NUnit.Framework;
-	using FoundationDB.Client;
 	using FoundationDB.Client.Native;
 
 	[TestFixture]

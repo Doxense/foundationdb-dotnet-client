@@ -28,12 +28,6 @@
 
 namespace FoundationDB.Filters.Logging.Tests
 {
-	using System;
-	using System.Linq;
-	using System.Threading.Tasks;
-	using FoundationDB.Client;
-	using FoundationDB.Client.Tests;
-	using NUnit.Framework;
 
 	[TestFixture]
 	public class LoggingFilterFacts : FdbTest

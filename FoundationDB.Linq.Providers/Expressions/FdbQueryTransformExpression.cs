@@ -26,11 +26,6 @@
 
 namespace FoundationDB.Linq.Expressions
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Linq.Expressions;
-	using Doxense.Linq;
-	using FoundationDB.Client;
 
 	/// <summary>Expression that represent a projection from one type into another</summary>
 	/// <typeparam name="TSource">Type of elements in the inner sequence</typeparam>

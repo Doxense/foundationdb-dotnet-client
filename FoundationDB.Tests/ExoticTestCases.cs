@@ -29,12 +29,6 @@
 
  namespace FoundationDB.Client.Tests
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Diagnostics;
-	using System.Linq;
-	using System.Threading.Tasks;
-	using NUnit.Framework;
 
 	[TestFixture][Ignore("These tests are not meant to be run as part of a CI build")]
 	public class ExoticTestCases : FdbTest

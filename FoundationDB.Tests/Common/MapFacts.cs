@@ -31,15 +31,8 @@
 
 namespace FoundationDB.Layers.Collections.Tests
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Net;
-	using System.Threading.Tasks;
-	using Doxense.Collections.Tuples;
 	using Doxense.Serialization.Encoders;
-	using FoundationDB.Client;
-	using FoundationDB.Client.Tests;
-	using NUnit.Framework;
 
 	[TestFixture]
 	public class MapFacts : FdbTest

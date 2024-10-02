@@ -26,15 +26,7 @@
 
 namespace FoundationDB.Linq
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Linq.Expressions;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Doxense.Linq;
-	using FoundationDB.Client;
 	using FoundationDB.Layers.Indexing;
-	using FoundationDB.Linq.Expressions;
 	using FoundationDB.Linq.Providers;
 
 	/// <summary>Extensions methods that help create a query expression tree</summary>

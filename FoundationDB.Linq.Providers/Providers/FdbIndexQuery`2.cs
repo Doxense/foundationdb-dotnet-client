@@ -26,12 +26,7 @@
 
 namespace FoundationDB.Linq.Providers
 {
-	using System;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using FoundationDB.Client;
 	using FoundationDB.Layers.Indexing;
-	using FoundationDB.Linq.Expressions;
 
 	/// <summary>Database query</summary>
 	/// <remarks>Reads data directly from a database</remarks>

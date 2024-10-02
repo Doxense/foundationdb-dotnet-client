@@ -31,15 +31,7 @@
 
 namespace FoundationDB.Client.Tests
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Diagnostics;
-	using System.Linq;
-	using System.Threading.Tasks;
-	using Doxense.Collections.Tuples;
-	using Doxense.Linq;
 	using Doxense.Linq.Async.Iterators;
-	using NUnit.Framework;
 
 	[TestFixture]
 	public class RangeQueryFacts : FdbTest

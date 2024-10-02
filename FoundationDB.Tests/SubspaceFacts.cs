@@ -26,11 +26,6 @@
 
 namespace FoundationDB.Client.Tests
 {
-	using System;
-	using Doxense.Collections.Tuples;
-	using FoundationDB.Client;
-	using NUnit.Framework;
-
 	[TestFixture]
 	public class KeySubspaceFacts : FdbTest
 	{

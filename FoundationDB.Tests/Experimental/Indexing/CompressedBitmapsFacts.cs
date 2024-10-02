@@ -30,19 +30,10 @@
 
 namespace FoundationDB.Layers.Experimental.Indexing.Tests
 {
-	using System;
 	using System.Buffers;
-	using System.Collections.Generic;
-	using System.Diagnostics;
-	using System.Globalization;
 	using System.IO;
-	using System.Linq;
 	using System.Numerics;
-	using System.Threading;
-	using Doxense.Collections.Tuples;
-	using FoundationDB.Client.Tests;
 	using MathNet.Numerics.Distributions;
-	using NUnit.Framework;
 
 	[TestFixture]
 	[Category("LongRunning")]
@@ -397,7 +388,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 
 			public MemoryIndex(IEqualityComparer<TKey>? comparer = null)
 			{
-				comparer = comparer ?? EqualityComparer<TKey>.Default;
+				comparer ??= EqualityComparer<TKey>.Default;
 				this.Values = new(comparer);
 				this.Statistics = new(comparer);
 			}
@@ -610,7 +601,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			{
 				crew = crew == null ? bmp : crew.Or(bmp);
 			}
-			crew = crew ?? CompressedBitmap.Empty;
+			crew ??= CompressedBitmap.Empty;
 			Log($"=> {crew.Dump()}");
 			DumpIndexQueryResult(database, crew);
 

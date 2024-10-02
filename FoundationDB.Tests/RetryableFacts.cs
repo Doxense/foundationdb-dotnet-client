@@ -32,12 +32,6 @@
 
 namespace FoundationDB.Client.Tests
 {
-	using System;
-	using System.Diagnostics;
-	using System.Linq;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using NUnit.Framework;
 
 	[TestFixture]
 	public class RetryableFacts : FdbTest

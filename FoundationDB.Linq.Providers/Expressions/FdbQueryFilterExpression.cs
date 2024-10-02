@@ -26,11 +26,6 @@
 
 namespace FoundationDB.Linq.Expressions
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Linq.Expressions;
-	using Doxense.Linq;
-	using FoundationDB.Client;
 
 	/// <summary>Expression that represent a filter on a source sequence</summary>
 	/// <typeparam name="T">Type of elements in the source sequence</typeparam>

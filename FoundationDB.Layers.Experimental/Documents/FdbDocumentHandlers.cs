@@ -26,8 +26,6 @@
 
 namespace FoundationDB.Layers.Documents
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Linq;
 	using Doxense.Collections.Tuples;
 
@@ -52,17 +50,18 @@ namespace FoundationDB.Layers.Documents
 	/// <typeparam name="TInternal">Type of the internal representation of a document while being sliced/reconstructed</typeparam>
 	public interface IDocumentHandler<TDocument, TId, TInternal> : IDocumentSplitter<TInternal>, IDocumentBuilder<TInternal>
 	{
-		/// <summary>Prepare a document by packing it into the internal storage representation</summary>
+
+		/// <summary>Prepares a document by packing it into the internal storage representation</summary>
 		/// <param name="document">Document that must be written to storage</param>
 		/// <returns>Internal pre-serialized version of the document</returns>
 		TInternal Pack(TDocument document);
 
-		/// <summary>Return the unique identifier of a packed document</summary>
+		/// <summary>Returns the unique identifier of a packed document</summary>
 		/// <param name="packed">Packed document (result of calling Pack on the document instance)</param>
 		/// <returns>Unique identifier of the document</returns>
 		TId GetId(TDocument packed);
 
-		/// <summary>Reconstruct a document from a packed version and the unique identifier</summary>
+		/// <summary>Reconstructs a document from a packed version and the unique identifier</summary>
 		/// <param name="packed">Packed document (read from the database)</param>
 		/// <param name="id">Unique identifier of the document</param>
 		/// <returns>Reconstructed instance of the document</returns>
@@ -73,7 +72,7 @@ namespace FoundationDB.Layers.Documents
 	public static class FdbDocumentHandlers
 	{
 
-		/// <summary>Docuemnt handler that handle dictionarys of string to objects</summary>
+		/// <summary>Document handler that handle dictionarys of string to objects</summary>
 		/// <typeparam name="TDictionary"></typeparam>
 		/// <typeparam name="TId"></typeparam>
 		public sealed class DictionaryHandler<TDictionary, TId> : IDocumentHandler<TDictionary, TId, List<KeyValuePair<string, IVarTuple>>>
@@ -148,8 +147,7 @@ namespace FoundationDB.Layers.Documents
 
 			public TDictionary Unpack(List<KeyValuePair<string, IVarTuple>> packed, TId id)
 			{
-				var dic = new TDictionary();
-				dic.Add(this.IdName, id!);
+				var dic = new TDictionary { { this.IdName, id! } };
 				foreach(var kvp in packed)
 				{
 					dic.Add(kvp.Key, kvp.Value[0]!);

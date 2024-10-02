@@ -26,12 +26,9 @@
 
 namespace FoundationDB.Layers.Documents
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Linq;
 	using System.Threading.Tasks;
 	using Doxense.Serialization.Encoders;
-	using FoundationDB.Client;
 
 	/// <summary>Represents a collection of dictionaries of fields.</summary>
 	public class FdbDocumentCollection<TDocument, TId>
@@ -77,13 +74,13 @@ namespace FoundationDB.Layers.Documents
 		public Func<TDocument, TId> IdSelector { get; }
 
 		/// <summary>Maximum size of a document chunk (1 MB by default)</summary>
-		public int ChunkSize { get; private set; }
+		public int ChunkSize { get; } = DefaultChunkSize;
 
-		/// <summary>Insert a new document in the collection</summary>
+		/// <summary>Inserts a new document in the collection</summary>
 		public async Task InsertAsync(IFdbTransaction trans, TDocument document)
 		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
-			if (document == null) throw new ArgumentNullException(nameof(document));
+			Contract.NotNull(trans);
+			Contract.NotNull(document);
 
 			var id = this.IdSelector(document);
 			if (id == null) throw new InvalidOperationException("Cannot insert a document with a null identifier");
@@ -124,14 +121,11 @@ namespace FoundationDB.Layers.Documents
 			}
 		}
 
-		/// <summary>Load a document from the collection</summary>
-		/// <param name="trans"></param>
-		/// <param name="id"></param>
-		/// <returns></returns>
+		/// <summary>Loads a document from the collection</summary>
 		public async Task<TDocument> LoadAsync(IFdbReadOnlyTransaction trans, TId id)
 		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
-			if (id == null) throw new ArgumentNullException(nameof(id)); // only for ref types
+			Contract.NotNull(trans);
+			Contract.NotNull(id);
 
 			var subspace = await this.Location.Resolve(trans);
 			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location}' referenced by Document Collection Layer was not found.");
@@ -141,30 +135,25 @@ namespace FoundationDB.Layers.Documents
 			return DecodeParts(parts);
 		}
 
-		/// <summary>Load multiple documents from the collection</summary>
-		/// <param name="trans"></param>
-		/// <param name="ids"></param>
-		/// <returns></returns>
+		/// <summary>Loads multiple documents from the collection</summary>
 		public async Task<List<TDocument>> LoadMultipleAsync(IFdbReadOnlyTransaction trans, IEnumerable<TId> ids)
 		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
-			if (ids == null) throw new ArgumentNullException(nameof(ids));
+			Contract.NotNull(trans);
+			Contract.NotNull(ids);
 
 			var subspace = await this.Location.Resolve(trans);
 			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location}' referenced by Document Collection Layer was not found.");
 
 			var results = await Task.WhenAll(ids.Select(id => LoadPartsAsync(subspace, trans, id)));
 
-			return results.Select(parts => DecodeParts(parts)).ToList();
+			return results.Select(DecodeParts).ToList();
 		}
 
-		/// <summary>Delete a document from the collection</summary>
-		/// <param name="trans"></param>
-		/// <param name="id"></param>
+		/// <summary>Deletes a document from the collection</summary>
 		public async Task DeleteAsync(IFdbTransaction trans, TId id)
 		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
-			if (id == null) throw new ArgumentNullException(nameof(id));
+			Contract.NotNull(trans);
+			Contract.NotNull(id);
 
 			var subspace = await this.Location.Resolve(trans);
 			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location}' referenced by Document Collection Layer was not found.");
@@ -174,13 +163,11 @@ namespace FoundationDB.Layers.Documents
 		}
 
 
-		/// <summary>Delete a document from the collection</summary>
-		/// <param name="trans"></param>
-		/// <param name="ids"></param>
+		/// <summary>Deletes a document from the collection</summary>
 		public async Task DeleteMultipleAsync(IFdbTransaction trans, IEnumerable<TId> ids)
 		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
-			if (ids == null) throw new ArgumentNullException(nameof(ids));
+			Contract.NotNull(trans);
+			Contract.NotNull(ids);
 
 			var subspace = await this.Location.Resolve(trans);
 			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location}' referenced by Document Collection Layer was not found.");
@@ -192,13 +179,11 @@ namespace FoundationDB.Layers.Documents
 			}
 		}
 
-		/// <summary>Delete a document from the collection</summary>
-		/// <param name="trans"></param>
-		/// <param name="document"></param>
+		/// <summary>Deletes a document from the collection</summary>
 		public Task DeleteAsync(IFdbTransaction trans, TDocument document)
 		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
-			if (document == null) throw new ArgumentNullException(nameof(document));
+			Contract.NotNull(trans);
+			Contract.NotNull(document);
 
 			var id = this.IdSelector(document);
 			if (id == null) throw new InvalidOperationException();
@@ -206,13 +191,11 @@ namespace FoundationDB.Layers.Documents
 			return DeleteAsync(trans, id);
 		}
 
-		/// <summary>Delete a document from the collection</summary>
-		/// <param name="trans"></param>
-		/// <param name="documents"></param>
+		/// <summary>Deletes a document from the collection</summary>
 		public Task DeleteMultipleAsync(IFdbTransaction trans, IEnumerable<TDocument> documents)
 		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
-			if (documents == null) throw new ArgumentNullException(nameof(documents));
+			Contract.NotNull(trans);
+			Contract.NotNull(documents);
 
 			return DeleteMultipleAsync(trans, documents.Select(document => this.IdSelector(document)));
 		}

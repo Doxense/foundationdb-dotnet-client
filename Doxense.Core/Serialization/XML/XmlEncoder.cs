@@ -62,15 +62,10 @@ namespace Doxense.Serialization.Xml
 		/// <remarks>Version optimisée qui n'alloue pas de mémoire si la chaîne est deja clean</remarks>
 		public static string Encode(string? text)
 		{
-			// INFO: cette méthode est utilisée pour la génération XML de Watchdoc,
-			// et doit donc être la plus performante possible !!!
-			// => System.Web.HttpUtility.HtmlEncode est trop lente !
 			if (string.IsNullOrEmpty(text)) return String.Empty;
 
-			// premiere passe pour voir s'il y a des caractères a remplacer..
 			if (IsCleanXml(text)) return text; // rien a modifier, retourne la chaîne initiale (fast, no memory used)
 
-			// deuxième passe: remplace les caractères invalides (slow, memory used)
 			return XmlEncodeSlow(new StringBuilder(text.Length + 16), text, true).ToString();
 		}
 

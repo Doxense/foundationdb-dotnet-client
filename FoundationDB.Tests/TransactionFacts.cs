@@ -34,15 +34,7 @@
 
 namespace FoundationDB.Client.Tests
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Diagnostics;
-	using System.Linq;
 	using System.Text;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Doxense.Linq;
-	using NUnit.Framework;
 
 	[TestFixture]
 	public class TransactionFacts : FdbTest

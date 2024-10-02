@@ -26,13 +26,9 @@
 
 namespace FoundationDB.Layers.Counters
 {
-	using System;
 	using System.Threading;
-	using System.Threading.Tasks;
 	using Doxense.Collections.Tuples;
 	using Doxense.Serialization.Encoders;
-	using FoundationDB.Client;
-	using JetBrains.Annotations;
 
 	/// <summary>Represents an integer value which can be incremented without conflict.
 	/// Uses a sharded representation (which scales with contention) along with background coalescing...

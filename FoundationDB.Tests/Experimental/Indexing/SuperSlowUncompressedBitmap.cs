@@ -26,12 +26,8 @@
 
 namespace FoundationDB.Layers.Experimental.Indexing.Tests
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
 	using System.Text;
-	using NUnit.Framework;
 
 	/// <summary>Super Naive and Slow reference implementation of a 'Compressed' Bitmap</summary>
 	/// <remarks>This is basically a bool[] that is used to verify other implementations</remarks>
@@ -264,7 +260,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 
 		public static StringBuilder Dump(bool[] bits, StringBuilder? sb = null)
 		{
-			sb = sb ?? new StringBuilder();
+			sb ??= new StringBuilder();
 
 			int x = 0;
 			for (int p = 0; p <= bits.Length; p += 31)

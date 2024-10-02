@@ -26,12 +26,6 @@
 
 namespace FoundationDB.Linq.Expressions
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Linq.Expressions;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using FoundationDB.Client;
 
 	/// <summary>Base class of all queries that return a sequence of elements (Ranges, Index lookups, ...)</summary>
 	/// <typeparam name="T">Type of items returned</typeparam>

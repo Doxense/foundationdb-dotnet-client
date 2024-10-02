@@ -32,7 +32,6 @@ namespace Doxense.Linq.Tests
 	using System.Collections.Generic;
 	using System.Linq;
 	using System.Runtime.CompilerServices;
-	using Doxense.Mathematics.Statistics;
 
 	[TestFixture]
 	[Category("Core-SDK")]

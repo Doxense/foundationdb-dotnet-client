@@ -26,15 +26,9 @@
 
  namespace FoundationDB.Linq.Expressions.Tests
 {
-	using System;
-	using System.Collections.Generic;
 	using System.Linq.Expressions;
-	using Doxense.Collections.Tuples;
 	using Doxense.Serialization;
-	using FoundationDB.Client;
-	using FoundationDB.Client.Tests;
 	using FoundationDB.Layers.Indexing;
-	using NUnit.Framework;
 
 	[TestFixture]
 	public class FdbQueryExpressionFacts : FdbTest

@@ -26,16 +26,9 @@
 
 namespace FoundationDB.Layers.Collections
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Diagnostics;
 	using System.Linq;
-	using System.Threading.Tasks;
 	using Doxense.Collections.Tuples;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization.Encoders;
-	using FoundationDB.Client;
-	using JetBrains.Annotations;
 
 	/// <summary>Represents a potentially sparse array in FoundationDB.</summary>
 	[DebuggerDisplay("Location={Location}, Default={DefaultValue}")]
@@ -43,6 +36,7 @@ namespace FoundationDB.Layers.Collections
 	public class FdbVector<T> : IFdbLayer<FdbVector<T>.State>
 		where T : notnull
 	{
+
 		// from https://apple.github.io/foundationdb/vector.html
 
 		// Vector stores each of its values using its index as the key.

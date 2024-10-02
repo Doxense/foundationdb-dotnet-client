@@ -26,8 +26,6 @@
 
 namespace FoundationDB.Linq.Expressions
 {
-	using System;
-	using System.Globalization;
 	using System.Text;
 
 	/// <summary>Very simple writer to dump query expressions into a statement useful for logging/debugging</summary>

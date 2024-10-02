@@ -26,10 +26,7 @@
 
 namespace Doxense.Collections.Tuples.Tests
 {
-	using System;
 	using Doxense.Serialization.Encoders;
-	using FoundationDB.Client.Tests;
-	using NUnit.Framework;
 
 	[TestFixture]
 	public class TupleEncoderFacts : FdbTest

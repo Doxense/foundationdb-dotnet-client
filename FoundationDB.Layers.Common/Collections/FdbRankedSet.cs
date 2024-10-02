@@ -26,14 +26,8 @@
 
 namespace FoundationDB.Layers.Collections
 {
-	using System;
-	using System.Diagnostics;
 	using System.Linq;
-	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq;
-	using FoundationDB.Client;
-	using JetBrains.Annotations;
 
 	/// <summary>
 	/// Provides a high-contention Queue class
@@ -65,8 +59,9 @@ namespace FoundationDB.Layers.Collections
 		/// <summary>Make sure that the set is initialized</summary>
 		public async Task OpenAsync(IFdbTransaction trans)
 		{
+			Contract.NotNull(trans);
+
 			//TODO: BUGBUG: this should be cached!
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			var state = await Resolve(trans);
 
 			// ensure that the levels are set up properly
@@ -89,7 +84,7 @@ namespace FoundationDB.Layers.Collections
 			/// <returns></returns>
 			public Task<long> SizeAsync(IFdbReadOnlyTransaction trans)
 			{
-				if (trans == null) throw new ArgumentNullException(nameof(trans));
+				Contract.NotNull(trans);
 
 				return trans
 					.GetRange(this.Subspace.Partition.ByKey(MAX_LEVELS - 1).ToRange())
@@ -99,7 +94,7 @@ namespace FoundationDB.Layers.Collections
 
 			public async Task InsertAsync(IFdbTransaction trans, Slice key)
 			{
-				if (trans == null) throw new ArgumentNullException(nameof(trans));
+				Contract.NotNull(trans);
 
 				if (await ContainsAsync(trans, key).ConfigureAwait(false))
 				{
@@ -137,7 +132,7 @@ namespace FoundationDB.Layers.Collections
 
 			public async Task<bool> ContainsAsync(IFdbReadOnlyTransaction trans, Slice key)
 			{
-				if (trans == null) throw new ArgumentNullException(nameof(trans));
+				Contract.NotNull(trans);
 				if (key.IsNull) throw new ArgumentException("Empty key not allowed in set", nameof(key));
 
 				return (await trans.GetAsync(this.Subspace.Encode(0, key)).ConfigureAwait(false)).HasValue;
@@ -145,7 +140,7 @@ namespace FoundationDB.Layers.Collections
 
 			public async Task EraseAsync(IFdbTransaction trans, Slice key)
 			{
-				if (trans == null) throw new ArgumentNullException(nameof(trans));
+				Contract.NotNull(trans);
 
 				if (!(await ContainsAsync(trans, key).ConfigureAwait(false)))
 				{
@@ -171,12 +166,12 @@ namespace FoundationDB.Layers.Collections
 
 			public async Task<long?> Rank(IFdbReadOnlyTransaction trans, Slice key)
 			{
-				if (trans == null) throw new ArgumentNullException(nameof(trans));
-				if (key.IsNull) throw new ArgumentException("Empty key not allowed in set", nameof(key));
+				Contract.NotNull(trans);
+				Slice.ThrowIfNull(key, "Empty key not allowed in set");
 
 				if (!(await ContainsAsync(trans, key).ConfigureAwait(false)))
 				{
-					return default(long?);
+					return null;
 				}
 
 				long r = 0;
@@ -246,15 +241,9 @@ namespace FoundationDB.Layers.Collections
 
 			#region Private Helpers...
 
-			private static Slice EncodeCount(long c)
-			{
-				return Slice.FromFixed64(c);
-			}
+			private static Slice EncodeCount(long c) => Slice.FromFixed64(c);
 
-			private static long DecodeCount(Slice v)
-			{
-				return v.ToInt64();
-			}
+			private static long DecodeCount(Slice v) => v.ToInt64();
 
 			private Task<long> SlowCountAsync(IFdbReadOnlyTransaction trans, int level, Slice beginKey, Slice endKey)
 			{
@@ -319,8 +308,10 @@ namespace FoundationDB.Layers.Collections
 		{
 			var subspace = await this.Location.Resolve(tr);
 			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location} referenced by Ranked Set Layer was not found.");
+
 			return new State(subspace);
 		}
+
 	}
 
 }

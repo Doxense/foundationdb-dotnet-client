@@ -26,12 +26,6 @@
 
 namespace FoundationDB.Client.Tests
 {
-	using System;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Doxense.Collections.Tuples;
-	using NUnit.Framework;
-
 	internal static class TestHelpers
 	{
 		public const string? TestClusterFile = null;

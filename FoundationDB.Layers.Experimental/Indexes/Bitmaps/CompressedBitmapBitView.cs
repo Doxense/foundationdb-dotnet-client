@@ -26,8 +26,6 @@
 
 namespace FoundationDB.Layers.Experimental.Indexing
 {
-	using System.Collections.Generic;
-	using Doxense.Diagnostics.Contracts;
 
 	/// <summary>View that reads the indexes of all the set bits in a bitmap</summary>
 	public class CompressedBitmapBitView : IEnumerable<long>

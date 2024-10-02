@@ -24,12 +24,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-#nullable enable
-
 namespace FoundationDB.Types.Json
 {
-	using System;
-	using System.Diagnostics;
 	using System.IO;
 	using System.Text;
 	using Doxense.Memory;
