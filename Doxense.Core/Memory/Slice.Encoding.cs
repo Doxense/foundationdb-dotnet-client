@@ -741,7 +741,7 @@ namespace System
 		}
 
 		/// <summary>Encoding used to produce UTF-8 slices</summary>
-		internal static readonly UTF8Encoding Utf8NoBomEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+		internal static readonly UTF8Encoding Utf8NoBomEncoding = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 
 		/// <summary>Dangerously create a slice containing string converted to the local ANSI code page. All non-ANSI characters may be corrupted or converted to '?', and this slice may not decode properly on a different system.</summary>
 		/// <remarks>
@@ -797,14 +797,14 @@ namespace System
 		[Pure]
 		public static Slice FromStringAscii(ReadOnlySpan<char> value, ref byte[]? buffer)
 		{
-			if (value.Length == 0) return Empty;
+			if (value.Length == 0) return Slice.Empty;
 			return ConvertByteStringChecked(value, ref buffer);
 		}
 
-		/// <summary>Create a slice from an byte string, where all the characters map directly into bytes (0..255), without performing any validation</summary>
+		/// <summary>Create a slice from a byte string, where all the characters map directly into bytes (0..255), without performing any validation</summary>
 		/// <remarks>
 		/// This method does not make any effort to detect characters above 255, which will be truncated to their lower 8 bits, introducing corruption when the string will be decoded. Please MAKE SURE to not call this with untrusted data.
-		/// Slices encoded by this method are ONLY compatible with UTF-8 encoding if all characters are between 0 and 127. If this is not the case, then decoding it as an UTF-8 sequence may introduce corruption.
+		/// Slices encoded by this method are ONLY compatible with UTF-8 encoding if all characters are between 0 and 127. If this is not the case, then decoding it as a UTF-8 sequence may introduce corruption.
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice FromByteString(string? value)
@@ -814,10 +814,10 @@ namespace System
 			return FromByteString(value.AsSpan(), ref _);
 		}
 
-		/// <summary>Create a slice from an byte string, where all the characters map directly into bytes (0..255), without performing any validation</summary>
+		/// <summary>Create a slice from a byte string, where all the characters map directly into bytes (0..255), without performing any validation</summary>
 		/// <remarks>
 		/// This method does not make any effort to detect characters above 255, which will be truncated to their lower 8 bits, introducing corruption when the string will be decoded. Please MAKE SURE to not call this with untrusted data.
-		/// Slices encoded by this method are ONLY compatible with UTF-8 encoding if all characters are between 0 and 127. If this is not the case, then decoding it as an UTF-8 sequence may introduce corruption.
+		/// Slices encoded by this method are ONLY compatible with UTF-8 encoding if all characters are between 0 and 127. If this is not the case, then decoding it as a UTF-8 sequence may introduce corruption.
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice FromByteString(ReadOnlySpan<char> value)
@@ -826,15 +826,15 @@ namespace System
 			return FromByteString(value, ref _);
 		}
 
-		/// <summary>Create a slice from an byte string, where all the characters map directly into bytes (0..255), without performing any validation</summary>
+		/// <summary>Create a slice from a byte string, where all the characters map directly into bytes (0..255), without performing any validation</summary>
 		/// <remarks>
 		/// This method does not make any effort to detect characters above 255, which will be truncated to their lower 8 bits, introducing corruption when the string will be decoded. Please MAKE SURE to not call this with untrusted data.
-		/// Slices encoded by this method are ONLY compatible with UTF-8 encoding if all characters are between 0 and 127. If this is not the case, then decoding it as an UTF-8 sequence may introduce corruption.
+		/// Slices encoded by this method are ONLY compatible with UTF-8 encoding if all characters are between 0 and 127. If this is not the case, then decoding it as a UTF-8 sequence may introduce corruption.
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice FromByteString(ReadOnlySpan<char> value, ref byte[]? buffer)
 		{
-			return value.Length != 0 ? ConvertByteStringNoCheck(value, ref buffer) : Empty;
+			return value.Length != 0 ? ConvertByteStringNoCheck(value, ref buffer) : Slice.Empty;
 		}
 
 		[Pure]
@@ -1140,7 +1140,7 @@ namespace System
 		/// If the string is null, an empty slice is returned.
 		/// If the string is empty, the UTF-8 BOM is returned.
 		/// DO NOT call this method to encode special strings that contain binary prefixes, like "\xFF/some/system/path" or "\xFE\x01\x02\x03", because they do not map to UTF-8 directly.
-		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.
+		/// For these case, or when you know that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.
 		/// </remarks>
 		[Pure]
 		private static Slice ConvertByteStringNoCheck(ReadOnlySpan<char> value, ref byte[]? buffer)

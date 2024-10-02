@@ -162,7 +162,7 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		/// <summary>Serializes a value (of any type)</summary>
+		/// <summary>Serializes a value of type <typeparamref name="T"/> into a string literal</summary>
 		/// <param name="value">Instance to serialize (can be null)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
@@ -192,7 +192,7 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		/// <summary>Serializes a value (of any type)</summary>
+		/// <summary>Serializes a value of type <typeparamref name="T"/> into a string literal, using a customer serializer</summary>
 		/// <param name="value">Instance to serialize (can be null)</param>
 		/// <param name="serializer">Custom serializer for this type</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
@@ -608,6 +608,13 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		/// <summary>Serializes a value of type <typeparamref name="T"/> into a <see cref="Slice"/>, using a customer serializer</summary>
+		/// <param name="serializer">Custom serializer</param>
+		/// <param name="value">Instance to serialize (can be null)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+		/// <returns><c>`123`</c>, <c>`true`</c>, <c>`"ABC"`</c>, <c>`{ "foo":..., "bar": ... }`</c>, <c>`[ ... ]`</c>, ...</returns>
+		/// <exception cref="JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
 		public static Slice ToSlice<T>(T? value, IJsonSerializer<T>? serializer, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			var writer = WriterPool.Allocate();
@@ -633,6 +640,16 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		/// <summary>Serializes a value of type <typeparamref name="T"/> into a <see cref="SliceOwner"/> using the specified <see cref="ArrayPool{T}">pool</see></summary>
+		/// <param name="value">Instance to serialize (can be null)</param>
+		/// <param name="pool">Pool used to allocate the content of the slice.</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+		/// <returns><c>`123`</c>, <c>`true`</c>, <c>`"ABC"`</c>, <c>`{ "foo":..., "bar": ... }`</c>, <c>`[ ... ]`</c>, ...</returns>
+		/// <exception cref="JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
+		/// <remarks>
+		/// <para>The <see cref="SliceOwner"/> returned <b>MUST</b> be disposed; otherwise, the rented buffer will not be returned to the <paramref name="pool"/>.</para>
+		/// </remarks>
 		public static SliceOwner ToSlice<T>(T? value, ArrayPool<byte> pool, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			var writer = WriterPool.Allocate();
@@ -651,6 +668,17 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		/// <summary>Serializes a value of type <typeparamref name="T"/> into a <see cref="SliceOwner"/>, using a customer serializer, and the specified <see cref="ArrayPool{T}">pool</see></summary>
+		/// <param name="value">Instance to serialize (can be null)</param>
+		/// <param name="serializer">Custom serializer</param>
+		/// <param name="pool">Pool used to allocate the content of the slice.</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+		/// <returns><c>`123`</c>, <c>`true`</c>, <c>`"ABC"`</c>, <c>`{ "foo":..., "bar": ... }`</c>, <c>`[ ... ]`</c>, ...</returns>
+		/// <exception cref="JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
+		/// <remarks>
+		/// <para>The <see cref="SliceOwner"/> returned <b>MUST</b> be disposed; otherwise, the rented buffer will not be returned to the <paramref name="pool"/>.</para>
+		/// </remarks>
 		public static SliceOwner ToSlice<T>(T? value, IJsonSerializer<T>? serializer, ArrayPool<byte> pool, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			var writer = WriterPool.Allocate();
@@ -686,6 +714,9 @@ namespace Doxense.Serialization.Json
 		/// <param name="pool">Pool used to allocate the content of the slice.</param>
 		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">if the serialization fails</exception>
+		/// <remarks>
+		/// <para>The <see cref="SliceOwner"/> returned <b>MUST</b> be disposed; otherwise, the rented buffer will not be returned to the <paramref name="pool"/>.</para>
+		/// </remarks>
 		[Pure]
 		public static SliceOwner ToSlice(object? value, ArrayPool<byte> pool, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
@@ -970,7 +1001,7 @@ namespace Doxense.Serialization.Json
 		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
 		/// <para>If the result is always expected to be an Array or an Object, please call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
 		/// </remarks>
-		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
+		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Parse(byte[]? jsonBytes, CrystalJsonSettings? settings = null)
 		{
@@ -985,7 +1016,7 @@ namespace Doxense.Serialization.Json
 		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
 		/// <para>If the result is always expected to be an Array or an Object, please call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
 		/// </remarks>
-		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
+		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Parse(Slice jsonBytes, CrystalJsonSettings? settings = null)
 		{
@@ -1000,7 +1031,7 @@ namespace Doxense.Serialization.Json
 		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
 		/// <para>If the result is always expected to be an Array or an Object, please call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
 		/// </remarks>
-		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
+		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 		[Pure]
 		public static JsonValue Parse(ReadOnlySpan<byte> jsonBytes, CrystalJsonSettings? settings = null)
 		{
@@ -1021,7 +1052,7 @@ namespace Doxense.Serialization.Json
 		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
 		/// <para>If the result is always expected to be an Array or an Object, please call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
 		/// </remarks>
-		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
+		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Parse(ReadOnlyMemory<byte> jsonBytes, CrystalJsonSettings? settings = null)
 		{
@@ -1036,7 +1067,7 @@ namespace Doxense.Serialization.Json
 		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
 		/// <para>If the result is always expected to be an Array or an Object, please call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
 		/// </remarks>
-		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
+		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 		[Pure]
 		public static JsonValue Parse(ref ReadOnlySequence<byte> jsonBytes, CrystalJsonSettings? settings = null)
 		{
@@ -1063,10 +1094,15 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		/// <summary>Parse un buffer contenant du JSON</summary>
-		/// <param name="jsonText">Bloc de données contenant du texte JSON</param>
+		/// <summary>Parses a JSON text literal, and returns the corresponding JSON value</summary>
+		/// <param name="jsonText">JSON text document to parse</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <returns>Valeur JSON correspondante</returns>
+		/// <returns>Corresponding JSON value. If <paramref name="jsonText"/> is empty, will return <see cref="JsonNull.Missing"/></returns>
+		/// <remarks>
+		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
+		/// <para>If the result is always expected to be an Array or an Object, please call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
+		/// </remarks>
+		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 		[Pure]
 		public static JsonValue Parse(ReadOnlySpan<char> jsonText, CrystalJsonSettings? settings = null)
 		{
@@ -1087,7 +1123,7 @@ namespace Doxense.Serialization.Json
 		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
 		/// <para>If the result is always expected to be an Array or an Object, please call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
 		/// </remarks>
-		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
+		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Parse(ReadOnlyMemory<char> jsonText, CrystalJsonSettings? settings = null)
 		{
@@ -1380,7 +1416,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="serializer"></param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Resolver optionnel</param>
-		/// <returns>Objet correspondant</returns>
+		/// <returns>Deserialized instance</returns>
 		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
 		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
 		[Pure]
