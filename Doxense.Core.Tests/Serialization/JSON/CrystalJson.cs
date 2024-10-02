@@ -2354,7 +2354,7 @@ namespace Doxense.Serialization.Json.Tests
 		public void Test_Json_Custom_Serializable_Static_Legacy()
 		{
 			// LEGACY: for back compatibility with old "duck typing" static JsonSerialize method
-			// -> new code should use the IJsonDeserializer<T> interface that defines the static method
+			// -> new code should use the IJsonDeserializable<T> interface that defines the static method
 
 			// serialize
 			var x = new DummyStaticLegacyJson("foo");
@@ -10541,7 +10541,7 @@ namespace Doxense.Serialization.Json.Tests
 		#endregion
 	}
 
-	public sealed record DummyStaticCustomJson : IJsonSerializable, IJsonDeserializer<DummyStaticCustomJson>
+	public sealed record DummyStaticCustomJson : IJsonSerializable, IJsonDeserializable<DummyStaticCustomJson>
 	{
 		public string DontCallThis => "ShouldNotSeeThat";
 
@@ -10565,7 +10565,7 @@ namespace Doxense.Serialization.Json.Tests
 			writer.WriteRaw("{ \"custom\":" + JsonEncoding.Encode(m_secret) + " }");
 		}
 
-		static DummyStaticCustomJson IJsonDeserializer<DummyStaticCustomJson>.JsonDeserialize(JsonValue value, ICrystalJsonTypeResolver? _)
+		static DummyStaticCustomJson IJsonDeserializable<DummyStaticCustomJson>.JsonDeserialize(JsonValue value, ICrystalJsonTypeResolver? _)
 		{
 			Assert.That(value, Is.Not.Null);
 

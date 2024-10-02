@@ -258,9 +258,7 @@ namespace Doxense.Serialization.Json
 		{
 
 			var type = typeDef.Type;
-			var jsonSerializerType = typeof(IJsonSerializer<>).MakeGenericType(type);
-			var jsonPackerForType = typeof(IJsonPackerFor<>).MakeGenericType(type);
-			var jsonDeserializerForType = typeof(IJsonDeserializerFor<>).MakeGenericType(type);
+			var jsonConverterType = typeof(IJsonConverter<>).MakeGenericType(type);
 
 			var typeName = sb.TypeName(type);
 			var serializerName = GetSerializerName(type);
@@ -270,7 +268,7 @@ namespace Doxense.Serialization.Json
 			sb.NewLine();
 
 			sb.AppendLine($"/// <summary>Serializer for type <see cref=\"{type.FullName}\">{type.GetFriendlyName()}</see></summary>");
-			sb.AppendLine($"public static {serializerTypeName} {serializerName} => m_cached{serializerName} ??= new();");
+			sb.AppendLine($"public static {sb.TypeName(jsonConverterType)} {serializerName} => m_cached{serializerName} ??= new();");
 			sb.NewLine();
 			sb.AppendLine($"private static {serializerTypeName}? m_cached{serializerName};");
 			sb.NewLine();
@@ -281,7 +279,7 @@ namespace Doxense.Serialization.Json
 			sb.Class(
 				"public sealed",
 				serializerTypeName,
-				[sb.TypeName(jsonSerializerType), sb.TypeName(jsonPackerForType), sb.TypeName(jsonDeserializerForType)],
+				[ sb.TypeName(jsonConverterType) ],
 				[ ],
 				() =>
 				{
@@ -646,7 +644,7 @@ namespace Doxense.Serialization.Json
 					sb.Method(
 						"public",
 						typeName,
-						nameof(IJsonDeserializer<object>.JsonDeserialize),
+						nameof(IJsonDeserializable<object>.JsonDeserialize),
 						[ sb.Parameter<JsonValue>("value"), sb.Parameter<ICrystalJsonTypeResolver>("resolver", nullable: true) ],
 						() =>
 						{
@@ -724,7 +722,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (this.TypeMap.ContainsKey(memberType))
 			{
-				return $"{GetLocalSerializerRef(memberType)}.{nameof(IJsonDeserializer<object>.JsonDeserialize)}(kv.Value, resolver)!";
+				return $"{GetLocalSerializerRef(memberType)}.{nameof(IJsonDeserializable<object>.JsonDeserialize)}(kv.Value, resolver)!";
 			}
 
 			if (memberType.IsValueType)

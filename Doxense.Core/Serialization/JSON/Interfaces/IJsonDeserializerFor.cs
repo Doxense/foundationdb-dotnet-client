@@ -32,6 +32,7 @@ namespace Doxense.Serialization.Json
 	/// <remarks>Types can serialize themselves, but this interface can also be used on "helper types" that are separate (manually written, or via source code generation)</remarks>
 	public interface IJsonDeserializerFor<out T>
 	{
+		//REVIEW: rename to IJsonDeserializer<T>, once we have renamed to current IJsonDeserializer<T> into IJsonDeserializable<T> !
 
 		/// <summary>Deserializes a JSON value into an instance of type <typeparam name="T"></typeparam></summary>
 		/// <param name="value">JSON value to deserialize.</param>
@@ -39,6 +40,26 @@ namespace Doxense.Serialization.Json
 		/// <returns>Deserialized value</returns>
 		/// <exception cref="JsonBindingException">If an error occurred during the deserialization</exception>
 		T JsonDeserialize(JsonValue value, ICrystalJsonTypeResolver? resolver = null);
+		//REVIEW: rename to "Deserialize" only?
+		//REVIEW: should we also pass some settings?
+
+	}
+
+	internal sealed class DefaultJsonDeserializer<T> : IJsonDeserializerFor<T>
+	{
+
+		public Func<JsonValue, ICrystalJsonTypeResolver, T> Handler { get; }
+
+		public DefaultJsonDeserializer(Func<JsonValue, ICrystalJsonTypeResolver, T>? handler)
+		{
+			this.Handler = handler ?? (static (_, _) => throw new NotSupportedException("Operation not supported"));
+		}
+
+		/// <inheritdoc />
+		public T JsonDeserialize(JsonValue value, ICrystalJsonTypeResolver? resolver = null)
+		{
+			return this.Handler(value, resolver ?? CrystalJson.DefaultResolver);
+		}
 
 	}
 

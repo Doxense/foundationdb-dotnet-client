@@ -36,12 +36,12 @@ namespace Doxense.Serialization.Json
 		void JsonSerialize(CrystalJsonWriter writer);
 
 		//note: JsonDeserialize used to be in this interface, but has been moved to IJsonDeserialize, tagged as [Obsolete]
-		// the correct way is to implement IJsonDeserializer<T> or have a ctor that takes in a JsonValue as first parameter
+		// the correct way is to implement IJsonDeserializable<T> or have a ctor that takes in a JsonValue as first parameter
 
 	}
 
-	/// <summary>LEGACY: should be not implemented. Implement <see cref="IJsonDeserializer{TSelf}"/> instead.</summary>
-	[Obsolete("Implement IJsonDeserializer<T> instead")]
+	/// <summary>LEGACY: should be not implemented. Implement <see cref="IJsonDeserializable{TSelf}"/> instead.</summary>
+	[Obsolete("Implement IJsonDeserializable<T> instead")]
 	public interface IJsonDeserializable
 	{
 		// Why it's deprecated:

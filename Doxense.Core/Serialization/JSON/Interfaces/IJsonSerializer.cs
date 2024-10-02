@@ -38,7 +38,24 @@ namespace Doxense.Serialization.Json
 		/// <param name="instance">Instance to serialize</param>
 		/// <exception cref="JsonSerializationException">If an error occured during the serialization</exception>
 		void JsonSerialize(CrystalJsonWriter writer, T? instance);
+		//REVIEW: rename to "SerializeTo" only?
 
 	}
+
+	internal sealed class DefaultJsonSerializer<T> : IJsonSerializer<T>
+	{
+
+		public Action<CrystalJsonWriter, T?> Handler { get; }
+
+		public DefaultJsonSerializer(Action<CrystalJsonWriter, T?>? handler)
+		{
+			this.Handler = handler ?? (static (_, _) => throw new NotSupportedException("Operation not supported"));
+		}
+
+		/// <inheritdoc />
+		public void JsonSerialize(CrystalJsonWriter writer, T? instance) => this.Handler(writer, instance);
+
+	}
+
 
 }

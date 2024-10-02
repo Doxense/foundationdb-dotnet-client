@@ -534,7 +534,7 @@ namespace Doxense.Serialization.Json
 
 			// look for a method with a same name (before the introduction of static methods in interfaces)
 
-			if (type.IsGenericInstanceOf(typeof(IJsonDeserializer<>)))
+			if (type.IsGenericInstanceOf(typeof(IJsonDeserializable<>)))
 			{ // use the method defined in the interface
 				var binder = CreateStaticJsonDeserializerBinder(type);
 				return CreateDefaultJsonArrayBinder_Binder(type, binder);
@@ -581,7 +581,7 @@ namespace Doxense.Serialization.Json
 			return m.CreateDelegate<CrystalJsonTypeBinder>();
 		}
 
-		private static object? BindJsonDeserializer<TValue>(JsonValue? value, Type type, ICrystalJsonTypeResolver resolver) where TValue : IJsonDeserializer<TValue>
+		private static object? BindJsonDeserializer<TValue>(JsonValue? value, Type type, ICrystalJsonTypeResolver resolver) where TValue : IJsonDeserializable<TValue>
 		{
 			return TValue.JsonDeserialize(value ?? JsonNull.Null, resolver);
 		}
@@ -1169,7 +1169,7 @@ namespace Doxense.Serialization.Json
 
 			// Static Serializable
 
-			if (type.IsGenericInstanceOf(typeof(IJsonDeserializer<>)))
+			if (type.IsGenericInstanceOf(typeof(IJsonDeserializable<>)))
 			{ // use the method defined in the interface
 				return CreateStaticJsonDeserializerBinder(type);
 			}

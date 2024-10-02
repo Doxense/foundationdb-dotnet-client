@@ -17,7 +17,7 @@ namespace Doxense.Serialization.Json
 
 	/// <summary>Represents a path inside a JSON document to a nested child (ex: <c>"id"</c>, <c>"user.id"</c> <c>"tags[2].id"</c></summary>
 	[DebuggerDisplay("{ToString(),nq}")]
-	public readonly struct JsonPath : IEnumerable<(JsonPath Parent, ReadOnlyMemory<char> Key, Index Index, bool Last)>, IJsonSerializable, IJsonPackable, IJsonDeserializer<JsonPath>, IEquatable<JsonPath>, IEquatable<string>, ISpanFormattable
+	public readonly struct JsonPath : IEnumerable<(JsonPath Parent, ReadOnlyMemory<char> Key, Index Index, bool Last)>, IJsonSerializable, IJsonPackable, IJsonDeserializable<JsonPath>, IEquatable<JsonPath>, IEquatable<string>, ISpanFormattable
 	{
 		// the goal is to wrap a string with the full path, and expose each "segment" as a ReadOnlySpan<char>, in order to reduce allocations
 
@@ -1347,7 +1347,7 @@ namespace Doxense.Serialization.Json
 
 		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => ToJson();
 
-		static JsonPath IJsonDeserializer<JsonPath>.JsonDeserialize(JsonValue value, ICrystalJsonTypeResolver? resolver)
+		static JsonPath IJsonDeserializable<JsonPath>.JsonDeserialize(JsonValue value, ICrystalJsonTypeResolver? resolver)
 		{
 			if (value.IsNullOrMissing()) return default;
 			if (value is not JsonString str) throw new JsonBindingException("JsonPath must be represented as a string");

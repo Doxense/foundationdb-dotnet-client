@@ -27,6 +27,7 @@
 namespace Doxense.Serialization.Json
 {
 	using System;
+	using System.Buffers;
 	using System.Collections.Immutable;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.InteropServices;
@@ -35,9 +36,83 @@ namespace Doxense.Serialization.Json
 	public static class JsonSerializerExtensions
 	{
 
+		#region IJsonSerializer<T>...
+
+		/// <summary>Serializes a value (of any type) into a string literal, using a customer serializer</summary>
+		/// <param name="serializer">Custom serializer</param>
+		/// <param name="value">Instance to serialize (can be null)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+		/// <returns><c>`123`</c>, <c>`true`</c>, <c>`"ABC"`</c>, <c>`{ "foo":..., "bar": ... }`</c>, <c>`[ ... ]`</c>, ...</returns>
+		/// <exception cref="JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
+		public static string ToJson<T>(this IJsonSerializer<T> serializer, T? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			return CrystalJson.Serialize<T>(value, serializer, settings, resolver);
+		}
+
+		/// <summary>Serializes a value of type <typeparamref name="T"/> into a <see cref="Slice"/>, using a customer serializer</summary>
+		/// <param name="serializer">Custom serializer</param>
+		/// <param name="value">Instance to serialize (can be null)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+		/// <returns><c>`123`</c>, <c>`true`</c>, <c>`"ABC"`</c>, <c>`{ "foo":..., "bar": ... }`</c>, <c>`[ ... ]`</c>, ...</returns>
+		/// <exception cref="JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
+		public static Slice ToSlice<T>(this IJsonSerializer<T> serializer, T? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			return CrystalJson.ToSlice<T>(value, serializer, settings, resolver);
+		}
+
+		/// <summary>Serializes a value of type <typeparamref name="T"/> into a <see cref="SliceOwner"/>, using a customer serializer, and the specified <see cref="ArrayPool{T}">pool</see></summary>
+		/// <param name="serializer">Custom serializer</param>
+		/// <param name="value">Instance to serialize (can be null)</param>
+		/// <param name="pool">Pool used to allocate the content of the slice.</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+		/// <returns><c>`123`</c>, <c>`true`</c>, <c>`"ABC"`</c>, <c>`{ "foo":..., "bar": ... }`</c>, <c>`[ ... ]`</c>, ...</returns>
+		/// <exception cref="JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
+		/// <remarks>
+		/// <para>The <see cref="SliceOwner"/> returned <b>MUST</b> be disposed; otherwise, the rented buffer will not be returned to the <paramref name="pool"/>.</para>
+		/// </remarks>
+		public static SliceOwner ToSlice<T>(this IJsonSerializer<T> serializer, T? value, ArrayPool<byte> pool, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			return CrystalJson.ToSlice<T>(value, serializer, pool, settings, resolver);
+		}
+
+		#endregion
+
 		#region IJsonDeserializerFor<T>...
 
-		public static bool TryJsonDeserializeSpan<T>(this IJsonDeserializerFor<T> serializer, Span<T> destination, out int written, JsonValue value, ICrystalJsonTypeResolver? resolver = null)
+		public static T Deserialize<T>(this IJsonDeserializerFor<T> serializer, string jsonText, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			where T : notnull
+		{
+			return serializer.JsonDeserialize(CrystalJson.Parse(jsonText, settings), resolver);
+		}
+
+		public static T Deserialize<T>(this IJsonDeserializerFor<T> serializer, ReadOnlySpan<char> jsonText, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			where T : notnull
+		{
+			return serializer.JsonDeserialize(CrystalJson.Parse(jsonText, settings), resolver);
+		}
+
+		public static T Deserialize<T>(this IJsonDeserializerFor<T> serializer, Slice jsonBytes, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			where T : notnull
+		{
+			return serializer.JsonDeserialize(CrystalJson.Parse(jsonBytes, settings), resolver);
+		}
+
+		/// <summary>Deserializes an instance of type <typeparamref name="T"/> from a JSON string literal</summary>
+		/// <param name="jsonBytes">UTF-8 encoded JSON document to parse</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <returns>Deserialized instance.</returns>
+		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
+		/// <exception cref="JsonBindingException">If the parsed JSON document cannot be bound to an instance of <typeparamref name="T"/>.</exception>
+		public static T Deserialize<T>(this IJsonDeserializerFor<T> serializer, ReadOnlySpan<byte> jsonBytes, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			where T : notnull
+		{
+			return serializer.JsonDeserialize(CrystalJson.Parse(jsonBytes, settings), resolver);
+		}
+
+		public static bool TryJsonDeserializeArray<T>(this IJsonDeserializerFor<T> serializer, Span<T> destination, out int written, JsonValue value, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (value.IsNullOrMissing())
 			{
@@ -164,7 +239,6 @@ namespace Doxense.Serialization.Json
 		}
 
 		#endregion
-
 
 		#region CodeGen Helpers...
 

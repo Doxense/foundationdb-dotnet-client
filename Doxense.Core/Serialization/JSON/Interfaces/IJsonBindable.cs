@@ -27,7 +27,7 @@
 namespace Doxense.Serialization.Json
 {
 	/// <summary>[LEGACY] Types that implement this interface support deserialization directly from a <see cref="JsonValue"/></summary>
-	[Obsolete("Consider implementing both IJsonPackable and IJsonDeserializer<T> instead")]
+	[Obsolete("Consider implementing both IJsonPackable and IJsonDeserializable<T> instead")]
 	public interface IJsonBindable : IJsonPackable
 	{
 		/// <summary>Initializes this value by loading the contents of a previously serialize JSON value</summary>
