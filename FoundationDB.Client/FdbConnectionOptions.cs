@@ -93,7 +93,7 @@ namespace FoundationDB.Client
 
 	}
 
-	internal readonly struct FdbConnectionStringBuilder
+	internal sealed class FdbConnectionStringBuilder
 	{
 
 		public FdbConnectionStringBuilder(StringBuilder? text = null)
