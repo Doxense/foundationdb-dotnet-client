@@ -33,11 +33,12 @@ namespace FoundationDB.Client
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 	using System.Text;
+	using Doxense.Serialization.Json;
 
 	/// <summary>Represents a path in a Directory Layer</summary>
 	[DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
-	public readonly struct FdbPath : IReadOnlyList<FdbPathSegment>, IEquatable<FdbPath>
+	public readonly struct FdbPath : IReadOnlyList<FdbPathSegment>, IEquatable<FdbPath>, IFormattable,  IJsonDeserializable<FdbPath>, IJsonSerializable, IJsonPackable
 	{
 		/// <summary>The "empty" path</summary>
 		/// <remarks>This path is relative</remarks>
@@ -817,6 +818,31 @@ namespace FoundationDB.Client
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbPath operator +(FdbPath path, FdbPathSegment segment)
 			=> path.Add(segment);
+
+		#endregion
+
+		#region JSON Serialization...
+
+		/// <inheritdoc />
+		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer)
+		{
+			writer.WriteValue(this.ToString());
+		}
+
+		/// <inheritdoc />
+		static FdbPath IJsonDeserializable<FdbPath>.JsonDeserialize(JsonValue value, ICrystalJsonTypeResolver? resolver)
+		{
+			if (value is JsonNull) return FdbPath.Empty;
+			if (value is not JsonString str) throw JsonBindingException.CannotBindJsonValueToThisType(value, typeof(FdbPath));
+
+			return FdbPath.Parse(str.Value);
+		}
+
+		/// <inheritdoc />
+		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver)
+		{
+			return JsonString.Return(this.ToString());
+		}
 
 		#endregion
 
