@@ -34,16 +34,14 @@ namespace FoundationDB.Layers.Blobs.Tests
 		[Test]
 		public async Task Test_FdbBlob_NotFound_Blob_Is_Empty()
 		{
-			using (var db = await OpenTestPartitionAsync())
-			{
-				var location = db.Root["BlobsFromOuterSpace"];
-				await CleanLocation(db, location);
+			using var db = await OpenTestPartitionAsync();
+			var location = db.Root["BlobsFromOuterSpace"];
+			await CleanLocation(db, location);
 
-				var blob = new FdbBlob(location.ByKey("Empty"));
+			var blob = new FdbBlob(location.ByKey("Empty"));
 
-				long? size = await blob.ReadAsync(db, (tr, state) => state.GetSizeAsync(tr), this.Cancellation);
-				Assert.That(size, Is.Null, "Non existing blob should have no size");
-			}
+			long? size = await blob.ReadAsync(db, (tr, state) => state.GetSizeAsync(tr), this.Cancellation);
+			Assert.That(size, Is.Null, "Non existing blob should have no size");
 		}
 
 		[Test]

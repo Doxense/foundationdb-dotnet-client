@@ -275,11 +275,11 @@ namespace FoundationDB.Client
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public override int GetHashCode()
-			=> HashCodes.Combine(this.Name?.GetHashCode() ?? -1, (this.LayerId ?? string.Empty).GetHashCode());
+			=> HashCode.Combine(this.Name, this.LayerId);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(FdbPathSegment other)
-			=> string.Equals(this.Name, other.Name) && string.Equals(this.LayerId ?? string.Empty, other.LayerId ?? string.Empty);
+			=> string.Equals(this.Name, other.Name) && string.Equals(this.LayerId, other.LayerId);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool operator ==(FdbPathSegment left, FdbPathSegment right)

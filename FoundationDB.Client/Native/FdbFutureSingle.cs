@@ -28,6 +28,7 @@
 
 namespace FoundationDB.Client.Native
 {
+
 	/// <summary>FDBFuture wrapper</summary>
 	/// <typeparam name="T">Type of result</typeparam>
 	public sealed class FdbFutureSingle<T> : FdbFuture<T>
@@ -53,7 +54,6 @@ namespace FoundationDB.Client.Native
 
 			try
 			{
-
 				if (handle.IsInvalid)
 				{ // it's dead, Jim !
 					SetFlag(FdbFuture.Flags.COMPLETED);

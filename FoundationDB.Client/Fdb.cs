@@ -197,49 +197,6 @@ namespace FoundationDB.Client
 			if (max != null && max.Value < version) throw new NotSupportedException($"The current fdb API version is {version}, which is higher than the maximum version {max.Value} required by the caller.");
 		}
 
-		/// <summary>[DEPRECATED] Returns true if the error code represents a success</summary>
-		[Obsolete("Use FdbNative.Success instead")]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static bool Success(FdbError code)
-		{
-			return code == FdbError.Success;
-		}
-
-		/// <summary>[DEPRECATED] Returns true if the error code represents a failure</summary>
-		[Obsolete("Use FdbNative.Failed instead")]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static bool Failed(FdbError code)
-		{
-			return code != FdbError.Success;
-		}
-
-		/// <summary>[DEPRECATED] Throws an exception if the code represents a failure</summary>
-		[Obsolete("Use FdbNative.DieOnError instead")]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static void DieOnError(FdbError code)
-		{
-			FdbNative.DieOnError(code);
-		}
-
-		/// <summary>[DEPRECATED] Return the error message matching the specified error code</summary>
-		[Obsolete("Use FdbNative.GetErrorMessage instead")]
-		public static string? GetErrorMessage(FdbError code)
-		{
-			//TODO: remove from this type, and move to FdbNativeDatase!
-			return FdbNative.GetErrorMessage(code);
-		}
-
-		/// <summary>[DEPRECATED] Maps an error code into an Exception (to be thrown)</summary>
-		/// <param name="code">Error code returned by a native fdb operation</param>
-		/// <returns>Exception object corresponding to the error code, or null if the code is not an error</returns>
-		[Obsolete("Use FdbNative.MapToException instead")]
-		[MethodImpl(MethodImplOptions.NoInlining)]
-		public static Exception? MapToException(FdbError code)
-		{
-			//TODO: remove from this type, and move to FdbNativeDatase!
-			return FdbNative.MapToException(code);
-		}
-
 		/// <summary>Returns the version of the client library, git commit hash of the build, and the supported protocol version</summary>
 		public static (string Version, string Protocol, string CommitHash) GetClientVersion()
 		{

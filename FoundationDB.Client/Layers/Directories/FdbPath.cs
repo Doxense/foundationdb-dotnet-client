@@ -681,7 +681,7 @@ namespace FoundationDB.Client
 		internal static bool TryParseInternal(StringBuilder? sb, ReadOnlySpan<char> path, bool withException, out FdbPath result, out Exception? error)
 		{
 			//TODO: version that takes a Span<char> instead of StringBuilder !
-			sb ??= new StringBuilder(path.Length);
+			sb ??= new(path.Length);
 
 			var segments = new List<FdbPathSegment>();
 
@@ -762,7 +762,7 @@ namespace FoundationDB.Client
 				return false;
 			}
 
-			result = new FdbPath(segments.ToArray(), absolute);
+			result = new(segments.ToArray(), absolute);
 			error = null;
 			return true;
 		}
@@ -779,13 +779,13 @@ namespace FoundationDB.Client
 			// => we will use the head, middle point and tail of the segment to compute the hash
 
 			var segments = this.Segments.Span;
-			switch (segments.Length)
+			return segments.Length switch
 			{
-				case 0: return this.IsAbsolute ? -1 : 0;
-				case 1: return HashCodes.Combine(this.IsAbsolute ? -1 : 1, segments[0].GetHashCode());
-				case 2: return HashCodes.Combine(this.IsAbsolute ? -2 : 2, segments[0].GetHashCode(), segments[1].GetHashCode());
-				default: return HashCodes.Combine(this.IsAbsolute ? -3 : 3, segments[0].GetHashCode(), segments[segments.Length >> 1].GetHashCode(), segments[^1].GetHashCode());
-			}
+				0 => this.IsAbsolute ? -1 : 0,
+				1 => HashCodes.Combine(this.IsAbsolute ? -1 : 1, segments[0].GetHashCode()),
+				2 => HashCodes.Combine(this.IsAbsolute ? -2 : 2, segments[0].GetHashCode(), segments[1].GetHashCode()),
+				_ => HashCodes.Combine(this.IsAbsolute ? -3 : 3, segments[0].GetHashCode(), segments[segments.Length >> 1].GetHashCode(), segments[^1].GetHashCode())
+			};
 		}
 
 		public override bool Equals(object? obj)

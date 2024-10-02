@@ -28,6 +28,7 @@
 
 namespace FoundationDB.Client.Native
 {
+
 	/// <summary>FDBFuture[] wrapper</summary>
 	/// <typeparam name="T">Type of result</typeparam>
 	public sealed class FdbFutureArray<T> : FdbFuture<T[]>
@@ -191,6 +192,7 @@ namespace FoundationDB.Client.Native
 		}
 
 		/// <summary>Cached delegate of the future completion callback handler</summary>
+		// ReSharper disable once StaticMemberInGenericType
 		private static readonly FdbNative.FdbFutureCallback CallbackHandler = FutureCompletionCallback;
 
 		/// <summary>Handler called when a FDBFuture becomes ready</summary>
