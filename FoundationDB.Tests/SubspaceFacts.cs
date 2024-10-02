@@ -24,10 +24,12 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+using SnowBank.Testing;
+
 namespace FoundationDB.Client.Tests
 {
 	[TestFixture]
-	public class KeySubspaceFacts : FdbTest
+	public class KeySubspaceFacts : SimpleTest
 	{
 
 		[Test]

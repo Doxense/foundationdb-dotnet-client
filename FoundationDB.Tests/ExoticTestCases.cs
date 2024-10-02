@@ -44,11 +44,11 @@
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = await db.Root.Resolve(tr);
-					tr.Set(subspace.Encode("AAA"), Value("111"));
-					tr.Set(subspace.Encode("BBB"), Value("222"));
-					tr.Set(subspace.Encode("CCC"), Value("333"));
-					tr.Set(subspace.Encode("DDD"), Value("444"));
-					tr.Set(subspace.Encode("EEE"), Value("555"));
+					tr.Set(subspace.Encode("AAA"), Text("111"));
+					tr.Set(subspace.Encode("BBB"), Text("222"));
+					tr.Set(subspace.Encode("CCC"), Text("333"));
+					tr.Set(subspace.Encode("DDD"), Text("444"));
+					tr.Set(subspace.Encode("EEE"), Text("555"));
 					await tr.CommitAsync();
 				}
 			}
@@ -62,12 +62,12 @@
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = await db.Root.Resolve(tr);
-					tr.ClearRange(subspace.Encode("AAA"), Value("ZZZ"));
-					tr.Set(subspace.Encode("AAA"), Value("111"));
-					tr.Set(subspace.Encode("BBB"), Value("222"));
-					tr.Set(subspace.Encode("CCC"), Value("333"));
-					tr.Set(subspace.Encode("DDD"), Value("444"));
-					tr.Set(subspace.Encode("EEE"), Value("555"));
+					tr.ClearRange(subspace.Encode("AAA"), Text("ZZZ"));
+					tr.Set(subspace.Encode("AAA"), Text("111"));
+					tr.Set(subspace.Encode("BBB"), Text("222"));
+					tr.Set(subspace.Encode("CCC"), Text("333"));
+					tr.Set(subspace.Encode("DDD"), Text("444"));
+					tr.Set(subspace.Encode("EEE"), Text("555"));
 					await tr.CommitAsync();
 				}
 			}
@@ -81,9 +81,9 @@
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = await db.Root.Resolve(tr);
-					tr.ClearRange(subspace.Encode("AAA"), Value("BBB"));
-					tr.ClearRange(subspace.Encode("BBB"), Value("CCC"));
-					tr.ClearRange(subspace.Encode("CCC"), Value("DDD"));
+					tr.ClearRange(subspace.Encode("AAA"), Text("BBB"));
+					tr.ClearRange(subspace.Encode("BBB"), Text("CCC"));
+					tr.ClearRange(subspace.Encode("CCC"), Text("DDD"));
 					// should be merged into a single AAA..DDD
 					await tr.CommitAsync();
 				}
@@ -133,13 +133,13 @@
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = await db.Root.Resolve(tr);
-					tr.Set(subspace.Encode("AAA"), Value("111"));
-					tr.AtomicAdd(subspace.Encode("BBB"), Value("222"));
-					tr.AtomicAnd(subspace.Encode("CCC"), Value("333"));
-					tr.AtomicOr(subspace.Encode("DDD"), Value("444"));
-					tr.AtomicXor(subspace.Encode("EEE"), Value("555"));
-					tr.AtomicMax(subspace.Encode("FFF"), Value("666"));
-					tr.AtomicMin(subspace.Encode("GGG"), Value("777"));
+					tr.Set(subspace.Encode("AAA"), Text("111"));
+					tr.AtomicAdd(subspace.Encode("BBB"), Text("222"));
+					tr.AtomicAnd(subspace.Encode("CCC"), Text("333"));
+					tr.AtomicOr(subspace.Encode("DDD"), Text("444"));
+					tr.AtomicXor(subspace.Encode("EEE"), Text("555"));
+					tr.AtomicMax(subspace.Encode("FFF"), Text("666"));
+					tr.AtomicMin(subspace.Encode("GGG"), Text("777"));
 					await tr.CommitAsync();
 				}
 			}
@@ -154,17 +154,17 @@
 				{
 					var subspace = await db.Root.Resolve(tr);
 
-					tr.AtomicMax(subspace.Encode("MAXMAX1"), Value("EEE"));
-					tr.AtomicMax(subspace.Encode("MAXMAX1"), Value("FFF"));
+					tr.AtomicMax(subspace.Encode("MAXMAX1"), Text("EEE"));
+					tr.AtomicMax(subspace.Encode("MAXMAX1"), Text("FFF"));
 
-					tr.AtomicMax(subspace.Encode("MAXMAX2"), Value("FFF"));
-					tr.AtomicMax(subspace.Encode("MAXMAX2"), Value("EEE"));
+					tr.AtomicMax(subspace.Encode("MAXMAX2"), Text("FFF"));
+					tr.AtomicMax(subspace.Encode("MAXMAX2"), Text("EEE"));
 
-					tr.AtomicMin(subspace.Encode("MINMIN1"), Value("111"));
-					tr.AtomicMin(subspace.Encode("MINMIN1"), Value("222"));
+					tr.AtomicMin(subspace.Encode("MINMIN1"), Text("111"));
+					tr.AtomicMin(subspace.Encode("MINMIN1"), Text("222"));
 
-					tr.AtomicMin(subspace.Encode("MINMIN2"), Value("222"));
-					tr.AtomicMin(subspace.Encode("MINMIN2"), Value("111"));
+					tr.AtomicMin(subspace.Encode("MINMIN2"), Text("222"));
+					tr.AtomicMin(subspace.Encode("MINMIN2"), Text("111"));
 
 					await tr.CommitAsync();
 				}
@@ -340,12 +340,12 @@
 				await db.WriteAsync(async tr =>
 				{
 					var subspace = await db.Root.Resolve(tr);
-					tr.Set(subspace.Encode("K0123"), Value("V0123"));
+					tr.Set(subspace.Encode("K0123"), Text("V0123"));
 				}, this.Cancellation);
 				await db.WriteAsync(async tr =>
 				{
 					var subspace = await db.Root.Resolve(tr);
-					tr.Set(subspace.Encode("K0789"), Value("V0789"));
+					tr.Set(subspace.Encode("K0789"), Text("V0789"));
 				}, this.Cancellation);
 
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
@@ -377,7 +377,7 @@
 					tr.ClearRange(subspace.Encode("K0000"), subspace.Encode("K9999Z"));
 					for (int i = 0; i < 100; i++)
 					{
-						tr.Set(subspace.Encode("K" + i.ToString("D4")), Value("V" + i.ToString("D4")));
+						tr.Set(subspace.Encode("K" + i.ToString("D4")), Text("V" + i.ToString("D4")));
 					}
 				}, this.Cancellation);
 
@@ -414,7 +414,7 @@
 					tr.ClearRange(subspace.Encode("K0000"), subspace.Encode("K9999Z"));
 					for (int i = 0; i < 100; i++)
 					{
-						tr.Set(subspace.Encode("K" + i.ToString("D4")), Value("V" + i.ToString("D4")));
+						tr.Set(subspace.Encode("K" + i.ToString("D4")), Text("V" + i.ToString("D4")));
 					}
 				}, this.Cancellation);
 
@@ -506,26 +506,26 @@
 				{
 					var subspace = await location.Resolve(tr);
 					tr.ClearRange(subspace.Encode("K0000"), subspace.Encode("K~~~~"));
-					tr.Set(subspace.Encode("K000"), Value("BEGIN"));
+					tr.Set(subspace.Encode("K000"), Text("BEGIN"));
 					for (int i = 0; i < 5; i++)
 					{
-						tr.Set(subspace.Encode("K" + i + "A"), Value("V111"));
-						tr.Set(subspace.Encode("K" + i + "B"), Value("V222"));
-						tr.Set(subspace.Encode("K" + i + "C"), Value("V333"));
-						tr.Set(subspace.Encode("K" + i + "D"), Value("V444"));
-						tr.Set(subspace.Encode("K" + i + "E"), Value("V555"));
-						tr.Set(subspace.Encode("K" + i + "F"), Value("V666"));
-						tr.Set(subspace.Encode("K" + i + "G"), Value("V777"));
-						tr.Set(subspace.Encode("K" + i + "H"), Value("V888"));
+						tr.Set(subspace.Encode("K" + i + "A"), Text("V111"));
+						tr.Set(subspace.Encode("K" + i + "B"), Text("V222"));
+						tr.Set(subspace.Encode("K" + i + "C"), Text("V333"));
+						tr.Set(subspace.Encode("K" + i + "D"), Text("V444"));
+						tr.Set(subspace.Encode("K" + i + "E"), Text("V555"));
+						tr.Set(subspace.Encode("K" + i + "F"), Text("V666"));
+						tr.Set(subspace.Encode("K" + i + "G"), Text("V777"));
+						tr.Set(subspace.Encode("K" + i + "H"), Text("V888"));
 					}
-					tr.Set(subspace.Encode("K~~~"), Value("END"));
+					tr.Set(subspace.Encode("K~~~"), Text("END"));
 				}, this.Cancellation);
 
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = await location.Resolve(tr);
 
-					tr.Set(subspace.Encode("KZZZ"), Value("V999"));
+					tr.Set(subspace.Encode("KZZZ"), Text("V999"));
 
 					_ = await tr.GetRangeAsync(
 						KeySelector.FirstGreaterOrEqual(subspace.Encode("K0B")),
@@ -551,15 +551,15 @@
 				{
 					var subspace = await location.Resolve(tr);
 					tr.ClearRange(subspace.Encode("K0000"), subspace.Encode("K~~~~"));
-					tr.SetValues(Enumerable.Range(0, 100).Select(i => new KeyValuePair<Slice, Slice>(subspace.Encode("K" + i.ToString("D4")), Value("V" + i.ToString("D4")))));
-					tr.Set(subspace.Encode("K~~~"), Value("END"));
+					tr.SetValues(Enumerable.Range(0, 100).Select(i => new KeyValuePair<Slice, Slice>(subspace.Encode("K" + i.ToString("D4")), Text("V" + i.ToString("D4")))));
+					tr.Set(subspace.Encode("K~~~"), Text("END"));
 				}, this.Cancellation);
 
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = await location.Resolve(tr);
 
-					tr.ClearRange(subspace.Encode("K0042"), Value("K0069"));
+					tr.ClearRange(subspace.Encode("K0042"), Text("K0069"));
 
 					var r = await tr.GetRangeAsync(
 						KeySelector.FirstGreaterOrEqual(subspace.Encode("K0040")),
@@ -591,10 +591,10 @@
 				{
 					var subspace = await location.Resolve(tr);
 					tr.ClearRange(subspace.Encode("K0000"), subspace.Encode("K~~~~"));
-					tr.Set(subspace.Encode("KAAA"), Value("V111"));
-					tr.Set(subspace.Encode("KBBB"), Value("V222"));
-					tr.Set(subspace.Encode("KCCC"), Value("V333"));
-					tr.Set(subspace.Encode("K~~~"), Value("END"));
+					tr.Set(subspace.Encode("KAAA"), Text("V111"));
+					tr.Set(subspace.Encode("KBBB"), Text("V222"));
+					tr.Set(subspace.Encode("KCCC"), Text("V333"));
+					tr.Set(subspace.Encode("K~~~"), Text("END"));
 				}, this.Cancellation);
 
 				using (var tr = db.BeginTransaction(this.Cancellation))
@@ -602,12 +602,12 @@
 					var subspace = await location.Resolve(tr);
 
 					// set a key, then read it, and check if it could conflict on it (it should not!)
-					tr.Set(subspace.Encode("KBBB"), Value("V222b"));
+					tr.Set(subspace.Encode("KBBB"), Text("V222b"));
 					await tr.GetAsync(subspace.Encode("KBBB"));
 
 					// read a key, then set it, and check if it could conflict on it (it should!)
 					await tr.GetAsync(subspace.Encode("KCCC"));
-					tr.Set(subspace.Encode("KCCC"), Value("V333b"));
+					tr.Set(subspace.Encode("KCCC"), Text("V333b"));
 
 					await tr.CommitAsync();
 				}
@@ -633,7 +633,7 @@
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = await db.Root.Resolve(tr);
-					tr.Set(subspace.Encode("KAAA"), Value("VALUE_AAA"));
+					tr.Set(subspace.Encode("KAAA"), Text("VALUE_AAA"));
 					await tr.CommitAsync();
 				}
 				// set the key
@@ -654,8 +654,8 @@
 					var subspace1 = await db.Root.Resolve(tr1);
 					var subspace2 = await db.Root.Resolve(tr2);
 
-					tr1.Set(subspace1.Encode("KBBB"), Value("VALUE_BBB_111"));
-					tr2.Set(subspace2.Encode("KCCC"), Value("VALUE_CCC_111"));
+					tr1.Set(subspace1.Encode("KBBB"), Text("VALUE_BBB_111"));
+					tr2.Set(subspace2.Encode("KCCC"), Text("VALUE_CCC_111"));
 					var task1 = tr1.CommitAsync();
 					var task2 = tr2.CommitAsync();
 
@@ -676,8 +676,8 @@
 						tr2.GetAsync(subspace2.Encode("KAAA"))
 					);
 
-					tr1.Set(subspace1.Encode("KBBB"), Value("VALUE_BBB_222"));
-					tr2.Set(subspace2.Encode("KCCC"), Value("VALUE_CCC_222"));
+					tr1.Set(subspace1.Encode("KBBB"), Text("VALUE_BBB_222"));
+					tr2.Set(subspace2.Encode("KCCC"), Text("VALUE_CCC_222"));
 					var task1 = tr1.CommitAsync();
 					var task2 = tr2.CommitAsync();
 
@@ -697,8 +697,8 @@
 						tr1.GetAsync(subspace1.Encode("KCCC")),
 						tr2.GetAsync(subspace2.Encode("KBBB"))
 					);
-					tr1.Set(subspace1.Encode("KBBB"), Value("VALUE_BBB_333"));
-					tr2.Set(subspace2.Encode("KCCC"), Value("VALUE_CCC_333"));
+					tr1.Set(subspace1.Encode("KBBB"), Text("VALUE_BBB_333"));
+					tr2.Set(subspace2.Encode("KCCC"), Text("VALUE_CCC_333"));
 					var task1 = tr1.CommitAsync();
 					var task2 = tr2.CommitAsync();
 

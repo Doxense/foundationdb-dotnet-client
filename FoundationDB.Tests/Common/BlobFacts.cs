@@ -59,9 +59,9 @@ namespace FoundationDB.Layers.Blobs.Tests
 				Log("Insert blob in 3 chunks...");
 				await blob.WriteAsync(db, async (tr, state) =>
 				{
-					await state.AppendAsync(tr, Value("Attack"));
-					await state.AppendAsync(tr, Value(" of the "));
-					await state.AppendAsync(tr, Value("Blobs!"));
+					await state.AppendAsync(tr, Text("Attack"));
+					await state.AppendAsync(tr, Text(" of the "));
+					await state.AppendAsync(tr, Text("Blobs!"));
 
 				}, this.Cancellation);
 #if DEBUG

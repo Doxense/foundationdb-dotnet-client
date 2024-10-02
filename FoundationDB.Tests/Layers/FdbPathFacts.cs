@@ -26,9 +26,12 @@
 
 namespace FoundationDB.Client.Tests
 {
+	using SnowBank.Testing;
 
 	[TestFixture]
-	public class FdbPathFacts : FdbTest
+	[Category("Fdb-Client")]
+	[Parallelizable(ParallelScope.All)]
+	public class FdbPathFacts : SimpleTest
 	{
 
 		[Test]

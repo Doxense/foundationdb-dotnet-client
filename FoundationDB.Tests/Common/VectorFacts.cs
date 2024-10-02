@@ -73,7 +73,7 @@ namespace FoundationDB.Layers.Collections.Tests
 					Log("> Pop empty: " + await xs.PopAsync(tr));
 					await PrintVector(xs, tr);
 
-					await xs.PushAsync(tr, Value("foo"));
+					await xs.PushAsync(tr, Text("foo"));
 					Log("> Pop size 1: " + await xs.PopAsync(tr));
 					await PrintVector(xs, tr);
 
@@ -89,12 +89,12 @@ namespace FoundationDB.Layers.Collections.Tests
 					Log("> Size: " + await xs.SizeAsync(tr));
 
 					Log("Settings values");
-					xs.Set(tr, 0, Value("Portez"));
-					xs.Set(tr, 1, Value("ce vieux"));
-					xs.Set(tr, 2, Value("whisky"));
-					xs.Set(tr, 3, Value("au juge"));
-					xs.Set(tr, 4, Value("blond qui"));
-					xs.Set(tr, 5, Value("fume"));
+					xs.Set(tr, 0, Text("Portez"));
+					xs.Set(tr, 1, Text("ce vieux"));
+					xs.Set(tr, 2, Text("whisky"));
+					xs.Set(tr, 3, Text("au juge"));
+					xs.Set(tr, 4, Text("blond qui"));
+					xs.Set(tr, 5, Text("fume"));
 					await PrintVector(xs, tr);
 
 					Log("FRONT");
@@ -140,7 +140,7 @@ namespace FoundationDB.Layers.Collections.Tests
 					Log("> Size: " + await xs.SizeAsync(tr));
 
 					Log("> Adding 'word' to index 10, resize to 25");
-					xs.Set(tr, 10, Value("word"));
+					xs.Set(tr, 10, Text("word"));
 					await xs.ResizeAsync(tr, 25);
 					await PrintVector(xs, tr);
 					Log("> Size: " + await xs.SizeAsync(tr));

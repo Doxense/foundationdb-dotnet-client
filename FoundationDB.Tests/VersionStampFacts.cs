@@ -26,9 +26,10 @@
 
 namespace FoundationDB.Client.Tests
 {
+	using SnowBank.Testing;
 
 	[TestFixture]
-	public class VersionStampFacts : FdbTest
+	public class VersionStampFacts : SimpleTest
 	{
 
 		[Test]
@@ -337,4 +338,5 @@ namespace FoundationDB.Client.Tests
 		}
 
 	}
+
 }

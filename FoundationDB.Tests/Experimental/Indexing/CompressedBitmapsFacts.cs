@@ -190,7 +190,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 		public void Test_CompressedBitmapBuilder_Random_Sets()
 		{
 			// randomly set K bits in a set of N possible bits (with possible overlap)
-			// => this test random insertions that need to modifiy the inside of a bitmap
+			// => this test random insertions that need to modify the inside of a bitmap
 
 			var builder = CompressedBitmap.Empty.ToBuilder();
 			var witness = new SuperSlowUncompressedBitmap();

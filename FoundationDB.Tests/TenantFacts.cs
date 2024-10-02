@@ -181,7 +181,7 @@ namespace FoundationDB.Client.Tests
 			var contoso = await PrepareTestTenant(FdbTenantName.FromParts("Tests", "contoso", 123));
 
 			// prepare a key in the global keyspace (that should not be visible by tenants)
-			await this.Db.WriteAsync(tr => tr.Set(Pack(("tests", "hello")), Slice.FromString("global")), this.Cancellation);
+			await this.Db.WriteAsync(tr => tr.Set(Pack(("tests", "hello")), Text("global")), this.Cancellation);
 
 			Log("Start a transaction with tenant Tests/acme");
 			var random = await this.Db.GetTenant(acme.Name).ReadWriteAsync(async tr =>
@@ -196,7 +196,7 @@ namespace FoundationDB.Client.Tests
 				var value = await tr.GetAsync(Pack(("tests", "hello")));
 				Log($"> {value:V}");
 
-				tr.Set(Pack(("tests", "hello")), Slice.FromString("inside tenant acme"));
+				tr.Set(Pack(("tests", "hello")), Text("inside tenant acme"));
 
 				var token = Slice.FromGuid(Guid.NewGuid());
 
@@ -220,14 +220,14 @@ namespace FoundationDB.Client.Tests
 
 			// we should be able to read back the token with the same tenant
 			Log($"Read from tenant {acme.Name} should see the changes...");
-			var readback = await TenantRead(acme.Name, tr => tr.GetAsync(Pack(("tests", "random"))));
-			Log("> " + readback);
-			Assert.That(readback, Is.EqualTo(random));
+			var readBack = await TenantRead(acme.Name, tr => tr.GetAsync(Pack(("tests", "random"))));
+			Log("> " + readBack);
+			Assert.That(readBack, Is.EqualTo(random));
 
 			Log($"Read from different tenant {contoso} should not see anything at all");
-			readback = await TenantRead(contoso.Name, tr => tr.GetAsync(Pack(("tests", "random"))));
-			Log("> " + readback);
-			Assert.That(readback, Is.Not.EqualTo(random), "Should not be able to read the key from a different tenant!");
+			readBack = await TenantRead(contoso.Name, tr => tr.GetAsync(Pack(("tests", "random"))));
+			Log("> " + readBack);
+			Assert.That(readBack, Is.Not.EqualTo(random), "Should not be able to read the key from a different tenant!");
 
 			//TODO: if we know the tenant prefix, we can read from the global db !
 		}

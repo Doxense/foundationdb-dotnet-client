@@ -45,8 +45,8 @@ namespace FoundationDB.Linq.Tests
 				await db.WriteAsync(async (tr) =>
 				{
 					var subspace = (await location.Resolve(tr))!;
-					tr.Set(subspace.Encode("Hello"), Value("World!"));
-					tr.Set(subspace.Encode("Narf"), Value("Zort"));
+					tr.Set(subspace.Encode("Hello"), Text("World!"));
+					tr.Set(subspace.Encode("Narf"), Text("Zort"));
 				}, this.Cancellation);
 
 				await db.ReadAsync(async tr =>

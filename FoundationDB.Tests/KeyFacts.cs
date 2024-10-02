@@ -26,10 +26,13 @@
 
 // ReSharper disable PossibleMultipleEnumeration
 // ReSharper disable JoinDeclarationAndInitializer
+// ReSharper disable CanSimplifyStringEscapeSequence
+// ReSharper disable StringLiteralTypo
 
 namespace FoundationDB.Client.Tests
 {
 	using System.Globalization;
+	using SnowBank.Testing;
 
 	[TestFixture]
 	public class KeyFacts : FdbTest
@@ -38,48 +41,43 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public void Test_FdbKey_Constants()
 		{
-			Assert.That(FdbKey.MinValue.GetBytes(), Is.EqualTo(new byte[] { 0 }));
-			Assert.That(FdbKey.MaxValue.GetBytes(), Is.EqualTo(new byte[] { 255 }));
-			Assert.That(FdbKey.System.GetBytes(), Is.EqualTo(new byte[] { 255 }));
-			Assert.That(FdbKey.Directory.GetBytes(), Is.EqualTo(new byte[] { 254 }));
+			Assert.Multiple(() =>
+			{
+				Assert.That(FdbKey.MinValue.GetBytes(), Is.EqualTo(new byte[] { 0 }));
+				Assert.That(FdbKey.MaxValue.GetBytes(), Is.EqualTo(new byte[] { 255 }));
+				Assert.That(FdbKey.System.GetBytes(), Is.EqualTo(new byte[] { 255 }));
+				Assert.That(FdbKey.Directory.GetBytes(), Is.EqualTo(new byte[] { 254 }));
+			});
 
-			Assert.That(Fdb.System.Coordinators.ToString(), Is.EqualTo("<FF>/coordinators"));
-			Assert.That(Fdb.System.KeyServers.ToString(), Is.EqualTo("<FF>/keyServers/"));
-			Assert.That(Fdb.System.MinValue.ToString(), Is.EqualTo("<FF><00>"));
-			Assert.That(Fdb.System.MaxValue.ToString(), Is.EqualTo("<FF><FF>"));
-			Assert.That(Fdb.System.ServerKeys.ToString(), Is.EqualTo("<FF>/serverKeys/"));
-			Assert.That(Fdb.System.ServerList.ToString(), Is.EqualTo("<FF>/serverList/"));
-			Assert.That(Fdb.System.BackupDataFormat.ToString(), Is.EqualTo("<FF>/backupDataFormat"));
-			Assert.That(Fdb.System.InitId.ToString(), Is.EqualTo("<FF>/init_id"));
-			Assert.That(Fdb.System.ConfigKey("hello").ToString(), Is.EqualTo("<FF>/conf/hello"));
-			Assert.That(Fdb.System.GlobalsKey("world").ToString(), Is.EqualTo("<FF>/globals/world"));
-			Assert.That(Fdb.System.WorkersKey("foo", "bar").ToString(), Is.EqualTo("<FF>/workers/foo/bar"));
+			Assert.Multiple(() =>
+			{
+				Assert.That(Fdb.System.Coordinators.ToString(), Is.EqualTo("<FF>/coordinators"));
+				Assert.That(Fdb.System.KeyServers.ToString(), Is.EqualTo("<FF>/keyServers/"));
+				Assert.That(Fdb.System.MinValue.ToString(), Is.EqualTo("<FF><00>"));
+				Assert.That(Fdb.System.MaxValue.ToString(), Is.EqualTo("<FF><FF>"));
+				Assert.That(Fdb.System.ServerKeys.ToString(), Is.EqualTo("<FF>/serverKeys/"));
+				Assert.That(Fdb.System.ServerList.ToString(), Is.EqualTo("<FF>/serverList/"));
+				Assert.That(Fdb.System.BackupDataFormat.ToString(), Is.EqualTo("<FF>/backupDataFormat"));
+				Assert.That(Fdb.System.InitId.ToString(), Is.EqualTo("<FF>/init_id"));
+				Assert.That(Fdb.System.ConfigKey("hello").ToString(), Is.EqualTo("<FF>/conf/hello"));
+				Assert.That(Fdb.System.GlobalsKey("world").ToString(), Is.EqualTo("<FF>/globals/world"));
+				Assert.That(Fdb.System.WorkersKey("foo", "bar").ToString(), Is.EqualTo("<FF>/workers/foo/bar"));
+			});
 		}
 
 		[Test]
 		public void Test_FdbKey_Increment()
 		{
-
-			var key = FdbKey.Increment(Slice.FromByteString("Hello"));
-			Assert.That(key.ToString(), Is.EqualTo("Hellp"));
-			 
-			key = FdbKey.Increment(Slice.FromByteString("Hello\x00"));
-			Assert.That(key.ToString(), Is.EqualTo("Hello<01>"));
-
-			key = FdbKey.Increment(Slice.FromByteString("Hello\xFE"));
-			Assert.That(key.ToString(), Is.EqualTo("Hello<FF>"));
-
-			key = FdbKey.Increment(Slice.FromByteString("Hello\xFF"));
-			Assert.That(key.ToString(), Is.EqualTo("Hellp"), "Should remove training \\xFF");
-
-			key = FdbKey.Increment(Slice.FromByteString("A\xFF\xFF\xFF"));
-			Assert.That(key.ToString(), Is.EqualTo("B"), "Should truncate all trailing \\xFFs");
+			Assert.That(FdbKey.Increment(Literal("Hello")).ToString(), Is.EqualTo("Hellp"));
+			Assert.That(FdbKey.Increment(Literal("Hello\x00")).ToString(), Is.EqualTo("Hello<01>"));
+			Assert.That(FdbKey.Increment(Literal("Hello\xFE")).ToString(), Is.EqualTo("Hello<FF>"));
+			Assert.That(FdbKey.Increment(Literal("Hello\xFF")).ToString(), Is.EqualTo("Hellp"), "Should remove training \\xFF");
+			Assert.That(FdbKey.Increment(Literal("A\xFF\xFF\xFF")).ToString(), Is.EqualTo("B"), "Should truncate all trailing \\xFFs");
 
 			// corner cases
 			Assert.That(() => FdbKey.Increment(Slice.Nil), Throws.InstanceOf<ArgumentException>().With.Property("ParamName").EqualTo("slice"));
 			Assert.That(() => FdbKey.Increment(Slice.Empty), Throws.InstanceOf<ArgumentException>());
-			Assert.That(() => FdbKey.Increment(Slice.FromByteString("\xFF")), Throws.InstanceOf<ArgumentException>());
-
+			Assert.That(() => FdbKey.Increment(Literal("\xFF")), Throws.InstanceOf<ArgumentException>());
 		}
 
 		[Test]
@@ -202,26 +200,26 @@ namespace FoundationDB.Client.Tests
 			// ["", "")
 			range = KeyRange.Empty;
 			Assert.That(range.Contains(Slice.Empty), Is.False);
-			Assert.That(range.Contains(Slice.FromByteString("\x00")), Is.False);
-			Assert.That(range.Contains(Slice.FromByteString("hello")), Is.False);
-			Assert.That(range.Contains(Slice.FromByteString("\xFF")), Is.False);
+			Assert.That(range.Contains(Literal("\x00")), Is.False);
+			Assert.That(range.Contains(Literal("hello")), Is.False);
+			Assert.That(range.Contains(Literal("\xFF")), Is.False);
 
 			// ["", "\xFF" )
-			range = KeyRange.Create(Slice.Empty, Slice.FromByteString("\xFF"));
+			range = KeyRange.Create(Slice.Empty, Literal("\xFF"));
 			Assert.That(range.Contains(Slice.Empty), Is.True);
-			Assert.That(range.Contains(Slice.FromByteString("\x00")), Is.True);
-			Assert.That(range.Contains(Slice.FromByteString("hello")), Is.True);
-			Assert.That(range.Contains(Slice.FromByteString("\xFF")), Is.False);
+			Assert.That(range.Contains(Literal("\x00")), Is.True);
+			Assert.That(range.Contains(Literal("hello")), Is.True);
+			Assert.That(range.Contains(Literal("\xFF")), Is.False);
 
 			// ["\x00", "\xFF" )
-			range = KeyRange.Create(Slice.FromByteString("\x00"), Slice.FromByteString("\xFF"));
+			range = KeyRange.Create(Literal("\x00"), Literal("\xFF"));
 			Assert.That(range.Contains(Slice.Empty), Is.False);
-			Assert.That(range.Contains(Slice.FromByteString("\x00")), Is.True);
-			Assert.That(range.Contains(Slice.FromByteString("hello")), Is.True);
-			Assert.That(range.Contains(Slice.FromByteString("\xFF")), Is.False);
+			Assert.That(range.Contains(Literal("\x00")), Is.True);
+			Assert.That(range.Contains(Literal("hello")), Is.True);
+			Assert.That(range.Contains(Literal("\xFF")), Is.False);
 
 			// corner cases
-			Assert.That(KeyRange.Create(Slice.FromByteString("A"), Slice.FromByteString("A")).Contains(Slice.FromByteString("A")), Is.False, "Equal bounds");
+			Assert.That(KeyRange.Create(Literal("A"), Literal("A")).Contains(Literal("A")), Is.False, "Equal bounds");
 		}
 
 		[Test]
@@ -232,23 +230,23 @@ namespace FoundationDB.Client.Tests
 			KeyRange range;
 
 			// range: [ "A", "Z" )
-			range = KeyRange.Create(Slice.FromByteString("A"), Slice.FromByteString("Z"));
+			range = KeyRange.Create(Literal("A"), Literal("Z"));
 
 			// Excluding the end: < "Z"
-			Assert.That(range.Test(Slice.FromByteString("\x00"), endIncluded: false), Is.EqualTo(BEFORE));
-			Assert.That(range.Test(Slice.FromByteString("@"), endIncluded: false), Is.EqualTo(BEFORE));
-			Assert.That(range.Test(Slice.FromByteString("A"), endIncluded: false), Is.EqualTo(INSIDE));
-			Assert.That(range.Test(Slice.FromByteString("Z"), endIncluded: false), Is.EqualTo(AFTER));
-			Assert.That(range.Test(Slice.FromByteString("Z\x00"), endIncluded: false), Is.EqualTo(AFTER));
-			Assert.That(range.Test(Slice.FromByteString("\xFF"), endIncluded: false), Is.EqualTo(AFTER));
+			Assert.That(range.Test(Literal("\x00"), endIncluded: false), Is.EqualTo(BEFORE));
+			Assert.That(range.Test(Literal("@"), endIncluded: false), Is.EqualTo(BEFORE));
+			Assert.That(range.Test(Literal("A"), endIncluded: false), Is.EqualTo(INSIDE));
+			Assert.That(range.Test(Literal("Z"), endIncluded: false), Is.EqualTo(AFTER));
+			Assert.That(range.Test(Literal("Z\x00"), endIncluded: false), Is.EqualTo(AFTER));
+			Assert.That(range.Test(Literal("\xFF"), endIncluded: false), Is.EqualTo(AFTER));
 
 			// Including the end: <= "Z"
-			Assert.That(range.Test(Slice.FromByteString("\x00"), endIncluded: true), Is.EqualTo(BEFORE));
-			Assert.That(range.Test(Slice.FromByteString("@"), endIncluded: true), Is.EqualTo(BEFORE));
-			Assert.That(range.Test(Slice.FromByteString("A"), endIncluded: true), Is.EqualTo(INSIDE));
-			Assert.That(range.Test(Slice.FromByteString("Z"), endIncluded: true), Is.EqualTo(INSIDE));
-			Assert.That(range.Test(Slice.FromByteString("Z\x00"), endIncluded: true), Is.EqualTo(AFTER));
-			Assert.That(range.Test(Slice.FromByteString("\xFF"), endIncluded: true), Is.EqualTo(AFTER));
+			Assert.That(range.Test(Literal("\x00"), endIncluded: true), Is.EqualTo(BEFORE));
+			Assert.That(range.Test(Literal("@"), endIncluded: true), Is.EqualTo(BEFORE));
+			Assert.That(range.Test(Literal("A"), endIncluded: true), Is.EqualTo(INSIDE));
+			Assert.That(range.Test(Literal("Z"), endIncluded: true), Is.EqualTo(INSIDE));
+			Assert.That(range.Test(Literal("Z\x00"), endIncluded: true), Is.EqualTo(AFTER));
+			Assert.That(range.Test(Literal("\xFF"), endIncluded: true), Is.EqualTo(AFTER));
 
 			range = KeyRange.Create(TuPack.EncodeKey("A"), TuPack.EncodeKey("Z"));
 			Assert.That(range.Test(TuPack.EncodeKey("@")), Is.EqualTo((BEFORE)));
@@ -263,15 +261,15 @@ namespace FoundationDB.Client.Tests
 			KeyRange range;
 
 			// "abc" => [ "abc", "abd" )
-			range = KeyRange.StartsWith(Slice.FromByteString("abc"));
-			Assert.That(range.Begin, Is.EqualTo(Slice.FromByteString("abc")));
-			Assert.That(range.End, Is.EqualTo(Slice.FromByteString("abd")));
+			range = KeyRange.StartsWith(Literal("abc"));
+			Assert.That(range.Begin, Is.EqualTo(Literal("abc")));
+			Assert.That(range.End, Is.EqualTo(Literal("abd")));
 
 			// "" => ArgumentException
 			Assert.That(() => KeyRange.PrefixedBy(Slice.Empty), Throws.InstanceOf<ArgumentException>());
 
 			// "\xFF" => ArgumentException
-			Assert.That(() => KeyRange.PrefixedBy(Slice.FromByteString("\xFF")), Throws.InstanceOf<ArgumentException>());
+			Assert.That(() => KeyRange.PrefixedBy(Literal("\xFF")), Throws.InstanceOf<ArgumentException>());
 
 			// null => ArgumentException
 			Assert.That(() => KeyRange.PrefixedBy(Slice.Nil), Throws.InstanceOf<ArgumentException>());
@@ -283,15 +281,15 @@ namespace FoundationDB.Client.Tests
 			KeyRange range;
 
 			// "abc" => [ "abc\x00", "abd" )
-			range = KeyRange.PrefixedBy(Slice.FromByteString("abc"));
-			Assert.That(range.Begin, Is.EqualTo(Slice.FromByteString("abc\x00")));
-			Assert.That(range.End, Is.EqualTo(Slice.FromByteString("abd")));
+			range = KeyRange.PrefixedBy(Literal("abc"));
+			Assert.That(range.Begin, Is.EqualTo(Literal("abc\x00")));
+			Assert.That(range.End, Is.EqualTo(Literal("abd")));
 
 			// "" => ArgumentException
 			Assert.That(() => KeyRange.PrefixedBy(Slice.Empty), Throws.InstanceOf<ArgumentException>());
 
 			// "\xFF" => ArgumentException
-			Assert.That(() => KeyRange.PrefixedBy(Slice.FromByteString("\xFF")), Throws.InstanceOf<ArgumentException>());
+			Assert.That(() => KeyRange.PrefixedBy(Literal("\xFF")), Throws.InstanceOf<ArgumentException>());
 
 			// null => ArgumentException
 			Assert.That(() => KeyRange.PrefixedBy(Slice.Nil), Throws.InstanceOf<ArgumentException>());
@@ -305,17 +303,17 @@ namespace FoundationDB.Client.Tests
 			// "" => [ "", "\x00" )
 			range = KeyRange.FromKey(Slice.Empty);
 			Assert.That(range.Begin, Is.EqualTo(Slice.Empty));
-			Assert.That(range.End, Is.EqualTo(Slice.FromByteString("\x00")));
+			Assert.That(range.End, Is.EqualTo(Literal("\x00")));
 
 			// "abc" => [ "abc", "abc\x00" )
-			range = KeyRange.FromKey(Slice.FromByteString("abc"));
-			Assert.That(range.Begin, Is.EqualTo(Slice.FromByteString("abc")));
-			Assert.That(range.End, Is.EqualTo(Slice.FromByteString("abc\x00")));
+			range = KeyRange.FromKey(Literal("abc"));
+			Assert.That(range.Begin, Is.EqualTo(Literal("abc")));
+			Assert.That(range.End, Is.EqualTo(Literal("abc\x00")));
 
 			// "\xFF" => [ "\xFF", "\xFF\x00" )
-			range = KeyRange.FromKey(Slice.FromByteString("\xFF"));
-			Assert.That(range.Begin, Is.EqualTo(Slice.FromByteString("\xFF")));
-			Assert.That(range.End, Is.EqualTo(Slice.FromByteString("\xFF\x00")));
+			range = KeyRange.FromKey(Literal("\xFF"));
+			Assert.That(range.Begin, Is.EqualTo(Literal("\xFF")));
+			Assert.That(range.End, Is.EqualTo(Literal("\xFF\x00")));
 
 			Assert.That(() => KeyRange.FromKey(Slice.Nil), Throws.InstanceOf<ArgumentException>());
 		}
@@ -323,174 +321,190 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public void Test_FdbKey_PrettyPrint()
 		{
-			// verify that the pretty printing of keys produce a user friendly output
+			// verify that the pretty printing of keys produce a user-friendly output
+			Assert.Multiple(() =>
+			{
 
-			Assert.That(FdbKey.Dump(Slice.Nil), Is.EqualTo("<null>"));
-			Assert.That(FdbKey.Dump(Slice.Empty), Is.EqualTo("<empty>"));
+				Assert.That(FdbKey.Dump(Slice.Nil), Is.EqualTo("<null>"));
+				Assert.That(FdbKey.Dump(Slice.Empty), Is.EqualTo("<empty>"));
 
-			Assert.That(FdbKey.Dump(Slice.FromByte(0)), Is.EqualTo("<00>"));
-			Assert.That(FdbKey.Dump(Slice.FromByte(255)), Is.EqualTo("<FF>"));
+				Assert.That(FdbKey.Dump(Slice.FromByte(0)), Is.EqualTo("<00>"));
+				Assert.That(FdbKey.Dump(Slice.FromByte(255)), Is.EqualTo("<FF>"));
 
-			Assert.That(FdbKey.Dump(new byte[] { 0, 1, 2, 3, 4, 5, 6, 7 }.AsSlice()), Is.EqualTo("<00><01><02><03><04><05><06><07>"));
-			Assert.That(FdbKey.Dump(new byte[] { 255, 254, 253, 252, 251, 250, 249, 248 }.AsSlice()), Is.EqualTo("<FF><FE><FD><FC><FB><FA><F9><F8>"));
+				Assert.That(FdbKey.Dump(new byte[] { 0, 1, 2, 3, 4, 5, 6, 7 }.AsSlice()), Is.EqualTo("<00><01><02><03><04><05><06><07>"));
+				Assert.That(FdbKey.Dump(new byte[] { 255, 254, 253, 252, 251, 250, 249, 248 }.AsSlice()), Is.EqualTo("<FF><FE><FD><FC><FB><FA><F9><F8>"));
 
-			Assert.That(FdbKey.Dump(Slice.FromString("hello")), Is.EqualTo("hello"));
-			Assert.That(FdbKey.Dump(Slice.FromString("héllø")), Is.EqualTo("h<C3><A9>ll<C3><B8>"));
+				Assert.That(FdbKey.Dump(Text("hello")), Is.EqualTo("hello"));
+				Assert.That(FdbKey.Dump(Text("héllø")), Is.EqualTo("h<C3><A9>ll<C3><B8>"));
 
-			// tuples should be decoded properly
+				Assert.That(FdbKey.Dump(Text("hello"u8)), Is.EqualTo("hello"));
+				Assert.That(FdbKey.Dump(Text("héllø"u8)), Is.EqualTo("h<C3><A9>ll<C3><B8>"));
 
-			Assert.That(FdbKey.Dump(TuPack.EncodeKey(123)), Is.EqualTo("(123,)"), "Singleton tuples should end with a ','");
-			Assert.That(FdbKey.Dump(TuPack.EncodeKey(Slice.FromByteString("hello"))), Is.EqualTo("(`hello`,)"), "ASCII strings should use single back quotes");
-			Assert.That(FdbKey.Dump(TuPack.EncodeKey("héllø")), Is.EqualTo("(\"héllø\",)"), "Unicode strings should use double quotes");
-			Assert.That(FdbKey.Dump(TuPack.EncodeKey(new byte[] { 1, 2, 3 }.AsSlice())), Is.EqualTo("(`<01><02><03>`,)"));
-			Assert.That(FdbKey.Dump(TuPack.EncodeKey(123, 456)), Is.EqualTo("(123, 456)"), "Elements should be separated with a space, and not end up with ','");
-			Assert.That(FdbKey.Dump(TuPack.EncodeKey(default(object), true, false)), Is.EqualTo("(null, true, false)"), "Booleans should be displayed as numbers, and null should be in lowercase"); //note: even though it's tempting to using Python's "Nil", it's not very ".NETty"
-			//note: the string representation of double is not identical between NetFx and .NET Core! So we cannot used a constant literal here
-			Assert.That(FdbKey.Dump(TuPack.EncodeKey(1.0d, Math.PI, Math.E)), Is.EqualTo("(1, " + Math.PI.ToString("R", CultureInfo.InvariantCulture) + ", " + Math.E.ToString("R", CultureInfo.InvariantCulture) + ")"), "Doubles should used dot and have full precision (17 digits)");
-			Assert.That(FdbKey.Dump(TuPack.EncodeKey(1.0f, (float)Math.PI, (float)Math.E)), Is.EqualTo("(1, " + ((float) Math.PI).ToString("R", CultureInfo.InvariantCulture)+ ", " + ((float) Math.E).ToString("R", CultureInfo.InvariantCulture) + ")"), "Singles should used dot and have full precision (10 digits)");
-			var guid = Guid.NewGuid();
-			Assert.That(FdbKey.Dump(TuPack.EncodeKey(guid)), Is.EqualTo($"({guid:B},)"), "GUIDs should be displayed as a string literal, surrounded by {{...}}, and without quotes");
-			var uuid128 = Uuid128.NewUuid();
-			Assert.That(FdbKey.Dump(TuPack.EncodeKey(uuid128)), Is.EqualTo($"({uuid128:B},)"), "Uuid128s should be displayed as a string literal, surrounded by {{...}}, and without quotes");
-			var uuid64 = Uuid64.NewUuid();
-			Assert.That(FdbKey.Dump(TuPack.EncodeKey(uuid64)), Is.EqualTo($"({uuid64:B},)"), "Uuid64s should be displayed as a string literal, surrounded by {{...}}, and without quotes");
+				Assert.That(FdbKey.Dump("hello"u8), Is.EqualTo("hello"));
+				Assert.That(FdbKey.Dump("héllø"u8), Is.EqualTo("h<C3><A9>ll<C3><B8>"));
 
-			// ranges should be decoded when possible
-			var key = TuPack.ToRange(STuple.Create("hello"));
-			// "<02>hello<00><00>" .. "<02>hello<00><FF>"
-			Assert.That(FdbKey.PrettyPrint(key.Begin, FdbKey.PrettyPrintMode.Begin), Is.EqualTo("(\"hello\",).<00>"));
-			Assert.That(FdbKey.PrettyPrint(key.End, FdbKey.PrettyPrintMode.End), Is.EqualTo("(\"hello\",).<FF>"));
+				// tuples should be decoded properly
 
-			key = KeyRange.StartsWith(TuPack.EncodeKey("hello"));
-			// "<02>hello<00>" .. "<02>hello<01>"
-			Assert.That(FdbKey.PrettyPrint(key.Begin, FdbKey.PrettyPrintMode.Begin), Is.EqualTo("(\"hello\",)"));
-			Assert.That(FdbKey.PrettyPrint(key.End, FdbKey.PrettyPrintMode.End), Is.EqualTo("(\"hello\",) + 1"));
+				Assert.That(FdbKey.Dump(TuPack.EncodeKey(123)), Is.EqualTo("(123,)"), "Singleton tuples should end with a ','");
+				Assert.That(FdbKey.Dump(TuPack.EncodeKey(Literal("hello"))), Is.EqualTo("(`hello`,)"), "ASCII strings should use single back quotes");
+				Assert.That(FdbKey.Dump(TuPack.EncodeKey("héllø")), Is.EqualTo("(\"héllø\",)"), "Unicode strings should use double quotes");
+				Assert.That(FdbKey.Dump(TuPack.EncodeKey(Text("héllø"u8))), Is.EqualTo("(`h<C3><A9>ll<C3><B8>`,)"), "Unicode strings should use double quotes");
+				Assert.That(FdbKey.Dump(TuPack.EncodeKey(new byte[] { 1, 2, 3 }.AsSlice())), Is.EqualTo("(`<01><02><03>`,)"));
+				Assert.That(FdbKey.Dump(TuPack.EncodeKey(123, 456)), Is.EqualTo("(123, 456)"), "Elements should be separated with a space, and not end up with ','");
+				Assert.That(FdbKey.Dump(TuPack.EncodeKey(default(object), true, false)), Is.EqualTo("(null, true, false)"), "Booleans should be displayed as numbers, and null should be in lowercase"); //note: even though it's tempting to using Python's "Nil", it's not very ".NETty"
 
-			var t = TuPack.EncodeKey(123);
-			Assert.That(FdbKey.PrettyPrint(t, FdbKey.PrettyPrintMode.Single), Is.EqualTo("(123,)"));
-			Assert.That(FdbKey.PrettyPrint(TuPack.ToRange(t).Begin, FdbKey.PrettyPrintMode.Begin), Is.EqualTo("(123,).<00>"));
-			Assert.That(FdbKey.PrettyPrint(TuPack.ToRange(t).End, FdbKey.PrettyPrintMode.End), Is.EqualTo("(123,).<FF>"));
+				//note: the string representation of double is not identical between NetFx and .NET Core! So we cannot use a constant literal here
+				Assert.That(FdbKey.Dump(TuPack.EncodeKey(1.0d, Math.PI, Math.E)), Is.EqualTo("(1, " + Math.PI.ToString("R", CultureInfo.InvariantCulture) + ", " + Math.E.ToString("R", CultureInfo.InvariantCulture) + ")"), "Doubles should used dot and have full precision (17 digits)");
+				Assert.That(FdbKey.Dump(TuPack.EncodeKey(1.0f, (float)Math.PI, (float)Math.E)), Is.EqualTo("(1, " + ((float) Math.PI).ToString("R", CultureInfo.InvariantCulture)+ ", " + ((float) Math.E).ToString("R", CultureInfo.InvariantCulture) + ")"), "Singles should used dot and have full precision (10 digits)");
 
+				var guid = Guid.NewGuid();
+				Assert.That(FdbKey.Dump(TuPack.EncodeKey(guid)), Is.EqualTo($"({guid:B},)"), "GUIDs should be displayed as a string literal, surrounded by {{...}}, and without quotes");
+				var uuid128 = Uuid128.NewUuid();
+				Assert.That(FdbKey.Dump(TuPack.EncodeKey(uuid128)), Is.EqualTo($"({uuid128:B},)"), "Uuid128s should be displayed as a string literal, surrounded by {{...}}, and without quotes");
+				var uuid64 = Uuid64.NewUuid();
+				Assert.That(FdbKey.Dump(TuPack.EncodeKey(uuid64)), Is.EqualTo($"({uuid64:B},)"), "Uuid64s should be displayed as a string literal, surrounded by {{...}}, and without quotes");
+
+				// ranges should be decoded when possible
+				var key = TuPack.ToRange(STuple.Create("hello"));
+				// "<02>hello<00><00>" .. "<02>hello<00><FF>"
+				Assert.That(FdbKey.PrettyPrint(key.Begin, FdbKey.PrettyPrintMode.Begin), Is.EqualTo("(\"hello\",).<00>"));
+				Assert.That(FdbKey.PrettyPrint(key.End, FdbKey.PrettyPrintMode.End), Is.EqualTo("(\"hello\",).<FF>"));
+
+				key = KeyRange.StartsWith(TuPack.EncodeKey("hello"));
+				// "<02>hello<00>" .. "<02>hello<01>"
+				Assert.That(FdbKey.PrettyPrint(key.Begin, FdbKey.PrettyPrintMode.Begin), Is.EqualTo("(\"hello\",)"));
+				Assert.That(FdbKey.PrettyPrint(key.End, FdbKey.PrettyPrintMode.End), Is.EqualTo("(\"hello\",) + 1"));
+
+				var t = TuPack.EncodeKey(123);
+				Assert.That(FdbKey.PrettyPrint(t, FdbKey.PrettyPrintMode.Single), Is.EqualTo("(123,)"));
+				Assert.That(FdbKey.PrettyPrint(TuPack.ToRange(t).Begin, FdbKey.PrettyPrintMode.Begin), Is.EqualTo("(123,).<00>"));
+				Assert.That(FdbKey.PrettyPrint(TuPack.ToRange(t).End, FdbKey.PrettyPrintMode.End), Is.EqualTo("(123,).<FF>"));
+			});
 		}
 
 		[Test]
 		public void Test_KeyRange_Intersects()
 		{
-			KeyRange MakeRange(byte x, byte y) => KeyRange.Create(Slice.FromByte(x), Slice.FromByte(y));
+			static KeyRange MakeRange(byte x, byte y) => KeyRange.Create(Slice.FromByte(x), Slice.FromByte(y));
 
-			#region Not Intersecting...
+			Assert.Multiple(() =>
+			{
+				#region Not Intersecting...
 
-			// [0, 1) [2, 3)
-			// #X
-			//   #X
-			Assert.That(MakeRange(0, 1).Intersects(MakeRange(2, 3)), Is.False);
-			// [2, 3) [0, 1)
-			//   #X
-			// #X
-			Assert.That(MakeRange(2, 3).Intersects(MakeRange(0, 1)), Is.False);
+				// [0, 1) [2, 3)
+				// #X
+				//   #X
+				Assert.That(MakeRange(0, 1).Intersects(MakeRange(2, 3)), Is.False);
+				// [2, 3) [0, 1)
+				//   #X
+				// #X
+				Assert.That(MakeRange(2, 3).Intersects(MakeRange(0, 1)), Is.False);
 
-			// [0, 1) [1, 2)
-			// #X
-			//  #X
-			Assert.That(MakeRange(0, 1).Intersects(MakeRange(1, 2)), Is.False);
-			// [1, 2) [0, 1)
-			//  #X
-			// #X
-			Assert.That(MakeRange(1, 2).Intersects(MakeRange(0, 1)), Is.False);
+				// [0, 1) [1, 2)
+				// #X
+				//  #X
+				Assert.That(MakeRange(0, 1).Intersects(MakeRange(1, 2)), Is.False);
+				// [1, 2) [0, 1)
+				//  #X
+				// #X
+				Assert.That(MakeRange(1, 2).Intersects(MakeRange(0, 1)), Is.False);
 
-			#endregion
+				#endregion
 
-			#region Intersecting...
+				#region Intersecting...
 
-			// [0, 2) [1, 3)
-			// ##X
-			//  ##X
-			Assert.That(MakeRange(0, 2).Intersects(MakeRange(1, 3)), Is.True);
-			// [1, 3) [0, 2)
-			//  ##X
-			// ##X
-			Assert.That(MakeRange(1, 3).Intersects(MakeRange(0, 2)), Is.True);
+				// [0, 2) [1, 3)
+				// ##X
+				//  ##X
+				Assert.That(MakeRange(0, 2).Intersects(MakeRange(1, 3)), Is.True);
+				// [1, 3) [0, 2)
+				//  ##X
+				// ##X
+				Assert.That(MakeRange(1, 3).Intersects(MakeRange(0, 2)), Is.True);
 
-			// [0, 1) [0, 2)
-			// #X
-			// ##X
-			Assert.That(MakeRange(0, 1).Intersects(MakeRange(0, 2)), Is.True);
-			// [0, 2) [0, 1)
-			// ##X
-			// #X
-			Assert.That(MakeRange(0, 2).Intersects(MakeRange(0, 1)), Is.True);
+				// [0, 1) [0, 2)
+				// #X
+				// ##X
+				Assert.That(MakeRange(0, 1).Intersects(MakeRange(0, 2)), Is.True);
+				// [0, 2) [0, 1)
+				// ##X
+				// #X
+				Assert.That(MakeRange(0, 2).Intersects(MakeRange(0, 1)), Is.True);
 
-			// [0, 2) [1, 2)
-			// ##X
-			//  #X
-			Assert.That(MakeRange(0, 2).Intersects(MakeRange(1, 2)), Is.True);
-			// [1, 2) [0, 2)
-			//  #X
-			// ##X
-			Assert.That(MakeRange(1, 2).Intersects(MakeRange(0, 2)), Is.True);
+				// [0, 2) [1, 2)
+				// ##X
+				//  #X
+				Assert.That(MakeRange(0, 2).Intersects(MakeRange(1, 2)), Is.True);
+				// [1, 2) [0, 2)
+				//  #X
+				// ##X
+				Assert.That(MakeRange(1, 2).Intersects(MakeRange(0, 2)), Is.True);
 
-			#endregion
+				#endregion
+			});
 
 		}
 
 		[Test]
 		public void Test_KeyRange_Disjoint()
 		{
-			KeyRange MakeRange(byte x, byte y) => KeyRange.Create(Slice.FromByte(x), Slice.FromByte(y));
+			static KeyRange MakeRange(byte x, byte y) => KeyRange.Create(Slice.FromByte(x), Slice.FromByte(y));
 
-			#region Disjoint...
+			Assert.Multiple(() =>
+			{
+				#region Disjoint...
 
-			// [0, 1) [2, 3)
-			// #X
-			//   #X
-			Assert.That(MakeRange(0, 1).Disjoint(MakeRange(2, 3)), Is.True);
-			// [2, 3) [0, 1)
-			//   #X
-			// #X
-			Assert.That(MakeRange(2, 3).Disjoint(MakeRange(0, 1)), Is.True);
+				// [0, 1) [2, 3)
+				// #X
+				//   #X
+				Assert.That(MakeRange(0, 1).Disjoint(MakeRange(2, 3)), Is.True);
+				// [2, 3) [0, 1)
+				//   #X
+				// #X
+				Assert.That(MakeRange(2, 3).Disjoint(MakeRange(0, 1)), Is.True);
 
-			#endregion
+				#endregion
 
-			#region Not Disjoint...
+				#region Not Disjoint...
 
-			// [0, 1) [1, 2)
-			// #X
-			//  #X
-			Assert.That(MakeRange(0, 1).Disjoint(MakeRange(1, 2)), Is.False);
-			// [1, 2) [0, 1)
-			//  #X
-			// #X
-			Assert.That(MakeRange(1, 2).Disjoint(MakeRange(0, 1)), Is.False);
+				// [0, 1) [1, 2)
+				// #X
+				//  #X
+				Assert.That(MakeRange(0, 1).Disjoint(MakeRange(1, 2)), Is.False);
+				// [1, 2) [0, 1)
+				//  #X
+				// #X
+				Assert.That(MakeRange(1, 2).Disjoint(MakeRange(0, 1)), Is.False);
 
-			// [0, 2) [1, 3)
-			// ##X
-			//  ##X
-			Assert.That(MakeRange(0, 2).Disjoint(MakeRange(1, 3)), Is.False);
-			// [1, 3) [0, 2)
-			//  ##X
-			// ##X
-			Assert.That(MakeRange(1, 3).Disjoint(MakeRange(0, 2)), Is.False);
+				// [0, 2) [1, 3)
+				// ##X
+				//  ##X
+				Assert.That(MakeRange(0, 2).Disjoint(MakeRange(1, 3)), Is.False);
+				// [1, 3) [0, 2)
+				//  ##X
+				// ##X
+				Assert.That(MakeRange(1, 3).Disjoint(MakeRange(0, 2)), Is.False);
 
-			// [0, 1) [0, 2)
-			// #X
-			// ##X
-			Assert.That(MakeRange(0, 1).Disjoint(MakeRange(0, 2)), Is.False);
-			// [0, 2) [0, 1)
-			// ##X
-			// #X
-			Assert.That(MakeRange(0, 2).Disjoint(MakeRange(0, 1)), Is.False);
+				// [0, 1) [0, 2)
+				// #X
+				// ##X
+				Assert.That(MakeRange(0, 1).Disjoint(MakeRange(0, 2)), Is.False);
+				// [0, 2) [0, 1)
+				// ##X
+				// #X
+				Assert.That(MakeRange(0, 2).Disjoint(MakeRange(0, 1)), Is.False);
 
-			// [0, 2) [1, 2)
-			// ##X
-			//  #X
-			Assert.That(MakeRange(0, 2).Disjoint(MakeRange(1, 2)), Is.False);
-			// [1, 2) [0, 2)
-			//  #X
-			// ##X
-			Assert.That(MakeRange(1, 2).Disjoint(MakeRange(0, 2)), Is.False);
+				// [0, 2) [1, 2)
+				// ##X
+				//  #X
+				Assert.That(MakeRange(0, 2).Disjoint(MakeRange(1, 2)), Is.False);
+				// [1, 2) [0, 2)
+				//  #X
+				// ##X
+				Assert.That(MakeRange(1, 2).Disjoint(MakeRange(0, 2)), Is.False);
 
-			#endregion
-
+				#endregion
+			});
 		}
 
 		[Test]
