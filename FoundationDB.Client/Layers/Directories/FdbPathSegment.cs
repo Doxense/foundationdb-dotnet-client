@@ -48,7 +48,7 @@ namespace FoundationDB.Client
 		public readonly string Name;
 
 		/// <summary>Id of the layer used by the corresponding directory; or <c>null</c> if it is not specified</summary>
-		/// <remarks>If present: when opening a directory, its layer id will compared to this value; when creating a directory, this value will be used as its layer id.</remarks>
+		/// <remarks>If present: when opening a directory, its LayerId will be compared to this value; when creating a directory, this value will be used as its LayerId.</remarks>
 		public readonly string LayerId;
 
 		/// <summary>Empty segment</summary>
@@ -77,20 +77,20 @@ namespace FoundationDB.Client
 			return value;
 		}
 
-		/// <summary>Return a path segment composed of only a name, but without any layer id specified</summary>
+		/// <summary>Return a path segment composed of only a name, but without any LayerId specified</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbPathSegment Create(string name)
-			=> new FdbPathSegment(name, string.Empty);
+			=> new(name, string.Empty);
 
-		/// <summary>Return a path segment composed both a name, and a layer id</summary>
+		/// <summary>Return a path segment composed both a name, and a LayerId</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbPathSegment Create(string name, string layerId)
-			=> new FdbPathSegment(name, layerId);
+			=> new(name, layerId);
 
-		/// <summary>Return a path segment composed a name, and the "partition" layer id</summary>
+		/// <summary>Return a path segment composed a name, and the "partition" LayerId</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbPathSegment Partition(string name)
-			=> new FdbPathSegment(name, FdbDirectoryPartition.LayerId);
+			=> new(name, FdbDirectoryPartition.LayerId);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static string Encode(string name)
@@ -124,18 +124,18 @@ namespace FoundationDB.Client
 			return tmp;
 		}
 
-		/// <summary>Parse a string representation of a path segment (name with optional layer id)</summary>
+		/// <summary>Parse a string representation of a path segment (name with optional LayerId)</summary>
 		/// <param name="value">Encoded path segment</param>
-		/// <returns>Decoded path segment (may include an optional layer id)</returns>
+		/// <returns>Decoded path segment (may include an optional LayerId)</returns>
 		/// <example>Parse("Foo") == FdbPathSegment.Create("Foo"); Parse("Foo[SomeLayer]") == FdbPathSegment.Create("Foo", "SomeLayer")</example>
 		public static FdbPathSegment Parse(string value)
 		{
 			return Parse(value.AsSpan());
 		}
 
-		/// <summary>Parse a string representation of a path segment (name with optional layer id)</summary>
+		/// <summary>Parse a string representation of a path segment (name with optional LayerId)</summary>
 		/// <param name="value">Encoded path segment</param>
-		/// <returns>Decoded path segment (may include an optional layer id)</returns>
+		/// <returns>Decoded path segment (may include an optional LayerId)</returns>
 		/// <example>Parse("Foo") == FdbPathSegment.Create("Foo"); Parse("Foo[SomeLayer]") == FdbPathSegment.Create("Foo", "SomeLayer")</example>
 		public static FdbPathSegment Parse(ReadOnlySpan<char> value)
 		{
@@ -165,7 +165,7 @@ namespace FoundationDB.Client
 		internal static bool TryParse(StringBuilder? sb, ReadOnlySpan<char> value, bool withException, out FdbPathSegment segment, out Exception? error)
 		{
 			//REVIEW: use a Span<char> instead of StringBuilder !
-			sb ??= new StringBuilder(value.Length);
+			sb ??= new(value.Length);
 
 			bool escaped = false;
 			bool inLayer = false;
@@ -244,13 +244,13 @@ namespace FoundationDB.Client
 				return false;
 			}
 
-			segment = new FdbPathSegment(name, layerId);
+			segment = new(name, layerId);
 			error = null;
 			return true;
 		}
 
 		/// <summary>Return an encoded string representation of this path segment</summary>
-		/// <returns>Encoded string, with optional layer id</returns>
+		/// <returns>Encoded string, with optional LayerId</returns>
 		/// <example>FdbPathSegment.Create("Foo").ToString() == "Foo"; FdbPathSegment.Create("Foo", "SomeLayer") == "Foo[SomeLayer]"</example>
 		/// <remarks>The string retured can be parsed back into the original segment via <see cref="Parse(string)"/>.</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -259,7 +259,7 @@ namespace FoundationDB.Client
 			return Encode(this.Name, this.LayerId);
 		}
 
-		/// <summary>Extract the pair of name and layer id from this segment</summary>
+		/// <summary>Extract the pair of name and LayerId from this segment</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Deconstruct(out string name, out string? layerId)
 		{

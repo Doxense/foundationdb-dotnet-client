@@ -108,7 +108,7 @@ namespace FoundationDB.DependencyInjection
 							break;
 						}
 						default:
-						{ // pre-load specified library
+						{ // preload specified library
 							Fdb.Options.SetNativeLibPath(this.ProviderOptions.NativeLibraryPath); break;
 						}
 					}
