@@ -26,6 +26,7 @@
 
 namespace FoundationDB.Client.Tests
 {
+
 	internal static class TestHelpers
 	{
 		public const string? TestClusterFile = null;
@@ -46,12 +47,26 @@ namespace FoundationDB.Client.Tests
 		}
 
 		/// <summary>Connect to the local test partition</summary>
-		public static Task<IFdbDatabase> OpenTestPartitionAsync(CancellationToken ct)
+		public static Task<IFdbDatabase> OpenTestPartitionAsync(CancellationToken ct, FdbPath? suffix = null)
 		{
+			// Some test runners tent to execute tests for multiple frameworks concurrently (with multiple workers),
+			// and since they usually run at the same speed, they tend to run the same test suite that will interfere with itself.
+			// To combat this, we add the target framework moniker to the path (ex: "net8.0", "net9.0")
+
+			string host = Environment.MachineName;
+			string target = $"net{Environment.Version.Major}.{Environment.Version.Minor}";
+
+			var path = FdbPath.Root[FdbPathSegment.Partition("Tests")]["Fdb"][host][target];
+
+			if (suffix != null)
+			{
+				path = path[suffix.Value];
+			}
+
 			var options = new FdbConnectionOptions
 			{
 				ClusterFile = TestClusterFile,
-				Root = FdbPath.Absolute(FdbPathSegment.Partition("Tests"), FdbPathSegment.Create("Fdb"), FdbPathSegment.Partition(Environment.MachineName)),
+				Root = path,
 				DefaultTimeout = TimeSpan.FromMilliseconds(DefaultTimeout),
 			};
 			return Fdb.OpenAsync(options, ct);

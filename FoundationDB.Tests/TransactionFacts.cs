@@ -209,8 +209,8 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Cancelling_Transaction_Before_Commit_Should_Throw_Immediately()
 		{
-			using var db = await OpenTestDatabaseAsync();
-			var location = db.Root.ByKey("test").AsTyped<int>();
+			using var db = await OpenTestPartitionAsync();
+			var location = db.Root.AsTyped<int>();
 			await CleanLocation(db, location);
 			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
@@ -234,8 +234,8 @@ namespace FoundationDB.Client.Tests
 			// => we will try to commit a very large transaction in order to give us some time
 			// note: if this test fails because it commits to fast, that means that your system is foo fast :)
 
-			using var db = await OpenTestDatabaseAsync();
-			var location = db.Root.ByKey("test").AsTyped<int>();
+			using var db = await OpenTestPartitionAsync();
+			var location = db.Root.AsTyped<int>();
 			await CleanLocation(db, location);
 
 			var rnd = new Random();
@@ -274,8 +274,8 @@ namespace FoundationDB.Client.Tests
 			// => we will try to commit a very large transaction in order to give us some time
 			// note: if this test fails because it commits to fast, that means that your system is foo fast :)
 
-			using var db = await OpenTestDatabaseAsync();
-			var location = db.Root.ByKey("test").AsTyped<int>();
+			using var db = await OpenTestPartitionAsync();
+			var location = db.Root.AsTyped<int>();
 			await CleanLocation(db, location);
 
 			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
@@ -325,15 +325,15 @@ namespace FoundationDB.Client.Tests
 		{
 			// test that we can read and write simple keys
 
-			using var db = await OpenTestDatabaseAsync();
-			long ticks = DateTime.UtcNow.Ticks;
-			long writeVersion;
-			long readVersion;
-
-			var location = db.Root.ByKey("test").AsTyped<string>();
+			using var db = await OpenTestPartitionAsync();
+			var location = db.Root.AsTyped<string>();
 			await CleanLocation(db, location);
 
 			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
+
+			long ticks = DateTime.UtcNow.Ticks;
+			long writeVersion;
+			long readVersion;
 
 			// write a bunch of keys
 			using (var tr = db.BeginTransaction(this.Cancellation))
@@ -381,8 +381,8 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Resolve_Key_Selector()
 		{
-			using var db = await OpenTestDatabaseAsync();
-			var location = db.Root.ByKey("keys").AsTyped<int>();
+			using var db = await OpenTestPartitionAsync();
+			var location = db.Root.AsTyped<int>();
 			await CleanLocation(db, location);
 
 			#region Insert a bunch of keys ...
@@ -534,8 +534,8 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Get_Multiple_Values()
 		{
-			using var db = await OpenTestDatabaseAsync();
-			var location = db.Root.ByKey("Batch").AsTyped<int>();
+			using var db = await OpenTestPartitionAsync();
+			var location = db.Root.AsTyped<int>();
 			await CleanLocation(db, location);
 
 			var ids = new[] { 8, 7, 2, 9, 5, 0, 3, 4, 6, 1 };
@@ -577,8 +577,8 @@ namespace FoundationDB.Client.Tests
 		{
 			const int N = 20;
 
-			using var db = await OpenTestDatabaseAsync();
-			var location = db.Root.ByKey("keys").AsTyped<int>();
+			using var db = await OpenTestPartitionAsync();
+			var location = db.Root.AsTyped<int>();
 			await CleanLocation(db, location);
 
 			#region Insert a bunch of keys ...
@@ -636,8 +636,8 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Check_Value()
 		{
-			using var db = await OpenTestDatabaseAsync();
-			var location = db.Root.ByKey("test").AsTyped<string>();
+			using var db = await OpenTestPartitionAsync();
+			var location = db.Root.AsTyped<string>();
 			await CleanLocation(db, location);
 
 			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
@@ -716,8 +716,8 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Get_Converted_Value()
 		{
-			using var db = await OpenTestDatabaseAsync();
-			var location = db.Root.ByKey("test").AsTyped<string>();
+			using var db = await OpenTestPartitionAsync();
+			var location = db.Root.AsTyped<string>();
 			await CleanLocation(db, location);
 
 			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
@@ -821,8 +821,8 @@ namespace FoundationDB.Client.Tests
 		{
 			// test that we can perform atomic mutations on keys
 
-			using var db = await OpenTestDatabaseAsync();
-			var location = db.Root.ByKey("test", "atomic");
+			using var db = await OpenTestPartitionAsync();
+			var location = db.Root;
 			await CleanLocation(db, location);
 
 			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
@@ -898,10 +898,8 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_AtomicAdd32()
 		{
-			using var db = await OpenTestDatabaseAsync();
-			Log(db.Root);
-			var location = db.Root.ByKey("test", "atomic").AsTyped<string>();
-			Log(location);
+			using var db = await OpenTestPartitionAsync();
+			var location = db.Root.AsTyped<string>();
 			await CleanLocation(db, location);
 
 			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
@@ -946,10 +944,8 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_AtomicIncrement32()
 		{
-			using var db = await OpenTestDatabaseAsync();
-			//await db.WriteAsync(tr => tr.ClearRange(db.GlobalSpace.ToRange()), this.Cancellation);
-
-			var location = db.Root.ByKey("test", "atomic").AsTyped<string>();
+			using var db = await OpenTestPartitionAsync();
+			var location = db.Root.AsTyped<string>();
 			await CleanLocation(db, location);
 
 			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
@@ -991,8 +987,8 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_AtomicAdd64()
 		{
-			using var db = await OpenTestDatabaseAsync();
-			var location = db.Root.ByKey("test", "atomic").AsTyped<string>();
+			using var db = await OpenTestPartitionAsync();
+			var location = db.Root.AsTyped<string>();
 			await CleanLocation(db, location);
 
 			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
@@ -1034,8 +1030,8 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_AtomicIncrement64()
 		{
-			using var db = await OpenTestDatabaseAsync();
-			var location = db.Root.ByKey("test", "atomic").AsTyped<string>();
+			using var db = await OpenTestPartitionAsync();
+			var location = db.Root.AsTyped<string>();
 			await CleanLocation(db, location);
 
 			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
@@ -1077,8 +1073,8 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_AtomicCompareAndClear()
 		{
-			using var db = await OpenTestDatabaseAsync();
-			var location = db.Root.ByKey("test", "atomic").AsTyped<string>();
+			using var db = await OpenTestPartitionAsync();
+			var location = db.Root.AsTyped<string>();
 			await CleanLocation(db, location);
 
 			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
@@ -1124,8 +1120,8 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_AppendIfFits()
 		{
-			using var db = await OpenTestDatabaseAsync();
-			var location = db.Root.ByKey("test", "atomic").AsTyped<string>();
+			using var db = await OpenTestPartitionAsync();
+			var location = db.Root.AsTyped<string>();
 			await CleanLocation(db, location);
 
 			// setup
@@ -1168,8 +1164,8 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Snapshot_Read()
 		{
-			using var db = await OpenTestDatabaseAsync();
-			var location = db.Root.ByKey("test").AsTyped<string>();
+			using var db = await OpenTestPartitionAsync();
+			var location = db.Root.AsTyped<string>();
 			await CleanLocation(db, location);
 
 			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
@@ -1294,8 +1290,8 @@ namespace FoundationDB.Client.Tests
 		{
 			// see http://community.foundationdb.com/questions/490/snapshot-read-vs-non-snapshot-read/492
 
-			using var db = await OpenTestDatabaseAsync();
-			var location = db.Root.ByKey("test").AsTyped<string>();
+			using var db = await OpenTestPartitionAsync();
+			var location = db.Root.AsTyped<string>();
 			await CleanLocation(db, location);
 
 			await db.WriteAsync(async (tr) =>
@@ -1333,8 +1329,8 @@ namespace FoundationDB.Client.Tests
 		{
 			// see http://community.foundationdb.com/questions/490/snapshot-read-vs-non-snapshot-read/492
 
-			using var db = await OpenTestDatabaseAsync();
-			var location = db.Root.ByKey("test").AsTyped<string>();
+			using var db = await OpenTestPartitionAsync();
+			var location = db.Root.AsTyped<string>();
 			await CleanLocation(db, location);
 
 			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
@@ -1366,8 +1362,8 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_GetRange_With_Concurrent_Change_Should_Conflict()
 		{
-			using var db = await OpenTestDatabaseAsync();
-			var location = db.Root.ByKey("test");
+			using var db = await OpenTestPartitionAsync();
+			var location = db.Root;
 			await CleanLocation(db, location);
 
 			await db.WriteAsync(async (tr) =>
@@ -1446,8 +1442,8 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_GetKey_With_Concurrent_Change_Should_Conflict()
 		{
-			using var db = await OpenTestDatabaseAsync();
-			var location = db.Root.ByKey("test");
+			using var db = await OpenTestPartitionAsync();
+			var location = db.Root;
 			await CleanLocation(db, location);
 
 			await db.WriteAsync(async (tr) =>
@@ -1626,8 +1622,8 @@ namespace FoundationDB.Client.Tests
 
 			// T1 should see A == 1, because it was started before T2
 
-			using var db = await OpenTestDatabaseAsync();
-			var location = db.Root.ByKey("test").AsTyped<string>();
+			using var db = await OpenTestPartitionAsync();
+			var location = db.Root.AsTyped<string>();
 			await CleanLocation(db, location);
 
 			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
@@ -1702,12 +1698,12 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Read_Isolation_From_Writes()
 		{
-			// By default:
+			// By default,
 			// - Regular reads see the writes made by the transaction itself, but not the writes made by other transactions that committed in between
 			// - Snapshot reads never see the writes made since the transaction read version, but will see the writes made by the transaction itself
 
-			using var db = await OpenTestDatabaseAsync();
-			var location = db.Root.ByKey("test").AsTyped<string>();
+			using var db = await OpenTestPartitionAsync();
+			var location = db.Root.AsTyped<string>();
 			await CleanLocation(db, location);
 
 			// Reads (before and after):
@@ -1768,8 +1764,8 @@ namespace FoundationDB.Client.Tests
 			// - Snapshot reads never see the writes made since the transaction read version, but will see the writes made by the transaction itself
 			// In API 300, this can be emulated by setting the SnapshotReadYourWriteDisable options
 
-			using var db = await OpenTestDatabaseAsync();
-			var location = db.Root.ByKey("test").AsTyped<string>();
+			using var db = await OpenTestPartitionAsync();
+			var location = db.Root.AsTyped<string>();
 			await CleanLocation(db, location);
 
 			// Reads (before and after):
@@ -1826,11 +1822,11 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_ReadYourWritesDisable_Isolation()
 		{
-			using var db = await OpenTestDatabaseAsync();
-			var location = db.Root.ByKey("test");
+			using var db = await OpenTestPartitionAsync();
+			var location = db.Root;
 			await CleanLocation(db, location);
 
-			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
+			//db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
 			#region Default behaviour...
 
@@ -1871,9 +1867,18 @@ namespace FoundationDB.Client.Tests
 
 			// The ReadYourWritesDisable option cause reads to always return the value in the database
 
+			// note: this one is tricky: you CANNOT set this option once a read has been done, and we need to read to get the subspace!
+			// We will cheat by starting two transactions, the first one used to get the subspace, and the second one will "steal" the
+			// key prefix to write to the db. To make it safer, the second transaction will use the same read version.
+
+			// DON'T TRY THIS AT HOME! doing this in prod could lead to corruption !!!
+
+			using (var trSubspace = db.BeginTransaction(this.Cancellation))
 			using (var tr = db.BeginTransaction(this.Cancellation))
 			{
-				var subspace = (await location.Resolve(tr))!;
+				// resolve the subspace in a witness transaction
+				var subspace = (await location.Resolve(trSubspace))!;
+				tr.SetReadVersion(await trSubspace.GetReadVersionAsync());
 
 				tr.Options.WithReadYourWritesDisable();
 
@@ -1904,7 +1909,7 @@ namespace FoundationDB.Client.Tests
 			// * tr2 will set value to 2
 			// * tr3 will SetReadVersion(TR1.CommittedVersion) and we expect it to read 1 (and not 2)
 
-			using var db = await OpenTestDatabaseAsync();
+			using var db = await OpenTestPartitionAsync();
 			var location = db.Root.ByKey("test").AsTyped<string>();
 			await CleanLocation(db, location);
 
@@ -2156,7 +2161,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Add_Read_Conflict_Range()
 		{
-			using var db = await OpenTestDatabaseAsync();
+			using var db = await OpenTestPartitionAsync();
 			var location = db.Root.ByKey("conflict").AsTyped<int>();
 			await CleanLocation(db, location);
 
@@ -2195,7 +2200,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Add_Write_Conflict_Range()
 		{
-			using var db = await OpenTestDatabaseAsync();
+			using var db = await OpenTestPartitionAsync();
 			var location = db.Root.ByKey("conflict");
 			await CleanLocation(db, location);
 
@@ -2235,7 +2240,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Setup_And_Cancel_Watches()
 		{
-			using var db = await OpenTestDatabaseAsync();
+			using var db = await OpenTestPartitionAsync();
 			var location = db.Root.ByKey("test", "bigbrother");
 			await CleanLocation(db, location);
 
@@ -2293,7 +2298,7 @@ namespace FoundationDB.Client.Tests
 		{
 			// tr.Watch(..., tr.Cancellation) is forbidden, because the watch would not survive the transaction
 
-			using var db = await OpenTestDatabaseAsync();
+			using var db = await OpenTestPartitionAsync();
 			var location = db.Root.ByKey("test", "bigbrother");
 			await CleanLocation(db, location);
 
@@ -2327,7 +2332,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Setting_Key_To_Same_Value_Should_Not_Trigger_Watch()
 		{
-			using var db = await OpenTestDatabaseAsync();
+			using var db = await OpenTestPartitionAsync();
 			var location = db.Root.ByKey("test", "bigbrother");
 			await CleanLocation(db, location);
 
@@ -2387,7 +2392,7 @@ namespace FoundationDB.Client.Tests
 		{
 			// Test that calling watch.WaitAsync(CancellationToken) will throw if the token is triggered before the watch fires
 
-			using var db = await OpenTestDatabaseAsync();
+			using var db = await OpenTestPartitionAsync();
 			var location = db.Root.ByKey("test", "bigbrother");
 			await CleanLocation(db, location);
 
@@ -2439,7 +2444,7 @@ namespace FoundationDB.Client.Tests
 		{
 			// Test that calling watch.WaitAsync(TimeSpan, CancellationToken) will throw if the timeout expires before the watch fires
 
-			using var db = await OpenTestDatabaseAsync();
+			using var db = await OpenTestPartitionAsync();
 			var location = db.Root.ByKey("test", "bigbrother");
 			await CleanLocation(db, location);
 
@@ -2486,7 +2491,7 @@ namespace FoundationDB.Client.Tests
 		{
 			//note: starting from API level 630, options IncludePortInAddress is the default!
 
-			using var db = await OpenTestDatabaseAsync();
+			using var db = await OpenTestPartitionAsync();
 			var location = db.Root.ByKey("location_api");
 			await CleanLocation(db, location);
 
@@ -2704,7 +2709,7 @@ namespace FoundationDB.Client.Tests
 		{
 			// Verify that we can set version-stamped keys inside a transaction
 
-			using var db = await OpenTestDatabaseAsync();
+			using var db = await OpenTestPartitionAsync();
 			var location = db.Root.ByKey("versionstamps");
 
 			await CleanLocation(db, location);
@@ -3099,7 +3104,7 @@ namespace FoundationDB.Client.Tests
 			//NOTE: this test is vulnerable to transient errors that could happen to the cluster while it runs! (timeouts, etc...)
 			//TODO: we should use a more robust way to "skip" the retries that are for unrelated reasons?
 
-			using var db = await OpenTestDatabaseAsync();
+			using var db = await OpenTestPartitionAsync();
 			var location = db.Root.ByKey("value_checks");
 			await CleanLocation(db, location);
 
@@ -3461,7 +3466,7 @@ namespace FoundationDB.Client.Tests
 			// If the application error was caused by this stale data, then it should not throw in the new attempt.
 			// If the application error was caused by something completely unrelated, then it should throw again, and we should NOT retry
 
-			using var db = await OpenTestDatabaseAsync();
+			using var db = await OpenTestPartitionAsync();
 			var location = db.Root.ByKey("value_checks");
 			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
@@ -3704,7 +3709,7 @@ namespace FoundationDB.Client.Tests
 			const int VALUE_SIZE = 50;
 			const int CHUNK_SIZE = (NUM_ITEMS * (VALUE_SIZE + 16)) / 100; // we would like to split in ~100 chunks
 
-			using var db = await OpenTestDatabaseAsync();
+			using var db = await OpenTestPartitionAsync();
 			var location = db.Root.ByKey("range_split_points");
 			await CleanLocation(db, location);
 
@@ -3788,7 +3793,7 @@ namespace FoundationDB.Client.Tests
 			const int NUM_ITEMS = 50_000;
 			const int VALUE_SIZE = 32;
 
-			using var db = await OpenTestDatabaseAsync();
+			using var db = await OpenTestPartitionAsync();
 			var location = db.Root.ByKey("range_size_bytes");
 			await CleanLocation(db, location);
 

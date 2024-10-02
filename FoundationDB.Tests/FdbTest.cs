@@ -83,14 +83,15 @@ namespace FoundationDB.Client.Tests
 
 		/// <summary>Connect to the local test database</summary>
 		[DebuggerStepThrough]
-		protected Task<IFdbDatabase> OpenTestPartitionAsync()
+		protected Task<IFdbDatabase> OpenTestPartitionAsync([CallerMemberName] string? caller = null)
 		{
-			return TestHelpers.OpenTestPartitionAsync(this.Cancellation);
+			return TestHelpers.OpenTestPartitionAsync(this.Cancellation, FdbPath.Relative(GetType().GetFriendlyName(), caller!));
 		}
 
 		[DebuggerStepThrough]
 		protected Task CleanLocation(IFdbDatabase db, ISubspaceLocation location)
 		{
+			Log($"# Using location {location.Path}");
 			return TestHelpers.CleanLocation(db, location, this.Cancellation);
 		}
 
