@@ -137,6 +137,7 @@ namespace FoundationDB.Client.Native
 		#endregion
 
 		/// <summary>Cached delegate of the future completion callback handler</summary>
+		// ReSharper disable once StaticMemberInGenericType
 		private static readonly FdbNative.FdbFutureCallback CallbackHandler = FutureCompletionCallback;
 
 		/// <summary>Handler called when a FDBFuture becomes ready</summary>
@@ -182,7 +183,18 @@ namespace FoundationDB.Client.Native
 						Debug.WriteLine("Future<" + typeof(T).Name + "> has FAILED: " + err);
 #endif
 						if (err != FdbError.OperationCancelled)
-						{ // get the exception from the error code
+						{ // map this error code into a .NET Exception
+
+							// Issue with TaskCompletionSource<T>.TrySetException an "un-thrown" exceptions:
+							// - We have "lost" the original stacktrace of the operation that failed, and since this exception is not thrown
+							//   it will appear to originate from the first "await" in the call hierarchy, usually the app code itself.
+							// - We could call ExceptionDispatchInfo.SetCurrentStackTrace(), but the resulting stacktrace is not useful, since it
+							//   will start from inside fdb_run_network(), then this completion callback.
+							// - There does not seem to be an efficient way to "capture" the stack when the Future was created,
+							//   the cost of creating a System.Diagnostics.StackTrace instance is WAY TOO BIG compared to the benefits
+							
+							// => there is not much we can do here!
+
 							var ex = FdbNative.CreateExceptionFromError(err);
 							TrySetException(ex);
 							return;

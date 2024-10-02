@@ -242,8 +242,7 @@ namespace FoundationDB.Client.Native
 			{
 				UnregisterCancellationRegistration();
 
-				List<Exception>? errors = null;
-				bool cancellation = false;
+				FdbError errGlobal = FdbError.Success;
 				var selector = m_resultSelector;
 				var handles = m_handles;
 				Contract.Debug.Assert(handles != null);
@@ -261,12 +260,17 @@ namespace FoundationDB.Client.Native
 						{ // it failed...
 							if (err != FdbError.OperationCancelled)
 							{ // get the exception from the error code
-								var ex = FdbNative.CreateExceptionFromError(err);
-								(errors ??= new List<Exception>()).Add(ex);
+
+								//REVIEW: should we only return the first error? or rank them to return the "worst" ?
+								// => for now, only report the first error
+								if (errGlobal == FdbError.Success)
+								{
+									errGlobal = err;
+								}
 							}
 							else
 							{
-								cancellation = true;
+								errGlobal = FdbError.OperationCancelled;
 								break;
 							}
 						}
@@ -282,13 +286,15 @@ namespace FoundationDB.Client.Native
 					}
 				}
 
-				if (cancellation)
+				if (errGlobal == FdbError.OperationCancelled)
 				{ // the transaction has been cancelled
 					TrySetCanceled();
 				}
-				else if (errors != null)
+				else if (errGlobal != FdbError.Success)
 				{ // there was at least one error
-					TrySetException(errors);
+					var ex = FdbNative.CreateExceptionFromError(errGlobal);
+					// See the note in FdbFutureSingle<T> about the "lost" callstack of "un-thrown" exceptions
+					TrySetException(ex);
 				}
 				else
 				{ // success
