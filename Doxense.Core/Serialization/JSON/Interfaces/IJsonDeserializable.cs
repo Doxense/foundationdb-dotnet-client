@@ -26,40 +26,19 @@
 
 namespace Doxense.Serialization.Json
 {
-
-	/// <summary>Type that can deserialize instances of <typeparamref name="T"/> from JSON</summary>
-	/// <typeparam name="T">Type of the values to deserialize</typeparam>
-	/// <remarks>Types can serialize themselves, but this interface can also be used on "helper types" that are separate (manually written, or via source code generation)</remarks>
-	public interface IJsonDeserializerFor<out T>
-	{
-		//REVIEW: rename to IJsonDeserializer<T>, once we have renamed to current IJsonDeserializer<T> into IJsonDeserializable<T> !
-
-		/// <summary>Deserializes a JSON value into an instance of type <typeparam name="T"></typeparam></summary>
-		/// <param name="value">JSON value to deserialize.</param>
-		/// <param name="resolver">Optional custom resolver</param>
-		/// <returns>Deserialized value</returns>
-		/// <exception cref="JsonBindingException">If an error occurred during the deserialization</exception>
-		T JsonDeserialize(JsonValue value, ICrystalJsonTypeResolver? resolver = null);
-		//REVIEW: rename to "Deserialize" only?
-		//REVIEW: should we also pass some settings?
-
-	}
-
-	internal sealed class DefaultJsonDeserializer<T> : IJsonDeserializerFor<T>
+	/// <summary>Supports custom JSON deserialization from <see cref="JsonValue"/> into instances of <typeparamref name="TSelf"/></summary>
+	/// <remarks>
+	/// <para>Types that handle their own custom serialization should typically implement this interface, as well as <see cref="IJsonSerializable"/> and <see cref="IJsonPackable"/>.</para>
+	/// <para>In case where the original type <typeparamref name="TSelf"/> cannot be modified, and custom serialization is required, see <see cref="IJsonDeserializer{T}"/>.</para>
+	/// </remarks>
+	public interface IJsonDeserializable<out TSelf>
 	{
 
-		public Func<JsonValue, ICrystalJsonTypeResolver, T> Handler { get; }
-
-		public DefaultJsonDeserializer(Func<JsonValue, ICrystalJsonTypeResolver, T>? handler)
-		{
-			this.Handler = handler ?? (static (_, _) => throw new NotSupportedException("Operation not supported"));
-		}
-
-		/// <inheritdoc />
-		public T JsonDeserialize(JsonValue value, ICrystalJsonTypeResolver? resolver = null)
-		{
-			return this.Handler(value, resolver ?? CrystalJson.DefaultResolver);
-		}
+		/// <summary>Deserializes a parsed <see cref="JsonValue"/> into an instance of type <typeparamref name="TSelf"/>.</summary>
+		/// <param name="value">JSON value that will be bound to the new instance</param>
+		/// <param name="resolver">Custom resolver used to bind the value into a managed type.</param>
+		/// <returns>A new instance of <typeparamref name="TSelf"/> that has been initialized from the contents of <paramref name="value"/>.</returns>
+		static abstract TSelf JsonDeserialize(JsonValue value, ICrystalJsonTypeResolver? resolver = null);
 
 	}
 

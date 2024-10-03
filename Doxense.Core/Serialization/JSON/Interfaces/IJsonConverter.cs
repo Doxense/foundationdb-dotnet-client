@@ -29,10 +29,10 @@ namespace Doxense.Serialization.Json
 
 	/// <summary>Bundle interface that is implemented by source-generated encoders</summary>
 	/// <remarks>
-	/// <para>This interfaces bundles <see cref="IJsonSerializer{T}"/>, <see cref="IJsonDeserializerFor{T}"/> and <see cref="IJsonPackerFor{T}"/>,
+	/// <para>This interfaces bundles <see cref="IJsonSerializer{T}"/>, <see cref="IJsonDeserializer{T}"/> and <see cref="IJsonPacker{T}"/>,
 	/// so that it is easier to provide APIs that take a single instance, that is able to both encode and decode JSON without needing two or three different parameters.</para>
 	/// </remarks>
-	public interface IJsonConverter<T> : IJsonSerializer<T>, IJsonDeserializerFor<T>, IJsonPackerFor<T>
+	public interface IJsonConverter<T> : IJsonSerializer<T>, IJsonDeserializer<T>, IJsonPacker<T>
 	{
 
 	}
@@ -58,16 +58,16 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		public void JsonSerialize(CrystalJsonWriter writer, T? instance) => this.SerializeHandler(writer, instance);
+		public void Serialize(CrystalJsonWriter writer, T? instance) => this.SerializeHandler(writer, instance);
 
 		/// <inheritdoc />
-		public T JsonDeserialize(JsonValue value, ICrystalJsonTypeResolver? resolver = null)
+		public T Deserialize(JsonValue value, ICrystalJsonTypeResolver? resolver = null)
 		{
 			return this.DeserializeHandler(value, resolver ?? CrystalJson.DefaultResolver);
 		}
 
 		/// <inheritdoc />
-		public JsonValue JsonPack(T instance, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public JsonValue Pack(T instance, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			return this.PackHandler(instance, settings ?? CrystalJsonSettings.Json, resolver ?? CrystalJson.DefaultResolver);
 		}
@@ -77,7 +77,7 @@ namespace Doxense.Serialization.Json
 	{
 
 		/// <inheritdoc />
-		public void JsonSerialize(CrystalJsonWriter writer, T? instance)
+		public void Serialize(CrystalJsonWriter writer, T? instance)
 		{
 			if (instance is null)
 			{
@@ -90,13 +90,13 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		public T JsonDeserialize(JsonValue value, ICrystalJsonTypeResolver? resolver = null)
+		public T Deserialize(JsonValue value, ICrystalJsonTypeResolver? resolver = null)
 		{
 			return value.As<T>(default, resolver)!;
 		}
 
 		/// <inheritdoc />
-		public JsonValue JsonPack(T instance, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public JsonValue Pack(T instance, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			return JsonValue.FromValue<T>(instance, settings, resolver);
 		}

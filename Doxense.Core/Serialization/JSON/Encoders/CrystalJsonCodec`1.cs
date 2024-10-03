@@ -86,7 +86,7 @@ namespace Doxense.Serialization.Json.Encoders
 
 			var encoded = reader.ReadBytes(count);
 			return m_converter != null
-				? m_converter.JsonDeserialize(encoded, m_resolver)
+				? m_converter.Deserialize(encoded, m_resolver)
 				: CrystalJson.Deserialize<T?>(encoded, default, m_settings, m_resolver);
 		}
 

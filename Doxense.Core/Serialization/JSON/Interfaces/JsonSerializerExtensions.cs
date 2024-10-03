@@ -82,22 +82,22 @@ namespace Doxense.Serialization.Json
 
 		#region IJsonDeserializerFor<T>...
 
-		public static T Deserialize<T>(this IJsonDeserializerFor<T> serializer, string jsonText, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public static T Deserialize<T>(this IJsonDeserializer<T> serializer, string jsonText, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 			where T : notnull
 		{
-			return serializer.JsonDeserialize(CrystalJson.Parse(jsonText, settings), resolver);
+			return serializer.Deserialize(CrystalJson.Parse(jsonText, settings), resolver);
 		}
 
-		public static T Deserialize<T>(this IJsonDeserializerFor<T> serializer, ReadOnlySpan<char> jsonText, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public static T Deserialize<T>(this IJsonDeserializer<T> serializer, ReadOnlySpan<char> jsonText, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 			where T : notnull
 		{
-			return serializer.JsonDeserialize(CrystalJson.Parse(jsonText, settings), resolver);
+			return serializer.Deserialize(CrystalJson.Parse(jsonText, settings), resolver);
 		}
 
-		public static T Deserialize<T>(this IJsonDeserializerFor<T> serializer, Slice jsonBytes, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public static T Deserialize<T>(this IJsonDeserializer<T> serializer, Slice jsonBytes, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 			where T : notnull
 		{
-			return serializer.JsonDeserialize(CrystalJson.Parse(jsonBytes, settings), resolver);
+			return serializer.Deserialize(CrystalJson.Parse(jsonBytes, settings), resolver);
 		}
 
 		/// <summary>Deserializes an instance of type <typeparamref name="T"/> from a JSON string literal</summary>
@@ -106,13 +106,13 @@ namespace Doxense.Serialization.Json
 		/// <returns>Deserialized instance.</returns>
 		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 		/// <exception cref="JsonBindingException">If the parsed JSON document cannot be bound to an instance of <typeparamref name="T"/>.</exception>
-		public static T Deserialize<T>(this IJsonDeserializerFor<T> serializer, ReadOnlySpan<byte> jsonBytes, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public static T Deserialize<T>(this IJsonDeserializer<T> serializer, ReadOnlySpan<byte> jsonBytes, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 			where T : notnull
 		{
-			return serializer.JsonDeserialize(CrystalJson.Parse(jsonBytes, settings), resolver);
+			return serializer.Deserialize(CrystalJson.Parse(jsonBytes, settings), resolver);
 		}
 
-		public static bool TryJsonDeserializeArray<T>(this IJsonDeserializerFor<T> serializer, Span<T> destination, out int written, JsonValue value, ICrystalJsonTypeResolver? resolver = null)
+		public static bool TryJsonDeserializeArray<T>(this IJsonDeserializer<T> serializer, Span<T> destination, out int written, JsonValue value, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (value.IsNullOrMissing())
 			{
@@ -129,7 +129,7 @@ namespace Doxense.Serialization.Json
 
 			for (int i = 0; i < input.Length; i++)
 			{
-				destination[i] = serializer.JsonDeserialize(input[i], resolver);
+				destination[i] = serializer.Deserialize(input[i], resolver);
 			}
 
 			written = input.Length;
@@ -138,20 +138,20 @@ namespace Doxense.Serialization.Json
 
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static T[]? JsonDeserializeArray<T>(this IJsonDeserializerFor<T> serializer, JsonValue? value, T[]? defaultValue = null, ICrystalJsonTypeResolver? resolver = null)
+		public static T[]? JsonDeserializeArray<T>(this IJsonDeserializer<T> serializer, JsonValue? value, T[]? defaultValue = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			return !value.IsNullOrMissing() ? JsonDeserializeArray(serializer, value.AsArray(), resolver) : defaultValue;
 		}
 
 		[Pure]
-		public static T[] JsonDeserializeArray<T>(this IJsonDeserializerFor<T> serializer, JsonArray array, ICrystalJsonTypeResolver? resolver = null)
+		public static T[] JsonDeserializeArray<T>(this IJsonDeserializer<T> serializer, JsonArray array, ICrystalJsonTypeResolver? resolver = null)
 		{
 			var input = array.GetSpan();
 			var result = new T[input.Length];
 
 			for (int i = 0; i < input.Length; i++)
 			{
-				result[i] = serializer.JsonDeserialize(input[i], resolver);
+				result[i] = serializer.Deserialize(input[i], resolver);
 			}
 
 			return result;
@@ -159,13 +159,13 @@ namespace Doxense.Serialization.Json
 
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static List<T>? JsonDeserializeList<T>(this IJsonDeserializerFor<T> serializer, JsonValue? value, List<T>? defaultValue = null, ICrystalJsonTypeResolver? resolver = null)
+		public static List<T>? JsonDeserializeList<T>(this IJsonDeserializer<T> serializer, JsonValue? value, List<T>? defaultValue = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			return !value.IsNullOrMissing() ? JsonDeserializeList(serializer, value.AsArray(), resolver) : defaultValue;
 		}
 
 		[Pure]
-		public static List<T> JsonDeserializeList<T>(this IJsonDeserializerFor<T> serializer, JsonArray array, ICrystalJsonTypeResolver? resolver = null)
+		public static List<T> JsonDeserializeList<T>(this IJsonDeserializer<T> serializer, JsonArray array, ICrystalJsonTypeResolver? resolver = null)
 		{
 			var input = array.GetSpan();
 
@@ -177,13 +177,13 @@ namespace Doxense.Serialization.Json
 
 			for (int i = 0; i < input.Length; i++)
 			{
-				span[i] = serializer.JsonDeserialize(input[i], resolver);
+				span[i] = serializer.Deserialize(input[i], resolver);
 			}
 #else
 			var result = new List<T>(array.Count);
 			foreach (var item in array)
 			{
-				result.Add(serializer.JsonDeserialize(item, resolver));
+				result.Add(serializer.Deserialize(item, resolver));
 			}
 #endif
 
@@ -192,13 +192,13 @@ namespace Doxense.Serialization.Json
 
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static ImmutableArray<T>? JsonDeserializeImmutableArray<T>(this IJsonDeserializerFor<T> serializer, JsonValue? value, ImmutableArray<T>? defaultValue = null, ICrystalJsonTypeResolver? resolver = null)
+		public static ImmutableArray<T>? JsonDeserializeImmutableArray<T>(this IJsonDeserializer<T> serializer, JsonValue? value, ImmutableArray<T>? defaultValue = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			return !value.IsNullOrMissing() ? JsonDeserializeImmutableArray(serializer, value.AsArray(), resolver) : defaultValue;
 		}
 
 		[Pure]
-		public static ImmutableArray<T> JsonDeserializeImmutableArray<T>(this IJsonDeserializerFor<T> serializer, JsonArray array, ICrystalJsonTypeResolver? resolver = null)
+		public static ImmutableArray<T> JsonDeserializeImmutableArray<T>(this IJsonDeserializer<T> serializer, JsonArray array, ICrystalJsonTypeResolver? resolver = null)
 		{
 			// will wrap the array, without any copy
 			return ImmutableCollectionsMarshal.AsImmutableArray<T>(JsonDeserializeArray(serializer, array, resolver));
@@ -206,13 +206,13 @@ namespace Doxense.Serialization.Json
 
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static ImmutableList<T>? JsonDeserializeImmutableList<T>(this IJsonDeserializerFor<T> serializer, JsonValue? value, ImmutableList<T>? defaultValue = null, ICrystalJsonTypeResolver? resolver = null)
+		public static ImmutableList<T>? JsonDeserializeImmutableList<T>(this IJsonDeserializer<T> serializer, JsonValue? value, ImmutableList<T>? defaultValue = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			return !value.IsNullOrMissing() ? JsonDeserializeImmutableList(serializer, value.AsArray(), resolver) : defaultValue;
 		}
 
 		[Pure]
-		public static ImmutableList<T> JsonDeserializeImmutableList<T>(this IJsonDeserializerFor<T> serializer, JsonArray array, ICrystalJsonTypeResolver? resolver = null)
+		public static ImmutableList<T> JsonDeserializeImmutableList<T>(this IJsonDeserializer<T> serializer, JsonArray array, ICrystalJsonTypeResolver? resolver = null)
 		{
 			// not sure if there is a way to fill the immutable list "in place"?
 			return ImmutableList.Create<T>(JsonDeserializeArray(serializer, array, resolver));
@@ -220,19 +220,19 @@ namespace Doxense.Serialization.Json
 
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static Dictionary<string, TValue>? JsonDeserializeDictionary<TValue>(this IJsonDeserializerFor<TValue> serializer, JsonValue? value, Dictionary<string, TValue>? defaultValue = null, IEqualityComparer<string>? keyComparer = null, ICrystalJsonTypeResolver? resolver = null)
+		public static Dictionary<string, TValue>? JsonDeserializeDictionary<TValue>(this IJsonDeserializer<TValue> serializer, JsonValue? value, Dictionary<string, TValue>? defaultValue = null, IEqualityComparer<string>? keyComparer = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			return !value.IsNullOrMissing() ? JsonDeserializeDictionary(serializer, value.AsObject(), keyComparer, resolver) : defaultValue;
 		}
 
 		[Pure]
-		public static Dictionary<string, TValue> JsonDeserializeDictionary<TValue>(this IJsonDeserializerFor<TValue> serializer, JsonObject obj, IEqualityComparer<string>? keyComparer = null, ICrystalJsonTypeResolver? resolver = null)
+		public static Dictionary<string, TValue> JsonDeserializeDictionary<TValue>(this IJsonDeserializer<TValue> serializer, JsonObject obj, IEqualityComparer<string>? keyComparer = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			var res = new Dictionary<string, TValue>(obj.Count, keyComparer);
 
 			foreach (var kv in obj)
 			{
-				res.Add(kv.Key, serializer.JsonDeserialize(kv.Value, resolver));
+				res.Add(kv.Key, serializer.Deserialize(kv.Value, resolver));
 			}
 
 			return res;
@@ -805,14 +805,14 @@ namespace Doxense.Serialization.Json
 
 		#region IJsonPackerFor<T>...
 
-		public static JsonArray JsonPackSpan<TValue>(this IJsonPackerFor<TValue> serializer, ReadOnlySpan<TValue> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public static JsonArray JsonPackSpan<TValue>(this IJsonPacker<TValue> serializer, ReadOnlySpan<TValue> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			var result = new JsonArray();
 			var span = result.GetSpanAndSetCount(items.Length);
 
 			for (int i = 0; i < items.Length; i++)
 			{
-				span[i] = items[i] is not null ? serializer.JsonPack(items[i], settings, resolver) : JsonNull.Null;
+				span[i] = items[i] is not null ? serializer.Pack(items[i], settings, resolver) : JsonNull.Null;
 			}
 
 			if (settings?.ReadOnly ?? false)
@@ -824,7 +824,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackArray<TValue>(this IJsonPackerFor<TValue> serializer, TValue[]? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public static JsonArray? JsonPackArray<TValue>(this IJsonPacker<TValue> serializer, TValue[]? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (items == null)
 			{
@@ -835,7 +835,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackList<TValue>(this IJsonPackerFor<TValue> serializer, List<TValue>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public static JsonArray? JsonPackList<TValue>(this IJsonPacker<TValue> serializer, List<TValue>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (items == null)
 			{
@@ -846,7 +846,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackEnumerable<TValue>(this IJsonPackerFor<TValue> serializer, IEnumerable<TValue>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public static JsonArray? JsonPackEnumerable<TValue>(this IJsonPacker<TValue> serializer, IEnumerable<TValue>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (items == null)
 			{
@@ -862,7 +862,7 @@ namespace Doxense.Serialization.Json
 			var result = new JsonArray(count);
 			foreach (var item in items)
 			{
-				result.Add(item is not null ? serializer.JsonPack(item, settings, resolver) : JsonNull.Null);
+				result.Add(item is not null ? serializer.Pack(item, settings, resolver) : JsonNull.Null);
 			}
 
 			if (settings?.ReadOnly ?? false)
@@ -874,7 +874,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonObject? JsonPackObject<TValue>(this IJsonPackerFor<TValue> serializer, Dictionary<string, TValue>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public static JsonObject? JsonPackObject<TValue>(this IJsonPacker<TValue> serializer, Dictionary<string, TValue>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (items == null)
 			{
@@ -884,13 +884,13 @@ namespace Doxense.Serialization.Json
 			var result = new JsonObject(items.Count);
 			foreach (var kv in items)
 			{
-				result[kv.Key] = kv.Value is not null ? serializer.JsonPack(kv.Value, settings, resolver) : JsonNull.Null;
+				result[kv.Key] = kv.Value is not null ? serializer.Pack(kv.Value, settings, resolver) : JsonNull.Null;
 			}
 			return result;
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonObject? JsonPackObject<TValue>(this IJsonPackerFor<TValue> serializer, IDictionary<string, TValue>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public static JsonObject? JsonPackObject<TValue>(this IJsonPacker<TValue> serializer, IDictionary<string, TValue>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (items == null)
 			{
@@ -903,14 +903,14 @@ namespace Doxense.Serialization.Json
 				// we can skip the IEnumerator<...> allocation for this type
 				foreach (var kv in dict)
 				{
-					result[kv.Key] = kv.Value is not null ? serializer.JsonPack(kv.Value, settings, resolver) : JsonNull.Null;
+					result[kv.Key] = kv.Value is not null ? serializer.Pack(kv.Value, settings, resolver) : JsonNull.Null;
 				}
 			}
 			else
 			{
 				foreach (var kv in items)
 				{
-					result[kv.Key] = kv.Value is not null ? serializer.JsonPack(kv.Value, settings, resolver) : JsonNull.Null;
+					result[kv.Key] = kv.Value is not null ? serializer.Pack(kv.Value, settings, resolver) : JsonNull.Null;
 				}
 			}
 			return result;

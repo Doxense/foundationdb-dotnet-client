@@ -220,7 +220,7 @@ namespace Doxense.Serialization.Json
 						[ ],
 						() =>
 						{
-							foreach (var (type, typeDef) in this.TypeMap)
+							foreach (var typeDef in this.TypeMap.Values)
 							{
 								GenerateCodeForType(sb, typeDef);
 							}
@@ -300,7 +300,7 @@ namespace Doxense.Serialization.Json
 					sb.Method(
 						"public",
 						"void",
-						nameof(IJsonSerializer<object>.JsonSerialize),
+						nameof(IJsonSerializer<object>.Serialize),
 						[
 							sb.Parameter<CrystalJsonWriter>("writer"),
 							sb.Parameter(typeName + (typeDef.IsNullable ? "?" : ""), "instance")
@@ -322,7 +322,7 @@ namespace Doxense.Serialization.Json
 
 							if (type.IsAssignableTo(typeof(IJsonSerializer<>).MakeGenericType(type)))
 							{
-								sb.Return($"{sb.TypeName(type)}.{nameof(IJsonSerializer<object>.JsonSerialize)}(writer, instance);");
+								sb.Return($"{sb.TypeName(type)}.{nameof(IJsonSerializer<object>.Serialize)}(writer, instance);");
 							}
 							else if (type.IsAssignableTo(typeof(IJsonSerializable)))
 							{
@@ -426,7 +426,7 @@ namespace Doxense.Serialization.Json
 					sb.Method(
 						"public",
 						sb.TypeName<JsonValue>(),
-						nameof(IJsonPackerFor<object>.JsonPack),
+						nameof(IJsonPacker<object>.Pack),
 						[
 							sb.Parameter(typeName + (typeDef.IsNullable ? "?" : ""), "instance"),
 							sb.Parameter<CrystalJsonSettings>("settings", nullable: true),
@@ -489,7 +489,7 @@ namespace Doxense.Serialization.Json
 									if (this.TypeMap.TryGetValue(memberType, out var subDef))
 									{
 										sb.Comment("custom!");
-										converter = $"{GetLocalSerializerRef(subDef.Type)}.{nameof(IJsonPackerFor<object>.JsonPack)}($VALUE$, settings, resolver)";
+										converter = $"{GetLocalSerializerRef(subDef.Type)}.{nameof(IJsonPacker<object>.Pack)}($VALUE$, settings, resolver)";
 									}
 									else if (memberType.IsAssignableTo(typeof(JsonValue)))
 									{ // already JSON!
@@ -606,7 +606,7 @@ namespace Doxense.Serialization.Json
 
 								sb.If("readOnly", () =>
 								{
-									sb.AppendLine($"FreezeUnsafe(obj);");
+									sb.AppendLine($"{nameof(JsonObject.FreezeUnsafe)}(obj);");
 								});
 
 								sb.NewLine();
@@ -620,7 +620,7 @@ namespace Doxense.Serialization.Json
 
 					#endregion
 
-					#region JsonDeserialize...
+					#region Deserialize...
 
 					sb.AppendLine("#region Deserialization...");
 					sb.NewLine();
@@ -644,7 +644,7 @@ namespace Doxense.Serialization.Json
 					sb.Method(
 						"public",
 						typeName,
-						nameof(IJsonDeserializable<object>.JsonDeserialize),
+						nameof(IJsonDeserializer<object>.Deserialize),
 						[ sb.Parameter<JsonValue>("value"), sb.Parameter<ICrystalJsonTypeResolver>("resolver", nullable: true) ],
 						() =>
 						{
@@ -720,9 +720,16 @@ namespace Doxense.Serialization.Json
 
 		private string? GenerateGetterForMember(CodeBuilder sb, Type memberType, string defaultValue)
 		{
+			// Do we have codegen for this type?
 			if (this.TypeMap.ContainsKey(memberType))
 			{
-				return $"{GetLocalSerializerRef(memberType)}.{nameof(IJsonDeserializable<object>.JsonDeserialize)}(kv.Value, resolver)!";
+				return $"{GetLocalSerializerRef(memberType)}.{nameof(IJsonDeserializer<object>.Deserialize)}(kv.Value, resolver)!";
+			}
+
+			// Does the type can deserialize itself?
+			if (memberType.IsGenericInstanceOf(typeof(IJsonDeserializable<>)))
+			{
+				return $"{sb.TypeName(memberType)}.{nameof(IJsonDeserializable<object>.JsonDeserialize)}(kv.Value, resolver)!";
 			}
 
 			if (memberType.IsValueType)
@@ -827,18 +834,11 @@ namespace Doxense.Serialization.Json
 	internal sealed class CodeBuilder
 	{
 
-		public static class Namespaces
-		{
-			public const string SystemCodeDomCompilerCompiler = "System.CodeDom.Compiler";
-			public const string SystemDiagnosticsNamespace = "System.Diagnostics";
-		}
-
-
 		public readonly StringBuilder Output = new();
 
 		public readonly Stack<string> Structure = [ ];
 
-		public int Depth = 0;
+		public int Depth;
 
 		public string ToStringAndClear()
 		{
@@ -944,7 +944,7 @@ namespace Doxense.Serialization.Json
 			LeaveBlock(type);
 		}
 
-		public void Call(string method, params ReadOnlySpan<string> args)
+		public void Call(string method, ReadOnlySpan<string> args = default)
 		{
 			AppendLine($"{method}({string.Join(", ", args!)});");
 		}

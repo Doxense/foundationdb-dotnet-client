@@ -14,9 +14,8 @@ namespace Doxense.Serialization.Json.Tests
 	using System.Collections.Generic;
 	using System.Net;
 	using Doxense.Mathematics.Statistics;
-	using NodaTime;
 
-	[System.Text.Json.Serialization.JsonSourceGenerationOptions(System.Text.Json.JsonSerializerDefaults.Web /*, Converters = [ typeof(NodaTimeInstantJsonConverter) ], */)]
+	[System.Text.Json.Serialization.JsonSourceGenerationOptions(System.Text.Json.JsonSerializerDefaults.Web)]
 	[System.Text.Json.Serialization.JsonSerializable(typeof(MyAwesomeUser))]
 	[System.Text.Json.Serialization.JsonSerializable(typeof(Person))]
 	public partial class SystemTextJsonGeneratedSerializers : System.Text.Json.Serialization.JsonSerializerContext
@@ -152,7 +151,7 @@ namespace Doxense.Serialization.Json.Tests
 				Log();
 
 				Log("# Parsing:");
-				var parsed = GeneratedSerializers.Person.Deserialize(json);
+				var parsed = JsonSerializerExtensions.Deserialize(GeneratedSerializers.Person, json);
 				Log(parsed?.ToString());
 				Assert.That(parsed, Is.Not.Null);
 				Assert.That(parsed.FirstName, Is.EqualTo("James"));
@@ -160,7 +159,7 @@ namespace Doxense.Serialization.Json.Tests
 				Log();
 
 				Log("# Packing:");
-				var packed = GeneratedSerializers.Person.JsonPack(person);
+				var packed = GeneratedSerializers.Person.Pack(person);
 				Dump(packed);
 				Assert.That(packed, IsJson.Object);
 				Assert.That(packed["firstName"], IsJson.EqualTo("James"));
@@ -295,7 +294,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			Log();
 			Log("Deserialize...");
-			var decoded = GeneratedSerializers.MyAwesomeUser.JsonDeserialize(parsed);
+			var decoded = GeneratedSerializers.MyAwesomeUser.Deserialize(parsed);
 			Assert.That(decoded, Is.Not.Null);
 			Assert.That(decoded.Id, Is.EqualTo(user.Id));
 			Assert.That(decoded.DisplayName, Is.EqualTo(user.DisplayName));
@@ -308,7 +307,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			Log();
 			Log("Pack...");
-			var packed = GeneratedSerializers.MyAwesomeUser.JsonPack(user);
+			var packed = GeneratedSerializers.MyAwesomeUser.Pack(user);
 			Dump(packed);
 			Assert.That(packed, IsJson.Object);
 			Assert.Multiple(() =>
@@ -369,7 +368,7 @@ namespace Doxense.Serialization.Json.Tests
 			// warmup
 			{
 				_ = JsonValue.Parse(CrystalJson.Serialize(user)).As<MyAwesomeUser>();
-				_ = GeneratedSerializers.MyAwesomeUser.JsonDeserialize(JsonValue.Parse(CrystalJson.Serialize(user, GeneratedSerializers.MyAwesomeUser)));
+				_ = GeneratedSerializers.MyAwesomeUser.Deserialize(JsonValue.Parse(CrystalJson.Serialize(user, GeneratedSerializers.MyAwesomeUser)));
 				_ = CrystalJson.Deserialize<MyAwesomeUser>(json);
 				_ = System.Text.Json.JsonSerializer.Deserialize<MyAwesomeUser>(json, stjOps);
 				_ = System.Text.Json.JsonSerializer.Deserialize<MyAwesomeUser>(json, SystemTextJsonGeneratedSerializers.Default.MyAwesomeUser);
@@ -436,7 +435,7 @@ namespace Doxense.Serialization.Json.Tests
 				Report("DESERIALIZE RUNTIME", report);
 			}
 			{
-				var report = RobustBenchmark.Run(() => GeneratedSerializers.MyAwesomeUser.JsonDeserialize(JsonValue.Parse(json)), RUNS, ITERATIONS);
+				var report = RobustBenchmark.Run(() => GeneratedSerializers.MyAwesomeUser.Deserialize(JsonValue.Parse(json)), RUNS, ITERATIONS);
 				Report("DESERIALIZE CODEGEN", report);
 			}
 
@@ -445,7 +444,7 @@ namespace Doxense.Serialization.Json.Tests
 				Report("AS<T> RUNTIME", report);
 			}
 			{
-				var report = RobustBenchmark.Run(() => GeneratedSerializers.MyAwesomeUser.JsonDeserialize(parsed), RUNS, ITERATIONS);
+				var report = RobustBenchmark.Run(() => GeneratedSerializers.MyAwesomeUser.Deserialize(parsed), RUNS, ITERATIONS);
 				Report("AS<T> CODEGEN", report);
 			}
 
@@ -454,7 +453,7 @@ namespace Doxense.Serialization.Json.Tests
 				Report("PACK RUNTIME", report);
 			}
 			{
-				var report = RobustBenchmark.Run(() => GeneratedSerializers.MyAwesomeUser.JsonPack(user), RUNS, ITERATIONS);
+				var report = RobustBenchmark.Run(() => GeneratedSerializers.MyAwesomeUser.Pack(user), RUNS, ITERATIONS);
 				Report("PACK CODEGEN", report);
 			}
 
@@ -494,7 +493,7 @@ namespace Doxense.Serialization.Json.Tests
 			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _firstName = new("firstName");
 			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _familyName = new("familyName");
 
-			public void JsonSerialize(global::Doxense.Serialization.Json.CrystalJsonWriter writer, global::Doxense.Serialization.Json.Tests.Person? instance)
+			public void Serialize(global::Doxense.Serialization.Json.CrystalJsonWriter writer, global::Doxense.Serialization.Json.Tests.Person? instance)
 			{
 				if (instance is null)
 				{
@@ -525,7 +524,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			#region Packing...
 
-			public global::Doxense.Serialization.Json.JsonValue JsonPack(global::Doxense.Serialization.Json.Tests.Person? instance, global::Doxense.Serialization.Json.CrystalJsonSettings? settings = default, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver? resolver = default)
+			public global::Doxense.Serialization.Json.JsonValue Pack(global::Doxense.Serialization.Json.Tests.Person? instance, global::Doxense.Serialization.Json.CrystalJsonSettings? settings = default, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver? resolver = default)
 			{
 				if (instance is null)
 				{
@@ -576,7 +575,7 @@ namespace Doxense.Serialization.Json.Tests
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<FamilyName>k__BackingField")]
 			private static extern ref string FamilyNameAccessor(global::Doxense.Serialization.Json.Tests.Person instance);
 
-			public global::Doxense.Serialization.Json.Tests.Person JsonDeserialize(global::Doxense.Serialization.Json.JsonValue value, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver? resolver = default)
+			public global::Doxense.Serialization.Json.Tests.Person Deserialize(global::Doxense.Serialization.Json.JsonValue value, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver? resolver = default)
 			{
 				var obj = value.AsObject();
 				var instance = global::System.Activator.CreateInstance<global::Doxense.Serialization.Json.Tests.Person>();
@@ -624,7 +623,7 @@ namespace Doxense.Serialization.Json.Tests
 			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _devices = new("devices");
 			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _extras = new("extras");
 
-			public void JsonSerialize(global::Doxense.Serialization.Json.CrystalJsonWriter writer, global::Doxense.Serialization.Json.Tests.MyAwesomeUser? instance)
+			public void Serialize(global::Doxense.Serialization.Json.CrystalJsonWriter writer, global::Doxense.Serialization.Json.Tests.MyAwesomeUser? instance)
 			{
 				if (instance is null)
 				{
@@ -677,7 +676,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			#region Packing...
 
-			public global::Doxense.Serialization.Json.JsonValue JsonPack(global::Doxense.Serialization.Json.Tests.MyAwesomeUser? instance, global::Doxense.Serialization.Json.CrystalJsonSettings? settings = default, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver? resolver = default)
+			public global::Doxense.Serialization.Json.JsonValue Pack(global::Doxense.Serialization.Json.Tests.MyAwesomeUser? instance, global::Doxense.Serialization.Json.CrystalJsonSettings? settings = default, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver? resolver = default)
 			{
 				if (instance is null)
 				{
@@ -725,7 +724,7 @@ namespace Doxense.Serialization.Json.Tests
 
 				// MyAwesomeMetadata Metadata => "metadata"
 				// custom!
-				value = GeneratedSerializers.MyAwesomeMetadata.JsonPack(instance.Metadata, settings, resolver);
+				value = GeneratedSerializers.MyAwesomeMetadata.Pack(instance.Metadata, settings, resolver);
 				if (keepNulls || value is not null or JsonNull)
 				{
 					obj["metadata"] = value;
@@ -799,7 +798,7 @@ namespace Doxense.Serialization.Json.Tests
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Extras>k__BackingField")]
 			private static extern ref global::Doxense.Serialization.Json.JsonObject ExtrasAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeUser instance);
 
-			public global::Doxense.Serialization.Json.Tests.MyAwesomeUser JsonDeserialize(global::Doxense.Serialization.Json.JsonValue value, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver? resolver = default)
+			public global::Doxense.Serialization.Json.Tests.MyAwesomeUser Deserialize(global::Doxense.Serialization.Json.JsonValue value, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver? resolver = default)
 			{
 				var obj = value.AsObject();
 				var instance = global::System.Activator.CreateInstance<global::Doxense.Serialization.Json.Tests.MyAwesomeUser>();
@@ -813,7 +812,7 @@ namespace Doxense.Serialization.Json.Tests
 						case "email": EmailAccessor(instance) = kv.Value.ToStringOrDefault(null)!; break;
 						case "type": TypeAccessor(instance) = kv.Value.ToInt32(); break;
 						case "roles": RolesAccessor(instance) = kv.Value.AsArrayOrDefault()?.ToArray<string>(null, resolver)!; break;
-						case "metadata": MetadataAccessor(instance) = GeneratedSerializers.MyAwesomeMetadata.JsonDeserialize(kv.Value, resolver)!; break;
+						case "metadata": MetadataAccessor(instance) = GeneratedSerializers.MyAwesomeMetadata.Deserialize(kv.Value, resolver)!; break;
 						case "items": ItemsAccessor(instance) = GeneratedSerializers.MyAwesomeStruct.JsonDeserializeList(kv.Value, defaultValue: null, resolver: resolver)!; break;
 						case "devices": DevicesAccessor(instance) = GeneratedSerializers.MyAwesomeDevice.JsonDeserializeDictionary(kv.Value, defaultValue: null, keyComparer: null, resolver: resolver)!; break;
 						case "extras": ExtrasAccessor(instance) = kv.Value.AsObjectOrDefault()!; break;
@@ -848,7 +847,7 @@ namespace Doxense.Serialization.Json.Tests
 			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _accountModified = new("accountModified");
 			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _accountDisabled = new("accountDisabled");
 
-			public void JsonSerialize(global::Doxense.Serialization.Json.CrystalJsonWriter writer, global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata? instance)
+			public void Serialize(global::Doxense.Serialization.Json.CrystalJsonWriter writer, global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata? instance)
 			{
 				if (instance is null)
 				{
@@ -877,7 +876,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			#region Packing...
 
-			public global::Doxense.Serialization.Json.JsonValue JsonPack(global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata? instance, global::Doxense.Serialization.Json.CrystalJsonSettings? settings = default, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver? resolver = default)
+			public global::Doxense.Serialization.Json.JsonValue Pack(global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata? instance, global::Doxense.Serialization.Json.CrystalJsonSettings? settings = default, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver? resolver = default)
 			{
 				if (instance is null)
 				{
@@ -934,7 +933,7 @@ namespace Doxense.Serialization.Json.Tests
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<AccountDisabled>k__BackingField")]
 			private static extern ref global::System.DateTimeOffset? AccountDisabledAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata instance);
 
-			public global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata JsonDeserialize(global::Doxense.Serialization.Json.JsonValue value, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver? resolver = default)
+			public global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata Deserialize(global::Doxense.Serialization.Json.JsonValue value, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver? resolver = default)
 			{
 				var obj = value.AsObject();
 				var instance = global::System.Activator.CreateInstance<global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata>();
@@ -977,7 +976,7 @@ namespace Doxense.Serialization.Json.Tests
 			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _level = new("level");
 			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _disabled = new("disabled");
 
-			public void JsonSerialize(global::Doxense.Serialization.Json.CrystalJsonWriter writer, global::Doxense.Serialization.Json.Tests.MyAwesomeStruct instance)
+			public void Serialize(global::Doxense.Serialization.Json.CrystalJsonWriter writer, global::Doxense.Serialization.Json.Tests.MyAwesomeStruct instance)
 			{
 				var state = writer.BeginObject();
 
@@ -1000,7 +999,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			#region Packing...
 
-			public global::Doxense.Serialization.Json.JsonValue JsonPack(global::Doxense.Serialization.Json.Tests.MyAwesomeStruct instance, global::Doxense.Serialization.Json.CrystalJsonSettings? settings = default, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver? resolver = default)
+			public global::Doxense.Serialization.Json.JsonValue Pack(global::Doxense.Serialization.Json.Tests.MyAwesomeStruct instance, global::Doxense.Serialization.Json.CrystalJsonSettings? settings = default, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver? resolver = default)
 			{
 				global::Doxense.Serialization.Json.JsonValue? value;
 				var readOnly = settings?.ReadOnly ?? false;
@@ -1054,7 +1053,7 @@ namespace Doxense.Serialization.Json.Tests
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Disabled>k__BackingField")]
 			private static extern ref bool? DisabledAccessor(ref global::Doxense.Serialization.Json.Tests.MyAwesomeStruct instance);
 
-			public global::Doxense.Serialization.Json.Tests.MyAwesomeStruct JsonDeserialize(global::Doxense.Serialization.Json.JsonValue value, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver? resolver = default)
+			public global::Doxense.Serialization.Json.Tests.MyAwesomeStruct Deserialize(global::Doxense.Serialization.Json.JsonValue value, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver? resolver = default)
 			{
 				var obj = value.AsObject();
 				var instance = global::System.Activator.CreateInstance<global::Doxense.Serialization.Json.Tests.MyAwesomeStruct>();
@@ -1098,7 +1097,7 @@ namespace Doxense.Serialization.Json.Tests
 			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _LastSeen = new("LastSeen");
 			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _LastAddress = new("LastAddress");
 
-			public void JsonSerialize(global::Doxense.Serialization.Json.CrystalJsonWriter writer, global::Doxense.Serialization.Json.Tests.MyAwesomeDevice? instance)
+			public void Serialize(global::Doxense.Serialization.Json.CrystalJsonWriter writer, global::Doxense.Serialization.Json.Tests.MyAwesomeDevice? instance)
 			{
 				if (instance is null)
 				{
@@ -1131,7 +1130,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			#region Packing...
 
-			public global::Doxense.Serialization.Json.JsonValue JsonPack(global::Doxense.Serialization.Json.Tests.MyAwesomeDevice? instance, global::Doxense.Serialization.Json.CrystalJsonSettings? settings = default, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver? resolver = default)
+			public global::Doxense.Serialization.Json.JsonValue Pack(global::Doxense.Serialization.Json.Tests.MyAwesomeDevice? instance, global::Doxense.Serialization.Json.CrystalJsonSettings? settings = default, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver? resolver = default)
 			{
 				if (instance is null)
 				{
@@ -1203,7 +1202,7 @@ namespace Doxense.Serialization.Json.Tests
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<LastAddress>k__BackingField")]
 			private static extern ref global::System.Net.IPAddress LastAddressAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeDevice instance);
 
-			public global::Doxense.Serialization.Json.Tests.MyAwesomeDevice JsonDeserialize(global::Doxense.Serialization.Json.JsonValue value, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver? resolver = default)
+			public global::Doxense.Serialization.Json.Tests.MyAwesomeDevice Deserialize(global::Doxense.Serialization.Json.JsonValue value, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver? resolver = default)
 			{
 				var obj = value.AsObject();
 				var instance = global::System.Activator.CreateInstance<global::Doxense.Serialization.Json.Tests.MyAwesomeDevice>();

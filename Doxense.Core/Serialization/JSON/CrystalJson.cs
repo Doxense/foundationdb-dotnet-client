@@ -214,7 +214,7 @@ namespace Doxense.Serialization.Json
 
 				if (serializer != null)
 				{
-					serializer.JsonSerialize(writer, value);
+					serializer.Serialize(writer, value);
 				}
 				else
 				{
@@ -624,7 +624,7 @@ namespace Doxense.Serialization.Json
 
 				if (serializer != null)
 				{
-					serializer.JsonSerialize(writer, value);
+					serializer.Serialize(writer, value);
 				}
 				else
 				{
@@ -687,7 +687,7 @@ namespace Doxense.Serialization.Json
 				writer.Initialize(0, settings, resolver);
 				if (serializer != null)
 				{
-					serializer.JsonSerialize(writer, value);
+					serializer.Serialize(writer, value);
 				}
 				else if (value is JsonValue j)
 				{
@@ -1425,7 +1425,7 @@ namespace Doxense.Serialization.Json
 			[StringSyntax("json")]
 #endif
 			string jsonText,
-			IJsonDeserializerFor<TValue>? serializer,
+			IJsonDeserializer<TValue>? serializer,
 			CrystalJsonSettings? settings = null,
 			ICrystalJsonTypeResolver? resolver = null
 		) where TValue : notnull
@@ -1433,7 +1433,7 @@ namespace Doxense.Serialization.Json
 			var parsed = Parse(jsonText, settings);
 			if (serializer != null)
 			{
-				return serializer.JsonDeserialize(parsed, resolver);
+				return serializer.Deserialize(parsed, resolver);
 			}
 			else
 			{

@@ -3617,7 +3617,7 @@ namespace Doxense.Serialization.Json
 			if (value is not null)
 			{
 				WriteName(in name);
-				serializer.JsonSerialize(this, value);
+				serializer.Serialize(this, value);
 			}
 			else if (!m_discardNulls)
 			{
@@ -3910,12 +3910,12 @@ namespace Doxense.Serialization.Json
 			var state = BeginArray();
 
 			WriteHeadSeparator();
-			serializer.JsonSerialize(this, array[0]);
+			serializer.Serialize(this, array[0]);
 
 			for(int i = 1; i < array.Length; i++)
 			{
 				WriteTailSeparator();
-				serializer.JsonSerialize(this, array[i]);
+				serializer.Serialize(this, array[i]);
 			}
 
 			EndArray(state);
@@ -3939,7 +3939,7 @@ namespace Doxense.Serialization.Json
 				foreach (var item in array)
 				{
 					WriteFieldSeparator();
-					serializer.JsonSerialize(this, item);
+					serializer.Serialize(this, item);
 				}
 				EndArray(state);
 			}
@@ -4105,7 +4105,7 @@ namespace Doxense.Serialization.Json
 				foreach (var kvp in dict)
 				{
 					WriteNameEscaped(kvp.Key);
-					serializer.JsonSerialize(this, kvp.Value);
+					serializer.Serialize(this, kvp.Value);
 				}
 			}
 			else
@@ -4114,7 +4114,7 @@ namespace Doxense.Serialization.Json
 				foreach (var kvp in map)
 				{
 					WriteNameEscaped(kvp.Key);
-					serializer.JsonSerialize(this, kvp.Value);
+					serializer.Serialize(this, kvp.Value);
 				}
 			}
 			EndObject(state); // "}"
