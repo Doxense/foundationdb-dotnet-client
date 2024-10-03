@@ -1753,7 +1753,12 @@ namespace Doxense.Serialization.Json
 		#region IConvertible...
 
 		/// <inheritdoc />
-		TypeCode IConvertible.GetTypeCode() => throw new NotImplementedException();
+		TypeCode IConvertible.GetTypeCode() => this.Type switch
+		{
+			JsonType.String => TypeCode.String,
+			JsonType.Boolean => TypeCode.Boolean,
+			_ => TypeCode.Object,
+		};
 
 		/// <inheritdoc />
 		bool IConvertible.ToBoolean(IFormatProvider? provider) => ToBoolean();

@@ -729,7 +729,10 @@ namespace Doxense.Serialization.Json
 			// Does the type can deserialize itself?
 			if (memberType.IsGenericInstanceOf(typeof(IJsonDeserializable<>)))
 			{
-				return $"{sb.TypeName(memberType)}.{nameof(IJsonDeserializable<object>.JsonDeserialize)}(kv.Value, resolver)!";
+				// some types implement this method explicitly, so we have to go through a helper in JsonValueExtensions
+				// => JsonSerializerExtensions.Deserialize<T>(kv.Value, resolver)
+
+				return $"{sb.MethodName(typeof(JsonSerializerExtensions), nameof(JsonSerializerExtensions.Deserialize))}<{sb.TypeName(memberType)}>(kv.Value, resolver)!";
 			}
 
 			if (memberType.IsValueType)

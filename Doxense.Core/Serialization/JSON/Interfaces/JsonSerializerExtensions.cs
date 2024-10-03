@@ -80,7 +80,7 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
-		#region IJsonDeserializerFor<T>...
+		#region IJsonDeserializer<T>...
 
 		public static T Deserialize<T>(this IJsonDeserializer<T> serializer, string jsonText, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 			where T : notnull
@@ -240,569 +240,6 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
-		#region CodeGen Helpers...
-
-		// these methods are called by generated source code
-
-		public static JsonArray JsonPackSpan(ReadOnlySpan<string> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items.Length == 0)
-			{
-				return (settings?.ReadOnly ?? false) ? JsonArray.EmptyReadOnly : new ();
-			}
-
-			var arr = new JsonArray();
-			var buf = arr.GetSpanAndSetCount(items.Length);
-
-			for (int i = 0; i < items.Length; i++)
-			{
-				buf[i] = JsonString.Return(items[i]);
-			}
-
-			if (settings?.ReadOnly ?? false)
-			{
-				arr.FreezeUnsafe();
-			}
-			return arr;
-		}
-
-		public static JsonArray JsonPackSpan(ReadOnlySpan<bool> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items.Length == 0)
-			{
-				return (settings?.ReadOnly ?? false) ? JsonArray.EmptyReadOnly : new();
-			}
-
-			var arr = new JsonArray();
-			var buf = arr.GetSpanAndSetCount(items.Length);
-
-			for (int i = 0; i < items.Length; i++)
-			{
-				buf[i] = items[i] ? JsonBoolean.True : JsonBoolean.False;
-			}
-
-			if (settings?.ReadOnly ?? false)
-			{
-				arr.FreezeUnsafe();
-			}
-			return arr;
-		}
-
-		public static JsonArray JsonPackSpan(ReadOnlySpan<int> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items.Length == 0)
-			{
-				return (settings?.ReadOnly ?? false) ? JsonArray.EmptyReadOnly : new();
-			}
-
-			var arr = new JsonArray();
-			var buf = arr.GetSpanAndSetCount(items.Length);
-
-			for (int i = 0; i < items.Length; i++)
-			{
-				buf[i] = JsonNumber.Return(items[i]);
-			}
-
-			if (settings?.ReadOnly ?? false)
-			{
-				arr.FreezeUnsafe();
-			}
-			return arr;
-		}
-
-		public static JsonArray JsonPackSpan(ReadOnlySpan<long> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items.Length == 0)
-			{
-				return (settings?.ReadOnly ?? false) ? JsonArray.EmptyReadOnly : new();
-			}
-
-			var arr = new JsonArray();
-			var buf = arr.GetSpanAndSetCount(items.Length);
-
-			for (int i = 0; i < items.Length; i++)
-			{
-				buf[i] = JsonNumber.Return(items[i]);
-			}
-
-			if (settings?.ReadOnly ?? false)
-			{
-				arr.FreezeUnsafe();
-			}
-			return arr;
-		}
-
-		public static JsonArray JsonPackSpan(ReadOnlySpan<float> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items.Length == 0)
-			{
-				return (settings?.ReadOnly ?? false) ? JsonArray.EmptyReadOnly : new();
-			}
-
-			var arr = new JsonArray();
-			var buf = arr.GetSpanAndSetCount(items.Length);
-
-			for (int i = 0; i < items.Length; i++)
-			{
-				buf[i] = JsonNumber.Return(items[i]);
-			}
-
-			if (settings?.ReadOnly ?? false)
-			{
-				arr.FreezeUnsafe();
-			}
-			return arr;
-		}
-
-		public static JsonArray JsonPackSpan(ReadOnlySpan<double> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items.Length == 0)
-			{
-				return (settings?.ReadOnly ?? false) ? JsonArray.EmptyReadOnly : new();
-			}
-
-			var arr = new JsonArray();
-			var buf = arr.GetSpanAndSetCount(items.Length);
-
-			for (int i = 0; i < items.Length; i++)
-			{
-				buf[i] = JsonNumber.Return(items[i]);
-			}
-
-			if (settings?.ReadOnly ?? false)
-			{
-				arr.FreezeUnsafe();
-			}
-			return arr;
-		}
-
-		public static JsonArray JsonPackSpan(ReadOnlySpan<Guid> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items.Length == 0)
-			{
-				return (settings?.ReadOnly ?? false) ? JsonArray.EmptyReadOnly : new();
-			}
-
-			var arr = new JsonArray();
-			var buf = arr.GetSpanAndSetCount(items.Length);
-
-			for (int i = 0; i < items.Length; i++)
-			{
-				buf[i] = JsonString.Return(items[i]);
-			}
-
-			if (settings?.ReadOnly ?? false)
-			{
-				arr.FreezeUnsafe();
-			}
-			return arr;
-		}
-
-		public static JsonArray JsonPackSpan(ReadOnlySpan<Uuid128> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items.Length == 0)
-			{
-				return (settings?.ReadOnly ?? false) ? JsonArray.EmptyReadOnly : new();
-			}
-
-			var arr = new JsonArray();
-			var buf = arr.GetSpanAndSetCount(items.Length);
-
-			for (int i = 0; i < items.Length; i++)
-			{
-				buf[i] = JsonString.Return(items[i]);
-			}
-
-			if (settings?.ReadOnly ?? false)
-			{
-				arr.FreezeUnsafe();
-			}
-			return arr;
-		}
-
-		public static JsonArray JsonPackSpan(ReadOnlySpan<Uuid64> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items.Length == 0)
-			{
-				return (settings?.ReadOnly ?? false) ? JsonArray.EmptyReadOnly : new();
-			}
-
-			var arr = new JsonArray();
-			var buf = arr.GetSpanAndSetCount(items.Length);
-
-			for (int i = 0; i < items.Length; i++)
-			{
-				buf[i] = JsonString.Return(items[i]);
-			}
-
-			if (settings?.ReadOnly ?? false)
-			{
-				arr.FreezeUnsafe();
-			}
-			return arr;
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackEnumerable(IEnumerable<bool>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items == null) return null;
-
-			if (Buffer<bool>.TryGetSpan(items, out var span))
-			{
-				return JsonPackSpan(span, settings, resolver);
-			}
-
-			JsonArray arr = items.TryGetNonEnumeratedCount(out var count) ? new(count) : new();
-
-			foreach (var item in items)
-			{
-				arr.Add(item ? JsonBoolean.True : JsonBoolean.False);
-			}
-
-			if (settings?.ReadOnly ?? false)
-			{
-				arr.FreezeUnsafe();
-			}
-			return arr;
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackEnumerable(IEnumerable<int>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items == null) return null;
-
-			if (Buffer<int>.TryGetSpan(items, out var span))
-			{
-				return JsonPackSpan(span, settings, resolver);
-			}
-
-			JsonArray arr = items.TryGetNonEnumeratedCount(out var count) ? new(count) : new();
-
-			foreach (var item in items)
-			{
-				arr.Add(JsonNumber.Return(item));
-			}
-
-			if (settings?.ReadOnly ?? false)
-			{
-				arr.FreezeUnsafe();
-			}
-			return arr;
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackEnumerable(IEnumerable<long>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items == null) return null;
-
-			if (Buffer<long>.TryGetSpan(items, out var span))
-			{
-				return JsonPackSpan(span, settings, resolver);
-			}
-
-			JsonArray arr = items.TryGetNonEnumeratedCount(out var count) ? new(count) : new();
-
-			foreach (var item in items)
-			{
-				arr.Add(JsonNumber.Return(item));
-			}
-
-			if (settings?.ReadOnly ?? false)
-			{
-				arr.FreezeUnsafe();
-			}
-			return arr;
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackEnumerable(IEnumerable<float>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items == null) return null;
-
-			if (Buffer<float>.TryGetSpan(items, out var span))
-			{
-				return JsonPackSpan(span, settings, resolver);
-			}
-
-			JsonArray arr = items.TryGetNonEnumeratedCount(out var count) ? new(count) : new();
-
-			foreach (var item in items)
-			{
-				arr.Add(JsonNumber.Return(item));
-			}
-
-			if (settings?.ReadOnly ?? false)
-			{
-				arr.FreezeUnsafe();
-			}
-			return arr;
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackEnumerable(IEnumerable<double>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items == null) return null;
-
-			if (Buffer<double>.TryGetSpan(items, out var span))
-			{
-				return JsonPackSpan(span, settings, resolver);
-			}
-
-			JsonArray arr = items.TryGetNonEnumeratedCount(out var count) ? new(count) : new();
-
-			foreach (var item in items)
-			{
-				arr.Add(JsonNumber.Return(item));
-			}
-
-			if (settings?.ReadOnly ?? false)
-			{
-				arr.FreezeUnsafe();
-			}
-			return arr;
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackArray(bool[]? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items == null) return null;
-			return JsonPackSpan(new ReadOnlySpan<bool>(items), settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackArray(int[]? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items == null) return null;
-			return JsonPackSpan(new ReadOnlySpan<int>(items), settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackArray(long[]? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items == null) return null;
-			return JsonPackSpan(new ReadOnlySpan<long>(items), settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackArray(float[]? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items == null) return null;
-			return JsonPackSpan(new ReadOnlySpan<float>(items), settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackArray(double[]? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items == null) return null;
-			return JsonPackSpan(new ReadOnlySpan<double>(items), settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackArray(string[]? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items == null) return null;
-			return JsonPackSpan(new ReadOnlySpan<string>(items), settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackArray(Guid[]? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items == null) return null;
-			return JsonPackSpan(new ReadOnlySpan<Guid>(items), settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackArray(Uuid128[]? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items == null) return null;
-			return JsonPackSpan(new ReadOnlySpan<Uuid128>(items), settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackArray(Uuid64[]? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items == null) return null;
-			return JsonPackSpan(new ReadOnlySpan<Uuid64>(items), settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackList(List<bool>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items == null) return null;
-			return JsonPackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackList(List<int>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items == null) return null;
-			return JsonPackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackList(List<long>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items == null) return null;
-			return JsonPackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackList(List<float>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items == null) return null;
-			return JsonPackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackList(List<double>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items == null) return null;
-			return JsonPackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackList(List<string>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items == null) return null;
-			return JsonPackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackList(List<Guid>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items == null) return null;
-			return JsonPackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackList(List<Uuid64>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items == null) return null;
-			return JsonPackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackEnumerable(IEnumerable<string>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items == null) return null;
-
-			if (Buffer<string>.TryGetSpan(items, out var span))
-			{
-				return JsonPackSpan(span, settings, resolver);
-			}
-
-			JsonArray arr = items.TryGetNonEnumeratedCount(out var count) ? new(count) : new();
-
-			foreach (var item in items)
-			{
-				arr.Add(JsonString.Return(item));
-			}
-
-			if (settings?.ReadOnly ?? false)
-			{
-				arr.FreezeUnsafe();
-			}
-			return arr;
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackEnumerable(IEnumerable<Guid>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items == null) return null;
-
-			if (Buffer<Guid>.TryGetSpan(items, out var span))
-			{
-				return JsonPackSpan(span, settings, resolver);
-			}
-
-			JsonArray arr = items.TryGetNonEnumeratedCount(out var count) ? new(count) : new();
-
-			foreach (var item in items)
-			{
-				arr.Add(JsonString.Return(item));
-			}
-
-			if (settings?.ReadOnly ?? false)
-			{
-				arr.FreezeUnsafe();
-			}
-			return arr;
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackEnumerable(IEnumerable<Uuid128>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items == null) return null;
-
-			if (Buffer<Uuid128>.TryGetSpan(items, out var span))
-			{
-				return JsonPackSpan(span, settings, resolver);
-			}
-
-			JsonArray arr = items.TryGetNonEnumeratedCount(out var count) ? new(count) : new();
-
-			foreach (var item in items)
-			{
-				arr.Add(JsonString.Return(item));
-			}
-
-			if (settings?.ReadOnly ?? false)
-			{
-				arr.FreezeUnsafe();
-			}
-			return arr;
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackSpan<TValue>(ReadOnlySpan<TValue> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			return JsonArray.FromValues<TValue>(items, settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackArray<TValue>(TValue[]? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items == null) return null;
-			return JsonArray.FromValues<TValue>(new ReadOnlySpan<TValue>(items), settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackList<TValue>(List<TValue>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items == null) return null;
-			return JsonArray.FromValues<TValue>(CollectionsMarshal.AsSpan(items), settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackEnumerable<TValue>(IEnumerable<TValue>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items == null) return null;
-			return JsonArray.FromValues(items, settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonObject? PackDictionary<TValue>(Dictionary<string, TValue>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items == null) return null;
-			return JsonObject.FromValues<TValue>(items, null, settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonObject? PackDictionary<TValue>(IDictionary<string, TValue>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items == null) return null;
-			return JsonObject.FromValues<TValue>(items, null, settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonObject? PackDictionary<TValue>(IEnumerable<KeyValuePair<string, TValue>>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (items == null) return null;
-			return JsonObject.FromValues<TValue>(items, null, settings, resolver);
-		}
-
-		#endregion
-
 		#region IJsonPackerFor<T>...
 
 		public static JsonArray JsonPackSpan<TValue>(this IJsonPacker<TValue> serializer, ReadOnlySpan<TValue> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
@@ -914,6 +351,575 @@ namespace Doxense.Serialization.Json
 				}
 			}
 			return result;
+		}
+
+		#endregion
+
+		#region CodeGen Helpers...
+
+		// these methods are called by generated source code
+
+		public static JsonArray JsonPackSpan(ReadOnlySpan<string> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items.Length == 0)
+			{
+				return (settings?.ReadOnly ?? false) ? JsonArray.EmptyReadOnly : new ();
+			}
+
+			var arr = new JsonArray();
+			var buf = arr.GetSpanAndSetCount(items.Length);
+
+			for (int i = 0; i < items.Length; i++)
+			{
+				buf[i] = JsonString.Return(items[i]);
+			}
+
+			if (settings?.ReadOnly ?? false)
+			{
+				arr.FreezeUnsafe();
+			}
+			return arr;
+		}
+
+		public static JsonArray JsonPackSpan(ReadOnlySpan<bool> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items.Length == 0)
+			{
+				return (settings?.ReadOnly ?? false) ? JsonArray.EmptyReadOnly : new();
+			}
+
+			var arr = new JsonArray();
+			var buf = arr.GetSpanAndSetCount(items.Length);
+
+			for (int i = 0; i < items.Length; i++)
+			{
+				buf[i] = items[i] ? JsonBoolean.True : JsonBoolean.False;
+			}
+
+			if (settings?.ReadOnly ?? false)
+			{
+				arr.FreezeUnsafe();
+			}
+			return arr;
+		}
+
+		public static JsonArray JsonPackSpan(ReadOnlySpan<int> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items.Length == 0)
+			{
+				return (settings?.ReadOnly ?? false) ? JsonArray.EmptyReadOnly : new();
+			}
+
+			var arr = new JsonArray();
+			var buf = arr.GetSpanAndSetCount(items.Length);
+
+			for (int i = 0; i < items.Length; i++)
+			{
+				buf[i] = JsonNumber.Return(items[i]);
+			}
+
+			if (settings?.ReadOnly ?? false)
+			{
+				arr.FreezeUnsafe();
+			}
+			return arr;
+		}
+
+		public static JsonArray JsonPackSpan(ReadOnlySpan<long> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items.Length == 0)
+			{
+				return (settings?.ReadOnly ?? false) ? JsonArray.EmptyReadOnly : new();
+			}
+
+			var arr = new JsonArray();
+			var buf = arr.GetSpanAndSetCount(items.Length);
+
+			for (int i = 0; i < items.Length; i++)
+			{
+				buf[i] = JsonNumber.Return(items[i]);
+			}
+
+			if (settings?.ReadOnly ?? false)
+			{
+				arr.FreezeUnsafe();
+			}
+			return arr;
+		}
+
+		public static JsonArray JsonPackSpan(ReadOnlySpan<float> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items.Length == 0)
+			{
+				return (settings?.ReadOnly ?? false) ? JsonArray.EmptyReadOnly : new();
+			}
+
+			var arr = new JsonArray();
+			var buf = arr.GetSpanAndSetCount(items.Length);
+
+			for (int i = 0; i < items.Length; i++)
+			{
+				buf[i] = JsonNumber.Return(items[i]);
+			}
+
+			if (settings?.ReadOnly ?? false)
+			{
+				arr.FreezeUnsafe();
+			}
+			return arr;
+		}
+
+		public static JsonArray JsonPackSpan(ReadOnlySpan<double> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items.Length == 0)
+			{
+				return (settings?.ReadOnly ?? false) ? JsonArray.EmptyReadOnly : new();
+			}
+
+			var arr = new JsonArray();
+			var buf = arr.GetSpanAndSetCount(items.Length);
+
+			for (int i = 0; i < items.Length; i++)
+			{
+				buf[i] = JsonNumber.Return(items[i]);
+			}
+
+			if (settings?.ReadOnly ?? false)
+			{
+				arr.FreezeUnsafe();
+			}
+			return arr;
+		}
+
+		public static JsonArray JsonPackSpan(ReadOnlySpan<Guid> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items.Length == 0)
+			{
+				return (settings?.ReadOnly ?? false) ? JsonArray.EmptyReadOnly : new();
+			}
+
+			var arr = new JsonArray();
+			var buf = arr.GetSpanAndSetCount(items.Length);
+
+			for (int i = 0; i < items.Length; i++)
+			{
+				buf[i] = JsonString.Return(items[i]);
+			}
+
+			if (settings?.ReadOnly ?? false)
+			{
+				arr.FreezeUnsafe();
+			}
+			return arr;
+		}
+
+		public static JsonArray JsonPackSpan(ReadOnlySpan<Uuid128> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items.Length == 0)
+			{
+				return (settings?.ReadOnly ?? false) ? JsonArray.EmptyReadOnly : new();
+			}
+
+			var arr = new JsonArray();
+			var buf = arr.GetSpanAndSetCount(items.Length);
+
+			for (int i = 0; i < items.Length; i++)
+			{
+				buf[i] = JsonString.Return(items[i]);
+			}
+
+			if (settings?.ReadOnly ?? false)
+			{
+				arr.FreezeUnsafe();
+			}
+			return arr;
+		}
+
+		public static JsonArray JsonPackSpan(ReadOnlySpan<Uuid64> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items.Length == 0)
+			{
+				return (settings?.ReadOnly ?? false) ? JsonArray.EmptyReadOnly : new();
+			}
+
+			var arr = new JsonArray();
+			var buf = arr.GetSpanAndSetCount(items.Length);
+
+			for (int i = 0; i < items.Length; i++)
+			{
+				buf[i] = JsonString.Return(items[i]);
+			}
+
+			if (settings?.ReadOnly ?? false)
+			{
+				arr.FreezeUnsafe();
+			}
+			return arr;
+		}
+
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? JsonPackEnumerable(IEnumerable<bool>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+
+			if (Buffer<bool>.TryGetSpan(items, out var span))
+			{
+				return JsonPackSpan(span, settings, resolver);
+			}
+
+			JsonArray arr = items.TryGetNonEnumeratedCount(out var count) ? new(count) : new();
+
+			foreach (var item in items)
+			{
+				arr.Add(item ? JsonBoolean.True : JsonBoolean.False);
+			}
+
+			if (settings?.ReadOnly ?? false)
+			{
+				arr.FreezeUnsafe();
+			}
+			return arr;
+		}
+
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? JsonPackEnumerable(IEnumerable<int>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+
+			if (Buffer<int>.TryGetSpan(items, out var span))
+			{
+				return JsonPackSpan(span, settings, resolver);
+			}
+
+			JsonArray arr = items.TryGetNonEnumeratedCount(out var count) ? new(count) : new();
+
+			foreach (var item in items)
+			{
+				arr.Add(JsonNumber.Return(item));
+			}
+
+			if (settings?.ReadOnly ?? false)
+			{
+				arr.FreezeUnsafe();
+			}
+			return arr;
+		}
+
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? JsonPackEnumerable(IEnumerable<long>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+
+			if (Buffer<long>.TryGetSpan(items, out var span))
+			{
+				return JsonPackSpan(span, settings, resolver);
+			}
+
+			JsonArray arr = items.TryGetNonEnumeratedCount(out var count) ? new(count) : new();
+
+			foreach (var item in items)
+			{
+				arr.Add(JsonNumber.Return(item));
+			}
+
+			if (settings?.ReadOnly ?? false)
+			{
+				arr.FreezeUnsafe();
+			}
+			return arr;
+		}
+
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? JsonPackEnumerable(IEnumerable<float>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+
+			if (Buffer<float>.TryGetSpan(items, out var span))
+			{
+				return JsonPackSpan(span, settings, resolver);
+			}
+
+			JsonArray arr = items.TryGetNonEnumeratedCount(out var count) ? new(count) : new();
+
+			foreach (var item in items)
+			{
+				arr.Add(JsonNumber.Return(item));
+			}
+
+			if (settings?.ReadOnly ?? false)
+			{
+				arr.FreezeUnsafe();
+			}
+			return arr;
+		}
+
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? JsonPackEnumerable(IEnumerable<double>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+
+			if (Buffer<double>.TryGetSpan(items, out var span))
+			{
+				return JsonPackSpan(span, settings, resolver);
+			}
+
+			JsonArray arr = items.TryGetNonEnumeratedCount(out var count) ? new(count) : new();
+
+			foreach (var item in items)
+			{
+				arr.Add(JsonNumber.Return(item));
+			}
+
+			if (settings?.ReadOnly ?? false)
+			{
+				arr.FreezeUnsafe();
+			}
+			return arr;
+		}
+
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? JsonPackArray(bool[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return JsonPackSpan(new ReadOnlySpan<bool>(items), settings, resolver);
+		}
+
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? JsonPackArray(int[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return JsonPackSpan(new ReadOnlySpan<int>(items), settings, resolver);
+		}
+
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? JsonPackArray(long[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return JsonPackSpan(new ReadOnlySpan<long>(items), settings, resolver);
+		}
+
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? JsonPackArray(float[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return JsonPackSpan(new ReadOnlySpan<float>(items), settings, resolver);
+		}
+
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? JsonPackArray(double[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return JsonPackSpan(new ReadOnlySpan<double>(items), settings, resolver);
+		}
+
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? JsonPackArray(string[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return JsonPackSpan(new ReadOnlySpan<string>(items), settings, resolver);
+		}
+
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? JsonPackArray(Guid[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return JsonPackSpan(new ReadOnlySpan<Guid>(items), settings, resolver);
+		}
+
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? JsonPackArray(Uuid128[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return JsonPackSpan(new ReadOnlySpan<Uuid128>(items), settings, resolver);
+		}
+
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? JsonPackArray(Uuid64[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return JsonPackSpan(new ReadOnlySpan<Uuid64>(items), settings, resolver);
+		}
+
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? JsonPackList(List<bool>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return JsonPackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
+		}
+
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? JsonPackList(List<int>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return JsonPackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
+		}
+
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? JsonPackList(List<long>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return JsonPackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
+		}
+
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? JsonPackList(List<float>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return JsonPackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
+		}
+
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? JsonPackList(List<double>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return JsonPackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
+		}
+
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? JsonPackList(List<string>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return JsonPackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
+		}
+
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? JsonPackList(List<Guid>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return JsonPackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
+		}
+
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? JsonPackList(List<Uuid64>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return JsonPackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
+		}
+
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? JsonPackEnumerable(IEnumerable<string>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+
+			if (Buffer<string>.TryGetSpan(items, out var span))
+			{
+				return JsonPackSpan(span, settings, resolver);
+			}
+
+			JsonArray arr = items.TryGetNonEnumeratedCount(out var count) ? new(count) : new();
+
+			foreach (var item in items)
+			{
+				arr.Add(JsonString.Return(item));
+			}
+
+			if (settings?.ReadOnly ?? false)
+			{
+				arr.FreezeUnsafe();
+			}
+			return arr;
+		}
+
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? JsonPackEnumerable(IEnumerable<Guid>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+
+			if (Buffer<Guid>.TryGetSpan(items, out var span))
+			{
+				return JsonPackSpan(span, settings, resolver);
+			}
+
+			JsonArray arr = items.TryGetNonEnumeratedCount(out var count) ? new(count) : new();
+
+			foreach (var item in items)
+			{
+				arr.Add(JsonString.Return(item));
+			}
+
+			if (settings?.ReadOnly ?? false)
+			{
+				arr.FreezeUnsafe();
+			}
+			return arr;
+		}
+
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? JsonPackEnumerable(IEnumerable<Uuid128>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+
+			if (Buffer<Uuid128>.TryGetSpan(items, out var span))
+			{
+				return JsonPackSpan(span, settings, resolver);
+			}
+
+			JsonArray arr = items.TryGetNonEnumeratedCount(out var count) ? new(count) : new();
+
+			foreach (var item in items)
+			{
+				arr.Add(JsonString.Return(item));
+			}
+
+			if (settings?.ReadOnly ?? false)
+			{
+				arr.FreezeUnsafe();
+			}
+			return arr;
+		}
+
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? JsonPackSpan<TValue>(ReadOnlySpan<TValue> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			return JsonArray.FromValues<TValue>(items, settings, resolver);
+		}
+
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? JsonPackArray<TValue>(TValue[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return JsonArray.FromValues<TValue>(new ReadOnlySpan<TValue>(items), settings, resolver);
+		}
+
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? JsonPackList<TValue>(List<TValue>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return JsonArray.FromValues<TValue>(CollectionsMarshal.AsSpan(items), settings, resolver);
+		}
+
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? JsonPackEnumerable<TValue>(IEnumerable<TValue>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return JsonArray.FromValues(items, settings, resolver);
+		}
+
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonObject? PackDictionary<TValue>(Dictionary<string, TValue>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return JsonObject.FromValues<TValue>(items, null, settings, resolver);
+		}
+
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonObject? PackDictionary<TValue>(IDictionary<string, TValue>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return JsonObject.FromValues<TValue>(items, null, settings, resolver);
+		}
+
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonObject? PackDictionary<TValue>(IEnumerable<KeyValuePair<string, TValue>>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return JsonObject.FromValues<TValue>(items, null, settings, resolver);
+		}
+
+		public static T Deserialize<T>(JsonValue value, ICrystalJsonTypeResolver? resolver)
+			where T : IJsonDeserializable<T>
+		{
+			return T.JsonDeserialize(value, resolver);
 		}
 
 		#endregion

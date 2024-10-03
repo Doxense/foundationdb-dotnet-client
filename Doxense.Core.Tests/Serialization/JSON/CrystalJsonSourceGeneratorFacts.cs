@@ -12,6 +12,7 @@ namespace Doxense.Serialization.Json.Tests
 {
 	using System.Buffers;
 	using System.Collections.Generic;
+	using System.IO;
 	using System.Net;
 	using Doxense.Mathematics.Statistics;
 
@@ -84,18 +85,25 @@ namespace Doxense.Serialization.Json.Tests
 		[JsonProperty("level")]
 		public required int Level { get; init; }
 
+		[JsonProperty("path")]
+		public required JsonPath Path { get; init; }
+
 		[JsonProperty("disabled")]
 		public bool? Disabled { get; init; }
 	}
 
 	public sealed record MyAwesomeDevice
 	{
+		[JsonProperty("id")]
 		public required string Id { get; init; }
 
+		[JsonProperty("model")]
 		public required string Model { get; init; }
 
+		[JsonProperty("lastSeen")]
 		public DateTimeOffset? LastSeen { get; init; }
 
+		[JsonProperty("lastAddress")]
 		public IPAddress? LastAddress { get; init; }
 
 	}
@@ -215,8 +223,8 @@ namespace Doxense.Serialization.Json.Tests
 				},
 				Items =
 				[
-					new() { Id = "382bb7cd-f9e4-4906-874e-ab88df954fa8", Level = 123 },
-					new() { Id = "8092e57d-16b4-4afb-ae04-28acbeb22aa8", Level = 456, Disabled = true }
+					new() { Id = "382bb7cd-f9e4-4906-874e-ab88df954fa8", Level = 123, Path = JsonPath.Create("foo.bar") },
+					new() { Id = "8092e57d-16b4-4afb-ae04-28acbeb22aa8", Level = 456, Path = JsonPath.Create("bars[2].foo"), Disabled = true }
 				],
 				Devices = new()
 				{
@@ -240,9 +248,18 @@ namespace Doxense.Serialization.Json.Tests
 			Log(json);
 			Assert.That(json, Is.EqualTo(expectedJson));
 
-			Log();
-			Log("System.Text.Json reference:");
-			Log(System.Text.Json.JsonSerializer.Serialize(user, SystemTextJsonGeneratedSerializers.Default.MyAwesomeUser));
+			{ // Compare with System.Text.Json:
+				Log();
+				Log("System.Text.Json reference:");
+				Log(System.Text.Json.JsonSerializer.Serialize(user, SystemTextJsonGeneratedSerializers.Default.MyAwesomeUser));
+			}
+			{ // Compare with JSON.Net
+				Log();
+				Log("Newtonsoft.Json reference:");
+				using var sw = new StringWriter();
+				new Newtonsoft.Json.JsonSerializer().Serialize(sw, user);
+				Log(sw.ToString());
+			}
 
 			// ToSlice
 
@@ -284,11 +301,19 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(parsed["items"], IsJson.Array.And.OfSize(2));
 				Assert.That(parsed["items"][0], IsJson.Object);
 				Assert.That(parsed["items"][0]["id"], IsJson.EqualTo("382bb7cd-f9e4-4906-874e-ab88df954fa8"));
+				Assert.That(parsed["items"][0]["level"], IsJson.EqualTo(123));
+				Assert.That(parsed["items"][0]["path"], IsJson.EqualTo("foo.bar"));
+				Assert.That(parsed["items"][0]["disabled"], IsJson.Null);
 				Assert.That(parsed["items"][1], IsJson.Object);
 				Assert.That(parsed["items"][1]["id"], IsJson.EqualTo("8092e57d-16b4-4afb-ae04-28acbeb22aa8"));
+				Assert.That(parsed["items"][1]["level"], IsJson.EqualTo(456));
+				Assert.That(parsed["items"][1]["path"], IsJson.EqualTo("bars[2].foo"));
+				Assert.That(parsed["items"][1]["disabled"], IsJson.True);
 				Assert.That(parsed["devices"], IsJson.Object.And.OfSize(2));
 				Assert.That(parsed["devices"]["Foo"], IsJson.Object);
+				Assert.That(parsed["devices"]["Foo"]["model"], IsJson.EqualTo("ACME Ultra Core 9100XX Ultra Series"));
 				Assert.That(parsed["devices"]["Bar"], IsJson.Object);
+				Assert.That(parsed["devices"]["Bar"]["model"], IsJson.EqualTo("iHAL 42 Pro Ultra MaXX"));
 				Assert.That(parsed["extras"], IsJson.Object.And.EqualTo(user.Extras));
 			});
 
@@ -350,8 +375,8 @@ namespace Doxense.Serialization.Json.Tests
 				},
 				Items =
 				[
-					new() { Id = "382bb7cd-f9e4-4906-874e-ab88df954fa8", Level = 123 },
-					new() { Id = "8092e57d-16b4-4afb-ae04-28acbeb22aa8", Level = 456, Disabled = true }
+					new() { Id = "382bb7cd-f9e4-4906-874e-ab88df954fa8", Level = 123, Path = JsonPath.Create("foo.bar") },
+					new() { Id = "8092e57d-16b4-4afb-ae04-28acbeb22aa8", Level = 456, Path = JsonPath.Create("bars[2].foo"), Disabled = true }
 				],
 				Devices = new()
 				{
@@ -974,6 +999,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _id = new("id");
 			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _level = new("level");
+			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _path = new("path");
 			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _disabled = new("disabled");
 
 			public void Serialize(global::Doxense.Serialization.Json.CrystalJsonWriter writer, global::Doxense.Serialization.Json.Tests.MyAwesomeStruct instance)
@@ -987,6 +1013,11 @@ namespace Doxense.Serialization.Json.Tests
 				// int Level => "level"
 				// fast!
 				writer.WriteField(in _level, instance.Level);
+
+				// JsonPath Path => "path"
+				// TODO: unsupported enumerable type: Doxense.Serialization.Json.JsonPath
+				// unknown type
+				writer.WriteField(in _path, instance.Path);
 
 				// bool? Disabled => "disabled"
 				// fast!
@@ -1005,7 +1036,7 @@ namespace Doxense.Serialization.Json.Tests
 				var readOnly = settings?.ReadOnly ?? false;
 				var keepNulls = settings?.ShowNullMembers ?? false;
 
-				var obj = new global::Doxense.Serialization.Json.JsonObject(3);
+				var obj = new global::Doxense.Serialization.Json.JsonObject(4);
 
 				// string Id => "id"
 				value = global::Doxense.Serialization.Json.JsonString.Return(instance.Id);
@@ -1018,6 +1049,11 @@ namespace Doxense.Serialization.Json.Tests
 				// fast!
 				value = global::Doxense.Serialization.Json.JsonNumber.Return(instance.Level);
 				obj["level"] = value;
+
+				// JsonPath Path => "path"
+				// fast!
+				value = JsonValue.FromValue<global::Doxense.Serialization.Json.JsonPath>(instance.Path);
+				obj["path"] = value;
 
 				// bool? Disabled => "disabled"
 				// fast!
@@ -1049,6 +1085,10 @@ namespace Doxense.Serialization.Json.Tests
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Level>k__BackingField")]
 			private static extern ref int LevelAccessor(ref global::Doxense.Serialization.Json.Tests.MyAwesomeStruct instance);
 
+			// Path { get; init; }
+			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Path>k__BackingField")]
+			private static extern ref global::Doxense.Serialization.Json.JsonPath PathAccessor(ref global::Doxense.Serialization.Json.Tests.MyAwesomeStruct instance);
+
 			// Disabled { get; init; }
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Disabled>k__BackingField")]
 			private static extern ref bool? DisabledAccessor(ref global::Doxense.Serialization.Json.Tests.MyAwesomeStruct instance);
@@ -1064,6 +1104,7 @@ namespace Doxense.Serialization.Json.Tests
 					{
 						case "id": IdAccessor(ref instance) = kv.Value.ToStringOrDefault(null)!; break;
 						case "level": LevelAccessor(ref instance) = kv.Value.ToInt32(); break;
+						case "path": PathAccessor(ref instance) = global::Doxense.Serialization.Json.JsonSerializerExtensions.Deserialize<global::Doxense.Serialization.Json.JsonPath>(kv.Value, resolver)!; break;
 						case "disabled": DisabledAccessor(ref instance) = kv.Value.ToBooleanOrDefault(null); break;
 					}
 				}
@@ -1092,10 +1133,10 @@ namespace Doxense.Serialization.Json.Tests
 
 			#region Serialization...
 
-			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _Id = new("Id");
-			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _Model = new("Model");
-			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _LastSeen = new("LastSeen");
-			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _LastAddress = new("LastAddress");
+			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _id = new("id");
+			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _model = new("model");
+			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _lastSeen = new("lastSeen");
+			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _lastAddress = new("lastAddress");
 
 			public void Serialize(global::Doxense.Serialization.Json.CrystalJsonWriter writer, global::Doxense.Serialization.Json.Tests.MyAwesomeDevice? instance)
 			{
@@ -1107,21 +1148,21 @@ namespace Doxense.Serialization.Json.Tests
 
 				var state = writer.BeginObject();
 
-				// string Id => "Id"
+				// string Id => "id"
 				// fast!
-				writer.WriteField(in _Id, instance.Id);
+				writer.WriteField(in _id, instance.Id);
 
-				// string Model => "Model"
+				// string Model => "model"
 				// fast!
-				writer.WriteField(in _Model, instance.Model);
+				writer.WriteField(in _model, instance.Model);
 
-				// DateTimeOffset? LastSeen => "LastSeen"
+				// DateTimeOffset? LastSeen => "lastSeen"
 				// fast!
-				writer.WriteField(in _LastSeen, instance.LastSeen);
+				writer.WriteField(in _lastSeen, instance.LastSeen);
 
-				// IPAddress LastAddress => "LastAddress"
+				// IPAddress LastAddress => "lastAddress"
 				// unknown type
-				writer.WriteField(in _LastAddress, instance.LastAddress);
+				writer.WriteField(in _lastAddress, instance.LastAddress);
 
 				writer.EndObject(state);
 			}
@@ -1143,36 +1184,36 @@ namespace Doxense.Serialization.Json.Tests
 
 				var obj = new global::Doxense.Serialization.Json.JsonObject(4);
 
-				// string Id => "Id"
+				// string Id => "id"
 				value = global::Doxense.Serialization.Json.JsonString.Return(instance.Id);
 				if (keepNulls || value is not null or JsonNull)
 				{
-					obj["Id"] = value;
+					obj["id"] = value;
 				}
 
-				// string Model => "Model"
+				// string Model => "model"
 				value = global::Doxense.Serialization.Json.JsonString.Return(instance.Model);
 				if (keepNulls || value is not null or JsonNull)
 				{
-					obj["Model"] = value;
+					obj["model"] = value;
 				}
 
-				// DateTimeOffset? LastSeen => "LastSeen"
+				// DateTimeOffset? LastSeen => "lastSeen"
 				// fast!
 				{
 					var tmp = instance.LastSeen;
 					value = tmp.HasValue ? global::Doxense.Serialization.Json.JsonDateTime.Return(tmp.Value) : null;
 					if (keepNulls || value is not null or JsonNull)
 					{
-						obj["LastSeen"] = value;
+						obj["lastSeen"] = value;
 					}
 				}
 
-				// IPAddress LastAddress => "LastAddress"
+				// IPAddress LastAddress => "lastAddress"
 				value = JsonValue.FromValue<global::System.Net.IPAddress>(instance.LastAddress);
 				if (keepNulls || value is not null or JsonNull)
 				{
-					obj["LastAddress"] = value;
+					obj["lastAddress"] = value;
 				}
 				if (readOnly)
 				{
@@ -1211,10 +1252,10 @@ namespace Doxense.Serialization.Json.Tests
 				{
 					switch (kv.Key)
 					{
-						case "Id": IdAccessor(instance) = kv.Value.ToStringOrDefault(null)!; break;
-						case "Model": ModelAccessor(instance) = kv.Value.ToStringOrDefault(null)!; break;
-						case "LastSeen": LastSeenAccessor(instance) = kv.Value.ToDateTimeOffsetOrDefault(null); break;
-						case "LastAddress": LastAddressAccessor(instance) = kv.Value.As<global::System.Net.IPAddress>(defaultValue: null, resolver: resolver)!; break;
+						case "id": IdAccessor(instance) = kv.Value.ToStringOrDefault(null)!; break;
+						case "model": ModelAccessor(instance) = kv.Value.ToStringOrDefault(null)!; break;
+						case "lastSeen": LastSeenAccessor(instance) = kv.Value.ToDateTimeOffsetOrDefault(null); break;
+						case "lastAddress": LastAddressAccessor(instance) = kv.Value.As<global::System.Net.IPAddress>(defaultValue: null, resolver: resolver)!; break;
 					}
 				}
 
