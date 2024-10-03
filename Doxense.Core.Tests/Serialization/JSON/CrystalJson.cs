@@ -709,12 +709,22 @@ namespace Doxense.Serialization.Json.Tests
 			}
 
 			{ // Output to TextWriter
+				using var sw = new StringWriter();
+				CrystalJson.SerializeTo(sw, value, settings);
+				string actual = sw.ToString();
+				if (actual != expected)
+				{
+					Assert.That(actual, Is.EqualTo(expected), message, actualExpression: $"{nameof(CrystalJson)}.{nameof(CrystalJson.SerializeTo)}(StringWriter, {expr}, {settingsExpression})", constraintExpression: "Is.EqualTo(\"\"\"" + expected + "\"\"\")");
+				}
+			}
+
+			{ // Output to Stream
 				using var ms = new MemoryStream();
 				CrystalJson.SerializeTo(ms, value, settings);
 				var actualStream = ms.ToArray();
 				if (!expectedSlice.Equals(actualStream))
 				{
-					Assert.That(actualStream, Is.EqualTo(expectedSlice.ToArray()), message, actualExpression: $"{nameof(CrystalJson)}.{nameof(CrystalJson.SerializeTo)}(ms, {expr}, {settingsExpression})", constraintExpression: "Is.EqualTo(\"\"\"" + expected + "\"\"\")");
+					Assert.That(actualStream, Is.EqualTo(expectedSlice.ToArray()), message, actualExpression: $"{nameof(CrystalJson)}.{nameof(CrystalJson.SerializeTo)}(MemoryStream, {expr}, {settingsExpression})", constraintExpression: "Is.EqualTo(\"\"\"" + expected + "\"\"\")");
 				}
 			}
 

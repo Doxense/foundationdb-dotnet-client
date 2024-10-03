@@ -39,6 +39,7 @@ namespace Doxense.Serialization.Json
 	using System.Runtime.InteropServices;
 	using System.Text;
 	using System.Threading;
+	using Doxense.IO;
 	using Doxense.Linq;
 	using NodaTime;
 	using NodaTime.Text;
@@ -74,7 +75,7 @@ namespace Doxense.Serialization.Json
 		private ValueStringWriter m_buffer;
 		private State m_state;
 
-		private TextWriter? m_output;
+		private object? m_output;
 		private int m_autoFlush;
 
 		private bool m_javascript;
@@ -96,6 +97,11 @@ namespace Doxense.Serialization.Json
 		private int m_visitedCursor;
 		private int m_objectGraphDepth;
 
+		public CrystalJsonWriter(int initialCapacity, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			Initialize(initialCapacity, settings, resolver);
+		}
+
 		public CrystalJsonWriter(TextWriter output, int autoFlush, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			Contract.NotNull(output);
@@ -104,9 +110,12 @@ namespace Doxense.Serialization.Json
 			m_autoFlush = autoFlush > 0 ? autoFlush : 64 * 1024;
 		}
 
-		public CrystalJsonWriter(int initialCapacity, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public CrystalJsonWriter(Stream output, int autoFlush, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
-			Initialize(initialCapacity, settings, resolver);
+			Contract.NotNull(output);
+			Initialize(0, settings, resolver);
+			m_output = output;
+			m_autoFlush = autoFlush > 0 ? autoFlush : 64 * 1024;
 		}
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
@@ -121,7 +130,9 @@ namespace Doxense.Serialization.Json
 
 		internal ref ValueStringWriter Buffer => ref m_buffer;
 
-		public TextWriter? Output => m_output;
+		public TextWriter? Output => m_output as TextWriter;
+
+		public Stream? Stream => m_output as Stream;
 
 		public CrystalJsonSettings Settings => m_settings;
 
@@ -159,7 +170,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (m_output != null)
 			{
-				FlushBuffer(last: true);
+				FlushBuffer(last: true, flushOutput: false); //TODO: "flush on close"?
 				m_output = null;
 			}
 			else
@@ -206,7 +217,17 @@ namespace Doxense.Serialization.Json
 			m_objectGraphDepth = 0;
 		}
 
-		public void Initialize(TextWriter output, int autoFlush, CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver)
+		public void Initialize(TextWriter output, int autoFlush, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			Contract.NotNull(output);
+			Contract.Positive(autoFlush);
+
+			Initialize(0, settings, resolver);
+			m_output = output;
+			m_autoFlush = autoFlush > 0 ? autoFlush : 64 * 1024;
+		}
+
+		public void Initialize(Stream output, int autoFlush, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			Contract.NotNull(output);
 			Contract.Positive(autoFlush);
@@ -293,22 +314,56 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal void MaybeFlush()
 		{
+			//note: m_autoFlush can only be > 0 if either m_stream or m_output is specified!
+
 			if (m_autoFlush > 0 && m_buffer.Count >= m_autoFlush)
 			{
-				FlushBuffer(false);
+				FlushBuffer(false, flushOutput: true); // maybe "auto flush inner" ?
 			}
 		}
 
-		internal void FlushBuffer(bool last)
+		internal void FlushBuffer(bool last, bool flushOutput)
 		{
-			if (m_output != null)
+			switch (m_output)
 			{
-				//note: if the TextWriter implementation does not overload Write(ReadOnlySpan<char>),
-				// the base implementation simply uses a tempt buffer from ArrayPool<char>.Shared, and calls Write(char[], int, int)
-				// => we expect most of the callers to use either FastStringWriter, StringWriter or StreamWriter, so we are "ok" with that
-				if (m_buffer.Count > 0)
+				case Stream stream:
 				{
-					m_output.Write(m_buffer.Span);
+					if (m_buffer.Count > 0)
+					{
+						// we have to convert the chunk of text into UTF-8 bytes
+
+						var byteCount = CrystalJson.Utf8NoBom.GetByteCount(m_buffer.Span);
+						var tmp = ArrayPool<byte>.Shared.Rent(byteCount);
+						int n = CrystalJson.Utf8NoBom.GetBytes(m_buffer.Span, tmp);
+
+						stream.Write(tmp, 0, n);
+
+						ArrayPool<byte>.Shared.Return(tmp);
+					}
+					if (flushOutput)
+					{
+						stream.Flush();
+					}
+					break;
+				}
+				case TextWriter writer:
+				{
+					if (m_buffer.Count > 0)
+					{
+						//note: if the TextWriter implementation does not overload Write(ReadOnlySpan<char>),
+						// the base implementation simply uses a tempt buffer from ArrayPool<char>.Shared, and calls Write(char[], int, int)
+						// => we expect most of the callers to use either FastStringWriter, StringWriter or StreamWriter, so we are "ok" with that
+						writer.Write(m_buffer.Span);
+					}
+					if (flushOutput)
+					{
+						writer.Flush();
+					}
+					break;
+				}
+				default:
+				{
+					throw new NotSupportedException();
 				}
 			}
 
@@ -322,16 +377,68 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		internal async Task FlushBufferAsync(bool last, CancellationToken ct)
+		internal async Task FlushBufferAsync(bool last, bool flushOutput, CancellationToken ct)
 		{
-			if (m_output != null)
+			switch (m_output)
 			{
-				//note: if the TextWriter implementation does not overload WriteAsync(ReadOnlyMemory<char>),
-				// the base implementation simply Task.Factory.StartNew((...) => output.Write(ReadOnlySpan<char>))
-				// also, the CancellationToken is only check _BEFORE_ writing, but the write operation itself is not cancellable :(
-				if (m_buffer.Count > 0)
+				case Stream stream:
 				{
-					await m_output.WriteAsync(m_buffer.Memory, ct).ConfigureAwait(false);
+					if (m_buffer.Count > 0)
+					{
+						//TODO: we have to convert into UTF8
+						var byteCount = CrystalJson.Utf8NoBom.GetByteCount(m_buffer.Span);
+						var tmp = ArrayPool<byte>.Shared.Rent(byteCount);
+						int n = CrystalJson.Utf8NoBom.GetBytes(m_buffer.Span, tmp);
+						if (stream is MemoryStream ms)
+						{
+							ct.ThrowIfCancellationRequested();
+							ms.Write(tmp.AsSpan(0, n));
+						}
+						else
+						{
+							await stream.WriteAsync(tmp, 0, n, ct).ConfigureAwait(false);
+							if (flushOutput)
+							{
+								await stream.FlushAsync(ct).ConfigureAwait(false);
+							}
+						}
+						ArrayPool<byte>.Shared.Return(tmp);
+					}
+					break;
+				}
+				case TextWriter writer:
+				{
+					if (m_buffer.Count > 0)
+					{
+						if (writer is StringWriter or FastStringWriter)
+						{
+							ct.ThrowIfCancellationRequested();
+							writer.Write(m_buffer.Span);
+						}
+						else
+						{
+							//note: if the TextWriter implementation does not overload WriteAsync(ReadOnlyMemory<char>),
+							// the base implementation simply Task.Factory.StartNew((...) => output.Write(ReadOnlySpan<char>))
+							// also, the CancellationToken is only check _BEFORE_ writing, but the write operation itself is not cancellable :(
+							await writer.WriteAsync(m_buffer.Memory, ct).ConfigureAwait(false);
+
+							if (flushOutput)
+							{
+#if NET8_0_OR_GREATER
+								await writer.FlushAsync(ct).ConfigureAwait(false);
+#else
+								ct.ThrowIfCancellationRequested();
+								await writer.FlushAsync().ConfigureAwait(false);
+#endif
+							}
+						}
+					}
+
+					break;
+				}
+				default:
+				{
+					throw new NotSupportedException();
 				}
 			}
 
@@ -349,29 +456,21 @@ namespace Doxense.Serialization.Json
 		{
 			if (m_output != null)
 			{
-				FlushBuffer(last: false);
-				m_output.Flush();
+				FlushBuffer(last, flushOutput: true);
 			}
 		}
 
 		public Task FlushAsync(CancellationToken ct) => FlushAsync(last: false, ct);
 
-		public async Task FlushAsync(bool last, CancellationToken ct)
+		public Task FlushAsync(bool last, CancellationToken ct)
 		{
 			if (m_output != null)
 			{
 				// first flush the buffer content into the writer
-				await FlushBufferAsync(last, ct).ConfigureAwait(false);
-
-				// and then flush the writer itself (into its base stream)
-#if NET8_0_OR_GREATER
-				await m_output.FlushAsync(ct).ConfigureAwait(false);
-#else
-				//BUGBUG: .NET 6 does not have an overload that takes a cancellation token :(
-				ct.ThrowIfCancellationRequested();
-				await m_output.FlushAsync();
-#endif
+				return FlushBufferAsync(last, flushOutput: true, ct);
 			}
+
+			return Task.CompletedTask;
 		}
 
 		/// <summary>Apply casing policy to a property name</summary>
