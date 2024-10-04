@@ -910,11 +910,14 @@ namespace FoundationDB.Client.Tests
 				Log("resolving...");
 				var subspace = (await location.Resolve(tr))!;
 				Log(subspace);
-				tr.Set(subspace["AAA"], Slice.FromFixed32(0));
-				tr.Set(subspace["BBB"], Slice.FromFixed32(1));
-				tr.Set(subspace["CCC"], Slice.FromFixed32(43));
-				tr.Set(subspace["DDD"], Slice.FromFixed32(255));
+				tr.SetValueInt32(subspace["AAA"], 0);
+				tr.SetValueInt32(subspace["BBB"], 1);
+				tr.SetValueInt32(subspace["CCC"], 43);
+				tr.SetValueInt32(subspace["DDD"], 255);
 				//EEE does not exist
+				tr.SetValueInt32(subspace["FFF"], 0x5A5A5A5A);
+				tr.SetValueInt32(subspace["GGG"], -1);
+				//HHH does not exist
 			}, this.Cancellation);
 
 			// execute
@@ -926,18 +929,23 @@ namespace FoundationDB.Client.Tests
 				tr.AtomicAdd32(subspace["CCC"], -1);
 				tr.AtomicAdd32(subspace["DDD"], 42);
 				tr.AtomicAdd32(subspace["EEE"], 42);
+				tr.AtomicAdd32(subspace["FFF"], 0xA5A5A5A5);
+				tr.AtomicAdd32(subspace["GGG"], 1);
+				tr.AtomicAdd32(subspace["HHH"], uint.MaxValue);
 			}, this.Cancellation);
 
 			// check
-			_ = await db.ReadAsync(async (tr) =>
+			await db.ReadAsync(async (tr) =>
 			{
 				var subspace = (await location.Resolve(tr))!;
-				Assert.That((await tr.GetAsync(subspace["AAA"])).ToHexString(' '), Is.EqualTo("01 00 00 00"));
-				Assert.That((await tr.GetAsync(subspace["BBB"])).ToHexString(' '), Is.EqualTo("2B 00 00 00"));
-				Assert.That((await tr.GetAsync(subspace["CCC"])).ToHexString(' '), Is.EqualTo("2A 00 00 00"));
-				Assert.That((await tr.GetAsync(subspace["DDD"])).ToHexString(' '), Is.EqualTo("29 01 00 00"));
-				Assert.That((await tr.GetAsync(subspace["EEE"])).ToHexString(' '), Is.EqualTo("2A 00 00 00"));
-				return 123;
+				Assert.That((await tr.GetValueInt32Async(subspace["AAA"])), Is.EqualTo(1));
+				Assert.That((await tr.GetValueInt32Async(subspace["BBB"])), Is.EqualTo(43));
+				Assert.That((await tr.GetValueInt32Async(subspace["CCC"])), Is.EqualTo(42));
+				Assert.That((await tr.GetValueInt32Async(subspace["DDD"])), Is.EqualTo(297));
+				Assert.That((await tr.GetValueInt32Async(subspace["EEE"])), Is.EqualTo(42));
+				Assert.That((await tr.GetValueInt32Async(subspace["FFF"])), Is.EqualTo(-1));
+				Assert.That((await tr.GetValueInt32Async(subspace["GGG"])), Is.EqualTo(0));
+				Assert.That((await tr.GetValueInt32Async(subspace["HHH"])), Is.EqualTo(-1));
 			}, this.Cancellation);
 		}
 
@@ -954,11 +962,12 @@ namespace FoundationDB.Client.Tests
 			await db.WriteAsync(async tr =>
 			{
 				var subspace = (await location.Resolve(tr))!;
-				tr.Set(subspace["AAA"], Slice.FromFixed32(0));
-				tr.Set(subspace["BBB"], Slice.FromFixed32(1));
-				tr.Set(subspace["CCC"], Slice.FromFixed32(42));
-				tr.Set(subspace["DDD"], Slice.FromFixed32(255));
-				//EEE does not exist
+				tr.SetValueInt32(subspace["AAA"], 0);
+				tr.SetValueInt32(subspace["BBB"], 1);
+				tr.SetValueInt32(subspace["CCC"], 42);
+				tr.SetValueInt32(subspace["DDD"], 255);
+				// EEE does not exist
+				tr.SetValueInt32(subspace["FFF"], -1);
 			}, this.Cancellation);
 
 			// execute
@@ -970,17 +979,19 @@ namespace FoundationDB.Client.Tests
 				tr.AtomicIncrement32(subspace["CCC"]);
 				tr.AtomicIncrement32(subspace["DDD"]);
 				tr.AtomicIncrement32(subspace["EEE"]);
+				tr.AtomicIncrement32(subspace["FFF"]);
 			}, this.Cancellation);
 
 			// check
 			await db.ReadAsync(async (tr) =>
 			{
 				var subspace = (await location.Resolve(tr))!;
-				Assert.That((await tr.GetAsync(subspace["AAA"])).ToHexString(' '), Is.EqualTo("01 00 00 00"));
-				Assert.That((await tr.GetAsync(subspace["BBB"])).ToHexString(' '), Is.EqualTo("02 00 00 00"));
-				Assert.That((await tr.GetAsync(subspace["CCC"])).ToHexString(' '), Is.EqualTo("2B 00 00 00"));
-				Assert.That((await tr.GetAsync(subspace["DDD"])).ToHexString(' '), Is.EqualTo("00 01 00 00"));
-				Assert.That((await tr.GetAsync(subspace["EEE"])).ToHexString(' '), Is.EqualTo("01 00 00 00"));
+				Assert.That((await tr.GetValueInt32Async(subspace["AAA"])), Is.EqualTo(1));
+				Assert.That((await tr.GetValueInt32Async(subspace["BBB"])), Is.EqualTo(2));
+				Assert.That((await tr.GetValueInt32Async(subspace["CCC"])), Is.EqualTo(43));
+				Assert.That((await tr.GetValueInt32Async(subspace["DDD"])), Is.EqualTo(256));
+				Assert.That((await tr.GetValueInt32Async(subspace["EEE"])), Is.EqualTo(1));
+				Assert.That((await tr.GetValueInt32Async(subspace["FFF"])), Is.EqualTo(0));
 			}, this.Cancellation);
 		}
 
@@ -997,11 +1008,14 @@ namespace FoundationDB.Client.Tests
 			await db.WriteAsync(async (tr) =>
 			{
 				var subspace = (await location.Resolve(tr))!;
-				tr.Set(subspace["AAA"], Slice.FromFixed64(0));
-				tr.Set(subspace["BBB"], Slice.FromFixed64(1));
-				tr.Set(subspace["CCC"], Slice.FromFixed64(43));
-				tr.Set(subspace["DDD"], Slice.FromFixed64(255));
+				tr.SetValueInt64(subspace["AAA"], 0);
+				tr.SetValueInt64(subspace["BBB"], 1);
+				tr.SetValueInt64(subspace["CCC"], 43);
+				tr.SetValueInt64(subspace["DDD"], 255);
 				//EEE does not exist
+				tr.SetValueInt64(subspace["FFF"], 0x5A5A5A5A5A5A5A5A);
+				tr.SetValueInt64(subspace["GGG"], -1);
+				//HHH does not exist
 			}, this.Cancellation);
 
 			// execute
@@ -1013,17 +1027,23 @@ namespace FoundationDB.Client.Tests
 				tr.AtomicAdd64(subspace["CCC"], -1);
 				tr.AtomicAdd64(subspace["DDD"], 42);
 				tr.AtomicAdd64(subspace["EEE"], 42);
+				tr.AtomicAdd64(subspace["FFF"], 0xA5A5A5A5A5A5A5A5);
+				tr.AtomicAdd64(subspace["GGG"], 1);
+				tr.AtomicAdd64(subspace["HHH"], ulong.MaxValue);
 			}, this.Cancellation);
 
 			// check
 			await db.ReadAsync(async (tr) =>
 			{
 				var subspace = (await location.Resolve(tr))!;
-				Assert.That((await tr.GetAsync(subspace["AAA"])).ToHexString(' '), Is.EqualTo("01 00 00 00 00 00 00 00"));
-				Assert.That((await tr.GetAsync(subspace["BBB"])).ToHexString(' '), Is.EqualTo("2B 00 00 00 00 00 00 00"));
-				Assert.That((await tr.GetAsync(subspace["CCC"])).ToHexString(' '), Is.EqualTo("2A 00 00 00 00 00 00 00"));
-				Assert.That((await tr.GetAsync(subspace["DDD"])).ToHexString(' '), Is.EqualTo("29 01 00 00 00 00 00 00"));
-				Assert.That((await tr.GetAsync(subspace["EEE"])).ToHexString(' '), Is.EqualTo("2A 00 00 00 00 00 00 00"));
+				Assert.That((await tr.GetValueInt64Async(subspace["AAA"])), Is.EqualTo(1));
+				Assert.That((await tr.GetValueInt64Async(subspace["BBB"])), Is.EqualTo(43));
+				Assert.That((await tr.GetValueInt64Async(subspace["CCC"])), Is.EqualTo(42));
+				Assert.That((await tr.GetValueInt64Async(subspace["DDD"])), Is.EqualTo(297));
+				Assert.That((await tr.GetValueInt64Async(subspace["EEE"])), Is.EqualTo(42));
+				Assert.That((await tr.GetValueInt64Async(subspace["FFF"])), Is.EqualTo(-1));
+				Assert.That((await tr.GetValueInt64Async(subspace["GGG"])), Is.EqualTo(0));
+				Assert.That((await tr.GetValueInt64Async(subspace["HHH"])), Is.EqualTo(-1));
 			}, this.Cancellation);
 		}
 
@@ -1040,11 +1060,12 @@ namespace FoundationDB.Client.Tests
 			await db.WriteAsync(async (tr) =>
 			{
 				var subspace = (await location.Resolve(tr))!;
-				tr.Set(subspace["AAA"], Slice.FromFixed64(0));
-				tr.Set(subspace["BBB"], Slice.FromFixed64(1));
-				tr.Set(subspace["CCC"], Slice.FromFixed64(42));
-				tr.Set(subspace["DDD"], Slice.FromFixed64(255));
+				tr.SetValueInt64(subspace["AAA"], 0);
+				tr.SetValueInt64(subspace["BBB"], 1);
+				tr.SetValueInt64(subspace["CCC"], 42);
+				tr.SetValueInt64(subspace["DDD"], 255);
 				//EEE does not exist
+				tr.SetValueInt64(subspace["FFF"], -1);
 			}, this.Cancellation);
 
 			// execute
@@ -1056,17 +1077,19 @@ namespace FoundationDB.Client.Tests
 				tr.AtomicIncrement64(subspace["CCC"]);
 				tr.AtomicIncrement64(subspace["DDD"]);
 				tr.AtomicIncrement64(subspace["EEE"]);
+				tr.AtomicIncrement64(subspace["FFF"]);
 			}, this.Cancellation);
 
 			// check
 			await db.ReadAsync(async (tr) =>
 			{
 				var subspace = (await location.Resolve(tr))!;
-				Assert.That((await tr.GetAsync(subspace["AAA"])).ToHexString(' '), Is.EqualTo("01 00 00 00 00 00 00 00"));
-				Assert.That((await tr.GetAsync(subspace["BBB"])).ToHexString(' '), Is.EqualTo("02 00 00 00 00 00 00 00"));
-				Assert.That((await tr.GetAsync(subspace["CCC"])).ToHexString(' '), Is.EqualTo("2B 00 00 00 00 00 00 00"));
-				Assert.That((await tr.GetAsync(subspace["DDD"])).ToHexString(' '), Is.EqualTo("00 01 00 00 00 00 00 00"));
-				Assert.That((await tr.GetAsync(subspace["EEE"])).ToHexString(' '), Is.EqualTo("01 00 00 00 00 00 00 00"));
+				Assert.That((await tr.GetValueInt64Async(subspace["AAA"])), Is.EqualTo(1));
+				Assert.That((await tr.GetValueInt64Async(subspace["BBB"])), Is.EqualTo(2));
+				Assert.That((await tr.GetValueInt64Async(subspace["CCC"])), Is.EqualTo(43));
+				Assert.That((await tr.GetValueInt64Async(subspace["DDD"])), Is.EqualTo(256));
+				Assert.That((await tr.GetValueInt64Async(subspace["EEE"])), Is.EqualTo(1));
+				Assert.That((await tr.GetValueInt64Async(subspace["FFF"])), Is.EqualTo(0));
 			}, this.Cancellation);
 		}
 
@@ -1083,11 +1106,11 @@ namespace FoundationDB.Client.Tests
 			await db.WriteAsync(async (tr) =>
 			{
 				var subspace = (await location.Resolve(tr))!;
-				tr.Set(subspace["AAA"], Slice.FromFixed32(0));
-				tr.Set(subspace["BBB"], Slice.FromFixed32(1));
-				tr.Set(subspace["CCC"], Slice.FromFixed32(42));
-				tr.Set(subspace["DDD"], Slice.FromFixed64(0));
-				tr.Set(subspace["EEE"], Slice.FromFixed64(1));
+				tr.SetValueInt32(subspace["AAA"], 0);
+				tr.SetValueInt32(subspace["BBB"], 1);
+				tr.SetValueInt32(subspace["CCC"], 42);
+				tr.SetValueInt64(subspace["DDD"], 0);
+				tr.SetValueInt64(subspace["EEE"], 1);
 				//FFF does not exist
 			}, this.Cancellation);
 
@@ -1104,16 +1127,15 @@ namespace FoundationDB.Client.Tests
 			}, this.Cancellation);
 
 			// check
-			_ = await db.ReadAsync(async (tr) =>
+			await db.ReadAsync(async (tr) =>
 			{
 				var subspace = (await location.Resolve(tr))!;
-				Assert.That((await tr.GetAsync(subspace["AAA"])), Is.EqualTo(Slice.Nil));
-				Assert.That((await tr.GetAsync(subspace["BBB"])).ToHexString(' '), Is.EqualTo("01 00 00 00"));
-				Assert.That((await tr.GetAsync(subspace["CCC"])), Is.EqualTo(Slice.Nil));
-				Assert.That((await tr.GetAsync(subspace["DDD"])), Is.EqualTo(Slice.Nil));
-				Assert.That((await tr.GetAsync(subspace["EEE"])).ToHexString(' '), Is.EqualTo("01 00 00 00 00 00 00 00"));
-				Assert.That((await tr.GetAsync(subspace["FFF"])), Is.EqualTo(Slice.Nil));
-				return 123;
+				Assert.That((await tr.GetValueInt32Async(subspace["AAA"])), Is.Null);
+				Assert.That((await tr.GetValueInt32Async(subspace["BBB"])), Is.EqualTo(1));
+				Assert.That((await tr.GetValueInt32Async(subspace["CCC"])), Is.Null);
+				Assert.That((await tr.GetValueInt64Async(subspace["DDD"])), Is.Null);
+				Assert.That((await tr.GetValueInt64Async(subspace["EEE"])), Is.EqualTo(1));
+				Assert.That((await tr.GetValueInt64Async(subspace["FFF"])), Is.Null);
 			}, this.Cancellation);
 		}
 
