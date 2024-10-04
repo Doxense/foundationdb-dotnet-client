@@ -274,10 +274,9 @@ namespace FoundationDB.Client
 		/// <summary>Adds a parent to the Span of this transaction. Used for transaction tracing. A span can be identified with any 16 bytes.</summary>
 		SpanParent = 900,
 
-		/// <summary>Asks storage servers for how many bytes a clear key range contains. Otherwise uses the location cache to roughly estimate this.</summary>
-		ExpensiveClearCostEtimationEnable = 1000,
-		
-		/// <summary>Allows <c>get</c> operations to read from sections of keyspace that have become unreadable because of versionstamp operations.</summary>
+		/// <summary>Asks storage servers for how many bytes a clear key range contains. Otherwise, uses the location cache to roughly estimate this.</summary>
+		ExpensiveClearCostEstimationEnable = 1000,
+
 		/// <summary>Allows <c>get</c> operations to read from sections of keyspace that have become unreadable because of VersionStamp operations.</summary>
 		/// <remarks>
 		/// <para>These reads will view VersionStamp operations as if they were set operations that did not fill in the VersionStamp.</para>
