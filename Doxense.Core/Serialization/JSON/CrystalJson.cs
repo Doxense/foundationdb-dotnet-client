@@ -650,7 +650,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>
 		/// <para>The <see cref="SliceOwner"/> returned <b>MUST</b> be disposed; otherwise, the rented buffer will not be returned to the <paramref name="pool"/>.</para>
 		/// </remarks>
-		public static SliceOwner ToSlice<T>(T? value, ArrayPool<byte> pool, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public static SliceOwner ToSlice<T>(T? value, ArrayPool<byte>? pool, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			var writer = WriterPool.Allocate();
 			try

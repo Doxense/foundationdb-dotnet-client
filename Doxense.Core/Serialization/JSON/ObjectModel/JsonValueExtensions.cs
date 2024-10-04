@@ -26,6 +26,7 @@
 
 namespace Doxense.Serialization.Json
 {
+	using System.Buffers;
 	using System.ComponentModel;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
@@ -219,21 +220,19 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte[] ToJsonBytes(this JsonValue? value, CrystalJsonSettings? settings) => CrystalJson.ToBytes(value, settings);
 
-		/// <summary>Serializes a JSON value into a <see cref="Slice"/>, using the default settings</summary>
+		/// <summary>Serializes a JSON value into a <see cref="Slice"/>, using custom settings</summary>
 		/// <param name="value">JSON value to serialize</param>
+		/// <param name="settings">Custom serialization settings</param>
 		/// <returns><see cref="Slice"/> that contains the utf-8 encoded text represention of the JSON value</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice ToJsonSlice(this JsonValue? value)
-		{
-			return CrystalJson.ToJsonSlice(value);
-		}
+		public static Slice ToJsonSlice(this JsonValue? value, CrystalJsonSettings? settings = null) => CrystalJson.ToSlice(value, settings);
 
 		/// <summary>Serializes a JSON value into a <see cref="Slice"/>, using custom settings</summary>
 		/// <param name="value">JSON value to serialize</param>
 		/// <param name="settings">Custom serialization settings</param>
 		/// <returns><see cref="Slice"/> that contains the utf-8 encoded text represention of the JSON value</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice ToJsonSlice(this JsonValue? value, CrystalJsonSettings? settings) => CrystalJson.ToSlice(value, settings);
+		public static SliceOwner ToJsonSlice(this JsonValue? value, ArrayPool<byte>? pool, CrystalJsonSettings? settings = null) => CrystalJson.ToSlice(value, pool, settings);
 
 		#endregion
 
