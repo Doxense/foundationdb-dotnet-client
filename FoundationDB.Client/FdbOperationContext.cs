@@ -105,7 +105,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Create a new retry loop operation context</summary>
 		/// <param name="db">Database that will be used by the retry loop</param>
-		/// <param name="tenant">Tenant where the transaction will be be executed</param>
+		/// <param name="tenant">Tenant where the transaction will be executed</param>
 		/// <param name="mode">Operation mode of the retry loop</param>
 		/// <param name="ct">Optional cancellation token that will abort the retry loop if triggered.</param>
 		internal FdbOperationContext(FdbDatabase db, FdbTenant? tenant, FdbTransactionMode mode, CancellationToken ct)
@@ -586,8 +586,8 @@ namespace FoundationDB.Client
 				lock (this.PadLock)
 				{
 					var checks = this.ValueChecks ??= new List<(Slice, Slice, string, Task<(FdbValueCheckResult Result, Slice Actual)>)>();
-					int capa = checked(checks.Count + items.Length);
-					if (capa > checks.Capacity) checks.Capacity = capa;
+					int capacity = checked(checks.Count + items.Length);
+					if (capacity > checks.Capacity) checks.Capacity = capacity;
 					for (int i = 0; i < items.Length; i++)
 					{
 						checks.Add((items[i].Key, items[i].Value, tag, taskBuffer[i]));
@@ -607,7 +607,7 @@ namespace FoundationDB.Client
 			if (!tags.TryGetValue(tag, out (FdbValueCheckResult Result, List<(FdbValueCheckResult Result, Slice Key, Slice Expected, Slice Actual)> Checks) previous))
 			{
 				previous.Result = FdbValueCheckResult.Success;
-				previous.Checks = new List<(FdbValueCheckResult Result, Slice Key, Slice Expected, Slice Actual)>();
+				previous.Checks = [ ];
 			}
 
 			bool pass;
@@ -651,16 +651,17 @@ namespace FoundationDB.Client
 
 		private async ValueTask<bool> ValidateValueChecksSlow(List<(Slice Key, Slice ExpectedValue, string Tag, Task<(FdbValueCheckResult Result, Slice Actual)> ActualValue)> checks, bool ignoreFailedTasks)
 		{
-			//note: even if it looks like we are sequentially await all tasks, by the time the first one is complete,
+			//note: even if it looks like we are sequentially awaiting all tasks, by the time the first one is complete,
 			// the rest of the tasks will probably be already completed as well. Anyway, we need to inspect each individual task
 			// to check for any failed tasks anyway, so we can't use Task.WhenAll(...) here
 
-			if (this.Transaction?.IsLogged() == true) this.Transaction.Annotate($"Verifying {checks.Count} pending value-check(s)");
-
 			bool pass = true;
+			int pending = 0;
+
 			foreach (var check in checks)
 			{
 				(FdbValueCheckResult Result, Slice Actual) result;
+				if (!check.ActualValue.IsCompleted) pending++;
 				try
 				{
 					result = await check.ActualValue.ConfigureAwait(false);
@@ -672,9 +673,14 @@ namespace FoundationDB.Client
 				pass &= ObserveValueCheckResult(check.Tag, check.Key, check.ExpectedValue, result.Actual, result.Result);
 			}
 
-			if (this.Transaction?.IsLogged() == true)
+			if (pending != 0 && this.Transaction?.IsLogged() == true)
 			{
-				this.Transaction.Annotate(pass ? "All value-checks passed" : "At least ony value-check failed!");
+				this.Transaction.Annotate($"Awaited {pending:N0}/{checks.Count:N0} pending value-check(s)");
+			}
+
+			if (!pass && this.Transaction?.IsLogged() == true)
+			{
+				this.Transaction.Annotate("At least ony value-check failed!");
 			}
 
 			return pass;
