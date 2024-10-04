@@ -32,7 +32,7 @@ namespace Doxense.Collections.Tuples.Encoding
 	public interface ITupleSerializable //REVIEW: ITuplePackable?
 	{
 		/// <summary>Appends the packed bytes of this instance to the end of a buffer</summary>
-		/// <param name="writer">Buffer that will received the packed bytes of this instance</param>
+		/// <param name="writer">Buffer that will receive the packed bytes of this instance</param>
 		void PackTo(ref TupleWriter writer);
 
 		//note: there is not UnpackFrom, because it does not play way with constructors and readonly fields!
@@ -46,12 +46,12 @@ namespace Doxense.Collections.Tuples.Encoding
 		where TTuple : IVarTuple
 	{
 		/// <summary>Appends the packed bytes of an item to the end of a buffer</summary>
-		/// <param name="writer">Buffer that will received the packed bytes of this instance</param>
+		/// <param name="writer">Buffer that will receive the packed bytes of this instance</param>
 		/// <param name="tuple">Tuple that will be packed</param>
 		void PackTo(ref TupleWriter writer, in TTuple tuple);
 
 		/// <summary>Decode the packed bytes from a buffer, and return the corresponding item</summary>
-		/// <param name="reader">Buffer that contains the bytes the decode</param>
+		/// <param name="reader">Buffer that contains the bytes to decode</param>
 		/// <param name="tuple">Receives the decoded tuple</param>
 		/// <returns>
 		/// The value of <paramref name="reader"/> will be updated to point to either the end of the buffer, or the next "element" if there are more bytes available.
