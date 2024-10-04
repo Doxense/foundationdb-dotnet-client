@@ -35,7 +35,7 @@ namespace FoundationDB.Client
 	{
 
 		/// <summary>Snapshot version of this transaction (lazily allocated)</summary>
-		private Snapshotted? m_snapshotted;
+		private Snapshotting? m_snapshot;
 
 		/// <summary>Returns a version of this transaction that performs snapshot read operations</summary>
 		public IFdbReadOnlyTransaction Snapshot
@@ -43,18 +43,17 @@ namespace FoundationDB.Client
 			get
 			{
 				EnsureNotFailedOrDisposed();
-				//TODO: we need to check if the transaction handler supports Snapshot isolation level
-				return m_snapshotted ??= new Snapshotted(this);
+				return m_snapshot ??= new(this);
 			}
 		}
 
 		/// <summary>Wrapper on a transaction, that will use Snapshot mode on all read operations</summary>
-		private sealed class Snapshotted : IFdbReadOnlyTransaction
+		private sealed class Snapshotting : IFdbReadOnlyTransaction
 		{
 
 			private readonly FdbTransaction m_parent;
 
-			public Snapshotted(FdbTransaction parent)
+			public Snapshotting(FdbTransaction parent)
 			{
 				Contract.NotNull(parent);
 				m_parent = parent;
