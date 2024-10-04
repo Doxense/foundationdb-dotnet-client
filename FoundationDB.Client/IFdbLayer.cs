@@ -45,8 +45,8 @@ namespace FoundationDB.Client
 		/// <param name="tr">Transaction that will be used to interact with this layer</param>
 		/// <returns>State handler that is valid only for this transaction.</returns>
 		/// <remarks>
-		/// Even though most layers will attempt to cache complex metadata, it is best practice to not call this methods multiple times within the same transaction.
-		/// Accessing the returned state instance outside of the <paramref name="tr">transaction</paramref> scope (after commit, in the next retry loop attempt, ...) has undefined behavior and should be avoided.
+		/// Even though most layers will attempt to cache complex metadata, it is best practice to not call this method multiple times within the same transaction.
+		/// Accessing the returned state instance outside the <paramref name="tr">transaction</paramref> scope (after commit, in the next retry loop attempt, ...) has undefined behavior and should be avoided.
 		/// </remarks>
 		ValueTask<TState> Resolve(IFdbReadOnlyTransaction tr);
 

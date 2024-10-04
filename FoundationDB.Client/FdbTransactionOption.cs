@@ -90,7 +90,7 @@ namespace FoundationDB.Client
 		DevNullIsWebScale = 130,
 
 		/// <summary>Specifies that this transaction should be treated as highest priority and that lower priority transactions should block behind this one.
-		/// Use is discouraged outside of low-level tools</summary>
+		/// Use is discouraged outside low-level tools</summary>
 		/// <remarks>Parameter: Option takes no parameter</remarks>
 		PrioritySystemImmediate = 200,
 
@@ -184,7 +184,7 @@ namespace FoundationDB.Client
 		/// <remarks>Parameter: (Int32) value in bytes</remarks>
 		SizeLimit = 503,
 
-		/// <summary>Associate this transaction with this ID for the purpose of checking whether or not this transaction has already committed.</summary>
+		/// <summary>Associate this transaction with this ID for the purpose of checking whether this transaction has already committed.</summary>
 		/// <remarks>
 		/// <para>Parameter: (String) Unique ID. Must be at least 16 bytes and less than 256 bytes</para>
 		/// <para>This feature is in development and not ready for general use.</para>
@@ -259,14 +259,14 @@ namespace FoundationDB.Client
 
 		/// <summary>Adds a tag to the transaction that can be used to apply manual targeted throttling.</summary>
 		/// <remarks>
-		/// <para>Parameter: (String) String identifier used to associated this transaction with a throttling group. Must not exceed 16 characters.</para>
+		/// <para>Parameter: (String) String identifier used to associate this transaction with a throttling group. Must not exceed 16 characters.</para>
 		/// <para>At most 5 tags can be set on a transaction.</para>
 		/// </remarks>
 		Tag = 800,
 
 		/// <summary>Adds a tag to the transaction that can be used to apply manual or automatic targeted throttling.</summary>
 		/// <remarks>
-		/// <para>Parameter: (String) String identifier used to associated this transaction with a throttling group. Must not exceed 16 characters.</para>
+		/// <para>Parameter: (String) String identifier used to associate this transaction with a throttling group. Must not exceed 16 characters.</para>
 		/// <para>At most 5 tags can be set on a transaction.</para>
 		/// </remarks>
 		AutoThrottleTag = 801,
@@ -278,8 +278,9 @@ namespace FoundationDB.Client
 		ExpensiveClearCostEtimationEnable = 1000,
 		
 		/// <summary>Allows <c>get</c> operations to read from sections of keyspace that have become unreadable because of versionstamp operations.</summary>
+		/// <summary>Allows <c>get</c> operations to read from sections of keyspace that have become unreadable because of VersionStamp operations.</summary>
 		/// <remarks>
-		/// <para>These reads will view versionstamp operations as if they were set operations that did not fill in the versionstamp.</para>
+		/// <para>These reads will view VersionStamp operations as if they were set operations that did not fill in the VersionStamp.</para>
 		/// </remarks>
 		BypassUnreadable = 1100,
 

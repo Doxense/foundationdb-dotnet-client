@@ -230,7 +230,7 @@ namespace FoundationDB.Client
 		/// <summary>Tries to read a value from database snapshot represented by the current transaction, and writes it to <paramref name="valueWriter"/> if found.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Key to be looked up in the database</param>
-		/// <param name="valueWriter">Buffer writter where the value will be written, if it is found</param>
+		/// <param name="valueWriter">Buffer writer where the value will be written, if it is found</param>
 		/// <returns>Task with <see langword="true"/> if the key was found; otherwise, <see langword="false"/></returns>
 		public static Task<bool> TryGetAsync(IFdbReadOnlyTransaction trans, Slice key, IBufferWriter<byte> valueWriter)
 		{
@@ -241,7 +241,7 @@ namespace FoundationDB.Client
 		/// <summary>Tries to read a value from database snapshot represented by the current transaction, and writes it to <paramref name="valueWriter"/> if found.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Key to be looked up in the database</param>
-		/// <param name="valueWriter">Buffer writter where the value will be written, if it is found</param>
+		/// <param name="valueWriter">Buffer writer where the value will be written, if it is found</param>
 		/// <returns>Task with <see langword="true"/> if the key was found; otherwise, <see langword="false"/></returns>
 		public static Task<bool> TryGetAsync(IFdbReadOnlyTransaction trans, ReadOnlySpan<byte> key, IBufferWriter<byte> valueWriter)
 		{
@@ -416,7 +416,7 @@ namespace FoundationDB.Client
 		/// If the list and size of the keys and values is not known in advance, consider using a bulk operation provided by the <see cref="Fdb.Bulk"/> helper class.
 		/// </remarks>
 		/// <exception cref="ArgumentNullException">If either <paramref name="trans"/> or <paramref name="keyValuePairs"/> is null.</exception>
-		/// <exception cref="FdbException">If this operation would exceed the maximum allowed size for a transaction.</exception>
+		/// <exception cref="FdbException">If this operation exceeded the maximum allowed size for a transaction.</exception>
 		public static void SetValues(this IFdbTransaction trans, KeyValuePair<Slice, Slice>[] keyValuePairs)
 		{
 			Contract.NotNull(trans);
@@ -436,7 +436,7 @@ namespace FoundationDB.Client
 		/// If the list and size of the keys and values is not known in advance, consider using a bulk operation provided by the <see cref="Fdb.Bulk"/> helper class.
 		/// </remarks>
 		/// <exception cref="ArgumentNullException">If either <paramref name="trans"/> or <paramref name="keyValuePairs"/> is null.</exception>
-		/// <exception cref="FdbException">If this operation would exceed the maximum allowed size for a transaction.</exception>
+		/// <exception cref="FdbException">If this operation exceeded the maximum allowed size for a transaction.</exception>
 		public static void SetValues(this IFdbTransaction trans, (Slice Key, Slice Value)[] keyValuePairs)
 		{
 			Contract.NotNull(trans);
@@ -456,7 +456,7 @@ namespace FoundationDB.Client
 		/// If the list and size of the keys and values is not known in advance, consider using a bulk operation provided by the <see cref="Fdb.Bulk"/> helper class.
 		/// </remarks>
 		/// <exception cref="ArgumentNullException">If either <paramref name="trans"/> or <paramref name="keyValuePairs"/> is null.</exception>
-		/// <exception cref="FdbException">If this operation would exceed the maximum allowed size for a transaction.</exception>
+		/// <exception cref="FdbException">If this operation exceeded the maximum allowed size for a transaction.</exception>
 		public static void SetValues(this IFdbTransaction trans, ReadOnlySpan<KeyValuePair<Slice, Slice>> keyValuePairs)
 		{
 			Contract.NotNull(trans);
@@ -475,7 +475,7 @@ namespace FoundationDB.Client
 		/// If the list and size of the keys and values is not known in advance, consider using a bulk operation provided by the <see cref="Fdb.Bulk"/> helper class.
 		/// </remarks>
 		/// <exception cref="ArgumentNullException">If either <paramref name="trans"/> or <paramref name="keyValuePairs"/> is null.</exception>
-		/// <exception cref="FdbException">If this operation would exceed the maximum allowed size for a transaction.</exception>
+		/// <exception cref="FdbException">If this operation exceeded the maximum allowed size for a transaction.</exception>
 		public static void SetValues(this IFdbTransaction trans, params ReadOnlySpan<(Slice Key, Slice Value)> keyValuePairs)
 		{
 			Contract.NotNull(trans);
@@ -496,7 +496,7 @@ namespace FoundationDB.Client
 		/// </remarks>
 		/// <exception cref="ArgumentNullException">If either <paramref name="trans"/>, <paramref name="keys"/> or <paramref name="values"/> is null.</exception>
 		/// <exception cref="ArgumentException">If the <paramref name="values"/> does not have the same length as <paramref name="keys"/>.</exception>
-		/// <exception cref="FdbException">If this operation would exceed the maximum allowed size for a transaction.</exception>
+		/// <exception cref="FdbException">If this operation exceeded the maximum allowed size for a transaction.</exception>
 		public static void SetValues(this IFdbTransaction trans, Slice[] keys, Slice[] values)
 		{
 			Contract.NotNull(trans);
@@ -516,7 +516,7 @@ namespace FoundationDB.Client
 		/// </remarks>
 		/// <exception cref="ArgumentNullException">If either <paramref name="trans"/>, <paramref name="keys"/> or <paramref name="values"/> is null.</exception>
 		/// <exception cref="ArgumentException">If the <paramref name="values"/> does not have the same length as <paramref name="keys"/>.</exception>
-		/// <exception cref="FdbException">If this operation would exceed the maximum allowed size for a transaction.</exception>
+		/// <exception cref="FdbException">If this operation exceeded the maximum allowed size for a transaction.</exception>
 		public static void SetValues(this IFdbTransaction trans, ReadOnlySpan<Slice> keys, ReadOnlySpan<Slice> values)
 		{
 			Contract.NotNull(trans);
@@ -536,7 +536,7 @@ namespace FoundationDB.Client
 		/// If the list and size of the keys and values is not known in advance, consider using a bulk operation provided by the <see cref="Fdb.Bulk"/> helper class.
 		/// </remarks>
 		/// <exception cref="ArgumentNullException">If either <paramref name="trans"/> or <paramref name="keyValuePairs"/> is null.</exception>
-		/// <exception cref="FdbException">If this operation would exceed the maximum allowed size for a transaction.</exception>
+		/// <exception cref="FdbException">If this operation exceeded the maximum allowed size for a transaction.</exception>
 		public static void SetValues(this IFdbTransaction trans, IEnumerable<KeyValuePair<Slice, Slice>> keyValuePairs)
 		{
 			Contract.NotNull(trans);
@@ -574,7 +574,7 @@ namespace FoundationDB.Client
 		/// If the list and size of the keys and values is not known in advance, consider using a bulk operation provided by the <see cref="Fdb.Bulk"/> helper class.
 		/// </remarks>
 		/// <exception cref="ArgumentNullException">If either <paramref name="trans"/> or <paramref name="keyValuePairs"/> is null.</exception>
-		/// <exception cref="FdbException">If this operation would exceed the maximum allowed size for a transaction.</exception>
+		/// <exception cref="FdbException">If this operation exceeded the maximum allowed size for a transaction.</exception>
 		public static void SetValues(this IFdbTransaction trans, IEnumerable<(Slice Key, Slice Value)> keyValuePairs)
 		{
 			Contract.NotNull(trans);
@@ -607,7 +607,7 @@ namespace FoundationDB.Client
 		/// </remarks>
 		/// <exception cref="ArgumentNullException">If either <paramref name="trans"/>, <paramref name="keys"/> or <paramref name="values"/> is null.</exception>
 		/// <exception cref="ArgumentException">If the <paramref name="values"/> does not have the same number of elements as <paramref name="keys"/>.</exception>
-		/// <exception cref="FdbException">If this operation would exceed the maximum allowed size for a transaction.</exception>
+		/// <exception cref="FdbException">If this operation exceeded the maximum allowed size for a transaction.</exception>
 		public static void SetValues(this IFdbTransaction trans, IEnumerable<Slice> keys, IEnumerable<Slice> values)
 		{
 			Contract.NotNull(trans);
@@ -795,7 +795,7 @@ namespace FoundationDB.Client
 		/// <summary>-1 (64-bits)</summary>
 		private static readonly Slice MinusOne64 = Slice.FromFixed64(-1);
 
-		/// <summary>Modify the database snapshot represented by this transaction to increment by one the 32-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <summary>Modify the database snapshot represented by this transaction to increment by <see langword="1"/> the 32-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		public static void AtomicIncrement32(this IFdbTransaction trans, Slice key)
@@ -803,7 +803,7 @@ namespace FoundationDB.Client
 			trans.Atomic(key, PlusOne32, FdbMutationType.Add);
 		}
 
-		/// <summary>Modify the database snapshot represented by this transaction to increment by one the 32-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <summary>Modify the database snapshot represented by this transaction to increment by <see langword="1"/> the 32-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		public static void AtomicIncrement32(this IFdbTransaction trans, ReadOnlySpan<byte> key)
@@ -811,7 +811,7 @@ namespace FoundationDB.Client
 			trans.Atomic(key, PlusOne32.Span, FdbMutationType.Add);
 		}
 
-		/// <summary>Modify the database snapshot represented by this transaction to subtract 1 from the 32-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <summary>Modify the database snapshot represented by this transaction to subtract <see langword="1"/> from the 32-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		public static void AtomicDecrement32(this IFdbTransaction trans, Slice key)
@@ -819,7 +819,7 @@ namespace FoundationDB.Client
 			trans.Atomic(key, MinusOne32, FdbMutationType.Add);
 		}
 
-		/// <summary>Modify the database snapshot represented by this transaction to subtract 1 from the 32-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <summary>Modify the database snapshot represented by this transaction to subtract <see langword="1"/> from the 32-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		public static void AtomicDecrement32(this IFdbTransaction trans, ReadOnlySpan<byte> key)
@@ -827,7 +827,7 @@ namespace FoundationDB.Client
 			trans.Atomic(key, MinusOne32.Span, FdbMutationType.Add);
 		}
 
-		/// <summary>Modify the database snapshot represented by this transaction to subtract 1 from the 32-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <summary>Modify the database snapshot represented by this transaction to subtract <see langword="1"/> from the 32-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="clearIfZero">If <see langword="true"/>, automatically clear the key if it reaches zero. If <see langword="false"/>, the key can remain with a value of 0 in the database.</param>
@@ -841,7 +841,7 @@ namespace FoundationDB.Client
 			}
 		}
 
-		/// <summary>Modify the database snapshot represented by this transaction to subtract 1 from the 32-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <summary>Modify the database snapshot represented by this transaction to subtract <see langword="1"/> from the 32-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="clearIfZero">If <see langword="true"/>, automatically clear the key if it reaches zero. If <see langword="false"/>, the key can remain with a value of 0 in the database.</param>
@@ -855,7 +855,7 @@ namespace FoundationDB.Client
 			}
 		}
 
-		/// <summary>Modify the database snapshot represented by this transaction to add 1 to the 64-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <summary>Modify the database snapshot represented by this transaction to add <see langword="1"/> to the 64-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		public static void AtomicIncrement64(this IFdbTransaction trans, Slice key)
@@ -863,7 +863,7 @@ namespace FoundationDB.Client
 			trans.Atomic(key, PlusOne64, FdbMutationType.Add);
 		}
 
-		/// <summary>Modify the database snapshot represented by this transaction to add 1 to the 64-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <summary>Modify the database snapshot represented by this transaction to add <see langword="1"/> to the 64-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		public static void AtomicIncrement64(this IFdbTransaction trans, ReadOnlySpan<byte> key)
@@ -871,7 +871,7 @@ namespace FoundationDB.Client
 			trans.Atomic(key, PlusOne64.Span, FdbMutationType.Add);
 		}
 
-		/// <summary>Modify the database snapshot represented by this transaction to subtract 1 from the 64-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <summary>Modify the database snapshot represented by this transaction to subtract <see langword="1"/> from the 64-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		public static void AtomicDecrement64(this IFdbTransaction trans, Slice key)
@@ -879,7 +879,7 @@ namespace FoundationDB.Client
 			trans.Atomic(key, MinusOne64, FdbMutationType.Add);
 		}
 
-		/// <summary>Modify the database snapshot represented by this transaction to subtract 1 from the 64-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <summary>Modify the database snapshot represented by this transaction to subtract <see langword="1"/> from the 64-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		public static void AtomicDecrement64(this IFdbTransaction trans, ReadOnlySpan<byte> key)
@@ -887,7 +887,7 @@ namespace FoundationDB.Client
 			trans.Atomic(key, MinusOne64.Span, FdbMutationType.Add);
 		}
 
-		/// <summary>Modify the database snapshot represented by this transaction to subtract 1 from the 64-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <summary>Modify the database snapshot represented by this transaction to subtract <see langword="1"/> from the 64-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="clearIfZero">If <see langword="true"/>, automatically clear the key if it reaches zero. If <see langword="false"/>, the key can remain with a value of 0 in the database.</param>
@@ -901,7 +901,7 @@ namespace FoundationDB.Client
 			}
 		}
 
-		/// <summary>Modify the database snapshot represented by this transaction to subtract 1 from the 64-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <summary>Modify the database snapshot represented by this transaction to subtract <see langword="1"/> from the 64-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="clearIfZero">If <see langword="true"/>, automatically clear the key if it reaches zero. If <see langword="false"/>, the key can remain with a value of 0 in the database.</param>
@@ -918,7 +918,7 @@ namespace FoundationDB.Client
 		/// <summary>Modify the database snapshot represented by this transaction to add a signed integer to the 32-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
-		/// <param name="value">Integer add to existing value of key. It will encoded as 4 bytes in high-endian.</param>
+		/// <param name="value">Integer add to existing value of key. It will be encoded as 4 bytes in little-endian.</param>
 		public static void AtomicAdd32(this IFdbTransaction trans, Slice key, int value)
 		{
 			if (key.IsNull) throw Fdb.Errors.KeyCannotBeNull();
@@ -928,7 +928,7 @@ namespace FoundationDB.Client
 		/// <summary>Modify the database snapshot represented by this transaction to add a signed integer to the 32-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
-		/// <param name="value">Integer add to existing value of key. It will encoded as 4 bytes in high-endian.</param>
+		/// <param name="value">Integer add to existing value of key. It will be encoded as 4 bytes in little-endian.</param>
 		public static void AtomicAdd32(this IFdbTransaction trans, ReadOnlySpan<byte> key, int value)
 		{
 			if (value == 1)
@@ -950,7 +950,7 @@ namespace FoundationDB.Client
 		/// <summary>Modify the database snapshot represented by this transaction to add an unsigned integer to the 32-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
-		/// <param name="value">Integer add to existing value of key. It will encoded as 4 bytes in high-endian.</param>
+		/// <param name="value">Integer add to existing value of key. It will be encoded as 4 bytes in little-endian.</param>
 		public static void AtomicAdd32(this IFdbTransaction trans, Slice key, uint value)
 		{
 			if (key.IsNull) throw Fdb.Errors.KeyCannotBeNull();
@@ -960,7 +960,7 @@ namespace FoundationDB.Client
 		/// <summary>Modify the database snapshot represented by this transaction to add an unsigned integer to the 32-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
-		/// <param name="value">Integer add to existing value of key. It will encoded as 4 bytes in high-endian.</param>
+		/// <param name="value">Integer add to existing value of key. It will be encoded as 4 bytes in little-endian.</param>
 		public static void AtomicAdd32(this IFdbTransaction trans, ReadOnlySpan<byte> key, uint value)
 		{
 			if (value == 1)
@@ -982,7 +982,7 @@ namespace FoundationDB.Client
 		/// <summary>Modify the database snapshot represented by this transaction to add a signed integer to the 64-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
-		/// <param name="value">Integer add to existing value of key. It will encoded as 8 bytes in high-endian.</param>
+		/// <param name="value">Integer add to existing value of key. It will be encoded as 8 bytes in little-endian.</param>
 		public static void AtomicAdd64(this IFdbTransaction trans, Slice key, long value)
 		{
 			if (key.IsNull) throw Fdb.Errors.KeyCannotBeNull();
@@ -992,7 +992,7 @@ namespace FoundationDB.Client
 		/// <summary>Modify the database snapshot represented by this transaction to add a signed integer to the 64-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
-		/// <param name="value">Integer add to existing value of key. It will encoded as 8 bytes in high-endian.</param>
+		/// <param name="value">Integer add to existing value of key. It will be encoded as 8 bytes in little-endian.</param>
 		public static void AtomicAdd64(this IFdbTransaction trans, ReadOnlySpan<byte> key, long value)
 		{
 			if (value == 1)
@@ -1014,7 +1014,7 @@ namespace FoundationDB.Client
 		/// <summary>Modify the database snapshot represented by this transaction to add an unsigned integer to the 64-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
-		/// <param name="value">Integer add to existing value of key. It will encoded as 8 bytes in high-endian.</param>
+		/// <param name="value">Integer add to existing value of key. It will be encoded as 8 bytes in little-endian.</param>
 		public static void AtomicAdd64(this IFdbTransaction trans, Slice key, ulong value)
 		{
 			if (key.IsNull) throw Fdb.Errors.KeyCannotBeNull();
@@ -1024,7 +1024,7 @@ namespace FoundationDB.Client
 		/// <summary>Modify the database snapshot represented by this transaction to add an unsigned integer to the 64-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
-		/// <param name="value">Integer add to existing value of key. It will encoded as 8 bytes in high-endian.</param>
+		/// <param name="value">Integer add to existing value of key. It will be encoded as 8 bytes in little-endian.</param>
 		public static void AtomicAdd64(this IFdbTransaction trans, ReadOnlySpan<byte> key, ulong value)
 		{
 			if (value == 1)
@@ -1601,7 +1601,7 @@ namespace FoundationDB.Client
 
 		/// <summary>
 		/// Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by Limit, TargetBytes, or Mode)
-		/// which have a key lexicographically greater than or equal to the key resolved by the begin key selector
+		/// which have a key lexicographically greater than or equal to the key resolved by the beginning key selector
 		/// and lexicographically less than the key resolved by the end key selector.
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
@@ -1629,7 +1629,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="beginInclusive">key selector defining the beginning of the range</param>
 		/// <param name="endExclusive">key selector defining the end of the range</param>
-		/// <param name="state">State that will forwarded to the <paramref name="decoder"/></param>
+		/// <param name="state">State that will be forwarded to the <paramref name="decoder"/></param>
 		/// <param name="decoder">Decoder that will extract the result from the value found in the database</param>
 		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
@@ -1742,7 +1742,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="beginInclusive">Key defining the beginning (inclusive) of the range</param>
 		/// <param name="endExclusive">Key defining the end (exclusive) of the range</param>
-		/// <param name="state">State that will forwarded to the <paramref name="decoder"/></param>
+		/// <param name="state">State that will be forwarded to the <paramref name="decoder"/></param>
 		/// <param name="decoder">Decoder that will extract the result from the value found in the database</param>
 		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
@@ -1839,7 +1839,7 @@ namespace FoundationDB.Client
 
 		#region CheckValueAsync...
 
-		/// <summary>Check if the value from the database snapshot represented by the current transaction is equal to some <paramref name="expected"/> value.</summary>
+		/// <summary>Checks if the value from the database snapshot represented by the current transaction is equal to some <paramref name="expected"/> value.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Key to be looked up in the database</param>
 		/// <param name="expected">Expected value for this key</param>
@@ -1859,11 +1859,7 @@ namespace FoundationDB.Client
 
 		#region Clear...
 
-		/// <summary>
-		/// Modify the database snapshot represented by this transaction to remove the given key from the database. If the key was not previously present in the database, there is no effect.
-		/// </summary>
-		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="key">Name of the key to be removed from the database.</param>
+		/// <inheritdoc cref="IFdbTransaction.Clear"/>
 		public static void Clear(this IFdbTransaction trans, Slice key)
 		{
 			if (key.IsNull) throw Fdb.Errors.KeyCannotBeNull();
@@ -1888,13 +1884,7 @@ namespace FoundationDB.Client
 			ClearRange(trans, range.Begin, range.End.HasValue ? range.End : FdbKey.MaxValue);
 		}
 
-		/// <summary>
-		/// Modify the database snapshot represented by this transaction to remove all keys (if any) which are lexicographically greater than or equal to the given begin key and lexicographically less than the given end_key.
-		/// Sets and clears affect the actual database only if transaction is later committed with CommitAsync().
-		/// </summary>
-		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="beginKeyInclusive">Name of the key specifying the beginning of the range to clear.</param>
-		/// <param name="endKeyExclusive">Name of the key specifying the end of the range to clear.</param>
+		/// <inheritdoc cref="IFdbTransaction.ClearRange"/>
 		public static void ClearRange(this IFdbTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive)
 		{
 			if (beginKeyInclusive.IsNull) throw Fdb.Errors.KeyCannotBeNull(nameof(beginKeyInclusive));
@@ -2050,7 +2040,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="keys">Sequence of keys to be looked up in the database</param>
-		/// <param name="decoder">Decoder used to decoded the results into values of type <typeparamref name="TValue"/></param>
+		/// <param name="decoder">Decoder used to decode the results into values of type <typeparamref name="TValue"/></param>
 		/// <returns>Task that will return an array of decoded values, or an exception. The position of each item in the array is the same as its corresponding key in <paramref name="keys"/>. If a key does not exist in the database, its value depends on the behavior of <paramref name="decoder"/>.</returns>
 		public static async Task<TValue[]> GetValuesAsync<TValue>(this IFdbReadOnlyTransaction trans, IEnumerable<Slice> keys, IValueEncoder<TValue> decoder)
 		{
@@ -2133,7 +2123,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="keys">Array of keys to be looked up in the database</param>
-		/// <param name="decoder">Decoder used to decoded the results into values of type <typeparamref name="TValue"/></param>
+		/// <param name="decoder">Decoder used to decode the results into values of type <typeparamref name="TValue"/></param>
 		/// <returns>Task that will return an array of pairs of key and decoded values, or an exception. The position of each item in the array is the same as its corresponding key in <paramref name="keys"/>. If a key does not exist in the database, its value depends on the behavior of <paramref name="decoder"/>.</returns>
 		public static Task<KeyValuePair<Slice, TValue>[]> GetBatchAsync<TValue>(this IFdbReadOnlyTransaction trans, IEnumerable<Slice> keys, IValueEncoder<TValue> decoder)
 		{
@@ -2150,7 +2140,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="keys">Sequence of keys to be looked up in the database</param>
-		/// <param name="decoder">Decoder used to decoded the results into values of type <typeparamref name="TValue"/></param>
+		/// <param name="decoder">Decoder used to decode the results into values of type <typeparamref name="TValue"/></param>
 		/// <returns>Task that will return an array of pairs of key and decoded values, or an exception. The position of each item in the array is the same as its corresponding key in <paramref name="keys"/>. If a key does not exist in the database, its value depends on the behavior of <paramref name="decoder"/>.</returns>
 		public static async Task<KeyValuePair<Slice, TValue>[]> GetBatchAsync<TValue>(this IFdbReadOnlyTransaction trans, Slice[] keys, IValueEncoder<TValue> decoder)
 		{

@@ -50,9 +50,9 @@ namespace FoundationDB.Client.Native
 
 		/// <summary>Estimated current size of the transaction mutations</summary>
 		private int m_payloadBytes;
-		//TODO: this is redundant with GetApproximateSize which does the exact bookkeeping (but is async!). Should we keep it? or get remove it?
+		//TODO: this is redundant with GetApproximateSize which does the exact bookkeeping (but is async!). Should we keep it? or remove it?
 
-		/// <summary>Estimed current size of the number of bytes read from the cluster</summary>
+		/// <summary>Estimated current size of the number of bytes read from the cluster</summary>
 		/// <remarks>Includes the size of the both keys and values</remarks>
 		private int m_readBytes;
 
@@ -101,7 +101,7 @@ namespace FoundationDB.Client.Native
 
 		/// <summary>Estimated size of the transaction payload (in bytes)</summary>
 		public int Size => m_payloadBytes;
-		//TODO: this is redundant with GetApproximateSize which does the exact book-keeping (but is async!). Should we keep it? or get remove it?
+		//TODO: this is redundant with GetApproximateSize which does the exact bookkeeping (but is async!). Should we keep it? or get remove it?
 
 		#endregion
 

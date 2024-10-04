@@ -57,7 +57,7 @@ namespace FoundationDB.Client
 		IFdbDatabaseOptions Options { get; }
 
 		/// <summary>Sets the default log handler for this database</summary>
-		/// <param name="handler">Default handler that is attached to any new transction, and will be invoked when they complete.</param>
+		/// <param name="handler">Default handler that is attached to any new transaction, and will be invoked when they complete.</param>
 		/// <param name="options"></param>
 		/// <remarks>This handler may not be called if logging is disabled, if a transaction overrides its handler, or if it calls <see cref="IFdbReadOnlyTransaction.StopLogging"/></remarks>
 		void SetDefaultLogHandler(Action<FdbTransactionLog> handler, FdbLoggingOptions options = default);
@@ -68,13 +68,14 @@ namespace FoundationDB.Client
 		/// <param name="context">Existing parent context, if the transaction needs to be linked with a retry loop, or a parent transaction. If null, will create a new standalone context valid only for this transaction</param>
 		/// <returns>New transaction instance that can read from or write to the database.</returns>
 		/// <remarks>You MUST call Dispose() on the transaction when you are done with it. You SHOULD wrap it in a 'using' statement to ensure that it is disposed in all cases.</remarks>
-		/// <example>
+		/// <example><code>
 		/// using(var tr = db.BeginTransaction(CancellationToken.None))
 		/// {
 		///		tr.Set(Slice.FromString("Hello"), Slice.FromString("World"));
 		///		tr.Clear(Slice.FromString("OldValue"));
 		///		await tr.CommitAsync();
-		/// }</example>
+		/// }
+		/// </code></example>
 		[Obsolete("Use BeginTransaction() instead")]
 		ValueTask<IFdbTransaction> BeginTransactionAsync(FdbTransactionMode mode, CancellationToken ct, FdbOperationContext? context = null);
 
@@ -84,13 +85,14 @@ namespace FoundationDB.Client
 		/// <param name="context">Existing parent context, if the transaction needs to be linked with a retry loop, or a parent transaction. If null, will create a new standalone context valid only for this transaction</param>
 		/// <returns>New transaction instance that can read from or write to the database.</returns>
 		/// <remarks>You MUST call Dispose() on the transaction when you are done with it. You SHOULD wrap it in a 'using' statement to ensure that it is disposed in all cases.</remarks>
-		/// <example>
+		/// <example><code>
 		/// using(var tr = db.BeginTransaction(CancellationToken.None))
 		/// {
 		///		tr.Set(Slice.FromString("Hello"), Slice.FromString("World"));
 		///		tr.Clear(Slice.FromString("OldValue"));
 		///		await tr.CommitAsync();
-		/// }</example>
+		/// }
+		/// </code></example>
 		IFdbTransaction BeginTransaction(FdbTransactionMode mode, CancellationToken ct, FdbOperationContext? context = null);
 
 		IFdbTenant GetTenant(FdbTenantName name);
@@ -99,7 +101,7 @@ namespace FoundationDB.Client
 		int GetApiVersion();
 
 		/// <summary>Returns a value between 0 and 1 that reflect the saturation of the client main thread.</summary>
-		/// <returns>Value between 0 (no activity) and 1 (completly saturated)</returns>
+		/// <returns>Value between 0 (no activity) and 1 (completely saturated)</returns>
 		/// <remarks>The value is updated in the background at regular interval (by default every second).</remarks>
 		double GetMainThreadBusyness();
 

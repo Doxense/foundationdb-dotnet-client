@@ -58,7 +58,7 @@ namespace FoundationDB.Client
 		/// <remarks>Parameter: (Int64) max size of a single trace output file</remarks>
 		TraceRollSize = 31,
 
-		/// <summary>Sets the maximum size of a all the trace output files put together.</summary>
+		/// <summary>Sets the maximum size of all the trace output files put together.</summary>
 		/// <remarks>
 		/// <para>Parameter: (Int64) max total size of trace files. This value should be in the range ``[0, long.MaxValue]``.</para>
 		/// <para>If the value is set to 0, there is no limit on the total size of the files.</para>
@@ -90,7 +90,7 @@ namespace FoundationDB.Client
 		/// <summary>Use the same base trace file name for all client threads as it did before version 7.2. The current default behavior is to use distinct trace file names for client threads by including their version and thread index.</summary>
 		TraceShareAmongClientThreads = 37,
 
-		/// <summary>Initialize trace files on network setup, determine the local IP later. Otherwise tracing is initialized when opening the first database.</summary>
+		/// <summary>Initialize trace files on network setup, determine the local IP later. Otherwise, tracing is initialized when opening the first database.</summary>
 		TraceInitializeOnSetup = 38,
 
 		/// <summary>Set file suffix for partially written log files.</summary>

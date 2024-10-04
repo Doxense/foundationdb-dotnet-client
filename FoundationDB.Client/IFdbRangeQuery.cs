@@ -135,10 +135,10 @@ namespace FoundationDB.Client
 		/// <remarks>This is a convenience method that is there to help porting layer code from other languages. This is strictly equivalent to calling "!(await query.AnyAsync())".</remarks>
 		Task<bool> NoneAsync();
 
-		/// <summary>Executes an action on each key/value pair of the range results</summary>
+		/// <summary>Executes an action on each key/value pairs in the range results</summary>
 		Task ForEachAsync(Action<TResult> action);
 
-		/// <summary>Executes an action on each key/value pair of the range results</summary>
+		/// <summary>Executes an action on each key/value pairs in the range results</summary>
 		Task<TAggregate> ForEachAsync<TAggregate>(TAggregate aggregate, Action<TAggregate, TResult> action);
 
 		/// <summary>Returns a list of all the elements of the range results</summary>

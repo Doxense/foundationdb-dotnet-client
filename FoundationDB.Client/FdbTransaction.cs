@@ -283,7 +283,7 @@ namespace FoundationDB.Client
 		/// <summary>Add a comment to the transaction log</summary>
 		/// <param name="comment">Line of text that will be added to the log</param>
 		/// <remarks>This method does nothing if logging is disabled. To prevent unnecessary allocations, you may check <see cref="IsLogged"/> first</remarks>
-		/// <example><code>if (tr.IsLogged()) tr.Annonate($"Reticulated {splines.Count} splines");</code></example>
+		/// <example><code>tr.Annonate("Reticulating splines");</code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Annotate(string comment)
 		{
@@ -293,7 +293,7 @@ namespace FoundationDB.Client
 		/// <summary>Add a comment to the transaction log</summary>
 		/// <param name="comment">Line of text that will be added to the log</param>
 		/// <remarks>This method does nothing if logging is disabled. To prevent unnecessary allocations, you may check <see cref="IsLogged"/> first</remarks>
-		/// <example><code>if (tr.IsLogged()) tr.Annonate($"Reticulated {splines.Count} splines");</code></example>
+		/// <example><code>tr.Annonate($"Reticulated {splines.Count:N0} splines");</code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Annotate(ref DefaultInterpolatedStringHandler comment)
 		{
@@ -539,8 +539,8 @@ namespace FoundationDB.Client
 
 		private ulong GenerateNewVersionStampToken()
 		{
-			// We need to generate a 80-bits stamp, and also need to mark it as 'incomplete' by forcing the highest bit to 1.
-			// Since this is supposed to be a version number with a ~1M tickrate per seconds, we will play it safe, and force the 8 highest bits to 1,
+			// We need to generate an 80-bits stamp, and also need to mark it as 'incomplete' by forcing the highest bit to 1.
+			// Since this is supposed to be a version number with a ~1M tick-rate per seconds, we will play it safe, and force the 8 highest bits to 1,
 			// meaning that we only reduce the database potential lifetime but 1/256th, before getting into trouble.
 			//
 			// By doing some empirical testing, it also seems that the last 16 bits are a transaction batch order which is usually a low number.

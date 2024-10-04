@@ -30,7 +30,7 @@ namespace FoundationDB.Client
 	using System.Runtime.CompilerServices;
 	using FoundationDB.Client.Native;
 
-	/// <summary>Watch that triggers when the watched key is changed in the database</summary>
+	/// <summary>Watch that triggers when a watched key has changed in the database</summary>
 	[DebuggerDisplay("Status={Future.Task.Status}, Key={Key}")]
 	[PublicAPI]
 	public sealed class FdbWatch : IDisposable
@@ -41,6 +41,7 @@ namespace FoundationDB.Client
 			Contract.Debug.Requires(future != null);
 			this.Future = future;
 			this.Key = key;
+			//REVIEW: should we include a timestamp of when the watch was started, in order to get an estimate of the elapsed time?
 		}
 
 		private readonly FdbFuture<Slice> Future;
@@ -48,7 +49,7 @@ namespace FoundationDB.Client
 		/// <summary>Key that is being watched</summary>
 		public readonly Slice Key;
 
-		/// <summary>Returns true if the watch is still active, or false if it fired or was cancelled</summary>
+		/// <summary>Returns <see langword="true"/> if the watch is still active, or <see langword="false"/> if it fired or was cancelled</summary>
 		public bool IsAlive => !this.Future.Task.IsCompleted;
 
 		/// <summary>Task that will complete when the watch fires, or is cancelled. It will return the watched key, or an exception.</summary>
@@ -111,7 +112,11 @@ namespace FoundationDB.Client
 			}
 		}
 
-		/// <summary>Cancel the watch. It will immediately stop monitoring the key. Has no effect if the watch has already fired</summary>
+		/// <summary>Cancels the watch.</summary>
+		/// <remarks>
+		/// <para>It will immediately stop monitoring the key.</para>
+		/// <para>Has no effect if the watch has already fired</para>
+		/// </remarks>
 		public void Cancel()
 		{
 			this.Future.Cancel();
@@ -123,10 +128,7 @@ namespace FoundationDB.Client
 			this.Future.Dispose();
 		}
 
-		public override string ToString()
-		{
-			return $"Watch({FdbKey.Dump(this.Key)})";
-		}
+		public override string ToString() => $"Watch({FdbKey.Dump(this.Key)})";
 
 	}
 

@@ -37,7 +37,7 @@ namespace FoundationDB.Client
 		/// <summary>Snapshot version of this transaction (lazily allocated)</summary>
 		private Snapshotted? m_snapshotted;
 
-		/// <summary>Returns a version of this transaction that perform snapshotted operations</summary>
+		/// <summary>Returns a version of this transaction that performs snapshot read operations</summary>
 		public IFdbReadOnlyTransaction Snapshot
 		{
 			get

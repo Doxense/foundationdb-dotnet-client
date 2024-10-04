@@ -830,19 +830,21 @@ namespace FoundationDB.Client
 			this.Subspace = subspace;
 		}
 
+		/// <summary>Partitions this subspace into a child subspace</summary>
 		public IDynamicKeySubspace this[Slice binarySuffix]
 		{
 			[Pure]
 			get => new DynamicKeySubspace(this.Subspace.Append(binarySuffix), this.Subspace.KeyEncoder, this.Subspace.Context);
 		}
 
+		/// <summary>Partitions this subspace into a child subspace</summary>
 		public IDynamicKeySubspace this[IVarTuple suffix]
 		{
 			[Pure]
 			get => new DynamicKeySubspace(this.Subspace.Pack(suffix), this.Subspace.KeyEncoder, this.Subspace.Context);
 		}
 
-		/// <summary>Partition this subspace into a child subspace</summary>
+		/// <summary>Partitions this subspace into a child subspace</summary>
 		/// <typeparam name="T">Type of the child subspace key</typeparam>
 		/// <param name="value">Value of the child subspace</param>
 		/// <returns>New subspace that is logically contained by the current subspace</returns>
@@ -856,7 +858,7 @@ namespace FoundationDB.Client
 			return new DynamicKeySubspace(this.Subspace.Encode<T>(value), this.Subspace.KeyEncoder, this.Subspace.Context);
 		}
 
-		/// <summary>Partition this subspace into a child subspace</summary>
+		/// <summary>Partitions this subspace into a child subspace</summary>
 		/// <typeparam name="T1">Type of the first subspace key</typeparam>
 		/// <typeparam name="T2">Type of the second subspace key</typeparam>
 		/// <param name="value1">Value of the first subspace key</param>
@@ -872,7 +874,7 @@ namespace FoundationDB.Client
 			return new DynamicKeySubspace(this.Subspace.Encode<T1, T2>(value1, value2), this.Subspace.KeyEncoder, this.Subspace.Context);
 		}
 
-		/// <summary>Partition this subspace into a child subspace</summary>
+		/// <summary>Partitions this subspace into a child subspace</summary>
 		/// <typeparam name="T1">Type of the first subspace key</typeparam>
 		/// <typeparam name="T2">Type of the second subspace key</typeparam>
 		/// <typeparam name="T3">Type of the third subspace key</typeparam>
@@ -889,7 +891,7 @@ namespace FoundationDB.Client
 			return new DynamicKeySubspace(this.Subspace.Encode<T1, T2, T3>(value1, value2, value3), this.Subspace.KeyEncoder, this.Subspace.Context);
 		}
 
-		/// <summary>Partition this subspace into a child subspace</summary>
+		/// <summary>Partitions this subspace into a child subspace</summary>
 		/// <typeparam name="T1">Type of the first subspace key</typeparam>
 		/// <typeparam name="T2">Type of the second subspace key</typeparam>
 		/// <typeparam name="T3">Type of the third subspace key</typeparam>

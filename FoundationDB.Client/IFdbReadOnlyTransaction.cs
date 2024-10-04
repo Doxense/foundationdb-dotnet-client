@@ -41,7 +41,7 @@ namespace FoundationDB.Client
 		IFdbDatabase Database { get; }
 
 		/// <summary>Tenant of this transaction</summary>
-		/// <remarks>If <c>null</c>, the transaction can interact whith the complete keyspace</remarks>
+		/// <remarks>If <see langword="null"/>, the transaction can interact with the complete keyspace</remarks>
 		IFdbTenant? Tenant { get; }
 
 		/// <summary>Context of this transaction.</summary>
@@ -53,7 +53,7 @@ namespace FoundationDB.Client
 		/// <summary>Return a Snapshot version of this transaction, or the transaction itself it is already operating in Snapshot mode.</summary>
 		IFdbReadOnlyTransaction Snapshot { get; }
 
-		/// <summary>Cancellation Token linked to the life time of the transaction</summary>
+		/// <summary>Cancellation Token linked to the lifetime of the transaction</summary>
 		/// <remarks>Will be triggered if the transaction is aborted or disposed</remarks>
 		CancellationToken Cancellation { get; }
 
@@ -100,7 +100,7 @@ namespace FoundationDB.Client
 
 		/// <summary>
 		/// Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by Limit, TargetBytes, or Mode)
-		/// which have a key lexicographically greater than or equal to the key resolved by the begin key selector
+		/// which have a key lexicographically greater than or equal to the key resolved by the beginning key selector
 		/// and lexicographically less than the key resolved by the end key selector.
 		/// </summary>
 		/// <param name="beginInclusive">key selector defining the beginning of the range</param>
@@ -124,12 +124,12 @@ namespace FoundationDB.Client
 
 		/// <summary>
 		/// Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by Limit, TargetBytes, or Mode)
-		/// which have a key lexicographically greater than or equal to the key resolved by the begin key selector
+		/// which have a key lexicographically greater than or equal to the key resolved by the beginning key selector
 		/// and lexicographically less than the key resolved by the end key selector.
 		/// </summary>
 		/// <param name="beginInclusive">key selector defining the beginning of the range</param>
 		/// <param name="endExclusive">key selector defining the end of the range</param>
-		/// <param name="state">State that will forwarded to the <paramref name="decoder"/></param>
+		/// <param name="state">State that will be forwarded to the <paramref name="decoder"/></param>
 		/// <param name="decoder">Decoder that will extract the result from the value found in the database</param>
 		/// <param name="limit">Maximum number of items to return</param>
 		/// <param name="reverse">If true, results are returned in reverse order (from last to first)</param>
@@ -177,7 +177,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="beginInclusive">key selector defining the beginning of the range</param>
 		/// <param name="endExclusive">key selector defining the end of the range</param>
-		/// <param name="state">State that will forwarded to the <paramref name="selector"/></param>
+		/// <param name="state">State that will be forwarded to the <paramref name="selector"/></param>
 		/// <param name="selector">Selector used to convert each key-value pair into an element of type <typeparamref name="TResult"/></param>
 		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <returns>Range query that, once executed, will return all the key-value pairs matching the providing selector pair</returns>
@@ -277,13 +277,13 @@ namespace FoundationDB.Client
 		/// <summary>Add a comment to the transaction log</summary>
 		/// <param name="comment">Line of text that will be added to the log</param>
 		/// <remarks>This method does nothing if logging is disabled. To prevent unnecessary allocations, you may check <see cref="IsLogged"/> first</remarks>
-		/// <example><code>if (tr.IsLogged()) tr.Annonate($"Reticulated {splines.Count} splines");</code></example>
+		/// <example><code>tr.Annotate("Reticulating splines...");</code></example>
 		void Annotate(string comment);
 
 		/// <summary>Add a comment to the transaction log</summary>
 		/// <param name="comment">Line of text that will be added to the log</param>
 		/// <remarks>This method does nothing if logging is disabled. To prevent unnecessary allocations, you may check <see cref="IsLogged"/> first</remarks>
-		/// <example><code>if (tr.IsLogged()) tr.Annonate($"Reticulated {splines.Count} splines");</code></example>
+		/// <example><code>tr.Annotate($"Reticulated {splines.Count} splines");</code></example>
 		void Annotate(ref DefaultInterpolatedStringHandler comment);
 
 		/// <summary>If logging was previously enabled on this transaction, clear the log and stop logging any new operations</summary>

@@ -156,7 +156,7 @@ namespace FoundationDB.Client
 				// If k < N, then we need to update the begin key, and limit accordingly
 				if (count >= limit.Value)
 				{
-					limit = 0; // hopefully this would be optimized an runtime?
+					limit = 0; // hopefully this would be optimized at runtime?
 				}
 				else
 				{
@@ -300,7 +300,7 @@ namespace FoundationDB.Client
 		public Task<List<TResult>> ToListAsync(CancellationToken ct)
 		{
 			//TODO: REVIEW: this method creates a lot of false positives on the rule that detect an overload that accepts a cancellation token, even though there is already one embedded in the source transaction.
-			// => ex: "tr.GetRange(....).Select(...).ToListAsync()" will have a hint on ToListAsync() that proposes to pass a cencellation token, which is most probably already used by the transactrion.
+			// => ex: "tr.GetRange(....).Select(...).ToListAsync()" will have a hint on ToListAsync() that proposes to pass a cancellation token, which is most probably already used by the transaction.
 			// Should we simply remove this overload? What are the use cases where the caller must use a _different_ token here than the one from the transaction??
 
 			// ReSharper disable once InvokeAsExtensionMethod
@@ -319,7 +319,7 @@ namespace FoundationDB.Client
 		public Task<TResult[]> ToArrayAsync(CancellationToken ct)
 		{
 			//TODO: REVIEW: this method creates a lot of false positives on the rule that detect an overload that accepts a cancellation token, even though there is already one embedded in the source transaction.
-			// => ex: "tr.GetRange(....).Select(...).ToArrayAsync()" will have a hint on ToArrayAsync() that proposes to pass a cencellation token, which is most probably already used by the transactrion.
+			// => ex: "tr.GetRange(....).Select(...).ToArrayAsync()" will have a hint on ToArrayAsync() that proposes to pass a cancellation token, which is most probably already used by the transaction.
 			// Should we simply remove this overload? What are the use cases where the caller must use a _different_ token here than the one from the transaction??
 
 			// ReSharper disable once InvokeAsExtensionMethod
@@ -561,7 +561,7 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		/// <summary>Returns a human readable representation of this query</summary>
+		/// <summary>Returns a human-readable representation of this query</summary>
 		public override string ToString()
 		{
 			return $"Range({this.Range}, {this.Limit}, {(this.Reversed ? "reverse" : "forward")})";

@@ -41,7 +41,7 @@ namespace FoundationDB.Client
 		/// <summary>Smallest possible key ('\0')</summary>
 		public static readonly Slice MinValue = Slice.FromByte(0);
 
-		/// <summary>Bigest possible key ('\xFF'), excluding the system keys</summary>
+		/// <summary>Biggest possible key ('\xFF'), excluding the system keys</summary>
 		public static readonly Slice MaxValue = Slice.FromByte(255);
 
 		/// <summary>Default Directory Layer prefix ('\xFE')</summary>
@@ -53,7 +53,7 @@ namespace FoundationDB.Client
 		/// <summary>Returns the first key lexicographically that does not have the passed in <paramref name="slice"/> as a prefix</summary>
 		/// <param name="slice">Slice to increment</param>
 		/// <returns>New slice that is guaranteed to be the first key lexicographically higher than <paramref name="slice"/> which does not have <paramref name="slice"/> as a prefix</returns>
-		/// <remarks>If the last byte is already equal to 0xFF, it will rollover to 0x00 and the next byte will be incremented.</remarks>
+		/// <remarks>If the last byte is already equal to 0xFF, it will roll over to 0x00 and the next byte will be incremented.</remarks>
 		/// <exception cref="ArgumentException">If <paramref name="slice"/> is <see cref="Slice.Nil"/></exception>
 		/// <exception cref="OverflowException">If <paramref name="slice"/> is <see cref="Slice.Empty"/> or consists only of 0xFF bytes</exception>
 		/// <example>
@@ -85,7 +85,7 @@ namespace FoundationDB.Client
 			return tmp.AsSlice(0, lastNonFFByte + 1);
 		}
 
-		/// <summary>Merge an array of keys with a same prefix, all sharing the same buffer</summary>
+		/// <summary>Merges an array of keys with a same prefix, all sharing the same buffer</summary>
 		/// <param name="prefix">Prefix shared by all keys</param>
 		/// <param name="keys">Array of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
@@ -95,7 +95,7 @@ namespace FoundationDB.Client
 			return Merge(prefix, keys.AsSpan());
 		}
 
-		/// <summary>Merge an array of keys with a same prefix, all sharing the same buffer</summary>
+		/// <summary>Merges an array of keys with a same prefix, all sharing the same buffer</summary>
 		/// <param name="prefix">Prefix shared by all keys</param>
 		/// <param name="keys">Array of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
@@ -128,7 +128,7 @@ namespace FoundationDB.Client
 			return SplitIntoSegments(writer.Buffer, 0, next);
 		}
 
-		/// <summary>Merge a sequence of keys with a same prefix, all sharing the same buffer</summary>
+		/// <summary>Merges a sequence of keys with a same prefix, all sharing the same buffer</summary>
 		/// <param name="prefix">Prefix shared by all keys</param>
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
@@ -159,7 +159,7 @@ namespace FoundationDB.Client
 			return SplitIntoSegments(writer.Buffer, 0, next);
 		}
 
-		/// <summary>Split a buffer containing multiple contiguous segments into an array of segments</summary>
+		/// <summary>Splits a buffer containing multiple contiguous segments into an array of segments</summary>
 		/// <param name="buffer">Buffer containing all the segments</param>
 		/// <param name="start">Offset of the start of the first segment</param>
 		/// <param name="endOffsets">Array containing, for each segment, the offset of the following segment</param>
@@ -179,7 +179,7 @@ namespace FoundationDB.Client
 			return result;
 		}
 
-		/// <summary>Split a range of indexes into several batches</summary>
+		/// <summary>Splits a range of indexes into several batches</summary>
 		/// <param name="offset">Offset from which to start counting</param>
 		/// <param name="count">Total number of values that will be returned</param>
 		/// <param name="batchSize">Maximum size of each batch</param>
@@ -260,9 +260,7 @@ namespace FoundationDB.Client
 			}
 		}
 
-		/// <summary>
-		/// Split range of indexes into a fixed number of 'worker' sequence, that will consume batches in parallel
-		/// </summary>
+		/// <summary>Splits a range of indexes into a fixed number of 'worker' sequence, that will consume batches in parallel</summary>
 		/// <param name="offset">Offset from which to start counting</param>
 		/// <param name="count">Total number of values that will be returned</param>
 		/// <param name="workers">Number of concurrent workers that will take batches from the pool</param>
@@ -273,9 +271,9 @@ namespace FoundationDB.Client
 			return new BatchIterator(offset, count, workers, batchSize);
 		}
 
-		/// <summary>Produce a user-friendly version of the slice</summary>
-		/// <param name="key">Random binary key</param>
-		/// <returns>User friendly version of the key. Attempts to decode the key as a tuple first. Then as an ASCII string. Then as an hex dump of the key.</returns>
+		/// <summary>Produces a user-friendly version of the slice</summary>
+		/// <param name="key">Any binary key</param>
+		/// <returns>User-friendly version of the key. Attempts to decode the key as a tuple first. Then as an ASCII string. Then as a hex dump of the key.</returns>
 		/// <remarks>This can be slow, and should only be used for logging or troubleshooting.</remarks>
 		public static string Dump(Slice key)
 		{
@@ -309,7 +307,7 @@ namespace FoundationDB.Client
 							{
 								case PrettyPrintMode.End:
 								{ // the last byte will either be FF, or incremented
-									// for tuples, the really bad cases are for byte[]/strings (which normally end with 00)
+									// for tuples, the worst cases are for byte[]/strings (which normally end with 00)
 									// => pack(("string",))+\xFF => <02>string<00><FF>
 									// => string(("string",)) => <02>string<01>
 									switch (span[^1])
@@ -388,19 +386,19 @@ namespace FoundationDB.Client
 			return Slice.Dump(key);
 		}
 
-		/// <summary>Produce a user-friendly version of the slice</summary>
-		/// <param name="key">Random binary key</param>
-		/// <returns>User friendly version of the key. Attempts to decode the key as a tuple first. Then as an ASCII string. Then as an hex dump of the key.</returns>
+		/// <summary>Produces a user-friendly version of the slice</summary>
+		/// <param name="key">Any binary key</param>
+		/// <returns>User-friendly version of the key. Attempts to decode the key as a tuple first. Then as an ASCII string. Then as a hex dump of the key.</returns>
 		/// <remarks>This can be slow, and should only be used for logging or troubleshooting.</remarks>
 		public static string Dump(ReadOnlySpan<byte> key)
 		{
 			return PrettyPrint(key, PrettyPrintMode.Single);
 		}
 
-		/// <summary>Produce a user-friendly version of the slice</summary>
-		/// <param name="key">Random binary key</param>
-		/// <param name="mode">Defines if the key is standalone, or is the begin or end part or a key range. This will enable or disable some heuristics that try to properly format key ranges.</param>
-		/// <returns>User friendly version of the key. Attempts to decode the key as a tuple first. Then as an ASCII string. Then as an hex dump of the key.</returns>
+		/// <summary>Produces a user-friendly version of the slice</summary>
+		/// <param name="key">Any binary key</param>
+		/// <param name="mode">Defines if the key is standalone, or is the beginning or end part or a key range. This will enable or disable some heuristics that try to properly format key ranges.</param>
+		/// <returns>User-friendly version of the key. Attempts to decode the key as a tuple first. Then as an ASCII string. Then as a hex dump of the key.</returns>
 		/// <remarks>This can be slow, and should only be used for logging or troubleshooting.</remarks>
 		[DebuggerNonUserCode]
 		public static string PrettyPrint(ReadOnlySpan<byte> key, PrettyPrintMode mode)
@@ -423,7 +421,7 @@ namespace FoundationDB.Client
 							{
 								case PrettyPrintMode.End:
 								{ // the last byte will either be FF, or incremented
-									// for tuples, the really bad cases are for byte[]/strings (which normally end with 00)
+									// for tuples, the worst cases are for byte[]/strings (which normally end with 00)
 									// => pack(("string",))+\xFF => <02>string<00><FF>
 									// => string(("string",)) => <02>string<01>
 									switch (key[^1])
@@ -506,7 +504,7 @@ namespace FoundationDB.Client
 		/// <param name="endExclusive">If true, the key is allowed to be one past the maximum key allowed by the global namespace</param>
 		/// <param name="ignoreError">If true, don't return an exception in <paramref name="error"/>, even if the key is invalid.</param>
 		/// <param name="error">Receive an exception object if the key is not valid and <paramref name="ignoreError"/> is false</param>
-		/// <returns>Return <c>false</c> if the key is outside of the allowed key space of this database</returns>
+		/// <returns>Return <c>false</c> if the key is outside the allowed key space of this database</returns>
 		internal static bool ValidateKey(in Slice key, bool endExclusive, bool ignoreError, out Exception? error)
 		{
 			// null keys are not allowed
@@ -523,7 +521,7 @@ namespace FoundationDB.Client
 		/// <param name="endExclusive">If true, the key is allowed to be one past the maximum key allowed by the global namespace</param>
 		/// <param name="ignoreError"></param>
 		/// <param name="error"></param>
-		/// <returns>An exception if the key is outside of the allowed key space of this database</returns>
+		/// <returns>An exception if the key is outside the allowed key space of this database</returns>
 		internal static bool ValidateKey(ReadOnlySpan<byte> key, bool endExclusive, bool ignoreError, out Exception? error)
 		{
 			error = null;
@@ -555,7 +553,7 @@ namespace FoundationDB.Client
 		/// <summary>Checks that a key is inside the global namespace of this database, and contained in the optional legal key space specified by the user</summary>
 		/// <param name="key">Key to verify</param>
 		/// <param name="endExclusive">If true, the key is allowed to be one past the maximum key allowed by the global namespace</param>
-		/// <exception cref="FdbException">If the key is outside of the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
+		/// <exception cref="FdbException">If the key is outside the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
 		public static void EnsureKeyIsValid(in Slice key, bool endExclusive = false)
 		{
 			if (!ValidateKey(key, endExclusive, false, out var ex))
@@ -567,7 +565,7 @@ namespace FoundationDB.Client
 		/// <summary>Checks that a key is inside the global namespace of this database, and contained in the optional legal key space specified by the user</summary>
 		/// <param name="key">Key to verify</param>
 		/// <param name="endExclusive">If true, the key is allowed to be one past the maximum key allowed by the global namespace</param>
-		/// <exception cref="FdbException">If the key is outside of the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
+		/// <exception cref="FdbException">If the key is outside the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
 		public static void EnsureKeyIsValid(ReadOnlySpan<byte> key, bool endExclusive = false)
 		{
 			if (!ValidateKey(key, endExclusive, false, out var ex)) throw ex!;
@@ -576,7 +574,7 @@ namespace FoundationDB.Client
 		/// <summary>Checks that one or more keys are inside the global namespace of this database, and contained in the optional legal key space specified by the user</summary>
 		/// <param name="keys">Array of keys to verify</param>
 		/// <param name="endExclusive">If true, the keys are allowed to be one past the maximum key allowed by the global namespace</param>
-		/// <exception cref="FdbException">If at least on key is outside of the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
+		/// <exception cref="FdbException">If at least on key is outside the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
 		public static void EnsureKeysAreValid(ReadOnlySpan<Slice> keys, bool endExclusive = false)
 		{
 			for (int i = 0; i < keys.Length; i++)
@@ -588,7 +586,7 @@ namespace FoundationDB.Client
 			}
 		}
 
-		/// <summary>Test if a key is allowed to be used with this database instance</summary>
+		/// <summary>Tests if a key is allowed to be used with this database instance</summary>
 		/// <param name="key">Key to test</param>
 		/// <returns>Returns true if the key is not null or empty, does not exceed the maximum key size, and is contained in the global key space of this database instance. Otherwise, returns false.</returns>
 		[Pure]
@@ -597,7 +595,7 @@ namespace FoundationDB.Client
 			return ValidateKey(key, false, true, out _);
 		}
 
-		/// <summary>Test if a key is allowed to be used with this database instance</summary>
+		/// <summary>Tests if a key is allowed to be used with this database instance</summary>
 		/// <param name="key">Key to test</param>
 		/// <returns>Returns true if the key is not null or empty, does not exceed the maximum key size, and is contained in the global key space of this database instance. Otherwise, returns false.</returns>
 		[Pure]
@@ -636,6 +634,7 @@ namespace FoundationDB.Client
 		}
 
 		#endregion
+
 	}
 
 }

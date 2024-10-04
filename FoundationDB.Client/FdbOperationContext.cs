@@ -1462,7 +1462,7 @@ namespace FoundationDB.Client
 									}
 
 									shouldThrow = false;
-									// note: technically we are after the "OnError" so any new comment will be seen as part of the next attempt..
+									// note: technically we are after the "OnError" so any new comment will be seen as part of the next attempt...
 									if (context.Transaction?.IsLogged() == true)
 									{
 										context.Transaction.Annotate($"Previous attempt failed because of the following failed value-check(s): {string.Join(", ", context.FailedValueCheckTags?.Where(x => x.Value.Result == FdbValueCheckResult.Failed).Select(x => x.Key) ?? Array.Empty<string>())}");
@@ -1530,7 +1530,7 @@ namespace FoundationDB.Client
 
 				if (context.BaseDuration.TotalSeconds >= 10)
 				{
-					//REVIEW: this may not be a good idea to spam the logs with long running transactions??
+					//REVIEW: this may not be a good idea to spam the logs with long-running transactions??
 					if (Logging.On) Logging.Info(string.Format(CultureInfo.InvariantCulture, "fdb WARNING: long transaction ({0:N1} sec elapsed in transaction lambda function ({1} retries, {2})", context.BaseDuration.TotalSeconds, context.Retries, context.Committed ? "committed" : "not committed"));
 				}
 				context.Dispose();

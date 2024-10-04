@@ -44,7 +44,7 @@ namespace FoundationDB.Client
 			return options.SetOption(FdbTransactionOption.AccessSystemKeys);
 		}
 
-		/// <summary>Specifies that this transaction should be treated as highest priority and that lower priority transactions should block behind this one. Use is discouraged outside of low-level tools</summary>
+		/// <summary>Specifies that this transaction should be treated as highest priority and that lower priority transactions should block behind this one. Use is discouraged outside low-level tools</summary>
 		/// <remarks>See <see cref="FdbTransactionOption.PrioritySystemImmediate"/></remarks>
 		public static IFdbTransactionOptions WithPrioritySystemImmediate(this IFdbTransactionOptions options)
 		{
@@ -273,7 +273,7 @@ namespace FoundationDB.Client
 			return options.SetOption(FdbTransactionOption.ServerRequestTracing);
 		}
 
-		/// <summary>Associate this transaction with this ID for the purpose of checking whether or not this transaction has already committed.</summary>
+		/// <summary>Associate this transaction with this ID for the purpose of checking whether this transaction has already committed.</summary>
 		/// <param name="options">Transaction that will be configured for the current attempt.</param>
 		/// <param name="id">Unique ID. Must be at least 16 bytes and less than 256 bytes.</param>
 		/// <remarks>Requires API level 720 or greater. See <see cref="FdbTransactionOption.IdempotencyId"/></remarks>
@@ -282,7 +282,7 @@ namespace FoundationDB.Client
 			return options.SetOption(FdbTransactionOption.IdempotencyId, id.AsSpan());
 		}
 
-		/// <summary>Associate this transaction with this ID for the purpose of checking whether or not this transaction has already committed.</summary>
+		/// <summary>Associate this transaction with this ID for the purpose of checking whether this transaction has already committed.</summary>
 		/// <param name="options">Transaction that will be configured for the current attempt.</param>
 		/// <param name="id">Unique ID. Must be at least 16 bytes and less than 256 bytes.</param>
 		/// <remarks>Requires API level 720 or greater. See <see cref="FdbTransactionOption.IdempotencyId"/>.</remarks>
@@ -337,9 +337,9 @@ namespace FoundationDB.Client
 			return options.SetOption(FdbTransactionOption.SpecialKeySpaceEnableWrites);
 		}
 
-		/// <summary>Associate this transaction with this ID for the purpose of checking whether or not this transaction has already committed.</summary>
+		/// <summary>Associate this transaction with this ID for the purpose of checking whether this transaction has already committed.</summary>
 		/// <param name="options">Transaction that will be configured for the current attempt.</param>
-		/// <param name="tag">String identifier used to associated this transaction with a throttling group. Must not exceed 16 characters.</param>
+		/// <param name="tag">String identifier used to associate this transaction with a throttling group. Must not exceed 16 characters.</param>
 		/// <remarks>
 		/// <para>See <see cref="FdbTransactionOption.Tag"/></para>
 		/// <para>At most 5 tags can be set on a transaction.</para>
@@ -349,9 +349,9 @@ namespace FoundationDB.Client
 			return options.SetOption(FdbTransactionOption.Tag, tag.AsSpan());
 		}
 
-		/// <summary>Associate this transaction with this ID for the purpose of checking whether or not this transaction has already committed.</summary>
+		/// <summary>Associate this transaction with this ID for the purpose of checking whether this transaction has already committed.</summary>
 		/// <param name="options">Transaction that will be configured for the current attempt.</param>
-		/// <param name="tag">String identifier used to associated this transaction with a throttling group. Must not exceed 16 characters.</param>
+		/// <param name="tag">String identifier used to associate this transaction with a throttling group. Must not exceed 16 characters.</param>
 		/// <remarks>
 		/// <para>See <see cref="FdbTransactionOption.Tag"/></para>
 		/// <para>At most 5 tags can be set on a transaction.</para>
@@ -363,7 +363,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Adds a tag to the transaction that can be used to apply manual or automatic targeted throttling.</summary>
 		/// <param name="options">Transaction that will be configured for the current attempt.</param>
-		/// <param name="tag">String identifier used to associated this transaction with a throttling group. Must not exceed 16 characters.</param>
+		/// <param name="tag">String identifier used to associate this transaction with a throttling group. Must not exceed 16 characters.</param>
 		/// <remarks>
 		/// <para>See <see cref="FdbTransactionOption.Tag"/></para>
 		/// <para>At most 5 tags can be set on a transaction.</para>
@@ -375,7 +375,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Adds a tag to the transaction that can be used to apply manual or automatic targeted throttling.</summary>
 		/// <param name="options">Transaction that will be configured for the current attempt.</param>
-		/// <param name="tag">String identifier used to associated this transaction with a throttling group. Must not exceed 16 characters.</param>
+		/// <param name="tag">String identifier used to associate this transaction with a throttling group. Must not exceed 16 characters.</param>
 		/// <remarks>
 		/// <para>See <see cref="FdbTransactionOption.Tag"/></para>
 		/// <para>At most 5 tags can be set on a transaction.</para>
@@ -409,11 +409,11 @@ namespace FoundationDB.Client
 			return options.SetOption(FdbTransactionOption.SpanParent, id);
 		}
 
-		/// <summary>Allows <c>get</c> operations to read from sections of keyspace that have become unreadable because of versionstamp operations.</summary>
+		/// <summary>Allows <c>get</c> operations to read from sections of keyspace that have become unreadable because of VersionStamp operations.</summary>
 		/// <param name="options">Transaction that will be configured for the current attempt.</param>
 		/// <remarks>
 		/// <para>See <see cref="FdbTransactionOption.BypassUnreadable"/>.</para>
-		/// <para>These reads will view versionstamp operations as if they were set operations that did not fill in the versionstamp.</para>
+		/// <para>These reads will view VersionStamp operations as if they were set operations that did not fill in the VersionStamp.</para>
 		/// </remarks>
 		public static IFdbTransactionOptions WithBypassUnreadable(this IFdbTransactionOptions options)
 		{

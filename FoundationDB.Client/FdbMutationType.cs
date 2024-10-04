@@ -85,36 +85,39 @@ namespace FoundationDB.Client
 		/// </summary>
 		Min = 13,
 
-		/// <summary>Transforms <c>key</c> using a versionstamp for the transaction.
-		/// Sets the transformed key in the database to <c>param</c>.
-		/// The key is transformed by removing the final four bytes from the key and reading those as a little-Endian 32-bit integer to get a position <c>pos</c>.
-		/// The 10 bytes of the key from <c>pos</c> to <c>pos + 10</c> are replaced with the versionstamp of the transaction used.
-		/// The first byte of the key is position 0.
-		/// A versionstamp is a 10 byte, unique, monotonically (but not sequentially) increasing value for each committed transaction.
-		/// The first 8 bytes are the committed version of the database (serialized in big-Endian order).
-		/// The last 2 bytes are monotonic in the serialization order for transactions.
-		/// WARNING: prior to API version 520, the offset was computed from only the final two bytes rather than the final four bytes.
-		/// </summary>
+		/// <summary>Transforms <c>key</c> using a VersionStamp for the transaction.</summary>
+		/// <remarks>
+		/// <para>Sets the transformed key in the database to <c>param</c>.</para>
+		/// <para>The key is transformed by removing the final four bytes from the key and reading those as a little-Endian 32-bit integer to get a position <c>pos</c>.</para>
+		/// <para>The 10 bytes of the key from <c>pos</c> to <c>pos + 10</c> are replaced with the VersionStamp of the transaction used.</para>
+		/// <para>The first byte of the key is position 0.</para>
+		/// <para>A VersionStamp is a 10 byte, unique, monotonically (but not sequentially) increasing value for each committed transaction.</para>
+		/// <para>The first 8 bytes are the committed version of the database (serialized in big-Endian order).</para>
+		/// <para>The last 2 bytes are monotonic in the serialization order for transactions.</para>
+		/// <para>WARNING: prior to API version 520, the offset was computed from only the final two bytes rather than the final four bytes.</para>
+		/// </remarks>
 		VersionStampedKey = 14,
 
-		/// <summary>Transforms <c>param</c> using a versionstamp for the transaction.
-		/// Sets the <c>key</c> given to the transformed <c>param</c>.
-		/// The parameter is transformed by removing the final four bytes from <c>param</c> and reading those as a little-Endian 32-bit integer to get a position <c>pos</c>.
-		/// The 10 bytes of the parameter from <c>pos</c> to <c>pos + 10</c> are replaced with the versionstamp of the transaction used.
-		/// The first byte of the parameter is position 0.
-		/// A versionstamp is a 10 byte, unique, monotonically (but not sequentially) increasing value for each committed transaction.
-		/// The first 8 bytes are the committed version of the database (serialized in big-Endian order).
-		/// The last 2 bytes are monotonic in the serialization order for transactions.
-		/// WARNING: prior to API version 520, the versionstamp was always placed at the beginning of the parameter rather than computing an offset.</summary>
+		/// <summary>Transforms <c>param</c> using a VersionStamp for the transaction.</summary>
+		/// <remarks>
+		/// <para>Sets the <c>key</c> given to the transformed <c>param</c>.</para>
+		/// <para>The parameter is transformed by removing the final four bytes from <c>param</c> and reading those as a little-Endian 32-bit integer to get a position <c>pos</c>.</para>
+		/// <para>The 10 bytes of the parameter from <c>pos</c> to <c>pos + 10</c> are replaced with the VersionStamp of the transaction used.</para>
+		/// <para>The first byte of the parameter is position 0.</para>
+		/// <para>A VersionStamp is a 10 byte, unique, monotonically (but not sequentially) increasing value for each committed transaction.</para>
+		/// <para>The first 8 bytes are the committed version of the database (serialized in big-Endian order).</para>
+		/// <para>The last 2 bytes are monotonic in the serialization order for transactions.</para>
+		/// <para>WARNING: prior to API version 520, the VersionStamp was always placed at the beginning of the parameter rather than computing an offset.</para>
+		/// </remarks>
 		VersionStampedValue = 15,
 
-		/// <summary>Performs lexicographic comparison of byte strings. If the existing value in the database is not present, then the parameter is stored. Otherwise the smaller of the two values is then stored in the database.</summary>
+		/// <summary>Performs lexicographic comparison of byte strings. If the existing value in the database is not present, then the parameter is stored. Otherwise, the smaller of the two values is then stored in the database.</summary>
 		ByteMin = 16,
 
-		/// <summary>Performs lexicographic comparison of byte strings. If the existing value in the database is not present, then the parameter is stored. Otherwise the larger of the two values is then stored in the database.</summary>
+		/// <summary>Performs lexicographic comparison of byte strings. If the existing value in the database is not present, then the parameter is stored. Otherwise, the larger of the two values is then stored in the database.</summary>
 		ByteMax = 17,
 
-		// note: 18 and 19 are not defined any more, used to be called Min "v2" and Max "v2" ?
+		// note: 18 and 19 are not defined anymore, used to be called Min "v2" and Max "v2" ?
 
 		/// <summary>Performs an atomic compare and clear operation. If the existing value in the database is equal to the given value, then given key is cleared.</summary>
 		CompareAndClear = 20,
