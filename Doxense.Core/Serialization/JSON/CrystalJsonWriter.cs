@@ -1039,6 +1039,36 @@ namespace Doxense.Serialization.Json
 			EndInlineArray(state);
 		}
 
+		public void WriteInlinePair(JsonValue? key, string? value)
+		{
+			var state = BeginInlineArray();
+			WriteInlineHeadSeparator();
+			(key ?? JsonNull.Missing).JsonSerialize(this);
+			WriteInlineTailSeparator();
+			WriteValue(value);
+			EndInlineArray(state);
+		}
+
+		public void WriteInlinePair(JsonValue? key, long value)
+		{
+			var state = BeginInlineArray();
+			WriteInlineHeadSeparator();
+			(key ?? JsonNull.Missing).JsonSerialize(this);
+			WriteInlineTailSeparator();
+			WriteValue(value);
+			EndInlineArray(state);
+		}
+
+		public void WriteInlinePair(JsonValue? key, long? value)
+		{
+			var state = BeginInlineArray();
+			WriteInlineHeadSeparator();
+			(key ?? JsonNull.Missing).JsonSerialize(this);
+			WriteInlineTailSeparator();
+			WriteValue(value);
+			EndInlineArray(state);
+		}
+
 		#endregion
 
 		/// <summary>Mark an instance as already visited, and perform infinite loop detection</summary>
