@@ -94,6 +94,12 @@ namespace FoundationDB.Client
 		private FdbTransaction? Transaction;
 		//note: field accessed via interlocked operations!
 
+#if NET9_0_OR_GREATER
+		private readonly Lock PadLock = new();
+#else
+		private readonly object PadLock = new();
+#endif
+
 		/// <summary>Current <see cref="System.Diagnostics.Activity"/>, if tracing is enabled</summary>
 		public Activity? Activity { get; private set; }
 
@@ -131,7 +137,7 @@ namespace FoundationDB.Client
 		private void RegisterStateCallback(object callback)
 		{
 			Contract.Debug.Requires(callback is Delegate or IHandleTransactionLifecycle);
-			lock (this)
+			lock (this.PadLock)
 			{
 				var previous = this.StateCallbacks;
 				if (previous == null)
@@ -239,7 +245,7 @@ namespace FoundationDB.Client
 		/// <summary>Clears any local data currently attached on this transaction</summary>
 		internal void ClearAllLocalData()
 		{
-			lock (this)
+			lock (this.PadLock)
 			{
 				this.LocalData?.Clear();
 			}
@@ -257,7 +263,7 @@ namespace FoundationDB.Client
 		{
 			Contract.NotNull(key);
 			Contract.NotNull(newState);
-			lock (this)
+			lock (this.PadLock)
 			{
 				var container = GetOrCreateLocalDataContainer();
 				if (!container.TryGetValue(typeof(TState), out var slot))
@@ -282,7 +288,7 @@ namespace FoundationDB.Client
 		{
 			Contract.NotNull(key);
 			Contract.NotNull(newState);
-			lock (this)
+			lock (this.PadLock)
 			{
 				var container = GetOrCreateLocalDataContainer();
 				if (!container.TryGetValue(typeof(TState), out var slot))
@@ -314,7 +320,7 @@ namespace FoundationDB.Client
 			where TToken : notnull
 		{
 			Contract.NotNull(key);
-			lock (this)
+			lock (this.PadLock)
 			{
 				var container = this.LocalData;
 				if (container != null && container.TryGetValue(typeof(TState), out var slot))
@@ -338,7 +344,7 @@ namespace FoundationDB.Client
 			where TToken : notnull
 		{
 			Contract.NotNull(key);
-			lock (this)
+			lock (this.PadLock)
 			{
 				var container = this.LocalData;
 				if (container != null && container.TryGetValue(typeof(TState), out var slot))
@@ -367,7 +373,7 @@ namespace FoundationDB.Client
 		{
 			Contract.NotNull(key);
 			Contract.NotNull(newState);
-			lock (this)
+			lock (this.PadLock)
 			{
 				var container = GetOrCreateLocalDataContainer();
 				TState? result;
@@ -406,7 +412,7 @@ namespace FoundationDB.Client
 		{
 			Contract.NotNull(key);
 			Contract.NotNull(factory);
-			lock (this)
+			lock (this.PadLock)
 			{
 				var container = GetOrCreateLocalDataContainer();
 				TState? result;
@@ -454,7 +460,7 @@ namespace FoundationDB.Client
 		public FdbValueCheckResult TestValueCheckFromPreviousAttempt(string tag)
 		{
 			Dictionary<string, (FdbValueCheckResult Result, List<(FdbValueCheckResult, Slice, Slice, Slice)>)>? checks;
-			lock (this)
+			lock (this.PadLock)
 			{
 				checks = this.FailedValueCheckTags;
 			}
@@ -468,7 +474,7 @@ namespace FoundationDB.Client
 		public List<(string Tag, FdbValueCheckResult Result, Slice Key, Slice Expected, Slice Actual)> GetValueChecksFromPreviousAttempt(string? tag = null, FdbValueCheckResult? result = null)
 		{
 			Dictionary<string, (FdbValueCheckResult Result, List<(FdbValueCheckResult Result, Slice Key, Slice Expected, Slice Actual)> Checks)>? checks;
-			lock (this)
+			lock (this.PadLock)
 			{
 				checks = this.FailedValueCheckTags;
 			}
@@ -513,7 +519,7 @@ namespace FoundationDB.Client
 			if (tr == null) throw new InvalidOperationException();
 			var task = tr.CheckValueAsync(key.Span, expectedValue);
 
-			lock (this)
+			lock (this.PadLock)
 			{
 				(this.ValueChecks ??= new List<(Slice, Slice, string, Task<(FdbValueCheckResult, Slice)>)>())
 					.Add((key, expectedValue, tag, task));
@@ -577,7 +583,7 @@ namespace FoundationDB.Client
 					taskBuffer[i] = tr.CheckValueAsync(items[i].Key.Span, items[i].Value);
 				}
 
-				lock (this)
+				lock (this.PadLock)
 				{
 					var checks = this.ValueChecks ??= new List<(Slice, Slice, string, Task<(FdbValueCheckResult Result, Slice Actual)>)>();
 					int capa = checked(checks.Count + items.Length);
@@ -625,7 +631,7 @@ namespace FoundationDB.Client
 
 		private bool HasPendingValueChecks([MaybeNullWhen(false)] out List<(Slice, Slice, string, Task<(FdbValueCheckResult, Slice)>)> checks)
 		{
-			lock (this)
+			lock (this.PadLock)
 			{
 				checks = this.ValueChecks;
 				this.ValueChecks = null;
