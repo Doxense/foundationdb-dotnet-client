@@ -148,7 +148,7 @@ namespace FoundationDB.Client.Tests
 			Assert.That(parent.GetPrefix().ToString(), Is.EqualTo("<empty>"));
 
 			// create a child subspace using a tuple
-			var child = parent.Partition[FdbKey.Directory].AsBinary();
+			var child = parent.Partition[FdbKey.DirectoryPrefix].AsBinary();
 			Assert.That(child, Is.Not.Null);
 			Assert.That(child.GetPrefix().ToString(), Is.EqualTo("<FE>"));
 

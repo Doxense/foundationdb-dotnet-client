@@ -74,7 +74,7 @@ namespace FoundationDB.Filters.Logging
 			}
 		}
 
-		/// <summary>Id of the logged transaction</summary>
+		/// <summary>ID of the logged transaction</summary>
 		public int Id { get; private set; }
 
 		/// <summary>Logging options for this log</summary>
@@ -169,14 +169,7 @@ namespace FoundationDB.Filters.Logging
 			}
 		}
 
-		internal KeySelector Grab(in KeySelector selector)
-		{
-			return new KeySelector(
-				Grab(selector.Key),
-				selector.OrEqual,
-				selector.Offset
-			);
-		}
+		internal KeySelector Grab(KeySelector selector) => new(Grab(selector.Key), selector.OrEqual, selector.Offset);
 
 		internal KeySelector[] Grab(ReadOnlySpan<KeySelector> selectors)
 		{
@@ -185,7 +178,7 @@ namespace FoundationDB.Filters.Logging
 			var res = new KeySelector[selectors.Length];
 			for (int i = 0; i < selectors.Length; i++)
 			{
-				res[i] = Grab(in selectors[i]);
+				res[i] = Grab(selectors[i]);
 			}
 			return res;
 		}
@@ -434,9 +427,9 @@ namespace FoundationDB.Filters.Logging
 
 			var sb = new StringBuilder(1024);
 
-			var cmds = this.Commands.ToArray();
+			var commands = this.Commands.ToArray();
 
-			sb.Append(CultureInfo.InvariantCulture, $"Transaction #{this.Id} ({(this.IsReadOnly ? "read-only" : "read/write")}, {cmds.Length:N0} operations, started {this.StartedUtc.TimeOfDay}Z");
+			sb.Append(CultureInfo.InvariantCulture, $"Transaction #{this.Id} ({(this.IsReadOnly ? "read-only" : "read/write")}, {commands.Length:N0} operations, started {this.StartedUtc.TimeOfDay}Z");
 			if (this.StoppedUtc.HasValue)
 			{
 				sb.Append(CultureInfo.InvariantCulture, $", ended {this.StoppedUtc.Value.TimeOfDay}Z)");
@@ -449,9 +442,9 @@ namespace FoundationDB.Filters.Logging
 			sb.AppendLine();
 
 			int reads = 0, writes = 0;
-			for (int i = 0; i < cmds.Length; i++)
+			for (int i = 0; i < commands.Length; i++)
 			{
-				var cmd = cmds[i];
+				var cmd = commands[i];
 				if (detailed)
 				{
 					sb.Append(CultureInfo.InvariantCulture, $"{cmd.Step,3} - T+{cmd.StartOffset.TotalMilliseconds,7:##0.000} ({cmd.Duration.Ticks / 10.0,7:##,##0} µs) : {cmd.ToString(keyResolver)}");
@@ -494,10 +487,10 @@ namespace FoundationDB.Filters.Logging
 				flag = !flag;
 			}
 
-			var cmds = this.Commands.ToArray();
+			var commands = this.Commands.ToArray();
 
 			// Header
-			sb.Append(CultureInfo.InvariantCulture, $"Transaction #{this.Id} ({(this.IsReadOnly ? "read-only" : "read/write")}, {cmds.Length} operations, '#' = {(scale * 1000d):N1} ms, started {this.StartedUtc.TimeOfDay}Z [{this.StartedUtc.ToUnixTimeMilliseconds() / 1000.0:F3}]");
+			sb.Append(CultureInfo.InvariantCulture, $"Transaction #{this.Id} ({(this.IsReadOnly ? "read-only" : "read/write")}, {commands.Length} operations, '#' = {(scale * 1000d):N1} ms, started {this.StartedUtc.TimeOfDay}Z [{this.StartedUtc.ToUnixTimeMilliseconds() / 1000.0:F3}]");
 			if (this.StoppedUtc.HasValue)
 			{
 				sb.Append(CultureInfo.InvariantCulture, $", ended {this.StoppedUtc.Value.TimeOfDay}Z [{this.StoppedUtc.Value.ToUnixTimeMilliseconds() / 1000.0:F3}])");
@@ -508,23 +501,23 @@ namespace FoundationDB.Filters.Logging
 			}
 			sb.AppendLine();
 
-			if (cmds.Length > 0)
+			if (commands.Length > 0)
 			{
 				var bar = new string('─', width + 2);
 				sb.AppendLine(CultureInfo.InvariantCulture, $"┌  oper. ┬{bar}┬──── start ──── end ── duration ──┬─ sent  recv ┐");
 
 				// look for the timestamps of the first and last commands
 				var first = TimeSpan.Zero;
-				foreach (Command cmd in cmds)
+				foreach (Command cmd in commands)
 				{
 					if (cmd.Op == Operation.Log) continue;
 					first = cmd.StartOffset;
 					break;
 				}
-				for(int i = cmds.Length - 1; i >= 0; i--)
+				for(int i = commands.Length - 1; i >= 0; i--)
 				{
-					if (cmds[i].Op == Operation.Log) continue;
-					var endOffset = cmds[i].EndOffset;
+					if (commands[i].Op == Operation.Log) continue;
+					var endOffset = commands[i].EndOffset;
 					if (endOffset.HasValue) duration = endOffset.Value;
 					break;
 				}
@@ -534,7 +527,7 @@ namespace FoundationDB.Filters.Logging
 				bool previousWasOnError = false;
 				int attempts = 1;
 				int charsToSkip = 0;
-				foreach (var cmd in cmds)
+				foreach (var cmd in commands)
 				{
 					if (previousWasOnError)
 					{
@@ -725,7 +718,7 @@ namespace FoundationDB.Filters.Logging
 			Write,
 			/// <summary>Operation that changes the state or behavior of the transaction</summary>
 			Meta,
-			/// <summary>Operation that watch changes performed in the database, outside of the transaction</summary>
+			/// <summary>Operation that watch changes performed in the database, outside the transaction</summary>
 			Watch,
 			/// <summary>Comments, annotations, debug output attached to the transaction</summary>
 			Annotation

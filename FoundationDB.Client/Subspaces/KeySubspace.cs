@@ -336,10 +336,9 @@ namespace FoundationDB.Client
 			// The key is outside the bounds, and must be corrected
 			// > return empty if we are before
 			// > return \xFF if we are after
-			if (key < prefix)
-				return Slice.Empty;
-			else
-				return FdbKey.System;
+			return key < prefix
+				? Slice.Empty
+				: FdbKey.SystemPrefix;
 		}
 
 		/// <summary>Check that a key fits inside this subspace, and return '' or '\xFF' if it is outside the bounds</summary>
@@ -362,10 +361,9 @@ namespace FoundationDB.Client
 			// The key is outside the bounds, and must be corrected
 			// > return empty if we are before
 			// > return \xFF if we are after
-			if (key.SequenceCompareTo(prefix) < 0)
-				return default;
-			else
-				return FdbKey.System.Span;
+			return key.SequenceCompareTo(prefix) < 0
+				? default
+				: FdbKey.SystemPrefixSpan;
 		}
 
 		/// <summary>Throw an exception for a key that is out of the bounds of this subspace</summary>

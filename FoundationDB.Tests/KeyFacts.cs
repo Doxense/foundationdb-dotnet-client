@@ -43,10 +43,16 @@ namespace FoundationDB.Client.Tests
 		{
 			Assert.Multiple(() =>
 			{
-				Assert.That(FdbKey.MinValue.GetBytes(), Is.EqualTo(new byte[] { 0 }));
-				Assert.That(FdbKey.MaxValue.GetBytes(), Is.EqualTo(new byte[] { 255 }));
-				Assert.That(FdbKey.System.GetBytes(), Is.EqualTo(new byte[] { 255 }));
-				Assert.That(FdbKey.Directory.GetBytes(), Is.EqualTo(new byte[] { 254 }));
+				Assert.That(FdbKey.MinValue.ToArray(), Is.EqualTo(new byte[] { 0 }));
+				Assert.That(FdbKey.MaxValue.ToArray(), Is.EqualTo(new byte[] { 255 }));
+				Assert.That(FdbKey.DirectoryPrefix.ToArray(), Is.EqualTo(new byte[] { 254 }));
+				Assert.That(FdbKey.SystemPrefix.ToArray(), Is.EqualTo(new byte[] { 255 }));
+
+				Assert.That(FdbKey.MinValueSpan.ToArray(), Is.EqualTo(new byte[] { 0 }));
+				Assert.That(FdbKey.MaxValueSpan.ToArray(), Is.EqualTo(new byte[] { 255 }));
+				Assert.That(FdbKey.DirectoryPrefixSpan.ToArray(), Is.EqualTo(new byte[] { 254 }));
+				Assert.That(FdbKey.SystemPrefixSpan.ToArray(), Is.EqualTo(new byte[] { 255 }));
+				Assert.That(FdbKey.SystemEndSpan.ToArray(), Is.EqualTo(new byte[] { 255, 255 }));
 			});
 
 			Assert.Multiple(() =>

@@ -38,17 +38,41 @@ namespace FoundationDB.Client
 	public static class FdbKey
 	{
 
-		/// <summary>Smallest possible key ('\0')</summary>
+		/// <summary>Smallest possible key (<c>0x00</c>)</summary>
 		public static readonly Slice MinValue = Slice.FromByte(0);
 
-		/// <summary>Biggest possible key ('\xFF'), excluding the system keys</summary>
+		/// <summary>Smallest possible key (<c>0x00 ]</c>)</summary>
+		public static ReadOnlySpan<byte> MinValueSpan => [ 0 ];
+
+		/// <summary>Biggest possible key (<c>0xFF</c>), excluding the system keys</summary>
 		public static readonly Slice MaxValue = Slice.FromByte(255);
 
-		/// <summary>Default Directory Layer prefix ('\xFE')</summary>
+		/// <summary>Biggest possible key (<c>0xFF</c>), excluding the system keys</summary>
+		public static ReadOnlySpan<byte> MaxValueSpan => [ 0xFF ];
+
+		/// <summary>Default Directory Layer prefix (<c>0xFE...</c>)</summary>
+		[Obsolete("Use FdbKey.DirectoryPrefix instead")]
 		public static readonly Slice Directory = Slice.FromByte(254);
 
-		/// <summary>Default System prefix ('\xFF')</summary>
+		/// <summary>Default Directory Layer prefix (<c>0xFE...</c>)</summary>
+		public static readonly Slice DirectoryPrefix = Slice.FromByte(254);
+
+		/// <summary>Default Directory Layer prefix (<c>0xFE...</c>)</summary>
+		public static ReadOnlySpan<byte> DirectoryPrefixSpan => [ 0xFE ];
+
+		/// <summary>Default System prefix (<c>0xFF...</c>)</summary>
+		[Obsolete("Use FdbKey.SystemPrefix instead")]
 		public static readonly Slice System = Slice.FromByte(255);
+		//note: this is obsolete because it causes too much ambiguity issues with the System namespace
+
+		/// <summary>Default System prefix (<c>0xFF...</c>)</summary>
+		public static readonly Slice SystemPrefix = Slice.FromByte(255);
+
+		/// <summary>Default System prefix (<c>0xFF...</c>)</summary>
+		public static ReadOnlySpan<byte> SystemPrefixSpan => [ 0xFF ];
+
+		/// <summary>Last possible key of System keyspace (<c>0xFFFF</c>)</summary>
+		public static ReadOnlySpan<byte> SystemEndSpan => [ 0xFF, 0xFF ];
 
 		/// <summary>Returns the first key lexicographically that does not have the passed in <paramref name="slice"/> as a prefix</summary>
 		/// <param name="slice">Slice to increment</param>
@@ -143,7 +167,7 @@ namespace FoundationDB.Client
 			if (keys is Slice[] array) return Merge(prefix, array);
 
 			// pre-allocate with a count if we can get one...
-			var next = !(keys is ICollection<Slice> coll) ? new List<int>() : new List<int>(coll.Count);
+			var next = keys is ICollection<Slice> coll ? new List<int>(coll.Count) : [ ];
 			var writer = default(SliceWriter);
 
 			//TODO: use multiple buffers if item count is huge ?
@@ -230,7 +254,7 @@ namespace FoundationDB.Client
 					m_cursor += size;
 					m_remaining -= size;
 
-					return new KeyValuePair<int, int>(cursor, size);
+					return new(cursor, size);
 				}
 			}
 
@@ -280,10 +304,20 @@ namespace FoundationDB.Client
 			return PrettyPrint(key, PrettyPrintMode.Single);
 		}
 
-		/// <summary>Produce a user-friendly version of the slice</summary>
-		/// <param name="key">Random binary key</param>
-		/// <param name="mode">Defines if the key is standalone, or is the begin or end part or a key range. This will enable or disable some heuristics that try to properly format key ranges.</param>
-		/// <returns>User friendly version of the key. Attempts to decode the key as a tuple first. Then as an ASCII string. Then as an hex dump of the key.</returns>
+#if NET8_0_OR_GREATER
+		private static readonly global::System.Buffers.SearchValues<byte> PossibleTupleFirstBytes = global::System.Buffers.SearchValues.Create([
+			0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+			10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+			21, 22, 23, 24, 25, 26, 27, 28,
+			32, 33, 48, 49,
+			254, 255
+		]);
+#endif
+
+		/// <summary>Produces a user-friendly version of the slice</summary>
+		/// <param name="key">Any binary key</param>
+		/// <param name="mode">Defines if the key is standalone, or is the beginning or end part or a key range. This will enable or disable some heuristics that try to properly format key ranges.</param>
+		/// <returns>User-friendly version of the key. Attempts to decode the key as a tuple first. Then as an ASCII string. Then as a hex dump of the key.</returns>
 		/// <remarks>This can be slow, and should only be used for logging or troubleshooting.</remarks>
 		[DebuggerNonUserCode]
 		public static string PrettyPrint(Slice key, PrettyPrintMode mode)
@@ -293,7 +327,11 @@ namespace FoundationDB.Client
 			{
 				byte c = span[0];
 				//OPTIMIZE: maybe we need a lookup table
+#if NET8_0_OR_GREATER
+				if (PossibleTupleFirstBytes.Contains(c))
+#else
 				if (c <= 28 || c == 32 || c == 33 || c == 48 || c == 49 || c >= 254)
+#endif
 				{ // it could be a tuple...
 					try
 					{
@@ -407,7 +445,11 @@ namespace FoundationDB.Client
 			{
 				byte c = key[0];
 				//OPTIMIZE: maybe we need a lookup table
+#if NET8_0_OR_GREATER
+				if (PossibleTupleFirstBytes.Contains(c))
+#else
 				if (c <= 28 || c == 32 || c == 33 || c == 48 || c == 49 || c >= 254)
+#endif
 				{ // it could be a tuple...
 					try
 					{
@@ -505,7 +547,7 @@ namespace FoundationDB.Client
 		/// <param name="ignoreError">If true, don't return an exception in <paramref name="error"/>, even if the key is invalid.</param>
 		/// <param name="error">Receive an exception object if the key is not valid and <paramref name="ignoreError"/> is false</param>
 		/// <returns>Return <c>false</c> if the key is outside the allowed key space of this database</returns>
-		internal static bool ValidateKey(in Slice key, bool endExclusive, bool ignoreError, out Exception? error)
+		internal static bool ValidateKey(Slice key, bool endExclusive, bool ignoreError, out Exception? error)
 		{
 			// null keys are not allowed
 			if (key.IsNull)
@@ -554,7 +596,7 @@ namespace FoundationDB.Client
 		/// <param name="key">Key to verify</param>
 		/// <param name="endExclusive">If true, the key is allowed to be one past the maximum key allowed by the global namespace</param>
 		/// <exception cref="FdbException">If the key is outside the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
-		public static void EnsureKeyIsValid(in Slice key, bool endExclusive = false)
+		public static void EnsureKeyIsValid(Slice key, bool endExclusive = false)
 		{
 			if (!ValidateKey(key, endExclusive, false, out var ex))
 			{
@@ -579,7 +621,7 @@ namespace FoundationDB.Client
 		{
 			for (int i = 0; i < keys.Length; i++)
 			{
-				if (!ValidateKey(in keys[i], endExclusive, false, out var ex))
+				if (!ValidateKey(keys[i], endExclusive, false, out var ex))
 				{
 					throw ex!;
 				}

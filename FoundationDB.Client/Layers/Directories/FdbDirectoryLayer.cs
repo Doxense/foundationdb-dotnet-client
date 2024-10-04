@@ -1459,7 +1459,7 @@ namespace FoundationDB.Client
 				this.Path = path;
 				this.Parent = parent;
 				this.Content = content;
-				this.Nodes = content.Partition[FdbKey.Directory];
+				this.Nodes = content.Partition[FdbKey.DirectoryPrefixSpan];
 				var rootNode = this.Nodes.Partition.ByKey(this.Nodes.GetPrefix());
 				this.VersionKey = rootNode.Encode(VersionAttribute);
 			}

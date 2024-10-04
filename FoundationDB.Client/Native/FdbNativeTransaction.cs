@@ -134,10 +134,9 @@ namespace FoundationDB.Client.Native
 				{
 					// for 610 and below, we must use fdb_future_get_version
 					// for 620 or above, we must use fdb_future_get_int64
-					long version;
 					var err = Fdb.BindingVersion < 620 
-			          ? FdbNative.FutureGetVersion(h, out version)
-			          : FdbNative.FutureGetInt64(h, out version);
+						? FdbNative.FutureGetVersion(h, out var version)
+						: FdbNative.FutureGetInt64(h, out version);
 
 #if DEBUG_TRANSACTIONS
 					Debug.WriteLine("FdbTransaction[" + m_id + "].GetReadVersion() => err=" + err + ", version=" + version);
@@ -329,7 +328,7 @@ namespace FoundationDB.Client.Native
 #endif
 			FdbNative.DieOnError(err);
 			Contract.Debug.Ensures(result != null); // can only be null in case of an error
-			return result!;
+			return result;
 		}
 		/// <summary>Asynchronously fetch a new page of results</summary>
 		/// <returns>True if Chunk contains a new page of results. False if all results have been read.</returns>
@@ -536,7 +535,7 @@ namespace FoundationDB.Client.Native
 			var future = FdbNative.TransactionGetAddressesForKey(m_handle, key);
 			return FdbFuture.CreateTaskFromHandle(
 				future,
-				(h) => GetStringArrayResult(h),
+				GetStringArrayResult,
 				ct
 			);
 		}
@@ -547,7 +546,7 @@ namespace FoundationDB.Client.Native
 			var future = FdbNative.TransactionGetRangeSplitPoints(m_handle, beginKey, endKey, chunkSize);
 			return FdbFuture.CreateTaskFromHandle(
 				future,
-				(h) => GetKeyArrayResult(h),
+				GetKeyArrayResult,
 				ct
 			);
 		}
@@ -601,7 +600,7 @@ namespace FoundationDB.Client.Native
 		{
 			var future = FdbNative.TransactionWatch(m_handle, key.Span);
 			return new FdbWatch(
-				FdbFuture.FromHandle<Slice>(future, (h) => key, ct),
+				FdbFuture.FromHandle<Slice>(future, (_) => key, ct),
 				key
 			);
 		}
@@ -649,13 +648,13 @@ namespace FoundationDB.Client.Native
 		public Task CommitAsync(CancellationToken ct)
 		{
 			var future = FdbNative.TransactionCommit(m_handle);
-			return FdbFuture.CreateTaskFromHandle<object?>(future, (h) => null, ct);
+			return FdbFuture.CreateTaskFromHandle<object?>(future, (_) => null, ct);
 		}
 
 		public Task OnErrorAsync(FdbError code, CancellationToken ct)
 		{
 			var future = FdbNative.TransactionOnError(m_handle, code);
-			return FdbFuture.CreateTaskFromHandle<object?>(future, (h) => { ResetInternal(); return null; }, ct);
+			return FdbFuture.CreateTaskFromHandle<object?>(future, (_) => { ResetInternal(); return null; }, ct);
 		}
 
 		public void Reset()

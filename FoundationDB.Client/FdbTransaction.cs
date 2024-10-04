@@ -729,8 +729,8 @@ namespace FoundationDB.Client
 		{
 			EnsureCanRead();
 
-			FdbKey.EnsureKeyIsValid(in beginInclusive.Key);
-			FdbKey.EnsureKeyIsValid(in endExclusive.Key, endExclusive: true);
+			FdbKey.EnsureKeyIsValid(beginInclusive.Key);
+			FdbKey.EnsureKeyIsValid(endExclusive.Key, endExclusive: true);
 
 			FdbRangeOptions.EnsureLegalValues(limit, targetBytes, mode, read, iteration);
 
@@ -745,8 +745,8 @@ namespace FoundationDB.Client
 		{
 			EnsureCanRead();
 
-			FdbKey.EnsureKeyIsValid(in beginInclusive.Key);
-			FdbKey.EnsureKeyIsValid(in endExclusive.Key, endExclusive: true);
+			FdbKey.EnsureKeyIsValid(beginInclusive.Key);
+			FdbKey.EnsureKeyIsValid(endExclusive.Key, endExclusive: true);
 
 			FdbRangeOptions.EnsureLegalValues(limit, targetBytes, mode, read, iteration);
 
@@ -857,8 +857,8 @@ namespace FoundationDB.Client
 			Contract.Debug.Requires(decoder != null);
 
 			EnsureCanRead();
-			FdbKey.EnsureKeyIsValid(in begin.Key);
-			FdbKey.EnsureKeyIsValid(in end.Key, endExclusive: true);
+			FdbKey.EnsureKeyIsValid(begin.Key);
+			FdbKey.EnsureKeyIsValid(end.Key, endExclusive: true);
 
 			options = FdbRangeOptions.EnsureDefaults(options, null, null, FdbStreamingMode.Iterator, FdbReadMode.Both, false);
 			options.EnsureLegalValues();
@@ -874,8 +874,8 @@ namespace FoundationDB.Client
 		internal FdbRangeQuery GetRangeCore(KeySelector begin, KeySelector end, FdbRangeOptions? options, bool snapshot)
 		{
 			EnsureCanRead();
-			FdbKey.EnsureKeyIsValid(in begin.Key);
-			FdbKey.EnsureKeyIsValid(in end.Key, endExclusive: true);
+			FdbKey.EnsureKeyIsValid(begin.Key);
+			FdbKey.EnsureKeyIsValid(end.Key, endExclusive: true);
 
 			options = FdbRangeOptions.EnsureDefaults(options, null, null, FdbStreamingMode.Iterator, FdbReadMode.Both, false);
 			options.EnsureLegalValues();
@@ -969,7 +969,7 @@ namespace FoundationDB.Client
 		{
 			EnsureCanRead();
 
-			FdbKey.EnsureKeyIsValid(in selector.Key);
+			FdbKey.EnsureKeyIsValid(selector.Key);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeyAsync", $"Getting key '{selector.ToString()}'");
@@ -1003,7 +1003,7 @@ namespace FoundationDB.Client
 
 			for (int i = 0; i < selectors.Length; i++)
 			{
-				FdbKey.EnsureKeyIsValid(in selectors[i].Key);
+				FdbKey.EnsureKeyIsValid(selectors[i].Key);
 			}
 
 #if DEBUG

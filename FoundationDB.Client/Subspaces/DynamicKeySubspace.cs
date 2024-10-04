@@ -838,6 +838,13 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Partitions this subspace into a child subspace</summary>
+		public IDynamicKeySubspace this[ReadOnlySpan<byte> binarySuffix]
+		{
+			[Pure]
+			get => new DynamicKeySubspace(this.Subspace.Append(binarySuffix), this.Subspace.KeyEncoder, this.Subspace.Context);
+		}
+
+		/// <summary>Partitions this subspace into a child subspace</summary>
 		public IDynamicKeySubspace this[IVarTuple suffix]
 		{
 			[Pure]

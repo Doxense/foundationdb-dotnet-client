@@ -28,6 +28,7 @@ namespace FoundationDB.Client
 {
 	using System.Diagnostics;
 	using System.Text;
+	using System.Runtime.CompilerServices;
 
 	/// <summary>Defines a selector for a key in the database</summary>
 	[DebuggerDisplay("{ToString(),nq}")]
@@ -47,17 +48,14 @@ namespace FoundationDB.Client
 		/// <summary>Creates a new selector</summary>
 		public KeySelector(Slice key, bool orEqual, int offset)
 		{
-			Key = key;
+			this.Key = key;
 			this.OrEqual = orEqual;
 			this.Offset = offset;
 		}
 
-		/// <summary>Empty key selector</summary>
-		public static readonly KeySelector None;
-
 		public bool Equals(KeySelector other)
 		{
-			return this.Offset == other.Offset && this.OrEqual == other.OrEqual && Key.Equals(other.Key);
+			return this.Offset == other.Offset && this.OrEqual == other.OrEqual && this.Key.Equals(other.Key);
 		}
 
 		public override bool Equals(object? obj)
@@ -68,7 +66,7 @@ namespace FoundationDB.Client
 		public override int GetHashCode()
 		{
 			// ReSharper disable once NonReadonlyMemberInGetHashCode
-			return Key.GetHashCode() ^ this.Offset ^ (this.OrEqual ? 0 : -1);
+			return this.Key.GetHashCode() ^ this.Offset ^ (this.OrEqual ? 0 : -1);
 		}
 
 		public void Deconstruct(out Slice key, out bool orEqual, out int offset)
@@ -79,6 +77,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Creates a key selector that will select the last key that is less than <paramref name="key"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static KeySelector LastLessThan(Slice key)
 		{
 			// #define FDB_KEYSEL_LAST_LESS_THAN(k, l) k, l, 0, 0
@@ -86,6 +85,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Creates a key selector that will select the last key that is less than or equal to <paramref name="key"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static KeySelector LastLessOrEqual(Slice key)
 		{
 			// #define FDB_KEYSEL_LAST_LESS_OR_EQUAL(k, l) k, l, 1, 0
@@ -93,6 +93,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Creates a key selector that will select the first key that is greater than <paramref name="key"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static KeySelector FirstGreaterThan(Slice key)
 		{
 			// #define FDB_KEYSEL_FIRST_GREATER_THAN(k, l) k, l, 1, 1

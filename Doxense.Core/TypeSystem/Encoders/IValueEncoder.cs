@@ -26,6 +26,8 @@
 
 namespace Doxense.Serialization.Encoders
 {
+	using Doxense.Memory;
+
 	/// <summary>Class that know how to encode and decode values of a fixed type into a lower format</summary>
 	/// <typeparam name="TValue">Type of the values</typeparam>
 	/// <typeparam name="TStorage">Type of the encoded form of the values (Slice, string, ...)</typeparam>
@@ -48,6 +50,12 @@ namespace Doxense.Serialization.Encoders
 		// no methods
 
 		//TODO: add custom "EncodeValueTo(ref SliceWriter)" and "DecodeValueFrom(ref SliceReader)" ?
+
+		void WriteValueTo(ref SliceWriter writer, TValue? value)
+		{
+			writer.WriteBytes(EncodeValue(value));
+		}
+
 	}
 
 }

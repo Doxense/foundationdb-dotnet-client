@@ -92,7 +92,7 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public abstract IKeyEncoding Encoding { get; }
 
-		protected SubspaceLocation(in FdbPath path, in Slice prefix)
+		protected SubspaceLocation(FdbPath path, Slice prefix)
 		{
 			this.Path = path;
 			this.Prefix = prefix.IsNull ? Slice.Empty : prefix;
@@ -136,10 +136,10 @@ namespace FoundationDB.Client
 
 		public override IKeyEncoding Encoding => BinaryEncoding.Instance;
 
-		public BinaryKeySubspaceLocation(in Slice suffix) : base(default, suffix)
+		public BinaryKeySubspaceLocation(Slice suffix) : base(default, suffix)
 		{ }
 
-		public BinaryKeySubspaceLocation(in FdbPath path, in Slice suffix)
+		public BinaryKeySubspaceLocation(FdbPath path, Slice suffix)
 			: base(path, suffix)
 		{ }
 
@@ -188,14 +188,14 @@ namespace FoundationDB.Client
 
 		public override IKeyEncoding Encoding => this.Encoder.Encoding;
 
-		public DynamicKeySubspaceLocation(in FdbPath path, in Slice suffix, IDynamicKeyEncoder encoder)
+		public DynamicKeySubspaceLocation(FdbPath path, Slice suffix, IDynamicKeyEncoder encoder)
 			: base(path, suffix)
 		{
 			Contract.NotNull(encoder);
 			this.Encoder = encoder;
 		}
 
-		public DynamicKeySubspaceLocation(in Slice prefix, IDynamicKeyEncoder encoder)
+		public DynamicKeySubspaceLocation(Slice prefix, IDynamicKeyEncoder encoder)
 			: base(default, prefix)
 		{
 			Contract.NotNull(encoder);
