@@ -64,6 +64,337 @@ namespace Doxense.Linq.Tests
 			Assert.That(any, Is.True);
 		}
 
+		[Test]
+		public void Test_Enumerable_Buffered_Array()
+		{
+			int[] RangeArray(int count) => Enumerable.Range(0, count).ToArray();
+
+			{ // empty
+				var items = RangeArray(0);
+
+				using var iterator = items.Buffered(20).GetEnumerator();
+
+				Assert.That(iterator.MoveNext(), Is.False);
+			}
+			{ // less than chunk size
+				var items = RangeArray(7);
+
+				using var iterator = items.Buffered(20).GetEnumerator();
+
+				Assert.That(iterator.MoveNext(), Is.True);
+				var chunk = iterator.Current;
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(0, 7).ToList()));
+				Assert.That(iterator.MoveNext(), Is.False);
+			}
+			{ // exactly the chunk size
+				var items = RangeArray(20);
+
+				using var iterator = items.Buffered(20).GetEnumerator();
+
+				Assert.That(iterator.MoveNext(), Is.True);
+				var chunk = iterator.Current;
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(0, 20).ToList()));
+				Assert.That(iterator.MoveNext(), Is.False);
+			}
+			{ // one more than chunk size
+				var items = RangeArray(21);
+
+				using var iterator = items.Buffered(20).GetEnumerator();
+
+				Assert.That(iterator.MoveNext(), Is.True);
+				var chunk = iterator.Current;
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(0, 20).ToList()));
+				Assert.That(iterator.MoveNext(), Is.True);
+				Assert.That(iterator.Current, Is.SameAs(chunk), "Iterator should reuse the same list");
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(20, 1).ToList()));
+				Assert.That(iterator.MoveNext(), Is.False);
+			}
+			{ // last chunk full
+				var items = RangeArray(60);
+
+				using var iterator = items.Buffered(20).GetEnumerator();
+
+				Assert.That(iterator.MoveNext(), Is.True);
+				var chunk = iterator.Current;
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(0, 20).ToList()));
+				Assert.That(iterator.MoveNext(), Is.True);
+				Assert.That(iterator.Current, Is.SameAs(chunk), "Iterator should reuse the same list");
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(20, 20).ToList()));
+				Assert.That(iterator.MoveNext(), Is.True);
+				Assert.That(iterator.Current, Is.SameAs(chunk), "Iterator should reuse the same list");
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(40, 20).ToList()));
+				Assert.That(iterator.MoveNext(), Is.False);
+			}
+			{ // last chunk not full
+				var items = RangeArray(77);
+
+				using var iterator = items.Buffered(20).GetEnumerator();
+
+				Assert.That(iterator.MoveNext(), Is.True);
+				var chunk = iterator.Current;
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(0, 20).ToList()));
+				Assert.That(iterator.MoveNext(), Is.True);
+				Assert.That(iterator.Current, Is.SameAs(chunk), "Iterator should reuse the same list");
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(20, 20).ToList()));
+				Assert.That(iterator.MoveNext(), Is.True);
+				Assert.That(iterator.Current, Is.SameAs(chunk), "Iterator should reuse the same list");
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(40, 20).ToList()));
+				Assert.That(iterator.MoveNext(), Is.True);
+				Assert.That(iterator.Current, Is.SameAs(chunk), "Iterator should reuse the same list");
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(60, 17).ToList()));
+				Assert.That(iterator.MoveNext(), Is.False);
+			}
+		}
+
+		[Test]
+		public void Test_Enumerable_Buffered_List()
+		{
+			List<int> RangeList(int count) => Enumerable.Range(0, count).ToList();
+
+			{ // empty
+				var items = RangeList(0);
+
+				using var iterator = items.Buffered(20).GetEnumerator();
+
+				Assert.That(iterator.MoveNext(), Is.False);
+			}
+			{ // less than chunk size
+				var items = RangeList(7);
+
+				using var iterator = items.Buffered(20).GetEnumerator();
+
+				Assert.That(iterator.MoveNext(), Is.True);
+				var chunk = iterator.Current;
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(0, 7).ToList()));
+				Assert.That(iterator.MoveNext(), Is.False);
+			}
+			{ // exactly the chunk size
+				var items = RangeList(20);
+
+				using var iterator = items.Buffered(20).GetEnumerator();
+
+				Assert.That(iterator.MoveNext(), Is.True);
+				var chunk = iterator.Current;
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(0, 20).ToList()));
+				Assert.That(iterator.MoveNext(), Is.False);
+			}
+			{ // one more than chunk size
+				var items = RangeList(21);
+
+				using var iterator = items.Buffered(20).GetEnumerator();
+
+				Assert.That(iterator.MoveNext(), Is.True);
+				var chunk = iterator.Current;
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(0, 20).ToList()));
+				Assert.That(iterator.MoveNext(), Is.True);
+				Assert.That(iterator.Current, Is.SameAs(chunk), "Iterator should reuse the same list");
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(20, 1).ToList()));
+				Assert.That(iterator.MoveNext(), Is.False);
+			}
+			{ // last chunk full
+				var items = RangeList(60);
+
+				using var iterator = items.Buffered(20).GetEnumerator();
+
+				Assert.That(iterator.MoveNext(), Is.True);
+				var chunk = iterator.Current;
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(0, 20).ToList()));
+				Assert.That(iterator.MoveNext(), Is.True);
+				Assert.That(iterator.Current, Is.SameAs(chunk), "Iterator should reuse the same list");
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(20, 20).ToList()));
+				Assert.That(iterator.MoveNext(), Is.True);
+				Assert.That(iterator.Current, Is.SameAs(chunk), "Iterator should reuse the same list");
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(40, 20).ToList()));
+				Assert.That(iterator.MoveNext(), Is.False);
+			}
+			{ // last chunk not full
+				var items = RangeList(77);
+
+				using var iterator = items.Buffered(20).GetEnumerator();
+
+				Assert.That(iterator.MoveNext(), Is.True);
+				var chunk = iterator.Current;
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(0, 20).ToList()));
+				Assert.That(iterator.MoveNext(), Is.True);
+				Assert.That(iterator.Current, Is.SameAs(chunk), "Iterator should reuse the same list");
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(20, 20).ToList()));
+				Assert.That(iterator.MoveNext(), Is.True);
+				Assert.That(iterator.Current, Is.SameAs(chunk), "Iterator should reuse the same list");
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(40, 20).ToList()));
+				Assert.That(iterator.MoveNext(), Is.True);
+				Assert.That(iterator.Current, Is.SameAs(chunk), "Iterator should reuse the same list");
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(60, 17).ToList()));
+				Assert.That(iterator.MoveNext(), Is.False);
+			}
+		}
+
+		[Test]
+		public void Test_Enumerable_Buffered_Countable()
+		{
+			{ // empty
+				var items = Enumerable.Empty<int>();
+
+				using var iterator = items.Buffered(20).GetEnumerator();
+
+				Assert.That(iterator.MoveNext(), Is.False);
+			}
+			{ // less than chunk size
+				var items = Enumerable.Range(0, 7);
+
+				using var iterator = items.Buffered(20).GetEnumerator();
+
+				Assert.That(iterator.MoveNext(), Is.True);
+				var chunk = iterator.Current;
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(0, 7).ToList()));
+				Assert.That(iterator.MoveNext(), Is.False);
+			}
+			{ // exactly the chunk size
+				var items = Enumerable.Range(0, 20);
+
+				using var iterator = items.Buffered(20).GetEnumerator();
+
+				Assert.That(iterator.MoveNext(), Is.True);
+				var chunk = iterator.Current;
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(0, 20).ToList()));
+				Assert.That(iterator.MoveNext(), Is.False);
+			}
+			{ // one more than chunk size
+				var items = Enumerable.Range(0, 21);
+
+				using var iterator = items.Buffered(20).GetEnumerator();
+
+				Assert.That(iterator.MoveNext(), Is.True);
+				var chunk = iterator.Current;
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(0, 20).ToList()));
+				Assert.That(iterator.MoveNext(), Is.True);
+				Assert.That(iterator.Current, Is.SameAs(chunk), "Iterator should reuse the same list");
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(20, 1).ToList()));
+				Assert.That(iterator.MoveNext(), Is.False);
+			}
+			{ // last chunk full
+				var items = Enumerable.Range(0, 60);
+
+				using var iterator = items.Buffered(20).GetEnumerator();
+
+				Assert.That(iterator.MoveNext(), Is.True);
+				var chunk = iterator.Current;
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(0, 20).ToList()));
+				Assert.That(iterator.MoveNext(), Is.True);
+				Assert.That(iterator.Current, Is.SameAs(chunk), "Iterator should reuse the same list");
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(20, 20).ToList()));
+				Assert.That(iterator.MoveNext(), Is.True);
+				Assert.That(iterator.Current, Is.SameAs(chunk), "Iterator should reuse the same list");
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(40, 20).ToList()));
+				Assert.That(iterator.MoveNext(), Is.False);
+			}
+			{ // last chunk not full
+				var items = Enumerable.Range(0, 77);
+
+				using var iterator = items.Buffered(20).GetEnumerator();
+
+				Assert.That(iterator.MoveNext(), Is.True);
+				var chunk = iterator.Current;
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(0, 20).ToList()));
+				Assert.That(iterator.MoveNext(), Is.True);
+				Assert.That(iterator.Current, Is.SameAs(chunk), "Iterator should reuse the same list");
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(20, 20).ToList()));
+				Assert.That(iterator.MoveNext(), Is.True);
+				Assert.That(iterator.Current, Is.SameAs(chunk), "Iterator should reuse the same list");
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(40, 20).ToList()));
+				Assert.That(iterator.MoveNext(), Is.True);
+				Assert.That(iterator.Current, Is.SameAs(chunk), "Iterator should reuse the same list");
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(60, 17).ToList()));
+				Assert.That(iterator.MoveNext(), Is.False);
+			}
+		}
+
+		[Test]
+		public void Test_Enumerable_Buffered_Uncountable()
+		{
+			IEnumerable<int> RangeUncountable(int count)
+			{
+				for (int i = 0; i < count; i++)
+				{
+					yield return i;
+				}
+			}
+
+			{ // empty
+				var items = RangeUncountable(0);
+
+				using var iterator = items.Buffered(20).GetEnumerator();
+
+				Assert.That(iterator.MoveNext(), Is.False);
+			}
+			{ // less than chunk size
+				var items = RangeUncountable(7);
+
+				using var iterator = items.Buffered(20).GetEnumerator();
+
+				Assert.That(iterator.MoveNext(), Is.True);
+				var chunk = iterator.Current;
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(0, 7).ToList()));
+				Assert.That(iterator.MoveNext(), Is.False);
+			}
+			{ // exactly the chunk size
+				var items = RangeUncountable(20);
+
+				using var iterator = items.Buffered(20).GetEnumerator();
+
+				Assert.That(iterator.MoveNext(), Is.True);
+				var chunk = iterator.Current;
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(0, 20).ToList()));
+				Assert.That(iterator.MoveNext(), Is.False);
+			}
+			{ // one more than chunk size
+				var items = RangeUncountable(21);
+
+				using var iterator = items.Buffered(20).GetEnumerator();
+
+				Assert.That(iterator.MoveNext(), Is.True);
+				var chunk = iterator.Current;
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(0, 20).ToList()));
+				Assert.That(iterator.MoveNext(), Is.True);
+				Assert.That(iterator.Current, Is.SameAs(chunk), "Iterator should reuse the same list");
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(20, 1).ToList()));
+				Assert.That(iterator.MoveNext(), Is.False);
+			}
+			{ // last chunk full
+				var items = RangeUncountable(60);
+
+				using var iterator = items.Buffered(20).GetEnumerator();
+
+				Assert.That(iterator.MoveNext(), Is.True);
+				var chunk = iterator.Current;
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(0, 20).ToList()));
+				Assert.That(iterator.MoveNext(), Is.True);
+				Assert.That(iterator.Current, Is.SameAs(chunk), "Iterator should reuse the same list");
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(20, 20).ToList()));
+				Assert.That(iterator.MoveNext(), Is.True);
+				Assert.That(iterator.Current, Is.SameAs(chunk), "Iterator should reuse the same list");
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(40, 20).ToList()));
+				Assert.That(iterator.MoveNext(), Is.False);
+			}
+			{ // last chunk not full
+				var items = RangeUncountable(77);
+
+				using var iterator = items.Buffered(20).GetEnumerator();
+
+				Assert.That(iterator.MoveNext(), Is.True);
+				var chunk = iterator.Current;
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(0, 20).ToList()));
+				Assert.That(iterator.MoveNext(), Is.True);
+				Assert.That(iterator.Current, Is.SameAs(chunk), "Iterator should reuse the same list");
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(20, 20).ToList()));
+				Assert.That(iterator.MoveNext(), Is.True);
+				Assert.That(iterator.Current, Is.SameAs(chunk), "Iterator should reuse the same list");
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(40, 20).ToList()));
+				Assert.That(iterator.MoveNext(), Is.True);
+				Assert.That(iterator.Current, Is.SameAs(chunk), "Iterator should reuse the same list");
+				Assert.That(chunk, Is.EqualTo(Enumerable.Range(60, 17).ToList()));
+				Assert.That(iterator.MoveNext(), Is.False);
+			}
+		}
 
 		[Test]
 		public void Test_Record_Items()

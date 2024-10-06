@@ -27,8 +27,6 @@
 namespace Doxense.Linq
 {
 	using System.Collections.Immutable;
-	using System.Xml.Linq;
-
 	using Doxense.Linq.Async.Expressions;
 	using Doxense.Linq.Async.Iterators;
 	using Doxense.Threading.Tasks;
@@ -111,33 +109,6 @@ namespace Doxense.Linq
 		{
 			//TODO: create a custom iterator for this ?
 			return ToAsyncEnumerable([ asyncLambda ]).Select(x => x());
-		}
-
-		/// <summary>Split a sequence of items into several batches</summary>
-		/// <typeparam name="T">Type of the elements in <paramref name="source"/></typeparam>
-		/// <param name="source">Source sequence</param>
-		/// <param name="batchSize">Maximum size of each batch</param>
-		/// <returns>Sequence of batches, whose size will always we <paramref name="batchSize"/>, except for the last batch that will only hold the remaining items. If the source is empty, an empty sequence is returned.</returns>
-		[Pure, LinqTunnel]
-		public static IEnumerable<List<T>> Buffered<T>(this IEnumerable<T> source, int batchSize)
-		{
-			Contract.NotNull(source);
-			if (batchSize <= 0) throw new ArgumentException("Batch size must be greater than zero.", nameof(batchSize));
-
-			var list = new List<T>(batchSize);
-			foreach (var item in source)
-			{
-				list.Add(item);
-				if (list.Count >= batchSize)
-				{
-					yield return list;
-					list.Clear();
-				}
-			}
-			if (list.Count > 0)
-			{
-				yield return list;
-			}
 		}
 
 		#endregion

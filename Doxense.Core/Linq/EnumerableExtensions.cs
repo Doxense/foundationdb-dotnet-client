@@ -26,6 +26,7 @@
 
 namespace Doxense.Linq
 {
+	using System.Runtime.InteropServices;
 	using Doxense.Linq.Iterators;
 
 	/// <summary>Provides a set of static methods for querying objects that implement <see cref="IEnumerable{T}"/>.</summary>
@@ -64,6 +65,77 @@ namespace Doxense.Linq
 				}
 			}
 			return true;
+		}
+
+		/// <summary>Split a sequence of items into several batches</summary>
+		/// <typeparam name="T">Type of the elements in <paramref name="source"/></typeparam>
+		/// <param name="source">Source sequence</param>
+		/// <param name="batchSize">Maximum size of each batch</param>
+		/// <returns>Sequence of batches, whose size will always we <paramref name="batchSize"/>, except for the last batch that will only hold the remaining items. If the source is empty, an empty sequence is returned.</returns>
+		[Pure, LinqTunnel]
+		public static IEnumerable<List<T>> Buffered<T>(this IEnumerable<T> source, int batchSize)
+		{
+			Contract.NotNull(source);
+			Contract.GreaterThan(batchSize, 0, "Batch size must be greater than zero.");
+
+			if (Buffer<T>.TryGetSpan(source, out var span) && span.Length <= batchSize)
+			{
+				return BufferedSpan(span);
+			}
+			return BufferedEnumerable(source, batchSize);
+
+			static IEnumerable<List<T>> BufferedSpan(ReadOnlySpan<T> source)
+			{
+				if (source.Length == 0)
+				{
+					return [ ];
+				}
+
+				var res = new List<T>();
+#if NET8_0_OR_GREATER
+				CollectionsMarshal.SetCount(res, source.Length);
+				source.CopyTo(CollectionsMarshal.AsSpan(res));
+#else
+				foreach (var item in source)
+				{
+					res.Add(item);
+				}
+#endif
+				return [res];
+			}
+
+			static IEnumerable<List<T>> BufferedEnumerable(IEnumerable<T> source, int batchSize)
+			{
+				// allocate with initial capacity
+				if (source.TryGetNonEnumeratedCount(out var count))
+				{ // we know the exact count
+					if (count == 0)
+					{
+						yield break;
+					}
+				}
+				else
+				{ // unknown count, assume that we will fill the buffer
+					count = batchSize;
+				}
+				var list = new List<T>(Math.Min(count, batchSize));
+
+				foreach (var item in source)
+				{
+					list.Add(item);
+					if (list.Count >= batchSize)
+					{
+						yield return list;
+						list.Clear();
+					}
+				}
+
+				if (list.Count > 0)
+				{
+					yield return list;
+					list.Clear();
+				}
+			}
 		}
 
 		#region Query Statistics...
