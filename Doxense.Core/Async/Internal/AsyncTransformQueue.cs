@@ -37,11 +37,7 @@ namespace Doxense.Async
 	{
 		private readonly Func<TInput, CancellationToken, Task<TOutput>> m_transform;
 		private readonly Queue<Task<Maybe<TOutput>>> m_queue = new();
-#if NET9_0_OR_GREATER
 		private readonly Lock m_lock = new();
-#else
-		private readonly object m_lock = new();
-#endif
 		private readonly int m_capacity;
 		private AsyncCancelableMutex? m_blockedProducer;
 		private AsyncCancelableMutex? m_blockedConsumer;
