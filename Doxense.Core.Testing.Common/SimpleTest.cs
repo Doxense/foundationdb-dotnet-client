@@ -1042,15 +1042,23 @@ namespace SnowBank.Testing
 			{ // Array
 				Array arr = (Array) item;
 				var elType = type.GetElementType()!;
-				if (typeof(IFormattable).IsAssignableFrom(elType))
+				if (elType.IsAssignableTo(typeof(IFormattable)))
 				{
 					return $"({elType.GetFriendlyName()}[{arr.Length}]) [ {string.Join(", ", arr.Cast<IFormattable>().Select(x => x.ToString(null, CultureInfo.InvariantCulture)))} ]";
+				}
+				if (elType.IsAssignableTo(typeof(IJsonSerializable)))
+				{
+					return $"({type.GetFriendlyName()}) {CrystalJson.Serialize(item)}";
 				}
 				return $"({elType.GetFriendlyName()}[{arr.Length}]) {CrystalJson.Serialize(item)}";
 			}
 
-			// Alea Jacta Est
-			return $"({type.GetFriendlyName()}) {CrystalJson.Serialize(item)}";
+			if (type.IsAssignableTo(typeof(IJsonSerializable)))
+			{
+				return $"({type.GetFriendlyName()}) {CrystalJson.Serialize(item)}";
+			}
+
+			return $"({type.GetFriendlyName()}) {item}";
 		}
 
 		protected virtual ILoggerFactory Loggers => TestLoggerFactory.Instance;
