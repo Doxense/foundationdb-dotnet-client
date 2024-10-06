@@ -1674,6 +1674,12 @@ namespace System
 				: EscapeString(new StringBuilder(count + 2).Append('\''), buffer[..maxLen], Slice.Utf8NoBomEncoding).Append("[\u2026]'").ToString();
 		}
 
+		private string ToDebuggerDisplay()
+		{
+			if (this.Count == 0) return this.Array == null ? "<null>" : "<empty>";
+			return $"[{Count}] {PrettyPrint()}";
+		}
+
 		/// <summary>Converts a slice into a byte</summary>
 		/// <returns>Value of the first and only byte of the slice, or 0 if the slice is null or empty.</returns>
 		/// <exception cref="System.FormatException">If the slice has more than one byte</exception>

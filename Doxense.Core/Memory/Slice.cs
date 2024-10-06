@@ -45,7 +45,7 @@ namespace System
 	/// It is considered "read-only", in a sense that <i>consumers</i> of this type SHOULD NOT attempt to modify the content of the slice. Though, it is <b>NOT</b> guaranteed the content of a slice will not change, if the backing array is mutated directly.
 	/// This type as several advantages over <see cref="ReadOnlyMemory{T}"/> or <see cref="Span{T}"/> when working with legacy APIs that don't support spans directly, and can also be stored one the heap.
 	/// </remarks>
-	[PublicAPI, ImmutableObject(true), DebuggerDisplay("Count={Count}, {PrettyPrint(),nq}"), DebuggerTypeProxy(typeof(DebugView))]
+	[PublicAPI, ImmutableObject(true), DebuggerDisplay("{ToDebuggerDisplay(),nq}"), DebuggerTypeProxy(typeof(DebugView))]
 	[DebuggerNonUserCode] //remove this when you need to troubleshoot this class!
 #if NET8_0_OR_GREATER
 	[CollectionBuilder(typeof(Slice), nameof(Slice.Copy))]
