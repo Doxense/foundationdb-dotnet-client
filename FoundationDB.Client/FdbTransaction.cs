@@ -343,7 +343,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Return the observed read version, if it was requested at some point</summary>
-		/// <param name="readVersion">If the methods returns <see langword="true"/>, receives the read version that a call to <see cref="GetReadVersionAsync"/> produced</param>
+		/// <param name="readVersion">If the method returns <see langword="true"/>, receives the read version that a call to <see cref="GetReadVersionAsync"/> produced</param>
 		internal bool TryGetCachedReadVersion(out long readVersion)
 		{
 			lock (this)
@@ -1900,7 +1900,7 @@ namespace FoundationDB.Client
 #if DEBUG
 							catch(Exception e)
 							{
-								System.Diagnostics.Debug.WriteLine("Logged transaction handler failed: " + e.ToString());
+								System.Diagnostics.Debug.WriteLine($"Logged transaction handler failed: {e}");
 							}
 #else
 							catch { }

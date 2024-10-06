@@ -30,6 +30,7 @@ namespace FoundationDB.Client
 	using System.Buffers.Binary;
 	using System.Diagnostics;
 	using System.Linq;
+	using System.Numerics;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 	using System.Text;
@@ -463,20 +464,38 @@ namespace FoundationDB.Client
 		{
 			if (value.Length == 0)
 			{
-				trans.Set(key, Slice.Empty);
+				trans.Set(key, default(ReadOnlySpan<byte>));
 				return;
 			}
 
 			int byteCount = Encoding.UTF8.GetByteCount(value);
-			byte[]? array = null;
-			Span<byte> scratch = byteCount <= 128 ? stackalloc byte[byteCount] : (array = ArrayPool<byte>.Shared.Rent(byteCount));
-			int len = Encoding.UTF8.GetBytes(value, scratch);
-			trans.Set(key, scratch[..len]);
-			if (array != null)
+			if (byteCount <= 128)
 			{
+				SetValueStringSmall(trans, key, value, byteCount);
+			}
+			else
+			{
+				SetValueStringLarge(trans, key, value, byteCount);
+			}
+
+			static void SetValueStringSmall(IFdbTransaction trans, ReadOnlySpan<byte> key, ReadOnlySpan<char> value, int byteCount)
+			{
+				Span<byte> scratch = stackalloc byte[byteCount];
+				int len = Encoding.UTF8.GetBytes(value, scratch);
+				trans.Set(key, scratch[..len]);
+			}
+
+			static void SetValueStringLarge(IFdbTransaction trans, ReadOnlySpan<byte> key, ReadOnlySpan<char> value, int byteCount)
+			{
+				var array = ArrayPool<byte>.Shared.Rent(byteCount);
+				int len = Encoding.UTF8.GetBytes(value, array);
+				trans.Set(key, array.AsSpan(0, len));
 				ArrayPool<byte>.Shared.Return(array);
 			}
+
 		}
+
+		#region Int32
 
 		/// <summary>Sets the value of a key in the database as a 32-bits little-endian signed integer</summary>
 		public static void SetValueInt32(this IFdbTransaction trans, Slice key, int value) => SetValueInt32(trans, ToSpanKey(key), value);
@@ -484,10 +503,19 @@ namespace FoundationDB.Client
 		/// <summary>Sets the value of a key in the database as a 32-bits little-endian signed integer</summary>
 		public static void SetValueInt32(this IFdbTransaction trans, ReadOnlySpan<byte> key, int value)
 		{
-			Span<byte> scratch = stackalloc byte[4];
-			BinaryPrimitives.WriteInt32LittleEndian(scratch, value);
-			trans.Set(key, scratch);
+			value = BitConverter.IsLittleEndian ? value : BinaryPrimitives.ReverseEndianness(value);
+			trans.Set(key, MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<int, byte>(ref value), 4));
 		}
+
+		/// <summary>Sets the value of a key in the database as a 32-bits little-endian signed integer</summary>
+		public static void SetValueInt32Compact(this IFdbTransaction trans, Slice key, int value) => SetValueInt64Compact(trans, ToSpanKey(key), value);
+
+		/// <summary>Sets the value of a key in the database as a 32-bits little-endian signed integer</summary>
+		public static void SetValueInt32Compact(this IFdbTransaction trans, ReadOnlySpan<byte> key, int value) => SetValueInt64Compact(trans, key, value);
+
+		#endregion
+
+		#region UInt32
 
 		/// <summary>Sets the value of a key in the database as a 32-bits little-endian unsigned integer</summary>
 		public static void SetValueUInt32(this IFdbTransaction trans, Slice key, uint value) => SetValueUInt32(trans, ToSpanKey(key), value);
@@ -495,10 +523,19 @@ namespace FoundationDB.Client
 		/// <summary>Sets the value of a key in the database as a 32-bits little-endian unsigned integer</summary>
 		public static void SetValueUInt32(this IFdbTransaction trans, ReadOnlySpan<byte> key, uint value)
 		{
-			Span<byte> scratch = stackalloc byte[4];
-			BinaryPrimitives.WriteUInt32LittleEndian(scratch, value);
-			trans.Set(key, scratch);
+			value = BitConverter.IsLittleEndian ? value : BinaryPrimitives.ReverseEndianness(value);
+			trans.Set(key, MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<uint, byte>(ref value), 4));
 		}
+
+		/// <summary>Sets the value of a key in the database as a 32-bits little-endian unsigned integer</summary>
+		public static void SetValueUInt32Compact(this IFdbTransaction trans, Slice key, uint value) => SetValueUInt64Compact(trans, ToSpanKey(key), value);
+
+		/// <summary>Sets the value of a key in the database as a 32-bits little-endian unsigned integer</summary>
+		public static void SetValueUInt32Compact(this IFdbTransaction trans, ReadOnlySpan<byte> key, uint value) => SetValueUInt64Compact(trans, key, value);
+
+		#endregion
+
+		#region Int64
 
 		/// <summary>Sets the value of a key in the database as a 64-bits little-endian signed integer</summary>
 		public static void SetValueInt64(this IFdbTransaction trans, Slice key, long value) => SetValueInt64(trans, ToSpanKey(key), value);
@@ -506,10 +543,28 @@ namespace FoundationDB.Client
 		/// <summary>Sets the value of a key in the database as a 64-bits little-endian signed integer</summary>
 		public static void SetValueInt64(this IFdbTransaction trans, ReadOnlySpan<byte> key, long value)
 		{
-			Span<byte> scratch = stackalloc byte[8];
-			BinaryPrimitives.WriteInt64LittleEndian(scratch, value);
-			trans.Set(key, scratch);
+			value = BitConverter.IsLittleEndian ? value : BinaryPrimitives.ReverseEndianness(value);
+			trans.Set(key, MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<long, byte>(ref value), 8));
 		}
+
+		/// <summary>Sets the value of a key in the database as a 64-bits little-endian signed integer</summary>
+		public static void SetValueInt64Compact(this IFdbTransaction trans, Slice key, long value) => SetValueInt64Compact(trans, ToSpanKey(key), value);
+
+		/// <summary>Sets the value of a key in the database as a 64-bits little-endian signed integer</summary>
+		public static void SetValueInt64Compact(this IFdbTransaction trans, ReadOnlySpan<byte> key, long value)
+		{
+			unchecked
+			{
+				ulong v = Math.Min(Math.Max(1, (ulong) value), ulong.MaxValue - 1);
+				int n = ((7 + BitOperations.Log2(BitOperations.RoundUpToPowerOf2(v + 1))) / 8);
+				v = BitConverter.IsLittleEndian ? (ulong) value : BinaryPrimitives.ReverseEndianness((ulong) value);
+				trans.Set(key, MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<ulong, byte>(ref v), n));
+			}
+		}
+
+		#endregion
+
+		#region UInt64
 
 		/// <summary>Sets the value of a key in the database as a 64-bits little-endian unsigned integer</summary>
 		public static void SetValueUInt64(this IFdbTransaction trans, Slice key, ulong value) => SetValueUInt64(trans, ToSpanKey(key), value);
@@ -517,10 +572,25 @@ namespace FoundationDB.Client
 		/// <summary>Sets the value of a key in the database as a 64-bits little-endian unsigned integer</summary>
 		public static void SetValueUInt64(this IFdbTransaction trans, ReadOnlySpan<byte> key, ulong value)
 		{
-			Span<byte> scratch = stackalloc byte[8];
-			BinaryPrimitives.WriteUInt64LittleEndian(scratch, value);
-			trans.Set(key, scratch);
+			value = BitConverter.IsLittleEndian ? value : BinaryPrimitives.ReverseEndianness(value);
+			trans.Set(key, MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<ulong, byte>(ref value), 8));
 		}
+
+		/// <summary>Sets the value of a key in the database as a 64-bits little-endian unsigned integer</summary>
+		public static void SetValueUInt64Compact(this IFdbTransaction trans, Slice key, ulong value) => SetValueUInt64Compact(trans, ToSpanKey(key), value);
+
+		/// <summary>Sets the value of a key in the database as a 64-bits little-endian unsigned integer</summary>
+		public static void SetValueUInt64Compact(this IFdbTransaction trans, ReadOnlySpan<byte> key, ulong value)
+		{
+			ulong v = Math.Min(Math.Max(1, value), ulong.MaxValue - 1);
+			int n = ((7 + BitOperations.Log2(BitOperations.RoundUpToPowerOf2(v + 1))) / 8);
+			v = BitConverter.IsLittleEndian ? value : BinaryPrimitives.ReverseEndianness(value);
+			trans.Set(key, MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<ulong, byte>(ref v), n));
+		}
+
+		#endregion
+
+		#region UUIDs
 
 		/// <summary>Sets the value of a key in the database as a 128-bits UUID</summary>
 		public static void SetValueGuid(this IFdbTransaction trans, Slice key, Guid value) => SetValueGuid(trans, ToSpanKey(key), value);
@@ -543,6 +613,19 @@ namespace FoundationDB.Client
 			value.WriteTo(scratch);
 			trans.Set(key, scratch);
 		}
+
+		/// <summary>Sets the value of a key in the database as a 64-bits UUID</summary>
+		public static void SetValueUuid64(this IFdbTransaction trans, Slice key, Uuid64 value) => SetValueUuid64(trans, ToSpanKey(key), value);
+
+		/// <summary>Sets the value of a key in the database as a 64-bits UUID</summary>
+		public static void SetValueUuid64(this IFdbTransaction trans, ReadOnlySpan<byte> key, Uuid64 value)
+		{
+			Span<byte> scratch = stackalloc byte[8];
+			value.WriteTo(scratch);
+			trans.Set(key, scratch);
+		}
+
+		#endregion
 
 		#endregion
 
