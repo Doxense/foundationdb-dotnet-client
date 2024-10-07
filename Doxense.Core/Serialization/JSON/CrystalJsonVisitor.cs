@@ -701,15 +701,35 @@ namespace Doxense.Serialization.Json
 				return CreateByteBufferVisitor();
 			}
 
-			if (type == typeof(string[]))
-			{ // Array of strings
-				return VisitStringArrayInternal;
-			}
-
 			if (type.IsArray)
 			{ // generic array: T[]
+
+				if (type == typeof(string[]))
+				{ // Array of strings
+					return VisitStringArrayInternal;
+				}
+				if (type == typeof(int[]))
+				{ // Array of ints
+					return VisitInt32ArrayInternal;
+				}
+
 				var elemType = type.GetElementType() ?? throw new InvalidOperationException("Failed to get array element type for " + type.Name);
 				return CompileGenericVisitorMethod(nameof(VisitArrayInternal), nameof(VisitArray), elemType);
+			}
+
+			if (type.IsGenericInstanceOf(typeof(List<>), out var listType))
+			{
+				if (listType == typeof(List<string>))
+				{ // Array of strings
+					return VisitStringListInternal;
+				}
+				if (listType == typeof(List<int>))
+				{ // Array of strings
+					return VisitInt32ListInternal;
+				}
+
+				var elemType = type.GetGenericArguments()[0];
+				return CompileGenericVisitorMethod(nameof(VisitListInternal), nameof(VisitList), elemType);
 			}
 
 			if (type.IsAssignableTo<IEnumerable<string>>())
@@ -1033,6 +1053,106 @@ namespace Doxense.Serialization.Json
 			writer.EndArray(state);
 		}
 
+		private static void VisitStringListInternal(object? value, Type declaredType, Type? runtimeType, CrystalJsonWriter writer)
+		{
+			if (value == null)
+			{
+				writer.WriteNull();
+				return;
+			}
+
+			var list = (List<string>) value;
+			var items = CollectionsMarshal.AsSpan(list);
+
+			if (items.Length == 0)
+			{
+				writer.WriteEmptyArray();
+				return;
+			}
+
+			var state = writer.BeginArray();
+
+			// first item
+			writer.WriteHeadSeparator();
+			writer.WriteValue(items[0]);
+			// rest of the list
+			for (int i = 1; i < items.Length; i++)
+			{
+				if ((i & 0x3F) == 0) writer.MaybeFlush();
+
+				writer.WriteTailSeparator();
+				writer.WriteValue(items[i]);
+			}
+
+			writer.EndArray(state);
+		}
+
+		private static void VisitInt32ArrayInternal(object? value, Type declaredType, Type? runtimeType, CrystalJsonWriter writer)
+		{
+			if (value == null)
+			{
+				writer.WriteNull();
+				return;
+			}
+
+			var array = (int[]) value;
+			if (array.Length == 0)
+			{
+				writer.WriteEmptyArray();
+				return;
+			}
+
+			var state = writer.BeginArray();
+
+			// first item
+			writer.WriteHeadSeparator();
+			writer.WriteValue(array[0]);
+			// rest of the array
+			for (int i = 1; i < array.Length; i++)
+			{
+				if ((i & 0x3F) == 0) writer.MaybeFlush();
+
+				writer.WriteTailSeparator();
+				writer.WriteValue(array[i]);
+			}
+
+			writer.EndArray(state);
+		}
+
+		private static void VisitInt32ListInternal(object? value, Type declaredType, Type? runtimeType, CrystalJsonWriter writer)
+		{
+			if (value == null)
+			{
+				writer.WriteNull();
+				return;
+			}
+
+			var list = (List<int>) value;
+			var items = CollectionsMarshal.AsSpan(list);
+
+			if (items.Length == 0)
+			{
+				writer.WriteEmptyArray();
+				return;
+			}
+
+			var state = writer.BeginArray();
+
+			// first item
+			writer.WriteHeadSeparator();
+			writer.WriteValue(items[0]);
+			// rest of the list
+			for (int i = 1; i < items.Length; i++)
+			{
+				if ((i & 0x3F) == 0) writer.MaybeFlush();
+
+				writer.WriteTailSeparator();
+				writer.WriteValue(items[i]);
+			}
+
+			writer.EndArray(state);
+		}
+
 		/// <summary>Visit a collection of strings</summary>
 		public static void VisitEnumerableOfString(IEnumerable<string>? enumerable, CrystalJsonWriter writer)
 		{
@@ -1134,6 +1254,44 @@ namespace Doxense.Serialization.Json
 			writer.EndArray(state);
 		}
 
+		private static void VisitListInternal<T>(object? value, Type declaredType, Type? runtimeType, CrystalJsonWriter writer)
+		{
+			if (value == null)
+			{
+				writer.WriteNull();
+				return;
+			}
+
+			var list = (List<T>) value;
+			var items = CollectionsMarshal.AsSpan(list);
+
+			if (items.Length == 0)
+			{
+				writer.WriteEmptyArray();
+				return;
+			}
+
+			var elemType = typeof(T);
+			var visitor = GetVisitorForType(elemType, atRuntime: false);
+
+			var state = writer.BeginArray();
+
+			// head
+			writer.WriteHeadSeparator();
+			visitor(items[0], elemType, null, writer);
+
+			// tail
+			for (int i = 1; i < items.Length; i++)
+			{
+				if (i % 10 == 0) writer.MaybeFlush();
+
+				writer.WriteTailSeparator();
+				visitor(items[i], elemType, null, writer);
+			}
+
+			writer.EndArray(state);
+		}
+
 		/// <summary>Visit an array of generic values</summary>
 		public static void VisitArray<T>(T[]? array, CrystalJsonWriter writer)
 		{
@@ -1162,6 +1320,41 @@ namespace Doxense.Serialization.Json
 
 				writer.WriteTailSeparator();
 				VisitValue<T>(array[i], writer);
+			}
+
+			writer.EndArray(state);
+		}
+
+		/// <summary>Visit an array of generic values</summary>
+		public static void VisitList<T>(List<T>? list, CrystalJsonWriter writer)
+		{
+			if (list == null)
+			{
+				writer.WriteNull();
+				return;
+			}
+
+			var items = CollectionsMarshal.AsSpan(list);
+
+			if (items.Length == 0)
+			{
+				writer.WriteEmptyArray();
+				return;
+			}
+
+			var state = writer.BeginArray();
+
+			// head
+			writer.WriteHeadSeparator();
+			VisitValue<T>(items[0], writer);
+
+			// tail
+			for (int i = 1; i < items.Length; i++)
+			{
+				if (i % 10 == 0) writer.MaybeFlush();
+
+				writer.WriteTailSeparator();
+				VisitValue<T>(items[i], writer);
 			}
 
 			writer.EndArray(state);

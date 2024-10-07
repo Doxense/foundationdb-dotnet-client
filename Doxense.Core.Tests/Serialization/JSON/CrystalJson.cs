@@ -2561,9 +2561,14 @@ namespace Doxense.Serialization.Json.Tests
 			CheckSerialize(new string[] { "foo", "bar", "baz" }, CrystalJsonSettings.JavaScript, "[ 'foo', 'bar', 'baz' ]");
 
 			// compact
-			CheckSerialize(new string[0], CrystalJsonSettings.JsonCompact, "[]");
+			CheckSerialize(Array.Empty<string>(), CrystalJsonSettings.JsonCompact, "[]");
 			CheckSerialize(new string[] { "foo", "bar", "baz" }, CrystalJsonSettings.JsonCompact, """["foo","bar","baz"]""");
 			CheckSerialize(new string[] { "foo", "bar", "baz" }, CrystalJsonSettings.JavaScriptCompact, "['foo','bar','baz']");
+
+			// bool[]
+			CheckSerialize(Array.Empty<bool>(), default, "[ ]");
+			CheckSerialize(new bool[1], default, "[ false ]");
+			CheckSerialize(new bool[] { true, false, true }, default, "[ true, false, true ]");
 		}
 
 		[Test]
@@ -2592,13 +2597,59 @@ namespace Doxense.Serialization.Json.Tests
 			CheckSerialize(listOfStrings, default, """[ "foo", "bar", "baz" ]""");
 			CheckSerialize(listOfStrings, CrystalJsonSettings.JavaScript, "[ 'foo', 'bar', 'baz' ]");
 
-			var listOfObjects = new List<object>();
-			listOfObjects.Add(123);
-			listOfObjects.Add("Narf");
-			listOfObjects.Add(true);
-			listOfObjects.Add(DummyJsonEnum.Bar);
+			var listOfObjects = new List<object?>() { 123, "Narf", true, DummyJsonEnum.Bar };
 			CheckSerialize(listOfObjects, default, """[ 123, "Narf", true, 42 ]""");
 			CheckSerialize(listOfObjects, CrystalJsonSettings.JavaScript, "[ 123, 'Narf', true, 42 ]");
+
+
+			// List<int>
+			CheckSerialize(new List<int>(), default, "[ ]");
+			CheckSerialize(new List<int> { 0 }, default, "[ 0 ]");
+			CheckSerialize(new List<int> { 1, 2, 3 }, default, "[ 1, 2, 3 ]");
+			CheckSerialize(new List<int>(), CrystalJsonSettings.JsonCompact, "[]");
+			CheckSerialize(new List<int> { 0 }, CrystalJsonSettings.JsonCompact, "[0]");
+			CheckSerialize(new List<int> { 1, 2, 3 }, CrystalJsonSettings.JsonCompact, "[1,2,3]");
+
+			// List<string>
+			CheckSerialize(new List<string>(), default, "[ ]");
+			CheckSerialize(new List<string?> { null }, default, "[ null ]");
+			CheckSerialize(new List<string> { "foo" }, default, """[ "foo" ]""");
+			CheckSerialize(new List<string> { "foo", "bar", "baz" }, default, """[ "foo", "bar", "baz" ]""");
+			CheckSerialize(new List<string> { "foo" }, CrystalJsonSettings.JavaScript, "[ 'foo' ]");
+			CheckSerialize(new List<string> { "foo", "bar", "baz" }, CrystalJsonSettings.JavaScript, "[ 'foo', 'bar', 'baz' ]");
+
+			// List<bool>
+			CheckSerialize(new List<bool>(), default, "[ ]");
+			CheckSerialize(new List<bool> { false }, default, "[ false ]");
+			CheckSerialize(new List<bool> { true, false, true }, default, "[ true, false, true ]");
+		}
+
+		[Test]
+		public void Test_JsonSerialize_Enumerable()
+		{
+			CheckSerialize(Enumerable.Empty<int>(), default, "[ ]");
+			CheckSerialize(Enumerable.Empty<string>(), default, "[ ]");
+			CheckSerialize(Enumerable.Empty<bool>(), default, "[ ]");
+			CheckSerialize(Enumerable.Empty<System.Net.IPAddress>(), default, "[ ]");
+			CheckSerialize(Enumerable.Empty<DateTimeKind>(), default, "[ ]");
+
+			CheckSerialize(Enumerable.Range(1, 1), default, "[ 1 ]");
+			CheckSerialize(Enumerable.Range(1, 3), default, "[ 1, 2, 3 ]");
+			CheckSerialize(Enumerable.Range(0, 3).Select(i => ((ReadOnlySpan<string>) ["Foo", "Bar", "Baz"])[i]), default, """[ "Foo", "Bar", "Baz" ]""");
+			CheckSerialize(Enumerable.Range(1, 3).Select(i => i % 2 == 0), default, "[ false, true, false ]");
+			CheckSerialize(Enumerable.Range(1, 3).Select(i => (i, i * i, i * i * i)), default, """[ [ 1, 1, 1 ], [ 2, 4, 8 ], [ 3, 9, 27 ] ]""");
+
+			static IEnumerable<int> RangeUncountable(int count)
+			{
+				for (int i = 0; i < count; i++)
+				{
+					yield return 1 + i;
+				}
+			}
+
+			CheckSerialize(RangeUncountable(0), default, "[ ]");
+			CheckSerialize(RangeUncountable(1), default, "[ 1 ]");
+			CheckSerialize(RangeUncountable(3), default, "[ 1, 2, 3 ]");
 		}
 
 		[Test]
