@@ -994,12 +994,21 @@ namespace FoundationDB.Filters.Logging
 
 			public override string GetArguments(KeyResolver resolver)
 			{
-				return resolver.Resolve(this.Key) + " =?= " + (this.Expected.IsNull ? "<missing>" : this.Expected.ToString("V"));
+				if (this.Expected.IsNull)
+				{
+					return $"{resolver.Resolve(this.Key)} =? not_found";
+				}
+				else
+				{
+					return $"{resolver.Resolve(this.Key)} =? `{this.Expected:V}`";
+				}
 			}
 
 			protected override string Dump((FdbValueCheckResult Result, Slice Actual) value, KeyResolver resolver)
 			{
-				return value.Actual.IsNull ? $"<missing> [{value.Result}]" : $"{value.Actual:V} [{value.Result}]";
+				return value.Result == FdbValueCheckResult.Success ? "OK"
+					: value.Actual.IsNull ? $"not_found [{value.Result}]"
+					: $"`{value.Actual:V}` [{value.Result}]";
 			}
 
 		}

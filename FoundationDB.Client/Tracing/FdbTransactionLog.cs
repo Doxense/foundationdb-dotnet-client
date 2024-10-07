@@ -477,20 +477,24 @@ namespace FoundationDB.Filters.Logging
 
 			TimeSpan duration = this.TotalDuration;
 			// ideal range is between 10 and 80 chars
-			double scale = 0.0005d;
-			int width;
-			bool flag = false;
-			int maxWidth = showCommands ? 80 : 160;
-			while ((width = (int)(duration.TotalSeconds / scale)) > maxWidth)
+			double scale = 0.00001d;
+			int width = (int) (duration.TotalSeconds / scale);
 			{
-				if (flag) scale *= 5d; else scale *= 2d;
-				flag = !flag;
+				// should scale to: 1, 2.5, 5, 10, 25, 50, 100, ...
+				int order = 0;
+				int maxWidth = showCommands ? 50 : 100;
+				while (width > maxWidth)
+				{
+					scale *= order == 0 ? 2.5d : 2;
+					order = (order + 1) % 3;
+					width = (int) (duration.TotalSeconds / scale);
+				}
 			}
 
 			var commands = this.Commands.ToArray();
 
 			// Header
-			sb.Append(CultureInfo.InvariantCulture, $"Transaction #{this.Id} ({(this.IsReadOnly ? "read-only" : "read/write")}, {commands.Length} operations, '#' = {(scale * 1000d):N1} ms, started {this.StartedUtc.TimeOfDay}Z [{this.StartedUtc.ToUnixTimeMilliseconds() / 1000.0:F3}]");
+			sb.Append(CultureInfo.InvariantCulture, $"Transaction #{this.Id} ({(this.IsReadOnly ? "read-only" : "read/write")}, {commands.Length} operations, '#' = {(scale < 1E-3 ? $"{scale * 1E6} µs" : $"{scale * 1E3} ms")}, started {this.StartedUtc.TimeOfDay}Z [{this.StartedUtc.ToUnixTimeMilliseconds() / 1000.0:F3}]");
 			if (this.StoppedUtc.HasValue)
 			{
 				sb.Append(CultureInfo.InvariantCulture, $", ended {this.StoppedUtc.Value.TimeOfDay}Z [{this.StoppedUtc.Value.ToUnixTimeMilliseconds() / 1000.0:F3}])");
@@ -576,7 +580,7 @@ namespace FoundationDB.Filters.Logging
 				if (this.Completed)
 				{
 					sb.Append("> ");
-					flag = false;
+					var flag = false;
 					if (this.ReadSize > 0)
 					{
 						sb.Append(CultureInfo.InvariantCulture, $"Read {this.ReadSize:N0} bytes");
@@ -647,18 +651,42 @@ namespace FoundationDB.Filters.Logging
 
 		private static char GetFancyChar(int pos, int count, double start, double end, bool skip)
 		{
+			const string PALETTE_START = "`^:x{(&%"; // start of a segment that continues after us
+			const string PALETTE_STOP  = ",.:x})&%"; // end of a segment started before us
+			const string PALETTE_DOT   = "·◦•~*&$%"; // segment that starts and ends in the same character
+
+
 			double cb = 1.0 * pos / count;
 			double ce = 1.0 * (pos + 1) / count;
 
-			if (cb >= end) return ' ';
-			if (ce < start) return skip ? '°' : '_';
+			if (cb >= end)
+			{ // this is completely after the end of the segment
+				return ' ';
+			}
+
+			if (ce < start)
+			{ // this is completely before the start of the segment
+				return skip ? '!' : ' ';
+			}
+
+			if (cb >= start && ce <= end)
+			{ // this character is completely covered
+				return '#';
+			}
+
+			if (start == end) return '|';
+
+			var palette =
+				start > cb && end < ce ? PALETTE_DOT
+				: end > ce ? PALETTE_START
+				: PALETTE_STOP;
 
 			double x = count * (Math.Min(ce, end) - Math.Max(cb, start));
-			if (x < 0) x = 0;
-			if (x > 1) x = 1;
+			x = Math.Min(Math.Max(x, 0), 1);
 
-			int p = (int)Math.Round(x * 10, MidpointRounding.AwayFromZero);
-			return "`.:;+=xX$&#"[p];
+			int p = (int) Math.Round(x * (palette.Length - 1), MidpointRounding.AwayFromZero);
+
+			return palette[p];
 		}
 
 		private static string GetFancyGraph(int width, long offset, long duration, long total, int skip)
@@ -666,7 +694,7 @@ namespace FoundationDB.Filters.Logging
 			double begin = 1.0d * offset / total;
 			double end = 1.0d * (offset + duration) / total;
 
-			var tmp = new char[width];
+			Span<char> tmp = stackalloc char[width];
 			for (int i = 0; i < tmp.Length; i++)
 			{
 				tmp[i] = GetFancyChar(i, tmp.Length, begin, end, i < skip);
