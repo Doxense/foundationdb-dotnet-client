@@ -85,19 +85,19 @@ namespace Doxense.Serialization.Json
 		public static T Deserialize<T>(this IJsonDeserializer<T> serializer, string jsonText, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 			where T : notnull
 		{
-			return serializer.Deserialize(CrystalJson.Parse(jsonText, settings), resolver);
+			return serializer.Unpack(CrystalJson.Parse(jsonText, settings), resolver);
 		}
 
 		public static T Deserialize<T>(this IJsonDeserializer<T> serializer, ReadOnlySpan<char> jsonText, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 			where T : notnull
 		{
-			return serializer.Deserialize(CrystalJson.Parse(jsonText, settings), resolver);
+			return serializer.Unpack(CrystalJson.Parse(jsonText, settings), resolver);
 		}
 
 		public static T Deserialize<T>(this IJsonDeserializer<T> serializer, Slice jsonBytes, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 			where T : notnull
 		{
-			return serializer.Deserialize(CrystalJson.Parse(jsonBytes, settings), resolver);
+			return serializer.Unpack(CrystalJson.Parse(jsonBytes, settings), resolver);
 		}
 
 		/// <summary>Deserializes an instance of type <typeparamref name="T"/> from a JSON string literal</summary>
@@ -109,7 +109,7 @@ namespace Doxense.Serialization.Json
 		public static T Deserialize<T>(this IJsonDeserializer<T> serializer, ReadOnlySpan<byte> jsonBytes, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 			where T : notnull
 		{
-			return serializer.Deserialize(CrystalJson.Parse(jsonBytes, settings), resolver);
+			return serializer.Unpack(CrystalJson.Parse(jsonBytes, settings), resolver);
 		}
 
 		public static bool TryJsonDeserializeArray<T>(this IJsonDeserializer<T> serializer, Span<T> destination, out int written, JsonValue value, ICrystalJsonTypeResolver? resolver = null)
@@ -129,7 +129,7 @@ namespace Doxense.Serialization.Json
 
 			for (int i = 0; i < input.Length; i++)
 			{
-				destination[i] = serializer.Deserialize(input[i], resolver);
+				destination[i] = serializer.Unpack(input[i], resolver);
 			}
 
 			written = input.Length;
@@ -151,7 +151,7 @@ namespace Doxense.Serialization.Json
 
 			for (int i = 0; i < input.Length; i++)
 			{
-				result[i] = serializer.Deserialize(input[i], resolver);
+				result[i] = serializer.Unpack(input[i], resolver);
 			}
 
 			return result;
@@ -177,13 +177,13 @@ namespace Doxense.Serialization.Json
 
 			for (int i = 0; i < input.Length; i++)
 			{
-				span[i] = serializer.Deserialize(input[i], resolver);
+				span[i] = serializer.Unpack(input[i], resolver);
 			}
 #else
 			var result = new List<T>(array.Count);
 			foreach (var item in array)
 			{
-				result.Add(serializer.Deserialize(item, resolver));
+				result.Add(serializer.Unpack(item, resolver));
 			}
 #endif
 
@@ -232,7 +232,7 @@ namespace Doxense.Serialization.Json
 
 			foreach (var kv in obj)
 			{
-				res.Add(kv.Key, serializer.Deserialize(kv.Value, resolver));
+				res.Add(kv.Key, serializer.Unpack(kv.Value, resolver));
 			}
 
 			return res;
@@ -916,7 +916,7 @@ namespace Doxense.Serialization.Json
 			return JsonObject.FromValues<TValue>(items, null, settings, resolver);
 		}
 
-		public static T Deserialize<T>(JsonValue value, ICrystalJsonTypeResolver? resolver)
+		public static T Unpack<T>(JsonValue value, ICrystalJsonTypeResolver? resolver)
 			where T : IJsonDeserializable<T>
 		{
 			return T.JsonDeserialize(value, resolver);

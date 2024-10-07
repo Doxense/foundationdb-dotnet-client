@@ -61,7 +61,7 @@ namespace Doxense.Serialization.Json
 		public void Serialize(CrystalJsonWriter writer, T? instance) => this.SerializeHandler(writer, instance);
 
 		/// <inheritdoc />
-		public T Deserialize(JsonValue value, ICrystalJsonTypeResolver? resolver = null)
+		public T Unpack(JsonValue value, ICrystalJsonTypeResolver? resolver = null)
 		{
 			return this.DeserializeHandler(value, resolver ?? CrystalJson.DefaultResolver);
 		}
@@ -90,7 +90,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		public T Deserialize(JsonValue value, ICrystalJsonTypeResolver? resolver = null)
+		public T Unpack(JsonValue value, ICrystalJsonTypeResolver? resolver = null)
 		{
 			return value.As<T>(default, resolver)!;
 		}

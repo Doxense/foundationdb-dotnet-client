@@ -38,7 +38,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="resolver">Optional custom resolver</param>
 		/// <returns>Deserialized value</returns>
 		/// <exception cref="JsonBindingException">If an error occurred during the deserialization</exception>
-		T Deserialize(JsonValue value, ICrystalJsonTypeResolver? resolver = null);
+		T Unpack(JsonValue value, ICrystalJsonTypeResolver? resolver = null);
 		//REVIEW: should we also pass some settings?
 
 	}
@@ -54,7 +54,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		public T Deserialize(JsonValue value, ICrystalJsonTypeResolver? resolver = null)
+		public T Unpack(JsonValue value, ICrystalJsonTypeResolver? resolver = null)
 		{
 			return this.Handler(value, resolver ?? CrystalJson.DefaultResolver);
 		}

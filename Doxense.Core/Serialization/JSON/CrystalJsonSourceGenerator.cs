@@ -644,7 +644,7 @@ namespace Doxense.Serialization.Json
 					sb.Method(
 						"public",
 						typeName,
-						nameof(IJsonDeserializer<object>.Deserialize),
+						nameof(IJsonDeserializer<object>.Unpack),
 						[ sb.Parameter<JsonValue>("value"), sb.Parameter<ICrystalJsonTypeResolver>("resolver", nullable: true) ],
 						() =>
 						{
@@ -723,7 +723,7 @@ namespace Doxense.Serialization.Json
 			// Do we have codegen for this type?
 			if (this.TypeMap.ContainsKey(memberType))
 			{
-				return $"{GetLocalSerializerRef(memberType)}.{nameof(IJsonDeserializer<object>.Deserialize)}(kv.Value, resolver)!";
+				return $"{GetLocalSerializerRef(memberType)}.{nameof(IJsonDeserializer<object>.Unpack)}(kv.Value, resolver)!";
 			}
 
 			// Does the type can deserialize itself?
@@ -732,7 +732,7 @@ namespace Doxense.Serialization.Json
 				// some types implement this method explicitly, so we have to go through a helper in JsonValueExtensions
 				// => JsonSerializerExtensions.Deserialize<T>(kv.Value, resolver)
 
-				return $"{sb.MethodName(typeof(JsonSerializerExtensions), nameof(JsonSerializerExtensions.Deserialize))}<{sb.TypeName(memberType)}>(kv.Value, resolver)!";
+				return $"{sb.MethodName(typeof(JsonSerializerExtensions), nameof(JsonSerializerExtensions.Unpack))}<{sb.TypeName(memberType)}>(kv.Value, resolver)!";
 			}
 
 			if (memberType.IsValueType)

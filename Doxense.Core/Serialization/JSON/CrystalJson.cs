@@ -1472,7 +1472,7 @@ namespace Doxense.Serialization.Json
 			var parsed = Parse(jsonText, settings);
 			if (serializer != null)
 			{
-				return serializer.Deserialize(parsed, resolver);
+				return serializer.Unpack(parsed, resolver);
 			}
 			else
 			{
