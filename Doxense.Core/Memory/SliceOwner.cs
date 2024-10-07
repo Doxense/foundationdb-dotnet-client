@@ -60,7 +60,7 @@ namespace System
 		private volatile int m_disposed;
 #endif
 
-		public SliceOwner(Slice data)
+		private SliceOwner(Slice data)
 		{
 			m_data = data;
 			m_pool = null;

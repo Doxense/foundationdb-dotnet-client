@@ -102,7 +102,7 @@ namespace Doxense.Serialization.Json
 					string jsonText = CrystalJson.Serialize(this.Value, this.ObjectType, this.JsonSettings, this.JsonResolver);
 					var bytes = targetEncoding.GetBytes(jsonText).AsSlice();
 					activity?.SetTag("json.length", bytes.Count);
-					return new SliceOwner(bytes);
+					return SliceOwner.Create(bytes);
 				}
 				else
 				{ // UTF-8: direct to bytes
