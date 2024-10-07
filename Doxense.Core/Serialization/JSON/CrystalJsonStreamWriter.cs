@@ -73,7 +73,7 @@ namespace Doxense.Serialization.Json
 			resolver ??= CrystalJson.DefaultResolver;
 
 			m_scratch = new MemoryStream(65536);
-			m_writer = new CrystalJsonWriter(new StreamWriter(m_scratch, Encoding.UTF8), 0, settings, resolver);
+			m_writer = new CrystalJsonWriter(m_scratch, 0, settings, resolver);
 		}
 
 		public CrystalJsonWriter.NodeType CurrentNode => m_writer.CurrentState.Node;

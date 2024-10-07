@@ -37,7 +37,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="writer">Writer that will output the JSON in the desired format</param>
 		/// <param name="instance">Instance to serialize</param>
 		/// <exception cref="JsonSerializationException">If an error occured during the serialization</exception>
-		void JsonSerialize(CrystalJsonWriter writer, T? instance);
+		void Serialize(CrystalJsonWriter writer, T? instance);
 		//REVIEW: rename to "SerializeTo" only?
 
 	}
@@ -53,7 +53,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		public void JsonSerialize(CrystalJsonWriter writer, T? instance) => this.Handler(writer, instance);
+		public void Serialize(CrystalJsonWriter writer, T? instance) => this.Handler(writer, instance);
 
 	}
 

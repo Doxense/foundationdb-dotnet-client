@@ -26,8 +26,10 @@
 
 namespace Doxense.Serialization.Json
 {
-	/// <summary>Types that implement this interface support serialization directly into a <see cref="JsonValue"/>, usually as a JSON Object or Array</summary>
-	/// <remarks>Types that also support deserializing from a <see cref="JsonValue"/> should implement <see cref="IJsonDeserializable{TSelf}"/> as well.</remarks>
+	/// <summary>Supports custom JSON serialization into <see cref="JsonValue"/>.</summary>
+	/// <remarks>
+	/// <para>Types that handle their own custom serialization should typically implement this interface, as well as <see cref="IJsonSerializable"/> and <see cref="IJsonDeserializable{TSelf}"/>.</para>
+	/// </remarks>
 	public interface IJsonPackable
 	{
 

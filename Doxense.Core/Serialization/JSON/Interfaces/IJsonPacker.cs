@@ -29,20 +29,18 @@ namespace Doxense.Serialization.Json
 
 	/// <summary>Types that implement this interface support packing directly into a <see cref="JsonValue"/></summary>
 	/// <remarks>Types that also support packing to a <see cref="JsonValue"/> should implement <see cref="IJsonDeserializable{T}"/> as well.</remarks>
-	public interface IJsonPackerFor<in T>
+	public interface IJsonPacker<in T>
 	{
-		//REVIEW: rename to IJsonPacker<T>
 
 		/// <summary>Converts an instance of this type into the equivalent JSON value, usually a JSON Object or Array</summary>
 		/// <param name="instance">Value to convert</param>
 		/// <param name="settings">Serialization settings</param>
 		/// <param name="resolver">Custom resolver used to bind the value into a managed type.</param>
-		JsonValue JsonPack(T instance, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null);
-		//REVIEW: rename to "Pack" only ?
+		JsonValue Pack(T instance, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null);
 
 	}
 
-	internal sealed class DefaultJsonPacker<T> : IJsonPackerFor<T>
+	internal sealed class DefaultJsonPacker<T> : IJsonPacker<T>
 	{
 
 		public Func<T, CrystalJsonSettings, ICrystalJsonTypeResolver, JsonValue> Handler { get; }
@@ -53,7 +51,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		public JsonValue JsonPack(T instance, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public JsonValue Pack(T instance, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			return this.Handler(instance, settings ?? CrystalJsonSettings.Json, resolver ?? CrystalJson.DefaultResolver);
 		}

@@ -548,21 +548,6 @@ namespace Doxense.Serialization.Json
 				return CreateDefaultJsonArrayBinder_Binder(type, binder);
 			}
 
-#pragma warning disable CS0618 // Type or member is obsolete
-#pragma warning disable CS0612 // Type or member is obsolete
-			if (type.IsAssignableTo<IJsonDeserializable>())
-			{
-				var generator = type.CompileGenerator();
-				if (generator != null)
-				{
-					var binder = CreateBinderForIJsonDeserializable(type, generator);
-					Contract.Debug.Assert(binder != null);
-					return CreateDefaultJsonArrayBinder_Binder(type, binder);
-				}
-			}
-#pragma warning restore CS0612 // Type or member is obsolete
-#pragma warning restore CS0618 // Type or member is obsolete
-
 			if (type.IsAssignableTo<IEnumerable>())
 			{
 				return CreateDefaultJsonArrayBinder_Boxed(type);
@@ -1183,19 +1168,6 @@ namespace Doxense.Serialization.Json
 				return binder;
 			}
 
-			// IJsonDeserialiable... [OBSOLETE]
-#pragma warning disable CS0618 // Type or member is obsolete
-#pragma warning disable CS0612 // Type or member is obsolete
-			if (type.IsAssignableTo<IJsonDeserializable>())
-			{
-				generator = RequireGeneratorForType(type);
-				binder = CreateBinderForIJsonDeserializable(type, generator);
-				Contract.Debug.Assert(binder != null);
-				return binder;
-			}
-#pragma warning restore CS0612 // Type or member is obsolete
-#pragma warning restore CS0618 // Type or member is obsolete
-
 			// Dictionnary?
 			if (type.IsGenericInstanceOf(typeof(IDictionary<,>)))
 			{
@@ -1292,24 +1264,6 @@ namespace Doxense.Serialization.Json
 				}
 				//REVIEW: PERF: compile a lambda that invokes the ctor?
 				return ctor.Invoke(items);
-			};
-		}
-
-		/// <summary>Generates a binder that calls IJsonDeserializable.JsonDeserialize(...)</summary>
-		[Obsolete]
-		private static CrystalJsonTypeBinder CreateBinderForIJsonDeserializable(Type type, Func<object> generator)
-		{
-			Contract.Debug.Requires(type != null && typeof(IJsonSerializable).IsAssignableFrom(type));
-			Contract.NotNull(generator);
-
-			return (v, t, r) =>
-			{
-				if (v == null || v.IsNull) return null;
-				if (v is not JsonObject obj) throw FailCannotDeserializeNotJsonObject(t);
-
-				var instance = (IJsonDeserializable) generator();
-				instance.JsonDeserialize(obj, t, r);
-				return instance;
 			};
 		}
 

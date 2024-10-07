@@ -26,36 +26,19 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System.ComponentModel;
 
-	/// <summary>Type that can serialize itself to JSON</summary>
+	/// <summary>Supports custom JSON direct serialization.</summary>
+	/// <remarks>
+	/// <para>Types that handle their own custom serialization should typically implement this interface, as well as <see cref="IJsonSerializable"/> and <see cref="IJsonDeserializable{TSelf}"/>.</para>
+	/// <para>If the original type cannot be modified, see <see cref="IJsonSerializer{T}"/>.</para>
+	/// </remarks>
 	public interface IJsonSerializable
 	{
+
 		/// <summary>Serializes this instance as JSON</summary>
 		/// <param name="writer">Writer that will output the content of this instance</param>
 		void JsonSerialize(CrystalJsonWriter writer);
 
-		//note: JsonDeserialize used to be in this interface, but has been moved to IJsonDeserialize, tagged as [Obsolete]
-		// the correct way is to implement IJsonDeserializable<T> or have a ctor that takes in a JsonValue as first parameter
-
 	}
 
-	/// <summary>LEGACY: should be not implemented. Implement <see cref="IJsonDeserializable{TSelf}"/> instead.</summary>
-	[Obsolete("Implement IJsonDeserializable<T> instead")]
-	public interface IJsonDeserializable
-	{
-		// Why it's deprecated:
-		// - does not work with read-only objects (cannot write to them after the ctor)
-		// - does not support { get; init; } properties (for the same reason)
-		// - does not work well with types that have custom initialization in the ctor (runs before we have the content)
-		// - was created before the support for static methods in interfaces
-
-		/// <summary>Injects the content of a JSON Objet into an instance of this type</summary>
-		/// <param name="value">JSON Object to deserialize</param>
-		/// <param name="declaredType">Original CLR type (as declared in the application, or in its parent type for a field or property)</param>
-		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		void JsonDeserialize(JsonObject value, Type declaredType, ICrystalJsonTypeResolver resolver);
-
-	}
 }
