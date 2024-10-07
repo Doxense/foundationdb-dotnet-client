@@ -482,6 +482,8 @@ namespace Doxense.Serialization.Json
 			return m_camelCase ? CamelCase(name) : name;
 		}
 
+		/// <summary>Converts a string into camelCase (<c>"FooBar"</c> => <c>"fooBar"</c>)</summary>
+		/// <returns>Converted string, or the same string if the first character is already lowercased</returns>
 		internal static string CamelCase(string name)
 		{
 			// if the first character is already lowercase, we can skip it

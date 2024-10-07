@@ -237,7 +237,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <remarks>
-		/// <para>The handler is expected to call any of the <see cref="CrystalJsonWriter.GetString"/>, <see cref="CrystalJsonWriter.GetUtf8Slice"/> or simlary methods, before returning.</para>
+		/// <para>The handler is expected to call any of the <see cref="CrystalJsonWriter.GetString"/>, <see cref="CrystalJsonWriter.GetUtf8Slice(ArrayPool{byte})"/> or similar methods, before returning.</para>
 		/// <para>The handler *MUST NOT* expose the pooled writer to the outside! Doing this would break the application</para>
 		/// </remarks>
 		public static void Convert<TState>(TState state, Action<CrystalJsonWriter, TState> handler, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
@@ -267,7 +267,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>The result of the custom serialization (usually a <see cref="string"/>, <see cref="Slice"/> or any other value)</returns>
 		/// <remarks>
-		/// <para>The handler is expected to call any of the <see cref="CrystalJsonWriter.GetString"/>, <see cref="CrystalJsonWriter.GetUtf8Slice"/> or simlary methods, to extract the content of the writer.</para>
+		/// <para>The handler is expected to call any of the <see cref="CrystalJsonWriter.GetString()"/>, <see cref="CrystalJsonWriter.GetUtf8Slice(ArrayPool{byte})"/> or similar methods, to extract the content of the writer.</para>
 		/// <para>The handler *MUST NOT* expose the pooled writer to the outside! Doing this would break the application</para>
 		/// </remarks>
 		public static TResult Convert<TState, TResult>(TState state, Func<CrystalJsonWriter, TState, TResult> handler, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
@@ -295,7 +295,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <remarks>
-		/// <para>The handler is expected to call any of the <see cref="CrystalJsonWriter.GetString"/>, <see cref="CrystalJsonWriter.GetUtf8Slice"/> or simlary methods, before returning.</para>
+		/// <para>The handler is expected to call any of the <see cref="CrystalJsonWriter.GetString"/>, <see cref="CrystalJsonWriter.GetUtf8Slice(ArrayPool{byte})"/> or similar methods, before returning.</para>
 		/// <para>The handler *MUST NOT* expose the pooled writer to the outside! Doing this would break the application</para>
 		/// </remarks>
 		public static async Task ConvertAsync<TState>(TState state, Func<CrystalJsonWriter, TState, Task> handler, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
@@ -325,7 +325,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>The result of the custom serialization (usually a <see cref="string"/>, <see cref="Slice"/> or any other value)</returns>
 		/// <remarks>
-		/// <para>The handler is expected to call any of the <see cref="CrystalJsonWriter.GetString"/>, <see cref="CrystalJsonWriter.GetUtf8Slice"/> or simlary methods, to extract the content of the writer.</para>
+		/// <para>The handler is expected to call any of the <see cref="CrystalJsonWriter.GetString"/>, <see cref="CrystalJsonWriter.GetUtf8Slice(ArrayPool{byte})"/> or similar methods, to extract the content of the writer.</para>
 		/// <para>The handler *MUST NOT* expose the pooled writer to the outside! Doing this would break the application</para>
 		/// </remarks>
 		public static async Task<TResult> ConvertAsync<TState, TResult>(TState state, Func<CrystalJsonWriter, TState, Task<TResult>> handler, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
@@ -585,7 +585,8 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Serializes a JSON value into an UTF-8 encoded Slice</summary>
 		/// <param name="value">Instance to serialize (of any type)</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="pool">Pool used to allocate the content of the slice (use <see cref="ArrayPool{T}.Shared"/> if <see langword="null"/>)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if <see langword="null"/>)</param>
 		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
 		[Pure]
 		public static SliceOwner ToJsonSlice(JsonValue value, ArrayPool<byte> pool, CrystalJsonSettings? settings = null)
@@ -640,7 +641,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Serializes a value of type <typeparamref name="T"/> into a <see cref="SliceOwner"/> using the specified <see cref="ArrayPool{T}">pool</see></summary>
 		/// <param name="value">Instance to serialize (can be null)</param>
-		/// <param name="pool">Pool used to allocate the content of the slice.</param>
+		/// <param name="pool">Pool used to allocate the content of the slice (use <see cref="ArrayPool{T}.Shared"/> if <see langword="null"/>)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns><c>`123`</c>, <c>`true`</c>, <c>`"ABC"`</c>, <c>`{ "foo":..., "bar": ... }`</c>, <c>`[ ... ]`</c>, ...</returns>
@@ -669,7 +670,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Serializes a value of type <typeparamref name="T"/> into a <see cref="SliceOwner"/>, using a customer serializer, and the specified <see cref="ArrayPool{T}">pool</see></summary>
 		/// <param name="value">Instance to serialize (can be null)</param>
 		/// <param name="serializer">Custom serializer</param>
-		/// <param name="pool">Pool used to allocate the content of the slice.</param>
+		/// <param name="pool">Pool used to allocate the content of the slice (use <see cref="ArrayPool{T}.Shared"/> if <see langword="null"/>)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns><c>`123`</c>, <c>`true`</c>, <c>`"ABC"`</c>, <c>`{ "foo":..., "bar": ... }`</c>, <c>`[ ... ]`</c>, ...</returns>
@@ -709,7 +710,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="value">Instance to serialize (of any type)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
-		/// <param name="pool">Pool used to allocate the content of the slice.</param>
+		/// <param name="pool">Pool used to allocate the content of the slice (use <see cref="ArrayPool{T}.Shared"/> if <see langword="null"/>)</param>
 		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">if the serialization fails</exception>
 		/// <remarks>
@@ -726,7 +727,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="type">Advertized type of the instance, or <see langword="null"/> if it is not known.</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
-		/// <param name="pool">Pool used to allocate the content of the slice.</param>
+		/// <param name="pool">Pool used to allocate the content of the slice (use <see cref="ArrayPool{T}.Shared"/> if <see langword="null"/>)</param>
 		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">if the serialization fails</exception>
 		/// <remarks>
@@ -896,7 +897,7 @@ namespace Doxense.Serialization.Json
 			string? bakPath = null;
 
 			if ((options & SaveOptions.Append) == SaveOptions.Append)
-			{ //TODO: Gérer le mode append !
+			{
 				throw new NotSupportedException("Append save is not supported");
 			}
 
@@ -904,7 +905,7 @@ namespace Doxense.Serialization.Json
 
 			bool doAtomicUpdate = false;
 			if (File.Exists(path))
-			{ // Le fichier existe déjà, il va falloir faire un replace
+			{ // A file with the same name already exists, we will need to swap or backup
 				if ((options & SaveOptions.AtomicSave) == SaveOptions.AtomicSave)
 				{
 					doAtomicUpdate = true;
@@ -916,34 +917,35 @@ namespace Doxense.Serialization.Json
 				}
 			}
 			else
-			{ // Le fichier n'existait pas, on va vérifier si le répertoire parent existe, et si ce n'est pas le cas, on le crée
+			{ // No file with this name was found
+
+				// this could be due to the fact that the folder does not exist
 				string parent = Path.GetDirectoryName(path)!;
 				Contract.Debug.Assert(parent != null);
 				if (!Directory.Exists(parent))
 				{
+					// create the path!
+					//REVIEW: TODO: should we have an option for this ? AutoCreatePath = true|false ?
 					Directory.CreateDirectory(parent);
 				}
 			}
 
 			#endregion
 
-			// note: si on est arrivé jusqu'ici, c'est que le chemin pointe bien vers un répertoire valide,
-			// donc le reste du code n'a pas a se préoccuper des erreurs venant de problèmes de chemins
-
-			// Différents scenarios:
 			if (doAtomicUpdate)
-			{ // Remplace de manière atomique le fichier:
-				// * On sauve les données dans un fichier temporaire
-				// * On swap l'ancien et le nouveau après écriture des données (et on backup l'ancien si besoin, sinon il est supprimé)
-				// * En cas d'erreur, on supprime le fichier temporaire et il n'y a rien d'autre a faire
+			{ // Replace the file using "atomic" semantics
+			  // - Save to a temporary ".new" file (in the same folder)
+			  // - If serialization fails, the ".new" file is deleted
+			  // - Replace the previous file with the ".new" file
+			  // - The previous file maybe be renamed into a ".bak" if the KeepBackup options is enabled.
 
 				try
 				{
 					using (var output = OpenJsonStream(savePath, settings))
 					{
 						SerializeToStream(output, value, declaredType, settings, resolver);
-						// note: certains implémentation "bugguée" de streams (GzipStream, etc..) requiert un flush pour finir d'écrire les data...
 
+						// some Stream implementations don't property Flush after the last byte, so we do an explicit flush here
 						output.Flush();
 					}
 				}
@@ -953,16 +955,14 @@ namespace Doxense.Serialization.Json
 					throw;
 				}
 
-				// swap les fichiers (update atomique, mais sans retombées radio-actives)
+				// Swap the old and new files
 				File.Replace(savePath, path, bakPath);
-				// note: si ca foire... tant pis :)
-
 			}
 			else if (bakPath != null)
-			{ // Ecrase le fichier, mais en gardant un backup du précédent:
-				// * On renomme l'ancien fichier en backup (en écrasant le backup précédent s'il y en a un)
-				// * On sauve les données dans le fichier de destination
-				// * En cas d'erreur, on supprime le fichier généré, et on restaure le backup
+			{ // Overwrite the previous file, but keep a backup of the previous file
+				// - Rename the previous file into ".bak" (deleted any previous ".bak" file)
+				// - Save the new data into the destination file
+				// - In case of a serialization error, we try to rename the ".bak" into the original name (which _could_ fail!)
 
 				bool swapped = false;
 				try
@@ -980,7 +980,7 @@ namespace Doxense.Serialization.Json
 				catch (Exception)
 				{
 					if (swapped)
-					{ // remet le backup en place!
+					{ // Revert using the backup file!
 						File.Replace(bakPath, savePath, null);
 					}
 					throw;
@@ -988,9 +988,9 @@ namespace Doxense.Serialization.Json
 
 			}
 			else
-			{ // Le fichier n'existait pas, on le sauve directement
-				// * On sauve les données dans le fichier de destination
-				// * En cas d'erreur, on le supprime
+			{ // The file does not exist on disk
+				// - Save directly to disk
+				// - In case of serialization error, delete the (incomplete) file
 
 				try
 				{
@@ -1020,7 +1020,7 @@ namespace Doxense.Serialization.Json
 		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
 		/// <para>If the result is always expected to be an Array or an Object, please call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
 		/// </remarks>
-		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
+		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Parse(
 #if NET8_0_OR_GREATER
@@ -1281,13 +1281,9 @@ namespace Doxense.Serialization.Json
 		{
 			Contract.NotNull(source);
 
-			//REVIEW: on pourrait détecter un MemoryStream et directement lire le buffer s'il est accessible, mais il faut s'assurer
-			// que dans tous les cas (succès ou erreur), on seek le MemoryStream exactement comme si on l'avait consommé directement !
+			using var reader = new StreamReader(source, Encoding.UTF8, true);
 
-			using (var reader = new StreamReader(source, Encoding.UTF8, true))
-			{
-				return ParseFromReader(new JsonTextReader(reader), settings);
-			}
+			return ParseFromReader(new JsonTextReader(reader), settings);
 		}
 
 		[Pure, ContractAnnotation("null => false")]
@@ -1374,10 +1370,10 @@ namespace Doxense.Serialization.Json
 			path = Path.GetFullPath(path);
 
 			if (!File.Exists(path))
-			{ // Le fichier n'existe pas
+			{ // The file does not exist
 
 				if ((options & LoadOptions.ReturnNullIfMissing) == LoadOptions.ReturnNullIfMissing)
-				{ // L'appelant nous a dit de traiter ce cas comme si le fichier contenait 'null'
+				{ // Treat a FileNotFound as if it was present with a "null" value
 					return JsonNull.Missing;
 				}
 				// 404'ed !
@@ -1418,10 +1414,10 @@ namespace Doxense.Serialization.Json
 
 		#region Désérialisation vers un type défini
 
-		/// <summary>Dé-sérialise une chaine de texte JSON vers un type défini</summary>
-		/// <param name="jsonText">Texte JSON à dé-sérialiser</param>
-		/// <returns>Objet correspondant</returns>
-		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
+		/// <summary>De-serializes a JSON text literal into a value of type <typeparamref name="TValue"/></summary>
+		/// <param name="jsonText">JSON text document to parse</param>
+		/// <returns>Deserialized instance</returns>
+		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
 		[Pure]
 		public static TValue Deserialize<TValue>(
@@ -1435,11 +1431,11 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>De-serializes a JSON text literal into a value of type <typeparamref name="TValue"/></summary>
-		/// <param name="jsonText">Texte JSON à dé-sérialiser</param>
+		/// <param name="jsonText">JSON text document to parse</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Resolver optionnel</param>
-		/// <returns>Objet correspondant</returns>
-		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+		/// <returns>Deserialized instance</returns>
+		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
 		[Pure]
 		public static TValue Deserialize<TValue>(
@@ -1455,12 +1451,12 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>De-serializes a JSON text literal into a value of type <typeparamref name="TValue"/></summary>
-		/// <param name="jsonText">Texte JSON à dé-sérialiser</param>
+		/// <param name="jsonText">JSON text document to parse</param>
 		/// <param name="serializer"></param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Resolver optionnel</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>Deserialized instance</returns>
-		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
+		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
 		[Pure]
 		public static TValue Deserialize<TValue>(
@@ -1484,11 +1480,11 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		/// <summary>Dé-sérialise une chaine de texte JSON vers un type défini</summary>
-		/// <param name="jsonText">Texte JSON à dé-sérialiser</param>
+		/// <summary>De-serializes a JSON text literal into a value of type <typeparamref name="TValue"/></summary>
+		/// <param name="jsonText">JSON text document to parse</param>
 		/// <param name="defaultValue"></param>
-		/// <returns>Objet correspondant</returns>
-		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
+		/// <returns>Deserialized instance</returns>
+		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
@@ -1502,13 +1498,13 @@ namespace Doxense.Serialization.Json
 			return Parse(jsonText).As(defaultValue);
 		}
 
-		/// <summary>Dé-sérialise une chaine de texte JSON vers un type défini</summary>
-		/// <param name="jsonText">Texte JSON à dé-sérialiser</param>
+		/// <summary>De-serializes a JSON text literal into a value of type <typeparamref name="TValue"/></summary>
+		/// <param name="jsonText">JSON text document to parse</param>
 		/// <param name="defaultValue"></param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Resolver optionnel</param>
-		/// <returns>Objet correspondant</returns>
-		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+		/// <returns>Deserialized instance</returns>
+		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
@@ -1525,10 +1521,10 @@ namespace Doxense.Serialization.Json
 			return Parse(jsonText, settings).As(defaultValue, resolver);
 		}
 
-		/// <summary>Dé-sérialise une source de texte JSON vers un type défini</summary>
-		/// <param name="jsonBytes">Buffer contenant du texte JSON encodé en UTF-8</param>
-		/// <returns>Objet correspondant</returns>
-		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
+		/// <summary>De-serializes a JSON text literal into a value of type <typeparamref name="TValue"/></summary>
+		/// <param name="jsonBytes">UTF-8 encoded JSON document to parse</param>
+		/// <returns>Deserialized instance</returns>
+		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
 		[Pure]
 		public static TValue Deserialize<TValue>(byte[] jsonBytes) where TValue : notnull
@@ -1536,12 +1532,12 @@ namespace Doxense.Serialization.Json
 			return Parse(jsonBytes).Required<TValue>();
 		}
 
-		/// <summary>Dé-sérialise une source de texte JSON vers un type défini</summary>
-		/// <param name="jsonBytes">Buffer contenant du texte JSON encodé en UTF-8</param>
+		/// <summary>De-serializes a JSON text literal into a value of type <typeparamref name="TValue"/></summary>
+		/// <param name="jsonBytes">UTF-8 encoded JSON document to parse</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Resolver optionnel</param>
-		/// <returns>Objet correspondant</returns>
-		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+		/// <returns>Deserialized instance</returns>
+		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
 		[Pure]
 		public static TValue Deserialize<TValue>(byte[] jsonBytes, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver = null) where TValue : notnull
@@ -1549,11 +1545,11 @@ namespace Doxense.Serialization.Json
 			return Parse(jsonBytes, settings).Required<TValue>(resolver);
 		}
 
-		/// <summary>Dé-sérialise une source de texte JSON vers un type défini</summary>
-		/// <param name="jsonBytes">Buffer contenant du texte JSON encodé en UTF-8</param>
+		/// <summary>De-serializes a JSON text literal into a value of type <typeparamref name="TValue"/></summary>
+		/// <param name="jsonBytes">UTF-8 encoded JSON document to parse</param>
 		/// <param name="defaultValue"></param>
-		/// <returns>Objet correspondant</returns>
-		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
+		/// <returns>Deserialized instance</returns>
+		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
@@ -1562,13 +1558,13 @@ namespace Doxense.Serialization.Json
 			return Parse(jsonBytes).As(defaultValue);
 		}
 
-		/// <summary>Dé-sérialise une source de texte JSON vers un type défini</summary>
-		/// <param name="jsonBytes">Buffer contenant du texte JSON encodé en UTF-8</param>
+		/// <summary>De-serializes a JSON text literal into a value of type <typeparamref name="TValue"/></summary>
+		/// <param name="jsonBytes">UTF-8 encoded JSON document to parse</param>
 		/// <param name="defaultValue"></param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Resolver optionnel</param>
-		/// <returns>Objet correspondant</returns>
-		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+		/// <returns>Deserialized instance</returns>
+		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
@@ -1577,33 +1573,33 @@ namespace Doxense.Serialization.Json
 			return Parse(jsonBytes, settings).As(defaultValue, resolver);
 		}
 
-		/// <summary>Dé-sérialise une source de texte JSON vers un type défini</summary>
-		/// <param name="jsonBytes">Buffer contenant du texte JSON encodé en UTF-8</param>
-		/// <returns>Objet correspondant</returns>
-		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
+		/// <summary>De-serializes a JSON text literal into a value of type <typeparamref name="TValue"/></summary>
+		/// <param name="jsonBytes">UTF-8 encoded JSON document to parse</param>
+		/// <returns>Deserialized instance</returns>
+		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 		[Pure]
 		public static TValue Deserialize<TValue>(Slice jsonBytes) where TValue : notnull
 		{
 			return Parse(jsonBytes).Required<TValue>(resolver: null);
 		}
 
-		/// <summary>Dé-sérialise une source de texte JSON vers un type défini</summary>
-		/// <param name="jsonBytes">Buffer contenant du texte JSON encodé en UTF-8</param>
+		/// <summary>De-serializes a JSON text literal into a value of type <typeparamref name="TValue"/></summary>
+		/// <param name="jsonBytes">UTF-8 encoded JSON document to parse</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Resolver optionnel</param>
-		/// <returns>Objet correspondant</returns>
-		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+		/// <returns>Deserialized instance</returns>
+		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 		[Pure]
 		public static TValue Deserialize<TValue>(Slice jsonBytes, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver = null) where TValue : notnull
 		{
 			return Parse(jsonBytes, settings).Required<TValue>(resolver);
 		}
 
-		/// <summary>Dé-sérialise une source de texte JSON vers un type défini</summary>
-		/// <param name="jsonBytes">Buffer contenant du texte JSON encodé en UTF-8</param>
+		/// <summary>De-serializes a JSON text literal into a value of type <typeparamref name="TValue"/></summary>
+		/// <param name="jsonBytes">UTF-8 encoded JSON document to parse</param>
 		/// <param name="defaultValue"></param>
-		/// <returns>Objet correspondant</returns>
-		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
+		/// <returns>Deserialized instance</returns>
+		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public static TValue? Deserialize<TValue>(Slice jsonBytes, TValue defaultValue)
@@ -1611,13 +1607,13 @@ namespace Doxense.Serialization.Json
 			return Parse(jsonBytes).As(defaultValue);
 		}
 
-		/// <summary>Dé-sérialise une source de texte JSON vers un type défini</summary>
-		/// <param name="jsonBytes">Buffer contenant du texte JSON encodé en UTF-8</param>
+		/// <summary>De-serializes a JSON text literal into a value of type <typeparamref name="TValue"/></summary>
+		/// <param name="jsonBytes">UTF-8 encoded JSON document to parse</param>
 		/// <param name="defaultValue"></param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Resolver optionnel</param>
-		/// <returns>Objet correspondant</returns>
-		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+		/// <returns>Deserialized instance</returns>
+		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public static TValue? Deserialize<TValue>(Slice jsonBytes, TValue defaultValue, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver = null)
@@ -1625,23 +1621,23 @@ namespace Doxense.Serialization.Json
 			return Parse(jsonBytes, settings).As(defaultValue, resolver);
 		}
 
-		/// <summary>Désérialise une source de texte JSON vers un type défini</summary>
-		/// <param name="jsonBytes">Buffer contenant du texte JSON encodé en UTF-8</param>
+		/// <summary>De-serializes a JSON text literal into a value of type <typeparamref name="TValue"/></summary>
+		/// <param name="jsonBytes">UTF-8 encoded JSON document to parse</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Resolver optionnel</param>
-		/// <returns>Objet correspondant</returns>
-		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+		/// <returns>Deserialized instance</returns>
+		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 		[Pure]
 		public static TValue Deserialize<TValue>(ReadOnlySpan<byte> jsonBytes, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) where TValue : notnull
 		{
 			return Parse(jsonBytes, settings).Required<TValue>(resolver);
 		}
 
-		/// <summary>Désérialise une source de texte JSON vers un type défini</summary>
-		/// <param name="jsonBytes">Buffer contenant du texte JSON encodé en UTF-8</param>
+		/// <summary>De-serializes a JSON text literal into a value of type <typeparamref name="TValue"/></summary>
+		/// <param name="jsonBytes">UTF-8 encoded JSON document to parse</param>
 		/// <param name="defaultValue"></param>
-		/// <returns>Objet correspondant</returns>
-		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
+		/// <returns>Deserialized instance</returns>
+		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public static TValue? Deserialize<TValue>(ReadOnlySpan<byte> jsonBytes, TValue defaultValue)
@@ -1649,13 +1645,13 @@ namespace Doxense.Serialization.Json
 			return Parse(jsonBytes).As(defaultValue);
 		}
 
-		/// <summary>Désérialise une source de texte JSON vers un type défini</summary>
-		/// <param name="jsonBytes">Buffer contenant du texte JSON encodé en UTF-8</param>
+		/// <summary>De-serializes a JSON text literal into a value of type <typeparamref name="TValue"/></summary>
+		/// <param name="jsonBytes">UTF-8 encoded JSON document to parse</param>
 		/// <param name="defaultValue"></param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Resolver optionnel</param>
-		/// <returns>Objet correspondant</returns>
-		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+		/// <returns>Deserialized instance</returns>
+		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public static TValue? Deserialize<TValue>(ReadOnlySpan<byte> jsonBytes, TValue defaultValue, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver = null)
@@ -1663,12 +1659,12 @@ namespace Doxense.Serialization.Json
 			return Parse(jsonBytes, settings).As(defaultValue, resolver);
 		}
 
-		/// <summary>Désérialise une source de texte JSON vers un type défini</summary>
-		/// <param name="jsonBytes">Buffer contenant du texte JSON encodé en UTF-8</param>
+		/// <summary>De-serializes a JSON text literal into a value of type <typeparamref name="TValue"/></summary>
+		/// <param name="jsonBytes">UTF-8 encoded JSON document to parse</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Resolver optionnel</param>
-		/// <returns>Objet correspondant</returns>
-		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+		/// <returns>Deserialized instance</returns>
+		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
 		[Pure]
 		public static TValue Deserialize<TValue>(ReadOnlyMemory<byte> jsonBytes, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) where TValue : notnull
@@ -1676,11 +1672,11 @@ namespace Doxense.Serialization.Json
 			return Parse(jsonBytes, settings).Required<TValue>(resolver);
 		}
 
-		/// <summary>Désérialise une source de texte JSON vers un type défini</summary>
-		/// <param name="jsonBytes">Buffer contenant du texte JSON encodé en UTF-8</param>
+		/// <summary>De-serializes a JSON text literal into a value of type <typeparamref name="TValue"/></summary>
+		/// <param name="jsonBytes">UTF-8 encoded JSON document to parse</param>
 		/// <param name="defaultValue"></param>
-		/// <returns>Objet correspondant</returns>
-		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
+		/// <returns>Deserialized instance</returns>
+		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public static TValue? Deserialize<TValue>(ReadOnlyMemory<byte> jsonBytes, TValue defaultValue)
@@ -1688,13 +1684,13 @@ namespace Doxense.Serialization.Json
 			return Parse(jsonBytes).As(defaultValue);
 		}
 
-		/// <summary>Désérialise une source de texte JSON vers un type défini</summary>
-		/// <param name="jsonBytes">Buffer contenant du texte JSON encodé en UTF-8</param>
+		/// <summary>De-serializes a JSON text literal into a value of type <typeparamref name="TValue"/></summary>
+		/// <param name="jsonBytes">UTF-8 encoded JSON document to parse</param>
 		/// <param name="defaultValue"></param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Resolver optionnel</param>
-		/// <returns>Objet correspondant</returns>
-		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+		/// <returns>Deserialized instance</returns>
+		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public static TValue? Deserialize<TValue>(ReadOnlyMemory<byte> jsonBytes, TValue defaultValue, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver = null)
@@ -1702,12 +1698,12 @@ namespace Doxense.Serialization.Json
 			return Parse(jsonBytes, settings).As(defaultValue, resolver);
 		}
 
-		/// <summary>Dé-sérialise une source de texte JSON vers un type défini</summary>
-		/// <param name="source">Source contenant le texte JSON à dé-sérialiser</param>
+		/// <summary>Deserializes the content of a source of JSON text into an instance of type <typeparamref name="TValue"/></summary>
+		/// <param name="source">Source of text to parse</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Resolver optionnel</param>
-		/// <returns>Objet correspondant</returns>
-		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+		/// <returns>Deserialized instance</returns>
+		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
 		[Pure]
 		public static TValue? LoadFrom<TValue>(TextReader source, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) where TValue : notnull
@@ -1715,34 +1711,30 @@ namespace Doxense.Serialization.Json
 			return ParseFrom(source, settings).As<TValue?>(default, resolver);
 		}
 
-		/// <summary>Dé-sérialise une source de données JSON vers un type défini</summary>
-		/// <param name="source">Source contenant le JSON à dé-sérialiser (encodé en UTF-8)</param>
+		/// <summary>Deserializes the content of a stream into an instance of type <typeparamref name="TValue"/></summary>
+		/// <param name="source">File to read</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Resolver optionnel</param>
-		/// <returns>Objet correspondant</returns>
-		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+		/// <returns>Deserialized instance</returns>
+		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
 		[Pure]
 		public static TValue? LoadFrom<TValue>(Stream source, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) where TValue : notnull
 		{
 			Contract.NotNull(source);
 
-			//REVIEW: on pourrait détecter un MemoryStream et directement lire le buffer s'il est accessible, mais il faut s'assurer
-			// que dans tous les cas (succès ou erreur), on seek le MemoryStream exactement comme si on l'avait consommé directement !
+			using var sr = new StreamReader(source, Encoding.UTF8, true);
 
-			using (var sr = new StreamReader(source, Encoding.UTF8, true))
-			{
-				return ParseFromReader(new JsonTextReader(sr), settings).As<TValue?>(default, resolver);
-			}
+			return ParseFromReader(new JsonTextReader(sr), settings).As<TValue?>(default, resolver);
 		}
 
-		/// <summary>Dé-sérialise le contenu d'un fichier JSON sur le disque vers un type défini</summary>
-		/// <param name="path">Nom du fichier à lire</param>
+		/// <summary>Deserializes the content of a file on disk into an instance of type <typeparamref name="TValue"/></summary>
+		/// <param name="path">Path to the file to read</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Resolver optionnel</param>
-		/// <param name="options">Options de lecture</param>
-		/// <returns>Objet correspondant</returns>
-		/// <exception cref="FormatException">En cas d'erreur de parsing JSON</exception>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+		/// <param name="options">Read options</param>
+		/// <returns>Deserialized instance</returns>
+		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
 		[Pure]
 		public static TValue? LoadFrom<TValue>(string path, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null, LoadOptions options = LoadOptions.None) where TValue : notnull
