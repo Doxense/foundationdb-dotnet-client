@@ -565,7 +565,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
 		[Pure]
-		public static Slice ToJsonSlice(JsonValue value, CrystalJsonSettings? settings = null)
+		public static Slice ToJsonSlice(JsonValue? value, CrystalJsonSettings? settings = null)
 		{
 			var writer = WriterPool.Allocate();
 			try
@@ -589,7 +589,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if <see langword="null"/>)</param>
 		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
 		[Pure]
-		public static SliceOwner ToJsonSlice(JsonValue value, ArrayPool<byte> pool, CrystalJsonSettings? settings = null)
+		public static SliceOwner ToJsonSlice(JsonValue? value, ArrayPool<byte>? pool, CrystalJsonSettings? settings = null)
 		{
 			var writer = WriterPool.Allocate();
 			try
@@ -678,7 +678,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>
 		/// <para>The <see cref="SliceOwner"/> returned <b>MUST</b> be disposed; otherwise, the rented buffer will not be returned to the <paramref name="pool"/>.</para>
 		/// </remarks>
-		public static SliceOwner ToSlice<T>(T? value, IJsonSerializer<T>? serializer, ArrayPool<byte> pool, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public static SliceOwner ToSlice<T>(T? value, IJsonSerializer<T>? serializer, ArrayPool<byte>? pool, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			var writer = WriterPool.Allocate();
 			try
@@ -717,7 +717,7 @@ namespace Doxense.Serialization.Json
 		/// <para>The <see cref="SliceOwner"/> returned <b>MUST</b> be disposed; otherwise, the rented buffer will not be returned to the <paramref name="pool"/>.</para>
 		/// </remarks>
 		[Pure]
-		public static SliceOwner ToSlice(object? value, ArrayPool<byte> pool, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static SliceOwner ToSlice(object? value, ArrayPool<byte>? pool, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			return ToSlice(value, typeof(object), pool, settings, resolver);
 		}
@@ -735,7 +735,7 @@ namespace Doxense.Serialization.Json
 		/// <para>If <paramref name="type"/> is an interface or abstract class, or if <paramref name="value"/> is a derived type of <paramref name="type"/>, the serialized document may include an additional attribute with the original type name, which may not be recognized by other libraries or platforms.</para>
 		/// </remarks>
 		[Pure]
-		public static SliceOwner ToSlice(object? value, Type? type, ArrayPool<byte> pool, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static SliceOwner ToSlice(object? value, Type? type, ArrayPool<byte>? pool, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			var writer = WriterPool.Allocate();
 			try
@@ -1380,10 +1380,8 @@ namespace Doxense.Serialization.Json
 				throw new FileNotFoundException("Specified JSON file could not be found", path);
 			}
 
-			using (var reader = OpenJsonStreamReader(path, settings))
-			{
-				return ParseFromReader(new JsonTextReader(reader), settings);
-			}
+			using var reader = OpenJsonStreamReader(path, settings);
+			return ParseFromReader(new JsonTextReader(reader), settings);
 		}
 
 		#endregion
