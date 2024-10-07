@@ -1202,19 +1202,13 @@ namespace Doxense.Serialization.Json
 
 		private static CrystalJsonTypeVisitor CompileGenericVisitorMethod(string methodName, string visitorName, Type type)
 		{
+			// (v, t, r, w) => method(v, t, r, w)
+
 			var method = typeof(CrystalJsonVisitor).GetMethod(methodName, BindingFlags.Static | BindingFlags.NonPublic);
 			Contract.Debug.Assert(method != null);
 			method = method.MakeGenericMethod(type);
-			var prms = new[] {
-				Expression.Parameter(typeof(object), "v"),
-				Expression.Parameter(typeof(Type), "t"),
-				Expression.Parameter(typeof(Type), "r"),
-				Expression.Parameter(typeof(CrystalJsonWriter), "w")
-			};
-			// ReSharper disable once CoVariantArrayConversion
-			var call = Expression.Call(null, method, prms);
-			var lambda = Expression.Lambda<CrystalJsonTypeVisitor>(call, "CrystalJsonVisitor.<" + type.GetFriendlyName() + ">_" + visitorName, true, prms);
-			return lambda.Compile();
+
+			return method.CreateDelegate<CrystalJsonTypeVisitor>();
 		}
 
 		private static void VisitArrayInternal<T>(object? value, Type declaredType, Type? runtimeType, CrystalJsonWriter writer)
