@@ -266,14 +266,16 @@ namespace FoundationDB.Client.Native
 
 		/// <summary>Extract a chunk of result from a completed Future</summary>
 		/// <param name="h">Handle to the completed Future</param>
+		/// <param name="pool">Optional pool used to allocate the buffer for the keys and values (use the heap if null)</param>
 		/// <param name="more">Receives true if there are more result, or false if all results have been transmitted</param>
 		/// <param name="first">Receives the first key in the page, or default if page is empty</param>
 		/// <param name="last">Receives the last key in the page, or default if page is empty</param>
+		/// <param name="buffer">Receives the buffer used to store the keys and values (so that it can be returned to the pool at a later time)</param>
 		/// <param name="dataBytes">Total size of keys and values</param>
 		/// <returns>Array of key/value pairs, or an exception</returns>
-		private static KeyValuePair<Slice, Slice>[] GetKeyValueArrayResult(FutureHandle h, out bool more, out Slice first, out Slice last, out int dataBytes)
+		private static KeyValuePair<Slice, Slice>[] GetKeyValueArrayResult(FutureHandle h, ArrayPool<byte>? pool, out bool more, out Slice first, out Slice last, out SliceOwner buffer, out int dataBytes)
 		{
-			var err = FdbNative.FutureGetKeyValueArray(h, out var result, out more, out dataBytes);
+			var err = FdbNative.FutureGetKeyValueArray(h, pool, out var result, out more, out buffer, out dataBytes);
 			FdbNative.DieOnError(err);
 			//note: result can only be null if an error occured!
 			Contract.Debug.Ensures(result != null);
@@ -332,9 +334,21 @@ namespace FoundationDB.Client.Native
 		}
 		/// <summary>Asynchronously fetch a new page of results</summary>
 		/// <returns>True if Chunk contains a new page of results. False if all results have been read.</returns>
-		public Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, int limit, bool reverse, int targetBytes, FdbStreamingMode mode, FdbReadMode read, int iteration, bool snapshot, CancellationToken ct)
+		public Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options, int iteration, bool snapshot, CancellationToken ct)
 		{
-			var future = FdbNative.TransactionGetRange(m_handle, beginInclusive, endExclusive, limit, targetBytes, mode, iteration, snapshot, reverse);
+			Contract.Debug.Requires(options != null);
+
+			var future = FdbNative.TransactionGetRange(
+				m_handle,
+				beginInclusive,
+				endExclusive,
+				options.Limit ?? 0,
+				options.TargetBytes ?? 0,
+				options.Mode ?? FdbStreamingMode.Iterator,
+				iteration,
+				snapshot,
+				options.Reverse
+			);
 			return FdbFuture.CreateTaskFromHandle(
 				future,
 				(h) =>
@@ -343,11 +357,14 @@ namespace FoundationDB.Client.Native
 					bool hasMore;
 					Slice first, last;
 					int dataBytes;
-					switch (read)
+
+					SliceOwner buffer = default;
+
+					switch (options.Read ?? FdbReadMode.Both)
 					{
 						case FdbReadMode.Both:
 						{
-							items = GetKeyValueArrayResult(h, out hasMore, out first, out last, out dataBytes);
+							items = GetKeyValueArrayResult(h, options.Pool, out hasMore, out first, out last, out buffer, out dataBytes);
 							break;
 						}
 						case FdbReadMode.Keys:
@@ -365,7 +382,7 @@ namespace FoundationDB.Client.Native
 							throw new InvalidOperationException();
 						}
 					}
-					return new FdbRangeChunk(items, hasMore, iteration, reverse, read, first, last, dataBytes);
+					return new FdbRangeChunk(items, hasMore, iteration, options, first, last, dataBytes, buffer);
 				},
 				ct
 			);
@@ -373,9 +390,21 @@ namespace FoundationDB.Client.Native
 
 		/// <summary>Asynchronously fetch a new page of results</summary>
 		/// <returns>True if Chunk contains a new page of results. False if all results have been read.</returns>
-		public Task<FdbRangeChunk<TResult>> GetRangeAsync<TState, TResult>(KeySelector beginInclusive, KeySelector endExclusive, bool snapshot, TState state, FdbKeyValueDecoder<TState, TResult> decoder, int limit, bool reverse, int targetBytes, FdbStreamingMode mode, FdbReadMode read, int iteration, CancellationToken ct)
+		public Task<FdbRangeChunk<TResult>> GetRangeAsync<TState, TResult>(KeySelector beginInclusive, KeySelector endExclusive, bool snapshot, TState state, FdbKeyValueDecoder<TState, TResult> decoder, FdbRangeOptions options, int iteration, CancellationToken ct)
 		{
-			var future = FdbNative.TransactionGetRange(m_handle, beginInclusive, endExclusive, limit, targetBytes, mode, iteration, snapshot, reverse);
+			Contract.Debug.Requires(decoder != null && options != null);
+
+			var future = FdbNative.TransactionGetRange(
+				m_handle,
+				beginInclusive,
+				endExclusive,
+				options.Limit ?? 0,
+				options.TargetBytes ?? 0,
+				options.Mode ?? FdbStreamingMode.Iterator,
+				iteration,
+				snapshot,
+				options.Reverse
+			);
 			return FdbFuture.CreateTaskFromHandle(
 				future,
 				(h) =>
@@ -386,7 +415,7 @@ namespace FoundationDB.Client.Native
 					var err = FdbNative.FutureGetKeyValueArray(h, state, decoder, out var items, out var hasMore, out var first, out var last, out var totalBytes);
 					FdbNative.DieOnError(err);
 
-					return new FdbRangeChunk<TResult>(items, hasMore, iteration, reverse, read, first, last, totalBytes);
+					return new FdbRangeChunk<TResult>(items, hasMore, iteration, options, first, last, totalBytes);
 				},
 				ct
 			);

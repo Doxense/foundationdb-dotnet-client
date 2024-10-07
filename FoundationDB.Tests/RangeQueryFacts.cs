@@ -31,6 +31,7 @@
 
 namespace FoundationDB.Client.Tests
 {
+	using System.IO;
 	using Doxense.Linq.Async.Iterators;
 
 	[TestFixture]
@@ -47,6 +48,8 @@ namespace FoundationDB.Client.Tests
 
 			void Verify(FdbRangeChunk chunk, ReadOnlySpan<(Slice Key, Slice Value)> expected)
 			{
+				Assert.That(chunk.Count, Is.EqualTo(expected.Length));
+
 				for (int i = 0; i < chunk.Count; i++)
 				{
 					Assert.That(chunk[i].Key, Is.EqualTo(expected[i].Key), $"[{i}].Key");
@@ -59,8 +62,51 @@ namespace FoundationDB.Client.Tests
 					Assert.That(chunk.Values[i], Is.EqualTo(expected[i].Value), $"Values[{i}]");
 				}
 
+				Log($"> First = {chunk.First:K}");
 				Assert.That(chunk.First, Is.EqualTo(expected[0].Key));
+				Log($"> Last = {chunk.Last:K}");
 				Assert.That(chunk.Last, Is.EqualTo(expected[chunk.Count - 1].Key));
+
+				// Total Bytes (Keys + Values)
+				long total = 0;
+				long totalKeys = 0;
+				long totalValues = 0;
+				foreach(var kv in chunk.Items)
+				{
+					total += kv.Key.Count + kv.Value.Count;
+					totalKeys += kv.Key.Count;
+					totalValues += kv.Value.Count;
+				}
+				Log($"> TotalBytes = {chunk.TotalBytes}");
+				Assert.That(chunk.TotalBytes, Is.EqualTo(total), $"Total Bytes does not match (keys={totalKeys}, values={totalValues})");
+
+				// ConcatValues
+				var ms = new MemoryStream();
+				foreach (var kv in expected)
+				{
+					ms.Write(kv.Value.Span);
+				}
+				var expectedValues = ms.ToSlice();
+				var values = chunk.ConcatValues();
+				if (!expectedValues.Equals(values))
+				{
+					DumpVersus(values, expectedValues);
+					Assert.That(values.ToArray(), Is.EqualTo(expectedValues.ToArray()));
+				}
+
+				// AppendValues
+				var sw = new SliceWriter();
+				sw.WriteString("ThereIsAlreadySomethingInTheBuffer");
+				int before = sw.Position;
+				chunk.AppendValues(ref sw);
+				Assert.That(sw.Position, Is.EqualTo(before + expectedValues.Count));
+				expectedValues = Slice.FromString("ThereIsAlreadySomethingInTheBuffer").Concat(expectedValues);
+				values = sw.ToSlice();
+				if (!expectedValues.Equals(values))
+				{
+					DumpVersus(values, expectedValues);
+					Assert.That(values.ToArray(), Is.EqualTo(expectedValues.ToArray()));
+				}
 			}
 
 			using (var db = await OpenTestPartitionAsync())
@@ -97,11 +143,11 @@ namespace FoundationDB.Client.Tests
 					var chunk = await tr.GetRangeAsync(
 						folder.Encode(0),
 						folder.Encode(N),
-						new FdbRangeOptions { Mode = FdbStreamingMode.WantAll }
+						FdbRangeOptions.WantAll
 					);
 					ts.Stop();
 					Assert.That(chunk, Is.Not.Null);
-					Log($"> Read {chunk.Count:N0} results in {ts.Elapsed.TotalMilliseconds:N1} ms");
+					Log($"> Read {chunk.Count:N0} results in {ts.Elapsed.TotalMilliseconds:N1} ms (TotalBytes={chunk.TotalBytes})");
 
 					Assert.That(chunk.Count, Is.EqualTo(N), "Reading a small chunk in WantAll should return all results in one page! If this changes, you may need to tweak the parameters of the test!");
 					Assert.That(chunk.IsEmpty, Is.False, "Should not be empty");
@@ -112,9 +158,10 @@ namespace FoundationDB.Client.Tests
 					Assert.That(chunk.Keys.Count, Is.EqualTo(chunk.Count), "Keys collection count does not match");
 					Assert.That(chunk.Values.Count, Is.EqualTo(chunk.Count), "Values collection count does not match");
 
-					Verify(chunk, data);
+					Verify(chunk, data.AsSpan(0, chunk.Count));
 				}
 
+				// Read Iterator
 				await db.ReadAsync(async tr =>
 				{
 					var folder = await location.Resolve(tr);
@@ -125,11 +172,11 @@ namespace FoundationDB.Client.Tests
 					var chunk = await tr.GetRangeAsync(
 						folder.Encode(0),
 						folder.Encode(N),
-						new FdbRangeOptions { Mode = FdbStreamingMode.Iterator }
+						FdbRangeOptions.Default
 					);
 					ts.Stop();
 					Assert.That(chunk, Is.Not.Null);
-					Log($"> Read {chunk.Count:N0} results in {ts.Elapsed.TotalMilliseconds:N1} ms");
+					Log($"> Read {chunk.Count:N0} results in {ts.Elapsed.TotalMilliseconds:N1} ms (TotalBytes={chunk.TotalBytes})");
 					Assert.That(chunk.Count, Is.GreaterThan(0).And.LessThan(N), "Should only have read a portion of the results!");
 					Assert.That(chunk.HasMore, Is.True, "Should have more results after that!");
 					Assert.That(chunk.Items, Is.Not.Null.And.Length.EqualTo(chunk.Count), "Items array should match result count");
@@ -138,7 +185,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(chunk.Keys.Count, Is.EqualTo(chunk.Count), "Keys collection count does not match");
 					Assert.That(chunk.Values.Count, Is.EqualTo(chunk.Count), "Values collection count does not match");
 
-					Verify(chunk, data);
+					Verify(chunk, data.AsSpan(0, chunk.Count));
 
 				}, this.Cancellation);
 
@@ -198,7 +245,7 @@ namespace FoundationDB.Client.Tests
 						folder.Encode(N),
 						folder,
 						static (folder, key, value) => (folder.Decode<int>(key), value.ToStringUtf8()),
-						new FdbRangeOptions { Mode = FdbStreamingMode.WantAll }
+						FdbRangeOptions.WantAll
 					);
 					ts.Stop();
 					Assert.That(chunk, Is.Not.Null);
@@ -229,7 +276,7 @@ namespace FoundationDB.Client.Tests
 						folder.Encode(N),
 						folder,
 						static (folder, key, value) => (folder.Decode<int>(key), value.ToStringUtf8()),
-						new FdbRangeOptions { Mode = FdbStreamingMode.Iterator }
+						FdbRangeOptions.Default
 					);
 					ts.Stop();
 					Assert.That(chunk, Is.Not.Null);
@@ -254,7 +301,7 @@ namespace FoundationDB.Client.Tests
 						folder.Encode(N),
 						folder,
 						static (folder, key, value) => (folder.Decode<int>(key), value.ToStringUtf8()),
-						new FdbRangeOptions { Mode = FdbStreamingMode.Iterator },
+						FdbRangeOptions.Default,
 						chunk.Iteration
 					);
 					ts.Stop();
@@ -384,7 +431,7 @@ namespace FoundationDB.Client.Tests
 					var chunk = await tr.GetRangeAsync(
 						folder.Encode(0),
 						folder.Encode(N),
-						new FdbRangeOptions { Mode = FdbStreamingMode.WantAll, Read = FdbReadMode.Keys }
+						FdbRangeOptions.WantAllKeysOnly
 					);
 					// note: this will not read ALL the keys in one chunk !
 					Assert.That(chunk.Count, Is.GreaterThan(0).And.LessThanOrEqualTo(N));
@@ -414,7 +461,7 @@ namespace FoundationDB.Client.Tests
 					var folder = await location.Resolve(tr);
 					Assert.That(folder, Is.Not.Null);
 
-					var query = tr.GetRange(folder.Encode(0), folder.Encode(N), new FdbRangeOptions { Read = FdbReadMode.Keys });
+					var query = tr.GetRange(folder.Encode(0), folder.Encode(N), FdbRangeOptions.KeysOnly);
 					Assert.That(query.Read, Is.EqualTo(FdbReadMode.Keys));
 
 					var items = await query.ToListAsync();
@@ -497,7 +544,7 @@ namespace FoundationDB.Client.Tests
 					var chunk = await tr.GetRangeAsync(
 						folder.Encode(0),
 						folder.Encode(N),
-						new FdbRangeOptions { Mode = FdbStreamingMode.WantAll, Read = FdbReadMode.Values }
+						FdbRangeOptions.WantAllValuesOnly
 					);
 					// note: this will not read ALL the keys in one chunk !
 					Assert.That(chunk.Count, Is.GreaterThan(0).And.LessThanOrEqualTo(N));
@@ -529,7 +576,7 @@ namespace FoundationDB.Client.Tests
 					var query = tr.GetRange(
 						folder.Encode(0),
 						folder.Encode(N),
-						new FdbRangeOptions { Read = FdbReadMode.Values }
+						FdbRangeOptions.ValuesOnly
 					);
 					Assert.That(query.Read, Is.EqualTo(FdbReadMode.Values));
 

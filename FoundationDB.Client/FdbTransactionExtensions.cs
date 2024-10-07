@@ -1566,7 +1566,7 @@ namespace FoundationDB.Client
 				endExclusive,
 				new SliceBuffer(),
 				static (s, k, _) => s.Intern(k),
-				options?.OnlyKeys() ?? new FdbRangeOptions { Read = FdbReadMode.Keys }
+				options?.OnlyKeys() ?? FdbRangeOptions.KeysOnly
 			);
 		}
 
@@ -1581,7 +1581,7 @@ namespace FoundationDB.Client
 				selectors.End, 
 				new SliceBuffer(),
 				static (s, k, _) => s.Intern(k),
-				options?.OnlyKeys() ?? new FdbRangeOptions { Read = FdbReadMode.Keys }
+				options?.OnlyKeys() ?? FdbRangeOptions.KeysOnly
 			);
 		}
 
@@ -1595,7 +1595,7 @@ namespace FoundationDB.Client
 				KeySelector.FirstGreaterOrEqual(endKeyExclusive.IsNullOrEmpty ? FdbKey.MaxValue : endKeyExclusive),
 				new SliceBuffer(),
 				static (s, k, _) => s.Intern(k),
-				options?.OnlyKeys() ?? new FdbRangeOptions { Read = FdbReadMode.Keys }
+				options?.OnlyKeys() ?? FdbRangeOptions.KeysOnly
 			);
 		}
 
@@ -1609,7 +1609,7 @@ namespace FoundationDB.Client
 				range.End,
 				new SliceBuffer(),
 				static (s, k, _) => s.Intern(k),
-				options?.OnlyKeys() ?? new FdbRangeOptions { Read = FdbReadMode.Keys }
+				options?.OnlyKeys() ?? FdbRangeOptions.KeysOnly
 			);
 		}
 
@@ -1627,7 +1627,7 @@ namespace FoundationDB.Client
 				endExclusive,
 				new SliceBuffer(),
 				static (s, _, v) => s.Intern(v),
-				options?.OnlyValues() ?? new FdbRangeOptions { Read = FdbReadMode.Values }
+				options?.OnlyValues() ?? FdbRangeOptions.ValuesOnly
 			);
 		}
 
@@ -1642,7 +1642,7 @@ namespace FoundationDB.Client
 				selectors.End,
 				new SliceBuffer(),
 				static (s, _, v) => s.Intern(v),
-				options?.OnlyValues() ?? new FdbRangeOptions { Read = FdbReadMode.Values }
+				options?.OnlyValues() ?? FdbRangeOptions.ValuesOnly
 			);
 		}
 
@@ -1656,7 +1656,7 @@ namespace FoundationDB.Client
 				KeySelector.FirstGreaterOrEqual(endKeyExclusive.IsNullOrEmpty ? FdbKey.MaxValue : endKeyExclusive),
 				new SliceBuffer(),
 				static (s, _, v) => s.Intern(v),
-				options?.OnlyValues() ?? new FdbRangeOptions { Read = FdbReadMode.Values }
+				options?.OnlyValues() ?? FdbRangeOptions.ValuesOnly
 			);
 		}
 
@@ -1670,59 +1670,13 @@ namespace FoundationDB.Client
 				range.End,
 				new SliceBuffer(),
 				static (s, _, v) => s.Intern(v),
-				options?.OnlyValues() ?? new FdbRangeOptions { Read = FdbReadMode.Values }
+				options?.OnlyValues() ?? FdbRangeOptions.ValuesOnly
 			);
 		}
 
 		#endregion
 
 		#region GetRangeAsync...
-
-		/// <summary>
-		/// Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by Limit, TargetBytes, or Mode)
-		/// which have a key lexicographically greater than or equal to the key resolved by the beginning key selector
-		/// and lexicographically less than the key resolved by the end key selector.
-		/// </summary>
-		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="beginInclusive">key selector defining the beginning of the range</param>
-		/// <param name="endExclusive">key selector defining the end of the range</param>
-		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
-		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
-		/// <returns></returns>
-		public static Task<FdbRangeChunk> GetRangeAsync(this IFdbReadOnlyTransaction trans, KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options, int iteration = 0)
-		{
-			int limit = options?.Limit ?? 0;
-			bool reverse = options?.Reverse ?? false;
-			int targetBytes = options?.TargetBytes ?? 0;
-			var mode = options?.Mode ?? FdbStreamingMode.Iterator;
-			var read = options?.Read ?? FdbReadMode.Both;
-
-			return trans.GetRangeAsync(beginInclusive, endExclusive, limit, reverse, targetBytes, mode, read, iteration);
-		}
-
-		/// <summary>
-		/// Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by Limit, TargetBytes, or Mode)
-		/// which have a key lexicographically greater than or equal to the key resolved by the begin key selector
-		/// and lexicographically less than the key resolved by the end key selector.
-		/// </summary>
-		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="beginInclusive">key selector defining the beginning of the range</param>
-		/// <param name="endExclusive">key selector defining the end of the range</param>
-		/// <param name="state">State that will be forwarded to the <paramref name="decoder"/></param>
-		/// <param name="decoder">Decoder that will extract the result from the value found in the database</param>
-		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
-		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
-		/// <returns></returns>
-		public static Task<FdbRangeChunk<TResult>> GetRangeAsync<TState, TResult>(this IFdbReadOnlyTransaction trans, KeySelector beginInclusive, KeySelector endExclusive, TState state, FdbKeyValueDecoder<TState, TResult> decoder, FdbRangeOptions? options, int iteration = 0)
-		{
-			int limit = options?.Limit ?? 0;
-			bool reverse = options?.Reverse ?? false;
-			int targetBytes = options?.TargetBytes ?? 0;
-			var mode = options?.Mode ?? FdbStreamingMode.Iterator;
-			var read = options?.Read ?? FdbReadMode.Both;
-
-			return trans.GetRangeAsync(beginInclusive, endExclusive, state, decoder, limit, reverse, targetBytes, mode, read, iteration);
-		}
 
 		/// <summary>
 		/// Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by Limit, TargetBytes, or Mode)
@@ -1737,47 +1691,6 @@ namespace FoundationDB.Client
 		public static Task<FdbRangeChunk> GetRangeAsync(this IFdbReadOnlyTransaction trans, KeySelectorPair range, FdbRangeOptions? options, int iteration = 0)
 		{
 			return trans.GetRangeAsync(range.Begin, range.End, options, iteration);
-		}
-
-		/// <summary>
-		/// Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by Limit, TargetBytes, or Mode)
-		/// which have a key lexicographically greater than or equal to the key resolved by the begin key selector
-		/// and lexicographically less than the key resolved by the end key selector.
-		/// </summary>
-		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="range">Range of keys defining the beginning (inclusive) and the end (exclusive) of the range</param>
-		/// <param name="limit">Maximum number of items to return</param>
-		/// <param name="reverse">If true, results are returned in reverse order (from last to first)</param>
-		/// <param name="targetBytes">Maximum number of bytes to read</param>
-		/// <param name="mode">Streaming mode (defaults to <see cref="FdbStreamingMode.Iterator"/>)</param>
-		/// <param name="read">Read mode (defaults to <see cref="FdbReadMode.Both"/>)</param>
-		/// <param name="iteration">If <paramref name="mode">streaming mode</paramref> is <see cref="FdbStreamingMode.Iterator"/>, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
-		/// <returns></returns>
-		public static Task<FdbRangeChunk> GetRangeAsync(this IFdbReadOnlyTransaction trans, KeyRange range, int limit = 0, bool reverse = false, int targetBytes = 0, FdbStreamingMode mode = FdbStreamingMode.Iterator, FdbReadMode read = FdbReadMode.Both, int iteration = 0)
-		{
-			var sp = KeySelectorPair.Create(range);
-			return trans.GetRangeAsync(sp.Begin, sp.End, limit, reverse, targetBytes, mode, read, iteration);
-		}
-
-		/// <summary>
-		/// Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by Limit, TargetBytes, or Mode)
-		/// which have a key lexicographically greater than or equal to the key resolved by the begin key selector
-		/// and lexicographically less than the key resolved by the end key selector.
-		/// </summary>
-		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="beginInclusive">Key defining the beginning (inclusive) of the range</param>
-		/// <param name="endExclusive">Key defining the end (exclusive) of the range</param>
-		/// <param name="limit">Maximum number of items to return</param>
-		/// <param name="reverse">If true, results are returned in reverse order (from last to first)</param>
-		/// <param name="targetBytes">Maximum number of bytes to read</param>
-		/// <param name="mode">Streaming mode (defaults to <see cref="FdbStreamingMode.Iterator"/>)</param>
-		/// <param name="read">Read mode (defaults to <see cref="FdbReadMode.Both"/>)</param>
-		/// <param name="iteration">If <paramref name="mode">streaming mode</paramref> is <see cref="FdbStreamingMode.Iterator"/>, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
-		/// <returns></returns>
-		public static Task<FdbRangeChunk> GetRangeAsync(this IFdbReadOnlyTransaction trans, Slice beginInclusive, Slice endExclusive, int limit = 0, bool reverse = false, int targetBytes = 0, FdbStreamingMode mode = FdbStreamingMode.Iterator, FdbReadMode read = FdbReadMode.Both, int iteration = 0)
-		{
-			var range = KeySelectorPair.Create(beginInclusive, endExclusive);
-			return trans.GetRangeAsync(range.Begin, range.End, limit, reverse, targetBytes, mode, read, iteration);
 		}
 
 		/// <summary>
@@ -1807,7 +1720,7 @@ namespace FoundationDB.Client
 		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
 		/// <returns></returns>
-		public static Task<FdbRangeChunk> GetRangeAsync(this IFdbReadOnlyTransaction trans, Slice beginInclusive, Slice endExclusive, FdbRangeOptions? options, int iteration = 0)
+		public static Task<FdbRangeChunk> GetRangeAsync(this IFdbReadOnlyTransaction trans, Slice beginInclusive, Slice endExclusive, FdbRangeOptions? options = null, int iteration = 0)
 		{
 			var range = KeySelectorPair.Create(beginInclusive, endExclusive);
 			return trans.GetRangeAsync(range.Begin, range.End, options, iteration);

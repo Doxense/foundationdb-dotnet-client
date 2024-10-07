@@ -594,14 +594,13 @@ namespace FoundationDB.Client
 
 				var results = new List<Slice>();
 				int iterations = 0;
-				var options = new FdbRangeOptions { Mode = FdbStreamingMode.WantAll };
 				while (begin < end)
 				{
 					FdbException? error = null;
 					Slice lastBegin = begin;
 					try
 					{
-						var chunk = await trans.Snapshot.GetRangeAsync(KeyServers + begin, KeyServers + end, options, iterations).ConfigureAwait(false);
+						var chunk = await trans.Snapshot.GetRangeAsync(KeyServers + begin, KeyServers + end, FdbRangeOptions.WantAll, iterations).ConfigureAwait(false);
 						++iterations;
 						if (chunk.Count > 0)
 						{
@@ -818,7 +817,7 @@ namespace FoundationDB.Client
 									.GetRange(
 										KeySelector.FirstGreaterThan(cursor), // cursor has already been counted once
 										KeySelector.FirstGreaterOrEqual(end),
-										new FdbRangeOptions() { Limit = windowSize - 1 }
+										new() { Limit = windowSize - 1 }
 									)
 									.CountAsync()
 									.ConfigureAwait(false);

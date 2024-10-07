@@ -27,6 +27,8 @@
 // enable this to help debug Transactions
 //#define DEBUG_TRANSACTIONS
 
+using System.Buffers;
+
 namespace FoundationDB.Client
 {
 	using System.Buffers.Binary;
@@ -725,72 +727,66 @@ namespace FoundationDB.Client
 		#region GetRangeAsync...
 
 		/// <inheritdoc />
-		public Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, int limit, bool reverse, int targetBytes, FdbStreamingMode mode, FdbReadMode read, int iteration)
+		public Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options, int iteration)
 		{
 			EnsureCanRead();
 
 			FdbKey.EnsureKeyIsValid(beginInclusive.Key);
 			FdbKey.EnsureKeyIsValid(endExclusive.Key, endExclusive: true);
 
-			FdbRangeOptions.EnsureLegalValues(limit, targetBytes, mode, read, iteration);
+			options.EnsureLegalValues(iteration);
 
 			// The iteration value is only needed when in iterator mode, but then it should start from 1
 			if (iteration == 0) iteration = 1;
 
-			return PerformGetRangeOperation(beginInclusive, endExclusive, snapshot: false, limit, reverse, targetBytes, mode, read, iteration);
+			return PerformGetRangeOperation(beginInclusive, endExclusive, snapshot: false, options, iteration);
 		}
 
 		/// <inheritdoc />
-		public Task<FdbRangeChunk<TResult>> GetRangeAsync<TState, TResult>(KeySelector beginInclusive, KeySelector endExclusive, TState state, FdbKeyValueDecoder<TState, TResult> decoder, int limit, bool reverse, int targetBytes, FdbStreamingMode mode, FdbReadMode read, int iteration)
+		public Task<FdbRangeChunk<TResult>> GetRangeAsync<TState, TResult>(KeySelector beginInclusive, KeySelector endExclusive, TState state, FdbKeyValueDecoder<TState, TResult> decoder, FdbRangeOptions? options, int iteration)
 		{
 			EnsureCanRead();
 
 			FdbKey.EnsureKeyIsValid(beginInclusive.Key);
 			FdbKey.EnsureKeyIsValid(endExclusive.Key, endExclusive: true);
 
-			FdbRangeOptions.EnsureLegalValues(limit, targetBytes, mode, read, iteration);
+			options = FdbRangeOptions.EnsureDefaults(options, FdbStreamingMode.Iterator, FdbReadMode.Both);
+			options.EnsureLegalValues(iteration);
 
 			// The iteration value is only needed when in iterator mode, but then it should start from 1
 			if (iteration == 0) iteration = 1;
 
-			return PerformGetRangeOperation(beginInclusive, endExclusive, snapshot: false, state, decoder, limit, reverse, targetBytes, mode, read, iteration);
+			return PerformGetRangeOperation(beginInclusive, endExclusive, snapshot: false, state, decoder, options, iteration);
 		}
 
 		private Task<FdbRangeChunk> PerformGetRangeOperation(
 			KeySelector beginInclusive,
 			KeySelector endExclusive,
 			bool snapshot,
-			int limit,
-			bool reverse,
-			int targetBytes,
-			FdbStreamingMode mode,
-			FdbReadMode read,
-			int iteration)
+			FdbRangeOptions options,
+			int iteration
+		)
 		{
 			FdbClientInstrumentation.ReportGetRange(this);
 
 			return m_log == null
-				? m_handler.GetRangeAsync(beginInclusive, endExclusive, limit, reverse, targetBytes, mode, read, iteration, snapshot, m_cancellation)
-				: ExecuteLogged(this, beginInclusive, endExclusive, snapshot, limit, reverse, targetBytes, mode, read, iteration);
+				? m_handler.GetRangeAsync(beginInclusive, endExclusive, options, iteration, snapshot, m_cancellation)
+				: ExecuteLogged(this, beginInclusive, endExclusive, snapshot, options, iteration);
 
-			static Task<FdbRangeChunk> ExecuteLogged(FdbTransaction self, KeySelector beginInclusive, KeySelector endExclusive, bool snapshot, int limit, bool reverse, int targetBytes, FdbStreamingMode mode, FdbReadMode read, int iteration)
+			static Task<FdbRangeChunk> ExecuteLogged(FdbTransaction self, KeySelector beginInclusive, KeySelector endExclusive, bool snapshot, FdbRangeOptions options, int iteration)
 				=> self.m_log!.ExecuteAsync(
 					self,
 					new FdbTransactionLog.GetRangeCommand(
 						self.m_log.Grab(beginInclusive),
 						self.m_log.Grab(endExclusive),
 						snapshot,
-						new FdbRangeOptions(limit, reverse, targetBytes, mode, read),
+						options with { },
 						iteration
 					),
 					(tr, cmd) => tr.m_handler.GetRangeAsync(
 						cmd.Begin,
 						cmd.End,
-						cmd.Options.Limit.GetValueOrDefault(),
-						cmd.Options.Reverse.GetValueOrDefault(),
-						cmd.Options.TargetBytes.GetValueOrDefault(),
-						cmd.Options.Mode.GetValueOrDefault(),
-						cmd.Options.Read.GetValueOrDefault(),
+						cmd.Options,
 						cmd.Iteration,
 						cmd.Snapshot,
 						tr.m_cancellation
@@ -804,28 +800,24 @@ namespace FoundationDB.Client
 			bool snapshot,
 			TState state,
 			FdbKeyValueDecoder<TState, TResult> decoder,
-			int limit,
-			bool reverse,
-			int targetBytes,
-			FdbStreamingMode mode,
-			FdbReadMode read,
+			FdbRangeOptions options,
 			int iteration
 		)
 		{
 			FdbClientInstrumentation.ReportGetRange(this);
 
 			return m_log == null
-				? m_handler.GetRangeAsync<TState, TResult>(beginInclusive, endExclusive, snapshot, state, decoder, limit, reverse, targetBytes, mode, read, iteration, m_cancellation)
-				: ExecuteLogged(this, beginInclusive, endExclusive, snapshot, state, decoder, limit, reverse, targetBytes, mode, read, iteration);
+				? m_handler.GetRangeAsync<TState, TResult>(beginInclusive, endExclusive, snapshot, state, decoder, options, iteration, m_cancellation)
+				: ExecuteLogged(this, beginInclusive, endExclusive, snapshot, state, decoder, options, iteration);
 
-			static Task<FdbRangeChunk<TResult>> ExecuteLogged(FdbTransaction self, KeySelector beginInclusive, KeySelector endExclusive, bool snapshot, TState state, FdbKeyValueDecoder<TState, TResult> decoder, int limit, bool reverse, int targetBytes, FdbStreamingMode mode, FdbReadMode read, int iteration)
+			static Task<FdbRangeChunk<TResult>> ExecuteLogged(FdbTransaction self, KeySelector beginInclusive, KeySelector endExclusive, bool snapshot, TState state, FdbKeyValueDecoder<TState, TResult> decoder, FdbRangeOptions options, int iteration)
 				=> self.m_log!.ExecuteAsync(
 					self,
 					new FdbTransactionLog.GetRangeCommand<TState, TResult>(
 						self.m_log.Grab(beginInclusive),
 						self.m_log.Grab(endExclusive),
 						snapshot,
-						new FdbRangeOptions(limit, reverse, targetBytes, mode, read),
+						options,
 						iteration,
 						state,
 						decoder
@@ -836,11 +828,7 @@ namespace FoundationDB.Client
 						cmd.Snapshot,
 						cmd.State,
 						cmd.Decoder,
-						cmd.Options.Limit.GetValueOrDefault(),
-						cmd.Options.Reverse.GetValueOrDefault(),
-						cmd.Options.TargetBytes.GetValueOrDefault(),
-						cmd.Options.Mode.GetValueOrDefault(),
-						cmd.Options.Read.GetValueOrDefault(),
+						cmd.Options,
 						cmd.Iteration,
 						tr.m_cancellation
 					)
@@ -860,14 +848,14 @@ namespace FoundationDB.Client
 			FdbKey.EnsureKeyIsValid(begin.Key);
 			FdbKey.EnsureKeyIsValid(end.Key, endExclusive: true);
 
-			options = FdbRangeOptions.EnsureDefaults(options, null, null, FdbStreamingMode.Iterator, FdbReadMode.Both, false);
-			options.EnsureLegalValues();
+			options = FdbRangeOptions.EnsureDefaults(options, FdbStreamingMode.Iterator, FdbReadMode.Both);
+			options.EnsureLegalValues(0);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetRangeCore", $"Getting range '{begin.ToString()} <= x < {end.ToString()}'");
 #endif
 
-			return new FdbRangeQuery<TState, TResult>(this, begin, end, state, null, decoder, snapshot, options);
+			return new(this, begin, end, state, null, decoder, snapshot, options);
 		}
 
 		[Pure, LinqTunnel]
@@ -877,8 +865,8 @@ namespace FoundationDB.Client
 			FdbKey.EnsureKeyIsValid(begin.Key);
 			FdbKey.EnsureKeyIsValid(end.Key, endExclusive: true);
 
-			options = FdbRangeOptions.EnsureDefaults(options, null, null, FdbStreamingMode.Iterator, FdbReadMode.Both, false);
-			options.EnsureLegalValues();
+			options = FdbRangeOptions.EnsureDefaults(options, FdbStreamingMode.Iterator, FdbReadMode.Both);
+			options.EnsureLegalValues(0);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetRangeCore", $"Getting range '{begin.ToString()} <= x < {end.ToString()}'");

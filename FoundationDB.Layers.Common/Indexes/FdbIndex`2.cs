@@ -115,7 +115,7 @@ namespace FoundationDB.Layers.Indexing
 				var prefix = this.Subspace.EncodePartial(value);
 
 				return trans
-					.GetRange(KeyRange.StartsWith(prefix), new FdbRangeOptions { Reverse = reverse })
+					.GetRange(KeyRange.StartsWith(prefix), reverse ? FdbRangeOptions.Reversed : FdbRangeOptions.Default)
 					.Select((kvp) => this.Subspace.Decode(kvp.Key).Item2!);
 			}
 
@@ -147,7 +147,7 @@ namespace FoundationDB.Layers.Indexing
 				);
 
 				return trans
-					.GetRange(space, new FdbRangeOptions { Reverse = reverse })
+					.GetRange(space, reverse ? FdbRangeOptions.Reversed : FdbRangeOptions.Default)
 					.Select((kvp) => this.Subspace.Decode(kvp.Key).Item2!);
 			}
 

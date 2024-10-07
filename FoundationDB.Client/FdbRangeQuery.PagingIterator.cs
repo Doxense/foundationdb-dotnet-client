@@ -197,11 +197,14 @@ namespace FoundationDB.Client
 					this.End,
 					this.QueryState,
 					this.Query.Decoder,
-					this.RemainingCount ?? 0,
-					this.Query.Reversed,
-					this.RemainingSize ?? 0,
-					mode,
-					this.Query.Read,
+					new FdbRangeOptions()
+					{
+						Limit = this.RemainingCount,
+						Reverse = this.Query.Reversed,
+						TargetBytes = this.RemainingSize,
+						Mode = mode,
+						Read = this.Query.Read,
+					},
 					this.Iteration);
 				var task = ProcessResults(query);
 
@@ -223,7 +226,7 @@ namespace FoundationDB.Client
 					// subtract size of rows from the remaining allowed
 					if (this.RemainingSize.HasValue) this.RemainingSize = this.RemainingSize.Value - result.TotalBytes;
 
-					this.AtEnd = !result.HasMore || (this.RemainingCount.HasValue && this.RemainingCount.Value <= 0) || (this.RemainingSize.HasValue && this.RemainingSize.Value <= 0);
+					this.AtEnd = !result.HasMore || this.RemainingCount is <= 0 || this.RemainingSize is <= 0;
 
 					if (!this.AtEnd)
 					{

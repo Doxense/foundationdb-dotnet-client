@@ -29,6 +29,7 @@
 
 namespace FoundationDB.Client.Native
 {
+	using System.Buffers;
 	using System.Diagnostics;
 	using System.IO;
 	using System.Runtime.CompilerServices;
@@ -1999,9 +2000,10 @@ namespace FoundationDB.Client.Native
 		}
 
 		/// <summary>fdb_future_get_keyvalue_array</summary>
-		public static FdbError FutureGetKeyValueArray(FutureHandle future, out KeyValuePair<Slice, Slice>[]? result, out bool more, out int dataBytes)
+		public static FdbError FutureGetKeyValueArray(FutureHandle future, ArrayPool<byte>? pool, out KeyValuePair<Slice, Slice>[]? result, out bool more, out SliceOwner buffer, out int dataBytes)
 		{
 			result = null;
+			buffer = default;
 			dataBytes = 0;
 
 			var err = NativeMethods.fdb_future_get_keyvalue_array(future, out FdbKeyValue* kvp, out int count, out more);
@@ -2041,16 +2043,11 @@ namespace FoundationDB.Client.Native
 
 					// allocate all memory in one chunk, and make the key/values point to it
 					// Does fdb allocate all keys into a single buffer ? We could copy everything in one pass,
-					// but it would rely on implementation details that could break at anytime...
-
-					//TODO: protect against too much memory allocated ?
-					// what would be a good max value? we need to at least be able to handle FDB_STREAMING_MODE_WANT_ALL
-
-					//TODO: some keys/values will be small (32 bytes or less) while other will be big
-					//consider having to copy methods, optimized for each scenario ?
+					// but it would rely on implementation details that could break at any time...
 
 					//TODO: PERF: find a way to use Memory Pooling for this?
-					var page = new byte[sum];
+					var page = pool?.Rent(dataBytes) ?? new byte[dataBytes];
+
 					int p = 0;
 					for (int i = 0; i < result.Length; i++)
 					{
@@ -2060,12 +2057,18 @@ namespace FoundationDB.Client.Native
 						p += kl;
 
 						int vl = (int) kvp[i].ValueLength;
+						if (vl == 0)
+						{
+							result[i] = new(key, Slice.Empty);
+						}
+
 						new ReadOnlySpan<byte>(kvp[i].Value, vl).CopyTo(page.AsSpan(p));
 						var value = page.AsSlice(p, vl);
 						p += vl;
-
-						result[i] = new KeyValuePair<Slice, Slice>(key, value);
+						result[i] = new(key, value);
 					}
+
+					buffer = SliceOwner.Create(page.AsSlice(0, p), pool);
 				}
 			}
 

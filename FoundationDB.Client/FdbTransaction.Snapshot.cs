@@ -179,47 +179,38 @@ namespace FoundationDB.Client
 				return m_parent.PerformGetKeysOperation(selectors, snapshot: true);
 			}
 
+			/// <inheritdoc />
 			public Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options, int iteration)
 			{
-				int limit = options?.Limit ?? 0;
-				bool reverse = options?.Reverse ?? false;
-				int targetBytes = options?.TargetBytes ?? 0;
-				var mode = options?.Mode ?? FdbStreamingMode.Iterator;
-				var read = options?.Read ?? FdbReadMode.Both;
+				EnsureCanRead();
 
-				return GetRangeAsync(beginInclusive, endExclusive, limit, reverse, targetBytes, mode, read, iteration);
+				FdbKey.EnsureKeyIsValid(beginInclusive.Key);
+				FdbKey.EnsureKeyIsValid(endExclusive.Key, endExclusive: true);
+
+				options = FdbRangeOptions.EnsureDefaults(options, FdbStreamingMode.Iterator, FdbReadMode.Both);
+				options.EnsureLegalValues(iteration);
+
+				// The iteration value is only needed when in iterator mode, but then it should start from 1
+				if (iteration == 0) iteration = 1;
+
+				return m_parent.PerformGetRangeOperation(beginInclusive, endExclusive, snapshot: true, options, iteration);
 			}
 
 			/// <inheritdoc />
-			public Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, int limit, bool reverse, int targetBytes, FdbStreamingMode mode, FdbReadMode read, int iteration)
+			public Task<FdbRangeChunk<TResult>> GetRangeAsync<TState, TResult>(KeySelector beginInclusive, KeySelector endExclusive, TState state, FdbKeyValueDecoder<TState, TResult> decoder, FdbRangeOptions? options, int iteration)
 			{
 				EnsureCanRead();
 
 				FdbKey.EnsureKeyIsValid(beginInclusive.Key);
 				FdbKey.EnsureKeyIsValid(endExclusive.Key, endExclusive: true);
 
-				FdbRangeOptions.EnsureLegalValues(limit, targetBytes, mode, read, iteration);
+				options = FdbRangeOptions.EnsureDefaults(options, FdbStreamingMode.Iterator, FdbReadMode.Both);
+				options.EnsureLegalValues(iteration);
 
 				// The iteration value is only needed when in iterator mode, but then it should start from 1
 				if (iteration == 0) iteration = 1;
 
-				return m_parent.PerformGetRangeOperation(beginInclusive, endExclusive, snapshot: true, limit, reverse, targetBytes, mode, read, iteration);
-			}
-
-			/// <inheritdoc />
-			public Task<FdbRangeChunk<TResult>> GetRangeAsync<TState, TResult>(KeySelector beginInclusive, KeySelector endExclusive, TState state, FdbKeyValueDecoder<TState, TResult> decoder, int limit, bool reverse, int targetBytes, FdbStreamingMode mode, FdbReadMode read, int iteration)
-			{
-				EnsureCanRead();
-
-				FdbKey.EnsureKeyIsValid(beginInclusive.Key);
-				FdbKey.EnsureKeyIsValid(endExclusive.Key, endExclusive: true);
-
-				FdbRangeOptions.EnsureLegalValues(limit, targetBytes, mode, read, iteration);
-
-				// The iteration value is only needed when in iterator mode, but then it should start from 1
-				if (iteration == 0) iteration = 1;
-
-				return m_parent.PerformGetRangeOperation<TState, TResult>(beginInclusive, endExclusive, snapshot: true, state, decoder, limit, reverse, targetBytes, mode, read, iteration);
+				return m_parent.PerformGetRangeOperation<TState, TResult>(beginInclusive, endExclusive, snapshot: true, state, decoder, options, iteration);
 			}
 
 			/// <inheritdoc />

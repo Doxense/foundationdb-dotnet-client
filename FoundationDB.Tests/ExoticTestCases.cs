@@ -390,7 +390,7 @@
 					_ = await tr.GetRangeAsync(
 						KeySelector.FirstGreaterOrEqual(subspace.Encode("K0000")),
 						KeySelector.LastLessOrEqual(subspace.Encode("K9999")),
-						new FdbRangeOptions { Mode = FdbStreamingMode.WantAll, Reverse = true }
+						FdbRangeOptions.WantAllReversed
 					);
 
 					//no commit
@@ -564,7 +564,7 @@
 					var r = await tr.GetRangeAsync(
 						KeySelector.FirstGreaterOrEqual(subspace.Encode("K0040")),
 						KeySelector.FirstGreaterOrEqual(subspace.Encode("K0080")),
-						new FdbRangeOptions { Mode = FdbStreamingMode.WantAll }
+						FdbRangeOptions.WantAll
 					);
 					// T 1
 					// => GETRANGE( (< 'KAAA<00>' +1) .. (< LAST +1)

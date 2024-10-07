@@ -105,22 +105,14 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="beginInclusive">key selector defining the beginning of the range</param>
 		/// <param name="endExclusive">key selector defining the end of the range</param>
-		/// <param name="limit">Maximum number of items to return</param>
-		/// <param name="reverse">If true, results are returned in reverse order (from last to first)</param>
-		/// <param name="targetBytes">Maximum number of bytes to read</param>
-		/// <param name="mode">Streaming mode (defaults to <see cref="FdbStreamingMode.Iterator"/>)</param>
-		/// <param name="read">Read mode (defaults to <see cref="FdbReadMode.Both"/>)</param>
-		/// <param name="iteration">If <paramref name="mode">streaming mode</paramref> is <see cref="FdbStreamingMode.Iterator"/>, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
+		/// <param name="iteration">If <see cref="FdbRangeOptions.Mode">streaming mode</see> is <see cref="FdbStreamingMode.Iterator"/>, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
 		/// <returns>Chunk of results</returns>
 		Task<FdbRangeChunk> GetRangeAsync(
 			KeySelector beginInclusive,
 			KeySelector endExclusive,
-			int limit = 0,
-			bool reverse = false,
-			int targetBytes = 0,
-			FdbStreamingMode mode = FdbStreamingMode.Iterator,
-			FdbReadMode read = FdbReadMode.Both,
-			int iteration = 0);
+			FdbRangeOptions? options = null,
+			int iteration = 0
+		);
 
 		/// <summary>
 		/// Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by Limit, TargetBytes, or Mode)
@@ -143,11 +135,7 @@ namespace FoundationDB.Client
 			KeySelector endExclusive,
 			TState state,
 			FdbKeyValueDecoder<TState, TResult> decoder,
-			int limit = 0,
-			bool reverse = false,
-			int targetBytes = 0,
-			FdbStreamingMode mode = FdbStreamingMode.Iterator,
-			FdbReadMode read = FdbReadMode.Both,
+			FdbRangeOptions? options = null,
 			int iteration = 0
 		);
 

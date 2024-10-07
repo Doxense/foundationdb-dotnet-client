@@ -102,7 +102,7 @@ namespace FoundationDB.Client
 		public bool Snapshot { get; }
 
 		/// <summary>Should the results be returned in reverse order (from last key to first key)</summary>
-		public bool Reversed => this.Options.Reverse ?? false;
+		public bool Reversed => this.Options.Reverse;
 
 		/// <summary>Parent transaction used to perform the GetRange operation</summary>
 		public IFdbReadOnlyTransaction Transaction { get; }
@@ -133,7 +133,7 @@ namespace FoundationDB.Client
 
 			return new FdbRangeQuery<TState, TResult>(
 				this,
-				new FdbRangeOptions(this.Options) { Limit = count }
+				this.Options with { Limit = count }
 			);
 		}
 
@@ -175,7 +175,7 @@ namespace FoundationDB.Client
 
 			return new FdbRangeQuery<TState, TResult>(
 				this,
-				new FdbRangeOptions(this.Options) { Limit = limit }
+				this.Options with { Limit = limit }
 			)
 			{
 				Begin = begin,
@@ -212,7 +212,7 @@ namespace FoundationDB.Client
 
 			return new FdbRangeQuery<TState, TResult>(
 				this,
-				new FdbRangeOptions(this.Options) { Reverse = !this.Reversed }
+				this.Options with { Reverse = !this.Reversed }
 			)
 			{
 				Begin = begin,
@@ -230,7 +230,7 @@ namespace FoundationDB.Client
 
 			return new FdbRangeQuery<TState, TResult>(
 				this,
-				new FdbRangeOptions(this.Options) { TargetBytes = bytes }
+				this.Options with { TargetBytes = bytes }
 			);
 		}
 
@@ -247,7 +247,7 @@ namespace FoundationDB.Client
 
 			return new FdbRangeQuery<TState, TResult>(
 				this,
-				new FdbRangeOptions(this.Options) { Mode = mode }
+				this.Options with { Mode = mode }
 			);
 		}
 
@@ -267,7 +267,7 @@ namespace FoundationDB.Client
 				this.StateFactory,
 				this.Decoder,
 				this.Snapshot,
-				new FdbRangeOptions(this.Options)
+				this.Options with { }
 			);
 		}
 
@@ -355,7 +355,7 @@ namespace FoundationDB.Client
 				this.StateFactory,
 				Combine(this.Decoder, lambda),
 				this.Snapshot,
-				new FdbRangeOptions(this.Options)
+				this.Options with { }
 			);
 
 			static FdbKeyValueDecoder<TState, TOther> Combine(FdbKeyValueDecoder<TState, TResult> decoder, Func<TResult, TOther> transform)
@@ -392,7 +392,7 @@ namespace FoundationDB.Client
 				this.StateFactory,
 				Combine(this.Decoder, lambda),
 				this.Snapshot,
-				new FdbRangeOptions(this.Options)
+				this.Options with { }
 			);
 
 			static FdbKeyValueDecoder<TState, TOther> Combine(FdbKeyValueDecoder<TState, TResult> transform, Func<TResult, int, TOther> lambda)
@@ -516,9 +516,12 @@ namespace FoundationDB.Client
 				this.End,
 				GetState(),
 				this.Decoder,
-				limit: Math.Min(single ? 2 : 1, this.Options.Limit ?? int.MaxValue),
-				reverse: this.Reversed,
-				mode: FdbStreamingMode.Exact,
+				new FdbRangeOptions()
+				{
+					Limit = Math.Min(single ? 2 : 1, this.Options.Limit ?? int.MaxValue),
+					Reverse = this.Reversed,
+					Mode = FdbStreamingMode.Exact,
+				},
 				iteration: 0
 			).ConfigureAwait(false);
 
@@ -554,7 +557,17 @@ namespace FoundationDB.Client
 			//BUGBUG: do we need special handling if OriginalRange != Range ? (weird combinations of Take/Skip and Reverse)
 
 			var tr = this.Snapshot ? this.Transaction.Snapshot : this.Transaction;
-			var results = await tr.GetRangeAsync(this.Begin, this.End, limit: 1, reverse: this.Reversed, mode: FdbStreamingMode.Exact, iteration: 0).ConfigureAwait(false);
+			var results = await tr.GetRangeAsync(
+				this.Begin,
+				this.End,
+				new FdbRangeOptions()
+				{
+					Limit = 1,
+					Reverse = this.Reversed,
+					Mode = FdbStreamingMode.Exact,
+				},
+				iteration: 0
+			).ConfigureAwait(false);
 
 			return any ? !results.IsEmpty : results.IsEmpty;
 		}

@@ -32,52 +32,54 @@ namespace FoundationDB.Client
 	using Doxense.Memory;
 	using Doxense.Serialization.Encoders;
 
+	/// <summary>Page of results from a <see cref="IFdbReadOnlyTransaction.GetRangeAsync"/> operation</summary>
+	/// <remarks>If a pool was specified in the <see cref="FdbRangeOptions"/>, then this instance <b>MUST</b> be disposed; otherwise, rented buffers will not be returned to the pool</remarks>
 	[DebuggerDisplay("Count={Count}, HasMore={HasMore}, Reversed={Reversed}, Iteration={Iteration}")]
 	[PublicAPI]
-	public sealed class FdbRangeChunk : IReadOnlyList<KeyValuePair<Slice, Slice>>
+	public sealed class FdbRangeChunk : IReadOnlyList<KeyValuePair<Slice, Slice>>, IDisposable
 	{
 
-		/// <summary>Contains the items that where </summary>
-		public KeyValuePair<Slice, Slice>[] Items { get; }
+		/// <summary>Keys and Values that were read from the database</summary>
+		/// <remarks>The entries are sorted by keys, either with an ascending or descending order, depending on the value of <see cref="Reversed"/></remarks>
+		public KeyValuePair<Slice, Slice>[] Items { get; private set; }
 
-		/// <summary>Set to true if the original range read was reversed (meaning the items are in reverse lexicographic order</summary>
-		public bool Reversed { get; }
-
-		/// <summary>Set to true if there are more results in the database than could fit in a single chunk</summary>
+		/// <summary>Set to <see langword="true"/> if there are more results in the database than could fit in a single chunk</summary>
 		public bool HasMore { get; }
 
-		/// <summary>Iteration number of this chunk (used when paging through a long range)</summary>
+		/// <summary>Iteration number of this chunk, starting from 1 for the first page</summary>
+		/// <remarks>This value must be passed to subsequent calls to <see cref="IFdbReadOnlyTransaction.GetRangeAsync"/> to continue reading; otherwise, the <see cref="FdbRangeOptions.Mode">streaming</see> will not behave properly.</remarks>
 		public int Iteration { get; }
 
-		/// <summary>Specify if the chunk contains only keys, only values, or both (default)</summary>
-		public FdbReadMode ReadMode { get; }
+		/// <summary>Options used to perform this operation</summary>
+		/// <remarks>They can be passed again to <see cref="IFdbReadOnlyTransaction.GetRangeAsync"/>, together with <c><see cref="Iteration"/> + 1</c> to continue reading from the database.</remarks>
+		public FdbRangeOptions Options { get; }
 
 		/// <summary>Returns the first item in the chunk</summary>
 		/// <remarks>Note that if the range is reversed, then the first item will be GREATER than the last !</remarks>
-		public Slice Last { get; }
+		public Slice Last { get; private set; }
 
 		/// <summary>Returns the last item in the chunk</summary>
 		/// <remarks>Note that if the range is reversed, then the last item will be LESS than the first!</remarks>
-		public Slice First { get; }
+		public Slice First { get; private set; }
 
 		/// <summary>Sum of the size (in bytes) of all the keys and values read from the database</summary>
-		public int TotalBytes { get; }
+		public int TotalBytes { get; private set; }
 
-		public FdbRangeChunk(KeyValuePair<Slice, Slice>[] items, bool hasMore, int iteration, bool reversed, FdbReadMode readMode, Slice first, Slice last, int totalBytes)
+		/// <summary>Internal buffer used to store the content of <see cref="Items"/>, which may be rented from a pool</summary>
+		private SliceOwner Buffer;
+
+		public FdbRangeChunk(KeyValuePair<Slice, Slice>[] items, bool hasMore, int iteration, FdbRangeOptions options, Slice first, Slice last, int totalBytes, SliceOwner buffer)
 		{
 			Contract.NotNull(items);
 			this.Items = items;
 			this.HasMore = hasMore;
 			this.Iteration = iteration;
-			this.Reversed = reversed;
-			this.ReadMode = readMode;
+			this.Options = options;
 			this.First = first;
 			this.Last = last;
 			this.TotalBytes = totalBytes;
+			this.Buffer = buffer;
 		}
-
-		[Obsolete("This property will be removed in the next release.", error: true)]
-		public KeyValuePair<Slice, Slice>[] Chunk => this.Items;
 
 		/// <summary>Returns the number of results in this chunk</summary>
 		public int Count => this.Items.Length;
@@ -85,6 +87,26 @@ namespace FoundationDB.Client
 		/// <summary>Returns true if the chunk does not contain any item.</summary>
 		public bool IsEmpty => this.Items.Length == 0;
 
+		/// <summary>Set to <see langword="true"/> if the original range read was reversed (meaning the items are in reverse lexicographic order</summary>
+		public bool Reversed => this.Options.Reverse;
+
+		/// <summary>Specifies if the chunk contains only keys, only values, or both (default)</summary>
+		public FdbReadMode ReadMode => this.Options.Read ?? FdbReadMode.Both;
+
+		/// <summary>Releases any buffer used by this chunk, if it was pooled</summary>
+		/// <remarks>
+		/// <para><b>CAUTION</b>: Any key or value slice obtained from this instance MUST NOT be used after this has been disposed!</para>
+		/// <para>This does nothing if the no pool was specified in the <see cref="FdbRangeOptions"/></para>
+		/// <para>If any pooled content must survive this instance, it MUST be copied to a new <see cref="Slice"/>, or transferred to another <see cref="SliceOwner"/> instance!</para>
+		/// </remarks>
+		public void Dispose()
+		{
+			this.TotalBytes = 0;
+			this.Items.AsSpan().Clear();
+			this.First = default;
+			this.Last = default;
+			this.Buffer.Dispose();
+		}
 
 		#region Items...
 
@@ -185,7 +207,7 @@ namespace FoundationDB.Client
 
 		#region Keys...
 
-		public KeysCollection Keys => new KeysCollection(this.Items);
+		public KeysCollection Keys => new(this.Items);
 
 		public readonly struct KeysCollection : IReadOnlyList<Slice>
 		{
@@ -262,7 +284,7 @@ namespace FoundationDB.Client
 
 		#region Values...
 
-		public ValuesCollection Values => new ValuesCollection(this.Items);
+		public ValuesCollection Values => new(this.Items);
 
 		/// <summary>Append all the values into a buffer, in sequential order</summary>
 		/// <returns>Slice with all values copied in sequential order, or <see cref="Slice.Nil"/> if the chunk is empty</returns>
@@ -280,8 +302,9 @@ namespace FoundationDB.Client
 				case 2: return items[0].Value + items[1].Value;
 				default:
 				{
+					// compute the total sum
 					var sw = new SliceWriter();
-					AppendValues(ref sw, items);
+					AppendValues(ref sw);
 					return sw.ToSlice();
 				}
 			}
@@ -290,40 +313,47 @@ namespace FoundationDB.Client
 		/// <summary>Append all the values into a buffer, in sequential order</summary>
 		/// <param name="writer">Buffer where to write all the values</param>
 		/// <returns>Total number of bytes written to the buffer</returns>
-		public int AppendValues(ref SliceWriter writer)
+		public void AppendValues(ref SliceWriter writer)
 		{
-			return AppendValues(ref writer, this.Items);
-		}
-
-		private static int AppendValues(ref SliceWriter writer, KeyValuePair<Slice, Slice>[] items)
-		{
+			var items = this.Items;
 			switch (items.Length)
 			{
 				case 0:
 				{
-					return 0;
+					break;
 				}
 				case 1:
 				{
 					var value = items[0].Value;
 					writer.WriteBytes(value);
-					return value.Count;
+					break;
 				}
 				default:
 				{
-					long total = 0;
+					// TotalBytes is the sum of Keys+Values, but we only want the values,
+					// so unfortunately, we have to re-compute the sum
+					int total = 0;
 					for (int i = 0; i < items.Length; i++)
 					{
 						total += items[i].Value.Count;
 					}
-					if (total >= int.MaxValue) throw new OutOfMemoryException("Total size of merged values exceeds maximum allowed value.");
 
-					writer.EnsureBytes(checked((int) total));
+					// sanity check
+					if ((uint) total >= (uint) this.TotalBytes)
+					{
+						throw new OutOfMemoryException("Total size of merged values exceeds maximum allowed value.");
+					}
+
+					// pre-allocate the size required
+					var span = writer.AllocateSpan(total);
 					for (int i = 0; i < items.Length; i++)
 					{
-						writer.WriteBytes(items[i].Value);
+						items[i].Value.CopyTo(span);
+						span = span[items[i].Value.Count..];
 					}
-					return (int) total;
+					Contract.Debug.Ensures(span.Length == 0);
+
+					break;
 				}
 			}
 		}
@@ -584,17 +614,14 @@ namespace FoundationDB.Client
 		/// <summary>Contains the items that where </summary>
 		public ReadOnlyMemory<TResult> Items { get; }
 
-		/// <summary>Set to true if the original range read was reversed (meaning the items are in reverse lexicographic order</summary>
-		public bool Reversed { get; }
-
 		/// <summary>Set to true if there are more results in the database than could fit in a single chunk</summary>
 		public bool HasMore { get; }
 
 		/// <summary>Iteration number of this chunk (used when paging through a long range)</summary>
 		public int Iteration { get; }
 
-		/// <summary>Specify if the chunk contains only keys, only values, or both (default)</summary>
-		public FdbReadMode ReadMode { get; }
+		/// <summary>Options used to perform this operation</summary>
+		public FdbRangeOptions Options { get; }
 
 		/// <summary>Returns the first item in the chunk</summary>
 		/// <remarks>Note that if the range is reversed, then the first item will be GREATER than the last !</remarks>
@@ -608,13 +635,12 @@ namespace FoundationDB.Client
 		/// <returns>This is the size of the data read from the network, before they were decoded into instances of <typeparamref name="TResult"/></returns>
 		public int TotalBytes { get; }
 
-		public FdbRangeChunk(ReadOnlyMemory<TResult> items, bool hasMore, int iteration, bool reversed, FdbReadMode readMode, Slice first, Slice last, int totalBytes)
+		public FdbRangeChunk(ReadOnlyMemory<TResult> items, bool hasMore, int iteration, FdbRangeOptions options, Slice first, Slice last, int totalBytes)
 		{
 			this.Items = items;
 			this.HasMore = hasMore;
 			this.Iteration = iteration;
-			this.Reversed = reversed;
-			this.ReadMode = readMode;
+			this.Options = options;
 			this.First = first;
 			this.Last = last;
 			this.TotalBytes = totalBytes;
@@ -625,6 +651,12 @@ namespace FoundationDB.Client
 
 		/// <summary>Returns true if the chunk does not contain any item.</summary>
 		public bool IsEmpty => this.Items.Length == 0;
+
+		/// <summary>Set to true if the original range read was reversed (meaning the items are in reverse lexicographic order</summary>
+		public bool Reversed => this.Options.Reverse;
+
+		/// <summary>Specifies if the chunk contains only keys, only values, or both (default)</summary>
+		public FdbReadMode ReadMode => this.Options.Read ?? FdbReadMode.Both;
 
 		#region Items...
 

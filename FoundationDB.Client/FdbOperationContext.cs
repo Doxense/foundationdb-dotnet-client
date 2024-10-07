@@ -537,7 +537,14 @@ namespace FoundationDB.Client
 		public void AddValueChecks(string tag, IEnumerable<KeyValuePair<Slice, Slice>> items)
 		{
 			Contract.NotNull(items);
-			AddValueChecks(tag, (items as KeyValuePair<Slice, Slice>[] ?? items.ToArray()).AsSpan());
+			if (Doxense.Linq.Buffer<KeyValuePair<Slice, Slice>>.TryGetSpan(items, out var span))
+			{
+				AddValueChecks(tag, span);
+			}
+			else
+			{
+				AddValueChecks(tag, items.ToArray().AsSpan());
+			}
 		}
 
 		/// <summary>Add a check on the values of one or more keys, that will be resolved before the transaction is able to commit</summary>
