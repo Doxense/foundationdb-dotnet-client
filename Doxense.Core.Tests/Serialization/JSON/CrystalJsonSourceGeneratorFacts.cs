@@ -12,11 +12,11 @@ namespace Doxense.Serialization.Json.Tests
 {
 	using System.Buffers;
 	using System.Collections.Generic;
-	using System.IO;
 	using System.Net;
 	using Doxense.Mathematics.Statistics;
+	using NodaTime;
 
-	[System.Text.Json.Serialization.JsonSourceGenerationOptions(System.Text.Json.JsonSerializerDefaults.Web)]
+	[System.Text.Json.Serialization.JsonSourceGenerationOptions(System.Text.Json.JsonSerializerDefaults.Web /*, Converters = [ typeof(NodaTimeInstantJsonConverter) ], */)]
 	[System.Text.Json.Serialization.JsonSerializable(typeof(MyAwesomeUser))]
 	[System.Text.Json.Serialization.JsonSerializable(typeof(Person))]
 	public partial class SystemTextJsonGeneratedSerializers : System.Text.Json.Serialization.JsonSerializerContext
@@ -159,7 +159,7 @@ namespace Doxense.Serialization.Json.Tests
 				Log();
 
 				Log("# Parsing:");
-				var parsed = JsonSerializerExtensions.Deserialize(GeneratedSerializers.Person, json);
+				var parsed = GeneratedSerializers.Person.Deserialize(json);
 				Log(parsed?.ToString());
 				Assert.That(parsed, Is.Not.Null);
 				Assert.That(parsed.FirstName, Is.EqualTo("James"));
@@ -252,13 +252,6 @@ namespace Doxense.Serialization.Json.Tests
 				Log();
 				Log("System.Text.Json reference:");
 				Log(System.Text.Json.JsonSerializer.Serialize(user, SystemTextJsonGeneratedSerializers.Default.MyAwesomeUser));
-			}
-			{ // Compare with JSON.Net
-				Log();
-				Log("Newtonsoft.Json reference:");
-				using var sw = new StringWriter();
-				new Newtonsoft.Json.JsonSerializer().Serialize(sw, user);
-				Log(sw.ToString());
 			}
 
 			// ToSlice
@@ -502,15 +495,16 @@ namespace Doxense.Serialization.Json.Tests
 
 		#region Person ...
 
-		/// <summary>Serializer for type <see cref="Doxense.Serialization.Json.Tests.Person">Person</see></summary>
+		/// <summary>JSON converter for type <see cref="Doxense.Serialization.Json.Tests.Person">Person</see></summary>
 		public static global::Doxense.Serialization.Json.IJsonConverter<global::Doxense.Serialization.Json.Tests.Person> Person => m_cachedPerson ??= new();
 
-		private static _PersonJsonSerializer? m_cachedPerson;
+		private static PersonJsonConverter? m_cachedPerson;
 
+		/// <summary>Converts instances of type <see cref="T:Doxense.Serialization.Json.Tests.Person">Person</see> to and from JSON.</summary>
 		[global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)]
 		[global::System.CodeDom.Compiler.GeneratedCode("CrystalJsonSourceGenerator", "0.1")]
 		[global::System.Diagnostics.DebuggerNonUserCode()]
-		public sealed class _PersonJsonSerializer : global::Doxense.Serialization.Json.IJsonConverter<global::Doxense.Serialization.Json.Tests.Person>
+		public sealed class PersonJsonConverter : global::Doxense.Serialization.Json.IJsonConverter<global::Doxense.Serialization.Json.Tests.Person>
 		{
 
 			#region Serialization...
@@ -536,11 +530,11 @@ namespace Doxense.Serialization.Json.Tests
 
 				// string FirstName => "firstName"
 				// fast!
-				writer.WriteField(in _firstName, instance.FirstName);
+				writer.WriteField(_firstName, instance.FirstName);
 
 				// string FamilyName => "familyName"
 				// fast!
-				writer.WriteField(in _familyName, instance.FamilyName);
+				writer.WriteField(_familyName, instance.FamilyName);
 
 				writer.EndObject(state);
 			}
@@ -625,15 +619,16 @@ namespace Doxense.Serialization.Json.Tests
 
 		#region MyAwesomeUser ...
 
-		/// <summary>Serializer for type <see cref="Doxense.Serialization.Json.Tests.MyAwesomeUser">MyAwesomeUser</see></summary>
+		/// <summary>JSON converter for type <see cref="Doxense.Serialization.Json.Tests.MyAwesomeUser">MyAwesomeUser</see></summary>
 		public static global::Doxense.Serialization.Json.IJsonConverter<global::Doxense.Serialization.Json.Tests.MyAwesomeUser> MyAwesomeUser => m_cachedMyAwesomeUser ??= new();
 
-		private static _MyAwesomeUserJsonSerializer? m_cachedMyAwesomeUser;
+		private static MyAwesomeUserJsonConverter? m_cachedMyAwesomeUser;
 
+		/// <summary>Converts instances of type <see cref="T:Doxense.Serialization.Json.Tests.MyAwesomeUser">MyAwesomeUser</see> to and from JSON.</summary>
 		[global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)]
 		[global::System.CodeDom.Compiler.GeneratedCode("CrystalJsonSourceGenerator", "0.1")]
 		[global::System.Diagnostics.DebuggerNonUserCode()]
-		public sealed class _MyAwesomeUserJsonSerializer : global::Doxense.Serialization.Json.IJsonConverter<global::Doxense.Serialization.Json.Tests.MyAwesomeUser>
+		public sealed class MyAwesomeUserJsonConverter : global::Doxense.Serialization.Json.IJsonConverter<global::Doxense.Serialization.Json.Tests.MyAwesomeUser>
 		{
 
 			#region Serialization...
@@ -660,39 +655,39 @@ namespace Doxense.Serialization.Json.Tests
 
 				// string Id => "id"
 				// fast!
-				writer.WriteField(in _id, instance.Id);
+				writer.WriteField(_id, instance.Id);
 
 				// string DisplayName => "displayName"
 				// fast!
-				writer.WriteField(in _displayName, instance.DisplayName);
+				writer.WriteField(_displayName, instance.DisplayName);
 
 				// string Email => "email"
 				// fast!
-				writer.WriteField(in _email, instance.Email);
+				writer.WriteField(_email, instance.Email);
 
 				// int Type => "type"
 				// fast!
-				writer.WriteField(in _type, instance.Type);
+				writer.WriteField(_type, instance.Type);
 
 				// string[] Roles => "roles"
 				// fast array!
-				writer.WriteFieldArray(in _roles, instance.Roles);
+				writer.WriteFieldArray(_roles, instance.Roles);
 
 				// MyAwesomeMetadata Metadata => "metadata"
 				// custom!
-				writer.WriteField(in _metadata, instance.Metadata, GeneratedSerializers.MyAwesomeMetadata);
+				writer.WriteField(_metadata, instance.Metadata, GeneratedSerializers.MyAwesomeMetadata);
 
 				// List<MyAwesomeStruct> Items => "items"
 				// custom array!
-				writer.WriteFieldArray(in _items, instance.Items, GeneratedSerializers.MyAwesomeStruct);
+				writer.WriteFieldArray(_items, instance.Items, GeneratedSerializers.MyAwesomeStruct);
 
 				// Dictionary<string, MyAwesomeDevice> Devices => "devices"
 				// dictionary with string key
-				writer.WriteFieldDictionary(in _devices, instance.Devices, GeneratedSerializers.MyAwesomeDevice);
+				writer.WriteFieldDictionary(_devices, instance.Devices, GeneratedSerializers.MyAwesomeDevice);
 
 				// JsonObject Extras => "extras"
 				// fast!
-				writer.WriteField(in _extras, instance.Extras);
+				writer.WriteField(_extras, instance.Extras);
 
 				writer.EndObject(state);
 			}
@@ -855,15 +850,16 @@ namespace Doxense.Serialization.Json.Tests
 
 		#region MyAwesomeMetadata ...
 
-		/// <summary>Serializer for type <see cref="Doxense.Serialization.Json.Tests.MyAwesomeMetadata">MyAwesomeMetadata</see></summary>
+		/// <summary>JSON converter for type <see cref="Doxense.Serialization.Json.Tests.MyAwesomeMetadata">MyAwesomeMetadata</see></summary>
 		public static global::Doxense.Serialization.Json.IJsonConverter<global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata> MyAwesomeMetadata => m_cachedMyAwesomeMetadata ??= new();
 
-		private static _MyAwesomeMetadataJsonSerializer? m_cachedMyAwesomeMetadata;
+		private static MyAwesomeMetadataJsonConverter? m_cachedMyAwesomeMetadata;
 
+		/// <summary>Converts instances of type <see cref="T:Doxense.Serialization.Json.Tests.MyAwesomeMetadata">MyAwesomeMetadata</see> to and from JSON.</summary>
 		[global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)]
 		[global::System.CodeDom.Compiler.GeneratedCode("CrystalJsonSourceGenerator", "0.1")]
 		[global::System.Diagnostics.DebuggerNonUserCode()]
-		public sealed class _MyAwesomeMetadataJsonSerializer : global::Doxense.Serialization.Json.IJsonConverter<global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata>
+		public sealed class MyAwesomeMetadataJsonConverter : global::Doxense.Serialization.Json.IJsonConverter<global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata>
 		{
 
 			#region Serialization...
@@ -884,15 +880,15 @@ namespace Doxense.Serialization.Json.Tests
 
 				// DateTimeOffset AccountCreated => "accountCreated"
 				// fast!
-				writer.WriteField(in _accountCreated, instance.AccountCreated);
+				writer.WriteField(_accountCreated, instance.AccountCreated);
 
 				// DateTimeOffset AccountModified => "accountModified"
 				// fast!
-				writer.WriteField(in _accountModified, instance.AccountModified);
+				writer.WriteField(_accountModified, instance.AccountModified);
 
 				// DateTimeOffset? AccountDisabled => "accountDisabled"
 				// fast!
-				writer.WriteField(in _accountDisabled, instance.AccountDisabled);
+				writer.WriteField(_accountDisabled, instance.AccountDisabled);
 
 				writer.EndObject(state);
 			}
@@ -984,15 +980,16 @@ namespace Doxense.Serialization.Json.Tests
 
 		#region MyAwesomeStruct ...
 
-		/// <summary>Serializer for type <see cref="Doxense.Serialization.Json.Tests.MyAwesomeStruct">MyAwesomeStruct</see></summary>
+		/// <summary>JSON converter for type <see cref="Doxense.Serialization.Json.Tests.MyAwesomeStruct">MyAwesomeStruct</see></summary>
 		public static global::Doxense.Serialization.Json.IJsonConverter<global::Doxense.Serialization.Json.Tests.MyAwesomeStruct> MyAwesomeStruct => m_cachedMyAwesomeStruct ??= new();
 
-		private static _MyAwesomeStructJsonSerializer? m_cachedMyAwesomeStruct;
+		private static MyAwesomeStructJsonConverter? m_cachedMyAwesomeStruct;
 
+		/// <summary>Converts instances of type <see cref="T:Doxense.Serialization.Json.Tests.MyAwesomeStruct">MyAwesomeStruct</see> to and from JSON.</summary>
 		[global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)]
 		[global::System.CodeDom.Compiler.GeneratedCode("CrystalJsonSourceGenerator", "0.1")]
 		[global::System.Diagnostics.DebuggerNonUserCode()]
-		public sealed class _MyAwesomeStructJsonSerializer : global::Doxense.Serialization.Json.IJsonConverter<global::Doxense.Serialization.Json.Tests.MyAwesomeStruct>
+		public sealed class MyAwesomeStructJsonConverter : global::Doxense.Serialization.Json.IJsonConverter<global::Doxense.Serialization.Json.Tests.MyAwesomeStruct>
 		{
 
 			#region Serialization...
@@ -1008,20 +1005,20 @@ namespace Doxense.Serialization.Json.Tests
 
 				// string Id => "id"
 				// fast!
-				writer.WriteField(in _id, instance.Id);
+				writer.WriteField(_id, instance.Id);
 
 				// int Level => "level"
 				// fast!
-				writer.WriteField(in _level, instance.Level);
+				writer.WriteField(_level, instance.Level);
 
 				// JsonPath Path => "path"
 				// TODO: unsupported enumerable type: Doxense.Serialization.Json.JsonPath
 				// unknown type
-				writer.WriteField(in _path, instance.Path);
+				writer.WriteField(_path, instance.Path);
 
 				// bool? Disabled => "disabled"
 				// fast!
-				writer.WriteField(in _disabled, instance.Disabled);
+				writer.WriteField(_disabled, instance.Disabled);
 
 				writer.EndObject(state);
 			}
@@ -1120,15 +1117,16 @@ namespace Doxense.Serialization.Json.Tests
 
 		#region MyAwesomeDevice ...
 
-		/// <summary>Serializer for type <see cref="Doxense.Serialization.Json.Tests.MyAwesomeDevice">MyAwesomeDevice</see></summary>
+		/// <summary>JSON converter for type <see cref="Doxense.Serialization.Json.Tests.MyAwesomeDevice">MyAwesomeDevice</see></summary>
 		public static global::Doxense.Serialization.Json.IJsonConverter<global::Doxense.Serialization.Json.Tests.MyAwesomeDevice> MyAwesomeDevice => m_cachedMyAwesomeDevice ??= new();
 
-		private static _MyAwesomeDeviceJsonSerializer? m_cachedMyAwesomeDevice;
+		private static MyAwesomeDeviceJsonConverter? m_cachedMyAwesomeDevice;
 
+		/// <summary>Converts instances of type <see cref="T:Doxense.Serialization.Json.Tests.MyAwesomeDevice">MyAwesomeDevice</see> to and from JSON.</summary>
 		[global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)]
 		[global::System.CodeDom.Compiler.GeneratedCode("CrystalJsonSourceGenerator", "0.1")]
 		[global::System.Diagnostics.DebuggerNonUserCode()]
-		public sealed class _MyAwesomeDeviceJsonSerializer : global::Doxense.Serialization.Json.IJsonConverter<global::Doxense.Serialization.Json.Tests.MyAwesomeDevice>
+		public sealed class MyAwesomeDeviceJsonConverter : global::Doxense.Serialization.Json.IJsonConverter<global::Doxense.Serialization.Json.Tests.MyAwesomeDevice>
 		{
 
 			#region Serialization...
@@ -1150,19 +1148,19 @@ namespace Doxense.Serialization.Json.Tests
 
 				// string Id => "id"
 				// fast!
-				writer.WriteField(in _id, instance.Id);
+				writer.WriteField(_id, instance.Id);
 
 				// string Model => "model"
 				// fast!
-				writer.WriteField(in _model, instance.Model);
+				writer.WriteField(_model, instance.Model);
 
 				// DateTimeOffset? LastSeen => "lastSeen"
 				// fast!
-				writer.WriteField(in _lastSeen, instance.LastSeen);
+				writer.WriteField(_lastSeen, instance.LastSeen);
 
 				// IPAddress LastAddress => "lastAddress"
 				// unknown type
-				writer.WriteField(in _lastAddress, instance.LastAddress);
+				writer.WriteField(_lastAddress, instance.LastAddress);
 
 				writer.EndObject(state);
 			}

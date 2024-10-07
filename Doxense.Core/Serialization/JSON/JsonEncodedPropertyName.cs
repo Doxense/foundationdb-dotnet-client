@@ -33,26 +33,41 @@ namespace Doxense.Serialization.Json
 
 	/// <summary>Cache for the various encoded forms of a JSON property name</summary>
 	[DebuggerDisplay("{Value}")]
-	public readonly struct JsonEncodedPropertyName : IEquatable<JsonEncodedPropertyName>, IEquatable<string>, IFormattable
+	public sealed class JsonEncodedPropertyName : IEquatable<JsonEncodedPropertyName>, IEquatable<string>, IFormattable
 	{
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonEncodedPropertyName(string value)
 		{
+			var camelCased = CrystalJsonWriter.CamelCase(value);
 			this.Value = value;
+			this.ValueCamelCased = camelCased;
 			this.JsonLiteral = JsonEncoding.Encode(value);
+			this.JsonLiteralCamelCased = ReferenceEquals(value, camelCased) ? this.JsonLiteral : JsonEncoding.Encode(camelCased);
 			this.JavaScriptLiteral = JavaScriptEncoding.EncodePropertyName(value);
+			this.JavaScriptLiteralCamelCased = ReferenceEquals(value, camelCased) ? JavaScriptLiteral : JavaScriptEncoding.EncodePropertyName(camelCased);
 		}
 
-		/// <summary>Original non-encoded name of the property (ex: `<c>fooBar</c>` or `<c>hello'world"!!!</c>`)</summary>
+		/// <summary>Original non-encoded name of the property (ex: `<c>FooBar</c>` or `<c>hello'world"!!!</c>`)</summary>
 		public readonly string Value;
 
-		/// <summary>Name encoded as the field name of a JSON Object (ex: `<c>"fooBar"</c>` or `<c>"hello'world\"!!!"</c>`)</summary>
+		/// <summary>Camel-cased non-encoded name of the property (ex: `<c>fooBar</c>` or `<c>hello'world"!!!</c>`)</summary>
+		public readonly string ValueCamelCased;
+
+		/// <summary>Name encoded as the field name of a JSON Object (ex: `<c>"FooBar"</c>` or `<c>"hello'world\"!!!"</c>`)</summary>
 		/// <remarks>Includes the double-quotes</remarks>
 		public readonly string JsonLiteral;
 
-		/// <summary>Name encoded as the field name of a Javascript Object (ex: <c>fooBar</c> (no quotes) or <c>'hello\'world"!!!'</c> (with quotes))</summary>
+		/// <summary>Camel-cased name encoded as the field name of a JSON Object (ex: `<c>"fooBar"</c>` or `<c>"hello'world\"!!!"</c>`)</summary>
+		/// <remarks>Includes the double-quotes</remarks>
+		public readonly string JsonLiteralCamelCased;
+
+		/// <summary>Name encoded as the field name of a Javascript Object (ex: <c>FooBar</c> (no quotes) or <c>'hello\'world"!!!'</c> (with quotes))</summary>
 		/// <remarks>Includes the single quotes <i>if required</i></remarks>
 		public readonly string JavaScriptLiteral;
+
+		/// <summary>Camel-cased name encoded as the field name of a Javascript Object (ex: <c>fooBar</c> (no quotes) or <c>'hello\'world"!!!'</c> (with quotes))</summary>
+		/// <remarks>Includes the single quotes <i>if required</i></remarks>
+		public readonly string JavaScriptLiteralCamelCased;
 
 		/// <inheritdoc />
 		public override string ToString() => this.Value;
@@ -67,7 +82,7 @@ namespace Doxense.Serialization.Json
 		public override bool Equals([NotNullWhen(true)] object? obj) => obj is JsonEncodedPropertyName name && name.Value == this.Value;
 
 		/// <inheritdoc />
-		public bool Equals(JsonEncodedPropertyName other) => other.Value == this.Value;
+		public bool Equals(JsonEncodedPropertyName? other) => other is not null && other.Value == this.Value;
 
 		/// <inheritdoc />
 		public bool Equals(string? other) => other == this.Value;

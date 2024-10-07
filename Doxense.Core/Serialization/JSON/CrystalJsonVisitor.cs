@@ -1980,7 +1980,8 @@ namespace Doxense.Serialization.Json
 					if (child == null) continue;
 				}
 
-				writer.WriteName(member.Name);
+				writer.WriteFieldSeparator();
+				writer.WritePropertyName(member.EncodedName);
 				if (member.Attributes != null)
 				{
 					var tmp = writer.PushAttributes(member.Attributes);

@@ -262,17 +262,18 @@ namespace Doxense.Serialization.Json
 
 			var typeName = sb.TypeName(type);
 			var serializerName = GetSerializerName(type);
-			var serializerTypeName = "_" + serializerName + "JsonSerializer";
+			var serializerTypeName = serializerName + "JsonConverter";
 
 			sb.AppendLine($"#region {type.GetFriendlyName()} ...");
 			sb.NewLine();
 
-			sb.AppendLine($"/// <summary>Serializer for type <see cref=\"{type.FullName}\">{type.GetFriendlyName()}</see></summary>");
+			sb.AppendLine($"/// <summary>JSON converter for type <see cref=\"{type.FullName}\">{type.GetFriendlyName()}</see></summary>");
 			sb.AppendLine($"public static {sb.TypeName(jsonConverterType)} {serializerName} => m_cached{serializerName} ??= new();");
 			sb.NewLine();
 			sb.AppendLine($"private static {serializerTypeName}? m_cached{serializerName};");
 			sb.NewLine();
 
+			sb.AppendLine($"/// <summary>Converts instances of type <see cref=\"T:{type.FullName}\">{type.GetFriendlyName()}</see> to and from JSON.</summary>");
 			sb.Attribute<DynamicallyAccessedMembersAttribute>([ sb.Constant(DynamicallyAccessedMemberTypes.All) ]);
 			sb.Attribute<GeneratedCodeAttribute>([ sb.Constant(nameof(CrystalJsonSourceGenerator)), sb.Constant("0.1") ]);
 			sb.Attribute<DebuggerNonUserCodeAttribute>();
@@ -354,14 +355,14 @@ namespace Doxense.Serialization.Json
 									if (this.FastFieldSerializable.Contains(member.Type))
 									{ // there is a direct, dedicated method for this!
 										sb.Comment("fast!");
-										sb.Call($"writer.{nameof(CrystalJsonWriter.WriteField)}", [ "in " + propertyName, $"instance.{member.OriginalName}" ]);
+										sb.Call($"writer.{nameof(CrystalJsonWriter.WriteField)}", [ propertyName, $"instance.{member.OriginalName}" ]);
 										continue;
 									}
 
 									if (this.TypeMap.TryGetValue(member.Type, out var subDef))
 									{
 										sb.Comment("custom!");
-										sb.Call($"writer.{nameof(CrystalJsonWriter.WriteField)}", [ "in " + propertyName, $"instance.{member.OriginalName}", GetLocalSerializerRef(subDef.Type) ]);
+										sb.Call($"writer.{nameof(CrystalJsonWriter.WriteField)}", [ propertyName, $"instance.{member.OriginalName}", GetLocalSerializerRef(subDef.Type) ]);
 										continue;
 									}
 
@@ -372,7 +373,7 @@ namespace Doxense.Serialization.Json
 											if (keyType == typeof(string))
 											{
 												sb.Comment("dictionary with string key");
-												sb.Call($"writer.{nameof(CrystalJsonWriter.WriteFieldDictionary)}", [ "in " + propertyName, $"instance.{member.OriginalName}", GetLocalSerializerRef(valueType) ]);
+												sb.Call($"writer.{nameof(CrystalJsonWriter.WriteFieldDictionary)}", [ propertyName, $"instance.{member.OriginalName}", GetLocalSerializerRef(valueType) ]);
 												continue;
 											}
 										}
@@ -383,28 +384,28 @@ namespace Doxense.Serialization.Json
 										if (this.FastFieldArraySerializable.Contains(elemType))
 										{
 											sb.Comment("fast array!");
-											sb.Call($"writer.{nameof(CrystalJsonWriter.WriteFieldArray)}", [ "in " + propertyName, $"instance.{member.OriginalName}" ]);
+											sb.Call($"writer.{nameof(CrystalJsonWriter.WriteFieldArray)}", [ propertyName, $"instance.{member.OriginalName}" ]);
 											continue;
 										}
 
 										if (this.TypeMap.ContainsKey(elemType))
 										{
 											sb.Comment("custom array!");
-											sb.Call($"writer.{nameof(CrystalJsonWriter.WriteFieldArray)}", [ "in " + propertyName, $"instance.{member.OriginalName}", GetLocalSerializerRef(elemType) ]);
+											sb.Call($"writer.{nameof(CrystalJsonWriter.WriteFieldArray)}", [ propertyName, $"instance.{member.OriginalName}", GetLocalSerializerRef(elemType) ]);
 											continue;
 										}
 
 										if (member.Type == typeof(IEnumerable<>).MakeGenericType(elemType))
 										{
 											sb.Comment("custom enumerable!");
-											sb.Call($"writer.{nameof(CrystalJsonWriter.WriteFieldArray)}", [ "in " + propertyName, $"instance.{member.OriginalName}" ]);
+											sb.Call($"writer.{nameof(CrystalJsonWriter.WriteFieldArray)}", [ propertyName, $"instance.{member.OriginalName}" ]);
 										}
 
 										sb.Comment("TODO: unsupported enumerable type: " + member.Type.FullName);
 									}
 
 									sb.Comment("unknown type");
-									sb.Call($"writer.{nameof(CrystalJsonWriter.WriteField)}", [ "in " + propertyName, $"instance.{member.OriginalName}" ]);
+									sb.Call($"writer.{nameof(CrystalJsonWriter.WriteField)}", [ propertyName, $"instance.{member.OriginalName}" ]);
 								}
 
 								sb.NewLine();
