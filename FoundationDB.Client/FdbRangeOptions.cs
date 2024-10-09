@@ -186,6 +186,9 @@ namespace FoundationDB.Client
 		public FdbRangeOptions OnlyValues()
 			=> this.Read == FdbReadMode.Values ? this : this with { Read = FdbReadMode.Values };
 
+		public FdbRangeOptions WithPool(ArrayPool<byte> pool)
+			=> ReferenceEquals(this.Pool, pool) ? this : this with { Pool = pool };
+
 	}
 
 }
