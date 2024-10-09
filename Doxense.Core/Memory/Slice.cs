@@ -36,6 +36,7 @@ namespace System
 	using System.Runtime.InteropServices;
 	using System.Security.Cryptography;
 	using System.Text;
+	using Doxense.Linq;
 	using Doxense.Memory;
 	using Doxense.Serialization;
 
@@ -1213,11 +1214,18 @@ namespace System
 		/// <summary>Concatenate an array of slices into a single slice</summary>
 		public static Slice Concat(params Slice[] args)
 		{
-			int count = 0;
-			for (int i = 0; i < args.Length; i++) count = checked(count + args[i].Count);
+			if (args.Length == 0) return Empty;
+			if (args.Length == 1) return args[0];
+
+			long count = 0;
+			for (int i = 0; i < args.Length; i++)
+			{
+				count += args[i].Count;
+			}
 			if (count == 0) return Empty;
 
-			var tmp = new byte[count];
+			var tmp = new byte[checked((int) count)];
+
 			Span<byte> buf = tmp;
 			foreach(var arg in args)
 			{
@@ -1238,8 +1246,14 @@ namespace System
 		public static Slice Concat(ReadOnlySpan<Slice> args)
 #endif
 		{
+			if (args.Length == 0) return Empty;
+			if (args.Length == 1) return args[0];
+			
 			long capacity = 0;
-			for (int i = 0; i < args.Length; i++) capacity = checked(capacity + args[i].Count);
+			for (int i = 0; i < args.Length; i++)
+			{
+				capacity += args[i].Count;
+			}
 			if (capacity == 0) return Empty;
 
 			var tmp = new byte[checked((int) capacity)];
@@ -1256,44 +1270,99 @@ namespace System
 			return new Slice(tmp);
 		}
 
+		/// <summary>Concatenate a sequence of slices into a single slice, allocated using a pool</summary>
+		/// <param name="pool">Pool used to allocate the buffer for the result</param>
+		/// <param name="args">List of spans to concatenante</param>
+		/// <returns><see cref="SliceOwner"/> containing all the slices added one after the other</returns>
+		/// <remarks>The caller <b>MUST</b> dispose the result; otherwise, the buffer will not be returned to the pool</remarks>
+#if NET9_0_OR_GREATER
+		public static SliceOwner Concat(ArrayPool<byte> pool, params ReadOnlySpan<Slice> args)
+#else
+		public static SliceOwner Concat(ArrayPool<byte> pool, ReadOnlySpan<Slice> args)
+#endif
+		{
+			if (args.Length == 0) return SliceOwner.Empty;
+
+			long capacity = ComputeSize(args);
+			if (capacity == 0) return SliceOwner.Empty;
+
+			var tmp = pool.Rent(checked((int) capacity));
+			Span<byte> buf = tmp;
+			foreach (var arg in args)
+			{
+				if (arg.Count > 0)
+				{
+					arg.Span.CopyTo(buf);
+					buf = buf.Slice(arg.Count);
+				}
+			}
+			Contract.Debug.Assert(buf.Length == 0);
+			return SliceOwner.Create(new Slice(tmp), pool);
+		}
+
 		public static Slice Concat(IEnumerable<Slice> args)
 		{
+			if (Doxense.Linq.Buffer<Slice>.TryGetSpan(args, out var span))
+			{
+				return Concat(span);
+			}
+
+			if (args.TryGetNonEnumeratedCount(out var count) && count == 0)
+			{
+				return Slice.Empty;
+			}
+
+			return ConcatEnumerable(args);
+
+			static Slice ConcatEnumerable(IEnumerable<Slice> args)
+			{
+				var sw = new SliceWriter();
+
+				// if this is a collection, pre-compute the capacity, to prevent unnecessary resizes
+				if (args is ICollection<Slice> coll)
+				{
+					long capacity = ComputeSize(coll);
+
+					if (capacity == 0) return Empty;
+					sw.EnsureBytes(checked((int) capacity));
+				}
+
+				foreach (var arg in args)
+				{
+					if (arg.Count > 0)
+					{
+						sw.WriteBytes(arg);
+					}
+				}
+
+				return sw.ToSlice();
+			}
+		}
+
+		public static SliceOwner Concat(ArrayPool<byte> pool, IEnumerable<Slice>? args)
+		{
+			if (args == null) return SliceOwner.Nil;
+
 			switch (args)
 			{
 				case Slice[] array:
 				{
-					return Concat(array);
+					return Concat(pool, new ReadOnlySpan<Slice>(array));
 				}
-				case ICollection<Slice> coll:
+				case List<Slice> list:
 				{
-					if (coll.Count == 0) return Empty;
-					int count = 0;
-					foreach(var arg in coll) count = checked(count + arg.Count);
-					if (count == 0) return Empty;
-
-					var tmp = new byte[count];
-					Span<byte> buf = tmp;
-					foreach (var arg in coll)
-					{
-						if (arg.Count > 0)
-						{
-							arg.Span.CopyTo(buf);
-							buf = buf.Slice(arg.Count);
-						}
-					}
-					Contract.Debug.Assert(buf.Length == 0);
-					return new Slice(tmp);
+					return Concat(pool, CollectionsMarshal.AsSpan(list));
 				}
 				default:
 				{
-					var sw = new SliceWriter();
-					foreach(var arg in args)
+					var sw = new SliceWriter(pool);
+					foreach (var arg in args)
 					{
 						sw.WriteBytes(arg);
 					}
-					return sw.ToSlice();
+					return sw.ToSliceOwner();
 				}
-					
+
 			}
 		}
 
@@ -1355,6 +1424,108 @@ namespace System
 			}
 
 			return res;
+		}
+
+		/// <summary>Computes the sum of the length of a list of slices</summary>
+		/// <param name="slices">List of slices to process</param>
+		/// <returns>Total size of all the slices</returns>
+		/// <remarks>This method can be used to pre-allocate a buffer large enough to fit all the slices</remarks>
+		public static long ComputeSize(ReadOnlySpan<Slice> slices)
+		{
+			long total = 0;
+			for (int i = 0; i < slices.Length; i++)
+			{
+				total += slices[i].Count;
+			}
+			return total;
+		}
+
+		/// <summary>Computes the sum of the length of a list of slices</summary>
+		/// <param name="slices">List of slices to process</param>
+		/// <returns>Total size of all the slices</returns>
+		/// <remarks>This method can be used to pre-allocate a buffer large enough to fit all the slices</remarks>
+		public static long ComputeSize(Slice[]? slices)
+		{
+			if (slices == null) return 0;
+			return ComputeSize(new ReadOnlySpan<Slice>(slices));
+		}
+
+		/// <summary>Computes the sum of the length of a list of slices</summary>
+		/// <param name="slices">List of slices to process</param>
+		/// <returns>Total size of all the slices</returns>
+		/// <remarks>This method can be used to pre-allocate a buffer large enough to fit all the slices</remarks>
+		public static long ComputeSize(IEnumerable<Slice>? slices)
+		{
+			if (slices == null) return 0;
+
+			if (Buffer<Slice>.TryGetSpan(slices, out var span))
+			{
+				return ComputeSize(span);
+			}
+
+			return ComputeSizeEnumerable(slices);
+
+			static long ComputeSizeEnumerable(IEnumerable<Slice> slices)
+			{
+				long total = 0;
+				foreach (var slice in slices)
+				{
+					total += slice.Count;
+				}
+				return total;
+			}
+		}
+
+		/// <summary>Computes the sum of the length of the keys and values</summary>
+		/// <param name="slices">List of pairs of slices to process</param>
+		/// <returns>Total size of all the keys and values</returns>
+		/// <remarks>This method can be used to pre-allocate a buffer large enough to fit all the slices</remarks>
+		public static long ComputeSize(ReadOnlySpan<KeyValuePair<Slice, Slice>> slices)
+		{
+			long total = 0;
+			for (int i = 0; i < slices.Length; i++)
+			{
+				total += slices[i].Key.Count;
+				total += slices[i].Value.Count;
+			}
+			return total;
+		}
+
+		/// <summary>Computes the sum of the length of the keys and values</summary>
+		/// <param name="slices">List of pairs of slices to process</param>
+		/// <returns>Total size of all the keys and values</returns>
+		/// <remarks>This method can be used to pre-allocate a buffer large enough to fit all the slices</remarks>
+		public static long ComputeSize(KeyValuePair<Slice, Slice>[]? slices)
+		{
+			if (slices == null) return 0;
+			return ComputeSize(new ReadOnlySpan<KeyValuePair<Slice, Slice>>(slices));
+		}
+
+		/// <summary>Computes the sum of the length of the keys and values</summary>
+		/// <param name="slices">List of pairs of slices to process</param>
+		/// <returns>Total size of all the keys and values</returns>
+		/// <remarks>This method can be used to pre-allocate a buffer large enough to fit all the slices</remarks>
+		public static long ComputeSize(IEnumerable<KeyValuePair<Slice, Slice>>? slices)
+		{
+			if (slices == null) return 0;
+
+			if (Buffer<KeyValuePair<Slice, Slice>>.TryGetSpan(slices, out var span))
+			{
+				return ComputeSize(span);
+			}
+
+			return ComputeSizeEnumerable(slices);
+
+			static long ComputeSizeEnumerable(IEnumerable<KeyValuePair<Slice, Slice>> slices)
+			{
+				long total = 0;
+				foreach (var kv in slices)
+				{
+					total += kv.Key.Count;
+					total += kv.Value.Count;
+				}
+				return total;
+			}
 		}
 
 		/// <summary>Reports the zero-based index of the first occurrence of the specified slice in this source.</summary>
