@@ -231,7 +231,7 @@ namespace FoundationDB.Client
 		/// <param name="key">Key to be looked up in the database</param>
 		/// <returns>The decoded value of the key, if it exists in the database; otherwise, <see langword="null"/>.</returns>
 		public static Task<int?> GetValueInt32Async(this IFdbReadOnlyTransaction trans, ReadOnlySpan<byte> key)
-			=> trans.GetAsync(key, static (value, found) => found ? BinaryPrimitives.ReadInt32LittleEndian(value) : default(int?));
+			=> trans.GetAsync(key, static (value, found) => found ? value.ToInt32() : default(int?));
 
 		/// <inheritdoc cref="GetValueInt32Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte},int)"/>
 		public static Task<int> GetValueInt32Async(this IFdbReadOnlyTransaction trans, Slice key, int missingValue)
@@ -243,7 +243,7 @@ namespace FoundationDB.Client
 		/// <param name="missingValue">Value returned if the key is missing</param>
 		/// <returns>The decoded value of the key, if it exists in the database; otherwise, <paramref name="missingValue"/>.</returns>
 		public static Task<int> GetValueInt32Async(this IFdbReadOnlyTransaction trans, ReadOnlySpan<byte> key, int missingValue)
-			=> trans.GetAsync(key, missingValue, static (missing, value, found) => found ? BinaryPrimitives.ReadInt32LittleEndian(value) : missing);
+			=> trans.GetAsync(key, missingValue, static (missing, value, found) => found ? value.ToInt32() : missing);
 
 		#endregion
 
@@ -258,7 +258,7 @@ namespace FoundationDB.Client
 		/// <param name="key">Key to be looked up in the database</param>
 		/// <returns>The decoded value of the key, if it exists in the database; otherwise, <see langword="null"/>.</returns>
 		public static Task<uint?> GetValueUInt32Async(this IFdbReadOnlyTransaction trans, ReadOnlySpan<byte> key)
-			=> trans.GetAsync(key, static (value, found) => found ? BinaryPrimitives.ReadUInt32LittleEndian(value) : default(uint?));
+			=> trans.GetAsync(key, static (value, found) => found ? value.ToUInt32() : default(uint?));
 
 		/// <inheritdoc cref="GetValueUInt32Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte},uint)"/>
 		public static Task<uint> GetValueUInt32Async(this IFdbReadOnlyTransaction trans, Slice key, uint missingValue)
@@ -270,7 +270,7 @@ namespace FoundationDB.Client
 		/// <param name="missingValue">Value returned if the key is missing</param>
 		/// <returns>The decoded value of the key, if it exists in the database; otherwise, <paramref name="missingValue"/>.</returns>
 		public static Task<uint> GetValueUInt32Async(this IFdbReadOnlyTransaction trans, ReadOnlySpan<byte> key, uint missingValue)
-			=> trans.GetAsync(key, missingValue, static (missing, value, found) => found ? BinaryPrimitives.ReadUInt32LittleEndian(value) : missing);
+			=> trans.GetAsync(key, missingValue, static (missing, value, found) => found ? value.ToUInt32() : missing);
 
 		#endregion
 
@@ -285,7 +285,7 @@ namespace FoundationDB.Client
 		/// <param name="key">Key to be looked up in the database</param>
 		/// <returns>The decoded value of the key, if it exists in the database; otherwise, <see langword="null"/>.</returns>
 		public static Task<long?> GetValueInt64Async(this IFdbReadOnlyTransaction trans, ReadOnlySpan<byte> key)
-			=> trans.GetAsync(key, static (value, found) => found ? BinaryPrimitives.ReadInt64LittleEndian(value) : default(long?));
+			=> trans.GetAsync(key, static (value, found) => found ? value.ToInt64() : default(long?));
 
 		/// <inheritdoc cref="GetValueInt64Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte},long)"/>
 		public static Task<long> GetValueInt64Async(this IFdbReadOnlyTransaction trans, Slice key, long missingValue)
@@ -297,7 +297,7 @@ namespace FoundationDB.Client
 		/// <param name="missingValue">Value returned if the key is missing</param>
 		/// <returns>The decoded value of the key, if it exists in the database; otherwise, <paramref name="missingValue"/>.</returns>
 		public static Task<long> GetValueInt64Async(this IFdbReadOnlyTransaction trans, ReadOnlySpan<byte> key, long missingValue)
-			=> trans.GetAsync(key, missingValue, static (missing, value, found) => found ? BinaryPrimitives.ReadInt64LittleEndian(value) : missing);
+			=> trans.GetAsync(key, missingValue, static (missing, value, found) => found ? value.ToInt64() : missing);
 
 		#endregion
 
@@ -312,7 +312,7 @@ namespace FoundationDB.Client
 		/// <param name="key">Key to be looked up in the database</param>
 		/// <returns>The decoded value of the key, if it exists in the database; otherwise, <see langword="null"/>.</returns>
 		public static Task<ulong?> GetValueUInt64Async(this IFdbReadOnlyTransaction trans, ReadOnlySpan<byte> key)
-			=> trans.GetAsync(key, static (value, found) => found ? BinaryPrimitives.ReadUInt64LittleEndian(value) : default(ulong?));
+			=> trans.GetAsync(key, static (value, found) => found ? value.ToUInt64() : default(ulong?));
 
 		/// <inheritdoc cref="GetValueUInt64Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte},ulong)"/>
 		public static Task<ulong> GetValueUInt64Async(this IFdbReadOnlyTransaction trans, Slice key, ulong missingValue)
@@ -324,7 +324,7 @@ namespace FoundationDB.Client
 		/// <param name="missingValue">Value returned if the key is missing</param>
 		/// <returns>The decoded value of the key, if it exists in the database; otherwise, <paramref name="missingValue"/>.</returns>
 		public static Task<ulong> GetValueUInt64Async(this IFdbReadOnlyTransaction trans, ReadOnlySpan<byte> key, ulong missingValue)
-			=> trans.GetAsync(key, missingValue, static (missing, value, found) => found ? BinaryPrimitives.ReadUInt64LittleEndian(value) : missing);
+			=> trans.GetAsync(key, missingValue, static (missing, value, found) => found ? value.ToUInt64() : missing);
 
 		#endregion
 
