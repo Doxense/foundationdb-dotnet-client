@@ -26,21 +26,24 @@
 
 namespace Doxense.Linq.Async.Iterators
 {
-
 	/// <summary>Iterator that will generate the underlying async sequence "just in time" when it is itself iterated</summary>
+	/// <typeparam name="TState">State that is passed to the generator</typeparam>
 	/// <typeparam name="TResult">Type of elements of the async sequence</typeparam>
 	/// <typeparam name="TCollection">Concrete type of the async sequence</typeparam>
-	public class DeferredAsyncIterator<TResult, TCollection> : AsyncIterator<TResult>
+	public class DeferredAsyncIterator<TState, TResult, TCollection> : AsyncIterator<TResult>
 		where TCollection : IAsyncEnumerable<TResult>
 	{
 
-		public Func<CancellationToken, Task<TCollection>> Generator { get; }
+		public TState State { get; }
+
+		public Func<TState, CancellationToken, Task<TCollection>> Generator { get; }
 
 		private IAsyncEnumerator<TResult>? Inner { get; set; }
 
-		public DeferredAsyncIterator(Func<CancellationToken, Task<TCollection>> generator)
+		public DeferredAsyncIterator(TState state, Func<TState, CancellationToken, Task<TCollection>> generator)
 		{
 			Contract.NotNull(generator);
+			this.State = state;
 			this.Generator = generator;
 		}
 
@@ -53,12 +56,12 @@ namespace Doxense.Linq.Async.Iterators
 
 		protected override AsyncIterator<TResult> Clone()
 		{
-			return new DeferredAsyncIterator<TResult, TCollection>(this.Generator);
+			return new DeferredAsyncIterator<TState, TResult, TCollection>(this.State, this.Generator);
 		}
 
 		protected override async ValueTask<bool> OnFirstAsync()
 		{
-			var sequence = await this.Generator(m_ct).ConfigureAwait(false);
+			var sequence = await this.Generator(this.State, m_ct).ConfigureAwait(false);
 			if (sequence == null) throw new InvalidOperationException("Deferred generator cannot return a null async sequence.");
 
 			this.Inner = sequence.GetAsyncEnumerator(m_ct);

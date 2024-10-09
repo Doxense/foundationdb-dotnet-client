@@ -95,19 +95,40 @@ namespace Doxense.Linq
 			}
 		}
 
-		/// <summary>Create a new async sequence from a factory that will generated on the first iteration</summary>
+		/// <summary>Create a new async sequence from a factory that will be invoked on the first iteration</summary>
+		public static IConfigurableAsyncEnumerable<TResult> Defer<TState, TResult>(TState state, Func<TState, CancellationToken, Task<IAsyncEnumerable<TResult>>> factory)
+		{
+			Contract.NotNull(factory);
+			return new DeferredAsyncIterator<TState, TResult, IAsyncEnumerable<TResult>>(state, factory);
+		}
+
+		/// <summary>Create a new async sequence from a factory that will be invoked on the first iteration</summary>
+		public static IConfigurableAsyncEnumerable<TResult> Defer<TState, TResult, TCollection>(TState state, Func<TState, CancellationToken, Task<TCollection>> factory)
+			where TCollection : IAsyncEnumerable<TResult>
+		{
+			Contract.NotNull(factory);
+			return new DeferredAsyncIterator<TState, TResult, TCollection>(state, factory);
+		}
+
+		/// <summary>Create a new async sequence from a factory that will be invoked on the first iteration</summary>
 		public static IConfigurableAsyncEnumerable<TResult> Defer<TResult>(Func<CancellationToken, Task<IAsyncEnumerable<TResult>>> factory)
 		{
 			Contract.NotNull(factory);
-			return new DeferredAsyncIterator<TResult, IAsyncEnumerable<TResult>>(factory);
+			return new DeferredAsyncIterator<object, TResult, IAsyncEnumerable<TResult>>(
+				factory,
+				(s, ct) => ((Func<CancellationToken, Task<IAsyncEnumerable<TResult>>>) s)(ct)
+			);
 		}
 
-		/// <summary>Create a new async sequence from a factory that will generated on the first iteration</summary>
+		/// <summary>Create a new async sequence from a factory that will be invoked on the first iteration</summary>
 		public static IConfigurableAsyncEnumerable<TResult> Defer<TResult, TCollection>(Func<CancellationToken, Task<TCollection>> factory)
 			where TCollection: IAsyncEnumerable<TResult>
 		{
 			Contract.NotNull(factory);
-			return new DeferredAsyncIterator<TResult, TCollection>(factory);
+			return new DeferredAsyncIterator<object, TResult, TCollection>(
+				factory,
+				(s, ct) => ((Func<CancellationToken, Task<TCollection>>) s)(ct)
+			);
 		}
 
 		#endregion
