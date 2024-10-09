@@ -65,7 +65,7 @@ namespace FoundationDB.Client
 		public FdbError PreviousError { get; private set; }
 
 		/// <summary>Stopwatch that is started at the creation of the transaction, and stopped when it commits or gets disposed</summary>
-		private ValueStopwatch Clock; // must be a field!
+		private Stopwatch Clock { get; } = Stopwatch.StartNew();
 
 		/// <summary>Duration of all the previous attempts before the current one (starts at 0, and gets updated at each reset/retry)</summary>
 		internal TimeSpan BaseDuration { get; private set; }
@@ -744,6 +744,7 @@ namespace FoundationDB.Client
 
 			bool reportTransStarted = false;
 			bool reportOpStarted = false;
+			context.Clock.Restart();
 
 			try
 			{
@@ -751,7 +752,6 @@ namespace FoundationDB.Client
 				context.Committed = false;
 				context.Retries = 0;
 				context.BaseDuration = TimeSpan.Zero;
-				context.Clock = ValueStopwatch.StartNew();
 				//note: we start the clock immediately, but the transaction's 5 seconds max lifetime is actually measured from the first read operation (Get, GetRange, GetReadVersion, etc...)
 				// => algorithms that monitor the elapsed duration to rate limit themselves may think that the trans is older than it really is...
 				// => we would need to plug into the transaction handler itself to be notified when exactly a read op starts...
@@ -1503,7 +1503,7 @@ namespace FoundationDB.Client
 						FdbClientInstrumentation.ReportOperationCompleted(context, trans, context.PreviousError);
 
 						// update the base time for the next attempt
-						context.BaseDuration = context.ElapsedTotal;
+						context.BaseDuration = context.Clock.Elapsed;
 						context.Retries++;
 					}
 				}
