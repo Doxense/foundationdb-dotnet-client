@@ -181,7 +181,8 @@ namespace SnowBank.Testing
 			m_testStartTimestamp = GetTimestamp();
 		}
 
-		protected TimeSpan TestElapsed => m_testEndTimestamp >= m_testStartTimestamp ? GetElapsedTime(m_testStartTimestamp, m_testEndTimestamp) : TimeSpan.Zero;
+		protected TimeSpan TestElapsed
+			=> m_testEndTimestamp != 0 ? GetElapsedTime(m_testStartTimestamp, m_testEndTimestamp) : m_testStartTimestamp != 0 ? GetElapsedTime(m_testStartTimestamp) : TimeSpan.Zero;
 
 		protected Instant TestStartedAt => m_testStartInstant;
 
