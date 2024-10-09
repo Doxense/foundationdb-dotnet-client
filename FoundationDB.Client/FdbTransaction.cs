@@ -1662,6 +1662,8 @@ namespace FoundationDB.Client
 
 			RestoreDefaultSettings();
 
+			this.Context.ResetInternals();
+
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Reset", "Transaction has been reset");
 		}
 

@@ -251,6 +251,19 @@ namespace FoundationDB.Client
 			}
 		}
 
+		internal void ResetInternals()
+		{
+			lock (this.PadLock)
+			{
+				// reset the context clock!
+				this.Clock.Restart();
+				this.BaseDuration = TimeSpan.Zero;
+				this.Retries = 0;
+				this.Abort = false;
+				this.Committed = false;
+			}
+		}
+
 		/// <summary>Set the value of a cached instance attached to the transaction</summary>
 		/// <typeparam name="TState">Type of the instance</typeparam>
 		/// <typeparam name="TToken">Type of the key used to distinguish multiple instance of the same "type"</typeparam>
