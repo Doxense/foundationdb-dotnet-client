@@ -6,7 +6,7 @@
 
   <!-- Packages that are common to all target frameworks -->
   <ItemGroup>
-    <PackageVersion Include="Aspire.Hosting" Version="8.2.0" />
+    <PackageVersion Include="Aspire.Hosting" Version="8.2.1" />
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="8.2.0" />
     <PackageVersion Include="MathNet.Numerics.Signed" Version="5.0.0" />
     <PackageVersion Include="Microsoft.CSharp" Version="4.7.0" />
