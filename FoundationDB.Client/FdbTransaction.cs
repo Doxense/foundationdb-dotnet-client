@@ -740,6 +740,7 @@ namespace FoundationDB.Client
 			FdbKey.EnsureKeyIsValid(beginInclusive.Key);
 			FdbKey.EnsureKeyIsValid(endExclusive.Key, endExclusive: true);
 
+			options = FdbRangeOptions.EnsureDefaults(options, FdbStreamingMode.Iterator, FdbReadMode.Both);
 			options.EnsureLegalValues(iteration);
 
 			// The iteration value is only needed when in iterator mode, but then it should start from 1

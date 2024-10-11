@@ -70,9 +70,9 @@ namespace FoundationDB.Samples.Benchmarks
 				.GetRange(KeyRange.StartsWith(Fdb.System.ServerList))
 				.Select(kvp => new
 				{
-					Node = kvp.Value.Substring(8, 16).ToHexaString(),
-					Machine = kvp.Value.Substring(24, 16).ToHexaString(),
-					DataCenter = kvp.Value.Substring(40, 16).ToHexaString()
+					Node = kvp.Value.Substring(8, 16).ToHexString(),
+					Machine = kvp.Value.Substring(24, 16).ToHexString(),
+					DataCenter = kvp.Value.Substring(40, 16).ToHexString()
 				}),
 				ct
 			);

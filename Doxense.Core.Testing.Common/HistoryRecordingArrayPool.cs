@@ -428,7 +428,7 @@ namespace SnowBank.Testing
 				var snapshot = array.ToArray();
 
 				// this is the magic spell to be able to do IndexOfAny(defaut(T)) on a Span<T> without the IEquatable<T> constraint!
-				var asBytes = System.Runtime.InteropServices.MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<T, byte>(ref Unsafe.AsRef(ref array[0])), Unsafe.SizeOf<T>() * array.Length);
+				var asBytes = System.Runtime.InteropServices.MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<T, byte>(ref Unsafe.AsRef(in array[0])), Unsafe.SizeOf<T>() * array.Length);
 
 #if NET8_0_OR_GREATER
 				bool allZeroes = asBytes.IndexOfAnyExcept((byte) 0) < 0;

@@ -208,7 +208,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using var db = await OpenTestPartitionAsync();
 			using var go = new CancellationTokenSource();
-			await go.CancelAsync();
+			go.Cancel();
 
 			bool called = false;
 

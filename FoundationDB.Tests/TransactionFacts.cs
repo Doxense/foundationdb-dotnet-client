@@ -299,7 +299,7 @@ namespace FoundationDB.Client.Tests
 			await Task.Delay(1, this.Cancellation);
 
 			Assume.That(t.IsCompleted, Is.False, "Commit task already completed before having a chance to cancel");
-			await cts.CancelAsync();
+			cts.Cancel();
 
 			Assert.That(async () => await t, Throws.InstanceOf<TaskCanceledException>(), "Cancelling a token passed to CommitAsync that is still pending should cancel the task");
 		}
@@ -2309,7 +2309,7 @@ namespace FoundationDB.Client.Tests
 			Assert.That(w2.Task.Status, Is.EqualTo(TaskStatus.WaitingForActivation), "w2 should still be pending because key2 was untouched");
 
 			// cancelling the token associated to the watch should cancel them
-			await cts.CancelAsync();
+			cts.Cancel();
 
 			await Task.Delay(100, this.Cancellation);
 			Assert.That(w2.Task.Status, Is.EqualTo(TaskStatus.Canceled), "w2 should have been cancelled");
@@ -2452,7 +2452,7 @@ namespace FoundationDB.Client.Tests
 
 			// trigger the kill switch
 			Log("Triggering the cancellation token...");
-			await killSwitch.CancelAsync();
+			killSwitch.Cancel();
 
 			// the task should before failed
 			Log("Waiting for watch to abort...");
@@ -2505,7 +2505,7 @@ namespace FoundationDB.Client.Tests
 			Log($"Task returned: {t.Result} in {sw.Elapsed.TotalMilliseconds:N1} ms");
 			Assert.That(t.Result, Is.False, "Task should have returned 'false' (for timeout)");
 			//note: since the test runner could lag, we use a rather large tolerance for the actual delay...
-			Assert.That(sw.Elapsed, Is.GreaterThan(TimeSpan.FromMicroseconds(400)).And.LessThan(TimeSpan.FromSeconds(1)), "Timeout should have been approximately ~500ms");
+			Assert.That(sw.Elapsed, Is.GreaterThan(TimeSpan.FromMilliseconds(0.4)).And.LessThan(TimeSpan.FromSeconds(1)), "Timeout should have been approximately ~500ms");
 		}
 
 		[Test]

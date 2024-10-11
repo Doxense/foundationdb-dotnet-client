@@ -153,10 +153,10 @@ namespace FdbShell
 
 			if (!created)
 			{
-				terminal.StdOut($"- Directory {path} already exists at {FdbKey.Dump(prefix)} [{prefix.ToHexaString(' ')}]");
+				terminal.StdOut($"- Directory {path} already exists at {FdbKey.Dump(prefix)} [{prefix.ToHexString(' ')}]");
 				return;
 			}
-			terminal.StdOut($"- Created under {FdbKey.Dump(prefix)} [{prefix.ToHexaString(' ')}]");
+			terminal.StdOut($"- Created under {FdbKey.Dump(prefix)} [{prefix.ToHexString(' ')}]");
 
 			// look if there is already stuff under there
 			var stuff = await db.ReadAsync(async tr =>
@@ -340,7 +340,7 @@ namespace FdbShell
 				case "--hex":
 				case "--hexa":
 				{
-					terminal.StdOut(v.ToHexaString(), ConsoleColor.White);
+					terminal.StdOut(v.ToHexString(), ConsoleColor.White);
 					break;
 				}
 				case "--dump":
@@ -348,7 +348,7 @@ namespace FdbShell
 					var sb = new StringBuilder(v.Count * 3 + (v.Count >> 4) * 2 + 16);
 					for (int i = 0; i < v.Count; i += 16)
 					{
-						sb.AppendLine(v.Substring(i, 16).ToHexaString(' '));
+						sb.AppendLine(v.Substring(i, 16).ToHexString(' '));
 					}
 					terminal.StdOut(sb.ToString(), ConsoleColor.White);
 					break;
@@ -365,7 +365,7 @@ namespace FdbShell
 					else
 					{
 						terminal.StdOut($"Value is too large ({v.Count} bytes)", ConsoleColor.DarkRed);
-						terminal.StdOut(v.ToHexaString(' '), ConsoleColor.Gray);
+						terminal.StdOut(v.ToHexString(' '), ConsoleColor.Gray);
 					}
 					break;
 				}
@@ -381,7 +381,7 @@ namespace FdbShell
 					else
 					{
 						terminal.StdOut($"Value is too large ({v.Count} bytes)", ConsoleColor.DarkRed);
-						terminal.StdOut(v.ToHexaString(' '), ConsoleColor.Gray);
+						terminal.StdOut(v.ToHexString(' '), ConsoleColor.Gray);
 					}
 					break;
 				}
@@ -395,7 +395,7 @@ namespace FdbShell
 					catch (Exception e)
 					{
 						terminal.Error("Key value does not seem to be a valid Tuple: " + e.Message);
-						terminal.StdOut(v.ToHexaString(' '), ConsoleColor.Gray);
+						terminal.StdOut(v.ToHexString(' '), ConsoleColor.Gray);
 					}
 					break;
 				}
@@ -598,7 +598,7 @@ namespace FdbShell
 					terminal.Error("Cannot list the content of a Directory Partition!");
 					return;
 				}
-				terminal.Comment($"# Content of {FdbKey.Dump(folder.GetPrefix())} [{folder.GetPrefix().ToHexaString(' ')}]");
+				terminal.Comment($"# Content of {FdbKey.Dump(folder.GetPrefix())} [{folder.GetPrefix().ToHexString(' ')}]");
 
 				var query = tr.GetRange(folder.ToRange());
 				var keys = await (reverse
@@ -649,7 +649,7 @@ namespace FdbShell
 			using (var fs = new FileStream(output, FileMode.Create, FileAccess.Write, FileShare.Read, 64 * 1024))
 			using (var sw = new StreamWriter(fs, Encoding.UTF8, 32 * 1024))
 			{
-				terminal.Comment($"# Dumping content of {FdbKey.Dump(folder.GetPrefix())} [{folder.GetPrefix().ToHexaString(' ')}] to {output}");
+				terminal.Comment($"# Dumping content of {FdbKey.Dump(folder.GetPrefix())} [{folder.GetPrefix().ToHexString(' ')}] to {output}");
 				long bytes = 0;
 				var kr = new[] { '|', '/', '-', '\\' };
 				int p = 0;

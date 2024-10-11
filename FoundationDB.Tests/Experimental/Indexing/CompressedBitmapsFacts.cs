@@ -793,7 +793,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 				DumpIndex("Elevation", indexElevation, (s, _) => s, heatMaps: true);
 
 				//Log(indexValid.Values[true].Dump());
-				//Log(indexValid.Values[true].ToSlice().ToHexaString());
+				//Log(indexValid.Values[true].ToSlice().ToHexString());
 				Log();
 				Log();
 			}
