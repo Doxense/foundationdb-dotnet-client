@@ -2,7 +2,7 @@
 
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
-		<TargetFrameworks>net9.0;net8.0</TargetFrameworks>
+		<TargetFrameworks>$(CoreSdkToolsVersions)</TargetFrameworks>
 		<ProjectGuid>{D2EE84C9-0554-40D2-B61F-8FCB4B67CEAA}</ProjectGuid>
 		<RestorePackages>true</RestorePackages>
 		<RootNamespace>FoundationDB.Samples</RootNamespace>

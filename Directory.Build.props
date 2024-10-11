@@ -2,4 +2,12 @@
 	<PropertyGroup>
 		<ArtifactsPath>$(MSBuildThisFileDirectory)artifacts</ArtifactsPath>
 	</PropertyGroup>
+	<PropertyGroup>
+		<!-- Framework versions for the core libraries (Core, FoundationDb.Client, ...) -->
+		<CoreSdkRuntimeVersions Condition="'$(CloudSdkRuntimeVersions)' == ''">net9.0;net8.0;net6.0</CoreSdkRuntimeVersions>
+		<!-- Framework versions for the tools (FdbTop, FdbShell, ...) -->
+		<CoreSdkToolsVersions Condition="'$(CoreSdkToolsVersions)' == ''">net9.0;net8.0</CoreSdkToolsVersions>
+		<!-- Framework versions for Aspire (only .NET8+) -->
+		<CloudSdkRuntimeVersions Condition="'$(CloudSdkRuntimeVersions)' == ''">net9.0;net8.0</CloudSdkRuntimeVersions>
+	</PropertyGroup>
 </Project>

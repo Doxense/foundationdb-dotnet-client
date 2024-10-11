@@ -2,7 +2,7 @@
 
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
-		<TargetFrameworks>net9.0;net8.0</TargetFrameworks>
+		<TargetFrameworks>$(CoreSdkToolsVersions)</TargetFrameworks>
 		<LangVersion>preview</LangVersion>
 		<ProjectGuid>{60049BA1-A95F-4127-BAC5-74AF023D3082}</ProjectGuid>
 		<RestorePackages>true</RestorePackages>

@@ -2,7 +2,7 @@
 
 	<PropertyGroup>
 		<OutputType>Library</OutputType>
-		<TargetFrameworks>net9.0;net8.0;net6.0</TargetFrameworks>
+		<TargetFrameworks>$(CoreSdkRuntimeVersions)</TargetFrameworks>
 		<RootNamespace>FoundationDB.Client</RootNamespace>
 		<AssemblyName>FoundationDB.Client</AssemblyName>
 		<LangVersion>preview</LangVersion>

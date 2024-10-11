@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>net9.0;net8.0;net6.0</TargetFrameworks>
+		<TargetFrameworks>$(CoreSdkRuntimeVersions)</TargetFrameworks>
 		<RootNamespace>FoundationDB.Linq.Providers</RootNamespace>
 		<AssemblyName>FoundationDB.Linq.Providers</AssemblyName>
 		<LangVersion>11.0</LangVersion>

@@ -2,7 +2,7 @@
 
 	<PropertyGroup>
 		<OutputType>Library</OutputType>
-		<TargetFrameworks>net9.0;net8.0</TargetFrameworks>
+		<TargetFrameworks>$(CloudSdkRuntimeVersions)</TargetFrameworks>
 		<CopyLocalLocFileAssemblies>true</CopyLocalLocFileAssemblies>
 		<LangVersion>preview</LangVersion>
 		<Nullable>enable</Nullable>
