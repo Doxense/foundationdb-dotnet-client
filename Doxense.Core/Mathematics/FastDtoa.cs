@@ -27,7 +27,7 @@
 namespace Doxense.Mathematics
 {
 	using System.Diagnostics;
-	using System.Globalization;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 
@@ -154,7 +154,7 @@ namespace Doxense.Mathematics
 
 	[DebuggerDisplay("M={Significand}, E={Exponent}, S={Sign}")]
 	[StructLayout(LayoutKind.Explicit)]
-	public struct DiyDouble
+	public readonly struct DiyDouble : IEquatable<DiyDouble>, IFormattable
 	{
 		public const ulong SignMask = 0x8000000000000000ul;
 		public const ulong ExponentMask = 0x7FF0000000000000ul;
@@ -173,9 +173,9 @@ namespace Doxense.Mathematics
 		//note: this only works on LE hosts!
 
 		[FieldOffset(0)]
-		public ulong Raw;
+		public readonly ulong Raw;
 		[FieldOffset(0)]
-		public double Value;
+		public readonly double Value;
 
 		public DiyDouble(double d)
 			: this()
@@ -189,36 +189,26 @@ namespace Doxense.Mathematics
 			this.Raw = r;
 		}
 
-		public static implicit operator DiyDouble(double v)
-		{
-			var d = default(DiyDouble);
-			d.Value = v;
-			return d;
-		}
-
-		public static implicit operator DiyDouble(ulong r)
-		{
-			var d = default(DiyDouble);
-			d.Raw = r;
-			return d;
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator DiyDouble(double v) => new(v);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ulong ToRaw(double f)
-		{
-			var d = default(DiyDouble);
-			d.Value = f;
-			return d.Raw;
-		}
+		public static implicit operator DiyDouble(ulong r) => new(r);
+
+		/// <inheritdoc />
+		public override bool Equals([NotNullWhen(true)] object? obj) => obj is DiySingle other && other.Raw == this.Raw;
+
+		/// <inheritdoc />
+		public override int GetHashCode() => this.Raw.GetHashCode();
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static double FromRaw(ulong raw)
-		{
-			var d = default(DiyDouble);
-			d.Raw = raw;
-			return d.Value;
-		}
+		public bool Equals(DiyDouble other) => other.Raw == this.Raw;
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ulong ToRaw(double f) => new DiyDouble(f).Raw;
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static double FromRaw(ulong raw) => new DiyDouble(raw).Value;
 
 		/// <summary>Returns the next greater double.</summary>
 		/// <remarks>Returns +infinity on input +infinity.</remarks>
@@ -253,10 +243,7 @@ namespace Doxense.Mathematics
 		/// <summary>Returns the previous smaller double.</summary>
 		/// <remarks>Returns -infinity on input -infinity.</remarks>
 		[Pure]
-		public static double PreviousDouble(double value)
-		{
-			return new DiyDouble(value).PreviousDouble();
-		}
+		public static double PreviousDouble(double value) => new DiyDouble(value).PreviousDouble();
 
 		[Pure]
 		public DiyFp ToNormalized()
@@ -419,26 +406,30 @@ namespace Doxense.Mathematics
 			return this.Value;
 		}
 
-		public override string ToString()
+		public override string ToString() => ToString(null, null);
+
+		public string ToString(string? format, IFormatProvider? formatProvider)
 		{
+			formatProvider ??= formatProvider;
+
 			if (this.IsSpecial)
 			{
-				return string.Create(CultureInfo.InvariantCulture, $"DiyDouble[0x{this.Raw:X16}] = {(this.IsNaN ? "NaN" : this.IsInfinite ? (this.Sign > 0 ? "+Infinity" : "-Infinity") : "Special!")} [SPECIAL]");
+				return string.Create(formatProvider, $"DiyDouble[0x{this.Raw:X16}] = {(this.IsNaN ? "NaN" : this.IsInfinite ? (this.Sign > 0 ? "+Infinity" : "-Infinity") : "Special!")} [SPECIAL]");
 			}
 
 			if (this.IsDenormal)
 			{
-				return string.Create(CultureInfo.InvariantCulture, $"DiyDouble[0x{this.Raw:X16}] = {(this.Sign > 0 ? "+" : "-")}{Convert.ToString((long) this.Significand, 2)} [DENORMAL] = {this.Value:R} {(this.IsInteger ? "(int)" : "(dec)")}");
+				return string.Create(formatProvider, $"DiyDouble[0x{this.Raw:X16}] = {(this.Sign > 0 ? "+" : "-")}{Convert.ToString((long) this.Significand, 2)} [DENORMAL] = {this.Value:R} {(this.IsInteger ? "(int)" : "(dec)")}");
 			}
 
-			return string.Create(CultureInfo.InvariantCulture, $"DiyDouble[0x{this.Raw:X16}] = {(this.Sign > 0 ? "+" : "-")}{Convert.ToString((long) this.Significand, 2)} x 2^{this.Exponent} = {this.Value:R} {(this.IsInteger ? "(int)" : "(dec)")}");
+			return string.Create(formatProvider, $"DiyDouble[0x{this.Raw:X16}] = {(this.Sign > 0 ? "+" : "-")}{Convert.ToString((long) this.Significand, 2)} x 2^{this.Exponent} = {this.Value:R} {(this.IsInteger ? "(int)" : "(dec)")}");
 		}
 
 	}
 
 	[DebuggerDisplay("M={Significand}, E={Exponent}, S={Sign}")]
 	[StructLayout(LayoutKind.Explicit)]
-	public struct DiySingle
+	public readonly struct DiySingle : IEquatable<DiySingle>, IFormattable
 	{
 
 		public const uint SignMask = 0x80000000u;
@@ -458,10 +449,10 @@ namespace Doxense.Mathematics
 		//note: this only works on LE hosts!
 
 		[FieldOffset(0)]
-		public uint Raw;
+		public readonly uint Raw;
 
 		[FieldOffset(0)]
-		public float Value;
+		public readonly float Value;
 
 		public DiySingle(float d)
 			: this()
@@ -475,74 +466,49 @@ namespace Doxense.Mathematics
 			this.Raw = r;
 		}
 
-		public static implicit operator DiySingle(float v)
-		{
-			var d = default(DiySingle);
-			d.Value = v;
-			return d;
-		}
+		public static implicit operator DiySingle(float v) => new(v);
 
-		public static implicit operator DiySingle(uint r)
-		{
-			var d = default(DiySingle);
-			d.Raw = r;
-			return d;
-		}
+		public static implicit operator DiySingle(uint r) => new(r);
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static uint ToRaw(float f)
-		{
-			var d = default(DiySingle);
-			d.Value = f;
-			return d.Raw;
-		}
+		/// <inheritdoc />
+		public override bool Equals([NotNullWhen(true)] object? obj) => obj is DiySingle other && other.Raw == this.Raw;
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static float FromRaw(uint raw)
-		{
-			var d = default(DiySingle);
-			d.Raw = raw;
-			return d.Value;
-		}
+		/// <inheritdoc />
+		public override int GetHashCode() => this.Raw.GetHashCode();
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static uint GetRawExponent(uint raw)
-		{
-			return (raw & ExponentMask) >> PhysicalSignificandSize;
-		}
+		public bool Equals(DiySingle other) => other.Raw == this.Raw;
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static uint GetRawSignificand(uint raw)
-		{
-			return raw & SignificandMask;
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static uint ToRaw(float f) => new DiySingle(f).Raw;
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static bool GetRawSign(uint raw)
-		{
-			return (raw & SignMask) != 0;
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static float FromRaw(uint raw) => new DiySingle(raw).Value;
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static uint GetRawExponent(uint raw) => (raw & ExponentMask) >> PhysicalSignificandSize;
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static uint GetRawSignificand(uint raw) => raw & SignificandMask;
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool GetRawSign(uint raw) => (raw & SignMask) != 0;
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static float Recombine(uint rawSignificand, uint rawExponent, bool sign)
-		{
-			var d = default(DiySingle);
-			d.Raw = (rawSignificand & SignificandMask) | (rawExponent << PhysicalSignificandSize) | (sign ? SignMask : 0);
-			return d.Value;
-		}
+			=> new DiySingle((rawSignificand & SignificandMask) | (rawExponent << PhysicalSignificandSize) | (sign ? SignMask : 0)).Value;
 
 		public int Exponent
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => this.IsDenormal
 				? DenormalExponent
-				: (int)((this.Raw & ExponentMask) >> PhysicalSignificandSize) - ExponentBias;
+				: (int) ((this.Raw & ExponentMask) >> PhysicalSignificandSize) - ExponentBias;
 		}
 
 		public int Sign
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get { return (this.Raw & SignMask) == 0 ? 1 : -1; }
+			get => (this.Raw & SignMask) == 0 ? 1 : -1;
 		}
 
 		public uint Significand
@@ -627,19 +593,23 @@ namespace Doxense.Mathematics
 			return this.Value;
 		}
 
-		public override string ToString()
+		public override string ToString() => ToString(null, null);
+
+		public string ToString(string? format, IFormatProvider? formatProvider)
 		{
+			formatProvider ??= formatProvider;
+
 			if (this.IsSpecial)
 			{
-				return string.Create(CultureInfo.InvariantCulture, $"DiySingle[0x{this.Raw:X8}] = {(this.IsNaN ? "NaN" : this.IsInfinite ? (this.Sign > 0 ? "+Infinity" : "-Infinity") : "Special!")} [SPECIAL]");
+				return string.Create(formatProvider, $"DiySingle[0x{this.Raw:X8}] = {(this.IsNaN ? "NaN" : this.IsInfinite ? (this.Sign > 0 ? "+Infinity" : "-Infinity") : "Special!")} [SPECIAL]");
 			}
 
 			if (this.IsDenormal)
 			{
-				return string.Create(CultureInfo.InvariantCulture, $"DiySingle[0x{this.Raw:X8}] = {(this.Sign > 0 ? "+" : "-")}{Convert.ToString((int) this.Significand, 2)} [DENORMAL] = {this.Value:R} {(this.IsInteger ? "(int)" : "(dec)")}");
+				return string.Create(formatProvider, $"DiySingle[0x{this.Raw:X8}] = {(this.Sign > 0 ? "+" : "-")}{Convert.ToString((int) this.Significand, 2)} [DENORMAL] = {this.Value:R} {(this.IsInteger ? "(int)" : "(dec)")}");
 			}
 
-			return string.Create(CultureInfo.InvariantCulture, $"DiySingle[0x{this.Raw:X8}] = {(this.Sign > 0 ? "+" : "-")}{Convert.ToString((int) this.Significand, 2)} x 2^{this.Exponent} = {this.Value:R} {(this.IsInteger ? "(int)" : "(dec)")}");
+			return string.Create(formatProvider, $"DiySingle[0x{this.Raw:X8}] = {(this.Sign > 0 ? "+" : "-")}{Convert.ToString((int) this.Significand, 2)} x 2^{this.Exponent} = {this.Value:R} {(this.IsInteger ? "(int)" : "(dec)")}");
 		}
 
 	}

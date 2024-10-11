@@ -205,6 +205,7 @@ namespace FoundationDB.Client.Tests
 
 			// ["", "")
 			range = KeyRange.Empty;
+			Log(range);
 			Assert.That(range.Contains(Slice.Empty), Is.False);
 			Assert.That(range.Contains(Literal("\x00")), Is.False);
 			Assert.That(range.Contains(Literal("hello")), Is.False);
@@ -212,6 +213,7 @@ namespace FoundationDB.Client.Tests
 
 			// ["", "\xFF" )
 			range = KeyRange.Create(Slice.Empty, Literal("\xFF"));
+			Log(range);
 			Assert.That(range.Contains(Slice.Empty), Is.True);
 			Assert.That(range.Contains(Literal("\x00")), Is.True);
 			Assert.That(range.Contains(Literal("hello")), Is.True);
@@ -219,6 +221,7 @@ namespace FoundationDB.Client.Tests
 
 			// ["\x00", "\xFF" )
 			range = KeyRange.Create(Literal("\x00"), Literal("\xFF"));
+			Log(range);
 			Assert.That(range.Contains(Slice.Empty), Is.False);
 			Assert.That(range.Contains(Literal("\x00")), Is.True);
 			Assert.That(range.Contains(Literal("hello")), Is.True);
@@ -237,6 +240,7 @@ namespace FoundationDB.Client.Tests
 
 			// range: [ "A", "Z" )
 			range = KeyRange.Create(Literal("A"), Literal("Z"));
+			Log(range);
 
 			// Excluding the end: < "Z"
 			Assert.That(range.Test(Literal("\x00"), endIncluded: false), Is.EqualTo(BEFORE));
@@ -255,6 +259,7 @@ namespace FoundationDB.Client.Tests
 			Assert.That(range.Test(Literal("\xFF"), endIncluded: true), Is.EqualTo(AFTER));
 
 			range = KeyRange.Create(TuPack.EncodeKey("A"), TuPack.EncodeKey("Z"));
+			Log(range);
 			Assert.That(range.Test(TuPack.EncodeKey("@")), Is.EqualTo((BEFORE)));
 			Assert.That(range.Test(TuPack.EncodeKey("A")), Is.EqualTo((INSIDE)));
 			Assert.That(range.Test(TuPack.EncodeKey("Z")), Is.EqualTo((AFTER)));
@@ -268,6 +273,7 @@ namespace FoundationDB.Client.Tests
 
 			// "abc" => [ "abc", "abd" )
 			range = KeyRange.StartsWith(Literal("abc"));
+			Log(range);
 			Assert.That(range.Begin, Is.EqualTo(Literal("abc")));
 			Assert.That(range.End, Is.EqualTo(Literal("abd")));
 
@@ -288,6 +294,7 @@ namespace FoundationDB.Client.Tests
 
 			// "abc" => [ "abc\x00", "abd" )
 			range = KeyRange.PrefixedBy(Literal("abc"));
+			Log(range);
 			Assert.That(range.Begin, Is.EqualTo(Literal("abc\x00")));
 			Assert.That(range.End, Is.EqualTo(Literal("abd")));
 
@@ -308,16 +315,19 @@ namespace FoundationDB.Client.Tests
 
 			// "" => [ "", "\x00" )
 			range = KeyRange.FromKey(Slice.Empty);
+			Log(range);
 			Assert.That(range.Begin, Is.EqualTo(Slice.Empty));
 			Assert.That(range.End, Is.EqualTo(Literal("\x00")));
 
 			// "abc" => [ "abc", "abc\x00" )
 			range = KeyRange.FromKey(Literal("abc"));
+			Log(range);
 			Assert.That(range.Begin, Is.EqualTo(Literal("abc")));
 			Assert.That(range.End, Is.EqualTo(Literal("abc\x00")));
 
 			// "\xFF" => [ "\xFF", "\xFF\x00" )
 			range = KeyRange.FromKey(Literal("\xFF"));
+			Log(range);
 			Assert.That(range.Begin, Is.EqualTo(Literal("\xFF")));
 			Assert.That(range.End, Is.EqualTo(Literal("\xFF\x00")));
 

@@ -212,14 +212,8 @@ namespace FoundationDB.Client.Native
 				if (future.HasFlag(FdbFuture.Flags.READY))
 				{
 					UnregisterCallback(future);
-					try
-					{
-						future.HandleCompletion();
-					}
-					catch(Exception)
-					{
-						//TODO ?
-					}
+
+					ThreadPool.UnsafeQueueUserWorkItem<FdbFutureArray<T>>(static (f) => f.HandleCompletion(), future, true);
 				}
 				// else, the ctor will handle that
 			}

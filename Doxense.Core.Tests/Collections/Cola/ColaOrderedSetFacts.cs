@@ -44,7 +44,7 @@ namespace Doxense.Collections.Generic.Test
 		{
 			var sw = new StringWriter();
 			store.Debug_Dump(sw);
-			Log(sw.ToString());
+			Log(sw);
 		}
 
 		[Test]

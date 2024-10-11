@@ -25,7 +25,12 @@
 #endregion
 
 // ReSharper disable AccessToModifiedClosure
+// ReSharper disable StringLiteralTypo
+// ReSharper disable InlineOutVariableDeclaration
+// ReSharper disable ConvertToUsingDeclaration
+// ReSharper disable JoinDeclarationAndInitializer
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
+
 namespace Doxense.Collections.Tuples.Tests
 {
 	using System;
@@ -47,6 +52,7 @@ namespace Doxense.Collections.Tuples.Tests
 		public void Test_Tuple_0()
 		{
 			var t0 = STuple.Create();
+			Log(t0);
 			Assert.That(t0.Count, Is.Zero);
 			Assert.That(t0.ToArray(), Is.EqualTo(Array.Empty<object>()));
 			Assert.That(t0.ToString(), Is.EqualTo("()"));
@@ -65,6 +71,7 @@ namespace Doxense.Collections.Tuples.Tests
 		public void Test_Tuple_1()
 		{
 			var t1 = STuple.Create("hello world");
+			Log(t1);
 			Assert.That(t1.Count, Is.EqualTo(1));
 			Assert.That(t1.Item1, Is.EqualTo("hello world"));
 			Assert.That(t1.Get<string>(0), Is.EqualTo("hello world"));
@@ -128,6 +135,7 @@ namespace Doxense.Collections.Tuples.Tests
 		public void Test_Tuple_2()
 		{
 			var t2 = STuple.Create("hello world", 123);
+			Log(t2);
 			Assert.That(t2.Count, Is.EqualTo(2));
 			Assert.That(t2.Item1, Is.EqualTo("hello world"));
 			Assert.That(t2.Item2, Is.EqualTo(123));
@@ -185,6 +193,7 @@ namespace Doxense.Collections.Tuples.Tests
 		public void Test_Tuple_3()
 		{
 			var t3 = STuple.Create("hello world", 123, false);
+			Log(t3);
 			Assert.That(t3.Count, Is.EqualTo(3));
 			Assert.That(t3.Item1, Is.EqualTo("hello world"));
 			Assert.That(t3.Item2, Is.EqualTo(123));
@@ -261,6 +270,7 @@ namespace Doxense.Collections.Tuples.Tests
 		public void Test_Tuple_4()
 		{
 			var t4 = STuple.Create("hello world", 123, false, 1234L);
+			Log(t4);
 			Assert.That(t4.Count, Is.EqualTo(4));
 			Assert.That(t4.Item1, Is.EqualTo("hello world"));
 			Assert.That(t4.Item2, Is.EqualTo(123));
@@ -346,6 +356,7 @@ namespace Doxense.Collections.Tuples.Tests
 		public void Test_Tuple_5()
 		{
 			var t5 = STuple.Create("hello world", 123, false, 1234L, -1234);
+			Log(t5);
 			Assert.That(t5.Count, Is.EqualTo(5));
 			Assert.That(t5.Item1, Is.EqualTo("hello world"));
 			Assert.That(t5.Item2, Is.EqualTo(123));
@@ -427,6 +438,7 @@ namespace Doxense.Collections.Tuples.Tests
 		public void Test_Tuple_6()
 		{
 			var t6 = STuple.Create("hello world", 123, false, 1234L, -1234, "six");
+			Log(t6);
 			Assert.That(t6.Count, Is.EqualTo(6));
 			Assert.That(t6.Item1, Is.EqualTo("hello world"));
 			Assert.That(t6.Item2, Is.EqualTo(123));
@@ -511,7 +523,8 @@ namespace Doxense.Collections.Tuples.Tests
 		public void Test_Tuple_Many()
 		{
 			// ReSharper disable once RedundantExplicitParamsArrayCreation
-			IVarTuple tn = STuple.Create((object[]) [ "hello world", 123, false, 1234L, -1234, "six", true, Math.PI ]);
+			var tn = STuple.Create((object[]) [ "hello world", 123, false, 1234L, -1234, "six", true, Math.PI ]);
+			Log(tn);
 			Assert.That(tn.Count, Is.EqualTo(8));
 			Assert.That(tn.Get<string>(0), Is.EqualTo("hello world"));
 			Assert.That(tn.Get<int>(1), Is.EqualTo(123));
@@ -571,6 +584,7 @@ namespace Doxense.Collections.Tuples.Tests
 			var arr = new object[] { "Hello", 123, false, TimeSpan.FromSeconds(5) };
 
 			var t = STuple.Wrap(arr);
+			Log(t);
 			Assert.That(t, Is.Not.Null);
 			Assert.That(t.Count, Is.EqualTo(4));
 			Assert.That(t[0], Is.EqualTo("Hello"));
@@ -587,6 +601,7 @@ namespace Doxense.Collections.Tuples.Tests
 			}
 
 			t = STuple.Wrap(arr, 1, 2);
+			Log(t);
 			Assert.That(t, Is.Not.Null);
 			Assert.That(t.Count, Is.EqualTo(2));
 			Assert.That(t[0], Is.EqualTo(123));
@@ -597,7 +612,7 @@ namespace Doxense.Collections.Tuples.Tests
 
 			arr[1] = 456;
 			arr[2] = true;
-			Log($"t = {t}");
+			Log(t);
 
 			Assert.That(t[0], Is.EqualTo(456));
 			Assert.That(t[1], Is.True);
@@ -618,7 +633,7 @@ namespace Doxense.Collections.Tuples.Tests
 			var arr = new object[] { "Hello", 123, false, TimeSpan.FromSeconds(5) };
 
 			var t = STuple.FromObjects(arr);
-			Log($"t = {t}");
+			Log(t);
 			Assert.That(t, Is.Not.Null);
 			Assert.That(t.Count, Is.EqualTo(4));
 			Assert.That(t[0], Is.EqualTo("Hello"));
@@ -635,7 +650,7 @@ namespace Doxense.Collections.Tuples.Tests
 			}
 
 			t = STuple.FromObjects(arr, 1, 2);
-			Log($"t = {t}");
+			Log(t);
 			Assert.That(t, Is.Not.Null);
 			Assert.That(t.Count, Is.EqualTo(2));
 			Assert.That(t[0], Is.EqualTo(123));
@@ -651,7 +666,7 @@ namespace Doxense.Collections.Tuples.Tests
 
 			arr[1] = 456;
 			arr[2] = true;
-			Log($"t = {t}");
+			Log(t);
 
 			Assert.That(t[0], Is.EqualTo(123));
 			Assert.That(t[1], Is.False);
@@ -664,7 +679,7 @@ namespace Doxense.Collections.Tuples.Tests
 			var items = new[] { "Bonjour", "le", "Monde" };
 
 			var t = STuple.FromArray(items);
-			Log($"t = {t}");
+			Log(t);
 			Assert.That(t, Is.Not.Null);
 			Assert.That(t.Count, Is.EqualTo(3));
 			Assert.That(t[0], Is.EqualTo("Bonjour"));
@@ -679,7 +694,7 @@ namespace Doxense.Collections.Tuples.Tests
 			}
 
 			t = STuple.FromArray(items, 1, 2);
-			Log($"t = {t}");
+			Log(t);
 			Assert.That(t, Is.Not.Null);
 			Assert.That(t.Count, Is.EqualTo(2));
 			Assert.That(t[0], Is.EqualTo("le"));
@@ -692,7 +707,7 @@ namespace Doxense.Collections.Tuples.Tests
 
 			// changing the underlying array should NOT change the tuple
 			items[1] = "ze";
-			Log($"t = {t}");
+			Log(t);
 
 			Assert.That(t[0], Is.EqualTo("le"));
 		}
@@ -704,6 +719,7 @@ namespace Doxense.Collections.Tuples.Tests
 
 			{
 				var t1 = STuple.Create("hello world");
+				Log(t1);
 				Assert.That(t1.Get<string>(-1), Is.EqualTo("hello world"));
 				Assert.That(((IVarTuple) t1)[-1], Is.EqualTo("hello world"));
 				Assert.That(((IVarTuple) t1)[^1], Is.EqualTo("hello world"));
@@ -711,6 +727,7 @@ namespace Doxense.Collections.Tuples.Tests
 
 			{
 				var t2 = STuple.Create("hello world", 123);
+				Log(t2);
 				Assert.That(t2.Get<int>(-1), Is.EqualTo(123));
 				Assert.That(t2.Get<string>(-2), Is.EqualTo("hello world"));
 				Assert.That(t2.Get<int>(^1), Is.EqualTo(123));
@@ -723,6 +740,7 @@ namespace Doxense.Collections.Tuples.Tests
 
 			{
 				var t3 = STuple.Create("hello world", 123, false);
+				Log(t3);
 				Assert.That(t3.Get<bool>(-1), Is.False);
 				Assert.That(t3.Get<int>(-2), Is.EqualTo(123));
 				Assert.That(t3.Get<string>(-3), Is.EqualTo("hello world"));
@@ -739,6 +757,7 @@ namespace Doxense.Collections.Tuples.Tests
 
 			{
 				var t4 = STuple.Create("hello world", 123, false, 1234L);
+				Log(t4);
 				Assert.That(t4.Get<long>(-1), Is.EqualTo(1234L));
 				Assert.That(t4.Get<bool>(-2), Is.False);
 				Assert.That(t4.Get<int>(-3), Is.EqualTo(123));
@@ -759,6 +778,7 @@ namespace Doxense.Collections.Tuples.Tests
 
 			{
 				var t5 = STuple.Create("hello world", 123, false, 1234L, -1234);
+				Log(t5);
 				Assert.That(t5.Get<long>(-1), Is.EqualTo(-1234));
 				Assert.That(t5.Get<long>(-2), Is.EqualTo(1234L));
 				Assert.That(t5.Get<bool>(-3), Is.False);
@@ -783,6 +803,7 @@ namespace Doxense.Collections.Tuples.Tests
 
 			{
 				var tn = STuple.Create((object[]) [ "hello world", 123, false, 1234, -1234, "six" ]);
+				Log(tn);
 				Assert.That(tn.Get<string>(-1), Is.EqualTo("six"));
 				Assert.That(tn.Get<int>(-2), Is.EqualTo(-1234));
 				Assert.That(tn.Get<long>(-3), Is.EqualTo(1234));
@@ -811,6 +832,7 @@ namespace Doxense.Collections.Tuples.Tests
 
 			{
 				var tn = STuple.Create([ "hello world", 123, false, 1234, -1234, "six" ]);
+				Log(tn);
 				Assert.That(tn.Get<string>(-1), Is.EqualTo("six"));
 				Assert.That(tn.Get<int>(-2), Is.EqualTo(-1234));
 				Assert.That(tn.Get<long>(-3), Is.EqualTo(1234));
@@ -846,12 +868,14 @@ namespace Doxense.Collections.Tuples.Tests
 			// tuple.Last<T>() should be equivalent to tuple.Get<T>(-1)
 
 			var t1 = STuple.Create(1);
+			Log(t1);
 			Assert.That(t1.First<int>(), Is.EqualTo(1));
 			Assert.That(t1.First<string>(), Is.EqualTo("1"));
 			Assert.That(t1.Last<int>(), Is.EqualTo(1));
 			Assert.That(t1.Last<string>(), Is.EqualTo("1"));
 
 			var t2 = STuple.Create(1, 2);
+			Log(t2);
 			Assert.That(t2.First<int>(), Is.EqualTo(1));
 			Assert.That(t2.First<string>(), Is.EqualTo("1"));
 			Assert.That(t2.Last, Is.EqualTo(2));
@@ -859,6 +883,7 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(t2.Last<string>(), Is.EqualTo("2"));
 
 			var t3 = STuple.Create(1, 2, 3);
+			Log(t3);
 			Assert.That(t3.First<int>(), Is.EqualTo(1));
 			Assert.That(t3.First<string>(), Is.EqualTo("1"));
 			Assert.That(t3.Last, Is.EqualTo(3));
@@ -866,6 +891,7 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(t3.Last<string>(), Is.EqualTo("3"));
 
 			var t4 = STuple.Create(1, 2, 3, 4);
+			Log(t4);
 			Assert.That(t4.First<int>(), Is.EqualTo(1));
 			Assert.That(t4.First<string>(), Is.EqualTo("1"));
 			Assert.That(t4.Last, Is.EqualTo(4));
@@ -873,17 +899,33 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(t4.Last<string>(), Is.EqualTo("4"));
 
 			var t5 = STuple.Create(1, 2, 3, 4, 5);
+			Log(t5);
 			Assert.That(t5.First<int>(), Is.EqualTo(1));
 			Assert.That(t5.First<string>(), Is.EqualTo("1"));
 			Assert.That(t5.Last, Is.EqualTo(5));
 			Assert.That(t5.Last<int>(), Is.EqualTo(5));
 			Assert.That(t5.Last<string>(), Is.EqualTo("5"));
 
-			var tn = STuple.Create(1, 2, 3, 4, 5, 6);
+			var t6 = STuple.Create(1, 2, 3, 4, 5, 6);
+			Log(t6);
+			Assert.That(t6.First<int>(), Is.EqualTo(1));
+			Assert.That(t6.First<string>(), Is.EqualTo("1"));
+			Assert.That(t6.Last<int>(), Is.EqualTo(6));
+			Assert.That(t6.Last<string>(), Is.EqualTo("6"));
+
+			var t7 = STuple.Create(1, 2, 3, 4, 5, 6, 7);
+			Log(t7);
+			Assert.That(t7.First<int>(), Is.EqualTo(1));
+			Assert.That(t7.First<string>(), Is.EqualTo("1"));
+			Assert.That(t7.Last<int>(), Is.EqualTo(7));
+			Assert.That(t7.Last<string>(), Is.EqualTo("7"));
+
+			var tn = STuple.Create(1, 2, 3, 4, 5, 6, 7, 8);
+			Log(tn);
 			Assert.That(tn.First<int>(), Is.EqualTo(1));
 			Assert.That(tn.First<string>(), Is.EqualTo("1"));
-			Assert.That(tn.Last<int>(), Is.EqualTo(6));
-			Assert.That(tn.Last<string>(), Is.EqualTo("6"));
+			Assert.That(tn.Last<int>(), Is.EqualTo(8));
+			Assert.That(tn.Last<string>(), Is.EqualTo("8"));
 
 			Assert.That(() => STuple.Empty.First<string>(), Throws.InstanceOf<InvalidOperationException>());
 			Assert.That(() => STuple.Empty.Last<string>(), Throws.InstanceOf<InvalidOperationException>());
@@ -895,26 +937,32 @@ namespace Doxense.Collections.Tuples.Tests
 			IVarTuple tuple;
 
 			tuple = STuple.CreateBoxed(default);
+			Log(tuple);
 			Assert.That(tuple.Count, Is.EqualTo(1));
 			Assert.That(tuple[0], Is.Null);
 
 			tuple = STuple.CreateBoxed(1);
+			Log(tuple);
 			Assert.That(tuple.Count, Is.EqualTo(1));
 			Assert.That(tuple[0], Is.EqualTo(1));
 
 			tuple = STuple.CreateBoxed(1L);
+			Log(tuple);
 			Assert.That(tuple.Count, Is.EqualTo(1));
 			Assert.That(tuple[0], Is.EqualTo(1L));
 
 			tuple = STuple.CreateBoxed(false);
+			Log(tuple);
 			Assert.That(tuple.Count, Is.EqualTo(1));
 			Assert.That(tuple[0], Is.False);
 
 			tuple = STuple.CreateBoxed("hello");
+			Log(tuple);
 			Assert.That(tuple.Count, Is.EqualTo(1));
 			Assert.That(tuple[0], Is.EqualTo("hello"));
 
 			tuple = STuple.CreateBoxed(new byte[] { 1, 2, 3 });
+			Log(tuple);
 			Assert.That(tuple.Count, Is.EqualTo(1));
 			Assert.That(tuple[0], Is.EqualTo(new byte[] { 1, 2, 3 }.AsSlice()));
 		}
@@ -941,7 +989,7 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(t[0], Is.EqualTo("C"));
 			Assert.That(t[1], Is.EqualTo("D"));
 
-			// casted down to the interface ITuple
+			// cast down to the interface ITuple
 			z = ((IVarTuple)x).Append((IVarTuple)y);
 			Log(z);
 			Assert.That(z, Is.Not.Null);
@@ -974,6 +1022,7 @@ namespace Doxense.Collections.Tuples.Tests
 			// Size 1
 
 			t = STuple.Create(123);
+			Log(t);
 			called = false;
 			t.With((int a) =>
 			{
@@ -991,6 +1040,7 @@ namespace Doxense.Collections.Tuples.Tests
 			// Size 2
 
 			t = t.Append("abc");
+			Log(t);
 			called = false;
 			t.With((int a, string b) =>
 			{
@@ -1009,6 +1059,7 @@ namespace Doxense.Collections.Tuples.Tests
 			// Size 3
 
 			t = t.Append(3.14f);
+			Log(t);
 			called = false;
 			t.With((int a, string b, float c) =>
 			{
@@ -1029,6 +1080,7 @@ namespace Doxense.Collections.Tuples.Tests
 			// Size 4
 
 			t = t.Append(true);
+			Log(t);
 			called = false;
 			t.With((int a, string b, float c, bool d) =>
 			{
@@ -1051,6 +1103,7 @@ namespace Doxense.Collections.Tuples.Tests
 			// Size 5
 
 			t = t.Append('z');
+			Log(t);
 			called = false;
 			t.With((int a, string b, float c, bool d, char e) =>
 			{
@@ -1075,6 +1128,7 @@ namespace Doxense.Collections.Tuples.Tests
 			// Size 6
 
 			t = t.Append(Math.PI);
+			Log(t);
 			called = false;
 			t.With((int a, string b, float c, bool d, char e, double f) =>
 			{
@@ -1101,6 +1155,7 @@ namespace Doxense.Collections.Tuples.Tests
 			// Size 7
 
 			t = t.Append(IPAddress.Loopback);
+			Log(t);
 			called = false;
 			t.With((int a, string b, float c, bool d, char e, double f, IPAddress g) =>
 			{
@@ -1129,6 +1184,7 @@ namespace Doxense.Collections.Tuples.Tests
 			// Size 8
 
 			t = t.Append(DateTime.MaxValue);
+			Log(t);
 			called = false;
 			t.With((int a, string b, float c, bool d, char e, double f, IPAddress g, DateTime h) =>
 			{
@@ -1162,7 +1218,8 @@ namespace Doxense.Collections.Tuples.Tests
 		{
 			// calling With() on the structs is faster
 
-			STuple<int> t1 = STuple.Create(123);
+			var t1 = STuple.Create(123);
+			Log(t1);
 			t1.With((a) =>
 			{
 				Assert.That(a, Is.EqualTo(123));
@@ -1173,7 +1230,8 @@ namespace Doxense.Collections.Tuples.Tests
 				return 42;
 			}), Is.EqualTo(42));
 
-			STuple<int, string> t2 = STuple.Create(123, "abc");
+			var t2 = STuple.Create(123, "abc");
+			Log(t2);
 			t2.With((a, b) =>
 			{
 				Assert.That(a, Is.EqualTo(123));
@@ -1186,7 +1244,8 @@ namespace Doxense.Collections.Tuples.Tests
 				return 42;
 			}), Is.EqualTo(42));
 
-			STuple<int, string, float> t3 = STuple.Create(123, "abc", 3.14f);
+			var t3 = STuple.Create(123, "abc", 3.14f);
+			Log(t3);
 			t3.With((a, b, c) =>
 			{
 				Assert.That(a, Is.EqualTo(123));
@@ -1201,7 +1260,8 @@ namespace Doxense.Collections.Tuples.Tests
 				return 42;
 			}), Is.EqualTo(42));
 
-			STuple<int, string, float, bool> t4 = STuple.Create(123, "abc", 3.14f, true);
+			var t4 = STuple.Create(123, "abc", 3.14f, true);
+			Log(t4);
 			t4.With((a, b, c, d) =>
 			{
 				Assert.That(a, Is.EqualTo(123));
@@ -1218,7 +1278,8 @@ namespace Doxense.Collections.Tuples.Tests
 				return 42;
 			}), Is.EqualTo(42));
 
-			STuple<int, string, float, bool, char> t5 = STuple.Create(123, "abc", 3.14f, true, 'z');
+			var t5 = STuple.Create(123, "abc", 3.14f, true, 'z');
+			Log(t5);
 			t5.With((a, b, c, d, e) =>
 			{
 				Assert.That(a, Is.EqualTo(123));
@@ -1237,7 +1298,51 @@ namespace Doxense.Collections.Tuples.Tests
 				return 42;
 			}), Is.EqualTo(42));
 
-			//TODO: add more if we ever add struct tuples with 6 or more items
+			var t6 = STuple.Create(123, "abc", 3.14f, true, 'z', DateTime.MaxValue);
+			Log(t6);
+			t6.With((a, b, c, d, e, f) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+				Assert.That(d, Is.True);
+				Assert.That(e, Is.EqualTo('z'));
+				Assert.That(f, Is.EqualTo(DateTime.MaxValue));
+			});
+			Assert.That(t6.With((a, b, c, d, e, f) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+				Assert.That(d, Is.True);
+				Assert.That(e, Is.EqualTo('z'));
+				Assert.That(f, Is.EqualTo(DateTime.MaxValue));
+				return 42;
+			}), Is.EqualTo(42));
+
+			var t7 = STuple.Create(123, "abc", 3.14f, true, 'z', DateTime.MaxValue, false);
+			Log(t7);
+			t7.With((a, b, c, d, e, f, g) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+				Assert.That(d, Is.True);
+				Assert.That(e, Is.EqualTo('z'));
+				Assert.That(f, Is.EqualTo(DateTime.MaxValue));
+				Assert.That(g, Is.False);
+			});
+			Assert.That(t7.With((a, b, c, d, e, f, g) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+				Assert.That(d, Is.True);
+				Assert.That(e, Is.EqualTo('z'));
+				Assert.That(f, Is.EqualTo(DateTime.MaxValue));
+				Assert.That(g, Is.False);
+				return 42;
+			}), Is.EqualTo(42));
 		}
 
 		[Test]
@@ -1249,6 +1354,7 @@ namespace Doxense.Collections.Tuples.Tests
 
 			void Verify(IVarTuple t)
 			{
+				Log(t);
 				for (int i = 0; i <= 10; i++)
 				{
 					if (t.Count > i)
@@ -1297,33 +1403,40 @@ namespace Doxense.Collections.Tuples.Tests
 		public void Test_Tuple_Truncate()
 		{
 			IVarTuple t = STuple.Create("Hello", 123, false, TimeSpan.FromSeconds(5), "World");
+			Log(t);
 
 			var head = t.Truncate(1);
+			Log(head);
 			Assert.That(head, Is.Not.Null);
 			Assert.That(head.Count, Is.EqualTo(1));
 			Assert.That(head[0], Is.EqualTo("Hello"));
 
 			head = t.Truncate(2);
+			Log(head);
 			Assert.That(head, Is.Not.Null);
 			Assert.That(head.Count, Is.EqualTo(2));
 			Assert.That(head[0], Is.EqualTo("Hello"));
 			Assert.That(head[1], Is.EqualTo(123));
 
 			head = t.Truncate(5);
+			Log(head);
 			Assert.That(head, Is.EqualTo(t));
 
 			var tail = t.Truncate(-1);
+			Log(tail);
 			Assert.That(tail, Is.Not.Null);
 			Assert.That(tail.Count, Is.EqualTo(1));
 			Assert.That(tail[0], Is.EqualTo("World"));
 
 			tail = t.Truncate(-2);
+			Log(tail);
 			Assert.That(tail, Is.Not.Null);
 			Assert.That(tail.Count, Is.EqualTo(2));
 			Assert.That(tail[0], Is.EqualTo(TimeSpan.FromSeconds(5)));
 			Assert.That(tail[1], Is.EqualTo("World"));
 
 			tail = t.Truncate(-5);
+			Log(tail);
 			Assert.That(tail, Is.EqualTo(t));
 
 			Assert.That(t.Truncate(0), Is.EqualTo(STuple.Empty));
@@ -1437,10 +1550,10 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(STuple.Create<Guid>(Guid.Parse("102cb0aa-2151-4c72-9e9d-61cf2980cbd0")).ToString(), Is.EqualTo("({102cb0aa-2151-4c72-9e9d-61cf2980cbd0},)"));
 			Assert.That(STuple.Create<Uuid128>(Uuid128.Parse("102cb0aa-2151-4c72-9e9d-61cf2980cbd0")).ToString(), Is.EqualTo("({102cb0aa-2151-4c72-9e9d-61cf2980cbd0},)"));
 			Assert.That(STuple.Create<Uuid64>(Uuid64.Parse("102cb0aa-21514c72")).ToString(), Is.EqualTo("({102CB0AA-21514C72},)"));
-			Assert.That(STuple.Create<byte[]>(new byte[] { 0x02, 0x41, 0x42, 0x43, 0x00 }).ToString(), Is.EqualTo("(`<02>ABC<00>`,)"));
-			Assert.That(STuple.Create<Slice>(new byte[] { 0x02, 0x41, 0x42, 0x43, 0x00 }.AsSlice()).ToString(), Is.EqualTo("(`<02>ABC<00>`,)"));
+			Assert.That(STuple.Create<byte[]>([ 0x02, 0x41, 0x42, 0x43, 0x00 ]).ToString(), Is.EqualTo("(`<02>ABC<00>`,)"));
+			Assert.That(STuple.Create<Slice>(Slice.Copy([ 0x02, 0x41, 0x42, 0x43, 0x00 ])).ToString(), Is.EqualTo("(`<02>ABC<00>`,)"));
 
-			Assert.That(STuple.Create("Hello", 123, "World", '!', false).ToString(), Is.EqualTo(@"(""Hello"", 123, ""World"", '!', false)"));
+			Assert.That(STuple.Create("Hello", 123, "World", '!', false).ToString(), Is.EqualTo("""("Hello", 123, "World", '!', false)"""));
 		}
 
 		#endregion
@@ -1510,6 +1623,7 @@ namespace Doxense.Collections.Tuples.Tests
 			//                           -6       -5     -4    -3    -2    -1
 
 			var tuple = new ListTuple<object?>(items);
+			Log(tuple);
 			Assert.That(tuple.Count, Is.EqualTo(6));
 
 			// get all
@@ -1522,55 +1636,55 @@ namespace Doxense.Collections.Tuples.Tests
 			VerifyTuple("[:]", tuple[-6, 6], items);
 
 			// tail
-			VerifyTuple("[n:]", tuple[4, null], new object[] { 456, "bar" });
-			VerifyTuple("[n:+]", tuple[4, 6], new object[] { 456, "bar" });
-			VerifyTuple("[-n:+]", tuple[-2, 6], new object[] { 456, "bar" });
-			VerifyTuple("[-n:-]", tuple[-2, null], new object[] { 456, "bar" });
+			VerifyTuple("[n:]", tuple[4, null], [ 456, "bar" ]);
+			VerifyTuple("[n:+]", tuple[4, 6], [ 456, "bar" ]);
+			VerifyTuple("[-n:+]", tuple[-2, 6], [ 456, "bar" ]);
+			VerifyTuple("[-n:-]", tuple[-2, null], [ 456, "bar" ]);
 
 			// head
-			VerifyTuple("[:n]", tuple[null, 3], new object[] { "hello", "world", 123 });
-			VerifyTuple("[0:n]", tuple[0, 3], new object[] { "hello", "world", 123 });
-			VerifyTuple("[0:-n]", tuple[0, -3], new object[] { "hello", "world", 123 });
-			VerifyTuple("[-:n]", tuple[-6, 3], new object[] { "hello", "world", 123 });
-			VerifyTuple("[-:-n]", tuple[-6, -3], new object[] { "hello", "world", 123 });
+			VerifyTuple("[:n]", tuple[null, 3], [ "hello", "world", 123 ]);
+			VerifyTuple("[0:n]", tuple[0, 3], [ "hello", "world", 123 ]);
+			VerifyTuple("[0:-n]", tuple[0, -3], [ "hello", "world", 123 ]);
+			VerifyTuple("[-:n]", tuple[-6, 3], [ "hello", "world", 123 ]);
+			VerifyTuple("[-:-n]", tuple[-6, -3], [ "hello", "world", 123 ]);
 
 			// single
-			VerifyTuple("[0:1]", tuple[0, 1], new object[] { "hello" });
-			VerifyTuple("[-6:-5]", tuple[-6, -5], new object[] { "hello" });
-			VerifyTuple("[1:2]", tuple[1, 2], new object[] { "world" });
-			VerifyTuple("[-5:-4]", tuple[-5, -4], new object[] { "world" });
-			VerifyTuple("[5:6]", tuple[5, 6], new object[] { "bar" });
-			VerifyTuple("[-1:]", tuple[-1, null], new object[] { "bar" });
+			VerifyTuple("[0:1]", tuple[0, 1], [ "hello" ]);
+			VerifyTuple("[-6:-5]", tuple[-6, -5], [ "hello" ]);
+			VerifyTuple("[1:2]", tuple[1, 2], [ "world" ]);
+			VerifyTuple("[-5:-4]", tuple[-5, -4], [ "world" ]);
+			VerifyTuple("[5:6]", tuple[5, 6], [ "bar" ]);
+			VerifyTuple("[-1:]", tuple[-1, null], [ "bar" ]);
 
 			// chunk
-			VerifyTuple("[2:4]", tuple[2, 4], new object[] { 123, "foo" });
-			VerifyTuple("[2:-2]", tuple[2, -2], new object[] { 123, "foo" });
-			VerifyTuple("[-4:4]", tuple[-4, 4], new object[] { 123, "foo" });
-			VerifyTuple("[-4:-2]", tuple[-4, -2], new object[] { 123, "foo" });
+			VerifyTuple("[2:4]", tuple[2, 4], [ 123, "foo" ]);
+			VerifyTuple("[2:-2]", tuple[2, -2], [ 123, "foo" ]);
+			VerifyTuple("[-4:4]", tuple[-4, 4], [ 123, "foo" ]);
+			VerifyTuple("[-4:-2]", tuple[-4, -2], [ 123, "foo" ]);
 
 			// remove first
-			VerifyTuple("[1:]", tuple[1, null], new object[] { "world", 123, "foo", 456, "bar" });
-			VerifyTuple("[1:+]", tuple[1, 6], new object[] { "world", 123, "foo", 456, "bar" });
-			VerifyTuple("[-5:]", tuple[-5, null], new object[] { "world", 123, "foo", 456, "bar" });
-			VerifyTuple("[-5:+]", tuple[-5, 6], new object[] { "world", 123, "foo", 456, "bar" });
+			VerifyTuple("[1:]", tuple[1, null], [ "world", 123, "foo", 456, "bar" ]);
+			VerifyTuple("[1:+]", tuple[1, 6], [ "world", 123, "foo", 456, "bar" ]);
+			VerifyTuple("[-5:]", tuple[-5, null], [ "world", 123, "foo", 456, "bar" ]);
+			VerifyTuple("[-5:+]", tuple[-5, 6], [ "world", 123, "foo", 456, "bar" ]);
 
 			// remove last
-			VerifyTuple("[:5]", tuple[null, 5], new object[] { "hello", "world", 123, "foo", 456 });
-			VerifyTuple("[:-1]", tuple[null, -1], new object[] { "hello", "world", 123, "foo", 456 });
-			VerifyTuple("[0:5]", tuple[0, 5], new object[] { "hello", "world", 123, "foo", 456 });
-			VerifyTuple("[0:-1]", tuple[0, -1], new object[] { "hello", "world", 123, "foo", 456 });
+			VerifyTuple("[:5]", tuple[null, 5], [ "hello", "world", 123, "foo", 456 ]);
+			VerifyTuple("[:-1]", tuple[null, -1], [ "hello", "world", 123, "foo", 456 ]);
+			VerifyTuple("[0:5]", tuple[0, 5], [ "hello", "world", 123, "foo", 456 ]);
+			VerifyTuple("[0:-1]", tuple[0, -1], [ "hello", "world", 123, "foo", 456 ]);
 
 			// out of range
-			VerifyTuple("[2:7]", tuple[2, 7], new object[] { 123, "foo", 456, "bar" });
-			VerifyTuple("[2:42]", tuple[2, 42], new object[] { 123, "foo", 456, "bar" });
-			VerifyTuple("[2:123456]", tuple[2, 123456], new object[] { 123, "foo", 456, "bar" });
-			VerifyTuple("[-7:2]", tuple[-7, 2], new object[] { "hello", "world" });
-			VerifyTuple("[-42:2]", tuple[-42, 2], new object[] { "hello", "world" });
+			VerifyTuple("[2:7]", tuple[2, 7], [ 123, "foo", 456, "bar" ]);
+			VerifyTuple("[2:42]", tuple[2, 42], [ 123, "foo", 456, "bar" ]);
+			VerifyTuple("[2:123456]", tuple[2, 123456], [ 123, "foo", 456, "bar" ]);
+			VerifyTuple("[-7:2]", tuple[-7, 2], [ "hello", "world" ]);
+			VerifyTuple("[-42:2]", tuple[-42, 2], [ "hello", "world" ]);
 		}
 
 		private static object[] GetRange(int fromIncluded, int toExcluded, int count)
 		{
-			if (count == 0) return Array.Empty<object>();
+			if (count == 0) return [ ];
 
 			if (fromIncluded < 0) fromIncluded += count;
 			if (toExcluded < 0) toExcluded += count;
@@ -1713,22 +1827,27 @@ namespace Doxense.Collections.Tuples.Tests
 		public void Test_Tuple_Equals()
 		{
 			var t1 = STuple.Create(1, 2);
+			Log(t1);
 			// self equality
 			AssertEquality(t1, t1);
 
 			var t2 = STuple.Create(1, 2);
+			Log(t2);
 			// same type equality
 			AssertEquality(t1, t2);
 
 			var t3 = STuple.Create((object[]) [ 1, 2 ]);
+			Log(t3);
 			// boxed array
 			AssertEquality(t1, t3);
 
 			var t4 = STuple.Create([ 1, 2 ]);
+			Log(t4);
 			// collection expression
 			AssertEquality(t1, t4);
 
 			var t5 = STuple.Create(1).Append(2);
+			Log(t5);
 			// multi step
 			AssertEquality(t1, t5);
 		}
@@ -1806,7 +1925,7 @@ namespace Doxense.Collections.Tuples.Tests
 			// ReSharper restore CannotApplyEqualityOperatorToType
 			// ReSharper restore PossibleUnintendedReferenceComparison
 
-			// It should work on STuple<..> though (but with a compiler warning)
+			// It should work on STuple<...> though (but with a compiler warning)
 			var aa = STuple.Create<string>("A");
 			var bb = STuple.Create<string>("A");
 			// ReSharper disable CannotApplyEqualityOperatorToType
@@ -1919,7 +2038,7 @@ namespace Doxense.Collections.Tuples.Tests
 		#region Deformatters
 
 		[Test]
-		public void Test_Can_Deformat_Simple_Tuples()
+		public void Test_Can_Parse_Simple_Tuples()
 		{
 
 			static void Check<TTuple>(string expr, TTuple expected) where TTuple : IVarTuple
@@ -2086,21 +2205,25 @@ namespace Doxense.Collections.Tuples.Tests
 		{
 			{
 				ValueTuple<int> t = STuple.Create(11);
+				Log(t);
 				Assert.That(t.Item1, Is.EqualTo(11));
 			}
 			{
 				(int, int) t = STuple.Create(11, 22);
+				Log(t);
 				Assert.That(t.Item1, Is.EqualTo(11));
 				Assert.That(t.Item2, Is.EqualTo(22));
 			}
 			{
 				(int, int, int) t = STuple.Create(11, 22, 33);
+				Log(t);
 				Assert.That(t.Item1, Is.EqualTo(11));
 				Assert.That(t.Item2, Is.EqualTo(22));
 				Assert.That(t.Item3, Is.EqualTo(33));
 			}
 			{
 				(int, int, int, int) t = STuple.Create(11, 22, 33, 44);
+				Log(t);
 				Assert.That(t.Item1, Is.EqualTo(11));
 				Assert.That(t.Item2, Is.EqualTo(22));
 				Assert.That(t.Item3, Is.EqualTo(33));
@@ -2108,6 +2231,7 @@ namespace Doxense.Collections.Tuples.Tests
 			}
 			{
 				(int, int, int, int, int) t = STuple.Create(11, 22, 33, 44, 55);
+				Log(t);
 				Assert.That(t.Item1, Is.EqualTo(11));
 				Assert.That(t.Item2, Is.EqualTo(22));
 				Assert.That(t.Item3, Is.EqualTo(33));
@@ -2116,12 +2240,24 @@ namespace Doxense.Collections.Tuples.Tests
 			}
 			{
 				(int, int, int, int, int, int) t = STuple.Create(11, 22, 33, 44, 55, 66);
+				Log(t);
 				Assert.That(t.Item1, Is.EqualTo(11));
 				Assert.That(t.Item2, Is.EqualTo(22));
 				Assert.That(t.Item3, Is.EqualTo(33));
 				Assert.That(t.Item4, Is.EqualTo(44));
 				Assert.That(t.Item5, Is.EqualTo(55));
 				Assert.That(t.Item6, Is.EqualTo(66));
+			}
+			{
+				(int, int, int, int, int, int, int) t = STuple.Create(11, 22, 33, 44, 55, 66, 77);
+				Log(t);
+				Assert.That(t.Item1, Is.EqualTo(11));
+				Assert.That(t.Item2, Is.EqualTo(22));
+				Assert.That(t.Item3, Is.EqualTo(33));
+				Assert.That(t.Item4, Is.EqualTo(44));
+				Assert.That(t.Item5, Is.EqualTo(55));
+				Assert.That(t.Item6, Is.EqualTo(66));
+				Assert.That(t.Item7, Is.EqualTo(77));
 			}
 		}
 
@@ -2130,21 +2266,25 @@ namespace Doxense.Collections.Tuples.Tests
 		{
 			{
 				STuple<int> t = ValueTuple.Create(11);
+				Log(t);
 				Assert.That(t.Item1, Is.EqualTo(11));
 			}
 			{
 				STuple<int, int> t = (11, 22);
+				Log(t);
 				Assert.That(t.Item1, Is.EqualTo(11));
 				Assert.That(t.Item2, Is.EqualTo(22));
 			}
 			{
 				STuple<int, int, int> t = (11, 22, 33);
+				Log(t);
 				Assert.That(t.Item1, Is.EqualTo(11));
 				Assert.That(t.Item2, Is.EqualTo(22));
 				Assert.That(t.Item3, Is.EqualTo(33));
 			}
 			{
 				STuple<int, int, int, int> t = (11, 22, 33, 44);
+				Log(t);
 				Assert.That(t.Item1, Is.EqualTo(11));
 				Assert.That(t.Item2, Is.EqualTo(22));
 				Assert.That(t.Item3, Is.EqualTo(33));
@@ -2152,6 +2292,7 @@ namespace Doxense.Collections.Tuples.Tests
 			}
 			{
 				STuple<int, int, int, int, int> t = (11, 22, 33, 44, 55);
+				Log(t);
 				Assert.That(t.Item1, Is.EqualTo(11));
 				Assert.That(t.Item2, Is.EqualTo(22));
 				Assert.That(t.Item3, Is.EqualTo(33));
@@ -2160,6 +2301,7 @@ namespace Doxense.Collections.Tuples.Tests
 			}
 			{
 				STuple<int, int, int, int, int, int> t = (11, 22, 33, 44, 55, 66);
+				Log(t);
 				Assert.That(t.Item1, Is.EqualTo(11));
 				Assert.That(t.Item2, Is.EqualTo(22));
 				Assert.That(t.Item3, Is.EqualTo(33));
@@ -2167,15 +2309,26 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(t.Item5, Is.EqualTo(55));
 				Assert.That(t.Item6, Is.EqualTo(66));
 			}
+			{
+				STuple<int, int, int, int, int, int, int> t = (11, 22, 33, 44, 55, 66, 77);
+				Log(t);
+				Assert.That(t.Item1, Is.EqualTo(11));
+				Assert.That(t.Item2, Is.EqualTo(22));
+				Assert.That(t.Item3, Is.EqualTo(33));
+				Assert.That(t.Item4, Is.EqualTo(44));
+				Assert.That(t.Item5, Is.EqualTo(55));
+				Assert.That(t.Item6, Is.EqualTo(66));
+				Assert.That(t.Item7, Is.EqualTo(77));
+			}
 		}
 
 		private static (int, int) ProduceValueTuple(int item1, int item2) => (item1, item2);
 
-		private static int[] ConsumeValueTuple(STuple<int, int> t) => new[] { t.Item1, t.Item2 };
+		private static int[] ConsumeValueTuple(STuple<int, int> t) => [ t.Item1, t.Item2 ];
 
 		private static STuple<int, int> ProduceSTuple(int item1, int item2) => STuple.Create(item1, item2);
 
-		private static int[] ConsumeSTuple(STuple<int, int> t) => new[] { t.Item1, t.Item2 };
+		private static int[] ConsumeSTuple(STuple<int, int> t) => [ t.Item1, t.Item2 ];
 
 		[Test]
 		public void Test_Can_AutoCast_Transparently()

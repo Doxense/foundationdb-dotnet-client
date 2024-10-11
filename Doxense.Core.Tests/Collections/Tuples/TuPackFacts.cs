@@ -515,7 +515,7 @@ namespace Doxense.Collections.Tuples.Tests
 		[Test]
 		public void Test_TuplePack_Deserialize_Integers()
 		{
-			void Verify(string encoded, long value)
+			static void Verify(string encoded, long value)
 			{
 				var slice = Slice.Unescape(encoded);
 				Assert.That(TuplePackers.DeserializeBoxed(slice), Is.EqualTo(value), $"DeserializeBoxed({encoded})");
@@ -1072,7 +1072,7 @@ namespace Doxense.Collections.Tuples.Tests
 		[Test]
 		public void Test_TuplePack_Serialize_Embedded_Tuples()
 		{
-			void Verify(IVarTuple t, string expected)
+			static void Verify(IVarTuple t, string expected)
 			{
 				var key = TuPack.Pack(t);
 				Assert.That(key.ToHexString(' '), Is.EqualTo(expected));

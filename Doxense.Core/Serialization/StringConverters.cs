@@ -531,6 +531,62 @@ namespace Doxense.Serialization
 
 		#endregion
 
+		#region DateTime...
+
+		/// <summary>Writes the text representation of a <see cref="DateTimeOffset"/> using the ISO 8601 format</summary>
+		/// <param name="value">Value to convert</param>
+		/// <returns>Corresponding string literal</returns>
+		[Pure]
+		public static string ToString(DateTime value)
+		{
+			//note: I'm not sure how to optimize for this type...
+			return value.ToString(null, NumberFormatInfo.InvariantInfo);
+		}
+
+		/// <summary>Writes the text representation of a <see cref="DateTimeOffset"/> using the ISO 8601 format</summary>
+		/// <param name="output">Destination</param>
+		/// <param name="value">Value to write</param>
+		public static void WriteTo(TextWriter output, DateTime value)
+		{
+			// "YYYY-MM-DDTHH:MM:SS.FFFFFFFZ" = 28
+			Span<char> buf = stackalloc char[32];
+
+			bool success = value.TryFormat(buf, out var written, "O", CultureInfo.InvariantCulture);
+			if (!success) ReportInternalFormattingError();
+
+			output.Write(buf.Slice(0, written));
+		}
+
+		#endregion
+
+		#region DateTimeOffset...
+
+		/// <summary>Writes the text representation of a <see cref="DateTimeOffset"/> using the ISO 8601 format</summary>
+		/// <param name="value">Value to convert</param>
+		/// <returns>Corresponding string literal</returns>
+		[Pure]
+		public static string ToString(DateTimeOffset value)
+		{
+			//note: I'm not sure how to optimize for this type...
+			return value.ToString(null, NumberFormatInfo.InvariantInfo);
+		}
+
+		/// <summary>Writes the text representation of a <see cref="DateTimeOffset"/> using the ISO 8601 format</summary>
+		/// <param name="output">Destination</param>
+		/// <param name="value">Value to write</param>
+		public static void WriteTo(TextWriter output, DateTimeOffset value)
+		{
+			// "YYYY-MM-DDTHH:MM:SS.FFFFFFF+HH:MM" = 33
+			Span<char> buf = stackalloc char[36];
+
+			bool success = value.TryFormat(buf, out var written, "O", CultureInfo.InvariantCulture);
+			if (!success) ReportInternalFormattingError();
+
+			output.Write(buf.Slice(0, written));
+		}
+
+		#endregion
+
 		#endregion
 
 		#region Parsing...

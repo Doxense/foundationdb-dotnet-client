@@ -37,6 +37,7 @@ namespace SnowBank.Testing
 	using System.Runtime.InteropServices;
 	using System.Text;
 	using System.Xml;
+	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics;
 	using Doxense.Mathematics.Statistics;
 	using Doxense.Reactive.Disposables;
@@ -904,7 +905,82 @@ namespace SnowBank.Testing
 		public static void Log(ref DefaultInterpolatedStringHandler handler) => WriteToLog(handler.ToStringAndClear());
 
 		[DebuggerNonUserCode]
-		public static void Log(object? item) => Log(item as string ?? Stringify(item));
+		public static void Log(StringBuilder? text) => WriteToLog(text?.ToString());
+
+		[DebuggerNonUserCode]
+		public static void Log(StringWriter? text) => WriteToLog(text?.ToString());
+
+		[DebuggerNonUserCode]
+		public static void Log(ReadOnlySpan<char> item) => WriteToLog(item.ToString());
+
+		[DebuggerNonUserCode]
+		public static void Log(bool item) => WriteToLog(item ? "(bool) True" : "(bool) False");
+
+		[DebuggerNonUserCode]
+		public static void Log(int item) => WriteToLog(StringConverters.ToString(item));
+
+		[DebuggerNonUserCode]
+		public static void Log(uint item) => WriteToLog(StringConverters.ToString(item) + "U");
+
+		[DebuggerNonUserCode]
+		public static void Log(long item) => WriteToLog(StringConverters.ToString(item) + "L");
+
+		[DebuggerNonUserCode]
+		public static void Log(ulong item) => WriteToLog(StringConverters.ToString(item) + "UL");
+
+		[DebuggerNonUserCode]
+		public static void Log(double item) => WriteToLog(StringConverters.ToString(item));
+
+		[DebuggerNonUserCode]
+		public static void Log(float item) => WriteToLog(StringConverters.ToString(item) + "f");
+
+		[DebuggerNonUserCode]
+		public static void Log(DateTime item) => WriteToLog(StringConverters.ToString(item));
+
+		[DebuggerNonUserCode]
+		public static void Log(DateTimeOffset item) => WriteToLog("(DateTimeOffset) " + StringConverters.ToString(item));
+
+		[DebuggerNonUserCode]
+		public static void Log(Slice item) => WriteToLog("(Slice) " + item.PrettyPrint());
+
+		[DebuggerNonUserCode]
+		public static void Log(Guid item) => WriteToLog("(Guid) " + item.ToString("B"));
+
+		[DebuggerNonUserCode]
+		public static void Log(Uuid128 item) => WriteToLog("(Uuid128) " + item.ToString("B"));
+
+		[DebuggerNonUserCode]
+		public static void Log(ReadOnlySpan<byte> item) => WriteToLog("(ReadOnlySpan<byte>) " + item.PrettyPrint());
+
+		[DebuggerNonUserCode]
+		public static void Log(Span<byte> item) => WriteToLog("(Span<byte>) " + item.PrettyPrint());
+
+		[DebuggerNonUserCode]
+		public static void Log(KeyValuePair<string, string> item) => WriteToLog($"[{item.Key}, {item.Value}]");
+
+		[DebuggerNonUserCode]
+		public static void Log(ITuple item) => WriteToLog(item.ToString());
+
+		//[DebuggerNonUserCode]
+		public static void Log(IVarTuple item) => WriteToLog(item.ToString());
+
+		[DebuggerNonUserCode]
+		public static void Log(JsonObject? obj) => WriteToLog((obj ?? JsonNull.Null).ToJson());
+
+		[DebuggerNonUserCode]
+		public static void Log(JsonArray? obj) => WriteToLog((obj ?? JsonNull.Null).ToJson());
+
+		[DebuggerNonUserCode]
+		public static void Log(JsonValue? obj) => WriteToLog((obj ?? JsonNull.Null).ToJson());
+
+		[DebuggerNonUserCode]
+		public static void Log(IJsonSerializable? obj) => WriteToLog(obj != null ? $"({obj.GetType().GetFriendlyName()}) {CrystalJson.SerializeJson(obj)}" : "<null>");
+
+		[DebuggerNonUserCode]
+		public static void Log(IFormattable? obj) => WriteToLog(obj != null ? obj.ToString(null, CultureInfo.InvariantCulture) : "<null>");
+
+		[DebuggerNonUserCode]
+		public static void Log(object? item) => WriteToLog(Stringify(item));
 
 		[DebuggerNonUserCode]
 		protected static void LogPartial(string? text) => WriteToLog(text, lineBreak: false);
@@ -958,105 +1034,46 @@ namespace SnowBank.Testing
 		[DebuggerNonUserCode]
 		protected static string Stringify(object? item)
 		{
+			if (item is null) return "<null>";
+
 			switch (item)
 			{
-				case null:
-				{
-					return "<null>";
-				}
-				case string str:
-				{ // hack to prevent CRLF to break the layout
-					return str.Length == 0
-						? "\"\""
-						: "\"" + str.Replace(@"\", @"\\").Replace("\r", @"\r").Replace("\n", @"\n").Replace("\0", @"\0").Replace(@"""", @"\""") + "\"";
-				}
-				case int i:
-				{
-					return i.ToString(CultureInfo.InvariantCulture);
-				}
-				case long l:
-				{
-					return l.ToString(CultureInfo.InvariantCulture) + "L";
-				}
-				case uint ui:
-				{
-					return ui.ToString(CultureInfo.InvariantCulture) + "U";
-				}
-				case ulong ul:
-				{
-					return ul.ToString(CultureInfo.InvariantCulture) + "UL";
-				}
-				case double d:
-				{
-					return d.ToString("R", CultureInfo.InvariantCulture);
-				}
-				case float f:
-				{
-					return f.ToString("R", CultureInfo.InvariantCulture) + "F";
-				}
-				case Guid g:
-				{
-					return "{" + g.ToString() + "}";
-				}
-				case JsonValue json:
-				{
-					return json.ToJson();
-				}
-				case StringBuilder sb:
-				{
-					return sb.ToString();
-				}
+				case string s: return $"\"{s.Replace(@"\", @"\\").Replace("\r", @"\r").Replace("\n", @"\n").Replace("\0", @"\0").Replace(@"""", @"\""")}\"";
+				case int i: return StringConverters.ToString(i);
+				case long l: return StringConverters.ToString(l) + "L";
+				case uint ui: return StringConverters.ToString(ui) + "U";
+				case ulong ul: return StringConverters.ToString(ul) + "UL";
+				case double d: return StringConverters.ToString(d);
+				case float f: return StringConverters.ToString((double) item) + "f";
+				case DateTime dt: return "(DateTime) " + StringConverters.ToString(dt);
+				case DateTimeOffset dto: return "(DateTimeOffset) " + StringConverters.ToString(dto);
+				case Guid g: return "(Guid) " + g.ToString("B");
+				case Uuid128 uuid: return "(Uuid128) " + uuid.ToString("B");
+				case Slice s: return "(Slice) " + s.PrettyPrint();
+				case StringBuilder sb: return $"\"{sb.ToString().Replace(@"\", @"\\").Replace("\r", @"\r").Replace("\n", @"\n").Replace("\0", @"\0").Replace(@"""", @"\""")}\"";
+
+				case byte[] buf: return "(byte[]) " + buf.AsSlice().PrettyPrint();
+				case JsonValue j: return j.ToJson();
+				case ITuple t: return t.ToString()!;
+				case IJsonSerializable j: return $"({j.GetType().GetFriendlyName()}) {CrystalJson.SerializeJson(j)}";
+				case IFormattable fmt: return $"({item.GetType().GetFriendlyName()}) {fmt.ToString(null, CultureInfo.InvariantCulture)}";
+				case Task: throw new AssertionException("Cannot stringify a Task! You probably forget to add 'await' somewhere the code!");
 			}
 
 			var type = item.GetType();
-			if (type.Name.StartsWith("ValueTuple`", StringComparison.Ordinal))
-			{
-				return item.ToString()!;
-			}
 
-			if (type.IsAssignableTo(typeof(Task)) || type.IsGenericInstanceOf(typeof(Task<>)))
-			{
-				throw new AssertionException("Cannot stringify a Task! You probably forget to add 'await' somewhere the code!");
-			}
-
-			// Formattable
-			if (item is IFormattable formattable)
-			{
-				// use the most appropriate format, depending on the value type
-				string? fmt = null;
-				if (item is int or uint or long or ulong)
-				{
-					fmt = "N0";
-				}
-				else if (item is double or float)
-				{
-					fmt = "R";
-				}
-				else if (item is DateTime or DateTimeOffset)
-				{
-					fmt = "O";
-				}
-				return $"({item.GetType().GetFriendlyName()}) {formattable.ToString(fmt, CultureInfo.InvariantCulture)}";
-			}
-
-			if (type.IsArray)
+			if (item is Array arr)
 			{ // Array
-				Array arr = (Array) item;
 				var elType = type.GetElementType()!;
-				if (elType.IsAssignableTo(typeof(IFormattable)))
-				{
-					return $"({elType.GetFriendlyName()}[{arr.Length}]) [ {string.Join(", ", arr.Cast<IFormattable>().Select(x => x.ToString(null, CultureInfo.InvariantCulture)))} ]";
-				}
 				if (elType.IsAssignableTo(typeof(IJsonSerializable)))
 				{
 					return $"({type.GetFriendlyName()}) {CrystalJson.Serialize(item)}";
 				}
+				if (elType.IsAssignableTo(typeof(IFormattable)))
+				{
+					return $"({elType.GetFriendlyName()}[{arr.Length}]) [ {string.Join(", ", arr.Cast<IFormattable>().Select(x => x.ToString(null, CultureInfo.InvariantCulture)))} ]";
+				}
 				return $"({elType.GetFriendlyName()}[{arr.Length}]) {CrystalJson.Serialize(item)}";
-			}
-
-			if (type.IsAssignableTo(typeof(IJsonSerializable)))
-			{
-				return $"({type.GetFriendlyName()}) {CrystalJson.Serialize(item)}";
 			}
 
 			return $"({type.GetFriendlyName()}) {item}";
@@ -1259,7 +1276,7 @@ namespace SnowBank.Testing
 			{ // poor man's indentation (pattent pending)
 				xml = xml.Replace("\n", "\n" + new string('\t', indent));
 			}
-			Log(xml);
+			WriteToLog(xml);
 		}
 
 		/// <summary>Outputs a human-readable representation of an XML document</summary>
@@ -1281,7 +1298,7 @@ namespace SnowBank.Testing
 			{ // poor man's indentation (pattent pending)
 				xml = xml.Replace("\n", "\n" + new string('\t', indent));
 			}
-			Log(xml);
+			WriteToLog(xml);
 		}
 
 		#endregion
@@ -1324,7 +1341,7 @@ namespace SnowBank.Testing
 		/// <summary>Outputs a human-readable JSON representation of a value</summary>
 		/// <remarks>
 		/// <para>WARNING: the type MUST be serializable as JSON! It will fail if the object has cyclic references or does not support serialization.</para>
-		/// <para>One frequent case is a an object that was previously safe to serialize, but has been refactored to include internal complex objects, which will break any test calling this method!</para>
+		/// <para>One frequent case is an object that was previously safe to serialize, but has been refactored to include internal complex objects, which will break any test calling this method!</para>
 		/// </remarks>
 		[DebuggerNonUserCode]
 		public static void Dump<T>(string label, T value)
@@ -1914,7 +1931,7 @@ namespace SnowBank.Testing
 		[StringFormatMethod(nameof(format)), Obsolete("Use string interpolation instead")]
 		public static void Log(string format, params object?[] args) => SimpleTest.Log(string.Format(CultureInfo.InvariantCulture, format, args));
 
-		[Obsolete("This method is not required anymore. You can call Log() with an interporlated directly", error: true)]
+		[Obsolete("This method is not required anymore. You can call Log() with an interpolated directly", error: true)]
 		public static void LogInv(FormattableString msg) => SimpleTest.Log(msg.ToString(CultureInfo.InvariantCulture));
 
 		[Obsolete("Renamed to Await(...)")]
