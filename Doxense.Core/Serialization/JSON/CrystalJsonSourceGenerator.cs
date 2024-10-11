@@ -64,11 +64,11 @@ namespace Doxense.Serialization.Json
 					continue;
 				}
 
-				var prms = m.GetParameters();
-				if (prms.Length != 2) continue;
-				if (!prms[0].ParameterType.IsByRef) continue; //HACKHACK: how test a byref type ??
+				var parameters = m.GetParameters();
+				if (parameters.Length != 2) continue;
+				if (!parameters[0].ParameterType.IsByRef) continue; //HACKHACK: how test a byref type ??
 
-				res.Add(prms[1].ParameterType);
+				res.Add(parameters[1].ParameterType);
 			}
 
 			return res;
@@ -84,11 +84,11 @@ namespace Doxense.Serialization.Json
 					continue;
 				}
 
-				var prms = m.GetParameters();
-				if (prms.Length != 2) continue;
-				if (!prms[0].ParameterType.IsByRef) continue; //HACKHACK: how test a byref type ??
+				var parameters = m.GetParameters();
+				if (parameters.Length != 2) continue;
+				if (!parameters[0].ParameterType.IsByRef) continue; //HACKHACK: how test a byref type ??
 
-				if (prms[1].ParameterType.IsEnumerableType(out var elemType))
+				if (parameters[1].ParameterType.IsEnumerableType(out var elemType))
 				{
 					res.Add(elemType);
 				}
@@ -230,10 +230,10 @@ namespace Doxense.Serialization.Json
 							sb.AppendLine("#region Helpers...");
 
 							sb.Attribute<UnsafeAccessorAttribute>([sb.Constant(UnsafeAccessorKind.Method)], [("Name", sb.Constant(nameof(JsonObject.FreezeUnsafe))) ]);
-							sb.AppendLine($"private static extern ref string FreezeUnsafe({sb.TypeName<JsonObject>()} instance);");
+							sb.AppendLine($"private static extern {sb.TypeName<JsonObject>()} FreezeUnsafe({sb.TypeName<JsonObject>()} instance);");
 
 							sb.Attribute<UnsafeAccessorAttribute>([sb.Constant(UnsafeAccessorKind.Method)], [("Name", sb.Constant(nameof(JsonArray.FreezeUnsafe))) ]);
-							sb.AppendLine($"private static extern ref string FreezeUnsafe({sb.TypeName<JsonArray>()} instance);");
+							sb.AppendLine($"private static extern {sb.TypeName<JsonArray>()} FreezeUnsafe({sb.TypeName<JsonArray>()} instance);");
 
 							sb.AppendLine("#endregion");
 						}
@@ -244,19 +244,12 @@ namespace Doxense.Serialization.Json
 			return sb.ToStringAndClear();
 		}
 
-		private string GetSerializerName(Type type)
-		{
-			return type.Name;
-		}
+		private string GetSerializerName(Type type) => type.Name;
 
-		private string GetLocalSerializerRef(Type type)
-		{
-			return this.SerializerContainerName + "." + GetSerializerName(type);
-		}
+		private string GetLocalSerializerRef(Type type) => $"{this.SerializerContainerName}.{GetSerializerName(type)}";
 
 		private void GenerateCodeForType(CodeBuilder sb, CrystalJsonTypeDefinition typeDef)
 		{
-
 			var type = typeDef.Type;
 			var jsonConverterType = typeof(IJsonConverter<>).MakeGenericType(type);
 
@@ -268,7 +261,7 @@ namespace Doxense.Serialization.Json
 			sb.NewLine();
 
 			sb.AppendLine($"/// <summary>JSON converter for type <see cref=\"{type.FullName}\">{type.GetFriendlyName()}</see></summary>");
-			sb.AppendLine($"public static {sb.TypeName(jsonConverterType)} {serializerName} => m_cached{serializerName} ??= new();");
+			sb.AppendLine($"public static {serializerTypeName} {serializerName} => m_cached{serializerName} ??= new();");
 			sb.NewLine();
 			sb.AppendLine($"private static {serializerTypeName}? m_cached{serializerName};");
 			sb.NewLine();
@@ -284,7 +277,6 @@ namespace Doxense.Serialization.Json
 				[ ],
 				() =>
 				{
-
 					#region JsonSerialize...
 
 					sb.AppendLine("#region Serialization...");
@@ -323,7 +315,7 @@ namespace Doxense.Serialization.Json
 
 							if (type.IsAssignableTo(typeof(IJsonSerializer<>).MakeGenericType(type)))
 							{
-								sb.Return($"{sb.TypeName(type)}.{nameof(IJsonSerializer<object>.Serialize)}(writer, instance);");
+								sb.Return($"{typeName}.{nameof(IJsonSerializer<object>.Serialize)}(writer, instance);");
 							}
 							else if (type.IsAssignableTo(typeof(IJsonSerializable)))
 							{
@@ -494,7 +486,7 @@ namespace Doxense.Serialization.Json
 									}
 									else if (memberType.IsAssignableTo(typeof(JsonValue)))
 									{ // already JSON!
-										converter = getter;
+										converter = $"readOnly ? {getter}?.ToReadOnly() : {getter}";
 									}
 									else if (memberType.IsValueType)
 									{ // there is a direct, dedicated method for this!
@@ -607,7 +599,7 @@ namespace Doxense.Serialization.Json
 
 								sb.If("readOnly", () =>
 								{
-									sb.AppendLine($"{nameof(JsonObject.FreezeUnsafe)}(obj);");
+									sb.AppendLine($"return {nameof(JsonObject.FreezeUnsafe)}(obj);");
 								});
 
 								sb.NewLine();
@@ -711,6 +703,143 @@ namespace Doxense.Serialization.Json
 					sb.NewLine();
 
 					#endregion
+				}
+			);
+
+			string impromptuReadOnlyTypeName = "ImpromptuReadOnly" + serializerName;
+			string impromptuMutableTypeName = "ImpromptuMutable" + serializerName;
+
+			// ImpromptuReadOnly<T>
+			sb.NewLine();
+			sb.AppendLine($"/// <summary>Wraps a <see cref=\"JsonObject\"/> into something that looks like a {type.GetFriendlyName()}</summary>");
+			sb.Struct(
+				"public readonly record",
+				impromptuReadOnlyTypeName,
+				[ sb.TypeNameGeneric(typeof(IJsonReadOnly<,,>), [ typeName, impromptuReadOnlyTypeName, impromptuMutableTypeName ]) ],
+				[ ],
+				() =>
+				{
+					sb.AppendLine($"/// <summary>JSON Object that is wrapped</summary>");
+					sb.AppendLine($"private readonly {sb.TypeName<JsonObject>()} m_obj;");
+					sb.NewLine();
+
+					// ctor()
+					sb.AppendLine($"public {impromptuReadOnlyTypeName}({sb.TypeName<JsonObject>()} obj) => m_obj = obj;");
+					sb.NewLine();
+
+					// FromValue(TValue)
+					sb.AppendLine($"/// <inheritdoc />");
+					sb.AppendLine($"public static {impromptuReadOnlyTypeName} FromValue({typeName} value)");
+					sb.EnterBlock();
+					sb.AppendLine($"{sb.MethodName(typeof(Contract), nameof(Contract.NotNull))}(value);");
+					sb.AppendLine($"return new(({sb.TypeName<JsonObject>()}) {GetLocalSerializerRef(type)}.{nameof(IJsonPacker<object>.Pack)}(value, {sb.TypeName<CrystalJsonSettings>()}.{nameof(CrystalJsonSettings.JsonReadOnly)}));");
+					sb.LeaveBlock();
+					sb.NewLine();
+
+					// TValue ToValue()
+					sb.AppendLine($"/// <inheritdoc />");
+					sb.AppendLine($"public {typeName} ToValue() => {GetLocalSerializerRef(type)}.{nameof(IJsonDeserializer<object>.Unpack)}(m_obj);"); //TODO: resolver?
+					sb.NewLine();
+
+					// JsonObject ToJson()
+					sb.AppendLine($"/// <inheritdoc />");
+					sb.AppendLine($"public {sb.TypeName<JsonObject>()} ToJson() => m_obj;");
+					sb.NewLine();
+
+					// TMutable ToMutable()
+					sb.AppendLine($"/// <inheritdoc />");
+					sb.AppendLine($"public {impromptuMutableTypeName} ToMutable() => new(m_obj.Copy());");
+					sb.NewLine();
+
+					// TReadOnly With(Action<TMutable>)
+					sb.AppendLine($"/// <inheritdoc />");
+					sb.AppendLine($"public {impromptuReadOnlyTypeName} With(Action<{impromptuMutableTypeName}> modifier)");
+					sb.EnterBlock();
+					sb.AppendLine($"var copy = m_obj.Copy();");
+					sb.AppendLine($"modifier(new(copy));");
+					sb.AppendLine($"return new(FreezeUnsafe(copy));");
+					sb.LeaveBlock();
+					sb.NewLine();
+
+					// IJsonSerializable
+					sb.AppendLine("/// <inheritdoc />");
+					sb.AppendLine($"void {sb.TypeName<IJsonSerializable>()}.{nameof(IJsonSerializable.JsonSerialize)}({sb.TypeName<CrystalJsonWriter>()} writer) => m_obj.{nameof(IJsonSerializable.JsonSerialize)}(writer);");
+					sb.NewLine();
+
+					// IJsonPackable
+					sb.AppendLine("/// <inheritdoc />");
+					sb.AppendLine($"{sb.TypeName<JsonValue>()} {sb.TypeName<IJsonPackable>()}.{nameof(IJsonPackable.JsonPack)}({sb.TypeName<CrystalJsonSettings>()} settings, {sb.TypeName<ICrystalJsonTypeResolver>()} resolver) => m_obj;");
+					sb.NewLine();
+
+					// ReadOnly Members
+
+					foreach (var member in typeDef.Members)
+					{
+						sb.AppendLine($"/// <inheritdoc cref=\"{type.GetFriendlyName()}.{member.OriginalName}\" />");
+						sb.AppendLine($"public {sb.TypeName(member.Type)} {member.OriginalName} => m_obj.Get<{sb.TypeName(member.Type)}>({sb.Constant(member.Name)});");
+						sb.NewLine();
+					}
+
+				}
+			);
+
+		// ImpromptuMutable<T>
+		sb.NewLine();
+			sb.AppendLine($"/// <summary>Wraps a <see cref=\"JsonObject\"/> into something that looks like a {type.GetFriendlyName()}</summary>");
+			sb.Struct(
+				"public readonly record",
+				impromptuMutableTypeName,
+				[sb.TypeNameGeneric(typeof(IJsonMutable<,>), [ typeName, impromptuMutableTypeName ])],
+				[],
+				() =>
+				{
+					sb.AppendLine($"private readonly {sb.TypeName<JsonObject>()} m_obj;");
+					sb.NewLine();
+
+					// ctor(JsonObject)
+					sb.AppendLine($"public {impromptuMutableTypeName}({sb.TypeName<JsonObject>()} obj) => m_obj = obj;");
+					sb.NewLine();
+
+					// TMutable FromValue(TValue)
+					sb.AppendLine($"/// <inheritdoc />");
+					sb.AppendLine($"public static {impromptuMutableTypeName} FromValue({typeName} value)");
+					sb.EnterBlock();
+					sb.AppendLine($"{sb.MethodName(typeof(Contract), nameof(Contract.NotNull))}(value);");
+					sb.AppendLine($"return new(({sb.TypeName<JsonObject>()}) {GetLocalSerializerRef(type)}.{nameof(IJsonPacker<object>.Pack)}(value, {sb.TypeName<CrystalJsonSettings>()}.{nameof(CrystalJsonSettings.Json)}));");
+					sb.LeaveBlock();
+					sb.NewLine();
+
+					// JsonObject ToJson()
+					sb.AppendLine($"/// <inheritdoc />");
+					sb.AppendLine($"public {sb.TypeName<JsonObject>()} ToJson() => m_obj;");
+					sb.NewLine();
+
+					// TReadOnly ToReadOnly()
+					sb.AppendLine($"/// <inheritdoc />");
+					sb.AppendLine($"public {impromptuReadOnlyTypeName} ToReadOnly() => new (m_obj.{nameof(JsonObject.ToReadOnly)}());");
+					sb.NewLine();
+
+					// IJsonSerializable
+					sb.AppendLine("/// <inheritdoc />");
+					sb.AppendLine($"void {sb.TypeName<IJsonSerializable>()}.{nameof(IJsonSerializable.JsonSerialize)}({sb.TypeName<CrystalJsonWriter>()} writer) => m_obj.{nameof(IJsonSerializable.JsonSerialize)}(writer);");
+					sb.NewLine();
+
+					// IJsonPackable
+					sb.AppendLine("/// <inheritdoc />");
+					sb.AppendLine($"{sb.TypeName<JsonValue>()} {sb.TypeName<IJsonPackable>()}.{nameof(IJsonPackable.JsonPack)}({sb.TypeName<CrystalJsonSettings>()} settings, {sb.TypeName<ICrystalJsonTypeResolver>()} resolver) => settings.{nameof(CrystalJsonSettingsExtensions.IsReadOnly)}() ? m_obj.{nameof(JsonObject.ToReadOnly)}() : m_obj;");
+					sb.NewLine();
+
+					foreach (var member in typeDef.Members)
+					{
+						sb.AppendLine($"/// <inheritdoc cref=\"{type.GetFriendlyName()}.{member.OriginalName}\" />");
+						sb.AppendLine($"public {sb.TypeName(member.Type)} {member.OriginalName}");
+						sb.EnterBlock();
+						sb.AppendLine($"get => m_obj.Get<{sb.TypeName(member.Type)}>({sb.Constant(member.Name)});");
+						sb.AppendLine($"set => m_obj.Set<{sb.TypeName(member.Type)}>({sb.Constant(member.Name)}, value);");
+						sb.LeaveBlock();
+						sb.NewLine();
+					}
+
 				}
 			);
 
@@ -910,6 +1039,8 @@ namespace Doxense.Serialization.Json
 
 		public string TypeName<T>() => TypeHelper.GetCompilableTypeName(typeof(T), omitNamespace: false, global: true);
 
+		public string TypeNameGeneric(Type genericType, ReadOnlySpan<string> arguments) => $"global::{genericType.FullName!.Replace($"`{arguments.Length}", "")}<{string.Join(", ", arguments!)}>";
+
 		public string Parameter(string type, string name, bool nullable = false) => !nullable ? $"{type} {name}" : $"{type}? {name} = default";
 
 		public string Parameter<T>(string name, bool nullable = false) => Parameter(TypeName<T>(), name, nullable);
@@ -922,14 +1053,14 @@ namespace Doxense.Serialization.Json
 
 		public string Singleton<T>(string name) => TypeName<T>() + "." + name;
 
-		public void EnterBlock(string type, string? comment = null)
+		public void EnterBlock(string? type = null, string? comment = null)
 		{
 			this.Output.Append('\t', this.Depth).AppendLine(comment == null ? "{" : "{ // " + comment);
 			this.Structure.Push(type);
 			++this.Depth;
 		}
 
-		public void LeaveBlock(string type, bool semicolon = false)
+		public void LeaveBlock(string? type = null, bool semicolon = false)
 		{
 			if (!this.Structure.TryPeek(out var expected) || expected != type)
 			{
@@ -941,11 +1072,11 @@ namespace Doxense.Serialization.Json
 			this.Output.Append('\t', this.Depth).AppendLine(semicolon ? "};" : "}");
 		}
 
-		public void Block(string type, Action statement)
+		public void Block(Action statement)
 		{
-			EnterBlock(type);
+			EnterBlock("block");
 			statement();
-			LeaveBlock(type);
+			LeaveBlock("block");
 		}
 
 		public void Call(string method, ReadOnlySpan<string> args = default)
@@ -998,6 +1129,31 @@ namespace Doxense.Serialization.Json
 			else
 			{
 				AppendLine($"{modifiers} class {name}");
+			}
+
+			foreach (var w in where)
+			{
+				AppendLine($"\twhere {w}");
+			}
+
+			EnterBlock("class:" + name);
+			NewLine();
+
+			block();
+
+			LeaveBlock("class:" + name);
+			NewLine();
+		}
+
+		public void Struct(string modifiers, string name, ReadOnlySpan<string> implements, ReadOnlySpan<string> where, Action block)
+		{
+			if (implements.Length > 0)
+			{
+				AppendLine($"{modifiers} struct {name} : {string.Join(", ", implements!)}");
+			}
+			else
+			{
+				AppendLine($"{modifiers} struct {name}");
 			}
 
 			foreach (var w in where)

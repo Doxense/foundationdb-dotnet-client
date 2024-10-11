@@ -162,6 +162,35 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		/// <summary>Serializes a value that implements <see cref="IJsonSerializable"/></summary>
+		/// <param name="value">Instance to serialize (can be null)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+		/// <returns><c>`123`</c>, <c>`true`</c>, <c>`"ABC"`</c>, <c>`{ "foo":..., "bar": ... }`</c>, <c>`[ ... ]`</c>, ...</returns>
+		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
+		public static string SerializeJson(IJsonSerializable? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			if (value == null)
+			{ // special case for null instances
+				return JsonTokens.Null;
+			}
+
+			var writer = WriterPool.Allocate();
+			try
+			{
+				writer.Initialize(0, settings, resolver);
+
+				value.JsonSerialize(writer);
+
+				return writer.GetString();
+			}
+			finally
+			{
+				writer.Dispose();
+				WriterPool.Free(writer);
+			}
+		}
+
 		/// <summary>Serializes a value of type <typeparamref name="T"/> into a string literal</summary>
 		/// <param name="value">Instance to serialize (can be null)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>

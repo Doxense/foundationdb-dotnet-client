@@ -38,7 +38,6 @@ namespace Doxense.Serialization.Json
 		/// <param name="instance">Instance to serialize</param>
 		/// <exception cref="JsonSerializationException">If an error occured during the serialization</exception>
 		void Serialize(CrystalJsonWriter writer, T? instance);
-		//REVIEW: rename to "SerializeTo" only?
 
 	}
 
