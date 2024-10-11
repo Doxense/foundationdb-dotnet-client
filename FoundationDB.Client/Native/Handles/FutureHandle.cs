@@ -44,11 +44,7 @@ namespace FoundationDB.Client.Native
 			Interlocked.Decrement(ref DebugCounters.FutureHandles);
 		}
 
-		public override string ToString()
-		{
-			return $"FutureHandle[0x{this.Handle:x}]";
-		}
-
+		public override string ToString() => $"FutureHandle[0x{this.Handle:x}]";
 	}
 
 }

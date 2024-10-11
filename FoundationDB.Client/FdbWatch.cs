@@ -63,7 +63,6 @@ namespace FoundationDB.Client
 			}
 		}
 
-
 		/// <summary>Returns an awaiter for the Watch</summary>
 		public TaskAwaiter<Slice> GetAwaiter()
 		{

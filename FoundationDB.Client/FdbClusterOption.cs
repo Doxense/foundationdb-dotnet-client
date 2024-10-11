@@ -27,6 +27,7 @@
 namespace FoundationDB.Client
 {
 	/// <summary>Defines a set of options for the cluster connection</summary>
+	[Obsolete("Deprecated since API level 610")]
 	public enum FdbClusterOption
 	{
 		/// <summary>None</summary>

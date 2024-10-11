@@ -37,6 +37,7 @@ namespace FoundationDB.Client
 	[PublicAPI]
 	public static class FdbKey
 	{
+		#region Well Known Keys...
 
 		/// <summary>Smallest possible key (<c>0x00</c>)</summary>
 		public static readonly Slice MinValue = Slice.FromByte(0);
@@ -73,6 +74,8 @@ namespace FoundationDB.Client
 
 		/// <summary>Last possible key of System keyspace (<c>0xFFFF</c>)</summary>
 		public static ReadOnlySpan<byte> SystemEndSpan => [ 0xFF, 0xFF ];
+
+		#endregion
 
 		/// <summary>Returns the first key lexicographically that does not have the passed in <paramref name="slice"/> as a prefix</summary>
 		/// <param name="slice">Slice to increment</param>

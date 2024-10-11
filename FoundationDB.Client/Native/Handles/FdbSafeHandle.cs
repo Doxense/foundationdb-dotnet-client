@@ -28,10 +28,11 @@
 
 namespace FoundationDB.Client.Native
 {
-	using System.Runtime.ConstrainedExecution;
+	using System.Diagnostics;
 	using System.Runtime.InteropServices;
 
 	/// <summary>Base class for all wrappers on FDBxxxx* opaque pointers</summary>
+	[DebuggerDisplay("Handle={handle,h}, Invalid={IsInvalid}")]
 	public abstract class FdbSafeHandle : SafeHandle
 	{
 		protected FdbSafeHandle()
@@ -62,7 +63,7 @@ namespace FoundationDB.Client.Native
 		/// <summary>Return the value of the FDBFuture handle, for logging purpose only</summary>
 		internal IntPtr Handle => this.handle;
 
-		/// <summary>Call the appropriate fdb_*_destroy(..)</summary>
+		/// <summary>Call the appropriate fdb_*_destroy(...)</summary>
 		/// <param name="handle">Handle on the FDBFuture</param>
 		protected abstract void Destroy(IntPtr handle);
 

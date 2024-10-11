@@ -373,6 +373,7 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
+		[Ignore("Requires custom configuration the local cluster to enable Snapshot support")]
 		public async Task Test_Can_Create_Snapshot()
 		{
 			using var db = await OpenTestDatabaseAsync();

@@ -219,7 +219,7 @@ namespace FoundationDB.Client.Native
 					}
 				}
 
-				// most probably the future was cancelled or we are shutting down...
+				// most probably the future was cancelled, or we are shutting down...
 				TrySetCanceled();
 			}
 			catch (Exception e)

@@ -53,7 +53,7 @@ namespace FoundationDB.Client
 		// - The 'version' and 'metadata' attributes of the partition are located under Nodes + Pack(Nodes, '...')
 		// - All the metadata relative to directory with prefix X are located under Nodes + Pack(X, ...)
 		//   - The layer of directory at prefix X is located at Key = Nodes + Pack(X, 'layer') = Empty or layer id
-		//   - The sub-directories of directory at prefix X are located under Key = Nodes + Pack(X, 0, SUBDIR_NAME), Value = Prefix of subdirectory
+		//   - The subdirectories of directory at prefix X are located under Key = Nodes + Pack(X, 0, SUBDIR_NAME), Value = Prefix of subdirectory
 		//   - For the root of the directory partition, X = the prefix of the nodes subspace
 
 		internal static readonly Version LayerVersion = new Version(1, 0, 0);
@@ -708,7 +708,9 @@ namespace FoundationDB.Client
 				await CheckReadVersionAsync(readTrans).ConfigureAwait(false);
 
 				if (prefix.HasValue && this.Layer.Path.Count > 0)
+				{
 					throw new InvalidOperationException("Cannot specify a prefix in a partition.");
+				}
 
 				string layer = path.LayerId;
 
@@ -791,6 +793,7 @@ namespace FoundationDB.Client
 				// initialize the metadata for this new directory
 
 				if (AnnotateTransactions) trans.Annotate($"Registering the new prefix {prefix:K} into the folder sub-tree");
+
 				var key = partition.Nodes.Encode(parentPrefix, SUBDIRS, path.Name);
 				trans.Set(key, prefix);
 
@@ -1110,12 +1113,14 @@ namespace FoundationDB.Client
 
 				//note: we could use Task.WhenAll to remove the children, but there is a risk of task explosion if the subtree is very large...
 				var children = await SubdirNamesAndNodes(tr, partition, prefix, includeLayers: false).ConfigureAwait(false);
+
 				await Task.WhenAll(children.Select(child => RemoveRecursive(tr, partition, child.Prefix))).ConfigureAwait(false);
 
 				// remove ALL the contents
 				if (AnnotateTransactions) tr.Annotate($"Removing all content located under {KeyRange.StartsWith(prefix)}");
 				//TODO: REVIEW: we could get the prefix without calling ContentsOfNode here!
 				tr.ClearRange(KeyRange.StartsWith(prefix));
+
 				// and all the metadata for this folder
 				if (AnnotateTransactions) tr.Annotate($"Removing all metadata for folder under {partition.Nodes.EncodeRange(prefix)}");
 				tr.ClearRange(partition.Nodes.EncodeRange(prefix));
@@ -1392,7 +1397,7 @@ namespace FoundationDB.Client
 				try
 				{
 					if (!this.CachedSubspaces.TryGetValue(path, out candidate))
-					{ // not in the cahce => we don't know
+					{ // not in the cache => we don't know
 						if (AnnotateTransactions) tr.Annotate($"{this.DirectoryLayer} subspace MISS for {path}");
 						return false;
 					}

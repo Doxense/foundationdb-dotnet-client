@@ -265,14 +265,14 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a new 1-tuple, holding only one item</summary>
-		/// <remarks>This is the non-generic equivalent of STuple.Create&lt;object&gt;()</remarks>
+		/// <remarks>This is the non-generic equivalent of <c>STuple.Create&lt;object&gt;(item)</c></remarks>
 		[Pure]
 		public static IVarTuple CreateBoxed(object? item)
 		{
 			return new STuple<object?>(item);
 		}
 
-		/// <summary>Create a new N-tuple that wraps an sequence of untyped items</summary>
+		/// <summary>Create a new N-tuple that wraps a sequence of untyped items</summary>
 		/// <remarks>If the original sequence is mutated, the tuple will reflect the changes!</remarks>
 		[Pure]
 		public static IVarTuple Wrap(ReadOnlyMemory<object?> items)
@@ -681,7 +681,7 @@ namespace Doxense.Collections.Tuples
 			/// Stringify(123.4d) => "123.4"
 			/// Stringify(true) => "true"
 			/// Stringify('Z') => "'Z'"
-			/// Stringify((Slice)...) => hexa decimal string ("01 23 45 67 89 AB CD EF")
+			/// Stringify((Slice)...) => hexadecimal string ("01 23 45 67 89 AB CD EF")
 			/// </example>
 			internal static string StringifyBoxed(object? item)
 			{
@@ -900,7 +900,6 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Helper to parse strings back into tuples</summary>
 		public static class Deformatter
 		{
-
 
 			[Pure]
 			public static IVarTuple Parse(string expression)

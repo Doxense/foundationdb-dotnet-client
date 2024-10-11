@@ -62,7 +62,7 @@ namespace FoundationDB.Client.Native
 		internal static partial class NativeMethods
 		{
 
-			// Core
+			#region Core
 
 #if NET8_0_OR_GREATER
 			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
@@ -119,7 +119,9 @@ namespace FoundationDB.Client.Native
 			public static extern bool fdb_error_predicate(FdbErrorPredicate predicateTest, FdbError code);
 #endif
 
-			// Network
+			#endregion
+
+			#region Network
 
 			/// <summary>Called to set network options.</summary>
 			/// <remarks>
@@ -136,7 +138,7 @@ namespace FoundationDB.Client.Native
 			public static extern FdbError fdb_network_set_option(FdbNetworkOption option, byte* value, int length);
 #endif
 
-			/// <summary>Setup the network thread.</summary>
+			/// <summary>Set up the network thread.</summary>
 			/// <remarks>
 			/// Must be called after <see cref="fdb_select_api_version_impl"/> (and zero or more calls to <see cref="fdb_network_set_option"/>) and before any other function in this API.
 			/// <see cref="fdb_setup_network"/> can only be called once.
@@ -196,7 +198,9 @@ namespace FoundationDB.Client.Native
 			public static extern FdbError fdb_stop_network();
 #endif
 
-			// Cluster
+			#endregion
+
+			#region Cluster
 
 			[Obsolete("Not supported any more")]
 #if NET8_0_OR_GREATER
@@ -238,7 +242,9 @@ namespace FoundationDB.Client.Native
 			public static extern FutureHandle fdb_cluster_create_database(ClusterHandle cluster, [MarshalAs(UnmanagedType.LPStr)] string dbName, int dbNameLength);
 #endif
 
-			// Database
+			#endregion
+
+			#region Database
 
 			/// <summary>Creates a new database connected the specified cluster.</summary>
 			/// <remarks>
@@ -341,7 +347,7 @@ namespace FoundationDB.Client.Native
 			public static extern FutureHandle fdb_database_create_snapshot(DatabaseHandle database, byte* uid, int uidLength, byte* snapCommand, int snapCommandLength);
 #endif
 
-			/// <summary>Returns a value where 0 indicates that the client is idle and 1 (or larger) indicates that the client is saturated.</summary>
+			/// <summary>Returns a value where <see langword="0"/> indicates that the client is idle and <see langword="1"/> (or larger) indicates that the client is saturated.</summary>
 			/// <remarks>
 			/// <para>By default, this value is updated every second.</para>
 			/// <para>Added in 700</para>
@@ -357,7 +363,7 @@ namespace FoundationDB.Client.Native
 
 			/// <summary>Returns the protocol version reported by the coordinator this client is connected to.</summary>
 			/// <remarks>
-			/// <para>If an expected version is non-zero, the future won't return until the protocol version is different than expected</para>
+			/// <para>If an expected version is non-zero, the future won't return until the protocol version is different from the expected version</para>
 			/// <para>Note: this will never return if the server is running a protocol from FDB 5.0 or older</para>
 			/// <para>Added in 700</para>
 			/// </remarks>
@@ -390,7 +396,9 @@ namespace FoundationDB.Client.Native
 			public static extern FutureHandle fdb_database_get_client_status(DatabaseHandle database);
 #endif
 
-			// Tenant
+			#endregion
+
+			#region Tenant
 
 			/// <summary>Destroys an FDBTenant object.</summary>
 			/// <remarks>
@@ -435,7 +443,9 @@ namespace FoundationDB.Client.Native
 			public static extern FutureHandle fdb_tenant_get_id(TenantHandle tenant);
 #endif
 
-			// Transaction
+			#endregion
+
+			#region Transaction
 
 			/// <summary>Destroys an <see cref="TransactionHandle">FDBTransaction</see> object.</summary>
 			/// <remarks>
@@ -648,7 +658,7 @@ namespace FoundationDB.Client.Native
 			/// The modification affects the actual database only if <paramref name="transaction"/> is later committed with <see cref="fdb_transaction_commit"/>.
 			/// Range clears are efficient with FoundationDB  clearing large amounts of data will be fast.
 			/// However, this will not immediately free up disk - data for the deleted range is cleaned up in the background.
-			/// For purposes of computing the transaction size, only the begin and end keys of a clear range are counted.
+			/// For purposes of computing the transaction size, only the <c>Begin</c> and <c>End</c> keys of a clear range are counted.
 			/// The size of the data stored in the range does not count against the transaction size limit.
 			/// </remarks>
 #if NET8_0_OR_GREATER
@@ -674,7 +684,7 @@ namespace FoundationDB.Client.Native
 			/// Different atomic operations perform different transformations.
 			/// Like other database operations, an atomic operation is used within a transaction; however, its use within a transaction will not cause the transaction to conflict.
 			/// Atomic operations do not expose the current value of the key to the client but simply send the database the transformation to apply.
-			/// In regard to conflict checking, an atomic operation is equivalent to a write without a read. It can only cause other transactions performing reads of the key to conflict.
+			/// In regard to conflict checking, an atomic operation is equivalent to a 'write' without a 'read'. It can only cause other transactions performing reads of the key to conflict.
 			/// By combining these logical steps into a single, read-free operation, FoundationDB can guarantee that the transaction will not conflict due to the operation.
 			/// This makes atomic operations ideal for operating on keys that are frequently modified. A common example is the use of a key-value pair as a counter.
 			/// </remarks>
@@ -749,7 +759,7 @@ namespace FoundationDB.Client.Native
 			/// <para>
 			/// Until the transaction that created it has been committed, a watch will not report changes made by other transactions.
 			/// In contrast, a watch will immediately report changes made by the transaction itself.
-			/// Watches cannot be created if the transaction has set the READ_YOUR_WRITES_DISABLE transaction option, and an attempt to do so will return an watches_disabled error.
+			/// Watches cannot be created if the transaction has set the <c>READ_YOUR_WRITES_DISABLE</c> transaction option, and an attempt to do so will return a <c>watches_disabled</c> error.
 			/// </para>
 			/// <para>
 			/// If the transaction used to create a watch encounters an error during commit, then the watch will be set with that error.
@@ -874,7 +884,9 @@ namespace FoundationDB.Client.Native
 			public static extern FutureHandle fdb_transaction_get_blob_granule_ranges(TransactionHandle transaction, byte* beginKeyName, int beginKeyNameLength, byte* endKeyName, int endKeyNameLength);
 #endif
 
-			// Future
+			#endregion
+
+			#region Future
 
 			/// <summary>Destroys an <see cref="FutureHandle">FDBFuture</see> object.</summary>
 			/// <remarks>
@@ -1143,6 +1155,8 @@ namespace FoundationDB.Client.Native
 			public static extern FdbError fdb_future_get_keyrange_array(FutureHandle future, out FdbKeyRangeNative* ranges, out int count);
 #endif
 
+			#endregion
+
 		}
 
 		static FdbNative()
@@ -1261,7 +1275,6 @@ namespace FoundationDB.Client.Native
 
 			return buffer.AsSlice();
 		}
-
 
 		#region Core..
 
@@ -1941,7 +1954,7 @@ namespace FoundationDB.Client.Native
 			}
 		}
 
-		/// <summary>fdb_transaction_get_estimated_range_size_bytes</summary>
+		/// <summary><c>fdb_transaction_get_estimated_range_size_bytes</c></summary>
 		public static FutureHandle TransactionGetEstimatedRangeSizeBytes(TransactionHandle transaction, ReadOnlySpan<byte> beginKey, ReadOnlySpan<byte> endKey)
 		{
 			fixed (byte* ptrBeginKey = beginKey)
@@ -1956,7 +1969,7 @@ namespace FoundationDB.Client.Native
 			}
 		}
 
-		/// <summary>fdb_future_get_value</summary>
+		/// <summary><c>fdb_future_get_value</c></summary>
 		public static FdbError FutureGetValue(FutureHandle future, out bool valuePresent, out ReadOnlySpan<byte> value)
 		{
 			Contract.Debug.Requires(future != null);
@@ -1976,7 +1989,7 @@ namespace FoundationDB.Client.Native
 			return err;
 		}
 
-		/// <summary>fdb_future_get_key</summary>
+		/// <summary><c>fdb_future_get_key</c></summary>
 		public static FdbError FutureGetKey(FutureHandle future, out ReadOnlySpan<byte> key)
 		{
 			var err = NativeMethods.fdb_future_get_key(future, out byte* ptr, out int keyLength);
@@ -1999,7 +2012,7 @@ namespace FoundationDB.Client.Native
 			return err;
 		}
 
-		/// <summary>fdb_future_get_keyvalue_array</summary>
+		/// <summary><c>fdb_future_get_keyvalue_array</c></summary>
 		public static FdbError FutureGetKeyValueArray(FutureHandle future, ArrayPool<byte>? pool, out KeyValuePair<Slice, Slice>[]? result, out bool more, out SliceOwner buffer, out int dataBytes)
 		{
 			result = null;
@@ -2121,7 +2134,7 @@ namespace FoundationDB.Client.Native
 			return err;
 		}
 
-		/// <summary>fdb_future_get_keyvalue_array</summary>
+		/// <summary><c>fdb_future_get_keyvalue_array</c></summary>
 		public static FdbError FutureGetKeyValueArrayKeysOnly(FutureHandle future, out KeyValuePair<Slice, Slice>[]? result, out bool more, out int dataBytes)
 		{
 			result = null;
@@ -2136,7 +2149,7 @@ namespace FoundationDB.Client.Native
 			{
 				Contract.Debug.Assert(count >= 0, "Return count was negative");
 
-				result = count > 0 ? new KeyValuePair<Slice, Slice>[count] : Array.Empty<KeyValuePair<Slice, Slice>>();
+				result = count > 0 ? new KeyValuePair<Slice, Slice>[count] : [ ];
 
 				if (count > 0)
 				{ // convert the FdbKeyValueNative result into an array of slices
@@ -2163,12 +2176,12 @@ namespace FoundationDB.Client.Native
 
 					// allocate all memory in one chunk, and make the key/values point to it
 					// Does fdb allocate all keys into a single buffer ? We could copy everything in one pass,
-					// but it would rely on implementation details that could break at anytime...
+					// but it would rely on implementation details that could break at any time...
 
 					//TODO: protect against too much memory allocated ?
 					// what would be a good max value? we need to at least be able to handle FDB_STREAMING_MODE_WANT_ALL
 
-					//TODO: some keys/values will be small (32 bytes or less) while other will be big
+					//TODO: some keys/values will be small (32 bytes or fewer) while other will be big
 					//consider having to copy methods, optimized for each scenario ?
 
 					//TODO: PERF: find a way to use Memory Pooling for this?
@@ -2181,7 +2194,7 @@ namespace FoundationDB.Client.Native
 						var key = page.AsSlice(p, kl);
 						p += kl;
 
-						result[i] = new KeyValuePair<Slice, Slice>(key, default);
+						result[i] = new(key, default);
 					}
 
 					Contract.Debug.Assert(p == sum);
@@ -2191,7 +2204,7 @@ namespace FoundationDB.Client.Native
 			return err;
 		}
 
-		/// <summary>fdb_future_get_keyvalue_array</summary>
+		/// <summary><c>fdb_future_get_keyvalue_array</c></summary>
 		public static FdbError FutureGetKeyValueArrayValuesOnly(FutureHandle future, out KeyValuePair<Slice, Slice>[]? result, out bool more, out Slice first, out Slice last, out int dataBytes)
 		{
 			result = null;
@@ -2208,7 +2221,7 @@ namespace FoundationDB.Client.Native
 			{
 				Contract.Debug.Assert(count >= 0, "Return count was negative");
 
-				result = count > 0 ? new KeyValuePair<Slice, Slice>[count] : Array.Empty<KeyValuePair<Slice, Slice>>();
+				result = count > 0 ? new KeyValuePair<Slice, Slice>[count] : [ ];
 
 				if (count > 0)
 				{ // convert the FdbKeyValueNative result into an array of slices
@@ -2239,12 +2252,12 @@ namespace FoundationDB.Client.Native
 
 					// allocate all memory in one chunk, and make the key/values point to it
 					// Does fdb allocate all keys into a single buffer ? We could copy everything in one pass,
-					// but it would rely on implementation details that could break at anytime...
+					// but it would rely on implementation details that could break at any time...
 
 					//TODO: protect against too much memory allocated ?
 					// what would be a good max value? we need to at least be able to handle FDB_STREAMING_MODE_WANT_ALL
 
-					//TODO: some keys/values will be small (32 bytes or less) while other will be big
+					//TODO: some keys/values will be small (32 bytes or fewer) while other will be big
 					//consider having to copy methods, optimized for each scenario ?
 
 					//TODO: PERF: find a way to use Memory Pooling for this?
@@ -2277,7 +2290,7 @@ namespace FoundationDB.Client.Native
 			return err;
 		}
 
-		/// <summary>fdb_future_get_key_array</summary>
+		/// <summary><c>fdb_future_get_key_array</c></summary>
 		public static FdbError FutureGetKeyArray(FutureHandle future, out Slice[]? result)
 		{
 			result = null;
@@ -2330,7 +2343,7 @@ namespace FoundationDB.Client.Native
 				}
 				else
 				{
-					result = Array.Empty<Slice>();
+					result = [ ];
 				}
 			}
 
@@ -2369,26 +2382,24 @@ namespace FoundationDB.Client.Native
 				}
 				else
 				{
-					result = Array.Empty<string>();
+					result = [ ];
 				}
 			}
 
 			return err;
 		}
 
-		/// <summary>fdb_future_get_key</summary>
+		/// <summary><c>fdb_future_get_key</c></summary>
 		public static FdbError FutureGetVersionStamp(FutureHandle future, out VersionStamp stamp)
 		{
-			byte* ptr;
-			int keyLength;
-			var err = NativeMethods.fdb_future_get_key(future, out ptr, out keyLength);
+			var err = NativeMethods.fdb_future_get_key(future, out var ptr, out var keyLength);
 #if DEBUG_NATIVE_CALLS
 			LogNative($"fdb_future_get_key(0x{future.Handle:x}) => err={err}, keyLength={keyLength}");
 #endif
 
 			if (keyLength != 10 || ptr == null)
 			{
-				//REVIEW: should we fail if len != 10? (would meed some MAJOR change in the fdb C API?)
+				//REVIEW: should we fail if len != 10? (would need some MAJOR change in the fdb C API?)
 				stamp = default;
 				return err;
 			}
@@ -2397,7 +2408,7 @@ namespace FoundationDB.Client.Native
 			return err;
 		}
 
-		/// <summary>fdb_transaction_set</summary>
+		/// <summary><c>fdb_transaction_set</c></summary>
 		public static void TransactionSet(TransactionHandle transaction, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value)
 		{
 			fixed (byte* pKey = key)
@@ -2410,7 +2421,7 @@ namespace FoundationDB.Client.Native
 			}
 		}
 
-		/// <summary>fdb_transaction_atomic_op</summary>
+		/// <summary><c>fdb_transaction_atomic_op</c></summary>
 		public static void TransactionAtomicOperation(TransactionHandle transaction, ReadOnlySpan<byte> key, ReadOnlySpan<byte> param, FdbMutationType operationType)
 		{
 			fixed (byte* pKey = key)
@@ -2423,7 +2434,7 @@ namespace FoundationDB.Client.Native
 			}
 		}
 
-		/// <summary>fdb_transaction_clear</summary>
+		/// <summary><c>fdb_transaction_clear</c></summary>
 		public static void TransactionClear(TransactionHandle transaction, ReadOnlySpan<byte> key)
 		{
 			fixed (byte* pKey = key)
@@ -2435,7 +2446,7 @@ namespace FoundationDB.Client.Native
 			}
 		}
 
-		/// <summary>fdb_transaction_clear_range</summary>
+		/// <summary><c>fdb_transaction_clear_range</c></summary>
 		public static void TransactionClearRange(TransactionHandle transaction, ReadOnlySpan<byte> beginKey, ReadOnlySpan<byte> endKey)
 		{
 			fixed (byte* pBeginKey = beginKey)
@@ -2448,7 +2459,7 @@ namespace FoundationDB.Client.Native
 			}
 		}
 
-		/// <summary>fdb_transaction_add_conflict_range</summary>
+		/// <summary><c>fdb_transaction_add_conflict_range</c></summary>
 		public static FdbError TransactionAddConflictRange(TransactionHandle transaction, ReadOnlySpan<byte> beginKey, ReadOnlySpan<byte> endKey, FdbConflictRangeType type)
 		{
 			fixed (byte* pBeginKey = beginKey)
@@ -2461,7 +2472,7 @@ namespace FoundationDB.Client.Native
 			}
 		}
 
-		/// <summary>fdb_transaction_get_approximate_size</summary>
+		/// <summary><c>fdb_transaction_get_approximate_size</c></summary>
 		public static FutureHandle TransactionGetApproximateSize(TransactionHandle transaction)
 		{
 			var future = NativeMethods.fdb_transaction_get_approximate_size(transaction);
