@@ -32,7 +32,7 @@ namespace FoundationDB.Client
 
 	/// <summary>Represents a FoundationDB network endpoint as an IP address, port number and TLS mode.</summary>
 	[DebuggerDisplay("{ToString(),nq}")]
-	public sealed class FdbEndPoint : IPEndPoint, IEquatable<FdbEndPoint>
+	public sealed class FdbEndPoint : IPEndPoint, IEquatable<FdbEndPoint>, IFormattable
 	{
 
 		public static readonly FdbEndPoint Invalid = new(IPAddress.None, 0, false);
@@ -88,15 +88,13 @@ namespace FoundationDB.Client
 
 		public override string ToString() => this.Tls ? base.ToString() + ":tls" : base.ToString();
 
+		public string ToString(string? format, IFormatProvider? formatProvider) => ToString();
+
 		public override bool Equals(object? other) => other is FdbEndPoint fep && Equals(fep);
 
 		public bool Equals(FdbEndPoint? other) => other != null && other.Tls == this.Tls && base.Equals(other);
 
-		public override int GetHashCode()
-		{
-			int h = base.GetHashCode();
-			return this.Tls ? ~h : h;
-		}
+		public override int GetHashCode() => HashCode.Combine(this.Tls, base.GetHashCode());
 
 		public void Deconstruct(out IPAddress address, out int port)
 		{

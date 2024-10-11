@@ -33,7 +33,7 @@ namespace FoundationDB.Client
 	/// <summary>Defines a selector for a key in the database</summary>
 	[DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
-	public readonly struct KeySelector : IEquatable<KeySelector>
+	public readonly struct KeySelector : IEquatable<KeySelector>, IFormattable
 	{
 
 		/// <summary>Key of the selector</summary>
@@ -152,10 +152,10 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Converts the value of the current <see cref="KeySelector"/> object into its equivalent string representation</summary>
-		public override string ToString()
-		{
-			return PrettyPrint(FdbKey.PrettyPrintMode.Single);
-		}
+		public override string ToString() => PrettyPrint(FdbKey.PrettyPrintMode.Single);
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? formatProvider) => ToString();
 
 		/// <summary>Returns a displayable representation of the key selector</summary>
 		[Pure]
@@ -186,7 +186,6 @@ namespace FoundationDB.Client
 
 			return sb.ToString();
 		}
-
 	}
 
 }

@@ -32,7 +32,7 @@ namespace FoundationDB.Client
 
 	/// <summary>Represents a pair of key selectors that range 'GetKey(Begin) &lt;= key &lt; GetKey(End)'</summary>
 	[DebuggerDisplay("[ToString()]")]
-	public readonly struct KeySelectorPair
+	public readonly struct KeySelectorPair : IFormattable
 	{
 		/// <summary>Start of the range</summary>
 		public readonly KeySelector Begin;
@@ -133,6 +133,9 @@ namespace FoundationDB.Client
 		{
 			return $"[ {this.Begin.PrettyPrint(FdbKey.PrettyPrintMode.Begin)}, {this.End.PrettyPrint(FdbKey.PrettyPrintMode.End)} )";
 		}
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? formatProvider) => ToString();
 
 		/// <summary>Deconstructs this key selector pair</summary>
 		/// <param name="begin">Receives the <see cref="Begin"/> selector</param>

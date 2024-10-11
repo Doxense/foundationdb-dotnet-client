@@ -33,7 +33,7 @@ namespace FoundationDB.Client
 	/// <summary>Represents a pair of keys defining the range 'Begin &lt;= key &gt; End'</summary>
 	[DebuggerDisplay("Begin={Begin}, End={End}")]
 	[PublicAPI]
-	public readonly struct KeyRange : IEquatable<KeyRange>, IComparable<KeyRange>, IEquatable<(Slice Begin, Slice End)>, IComparable<(Slice Begin, Slice End)>
+	public readonly struct KeyRange : IEquatable<KeyRange>, IComparable<KeyRange>, IEquatable<(Slice Begin, Slice End)>, IComparable<(Slice Begin, Slice End)>, IFormattable
 	{
 
 		/// <summary>Start of the range</summary>
@@ -263,7 +263,10 @@ namespace FoundationDB.Client
 		{
 			return $"{{{FdbKey.PrettyPrint(this.Begin, FdbKey.PrettyPrintMode.Begin)}, {FdbKey.PrettyPrint(this.End, FdbKey.PrettyPrintMode.End)}}}";
 		}
-	
+
+		/// <summary>Returns a printable version of the range</summary>
+		public string ToString(string? format, IFormatProvider? formatProvider) => ToString();
+
 		[DebuggerDisplay("Mode={m_mode}")]
 		public sealed class Comparer : IComparer<KeyRange>, IEqualityComparer<KeyRange>
 		{
