@@ -63,6 +63,9 @@ namespace FoundationDB.Client
 		/// <exception cref="System.OperationCanceledException">If the cancellation token has been cancelled</exception>
 		void EnsureCanRead();
 
+		/// <summary>Returns the number of keys read byte this transaction, as well as their total size</summary>
+		(int Keys, int Size) GetReadStatistics();
+
 		/// <summary>Reads a value from the database snapshot represented by the current transaction.</summary>
 		/// <param name="key">Key to be looked up in the database</param>
 		/// <returns>Task that will return the value of the key if it is found, <see cref="Slice.Nil">Slice.Nil</see> if the key does not exist, or an exception</returns>

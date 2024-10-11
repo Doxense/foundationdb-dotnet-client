@@ -111,6 +111,10 @@ namespace FoundationDB.Client.Native
 		public int Size => m_payloadBytes;
 		//TODO: this is redundant with GetApproximateSize which does the exact bookkeeping (but is async!). Should we keep it? or get remove it?
 
+		public (int Keys, int Size) GetWriteStatistics() => (Volatile.Read(ref m_keyWriteCount), Volatile.Read(ref m_payloadBytes));
+
+		public (int Keys, int Size) GetReadStatistics() => (Volatile.Read(ref m_keyReadCount), Volatile.Read(ref m_keyReadSize));
+
 		#endregion
 
 		#region Options...

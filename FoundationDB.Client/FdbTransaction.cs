@@ -148,15 +148,21 @@ namespace FoundationDB.Client
 		internal bool StillAlive => this.State == STATE_READY;
 
 		/// <inheritdoc />
-		public int Size => m_handler.Size;
-
-		/// <inheritdoc />
 		public CancellationToken Cancellation => m_cancellation;
 
 		/// <inheritdoc />
 		public bool IsReadOnly => m_readOnly;
 
 		#endregion
+
+		/// <inheritdoc />
+		public int Size => m_handler.Size;
+
+		/// <inheritdoc />
+		public (int Keys, int Size) GetWriteStatistics() => m_handler.GetWriteStatistics();
+
+		/// <inheritdoc />
+		public (int Keys, int Size) GetReadStatistics() => m_handler.GetReadStatistics();
 
 		#region Options..
 

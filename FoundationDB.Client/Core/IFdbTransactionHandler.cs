@@ -34,6 +34,12 @@ namespace FoundationDB.Client.Core
 		/// <summary>Returns the estimated payload size of the transaction (including keys and values)</summary>
 		int Size { get; }
 
+		/// <summary>Returns the number of keys changed, as well as the estimated payload size</summary>
+		(int Keys, int Size) GetWriteStatistics();
+
+		/// <summary>Returns the number of keys read, as well as their total size</summary>
+		(int Keys, int Size) GetReadStatistics();
+
 		/// <summary>Checks if this transaction handler is closed</summary>
 		bool IsClosed { get; }
 

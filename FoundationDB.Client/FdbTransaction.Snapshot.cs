@@ -84,6 +84,9 @@ namespace FoundationDB.Client
 			IFdbTransactionOptions IFdbReadOnlyTransaction.Options => m_parent.Options;
 
 			/// <inheritdoc />
+			public (int Keys, int Size) GetReadStatistics() => m_parent.GetReadStatistics();
+
+			/// <inheritdoc />
 			public void EnsureCanRead()
 			{
 				m_parent.EnsureCanRead();
