@@ -18,8 +18,8 @@
     <PackageVersion Include="NodaTime.Testing" Version="3.1.12" />
     <PackageVersion Include="NUnit" Version="4.2.2" />
     <PackageVersion Include="NUnit.Analyzers" Version="4.3.0" />
-    <PackageVersion Include="NUnit.Console" Version="3.18.1" />
-    <PackageVersion Include="NUnit.ConsoleRunner" Version="3.18.1" />
+    <PackageVersion Include="NUnit.Console" Version="3.18.3" />
+    <PackageVersion Include="NUnit.ConsoleRunner" Version="3.18.3" />
     <PackageVersion Include="NUnit3TestAdapter" Version="4.6.0" />
     <PackageVersion Include="OpenTelemetry.Api" Version="1.9.0" />
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.9.0" />
