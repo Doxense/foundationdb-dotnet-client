@@ -40,6 +40,9 @@ namespace FoundationDB.Client.Native
 
 		public static class Flags
 		{
+			/// <summary>Future is being constructed and is not yet ready.</summary>
+			public const int DEFAULT = 0;
+
 			/// <summary>The future has completed (either success or failure)</summary>
 			public const int COMPLETED = 1;
 
@@ -56,53 +59,60 @@ namespace FoundationDB.Client.Native
 			public const int DISPOSED = 128;
 		}
 
-		/// <summary>Create a new <see cref="FdbFutureSingle{T}"/> from an FDBFuture* pointer</summary>
-		/// <typeparam name="T">Type of the result of the task</typeparam>
+		/// <summary>Internal counter to generate a unique parameter value for each futures</summary>
+		internal static long s_futureCounter;
+
+		/// <summary>Create a new <see cref="FdbFutureSingle{TState,TResult}"/> from an FDBFuture* pointer</summary>
+		/// <typeparam name="TResult">Type of the result of the task</typeparam>
+		/// <typeparam name="TState">Type of the state that will be passed to the result selector</typeparam>
 		/// <param name="handle">FDBFuture* pointer</param>
+		/// <param name="state">State that is passed to the result selector</param>
 		/// <param name="selector">Func that will be called to get the result once the future completes (and did not fail)</param>
 		/// <param name="ct">Optional cancellation token that can be used to cancel the future</param>
 		/// <returns>Object that tracks the execution of the FDBFuture handle</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbFutureSingle<T> FromHandle<T>(FutureHandle handle, Func<FutureHandle, T> selector, CancellationToken ct)
+		public static FdbFutureSingle<TState, TResult> FromHandle<TState, TResult>(FutureHandle handle, TState state, Func<FutureHandle, TState, TResult> selector, CancellationToken ct)
 		{
-			return new FdbFutureSingle<T>(handle, selector, ct);
+			return new(handle, state, selector, ct);
 		}
 
-		/// <summary>Create a new <see cref="FdbFutureArray{T}"/> from an array of FDBFuture* pointers</summary>
-		/// <typeparam name="T">Type of the items of the array returned by the task</typeparam>
-		/// <param name="handles">Array of FDBFuture* pointers</param>
-		/// <param name="selector">Func that will be called for each future that complete (and did not fail)</param>
+		/// <summary>Wrap a FDBFuture* pointer into a <see cref="Task"/></summary>
+		/// <param name="handle">FDBFuture* pointer</param>
 		/// <param name="ct">Optional cancellation token that can be used to cancel the future</param>
-		/// <returns>Object that tracks the execution of all the FDBFuture handles</returns>
+		/// <returns>Object that tracks the execution of the FDBFuture handle</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbFutureArray<T> FromHandleArray<T>(FutureHandle[] handles, Func<FutureHandle, T> selector, CancellationToken ct)
+		public static Task CreateTaskFromHandle(FutureHandle handle, CancellationToken ct)
 		{
-			return new FdbFutureArray<T>(handles, selector, ct);
+			return new FdbFutureSingle<object?, object?>(handle, null, null, ct).Task;
 		}
 
 		/// <summary>Wrap a FDBFuture* pointer into a <see cref="Task{T}"/></summary>
-		/// <typeparam name="T">Type of the result of the task</typeparam>
+		/// <typeparam name="TResult">Type of the result of the task</typeparam>
+		/// <typeparam name="TState">Type of the state that will be passed to the result selector</typeparam>
 		/// <param name="handle">FDBFuture* pointer</param>
-		/// <param name="continuation">Lambda that will be called once the future completes successfully, to extract the result from the future handle.</param>
+		/// <param name="state">State that is passed to the result selector</param>
+		/// <param name="selector">Lambda that will be called once the future completes successfully, to extract the result from the future handle.</param>
 		/// <param name="ct">Optional cancellation token that can be used to cancel the future</param>
 		/// <returns>Task that will either return the result of the continuation lambda, or an exception</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Task<T> CreateTaskFromHandle<T>(FutureHandle handle, Func<FutureHandle, T> continuation, CancellationToken ct)
+		public static Task<TResult> CreateTaskFromHandle<TState, TResult>(FutureHandle handle, TState state, Func<FutureHandle, TState, TResult>? selector, CancellationToken ct)
 		{
-			return new FdbFutureSingle<T>(handle, continuation, ct).Task;
+			return new FdbFutureSingle<TState, TResult>(handle, state, selector, ct).Task;
 		}
 
 		/// <summary>Wrap multiple <see cref="FdbFuture{T}"/> handles into a single <see cref="Task{TResult}"/> that returns an array of T</summary>
-		/// <typeparam name="T">Type of the result of the task</typeparam>
+		/// <typeparam name="TResult">Type of the result of the task</typeparam>
+		/// <typeparam name="TState">Type of the state that will be passed to the result selector</typeparam>
 		/// <param name="handles">Array of FDBFuture* pointers</param>
-		/// <param name="continuation">Lambda that will be called once for each future that completes successfully, to extract the result from the future handle.</param>
+		/// <param name="state">State that is passed to the result selector</param>
+		/// <param name="selector">Lambda that will be called once for each future that completes successfully, to extract the result from the future handle.</param>
 		/// <param name="ct">Optional cancellation token that can be used to cancel the future</param>
 		/// <returns>Task that will either return all the results of the continuation lambdas, or an exception</returns>
 		/// <remarks>If at least one future fails, the whole task will fail.</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Task<T[]> CreateTaskFromHandleArray<T>(FutureHandle[] handles, Func<FutureHandle, T> continuation, CancellationToken ct)
+		public static Task<TResult[]> CreateTaskFromHandleArray<TState, TResult>(FutureHandle[] handles, TState state, Func<FutureHandle, TState, TResult>? selector, CancellationToken ct)
 		{
-			return new FdbFutureArray<T>(handles, continuation, ct).Task;
+			return new FdbFutureArray<TState, TResult>(handles, state, selector, ct).Task;
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -114,9 +124,9 @@ namespace FoundationDB.Client.Native
 	}
 
 	/// <summary>Base class for all FDBFuture wrappers</summary>
-	/// <typeparam name="T">Type of the Task's result</typeparam>
+	/// <typeparam name="TResult">Type of the Task's result</typeparam>
 	[DebuggerDisplay("Flags={m_flags}, State={this.Task.Status}")]
-	public abstract class FdbFuture<T> : TaskCompletionSource<T>, IDisposable
+	public abstract class FdbFuture<TResult> : TaskCompletionSource<TResult>, IDisposable
 	{
 
 		#region Private Members...
@@ -132,9 +142,6 @@ namespace FoundationDB.Client.Native
 		protected CancellationTokenRegistration m_ctr;
 
 		#endregion
-
-		protected FdbFuture() : base(TaskCreationOptions.RunContinuationsAsynchronously)
-		{ }
 
 		#region State Management...
 
@@ -153,25 +160,12 @@ namespace FoundationDB.Client.Native
 
 		protected bool TrySetFlag(int flag)
 		{
-			var wait = new SpinWait();
-			while (true)
-			{
-				var flags = Volatile.Read(ref m_flags);
-				if ((flags & flag) != 0)
-				{
-					return false;
-				}
-				if (Interlocked.CompareExchange(ref m_flags, flags | flag, flags) == flags)
-				{
-					return true;
-				}
-				wait.SpinOnce();
-			}
+			return (Interlocked.Or(ref m_flags, flag) & flag) == 0;
 		}
 
 		protected bool TryCleanup()
 		{
-			// We try to cleanup the future handle as soon as possible, meaning as soon as we have the result, or an error, or a cancellation
+			// We try to clean up the future handle as soon as possible, meaning as soon as we have the result, or an error, or a cancellation
 
 			if (TrySetFlag(FdbFuture.Flags.COMPLETED))
 			{
@@ -189,7 +183,7 @@ namespace FoundationDB.Client.Native
 				UnregisterCancellationRegistration();
 
 				// ensure that the task always complete !
-				// note: always defer the completion on the threadpool, because we don't want to dead lock here (we can be called by Dispose)
+				// note: always defer the completion on the threadpool, because we don't want to deadlock here (we can be called by Dispose)
 				if (!this.Task.IsCompleted)
 				{
 					TrySetCanceled();
@@ -200,6 +194,19 @@ namespace FoundationDB.Client.Native
 			{
 				CloseHandles();
 			}
+		}
+
+		/// <summary>Release the memory allocated by this Future, if it supports it.</summary>
+		/// <returns><see langword="true"/> if the memory was released, or <see langword="false"/> if the future does not support this action, if it has already been performed, or if the future has already been disposed.</returns>
+		protected bool TryReleaseMemory()
+		{
+			if (TrySetFlag(FdbFuture.Flags.MEMORY_RELEASED))
+			{
+				ReleaseMemory();
+				return true;
+			}
+
+			return false;
 		}
 
 		/// <summary>Close all the handles managed by this future</summary>
@@ -215,23 +222,25 @@ namespace FoundationDB.Client.Native
 
 		#region Callbacks...
 
-		/// <summary>List of all pending futures that have not yet completed</summary>
-		private static readonly ConcurrentDictionary<long, FdbFuture<T>> s_futures = new ConcurrentDictionary<long, FdbFuture<T>>();
-
-		/// <summary>Internal counter to generated a unique parameter value for each futures</summary>
-		private static long s_futureCounter;
+		/// <summary>Map of all pending futures that have not yet completed</summary>
+		/// <remarks>The key is the handle that is passed to <c>fdb_future_set_callback</c>,
+		/// and used to retrieve the original future instance from inside the callback</remarks>
+		private static readonly ConcurrentDictionary<long, FdbFuture<TResult>> s_futures = new();
 
 		/// <summary>Register a future in the callback context and return the corresponding callback parameter</summary>
 		/// <param name="future">Future instance</param>
-		/// <returns>Parameter that can be passed to FutureSetCallback and that uniquely identify this future.</returns>
-		/// <remarks>The caller MUST call ClearCallbackHandler to ensure that the future instance is removed from the list</remarks>
-		internal static IntPtr RegisterCallback(FdbFuture<T> future)
+		/// <returns>Parameter that can be passed to <see cref="FdbNative.FutureSetCallback"/> and that uniquely identify this future.</returns>
+		/// <remarks>The caller MUST ensure that <see cref="UnregisterCallback"/> is called at least once, to ensure that the future instance gets removed from the map</remarks>
+		internal static IntPtr RegisterCallback(FdbFuture<TResult> future)
 		{
 			Contract.Debug.Requires(future != null);
 
-			// generate a new unique id for this future, that will be use to lookup the future instance in the callback handler
-			long id = Interlocked.Increment(ref s_futureCounter);
-			var prm = new IntPtr(id); // note: we assume that we can only run in 64-bit mode, so it is safe to cast a long into an IntPtr
+			// generate a new unique id for this future, that will be used to look up the future instance in the callback handler
+			long id = Interlocked.Increment(ref FdbFuture.s_futureCounter);
+
+			// note: we assume that we can only run in 64-bit mode, so it is safe to cast a long into an IntPtr
+			var prm = new IntPtr(id);
+
 			// critical region
 			try { }
 			finally
@@ -249,7 +258,7 @@ namespace FoundationDB.Client.Native
 
 		/// <summary>Remove a future from the callback handler dictionary</summary>
 		/// <param name="future">Future that has just completed, or is being destroyed</param>
-		internal static void UnregisterCallback(FdbFuture<T> future)
+		internal static void UnregisterCallback(FdbFuture<TResult> future)
 		{
 			Contract.Debug.Requires(future != null);
 
@@ -261,7 +270,7 @@ namespace FoundationDB.Client.Native
 				var key = Interlocked.Exchange(ref future.m_key, IntPtr.Zero);
 				if (key != IntPtr.Zero)
 				{
-					if (s_futures.TryRemove(key.ToInt64(), out _))
+					if (s_futures.TryRemove(new (key.ToInt64(), future)))
 					{
 						Interlocked.Decrement(ref DebugCounters.CallbackHandles);
 					}
@@ -269,11 +278,14 @@ namespace FoundationDB.Client.Native
 			}
 		}
 
-		internal static FdbFuture<T>? GetFutureFromCallbackParameter(IntPtr parameter)
+		internal static FdbFuture<TResult>? GetFutureFromCallbackParameter(IntPtr parameter)
 		{
+			Contract.Debug.Requires(parameter != default);
+
 			if (s_futures.TryGetValue(parameter.ToInt64(), out var future))
 			{
-				if (future != null && Volatile.Read(ref future.m_key) == parameter)
+				Contract.Debug.Assert(future != null);
+				if (Volatile.Read(ref future.m_key) == parameter)
 				{
 					return future;
 				}
@@ -295,7 +307,7 @@ namespace FoundationDB.Client.Native
 			//note: if the token is already cancelled, the callback handler will run inline and any exception would bubble up here
 			//=> this is not a problem because the ctor already has a try/catch that will clean up everything
 			m_ctr = ct.Register(
-				(_state) => { CancellationHandler(_state); },
+				CancellationHandler,
 				this,
 				false
 			);
@@ -310,7 +322,7 @@ namespace FoundationDB.Client.Native
 
 		private static void CancellationHandler(object? state)
 		{
-			if (state is FdbFuture<T> future)
+			if (state is FdbFuture<TResult> future)
 			{
 #if DEBUG_FUTURES
 				Debug.WriteLine("Future<" + typeof(T).Name + ">.Cancel(0x" + future.m_handle.Handle.ToString("x") + ") was called on thread #" + Environment.CurrentManagedThreadId.ToString());
@@ -325,7 +337,7 @@ namespace FoundationDB.Client.Native
 		public bool IsReady => this.Task.IsCompleted;
 
 		/// <summary>Make the Future awaitable</summary>
-		public TaskAwaiter<T> GetAwaiter()
+		public TaskAwaiter<TResult> GetAwaiter()
 		{
 			return this.Task.GetAwaiter();
 		}
@@ -369,10 +381,7 @@ namespace FoundationDB.Client.Native
 				throw new InvalidOperationException("Cannot release memory allocated by a future that has not yet completed");
 			}
 
-			if (TrySetFlag(FdbFuture.Flags.MEMORY_RELEASED))
-			{
-				ReleaseMemory();
-			}
+			TryReleaseMemory();
 		}
 
 		public void Dispose()
@@ -392,7 +401,7 @@ namespace FoundationDB.Client.Native
 
 	}
 
-	public sealed class FdbFutureTask<T> : FdbFuture<T>
+	public sealed class FdbFutureTask<TResult> : FdbFuture<TResult>
 	{
 
 		public FdbFutureTask(CancellationToken ct)

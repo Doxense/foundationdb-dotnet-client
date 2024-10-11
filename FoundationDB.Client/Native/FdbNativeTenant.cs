@@ -95,8 +95,10 @@ namespace FoundationDB.Client.Native
 			Contract.Debug.Assert(Fdb.BindingVersion >= 730);
 
 			var future = FdbNative.TenantGetId(this.Handle);
-			return FdbFuture.CreateTaskFromHandle(future,
-				(h) =>
+			return FdbFuture.CreateTaskFromHandle(
+				future,
+				this,
+				static (h, _) =>
 				{
 					var err = FdbNative.FutureGetInt64(h, out var value);
 #if DEBUG_TRANSACTIONS

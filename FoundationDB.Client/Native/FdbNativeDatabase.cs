@@ -131,7 +131,8 @@ namespace FoundationDB.Client.Native
 			{
 				cluster = await FdbFuture.CreateTaskFromHandle(
 					FdbNative.CreateCluster(clusterFile),
-					h =>
+					default(object),
+					static (h, _) =>
 					{
 						var err = FdbNative.FutureGetCluster(h, out var handle);
 						FdbNative.DieOnError(err);
@@ -142,7 +143,8 @@ namespace FoundationDB.Client.Native
 
 				database = await FdbFuture.CreateTaskFromHandle(
 					FdbNative.ClusterCreateDatabase(cluster, "DB"),
-					h =>
+					default(object),
+					static (h, _) =>
 					{
 						var err = FdbNative.FutureGetDatabase(h, out var handle);
 						FdbNative.DieOnError(err);
@@ -225,26 +227,41 @@ namespace FoundationDB.Client.Native
 		public Task RebootWorkerAsync(ReadOnlySpan<char> name, bool check, int duration, CancellationToken ct)
 		{
 			Contract.Debug.Requires(name.Length > 0 && duration >= 0);
+			if (ct.IsCancellationRequested) return Task.FromCanceled(ct);
+
 			Fdb.EnsureApiVersion(700);
 
-			return FdbFuture.CreateTaskFromHandle<object?>(FdbNative.DatabaseRebootWorker(m_handle, name, check, duration), (h) => null, ct);
+			return FdbFuture.CreateTaskFromHandle(
+				FdbNative.DatabaseRebootWorker(m_handle, name, check, duration),
+				ct
+			);
 		}
 
 		public Task ForceRecoveryWithDataLossAsync(ReadOnlySpan<char> dcId, CancellationToken ct)
 		{
 			Contract.Debug.Requires(dcId.Length > 0);
+			if (ct.IsCancellationRequested) return Task.FromCanceled(ct);
+
 			Fdb.EnsureApiVersion(700);
 
-			return FdbFuture.CreateTaskFromHandle<object?>(FdbNative.DatabaseForceRecoveryWithDataLoss(m_handle, dcId), (h) => null, ct);
+			return FdbFuture.CreateTaskFromHandle(
+				FdbNative.DatabaseForceRecoveryWithDataLoss(m_handle, dcId),
+				ct
+			);
 		}
 
 		public Task CreateSnapshotAsync(ReadOnlySpan<char> uid, ReadOnlySpan<char> snapCommand, CancellationToken ct)
 		{
 			Contract.Debug.Requires(uid.Length > 0);
 			Contract.Debug.Requires(snapCommand.Length > 0);
+			if (ct.IsCancellationRequested) return Task.FromCanceled(ct);
+
 			Fdb.EnsureApiVersion(700);
 
-			return FdbFuture.CreateTaskFromHandle<object?>(FdbNative.DatabaseCreateSnapshot(m_handle, uid, snapCommand), (h) => null, ct);
+			return FdbFuture.CreateTaskFromHandle(
+				FdbNative.DatabaseCreateSnapshot(m_handle, uid, snapCommand),
+				ct
+			);
 		}
 
 		public double GetMainThreadBusyness()
@@ -258,7 +275,8 @@ namespace FoundationDB.Client.Native
 			Fdb.EnsureApiVersion(700);
 			return FdbFuture.CreateTaskFromHandle(
 				FdbNative.DatabaseGetServerProtocol(m_handle, expectedVersion),
-				(h) =>
+				this,
+				static (h, _) =>
 				{
 					var err = FdbNative.FutureGetUInt64(h, out var value);
 					FdbNative.DieOnError(err);
@@ -277,7 +295,8 @@ namespace FoundationDB.Client.Native
 
 			return FdbFuture.CreateTaskFromHandle(
 				FdbNative.DatabaseGetClientStatus(m_handle),
-				(h) =>
+				this,
+				static (h, _) =>
 				{
 					var err = FdbNative.FutureGetKey(h, out var result);
 					FdbNative.DieOnError(err);

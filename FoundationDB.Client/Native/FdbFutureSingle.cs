@@ -30,8 +30,8 @@ namespace FoundationDB.Client.Native
 {
 
 	/// <summary>FDBFuture wrapper</summary>
-	/// <typeparam name="T">Type of result</typeparam>
-	public sealed class FdbFutureSingle<T> : FdbFuture<T>
+	/// <typeparam name="TResult">Type of result</typeparam>
+	public sealed class FdbFutureSingle<TState, TResult> : FdbFuture<TResult>
 	{
 		#region Private Members...
 
@@ -39,33 +39,36 @@ namespace FoundationDB.Client.Native
 		private readonly FutureHandle? m_handle;
 
 		/// <summary>Lambda used to extract the result of this FDBFuture</summary>
-		private readonly Func<FutureHandle, T>? m_resultSelector;
+		private Func<FutureHandle, TState, TResult>? m_resultSelector;
+
+		private TState? m_state;
 
 		#endregion
 
 		#region Constructors...
 
-		internal FdbFutureSingle(FutureHandle handle, Func<FutureHandle, T> selector, CancellationToken ct)
+		internal FdbFutureSingle(FutureHandle handle, TState state, Func<FutureHandle, TState, TResult>? selector, CancellationToken ct)
 		{
-			Contract.Debug.Requires(handle != null && selector != null);
+			Contract.Debug.Requires(handle != null);
+
+			if (handle.IsInvalid)
+			{ // it's dead, Jim !
+				SetFlag(FdbFuture.Flags.COMPLETED);
+				m_resultSelector = null;
+				return;
+			}
 
 			m_handle = handle;
-			m_resultSelector = selector;
-
 			try
 			{
-				if (handle.IsInvalid)
-				{ // it's dead, Jim !
-					SetFlag(FdbFuture.Flags.COMPLETED);
-					m_resultSelector = null;
-					return;
-				}
 
 				if (FdbNative.FutureIsReady(handle))
 				{ // either got a value or an error
 #if DEBUG_FUTURES
 					Debug.WriteLine("Future<" + typeof(T).Name + "> 0x" + handle.Handle.ToString("x") + " was already ready");
 #endif
+					m_resultSelector = selector;
+					m_state = state;
 					HandleCompletion();
 #if DEBUG_FUTURES
 					Debug.WriteLine("Future<" + typeof(T).Name + "> 0x" + handle.Handle.ToString("x") + " completed inline");
@@ -88,7 +91,6 @@ namespace FoundationDB.Client.Native
 						// note: we don't need to call fdb_future_cancel because fdb_future_destroy will take care of everything
 						handle.Dispose();
 						// also, don't keep a reference on the callback because it won't be needed
-						m_resultSelector = null;
 						TrySetCanceled();
 						return;
 					}
@@ -102,6 +104,9 @@ namespace FoundationDB.Client.Native
 #endif
 
 				TrySetFlag(FdbFuture.Flags.READY);
+
+				m_state = state;
+				Volatile.Write(ref m_resultSelector, selector);
 
 				// add this instance to the list of pending futures
 				var prm = RegisterCallback(this);
@@ -126,6 +131,9 @@ namespace FoundationDB.Client.Native
 				// kill the future handle
 				m_handle.Dispose();
 
+				Volatile.Write(ref m_resultSelector, null);
+				m_state = default;
+
 				// this is technically not needed, but just to be safe...
 				TrySetCanceled();
 
@@ -149,13 +157,16 @@ namespace FoundationDB.Client.Native
 			Debug.WriteLine("Future<" + typeof(T).Name + ">.Callback(0x" + futureHandle.ToString("x") + ", " + parameter.ToString("x") + ") has fired on thread #" + Environment.CurrentManagedThreadId.ToString());
 #endif
 
-			var future = (FdbFutureSingle<T>?) GetFutureFromCallbackParameter(parameter);
+			var future = GetFutureFromCallbackParameter(parameter);
 			if (future != null)
 			{
 				UnregisterCallback(future);
-				future.HandleCompletion();
+
+				ThreadPool.UnsafeQueueUserWorkItem(s_callback, future);
 			}
 		}
+
+		private static readonly WaitCallback s_callback = f => ((FdbFutureSingle<TState, TResult>) f!).HandleCompletion();
 
 		/// <summary>Update the Task with the state of a ready Future</summary>
 		/// <returns>True if we got a result, or false in case of error (or invalid state)</returns>
@@ -169,6 +180,12 @@ namespace FoundationDB.Client.Native
 #if DEBUG_FUTURES
 			var sw = Stopwatch.StartNew();
 #endif
+
+			var selector = m_resultSelector;
+			var state = m_state;
+			m_resultSelector = null;
+			m_state = default;
+
 			try
 			{
 				var handle = m_handle;
@@ -207,12 +224,17 @@ namespace FoundationDB.Client.Native
 #if DEBUG_FUTURES
 						Debug.WriteLine("Future<" + typeof(T).Name + "> has completed successfully");
 #endif
-						var selector = m_resultSelector;
 						if (selector != null)
 						{
 							//note: result selector will execute from network thread, but this should be our own code that only calls into some fdb_future_get_XXXX(), which should be safe...
-							var result = selector(handle);
+							var result = selector(handle, state!);
+
 							TrySetResult(result);
+							return;
+						}
+						else
+						{
+							TrySetResult(default(TResult)!);
 							return;
 						}
 						//else: it will be handled below
@@ -250,14 +272,21 @@ namespace FoundationDB.Client.Native
 		{
 			var handle = m_handle;
 			//REVIEW: there is a possibility of a race condition with Dispose() that could potentially call FutureDestroy(handle) at the same time (not verified)
-			if (handle != null && !handle.IsClosed && !handle.IsInvalid) FdbNative.FutureCancel(handle);
+			if (handle != null && !handle.IsClosed && !handle.IsInvalid)
+			{
+				FdbNative.FutureCancel(handle);
+			}
 		}
 
 		protected override void ReleaseMemory()
 		{
 			var handle = m_handle;
+
 			//REVIEW: there is a possibility of a race condition with Dispose() that could potentially call FutureDestroy(handle) at the same time (not verified)
-			if (handle != null && !handle.IsClosed && !handle.IsInvalid) FdbNative.FutureReleaseMemory(handle);
+			if (handle != null && !handle.IsClosed && !handle.IsInvalid)
+			{
+				FdbNative.FutureReleaseMemory(handle);
+			}
 		}
 
 	}

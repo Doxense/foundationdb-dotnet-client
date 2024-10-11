@@ -40,7 +40,7 @@ namespace FoundationDB.Client.Native
 	internal static unsafe partial class FdbNative
 	{
 		public const int FDB_API_MIN_VERSION = 200;
-		public const int FDB_API_MAX_VERSION = 720;
+		public const int FDB_API_MAX_VERSION = 730;
 
 		/// <summary>Name of the C API dll used for P/Invoking</summary>
 		internal const string FDB_C_DLL = "fdb_c";
@@ -1998,11 +1998,11 @@ namespace FoundationDB.Client.Native
 #endif
 
 			// note: fdb_future_get_key is allowed to return NULL for the empty key (not to be confused with a key that has an empty value)
-			Contract.Debug.Assert(keyLength >= 0 && keyLength <= Fdb.MaxKeySize);
+			Contract.Debug.Assert((uint) keyLength <= Fdb.MaxKeySize);
 
 			if (keyLength > 0 && ptr != null)
 			{
-				key = new ReadOnlySpan<byte>(ptr, keyLength);
+				key = new(ptr, keyLength);
 			}
 			else
 			{ // from the spec: "If a key selector would otherwise describe a key off the beginning of the database, it instead resolves to the empty key ''."
@@ -2062,24 +2062,29 @@ namespace FoundationDB.Client.Native
 					var page = pool?.Rent(dataBytes) ?? new byte[dataBytes];
 
 					int p = 0;
+					Span<byte> tail = page.AsSpan();
 					for (int i = 0; i < result.Length; i++)
 					{
 						int kl = (int) kvp[i].KeyLength;
-						new ReadOnlySpan<byte>(kvp[i].Key, kl).CopyTo(page.AsSpan(p));
+						new ReadOnlySpan<byte>(kvp[i].Key, kl).CopyTo(tail);
 						var key = page.AsSlice(p, kl);
 						p += kl;
+						tail = tail.Slice(kl);
 
 						int vl = (int) kvp[i].ValueLength;
 						if (vl == 0)
 						{
 							result[i] = new(key, Slice.Empty);
+							continue;
 						}
 
-						new ReadOnlySpan<byte>(kvp[i].Value, vl).CopyTo(page.AsSpan(p));
+						new ReadOnlySpan<byte>(kvp[i].Value, vl).CopyTo(tail);
 						var value = page.AsSlice(p, vl);
 						p += vl;
 						result[i] = new(key, value);
+						tail = tail.Slice(vl);
 					}
+					Contract.Debug.Assert(p == dataBytes);
 
 					buffer = SliceOwner.Create(page.AsSlice(0, p), pool);
 				}
@@ -2088,10 +2093,9 @@ namespace FoundationDB.Client.Native
 			return err;
 		}
 
-		/// <summary>fdb_future_get_keyvalue_array</summary>
-		public static FdbError FutureGetKeyValueArray<TState, TResult>(FutureHandle future, TState state, FdbKeyValueDecoder<TState, TResult> decoder, out TResult[]? result, out bool more, out Slice first, out Slice last, out int totalBytes)
+		/// <summary><c>fdb_future_get_keyvalue_array</c></summary>
+		public static TResult[] FutureGetKeyValueArray<TState, TResult>(FutureHandle future, TState state, FdbKeyValueDecoder<TState, TResult> decoder, out bool more, out Slice first, out Slice last, out int totalBytes)
 		{
-			result = null;
 			first = default;
 			last = default;
 			totalBytes = 0;
@@ -2100,38 +2104,34 @@ namespace FoundationDB.Client.Native
 #if DEBUG_NATIVE_CALLS
 			LogNative($"fdb_future_get_keyvalue_array(0x{future.Handle:x}) => err={err}, count={count}, more={more}");
 #endif
+			DieOnError(err);
 
-			if (err == FdbError.Success)
+			Contract.Debug.Assert(count >= 0, "Return count was negative");
+			var kvp = new ReadOnlySpan<FdbKeyValue>(ptr, count);
+
+			if (kvp.Length == 0)
 			{
-				Contract.Debug.Assert(count >= 0, "Return count was negative");
-				var kvp = new ReadOnlySpan<FdbKeyValue>(ptr, count);
-
-				if (kvp.Length == 0)
-				{
-					result = [ ];
-				}
-				else
-				{
-					// convert the data using the raw native buffer
-					result = new TResult[kvp.Length];
-					long sum = 0;
-					for (int i = 0; i < kvp.Length; i++)
-					{
-						var k = kvp[i].GetKey();
-						var v = kvp[i].GetValue();
-						sum += k.Length;
-						sum += v.Length;
-						result[i] = decoder(state, k, v);
-					}
-
-					// we also need to grab the first and last key (for pagination)
-					first = Slice.Copy(kvp[0].GetKey());
-					last = kvp.Length > 1 ? Slice.Copy(kvp[^1].GetKey()) : first;
-					totalBytes = checked((int) sum);
-				}
+				return [ ];
 			}
 
-			return err;
+			// convert the data using the raw native buffer
+			var result = new TResult[kvp.Length];
+			long sum = 0;
+			for (int i = 0; i < kvp.Length; i++)
+			{
+				var k = kvp[i].GetKey();
+				var v = kvp[i].GetValue();
+				sum += k.Length;
+				sum += v.Length;
+				result[i] = decoder(state, k, v);
+			}
+
+			// we also need to grab the first and last key (for pagination)
+			first = Slice.Copy(kvp[0].GetKey());
+			last = kvp.Length > 1 ? Slice.Copy(kvp[^1].GetKey()) : first;
+			totalBytes = checked((int) sum);
+
+			return result;
 		}
 
 		/// <summary><c>fdb_future_get_keyvalue_array</c></summary>
@@ -2350,8 +2350,8 @@ namespace FoundationDB.Client.Native
 			return err;
 		}
 
-		/// <summary>fdb_future_get_string_array</summary>
-		public static FdbError FutureGetStringArray(FutureHandle future, out string?[]? result)
+		/// <summary><c>fdb_future_get_string_array</c></summary>
+		public static FdbError FutureGetStringArray(FutureHandle future, out string[]? result)
 		{
 			result = null;
 
@@ -2377,7 +2377,7 @@ namespace FoundationDB.Client.Native
 
 					for (int i = 0; i < result.Length; i++)
 					{
-						result[i] = ToManagedString(strings[i]);
+						result[i] = ToManagedString(strings[i])!;
 					}
 				}
 				else

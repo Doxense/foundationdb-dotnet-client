@@ -30,8 +30,8 @@ namespace FoundationDB.Client.Native
 {
 
 	/// <summary>FDBFuture[] wrapper</summary>
-	/// <typeparam name="T">Type of result</typeparam>
-	public sealed class FdbFutureArray<T> : FdbFuture<T[]>
+	/// <typeparam name="TResult">Type of result</typeparam>
+	public sealed class FdbFutureArray<TState, TResult> : FdbFuture<TResult[]>
 	{
 		// Wraps several FDBFuture* handles and return all the results at once
 
@@ -44,18 +44,19 @@ namespace FoundationDB.Client.Native
 		private int m_pending;
 
 		/// <summary>Lambda used to extract the result of this FDBFuture</summary>
-		private readonly Func<FutureHandle, T>? m_resultSelector;
+		private Func<FutureHandle, TState, TResult>? m_resultSelector;
+
+		private TState? m_state;
 
 		#endregion
 
 		#region Constructors...
 
-		internal FdbFutureArray(FutureHandle?[] handles, Func<FutureHandle, T> selector, CancellationToken ct)
+		internal FdbFutureArray(FutureHandle?[] handles, TState state, Func<FutureHandle, TState, TResult>? selector, CancellationToken ct)
 		{
-			Contract.Debug.Requires(handles != null && selector != null);
+			Contract.Debug.Requires(handles != null);
 
 			m_handles = handles;
-			m_resultSelector = selector;
 
 			bool abortAllHandles = false;
 
@@ -66,10 +67,12 @@ namespace FoundationDB.Client.Native
 
 					SetFlag(FdbFuture.Flags.COMPLETED);
 					abortAllHandles = true;
-					m_resultSelector = null;
 					TrySetCanceled();
 					return;
 				}
+
+				m_state = state;
+				Volatile.Write(ref m_resultSelector, selector);
 
 				// add this instance to the list of pending futures
 				var prm = RegisterCallback(this);
@@ -120,6 +123,9 @@ namespace FoundationDB.Client.Native
 				UnregisterCallback(this);
 
 				abortAllHandles = true;
+
+				Volatile.Write(ref m_resultSelector, null);
+				m_state = default;
 
 				// this is technically not needed, but just to be safe...
 				TrySetCanceled();
@@ -204,7 +210,7 @@ namespace FoundationDB.Client.Native
 			System.Diagnostics.Debug.WriteLine("Future<" + typeof(T).Name + ">.Callback(0x" + futureHandle.ToString("x") + ", " + parameter.ToString("x") + ") has fired on thread #" + Environment.CurrentManagedThreadId.ToString());
 #endif
 
-			var future = (FdbFutureArray<T>?) GetFutureFromCallbackParameter(parameter);
+			var future = (FdbFutureArray<TState, TResult>?) GetFutureFromCallbackParameter(parameter);
 
 			if (future != null && Interlocked.Decrement(ref future.m_pending) == 0)
 			{ // the last future handle has fired, we can proceed to read all the results
@@ -213,7 +219,7 @@ namespace FoundationDB.Client.Native
 				{
 					UnregisterCallback(future);
 
-					ThreadPool.UnsafeQueueUserWorkItem<FdbFutureArray<T>>(static (f) => f.HandleCompletion(), future, true);
+					ThreadPool.UnsafeQueueUserWorkItem(static (f) => f.HandleCompletion(), future, true);
 				}
 				// else, the ctor will handle that
 			}
@@ -237,11 +243,14 @@ namespace FoundationDB.Client.Native
 				UnregisterCancellationRegistration();
 
 				FdbError errGlobal = FdbError.Success;
-				var selector = m_resultSelector;
+				var selector = Volatile.Read(ref m_resultSelector);
+				var state = m_state;
+				m_resultSelector = null;
+				m_state = default;
 				var handles = m_handles;
 				Contract.Debug.Assert(handles != null);
 
-				var results = selector != null ? new T[handles.Length] : null;
+				var results = selector != null ? new TResult[handles.Length] : null;
 
 				for (int i = 0; i < handles.Length; i++)
 				{
@@ -274,7 +283,7 @@ namespace FoundationDB.Client.Native
 							if (selector != null)
 							{
 								//note: result selector will execute from network thread, but this should be our own code that only calls into some fdb_future_get_XXXX(), which should be safe...
-								results![i] = selector(handle);
+								results![i] = selector(handle, state!);
 							}
 						}
 					}
