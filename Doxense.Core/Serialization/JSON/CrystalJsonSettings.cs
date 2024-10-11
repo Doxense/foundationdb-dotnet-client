@@ -775,6 +775,12 @@ namespace Doxense.Serialization.Json
 	{
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool IsReadOnly(this CrystalJsonSettings? settings)
+		{
+			return settings is not null && settings.ReadOnly;
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool IsCompactLayout(this CrystalJsonSettings? settings)
 		{
 			return settings is not null && settings.TextLayout == CrystalJsonSettings.Layout.Compact;
