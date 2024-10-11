@@ -58,7 +58,7 @@ namespace Doxense.Collections.Tuples
 		/// <inheritdoc />
 		int System.Runtime.CompilerServices.ITuple.Length => 0;
 
-		object? System.Runtime.CompilerServices.ITuple.this[int index] => throw new InvalidOperationException("Tuple is empty");
+		object System.Runtime.CompilerServices.ITuple.this[int index] => throw new InvalidOperationException("Tuple is empty");
 
 		//REVIEW: should we throw if from/to are not null, 0 or -1 ?
 		IVarTuple IVarTuple.this[int? from, int? to] => this;
@@ -646,29 +646,57 @@ namespace Doxense.Collections.Tuples
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify<T>(T? item)
 			{
-				if (default(T) == null)
+				if (item is null) return Formatter.TokenNull;
+
+				if (default(T) is not null)
 				{
-					if (item == null) return TokenNull;
+					// <JIT_HACK>!
+					if (typeof(T) == typeof(int)) return Stringify((int) (object) item);
+					if (typeof(T) == typeof(uint)) return Stringify((uint) (object) item);
+					if (typeof(T) == typeof(long)) return Stringify((long) (object) item);
+					if (typeof(T) == typeof(ulong)) return Stringify((ulong) (object) item);
+					if (typeof(T) == typeof(bool)) return Stringify((bool) (object) item);
+					if (typeof(T) == typeof(char)) return Stringify((char) (object) item);
+					if (typeof(T) == typeof(Slice)) return Stringify((Slice) (object) item);
+					if (typeof(T) == typeof(double)) return Stringify((double) (object) item);
+					if (typeof(T) == typeof(float)) return Stringify((float) (object) item);
+					if (typeof(T) == typeof(Guid)) return Stringify((Guid) (object) item);
+					if (typeof(T) == typeof(Uuid128)) return Stringify((Uuid128) (object) item);
+					if (typeof(T) == typeof(Uuid96)) return Stringify((Uuid96) (object) item);
+					if (typeof(T) == typeof(Uuid80)) return Stringify((Uuid80) (object) item);
+					if (typeof(T) == typeof(Uuid64)) return Stringify((Uuid64) (object) item);
+					if (typeof(T) == typeof(DateTime)) return Stringify((DateTime) (object) item);
+					if (typeof(T) == typeof(DateTimeOffset)) return Stringify((DateTimeOffset) (object) item);
+					if (typeof(T) == typeof(NodaTime.Instant)) return Stringify((NodaTime.Instant) (object) item);
+					// </JIT_HACK>
 				}
-				// <JIT_HACK>!
-				if (typeof(T) == typeof(int)) return Stringify((int) (object) item!);
-				if (typeof(T) == typeof(uint)) return Stringify((uint) (object) item!);
-				if (typeof(T) == typeof(long)) return Stringify((long) (object) item!);
-				if (typeof(T) == typeof(ulong)) return Stringify((ulong) (object) item!);
-				if (typeof(T) == typeof(bool)) return Stringify((bool) (object) item!);
-				if (typeof(T) == typeof(char)) return Stringify((char) (object) item!);
-				if (typeof(T) == typeof(Slice)) return Stringify((Slice) (object) item!);
-				if (typeof(T) == typeof(MutableSlice)) return Stringify((MutableSlice) (object) item!);
-				if (typeof(T) == typeof(double)) return Stringify((double) (object) item!);
-				if (typeof(T) == typeof(float)) return Stringify((float) (object) item!);
-				if (typeof(T) == typeof(Guid)) return Stringify((Guid) (object) item!);
-				if (typeof(T) == typeof(Uuid128)) return Stringify((Uuid128) (object) item!);
-				if (typeof(T) == typeof(Uuid64)) return Stringify((Uuid64) (object) item!);
-				// </JIT_HACK>
-				if (item is string s) return Stringify(s);
+				else
+				{
+					if (item is string s) return Stringify(s);
+
+					// <JIT_HACK>!
+					if (typeof(T) == typeof(int?)) return Stringify((int) (object) item);
+					if (typeof(T) == typeof(uint?)) return Stringify((uint) (object) item);
+					if (typeof(T) == typeof(long?)) return Stringify((long) (object) item);
+					if (typeof(T) == typeof(ulong?)) return Stringify((ulong) (object) item);
+					if (typeof(T) == typeof(bool?)) return Stringify((bool) (object) item);
+					if (typeof(T) == typeof(char?)) return Stringify((char) (object) item);
+					if (typeof(T) == typeof(Slice?)) return Stringify((Slice) (object) item);
+					if (typeof(T) == typeof(double?)) return Stringify((double) (object) item);
+					if (typeof(T) == typeof(float?)) return Stringify((float) (object) item);
+					if (typeof(T) == typeof(Guid?)) return Stringify((Guid) (object) item);
+					if (typeof(T) == typeof(Uuid128?)) return Stringify((Uuid128) (object) item);
+					if (typeof(T) == typeof(Uuid96?)) return Stringify((Uuid96) (object) item);
+					if (typeof(T) == typeof(Uuid80?)) return Stringify((Uuid80) (object) item);
+					if (typeof(T) == typeof(Uuid64?)) return Stringify((Uuid64) (object) item);
+					if (typeof(T) == typeof(DateTime?)) return Stringify((DateTime) (object) item);
+					if (typeof(T) == typeof(DateTimeOffset?)) return Stringify((DateTimeOffset) (object) item);
+					if (typeof(T) == typeof(NodaTime.Instant?)) return Stringify((NodaTime.Instant) (object) item);
+					// </JIT_HACK>
+				}
 
 				// some other type
-				return StringifyInternal(item!);
+				return StringifyInternal(item);
 			}
 
 			/// <summary>Converts any object into a displayable string, for logging/debugging purpose</summary>
@@ -701,7 +729,12 @@ namespace Doxense.Collections.Tuples
 					case float f:      return Stringify(f);
 					case Guid guid:    return Stringify(guid);
 					case Uuid128 u128: return Stringify(u128);
+					case Uuid96 u96:   return Stringify(u96);
+					case Uuid80 u80:   return Stringify(u80);
 					case Uuid64 u64:   return Stringify(u64);
+					case DateTime dt:  return Stringify(dt);
+					case DateTimeOffset dto: return Stringify(dto);
+					case NodaTime.Instant t: return Stringify(t);
 				}
 
 				// some other type
@@ -772,7 +805,22 @@ namespace Doxense.Collections.Tuples
 			public static string Stringify(Uuid128 item) => item.ToString("B", CultureInfo.InstalledUICulture); /* {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx} */
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string Stringify(Uuid64 item) => item.ToString("B", CultureInfo.InstalledUICulture); /* {xxxxxxxx-xxxxxxxx} */
+			public static string Stringify(Uuid96 item) => item.ToString("B", CultureInfo.InstalledUICulture); /* {XXXXXXXX-XXXXXXXX-XXXXXXXX} */
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static string Stringify(Uuid80 item) => item.ToString("B", CultureInfo.InstalledUICulture); /* {XXXX-XXXXXXXX-XXXXXXXX} */
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static string Stringify(Uuid64 item) => item.ToString("B", CultureInfo.InstalledUICulture); /* {XXXXXXXX-XXXXXXXX} */
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static string Stringify(DateTime item) => "\"" + item.ToString("O", CultureInfo.InstalledUICulture) + "\""; /* "yyyy-mm-ddThh:mm:ss.ffffff" */
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static string Stringify(DateTimeOffset item) => "\"" + item.ToString("O", CultureInfo.InstalledUICulture) + "\""; /* "yyyy-mm-ddThh:mm:ss.ffffff+hh:mm" */
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static string Stringify(NodaTime.Instant item) => "\"" + item.ToDateTimeUtc().ToString("O", CultureInfo.InstalledUICulture) + "\""; /* "yyyy-mm-ddThh:mm:ss.ffffff" */
 
 			/// <summary>Converts a list of object into a displaying string, for loggin/debugging purpose</summary>
 			/// <param name="items">Array containing items to stringify</param>
