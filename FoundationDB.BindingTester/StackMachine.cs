@@ -458,14 +458,19 @@ namespace FoundationDB.Client.Testing
 					Task<FdbRangeChunk> future;
 					if (instr.IsDatabase())
 					{
-						future = this.Db.ReadAsync(tr => instr.IsSnapshot() ? tr.Snapshot.GetRangeAsync(begin, end, limit: limit, reverse: reverse, mode: streamingMode) : tr.GetRangeAsync(begin, end, limit: limit, reverse: reverse, mode: streamingMode), ct);
+						future = this.Db.ReadAsync(
+							tr => instr.IsSnapshot()
+								? tr.Snapshot.GetRangeAsync(begin, end, new() { Limit = limit, Reverse = reverse, Mode = streamingMode })
+								: tr.GetRangeAsync(begin, end, new() { Limit = limit, Reverse = reverse, Mode = streamingMode }),
+							ct
+						);
 					}
 					else
 					{
 						var tr = GetCurrentTransaction();
 						future = instr.IsSnapshot()
-							? tr.Snapshot.GetRangeAsync(begin, end, limit: limit, reverse: reverse, mode: streamingMode)
-							: tr.GetRangeAsync(begin, end, limit: limit, reverse: reverse, mode: streamingMode);
+							? tr.Snapshot.GetRangeAsync(begin, end, new() { Limit = limit, Reverse = reverse, Mode = streamingMode })
+							: tr.GetRangeAsync(begin, end, new () { Limit = limit, Reverse = reverse, Mode = streamingMode });
 					}
 
 					PushFuture(index, instr, future,
