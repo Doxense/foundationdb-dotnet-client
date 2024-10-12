@@ -81,7 +81,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>The same instance if the value is non-null. Throws an exception if it is null or missing</returns>
 		/// <exception cref="JsonBindingException">If <paramref name="value"/> is null or missing</exception>
 		[Pure, ContractAnnotation("value:null => halt"), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static JsonValue RequiredIndex(this JsonValue? value, int index, string? message = null) => value is not (null or JsonNull) ? value : FailIndexIsNullOrMissing(index, value, message);
+		public static JsonValue RequiredIndex(this JsonValue? value, int index, string? message = null) => value is not (null or JsonNull) ? value : FailIndexIsNullOrMissing(index, value, message);
 
 		/// <summary>Ensures that a JSON value is not <see langword="null"/>> or missing</summary>
 		/// <param name="value">JSON value that must not be null, or missing</param>
@@ -90,7 +90,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>The same instance if the value is non-null. Throws an exception if it is null or missing</returns>
 		/// <exception cref="JsonBindingException">If <paramref name="value"/> is null or missing</exception>
 		[Pure, ContractAnnotation("value:null => halt"), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static JsonValue RequiredIndex(this JsonValue? value, Index index, string? message = null) => value is not (null or JsonNull) ? value : FailIndexIsNullOrMissing(index, value, message);
+		public static JsonValue RequiredIndex(this JsonValue? value, Index index, string? message = null) => value is not (null or JsonNull) ? value : FailIndexIsNullOrMissing(index, value, message);
 
 		/// <summary>Ensures that the value of a field in a JSON Object is not null or missing</summary>
 		/// <param name="value">Value of the <paramref name="field"/> in the parent object.</param>
@@ -99,7 +99,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>The same value, if it is not null or missing; otherwise, an exception is thrown</returns>
 		/// <exception cref="JsonBindingException">If the value is null or missing</exception>
 		[ContractAnnotation("value:null => halt"), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static JsonValue RequiredField(this JsonValue? value, string field, string? message = null) => value is not (null or JsonNull) ? value : FailFieldIsNullOrMissing(value, field, message);
+		public static JsonValue RequiredField(this JsonValue? value, string field, string? message = null) => value is not (null or JsonNull) ? value : FailFieldIsNullOrMissing(value, field, message);
 
 		/// <summary>Ensures that the value of a field in a JSON Object is not null or missing</summary>
 		/// <param name="value">Value of the <paramref name="field"/> in the parent object.</param>
@@ -108,7 +108,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>The same value, if it is not null or missing; otherwise, an exception is thrown</returns>
 		/// <exception cref="JsonBindingException">If the value is null or missing</exception>
 		[ContractAnnotation("value:null => halt"), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static JsonValue RequiredField(this JsonValue? value, ReadOnlySpan<char> field, string? message = null) => value is not (null or JsonNull) ? value : FailFieldIsNullOrMissing(value, field, message);
+		public static JsonValue RequiredField(this JsonValue? value, ReadOnlySpan<char> field, string? message = null) => value is not (null or JsonNull) ? value : FailFieldIsNullOrMissing(value, field, message);
 
 		/// <summary>Ensures that the value of a field in a JSON Object is not null or missing</summary>
 		/// <param name="value">Value at the specified <paramref name="path"/> in the parent object.</param>
@@ -116,7 +116,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>The same value, if it is not null or missing; otherwise, an exception is thrown</returns>
 		/// <exception cref="JsonBindingException">If the value is null or missing</exception>
 		[ContractAnnotation("value:null => halt"), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static JsonValue RequiredPath(this JsonValue? value, string path) => value is not (null or JsonNull) ? value : FailPathIsNullOrMissing(value, JsonPath.Create(path));
+		public static JsonValue RequiredPath(this JsonValue? value, string path) => value is not (null or JsonNull) ? value : FailPathIsNullOrMissing(value, JsonPath.Create(path));
 
 		/// <summary>Ensures that the value of a field in a JSON Object is not null or missing</summary>
 		/// <param name="value">Value at the specified <paramref name="path"/> in the parent object.</param>
@@ -124,7 +124,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>The same value, if it is not null or missing; otherwise, an exception is thrown</returns>
 		/// <exception cref="JsonBindingException">If the value is null or missing</exception>
 		[ContractAnnotation("value:null => halt"), MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static JsonValue RequiredPath(this JsonValue? value, JsonPath path) => value is not (null or JsonNull) ? value : FailPathIsNullOrMissing(value, path);
+		public static JsonValue RequiredPath(this JsonValue? value, JsonPath path) => value is not (null or JsonNull) ? value : FailPathIsNullOrMissing(value, path);
 
 		/// <summary>Ensures that a JSON Array is not null</summary>
 		/// <param name="value">JSON Array</param>
@@ -140,13 +140,9 @@ namespace Doxense.Serialization.Json
 		[ContractAnnotation("null => halt")]
 		public static JsonObject Required(this JsonObject? value) => value ?? FailObjectIsNullOrMissing(value);
 
-		[Pure]
-		internal static JsonBindingException ErrorValueIsNullOrMissing()
-			=> new("Required JSON value was null or missing.");
-
 		[DoesNotReturn, StackTraceHidden]
 		internal static JsonValue FailValueIsNullOrMissing()
-			=> throw ErrorValueIsNullOrMissing();
+			=> throw CrystalJson.Errors.Parsing_ValueIsNullOrMissing();
 
 		[Pure]
 		internal static IndexOutOfRangeException ErrorValueIsOutOfBounds()
@@ -176,15 +172,11 @@ namespace Doxense.Serialization.Json
 		internal static JsonValue FailIndexIsNullOrMissing(Index index, JsonValue? value, string? message = null)
 			=> throw new JsonBindingException(message ?? (ReferenceEquals(value, JsonNull.Error) ? $"Index {index} is outside the bounds of the JSON Array." : $"Required JSON field at index {index} was null or missing."), JsonPath.Create(index), null, null);
 
-		[Pure]
-		internal static JsonBindingException ErrorFieldIsNullOrMissing(JsonValue? parent, string field, string? message)
-			=> new(message ?? $"Required JSON field '{field}' was null or missing.", JsonPath.Create(field), parent, null);
+		[DoesNotReturn, StackTraceHidden]
+		internal static JsonValue FailFieldIsNullOrMissing(JsonValue? parent, string field, string? message = null) => throw CrystalJson.Errors.Parsing_FieldIsNullOrMissing(parent, field, message);
 
 		[DoesNotReturn, StackTraceHidden]
-		internal static JsonValue FailFieldIsNullOrMissing(JsonValue? parent, string field, string? message = null) => throw ErrorFieldIsNullOrMissing(parent, field, message);
-
-		[DoesNotReturn, StackTraceHidden]
-		internal static JsonValue FailFieldIsNullOrMissing(JsonValue? parent, ReadOnlySpan<char> field, string? message = null) => throw ErrorFieldIsNullOrMissing(parent, field.ToString(), message);
+		internal static JsonValue FailFieldIsNullOrMissing(JsonValue? parent, ReadOnlySpan<char> field, string? message = null) => throw CrystalJson.Errors.Parsing_FieldIsNullOrMissing(parent, field.ToString(), message);
 
 		[Pure]
 		internal static JsonBindingException ErrorPathIsNullOrMissing(JsonValue? parent, JsonPath path) => new($"Required JSON path '{path}' was null or missing.", path, parent, null);
@@ -326,12 +318,12 @@ namespace Doxense.Serialization.Json
 				if (typeof(TValue) == typeof(UInt128?)) return (TValue) (object) value.ToUInt128();
 #endif
 
-				return value.Bind<TValue>(default, resolver) ?? throw ErrorValueIsNullOrMissing();
+				return value.Bind<TValue>(default, resolver) ?? throw CrystalJson.Errors.Parsing_ValueIsNullOrMissing();
 			}
 			#endregion </JIT_HACK>
 		}
 
-		/// <summary>Converts this value into a the specified CLR type, with a fallback value if it is null or missing.</summary>
+		/// <summary>Converts this value into the specified CLR type, with a fallback value if it is null or missing.</summary>
 		/// <typeparam name="TValue">Target CLR type</typeparam>
 		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
 		/// <remarks>If the value is <see langword="null"/> or "null-like", this will return the <paramref name="defaultValue"/>.</remarks>
@@ -535,7 +527,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns this value as a <b>required</b> JSON Object.</summary>
 		/// <param name="value">Value that must be a JSON Object.</param>
-		/// <returns>The same instance casted as <see cref="JsonObject"/>, Throws an exception if the value is null, missing, or any other type.</returns>
+		/// <returns>The same instance cast as <see cref="JsonObject"/>, Throws an exception if the value is null, missing, or any other type.</returns>
 		/// <exception cref="JsonBindingException">If <paramref name="value"/> is null, missing, or not a JSON Object.</exception>
 		[Pure, ContractAnnotation("null => null"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
@@ -548,7 +540,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns this value as JSON Object, or <see langword="null"/> if it is null or missing.</summary>
 		/// <param name="value">Value that can either be a JSON Object or null or missing.</param>
-		/// <returns>The same instance casted as <see cref="JsonObject"/>, or <see langword="null"/> if it was null or missing. Throws an exception if the value is any other type.</returns>
+		/// <returns>The same instance cast as <see cref="JsonObject"/>, or <see langword="null"/> if it was null or missing. Throws an exception if the value is any other type.</returns>
 		/// <exception cref="JsonBindingException">If <paramref name="value"/> is not a JSON Object and not null or missing.</exception>
 		[Pure, ContractAnnotation("null => null"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
@@ -561,7 +553,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns this value as a JSON Object, or an empty (read-only) object it is null or missing.</summary>
 		/// <param name="value">Value that can either be a JSON Object or null or missing.</param>
-		/// <returns>The same instance casted as <see cref="JsonObject"/>, or the <see cref="JsonObject.EmptyReadOnly"/> singleton if it was null or missing. Throws an exception if the value is any other type.</returns>
+		/// <returns>The same instance cast as <see cref="JsonObject"/>, or the <see cref="JsonObject.EmptyReadOnly"/> singleton if it was null or missing. Throws an exception if the value is any other type.</returns>
 		/// <exception cref="JsonBindingException">If <paramref name="value"/> is not a JSON Object.</exception>
 		[Pure, ContractAnnotation("null => null"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
@@ -674,7 +666,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns this value as a required JSON Array.</summary>
 		/// <param name="value">Value that must be a JSON Array.</param>
-		/// <returns>The same instance casted as <see cref="JsonArray"/>, Throws an exception if the value is null, missing, or any other type.</returns>
+		/// <returns>The same instance cast as <see cref="JsonArray"/>, Throws an exception if the value is null, missing, or any other type.</returns>
 		/// <exception cref="JsonBindingException">If <paramref name="value"/> is null, missing, or not a JSON Array.</exception>
 		[Pure, ContractAnnotation("null => halt"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
@@ -682,7 +674,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns this value as a JSON Array, or <see langword="null"/> if it is null or missing.</summary>
 		/// <param name="value">Value that can either be a JSON Array or null or missing.</param>
-		/// <returns>The same instance casted as <see cref="JsonArray"/>, or <see langword="null"/> if it was null or missing. Throws an exception if the value is any other type.</returns>
+		/// <returns>The same instance cast as <see cref="JsonArray"/>, or <see langword="null"/> if it was null or missing. Throws an exception if the value is any other type.</returns>
 		/// <exception cref="JsonBindingException">If <paramref name="value"/> is not a JSON Array and not null or missing.</exception>
 		[Pure, ContractAnnotation("null => null"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
@@ -690,7 +682,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns this value as a JSON Array, or an empty (read-only) object it is null or missing.</summary>
 		/// <param name="value">Value that can either be a JSON Array or null or missing.</param>
-		/// <returns>The same instance casted as <see cref="JsonArray"/>, or the <see cref="JsonArray.EmptyReadOnly"/> singleton if it was null or missing. Throws an exception if the value is any other type.</returns>
+		/// <returns>The same instance cast as <see cref="JsonArray"/>, or the <see cref="JsonArray.EmptyReadOnly"/> singleton if it was null or missing. Throws an exception if the value is any other type.</returns>
 		/// <exception cref="JsonBindingException">If <paramref name="value"/> is not a JSON Array.</exception>
 		[Pure, ContractAnnotation("null => null"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
@@ -704,84 +696,79 @@ namespace Doxense.Serialization.Json
 
 		#region AsNumber...
 
-		// magic cast entre JsonValue et JsonNumber
-		// le but est de réduire les faux positifs de nullref avec des outils d'analyse statique de code (R#, ..)
-
-		/// <summary>Vérifie que la valeur n'est pas vide, et qu'il s'agit bien d'une JsonNumber.</summary>
-		/// <param name="value">Valeur JSON qui doit être un number</param>
-		/// <returns>Valeur castée en JsonNumber si elle existe. Une exception si la valeur est null, missing, ou n'est pas un number.</returns>
-		/// <exception cref="JsonBindingException">Si <paramref name="value"/> est null, missing, ou n'est pas un number.</exception>
+		/// <summary>Ensures that a <see cref="JsonValue"/> is is non-null <see cref="JsonNumber"/>.</summary>
+		/// <param name="value">JSON value expected to be a string</param>
+		/// <returns>Value cast into a <see cref="JsonNumber"/> if it was a number literal, or an exception if it is something else.</returns>
+		/// <exception cref="JsonBindingException">If <paramref name="value"/> is not a number literal.</exception>
 		[Pure, ContractAnnotation("null => halt")]
 		public static JsonNumber AsNumber(this JsonValue? value)
-		{
-			return value as JsonNumber ?? FailValueIsNotANumber(value);
-		}
+			=> value as JsonNumber ?? throw ErrorValueIsNotANumber(value);
 
-		/// <summary>Retourne la valeur JSON sous forme d'un number, ou null si elle est null ou manquante.</summary>
-		/// <param name="value">Valeur JSON qui doit être soit un number, soit null/missing.</param>
-		/// <returns>Valeur castée en JsonNumber si elle existe, ou null si la valeur null ou missing. Une exception si la valeur est d'un type différent.</returns>
-		/// <exception cref="JsonBindingException">Si <paramref name="value"/> n'est ni null, ni un number.</exception>
+		/// <summary>Ensures that a <see cref="JsonValue"/> is is non-null <see cref="JsonNumber"/>.</summary>
+		/// <param name="value">JSON value expected to be a string</param>
+		/// <returns>Value cast into a <see cref="JsonNumber"/> if it was a number literal, or an exception if it is something else.</returns>
+		/// <exception cref="JsonBindingException">If <paramref name="value"/> is not a number literal.</exception>
 		[Pure]
 		public static JsonNumber? AsNumberOrDefault(this JsonValue? value)
-		{
-			return value.IsNullOrMissing() ? null : value as JsonNumber ?? FailValueIsNotANumber(value);
-		}
+			=> value.IsNullOrMissing() ? null : value as JsonNumber ?? throw ErrorValueIsNotANumber(value);
 
-		[DoesNotReturn, StackTraceHidden]
-		private static JsonNumber FailValueIsNotANumber(JsonValue? value)
-		{
-			if (value.IsNullOrMissing())
-			{
-				throw new JsonBindingException("Expected JSON number was either null or missing.");
-			}
-			else
-			{
-				throw CrystalJson.Errors.Parsing_CannotCastToJsonNumber(value);
-			}
-		}
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		private static JsonBindingException ErrorValueIsNotANumber(JsonValue? value)
+			=> value.IsNullOrMissing()
+				? new("Expected JSON Number was either null or missing.")
+				: CrystalJson.Errors.Parsing_CannotCastToJsonNumber(value);
 
 		#endregion
 
 		#region AsString...
 
-		// magic cast entre JsonValue et JsonNumber
-		// le but est de réduire les faux positifs de nullref avec des outils d'analyse statique de code (R#, ..)
-
-		/// <summary>Vérifie que la valeur n'est pas vide, et qu'il s'agit bien d'une JsonNumber.</summary>
-		/// <param name="value">Valeur JSON qui doit être un number</param>
-		/// <returns>Valeur castée en JsonNumber si elle existe. Une exception si la valeur est null, missing, ou n'est pas un number.</returns>
-		/// <exception cref="JsonBindingException">Si <paramref name="value"/> est null, missing, ou n'est pas un number.</exception>
+		/// <summary>Ensures that a <see cref="JsonValue"/> is is non-null <see cref="JsonString"/>.</summary>
+		/// <param name="value">JSON value expected to be a string</param>
+		/// <returns>Value cast into a <see cref="JsonString"/> if it was a string literal, or an exception if it is something else.</returns>
+		/// <exception cref="JsonBindingException">If <paramref name="value"/> is not a string literal.</exception>
 		[Pure, ContractAnnotation("null => halt")]
 		public static JsonString AsString(this JsonValue? value)
-		{
-			if (value is null || value.Type != JsonType.String) return FailValueIsNotAString(value);
-			return (JsonString)value;
-		}
+			=> value as JsonString ?? throw ErrorValueIsNotAString(value);
 
-		/// <summary>Retourne la valeur JSON sous forme d'un number, ou null si elle est null ou manquante.</summary>
-		/// <param name="value">Valeur JSON qui doit être soit un number, soit null/missing.</param>
-		/// <returns>Valeur castée en JsonNumber si elle existe, ou null si la valeur null ou missing. Une exception si la valeur est d'un type différent.</returns>
-		/// <exception cref="JsonBindingException">Si <paramref name="value"/> n'est ni null, ni un number.</exception>
+		/// <summary>Ensures that a <see cref="JsonValue"/> is is non-null <see cref="JsonString"/>.</summary>
+		/// <param name="value">JSON value expected to be either a string literal, or null/missing</param>
+		/// <returns>Value cast into a <see cref="JsonString"/> it it was a string literal, <see langword="null"/> if it was null or missing, or an exception if it is something else.</returns>
+		/// <exception cref="JsonBindingException">If <paramref name="value"/> is neither null nor a string literal.</exception>
 		[Pure]
 		public static JsonString? AsStringOrDefault(this JsonValue? value)
-		{
-			if (value.IsNullOrMissing()) return null;
-			if (value.Type != JsonType.String) return FailValueIsNotAString(value);
-			return (JsonString)value;
-		}
+			=> value.IsNullOrMissing() ? null : value as JsonString ?? throw ErrorValueIsNotAString(value);
 
-		[DoesNotReturn, StackTraceHidden]
-		private static JsonString FailValueIsNotAString(JsonValue? value)
-		{
-			if (value.IsNullOrMissing())
-			{
-				throw new JsonBindingException("Expected JSON string was either null or missing.");
-			}
-			else
-			{
-				throw CrystalJson.Errors.Parsing_CannotCastToJsonString(value);
-			}
-		}
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		private static JsonBindingException ErrorValueIsNotAString(JsonValue? value)
+			=> value.IsNullOrMissing()
+				? new("Expected JSON String was either null or missing.")
+				: CrystalJson.Errors.Parsing_CannotCastToJsonString(value);
+
+		#endregion
+
+		#region AsBoolean...
+
+		/// <summary>Ensures that a <see cref="JsonValue"/> is is non-null <see cref="JsonString"/>.</summary>
+		/// <param name="value">JSON value expected to be a string</param>
+		/// <returns>Value cast into a <see cref="JsonString"/> if it was a string literal, or an exception if it is something else.</returns>
+		/// <exception cref="JsonBindingException">If <paramref name="value"/> is not a string literal.</exception>
+		[Pure, ContractAnnotation("null => halt")]
+		public static JsonBoolean AsBoolean(this JsonValue? value)
+			=> value as JsonBoolean ?? throw ErrorValueIsNotABoolean(value);
+
+		/// <summary>Ensures that a <see cref="JsonValue"/> is is non-null <see cref="JsonString"/>.</summary>
+		/// <param name="value">JSON value expected to be either a string literal, or null/missing</param>
+		/// <returns>Value cast into a <see cref="JsonString"/> it it was a string literal, <see langword="null"/> if it was null or missing, or an exception if it is something else.</returns>
+		/// <exception cref="JsonBindingException">If <paramref name="value"/> is neither null nor a string literal.</exception>
+		[Pure]
+		public static JsonBoolean? AsBooleanOrDefault(this JsonValue? value)
+			=> value.IsNullOrMissing() ? null : value as JsonBoolean ?? throw ErrorValueIsNotABoolean(value);
+
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		private static JsonBindingException ErrorValueIsNotABoolean(JsonValue? value)
+			=> value.IsNullOrMissing()
+				? new("Expected JSON Boolean was either null or missing.")
+				: CrystalJson.Errors.Parsing_CannotCastToJsonBoolean(value);
 
 		#endregion
 

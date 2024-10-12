@@ -1889,6 +1889,12 @@ namespace Doxense.Serialization.Json
 			#region Parsing Errors...
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+			internal static JsonBindingException Parsing_ValueIsNullOrMissing() => new("Required JSON value was null or missing.");
+
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+			internal static JsonBindingException Parsing_FieldIsNullOrMissing(JsonValue? parent, string field, string? message) => new(message ?? $"Required JSON field '{field}' was null or missing.", JsonPath.Create(field), parent, null);
+
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			internal static JsonBindingException Parsing_CannotCastToJsonObject(JsonValue? value) => new($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} as an Object.", value);
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
@@ -1899,6 +1905,24 @@ namespace Doxense.Serialization.Json
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			internal static JsonBindingException Parsing_CannotCastToJsonString(JsonValue? value) => new($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} as a String.", value);
+
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+			internal static JsonBindingException Parsing_CannotCastToJsonBoolean(JsonValue? value) => new($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} as a Boolean.", value);
+
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+			internal static JsonBindingException Parsing_CannotCastFieldToJsonObject(JsonValue? value, string fieldName) => new($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} in field '{fieldName}' as an Object.", value);
+
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+			internal static JsonBindingException Parsing_CannotCastFieldToJsonArray(JsonValue? value, string fieldName) => new($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} in field '{fieldName}' as an Array.", value);
+
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+			internal static JsonBindingException Parsing_CannotCastFieldToJsonNumber(JsonValue? value, string fieldName) => new($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} in field '{fieldName}' as a Number.", value);
+
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+			internal static JsonBindingException Parsing_CannotCastFieldToJsonString(JsonValue? value, string fieldName) => new($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} in field '{fieldName}' as a String.", value);
+
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+			internal static JsonBindingException Parsing_CannotCastFieldToJsonBoolean(JsonValue? value, string fieldName) => new($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} in field '{fieldName}' as a Boolean.", value);
 
 			#endregion
 
