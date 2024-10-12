@@ -437,8 +437,8 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private static OptionFlags SetReadOnly(OptionFlags flags, bool readOnly)
-			=> readOnly ? flags | OptionFlags.Mutability_ReadOnly : flags & ~OptionFlags.Mutability_ReadOnly;
+		internal CrystalJsonSettings UpdateReadOnly(bool readOnly)
+			=> new(readOnly ? m_flags | OptionFlags.Mutability_ReadOnly : m_flags & ~OptionFlags.Mutability_ReadOnly);
 
 		#endregion
 
@@ -618,21 +618,6 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public CrystalJsonSettings WithFloatFormat(FloatFormat format) => Update(SetFloatFormatting(m_flags, format));
 
-		/// <summary>Return a read-only JSON document, that cannot be mutated.</summary>
-		/// <remarks>This setting has no effect when serializing to JSON.</remarks>
-		[Pure]
-		public CrystalJsonSettings AsReadOnly() => Update(SetReadOnly(m_flags, true));
-
-		/// <summary>Return a mutable JSON document (default)</summary>
-		/// <remarks>This setting has no effect when serializing to JSON.</remarks>
-		[Pure]
-		public CrystalJsonSettings AsMutable() => Update(SetReadOnly(m_flags, false));
-
-		/// <summary>Specify whether the parsed JSON docuemnt will be read-only or mutable (default)</summary>
-		/// <remarks>This setting has no effect when serializing to JSON.</remarks>
-		[Pure]
-		public CrystalJsonSettings AsReadOnly(bool readOnly) => Update(SetReadOnly(m_flags, readOnly));
-
 		#endregion
 
 		#region Default Globals...
@@ -774,41 +759,48 @@ namespace Doxense.Serialization.Json
 	public static class CrystalJsonSettingsExtensions
 	{
 
+		/// <summary>Returns a variant of these settings that parses JSON documents as read-only</summary>
+		/// <remarks>All other settings are unmodified</remarks>
+		[Pure]
+		public static CrystalJsonSettings AsReadOnly(this CrystalJsonSettings? settings)
+			=> settings == null ? CrystalJsonSettings.JsonReadOnly : settings.ReadOnly ? settings : settings.UpdateReadOnly(true);
+
+		/// <summary>Returns a variant of these settings that parses JSON documents as mutable</summary>
+		/// <remarks>All other settings are unmodified</remarks>
+		[Pure]
+		public static CrystalJsonSettings AsMutable(this CrystalJsonSettings? settings)
+			=> settings == null ? CrystalJsonSettings.Json : !settings.ReadOnly ? settings : settings.UpdateReadOnly(false);
+
+		/// <summary>Returns a variant of these settings that parses JSON documents as either read-only or mutable</summary>
+		/// <remarks>All other settings are unmodified</remarks>
+		[Pure]
+		public static CrystalJsonSettings AsReadOnly(this CrystalJsonSettings? settings, bool readOnly)
+			=> readOnly ? AsReadOnly(settings) : AsMutable(settings);
+
+		/// <summary>Tests if the settings specify whether the parsed JSON document will be read-only or mutable</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool IsReadOnly(this CrystalJsonSettings? settings)
-		{
-			return settings is not null && settings.ReadOnly;
-		}
+			=> settings is not null && settings.ReadOnly;
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool IsCompactLayout(this CrystalJsonSettings? settings)
-		{
-			return settings is not null && settings.TextLayout == CrystalJsonSettings.Layout.Compact;
-		}
+			=> settings is not null && settings.TextLayout == CrystalJsonSettings.Layout.Compact;
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool IsIndentedLayout(this CrystalJsonSettings? settings)
-		{
-			return settings is not null && settings.TextLayout == CrystalJsonSettings.Layout.Indented;
-		}
+			=> settings is not null && settings.TextLayout == CrystalJsonSettings.Layout.Indented;
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool IsFormattedLayout(this CrystalJsonSettings? settings)
-		{
-			return settings is null || settings.TextLayout == CrystalJsonSettings.Layout.Formatted;
-		}
+			=> settings is null || settings.TextLayout == CrystalJsonSettings.Layout.Formatted;
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool IsJsonTarget(this CrystalJsonSettings? settings)
-		{
-			return settings is null || settings.TargetLanguage == CrystalJsonSettings.Target.Json;
-		}
+			=> settings is null || settings.TargetLanguage == CrystalJsonSettings.Target.Json;
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool IsJavascriptTarget(this CrystalJsonSettings? settings)
-		{
-			return settings is not null && settings.TargetLanguage == CrystalJsonSettings.Target.JavaScript;
-		}
+			=> settings is not null && settings.TargetLanguage == CrystalJsonSettings.Target.JavaScript;
 
 	}
 
