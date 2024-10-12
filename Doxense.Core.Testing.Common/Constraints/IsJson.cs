@@ -983,16 +983,19 @@ namespace SnowBank.Testing
 				};
 			}
 
-			public override string Description => "<read-only>";
+			public override string Description => this.ReadOnly ? "<read-only>" : "<mutable>";
 
 			internal class Result : ConstraintResult
 			{
 
 				private JsonValue ActualJsonValue { get; }
 
+				private bool ReadOnly { get; }
+
 				public Result(JsonReadOnlyConstraint constraint, JsonValue actual, bool hasSucceeded)
 					: base(constraint, actual, hasSucceeded)
 				{
+					this.ReadOnly = constraint.ReadOnly;
 					this.ActualJsonValue = actual;
 				}
 
@@ -1004,7 +1007,7 @@ namespace SnowBank.Testing
 						return;
 					}
 
-					writer.WriteLine(TextMessageWriter.Pfx_Expected + "<read-only>");
+					writer.WriteLine(TextMessageWriter.Pfx_Expected + (this.ReadOnly ? "<read-only>" : "<mutable>"));
 					writer.Write(TextMessageWriter.Pfx_Actual);
 					WriteActualValueTo(writer);
 				}
