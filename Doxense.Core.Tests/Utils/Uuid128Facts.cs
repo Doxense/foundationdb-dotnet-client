@@ -81,40 +81,79 @@ namespace Doxense.Core.Tests
 		}
 
 		[Test]
+		public void Test_Uuid_FromUInt32()
+		{
+			Assert.Multiple(() =>
+			{
+				Assert.That(Uuid128.FromUInt32(0).ToString(), Is.EqualTo("00000000-0000-0000-0000-000000000000"));
+				Assert.That(Uuid128.FromUInt32(1).ToString(), Is.EqualTo("00000000-0000-0000-0000-000000000001"));
+				Assert.That(Uuid128.FromUInt32(0x01234567).ToString(), Is.EqualTo("00000000-0000-0000-0000-000001234567"));
+				Assert.That(Uuid128.FromUInt32(uint.MaxValue).ToString(), Is.EqualTo("00000000-0000-0000-0000-0000ffffffff"));
+			});
+		}
+
+		[Test]
+		public void Test_Uuid_FromUInt64()
+		{
+			Assert.Multiple(() =>
+			{
+				Assert.That(Uuid128.FromUInt64(0).ToString(), Is.EqualTo("00000000-0000-0000-0000-000000000000"));
+				Assert.That(Uuid128.FromUInt64(1).ToString(), Is.EqualTo("00000000-0000-0000-0000-000000000001"));
+				Assert.That(Uuid128.FromUInt64(0x0123456789ABCDEF).ToString(), Is.EqualTo("00000000-0000-0000-0123-456789abcdef"));
+				Assert.That(Uuid128.FromUInt64(ulong.MaxValue).ToString(), Is.EqualTo("00000000-0000-0000-ffff-ffffffffffff"));
+				Assert.That(Uuid128.FromUInt64(0, 0).ToString(), Is.EqualTo("00000000-0000-0000-0000-000000000000"));
+				Assert.That(Uuid128.FromUInt64(0, 1).ToString(), Is.EqualTo("00000000-0000-0000-0000-000000000001"));
+				Assert.That(Uuid128.FromUInt64(1, 2).ToString(), Is.EqualTo("00000000-0000-0001-0000-000000000002"));
+				Assert.That(Uuid128.FromUInt64(0, ulong.MaxValue).ToString(), Is.EqualTo("00000000-0000-0000-ffff-ffffffffffff"));
+				Assert.That(Uuid128.FromUInt64(0x0011223344556677, 0x8899AABBCCDDEEFF).ToString(), Is.EqualTo("00112233-4455-6677-8899-aabbccddeeff"));
+				Assert.That(Uuid128.FromUInt64(ulong.MaxValue, ulong.MaxValue).ToString(), Is.EqualTo("ffffffff-ffff-ffff-ffff-ffffffffffff"));
+			});
+		}
+
+		[Test]
 		public void Test_Uuid_Parse()
 		{
 
 			static void CheckSuccess(string literal, Uuid128 expected)
 			{
 				// string
-				Assert.That(Uuid128.Parse(literal), Is.EqualTo(expected), $"Should parse: {literal}");
-				Assert.That(Uuid128.Parse(literal).ToByteArray(), Is.EqualTo(expected.ToByteArray()));
-				Assert.That(Uuid128.Parse(literal, CultureInfo.InvariantCulture), Is.EqualTo(expected), $"Should parse: {literal}");
-				Assert.That(Uuid128.Parse(literal.ToUpperInvariant()), Is.EqualTo(expected), $"Should be case-insensitive: {literal}");
-				Assert.That(Uuid128.Parse(literal.ToUpperInvariant()), Is.EqualTo(expected), $"Should be case-insensitive: {literal}");
-				Assert.That(Uuid128.TryParse(literal, out var res), Is.True, $"Should parse: {literal}");
-				Assert.That(res, Is.EqualTo(expected), $"Should parse: {literal}");
-				Assert.That(Uuid128.TryParse(literal, CultureInfo.InvariantCulture, out res), Is.True, $"Should parse: {literal}");
-				Assert.That(res, Is.EqualTo(expected), $"Should parse: {literal}");
+				Assert.Multiple(() =>
+				{
+					Assert.That(Uuid128.Parse(literal), Is.EqualTo(expected), $"Should parse: {literal}");
+					Assert.That(Uuid128.Parse(literal).ToByteArray(), Is.EqualTo(expected.ToByteArray()));
+					Assert.That(Uuid128.Parse(literal, CultureInfo.InvariantCulture), Is.EqualTo(expected), $"Should parse: {literal}");
+					Assert.That(Uuid128.Parse(literal.ToUpperInvariant()), Is.EqualTo(expected), $"Should be case-insensitive: {literal}");
+					Assert.That(Uuid128.Parse(literal.ToUpperInvariant()), Is.EqualTo(expected), $"Should be case-insensitive: {literal}");
+					Assert.That(Uuid128.TryParse(literal, out var res), Is.True, $"Should parse: {literal}");
+					Assert.That(res, Is.EqualTo(expected), $"Should parse: {literal}");
+					Assert.That(Uuid128.TryParse(literal, CultureInfo.InvariantCulture, out res), Is.True, $"Should parse: {literal}");
+					Assert.That(res, Is.EqualTo(expected), $"Should parse: {literal}");
+				});
 
 				// ReadOnlySpan<char>
-				Assert.That(Uuid128.Parse(literal.AsSpan()), Is.EqualTo(expected), $"Should parse: {literal}");
-				Assert.That(Uuid128.Parse(literal.AsSpan(), CultureInfo.InvariantCulture), Is.EqualTo(expected), $"Should parse: {literal}");
-				Assert.That(Uuid128.Parse(literal.ToUpperInvariant().AsSpan()), Is.EqualTo(expected), $"Should be case-insensitive: {literal}");
-				Assert.That(Uuid128.Parse(literal.ToUpperInvariant().AsSpan(), CultureInfo.InvariantCulture), Is.EqualTo(expected), $"Should be case-insensitive: {literal}");
-				Assert.That(Uuid128.TryParse(literal.AsSpan(), out res), Is.True, $"Should parse: {literal}");
-				Assert.That(res, Is.EqualTo(expected), $"Should parse: {literal}");
-				Assert.That(Uuid128.TryParse(literal.AsSpan(), CultureInfo.InvariantCulture, out res), Is.True, $"Should parse: {literal}");
-				Assert.That(res, Is.EqualTo(expected), $"Should parse: {literal}");
+				Assert.Multiple(() =>
+				{
+					Assert.That(Uuid128.Parse(literal.AsSpan()), Is.EqualTo(expected), $"Should parse: {literal}");
+					Assert.That(Uuid128.Parse(literal.AsSpan(), CultureInfo.InvariantCulture), Is.EqualTo(expected), $"Should parse: {literal}");
+					Assert.That(Uuid128.Parse(literal.ToUpperInvariant().AsSpan()), Is.EqualTo(expected), $"Should be case-insensitive: {literal}");
+					Assert.That(Uuid128.Parse(literal.ToUpperInvariant().AsSpan(), CultureInfo.InvariantCulture), Is.EqualTo(expected), $"Should be case-insensitive: {literal}");
+					Assert.That(Uuid128.TryParse(literal.AsSpan(), out var res), Is.True, $"Should parse: {literal}");
+					Assert.That(res, Is.EqualTo(expected), $"Should parse: {literal}");
+					Assert.That(Uuid128.TryParse(literal.AsSpan(), CultureInfo.InvariantCulture, out res), Is.True, $"Should parse: {literal}");
+					Assert.That(res, Is.EqualTo(expected), $"Should parse: {literal}");
+				});
 
 				// ReadOnlySpan<byte>
-				var bytes = Encoding.UTF8.GetBytes(literal).AsSpan();
-				Assert.That(Uuid128.Parse(bytes).ToByteArray(), Is.EqualTo(expected.ToByteArray()));
-				Assert.That(Uuid128.Parse(bytes, CultureInfo.InvariantCulture), Is.EqualTo(expected), $"Should parse: {literal}");
-				Assert.That(Uuid128.TryParse(bytes, out res), Is.True, $"Should parse: {literal}");
-				Assert.That(res, Is.EqualTo(expected), $"Should parse: {literal}");
-				Assert.That(Uuid128.TryParse(bytes, CultureInfo.InvariantCulture, out res), Is.True, $"Should parse: {literal}");
-				Assert.That(res, Is.EqualTo(expected), $"Should parse: {literal}");
+				Assert.Multiple(() =>
+				{
+					var bytes = Encoding.UTF8.GetBytes(literal).AsSpan();
+					Assert.That(Uuid128.Parse(bytes).ToByteArray(), Is.EqualTo(expected.ToByteArray()));
+					Assert.That(Uuid128.Parse(bytes, CultureInfo.InvariantCulture), Is.EqualTo(expected), $"Should parse: {literal}");
+					Assert.That(Uuid128.TryParse(bytes, out var res), Is.True, $"Should parse: {literal}");
+					Assert.That(res, Is.EqualTo(expected), $"Should parse: {literal}");
+					Assert.That(Uuid128.TryParse(bytes, CultureInfo.InvariantCulture, out res), Is.True, $"Should parse: {literal}");
+					Assert.That(res, Is.EqualTo(expected), $"Should parse: {literal}");
+				});
 			}
 
 			CheckSuccess("00000000-0000-0000-0000-000000000000", Uuid128.Empty);
@@ -240,22 +279,25 @@ namespace Doxense.Core.Tests
 		[Test]
 		public void Test_Uuid_Vs_Guid()
 		{
-			var guid = Guid.NewGuid();
+			Assert.Multiple(() =>
+			{
+				var guid = Guid.NewGuid();
 
-			var uuid = new Uuid128(guid);
-			Assert.That(uuid.ToString(), Is.EqualTo(guid.ToString()));
-			Assert.That(uuid.ToGuid(), Is.EqualTo(guid));
-			Assert.That((Guid)uuid, Is.EqualTo(guid));
-			Assert.That((Uuid128)guid, Is.EqualTo(uuid));
-			Assert.That(Uuid128.Parse(guid.ToString()), Is.EqualTo(uuid));
-			Assert.That(uuid.Equals(guid), Is.True);
-			Assert.That(uuid.Equals((object) guid), Is.True);
-			Assert.That(uuid == guid, Is.True);
-			Assert.That(guid == uuid, Is.True);
+				var uuid = new Uuid128(guid);
+				Assert.That(uuid.ToString(), Is.EqualTo(guid.ToString()));
+				Assert.That(uuid.ToGuid(), Is.EqualTo(guid));
+				Assert.That((Guid) uuid, Is.EqualTo(guid));
+				Assert.That((Uuid128) guid, Is.EqualTo(uuid));
+				Assert.That(Uuid128.Parse(guid.ToString()), Is.EqualTo(uuid));
+				Assert.That(uuid.Equals(guid), Is.True);
+				Assert.That(uuid.Equals((object) guid), Is.True);
+				Assert.That(uuid == guid, Is.True);
+				Assert.That(guid == uuid, Is.True);
 
-			Assert.That(uuid.Equals(Guid.NewGuid()), Is.False);
-			Assert.That(uuid == Guid.NewGuid(), Is.False);
-			Assert.That(Guid.NewGuid() == uuid, Is.False);
+				Assert.That(uuid.Equals(Guid.NewGuid()), Is.False);
+				Assert.That(uuid == Guid.NewGuid(), Is.False);
+				Assert.That(Guid.NewGuid() == uuid, Is.False);
+			});
 		}
 
 		[Test]
@@ -334,24 +376,29 @@ namespace Doxense.Core.Tests
 		[Test]
 		public void Test_Uuid_ToSlice()
 		{
-			var uuid = Uuid128.NewUuid();
-			Assert.That(uuid.ToSlice().Count, Is.EqualTo(16));
-			Assert.That(uuid.ToSlice().Offset, Is.GreaterThanOrEqualTo(0));
-			Assert.That(uuid.ToSlice().Array, Is.Not.Null);
-			Assert.That(uuid.ToSlice().Array.Length, Is.GreaterThanOrEqualTo(16));
-			Assert.That(uuid.ToSlice(), Is.EqualTo(uuid.ToByteArray().AsSlice()));
-			Assert.That(uuid.ToSlice().GetBytes(), Is.EqualTo(uuid.ToByteArray()));
+			Assert.Multiple(() =>
+			{
+				var uuid = Uuid128.NewUuid();
+				Assert.That(uuid.ToSlice().Count, Is.EqualTo(16));
+				Assert.That(uuid.ToSlice().Offset, Is.GreaterThanOrEqualTo(0));
+				Assert.That(uuid.ToSlice().Array, Is.Not.Null);
+				Assert.That(uuid.ToSlice().Array.Length, Is.GreaterThanOrEqualTo(16));
+				Assert.That(uuid.ToSlice(), Is.EqualTo(uuid.ToByteArray().AsSlice()));
+				Assert.That(uuid.ToSlice().GetBytes(), Is.EqualTo(uuid.ToByteArray()));
+			});
 		}
 
 		[Test]
 		public void Test_Uuid_Version()
 		{
 			//note: these UUIDs are from http://docs.python.org/2/library/uuid.html
-
-			Assert.That(Uuid128.Parse("a8098c1a-f86e-11da-bd1a-00112444be1e").Version, Is.EqualTo(1));
-			Assert.That(Uuid128.Parse("6fa459ea-ee8a-3ca4-894e-db77e160355e").Version, Is.EqualTo(3));
-			Assert.That(Uuid128.Parse("16fd2706-8baf-433b-82eb-8c7fada847da").Version, Is.EqualTo(4));
-			Assert.That(Uuid128.Parse("886313e1-3b8a-5372-9b90-0c9aee199e5d").Version, Is.EqualTo(5));
+			Assert.Multiple(() =>
+			{
+				Assert.That(Uuid128.Parse("a8098c1a-f86e-11da-bd1a-00112444be1e").Version, Is.EqualTo(1));
+				Assert.That(Uuid128.Parse("6fa459ea-ee8a-3ca4-894e-db77e160355e").Version, Is.EqualTo(3));
+				Assert.That(Uuid128.Parse("16fd2706-8baf-433b-82eb-8c7fada847da").Version, Is.EqualTo(4));
+				Assert.That(Uuid128.Parse("886313e1-3b8a-5372-9b90-0c9aee199e5d").Version, Is.EqualTo(5));
+			});
 		}
 
 		[Test]
@@ -384,7 +431,6 @@ namespace Doxense.Core.Tests
 			Assert.That(uuid.Timestamp, Is.EqualTo(0x410a87de449df19L));
 			Assert.That(uuid.ClockSequence, Is.EqualTo(10923));
 			Assert.That(uuid.Node, Is.EqualTo(0xD5870625C6B7));
-
 		}
 
 		[Test]
@@ -413,7 +459,6 @@ namespace Doxense.Core.Tests
 				Assert.That(literals[i], Is.EqualTo(source[i].ToString()));
 				Assert.That(bytes[i], Is.EqualTo(source[i].ToSlice()));
 			}
-
 		}
 
 #if NET8_0_OR_GREATER
@@ -428,7 +473,7 @@ namespace Doxense.Core.Tests
 			{
 				var small = Uuid128.FromUInt32(0x1234);
 				var medium = Uuid128.FromUInt64(0x0123456789ABCDEF);
-				var big = Uuid128.NewUuid();
+				var big = Uuid128.FromUInt64(0x0011223344556677, 0x8899AABBCCDDEEFF);
 				Log($"D:`{Uuid128.Empty:D} | Z:`{Uuid128.Empty:Z}` | C:`{Uuid128.Empty:C}`");
 				Log($"D:`{small:D} | Z:`{small:Z}` | C:`{small:C}`");
 				Log($"D:`{medium:D} | Z:`{medium:Z}` | C:`{medium:C}`");
@@ -537,7 +582,7 @@ namespace Doxense.Core.Tests
 				Assert.That(Uuid128.FromUInt64(ulong.MaxValue - 1).ToString("C"), Is.EqualTo("LygHa16AHYE"));
 				Assert.That(Uuid128.FromUInt64(ulong.MaxValue).ToString("C"), Is.EqualTo("LygHa16AHYF"));
 
-				Assert.That(Uuid128.Parse("00112233-4455-6677-8899-AABBCCDDEEFF").ToString("C"), Is.EqualTo("7pSo2b9TNg1cedavCe7z"));
+				Assert.That(Uuid128.FromUInt64(0x0011223344556677, 0x8899AABBCCDDEEFF).ToString("C"), Is.EqualTo("7pSo2b9TNg1cedavCe7z"));
 				Assert.That(Uuid128.Parse("c46f15e3-a389-4fd6-bc4b-3718ec3cbfe9").ToString("C"), Is.EqualTo("5yfGGJ5WrviUM0D5Y3KNZ3"));
 				Assert.That(Uuid128.Parse("680e98d4-a35a-40b6-9870-e55821e5c618").ToString("C"), Is.EqualTo("3ALs7F1Ki9Sm26snO9IFRI"));
 				Assert.That(Uuid128.Parse("3469ed5b-917c-460a-9cac-76901371f2dc").ToString("C"), Is.EqualTo("1au0btiNg6WMhGPKoJDYYG"));
@@ -578,7 +623,7 @@ namespace Doxense.Core.Tests
 				Assert.That(Uuid128.FromBase62("G2eGAUq82Hd"), Is.EqualTo(Uuid128.FromUInt64(0xBADC0FFEE0DDF00DUL)));
 				Assert.That(Uuid128.FromBase62("000004gfFC3"), Is.EqualTo(Uuid128.FromUInt32(uint.MaxValue)));
 				Assert.That(Uuid128.FromBase62("LygHa16AHYF"), Is.EqualTo(Uuid128.FromUInt64(ulong.MaxValue)));
-				Assert.That(Uuid128.FromBase62("7pSo2b9TNg1cedavCe7z"), Is.EqualTo(Uuid128.Parse("00112233-4455-6677-8899-aabbccddeeff")));
+				Assert.That(Uuid128.FromBase62("7pSo2b9TNg1cedavCe7z"), Is.EqualTo(Uuid128.FromUInt64(0x0011223344556677, 0x8899AABBCCDDEEFF)));
 				Assert.That(Uuid128.FromBase62("5yfGGJ5WrviUM0D5Y3KNZ3"), Is.EqualTo(Uuid128.Parse("c46f15e3-a389-4fd6-bc4b-3718ec3cbfe9")));
 				Assert.That(Uuid128.FromBase62("3ALs7F1Ki9Sm26snO9IFRI"), Is.EqualTo(Uuid128.Parse("680e98d4-a35a-40b6-9870-e55821e5c618")));
 				Assert.That(Uuid128.FromBase62("1au0btiNg6WMhGPKoJDYYG"), Is.EqualTo(Uuid128.Parse("3469ed5b-917c-460a-9cac-76901371f2dc")));

@@ -148,6 +148,15 @@ namespace System
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static explicit operator Uuid128(Guid guid) => new(guid);
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Uuid128 FromUInt32(uint low) => new(0, low);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Uuid128 FromUInt64(ulong low) => new(0, low);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Uuid128 FromUInt64(ulong high, ulong low) => new(high, low);
+
 #if NET8_0_OR_GREATER
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -163,38 +172,24 @@ namespace System
 		public static explicit operator Uuid128(UInt128 a) => new(a);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Uuid128 FromUInt32(uint value)
-		{
-			return new Uuid128(0, value);
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Uuid128 FromUInt64(ulong value)
-		{
-			return new Uuid128(0, value);
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Uuid128 FromUInt128(UInt128 value)
-		{
-			return new Uuid128(value);
-		}
+		public static Uuid128 FromUInt128(UInt128 value) => new(value);
 
 #endif
 
-		/// <summary>Uuid128 with all bits set to zero: <c>00000000-0000-0000-0000-000000000000</c></summary>
+		/// <summary>Uuid128 with all bits set to zero: <c>"00000000-0000-0000-0000-000000000000"</c></summary>
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public static readonly Uuid128 Empty;
 
-		/// <summary>Uuid128 with all bits set to one: <c>FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF</c></summary>
+		/// <summary>Uuid128 with all bits set to one: <c>"FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF"</c></summary>
+		[EditorBrowsable(EditorBrowsableState.Always)]
 		public static readonly Uuid128 AllBitsSet = new(new Guid(-1, -1, -1, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue));
 
-		/// <summary>Uuid128 with all bits set to one: <c>FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF</c></summary>
-		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		/// <summary>Uuid128 with all bits set to one: <c>"FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF"</c></summary>
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static readonly Uuid128 MinValue;
 
-		/// <summary>Uuid128 with all bits set to one: <c>FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF</c></summary>
-		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		/// <summary>Uuid128 with all bits set to one: <c>"FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF"</c></summary>
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static readonly Uuid128 MaxValue = new(new Guid(-1, -1, -1, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue));
 
 		/// <summary>Size is 16 bytes</summary>
@@ -739,7 +734,7 @@ namespace System
 #if NET8_0_OR_GREATER
 
 		/// <summary>Return the equivalent <see cref="UInt128"/></summary>
-		/// <remarks>The integer correspond to the big-endian version of this instances serialized as a byte array</remarks>
+		/// <remarks>The integer correspond to the big-endian version of this instance serialized as a byte array</remarks>
 		public UInt128 ToUInt128()
 		{
 			Span<byte> tmp = stackalloc byte[16];
@@ -748,7 +743,7 @@ namespace System
 		}
 
 		/// <summary>Return the equivalent <see cref="Int128"/></summary>
-		/// <remarks>The integer correspond to the big-endian version of this instances serialized as a byte array</remarks>
+		/// <remarks>The integer correspond to the big-endian version of this instance serialized as a byte array</remarks>
 		public Int128 ToInt128()
 		{
 			Span<byte> tmp = stackalloc byte[16];
