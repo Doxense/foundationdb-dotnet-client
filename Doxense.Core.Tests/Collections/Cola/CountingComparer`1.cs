@@ -53,7 +53,7 @@ namespace Doxense.Collections.Generic.Test
 			Volatile.Write(ref m_count, 0);
 		}
 
-		public int Compare(T x, T y)
+		public int Compare(T? x, T? y)
 		{
 			Interlocked.Increment(ref m_count);
 			return m_comparer.Compare(x, y);

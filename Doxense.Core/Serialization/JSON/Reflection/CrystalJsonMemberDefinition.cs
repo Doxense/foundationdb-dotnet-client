@@ -56,7 +56,9 @@ namespace Doxense.Serialization.Json
 			this.OriginalName = originalName ?? name;
 			this.EncodedName = new(name);
 			this.NullableOfType = CrystalJsonTypeResolver.GetNullableType(memberType);
+#if NET8_0_OR_GREATER
 			this.IsNotNull = CrystalJsonTypeResolver.IsNotNullMemberType(member, memberType);
+#endif
 			this.IsRequired = CrystalJsonTypeResolver.IsRequiredMember(member);
 			this.IsKey = CrystalJsonTypeResolver.IsKeyMember(member);
 			this.IsInitOnly = CrystalJsonTypeResolver.IsInitOnlyMember(member);
@@ -110,6 +112,8 @@ namespace Doxense.Serialization.Json
 		/// </code></remarks>
 		public Type? NullableOfType { get; init; }
 
+#if NET8_0_OR_GREATER
+
 		/// <summary>The member cannot be null, or is annotated with <see cref="System.Diagnostics.CodeAnalysis.NotNullAttribute"/></summary>
 		/// <remarks>Examples: <code>
 		/// int Foo { get; ... }     // IsNotNull == true
@@ -118,6 +122,8 @@ namespace Doxense.Serialization.Json
 		/// string? Foo { get; ... } // IsNotNull == false
 		/// </code></remarks>
 		public bool IsNotNull { get; init; }
+
+#endif
 
 		/// <summary>The member has the required keyword and cannot be null</summary>
 		/// <remarks>Examples: <code>

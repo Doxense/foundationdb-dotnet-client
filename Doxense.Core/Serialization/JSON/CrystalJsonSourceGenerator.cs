@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-using System.Runtime.InteropServices;
+#if NET8_0_OR_GREATER
 
 namespace Doxense.Serialization.Json
 {
@@ -34,6 +34,7 @@ namespace Doxense.Serialization.Json
 	using System.Globalization;
 	using System.Reflection;
 	using System.Runtime.CompilerServices;
+	using System.Runtime.InteropServices;
 	using System.Text;
 
 	public class CrystalJsonSourceGenerator
@@ -268,6 +269,9 @@ namespace Doxense.Serialization.Json
 		{
 			var sb = new CodeBuilder();
 
+			sb.AppendLine("#if NET8_0_OR_GREATER");
+			sb.NewLine();
+
 			sb.Namespace(
 				this.Namespace,
 				() =>
@@ -312,6 +316,9 @@ namespace Doxense.Serialization.Json
 					);
 				}
 			);
+
+			sb.NewLine();
+			sb.AppendLine("#endif");
 
 			return sb.ToStringAndClear();
 		}
@@ -1652,3 +1659,5 @@ namespace Doxense.Serialization.Json
 	}
 
 }
+
+#endif

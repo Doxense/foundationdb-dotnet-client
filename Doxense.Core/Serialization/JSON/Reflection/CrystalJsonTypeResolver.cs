@@ -1054,6 +1054,8 @@ namespace Doxense.Serialization.Json
 			return member.GetCustomAttribute<System.Runtime.CompilerServices.RequiredMemberAttribute>() != null;
 		}
 
+#if NET8_0_OR_GREATER
+
 		/// <summary>Tests if a member of a type is decorated with the <see langword="required"/> keyword</summary>
 		public static bool IsNotNullMemberType(MemberInfo member, Type memberType)
 		{
@@ -1062,6 +1064,8 @@ namespace Doxense.Serialization.Json
 			if (memberType.IsValueType) return false;
 			return member.GetCustomAttribute<System.Runtime.CompilerServices.NullableAttribute>() != null;
 		}
+
+#endif
 
 		private static Action<object, object?>? TryCompileAdderForReadOnlyCollection(PropertyInfo? property)
 		{

@@ -1,3 +1,5 @@
+#if NET8_0_OR_GREATER
+
 namespace Doxense.Serialization.Json.Tests
 {
 	using Doxense.Serialization.Json;
@@ -1434,3 +1436,5 @@ namespace Doxense.Serialization.Json.Tests
 	}
 
 }
+
+#endif
