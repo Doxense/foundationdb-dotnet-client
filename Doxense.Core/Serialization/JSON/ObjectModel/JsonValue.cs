@@ -437,6 +437,8 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
+		#region GetValue...
+
 		/// <summary>Returns the value of the <b>required</b> field with the specified name.</summary>
 		/// <param name="key">Name of the field to retrieve</param>
 		/// <returns>The value of the specified field, or an exception if it is null or missing.</returns>
@@ -474,16 +476,19 @@ namespace Doxense.Serialization.Json
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public virtual JsonValue GetValue(Index index) => GetValueOrDefault(index, JsonNull.Missing).RequiredIndex(index);
-		
+
+		#endregion
+
+		#region GetValueOrDefault...
+
 		/// <summary>Returns the value of the <i>optional</i> field with the specified name.</summary>
 		/// <param name="key">Name of the field to retrieve</param>
 		/// <param name="defaultValue">The value that is returned if field was null or missing.</param>
 		/// <returns>The value of the specified field, or <paramref name="defaultValue"/> if it is null or missing.</returns>
 		/// <remarks>
-		/// <para>If the value is not a <see cref="JsonObject"/> or <see cref="JsonNull">null or missing</see>, an exception will be thrown. Please call <see cref="JsonValueExtensions.AsObject">obj.AsObject()</see>.</para>
+		/// <para>If the value is not a <see cref="JsonObject"/> or <see cref="JsonNull">null or missing</see>, an exception will be thrown.</para>
 		/// </remarks>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
 		public virtual JsonValue GetValueOrDefault(string key, JsonValue? defaultValue = null) => throw FailDoesNotSupportIndexingRead(this, key);
 
 		/// <summary>Returns the value of the <i>optional</i> field with the specified name.</summary>
@@ -491,10 +496,9 @@ namespace Doxense.Serialization.Json
 		/// <param name="defaultValue">The value that is returned if field was null or missing.</param>
 		/// <returns>The value of the specified field, or <paramref name="defaultValue"/> if it is null or missing.</returns>
 		/// <remarks>
-		/// <para>If the value is not a <see cref="JsonObject"/> or <see cref="JsonNull">null or missing</see>, an exception will be thrown. Please call <see cref="JsonValueExtensions.AsObject">obj.AsObject()</see>.</para>
+		/// <para>If the value is not a <see cref="JsonObject"/> or <see cref="JsonNull">null or missing</see>, an exception will be thrown.</para>
 		/// </remarks>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
 		public virtual JsonValue GetValueOrDefault(ReadOnlySpan<char> key, JsonValue? defaultValue = null) => throw FailDoesNotSupportIndexingRead(this, key.ToString());
 
 		/// <summary>Returns the value of the <i>optional</i> field with the specified name.</summary>
@@ -502,10 +506,9 @@ namespace Doxense.Serialization.Json
 		/// <param name="defaultValue">The value that is returned if field was null or missing.</param>
 		/// <returns>The value of the specified field, or <paramref name="defaultValue"/> if it is null or missing.</returns>
 		/// <remarks>
-		/// <para>If the value is not a <see cref="JsonObject"/> or <see cref="JsonNull">null or missing</see>, an exception will be thrown. Please call <see cref="JsonValueExtensions.AsObject">obj.AsObject()</see>.</para>
+		/// <para>If the value is not a <see cref="JsonObject"/> or <see cref="JsonNull">null or missing</see>, an exception will be thrown.</para>
 		/// </remarks>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
 		public virtual JsonValue GetValueOrDefault(ReadOnlyMemory<char> key, JsonValue? defaultValue = null) => throw FailDoesNotSupportIndexingRead(this, key.ToString());
 
 		/// <summary>Returns the value at the <i>optional</i> item at the specified index, if it is contained inside the array's bound.</summary>
@@ -513,17 +516,57 @@ namespace Doxense.Serialization.Json
 		/// <param name="defaultValue">The value that is returned if the index is outside the bounds of the array, or if the item at this location is null or missing.</param>
 		/// <returns>The value located at the specified index, or <paramref name="defaultValue"/> if the index is outside the bounds of the array, of the item is null or missing.</returns>
 		/// <remarks>If the index is outside the bounds, and <paramref name="defaultValue"/> is not specified, then <see cref="JsonNull.Error"/> is returned.</remarks>
+		/// <remarks>
+		/// <para>If the value is not a <see cref="JsonArray"/> or <see cref="JsonNull">null or missing</see>, an exception will be thrown.</para>
+		/// </remarks>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
 		public virtual JsonValue GetValueOrDefault(int index, JsonValue? defaultValue = null) => throw FailDoesNotSupportIndexingRead(this, index);
 
 		/// <summary>Returns the value at the <i>optional</i> item at the specified index, if it is contained inside the array's bound.</summary>
 		/// <param name="index">Index of the item to retrieve</param>
 		/// <param name="defaultValue">The value that is returned if the index is outside the bounds of the array, or if the item at this location is null or missing.</param>
 		/// <returns>The value located at the specified index, or <paramref name="defaultValue"/> if the index is outside the bounds of the array, of the item is null or missing.</returns>
+		/// <remarks>
+		/// <para>If the value is not a <see cref="JsonArray"/> or <see cref="JsonNull">null or missing</see>, an exception will be thrown.</para>
+		/// </remarks>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
 		public virtual JsonValue GetValueOrDefault(Index index, JsonValue? defaultValue = null) => throw FailDoesNotSupportIndexingRead(this, index);
+
+		#endregion
+
+		#region GetValueOrMissing...
+
+		/// <summary>Returns the value of the <i>optional</i> field with the specified name.</summary>
+		/// <param name="key">Name of the field to retrieve</param>
+		/// <returns>The value of the specified field, or <see cref="JsonNull.Missing"/> if it is null or missing.</returns>
+		/// <remarks>
+		/// <para>If the value is not a <see cref="JsonObject"/> or <see cref="JsonNull">null or missing</see>, an exception will be thrown.</para>
+		/// </remarks>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public JsonValue GetValueOrMissing(string key) => GetValueOrDefault(key, JsonNull.Missing);
+
+		/// <summary>Returns the value of the <i>optional</i> field with the specified name.</summary>
+		/// <param name="key">Name of the field to retrieve</param>
+		/// <returns>The value of the specified field, or <see cref="JsonNull.Missing"/> if it is null or missing.</returns>
+		/// <remarks>
+		/// <para>If the value is not a <see cref="JsonObject"/> or <see cref="JsonNull">null or missing</see>, an exception will be thrown.</para>
+		/// </remarks>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public JsonValue GetValueOrMissing(ReadOnlySpan<char> key) => GetValueOrDefault(key, JsonNull.Missing);
+
+		/// <summary>Returns the value of the <i>optional</i> field with the specified name.</summary>
+		/// <param name="key">Name of the field to retrieve</param>
+		/// <returns>The value of the specified field, or <see cref="JsonNull.Missing"/> if it is null or missing.</returns>
+		/// <remarks>
+		/// <para>If the value is not a <see cref="JsonObject"/> or <see cref="JsonNull">null or missing</see>, an exception will be thrown.</para>
+		/// </remarks>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public JsonValue GetValueOrMissing(ReadOnlyMemory<char> key) => GetValueOrDefault(key, JsonNull.Missing);
+
+		#endregion
 
 		/// <summary>Returns the value of the <i>optional</i> field with the specified name, if the current value is a JSON Object</summary>
 		/// <param name="key">Name of the field to retrieve</param>
@@ -845,7 +888,6 @@ namespace Doxense.Serialization.Json
 		/// </example>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
 		public TValue Get<TValue>(string key) where TValue : notnull => GetValue(key).Required<TValue>();
 
 		/// <summary>Gets the value of the <b>required</b> field with the specified name, converted into type <typeparamref name="TValue"/></summary>
@@ -860,7 +902,6 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
 		// ReSharper disable once MethodOverloadWithOptionalParameter
 		public TValue Get<TValue>(string key, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TValue : notnull => GetValueOrDefault(key).RequiredField(key, message).Required<TValue>(resolver);
 
@@ -910,7 +951,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Gets the <i>optional</i> JSON Object that corresponds to the field with the specified name.</summary>
 		/// <param name="key">Name of the field that is expected to be an object.</param>
-		/// <param name="defaultValue">Value that is returned if there if the value is null or missing</param>
+		/// <param name="defaultValue">Value that is returned if the value is null or missing</param>
 		/// <returns>Value of the field <paramref name="key"/> as a <see cref="JsonObject"/>, <paramref name="defaultValue"/> if it is null or missing, or an exception if it is not a JSON Object.</returns>
 		/// <exception cref="ArgumentException">If the value is not a JSON Object.</exception>
 		[Pure]
