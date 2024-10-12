@@ -138,10 +138,23 @@ namespace Doxense.Serialization.Json
 
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static T[]? JsonDeserializeArray<T>(this IJsonDeserializer<T> serializer, JsonValue? value, T[]? defaultValue = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			return !value.IsNullOrMissing() ? JsonDeserializeArray(serializer, value.AsArray(), resolver) : defaultValue;
-		}
+		public static T[]? JsonDeserializeArray<T>(this IJsonDeserializer<T> serializer, JsonValue? value, T[]? defaultValue = null, ICrystalJsonTypeResolver? resolver = null, string? fieldName = null)
+			=> value switch
+			{
+				JsonArray arr => JsonDeserializeArray(serializer, arr, resolver),
+				null or JsonNull => defaultValue,
+				_ => throw (fieldName != null ? CrystalJson.Errors.Parsing_CannotCastFieldToJsonArray(value, fieldName) : CrystalJson.Errors.Parsing_CannotCastToJsonArray(value))
+			};
+
+		/// <summary>Deserializes a <see cref="JsonArray"/> into a <see cref="List{T}"/>, stored into a <b>required</b> field of a parent object</summary>
+		[Pure]
+		public static T[] JsonDeserializeArrayRequired<T>(this IJsonDeserializer<T> serializer, JsonValue? value, ICrystalJsonTypeResolver? resolver = null, string? fieldName = null)
+			=> value switch
+			{
+				JsonArray arr => JsonDeserializeArray(serializer, arr, resolver),
+				null or JsonNull => throw (fieldName != null ? CrystalJson.Errors.Parsing_FieldIsNullOrMissing(null, fieldName, null) : CrystalJson.Errors.Parsing_ValueIsNullOrMissing()),
+				_ => throw (fieldName != null ? CrystalJson.Errors.Parsing_CannotCastFieldToJsonArray(value, fieldName) : CrystalJson.Errors.Parsing_CannotCastToJsonArray(value))
+			};
 
 		[Pure]
 		public static T[] JsonDeserializeArray<T>(this IJsonDeserializer<T> serializer, JsonArray array, ICrystalJsonTypeResolver? resolver = null)
@@ -157,13 +170,28 @@ namespace Doxense.Serialization.Json
 			return result;
 		}
 
+		/// <summary>Deserializes a <see cref="JsonArray"/> into a <see cref="List{T}"/>, stored into an optional field of a parent object</summary>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static List<T>? JsonDeserializeList<T>(this IJsonDeserializer<T> serializer, JsonValue? value, List<T>? defaultValue = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			return !value.IsNullOrMissing() ? JsonDeserializeList(serializer, value.AsArray(), resolver) : defaultValue;
-		}
+		public static List<T>? JsonDeserializeList<T>(this IJsonDeserializer<T> serializer, JsonValue? value, List<T>? defaultValue = null, ICrystalJsonTypeResolver? resolver = null, string? fieldName = null)
+			=> value switch
+			{
+				JsonArray arr => JsonDeserializeList(serializer, arr, resolver),
+				null or JsonNull => defaultValue,
+				_ => throw (fieldName != null ? CrystalJson.Errors.Parsing_CannotCastFieldToJsonArray(value, fieldName) : CrystalJson.Errors.Parsing_CannotCastToJsonArray(value))
+			};
 
+		/// <summary>Deserializes a <see cref="JsonArray"/> into a <see cref="List{T}"/>, stored into a <b>required</b> field of a parent object</summary>
+		[Pure]
+		public static List<T> JsonDeserializeListRequired<T>(this IJsonDeserializer<T> serializer, JsonValue? value, ICrystalJsonTypeResolver? resolver = null, string? fieldName = null)
+			=> value switch
+			{
+				JsonArray arr => JsonDeserializeList(serializer, arr, resolver),
+				null or JsonNull => throw (fieldName != null ? CrystalJson.Errors.Parsing_FieldIsNullOrMissing(null, fieldName, null) : CrystalJson.Errors.Parsing_ValueIsNullOrMissing()),
+				_ => throw (fieldName != null ? CrystalJson.Errors.Parsing_CannotCastFieldToJsonArray(value, fieldName) : CrystalJson.Errors.Parsing_CannotCastToJsonArray(value))
+			};
+
+		/// <summary>Deserializes a <see cref="JsonArray"/> into a <see cref="List{T}"/></summary>
 		[Pure]
 		public static List<T> JsonDeserializeList<T>(this IJsonDeserializer<T> serializer, JsonArray array, ICrystalJsonTypeResolver? resolver = null)
 		{
@@ -192,10 +220,13 @@ namespace Doxense.Serialization.Json
 
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static ImmutableArray<T>? JsonDeserializeImmutableArray<T>(this IJsonDeserializer<T> serializer, JsonValue? value, ImmutableArray<T>? defaultValue = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			return !value.IsNullOrMissing() ? JsonDeserializeImmutableArray(serializer, value.AsArray(), resolver) : defaultValue;
-		}
+		public static ImmutableArray<T>? JsonDeserializeImmutableArray<T>(this IJsonDeserializer<T> serializer, JsonValue? value, ImmutableArray<T>? defaultValue = null, ICrystalJsonTypeResolver? resolver = null, string? fieldName = null)
+			=> value switch
+			{
+				null or JsonNull => defaultValue,
+				JsonArray arr => JsonDeserializeImmutableArray(serializer, arr, resolver),
+				_ => throw (fieldName != null ? CrystalJson.Errors.Parsing_CannotCastFieldToJsonArray(value, fieldName) : CrystalJson.Errors.Parsing_CannotCastToJsonArray(value))
+			};
 
 		[Pure]
 		public static ImmutableArray<T> JsonDeserializeImmutableArray<T>(this IJsonDeserializer<T> serializer, JsonArray array, ICrystalJsonTypeResolver? resolver = null)
@@ -206,10 +237,13 @@ namespace Doxense.Serialization.Json
 
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static ImmutableList<T>? JsonDeserializeImmutableList<T>(this IJsonDeserializer<T> serializer, JsonValue? value, ImmutableList<T>? defaultValue = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			return !value.IsNullOrMissing() ? JsonDeserializeImmutableList(serializer, value.AsArray(), resolver) : defaultValue;
-		}
+		public static ImmutableList<T>? JsonDeserializeImmutableList<T>(this IJsonDeserializer<T> serializer, JsonValue? value, ImmutableList<T>? defaultValue = null, ICrystalJsonTypeResolver? resolver = null, string? fieldName = null)
+			=> value switch
+			{
+				null or JsonNull => defaultValue,
+				JsonArray arr => JsonDeserializeImmutableList(serializer, arr, resolver),
+				_ => throw (fieldName != null ? CrystalJson.Errors.Parsing_CannotCastFieldToJsonArray(value, fieldName) : CrystalJson.Errors.Parsing_CannotCastToJsonArray(value))
+			};
 
 		[Pure]
 		public static ImmutableList<T> JsonDeserializeImmutableList<T>(this IJsonDeserializer<T> serializer, JsonArray array, ICrystalJsonTypeResolver? resolver = null)
@@ -220,10 +254,13 @@ namespace Doxense.Serialization.Json
 
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static Dictionary<string, TValue>? JsonDeserializeDictionary<TValue>(this IJsonDeserializer<TValue> serializer, JsonValue? value, Dictionary<string, TValue>? defaultValue = null, IEqualityComparer<string>? keyComparer = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			return !value.IsNullOrMissing() ? JsonDeserializeDictionary(serializer, value.AsObject(), keyComparer, resolver) : defaultValue;
-		}
+		public static Dictionary<string, TValue>? JsonDeserializeDictionary<TValue>(this IJsonDeserializer<TValue> serializer, JsonValue? value, Dictionary<string, TValue>? defaultValue = null, IEqualityComparer<string>? keyComparer = null, ICrystalJsonTypeResolver? resolver = null, string? fieldName = null)
+			=> value switch
+			{
+				null or JsonNull => defaultValue,
+				JsonObject obj => JsonDeserializeDictionary(serializer, obj, keyComparer, resolver),
+				_ => throw (fieldName != null ? CrystalJson.Errors.Parsing_CannotCastFieldToJsonObject(value, fieldName) : CrystalJson.Errors.Parsing_CannotCastToJsonObject(value))
+			};
 
 		[Pure]
 		public static Dictionary<string, TValue> JsonDeserializeDictionary<TValue>(this IJsonDeserializer<TValue> serializer, JsonObject obj, IEqualityComparer<string>? keyComparer = null, ICrystalJsonTypeResolver? resolver = null)
@@ -928,10 +965,29 @@ namespace Doxense.Serialization.Json
 			return JsonObject.FromValues<TValue>(items, null, settings, resolver);
 		}
 
-		public static T Unpack<T>(JsonValue value, ICrystalJsonTypeResolver? resolver)
+		public static T Unpack<T>(JsonValue? value, ICrystalJsonTypeResolver? resolver)
 			where T : IJsonDeserializable<T>
 		{
+			return T.JsonDeserialize(value ?? JsonNull.Null, resolver);
+		}
+
+		public static T UnpackRequired<T>(JsonValue? value, ICrystalJsonTypeResolver? resolver, JsonValue? parent = null, string? fieldName = null)
+			where T : IJsonDeserializable<T>
+		{
+			if (value is null or JsonNull)
+			{
+				throw (fieldName != null ? CrystalJson.Errors.Parsing_FieldIsNullOrMissing(parent, fieldName, null) : CrystalJson.Errors.Parsing_ValueIsNullOrMissing());
+			}
 			return T.JsonDeserialize(value, resolver);
+		}
+
+		public static T UnpackRequired<T>(this IJsonDeserializer<T> converter, JsonValue? value, ICrystalJsonTypeResolver? resolver, JsonValue? parent = null, string? fieldName = null)
+		{
+			if (value is null or JsonNull)
+			{
+				throw (fieldName != null ? CrystalJson.Errors.Parsing_FieldIsNullOrMissing(parent, fieldName, null) : CrystalJson.Errors.Parsing_ValueIsNullOrMissing());
+			}
+			return converter.Unpack(value, resolver);
 		}
 
 		#endregion

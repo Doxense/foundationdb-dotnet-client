@@ -76,6 +76,9 @@ namespace Doxense.Serialization.Json
 	internal sealed class RuntimeJsonConverter<T> : IJsonConverter<T>
 	{
 
+		/// <summary>Default converter for instances of type <typeparamref name="T"/></summary>
+		public static readonly IJsonConverter<T> Default = new RuntimeJsonConverter<T>();
+
 		/// <inheritdoc />
 		public void Serialize(CrystalJsonWriter writer, T? instance)
 		{

@@ -6,12 +6,11 @@
 // //
 // #endregion
 
-#if NET9_0_OR_GREATER
-
 namespace Doxense.Serialization.Json.Tests
 {
 	using System.Buffers;
 	using System.Collections.Generic;
+	using System.ComponentModel.DataAnnotations;
 	using System.Net;
 	using Doxense.Mathematics.Statistics;
 
@@ -30,12 +29,15 @@ namespace Doxense.Serialization.Json.Tests
 	public sealed record MyAwesomeUser
 	{
 
-		[JsonProperty("id")]
+		/// <summary>User ID.</summary>
+		[Key, JsonProperty("id")]
 		public required string Id { get; init; }
 
+		/// <summary>Full name, for display purpose</summary>
 		[JsonProperty("displayName")]
 		public required string DisplayName { get; init; }
 
+		/// <summary>Primary email for this account</summary>
 		[JsonProperty("email")]
 		public required string Email { get; init; }
 
@@ -61,29 +63,38 @@ namespace Doxense.Serialization.Json.Tests
 
 	public sealed record MyAwesomeMetadata
 	{
+		/// <summary>Date at which this account was created</summary>
 		[JsonProperty("accountCreated")]
 		public DateTimeOffset AccountCreated { get; init; }
 
+		/// <summary>Date at which this account was last modified</summary>
 		[JsonProperty("accountModified")]
 		public DateTimeOffset AccountModified { get; init; }
 
+		/// <summary>Date at which this account was deleted, or <see langword="null"/> if it is still active</summary>
 		[JsonProperty("accountDisabled")]
 		public DateTimeOffset? AccountDisabled { get; init; }
 	}
 
 	public record struct MyAwesomeStruct
 	{
-		[JsonProperty("id")]
+
+		/// <summary>Some fancy ID</summary>
+		[Key, JsonProperty("id")]
 		public required string Id { get; init; }
 
+		/// <summary>Is it over 8000?</summary>
 		[JsonProperty("level")]
 		public required int Level { get; init; }
 
+		/// <summary>Path to enlightenment</summary>
 		[JsonProperty("path")]
 		public required JsonPath Path { get; init; }
 
+		/// <summary>End of the road</summary>
 		[JsonProperty("disabled")]
 		public bool? Disabled { get; init; }
+
 	}
 
 	public sealed record MyAwesomeDevice
@@ -105,9 +116,7 @@ namespace Doxense.Serialization.Json.Tests
 	[System.Text.Json.Serialization.JsonSourceGenerationOptions(System.Text.Json.JsonSerializerDefaults.Web /*, Converters = [ typeof(NodaTimeInstantJsonConverter) ], */)]
 	[System.Text.Json.Serialization.JsonSerializable(typeof(MyAwesomeUser))]
 	[System.Text.Json.Serialization.JsonSerializable(typeof(Person))]
-	public partial class SystemTextJsonGeneratedSerializers : System.Text.Json.Serialization.JsonSerializerContext
-	{
-	}
+	public partial class SystemTextJsonGeneratedSerializers : System.Text.Json.Serialization.JsonSerializerContext;
 
 	#endregion
 
@@ -118,7 +127,7 @@ namespace Doxense.Serialization.Json.Tests
 	{
 
 		[Test]
-		public void Test_Generate_Source_Code()
+		public void Generate_Source_Code()
 		{
 			//HACKHACK: for the moment this dumps the code in the test log,
 			// you are supposed to copy/paste this code and replace the block at the end of this file!
@@ -142,7 +151,47 @@ namespace Doxense.Serialization.Json.Tests
 
 			var source = gen.GenerateCode();
 			Log(source);
+
+#if DISABLED
+			WriteSourceCode("GeneratedSourceCode.cs", source);
+
+
+			static void WriteSourceCode(string fileName, string source, [CallerFilePath] string? callerPath = null)
+			{
+				string filePath = Path.Combine(Path.GetDirectoryName(callerPath)!, fileName);
+				File.WriteAllText(filePath, source);
+			}
+#endif
 		}
+
+		private static MyAwesomeUser MakeSampleUser() => new()
+		{
+			Id = "b6a16abe-e30c-4198-8358-5f0d8fd9c283",
+			DisplayName = "James Bond",
+			Email = "bond@example.org",
+			Type = 007,
+			Roles = ["user", "secret_agent"],
+			Metadata = new()
+			{
+				AccountCreated = DateTimeOffset.Parse("2024-09-20T12:34:56.7890123Z"),
+				AccountModified = DateTimeOffset.Parse("2024-09-21T10:00:25.5461402Z"),
+			},
+			Items =
+			[
+				new() { Id = "382bb7cd-f9e4-4906-874e-ab88df954fa8", Level = 123, Path = JsonPath.Create("foo.bar") },
+				new() { Id = "8092e57d-16b4-4afb-ae04-28acbeb22aa8", Level = 456, Path = JsonPath.Create("bars[2].foo"), Disabled = true }
+			],
+			Devices = new()
+			{
+				["Foo"] = new() { Id = "Foo", Model = "ACME Ultra Core 9100XX Ultra Series" },
+				["Bar"] = new() { Id = "Bar", Model = "iHAL 42 Pro Ultra MaXX" },
+			},
+			Extras = JsonObject.CreateReadOnly([
+				("hello", "world"),
+				("foo", 123),
+				("bar", JsonArray.Create([ 1, 2, 3 ])),
+			]),
+		};
 
 		[Test]
 		public void Test_Custom_Serializer_Simple_Type()
@@ -168,8 +217,8 @@ namespace Doxense.Serialization.Json.Tests
 
 				Log("# Parsing:");
 				var parsed = GeneratedSerializers.Person.Deserialize(json);
-				Log(parsed?.ToString());
 				Assert.That(parsed, Is.Not.Null);
+				Log(parsed.ToString());
 				Assert.That(parsed.FirstName, Is.EqualTo("James"));
 				Assert.That(parsed.FamilyName, Is.EqualTo("Bond"));
 				Log();
@@ -217,34 +266,7 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_Custom_Serializer_Complex_Type()
 		{
-			var user = new MyAwesomeUser()
-			{
-				Id = "b6a16abe-e30c-4198-8358-5f0d8fd9c283",
-				DisplayName = "James Bond",
-				Email = "bond@example.org",
-				Type = 007,
-				Roles = [ "user", "secret_agent" ],
-				Metadata = new ()
-				{
-					AccountCreated = DateTimeOffset.Parse("2024-09-20T12:34:56.7890123Z"),
-					AccountModified = DateTimeOffset.Parse("2024-09-21T10:00:25.5461402Z"),
-				},
-				Items =
-				[
-					new() { Id = "382bb7cd-f9e4-4906-874e-ab88df954fa8", Level = 123, Path = JsonPath.Create("foo.bar") },
-					new() { Id = "8092e57d-16b4-4afb-ae04-28acbeb22aa8", Level = 456, Path = JsonPath.Create("bars[2].foo"), Disabled = true }
-				],
-				Devices = new()
-				{
-					["Foo"] = new() { Id = "Foo", Model = "ACME Ultra Core 9100XX Ultra Series" },
-					["Bar"] = new() { Id = "Bar", Model = "iHAL 42 Pro Ultra MaXX" },
-				},
-				Extras = JsonObject.Create([
-					("hello", "world"),
-					("foo", 123),
-					("bar", JsonArray.Create([ 1, 2, 3 ])),
-				]),
-			};
+			var user = MakeSampleUser();
 
 			Log("Expected Json:");
 			var expectedJson = CrystalJson.Serialize(user);
@@ -359,36 +381,47 @@ namespace Doxense.Serialization.Json.Tests
 		}
 
 		[Test]
-		public void Test_ImpromptuReadOnly_Simple_Type()
+		public void Test_JsonReadOnlyProxy_FromValue_SimpleType()
 		{
+			// Test that FromValue(TValue) returns a read-only proxy that match the original instance
+
+			var person = new Person()
 			{
-				var person = new Person()
-				{
-					FamilyName = "Bond",
-					FirstName = "James"
-				};
-				Log("Person:");
-				Dump(person);
+				FamilyName = "Bond",
+				FirstName = "James"
+			};
 
-				Log("ReadOnly:");
-				var ro = GeneratedSerializers.ImpromptuReadOnlyPerson.FromValue(person);
-				Log(ro.ToString());
-				Assert.That(ro.FamilyName, Is.EqualTo("Bond"));
-				Assert.That(ro.FirstName, Is.EqualTo("James"));
+			Log("Person:");
+			Log(person.ToString());
 
-				var json = ro.ToJson();
-				Log("JSON:");
-				Dump(json);
-				Assert.That(json, IsJson.Object.And.ReadOnly);
-				Assert.That(json["familyName"], IsJson.EqualTo("Bond"));
-				Assert.That(json["firstName"], IsJson.EqualTo("James"));
-				Assert.That(json, IsJson.OfSize(2));
+			// Convert the Person into a proxy that wraps a read-only JsonObject
+			Log("FromValue(Person)");
+			var proxy = GeneratedSerializers.PersonReadOnly.Create(person);
+			Log(proxy.ToString());
+			Assert.That(proxy.FamilyName, Is.EqualTo("Bond"));
+			Assert.That(proxy.FirstName, Is.EqualTo("James"));
 
-			}
+			// inspect the wrapped JsonObject
+			Log("ToJson()");
+			var json = proxy.ToJson();
+			Dump(json);
+			Assert.That(json, IsJson.Object.And.ReadOnly);
+			Assert.That(json["familyName"], IsJson.EqualTo("Bond"));
+			Assert.That(json["firstName"], IsJson.EqualTo("James"));
+			Assert.That(json, IsJson.OfSize(2));
+
+			// serialize back into a Person
+			Log("ToValue()");
+			var decoded = proxy.ToValue();
+			Assert.That(decoded, Is.Not.Null);
+			Log(decoded.ToString());
+			Assert.That(decoded, Is.InstanceOf<Person>().And.Not.SameAs(person));
+			Assert.That(decoded.FamilyName, Is.EqualTo(person.FamilyName));
+			Assert.That(decoded.FirstName, Is.EqualTo(person.FirstName));
 		}
 
 		[Test]
-		public void Test_ImpromptuReadOnly_Can_Mutate()
+		public void Test_JsonReadOnlyProxy_Mutate_SimpleType()
 		{
 			var person = new Person()
 			{
@@ -399,18 +432,18 @@ namespace Doxense.Serialization.Json.Tests
 			Dump(person);
 
 			Log("ReadOnly:");
-			var ro = GeneratedSerializers.ImpromptuReadOnlyPerson.FromValue(person);
-			Log(ro.ToString());
-			Assert.That(ro.FamilyName, Is.EqualTo("Bond"));
-			Assert.That(ro.FirstName, Is.EqualTo("James"));
-			Assert.That(ro.ToJson(), IsJson.ReadOnly);
+			var proxy = GeneratedSerializers.PersonReadOnly.Create(person);
+			Log(proxy.ToString());
+			Assert.That(proxy.FamilyName, Is.EqualTo("Bond"));
+			Assert.That(proxy.FirstName, Is.EqualTo("James"));
+			Assert.That(proxy.ToJson(), IsJson.ReadOnly);
 
-			var mutated = ro.With(m =>
+			var mutated = proxy.With(m =>
 			{
 				Assert.That(m.FamilyName, Is.EqualTo("Bond"));
 				Assert.That(m.FirstName, Is.EqualTo("James"));
 				// the JSON should a mutable copy of the original
-				Assert.That(m.ToJson(), IsJson.Object.And.Mutable.And.EqualTo(ro.ToJson()));
+				Assert.That(m.ToJson(), IsJson.Object.And.Mutable.And.EqualTo(proxy.ToJson()));
 
 				m.FirstName = "Jim";
 				Assert.That(m.FirstName, Is.EqualTo("Jim"));
@@ -424,12 +457,60 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(mutated.ToJson(), IsJson.ReadOnly);
 
 			// should not change the original!
-			Assert.That(ro.FamilyName, Is.EqualTo("Bond"));
-			Assert.That(ro.FirstName, Is.EqualTo("James"));
+			Assert.That(proxy.FamilyName, Is.EqualTo("Bond"));
+			Assert.That(proxy.FirstName, Is.EqualTo("James"));
 		}
 
 		[Test]
-		public void Test_ImpromptuReadOnly_Keeps_Extra_Fields()
+		public void Test_JsonMutableProxy_FromValue_SimpleType()
+		{
+			// Test that FromValue(TValue) returns a read-only proxy that match the original instance
+
+			var person = new Person()
+			{
+				FamilyName = "Bond",
+				FirstName = "James"
+			};
+
+			Log("Person:");
+			Log(person.ToString());
+
+			// Convert the Person into a proxy that wraps a read-only JsonObject
+			Log("FromValue(Person)");
+			var proxy = GeneratedSerializers.PersonMutable.FromValue(person);
+			Log(proxy.ToString());
+			Assert.That(proxy.FamilyName, Is.EqualTo("Bond"));
+			Assert.That(proxy.FirstName, Is.EqualTo("James"));
+
+			// inspect the wrapped JsonObject
+			Log("ToJson()");
+			var json = proxy.ToJson();
+			Dump(json);
+			Assert.That(json, IsJson.Object.And.Mutable);
+			Assert.That(json["familyName"], IsJson.EqualTo("Bond"));
+			Assert.That(json["firstName"], IsJson.EqualTo("James"));
+			Assert.That(json, IsJson.OfSize(2));
+
+			// mutate the object
+			proxy.FirstName = "Jim";
+
+			Assert.That(proxy.FirstName, Is.EqualTo("Jim"));
+			Assert.That(json["firstName"], IsJson.EqualTo("Jim"));
+			// the original should not be changed
+			Assert.That(person.FirstName, Is.EqualTo("James"));
+
+			// serialize back into a Person
+			Log("ToValue()");
+			var decoded = proxy.ToValue();
+			Assert.That(decoded, Is.Not.Null);
+			Log(decoded.ToString());
+			Assert.That(decoded, Is.InstanceOf<Person>().And.Not.SameAs(person));
+			Assert.That(decoded.FamilyName, Is.EqualTo(person.FamilyName));
+			Assert.That(decoded.FirstName, Is.EqualTo("Jim"));
+		}
+
+		[Test]
+		public void Test_JsonReadOnlyProxy_Keeps_Extra_Fields()
 		{
 			var obj = JsonObject.CreateReadOnly(
 			[
@@ -440,12 +521,12 @@ namespace Doxense.Serialization.Json.Tests
 			]);
 			Dump(obj);
 
-			var ro = new GeneratedSerializers.ImpromptuReadOnlyPerson(obj);
-			Log(ro.ToString());
-			Assert.That(ro.FamilyName, Is.EqualTo("Bond"));
-			Assert.That(ro.FirstName, Is.EqualTo("James"));
+			var proxy = new GeneratedSerializers.PersonReadOnly(obj);
+			Log(proxy.ToString());
+			Assert.That(proxy.FamilyName, Is.EqualTo("Bond"));
+			Assert.That(proxy.FirstName, Is.EqualTo("James"));
 
-			var updated = ro.With(m => m.FirstName = "Jim");
+			var updated = proxy.With(m => m.FirstName = "Jim");
 
 			var export = updated.ToJson();
 			Dump(obj);
@@ -457,57 +538,94 @@ namespace Doxense.Serialization.Json.Tests
 		}
 
 		[Test]
-		public void Test_ImpromptuReadOnly_Complex_Type()
+		public void Test_JsonReadOnlyProxy_FromValue_ComplexType()
 		{
-			var user = new MyAwesomeUser()
-			{
-				Id = "b6a16abe-e30c-4198-8358-5f0d8fd9c283",
-				DisplayName = "James Bond",
-				Email = "bond@example.org",
-				Type = 007,
-				Roles = ["user", "secret_agent"],
-				Metadata = new()
-				{
-					AccountCreated = DateTimeOffset.Parse("2024-09-20T12:34:56.7890123Z"),
-					AccountModified = DateTimeOffset.Parse("2024-09-21T10:00:25.5461402Z"),
-				},
-				Items =
-				[
-					new() { Id = "382bb7cd-f9e4-4906-874e-ab88df954fa8", Level = 123, Path = JsonPath.Create("foo.bar") },
-					new() { Id = "8092e57d-16b4-4afb-ae04-28acbeb22aa8", Level = 456, Path = JsonPath.Create("bars[2].foo"), Disabled = true }
-				],
-				Devices = new()
-				{
-					["Foo"] = new() { Id = "Foo", Model = "ACME Ultra Core 9100XX Ultra Series" },
-					["Bar"] = new() { Id = "Bar", Model = "iHAL 42 Pro Ultra MaXX" },
-				},
-				Extras = JsonObject.Create([
-					("hello", "world"),
-					("foo", 123),
-					("bar", JsonArray.Create([ 1, 2, 3 ])),
-				]),
-			};
+			var user = MakeSampleUser();
 			Log("User:");
 			Log(user.ToString());
 
 			Log("ReadOnly:");
-			var ro = GeneratedSerializers.ImpromptuReadOnlyMyAwesomeUser.FromValue(user);
-			Log(ro.ToString());
-			Assert.That(ro.Id, Is.EqualTo(user.Id));
-			Assert.That(ro.DisplayName, Is.EqualTo(user.DisplayName));
+			var proxy = GeneratedSerializers.MyAwesomeUserReadOnly.Create(user);
+			Log(proxy.ToString());
+			Assert.That(proxy.Id, Is.EqualTo(user.Id));
+			Assert.That(proxy.DisplayName, Is.EqualTo(user.DisplayName));
+			Assert.That(proxy.Metadata.AccountCreated, Is.EqualTo(user.Metadata.AccountCreated));
+			Assert.That(proxy.Items[0].Id, Is.EqualTo(user.Items![0].Id));
+			Assert.That(proxy.Devices["Foo"].Id, Is.EqualTo(user.Devices!["Foo"].Id));
+			Assert.That(proxy.Extras, IsJson.ReadOnly.And.EqualTo(user.Extras));
 
-			var json = ro.ToJson();
+			var json = proxy.ToJson();
 			Log("JSON:");
 			Dump(json);
 			Assert.That(json, IsJson.Object.And.ReadOnly);
-			Assert.That(json["id"], IsJson.EqualTo("b6a16abe-e30c-4198-8358-5f0d8fd9c283"));
+			Assert.That(json["id"], IsJson.EqualTo(user.Id));
+			Assert.That(json["metadata"]["accountCreated"], IsJson.EqualTo(user.Metadata.AccountCreated));
+			Assert.That(json["items"][0]["id"], IsJson.EqualTo(user.Items[0].Id));
+			Assert.That(json["devices"]["Foo"]["id"], IsJson.EqualTo(user.Devices["Foo"].Id));
+			Assert.That(json["extras"], IsJson.ReadOnly.And.EqualTo(user.Extras));
 
-			var decoded = ro.ToValue();
+			var decoded = proxy.ToValue();
 			Log("Decoded:");
 			Log(decoded.ToString());
 			Assert.That(decoded, Is.Not.Null);
 			Assert.That(decoded.Id, Is.EqualTo(user.Id));
 			Assert.That(decoded.DisplayName, Is.EqualTo(user.DisplayName));
+		}
+
+		[Test]
+		public void Test_JsonReadOnlyMutable_FromValue_ComplexType()
+		{
+			var user = MakeSampleUser();
+			Log("User:");
+			Log(user.ToString());
+
+			Log("ReadOnly:");
+			var proxy = GeneratedSerializers.MyAwesomeUserMutable.FromValue(user);
+			Log(proxy.ToString());
+			Assert.That(proxy.Id, Is.EqualTo(user.Id));
+			Assert.That(proxy.DisplayName, Is.EqualTo(user.DisplayName));
+			Assert.That(proxy.Metadata.AccountCreated, Is.EqualTo(user.Metadata.AccountCreated));
+			Assert.That(proxy.Metadata.AccountModified, Is.EqualTo(user.Metadata.AccountModified));
+			Assert.That(proxy.Items[0].Id, Is.EqualTo(user.Items![0].Id));
+			Assert.That(proxy.Devices["Foo"].Id, Is.EqualTo(user.Devices!["Foo"].Id));
+			Assert.That(proxy.Extras, IsJson.Mutable.And.EqualTo(user.Extras));
+
+			var json = proxy.ToJson();
+			Log("JSON:");
+			Dump(json);
+			Assert.That(json, IsJson.Object.And.Mutable);
+			Assert.That(json["id"], IsJson.EqualTo(user.Id));
+			Assert.That(json["displayName"], IsJson.EqualTo(user.DisplayName));
+			Assert.That(json["metadata"]["accountCreated"], IsJson.EqualTo(user.Metadata.AccountCreated));
+			Assert.That(json["items"][0]["level"], IsJson.EqualTo(user.Items[0].Level));
+			Assert.That(json["devices"]["Foo"]["id"], IsJson.EqualTo(user.Devices["Foo"].Id));
+			Assert.That(json["extras"], IsJson.ReadOnly.And.EqualTo(user.Extras));
+
+			// mutate
+
+			proxy.DisplayName = "Jim Bond";
+			proxy.Metadata.AccountModified = DateTimeOffset.Parse("2024-10-12T17:37:42.6732914Z");
+			proxy.Items[0].Level = 8001;
+			proxy.Items.Add(new MyAwesomeStruct() { Id = "47c774e7-29e7-40fe-ba06-3098cafe77be", Level = 789, Path = JsonPath.Create("hello") });
+			proxy.Devices["Foo"].LastAddress = IPAddress.Parse("192.168.1.2");
+			proxy.Devices.Remove("Bar");
+
+			Log("Mutated:");
+			Dump(proxy.ToJson());
+
+			var decoded = proxy.ToValue();
+			Log("Decoded:");
+			Log(decoded.ToString());
+			Assert.That(decoded, Is.Not.Null);
+			Assert.That(decoded.Id, Is.EqualTo(user.Id));
+			Assert.That(decoded.DisplayName, Is.EqualTo("Jim Bond"));
+			Assert.That(decoded.Metadata.AccountCreated, Is.EqualTo(user.Metadata.AccountCreated));
+			Assert.That(decoded.Metadata.AccountModified, Is.Not.EqualTo(user.Metadata.AccountCreated).And.EqualTo(DateTimeOffset.Parse("2024-10-12T17:37:42.6732914Z")));
+			Assert.That(decoded.Items![0].Level, Is.EqualTo(8001));
+			Assert.That(decoded.Items, Has.Count.EqualTo(3));
+			Assert.That(decoded.Items![2].Level, Is.EqualTo(789));
+			Assert.That(decoded.Devices!["Foo"].LastAddress, Is.EqualTo(IPAddress.Parse("192.168.1.2")));
+			Assert.That(decoded.Devices, Does.Not.ContainKey("Bar"));
 		}
 
 		[Test]
@@ -538,7 +656,7 @@ namespace Doxense.Serialization.Json.Tests
 				},
 			};
 
-			var stjOps = new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web) { };
+			var stjOps = new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web);
 
 			var json = CrystalJson.Serialize(user, GeneratedSerializers.MyAwesomeUser);
 			var parsed = JsonValue.ParseObject(json);
@@ -640,1390 +758,3 @@ namespace Doxense.Serialization.Json.Tests
 	}
 
 }
-
-namespace Doxense.Serialization.Json.Tests
-{
-
-	// ReSharper disable GrammarMistakeInComment
-	// ReSharper disable InconsistentNaming
-	// ReSharper disable JoinDeclarationAndInitializer
-	// ReSharper disable PartialTypeWithSinglePart
-	// ReSharper disable RedundantNameQualifier
-
-	public partial class GeneratedSerializers
-	{
-
-		#region Person ...
-
-		/// <summary>JSON converter for type <see cref="Doxense.Serialization.Json.Tests.Person">Person</see></summary>
-		public static PersonJsonConverter Person => m_cachedPerson ??= new();
-
-		private static PersonJsonConverter? m_cachedPerson;
-
-		/// <summary>Converts instances of type <see cref="T:Doxense.Serialization.Json.Tests.Person">Person</see> to and from JSON.</summary>
-		[global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)]
-		[global::System.CodeDom.Compiler.GeneratedCode("CrystalJsonSourceGenerator", "0.1")]
-		[global::System.Diagnostics.DebuggerNonUserCode()]
-		public sealed class PersonJsonConverter : global::Doxense.Serialization.Json.IJsonConverter<global::Doxense.Serialization.Json.Tests.Person>
-		{
-
-			#region Serialization...
-
-			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _firstName = new("firstName");
-			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _familyName = new("familyName");
-
-			public void Serialize(global::Doxense.Serialization.Json.CrystalJsonWriter writer, global::Doxense.Serialization.Json.Tests.Person? instance)
-			{
-				if (instance is null)
-				{
-					writer.WriteNull();
-					return;
-				}
-
-				if (instance.GetType() != typeof(global::Doxense.Serialization.Json.Tests.Person))
-				{
-					global::Doxense.Serialization.Json.CrystalJsonVisitor.VisitValue(instance, typeof(global::Doxense.Serialization.Json.Tests.Person), writer);
-					return;
-				}
-
-				var state = writer.BeginObject();
-
-				// string FirstName => "firstName"
-				// TODO: unsupported enumerable type: System.String
-				// unknown type
-				writer.WriteField(_firstName, instance.FirstName);
-
-				// string FamilyName => "familyName"
-				// TODO: unsupported enumerable type: System.String
-				// unknown type
-				writer.WriteField(_familyName, instance.FamilyName);
-
-				writer.EndObject(state);
-			}
-
-			#endregion
-
-			#region Packing...
-
-			public global::Doxense.Serialization.Json.JsonValue Pack(global::Doxense.Serialization.Json.Tests.Person? instance, global::Doxense.Serialization.Json.CrystalJsonSettings? settings = default, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver? resolver = default)
-			{
-				if (instance is null)
-				{
-					return global::Doxense.Serialization.Json.JsonNull.Null;
-				}
-
-				if (instance.GetType() != typeof(global::Doxense.Serialization.Json.Tests.Person))
-				{
-					return global::Doxense.Serialization.Json.JsonValue.FromValue(instance);
-				}
-
-				global::Doxense.Serialization.Json.JsonValue? value;
-				var readOnly = settings?.ReadOnly ?? false;
-				var keepNulls = settings?.ShowNullMembers ?? false;
-
-				var obj = new global::Doxense.Serialization.Json.JsonObject(2);
-
-				// string FirstName => "firstName"
-				value = global::Doxense.Serialization.Json.JsonString.Return(instance.FirstName);
-				if (keepNulls || value is not null or JsonNull)
-				{
-					obj["firstName"] = value;
-				}
-
-				// string FamilyName => "familyName"
-				value = global::Doxense.Serialization.Json.JsonString.Return(instance.FamilyName);
-				if (keepNulls || value is not null or JsonNull)
-				{
-					obj["familyName"] = value;
-				}
-				if (readOnly)
-				{
-					return FreezeUnsafe(obj);
-				}
-
-				return obj;
-			}
-
-			#endregion
-
-			#region Deserialization...
-
-			// FirstName { get; init; }
-			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<FirstName>k__BackingField")]
-			private static extern ref string FirstNameAccessor(global::Doxense.Serialization.Json.Tests.Person instance);
-
-			// FamilyName { get; init; }
-			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<FamilyName>k__BackingField")]
-			private static extern ref string FamilyNameAccessor(global::Doxense.Serialization.Json.Tests.Person instance);
-
-			public global::Doxense.Serialization.Json.Tests.Person Unpack(global::Doxense.Serialization.Json.JsonValue value, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver? resolver = default)
-			{
-				var obj = value.AsObject();
-				var instance = global::System.Activator.CreateInstance<global::Doxense.Serialization.Json.Tests.Person>();
-
-				foreach (var kv in obj)
-				{
-					switch (kv.Key)
-					{
-						case "firstName": FirstNameAccessor(instance) = kv.Value.ToStringOrDefault(null)!; break;
-						case "familyName": FamilyNameAccessor(instance) = kv.Value.ToStringOrDefault(null)!; break;
-					}
-				}
-
-				return instance;
-			}
-
-			#endregion
-
-		}
-
-
-		/// <summary>Wraps a <see cref="JsonObject"/> into something that looks like a Person</summary>
-		public readonly record struct ImpromptuReadOnlyPerson : global::Doxense.Serialization.Json.IJsonReadOnly<global::Doxense.Serialization.Json.Tests.Person, ImpromptuReadOnlyPerson, ImpromptuMutablePerson>
-		{
-
-			/// <summary>JSON Object that is wrapped</summary>
-			private readonly global::Doxense.Serialization.Json.JsonObject m_obj;
-
-			public ImpromptuReadOnlyPerson(global::Doxense.Serialization.Json.JsonObject obj) => m_obj = obj;
-
-			/// <inheritdoc />
-			public static ImpromptuReadOnlyPerson FromValue(global::Doxense.Serialization.Json.Tests.Person value)
-			{
-				global::Doxense.Diagnostics.Contracts.Contract.NotNull(value);
-				return new((global::Doxense.Serialization.Json.JsonObject) GeneratedSerializers.Person.Pack(value, global::Doxense.Serialization.Json.CrystalJsonSettings.JsonReadOnly));
-			}
-
-			/// <inheritdoc />
-			public global::Doxense.Serialization.Json.Tests.Person ToValue() => GeneratedSerializers.Person.Unpack(m_obj);
-
-			/// <inheritdoc />
-			public global::Doxense.Serialization.Json.JsonObject ToJson() => m_obj;
-
-			/// <inheritdoc />
-			public ImpromptuMutablePerson ToMutable() => new(m_obj.Copy());
-
-			/// <inheritdoc />
-			public ImpromptuReadOnlyPerson With(Action<ImpromptuMutablePerson> modifier)
-			{
-				var copy = m_obj.Copy();
-				modifier(new(copy));
-				return new(FreezeUnsafe(copy));
-			}
-
-			/// <inheritdoc />
-			void global::Doxense.Serialization.Json.IJsonSerializable.JsonSerialize(global::Doxense.Serialization.Json.CrystalJsonWriter writer) => m_obj.JsonSerialize(writer);
-
-			/// <inheritdoc />
-			JsonValue global::Doxense.Serialization.Json.IJsonPackable.JsonPack(global::Doxense.Serialization.Json.CrystalJsonSettings settings, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver resolver) => m_obj;
-
-			/// <inheritdoc cref="Person.FirstName" />
-			public string FirstName => m_obj.Get<string>("firstName");
-
-			/// <inheritdoc cref="Person.FamilyName" />
-			public string FamilyName => m_obj.Get<string>("familyName");
-
-		}
-
-
-		/// <summary>Wraps a <see cref="JsonObject"/> into something that looks like a Person</summary>
-		public readonly record struct ImpromptuMutablePerson : global::Doxense.Serialization.Json.IJsonMutable<global::Doxense.Serialization.Json.Tests.Person, ImpromptuMutablePerson>
-		{
-
-			private readonly global::Doxense.Serialization.Json.JsonObject m_obj;
-
-			public ImpromptuMutablePerson(global::Doxense.Serialization.Json.JsonObject obj) => m_obj = obj;
-
-			/// <inheritdoc />
-			public static ImpromptuMutablePerson FromValue(global::Doxense.Serialization.Json.Tests.Person value)
-			{
-				global::Doxense.Diagnostics.Contracts.Contract.NotNull(value);
-				return new((global::Doxense.Serialization.Json.JsonObject) GeneratedSerializers.Person.Pack(value, global::Doxense.Serialization.Json.CrystalJsonSettings.Json));
-			}
-
-			/// <inheritdoc />
-			public global::Doxense.Serialization.Json.JsonObject ToJson() => m_obj;
-
-			/// <inheritdoc />
-			public ImpromptuReadOnlyPerson ToReadOnly() => new (m_obj.ToReadOnly());
-
-			/// <inheritdoc />
-			void global::Doxense.Serialization.Json.IJsonSerializable.JsonSerialize(global::Doxense.Serialization.Json.CrystalJsonWriter writer) => m_obj.JsonSerialize(writer);
-
-			/// <inheritdoc />
-			JsonValue global::Doxense.Serialization.Json.IJsonPackable.JsonPack(global::Doxense.Serialization.Json.CrystalJsonSettings settings, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver resolver) => settings.IsReadOnly() ? m_obj.ToReadOnly() : m_obj;
-
-			/// <inheritdoc cref="Person.FirstName" />
-			public string FirstName
-			{
-				get => m_obj.Get<string>("firstName");
-				set => m_obj.Set<string>("firstName", value);
-			}
-
-			/// <inheritdoc cref="Person.FamilyName" />
-			public string FamilyName
-			{
-				get => m_obj.Get<string>("familyName");
-				set => m_obj.Set<string>("familyName", value);
-			}
-
-		}
-
-		#endregion
-
-		#region MyAwesomeUser ...
-
-		/// <summary>JSON converter for type <see cref="Doxense.Serialization.Json.Tests.MyAwesomeUser">MyAwesomeUser</see></summary>
-		public static MyAwesomeUserJsonConverter MyAwesomeUser => m_cachedMyAwesomeUser ??= new();
-
-		private static MyAwesomeUserJsonConverter? m_cachedMyAwesomeUser;
-
-		/// <summary>Converts instances of type <see cref="T:Doxense.Serialization.Json.Tests.MyAwesomeUser">MyAwesomeUser</see> to and from JSON.</summary>
-		[global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)]
-		[global::System.CodeDom.Compiler.GeneratedCode("CrystalJsonSourceGenerator", "0.1")]
-		[global::System.Diagnostics.DebuggerNonUserCode()]
-		public sealed class MyAwesomeUserJsonConverter : global::Doxense.Serialization.Json.IJsonConverter<global::Doxense.Serialization.Json.Tests.MyAwesomeUser>
-		{
-
-			#region Serialization...
-
-			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _id = new("id");
-			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _displayName = new("displayName");
-			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _email = new("email");
-			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _type = new("type");
-			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _roles = new("roles");
-			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _metadata = new("metadata");
-			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _items = new("items");
-			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _devices = new("devices");
-			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _extras = new("extras");
-
-			public void Serialize(global::Doxense.Serialization.Json.CrystalJsonWriter writer, global::Doxense.Serialization.Json.Tests.MyAwesomeUser? instance)
-			{
-				if (instance is null)
-				{
-					writer.WriteNull();
-					return;
-				}
-
-				var state = writer.BeginObject();
-
-				// string Id => "id"
-				// TODO: unsupported enumerable type: System.String
-				// unknown type
-				writer.WriteField(_id, instance.Id);
-
-				// string DisplayName => "displayName"
-				// TODO: unsupported enumerable type: System.String
-				// unknown type
-				writer.WriteField(_displayName, instance.DisplayName);
-
-				// string Email => "email"
-				// TODO: unsupported enumerable type: System.String
-				// unknown type
-				writer.WriteField(_email, instance.Email);
-
-				// int Type => "type"
-				// unknown type
-				writer.WriteField(_type, instance.Type);
-
-				// string[] Roles => "roles"
-				// TODO: unsupported enumerable type: System.String[]
-				// unknown type
-				writer.WriteField(_roles, instance.Roles);
-
-				// MyAwesomeMetadata Metadata => "metadata"
-				// custom!
-				writer.WriteField(_metadata, instance.Metadata, GeneratedSerializers.MyAwesomeMetadata);
-
-				// List<MyAwesomeStruct> Items => "items"
-				// custom array!
-				writer.WriteFieldArray(_items, instance.Items, GeneratedSerializers.MyAwesomeStruct);
-
-				// Dictionary<string, MyAwesomeDevice> Devices => "devices"
-				// dictionary with string key
-				writer.WriteFieldDictionary(_devices, instance.Devices, GeneratedSerializers.MyAwesomeDevice);
-
-				// JsonObject Extras => "extras"
-				// TODO: unsupported dictionary type: key=System.String, value=Doxense.Serialization.Json.JsonValue
-				// unknown type
-				writer.WriteField(_extras, instance.Extras);
-
-				writer.EndObject(state);
-			}
-
-			#endregion
-
-			#region Packing...
-
-			public global::Doxense.Serialization.Json.JsonValue Pack(global::Doxense.Serialization.Json.Tests.MyAwesomeUser? instance, global::Doxense.Serialization.Json.CrystalJsonSettings? settings = default, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver? resolver = default)
-			{
-				if (instance is null)
-				{
-					return global::Doxense.Serialization.Json.JsonNull.Null;
-				}
-
-				global::Doxense.Serialization.Json.JsonValue? value;
-				var readOnly = settings?.ReadOnly ?? false;
-				var keepNulls = settings?.ShowNullMembers ?? false;
-
-				var obj = new global::Doxense.Serialization.Json.JsonObject(9);
-
-				// string Id => "id"
-				value = global::Doxense.Serialization.Json.JsonString.Return(instance.Id);
-				if (keepNulls || value is not null or JsonNull)
-				{
-					obj["id"] = value;
-				}
-
-				// string DisplayName => "displayName"
-				value = global::Doxense.Serialization.Json.JsonString.Return(instance.DisplayName);
-				if (keepNulls || value is not null or JsonNull)
-				{
-					obj["displayName"] = value;
-				}
-
-				// string Email => "email"
-				value = global::Doxense.Serialization.Json.JsonString.Return(instance.Email);
-				if (keepNulls || value is not null or JsonNull)
-				{
-					obj["email"] = value;
-				}
-
-				// int Type => "type"
-				// fast!
-				value = global::Doxense.Serialization.Json.JsonNumber.Return(instance.Type);
-				obj["type"] = value;
-
-				// string[] Roles => "roles"
-				value = global::Doxense.Serialization.Json.JsonSerializerExtensions.JsonPackArray(instance.Roles, settings, resolver);
-				if (keepNulls || value is not null or JsonNull)
-				{
-					obj["roles"] = value;
-				}
-
-				// MyAwesomeMetadata Metadata => "metadata"
-				// custom!
-				value = GeneratedSerializers.MyAwesomeMetadata.Pack(instance.Metadata, settings, resolver);
-				if (keepNulls || value is not null or JsonNull)
-				{
-					obj["metadata"] = value;
-				}
-
-				// List<MyAwesomeStruct> Items => "items"
-				value = GeneratedSerializers.MyAwesomeStruct.JsonPackList(instance.Items, settings, resolver);
-				if (keepNulls || value is not null or JsonNull)
-				{
-					obj["items"] = value;
-				}
-
-				// Dictionary<string, MyAwesomeDevice> Devices => "devices"
-				value = GeneratedSerializers.MyAwesomeDevice.JsonPackObject(instance.Devices, settings, resolver);
-				if (keepNulls || value is not null or JsonNull)
-				{
-					obj["devices"] = value;
-				}
-
-				// JsonObject Extras => "extras"
-				value = readOnly ? instance.Extras?.ToReadOnly() : instance.Extras;
-				if (keepNulls || value is not null or JsonNull)
-				{
-					obj["extras"] = value;
-				}
-				if (readOnly)
-				{
-					return FreezeUnsafe(obj);
-				}
-
-				return obj;
-			}
-
-			#endregion
-
-			#region Deserialization...
-
-			// Id { get; init; }
-			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Id>k__BackingField")]
-			private static extern ref string IdAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeUser instance);
-
-			// DisplayName { get; init; }
-			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<DisplayName>k__BackingField")]
-			private static extern ref string DisplayNameAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeUser instance);
-
-			// Email { get; init; }
-			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Email>k__BackingField")]
-			private static extern ref string EmailAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeUser instance);
-
-			// Type { get; init; }
-			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Type>k__BackingField")]
-			private static extern ref int TypeAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeUser instance);
-
-			// Roles { get; init; }
-			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Roles>k__BackingField")]
-			private static extern ref string[] RolesAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeUser instance);
-
-			// Metadata { get; init; }
-			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Metadata>k__BackingField")]
-			private static extern ref global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata MetadataAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeUser instance);
-
-			// Items { get; init; }
-			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Items>k__BackingField")]
-			private static extern ref global::System.Collections.Generic.List<global::Doxense.Serialization.Json.Tests.MyAwesomeStruct> ItemsAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeUser instance);
-
-			// Devices { get; init; }
-			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Devices>k__BackingField")]
-			private static extern ref global::System.Collections.Generic.Dictionary<string, global::Doxense.Serialization.Json.Tests.MyAwesomeDevice> DevicesAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeUser instance);
-
-			// Extras { get; init; }
-			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Extras>k__BackingField")]
-			private static extern ref global::Doxense.Serialization.Json.JsonObject ExtrasAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeUser instance);
-
-			public global::Doxense.Serialization.Json.Tests.MyAwesomeUser Unpack(global::Doxense.Serialization.Json.JsonValue value, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver? resolver = default)
-			{
-				var obj = value.AsObject();
-				var instance = global::System.Activator.CreateInstance<global::Doxense.Serialization.Json.Tests.MyAwesomeUser>();
-
-				foreach (var kv in obj)
-				{
-					switch (kv.Key)
-					{
-						case "id": IdAccessor(instance) = kv.Value.ToStringOrDefault(null)!; break;
-						case "displayName": DisplayNameAccessor(instance) = kv.Value.ToStringOrDefault(null)!; break;
-						case "email": EmailAccessor(instance) = kv.Value.ToStringOrDefault(null)!; break;
-						case "type": TypeAccessor(instance) = kv.Value.ToInt32(); break;
-						case "roles": RolesAccessor(instance) = kv.Value.AsArrayOrDefault()?.ToArray<string>(null, resolver)!; break;
-						case "metadata": MetadataAccessor(instance) = GeneratedSerializers.MyAwesomeMetadata.Unpack(kv.Value, resolver)!; break;
-						case "items": ItemsAccessor(instance) = GeneratedSerializers.MyAwesomeStruct.JsonDeserializeList(kv.Value, defaultValue: null, resolver: resolver)!; break;
-						case "devices": DevicesAccessor(instance) = GeneratedSerializers.MyAwesomeDevice.JsonDeserializeDictionary(kv.Value, defaultValue: null, keyComparer: null, resolver: resolver)!; break;
-						case "extras": ExtrasAccessor(instance) = kv.Value.AsObjectOrDefault()!; break;
-					}
-				}
-
-				return instance;
-			}
-
-			#endregion
-
-		}
-
-
-		/// <summary>Wraps a <see cref="JsonObject"/> into something that looks like a MyAwesomeUser</summary>
-		public readonly record struct ImpromptuReadOnlyMyAwesomeUser : global::Doxense.Serialization.Json.IJsonReadOnly<global::Doxense.Serialization.Json.Tests.MyAwesomeUser, ImpromptuReadOnlyMyAwesomeUser, ImpromptuMutableMyAwesomeUser>
-		{
-
-			/// <summary>JSON Object that is wrapped</summary>
-			private readonly global::Doxense.Serialization.Json.JsonObject m_obj;
-
-			public ImpromptuReadOnlyMyAwesomeUser(global::Doxense.Serialization.Json.JsonObject obj) => m_obj = obj;
-
-			/// <inheritdoc />
-			public static ImpromptuReadOnlyMyAwesomeUser FromValue(global::Doxense.Serialization.Json.Tests.MyAwesomeUser value)
-			{
-				global::Doxense.Diagnostics.Contracts.Contract.NotNull(value);
-				return new((global::Doxense.Serialization.Json.JsonObject) GeneratedSerializers.MyAwesomeUser.Pack(value, global::Doxense.Serialization.Json.CrystalJsonSettings.JsonReadOnly));
-			}
-
-			/// <inheritdoc />
-			public global::Doxense.Serialization.Json.Tests.MyAwesomeUser ToValue() => GeneratedSerializers.MyAwesomeUser.Unpack(m_obj);
-
-			/// <inheritdoc />
-			public global::Doxense.Serialization.Json.JsonObject ToJson() => m_obj;
-
-			/// <inheritdoc />
-			public ImpromptuMutableMyAwesomeUser ToMutable() => new(m_obj.Copy());
-
-			/// <inheritdoc />
-			public ImpromptuReadOnlyMyAwesomeUser With(Action<ImpromptuMutableMyAwesomeUser> modifier)
-			{
-				var copy = m_obj.Copy();
-				modifier(new(copy));
-				return new(FreezeUnsafe(copy));
-			}
-
-			/// <inheritdoc />
-			void global::Doxense.Serialization.Json.IJsonSerializable.JsonSerialize(global::Doxense.Serialization.Json.CrystalJsonWriter writer) => m_obj.JsonSerialize(writer);
-
-			/// <inheritdoc />
-			JsonValue global::Doxense.Serialization.Json.IJsonPackable.JsonPack(global::Doxense.Serialization.Json.CrystalJsonSettings settings, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver resolver) => m_obj;
-
-			/// <inheritdoc cref="MyAwesomeUser.Id" />
-			public string Id => m_obj.Get<string>("id");
-
-			/// <inheritdoc cref="MyAwesomeUser.DisplayName" />
-			public string DisplayName => m_obj.Get<string>("displayName");
-
-			/// <inheritdoc cref="MyAwesomeUser.Email" />
-			public string Email => m_obj.Get<string>("email");
-
-			/// <inheritdoc cref="MyAwesomeUser.Type" />
-			public int Type => m_obj.Get<int>("type");
-
-			/// <inheritdoc cref="MyAwesomeUser.Roles" />
-			public string[] Roles => m_obj.Get<string[]>("roles");
-
-			/// <inheritdoc cref="MyAwesomeUser.Metadata" />
-			public global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata Metadata => m_obj.Get<global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata>("metadata");
-
-			/// <inheritdoc cref="MyAwesomeUser.Items" />
-			public global::System.Collections.Generic.List<global::Doxense.Serialization.Json.Tests.MyAwesomeStruct> Items => m_obj.Get<global::System.Collections.Generic.List<global::Doxense.Serialization.Json.Tests.MyAwesomeStruct>>("items");
-
-			/// <inheritdoc cref="MyAwesomeUser.Devices" />
-			public global::System.Collections.Generic.Dictionary<string, global::Doxense.Serialization.Json.Tests.MyAwesomeDevice> Devices => m_obj.Get<global::System.Collections.Generic.Dictionary<string, global::Doxense.Serialization.Json.Tests.MyAwesomeDevice>>("devices");
-
-			/// <inheritdoc cref="MyAwesomeUser.Extras" />
-			public global::Doxense.Serialization.Json.JsonObject Extras => m_obj.Get<global::Doxense.Serialization.Json.JsonObject>("extras");
-
-		}
-
-
-		/// <summary>Wraps a <see cref="JsonObject"/> into something that looks like a MyAwesomeUser</summary>
-		public readonly record struct ImpromptuMutableMyAwesomeUser : global::Doxense.Serialization.Json.IJsonMutable<global::Doxense.Serialization.Json.Tests.MyAwesomeUser, ImpromptuMutableMyAwesomeUser>
-		{
-
-			private readonly global::Doxense.Serialization.Json.JsonObject m_obj;
-
-			public ImpromptuMutableMyAwesomeUser(global::Doxense.Serialization.Json.JsonObject obj) => m_obj = obj;
-
-			/// <inheritdoc />
-			public static ImpromptuMutableMyAwesomeUser FromValue(global::Doxense.Serialization.Json.Tests.MyAwesomeUser value)
-			{
-				global::Doxense.Diagnostics.Contracts.Contract.NotNull(value);
-				return new((global::Doxense.Serialization.Json.JsonObject) GeneratedSerializers.MyAwesomeUser.Pack(value, global::Doxense.Serialization.Json.CrystalJsonSettings.Json));
-			}
-
-			/// <inheritdoc />
-			public global::Doxense.Serialization.Json.JsonObject ToJson() => m_obj;
-
-			/// <inheritdoc />
-			public ImpromptuReadOnlyMyAwesomeUser ToReadOnly() => new (m_obj.ToReadOnly());
-
-			/// <inheritdoc />
-			void global::Doxense.Serialization.Json.IJsonSerializable.JsonSerialize(global::Doxense.Serialization.Json.CrystalJsonWriter writer) => m_obj.JsonSerialize(writer);
-
-			/// <inheritdoc />
-			JsonValue global::Doxense.Serialization.Json.IJsonPackable.JsonPack(global::Doxense.Serialization.Json.CrystalJsonSettings settings, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver resolver) => settings.IsReadOnly() ? m_obj.ToReadOnly() : m_obj;
-
-			/// <inheritdoc cref="MyAwesomeUser.Id" />
-			public string Id
-			{
-				get => m_obj.Get<string>("id");
-				set => m_obj.Set<string>("id", value);
-			}
-
-			/// <inheritdoc cref="MyAwesomeUser.DisplayName" />
-			public string DisplayName
-			{
-				get => m_obj.Get<string>("displayName");
-				set => m_obj.Set<string>("displayName", value);
-			}
-
-			/// <inheritdoc cref="MyAwesomeUser.Email" />
-			public string Email
-			{
-				get => m_obj.Get<string>("email");
-				set => m_obj.Set<string>("email", value);
-			}
-
-			/// <inheritdoc cref="MyAwesomeUser.Type" />
-			public int Type
-			{
-				get => m_obj.Get<int>("type");
-				set => m_obj.Set<int>("type", value);
-			}
-
-			/// <inheritdoc cref="MyAwesomeUser.Roles" />
-			public string[] Roles
-			{
-				get => m_obj.Get<string[]>("roles");
-				set => m_obj.Set<string[]>("roles", value);
-			}
-
-			/// <inheritdoc cref="MyAwesomeUser.Metadata" />
-			public global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata Metadata
-			{
-				get => m_obj.Get<global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata>("metadata");
-				set => m_obj.Set<global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata>("metadata", value);
-			}
-
-			/// <inheritdoc cref="MyAwesomeUser.Items" />
-			public global::System.Collections.Generic.List<global::Doxense.Serialization.Json.Tests.MyAwesomeStruct> Items
-			{
-				get => m_obj.Get<global::System.Collections.Generic.List<global::Doxense.Serialization.Json.Tests.MyAwesomeStruct>>("items");
-				set => m_obj.Set<global::System.Collections.Generic.List<global::Doxense.Serialization.Json.Tests.MyAwesomeStruct>>("items", value);
-			}
-
-			/// <inheritdoc cref="MyAwesomeUser.Devices" />
-			public global::System.Collections.Generic.Dictionary<string, global::Doxense.Serialization.Json.Tests.MyAwesomeDevice> Devices
-			{
-				get => m_obj.Get<global::System.Collections.Generic.Dictionary<string, global::Doxense.Serialization.Json.Tests.MyAwesomeDevice>>("devices");
-				set => m_obj.Set<global::System.Collections.Generic.Dictionary<string, global::Doxense.Serialization.Json.Tests.MyAwesomeDevice>>("devices", value);
-			}
-
-			/// <inheritdoc cref="MyAwesomeUser.Extras" />
-			public global::Doxense.Serialization.Json.JsonObject Extras
-			{
-				get => m_obj.Get<global::Doxense.Serialization.Json.JsonObject>("extras");
-				set => m_obj.Set<global::Doxense.Serialization.Json.JsonObject>("extras", value);
-			}
-
-		}
-
-		#endregion
-
-		#region MyAwesomeMetadata ...
-
-		/// <summary>JSON converter for type <see cref="Doxense.Serialization.Json.Tests.MyAwesomeMetadata">MyAwesomeMetadata</see></summary>
-		public static MyAwesomeMetadataJsonConverter MyAwesomeMetadata => m_cachedMyAwesomeMetadata ??= new();
-
-		private static MyAwesomeMetadataJsonConverter? m_cachedMyAwesomeMetadata;
-
-		/// <summary>Converts instances of type <see cref="T:Doxense.Serialization.Json.Tests.MyAwesomeMetadata">MyAwesomeMetadata</see> to and from JSON.</summary>
-		[global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)]
-		[global::System.CodeDom.Compiler.GeneratedCode("CrystalJsonSourceGenerator", "0.1")]
-		[global::System.Diagnostics.DebuggerNonUserCode()]
-		public sealed class MyAwesomeMetadataJsonConverter : global::Doxense.Serialization.Json.IJsonConverter<global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata>
-		{
-
-			#region Serialization...
-
-			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _accountCreated = new("accountCreated");
-			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _accountModified = new("accountModified");
-			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _accountDisabled = new("accountDisabled");
-
-			public void Serialize(global::Doxense.Serialization.Json.CrystalJsonWriter writer, global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata? instance)
-			{
-				if (instance is null)
-				{
-					writer.WriteNull();
-					return;
-				}
-
-				var state = writer.BeginObject();
-
-				// DateTimeOffset AccountCreated => "accountCreated"
-				// unknown type
-				writer.WriteField(_accountCreated, instance.AccountCreated);
-
-				// DateTimeOffset AccountModified => "accountModified"
-				// unknown type
-				writer.WriteField(_accountModified, instance.AccountModified);
-
-				// DateTimeOffset? AccountDisabled => "accountDisabled"
-				// unknown type
-				writer.WriteField(_accountDisabled, instance.AccountDisabled);
-
-				writer.EndObject(state);
-			}
-
-			#endregion
-
-			#region Packing...
-
-			public global::Doxense.Serialization.Json.JsonValue Pack(global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata? instance, global::Doxense.Serialization.Json.CrystalJsonSettings? settings = default, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver? resolver = default)
-			{
-				if (instance is null)
-				{
-					return global::Doxense.Serialization.Json.JsonNull.Null;
-				}
-
-				global::Doxense.Serialization.Json.JsonValue? value;
-				var readOnly = settings?.ReadOnly ?? false;
-				var keepNulls = settings?.ShowNullMembers ?? false;
-
-				var obj = new global::Doxense.Serialization.Json.JsonObject(3);
-
-				// DateTimeOffset AccountCreated => "accountCreated"
-				// fast!
-				value = global::Doxense.Serialization.Json.JsonDateTime.Return(instance.AccountCreated);
-				obj["accountCreated"] = value;
-
-				// DateTimeOffset AccountModified => "accountModified"
-				// fast!
-				value = global::Doxense.Serialization.Json.JsonDateTime.Return(instance.AccountModified);
-				obj["accountModified"] = value;
-
-				// DateTimeOffset? AccountDisabled => "accountDisabled"
-				// fast!
-				{
-					var tmp = instance.AccountDisabled;
-					value = tmp.HasValue ? global::Doxense.Serialization.Json.JsonDateTime.Return(tmp.Value) : null;
-					if (keepNulls || value is not null or JsonNull)
-					{
-						obj["accountDisabled"] = value;
-					}
-				}
-				if (readOnly)
-				{
-					return FreezeUnsafe(obj);
-				}
-
-				return obj;
-			}
-
-			#endregion
-
-			#region Deserialization...
-
-			// AccountCreated { get; init; }
-			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<AccountCreated>k__BackingField")]
-			private static extern ref global::System.DateTimeOffset AccountCreatedAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata instance);
-
-			// AccountModified { get; init; }
-			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<AccountModified>k__BackingField")]
-			private static extern ref global::System.DateTimeOffset AccountModifiedAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata instance);
-
-			// AccountDisabled { get; init; }
-			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<AccountDisabled>k__BackingField")]
-			private static extern ref global::System.DateTimeOffset? AccountDisabledAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata instance);
-
-			public global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata Unpack(global::Doxense.Serialization.Json.JsonValue value, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver? resolver = default)
-			{
-				var obj = value.AsObject();
-				var instance = global::System.Activator.CreateInstance<global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata>();
-
-				foreach (var kv in obj)
-				{
-					switch (kv.Key)
-					{
-						case "accountCreated": AccountCreatedAccessor(instance) = kv.Value.ToDateTimeOffset(); break;
-						case "accountModified": AccountModifiedAccessor(instance) = kv.Value.ToDateTimeOffset(); break;
-						case "accountDisabled": AccountDisabledAccessor(instance) = kv.Value.ToDateTimeOffsetOrDefault(null); break;
-					}
-				}
-
-				return instance;
-			}
-
-			#endregion
-
-		}
-
-
-		/// <summary>Wraps a <see cref="JsonObject"/> into something that looks like a MyAwesomeMetadata</summary>
-		public readonly record struct ImpromptuReadOnlyMyAwesomeMetadata : global::Doxense.Serialization.Json.IJsonReadOnly<global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata, ImpromptuReadOnlyMyAwesomeMetadata, ImpromptuMutableMyAwesomeMetadata>
-		{
-
-			/// <summary>JSON Object that is wrapped</summary>
-			private readonly global::Doxense.Serialization.Json.JsonObject m_obj;
-
-			public ImpromptuReadOnlyMyAwesomeMetadata(global::Doxense.Serialization.Json.JsonObject obj) => m_obj = obj;
-
-			/// <inheritdoc />
-			public static ImpromptuReadOnlyMyAwesomeMetadata FromValue(global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata value)
-			{
-				global::Doxense.Diagnostics.Contracts.Contract.NotNull(value);
-				return new((global::Doxense.Serialization.Json.JsonObject) GeneratedSerializers.MyAwesomeMetadata.Pack(value, global::Doxense.Serialization.Json.CrystalJsonSettings.JsonReadOnly));
-			}
-
-			/// <inheritdoc />
-			public global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata ToValue() => GeneratedSerializers.MyAwesomeMetadata.Unpack(m_obj);
-
-			/// <inheritdoc />
-			public global::Doxense.Serialization.Json.JsonObject ToJson() => m_obj;
-
-			/// <inheritdoc />
-			public ImpromptuMutableMyAwesomeMetadata ToMutable() => new(m_obj.Copy());
-
-			/// <inheritdoc />
-			public ImpromptuReadOnlyMyAwesomeMetadata With(Action<ImpromptuMutableMyAwesomeMetadata> modifier)
-			{
-				var copy = m_obj.Copy();
-				modifier(new(copy));
-				return new(FreezeUnsafe(copy));
-			}
-
-			/// <inheritdoc />
-			void global::Doxense.Serialization.Json.IJsonSerializable.JsonSerialize(global::Doxense.Serialization.Json.CrystalJsonWriter writer) => m_obj.JsonSerialize(writer);
-
-			/// <inheritdoc />
-			JsonValue global::Doxense.Serialization.Json.IJsonPackable.JsonPack(global::Doxense.Serialization.Json.CrystalJsonSettings settings, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver resolver) => m_obj;
-
-			/// <inheritdoc cref="MyAwesomeMetadata.AccountCreated" />
-			public global::System.DateTimeOffset AccountCreated => m_obj.Get<global::System.DateTimeOffset>("accountCreated");
-
-			/// <inheritdoc cref="MyAwesomeMetadata.AccountModified" />
-			public global::System.DateTimeOffset AccountModified => m_obj.Get<global::System.DateTimeOffset>("accountModified");
-
-			/// <inheritdoc cref="MyAwesomeMetadata.AccountDisabled" />
-			public global::System.DateTimeOffset? AccountDisabled => m_obj.Get<global::System.DateTimeOffset?>("accountDisabled");
-
-		}
-
-
-		/// <summary>Wraps a <see cref="JsonObject"/> into something that looks like a MyAwesomeMetadata</summary>
-		public readonly record struct ImpromptuMutableMyAwesomeMetadata : global::Doxense.Serialization.Json.IJsonMutable<global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata, ImpromptuMutableMyAwesomeMetadata>
-		{
-
-			private readonly global::Doxense.Serialization.Json.JsonObject m_obj;
-
-			public ImpromptuMutableMyAwesomeMetadata(global::Doxense.Serialization.Json.JsonObject obj) => m_obj = obj;
-
-			/// <inheritdoc />
-			public static ImpromptuMutableMyAwesomeMetadata FromValue(global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata value)
-			{
-				global::Doxense.Diagnostics.Contracts.Contract.NotNull(value);
-				return new((global::Doxense.Serialization.Json.JsonObject) GeneratedSerializers.MyAwesomeMetadata.Pack(value, global::Doxense.Serialization.Json.CrystalJsonSettings.Json));
-			}
-
-			/// <inheritdoc />
-			public global::Doxense.Serialization.Json.JsonObject ToJson() => m_obj;
-
-			/// <inheritdoc />
-			public ImpromptuReadOnlyMyAwesomeMetadata ToReadOnly() => new (m_obj.ToReadOnly());
-
-			/// <inheritdoc />
-			void global::Doxense.Serialization.Json.IJsonSerializable.JsonSerialize(global::Doxense.Serialization.Json.CrystalJsonWriter writer) => m_obj.JsonSerialize(writer);
-
-			/// <inheritdoc />
-			JsonValue global::Doxense.Serialization.Json.IJsonPackable.JsonPack(global::Doxense.Serialization.Json.CrystalJsonSettings settings, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver resolver) => settings.IsReadOnly() ? m_obj.ToReadOnly() : m_obj;
-
-			/// <inheritdoc cref="MyAwesomeMetadata.AccountCreated" />
-			public global::System.DateTimeOffset AccountCreated
-			{
-				get => m_obj.Get<global::System.DateTimeOffset>("accountCreated");
-				set => m_obj.Set<global::System.DateTimeOffset>("accountCreated", value);
-			}
-
-			/// <inheritdoc cref="MyAwesomeMetadata.AccountModified" />
-			public global::System.DateTimeOffset AccountModified
-			{
-				get => m_obj.Get<global::System.DateTimeOffset>("accountModified");
-				set => m_obj.Set<global::System.DateTimeOffset>("accountModified", value);
-			}
-
-			/// <inheritdoc cref="MyAwesomeMetadata.AccountDisabled" />
-			public global::System.DateTimeOffset? AccountDisabled
-			{
-				get => m_obj.Get<global::System.DateTimeOffset?>("accountDisabled");
-				set => m_obj.Set<global::System.DateTimeOffset?>("accountDisabled", value);
-			}
-
-		}
-
-		#endregion
-
-		#region MyAwesomeStruct ...
-
-		/// <summary>JSON converter for type <see cref="Doxense.Serialization.Json.Tests.MyAwesomeStruct">MyAwesomeStruct</see></summary>
-		public static MyAwesomeStructJsonConverter MyAwesomeStruct => m_cachedMyAwesomeStruct ??= new();
-
-		private static MyAwesomeStructJsonConverter? m_cachedMyAwesomeStruct;
-
-		/// <summary>Converts instances of type <see cref="T:Doxense.Serialization.Json.Tests.MyAwesomeStruct">MyAwesomeStruct</see> to and from JSON.</summary>
-		[global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)]
-		[global::System.CodeDom.Compiler.GeneratedCode("CrystalJsonSourceGenerator", "0.1")]
-		[global::System.Diagnostics.DebuggerNonUserCode()]
-		public sealed class MyAwesomeStructJsonConverter : global::Doxense.Serialization.Json.IJsonConverter<global::Doxense.Serialization.Json.Tests.MyAwesomeStruct>
-		{
-
-			#region Serialization...
-
-			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _id = new("id");
-			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _level = new("level");
-			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _path = new("path");
-			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _disabled = new("disabled");
-
-			public void Serialize(global::Doxense.Serialization.Json.CrystalJsonWriter writer, global::Doxense.Serialization.Json.Tests.MyAwesomeStruct instance)
-			{
-				var state = writer.BeginObject();
-
-				// string Id => "id"
-				// TODO: unsupported enumerable type: System.String
-				// unknown type
-				writer.WriteField(_id, instance.Id);
-
-				// int Level => "level"
-				// unknown type
-				writer.WriteField(_level, instance.Level);
-
-				// JsonPath Path => "path"
-				// TODO: unsupported enumerable type: Doxense.Serialization.Json.JsonPath
-				// unknown type
-				writer.WriteField(_path, instance.Path);
-
-				// bool? Disabled => "disabled"
-				// unknown type
-				writer.WriteField(_disabled, instance.Disabled);
-
-				writer.EndObject(state);
-			}
-
-			#endregion
-
-			#region Packing...
-
-			public global::Doxense.Serialization.Json.JsonValue Pack(global::Doxense.Serialization.Json.Tests.MyAwesomeStruct instance, global::Doxense.Serialization.Json.CrystalJsonSettings? settings = default, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver? resolver = default)
-			{
-				global::Doxense.Serialization.Json.JsonValue? value;
-				var readOnly = settings?.ReadOnly ?? false;
-				var keepNulls = settings?.ShowNullMembers ?? false;
-
-				var obj = new global::Doxense.Serialization.Json.JsonObject(4);
-
-				// string Id => "id"
-				value = global::Doxense.Serialization.Json.JsonString.Return(instance.Id);
-				if (keepNulls || value is not null or JsonNull)
-				{
-					obj["id"] = value;
-				}
-
-				// int Level => "level"
-				// fast!
-				value = global::Doxense.Serialization.Json.JsonNumber.Return(instance.Level);
-				obj["level"] = value;
-
-				// JsonPath Path => "path"
-				// fast!
-				value = JsonValue.FromValue<global::Doxense.Serialization.Json.JsonPath>(instance.Path);
-				obj["path"] = value;
-
-				// bool? Disabled => "disabled"
-				// fast!
-				{
-					var tmp = instance.Disabled;
-					value = tmp.HasValue ? JsonBoolean.Return(tmp.Value) : null;
-					if (keepNulls || value is not null or JsonNull)
-					{
-						obj["disabled"] = value;
-					}
-				}
-				if (readOnly)
-				{
-					return FreezeUnsafe(obj);
-				}
-
-				return obj;
-			}
-
-			#endregion
-
-			#region Deserialization...
-
-			// Id { get; init; }
-			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Id>k__BackingField")]
-			private static extern ref string IdAccessor(ref global::Doxense.Serialization.Json.Tests.MyAwesomeStruct instance);
-
-			// Level { get; init; }
-			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Level>k__BackingField")]
-			private static extern ref int LevelAccessor(ref global::Doxense.Serialization.Json.Tests.MyAwesomeStruct instance);
-
-			// Path { get; init; }
-			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Path>k__BackingField")]
-			private static extern ref global::Doxense.Serialization.Json.JsonPath PathAccessor(ref global::Doxense.Serialization.Json.Tests.MyAwesomeStruct instance);
-
-			// Disabled { get; init; }
-			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Disabled>k__BackingField")]
-			private static extern ref bool? DisabledAccessor(ref global::Doxense.Serialization.Json.Tests.MyAwesomeStruct instance);
-
-			public global::Doxense.Serialization.Json.Tests.MyAwesomeStruct Unpack(global::Doxense.Serialization.Json.JsonValue value, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver? resolver = default)
-			{
-				var obj = value.AsObject();
-				var instance = global::System.Activator.CreateInstance<global::Doxense.Serialization.Json.Tests.MyAwesomeStruct>();
-
-				foreach (var kv in obj)
-				{
-					switch (kv.Key)
-					{
-						case "id": IdAccessor(ref instance) = kv.Value.ToStringOrDefault(null)!; break;
-						case "level": LevelAccessor(ref instance) = kv.Value.ToInt32(); break;
-						case "path": PathAccessor(ref instance) = global::Doxense.Serialization.Json.JsonSerializerExtensions.Unpack<global::Doxense.Serialization.Json.JsonPath>(kv.Value, resolver)!; break;
-						case "disabled": DisabledAccessor(ref instance) = kv.Value.ToBooleanOrDefault(null); break;
-					}
-				}
-
-				return instance;
-			}
-
-			#endregion
-
-		}
-
-
-		/// <summary>Wraps a <see cref="JsonObject"/> into something that looks like a MyAwesomeStruct</summary>
-		public readonly record struct ImpromptuReadOnlyMyAwesomeStruct : global::Doxense.Serialization.Json.IJsonReadOnly<global::Doxense.Serialization.Json.Tests.MyAwesomeStruct, ImpromptuReadOnlyMyAwesomeStruct, ImpromptuMutableMyAwesomeStruct>
-		{
-
-			/// <summary>JSON Object that is wrapped</summary>
-			private readonly global::Doxense.Serialization.Json.JsonObject m_obj;
-
-			public ImpromptuReadOnlyMyAwesomeStruct(global::Doxense.Serialization.Json.JsonObject obj) => m_obj = obj;
-
-			/// <inheritdoc />
-			public static ImpromptuReadOnlyMyAwesomeStruct FromValue(global::Doxense.Serialization.Json.Tests.MyAwesomeStruct value)
-			{
-				global::Doxense.Diagnostics.Contracts.Contract.NotNull(value);
-				return new((global::Doxense.Serialization.Json.JsonObject) GeneratedSerializers.MyAwesomeStruct.Pack(value, global::Doxense.Serialization.Json.CrystalJsonSettings.JsonReadOnly));
-			}
-
-			/// <inheritdoc />
-			public global::Doxense.Serialization.Json.Tests.MyAwesomeStruct ToValue() => GeneratedSerializers.MyAwesomeStruct.Unpack(m_obj);
-
-			/// <inheritdoc />
-			public global::Doxense.Serialization.Json.JsonObject ToJson() => m_obj;
-
-			/// <inheritdoc />
-			public ImpromptuMutableMyAwesomeStruct ToMutable() => new(m_obj.Copy());
-
-			/// <inheritdoc />
-			public ImpromptuReadOnlyMyAwesomeStruct With(Action<ImpromptuMutableMyAwesomeStruct> modifier)
-			{
-				var copy = m_obj.Copy();
-				modifier(new(copy));
-				return new(FreezeUnsafe(copy));
-			}
-
-			/// <inheritdoc />
-			void global::Doxense.Serialization.Json.IJsonSerializable.JsonSerialize(global::Doxense.Serialization.Json.CrystalJsonWriter writer) => m_obj.JsonSerialize(writer);
-
-			/// <inheritdoc />
-			JsonValue global::Doxense.Serialization.Json.IJsonPackable.JsonPack(global::Doxense.Serialization.Json.CrystalJsonSettings settings, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver resolver) => m_obj;
-
-			/// <inheritdoc cref="MyAwesomeStruct.Id" />
-			public string Id => m_obj.Get<string>("id");
-
-			/// <inheritdoc cref="MyAwesomeStruct.Level" />
-			public int Level => m_obj.Get<int>("level");
-
-			/// <inheritdoc cref="MyAwesomeStruct.Path" />
-			public global::Doxense.Serialization.Json.JsonPath Path => m_obj.Get<global::Doxense.Serialization.Json.JsonPath>("path");
-
-			/// <inheritdoc cref="MyAwesomeStruct.Disabled" />
-			public bool? Disabled => m_obj.Get<bool?>("disabled");
-
-		}
-
-
-		/// <summary>Wraps a <see cref="JsonObject"/> into something that looks like a MyAwesomeStruct</summary>
-		public readonly record struct ImpromptuMutableMyAwesomeStruct : global::Doxense.Serialization.Json.IJsonMutable<global::Doxense.Serialization.Json.Tests.MyAwesomeStruct, ImpromptuMutableMyAwesomeStruct>
-		{
-
-			private readonly global::Doxense.Serialization.Json.JsonObject m_obj;
-
-			public ImpromptuMutableMyAwesomeStruct(global::Doxense.Serialization.Json.JsonObject obj) => m_obj = obj;
-
-			/// <inheritdoc />
-			public static ImpromptuMutableMyAwesomeStruct FromValue(global::Doxense.Serialization.Json.Tests.MyAwesomeStruct value)
-			{
-				global::Doxense.Diagnostics.Contracts.Contract.NotNull(value);
-				return new((global::Doxense.Serialization.Json.JsonObject) GeneratedSerializers.MyAwesomeStruct.Pack(value, global::Doxense.Serialization.Json.CrystalJsonSettings.Json));
-			}
-
-			/// <inheritdoc />
-			public global::Doxense.Serialization.Json.JsonObject ToJson() => m_obj;
-
-			/// <inheritdoc />
-			public ImpromptuReadOnlyMyAwesomeStruct ToReadOnly() => new (m_obj.ToReadOnly());
-
-			/// <inheritdoc />
-			void global::Doxense.Serialization.Json.IJsonSerializable.JsonSerialize(global::Doxense.Serialization.Json.CrystalJsonWriter writer) => m_obj.JsonSerialize(writer);
-
-			/// <inheritdoc />
-			JsonValue global::Doxense.Serialization.Json.IJsonPackable.JsonPack(global::Doxense.Serialization.Json.CrystalJsonSettings settings, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver resolver) => settings.IsReadOnly() ? m_obj.ToReadOnly() : m_obj;
-
-			/// <inheritdoc cref="MyAwesomeStruct.Id" />
-			public string Id
-			{
-				get => m_obj.Get<string>("id");
-				set => m_obj.Set<string>("id", value);
-			}
-
-			/// <inheritdoc cref="MyAwesomeStruct.Level" />
-			public int Level
-			{
-				get => m_obj.Get<int>("level");
-				set => m_obj.Set<int>("level", value);
-			}
-
-			/// <inheritdoc cref="MyAwesomeStruct.Path" />
-			public global::Doxense.Serialization.Json.JsonPath Path
-			{
-				get => m_obj.Get<global::Doxense.Serialization.Json.JsonPath>("path");
-				set => m_obj.Set<global::Doxense.Serialization.Json.JsonPath>("path", value);
-			}
-
-			/// <inheritdoc cref="MyAwesomeStruct.Disabled" />
-			public bool? Disabled
-			{
-				get => m_obj.Get<bool?>("disabled");
-				set => m_obj.Set<bool?>("disabled", value);
-			}
-
-		}
-
-		#endregion
-
-		#region MyAwesomeDevice ...
-
-		/// <summary>JSON converter for type <see cref="Doxense.Serialization.Json.Tests.MyAwesomeDevice">MyAwesomeDevice</see></summary>
-		public static MyAwesomeDeviceJsonConverter MyAwesomeDevice => m_cachedMyAwesomeDevice ??= new();
-
-		private static MyAwesomeDeviceJsonConverter? m_cachedMyAwesomeDevice;
-
-		/// <summary>Converts instances of type <see cref="T:Doxense.Serialization.Json.Tests.MyAwesomeDevice">MyAwesomeDevice</see> to and from JSON.</summary>
-		[global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)]
-		[global::System.CodeDom.Compiler.GeneratedCode("CrystalJsonSourceGenerator", "0.1")]
-		[global::System.Diagnostics.DebuggerNonUserCode()]
-		public sealed class MyAwesomeDeviceJsonConverter : global::Doxense.Serialization.Json.IJsonConverter<global::Doxense.Serialization.Json.Tests.MyAwesomeDevice>
-		{
-
-			#region Serialization...
-
-			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _id = new("id");
-			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _model = new("model");
-			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _lastSeen = new("lastSeen");
-			private static readonly global::Doxense.Serialization.Json.JsonEncodedPropertyName _lastAddress = new("lastAddress");
-
-			public void Serialize(global::Doxense.Serialization.Json.CrystalJsonWriter writer, global::Doxense.Serialization.Json.Tests.MyAwesomeDevice? instance)
-			{
-				if (instance is null)
-				{
-					writer.WriteNull();
-					return;
-				}
-
-				var state = writer.BeginObject();
-
-				// string Id => "id"
-				// TODO: unsupported enumerable type: System.String
-				// unknown type
-				writer.WriteField(_id, instance.Id);
-
-				// string Model => "model"
-				// TODO: unsupported enumerable type: System.String
-				// unknown type
-				writer.WriteField(_model, instance.Model);
-
-				// DateTimeOffset? LastSeen => "lastSeen"
-				// unknown type
-				writer.WriteField(_lastSeen, instance.LastSeen);
-
-				// IPAddress LastAddress => "lastAddress"
-				// unknown type
-				writer.WriteField(_lastAddress, instance.LastAddress);
-
-				writer.EndObject(state);
-			}
-
-			#endregion
-
-			#region Packing...
-
-			public global::Doxense.Serialization.Json.JsonValue Pack(global::Doxense.Serialization.Json.Tests.MyAwesomeDevice? instance, global::Doxense.Serialization.Json.CrystalJsonSettings? settings = default, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver? resolver = default)
-			{
-				if (instance is null)
-				{
-					return global::Doxense.Serialization.Json.JsonNull.Null;
-				}
-
-				global::Doxense.Serialization.Json.JsonValue? value;
-				var readOnly = settings?.ReadOnly ?? false;
-				var keepNulls = settings?.ShowNullMembers ?? false;
-
-				var obj = new global::Doxense.Serialization.Json.JsonObject(4);
-
-				// string Id => "id"
-				value = global::Doxense.Serialization.Json.JsonString.Return(instance.Id);
-				if (keepNulls || value is not null or JsonNull)
-				{
-					obj["id"] = value;
-				}
-
-				// string Model => "model"
-				value = global::Doxense.Serialization.Json.JsonString.Return(instance.Model);
-				if (keepNulls || value is not null or JsonNull)
-				{
-					obj["model"] = value;
-				}
-
-				// DateTimeOffset? LastSeen => "lastSeen"
-				// fast!
-				{
-					var tmp = instance.LastSeen;
-					value = tmp.HasValue ? global::Doxense.Serialization.Json.JsonDateTime.Return(tmp.Value) : null;
-					if (keepNulls || value is not null or JsonNull)
-					{
-						obj["lastSeen"] = value;
-					}
-				}
-
-				// IPAddress LastAddress => "lastAddress"
-				value = JsonValue.FromValue<global::System.Net.IPAddress>(instance.LastAddress);
-				if (keepNulls || value is not null or JsonNull)
-				{
-					obj["lastAddress"] = value;
-				}
-				if (readOnly)
-				{
-					return FreezeUnsafe(obj);
-				}
-
-				return obj;
-			}
-
-			#endregion
-
-			#region Deserialization...
-
-			// Id { get; init; }
-			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Id>k__BackingField")]
-			private static extern ref string IdAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeDevice instance);
-
-			// Model { get; init; }
-			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Model>k__BackingField")]
-			private static extern ref string ModelAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeDevice instance);
-
-			// LastSeen { get; init; }
-			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<LastSeen>k__BackingField")]
-			private static extern ref global::System.DateTimeOffset? LastSeenAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeDevice instance);
-
-			// LastAddress { get; init; }
-			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<LastAddress>k__BackingField")]
-			private static extern ref global::System.Net.IPAddress LastAddressAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeDevice instance);
-
-			public global::Doxense.Serialization.Json.Tests.MyAwesomeDevice Unpack(global::Doxense.Serialization.Json.JsonValue value, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver? resolver = default)
-			{
-				var obj = value.AsObject();
-				var instance = global::System.Activator.CreateInstance<global::Doxense.Serialization.Json.Tests.MyAwesomeDevice>();
-
-				foreach (var kv in obj)
-				{
-					switch (kv.Key)
-					{
-						case "id": IdAccessor(instance) = kv.Value.ToStringOrDefault(null)!; break;
-						case "model": ModelAccessor(instance) = kv.Value.ToStringOrDefault(null)!; break;
-						case "lastSeen": LastSeenAccessor(instance) = kv.Value.ToDateTimeOffsetOrDefault(null); break;
-						case "lastAddress": LastAddressAccessor(instance) = kv.Value.As<global::System.Net.IPAddress>(defaultValue: null, resolver: resolver)!; break;
-					}
-				}
-
-				return instance;
-			}
-
-			#endregion
-
-		}
-
-
-		/// <summary>Wraps a <see cref="JsonObject"/> into something that looks like a MyAwesomeDevice</summary>
-		public readonly record struct ImpromptuReadOnlyMyAwesomeDevice : global::Doxense.Serialization.Json.IJsonReadOnly<global::Doxense.Serialization.Json.Tests.MyAwesomeDevice, ImpromptuReadOnlyMyAwesomeDevice, ImpromptuMutableMyAwesomeDevice>
-		{
-
-			/// <summary>JSON Object that is wrapped</summary>
-			private readonly global::Doxense.Serialization.Json.JsonObject m_obj;
-
-			public ImpromptuReadOnlyMyAwesomeDevice(global::Doxense.Serialization.Json.JsonObject obj) => m_obj = obj;
-
-			/// <inheritdoc />
-			public static ImpromptuReadOnlyMyAwesomeDevice FromValue(global::Doxense.Serialization.Json.Tests.MyAwesomeDevice value)
-			{
-				global::Doxense.Diagnostics.Contracts.Contract.NotNull(value);
-				return new((global::Doxense.Serialization.Json.JsonObject) GeneratedSerializers.MyAwesomeDevice.Pack(value, global::Doxense.Serialization.Json.CrystalJsonSettings.JsonReadOnly));
-			}
-
-			/// <inheritdoc />
-			public global::Doxense.Serialization.Json.Tests.MyAwesomeDevice ToValue() => GeneratedSerializers.MyAwesomeDevice.Unpack(m_obj);
-
-			/// <inheritdoc />
-			public global::Doxense.Serialization.Json.JsonObject ToJson() => m_obj;
-
-			/// <inheritdoc />
-			public ImpromptuMutableMyAwesomeDevice ToMutable() => new(m_obj.Copy());
-
-			/// <inheritdoc />
-			public ImpromptuReadOnlyMyAwesomeDevice With(Action<ImpromptuMutableMyAwesomeDevice> modifier)
-			{
-				var copy = m_obj.Copy();
-				modifier(new(copy));
-				return new(FreezeUnsafe(copy));
-			}
-
-			/// <inheritdoc />
-			void global::Doxense.Serialization.Json.IJsonSerializable.JsonSerialize(global::Doxense.Serialization.Json.CrystalJsonWriter writer) => m_obj.JsonSerialize(writer);
-
-			/// <inheritdoc />
-			JsonValue global::Doxense.Serialization.Json.IJsonPackable.JsonPack(global::Doxense.Serialization.Json.CrystalJsonSettings settings, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver resolver) => m_obj;
-
-			/// <inheritdoc cref="MyAwesomeDevice.Id" />
-			public string Id => m_obj.Get<string>("id");
-
-			/// <inheritdoc cref="MyAwesomeDevice.Model" />
-			public string Model => m_obj.Get<string>("model");
-
-			/// <inheritdoc cref="MyAwesomeDevice.LastSeen" />
-			public global::System.DateTimeOffset? LastSeen => m_obj.Get<global::System.DateTimeOffset?>("lastSeen");
-
-			/// <inheritdoc cref="MyAwesomeDevice.LastAddress" />
-			public global::System.Net.IPAddress LastAddress => m_obj.Get<global::System.Net.IPAddress>("lastAddress");
-
-		}
-
-
-		/// <summary>Wraps a <see cref="JsonObject"/> into something that looks like a MyAwesomeDevice</summary>
-		public readonly record struct ImpromptuMutableMyAwesomeDevice : global::Doxense.Serialization.Json.IJsonMutable<global::Doxense.Serialization.Json.Tests.MyAwesomeDevice, ImpromptuMutableMyAwesomeDevice>
-		{
-
-			private readonly global::Doxense.Serialization.Json.JsonObject m_obj;
-
-			public ImpromptuMutableMyAwesomeDevice(global::Doxense.Serialization.Json.JsonObject obj) => m_obj = obj;
-
-			/// <inheritdoc />
-			public static ImpromptuMutableMyAwesomeDevice FromValue(global::Doxense.Serialization.Json.Tests.MyAwesomeDevice value)
-			{
-				global::Doxense.Diagnostics.Contracts.Contract.NotNull(value);
-				return new((global::Doxense.Serialization.Json.JsonObject) GeneratedSerializers.MyAwesomeDevice.Pack(value, global::Doxense.Serialization.Json.CrystalJsonSettings.Json));
-			}
-
-			/// <inheritdoc />
-			public global::Doxense.Serialization.Json.JsonObject ToJson() => m_obj;
-
-			/// <inheritdoc />
-			public ImpromptuReadOnlyMyAwesomeDevice ToReadOnly() => new (m_obj.ToReadOnly());
-
-			/// <inheritdoc />
-			void global::Doxense.Serialization.Json.IJsonSerializable.JsonSerialize(global::Doxense.Serialization.Json.CrystalJsonWriter writer) => m_obj.JsonSerialize(writer);
-
-			/// <inheritdoc />
-			JsonValue global::Doxense.Serialization.Json.IJsonPackable.JsonPack(global::Doxense.Serialization.Json.CrystalJsonSettings settings, global::Doxense.Serialization.Json.ICrystalJsonTypeResolver resolver) => settings.IsReadOnly() ? m_obj.ToReadOnly() : m_obj;
-
-			/// <inheritdoc cref="MyAwesomeDevice.Id" />
-			public string Id
-			{
-				get => m_obj.Get<string>("id");
-				set => m_obj.Set<string>("id", value);
-			}
-
-			/// <inheritdoc cref="MyAwesomeDevice.Model" />
-			public string Model
-			{
-				get => m_obj.Get<string>("model");
-				set => m_obj.Set<string>("model", value);
-			}
-
-			/// <inheritdoc cref="MyAwesomeDevice.LastSeen" />
-			public global::System.DateTimeOffset? LastSeen
-			{
-				get => m_obj.Get<global::System.DateTimeOffset?>("lastSeen");
-				set => m_obj.Set<global::System.DateTimeOffset?>("lastSeen", value);
-			}
-
-			/// <inheritdoc cref="MyAwesomeDevice.LastAddress" />
-			public global::System.Net.IPAddress LastAddress
-			{
-				get => m_obj.Get<global::System.Net.IPAddress>("lastAddress");
-				set => m_obj.Set<global::System.Net.IPAddress>("lastAddress", value);
-			}
-
-		}
-
-		#endregion
-
-		#region Helpers...
-		[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Method, Name = "FreezeUnsafe")]
-		private static extern global::Doxense.Serialization.Json.JsonObject FreezeUnsafe(global::Doxense.Serialization.Json.JsonObject instance);
-		[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Method, Name = "FreezeUnsafe")]
-		private static extern global::Doxense.Serialization.Json.JsonArray FreezeUnsafe(global::Doxense.Serialization.Json.JsonArray instance);
-		#endregion
-	}
-
-}
-
-#endif
