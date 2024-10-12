@@ -27,6 +27,7 @@
 namespace Doxense.Serialization.Json
 {
 	using System.Diagnostics;
+	using System.Reflection;
 
 	/// <summary>Structure that holds the cached serialization metadata for a field or property of a class or struct</summary>
 	[DebuggerDisplay("Name={Name}, Type={Type}")]
@@ -36,11 +37,29 @@ namespace Doxense.Serialization.Json
 
 		public CrystalJsonMemberDefinition(Type type, string name, string? originalName = null)
 		{
+			Contract.Debug.Requires(type != null && name != null);
+
 			this.Type = type;
 			this.Name = name;
 			this.OriginalName = originalName ?? name;
 			this.EncodedName = new(name);
-			this.IsNullable = CrystalJsonTypeResolver.IsNullableType(type);
+			this.NullableOfType = CrystalJsonTypeResolver.GetNullableType(type);
+		}
+
+		public CrystalJsonMemberDefinition(MemberInfo member, Type memberType, string name, string? originalName = null)
+		{
+			Contract.Debug.Requires(member != null && memberType != null && name != null);
+
+			this.Type = memberType;
+			this.Member = member;
+			this.Name = name;
+			this.OriginalName = originalName ?? name;
+			this.EncodedName = new(name);
+			this.NullableOfType = CrystalJsonTypeResolver.GetNullableType(memberType);
+			this.IsNotNull = CrystalJsonTypeResolver.IsNotNullMemberType(member, memberType);
+			this.IsRequired = CrystalJsonTypeResolver.IsRequiredMember(member);
+			this.IsKey = CrystalJsonTypeResolver.IsKeyMember(member);
+			this.IsInitOnly = CrystalJsonTypeResolver.IsInitOnlyMember(member);
 		}
 
 		/// <summary>Declared type of the member</summary>
@@ -55,6 +74,9 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Optional <see cref="JsonPropertyAttribute"/> attribute that was applied to this member</summary>
 		public JsonPropertyAttribute? Attributes { get; init; }
+
+		/// <summary>Original <see cref="PropertyInfo"/> or <see cref="FieldInfo"/> of the member in its declaring type</summary>
+		public MemberInfo? Member { get; init; }
 
 		/// <summary>Default value for this member (when it is missing)</summary>
 		public object? DefaultValue { get; init; }
@@ -80,7 +102,53 @@ namespace Doxense.Serialization.Json
 		/// <summary>Cache for the various encoded versions of a property name</summary>
 		public JsonEncodedPropertyName EncodedName { get; }
 
-		public bool IsNullable { get; init; }
+		/// <summary>If not <see langword="null"/>, the member is an instance of <see cref="Nullable{T}"/> and this property contains the base value type</summary>
+		/// <remarks>Examples: <code>
+		/// int Foo { get; ... }    // NullableOfType == null
+		/// int? Foo { get; ... }   // NullableOfType == typeof(int)
+		/// string Foo { get; ... } // NullableOfType == null
+		/// </code></remarks>
+		public Type? NullableOfType { get; init; }
+
+		/// <summary>The member cannot be null, or is annotated with <see cref="System.Diagnostics.CodeAnalysis.NotNullAttribute"/></summary>
+		/// <remarks>Examples: <code>
+		/// int Foo { get; ... }     // IsNotNull == true
+		/// int? Foo { get; ... }    // IsNotNull == false
+		/// string Foo { get; ... }  // IsNotNull == true
+		/// string? Foo { get; ... } // IsNotNull == false
+		/// </code></remarks>
+		public bool IsNotNull { get; init; }
+
+		/// <summary>The member has the required keyword and cannot be null</summary>
+		/// <remarks>Examples: <code>
+		/// int Foo { get; ... }              // IsRequired == false
+		/// string Foo { get; ... }           // IsRequired == false
+		/// required string? Foo { get; ... } // IsRequired == false
+		/// 
+		/// required int Foo { get; ... }     // IsRequired == true
+		/// required string Foo { get; ... }  // IsRequired == true
+		/// </code></remarks>
+		public bool IsRequired { get; init; }
+
+		/// <summary>The member has the <see cref="System.ComponentModel.DataAnnotations.KeyAttribute"/> attribute</summary>
+		/// <remarks>Examples: <code>
+		/// int Id { get; ... } // IsKey == false
+		/// 
+		/// [Key]
+		/// int Id { get; ... } // IsKey == true
+		/// </code></remarks>
+		public bool IsKey { get; init; }
+
+		/// <summary>The member is a read-only field, or a property with an init-only setter</summary>
+		/// <remarks>Examples: <code>
+		/// int Id;               // IsInitOnly == false
+		/// int Id { get; set; }  // IsInitOnly == false
+		/// int Id { get; }       // IsInitOnly == false
+		/// 
+		/// readonly int Id;      // IsInitOnly == true
+		/// int Id { get; init; } // IsInitOnly == true
+		/// </code></remarks>
+		public bool IsInitOnly { get; init; }
 
 	}
 

@@ -53,8 +53,12 @@ namespace Doxense.Serialization.Json
 		/// <remarks>If <see langword="false"/>, a type-check will have to be performed during serialization, which add some overhead</remarks>
 		public bool IsSealed { get; init; }
 
+		/// <summary>Types with a default value that is <see langword="null"/></summary>
+		/// <remarks><see langword="true"/> for Reference Types, or for <see cref="Nullable{T}"/>.</remarks>
+		public bool DefaultIsNull { get; init; }
+
 		/// <summary>Specifies if the type can have a value of <see langword="null"/> (ref types, or <see cref="Nullable{T}"/>)</summary>
-		public bool IsNullable { get; init; }
+		public Type? NullableOfType { get; init; }
 
 		/// <summary>Factory method that can instantiate a new value of this type</summary>
 		public Func<object>? Generator { get; init; }
@@ -78,7 +82,8 @@ namespace Doxense.Serialization.Json
 			this.ClassId = classId;
 			this.IsAnonymousType = type.IsAnonymousType();
 			this.IsSealed = CrystalJsonTypeResolver.IsSealedType(type);
-			this.IsNullable = CrystalJsonTypeResolver.IsNullableType(type);
+			this.NullableOfType = CrystalJsonTypeResolver.GetNullableType(type);
+			this.DefaultIsNull = !type.IsValueType || this.NullableOfType != null;
 			this.RequiresClassAttribute = (type.IsInterface || type.IsAbstract) && !this.IsAnonymousType && baseType == null;
 			this.CustomBinder = customBinder;
 			this.Generator = generator;

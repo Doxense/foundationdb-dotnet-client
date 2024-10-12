@@ -943,7 +943,7 @@ namespace Doxense.Serialization.Json
 				var visitor = CrystalJsonVisitor.GetVisitorForType(fieldType, atRuntime: false);
 				if (visitor == null) throw new ArgumentException($"Doesn't know how to serialize field {field.Name} of type {fieldType.GetFriendlyName()}", nameof(type));
 
-				members.Add(new(fieldType, name, field.Name)
+				members.Add(new(field, fieldType, name, field.Name)
 				{
 					Attributes = jp,
 					DefaultValue = defaultValue,
@@ -1003,7 +1003,7 @@ namespace Doxense.Serialization.Json
 					setter = TryCompileAdderForReadOnlyCollection(property);
 				}
 
-				members.Add(new(propertyType, name, property.Name)
+				members.Add(new(property, propertyType, name, property.Name)
 				{
 					Attributes = jp,
 					DefaultValue = defaultValue,
@@ -1016,6 +1016,51 @@ namespace Doxense.Serialization.Json
 			}
 
 			return members.ToArray();
+		}
+
+		/// <summary>Tests if a member of a type is decorated with <see cref="System.ComponentModel.DataAnnotations.KeyAttribute"/></summary>
+		public static bool IsKeyMember(MemberInfo member)
+		{
+			return member.GetCustomAttribute<System.ComponentModel.DataAnnotations.KeyAttribute>() != null;
+		}
+
+		/// <summary>Tests if a member is a readonly field, or an init-only property</summary>
+		public static bool IsInitOnlyMember(MemberInfo member)
+		{
+			if (member is FieldInfo field)
+			{
+				return field.IsInitOnly;
+			}
+
+			if (member is PropertyInfo property)
+			{
+				var setter = property.GetSetMethod();
+				if (setter != null)
+				{
+					foreach (var mod in setter.ReturnParameter.GetRequiredCustomModifiers())
+					{
+						if (mod == typeof(IsExternalInit)) return true;
+					}
+				}
+				return false;
+			}
+
+			return false;
+		}
+
+		/// <summary>Tests if a member of a type is decorated with the <see langword="required"/> keyword</summary>
+		public static bool IsRequiredMember(MemberInfo member)
+		{
+			return member.GetCustomAttribute<System.Runtime.CompilerServices.RequiredMemberAttribute>() != null;
+		}
+
+		/// <summary>Tests if a member of a type is decorated with the <see langword="required"/> keyword</summary>
+		public static bool IsNotNullMemberType(MemberInfo member, Type memberType)
+		{
+			// value types, except Nullable<T>, cannot be null
+			if (IsNullableType(memberType)) return true;
+			if (memberType.IsValueType) return false;
+			return member.GetCustomAttribute<System.Runtime.CompilerServices.NullableAttribute>() != null;
 		}
 
 		private static Action<object, object?>? TryCompileAdderForReadOnlyCollection(PropertyInfo? property)
@@ -1746,12 +1791,21 @@ namespace Doxense.Serialization.Json
 
 		public static bool IsNullableType(Type type)
 		{
-			if (!type.IsValueType)
+			if (!type.IsValueType || !type.IsNullableType())
 			{
-				return true;
+				return false;
+			}
+			return true;
+		}
+
+		public static Type? GetNullableType(Type type)
+		{
+			if (!type.IsValueType || !type.IsGenericType || !type.IsNullableType())
+			{
+				return null;
 			}
 
-			return type.IsNullableType();
+			return type.GenericTypeArguments[0];
 		}
 
 	}
