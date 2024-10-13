@@ -158,10 +158,10 @@ namespace Doxense.Serialization.Json.Tests
 			WriteSourceCode("GeneratedSourceCode.cs", source);
 
 
-			static void WriteSourceCode(string fileName, string source, [CallerFilePath] string? callerPath = null)
+			static void WriteSourceCode(string fileName, string source, [System.Runtime.CompilerServices.CallerFilePath] string? callerPath = null)
 			{
-				string filePath = Path.Combine(Path.GetDirectoryName(callerPath)!, fileName);
-				File.WriteAllText(filePath, source);
+				string filePath = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(callerPath)!, fileName);
+				System.IO.File.WriteAllText(filePath, source);
 			}
 #endif
 		}
@@ -575,7 +575,7 @@ namespace Doxense.Serialization.Json.Tests
 		}
 
 		[Test]
-		public void Test_JsonReadOnlyMutable_FromValue_ComplexType()
+		public void Test_JsonMutableProxy_FromValue_ComplexType()
 		{
 			var user = MakeSampleUser();
 			Log("User:");

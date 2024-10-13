@@ -56,9 +56,7 @@ namespace Doxense.Serialization.Json
 			this.OriginalName = originalName ?? name;
 			this.EncodedName = new(name);
 			this.NullableOfType = CrystalJsonTypeResolver.GetNullableType(memberType);
-#if NET8_0_OR_GREATER
 			this.IsNotNull = CrystalJsonTypeResolver.IsNotNullMemberType(member, memberType);
-#endif
 			this.IsRequired = CrystalJsonTypeResolver.IsRequiredMember(member);
 			this.IsKey = CrystalJsonTypeResolver.IsKeyMember(member);
 			this.IsInitOnly = CrystalJsonTypeResolver.IsInitOnlyMember(member);
@@ -79,6 +77,10 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Original <see cref="PropertyInfo"/> or <see cref="FieldInfo"/> of the member in its declaring type</summary>
 		public MemberInfo? Member { get; init; }
+
+		/// <summary>If <see langword="true"/>, the field has a <see cref="DefaultValue"/> that is not the default for this type.</summary>
+		/// <remarks>This is <see langword="false"/> if the default is <see langword="null"/>, <see langword="false"/>, <see langword="0"/>, etc...</remarks>
+		public bool HasDefaultValue { get; init; }
 
 		/// <summary>Default value for this member (when it is missing)</summary>
 		public object? DefaultValue { get; init; }
@@ -112,8 +114,6 @@ namespace Doxense.Serialization.Json
 		/// </code></remarks>
 		public Type? NullableOfType { get; init; }
 
-#if NET8_0_OR_GREATER
-
 		/// <summary>The member cannot be null, or is annotated with <see cref="System.Diagnostics.CodeAnalysis.NotNullAttribute"/></summary>
 		/// <remarks>Examples: <code>
 		/// int Foo { get; ... }     // IsNotNull == true
@@ -123,7 +123,25 @@ namespace Doxense.Serialization.Json
 		/// </code></remarks>
 		public bool IsNotNull { get; init; }
 
-#endif
+		/// <summary>The member if a reference type that is declared as nullable in its parent type</summary>
+		/// <remarks>Examples: <code>
+		/// int Foo { get; ... }     // IsNullableRefType == false
+		/// int? Foo { get; ... }    // IsNullableRefType == false
+		/// string Foo { get; ... }  // IsNullableRefType == false
+		/// string? Foo { get; ... } // IsNullableRefType == true
+		/// </code></remarks>
+		public bool IsNullableRefType => !this.IsNotNull && this.NullableOfType == null;
+
+		/// <summary>The member if a nullable value type</summary>
+		/// <remarks>Examples: <code>
+		/// int Foo { get; ... }     // IsNullableValueType == false
+		/// int? Foo { get; ... }    // IsNullableValueType == true
+		/// string Foo { get; ... }  // IsNullableValueType == false
+		/// string? Foo { get; ... } // IsNullableValueType == false
+		/// </code></remarks>
+		public bool IsNullableValueType => this.NullableOfType != null;
+
+		public bool IsNonNullableValueType => this.NullableOfType == null && this.Type.IsValueType;
 
 		/// <summary>The member has the required keyword and cannot be null</summary>
 		/// <remarks>Examples: <code>

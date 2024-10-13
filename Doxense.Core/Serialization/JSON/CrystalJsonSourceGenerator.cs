@@ -708,7 +708,7 @@ namespace Doxense.Serialization.Json
 						{
 							sb.Comment($"{member.OriginalName} {{ get; init; }}");
 							sb.Attribute<UnsafeAccessorAttribute>([ sb.Constant(UnsafeAccessorKind.Field) ], [ ("Name", sb.Constant("<" + member.OriginalName + ">k__BackingField")) ]);
-							sb.AppendLine($"private static extern ref {sb.TypeName(member.Type)} {member.OriginalName}Accessor({(isValueType ? "ref " : "")}{typeName} instance);");
+							sb.AppendLine($"private static extern ref {sb.TypeName(member.Type)}{(member.IsNullableRefType ? "?" : "")} {member.OriginalName}Accessor({(isValueType ? "ref " : "")}{typeName} instance);");
 							sb.NewLine();
 						}
 					}
@@ -866,13 +866,19 @@ namespace Doxense.Serialization.Json
 					{
 						sb.AppendLine($"/// <inheritdoc cref=\"{type.GetFriendlyName()}.{member.OriginalName}\" />");
 
+						var defaultValue = sb.Constant(member.Type, member.DefaultValue);
+
 						string? getterExpr = null;
-						string? getterType = sb.TypeName(member.Type);
+						string proxyType = sb.TypeName(member.Type);
+						if (member.IsNullableRefType)
+						{
+							proxyType += "?";
+						}
 
 						if (this.TypeMap.ContainsKey(member.Type))
 						{
 							getterExpr = $"new(m_obj.{(member.IsRequired ? "GetObject" : "GetObjectOrEmpty")}({sb.Constant(member.Name)}))";
-							getterType = GetLocalReadOnlyProxyRef(member.Type);
+							proxyType = GetLocalReadOnlyProxyRef(member.Type);
 						}
 						else if (IsStringLike(member.Type) || IsStringLike(member.Type) || IsBooleanLike(member.Type) || IsNumberLike(member.Type) || IsDateLike(member.Type))
 						{
@@ -883,16 +889,20 @@ namespace Doxense.Serialization.Json
 						{
 							if (member.Type == typeof(JsonObject))
 							{
-								getterExpr = $"m_obj.GetObjectOrEmpty({sb.Constant(member.Name)})";
+								getterExpr = $"m_obj.{(member.IsRequired ? "GetObject" : member.IsNullableRefType ? "GetObjectOrDefault" : "GetObjectOrEmpty")}({sb.Constant(member.Name)})";
 							}
 							else if (member.Type == typeof(JsonArray))
 							{
-								getterExpr = $"m_obj.GetArrayOrEmpty({sb.Constant(member.Name)})";
+								getterExpr = $"m_obj.{(member.IsRequired ? "GetArray" : member.IsNullableRefType ? "GetArrayOrDefault" : "GetArrayOrEmpty")}({sb.Constant(member.Name)})";
 							}
 							else
 							{
 								getterExpr = $"m_obj.GetValueOrDefault({sb.Constant(member.Name)})";
 							}
+						}
+						else if (member.Type.IsAssignableTo(typeof(IJsonSerializable)))
+						{
+							getterExpr = null; //TODO?
 						}
 						else if (IsDictionary(member.Type, out var keyType, out var valueType))
 						{
@@ -901,12 +911,12 @@ namespace Doxense.Serialization.Json
 								if (this.TypeMap.ContainsKey(valueType))
 								{
 									getterExpr = $"new(m_obj.{(member.IsRequired ? "GetObject" : "GetObjectOrEmpty")}({sb.Constant(member.Name)}), {GetLocalSerializerRef(valueType)})";
-									getterType = sb.TypeNameGeneric(typeof(JsonReadOnlyProxyObject<>), sb.TypeName(valueType));
+									proxyType = sb.TypeNameGeneric(typeof(JsonReadOnlyProxyObject<>), sb.TypeName(valueType));
 								}
 								else
 								{
 									getterExpr = $"new(m_obj.{(member.IsRequired ? "GetObject" : "GetObjectOrEmpty")}({sb.Constant(member.Name)}))";
-									getterType = sb.TypeNameGeneric(typeof(JsonReadOnlyProxyObject<>), sb.TypeName(valueType));
+									proxyType = sb.TypeNameGeneric(typeof(JsonReadOnlyProxyObject<>), sb.TypeName(valueType));
 								}
 							}
 						}
@@ -915,21 +925,36 @@ namespace Doxense.Serialization.Json
 							if (this.TypeMap.ContainsKey(elemType))
 							{
 								getterExpr = $"new(m_obj.{(member.IsRequired ? "GetArray" : "GetArrayOrEmpty")}({sb.Constant(member.Name)}), {GetLocalSerializerRef(elemType)})";
-								getterType = sb.TypeNameGeneric(typeof(JsonReadOnlyProxyArray<>), sb.TypeName(elemType));
+								proxyType = sb.TypeNameGeneric(typeof(JsonReadOnlyProxyArray<>), sb.TypeName(elemType));
 							}
 							else
 							{
 								getterExpr = $"new(m_obj.{(member.IsRequired ? "GetArray" : "GetArrayOrEmpty")}({sb.Constant(member.Name)}))";
-								getterType = sb.TypeNameGeneric(typeof(JsonReadOnlyProxyArray<>), sb.TypeName(elemType));
+								proxyType = sb.TypeNameGeneric(typeof(JsonReadOnlyProxyArray<>), sb.TypeName(elemType));
 							}
 						}
 
 						if (getterExpr == null)
 						{
-							getterExpr = $"m_obj.Get<{sb.TypeName(member.Type)}>({sb.Constant(member.Name)}{(member.IsRequired ? "" : $", {sb.DefaultOf(member.Type)}")})";
+							if (member.IsNullableRefType)
+							{
+								getterExpr = $"m_obj.Get<{sb.TypeName(member.Type)}?>({sb.Constant(member.Name)}, {defaultValue})";
+							}
+							else if (member.IsRequired)
+							{
+								getterExpr = $"m_obj.Get<{sb.TypeName(member.Type)}>({sb.Constant(member.Name)})";
+							}
+							else if (member.IsNonNullableValueType)
+							{
+								getterExpr = $"m_obj.Get<{sb.TypeName(member.Type)}>({sb.Constant(member.Name)}, {defaultValue})";
+							}
+							else
+							{
+								getterExpr = $"m_obj.Get<{sb.TypeName(member.Type)}>({sb.Constant(member.Name)}, {defaultValue}!)";
+							}
 						}
 
-						sb.AppendLine($"public {getterType} {member.OriginalName} => {getterExpr};");
+						sb.AppendLine($"public {proxyType} {member.OriginalName} => {getterExpr};");
 
 						sb.NewLine();
 					}
@@ -1009,7 +1034,14 @@ namespace Doxense.Serialization.Json
 
 					foreach (var member in typeDef.Members)
 					{
+						var defaultValue = sb.Constant(member.Type, member.DefaultValue);
+
 						string proxyType = sb.TypeName(member.Type);
+						if (member.IsNullableRefType)
+						{
+							proxyType += "?";
+						}
+
 						string? setterExpr = null;
 						string? getterExpr = null;
 
@@ -1021,13 +1053,21 @@ namespace Doxense.Serialization.Json
 						}
 						else if (IsStringLike(member.Type) || IsStringLike(member.Type) || IsBooleanLike(member.Type) || IsNumberLike(member.Type) || IsDateLike(member.Type))
 						{
-							if (member.IsRequired)
+							if (member.IsNullableRefType)
+							{
+								getterExpr ??= $"m_obj.Get<{sb.TypeName(member.Type)}?>({sb.Constant(member.Name)}, {defaultValue})";
+							}
+							else if (member.IsRequired)
 							{
 								getterExpr ??= $"m_obj.Get<{sb.TypeName(member.Type)}>({sb.Constant(member.Name)})";
 							}
+							else if (member.IsNonNullableValueType)
+							{
+								getterExpr ??= $"m_obj.Get<{sb.TypeName(member.Type)}>({sb.Constant(member.Name)}, {defaultValue})";
+							}
 							else
 							{
-								getterExpr ??= $"m_obj.Get<{sb.TypeName(member.Type)}>({sb.Constant(member.Name)}, {sb.DefaultOf(member.Type)})";
+								getterExpr ??= $"m_obj.Get<{sb.TypeName(member.Type)}>({sb.Constant(member.Name)}, {defaultValue}!)";
 							}
 
 							if (IsStringLike(member.Type, allowNullables: true))
@@ -1086,8 +1126,37 @@ namespace Doxense.Serialization.Json
 							}
 						}
 
-						getterExpr ??= $"m_obj.Get<{sb.TypeName(member.Type)}>({sb.Constant(member.Name)})";
-						setterExpr ??= $"m_obj.Set<{sb.TypeName(member.Type)}>({sb.Constant(member.Name)}, value)";
+						if (getterExpr == null)
+						{
+							if (member.IsNullableRefType)
+							{
+								getterExpr = $"m_obj.Get<{sb.TypeName(member.Type)}?>({sb.Constant(member.Name)}, {defaultValue})";
+							}
+							else if (member.IsRequired)
+							{
+								getterExpr = $"m_obj.Get<{sb.TypeName(member.Type)}>({sb.Constant(member.Name)})";
+							}
+							else if (member.IsNonNullableValueType)
+							{
+								getterExpr = $"m_obj.Get<{sb.TypeName(member.Type)}>({sb.Constant(member.Name)}, {defaultValue})";
+							}
+							else
+							{
+								getterExpr = $"m_obj.Get<{sb.TypeName(member.Type)}>({sb.Constant(member.Name)}, {defaultValue}!)";
+							}
+						}
+
+						if (setterExpr == null)
+						{
+							if (member.IsNullableRefType)
+							{
+								setterExpr ??= $"m_obj.Set<{sb.TypeName(member.Type)}?>({sb.Constant(member.Name)}, value)";
+							}
+							else
+							{
+								setterExpr ??= $"m_obj.Set<{sb.TypeName(member.Type)}>({sb.Constant(member.Name)}, value)";
+							}
+						}
 
 						sb.AppendLine($"/// <inheritdoc cref=\"{type.GetFriendlyName()}.{member.OriginalName}\" />");
 						sb.AppendLine($"public {proxyType} {member.OriginalName}");
@@ -1110,6 +1179,7 @@ namespace Doxense.Serialization.Json
 		{
 			var memberType = member.Type;
 			var defaultValue = sb.Constant(member.Type, member.DefaultValue);
+			var defaultValueOrEmpty = member.HasDefaultValue ? defaultValue : "";
 
 			// Do we have codegen for this type?
 			if (this.TypeMap.ContainsKey(memberType))
@@ -1145,61 +1215,65 @@ namespace Doxense.Serialization.Json
 			{
 				if (!memberType.IsNullableType())
 				{
-					if (memberType == typeof(bool)) return $"kv.Value.{nameof(JsonValue.ToBoolean)}()";
-					if (memberType == typeof(int)) return $"kv.Value.{nameof(JsonValue.ToInt32)}()";
-					if (memberType == typeof(long)) return $"kv.Value.{nameof(JsonValue.ToInt64)}()";
-					if (memberType == typeof(float)) return $"kv.Value.{nameof(JsonValue.ToSingle)}()";
-					if (memberType == typeof(double)) return $"kv.Value.{nameof(JsonValue.ToDouble)}()";
-					if (memberType == typeof(Guid)) return $"kv.Value.{nameof(JsonValue.ToGuid)}()";
-					if (memberType == typeof(Uuid128)) return $"kv.Value.{nameof(JsonValue.ToUuid128)}()";
-					if (memberType == typeof(Uuid64)) return $"kv.Value.{nameof(JsonValue.ToUuid64)}()";
-					if (memberType == typeof(DateTime)) return $"kv.Value.{nameof(JsonValue.ToDateTime)}()";
-					if (memberType == typeof(DateTimeOffset)) return $"kv.Value.{nameof(JsonValue.ToDateTimeOffset)}()";
-					if (memberType == typeof(NodaTime.Instant)) return $"kv.Value.{nameof(JsonValue.ToInstant)}()";
-					if (memberType == typeof(NodaTime.Duration)) return $"kv.Value.{nameof(JsonValue.ToDuration)}()";
-					if (memberType == typeof(char)) return $"kv.Value.{nameof(JsonValue.ToChar)}()";
-					if (memberType == typeof(uint)) return $"kv.Value.{nameof(JsonValue.ToUInt32)}()";
-					if (memberType == typeof(ulong)) return $"kv.Value.{nameof(JsonValue.ToUInt64)}()";
-					if (memberType == typeof(byte)) return $"kv.Value.{nameof(JsonValue.ToByte)}()";
-					if (memberType == typeof(sbyte)) return $"kv.Value.{nameof(JsonValue.ToSByte)}()";
-					if (memberType == typeof(decimal)) return $"kv.Value.{nameof(JsonValue.ToDecimal)}()";
-					if (memberType == typeof(Half)) return $"kv.Value.{nameof(JsonValue.ToDecimal)}()";
-					if (memberType == typeof(Int128)) return $"kv.Value.{nameof(JsonValue.ToInt128)}()";
-					if (memberType == typeof(UInt128)) return $"kv.Value.{nameof(JsonValue.ToUInt128)}()";
+					if (memberType == typeof(bool)) return $"kv.Value.{nameof(JsonValue.ToBoolean)}({defaultValueOrEmpty})";
+					if (memberType == typeof(int)) return $"kv.Value.{nameof(JsonValue.ToInt32)}({defaultValueOrEmpty})";
+					if (memberType == typeof(long)) return $"kv.Value.{nameof(JsonValue.ToInt64)}({defaultValueOrEmpty})";
+					if (memberType == typeof(float)) return $"kv.Value.{nameof(JsonValue.ToSingle)}({defaultValueOrEmpty})";
+					if (memberType == typeof(double)) return $"kv.Value.{nameof(JsonValue.ToDouble)}({defaultValueOrEmpty})";
+					if (memberType == typeof(Guid)) return $"kv.Value.{nameof(JsonValue.ToGuid)}({defaultValueOrEmpty})";
+					if (memberType == typeof(Uuid128)) return $"kv.Value.{nameof(JsonValue.ToUuid128)}({defaultValueOrEmpty})";
+					if (memberType == typeof(Uuid64)) return $"kv.Value.{nameof(JsonValue.ToUuid64)}({defaultValueOrEmpty})";
+					if (memberType == typeof(DateTime)) return $"kv.Value.{nameof(JsonValue.ToDateTime)}({defaultValueOrEmpty})";
+					if (memberType == typeof(DateTimeOffset)) return $"kv.Value.{nameof(JsonValue.ToDateTimeOffset)}({defaultValueOrEmpty})";
+					if (memberType == typeof(NodaTime.Instant)) return $"kv.Value.{nameof(JsonValue.ToInstant)}({defaultValueOrEmpty})";
+					if (memberType == typeof(NodaTime.Duration)) return $"kv.Value.{nameof(JsonValue.ToDuration)}({defaultValueOrEmpty})";
+					if (memberType == typeof(char)) return $"kv.Value.{nameof(JsonValue.ToChar)}({defaultValueOrEmpty})";
+					if (memberType == typeof(uint)) return $"kv.Value.{nameof(JsonValue.ToUInt32)}({defaultValueOrEmpty})";
+					if (memberType == typeof(ulong)) return $"kv.Value.{nameof(JsonValue.ToUInt64)}({defaultValueOrEmpty})";
+					if (memberType == typeof(byte)) return $"kv.Value.{nameof(JsonValue.ToByte)}({defaultValueOrEmpty})";
+					if (memberType == typeof(sbyte)) return $"kv.Value.{nameof(JsonValue.ToSByte)}({defaultValueOrEmpty})";
+					if (memberType == typeof(decimal)) return $"kv.Value.{nameof(JsonValue.ToDecimal)}({defaultValueOrEmpty})";
+					if (memberType == typeof(Half)) return $"kv.Value.{nameof(JsonValue.ToDecimal)}({defaultValueOrEmpty})";
+					if (memberType == typeof(Int128)) return $"kv.Value.{nameof(JsonValue.ToInt128)}({defaultValueOrEmpty})";
+					if (memberType == typeof(UInt128)) return $"kv.Value.{nameof(JsonValue.ToUInt128)}({defaultValueOrEmpty})";
 
-					return $"kv.Value.As<{sb.TypeName(memberType)}>(defaultValue: {defaultValue}, resolver: resolver)";
+					if (member.HasDefaultValue)
+					{
+						return $"kv.Value.As<{sb.TypeName(memberType)}>(defaultValue: {defaultValue}, resolver: resolver)";
+					}
+					return $"kv.Value.As<{sb.TypeName(memberType)}>(resolver: resolver)";
 				}
 				else
 				{
-					if (memberType == typeof(bool?)) return $"kv.Value.{nameof(JsonValue.ToBooleanOrDefault)}({defaultValue})";
-					if (memberType == typeof(int?)) return $"kv.Value.{nameof(JsonValue.ToInt32OrDefault)}({defaultValue})";
-					if (memberType == typeof(long?)) return $"kv.Value.{nameof(JsonValue.ToInt64OrDefault)}({defaultValue})";
-					if (memberType == typeof(float?)) return $"kv.Value.{nameof(JsonValue.ToSingleOrDefault)}({defaultValue})";
-					if (memberType == typeof(double?)) return $"kv.Value.{nameof(JsonValue.ToDoubleOrDefault)}({defaultValue})";
-					if (memberType == typeof(Guid?)) return $"kv.Value.{nameof(JsonValue.ToGuidOrDefault)}({defaultValue})";
-					if (memberType == typeof(Uuid128?)) return $"kv.Value.{nameof(JsonValue.ToUuid128OrDefault)}({defaultValue})";
-					if (memberType == typeof(Uuid64?)) return $"kv.Value.{nameof(JsonValue.ToUuid64OrDefault)}({defaultValue})";
-					if (memberType == typeof(DateTime?)) return $"kv.Value.{nameof(JsonValue.ToDateTimeOrDefault)}({defaultValue})";
-					if (memberType == typeof(DateTimeOffset?)) return $"kv.Value.{nameof(JsonValue.ToDateTimeOffsetOrDefault)}({defaultValue})";
-					if (memberType == typeof(NodaTime.Instant?)) return $"kv.Value.{nameof(JsonValue.ToInstantOrDefault)}({defaultValue})";
-					if (memberType == typeof(NodaTime.Duration?)) return $"kv.Value.{nameof(JsonValue.ToDurationOrDefault)}({defaultValue})";
-					if (memberType == typeof(char?)) return $"kv.Value.{nameof(JsonValue.ToCharOrDefault)}({defaultValue})";
-					if (memberType == typeof(uint?)) return $"kv.Value.{nameof(JsonValue.ToUInt32OrDefault)}({defaultValue})";
-					if (memberType == typeof(ulong?)) return $"kv.Value.{nameof(JsonValue.ToUInt64OrDefault)}({defaultValue})";
-					if (memberType == typeof(byte?)) return $"kv.Value.{nameof(JsonValue.ToByteOrDefault)}({defaultValue})";
-					if (memberType == typeof(sbyte?)) return $"kv.Value.{nameof(JsonValue.ToSByteOrDefault)}({defaultValue})";
-					if (memberType == typeof(decimal?)) return $"kv.Value.{nameof(JsonValue.ToDecimalOrDefault)}({defaultValue})";
-					if (memberType == typeof(Half?)) return $"kv.Value.{nameof(JsonValue.ToDecimalOrDefault)}({defaultValue})";
-					if (memberType == typeof(Int128?)) return $"kv.Value.{nameof(JsonValue.ToInt128OrDefault)}({defaultValue})";
-					if (memberType == typeof(UInt128?)) return $"kv.Value.{nameof(JsonValue.ToUInt128OrDefault)}({defaultValue})";
+					if (memberType == typeof(bool?)) return $"kv.Value.{nameof(JsonValue.ToBooleanOrDefault)}({defaultValueOrEmpty})";
+					if (memberType == typeof(int?)) return $"kv.Value.{nameof(JsonValue.ToInt32OrDefault)}({defaultValueOrEmpty})";
+					if (memberType == typeof(long?)) return $"kv.Value.{nameof(JsonValue.ToInt64OrDefault)}({defaultValueOrEmpty})";
+					if (memberType == typeof(float?)) return $"kv.Value.{nameof(JsonValue.ToSingleOrDefault)}({defaultValueOrEmpty})";
+					if (memberType == typeof(double?)) return $"kv.Value.{nameof(JsonValue.ToDoubleOrDefault)}({defaultValueOrEmpty})";
+					if (memberType == typeof(Guid?)) return $"kv.Value.{nameof(JsonValue.ToGuidOrDefault)}({defaultValueOrEmpty})";
+					if (memberType == typeof(Uuid128?)) return $"kv.Value.{nameof(JsonValue.ToUuid128OrDefault)}({defaultValueOrEmpty})";
+					if (memberType == typeof(Uuid64?)) return $"kv.Value.{nameof(JsonValue.ToUuid64OrDefault)}({defaultValueOrEmpty})";
+					if (memberType == typeof(DateTime?)) return $"kv.Value.{nameof(JsonValue.ToDateTimeOrDefault)}({defaultValueOrEmpty})";
+					if (memberType == typeof(DateTimeOffset?)) return $"kv.Value.{nameof(JsonValue.ToDateTimeOffsetOrDefault)}({defaultValueOrEmpty})";
+					if (memberType == typeof(NodaTime.Instant?)) return $"kv.Value.{nameof(JsonValue.ToInstantOrDefault)}({defaultValueOrEmpty})";
+					if (memberType == typeof(NodaTime.Duration?)) return $"kv.Value.{nameof(JsonValue.ToDurationOrDefault)}({defaultValueOrEmpty})";
+					if (memberType == typeof(char?)) return $"kv.Value.{nameof(JsonValue.ToCharOrDefault)}({defaultValueOrEmpty})";
+					if (memberType == typeof(uint?)) return $"kv.Value.{nameof(JsonValue.ToUInt32OrDefault)}({defaultValueOrEmpty})";
+					if (memberType == typeof(ulong?)) return $"kv.Value.{nameof(JsonValue.ToUInt64OrDefault)}({defaultValueOrEmpty})";
+					if (memberType == typeof(byte?)) return $"kv.Value.{nameof(JsonValue.ToByteOrDefault)}({defaultValueOrEmpty})";
+					if (memberType == typeof(sbyte?)) return $"kv.Value.{nameof(JsonValue.ToSByteOrDefault)}({defaultValueOrEmpty})";
+					if (memberType == typeof(decimal?)) return $"kv.Value.{nameof(JsonValue.ToDecimalOrDefault)}({defaultValueOrEmpty})";
+					if (memberType == typeof(Half?)) return $"kv.Value.{nameof(JsonValue.ToDecimalOrDefault)}({defaultValueOrEmpty})";
+					if (memberType == typeof(Int128?)) return $"kv.Value.{nameof(JsonValue.ToInt128OrDefault)}({defaultValueOrEmpty})";
+					if (memberType == typeof(UInt128?)) return $"kv.Value.{nameof(JsonValue.ToUInt128OrDefault)}({defaultValueOrEmpty})";
 				}
 			}
 			else
 			{
-				if (memberType == typeof(string)) return
-					  member.IsRequired ? $"kv.Value.RequiredField({sb.Constant(member.OriginalName)}).{nameof(JsonValue.ToString)}()"
-					: member.DefaultValue == null ? $"kv.Value.{nameof(JsonValue.ToStringOrDefault)}()"
-					: $"kv.Value.{nameof(JsonValue.ToStringOrDefault)}({defaultValue})";
+				if (memberType == typeof(string)) return 
+					member.IsRequired ? $"kv.Value.RequiredField({sb.Constant(member.OriginalName)}).{nameof(JsonValue.ToString)}()"
+					: member.IsNullableRefType ? $"kv.Value.{nameof(JsonValue.ToStringOrDefault)}({defaultValueOrEmpty})"
+					: $"kv.Value.{nameof(JsonValue.ToStringOrDefault)}({defaultValueOrEmpty})!";
 
 				if (memberType == typeof(JsonValue)) return member.IsRequired ? $"kv.Value.RequiredField({sb.Constant(member.OriginalName)})" : "kv.Value";
 				if (memberType == typeof(JsonObject)) return $"kv.Value.{(member.IsRequired ? nameof(JsonValueExtensions.AsObject) : member.IsNotNull ? nameof(JsonValueExtensions.AsObjectOrEmpty) : nameof(JsonValueExtensions.AsObjectOrDefault))}()";
@@ -1209,8 +1283,14 @@ namespace Doxense.Serialization.Json
 				{
 					if (keyType == typeof(string))
 					{
-						return $"{GetLocalSerializerRef(valueType)}.{nameof(JsonSerializerExtensions.JsonDeserializeDictionary)}(kv.Value, defaultValue: {defaultValue}, keyComparer: null, resolver: resolver)!";
-
+						if (member.HasDefaultValue)
+						{
+							return $"{GetLocalSerializerRef(valueType)}.{nameof(JsonSerializerExtensions.JsonDeserializeDictionary)}(kv.Value, defaultValue: {defaultValue}, resolver: resolver)";
+						}
+						else
+						{
+							return $"{GetLocalSerializerRef(valueType)}.{nameof(JsonSerializerExtensions.JsonDeserializeDictionary)}(kv.Value, resolver: resolver)!";
+						}
 					}
 					//TODO??
 				}
@@ -1224,11 +1304,11 @@ namespace Doxense.Serialization.Json
 							{
 								return $"{GetLocalSerializerRef(elemType)}.{nameof(JsonSerializerExtensions.JsonDeserializeArrayRequired)}(kv.Value, resolver: resolver, fieldName: {sb.Constant(member.OriginalName)})";
 							}
-							if (member.IsNotNull)
+							if (member.HasDefaultValue)
 							{
-								return $"{GetLocalSerializerRef(elemType)}.{nameof(JsonSerializerExtensions.JsonDeserializeArray)}(kv.Value, defaultValue: {defaultValue}, resolver: resolver, fieldName: {sb.Constant(member.OriginalName)})!";
+								return $"{GetLocalSerializerRef(elemType)}.{nameof(JsonSerializerExtensions.JsonDeserializeArray)}(kv.Value, defaultValue: {defaultValue}, resolver: resolver, fieldName: {sb.Constant(member.OriginalName)})";
 							}
-							return $"{GetLocalSerializerRef(elemType)}.{nameof(JsonSerializerExtensions.JsonDeserializeArray)}(kv.Value, defaultValue: {defaultValue}, resolver: resolver, fieldName: {sb.Constant(member.OriginalName)})";
+							return $"{GetLocalSerializerRef(elemType)}.{nameof(JsonSerializerExtensions.JsonDeserializeArray)}(kv.Value, resolver: resolver, fieldName: {sb.Constant(member.OriginalName)})!";
 						}
 						if (IsList(memberType, out _))
 						{
@@ -1236,28 +1316,47 @@ namespace Doxense.Serialization.Json
 							{
 								return $"{GetLocalSerializerRef(elemType)}.{nameof(JsonSerializerExtensions.JsonDeserializeListRequired)}(kv.Value, resolver: resolver, fieldName: {sb.Constant(member.OriginalName)})";
 							}
-							if (member.IsNotNull)
+							if (member.HasDefaultValue)
 							{
 								return $"{GetLocalSerializerRef(elemType)}.{nameof(JsonSerializerExtensions.JsonDeserializeList)}(kv.Value, defaultValue: {defaultValue}, resolver: resolver, fieldName: {sb.Constant(member.OriginalName)})!";
 							}
-							return $"{GetLocalSerializerRef(elemType)}.{nameof(JsonSerializerExtensions.JsonDeserializeList)}(kv.Value, defaultValue: {defaultValue}, resolver: resolver, fieldName: {sb.Constant(member.OriginalName)})";
+							return $"{GetLocalSerializerRef(elemType)}.{nameof(JsonSerializerExtensions.JsonDeserializeList)}(kv.Value, resolver: resolver, fieldName: {sb.Constant(member.OriginalName)})";
 						}
 					}
 					else
 					{
 						if (IsArray(memberType, out _))
 						{
-							return $"kv.Value.AsArrayOrDefault()?.ToArray<{sb.TypeName(elemType)}>({defaultValue}, resolver)!";
+							if (member.IsRequired)
+							{
+								return $"kv.Value.AsArray().ToArray<{sb.TypeName(elemType)}>({defaultValue}, resolver)";
+							}
+							else
+							{
+								return $"kv.Value.AsArrayOrDefault()?.ToArray<{sb.TypeName(elemType)}>({defaultValue}, resolver)!";
+							}
 						}
 						if (IsList(memberType, out _))
 						{
-							return $"kv.Value.AsArrayOrDefault()?.ToList<{sb.TypeName(elemType)}>({defaultValue}, resolver)!";
+							if (member.IsRequired)
+							{
+								return $"kv.Value.AsArray().ToList<{sb.TypeName(elemType)}>({defaultValue}, resolver)";
+							}
+							else
+							{
+								return $"kv.Value.AsArrayOrDefault()?.ToList<{sb.TypeName(elemType)}>({defaultValue}, resolver)!";
+							}
 						}
 					}
 				}
 			}
 
-			return $"kv.Value.As<{sb.TypeName(memberType)}>(defaultValue: {defaultValue}, resolver: resolver)!";
+			if (member.HasDefaultValue)
+			{
+				return $"kv.Value.As<{sb.TypeName(memberType)}>(defaultValue: {defaultValue}, resolver: resolver)";
+			}
+
+			return $"kv.Value.As<{sb.TypeName(memberType)}>(resolver: resolver)!";
 		}
 
 	}
@@ -1267,7 +1366,7 @@ namespace Doxense.Serialization.Json
 
 		public readonly StringBuilder Output = new();
 
-		public readonly Stack<string> Structure = [ ];
+		public readonly Stack<string?> Structure = [ ];
 
 		public int Depth;
 

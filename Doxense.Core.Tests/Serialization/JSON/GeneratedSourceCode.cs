@@ -108,11 +108,11 @@ namespace Doxense.Serialization.Json.Tests
 
 			// FirstName { get; init; }
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<FirstName>k__BackingField")]
-			private static extern ref string FirstNameAccessor(global::Doxense.Serialization.Json.Tests.Person instance);
+			private static extern ref string? FirstNameAccessor(global::Doxense.Serialization.Json.Tests.Person instance);
 
 			// FamilyName { get; init; }
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<FamilyName>k__BackingField")]
-			private static extern ref string FamilyNameAccessor(global::Doxense.Serialization.Json.Tests.Person instance);
+			private static extern ref string? FamilyNameAccessor(global::Doxense.Serialization.Json.Tests.Person instance);
 
 			public global::Doxense.Serialization.Json.Tests.Person Unpack(JsonValue value, ICrystalJsonTypeResolver? resolver = default)
 			{
@@ -177,10 +177,10 @@ namespace Doxense.Serialization.Json.Tests
 			JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_obj;
 
 			/// <inheritdoc cref="Person.FirstName" />
-			public string FirstName => m_obj.Get<string>("firstName", null);
+			public string? FirstName => m_obj.Get<string?>("firstName", null);
 
 			/// <inheritdoc cref="Person.FamilyName" />
-			public string FamilyName => m_obj.Get<string>("familyName", null);
+			public string? FamilyName => m_obj.Get<string?>("familyName", null);
 
 		}
 
@@ -224,16 +224,16 @@ namespace Doxense.Serialization.Json.Tests
 			JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => settings.IsReadOnly() ? m_obj.ToReadOnly() : m_obj;
 
 			/// <inheritdoc cref="Person.FirstName" />
-			public string FirstName
+			public string? FirstName
 			{
-				get => m_obj.Get<string>("firstName", null);
+				get => m_obj.Get<string?>("firstName", null);
 				set => m_obj["firstName"] = JsonString.Return(value);
 			}
 
 			/// <inheritdoc cref="Person.FamilyName" />
-			public string FamilyName
+			public string? FamilyName
 			{
-				get => m_obj.Get<string>("familyName", null);
+				get => m_obj.Get<string?>("familyName", null);
 				set => m_obj["familyName"] = JsonString.Return(value);
 			}
 
@@ -335,56 +335,53 @@ namespace Doxense.Serialization.Json.Tests
 
 				// string Id => "id"
 				value = JsonString.Return(instance.Id);
-				if (keepNulls || value is not null or JsonNull)
-				{
-					obj["id"] = value;
-				}
+				obj["id"] = value;
 
 				// string DisplayName => "displayName"
 				value = JsonString.Return(instance.DisplayName);
-				if (keepNulls || value is not null or JsonNull)
-				{
-					obj["displayName"] = value;
-				}
+				obj["displayName"] = value;
 
 				// string Email => "email"
 				value = JsonString.Return(instance.Email);
-				if (keepNulls || value is not null or JsonNull)
-				{
-					obj["email"] = value;
-				}
+				obj["email"] = value;
 
 				// int Type => "type"
 				// fast!
 				value = JsonNumber.Return(instance.Type);
-				if (keepNulls || value is not null or JsonNull)
-				{
-					obj["type"] = value;
-				}
+				obj["type"] = value;
 
 				// string[] Roles => "roles"
 				value = JsonSerializerExtensions.JsonPackArray(instance.Roles, settings, resolver);
-				obj["roles"] = value;
+				if (keepNulls || value is not null or JsonNull)
+				{
+					obj["roles"] = value;
+				}
 
 				// MyAwesomeMetadata Metadata => "metadata"
 				// custom!
 				value = GeneratedSerializers.MyAwesomeMetadata.Pack(instance.Metadata, settings, resolver);
-				if (keepNulls || value is not null or JsonNull)
-				{
-					obj["metadata"] = value;
-				}
+				obj["metadata"] = value;
 
 				// List<MyAwesomeStruct> Items => "items"
 				value = GeneratedSerializers.MyAwesomeStruct.JsonPackList(instance.Items, settings, resolver);
-				obj["items"] = value;
+				if (keepNulls || value is not null or JsonNull)
+				{
+					obj["items"] = value;
+				}
 
 				// Dictionary<string, MyAwesomeDevice> Devices => "devices"
 				value = GeneratedSerializers.MyAwesomeDevice.JsonPackObject(instance.Devices, settings, resolver);
-				obj["devices"] = value;
+				if (keepNulls || value is not null or JsonNull)
+				{
+					obj["devices"] = value;
+				}
 
 				// JsonObject Extras => "extras"
 				value = readOnly ? instance.Extras?.ToReadOnly() : instance.Extras;
-				obj["extras"] = value;
+				if (keepNulls || value is not null or JsonNull)
+				{
+					obj["extras"] = value;
+				}
 				if (readOnly)
 				{
 					return FreezeUnsafe(obj);
@@ -415,7 +412,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			// Roles { get; init; }
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Roles>k__BackingField")]
-			private static extern ref string[] RolesAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeUser instance);
+			private static extern ref string[]? RolesAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeUser instance);
 
 			// Metadata { get; init; }
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Metadata>k__BackingField")]
@@ -423,15 +420,15 @@ namespace Doxense.Serialization.Json.Tests
 
 			// Items { get; init; }
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Items>k__BackingField")]
-			private static extern ref global::System.Collections.Generic.List<global::Doxense.Serialization.Json.Tests.MyAwesomeStruct> ItemsAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeUser instance);
+			private static extern ref global::System.Collections.Generic.List<global::Doxense.Serialization.Json.Tests.MyAwesomeStruct>? ItemsAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeUser instance);
 
 			// Devices { get; init; }
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Devices>k__BackingField")]
-			private static extern ref global::System.Collections.Generic.Dictionary<string, global::Doxense.Serialization.Json.Tests.MyAwesomeDevice> DevicesAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeUser instance);
+			private static extern ref global::System.Collections.Generic.Dictionary<string, global::Doxense.Serialization.Json.Tests.MyAwesomeDevice>? DevicesAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeUser instance);
 
 			// Extras { get; init; }
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Extras>k__BackingField")]
-			private static extern ref JsonObject ExtrasAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeUser instance);
+			private static extern ref JsonObject? ExtrasAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeUser instance);
 
 			public global::Doxense.Serialization.Json.Tests.MyAwesomeUser Unpack(JsonValue value, ICrystalJsonTypeResolver? resolver = default)
 			{
@@ -449,8 +446,8 @@ namespace Doxense.Serialization.Json.Tests
 						case "roles": RolesAccessor(instance) = kv.Value.AsArrayOrDefault()?.ToArray<string>(null, resolver)!; break;
 						case "metadata": MetadataAccessor(instance) = GeneratedSerializers.MyAwesomeMetadata.UnpackRequired(kv.Value, resolver: resolver, fieldName: "Metadata"); break;
 						case "items": ItemsAccessor(instance) = GeneratedSerializers.MyAwesomeStruct.JsonDeserializeListRequired(kv.Value, resolver: resolver, fieldName: "Items"); break;
-						case "devices": DevicesAccessor(instance) = GeneratedSerializers.MyAwesomeDevice.JsonDeserializeDictionary(kv.Value, defaultValue: null, keyComparer: null, resolver: resolver)!; break;
-						case "extras": ExtrasAccessor(instance) = kv.Value.AsObjectOrEmpty(); break;
+						case "devices": DevicesAccessor(instance) = GeneratedSerializers.MyAwesomeDevice.JsonDeserializeDictionary(kv.Value, resolver: resolver)!; break;
+						case "extras": ExtrasAccessor(instance) = kv.Value.AsObjectOrDefault(); break;
 					}
 				}
 
@@ -527,7 +524,7 @@ namespace Doxense.Serialization.Json.Tests
 			public JsonReadOnlyProxyObject<global::Doxense.Serialization.Json.Tests.MyAwesomeDevice> Devices => new(m_obj.GetObjectOrEmpty("devices"), GeneratedSerializers.MyAwesomeDevice);
 
 			/// <inheritdoc cref="MyAwesomeUser.Extras" />
-			public JsonObject Extras => m_obj.GetObjectOrEmpty("extras");
+			public JsonObject? Extras => m_obj.GetObjectOrDefault("extras");
 
 		}
 
@@ -599,10 +596,10 @@ namespace Doxense.Serialization.Json.Tests
 			}
 
 			/// <inheritdoc cref="MyAwesomeUser.Roles" />
-			public string[] Roles
+			public string[]? Roles
 			{
-				get => m_obj.Get<string[]>("roles");
-				set => m_obj.Set<string[]>("roles", value);
+				get => m_obj.Get<string[]?>("roles", null);
+				set => m_obj.Set<string[]?>("roles", value);
 			}
 
 			/// <inheritdoc cref="MyAwesomeUser.Metadata" />
@@ -627,9 +624,9 @@ namespace Doxense.Serialization.Json.Tests
 			}
 
 			/// <inheritdoc cref="MyAwesomeUser.Extras" />
-			public JsonObject Extras
+			public JsonObject? Extras
 			{
-				get => m_obj.GetObjectOrEmpty("extras").ToMutable();
+				get => m_obj.GetObjectOrDefault("extras")?.ToMutable();
 				set => m_obj["extras"] = value ?? JsonNull.Null;
 			}
 
@@ -702,18 +699,12 @@ namespace Doxense.Serialization.Json.Tests
 				// DateTimeOffset AccountCreated => "accountCreated"
 				// fast!
 				value = JsonDateTime.Return(instance.AccountCreated);
-				if (keepNulls || value is not null or JsonNull)
-				{
-					obj["accountCreated"] = value;
-				}
+				obj["accountCreated"] = value;
 
 				// DateTimeOffset AccountModified => "accountModified"
 				// fast!
 				value = JsonDateTime.Return(instance.AccountModified);
-				if (keepNulls || value is not null or JsonNull)
-				{
-					obj["accountModified"] = value;
-				}
+				obj["accountModified"] = value;
 
 				// DateTimeOffset? AccountDisabled => "accountDisabled"
 				// fast!
@@ -760,7 +751,7 @@ namespace Doxense.Serialization.Json.Tests
 					{
 						case "accountCreated": AccountCreatedAccessor(instance) = kv.Value.ToDateTimeOffset(); break;
 						case "accountModified": AccountModifiedAccessor(instance) = kv.Value.ToDateTimeOffset(); break;
-						case "accountDisabled": AccountDisabledAccessor(instance) = kv.Value.ToDateTimeOffsetOrDefault(default); break;
+						case "accountDisabled": AccountDisabledAccessor(instance) = kv.Value.ToDateTimeOffsetOrDefault(); break;
 					}
 				}
 
@@ -819,7 +810,7 @@ namespace Doxense.Serialization.Json.Tests
 			public global::System.DateTimeOffset AccountModified => m_obj.Get<global::System.DateTimeOffset>("accountModified", DateTimeOffset.MinValue);
 
 			/// <inheritdoc cref="MyAwesomeMetadata.AccountDisabled" />
-			public global::System.DateTimeOffset? AccountDisabled => m_obj.Get<global::System.DateTimeOffset?>("accountDisabled", null);
+			public global::System.DateTimeOffset? AccountDisabled => m_obj.Get<global::System.DateTimeOffset?>("accountDisabled", default!);
 
 		}
 
@@ -879,7 +870,7 @@ namespace Doxense.Serialization.Json.Tests
 			/// <inheritdoc cref="MyAwesomeMetadata.AccountDisabled" />
 			public global::System.DateTimeOffset? AccountDisabled
 			{
-				get => m_obj.Get<global::System.DateTimeOffset?>("accountDisabled", null);
+				get => m_obj.Get<global::System.DateTimeOffset?>("accountDisabled", default!);
 				set => m_obj["accountDisabled"] = JsonDateTime.Return(value);
 			}
 
@@ -951,18 +942,12 @@ namespace Doxense.Serialization.Json.Tests
 				// int Level => "level"
 				// fast!
 				value = JsonNumber.Return(instance.Level);
-				if (keepNulls || value is not null or JsonNull)
-				{
-					obj["level"] = value;
-				}
+				obj["level"] = value;
 
 				// JsonPath Path => "path"
 				// fast!
 				value = JsonValue.FromValue<JsonPath>(instance.Path);
-				if (keepNulls || value is not null or JsonNull)
-				{
-					obj["path"] = value;
-				}
+				obj["path"] = value;
 
 				// bool? Disabled => "disabled"
 				// fast!
@@ -1014,7 +999,7 @@ namespace Doxense.Serialization.Json.Tests
 						case "id": IdAccessor(ref instance) = kv.Value.RequiredField("Id").ToString(); break;
 						case "level": LevelAccessor(ref instance) = kv.Value.ToInt32(); break;
 						case "path": PathAccessor(ref instance) = JsonSerializerExtensions.UnpackRequired<JsonPath>(kv.Value, resolver: resolver, fieldName: "Path"); break;
-						case "disabled": DisabledAccessor(ref instance) = kv.Value.ToBooleanOrDefault(default); break;
+						case "disabled": DisabledAccessor(ref instance) = kv.Value.ToBooleanOrDefault(); break;
 					}
 				}
 
@@ -1073,10 +1058,10 @@ namespace Doxense.Serialization.Json.Tests
 			public int Level => m_obj.Get<int>("level");
 
 			/// <inheritdoc cref="MyAwesomeStruct.Path" />
-			public JsonReadOnlyProxyArray<global::System.ValueTuple<global::Doxense.Serialization.Json.JsonPath, global::System.ReadOnlyMemory<char>, global::System.Index, bool>> Path => new(m_obj.GetArray("path"));
+			public JsonPath Path => m_obj.Get<JsonPath>("path");
 
 			/// <inheritdoc cref="MyAwesomeStruct.Disabled" />
-			public bool? Disabled => m_obj.Get<bool?>("disabled", null);
+			public bool? Disabled => m_obj.Get<bool?>("disabled", default!);
 
 		}
 
@@ -1143,7 +1128,7 @@ namespace Doxense.Serialization.Json.Tests
 			/// <inheritdoc cref="MyAwesomeStruct.Disabled" />
 			public bool? Disabled
 			{
-				get => m_obj.Get<bool?>("disabled", null);
+				get => m_obj.Get<bool?>("disabled", default!);
 				set => m_obj["disabled"] = JsonBoolean.Return(value);
 			}
 
@@ -1220,17 +1205,11 @@ namespace Doxense.Serialization.Json.Tests
 
 				// string Id => "id"
 				value = JsonString.Return(instance.Id);
-				if (keepNulls || value is not null or JsonNull)
-				{
-					obj["id"] = value;
-				}
+				obj["id"] = value;
 
 				// string Model => "model"
 				value = JsonString.Return(instance.Model);
-				if (keepNulls || value is not null or JsonNull)
-				{
-					obj["model"] = value;
-				}
+				obj["model"] = value;
 
 				// DateTimeOffset? LastSeen => "lastSeen"
 				// fast!
@@ -1245,7 +1224,10 @@ namespace Doxense.Serialization.Json.Tests
 
 				// IPAddress LastAddress => "lastAddress"
 				value = JsonValue.FromValue<global::System.Net.IPAddress>(instance.LastAddress);
-				obj["lastAddress"] = value;
+				if (keepNulls || value is not null or JsonNull)
+				{
+					obj["lastAddress"] = value;
+				}
 				if (readOnly)
 				{
 					return FreezeUnsafe(obj);
@@ -1272,7 +1254,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			// LastAddress { get; init; }
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<LastAddress>k__BackingField")]
-			private static extern ref global::System.Net.IPAddress LastAddressAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeDevice instance);
+			private static extern ref global::System.Net.IPAddress? LastAddressAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeDevice instance);
 
 			public global::Doxense.Serialization.Json.Tests.MyAwesomeDevice Unpack(JsonValue value, ICrystalJsonTypeResolver? resolver = default)
 			{
@@ -1285,8 +1267,8 @@ namespace Doxense.Serialization.Json.Tests
 					{
 						case "id": IdAccessor(instance) = kv.Value.RequiredField("Id").ToString(); break;
 						case "model": ModelAccessor(instance) = kv.Value.RequiredField("Model").ToString(); break;
-						case "lastSeen": LastSeenAccessor(instance) = kv.Value.ToDateTimeOffsetOrDefault(default); break;
-						case "lastAddress": LastAddressAccessor(instance) = kv.Value.As<global::System.Net.IPAddress>(defaultValue: null, resolver: resolver)!; break;
+						case "lastSeen": LastSeenAccessor(instance) = kv.Value.ToDateTimeOffsetOrDefault(); break;
+						case "lastAddress": LastAddressAccessor(instance) = kv.Value.As<global::System.Net.IPAddress>(resolver: resolver)!; break;
 					}
 				}
 
@@ -1345,10 +1327,10 @@ namespace Doxense.Serialization.Json.Tests
 			public string Model => m_obj.Get<string>("model");
 
 			/// <inheritdoc cref="MyAwesomeDevice.LastSeen" />
-			public global::System.DateTimeOffset? LastSeen => m_obj.Get<global::System.DateTimeOffset?>("lastSeen", null);
+			public global::System.DateTimeOffset? LastSeen => m_obj.Get<global::System.DateTimeOffset?>("lastSeen", default!);
 
 			/// <inheritdoc cref="MyAwesomeDevice.LastAddress" />
-			public global::System.Net.IPAddress LastAddress => m_obj.Get<global::System.Net.IPAddress>("lastAddress", null);
+			public global::System.Net.IPAddress? LastAddress => m_obj.Get<global::System.Net.IPAddress?>("lastAddress", null);
 
 		}
 
@@ -1408,15 +1390,15 @@ namespace Doxense.Serialization.Json.Tests
 			/// <inheritdoc cref="MyAwesomeDevice.LastSeen" />
 			public global::System.DateTimeOffset? LastSeen
 			{
-				get => m_obj.Get<global::System.DateTimeOffset?>("lastSeen", null);
+				get => m_obj.Get<global::System.DateTimeOffset?>("lastSeen", default!);
 				set => m_obj["lastSeen"] = JsonDateTime.Return(value);
 			}
 
 			/// <inheritdoc cref="MyAwesomeDevice.LastAddress" />
-			public global::System.Net.IPAddress LastAddress
+			public global::System.Net.IPAddress? LastAddress
 			{
-				get => m_obj.Get<global::System.Net.IPAddress>("lastAddress");
-				set => m_obj.Set<global::System.Net.IPAddress>("lastAddress", value);
+				get => m_obj.Get<global::System.Net.IPAddress?>("lastAddress", null);
+				set => m_obj.Set<global::System.Net.IPAddress?>("lastAddress", value);
 			}
 
 		}

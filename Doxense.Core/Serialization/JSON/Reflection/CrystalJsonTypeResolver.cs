@@ -198,6 +198,7 @@ namespace Doxense.Serialization.Json
 			{
 				new CrystalJsonMemberDefinition(keyType, "Key")
 				{
+					HasDefaultValue = false,
 					DefaultValue = keyType.GetDefaultValue(),
 					ReadOnly = true,
 					Getter = type.GetProperty("Key")!.CompileGetter(),
@@ -208,6 +209,7 @@ namespace Doxense.Serialization.Json
 				},
 				new CrystalJsonMemberDefinition(valueType, "Value")
 				{
+					HasDefaultValue = false,
 					DefaultValue = valueType.GetDefaultValue(),
 					ReadOnly = true,
 					Getter = type.GetProperty("Value")!.CompileGetter(),
@@ -938,7 +940,9 @@ namespace Doxense.Serialization.Json
 				}
 
 				if (!FilterMemberByAttributes(field, hasDataContract, ref name, ref defaultValue))
+				{
 					continue; // skip
+				}
 
 				var visitor = CrystalJsonVisitor.GetVisitorForType(fieldType, atRuntime: false);
 				if (visitor == null) throw new ArgumentException($"Doesn't know how to serialize field {field.Name} of type {fieldType.GetFriendlyName()}", nameof(type));
@@ -946,6 +950,7 @@ namespace Doxense.Serialization.Json
 				members.Add(new(field, fieldType, name, field.Name)
 				{
 					Attributes = jp,
+					HasDefaultValue = defaultValue is not null && !defaultValue.Equals(fieldType.GetDefaultValue()),
 					DefaultValue = defaultValue,
 					ReadOnly = false,
 					Getter = field.CompileGetter(),
@@ -1006,6 +1011,7 @@ namespace Doxense.Serialization.Json
 				members.Add(new(property, propertyType, name, property.Name)
 				{
 					Attributes = jp,
+					HasDefaultValue = defaultValue is not null && !defaultValue.Equals(propertyType.GetDefaultValue()),
 					DefaultValue = defaultValue,
 					ReadOnly = setter == null,
 					Getter = getter,
@@ -1054,18 +1060,38 @@ namespace Doxense.Serialization.Json
 			return member.GetCustomAttribute<System.Runtime.CompilerServices.RequiredMemberAttribute>() != null;
 		}
 
-#if NET8_0_OR_GREATER
+
+		private static readonly NullabilityInfoContext s_nullabilityContext = new();
 
 		/// <summary>Tests if a member of a type is decorated with the <see langword="required"/> keyword</summary>
 		public static bool IsNotNullMemberType(MemberInfo member, Type memberType)
 		{
 			// value types, except Nullable<T>, cannot be null
-			if (IsNullableType(memberType)) return true;
-			if (memberType.IsValueType) return false;
-			return member.GetCustomAttribute<System.Runtime.CompilerServices.NullableAttribute>() != null;
-		}
+			if (IsNullableType(memberType)) return false;
+			if (memberType.IsValueType) return true;
 
-#endif
+			switch (member)
+			{
+				case PropertyInfo property:
+				{
+					lock (s_nullabilityContext)
+					{
+						return s_nullabilityContext.Create(property).ReadState != NullabilityState.Nullable;
+					}
+				}
+				case FieldInfo field:
+				{
+					lock (s_nullabilityContext)
+					{
+						return s_nullabilityContext.Create(field).ReadState != NullabilityState.Nullable;
+					}
+				}
+				default:
+				{
+					return false;
+				}
+			}
+		}
 
 		private static Action<object, object?>? TryCompileAdderForReadOnlyCollection(PropertyInfo? property)
 		{
