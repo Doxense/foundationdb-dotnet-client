@@ -9,6 +9,7 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
 		<RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
+		<SignAssembly>true</SignAssembly>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
