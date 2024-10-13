@@ -2408,22 +2408,6 @@ namespace Doxense.Memory
 			return buffer;
 		}
 
-		/// <summary>Resize a buffer obtained from this pool, using another (larger) buffer from the same pool</summary>
-		/// <param name="pool">Buffer pool</param>
-		/// <param name="array">IN: Buffer previously obtained from <see cref="pool"/>; OUT: new buffer with the same content</param>
-		/// <param name="newSize">New size for the buffer</param>
-		/// <remarks>
-		/// If <paramref name="array"/> is null, a new buffer is allocated.
-		/// If <paramref name="array"/> is already large enough, no copy is performed.
-		/// Else, a new buffer is allocated from the <paramref name="pool"/>, and the content is copied other.
-		/// </remarks>
-		private static void ResizeUsingPool(ArrayPool<byte> pool, [System.Diagnostics.CodeAnalysis.NotNull] ref byte[]? array, int newSize)
-		{
-			Contract.NotNull(pool);
-			Contract.Positive(newSize);
-
-		}
-
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static Exception FailCannotGrowBuffer()
 		{

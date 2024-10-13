@@ -28,8 +28,8 @@
 
 namespace FoundationDB.Client.Native
 {
-
 	/// <summary>FDBFuture[] wrapper</summary>
+	/// <typeparam name="TState">Type of the state passed to the callback</typeparam>
 	/// <typeparam name="TResult">Type of result</typeparam>
 	public sealed class FdbFutureArray<TState, TResult> : FdbFuture<TResult[]>
 	{

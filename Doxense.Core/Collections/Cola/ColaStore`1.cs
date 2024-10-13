@@ -229,9 +229,11 @@ namespace Doxense.Collections.Generic
 			m_count = 0;
 		}
 
+		[UsedImplicitly]
 		private Span<T[]?> LevelsAllocated => GetLevels();
 
-		private Span<T[]?> LevelsAll => (Span<T[]?>) m_levels;
+		[UsedImplicitly]
+		private Span<T[]?> LevelsAll => m_levels;
 
 		private (T[] Array, int Size) RentLevel(int level)
 		{
@@ -439,7 +441,7 @@ namespace Doxense.Collections.Generic
 			{
 				// If someone gets the last inserted key, there is a 50% change that it is in the root
 				// (if not, it will the last one of the first non-empty level)
-				ref var last = ref m_root[0];
+				ref T last = ref m_root[0];
 				if (m_comparer.Compare(value, last) == 0)
 				{
 					level = 0;
@@ -596,7 +598,7 @@ namespace Doxense.Collections.Generic
 		/// </remarks>
 		public bool SetOrAdd(T value, bool overwriteExistingValue = false)
 		{
-			ref var entry = ref Find(value, out int level, out int offset);
+			ref var entry = ref Find(value, out _, out _);
 			if (!Unsafe.IsNullRef(ref entry))
 			{
 				if (overwriteExistingValue)
@@ -1228,6 +1230,7 @@ namespace Doxense.Collections.Generic
 		}
 
 		[DebuggerDisplay("Current={m_current}, Level={m_currentLevel} ({m_min})")]
+		[PublicAPI]
 		public sealed class Iterator
 		{
 			private const int DIRECTION_PREVIOUS = -1;
@@ -1260,6 +1263,7 @@ namespace Doxense.Collections.Generic
 			}
 
 			[Conditional("FULL_DEBUG")]
+			// ReSharper disable once UnusedParameter.Local
 			private void Debug_Dump(string? label = null)
 			{
 #if FULL_DEBUG

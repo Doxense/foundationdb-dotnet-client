@@ -61,7 +61,7 @@ namespace FoundationDB.Client
 
 		#region Singletons...
 
-		public static readonly FdbRangeOptions Default = new() { };
+		public static readonly FdbRangeOptions Default = new();
 
 		public static readonly FdbRangeOptions Reversed = new() { Reverse = true };
 
@@ -89,7 +89,8 @@ namespace FoundationDB.Client
 
 		/// <summary>Add all missing values from the provided defaults</summary>
 		/// <param name="options">Options provided by the caller (can be null)</param>
-		/// <param name="mode">Default value for Streaming mode if not provided</param>
+		/// <param name="mode">Default value for <see cref="FdbRangeOptions.Mode"/> if not provided</param>
+		/// <param name="read">Default value for <see cref="FdbRangeOptions.Read"/> if not provided</param>
 		/// <returns>Options with all the values filled</returns>
 		public static FdbRangeOptions EnsureDefaults(FdbRangeOptions? options, FdbStreamingMode mode, FdbReadMode read)
 		{

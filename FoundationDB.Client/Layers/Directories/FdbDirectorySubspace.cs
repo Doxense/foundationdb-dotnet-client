@@ -59,7 +59,7 @@ namespace FoundationDB.Client
 		public string Name => this.Descriptor.Path.Name;
 
 		/// <summary>Full name of this directory</summary>
-		/// <remarks>This string does not include the layer id of each path segments. Please use <c>dir.<see cref="Path">Path</see>.<see cref="FdbPath.ToString">ToString()</see></c> in order to get a roundtripable string representation of the path of this subspace.</remarks>
+		/// <remarks>This string does not include the layer id of each path segments. Please use <c>dir.<see cref="Path">Path</see>.<see cref="FdbPath.ToString()">ToString()</see></c> in order to get a roundtripable string representation of the path of this subspace.</remarks>
 		public string FullName => FdbPath.Encode(this.Descriptor.Path, namesOnly: true);
 
 		/// <summary>Instance of the DirectoryLayer that was used to create or open this directory</summary>

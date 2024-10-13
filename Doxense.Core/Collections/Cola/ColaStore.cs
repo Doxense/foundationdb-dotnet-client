@@ -631,7 +631,7 @@ namespace Doxense.Collections.Generic
 			}
 
 			offset = maxOffset;
-			result = max;
+			result = max!;
 			return level;
 		}
 
@@ -730,11 +730,11 @@ namespace Doxense.Collections.Generic
 					pos = NOT_FOUND;
 				}
 				cursors[index] = pos;
-				result = next;
+				result = next!;
 				return index;
 			}
 
-			result = default;
+			result = default!;
 			return NOT_FOUND;
 		}
 
@@ -786,11 +786,11 @@ namespace Doxense.Collections.Generic
 					pos = NOT_FOUND;
 				}
 				cursors[index] = pos;
-				result = next;
+				result = next!;
 				return index;
 			}
 
-			result = default;
+			result = default!;
 			return NOT_FOUND;
 		}
 

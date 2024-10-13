@@ -193,7 +193,7 @@ namespace FoundationDB.Client.Testing
 					continue;
 				}
 
-				builder ??= new TestSuiteBuilder(name, prefix);
+				builder ??= new(name, prefix);
 
 				// ex: "  38. 'PUSH' b'P\x1e\x1c\xc7\xbav\x9f\x0ck-j\xf2\xf49\x0f\x07s\xad\xc7\x84\xc0a'"
 				var s = line.Trim();
@@ -238,6 +238,8 @@ namespace FoundationDB.Client.Testing
 				builder.Instructions.Add(TestInstruction.Parse(val));
 			}
 
+			if (builder == null) throw new InvalidOperationException("Failed to load test suite");
+
 			return builder;
 		}
 
@@ -245,7 +247,7 @@ namespace FoundationDB.Client.Testing
 		{
 			if (string.IsNullOrWhiteSpace(this.Name)) throw new InvalidOperationException("You must specify a test name");
 			if (this.Prefix.IsNullOrEmpty) throw new InvalidOperationException("You must specify a test prefix");
-			return new() { Name = this.Name, Prefix = this.Prefix.Memoize(), Instructions = this.Instructions.ToArray() };
+			return new() { Name = this.Name, Prefix = this.Prefix.Copy(), Instructions = this.Instructions.ToArray() };
 		}
 
 		public TestSuiteBuilder Push<T>(T item)
