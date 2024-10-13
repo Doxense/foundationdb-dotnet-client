@@ -2455,7 +2455,7 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc/>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Always)]
-		public override JsonValue GetValue(string key) => m_items.GetValueOrDefault(key).RequiredField(key);
+		public override JsonValue GetValue(string key) => m_items.TryGetValue(key, out var value) && value is not (null or JsonNull) ? value : JsonValueExtensions.FailFieldIsNullOrMissing(value, key);
 
 		/// <inheritdoc/>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]

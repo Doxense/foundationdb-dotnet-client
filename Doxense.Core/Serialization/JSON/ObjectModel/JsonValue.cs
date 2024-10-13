@@ -534,40 +534,6 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
-		#region GetValueOrMissing...
-
-		/// <summary>Returns the value of the <i>optional</i> field with the specified name.</summary>
-		/// <param name="key">Name of the field to retrieve</param>
-		/// <returns>The value of the specified field, or <see cref="JsonNull.Missing"/> if it is null or missing.</returns>
-		/// <remarks>
-		/// <para>If the value is not a <see cref="JsonObject"/> or <see cref="JsonNull">null or missing</see>, an exception will be thrown.</para>
-		/// </remarks>
-		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public JsonValue GetValueOrMissing(string key) => GetValueOrDefault(key, JsonNull.Missing);
-
-		/// <summary>Returns the value of the <i>optional</i> field with the specified name.</summary>
-		/// <param name="key">Name of the field to retrieve</param>
-		/// <returns>The value of the specified field, or <see cref="JsonNull.Missing"/> if it is null or missing.</returns>
-		/// <remarks>
-		/// <para>If the value is not a <see cref="JsonObject"/> or <see cref="JsonNull">null or missing</see>, an exception will be thrown.</para>
-		/// </remarks>
-		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public JsonValue GetValueOrMissing(ReadOnlySpan<char> key) => GetValueOrDefault(key, JsonNull.Missing);
-
-		/// <summary>Returns the value of the <i>optional</i> field with the specified name.</summary>
-		/// <param name="key">Name of the field to retrieve</param>
-		/// <returns>The value of the specified field, or <see cref="JsonNull.Missing"/> if it is null or missing.</returns>
-		/// <remarks>
-		/// <para>If the value is not a <see cref="JsonObject"/> or <see cref="JsonNull">null or missing</see>, an exception will be thrown.</para>
-		/// </remarks>
-		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public JsonValue GetValueOrMissing(ReadOnlyMemory<char> key) => GetValueOrDefault(key, JsonNull.Missing);
-
-		#endregion
-
 		/// <summary>Returns the value of the <i>optional</i> field with the specified name, if the current value is a JSON Object</summary>
 		/// <param name="key">Name of the field to retrieve</param>
 		/// <returns>The value of the specified field, or <see cref="JsonNull.Missing"/> if it was not found.</returns>

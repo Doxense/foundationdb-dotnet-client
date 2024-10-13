@@ -26,6 +26,7 @@
 
 namespace Doxense.Serialization.Json
 {
+	using System;
 	using System.Buffers;
 	using System.ComponentModel;
 	using System.Diagnostics;
@@ -984,6 +985,39 @@ namespace Doxense.Serialization.Json
 			=> GetDictionary(self, key, defaultValue, null);
 
 		#endregion
+
+	}
+
+	/// <summary>Advanced methods only intended to be used by generated code</summary>
+	/// <remarks><b>CAUTION</b>: misuse of this type MAY cause runtime corruption!</remarks>
+	[PublicAPI]
+	[DebuggerNonUserCode]
+	public static class CrystalJsonMarshall
+	{
+
+		/// <summary>Marks a JSON Object as read-only, without recursively freezing its children.</summary>
+		/// <remarks>
+		/// <para>This is only intended to be used when the caller is <b>ABSOLUTELY SURE</b> that all the children in the object are already read-only.</para>
+		/// <para>If any children is still mutable, this will break the invariant contract of read-only objects.</para>
+		/// </remarks>
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public static JsonObject FreezeTopLevel(JsonObject obj)
+		{
+			Contract.Debug.Requires(obj != null);
+			return obj.FreezeUnsafe();
+		}
+
+		/// <summary>Marks a JSON Array as read-only, without recursively freezing its items.</summary>
+		/// <remarks>
+		/// <para>This is only intended to be used when the caller is <b>ABSOLUTELY SURE</b> that all the items in the array are already read-only.</para>
+		/// <para>If any item is still mutable, this will break the invariant contract of read-only objects.</para>
+		/// </remarks>
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public static JsonArray FreezeTopLevel(JsonArray array)
+		{
+			Contract.Debug.Requires(array != null);
+			return array.FreezeUnsafe();
+		}
 
 	}
 

@@ -43,7 +43,7 @@ namespace Doxense.Serialization.Json.Tests
 		[JsonProperty("email")]
 		public required string Email { get; init; }
 
-		[JsonProperty("type")]
+		[JsonProperty("type", DefaultValue = 777)]
 		public int Type { get; init; }
 
 		[JsonProperty("roles")]
@@ -92,6 +92,12 @@ namespace Doxense.Serialization.Json.Tests
 		/// <summary>Path to enlightenment</summary>
 		[JsonProperty("path")]
 		public required JsonPath Path { get; init; }
+
+		[JsonProperty("paths")]
+		public JsonPath[]? Paths { get; init; }
+
+		[JsonProperty("maybePath")]
+		public JsonPath? MaybePath { get; init; }
 
 		/// <summary>End of the road</summary>
 		[JsonProperty("disabled")]

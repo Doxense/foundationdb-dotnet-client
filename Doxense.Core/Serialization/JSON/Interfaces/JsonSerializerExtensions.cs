@@ -965,10 +965,35 @@ namespace Doxense.Serialization.Json
 			return JsonObject.FromValues<TValue>(items, null, settings, resolver);
 		}
 
-		public static T Unpack<T>(JsonValue? value, ICrystalJsonTypeResolver? resolver)
+		public static T? Unpack<T>(JsonValue? value, ICrystalJsonTypeResolver? resolver)
 			where T : IJsonDeserializable<T>
 		{
-			return T.JsonDeserialize(value ?? JsonNull.Null, resolver);
+			if (value is null or JsonNull)
+			{
+				return default(T);
+			}
+			return T.JsonDeserialize(value, resolver);
+		}
+
+		[return: NotNullIfNotNull(nameof(missingValue))]
+		public static T? Unpack<T>(JsonValue? value, T? missingValue, ICrystalJsonTypeResolver? resolver)
+			where T : IJsonDeserializable<T>
+		{
+			if (value is null or JsonNull)
+			{
+				return missingValue;
+			}
+			return T.JsonDeserialize(value, resolver);
+		}
+
+		public static T? UnpackNullable<T>(JsonValue? value, ICrystalJsonTypeResolver? resolver)
+			where T : struct, IJsonDeserializable<T>
+		{
+			if (value is null or JsonNull)
+			{
+				return default(T);
+			}
+			return T.JsonDeserialize(value, resolver);
 		}
 
 		public static T UnpackRequired<T>(JsonValue? value, ICrystalJsonTypeResolver? resolver, JsonValue? parent = null, string? fieldName = null)

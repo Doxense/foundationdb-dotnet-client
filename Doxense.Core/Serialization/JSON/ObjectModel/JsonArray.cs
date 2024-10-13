@@ -3597,6 +3597,11 @@ namespace Doxense.Serialization.Json
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public JsonValue[] ToArray() => this.AsSpan().ToArray();
 
+		/// <summary>Deserializes this array into an array of <typeparamref name="TValue"/></summary>
+		/// <typeparam name="TValue">Type of the deserialized items</typeparam>
+		/// <param name="defaultValue">Default value for items that are null or missing</param>
+		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
+		/// <returns>Array of deserialized items</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public TValue?[] ToArray<TValue>(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null)
 		{

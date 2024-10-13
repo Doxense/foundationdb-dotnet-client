@@ -3770,6 +3770,23 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		public void WriteFieldJsonSerializable<TSerializable>(JsonEncodedPropertyName name, TSerializable? value)
+			where TSerializable : IJsonSerializable
+		{
+			if (value is not null)
+			{
+				WriteName(name);
+				value.JsonSerialize(this);
+			}
+			else if (!m_discardNulls)
+			{
+				WriteName(name);
+				WriteNull();
+			}
+		}
+
+		#region WriteFieldArray...
+
 		public void WriteFieldArray(string name, string?[]? items)
 		{
 			if (items is not null)
@@ -3945,6 +3962,8 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		#region WriteFieldArray + IJsonSerializer<T> ...
+
 		public void WriteFieldArray<T>(JsonEncodedPropertyName name, ReadOnlySpan<T> array, IJsonSerializer<T> serializer)
 		{
 			WriteName(name);
@@ -3993,6 +4012,69 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		#endregion
+
+		#region WriteFieldArray + IJsonSerializable ...
+
+
+		public void WriteFieldJsonSerializableArray<TSerializable>(JsonEncodedPropertyName name, ReadOnlySpan<TSerializable?> array)
+			where TSerializable : IJsonSerializable
+		{
+			WriteName(name);
+			VisitJsonSerializableArray(array);
+		}
+
+		public void WriteFieldJsonSerializableArray<TSerializable>(JsonEncodedPropertyName name, TSerializable[]? items)
+			where TSerializable : IJsonSerializable
+		{
+			if (items is not null)
+			{
+				WriteName(name);
+				VisitJsonSerializableArray(new ReadOnlySpan<TSerializable>(items)!);
+			}
+			else if (!m_discardNulls)
+			{
+				WriteName(name);
+				WriteNull();
+			}
+		}
+
+		public void WriteFieldJsonSerializableArray<TSerializable>(JsonEncodedPropertyName name, List<TSerializable>? items)
+			where TSerializable : IJsonSerializable
+		{
+			if (items is not null)
+			{
+				WriteName(name);
+				VisitJsonSerializableArray<TSerializable>(CollectionsMarshal.AsSpan(items)!);
+			}
+			else if (!m_discardNulls)
+			{
+				WriteName(name);
+				WriteNull();
+			}
+		}
+
+		public void WriteFieldJsonSerializableArray<TSerializable>(JsonEncodedPropertyName name, IEnumerable<TSerializable?>? items)
+			where TSerializable : IJsonSerializable
+		{
+			if (items is not null)
+			{
+				WriteName(name);
+				VisitJsonSerializableArray(items);
+			}
+			else if (!m_discardNulls)
+			{
+				WriteName(name);
+				WriteNull();
+			}
+		}
+
+		#endregion
+
+		#endregion
+
+		#region WriteFieldDictionary...
+
 		public void WriteFieldDictionary<T>(JsonEncodedPropertyName name, IDictionary<string, T>? items, IJsonSerializer<T> serializer)
 		{
 			if (items is not null)
@@ -4006,6 +4088,8 @@ namespace Doxense.Serialization.Json
 				WriteNull();
 			}
 		}
+
+		#endregion
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void VisitValue(object? value, Type declaredType)
@@ -4028,18 +4112,6 @@ namespace Doxense.Serialization.Json
 			else
 			{
 				VisitArray(new ReadOnlySpan<T>(array), serializer);
-			}
-		}
-
-		public void VisitArray<T>(List<T>? array, IJsonSerializer<T> serializer)
-		{
-			if (array is null)
-			{
-				WriteNull();
-			}
-			else
-			{
-				VisitArray(CollectionsMarshal.AsSpan(array), serializer);
 			}
 		}
 
@@ -4108,9 +4180,66 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		/// <summary>Visite un collection d'éléments</summary>
-		/// <typeparam name="T">Type des éléments d'une collection</typeparam>
-		/// <param name="items"></param>
+		public void VisitJsonSerializableArray<TSerializable>(ReadOnlySpan<TSerializable?> array)
+			where TSerializable : IJsonSerializable
+		{
+			if (array.Length == 0)
+			{
+				WriteEmptyArray();
+				return;
+			}
+
+			var state = BeginArray();
+
+			for (int i = 0; i < array.Length; i++)
+			{
+				WriteFieldSeparator();
+				ref readonly var item = ref array[i];
+				if (item is not null)
+				{
+					item.JsonSerialize(this);
+				}
+				else
+				{
+					WriteNull();
+				}
+			}
+
+			EndArray(state);
+		}
+
+		public void VisitJsonSerializableArray<TSerializable>([InstantHandle] IEnumerable<TSerializable?>? array)
+			where TSerializable : IJsonSerializable
+		{
+			if (array is null)
+			{
+				WriteNull();
+				return;
+			}
+
+			if (Doxense.Linq.Buffer<TSerializable?>.TryGetSpan(array, out var span))
+			{
+				VisitJsonSerializableArray(span);
+			}
+			else
+			{
+				var state = BeginArray();
+				foreach (var item in array)
+				{
+					WriteFieldSeparator();
+					if (item is not null)
+					{
+						item.JsonSerialize(this);
+					}
+					else
+					{
+						WriteNull();
+					}
+				}
+				EndArray(state);
+			}
+		}
+
 		public void WriteArray<T>([InstantHandle] IEnumerable<T>? items)
 		{
 			if (items is null)

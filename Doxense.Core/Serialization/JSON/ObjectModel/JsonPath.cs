@@ -16,13 +16,14 @@ namespace Doxense.Serialization.Json
 	using System.Text;
 
 	/// <summary>Represents a path inside a JSON document to a nested child (ex: <c>"id"</c>, <c>"user.id"</c> <c>"tags[2].id"</c></summary>
+	[PublicAPI]
 	[DebuggerDisplay("{ToString(),nq}")]
 	public readonly struct JsonPath : IEnumerable<(JsonPath Parent, ReadOnlyMemory<char> Key, Index Index, bool Last)>, IJsonSerializable, IJsonPackable, IJsonDeserializable<JsonPath>, IEquatable<JsonPath>, IEquatable<string>, ISpanFormattable
 	{
 		// the goal is to wrap a string with the full path, and expose each "segment" as a ReadOnlySpan<char>, in order to reduce allocations
 
 		/// <summary>The empty path (root of the document)</summary>
-		public static readonly JsonPath Empty = default;
+		public static readonly JsonPath Empty;
 
 		/// <summary>String literal</summary>
 		public readonly ReadOnlyMemory<char> Value;
@@ -1319,20 +1320,20 @@ namespace Doxense.Serialization.Json
 			return new Index(result, fromEnd);
 		}
 
-		/// <summary>Returns a the sub-section of this path, beginning at a specified position and continuing to its end.</summary>
+		/// <summary>Returns a subsection of this path, beginning at a specified position and continuing to its end.</summary>
 		/// <param name="start">Number of segments to skip</param>
 		/// <returns>Slice of the path</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonPath Slice(int start) => new(this.Value.Slice(start));
 
-		/// <summary>Returns a the sub-section of this path, starting at <paramref name="start" /> position for <paramref name="length" /> segments.</summary>
+		/// <summary>Returns a subsection of this path, starting at <paramref name="start" /> position for <paramref name="length" /> segments.</summary>
 		/// <param name="start">Number of segments to skip</param>
 		/// <param name="length">Number of segments to include</param>
 		/// <returns>Slice of the path</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonPath Slice(int start, int length) => new(this.Value.Slice(start, length));
 
-		/// <summary>Returns a the sub-section of this path, corresponding to the specified range.</summary>
+		/// <summary>Returns a subsection of this path, corresponding to the specified range.</summary>
 		/// <param name="range">Range of the path to return</param>
 		/// <returns>Slice of the path</returns>
 		public JsonPath this[Range range]
