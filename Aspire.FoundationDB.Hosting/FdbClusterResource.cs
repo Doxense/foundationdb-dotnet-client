@@ -1,9 +1,27 @@
-#region Copyright (c) 2023-2024 SnowBank SAS
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of SnowBank nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL SNOWBANK SAS BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 namespace Aspire.Hosting.ApplicationModel
@@ -12,7 +30,7 @@ namespace Aspire.Hosting.ApplicationModel
 	using System.Globalization;
 
 	/// <summary>Represents a FoundationDB cluster resource in a distributed application.</summary>
-	/// <remarks>During local developement, a local docker image is used to run a single-node cluster.</remarks>
+	/// <remarks>During local development, a local docker image is used to run a single-node cluster.</remarks>
 	public class FdbClusterResource : ContainerResource, IFdbResource
 	{
 
@@ -30,7 +48,7 @@ namespace Aspire.Hosting.ApplicationModel
 		public required Version ClusterVersion { get; set; }
 
 		/// <summary>Strategy used to select the actual runtime version of the deployed cluster.</summary>
-		/// <remarks>The strategy works similarily to the <c>rollForward</c> property of the <c>global.json</c> file, see https://learn.microsoft.com/en-us/dotnet/core/tools/global-json.</remarks>
+		/// <remarks>The strategy works similarly to the <c>rollForward</c> property of the <c>global.json</c> file, see https://learn.microsoft.com/en-us/dotnet/core/tools/global-json.</remarks>
 		public required FdbVersionPolicy RollForward { get; set; }
 
 		/// <summary>Tag of the docker image that will be used to run the cluster locally. (ex: "latest", "7.3.36", ...)</summary>
@@ -38,12 +56,12 @@ namespace Aspire.Hosting.ApplicationModel
 
 		/// <summary>Path to the local native client library ('fdb_c.dll' or 'libfdb_c.so')</summary>
 		/// <remarks>
-		/// <para>This value if ignored if <see cref="DisableNativePreloading"/> is set to <see langword="true"/>.</para>
+		/// <para>This value is ignored if <see cref="DisableNativePreloading"/> is set to <see langword="true"/>.</para>
 		/// <para>See <see cref="Fdb.Options.SetNativeLibPath"/> for more information.</para>
 		/// </remarks>
 		public string? NativeLibraryPath { get; set; }
 
-		/// <summary>Specifies if native pre-loading should be enabled or disabled</summary>
+		/// <summary>Specifies if native preloading should be enabled or disabled</summary>
 		/// <remarks>
 		/// <para>If <see langword="true"/>, the value of <see cref="NativeLibraryPath"/> will be ignored.</para>
 		/// <para>See <see cref="Fdb.Options.DisableNativeLibraryPreloading"/> for more information.</para>
