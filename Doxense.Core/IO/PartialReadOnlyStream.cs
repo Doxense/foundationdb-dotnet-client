@@ -26,9 +26,7 @@
 
 namespace Doxense.IO
 {
-	using System.Diagnostics.CodeAnalysis;
 	using System.IO;
-	using System.Runtime.CompilerServices;
 
 	/// <summary>Stream that exposes a readonly-only sub-section of another stream <see cref="Stream"/>.</summary>
 	[PublicAPI]

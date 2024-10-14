@@ -26,9 +26,7 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System.Diagnostics;
 	using System.IO;
-	using System.Runtime.CompilerServices;
 	using Doxense.Text;
 
 	/// <summary>JSON text reader that reads UTF-8 encoded bytes from an in-memory buffer</summary>

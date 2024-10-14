@@ -28,7 +28,6 @@
 
 namespace Doxense.Linq.Async.Iterators
 {
-	using System.Diagnostics;
 	using System.Runtime.ExceptionServices;
 	using Doxense.Async;
 

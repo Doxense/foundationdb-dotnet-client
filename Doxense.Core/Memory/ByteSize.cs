@@ -26,7 +26,6 @@
 
 namespace Doxense.Memory
 {
-	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
 
 	/// <summary>Units for size of buffers or arrays of bytes (Kilo = 1_000 bytes, Kibi = 1_024 bytes, ...)</summary>

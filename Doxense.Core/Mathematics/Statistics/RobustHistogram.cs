@@ -27,9 +27,7 @@
 namespace Doxense.Mathematics.Statistics // REVIEW: SnowBank.Benchmarking ?
 {
 	using System.Collections.Generic;
-	using System.Diagnostics;
 	using System.Globalization;
-	using System.Runtime.CompilerServices;
 	using System.Text;
 	using Doxense.Runtime;
 

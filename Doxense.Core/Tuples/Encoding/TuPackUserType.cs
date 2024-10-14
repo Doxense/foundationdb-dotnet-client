@@ -26,8 +26,6 @@
 
 namespace Doxense.Collections.Tuples.Encoding
 {
-	using System.Diagnostics;
-
 	/// <summary>Represent a custom user type for the TuPack encoding</summary>
 	[DebuggerDisplay("{ToString()},nq")]
 	public sealed class TuPackUserType : IEquatable<TuPackUserType>

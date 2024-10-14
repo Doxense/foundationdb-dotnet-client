@@ -28,14 +28,11 @@ namespace System
 {
 	using System.Buffers.Binary;
 	using System.ComponentModel;
-	using System.Diagnostics;
-	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 	using Doxense.Memory;
 	using Doxense.Serialization;
 #if NET8_0_OR_GREATER
 	using System.Buffers.Text;
-	using System.Diagnostics.CodeAnalysis;
 #endif
 
 	/// <summary>Represents an RFC 4122 compliant 128-bit UUID</summary>

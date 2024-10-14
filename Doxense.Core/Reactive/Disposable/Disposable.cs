@@ -26,9 +26,7 @@
 
 namespace Doxense.Reactive.Disposables
 {
-	using System.Diagnostics;
 	using System.Runtime;
-	using System.Runtime.CompilerServices;
 	using Doxense.Serialization;
 
 	/// <summary>Classe qui encapsule un objet, en interceptant éventuellement le Dispose()</summary>

@@ -26,8 +26,6 @@
 
 namespace Doxense.Serialization.Json.JPath
 {
-	using System.Diagnostics;
-
 	[DebuggerDisplay("{Text,nq}")]
 	public sealed class JPathQuery
 	{

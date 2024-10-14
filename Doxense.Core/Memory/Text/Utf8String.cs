@@ -2,9 +2,7 @@
 
 namespace Doxense.Memory.Text
 {
-	using System.Diagnostics;
 	using System.Globalization;
-	using System.Runtime.CompilerServices;
 	using System.Text;
 	using Doxense.Text;
 

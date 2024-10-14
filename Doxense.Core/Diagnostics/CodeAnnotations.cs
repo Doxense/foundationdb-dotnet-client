@@ -1,7 +1,5 @@
 ﻿namespace JetBrains.Annotations
 {
-	using System.Diagnostics;
-
 	//README: these should all be marked as 'internal', so as not to conflict with the same attributes that would exist in the parent application !
 
 	/// <summary>

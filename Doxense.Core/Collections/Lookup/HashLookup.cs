@@ -26,9 +26,6 @@
 
 namespace Doxense.Collections.Lookup
 {
-	using System.Diagnostics.CodeAnalysis;
-	using System.Runtime.CompilerServices;
-
 	/// <summary>Table de lookup utilisant une HashTable pour le stockage des éléments stockage (clés non ordonnées)</summary>
 	/// <typeparam name="TKey">Type des clés</typeparam>
 	/// <typeparam name="TElement">Type des éléments</typeparam>

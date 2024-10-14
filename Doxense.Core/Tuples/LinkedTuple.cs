@@ -27,9 +27,6 @@
 namespace Doxense.Collections.Tuples
 {
 	using System.Collections;
-	using System.Diagnostics;
-	using System.Diagnostics.CodeAnalysis;
-	using System.Runtime.CompilerServices;
 	using Doxense.Runtime.Converters;
 
 	/// <summary>Tuple that adds a value at the end of an already existing tuple</summary>

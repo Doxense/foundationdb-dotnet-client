@@ -29,9 +29,6 @@
 namespace Doxense.Memory
 {
 	using System.Buffers;
-	using System.Diagnostics;
-	using System.Diagnostics.CodeAnalysis;
-	using System.Runtime.CompilerServices;
 
 	/// <summary>Buffer writer that writes all data into a single consecutive buffer allocated from a pool</summary>
 	/// <remarks>

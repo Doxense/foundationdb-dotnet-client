@@ -8,7 +8,6 @@
 
 namespace Doxense.Serialization.Json.Encoders
 {
-	using System.Diagnostics.CodeAnalysis;
 	using Doxense.Collections.Tuples;
 	using Doxense.Memory;
 	using Doxense.Serialization.Encoders;

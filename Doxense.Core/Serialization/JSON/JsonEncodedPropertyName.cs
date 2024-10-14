@@ -26,9 +26,6 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System.Diagnostics;
-	using System.Diagnostics.CodeAnalysis;
-	using System.Runtime.CompilerServices;
 	using Doxense.Web;
 
 	/// <summary>Cache for the various encoded forms of a JSON property name</summary>

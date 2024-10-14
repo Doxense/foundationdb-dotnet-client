@@ -30,10 +30,7 @@
 namespace Doxense.Collections.Generic
 {
 	using System.Buffers;
-	using System.Diagnostics;
-	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
-	using System.Runtime.CompilerServices;
 	using JetBrains.Annotations;
 
 	/// <summary>Represent an ordered list of ranges, each associated with a specific value, stored in a Cache Oblivious Lookup Array</summary>

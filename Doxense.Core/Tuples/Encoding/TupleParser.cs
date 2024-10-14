@@ -29,7 +29,6 @@ namespace Doxense.Collections.Tuples.Encoding
 	using System.Buffers;
 	using System.Buffers.Binary;
 	using System.Numerics;
-	using System.Runtime.CompilerServices;
 	using System.Text;
 	using Doxense.Collections.Tuples;
 

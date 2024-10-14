@@ -26,9 +26,7 @@
 
 namespace Doxense.Serialization.Json.JPath
 {
-	using System.Diagnostics;
 	using System.Linq.Expressions;
-	using System.Runtime.CompilerServices;
 	using Doxense.Text;
 
 	/// <summary>Parser for JPath expressions</summary>

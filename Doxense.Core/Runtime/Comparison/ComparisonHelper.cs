@@ -26,8 +26,6 @@
 
 namespace Doxense
 {
-	using System.Runtime.CompilerServices;
-
 	public static class ComparisonHelper
 	{
 

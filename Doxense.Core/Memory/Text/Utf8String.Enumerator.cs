@@ -3,8 +3,6 @@
 namespace Doxense.Memory.Text
 {
 	using System.Collections;
-	using System.Diagnostics;
-	using System.Runtime.CompilerServices;
 	using Doxense.Text;
 
 	[DebuggerDisplay("Length={Length}, Size={Buffer.Count}, HashCode=0x{HashCode,h}")]

@@ -28,7 +28,6 @@ namespace Doxense.Collections.Tuples.Encoding
 {
 	using System.Collections;
 	using System.ComponentModel;
-	using System.Runtime.CompilerServices;
 	using Doxense.Collections.Tuples;
 	using Doxense.Memory;
 	using Doxense.Runtime.Converters;

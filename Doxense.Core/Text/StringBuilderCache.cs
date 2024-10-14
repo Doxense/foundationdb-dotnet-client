@@ -26,7 +26,6 @@
 
 namespace Doxense.Text
 {
-	using System.Runtime.CompilerServices;
 	using System.Text;
 
 	public static class StringBuilderCache

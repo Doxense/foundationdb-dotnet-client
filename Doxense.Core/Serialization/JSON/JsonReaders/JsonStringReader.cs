@@ -26,9 +26,6 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System.Diagnostics;
-	using System.Runtime.CompilerServices;
-
 	/// <summary>JSON Text reader that wraps a string</summary>
 	[DebuggerDisplay("Pos={Pos}, Length={Text.Length}")]
 	public struct JsonStringReader : IJsonReader

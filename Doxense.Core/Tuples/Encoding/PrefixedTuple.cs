@@ -27,7 +27,6 @@
 namespace Doxense.Collections.Tuples.Encoding
 {
 	using System.Collections;
-	using System.Diagnostics;
 	using Doxense.Runtime.Converters;
 
 	/// <summary>Tuple that has a fixed arbitrary binary prefix</summary>

@@ -26,9 +26,7 @@
 
 namespace Doxense.Mathematics.Statistics
 {
-	using System.Diagnostics;
 	using System.Globalization;
-	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 
 	/// <summary>Distributed global counter made up of individual counters</summary>

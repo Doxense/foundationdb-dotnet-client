@@ -39,10 +39,7 @@
 namespace Doxense.Memory
 {
 	using System.Buffers.Binary;
-	using System.Diagnostics;
-	using System.Diagnostics.CodeAnalysis;
 	using System.IO;
-	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 
 	/// <summary>Helper methods for dealing with unmanaged memory. HANDLE WITH CARE!</summary>

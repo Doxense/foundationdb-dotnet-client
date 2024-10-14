@@ -26,7 +26,6 @@
 
 namespace Doxense.Collections.Caching
 {
-	using System.Diagnostics.CodeAnalysis;
 
 	public interface ICache<TKey, TElement> : ICollection<KeyValuePair<TKey, TElement>>
 	{

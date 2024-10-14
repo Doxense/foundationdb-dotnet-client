@@ -26,7 +26,6 @@
 
 namespace Doxense.Serialization.Json.Binary
 {
-	using System.Runtime.CompilerServices;
 	using Doxense.Memory;
 	using Doxense.Text;
 

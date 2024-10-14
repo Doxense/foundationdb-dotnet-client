@@ -26,8 +26,6 @@
 
 namespace Doxense.Threading
 {
-	using System.Runtime.CompilerServices;
-
 	public static class ReaderWriterLockSlimExtensions
 	{
 

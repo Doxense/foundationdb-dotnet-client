@@ -26,8 +26,6 @@
 
 namespace Doxense.Memory
 {
-	using System.Diagnostics.CodeAnalysis;
-	using System.Runtime.CompilerServices;
 	using System.Text;
 
 	/// <summary>Table de mapping bi-directionnelle entre représentation binaire (<see cref="ReadOnlySpan{T}">ReadOnlySpan&lt;<typeparamref name="TRune"/>&gt;</see>) et litérale (<typeparamref name="TLiteral"/>) d'un <typeparamref name="TToken">token</typeparamref></summary>

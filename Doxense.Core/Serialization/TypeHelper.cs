@@ -29,12 +29,10 @@
 namespace Doxense.Serialization
 {
 	using System.Collections.ObjectModel;
-	using System.Diagnostics.CodeAnalysis;
 	using System.Dynamic;
 	using System.Globalization;
 	using System.Linq.Expressions;
 	using System.Reflection;
-	using System.Runtime.CompilerServices;
 	using Doxense.Runtime;
 
 	[PublicAPI]

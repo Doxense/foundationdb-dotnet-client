@@ -26,8 +26,6 @@
 
 namespace Doxense.Messaging.PubSub
 {
-	using System.Diagnostics;
-	using System.Runtime.CompilerServices;
 	using System.Threading.Channels;
 	using Doxense.Serialization.Json;
 

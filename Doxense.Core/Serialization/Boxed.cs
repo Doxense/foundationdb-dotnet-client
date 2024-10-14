@@ -26,7 +26,6 @@
 
 namespace Doxense.Serialization
 {
-	using System.Diagnostics;
 	using System.Globalization;
 
 	/// <summary>Wraps any type of CLR objects</summary>

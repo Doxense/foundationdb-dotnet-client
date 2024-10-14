@@ -29,8 +29,6 @@ namespace Doxense.Serialization.Json.Binary
 	using System.Buffers;
 	using System.Buffers.Binary;
 	using System.Buffers.Text;
-	using System.Diagnostics.CodeAnalysis;
-	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 	using System.Text;
 	using System.Text.Unicode;

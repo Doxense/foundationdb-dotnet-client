@@ -27,10 +27,8 @@
 namespace Doxense.Serialization.Json
 {
 	using System.Collections;
-	using System.Diagnostics.CodeAnalysis;
 	using System.Linq.Expressions;
 	using System.Reflection;
-	using System.Runtime.CompilerServices;
 	using Doxense.Collections.Caching;
 	using Doxense.Collections.Tuples;
 	using Doxense.Runtime;

@@ -26,7 +26,6 @@
 
 namespace Doxense.Serialization
 {
-	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 
 	[Flags]

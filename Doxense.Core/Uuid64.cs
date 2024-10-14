@@ -28,9 +28,7 @@ namespace System
 {
 	using System.Buffers.Binary;
 	using System.ComponentModel;
-	using System.Diagnostics;
 	using System.Globalization;
-	using System.Runtime.CompilerServices;
 	using System.Security.Cryptography;
 	using Doxense.Serialization;
 

@@ -26,9 +26,6 @@
 
 namespace Doxense.Threading.Operations
 {
-	using System.Diagnostics;
-	using System.Diagnostics.CodeAnalysis;
-	using System.Runtime.CompilerServices;
 	using System.Runtime.ExceptionServices;
 	using Doxense.Messaging.Events;
 	using Doxense.Reactive.Disposables;

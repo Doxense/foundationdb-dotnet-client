@@ -26,7 +26,6 @@
 
 namespace Doxense.IO.Hashing
 {
-	using System.Runtime.CompilerServices;
 	using System.Text;
 
 	/// <summary>Calcul de hash FNV-1 sur 64 bits (FowlerNollVo)</summary>

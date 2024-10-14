@@ -26,8 +26,6 @@
 
 namespace Doxense.Collections.Tuples.Encoding
 {
-	using System.Diagnostics;
-	using System.Runtime.CompilerServices;
 	using Doxense.Memory;
 
 	[DebuggerDisplay("{Output.Position}/{Output.Buffer.Length} @ {Depth}")]

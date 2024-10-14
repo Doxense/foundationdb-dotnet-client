@@ -27,7 +27,6 @@
 namespace Doxense.Serialization.Json
 {
 	using System.ComponentModel;
-	using System.Runtime.CompilerServices;
 	using System.Runtime.Serialization;
 
 	/// <summary>Error that occurred while deserializing a JSON value back into a CLR type</summary>

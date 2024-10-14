@@ -27,7 +27,6 @@
 namespace Doxense.Serialization.Json
 {
 	using System.ComponentModel;
-	using System.Runtime.CompilerServices;
 	using System.Runtime.Serialization;
 
 	/// <summary>Syntax error that occurred while parsing a JSON document</summary>

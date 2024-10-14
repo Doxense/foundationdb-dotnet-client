@@ -27,9 +27,7 @@
 namespace Doxense.Memory
 {
 	using System.Collections;
-	using System.Diagnostics;
 	using System.Numerics;
-	using System.Runtime.CompilerServices;
 
 	/// <summary>Represents a fixed-size bit map, backed by an array of 64-bit words</summary>
 	[DebuggerDisplay("Capacity={Capacity}, Words={Words.Length")]

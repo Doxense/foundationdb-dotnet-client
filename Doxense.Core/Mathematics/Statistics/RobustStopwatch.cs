@@ -26,9 +26,6 @@
 
 namespace Doxense.Mathematics.Statistics // REVIEW: SnowBank.Benchmarking ?
 {
-	using System.Diagnostics;
-	using System.Runtime.CompilerServices;
-
 	[DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
 	public struct RobustStopwatch

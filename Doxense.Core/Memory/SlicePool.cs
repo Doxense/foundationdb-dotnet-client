@@ -27,7 +27,6 @@
 namespace Doxense.Memory
 {
 	using System.Globalization;
-	using System.Runtime.CompilerServices;
 
 	/// <summary>Slice generator that use one or more underlying buffers to store the produced bytes, in order to reduce memory allocations.</summary>
 	/// <remarks>

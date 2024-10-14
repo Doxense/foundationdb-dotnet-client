@@ -28,11 +28,9 @@ namespace Doxense.Collections.Tuples.Encoding
 {
 	using System;
 	using System.Collections.Frozen;
-	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
 	using System.Linq.Expressions;
 	using System.Reflection;
-	using System.Runtime.CompilerServices;
 	using Doxense.Collections.Tuples;
 	using Doxense.Runtime.Converters;
 	using Doxense.Serialization;

@@ -29,7 +29,6 @@
 namespace Doxense.Serialization.Json
 {
 	using System.Buffers;
-	using System.Runtime.CompilerServices;
 	using Doxense.Text;
 
 	/// <summary>Helper utilisé pour lire et parser un texte JSON</summary>

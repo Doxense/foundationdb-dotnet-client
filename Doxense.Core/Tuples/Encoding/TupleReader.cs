@@ -26,9 +26,6 @@
 
 namespace Doxense.Collections.Tuples.Encoding
 {
-	using System.Diagnostics;
-	using System.Diagnostics.CodeAnalysis;
-	using System.Runtime.CompilerServices;
 	using Doxense.Memory;
 
 	/// <summary>Reads bytes from a contiguous region of arbitrary memory</summary>

@@ -26,8 +26,6 @@
 
 namespace Doxense.Threading.Tasks
 {
-	using System.Diagnostics;
-
 	/// <summary>Helper methods to work on tasks</summary>
 	public static class TaskHelpers
 	{

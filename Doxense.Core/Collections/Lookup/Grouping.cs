@@ -26,10 +26,7 @@
 
 namespace Doxense.Collections.Lookup
 {
-	using System.Diagnostics;
-	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime;
-	using System.Runtime.CompilerServices;
 	using Doxense.Memory;
 
 	/// <summary>Implémentation d'un grouping de plusieurs éléments sous une même clé</summary>

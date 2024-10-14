@@ -30,12 +30,9 @@
 namespace Doxense.Serialization.Json
 {
 	using System.Collections;
-	using System.Diagnostics;
-	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
 	using System.Linq.Expressions;
 	using System.Reflection;
-	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 	using System.Xml;
 	using Doxense.Collections.Caching;

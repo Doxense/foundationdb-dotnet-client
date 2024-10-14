@@ -26,8 +26,6 @@
 
 namespace Doxense.Mathematics.Statistics // REVIEW: SnowBank.Benchmarking ?
 {
-	using System.Diagnostics;
-
 	public class RobustTimeLine
 	{
 

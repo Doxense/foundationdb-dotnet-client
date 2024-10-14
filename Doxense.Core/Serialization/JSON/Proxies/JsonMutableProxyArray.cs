@@ -9,7 +9,6 @@
 namespace Doxense.Serialization.Json
 {
 	using System.Collections;
-	using System.Runtime.CompilerServices;
 
 	/// <summary>Wraps a <see cref="JsonArray"/> into a typed mutable proxy that emulates an array of elements of type <typeparamref name="TValue"/></summary>
 	/// <typeparam name="TValue">Emulated element type</typeparam>

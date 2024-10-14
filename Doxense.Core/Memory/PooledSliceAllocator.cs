@@ -29,7 +29,6 @@
 namespace Doxense.Memory
 {
 	using System.Buffers;
-	using System.Runtime.CompilerServices;
 
 	/// <summary>Allocator that stores all data into slabs allocated from a pool (or the heap for large allocations)</summary>
 	/// <remarks>

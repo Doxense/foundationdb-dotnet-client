@@ -27,11 +27,9 @@
 namespace Doxense.Serialization.Json
 {
 #if NET8_0_OR_GREATER
-	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
 	using System.Numerics;
 #endif
-	using System.Runtime.CompilerServices;
 
 	public abstract partial class JsonValue
 #if NET8_0_OR_GREATER

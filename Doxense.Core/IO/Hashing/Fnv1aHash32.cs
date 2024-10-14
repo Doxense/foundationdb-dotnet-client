@@ -26,7 +26,6 @@
 
 namespace Doxense.IO.Hashing
 {
-	using System.Runtime.CompilerServices;
 	using System.Text;
 	using System.Runtime.InteropServices;
 

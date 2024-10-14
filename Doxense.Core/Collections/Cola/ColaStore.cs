@@ -27,7 +27,6 @@
 namespace Doxense.Collections.Generic
 {
 	using System.Numerics;
-	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 
 	public static class ColaStore

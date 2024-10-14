@@ -2,7 +2,6 @@
 
 namespace Doxense.Text
 {
-	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 
 	[StructLayout(LayoutKind.Explicit)]

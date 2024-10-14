@@ -27,7 +27,6 @@
 namespace Doxense.Memory
 {
 	using System.Buffers;
-	using System.Diagnostics;
 
 	/// <summary>Buffer that can be used to efficiently store multiple slices into as few chunks as possible</summary>
 	/// <remarks>

@@ -32,7 +32,6 @@
 namespace System
 {
 	using System.Buffers;
-	using System.Runtime.CompilerServices;
 
 	/// <summary>A container for rented <see cref="Slice"/> that can be returned into a <see cref="ArrayPool{T}"/> after it is not needed anymore.</summary>
 	/// <remarks>

@@ -26,8 +26,6 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System.Diagnostics;
-	using System.Runtime.CompilerServices;
 	using Doxense.Memory;
 
 	/// <summary>JSON Boolean (<see langword="true"/> or <see langword="false"/>)</summary>

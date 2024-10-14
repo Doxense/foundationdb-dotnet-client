@@ -26,9 +26,7 @@
 
 namespace Doxense.Runtime
 {
-	using System.Diagnostics;
 	using System.Reflection;
-	using System.Runtime.CompilerServices;
 
 	[DebuggerNonUserCode]
 	[PublicAPI]

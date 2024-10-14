@@ -26,7 +26,6 @@
 
 namespace Doxense.IO.Hashing
 {
-	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 
 	/// <summary>Calcul de hash xxHash sur 32 bits</summary>

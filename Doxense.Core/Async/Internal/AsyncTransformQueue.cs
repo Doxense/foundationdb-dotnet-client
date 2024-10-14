@@ -26,7 +26,6 @@
 
 namespace Doxense.Async
 {
-	using System.Diagnostics;
 	using System.Runtime.ExceptionServices;
 
 	/// <summary>Implements an async queue that asynchronously transform items, outputting them in arrival order, while throttling the producer</summary>

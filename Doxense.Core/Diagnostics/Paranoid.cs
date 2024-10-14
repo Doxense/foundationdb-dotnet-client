@@ -26,8 +26,6 @@
 
 namespace Doxense.Diagnostics.Contracts
 {
-	using System.Diagnostics;
-	using System.Runtime.CompilerServices;
 	using AssertionMethodAttribute = JetBrains.Annotations.AssertionMethodAttribute;
 	using AssertionConditionAttribute = JetBrains.Annotations.AssertionConditionAttribute;
 	using AssertionConditionType = JetBrains.Annotations.AssertionConditionType;

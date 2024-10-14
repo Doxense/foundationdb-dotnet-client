@@ -26,7 +26,6 @@
 
 namespace Doxense.Serialization.Encoders
 {
-	using System.Runtime.CompilerServices;
 	using Doxense.Memory;
 	
 	public interface ICompositeKeyEncoder<T1, T2> : IKeyEncoder<(T1?, T2?)>

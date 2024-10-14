@@ -32,11 +32,8 @@ namespace Doxense.Serialization.Json
 {
 	using System.Buffers;
 	using System.ComponentModel;
-	using System.Diagnostics;
-	using System.Diagnostics.CodeAnalysis;
 	using System.IO;
 	using System.Reflection;
-	using System.Runtime.CompilerServices;
 	using System.Text;
 	using Doxense.Collections.Caching;
 	using Doxense.Runtime;

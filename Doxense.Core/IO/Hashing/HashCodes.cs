@@ -27,7 +27,6 @@
 namespace System
 {
 	using System.Collections;
-	using System.Runtime.CompilerServices;
 
 	/// <summary>Helper methods to work with hashcodes</summary>
 	/// <remarks>Use <see cref="System.HashCode"/> instead!</remarks>

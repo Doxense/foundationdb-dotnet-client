@@ -27,10 +27,7 @@
 namespace Doxense.Serialization.Json
 {
 	using System.ComponentModel;
-	using System.Diagnostics;
-	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
-	using System.Runtime.CompilerServices;
 	using System.Text;
 	using Doxense.Memory;
 

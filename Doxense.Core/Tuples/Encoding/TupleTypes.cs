@@ -26,8 +26,6 @@
 
 namespace Doxense.Collections.Tuples.Encoding
 {
-	using System.Runtime.CompilerServices;
-
 	/// <summary>
 	/// Constants for the various tuple value types
 	/// </summary>

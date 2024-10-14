@@ -27,9 +27,6 @@
 namespace Doxense.Collections.Generic
 {
 	using System.Buffers;
-	using System.Diagnostics;
-	using System.Diagnostics.CodeAnalysis;
-	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 
 	/// <summary>Represent an ordered set of elements, stored in a Cache Oblivious Lookup Array</summary>

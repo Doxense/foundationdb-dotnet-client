@@ -26,7 +26,6 @@
 
 namespace Doxense.Serialization
 {
-	using System.Runtime.CompilerServices;
 	using Doxense.Memory;
 
 	public readonly struct Utf8StringValue : ISliceSerializable

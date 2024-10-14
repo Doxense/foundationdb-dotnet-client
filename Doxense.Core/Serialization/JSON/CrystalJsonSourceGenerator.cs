@@ -29,11 +29,8 @@
 namespace Doxense.Serialization.Json
 {
 	using System.CodeDom.Compiler;
-	using System.Diagnostics;
-	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
 	using System.Reflection;
-	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 	using System.Text;
 

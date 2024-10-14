@@ -28,7 +28,6 @@
 
 namespace Doxense.Linq.Async.Iterators
 {
-	using System.Diagnostics;
 	using Doxense.Async;
 
 	/// <summary>[EXPERIMENTAL] Iterates over an async sequence of items, kick off an async task in parallel, and returning the results in order</summary>

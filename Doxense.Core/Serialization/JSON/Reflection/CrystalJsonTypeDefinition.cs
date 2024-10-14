@@ -26,8 +26,6 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System.Diagnostics;
-
 	[DebuggerDisplay("Type={Type.Name}, ReqClass={RequiresClassAttribute}, IsAnonymousType={IsAnonymousType}, ClassId={ClassId}")]
 	[PublicAPI]
 	public sealed record CrystalJsonTypeDefinition

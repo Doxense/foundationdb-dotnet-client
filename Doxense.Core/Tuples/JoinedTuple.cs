@@ -27,7 +27,6 @@
 namespace Doxense.Collections.Tuples
 {
 	using System.Collections;
-	using System.Diagnostics;
 	using Doxense.Runtime.Converters;
 
 	/// <summary>Tuple that represents the concatenation of two tuples</summary>

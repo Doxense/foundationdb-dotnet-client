@@ -29,7 +29,6 @@ namespace Doxense.Serialization.Json
 	using System;
 	using System.Buffers;
 	using System.Collections.Immutable;
-	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.InteropServices;
 	using Doxense.Linq;
 

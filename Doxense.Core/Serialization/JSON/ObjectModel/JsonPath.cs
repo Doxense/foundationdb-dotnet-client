@@ -10,9 +10,7 @@ namespace Doxense.Serialization.Json
 {
 	using System.Buffers;
 	using System.Collections;
-	using System.Diagnostics;
 	using System.Globalization;
-	using System.Runtime.CompilerServices;
 	using System.Text;
 
 	/// <summary>Represents a path inside a JSON document to a nested child (ex: <c>"id"</c>, <c>"user.id"</c> <c>"tags[2].id"</c></summary>

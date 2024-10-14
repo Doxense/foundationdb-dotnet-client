@@ -30,7 +30,6 @@
 
 namespace Doxense.Serialization.Asn1
 {
-	using System.Runtime.CompilerServices;
 	using System.Text;
 	using Doxense.Memory;
 

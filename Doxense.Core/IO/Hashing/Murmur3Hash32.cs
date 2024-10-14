@@ -26,7 +26,6 @@
 
 namespace Doxense.IO.Hashing
 {
-	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 
 	/// <summary>Calcul d'un hash "Murmur3" sur 32 bits</summary>

@@ -26,7 +26,6 @@
 
 namespace Doxense.Async
 {
-	using System.Diagnostics;
 
 	/// <summary>Implements a async mutex that supports cancellation</summary>
 	[DebuggerDisplay("Status={this.Task.Status}, CancellationState=({m_state}, {m_ct.IsCancellationRequested?\"alive\":\"cancelled\"})")]

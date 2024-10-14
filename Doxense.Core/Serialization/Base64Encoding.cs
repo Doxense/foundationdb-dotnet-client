@@ -31,7 +31,6 @@ namespace Doxense.Serialization
 	using System.Buffers;
 	using System.Buffers.Text;
 	using System.IO;
-	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 	using Doxense.Linq;
 	using Doxense.Memory;

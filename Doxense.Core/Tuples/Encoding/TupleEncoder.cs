@@ -27,8 +27,6 @@
 namespace Doxense.Collections.Tuples.Encoding
 {
 	using System;
-	using System.Diagnostics.CodeAnalysis;
-	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 	using Doxense.Collections.Tuples;
 	using Doxense.Memory;

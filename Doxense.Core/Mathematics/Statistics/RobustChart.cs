@@ -26,7 +26,6 @@
 
 namespace Doxense.Mathematics.Statistics
 {
-	using System.Diagnostics;
 	using System.Globalization;
 	using System.Text;
 

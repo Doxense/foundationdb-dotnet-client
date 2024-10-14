@@ -29,7 +29,6 @@
 namespace Doxense.Collections.Tuples
 {
 	using System.Collections;
-	using System.Runtime.CompilerServices;
 	using Doxense.Runtime.Converters;
 
 	/// <summary>Helper class for tuple comparisons</summary>

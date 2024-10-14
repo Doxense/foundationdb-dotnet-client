@@ -2,9 +2,7 @@
 
 namespace Doxense.Text
 {
-	using System.Diagnostics;
 	using System.Globalization;
-	using System.Runtime.CompilerServices;
 	using Doxense.Memory.Text;
 
 	[DebuggerDisplay("{ToChar()}")]

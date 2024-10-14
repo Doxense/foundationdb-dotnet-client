@@ -26,9 +26,7 @@
 
 namespace Doxense.Memory
 {
-	using System.Diagnostics;
 	using System.Numerics;
-	using System.Runtime.CompilerServices;
 
 	/// <summary>Helper methods to work with bits</summary>
 	[PublicAPI]

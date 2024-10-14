@@ -27,8 +27,6 @@
 namespace System
 {
 	using System.ComponentModel;
-	using System.Diagnostics;
-	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 	using System.Security.Cryptography;
 	using Doxense.Memory;

@@ -26,11 +26,9 @@
 
 namespace Doxense.Runtime.Converters
 {
-	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
 	using System.Linq.Expressions;
 	using System.Reflection;
-	using System.Runtime.CompilerServices;
 	using Doxense.Serialization;
 
 	/// <summary>Helper class to convert object from one type to another</summary>

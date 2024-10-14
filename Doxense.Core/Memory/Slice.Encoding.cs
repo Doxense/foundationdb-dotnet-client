@@ -29,9 +29,7 @@ namespace System
 	using System.Buffers;
 	using System.Buffers.Binary;
 	using System.ComponentModel;
-	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
-	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 	using System.Text;
 	using Doxense.Memory;

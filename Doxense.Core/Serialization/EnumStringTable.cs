@@ -26,8 +26,6 @@
 
 namespace Doxense.Serialization
 {
-	using System.Diagnostics;
-
 	/// <summary>Helper pour la mise en cache de conversion d'énumération en string</summary>
 	[Obsolete("Performance of enum ToString() has been fixed in .NET Core 3.0. This type may not be necessary anymore!")]
 	public static class EnumStringTable

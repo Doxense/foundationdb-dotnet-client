@@ -34,7 +34,6 @@ namespace Doxense.Serialization.Json
 {
 	using System.Globalization;
 	using System.Reflection;
-	using System.Runtime.CompilerServices;
 	using System.Text;
 	using Doxense.Linq;
 	using Doxense.Text;

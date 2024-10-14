@@ -29,9 +29,6 @@ namespace Doxense.Serialization.Json
 	using System;
 	using System.Buffers;
 	using System.ComponentModel;
-	using System.Diagnostics;
-	using System.Diagnostics.CodeAnalysis;
-	using System.Runtime.CompilerServices;
 
 	/// <summary>Extension methods for <see cref="JsonValue"/> and other derived types</summary>
 	[PublicAPI]
