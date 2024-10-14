@@ -316,6 +316,8 @@ namespace Doxense.Serialization.Json
 		private string GetMutableProxyName(Type type) => $"{type.Name}Mutable";
 		private string GetLocalMutableProxyRef(Type type) => $"{SerializerContainerName}.{GetMutableProxyName(type)}";
 
+		private string GetEncodedPropertyField(CrystalJsonMemberDefinition member) => "_" + member.Name;
+
 		private void GenerateCodeForType(CodeBuilder sb, CrystalJsonTypeDefinition typeDef)
 		{
 			var type = typeDef.Type;
@@ -347,10 +349,10 @@ namespace Doxense.Serialization.Json
 					sb.AppendLine("#region Serialization...");
 					sb.NewLine();
 
-					// first we need to genereated the cached property names (pre-encoded)
+					// first we need to generate the cached property names (pre-encoded)
 					foreach (var member in typeDef.Members)
 					{
-						sb.AppendLine($"private static readonly {nameof(JsonEncodedPropertyName)} _{member.Name} = new({sb.Constant(member.Name)});");
+						sb.AppendLine($"internal static readonly {nameof(JsonEncodedPropertyName)} {GetEncodedPropertyField(member)} = new({sb.Constant(member.Name)});");
 					}
 					sb.NewLine();
 
@@ -403,7 +405,7 @@ namespace Doxense.Serialization.Json
 
 								foreach (var member in typeDef.Members)
 								{
-									var propertyName = "_" + member.Name;
+									var propertyName = GetEncodedPropertyField(member);
 
 									sb.NewLine();
 									sb.Comment($"{member.Type.GetFriendlyName()} {member.OriginalName} => \"{member.Name}\"");
@@ -971,15 +973,20 @@ namespace Doxense.Serialization.Json
 			sb.Record(
 				"public sealed",
 				mutableProxyTypeName,
-				[sb.TypeNameGeneric(typeof(IJsonMutableProxy<,,>), [ typeName, mutableProxyTypeName, readOnlyProxyTypeName ])],
+				[
+					sb.TypeName<JsonMutableProxyObjectBase>(),
+					sb.TypeNameGeneric(typeof(IJsonMutableProxy<,,>), [ typeName, mutableProxyTypeName, readOnlyProxyTypeName ])
+				],
 				[],
 				() =>
 				{
-					sb.AppendLine($"private readonly {nameof(JsonObject)} m_obj;");
-					sb.NewLine();
+					//sb.AppendLine($"private readonly {nameof(JsonObject)} m_obj;");
+					//sb.NewLine();
 
 					// ctor()
-					sb.AppendLine($"public {mutableProxyTypeName}({nameof(JsonValue)} value) => m_obj = value.AsObject();"); //HACKACK: BUGBUG:
+					sb.AppendLine($"public {mutableProxyTypeName}({nameof(JsonValue)} value, {nameof(IJsonMutableParent)}? parent = null, {nameof(JsonEncodedPropertyName)}? name = null, int index = 0) : base(value, parent, name, index)");
+					sb.EnterBlock();
+					sb.LeaveBlock();
 					sb.NewLine();
 
 					#region Methods...
@@ -989,7 +996,7 @@ namespace Doxense.Serialization.Json
 
 					// static Create()
 					sb.AppendLine($"/// <inheritdoc />");
-					sb.AppendLine($"public static {mutableProxyTypeName} Create({nameof(JsonValue)} value, {sb.TypeName(jsonConverterType)}? converter = null) => new(value.AsObject());");
+					sb.AppendLine($"public static {mutableProxyTypeName} Create({nameof(JsonValue)} value, {nameof(IJsonMutableParent)}? parent = null, {nameof(JsonEncodedPropertyName)}? name = null, int index = 0, {sb.TypeName(jsonConverterType)}? converter = null) => new(value, parent, name, index);");
 					sb.NewLine();
 
 					// static Create()
@@ -1007,7 +1014,7 @@ namespace Doxense.Serialization.Json
 					sb.AppendLine($"public static {mutableProxyTypeName} FromValue({typeName} value)");
 					sb.EnterBlock();
 					sb.AppendLine($"{sb.MethodName(typeof(Contract), nameof(Contract.NotNull))}(value);");
-					sb.AppendLine($"return new(({nameof(JsonObject)}) {GetLocalSerializerRef(type)}.{nameof(IJsonPacker<object>.Pack)}(value, {nameof(CrystalJsonSettings)}.{nameof(CrystalJsonSettings.Json)}));");
+					sb.AppendLine($"return new({GetLocalSerializerRef(type)}.{nameof(IJsonPacker<object>.Pack)}(value, {nameof(CrystalJsonSettings)}.{nameof(CrystalJsonSettings.Json)}));");
 					sb.LeaveBlock();
 					sb.NewLine();
 
@@ -1016,25 +1023,25 @@ namespace Doxense.Serialization.Json
 					sb.AppendLine($"public {typeName} ToValue() => {GetLocalSerializerRef(type)}.{nameof(IJsonDeserializer<object>.Unpack)}(m_obj);"); //TODO: resolver?
 					sb.NewLine();
 
-					// JsonObject ToJson()
-					sb.AppendLine($"/// <inheritdoc />");
-					sb.AppendLine($"public {nameof(JsonValue)} ToJson() => m_obj;");
-					sb.NewLine();
+					//// JsonObject ToJson()
+					//sb.AppendLine($"/// <inheritdoc />");
+					//sb.AppendLine($"public {nameof(JsonValue)} ToJson() => m_obj;");
+					//sb.NewLine();
 
 					// TReadOnly ToReadOnly()
 					sb.AppendLine($"/// <inheritdoc />");
 					sb.AppendLine($"public {readOnlyProxyTypeName} ToReadOnly() => new (m_obj.{nameof(JsonObject.ToReadOnly)}());");
 					sb.NewLine();
 
-					// IJsonSerializable
-					sb.AppendLine("/// <inheritdoc />");
-					sb.AppendLine($"void {nameof(IJsonSerializable)}.{nameof(IJsonSerializable.JsonSerialize)}({nameof(CrystalJsonWriter)} writer) => m_obj.{nameof(IJsonSerializable.JsonSerialize)}(writer);");
-					sb.NewLine();
+					//// IJsonSerializable
+					//sb.AppendLine("/// <inheritdoc />");
+					//sb.AppendLine($"void {nameof(IJsonSerializable)}.{nameof(IJsonSerializable.JsonSerialize)}({nameof(CrystalJsonWriter)} writer) => m_obj.{nameof(IJsonSerializable.JsonSerialize)}(writer);");
+					//sb.NewLine();
 
-					// IJsonPackable
-					sb.AppendLine("/// <inheritdoc />");
-					sb.AppendLine($"{nameof(JsonValue)} {nameof(IJsonPackable)}.{nameof(IJsonPackable.JsonPack)}({nameof(CrystalJsonSettings)} settings, {nameof(ICrystalJsonTypeResolver)} resolver) => settings.{nameof(CrystalJsonSettingsExtensions.IsReadOnly)}() ? m_obj.{nameof(JsonObject.ToReadOnly)}() : m_obj;");
-					sb.NewLine();
+					//// IJsonPackable
+					//sb.AppendLine("/// <inheritdoc />");
+					//sb.AppendLine($"{nameof(JsonValue)} {nameof(IJsonPackable)}.{nameof(IJsonPackable.JsonPack)}({nameof(CrystalJsonSettings)} settings, {nameof(ICrystalJsonTypeResolver)} resolver) => settings.{nameof(CrystalJsonSettingsExtensions.IsReadOnly)}() ? m_obj.{nameof(JsonObject.ToReadOnly)}() : m_obj;");
+					//sb.NewLine();
 
 					sb.AppendLine("#endregion");
 					sb.NewLine();
@@ -1061,7 +1068,7 @@ namespace Doxense.Serialization.Json
 						if (this.TypeMap.ContainsKey(member.Type))
 						{
 							proxyType = GetLocalMutableProxyRef(member.Type);
-							getterExpr = $"new(m_obj.{(member.IsRequired ? "GetObject" : "GetObjectOrEmpty")}({sb.Constant(member.Name)}))";
+							getterExpr = $"new(m_obj.{(member.IsRequired ? "GetObject" : "GetObjectOrEmpty")}({sb.Constant(member.Name)}), name: {serializerTypeName}.{GetEncodedPropertyField(member)})";
 							setterExpr = $"m_obj[{sb.Constant(member.Name)}] = value.ToJson()";
 						}
 						else if (IsStringLike(member.Type) || IsStringLike(member.Type) || IsBooleanLike(member.Type) || IsNumberLike(member.Type) || IsDateLike(member.Type))
@@ -1148,8 +1155,8 @@ namespace Doxense.Serialization.Json
 							{
 								if (this.TypeMap.ContainsKey(valueType))
 								{
-									proxyType = sb.TypeNameGeneric(typeof(JsonMutableProxyObject<,>), sb.TypeName(valueType), GetLocalMutableProxyRef(valueType));
-									getterExpr = $"new(m_obj[{sb.Constant(member.Name)}])";
+									proxyType = sb.TypeNameGeneric(typeof(JsonMutableProxyDictionary<,>), sb.TypeName(valueType), GetLocalMutableProxyRef(valueType));
+									getterExpr = $"new(m_obj[{sb.Constant(member.Name)}], parent: this, name: {serializerTypeName}.{GetEncodedPropertyField(member)})";
 									setterExpr = $"m_obj[{sb.Constant(member.Name)}] = value.ToJson()";
 								}
 							}
@@ -1159,7 +1166,7 @@ namespace Doxense.Serialization.Json
 							if (this.TypeMap.ContainsKey(elemType))
 							{
 								proxyType = sb.TypeNameGeneric(typeof(JsonMutableProxyArray<,>), sb.TypeName(elemType), GetLocalMutableProxyRef(elemType));
-								getterExpr = $"new(m_obj[{sb.Constant(member.Name)}])";
+								getterExpr = $"new(m_obj[{sb.Constant(member.Name)}], parent: this, name: {serializerTypeName}.{GetEncodedPropertyField(member)})";
 								setterExpr = $"m_obj[{sb.Constant(member.Name)}] = value.ToJson()";
 							}
 						}

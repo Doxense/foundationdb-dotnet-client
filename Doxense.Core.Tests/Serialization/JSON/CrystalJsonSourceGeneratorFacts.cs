@@ -178,7 +178,7 @@ namespace Doxense.Serialization.Json.Tests
 			var source = gen.GenerateCode();
 			Log(source);
 
-#if DISABLED
+#if !DISABLED
 			WriteSourceCode("GeneratedSourceCode.cs", source);
 
 
@@ -615,6 +615,13 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(proxy.Items[0].Id, Is.EqualTo(user.Items![0].Id));
 			Assert.That(proxy.Devices["Foo"].Id, Is.EqualTo(user.Devices!["Foo"].Id));
 			Assert.That(proxy.Extras, IsJson.Mutable.And.EqualTo(user.Extras));
+
+			Assert.That(proxy.Metadata.GetPath().ToString(), Is.EqualTo("metadata"));
+			Assert.That(proxy.Items.GetPath().ToString(), Is.EqualTo("items"));
+			Assert.That(proxy.Items[0].GetPath().ToString(), Is.EqualTo("items[0]"));
+			Assert.That(proxy.Items[1].GetPath().ToString(), Is.EqualTo("items[1]"));
+			Assert.That(proxy.Devices.GetPath().ToString(), Is.EqualTo("devices"));
+			Assert.That(proxy.Devices["Foo"].GetPath().ToString(), Is.EqualTo("devices.Foo"));
 
 			var json = proxy.ToJson();
 			Log("JSON:");

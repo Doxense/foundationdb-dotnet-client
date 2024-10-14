@@ -35,12 +35,22 @@ namespace Doxense.Serialization.Json
 	{
 
 		private readonly JsonArray m_array;
+
 		private readonly IJsonConverter<TValue> m_converter;
 
-		public JsonMutableProxyArray(JsonArray? array, IJsonConverter<TValue>? converter = null)
+		private readonly IJsonMutableParent? m_parent;
+
+		private readonly JsonEncodedPropertyName? m_name;
+
+		private readonly int m_index;
+
+		public JsonMutableProxyArray(JsonArray? array, IJsonConverter<TValue>? converter = null, IJsonMutableParent? parent = null, JsonEncodedPropertyName? name = null, int index = 0)
 		{
 			m_array = array ?? [ ];
 			m_converter = converter ?? RuntimeJsonConverter<TValue>.Default;
+			m_parent = parent;
+			m_name = name;
+			m_index = index;
 		}
 	
 		TValue[] ToArray() => m_converter.JsonDeserializeArray(m_array);
@@ -131,16 +141,33 @@ namespace Doxense.Serialization.Json
 	/// <typeparam name="TValue">Emulated element type</typeparam>
 	/// <typeparam name="TProxy">Corresponding <see cref="IJsonMutableProxy{TValue}"/> for type <typeparamref name="TValue"/>, usually source-generated</typeparam>
 	[PublicAPI]
-	public sealed class JsonMutableProxyArray<TValue, TProxy> : IList<TProxy>, IJsonSerializable, IJsonPackable
+	public sealed class JsonMutableProxyArray<TValue, TProxy> : IList<TProxy>, IJsonMutableParent, IJsonSerializable, IJsonPackable
 		where TProxy : IJsonMutableProxy<TValue, TProxy>
 	{
 
 		private readonly JsonValue m_value;
 
-		public JsonMutableProxyArray(JsonValue? value, IJsonConverter<TValue>? converter = null)
+		private readonly IJsonMutableParent? m_parent;
+
+		private readonly JsonEncodedPropertyName? m_name;
+
+		private readonly int m_index;
+
+		public JsonMutableProxyArray(JsonValue? value, IJsonMutableParent? parent = null, JsonEncodedPropertyName? name = null, int index = 0, IJsonConverter<TValue>? converter = null)
 		{
 			m_value = value ?? JsonNull.Null;
+			m_parent = parent;
+			m_name = name;
+			m_index = index;
 		}
+
+		JsonType IJsonMutableParent.Type => JsonType.Array;
+
+		IJsonMutableParent? IJsonMutableParent.Parent => m_parent;
+
+		JsonEncodedPropertyName? IJsonMutableParent.Name => m_name;
+
+		int IJsonMutableParent.Index => m_index;
 
 		TValue[] ToArray() => TProxy.Converter.JsonDeserializeArray(m_value)!;
 
@@ -175,9 +202,10 @@ namespace Doxense.Serialization.Json
 				throw OperationRequiresArrayOrNull();
 			}
 
+			int index = 0;
 			foreach (var item in array)
 			{
-				yield return TProxy.Create(item);
+				yield return TProxy.Create(item, parent: this, index: index++);
 			}
 		}
 
@@ -194,7 +222,7 @@ namespace Doxense.Serialization.Json
 		public void Add(TValue item)
 		{
 			if (m_value is not JsonArray array) throw OperationRequiresArrayOrNull();
-			array.Add(TProxy.Create(item).ToJson());
+			array.Add(TProxy.Converter.Pack(item));
 		}
 
 		/// <inheritdoc />
@@ -216,9 +244,10 @@ namespace Doxense.Serialization.Json
 			if (m_value is not JsonArray arr) throw OperationRequiresArrayOrNull();
 			Contract.DoesNotOverflow(array, arrayIndex, arr.Count);
 
+			int index = 0;
 			foreach (var item in arr)
 			{
-				array[arrayIndex++] = TProxy.Create(item);
+				array[arrayIndex++] = TProxy.Create(item, parent: this, index: index++);
 			}
 		}
 
@@ -251,7 +280,7 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		public TProxy this[int index]
 		{
-			get => TProxy.Create(m_value[index]);
+			get => TProxy.Create(m_value[index], parent: this, index: index);
 			set => m_value[index] = value.ToJson();
 		}
 

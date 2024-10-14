@@ -28,20 +28,42 @@ namespace Doxense.Serialization.Json
 {
 
 	/// <summary>Wraps a <see cref="JsonValue"/> into typed mutable proxy that emulates the type <typeparamref name="TValue"/></summary>
+	/// <remarks>
+	/// <para>This interface is a marker for "wrapper types" that replicate the same set of properties and fields as <typeparamref name="TValue"/>, using a wrapped <see cref="JsonValue"/> as source.</para>
+	/// </remarks>
+	[PublicAPI]
+	public interface IJsonMutableProxy : IJsonSerializable, IJsonPackable
+	{
+		/// <summary>Returns the proxied JSON Value</summary>
+		/// <remarks>The returned value is mutable and can be changed directly.</remarks>
+		JsonValue ToJson();
+
+	}
+
+	public interface IJsonMutableParent
+	{
+
+		IJsonMutableParent? Parent { get; }
+
+		JsonEncodedPropertyName? Name { get; }
+		
+		int Index { get; }
+
+		JsonType Type { get; }
+
+	}
+
+	/// <summary>Wraps a <see cref="JsonValue"/> into typed mutable proxy that emulates the type <typeparamref name="TValue"/></summary>
 	/// <typeparam name="TValue">Emulated data type</typeparam>
 	/// <remarks>
 	/// <para>This interface is a marker for "wrapper types" that replicate the same set of properties and fields as <typeparamref name="TValue"/>, using a wrapped <see cref="JsonValue"/> as source.</para>
 	/// </remarks>
 	[PublicAPI]
-	public interface IJsonMutableProxy<out TValue> : IJsonSerializable, IJsonPackable
+	public interface IJsonMutableProxy<out TValue> : IJsonMutableProxy
 	{
 
 		/// <summary>Returns an instance of <typeparamref name="TValue"/> with the same content as this proxy.</summary>
 		public TValue ToValue();
-
-		/// <summary>Returns the proxied JSON Value</summary>
-		/// <remarks>The returned value is mutable and can be changed directly.</remarks>
-		JsonValue ToJson();
 
 	}
 
@@ -57,7 +79,7 @@ namespace Doxense.Serialization.Json
 	{
 
 		/// <summary>Wraps a JSON Value into a mutable proxy for type <typeparamref name="TValue"/></summary>
-		static abstract TMutableProxy Create(JsonValue obj, IJsonConverter<TValue>? converter = null);
+		static abstract TMutableProxy Create(JsonValue obj, IJsonMutableParent? parent = null, JsonEncodedPropertyName? name = null, int index = 0, IJsonConverter<TValue>? converter = null);
 
 		/// <summary>Wraps an instance type <typeparamref name="TValue"/> into mutable proxy</summary>
 		static abstract TMutableProxy Create(TValue value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null);
@@ -85,5 +107,49 @@ namespace Doxense.Serialization.Json
 		TReadOnlyProxy ToReadOnly();
 
 	}
+
+	public abstract record JsonMutableProxyObjectBase
+		: IJsonMutableProxy, IJsonMutableParent
+	{
+
+		/// <summary>Wrapped JSON Object</summary>
+		protected readonly JsonObject m_obj;
+
+		/// <summary>Parent object or array, or <c>null</c> if this is the top-level of the document</summary>
+		protected readonly IJsonMutableParent? m_parent;
+
+		/// <summary>Name of the field in the parent object that contains this instance</summary>
+		protected readonly JsonEncodedPropertyName? m_name;
+
+		/// <summary>Index in the parent array that contains this instance</summary>
+		protected readonly int m_index;
+
+		JsonType IJsonMutableParent.Type => JsonType.Object;
+
+		protected JsonMutableProxyObjectBase(JsonValue value, IJsonMutableParent? parent, JsonEncodedPropertyName? name, int index)
+		{
+			m_obj = value.AsObject();
+			m_parent = parent;
+			m_name = name;
+			m_index = index;
+		}
+
+		IJsonMutableParent? IJsonMutableParent.Parent => m_parent;
+
+		JsonEncodedPropertyName? IJsonMutableParent.Name => m_name;
+
+		int IJsonMutableParent.Index => m_index;
+
+		/// <inheritdoc />
+		public void JsonSerialize(CrystalJsonWriter writer) => m_obj.JsonSerialize(writer);
+
+		/// <inheritdoc />
+		public JsonValue JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_obj;
+
+		/// <inheritdoc />
+		public JsonValue ToJson() => m_obj;
+
+	}
+
 
 }

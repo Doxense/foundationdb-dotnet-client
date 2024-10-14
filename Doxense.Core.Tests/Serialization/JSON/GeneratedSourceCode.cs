@@ -16,7 +16,7 @@ namespace Doxense.Serialization.Json.Tests
 	public static partial class GeneratedSerializers
 	{
 
-		#region Person ...
+		#region Person...
 
 		/// <summary>JSON converter for type <see cref="Doxense.Serialization.Json.Tests.Person">Person</see></summary>
 		public static PersonJsonConverter Person => m_cachedPerson ??= new();
@@ -29,8 +29,8 @@ namespace Doxense.Serialization.Json.Tests
 
 			#region Serialization...
 
-			private static readonly JsonEncodedPropertyName _firstName = new("firstName");
-			private static readonly JsonEncodedPropertyName _familyName = new("familyName");
+			internal static readonly JsonEncodedPropertyName _firstName = new("firstName");
+			internal static readonly JsonEncodedPropertyName _familyName = new("familyName");
 
 			public void Serialize(CrystalJsonWriter writer, global::Doxense.Serialization.Json.Tests.Person? instance)
 			{
@@ -191,17 +191,17 @@ namespace Doxense.Serialization.Json.Tests
 		}
 
 		/// <summary>Wraps a <see cref="JsonObject"/> into something that looks like a Person</summary>
-		public sealed record PersonMutable : IJsonMutableProxy<global::Doxense.Serialization.Json.Tests.Person, PersonMutable, PersonReadOnly>
+		public sealed record PersonMutable : JsonMutableProxyObjectBase, IJsonMutableProxy<global::Doxense.Serialization.Json.Tests.Person, PersonMutable, PersonReadOnly>
 		{
 
-			private readonly JsonObject m_obj;
-
-			public PersonMutable(JsonValue value) => m_obj = value.AsObject();
+			public PersonMutable(JsonValue value, IJsonMutableParent? parent = null, JsonEncodedPropertyName? name = null, int index = 0) : base(value, parent, name, index)
+			{
+			}
 
 			#region Public Methods...
 
 			/// <inheritdoc />
-			public static PersonMutable Create(JsonValue value, IJsonConverter<Person>? converter = null) => new(value.AsObject());
+			public static PersonMutable Create(JsonValue value, IJsonMutableParent? parent = null, JsonEncodedPropertyName? name = null, int index = 0, IJsonConverter<Person>? converter = null) => new(value, parent, name, index);
 
 			/// <inheritdoc />
 			public static PersonMutable Create(global::Doxense.Serialization.Json.Tests.Person value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) => new(GeneratedSerializers.Person.Pack(value, settings.AsMutable(), resolver));
@@ -213,23 +213,14 @@ namespace Doxense.Serialization.Json.Tests
 			public static PersonMutable FromValue(global::Doxense.Serialization.Json.Tests.Person value)
 			{
 				global::Doxense.Diagnostics.Contracts.Contract.NotNull(value);
-				return new((JsonObject) GeneratedSerializers.Person.Pack(value, CrystalJsonSettings.Json));
+				return new(GeneratedSerializers.Person.Pack(value, CrystalJsonSettings.Json));
 			}
 
 			/// <inheritdoc />
 			public global::Doxense.Serialization.Json.Tests.Person ToValue() => GeneratedSerializers.Person.Unpack(m_obj);
 
 			/// <inheritdoc />
-			public JsonValue ToJson() => m_obj;
-
-			/// <inheritdoc />
 			public PersonReadOnly ToReadOnly() => new (m_obj.ToReadOnly());
-
-			/// <inheritdoc />
-			void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => m_obj.JsonSerialize(writer);
-
-			/// <inheritdoc />
-			JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => settings.IsReadOnly() ? m_obj.ToReadOnly() : m_obj;
 
 			#endregion
 
@@ -255,7 +246,7 @@ namespace Doxense.Serialization.Json.Tests
 
 		#endregion
 
-		#region MyAwesomeUser ...
+		#region MyAwesomeUser...
 
 		/// <summary>JSON converter for type <see cref="Doxense.Serialization.Json.Tests.MyAwesomeUser">MyAwesomeUser</see></summary>
 		public static MyAwesomeUserJsonConverter MyAwesomeUser => m_cachedMyAwesomeUser ??= new();
@@ -268,15 +259,15 @@ namespace Doxense.Serialization.Json.Tests
 
 			#region Serialization...
 
-			private static readonly JsonEncodedPropertyName _id = new("id");
-			private static readonly JsonEncodedPropertyName _displayName = new("displayName");
-			private static readonly JsonEncodedPropertyName _email = new("email");
-			private static readonly JsonEncodedPropertyName _type = new("type");
-			private static readonly JsonEncodedPropertyName _roles = new("roles");
-			private static readonly JsonEncodedPropertyName _metadata = new("metadata");
-			private static readonly JsonEncodedPropertyName _items = new("items");
-			private static readonly JsonEncodedPropertyName _devices = new("devices");
-			private static readonly JsonEncodedPropertyName _extras = new("extras");
+			internal static readonly JsonEncodedPropertyName _id = new("id");
+			internal static readonly JsonEncodedPropertyName _displayName = new("displayName");
+			internal static readonly JsonEncodedPropertyName _email = new("email");
+			internal static readonly JsonEncodedPropertyName _type = new("type");
+			internal static readonly JsonEncodedPropertyName _roles = new("roles");
+			internal static readonly JsonEncodedPropertyName _metadata = new("metadata");
+			internal static readonly JsonEncodedPropertyName _items = new("items");
+			internal static readonly JsonEncodedPropertyName _devices = new("devices");
+			internal static readonly JsonEncodedPropertyName _extras = new("extras");
 
 			public void Serialize(CrystalJsonWriter writer, global::Doxense.Serialization.Json.Tests.MyAwesomeUser? instance)
 			{
@@ -546,17 +537,17 @@ namespace Doxense.Serialization.Json.Tests
 		}
 
 		/// <summary>Wraps a <see cref="JsonObject"/> into something that looks like a MyAwesomeUser</summary>
-		public sealed record MyAwesomeUserMutable : IJsonMutableProxy<global::Doxense.Serialization.Json.Tests.MyAwesomeUser, MyAwesomeUserMutable, MyAwesomeUserReadOnly>
+		public sealed record MyAwesomeUserMutable : JsonMutableProxyObjectBase, IJsonMutableProxy<global::Doxense.Serialization.Json.Tests.MyAwesomeUser, MyAwesomeUserMutable, MyAwesomeUserReadOnly>
 		{
 
-			private readonly JsonObject m_obj;
-
-			public MyAwesomeUserMutable(JsonValue value) => m_obj = value.AsObject();
+			public MyAwesomeUserMutable(JsonValue value, IJsonMutableParent? parent = null, JsonEncodedPropertyName? name = null, int index = 0) : base(value, parent, name, index)
+			{
+			}
 
 			#region Public Methods...
 
 			/// <inheritdoc />
-			public static MyAwesomeUserMutable Create(JsonValue value, IJsonConverter<MyAwesomeUser>? converter = null) => new(value.AsObject());
+			public static MyAwesomeUserMutable Create(JsonValue value, IJsonMutableParent? parent = null, JsonEncodedPropertyName? name = null, int index = 0, IJsonConverter<MyAwesomeUser>? converter = null) => new(value, parent, name, index);
 
 			/// <inheritdoc />
 			public static MyAwesomeUserMutable Create(global::Doxense.Serialization.Json.Tests.MyAwesomeUser value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) => new(GeneratedSerializers.MyAwesomeUser.Pack(value, settings.AsMutable(), resolver));
@@ -568,23 +559,14 @@ namespace Doxense.Serialization.Json.Tests
 			public static MyAwesomeUserMutable FromValue(global::Doxense.Serialization.Json.Tests.MyAwesomeUser value)
 			{
 				global::Doxense.Diagnostics.Contracts.Contract.NotNull(value);
-				return new((JsonObject) GeneratedSerializers.MyAwesomeUser.Pack(value, CrystalJsonSettings.Json));
+				return new(GeneratedSerializers.MyAwesomeUser.Pack(value, CrystalJsonSettings.Json));
 			}
 
 			/// <inheritdoc />
 			public global::Doxense.Serialization.Json.Tests.MyAwesomeUser ToValue() => GeneratedSerializers.MyAwesomeUser.Unpack(m_obj);
 
 			/// <inheritdoc />
-			public JsonValue ToJson() => m_obj;
-
-			/// <inheritdoc />
 			public MyAwesomeUserReadOnly ToReadOnly() => new (m_obj.ToReadOnly());
-
-			/// <inheritdoc />
-			void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => m_obj.JsonSerialize(writer);
-
-			/// <inheritdoc />
-			JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => settings.IsReadOnly() ? m_obj.ToReadOnly() : m_obj;
 
 			#endregion
 
@@ -628,21 +610,21 @@ namespace Doxense.Serialization.Json.Tests
 			/// <inheritdoc cref="MyAwesomeUser.Metadata" />
 			public GeneratedSerializers.MyAwesomeMetadataMutable Metadata
 			{
-				get => new(m_obj.GetObject("metadata"));
+				get => new(m_obj.GetObject("metadata"), name: MyAwesomeUserJsonConverter._metadata);
 				set => m_obj["metadata"] = value.ToJson();
 			}
 
 			/// <inheritdoc cref="MyAwesomeUser.Items" />
 			public JsonMutableProxyArray<global::Doxense.Serialization.Json.Tests.MyAwesomeStruct, GeneratedSerializers.MyAwesomeStructMutable> Items
 			{
-				get => new(m_obj["items"]);
+				get => new(m_obj["items"], parent: this, name: MyAwesomeUserJsonConverter._items);
 				set => m_obj["items"] = value.ToJson();
 			}
 
 			/// <inheritdoc cref="MyAwesomeUser.Devices" />
-			public JsonMutableProxyObject<global::Doxense.Serialization.Json.Tests.MyAwesomeDevice, GeneratedSerializers.MyAwesomeDeviceMutable> Devices
+			public JsonMutableProxyDictionary<global::Doxense.Serialization.Json.Tests.MyAwesomeDevice, GeneratedSerializers.MyAwesomeDeviceMutable> Devices
 			{
-				get => new(m_obj["devices"]);
+				get => new(m_obj["devices"], parent: this, name: MyAwesomeUserJsonConverter._devices);
 				set => m_obj["devices"] = value.ToJson();
 			}
 
@@ -659,7 +641,7 @@ namespace Doxense.Serialization.Json.Tests
 
 		#endregion
 
-		#region MyAwesomeMetadata ...
+		#region MyAwesomeMetadata...
 
 		/// <summary>JSON converter for type <see cref="Doxense.Serialization.Json.Tests.MyAwesomeMetadata">MyAwesomeMetadata</see></summary>
 		public static MyAwesomeMetadataJsonConverter MyAwesomeMetadata => m_cachedMyAwesomeMetadata ??= new();
@@ -672,9 +654,9 @@ namespace Doxense.Serialization.Json.Tests
 
 			#region Serialization...
 
-			private static readonly JsonEncodedPropertyName _accountCreated = new("accountCreated");
-			private static readonly JsonEncodedPropertyName _accountModified = new("accountModified");
-			private static readonly JsonEncodedPropertyName _accountDisabled = new("accountDisabled");
+			internal static readonly JsonEncodedPropertyName _accountCreated = new("accountCreated");
+			internal static readonly JsonEncodedPropertyName _accountModified = new("accountModified");
+			internal static readonly JsonEncodedPropertyName _accountDisabled = new("accountDisabled");
 
 			public void Serialize(CrystalJsonWriter writer, global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata? instance)
 			{
@@ -843,17 +825,17 @@ namespace Doxense.Serialization.Json.Tests
 		}
 
 		/// <summary>Wraps a <see cref="JsonObject"/> into something that looks like a MyAwesomeMetadata</summary>
-		public sealed record MyAwesomeMetadataMutable : IJsonMutableProxy<global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata, MyAwesomeMetadataMutable, MyAwesomeMetadataReadOnly>
+		public sealed record MyAwesomeMetadataMutable : JsonMutableProxyObjectBase, IJsonMutableProxy<global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata, MyAwesomeMetadataMutable, MyAwesomeMetadataReadOnly>
 		{
 
-			private readonly JsonObject m_obj;
-
-			public MyAwesomeMetadataMutable(JsonValue value) => m_obj = value.AsObject();
+			public MyAwesomeMetadataMutable(JsonValue value, IJsonMutableParent? parent = null, JsonEncodedPropertyName? name = null, int index = 0) : base(value, parent, name, index)
+			{
+			}
 
 			#region Public Methods...
 
 			/// <inheritdoc />
-			public static MyAwesomeMetadataMutable Create(JsonValue value, IJsonConverter<MyAwesomeMetadata>? converter = null) => new(value.AsObject());
+			public static MyAwesomeMetadataMutable Create(JsonValue value, IJsonMutableParent? parent = null, JsonEncodedPropertyName? name = null, int index = 0, IJsonConverter<MyAwesomeMetadata>? converter = null) => new(value, parent, name, index);
 
 			/// <inheritdoc />
 			public static MyAwesomeMetadataMutable Create(global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) => new(GeneratedSerializers.MyAwesomeMetadata.Pack(value, settings.AsMutable(), resolver));
@@ -865,23 +847,14 @@ namespace Doxense.Serialization.Json.Tests
 			public static MyAwesomeMetadataMutable FromValue(global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata value)
 			{
 				global::Doxense.Diagnostics.Contracts.Contract.NotNull(value);
-				return new((JsonObject) GeneratedSerializers.MyAwesomeMetadata.Pack(value, CrystalJsonSettings.Json));
+				return new(GeneratedSerializers.MyAwesomeMetadata.Pack(value, CrystalJsonSettings.Json));
 			}
 
 			/// <inheritdoc />
 			public global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata ToValue() => GeneratedSerializers.MyAwesomeMetadata.Unpack(m_obj);
 
 			/// <inheritdoc />
-			public JsonValue ToJson() => m_obj;
-
-			/// <inheritdoc />
 			public MyAwesomeMetadataReadOnly ToReadOnly() => new (m_obj.ToReadOnly());
-
-			/// <inheritdoc />
-			void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => m_obj.JsonSerialize(writer);
-
-			/// <inheritdoc />
-			JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => settings.IsReadOnly() ? m_obj.ToReadOnly() : m_obj;
 
 			#endregion
 
@@ -914,7 +887,7 @@ namespace Doxense.Serialization.Json.Tests
 
 		#endregion
 
-		#region MyAwesomeStruct ...
+		#region MyAwesomeStruct...
 
 		/// <summary>JSON converter for type <see cref="Doxense.Serialization.Json.Tests.MyAwesomeStruct">MyAwesomeStruct</see></summary>
 		public static MyAwesomeStructJsonConverter MyAwesomeStruct => m_cachedMyAwesomeStruct ??= new();
@@ -927,12 +900,12 @@ namespace Doxense.Serialization.Json.Tests
 
 			#region Serialization...
 
-			private static readonly JsonEncodedPropertyName _id = new("id");
-			private static readonly JsonEncodedPropertyName _level = new("level");
-			private static readonly JsonEncodedPropertyName _path = new("path");
-			private static readonly JsonEncodedPropertyName _paths = new("paths");
-			private static readonly JsonEncodedPropertyName _maybePath = new("maybePath");
-			private static readonly JsonEncodedPropertyName _disabled = new("disabled");
+			internal static readonly JsonEncodedPropertyName _id = new("id");
+			internal static readonly JsonEncodedPropertyName _level = new("level");
+			internal static readonly JsonEncodedPropertyName _path = new("path");
+			internal static readonly JsonEncodedPropertyName _paths = new("paths");
+			internal static readonly JsonEncodedPropertyName _maybePath = new("maybePath");
+			internal static readonly JsonEncodedPropertyName _disabled = new("disabled");
 
 			public void Serialize(CrystalJsonWriter writer, global::Doxense.Serialization.Json.Tests.MyAwesomeStruct instance)
 			{
@@ -1148,17 +1121,17 @@ namespace Doxense.Serialization.Json.Tests
 		}
 
 		/// <summary>Wraps a <see cref="JsonObject"/> into something that looks like a MyAwesomeStruct</summary>
-		public sealed record MyAwesomeStructMutable : IJsonMutableProxy<global::Doxense.Serialization.Json.Tests.MyAwesomeStruct, MyAwesomeStructMutable, MyAwesomeStructReadOnly>
+		public sealed record MyAwesomeStructMutable : JsonMutableProxyObjectBase, IJsonMutableProxy<global::Doxense.Serialization.Json.Tests.MyAwesomeStruct, MyAwesomeStructMutable, MyAwesomeStructReadOnly>
 		{
 
-			private readonly JsonObject m_obj;
-
-			public MyAwesomeStructMutable(JsonValue value) => m_obj = value.AsObject();
+			public MyAwesomeStructMutable(JsonValue value, IJsonMutableParent? parent = null, JsonEncodedPropertyName? name = null, int index = 0) : base(value, parent, name, index)
+			{
+			}
 
 			#region Public Methods...
 
 			/// <inheritdoc />
-			public static MyAwesomeStructMutable Create(JsonValue value, IJsonConverter<MyAwesomeStruct>? converter = null) => new(value.AsObject());
+			public static MyAwesomeStructMutable Create(JsonValue value, IJsonMutableParent? parent = null, JsonEncodedPropertyName? name = null, int index = 0, IJsonConverter<MyAwesomeStruct>? converter = null) => new(value, parent, name, index);
 
 			/// <inheritdoc />
 			public static MyAwesomeStructMutable Create(global::Doxense.Serialization.Json.Tests.MyAwesomeStruct value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) => new(GeneratedSerializers.MyAwesomeStruct.Pack(value, settings.AsMutable(), resolver));
@@ -1170,23 +1143,14 @@ namespace Doxense.Serialization.Json.Tests
 			public static MyAwesomeStructMutable FromValue(global::Doxense.Serialization.Json.Tests.MyAwesomeStruct value)
 			{
 				global::Doxense.Diagnostics.Contracts.Contract.NotNull(value);
-				return new((JsonObject) GeneratedSerializers.MyAwesomeStruct.Pack(value, CrystalJsonSettings.Json));
+				return new(GeneratedSerializers.MyAwesomeStruct.Pack(value, CrystalJsonSettings.Json));
 			}
 
 			/// <inheritdoc />
 			public global::Doxense.Serialization.Json.Tests.MyAwesomeStruct ToValue() => GeneratedSerializers.MyAwesomeStruct.Unpack(m_obj);
 
 			/// <inheritdoc />
-			public JsonValue ToJson() => m_obj;
-
-			/// <inheritdoc />
 			public MyAwesomeStructReadOnly ToReadOnly() => new (m_obj.ToReadOnly());
-
-			/// <inheritdoc />
-			void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => m_obj.JsonSerialize(writer);
-
-			/// <inheritdoc />
-			JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => settings.IsReadOnly() ? m_obj.ToReadOnly() : m_obj;
 
 			#endregion
 
@@ -1240,7 +1204,7 @@ namespace Doxense.Serialization.Json.Tests
 
 		#endregion
 
-		#region MyAwesomeDevice ...
+		#region MyAwesomeDevice...
 
 		/// <summary>JSON converter for type <see cref="Doxense.Serialization.Json.Tests.MyAwesomeDevice">MyAwesomeDevice</see></summary>
 		public static MyAwesomeDeviceJsonConverter MyAwesomeDevice => m_cachedMyAwesomeDevice ??= new();
@@ -1253,10 +1217,10 @@ namespace Doxense.Serialization.Json.Tests
 
 			#region Serialization...
 
-			private static readonly JsonEncodedPropertyName _id = new("id");
-			private static readonly JsonEncodedPropertyName _model = new("model");
-			private static readonly JsonEncodedPropertyName _lastSeen = new("lastSeen");
-			private static readonly JsonEncodedPropertyName _lastAddress = new("lastAddress");
+			internal static readonly JsonEncodedPropertyName _id = new("id");
+			internal static readonly JsonEncodedPropertyName _model = new("model");
+			internal static readonly JsonEncodedPropertyName _lastSeen = new("lastSeen");
+			internal static readonly JsonEncodedPropertyName _lastAddress = new("lastAddress");
 
 			public void Serialize(CrystalJsonWriter writer, global::Doxense.Serialization.Json.Tests.MyAwesomeDevice? instance)
 			{
@@ -1442,17 +1406,17 @@ namespace Doxense.Serialization.Json.Tests
 		}
 
 		/// <summary>Wraps a <see cref="JsonObject"/> into something that looks like a MyAwesomeDevice</summary>
-		public sealed record MyAwesomeDeviceMutable : IJsonMutableProxy<global::Doxense.Serialization.Json.Tests.MyAwesomeDevice, MyAwesomeDeviceMutable, MyAwesomeDeviceReadOnly>
+		public sealed record MyAwesomeDeviceMutable : JsonMutableProxyObjectBase, IJsonMutableProxy<global::Doxense.Serialization.Json.Tests.MyAwesomeDevice, MyAwesomeDeviceMutable, MyAwesomeDeviceReadOnly>
 		{
 
-			private readonly JsonObject m_obj;
-
-			public MyAwesomeDeviceMutable(JsonValue value) => m_obj = value.AsObject();
+			public MyAwesomeDeviceMutable(JsonValue value, IJsonMutableParent? parent = null, JsonEncodedPropertyName? name = null, int index = 0) : base(value, parent, name, index)
+			{
+			}
 
 			#region Public Methods...
 
 			/// <inheritdoc />
-			public static MyAwesomeDeviceMutable Create(JsonValue value, IJsonConverter<MyAwesomeDevice>? converter = null) => new(value.AsObject());
+			public static MyAwesomeDeviceMutable Create(JsonValue value, IJsonMutableParent? parent = null, JsonEncodedPropertyName? name = null, int index = 0, IJsonConverter<MyAwesomeDevice>? converter = null) => new(value, parent, name, index);
 
 			/// <inheritdoc />
 			public static MyAwesomeDeviceMutable Create(global::Doxense.Serialization.Json.Tests.MyAwesomeDevice value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) => new(GeneratedSerializers.MyAwesomeDevice.Pack(value, settings.AsMutable(), resolver));
@@ -1464,23 +1428,14 @@ namespace Doxense.Serialization.Json.Tests
 			public static MyAwesomeDeviceMutable FromValue(global::Doxense.Serialization.Json.Tests.MyAwesomeDevice value)
 			{
 				global::Doxense.Diagnostics.Contracts.Contract.NotNull(value);
-				return new((JsonObject) GeneratedSerializers.MyAwesomeDevice.Pack(value, CrystalJsonSettings.Json));
+				return new(GeneratedSerializers.MyAwesomeDevice.Pack(value, CrystalJsonSettings.Json));
 			}
 
 			/// <inheritdoc />
 			public global::Doxense.Serialization.Json.Tests.MyAwesomeDevice ToValue() => GeneratedSerializers.MyAwesomeDevice.Unpack(m_obj);
 
 			/// <inheritdoc />
-			public JsonValue ToJson() => m_obj;
-
-			/// <inheritdoc />
 			public MyAwesomeDeviceReadOnly ToReadOnly() => new (m_obj.ToReadOnly());
-
-			/// <inheritdoc />
-			void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => m_obj.JsonSerialize(writer);
-
-			/// <inheritdoc />
-			JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => settings.IsReadOnly() ? m_obj.ToReadOnly() : m_obj;
 
 			#endregion
 
