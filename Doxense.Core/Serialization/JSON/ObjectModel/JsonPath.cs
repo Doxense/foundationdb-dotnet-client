@@ -54,6 +54,10 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonPath Create(ReadOnlyMemory<char> path) => path.Length == 0 ? default : new(path);
 
+		/// <summary>Returns a JsonPath that wraps a <see cref="ReadOnlySpan{T}">ReadOnlySpan&lt;char&gt;</see> literal</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonPath Create(ReadOnlySpan<char> path) => path.Length == 0 ? default : new(path.ToString());
+
 		/// <summary>Returns a JsonPath that wraps a <see cref="string">ReadOnlySpan&lt;char&gt;</see> literal</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonPath Create(string? path) => string.IsNullOrEmpty(path) ? default : new(path.AsMemory());
@@ -102,7 +106,7 @@ namespace Doxense.Serialization.Json
 
 					if (chunk.TryGetString(out var s))
 					{ // we got the original string
-						res.Add(DecodeKeyName(s)); // returns the same string insance if not escaped
+						res.Add(DecodeKeyName(s)); // returns the same string instance if not escaped
 					}
 					else if (chunk.Span.Contains('\\'))
 					{ // the key is escaped, must be decoded
@@ -157,7 +161,7 @@ namespace Doxense.Serialization.Json
 
 		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
 		{
-			//TODO: what kind of formats should be allow?
+			//TODO: what kind of formats should be allowed?
 			var path = this.Value.Span;
 			if (!path.TryCopyTo(destination))
 			{
@@ -344,7 +348,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="name">Name of a field</param>
 		/// <returns><see langword="true"/> if name contains at least one of '<c>\</c>', '<c>.</c>' or '<c>[</c>'</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private static bool RequiresEscaping(ReadOnlySpan<char> name)
+		internal static bool RequiresEscaping(ReadOnlySpan<char> name)
 		{
 			return name.ContainsAny(Needle);
 		}
@@ -354,7 +358,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Tests if a field name needs to be escaped</summary>
 		/// <param name="name">Name of a field</param>
 		/// <returns><see langword="true"/> if name contains at least one of '<c>\</c>', '<c>.</c>' or '<c>[</c>'</returns>
-		private static bool RequiresEscaping(ReadOnlySpan<char> name)
+		internal static bool RequiresEscaping(ReadOnlySpan<char> name)
 		{
 			ReadOnlySpan<char> mustEscapeCharacters = "\\.[]";
 			return name.IndexOfAny(mustEscapeCharacters) >= 0;
@@ -369,7 +373,7 @@ namespace Doxense.Serialization.Json
 				return "";
 			}
 
-			// if the key was escaped previously, it will contains at least one '\' character
+			// if the key was escaped previously, it will contain at least one '\' character
 			if (key.Contains('\\'))
 			{
 				return DecodeKeyNameSlow(key);
@@ -385,7 +389,7 @@ namespace Doxense.Serialization.Json
 				return default;
 			}
 
-			// if the key was escaped previously, it will contains at least one '\' character
+			// if the key was escaped previously, it will contain at least one '\' character
 			if (key.Contains('\\'))
 			{
 				return DecodeKeyNameSlow(key);
@@ -402,7 +406,7 @@ namespace Doxense.Serialization.Json
 				return true;
 			}
 
-			// if the key was escaped previously, it will contains at least one '\' character
+			// if the key was escaped previously, it will contain at least one '\' character
 			if (key.Contains('\\'))
 			{
 				return TryDecodeKeyNameSlow(key, buffer, out written);
@@ -513,7 +517,7 @@ namespace Doxense.Serialization.Json
 				}
 			}
 
-			// if escaped == true, then there is an single backslash at the end of the key
+			// if escaped == true, then there is a single backslash at the end of the key
 			// => this is probably a malformed key, but we won't deal with it here and simply add 1
 			return p + (escaped ? 1 : 0);
 		}
@@ -578,6 +582,50 @@ namespace Doxense.Serialization.Json
 			return res;
 		}
 
+		internal static bool TryEncodeKeyNameTo(Span<char> destination, out int charsWritten, ReadOnlySpan<char> name)
+		{
+			if (name.Length == 0)
+			{
+				charsWritten = 0;
+				return true;
+			}
+
+			// it cannot be smaller than the string length
+			if (destination.Length < name.Length) goto too_small;
+
+			int p = 0;
+			foreach (var c in name)
+			{
+				if (c is '.' or '\\' or '[' or ']')
+				{
+					if (p + 2 > destination.Length) goto too_small;
+					destination[p ] = '\\';
+					destination[p + 1] = c;
+					p += 2;
+				}
+				else
+				{
+					if (p + 1 > destination.Length) goto too_small;
+					destination[p] = c;
+					p++;
+				}
+			}
+
+			charsWritten = p;
+			return true;
+
+		too_small:
+			charsWritten = 0;
+			return false;
+
+		}
+
+		public JsonPath this[JsonPathSegment segment]
+		{
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => segment.Name.Length != 0 ? this[segment.Name.Span] : this[segment.Index];
+		}
+
 		/// <summary>Appends a field to this path (ex: <c>JsonPath.Return("user")["id"]</c> => "user.id")</summary>
 		public JsonPath this[string key]
 		{
@@ -626,7 +674,7 @@ namespace Doxense.Serialization.Json
 		}
 #endif
 
-		/// <summary>Appends an field to this path (ex: <c>JsonPath.Return("user")["xxxidxxx".AsSpan(3, 2)]</c> => "user.id")</summary>
+		/// <summary>Appends a field to this path (ex: <c>JsonPath.Return("user")["xxxidxxx".AsSpan(3, 2)]</c> => "user.id")</summary>
 		public JsonPath this[ReadOnlySpan<char> key]
 		{
 			get
@@ -798,7 +846,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Tests if this path is a child of another path</summary>
 		/// <param name="parent">Path to the parent</param>
 		/// <returns><see langword="true"/> if <paramref name="parent"/> is a parent of the current path; otherwise, <see langword="false"/>.</returns>
-		/// <remarks>A path is not is own child, so <c>path.IsChildOf(path)</c> will be <see langword="false"/>.</remarks>
+		/// <remarks>A path is not its own child, so <c>path.IsChildOf(path)</c> will be <see langword="false"/>.</remarks>
 		/// <example><code>
 		/// "foo".IsChildOf("foo") => false
 		/// "foo.bar".IsChildOf("foo") => true
@@ -815,7 +863,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="parent">Path to the parent</param>
 		/// <param name="relative">If the method returns <see langword="true"/>, receives the relative path from <paramref name="parent"/> to the current path</param>
 		/// <returns><see langword="true"/> if <paramref name="parent"/> is a parent of the current path; otherwise, <see langword="false"/>.</returns>
-		/// <remarks>A path is not is own child, so <c>path.IsChildOf(path)</c> will be <see langword="false"/>.</remarks>
+		/// <remarks>A path is not its own child, so <c>path.IsChildOf(path)</c> will be <see langword="false"/>.</remarks>
 		/// <example><code>
 		/// "foo".IsChildOf("foo", out ...) => false, relative: ""
 		/// "foo.bar".IsChildOf("foo", out ...) => true, relative: "bar"
@@ -831,7 +879,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Tests if this path is a child of another path</summary>
 		/// <param name="parent">Path to the parent</param>
 		/// <returns><see langword="true"/> if <paramref name="parent"/> is a parent of the current path; otherwise, <see langword="false"/>.</returns>
-		/// <remarks>A path is not is own child, so <c>path.IsChildOf(path)</c> will be <see langword="false"/>.</remarks>
+		/// <remarks>A path is not its own child, so <c>path.IsChildOf(path)</c> will be <see langword="false"/>.</remarks>
 		/// <example><code>
 		/// "foo".IsChildOf("foo") => false
 		/// "foo.bar".IsChildOf("foo") => true
@@ -867,7 +915,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="parent">Path to the parent</param>
 		/// <param name="relative">If the method returns <see langword="true"/>, receives the relative path from <paramref name="parent"/> to the current path</param>
 		/// <returns><see langword="true"/> if <paramref name="parent"/> is a parent of the current path; otherwise, <see langword="false"/>.</returns>
-		/// <remarks>A path is not is own child, so <c>path.IsChildOf(path)</c> will be <see langword="false"/>.</remarks>
+		/// <remarks>A path is not its own child, so <c>path.IsChildOf(path)</c> will be <see langword="false"/>.</remarks>
 		/// <example><code>
 		/// "foo".IsChildOf("foo", out ...) => false, relative: ""
 		/// "foo.bar".IsChildOf("foo", out ...) => true, relative: "bar"
@@ -994,7 +1042,7 @@ namespace Doxense.Serialization.Json
 #endif
 
 		/// <summary>Returns the parent path</summary>
-		/// <remarks>Returns the emtpy path if the path is already empty</remarks>
+		/// <remarks>Returns the empty path if the path is already empty</remarks>
 		/// <example><code>
 		/// "foo" => ""
 		/// "foo.bar" => "foo"
@@ -1047,7 +1095,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Tests if this path consists of a single key name</summary>
-		/// <returns><see langword="true"/> if the path is a single property name (ex: <c>"Foo"</c>), or <see langword="false"/> if it is an array index (<c>"[1]"</c>) or has mutiple segments (<c>"Foo.Bar"</c> or <c>"Foo[1]"</c>)</returns>
+		/// <returns><see langword="true"/> if the path is a single property name (ex: <c>"Foo"</c>), or <see langword="false"/> if it is an array index (<c>"[1]"</c>) or has multiple segments (<c>"Foo.Bar"</c> or <c>"Foo[1]"</c>)</returns>
 		/// <remarks>This can be used to speed up processing of selectors where the vast majority of cases is a single child</remarks>
 		public bool TryGetSingleKey(out ReadOnlyMemory<char> key)
 		{
@@ -1091,7 +1139,7 @@ namespace Doxense.Serialization.Json
 					key = DecodeKeyName(path);
 					return true;
 				}
-				// the path ends with an indeer: "[42]" or "foo[42]"
+				// the path ends with an indexer: "[42]" or "foo[42]"
 				key = default;
 				return false;
 			}
@@ -1118,7 +1166,7 @@ namespace Doxense.Serialization.Json
 		public ReadOnlySpan<char> GetLastKey() => TryGetLastKey(out var key) ? key : default;
 
 		/// <summary>Tests if this path consists of a single array index</summary>
-		/// <returns><see langword="true"/> if the path is a single array index (ex: <c>"[123]"</c>), or <see langword="false"/> if it is a key name (ex: <c>"foo"</c>) or has mutiple segments (<c>"foo[1]"</c>)</returns>
+		/// <returns><see langword="true"/> if the path is a single array index (ex: <c>"[123]"</c>), or <see langword="false"/> if it is a key name (ex: <c>"foo"</c>) or has multiple segments (<c>"foo[1]"</c>)</returns>
 		/// <remarks>This can be used to speed up processing of selectors where the vast majority of cases is a single child</remarks>
 		public bool TryGetSingleIndex(out Index index)
 		{
@@ -1134,7 +1182,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Tests if the last segment of this path is an index</summary>
-		/// <returns><see langword="true"/> if the path ends with a array indexer (ex: <c>"foo[1]"</c> or <c>"foo.bar[1]"</c>), or <see langword="false"/> if the last segment is a key name (ex: <c>"foo.bar"</c> or <c>"foo[1].bar"</c>), </returns>
+		/// <returns><see langword="true"/> if the path ends with an array indexer (ex: <c>"foo[1]"</c> or <c>"foo.bar[1]"</c>), or <see langword="false"/> if the last segment is a key name (ex: <c>"foo.bar"</c> or <c>"foo[1].bar"</c>), </returns>
 		/// <example><code>
 		/// "" => false
 		/// "foo" => false
@@ -1544,6 +1592,47 @@ namespace Doxense.Serialization.Json
 
 		}
 
+	}
+
+	[PublicAPI]
+	[DebuggerDisplay("{ToString(),nq}")]
+	public readonly struct JsonPathSegment : IEquatable<JsonPathSegment>
+	{
+
+		public readonly ReadOnlyMemory<char> Name;
+		public readonly Index Index;
+
+		public JsonPathSegment(string name)
+		{
+			this.Name = name.AsMemory();
+			this.Index = default;
+		}
+
+		public JsonPathSegment(int index)
+		{
+			this.Name = default;
+			this.Index = index;
+		}
+
+		public JsonPathSegment(Index index)
+		{
+			this.Name = default;
+			this.Index = index;
+		}
+
+		public bool IsField => this.Name.Length != 0;
+
+		public override string ToString() => JsonPath.Empty[this].ToString();
+
+		public override bool Equals([NotNullWhen(true)] object? obj) => obj is JsonPathSegment segment && Equals(segment);
+
+		public override int GetHashCode()
+			=> HashCode.Combine(string.GetHashCode(this.Name.Span), this.Index.GetHashCode());
+
+		public bool Equals(JsonPathSegment other)
+			=> this.Name.Length != 0
+			   ? this.Name.Span.SequenceEqual(other.Name.Span)
+			   : (this.Index.Equals(other.Index) && other.Name.Length == 0);
 	}
 
 }

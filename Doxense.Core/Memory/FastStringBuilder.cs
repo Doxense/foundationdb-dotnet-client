@@ -77,12 +77,11 @@ namespace Doxense.Memory
 		/// <summary>Gets the maximum number of characters that can be contained in the memory allocated by the current instance.</summary>
 		public int Capacity => this.Chars.Length;
 
-		/// <summary>
-		/// Get a pinnable reference to the builder.
-		/// Does not ensure there is a null char after <see cref="Length"/>
-		/// This overload is pattern matched in the C# 7.3+ compiler so you can omit
-		/// the explicit method call, and write eg "fixed (char* c = builder)"
-		/// </summary>
+		/// <summary>Gets a pinnable reference to the builder.</summary>
+		/// <remarks>
+		/// <para>Does not ensure there is a null char after <see cref="Length"/>.</para>
+		/// <para>This overload is pattern matched in the C# 7.3+ compiler so you can omit the explicit method call, and write e.g. <c>fixed (char* c = builder)</c></para>
+		/// </remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void EnsureCapacity(int capacity)
 		{
@@ -95,7 +94,7 @@ namespace Doxense.Memory
 
 		public ref char GetPinnableReference() => ref MemoryMarshal.GetReference(this.Chars);
 
-		/// <summary>Get a pinnable reference to the builder.</summary>
+		/// <summary>Gets a pinnable reference to the builder.</summary>
 		/// <param name="terminate">Ensures that the builder has a null char after <see cref="Length"/></param>
 		public ref char GetPinnableReference(bool terminate)
 		{
@@ -127,9 +126,7 @@ namespace Doxense.Memory
 		/// <summary>Returns the underlying storage of the builder.</summary>
 		public Span<char> RawChars => this.Chars;
 
-		/// <summary>
-		/// Returns a span around the contents of the builder.
-		/// </summary>
+		/// <summary>Returns a span around the contents of the builder.</summary>
 		/// <param name="terminate">Ensures that the builder has a null char after <see cref="Length"/></param>
 		public ReadOnlySpan<char> AsSpan(bool terminate)
 		{
@@ -138,16 +135,16 @@ namespace Doxense.Memory
 				EnsureCapacity(this.Length + 1);
 				this.Chars[this.Length] = '\0';
 			}
-			return this.Chars.Slice(0, this.Position);
+			return this.Chars[..this.Position];
 		}
 
-		public ReadOnlySpan<char> AsSpan() => this.Chars.Slice(0, this.Position);
+		public ReadOnlySpan<char> AsSpan() => this.Chars[..this.Position];
 		public ReadOnlySpan<char> AsSpan(int start) => this.Chars.Slice(start, this.Position - start);
 		public ReadOnlySpan<char> AsSpan(int start, int length) => this.Chars.Slice(start, length);
 
 		public bool TryCopyTo(Span<char> destination, out int charsWritten)
 		{
-			if (this.Chars.Slice(0, this.Position).TryCopyTo(destination))
+			if (this.Chars[..this.Position].TryCopyTo(destination))
 			{
 				charsWritten = this.Position;
 				Dispose();
@@ -169,7 +166,7 @@ namespace Doxense.Memory
 			}
 
 			int remaining = this.Position - index;
-			this.Chars.Slice(index, remaining).CopyTo(this.Chars.Slice(index + count));
+			this.Chars.Slice(index, remaining).CopyTo(this.Chars[(index + count)..]);
 			this.Chars.Slice(index, count).Fill(value);
 			this.Position += count;
 		}
@@ -189,8 +186,8 @@ namespace Doxense.Memory
 			}
 
 			int remaining = this.Position - index;
-			this.Chars.Slice(index, remaining).CopyTo(this.Chars.Slice(index + count));
-			s.CopyTo(this.Chars.Slice(index));
+			this.Chars.Slice(index, remaining).CopyTo(this.Chars[(index + count)..]);
+			s.CopyTo(this.Chars[index..]);
 			this.Position += count;
 		}
 
@@ -198,7 +195,7 @@ namespace Doxense.Memory
 		public void Append(char c)
 		{
 			int pos = this.Position;
-			Span<char> chars = this.Chars;
+			var chars = this.Chars;
 			if ((uint) pos < (uint) chars.Length)
 			{
 				chars[pos] = c;
@@ -238,7 +235,7 @@ namespace Doxense.Memory
 				Grow(s.Length);
 			}
 
-			s.CopyTo(this.Chars.Slice(pos));
+			s.CopyTo(this.Chars[pos..]);
 			this.Position += s.Length;
 		}
 
@@ -311,7 +308,7 @@ namespace Doxense.Memory
 				Grow(count);
 			}
 
-			Span<char> dst = this.Chars.Slice(this.Position, count);
+			var dst = this.Chars.Slice(this.Position, count);
 			for (int i = 0; i < dst.Length; i++)
 			{
 				dst[i] = c;
@@ -327,7 +324,7 @@ namespace Doxense.Memory
 				Grow(length);
 			}
 
-			Span<char> dst = this.Chars.Slice(this.Position, length);
+			var dst = this.Chars.Slice(this.Position, length);
 			for (int i = 0; i < dst.Length; i++)
 			{
 				dst[i] = *value++;
@@ -343,7 +340,7 @@ namespace Doxense.Memory
 				Grow(value.Length);
 			}
 
-			value.CopyTo(this.Chars.Slice(this.Position));
+			value.CopyTo(this.Chars[this.Position..]);
 			this.Position += value.Length;
 		}
 
@@ -367,7 +364,7 @@ namespace Doxense.Memory
 
 		public void Append(int value)
 		{
-			if (value.TryFormat(this.Chars.Slice(this.Position), out int charsWritten, null, CultureInfo.InvariantCulture))
+			if (value.TryFormat(this.Chars[this.Position..], out int charsWritten, null, CultureInfo.InvariantCulture))
 			{
 				this.Position += charsWritten;
 				return;
@@ -380,7 +377,7 @@ namespace Doxense.Memory
 		{
 			//note: uint.TryFormat will call Number.TryUInt32ToDecStr that does not use 'provider', when 'format' is null
 
-			if (value.TryFormat(this.Chars.Slice(this.Position), out int charsWritten, null))
+			if (value.TryFormat(this.Chars[this.Position..], out int charsWritten, null))
 			{
 				this.Position += charsWritten;
 				return;
@@ -391,7 +388,7 @@ namespace Doxense.Memory
 
 		public void Append(long value)
 		{
-			if (value.TryFormat(this.Chars.Slice(this.Position), out int charsWritten, null, CultureInfo.InvariantCulture))
+			if (value.TryFormat(this.Chars[this.Position..], out int charsWritten, null, CultureInfo.InvariantCulture))
 			{
 				this.Position += charsWritten;
 				return;
@@ -404,7 +401,7 @@ namespace Doxense.Memory
 		{
 			//note: ulong.TryFormat will call Number.TryUInt64ToDecStr that does not use 'provider', when 'format' is null
 
-			if (value.TryFormat(this.Chars.Slice(this.Position), out int charsWritten, null))
+			if (value.TryFormat(this.Chars[this.Position..], out int charsWritten, null))
 			{
 				this.Position += charsWritten;
 				return;
@@ -415,26 +412,26 @@ namespace Doxense.Memory
 
 		public void Append(double value)
 		{
-			if (value.TryFormat(this.Chars.Slice(this.Position), out int charsWritten, "R", CultureInfo.InvariantCulture))
+			if (value.TryFormat(this.Chars[this.Position..], out int charsWritten, "R", CultureInfo.InvariantCulture))
 			{
 				this.Position += charsWritten;
 				return;
 			}
 
-			// To be safe, we would need close to 32 chars (value used in the runtime intenral implementation), but this is somewhat overkill!
+			// To be safe, we would need close to 32 chars (value used in the runtime internal implementation), but this is somewhat overkill!
 			// Values like Math.PI.ToString("R") use 17 characters, which would require up to 18 with a terminal zero
 			AppendSpanFormattable(value, 18); // "3.141592653589793" + NUL
 		}
 
 		public void Append(float value)
 		{
-			if (value.TryFormat(this.Chars.Slice(this.Position), out int charsWritten, "R", CultureInfo.InvariantCulture))
+			if (value.TryFormat(this.Chars[this.Position..], out int charsWritten, "R", CultureInfo.InvariantCulture))
 			{
 				this.Position += charsWritten;
 				return;
 			}
 
-			// To be safe, we would need close to 32 chars (value used in the runtime intenral implementation), but this is somewhat overkill!
+			// To be safe, we would need close to 32 chars (value used in the runtime internal implementation), but this is somewhat overkill!
 			// Values like ((float) Math.PI).ToString("R") use 9 characters, which would require up to 10 with a terminal zero, so we will use 12, and live with a potential double resize!
 			AppendSpanFormattable(value, 10); // "3.1415927" + NUL
 		}
@@ -446,7 +443,7 @@ namespace Doxense.Memory
 				Grow(sizeHint);
 			}
 
-			if (value.TryFormat(this.Chars.Slice(this.Position), out int charsWritten, null, CultureInfo.InvariantCulture))
+			if (value.TryFormat(this.Chars[this.Position..], out int charsWritten, null, CultureInfo.InvariantCulture))
 			{
 				this.Position += charsWritten;
 			}
@@ -458,7 +455,7 @@ namespace Doxense.Memory
 
 		public void Append<T>(T value) where T : ISpanFormattable
 		{
-			if (value.TryFormat(this.Chars.Slice(this.Position), out int charsWritten, null, CultureInfo.InvariantCulture))
+			if (value.TryFormat(this.Chars[this.Position..], out int charsWritten, null, CultureInfo.InvariantCulture))
 			{
 				this.Position += charsWritten;
 			}
@@ -470,7 +467,7 @@ namespace Doxense.Memory
 
 		public void Append(int value, string? format, IFormatProvider? provider = null)
 		{
-			if (value.TryFormat(this.Chars.Slice(this.Position), out int charsWritten, format, provider ?? CultureInfo.InvariantCulture))
+			if (value.TryFormat(this.Chars[this.Position..], out int charsWritten, format, provider ?? CultureInfo.InvariantCulture))
 			{
 				this.Position += charsWritten;
 				return;
@@ -483,7 +480,7 @@ namespace Doxense.Memory
 		{
 			//note: uint.TryFormat will call Number.TryUInt32ToDecStr that does not use 'provider', when 'format' is null
 
-			if (value.TryFormat(this.Chars.Slice(this.Position), out int charsWritten, format, provider ?? CultureInfo.InvariantCulture))
+			if (value.TryFormat(this.Chars[this.Position..], out int charsWritten, format, provider ?? CultureInfo.InvariantCulture))
 			{
 				this.Position += charsWritten;
 				return;
@@ -494,7 +491,7 @@ namespace Doxense.Memory
 
 		public void Append(long value, string? format, IFormatProvider? provider = null)
 		{
-			if (value.TryFormat(this.Chars.Slice(this.Position), out int charsWritten, format, provider ?? CultureInfo.InvariantCulture))
+			if (value.TryFormat(this.Chars[this.Position..], out int charsWritten, format, provider ?? CultureInfo.InvariantCulture))
 			{
 				this.Position += charsWritten;
 				return;
@@ -507,7 +504,7 @@ namespace Doxense.Memory
 		{
 			//note: ulong.TryFormat will call Number.TryUInt64ToDecStr that does not use 'provider', when 'format' is null
 
-			if (value.TryFormat(this.Chars.Slice(this.Position), out int charsWritten, format, provider ?? CultureInfo.InvariantCulture))
+			if (value.TryFormat(this.Chars[this.Position..], out int charsWritten, format, provider ?? CultureInfo.InvariantCulture))
 			{
 				this.Position += charsWritten;
 				return;
@@ -521,13 +518,13 @@ namespace Doxense.Memory
 			format ??= "R";
 			provider ??= CultureInfo.InvariantCulture;
 
-			if (value.TryFormat(this.Chars.Slice(this.Position), out int charsWritten, format, provider))
+			if (value.TryFormat(this.Chars[this.Position..], out int charsWritten, format, provider))
 			{
 				this.Position += charsWritten;
 				return;
 			}
 
-			// To be safe, we would need close to 32 chars (value used in the runtime intenral implementation), but this is somewhat overkill!
+			// To be safe, we would need close to 32 chars (value used in the runtime internal implementation), but this is somewhat overkill!
 			// Values like Math.PI.ToString("R") use 17 characters, which would require up to 18 with a terminal zero
 			AppendSpanFormattable(value, 18, format, provider); // "3.141592653589793" + NUL
 		}
@@ -537,13 +534,13 @@ namespace Doxense.Memory
 			format ??= "R";
 			provider ??= CultureInfo.InvariantCulture;
 
-			if (value.TryFormat(this.Chars.Slice(this.Position), out int charsWritten, format, provider))
+			if (value.TryFormat(this.Chars[this.Position..], out int charsWritten, format, provider))
 			{
 				this.Position += charsWritten;
 				return;
 			}
 
-			// To be safe, we would need close to 32 chars (value used in the runtime intenral implementation), but this is somewhat overkill!
+			// To be safe, we would need close to 32 chars (value used in the runtime internal implementation), but this is somewhat overkill!
 			// Values like ((float) Math.PI).ToString("R") use 9 characters, which would require up to 10 with a terminal zero, so we will use 12, and live with a potential double resize!
 			AppendSpanFormattable(value, 10, format, provider); // "3.1415927" + NUL
 		}
@@ -556,7 +553,7 @@ namespace Doxense.Memory
 			}
 
 			provider ??= CultureInfo.InvariantCulture;
-			if (value.TryFormat(this.Chars.Slice(this.Position), out int charsWritten, null, provider))
+			if (value.TryFormat(this.Chars[this.Position..], out int charsWritten, null, provider))
 			{
 				this.Position += charsWritten;
 			}
@@ -569,7 +566,7 @@ namespace Doxense.Memory
 		public void Append<T>(T value, string? format, IFormatProvider? provider = null) where T : ISpanFormattable
 		{
 			provider ??= CultureInfo.InvariantCulture;
-			if (value.TryFormat(this.Chars.Slice(this.Position), out int charsWritten, format, provider))
+			if (value.TryFormat(this.Chars[this.Position..], out int charsWritten, format, provider))
 			{
 				this.Position += charsWritten;
 			}

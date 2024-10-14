@@ -24,6 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+// ReSharper disable StringLiteralTypo
 #pragma warning disable NUnit2009
 
 namespace Doxense.Serialization.Json.Tests
