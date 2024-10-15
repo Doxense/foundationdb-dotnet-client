@@ -11,7 +11,7 @@
 		<RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
 		<SignAssembly>true</SignAssembly>
 		<AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
-		<PackageTags>foundationdb fdb nosql aspire</PackageTags>
+		<PackageTags>foundationdb fdb nosql aspire client</PackageTags>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<Description>A generic FoundationDB client that integrates with Aspire, including health checks, logging, and telemetry</Description>
 		<Deterministic>true</Deterministic>

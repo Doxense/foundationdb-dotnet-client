@@ -161,7 +161,7 @@ namespace Aspire.Hosting
 		/// <param name="apiVersion">API version that is requested by the application</param>
 		/// <param name="root">Root subspace location used by the application, in the cluster keyspace.</param>
 		/// <param name="port">Custom port for the docker container</param>
-		/// <param name="clusterVersion">If not <c>null</c>, specifies the targeted version for the cluster nodes (ex: "7.2.5", "7.3.27", "7.2.*", "7.*", ..)</param>
+		/// <param name="clusterVersion">If not <c>null</c>, specifies the targeted version for the cluster nodes (ex: "7.2.5", "7.3.27", "7.2.*", "7.*", ...)</param>
 		/// <param name="rollForward">Specifies the policy used to optionally select a more recent version</param>
 		public static IResourceBuilder<FdbClusterResource> AddFoundationDb(this IDistributedApplicationBuilder builder, string name, int apiVersion, string root, int? port = null, string? clusterVersion = null, FdbVersionPolicy? rollForward = null)
 		{
@@ -174,7 +174,7 @@ namespace Aspire.Hosting
 		/// <param name="apiVersion">API version that is requested by the application</param>
 		/// <param name="root">Root subspace location used by the application, in the cluster keyspace.</param>
 		/// <param name="port">The host port to bind the underlying container to (defaults to <c>4550</c>)</param>
-		/// <param name="clusterVersion">If not <c>null</c>, specifies the targeted version for the cluster nodes (ex: "7.2.5", "7.3.27", "7.2.*", "7.*", ..)</param>
+		/// <param name="clusterVersion">If not <c>null</c>, specifies the targeted version for the cluster nodes (ex: "7.2.5", "7.3.27", "7.2.*", "7.*", ...)</param>
 		/// <param name="rollForward">Specifies the policy used to optionally select a more recent version</param>
 		/// <param name="imageRegistry">Specifies a custom image registry for the container (defaults to <c>"docker.io"</c>)</param>
 		public static IResourceBuilder<FdbClusterResource> AddFoundationDb(
@@ -240,14 +240,14 @@ namespace Aspire.Hosting
 
 			//note: Aspire wants to allocate random ports to ensure that there is not conflict with any local versions of the resources,
 			// but we have an issue where the fdbserver that runs in the docker image sees the "targetPort" of the container, which is 4550
-			// and will returns this as part of the address sent to any client. So if, inside the container, the port is 4550, it HAS to be 4550 also on the host!
+			// and will return this as part of the address sent to any client. So if, inside the container, the port is 4550, it HAS to be 4550 also on the host!
 			// If not, if for ex Aspire allocated port 12345 externally, we will set the "connection string" to "127.0.0.1:12345",
 			// which will initially be proxied to the port 4550 inside the container (so far so good), but the fdb node will return addresses to other "agents" using "127.0.0.1:4550" because it does not know of the port 12345
 			// The application will think that we are pointed to a different node, and attempt to connect to 127.0.0.1:4550 which would not exist on the host!
 
-			// => To work around this problem, we must FORCE both the "apire port" and the "container port" to be the same, as well as disable the Aspire proxy.
+			// => To work around this problem, we must FORCE both the "aspire port" and the "container port" to be the same, as well as disable the Aspire proxy.
 
-			// In order to prevent any conflict with any natively installed FoundationDB server, we will we will use the port 4550,
+			// In order to prevent any conflict with any natively installed FoundationDB server, we will use the port 4550,
 			// which is outside the typical range of 4500+ for default fdb installations (unless there are more than 50 processes on the same box??)
 
 			int nodePort = port ?? 4550;
@@ -284,7 +284,7 @@ namespace Aspire.Hosting
 		/// <param name="builder">FDB cluster builder</param>
 		/// <param name="nativeLibraryPath">Path to the library on the host. The path may be rewritten if required.</param>
 		/// <remarks>
-		/// <para>This should only be used for local developement, or very specific deployments where the application must use a very specific build of the native library.</para>
+		/// <para>This should only be used for local development, or very specific deployments where the application must use a very specific build of the native library.</para>
 		/// <para>The file must be present on the host. If a project that references this resource runs inside a Docker image, the path may be rewritten to where the library was copied inside the container image.</para>
 		/// </remarks>
 		public static IResourceBuilder<FdbClusterResource> WithNativeLibrary(this IResourceBuilder<FdbClusterResource> builder, string? nativeLibraryPath)
