@@ -1790,6 +1790,16 @@ namespace FoundationDB.Client
 			return trans.GetEstimatedRangeSizeBytesAsync(ToSpanKey(beginKey), ToSpanKey(endKey));
 		}
 
+		/// <summary>Returns an estimated byte size of the key range.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="range">Range of keys</param>
+		/// <returns>Task that will return an estimated byte size of the key range, or an exception</returns>
+		/// <remarks>The estimated size is calculated based on the sampling done by FDB server. The sampling algorithm works roughly in this way: the larger the key-value pair is, the more likely it would be sampled and the more accurate its sampled size would be. And due to that reason it is recommended to use this API to query against large ranges for accuracy considerations. For a rough reference, if the returned size is larger than 3MB, one can consider the size to be accurate.</remarks>
+		public static Task<long> GetEstimatedRangeSizeBytesAsync(this IFdbReadOnlyTransaction trans, KeyRange range)
+		{
+			return trans.GetEstimatedRangeSizeBytesAsync(ToSpanKey(range.Begin), ToSpanKey(range.End));
+		}
+
 		#endregion
 
 		#region CheckValueAsync...
