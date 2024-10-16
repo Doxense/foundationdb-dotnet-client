@@ -942,27 +942,40 @@ namespace Doxense.Collections.Tuples.Tests
 		{
 			// 64-bit floats are stored in 9 bytes, using the prefix 0x21 followed by the High-Endian representation of their normalized form
 
-			Assert.That(TuPack.EncodeKey(TuPackUserType.System).ToHexString(' '), Is.EqualTo("FF"));
-			Assert.That(TuPack.EncodeKey(TuPackUserType.Directory).ToHexString(' '), Is.EqualTo("FE"));
-			Assert.That(TuPack.EncodeKey(TuPackUserType.Directory, 42, "Hello").ToHexString(' '), Is.EqualTo("FE 15 2A 02 48 65 6C 6C 6F 00"));
+			Assert.Multiple(() =>
+			{
+				Assert.That(TuPack.EncodeKey(TuPackUserType.System).ToHexString(' '), Is.EqualTo("FF"));
+				Assert.That(TuPack.EncodeKey(TuPackUserType.SystemKey("/Hello"u8)).ToHexString(' '), Is.EqualTo("FF 2F 48 65 6C 6C 6F"));
+				Assert.That(TuPack.EncodeKey(TuPackUserType.SystemKey("/Hello")).ToHexString(' '), Is.EqualTo("FF 2F 48 65 6C 6C 6F"));
 
-			Assert.That(TuPack.EncodeKey(42, TuPackUserType.Directory, "Hello").ToHexString(' '), Is.EqualTo("15 2A FE 02 48 65 6C 6C 6F 00"));
-			Assert.That(TuPack.Pack((42, TuPackUserType.Directory, "Hello")).ToHexString(' '), Is.EqualTo("15 2A FE 02 48 65 6C 6C 6F 00"));
+				Assert.That(TuPack.EncodeKey(TuPackUserType.Directory).ToHexString(' '), Is.EqualTo("FE"));
+				Assert.That(TuPack.EncodeKey(TuPackUserType.Directory, 42, "Hello").ToHexString(' '), Is.EqualTo("FE 15 2A 02 48 65 6C 6C 6F 00"));
 
-			Assert.That(TuPack.EncodeKey(TuPackUserType.System, "Hello").ToHexString(' '), Is.EqualTo("FF 02 48 65 6C 6C 6F 00"));
-			Assert.That(TuPack.Pack((TuPackUserType.System, "Hello")).ToHexString(' '), Is.EqualTo("FF 02 48 65 6C 6C 6F 00"));
+				Assert.That(TuPack.EncodeKey(42, TuPackUserType.Directory, "Hello").ToHexString(' '), Is.EqualTo("15 2A FE 02 48 65 6C 6C 6F 00"));
+				Assert.That(TuPack.Pack((42, TuPackUserType.Directory, "Hello")).ToHexString(' '), Is.EqualTo("15 2A FE 02 48 65 6C 6C 6F 00"));
+
+				Assert.That(TuPack.EncodeKey(TuPackUserType.System, "Hello").ToHexString(' '), Is.EqualTo("FF 02 48 65 6C 6C 6F 00"));
+				Assert.That(TuPack.Pack((TuPackUserType.System, "Hello")).ToHexString(' '), Is.EqualTo("FF 02 48 65 6C 6C 6F 00"));
+			});
 		}
 
 		[Test]
 		public void Test_TuplePack_Deserialize_Custom_Types()
 		{
-			Assert.That(TuPack.DecodeKey<TuPackUserType>(Slice.FromHexString("FF")), Is.EqualTo(TuPackUserType.System));
-			Assert.That(TuPack.DecodeKey<TuPackUserType>(Slice.FromHexString("FE")), Is.EqualTo(TuPackUserType.Directory));
-			Assert.That(TuPack.DecodeKey<int, TuPackUserType, string>(Slice.FromHexString("152AFE0248656C6C6F00")), Is.EqualTo(STuple.Create(42, TuPackUserType.Directory, "Hello")));
+			Assert.Multiple(() =>
+			{
+				Assert.That(TuPack.DecodeKey<TuPackUserType>(Slice.FromHexString("FF")), Is.EqualTo(TuPackUserType.System));
+				Assert.That(TuPack.DecodeKey<TuPackUserType>(Slice.FromHexString("FFFF")), Is.EqualTo(TuPackUserType.SystemKey("\xFF")));
+				Assert.That(TuPack.DecodeKey<TuPackUserType>(Slice.FromHexString("FF2F48656C6C6F")), Is.EqualTo(TuPackUserType.SystemKey("/Hello")));
 
-			Assert.That(TuPack.Unpack(Slice.FromHexString("FF"))[0], Is.EqualTo(TuPackUserType.System));
-			Assert.That(TuPack.Unpack(Slice.FromHexString("FE"))[0], Is.EqualTo(TuPackUserType.Directory));
-			Assert.That(TuPack.Unpack(Slice.FromHexString("152AFE0248656C6C6F00")), Is.EqualTo(STuple.Create(42, TuPackUserType.Directory, "Hello")));
+				Assert.That(TuPack.DecodeKey<TuPackUserType>(Slice.FromHexString("FE")), Is.EqualTo(TuPackUserType.Directory));
+				Assert.That(TuPack.DecodeKey<int, TuPackUserType, string>(Slice.FromHexString("152AFE0248656C6C6F00")), Is.EqualTo(STuple.Create(42, TuPackUserType.Directory, "Hello")));
+
+				Assert.That(TuPack.Unpack(Slice.FromHexString("FF"))[0], Is.EqualTo(TuPackUserType.System));
+				Assert.That(TuPack.Unpack(Slice.FromHexString("FF2F48656C6C6F"))[0], Is.EqualTo(TuPackUserType.SystemKey("/Hello")));
+				Assert.That(TuPack.Unpack(Slice.FromHexString("FE"))[0], Is.EqualTo(TuPackUserType.Directory));
+				Assert.That(TuPack.Unpack(Slice.FromHexString("152AFE0248656C6C6F00")), Is.EqualTo(STuple.Create(42, TuPackUserType.Directory, "Hello")));
+			});
 		}
 
 		[Test]
