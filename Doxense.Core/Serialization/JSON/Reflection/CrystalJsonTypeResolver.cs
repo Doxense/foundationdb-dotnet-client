@@ -1741,7 +1741,7 @@ namespace Doxense.Serialization.Json
 				// JsonValue JsonValue[int index]
 				var arrayIndexer = typeof(JsonValue).GetProperty("Item", typeof(JsonValue), [ typeof(int) ]);
 
-				// JsonValueExtensions.As<T>(JsonValue, ICrystalJsonTypeResolver)
+				// JsonValueExtensions.As<T>(JsonValue, TValue?, ICrystalJsonTypeResolver)
 				var asMethod = typeof(JsonValueExtensions).GetMethod(
 					nameof(JsonValueExtensions.As),
 					BindingFlags.Static | BindingFlags.Public,

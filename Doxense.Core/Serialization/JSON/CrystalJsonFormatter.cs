@@ -80,12 +80,12 @@ namespace Doxense.Serialization.Json
 			{ // => ""
 				return JsonTokens.EmptyString;
 			} // -> premiere passe pour voir s'il y a des caratères a remplacer..
-			if (JavaScriptEncoding.IsCleanJavaScript(text))
+			if (JavaScriptEncoding.IsCleanJavaScript(text.AsSpan()))
 			{ // rien a modifier, retourne la chaine initiale (fast, no memory used)
 				return string.Concat("'", text, "'");
 			} // -> deuxieme passe: remplace les caractères invalides (slow, memory used)
 			// note: on estime a 6 caracs l'overhead typique d'un encoding (ou deux ou trois \", ou un \uXXXX)
-			return JavaScriptEncoding.EncodeSlow(new StringBuilder(), text, includeQuotes: true).ToString();
+			return JavaScriptEncoding.EncodeSlow(new StringBuilder(), text.AsSpan(), includeQuotes: true).ToString();
 		}
 
 		internal static void WriteFixedIntegerWithDecimalPartUnsafe(ref ValueStringWriter output, long integer, long decimals, int digits)
@@ -193,7 +193,7 @@ namespace Doxense.Serialization.Json
 			if (date == DateTime.MinValue) return string.Empty;
 
 			Span<char> buf = stackalloc char[ISO8601_MAX_FORMATTED_SIZE];
-			return new string(FormatIso8601DateTime(buf, date, date.Kind, null, quotes: '\0'));
+			return FormatIso8601DateTime(buf, date, date.Kind, null, quotes: '\0').ToString();
 		}
 
 		public static string ToIso8601String(DateTimeOffset date)
@@ -201,7 +201,7 @@ namespace Doxense.Serialization.Json
 			if (date == DateTimeOffset.MinValue) return string.Empty;
 
 			Span<char> buf = stackalloc char[ISO8601_MAX_FORMATTED_SIZE];
-			return new string(FormatIso8601DateTime(buf, date.DateTime, DateTimeKind.Local, date.Offset, quotes: '\0'));
+			return FormatIso8601DateTime(buf, date.DateTime, DateTimeKind.Local, date.Offset, quotes: '\0').ToString();
 		}
 
 		internal static ReadOnlySpan<char> FormatIso8601DateTime(Span<char> output, DateTime date, DateTimeKind kind, TimeSpan? utcOffset, char quotes = '\0')

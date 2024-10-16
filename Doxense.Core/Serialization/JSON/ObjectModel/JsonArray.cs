@@ -2270,7 +2270,6 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
-
 		#region CopyAndXYZ...
 
 		private static void MakeReadOnly(Span<JsonValue> items)
@@ -4695,14 +4694,14 @@ namespace Doxense.Serialization.Json
 			var items = m_items;
 
 			// patch all changed items
-			foreach (var (k, v) in patch)
+			foreach (var kv in patch)
 			{
-				if (k == "__patch") continue;
-				if (!int.TryParse(k, out var idx)) throw new ArgumentException($"Object is not a valid patch for an array: unexpected '{k}' field");
-				if (idx >= newSize) throw new ArgumentException($"Object is not a valid patch for an array: key '{k}' is greater than the final size");
+				if (kv.Key == "__patch") continue;
+				if (!int.TryParse(kv.Key, out var idx)) throw new ArgumentException($"Object is not a valid patch for an array: unexpected '{kv.Key}' field");
+				if (idx >= newSize) throw new ArgumentException($"Object is not a valid patch for an array: key '{kv.Key}' is greater than the final size");
 
 				var prev = idx < size ? items[idx] : JsonNull.Missing;
-				switch (prev, v)
+				switch (prev, kv.Value)
 				{
 					case (JsonObject a, JsonObject b):
 					{
@@ -4731,7 +4730,7 @@ namespace Doxense.Serialization.Json
 					}
 					default:
 					{
-						items[idx] = deepCopy ? v.Copy() : v;
+						items[idx] = deepCopy ? kv.Value.Copy() : kv.Value;
 						break;
 					}
 				}

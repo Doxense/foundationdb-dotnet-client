@@ -163,7 +163,7 @@ namespace Doxense.Linq
 		{
 			var span = Allocate(checked(value.Length + 2));
 			span[0] = prefix;
-			value.CopyTo(span.Slice(1));
+			value.CopyTo(span[1..]);
 			span[^1] = suffix;
 		}
 
@@ -171,7 +171,7 @@ namespace Doxense.Linq
 		{
 			var span = Allocate(checked(value.Length + 2));
 			span[0] = prefix;
-			value.CopyTo(span.Slice(1));
+			value.CopyTo(span[1..]);
 			span[^1] = suffix;
 		}
 
@@ -179,43 +179,43 @@ namespace Doxense.Linq
 		{
 			var span = Allocate(checked(prefix.Length + value.Length));
 			prefix.CopyTo(span);
-			value.CopyTo(span.Slice(prefix.Length));
+			value.CopyTo(span[prefix.Length..]);
 		}
 
 		public void Write(scoped ReadOnlySpan<char> prefix, scoped ReadOnlySpan<char> value)
 		{
 			var span = Allocate(checked(prefix.Length + value.Length));
 			prefix.CopyTo(span);
-			value.CopyTo(span.Slice(prefix.Length));
+			value.CopyTo(span[prefix.Length..]);
 		}
 
 		public void Write(char prefix, string value, string suffix)
 		{
 			var span = Allocate(checked(1 + value.Length + suffix.Length));
 			span[0] = prefix;
-			value.CopyTo(span.Slice(1));
-			suffix.CopyTo(span.Slice(1 + value.Length));
+			value.CopyTo(span[1..]);
+			suffix.CopyTo(span[(1 + value.Length)..]);
 		}
 
 		public void Write(string prefix, string value, string suffix)
 		{
 			var span = Allocate(checked(prefix.Length + value.Length + suffix.Length));
 			prefix.CopyTo(span);
-			value.CopyTo(span.Slice(prefix.Length));
-			suffix.CopyTo(span.Slice(prefix.Length + value.Length));
+			value.CopyTo(span[prefix.Length..]);
+			suffix.CopyTo(span[(prefix.Length + value.Length)..]);
 		}
 
 		public void Write(string prefix, string value, char suffix)
 		{
 			var span = Allocate(checked(prefix.Length + value.Length + 1));
 			prefix.CopyTo(span);
-			value.CopyTo(span.Slice(prefix.Length));
+			value.CopyTo(span[prefix.Length..]);
 			span[^1] = suffix;
 		}
 
 		public void Write(char c, int count)
 		{
-			var span = Allocate(count).Slice(0, count);
+			var span = Allocate(count)[..count];
 			Contract.Debug.Assert(span.Length == count);
 			span.Fill(c);
 		}
@@ -579,7 +579,6 @@ namespace Doxense.Linq
 				return;
 			}
 #endif
-
 			Span<char> buf = GetSpan(StringConverters.Base10MaxCapacityInt8);
 
 			bool success = value.TryFormat(buf, out int written, default, NumberFormatInfo.InvariantInfo); // will be inlined as Number.TryNegativeInt32ToDecStr
@@ -758,7 +757,7 @@ namespace Doxense.Linq
 
 			bool success = value.TryFormat(buf, out int written, default, null);
 			if (!success) StringConverters.ReportInternalFormattingError();
-			
+
 			Advance(written);
 		}
 
@@ -808,7 +807,6 @@ namespace Doxense.Linq
 		/// <param name="value">Value to write</param>
 		public void Write(float value)
 		{
-
 			Span<char> buf = GetSpan(StringConverters.Base10MaxCapacitySingle);
 
 			long x = unchecked((long) value);

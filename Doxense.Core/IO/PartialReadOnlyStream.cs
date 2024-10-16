@@ -28,7 +28,7 @@ namespace Doxense.IO
 {
 	using System.IO;
 
-	/// <summary>Stream that exposes a readonly-only sub-section of another stream <see cref="Stream"/>.</summary>
+	/// <summary>Stream that exposes a readonly-only subsection of another stream <see cref="Stream"/>.</summary>
 	[PublicAPI]
 	public sealed class PartialReadOnlyStream : Stream
 	{

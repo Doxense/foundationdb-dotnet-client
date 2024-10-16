@@ -367,4 +367,5 @@ namespace Doxense.Serialization.Json
 		public readonly JsonPath ToPath() => JsonPath.Create(this.Chars[..this.Cursor]);
 
 	}
+
 }

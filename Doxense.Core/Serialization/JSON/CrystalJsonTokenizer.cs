@@ -208,6 +208,7 @@ namespace Doxense.Serialization.Json
 		}
 
 #if ENABLE_SOURCE_POSITION
+
 		[Pure]
 		internal JsonSyntaxException FailInvalidSyntax(string reason) => new("Invalid JSON syntax", reason, m_offset - 1, m_line + 1, m_position);
 
@@ -216,7 +217,9 @@ namespace Doxense.Serialization.Json
 
 		[Pure]
 		internal JsonSyntaxException FailUnexpectedEndOfStream(string? reason) => new("Unexpected end of stream", reason, m_offset - 1, m_line + 1, m_position);
+
 #else
+
 		[Pure]
 		internal JsonSyntaxException FailInvalidSyntax(string reason) => new("Invalid JSON syntax", reason);
 
@@ -225,6 +228,7 @@ namespace Doxense.Serialization.Json
 
 		[Pure]
 		internal JsonSyntaxException FailUnexpectedEndOfStream(string? reason) => new("Unexpected end of stream", reason);
+
 #endif
 
 		/// <summary>Retourne la StringTable pour la génération de literals, ou null si interning désactivé</summary>

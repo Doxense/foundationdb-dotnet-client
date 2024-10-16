@@ -1387,7 +1387,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the specified number</summary>
 		/// <param name="value">Decimal value</param>
-		/// <returns>JSON value that will be serialized as an decimal value.</returns>
+		/// <returns>JSON value that will be serialized as a decimal value.</returns>
 		/// <remarks>For <see langword="0"/>, <see langword="1"/> and <c>NaN</c> a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
 		[Pure]
 		public static JsonNumber Return(double value) =>
@@ -1402,7 +1402,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the specified number</summary>
 		/// <param name="value">Decimal value</param>
-		/// <returns>JSON value that will be serialized as an decimal value.</returns>
+		/// <returns>JSON value that will be serialized as a decimal value.</returns>
 		/// <remarks>For <see langword="0"/>, <see langword="1"/> and <c>NaN</c> a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonNumber Return(float value) =>
@@ -1417,7 +1417,7 @@ namespace Doxense.Serialization.Json
 #if NET8_0_OR_GREATER
 		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the specified number</summary>
 		/// <param name="value">Decimal value</param>
-		/// <returns>JSON value that will be serialized as an decimal value.</returns>
+		/// <returns>JSON value that will be serialized as a decimal value.</returns>
 		/// <remarks>For <see langword="0"/>, <see langword="1"/> and <c>NaN</c> a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonNumber Return(Half value) =>
@@ -1465,7 +1465,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds in the interval</summary>
 		/// <param name="value">Interval (in seconds)</param>
-		/// <returns>JSON value that will be serialized as an decimal value.</returns>
+		/// <returns>JSON value that will be serialized as a decimal value.</returns>
 		/// <remarks>
 		/// <para>Since <see cref="TimeSpan.TotalSeconds"/> can introduce rounding errors, this value may not round-trip in all cases.</para>
 		/// <para>If an exact representation is required, please serialize the number of <see cref="TimeSpan.Ticks"/> instead.</para>
@@ -1475,7 +1475,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds in the interval</summary>
 		/// <param name="value">Interval to convert, or <see langword="null"/></param>
-		/// <returns>JSON value that will be serialized as an decimal value, or <see cref="JsonNull.Null"/>.</returns>
+		/// <returns>JSON value that will be serialized as a decimal value, or <see cref="JsonNull.Null"/>.</returns>
 		/// <remarks>
 		/// <para>This method can introduce rounding errors, so <paramref name="value"/> may not round-trip in all cases.</para>
 		/// <para>If an exact representation is required, please serialize the number of <see cref="TimeSpan.Ticks"/> instead.</para>
@@ -1485,7 +1485,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds elapsed since UNIX Epoch</summary>
 		/// <param name="value">DateTime to convert</param>
-		/// <returns>JSON value that will be serialized as an decimal value.</returns>
+		/// <returns>JSON value that will be serialized as a decimal value.</returns>
 		/// <remarks>
 		/// <para>By convention, <see cref="DateTime.MinValue"/> is equivalent to <see langword="0"/>, and <see cref="DateTime.MaxValue"/> is equivalent to <c>NaN</c>.</para>
 		/// <para>This method can introduce rounding errors, so <paramref name="value"/> may not round-trip in all cases.</para>
@@ -1504,7 +1504,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds elapsed since UNIX Epoch</summary>
 		/// <param name="value">DateTime to convert, or <see langword="null"/></param>
-		/// <returns>JSON value that will be serialized as an decimal value, or <see cref="JsonNull.Null"/>.</returns>
+		/// <returns>JSON value that will be serialized as a decimal value, or <see cref="JsonNull.Null"/>.</returns>
 		/// <remarks>
 		/// <para>By convention, <see cref="DateTime.MinValue"/> is equivalent to <see langword="0"/>, and <see cref="DateTime.MaxValue"/> is equivalent to <c>NaN</c>.</para>
 		/// <para>This method can introduce rounding errors, so <paramref name="value"/> may not round-trip in all cases.</para>
@@ -1516,7 +1516,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds elapsed since UNIX Epoch</summary>
 		/// <param name="value">DateTimeOffset to convert</param>
-		/// <returns>JSON value that will be serialized as an decimal value.</returns>
+		/// <returns>JSON value that will be serialized as a decimal value.</returns>
 		/// <remarks>
 		/// <para>By convention, <see cref="DateTime.MinValue"/> is equivalent to <see langword="0"/>, and <see cref="DateTime.MaxValue"/> is equivalent to <c>NaN</c>.</para>
 		/// <para>This method can introduce rounding errors, so <paramref name="value"/> may not round-trip in all cases.</para>
@@ -1535,7 +1535,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds elapsed since UNIX Epoch</summary>
 		/// <param name="value">DateTimeOffset to convert, or <see langword="null"/></param>
-		/// <returns>JSON value that will be serialized as an decimal value, or <see cref="JsonNull.Null"/>.</returns>
+		/// <returns>JSON value that will be serialized as a decimal value, or <see cref="JsonNull.Null"/>.</returns>
 		/// <remarks>
 		/// <para>By convention, <see cref="DateTime.MinValue"/> is equivalent to <see langword="0"/>, and <see cref="DateTime.MaxValue"/> is equivalent to <c>NaN</c>.</para>
 		/// <para>This method can introduce rounding errors, so <paramref name="value"/> may not round-trip in all cases.</para>
@@ -1557,7 +1557,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds elapsed since midnight</summary>
 		/// <param name="value">Time to convert</param>
-		/// <returns>JSON value that will be serialized as an decimal value.</returns>
+		/// <returns>JSON value that will be serialized as a decimal value.</returns>
 		/// <remarks>
 		/// <para>This method can introduce rounding errors, so <paramref name="value"/> may not round-trip in all cases.</para>
 		/// <para>If an exact representation is required, please serialize the date <see cref="JsonString.Return(Instant)">as a string</see> instead.</para>
@@ -1568,7 +1568,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds elapsed since midnight</summary>
 		/// <param name="value">Time to convert, or <see langword="null"/></param>
-		/// <returns>JSON value that will be serialized as an decimal value, or <see cref="JsonNull.Null"/>.</returns>
+		/// <returns>JSON value that will be serialized as a decimal value, or <see cref="JsonNull.Null"/>.</returns>
 		/// <remarks>
 		/// <para>This method can introduce rounding errors, so <paramref name="value"/> may not round-trip in all cases.</para>
 		/// <para>If an exact representation is required, please serialize the date <see cref="JsonString.Return(Instant)">as a string</see> instead.</para>
@@ -1579,7 +1579,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds elapsed since UNIX Epoch</summary>
 		/// <param name="value">Instant to convert</param>
-		/// <returns>JSON value that will be serialized as an decimal value.</returns>
+		/// <returns>JSON value that will be serialized as a decimal value.</returns>
 		/// <remarks>
 		/// <para>This method can introduce rounding errors, so <paramref name="value"/> may not round-trip in all cases.</para>
 		/// <para>If an exact representation is required, please serialize the date <see cref="JsonString.Return(Instant)">as a string</see> instead.</para>

@@ -343,23 +343,11 @@ namespace Doxense.Serialization
 			return s;
 #else
 			// arrondi a 8 supérieur, pour garder un alignement correct sur la stack
-			size = (size + 7) & (~0x7);
+			var size = (source.Length + 7) & (~0x7);
+			char[] output = new char[size];
 
-			if (size <= MAX_INLINE_SIZE)
-			{ // Allocate on the stack
-				char* output = stackalloc char[size];
-				int n = EncodeBufferUnsafe(output, size, buffer, count, ref charMap[0], padChar);
-				return new string(output, 0, n);
-			}
-			else
-			{ // Allocate on the heap
-				char[] output = new char[size];
-				fixed (char* pOut = output)
-				{
-					int n = EncodeBufferUnsafe(pOut, size, buffer, count, ref charMap[0], padChar);
-					return new string(output, 0, n);
-				}
-			}
+			int n = EncodeBufferUnsafe(output, source, charMap, padChar);
+			return new string(output, 0, n);
 #endif
 		}
 

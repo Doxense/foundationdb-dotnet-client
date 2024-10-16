@@ -28,7 +28,7 @@ namespace Doxense.IO
 {
 	using System.IO;
 
-	/// <summary>Stream that exposes a writable sub-section of another stream <see cref="Stream"/>.</summary>
+	/// <summary>Stream that exposes a writable subsection of another stream <see cref="Stream"/>.</summary>
 	[PublicAPI]
 	public sealed class PartialWritableStream : Stream
 	{

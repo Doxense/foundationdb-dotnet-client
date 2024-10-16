@@ -28,7 +28,7 @@ namespace Doxense.Linq.Async.Iterators
 {
 
 	/// <summary>Packs items from an inner sequence, into a sequence of fixed-size arrays.</summary>
-	/// <typeparam name="TInput">Type the the items from the source sequence</typeparam>
+	/// <typeparam name="TInput">Type of the items from the source sequence</typeparam>
 	public class BatchingAsyncIterator<TInput> : AsyncFilterIterator<TInput, TInput[]>
 	{
 		// Typical use cas: to merge incoming streams of items into a sequence of arrays. This is basically the inverse of the SelectMany() operator.

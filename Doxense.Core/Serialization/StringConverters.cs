@@ -1554,14 +1554,14 @@ namespace Doxense.Serialization
 			int p = time.IndexOf('h');
 			if (p > 0)
 			{
-				hour = short.Parse(time.AsSpan(0, p), NumberStyles.Integer, CultureInfo.InvariantCulture);
+				hour = short.Parse(time[..p], NumberStyles.Integer, CultureInfo.InvariantCulture);
 				if (p + 1 >= time.Length)
 				{
 					minute = 0;
 				}
 				else
 				{
-					minute = short.Parse(time.AsSpan(p + 1), NumberStyles.Integer, CultureInfo.InvariantCulture);
+					minute = short.Parse(time[(p + 1)..], NumberStyles.Integer, CultureInfo.InvariantCulture);
 				}
 			}
 			else
@@ -1569,14 +1569,14 @@ namespace Doxense.Serialization
 				p = time.IndexOf(':');
 				if (p > 0)
 				{
-					hour = short.Parse(time.AsSpan(0, p), NumberStyles.Integer, CultureInfo.InvariantCulture);
+					hour = short.Parse(time[..p], NumberStyles.Integer, CultureInfo.InvariantCulture);
 					if (p + 1 >= time.Length)
 					{
 						minute = 0;
 					}
 					else
 					{
-						minute = short.Parse(time.AsSpan(p + 1), NumberStyles.Integer, CultureInfo.InvariantCulture);
+						minute = short.Parse(time[(p + 1)..], NumberStyles.Integer, CultureInfo.InvariantCulture);
 					}
 				}
 				else

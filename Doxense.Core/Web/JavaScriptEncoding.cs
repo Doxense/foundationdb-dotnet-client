@@ -182,9 +182,9 @@ namespace Doxense.Web
 			if (text == null) return includeQuotes ? Tokens.Null : string.Empty;
 			if (text.Length == 0) return includeQuotes ? Tokens.EmptyString : string.Empty;
 			// first pass to check if there escaping is required...
-			if (IsCleanJavaScript(text)) return includeQuotes ? string.Concat(Tokens.Quote, text, Tokens.Quote) : text; // nothing to escape
+			if (IsCleanJavaScript(text.AsSpan())) return includeQuotes ? string.Concat(Tokens.Quote, text, Tokens.Quote) : text; // nothing to escape
 			// second pass to escape all non-printable characters
-			return EncodeSlow(new StringBuilder(text.Length + 16), text, includeQuotes).ToString();
+			return EncodeSlow(new StringBuilder(text.Length + 16), text.AsSpan(), includeQuotes).ToString();
 		}
 
 		/// <summary>Encode the name of an object's property or field</summary>

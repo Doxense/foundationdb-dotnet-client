@@ -84,7 +84,7 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		public bool Equals(string? other) => other == this.Value;
 
-		public bool Equals(ReadOnlySpan<char> other) => other.SequenceEqual(this.Value);
+		public bool Equals(ReadOnlySpan<char> other) => other.SequenceEqual(this.Value.AsSpan());
 
 	}
 

@@ -29,7 +29,7 @@ namespace Doxense.Linq.Async.Iterators
 	using Doxense.Threading.Tasks;
 
 	/// <summary>Merges bursts of already-completed items from a source async sequence, into a sequence of batches.</summary>
-	/// <typeparam name="TInput">Type the the items from the source sequence</typeparam>
+	/// <typeparam name="TInput">Type of the items from the source sequence</typeparam>
 	public class WindowingAsyncIterator<TInput> : AsyncFilterIterator<TInput, TInput[]>
 	{
 		// Typical use cas: to merge back into arrays the result of readers that read one page at a time from the database, but return each item individually.

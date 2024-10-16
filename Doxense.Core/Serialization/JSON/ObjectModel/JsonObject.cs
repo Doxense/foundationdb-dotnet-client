@@ -271,12 +271,12 @@ namespace Doxense.Serialization.Json
 
 			// the top-level is mutable, but maybe it has read-only children?
 			Dictionary<string, JsonValue>? copy = null;
-			foreach (var (k, v) in m_items)
+			foreach (var kv in m_items)
 			{
-				if (v is (JsonObject or JsonArray) && v.IsReadOnly)
+				if (kv.Value is (JsonObject or JsonArray) && kv.Value.IsReadOnly)
 				{
 					copy ??= new (m_items.Count, m_items.Comparer);
-					copy[k] = v.Copy();
+					copy[kv.Key] = kv.Value.Copy();
 				}
 			}
 
@@ -2897,14 +2897,14 @@ namespace Doxense.Serialization.Json
 				// - Merging is only supported between two objects or two arrays
 				// - In all other cases, the value in 'other' will overwrite the previous value
 
-				foreach (var (k, v) in other)
+				foreach (var kv in other)
 				{
-					if (!parent.TryGetValue(k, out var mine))
+					if (!parent.TryGetValue(kv.Key, out var mine))
 					{
 						mine = JsonNull.Missing;
 					}
 
-					switch ((mine, v))
+					switch ((mine, kv.Value))
 					{
 						case (JsonObject a, JsonObject b):
 						{ // merge two objects together
@@ -2920,17 +2920,17 @@ namespace Doxense.Serialization.Json
 						{ // remove value (or set to null)
 							if (!keepNull || !ReferenceEquals(n, JsonNull.Null))
 							{
-								parent.Remove(k);
+								parent.Remove(kv.Key);
 							}
 							else
 							{
-								parent[k] = JsonNull.Null;
+								parent[kv.Key] = JsonNull.Null;
 							}
 							break;
 						}
 						default:
 						{ // overwrite previous value
-							parent[k] = deepCopy ? v.Copy() : v;
+							parent[kv.Key] = deepCopy ? kv.Value.Copy() : kv.Value;
 							break;
 						}
 					}
@@ -2956,38 +2956,38 @@ namespace Doxense.Serialization.Json
 			}
 
 			// add/update any new  keys
-			foreach (var (k, v) in after)
+			foreach (var kv in after)
 			{
-				if (!items.TryGetValue(k, out var p))
+				if (!items.TryGetValue(kv.Key, out var p))
 				{
 					// add
-					if (!v.IsNullOrMissing())
+					if (!kv.Value.IsNullOrMissing())
 					{
-						patch[k] = deepCopy ? v.Copy() : v;
+						patch[kv.Key] = deepCopy ? kv.Value.Copy() : kv.Value;
 					}
 				}
-				else if (!p.Equals(v))
+				else if (!p.Equals(kv.Value))
 				{ // update
-					switch (p, v)
+					switch (p, kv.Value)
 					{
 						case (JsonObject a, JsonObject b):
 						{
-							patch[k] = a.ComputePatch(b, deepCopy);
+							patch[kv.Key] = a.ComputePatch(b, deepCopy);
 							break;
 						}
 						case (JsonArray a, JsonArray b):
 						{
-							patch[k] = a.ComputePatch(b, deepCopy);
+							patch[kv.Key] = a.ComputePatch(b, deepCopy);
 							break;
 						}
 						case (_, JsonNull):
 						{ // use explicit null to trigger a deletion when the patch is applied later
-							patch[k] = JsonNull.Null;
+							patch[kv.Key] = JsonNull.Null;
 							break;
 						}
 						default:
 						{
-							patch[k] = deepCopy ? v.Copy() : v;
+							patch[kv.Key] = deepCopy ? kv.Value.Copy() : kv.Value;
 							break;
 						}
 					}
@@ -3014,21 +3014,21 @@ namespace Doxense.Serialization.Json
 
 			var items = m_items;
 
-			foreach (var (k, v) in patch)
+			foreach (var kv in patch)
 			{
-				if (!items.TryGetValue(k, out var mine))
+				if (!items.TryGetValue(kv.Key, out var mine))
 				{
 					mine = JsonNull.Missing;
 				}
 
-				switch ((mine, v))
+				switch ((mine, kv.Value))
 				{
 					case (JsonObject a, JsonObject b):
 					{ // merge two objects together
 						if (a.IsReadOnly)
 						{
 							a = a.ToMutable();
-							items[k] = a;
+							items[kv.Key] = a;
 						}
 						a.ApplyPatch(b, deepCopy);
 						break;
@@ -3038,19 +3038,19 @@ namespace Doxense.Serialization.Json
 						if (a.IsReadOnly)
 						{
 							a = a.ToMutable();
-							items[k] = a;
+							items[kv.Key] = a;
 						}
 						a.ApplyPatch(b, deepCopy);
 						break;
 					}
 					case (_, JsonNull):
 					{ // remove value (or set to null)
-						items.Remove(k);
+						items.Remove(kv.Key);
 						break;
 					}
 					default:
 					{ // overwrite previous value
-						items[k] = deepCopy ? v.Copy() : v;
+						items[kv.Key] = deepCopy ? kv.Value.Copy() : kv.Value;
 						break;
 					}
 				}
@@ -3854,9 +3854,9 @@ namespace Doxense.Serialization.Json
 				return false;
 			}
 			int p = 0;
-			foreach (var (k, v) in m_items)
+			foreach (var kv in m_items)
 			{
-				array[p++] = (k, v);
+				array[p++] = (kv.Key, kv.Value);
 			}
 			return true;
 		}

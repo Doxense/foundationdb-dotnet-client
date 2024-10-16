@@ -199,7 +199,7 @@ namespace Doxense.Serialization
 
 			Contract.Debug.Ensures(value == 0);
 
-			return new string(chars);
+			return chars.ToString();
 		}
 
 #if NET8_0_OR_GREATER

@@ -1212,93 +1212,93 @@ namespace System
 			}
 		}
 
-		/// <summary>Convert an hexadecimal encoded string ("1234AA7F") into a slice</summary>
-		/// <param name="hexaString">String contains a sequence of pairs of hexadecimal digits with no separating spaces.</param>
+		/// <summary>Convert a hexadecimal encoded string ("1234AA7F") into a slice</summary>
+		/// <param name="hexString">String contains a sequence of pairs of hexadecimal digits with no separating spaces.</param>
 		/// <returns>Slice containing the decoded byte array, or an exception if the string is empty or has an odd length</returns>
 		[Pure]
-		public static Slice FromHexString(string? hexaString)
+		public static Slice FromHexString(string? hexString)
 		{
-			if (string.IsNullOrEmpty(hexaString))
+			if (string.IsNullOrEmpty(hexString))
 			{
-				return hexaString == null ? default : Empty;
+				return hexString == null ? default : Empty;
 			}
 
-			return new Slice(Convert.FromHexString(hexaString));
+			return new Slice(Convert.FromHexString(hexString));
 		}
 
-		/// <summary>Convert an hexadecimal encoded string ("1234AA7F") into a slice</summary>
-		/// <param name="hexaString">String contains a sequence of pairs of hexadecimal digits with no separating spaces.</param>
+		/// <summary>Convert a hexadecimal encoded string ("1234AA7F") into a slice</summary>
+		/// <param name="hexString">String contains a sequence of pairs of hexadecimal digits with no separating spaces.</param>
 		/// <returns>Slice containing the decoded byte array, or an exception if the string is empty or has an odd length</returns>
 		[Pure]
-		public static Slice FromHexString(ReadOnlySpan<char> hexaString)
+		public static Slice FromHexString(ReadOnlySpan<char> hexString)
 		{
-			if (hexaString.Length == 0)
+			if (hexString.Length == 0)
 			{
 				return Empty;
 			}
 
-			return new Slice(Convert.FromHexString(hexaString));
+			return new Slice(Convert.FromHexString(hexString));
 		}
 
 
 #if NET8_0_OR_GREATER
-		public static Slice FromHexString(string? hexaString, [ConstantExpected] char separator)
+		public static Slice FromHexString(string? hexString, [ConstantExpected] char separator)
 #else
-		public static Slice FromHexString(string? hexaString, char separator)
+		public static Slice FromHexString(string? hexString, char separator)
 #endif
-			=> separator == '\0' ? FromHexString(hexaString) : FromHexa(hexaString, separator);
+			=> separator == '\0' ? FromHexString(hexString) : FromHexa(hexString, separator);
 
-		/// <summary>Convert an hexadecimal encoded string ("1234AA7F") into a slice, ignoring any spaces characters.</summary>
-		/// <param name="hexaString">String contains a sequence of pairs of hexadecimal digits, and optional separating white-spaces.</param>
+		/// <summary>Convert a hexadecimal encoded string ("1234AA7F") into a slice, ignoring any spaces characters.</summary>
+		/// <param name="hexString">String contains a sequence of pairs of hexadecimal digits, and optional separating white-spaces.</param>
 		/// <param name="separator">Allowed separator character between hex pairs, or <c>'\0'</c> for no separator allowed. Note strings with no separators are always allowed</param>
 		/// <returns>Slice containing the decoded byte array, or an exception if the string is empty or has an odd length</returns>
 		/// <remarks>If the string is known to not have any spaces or separators, it is faster to call <see cref="Slice.FromHexString(string)"/>.</remarks>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice FromHexa(
-			string? hexaString,
+			string? hexString,
 #if NET8_0_OR_GREATER
 			[ConstantExpected]
 #endif
 			char separator = ' '
 		)
 		{
-			if (string.IsNullOrEmpty(hexaString))
+			if (string.IsNullOrEmpty(hexString))
 			{
-				return hexaString == null ? default : Empty;
+				return hexString == null ? default : Empty;
 			}
 
-			return FromHexa(hexaString.AsSpan(), separator);
+			return FromHexa(hexString.AsSpan(), separator);
 		}
 
-		/// <summary>Convert an hexadecimal encoded string ("1234AA7F") into a slice</summary>
-		/// <param name="hexaString">String contains a sequence of pairs of hexadecimal digits with no separating spaces.</param>
+		/// <summary>Convert a hexadecimal encoded string ("1234AA7F") into a slice</summary>
+		/// <param name="hexString">String contains a sequence of pairs of hexadecimal digits with no separating spaces.</param>
 		/// <param name="separator">Allowed separator character between hex pairs, or <c>'\0'</c> for no separator allowed. Note strings with no separators are always allowed</param>
 		/// <returns>Slice containing the decoded byte array, or an exception if the string is empty or has an odd length</returns>
 		/// <remarks>If the string is known to not have any spaces or separators, it is faster to call <see cref="Slice.FromHexString(string)"/>.</remarks>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice FromHexa(
-			ReadOnlySpan<char> hexaString,
+			ReadOnlySpan<char> hexString,
 #if NET8_0_OR_GREATER
 			[ConstantExpected]
 #endif
 			char separator = ' '
 		)
 		{
-			if (hexaString.Length == 0)
+			if (hexString.Length == 0)
 			{
 				return Empty;
 			}
 
-			if (separator == '\0' || (hexaString.Length & 2) == 0 && !hexaString.Contains(separator))
+			if (separator == '\0' || (hexString.Length & 2) == 0 && !hexString.Contains(separator))
 			{ // looks like a compact string, use the optimized runtime version
-				return new(Convert.FromHexString(hexaString));
+				return new(Convert.FromHexString(hexString));
 			}
 
 			// slower version
 			byte[]? buffer = null;
-			int written = UnsafeHelpers.FromHexa(hexaString, ref buffer, separator);
+			int written = UnsafeHelpers.FromHexa(hexString, ref buffer, separator);
 			return new(buffer, 0, written);
 		}
 
@@ -1424,7 +1424,7 @@ namespace System
 			    && array[offset + 2] == 0xBF;
 		}
 
-		/// <summary>Decode a slice that is known to contain an UTF-8 encoded string with an optional UTF-8 BOM</summary>
+		/// <summary>Decode a slice that is known to contain a UTF-8 encoded string with an optional UTF-8 BOM</summary>
 		/// <returns>Decoded string, or null if the slice is null</returns>
 		/// <exception cref="DecoderFallbackException">If the slice contains one or more invalid UTF-8 sequences</exception>
 		/// <remarks>
@@ -1564,7 +1564,7 @@ namespace System
 			return sb;
 		}
 
-		/// <summary>Helper method that dumps the slice as a string (if it contains only printable ascii chars) or an hex array if it contains non printable chars. It should only be used for logging and troubleshooting !</summary>
+		/// <summary>Helper method that dumps the slice as a string (if it contains only printable ascii chars) or a hex array if it contains non-printable chars. It should only be used for logging and troubleshooting !</summary>
 		/// <returns>Returns either "'abc'", "&lt;00 42 7F&gt;", or "{ ...JSON... }". Returns "''" for Slice.Empty, and "" for <see cref="Slice.Nil"/></returns>
 		[Pure]
 		public string PrettyPrint()
@@ -1573,7 +1573,7 @@ namespace System
 			return PrettyPrint(this.Span, DefaultPrettyPrintSize, biasKey: false, lower: false); //REVIEW: constant for max size!
 		}
 
-		/// <summary>Helper method that dumps the slice as a string (if it contains only printable ascii chars) or an hex array if it contains non printable chars. It should only be used for logging and troubleshooting !</summary>
+		/// <summary>Helper method that dumps the slice as a string (if it contains only printable ascii chars) or a hex array if it contains non-printable chars. It should only be used for logging and troubleshooting !</summary>
 		/// <param name="maxLen">Truncate the slice if it exceeds this size</param>
 		/// <returns>Returns either "'abc'", "&lt;00 42 7F&gt;", or "{ ...JSON... }". Returns "''" for Slice.Empty, and "" for <see cref="Slice.Nil"/></returns>
 		[Pure]
@@ -1585,7 +1585,7 @@ namespace System
 
 		internal const int DefaultPrettyPrintSize = 1024;
 
-		/// <summary>Helper method that dumps the slice as a string (if it contains only printable ascii chars) or an hex array if it contains non printable chars. It should only be used for logging and troubleshooting !</summary>
+		/// <summary>Helper method that dumps the slice as a string (if it contains only printable ascii chars) or a hex array if it contains non-printable chars. It should only be used for logging and troubleshooting !</summary>
 		[Pure]
 		internal static string PrettyPrint(ReadOnlySpan<byte> buffer, int maxLen, bool? biasKey, bool lower)
 		{
@@ -1653,7 +1653,7 @@ namespace System
 				}
 
 				// this looks like binary
-				//TODO: if biasKey == false && count == 2|4|8, maybe try decode as an integer?
+				//TODO: if biasKey == false && count == 2|4|8, maybe try to decode as an integer?
 				return lower
 					? Slice.DumpLower(buffer, maxLen)
 					: Slice.Dump(buffer, maxLen);

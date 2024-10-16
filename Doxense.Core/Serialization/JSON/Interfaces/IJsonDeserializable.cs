@@ -26,6 +26,7 @@
 
 namespace Doxense.Serialization.Json
 {
+
 	/// <summary>Supports custom JSON deserialization from <see cref="JsonValue"/> into instances of <typeparamref name="TSelf"/></summary>
 	/// <remarks>
 	/// <para>Types that handle their own custom serialization should typically implement this interface, as well as <see cref="IJsonSerializable"/> and <see cref="IJsonPackable"/>.</para>

@@ -106,7 +106,7 @@ namespace Doxense.Serialization.Json.Binary
 
 		private enum JType
 		{
-			//note: these values must by identical to the JENTRY_TYPE_xxx constants
+			//note: these values must be identical to the JENTRY_TYPE_xxx constants
 			String = 0,		// 000
 			Numeric = 6,	// 001
 			False = 2,		// 010
@@ -134,7 +134,7 @@ namespace Doxense.Serialization.Json.Binary
 			public readonly uint Header; // 4 flags + 28 bit count
 
 			/// <summary>Offset (relative to the container) where the data starts (items, or key+values)</summary>
-			/// <remarks>If this is an Hashed Object, points directly to after the hashmap/idxmap</remarks>
+			/// <remarks>If this is a Hashed Object, points directly to after the hashmap/idxmap</remarks>
 			public readonly int BaseAddress;
 
 			public int Count
@@ -192,7 +192,7 @@ namespace Doxense.Serialization.Json.Binary
 			}
 
 			/// <summary>Decodes the metadata about an item on an array</summary>
-			/// <param name="index">Index of the item in the array (0 .. N-1)</param>
+			/// <param name="index">Index of the item in the array (0 ... N-1)</param>
 			/// <param name="numEntries">Size of the array</param>
 			/// <param name="result">Decoded value</param>
 			public void GetContainerEntry(int index, int numEntries, out JValue result)

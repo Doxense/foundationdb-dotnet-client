@@ -24,10 +24,10 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-using System.Buffers;
 
 namespace Doxense.Collections.Generic
 {
+	using System.Buffers;
 	using System.Runtime.InteropServices;
 
 	/// <summary>Represent an ordered set of key/value pairs, stored in a Cache Oblivious Lookahead Array</summary>

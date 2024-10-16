@@ -29,7 +29,7 @@ namespace Doxense.Linq.Async.Iterators
 	using Doxense.Threading.Tasks;
 
 	/// <summary>Prefetches items from the inner sequence, before outputting them down the line.</summary>
-	/// <typeparam name="TInput">Type the the items from the source sequence</typeparam>
+	/// <typeparam name="TInput">Type of the items from the source sequence</typeparam>
 	public class PrefetchingAsyncIterator<TInput> : AsyncFilterIterator<TInput, TInput>
 	{
 

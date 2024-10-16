@@ -378,8 +378,10 @@ namespace Doxense.Serialization.Json
 				isLocal = true;
 				endOffset -= 5;
 			}
-			if (!long.TryParse(value.Slice(6, endOffset - 6), out var ticks)) // 6 = "/Date(".Length
+			if (!long.TryParse(value[6..endOffset], out var ticks)) // 6 = "/Date(".Length
+			{
 				return false;
+			}
 
 			// note: il y a un "bug" dans les sérialisateurs de Microsoft: MinValue/MaxValue sont en LocalTime, et donc
 			// une fois convertis en UTC, ils sont décallés (par ex le nb de ticks est négatif si on est à l'est de GMT, ou légèrement positif si on est à l'ouest)
@@ -402,7 +404,7 @@ namespace Doxense.Serialization.Json
 					// pb: Local ici sera en fct de la TZ du serveur, et non pas celle indiquée dans le JSON
 					// vu que de toutes manières, les ticks sont en UTC, et qu'on ne peut pas créer un DateTime de type Local dans une autre TZ que la notre,
 					// on ne peut pas faire grand chose avec la TZ spécifiée, hormis la garder en mémoire si jamais on doit binder vers un DateTimeOffset
-					if (!int.TryParse(value.Slice(endOffset + 1, value.Length - endOffset - 3), out var offset))
+					if (!int.TryParse(value[(endOffset + 1)..^2], out var offset))
 						return false;
 					// on a l'offset en "BCD", il faut retransformer en nombre de minutes
 					int h = offset / 100;

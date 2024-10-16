@@ -431,13 +431,13 @@ namespace Doxense.Memory
 		/// <param name="bytes">Number of bytes to remove at the head of the buffer</param>
 		/// <returns>New size of the buffer (or 0 if it is empty)</returns>
 		/// <remarks>This should be called after every successful write to the underlying stream, to update the buffer.</remarks>
-		public int Flush(int bytes) //REVIEW: plutot renommer en "RemoveHead"? ou faire un vrai "RemoveAt(offset, count)" ?
+		public int Flush(int bytes)
 		{
 			if (bytes == 0) return this.Position;
 			if (bytes < 0) throw ThrowHelper.ArgumentOutOfRangeException(nameof(bytes));
 
 			if (bytes < this.Position)
-			{ // copy the left over data to the start of the buffer
+			{ // copy the leftover data to the start of the buffer
 				int remaining = this.Position - bytes;
 				this.Buffer.AsSpan(bytes, remaining).CopyTo(this.Buffer.AsSpan());
 				this.Position = remaining;
@@ -445,7 +445,7 @@ namespace Doxense.Memory
 			}
 			else
 			{
-				//REVIEW: should we throw if there are less bytes in the buffer than we want to flush ?
+				//REVIEW: should we throw if there are fewer bytes in the buffer than we want to flush ?
 				this.Position = 0;
 				return 0;
 			}
@@ -462,7 +462,7 @@ namespace Doxense.Memory
 
 			Contract.Debug.Assert(buffer.Length >= this.Position);
 			// reduce size ?
-			// If the buffer exceeds 64K and we used less than 1/8 of it the last time, we will "shrink" the buffer
+			// If the buffer exceeds 64K, and we used less than 1/8 of it the last time, we will "shrink" the buffer
 			if (shrink && buffer.Length > 65536 && this.Position <= (buffer.Length >> 3))
 			{ // kill the buffer
 				this.Pool?.Return(buffer, zeroes);
@@ -1327,7 +1327,7 @@ namespace Doxense.Memory
 		#region VarString...
 
 		// all VarStrings are encoded as a VarInt that contains the number of following encoded bytes
-		// => caller MUST KNOWN the encoding! (usually UTF-8)
+		// => caller MUST KNOW the encoding! (usually UTF-8)
 		// => the string's length is NOT stored!
 
 		/// <summary>Writes a variable-sized string, using the specified encoding</summary>
@@ -1403,11 +1403,11 @@ namespace Doxense.Memory
 			}
 			else if (byteCount == value.Length)
 			{ // ASCII!
-				WriteVarAsciiInternal(value);
+				WriteVarAsciiInternal(value.AsSpan());
 			}
 			else
 			{ // contains non-ASCII characters, we will need to encode
-				WriteVarStringUtf8Internal(value, byteCount);
+				WriteVarStringUtf8Internal(value.AsSpan(), byteCount);
 			}
 		}
 
@@ -1461,7 +1461,7 @@ namespace Doxense.Memory
 			}
 			else
 			{
-				WriteVarAsciiInternal(value);
+				WriteVarAsciiInternal(value.AsSpan());
 			}
 		}
 
@@ -1582,7 +1582,7 @@ namespace Doxense.Memory
 			encoding ??= Encoding.UTF8;
 
 			// In order to estimate the required capacity, we try to guess for very small strings, but compute the actual value for larger strings,
-			// so that we don't waste to much memory (up to 6x the string length in the worst case scenario)
+			// so that we don't waste too much memory (up to 6x the string length in the worst case scenario)
 			var buffer = EnsureBytes(value.Length > 128 ? encoding.GetByteCount(value) : encoding.GetMaxByteCount(value.Length));
 
 			int p = this.Position;
@@ -1613,7 +1613,7 @@ namespace Doxense.Memory
 			if (string.IsNullOrEmpty(value)) return 0;
 
 			// In order to estimate the required capacity, we try to guess for very small strings, but compute the actual value for larger strings,
-			// so that we don't waste to much memory (up to 6x the string length in the worst case scenario)
+			// so that we don't waste too much memory (up to 6x the string length in the worst case scenario)
 			var buffer = EnsureBytes(value.Length > 128
 				? Encoding.UTF8.GetByteCount(value)
 				: Encoding.UTF8.GetMaxByteCount(value.Length));
@@ -2439,7 +2439,7 @@ namespace Doxense.Memory
 				this.Capacity = writer.Capacity;
 			}
 
-			public string Hexa => this.Data.ToHexString(' ');
+			public string Hex => this.Data.ToHexString(' ');
 
 			public Slice Data { get; }
 

@@ -462,7 +462,7 @@ namespace System
 		}
 
 		/// <summary>Returns a substring of the current slice that fits within the specified index range</summary>
-		/// <param name="range">The begin and end position of the substring.</param>
+		/// <param name="range">The Begin and End position of the substring.</param>
 		/// <returns>Slice that only contain the specified range, but shares the same underlying buffer.</returns>
 		public Slice this[Range range]
 		{
@@ -1340,27 +1340,17 @@ namespace System
 		{
 			if (args == null) return SliceOwner.Nil;
 
-			switch (args)
+			if (Buffer<Slice>.TryGetSpan(args, out var span))
 			{
-				case Slice[] array:
-				{
-					return Concat(pool, new ReadOnlySpan<Slice>(array));
-				}
-				case List<Slice> list:
-				{
-					return Concat(pool, CollectionsMarshal.AsSpan(list));
-				}
-				default:
-				{
-					var sw = new SliceWriter(pool);
-					foreach (var arg in args)
-					{
-						sw.WriteBytes(arg);
-					}
-					return sw.ToSliceOwner();
-				}
-
+				return Concat(pool, span);
 			}
+
+			var sw = new SliceWriter(pool);
+			foreach (var arg in args)
+			{
+				sw.WriteBytes(arg);
+			}
+			return sw.ToSliceOwner();
 		}
 
 		/// <summary>Adds a prefix to a list of slices</summary>
@@ -2603,7 +2593,7 @@ namespace System
 		/// <summary>Asynchronously read from a blocking stream (FileStream, NetworkStream, ...)</summary>
 		/// <param name="source">Source stream</param>
 		/// <param name="length">Number of bytes to read from the stream</param>
-		/// <param name="chunkSize">If non zero, max amount of bytes to read in one chunk. If zero, tries to read everything at once</param>
+		/// <param name="chunkSize">If non-zero, max amount of bytes to read in one chunk. If zero, tries to read everything at once</param>
 		/// <param name="ct">Optional cancellation token for this operation</param>
 		/// <returns>Slice containing the loaded data</returns>
 		private static async Task<Slice> LoadFromBlockingStreamAsync(Stream source, int length, int chunkSize, CancellationToken ct)
@@ -3156,7 +3146,7 @@ namespace System
 		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice AsSlice(this ArraySegment<byte> self)
 		{
-			// We trust the ArraySegment<byte> ctor to validate the arguments before hand.
+			// We trust the ArraySegment<byte> ctor to validate the arguments beforehand.
 			// If somehow the arguments were corrupted (intentionally or not), then the same problem could have happened with the slice anyway!
 
 			// ReSharper disable once AssignNullToNotNullAttribute
@@ -3197,14 +3187,14 @@ namespace System
 			return new SliceReader(self, 0, count);
 		}
 
-		/// <summary>Return a <see cref="SliceReader"/> that will expose a sub-section of a buffer</summary>
+		/// <summary>Return a <see cref="SliceReader"/> that will expose a subsection of a buffer</summary>
 		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static SliceReader ToSliceReader(this byte[] self, int offset, int count)
 		{
 			return new SliceReader(self, offset, count);
 		}
 
-		/// <summary>Return a <see cref="SliceReader"/> that will expose a sub-section of a buffer</summary>
+		/// <summary>Return a <see cref="SliceReader"/> that will expose a subsection of a buffer</summary>
 		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static SliceReader ToSliceReader(this byte[] self, Range range)
 		{

@@ -189,7 +189,7 @@ namespace Doxense.Serialization.Json
 		public bool Equals(JsonPath other) => this.Value.Span.SequenceEqual(other.Value.Span);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(string? other) => this.Value.Span.SequenceEqual(other); // null|"" == Empty
+		public bool Equals(string? other) => this.Value.Span.SequenceEqual(other.AsSpan()); // null|"" == Empty
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(ReadOnlySpan<char> other) => this.Value.Span.SequenceEqual(other);
@@ -376,7 +376,7 @@ namespace Doxense.Serialization.Json
 			// if the key was escaped previously, it will contain at least one '\' character
 			if (key.Contains('\\'))
 			{
-				return DecodeKeyNameSlow(key);
+				return DecodeKeyNameSlow(key.AsSpan());
 			}
 
 			return key;
@@ -392,7 +392,7 @@ namespace Doxense.Serialization.Json
 			// if the key was escaped previously, it will contain at least one '\' character
 			if (key.Contains('\\'))
 			{
-				return DecodeKeyNameSlow(key);
+				return DecodeKeyNameSlow(key).AsSpan();
 			}
 
 			return key;
@@ -524,7 +524,7 @@ namespace Doxense.Serialization.Json
 
 		public static string EncodeKeyName(string name)
 		{
-			if (string.IsNullOrEmpty(name) || !RequiresEscaping(name))
+			if (string.IsNullOrEmpty(name) || !RequiresEscaping(name.AsSpan()))
 			{
 				return name;
 			}
@@ -535,9 +535,10 @@ namespace Doxense.Serialization.Json
 		{
 			if (name.Length == 0 || !RequiresEscaping(name))
 			{
-				return name.ToString();
+				//TODO: should we make a copy here?
+				return name.ToString().AsSpan();
 			}
-			return EncodeKeyNameWithPrefix(default, name);
+			return EncodeKeyNameWithPrefix(default, name).AsSpan();
 		}
 
 		private static string EncodeKeyNameWithPrefix(ReadOnlySpan<char> prefix, ReadOnlySpan<char> name)
@@ -633,9 +634,9 @@ namespace Doxense.Serialization.Json
 			{
 				Contract.NotNull(key);
 
-				if (RequiresEscaping(key))
+				if (RequiresEscaping(key.AsSpan()))
 				{
-					return new (EncodeKeyNameWithPrefix(this.Value.Span, key));
+					return new (EncodeKeyNameWithPrefix(this.Value.Span, key.AsSpan()));
 				}
 
 				int l = this.Value.Length;
@@ -645,15 +646,7 @@ namespace Doxense.Serialization.Json
 				}
 
 				l = checked(l + 1 + key.Length);
-				return new(string.Create(l, (Path: this.Value, Key: key), ((span, state) =>
-				{
-					state.Path.Span.CopyTo(span);
-					span = span[state.Path.Length..];
-					span[0] = '.';
-					span = span[1..];
-					Contract.Debug.Assert(span.Length == state.Key.Length);
-					state.Key.CopyTo(span);
-				})));
+				return new(string.Concat(this.Value.Span, ".", key));
 			}
 		}
 
@@ -753,35 +746,13 @@ namespace Doxense.Serialization.Json
 		private static string ConcatWithIndexer(ReadOnlyMemory<char> head, ReadOnlyMemory<char> tail)
 		{
 			int l = checked(head.Length + tail.Length);
-			return string.Create(
-				l,
-				(Head: head, Tail: tail),
-				(span, state) =>
-				{
-					state.Head.Span.CopyTo(span);
-					span = span[state.Head.Length..];
-					Contract.Debug.Assert(span.Length == state.Tail.Length);
-					state.Tail.Span.CopyTo(span);
-				}
-			);
+			return string.Concat(head.Span, tail.Span);
 		}
 
 		private static string ConcatWithField(ReadOnlyMemory<char> head, ReadOnlyMemory<char> tail)
 		{
 			int l = checked(head.Length + 1 + tail.Length);
-			return string.Create(
-				l,
-				(Head: head, Tail: tail),
-				(span, state) =>
-				{
-					state.Head.Span.CopyTo(span);
-					span = span[state.Head.Length..];
-					span[0] = '.';
-					span = span[1..];
-					Contract.Debug.Assert(span.Length == state.Tail.Length);
-					state.Tail.Span.CopyTo(span);
-				}
-			);
+			return string.Concat(head.Span, ".", tail.Span);
 		}
 
 		public static JsonPath Combine(JsonPath parent, JsonPath child)
@@ -1221,30 +1192,30 @@ namespace Doxense.Serialization.Json
 
 			}
 
-			var lit = path[(q + 1)..];
-			p = GetIndexOf(lit, ']');
+			var literal = path[(q + 1)..];
+			p = GetIndexOf(literal, ']');
 			if (p <= 0)
 			{
 				index = default;
 				return false;
 			}
 
-			lit = lit[..p];
+			literal = literal[..p];
 			bool fromEnd = false;
-			if (lit[0] == '^')
+			if (literal[0] == '^')
 			{
-				lit = lit[1..];
+				literal = literal[1..];
 				fromEnd = true;
 			}
 
 #if NET8_0_OR_GREATER
-			if (!int.TryParse(lit, CultureInfo.InvariantCulture, out var result))
+			if (!int.TryParse(literal, CultureInfo.InvariantCulture, out var result))
 			{
 				index = default;
 				return false;
 			}
 #else
-			if (!int.TryParse(lit, out var result))
+			if (!int.TryParse(literal.ToString(), out var result))
 			{
 				index = default;
 				return false;
@@ -1633,6 +1604,7 @@ namespace Doxense.Serialization.Json
 			=> this.Name.Length != 0
 			   ? this.Name.Span.SequenceEqual(other.Name.Span)
 			   : (this.Index.Equals(other.Index) && other.Name.Length == 0);
+
 	}
 
 }

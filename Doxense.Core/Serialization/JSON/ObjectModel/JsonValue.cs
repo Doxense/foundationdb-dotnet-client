@@ -563,7 +563,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns the element at the specified index, if the current value is a JSON Array</summary>
 		/// <param name="index">Index of the element to return</param>
-		/// <returns>Value of the element at the specified <paramref name="index"/> or <see cref="JsonNull.Error"/> if the index is outside of the bounds of the array. An exception is thrown if the current value is not a JSON Array.</returns>
+		/// <returns>Value of the element at the specified <paramref name="index"/> or <see cref="JsonNull.Error"/> if the index is outside the bounds of the array. An exception is thrown if the current value is not a JSON Array.</returns>
 		/// <exception cref="System.InvalidOperationException">The current JSON value does not support indexing, or the array is read-only</exception>
 		/// <remarks>If the current value is null or missing, returns <see cref="JsonNull.Missing"/> in order to allow for null-propagation.</remarks>
 		[AllowNull]
@@ -578,7 +578,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns the element at the specified index, if the current value is a JSON Array</summary>
 		/// <param name="index">Index of the element to return</param>
-		/// <returns>Value of the element at the specified <paramref name="index"/> or <see cref="JsonNull.Error"/> if the index is outside of the bounds of the array. An exception is thrown if the current value is not a JSON Array.</returns>
+		/// <returns>Value of the element at the specified <paramref name="index"/> or <see cref="JsonNull.Error"/> if the index is outside the bounds of the array. An exception is thrown if the current value is not a JSON Array.</returns>
 		/// <exception cref="System.InvalidOperationException">The current JSON value does not support indexing, or the array is read-only</exception>
 		/// <remarks>If the current value is null or missing, returns <see cref="JsonNull.Missing"/> in order to allow for null-propagation.</remarks>
 		[AllowNull]
@@ -595,7 +595,7 @@ namespace Doxense.Serialization.Json
 
 		#region Object...
 
-		/// <summary>Gets the JSON Object that corresponds to the field with the specified name, it it exists</summary>
+		/// <summary>Gets the JSON Object that corresponds to the field with the specified name, if it exists</summary>
 		/// <param name="key">Name of the field</param>
 		/// <param name="obj">When this method returns, contains the value of the field if it exists, and is a valid JSON Object; otherwise, <see langword="null"/>. This parameter is passed uninitialized.</param>
 		/// <returns><see langword="true"/> if the field exists and contains an object; otherwise, <see langword="false"/>.</returns>
@@ -611,7 +611,7 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
-		/// <summary>Gets the JSON Object that corresponds to the field with the specified name, it it exists</summary>
+		/// <summary>Gets the JSON Object that corresponds to the field with the specified name, if it exists</summary>
 		/// <param name="key">Name of the field</param>
 		/// <param name="obj">When this method returns, contains the value of the field if it exists, and is a valid JSON Object; otherwise, <see langword="null"/>. This parameter is passed uninitialized.</param>
 		/// <returns><see langword="true"/> if the field exists and contains an object; otherwise, <see langword="false"/>.</returns>
@@ -627,7 +627,7 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
-		/// <summary>Gets the JSON Object that corresponds to the field with the specified name, it it exists</summary>
+		/// <summary>Gets the JSON Object that corresponds to the field with the specified name, if it exists</summary>
 		/// <param name="key">Name of the field</param>
 		/// <param name="obj">When this method returns, contains the value of the field if it exists, and is a valid JSON Object; otherwise, <see langword="null"/>. This parameter is passed uninitialized.</param>
 		/// <returns><see langword="true"/> if the field exists and contains an object; otherwise, <see langword="false"/>.</returns>
@@ -643,7 +643,7 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
-		/// <summary>Gets the JSON Object that corresponds to the item at the specified location, it it exists</summary>
+		/// <summary>Gets the JSON Object that corresponds to the item at the specified location, if it exists</summary>
 		/// <param name="index">Index of the item</param>
 		/// <param name="obj">When this method returns, contains the value at this location if it exists, and is a valid JSON Object; otherwise, <see langword="null"/>. This parameter is passed uninitialized.</param>
 		/// <returns><see langword="true"/> if the field exists and contains an object; otherwise, <see langword="false"/>.</returns>
@@ -659,7 +659,7 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
-		/// <summary>Gets the JSON Object that corresponds to the item at the specified location, it it exists</summary>
+		/// <summary>Gets the JSON Object that corresponds to the item at the specified location, if it exists</summary>
 		/// <param name="index">Index of the item</param>
 		/// <param name="obj">When this method returns, contains the value at this location if it exists, and is a valid JSON Object; otherwise, <see langword="null"/>. This parameter is passed uninitialized.</param>
 		/// <returns><see langword="true"/> if the field exists and contains an object; otherwise, <see langword="false"/>.</returns>
@@ -906,7 +906,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Gets the <b>required</b> JSON Object that corresponds to the field with the specified name.</summary>
 		/// <param name="key">Name of the field that is expected to be an object.</param>
-		/// <returns>Value of the field <paramref name="key"/> as a <see cref="JsonArray"/>, or an exception if it null, missing, or not a JSON Array.</returns>
+		/// <returns>Value of the field <paramref name="key"/> as a <see cref="JsonArray"/>, or an exception if it is null, missing, or not a JSON Array.</returns>
 		/// <exception cref="InvalidOperationException">If the value is null or missing.</exception>
 		/// <exception cref="ArgumentException">If the value is not a JSON Object.</exception>
 		[Pure]
@@ -930,7 +930,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Gets the <b>required</b> JSON Object that corresponds to the field with the specified name.</summary>
 		/// <param name="index">Name of the field that is expected to be an object.</param>
-		/// <returns>Value of the field <paramref name="index"/> as a <see cref="JsonArray"/>, or an exception if it null, missing, or not a JSON Array.</returns>
+		/// <returns>Value of the field <paramref name="index"/> as a <see cref="JsonArray"/>, or an exception if it is null, missing, or not a JSON Array.</returns>
 		/// <exception cref="InvalidOperationException">If the value is null or missing.</exception>
 		/// <exception cref="ArgumentException">If the value is not a JSON Object.</exception>
 		[Pure]
@@ -938,7 +938,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Gets the <i>optional</i> JSON Object that corresponds to the field with the specified name.</summary>
 		/// <param name="index">Name of the field that is expected to be an object.</param>
-		/// <param name="defaultValue">Value that is returned if there if the value is null or missing</param>
+		/// <param name="defaultValue">Value that is returned if the value is null or missing</param>
 		/// <returns>Value of the field <paramref name="index"/> as a <see cref="JsonObject"/>, <paramref name="defaultValue"/> if it is null or missing, or an exception if it is not a JSON Object.</returns>
 		/// <exception cref="ArgumentException">If the value is not a JSON Object.</exception>
 		[Pure]
@@ -954,7 +954,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Gets the <b>required</b> JSON Object that corresponds to the field with the specified name.</summary>
 		/// <param name="index">Name of the field that is expected to be an object.</param>
-		/// <returns>Value of the field <paramref name="index"/> as a <see cref="JsonArray"/>, or an exception if it null, missing, or not a JSON Array.</returns>
+		/// <returns>Value of the field <paramref name="index"/> as a <see cref="JsonArray"/>, or an exception if it is null, missing, or not a JSON Array.</returns>
 		/// <exception cref="InvalidOperationException">If the value is null or missing.</exception>
 		/// <exception cref="ArgumentException">If the value is not a JSON Object.</exception>
 		[Pure]
@@ -962,7 +962,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Gets the <i>optional</i> JSON Object that corresponds to the field with the specified name.</summary>
 		/// <param name="index">Name of the field that is expected to be an object.</param>
-		/// <param name="defaultValue">Value that is returned if there if the value is null or missing</param>
+		/// <param name="defaultValue">Value that is returned if the value is null or missing</param>
 		/// <returns>Value of the field <paramref name="index"/> as a <see cref="JsonObject"/>, <paramref name="defaultValue"/> if it is null or missing, or an exception if it is not a JSON Object.</returns>
 		/// <exception cref="ArgumentException">If the value is not a JSON Object.</exception>
 		[Pure]
@@ -980,7 +980,7 @@ namespace Doxense.Serialization.Json
 
 		#region Array
 
-		/// <summary>Gets the JSON Array that corresponds to the field with the specified name, it it exists</summary>
+		/// <summary>Gets the JSON Array that corresponds to the field with the specified name, if it exists</summary>
 		/// <param name="key">Name of the field</param>
 		/// <param name="array">When this method returns, contains the value of the field if it exists, and is a valid JSON Array; otherwise, <see langword="null"/>. This parameter is passed uninitialized.</param>
 		/// <returns><see langword="true"/> if the field exists and contains an array; otherwise, <see langword="false"/>.</returns>
@@ -996,7 +996,7 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
-		/// <summary>Gets the JSON Array that corresponds to the field with the specified name, it it exists</summary>
+		/// <summary>Gets the JSON Array that corresponds to the field with the specified name, if it exists</summary>
 		/// <param name="key">Name of the field</param>
 		/// <param name="array">When this method returns, contains the value of the field if it exists, and is a valid JSON Array; otherwise, <see langword="null"/>. This parameter is passed uninitialized.</param>
 		/// <returns><see langword="true"/> if the field exists and contains an array; otherwise, <see langword="false"/>.</returns>
@@ -1012,7 +1012,7 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
-		/// <summary>Gets the JSON Array that corresponds to the field with the specified name, it it exists</summary>
+		/// <summary>Gets the JSON Array that corresponds to the field with the specified name, if it exists</summary>
 		/// <param name="key">Name of the field</param>
 		/// <param name="array">When this method returns, contains the value of the field if it exists, and is a valid JSON Array; otherwise, <see langword="null"/>. This parameter is passed uninitialized.</param>
 		/// <returns><see langword="true"/> if the field exists and contains an array; otherwise, <see langword="false"/>.</returns>
@@ -1028,7 +1028,7 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
-		/// <summary>Gets the JSON Array that corresponds to the item at the specified location, it it exists</summary>
+		/// <summary>Gets the JSON Array that corresponds to the item at the specified location, if it exists</summary>
 		/// <param name="index">Index of the item</param>
 		/// <param name="array">When this method returns, contains the value at this location if it exists, and is a valid JSON Array; otherwise, <see langword="null"/>. This parameter is passed uninitialized.</param>
 		/// <returns><see langword="true"/> if the field exists and contains an array; otherwise, <see langword="false"/>.</returns>
@@ -1044,7 +1044,7 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
-		/// <summary>Gets the JSON Array that corresponds to the item at the specified location, it it exists</summary>
+		/// <summary>Gets the JSON Array that corresponds to the item at the specified location, if it exists</summary>
 		/// <param name="index">Index of the item</param>
 		/// <param name="array">When this method returns, contains the value at this location if it exists, and is a valid JSON Array; otherwise, <see langword="null"/>. This parameter is passed uninitialized.</param>
 		/// <returns><see langword="true"/> if the field exists and contains an array; otherwise, <see langword="false"/>.</returns>
@@ -1318,7 +1318,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Gets the <b>required</b> JSON Array that corresponds to the field with the specified name.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
-		/// <returns>the value of the field <paramref name="index"/> as a <see cref="JsonArray"/>, or an exception if it null, missing, or not a JSON Array.</returns>
+		/// <returns>the value of the field <paramref name="index"/> as a <see cref="JsonArray"/>, or an exception if it is null, missing, or not a JSON Array.</returns>
 		/// <exception cref="JsonBindingException">If the value is null, missing or not a JSON Array.</exception>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1495,7 +1495,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Gets the converted value at the specified path</summary>
 		/// <param name="path">Path to the value. ex: <c>"foo"</c>, <c>"foo.bar"</c> or <c>"foo[2].baz"</c></param>
-		/// <returns>the value found at this location, converted into a instance of type <typeparamref name="TValue"/>, or and exception if there was not match, or the matched value is null.</returns>
+		/// <returns>the value found at this location, converted into an instance of type <typeparamref name="TValue"/>, or and exception if there was no match, or the matched value is null.</returns>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public TValue GetPath<TValue>(string path) where TValue : notnull
@@ -1506,7 +1506,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Gets the converted value at the specified path</summary>
 		/// <param name="path">Path to the value. ex: <c>"foo"</c>, <c>"foo.bar"</c> or <c>"foo[2].baz"</c></param>
 		/// <param name="defaultValue">The default value to return when the no match is found for the specified <paramref name="path" />, or it is null or missing.</param>
-		/// <returns>the value found at this location, converted into a instance of type <typeparamref name="TValue"/>, or <paramref name="defaultValue"/> if no match was found or the value is null or missing.</returns>
+		/// <returns>the value found at this location, converted into an instance of type <typeparamref name="TValue"/>, or <paramref name="defaultValue"/> if no match was found or the value is null or missing.</returns>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
@@ -1517,7 +1517,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Gets the converted value at the specified path</summary>
 		/// <param name="path">Path to the value. ex: <c>"foo"</c>, <c>"foo.bar"</c> or <c>"foo[2].baz"</c></param>
-		/// <returns>the value found at this location, converted into a instance of type <typeparamref name="TValue"/>, or and exception if there was not match, or the matched value is null.</returns>
+		/// <returns>the value found at this location, converted into an instance of type <typeparamref name="TValue"/>, or and exception if there was no match, or the matched value is null.</returns>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public TValue GetPath<TValue>(JsonPath path) where TValue : notnull
@@ -1528,7 +1528,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Gets the converted value at the specified path</summary>
 		/// <param name="path">Path to the value. ex: <c>"foo"</c>, <c>"foo.bar"</c> or <c>"foo[2].baz"</c></param>
 		/// <param name="defaultValue">The default value to return when the no match is found for the specified <paramref name="path" />, or it is null or missing.</param>
-		/// <returns>the value found at this location, converted into a instance of type <typeparamref name="TValue"/>, or <paramref name="defaultValue"/> if no match was found or the value is null or missing.</returns>
+		/// <returns>the value found at this location, converted into an instance of type <typeparamref name="TValue"/>, or <paramref name="defaultValue"/> if no match was found or the value is null or missing.</returns>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]

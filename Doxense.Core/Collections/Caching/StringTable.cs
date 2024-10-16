@@ -322,7 +322,7 @@ namespace Doxense.Text
 			if (text != null && arr[idx].HashCode == hashCode)
 			{
 				var result = arr[idx].Text!;
-				if (chars.SequenceEqual(result))
+				if (chars.SequenceEqual(result.AsSpan()))
 				{
 #if DEBUG_STRINGTABLE_PERFS
 					Interlocked.Increment(ref localHits);

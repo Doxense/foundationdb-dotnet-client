@@ -32,7 +32,7 @@ namespace Doxense.IO
 	using System.Text;
 	using Doxense.Serialization;
 
-	/// <summary>"Fast" version of StringWriter, that performs less checks, but is a good fit for specific use cases (serialization, ...)</summary>
+	/// <summary>"Fast" version of StringWriter, that performs fewer checks, but is a good fit for specific use cases (serialization, ...)</summary>
 	/// <remarks>This type is "unsafe" and should only be used internally, and not exposed to the caller.</remarks>
 	public sealed class FastStringWriter : TextWriter
 	{
@@ -246,7 +246,7 @@ namespace Doxense.IO
 		}
 
 		/// <inheritdoc />
-		public override Task WriteAsync(StringBuilder? value, CancellationToken cancellationToken = new CancellationToken())
+		public override Task WriteAsync(StringBuilder? value, CancellationToken cancellationToken = default)
 		{
 			if (cancellationToken.IsCancellationRequested) return Task.FromCanceled(cancellationToken);
 
@@ -254,7 +254,7 @@ namespace Doxense.IO
 			return Task.CompletedTask;
 		}
 
-		public override Task WriteAsync(ReadOnlyMemory<char> buffer, CancellationToken cancellationToken = new CancellationToken())
+		public override Task WriteAsync(ReadOnlyMemory<char> buffer, CancellationToken cancellationToken = default)
 		{
 			if (cancellationToken.IsCancellationRequested) return Task.FromCanceled(cancellationToken);
 			this.Buffer.Append(buffer.Span);
