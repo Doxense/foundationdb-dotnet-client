@@ -38,7 +38,7 @@ namespace FoundationDB.Client
 	/// <summary>Represents a path in a Directory Layer</summary>
 	[DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
-	public readonly struct FdbPath : IReadOnlyList<FdbPathSegment>, IEquatable<FdbPath>, IFormattable,  IJsonDeserializable<FdbPath>, IJsonSerializable, IJsonPackable
+	public readonly struct FdbPath : IReadOnlyList<FdbPathSegment>, IEquatable<FdbPath>, IFormattable, IJsonDeserializable<FdbPath>, IJsonSerializable, IJsonPackable
 	{
 		/// <summary>The "empty" path</summary>
 		/// <remarks>This path is relative</remarks>
@@ -418,14 +418,44 @@ namespace FoundationDB.Client
 		/// <summary>Returns a serialized string that represents this path.</summary>
 		/// <returns>All the path segments joined with a '/'. If the path is absolute, starts with a leading '/'</returns>
 		/// <remarks>Any string produced by this method can be passed back to <see cref="Parse(string)"/> to get back the original path.</remarks>
-		public override string ToString()
-			=> FormatPath(this.Segments.Span, this.IsAbsolute, namesOnly: false);
+		public override string ToString() => ToString(null, null);
 
-		/// <summary>Returns a serialized string that represents this path.</summary>
-		/// <returns>All the path segments joined with a '/'. If the path is absolute, starts with a leading '/'</returns>
-		/// <remarks>Any string produced by this method can be passed back to <see cref="Parse(string)"/> to get back the original path.</remarks>
+		///  <summary>Returns a serialized string that represents this path.</summary>
+		///  <param name="format">Supported formats are <see langword="null"/> or <c>"D"</c> to include layer ids, and <c>"N"</c> for names only</param>
+		///  <returns>All the path segments joined with a '/'. If the path is absolute, starts with a leading '/'</returns>
+		///  <remarks>
+		///  <para>Supported formats:
+		///  <list type="table">
+		/// 		<listheader><term>Format</term><description>Result</description></listheader>
+		/// 		<item><term><c>D</c></term><description><c>"/Tenants/ACME[partition]/Documents/Users"</c></description></item>
+		/// 		<item><term><c>N</c></term><description><c>"/Tenants/ACME/Documents/Users"</c></description></item>
+		///  </list></para>
+		///  <para>Any string produced by this method can be passed back to <see cref="Parse(string)"/> to get back the original path.</para>
+		///  </remarks>
+		public string ToString(string? format) => ToString(format, null);
+
+		///  <summary>Returns a serialized string that represents this path.</summary>
+		///  <param name="format">Supported formats are <see langword="null"/> or <c>"D"</c> to include layer ids, and <c>"N"</c> for names only</param>
+		///  <param name="formatProvider">The value is ignored</param>
+		///  <returns>All the path segments joined with a '/'. If the path is absolute, starts with a leading '/'</returns>
+		///  <remarks>
+		///  <para>Supported formats:
+		///  <list type="table">
+		/// 		<listheader><term>Format</term><description>Result</description></listheader>
+		/// 		<item><term><c>D</c></term><description><c>"/Tenants/ACME[partition]/Documents/Users"</c></description></item>
+		/// 		<item><term><c>N</c></term><description><c>"/Tenants/ACME/Documents/Users"</c></description></item>
+		///  </list></para>
+		///  <para>Any string produced by this method can be passed back to <see cref="Parse(string)"/> to get back the original path.</para>
+		///  </remarks>
 		public string ToString(string? format, IFormatProvider? formatProvider)
-			=> FormatPath(this.Segments.Span, this.IsAbsolute, namesOnly: false);
+		{
+			switch (format)
+			{
+				case null or "D": return FormatPath(this.Segments.Span, this.IsAbsolute, namesOnly: false);
+				case "N" or "n": return FormatPath(this.Segments.Span, this.IsAbsolute, namesOnly: true);
+				default: throw new ArgumentException("Unsupported format", nameof(format));
+			}
+		}
 
 		/// <summary>Encode a path into a string representation</summary>
 		/// <param name="path">Path to encode</param>
