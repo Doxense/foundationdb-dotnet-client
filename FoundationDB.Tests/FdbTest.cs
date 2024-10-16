@@ -143,6 +143,12 @@ namespace FoundationDB.Client.Tests
 			}
 		}
 
+		[DebuggerStepThrough]
+		protected Task DumpTree(IFdbDatabase db, FdbDirectorySubspaceLocation location)
+		{
+			return TestHelpers.DumpTree(db, location, this.Cancellation);
+		}
+
 		#region Read/Write Helpers...
 
 		protected Task<T> DbRead<T>(IFdbRetryable db, Func<IFdbReadOnlyTransaction, Task<T>> handler)

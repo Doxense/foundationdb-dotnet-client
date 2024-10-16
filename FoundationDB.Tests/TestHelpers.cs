@@ -26,6 +26,7 @@
 
 namespace FoundationDB.Client.Tests
 {
+	using SnowBank.Testing;
 
 	internal static class TestHelpers
 	{
@@ -144,8 +145,8 @@ namespace FoundationDB.Client.Tests
 				var subspace = await path.Resolve(tr);
 				if (subspace == null)
 				{
-					FdbTest.Log($"Dumping content of subspace {path}:");
-					FdbTest.Log("> EMPTY!");
+					SimpleTest.Log($"Dumping content of subspace {path}:");
+					SimpleTest.Log("> EMPTY!");
 					return;
 				}
 
@@ -158,7 +159,7 @@ namespace FoundationDB.Client.Tests
 					{
 						foreach (var name in names)
 						{
-							var child = await db.DirectoryLayer.TryOpenAsync(tr, path.Path[name]);
+							var child = await db.DirectoryLayer.TryOpenAsync(tr, name);
 							if (child != null)
 							{
 								await DumpSubspace(tr, child);
@@ -169,12 +170,54 @@ namespace FoundationDB.Client.Tests
 			}
 		}
 
+		public static async Task DumpTree(IFdbDatabase db, FdbDirectorySubspaceLocation path, CancellationToken ct)
+		{
+			Assert.That(db, Is.Not.Null);
+
+			SimpleTest.Log($"# Tree of {path}:");
+
+			using (var tr = db.BeginTransaction(ct))
+			{
+				tr.StopLogging();
+
+				await ProcessFolder(tr, path, 0);
+			}
+
+			SimpleTest.Log();
+
+
+			static async Task ProcessFolder(IFdbReadOnlyTransaction tr, FdbDirectorySubspaceLocation path, int depth)
+			{
+				var indent = new string('\t', depth);
+
+				var subspace = await path.Resolve(tr);
+				if (subspace == null)
+				{
+					SimpleTest.Log($"# {indent}- {path} => NOT FOUND");
+					return;
+				}
+
+				long n = await tr.GetEstimatedRangeSizeBytesAsync(subspace.ToRange());
+
+				SimpleTest.Log($"# {indent}- {subspace.Path[^1]} at {TuPack.Unpack(subspace.GetPrefix())} {(n == 0 ? "<empty>" : $"~{n:N0} bytes")}");
+
+				var names = await tr.Database.DirectoryLayer.TryListAsync(tr, path.Path);
+				if (names != null)
+				{
+					foreach (var name in names)
+					{
+						await ProcessFolder(tr, path[name[^1]], depth + 1);
+					}
+				}
+			}
+		}
+
 		public static async Task DumpSubspace(IFdbReadOnlyTransaction tr, IKeySubspace subspace)
 		{
 			Assert.That(tr, Is.Not.Null);
 			Assert.That(subspace, Is.Not.Null);
 
-			FdbTest.Log($"Dumping content of {subspace} at {subspace.GetPrefix():K}:");
+			SimpleTest.Log($"Dumping content of {subspace} at {subspace.GetPrefix():K}:");
 			int count = 0;
 			await tr
 				.GetRange(KeyRange.StartsWith(subspace.GetPrefix()))
@@ -194,13 +237,17 @@ namespace FoundationDB.Client.Tests
 						keyDump = "'" + key.ToString() + "'";
 					}
 						
-					FdbTest.Log("- " + keyDump + " = " + kvp.Value.ToString());
+					SimpleTest.Log($"- {keyDump} = {kvp.Value}");
 				});
 
 			if (count == 0)
-				FdbTest.Log("> empty !");
+			{
+				SimpleTest.Log("> empty !");
+			}
 			else
-				FdbTest.Log("> Found " + count + " values");
+			{
+				SimpleTest.Log("> Found " + count + " values");
+			}
 		}
 
 		public static async Task AssertThrowsFdbErrorAsync(Func<Task> asyncTest, FdbError expectedCode, string message)
