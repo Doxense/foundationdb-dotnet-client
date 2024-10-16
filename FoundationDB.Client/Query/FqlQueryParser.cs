@@ -54,7 +54,16 @@ namespace FoundationDB.Client
 						remaining = remaining[1..];
 						var segment = ReadDirectory(ref remaining);
 
-						(directoryExpr ??= new ()).Add(segment);
+						if (directoryExpr == null)
+						{
+							directoryExpr = new();
+							if (!segment.IsRoot)
+							{ // add implicit root
+								directoryExpr.Add(FqlPathSegment.Root());
+							}
+						}
+						directoryExpr.Add(segment);
+
 
 						break;
 					}
@@ -93,7 +102,7 @@ namespace FoundationDB.Client
 
 			if (text.Length == 0)
 			{
-				return FqlPathSegment.Literal("", null);
+				return FqlPathSegment.Root();
 			}
 
 			char next = text[0];

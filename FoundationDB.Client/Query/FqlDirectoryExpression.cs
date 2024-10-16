@@ -38,6 +38,7 @@ namespace FoundationDB.Client
 	public enum FqlPathSegmentType
 	{
 		Invalid = 0,
+		Root, // only valid as the single segment of "/"
 		Literal,
 		Any,
 	}
@@ -60,25 +61,35 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public bool IsPattern => this.Type is FqlPathSegmentType.Any;
 
+		public bool IsRoot => this.Type is FqlPathSegmentType.Root;
+
+		public bool IsAny => this.Type is FqlPathSegmentType.Any;
+
 		public static FqlPathSegment Literal(FdbPathSegment segment) => new(FqlPathSegmentType.Literal, segment);
 
 		public static FqlPathSegment Literal(string value, string? layerId) => new(FqlPathSegmentType.Literal, layerId != null ? FdbPathSegment.Create(value, layerId) : FdbPathSegment.Create(value));
 
 		public static FqlPathSegment Any() => new(FqlPathSegmentType.Any, null);
 
+		public static FqlPathSegment Root() => new(FqlPathSegmentType.Root, null);
+
 		public bool Matches(FdbPathSegment segment)
 		{
 			switch (this.Type)
 			{
-				case FqlPathSegmentType.Any:
+				case FqlPathSegmentType.Root:
 				{
-					return true;
+					return segment.IsEmpty;
 				}
 				case FqlPathSegmentType.Literal:
 				{
 					return string.IsNullOrEmpty(this.Value.LayerId)
 						? this.Value.Name == segment.Name
 						: this.Value.Name == segment.Name && this.Value.LayerId == segment.LayerId;
+				}
+				case FqlPathSegmentType.Any:
+				{
+					return true;
 				}
 				default:
 				{
@@ -100,8 +111,9 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public override string ToString() => this.Type switch
 		{
-			FqlPathSegmentType.Any => "<>",
+			FqlPathSegmentType.Root => "/",
 			FqlPathSegmentType.Literal => (this.Value.Name.Contains('"') ? $"\"{this.Value.Name.Replace("\"", "\\\"")}\"" : this.Value.Name) + (!string.IsNullOrEmpty(this.Value.LayerId) ? $"[{this.Value.LayerId}]" : ""),
+			FqlPathSegmentType.Any => "<>",
 			_ => "<invalid>"
 		};
 
@@ -150,16 +162,34 @@ namespace FoundationDB.Client
 			return this;
 		}
 
+		public FqlDirectoryExpression AddRoot()
+		{
+			if (this.Segments.Count != 0) throw new InvalidOleVariantTypeException("Root must be the first item");
+			this.Segments.Add(FqlPathSegment.Root());
+			return this;
+		}
+
 		public FqlDirectoryExpression AddAny()
 		{
 			this.Segments.Add(FqlPathSegment.Any());
 			return this;
 		}
 
-		public bool Matches(FdbPath path)
+		public bool Match(FdbPath path)
 		{
 			var segments = CollectionsMarshal.AsSpan(this.Segments);
 
+			if (segments.Length == 0)
+			{
+				return path.IsEmpty;
+			}
+
+			if (segments[0].IsRoot)
+			{ // check if the path is aboslute
+				if (!path.IsAbsolute) return false;
+				segments = segments[1..];
+			}
+			
 			if (path.Count != segments.Length)
 			{ // must have the same number of segments
 				return false;
@@ -179,14 +209,21 @@ namespace FoundationDB.Client
 
 			var sb = new StringBuilder();
 
-			foreach (var seg in this.Segments)
+			var segments = CollectionsMarshal.AsSpan(this.Segments);
+
+			if (segments.Length == 0) return "";
+			if (segments.Length == 1 && segments[0].IsRoot) return "/";
+
+			bool needsSlash = false;
+			for(int i = 0; i < segments.Length; i++)
 			{
-				sb.Append('/');
-				switch (seg.Type)
+				if (needsSlash) sb.Append('/');
+				switch (segments[i].Type)
 				{
-					case FqlPathSegmentType.Literal: sb.Append(seg.ToString()); break;
-					case FqlPathSegmentType.Any: sb.Append("<>"); break;
-					default: sb.Append("<???>"); break;
+					case FqlPathSegmentType.Root: sb.Append('/'); break;
+					case FqlPathSegmentType.Literal: sb.Append(segments[i].ToString()); needsSlash = true; break;
+					case FqlPathSegmentType.Any: sb.Append("<>"); needsSlash = true; break;
+					default: sb.Append("<???>"); needsSlash = true; break;
 				}
 			}
 
@@ -241,6 +278,64 @@ namespace FoundationDB.Client
 			}
 			return true;
 		}
+
+		public (FdbPath Path, int Next) GetFixedPrefix(int from)
+		{
+			var items = CollectionsMarshal.AsSpan(this.Segments);
+
+			int index = from;
+			items = items[from..];
+
+			FdbPath p = FdbPath.Empty;
+			if (from == 0 && items[0].IsRoot)
+			{
+				p = FdbPath.Root;
+				items = items[1..];
+				++index;
+			}
+
+			foreach (var item in items)
+			{
+				if (item.Type != FqlPathSegmentType.Literal) break;
+				p = p[item.Value];
+				++index;
+			}
+
+			return (p, index);
+		}
+
+		public bool TryGetPath(out FdbPath path)
+		{
+			var items = CollectionsMarshal.AsSpan(this.Segments);
+
+			if (items.Length == 0)
+			{
+				path = FdbPath.Empty;
+				return true;
+			}
+
+			FdbPath p = FdbPath.Empty;
+			if (items[0].IsRoot)
+			{
+				p = FdbPath.Root;
+				items = items[1..];
+			}
+
+			foreach (var item in items)
+			{
+				if (item.Type != FqlPathSegmentType.Literal) goto invalid;
+				p = p[item.Value];
+			}
+
+			path = p;
+			return true;
+
+		invalid:
+			path = default;
+			return false;
+		}
+
+		public FqlPathSegment this[int index] => this.Segments[index];
 
 	}
 

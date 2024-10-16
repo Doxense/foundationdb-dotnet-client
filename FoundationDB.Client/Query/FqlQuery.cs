@@ -71,7 +71,7 @@ namespace FoundationDB.Client
 			output.WriteLine($"{indent}Query: `{ToString()}`");
 			if (this.Directory != null)
 			{
-				this.Directory.Explain(output, depth + 1, true);
+				this.Directory.Explain(output, depth + 1);
 			}
 			else
 			{
@@ -80,7 +80,7 @@ namespace FoundationDB.Client
 
 			if (this.Tuple != null)
 			{
-				this.Tuple.Explain(output, depth + 1, true);
+				this.Tuple.Explain(output, depth + 1);
 			}
 			else
 			{
@@ -88,6 +88,51 @@ namespace FoundationDB.Client
 			}
 		}
 
+		public async IAsyncEnumerable<FdbDirectorySubspace> EnumerateDirectories(IFdbReadOnlyTransaction tr)
+		{
+
+			if (this.Directory == null)
+			{
+				yield break;
+			}
+
+			if (this.Directory.TryGetPath(out FdbPath path))
+			{ // this is a fixed path, ex: "/foo/bar/baz", we can open it directly
+
+				var subspace = await tr.Database.DirectoryLayer.TryOpenAsync(tr, path).ConfigureAwait(false);
+
+				if (subspace != null)
+				{
+					yield return subspace;
+				}
+			}
+			else
+			{
+				var (prefix, next) = this.Directory.GetFixedPrefix(0);
+				var subspace = await tr.Database.DirectoryLayer.TryOpenAsync(tr, prefix).ConfigureAwait(false);
+
+				if (subspace == null)
+				{
+					yield break;
+				}
+
+				if (this.Directory[next].IsAny)
+				{
+					// list its children
+					var children = await subspace.ListAsync(tr).ConfigureAwait(false);
+					foreach (var child in children)
+					{
+						subspace = await tr.Database.DirectoryLayer.TryOpenAsync(tr, child).ConfigureAwait(false);
+						if (subspace != null)
+						{
+							yield return subspace;
+						}
+					}
+				}
+
+			}
+
+		}
 	}
 
 }

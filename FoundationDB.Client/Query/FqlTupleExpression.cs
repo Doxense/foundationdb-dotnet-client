@@ -150,7 +150,7 @@ namespace FoundationDB.Client
 
 		public bool Equals(int value)
 		{
-			if (this.Type == FqlItemType.Int) return ((long) this.Value!) == (long) value;
+			if (this.Type == FqlItemType.Int) return ((long) this.Value!) == value;
 			if (this.Type == FqlItemType.UInt) return value >= 0 && ((ulong) this.Value!) == (ulong) value;
 			return false;
 		}
@@ -178,11 +178,13 @@ namespace FoundationDB.Client
 
 		public bool Equals(float value)
 		{
+			// ReSharper disable once CompareOfFloatsByEqualityOperator
 			return this.Type == FqlItemType.Float && (float.IsNaN(value) ? double.IsNaN((double) this.Value!) : ((double) this.Value!) == value);
 		}
 
 		public bool Equals(double value)
 		{
+			// ReSharper disable once CompareOfFloatsByEqualityOperator
 			return this.Type == FqlItemType.Float && (double.IsNaN(value) ? double.IsNaN((double) this.Value!) : ((double) this.Value!) == value);
 		}
 
@@ -213,7 +215,7 @@ namespace FoundationDB.Client
 
 		public bool Equals(IVarTuple value)
 		{
-			return this.Type == FqlItemType.Tuple && ((FqlTupleExpression) this.Value!).Matches(value);
+			return this.Type == FqlItemType.Tuple && ((FqlTupleExpression) this.Value!).Match(value);
 		}
 
 		public static bool MatchType(FqlVariableTypes types, object? value)
@@ -266,7 +268,7 @@ namespace FoundationDB.Client
 			output.WriteLine($"{indent}{this.Type}: {this.ToString()}");
 		}
 
-		private static Dictionary<FqlVariableTypes, string> s_typesLiteralCache = new();
+		private static readonly Dictionary<FqlVariableTypes, string> s_typesLiteralCache = new();
 
 		public string ToTypeLiteral(FqlVariableTypes types)
 		{
@@ -344,7 +346,7 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public bool IsPattern => this.Items.Any(x => x.IsPattern);
 
-		public bool Matches(IVarTuple? tuple)
+		public bool Match(IVarTuple? tuple)
 		{
 			if (tuple == null) return false;
 
@@ -489,12 +491,13 @@ namespace FoundationDB.Client
 				++depth;
 				foreach (var item in this.Items)
 				{
-					item.Explain(output, depth, true);
+					item.Explain(output, depth);
 				}
 			}
 		}
 
 	}
+
 }
 
 #endif
