@@ -986,8 +986,9 @@ namespace Doxense.Collections.Tuples.Encoding
 					}
 					case TupleTypes.Escape:
 					{
-						if (slice.Count == 1) return TuPackUserType.System;
-						break;
+						return slice.Count == 1
+							? TuPackUserType.System
+							: TuPackUserType.SystemKey(slice[1..]);
 					}
 				}
 			}
@@ -1039,8 +1040,7 @@ namespace Doxense.Collections.Tuples.Encoding
 					}
 					case TupleTypes.Escape:
 					{
-						if (slice.Length == 1) return TuPackUserType.System;
-						break;
+						return slice.Length == 1 ? TuPackUserType.System : TuPackUserType.SystemKey(slice[1..].ToSlice());
 					}
 				}
 			}
@@ -1145,7 +1145,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				return new TuPackUserType(type);
 			}
 
-			return new TuPackUserType(type, slice.Substring(1));
+			return new TuPackUserType(type, slice[1..]);
 		}
 
 		public static TuPackUserType? DeserializeUserType(ReadOnlySpan<byte> slice)
@@ -1164,7 +1164,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				return new TuPackUserType(type);
 			}
 
-			return new TuPackUserType(type, Slice.Copy(slice.Slice(1)));
+			return new TuPackUserType(type, slice[1..].ToSlice());
 		}
 
 		/// <summary>Deserialize a tuple segment into a tuple</summary>

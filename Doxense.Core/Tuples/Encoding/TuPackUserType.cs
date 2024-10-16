@@ -31,9 +31,12 @@ namespace Doxense.Collections.Tuples.Encoding
 	public sealed class TuPackUserType : IEquatable<TuPackUserType>
 	{
 
-		public static readonly TuPackUserType Directory = new TuPackUserType(0xFE);
+		public const byte TypeDirectory= 0xFE;
+		public const byte TypeSystem = 0xFF;
 
-		public static readonly TuPackUserType System = new TuPackUserType(0xFF);
+		public static readonly TuPackUserType Directory = new(TypeDirectory);
+
+		public static readonly TuPackUserType System = new(TypeSystem);
 
 		public TuPackUserType(int type)
 		{
@@ -54,8 +57,8 @@ namespace Doxense.Collections.Tuples.Encoding
 		{
 			switch (this.Type)
 			{
-				case 0xFE: return "|Directory|";
-				case 0xFF: return "|System|";
+				case TypeDirectory: return this.Value.IsNullOrEmpty ? "|Directory|" : $"|Directory|{this.Value:K}";
+				case TypeSystem: return this.Value.IsNullOrEmpty ? "|System|" : $"|System|{this.Value:K}";
 			}
 
 			if (this.Value.IsNull)
@@ -64,6 +67,18 @@ namespace Doxense.Collections.Tuples.Encoding
 			}
 			return $"|User-{this.Type:X02}:{this.Value:N}|";
 		}
+
+		/// <summary>Returns a type that matches a system key (ex: <c>'\xFF/metadataVersion'</c>)</summary>
+		/// <param name="name">Key, excluding the initial <c>\xFF</c> byte (ex: "/metadataVersion" instead of "\xFF/metadataVersion")</param>
+		public static TuPackUserType SystemKey(Slice name) => new(TypeSystem, name);
+
+		/// <summary>Returns a type that matches a system key (ex: <c>'\xFF/metadataVersion'</c>)</summary>
+		/// <param name="name">Key, excluding the initial <c>\xFF</c> byte (ex: "/metadataVersion" instead of "\xFF/metadataVersion")</param>
+		public static TuPackUserType SystemKey(ReadOnlySpan<byte> name) => new(TypeSystem, name.ToSlice());
+
+		/// <summary>Returns a type that matches a system key (ex: <c>'\xFF/metadataVersion'</c>)</summary>
+		/// <param name="name">Name of key, excluding the initial <c>\xFF</c> byte (ex: "/metadataVersion" instead of "\xFF/metadataVersion")</param>
+		public static TuPackUserType SystemKey(string name) => new(TypeSystem, Slice.FromByteString(name));
 
 		#region Equality...
 
@@ -85,5 +100,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		#endregion
+
 	}
+
 }

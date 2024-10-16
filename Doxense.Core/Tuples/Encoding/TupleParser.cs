@@ -1579,6 +1579,16 @@ namespace Doxense.Collections.Tuples.Encoding
 				case TupleTypes.Directory:
 				case TupleTypes.Escape:
 				{ // <FE> or <FF>
+
+					// if <FF> and this is the first byte, we are reading a system key like '\xFF/something"
+					if (reader.Cursor == 0)
+					{
+						token = new(reader.Cursor, reader.Input.Length);
+						reader.Advance(reader.Remaining);
+						error = null;
+						return true;
+					}
+
 					return reader.TryReadBytes(1, out token, out error);
 				}
 			}
