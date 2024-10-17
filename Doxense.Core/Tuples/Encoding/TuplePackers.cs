@@ -2044,7 +2044,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				case TupleTypes.Double:
 				{ // Number of days since Epoch
 					const long UNIX_EPOCH_TICKS = 621355968000000000L;
-					//note: we can't user TimeSpan.FromDays(...) because it rounds to the nearest millisecond!
+					//note: we can't use TimeSpan.FromDays(...) because it rounds to the nearest millisecond!
 					long ticks = UNIX_EPOCH_TICKS + (long)(TupleParser.ParseDouble(slice) * TimeSpan.TicksPerDay);
 					return new DateTime(ticks, DateTimeKind.Utc);
 				}
@@ -2052,7 +2052,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				case TupleTypes.Decimal:
 				{
 					const long UNIX_EPOCH_TICKS = 621355968000000000L;
-					//note: we can't user TimeSpan.FromDays(...) because it rounds to the nearest millisecond!
+					//note: we can't use TimeSpan.FromDays(...) because it rounds to the nearest millisecond!
 					long ticks = UNIX_EPOCH_TICKS + (long)(TupleParser.ParseDecimal(slice) * TimeSpan.TicksPerDay);
 					return new DateTime(ticks, DateTimeKind.Utc);
 				}
@@ -2096,7 +2096,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				case TupleTypes.Double:
 				{ // Number of days since Epoch
 					const long UNIX_EPOCH_TICKS = 621355968000000000L;
-					//note: we can't user TimeSpan.FromDays(...) because it rounds to the nearest millisecond!
+					//note: we can't use TimeSpan.FromDays(...) because it rounds to the nearest millisecond!
 					long ticks = UNIX_EPOCH_TICKS + (long)(TupleParser.ParseDouble(slice) * TimeSpan.TicksPerDay);
 					return new DateTime(ticks, DateTimeKind.Utc);
 				}
@@ -2104,7 +2104,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				case TupleTypes.Decimal:
 				{
 					const long UNIX_EPOCH_TICKS = 621355968000000000L;
-					//note: we can't user TimeSpan.FromDays(...) because it rounds to the nearest millisecond!
+					//note: we can't use TimeSpan.FromDays(...) because it rounds to the nearest millisecond!
 					long ticks = UNIX_EPOCH_TICKS + (long)(TupleParser.ParseDecimal(slice) * TimeSpan.TicksPerDay);
 					return new DateTime(ticks, DateTimeKind.Utc);
 				}
@@ -2148,7 +2148,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				case TupleTypes.Double:
 				{ // Number of days since Epoch
 					const long UNIX_EPOCH_TICKS = 621355968000000000L;
-					//note: we can't user TimeSpan.FromDays(...) because it rounds to the nearest millisecond!
+					//note: we can't use TimeSpan.FromDays(...) because it rounds to the nearest millisecond!
 					long ticks = UNIX_EPOCH_TICKS + (long)(TupleParser.ParseDouble(slice) * TimeSpan.TicksPerDay);
 					return new DateTimeOffset(new DateTime(ticks, DateTimeKind.Utc));
 				}
@@ -2156,7 +2156,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				case TupleTypes.Decimal:
 				{
 					const long UNIX_EPOCH_TICKS = 621355968000000000L;
-					//note: we can't user TimeSpan.FromDays(...) because it rounds to the nearest millisecond!
+					//note: we can't use TimeSpan.FromDays(...) because it rounds to the nearest millisecond!
 					long ticks = UNIX_EPOCH_TICKS + (long)(TupleParser.ParseDecimal(slice) * TimeSpan.TicksPerDay);
 					return new DateTimeOffset(new DateTime(ticks, DateTimeKind.Utc));
 				}
@@ -2200,7 +2200,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				case TupleTypes.Double:
 				{ // Number of days since Epoch
 					const long UNIX_EPOCH_TICKS = 621355968000000000L;
-					//note: we can't user TimeSpan.FromDays(...) because it rounds to the nearest millisecond!
+					//note: we can't use TimeSpan.FromDays(...) because it rounds to the nearest millisecond!
 					long ticks = UNIX_EPOCH_TICKS + (long)(TupleParser.ParseDouble(slice) * TimeSpan.TicksPerDay);
 					return new DateTimeOffset(new DateTime(ticks, DateTimeKind.Utc));
 				}
@@ -2208,7 +2208,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				case TupleTypes.Decimal:
 				{
 					const long UNIX_EPOCH_TICKS = 621355968000000000L;
-					//note: we can't user TimeSpan.FromDays(...) because it rounds to the nearest millisecond!
+					//note: we can't use TimeSpan.FromDays(...) because it rounds to the nearest millisecond!
 					long ticks = UNIX_EPOCH_TICKS + (long)(TupleParser.ParseDecimal(slice) * TimeSpan.TicksPerDay);
 					return new DateTimeOffset(new DateTime(ticks, DateTimeKind.Utc));
 				}
@@ -2527,7 +2527,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				{
 					return TupleParser.ParseGuid(slice);
 				}
-				//REVIEW: should we allow converting a Uuid64 into a Guid? This looks more like a bug than an expected behavior...
+				//REVIEW: should we allow converting an Uuid64 into a Guid? This looks more like a bug than an expected behavior...
 			}
 
 			throw new FormatException($"Cannot convert tuple segment of type 0x{type:X} into a System.Guid");
@@ -2548,7 +2548,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				TupleTypes.Bytes => Guid.Parse(TupleParser.ParseAscii(slice)),
 				TupleTypes.Utf8 => Guid.Parse(TupleParser.ParseUnicode(slice)),
 				TupleTypes.Uuid128 => TupleParser.ParseGuid(slice),
-				//REVIEW: should we allow converting a Uuid64 into a Guid? This looks more like a bug than an expected behavior...
+				//REVIEW: should we allow converting an Uuid64 into a Guid? This looks more like a bug than an expected behavior...
 				_ => throw new FormatException($"Cannot convert tuple segment of type 0x{slice[0]:X02} into a System.Guid")
 			};
 		}
@@ -2581,7 +2581,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				{
 					return TupleParser.ParseUuid128(slice);
 				}
-				//REVIEW: should we allow converting a Uuid64 into a Uuid128? This looks more like a bug than an expected behavior...
+				//REVIEW: should we allow converting an Uuid64 into an Uuid128? This looks more like a bug than an expected behavior...
 			}
 
 			throw new FormatException($"Cannot convert tuple segment of type 0x{type:X} into an Uuid128");
@@ -2615,7 +2615,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				{
 					return TupleParser.ParseUuid128(slice);
 				}
-				//REVIEW: should we allow converting a Uuid64 into a Uuid128? This looks more like a bug than an expected behavior...
+				//REVIEW: should we allow converting an Uuid64 into an Uuid128? This looks more like a bug than an expected behavior...
 			}
 
 			throw new FormatException($"Cannot convert tuple segment of type 0x{type:X} into an Uuid128");
@@ -3042,7 +3042,8 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		/// <summary>Ensure that a slice is a packed tuple that contains a single and valid element</summary>
 		/// <param name="buffer">Slice that should contain the packed representation of a singleton tuple</param>
-		/// <returns>Decoded slice of the single element in the singleton tuple</returns>
+		/// <param name="token">Position of the decoded slice in the buffer</param>
+		/// <returns></returns>
 		public static bool TryUnpackSingle(ReadOnlySpan<byte> buffer, out Range token)
 		{
 			var reader = new TupleReader(buffer);
@@ -3119,10 +3120,11 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		/// <summary>Only returns the last N items of a packed tuple, without decoding them.</summary>
 		/// <param name="buffer">Slice that contains the packed representation of a tuple with at least 3 elements</param>
-		/// <param name="tokens">Array that will receive the last N raw slice corresponding to the each of the last N elements</param>
+		/// <param name="tokens">Array that will receive the last N raw slice corresponding to each of the last N elements</param>
 		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <param name="error">Receive an exception if the parsing failed</param>
 		/// <returns><see langword="true"/> if the buffer was successfully parsed and has the expected size</returns>
+		/// <exception cref="InvalidOperationException">If the decoded tuple does not have the expected size</exception>
 		public static bool TryUnpackLast(ReadOnlySpan<byte> buffer, Span<Range> tokens, int? expectedSize, out Exception? error)
 		{
 			error = null;
@@ -3159,7 +3161,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			}
 
 			if (n < tokens.Length || reader.HasMore)
-			{ // tuple has less elements than expected or has extra bytes
+			{ // tuple has fewer elements than expected or has extra bytes
 				error = new InvalidOperationException("Tuple has less elements than expected.");
 				tokens.Clear();
 				return false;

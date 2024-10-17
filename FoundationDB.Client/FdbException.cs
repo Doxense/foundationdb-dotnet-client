@@ -30,21 +30,22 @@ namespace FoundationDB.Client
 	using System.Security;
 	using FoundationDB.Client.Native;
 
-	/// <summary>FoundationDB API Error Code</summary>
+	/// <summary>Represents an error that occurred while calling the FoundationDB Client API</summary>
 	[Serializable]
 	public sealed class FdbException : Exception
 	{
 
+		/// <summary>Creates a new exception with a given code</summary>
 		public FdbException(FdbError errorCode)
 			: this(errorCode, FdbNative.GetErrorMessage(errorCode) ?? $"Unexpected error code {(int) errorCode}", null)
-		{
-		}
+		{ }
 
+		/// <summary>Creates a new exception with a given code, message</summary>
 		public FdbException(FdbError errorCode, string message)
 			: this(errorCode, message, null)
-		{		
-		}
+		{ }
 
+		/// <summary>Creates a new exception with a given code, message, and inner exception</summary>
 		public FdbException(FdbError errorCode, string message, Exception? innerException)
 			: base(message, innerException)
 		{
@@ -70,11 +71,8 @@ namespace FoundationDB.Client
 			info.AddValue("Code", (int)this.Code);
 		}
 
-		/// <summary>Gets the code for this error.</summary>
+		/// <summary>Gets the <see cref="FdbError">error code</see> returned by the Native API.</summary>
 		public FdbError Code { get; }
-
-		/// <summary>Determine if this FDBError represents a success code from the native layer.</summary>
-		public bool Success => this.Code == FdbError.Success;
 
 		//REVIEW: do we need to add more properties? TransactionId ? DBName? 
 

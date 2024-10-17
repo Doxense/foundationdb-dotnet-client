@@ -535,10 +535,16 @@ namespace FoundationDB.Client
 			return Slice.Dump(key);
 		}
 
+		/// <summary>How a key should be formatted</summary>
 		public enum PrettyPrintMode
 		{
+			/// <summary>The key points to an actual entry in the database, and in not part of a <see cref="KeySelector"/> or <see cref="KeyRange"/></summary>
 			Single = 0,
+
+			/// <summary>The key represents the "Begin" key of a <see cref="KeySelector"/> or <see cref="KeyRange"/>, and may be incomplete.</summary>
 			Begin = 1,
+
+			/// <summary>The key represents the "End" key of a <see cref="KeySelector"/> or <see cref="KeyRange"/>, and may be incomplete.</summary>
 			End = 2,
 		}
 

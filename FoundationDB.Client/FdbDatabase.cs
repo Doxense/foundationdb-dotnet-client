@@ -127,50 +127,36 @@ namespace FoundationDB.Client
 
 		string IFdbDatabase.Name => "DB";
 
+		/// <inheritdoc />
 		public string? ClusterFile => m_handler.ClusterFile;
 
-		/// <summary>Returns a cancellation token that is linked with the lifetime of this database instance</summary>
-		/// <remarks>The token will be cancelled if the database instance is disposed</remarks>
+		/// <inheritdoc />
 		public CancellationToken Cancellation { get; }
 
-		/// <summary>If true, this database instance will only allow starting read-only transactions.</summary>
+		/// <inheritdoc />
 		public bool IsReadOnly => m_readOnly;
 
 		/// <summary>Root directory of this database instance</summary>
 		/// <remarks>Starts at the same path as the <see cref="Root"/> location, meaning that <code>db.Directory["Foo"]</code> will point to the same location as db.Root.Path.Add("Foo").</remarks>
 		public IFdbDirectory Directory => m_root;
 
-		/// <summary>Return the DirectoryLayer instance used by this database</summary>
+		/// <inheritdoc />
 		public FdbDirectoryLayer DirectoryLayer => m_directory;
 
 		/// <summary>Internal handler</summary>
 		internal IFdbDatabaseHandler Handler => m_handler;
 
-		/// <summary>Return the currently enforced API version for this database instance.</summary>
+		/// <inheritdoc />
 		public int GetApiVersion() => m_handler.GetApiVersion();
 
-		/// <summary>Returns a value between 0 and 1 that reflect the saturation of the client main thread.</summary>
-		/// <returns>Value between 0 (no activity) and 1 (completly saturated)</returns>
-		/// <remarks>The value is updated in the background at regular interval (by default every second).</remarks>
+		/// <inheritdoc />
 		public double GetMainThreadBusyness() => m_handler.GetMainThreadBusyness();
 
 		#endregion
 
 		#region Transaction Management...
 
-		/// <summary>Start a new transaction on this database</summary>
-		/// <param name="mode">Mode of the new transaction (read-only, read-write, ...)</param>
-		/// <param name="ct">Optional cancellation token that can abort all pending async operations started by this transaction.</param>
-		/// <param name="context">If not null, attach the new transaction to an existing context.</param>
-		/// <returns>New transaction instance that can read from or write to the database.</returns>
-		/// <remarks>You MUST call Dispose() on the transaction when you are done with it. You SHOULD wrap it in a 'using' statement to ensure that it is disposed in all cases.</remarks>
-		/// <example>
-		/// using(var tr = db.BeginTransaction(CancellationToken.None))
-		/// {
-		///		tr.Set(Slice.FromString("Hello"), Slice.FromString("World"));
-		///		tr.Clear(Slice.FromString("OldValue"));
-		///		await tr.CommitAsync();
-		/// }</example>
+		/// <inheritdoc />
 		[Obsolete("Use BeginTransaction() instead")]
 		public ValueTask<IFdbTransaction> BeginTransactionAsync(FdbTransactionMode mode, CancellationToken ct, FdbOperationContext? context = null)
 		{
@@ -189,12 +175,7 @@ namespace FoundationDB.Client
 			}
 		}
 
-		/// <summary>Start a new transaction on this database</summary>
-		/// <param name="mode">Mode of the new transaction (read-only, read-write, ...)</param>
-		/// <param name="ct">Optional cancellation token that can abort all pending async operations started by this transaction.</param>
-		/// <param name="context">If not null, attach the new transaction to an existing context.</param>
-		/// <returns>New transaction instance that can read from or write to the database.</returns>
-		/// <remarks>You MUST call Dispose() on the transaction when you are done with it. You SHOULD wrap it in a 'using' statement to ensure that it is disposed in all cases.</remarks>
+		/// <inheritdoc />
 		public IFdbTransaction BeginTransaction(FdbTransactionMode mode, CancellationToken ct, FdbOperationContext? context = null)
 		{
 			ThrowIfDisposed();
@@ -323,6 +304,7 @@ namespace FoundationDB.Client
 			m_tenants.TryRemove(KeyValuePair.Create(tenant.Name, tenant));
 		}
 
+		/// <inheritdoc />
 		public IFdbTenant GetTenant(FdbTenantName name)
 		{
 			ThrowIfDisposed();
@@ -342,7 +324,7 @@ namespace FoundationDB.Client
 				var handler = m_handler.OpenTenant(nameCopy);
 				tenant = new FdbTenant(this, handler, nameCopy);
 
-				var actual = m_tenants.GetOrAdd(nameCopy, tenant); //HACKHACK ! :(
+				var actual = m_tenants.GetOrAdd(nameCopy, tenant); //HACKHACK: ! :(
 				if (!object.ReferenceEquals(actual, tenant))
 				{
 					tenant.Dispose();
@@ -355,13 +337,14 @@ namespace FoundationDB.Client
 			{
 				if (tenant != null)
 				{
-					m_tenants.TryRemove(new KeyValuePair<FdbTenantName, FdbTenant>(nameCopy, tenant)); //HACKHACK ! :(
+					m_tenants.TryRemove(new KeyValuePair<FdbTenantName, FdbTenant>(nameCopy, tenant)); //HACKHACK: ! :(
 					tenant.Dispose();
 				}
 				throw;
 			}
 		}
 
+		/// <inheritdoc/>
 		public Task RebootWorkerAsync(string name, bool check, int duration, CancellationToken ct)
 		{
 			ThrowIfDisposed();
@@ -371,6 +354,7 @@ namespace FoundationDB.Client
 			return m_handler.RebootWorkerAsync(name, check, duration, ct);
 		}
 
+		/// <inheritdoc/>
 		public Task ForceRecoveryWithDataLossAsync(string dcId, CancellationToken ct)
 		{
 			ThrowIfDisposed();
@@ -379,6 +363,7 @@ namespace FoundationDB.Client
 			return m_handler.ForceRecoveryWithDataLossAsync(dcId, ct);
 		}
 
+		/// <inheritdoc/>
 		public Task CreateSnapshotAsync(string uid, string snapCommand, CancellationToken ct)
 		{
 			ThrowIfDisposed();
@@ -388,6 +373,7 @@ namespace FoundationDB.Client
 			return m_handler.CreateSnapshotAsync(uid, snapCommand, ct);
 		}
 
+		/// <inheritdoc/>
 		public Task<ulong> GetServerProtocolAsync(CancellationToken ct)
 		{
 			ThrowIfDisposed();
@@ -395,6 +381,7 @@ namespace FoundationDB.Client
 			return m_handler.GetServerProtocolAsync(0, ct);
 		}
 
+		/// <inheritdoc/>
 		public Task<Slice> GetClientStatus(CancellationToken ct)
 		{
 			ThrowIfDisposed();
@@ -402,6 +389,7 @@ namespace FoundationDB.Client
 			return m_handler.GetClientStatus(ct);
 		}
 
+		/// <inheritdoc/>
 		public void SetDefaultLogHandler(Action<FdbTransactionLog>? handler, FdbLoggingOptions options = default)
 		{
 			this.DefaultLogHandler = handler;
@@ -614,6 +602,7 @@ namespace FoundationDB.Client
 
 		#region Database Options...
 
+		/// <inheritdoc/>
 		public IFdbDatabaseOptions Options => this;
 
 		/// <inheritdoc/>
@@ -819,6 +808,7 @@ namespace FoundationDB.Client
 			return true;
 		}
 
+		/// <inheritdoc/>
 		public IFdbDatabaseScopeProvider<TState> CreateScope<TState>(Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase Db, TState State)>> start, CancellationToken lifetime = default)
 		{
 			Contract.NotNull(start);

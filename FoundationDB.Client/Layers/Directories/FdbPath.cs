@@ -29,6 +29,7 @@ namespace FoundationDB.Client
 	using System;
 	using System.Collections;
 	using System.Diagnostics;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Linq;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
@@ -493,6 +494,7 @@ namespace FoundationDB.Client
 			return sb.ToString();
 		}
 
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public IEnumerator<FdbPathSegment> GetEnumerator()
 		{
@@ -691,6 +693,7 @@ namespace FoundationDB.Client
 			};
 		}
 
+		/// <summary>Parses a string representing a path into the corresponding <see cref="FdbPath"/> instance, if it is valid.</summary>
 		public static bool TryParse(ReadOnlySpan<char> path, out FdbPath result)
 		{
 			if (path.Length == 0)
@@ -801,6 +804,7 @@ namespace FoundationDB.Client
 
 		#region Equality...
 
+		/// <inheritdoc />
 		public override int GetHashCode()
 		{
 			//this must be fast because we will use paths as keys in directories a lot (cache context)
@@ -818,33 +822,39 @@ namespace FoundationDB.Client
 			};
 		}
 
-		public override bool Equals(object? obj)
+		/// <inheritdoc />
+		public override bool Equals([NotNullWhen(true)] object? obj)
 		{
 			return obj is FdbPath other && Equals(other);
 		}
 
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(FdbPath other)
 		{
 			return this.IsAbsolute == other.IsAbsolute && this.Segments.Span.SequenceEqual(other.Segments.Span);
 		}
 
+		/// <summary>Tests if two paths are equal</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool operator ==(FdbPath left, FdbPath right)
 		{
 			return left.IsAbsolute == right.IsAbsolute && left.Segments.Span.SequenceEqual(right.Segments.Span);
 		}
 
+		/// <summary>Tests if two paths are not equal</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool operator !=(FdbPath left, FdbPath right)
 		{
 			return left.IsAbsolute != right.IsAbsolute || !left.Segments.Span.SequenceEqual(right.Segments.Span);
 		}
 
+		/// <summary>Combine two paths</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbPath operator +(FdbPath head, FdbPath tail)
 			=> head.Add(tail);
 
+		/// <summary>Appends a path segment to a path</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbPath operator +(FdbPath path, FdbPathSegment segment)
 			=> path.Add(segment);
@@ -877,4 +887,5 @@ namespace FoundationDB.Client
 		#endregion
 
 	}
+
 }

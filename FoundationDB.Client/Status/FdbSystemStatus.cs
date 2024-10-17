@@ -29,6 +29,7 @@
 namespace FoundationDB.Client.Status
 {
 	using System.Diagnostics;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
 	using System.Linq;
 	using Doxense.Serialization.Json;
@@ -72,12 +73,12 @@ namespace FoundationDB.Client.Status
 
 	/// <summary>Details about a notification, alert or error, as reported by a component of a FoundationDB cluster</summary>
 	[DebuggerDisplay("{Name}")]
-	public readonly struct Message
+	public readonly struct Message : IEquatable<Message>
 	{
 		/// <summary>Code for this message</summary>
 		public readonly string Name;
 
-		/// <summary>User friendly description of this message</summary>
+		/// <summary>User-friendly description of this message</summary>
 		public readonly string Description;
 
 		/// <summary>If specified, an unique ID representing this message</summary>
@@ -128,21 +129,25 @@ namespace FoundationDB.Client.Status
 			return res;
 		}
 
+		/// <inheritdoc />
 		public override string ToString()
 		{
 			return $"[{this.Name}] {this.Description}";
 		}
 
+		/// <inheritdoc />
 		public override int GetHashCode()
 		{
 			return StringComparer.Ordinal.GetHashCode(this.Name);
 		}
 
-		public override bool Equals(object? obj)
+		/// <inheritdoc />
+		public override bool Equals([NotNullWhen(true)] object? obj)
 		{
 			return obj is Message message && Equals(message);
 		}
 
+		/// <inheritdoc />
 		public bool Equals(Message other)
 		{
 			return string.Equals(this.Name, other.Name, StringComparison.Ordinal)
@@ -164,6 +169,7 @@ namespace FoundationDB.Client.Status
 		/// <summary>Rate of change, per seconds, since the last snapshot ("UNIT per seconds")</summary>
 		public double Hz { get; }
 
+		/// <inheritdoc />
 		public override string ToString()
 		{
 			return string.Format(CultureInfo.InvariantCulture, "Hz={0:N1}", this.Hz);
@@ -181,6 +187,7 @@ namespace FoundationDB.Client.Status
 		/// <summary>Absolute value, since the start (ex: "UNIT")</summary>
 		public long Counter { get; }
 
+		/// <inheritdoc />
 		public override string ToString()
 		{
 			return string.Format(CultureInfo.InvariantCulture, "Counter={0:N0}, Hz={1:N1}", this.Counter, this.Hz);
@@ -200,6 +207,7 @@ namespace FoundationDB.Client.Status
 
 		public double Roughness { get; }
 
+		/// <inheritdoc />
 		public override string ToString()
 		{
 			return string.Format(CultureInfo.InvariantCulture, "Counter={0:N0}, Hz={1:N1}, Roughness={2:N2}", this.Counter, this.Hz, this.Roughness);
@@ -217,6 +225,7 @@ namespace FoundationDB.Client.Status
 		}
 		public long Sectors { get; }
 
+		/// <inheritdoc />
 		public override string ToString()
 		{
 			return string.Format(CultureInfo.InvariantCulture, "Counter={0:N0}, Hz={1:N1}, Sectors={2:N0}", this.Counter, this.Hz, this.Sectors);
@@ -236,10 +245,12 @@ namespace FoundationDB.Client.Status
 
 		public long Versions { get; }
 
+		/// <inheritdoc />
 		public override string ToString()
 		{
 			return string.Format(CultureInfo.InvariantCulture, "Seconds={0:N3}, Versions={1:N0}", this.Seconds, this.Versions);
 		}
+
 	}
 
 	/// <summary>Base class for all metrics containers</summary>
@@ -334,15 +345,25 @@ namespace FoundationDB.Client.Status
 	/// <summary>List of well known client messages</summary>
 	public static class ClientMessages
 	{
+
 		public const string InconsistentClusterFile = "inconsistent_cluster_file";
+
 		public const string NoClusterController = "no_cluster_controller";
+
 		public const string QuorumNotReachable = "quorum_not_reachable";
+
 		public const string StatusIncompleteClient = "status_incomplete_client";
+
 		public const string StatusIncompleteCluster = "status_incomplete_cluster";
+
 		public const string StatusIncompleteCoordinators = "status_incomplete_coordinators";
+
 		public const string StatusIncompleteError = "status_incomplete_error";
+
 		public const string StatusIncompleteTimeout = "status_incomplete_timeout ";
+
 		public const string UnreachableClusterController = "unreachable_cluster_controller";
+
 	}
 
 	#endregion
@@ -434,17 +455,17 @@ namespace FoundationDB.Client.Status
 		private Dictionary<string, ProcessStatus> ComputeProcesses()
 		{
 			var obj = GetObject("processes");
-			var procs = new Dictionary<string, ProcessStatus>(obj?.Count ?? 0, StringComparer.OrdinalIgnoreCase);
+			var processes = new Dictionary<string, ProcessStatus>(obj?.Count ?? 0, StringComparer.OrdinalIgnoreCase);
 			if (obj != null)
 			{
-				//REVIEW: are ids case sensitive?
+				//REVIEW: are ids case-sensitive?
 				foreach (var kvp in obj)
 				{
 					var item = (JsonObject?) kvp.Value;
-					procs[kvp.Key] = new ProcessStatus(item, kvp.Key);
+					processes[kvp.Key] = new ProcessStatus(item, kvp.Key);
 				}
 			}
-			return procs;
+			return processes;
 		}
 
 		/// <summary><c>machines</c>: List of the machines that are currently active in the cluster</summary>
@@ -456,7 +477,7 @@ namespace FoundationDB.Client.Status
 			var machines = new Dictionary<string, MachineStatus>(obj?.Count ?? 0, StringComparer.OrdinalIgnoreCase);
 			if (obj != null)
 			{
-				//REVIEW: are ids case sensitive?
+				//REVIEW: are ids case-sensitive?
 				foreach (var kvp in obj)
 				{
 					var item = (JsonObject?) kvp.Value;
@@ -471,16 +492,27 @@ namespace FoundationDB.Client.Status
 	/// <summary>List of well known cluster messages</summary>
 	public static class ClusterMessages
 	{
+
 		public const string UnreachableClusterController = "unreachable_cluster_controller";
+
 		public const string ClientIssues = "client_issues";
+
 		public const string CommitTimeout = "commit_timeout";
+
 		public const string ReadTimeout = "read_timeout";
+
 		public const string StatusIncomplete = "status_incomplete";
+
 		public const string StorageServersError = "storage_servers_error";
+
 		public const string TransactionStartTimeout = "transaction_start_timeout";
+
 		public const string UnreachableMasterWorker = "unreachable_master_worker";
+
 		public const string UnreachableProcesses = "unreachable_processes";
+
 		public const string UnreadableConfiguration = "unreadable_configuration";
+
 	}
 
 	public sealed record ClusterConfiguration : MetricsBase
@@ -1099,11 +1131,17 @@ namespace FoundationDB.Client.Status
 	/// <summary>List of well known process messages</summary>
 	public static class ProcessMessages
 	{
+
 		public const string FileOpenError = "file_open_error";
+
 		public const string UnableToWriteClusterFile = "unable_to_write_cluster_file";
+
 		public const string IoError = "io_error";
+
 		public const string PlatformError = "platform_error";
+
 		public const string ProcessError = "process_error";
+
 	}
 
 	/// <summary>Memory performance counters for a FoundationDB process</summary>
@@ -1300,7 +1338,6 @@ namespace FoundationDB.Client.Status
 		public string ZoneId { get; }
 
 	}
-
 
 	#endregion
 

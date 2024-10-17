@@ -39,7 +39,7 @@ namespace Doxense.Serialization.Json
 	using Doxense.Runtime;
 	using Doxense.Runtime.Converters;
 
-	/// <summary>Default JSON resolver that uses reflection to serizalize and deserialize managed types</summary>
+	/// <summary>Default JSON resolver that uses reflection to serialize and deserialize managed types</summary>
 	public sealed class CrystalJsonTypeResolver : ICrystalJsonTypeResolver
 	{
 

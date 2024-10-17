@@ -27,6 +27,7 @@
 namespace FoundationDB.Client
 {
 
+	/// <summary>Extension methods for <see cref="IFdbTransactionOptions"/></summary>
 	[PublicAPI]
 	public static class FdbTransactionOptionsExtensions
 	{

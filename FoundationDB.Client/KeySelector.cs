@@ -27,6 +27,7 @@
 namespace FoundationDB.Client
 {
 	using System.Diagnostics;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Text;
 	using System.Runtime.CompilerServices;
 
@@ -53,22 +54,29 @@ namespace FoundationDB.Client
 			this.Offset = offset;
 		}
 
+		/// <inheritdoc />
 		public bool Equals(KeySelector other)
 		{
 			return this.Offset == other.Offset && this.OrEqual == other.OrEqual && this.Key.Equals(other.Key);
 		}
 
-		public override bool Equals(object? obj)
+		/// <inheritdoc />
+		public override bool Equals([NotNullWhen(true)] object? obj)
 		{
 			return obj is KeySelector selector && Equals(selector);
 		}
 
+		/// <inheritdoc />
 		public override int GetHashCode()
 		{
 			// ReSharper disable once NonReadonlyMemberInGetHashCode
 			return this.Key.GetHashCode() ^ this.Offset ^ (this.OrEqual ? 0 : -1);
 		}
 
+		/// <summary>Deconstructs a key selector into its basic elements</summary>
+		/// <param name="key"><see cref="Key"/> field of the selector</param>
+		/// <param name="orEqual"><see cref="OrEqual"/> field of the selector</param>
+		/// <param name="offset"><see cref="Offset"/> field of the selector</param>
 		public void Deconstruct(out Slice key, out bool orEqual, out int offset)
 		{
 			key = this.Key;
@@ -141,11 +149,13 @@ namespace FoundationDB.Client
 			return new KeySelector(selector.Key, selector.OrEqual, checked(selector.Offset - 1));
 		}
 
+		/// <summary>Tests if two key selectors are equal</summary>
 		public static bool operator ==(KeySelector left, KeySelector right)
 		{
 			return left.Equals(right);
 		}
 
+		/// <summary>Tests if two key selectors are not equal</summary>
 		public static bool operator !=(KeySelector left, KeySelector right)
 		{
 			return !left.Equals(right);

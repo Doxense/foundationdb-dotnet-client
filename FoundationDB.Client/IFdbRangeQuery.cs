@@ -79,6 +79,9 @@ namespace FoundationDB.Client
 		[MustUseReturnValue, LinqTunnel]
 		IFdbRangeQuery<TResult> Take([Positive] int count);
 
+		/// <summary>Skips a specific number of results</summary>
+		/// <param name="count">Number of results to skip</param>
+		/// <returns>A new query object that will ignore the <paramref name="count"/> results when executed</returns>
 		[MustUseReturnValue, LinqTunnel]
 		IFdbRangeQuery<TResult> Skip([Positive] int count);
 
@@ -147,6 +150,7 @@ namespace FoundationDB.Client
 		/// <summary>Returns an array with all the elements of the range results</summary>
 		Task<TResult[]> ToArrayAsync();
 
+		/// <summary>Returns a dictionary with the decoded keys and values of the range results</summary>
 		Task<Dictionary<TKey, TValue>> ToDictionary<TKey, TValue>(Func<TResult, TKey> keySelector, Func<TResult, TValue> valueSelector, IEqualityComparer<TKey>? keyComparer = null) where TKey : notnull;
 
 	}

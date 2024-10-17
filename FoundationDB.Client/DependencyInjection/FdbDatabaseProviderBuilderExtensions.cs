@@ -29,10 +29,12 @@ namespace FoundationDB.DependencyInjection
 	using FoundationDB.Client;
 	using Microsoft.Extensions.DependencyInjection;
 
+	/// <summary>Extension methods for <see cref="IFdbDatabaseProvider"/></summary>
 	[PublicAPI]
 	public static class FdbDatabaseProviderBuilderExtensions
 	{
 
+		/// <summary>Sets the <see cref="FdbDatabaseProviderOptions.ApiVersion"/> for this provider</summary>
 		public static IFdbDatabaseProviderBuilder WithApiVersion(this IFdbDatabaseProviderBuilder builder, int apiVersion)
 		{
 			Contract.GreaterThan(apiVersion, 0, nameof(apiVersion));
@@ -43,6 +45,7 @@ namespace FoundationDB.DependencyInjection
 			return builder;
 		}
 
+		/// <summary>Configures the <see cref="FdbDatabaseProviderOptions.ConnectionOptions"/> for this provider</summary>
 		public static IFdbDatabaseProviderBuilder WithConnectionString(this IFdbDatabaseProviderBuilder builder, FdbConnectionOptions options)
 		{
 			Contract.NotNull(options);
@@ -53,6 +56,7 @@ namespace FoundationDB.DependencyInjection
 			return builder;
 		}
 
+		/// <summary>Sets the <see cref="FdbConnectionOptions.ClusterFile"/> for this provider</summary>
 		public static IFdbDatabaseProviderBuilder WithClusterFile(this IFdbDatabaseProviderBuilder builder, string? clusterFile)
 		{
 			builder.Services.Configure<FdbDatabaseProviderOptions>(c =>

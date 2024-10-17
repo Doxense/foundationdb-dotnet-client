@@ -34,6 +34,7 @@ namespace FoundationDB.Client
 		/// <summary>Name of the tenant</summary>
 		FdbTenantName Name { get; }
 
+		/// <summary>Database instance that created this tenant</summary>
 		IFdbDatabase Database { get; }
 
 		/// <summary>Start a new transaction on this tenant, with the specified mode</summary>

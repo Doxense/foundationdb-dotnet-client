@@ -493,7 +493,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			return writer.ToSlice();
 		}
 
-		/// <summary>Efficiently concatenates a prefix with the packed representation of a 8-tuple</summary>
+		/// <summary>Efficiently concatenates a prefix with the packed representation of an 8-tuple</summary>
 		public static Slice EncodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(ReadOnlySpan<byte> prefix, T1? value1, T2? value2, T3? value3, T4? value4, T5? value5, T6? value6, T7? value7, T8? value8)
 		{
 			var writer = new TupleWriter();
@@ -509,7 +509,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			return writer.ToSlice();
 		}
 
-		/// <summary>Efficiently concatenates a prefix with the packed representation of a 8-tuple</summary>
+		/// <summary>Efficiently concatenates a prefix with the packed representation of an 8-tuple</summary>
 		public static Slice Pack<T1, T2, T3, T4, T5, T6, T7, T8>(ReadOnlySpan<byte> prefix, in (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) items)
 		{
 			var writer = new TupleWriter();
@@ -527,9 +527,9 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		// EncodeKey...
 
-		//REVIEW: do we really ned "Key" in the name?
+		//REVIEW: do we really need "Key" in the name?
 		// => we want to make it obvious that this is to pack ordered keys, but this could be used for anything else...
-		// => EncodeValues? (may be confused with unordered encoding)
+		// => EncodeValues? (maybe confused with unordered encoding)
 		// => EncodeItems?
 		// => Encode?
 
@@ -873,7 +873,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				TuplePacker<T4>.Deserialize(packedKey[slices[3]])
 			);
 		}
-		
+
 		#region DecodeLast...
 
 		/// <summary>Unpack a tuple and only return its last element</summary>

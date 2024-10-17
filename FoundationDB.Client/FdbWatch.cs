@@ -36,6 +36,7 @@ namespace FoundationDB.Client
 	public sealed class FdbWatch : IDisposable
 	{
 
+		/// <summary>Creates a <see cref="FdbWatch"/></summary>
 		public FdbWatch(FdbFuture<Slice> future, Slice key)
 		{
 			Contract.Debug.Requires(future != null);
@@ -49,7 +50,7 @@ namespace FoundationDB.Client
 		/// <summary>Key that is being watched</summary>
 		public readonly Slice Key;
 
-		/// <summary>Returns <see langword="true"/> if the watch is still active, or <see langword="false"/> if it fired or was cancelled</summary>
+		/// <summary><see langword="true"/> if the watch is still active, or <see langword="false"/> if it fired or was cancelled</summary>
 		public bool IsAlive => !this.Future.Task.IsCompleted;
 
 		/// <summary>Task that will complete when the watch fires, or is cancelled. It will return the watched key, or an exception.</summary>
@@ -127,6 +128,7 @@ namespace FoundationDB.Client
 			this.Future.Dispose();
 		}
 
+		/// <inheritdoc />
 		public override string ToString() => $"Watch({FdbKey.Dump(this.Key)})";
 
 	}

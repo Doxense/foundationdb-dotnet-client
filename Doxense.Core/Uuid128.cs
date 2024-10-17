@@ -439,8 +439,8 @@ namespace System
 				if (c == 'c') return input.Length is > 0 and <= 22 ? FromBase62(input) : throw FailInvalidFormat();
 				if (c == 'z') return input.Length == 22 ? FromBase62(input) : throw FailInvalidFormat();
 			}
-#endif
 		parse_guid:
+#endif
 			return new(Guid.ParseExact(input, format));
 		}
 

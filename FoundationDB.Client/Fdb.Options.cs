@@ -45,21 +45,21 @@ namespace FoundationDB.Client
 			//REVIEW: change this into a get-only, and force people to call SetNativeLibPath(..)?
 			public static string? NativeLibPath = string.Empty;
 
-			/// <summary>Disable pre-loading of the native C API library. The CLR will handle the binding of the library.</summary>
+			/// <summary>Disable preloading of the native C API library. The CLR will handle the binding of the library.</summary>
 			/// <remarks>This *must* be called before the start of the network thread, otherwise it won't have any effects.</remarks>
 			public static void DisableNativeLibraryPreloading()
 			{
 				Fdb.Options.NativeLibPath = null;
 			}
 
-			/// <summary>Enable automatic pre-loading of the native C API library. The operating system will handle the binding of the library</summary>
+			/// <summary>Enable automatic preloading of the native C API library. The operating system will handle the binding of the library</summary>
 			/// <remarks>This *must* be called before the start of the network thread, otherwise it won't have any effects.</remarks>
 			public static void EnableNativeLibraryPreloading()
 			{
 				Fdb.Options.NativeLibPath = string.Empty;
 			}
 
-			/// <summary>Pre-load the native C API library from a specific path (relative of absolute) where the fdb_c.dll library is located</summary>
+			/// <summary>Preload the native C API library from a specific path (relative of absolute) where the fdb_c.dll library is located</summary>
 			/// <example>
 			/// Fdb.Options.SetNativeLibPath(@".\libs\x64") will attempt to load ".\libs\x64\fdb_c.dll"
 			/// Fdb.Options.SetNativeLibPath(@".\libs\x64\my_custom_fdb_c.dll") will attempt to load ".\libs\x64\my_custom_fdb_c.dll"
@@ -73,9 +73,9 @@ namespace FoundationDB.Client
 				Contract.NotNullOrWhiteSpace(path);
 
 				// note: the file name MUST be "fdb_c" (with the proper extension on the platform, so for ex 'fdb_c.dll' on Windows)
-				// or else the binding of the native methods will not recognize that the library has already be pre-loaded!
+				// or else the binding of the native methods will not recognize that the library has already been preloaded!
 
-				// name must match what the binder will expected
+				// name must match what the binder will expect
 				var expectedFileName = GetExpectedNativeLibraryName();
 				var fileName = Path.GetFileName(path);
 
@@ -103,15 +103,17 @@ namespace FoundationDB.Client
 				Fdb.Options.NativeLibPath = path;
 			}
 
+			/// <summary>Returns the expected native library file native for the current OS platform</summary>
+			/// <returns><c>"fdb_c.dll"</c> on Windows, <c>"fdb_c.so"</c> on Linux, etc...</returns>
 			public static string GetExpectedNativeLibraryName()
 			{
 				if (OperatingSystem.IsWindows())
 				{
 					return FdbNative.FDB_C_DLL + ".dll";
 				}
+				//TODO: macOS ?
 				return FdbNative.FDB_C_DLL + ".so";
 			}
-
 
 			#endregion
 

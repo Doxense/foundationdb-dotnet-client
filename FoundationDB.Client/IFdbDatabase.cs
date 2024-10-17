@@ -50,7 +50,7 @@ namespace FoundationDB.Client
 		/// <summary>Directory Layer used by this database instance</summary>
 		FdbDirectoryLayer DirectoryLayer { get; }
 
-		/// <summary>If true, this database instance will only allow starting read-only transactions.</summary>
+		/// <summary>If <see langword="true"/>, this database instance will only allow starting read-only transactions.</summary>
 		bool IsReadOnly { get; }
 
 		/// <summary>Helper that can set options for this database</summary>
@@ -62,7 +62,7 @@ namespace FoundationDB.Client
 		/// <remarks>This handler may not be called if logging is disabled, if a transaction overrides its handler, or if it calls <see cref="IFdbReadOnlyTransaction.StopLogging"/></remarks>
 		void SetDefaultLogHandler(Action<FdbTransactionLog>? handler, FdbLoggingOptions options = default);
 
-		/// <summary>Start a new transaction on this database, with the specified mode</summary>
+		/// <summary>Starts a new transaction on this database, with the specified mode</summary>
 		/// <param name="mode">Mode of the transaction (read-only, read-write, ....)</param>
 		/// <param name="ct">Optional cancellation token that can abort all pending async operations started by this transaction.</param>
 		/// <param name="context">Existing parent context, if the transaction needs to be linked with a retry loop, or a parent transaction. If null, will create a new standalone context valid only for this transaction</param>
@@ -79,7 +79,7 @@ namespace FoundationDB.Client
 		[Obsolete("Use BeginTransaction() instead")]
 		ValueTask<IFdbTransaction> BeginTransactionAsync(FdbTransactionMode mode, CancellationToken ct, FdbOperationContext? context = null);
 
-		/// <summary>Start a new transaction on this database, with the specified mode</summary>
+		/// <summary>Starts a new transaction on this database, with the specified mode</summary>
 		/// <param name="mode">Mode of the transaction (read-only, read-write, ....)</param>
 		/// <param name="ct">Optional cancellation token that can abort all pending async operations started by this transaction.</param>
 		/// <param name="context">Existing parent context, if the transaction needs to be linked with a retry loop, or a parent transaction. If null, will create a new standalone context valid only for this transaction</param>
@@ -95,9 +95,12 @@ namespace FoundationDB.Client
 		/// </code></example>
 		IFdbTransaction BeginTransaction(FdbTransactionMode mode, CancellationToken ct, FdbOperationContext? context = null);
 
+		/// <summary>Gets a <see cref="IFdbTenant">tenant</see> from this database</summary>
+		/// <param name="name">Name of the tenant</param>
+		/// <returns>Instance that can execute transactions in the context of this tenant</returns>
 		IFdbTenant GetTenant(FdbTenantName name);
 
-		/// <summary>Return the currently enforced API version for this database instance.</summary>
+		/// <summary>Returns the currently enforced API version for this database instance.</summary>
 		int GetApiVersion();
 
 		/// <summary>Returns a value between 0 and 1 that reflect the saturation of the client main thread.</summary>
@@ -105,15 +108,19 @@ namespace FoundationDB.Client
 		/// <remarks>The value is updated in the background at regular interval (by default every second).</remarks>
 		double GetMainThreadBusyness();
 
+		/// <summary>Attempts to reboot a work in the cluster</summary>
 		Task RebootWorkerAsync(string name, bool check, int duration, CancellationToken ct);
 
+		/// <summary>Forces a recovery that could induce data loss</summary>
 		Task ForceRecoveryWithDataLossAsync(string dcId, CancellationToken ct);
 
+		/// <summary>Creates a new snapshot of the database</summary>
 		Task CreateSnapshotAsync(string uid, string snapCommand, CancellationToken ct);
 
 		/// <summary>Return the protocol version reported by the coordinator the client is connected to.</summary>
 		Task<ulong> GetServerProtocolAsync(CancellationToken ct);
 
+		/// <summary>Returns the client status</summary>
 		Task<Slice> GetClientStatus(CancellationToken ct);
 
 	}

@@ -38,6 +38,7 @@ namespace FoundationDB.Client
 		/// <remarks>This id is only guaranteed unique inside the current AppDomain or process and is reset on every restart. It should only be used for diagnostics and/or logging.</remarks>
 		int Id { get; }
 
+		/// <summary>Database of this transaction</summary>
 		IFdbDatabase Database { get; }
 
 		/// <summary>Tenant of this transaction</summary>
@@ -280,12 +281,36 @@ namespace FoundationDB.Client
 
 	}
 
+	/// <summary>Delegate that will decode a value read from the database</summary>
+	/// <typeparam name="TState">Type of the state provided by the caller</typeparam>
+	/// <typeparam name="TResult">Type of the decoded result</typeparam>
+	/// <param name="state">State that will be passed to the delegate, in order to reduce scope allocations</param>
+	/// <param name="value">Binary data representing the value to decode</param>
+	/// <param name="found">If <see langword="false"/>, the value was not found, and the returned value should represent a "logical" null for this type.</param>
+	/// <returns>Decoded value</returns>
 	public delegate TResult FdbValueDecoder<in TState, out TResult>(TState state, ReadOnlySpan<byte> value, bool found);
 
+	/// <summary>Delegate that will decode a value read from the database</summary>
+	/// <typeparam name="TResult">Type of the decoded result</typeparam>
+	/// <param name="value">Binary data representing the value to decode</param>
+	/// <param name="found">If <see langword="false"/>, the value was not found, and the returned value should represent a "logical" null for this type.</param>
+	/// <returns>Decoded value</returns>
 	public delegate TResult FdbValueDecoder<out TResult>(ReadOnlySpan<byte> value, bool found);
 
+	/// <summary>Delegate that will decode a key/value pair read from the database</summary>
+	/// <typeparam name="TState">Type of the state provided by the caller</typeparam>
+	/// <typeparam name="TResult">Type of the decoded result</typeparam>
+	/// <param name="state">State that will be passed to the delegate, in order to reduce scope allocations</param>
+	/// <param name="key">Binary key representing the key to decode. Empty span if the key was not found</param>
+	/// <param name="value">Binary data representing the value to decode</param>
+	/// <returns>Decoded value</returns>
 	public delegate TResult FdbKeyValueDecoder<in TState, out TResult>(TState state, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value);
 
+	/// <summary>Delegate that will decode a key/value pair read from the database</summary>
+	/// <typeparam name="TResult">Type of the decoded result</typeparam>
+	/// <param name="key">Binary key representing the key to decode. Empty span if the key was not found</param>
+	/// <param name="value">Binary data representing the value to decode</param>
+	/// <returns>Decoded value</returns>
 	public delegate TResult FdbKeyValueDecoder<out TResult>(ReadOnlySpan<byte> key, ReadOnlySpan<byte> value);
 
 }

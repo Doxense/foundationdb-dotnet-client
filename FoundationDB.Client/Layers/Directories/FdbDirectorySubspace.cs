@@ -53,13 +53,13 @@ namespace FoundationDB.Client
 		public FdbPath Path => this.Descriptor.Path;
 
 		/// <summary>Gets the location that points to this <code>Directory</code></summary>
-		public FdbDirectorySubspaceLocation Location => new FdbDirectorySubspaceLocation(this.Descriptor.Path);
+		public FdbDirectorySubspaceLocation Location => new(this.Descriptor.Path);
 
 		/// <summary>Name of the directory</summary>
 		public string Name => this.Descriptor.Path.Name;
 
 		/// <summary>Full name of this directory</summary>
-		/// <remarks>This string does not include the layer id of each path segments. Please use <c>dir.<see cref="Path">Path</see>.<see cref="FdbPath.ToString()">ToString()</see></c> in order to get a roundtripable string representation of the path of this subspace.</remarks>
+		/// <remarks>This string does not include the layer id of each path segments. Please use <c>dir.<see cref="Path">Path</see>.<see cref="FdbPath.ToString()">ToString()</see></c> in order to get a complete string representation of the path of this subspace.</remarks>
 		public string FullName => FdbPath.Encode(this.Descriptor.Path, namesOnly: true);
 
 		/// <summary>Instance of the DirectoryLayer that was used to create or open this directory</summary>
@@ -134,7 +134,7 @@ namespace FoundationDB.Client
 			}
 			if (newLayer == FdbDirectoryPartition.LayerId)
 			{ // cannot change a regular directory into a new partition
-				//REVIEW: or maybe we can? This would only be possible if this directory does not contain any sub-directory
+				//REVIEW: or maybe we can? This would only be possible if this directory does not contain any subdirectory
 				throw ThrowHelper.InvalidOperationException("Cannot transform a regular directory into a partition.");
 			}
 
@@ -150,11 +150,11 @@ namespace FoundationDB.Client
 			return new FdbDirectorySubspace(changed, this.KeyEncoder, this.Context, false);
 		}
 
-		/// <summary>Opens a sub-directory with the given <paramref name="path"/>.
-		/// If the sub-directory does not exist, it is created (creating intermediate subdirectories if necessary).
+		/// <summary>Opens a subdirectory with the given <paramref name="path"/>.
+		/// If the subdirectory does not exist, it is created (creating intermediate subdirectories if necessary).
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="path">Relative path of the sub-directory to create or open. It must includes all the necessary layer ids (including the parents).</param>
+		/// <param name="path">Relative path of the subdirectory to create or open. It must include all the necessary layer ids (including the parents).</param>
 		/// <returns>The corresponding directory subspace.</returns>
 		public async Task<FdbDirectorySubspace> CreateOrOpenAsync(IFdbTransaction trans, FdbPath path)
 		{
@@ -167,11 +167,11 @@ namespace FoundationDB.Client
 			return (await metadata.CreateOrOpenInternalAsync(null, trans, ToAbsolutePath(path), Slice.Nil, allowCreate: true, allowOpen: true, throwOnError: true).ConfigureAwait(false))!;
 		}
 
-		/// <summary>Opens a sub-directory with the given <paramref name="path"/>.
-		/// An exception is thrown if the sub-directory does not exist, or if a layer is specified and a different layer was specified when the sub-directory was created.
+		/// <summary>Opens a subdirectory with the given <paramref name="path"/>.
+		/// An exception is thrown if the subdirectory does not exist, or if a layer is specified and a different layer was specified when the subdirectory was created.
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="path">Relative path of the sub-directory to open</param>
+		/// <param name="path">Relative path of the subdirectory to open</param>
 		public async Task<FdbDirectorySubspace> OpenAsync(IFdbReadOnlyTransaction trans, FdbPath path)
 		{
 			Contract.NotNull(trans);
@@ -183,11 +183,11 @@ namespace FoundationDB.Client
 			return (await metadata.CreateOrOpenInternalAsync(trans, null, ToAbsolutePath(path), prefix: Slice.Nil, allowCreate: false, allowOpen: true, throwOnError: true).ConfigureAwait(false))!;
 		}
 
-		/// <summary>Opens a sub-directory with the given <paramref name="path"/>.
-		/// An exception is thrown if the sub-directory if a layer is specified and a different layer was specified when the sub-directory was created.
+		/// <summary>Opens a subdirectory with the given <paramref name="path"/>.
+		/// An exception is thrown if the subdirectory is a layer is specified and a different layer was specified when the subdirectory was created.
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="path">Relative path of the sub-directory to open</param>
+		/// <param name="path">Relative path of the subdirectory to open</param>
 		/// <returns>Returns the directory if it exists, or null if it was not found</returns>
 		public async Task<FdbDirectorySubspace?> TryOpenAsync(IFdbReadOnlyTransaction trans, FdbPath path)
 		{
@@ -224,11 +224,11 @@ namespace FoundationDB.Client
 			return await metadata.OpenCachedInternalAsync(trans, items, throwOnError: false).ConfigureAwait(false);
 		}
 
-		/// <summary>Creates a sub-directory with the given <paramref name="path"/> (creating intermediate subdirectories if necessary).
-		/// An exception is thrown if the given sub-directory already exists.
+		/// <summary>Creates a subdirectory with the given <paramref name="path"/> (creating intermediate subdirectories if necessary).
+		/// An exception is thrown if the given subdirectory already exists.
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="path">Relative path of the sub-directory to create. It must includes all the necessary layer ids (including the parents).</param>
+		/// <param name="path">Relative path of the subdirectory to create. It must include all the necessary layer ids (including the parents).</param>
 		/// <returns></returns>
 		public async Task<FdbDirectorySubspace> CreateAsync(IFdbTransaction trans, FdbPath path)
 		{
@@ -240,9 +240,9 @@ namespace FoundationDB.Client
 			return (await metadata.CreateOrOpenInternalAsync(null, trans, ToAbsolutePath(path), prefix: Slice.Nil, allowCreate: true, allowOpen: false, throwOnError: true).ConfigureAwait(false))!;
 		}
 
-		/// <summary>Creates a sub-directory with the given <paramref name="path"/> (creating intermediate subdirectories if necessary).</summary>
+		/// <summary>Creates a subdirectory with the given <paramref name="path"/> (creating intermediate subdirectories if necessary).</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="path">Relative path of the sub-directory to create</param>
+		/// <param name="path">Relative path of the subdirectory to create</param>
 		/// <returns>Newly created directory subspace, or <c>null</c> if it already existed in the database.</returns>
 		public async Task<FdbDirectorySubspace?> TryCreateAsync(IFdbTransaction trans, FdbPath path)
 		{
@@ -256,7 +256,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Registers an existing prefix as a directory with the given <paramref name="path"/> (creating parent directories if necessary). This method is only indented for advanced use cases.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="path">Path of the directory to create. It must includes all the necessary layer ids (including the parents).</param>
+		/// <param name="path">Path of the directory to create. It must include all the necessary layer ids (including the parents).</param>
 		/// <param name="prefix">The directory will be created with the given physical prefix; otherwise a prefix is allocated automatically.</param>
 		public async Task<FdbDirectorySubspace> RegisterAsync(IFdbTransaction trans, FdbPath path, Slice prefix)
 		{
@@ -273,7 +273,7 @@ namespace FoundationDB.Client
 		/// An error is raised if a directory already exists at `new_path`, or if the new path points to a child of the current directory.
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="newAbsolutePath">Full path (from the root) where this directory will be moved. It must includes all the necessary layer ids (including the parents).</param>
+		/// <param name="newAbsolutePath">Full path (from the root) where this directory will be moved. It must include all the necessary layer ids (including the parents).</param>
 		public async Task<FdbDirectorySubspace> MoveToAsync(IFdbTransaction trans, FdbPath newAbsolutePath)
 		{
 			Contract.NotNull(trans);
@@ -291,13 +291,13 @@ namespace FoundationDB.Client
 			return (await metadata.MoveInternalAsync(trans, this.Descriptor.Path, location, throwOnError: true).ConfigureAwait(false))!;
 		}
 
-		/// <summary>Moves the specified sub-directory to <paramref name="newPath"/>.
+		/// <summary>Moves the specified subdirectory to <paramref name="newPath"/>.
 		/// There is no effect on the physical prefix of the given directory, or on clients that already have the directory open.
 		/// An error is raised if a directory already exists at `new_path`.
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="oldPath">Relative path under this directory of the sub-directory to be moved</param>
-		/// <param name="newPath">Relative path under this directory where the sub-directory will be moved to</param>
+		/// <param name="oldPath">Relative path under this directory of the subdirectory to be moved</param>
+		/// <param name="newPath">Relative path under this directory where the subdirectory will be moved to</param>
 		/// <returns>Returns the directory at its new location if successful.</returns>
 		async Task<FdbDirectorySubspace> IFdbDirectory.MoveAsync(IFdbTransaction trans, FdbPath oldPath, FdbPath newPath)
 		{
@@ -313,7 +313,7 @@ namespace FoundationDB.Client
 		/// There is no effect on the physical prefix of the given directory, or on clients that already have the directory open.
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="newPath">Full path (from the root) where this directory will be moved. It must includes all the necessary layer ids (including the parents).</param>
+		/// <param name="newPath">Full path (from the root) where this directory will be moved. It must include all the necessary layer ids (including the parents).</param>
 		public async Task<FdbDirectorySubspace?> TryMoveToAsync(IFdbTransaction trans, FdbPath newPath)
 		{
 			Contract.NotNull(trans);
@@ -331,13 +331,13 @@ namespace FoundationDB.Client
 			return await metadata.MoveInternalAsync(trans, descriptor.Path, location, throwOnError: false).ConfigureAwait(false);
 		}
 
-		/// <summary>Attempts to move the specified sub-directory to <paramref name="newPath"/>.
+		/// <summary>Attempts to move the specified subdirectory to <paramref name="newPath"/>.
 		/// There is no effect on the physical prefix of the given directory, or on clients that already have the directory open.
 		/// An error is raised if a directory already exists at `new_path`.
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="oldPath">Relative path under this directory of the sub-directory to be moved</param>
-		/// <param name="newPath">Relative path under this directory where the sub-directory will be moved to</param>
+		/// <param name="oldPath">Relative path under this directory of the subdirectory to be moved</param>
+		/// <param name="newPath">Relative path under this directory where the subdirectory will be moved to</param>
 		/// <returns>Returns the directory at its new location if successful. If the directory cannot be moved, then null is returned.</returns>
 		Task<FdbDirectorySubspace?> IFdbDirectory.TryMoveAsync(IFdbTransaction trans, FdbPath oldPath, FdbPath newPath)
 		{
@@ -363,11 +363,11 @@ namespace FoundationDB.Client
 			await metadata.RemoveInternalAsync(trans, descriptor.Path, throwIfMissing: true).ConfigureAwait(false);
 		}
 
-		/// <summary>Removes a sub-directory, its contents, and all subdirectories.
+		/// <summary>Removes a subdirectory, its contents, and all subdirectories.
 		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="path">Path of the sub-directory to remove (relative to this directory)</param>
+		/// <param name="path">Path of the subdirectory to remove (relative to this directory)</param>
 		public async Task RemoveAsync(IFdbTransaction trans, FdbPath path)
 		{
 			Contract.NotNull(trans);
@@ -401,11 +401,11 @@ namespace FoundationDB.Client
 			return await metadata.RemoveInternalAsync(trans, descriptor.Path, throwIfMissing: false).ConfigureAwait(false);
 		}
 
-		/// <summary>Attempts to remove a sub-directory, its contents, and all subdirectories.
+		/// <summary>Attempts to remove a subdirectory, its contents, and all subdirectories.
 		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="path">Path of the sub-directory to remove (relative to this directory)</param>
+		/// <param name="path">Path of the subdirectory to remove (relative to this directory)</param>
 		public async Task<bool> TryRemoveAsync(IFdbTransaction trans, FdbPath path)
 		{
 			Contract.NotNull(trans);
@@ -435,7 +435,7 @@ namespace FoundationDB.Client
 			return await metadata.ExistsInternalAsync(trans, descriptor.Path).ConfigureAwait(false);
 		}
 
-		/// <summary>Checks if a sub-directory exists</summary>
+		/// <summary>Checks if a subdirectory exists</summary>
 		/// <returns>Returns true if the directory exists, otherwise false.</returns>
 		public async Task<bool> ExistsAsync(IFdbReadOnlyTransaction trans, FdbPath path)
 		{
@@ -453,7 +453,7 @@ namespace FoundationDB.Client
 			return await metadata.ExistsInternalAsync(trans, ToAbsolutePath(location)).ConfigureAwait(false);
 		}
 
-		/// <summary>Returns the list of all the subdirectories of a sub-directory.</summary>
+		/// <summary>Returns the list of all the subdirectories of a subdirectory.</summary>
 		public async Task<List<FdbPath>> ListAsync(IFdbReadOnlyTransaction trans, FdbPath path = default)
 		{
 			Contract.NotNull(trans);
@@ -463,7 +463,7 @@ namespace FoundationDB.Client
 			return (await metadata.ListInternalAsync(trans, ToAbsolutePath(path), throwIfMissing: true).ConfigureAwait(false))!;
 		}
 
-		/// <summary>Returns the list of all the subdirectories of the current directory, it it exists.</summary>
+		/// <summary>Returns the list of all the subdirectories of the current directory, if it exists.</summary>
 		public async Task<List<FdbPath>?> TryListAsync(IFdbReadOnlyTransaction trans, FdbPath path = default)
 		{
 			Contract.NotNull(trans);

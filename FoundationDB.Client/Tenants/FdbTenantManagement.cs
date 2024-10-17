@@ -29,18 +29,29 @@ namespace FoundationDB.Client
 	using Doxense.Linq;
 	using Doxense.Serialization.Json;
 
+	/// <summary>Tenant configuration mode of a FoundationDB cluster</summary>
 	[PublicAPI]
 	public enum FdbTenantMode
 	{
+
+		/// <summary>Invalid or unknown</summary>
 		Invalid = -1,
+
+		/// <summary>Tenant support is disabled</summary>
 		Disabled = 0,
+
+		/// <summary>Tenant support is enabled, but optional. Transactions that do not specify a tenant are allowed to execute.</summary>
 		Optional = 1,
+
+		/// <summary>Tenant support is enabled and required. Transactions that do not specify a tenant will fail to execute.</summary>
 		Required = 2,
+
 	}
 
 	public static partial class Fdb
 	{
 
+		/// <summary>Helper methods for managing Tenants in a FoundationDB cluster</summary>
 		[PublicAPI]
 		public static class Tenants
 		{
@@ -54,6 +65,7 @@ namespace FoundationDB.Client
 			/// <summary><c>\xFF/conf/tenant_mode</c></summary>
 			private static readonly Slice TenantModeKey = Fdb.System.ConfigKey("tenant_mode");
 
+			/// <summary>Queries the current <see cref="FdbTenantMode"/> of the cluster</summary>
 			public static async Task<FdbTenantMode> GetTenantMode(IFdbReadOnlyTransaction tr)
 			{
 				tr.Options.WithReadAccessToSystemKeys();
@@ -69,6 +81,7 @@ namespace FoundationDB.Client
 				return (FdbTenantMode) value;
 			}
 
+			/// <summary>Creates a new tenant in the cluster</summary>
 			public static void CreateTenant(IFdbTransaction tr, FdbTenantName name)
 			{
 				// just setting the key in the tenant module will trigger the creation of the teant, once the transaction commits
@@ -78,6 +91,7 @@ namespace FoundationDB.Client
 				//note: if the tenant already exists, this is a "no-op"
 			}
 
+			/// <summary>Tests if a tenant already exists in the cluster</summary>
 			public static async Task<bool> HasTenant(IFdbReadOnlyTransaction tr, FdbTenantName name)
 			{
 				var value = await tr.GetAsync(TenantMapPrefix + name.Value).ConfigureAwait(false);
@@ -121,17 +135,19 @@ namespace FoundationDB.Client
 				};
 			}
 
+			/// <summary>Fetches the metadata for a tenant in the cluster</summary>
 			public static async Task<FdbTenantMetadata?> GetTenantMetadata(IFdbReadOnlyTransaction tr, FdbTenantName name)
 			{
 				var data = await tr.GetAsync(TenantMapPrefix + name.Value).ConfigureAwait(false);
 				return data.HasValue ? ParseTenantMetadata(name, data) : null;
 			}
 
+			/// <summary>Deletes an existing tenant in the cluster</summary>
 			public static void DeleteTenant(IFdbTransaction tr, FdbTenantName name)
 			{
 				Contract.NotNull(tr);
 
-				// just deleting the key in the tenant module will trigger the deletion of the teant, once the transaction commits
+				// just deleting the key in the tenant module will trigger the deletion of the tenant, once the transaction commits
 				tr.Options.WithSpecialKeySpaceEnableWrites();
 				tr.Clear(TenantMapPrefix + name.Value);
 			}
@@ -140,16 +156,18 @@ namespace FoundationDB.Client
 			{
 				Contract.NotNull(tr);
 				return tr
-			       // get all keys in the "/management/tenant_map/...." table
-			       .GetRange(prefix == null ? TenantMapRange : KeyRange.StartsWith(TenantMapPrefix + prefix.Value))
-			       // remove the table prefix to get only the name
-			       .Select(kv => (Name: kv.Key.Substring(TenantMapPrefix.Count), Data: kv.Value))
-			       // optional filtering on the names
-			       .Where(kv => filter == null || filter(kv.Name))
-			       // parse the name and the metadata
-			       .Select(kv => ParseTenantMetadata(FdbTenantName.Create(kv.Name), kv.Data));
+					// get all keys in the "/management/tenant_map/...." table
+					.GetRange(prefix == null ? TenantMapRange : KeyRange.StartsWith(TenantMapPrefix + prefix.Value))
+					// remove the table prefix to get only the name
+					.Select(kv => (Name: kv.Key.Substring(TenantMapPrefix.Count), Data: kv.Value))
+					// optional filtering on the names
+					.Where(kv => filter == null || filter(kv.Name))
+					// parse the name and the metadata
+					.Select(kv => ParseTenantMetadata(FdbTenantName.Create(kv.Name), kv.Data));
 			}
+
 		}
+
 	}
 
 }

@@ -30,6 +30,7 @@ namespace FoundationDB.DependencyInjection
 	using FoundationDB.Client;
 	using Microsoft.Extensions.Options;
 
+	/// <summary>Provides access to a FoundationDB database instance</summary>
 	[PublicAPI]
 	public sealed class FdbDatabaseProvider : IFdbDatabaseProvider
 	{
@@ -39,6 +40,7 @@ namespace FoundationDB.DependencyInjection
 		/// <inheritdoc cref="IFdbDatabaseScopeProvider.IsAvailable"/>
 		public bool IsAvailable { get; private set; }
 
+		/// <inheritdoc/>
 		public FdbDatabaseProviderOptions ProviderOptions { get; }
 
 		private TaskCompletionSource<IFdbDatabase>? InitTask;
@@ -142,6 +144,7 @@ namespace FoundationDB.DependencyInjection
 			SetDatabase(null, null);
 		}
 
+		/// <summary>Sets or clears the current <see cref="IFdbDatabase"/> singleton that will be returned by this provider</summary>
 		public void SetDatabase(IFdbDatabase? db, Exception? e)
 		{
 			if (this.Db != null && this.Db != db)
@@ -180,6 +183,7 @@ namespace FoundationDB.DependencyInjection
 			}
 		}
 
+		/// <inheritdoc />
 		public void Dispose()
 		{
 			this.LifeTime.Cancel();
@@ -207,6 +211,7 @@ namespace FoundationDB.DependencyInjection
 
 		IFdbDatabaseScopeProvider? IFdbDatabaseScopeProvider.Parent => null;
 
+		/// <inheritdoc />
 		public CancellationToken Cancellation => this.LifeTime.Token;
 
 		/// <inheritdoc cref="IFdbDatabaseScopeProvider.GetDatabase"/>
@@ -245,6 +250,7 @@ namespace FoundationDB.DependencyInjection
 			return db != null;
 		}
 
+		/// <inheritdoc />
 		public IFdbDatabaseScopeProvider<TState> CreateScope<TState>(Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase Db, TState State)>> start, CancellationToken lifetime = default)
 		{
 			return new FdbDatabaseScopeProvider<TState>(this, start, lifetime);

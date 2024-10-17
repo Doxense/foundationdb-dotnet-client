@@ -24,28 +24,48 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+#pragma warning disable CA2211
+
 namespace FoundationDB.Client.Utils
 {
 	/// <summary>Simple debug counters container that is used to troubleshoot alloc/free problems...</summary>
 	public static class DebugCounters
 	{
 
+		/// <summary>Total number of <see cref="FoundationDB.Client.Native.ClusterHandle"/> instance created, since the start of the application</summary>
 		public static long ClusterHandlesTotal = 0;
+
+		/// <summary>Number of currently active <see cref="FoundationDB.Client.Native.ClusterHandle"/> instances</summary>
 		public static long ClusterHandles = 0;
 
+		/// <summary>Total number of <see cref="FoundationDB.Client.Native.DatabaseHandle"/> instance created, since the start of the application</summary>
 		public static long DatabaseHandlesTotal = 0;
+
+		/// <summary>Number of currently active <see cref="FoundationDB.Client.Native.DatabaseHandle"/> instances</summary>
 		public static long DatabaseHandles = 0;
 
+		/// <summary>Total number of <see cref="FoundationDB.Client.Native.TenantHandle"/> instance created, since the start of the application</summary>
 		public static long TenantHandlesTotal = 0;
+
+		/// <summary>Number of currently active <see cref="FoundationDB.Client.Native.TenantHandle"/> instances</summary>
 		public static long TenantHandles = 0;
 
+		/// <summary>Total number of <see cref="FoundationDB.Client.Native.TransactionHandle"/> instance created, since the start of the application</summary>
 		public static long TransactionHandlesTotal = 0;
+
+		/// <summary>Number of currently active <see cref="FoundationDB.Client.Native.TransactionHandle"/> instances</summary>
 		public static long TransactionHandles = 0;
 
+		/// <summary>Total number of <see cref="FoundationDB.Client.Native.FutureHandle"/> instance created, since the start of the application</summary>
 		public static long FutureHandlesTotal = 0;
+
+		/// <summary>Number of currently active <see cref="FoundationDB.Client.Native.FutureHandle"/> instances</summary>
 		public static long FutureHandles = 0;
 
+		/// <summary>Total number of callbacks registered on futures, since the start of the application</summary>
 		public static long CallbackHandlesTotal = 0;
+
+		/// <summary>Number of callbacks currently registered on active futures</summary>
 		public static long CallbackHandles = 0;
 
 	}

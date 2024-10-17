@@ -31,6 +31,7 @@ namespace FoundationDB.DependencyInjection
 	using Microsoft.Extensions.DependencyInjection;
 	using Microsoft.Extensions.Options;
 
+	/// <summary>Extension methods for registering a <see cref="IFdbDatabaseProvider"/> service</summary>
 	[PublicAPI]
 	public static class FdbDatabaseServiceCollectionExtensions
 	{

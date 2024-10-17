@@ -76,6 +76,7 @@ namespace FoundationDB.Client
 		/// <summary>If set, specify the machine ID that was passed to fdbserver processes running on the same machine as this client, for better location-aware load balancing.</summary>
 		public string? MachineId { get; set; }
 
+		/// <inheritdoc />
 		public override string ToString()
 		{
 			var sb = new FdbConnectionStringBuilder();

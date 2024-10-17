@@ -1590,6 +1590,7 @@ namespace FoundationDB.Client
 		/// <summary>Return the currently enforced API version for the database attached to this transaction.</summary>
 		public int GetApiVersion() => m_db.GetApiVersion();
 
+		/// <inheritdoc />
 		public void Dispose()
 		{
 			this.Abort = true;
@@ -1617,6 +1618,7 @@ namespace FoundationDB.Client
 
 	}
 
+	/// <summary>Current state of a transaction</summary>
 	public enum FdbTransactionState
 	{
 		/// <summary>The last execution of the handler failed</summary>
@@ -1627,12 +1629,15 @@ namespace FoundationDB.Client
 		Aborted,
 	}
 
+	/// <summary>Result of a deferred value-check</summary>
 	public enum FdbValueCheckResult
 	{
 		/// <summary>There was no value-check performed with this tag in the previous attempt.</summary>
 		Unknown = 0,
+
 		/// <summary>All value-checks performed with this tag passed in the previous attempt.</summary>
 		Success = 1,
+
 		/// <summary>At least one value-check performed with this tag failed in the previous attempt.</summary>
 		Failed = 2,
 	}

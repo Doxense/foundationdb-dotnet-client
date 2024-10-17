@@ -32,12 +32,16 @@ namespace FoundationDB.Client.Core
 	public interface IFdbTenantHandler : IDisposable
 	{
 
+		/// <summary>Database handler that owns this handle</summary>
 		IFdbDatabaseHandler Database { get; }
 
+		/// <summary><see langword="false"/> if the handle is still valid; otherwise, <see langword="true"/></summary>
 		bool IsClosed { get; }
 
+		/// <summary>Creates a new transaction handle that will be scoped to this tenant</summary>
 		IFdbTransactionHandler CreateTransaction(FdbOperationContext context);
 
+		/// <summary>Returns the id of this tenant</summary>
 		Task<long> GetIdAsync(CancellationToken ct);
 
 	}

@@ -62,7 +62,7 @@ namespace FoundationDB.Client.Native
 		/// <summary>Internal counter to generate a unique parameter value for each futures</summary>
 		internal static long s_futureCounter;
 
-		/// <summary>Create a new <see cref="FdbFutureSingle{TState,TResult}"/> from an FDBFuture* pointer</summary>
+		/// <summary>Creates a new <see cref="FdbFutureSingle{TState,TResult}"/> from an FDBFuture* pointer</summary>
 		/// <typeparam name="TResult">Type of the result of the task</typeparam>
 		/// <typeparam name="TState">Type of the state that will be passed to the result selector</typeparam>
 		/// <param name="handle">FDBFuture* pointer</param>
@@ -76,7 +76,7 @@ namespace FoundationDB.Client.Native
 			return new(handle, state, selector, ct);
 		}
 
-		/// <summary>Wrap a FDBFuture* pointer into a <see cref="Task"/></summary>
+		/// <summary>Wraps a FDBFuture* pointer into a <see cref="Task"/></summary>
 		/// <param name="handle">FDBFuture* pointer</param>
 		/// <param name="ct">Optional cancellation token that can be used to cancel the future</param>
 		/// <returns>Object that tracks the execution of the FDBFuture handle</returns>
@@ -86,7 +86,7 @@ namespace FoundationDB.Client.Native
 			return new FdbFutureSingle<object?, object?>(handle, null, null, ct).Task;
 		}
 
-		/// <summary>Wrap a FDBFuture* pointer into a <see cref="Task{T}"/></summary>
+		/// <summary>Wraps a FDBFuture* pointer into a <see cref="Task{T}"/></summary>
 		/// <typeparam name="TResult">Type of the result of the task</typeparam>
 		/// <typeparam name="TState">Type of the state that will be passed to the result selector</typeparam>
 		/// <param name="handle">FDBFuture* pointer</param>
@@ -100,7 +100,7 @@ namespace FoundationDB.Client.Native
 			return new FdbFutureSingle<TState, TResult>(handle, state, selector, ct).Task;
 		}
 
-		/// <summary>Wrap multiple <see cref="FdbFuture{T}"/> handles into a single <see cref="Task{TResult}"/> that returns an array of T</summary>
+		/// <summary>Wraps multiple <see cref="FdbFuture{T}"/> handles into a single <see cref="Task{TResult}"/> that returns an array of T</summary>
 		/// <typeparam name="TResult">Type of the result of the task</typeparam>
 		/// <typeparam name="TState">Type of the state that will be passed to the result selector</typeparam>
 		/// <param name="handles">Array of FDBFuture* pointers</param>
@@ -384,6 +384,7 @@ namespace FoundationDB.Client.Native
 			TryReleaseMemory();
 		}
 
+		/// <inheritdoc />
 		public void Dispose()
 		{
 			if (TrySetFlag(FdbFuture.Flags.DISPOSED))
@@ -412,16 +413,19 @@ namespace FoundationDB.Client.Native
 			}
 		}
 
+		/// <inheritdoc />
 		protected override void CloseHandles()
 		{
 			// NOP
 		}
 
+		/// <inheritdoc />
 		protected override void CancelHandles()
 		{
 			// NOP
 		}
 
+		/// <inheritdoc />
 		protected override void ReleaseMemory()
 		{
 			// NOP

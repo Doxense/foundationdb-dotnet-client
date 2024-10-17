@@ -65,18 +65,21 @@ namespace FoundationDB.Client
 			: base(prefix, range, context)
 		{ }
 
+		/// <inheritdoc />
 		public Slice this[Slice relativeKey]
 		{
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => Append(relativeKey.Span);
 		}
 
+		/// <inheritdoc />
 		public Slice this[ReadOnlySpan<byte> relativeKey]
 		{
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => Append(relativeKey);
 		}
 
+		/// <inheritdoc />
 		public IBinaryKeySubspace Partition(ReadOnlySpan<byte> relativeKey)
 		{
 			return relativeKey.Length != 0 ? new BinaryKeySubspace(Append(relativeKey), this.Context) : this;
@@ -87,6 +90,7 @@ namespace FoundationDB.Client
 			return Append(relativeKey);
 		}
 
+		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Slice Decode(Slice absoluteKey)
 		{
@@ -95,6 +99,7 @@ namespace FoundationDB.Client
 
 	}
 
+	/// <summary>Extension methods for <see cref="IBinaryKeySubspace"/></summary>
 	public static class BinaryKeySubspaceExtensions
 	{
 
@@ -109,4 +114,5 @@ namespace FoundationDB.Client
 		}
 
 	}
+
 }
