@@ -2,7 +2,7 @@
 
 	<PropertyGroup>
 		<VersionPrefix>7.3.0</VersionPrefix>
-		<VersionSuffix>preview2</VersionSuffix>
+		<VersionSuffix>preview3</VersionSuffix>
 		<Authors>Snowbank SAS</Authors>
 		<PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
 		<PackageProjectUrl>https://github.com/Doxense/foundationdb-dotnet-client</PackageProjectUrl>
@@ -15,7 +15,7 @@
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 	</PropertyGroup>
-	
+
 	<PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
 		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
 	</PropertyGroup>

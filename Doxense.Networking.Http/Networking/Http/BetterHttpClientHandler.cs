@@ -1,6 +1,6 @@
 ﻿// copy/paste de System.Net.Http.HttpClientHandler, hackée pour être accessible publiquement
 
-#define FULL_DEBUG
+//#define FULL_DEBUG
 
 namespace Doxense.Networking.Http
 {
