@@ -24,11 +24,16 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+//#define FULL_DEBUG
+
 #if NET8_0_OR_GREATER
 
 namespace FoundationDB.Client
 {
+	using System.Diagnostics;
 	using System.IO;
+	using System.Linq;
+	using Doxense.Linq;
 
 	public sealed class FqlQuery : IFqlQuery
 	{
@@ -88,50 +93,126 @@ namespace FoundationDB.Client
 			}
 		}
 
-		public async IAsyncEnumerable<FdbDirectorySubspace> EnumerateDirectories(IFdbReadOnlyTransaction tr)
+		[Conditional("FULL_DEBUG")]
+		private static void Kenobi(string message)
 		{
+#if FULL_DEBUG
+			System.Diagnostics.Debug.WriteLine(message);
+			Console.WriteLine(message);
+#endif
+		}
 
-			if (this.Directory == null)
+		public IAsyncEnumerable<FdbDirectorySubspace> EnumerateDirectories(IFdbReadOnlyTransaction tr)
+		{
+			return AsyncEnumerable.Pump<FdbDirectorySubspace>(async (channel) =>
 			{
-				yield break;
-			}
-
-			if (this.Directory.TryGetPath(out FdbPath path))
-			{ // this is a fixed path, ex: "/foo/bar/baz", we can open it directly
-
-				var subspace = await tr.Database.DirectoryLayer.TryOpenAsync(tr, path).ConfigureAwait(false);
-
-				if (subspace != null)
+				if (this.Directory == null)
 				{
-					yield return subspace;
-				}
-			}
-			else
-			{
-				var (prefix, next) = this.Directory.GetFixedPrefix(0);
-				var subspace = await tr.Database.DirectoryLayer.TryOpenAsync(tr, prefix).ConfigureAwait(false);
-
-				if (subspace == null)
-				{
-					yield break;
+					return;
 				}
 
-				if (this.Directory[next].IsAny)
-				{
-					// list its children
-					var children = await subspace.ListAsync(tr).ConfigureAwait(false);
-					foreach (var child in children)
+				FdbDirectorySubspace? subspace;
+
+				if (this.Directory.TryGetPath(out FdbPath path))
+				{ // this is a fixed path, ex: "/foo/bar/baz", we can open it directly
+
+					subspace = await tr.Database.DirectoryLayer.TryOpenAsync(tr, path).ConfigureAwait(false);
+					if (subspace != null)
 					{
-						subspace = await tr.Database.DirectoryLayer.TryOpenAsync(tr, child).ConfigureAwait(false);
-						if (subspace != null)
+						await channel.WriteAsync(subspace).ConfigureAwait(false);
+					}
+					return;
+				}
+
+				List<FdbDirectorySubspace> batch = [ ];
+				List<FdbDirectorySubspace> nextBatch = [ ];
+
+				int fromIndex = 0;
+				var segments = this.Directory.Segments;
+
+				while (fromIndex < segments.Count)
+				{
+					Kenobi($"from:{fromIndex}, batch:[{batch.Count}] {{ {string.Join(", ", batch.Select(x => x.Path))} }}");
+
+					var (chunk, nextIndex) = this.Directory.GetFixedPrefix(fromIndex);
+					Kenobi($"- chunk: {chunk}, nextIndex={nextIndex}");
+
+					if (fromIndex == 0)
+					{
+						if (chunk.Count == 0)
+						{ // starts immediately with any, ex: "/<>/bar/baz/..."
+							chunk = FdbPath.Root;
+						}
+
+						Kenobi($"Load first chunk {chunk}...");
+						subspace = await tr.Database.DirectoryLayer.TryOpenAsync(tr, chunk).ConfigureAwait(false);
+						if (subspace == null)
 						{
-							yield return subspace;
+							Kenobi($"No match for first chunk {chunk}");
+							// nothing for the first chunk
+							return;
+						}
+						Kenobi($"Found match for first chunk {chunk} => {subspace}");
+						batch.Add(subspace);
+					}
+					else
+					{
+						if (batch.Count == 0)
+						{
+							Kenobi("No more match!");
+							return;
 						}
 					}
+
+					if (nextIndex < segments.Count && segments[nextIndex].IsAny)
+					{
+						Kenobi($"Next is <>, listing child for {batch.Count} candidates...");
+
+						foreach (var candidate in batch)
+						{
+							// list its children
+							var names = await candidate.ListAsync(tr).ConfigureAwait(false);
+							Kenobi($"- found {names.Count} children for {candidate.Path}");
+							foreach (var name in names)
+							{
+								var child = await tr.Database.DirectoryLayer.TryOpenAsync(tr, name).ConfigureAwait(false);
+								if (child != null)
+								{
+									Kenobi($"- queueing {name} for next batch");
+									nextBatch.Add(child);
+								}
+							}
+						}
+						Kenobi($"- Went from {batch.Count} to {nextBatch.Count} candidates");
+					}
+					else
+					{ // we have to add the chunk to each candidate
+						Kenobi($"This is the final chunk, completing {batch.Count} candidates...");
+						foreach (var candidate in batch)
+						{
+							var child = await tr.Database.DirectoryLayer.TryOpenAsync(tr, candidate.Path[chunk]).ConfigureAwait(false);
+							if (child != null)
+							{
+								nextBatch.Add(child);
+							}
+						}
+						Kenobi($"- Went from {batch.Count} to {nextBatch.Count} candidates");
+					}
+
+					batch.Clear();
+					batch.AddRange(nextBatch);
+					nextBatch.Clear();
+					fromIndex = nextIndex + 1;
 				}
 
-			}
+				Kenobi($"Victory! We have {batch.Count} matching directories");
 
+				foreach (var s in batch)
+				{
+					await channel.WriteAsync(s).ConfigureAwait(false);
+				}
+
+			}, tr.Cancellation);
 		}
 	}
 

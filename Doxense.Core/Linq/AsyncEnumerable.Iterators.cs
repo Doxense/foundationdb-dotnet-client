@@ -26,6 +26,7 @@
 
 namespace Doxense.Linq
 {
+	using System.Threading.Channels;
 	using Doxense.Linq.Async;
 	using Doxense.Linq.Async.Expressions;
 	using Doxense.Linq.Async.Iterators;
@@ -129,6 +130,45 @@ namespace Doxense.Linq
 				factory,
 				(s, ct) => ((Func<CancellationToken, Task<TCollection>>) s)(ct)
 			);
+		}
+
+		#endregion
+
+		#region Channel...
+
+		public static async IAsyncEnumerable<TResult> Pump<TResult>(Func<ChannelWriter<TResult>, Task> handler, [EnumeratorCancellation] CancellationToken ct)
+		{
+			var channel = Channel.CreateUnbounded<TResult>(new() { SingleReader = true, SingleWriter = true });
+			try
+			{
+				using var ctr = ct.Register((c) => ((Channel<TResult>) c!).Writer.TryComplete(new OperationCanceledException(ct)), channel);
+
+				var t = Task.Run(async () =>
+				{
+					try
+					{
+						ct.ThrowIfCancellationRequested();
+						await handler(channel.Writer).ConfigureAwait(false);
+						channel.Writer.TryComplete();
+					}
+					catch (Exception ex)
+					{
+						channel.Writer.TryComplete(ex);
+					}
+				}, ct);
+
+				await foreach (var r in channel.Reader.ReadAllAsync().WithCancellation(ct).ConfigureAwait(false))
+				{
+					yield return r;
+				}
+
+				await t.ConfigureAwait(false);
+			}
+			finally
+			{
+				channel.Writer.TryComplete(null);
+			}
+
 		}
 
 		#endregion

@@ -46,12 +46,15 @@ namespace FoundationDB.Client.Tests
 				var parent = (await location.Resolve(tr, createIfMissing: true))!;
 
 				foreach (var path in (string[])
-				         [
-					         "foo/bar/baz/jazz",
-					         "users/alice",
-					         "users/bob",
-					         "users/charlie",
-				         ])
+				[
+					"foo/bar/baz/jazz",
+					"users/alice/documents/photos",
+					"users/alice/documents/music",
+					"users/bob/documents/photos",
+					"users/bob/documents/music",
+					"users/charlie/documents/photos",
+					"users/charlie/documents/music",
+				])
 				{
 					await parent.CreateAsync(tr, FdbPath.Relative(FdbPath.Parse(path)));
 				}
@@ -61,22 +64,20 @@ namespace FoundationDB.Client.Tests
 
 			await db.ReadAsync(async tr =>
 			{
-
 				// since our test folder starts already in a deep /Tests/..../ path, we need to add it to all the queries!
 
 				var root = location.Path.ToString("N");
-				var q = FqlQueryParser.Parse(root + "/users/<>");
+				var q = FqlQueryParser.Parse(root + "/users/<>/documents");
 				Assert.That(q, Is.Not.Null);
 				Log(q.Explain());
 
 				Log("Listing matching folders:");
-				var matches = new List<FdbPath>();
-				await foreach (var subspace in q.EnumerateDirectories(tr).WithCancellation(this.Cancellation))
-				{
-					Log($"- {subspace}");
-					matches.Add(subspace.Path);
-				}
+				var matches = await q.EnumerateDirectories(tr).ToListAsync();
 				Log($"> found {matches.Count}");
+				foreach (var match in matches)
+				{
+					Log($"- {match}");
+				}
 				Assert.That(matches, Has.Count.EqualTo(3));
 
 			}, this.Cancellation);
