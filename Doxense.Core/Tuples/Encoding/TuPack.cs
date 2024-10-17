@@ -1739,6 +1739,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least one element</param>
 		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded value of the last item in the tuple</returns>
+		/// <exception cref="InvalidOperationException">If the decoded tuple does not have the expected size</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static T1? DecodeLast<T1>(Slice packedKey, int? expectedSize = null)
 			=> TupleEncoder.DecodeLast<T1>(packedKey.Span, expectedSize);
@@ -1748,6 +1749,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least one element</param>
 		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded value of the last item in the tuple</returns>
+		/// <exception cref="InvalidOperationException">If the decoded tuple does not have the expected size</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static T1? DecodeLast<T1>(ReadOnlySpan<byte> packedKey, int? expectedSize = null)
 			=> TupleEncoder.DecodeLast<T1>(packedKey, expectedSize);
@@ -1758,6 +1760,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
 		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded values of the last two elements in the tuple</returns>
+		/// <exception cref="InvalidOperationException">If the decoded tuple does not have the expected size</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?) DecodeLast<T1, T2>(Slice packedKey, int? expectedSize = null)
 			=> TupleEncoder.DecodeLast<T1, T2>(packedKey.Span, expectedSize);
@@ -1768,6 +1771,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
 		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded values of the last two elements in the tuple</returns>
+		/// <exception cref="InvalidOperationException">If the decoded tuple does not have the expected size</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?) DecodeLast<T1, T2>(ReadOnlySpan<byte> packedKey, int? expectedSize = null)
 			=> TupleEncoder.DecodeLast<T1, T2>(packedKey, expectedSize);
@@ -1779,6 +1783,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 3 elements</param>
 		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded values of the last three elements in the tuple</returns>
+		/// <exception cref="InvalidOperationException">If the decoded tuple does not have the expected size</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?, T3?) DecodeLast<T1, T2, T3>(Slice packedKey, int? expectedSize = null)
 			=> TupleEncoder.DecodeLast<T1, T2, T3>(packedKey.Span, expectedSize);
@@ -1790,6 +1795,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 3 elements</param>
 		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded values of the last three elements in the tuple</returns>
+		/// <exception cref="InvalidOperationException">If the decoded tuple does not have the expected size</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?, T3?) DecodeLast<T1, T2, T3>(ReadOnlySpan<byte> packedKey, int? expectedSize = null)
 			=> TupleEncoder.DecodeLast<T1, T2, T3>(packedKey, expectedSize);
@@ -1802,6 +1808,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 4 elements</param>
 		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded values of the last four elements in the tuple</returns>
+		/// <exception cref="InvalidOperationException">If the decoded tuple does not have the expected size</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?, T3?, T4?) DecodeLast<T1, T2, T3, T4>(Slice packedKey, int? expectedSize = null)
 			=> TupleEncoder.DecodeLast<T1, T2, T3, T4>(packedKey.Span, expectedSize);
@@ -1814,6 +1821,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 4 elements</param>
 		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded values of the last four elements in the tuple</returns>
+		/// <exception cref="InvalidOperationException">If the decoded tuple does not have the expected size</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?, T3?, T4?) DecodeLast<T1, T2, T3, T4>(ReadOnlySpan<byte> packedKey, int? expectedSize = null)
 			=> TupleEncoder.DecodeLast<T1, T2, T3, T4>(packedKey, expectedSize);

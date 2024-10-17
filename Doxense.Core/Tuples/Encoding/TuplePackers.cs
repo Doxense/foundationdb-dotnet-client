@@ -48,7 +48,13 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <typeparam name="T">Type of values to serialize</typeparam>
 		/// <returns>Reusable action that knows how to serialize values of type <typeparamref name="T"/> into binary buffers, or that throws an exception if the type is not supported</returns>
 		[ContractAnnotation("required:true => notnull")]
-		internal static Encoder<T>? GetSerializer<T>(bool required)
+#if NET8_0_OR_GREATER
+		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
+#endif
+		internal static Encoder<T>? GetSerializer<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			T
+		>(bool required)
 		{
 			//note: this method is only called once per initializing of TuplePackers<T> to create the cached delegate.
 
@@ -63,7 +69,14 @@ namespace Doxense.Collections.Tuples.Encoding
 			return (ref TupleWriter _, T? _) => throw new InvalidOperationException($"Does not know how to serialize values of type '{typeof(T).Name}' into keys");
 		}
 
-		private static Delegate? GetSerializerFor(Type type)
+#if NET8_0_OR_GREATER
+		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
+#endif
+		[RequiresUnreferencedCode("If some of the generic arguments are annotated (either with DynamicallyAccessedMembersAttribute, or generic constraints), trimming can't validate that the requirements of those annotations are met.")]
+		private static Delegate? GetSerializerFor(
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			Type type
+		)
 		{
 			Contract.NotNull(type);
 
@@ -196,11 +209,13 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static void SerializeTo<T>(ref TupleWriter writer, T value)
+		internal static void SerializeTo<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>
+			(ref TupleWriter writer, T value)
 		{
 			//<JIT_HACK>
 			// - In Release builds, this will be cleaned up and inlined by the JIT as a direct invocation of the correct WriteXYZ method
-			// - In Debug builds, we have to disabled this, because it would be too slow
+			// - In Debug builds, we have to disable this, because it would be too slow
 			//IMPORTANT: only ValueTypes and they must have a corresponding Write$TYPE$(ref TupleWriter, $TYPE) in TupleParser!
 #if !DEBUG
 			if (typeof(T) == typeof(bool)) { TupleParser.WriteBool(ref writer, (bool) (object) value!); return; }
@@ -264,7 +279,9 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="value">Nullable value to serialize</param>
 		/// <remarks>Uses the underlying type's serializer if the value is not null</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeNullableTo<T>(ref TupleWriter writer, T? value)
+		public static void SerializeNullableTo<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>
+			(ref TupleWriter writer, T? value)
 			where T : struct
 		{
 			if (value is not null)
@@ -303,6 +320,10 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// May throw at runtime if the type is not supported.
 		/// This method will be very slow! Please consider using typed tuples instead!
 		/// </remarks>
+#if NET8_0_OR_GREATER
+		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
+#endif
+		[RequiresUnreferencedCode("If some of the generic arguments are annotated (either with DynamicallyAccessedMembersAttribute, or generic constraints), trimming can't validate that the requirements of those annotations are met.")]
 		public static void SerializeObjectTo(ref TupleWriter writer, object? value)
 		{
 			if (value == null)
@@ -314,6 +335,10 @@ namespace Doxense.Collections.Tuples.Encoding
 			GetBoxedEncoder(value.GetType())(ref writer, value);
 		}
 
+#if NET8_0_OR_GREATER
+		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
+#endif
+		[RequiresUnreferencedCode("If some of the generic arguments are annotated (either with DynamicallyAccessedMembersAttribute, or generic constraints), trimming can't validate that the requirements of those annotations are met.")]
 		private static Encoder<object> GetBoxedEncoder(Type type)
 		{
 			var encoders = TuplePackers.BoxedEncoders;
@@ -323,6 +348,10 @@ namespace Doxense.Collections.Tuples.Encoding
 			}
 			return encoder;
 
+#if NET8_0_OR_GREATER
+			[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
+#endif
+			[RequiresUnreferencedCode("If some of the generic arguments are annotated (either with DynamicallyAccessedMembersAttribute, or generic constraints), trimming can't validate that the requirements of those annotations are met.")]
 			static Encoder<object> GetBoxedEncoderSlow(Type type)
 			{
 				var encoder = CreateBoxedEncoder(type);
@@ -402,6 +431,10 @@ namespace Doxense.Collections.Tuples.Encoding
 			return encoders;
 		}
 
+#if NET8_0_OR_GREATER
+		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
+#endif
+		[RequiresUnreferencedCode("If some of the generic arguments are annotated (either with DynamicallyAccessedMembersAttribute, or generic constraints), trimming can't validate that the requirements of those annotations are met.")]
 		private static Encoder<object> CreateBoxedEncoder(Type type)
 		{
 			var m = typeof(TuplePacker<>).MakeGenericType(type).GetMethod(nameof(TuplePacker<int>.SerializeBoxedTo));
@@ -800,6 +833,9 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <summary>Returns a lambda that will be able to serialize values of type <typeparamref name="T"/></summary>
 		/// <typeparam name="T">Type of values to serialize</typeparam>
 		/// <returns>Reusable action that knows how to serialize values of type <typeparamref name="T"/> into binary buffers, or an exception if the type is not supported</returns>
+#if NET8_0_OR_GREATER
+		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
+#endif
 		internal static Decoder<T> GetDeserializer<T>(bool required)
 		{
 			Type type = typeof(T);
@@ -865,6 +901,9 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		[Pure]
+#if NET8_0_OR_GREATER
+		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
+#endif
 		private static Delegate MakeNullableDeserializer(Type nullableType, Type type, Delegate decoder)
 		{
 			Contract.Debug.Requires(nullableType != null && type != null && decoder != null);
@@ -892,18 +931,21 @@ namespace Doxense.Collections.Tuples.Encoding
 			.ToDictionary(m => m.GetGenericArguments().Length);
 
 		[Pure]
+#if NET8_0_OR_GREATER
+		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
+#endif
 		private static Delegate MakeSTupleDeserializer(Type type)
 		{
 			Contract.Debug.Requires(type != null);
 
 			// (slice) => TuPack.DeserializeTuple<T...>(slice)
 
-			var targs = type.GetGenericArguments();
-			if (!STupleCandidateMethods.TryGetValue(targs.Length, out var method))
+			var typeArgs = type.GetGenericArguments();
+			if (!STupleCandidateMethods.TryGetValue(typeArgs.Length, out var method))
 			{
-				throw new InvalidOperationException($"There is no method able to deserialize a tuple with {targs.Length} arguments!");
+				throw new InvalidOperationException($"There is no method able to deserialize a tuple with {typeArgs.Length} arguments!");
 			}
-			method = method.MakeGenericMethod(targs);
+			method = method.MakeGenericMethod(typeArgs);
 
 			var prmSlice = Expression.Parameter(typeof(ReadOnlySpan<byte>), "slice");
 			var body = Expression.Call(method, prmSlice);
@@ -921,18 +963,21 @@ namespace Doxense.Collections.Tuples.Encoding
 			.ToDictionary(m => m.GetGenericArguments().Length);
 
 		[Pure]
+#if NET8_0_OR_GREATER
+		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
+#endif
 		private static Delegate MakeValueTupleDeserializer(Type type)
 		{
 			Contract.Debug.Requires(type != null);
 
 			// (slice) => TuPack.DeserializeValueTuple<T...>(slice)
 
-			var targs = type.GetGenericArguments();
-			if (!ValueTupleCandidateMethods.TryGetValue(targs.Length, out var method))
+			var typeArgs = type.GetGenericArguments();
+			if (!ValueTupleCandidateMethods.TryGetValue(typeArgs.Length, out var method))
 			{
-				throw new InvalidOperationException($"There is no method able to deserialize a tuple with {targs.Length} arguments!");
+				throw new InvalidOperationException($"There is no method able to deserialize a tuple with {typeArgs.Length} arguments!");
 			}
-			method = method.MakeGenericMethod(targs);
+			method = method.MakeGenericMethod(typeArgs);
 
 			var prmSlice = Expression.Parameter(typeof(ReadOnlySpan<byte>), "slice");
 			var body = Expression.Call(method, prmSlice);
@@ -1123,7 +1168,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		/// <summary>Deserialize a tuple segment into a byte array</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)] //REVIEW: because of Slice.GetBytes()
-		public static byte[]? DeserializeBytes(ReadOnlySpan<byte> slice)
+		public static byte[] DeserializeBytes(ReadOnlySpan<byte> slice)
 		{
 			//note: DeserializeSlice(RoS<byte>) already creates a copy, hopefully with the correct size, so we can expose it safely
 			var decoded = DeserializeSlice(slice);
@@ -1212,30 +1257,74 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static STuple<T1?> DeserializeTuple<T1>(ReadOnlySpan<byte> slice) => DeserializeValueTuple<T1>(slice);
+		public static STuple<T1?> DeserializeTuple<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1>
+			(ReadOnlySpan<byte> slice)
+			=> DeserializeValueTuple<T1>(slice);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static STuple<T1?, T2?> DeserializeTuple<T1, T2>(ReadOnlySpan<byte> slice) => DeserializeValueTuple<T1, T2>(slice);
+		public static STuple<T1?, T2?> DeserializeTuple<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2>
+			(ReadOnlySpan<byte> slice)
+			=> DeserializeValueTuple<T1, T2>(slice);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static STuple<T1?, T2?, T3?> DeserializeTuple<T1, T2, T3>(ReadOnlySpan<byte> slice) => DeserializeValueTuple<T1, T2, T3>(slice);
+		public static STuple<T1?, T2?, T3?> DeserializeTuple<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3>
+			(ReadOnlySpan<byte> slice)
+			=> DeserializeValueTuple<T1, T2, T3>(slice);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static STuple<T1?, T2?, T3?, T4?> DeserializeTuple<T1, T2, T3, T4>(ReadOnlySpan<byte> slice) => DeserializeValueTuple<T1, T2, T3, T4>(slice);
+		public static STuple<T1?, T2?, T3?, T4?> DeserializeTuple<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4>
+			(ReadOnlySpan<byte> slice)
+			=> DeserializeValueTuple<T1, T2, T3, T4>(slice);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static STuple<T1?, T2?, T3?, T4?, T5?> DeserializeTuple<T1, T2, T3, T4, T5>(ReadOnlySpan<byte> slice) => DeserializeValueTuple<T1, T2, T3, T4, T5>(slice);
+		public static STuple<T1?, T2?, T3?, T4?, T5?> DeserializeTuple<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5>
+			(ReadOnlySpan<byte> slice)
+			=> DeserializeValueTuple<T1, T2, T3, T4, T5>(slice);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static STuple<T1?, T2?, T3?, T4?, T5?, T6?> DeserializeTuple<T1, T2, T3, T4, T5, T6>(ReadOnlySpan<byte> slice) => DeserializeValueTuple<T1, T2, T3, T4, T5, T6>(slice);
+		public static STuple<T1?, T2?, T3?, T4?, T5?, T6?> DeserializeTuple<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6>
+			(ReadOnlySpan<byte> slice)
+			=> DeserializeValueTuple<T1, T2, T3, T4, T5, T6>(slice);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static STuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?> DeserializeTuple<T1, T2, T3, T4, T5, T6, T7>(ReadOnlySpan<byte> slice) => DeserializeValueTuple<T1, T2, T3, T4, T5, T6, T7>(slice);
+		public static STuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?> DeserializeTuple<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7>
+			(ReadOnlySpan<byte> slice)
+			=> DeserializeValueTuple<T1, T2, T3, T4, T5, T6, T7>(slice);
 
 		//TODO: there is no STuple<...> with 8 generic arguments !
 
 		[Pure]
-		public static ValueTuple<T1?> DeserializeValueTuple<T1>(ReadOnlySpan<byte> slice)
+		public static ValueTuple<T1?> DeserializeValueTuple<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1>
+			(ReadOnlySpan<byte> slice)
 		{
 			ValueTuple<T1?> res = default;
 			if (slice.Length != 0)
@@ -1272,7 +1361,10 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		[Pure]
-		public static ValueTuple<T1?, T2?> DeserializeValueTuple<T1, T2>(ReadOnlySpan<byte> slice)
+		public static ValueTuple<T1?, T2?> DeserializeValueTuple<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2>
+			(ReadOnlySpan<byte> slice)
 		{
 			var res = default(ValueTuple<T1?, T2?>);
 			if (slice.Length != 0)
@@ -1309,7 +1401,11 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		[Pure]
-		public static ValueTuple<T1?, T2?, T3?> DeserializeValueTuple<T1, T2, T3>(ReadOnlySpan<byte> slice)
+		public static ValueTuple<T1?, T2?, T3?> DeserializeValueTuple<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3>
+			(ReadOnlySpan<byte> slice)
 		{
 			var res = default(ValueTuple<T1?, T2?, T3?>);
 			if (slice.Length != 0)
@@ -1347,7 +1443,12 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		[Pure]
-		public static ValueTuple<T1?, T2?, T3?, T4?> DeserializeValueTuple<T1, T2, T3, T4>(ReadOnlySpan<byte> slice)
+		public static ValueTuple<T1?, T2?, T3?, T4?> DeserializeValueTuple<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4>
+			(ReadOnlySpan<byte> slice)
 		{
 			var res = default(ValueTuple<T1?, T2?, T3?, T4?>);
 			if (slice.Length != 0)
@@ -1385,7 +1486,13 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		[Pure]
-		public static ValueTuple<T1?, T2?, T3?, T4?, T5?> DeserializeValueTuple<T1, T2, T3, T4, T5>(ReadOnlySpan<byte> slice)
+		public static ValueTuple<T1?, T2?, T3?, T4?, T5?> DeserializeValueTuple<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5>
+			(ReadOnlySpan<byte> slice)
 		{
 			var res = default(ValueTuple<T1?, T2?, T3?, T4?, T5?>);
 			if (slice.Length != 0)
@@ -1422,7 +1529,14 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		[Pure]
-		public static (T1?, T2?, T3?, T4?, T5?, T6?) DeserializeValueTuple<T1, T2, T3, T4, T5, T6>(ReadOnlySpan<byte> slice)
+		public static (T1?, T2?, T3?, T4?, T5?, T6?) DeserializeValueTuple<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6>
+			(ReadOnlySpan<byte> slice)
 		{
 			var res = default((T1?, T2?, T3?, T4?, T5?, T6?));
 			if (slice.Length != 0)
@@ -1459,7 +1573,15 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		[Pure]
-		public static (T1?, T2?, T3?, T4?, T5?, T6?, T7?) DeserializeValueTuple<T1, T2, T3, T4, T5, T6, T7>(ReadOnlySpan<byte> slice)
+		public static (T1?, T2?, T3?, T4?, T5?, T6?, T7?) DeserializeValueTuple<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7>
+			(ReadOnlySpan<byte> slice)
 		{
 			var res = default((T1?, T2?, T3?, T4?, T5?, T6?, T7?));
 			if (slice.Length != 0)
@@ -1496,7 +1618,16 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		[Pure]
-		public static (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) DeserializeValueTuple<T1, T2, T3, T4, T5, T6, T7, T8>(ReadOnlySpan<byte> slice)
+		public static (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) DeserializeValueTuple<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T8>
+			(ReadOnlySpan<byte> slice)
 		{
 			var res = default((T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?));
 			if (slice.Length != 0)

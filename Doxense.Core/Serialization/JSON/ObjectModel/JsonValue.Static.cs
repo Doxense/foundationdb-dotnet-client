@@ -152,7 +152,10 @@ namespace Doxense.Serialization.Json
 		/// <summary>Attempts to determine the category of a JSON value, given a CLR type</summary>
 		/// <param name="type">CLR Type(ex: int)</param>
 		/// <returns>Corresponding JSON categoriy (ex: JsonType.Number)</returns>
-		internal static JsonType GetJsonTypeFromClrType(Type type)
+		internal static JsonType GetJsonTypeFromClrType(
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)]
+			Type type
+		)
 		{
 			if (type is null) throw ThrowHelper.ArgumentNullException(nameof(type));
 

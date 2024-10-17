@@ -60,11 +60,14 @@ namespace Doxense.Serialization.Encoders
 			return new JsonKeyEncoder<T>(this);
 		}
 
-		ICompositeKeyEncoder<T1, T2> IKeyEncoding.GetKeyEncoder<T1, T2>() => throw new NotImplementedException();
+		ICompositeKeyEncoder<T1, T2> IKeyEncoding.GetKeyEncoder<T1, T2>()
+			=> throw new NotSupportedException();
 
-		ICompositeKeyEncoder<T1, T2, T3> IKeyEncoding.GetKeyEncoder<T1, T2, T3>() => throw new NotImplementedException();
+		ICompositeKeyEncoder<T1, T2, T3> IKeyEncoding.GetKeyEncoder<T1, T2, T3>()
+			=> throw new NotSupportedException();
 
-		ICompositeKeyEncoder<T1, T2, T3, T4> IKeyEncoding.GetKeyEncoder<T1, T2, T3, T4>() => throw new NotImplementedException();
+		ICompositeKeyEncoder<T1, T2, T3, T4> IKeyEncoding.GetKeyEncoder<T1, T2, T3, T4>()
+			=> throw new NotSupportedException();
 
 		IDynamicKeyEncoder IKeyEncoding.GetDynamicKeyEncoder() => GetDynamicKeyEncoder();
 
@@ -192,7 +195,7 @@ namespace Doxense.Serialization.Encoders
 		public JsonValue DecodeToJson(object? o) => o switch
 		{
 			null => JsonNull.Null,
-			IVarTuple tuple => tuple.ToJsonArray((item) => DecodeToJson(item)),
+			IVarTuple tuple => tuple.ToJsonArray(DecodeToJson),
 			_ => JsonValue.FromValue(o, this.Settings, this.Resolver)
 		};
 
@@ -263,7 +266,7 @@ namespace Doxense.Serialization.Encoders
 
 		T? IValueEncoder<T, JsonObject>.DecodeValue(JsonObject packed)
 		{
-			return packed.As<T?>(default, resolver: this.Resolver);
+			return packed.As<T?>(resolver: this.Resolver);
 		}
 
 	}
@@ -271,7 +274,7 @@ namespace Doxense.Serialization.Encoders
 	public sealed class JsonKeyEncoder<T> : IKeyEncoder<T>
 	{
 
-		public static JsonKeyEncoder<T> Instance { get; } = new JsonKeyEncoder<T>(JsonValueEncoding.Instance);
+		public static JsonKeyEncoder<T> Instance { get; } = new(JsonValueEncoding.Instance);
 
 		public JsonValueEncoding Encoding { get; }
 
@@ -342,107 +345,324 @@ namespace Doxense.Serialization.Encoders
 
 		#region IDynamicKeyEncoder...
 
-		public void PackKey<TTuple>(ref SliceWriter writer, TTuple items) where TTuple : IVarTuple => throw new NotImplementedException();
+#pragma warning disable IL2095
 
-		public void EncodeKey<T1>(ref SliceWriter writer, T1? item1) => throw new NotImplementedException();
+		void IDynamicKeyEncoder.PackKey<TTuple>(ref SliceWriter writer, TTuple items)
+			=> throw new NotSupportedException();
 
-		public void EncodeKey<T1, T2>(ref SliceWriter writer, T1? item1, T2? item2) => throw new NotImplementedException();
+		void IDynamicKeyEncoder.EncodeKey<T1>(ref SliceWriter writer, T1? item1)
+			where T1 : default
+			=> throw new NotSupportedException();
 
-		public void EncodeKey<T1, T2, T3>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3) => throw new NotImplementedException();
+		void IDynamicKeyEncoder.EncodeKey<T1, T2>(ref SliceWriter writer, T1? item1, T2? item2)
+			where T1 : default
+			where T2 : default
+			=> throw new NotSupportedException();
 
-		public void EncodeKey<T1, T2, T3, T4>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4) => throw new NotImplementedException();
+		void IDynamicKeyEncoder.EncodeKey<T1, T2, T3>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3)
+			where T1 : default
+			where T2 : default
+			where T3 : default
+			=> throw new NotSupportedException();
 
-		public void EncodeKey<T1, T2, T3, T4, T5>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5) => throw new NotImplementedException();
+		void IDynamicKeyEncoder.EncodeKey<T1, T2, T3, T4>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4)
+			where T1 : default
+			where T2 : default
+			where T3 : default
+			where T4 : default
+			=> throw new NotSupportedException();
 
-		public void EncodeKey<T1, T2, T3, T4, T5, T6>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6) => throw new NotImplementedException();
+		void IDynamicKeyEncoder.EncodeKey<T1, T2, T3, T4, T5>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5)
+			where T1 : default
+			where T2 : default
+			where T3 : default
+			where T4 : default
+			where T5 : default
+			=> throw new NotSupportedException();
 
-		public void EncodeKey<T1, T2, T3, T4, T5, T6, T7>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7) => throw new NotImplementedException();
+		void IDynamicKeyEncoder.EncodeKey<T1, T2, T3, T4, T5, T6>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6)
+			where T1 : default
+			where T2 : default
+			where T3 : default
+			where T4 : default
+			where T5 : default
+			where T6 : default
+			=> throw new NotSupportedException();
 
-		public void EncodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7, T8? item8) => throw new NotImplementedException();
+		void IDynamicKeyEncoder.EncodeKey<T1, T2, T3, T4, T5, T6, T7>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7)
+			where T1 : default
+			where T2 : default
+			where T3 : default
+			where T4 : default
+			where T5 : default
+			where T6 : default
+			where T7 : default
+			=> throw new NotSupportedException();
 
-		public IVarTuple UnpackKey(Slice packed) => throw new NotImplementedException();
+		void IDynamicKeyEncoder.EncodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7, T8? item8)
+			where T1 : default
+			where T2 : default
+			where T3 : default
+			where T4 : default
+			where T5 : default
+			where T6 : default
+			where T7 : default
+			where T8 : default
+			=> throw new NotSupportedException();
 
-		public SpanTuple UnpackKey(ReadOnlySpan<byte> packed) => throw new NotImplementedException();
+		IVarTuple IDynamicKeyEncoder.UnpackKey(Slice packed) => throw new NotSupportedException();
 
-		public bool TryUnpackKey(Slice packed, out IVarTuple tuple) => throw new NotImplementedException();
+		SpanTuple IDynamicKeyEncoder.UnpackKey(ReadOnlySpan<byte> packed) => throw new NotSupportedException();
 
-		public bool TryUnpackKey(ReadOnlySpan<byte> packed, out SpanTuple tuple) => throw new NotImplementedException();
+		bool IDynamicKeyEncoder.TryUnpackKey(Slice packed, out IVarTuple tuple) => throw new NotSupportedException();
 
-		public T1 DecodeKey<T1>(Slice packed) => throw new NotImplementedException();
+		bool IDynamicKeyEncoder.TryUnpackKey(ReadOnlySpan<byte> packed, out SpanTuple tuple) => throw new NotSupportedException();
 
-		public T1 DecodeKey<T1>(ReadOnlySpan<byte> packed) => throw new NotImplementedException();
+		T1 IDynamicKeyEncoder.DecodeKey<T1>(Slice packed)
+			where T1 : default
+			=> throw new NotSupportedException();
 
-		public T1 DecodeKeyFirst<T1>(Slice packed, int? expectedSize = null) => throw new NotImplementedException();
+		T1 IDynamicKeyEncoder.DecodeKey<T1>(ReadOnlySpan<byte> packed)
+			where T1 : default
+			=> throw new NotSupportedException();
 
-		public T1 DecodeKeyFirst<T1>(ReadOnlySpan<byte> packed, int? expectedSize = null) => throw new NotImplementedException();
+		T1 IDynamicKeyEncoder.DecodeKeyFirst<T1>(Slice packed, int? expectedSize)
+			where T1 : default
+			=> throw new NotSupportedException();
 
-		public (T1?, T2?) DecodeKeyFirst<T1, T2>(Slice packed, int? expectedSize = null) => throw new NotImplementedException();
+		T1 IDynamicKeyEncoder.DecodeKeyFirst<T1>(ReadOnlySpan<byte> packed, int? expectedSize)
+			where T1 : default
+			=> throw new NotSupportedException();
 
-		public (T1?, T2?) DecodeKeyFirst<T1, T2>(ReadOnlySpan<byte> packed, int? expectedSize = null) => throw new NotImplementedException();
+		(T1?, T2?) IDynamicKeyEncoder.DecodeKeyFirst<T1, T2>(Slice packed, int? expectedSize)
+			where T1 : default
+			where T2 : default
+			=> throw new NotSupportedException();
 
-		public (T1?, T2?, T3?) DecodeKeyFirst<T1, T2, T3>(Slice packed, int? expectedSize = null) => throw new NotImplementedException();
+		(T1?, T2?) IDynamicKeyEncoder.DecodeKeyFirst<T1, T2>(ReadOnlySpan<byte> packed, int? expectedSize)
+			where T1 : default
+			where T2 : default
+			=> throw new NotSupportedException();
 
-		public (T1?, T2?, T3?) DecodeKeyFirst<T1, T2, T3>(ReadOnlySpan<byte> packed, int? expectedSize = null) => throw new NotImplementedException();
+		(T1?, T2?, T3?) IDynamicKeyEncoder.DecodeKeyFirst<T1, T2, T3>(Slice packed, int? expectedSize)
+			where T1 : default
+			where T2 : default
+			where T3 : default
+			=> throw new NotSupportedException();
 
-		public T1 DecodeKeyLast<T1>(Slice packed, int? expectedSize = null) => throw new NotImplementedException();
+		(T1?, T2?, T3?) IDynamicKeyEncoder.DecodeKeyFirst<T1, T2, T3>(ReadOnlySpan<byte> packed, int? expectedSize)
+			where T1 : default
+			where T2 : default
+			where T3 : default => throw new NotSupportedException();
 
-		public T1 DecodeKeyLast<T1>(ReadOnlySpan<byte> packed, int? expectedSize = null) => throw new NotImplementedException();
+		T1 IDynamicKeyEncoder.DecodeKeyLast<T1>(Slice packed, int? expectedSize)
+			where T1 : default
+			=> throw new NotSupportedException();
 
-		public (T1?, T2?) DecodeKeyLast<T1, T2>(Slice packed, int? expectedSize = null) => throw new NotImplementedException();
+		T1 IDynamicKeyEncoder.DecodeKeyLast<T1>(ReadOnlySpan<byte> packed, int? expectedSize)
+			where T1 : default
+			=> throw new NotSupportedException();
 
-		public (T1?, T2?) DecodeKeyLast<T1, T2>(ReadOnlySpan<byte> packed, int? expectedSize = null) => throw new NotImplementedException();
+		(T1?, T2?) IDynamicKeyEncoder.DecodeKeyLast<T1, T2>(Slice packed, int? expectedSize)
+			where T1 : default
+			where T2 : default => throw new NotSupportedException();
 
-		public (T1?, T2?, T3?) DecodeKeyLast<T1, T2, T3>(Slice packed, int? expectedSize = null) => throw new NotImplementedException();
+		(T1?, T2?) IDynamicKeyEncoder.DecodeKeyLast<T1, T2>(ReadOnlySpan<byte> packed, int? expectedSize)
+			where T1 : default
+			where T2 : default
+			=> throw new NotSupportedException();
 
-		public (T1?, T2?, T3?) DecodeKeyLast<T1, T2, T3>(ReadOnlySpan<byte> packed, int? expectedSize = null) => throw new NotImplementedException();
+		(T1?, T2?, T3?) IDynamicKeyEncoder.DecodeKeyLast<T1, T2, T3>(Slice packed, int? expectedSize)
+			where T1 : default
+			where T2 : default
+			where T3 : default
+			=> throw new NotSupportedException();
 
-		public (T1?, T2?) DecodeKey<T1, T2>(Slice packed) => throw new NotImplementedException();
+		(T1?, T2?, T3?) IDynamicKeyEncoder.DecodeKeyLast<T1, T2, T3>(ReadOnlySpan<byte> packed, int? expectedSize)
+			where T1 : default
+			where T2 : default
+			where T3 : default
+			=> throw new NotSupportedException();
 
-		public (T1?, T2?, T3?) DecodeKey<T1, T2, T3>(Slice packed) => throw new NotImplementedException();
+		(T1?, T2?) IDynamicKeyEncoder.DecodeKey<T1, T2>(Slice packed)
+			where T1 : default
+			where T2 : default
+			=> throw new NotSupportedException();
 
-		public (T1?, T2?, T3?, T4?) DecodeKey<T1, T2, T3, T4>(Slice packed) => throw new NotImplementedException();
+		(T1?, T2?, T3?) IDynamicKeyEncoder.DecodeKey<T1, T2, T3>(Slice packed)
+			where T1 : default
+			where T2 : default
+			where T3 : default
+			=> throw new NotSupportedException();
 
-		public (T1?, T2?, T3?, T4?, T5?) DecodeKey<T1, T2, T3, T4, T5>(Slice packed) => throw new NotImplementedException();
+		(T1?, T2?, T3?, T4?) IDynamicKeyEncoder.DecodeKey<T1, T2, T3, T4>(Slice packed)
+			where T1 : default
+			where T2 : default
+			where T3 : default
+			where T4 : default
+			=> throw new NotSupportedException();
 
-		public (T1?, T2?, T3?, T4?, T5?, T6?) DecodeKey<T1, T2, T3, T4, T5, T6>(Slice packed) => throw new NotImplementedException();
+		(T1?, T2?, T3?, T4?, T5?) IDynamicKeyEncoder.DecodeKey<T1, T2, T3, T4, T5>(Slice packed)
+			where T1 : default
+			where T2 : default
+			where T3 : default
+			where T4 : default
+			where T5 : default
+			=> throw new NotSupportedException();
 
-		public (T1?, T2?, T3?, T4?, T5?, T6?, T7?) DecodeKey<T1, T2, T3, T4, T5, T6, T7>(Slice packed) => throw new NotImplementedException();
+		(T1?, T2?, T3?, T4?, T5?, T6?) IDynamicKeyEncoder.DecodeKey<T1, T2, T3, T4, T5, T6>(Slice packed)
+			where T1 : default
+			where T2 : default
+			where T3 : default
+			where T4 : default
+			where T5 : default
+			where T6 : default
+			=> throw new NotSupportedException();
 
-		public (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(Slice packed) => throw new NotImplementedException();
+		(T1?, T2?, T3?, T4?, T5?, T6?, T7?) IDynamicKeyEncoder.DecodeKey<T1, T2, T3, T4, T5, T6, T7>(Slice packed)
+			where T1 : default
+			where T2 : default
+			where T3 : default
+			where T4 : default
+			where T5 : default
+			where T6 : default
+			where T7 : default
+			=> throw new NotSupportedException();
 
-		public (T1?, T2?) DecodeKey<T1, T2>(ReadOnlySpan<byte> packed) => throw new NotImplementedException();
+		(T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) IDynamicKeyEncoder.DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(Slice packed)
+			where T1 : default
+			where T2 : default
+			where T3 : default
+			where T4 : default
+			where T5 : default
+			where T6 : default
+			where T7 : default
+			where T8 : default
+			=> throw new NotSupportedException();
 
-		public (T1?, T2?, T3?) DecodeKey<T1, T2, T3>(ReadOnlySpan<byte> packed) => throw new NotImplementedException();
+		(T1?, T2?) IDynamicKeyEncoder.DecodeKey<T1, T2>(ReadOnlySpan<byte> packed)
+			where T1 : default
+			where T2 : default
+			=> throw new NotSupportedException();
 
-		public (T1?, T2?, T3?, T4?) DecodeKey<T1, T2, T3, T4>(ReadOnlySpan<byte> packed) => throw new NotImplementedException();
+		(T1?, T2?, T3?) IDynamicKeyEncoder.DecodeKey<T1, T2, T3>(ReadOnlySpan<byte> packed)
+			where T1 : default
+			where T2 : default
+			where T3 : default
+			=> throw new NotSupportedException();
 
-		public (T1?, T2?, T3?, T4?, T5?) DecodeKey<T1, T2, T3, T4, T5>(ReadOnlySpan<byte> packed) => throw new NotImplementedException();
+		(T1?, T2?, T3?, T4?) IDynamicKeyEncoder.DecodeKey<T1, T2, T3, T4>(ReadOnlySpan<byte> packed)
+			where T1 : default
+			where T2 : default
+			where T3 : default
+			where T4 : default
+			=> throw new NotSupportedException();
 
-		public (T1?, T2?, T3?, T4?, T5?, T6?) DecodeKey<T1, T2, T3, T4, T5, T6>(ReadOnlySpan<byte> packed) => throw new NotImplementedException();
+		(T1?, T2?, T3?, T4?, T5?) IDynamicKeyEncoder.DecodeKey<T1, T2, T3, T4, T5>(ReadOnlySpan<byte> packed)
+			where T1 : default
+			where T2 : default
+			where T3 : default
+			where T4 : default
+			where T5 : default
+			=> throw new NotSupportedException();
 
-		public (T1?, T2?, T3?, T4?, T5?, T6?, T7?) DecodeKey<T1, T2, T3, T4, T5, T6, T7>(ReadOnlySpan<byte> packed) => throw new NotImplementedException();
+		(T1?, T2?, T3?, T4?, T5?, T6?) IDynamicKeyEncoder.DecodeKey<T1, T2, T3, T4, T5, T6>(ReadOnlySpan<byte> packed)
+			where T1 : default
+			where T2 : default
+			where T3 : default
+			where T4 : default
+			where T5 : default
+			where T6 : default
+			=> throw new NotSupportedException();
 
-		public (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(ReadOnlySpan<byte> packed) => throw new NotImplementedException();
+		(T1?, T2?, T3?, T4?, T5?, T6?, T7?) IDynamicKeyEncoder.DecodeKey<T1, T2, T3, T4, T5, T6, T7>(ReadOnlySpan<byte> packed)
+			where T1 : default
+			where T2 : default
+			where T3 : default
+			where T4 : default
+			where T5 : default
+			where T6 : default
+			where T7 : default
+			=> throw new NotSupportedException();
 
-		public (Slice Begin, Slice End) ToRange(Slice prefix = default) => throw new NotImplementedException();
+		(T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) IDynamicKeyEncoder.DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(ReadOnlySpan<byte> packed)
+			where T1 : default
+			where T2 : default
+			where T3 : default
+			where T4 : default
+			where T5 : default
+			where T6 : default
+			where T7 : default
+			where T8 : default
+			=> throw new NotSupportedException();
 
-		public (Slice Begin, Slice End) ToRange<TTuple>(Slice prefix, TTuple items) where TTuple : IVarTuple => throw new NotImplementedException();
+		(Slice Begin, Slice End) IDynamicKeyEncoder.ToRange(Slice prefix)
+			=> throw new NotSupportedException();
 
-		public (Slice Begin, Slice End) ToKeyRange<T1>(Slice prefix, T1? item1) => throw new NotImplementedException();
+		(Slice Begin, Slice End) IDynamicKeyEncoder.ToRange<TTuple>(Slice prefix, TTuple items)
+			=> throw new NotSupportedException();
 
-		public (Slice Begin, Slice End) ToKeyRange<T1, T2>(Slice prefix, T1? item1, T2? item2) => throw new NotImplementedException();
+		(Slice Begin, Slice End) IDynamicKeyEncoder.ToKeyRange<T1>(Slice prefix, T1? item1)
+			where T1 : default
+			=> throw new NotSupportedException();
 
-		public (Slice Begin, Slice End) ToKeyRange<T1, T2, T3>(Slice prefix, T1? item1, T2? item2, T3? item3) => throw new NotImplementedException();
+		(Slice Begin, Slice End) IDynamicKeyEncoder.ToKeyRange<T1, T2>(Slice prefix, T1? item1, T2? item2)
+			where T1 : default
+			where T2 : default
+			=> throw new NotSupportedException();
 
-		public (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4>(Slice prefix, T1? item1, T2? item2, T3? item3, T4? item4) => throw new NotImplementedException();
+		(Slice Begin, Slice End) IDynamicKeyEncoder.ToKeyRange<T1, T2, T3>(Slice prefix, T1? item1, T2? item2, T3? item3)
+			where T1 : default
+			where T2 : default
+			where T3 : default
+			=> throw new NotSupportedException();
 
-		public (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5>(Slice prefix, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5) => throw new NotImplementedException();
+		(Slice Begin, Slice End) IDynamicKeyEncoder.ToKeyRange<T1, T2, T3, T4>(Slice prefix, T1? item1, T2? item2, T3? item3, T4? item4)
+			where T1 : default
+			where T2 : default
+			where T3 : default
+			where T4 : default
+			=> throw new NotSupportedException();
 
-		public (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5, T6>(Slice prefix, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6) => throw new NotImplementedException();
+		(Slice Begin, Slice End) IDynamicKeyEncoder.ToKeyRange<T1, T2, T3, T4, T5>(Slice prefix, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5)
+			where T1 : default
+			where T2 : default
+			where T3 : default
+			where T4 : default
+			where T5 : default
+			=> throw new NotSupportedException();
 
-		public (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5, T6, T7>(Slice prefix, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7) => throw new NotImplementedException();
+		(Slice Begin, Slice End) IDynamicKeyEncoder.ToKeyRange<T1, T2, T3, T4, T5, T6>(Slice prefix, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6)
+			where T1 : default
+			where T2 : default
+			where T3 : default
+			where T4 : default
+			where T5 : default
+			where T6 : default
+			=> throw new NotSupportedException();
 
-		public (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5, T6, T7, T8>(Slice prefix, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7, T8? item8) => throw new NotImplementedException();
+		(Slice Begin, Slice End) IDynamicKeyEncoder.ToKeyRange<T1, T2, T3, T4, T5, T6, T7>(Slice prefix, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7)
+			where T1 : default
+			where T2 : default
+			where T3 : default
+			where T4 : default
+			where T5 : default
+			where T6 : default
+			where T7 : default
+			=> throw new NotSupportedException();
+
+		(Slice Begin, Slice End) IDynamicKeyEncoder.ToKeyRange<T1, T2, T3, T4, T5, T6, T7, T8>(Slice prefix, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7, T8? item8)
+			where T1 : default
+			where T2 : default
+			where T3 : default
+			where T4 : default
+			where T5 : default
+			where T6 : default
+			where T7 : default
+			where T8 : default
+			=> throw new NotSupportedException();
+
+#pragma warning restore IL2095
 
 		#endregion
 

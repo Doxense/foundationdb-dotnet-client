@@ -693,7 +693,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="prefix">Prefix shared by all keys</param>
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		public static Slice[] EncodeKeys<T>(ReadOnlySpan<byte> prefix, IEnumerable<T> keys)
+		public static Slice[] EncodeKeys<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(ReadOnlySpan<byte> prefix, IEnumerable<T> keys)
 		{
 			Contract.NotNull(keys);
 
@@ -723,7 +723,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="prefix">Prefix shared by all keys</param>
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		public static Slice[] EncodeKeys<T>(ReadOnlySpan<byte> prefix, ReadOnlySpan<T> keys)
+		public static Slice[] EncodeKeys<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(ReadOnlySpan<byte> prefix, ReadOnlySpan<T> keys)
 		{
 			// pre-allocate by guessing that each key will take at least 8 bytes. Even if 8 is too small, we should have at most one or two buffer resize
 			var writer = new TupleWriter(checked(keys.Length * (prefix.Length + 8)));
@@ -749,7 +749,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="elements">Sequence of elements to pack</param>
 		/// <param name="selector">Lambda that extract the key from each element</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		public static Slice[] EncodeKeys<TKey, TElement>(ReadOnlySpan<byte> prefix, ReadOnlySpan<TElement> elements, Func<TElement, TKey> selector)
+		public static Slice[] EncodeKeys<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TKey, TElement>(ReadOnlySpan<byte> prefix, ReadOnlySpan<TElement> elements, Func<TElement, TKey> selector)
 		{
 			Contract.NotNull(selector);
 
@@ -786,7 +786,10 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded value of the first item in the tuple</returns>
 		[Pure]
-		public static T1? DecodeFirst<T1>(ReadOnlySpan<byte> packedKey, int? expectedSize)
+		public static T1? DecodeFirst<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1
+		>
+			(ReadOnlySpan<byte> packedKey, int? expectedSize)
 		{
 			if (packedKey.Length == 0) throw new InvalidOperationException("Cannot unpack an empty tuple");
 
@@ -806,7 +809,11 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded values of the first two elements in the tuple</returns>
 		[Pure]
-		public static (T1?, T2?) DecodeFirst<T1, T2>(ReadOnlySpan<byte> packedKey, int? expectedSize)
+		public static (T1?, T2?) DecodeFirst<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2
+		>
+			(ReadOnlySpan<byte> packedKey, int? expectedSize)
 		{
 			if (packedKey.Length == 0) throw new InvalidOperationException("Cannot unpack an empty tuple");
 
@@ -830,7 +837,12 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded values of the first three elements in the tuple</returns>
 		[Pure]
-		public static (T1?, T2?, T3?) DecodeFirst<T1, T2, T3>(ReadOnlySpan<byte> packedKey, int? expectedSize)
+		public static (T1?, T2?, T3?) DecodeFirst<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3
+		>
+			(ReadOnlySpan<byte> packedKey, int? expectedSize)
 		{
 			if (packedKey.Length == 0) throw new InvalidOperationException("Cannot unpack an empty tuple");
 
@@ -856,7 +868,13 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded values of the first four elements in the tuple</returns>
 		[Pure]
-		public static (T1?, T2?, T3?, T4?) DecodeFirst<T1, T2, T3, T4>(ReadOnlySpan<byte> packedKey, int? expectedSize)
+		public static (T1?, T2?, T3?, T4?) DecodeFirst<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4
+		>
+			(ReadOnlySpan<byte> packedKey, int? expectedSize)
 		{
 			if (packedKey.Length == 0) throw new InvalidOperationException("Cannot unpack an empty tuple");
 
@@ -881,8 +899,10 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least one element</param>
 		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded value of the last item in the tuple</returns>
+		/// <exception cref="InvalidOperationException">If the decoded tuple does not have the expected size</exception>
 		[Pure]
-		public static T1? DecodeLast<T1>(ReadOnlySpan<byte> packedKey, int? expectedSize)
+		public static T1? DecodeLast<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1>
+			(ReadOnlySpan<byte> packedKey, int? expectedSize)
 		{
 			if (packedKey.Length == 0) throw new InvalidOperationException("Cannot unpack an empty tuple");
 
@@ -901,8 +921,13 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
 		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded values of the last two elements in the tuple</returns>
+		/// <exception cref="InvalidOperationException">If the decoded tuple does not have the expected size</exception>
 		[Pure]
-		public static (T1?, T2?) DecodeLast<T1, T2>(ReadOnlySpan<byte> packedKey, int? expectedSize)
+		public static (T1?, T2?) DecodeLast<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2
+		>
+			(ReadOnlySpan<byte> packedKey, int? expectedSize)
 		{
 			if (packedKey.Length == 0) throw new InvalidOperationException("Cannot unpack an empty tuple");
 
@@ -925,8 +950,14 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 3 elements</param>
 		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded values of the last three elements in the tuple</returns>
+		/// <exception cref="InvalidOperationException">If the decoded tuple does not have the expected size</exception>
 		[Pure]
-		public static (T1?, T2?, T3?) DecodeLast<T1, T2, T3>(ReadOnlySpan<byte> packedKey, int? expectedSize)
+		public static (T1?, T2?, T3?) DecodeLast<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3
+		>
+			(ReadOnlySpan<byte> packedKey, int? expectedSize)
 		{
 			if (packedKey.Length == 0) throw new InvalidOperationException("Cannot unpack an empty tuple");
 
@@ -951,8 +982,14 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 4 elements</param>
 		/// <param name="expectedSize">If not <see langword="null"/>, verifies that the tuple has the expected size</param>
 		/// <returns>Decoded values of the last four elements in the tuple</returns>
+		/// <exception cref="InvalidOperationException">If the decoded tuple does not have the expected size</exception>
 		[Pure]
-		public static (T1?, T2?, T3?, T4?) DecodeLast<T1, T2, T3, T4>(ReadOnlySpan<byte> packedKey, int? expectedSize)
+		public static (T1?, T2?, T3?, T4?) DecodeLast<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4
+		>(ReadOnlySpan<byte> packedKey, int? expectedSize)
 		{
 			if (packedKey.Length == 0) throw new InvalidOperationException("Cannot unpack an empty tuple");
 
@@ -981,7 +1018,10 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="item1">Receives the decoded value of the last item</param>
 		/// <returns>Decoded value of the last item in the tuple</returns>
 		[Pure]
-		public static bool TryDecodeFirst<T1>(ReadOnlySpan<byte> packedKey, int? expectedSize, out T1? item1)
+		public static bool TryDecodeFirst<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1
+		>
+			(ReadOnlySpan<byte> packedKey, int? expectedSize, out T1? item1)
 		{
 			Contract.Debug.Requires(expectedSize is null or >= 1);
 
@@ -1008,7 +1048,11 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="item2">Second decoded element</param>
 		/// <returns>Decoded values of the last 2 elements in the tuple</returns>
 		[Pure]
-		public static bool TryDecodeFirst<T1, T2>(ReadOnlySpan<byte> packedKey, int? expectedSize, out T1? item1, out T2? item2)
+		public static bool TryDecodeFirst<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2
+		>
+			(ReadOnlySpan<byte> packedKey, int? expectedSize, out T1? item1, out T2? item2)
 		{
 			Contract.Debug.Requires(expectedSize is null or >= 2);
 
@@ -1039,7 +1083,12 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="item3">Third decoded element</param>
 		/// <returns>Decoded values of the last 3 elements in the tuple</returns>
 		[Pure]
-		public static bool TryDecodeFirst<T1, T2, T3>(ReadOnlySpan<byte> packedKey, int? expectedSize, out T1? item1, out T2? item2, out T3? item3)
+		public static bool TryDecodeFirst<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3
+		>
+			(ReadOnlySpan<byte> packedKey, int? expectedSize, out T1? item1, out T2? item2, out T3? item3)
 		{
 			Contract.Debug.Requires(expectedSize is null or >= 3);
 
@@ -1074,7 +1123,12 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="item4">Fourth decoded element</param>
 		/// <returns>Decoded values of the last 4 elements in the tuple</returns>
 		[Pure]
-		public static bool TryDecodeFirst<T1, T2, T3, T4>(ReadOnlySpan<byte> packedKey, int? expectedSize, out T1? item1, out T2? item2, out T3? item3, out T4? item4)
+		public static bool TryDecodeFirst<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4
+		>(ReadOnlySpan<byte> packedKey, int? expectedSize, out T1? item1, out T2? item2, out T3? item3, out T4? item4)
 		{
 			Contract.Debug.Requires(expectedSize is null or >= 4);
 
@@ -1109,7 +1163,10 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="item1">Receives the decoded value of the last item</param>
 		/// <returns>Decoded value of the last item in the tuple</returns>
 		[Pure]
-		public static bool TryDecodeLast<T1>(ReadOnlySpan<byte> packedKey, int? expectedSize, out T1? item1)
+		public static bool TryDecodeLast<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1
+		>
+			(ReadOnlySpan<byte> packedKey, int? expectedSize, out T1? item1)
 		{
 			Contract.Debug.Requires(expectedSize is null or >= 1);
 
@@ -1136,7 +1193,11 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="item2">Second decoded element</param>
 		/// <returns>Decoded values of the last 2 elements in the tuple</returns>
 		[Pure]
-		public static bool TryDecodeLast<T1, T2>(ReadOnlySpan<byte> packedKey, int? expectedSize, out T1? item1, out T2? item2)
+		public static bool TryDecodeLast<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2
+		>
+			(ReadOnlySpan<byte> packedKey, int? expectedSize, out T1? item1, out T2? item2)
 		{
 			Contract.Debug.Requires(expectedSize is null or >= 2);
 
@@ -1167,7 +1228,11 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="item3">Third decoded element</param>
 		/// <returns>Decoded values of the last 3 elements in the tuple</returns>
 		[Pure]
-		public static bool TryDecodeLast<T1, T2, T3>(ReadOnlySpan<byte> packedKey, int? expectedSize, out T1? item1, out T2? item2, out T3? item3)
+		public static bool TryDecodeLast<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3
+		>(ReadOnlySpan<byte> packedKey, int? expectedSize, out T1? item1, out T2? item2, out T3? item3)
 		{
 			Contract.Debug.Requires(expectedSize is null or >= 3);
 
@@ -1202,7 +1267,12 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="item4">Fourth decoded element</param>
 		/// <returns>Decoded values of the last 4 elements in the tuple</returns>
 		[Pure]
-		public static bool TryDecodeLast<T1, T2, T3, T4>(ReadOnlySpan<byte> packedKey, int? expectedSize, out T1? item1, out T2? item2, out T3? item3, out T4? item4)
+		public static bool TryDecodeLast<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4
+		>(ReadOnlySpan<byte> packedKey, int? expectedSize, out T1? item1, out T2? item2, out T3? item3, out T4? item4)
 		{
 			Contract.Debug.Requires(expectedSize is null or >= 4);
 
@@ -1235,14 +1305,18 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="reader">Slice that should contain the packed representation of a tuple with a single element</param>
 		/// <param name="tuple">Receives the decoded tuple</param>
 		/// <remarks>Throws an exception if the tuple is empty or has more than one element.</remarks>
-		public static void DecodeKey<T1>(ref TupleReader reader, out ValueTuple<T1?> tuple)
+		public static void DecodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1
+		>(ref TupleReader reader, out ValueTuple<T1?> tuple)
 		{
 			if (!TryDecodeNext(ref reader, out tuple.Item1, out var error)) throw error ?? new FormatException("Failed to decode first item");
 			if (reader.HasMore) throw new FormatException("The key contains more than one item");
 		}
 
 		/// <summary>Unpacks the value of a singleton tuple</summary>
-		public static void DecodeKey<T1>(ref TupleReader reader, out T1? item1)
+		public static void DecodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1
+		>(ref TupleReader reader, out T1? item1)
 		{
 			if (!TryDecodeNext(ref reader, out item1, out var error)) throw new FormatException("Failed to decode first item", error);
 			if (reader.HasMore) throw new FormatException("The key contains more than one item");
@@ -1253,8 +1327,10 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="reader">Slice that should contain the packed representation of a tuple with a single element</param>
 		/// <param name="key">Receives the decoded value</param>
 		/// <param name="error"></param>
-		/// <return>False if if the tuple is empty, or has more than one element; otherwise, false.</return>
-		public static bool TryDecodeKey<TKey>(ref TupleReader reader, out TKey? key, out Exception? error)
+		/// <return>False if the tuple is empty, or has more than one element; otherwise, false.</return>
+		public static bool TryDecodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TKey
+		>(ref TupleReader reader, out TKey? key, out Exception? error)
 		{
 			if (!TryDecodeNext(ref reader, out key, out error))
 			{
@@ -1275,14 +1351,20 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="reader">Slice that should contain the packed representation of a tuple with two elements</param>
 		/// <param name="tuple">Receives the decoded tuple</param>
 		/// <remarks>Throws an exception if the tuple is empty of has more than two elements.</remarks>
-		public static void DecodeKey<T1, T2>(ref TupleReader reader, out (T1?, T2?) tuple)
+		public static void DecodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2
+		>(ref TupleReader reader, out (T1?, T2?) tuple)
 		{
 			if (!TryDecodeNext(ref reader, out tuple.Item1, out var error)) throw new FormatException("Failed to decode first item", error);
 			if (!TryDecodeNext(ref reader, out tuple.Item2, out error)) throw new FormatException("Failed to decode second item", error);
 			if (reader.HasMore) throw new FormatException("The key contains more than two items");
 		}
 
-		public static void DecodeKey<T1, T2>(ref TupleReader reader, out T1? item1, out T2? item2)
+		public static void DecodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2
+		>(ref TupleReader reader, out T1? item1, out T2? item2)
 		{
 			if (!TryDecodeNext(ref reader, out item1, out var error)) throw new FormatException("Failed to decode first item", error);
 			if (!TryDecodeNext(ref reader, out item2, out error)) throw new FormatException("Failed to decode second item", error);
@@ -1297,7 +1379,11 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="reader">Slice that should contain the packed representation of a tuple with three elements</param>
 		/// <param name="tuple">Receives the decoded tuple</param>
 		/// <remarks>Throws an exception if the tuple is empty of has more than three elements.</remarks>
-		public static void DecodeKey<T1, T2, T3>(ref TupleReader reader, out (T1?, T2?, T3?) tuple)
+		public static void DecodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3
+		>(ref TupleReader reader, out (T1?, T2?, T3?) tuple)
 		{
 			if (!TryDecodeNext(ref reader, out tuple.Item1, out var error)) throw new FormatException("Failed to decode first item", error);
 			if (!TryDecodeNext(ref reader, out tuple.Item2, out error)) throw new FormatException("Failed to decode second item", error);
@@ -1305,7 +1391,12 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (reader.HasMore) throw new FormatException("The key contains more than three items");
 		}
 
-		public static void DecodeKey<T1, T2, T3>(ref TupleReader reader, out T1? item1, out T2? item2, out T3? item3)
+		public static void DecodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3
+		>
+			(ref TupleReader reader, out T1? item1, out T2? item2, out T3? item3)
 		{
 			if (!TryDecodeNext(ref reader, out item1, out var error)) throw new FormatException("Failed to decode first item", error);
 			if (!TryDecodeNext(ref reader, out item2, out error)) throw new FormatException("Failed to decode second item", error);
@@ -1321,7 +1412,13 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="reader">Slice that should contain the packed representation of a tuple with four elements</param>
 		/// <param name="tuple">Receives the decoded tuple</param>
 		/// <remarks>Throws an exception if the tuple is empty of has more than four elements.</remarks>
-		public static void DecodeKey<T1, T2, T3, T4>(ref TupleReader reader, out (T1?, T2?, T3?, T4?) tuple)
+		public static void DecodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4
+		>
+			(ref TupleReader reader, out (T1?, T2?, T3?, T4?) tuple)
 		{
 			if (!TryDecodeNext(ref reader, out tuple.Item1, out var error)) throw new FormatException("Failed to decode first item", error);
 			if (!TryDecodeNext(ref reader, out tuple.Item2, out error)) throw new FormatException("Failed to decode second item", error);
@@ -1330,7 +1427,12 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (reader.HasMore) throw new FormatException("The key contains more than four items");
 		}
 
-		public static void DecodeKey<T1, T2, T3, T4>(ref TupleReader reader, out T1? item1, out T2? item2, out T3? item3, out T4? item4)
+		public static void DecodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4
+		>(ref TupleReader reader, out T1? item1, out T2? item2, out T3? item3, out T4? item4)
 		{
 			if (!TryDecodeNext(ref reader, out item1, out var error)) throw new FormatException("Failed to decode first item", error);
 			if (!TryDecodeNext(ref reader, out item2, out error)) throw new FormatException("Failed to decode second item", error);
@@ -1347,7 +1449,13 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="reader">Slice that should contain the packed representation of a tuple with five elements</param>
 		/// <param name="tuple">Receives the decoded tuple</param>
 		/// <remarks>Throws an exception if the tuple is empty of has more than five elements.</remarks>
-		public static void DecodeKey<T1, T2, T3, T4, T5>(ref TupleReader reader, out (T1?, T2?, T3?, T4?, T5?) tuple)
+		public static void DecodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5
+		>(ref TupleReader reader, out (T1?, T2?, T3?, T4?, T5?) tuple)
 		{
 			if (!TryDecodeNext(ref reader, out tuple.Item1, out var error)) throw new FormatException("Failed to decode first item", error);
 			if (!TryDecodeNext(ref reader, out tuple.Item2, out error)) throw new FormatException("Failed to decode second item", error);
@@ -1357,7 +1465,14 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (reader.HasMore) throw new FormatException("The key contains more than five items");
 		}
 
-		public static void DecodeKey<T1, T2, T3, T4, T5>(ref TupleReader reader, out T1? item1, out T2? item2, out T3? item3, out T4? item4, out T5? item5)
+		public static void DecodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5
+		>
+			(ref TupleReader reader, out T1? item1, out T2? item2, out T3? item3, out T4? item4, out T5? item5)
 		{
 			if (!TryDecodeNext(ref reader, out item1, out var error)) throw new FormatException("Failed to decode first item", error);
 			if (!TryDecodeNext(ref reader, out item2, out error)) throw new FormatException("Failed to decode second item", error);
@@ -1375,7 +1490,15 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="reader">Slice that should contain the packed representation of a tuple with six elements</param>
 		/// <param name="tuple">Receives the decoded tuple</param>
 		/// <remarks>Throws an exception if the tuple is empty of has more than six elements.</remarks>
-		public static void DecodeKey<T1, T2, T3, T4, T5, T6>(ref TupleReader reader, out (T1?, T2?, T3?, T4?, T5?, T6?) tuple)
+		public static void DecodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6
+		>
+			(ref TupleReader reader, out (T1?, T2?, T3?, T4?, T5?, T6?) tuple)
 		{
 			if (!TryDecodeNext(ref reader, out tuple.Item1, out var error)) throw new FormatException("Failed to decode first item", error);
 			if (!TryDecodeNext(ref reader, out tuple.Item2, out error)) throw new FormatException("Failed to decode second item", error);
@@ -1386,7 +1509,15 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (reader.HasMore) throw new FormatException("The key contains more than six items");
 		}
 
-		public static void DecodeKey<T1, T2, T3, T4, T5, T6>(ref TupleReader reader, out T1? item1, out T2? item2, out T3? item3, out T4? item4, out T5? item5, out T6? item6)
+		public static void DecodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6
+		>
+			(ref TupleReader reader, out T1? item1, out T2? item2, out T3? item3, out T4? item4, out T5? item5, out T6? item6)
 		{
 			if (!TryDecodeNext(ref reader, out item1, out var error)) throw new FormatException("Failed to decode first item", error);
 			if (!TryDecodeNext(ref reader, out item2, out error)) throw new FormatException("Failed to decode second item", error);
@@ -1405,7 +1536,15 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="reader">Slice that should contain the packed representation of a tuple with six elements</param>
 		/// <param name="tuple">Receives the decoded tuple</param>
 		/// <remarks>Throws an exception if the tuple is empty of has more than six elements.</remarks>
-		public static void DecodeKey<T1, T2, T3, T4, T5, T6, T7>(ref TupleReader reader, out (T1?, T2?, T3?, T4?, T5?, T6?, T7?) tuple)
+		public static void DecodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7
+		>(ref TupleReader reader, out (T1?, T2?, T3?, T4?, T5?, T6?, T7?) tuple)
 		{
 			if (!TryDecodeNext(ref reader, out tuple.Item1, out var error)) throw new FormatException("Failed to decode first item", error);
 			if (!TryDecodeNext(ref reader, out tuple.Item2, out error)) throw new FormatException("Failed to decode second item", error);
@@ -1417,7 +1556,15 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (reader.HasMore) throw new FormatException("The key contains more than seven items");
 		}
 
-		public static void DecodeKey<T1, T2, T3, T4, T5, T6, T7>(ref TupleReader reader, out T1? item1, out T2? item2, out T3? item3, out T4? item4, out T5? item5, out T6? item6, out T7? item7)
+		public static void DecodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7
+		>(ref TupleReader reader, out T1? item1, out T2? item2, out T3? item3, out T4? item4, out T5? item5, out T6? item6, out T7? item7)
 		{
 			if (!TryDecodeNext(ref reader, out item1, out var error)) throw new FormatException("Failed to decode first item", error);
 			if (!TryDecodeNext(ref reader, out item2, out error)) throw new FormatException("Failed to decode second item", error);
@@ -1437,7 +1584,16 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="reader">Slice that should contain the packed representation of a tuple with six elements</param>
 		/// <param name="tuple">Receives the decoded tuple</param>
 		/// <remarks>Throws an exception if the tuple is empty of has more than six elements.</remarks>
-		public static void DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(ref TupleReader reader, out (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) tuple)
+		public static void DecodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T8
+		>(ref TupleReader reader, out (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) tuple)
 		{
 			if (!TryDecodeNext(ref reader, out tuple.Item1, out var error)) throw new FormatException("Failed to decode first item", error);
 			if (!TryDecodeNext(ref reader, out tuple.Item2, out error)) throw new FormatException("Failed to decode second item", error);
@@ -1450,7 +1606,17 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (reader.HasMore) throw new FormatException("The key contains more than eight items");
 		}
 
-		public static void DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(ref TupleReader reader, out T1? item1, out T2? item2, out T3? item3, out T4? item4, out T5? item5, out T6? item6, out T7? item7, out T8? item8)
+		public static void DecodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T8
+		>
+			(ref TupleReader reader, out T1? item1, out T2? item2, out T3? item3, out T4? item4, out T5? item5, out T6? item6, out T7? item7, out T8? item8)
 		{
 			if (!TryDecodeNext(ref reader, out item1, out var error)) throw new FormatException("Failed to decode first item", error);
 			if (!TryDecodeNext(ref reader, out item2, out error)) throw new FormatException("Failed to decode second item", error);
@@ -1471,7 +1637,8 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="value">If decoding succeeded, receives the decoded value.</param>
 		/// <param name="error"></param>
 		/// <returns>True if the decoded succeeded (and <paramref name="value"/> receives the decoded value). False if the tuple has reached the end.</returns>
-		public static bool TryDecodeNext<T>(ref TupleReader reader, out T? value, out Exception? error)
+		public static bool TryDecodeNext<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>
+			(ref TupleReader reader, out T? value, out Exception? error)
 		{
 			if (!reader.HasMore)
 			{

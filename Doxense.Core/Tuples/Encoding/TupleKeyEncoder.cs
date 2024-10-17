@@ -52,7 +52,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <inheritdoc />
-		public void EncodeKey<T1>(ref SliceWriter writer, T1? item1)
+		public void EncodeKey<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1>(ref SliceWriter writer, T1? item1)
 		{
 			var tw = new TupleWriter(writer);
 			TuplePacker<T1>.SerializeTo(ref tw, item1);
@@ -60,7 +60,10 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <inheritdoc />
-		public void EncodeKey<T1, T2>(ref SliceWriter writer, T1? item1, T2? item2)
+		public void EncodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2
+		>(ref SliceWriter writer, T1? item1, T2? item2)
 		{
 			var tw = new TupleWriter(writer);
 			TuplePacker<T1>.SerializeTo(ref tw, item1);

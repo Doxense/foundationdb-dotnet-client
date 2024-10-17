@@ -30,6 +30,7 @@ namespace Doxense.Serialization.Json
 	public interface ICrystalJsonTypeResolver
 	{
 
+		[RequiresUnreferencedCode("The type might be removed")]
 		Type? ResolveClassId(string classId);
 
 		/// <summary>Inspect a type, and generate a list of all its members</summary>

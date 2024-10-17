@@ -62,7 +62,14 @@ namespace Doxense.Serialization
 		}
 
 		[Pure]
-		public static Type? FindReplacementType(Type type)
+#if NET8_0_OR_GREATER
+		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
+#endif
+		[return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces | DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
+		public static Type? FindReplacementType(
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces | DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
+			Type type
+		)
 		{
 			Contract.Debug.Requires(type != null);
 			if (type.IsGenericType)
@@ -71,11 +78,11 @@ namespace Doxense.Serialization
 				{
 					return typeof(Dictionary<,>).MakeGenericType(type.GetGenericArguments());
 				}
-				else if (type.IsGenericInstanceOf(typeof(ICollection<>)))
+				if (type.IsGenericInstanceOf(typeof(ICollection<>)))
 				{
 					return typeof(List<>).MakeGenericType(type.GetGenericArguments());
 				}
-				else if (type.IsGenericInstanceOf(typeof(IEnumerable<>)))
+				if (type.IsGenericInstanceOf(typeof(IEnumerable<>)))
 				{
 					return typeof(ReadOnlyCollection<>).MakeGenericType(type.GetGenericArguments());
 				}
@@ -90,7 +97,13 @@ namespace Doxense.Serialization
 		/// <param name="type">Type of the object to instantiate (can be an interface or abstract class, for a limited set of "well known" types)</param>
 		/// <returns>Function that calls the parameterless constructor for the type, or <see langword="null"/> if it is impossible to create such a type (unsupported interface or abstract class, type without a parameterless ctor, ...)</returns>
 		[Pure]
-		public static Func<object>? CompileGenerator([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]this Type type)
+#if NET8_0_OR_GREATER
+		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
+#endif
+		public static Func<object>? CompileGenerator(
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces | DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
+			this Type type
+		)
 		{
 			Contract.Debug.Requires(type != null);
 			if (type.IsInterface || type.IsAbstract)
@@ -129,7 +142,13 @@ namespace Doxense.Serialization
 		/// <typeparam name="TInstance">Type of the object to instantiate (can be an interface or abstract class, for a limited set of "well known" types)</typeparam>
 		/// <returns>Function that calls the parameterless constructor for the type, or <see langword="null"/> if it is impossible to create such a type (unsupported interface or abstract class, type without a parameterless ctor, ...)</returns>
 		[Pure]
-		public static Func<TInstance>? CompileTypedGenerator<TInstance>()
+#if NET8_0_OR_GREATER
+		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
+#endif
+		public static Func<TInstance>? CompileTypedGenerator<
+			[DynamicallyAccessedMembers( DynamicallyAccessedMemberTypes.Interfaces | DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
+			TInstance
+		>()
 		{
 			var type = typeof(TInstance);
 			if (type.IsInterface || type.IsAbstract)
@@ -171,7 +190,10 @@ namespace Doxense.Serialization
 		/// <returns>Function that takes in a parameter and instantiate a instance of the type</returns>
 		/// <exception cref="InvalidOperationException">if the type does not have a ctor that takes a parameter of type <typeparamref name="TArg0"/></exception>
 		[Pure]
-		public static Func<TArg0, object> CompileGenerator<TArg0>(this Type type)
+		public static Func<TArg0, object> CompileGenerator<TArg0>(
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
+			this Type type
+		)
 		{
 			Contract.Debug.Requires(type != null);
 			var ctor = type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, [ typeof(TArg0) ], null);
@@ -188,7 +210,11 @@ namespace Doxense.Serialization
 		/// <returns>Function that takes in a parameter and instantiate a instance of the type</returns>
 		/// <exception cref="InvalidOperationException">if the type does not have a ctor that takes a parameter of type <typeparamref name="TArg0"/></exception>
 		[Pure]
-		public static Func<TArg0, TInstance> CompileTypedGenerator<TInstance, TArg0>()
+		public static Func<TArg0, TInstance> CompileTypedGenerator<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
+			TInstance,
+			TArg0
+		>()
 		{
 			var type = typeof(TInstance);
 			var ctor = type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, [ typeof(TArg0) ], null);
@@ -208,7 +234,11 @@ namespace Doxense.Serialization
 		/// <returns>Function that takes in two parameters and instantiate a instance of the type</returns>
 		/// <exception cref="InvalidOperationException">if the type does not have a ctor that takes two parameters of type <typeparamref name="TArg0"/> and <typeparamref name="TArg1"/></exception>
 		[Pure]
-		public static Func<TArg0, TArg1, TInstance> CompileTypedGenerator<TInstance, TArg0, TArg1>()
+		public static Func<TArg0, TArg1, TInstance> CompileTypedGenerator<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
+			TInstance,
+			TArg0, TArg1
+		>()
 		{
 			var type = typeof(TInstance);
 			var ctor = type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, [ typeof(TArg0), typeof(TArg1) ], null);
@@ -230,7 +260,11 @@ namespace Doxense.Serialization
 		/// <returns>Function that takes in three parameters and instantiate a instance of the type</returns>
 		/// <exception cref="InvalidOperationException">if the type does not have a ctor that takes three parameters of type <typeparamref name="TArg0"/>, <typeparamref name="TArg1"/> and <typeparamref name="TArg2"/></exception>
 		[Pure]
-		public static Func<TArg0, TArg1, TArg2, TInstance> CompileTypedGenerator<TInstance, TArg0, TArg1, TArg2>()
+		public static Func<TArg0, TArg1, TArg2, TInstance> CompileTypedGenerator<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
+			TInstance,
+			TArg0, TArg1, TArg2
+		>()
 		{
 			var type = typeof(TInstance);
 			var ctor = type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, [ typeof(TArg0), typeof(TArg1), typeof(TArg2) ], null);
@@ -247,8 +281,11 @@ namespace Doxense.Serialization
 
 		/// <summary>Generates a <see cref="System.Delegate"/> that will invoke the specified constructor</summary>
 		/// <param name="ctor">Constructor that must be wrapped</param>
-		/// <returns>Method that takes in the same arguments as the ctors, calls it, and return the newly created instance. This type can be casted into <c>Func&lt;TArg0, TArg1, ... TArgN, TInstance></c></returns>
+		/// <returns>Method that takes in the same arguments as the ctors, calls it, and return the newly created instance. This type can be cast into <c>Func&lt;TArg0, TArg1, ... TArgN, TInstance></c></returns>
 		[Pure]
+#if NET8_0_OR_GREATER
+		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
+#endif
 		public static Delegate CompileTypedGenerator(ConstructorInfo ctor)
 		{
 			Contract.NotNull(ctor);
@@ -489,7 +526,7 @@ namespace Doxense.Serialization
 		/// <param name="member">Member (field or property)</param>
 		/// <param name="attributeName">Name (without the namespace) of the attribute to fetch (ex: "DataMemberAttribute")</param>
 		/// <param name="inherit"><see langword="true"/> to also look into the attributes up the derived chain</param>
-		/// <param name="attribute">receives the correspond <see cref="System.Attribute"/> if found; otherwise, <see langword="null"/></param>
+		/// <param name="attribute">receives the corresponding <see cref="System.Attribute"/> if found; otherwise, <see langword="null"/></param>
 		/// <returns><see langword="true"/> if the attribute was found; otherwise, <see langword="false"/>.</returns>
 		[ContractAnnotation("=> true, attribute:notnull; => false, attribute:null")]
 		public static bool TryGetCustomAttribute(this MemberInfo member, string attributeName, bool inherit, out Attribute? attribute)
@@ -518,27 +555,6 @@ namespace Doxense.Serialization
 
 		#region Type Extension Methods..
 
-		/// <summary>Returns the list of all types found in an <see cref="System.Reflection.Assembly"/></summary>
-		/// <param name="assembly">Assembly to enumerate</param>
-		/// <returns>Sequence of all types found</returns>
-		/// <remarks>Should be immune from ReflectionTypeLoadException exceptions.</remarks>
-		[Pure]
-		public static IEnumerable<Type> GetLoadableTypes(this Assembly assembly)
-		{
-			// See http://stackoverflow.com/questions/7889228/how-to-prevent-reflectiontypeloadexception-when-calling-assembly-gettypes
-			// and http://haacked.com/archive/2012/07/23/get-all-types-in-an-assembly.aspx
-
-			Contract.NotNull(assembly);
-			try
-			{
-				return assembly.GetTypes();
-			}
-			catch (ReflectionTypeLoadException e)
-			{
-				return e.Types.Where(t => t != null)!;
-			}
-		}
-
 		/// <summary>Returns the default value for a type</summary>
 		/// <returns><see langword="null"/>, <see langword="0"/>, <see langword="false"/>, DateTime.MinValue, ...</returns>
 		[Pure]
@@ -558,7 +574,7 @@ namespace Doxense.Serialization
 			return ((parameter.Attributes & ParameterAttributes.HasDefault) != 0) ? parameter.RawDefaultValue : GetDefaultValue(parameter.ParameterType);
 		}
 
-		/// <summary>Returns the full name of a type, that can be later passed to Type.GetType(..) to retrieve the original type</summary>
+		/// <summary>Returns the full name of a type, that can be later passed to Type.GetType(...) to retrieve the original type</summary>
 		/// <param name="type">Type</param>
 		/// <returns>Name of the type, with the form <c>"Namespace.ClassName, AssemblyName"</c></returns>
 		[Pure]
@@ -767,6 +783,10 @@ namespace Doxense.Serialization
 		/// <param name="types">Types of the generic arguments of the method</param>
 		/// <returns>Corresponding generic method</returns>
 		[Pure]
+#if NET8_0_OR_GREATER
+		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
+#endif
+		[RequiresUnreferencedCode("If some of the generic arguments are annotated (either with DynamicallyAccessedMembersAttribute, or generic constraints), trimming can't validate that the requirements of those annotations are met.")]
 		public static MethodInfo? MakeGenericMethod(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] this Type type,
 			string name,
@@ -780,18 +800,6 @@ namespace Doxense.Serialization
 			Contract.Debug.Assert(mi.IsGenericMethod, "Should reference a generic method");
 			Contract.Debug.Assert(mi.GetGenericArguments().Length == types.Length, "Should have the correct number of generic type arguments");
 			return mi.MakeGenericMethod(types);
-		}
-
-		/// <summary>Tests if a type is in instance of another type, abstract class, or interface</summary>
-		/// <typeparam name="T">Expected type</typeparam>
-		/// <param name="type">Type of the instance</param>
-		/// <returns><see langword="true"/> if an instance of type <paramref name="type"/> can be assigned to a variable of type <typeparamref name="T"/></returns>
-		[Pure]
-		[Obsolete("Use either type.IsAssignableTo(typeof(T)) or type.IsAssignableTo<T>() instead.")]
-		public static bool IsInstanceOf<T>(this Type type)
-		{
-			// note: this method existed before IsAssignableTo was introduced in the BCL
-			return type.IsAssignableTo(typeof(T));
 		}
 
 		/// <summary>Tests if a type is in instance of another type, abstract class, or interface</summary>
@@ -910,7 +918,7 @@ namespace Doxense.Serialization
 			}
 		}
 
-		/// <summary>Tests if a generic type is has the same generic definition as another type (ie: <c>Dictionary&lt;string, int> ~= Dictionary&lt;,></c></summary>
+		/// <summary>Tests if a generic type has the same generic definition as another type (ie: <c>Dictionary&lt;string, int> ~= Dictionary&lt;,></c></summary>
 		/// <param name="type">Type to inspect (ex: IDictionary&lt;string, string&gt;)</param>
 		/// <param name="genericType">Generic type (ex: IDictionary&lt;,&gt;)</param>
 		/// <returns><see langword="true"/> if the types are equivalent; otherwise, <see langword="false"/>.</returns>
@@ -988,7 +996,11 @@ namespace Doxense.Serialization
 
 		/// <summary>Tests if a method of a type is overriding the method from a base class</summary>
 		[Pure]
-		public static bool IsOverriding(Type type, string methodName)
+		public static bool IsOverriding(
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)]
+			Type type,
+			string methodName
+		)
 		{
 			Contract.NotNull(type);
 			var method = type.GetMethod(methodName);
@@ -1007,7 +1019,10 @@ namespace Doxense.Serialization
 
 		/// <summary>Returns the type returned by a 'Task-like' type (<c>Task</c>, <c>Task&gt;T&lt;</c>, <c>ValueTask&lt;T&gt;</c>, ...), or <see langword="null"/> if it is not a task.</summary>
 		[Pure]
-		public static Type? GetTaskLikeType(this Type taskLike)
+		public static Type? GetTaskLikeType(
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)]
+			this Type taskLike
+		)
 		{
 			if (taskLike == typeof(System.Threading.Tasks.Task)) return typeof(void);
 			if (taskLike == typeof(System.Threading.Tasks.ValueTask)) return typeof(void);

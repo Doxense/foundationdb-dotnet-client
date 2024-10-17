@@ -50,7 +50,7 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="T">Type of the element</typeparam>
 		/// <param name="writer">Buffer where to append the binary representation</param>
 		/// <param name="item1">Element to encode</param>
-		void EncodeKey<T>(ref SliceWriter writer, T? item1);
+		void EncodeKey<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(ref SliceWriter writer, T? item1);
 
 		/// <summary>Encode a key composed of 2 elements into a binary slice</summary>
 		/// <typeparam name="T1">Type of the first element</typeparam>
@@ -58,7 +58,11 @@ namespace Doxense.Serialization.Encoders
 		/// <param name="writer">Buffer where to append the binary representation</param>
 		/// <param name="item1">First element to encode</param>
 		/// <param name="item2">Second element to encode</param>
-		void EncodeKey<T1, T2>(ref SliceWriter writer, T1? item1, T2? item2);
+		void EncodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2
+		>
+			(ref SliceWriter writer, T1? item1, T2? item2);
 
 		/// <summary>Encode a key composed of 3 elements into a binary slice</summary>
 		/// <typeparam name="T1">Type of the first element</typeparam>
@@ -68,9 +72,14 @@ namespace Doxense.Serialization.Encoders
 		/// <param name="item1">First element to encode</param>
 		/// <param name="item2">Second element to encode</param>
 		/// <param name="item3">Third element to encode</param>
-		void EncodeKey<T1, T2, T3>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3);
+		void EncodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3
+		>
+			(ref SliceWriter writer, T1? item1, T2? item2, T3? item3);
 
-		/// <summary>Encode a key composed of a four elements into a binary slice</summary>
+		/// <summary>Encode a key composed of 4 elements into a binary slice</summary>
 		/// <typeparam name="T1">Type of the first element</typeparam>
 		/// <typeparam name="T2">Type of the second element</typeparam>
 		/// <typeparam name="T3">Type of the third element</typeparam>
@@ -80,9 +89,15 @@ namespace Doxense.Serialization.Encoders
 		/// <param name="item2">Second element to encode</param>
 		/// <param name="item3">Third element to encode</param>
 		/// <param name="item4">Fourth element to encode</param>
-		void EncodeKey<T1, T2, T3, T4>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4);
+		void EncodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4
+		>
+			(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4);
 
-		/// <summary>Encode a key composed of a four elements into a binary slice</summary>
+		/// <summary>Encode a key composed of 5 elements into a binary slice</summary>
 		/// <typeparam name="T1">Type of the first element</typeparam>
 		/// <typeparam name="T2">Type of the second element</typeparam>
 		/// <typeparam name="T3">Type of the third element</typeparam>
@@ -94,9 +109,16 @@ namespace Doxense.Serialization.Encoders
 		/// <param name="item3">Third element to encode</param>
 		/// <param name="item4">Fourth element to encode</param>
 		/// <param name="item5">Fifth element to encode</param>
-		void EncodeKey<T1, T2, T3, T4, T5>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5);
+		void EncodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5
+		>
+			(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5);
 
-		/// <summary>Encode a key composed of a four elements into a binary slice</summary>
+		/// <summary>Encode a key composed of 6 elements into a binary slice</summary>
 		/// <typeparam name="T1">Type of the first element</typeparam>
 		/// <typeparam name="T2">Type of the second element</typeparam>
 		/// <typeparam name="T3">Type of the third element</typeparam>
@@ -110,9 +132,17 @@ namespace Doxense.Serialization.Encoders
 		/// <param name="item4">Fourth element to encode</param>
 		/// <param name="item5">Fifth element to encode</param>
 		/// <param name="item6">Sixth element to encode</param>
-		void EncodeKey<T1, T2, T3, T4, T5, T6>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6);
+		void EncodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6
+		>
+			(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6);
 
-		/// <summary>Encode a key composed of a four elements into a binary slice</summary>
+		/// <summary>Encode a key composed of 7 elements into a binary slice</summary>
 		/// <typeparam name="T1">Type of the first element</typeparam>
 		/// <typeparam name="T2">Type of the second element</typeparam>
 		/// <typeparam name="T3">Type of the third element</typeparam>
@@ -128,9 +158,18 @@ namespace Doxense.Serialization.Encoders
 		/// <param name="item5">Fifth element to encode</param>
 		/// <param name="item6">Sixth element to encode</param>
 		/// <param name="item7">Seventh element to encode</param>
-		void EncodeKey<T1, T2, T3, T4, T5, T6, T7>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7);
+		void EncodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7
+		>
+			(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7);
 
-		/// <summary>Encode a key composed of a four elements into a binary slice</summary>
+		/// <summary>Encode a key composed of 8 elements into a binary slice</summary>
 		/// <typeparam name="T1">Type of the first element</typeparam>
 		/// <typeparam name="T2">Type of the second element</typeparam>
 		/// <typeparam name="T3">Type of the third element</typeparam>
@@ -148,7 +187,16 @@ namespace Doxense.Serialization.Encoders
 		/// <param name="item6">Sixth element to encode</param>
 		/// <param name="item7">Seventh element to encode</param>
 		/// <param name="item8">Eighth element to encode</param>
-		void EncodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7, T8? item8);
+		void EncodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T8
+		>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7, T8? item8);
 
 		#endregion
 
@@ -180,27 +228,33 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="T">Expected type of the element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1}"/> or <see cref="EncodeKey{T1}"/></param>
 		/// <returns>Value of the decoded element, or an exception if the data is invalid or the encoded tuple is empty or has more than one element</returns>
-		T? DecodeKey<T>(Slice packed);
+		T? DecodeKey<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(Slice packed);
 
 		/// <summary>Decodes a binary slice containing exactly on element</summary>
 		/// <typeparam name="T">Expected type of the element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1}"/> or <see cref="EncodeKey{T1}"/></param>
 		/// <returns>Value of the decoded element, or an exception if the data is invalid or the encoded tuple is empty or has more than one element</returns>
-		T? DecodeKey<T>(ReadOnlySpan<byte> packed);
+		T? DecodeKey<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(ReadOnlySpan<byte> packed);
 
 		/// <summary>Decodes a binary slice containing exactly two elements</summary>
 		/// <typeparam name="T1">Expected type of the first element</typeparam>
 		/// <typeparam name="T2">Expected type of the second element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2}"/> or <see cref="EncodeKey{T1, T2}"/></param>
 		/// <returns>Tuple containing two elements, or an exception if the data is invalid, or the tuples has less or more than two elements</returns>
-		(T1?, T2?) DecodeKey<T1, T2>(Slice packed);
+		(T1?, T2?) DecodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2>
+			(Slice packed);
 
 		/// <summary>Decodes a binary slice containing exactly two elements</summary>
 		/// <typeparam name="T1">Expected type of the first element</typeparam>
 		/// <typeparam name="T2">Expected type of the second element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2}"/> or <see cref="EncodeKey{T1, T2}"/></param>
 		/// <returns>Tuple containing two elements, or an exception if the data is invalid, or the tuples has less or more than two elements</returns>
-		(T1?, T2?) DecodeKey<T1, T2>(ReadOnlySpan<byte> packed);
+		(T1?, T2?) DecodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2>
+			(ReadOnlySpan<byte> packed);
 
 		/// <summary>Decodes a binary slice containing exactly three elements</summary>
 		/// <typeparam name="T1">Expected type of the first element</typeparam>
@@ -208,7 +262,11 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="T3">Expected type of the third element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2, T3}"/> or <see cref="EncodeKey{T1, T2, T3}"/></param>
 		/// <returns>Tuple containing three elements, or an exception if the data is invalid, or the tuples has less or more than three elements</returns>
-		(T1?, T2?, T3?) DecodeKey<T1, T2, T3>(Slice packed);
+		(T1?, T2?, T3?) DecodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3>
+			(Slice packed);
 
 		/// <summary>Decodes a binary slice containing exactly three elements</summary>
 		/// <typeparam name="T1">Expected type of the first element</typeparam>
@@ -216,7 +274,11 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="T3">Expected type of the third element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2, T3}"/> or <see cref="EncodeKey{T1, T2, T3}"/></param>
 		/// <returns>Tuple containing three elements, or an exception if the data is invalid, or the tuples has less or more than three elements</returns>
-		(T1?, T2?, T3?) DecodeKey<T1, T2, T3>(ReadOnlySpan<byte> packed);
+		(T1?, T2?, T3?) DecodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3>
+			(ReadOnlySpan<byte> packed);
 
 		/// <summary>Decodes a binary slice containing exactly four elements</summary>
 		/// <typeparam name="T1">Expected type of the first element</typeparam>
@@ -225,7 +287,12 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="T4">Expected type of the fourth element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2, T3, T4}"/> or <see cref="EncodeKey{T1, T2, T3, T4}"/></param>
 		/// <returns>Tuple containing four elements, or an exception if the data is invalid, or the tuples has less or more than four elements</returns>
-		(T1?, T2?, T3?, T4?) DecodeKey<T1, T2, T3, T4>(Slice packed);
+		(T1?, T2?, T3?, T4?) DecodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4>
+			(Slice packed);
 
 		/// <summary>Decodes a binary slice containing exactly four elements</summary>
 		/// <typeparam name="T1">Expected type of the first element</typeparam>
@@ -234,9 +301,14 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="T4">Expected type of the fourth element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2, T3, T4}"/> or <see cref="EncodeKey{T1, T2, T3, T4}"/></param>
 		/// <returns>Tuple containing four elements, or an exception if the data is invalid, or the tuples has less or more than four elements</returns>
-		(T1?, T2?, T3?, T4?) DecodeKey<T1, T2, T3, T4>(ReadOnlySpan<byte> packed);
+		(T1?, T2?, T3?, T4?) DecodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4>
+			(ReadOnlySpan<byte> packed);
 
-		/// <summary>Decode a binary slice containing exactly five elements</summary>
+		/// <summary>Decodes a binary slice containing exactly five elements</summary>
 		/// <typeparam name="T1">Expected type of the first element</typeparam>
 		/// <typeparam name="T2">Expected type of the second element</typeparam>
 		/// <typeparam name="T3">Expected type of the third element</typeparam>
@@ -244,9 +316,15 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="T5">Expected type of the fifth element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2, T3, T4, T5}"/> or <see cref="EncodeKey{T1, T2, T3, T4, T5}"/></param>
 		/// <returns>Tuple containing five elements, or an exception if the data is invalid, or the tuples has less or more than five elements</returns>
-		(T1?, T2?, T3?, T4?, T5?) DecodeKey<T1, T2, T3, T4, T5>(Slice packed);
+		(T1?, T2?, T3?, T4?, T5?) DecodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5>
+			(Slice packed);
 
-		/// <summary>Decode a binary slice containing exactly five elements</summary>
+		/// <summary>Decodes a binary slice containing exactly five elements</summary>
 		/// <typeparam name="T1">Expected type of the first element</typeparam>
 		/// <typeparam name="T2">Expected type of the second element</typeparam>
 		/// <typeparam name="T3">Expected type of the third element</typeparam>
@@ -254,9 +332,15 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="T5">Expected type of the fifth element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2, T3, T4, T5}"/> or <see cref="EncodeKey{T1, T2, T3, T4, T5}"/></param>
 		/// <returns>Tuple containing five elements, or an exception if the data is invalid, or the tuples has less or more than five elements</returns>
-		(T1?, T2?, T3?, T4?, T5?) DecodeKey<T1, T2, T3, T4, T5>(ReadOnlySpan<byte> packed);
+		(T1?, T2?, T3?, T4?, T5?) DecodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5>
+			(ReadOnlySpan<byte> packed);
 
-		/// <summary>Decode a binary slice containing exactly six elements</summary>
+		/// <summary>Decodes a binary slice containing exactly six elements</summary>
 		/// <typeparam name="T1">Expected type of the first element</typeparam>
 		/// <typeparam name="T2">Expected type of the second element</typeparam>
 		/// <typeparam name="T3">Expected type of the third element</typeparam>
@@ -265,9 +349,16 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="T6">Expected type of the sixth element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2, T3, T4, T5, T6}"/> or <see cref="EncodeKey{T1, T2, T3, T4, T5, T6}"/></param>
 		/// <returns>Tuple containing six elements, or an exception if the data is invalid, or the tuples has less or more than six elements</returns>
-		(T1?, T2?, T3?, T4?, T5?, T6?) DecodeKey<T1, T2, T3, T4, T5, T6>(Slice packed);
+		(T1?, T2?, T3?, T4?, T5?, T6?) DecodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6>
+			(Slice packed);
 
-		/// <summary>Decode a binary slice containing exactly six elements</summary>
+		/// <summary>Decodes a binary slice containing exactly six elements</summary>
 		/// <typeparam name="T1">Expected type of the first element</typeparam>
 		/// <typeparam name="T2">Expected type of the second element</typeparam>
 		/// <typeparam name="T3">Expected type of the third element</typeparam>
@@ -276,9 +367,16 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="T6">Expected type of the sixth element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2, T3, T4, T5, T6}"/> or <see cref="EncodeKey{T1, T2, T3, T4, T5, T6}"/></param>
 		/// <returns>Tuple containing six elements, or an exception if the data is invalid, or the tuples has less or more than six elements</returns>
-		(T1?, T2?, T3?, T4?, T5?, T6?) DecodeKey<T1, T2, T3, T4, T5, T6>(ReadOnlySpan<byte> packed);
+		(T1?, T2?, T3?, T4?, T5?, T6?) DecodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6>
+			(ReadOnlySpan<byte> packed);
 
-		/// <summary>Decode a binary slice containing exactly seven elements</summary>
+		/// <summary>Decodes a binary slice containing exactly seven elements</summary>
 		/// <typeparam name="T1">Expected type of the first element</typeparam>
 		/// <typeparam name="T2">Expected type of the second element</typeparam>
 		/// <typeparam name="T3">Expected type of the third element</typeparam>
@@ -288,9 +386,17 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="T7">Expected type of the seventh element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2, T3, T4, T5, T6, T7}"/> or <see cref="EncodeKey{T1, T2, T3, T4, T5, T6, T7}"/></param>
 		/// <returns>Tuple containing seven elements, or an exception if the data is invalid, or the tuples has less or more than seven elements</returns>
-		(T1?, T2?, T3?, T4?, T5?, T6?, T7?) DecodeKey<T1, T2, T3, T4, T5, T6, T7>(Slice packed);
+		(T1?, T2?, T3?, T4?, T5?, T6?, T7?) DecodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7>
+			(Slice packed);
 
-		/// <summary>Decode a binary slice containing exactly seven elements</summary>
+		/// <summary>Decodes a binary slice containing exactly seven elements</summary>
 		/// <typeparam name="T1">Expected type of the first element</typeparam>
 		/// <typeparam name="T2">Expected type of the second element</typeparam>
 		/// <typeparam name="T3">Expected type of the third element</typeparam>
@@ -300,9 +406,17 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="T7">Expected type of the seventh element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2, T3, T4, T5, T6, T7}"/> or <see cref="EncodeKey{T1, T2, T3, T4, T5, T6, T7}"/></param>
 		/// <returns>Tuple containing seven elements, or an exception if the data is invalid, or the tuples has less or more than seven elements</returns>
-		(T1?, T2?, T3?, T4?, T5?, T6?, T7?) DecodeKey<T1, T2, T3, T4, T5, T6, T7>(ReadOnlySpan<byte> packed);
+		(T1?, T2?, T3?, T4?, T5?, T6?, T7?) DecodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7>
+			(ReadOnlySpan<byte> packed);
 
-		/// <summary>Decode a binary slice containing exactly seven elements</summary>
+		/// <summary>Decodes a binary slice containing exactly seven elements</summary>
 		/// <typeparam name="T1">Expected type of the first element</typeparam>
 		/// <typeparam name="T2">Expected type of the second element</typeparam>
 		/// <typeparam name="T3">Expected type of the third element</typeparam>
@@ -313,9 +427,18 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="T8">Expected type of the eight element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2, T3, T4, T5, T6, T7, T8}"/> or <see cref="EncodeKey{T1, T2, T3, T4, T5, T6, T7, T8}"/></param>
 		/// <returns>Tuple containing eight elements, or an exception if the data is invalid, or the tuples has less or more than eight elements</returns>
-		(T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(Slice packed);
+		(T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) DecodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T8>
+			(Slice packed);
 
-		/// <summary>Decode a binary slice containing exactly seven elements</summary>
+		/// <summary>Decodes a binary slice containing exactly seven elements</summary>
 		/// <typeparam name="T1">Expected type of the first element</typeparam>
 		/// <typeparam name="T2">Expected type of the second element</typeparam>
 		/// <typeparam name="T3">Expected type of the third element</typeparam>
@@ -326,92 +449,155 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="T8">Expected type of the eight element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2, T3, T4, T5, T6, T7, T8}"/> or <see cref="EncodeKey{T1, T2, T3, T4, T5, T6, T7, T8}"/></param>
 		/// <returns>Tuple containing eight elements, or an exception if the data is invalid, or the tuples has less or more than eight elements</returns>
-		(T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(ReadOnlySpan<byte> packed);
-
-		/// <summary>Decode the first element of a binary slice containing at least 1 element</summary>
-		/// <typeparam name="T1">Expected type of the first element</typeparam>
-		/// <param name="packed">Binary slice that contains one or more elements.</param>
-		/// <returns>Decoded value of first element, or an exception if the data is invalid or the encoded tuple is empty.</returns>
-		T1? DecodeKeyFirst<T1>(Slice packed, int? expectedSize = null);
+		(T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) DecodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T8>
+			(ReadOnlySpan<byte> packed);
 
 		/// <summary>Decodes the first element of a binary slice containing at least 1 element</summary>
 		/// <typeparam name="T1">Expected type of the first element</typeparam>
 		/// <param name="packed">Binary slice that contains one or more elements.</param>
-		/// <returns>Decoded value of first element, or an exception if the data is invalid or the encoded tuple is empty.</returns>
-		T1? DecodeKeyFirst<T1>(ReadOnlySpan<byte> packed, int? expectedSize = null);
+		/// <param name="expectedSize">If non-null, checks that the decoded tuple has the given size</param>
+		/// <returns>Decoded value of first element.</returns>
+		/// <exception cref="InvalidOperationException"> the decoded tuple does not have the expected size</exception>
+		T1? DecodeKeyFirst<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1>(Slice packed, int? expectedSize = null);
+
+		/// <summary>Decodes the first element of a binary slice containing at least 1 element</summary>
+		/// <typeparam name="T1">Expected type of the first element</typeparam>
+		/// <param name="packed">Binary slice that contains one or more elements.</param>
+		/// <param name="expectedSize">If non-null, checks that the decoded tuple has the given size</param>
+		/// <returns>Decoded value of first element.</returns>
+		/// <exception cref="InvalidOperationException"> the decoded tuple does not have the expected size</exception>
+		T1? DecodeKeyFirst<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1>(ReadOnlySpan<byte> packed, int? expectedSize = null);
 
 		/// <summary>Decodes the first 2 elements of a binary slice containing at least 2 elements</summary>
 		/// <typeparam name="T1">Expected type of the first element</typeparam>
 		/// <typeparam name="T2">Expected type of the second element</typeparam>
 		/// <param name="packed">Binary slice that contains at least 2 elements.</param>
-		/// <returns>Decoded values of the first 2 elements, or an exception if the data is invalid or the encoded tuple has less than 2 elements.</returns>
-		(T1?, T2?) DecodeKeyFirst<T1, T2>(Slice packed, int? expectedSize = null);
+		/// <param name="expectedSize">If non-null, checks that the decoded tuple has the given size</param>
+		/// <returns>Decoded values of the first 2 elements.</returns>
+		/// <exception cref="InvalidOperationException"> the decoded tuple does not have the expected size</exception>
+		(T1?, T2?) DecodeKeyFirst<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2>
+			(Slice packed, int? expectedSize = null);
 
 		/// <summary>Decodes the first 2 elements of a binary slice containing at least 2 elements</summary>
 		/// <typeparam name="T1">Expected type of the first element</typeparam>
 		/// <typeparam name="T2">Expected type of the second element</typeparam>
 		/// <param name="packed">Binary slice that contains at least 2 elements.</param>
-		/// <returns>Decoded values of the first 2 elements, or an exception if the data is invalid or the encoded tuple has less than 2 elements.</returns>
-		(T1?, T2?) DecodeKeyFirst<T1, T2>(ReadOnlySpan<byte> packed, int? expectedSize = null);
+		/// <param name="expectedSize">If non-null, checks that the decoded tuple has the given size</param>
+		/// <returns>Decoded values of the first 2 elements.</returns>
+		/// <exception cref="InvalidOperationException"> the decoded tuple does not have the expected size</exception>
+		(T1?, T2?) DecodeKeyFirst<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2>
+			(ReadOnlySpan<byte> packed, int? expectedSize = null);
 
-		/// <summary>Decode the first 3 elements of a binary slice containing at least 3 elements</summary>
+		/// <summary>Decodes the first 3 elements of a binary slice containing at least 3 elements</summary>
 		/// <typeparam name="T1">Expected type of the first element</typeparam>
 		/// <typeparam name="T2">Expected type of the second element</typeparam>
 		/// <typeparam name="T3">Expected type of the third element</typeparam>
 		/// <param name="packed">Binary slice that contains at least 3 elements.</param>
-		/// <returns>Decoded values of the first 3 elements, or an exception if the data is invalid or the encoded tuple has less than 3 elements.</returns>
-		(T1?, T2?, T3?) DecodeKeyFirst<T1, T2, T3>(Slice packed, int? expectedSize = null);
+		/// <param name="expectedSize">If non-null, checks that the decoded tuple has the given size</param>
+		/// <returns>Decoded values of the first 3 elements.</returns>
+		/// <exception cref="InvalidOperationException"> the decoded tuple does not have the expected size</exception>
+		(T1?, T2?, T3?) DecodeKeyFirst<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3>
+			(Slice packed, int? expectedSize = null);
 
-		/// <summary>Decode the first 3 elements of a binary slice containing at least 3 elements</summary>
+		/// <summary>Decodes the first 3 elements of a binary slice containing at least 3 elements</summary>
 		/// <typeparam name="T1">Expected type of the first element</typeparam>
 		/// <typeparam name="T2">Expected type of the second element</typeparam>
 		/// <typeparam name="T3">Expected type of the third element</typeparam>
 		/// <param name="packed">Binary slice that contains at least 3 elements.</param>
-		/// <returns>Decoded values of the first 3 elements, or an exception if the data is invalid or the encoded tuple has less than 3 elements.</returns>
-		(T1?, T2?, T3?) DecodeKeyFirst<T1, T2, T3>(ReadOnlySpan<byte> packed, int? expectedSize = null);
+		/// <param name="expectedSize">If non-null, checks that the decoded tuple has the given size</param>
+		/// <returns>Decoded values of the first 3 elements.</returns>
+		/// <exception cref="InvalidOperationException"> the decoded tuple does not have the expected size</exception>
+		(T1?, T2?, T3?) DecodeKeyFirst<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3>
+			(ReadOnlySpan<byte> packed, int? expectedSize = null);
 
-		/// <summary>Decode the last element of a binary slice containing at least 1 element</summary>
+		/// <summary>Decodes the last element of a binary slice containing at least 1 element</summary>
 		/// <typeparam name="T">Expected type of the last element</typeparam>
 		/// <param name="packed">Binary slice that contains one or more elements.</param>
-		/// <returns>Decoded value of the last element, or an exception if the data is invalid or the encoded tuple is empty.</returns>
-		T? DecodeKeyLast<T>(Slice packed, int? expectedSize = null);
+		/// <param name="expectedSize">If non-null, checks that the decoded tuple has the given size</param>
+		/// <returns>Decoded value of the last element.</returns>
+		/// <exception cref="InvalidOperationException"> the decoded tuple does not have the expected size</exception>
+		T? DecodeKeyLast<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>
+			(Slice packed, int? expectedSize = null);
 
-		/// <summary>Decode the last element of a binary slice containing at least 1 element</summary>
+		/// <summary>Decodes the last element of a binary slice containing at least 1 element</summary>
 		/// <typeparam name="T">Expected type of the last element</typeparam>
 		/// <param name="packed">Binary slice that contains one or more elements.</param>
-		/// <returns>Decoded value of the last element, or an exception if the data is invalid or the encoded tuple is empty.</returns>
-		T? DecodeKeyLast<T>(ReadOnlySpan<byte> packed, int? expectedSize = null);
+		/// <param name="expectedSize">If non-null, checks that the decoded tuple has the given size</param>
+		/// <returns>Decoded value of the last element.</returns>
+		/// <exception cref="InvalidOperationException"> the decoded tuple does not have the expected size</exception>
+		T? DecodeKeyLast<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>
+			(ReadOnlySpan<byte> packed, int? expectedSize = null);
 
-		/// <summary>Decode the last 2 elements of a binary slice containing at least 2 elements</summary>
+		/// <summary>Decodes the last 2 elements of a binary slice containing at least 2 elements</summary>
 		/// <typeparam name="T1">Expected type of the second to last element</typeparam>
 		/// <typeparam name="T2">Expected type of the last element</typeparam>
 		/// <param name="packed">Binary slice that contains one or more elements.</param>
-		/// <returns>Decoded values of the last 2 elements, or an exception if the data is invalid or the encoded tuple has less than 2 elements.</returns>
-		(T1?, T2?) DecodeKeyLast<T1, T2>(Slice packed, int? expectedSize = null);
+		/// <param name="expectedSize">If non-null, checks that the decoded tuple has the given size</param>
+		/// <returns>Decoded values of the last 2 elements.</returns>
+		/// <exception cref="InvalidOperationException"> the decoded tuple does not have the expected size</exception>
+		(T1?, T2?) DecodeKeyLast<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2>(Slice packed, int? expectedSize = null);
 
-		/// <summary>Decode the last 2 elements of a binary slice containing at least 2 elements</summary>
+		/// <summary>Decodes the last 2 elements of a binary slice containing at least 2 elements</summary>
 		/// <typeparam name="T1">Expected type of the second to last element</typeparam>
 		/// <typeparam name="T2">Expected type of the last element</typeparam>
 		/// <param name="packed">Binary slice that contains one or more elements.</param>
-		/// <param name="expectedSize">If non-null, specifies the expected size of the decoded tuple (at least 2)</param>
-		/// <returns>Decoded values of the last 2 elements. Throws an exception if the data is invalid, the encoded tuple has less than 2 elements, or a size different than <param name="expectedSize"></param> (if specified).</returns>
-		(T1?, T2?) DecodeKeyLast<T1, T2>(ReadOnlySpan<byte> packed, int? expectedSize = null);
+		/// <param name="expectedSize">If non-null, checks that the decoded tuple has the given size</param>
+		/// <returns>Decoded values of the last 2 elements.</returns>
+		/// <exception cref="InvalidOperationException"> the decoded tuple does not have the expected size</exception>
+		(T1?, T2?) DecodeKeyLast<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2>
+			(ReadOnlySpan<byte> packed, int? expectedSize = null);
 
-		/// <summary>Decode the last 3 elements of a binary slice containing at least 3 elements</summary>
+		/// <summary>Decodes the last 3 elements of a binary slice containing at least 3 elements</summary>
 		/// <typeparam name="T1">Expected type of the third to last element</typeparam>
 		/// <typeparam name="T2">Expected type of the second to last element</typeparam>
 		/// <typeparam name="T3">Expected type of the last element</typeparam>
 		/// <param name="packed">Binary slice that contains one or more elements.</param>
-		/// <returns>Decoded values of the last 3 element, or an exception if the data is invalid or the encoded tuple has less than 3 elements.</returns>
-		(T1?, T2?, T3?) DecodeKeyLast<T1, T2, T3>(Slice packed, int? expectedSize = null);
+		/// <param name="expectedSize">If non-null, checks that the decoded tuple has the given size</param>
+		/// <returns>Decoded values of the last 3 elements.</returns>
+		/// <exception cref="InvalidOperationException"> the decoded tuple does not have the expected size</exception>
+		(T1?, T2?, T3?) DecodeKeyLast<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3>
+			(Slice packed, int? expectedSize = null);
 
-		/// <summary>Decode the last 3 elements of a binary slice containing at least 3 elements</summary>
+		/// <summary>Decodes the last 3 elements of a binary slice containing at least 3 elements</summary>
 		/// <typeparam name="T1">Expected type of the third to last element</typeparam>
 		/// <typeparam name="T2">Expected type of the second to last element</typeparam>
 		/// <typeparam name="T3">Expected type of the last element</typeparam>
 		/// <param name="packed">Binary slice that contains one or more elements.</param>
-		/// <returns>Decoded values of the last 3 element, or an exception if the data is invalid or the encoded tuple has less than 3 elements.</returns>
-		(T1?, T2?, T3?) DecodeKeyLast<T1, T2, T3>(ReadOnlySpan<byte> packed, int? expectedSize = null);
+		/// <param name="expectedSize">If non-null, checks that the decoded tuple has the given size</param>
+		/// <returns>Decoded values of the last 3 elements.</returns>
+		/// <exception cref="InvalidOperationException"> the decoded tuple does not have the expected size</exception>
+		(T1?, T2?, T3?) DecodeKeyLast<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3>
+			(ReadOnlySpan<byte> packed, int? expectedSize = null);
 
 		#endregion
 
@@ -432,7 +618,9 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="T1">Type of the element</typeparam>
 		/// <param name="prefix">Optional binary prefix that should be added before encoding the key</param>
 		/// <param name="item1">Element to encode</param>
-		(Slice Begin, Slice End) ToKeyRange<T1>(Slice prefix, T1 item1);
+		(Slice Begin, Slice End) ToKeyRange<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1>
+			(Slice prefix, T1 item1);
 
 		/// <summary>Returns a key range using 2 elements as a prefix</summary>
 		/// <typeparam name="T1">Type of the first element</typeparam>
@@ -440,7 +628,10 @@ namespace Doxense.Serialization.Encoders
 		/// <param name="prefix">Optional binary prefix that should be added before encoding the key</param>
 		/// <param name="item1">First element to encode</param>
 		/// <param name="item2">Second element to encode</param>
-		(Slice Begin, Slice End) ToKeyRange<T1, T2>(Slice prefix, T1 item1, T2 item2);
+		(Slice Begin, Slice End) ToKeyRange<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2>
+			(Slice prefix, T1 item1, T2 item2);
 
 		/// <summary>Returns a key range using 3 elements as a prefix</summary>
 		/// <typeparam name="T1">Type of the first element</typeparam>
@@ -450,7 +641,11 @@ namespace Doxense.Serialization.Encoders
 		/// <param name="item1">First element to encode</param>
 		/// <param name="item2">Second element to encode</param>
 		/// <param name="item3">Third element to encode</param>
-		(Slice Begin, Slice End) ToKeyRange<T1, T2, T3>(Slice prefix, T1 item1, T2 item2, T3 item3);
+		(Slice Begin, Slice End) ToKeyRange<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3>
+			(Slice prefix, T1 item1, T2 item2, T3 item3);
 
 		/// <summary>Returns a key range using 4 elements as a prefix</summary>
 		/// <typeparam name="T1">Type of the first element</typeparam>
@@ -462,9 +657,14 @@ namespace Doxense.Serialization.Encoders
 		/// <param name="item2">Second element to encode</param>
 		/// <param name="item3">Third element to encode</param>
 		/// <param name="item4">Fourth element to encode</param>
-		(Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4);
+		(Slice Begin, Slice End) ToKeyRange<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4>
+			(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4);
 
-		/// <summary>Return a key range using five elements as a prefix</summary>
+		/// <summary>Returns a key range using 5 elements as a prefix</summary>
 		/// <typeparam name="T1">Type of the first element</typeparam>
 		/// <typeparam name="T2">Type of the second element</typeparam>
 		/// <typeparam name="T3">Type of the third element</typeparam>
@@ -476,9 +676,15 @@ namespace Doxense.Serialization.Encoders
 		/// <param name="item3">Third element to encode</param>
 		/// <param name="item4">Fourth element to encode</param>
 		/// <param name="item5">Fifth element to encode</param>
-		(Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5);
+		(Slice Begin, Slice End) ToKeyRange<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5>
+			(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5);
 
-		/// <summary>Return a key range using six elements as a prefix</summary>
+		/// <summary>Returns a key range using 6 elements as a prefix</summary>
 		/// <typeparam name="T1">Type of the first element</typeparam>
 		/// <typeparam name="T2">Type of the second element</typeparam>
 		/// <typeparam name="T3">Type of the third element</typeparam>
@@ -492,9 +698,16 @@ namespace Doxense.Serialization.Encoders
 		/// <param name="item4">Fourth element to encode</param>
 		/// <param name="item5">Fifth element to encode</param>
 		/// <param name="item6">Sixth element to encode</param>
-		(Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5, T6>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6);
+		(Slice Begin, Slice End) ToKeyRange<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6>
+			(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6);
 
-		/// <summary>Return a key range using seven elements as a prefix</summary>
+		/// <summary>Returns a key range using 7 elements as a prefix</summary>
 		/// <typeparam name="T1">Type of the first element</typeparam>
 		/// <typeparam name="T2">Type of the second element</typeparam>
 		/// <typeparam name="T3">Type of the third element</typeparam>
@@ -510,9 +723,17 @@ namespace Doxense.Serialization.Encoders
 		/// <param name="item5">Fifth element to encode</param>
 		/// <param name="item6">Sixth element to encode</param>
 		/// <param name="item7">Seventh element to encode</param>
-		(Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5, T6, T7>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7);
+		(Slice Begin, Slice End) ToKeyRange<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7>
+			(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7);
 
-		/// <summary>Return a key range using eight elements as a prefix</summary>
+		/// <summary>Returns a key range using 8 elements as a prefix</summary>
 		/// <typeparam name="T1">Type of the first element</typeparam>
 		/// <typeparam name="T2">Type of the second element</typeparam>
 		/// <typeparam name="T3">Type of the third element</typeparam>
@@ -530,7 +751,16 @@ namespace Doxense.Serialization.Encoders
 		/// <param name="item6">Sixth element to encode</param>
 		/// <param name="item7">Seventh element to encode</param>
 		/// <param name="item8">Eighth element to encode</param>
-		(Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5, T6, T7, T8>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8);
+		(Slice Begin, Slice End) ToKeyRange<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T8>
+			(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8);
 
 		//note: I will be billing $999.99 to anyone who wants up to T11 !!! :(
 

@@ -30,7 +30,10 @@ namespace Doxense.Collections.Tuples.Encoding
 
 	/// <summary>Helper class that can serialize values of type <typeparamref name="T"/> to the tuple binary format</summary>
 	/// <typeparam name="T">Type of values to be serialized</typeparam>
-	public static class TuplePacker<T>
+	public static class TuplePacker<
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+		T
+	>
 	{
 
 		internal static readonly TuplePackers.Encoder<T> Encoder = TuplePackers.GetSerializer<T>(required: true)!;
@@ -95,7 +98,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		{
 			//<JIT_HACK>
 			// - In Release builds, this will be cleaned up and inlined by the JIT as a direct invocation of the correct WriteXYZ method
-			// - In Debug builds, we have to disabled this, because it would be too slow
+			// - In Debug builds, we have to disable this, because it would be too slow
 #if !DEBUG
 			// non-nullable
 			if (typeof(T) == typeof(int)) return (T?) (object) TuplePackers.DeserializeInt32(slice);
