@@ -106,6 +106,9 @@ namespace FoundationDB.Client.Tests
 			// first call should create a new subspace (with a random prefix)
 			FdbDirectorySubspace foo;
 
+			Log("Before creating 'Foo':");
+			await DumpSubspace(db, location);
+
 			using (var tr = db.BeginTransaction(this.Cancellation))
 			{
 				foo = await dl.CreateOrOpenAsync(tr, FdbPath.Parse("/Foo"));
@@ -128,17 +131,13 @@ namespace FoundationDB.Client.Tests
 			Assert.That(foo.Descriptor.Path, Is.EqualTo(FdbPath.Absolute("Foo")));
 			Assert.That(foo.Descriptor.Layer, Is.EqualTo(string.Empty));
 			Assert.That(foo.Descriptor.ValidationChain, Is.Not.Null);
-			Log("Validation chain: " + string.Join(", ", foo.Descriptor.ValidationChain.Select(kv => $"{TuPack.Unpack(kv.Key)} = {TuPack.Unpack(kv.Value)}")));
-			Assert.That(foo.Descriptor.ValidationChain[0].Value, Is.EqualTo(foo.GetPrefixUnsafe()));
+			DumpValidationChange(foo);
+			Assert.That(foo.Descriptor.ValidationChain[0].Key, Is.EqualTo(foo.Descriptor.Partition.StampKey));
 			Assert.That(foo.Descriptor.ValidationChain, Has.Count.EqualTo(1));
 
 			// second call should return the same subspace
 
 			var foo2 = await db.ReadAsync(tr => dl.OpenAsync(tr, FdbPath.Parse("/Foo")), this.Cancellation);
-#if DEBUG
-			Log("After opening 'Foo':");
-			await DumpSubspace(db, location);
-#endif
 			Assert.That(foo2, Is.Not.Null);
 			Assert.That(foo2.FullName, Is.EqualTo("/Foo"), "foo2.FullName");
 			Assert.That(foo2.Path, Is.EqualTo(FdbPath.Parse("/Foo")), "foo2.Path");
@@ -146,7 +145,7 @@ namespace FoundationDB.Client.Tests
 			Assert.That(foo2.DirectoryLayer, Is.SameAs(dl), "foo2.DirectoryLayer");
 			Assert.That(foo2.Context, Is.Not.Null, "foo2.Context");
 			Assert.That(foo.Descriptor, Is.Not.Null, "foo2.Descriptor");
-			Log("Validation chain: " + string.Join(", ", foo2.Descriptor.ValidationChain.Select(kv => $"{kv.Key:K}={kv.Value:V}")));
+			DumpValidationChange(foo2);
 
 			Assert.That(foo2.GetPrefix(), Is.EqualTo(foo.GetPrefix()), "Second call to CreateOrOpen should return the same subspace");
 		}
@@ -220,6 +219,15 @@ namespace FoundationDB.Client.Tests
 #endif
 		}
 
+		private void DumpValidationChange(FdbDirectorySubspace subspace)
+		{
+			Log($"Validation chain for {subspace.Location}:");
+			foreach (var kv in subspace.Descriptor.ValidationChain)
+			{
+				Log($"- {kv.Key:K} = {kv.Value:V}");
+			}
+		}
+
 		[Test]
 		public async Task Test_CreateOrOpen_SubFolder()
 		{
@@ -256,30 +264,26 @@ namespace FoundationDB.Client.Tests
 			Assert.That(foo.FullName, Is.EqualTo("/Foo"));
 			Assert.That(foo.Descriptor, Is.Not.Null);
 			Assert.That(foo.Descriptor.ValidationChain, Is.Not.Null);
-			Log("Foo validation chain: " + string.Join(", ", foo.Descriptor.ValidationChain.Select(kv => $"{TuPack.Unpack(kv.Key)} = {TuPack.Unpack(kv.Value)}")));
+			DumpValidationChange(foo);
 			Assert.That(foo.Descriptor.ValidationChain, Has.Count.EqualTo(1));
-			Assert.That(foo.Descriptor.ValidationChain[0].Value, Is.EqualTo(foo.GetPrefixUnsafe()));
+			Assert.That(foo.Descriptor.ValidationChain[0].Key, Is.EqualTo(foo.Descriptor.Partition.StampKey));
 
 			var bar = await db.ReadAsync(tr => dl.OpenAsync(tr, FdbPath.Parse("/Foo/Bar")), this.Cancellation);
 			Assert.That(bar, Is.Not.Null);
 			Assert.That(bar.FullName, Is.EqualTo("/Foo/Bar"));
 			Assert.That(bar.Descriptor, Is.Not.Null);
 			Assert.That(bar.Descriptor.ValidationChain, Is.Not.Null);
-			Log("Bar validation chain: " + string.Join(", ", bar.Descriptor.ValidationChain.Select(kv => $"{TuPack.Unpack(kv.Key)} = {TuPack.Unpack(kv.Value)}")));
-			Assert.That(bar.Descriptor.ValidationChain, Has.Count.EqualTo(2));
+			DumpValidationChange(bar);
+			Assert.That(bar.Descriptor.ValidationChain, Has.Count.EqualTo(1));
 			Assert.That(bar.Descriptor.ValidationChain[0], Is.EqualTo(foo.Descriptor.ValidationChain[0]));
-			Assert.That(bar.Descriptor.ValidationChain[1].Value, Is.EqualTo(bar.GetPrefixUnsafe()));
 
 			var baz = await db.ReadAsync(tr => dl.OpenAsync(tr, FdbPath.Parse("/Foo/Bar/Baz")), this.Cancellation);
 			Assert.That(baz, Is.Not.Null);
 			Assert.That(baz.FullName, Is.EqualTo("/Foo/Bar/Baz"));
 			Assert.That(baz.Descriptor, Is.Not.Null);
 			Assert.That(baz.Descriptor.ValidationChain, Is.Not.Null);
-			Log("Baz validation chain: " + string.Join(", ", baz.Descriptor.ValidationChain.Select(kv => $"{TuPack.Unpack(kv.Key)} = {TuPack.Unpack(kv.Value)}")));
-			Assert.That(baz.Descriptor.ValidationChain, Has.Count.EqualTo(3));
+			DumpValidationChange(baz);
 			Assert.That(baz.Descriptor.ValidationChain[0], Is.EqualTo(foo.Descriptor.ValidationChain[0]));
-			Assert.That(baz.Descriptor.ValidationChain[1], Is.EqualTo(bar.Descriptor.ValidationChain[1]));
-			Assert.That(baz.Descriptor.ValidationChain[2].Value, Is.EqualTo(baz.GetPrefixUnsafe()));
 
 			// We can also access /Foo/Bar via 'Foo'
 			using (var tr = db.BeginTransaction(this.Cancellation))
