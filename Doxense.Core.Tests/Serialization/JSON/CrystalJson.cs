@@ -910,7 +910,7 @@ namespace Doxense.Serialization.Json.Tests
 			[
 				("Foo", 123),
 				("Bar", "Narf Zort!"),
-				("Baz", JsonObject.Create(("X", 1), ("Y", 2), ("Z", 3))),
+				("Baz", JsonObject.Create([ ("X", 1), ("Y", 2), ("Z", 3) ])),
 				("Jazz", JsonArray.FromValues(Enumerable.Range(1, 5)))
 			]);
 
@@ -1179,7 +1179,7 @@ namespace Doxense.Serialization.Json.Tests
 		public void Test_JsonValue_GetObject()
 		{
 			var foo = JsonObject.Create();
-			var bar = JsonObject.Create(("x", 1), ("y", 2), ("z", 3));
+			var bar = JsonObject.Create([ ("x", 1), ("y", 2), ("z", 3) ]);
 			{
 				var obj = JsonObject.Create(
 				[
@@ -5334,17 +5334,17 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(JsonArray.Create([ "one", JsonArray.Create([ "two", "three" ]) ]), IsJson.Array.And.Mutable.EqualTo(new JsonArray() { JsonString.Return("one"), new JsonArray() { JsonString.Return("two"), JsonString.Return("three") } }));
 			Assert.That(JsonArray.Create("one", JsonArray.Create("two", "three")), IsJson.Array.And.Mutable.EqualTo(new JsonArray() { JsonString.Return("one"), new JsonArray() { JsonString.Return("two"), JsonString.Return("three") } }));
 
-			Assert.That(JsonArray.CreateReadOnly([ "one" ]), IsJson.Array.And.ReadOnly.EqualTo(new JsonArray() { JsonString.Return("one") }));
-			Assert.That(JsonArray.CreateReadOnly([ "one", "two" ]), IsJson.Array.And.ReadOnly.EqualTo(new JsonArray() { JsonString.Return("one"), JsonString.Return("two") }));
-			Assert.That(JsonArray.CreateReadOnly([ "one", null, 123 ]), IsJson.Array.And.ReadOnly.EqualTo(new JsonArray() { JsonString.Return("one"), JsonNull.Null, JsonNumber.Return(123) }));
+			Assert.That(JsonArray.ReadOnly.Create([ "one" ]), IsJson.Array.And.ReadOnly.EqualTo(new JsonArray() { JsonString.Return("one") }));
+			Assert.That(JsonArray.ReadOnly.Create([ "one", "two" ]), IsJson.Array.And.ReadOnly.EqualTo(new JsonArray() { JsonString.Return("one"), JsonString.Return("two") }));
+			Assert.That(JsonArray.ReadOnly.Create([ "one", null, 123 ]), IsJson.Array.And.ReadOnly.EqualTo(new JsonArray() { JsonString.Return("one"), JsonNull.Null, JsonNumber.Return(123) }));
 
-			Assert.That(JsonArray.CreateReadOnly("one"), IsJson.Array.And.ReadOnly.EqualTo(new JsonArray() { JsonString.Return("one") }));
-			Assert.That(JsonArray.CreateReadOnly("one", "two"), IsJson.Array.And.ReadOnly.EqualTo(new JsonArray() { JsonString.Return("one"), JsonString.Return("two") }));
-			Assert.That(JsonArray.CreateReadOnly("one", null, 123), IsJson.Array.And.ReadOnly.EqualTo(new JsonArray() { JsonString.Return("one"), JsonNull.Null, JsonNumber.Return(123) }));
-			Assert.That(JsonArray.CreateReadOnly(1, 2, 3, 4, 5), IsJson.Array.And.ReadOnly.EqualTo(new JsonArray() { JsonNumber.Return(1), JsonNumber.Return(2), JsonNumber.Return(3), JsonNumber.Return(4), JsonNumber.Return(5) }));
+			Assert.That(JsonArray.ReadOnly.Create("one"), IsJson.Array.And.ReadOnly.EqualTo(new JsonArray() { JsonString.Return("one") }));
+			Assert.That(JsonArray.ReadOnly.Create("one", "two"), IsJson.Array.And.ReadOnly.EqualTo(new JsonArray() { JsonString.Return("one"), JsonString.Return("two") }));
+			Assert.That(JsonArray.ReadOnly.Create("one", null, 123), IsJson.Array.And.ReadOnly.EqualTo(new JsonArray() { JsonString.Return("one"), JsonNull.Null, JsonNumber.Return(123) }));
+			Assert.That(JsonArray.ReadOnly.Create(1, 2, 3, 4, 5), IsJson.Array.And.ReadOnly.EqualTo(new JsonArray() { JsonNumber.Return(1), JsonNumber.Return(2), JsonNumber.Return(3), JsonNumber.Return(4), JsonNumber.Return(5) }));
 
-			Assert.That(JsonArray.CreateReadOnly([ "one", JsonArray.CreateReadOnly([ "two", "three" ]) ]), IsJson.Array.And.ReadOnly.EqualTo(new JsonArray() { JsonString.Return("one"), new JsonArray() { JsonString.Return("two"), JsonString.Return("three") } }));
-			Assert.That(JsonArray.CreateReadOnly("one", JsonArray.CreateReadOnly("two", "three")), IsJson.Array.And.ReadOnly.EqualTo(new JsonArray() { JsonString.Return("one"), new JsonArray() { JsonString.Return("two"), JsonString.Return("three") } }));
+			Assert.That(JsonArray.ReadOnly.Create([ "one", JsonArray.ReadOnly.Create([ "two", "three" ]) ]), IsJson.Array.And.ReadOnly.EqualTo(new JsonArray() { JsonString.Return("one"), new JsonArray() { JsonString.Return("two"), JsonString.Return("three") } }));
+			Assert.That(JsonArray.ReadOnly.Create("one", JsonArray.ReadOnly.Create("two", "three")), IsJson.Array.And.ReadOnly.EqualTo(new JsonArray() { JsonString.Return("one"), new JsonArray() { JsonString.Return("two"), JsonString.Return("three") } }));
 
 			// check that Span<...> will use the Create(ReadOnlySpan<..>) overload
 			Span<JsonValue?> buf = [ JsonNumber.Return(1), JsonNumber.Return(2), JsonNumber.Return(3) ];
@@ -5355,7 +5355,7 @@ namespace Doxense.Serialization.Json.Tests
 			// check that there is no ambiguous call with other types
 
 			Assert.That(JsonArray.Create(Enumerable.Range(1, 3).Select(i => JsonNumber.Return(i))), IsJson.Array.And.Mutable.EqualTo(new JsonArray() { JsonNumber.Return(1), JsonNumber.Return(2), JsonNumber.Return(3) }));
-			Assert.That(JsonArray.CreateReadOnly(Enumerable.Range(1, 3).Select(i => JsonNumber.Return(i))), IsJson.Array.And.ReadOnly.EqualTo(new JsonArray() { JsonNumber.Return(1), JsonNumber.Return(2), JsonNumber.Return(3) }));
+			Assert.That(JsonArray.ReadOnly.Create(Enumerable.Range(1, 3).Select(i => JsonNumber.Return(i))), IsJson.Array.And.ReadOnly.EqualTo(new JsonArray() { JsonNumber.Return(1), JsonNumber.Return(2), JsonNumber.Return(3) }));
 
 #endif
 		}
@@ -6463,8 +6463,8 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(arr, Has.Count.Zero, expression);
 			}
 
-			CheckEmptyReadOnly(JsonArray.CreateReadOnly());
-			CheckEmptyReadOnly(JsonArray.CreateReadOnly([]));
+			CheckEmptyReadOnly(JsonArray.ReadOnly.Create());
+			CheckEmptyReadOnly(JsonArray.ReadOnly.Create([]));
 			CheckEmptyReadOnly(JsonArray.Create().ToReadOnly());
 			CheckEmptyReadOnly(JsonArray.Copy(JsonArray.Create(), deep: false, readOnly: true));
 			CheckEmptyReadOnly(JsonArray.Copy(JsonArray.Create(), deep: true, readOnly: true));
@@ -6482,29 +6482,29 @@ namespace Doxense.Serialization.Json.Tests
 			// creating a readonly object with only immutable values should produce an immutable object
 
 			// DEPRECATED: should use collection expressions instead: [ ... ]
-			AssertIsImmutable(JsonArray.CreateReadOnly("one"));
-			AssertIsImmutable(JsonArray.CreateReadOnly("one", "two"));
-			AssertIsImmutable(JsonArray.CreateReadOnly("one", "two", "three"));
-			AssertIsImmutable(JsonArray.CreateReadOnly("one", "two", "three", "four"));
+			AssertIsImmutable(JsonArray.ReadOnly.Create("one"));
+			AssertIsImmutable(JsonArray.ReadOnly.Create("one", "two"));
+			AssertIsImmutable(JsonArray.ReadOnly.Create("one", "two", "three"));
+			AssertIsImmutable(JsonArray.ReadOnly.Create("one", "two", "three", "four"));
 
 			// collection expressions: should invoke the ReadOnlySpan<> overload
-			AssertIsImmutable(JsonArray.CreateReadOnly(["one"]));
-			AssertIsImmutable(JsonArray.CreateReadOnly(["one", "two"]));
-			AssertIsImmutable(JsonArray.CreateReadOnly(["one", "two", "three"]));
-			AssertIsImmutable(JsonArray.CreateReadOnly(["one", "two", "three", "four"]));
-			AssertIsImmutable(JsonArray.CreateReadOnly(["one", "two", "three", "four", "five"]));
+			AssertIsImmutable(JsonArray.ReadOnly.Create(["one"]));
+			AssertIsImmutable(JsonArray.ReadOnly.Create(["one", "two"]));
+			AssertIsImmutable(JsonArray.ReadOnly.Create(["one", "two", "three"]));
+			AssertIsImmutable(JsonArray.ReadOnly.Create(["one", "two", "three", "four"]));
+			AssertIsImmutable(JsonArray.ReadOnly.Create(["one", "two", "three", "four", "five"]));
 
 			// params JsonValue[]
-			AssertIsImmutable(JsonArray.CreateReadOnly((JsonValue[]) ["one"]));
-			AssertIsImmutable(JsonArray.CreateReadOnly((JsonValue[]) ["one", "two"]));
-			AssertIsImmutable(JsonArray.CreateReadOnly((JsonValue[]) ["one", "two", "three"]));
-			AssertIsImmutable(JsonArray.CreateReadOnly((JsonValue[]) ["one", "two", "three", "four"]));
-			AssertIsImmutable(JsonArray.CreateReadOnly((JsonValue[]) ["one", "two", "three", "four", "five"]));
+			AssertIsImmutable(JsonArray.ReadOnly.Create((JsonValue[]) ["one"]));
+			AssertIsImmutable(JsonArray.ReadOnly.Create((JsonValue[]) ["one", "two"]));
+			AssertIsImmutable(JsonArray.ReadOnly.Create((JsonValue[]) ["one", "two", "three"]));
+			AssertIsImmutable(JsonArray.ReadOnly.Create((JsonValue[]) ["one", "two", "three", "four"]));
+			AssertIsImmutable(JsonArray.ReadOnly.Create((JsonValue[]) ["one", "two", "three", "four", "five"]));
 
-			AssertIsImmutable(JsonArray.FromValuesReadOnly(Enumerable.Range(0, 10).Select(i => KeyValuePair.Create(i.ToString(), i))));
-			AssertIsImmutable(JsonArray.FromValuesReadOnly(Enumerable.Range(0, 10).Select(i => KeyValuePair.Create(i.ToString(), i)).ToArray()));
-			AssertIsImmutable(JsonArray.FromValuesReadOnly(Enumerable.Range(0, 10).Select(i => KeyValuePair.Create(i.ToString(), i)).ToList()));
-			AssertIsImmutable(JsonArray.FromValuesReadOnly(Enumerable.Range(0, 10).Select(i => KeyValuePair.Create(i.ToString(), i)).ToList()));
+			AssertIsImmutable(JsonArray.ReadOnly.FromValues(Enumerable.Range(0, 10).Select(i => KeyValuePair.Create(i.ToString(), i))));
+			AssertIsImmutable(JsonArray.ReadOnly.FromValues(Enumerable.Range(0, 10).Select(i => KeyValuePair.Create(i.ToString(), i)).ToArray()));
+			AssertIsImmutable(JsonArray.ReadOnly.FromValues(Enumerable.Range(0, 10).Select(i => KeyValuePair.Create(i.ToString(), i)).ToList()));
+			AssertIsImmutable(JsonArray.ReadOnly.FromValues(Enumerable.Range(0, 10).Select(i => KeyValuePair.Create(i.ToString(), i)).ToList()));
 
 			// creating an immutable version of a writable object with only immutable should return an immutable object
 			AssertIsImmutable(JsonArray.Create("one", 1).ToReadOnly());
@@ -7035,7 +7035,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(SerializeToSlice(obj), Is.EqualTo(Slice.FromString("{\"Hello\":\"World\",\"Foo\":456,\"Bar\":true}")));
 
 			// case sensitive! ('Bar' != 'BAR')
-			var sub = JsonObject.Create(("Alpha", 111), ("Omega", 999));
+			var sub = JsonObject.Create([ ("Alpha", 111), ("Omega", 999) ]);
 			obj.Add("BAR", sub);
 			Assert.That(obj, Has.Count.EqualTo(4));
 			Assert.That(obj.ContainsKey("BAR"), Is.True);
@@ -7064,11 +7064,11 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(SerializeToSlice(obj), Is.EqualTo(Slice.FromString("""{"Hello\\World":123,"Hello\"World":456,"\\\\?\\GLOBALROOT\\Device\\Foo\\Bar":789}""")));
 
 			//note: we do not deserialize JsonNull singletons "Missing"/"Error" by default
-			obj = JsonObject.Create(
+			obj = JsonObject.Create([
 				("Foo", JsonNull.Null),
 				("Bar", JsonNull.Missing),
 				("Baz", JsonNull.Error)
-			);
+			]);
 			Assert.That(obj.ToJson(), Is.EqualTo("{ \"Foo\": null }"));
 			Assert.That(SerializeToSlice(obj), Is.EqualTo(Slice.FromString("{\"Foo\":null}")));
 		}
@@ -7515,12 +7515,12 @@ namespace Doxense.Serialization.Json.Tests
 		{
 			var obj = JsonObject.Create();
 
-			obj.SetPath("Foos[0]", JsonObject.Create(("X", 1), ("Y", 2), ("Z", 3)));
+			obj.SetPath("Foos[0]", JsonObject.Create([ ("X", 1), ("Y", 2), ("Z", 3) ]));
 			DumpCompact(obj);
 			Assert.That(obj, IsJson.EqualTo(JsonValue.Parse("""{ "Foos" : [ { "X": 1, "Y": 2, "Z": 3 } ] }""")));
 			Assert.That(obj.GetPathValueOrDefault("Foos[0]"), IsJson.EqualTo(JsonValue.Parse("""{ "X": 1, "Y": 2, "Z": 3 }""")));
 
-			obj.SetPath("Foos[2]", JsonObject.Create(("X", 4), ("Y", 5), ("Z", 6)));
+			obj.SetPath("Foos[2]", JsonObject.Create([ ("X", 4), ("Y", 5), ("Z", 6) ]));
 			DumpCompact(obj);
 			Assert.That(obj, Is.EqualTo(JsonValue.Parse("""{ "Foos" : [ { "X": 1, "Y": 2, "Z": 3 }, null, { "X": 4, "Y": 5, "Z": 6 } ] }""")));
 			Assert.That(obj.GetPathValueOrDefault("Foos[1]"), IsJson.ExplicitNull);
@@ -8130,7 +8130,7 @@ namespace Doxense.Serialization.Json.Tests
 
 
 			{ // test that we keep the "readonly-ness" or the original
-				var source = JsonObject.CreateReadOnly([("foo", 123), ("bar", 456)]);
+				var source = JsonObject.ReadOnly.Create([("foo", 123), ("bar", 456)]);
 				Assume.That(source, IsJson.ReadOnly);
 				p = source.Pick(["bar"]);
 				Assert.That(p, IsJson.ReadOnly);
@@ -8151,9 +8151,9 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(obj, Has.Count.Zero, expression);
 			}
 
-			CheckEmptyReadOnly(JsonObject.CreateReadOnly());
-			CheckEmptyReadOnly(JsonObject.CreateReadOnly(Array.Empty<KeyValuePair<string, JsonValue>>()));
-			CheckEmptyReadOnly(JsonObject.CreateReadOnly(new Dictionary<string, JsonValue>()));
+			CheckEmptyReadOnly(JsonObject.ReadOnly.Create());
+			CheckEmptyReadOnly(JsonObject.ReadOnly.Create(Array.Empty<KeyValuePair<string, JsonValue>>()));
+			CheckEmptyReadOnly(JsonObject.ReadOnly.Create(new Dictionary<string, JsonValue>()));
 			CheckEmptyReadOnly(JsonObject.Create().ToReadOnly());
 			CheckEmptyReadOnly(JsonObject.Copy(JsonObject.Create(), deep: false, readOnly: true));
 			CheckEmptyReadOnly(JsonObject.Copy(JsonObject.Create(), deep: true, readOnly: true));
@@ -8169,17 +8169,18 @@ namespace Doxense.Serialization.Json.Tests
 		public void Test_JsonObject_ReadOnly()
 		{
 			// creating a readonly object with only immutable values should produce an immutable object
-			AssertIsImmutable(JsonObject.CreateReadOnly("one", 1));
-			AssertIsImmutable(JsonObject.CreateReadOnly(("one", 1)));
-			AssertIsImmutable(JsonObject.CreateReadOnly(("one", 1), ("two", 2)));
-			AssertIsImmutable(JsonObject.CreateReadOnly(("one", 1), ("two", 2), ("three", 3)));
-			AssertIsImmutable(JsonObject.CreateReadOnly(("one", 1), ("two", 2), ("three", 3), ("four", 4)));
-			AssertIsImmutable(JsonObject.CreateReadOnly([ ("one", 1), ("two", 2), ("three", 3), ("four", 4), ("five", 5) ]));
-			AssertIsImmutable(JsonObject.FromValuesReadOnly(Enumerable.Range(0, 10).Select(i => KeyValuePair.Create(i.ToString(), i))));
+			AssertIsImmutable(JsonObject.ReadOnly.Create("one", 1));
+			AssertIsImmutable(JsonObject.ReadOnly.Create(("one", 1)));
+			AssertIsImmutable(JsonObject.ReadOnly.Create([ ("one", 1) ]));
+			AssertIsImmutable(JsonObject.ReadOnly.Create([ ("one", 1), ("two", 2) ]));
+			AssertIsImmutable(JsonObject.ReadOnly.Create([ ("one", 1), ("two", 2), ("three", 3)]));
+			AssertIsImmutable(JsonObject.ReadOnly.Create([ ("one", 1), ("two", 2), ("three", 3), ("four", 4)]));
+			AssertIsImmutable(JsonObject.ReadOnly.Create([ ("one", 1), ("two", 2), ("three", 3), ("four", 4), ("five", 5) ]));
+			AssertIsImmutable(JsonObject.ReadOnly.FromValues(Enumerable.Range(0, 10).Select(i => KeyValuePair.Create(i.ToString(), i))));
 
 			// creating an immutable version of a writable object with only immutable should return an immutable object
 			AssertIsImmutable(JsonObject.Create("one", 1).ToReadOnly());
-			AssertIsImmutable(JsonObject.Create(("one", 1), ("two", 2), ("three", 3)).ToReadOnly());
+			AssertIsImmutable(JsonObject.Create([ ("one", 1), ("two", 2), ("three", 3) ]).ToReadOnly());
 
 			// parsing with JsonImmutable should return an already immutable object
 			var obj = JsonValue.ParseObject("""{ "hello": "world", "foo": { "id": 123, "name": "Foo", "address" : { "street": 123, "city": "Paris" } }, "bar": [ 1, 2, 3 ], "baz": [ { "jazz": 42 } ] }""", CrystalJsonSettings.JsonReadOnly);
@@ -10704,12 +10705,12 @@ namespace Doxense.Serialization.Json.Tests
 		public JsonValue JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver)
 		{
 			// Don't try this at home!
-			return JsonObject.Create(
+			return JsonObject.Create([
 				("Id", this.Id),
 				("Name", this.Name),
 				("Color", this.Color.Name),
 				("XY", string.Format(CultureInfo.InvariantCulture, "{0}:{1}", this.X, this.Y))
-			);
+			]);
 		}
 
 		public override bool Equals(object? obj)
@@ -10782,12 +10783,12 @@ namespace Doxense.Serialization.Json.Tests
 		public JsonValue JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver)
 		{
 			// Don't try this at home!
-			return JsonObject.Create(
-				"Id", this.Id,
-				"Name", this.Name,
-				"Color", this.Color.Name,
-				"XY", string.Format(CultureInfo.InvariantCulture, "{0}:{1}", this.X, this.Y)
-			);
+			return JsonObject.Create([
+				("Id", this.Id),
+				("Name", this.Name),
+				("Color", this.Color.Name),
+				("XY", string.Format(CultureInfo.InvariantCulture, "{0}:{1}", this.X, this.Y)),
+			]);
 		}
 
 		public override bool Equals(object? obj)
@@ -10869,11 +10870,11 @@ namespace Doxense.Serialization.Json.Tests
 		public JsonValue JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver)
 		{
 			// Don't try this at home!
-			return JsonObject.Create(
+			return JsonObject.Create([
 				("Id", this.Id),
 				("Name", this.Name),
 				("XY", string.Format(CultureInfo.InvariantCulture, "{0}:{1}", this.X, this.Y))
-			);
+			]);
 		}
 
 		public override bool Equals(object? obj)

@@ -48,7 +48,7 @@ namespace Doxense.Serialization.Json
 #if NET9_0_OR_GREATER
 	[CollectionBuilder(typeof(JsonArray), nameof(JsonArray.Create))]
 #endif
-	public sealed class JsonArray : JsonValue, IList<JsonValue>, IReadOnlyList<JsonValue>, IEquatable<JsonArray>
+	public sealed partial class JsonArray : JsonValue, IList<JsonValue>, IReadOnlyList<JsonValue>, IEquatable<JsonArray>
 	{
 		/// <summary>Initial resize capacity for an empty array</summary>
 		internal const int DEFAULT_CAPACITY = 4;
@@ -151,7 +151,7 @@ namespace Doxense.Serialization.Json
 #endif
 		}
 
-		/// <summary>Fill all the occurrences of <see langword="null"/> with <see cref="JsonNull.Null"/> in the specified array</summary>
+		/// <summary>Fills all the occurrences of <see langword="null"/> with <see cref="JsonNull.Null"/> in the specified array</summary>
 		private static void FillNullValues(Span<JsonValue?> items)
 		{
 			for (int i = 0; i < items.Length; i++)
@@ -160,7 +160,7 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		/// <summary>Test if there is at least one mutable element in the specified array</summary>
+		/// <summary>Tests if there is at least one mutable element in the specified array</summary>
 		private static bool CheckAnyMutable(ReadOnlySpan<JsonValue> items)
 		{
 			foreach (var item in items)
@@ -173,7 +173,7 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
-		/// <summary>Freeze this object and all its children, and mark it as read-only.</summary>
+		/// <summary>Freezes this object and all its children, and mark it as read-only.</summary>
 		/// <remarks>
 		/// <para>This is similar to the <c>{ get; init; }</c> pattern for CLR records, and allows initializing a JSON object and then marking it as read-only once it is ready to be returned and/or shared, without performing extra memory allocations.</para>
 		/// <para>Please note that, once "frozen", the operation cannot be reverted, and if additional mutations are required, a new copy of the object must be created.</para>
@@ -193,7 +193,7 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
-		/// <summary>[DANGEROUS] Mark this array as read-only, without performing any extra checks!</summary>
+		/// <summary>[DANGEROUS] Marks this array as read-only, without performing any extra checks!</summary>
 		internal JsonArray FreezeUnsafe()
 		{
 			if (m_readOnly && m_size == 0)
@@ -223,7 +223,7 @@ namespace Doxense.Serialization.Json
 			return new(res, items.Length, readOnly: true);
 		}
 
-		/// <summary>Return a new mutable copy of this <see cref="JsonArray">JSON Array</see> (and all of its children)</summary>
+		/// <summary>Returns a new mutable copy of this <see cref="JsonArray">JSON Array</see> (and all of its children)</summary>
 		/// <returns>A deep copy of this array and its children.</returns>
 		/// <remarks>
 		/// <para>This will recursively copy all JSON objects or arrays present in the array, even if they are already mutable.</para>
@@ -242,7 +242,7 @@ namespace Doxense.Serialization.Json
 			return new JsonArray(buf, items.Length, readOnly: false);
 		}
 
-		/// <summary>Create a copy of this array</summary>
+		/// <summary>Creates a copy of this array</summary>
 		/// <param name="deep">If <see langword="true" />, recursively copy the children as well. If <see langword="false" />, perform a shallow copy that reuse the same children.</param>
 		/// <param name="readOnly">If <see langword="true" />, the copy will become read-only. If <see langword="false" />, the copy will be writable.</param>
 		/// <returns>Copy of the array, and optionally of its children (if <paramref name="deep"/> is <see langword="true" /></returns>
@@ -250,7 +250,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		protected internal override JsonArray Copy(bool deep, bool readOnly) => Copy(this, deep, readOnly);
 
-		/// <summary>Create a copy of a <see cref="JsonArray">JSON Array</see></summary>
+		/// <summary>Creates a copy of a <see cref="JsonArray">JSON Array</see></summary>
 		/// <param name="array"><see cref="JsonArray">JSON Array</see> to clone</param>
 		/// <param name="deep">If <see langword="true" />, recursively copy the children as well. If <see langword="false" />, perform a shallow copy that reuse the same children.</param>
 		/// <param name="readOnly">If <see langword="true" />, the copy will become read-only. If <see langword="false" />, the copy will be writable.</param>
@@ -289,16 +289,16 @@ namespace Doxense.Serialization.Json
 
 		// these methods take the items as JsonValue, and create a new mutable array that wraps them
 
-		#region Mutable...
-
-		/// <summary>Create a new empty array, that can be modified</summary>
+		/// <summary>Creates a new <b>mutable</b> empty <see cref="JsonArray">JSON Array</see></summary>
+		/// <remarks>For a <b>read-only</b> array, see <see cref="JsonArray.ReadOnly.Create()"/></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 #if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
 #endif
 		public static JsonArray Create() => new();
 
-		/// <summary>Create a new JsonArray that will hold a single element</summary>
+		/// <summary>Creates a new <b>mutable</b> <see cref="JsonArray">JSON Array</see> with a single element</summary>
+		/// <remarks>For a <b>read-only</b> array, see <see cref="JsonArray.ReadOnly.Create(JsonValue?)"/></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 #if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
@@ -307,7 +307,8 @@ namespace Doxense.Serialization.Json
 			value ?? JsonNull.Null
 		], 1, readOnly: false);
 
-		/// <summary>Create a new JsonArray that will hold a pair of elements</summary>
+		/// <summary>Creates a new <b>mutable</b> <see cref="JsonArray">JSON Array</see> with 2 elements</summary>
+		/// <remarks>For a <b>read-only</b> array, see <see cref="JsonArray.ReadOnly.Create(JsonValue?,JsonValue?)"/></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 #if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
@@ -317,7 +318,8 @@ namespace Doxense.Serialization.Json
 			value2 ?? JsonNull.Null
 		], 2, readOnly: false);
 
-		/// <summary>Create a new JsonArray that will hold three elements</summary>
+		/// <summary>Creates a new <b>mutable</b> <see cref="JsonArray">JSON Array</see> with 3 elements</summary>
+		/// <remarks>For a <b>read-only</b> array, see <see cref="JsonArray.ReadOnly.Create(JsonValue?,JsonValue?,JsonValue?)"/></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 #if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
@@ -328,7 +330,8 @@ namespace Doxense.Serialization.Json
 			value3 ?? JsonNull.Null
 		], 3, readOnly: false);
 
-		/// <summary>Create a new JsonArray that will hold four elements</summary>
+		/// <summary>Creates a new <b>mutable</b> <see cref="JsonArray">JSON Array</see> with 4 elements</summary>
+		/// <remarks>For a <b>read-only</b> array, see <see cref="JsonArray.ReadOnly.Create(JsonValue?,JsonValue?,JsonValue?,JsonValue?)"/></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 #if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
@@ -340,14 +343,16 @@ namespace Doxense.Serialization.Json
 			value4 ?? JsonNull.Null
 		], 4, readOnly: false);
 
-		/// <summary>Create a new <see cref="JsonArray">JSON Array</see> from a list of elements</summary>
+		/// <summary>Creates a new <b>mutable</b> <see cref="JsonArray">JSON Array</see> from an array of elements</summary>
+		/// <remarks>For a <b>read-only</b> array, see <see cref="JsonArray.ReadOnly.Create(JsonValue?[])"/></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray Create(params JsonValue?[] values)
 		{
 			return Create(new ReadOnlySpan<JsonValue?>(Contract.ValueNotNull(values))); 
 		}
 
-		/// <summary>Create a new <see cref="JsonArray">JSON Array</see> from a list of elements</summary>
+		/// <summary>Creates a new <b>mutable</b> <see cref="JsonArray">JSON Array</see> from a span of elements</summary>
+		/// <remarks>For a <b>read-only</b> array, see <see cref="JsonArray.ReadOnly.Create(ReadOnlySpan{JsonValue?})"/></remarks>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 #if NET9_0_OR_GREATER
@@ -404,10 +409,11 @@ namespace Doxense.Serialization.Json
 
 #if NET9_0_OR_GREATER
 
-		//note: we only add this for .NET9+ because we require overload resolution priority to be able to fix ambigous calls between IEnumerable<> en ReadOnlySpan<>
+		//note: we only add this for .NET9+ because we require overload resolution priority to be able to fix ambiguous calls between IEnumerable<> en ReadOnlySpan<>
 
-		/// <summary>Create a new JsonArray using a list of elements</summary>
+		/// <summary>Creates a new <b>mutable</b> <see cref="JsonArray">JSON Array</see> from a sequence of elements</summary>
 		/// <param name="values">Elements of the new array</param>
+		/// <remarks>For a <b>read-only</b> array, see <see cref="JsonArray.ReadOnly.Create(IEnumerable{JsonValue?})"/></remarks>
 		[Pure]
 		[OverloadResolutionPriority(-1)]
 		public static JsonArray Create(IEnumerable<JsonValue?> values)
@@ -420,243 +426,7 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
-		#region Immutable...
-
-		/// <summary>Create a new read-only empty array, that cannot be modified</summary>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if NET9_0_OR_GREATER
-		[OverloadResolutionPriority(1)]
-#endif
-		public static JsonArray CreateReadOnly() => JsonArray.EmptyReadOnly;
-
-		/// <summary>Create a new read-only <see cref="JsonArray">JSON Array</see> that will hold a single element</summary>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if NET9_0_OR_GREATER
-		[OverloadResolutionPriority(1)]
-#endif
-		public static JsonArray CreateReadOnly(JsonValue? value) => new([
-			(value ?? JsonNull.Null).ToReadOnly()
-		], 1, readOnly: true);
-
-		/// <summary>Create a new read-only <see cref="JsonArray">JSON Array</see> from a list of elements</summary>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if NET9_0_OR_GREATER
-		[OverloadResolutionPriority(1)]
-#endif
-		public static JsonArray CreateReadOnly(JsonValue? value1, JsonValue? value2) => new([
-			(value1 ?? JsonNull.Null).ToReadOnly(),
-			(value2 ?? JsonNull.Null).ToReadOnly()
-		], 2, readOnly: true);
-
-		/// <summary>Create a new read-only <see cref="JsonArray">JSON Array</see> from a list of elements</summary>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if NET9_0_OR_GREATER
-		[OverloadResolutionPriority(1)]
-#endif
-		public static JsonArray CreateReadOnly(JsonValue? value1, JsonValue? value2, JsonValue? value3) => new([
-			(value1 ?? JsonNull.Null).ToReadOnly(),
-			(value2 ?? JsonNull.Null).ToReadOnly(),
-			(value3 ?? JsonNull.Null).ToReadOnly()
-		], 3, readOnly: true);
-
-		/// <summary>Create a new read-only <see cref="JsonArray">JSON Array</see> from a list of elements</summary>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if NET9_0_OR_GREATER
-		[OverloadResolutionPriority(1)]
-#endif
-		public static JsonArray CreateReadOnly(JsonValue? value1, JsonValue? value2, JsonValue? value3, JsonValue? value4) => new([
-			(value1 ?? JsonNull.Null).ToReadOnly(),
-			(value2 ?? JsonNull.Null).ToReadOnly(),
-			(value3 ?? JsonNull.Null).ToReadOnly(),
-			(value4 ?? JsonNull.Null).ToReadOnly()
-		], 4, readOnly: true);
-
-		/// <summary>Create a new read-only <see cref="JsonArray">JSON Array</see> from a list of elements</summary>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray CreateReadOnly(params JsonValue?[] values)
-		{
-			return CreateReadOnly(new ReadOnlySpan<JsonValue?>(Contract.ValueNotNull(values)));
-		}
-
-		/// <summary>Create a new read-only <see cref="JsonArray">JSON Array</see> from a list of elements</summary>
-		[Pure]
-#if NET9_0_OR_GREATER
-		public static JsonArray CreateReadOnly(params ReadOnlySpan<JsonValue?> values)
-#else
-		public static JsonArray CreateReadOnly(ReadOnlySpan<JsonValue?> values)
-#endif
-		{
-			// <JIT_HACK>
-			// In the case where the call-site is constructing the span using a collection express: var xs = JsonArray.CreateReadOnly([ "hello", "world" ])
-			// the JIT can optimize the method, since it knows that values.Length == 2, and can safely remove the test and the rest of the method, as well as inline the ctor.
-			// => using JIT disassembly, we can see that the whole JSON Array construction will be completely inlined in the caller's method body
-
-			// note: currently (.NET 9 preview), the JIT will not elide the null-check on the values, even if they are known to be not-null.
-
-			switch (values.Length)
-			{
-				case 0:
-				{
-					return JsonArray.EmptyReadOnly;
-				}
-				case 1:
-				{
-					return new([
-						(values[0] ?? JsonNull.Null).ToReadOnly()
-					], 1, readOnly: true);
-				}
-				case 2:
-				{
-					return new([
-						(values[0] ?? JsonNull.Null).ToReadOnly(),
-						(values[1] ?? JsonNull.Null).ToReadOnly()
-					], 2, readOnly: true);
-				}
-				case 3:
-				{
-					return new([
-						(values[0] ?? JsonNull.Null).ToReadOnly(),
-						(values[1] ?? JsonNull.Null).ToReadOnly(),
-						(values[2] ?? JsonNull.Null).ToReadOnly()
-					], 3, readOnly: true);
-				}
-			}
-
-			// </JIT_HACK>
-
-			var buf = new JsonValue[values.Length];
-			for (int i = 0; i < buf.Length; i++)
-			{
-				buf[i] = (values[i] ?? JsonNull.Null).ToReadOnly();
-			}
-			return new JsonArray(buf, buf.Length, readOnly: true);
-		}
-
-#if NET9_0_OR_GREATER
-
-		//note: we only add this for .NET9+ because we require overload resolution priority to be able to fix ambigous calls between IEnumerable<> en ReadOnlySpan<>
-
-		/// <summary>Create a new JsonArray using a list of elements</summary>
-		/// <param name="values">Elements of the new array</param>
-		[Pure]
-		[OverloadResolutionPriority(-1)]
-		public static JsonArray CreateReadOnly(IEnumerable<JsonValue?> values)
-		{
-			Contract.NotNull(values);
-
-			return values.TryGetNonEnumeratedCount(out var count) && count == 0
-				? JsonArray.EmptyReadOnly
-				: new JsonArray().AddRangeReadOnly(values).FreezeUnsafe();
-		}
-
-#endif
-
-		#endregion
-
-		#endregion
-
-		#region Copy [JsonValues] ...
-
-		#region Mutable...
-
-		/// <summary>Creates a new JsonArray using a list of elements</summary>
-		/// <param name="values">Elements of the new array</param>
-		[Pure]
-#if NET9_0_OR_GREATER
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		[Obsolete("Please use JsonArray.Create() instead")]
-#else
-		[EditorBrowsable(EditorBrowsableState.Advanced)]
-#endif
-		public static JsonArray Copy(ReadOnlySpan<JsonValue> values)
-		{
-			return new JsonArray().AddRange(values!);
-		}
-
-		/// <summary>Creates a new JsonArray using a list of elements</summary>
-		/// <param name="values">Elements of the new array</param>
-		[Pure]
-#if NET9_0_OR_GREATER
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		[Obsolete("Please use JsonArray.Create() instead")]
-#else
-		[EditorBrowsable(EditorBrowsableState.Advanced)]
-#endif
-		public static JsonArray Copy(JsonValue[] values)
-		{
-			Contract.NotNull(values);
-			return new JsonArray().AddRange(new ReadOnlySpan<JsonValue?>(values));
-		}
-
-		/// <summary>Creates a new JsonArray using a list of elements</summary>
-		/// <param name="values">Elements of the new array</param>
-		[Pure]
-#if NET9_0_OR_GREATER
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		[Obsolete("Please use JsonArray.Create() instead")]
-#else
-		[EditorBrowsable(EditorBrowsableState.Advanced)]
-#endif
-		public static JsonArray Copy(IEnumerable<JsonValue?> values)
-		{
-			Contract.NotNull(values);
-			return new JsonArray().AddRange(values);
-		}
-
-		#endregion
-
-		#region Immutable...
-
-		/// <summary>Creates a new JsonArray from a list of elements</summary>
-		[Pure]
-#if NET9_0_OR_GREATER
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		[Obsolete("Please use JsonArray.Create() instead")]
-#else
-		[EditorBrowsable(EditorBrowsableState.Advanced)]
-#endif
-		public static JsonArray CopyReadOnly(ReadOnlySpan<JsonValue> items)
-		{
-			return items.Length == 0 ? JsonArray.EmptyReadOnly : new JsonArray().AddRangeReadOnly(items!).FreezeUnsafe();
-		}
-
-		/// <summary>Creates a new JsonArray from a list of elements</summary>
-#if NET9_0_OR_GREATER
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		[Obsolete("Please use JsonArray.Create() instead")]
-#else
-		[EditorBrowsable(EditorBrowsableState.Advanced)]
-#endif
-		public static JsonArray CopyReadOnly(JsonValue[] items)
-		{
-			Contract.NotNull(items);
-			return items.Length == 0 ? JsonArray.EmptyReadOnly : new JsonArray().AddRangeReadOnly(new ReadOnlySpan<JsonValue?>(items)).FreezeUnsafe();
-		}
-
-		/// <summary>Creates a new JsonArray from a list of elements</summary>
-		[Pure]
-#if NET9_0_OR_GREATER
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		[Obsolete("Please use JsonArray.Create() instead")]
-#else
-		[EditorBrowsable(EditorBrowsableState.Advanced)]
-#endif
-		public static JsonArray CopyReadOnly(IEnumerable<JsonValue?> items)
-		{
-			Contract.NotNull(items);
-
-			return items.TryGetNonEnumeratedCount(out var count) && count == 0
-				? JsonArray.EmptyReadOnly
-				: new JsonArray().AddRangeReadOnly(items).FreezeUnsafe();
-		}
-
-		#endregion
-
-		#endregion
-
 		#region FromValues [of T] ...
-
-		#region Mutable...
 
 		/// <summary>Creates a new mutable JSON Array from a span of raw values.</summary>
 		/// <typeparam name="TValue">Type of the values</typeparam>
@@ -664,6 +434,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <returns>Mutable array with all values converted into <see cref="JsonValue"/> instances</returns>
+		/// <remarks>For a <b>read-only</b> array, see <see cref="JsonArray.ReadOnly.FromValues{TValue}(ReadOnlySpan{TValue},CrystalJsonSettings?,ICrystalJsonTypeResolver?)"/></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray FromValues<TValue>(ReadOnlySpan<TValue> values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
@@ -682,6 +453,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <returns>Mutable array with all values converted into <see cref="JsonValue"/> instances</returns>
+		/// <remarks>For a <b>read-only</b> array, see <see cref="JsonArray.ReadOnly.FromValues{TValue}(TValue[],CrystalJsonSettings?,ICrystalJsonTypeResolver?)"/></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[return: NotNullIfNotNull(nameof(values))]
 		public static JsonArray? FromValues<TValue>(TValue[]? values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
@@ -703,6 +475,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <returns>Mutable array with all values converted into <see cref="JsonValue"/> instances</returns>
+		/// <remarks>For a <b>read-only</b> array, see <see cref="JsonArray.ReadOnly.FromValues{TValue}(IEnumerable{TValue},CrystalJsonSettings?,ICrystalJsonTypeResolver?)"/></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[return: NotNullIfNotNull(nameof(values))]
 		public static JsonArray? FromValues<TValue>(IEnumerable<TValue>? values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
@@ -726,6 +499,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <returns>Mutable array with all the values extracted from the source, and converted into <see cref="JsonValue"/> instances</returns>
+		/// <remarks>For a <b>read-only</b> array, see <see cref="JsonArray.ReadOnly.FromValues{TItem,TValue}(ReadOnlySpan{TItem},Func{TItem,TValue},CrystalJsonSettings?,ICrystalJsonTypeResolver?)"/></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray FromValues<TItem, TValue>(ReadOnlySpan<TItem> values, Func<TItem, TValue> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
@@ -748,6 +522,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <returns>Mutable array with all the values extracted from the source, and converted into <see cref="JsonValue"/> instances</returns>
+		/// <remarks>For a <b>read-only</b> array, see <see cref="JsonArray.ReadOnly.FromValues{TItem,TValue}(TItem[],Func{TItem,TValue},CrystalJsonSettings?,ICrystalJsonTypeResolver?)"/></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[return: NotNullIfNotNull(nameof(values))]
 		public static JsonArray? FromValues<TItem, TValue>(TItem[]? values, Func<TItem, TValue> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
@@ -771,6 +546,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <returns>Mutable array with all the values extracted from the source, and converted into <see cref="JsonValue"/> instances</returns>
+		/// <remarks>For a <b>read-only</b> array, see <see cref="JsonArray.ReadOnly.FromValues{TItem,TValue}(IEnumerable{TItem},Func{TItem,TValue},CrystalJsonSettings?,ICrystalJsonTypeResolver?)"/></remarks>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(values))]
 		public static JsonArray? FromValues<TItem, TValue>(IEnumerable<TItem>? values, Func<TItem, TValue> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
@@ -786,107 +562,6 @@ namespace Doxense.Serialization.Json
 			return arr;
 
 		}
-
-		#endregion
-
-		#region Immutable...
-
-		/// <summary>Creates a new read-only JSON Array from a span of raw values.</summary>
-		/// <typeparam name="TValue">Type of the values</typeparam>
-		/// <param name="values">Span of values that must be converted</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
-		/// <returns>Immutable JSON Array with all values converted into read-only <see cref="JsonValue"/> instances.</returns>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete("Call FromValues with readonly settings")]
-		public static JsonArray FromValuesReadOnly<TValue>(ReadOnlySpan<TValue> values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			return values.Length == 0 ? JsonArray.EmptyReadOnly : new JsonArray().AddValuesReadOnly<TValue>(values, settings, resolver).FreezeUnsafe();
-		}
-
-		/// <summary>Creates a new read-only JSON Array from an array of raw values.</summary>
-		/// <typeparam name="TValue">Type of the values</typeparam>
-		/// <param name="values">Array of values that must be converted</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
-		/// <returns>Immutable JSON Array with all values converted into read-only <see cref="JsonValue"/> instances.</returns>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[return: NotNullIfNotNull(nameof(values))]
-		[Obsolete("Call FromValues with readonly settings")]
-		public static JsonArray? FromValuesReadOnly<TValue>(TValue[]? values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (values is null) return null;
-			return values.Length == 0 ? JsonArray.EmptyReadOnly : new JsonArray().AddValuesReadOnly<TValue>(new ReadOnlySpan<TValue>(values), settings, resolver).FreezeUnsafe();
-		}
-
-		/// <summary>Creates a new read-only JSON Array from a sequence of raw values.</summary>
-		/// <typeparam name="TValue">Type of the values</typeparam>
-		/// <param name="values">Sequence of values that must be converted</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
-		/// <returns>Immutable JSON Array with all values converted into read-only <see cref="JsonValue"/> instances.</returns>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[return: NotNullIfNotNull(nameof(values))]
-		[Obsolete("Call FromValues with readonly settings")]
-		public static JsonArray? FromValuesReadOnly<TValue>(IEnumerable<TValue>? values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			if (values is null) return null;
-			return values.TryGetNonEnumeratedCount(out var count) && count == 0
-				? JsonArray.EmptyReadOnly
-				: new JsonArray().AddValuesReadOnly<TValue>(values, settings, resolver).FreezeUnsafe();
-		}
-
-		/// <summary>Creates a new read-only JSON Array with values extracted from a span of source items.</summary>
-		/// <typeparam name="TItem">Type of the source items</typeparam>
-		/// <typeparam name="TValue">Type of the values extracted from each item</typeparam>
-		/// <param name="values">Span of items to convert</param>
-		/// <param name="selector">Lambda that will extract a value from each item in the source.</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
-		/// <returns>Immutable JSON Array with all values converted into read-only <see cref="JsonValue"/> instances.</returns>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete("Call FromValues with readonly settings")]
-		public static JsonArray FromValuesReadOnly<TItem, TValue>(ReadOnlySpan<TItem> values, Func<TItem, TValue> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			Contract.NotNull(selector);
-			return values.Length == 0 ? JsonArray.EmptyReadOnly : new JsonArray().AddValuesReadOnly(values, selector, settings, resolver).FreezeUnsafe();
-		}
-
-		/// <summary>Creates a new read-only JSON Array with values extracted from an array of source items.</summary>
-		/// <typeparam name="TItem">Type of the source items</typeparam>
-		/// <typeparam name="TValue">Type of the values extracted from each item</typeparam>
-		/// <param name="values">Array of items to convert</param>
-		/// <param name="selector">Lambda that will extract a value from each item in the source.</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
-		/// <returns>Immutable JSON Array with all values converted into read-only <see cref="JsonValue"/> instances.</returns>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete("Call FromValues with readonly settings")]
-		public static JsonArray FromValuesReadOnly<TItem, TValue>(TItem[] values, Func<TItem, TValue> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			Contract.NotNull(values);
-			return values.Length == 0 ? JsonArray.EmptyReadOnly : new JsonArray().AddValuesReadOnly(new ReadOnlySpan<TItem>(values), selector, settings, resolver).FreezeUnsafe();
-		}
-
-		/// <summary>Creates a new read-only JSON Array with values extracted from a sequence of source items.</summary>
-		/// <typeparam name="TItem">Type of the source items</typeparam>
-		/// <typeparam name="TValue">Type of the values extracted from each item</typeparam>
-		/// <param name="values">Sequence of items to convert</param>
-		/// <param name="selector">Lambda that will extract a value from each item in the source.</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
-		/// <returns>Immutable JSON Array with all values converted into read-only <see cref="JsonValue"/> instances.</returns>
-		[Pure]
-		[Obsolete("Call FromValues with readonly settings")]
-		public static JsonArray FromValuesReadOnly<TItem, TValue>(IEnumerable<TItem> values, Func<TItem, TValue> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			Contract.NotNull(values);
-			return values.TryGetNonEnumeratedCount(out var count) && count == 0
-				? JsonArray.EmptyReadOnly
-				: new JsonArray().AddValuesReadOnly(values, selector, settings, resolver).FreezeUnsafe();
-		}
-
-		#endregion
 
 		#endregion
 
@@ -915,7 +590,7 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
-		/// <summary>Combine two JsonArrays into a single new array</summary>
+		/// <summary>Combines two JsonArrays into a single new array</summary>
 		/// <remarks>The new array contains a copy of the items of the two input arrays</remarks>
 		public static JsonArray Combine(JsonArray arr1, JsonArray arr2)
 		{
@@ -931,7 +606,7 @@ namespace Doxense.Serialization.Json
 			return new JsonArray(tmp, newSize, readOnly: false);
 		}
 
-		/// <summary>Combine three JsonArrays into a single new array</summary>
+		/// <summary>Combines three JsonArrays into a single new array</summary>
 		/// <remarks>The new array contains a copy of the items of the three input arrays</remarks>
 		public static JsonArray Combine(JsonArray arr1, JsonArray arr2, JsonArray arr3)
 		{
@@ -2270,520 +1945,6 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
-		#region CopyAndXYZ...
-
-		private static void MakeReadOnly(Span<JsonValue> items)
-		{
-			for (int i = 0; i < items.Length; i++)
-			{
-				if (!items[i].IsReadOnly)
-				{
-					items[i] = items[i].ToReadOnly();
-				}
-			}
-		}
-
-		/// <summary>Returns a new read-only copy of this array with an additional item</summary>
-		/// <param name="value">Item that will be appended to the end of the new copy</param>
-		/// <returns>A new instance with the same content of the original array, plus the additional item</returns>
-		/// <remarks>
-		/// <para>If the array was not-readonly, existing non-readonly items will also be converted to read-only.</para>
-		/// <para>For best performance, this should only be used on already read-only arrays, and with read-only values.</para>
-		/// </remarks>
-		[Pure, MustUseReturnValue]
-		public JsonArray CopyAndAdd(JsonValue? value)
-		{
-			value = value?.ToReadOnly() ?? JsonNull.Null;
-
-			if (m_size == 0)
-			{
-				return new JsonArray([value], 1, readOnly: true);
-			}
-
-			// copy and add the new value
-			int newSize = checked(m_size + 1);
-			var items = new JsonValue[newSize];
-			this.AsSpan().CopyTo(items);
-			items[m_size] = value;
-
-			if (!m_readOnly)
-			{ // some existing items may not be readonly, we may have to convert them as well
-				MakeReadOnly(items);
-			}
-
-			return new(items, newSize, readOnly: true);
-		}
-
-		/// <summary>Replaces a published <see cref="JsonArray">JSON Array</see> with a new version with an added item, in a thread-safe manner, using a <see cref="SpinWait"/> if necessary.</summary>
-		/// <param name="original">Reference to the currently published <see cref="JsonArray">JSON Array</see></param>
-		/// <param name="value">Value of the field to append</param>
-		/// <returns>New published <see cref="JsonArray">JSON Array</see>, that includes the new item.</returns>
-		/// <remarks>
-		/// <para>This method will attempt to atomically replace the original <see cref="JsonArray">JSON Array</see> with a new version, unless another thread was able to update it faster, in which case it will simply retry with the newest version, until it is able to successfully update the reference.</para>
-		/// <para>Caution: the order of operation between threads is not guaranteed, and this method _may_ loop infinitely if it is perpetually blocked by another, faster, thread !</para>
-		/// </remarks>
-		public static JsonArray CopyAndAdd(ref JsonArray original, JsonValue? value)
-		{
-			var snapshot = Volatile.Read(ref original);
-			var copy = snapshot.CopyAndAdd(value);
-
-			return ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot))
-				? copy
-				: CopyAndAddSpin(ref original, value);
-
-			static JsonArray CopyAndAddSpin(ref JsonArray original, JsonValue? value)
-			{
-				var spinner = new SpinWait();
-				while (true)
-				{
-					spinner.SpinOnce();
-					var snapshot = Volatile.Read(ref original);
-					var copy = snapshot.CopyAndAdd(value);
-					if (ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot)))
-					{
-						return copy;
-					}
-				}
-			}
-		}
-
-		/// <summary>Returns a new read-only copy of this array, with a new item at the specified location</summary>
-		/// <param name="index">Index of the item to modify. If the array is too small, any gaps will be filled with nulls, and <paramref name="value"/> will be inserted last.</param>
-		/// <param name="value">Value of the new item</param>
-		/// <returns>A new instance with the same content of the original object, except the additional item at the specified location.</returns>
-		/// <remarks>
-		/// <para>If the array was not-readonly, existing non-readonly items will also be converted to read-only.</para>
-		/// <para>For best performance, this should only be used on already read-only arrays, and with read-only values.</para>
-		/// </remarks>
-		[Pure, MustUseReturnValue]
-		public JsonArray CopyAndSet(int index, JsonValue? value) => CopyAndSet(index, value, out _);
-
-		/// <summary>Returns a new read-only copy of this array, with a new item at the specified location</summary>
-		/// <param name="index">Index of the item to modify. If the array is too small, any gaps will be filled with nulls, and <paramref name="value"/> will be inserted last.</param>
-		/// <param name="value">Value of the new item</param>
-		/// <returns>A new instance with the same content of the original object, except the additional item at the specified location.</returns>
-		/// <remarks>
-		/// <para>If the array was not-readonly, existing non-readonly items will also be converted to read-only.</para>
-		/// <para>For best performance, this should only be used on already read-only arrays, and with read-only values.</para>
-		/// </remarks>
-		public JsonArray CopyAndSet(Index index, JsonValue? value) => CopyAndSet(index.GetOffset(m_size), value, out _);
-
-		/// <summary>Replaces a published <see cref="JsonArray">JSON Array</see> with a new version with a new item at the specified location, in a thread-safe manner, using a <see cref="SpinWait"/> if necessary.</summary>
-		/// <param name="original">Reference to the currently published <see cref="JsonArray">JSON Array</see></param>
-		/// <param name="index">Index of the item to modify. If the array is too small, any gaps will be filled with nulls, and <paramref name="value"/> will be inserted last.</param>
-		/// <param name="value">Value of the new item</param>
-		/// <returns>New published <see cref="JsonArray">JSON Array</see>, that includes the new item.</returns>
-		/// <remarks>
-		/// <para>This method will attempt to atomically replace the original <see cref="JsonArray">JSON Array</see> with a new version, unless another thread was able to update it faster, in which case it will simply retry with the newest version, until it is able to successfully update the reference.</para>
-		/// <para>Caution: the order of operation between threads is not guaranteed, and this method _may_ loop infinitely if it is perpetually blocked by another, faster, thread !</para>
-		/// </remarks>
-		public static JsonArray CopyAndSet(ref JsonArray original, int index, JsonValue? value)
-		{
-			var snapshot = Volatile.Read(ref original);
-			var copy = snapshot.CopyAndSet(index, value, out _);
-
-			return ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot))
-				? copy
-				: CopyAndSetSpin(ref original, index, value);
-
-			static JsonArray CopyAndSetSpin(ref JsonArray original, int index, JsonValue? value)
-			{
-				var spinner = new SpinWait();
-				while (true)
-				{
-					spinner.SpinOnce();
-					var snapshot = Volatile.Read(ref original);
-					var copy = snapshot.CopyAndSet(index, value, out _);
-					if (ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot)))
-					{
-						return copy;
-					}
-				}
-			}
-		}
-
-		/// <summary>Replaces a published <see cref="JsonArray">JSON Array</see> with a new version with a new item at the specified location, in a thread-safe manner, using a <see cref="SpinWait"/> if necessary.</summary>
-		/// <param name="original">Reference to the currently published <see cref="JsonArray">JSON Array</see></param>
-		/// <param name="index">Index of the item to modify. If the array is too small, any gaps will be filled with nulls, and <paramref name="value"/> will be inserted last.</param>
-		/// <param name="value">Value of the new item</param>
-		/// <returns>New published <see cref="JsonArray">JSON Array</see>, that includes the new item.</returns>
-		/// <remarks>
-		/// <para>This method will attempt to atomically replace the original <see cref="JsonArray">JSON Array</see> with a new version, unless another thread was able to update it faster, in which case it will simply retry with the newest version, until it is able to successfully update the reference.</para>
-		/// <para>Caution: the order of operation between threads is not guaranteed, and this method _may_ loop infinitely if it is perpetually blocked by another, faster, thread !</para>
-		/// </remarks>
-		public static JsonArray CopyAndSet(ref JsonArray original, Index index, JsonValue? value)
-		{
-			var snapshot = Volatile.Read(ref original);
-			var copy = snapshot.CopyAndSet(index, value, out _);
-
-			return ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot))
-				? copy
-				: CopyAndSetSpin(ref original, index, value);
-
-			static JsonArray CopyAndSetSpin(ref JsonArray original, Index index, JsonValue? value)
-			{
-				var spinner = new SpinWait();
-				while (true)
-				{
-					spinner.SpinOnce();
-					var snapshot = Volatile.Read(ref original);
-					var copy = snapshot.CopyAndSet(index, value, out _);
-					if (ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot)))
-					{
-						return copy;
-					}
-				}
-			}
-		}
-
-		/// <summary>Returns a new read-only copy of this array, with a new item at the specified location</summary>
-		/// <param name="index">Index where to write the new item</param>
-		/// <param name="value">Value of the new item</param>
-		/// <param name="previous">Receives the previous value at this location, or <see langword="null"/> if the index is outside the bounds of the array.</param>
-		/// <returns>A new instance with the same content of the original object, plus the additional item</returns>
-		/// <remarks>
-		/// <para>If the array was not-readonly, existing non-readonly items will also be converted to read-only.</para>
-		/// <para>For best performance, this should only be used on already read-only arrays, and with read-only values.</para>
-		/// </remarks>
-		[Pure, MustUseReturnValue]
-		public JsonArray CopyAndSet(int index, JsonValue? value, out JsonValue? previous)
-		{
-			if (index < 0) throw new IndexOutOfRangeException("Index of outside the bounds of the JSON Array");
-
-			// copy and set the new value
-			JsonValue[] items;
-			int newSize;
-			if (index < m_size)
-			{ // update in place
-				items = this.AsSpan().ToArray();
-				newSize = m_size;
-				previous = items[index];
-			}
-			else
-			{ // update outside the array, must resize
-				newSize = checked(index + 1);
-				items = new JsonValue[newSize];
-				var prev = this.AsSpan();
-				prev.CopyTo(items);
-				if (index > prev.Length)
-				{ // fill the gap!
-					items.AsSpan(prev.Length, index - prev.Length).Fill(JsonNull.Null);
-				}
-				previous = null;
-			}
-			items[index] = value?.ToReadOnly() ?? JsonNull.Null;
-
-			if (!m_readOnly)
-			{ // some existing items may not be readonly, we may have to convert them as well
-				MakeReadOnly(items);
-			}
-
-			return new(items, newSize, readOnly: true);
-		}
-
-		/// <summary>Returns a new read-only copy of this array, with a new item at the specified location</summary>
-		/// <param name="index">Index where to write the new item</param>
-		/// <param name="value">Value of the new item</param>
-		/// <param name="previous">Receives the previous value at this location, or <see langword="null"/> if the index is outside the bounds of the array.</param>
-		/// <returns>A new instance with the same content of the original object, plus the additional item</returns>
-		/// <remarks>
-		/// <para>If the array was not-readonly, existing non-readonly items will also be converted to read-only.</para>
-		/// <para>For best performance, this should only be used on already read-only arrays, and with read-only values.</para>
-		/// </remarks>
-		[Pure, MustUseReturnValue]
-		public JsonArray CopyAndSet(Index index, JsonValue? value, out JsonValue? previous) => CopyAndSet(index.GetOffset(m_size), value, out previous);
-
-		/// <summary>Returns a new read-only copy of this array, with a new item inserted at the specified location</summary>
-		/// <param name="index">Index where to insert, with all following items shifted to the right. If the array is too small, any gaps will be filled with nulls, and <paramref name="value"/> will be inserted last.</param>
-		/// <param name="value">Value to write at this location</param>
-		/// <returns>A new instance with the same content of the original object, with the additional item inserted at the specified location.</returns>
-		/// <remarks>
-		/// <para>If the array was not-readonly, existing non-readonly items will also be converted to read-only.</para>
-		/// <para>For best performance, this should only be used on already read-only arrays, and with read-only values.</para>
-		/// </remarks>
-		[Pure, MustUseReturnValue]
-		public JsonArray CopyAndInsert(int index, JsonValue? value)
-		{
-			if (index < 0) throw new IndexOutOfRangeException("Index of outside the bounds of the JSON Array");
-
-			value = value?.ToReadOnly() ?? JsonNull.Null;
-
-			// copy and set the new value
-			JsonValue[] items;
-			int newSize;
-			if (m_size == 0)
-			{ // add to empty array
-				newSize = checked(index + 1);
-				items = new JsonValue[newSize];
-				// fill with nulls
-				if (index > 0)
-				{
-					items.AsSpan(0, index).Fill(JsonNull.Null);
-				}
-				// insert item
-				items[index] = value;
-			}
-			else if (index < m_size)
-			{ // insert inside the array, must shift the tail
-				newSize = checked(m_size + 1);
-				var prev = this.AsSpan();
-				items = new JsonValue[newSize];
-				// copy head
-				prev[..index].CopyTo(items);
-				// insert item
-				items[index] = value;
-				// copy tail
-				prev[index..].CopyTo(items.AsSpan(index + 1));
-			}
-			else
-			{ // insert outside the array, must fill gaps with nulls
-				newSize = checked(index + 1);
-				items = new JsonValue[newSize];
-				var prev = this.AsSpan();
-				prev.CopyTo(items);
-				if (index > prev.Length)
-				{ // please, mind the gap!
-					items.AsSpan(prev.Length, index - prev.Length).Fill(JsonNull.Null);
-				}
-				items[index] = value;
-			}
-
-			if (!m_readOnly)
-			{ // some existing items may not be readonly, we may have to convert them as well
-				MakeReadOnly(items);
-			}
-
-			return new(items, newSize, readOnly: true);
-		}
-
-		/// <summary>Returns a new read-only copy of this array, with a new item inserted at the specified location</summary>
-		/// <param name="index">Index where to insert the item, with all following items shifted to the right. If the array is too small, any gaps will be filled with nulls, and <paramref name="value"/> will be inserted last.</param>
-		/// <param name="value">Value to write at this location</param>
-		/// <returns>A new instance with the same content of the original object, with the additional item inserted at the specified location.</returns>
-		/// <remarks>
-		/// <para>If the array was not-readonly, existing non-readonly items will also be converted to read-only.</para>
-		/// <para>For best performance, this should only be used on already read-only arrays, and with read-only values.</para>
-		/// </remarks>
-		public JsonArray CopyAndInsert(Index index, JsonValue? value) => CopyAndSet(index.GetOffset(m_size), value);
-
-		/// <summary>Replaces a published <see cref="JsonArray">JSON Array</see> with a new version with an item inserted at the specified location, in a thread-safe manner, using a <see cref="SpinWait"/> if necessary.</summary>
-		/// <param name="original">Reference to the currently published <see cref="JsonArray">JSON Array</see></param>
-		/// <param name="index">Index where to insert the item, with all following items shifted to the right. If the array is too small, any gaps will be filled with nulls, and <paramref name="value"/> will be inserted last.</param>
-		/// <param name="value">Value to write at this location</param>
-		/// <returns>New published <see cref="JsonArray">JSON Array</see>, that includes the new item.</returns>
-		/// <remarks>
-		/// <para>This method will attempt to atomically replace the original <see cref="JsonArray">JSON Array</see> with a new version, unless another thread was able to update it faster, in which case it will simply retry with the newest version, until it is able to successfully update the reference.</para>
-		/// <para>Caution: the order of operation between threads is not guaranteed, and this method _may_ loop infinitely if it is perpetually blocked by another, faster, thread !</para>
-		/// </remarks>
-		public static JsonArray CopyAndInsert(ref JsonArray original, int index, JsonValue? value)
-		{
-			var snapshot = Volatile.Read(ref original);
-			var copy = snapshot.CopyAndInsert(index, value);
-
-			return ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot))
-				? copy
-				: CopyAndInsertSpin(ref original, index, value);
-
-			static JsonArray CopyAndInsertSpin(ref JsonArray original, int index, JsonValue? value)
-			{
-				var spinner = new SpinWait();
-				while (true)
-				{
-					spinner.SpinOnce();
-					var snapshot = Volatile.Read(ref original);
-					var copy = snapshot.CopyAndInsert(index, value);
-					if (ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot)))
-					{
-						return copy;
-					}
-				}
-			}
-		}
-
-		/// <summary>Replaces a published <see cref="JsonArray">JSON Array</see> with a new version with an item inserted at the specified location, in a thread-safe manner, using a <see cref="SpinWait"/> if necessary.</summary>
-		/// <param name="original">Reference to the currently published <see cref="JsonArray">JSON Array</see></param>
-		/// <param name="index">Index where to insert the item, with all following items shifted to the right. If the array is too small, any gaps will be filled with nulls, and <paramref name="value"/> will be inserted last.</param>
-		/// <param name="value">Value to write at this location</param>
-		/// <returns>New published <see cref="JsonArray">JSON Array</see>, that includes the new item.</returns>
-		/// <remarks>
-		/// <para>This method will attempt to atomically replace the original <see cref="JsonArray">JSON Array</see> with a new version, unless another thread was able to update it faster, in which case it will simply retry with the newest version, until it is able to successfully update the reference.</para>
-		/// <para>Caution: the order of operation between threads is not guaranteed, and this method _may_ loop infinitely if it is perpetually blocked by another, faster, thread !</para>
-		/// </remarks>
-		public static JsonArray CopyAndInsert(ref JsonArray original, Index index, JsonValue? value)
-		{
-			var snapshot = Volatile.Read(ref original);
-			var copy = snapshot.CopyAndInsert(index, value);
-
-			return ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot))
-				? copy
-				: CopyAndInsertSpin(ref original, index, value);
-
-			static JsonArray CopyAndInsertSpin(ref JsonArray original, Index index, JsonValue? value)
-			{
-				var spinner = new SpinWait();
-				while (true)
-				{
-					spinner.SpinOnce();
-					var snapshot = Volatile.Read(ref original);
-					var copy = snapshot.CopyAndInsert(index, value);
-					if (ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot)))
-					{
-						return copy;
-					}
-				}
-			}
-		}
-
-		/// <summary>Returns a new read-only copy of this array without the specified item</summary>
-		/// <param name="index">Index of the location to remove, with all following items shifted to the left.</param>
-		/// <returns>A new instance with the same content of the original array, but with the specified item removed.</returns>
-		/// <remarks>
-		/// <para>If the array was not read-only, existing non-readonly items will also be converted to read-only.</para>
-		/// <para>For best performance, this should only be used on already read-only arrays.</para>
-		/// </remarks>
-		public JsonArray CopyAndRemove(int index) => CopyAndRemove(index, out _);
-
-		/// <summary>Returns a new read-only copy of this array without the specified item</summary>
-		/// <param name="index">Index of the location to remove, with all following items shifted to the left.</param>
-		/// <returns>A new instance with the same content of the original array, but with the specified item removed.</returns>
-		/// <remarks>
-		/// <para>If the array was not read-only, existing non-readonly items will also be converted to read-only.</para>
-		/// <para>For best performance, this should only be used on already read-only arrays.</para>
-		/// </remarks>
-		public JsonArray CopyAndRemove(Index index) => CopyAndRemove(index.GetOffset(m_size), out _);
-
-		/// <summary>Returns a new read-only copy of this array without the specified item</summary>
-		/// <param name="index">Index of the location to remove, with all following items shifted to the left.</param>
-		/// <param name="previous">Receives the value that was removed, or <see langword="null"/> if the index was outside the bounds of the array</param>
-		/// <returns>A new instance with the same content of the original array, but with the specified item removed.</returns>
-		/// <remarks>
-		/// <para>If the array was not read-only, existing non-readonly items will also be converted to read-only.</para>
-		/// <para>For best performance, this should only be used on already read-only arrays.</para>
-		/// </remarks>
-		public JsonArray CopyAndRemove(int index, out JsonValue? previous)
-		{
-			if (index < 0) throw new IndexOutOfRangeException("Index of outside the bounds of the JSON Array");
-
-			var prev = this.AsSpan();
-			if (index >= prev.Length)
-			{ // the index is outside the bounds, no changes
-				previous = null;
-				return m_readOnly ? this : ToReadOnly();
-			}
-
-			if (prev.Length == 1)
-			{ // removing the last item
-				Contract.Debug.Assert(index == 0);
-				previous = prev[0];
-				return JsonArray.EmptyReadOnly;
-			}
-
-			// copy and remove
-			var items = new JsonValue[prev.Length - 1];
-			if (index > 0)
-			{ // copy head
-				prev[..index].CopyTo(items);
-			}
-			previous = prev[index];
-			if (index < prev.Length - 1)
-			{ // copy tail
-				prev[(index + 1)..].CopyTo(items.AsSpan(index));
-			}
-
-			if (!m_readOnly)
-			{ // some existing items may not be readonly, we may have to convert them as well
-				MakeReadOnly(items);
-			}
-
-			return new(items, items.Length, readOnly: true);
-		}
-
-		/// <summary>Returns a new read-only copy of this array without the specifield item</summary>
-		/// <param name="index">Index of the location to remove, with all following items shifted to the left.</param>
-		/// <param name="previous">Receives the value that was removed, or <see langword="null"/> if the index was outside the bounds of the array</param>
-		/// <returns>A new instance with the same content of the original array, but with the specified item removed.</returns>
-		/// <remarks>
-		/// <para>If the array was not read-only, existing non-readonly items will also be converted to read-only.</para>
-		/// <para>For best performance, this should only be used on already read-only arrays.</para>
-		/// </remarks>
-		public JsonArray CopyAndRemove(Index index, out JsonValue? previous) => CopyAndRemove(index.GetOffset(m_size), out previous);
-
-		/// <summary>Replaces a published JSON Array with a new version without the specified item, in a thread-safe manner, using a <see cref="SpinWait"/> if necessary.</summary>
-		/// <param name="original">Reference to the currently published JSON Array</param>
-		/// <param name="index">Index of the location to remove, with all following items shifted to the left.</param>
-		/// <returns>New published JSON Array without the field, or the original array if the was not present.</returns>
-		/// <remarks>
-		/// <para>This method will attempt to atomically replace the original JSON Array with a new version, unless another thread was able to update it faster, in which case it will simply retry with the newest version, until it is able to successfully update the reference.</para>
-		/// <para>Caution: the order of operation between threads is not guaranteed, and this method _may_ loop infinitely if it is perpetually blocked by another, faster, thread !</para>
-		/// </remarks>
-		public static JsonArray CopyAndRemove(ref JsonArray original, int index)
-		{
-			var snapshot = Volatile.Read(ref original);
-			var copy = snapshot.CopyAndRemove(index, out _);
-			if (ReferenceEquals(copy, snapshot))
-			{ // the field did not exist
-				return snapshot;
-			}
-
-			return ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot))
-				? copy
-				: CopyAndRemoveSpin(ref original, index);
-
-			static JsonArray CopyAndRemoveSpin(ref JsonArray original, int index)
-			{
-				var spinner = new SpinWait();
-				while (true)
-				{
-					spinner.SpinOnce();
-					var snapshot = Volatile.Read(ref original);
-					var copy = snapshot.CopyAndRemove(index, out _);
-					if (ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot)))
-					{
-						return copy;
-					}
-				}
-			}
-		}
-
-		/// <summary>Replaces a published JSON Array with a new version without the specified item, in a thread-safe manner, using a <see cref="SpinWait"/> if necessary.</summary>
-		/// <param name="original">Reference to the currently published JSON Array</param>
-		/// <param name="index">Index of the location to remove, with all following items shifted to the left.</param>
-		/// <returns>New published JSON Array without the field, or the original array if the was not present.</returns>
-		/// <remarks>
-		/// <para>This method will attempt to atomically replace the original JSON Array with a new version, unless another thread was able to update it faster, in which case it will simply retry with the newest version, until it is able to successfully update the reference.</para>
-		/// <para>Caution: the order of operation between threads is not guaranteed, and this method _may_ loop infinitely if it is perpetually blocked by another, faster, thread !</para>
-		/// </remarks>
-		public static JsonArray CopyAndRemove(ref JsonArray original, Index index)
-		{
-			var snapshot = Volatile.Read(ref original);
-			var copy = snapshot.CopyAndRemove(index, out _);
-			if (ReferenceEquals(copy, snapshot))
-			{ // the field did not exist
-				return snapshot;
-			}
-
-			return ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot))
-				? copy
-				: CopyAndRemoveSpin(ref original, index);
-
-			static JsonArray CopyAndRemoveSpin(ref JsonArray original, Index index)
-			{
-				var spinner = new SpinWait();
-				while (true)
-				{
-					spinner.SpinOnce();
-					var snapshot = Volatile.Read(ref original);
-					var copy = snapshot.CopyAndRemove(index, out _);
-					if (ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot)))
-					{
-						return copy;
-					}
-				}
-			}
-		}
-
-		#endregion
-
 		/// <summary>Clears the content of the array</summary>
 		/// <remarks>
 		/// <para>Keeps the internal buffer, unless its capacity is greater than 1024 items</para>
@@ -2871,6 +2032,8 @@ namespace Doxense.Serialization.Json
 			return child is not (null or JsonNull) ? child : defaultValue ?? JsonNull.Null;
 		}
 
+		/// <summary>Sets the value of the item at the specified index</summary>
+		/// <exception cref="T:System.InvalidOperationException">The array is read-only.</exception>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public void Set(int index, JsonValue? item)
 		{
@@ -2887,6 +2050,8 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		/// <summary>Sets the value of the item at the specified index</summary>
+		/// <exception cref="T:System.InvalidOperationException">The array is read-only.</exception>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public void Set(Index index, JsonValue? item)
 		{
@@ -2973,8 +2138,8 @@ namespace Doxense.Serialization.Json
 		/// <para>If the array was smaller, new padding elements are added until the length is equal to <paramref name="size"/></para>
 		/// <para>If the array was larger, all the extra elements are removed (<paramref name="padding"/> is ignored in this case)</para>
 		/// </remarks>
-		/// <exception cref="InvalidOperationException">If the array is read-only</exception>
-		/// <exception cref="ArgumentOutOfRangeException">If <paramref name="size"/> is negative</exception>
+		/// <exception cref="T:System.InvalidOperationException">The array is read-only.</exception>
+		/// <exception cref="ArgumentOutOfRangeException"> <paramref name="size"/> is negative</exception>
 		public JsonArray Truncate(int size, JsonValue? padding = null)
 		{
 			Contract.Positive(size);
@@ -5429,7 +4594,7 @@ namespace Doxense.Serialization.Json
 				return false;
 			}
 
-			readonly object? IEnumerator.Current
+			readonly object IEnumerator.Current
 			{
 				get
 				{
@@ -5458,14 +4623,14 @@ namespace Doxense.Serialization.Json
 			get => m_array.Get<TValue>(index);
 		}
 
-		public TValue? this[Index index]
+		public TValue this[Index index]
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => m_array.Get<TValue>(index);
 		}
 
 		[Pure]
-		public TValue?[] ToArray()
+		public TValue[] ToArray()
 		{
 			var items = m_array.AsSpan();
 			if (items.Length == 0) return [];
@@ -5479,12 +4644,12 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure]
-		public List<TValue?> ToList()
+		public List<TValue> ToList()
 		{
 			var items = m_array.AsSpan();
 			if (items.Length == 0) return [];
 
-			var res = new List<TValue?>(items.Length);
+			var res = new List<TValue>(items.Length);
 			for(int i = 0; i < items.Length; i++)
 			{
 				res.Add(items[i].RequiredIndex(i).Required<TValue>());

@@ -343,7 +343,7 @@ namespace Doxense.Serialization.Json.Binary.Tests
 			// { }
 			VerifyRoundtrip(JsonObject.Empty);
 			VerifyRoundtrip(JsonObject.Create());
-			VerifyRoundtrip(JsonObject.CreateReadOnly());
+			VerifyRoundtrip(JsonObject.ReadOnly.Create());
 			VerifyRoundtrip(new JsonObject());
 			VerifyRoundtrip(new JsonObject(0));
 

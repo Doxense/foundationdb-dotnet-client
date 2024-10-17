@@ -212,7 +212,7 @@ namespace Doxense.Serialization.Json.Tests
 				["Foo"] = new() { Id = "Foo", Model = "ACME Ultra Core 9100XX Ultra Series" },
 				["Bar"] = new() { Id = "Bar", Model = "iHAL 42 Pro Ultra MaXX" },
 			},
-			Extras = JsonObject.CreateReadOnly([
+			Extras = JsonObject.ReadOnly.Create([
 				("hello", "world"),
 				("foo", 123),
 				("bar", JsonArray.Create([ 1, 2, 3 ])),
@@ -538,7 +538,7 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonReadOnlyProxy_Keeps_Extra_Fields()
 		{
-			var obj = JsonObject.CreateReadOnly(
+			var obj = JsonObject.ReadOnly.Create(
 			[
 				("familyName", "Bond"),
 				("firstName", "James"),
