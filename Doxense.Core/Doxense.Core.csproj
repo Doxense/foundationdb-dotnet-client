@@ -12,12 +12,25 @@
 		<RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
 		<SignAssembly>true</SignAssembly>
 		<AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
-		<Description>.NET Core SDK for FoundationDB</Description>
 		<Deterministic>true</Deterministic>
 		<ProduceReferenceAssembly>true</ProduceReferenceAssembly>
+		<IsAotCompatible Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">true</IsAotCompatible>
 	</PropertyGroup>
 
 	<Import Project="..\Common\VersionInfo.props" />
+
+	<PropertyGroup>
+		<AssemblyTitle>SnowBank Core SDK</AssemblyTitle>
+		<Description>Core SDK for writing distributed .NET applications</Description>
+		<PackageTags>snowbank sdk json slice tuples foundationdb fdb nosql</PackageTags>
+		<!--<PackageReadmeFile>README.md</PackageReadmeFile>-->
+		<PackageIcon>snowbank.png</PackageIcon>
+		<GenerateDocumentationFile Condition="'$(Configuration)' != 'Debug'">true</GenerateDocumentationFile>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="../Common/snowbank.png" Pack="true" Visible="false" PackagePath="\" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />

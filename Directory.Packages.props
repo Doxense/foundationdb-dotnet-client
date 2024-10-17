@@ -26,7 +26,7 @@
     <PackageVersion Include="ZstdSharp.Port" Version="0.8.1" />
   </ItemGroup>
   <!-- Packages for .NET 6 and .NET 8 -->
-  <ItemGroup Condition="!$(TargetFramework.StartsWith('net9.0'))">
+  <ItemGroup Condition="!$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net9.0'))">
     <PackageVersion Include="Aspire.Hosting" Version="8.2.1" />
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="8.2.1" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="8.0.2" />
@@ -49,7 +49,7 @@
     <PackageVersion Include="System.Threading.Channels" Version="8.0.0" />
   </ItemGroup>
   <!-- Packages temporarily overriden during the .NET 9 Preview/RC phase -->
-  <ItemGroup Condition="$(TargetFramework.StartsWith('net9.0'))">
+  <ItemGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net9.0'))">
     <PackageVersion Include="Aspire.Hosting" Version="9.0.0-rc.1.24511.1" />
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="9.0.0-rc.1.24511.1" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.0-rc.2.24473.5" />

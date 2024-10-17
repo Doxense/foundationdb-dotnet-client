@@ -3,19 +3,36 @@
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
 		<TargetFrameworks>$(CoreSdkToolsVersions)</TargetFrameworks>
-		<ProjectGuid>{A1731E5B-59B5-49E0-A9B2-E552B18FA1C6}</ProjectGuid>
-		<RestorePackages>true</RestorePackages>
-		<AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-		<RootNamespace>FdbTop</RootNamespace>
-		<AssemblyName>FdbTop</AssemblyName>
 		<LangVersion>preview</LangVersion>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<InvariantGlobalization>true</InvariantGlobalization>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<SignAssembly>true</SignAssembly>
 		<AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
-		<PublishSingleFile>true</PublishSingleFile>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+		<PublishSingleFile Condition="'$(PublishSingleFile)' == '' AND '$(_IsPublishing)' == 'true'">true</PublishSingleFile>
+		<PublishTrimmed Condition="'$(PublishTrimmed)' == '' AND '$(_IsPublishing)' == 'true'">true</PublishTrimmed>
+		<!--<PublishAot Condition="'$(PublishAot)' == '' AND '$(_IsPublishing)' == 'true'">true</PublishAot>-->
+		<TrimmerRootAssembly>FoundationDB.Client</TrimmerRootAssembly>
+		<Deterministic>true</Deterministic>
 	</PropertyGroup>
 
 	<Import Project="..\Common\VersionInfo.props" />
+
+	<PropertyGroup>
+		<AssemblyTitle>FdbTop</AssemblyTitle>
+		<Description>Command line tool for monitoring a live FoundationDB cluster.</Description>
+		<PackageTags>foundationdb fdb nosql fdbtop tool</PackageTags>
+		<!--<PackageReadmeFile>README.md</PackageReadmeFile>-->
+		<PackageIcon>foundationdb.png</PackageIcon>
+		<PackAsTool>true</PackAsTool>
+		<ToolCommandName>fdbtop</ToolCommandName>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="../Common/foundationdb.png" Pack="true" Visible="false" PackagePath="\" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\FoundationDB.Client\FoundationDB.Client.csproj" />

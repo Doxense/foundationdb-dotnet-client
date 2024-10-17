@@ -1,16 +1,23 @@
 <Project>
-  <PropertyGroup>
-    <VersionPrefix>7.3.0</VersionPrefix>
-    <VersionSuffix>preview1</VersionSuffix>
-    <Authors>Snowbank SAS</Authors>
-    <PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/Doxense/foundationdb-dotnet-client</PackageProjectUrl>
-    <PackageIcon>foundationdb.png</PackageIcon>
-    <PackageIconUrl>https://doxense.github.io/foundationdb-dotnet-client/nuget/foundationdb.png</PackageIconUrl>
-    <RepositoryUrl>https://github.com/Doxense/foundationdb-dotnet-client</RepositoryUrl>
-    <Copyright>Copyright (c) 2023-2024 Snowbank SAS, (c) 2005-2023 Doxense SAS</Copyright>
-  </PropertyGroup>
-  <ItemGroup>
-    <None Include="../Common/foundationdb.png" Pack="true" Visible="false" PackagePath="" />
-  </ItemGroup>
+
+	<PropertyGroup>
+		<VersionPrefix>7.3.0</VersionPrefix>
+		<VersionSuffix>preview2</VersionSuffix>
+		<Authors>Snowbank SAS</Authors>
+		<PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
+		<PackageProjectUrl>https://github.com/Doxense/foundationdb-dotnet-client</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/Doxense/foundationdb-dotnet-client</RepositoryUrl>
+		<Copyright>Copyright (c) 2023-2024 Snowbank SAS, (c) 2005-2023 Doxense SAS</Copyright>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+	</PropertyGroup>
+	
+	<PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+	</PropertyGroup>
+
 </Project>

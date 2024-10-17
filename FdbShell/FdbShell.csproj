@@ -7,15 +7,30 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<InvariantGlobalization>true</InvariantGlobalization>
-		<SignAssembly>true</SignAssembly>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<SignAssembly>true</SignAssembly>
 		<AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
-		<PublishSingleFile>true</PublishSingleFile>
-		<PublishAot>true</PublishAot>
+		<AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+		<PublishSingleFile Condition="'$(PublishSingleFile)' == '' AND '$(_IsPublishing)' == 'true'">true</PublishSingleFile>
+		<PublishAot Condition="'$(PublishAot)' == '' AND '$(_IsPublishing)' == 'true'">true</PublishAot>
 		<Deterministic>true</Deterministic>
 	</PropertyGroup>
 
 	<Import Project="..\Common\VersionInfo.props" />
+
+	<PropertyGroup>
+		<AssemblyTitle>FdbShell</AssemblyTitle>
+		<Description>Command line shell for exploring and querying a live FoundationDB cluster.</Description>
+		<PackageTags>foundationdb fdb nosql fdbshell fdbcli tool</PackageTags>
+		<!--<PackageReadmeFile>README.md</PackageReadmeFile>-->
+		<PackageIcon>foundationdb.png</PackageIcon>
+		<PackAsTool>true</PackAsTool>
+		<ToolCommandName>fdbshell</ToolCommandName>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="../Common/foundationdb.png" Pack="true" Visible="false" PackagePath="\" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Extensions.Hosting" />

@@ -10,12 +10,23 @@
 		<RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
 		<SignAssembly>true</SignAssembly>
 		<AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
-		<Description>.NET Core SDK for FoundationDB</Description>
 		<Deterministic>true</Deterministic>
 		<ProduceReferenceAssembly>true</ProduceReferenceAssembly>
 	</PropertyGroup>
 
 	<Import Project="..\Common\VersionInfo.props" />
+
+	<PropertyGroup>
+		<AssemblyTitle>SnowBank Core HTTP SDK</AssemblyTitle>
+		<Description>Core HTTP SDK for writing distributed .NET applications</Description>
+		<PackageTags>snowbank sdk http https rest foundationdb fdb nosql</PackageTags>
+		<!--<PackageReadmeFile>README.md</PackageReadmeFile>-->
+		<PackageIcon>snowbank.png</PackageIcon>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="../Common/snowbank.png" Pack="true" Visible="false" PackagePath="\" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />

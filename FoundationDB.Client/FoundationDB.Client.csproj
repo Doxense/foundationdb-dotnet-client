@@ -10,14 +10,26 @@
 		<SignAssembly>true</SignAssembly>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
-		<PackageTags>foundationdb fdb nosql</PackageTags>
-		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<Description>.NET Binding for FoundationDB</Description>
 		<Deterministic>true</Deterministic>
 		<ProduceReferenceAssembly>true</ProduceReferenceAssembly>
+		<IsAotCompatible Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">true</IsAotCompatible>
 	</PropertyGroup>
 
 	<Import Project="..\Common\VersionInfo.props" />
+
+	<PropertyGroup>
+		<AssemblyTitle>.NET Binding for FoundationDB</AssemblyTitle>
+		<Description>This is the FoundationDB client library for developing .NET applications or layers.</Description>
+		<PackageTags>foundationdb fdb nosql</PackageTags>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageIcon>foundationdb.png</PackageIcon>
+		<GenerateDocumentationFile Condition="'$(Configuration)' != 'Debug'">true</GenerateDocumentationFile>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="../Common/foundationdb.png" Pack="true" Visible="false" PackagePath="\" />
+		<None Include="../README.md" Pack="true" Visible="false" PackagePath="\" />
+	</ItemGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
 		<DebugType>full</DebugType>
@@ -27,7 +39,6 @@
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
 		<NoWarn>1701;1702;1591</NoWarn>
 		<WarningsAsErrors>105,108,109,114,472,660,661,628,1066,NU1605</WarningsAsErrors>
-		<DocumentationFile>bin\Release\$(TargetFramework)\FoundationDB.Client.xml</DocumentationFile>
 	</PropertyGroup>
 
 	<ItemGroup>

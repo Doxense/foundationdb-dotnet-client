@@ -3,7 +3,7 @@
 	<PropertyGroup>
 		<OutputType>Library</OutputType>
 		<TargetFrameworks>$(CloudSdkRuntimeVersions)</TargetFrameworks>
-		<LangVersion>12.0</LangVersion>
+		<LangVersion>preview</LangVersion>
 		<Nullable>enable</Nullable>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<ImplicitUsings>enable</ImplicitUsings>
@@ -11,14 +11,26 @@
 		<RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
 		<SignAssembly>true</SignAssembly>
 		<AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
-		<PackageTags>foundationdb fdb nosql aspire client</PackageTags>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<Description>A generic FoundationDB client that integrates with Aspire, including health checks, logging, and telemetry</Description>
 		<Deterministic>true</Deterministic>
 		<ProduceReferenceAssembly>true</ProduceReferenceAssembly>
 	</PropertyGroup>
 
 	<Import Project="..\Common\VersionInfo.props" />
+
+	<PropertyGroup>
+		<AssemblyTitle>Aspire FoundationDB Client</AssemblyTitle>
+		<Description>A FoundationDB client provider that integrates with .NET Aspire, including health checks, logging, and telemetry</Description>
+		<PackageTags>foundationdb fdb nosql aspire integration client component cloud data database</PackageTags>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageIcon>foundationdb.png</PackageIcon>
+		<GenerateDocumentationFile Condition="'$(Configuration)' != 'Debug'">true</GenerateDocumentationFile>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="../Common/foundationdb.png" Pack="true" Visible="false" PackagePath="\" />
+		<None Include="../README.md" Pack="true" Visible="false" PackagePath="\" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
