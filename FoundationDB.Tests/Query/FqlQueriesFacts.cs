@@ -41,6 +41,7 @@ namespace FoundationDB.Client.Tests
 			var location = db.Root;
 			await CleanLocation(db, location);
 
+			// create the structure of directories
 			await db.WriteAsync(async tr =>
 			{
 				var parent = (await location.Resolve(tr, createIfMissing: true))!;
@@ -60,25 +61,45 @@ namespace FoundationDB.Client.Tests
 				}
 			}, this.Cancellation);
 
-			await DumpTree(db, location);
+			// populate with some fake data
+			await db.WriteAsync(async tr =>
+			{
+				var rnd = new Random(123456);
+
+				var genres = (string[]) [ "rock", "techno", "folk", "classical" ];
+				
+				foreach (var user in (string[]) [ "alice", "bob", "charlie" ])
+				{
+					var subspace = (await db.Root[FdbPath.Parse($"users/{user}/documents/music")].Resolve(tr).ConfigureAwait(false))!;
+					Log($"Filling {subspace.Path} with pseudo data");
+
+					tr.SetValueString(subspace.Encode("name"), "Albums");
+					tr.SetValueInt32(subspace.Encode("count"), 100);
+					
+					for (int i = 0; i < 100; i++)
+					{
+						tr.Set(subspace.Encode(0, $"album{i:D4}"), Slice.FromString("{ /* some dummy json */ }"));
+						tr.Set(subspace.Encode(1, $"album{i:D4}", Uuid128.NewUuid()), Slice.Empty);
+						tr.Set(subspace.Encode(2, $"album{i:D4}", genres[rnd.Next(genres.Length)]), Slice.Empty);
+						tr.Set(subspace.Encode(3, $"album{i:D4}", 1970 + rnd.Next(55)), Slice.Empty);
+					}
+				}
+			}, this.Cancellation);
+
+			//await DumpTree(db, location);
 
 			await db.ReadAsync(async tr =>
 			{
-				// since our test folder starts already in a deep /Tests/..../ path, we need to add it to all the queries!
-
-				var root = location.Path.ToString("N");
-				var q = FqlQueryParser.Parse(root + "/users/<>/documents");
+				// find all the "techno" albums from all the users
+				var q = FqlQueryParser.Parse("./users/<>/documents/music(2,<string>,\"techno\")");
 				Assert.That(q, Is.Not.Null);
 				Log(q.Explain());
 
 				Log("Listing matching folders:");
-				var matches = await q.EnumerateDirectories(tr).ToListAsync();
-				Log($"> found {matches.Count}");
-				foreach (var match in matches)
+				await foreach (var match in q.Scan(tr, db.Root))
 				{
-					Log($"- {match}");
+					Log($"- {match.Path}{match.Tuple} = {match.Value:V}");
 				}
-				Assert.That(matches, Has.Count.EqualTo(3));
 
 			}, this.Cancellation);
 

@@ -33,6 +33,7 @@ namespace FoundationDB.Client
 	using System.Diagnostics;
 	using System.IO;
 	using System.Linq;
+	using Doxense.Collections.Tuples;
 	using Doxense.Linq;
 
 	public sealed class FqlQuery : IFqlQuery
@@ -102,7 +103,19 @@ namespace FoundationDB.Client
 #endif
 		}
 
-		public IAsyncEnumerable<FdbDirectorySubspace> EnumerateDirectories(IFdbReadOnlyTransaction tr)
+		public async IAsyncEnumerable<(FdbPath Path, IVarTuple Tuple, Slice Key, Slice Value)> Scan(IFdbReadOnlyTransaction tr, FdbDirectorySubspaceLocation root) //TODO: settings?
+		{
+			await foreach (var match in EnumerateDirectories(tr, root).WithCancellation(tr.Cancellation).ConfigureAwait(false))
+			{
+				Kenobi($"- Directory: {match}");
+				await foreach (var result in EnumerateKeys(tr, match, root.Path).WithCancellation(tr.Cancellation).ConfigureAwait(false))
+				{
+					yield return result;
+				}
+			}
+		}
+
+		internal IAsyncEnumerable<FdbDirectorySubspace> EnumerateDirectories(IFdbReadOnlyTransaction tr, FdbDirectorySubspaceLocation root)
 		{
 			return AsyncEnumerable.Pump<FdbDirectorySubspace>(async (channel) =>
 			{
@@ -116,7 +129,7 @@ namespace FoundationDB.Client
 				if (this.Directory.TryGetPath(out FdbPath path))
 				{ // this is a fixed path, ex: "/foo/bar/baz", we can open it directly
 
-					subspace = await tr.Database.DirectoryLayer.TryOpenAsync(tr, path).ConfigureAwait(false);
+					subspace = await root[path].Resolve(tr).ConfigureAwait(false);
 					if (subspace != null)
 					{
 						await channel.WriteAsync(subspace).ConfigureAwait(false);
@@ -141,7 +154,11 @@ namespace FoundationDB.Client
 					{
 						if (chunk.Count == 0)
 						{ // starts immediately with any, ex: "/<>/bar/baz/..."
-							chunk = FdbPath.Root;
+							chunk = root.Path;
+						}
+						else
+						{
+							chunk = root.Path[chunk];
 						}
 
 						Kenobi($"Load first chunk {chunk}...");
@@ -214,6 +231,35 @@ namespace FoundationDB.Client
 
 			}, tr.Cancellation);
 		}
+
+		internal async IAsyncEnumerable<(FdbPath Path, IVarTuple Tuple, Slice Key, Slice Value)> EnumerateKeys(IFdbReadOnlyTransaction tr, FdbDirectorySubspace subspace, FdbPath root)
+		{
+			Contract.NotNull(tr);
+			Contract.NotNull(subspace);
+			
+			//HACKHACK: TODO: this is a VERY NAIVE approach that will not work for large dataset
+			// => this is only something to start with, and should replace with something that uses GetRangeSplitPointsAsync and //ize the chunks
+			
+			var tupleExpr = this.Tuple;
+
+			var path = subspace.Path.GetRelativePath(root);
+			
+			await foreach (var kv in tr.GetRange(subspace.ToRange()).ConfigureAwait(false))
+			{
+				// decode the tuple
+				var tuple = subspace.Unpack(kv.Key);
+				
+				// test if it matches the 
+				if (tupleExpr != null && !tupleExpr.Match(tuple))
+				{
+					continue;
+				}
+
+				yield return (path, tuple, kv.Key, kv.Value);
+			}
+
+		}
+		
 	}
 
 }

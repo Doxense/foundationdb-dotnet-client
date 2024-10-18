@@ -74,6 +74,22 @@ namespace FoundationDB.Client
 						tupleExpr = ReadTuple(ref remaining);
 						break;
 					}
+					case '.':
+					{
+						// supported:
+						// - "." => all in the current directory
+						// - ".(...)" => all in the current with a tuple expression
+						// -" ./foo/..." => a path starting from the current directory
+
+						if (remaining.Length != 1 && remaining[1] is not ('/' or '('))
+						{
+							throw new FormatException("Unexpected '.' in query expression");
+						}
+						
+						directoryExpr ??= new();
+						remaining = remaining[1..];
+						break;
+					}
 					default:
 					{
 						throw new InvalidOperationException($"oops! {text} : [{remaining}]");
