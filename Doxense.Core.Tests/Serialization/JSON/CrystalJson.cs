@@ -394,11 +394,6 @@ namespace Doxense.Serialization.Json.Tests
 
 		#endregion
 
-		static CrystalJsonTest()
-		{
-			CrystalJson.Warmup();
-		}
-
 		#region Serialization...
 
 		private static Slice SerializeToSlice(JsonValue value)

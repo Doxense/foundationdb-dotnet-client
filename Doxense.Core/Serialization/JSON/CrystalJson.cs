@@ -36,7 +36,6 @@ namespace Doxense.Serialization.Json
 	using System.Reflection;
 	using System.Text;
 	using Doxense.Collections.Caching;
-	using Doxense.Runtime;
 
 	/// <summary>Helper class to serialize, parse or deserialize JSON documents</summary>
 	[PublicAPI]
@@ -47,17 +46,6 @@ namespace Doxense.Serialization.Json
 		public static readonly CrystalJsonTypeResolver DefaultResolver = new();
 
 		public static readonly UTF8Encoding Utf8NoBom = CrystalJsonFormatter.Utf8NoBom;
-
-		public static void Warmup()
-		{
-			PlatformHelpers.PreJit(
-				typeof(CrystalJsonSettings), typeof(CrystalJsonNodaPatterns),
-				typeof(JsonNull), typeof(JsonBoolean), typeof(JsonString), typeof(JsonNumber), typeof(JsonArray), typeof(JsonObject), typeof(JsonNull), typeof(JsonValue), typeof(JsonDateTime),
-				typeof(CrystalJsonVisitor), typeof(CrystalJsonTypeVisitor), 
-				typeof(CrystalJsonStreamReader), typeof(CrystalJsonStreamWriter), typeof(CrystalJsonParser), typeof(CrystalJsonDomWriter), typeof(CrystalJsonFormatter),
-				typeof(CrystalJson)
-			);
-		}
 
 		[Flags]
 		public enum SaveOptions

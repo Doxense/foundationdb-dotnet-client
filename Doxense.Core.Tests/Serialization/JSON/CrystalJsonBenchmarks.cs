@@ -44,9 +44,7 @@ namespace Doxense.Serialization.Json.Tests
 	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
-
 	using Doxense.Mathematics.Statistics;
-	using Doxense.Runtime;
 #if ENABLE_NEWTONSOFT
 	using NJ = Newtonsoft.Json;
 #endif
@@ -61,11 +59,15 @@ namespace Doxense.Serialization.Json.Tests
 
 		static CrystalJsonBenchmarks()
 		{
-			CrystalJson.Warmup();
-			PlatformHelpers.PreJit(typeof(CrystalJsonBenchmarks));
 #if DEBUG
-			Log("WARNING: benchmark compilé en mode DEBUG! Ne pas tenir compte des temps ci-dessous qui ne sont pas représentatifs !");
+			Log("WARNING: benchmark running in DEBUG mode! Do NOT use these results to judge the actual performance at runtime.");
 #endif
+			
+			// do some warmup work
+			for (int i = 0; i < 100; i++)
+			{
+				_ = CrystalJson.Serialize(CrystalJson.Parse(JsonValue.FromValue(MediaContent.GetMedia1()).ToJson()).As<MediaContent>());
+			}
 		}
 
 		#region Simple Benchmarks...

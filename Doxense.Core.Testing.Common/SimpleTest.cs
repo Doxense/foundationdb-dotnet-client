@@ -41,6 +41,7 @@ namespace SnowBank.Testing
 	using Doxense.Diagnostics;
 	using Doxense.Mathematics.Statistics;
 	using Doxense.Reactive.Disposables;
+	using Doxense.Runtime;
 	using Doxense.Runtime.Comparison;
 	using Doxense.Serialization;
 	using Doxense.Tools;
@@ -71,7 +72,27 @@ namespace SnowBank.Testing
 
 			// JIT warmup of a few common types
 			RobustBenchmark.Warmup();
-			CrystalJson.Warmup();
+			PlatformHelpers.PreJit([
+				typeof(CrystalJson),
+				typeof(CrystalJsonSettings),
+				typeof(JsonValue),
+				typeof(JsonNull),
+				typeof(JsonBoolean),
+				typeof(JsonString),
+				typeof(JsonNumber),
+				typeof(JsonArray),
+				typeof(JsonObject),
+				typeof(JsonNull),
+				typeof(JsonDateTime),
+				typeof(JsonValueExtensions),
+				typeof(CrystalJsonFormatter),
+				typeof(CrystalJsonVisitor),
+				typeof(CrystalJsonTypeVisitor),
+				typeof(CrystalJsonStreamReader),
+				typeof(CrystalJsonStreamWriter),
+				typeof(CrystalJsonParser),
+				typeof(CrystalJsonDomWriter),
+			]);
 
 			if (!GCSettings.IsServerGC)
 			{
