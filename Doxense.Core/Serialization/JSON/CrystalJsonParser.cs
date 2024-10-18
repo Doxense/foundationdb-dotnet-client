@@ -702,8 +702,6 @@ namespace Doxense.Serialization.Json
 			Span<char> buf = stackalloc char[SIZE];
 			using var sb = new ValueBuffer<char>(buf);
 
-			int hashCode = StringTable.Hash.FNV_OFFSET_BIAS;
-
 			while (true)
 			{
 				char c = reader.ReadOne();
@@ -726,7 +724,6 @@ namespace Doxense.Serialization.Json
 				}
 
 				sb.Add(c);
-				hashCode = StringTable.Hash.CombineFnvHash(hashCode, c);
 			}
 
 			if (sb.Count == 0)
@@ -737,7 +734,7 @@ namespace Doxense.Serialization.Json
 			//TODO: table for single letter names ?
 			if (table != null)
 			{ // interning
-				return table.Add(hashCode, sb.Span);
+				return table.Add(sb.Span);
 			}
 			else
 			{
