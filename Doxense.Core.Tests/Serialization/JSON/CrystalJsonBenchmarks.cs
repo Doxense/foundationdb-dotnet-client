@@ -33,6 +33,7 @@
 
 namespace Doxense.Serialization.Json.Tests
 {
+	using System.Buffers;
 	using System.Collections;
 	using System.Collections.Generic;
 	using System.Diagnostics;
@@ -74,76 +75,69 @@ namespace Doxense.Serialization.Json.Tests
 
 		[Test]
 		[Category("LongRunning")]
+		[Order(10)]
 		public void Bench_Compare()
 		{
-
-			// pour éviter trop d'interférences avec les autres process, on élève la priorité du thread de bench!
-			Thread.CurrentThread.Priority = ThreadPriority.Highest;
-
-			// basic types
-			ComparativeBenchmark(0);
-			ComparativeBenchmark(123);
-			ComparativeBenchmark(long.MaxValue);
-			ComparativeBenchmark(Math.PI);
-			ComparativeBenchmark("short string");
-			ComparativeBenchmark("really long string that does not contains a double quote, and is trying to consume aaaall your memory even if you have hundreds of zetabytes!");
-			ComparativeBenchmark("really long string that does indeed contain the \" charac, and is trying to consume aaaall your memory even if you have hundreds of zetabytes!");
-			ComparativeBenchmark(DateTime.Now);
-			ComparativeBenchmark(DateTime.UtcNow);
-			ComparativeBenchmark(DateTimeOffset.Now);
-			ComparativeBenchmark(DateTimeOffset.UtcNow);
-			ComparativeBenchmark(Guid.NewGuid());
-
-			// simple class / structs
-			ComparativeBenchmark(new DummyJsonStruct(), 10_000);
-			ComparativeBenchmark(new DummyJsonClass(), 10_000);
-			ComparativeBenchmark(new DummyJsonClass()
+			var priority = Thread.CurrentThread.Priority;
+			try
 			{
-				Name = "James Bond",
-				Index = 7,
-				Size = 123456789,
-				Height = 1.8f,
-				Amount = 0.07d,
-				Created = new DateTime(1968, 5, 8, 0, 0, 0, DateTimeKind.Utc),
-				Modified = new DateTime(2010, 10, 28, 15, 39, 0, DateTimeKind.Utc),
-				State = DummyJsonEnum.Bar,
-			}, 10_000);
+				Thread.CurrentThread.Priority = ThreadPriority.Highest;
 
-			ComparativeBenchmark(new[] {
-				"Sheldon Cooper by Jim Parsons",
-				"Leonard Hofstadter by Johny Galecki",
-				"Penny by Kaley Cuoco",
-				"Howard Wolowitz by Simon Helberg",
-				"Raj Koothrappali by Kunal Nayyar",
-			}, 10_000);
+				// basic types
+				ComparativeBenchmark(0);
+				ComparativeBenchmark(123);
+				ComparativeBenchmark(long.MaxValue);
+				ComparativeBenchmark(Math.PI);
+				ComparativeBenchmark("short string");
+				ComparativeBenchmark("really long string that does not contains a double quote, and is trying to consume aaaall your memory even if you have hundreds of zetabytes!");
+				ComparativeBenchmark("really long string that does indeed contain the \" charac, and is trying to consume aaaall your memory even if you have hundreds of zetabytes!");
+				ComparativeBenchmark(DateTime.Now);
+				ComparativeBenchmark(DateTime.UtcNow);
+				ComparativeBenchmark(DateTimeOffset.Now);
+				ComparativeBenchmark(DateTimeOffset.UtcNow);
+				ComparativeBenchmark(Guid.NewGuid());
 
-			ComparativeBenchmark(new[] { 1, 2, 3, 4, 42, 666, 2403, 999999999 }, 1000);
-			ComparativeBenchmark(new[] {
-				new { Character="Sheldon Cooper", Actor="Jim Parsons", Female=false },
-				new { Character="Leonard Hofstadter", Actor="Johny Galecki", Female=false },
-				new { Character="Penny", Actor="Kaley Cuoco", Female=true },
-				new { Character="Howard Wolowitz", Actor="Simon Helberg", Female=false },
-				new { Character="Raj Koothrappali", Actor="Kunal Nayyar", Female=false },
-			}, 10_000);
+				// simple class / structs
+				ComparativeBenchmark(new DummyJsonStruct(), 10_000);
+				ComparativeBenchmark(new DummyJsonClass(), 10_000);
+				ComparativeBenchmark(
+					new DummyJsonClass()
+					{
+						Name = "James Bond",
+						Index = 7,
+						Size = 123456789,
+						Height = 1.8f,
+						Amount = 0.07d,
+						Created = new DateTime(1968, 5, 8, 0, 0, 0, DateTimeKind.Utc),
+						Modified = new DateTime(2010, 10, 28, 15, 39, 0, DateTimeKind.Utc),
+						State = DummyJsonEnum.Bar,
+					}, 10_000
+				);
 
-			// Objet composite (worst case ?)
-			ComparativeBenchmark(new
+				ComparativeBenchmark(new[] { "Sheldon Cooper by Jim Parsons", "Leonard Hofstadter by Johny Galecki", "Penny by Kaley Cuoco", "Howard Wolowitz by Simon Helberg", "Raj Koothrappali by Kunal Nayyar", }, 10_000);
+
+				ComparativeBenchmark(new[] { 1, 2, 3, 4, 42, 666, 2403, 999999999 }, 1000);
+				ComparativeBenchmark(new[] { new { Character = "Sheldon Cooper", Actor = "Jim Parsons", Female = false }, new { Character = "Leonard Hofstadter", Actor = "Johny Galecki", Female = false }, new { Character = "Penny", Actor = "Kaley Cuoco", Female = true }, new { Character = "Howard Wolowitz", Actor = "Simon Helberg", Female = false }, new { Character = "Raj Koothrappali", Actor = "Kunal Nayyar", Female = false }, }, 10_000);
+
+				// Objet composite (worst case ?)
+				ComparativeBenchmark(
+					new
+					{
+						Id = 1,
+						Title = "The Big Bang Theory",
+						Cancelled = false, // (j'espère que c'est toujours le cas ^^; )
+						Cast = new[] { new { Character = "Sheldon Cooper", Actor = "Jim Parsons", Female = false }, new { Character = "Leonard Hofstadter", Actor = "Johny Galecki", Female = false }, new { Character = "Penny", Actor = "Kaley Cuoco", Female = true }, new { Character = "Howard Wolowitz", Actor = "Simon Helberg", Female = false }, new { Character = "Raj Koothrappali", Actor = "Kunal Nayyar", Female = false }, },
+						Seasons = 4,
+						ScoreIMDB = 8.4, // (26/10/2010)
+						Producer = "Chuck Lorre Productions",
+						PilotAirDate = new DateTime(2007, 9, 24, 0, 0, 0, DateTimeKind.Utc), // plus simple si UTC
+					}, 10_000
+				);
+			}
+			finally
 			{
-				Id = 1,
-				Title = "The Big Bang Theory",
-				Cancelled = false, // (j'espère que c'est toujours le cas ^^; )
-				Cast = new[] {
-					new { Character="Sheldon Cooper", Actor="Jim Parsons", Female=false },
-					new { Character="Leonard Hofstadter", Actor="Johny Galecki", Female=false },
-					new { Character="Penny", Actor="Kaley Cuoco", Female=true },
-					new { Character="Howard Wolowitz", Actor="Simon Helberg", Female=false },
-					new { Character="Raj Koothrappali", Actor="Kunal Nayyar", Female=false },
-				},
-				Seasons = 4,
-				ScoreIMDB = 8.4, // (26/10/2010)
-				Producer = "Chuck Lorre Productions",
-				PilotAirDate = new DateTime(2007, 9, 24, 0, 0, 0, DateTimeKind.Utc), // plus simple si UTC
-			}, 10_000);
+				Thread.CurrentThread.Priority = priority;
+			}
 		}
 
 		private static void ComparativeBenchmark<T>(T? data, int iterations = 100_000, int runs = 50)
@@ -262,16 +256,11 @@ namespace Doxense.Serialization.Json.Tests
 
 		#region TPC Based Benchmarks...
 
-		// Ces benchmarks sont basés sur le benchmark "Thrift vs ProtocolBuffers", ce qui nous permet de nous mesurer a la concurrence :)
-		// Pour plus d'infos
+		// This is based on the "Thrift vs ProtocolBuffers" benchmark:
 		// * Article: https://github.com/eishay/jvm-serializers/wiki/
 		// * GitHub: https://github.com/eishay/jvm-serializers
 
-		// le code sérialise une série de données basée sur des classes Media/MediaContent/Image
-		// note: dans le code Java d'origine les données sont des public fields, alors qu'en C# on serait plutot passé par des auto-properties
-		// pour rester comparable, j'utilise aussi des public fields en C# ce qui n'est pas forcément représentatif...
-
-#if DEBUG
+#if !DEBUG
 		public const int BENCH_RUNS = 25; // (max 60 a cause du Pierce Criterion)
 		public const int BENCH_ITERATIONS = 1_000;
 #else
@@ -287,77 +276,74 @@ namespace Doxense.Serialization.Json.Tests
 			Bench_DeserializationTime();
 		}
 
-		private static MediaContent GetMedia1()
-		{
-			// The standard test value.
-			return new MediaContent
-			{
-				Media = new()
-				{
-					Uri = "http://javaone.com/keynote.mpg",
-					Title = "Javaone Keynote",
-					Width = 640,
-					Height = 480,
-					Format = "video/mpg4",
-					Duration = 18000000,    // half hour in milliseconds
-					Size = 58982400,        // bitrate * duration in seconds / 8 bits per byte
-					Bitrate = 262144,  // 256k
-					HasBitrate = true,
-					Persons = [ "Bill Gates", "Steve Jobs" ],
-					Player = Media.PlayerType.Java,
-				},
-
-				Images =
-				[
-					new()
-					{
-						Uri = "http://javaone.com/keynote_large.jpg",
-						Title = "Javaone Keynote",
-						Width = 1024,
-						Height = 768,
-						Size = Image.ImageSize.Large
-					},
-					new()
-					{
-						Uri = "http://javaone.com/keynote_small.jpg",
-						Title = "Javaone Keynote",
-						Width = 320,
-						Height = 240,
-						Size = Image.ImageSize.Small
-					},
-				]
-			};
-		}
-
 		[Test]
 		public void Bench_TotalTime()
 		{
 			// Create an object, serialize it to a byte array, then deserialize it back to an object.
-			var media = GetMedia1();
+			var media = MediaContent.GetMedia1();
 
 			#region Warmup
 			{ // premier run pour vérifier que tout est ok
-				var b = CrystalJson.Serialize(media, CrystalJsonSettings.JsonCompact);
-				Log(b);
-				var c = CrystalJson.Deserialize<MediaContent>(b);
-				Log($"json/doxense-runtime: size  = {b.Length:N0} chars");
-				Assert.That(media, Is.EqualTo(c), "clone != media ??");
+				
+				Log("Warming up...");
+				
+				{
+					Log("CrystalJson:");
+					var b = CrystalJson.Serialize(media, CrystalJsonSettings.JsonCompact);
+					var c = CrystalJson.Deserialize<MediaContent>(b);
+					Log($"json/doxense-runtime: size   = {b.Length:N0} chars");
+					Log(b);
+					Assert.That(media, Is.EqualTo(c), "clone != media ??");
 
-				using var w = new CrystalJsonWriter(0, CrystalJsonSettings.JsonCompact, CrystalJson.DefaultResolver);
-				media.Manual(w);
-				b = w.GetString();
-				Log($"json/doxense-manual : size  = {b.Length:N0} chars");
+					using var w = new CrystalJsonWriter(0, CrystalJsonSettings.JsonCompact, CrystalJson.DefaultResolver);
+					media.Manual(w);
+					b = w.GetString();
+					Log($"json/doxense-manual : size   = {b.Length:N0} chars");
+					Log(b);
+
+					for (int i = 0; i < 100; i++)
+					{
+						var so = CrystalJson.ToSlice(media, ArrayPool<byte>.Shared, CrystalJsonSettings.JsonCompact);
+						so.Dispose();
+					}
+				}
+
+#if ENABLE_NEWTONSOFT
+				{
+					Log("JSON.Net:");
+					var b = NJ.JsonConvert.SerializeObject(media);
+					_ = NJ.JsonConvert.DeserializeObject<MediaContent>(b);
+					Log($"json/json.net-runtime: size  = {b.Length:N0} chars");
+					Log(b);
+				}
+#endif
+				{
+					Log("System.Text.Json:");
+					var b = System.Text.Json.JsonSerializer.Serialize(media);
+					_ = System.Text.Json.JsonSerializer.Deserialize<MediaContent>(b);
+					Log($"json/s.t.json-runtime: size  = {b.Length:N0} chars");
+					Log(b);
+				}
 			}
 
 			#endregion
 
-			RunBenchOnMethod("json/doxense-runtime: total", () =>
+			RunBenchOnMethod("json/doxense-runtime: total", media, static (m) =>
 			{
-				_ = CrystalJson.Deserialize<MediaContent>(CrystalJson.Serialize(media, CrystalJsonSettings.JsonCompact));
+				_ = CrystalJson.Deserialize<MediaContent>(CrystalJson.Serialize(m, CrystalJsonSettings.JsonCompact));
 			});
 
+			RunBenchOnMethod("json/doxense-pooled : total", media, static (m) =>
+			{
+				var bytes = CrystalJson.ToSlice(m, ArrayPool<byte>.Shared, CrystalJsonSettings.JsonCompact);
+				_ = CrystalJson.Deserialize<MediaContent>(bytes.Data);
+				bytes.Dispose();
+			});
+
+			RunBenchOnMethod("json/s.t.json-runtime: total", media, static (m) => System.Text.Json.JsonSerializer.Deserialize<MediaContent>(System.Text.Json.JsonSerializer.Serialize(m)));
+			
 #if ENABLE_NEWTONSOFT
-			RunBenchOnMethod("json/json.net-runtime: total", () => NJ.JsonConvert.DeserializeObject<MediaContent>(NJ.JsonConvert.SerializeObject(media)));
+			RunBenchOnMethod("json/json.net-runtime: total", media, static (m) => NJ.JsonConvert.DeserializeObject<MediaContent>(NJ.JsonConvert.SerializeObject(m)));
 #endif
 		}
 
@@ -365,7 +351,7 @@ namespace Doxense.Serialization.Json.Tests
 		public void Bench_SerializationTime()
 		{
 			// Create an object, serialize it to a byte array
-			var media = GetMedia1();
+			var media = MediaContent.GetMedia1();
 
 			#region Warmup
 			// premier run pour vérifier que tout est ok
@@ -377,43 +363,56 @@ namespace Doxense.Serialization.Json.Tests
 
 			#endregion
 
-			RunBenchOnMethod("json/doxense-text   : ser  ", () => { CrystalJson.Serialize(media, CrystalJsonSettings.JsonCompact); });
+			RunBenchOnMethod("json/doxense-text   : ser  ", media, static (m) => CrystalJson.Serialize(m, CrystalJsonSettings.JsonCompact));
 
-			RunBenchOnMethod("json/doxense-buffer : ser  ", () => { CrystalJson.ToSlice(media, CrystalJsonSettings.JsonCompact); });
+			RunBenchOnMethod("json/doxense-buffer : ser  ", media, static (m) => CrystalJson.ToSlice(m, CrystalJsonSettings.JsonCompact));
 
-			RunBenchOnMethod("json/doxense-manual : ser  ", () =>
-			{
-				CrystalJson.Convert(media, static (writer, media) => media.Manual(writer), CrystalJsonSettings.JsonCompact, CrystalJson.DefaultResolver);
-			});
+			RunBenchOnMethod("json/doxense-manual : ser  ", media, static (m) => CrystalJson.Convert(m, static (writer, media) => media.Manual(writer), CrystalJsonSettings.JsonCompact, CrystalJson.DefaultResolver));
 
+			RunBenchOnMethod("json/s.t.json-text  : ser  ", media, static (m) => System.Text.Json.JsonSerializer.Serialize(m));
+			
 #if ENABLE_NEWTONSOFT
-			RunBenchOnMethod("json/json.net-poco: ser  ", () => { NJ.JsonConvert.SerializeObject(media); });
+			RunBenchOnMethod("json/json.net-poco  : ser  ", media, static (m) => NJ.JsonConvert.SerializeObject(m));
 #endif
-
 		}
 
 		[Test]
 		// ReSharper disable once IdentifierTypo
 		public void Bench_DomificationTime()
 		{
-			// Create an object, serialize it to a byte array
-			var media = GetMedia1();
+			// Measure the time to convert a CLR type into the equivalent JsonObject
+			var media = MediaContent.GetMedia1();
 
 			#region Warmup
-			// premier run pour vérifier que tout est ok
-			//Log("CrystalJSON: " + Encoding.UTF8.GetByteCount(CrystalJson.Serialize(media, CrystalJsonSettings.JsonCompact)) + " bytes");
-			//media.Manual(new CrystalJsonWriter(new StringBuilder(512), CrystalJsonSettings.JsonCompact, CrystalJson.DefaultResolver));
+			{
+				_ = JsonObject.FromObject(media);
+			}
 			#endregion
 
-			RunBenchOnMethod("json/doxense-text   : dom  ", () => { _ = JsonObject.FromObject(media); });
+			RunBenchOnMethod("json/doxense-text   : dom  ", media, static (m) => JsonObject.FromObject(m));
+		}
 
+		[Test]
+		// ReSharper disable once IdentifierTypo
+		public void Bench_BindTime()
+		{
+			// Measure the time to bind a JsonObject into the equivalent CLR type
+			var json = JsonObject.FromObject(MediaContent.GetMedia1());
+
+			#region Warmup
+			{
+				_ = json.Bind<MediaContent>();
+			}
+			#endregion
+
+			RunBenchOnMethod("json/doxense-text   : dom  ", json, static (j) => j.Bind<MediaContent>());
 		}
 
 		[Test]
 		public void Bench_DeserializationTime()
 		{
-			// deserialize an object from a byte array.
-			var media = GetMedia1();
+			// Measure the time to deserialize JSON text into the equivalent CLR type
+			var media = MediaContent.GetMedia1();
 
 			#region Warmup
 			string jsonText = CrystalJson.Serialize(media, CrystalJsonSettings.JsonCompact);
@@ -426,14 +425,14 @@ namespace Doxense.Serialization.Json.Tests
 
 			#endregion
 
-			var settings = CrystalJsonSettings.JsonCompact;//.WithInterning(CrystalJsonSettings.StringInterning.Disabled);
-
 			// JSON => STATIC
-			RunBenchOnMethod("json/doxense-poco   : deser", () => { CrystalJson.Deserialize<MediaContent>(jsonText, settings); });
+			
+			RunBenchOnMethod("json/doxense-poco   : deser", jsonText, static (txt) => CrystalJson.Deserialize<MediaContent>(txt, CrystalJsonSettings.Json));
+
+			RunBenchOnMethod("json/s.t.json-poco  : deser", jsonText, static (txt) => System.Text.Json.JsonSerializer.Deserialize<MediaContent>(txt));
 
 #if ENABLE_NEWTONSOFT
-			// JSON => STATIC
-			RunBenchOnMethod("json/json.net-poco  : deser", () => { new NJ.JsonSerializer().Deserialize<MediaContent>(new NJ.JsonTextReader(new StringReader(jsonText))); });
+			RunBenchOnMethod("json/json.net-poco  : deser", jsonText, static (txt) => NJ.JsonSerializer.CreateDefault().Deserialize<MediaContent>(new NJ.JsonTextReader(new StringReader(txt))));
 #endif
 
 		}
@@ -441,25 +440,24 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Bench_ParseTime()
 		{
-			// Parse un object from a byte array.
+			// Measure the time to parse JSON text into the equivalent JsonObject
 
-			var media = GetMedia1();
-
-			var settings = CrystalJsonSettings.Json;//.WithInterning(CrystalJsonSettings.StringInterning.Disabled);
+			string jsonText = CrystalJson.Serialize(MediaContent.GetMedia1(), CrystalJsonSettings.JsonCompact);
 
 			#region Warmup
-			string jsonText = CrystalJson.Serialize(media, CrystalJsonSettings.JsonCompact);
-			CrystalJson.Parse(jsonText, settings);
+			{
+				CrystalJson.Parse(jsonText);
 #if ENABLE_NEWTONSOFT
-			_ = NJ.Linq.JObject.Parse(jsonText);
+				_ = NJ.Linq.JObject.Parse(jsonText);
 #endif
+			}
 			#endregion
 
 			// JSON => DOM
-			RunBenchOnMethod("json/doxense-token: parse", () => { CrystalJson.Parse(jsonText, settings); });
+			RunBenchOnMethod("json/doxense-token: parse", jsonText, static (txt) => CrystalJson.Parse(txt));
 
 #if ENABLE_NEWTONSOFT
-			RunBenchOnMethod("json/json.net-token: parse", () => { NJ.Linq.JObject.Parse(jsonText); });
+			RunBenchOnMethod("json/json.net-token: parse", jsonText, static (txt) => NJ.Linq.JObject.Parse(txt));
 #endif
 
 #if DEBUG_STRINGTABLE_PERFS
@@ -472,7 +470,7 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Bench_String()
 		{
-			// Mesure des temps d'execution pour l'encodage de String en JSON
+			// Measure the time to escape various strings into JSON
 
 			string[] phrases =
 			[
@@ -487,6 +485,8 @@ namespace Doxense.Serialization.Json.Tests
 				"abcdefgh",
 				"Hello World!",
 				"0123456789ABCDEF",
+				"abcdefghijklmnopqrstuvwxyz",
+				"The quick brown fox jumps over the lazy dog",
 				"This is a test of the emergency broadcast system",
 				"This is a test of the emergency broadcast system!",
 				"This is a test of the emergency broadcast system!!",
@@ -495,42 +495,48 @@ namespace Doxense.Serialization.Json.Tests
 			];
 
 			#region Warmup...
-			JsonEncoding.NeedsEscaping("foo");
-			JsonEncoding.NeedsEscaping("fo\"o");
-			JsonEncoding.NeedsEscaping("hello world");
-			JsonEncoding.NeedsEscaping("hello world\"hello world");
+
+			foreach (var s in phrases)
+			{
+				JsonEncoding.NeedsEscaping(s);
+				_ = JsonEncoding.Encode(s);
+
+			}
 			#endregion
 
 			double[][] nanos = new double[phrases.Length][];
 
+			var buffer = new char[1024];
+			
 			for (int i = 0; i < phrases.Length; i++)
 			{
+				buffer.AsSpan().Clear();
 				string s = phrases[i];
 				var ts = new double[6];
 				int p = 0;
-				var sb = new StringBuilder(1024);
-				Trace.WriteLine("\"" + s + "\"");
-				ts[p++] = RunBenchOnMethod($"  check best  #{i}", () => { JsonEncoding.NeedsEscaping(s); }, measure: false);
-				ts[p++] = RunBenchOnMethod($" append       #{i}", () => { sb.Clear(); sb.Append('"').Append(s).Append('"'); }, measure: false);
-				ts[p  ] = RunBenchOnMethod($" append best  #{i}", () => { sb.Clear(); JsonEncoding.Append(sb, s); }, measure: false);
+				Log($"\"{s}\" [{s.Length}]");
+				ts[p++] = RunBenchOnMethod("   check", () => JsonEncoding.NeedsEscaping(s), measure: false);
+				ts[p++] = RunBenchOnMethod("  unsafe", () => { buffer[0] = '"'; s.CopyTo(buffer.AsSpan(1)); buffer[s.Length + 1] = '"'; }, measure: false);
+				ts[p  ] = RunBenchOnMethod("  append", () => JsonEncoding.TryEncodeTo(buffer, s, out _), measure: false);
 				nanos[i] = ts;
 			}
 
-#if DUMP_TO_CSV
-			Log("value;Length;Check_Best;Check_Short;Check_Long;Append;Append_Best;Append_Short;Append_Long;Append_Slow;Check_Best_CPC;Check_Short_NPC;Check_Long_NPC;Append_NPC;Append_Best_NPC;Append_Slow_NPC");
-			for (int i = 0;i<S.Length; i++)
+#if true || DUMP_TO_CSV
+			Log("Value;Length;Check;Unsafe;Append;Check_NPC;Unsafe_NPC;Append_NPC");
+			for (int i = 0; i < phrases.Length; i++)
 			{
-				string s = S[i];
-				Console.Write("\"" + s.Replace("\"", "\"\"") + "\";" + s.Length);
+				string s = phrases[i];
+				var line = $"\"{s.Replace("\"", "\"\"")}\";{s.Length}";
 				foreach (var n in nanos[i])
 				{
-					Console.Write(";" + n.ToString());
+					line += $";{n}";
 				}
+
 				foreach (var n in nanos[i])
 				{
-					Console.Write(";" + (n / s.Length).ToString());
+					line += $";{(n / s.Length)}";
 				}
-				Log();
+				Log(line);
 			}
 #endif
 
@@ -538,26 +544,38 @@ namespace Doxense.Serialization.Json.Tests
 
 		private static double RunBenchOnMethod(string name, Action method, bool measure = true)
 		{
+			return RunBenchOnMethod(name, method, (m) => m(), measure);
+		}
+		
+		private static double RunBenchOnMethod<TState>(string name, TState state, Action<TState> method, bool measure = true)
+		{
 			GC.Collect();
 			GC.WaitForPendingFinalizers();
 			GC.Collect();
 
+			// small pause, so that runs can be visually separated in a profiler (in Timeline view)
+			Thread.Sleep(50);
+
 			var h = measure ? new RobustHistogram() : null;
 
 			var report = RobustBenchmark.Run(
+				state,
 				method,
-				(m) => { m(); },
 				(_) => 0,
 				BENCH_RUNS,
 				BENCH_ITERATIONS,
 				h
 			);
 
-			Log($"{name} = {report.BestIterationsNanos:N0} nanos [{report.MedianIterationsNanos:N0}] (~ {report.BestIterationsPerSecond:N0} ips [{report.MedianIterationsPerSecond:N0}], allocated {report.GcAllocatedOnThread:N0} bytes, GC={report.GC0:N0}/{report.GC0:N0}/{report.GC0:N0})");
+			Log($"{name} = {report.BestIterationsNanos,5:N0} nanos [{report.MedianIterationsNanos,5:N0}] (~ {report.BestIterationsPerSecond,11:N0} ips [{report.MedianIterationsPerSecond,11:N0}], allocated {report.GcAllocatedOnThread:N0} bytes, GC={report.GC0:N0}/{report.GC0:N0}/{report.GC0:N0})");
 			if (h != null)
 			{
 				Log(h.GetReport(true));
 			}
+			
+			// small pause, so that runs can be visually separated in a profiler (in Timeline view)
+			Thread.Sleep(50);
+			
 			return report.BestIterationsNanos;
 		}
 
@@ -615,7 +633,7 @@ namespace Doxense.Serialization.Json.Tests
 			int iterationsPerRun = jsonText.Length <= 100 ? ITERATIONS_FAST : jsonText.Length <= 1000 ? ITERATIONS_NORMAL : jsonText.Length <= 10000 ? ITERATIONS_MEDIUM : ITERATIONS_SLOW;
 			//Log("{0} => {1}", sw.Elapsed.Ticks, ITER_PER_RUN);
 
-			//fullGC();
+			//DoFullGc();
 			var serReport = RobustBenchmark.Run(
 				model,
 				(value) => CrystalJson.Serialize<T>(value, settings),
@@ -695,6 +713,7 @@ namespace Doxense.Serialization.Json.Tests
 
 		[Test]
 		[Category("LongRunning")]
+		[Order(11)]
 		public void Test_NG_Bench()
 		{
 			Log("Model Type                       Size | Ser<T>   (nanos)           (allocated) | Parse    (nanos)           (allocated) | Deser<T> (nanos)           (allocated) | Domify   (nanos)           (allocated) | JSON Text");
@@ -758,9 +777,9 @@ namespace Doxense.Serialization.Json.Tests
 			RunTestMethod(Enumerable.Range(0, 365).Select(i => Math.Round((rnd.NextDouble() - 0.5) * 500, 2, MidpointRounding.AwayFromZero)).ToArray()); // -500.00..+500.00
 
 			// objects
-			RunTestMethod(GetMedia1());
-			RunTestMethod(Enumerable.Range(0, 7).Select(i => GetMedia1()).ToArray());
-			RunTestMethod(Enumerable.Range(0, 32).Select(i => GetMedia1()).ToArray());
+			RunTestMethod(MediaContent.GetMedia1());
+			RunTestMethod(Enumerable.Range(0, 7).Select(i => MediaContent.GetMedia1()).ToArray());
+			RunTestMethod(Enumerable.Range(0, 32).Select(i => MediaContent.GetMedia1()).ToArray());
 
 			// sealed
 			{
@@ -1051,7 +1070,7 @@ namespace Doxense.Serialization.Json.Tests
 
 	#region Models...
 
-	public sealed class MediaContent : IEquatable<MediaContent>
+	public sealed record MediaContent
 	{
 
 		public required Media Media { get; init; }
@@ -1066,11 +1085,6 @@ namespace Doxense.Serialization.Json.Tests
 			if (this.Images == null || other.Images == null) return this.Images == other.Images;
 			if (this.Images.Count != other.Images.Count) return false;
 			return this.Images.Zip(other.Images, (left, right) => left.Equals(right)).All(b => b);
-		}
-
-		public override bool Equals(object? obj)
-		{
-			return obj is MediaContent content && Equals(content);
 		}
 
 		/// <inheritdoc />
@@ -1100,9 +1114,36 @@ namespace Doxense.Serialization.Json.Tests
 
 			writer.EndObject(state);
 		}
+
+		/// <summary>The standard test value.</summary>
+		private static readonly MediaContent Media1 = new MediaContent
+		{
+			Media = new()
+			{
+				Uri = "http://javaone.com/keynote.mpg",
+				Title = "Javaone Keynote",
+				Width = 640,
+				Height = 480,
+				Format = "video/mpg4",
+				Duration = 18000000, // half hour in milliseconds
+				Size = 58982400, // bitrate * duration in seconds / 8 bits per byte
+				Bitrate = 262144, // 256k
+				HasBitrate = true,
+				Persons = [ "Bill Gates", "Steve Jobs" ],
+				Player = Media.PlayerType.Java,
+			},
+			Images =
+			[
+				new() { Uri = "http://javaone.com/keynote_large.jpg", Title = "Javaone Keynote", Width = 1024, Height = 768, Size = Image.ImageSize.Large },
+				new() { Uri = "http://javaone.com/keynote_small.jpg", Title = "Javaone Keynote", Width = 320, Height = 240, Size = Image.ImageSize.Small },
+			]
+		};
+
+		public static MediaContent GetMedia1(bool copy = false) => copy ? MediaContent.Media1 with { } : MediaContent.Media1;
+		
 	}
 
-	public sealed class Media : IEquatable<Media>
+	public sealed record Media
 	{
 		public enum PlayerType
 		{
@@ -1142,11 +1183,6 @@ namespace Doxense.Serialization.Json.Tests
 				&& this.Copyright == other.Copyright;
 		}
 
-		public override bool Equals(object? obj)
-		{
-			return obj is Media media && Equals(media);
-		}
-
 		/// <inheritdoc />
 		public override int GetHashCode()
 		{
@@ -1163,7 +1199,11 @@ namespace Doxense.Serialization.Json.Tests
 			writer.WriteField("Format", this.Format);
 			writer.WriteField("Duration", this.Duration);
 			writer.WriteField("Size", this.Size);
-			if (this.HasBitrate) writer.WriteField("Bitrate", this.Bitrate);
+			if (this.HasBitrate)
+			{
+				writer.WriteField("HasBitrate", true);
+				writer.WriteField("Bitrate", this.Bitrate);
+			}
 			if (this.Persons != null) writer.WriteField("Persons", this.Persons);
 			writer.WriteField("Player", this.Player);
 			if (this.Copyright != null) writer.WriteField("Copyright", this.Copyright);
@@ -1172,7 +1212,7 @@ namespace Doxense.Serialization.Json.Tests
 
 	}
 
-	public sealed class Image : IEquatable<Image>
+	public sealed record Image
 	{
 		public enum ImageSize
 		{
@@ -1180,7 +1220,7 @@ namespace Doxense.Serialization.Json.Tests
 		}
 
 		public required string Uri { get; init; }
-		public string? Title { get; init; }  // Can be null
+		public string? Title { get; init; } // Can be null
 		public required int Width { get; init; }
 		public required int Height { get; init; }
 		public required ImageSize Size { get; init; }
@@ -1193,11 +1233,6 @@ namespace Doxense.Serialization.Json.Tests
 				&& this.Width == other.Width
 				&& this.Height == other.Height
 				&& this.Size == other.Size;
-		}
-
-		public override bool Equals(object? obj)
-		{
-			return obj is Image img && Equals(img);
 		}
 
 		public override int GetHashCode()
@@ -1217,7 +1252,7 @@ namespace Doxense.Serialization.Json.Tests
 		}
 	}
 
-	public sealed class UserSealed
+	public sealed record UserSealed
 	{
 		public required Guid Id { get; init; }
 		public required string FirstName { get; init; }
@@ -1229,7 +1264,7 @@ namespace Doxense.Serialization.Json.Tests
 		public required DateTime Joined { get; init; }
 	}
 
-	public class UserUnsealed
+	public record UserUnsealed
 	{
 		public required Guid Id { get; init; }
 		public required string FirstName { get; init; }
@@ -1241,7 +1276,7 @@ namespace Doxense.Serialization.Json.Tests
 		public required DateTime Joined { get; init; }
 	}
 
-	public abstract class UserAbstract
+	public abstract record UserAbstract
 	{
 		public required Guid Id { get; init; }
 		public required string FirstName { get; init; }
@@ -1253,7 +1288,7 @@ namespace Doxense.Serialization.Json.Tests
 		public required DateTime Joined { get; init; }
 	}
 
-	public class UserDerived : UserAbstract;
+	public record UserDerived : UserAbstract;
 
 	#endregion
 
