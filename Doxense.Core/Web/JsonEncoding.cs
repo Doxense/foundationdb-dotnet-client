@@ -33,19 +33,19 @@ namespace Doxense.Serialization.Json
 	using Doxense.Memory;
 	using Doxense.Text;
 
+	/// <summary>Provides methods for encoding and escaping JSON strings.</summary>
 	public static partial class JsonEncoding
 	{
 
 		//note: the lookup table is in JsonEncoding.LookupTable.cs
 
+		/// <summary>Checks if a character requires escaping before being written to a JSON document</summary>
+		/// <param name="c">Character to inspect</param>
+		/// <returns><see langword="false"/> if the character is valid, or <see langword="true"/> if it must be escaped</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static bool NeedsEscaping(char c)
-		{
-			// Encode double-quote ("), anti-slash (\), and ASCII control codes (0..31), as well as special UNICODE characters (0xD800-0xDFFF, 0xFFFE and 0xFFFF)
-			return (c < 32 || c == '"' || c == '\\') || (c >= 0xD800 && (c < 0xE000 | c >= 0xFFFE));
-		}
+		public static bool NeedsEscaping(char c) => EscapingLookupTable[c] != 0;
 
-		/// <summary>Check if a string requires escaping before being written to a JSON document</summary>
+		/// <summary>Checks if a string requires escaping before being written to a JSON document</summary>
 		/// <param name="s">Text to inspect</param>
 		/// <returns><see langword="false"/> if all characters are valid, or <see langword="true"/> if at least one character must be escaped</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -54,7 +54,7 @@ namespace Doxense.Serialization.Json
 			return s != null && NeedsEscaping(s.AsSpan());
 		}
 
-		/// <summary>Check if a string requires escaping before being written to a JSON document</summary>
+		/// <summary>Checks if a string requires escaping before being written to a JSON document</summary>
 		/// <param name="text">Text to inspect</param>
 		/// <returns><see langword="false"/> if all characters are valid, or <see langword="true"/> if at least one character must be escaped</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -67,13 +67,13 @@ namespace Doxense.Serialization.Json
 			// - If we use a bitwise OR (|), we only need one test/branch per batch of 4 characters, compared to a logical OR (||).
 			//
 			// Testing with BenchmarkDotNet and .NET 9 we found that:
-			// - this approeach equivalent to a naive "foreach(var c in s) { ... }", even for small strings
+			// - this approach equivalent to a naive "foreach(var c in s) { ... }", even for small strings
 			// - unrolling two ulong (8 chars) vs one ulong (4 chars) only yield ~10% perf (probably due to 50% less loop check)
-			// - testing with SSE3 LoadVector128 is slower, and using AVX2 "Gather" intructions to perform the lookup is also slower
+			// - testing with SSE3 LoadVector128 is slower, and using AVX2 "Gather" instructions to perform the lookup is also slower
 			// - trying to use a "switch(length & 3) { case 1: ... case 1: ... case 2: ... }" is _slower_ then a simple "while(len-- > 0)"
 			//
 			// Other notes:
-			// - "switch(s.Length)" with dedicated optimzed code paths for arrays of length 1, 2, or 3 is SLOWER, probably due to the additional jump destination lookup table
+			// - "switch(s.Length)" with dedicated optimized code paths for arrays of length 1, 2, or 3 is SLOWER, probably due to the additional jump destination lookup table
 			// - trying to remove array bound checks does not really yield any difference. My guess is that since the code never actually overflows, the cpu branch predictor "learns" that the check will never be taken and is "optimized away"
 			// - "ref char ptr = ref s[0]" is a little bit faster than "fixed (char* ptr = s)", because it generates slightly less assembly code, but the difference is in the order of less than 1ns (but still measurable)
 
@@ -143,8 +143,9 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
-		/// <summary>Check if a string requires escaping before being written to a JSON document</summary>
+		/// <summary>Computes the required buffer capacity to encode the specified string</summary>
 		/// <param name="text">Text to inspect</param>
+		/// <param name="withQuotes">If <see langword="true"/> (default), include the two double quotes around the string (<c>"..."</c>)</param>
 		/// <returns>
 		/// <para> the length of <paramref name="text"/> if no escaping is required</para>
 		/// <para> a greater value if at least one character needs to be escaped.</para>
@@ -152,16 +153,12 @@ namespace Doxense.Serialization.Json
 		/// </returns>
 		public static int ComputeEscapedSize(string? text, bool withQuotes = true)
 		{
-			if (text == null)
-			{
-				return 4;
-			}
-
-			return ComputeEscapedSize(text.AsSpan(), withQuotes);
+			return text == null ? 4 : ComputeEscapedSize(text.AsSpan(), withQuotes);
 		}
 
-		/// <summary>Check if a string requires escaping before being written to a JSON document</summary>
+		/// <summary>Computes the required buffer capacity to encode the specified string</summary>
 		/// <param name="text">Text to inspect</param>
+		/// <param name="withQuotes">If <see langword="true"/> (default), include the two double quotes around the string (<c>"..."</c>)</param>
 		/// <returns>
 		/// <para> the length of <paramref name="text"/> if no escaping is required</para>
 		/// <para> a greater value if at least one character needs to be escaped.</para>
@@ -319,6 +316,10 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		/// <summary>Encodes the specified text into the provided text buffer.</summary>
+		/// <param name="destination">The writer to which the encoded text will be written.</param>
+		/// <param name="text">The text to encode.</param>
+		/// <remarks>The double quotes (<c>"...."</c>) are automatically added, unless the string is <c>null</c> in which case the literal <c>'null'</c> literal is used</remarks>
 		public static void EncodeTo(ref ValueStringWriter destination, string? text)
 		{
 			if (text == null)
@@ -330,6 +331,10 @@ namespace Doxense.Serialization.Json
 			EncodeTo(ref destination, text.AsSpan());
 		}
 
+		/// <summary>Encodes the specified text into the provided text buffer.</summary>
+		/// <param name="destination">The writer to which the encoded text will be written.</param>
+		/// <param name="text">The text to encode.</param>
+		/// <remarks>The double quotes (<c>"...."</c>) are automatically added, unless the string is <c>null</c> in which case the literal <c>'null'</c> is used.</remarks>
 		public static void EncodeTo(ref ValueStringWriter destination, ReadOnlySpan<char> text)
 		{
 			if (text.Length == 0)
@@ -378,6 +383,13 @@ namespace Doxense.Serialization.Json
 			span[written] = '"';
 		}
 
+		/// <summary>Attempts to encode the specified text into the provided output span, if it is large enough.</summary>
+		/// <param name="destination">The span to which the encoded text will be written.</param>
+		/// <param name="text">The text to encode.</param>
+		/// <param name="charsWritten">Outputs the number of characters written to the span, including any double quotes.</param>
+		/// <param name="withQuotes">If <see langword="true"/> (default), includes double quotes around the string (<c>"..."</c>).</param>
+		/// <returns><see langword="true"/> if the buffer was large enough; otherwise, <see langword="false"/>.</returns>
+		/// <remarks>The buffer may contain partially serialized data after this method returns.</remarks>
 		public static bool TryEncodeTo(Span<char> destination, ReadOnlySpan<char> text, out int charsWritten, bool withQuotes = true)
 		{
 			// in all cases, we need space for two double quotes!
@@ -411,7 +423,7 @@ namespace Doxense.Serialization.Json
 
 				if (withQuotes)
 				{
-					if (destination.Length < text.Length + 2)
+					if ((uint) destination.Length < (uint) text.Length + 2)
 					{
 						goto too_small;
 					}
@@ -459,14 +471,11 @@ namespace Doxense.Serialization.Json
 			if (withQuotes)
 			{ // close double quotes
 				destination[extra] = '"';
-				charsWritten = first + extra + 2;
-				return true;
+				extra += 2; // need to include the first double-quote from above!
 			}
-			else
-			{
-				charsWritten = first + extra;
-				return true;
-			}
+
+			charsWritten = first + extra;
+			return true;
 
 		too_small:
 			charsWritten = 0;
@@ -475,6 +484,8 @@ namespace Doxense.Serialization.Json
 
 		private static bool TryEncodeToSlow(Span<char> output, ReadOnlySpan<char> s, out int charsWritten)
 		{
+			// we always start on the first non-clean character of the string
+			
 			ref int map = ref EscapingLookupTable[0];
 			ref char start = ref output[0];
 			ref char ptr = ref start;
@@ -566,6 +577,11 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
+		/// <summary>Encodes the specified text into the provided byte buffer.</summary>
+		/// <param name="destination">The writer to which the encoded text will be written as UTF-8 bytes.</param>
+		/// <param name="text">The text to encode.</param>
+		/// <param name="withQuotes">Determines whether the encoded text should be enclosed in double quotes.</param>
+		/// <remarks>The double quotes (<c>"...."</c>) are automatically added, unless the string is <c>null</c> in which case the literal <c>'null'</c> is used.</remarks>
 		public static void EncodeTo(ref SliceWriter destination, ReadOnlySpan<char> text, bool withQuotes = true)
 		{
 			// it is somewhat possible to get an estimate of the escaped _byte size_ from the number of escaped chars
@@ -574,28 +590,46 @@ namespace Doxense.Serialization.Json
 			// So, if we computed en UTF-8 encoded size of the original string, and the escaped string length minus the original string length,
 			// we should always have an upper bound for the required size
 
-			var nonEscapedByteCount = CrystalJson.Utf8NoBom.GetByteCount(text);
+			var nonEscapedByteCount = CrystalJsonFormatter.Utf8NoBom.GetByteCount(text);
 			var escapedCharsCount = ComputeEscapedSize(text, withQuotes);
 			var escapedByteUpperBound = checked(nonEscapedByteCount + (escapedCharsCount - text.Length));
 
 			var span = destination.GetSpan(escapedByteUpperBound);
 			if (!TryEncodeTo(span, text, out int bytesWritten, withQuotes))
 			{
+				// this is NOT supposed to happen, unless ComputeEscapedSize failed for some reason?
 				throw new InvalidOperationException();
 			}
 			destination.Advance(bytesWritten);
 		}
 
+		/// <summary>Encodes the specified text into the provided byte buffer.</summary>
+		/// <param name="destination">The writer to which the encoded text will be written as UTF-8 bytes.</param>
+		/// <param name="text">The text to encode.</param>
+		/// <param name="withQuotes">Specifies whether the encoded text should be enclosed in double quotes. Defaults to <c>true</c>.</param>
+		/// <remarks>The double quotes (<c>"...."</c>) are automatically added, unless the string is <c>null</c> in which case the literal <c>'null'</c> is used.</remarks>
 		public static void EncodeTo(ref ValueBuffer<byte> destination, ReadOnlySpan<char> text, bool withQuotes = true)
 		{
 			var span = destination.GetSpan(ComputeEscapedSize(text, withQuotes));
 			if (!TryEncodeTo(span, text, out int bytesWritten, withQuotes))
 			{
+				// this is NOT supposed to happen, unless ComputeEscapedSize failed for some reason?
 				throw new InvalidOperationException();
 			}
 			destination.Advance(bytesWritten);
 		}
 
+		/// <summary>Attempts to encode the specified text into the provided span as UTF-8 bytes.</summary>
+		/// <param name="destination">The span of bytes where the encoded JSON will be written as UTF-8 bytes.</param>
+		/// <param name="text">The text to encode.</param>
+		/// <param name="bytesWritten">When this method returns, contains the number of bytes written to the destination span.</param>
+		/// <param name="withQuotes">If set to <see langword="true"/>, the encoded JSON will include surrounding quotes.</param>
+		/// <returns><see langword="true"/> if the encoding was successful and the entire encoded JSON fits within the destination span; otherwise, <see langword="false"/>.</returns>
+		/// <remarks>
+		/// <para>This method encodes the input text as JSON, handling necessary escaping of characters.</para>
+		/// <para>If <paramref name="withQuotes"/> is <see langword="true"/>, the encoded JSON will be surrounded by double quotes.</para>
+		/// <para>If the destination span is too small to hold the encoded JSON, the method returns <see langword="false"/> and <paramref name="bytesWritten"/> is set to <see langword="0"/>.</para>
+		/// </remarks>
 		public static bool TryEncodeTo(Span<byte> destination, ReadOnlySpan<char> text, out int bytesWritten, bool withQuotes = true)
 		{
 			// in all cases, we need space for two double quotes!
@@ -627,7 +661,7 @@ namespace Doxense.Serialization.Json
 			if (first < 0)
 			{ // the string is clean, no need for escaping
 
-				int bytesNeeded = CrystalJson.Utf8NoBom.GetByteCount(text);
+				int bytesNeeded = CrystalJsonFormatter.Utf8NoBom.GetByteCount(text);
 				if (withQuotes)
 				{
 					if (destination.Length < checked(bytesNeeded + 2))
@@ -635,7 +669,7 @@ namespace Doxense.Serialization.Json
 						goto too_small;
 					}
 					destination[0] = (byte) '"';
-					bytesNeeded = CrystalJson.Utf8NoBom.GetBytes(text, destination[1..]);
+					bytesNeeded = CrystalJsonFormatter.Utf8NoBom.GetBytes(text, destination[1..]);
 					destination[bytesNeeded + 1] = (byte) '"';
 					bytesWritten = bytesNeeded + 2;
 					return true;
@@ -645,7 +679,7 @@ namespace Doxense.Serialization.Json
 				{
 					goto too_small;
 				}
-				bytesNeeded = CrystalJson.Utf8NoBom.GetBytes(text, destination);
+				bytesNeeded = CrystalJsonFormatter.Utf8NoBom.GetBytes(text, destination);
 				bytesWritten = bytesNeeded;
 				return true;
 			}
@@ -660,13 +694,13 @@ namespace Doxense.Serialization.Json
 			if (first > 0)
 			{ // copy the first clean portion of the string
 
-				int bytesNeeded = CrystalJson.Utf8NoBom.GetByteCount(text[..first]);
+				int bytesNeeded = CrystalJsonFormatter.Utf8NoBom.GetByteCount(text[..first]);
 				if (destination.Length < bytesNeeded)
 				{
 					goto too_small;
 				}
 
-				bytesNeeded = CrystalJson.Utf8NoBom.GetBytes(text[..first], destination);
+				bytesNeeded = CrystalJsonFormatter.Utf8NoBom.GetBytes(text[..first], destination);
 				text = text[first..];
 				destination = destination[bytesNeeded..];
 			}
@@ -801,11 +835,10 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
-		/// <summary>Encodes a string literal that must be written to a JSON document</summary>
-		/// <param name="text">Text to encode</param>
-		/// <returns>'null', '""', '"foo"', '"\""', '"\u0000"', ...</returns>
-		/// <remarks>String with the correct escaping and surrounded by double-quotes (<c>"..."</c>), or <c>"null"</c> if <paramref name="text"/> is <c>null</c></remarks>
-		/// <example>EncodeJsonString("foo") => "\"foo\""</example>
+		/// <summary>Encodes a string literal into a valid JSON string literal</summary>
+		/// <param name="text">Text to encode.</param>
+		/// <returns>String with the correct escaping and surrounded by double-quotes (<c>"..."</c>), or <c>"null"</c> if <paramref name="text"/> is <c>null</c>.</returns>
+		/// <example><code>EncodeJsonString("foo") => "\"foo\""</code></example>
 		public static string Encode(string? text)
 		{
 			// handle quickly the easy cases
@@ -936,11 +969,15 @@ namespace Doxense.Serialization.Json
 			return includeQuotes ? sb.Append('"') : sb;
 		}
 
-		/// <summary>Encodes a string literal into a JSON string, and appends the result to a StringBuilder</summary>
-		/// <param name="sb">Target string builder</param>
-		/// <param name="text">string literal to encode</param>
-		/// <returns>The same StringBuilder builder instance</returns>
-		/// <remarks>Note: appends <c>null</c> if <paramref name="text"/> is <see langword="null"/></remarks>
+		/// <summary>Encodes a string literal into a JSON string, and appends the result to a <see cref="StringBuilder"/>.</summary>
+		/// <param name="sb">The target <see cref="StringBuilder"/> to which the encoded string will be appended.</param>
+		/// <param name="text">The string literal to encode.</param>
+		/// <returns>The same <see cref="StringBuilder"/> instance with the encoded string appended.</returns>
+		/// <remarks>
+		/// <para>If <paramref name="text"/> is <see langword="null"/>, the method appends the <c>null</c> literal.</para>
+		/// <para>If <paramref name="text"/> is an empty string, the method appends an empty JSON string (<c>""</c>).</para>
+		/// <para>If <paramref name="text"/> contains characters that need escaping, the method encodes the string appropriately.</para>
+		/// </remarks>
 		public static StringBuilder Append(StringBuilder sb, string? text)
 		{
 			if (text == null)
@@ -948,176 +985,17 @@ namespace Doxense.Serialization.Json
 				return sb.Append("null");
 			}
 			if (text.Length == 0)
-			{ // chaîne vide -> ""
+			{ // empty -> "\"\""
 				return sb.Append("\"\"");
 			}
 			if (!JsonEncoding.NeedsEscaping(text))
-			{ // chaîne propre
+			{ // no encoding required
 				return sb.Append('"').Append(text).Append('"');
 			}
-			// chaîne qui nécessite (a priori) un encoding
+			// encoding required
 			return AppendSlow(sb, text, true);
 		}
 
-	}
-
-	/// <summary>Very basic (and slow!) JSON text builder</summary>
-	/// <remarks>Should be used for very small and infrequent JSON needs, when you don't want to reference a full JSON serializer</remarks>
-	[PublicAPI]
-	public sealed class SimpleJsonBuilder
-	{
-		internal enum Context
-		{
-			Top = 0,
-			Object,
-			Array
-		}
-
-		public struct State
-		{
-			internal int Index;
-			internal Context Context;
-		}
-
-		public readonly StringBuilder Buffer;
-		private State Current;
-
-		public SimpleJsonBuilder(StringBuilder? buffer = null)
-		{
-			this.Buffer = buffer ?? new StringBuilder();
-		}
-
-		public State BeginObject()
-		{
-			this.Buffer.Append('{');
-			var state = this.Current;
-			this.Current = new State { Context = Context.Object };
-			return state;
-		}
-
-		public void EndObject(State state)
-		{
-			if (this.Current.Context != Context.Object) throw new InvalidOperationException("Should be inside an object");
-			this.Buffer.Append(this.Current.Index == 0 ? "}" : " }");
-			this.Current = state;
-		}
-
-		public void WriteField(string field)
-		{
-			if (this.Current.Context != Context.Object) throw new InvalidOperationException("Must be inside an object");
-			this.Buffer.Append(this.Current.Index++ > 0 ? ", \"" : "\"").Append(field).Append("\": ");
-		}
-
-		public void Add(string field, string value)
-		{
-			var sb = this.Buffer;
-			WriteField(field);
-			JsonEncoding.Append(sb, value);
-		}
-
-		public void Add(string field, bool value)
-		{
-			WriteField(field);
-			this.Buffer.Append(value ? "true" : "false");
-		}
-
-		public void Add(string field, int value)
-		{
-			WriteField(field);
-			this.Buffer.Append(StringConverters.ToString(value));
-		}
-
-		public void Add(string field, long value)
-		{
-			WriteField(field);
-			this.Buffer.Append(StringConverters.ToString(value));
-		}
-
-		public void Add(string field, float value)
-		{
-			WriteField(field);
-			this.Buffer.Append(StringConverters.ToString(value));
-		}
-
-		public void Add(string field, double value)
-		{
-			WriteField(field);
-			this.Buffer.Append(StringConverters.ToString(value));
-		}
-
-		public void Add(string field, Guid value)
-		{
-			WriteField(field);
-			this.Buffer.Append('"').Append(value == Guid.Empty ? string.Empty : value.ToString()).Append('"');
-		}
-
-		public State BeginArray()
-		{
-			this.Buffer.Append('[');
-			var state = this.Current;
-			this.Current = new State { Context = Context.Array };
-			return state;
-		}
-
-		public void EndArray(State state)
-		{
-			if (this.Current.Context != Context.Array) throw new InvalidOperationException("Should be inside an array");
-			this.Buffer.Append(this.Current.Index == 0 ? "]" : " ]");
-			this.Current = state;
-		}
-
-		public void WriteArraySeparator()
-		{
-			if (this.Current.Context != Context.Array) throw new InvalidOperationException("Should be inside an array");
-			if (this.Current.Index++ > 0) this.Buffer.Append(", ");
-		}
-
-		public void Add(string value)
-		{
-			WriteArraySeparator();
-			JsonEncoding.Append(this.Buffer, value);
-		}
-
-		public void Add(bool value)
-		{
-			WriteArraySeparator();
-			this.Buffer.Append(value ? "true" : "false");
-		}
-
-		public void Add(int value)
-		{
-			WriteArraySeparator();
-			this.Buffer.Append(StringConverters.ToString(value));
-		}
-
-		public void Add(long value)
-		{
-			WriteArraySeparator();
-			this.Buffer.Append(StringConverters.ToString(value));
-		}
-
-		public void Add(float value)
-		{
-			WriteArraySeparator();
-			this.Buffer.Append(StringConverters.ToString(value));
-		}
-
-		public void Add(double value)
-		{
-			WriteArraySeparator();
-			this.Buffer.Append(StringConverters.ToString(value));
-		}
-
-		public void Add(Guid value)
-		{
-			WriteArraySeparator();
-			this.Buffer.Append('"').Append(value == Guid.Empty ? string.Empty : value.ToString()).Append('"');
-		}
-
-		public override string ToString()
-		{
-			return this.Buffer.ToString();
-		}
 	}
 
 }

@@ -46,9 +46,11 @@ namespace Doxense.Serialization.Json
 		/// <summary>Default type resolver</summary>
 		public static readonly CrystalJsonTypeResolver DefaultResolver = new();
 
+		/// <summary>Options when save JSON to disk</summary>
 		[Flags]
 		public enum SaveOptions
 		{
+			/// <summary>Use the default options</summary>
 			None = 0,
 			/// <summary>If the file already exists, save first into a temporary file, and swap it with the previous one in a single step</summary>
 			AtomicSave = 1,
@@ -58,9 +60,11 @@ namespace Doxense.Serialization.Json
 			Append = 4,
 		}
 
+		/// <summary>Options when load JSON from disk</summary>
 		[Flags]
 		public enum LoadOptions
 		{
+			/// <summary>Use the default options</summary>
 			None = 0,
 			/// <summary>If the file does not exist, return the default value of the type (null, 0, false, ...)</summary>
 			ReturnNullIfMissing = 1,
@@ -721,8 +725,8 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Serializes a boxed value into an UTF-8 encoded Slice</summary>
 		/// <param name="value">Instance to serialize (of any type)</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if <see langword="null"/>)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if <see langword="null"/>)</param>
 		/// <param name="pool">Pool used to allocate the content of the slice (use <see cref="ArrayPool{T}.Shared"/> if <see langword="null"/>)</param>
 		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">if the serialization fails</exception>
@@ -737,9 +741,9 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Serializes a boxed value into an UTF-8 encoded Slice</summary>
 		/// <param name="value">Instance to serialize (of any type)</param>
-		/// <param name="type">Advertized type of the instance, or <see langword="null"/> if it is not known.</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+		/// <param name="type">The advertised type of the instance, if known.</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if <see langword="null"/>)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if <see langword="null"/>)</param>
 		/// <param name="pool">Pool used to allocate the content of the slice (use <see cref="ArrayPool{T}.Shared"/> if <see langword="null"/>)</param>
 		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
 		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">if the serialization fails</exception>
@@ -770,17 +774,18 @@ namespace Doxense.Serialization.Json
 				writer.Dispose();
 				WriterPool.Free(writer);
 			}
+			
 		}
 
-		/// <summary>Serializes a boxed value into an UTF-8 encoded Slice</summary>
-		/// <param name="value">Instance to serialize (of any type)</param>
-		/// <param name="type">Advertized type of the instance, or <see langword="null"/> if it is not known.</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
-		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
-		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">if the serialization fails</exception>
+		/// <summary>Serializes a boxed value into an UTF-8 encoded Slice.</summary>
+		/// <param name="value">Instance to serialize (of any type).</param>
+		/// <param name="type">The advertised type of the instance, if known.</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if <see langword="null"/>).</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if <see langword="null"/>).</param>
+		/// <returns>Slice of memory that contains the UTF-8 encoded JSON document.</returns>
+		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">Thrown if the serialization fails.</exception>
 		/// <remarks>
-		/// <para>If <paramref name="type"/> is an interface or abstract class, or if <paramref name="value"/> is a derived type of <paramref name="type"/>, the serialized document may include an additional attribute with the original type name, which may not be recognized by other libraries or platforms.</para>
+		/// <para>If the type of the value is an interface or abstract class, or if the value is a derived type, the serialized document may include an additional attribute with the original type name, which may not be recognized by other libraries or platforms.</para>
 		/// </remarks>
 		[Pure]
 		public static Slice ToSlice(object? value, Type? type, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
@@ -807,13 +812,13 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		/// <summary>Serializes a boxed value to a <see cref="TextWriter"/></summary>
-		/// <param name="output">Destination where the serialized JSON document will be written</param>
-		/// <param name="value">Instance to serialize, can be <see langword="null"/></param>
-		/// <param name="declaredType">Advertized type of the instance. Use <c>typeof(object)</c> is unknown.</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
-		/// <returns>The same instance as <paramref name="output"/></returns>
+		/// <summary>Serializes a boxed value to a <see cref="TextWriter"/>.</summary>
+		/// <param name="output">The destination where the serialized JSON document will be written.</param>
+		/// <param name="value">The instance to serialize, which can be <see langword="null"/>.</param>
+		/// <param name="declaredType">The advertised type of the instance. Use <c>typeof(object)</c> if unknown.</param>
+		/// <param name="settings">The serialization settings. If <see langword="null"/>, default JSON settings will be used.</param>
+		/// <param name="resolver">A custom type resolver. If <see langword="null"/>, the default behavior will be used.</param>
+		/// <returns>The same instance as <paramref name="output"/>.</returns>
 		private static TextWriter SerializeToTextWriter(TextWriter output, object? value, Type declaredType, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			Contract.NotNull(output);
@@ -843,13 +848,13 @@ namespace Doxense.Serialization.Json
 			return output;
 		}
 
-		/// <summary>Serializes a boxed value to a <see cref="Stream"/></summary>
-		/// <param name="output">Destination where the serialized JSON document will be written</param>
-		/// <param name="value">Instance to serialize, can be <see langword="null"/></param>
-		/// <param name="declaredType">Advertized type of the instance. Use <c>typeof(object)</c> is unknown.</param>
-		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
-		/// <returns>The same instance as <paramref name="output"/></returns>
+		/// <summary>Serializes a boxed value to a <see cref="Stream"/>.</summary>
+		/// <param name="output">The destination stream where the serialized JSON document will be written.</param>
+		/// <param name="value">The instance to serialize, which can be <see langword="null"/>.</param>
+		/// <param name="declaredType">The advertised type of the instance. Use <c>typeof(object)</c> if unknown.</param>
+		/// <param name="settings">The serialization settings. If <see langword="null"/>, default JSON settings will be used.</param>
+		/// <param name="resolver">A custom type resolver. If <see langword="null"/>, the default behavior will be used.</param>
+		/// <returns>The same instance as <paramref name="output"/>.</returns>
 		private static Stream SerializeToStream(Stream output, object? value, Type declaredType, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			Contract.NotNull(output);
@@ -896,7 +901,6 @@ namespace Doxense.Serialization.Json
 			{
 				bufferSize = 0x14000; // 80K
 			}
-			//note: le StreamWriter va allouer un char[bufferSize] et un byte[3*bufferSize + 3]!
 
 			return new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize << 2, FileOptions.SequentialScan | FileOptions.WriteThrough);
 		}
@@ -1194,7 +1198,7 @@ namespace Doxense.Serialization.Json
 		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
 		/// <para>If the result is always expected to be an Array or an Object, please call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
 		/// </remarks>
-		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
+		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 		[Pure]
 		public static JsonValue Parse(ref ReadOnlySequence<char> jsonText, CrystalJsonSettings? settings = null)
 		{
@@ -1229,7 +1233,7 @@ namespace Doxense.Serialization.Json
 		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
 		/// <para>If the result is always expected to be an Array or an Object, please call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
 		/// </remarks>
-		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
+		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 		[Pure]
 		public static JsonValue ParseFrom(TextReader reader, CrystalJsonSettings? settings = null)
 		{
@@ -1245,7 +1249,7 @@ namespace Doxense.Serialization.Json
 		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
 		/// <para>If the result is always expected to be an Array or an Object, please call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
 		/// </remarks>
-		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
+		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 		[Pure]
 		internal static JsonValue ParseFromReader<TReader>(TReader source, CrystalJsonSettings? settings = null)
 			where TReader : struct, IJsonReader
@@ -1273,7 +1277,7 @@ namespace Doxense.Serialization.Json
 		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
 		/// <para>If the result is always expected to be an Array or an Object, please call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
 		/// </remarks>
-		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
+		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue ParseFrom(string path, CrystalJsonSettings? settings = null, LoadOptions options = LoadOptions.None)
 		{
@@ -1288,7 +1292,7 @@ namespace Doxense.Serialization.Json
 		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
 		/// <para>If the result is always expected to be an Array or an Object, please call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
 		/// </remarks>
-		/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
+		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 		[Pure]
 		public static JsonValue ParseFrom(Stream source, CrystalJsonSettings? settings = null)
 		{
@@ -1299,59 +1303,53 @@ namespace Doxense.Serialization.Json
 			return ParseFromReader(new JsonTextReader(reader), settings);
 		}
 
-		[Pure, ContractAnnotation("null => false")]
-		public static bool MaybeJsonDocument(byte[]? jsonBytes)
+		/// <summary>Checks if the buffer is likely to contain a JSON Object or Array</summary>
+		/// <param name="jsonBytes">Buffer contains UTF-8 encoded text to inspect</param>
+		/// <returns><see langword="true"/> if the buffer <b>MAY</b> contain either a JSON Object (<c>{...}</c>) or JSON Array (<c>[...]</c>)</returns>
+		/// <remarks>Note: this uses a heuristic that does not perform a complete analysis, and may return false positives!</remarks>
+		[Pure]
+		public static bool MaybeJsonDocument([NotNullWhen(true)] byte[]? jsonBytes)
 		{
 			return jsonBytes != null && MaybeJsonDocument(jsonBytes.AsSlice());
 		}
-
-		[Pure, ContractAnnotation("jsonBytes:null => false")]
-		public static bool MaybeJsonDocument(byte[]? jsonBytes, int offset, int count)
-		{
-			return jsonBytes != null && MaybeJsonDocument(jsonBytes.AsSlice(offset, count));
-		}
-
-		/// <summary>Essayes de déterminer si le buffer contient un document JSON (object ou array)</summary>
-		/// <param name="jsonBytes">Buffer contenant un document JSON (encodé en UTF-8 ou ASCII)</param>
-		/// <returns>True si le document pourrait être du JSON (object "{...}" ou array "[...]")</returns>
-		/// <remarks>Attention: L'heuristique ne garantit pas qu'il s'agit d'un document valide!</remarks>
+		/// <summary>Checks if the buffer is likely to contain a JSON Object or Array</summary>
+		/// <param name="jsonBytes">Buffer contains UTF-8 encoded text to inspect</param>
+		/// <returns><see langword="true"/> if the buffer <b>MAY</b> contain either a JSON Object (<c>{...}</c>) or JSON Array (<c>[...]</c>)</returns>
+		/// <remarks>Note: this uses a heuristic that does not perform a complete analysis, and may return false positives!</remarks>
 		[Pure]
 		public static bool MaybeJsonDocument(Slice jsonBytes)
 		{
-			if (jsonBytes.Count < 2) return false;
-
-			// cela peut "null"
-			if (jsonBytes.Count == 4
-			 && jsonBytes[0] == 110 /*'n'*/
-			 && jsonBytes[1] == 117 /*'u'*/
-			 && jsonBytes[2] == 108 /*'l'*/
-			 && jsonBytes[3] == 108 /*'l'*/)
+			return jsonBytes.HasValue && MaybeJsonDocument(jsonBytes.Span);
+		}
+		
+		/// <summary>Checks if the buffer is likely to contain a JSON Object or Array</summary>
+		/// <param name="jsonBytes">Buffer contains UTF-8 encoded text to inspect</param>
+		/// <returns><see langword="true"/> if the buffer <b>MAY</b> contain either a JSON Object (<c>{...}</c>) or JSON Array (<c>[...]</c>)</returns>
+		/// <remarks>Note: this uses a heuristic that does not perform a complete analysis, and may return false positives!</remarks>
+		[Pure]
+		public static bool MaybeJsonDocument(ReadOnlySpan<byte> jsonBytes)
+		{
+			// trim any whitespaces
+			jsonBytes = jsonBytes.Trim("\0\r\n\t "u8);
+			
+			// is it "null" ?
+			if (jsonBytes.SequenceEqual("null"u8))
+			{
 				return true;
-
-			// on recup le premier et dernier caractère valide (en skippant les espaces de chaque coté)
-			int p = jsonBytes.Offset;
-			int end = jsonBytes.Offset + jsonBytes.Count;
-			char first = (char) jsonBytes.Array[p++];
-			while (char.IsWhiteSpace(first) && p < end)
-			{
-				first = (char) jsonBytes.Array[p++];
 			}
 
-			p = end - 1;
-			char last = (char) jsonBytes.Array[p--];
-			while (char.IsWhiteSpace(last) && p >= jsonBytes.Offset)
-			{
-				last = (char) jsonBytes.Array[p--];
-			}
+			if (jsonBytes.Length < 2) return false;
 
-			// il faut que ca commence par "{" ou "["
+			// does it start/end with {} or [] ?
+			var first = jsonBytes[0];
+			var last = jsonBytes[^1];
+			
 			return (first == '{' && last == '}') || (first == '[' && last == ']');
 		}
 
-		/// <summary>Crée un reader sur un fichier sur le disque</summary>
-		/// <param name="path">Chemin du fichier à lire</param>
+		/// <summary>Creates a <see cref="StreamReader"/> that will load the content of a JSON file on disk</summary>
+		/// <param name="path">Path to the file to load</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
-		/// <returns>Reader prêt à lire depuis le fichier</returns>
 		[Pure]
 		private static StreamReader OpenJsonStreamReader(string path, CrystalJsonSettings? settings)
 		{
@@ -1366,7 +1364,6 @@ namespace Doxense.Serialization.Json
 			{
 				fileStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize << 2, FileOptions.SequentialScan);
 
-				// note: C'est le StreamWriter va fermera le FileStream quand il sera Dispose()
 				return new StreamReader(fileStream, Encoding.UTF8, true, bufferSize);
 			}
 			catch (Exception)
@@ -1759,9 +1756,8 @@ namespace Doxense.Serialization.Json
 
 		#region Helpers...
 
-		public const long Ticks1970Jan1 = 621355968000000000; // = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).Ticks;
+		internal const long Ticks1970Jan1 = 621355968000000000L; // = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).Ticks;
 
-		/// <summary>Retourne le nombre de ticks JavaScript correspondant à une date</summary>
 		internal static long DateToJavaScriptTicks(DateTime date)
 		{
 			long ticks = ((date != DateTime.MinValue && date != DateTime.MaxValue && date.Kind != DateTimeKind.Utc) ? date.ToUniversalTime() : date).Ticks;
@@ -1769,34 +1765,15 @@ namespace Doxense.Serialization.Json
 		}
 
 		internal static long DateToJavaScriptTicks(DateTimeOffset date)
-		{
-			return (date.UtcTicks - Ticks1970Jan1) / TimeSpan.TicksPerMillisecond;
-		}
+			=> (date.UtcTicks - Ticks1970Jan1) / TimeSpan.TicksPerMillisecond;
 
-		/// <summary>Retourne la date correspondant à un nombre de ticks JavaScript</summary>
 		internal static DateTime JavaScriptTicksToDate(long ticks)
-		{
-			return new DateTime((ticks * TimeSpan.TicksPerMillisecond) + Ticks1970Jan1, DateTimeKind.Utc);
-		}
+			=> new((ticks * TimeSpan.TicksPerMillisecond) + Ticks1970Jan1, DateTimeKind.Utc);
 
-		/// <summary>Encode une chaîne en JSON, et append le résultat à un StringBuilder</summary>
-		/// <param name="sb">Buffer où écrire le résultat</param>
-		/// <param name="text">Chaîne à encoder</param>
-		/// <returns>Le StringBuilder passé en paramètre (pour chainage)</returns>
-		/// <remarks>Note: Ajoute "null" si text==null &amp;&amp; includeQuotes==true</remarks>
-		public static StringBuilder StringAppend(StringBuilder sb, string? text)
-		{
-			return JsonEncoding.Append(sb, text);
-		}
-
-		/// <summary>Test if the resolver is the default resolver (<see langword="true"/>) or a customized resolver (<see langword="false"/>)</summary>
-		/// <param name="resolver"></param>
-		/// <returns></returns>
+		/// <summary>Tests if the resolver is the default resolver (<see langword="true"/>) or a customized resolver (<see langword="false"/>)</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal static bool IsDefaultResolver([NotNullWhen(false)] ICrystalJsonTypeResolver? resolver)
-		{
-			return resolver == null || ReferenceEquals(resolver, DefaultResolver);
-		}
+			=> resolver == null || ReferenceEquals(resolver, DefaultResolver);
 
 		#endregion
 
