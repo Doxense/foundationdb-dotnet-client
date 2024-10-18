@@ -1796,7 +1796,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="sb">Buffer où écrire le résultat</param>
 		/// <param name="text">Chaîne à encoder</param>
 		/// <returns>Le StringBuilder passé en paramètre (pour chainage)</returns>
-		/// <remarks>Note: Ajoute "null" si text==null && includeQuotes==true</remarks>
+		/// <remarks>Note: Ajoute "null" si text==null &amp;&amp; includeQuotes==true</remarks>
 		public static StringBuilder StringAppend(StringBuilder sb, string? text)
 		{
 			return JsonEncoding.Append(sb, text);

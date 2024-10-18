@@ -139,7 +139,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>If <see langword="true"/>, all strings will be escaped using single quotes (<c>'</c>), and property names will only be quoted if necessary</remarks>
 		public bool JavaScript => m_javascript;
 
-		/// <summary>Specifies if we will discard value type members that have a default value (0, false, null for Nullable&lt;T&;gt;, ...)</summary>
+		/// <summary>Specifies if we will discard value type members that have a default value (0, false, null for Nullable&lt;T&gt;, ...)</summary>
 		public bool DiscardDefaults => m_discardDefaults;
 
 		/// <summary>Specified if we wil discard reference type members that are null</summary>

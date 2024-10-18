@@ -834,7 +834,7 @@ namespace Doxense.Serialization
 		/// <returns><see langword="true"/> if the type implements the generic interface</returns>
 		/// <remarks>This method is required because <c>new List&lt;string>().GetType().IsAssignableTo(IList&lt;>)</c> returns false (the types implements <c>IList&lt;string&gt;</c> which is not the same as <c>IList&lt;&gt;</c>)</remarks>
 		/// <example><code>
-		/// typeof(List&lt;string&gt;).IsGenericInstanceOf(typeof(IList&lt;&gt;), out var closedType) == true && closedType == typeof(IList&lt;string&gt;)
+		/// typeof(List&lt;string&gt;).IsGenericInstanceOf(typeof(IList&lt;&gt;), out var closedType) == true &amp;&amp; closedType == typeof(IList&lt;string&gt;)
 		/// typeof(HashSet&lt;string&gt;).IsGenericInstanceOf(typeof(IList&lt;&gt;)) == false
 		/// </code></example>
 		[Pure]

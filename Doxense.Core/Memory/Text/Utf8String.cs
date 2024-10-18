@@ -242,7 +242,7 @@ namespace Doxense.Memory.Text
 		}
 
 		/// <summary>Test that both hash codes, if present, have the same value</summary>
-		/// <returns>False IIF h1 != nul && h2 != null && h1 != h2; otherwise, True</returns>
+		/// <returns>False IIF h1 != nul &amp;&amp; h2 != null && h1 != h2; otherwise, True</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private static bool SameOrMissingHashcode(int? h1, int? h2)
 		{

@@ -96,9 +96,9 @@ namespace Doxense.Serialization.Json.JPath
 			GreaterThan,
 			/// <summary>'>=' operator</summary>
 			GreaterThanOrEqual,
-			/// <summary>'&&' operator means both sides are true.</summary>
+			/// <summary>'&amp;&amp;' operator means both sides are true.</summary>
 			AndAlso,
-			/// <summary>'&&' operator means at least one is true.</summary>
+			/// <summary>'||' operator means at least one is true.</summary>
 			OrElse,
 		}
 

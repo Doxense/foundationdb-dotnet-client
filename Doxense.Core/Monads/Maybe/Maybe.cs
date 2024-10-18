@@ -413,7 +413,7 @@ namespace Doxense
 			return value == null ? Maybe<T>.Nothing : new Maybe<T>(value);
 		}
 
-		/// <summary>Convertit un T? en Maybe&lt;T&;t (lorsque T est un ValueType)</summary>
+		/// <summary>Convertit un T? en Maybe&lt;T&;gt (lorsque T est un ValueType)</summary>
 		/// <typeparam name="T">ValueType</typeparam>
 		/// <param name="value">Nullable à convertir</param>
 		/// <returns>Version maybe du nullable, qui vaut Nothing si le nullable est default(T?), ou la valeur elle même s'il contient un résultat.</returns>
@@ -513,7 +513,7 @@ namespace Doxense
 			return Maybe<T>.Failure(new AggregateException(error0, error1));
 		}
 
-		/// <summary>Convertit un Maybe&lt;T&;t en T? (lorsque T est un ValueType)</summary>
+		/// <summary>Convertit un Maybe&lt;T&;gt en T? (lorsque T est un ValueType)</summary>
 		/// <typeparam name="T">ValueType</typeparam>
 		/// <param name="m">Maybe à convertir</param>
 		/// <returns>Version nullable du maybe, qui vaut default(T?) si le Maybe est Nothing, ou la valeur elle même s'il contient un résultat.</returns>

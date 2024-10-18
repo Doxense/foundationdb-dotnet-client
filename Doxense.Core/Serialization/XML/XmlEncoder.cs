@@ -56,7 +56,7 @@ namespace Doxense.Serialization.Xml
 
 		#endregion
 
-		/// <summary>HTMLEncode une chaine de caractère (& => &amp; , etc...)</summary>
+		/// <summary>HTMLEncode une chaine de caractère (&amp; => &amp;amp; , etc...)</summary>
 		/// <param name="text">Chaîne à encoder</param>
 		/// <returns>Chaîne encodée</returns>
 		/// <remarks>Version optimisée qui n'alloue pas de mémoire si la chaîne est deja clean</remarks>
@@ -69,7 +69,7 @@ namespace Doxense.Serialization.Xml
 			return XmlEncodeSlow(new StringBuilder(text.Length + 16), text, true).ToString();
 		}
 
-		/// <summary>HTMLEncode une chaîne de caractère (& => &amp; , etc...)</summary>
+		/// <summary>HTMLEncode une chaîne de caractère (&amp; => &amp;amp; , etc...)</summary>
 		/// <param name="sb">Buffer où écrire le résultat</param>
 		/// <param name="text">Chaîne à encoder</param>
 		public static StringBuilder AppendTo(StringBuilder sb, string? text)

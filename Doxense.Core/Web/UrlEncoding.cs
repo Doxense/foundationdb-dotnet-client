@@ -154,7 +154,7 @@ namespace Doxense.Web
 		/// <param name="qs">QueryString à parser (sous la forme 'name1=value1&amp;name2=value2&amp;...')</param>
 		/// <param name="encoding">Encoding utilisé (par défaut UTF-8 si null)</param>
 		/// <returns>NameValueCollection contenant les paramètres de la querystring</returns>
-		/// <remarks>"foo&..." contiendra null, "foo=&..." contiendra String.Empty</remarks>
+		/// <remarks>"foo&amp;..." contiendra null, "foo=&amp;..." contiendra String.Empty</remarks>
 		[Pure]
 		public static NameValueCollection ParseQueryString(string? qs, Encoding? encoding = null)
 		{
