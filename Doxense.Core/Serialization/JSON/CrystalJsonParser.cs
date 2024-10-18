@@ -29,9 +29,11 @@
 
 namespace Doxense.Serialization.Json
 {
+#if NET8_0_OR_GREATER
+	using System.Buffers;
+#endif
 	using System.Globalization;
 	using System.Reflection;
-	using System.Text;
 	using Doxense.Linq;
 	using Doxense.Text;
 	using Doxense.Tools;
@@ -65,6 +67,13 @@ namespace Doxense.Serialization.Json
 	{
 		internal const char EndOfStream = '\xFFFF'; // == -1
 
+#if NET8_0_OR_GREATER
+		
+
+		internal static readonly SearchValues<char> WhiteCharsMap = SearchValues.Create("\t\r\n ");
+		//REVIEW: is '\xA0' (&#160;) considered a whitespace in the JSON spec and/or popular parser implementations ?
+
+#else
 		internal static readonly bool[] WhiteCharsMap = ComputeWhiteCharMap();
 
 		internal const int WHITE_CHAR_MAP = 33; // 0..32
@@ -79,6 +88,7 @@ namespace Doxense.Serialization.Json
 			map[' '] = true;
 			return map;
 		}
+#endif
 
 		internal static readonly JsonTokenType[] TokenMap =
 		[
@@ -259,8 +269,7 @@ namespace Doxense.Serialization.Json
 
 			// the number is a decimal number, or has en exponent, we need to parse the string
 			var value = ParseNumberFromLiteral(literal, literal, negative, hasDot, hasExponent);
-			if (value is null) throw InvalidNumberFormat(literal, "malformed");
-			return value;
+			return value ?? throw InvalidNumberFormat(literal, "malformed");
 		}
 
 		internal static JsonNumber? ParseNumberFromLiteral(ReadOnlySpan<char> literal, string? original, bool negative, bool hasDot, bool hasExponent)
@@ -414,6 +423,7 @@ namespace Doxense.Serialization.Json
 		#region Deserialization...
 
 		/// <summary>Deserializes a custom class or struct</summary>
+		[RequiresUnreferencedCode("The type might be removed")]
 		public static object? DeserializeCustomClassOrStruct(JsonObject data, Type type, ICrystalJsonTypeResolver resolver)
 		{
 			if (type == typeof(object) || type.IsInterface || type.IsClass)

@@ -28,7 +28,6 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System.Buffers;
 	using Doxense.Text;
 
 	/// <summary>Tokenizer for JSON text documents</summary>
@@ -109,9 +108,31 @@ namespace Doxense.Serialization.Json
 				this.Token = EMPTY_TOKEN;
 			}
 
-			//REVIEW: vérifier si '\xA0' (&#160;) est considéré comme un espace ou non par JSON et JS ?
+#if NET8_0_OR_GREATER
+			return !CrystalJsonParser.WhiteCharsMap.Contains(c) ? c : ConsumeWhiteSpaces();
+#else
 			return c >= CrystalJsonParser.WHITE_CHAR_MAP ? c : ConsumeWhiteSpaces(c);
+#endif
 		}
+
+#if NET8_0_OR_GREATER
+		
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		private char ConsumeWhiteSpaces()
+		{
+			var wc = CrystalJsonParser.WhiteCharsMap;
+			// caller already checked that c is a whitespace, but there could be more...
+			char c;
+			do
+			{
+				c = ReadOne();
+			}
+			while (wc.Contains(c));
+			
+			return c;
+		}
+		
+#else
 
 		[MethodImpl(MethodImplOptions.NoInlining)]
 		private char ConsumeWhiteSpaces(char token)
@@ -127,6 +148,8 @@ namespace Doxense.Serialization.Json
 			}
 			return c;
 		}
+		
+#endif
 
 		/// <summary>Puts back a character that was previously read</summary>
 		/// <remarks>

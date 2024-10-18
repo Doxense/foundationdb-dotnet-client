@@ -511,12 +511,14 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
+		[RequiresUnreferencedCode("The type might be removed")]
 		public override object ToObject()
 		{
 			return m_value;
 		}
 
-		public override T? Bind<T>(T? defaultValue = default, ICrystalJsonTypeResolver? resolver = null) where T : default
+		/// <inheritdoc />
+		public override T? Bind<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>(T? defaultValue = default, ICrystalJsonTypeResolver? resolver = null) where T : default
 		{
 			#region <JIT_HACK>
 			// pattern recognized and optimized by the JIT, only in Release build
@@ -601,14 +603,13 @@ namespace Doxense.Serialization.Json
 			}
 
 			#endregion
-
 		}
 
-		public override object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null)
+		/// <inheritdoc />
+		public override object? Bind([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type? type, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (type is null || typeof(string) == type || typeof(object) == type)
 			{
-				//TODO: si object, heuristics pour convertir en DateTime ?
 				return m_value;
 			}
 
@@ -644,7 +645,6 @@ namespace Doxense.Serialization.Json
 						//note: decimal and DateTime are not 'IsPrimitive' !
 					}
 				}
-				//TODO: utiliser un dictionnaire Type => Func<...> pour speeder le test?
 				else if (typeof(DateTime) == type)
 				{
 					return ToDateTime();

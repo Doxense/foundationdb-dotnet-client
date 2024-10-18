@@ -28,7 +28,6 @@ namespace Doxense.Serialization.Json
 {
 	using System.ComponentModel;
 	using System.Globalization;
-	using System.Text;
 	using Doxense.Memory;
 
 	[Serializable]
@@ -53,6 +52,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>Prefer casting to a specific type, using <see cref="JsonValueExtensions.As{TValue}">As&lt;TValue&gt;()</see> or any equivalent method.</remarks>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Never)]
+		[RequiresUnreferencedCode("The type might be removed")]
 		public abstract object? ToObject();
 
 		/// <summary>Bind this value into an instance of the specified <paramref name="type"/></summary>
@@ -64,7 +64,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>If the target type is a Value Type, the instance will be boxed, which may cause extra memory allocations. Consider calling <see cref="Bind{TValue}"/> instance, or use any of the convenience methods like <see cref="JsonValueExtensions.Required{TValue}"/>, <see cref="JsonValueExtensions.As{TValue}"/>, ...</remarks>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public abstract object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null);
+		public abstract object? Bind([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type? type, ICrystalJsonTypeResolver? resolver = null);
 
 		/// <summary>Bind this value into an instance of type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Target managed type</typeparam>
@@ -75,7 +75,7 @@ namespace Doxense.Serialization.Json
 		/// <example><c>JsonNumber.Return(123).Bind&lt;long>()</c> will return the value <c>123</c>.</example>
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public virtual TValue? Bind<TValue>(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null)
+		public virtual TValue? Bind<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TValue>(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null)
 		{
 			var res = Bind(typeof(TValue), resolver);
 			return res is not null ? (TValue?) res : defaultValue;
@@ -281,7 +281,10 @@ namespace Doxense.Serialization.Json
 		/// <param name="comparer">Custom equality comparer if specified; otherwise, uses the default comparer for this type</param>
 		/// <returns><see langword="true"/> if both arguments are considered equal; otherwise, <see langword="false"/></returns>
 		/// <remarks>This method tries to perform an optimized comparison, and should perform less memory allocations than calling </remarks>
-		public virtual bool ValueEquals<TValue>(TValue? value, IEqualityComparer<TValue>? comparer = null) => (comparer ?? EqualityComparer<TValue>.Default).Equals(Bind<TValue>(), value);
+		public virtual bool ValueEquals<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TValue>
+			(TValue? value, IEqualityComparer<TValue>? comparer = null)
+			=> (comparer ?? EqualityComparer<TValue>.Default).Equals(Bind<TValue>(), value);
 
 		/// <summary>Tests if two JSON values are equivalent</summary>
 		public static bool Equals(JsonValue? left, JsonValue? right) => (left ?? JsonNull.Missing).Equals(right ?? JsonNull.Missing);
@@ -1419,7 +1422,7 @@ namespace Doxense.Serialization.Json
 		private JsonValue GetPathCore(JsonPath path, JsonValue? defaultValue, bool required)
 		{
 			var current = this;
-			foreach (var (parent, key, idx, last) in path)
+			foreach (var (_, key, idx, _) in path)
 			{
 				if (key.Length > 0)
 				{ // field access
@@ -1810,7 +1813,7 @@ namespace Doxense.Serialization.Json
 		ulong IConvertible.ToUInt64(IFormatProvider? provider) => ToUInt64();
 
 		/// <inheritdoc />
-		object IConvertible.ToType(Type conversionType, IFormatProvider? provider) => Bind(conversionType, null)!;
+		object IConvertible.ToType(Type conversionType, IFormatProvider? provider) => Bind(conversionType)!;
 
 		#endregion
 

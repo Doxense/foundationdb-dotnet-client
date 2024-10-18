@@ -1825,25 +1825,6 @@ namespace Doxense.Serialization.Json
 
 		#region Getters...
 
-		[ContractAnnotation("required:true => notnull")]
-		private TJson? InternalGet<TJson>(JsonType expectedType, string key, bool required)
-			where TJson : JsonValue
-		{
-			if (!m_items.TryGetValue(key, out var value) || value is JsonNull)
-			{ // The property does not exist in this object, or is null or missing
-				if (required) JsonValueExtensions.FailFieldIsNullOrMissing(this, key);
-				return null;
-			}
-			if (value.Type != expectedType)
-			{ // The property exists, but is not of the expected type ??
-				throw Error_ExistingKeyTypeMismatch(key, value, expectedType);
-			}
-			return (TJson) value;
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		private static ArgumentException Error_ExistingKeyTypeMismatch(string key, JsonValue value, JsonType expectedType) => new($"The specified key '{key}' exists, but is a {value.Type} instead of expected {expectedType}", nameof(key));
-
 		/// <summary>Tests if the object contains the <paramref name="key"/> property.</summary>
 		/// <param name="key">Name of the property</param>
 		/// <returns>Returns <see langword="true" /> if the entry is present; otherwise, <see langword="false" /></returns>
@@ -3064,12 +3045,15 @@ namespace Doxense.Serialization.Json
 		/// <summary>Converts this JSON Object into a <see cref="Dictionary{TKey,TValue}">Dictionary&lt;string, object?&gt;</see>.</summary>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Never)]
+		[RequiresUnreferencedCode("The type might be removed")]
 		public override object? ToObject()
 		{
 			return CrystalJsonParser.DeserializeCustomClassOrStruct(this, typeof(object), CrystalJson.DefaultResolver);
 		}
 
-		public override TValue? Bind<TValue>(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null) where TValue : default
+		public override TValue? Bind<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TValue>
+			(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null) where TValue : default
 		{
 			var res = (resolver ?? CrystalJson.DefaultResolver).BindJsonObject(typeof(TValue), this);
 			if (res is null)
@@ -3081,7 +3065,9 @@ namespace Doxense.Serialization.Json
 			return (TValue?) res;
 		}
 
-		public override object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null)
+		public override object? Bind(
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type? type,
+			ICrystalJsonTypeResolver? resolver = null)
 		{
 			return (resolver ?? CrystalJson.DefaultResolver).BindJsonObject(type, this);
 		}
@@ -3204,6 +3190,7 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
+		[RequiresUnreferencedCode("The type might be removed")]
 		public ExpandoObject ToExpando()
 		{
 			var expando = new ExpandoObject();

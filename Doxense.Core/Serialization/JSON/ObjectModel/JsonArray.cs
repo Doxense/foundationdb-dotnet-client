@@ -160,19 +160,6 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		/// <summary>Tests if there is at least one mutable element in the specified array</summary>
-		private static bool CheckAnyMutable(ReadOnlySpan<JsonValue> items)
-		{
-			foreach (var item in items)
-			{
-				if (!item.IsReadOnly)
-				{
-					return true;
-				}
-			}
-			return false;
-		}
-
 		/// <summary>Freezes this object and all its children, and mark it as read-only.</summary>
 		/// <remarks>
 		/// <para>This is similar to the <c>{ get; init; }</c> pattern for CLR records, and allows initializing a JSON object and then marking it as read-only once it is ready to be returned and/or shared, without performing extra memory allocations.</para>
@@ -2440,14 +2427,14 @@ namespace Doxense.Serialization.Json
 			}
 
 			// get the corresponding slice
-			var tmp = this.AsSpan().Slice(index);
+			var tmp = this.AsSpan()[index..];
 			if (tmp.Length == 0)
 			{ // empty
-				return m_readOnly ? JsonArray.EmptyReadOnly : new JsonArray();
+				return m_readOnly ? JsonArray.EmptyReadOnly : new();
 			}
 
 			// return a new array wrapping these items
-			return new JsonArray(tmp.ToArray(), tmp.Length, m_readOnly);
+			return new(tmp.ToArray(), tmp.Length, m_readOnly);
 		}
 
 		/// <summary>Returns a new <see cref="JsonArray">JSON Array</see> with a shallow copy of all the items starting from the specified index</summary>
@@ -2493,7 +2480,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Returns a read-only span of the items in this array, starting from the specified index</summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
-		public ReadOnlySpan<JsonValue> GetSpan(int start) => this.AsSpan().Slice(start);
+		public ReadOnlySpan<JsonValue> GetSpan(int start) => this.AsSpan()[start..];
 
 		/// <summary>Returns a read-only span of the items in this array, starting from the specified index for a specified length</summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
@@ -2513,7 +2500,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Returns a read-only span of the items in this array, starting from the specified index</summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
-		public ReadOnlyMemory<JsonValue> GetMemory(int start) => this.AsMemory().Slice(start);
+		public ReadOnlyMemory<JsonValue> GetMemory(int start) => this.AsMemory()[start..];
 
 		/// <summary>Returns a read-only span of the items in this array, starting from the specified index for a specified length</summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
@@ -2687,15 +2674,16 @@ namespace Doxense.Serialization.Json
 				{
 					return "[ " + items[0].GetCompactRepresentation(depth + 1) + " ]";
 				}
-				switch (GetElementsTypeOrDefault())
+
+				return GetElementsTypeOrDefault() switch
 				{
-					case JsonType.Number:  return size == 2 ? "[ " + items[0] + ", " + items[1] + " ]" : $"[ /* {size:N0} Numbers */ ]";
-					case JsonType.Array:   return $"[ /* {size:N0} Arrays */ ]";
-					case JsonType.Object:  return $"[ /* {size:N0} Objects */ ]";
-					case JsonType.Boolean: return size == 2 ? "[ " + items[0] + ", " + items[1] + " ]" : $"[ /* {size:N0} Booleans */ ]";
-					case JsonType.String:  return size == 2 ? "[ " + items[0] + ", " + items[1] + " ]" : $"[ /* {size:N0} Strings */ ]";
-					default:               return $"[ /* {size:N0} x \u2026 */ ]";
-				}
+					JsonType.Number  => size == 2 ? "[ " + items[0] + ", " + items[1] + " ]" : $"[ /* {size:N0} Numbers */ ]",
+					JsonType.Array   => $"[ /* {size:N0} Arrays */ ]",
+					JsonType.Object  => $"[ /* {size:N0} Objects */ ]",
+					JsonType.Boolean => size == 2 ? "[ " + items[0] + ", " + items[1] + " ]" : $"[ /* {size:N0} Booleans */ ]",
+					JsonType.String  => size == 2 ? "[ " + items[0] + ", " + items[1] + " ]" : $"[ /* {size:N0} Strings */ ]",
+					_                => $"[ /* {size:N0} x \u2026 */ ]"
+				};
 			}
 
 			var sb = new StringBuilder(128);
@@ -2723,6 +2711,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Converts this <see cref="JsonArray">JSON Array</see> with a <see cref="List{T}">List&lt;object?></see>.</summary>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Never)]
+		[RequiresUnreferencedCode("The type might be removed")]
 		public override object ToObject()
 		{
 			//TODO: detect when all items have the same type T,

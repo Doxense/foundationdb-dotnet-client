@@ -89,18 +89,25 @@ namespace Doxense.Serialization.Json
 		public override JsonType Type => JsonType.Null;
 
 		/// <inheritdoc />
+		[RequiresUnreferencedCode("The type might be removed")]
 		public override object? ToObject() => null;
 
-		public override T? Bind<T>(T? defaultValue = default, ICrystalJsonTypeResolver? resolver = null) where T : default
+		/// <inheritdoc />
+		public override TValue? Bind<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TValue>
+			(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null) where TValue : default
 		{
-			if (default(T) is null && (typeof(T) == typeof(JsonValue) || typeof(T) == typeof(JsonNull)))
+			if (default(TValue) is null && (typeof(TValue) == typeof(JsonValue) || typeof(TValue) == typeof(JsonNull)))
 			{
-				return defaultValue ?? (T?) (object) this;
+				return defaultValue ?? (TValue?) (object) this;
 			}
 			return defaultValue;
 		}
 
-		public override object? Bind([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type? type, ICrystalJsonTypeResolver? resolver = null)
+		/// <inheritdoc />
+		public override object? Bind(
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type? type,
+			ICrystalJsonTypeResolver? resolver = null)
 		{
 			// If we bind to JsonValue (or JsonNull), we must keep the same singleton (JsonNull.Null, JsonNull.Missing, ...)
 			if (type == typeof(JsonValue) || type == typeof(JsonNull))

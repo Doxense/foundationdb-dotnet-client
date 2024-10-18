@@ -70,9 +70,13 @@ namespace Doxense.Serialization.Json
 		public override bool IsReadOnly => true; //note: booleans are immutable
 
 		/// <inheritdoc />
+		[RequiresUnreferencedCode("The type might be removed")]
 		public override object ToObject() => m_value;
 
-		public override T? Bind<T>(T? defaultValue = default, ICrystalJsonTypeResolver? resolver = null) where T : default
+		/// <inheritdoc />
+		public override TValue? Bind<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TValue>
+			(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null) where TValue : default
 		{
 			#region <JIT_HACK>
 			// pattern recognized and optimized by the JIT, only in Release build
@@ -105,10 +109,14 @@ namespace Doxense.Serialization.Json
 #endif
 			#endregion
 
-			return (T?) BindNative(this, m_value, typeof(T), resolver) ?? defaultValue;
+			return (TValue?) BindNative(this, m_value, typeof(TValue), resolver) ?? defaultValue;
 		}
 
-		public override object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null) => BindNative(this, m_value, type, resolver);
+		/// <inheritdoc />
+		public override object? Bind(
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type? type,
+			ICrystalJsonTypeResolver? resolver = null)
+			=> BindNative(this, m_value, type, resolver);
 
 		/// <inheritdoc />
 		internal override bool IsSmallValue() => true;
