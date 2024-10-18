@@ -329,9 +329,9 @@ namespace Doxense.Serialization.Json
 					{
 						// we have to convert the chunk of text into UTF-8 bytes
 
-						var byteCount = CrystalJson.Utf8NoBom.GetByteCount(m_buffer.Span);
+						var byteCount = CrystalJsonFormatter.Utf8NoBom.GetByteCount(m_buffer.Span);
 						var tmp = ArrayPool<byte>.Shared.Rent(byteCount);
-						int n = CrystalJson.Utf8NoBom.GetBytes(m_buffer.Span, tmp);
+						int n = CrystalJsonFormatter.Utf8NoBom.GetBytes(m_buffer.Span, tmp);
 
 						stream.Write(tmp, 0, n);
 
@@ -383,9 +383,9 @@ namespace Doxense.Serialization.Json
 					if (m_buffer.Count > 0)
 					{
 						//TODO: we have to convert into UTF8
-						var byteCount = CrystalJson.Utf8NoBom.GetByteCount(m_buffer.Span);
+						var byteCount = CrystalJsonFormatter.Utf8NoBom.GetByteCount(m_buffer.Span);
 						var tmp = ArrayPool<byte>.Shared.Rent(byteCount);
-						int n = CrystalJson.Utf8NoBom.GetBytes(m_buffer.Span, tmp);
+						int n = CrystalJsonFormatter.Utf8NoBom.GetBytes(m_buffer.Span, tmp);
 						if (stream is MemoryStream ms)
 						{
 							ct.ThrowIfCancellationRequested();

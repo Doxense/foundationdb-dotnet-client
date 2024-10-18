@@ -465,7 +465,7 @@ namespace Doxense.Serialization.Json
 
 			Span<char> chars = stackalloc char[48]; // "xxxx-xx-xxTxx:xx:xx.xxxxxxx+xx:xx"
 			if (!TryFormat(chars, out int charsWritten, format, provider) 
-			 || !CrystalJson.Utf8NoBom.TryGetBytes(chars[..charsWritten], destination, out bytesWritten))
+			 || !CrystalJsonFormatter.Utf8NoBom.TryGetBytes(chars[..charsWritten], destination, out bytesWritten))
 			{
 				bytesWritten = 0;
 				return false;

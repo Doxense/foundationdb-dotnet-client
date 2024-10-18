@@ -2039,7 +2039,7 @@ namespace Doxense.Serialization.Json
 			if (literal is not null)
 			{ // we will output the original literal unless we need to do some special formatting...
 
-				return CrystalJson.Utf8NoBom.TryGetBytes(literal, destination, out bytesWritten);
+				return CrystalJsonFormatter.Utf8NoBom.TryGetBytes(literal, destination, out bytesWritten);
 			}
 
 			switch (m_kind)

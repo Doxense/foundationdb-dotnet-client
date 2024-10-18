@@ -295,7 +295,7 @@ namespace Doxense.Linq
 
 		public readonly Slice ToUtf8Slice(ArrayPool<byte>? pool = null)
 		{
-			var enc = CrystalJson.Utf8NoBom;
+			var enc = CrystalJsonFormatter.Utf8NoBom;
 			var span = this.Span;
 			int size = enc.GetByteCount(span);
 			var tmp = pool?.Rent(size) ?? new byte[size];
@@ -306,7 +306,7 @@ namespace Doxense.Linq
 		public readonly SliceOwner ToUtf8SliceOwner(ArrayPool<byte>? pool = null)
 		{
 			pool ??= ArrayPool<byte>.Shared;
-			var enc = CrystalJson.Utf8NoBom;
+			var enc = CrystalJsonFormatter.Utf8NoBom;
 			var span = this.Span;
 			int size = enc.GetByteCount(span);
 			var tmp = pool.Rent(size);
@@ -346,25 +346,25 @@ namespace Doxense.Linq
 
 		public readonly int CopyToUtf8(Span<byte> destination)
 		{
-			return CrystalJson.Utf8NoBom.GetBytes(this.Span, destination);
+			return CrystalJsonFormatter.Utf8NoBom.GetBytes(this.Span, destination);
 		}
 
 		public readonly bool TryCopyToUtf8(Span<byte> destination, out int written)
 		{
 #if NET8_0_OR_GREATER
-			if (!CrystalJson.Utf8NoBom.TryGetBytes(this.Span, destination, out written))
+			if (!CrystalJsonFormatter.Utf8NoBom.TryGetBytes(this.Span, destination, out written))
 			{
 				return false;
 			}
 #else
-			int required = CrystalJson.Utf8NoBom.GetByteCount(this.Span);
+			int required = CrystalJsonFormatter.Utf8NoBom.GetByteCount(this.Span);
 			if (destination.Length < required)
 			{
 				written = 0;
 				return false;
 			}
 
-			written = CrystalJson.Utf8NoBom.GetBytes(this.Span, destination);
+			written = CrystalJsonFormatter.Utf8NoBom.GetBytes(this.Span, destination);
 #endif
 			return true;
 		}
@@ -380,7 +380,7 @@ namespace Doxense.Linq
 
 		public readonly void CopyTo(IBufferWriter<byte> destination)
 		{
-			CrystalJson.Utf8NoBom.GetBytes(this.Span, destination);
+			CrystalJsonFormatter.Utf8NoBom.GetBytes(this.Span, destination);
 		}
 
 		public readonly void CopyTo(Stream destination)

@@ -43,9 +43,8 @@ namespace Doxense.Serialization.Json
 	public static class CrystalJson
 	{
 
+		/// <summary>Default type resolver</summary>
 		public static readonly CrystalJsonTypeResolver DefaultResolver = new();
-
-		public static readonly UTF8Encoding Utf8NoBom = CrystalJsonFormatter.Utf8NoBom;
 
 		[Flags]
 		public enum SaveOptions
