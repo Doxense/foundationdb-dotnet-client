@@ -1132,7 +1132,7 @@ namespace Doxense.Serialization.Json
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 			if (items.Length == 0) return this;
 
-			// pré-alloue si on connait à l'avance la taille
+			// pre-allocate the backing array
 			int newSize = checked(this.Count + items.Length);
 			EnsureCapacity(newSize);
 			var tail = m_items.AsSpan(m_size, items.Length);
@@ -1299,7 +1299,6 @@ namespace Doxense.Serialization.Json
 			var type = typeof(TValue);
 			foreach (var value in items)
 			{
-				//note: l'overhead de Add() est minimum, donc pas besoin d'optimiser particulièrement ici
 				Add(dom.ParseObjectInternal(ref context, value, type, null));
 			}
 			return this;
@@ -1319,8 +1318,7 @@ namespace Doxense.Serialization.Json
 			Contract.NotNull(transform);
 			if (items.Length == 0) return this;
 
-			// il y a plus de chances que items soit une liste/array/collection (sauf s'il y a un Where(..) avant)
-			// donc ca vaut le coup tenter de pré-allouer l'array
+			// pre-allocate the backing array
 			int newSize = checked(this.Count + items.Length);
 			EnsureCapacity(newSize);
 			var tail = m_items.AsSpan(m_size, items.Length);
@@ -1385,7 +1383,6 @@ namespace Doxense.Serialization.Json
 			var type = typeof(TValue);
 			for(int i = 0; i < tail.Length; i++)
 			{
-				//note: l'overhead de Add() est minimum, donc pas besoin d'optimiser particulièrement ici
 				tail[i] = dom.ParseObjectInternal(ref context, transform(items[i]), type, null);
 			}
 			m_size = newSize;
@@ -1425,8 +1422,7 @@ namespace Doxense.Serialization.Json
 				return AddValues(span, transform, settings, resolver);
 			}
 
-			// il y a plus de chances que items soit une liste/array/collection (sauf s'il y a un Where(..) avant)
-			// donc ca vaut le coup tenter de pré-allouer l'array
+			// pre-allocate if we know the final size
 			if (items.TryGetNonEnumeratedCount(out var count))
 			{
 				EnsureCapacity(checked(this.Count + count));
@@ -1491,7 +1487,6 @@ namespace Doxense.Serialization.Json
 			var type = typeof(TValue);
 			foreach (var item in items)
 			{
-				//note: l'overhead de Add() est minimum, donc pas besoin d'optimiser particulièrement ici
 				Add(dom.ParseObjectInternal(ref context, transform(item), type, null));
 			}
 			return this;
@@ -1508,7 +1503,7 @@ namespace Doxense.Serialization.Json
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 			if (items.Length == 0) return this;
 
-			// pré-alloue si on connait à l'avance la taille
+			// pre-allocate the backing array
 			int newSize = checked(this.Count + items.Length);
 			EnsureCapacity(newSize);
 			var tail = m_items.AsSpan(m_size, items.Length);
@@ -1581,7 +1576,6 @@ namespace Doxense.Serialization.Json
 			var type = typeof(TValue);
 			for (int i = 0; i < items.Length; i++)
 			{
-				//note: l'overhead de Add() est minimum, donc pas besoin d'optimiser particulièrement ici
 				tail[i] = dom.ParseObjectInternal(ref context, items[i], type, null);
 			}
 			m_size = newSize;
@@ -1677,7 +1671,6 @@ namespace Doxense.Serialization.Json
 			var type = typeof(TValue);
 			foreach (var value in items)
 			{
-				//note: l'overhead de Add() est minimum, donc pas besoin d'optimiser particulièrement ici
 				Add(dom.ParseObjectInternal(ref context, value, type, null));
 			}
 			return this;
@@ -1697,8 +1690,6 @@ namespace Doxense.Serialization.Json
 			Contract.NotNull(transform);
 			if (items.Length == 0) return this;
 
-			// il y a plus de chances que items soit une liste/array/collection (sauf s'il y a un Where(..) avant)
-			// donc ca vaut le coup tenter de pré-allouer l'array
 			int newSize = checked(this.Count + items.Length);
 			EnsureCapacity(newSize);
 			var tail = m_items.AsSpan(m_size, items.Length);
@@ -1763,7 +1754,6 @@ namespace Doxense.Serialization.Json
 			var type = typeof(TValue);
 			for(int i = 0; i < tail.Length; i++)
 			{
-				//note: l'overhead de Add() est minimum, donc pas besoin d'optimiser particulièrement ici
 				tail[i] = dom.ParseObjectInternal(ref context, transform(items[i]), type, null);
 			}
 			m_size = newSize;
@@ -1803,8 +1793,8 @@ namespace Doxense.Serialization.Json
 				return AddValuesReadOnly(span, transform, settings, resolver);
 			}
 
-			// il y a plus de chances que items soit une liste/array/collection (sauf s'il y a un Where(..) avant)
-			// donc ca vaut le coup tenter de pré-allouer l'array
+			// there is a higher chance that items are a list/array/collection (unless there is a Where(..) before)
+			// so it's worth trying to pre-allocate the array
 			if (items.TryGetNonEnumeratedCount(out var count))
 			{
 				EnsureCapacity(checked(this.Count + count));
@@ -1869,7 +1859,6 @@ namespace Doxense.Serialization.Json
 			var type = typeof(TValue);
 			foreach (var item in items)
 			{
-				//note: l'overhead de Add() est minimum, donc pas besoin d'optimiser particulièrement ici
 				Add(dom.ParseObjectInternal(ref context, transform(item), type, null));
 			}
 			return this;
@@ -2650,14 +2639,14 @@ namespace Doxense.Serialization.Json
 		public JsonArrayOrDefault<JsonArray> AsArraysOrEmpty() => new(this, JsonArray.EmptyReadOnly);
 
 		/// <summary>Returns a wrapper that will convert all the elements of this <see cref="JsonArray"/> as values of type <typeparamref name="TValue"/> when enumerated.</summary>
-		/// <remarks><para>This method can be used to remove the need of allocating a temporary array or list of items that would only be called inside a foreach loop, or used with LINQ.</para></remarks>
+		/// <remarks><para>This method can be used to remove the need of allocating a temporary array or list of items that would only be called inside a <see langword="foreach"/> loop, or used with LINQ.</para></remarks>
 		public JsonArray<TValue> Cast<TValue>() where TValue : notnull
 		{
 			return new(this);
 		}
 
 		/// <summary>Returns a wrapper that will convert all the elements of this <see cref="JsonArray"/> as values of type <typeparamref name="TValue"/> when enumerated.</summary>
-		/// <remarks><para>This method can be used to remove the need of allocating a temporary array or list of items that would only be called inside a foreach loop, or used with LINQ.</para></remarks>
+		/// <remarks><para>This method can be used to remove the need of allocating a temporary array or list of items that would only be called inside a <see langword="foreach"/> loop, or used with LINQ.</para></remarks>
 		public JsonArrayOrDefault<TValue> Cast<TValue>(TValue defaultValue)
 		{
 			return new(this, defaultValue);
@@ -2878,7 +2867,7 @@ namespace Doxense.Serialization.Json
 			return array.ToArray<TValue>(defaultValue, resolver);
 		}
 
-		/// <summary>Returns the equivalent <see langword="bool[]"/></summary>
+		/// <summary>Returns the equivalent <see cref="bool"/> array</summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public bool[] ToBoolArray(bool defaultValue = false)
 		{
@@ -2893,7 +2882,7 @@ namespace Doxense.Serialization.Json
 			return buf;
 		}
 
-		/// <summary>Returns the equivalent <see langword="int[]"/></summary>
+		/// <summary>Returns the equivalent <see cref="int"/> array</summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public int[] ToInt32Array(int defaultValue = 0)
 		{
@@ -2908,7 +2897,7 @@ namespace Doxense.Serialization.Json
 			return buf;
 		}
 
-		/// <summary>Returns the equivalent <see langword="uint[]"/></summary>
+		/// <summary>Returns the equivalent <see cref="uint"/> array</summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public uint[] ToUInt32Array(uint defaultValue = 0)
 		{
@@ -2923,7 +2912,7 @@ namespace Doxense.Serialization.Json
 			return buf;
 		}
 
-		/// <summary>Returns the equivalent <see langword="long[]"/></summary>
+		/// <summary>Returns the equivalent <see cref="long"/> array</summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public long[] ToInt64Array(long defaultValue = 0)
 		{
@@ -2938,7 +2927,7 @@ namespace Doxense.Serialization.Json
 			return buf;
 		}
 
-		/// <summary>Returns the equivalent <see langword="ulong[]"/></summary>
+		/// <summary>Returns the equivalent <see cref="ulong"/> array</summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public ulong[] ToUInt64Array(ulong defaultValue = 0)
 		{
@@ -2953,7 +2942,7 @@ namespace Doxense.Serialization.Json
 			return buf;
 		}
 
-		/// <summary>Returns the equivalent <see langword="float[]"/></summary>
+		/// <summary>Returns the equivalent <see cref="float"/> array</summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public float[] ToSingleArray(float defaultValue = default)
 		{
@@ -2968,7 +2957,7 @@ namespace Doxense.Serialization.Json
 			return buf;
 		}
 
-		/// <summary>Returns the equivalent <see langword="double[]"/></summary>
+		/// <summary>Returns the equivalent <see cref="double"/> array</summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public double[] ToDoubleArray(double defaultValue = default)
 		{
@@ -2983,7 +2972,7 @@ namespace Doxense.Serialization.Json
 			return buf;
 		}
 
-		/// <summary>Returns the equivalent <see langword="Half[]"/></summary>
+		/// <summary>Returns the equivalent <see cref="Half"/> array</summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public Half[] ToHalfArray(Half defaultValue = default)
 		{
@@ -2998,7 +2987,7 @@ namespace Doxense.Serialization.Json
 			return buf;
 		}
 
-		/// <summary>Returns the equivalent <see langword="decimal[]"/></summary>
+		/// <summary>Returns the equivalent <see cref="decimal"/> array</summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public decimal[] ToDecimalArray(decimal defaultValue = default)
 		{
@@ -3013,7 +3002,7 @@ namespace Doxense.Serialization.Json
 			return buf;
 		}
 
-		/// <summary>Returns the equivalent <see langword="Guid[]"/></summary>
+		/// <summary>Returns the equivalent <see cref="Guid"/> array</summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public Guid[] ToGuidArray(Guid defaultValue = default)
 		{
@@ -3028,7 +3017,7 @@ namespace Doxense.Serialization.Json
 			return buf;
 		}
 
-		/// <summary>Returns the equivalent <see langword="Uuid128[]"/></summary>
+		/// <summary>Returns the equivalent <see cref="Uuid128"/> array</summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public Uuid128[] ToUuid128Array(Uuid128 defaultValue = default)
 		{
@@ -3043,7 +3032,7 @@ namespace Doxense.Serialization.Json
 			return buf;
 		}
 
-		/// <summary>Returns the equivalent <see langword="DateTime[]"/></summary>
+		/// <summary>Returns the equivalent <see cref="DateTime"/> array</summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public DateTime[] ToDateTimeArray(DateTime defaultValue = default)
 		{
@@ -3058,7 +3047,7 @@ namespace Doxense.Serialization.Json
 			return result;
 		}
 
-		/// <summary>Returns the equivalent <see langword="DateTimeOffset[]"/></summary>
+		/// <summary>Returns the equivalent <see cref="DateTimeOffset"/> array</summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public DateTimeOffset[] ToDateTimeOffsetArray(DateTimeOffset defaultValue = default)
 		{
@@ -3073,7 +3062,7 @@ namespace Doxense.Serialization.Json
 			return result;
 		}
 
-		/// <summary>Returns the equivalent <see langword="Instant[]"/></summary>
+		/// <summary>Returns the equivalent <see cref="Instant"/> array</summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public NodaTime.Instant[] ToInstantArray(NodaTime.Instant defaultValue = default)
 		{
@@ -3088,7 +3077,7 @@ namespace Doxense.Serialization.Json
 			return result;
 		}
 
-		/// <summary>Returns the equivalent <see langword="string[]"/></summary>
+		/// <summary>Returns the equivalent <see cref="string"/> array</summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public string?[] ToStringArray(string? defaultValue = default)
 		{
@@ -3202,7 +3191,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Returns a <see cref="List{T}"/> with the transformed elements of this array</summary>
-		/// <param name="transform">Transforamtion that is applied on each element of the array</param>
+		/// <param name="transform">Transformation that is applied on each element of the array</param>
 		/// <returns>A list of all elements that have been converted <paramref name="transform"/></returns>
 		[Pure]
 		public List<TValue> ToList<TValue>([InstantHandle] Func<JsonValue, TValue> transform)
@@ -3231,7 +3220,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>The same instance if it is already fully mutable, OR a copy where any read-only Object or Array has been converted to allow mutations.</returns>
 		/// <remarks>
 		/// <para>Will return the same instance if it is already mutable, or a new deep copy with all children marked as mutable.</para>
-		/// <para>This attempts to only copy what is necessary, and will not copy objects or arrays that are already mutable, or all other "value types" (strings, booleans, numbers, ...) that are always immutable.</para>
+		/// <para>This attempts to only copy what is necessary, and will not copy objects or arrays that are already mutable, or all other "value types" (string, boolean, number, ...) that are always immutable.</para>
 		/// </remarks>
 		public override JsonArray ToMutable()
 		{
@@ -3262,7 +3251,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Deserializes a <see cref="JsonArray">JSON Array</see> into a list of objects of the specified type</summary>
-		/// <typeparam name="TValue">Type des éléments de la liste</typeparam>
+		/// <typeparam name="TValue">Type of the elements in the list</typeparam>
 		/// <param name="value"><see cref="JsonArray">JSON Array</see> that contains the elements to bind</param>
 		/// <param name="resolver">Optional type resolver</param>
 		/// <param name="required">If <see langword="true"/> the array cannot be null</param>
@@ -3556,6 +3545,7 @@ namespace Doxense.Serialization.Json
 			return result;
 		}
 
+		/// <summary>Deserializes this <see cref="JsonArray">JSON Array</see> into an <see cref="ImmutableList{TValue}"/></summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public ImmutableList<TValue?> ToImmutableList<TValue>(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null)
 		{
@@ -3609,7 +3599,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Tests if all the elements in the array have the specified type</summary>
 		/// <param name="type">Type of element (<see cref="JsonType.Object"/>, <see cref="JsonType.String"/>, <see cref="JsonType.Number"/>, ...)</param>
 		/// <remarks><see langword="false"/> if at least one element is of a different type, or <see langword="true"/> if the array is empty or with only elements of this type.</remarks>
-		/// <remarks>Retourne toujours true pour une array vide.</remarks>
+		/// <remarks>Always return <see langword="true"/> for empty arrays.</remarks>
 		public bool All(JsonType type)
 		{
 			foreach (var item in this.AsSpan())
@@ -3643,7 +3633,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Tests if all elements in the array have a similar type, or if they are dissimilar</summary>
 		/// <returns>The <see cref="JsonType"/> that have elements all have in common, or <see langword="null"/> if there is at least two incompatible types present.</returns>
 		/// <remarks>
-		/// <para>Ignore any null or missing elements in the array, sor for exemple <c>[ 123, null, 789 ]</c> will return <see cref="JsonType.Number"/>.</para>
+		/// <para>Ignore any null or missing elements in the array, so for example <c>[ 123, null, 789 ]</c> will return <see cref="JsonType.Number"/>.</para>
 		/// <para>Will return <see langword="null"/> if the array is only filled with null or missing values, instead of <see cref="JsonType.Null"/>.</para>
 		/// </remarks>
 		public JsonType? GetElementsTypeOrDefault()
@@ -4133,13 +4123,13 @@ namespace Doxense.Serialization.Json
 
 		public override int GetHashCode()
 		{
-			// the hashcode of the array should never change, even if the _content_ of the array can change
+			// the hash code of the array should never change, even if the _content_ of the array can change
 			return RuntimeHelpers.GetHashCode(this);
 		}
 
 		public override int CompareTo(JsonValue? other)
 		{
-			if (other is JsonArray jarr) return CompareTo(jarr);
+			if (other is JsonArray array) return CompareTo(array);
 			return base.CompareTo(other);
 		}
 
@@ -4206,26 +4196,26 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Appends all the elements of an <see cref="IEnumerable{T}"/> to the end of this <see cref="JsonArray"/></summary>
-		/// <remarks>Any mutable element in in <paramref name="values"/> will be converted to read-only before being added. Elements that were already read-only will be added be reference.</remarks>
+		/// <remarks>Any mutable element in <paramref name="values"/> will be converted to read-only before being added. Elements that were already read-only will be added be reference.</remarks>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public static JsonArray AddRange(this JsonArray self, IEnumerable<JsonObject?> values)
 			=> self.AddRange(values);
 
 		/// <summary>Appends all the elements of an <see cref="IEnumerable{T}"/> to the end of this <see cref="JsonArray"/></summary>
-		/// <remarks>Any mutable element in in <paramref name="values"/> will be converted to read-only before being added. Elements that were already read-only will be added be reference.</remarks>
+		/// <remarks>Any mutable element in <paramref name="values"/> will be converted to read-only before being added. Elements that were already read-only will be added be reference.</remarks>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public static JsonArray AddRangeReadOnly(this JsonArray self, IEnumerable<JsonObject?> values)
 			=> self.AddRangeReadOnly(values);
 
 		/// <summary>Appends all the elements of an array to the end of this <see cref="JsonArray"/></summary>
-		/// <remarks>Any mutable element in in <paramref name="values"/> will be converted to read-only before being added. Elements that were already read-only will be added be reference.</remarks>
+		/// <remarks>Any mutable element in <paramref name="values"/> will be converted to read-only before being added. Elements that were already read-only will be added be reference.</remarks>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public static JsonArray AddRange(this JsonArray self, JsonObject[] values) =>
 			// ReSharper disable once CoVariantArrayConversion
 			self.AddRange(values);
 
 		/// <summary>Appends all the elements of an array to the end of this <see cref="JsonArray"/></summary>
-		/// <remarks>Any mutable element in in <paramref name="values"/> will be converted to read-only before being added. Elements that were already read-only will be added be reference.</remarks>
+		/// <remarks>Any mutable element in <paramref name="values"/> will be converted to read-only before being added. Elements that were already read-only will be added be reference.</remarks>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public static JsonArray AddRangeReadOnly(this JsonArray self, JsonObject[] values) =>
 			// ReSharper disable once CoVariantArrayConversion

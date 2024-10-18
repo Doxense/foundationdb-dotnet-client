@@ -79,13 +79,11 @@ namespace Doxense.Serialization.Json
 
 		public static JsonString Return(char value)
 		{
-			//note: pas vraiment d'intérêt à optimiser, je ne pense pas que des chaînes d'un seul caractère soit si fréquentes que ça...
 			return new JsonString(new string(value, 1));
 		}
 
 		public static JsonValue Return(char? value)
 		{
-			//note: pas vraiment d'intérêt à optimiser, je ne pense pas que des chaînes d'un seul caractère soit si fréquentes que ça...
 			return value is null ? JsonNull.Null : Return(value.Value);
 		}
 
@@ -495,12 +493,16 @@ namespace Doxense.Serialization.Json
 
 		#region JsonValue Members...
 
+		/// <inheritdoc />
 		public override JsonType Type => JsonType.String;
 
+		/// <inheritdoc />
 		public override bool IsNull => false;
 
+		/// <inheritdoc />
 		public override bool IsDefault => false; //note: string empty is NOT "default"
 
+		/// <inheritdoc />
 		public override bool IsReadOnly => true; //note: strings are immutable
 
 		public byte[] ToBuffer() //REVIEW: => GetBytes()? DecodeBase64() ?
@@ -508,6 +510,7 @@ namespace Doxense.Serialization.Json
 			return m_value.Length != 0 ? Convert.FromBase64String(m_value) : [ ];
 		}
 
+		/// <inheritdoc />
 		public override object ToObject()
 		{
 			return m_value;
@@ -776,10 +779,13 @@ namespace Doxense.Serialization.Json
 			throw JsonBindingException.CannotBindJsonStringToThisType(this, type);
 		}
 
+		/// <inheritdoc />
 		internal override bool IsSmallValue() => m_value.Length <= 36; // guid!
 
+		/// <inheritdoc />
 		internal override bool IsInlinable() => m_value.Length <= 80;
 
+		/// <inheritdoc />
 		internal override string GetCompactRepresentation(int depth)
 		{
 			// depth 0, complete string up to 128 chars, then truncated with '[...]' in the middle if larger
@@ -828,6 +834,7 @@ namespace Doxense.Serialization.Json
 
 		#region IEquatable<...>...
 
+		/// <inheritdoc />
 		public override bool Equals(object? obj)
 		{
 			if (ReferenceEquals(obj, this)) return true;
@@ -844,6 +851,7 @@ namespace Doxense.Serialization.Json
 			//TODO: compare with int, long, ...?
 		}
 
+		/// <inheritdoc />
 		public override bool Equals(JsonValue? obj)
 		{
 			if (ReferenceEquals(obj, this)) return true;
@@ -857,6 +865,7 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		/// <inheritdoc />
 		public bool Equals(JsonString? obj)
 		{
 			return obj is not null && string.Equals(m_value, obj.m_value, StringComparison.Ordinal);
@@ -903,35 +912,49 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
+		/// <inheritdoc />
 		public bool Equals(string? obj)
 		{
 			return obj is not null && string.Equals(m_value, obj, StringComparison.Ordinal);
 		}
 
+		/// <inheritdoc />
 		public bool Equals(Guid obj) => ToGuid() == obj;
 
+		/// <inheritdoc />
 		public bool Equals(Uuid128 obj) => ToUuid128() == obj;
 
+		/// <inheritdoc />
 		public bool Equals(Uuid96 obj) => ToUuid96() == obj;
 
+		/// <inheritdoc />
 		public bool Equals(Uuid80 obj) => ToUuid80() == obj;
 
+		/// <inheritdoc />
 		public bool Equals(Uuid64 obj) => ToUuid64() == obj;
 
+		/// <inheritdoc />
 		public bool Equals(DateTime obj) => ToDateTime() == obj;
 
+		/// <inheritdoc />
 		public bool Equals(DateTimeOffset obj) => ToDateTimeOffset() == obj;
 
+		/// <inheritdoc />
 		public bool Equals(DateOnly obj) => ToDateOnly() == obj;
 
+		/// <inheritdoc />
 		public bool Equals(TimeOnly obj) => ToTimeOnly() == obj;
 
+		/// <inheritdoc />
 		public bool Equals(NodaTime.LocalDateTime obj) => ToLocalDateTime() == obj;
 
+		/// <inheritdoc />
 		public bool Equals(NodaTime.LocalDate obj) => ToLocalDate() == obj;
 
+		/// <inheritdoc />
 		public override int GetHashCode() => m_value.GetHashCode();
 
+		/// <inheritdoc />
 		public override int CompareTo(JsonValue? other)
 		{
 			if (other is null) return +1;
@@ -1629,6 +1652,7 @@ namespace Doxense.Serialization.Json
 
 		#region ISliceSerializable...
 
+		/// <inheritdoc />
 		public override void WriteTo(ref SliceWriter writer)
 		{
 			var value = m_value;
@@ -1638,7 +1662,6 @@ namespace Doxense.Serialization.Json
 				return;
 			}
 
-			//TODO: version "optimisée!"
 			if (JsonEncoding.NeedsEscaping(value))
 			{
 				writer.WriteStringUtf8(JsonEncoding.EncodeSlow(value));

@@ -31,24 +31,21 @@ namespace Doxense.Serialization.Json
 	using System.Buffers;
 	using Doxense.Text;
 
-	/// <summary>Helper utilisé pour lire et parser un texte JSON</summary>
-	/// <remarks>Doit être alloué sur la stack de l'appelant, et passé "by ref" !</remarks>
+	/// <summary>Tokenizer for JSON text documents</summary>
+	/// <remarks>Must always be passed "by ref" !</remarks>
 	public struct CrystalJsonTokenizer<TReader> : IDisposable
 		where TReader : struct, IJsonReader
 	{
 
 		private const char EMPTY_TOKEN = '\0';
 
-		// la classe supporte deux mode: String ou Stream
-		// -> en mode String, on lit directement dans m_text[m_pos]
-		// -> en mode Stream, on passe via m_source
-
 		/// <summary>Source JSON (si mode Stream)</summary>
 		public TReader Source;
 
-		private char Token; // buffer utilisé pour "push back" un caractère lu du stream
+		/// <summary>Buffer used to "push back" a previously read character (look ahead)</summary>
+		private char Token;
 
-		/// <summary>Paramètres de lecture</summary>
+		/// <summary>JSON settings used by the tokenizer</summary>
 		public readonly CrystalJsonSettings Settings;
 
 #if ENABLE_SOURCE_POSITION
@@ -59,7 +56,7 @@ namespace Doxense.Serialization.Json
 
 		private readonly CrystalJsonSettings.StringInterning InternMode;
 
-		/// <summary>Comparateur par défaut pour les clés d'un JsonObject</summary>
+		/// <summary>Default comparator for JSON Object key names</summary>
 		public readonly IEqualityComparer<string> FieldComparer;
 
 		private StringTable? StringTable;
@@ -84,30 +81,31 @@ namespace Doxense.Serialization.Json
 		}
 
 #if ENABLE_SOURCE_POSITION
-		/// <summary>Nombre de charactères lus dans la source</summary>
+
+		/// <summary>Number of characters read from the start of the document</summary>
 		public long Offset => m_offset;
 
-		/// <summary>Nombre de charactères lus dans la ligne actuelle (commence à 0!)</summary>
+		/// <summary>Number of characters read from the start of the current line (0-based)</summary>
 		public long Position => m_position;
 
-		/// <summary>Nombre de lignes lues dans la source (commence à 0!)</summary>
+		/// <summary>Number of lines read from the start of the document (0-based)</summary>
 		public long Line => m_line;
 #endif
 
-		/// <summary>Lit le prochain caractère significatif, qui ne soit pas un espace</summary>
-		/// <returns>Prochain caractère, ou EndOfStream si fini</returns>
-		/// <remarks>Si Push(x) a été appelé juste avant, retourne la valeur de x. Sinon lit dans le stream</remarks>
+		/// <summary>Reads the next non-white space character</summary>
+		/// <returns>Next character, or <see langword="-1"/> if there are no more characters to read</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal char ReadNextToken()
 		{
-			// il peut y avoir un caractère "pushed back" dans le cache....
+			// if a character was "pushed back" we return it; otherwise, we read from the buffer
+			
 			char c = this.Token;
 			if (c == EMPTY_TOKEN)
-			{ // pas de token en cache, on lit le prochain caractère dans le buffer...
+			{ // no cached character, read from the stream
 				c = ReadOne();
 			}
 			else
-			{ // on avait un token en cache, on le consomme...
+			{ // return the cached character
 				this.Token = EMPTY_TOKEN;
 			}
 
@@ -118,21 +116,23 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.NoInlining)]
 		private char ConsumeWhiteSpaces(char token)
 		{
-			// skip les espaces éventuels
 			var wc = CrystalJsonParser.WhiteCharsMap;
+
 			char c = token;
+			// caller only guessed, we have to check if c is a whitespace
 			while (wc[c])
 			{
 				c = ReadOne();
 				if (c >= CrystalJsonParser.WHITE_CHAR_MAP) break;
 			}
-			// ce n'est pas un espace
 			return c;
-
 		}
 
-		/// <summary>Replace un caractère dans le buffer (consommé par le prochaine ReadNextToken)</summary>
-		/// <param name="c">Char à remettre dans le stream</param>
+		/// <summary>Puts back a character that was previously read</summary>
+		/// <remarks>
+		/// <para>This character will be returned by the next call to <see cref="ReadOne"/></para>
+		/// <para>Only one character can be pushed until the next read.</para>
+		/// </remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal void Push(char c)
 		{
@@ -140,8 +140,8 @@ namespace Doxense.Serialization.Json
 			this.Token = c;
 		}
 
-		/// <summary>Lit un caractère du stream</summary>
-		/// <returns>Prochain char, ou EndOfStream si stream fini</returns>
+		/// <summary>Reads the next character from the stream</summary>
+		/// <returns>Next character, of <see langword="-1"/> if there are no more characters to read.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal char ReadOne()
 		{
@@ -170,9 +170,6 @@ namespace Doxense.Serialization.Json
 		}
 #endif
 
-		/// <summary>Vérifie que le stream contient bien les charactères spécifiés</summary>
-		/// <param name="values">Charactères d'un token a lire</param>
-		/// <exception cref="System.FormatException">Si le stream contient autre chose que les charactères, ou s'il est fini prématurément</exception>
 		internal void ReadExpectedKeyword(ReadOnlySpan<char> values)
 		{
 			char c;
@@ -191,14 +188,15 @@ namespace Doxense.Serialization.Json
 					}
 				}
 			}
-			// normalement juste derrière on doit etre en fin de stream, ou on doit trouver un séparateur ou terminateur
+			
+			// must be followed either by the end of stream, or a separator/terminator
 			c = ReadOne();
 			if (c == CrystalJsonParser.EndOfStream)
 			{
 				return;
 			}
 
-			// on le remet dans le stream pour la suite
+			// put back the character
 			Push(c);
 
 			if (char.IsLetterOrDigit(c))
@@ -221,25 +219,22 @@ namespace Doxense.Serialization.Json
 #else
 
 		[Pure]
-		internal JsonSyntaxException FailInvalidSyntax(string reason) => new("Invalid JSON syntax", reason);
+		internal readonly JsonSyntaxException FailInvalidSyntax(string reason) => new("Invalid JSON syntax", reason);
 
 		[Pure]
-		internal JsonSyntaxException FailInvalidSyntax(ref DefaultInterpolatedStringHandler reason) => new("Invalid JSON syntax", reason.ToStringAndClear());
+		internal readonly JsonSyntaxException FailInvalidSyntax(ref DefaultInterpolatedStringHandler reason) => new("Invalid JSON syntax", reason.ToStringAndClear());
 
 		[Pure]
-		internal JsonSyntaxException FailUnexpectedEndOfStream(string? reason) => new("Unexpected end of stream", reason);
+		internal readonly JsonSyntaxException FailUnexpectedEndOfStream(string? reason) => new("Unexpected end of stream", reason);
 
 #endif
 
-		/// <summary>Retourne la StringTable pour la génération de literals, ou null si interning désactivé</summary>
-		/// <param name="kind">Type de literal parsé (nom de champ, string, number, ...)</param>
-		/// <returns>StringTable à utiliser, ou null si pas d'interning pour ce type de literal avec le paramétrage actuel</returns>
 		internal StringTable? GetStringTable(JsonLiteralKind kind)
 		{
 			switch (this.InternMode)
 			{
 				case CrystalJsonSettings.StringInterning.Default:
-				{ // Default: autorise les fields
+				{ // Default: allow fields
 					if (kind != JsonLiteralKind.Field)
 					{
 						return null;
@@ -247,7 +242,7 @@ namespace Doxense.Serialization.Json
 					break;
 				}
 				case CrystalJsonSettings.StringInterning.IncludeNumbers:
-				{ // Numbers: autorise les fields, les petits nombres et les grand nombres
+				{ // Numbers: allow fields and numbers
 					if (kind == JsonLiteralKind.Value)
 					{
 						return null;
@@ -255,11 +250,11 @@ namespace Doxense.Serialization.Json
 					break;
 				}
 				case CrystalJsonSettings.StringInterning.Disabled:
-				{ // Disabled: jamais!
+				{ // Disabled: nothing
 					return null;
 				}
-				//other: tout!
 			}
+			
 			return this.StringTable ??= StringTable.GetInstance();
 		}
 

@@ -60,12 +60,16 @@ namespace Doxense.Serialization.Json
 
 		#region JsonValue Members...
 
+		/// <inheritdoc />
 		public override JsonType Type => JsonType.Boolean;
 
+		/// <inheritdoc />
 		public override bool IsDefault => !m_value;
 
+		/// <inheritdoc />
 		public override bool IsReadOnly => true; //note: booleans are immutable
 
+		/// <inheritdoc />
 		public override object ToObject() => m_value;
 
 		public override T? Bind<T>(T? defaultValue = default, ICrystalJsonTypeResolver? resolver = null) where T : default
@@ -106,8 +110,10 @@ namespace Doxense.Serialization.Json
 
 		public override object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null) => BindNative(this, m_value, type, resolver);
 
+		/// <inheritdoc />
 		internal override bool IsSmallValue() => true;
 
+		/// <inheritdoc />
 		internal override bool IsInlinable() => true;
 
 		#endregion
@@ -136,12 +142,12 @@ namespace Doxense.Serialization.Json
 
 				if (typeof(TValue) == typeof(bool?))
 				{ // we already know it's not null
-					return m_value == (bool) (object) value!;
+					return m_value == (bool) (object) value;
 				}
 
 				if (value is JsonBoolean j)
 				{ // only JsonBoolean would match...
-					return j.m_value == (bool) (object) value!;
+					return j.m_value == (bool) (object) value;
 				}
 			}
 			else
@@ -170,7 +176,7 @@ namespace Doxense.Serialization.Json
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator bool(JsonBoolean? obj) => obj?.m_value == true;
-		//TODO: REVIEW: is this usefull ? when do we have a variable of explicit type JsonBoolean?
+		//TODO: REVIEW: is this useful ? when do we have a variable of explicit type JsonBoolean?
 
 		#endregion
 

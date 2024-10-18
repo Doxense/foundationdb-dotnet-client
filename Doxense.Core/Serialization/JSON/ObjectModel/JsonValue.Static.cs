@@ -53,7 +53,7 @@ namespace Doxense.Serialization.Json
 			where TJson : JsonValue
 		{
 			// Note: Since TNative is a ValueType, we will have many different JITed versions of this method in memory, one for each value type, which may cost a lost of first-time initialization cost?
-			// in early .NET Framework versions, the JIT seemed to be in O(N^2) whith the number of generic types for the same call site, not sure if this is still an issue with modern .NET Core ?
+			// in early .NET Framework versions, the JIT seemed to be in O(N^2) with the number of generic types for the same call site, not sure if this is still an issue with modern .NET Core ?
 
 			if (jsonValue is null)
 			{

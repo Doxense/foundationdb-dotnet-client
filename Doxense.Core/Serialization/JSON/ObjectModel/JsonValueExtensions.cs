@@ -186,11 +186,11 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Serializes a JSON value into the most compact text literal possible</summary>
 		/// <param name="value">JSON value to serialize</param>
-		/// <remarks>Note: if the JSON has to be sent over HTTP, or storted on disk, prefer <see cref="ToJsonSlice(JsonValue)"/> or <see cref="ToJsonBytes(JsonValue)"/> that will return the same result but already utf-8 encoded</remarks>
+		/// <remarks>Note: if the JSON has to be sent over HTTP, or stored on disk, prefer <see cref="ToJsonSlice(JsonValue?,CrystalJsonSettings?)"/> or <see cref="ToJsonBytes(JsonValue)"/> that will return the same result but already utf-8 encoded</remarks>
 		[Pure]
 		public static string ToJsonCompact(this JsonValue? value) => value?.ToJson(CrystalJsonSettings.JsonCompact) ?? JsonTokens.Null;
 
-		/// <summary>Serializes a JSON value into a human-friendly identend text representation (for logging, console output, etc...)</summary>
+		/// <summary>Serializes a JSON value into a human-friendly indentend text representation (for logging, console output, etc...)</summary>
 		/// <param name="value">JSON value to serialize</param>
 		[Pure]
 		public static string ToJsonIndented(this JsonValue? value) => value?.ToJson(CrystalJsonSettings.JsonIndented) ?? JsonTokens.Null;
@@ -198,7 +198,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Serializes a JSON value into a byte array, using the default settings</summary>
 		/// <param name="value">JSON value to serialize</param>
 		/// <returns>Array of the utf-8 encoded text representation of the JSON value</returns>
-		/// <remarks>Only call this when interacting with legacy API that only accept byte[] arrays. Prefer <see cref="ToJsonSlice(JsonValue)"/> that will reduce the number of needed memory copies and allocations</remarks>
+		/// <remarks>Only call this when interacting with legacy API that only accept byte[] arrays. Prefer <see cref="ToJsonSlice(JsonValue?,CrystalJsonSettings?)"/> that will reduce the number of needed memory copies and allocations</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte[] ToJsonBytes(this JsonValue? value) => CrystalJson.ToBytes(value);
 
@@ -206,21 +206,22 @@ namespace Doxense.Serialization.Json
 		/// <param name="value">JSON value to serialize</param>
 		/// <param name="settings">Custom serialization settings</param>
 		/// <returns>Array of the utf-8 encoded text representation of the JSON value</returns>
-		/// <remarks>Only call this when interacting with legacy API that only accept byte[] arrays. Prefer <see cref="ToJsonSlice(JsonValue)"/> that will reduce the number of needed memory copies and allocations</remarks>
+		/// <remarks>Only call this when interacting with legacy API that only accept byte[] arrays. Prefer <see cref="ToJsonSlice(JsonValue?,CrystalJsonSettings?)"/> that will reduce the number of needed memory copies and allocations</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte[] ToJsonBytes(this JsonValue? value, CrystalJsonSettings? settings) => CrystalJson.ToBytes(value, settings);
 
 		/// <summary>Serializes a JSON value into a <see cref="Slice"/>, using custom settings</summary>
 		/// <param name="value">JSON value to serialize</param>
 		/// <param name="settings">Custom serialization settings</param>
-		/// <returns><see cref="Slice"/> that contains the utf-8 encoded text represention of the JSON value</returns>
+		/// <returns><see cref="Slice"/> that contains the utf-8 encoded text representation of the JSON value</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice ToJsonSlice(this JsonValue? value, CrystalJsonSettings? settings = null) => CrystalJson.ToSlice(value, settings);
 
 		/// <summary>Serializes a JSON value into a <see cref="Slice"/>, using custom settings</summary>
 		/// <param name="value">JSON value to serialize</param>
+		/// <param name="pool">Pool used to allocate the content of the slice (use <see cref="ArrayPool{T}.Shared"/> if <see langword="null"/>)</param>
 		/// <param name="settings">Custom serialization settings</param>
-		/// <returns><see cref="Slice"/> that contains the utf-8 encoded text represention of the JSON value</returns>
+		/// <returns><see cref="Slice"/> that contains the utf-8 encoded text representation of the JSON value</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static SliceOwner ToJsonSlice(this JsonValue? value, ArrayPool<byte>? pool, CrystalJsonSettings? settings = null) => CrystalJson.ToSlice(value, pool, settings);
 

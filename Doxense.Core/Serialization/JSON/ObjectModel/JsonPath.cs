@@ -645,7 +645,6 @@ namespace Doxense.Serialization.Json
 					return new(key.AsMemory());
 				}
 
-				l = checked(l + 1 + key.Length);
 				return new(string.Concat(this.Value.Span, ".", key));
 			}
 		}
@@ -745,13 +744,11 @@ namespace Doxense.Serialization.Json
 
 		private static string ConcatWithIndexer(ReadOnlyMemory<char> head, ReadOnlyMemory<char> tail)
 		{
-			int l = checked(head.Length + tail.Length);
 			return string.Concat(head.Span, tail.Span);
 		}
 
 		private static string ConcatWithField(ReadOnlyMemory<char> head, ReadOnlyMemory<char> tail)
 		{
-			int l = checked(head.Length + 1 + tail.Length);
 			return string.Concat(head.Span, ".", tail.Span);
 		}
 
@@ -940,7 +937,7 @@ namespace Doxense.Serialization.Json
 
 #if NET8_0_OR_GREATER
 
-		/// <summary>Return the common ancestor of both paths, as well as both relative branches from this ancestor to both paths</summary>
+		/// <summary>Returns the common ancestor of both paths, and both relative branches from this ancestor to both paths</summary>
 		[Pure]
 		public JsonPath GetCommonAncestor(JsonPath other, out JsonPath left, out JsonPath right)
 		{

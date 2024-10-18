@@ -262,7 +262,7 @@ namespace Doxense.Serialization.Json
 		public double UnixTimeDays => (this.UtcTicks - UNIX_EPOCH_TICKS) / (double) TimeSpan.TicksPerDay;
 		//note: this should be safe from the Y2038 bug
 
-		public bool IsLocalTime => m_offset == NO_TIMEZONE ? m_value.Kind == DateTimeKind.Local : m_offset != 0 /*TODO: comparer avec la TZ courrante ? */;
+		public bool IsLocalTime => m_offset == NO_TIMEZONE ? m_value.Kind == DateTimeKind.Local : m_offset != 0 /*TODO: compare with the local TZ ? */;
 
 		public bool IsUtc => m_offset == NO_TIMEZONE ? m_value.Kind == DateTimeKind.Utc : m_offset == 0;
 
@@ -276,12 +276,16 @@ namespace Doxense.Serialization.Json
 
 		#region JsonValue Members...
 
+		/// <inheritdoc />
 		public override JsonType Type => JsonType.DateTime;
 
+		/// <inheritdoc />
 		public override bool IsDefault => m_value == DateTime.MinValue;
 
+		/// <inheritdoc />
 		public override bool IsReadOnly => true; //note: dates are immutable
 
+		/// <inheritdoc />
 		public override object ToObject() => m_value;
 
 		/// <inheritdoc />
@@ -328,8 +332,10 @@ namespace Doxense.Serialization.Json
 			return BindNative(this, this.Ticks, type, resolver);
 		}
 
+		/// <inheritdoc />
 		internal override bool IsSmallValue() => true;
 
+		/// <inheritdoc />
 		internal override bool IsInlinable() => true;
 
 		#endregion
@@ -453,7 +459,7 @@ namespace Doxense.Serialization.Json
 
 			Span<char> chars = stackalloc char[48]; // "xxxx-xx-xxTxx:xx:xx.xxxxxxx+xx:xx"
 			if (!TryFormat(chars, out int charsWritten, format, provider) 
-			 || !CrystalJson.Utf8NoBom.TryGetBytes(chars, destination, out bytesWritten))
+			 || !CrystalJson.Utf8NoBom.TryGetBytes(chars[..charsWritten], destination, out bytesWritten))
 			{
 				bytesWritten = 0;
 				return false;
@@ -504,25 +510,21 @@ namespace Doxense.Serialization.Json
 
 		public bool Equals(DateTime value)
 		{
-			//TODO: gérer le cas ou on wrap un DateTimeOffset
 			return AreEqual(this.Date, value);
 		}
 
 		public bool Equals(DateTimeOffset value)
 		{
-			//TODO: gérer le cas ou on wrap un DateTimeOffset
 			return AreEqual(this.DateWithOffset, value);
 		}
 
 		public bool Equals(NodaTime.LocalDateTime value)
 		{
-			//TODO: gérer le cas ou on wrap un DateTimeOffset
 			return ToLocalDateTime() == value;
 		}
 
 		public bool Equals(NodaTime.LocalDate value)
 		{
-			//TODO: gérer le cas ou on wrap un DateTimeOffset
 			return ToLocalDate() == value;
 		}
 

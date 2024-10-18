@@ -239,7 +239,7 @@ namespace Doxense.Serialization.Json
 
 			#region FromValues...
 
-			//TODO: BUGBUG: add CrytalJsonSettings parameter to all these methods!
+			//TODO: BUGBUG: add CrystalJsonSettings parameter to all these methods!
 
 			/// <summary>Creates a read-only JSON Object from a list of key/value pairs.</summary>
 			/// <typeparam name="TValue"></typeparam>

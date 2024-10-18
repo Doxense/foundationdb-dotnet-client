@@ -29,13 +29,13 @@ namespace Doxense.Serialization.Json
 	using System.IO;
 	using System.Text;
 
-	/// <summary>Classe capable de dé-sérialiser des fragments de JSON, en mode stream</summary>
+	/// <summary>Type that can read JSON fragments from a stream</summary>
 	[PublicAPI]
 	[DebuggerNonUserCode]
 	public sealed class CrystalJsonStreamReader : IDisposable //TODO: IAsyncDisposable !
 	{
 
-		/// <summary>Lit des fragments JSON depuis un Stream</summary>
+		/// <summary>Reads JSON fragments from a <see cref="Stream"/>, using UTF-8 as the text encoding</summary>
 		public CrystalJsonStreamReader(Stream input, CrystalJsonSettings? settings, bool ownSource = false)
 		{
 			Contract.NotNull(input);
@@ -46,7 +46,7 @@ namespace Doxense.Serialization.Json
 			this.Tokenizer = new CrystalJsonTokenizer<JsonTextReader>(new JsonTextReader(source), settings ?? CrystalJsonSettings.Json);
 		}
 
-		/// <summary>Lit des fragments JSON depuis un TextReader</summary>
+		/// <summary>Reads JSON fragments from a <see cref="TextReader"/></summary>
 		public CrystalJsonStreamReader(TextReader input, CrystalJsonSettings? settings, bool ownSource = false)
 		{
 			Contract.NotNull(input);
@@ -54,8 +54,8 @@ namespace Doxense.Serialization.Json
 			this.Tokenizer = new CrystalJsonTokenizer<JsonTextReader>(new JsonTextReader(input), settings ?? CrystalJsonSettings.Json);
 		}
 
-		/// <summary>Lit le prochain fragment dans le fichier</summary>
-		/// <returns>Fragment suivant, ou null si on est arrivé en fin de fichier</returns>
+		/// <summary>Read the next JSON fragment from this stream</summary>
+		/// <returns>Next fragment, or <see langword="null"/> if we reached the end of the stream</returns>
 		[Pure]
 		public JsonValue? ReadNextFragment()
 		{
@@ -63,13 +63,13 @@ namespace Doxense.Serialization.Json
 			return CrystalJsonParser<JsonTextReader>.ParseJsonValue(ref this.Tokenizer);
 		}
 
-		/// <summary>Si true, cette instance a déjà été disposée</summary>
+		/// <summary>If <see langword="true"/>, <see cref="Dispose"/> has already been called on this instance</summary>
 		private bool Disposed { get; set; }
 
 		/// <summary>JSON Reader used to read values from the source</summary>
 		private CrystalJsonTokenizer<JsonTextReader> Tokenizer;
 
-		/// <summary>Si true, il faut disposer m_stream lorsque cette instance est elle même disposée</summary>
+		/// <summary>If <see langword="true"/>, we must dispose the source when this instance is disposed</summary>
 		private bool OwnSource { get; }
 
 		#region IDisposable...
@@ -86,10 +86,7 @@ namespace Doxense.Serialization.Json
 				this.Tokenizer.Dispose();
 			}
 		}
-
-		//TODO: DisposeAsync()?
-		// => tant que Stream n'implémente pas IAsyncDisposable, on a pas vraiment de plus-value vs Dispose()
-
+		
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static ObjectDisposedException FailObjectDisposed()
 		{

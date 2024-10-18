@@ -24,9 +24,6 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-#define ENABLE_TIMO_STRING_CONVERTER
-//#define ENABLE_GRISU3_STRING_CONVERTER // work in progress
-
 //#define DEBUG_JSON_PARSER
 //#define DEBUG_JSON_BINDER
 
@@ -41,10 +38,14 @@ namespace Doxense.Serialization.Json
 
 	internal enum JsonLiteralKind
 	{
+		/// <summary>Name of a field</summary>
 		Field,
+		/// <summary>Value of a field</summary>
 		Value,
-		Integer, // nombre entier "simple" plus grand (ie: "123", "+123" ou "-123", pas de décimales ou d'exposant)
-		Decimal // nombres décimaux ("1.234"), ou en représentation scientifique ("1234E-3")
+		/// <summary>Integer number written in base 10 (ex: "123", "-123"), excluding any scientific notation</summary>
+		Integer,
+		/// <summary>Decimal number (ex: "1.234"), including numbers written using the scientific notation (ex: "1234E-3")</summary>
+		Decimal
 	}
 
 	internal enum JsonTokenType
@@ -217,25 +218,25 @@ namespace Doxense.Serialization.Json
 				{
 					if (string.Equals(literal, "NaN", StringComparison.Ordinal)) return JsonNumber.NaN;
 				}
-				// charactère invalide après un nombre
+				// character is invalid after a number
 				throw InvalidNumberFormat(literal, $"unexpected character '{c}' found)");
 			}
 
 			if (incomplete)
-			{ // normalement cela doit toujours finir par un digit !
+			{ // all numbers should end up with a digit (with or without exponent)
 				throw InvalidNumberFormat(literal, "truncated");
 			}
 
-			// si on n'a pas vu de points pour d'exposant, et que le nombre de digits <= 16, on est certain que c'est un entier valide, et donc on l'a déja parsé
+			// if we did not see either a '.' or an 'E', and the number of digits is <= 16, we know that this is a valid integer that has already been computed
 			if (computed)
 			{
 				if (literal.Length < 4)
 				{
-					if (num == 0) return JsonNumber.Zero; //REVIEW: est-ce qu'on doit gérer "-0" ?
+					if (num == 0) return JsonNumber.Zero; // we consider "-0" to be equal to "0"
 					if (num == 1) return negative ? JsonNumber.MinusOne : JsonNumber.One;
 					if (!negative)
 					{
-						// le literal est-il en cache?
+						// use the cache for small positive integers
 						if (num <= JsonNumber.CACHED_SIGNED_MAX)
 						{
 							return JsonNumber.GetCachedSmallNumber((int) num);
@@ -243,6 +244,7 @@ namespace Doxense.Serialization.Json
 					}
 					else
 					{
+						// use the cache for small negative integers
 						if (num <= -JsonNumber.CACHED_SIGNED_MIN)
 						{
 							return JsonNumber.GetCachedSmallNumber(-((int) num));
@@ -252,10 +254,10 @@ namespace Doxense.Serialization.Json
 
 				return !negative
 					? JsonNumber.ParseUnsigned(num, literal, literal)
-					: JsonNumber.ParseSigned(-((long) num), literal, literal); // avec seulement 16 digits, pas de risques d'overflow a cause du signe
+					: JsonNumber.ParseSigned(-((long) num), literal, literal); // with 16 digits max, there is no risk of overflow when going negative
 			}
 
-			// on a besoin de parser le nombre...
+			// the number is a decimal number, or has en exponent, we need to parse the string
 			var value = ParseNumberFromLiteral(literal, literal, negative, hasDot, hasExponent);
 			if (value is null) throw InvalidNumberFormat(literal, "malformed");
 			return value;
@@ -268,7 +270,6 @@ namespace Doxense.Serialization.Json
 
 			if (!hasDot)
 			{
-				//on sait si c'est négatif, donc on peut directement tenter ulong
 				if (!negative)
 				{ // unsigned
 					if (ulong.TryParse(literal, styles, NumberFormatInfo.InvariantInfo, out var u64))
@@ -285,12 +286,11 @@ namespace Doxense.Serialization.Json
 				}
 			}
 			else
-			{ // decimal, mais pas forcément
+			{ // decimal, or a very large integer (1.23E10)
 				styles |= NumberStyles.AllowDecimalPoint;
-				// maybe it fits in a double..?
+				// maybe it fits in a double...?
 				if (double.TryParse(literal, styles, NumberFormatInfo.InvariantInfo, out var dbl))
 				{
-					//TODO: detecter si c'est quand même un entier ?
 					return JsonNumber.Parse(dbl, literal, original);
 				}
 			}
@@ -308,14 +308,12 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		private static FormatException InvalidNumberFormat(string literal, string reason) => new($"Invalid number '{literal}.' ({reason})");
 
-		/// <summary>Indique si la string PEUT être une date au format ISO 8601</summary>
-		/// <param name="value">Chaine candidate</param>
-		/// <returns>True si la string ressemble (de loin) à une date ISO</returns>
+		/// <summary>Tests if the string COULD be a date in the ISO 8601 format</summary>
 		[Pure]
 		private static bool CouldBeIso8601DateTime(ReadOnlySpan<char> value)
 		{
-			// cherche les marqueurs '-' 'T' et ':'
-			// la fin doit etre 'Z' si UTC ou alors '+##:##' ou '-##:##'
+			// look for markers like '-', 'T' and ':' at the correct place
+			// must end with either 'Z' (UTC) or '+##:##' / '-##:##'
 			return value.Length >= 20 && value[4] == '-' && value[7] == '-' && value[10] == 'T' && value[13] == ':' && value[16] == ':' && (value[^1] == 'Z' || (value[^3] == ':' && (value[^6] is '+' or '-')));
 		}
 
@@ -364,17 +362,16 @@ namespace Doxense.Serialization.Json
 
 			if (value.Length == 0 || !CouldBeJsonMicrosoftDateTime(value)) return false;
 
-			//Note: la chaine de texte est déja décodée, donc "\/Date(...)\/" devient "/Date(...)/"
-			// Microsoft: "/Date(ticks)/" ou "/Date(ticks+HHMM)/"
+			//Note: the string has already been decoded so the JSON literal "\/Date(...)\/" is seen as "/Date(...)/"
+			//Supported format: "/Date(ticks)/" ou "/Date(ticks+HHMM)/"
 
 			bool isLocal = false;
-			//TODO: ajouter un Settings "ForceDateToLocalTime" ?
 			int endOffset = value.Length - 2; // 2 = ")/".Length
-											  // il faut regarder s'il y a une timezone
+
+			// check for an optional TimeZone
 			char c = value[endOffset - 5];
-			if (c == '+' || c == '-')
-			{ // on dirait qu'il y a une TimeZone de spécifiée
-			  // TODO: vérifier s'il y a bien 4 digits juste derrière ?
+			if (c is '+' or '-')
+			{ // seems likely
 				isLocal = true;
 				endOffset -= 5;
 			}
@@ -382,10 +379,6 @@ namespace Doxense.Serialization.Json
 			{
 				return false;
 			}
-
-			// note: il y a un "bug" dans les sérialisateurs de Microsoft: MinValue/MaxValue sont en LocalTime, et donc
-			// une fois convertis en UTC, ils sont décallés (par ex le nb de ticks est négatif si on est à l'est de GMT, ou légèrement positif si on est à l'ouest)
-			// Pour contrecarrer ça, on "arrondi" à Min ou Max si les ticks sont à moins d'un jour des bornes.
 
 			const int MILLISECONDS_PER_DAY = 86400 * 1000;
 			if (ticks < -62135596800000 + MILLISECONDS_PER_DAY)
@@ -401,12 +394,12 @@ namespace Doxense.Serialization.Json
 				DateTime date = CrystalJson.JavaScriptTicksToDate(ticks);
 				if (isLocal)
 				{
-					// pb: Local ici sera en fct de la TZ du serveur, et non pas celle indiquée dans le JSON
-					// vu que de toutes manières, les ticks sont en UTC, et qu'on ne peut pas créer un DateTime de type Local dans une autre TZ que la notre,
-					// on ne peut pas faire grand chose avec la TZ spécifiée, hormis la garder en mémoire si jamais on doit binder vers un DateTimeOffset
 					if (!int.TryParse(value[(endOffset + 1)..^2], out var offset))
+					{
 						return false;
-					// on a l'offset en "BCD", il faut retransformer en nombre de minutes
+					}
+
+					// Decode the offset from "BCD" to a number of minutes
 					int h = offset / 100;
 					int m = offset % 100;
 					if (h > 12 || m > 59) return false;
@@ -420,31 +413,30 @@ namespace Doxense.Serialization.Json
 
 		#region Deserialization...
 
-		/// <summary>Désérialise une classe ou une struct</summary>
+		/// <summary>Deserializes a custom class or struct</summary>
 		public static object? DeserializeCustomClassOrStruct(JsonObject data, Type type, ICrystalJsonTypeResolver resolver)
 		{
 			if (type == typeof(object) || type.IsInterface || type.IsClass)
-			{ // il faut regarder dans les propriétés de l'objet pour obtenir le type
+			{ // we need to inspect the "__class" property to infer the original .NET type
 
 				string? customClass = data.CustomClassName;
 				if (customClass != null)
 				{
 					#region Mitigation pour DOX-430
-					// note: c'est n'est PAS un fix long terme qui corrige 100% le problème!
-					// => le but ici est d'endiguer les payloads les plus classiques qui seraient utilisées par des attaquants qui scannent rapidement a la recherche de services vulnérable et espérer qu'ils passent leur chemin
-					// => un attaquant qui ciblerait spécifiquement cette librairie en ayant le code source sous la main pourra probablement trouver un des nombres types vulnérables du .NET Framework comme proxy pour ce genre d'attaque
+					// block known bad types from being deserialized
+					// => the goal is to block the most common payloads that could be used to quickly scan for known vulnerabilities, and hope that the scanner moves along...
 
-					// Black list de types dangereux (et qui n'ont rien a faire dans des données JSON de toutes manières!)
+					// list of dangerous types (that are currently known) that have would never need to be serialized in the first place
 					if (customClass.StartsWith("System.", StringComparison.OrdinalIgnoreCase) &&
-						(  customClass.StartsWith("System.Windows.Data.ObjectDataProvider", StringComparison.OrdinalIgnoreCase) // Cet objet peut exécuter n'importe quelle méthode de n'importe quel instance!
-						|| customClass.StartsWith("System.Management.Automation.", StringComparison.OrdinalIgnoreCase) // techniquement c'est PSObjectXYZ mais on ban le namespace entier
-						|| customClass.StartsWith("System.Security.Principal.WindowsIdentity", StringComparison.OrdinalIgnoreCase) // c'est chaud mais ce type est dangereux
-						|| customClass.StartsWith("System.IdentityModel.Tokens.", StringComparison.OrdinalIgnoreCase) // vulnérabilité dans les secure session tokens
-						|| customClass.StartsWith("System.Windows.ResourceDictionary", StringComparison.OrdinalIgnoreCase) // un dictionnaire de resources peut contenir des types dangereux
-						|| customClass.StartsWith("System.Configuration.Install.", StringComparison.OrdinalIgnoreCase) // les Assembly loaders peuvent loader n'importe quel code dans le process!
-						|| customClass.StartsWith("System.Workflow.ComponentModel.Serialization.", StringComparison.OrdinalIgnoreCase) // ActivitySurrogate* peuvent compiler n'importe quel fichier .cs ou exécuter n'importe méthode d'objets
-						|| customClass.StartsWith("System.Activities.Presentation.WorkflowDesigner.", StringComparison.OrdinalIgnoreCase) // 
-						|| customClass.StartsWith("System.Resources.ResXResource", StringComparison.OrdinalIgnoreCase)) // les ressources peuvent contenir des types arbitraires!
+						(  customClass.StartsWith("System.Windows.Data.ObjectDataProvider", StringComparison.OrdinalIgnoreCase) // Can call any method of any type!
+						|| customClass.StartsWith("System.Management.Automation.", StringComparison.OrdinalIgnoreCase) // specifically all the PSObjectXYZ, but let's ban the whole namespace
+						|| customClass.StartsWith("System.Security.Principal.WindowsIdentity", StringComparison.OrdinalIgnoreCase) // this type can be abused to impersonate an account
+						|| customClass.StartsWith("System.IdentityModel.Tokens.", StringComparison.OrdinalIgnoreCase) // known vulnerability in secure session tokens
+						|| customClass.StartsWith("System.Windows.ResourceDictionary", StringComparison.OrdinalIgnoreCase) // could contain a cold payload that would get activated
+						|| customClass.StartsWith("System.Configuration.Install.", StringComparison.OrdinalIgnoreCase) // Assembly loaders could load any custom payload already on disk
+						|| customClass.StartsWith("System.Workflow.ComponentModel.Serialization.", StringComparison.OrdinalIgnoreCase) // ActivitySurrogate* can compile any .cs file and execute any method from it
+						|| customClass.StartsWith("System.Activities.Presentation.WorkflowDesigner.", StringComparison.OrdinalIgnoreCase) // note: I don't remember ?
+						|| customClass.StartsWith("System.Resources.ResXResource", StringComparison.OrdinalIgnoreCase)) // could contain a cold payload that would get activated
 					)
 					{
 						throw JsonBindingException.CannotDeserializeCustomTypeBadType(data, customClass);
@@ -455,16 +447,11 @@ namespace Doxense.Serialization.Json
 #if DEBUG_JSON_BINDER
 					Debug.WriteLine("DeserializeCustomClassOrStruct(..., " + type+") : object has custom class " + customClass);
 #endif
-					// retrouve le type correspondant
-					var customType = resolver.ResolveClassId(customClass);
-					if (customType == null)
-					{
-						throw JsonBindingException.CannotDeserializeCustomTypeNoConcreteClassFound(data, type, customClass);
-					}
-
+					// is this something we know about?
+					var customType = resolver.ResolveClassId(customClass) ?? throw JsonBindingException.CannotDeserializeCustomTypeNoConcreteClassFound(data, type, customClass);
 					if (type.IsSealed)
 					{
-						// si le type attendu est sealed, alors la seule solution est que le type spécifié match EXACTEMENT celui attendu!
+						// if the type is sealed, it must match EXACTLY with the expected type!
 						if (type != customType)
 						{
 							throw JsonBindingException.CannotDeserializeCustomTypeIncompatibleType(data, type, customClass);
@@ -473,9 +460,9 @@ namespace Doxense.Serialization.Json
 					
 					if (type != typeof(object))
 					{ 
-						// si le type est donné par l'appelant, on veut vérifier que c'est compatible avec le type attendu
+						// ensure the type mentioned in the JSON object is compatible with the type we found
 						if (!type.IsAssignableFrom(customType))
-						{ // le type donnée par l'appelant n'est pas compatible... c'est peut être une erreur, ou alors une tentative de hack!
+						{ // either a mistake, or something fishy... bail!
 							throw JsonBindingException.CannotDeserializeCustomTypeIncompatibleType(data, type, customClass);
 						}
 					}
@@ -488,56 +475,62 @@ namespace Doxense.Serialization.Json
 				}
 			}
 
-			// récupère les infos sur l'objet
-			var typeDef = resolver.ResolveJsonType(type);
-			if (typeDef == null)
-			{ // uhoh, pas normal du tout
-				throw JsonBindingException.CannotDeserializeCustomTypeNoTypeDefinition(data, type);
-			}
-
+			// look up the type's definition
+			var typeDef = resolver.ResolveJsonType(type) ?? throw JsonBindingException.CannotDeserializeCustomTypeNoTypeDefinition(data, type);
+			
 			if (typeDef.CustomBinder != null)
-			{ // il y a un custom binder, qui va se charger de créer et remplir l'objet
-			  // => automatiquement le cas pour les IJsonSerializable, ou alors c'est un custom binder fourni par par un CustomTypeResolver
+			{ // the custom binder will handle deserializing the object
 				return typeDef.CustomBinder(data, type, resolver);
 			}
 
 			if (typeDef.Generator == null)
-			{ // sans générateur, on ne peut pas créer d'instance !
+			{ // we don't have an instance generator for this type, we won't be able to do anything!
 				throw JsonBindingException.CannotDeserializeCustomTypeNoBinderOrGenerator(data, type);
 			}
 
-			// crée une nouvelle instance de la class/struct
+			// create a new (empty) instance of this type
 			object instance;
 			try
 			{
 				instance = typeDef.Generator();
 			}
 			catch (Exception e) when (!e.IsFatalError())
-			{ // problème lors de la création de l'objet? cela arrive lorsqu'on crée un objet via Reflection, et qu'il n'a pas de constructeur par défaut...
+			{ // This could happen if there is no parameterless ctor, or trimming was too aggressive...
 				throw JsonBindingException.FailedToConstructTypeInstanceErrorOccurred(data, type, e);
 			}
 
 			if (instance == null)
-			{ // uhoh ? le générateur n'a rien retourné, ce qui peut arriver quand on essaye de faire un "new Interface()" ou un "new AbstractClass()"...
+			{ // This could happen if the type was an interface or an abstract class...
 				throw JsonBindingException.FailedToConstructTypeInstanceReturnedNull(data, type);
 			}
 
-			// traiement des membres
+			// populate the instance members one by one
+			
 			foreach (var member in typeDef.Members)
 			{
-				// certains champs sont "readonly"...
+				// skip readonly members
 				if (member.ReadOnly) continue;
 
-				// obtient la valeur du dictionnaire
-				if (!data.TryGetValue(member.Name, out var child))
-					continue; // absent (donc sera égal à la valeur par défaut)
+				// do we have a value for this field?
+				if (!data.TryGetValue(member.Name, out var child) 
+				  || child.IsNull
+				)
+				{ // not found, or explicit null
+					//TODO: should we assign a default value if one is specified via [JsonProperty] ?
+					continue;
+				}
 
-				// s'il existe mais qu'il contient la valeur par défaut, on le skip aussi
-				if (child.IsNull)
-					continue; // valeur par défaut ?
+				// We must have a valid Binder for this type, and the ability to write the value to the instance's member
+				if (member.Binder == null)
+				{
+					throw JsonBindingException.CannotDeserializeCustomTypeNoReaderForMember(child, member, type);
+				}
+				if (member.Setter == null)
+				{
+					throw JsonBindingException.CannotDeserializeCustomTypeNoBinderForMember(child, member, type);
+				}
 
-				// "Transcode" le type JSON vers le type réel du membre (JSON number => int, JSON string => Guid, ...)
-				if (member.Binder == null) throw JsonBindingException.CannotDeserializeCustomTypeNoReaderForMember(child, member, type);
+				// convert the value into an instance that is assignable to this member's type.
 				object? value;
 				try
 				{
@@ -545,29 +538,28 @@ namespace Doxense.Serialization.Json
 				}
 				catch(Exception e)
 				{
-					// Pour aider a tracker le path vers la valeur qui cause pb, on va re-wrap l'exception!
-					if (e is TargetInvocationException tiex)
-					{
-						e = tiex.InnerException ?? e;
+					if (e is TargetInvocationException invokeEx)
+					{ // make the callstack a bit nicer by un-wrapping the inner exception
+						e = invokeEx.InnerException ?? e;
 					}
+
 					var path = JsonPath.Create(member.OriginalName);
-					if (e is JsonBindingException jbex)
+					if (e is JsonBindingException bindingEx)
 					{
 						// we have to repeat the original reason and the original path!
-						var reason = jbex.Reason ?? jbex.Message;
-						if (jbex.Path != null)
+						var reason = bindingEx.Reason ?? bindingEx.Message;
+						if (bindingEx.Path != null)
 						{
-							path = JsonPath.Combine(path, jbex.Path.Value);
+							path = JsonPath.Combine(path, bindingEx.Path.Value);
 						}
-						var targetType = jbex.TargetType ?? member.Type;
-						throw new JsonBindingException($"Cannot bind JSON {child.Type} to member '({typeDef.Type.GetFriendlyName()}).{path}' of type '{member.Type.GetFriendlyName()}': {reason}", reason, path, jbex.Value, targetType, jbex.InnerException);
+						var targetType = bindingEx.TargetType ?? member.Type;
+						throw new JsonBindingException($"Cannot bind JSON {child.Type} to member '({typeDef.Type.GetFriendlyName()}).{path}' of type '{member.Type.GetFriendlyName()}': {reason}", reason, path, bindingEx.Value, targetType, bindingEx.InnerException);
 					}
 
 					throw new JsonBindingException($"Cannot bind JSON {child.Type} to member '({typeDef.Type.GetFriendlyName()}).{path}' of type '{member.Type.GetFriendlyName()}': [{e.GetType().GetFriendlyName()}] {e.Message}", path, child, member.Type, e);
 				}
 
-				// Ecrit la valeur dans le champ correspondant
-				if (member.Setter == null) throw JsonBindingException.CannotDeserializeCustomTypeNoBinderForMember(child, member, type);
+				// update the instance member with the decoded value
 				try
 				{
 					member.Setter(instance, value);
@@ -592,8 +584,8 @@ namespace Doxense.Serialization.Json
 
 		#region Parsing...
 
-		/// <summary>Parse le prochain token JSON dans le reader</summary>
-		/// <returns>Token parsé, ou null si le reader est arrivé en fin de stream</returns>
+		/// <summary>Parses the next JSON in the reader</summary>
+		/// <returns>Parsed token, or <see langword="null"/> if we reached the end of the JSON document</returns>
 		public static JsonValue? ParseJsonValue(ref CrystalJsonTokenizer<TReader> reader)
 		{
 #if DEBUG_JSON_PARSER
@@ -616,16 +608,19 @@ namespace Doxense.Serialization.Json
 					}
 					case JsonTokenType.Null:
 					{ // null
+						// ReSharper disable once StringLiteralTypo
 						reader.ReadExpectedKeyword("ull");
 						return JsonNull.Null;
 					}
 					case JsonTokenType.True:
 					{ // true
+						// ReSharper disable once StringLiteralTypo
 						reader.ReadExpectedKeyword("rue");
 						return JsonBoolean.True;
 					}
 					case JsonTokenType.False:
 					{ // false
+						// ReSharper disable once StringLiteralTypo
 						reader.ReadExpectedKeyword("alse");
 						return JsonBoolean.False;
 					}
@@ -645,25 +640,23 @@ namespace Doxense.Serialization.Json
 			}
 
 			if (first == CrystalJsonParser.EndOfStream)
-			{ // on considère que c'est null
+			{ // an empty document is equivalent to "null"
 				return null;
-				//REVIEW: ca serait peut être mieux d'avoir un "TryParseJsonValue(...)"?
-				// => on pourrait éviter de devoir retourner 'null' pour signifier "end of stream"
 			}
 
-			// c'est une erreur de syntaxe
+			// map the syntax error into a proper error message
 			switch (first)
 			{
 				case '}':
-				{ // erreur de syntaxe: fermeture d'un objet non ouvert ?
+				{ // attempting to close an object that was not opened
 					throw reader.FailInvalidSyntax("Unexpected '}' encountered without corresponding '{'");
 				}
 				case ']':
-				{ // erreur de syntaxe: fermeture d'une array non onverte ?
+				{ // attempting to close an array that was not opened
 					throw reader.FailInvalidSyntax("Unexpected ']' encountered without corresponding '['");
 				}
 				case ',':
-				{ // erreur de syntaxe: séparateur ne faisant pas partie d'un [] ou d'un {} ?
+				{ // comma outside an object or array
 					throw reader.FailInvalidSyntax("Unexpected separator encountered outside of an array or an object");
 				}
 				default:
@@ -679,7 +672,6 @@ namespace Doxense.Serialization.Json
 #if DEBUG_JSON_PARSER
 			System.Diagnostics.Debug.WriteLine("CrystalJsonConverter.ParseJsonStringOrDateTime(" + value + ")");
 #endif
-			//TODO: gérer aussi un cache des *JsonString* elle mêmes, dans le cas où la même chaine est répétée plusieurs fois ?
 			return JsonString.Return(value);
 		}
 
@@ -763,7 +755,7 @@ namespace Doxense.Serialization.Json
 
 		private static char ParseEscapedUnicodeCharacter(ref CrystalJsonTokenizer<TReader> reader)
 		{
-			// Format: "\uXXXX" where XXXX = hexa
+			// Format: "\uXXXX" where XXXX = hex digits
 			int x = 0;
 			for (int i = 0; i < 4; i++)
 			{
@@ -916,7 +908,7 @@ namespace Doxense.Serialization.Json
 			if (computed)
 			{
 				if (negative)
-				{ // avec seulement 16 digits, pas de risques d'overflow a cause du signe
+				{ // with max 16 digits, there is no risk of overflow due to the negative sign
 					return JsonNumber.ParseSigned(-((long) num), null, default);
 				}
 				else
@@ -925,8 +917,8 @@ namespace Doxense.Serialization.Json
 				}
 			}
 
-			// this is either a floating pointer number, or a large interger that does not fit in the cache
-			var literal = buffer.Slice(0, p);
+			// this is either a floating pointer number, or a large integer that does not fit in the cache
+			var literal = buffer[..p];
 
 			// we may get the literal from a string table
 			var table = reader.GetStringTable(computed ? JsonLiteralKind.Integer : JsonLiteralKind.Decimal);
@@ -944,7 +936,7 @@ namespace Doxense.Serialization.Json
 			System.Diagnostics.Debug.WriteLine("CrystalJsonConverter.ParseJsonNumber(...)");
 #endif
 
-			// lit un literal de type "NaN", "Infinity", etc...
+			// read a literal like "NaN", "Infinity", etc...
 
 			char c = first;
 
@@ -1100,7 +1092,7 @@ namespace Doxense.Serialization.Json
 								throw reader.FailInvalidSyntax($"Unexpected semicolon after field #{props.Count + 1}");
 							}
 						}
-						// immédiatement après, on doit trouver une valeur
+						// must be immediately followed by a value
 
 						props.Add(new (name!, ParseJsonValue(ref reader)!));
 						// next should be ',' or '}'
@@ -1164,7 +1156,7 @@ namespace Doxense.Serialization.Json
 			System.Diagnostics.Debug.WriteLine("CrystalJsonConverter.ParseJsonComment(...) [BEGIN]");
 #endif
 
-			// on a déja le premier '/', donc le suivant doit soit être un '/' (single line) ou '*' (multi line)
+			// we already consumed the first '/', we expect the next character to be either '/' (single line) or '*' (multi line)
 
 			char c = reader.ReadOne();
 			switch(c)

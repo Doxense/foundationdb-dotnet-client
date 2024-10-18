@@ -24,8 +24,6 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-//#define ENABLE_GRISU3_STRING_CONVERTER
-
 // ReSharper disable CompareOfFloatsByEqualityOperator
 // ReSharper disable RedundantNameQualifier
 
@@ -134,13 +132,8 @@ namespace Doxense.Serialization.Json
 		// ReSharper disable once InconsistentNaming
 		public static readonly JsonNumber PI = new(new Number(Math.PI), Kind.Double, "3.1415926535897931");
 
-		//REVIEW: Signed vs Unsigned ?
-		// 1) est-ce qu'on marque signed si ca vient d'un Int32, et unsigned si UInt32?
-		//    => (42).IsSigned != (42U).IsSigned
-		// 2) ou alors uniquement si c'est un UInt32 qui est > int.MaxValue ?
-		//    => (42).IsSigned == (45U).IsSigned, mais (int.MaxValue).IsSigned != ((uint)int.MaxValue + 1).IsSigned
-		// 3) ou alors uniquement basé sur le signe?
-		//    => (42).IsSigned == true; (-42).IsSigned == false
+		/// <summary><see langword="τ"/> ~= <see langword="6.283185307179586"/> (double)</summary>
+		public static readonly JsonNumber Tau = new(new Number(Math.Tau), Kind.Double, "6.283185307179586");
 
 		#region Nested Types...
 
@@ -303,8 +296,9 @@ namespace Doxense.Serialization.Json
 				_ => x.CompareTo(xKind, y.ToUInt64(yKind))
 			};
 
-			/// <summary>Compare ce nombre avec un entier signé</summary>
-			/// <returns>+1 si on est plus grand que <paramref name="value"/>. -1 si on est plus petit que <paramref name="value"/>. 0 si on est égal à <paramref name="value"/></returns>
+			/// <summary>Compare this JSON Number with a signed integer</summary>
+			/// <returns><see langword="+1"/> if we are bigger than <paramref name="value"/>, <see langword="-1"/> if we are smaller than <paramref name="value"/>, or <see langword="0"/> if we are equal to  <paramref name="value"/></returns>
+			/// <remarks>Note that <see cref="JsonNumber.NaN"/> will always return <see langword="-1"/> when compared to an integer</remarks>
 			[Pure]
 			public int CompareTo(Kind kind, long value) => kind switch
 			{
@@ -314,8 +308,9 @@ namespace Doxense.Serialization.Json
 				_ => value < 0 ? +1 : this.Unsigned.CompareTo((ulong) value)
 			};
 
-			/// <summary>Compare ce nombre avec un entier signé</summary>
-			/// <returns>+1 si on est plus grand que <paramref name="value"/>. -1 si on est plus petit que <paramref name="value"/>. 0 si on est égal à <paramref name="value"/></returns>
+			/// <summary>Compare this JSON Number with an unsigned integer</summary>
+			/// <returns><see langword="+1"/> if we are bigger than <paramref name="value"/>, <see langword="-1"/> if we are smaller than <paramref name="value"/>, or <see langword="0"/> if we are equal to  <paramref name="value"/></returns>
+			/// <remarks>Note that <see cref="JsonNumber.NaN"/> will always return <see langword="-1"/> when compared to an integer</remarks>
 			[Pure]
 			public int CompareTo(Kind kind, ulong value) => kind switch
 			{
@@ -325,8 +320,9 @@ namespace Doxense.Serialization.Json
 				_ => this.Unsigned.CompareTo(value)
 			};
 
-			/// <summary>Compare ce nombre avec un entier signé</summary>
-			/// <returns>+1 si on est plus grand que <paramref name="value"/>. -1 si on est plus petit que <paramref name="value"/>. 0 si on est égal à <paramref name="value"/></returns>
+			/// <summary>Compare this JSON Number with a decimal number</summary>
+			/// <returns><see langword="+1"/> if we are bigger than <paramref name="value"/>, <see langword="-1"/> if we are smaller than <paramref name="value"/>, or <see langword="0"/> if we are equal to  <paramref name="value"/></returns>
+			/// <remarks>Note that <see cref="double.NaN"/> will return 0 (equal) if compared to itself, but <see langword="-1"/> (smaller) in all other cases</remarks>
 			[Pure]
 			public int CompareTo(Kind kind, double value) => kind switch
 			{
@@ -336,8 +332,8 @@ namespace Doxense.Serialization.Json
 				_ => ((double) this.Unsigned).CompareTo(value)
 			};
 
-			/// <summary>Compare ce nombre avec un entier signé</summary>
-			/// <returns>+1 si on est plus grand que <paramref name="value"/>. -1 si on est plus petit que <paramref name="value"/>. 0 si on est égal à <paramref name="value"/></returns>
+			/// <summary>Compare this JSON Number with a decimal integer</summary>
+			/// <returns><see langword="+1"/> if we are bigger than <paramref name="value"/>, <see langword="-1"/> if we are smaller than <paramref name="value"/>, or <see langword="0"/> if we are equal to  <paramref name="value"/></returns>
 			[Pure]
 			public int CompareTo(Kind kind, decimal value) => kind switch
 			{
@@ -1197,8 +1193,7 @@ namespace Doxense.Serialization.Json
 		private readonly Number m_value;   // 16 bytes
 		private readonly Kind m_kind;      //  4 bytes
 
-		private string? m_literal; //  8 + (26 + length * 2) **** OMG!!! ****
-		// note: il reste 4 bytes de padding dans l'objet lui-même!
+		private string? m_literal; //  8 + (26 + length * 2)
 
 		// Memory Footprint:
 		// -----------------
@@ -1211,7 +1206,8 @@ namespace Doxense.Serialization.Json
 		// -> "1234"         =>  82 bytes !
 		// -> systime        => 102 bytes !!
 		// -> Math.PI        => 114 bytes !!
-		// Pour comparaison:
+		
+		// By comparison:
 		// -> long, double	 =>  8 bytes
 		// -> decimal        => 16 bytes
 		// -> boxed(long)    => 24 bytes
@@ -1285,7 +1281,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns a singleton from the small numbers cache</summary>
 		/// <param name="value">Value that must be in the range [-128, +255]</param>
-		/// <returns>Chached JsonNumber for this value</returns>
+		/// <returns>Cached JsonNumber for this value</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal static JsonNumber GetCachedSmallNumber(int value)
 		{
@@ -1494,7 +1490,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static JsonNumber Return(DateTime value)
 		{
-			// Converted as the number of secondes elapsed since 1970-01-01Z
+			// Converted as the number of seconds elapsed since 1970-01-01Z
 			// By convention, DateTime.MinValue is 0 (since it is equal to default(DateTime)), and DateTime.MaxValue is "NaN"
 			const long UNIX_EPOCH_TICKS = 621355968000000000L;
 			return value == DateTime.MinValue ? DecimalZero
@@ -1525,7 +1521,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static JsonNumber Return(DateTimeOffset value)
 		{
-			// Converted as the number of secondes elapsed since 1970-01-01Z
+			// Converted as the number of seconds elapsed since 1970-01-01Z
 			// By convention, DateTime.MinValue is 0 (since it is equal to default(DateTime)), and DateTime.MaxValue is "NaN"
 			const long UNIX_EPOCH_TICKS = 621355968000000000L;
 			return value == DateTimeOffset.MinValue ? DecimalZero
@@ -1601,7 +1597,7 @@ namespace Doxense.Serialization.Json
 		internal static JsonNumber ParseSigned(long value, ReadOnlySpan<char> literal, string? original)
 		{
 			if (value is >= CACHED_SIGNED_MIN and <= CACHED_SIGNED_MAX)
-			{ // interning du pauvre
+			{ // use the small integers cache
 				var num = SmallNumbers[value - CACHED_SIGNED_MIN];
 				if (literal.Length == 0 || literal.SequenceEqual(num.Literal))
 				{
@@ -1616,7 +1612,7 @@ namespace Doxense.Serialization.Json
 		internal static JsonNumber ParseUnsigned(ulong value, ReadOnlySpan<char> literal, string? original)
 		{
 			if (value <= CACHED_SIGNED_MAX)
-			{ // interning du pauvre
+			{ // use the small integers cache
 				var num = SmallNumbers[value + CACHED_OFFSET_ZERO];
 				if (literal.Length == 0 || literal.SequenceEqual(num.Literal))
 				{
@@ -1685,18 +1681,18 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
-		/// <summary>Indique s'il s'agit d'un nombre à virgule (true), ou d'un entier (false)</summary>
-		/// <remarks>Il est possible que "2.0" soit considéré comme décimal!</remarks>
+		/// <summary>Returns <see langword="true"/> for decimal number (ex: "1.23", "123E-2"), or <see langword="false"/> for integers ("123", "1.23E10", ...)</summary>
+		/// <remarks>It is possible, in some cases, that "2.0" would be considered a decimal number!</remarks>
 		public bool IsDecimal => m_kind >= Kind.Double;
 
-		/// <summary>Indique que le nombre est un entier positif supérieur à long.MaxValue</summary>
+		/// <summary>Returns <see langword="true"/> for positive integers (ex: "123"), or <see langword="false"/> for negative integers (ex: "-123") or decimal numbers (ex: "1.23")</summary>
 		public bool IsUnsigned => m_kind == Kind.Unsigned;
 
-		/// <summary>Indique si le nombre est négative</summary>
-		/// <returns>True si le nombre est inférieur à 0, ou false s'il est supérieur ou égal à 0</returns>
+		/// <summary>Returns <see langword="true"/> for negative numbers (ex: "-123", "-1.23"), or <see langword="false"/> for positive numbers ("0", "123", "1.23")</summary>
 		public bool IsNegative => m_value.IsNegative(m_kind);
 
-		/// <summary>Literal representation of the number (as it appeared in the original JSON document)</summary>
+		/// <summary>Returns the literal representation of the number (as it appeared in the original JSON document)</summary>
+		/// <remarks>Could return "1.0" or "1", depending on the original format.</remarks>
 		public string Literal => m_literal ?? ComputeLiteral();
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
@@ -1745,9 +1741,9 @@ namespace Doxense.Serialization.Json
 
 		public override bool IsReadOnly => true; //note: numbers are immutable
 
-		/// <summary>Converts this number into a type that closely matches the value (interger or decimal)</summary>
+		/// <summary>Converts this number into a type that closely matches the value (integer or decimal)</summary>
 		/// <returns>Return either an int/long for integers, or a double/decimal for floating point numbers</returns>
-		/// <remarks>For integers: If the value is between int.MinValue and int.MaxValue, it will be casted to <see cref="Int32"/>; otherwise, it will be casted to <see cref="Int64"/>.</remarks>
+		/// <remarks>For integers: If the value is between int.MinValue and int.MaxValue, it will be cast to <see cref="Int32"/>; otherwise, it will be cast to <see cref="Int64"/>.</remarks>
 		public override object? ToObject() => m_value.ToObject(m_kind);
 
 		public override T? Bind<T>(T? defaultValue = default, ICrystalJsonTypeResolver? resolver = null) where T : default
@@ -1838,11 +1834,11 @@ namespace Doxense.Serialization.Json
 				throw JsonBindingException.CannotBindJsonNumberToThisType(this, type);
 			}
 
-			// On utilise le TypeCode
-			// ATTENTION: les enums ont le typecode de leur underlying type (souvent int32)
 			if (type.IsPrimitive)
 			{
-				//attention: decimal et DateTime ne sont pas IsPrimitive !
+				// notes:
+				// - enums have the TypeCode of their underlying type (usually Int32)
+				// - decimal and DateTime are NOT IsPrimitive !
 				switch (System.Type.GetTypeCode(type))
 				{
 					case TypeCode.Boolean: return ToBoolean();
@@ -1864,82 +1860,82 @@ namespace Doxense.Serialization.Json
 							return new IntPtr(ToInt64());
 						}
 					}
-					// on tente notre chance
+						
+					// maybe the BCL will find a way... ?
 					return Convert.ChangeType(m_value, type, NumberFormatInfo.InvariantInfo);
 				}
 			}
 
 			if (type == typeof(string))
-			{ // conversion direct en string
+			{ // return the original number literal
 				return ToString();
 			}
 
 			if (type.IsEnum)
 			{ // Enumeration
-				// on convertit en int d'abord, car decimal=>enum n'est pas supporté...
-				// note: une enum n'est pas forcément un Int32, donc on est obligé d'abord de convertir vers le UnderlyingType (récursivement)
+				
+				// first convert to an integer, since decimal => enum is not supported.
+				// note: enums may not use Int32! we have to bind to the UnderlyingType
+				//REVIEW: TODO: OPTIMIZE: but 99+% do, maybe hot path for int?
 				return Enum.ToObject(type, Bind(type.GetEnumUnderlyingType(), resolver)!);
 			}
 
 			if (type == typeof(DateTime))
-			{ // nombre de jours écoulés depuis Unix Epoch
+			{ // Number of days since Unix Epoch
 				return ToDateTime();
 			}
 
 			if (type == typeof(TimeSpan))
-			{ // c'est le nombre de secondes écoulées qui est stocké
+			{ // Number of elapsed seconds
 				return ToTimeSpan();
 			}
 
 			if (typeof(NodaTime.Duration) == type)
-			{
+			{ // Number of elapsed seconds
 				return ToDuration();
 			}
 
 			if (typeof(NodaTime.Instant) == type)
-			{
+			{ // Number of seconds since Unix Epoch
 				return ToInstant();
 			}
 
 			if (type == typeof(decimal))
-			{ // note: n'est pas un primitive
+			{ // note: this is not a Primitive type
 				return ToDecimal();
 			}
 
 			if (type == typeof(JsonValue) || type == typeof(JsonNumber))
-			{
+			{ // this is already a JSON value!
 				return this;
 			}
 
 			var nullableType = Nullable.GetUnderlyingType(type);
 			if (nullableType is not null)
-			{ // si on est dans un JsonNumber c'est qu'on n'est pas null, donc traite les Nullable<T> comme des T
+			{ // We already know that we are not null, so simply decode using the underlying type
 				Contract.Debug.Assert(nullableType != type);
-				// rappel recursivement avec le type de base
 				return Bind(nullableType, resolver);
 			}
-
-			// autre ??
 
 			resolver ??= CrystalJson.DefaultResolver;
 
 #pragma warning disable CS0618 // Type or member is obsolete
 			if (typeof(IJsonBindable).IsAssignableFrom(type))
-			{ // on tente notre chance...
+			{
 				var obj = (IJsonBindable) Activator.CreateInstance(type)!;
 				obj.JsonUnpack(this, resolver);
 				return obj;
 			}
 #pragma warning restore CS0618 // Type or member is obsolete
 
-			// passe par un custom binder?
-			// => gère le cas des classes avec un ctor DuckTyping, ou des méthodes statiques
+			// maybe we have a custom binder?
 			var def = resolver.ResolveJsonType(type);
 			if (def?.CustomBinder is not null)
 			{
 				return def.CustomBinder(this, type, resolver);
 			}
 
+			// cannot bind a number to this type
 			throw JsonBindingException.CannotBindJsonNumberToThisType(this, type);
 		}
 
@@ -1963,7 +1959,7 @@ namespace Doxense.Serialization.Json
 				{
 					var d = m_value.Double;
 					if (double.IsNaN(d) || double.IsInfinity(d))
-					{ // delegate the actual formating to the writer
+					{ // delegate the actual formatting to the writer
 						writer.WriteValue(d);
 						return;
 					}
@@ -2134,7 +2130,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Converts a JSON Number, as the number of seconds since Unix Epoch, into a DateTimeOffset</summary>
 		/// <returns>DateTimeOffset (UTC) equal to epoch(1970-1-1Z) + seconds(value)</returns>
-		/// <remarks>Since the original timezone information is lost, the result with have a time offset of <see langword="0"/>.</remarks>.
+		/// <remarks>Since the original TimeZone information is lost, the result with have a time offset of <see langword="0"/>.</remarks>.
 		public override DateTimeOffset ToDateTimeOffset(DateTimeOffset _ = default)
 		{
 			// By convention, NaN is mapped to DateTime.MaxValue
@@ -2149,7 +2145,7 @@ namespace Doxense.Serialization.Json
 			if (ticks >= long.MaxValue) return DateTimeOffset.MaxValue;
 			if (ticks <= 0) return DateTimeOffset.MinValue;
 
-			//note: since we don't have any knowledge of the original timezone, we will a time offset of 0 by convention!
+			//note: since we don't have any knowledge of the original TimeZone, we will a time offset of 0 by convention!
 			return new DateTimeOffset((long) ticks, TimeSpan.Zero);
 		}
 
@@ -2163,15 +2159,15 @@ namespace Doxense.Serialization.Json
 
 		public override TimeSpan ToTimeSpan(TimeSpan _ = default)
 		{
-			// Les timespan correspondent au nombre de secondes écoulées
+			// Timespan is encoded as a number of elapsed seconds (decimal number)
 
-			// on convertit d'abord en Ticks
+			// Convert into BCL ticks
 			double ticks = Math.Round(this.ToDouble() * TimeSpan.TicksPerSecond, MidpointRounding.AwayFromZero);
 
 			const double TIME_SPAN_MAX_VALUE_IN_TICKS = 9.2233720368547758E+18d;
 			const double TIME_SPAN_MIN_VALUE_IN_TICKS = -9.2233720368547758E+18d;
 
-			// attention: le nombre de secondes peut dépasser TimeSpan.MaxValue ou TimeSpan.MinValue!
+			// clamp the number of seconds as to not overflow TimeSpan.MaxValue or TimeSpan.MinValue
 			if (ticks >= TIME_SPAN_MAX_VALUE_IN_TICKS) return TimeSpan.MaxValue;
 			if (ticks <= TIME_SPAN_MIN_VALUE_IN_TICKS) return TimeSpan.MinValue;
 
@@ -2180,22 +2176,20 @@ namespace Doxense.Serialization.Json
 
 		private NodaTime.Duration ConvertSecondsToDurationUnsafe(double seconds)
 		{
-			if (seconds < 100_000_000) // ~1157 jours
+			if (seconds < 100_000_000) // ~1157 days
 			{
-				// on peut a priori garder la précision en nanoseconds
+				// this is small enough to not lose the nanoseconds precision
 				return Duration.FromSeconds(seconds);
 			}
-			// BUGBUG: il y a un problème de précision quand on représente un nombre trop grand en nanoseconds
-			// => double n'a que 56bits de précision sur la mantisse, qui faut qu'on ne peut pas le convertir
-			//    en nanosecondes sans introduire des erreurs sur les derniers digits
-			// La seule solution ici est de rester en précision 1/10_000_000 sec (comme BCL) mais du coup
-			// cela veut dire qu'un Instant précis en nanosecondes ne va pas roundtrip correctement en JSON!!!
-			//TODO: est-ce qu'il y a une manière plus propre?
+			
+			// BUGBUG: there is a precision loss issue when the number of nanoseconds is too large
+			// => System.Double only has 56 bits of mantissa, which means that we cannot represent the original
+			//    number of nanoseconds, and must round the last digits
+			// We can only attempt to step down to a precision of 1/10_000_000th of a sec (BCL ticks),
+			// with the caveat that some Instant values will not round trip to and from JSON.
 
-			// on ne peut PAS utiliser 'double' comme type intermédiaire car il va introduire de la corruption dans les derniers digits
-			// => c'est lié au fait qu'un double est une fraction binaire alors qu'ici on est en base 10
-
-			// A la place, on va être obligé de reparser le literal avec "decimal.Parse" qui lui travaille en interne en base 10
+			// We also try to use System.Decimal, since it works in base 10 which is what we use to represent nanoseconds,
+			// whereas double will use base 2 which will add another layer of rounding error
 
 			decimal sec2 = decimal.Parse(this.Literal, CultureInfo.InvariantCulture);
 			decimal sec = Math.Truncate(sec2);
@@ -2206,33 +2200,31 @@ namespace Doxense.Serialization.Json
 
 		public override NodaTime.Duration ToDuration(NodaTime.Duration _ = default)
 		{
-			// les Duration sont stockés en nombre de secondes écoulées
+			// Duration is encoded as a number of elapsed seconds (decimal number)
 
 			var seconds = ToDouble();
 
-			// NaN veut dire "MaxValue"
+			// NaN is mapped to "MaxValue"
 			if (double.IsNaN(seconds)) return NodaTime.Duration.MaxValue;
 
 			// bound checking
-			if (seconds <= -1449551462400d /* MinValue en secondes */) return NodaTime.Duration.MinValue;
-			if (seconds >= 1449551462400 /* MaxValue en secondes */) return NodaTime.Duration.MaxValue;
+			if (seconds <= -1449551462400d /* MinValue in seconds */) return NodaTime.Duration.MinValue;
+			if (seconds >= 1449551462400 /* MaxValue in seconds */) return NodaTime.Duration.MaxValue;
 
 			return ConvertSecondsToDurationUnsafe(seconds);
 		}
 
-		/// <summary>Convertit un JSON Number, correspondant au nombre de secondes écoulés depuis Unix Epoch, en Instant</summary>
-		/// <returns>Instant (UTC) égale à epoch(1970-1-1Z) + seconds(value)</returns>
 		public override NodaTime.Instant ToInstant(NodaTime.Instant _ = default)
 		{
-			// les Instants sont stockés en nombre de secondes écoulées depuis Unix Epoch
+			// Instant is stored as the number of seconds since Unix Epoch (decimal number)
 			var secondsSinceEpoch = ToDouble();
 
-			// NaN veut dire "MaxValue"
+			// NaN is mapped to "MaxValue"
 			if (double.IsNaN(secondsSinceEpoch)) return NodaTime.Instant.MaxValue;
 
 			// bound checking
-			if (secondsSinceEpoch <= -1449551462400d /* MinValue en secondes */) return NodaTime.Instant.MinValue;
-			if (secondsSinceEpoch >= 1449551462400 /* MaxValue en secondes */) return NodaTime.Instant.MaxValue;
+			if (secondsSinceEpoch <= -1449551462400d /* MinValue in seconds */) return NodaTime.Instant.MinValue;
+			if (secondsSinceEpoch >= 1449551462400 /* MaxValue in seconds */) return NodaTime.Instant.MaxValue;
 
 			return default(NodaTime.Instant).Plus(ConvertSecondsToDurationUnsafe(secondsSinceEpoch));
 		}
@@ -2241,10 +2233,9 @@ namespace Doxense.Serialization.Json
 
 		public override TEnum ToEnum<TEnum>(TEnum _ = default)
 		{
-			//BUGBUG: il faudrait normalement tester si typeof(TEnum).GetEnumUnderlyingType() == int32 !!
+			//BUGBUG: this only works for enums that are backed by int (or smaller) !
 			int value = ToInt32();
 			var o = Convert.ChangeType(value, typeof(TEnum));
-			//note: pas de test Enum.IsDefined, car on pourrait écrire "return (FooEnum)42;" en code meme si 42 n'existe pas dans l'enum
 			return (TEnum) o;
 		}
 
@@ -2336,7 +2327,7 @@ namespace Doxense.Serialization.Json
 			var text = value.Value;
 			if (string.IsNullOrEmpty(text)) return false;
 
-			// shortcut si le premier char n'est pas un nombre
+			// quick check if the first char is valid for a number
 			var c = text[0];
 			if (!char.IsDigit(c) && c != '-' && c != '+') return false;
 
@@ -2494,7 +2485,8 @@ namespace Doxense.Serialization.Json
 
 		public override int GetHashCode()
 		{
-			// pb: que ce soit 1, 1UL, 1.0d ou 1m, il faut que le hashcode soit égal !
+			// note: we have to return the same hash code for 1, 1UL, 1.0d or 1m !
+			
 			switch(m_kind)
 			{
 				case Kind.Decimal:
@@ -3010,7 +3002,7 @@ namespace Doxense.Serialization.Json
 
 		public override string ToJson(CrystalJsonSettings? settings = null)
 		{
-			//TODO: if javascript we have to special case for thins like NaN, infitinies, ... !
+			//TODO: if javascript we have to special case for thins like NaN, infinities, ... !
 			return this.Literal;
 		}
 

@@ -85,8 +85,10 @@ namespace Doxense.Serialization.Json
 
 		#region JsonValue Members
 
+		/// <inheritdoc />
 		public override JsonType Type => JsonType.Null;
 
+		/// <inheritdoc />
 		public override object? ToObject() => null;
 
 		public override T? Bind<T>(T? defaultValue = default, ICrystalJsonTypeResolver? resolver = null) where T : default
@@ -122,10 +124,13 @@ namespace Doxense.Serialization.Json
 		private static readonly object BoxedZeroSingle = default(float);
 		private static readonly object BoxedZeroDouble = default(double);
 
+		/// <inheritdoc />
 		public override bool IsNull => true;
 
+		/// <inheritdoc />
 		public override bool IsDefault => true;
 
+		/// <inheritdoc />
 		public override bool IsReadOnly => true; //note: null is immutable
 
 		public bool IsMissing
@@ -140,6 +145,7 @@ namespace Doxense.Serialization.Json
 			get => m_kind == NullKind.Error;
 		}
 
+		/// <inheritdoc />
 		[AllowNull] // setter only
 		public override JsonValue this[int index]
 		{
@@ -147,6 +153,7 @@ namespace Doxense.Serialization.Json
 			set => throw FailCannotMutateImmutableValue(this);
 		}
 
+		/// <inheritdoc />
 		[AllowNull] // setter only
 		public override JsonValue this[Index key]
 		{
@@ -154,6 +161,7 @@ namespace Doxense.Serialization.Json
 			set => throw FailCannotMutateImmutableValue(this);
 		}
 
+		/// <inheritdoc />
 		[AllowNull] // setter only
 		public override JsonValue this[string key]
 		{
@@ -161,30 +169,43 @@ namespace Doxense.Serialization.Json
 			set => throw FailCannotMutateImmutableValue(this);
 		}
 
+		/// <inheritdoc />
 		public override JsonValue GetValueOrDefault(string key, JsonValue? defaultValue = null) => defaultValue ?? JsonNull.Missing;
 
+		/// <inheritdoc />
 		public override JsonValue GetValueOrDefault(ReadOnlyMemory<char> key, JsonValue? defaultValue = null) => defaultValue ?? JsonNull.Missing;
 
+		/// <inheritdoc />
 		public override JsonValue GetValueOrDefault(ReadOnlySpan<char> key, JsonValue? defaultValue = null) => defaultValue ?? JsonNull.Missing;
 
+		/// <inheritdoc />
 		public override JsonValue GetValueOrDefault(int index, JsonValue? defaultValue = null) => defaultValue ?? JsonNull.Missing;
 
+		/// <inheritdoc />
 		public override JsonValue GetValueOrDefault(Index index, JsonValue? defaultValue = null) => defaultValue ?? JsonNull.Missing;
 
+		/// <inheritdoc />
 		public override JsonValue GetValue(string key) => JsonValueExtensions.FailFieldIsNullOrMissing(this, key);
 
+		/// <inheritdoc />
 		public override JsonValue GetValue(ReadOnlyMemory<char> key) => JsonValueExtensions.FailFieldIsNullOrMissing(this, key.Span);
 
+		/// <inheritdoc />
 		public override JsonValue GetValue(ReadOnlySpan<char> key) => JsonValueExtensions.FailFieldIsNullOrMissing(this, key);
 
+		/// <inheritdoc />
 		public override JsonValue GetValue(int index) => JsonValueExtensions.FailIndexIsNullOrMissing(index, JsonNull.Error);
 
+		/// <inheritdoc />
 		public override JsonValue GetValue(Index index) => JsonValueExtensions.FailIndexIsNullOrMissing(index, JsonNull.Error);
 
+		/// <inheritdoc />
 		public override bool Contains(JsonValue? value) => false;
 
+		/// <inheritdoc />
 		internal override bool IsSmallValue() => true;
 
+		/// <inheritdoc />
 		internal override bool IsInlinable() => true;
 
 		#endregion

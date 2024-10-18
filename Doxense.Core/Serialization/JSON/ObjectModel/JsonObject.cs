@@ -58,7 +58,7 @@ namespace Doxense.Serialization.Json
 		private readonly Dictionary<string, JsonValue> m_items;
 
 		/// <summary>Defines the mutability of this object.</summary>
-		/// <remarks>Mutability can change from Immutable to any of the ReadOnlyXYZ variants, but not the over way arround!</remarks>
+		/// <remarks>Mutability can change from Immutable to any of the ReadOnlyXYZ variants, but not the over way around!</remarks>
 		private bool m_readOnly;
 
 		/// <summary>Returns a new empty JSON object</summary>
@@ -199,7 +199,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Capture the KeyComparer used by an existing dictionary</summary>
 		internal static IEqualityComparer<string>? ExtractKeyComparer<TValue>([NoEnumeration] IEnumerable<KeyValuePair<string, TValue>> items)
 		{
-			// if T == JsonOject or T == Dictionary<K,V>, we need to use the same key comparer as the original
+			// if T == JsonObject or T == Dictionary<K,V>, we need to use the same key comparer as the original
 			// ReSharper disable once SuspiciousTypeConversion.Global
 			// ReSharper disable once ConstantNullCoalescingCondition
 			return (items as JsonObject)?.Comparer ?? (items as Dictionary<string, TValue>)?.Comparer;
@@ -255,12 +255,11 @@ namespace Doxense.Serialization.Json
 			return new(map, readOnly: true);
 		}
 
-
 		/// <summary>Converts this JSON Object so that it, or any of its children that were previously read-only, can be mutated.</summary>
 		/// <returns>The same instance if it is already fully mutable, OR a copy where any read-only Object or Array has been converted to allow mutations.</returns>
 		/// <remarks>
 		/// <para>Will return the same instance if it is already mutable, or a new deep copy with all children marked as mutable.</para>
-		/// <para>This attempts to only copy what is necessary, and will not copy objects or arrays that are already mutable, or all other "value types" (strings, booleans, numbers, ...) that are always immutable.</para>
+		/// <para>This attempts to only copy what is necessary, and will not copy objects or arrays that are already mutable, or all other "value types" (string, boolean, number, ...) that are always immutable.</para>
 		/// </remarks>
 		public override JsonObject ToMutable()
 		{
@@ -507,7 +506,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
 		public static JsonObject Create(ReadOnlySpan<(string Key, JsonValue? Value)> items)
 		{
-			//note: this overload without optional IEqualityComparer is required to resolve an overload amgibuity with the Create(ReadOnlySpan<KeyValuePair<string, JsonValue>>) variant when calling JsonObject.Create([])
+			//note: this overload without optional IEqualityComparer is required to resolve an overload ambiguity with the Create(ReadOnlySpan<KeyValuePair<string, JsonValue>>) variant when calling JsonObject.Create([])
 			// => it seems that if one of the two has an optional argument, it will have a lower priority.
 
 			return Create().AddRange(items);
@@ -519,7 +518,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
 		public static JsonObject FromValues<TValue>(ReadOnlySpan<(string Key, TValue Value)> items)
 		{
-			//note: this overload without optional IEqualityComparer is required to resolve an overload amgibuity with the Create(ReadOnlySpan<KeyValuePair<string, JsonValue>>) variant when calling JsonObject.Create([])
+			//note: this overload without optional IEqualityComparer is required to resolve an overload ambiguity with the Create(ReadOnlySpan<KeyValuePair<string, JsonValue>>) variant when calling JsonObject.Create([])
 			// => it seems that if one of the two has an optional argument, it will have a lower priority.
 
 			return Create().AddValues(items);
@@ -655,6 +654,8 @@ namespace Doxense.Serialization.Json
 		/// <param name="keySelector">Handler that is called for each element of the sequence, and should return the corresponding unique key.</param>
 		/// <param name="valueSelector">Handler that is called for each element of the sequence, and should return the corresponding value, that will in turn be converted into JSON.</param>
 		/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>Corresponding JSON object, that can be modified</returns>
 		public static JsonObject FromValues<TElement, TValue>(IEnumerable<TElement> source, Func<TElement, string> keySelector, Func<TElement, TValue> valueSelector, IEqualityComparer<string>? comparer = null, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
@@ -682,7 +683,6 @@ namespace Doxense.Serialization.Json
 		[return: NotNullIfNotNull(nameof(value))]
 		public static JsonObject? FromObject<TValue>(TValue value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			//REVIEW: que faire si c'est null? Json.Net throw une ArgumentNullException dans ce cas, et ServiceStack ne gère pas de DOM de toutes manières...
 			return CrystalJsonDomWriter.Default.ParseObject(value, typeof(TValue)).AsObjectOrDefault();
 		}
 
@@ -690,11 +690,10 @@ namespace Doxense.Serialization.Json
 		/// <typeparam name="TValue">Publicly known type of the instance.</typeparam>
 		/// <param name="value">Instance to convert.</param>
 		/// <returns>Corresponding immutable JSON Object, or <see langword="null"/> if <paramref name="value"/> is null</returns>
-		/// <remarks>The JSON Object that is returned is read-only, and can safely be cached or shared. If you need a mutable instance, consider calling <see cref="FromObject{TValue}(TValue)"/> instead.</remarks>
+		/// <remarks>The JSON Object that is returned is read-only, and can safely be cached or shared. If you need a mutable instance, consider calling <see cref="FromObject{TValue}"/> instead.</remarks>
 		[return: NotNullIfNotNull(nameof(value))]
 		public static JsonObject? FromObjectReadOnly<TValue>(TValue value)
 		{
-			//REVIEW: que faire si c'est null? Json.Net throw une ArgumentNullException dans ce cas, et ServiceStack ne gère pas de DOM de toutes manières...
 			return CrystalJsonDomWriter.DefaultReadOnly.ParseObject(value, typeof(TValue)).AsObjectOrDefault();
 		}
 
@@ -704,7 +703,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>Corresponding immutable JSON Object, or <see langword="null"/> if <paramref name="value"/> is null</returns>
-		/// <remarks>The JSON Object that is returned is read-only, and can safely be cached or shared. If you need a mutable instance, consider calling <see cref="FromObject{TValue}(TValue)"/> instead.</remarks>
+		/// <remarks>The JSON Object that is returned is read-only, and can safely be cached or shared. If you need a mutable instance, consider calling <see cref="FromObject{TValue}"/> instead.</remarks>
 		[return: NotNullIfNotNull(nameof(value))]
 		public static JsonObject? FromObjectReadOnly<TValue>(TValue value, CrystalJsonSettings settings, ICrystalJsonTypeResolver? resolver = null)
 		{
@@ -811,7 +810,7 @@ namespace Doxense.Serialization.Json
 					else
 					{ // compact mode: "NAME: VALUE"
 
-						// since we don't care to be deserializable, we can ommit 'null' items
+						// since we don't care to be deserializable, we can omit 'null' items
 						if (x is null) continue;
 
 						var v = x is System.Runtime.Serialization.ISerializable ser
@@ -1102,9 +1101,9 @@ namespace Doxense.Serialization.Json
 
 					break;
 				}
-				case Dictionary<string, JsonValue> dict:
+				case Dictionary<string, JsonValue> dictionary:
 				{
-					foreach (var item in dict)
+					foreach (var item in dictionary)
 					{
 						Contract.Debug.Requires(item.Key is not null && !ReferenceEquals(this, item.Value));
 						// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
@@ -1113,9 +1112,9 @@ namespace Doxense.Serialization.Json
 
 					break;
 				}
-				case FrozenDictionary<string, JsonValue> dict:
+				case FrozenDictionary<string, JsonValue> frozenDictionary:
 				{
-					foreach (var item in dict)
+					foreach (var item in frozenDictionary)
 					{
 						Contract.Debug.Requires(item.Key is not null && !ReferenceEquals(this, item.Value));
 						// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
@@ -1124,9 +1123,9 @@ namespace Doxense.Serialization.Json
 
 					break;
 				}
-				case ImmutableDictionary<string, JsonValue> immu:
+				case ImmutableDictionary<string, JsonValue> immutableDictionary:
 				{
-					foreach (var item in immu)
+					foreach (var item in immutableDictionary)
 					{
 						Contract.Debug.Requires(item.Key is not null && !ReferenceEquals(this, item.Value));
 						// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
@@ -1810,16 +1809,16 @@ namespace Doxense.Serialization.Json
 
 		#region Public Properties...
 
-		/// <summary>Type d'objet JSON</summary>
+		/// <summary>Type of JSON value (Object, Array, String, ...)</summary>
 		public override JsonType Type => JsonType.Object;
 
-		/// <summary>Indique s'il s'agit de la valeur par défaut du type ("vide")</summary>
+		/// <summary>Returns <see langword="true"/> if the object is empty.</summary>
 		public override bool IsDefault => this.Count == 0;
 
-		/// <summary>Indique si l'objet contient des valeurs</summary>
+		/// <summary>Returns <see langword="true"/> if the object is not empty.</summary>
 		public bool HasValues => this.Count > 0;
 
-		/// <summary>Retourne la valeur de l'attribut "__class", ou null si absent (ou pas une chaine)</summary>
+		/// <summary>Returns the "__class" attribute, if present</summary>
 		public string? CustomClassName => Get<string?>(JsonTokens.CustomClassAttribute, null);
 
 		#endregion
@@ -2038,7 +2037,7 @@ namespace Doxense.Serialization.Json
 							}
 							if (actual.IsNullOrMissing())
 							{
-								actual = expected == JsonType.Object ? JsonObject.Create() : expected == JsonType.Array ? JsonArray.Create() : throw new ArgumentException(nameof(expected));
+								actual = expected == JsonType.Object ? JsonObject.Create() : expected == JsonType.Array ? JsonArray.Create() : throw new ArgumentException("Unsupported JSON type", nameof(expected));
 								obj.Set(key, actual);
 							}
 							else if (actual.Type != expected)
@@ -2110,7 +2109,7 @@ namespace Doxense.Serialization.Json
 
 							if (actual.IsNullOrMissing())
 							{
-								actual = expected == JsonType.Object ? JsonObject.Create() : expected == JsonType.Array ? JsonArray.Create() : throw new ArgumentException(nameof(expected));
+								actual = expected == JsonType.Object ? JsonObject.Create() : expected == JsonType.Array ? JsonArray.Create() : throw new ArgumentException("Unsupported JSON type", nameof(expected));
 								arr[idx] = actual;
 							}
 							else if (actual.Type != expected)
@@ -2485,21 +2484,21 @@ namespace Doxense.Serialization.Json
 
 		#region Projection...
 
-		/// <summary>Génère un Picker en cache, capable d'extraire une liste de champs d'objet JSON</summary>
+		/// <summary>Generates a cacheable Picker that can extract a list of fields from a JSON Object</summary>
 		public static Func<JsonObject, JsonObject> CreatePicker(ReadOnlySpan<string> fields, bool removeFromSource = false)
 		{
 			var projections = CheckProjectionFields(fields, keepMissing: false);
 			return (obj) => Project(obj, projections, removeFromSource);
 		}
 
-		/// <summary>Génère un Picker en cache, capable d'extraire une liste de champs d'objet JSON</summary>
+		/// <summary>Generates a cacheable Picker that can extract a list of fields from a JSON Object</summary>
 		public static Func<JsonObject, JsonObject> CreatePicker(IEnumerable<string> fields, bool keepMissing, bool removeFromSource = false)
 		{
 			var projections = CheckProjectionFields(fields as string[] ?? fields.ToArray(), keepMissing);
 			return (obj) => Project(obj, projections, removeFromSource);
 		}
 
-		/// <summary>Génère un Picker en cache, capable d'extraire une liste de champs d'objet JSON</summary>
+		/// <summary>Generates a cacheable Picker that can extract a list of fields from a JSON Object</summary>
 		public static Func<JsonObject, JsonObject> CreatePicker(IDictionary<string, JsonValue?> defaults, bool removeFromSource = false)
 		{
 			var projections = CheckProjectionDefaults(defaults);
@@ -2551,23 +2550,23 @@ namespace Doxense.Serialization.Json
 			return Project(this, CheckProjectionFields(fields, keepMissing));
 		}
 
-		/// <summary>Retourne un nouvel objet ne contenant que certains champs spécifiques de cet objet</summary>
-		/// <param name="defaults">Liste des des champs à conserver, avec une éventuelle valeur par défaut</param>
-		/// <returns>Nouvel objet qui ne contient que les champs spécifiés dans <paramref name="defaults"/></returns>
+		/// <summary>Returns a new object containing only specific fields of this object</summary>
+		/// <param name="defaults">List of fields to keep, with an optional default value</param>
+		/// <returns>New object that contains only the fields specified in <paramref name="defaults"/></returns>
 		public JsonObject PickFrom(IDictionary<string, JsonValue?> defaults)
 		{
 			return Project(this, CheckProjectionDefaults(defaults));
 		}
 
-		/// <summary>Retourne un nouvel objet ne contenant que certains champs spécifiques de cet objet</summary>
-		/// <param name="defaults">Liste des des champs à conserver, avec une éventuelle valeur par défaut</param>
-		/// <returns>Nouvel objet qui ne contient que les champs spécifiés dans <paramref name="defaults"/></returns>
+		/// <summary>Returns a new object containing only specific fields of this object</summary>
+		/// <param name="defaults">List of fields to keep, with an optional default value</param>
+		/// <returns>New object that contains only the fields specified in <paramref name="defaults"/></returns>
 		public JsonObject PickFrom(object defaults)
 		{
 			return Project(this, CheckProjectionDefaults(defaults));
 		}
 
-		/// <summary>Vérifie que la liste de champs de projection ne contient pas de null, empty ou doublons</summary>
+		/// <summary>Checks that the list of projection fields does not contain null, empty, or duplicates</summary>
 		/// <param name="keys">List of the names of the fields to keep, each with a default value if they are missing from the source</param>
 		/// <param name="keepMissing">If <see langword="true"/>, any field missing from the object will be present with value <see cref="JsonNull.Missing"/>; otherwise, they will be omitted.</param>
 		[ContractAnnotation("keys:null => halt")]
@@ -2594,7 +2593,7 @@ namespace Doxense.Serialization.Json
 			return res;
 		}
 
-		/// <summary>Vérifie que la liste de champs de projection ne contient pas de null, empty ou doublons</summary>
+		/// <summary>Checks that the list of projection fields does not contain null, empty, or duplicates</summary>
 		/// <param name="fields">List of the names of the fields to keep, each with a default value if they are missing from the source</param>
 		/// <param name="keepMissing">If <see langword="true"/>, any field missing from the object will be present with value <see cref="JsonNull.Missing"/>; otherwise, they will be omitted.</param>
 		internal static (string Name, JsonPath Path, JsonValue? Fallback)[] CheckProjectionFields(ReadOnlySpan<(string Name, JsonPath Path)> fields, bool keepMissing)
@@ -2624,9 +2623,9 @@ namespace Doxense.Serialization.Json
 			return res;
 		}
 
-		/// <summary>Vérifie que la liste de champs de projection ne contient pas de null, empty ou doublons</summary>
-		/// <param name="defaults">Liste des clés à projeter, avec leur valeur par défaut</param>
-		/// <remarks>Si un champ est manquant dans l'objet source, la valeur par défaut est utilisée, sauf si elle est égale à null.</remarks>
+		/// <summary>Checks that the list of projection fields does not contain null, empty, or duplicates</summary>
+		/// <param name="defaults">List of keys to project, with their default value</param>
+		/// <remarks>If a field is missing in the source object, the default value is used, unless it is null.</remarks>
 		[ContractAnnotation("defaults:null => halt")]
 		internal static KeyValuePair<string, JsonValue?>[] CheckProjectionDefaults(IDictionary<string, JsonValue?> defaults)
 		{
@@ -2662,7 +2661,6 @@ namespace Doxense.Serialization.Json
 
 			var obj = FromObjectReadOnly(defaults);
 			Contract.Debug.Assert(obj is not null);
-			//note: garantit sans doublons et sans clés vides
 			return obj.ToArray()!;
 		}
 
@@ -2789,7 +2787,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns a new object without the specified field from the original</summary>
 		/// <param name="value">Original object</param>
-		/// <param name="field">Name of the field that must be ommited.</param>
+		/// <param name="field">Name of the field that must be omitted.</param>
 		/// <param name="deepCopy">If <see langword="true"/>, performs a deep copy of the fields that pass the filter. If <see langword="false"/>, copy them by reference. Has no effect for fields that are already read-only.</param>
 		/// <returns>New object with all the fields of the original, except the one with the same name as <paramref name="field"/>.</returns>
 		/// <remarks>If all fields are discarded, the returned object will be empty.</remarks>
@@ -2822,7 +2820,7 @@ namespace Doxense.Serialization.Json
 			return Without(this, fieldToRemove, deepCopy);
 		}
 
-		/// <summary>Remove a field from this object</summary>
+		/// <summary>Removes a field from this object</summary>
 		/// <param name="fieldToRemove">Name of the field to remove</param>
 		/// <returns>The same object, but with the field removed (if it was present)</returns>
 		/// <remarks>This method is identical to <see cref="Remove(string)"/>, be can be chained with another call</remarks>
@@ -3033,7 +3031,7 @@ namespace Doxense.Serialization.Json
 			if (m_items.Count == 0) return "{ }"; // empty
 
 			// We will output up to 4 fields.
-			// If the value of a field is "small" it is written entierly. If not, it will be replaced with '...'
+			// If the value of a field is "small" it is written entirely. If not, it will be replaced with '...'
 
 			var sb = new StringBuilder("{ ");
 			int i = 0;
@@ -3151,7 +3149,6 @@ namespace Doxense.Serialization.Json
 
 #endif
 
-
 		#endregion
 
 		#region IEquatable<...>
@@ -3196,7 +3193,7 @@ namespace Doxense.Serialization.Json
 
 		public override int GetHashCode()
 		{
-			// the hashcode must NEVER change, even if the object is mutated!
+			// the hash code must NEVER change, even if the object is mutated!
 			return RuntimeHelpers.GetHashCode(this);
 		}
 

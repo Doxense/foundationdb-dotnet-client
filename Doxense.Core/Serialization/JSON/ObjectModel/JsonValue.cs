@@ -50,7 +50,7 @@ namespace Doxense.Serialization.Json
 		public abstract JsonType Type { [Pure] get; }
 
 		/// <summary>Converts this into a CLR object (with a type that matches the value)</summary>
-		/// <remarks>Prefer casting to a specific type, using <see cref="JsonValueExtensions.As{TValue}(Doxense.Serialization.Json.JsonValue?,Doxense.Serialization.Json.ICrystalJsonTypeResolver?)">As&lt;TValue&gt;()</see> or any equivalent method.</remarks>
+		/// <remarks>Prefer casting to a specific type, using <see cref="JsonValueExtensions.As{TValue}">As&lt;TValue&gt;()</see> or any equivalent method.</remarks>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public abstract object? ToObject();
@@ -61,7 +61,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>An instance of the target type that is equivalent to the original JSON value, if there exists a valid conversion path or convention. Otherwise, an exception will be thrown.</returns>
 		/// <exception cref="JsonBindingException">If the value cannot be bound into an instance of the target <paramref name="type"/>.</exception>
 		/// <example><c>JsonNumber.Return(123).Bind(typeof(long))</c> will return a boxed Int64 with value <c>123</c>.</example>
-		/// <remarks>If the target type is a Value Type, the instance will be boxed, which may cause extra memory allocations. Consider calling <see cref="Bind{TValue}"/> instance, or use any of the convenience methods like <see cref="JsonValueExtensions.Required{TValue}"/>, <see cref="JsonValueExtensions.As{TValue}(Doxense.Serialization.Json.JsonValue?,Doxense.Serialization.Json.ICrystalJsonTypeResolver?)"/>, ...</remarks>
+		/// <remarks>If the target type is a Value Type, the instance will be boxed, which may cause extra memory allocations. Consider calling <see cref="Bind{TValue}"/> instance, or use any of the convenience methods like <see cref="JsonValueExtensions.Required{TValue}"/>, <see cref="JsonValueExtensions.As{TValue}"/>, ...</remarks>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public abstract object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null);
@@ -121,7 +121,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>The same instance if it is already read-only, or a new read-only deep copy, if it was mutable.</returns>
 		/// <remarks>
 		/// <para>The value returned is guaranteed to be immutable, and is safe to cache, share, or use as a singleton.</para>
-		/// <para>Only JSON Objects and Arrays are impacted. All other "value types" (strings, booleans, numbers, ...) are always immutable, and will not be copied.</para>
+		/// <para>Only JSON Objects and Arrays are impacted. All other "value types" (string, boolean, number, ...) are always immutable, and will not be copied.</para>
 		/// <para>If you need to modify a JSON Object or Array that is read-only, you should first create a copy, by calling either <see cref="Copy"/> or <see cref="ToMutable"/>, perform any changes required, and then either <see cref="Freeze"/> the copy, or call <see cref="ToReadOnly"/> again.</para>
 		/// </remarks>
 		[Pure]
@@ -131,7 +131,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>The same instance if it is already fully mutable, OR a copy where any read-only Object or Array has been converted to allow mutations.</returns>
 		/// <remarks>
 		/// <para>Will return the same instance if it is already mutable, or a new deep copy with all children marked as mutable.</para>
-		/// <para>This attempts to only copy what is necessary, and will not copy objects or arrays that are already mutable, or all other "value types" (strings, booleans, numbers, ...) that are always immutable.</para>
+		/// <para>This attempts to only copy what is necessary, and will not copy objects or arrays that are already mutable, or all other "value types" (string, boolean, number, ...) that are always immutable.</para>
 		/// </remarks>
 		[Pure]
 		public virtual JsonValue ToMutable() => this;
@@ -164,8 +164,8 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns a "compact" string representation of this value, that can fit into a troubleshooting log.</summary>
 		/// <remarks>
-		/// <para>If the value is too large, parts of it will be shortened by adding <c>', ...'</c> tokens, so that it is still readable by a human.</para>
-		/// <para>Note: the string that is return is not valid JSON and may not be parsable! This is only intended for quick introspection of a JSON document, by a human, using a log file or console output.</para>
+		/// <para>If the value is too large, parts of it will be shortened by adding "<c>, ...</c>" tokens, so that it is still readable by a human.</para>
+		/// <para>Note: the string that is return is not valid JSON and may not be parseable! This is only intended for quick introspection of a JSON document, by a human, using a log file or console output.</para>
 		/// </remarks>
 		[Pure]
 		internal virtual string GetCompactRepresentation(int depth) => ToJson();
@@ -238,8 +238,8 @@ namespace Doxense.Serialization.Json
 #if DEBUG
 					if (format!.EndsWith("}}", StringComparison.Ordinal))
 					{
-						// ATTENTION! vous avez un bug dans un formatter de string interpolation!
-						// Si vous écrivez "... {{{obj:P}}}", ca va parser "P}}" comme le string format!!
+						// ATTENTION! you have a typo in a string interpolation format!
+						// If you have written something like "... {{{obj:P}}}", it will parse "P}}" as the string format, which is incorrect.
 						if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
 					}
 #endif
@@ -256,7 +256,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Creates a deep copy of this value (and all of its children)</summary>
 		/// <returns>A new instance, isolated from the original.</returns>
 		/// <remarks>
-		/// <para>Any changes to this copy will not have any effect of the original, and vice-versa</para>
+		/// <para>Any changes to this copy will not have any effect of the original, and vice versa</para>
 		/// <para>If the value is an immutable type (like <see cref="JsonString"/>, <see cref="JsonNumber"/>, <see cref="JsonBoolean"/>, ...) then the same instance will be returned.</para>
 		/// <para>If the value is an array then a new array containing a </para>
 		/// </remarks>
@@ -289,12 +289,12 @@ namespace Doxense.Serialization.Json
 		/// <summary>Compares two JSON values, and returns an integer that indicates whether the first value precedes, follows, or occurs in the same position in the sort order as the second value.</summary>
 		public static int Compare(JsonValue? left, JsonValue? right) => (left ?? JsonNull.Missing).CompareTo(right ?? JsonNull.Missing); 
 
-		/// <summary>Returns a hashcode that can be used to quickly identify a JSON value.</summary>
+		/// <summary>Returns a hash code that can be used to quickly identify a JSON value.</summary>
 		/// <remarks>
-		/// <para>The hashcode is guaranteed to remain unchanged during the lifetime of the object.</para>
+		/// <para>The hash code is guaranteed to remain unchanged during the lifetime of the object.</para>
 		/// <para>
 		/// <b>Caution:</b> there is *NO* guarantee that two equivalent Objects or Arrays will have the same hash code! 
-		/// This means that it is *NOT* safe to use a JSON object or array has the key of a Dictionary or other collection that uses hashcodes to quickly compare two instances.
+		/// This means that it is *NOT* safe to use a JSON object or array has the key of a Dictionary or other collection that uses hash codes to quickly compare two instances.
 		/// </para>
 		/// </remarks>
 		public abstract override int GetHashCode();
@@ -311,7 +311,7 @@ namespace Doxense.Serialization.Json
 				throw ThrowHelper.InvalidOperationException($"Cannot compare a JSON value with another value of type {other.Type}");
 			}
 
-			// no real silver bullet here, we will simple compare the hashcodes (which _MUST_ be constant, so at least the order will be deterministic)
+			// no real silver bullet here, we will simply compare the hash codes (which _MUST_ be constant, so at least the order will be deterministic)
 			int c = ((int) this.Type).CompareTo((int) other.Type);
 			if (c == 0)
 			{
