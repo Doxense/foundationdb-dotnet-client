@@ -28,24 +28,21 @@ namespace Doxense.Collections.Tuples.Encoding
 {
 	using Doxense.Memory;
 
-	/// <summary>Helper class that can serialize values of type <typeparamref name="T"/> to the tuple binary format</summary>
+	/// <summary>Helper class for serializing and deserializing values of type <typeparamref name="T"/> using the tuple binary format</summary>
 	/// <typeparam name="T">Type of values to be serialized</typeparam>
-	public static class TuplePacker<
-		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
-		T
-	>
+	public static class TuplePacker<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>
 	{
 
 		internal static readonly TuplePackers.Encoder<T> Encoder = TuplePackers.GetSerializer<T>(required: true)!;
 
 		internal static readonly TuplePackers.Decoder<T?> Decoder = TuplePackers.GetDeserializer<T>(required: true);
 
-		/// <summary>Serialize a <typeparamref name="T"/> using a Tuple Writer</summary>
-		/// <param name="writer">Target buffer</param>
-		/// <param name="value">Value that will be serialized</param>
+		/// <summary>Serializes a <typeparamref name="T"/> to the tuple format using a <see cref="TupleWriter"/>.</summary>
+		/// <param name="writer">The <see cref="TupleWriter"/> into which the value will be serialized.</param>
+		/// <param name="value">The value to be serialized</param>
 		/// <remarks>
-		/// The buffer does not need to be pre-allocated.
-		/// This method supports embedded tuples.
+		/// <para>The buffer does not need to be pre-allocated.</para>
+		/// <para>This method supports embedded tuples.</para>
 		/// </remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(ref TupleWriter writer, T? value)
@@ -53,18 +50,25 @@ namespace Doxense.Collections.Tuples.Encoding
 			Encoder(ref writer, value);
 		}
 
+		/// <summary>Serializes a boxed value to the tuple format using a <see cref="TupleWriter"/>.</summary>
+		/// <param name="writer">The <see cref="TupleWriter"/> into which the value will be serialized.</param>
+		/// <param name="value">The boxed value to be serialized. The value must be assignable to type <typeparamref name="T"/>.</param>
+		/// <remarks>
+		/// <para>The buffer does not need to be pre-allocated.</para>
+		/// <para>This method is useful for scenarios where the value is boxed and needs to be serialized without knowing its type at compile time. The buffer does not need to be pre-allocated.</para>
+		/// </remarks>
 		public static void SerializeBoxedTo(ref TupleWriter writer, object? value)
 		{
 			Encoder(ref writer, (T) value!);
 		}
 
-		/// <summary>Serialize a <typeparamref name="T"/> into a binary buffer</summary>
-		/// <param name="writer">Target buffer</param>
-		/// <param name="value">Value that will be serialized</param>
+		/// <summary>Serializes a <typeparamref name="T"/> to the tuple format using a <see cref="SliceWriter"/>.</summary>
+		/// <param name="writer">The <see cref="SliceWriter"/> into which the value will be serialized.</param>
+		/// <param name="value">The value to be serialized</param>
 		/// <remarks>
-		/// The buffer does not need to be pre-allocated.
-		/// This method DOES NOT support embedded tuples, and assumes that we are serializing a top-level Tuple!
-		/// If you need support for embedded tuples, use <see cref="SerializeTo(ref TupleWriter,T)"/> instead!
+		/// <para>The buffer does not need to be pre-allocated.</para>
+		/// <para>This method <b>DOES NOT</b> support embedded tuples, and assumes that we are serializing a top-level Tuple!</para>
+		/// <para>If you need support for embedded tuples, use <see cref="SerializeTo(ref TupleWriter,T)"/> instead!</para>
 		/// </remarks>
 		public static void SerializeTo(ref SliceWriter writer, T? value)
 		{
@@ -74,9 +78,10 @@ namespace Doxense.Collections.Tuples.Encoding
 			//REVIEW: we loose the depth information here! :(
 		}
 
-		/// <summary>Serialize a value of type <typeparamref name="T"/> into a tuple segment</summary>
-		/// <param name="value">Value that will be serialized</param>
-		/// <returns>Slice that contains the binary representation of <paramref name="value"/></returns>
+		/// <summary>Serializes a <typeparamref name="T"/> to the tuple format into a <see cref="Slice"/>.</summary>
+		/// <param name="value">The value to be serialized</param>
+		/// <returns><see cref="Slice"/> that contains the binary representation of <paramref name="value"/></returns>
+		/// <remarks>This method will allocate memory on each call. Consider using <see cref="SerializeTo(ref SliceWriter,T?)"/>, or any other variant, to reduce allocations.</remarks>
 		public static Slice Serialize(T? value)
 		{
 			var writer = new TupleWriter();
@@ -84,53 +89,53 @@ namespace Doxense.Collections.Tuples.Encoding
 			return writer.Output.ToSlice();
 		}
 
-		/// <summary>Deserialize a tuple segment into a value of type <typeparamref name="T"/></summary>
-		/// <param name="slice">Slice that contains the binary representation of a tuple item</param>
-		/// <returns>Decoded value, or an exception if the item type is not compatible</returns>
+		/// <summary>Deserializes a tuple segment into a value of type <typeparamref name="T"/>.</summary>
+		/// <param name="slice">Slice that contains the binary representation of a tuple item.</param>
+		/// <returns>Decoded value, or an exception if the item type is not compatible.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static T? Deserialize(Slice slice) => Decoder(slice.Span);
 
-		/// <summary>Deserialize a tuple segment into a value of type <typeparamref name="T"/></summary>
-		/// <param name="slice">Slice that contains the binary representation of a tuple item</param>
+		/// <summary>Deserializes a tuple segment into a value of type <typeparamref name="T"/>.</summary>
+		/// <param name="span">Span that contains the binary representation of a tuple item</param>
 		/// <returns>Decoded value, or an exception if the item type is not compatible</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static T? Deserialize(ReadOnlySpan<byte> slice)
+		public static T? Deserialize(ReadOnlySpan<byte> span)
 		{
 			//<JIT_HACK>
 			// - In Release builds, this will be cleaned up and inlined by the JIT as a direct invocation of the correct WriteXYZ method
 			// - In Debug builds, we have to disable this, because it would be too slow
 #if !DEBUG
 			// non-nullable
-			if (typeof(T) == typeof(int)) return (T?) (object) TuplePackers.DeserializeInt32(slice);
-			if (typeof(T) == typeof(long)) return (T?) (object) TuplePackers.DeserializeInt64(slice);
-			if (typeof(T) == typeof(bool)) return (T?) (object) TuplePackers.DeserializeBoolean(slice);
-			if (typeof(T) == typeof(float)) return (T?) (object) TuplePackers.DeserializeSingle(slice);
-			if (typeof(T) == typeof(double)) return (T?) (object) TuplePackers.DeserializeDouble(slice);
-			if (typeof(T) == typeof(VersionStamp)) return (T?) (object) TuplePackers.DeserializeVersionStamp(slice);
-			if (typeof(T) == typeof(Guid)) return (T?) (object) TuplePackers.DeserializeGuid(slice);
-			if (typeof(T) == typeof(Uuid128)) return (T?) (object) TuplePackers.DeserializeUuid128(slice);
-			if (typeof(T) == typeof(Uuid96)) return (T?) (object) TuplePackers.DeserializeUuid96(slice);
-			if (typeof(T) == typeof(Uuid80)) return (T?) (object) TuplePackers.DeserializeUuid80(slice);
-			if (typeof(T) == typeof(Uuid64)) return (T?) (object) TuplePackers.DeserializeUuid64(slice);
-			if (typeof(T) == typeof(TimeSpan)) return (T?) (object) TuplePackers.DeserializeTimeSpan(slice);
-			if (typeof(T) == typeof(Slice)) return (T?) (object) TuplePackers.DeserializeSlice(slice);
+			if (typeof(T) == typeof(int)) return (T?) (object) TuplePackers.DeserializeInt32(span);
+			if (typeof(T) == typeof(long)) return (T?) (object) TuplePackers.DeserializeInt64(span);
+			if (typeof(T) == typeof(bool)) return (T?) (object) TuplePackers.DeserializeBoolean(span);
+			if (typeof(T) == typeof(float)) return (T?) (object) TuplePackers.DeserializeSingle(span);
+			if (typeof(T) == typeof(double)) return (T?) (object) TuplePackers.DeserializeDouble(span);
+			if (typeof(T) == typeof(VersionStamp)) return (T?) (object) TuplePackers.DeserializeVersionStamp(span);
+			if (typeof(T) == typeof(Guid)) return (T?) (object) TuplePackers.DeserializeGuid(span);
+			if (typeof(T) == typeof(Uuid128)) return (T?) (object) TuplePackers.DeserializeUuid128(span);
+			if (typeof(T) == typeof(Uuid96)) return (T?) (object) TuplePackers.DeserializeUuid96(span);
+			if (typeof(T) == typeof(Uuid80)) return (T?) (object) TuplePackers.DeserializeUuid80(span);
+			if (typeof(T) == typeof(Uuid64)) return (T?) (object) TuplePackers.DeserializeUuid64(span);
+			if (typeof(T) == typeof(TimeSpan)) return (T?) (object) TuplePackers.DeserializeTimeSpan(span);
+			if (typeof(T) == typeof(Slice)) return (T?) (object) TuplePackers.DeserializeSlice(span);
 			// nullable
-			if (typeof(T) == typeof(int?)) return (T?) (object?) TuplePackers.DeserializeInt32Nullable(slice);
-			if (typeof(T) == typeof(long?)) return (T?) (object?) TuplePackers.DeserializeInt64Nullable(slice);
-			if (typeof(T) == typeof(bool?)) return (T?) (object?) TuplePackers.DeserializeBooleanNullable(slice);
-			if (typeof(T) == typeof(float?)) return (T?) (object?) TuplePackers.DeserializeSingleNullable(slice);
-			if (typeof(T) == typeof(double?)) return (T?) (object?) TuplePackers.DeserializeDoubleNullable(slice);
-			if (typeof(T) == typeof(VersionStamp?)) return (T?) (object?) TuplePackers.DeserializeVersionStampNullable(slice);
-			if (typeof(T) == typeof(Guid?)) return (T?) (object?) TuplePackers.DeserializeGuidNullable(slice);
-			if (typeof(T) == typeof(Uuid128?)) return (T?) (object?) TuplePackers.DeserializeUuid128Nullable(slice);
-			if (typeof(T) == typeof(Uuid96?)) return (T?) (object?) TuplePackers.DeserializeUuid96Nullable(slice);
-			if (typeof(T) == typeof(Uuid80?)) return (T?) (object?) TuplePackers.DeserializeUuid80Nullable(slice);
-			if (typeof(T) == typeof(TimeSpan?)) return (T?) (object?) TuplePackers.DeserializeTimeSpanNullable(slice);
-			if (typeof(T) == typeof(Uuid64?)) return (T?) (object?) TuplePackers.DeserializeUuid64Nullable(slice);
+			if (typeof(T) == typeof(int?)) return (T?) (object?) TuplePackers.DeserializeInt32Nullable(span);
+			if (typeof(T) == typeof(long?)) return (T?) (object?) TuplePackers.DeserializeInt64Nullable(span);
+			if (typeof(T) == typeof(bool?)) return (T?) (object?) TuplePackers.DeserializeBooleanNullable(span);
+			if (typeof(T) == typeof(float?)) return (T?) (object?) TuplePackers.DeserializeSingleNullable(span);
+			if (typeof(T) == typeof(double?)) return (T?) (object?) TuplePackers.DeserializeDoubleNullable(span);
+			if (typeof(T) == typeof(VersionStamp?)) return (T?) (object?) TuplePackers.DeserializeVersionStampNullable(span);
+			if (typeof(T) == typeof(Guid?)) return (T?) (object?) TuplePackers.DeserializeGuidNullable(span);
+			if (typeof(T) == typeof(Uuid128?)) return (T?) (object?) TuplePackers.DeserializeUuid128Nullable(span);
+			if (typeof(T) == typeof(Uuid96?)) return (T?) (object?) TuplePackers.DeserializeUuid96Nullable(span);
+			if (typeof(T) == typeof(Uuid80?)) return (T?) (object?) TuplePackers.DeserializeUuid80Nullable(span);
+			if (typeof(T) == typeof(TimeSpan?)) return (T?) (object?) TuplePackers.DeserializeTimeSpanNullable(span);
+			if (typeof(T) == typeof(Uuid64?)) return (T?) (object?) TuplePackers.DeserializeUuid64Nullable(span);
 #endif
 			//</JIT_HACK>
 
-			return Decoder(slice);
+			return Decoder(span);
 		}
 
 	}

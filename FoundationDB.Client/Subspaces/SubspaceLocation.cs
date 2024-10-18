@@ -128,7 +128,6 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		public abstract ValueTask<TSubspace?> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null);
-
 		/// <inheritdoc />
 		public override bool Equals(object? obj) => obj is ISubspaceLocation path && Equals(path);
 
@@ -223,13 +222,15 @@ namespace FoundationDB.Client
 			this.Encoder = encoder;
 		}
 
-		public static readonly DynamicKeySubspaceLocation Root = new DynamicKeySubspaceLocation(Slice.Empty, TuPack.Encoding.GetDynamicKeyEncoder());
+		public static readonly DynamicKeySubspaceLocation Root = new(Slice.Empty, TuPack.Encoding.GetDynamicKeyEncoder());
 
-		public static DynamicKeySubspaceLocation Create(Slice prefix) => new DynamicKeySubspaceLocation(prefix, TuPack.Encoding.GetDynamicKeyEncoder());
+		public static DynamicKeySubspaceLocation Create(Slice prefix) => new(prefix, TuPack.Encoding.GetDynamicKeyEncoder());
 
-		public static DynamicKeySubspaceLocation Create(Slice prefix, IDynamicKeyEncoder? encoder) => new DynamicKeySubspaceLocation(prefix, encoder ?? TuPack.Encoding.GetDynamicKeyEncoder());
+		public static DynamicKeySubspaceLocation Create(Slice prefix, IDynamicKeyEncoder? encoder)
+			=> new(prefix, encoder ?? TuPack.Encoding.GetDynamicKeyEncoder());
 
-		public static DynamicKeySubspaceLocation Create(Slice prefix, IDynamicKeyEncoding? encoding) => new DynamicKeySubspaceLocation(prefix, (encoding ?? TuPack.Encoding).GetDynamicKeyEncoder());
+		public static DynamicKeySubspaceLocation Create(Slice prefix, IDynamicKeyEncoding? encoding)
+			=> new(prefix, (encoding ?? TuPack.Encoding).GetDynamicKeyEncoder());
 
 		/// <inheritdoc />
 		public override int GetHashCode() => HashCode.Combine(this.Path.GetHashCode(), this.Prefix.GetHashCode(), 0x12344321);

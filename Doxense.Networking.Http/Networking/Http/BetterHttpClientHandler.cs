@@ -505,10 +505,7 @@ namespace Doxense.Networking.Http
 
 		private void CheckDisposed()
 		{
-			if (m_disposed)
-			{
-				throw new ObjectDisposedException(GetType().ToString());
-			}
+			ObjectDisposedException.ThrowIf(m_disposed, this);
 		}
 
 		private Socket CreateSocket()
