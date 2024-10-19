@@ -256,16 +256,15 @@ namespace FoundationDB.Client
 			_ => $"<?{this.Type}?>",
 		};
 
-		public void Explain(TextWriter output, int depth = 0, bool recursive = true)
+		public void Explain(ExplanationBuilder builder)
 		{
 			if (this.Type == FqlItemType.Tuple)
 			{
-				((FqlTupleExpression) this.Value!).Explain(output, depth);
+				((FqlTupleExpression) this.Value!).Explain(builder);
 				return;
 			}
 
-			var indent = new string('\t', depth) + (depth == 0 ? "" : "- ");
-			output.WriteLine($"{indent}{this.Type}: {this.ToString()}");
+			builder.WriteLine($"{this.Type}: {this.ToString()}");
 		}
 
 		private static readonly Dictionary<FqlVariableTypes, string> s_typesLiteralCache = new();
@@ -476,24 +475,16 @@ namespace FoundationDB.Client
 		}
 
 		/// <inheritdoc />
-		public void Explain(TextWriter output, int depth = 0, bool recursive = true)
+		public void Explain(ExplanationBuilder builder)
 		{
-			if (!recursive)
+			if (!builder.Recursive)
 			{
-				output.WriteLine($"{new string('\t', depth)}- Tuple: [{this.Items.Count}] {ToString()}");
+				builder.WriteLine($"Tuple: [{this.Items.Count}] {ToString()}");
 				return;
 			}
 
-			output.WriteLine($"{new string('\t', depth)}- Tuple: [{this.Items.Count}]");
-
-			if (this.Items.Count > 0)
-			{
-				++depth;
-				foreach (var item in this.Items)
-				{
-					item.Explain(output, depth);
-				}
-			}
+			builder.WriteLine($"Tuple: [{this.Items.Count}]");
+			builder.ExplainChildren(this.Items);
 		}
 
 	}

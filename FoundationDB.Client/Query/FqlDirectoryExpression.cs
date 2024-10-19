@@ -118,10 +118,9 @@ namespace FoundationDB.Client
 		};
 
 		/// <inheritdoc />
-		public void Explain(TextWriter output, int depth = 0, bool recursive = true)
+		public void Explain(ExplanationBuilder builder)
 		{
-			var indent = new string('\t', depth) + (depth == 0 ? "" : "- ");
-			output.WriteLine($"{indent}{ToString()}");
+			builder.WriteLine(ToString());
 		}
 
 	}
@@ -231,22 +230,16 @@ namespace FoundationDB.Client
 		}
 
 		/// <inheritdoc />
-		public void Explain(TextWriter output, int depth = 0, bool recursive = true)
+		public void Explain(ExplanationBuilder builder)
 		{
-			var indent = new string('\t', depth) + (depth == 0 ? "" : " -");
-
-			if (!recursive)
+			if (!builder.Recursive)
 			{
-				output.WriteLine($"{indent}Directory: [{this.Segments.Count}] {ToString()}");
+				builder.WriteLine($"Directory: [{this.Segments.Count}] {ToString()}");
 				return;
 			}
 
-			output.WriteLine($"{indent}- Directory: [{this.Segments.Count}]");
-			depth++;
-			foreach (var segment in this.Segments)
-			{
-				segment.Explain(output, depth);
-			}
+			builder.WriteLine($"Directory: [{this.Segments.Count}]");
+			builder.ExplainChildren(this.Segments);
 		}
 
 		/// <inheritdoc />

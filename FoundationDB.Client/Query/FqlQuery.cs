@@ -64,33 +64,30 @@ namespace FoundationDB.Client
 		public bool IsPattern => (this.Directory?.IsPattern ?? false) || (this.Tuple?.IsPattern ?? false);
 
 		/// <inheritdoc />
-		public void Explain(TextWriter output, int depth = 0, bool recursive = true)
+		public void Explain(ExplanationBuilder builder)
 		{
-			string indent = new string('\t', depth) + (depth == 0 ? "" : " -");
-
-			if (!recursive)
+			builder.WriteLine($"Query: `{ToString()}`");
+			if (!builder.Recursive)
 			{
-				output.WriteLine($"{indent}Query: `{ToString()}`");
 				return;
 			}
 
-			output.WriteLine($"{indent}Query: `{ToString()}`");
 			if (this.Directory != null)
 			{
-				this.Directory.Explain(output, depth + 1);
+				builder.ExplainChild(this.Directory);
 			}
 			else
 			{
-				output.WriteLine($"{indent}\t- Directory: <none>");
+				builder.WriteLine($"Directory: <none>");
 			}
 
 			if (this.Tuple != null)
 			{
-				this.Tuple.Explain(output, depth + 1);
+				builder.ExplainChild(this.Tuple);
 			}
 			else
 			{
-				output.WriteLine($"{indent}\t- Tuple: <none>");
+				builder.WriteLine($"Tuple: <none>");
 			}
 		}
 

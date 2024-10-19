@@ -27,35 +27,125 @@
 namespace FoundationDB.Client
 {
 	using System.IO;
+	using System.Runtime.CompilerServices;
+	using Doxense.Linq;
 
 	//TODO: maybe move this to a more global namespace?
 
 	/// <summary>Interface for expressions or AST nodes that can generate a human-readable description of their part in a query or command</summary>
 	public interface ICanExplain
 	{
-
 		/// <summary>Adds a human-readable description of this node into the log</summary>
-		/// <param name="output">Output where the description should be written</param>
-		/// <param name="depth">Current depth level (add a TAB (<c>'\t'</c>) for each depth level</param>
-		/// <param name="recursive">If <see langword="true"/> (default), also explain any children of this node; otherwise, only give a brief one-line summary.</param>
-		void Explain(TextWriter output, int depth = 0, bool recursive = true);
+		/// <param name="builder"></param>
+		void Explain(ExplanationBuilder builder);
 
+	}
+
+	public sealed class ExplanationBuilder
+	{
+		public TextWriter Output { get; }
+		
+		/// <summary>Current depth level (add a TAB (<c>'\t'</c>) for each depth level</summary>
+		public int Depth { get; private set; }
+		
+		/// <summary>If <see langword="true"/> (default), also explain any children of this node; otherwise, only give a brief one-line summary.</summary>
+		public bool Recursive { get; }
+		
+		/// <summary>Prefix added to the beginning of each line</summary>
+		public string? Prefix { get; }
+
+		public ExplanationBuilder(TextWriter output, bool recursive = true, string? prefix = null)
+		{
+			this.Output = output;
+			this.Recursive = recursive;
+			this.Prefix = prefix;
+			this.Indentation = prefix ?? "";
+		}
+
+		public string Indentation { get; private set; }
+
+		private Stack<string> Previous { get; } = [ ];
+		
+		public void WriteLine(string message) => this.Output.WriteLine(message);
+
+		public void WriteLine(ref DefaultInterpolatedStringHandler message) => this.Output.WriteLine(message.ToStringAndClear());
+
+		public void ExplainChild<TExplainable>(TExplainable? child)
+			where TExplainable : ICanExplain
+		{
+			if (child != null)
+			{
+				Enter();
+				child.Explain(this);
+				Leave();
+			}
+		}
+		
+		public void ExplainChildren<TExplainable>(ReadOnlySpan<TExplainable?> children)
+			where TExplainable : ICanExplain
+		{
+			Enter();
+			foreach (var child in children)
+			{
+				child?.Explain(this);
+			}
+			Leave();
+		}
+
+		public void ExplainChildren<TExplainable>(TExplainable?[]? children)
+			where TExplainable : ICanExplain
+		{
+			if (children == null) return;
+			ExplainChildren(new ReadOnlySpan<TExplainable?>(children));
+		}
+
+		public void ExplainChildren<TExplainable>(IEnumerable<TExplainable?> children)
+			where TExplainable : ICanExplain
+		{
+			if (Buffer<TExplainable?>.TryGetSpan(children, out var span))
+			{
+				ExplainChildren(span);
+				return;
+			}
+			
+			Enter();
+			foreach (var child in children)
+			{
+				child?.Explain(this);
+			}
+			Leave();
+		}
+
+		public void Enter()
+		{
+			++this.Depth;
+			this.Previous.Push(this.Indentation);
+			this.Indentation = this.Prefix + new string('\t', this.Depth - 1) + "- ";
+		}
+
+		public void Leave()
+		{
+			--this.Depth;
+			this.Indentation = this.Previous.Pop();
+		}
+		
 	}
 
 	/// <summary>Extensions methods for <see cref="ICanExplain"/> types</summary>
 	public static class CanExplainExtensions
 	{
-
 		/// <summary>Returns a human-readable description of what this node does</summary>
 		/// <param name="node">Node that should explain itself</param>
 		/// <param name="recursive">If <see langword="true"/> (default), also explain any children of this node; otherwise, only give a brief one-line summary.</param>
+		/// <param name="prefix">Prefix added to the beginning of each line</param>
 		/// <returns>Description of this node</returns>
 		/// <remarks>The text will usually end with an extra newline (<c>\r\n</c>)</remarks>
-		public static string Explain(this ICanExplain node, bool recursive = true)
+		public static string Explain(this ICanExplain node, bool recursive = true, string? prefix = null)
 		{
-			var sb = new StringWriter();
-			node.Explain(sb, 0, recursive);
-			return sb.ToString();
+			var sw = new StringWriter();
+			var builder = new ExplanationBuilder(sw, recursive, prefix);
+			node.Explain(builder);
+			return sw.ToString();
 		}
 
 	}
