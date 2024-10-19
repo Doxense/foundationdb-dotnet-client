@@ -170,7 +170,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		/// <inheritdoc />
 		[EditorBrowsable(EditorBrowsableState.Always)]
-		public T? Get<T>(int index)
+		public T? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(int index)
 		{
 			//REVIEW: TODO: consider dropping the negative indexing? We have Index now for this use-case!
 			return TuplePacker<T>.Deserialize(GetSlice(index));
@@ -187,7 +187,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <para><c>("Hello", "World", 123,).Get&lt;int&gt;(^1) => 123</c></para>
 		/// <para><c>("Hello", "World", 123,).Get&lt;string&gt;(^1) => "123"</c></para>
 		/// </example>
-		public T? Get<T>(Index index)
+		public T? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(Index index)
 		{
 			return TuplePacker<T>.Deserialize(m_slices.Span[index]);
 		}
@@ -201,7 +201,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <para><c>(123, 456).First&lt;string&gt;() => "123"</c></para>
 		/// </example>
 		[EditorBrowsable(EditorBrowsableState.Always)]
-		public T? First<T>()
+		public T? First<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>()
 		{
 			var slices = m_slices.Span;
 			return slices.Length != 0 ? TuplePacker<T>.Deserialize(slices[0]) : throw new InvalidOperationException("Tuple is empty");
@@ -216,7 +216,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <para><c>(123, 456).Last&lt;string&gt;() => "456"</c></para>
 		/// </example>
 		[EditorBrowsable(EditorBrowsableState.Always)]
-		public T? Last<T>()
+		public T? Last<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>()
 		{
 			var slices = m_slices.Span;
 			return slices.Length != 0 ? TuplePacker<T>.Deserialize(slices[^1]) : throw new InvalidOperationException("Tuple is empty");
@@ -280,7 +280,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		[Pure]
 		public TupleSegmentType GetElementType(Index index) => (TupleSegmentType) GetSlice(index)[0];
 
-		IVarTuple IVarTuple.Append<T>(T value) => throw new NotSupportedException();
+		IVarTuple IVarTuple.Append<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]T>(T value) => throw new NotSupportedException();
 
 		IVarTuple IVarTuple.Concat(IVarTuple tuple) => throw new NotSupportedException();
 
@@ -321,7 +321,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <inheritdoc />
 		public IEnumerator<object?> GetEnumerator()
 		{
-			//note: I'm not sure if we're allowed to use a local variable of type Span<..> in here?
+			//note: I'm not sure if we're allowed to use a local variable of type Span<...> in here?
 			for (int i = 0; i < m_slices.Length; i++)
 			{
 				yield return TuplePackers.DeserializeBoxed(m_slices.Span[i]);
@@ -330,7 +330,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
 
-		/// <summary>Returns a human readable representation of this tuple</summary>
+		/// <summary>Returns a human-readable representation of this tuple</summary>
 		public override string ToString()
 		{
 			//TODO: PERF: this could be optimized, because it may be called a lot when logging is enabled on keys parsed from range reads
@@ -379,9 +379,9 @@ namespace Doxense.Collections.Tuples.Encoding
 
 			var slices = m_slices.Span;
 			var hc = new HashCode();
-			for (int i = 0; i < slices.Length; i++)
+			foreach (var s in slices)
 			{
-				hc.Add(comparer.GetHashCode(slices[i]));
+				hc.Add(comparer.GetHashCode(s));
 			}
 			int h = hc.ToHashCode();
 			if (canUseCache)

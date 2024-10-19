@@ -55,16 +55,20 @@ namespace Doxense.Collections.Tuples
 		//TODO: BUGBUG: the old name (ITuple) collides with System.Runtime.CompilerServices.ITuple which is made public in .NET 4.7.1+
 		// This interfaces defines an indexer, and the property "Length", but we are using "Count" which comes from IReadOnlyList<object> ...
 
-		/// <summary>Return the element at the specified index</summary>
-		/// <param name="index">Index of the element to return. Supports negative indexing (-1 means last)</param>
+		/// <summary>Returns the element at the specified index</summary>
+		/// <param name="index">Index of the element to return.</param>
 		//TODO: REVIEW: consider dropping the negative indexing? We have Index now for this use-case!
 		//TODO: REVIEW: why do we need this "new" overload? it looks the same as on IReadOnlyList<object?>... ?
 		new object? this[int index] { get; }
 
-		/// <summary>Return a section of the tuple</summary>
-		/// <param name="fromIncluded">Starting offset of the sub-tuple to return, or null to select from the start. Negative values means from the end</param>
-		/// <param name="toExcluded">Ending offset (excluded) of the sub-tuple to return or null to select until the end. Negative values means from the end.</param>
-		/// <returns>Tuple that include all items in the current tuple whose offset are greater than or equal to <paramref name="fromIncluded"/> and strictly less than <paramref name="toExcluded"/>. The tuple may be smaller than expected if the range is larger than the parent tuple. If the range does not intersect with the tuple, the Empty tuple will be returned.</returns>
+		/// <summary>Returns a section of the tuple</summary>
+		/// <param name="fromIncluded">Starting offset of the sub-tuple to return, or null to select from the start.</param>
+		/// <param name="toExcluded">Ending offset (excluded) of the sub-tuple to return or null to select until the end.</param>
+		/// <returns>
+		/// Tuple that include all items in the current tuple whose offset are greater than or equal to <paramref name="fromIncluded"/> and strictly less than <paramref name="toExcluded"/>.
+		/// <para>The tuple may be smaller than expected if the range is larger than the parent tuple.</para>
+		/// <para>If the range does not intersect with the tuple, the <see cref="STuple.Empty">empty tuple</see> will be returned.</para>
+		/// </returns>
 		//TODO: REVIEW: consider marking this overload as obsolete or even removing it, since we now have Range for this use case?
 		IVarTuple this[int? fromIncluded, int? toExcluded] { [Pure] get; }
 
@@ -82,22 +86,22 @@ namespace Doxense.Collections.Tuples
 		/// <returns>Value of the item at position <paramref name="index"/>, adapted into type <typeparamref name="TItem"/>.</returns>
 		/// <exception cref="System.IndexOutOfRangeException">If <paramref name="index"/> is outside the bounds of the tuple</exception>
 		/// <example>
-		/// <para><c>("Hello", "World", 123,).Get&lt;string&gt;(0) => "Hello"</c></para>
-		/// <para><c>("Hello", "World", 123,).Get&lt;int&gt;(-1) => 123</c></para>
-		/// <para><c>("Hello", "World", 123,).Get&lt;string&gt;(-1) => "123"</c></para>
+		/// <para><c>STuple.Create("Hello", "World", 123,).Get&lt;string&gt;(0) => "Hello"</c></para>
+		/// <para><c>STuple.Create("Hello", "World", 123,).Get&lt;int&gt;(-1) => 123</c></para>
+		/// <para><c>STuple.Create("Hello", "World", 123,).Get&lt;string&gt;(-1) => "123"</c></para>
 		/// </example>
 		//REVIEW: TODO: consider dropping the negative indexing? We have Index now for this use-case!
 		[Pure]
-		TItem? Get<TItem>(int index);
+		TItem? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]TItem>(int index);
 
 		/// <summary>Create a new Tuple by appending a single new value at the end of this tuple</summary>
 		/// <typeparam name="TItem">Type of the new value</typeparam>
 		/// <param name="value">Value that will be appended at the end</param>
 		/// <returns>New tuple with the new value</returns>
-		/// <example>("Hello,").Append("World") => ("Hello", "World",)</example>
+		/// <example><c>STuple.Create("Hello").Append("World")</c> => <c>("Hello", "World")</c></example>
 		/// <remarks>If <typeparamref name="TItem"/> is an <see cref="IVarTuple"/>, then it will be appended as a single element. If you need to append the *items* of a tuple, you must call <see cref="IVarTuple.Concat"/></remarks>
 		[Pure]
-		IVarTuple Append<TItem>(TItem value);
+		IVarTuple Append<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]TItem>(TItem value);
 
 		/// <summary>Create a new Tuple by appending the items of another tuple at the end of this tuple</summary>
 		/// <param name="tuple">Tuple whose items must be appended at the end of the current tuple</param>
@@ -105,19 +109,16 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		IVarTuple Concat(IVarTuple tuple);
 
-		/// <summary>Copy all items of the tuple into an array at a specific location</summary>
-		/// <param name="array">Destination array (must be big enough to contains all the items)</param>
-		/// <param name="offset">Offset at which to start copying items</param>
-		/// <example>
+		/// <summary>Copies all items of the tuple into an array at a specific location.</summary>
+		/// <param name="array">The destination array, which must be large enough to contain all the items.</param>
+		/// <param name="offset">The offset at which to start copying items.</param>
+		/// <example><code>
 		/// var tmp = new object[3];
-		/// ("Hello", "World", 123,).CopyTo(tmp, 0);
-		/// </example>
+		/// ("Hello", "World", 123).CopyTo(tmp, 0);
+		/// </code></example>
 		void CopyTo(object?[] array, int offset);
 
-		/// <summary>Compute a stable hash code for the item at the specific location</summary>
-		/// <param name="index"></param>
-		/// <param name="comparer"></param>
-		/// <returns></returns>
+		/// <summary>Computes a stable hash code for the item at the specific location</summary>
 		int GetItemHashCode(int index, IEqualityComparer comparer);
 
 	}

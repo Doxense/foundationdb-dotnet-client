@@ -1348,7 +1348,7 @@ namespace SnowBank.Testing
 		/// <summary>Outputs a human-readable JSON representation of a value</summary>
 		/// <remarks>
 		/// <para>WARNING: the type MUST be serializable as JSON! It will fail if the object has cyclic references or does not support serialization.</para>
-		/// <para>One frequent case is a an object that was previously safe to serialize, but has been refactored to include internal complex objects, which will break any test calling this method!</para>
+		/// <para>One frequent case is an object that was previously safe to serialize, but has been refactored to include internal complex objects, which will break any test calling this method!</para>
 		/// </remarks>
 		[DebuggerNonUserCode]
 		public static void Dump<T>(T value)

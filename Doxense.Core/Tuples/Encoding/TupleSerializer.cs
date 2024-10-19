@@ -26,15 +26,26 @@
 
 namespace Doxense.Collections.Tuples.Encoding
 {
-	public sealed class TupleSerializer<T1> : ITupleSerializer<STuple<T1>>
+
+	/// <summary>Serializer for keys composed of a single element</summary>
+	/// <typeparam name="T1">Type of the key</typeparam>
+	public sealed class TupleSerializer<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1> : ITupleSerializer<STuple<T1>>
 	{
+
+		/// <summary>Gets the default instance of the <see cref="TupleSerializer{T1}"/> class.</summary>
 		public static TupleSerializer<T1> Default { get; } = new();
 
+		/// <summary>Packs the specified tuple into the writer.</summary>
+		/// <param name="writer">The writer to pack the tuple into.</param>
+		/// <param name="tuple">The tuple to pack.</param>
 		public void PackTo(ref TupleWriter writer, in STuple<T1> tuple)
 		{
 			TuplePackers.SerializeTo(ref writer, tuple.Item1);
 		}
 
+		/// <summary>Unpacks a tuple from the specified reader.</summary>
+		/// <param name="reader">The reader to unpack the tuple from.</param>
+		/// <param name="tuple">The unpacked tuple.</param>
 		public void UnpackFrom(ref TupleReader reader, out STuple<T1> tuple)
 		{
 			TupleEncoder.DecodeKey(ref reader, out tuple);
@@ -42,16 +53,28 @@ namespace Doxense.Collections.Tuples.Encoding
 
 	}
 
-	public sealed class TupleSerializer<T1, T2> : ITupleSerializer<STuple<T1, T2>>
+	/// <summary>Serializer for keys composed of 2 elements</summary>
+	public sealed class TupleSerializer<
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2>
+		: ITupleSerializer<STuple<T1, T2>>
 	{
+
+		/// <summary>Gets the default instance of the <see cref="TupleSerializer{T1, T2}"/> class.</summary>
 		public static TupleSerializer<T1, T2> Default { get; } = new();
 
+		/// <summary>Packs the specified tuple into the writer.</summary>
+		/// <param name="writer">The writer to pack the tuple into.</param>
+		/// <param name="tuple">The tuple to pack.</param>
 		public void PackTo(ref TupleWriter writer, in STuple<T1, T2> tuple)
 		{
 			TuplePackers.SerializeTo(ref writer, tuple.Item1);
 			TuplePackers.SerializeTo(ref writer, tuple.Item2);
 		}
 
+		/// <summary>Unpacks a tuple from the specified reader.</summary>
+		/// <param name="reader">The reader to unpack the tuple from.</param>
+		/// <param name="tuple">The unpacked tuple.</param>
 		public void UnpackFrom(ref TupleReader reader, out STuple<T1, T2> tuple)
 		{
 			TupleEncoder.DecodeKey(ref reader, out tuple);
@@ -59,10 +82,19 @@ namespace Doxense.Collections.Tuples.Encoding
 
 	}
 
-	public sealed class TupleSerializer<T1, T2, T3> : ITupleSerializer<STuple<T1, T2, T3>>
+	/// <summary>Serializer for keys composed of 3 elements</summary>
+	public sealed class TupleSerializer<
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3>
+		: ITupleSerializer<STuple<T1, T2, T3>>
 	{
+		/// <summary>Gets the default instance of the <see cref="TupleSerializer{T1, T2, T3}"/> class.</summary>
 		public static TupleSerializer<T1, T2, T3> Default { get; } = new();
 
+		/// <summary>Packs the specified tuple into the writer.</summary>
+		/// <param name="writer">The writer to pack the tuple into.</param>
+		/// <param name="tuple">The tuple to pack.</param>
 		public void PackTo(ref TupleWriter writer, in STuple<T1, T2, T3> tuple)
 		{
 			TuplePackers.SerializeTo(ref writer, tuple.Item1);
@@ -70,6 +102,9 @@ namespace Doxense.Collections.Tuples.Encoding
 			TuplePackers.SerializeTo(ref writer, tuple.Item3);
 		}
 
+		/// <summary>Unpacks a tuple from the specified reader.</summary>
+		/// <param name="reader">The reader to unpack the tuple from.</param>
+		/// <param name="tuple">The unpacked tuple.</param>
 		public void UnpackFrom(ref TupleReader reader, out STuple<T1, T2, T3> tuple)
 		{
 			TupleEncoder.DecodeKey(ref reader, out tuple);
@@ -77,10 +112,20 @@ namespace Doxense.Collections.Tuples.Encoding
 
 	}
 
-	public sealed class TupleSerializer<T1, T2, T3, T4> : ITupleSerializer<STuple<T1, T2, T3, T4>>
+	/// <summary>Serializer for keys composed of 4 elements</summary>
+	public sealed class TupleSerializer<
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4>
+		: ITupleSerializer<STuple<T1, T2, T3, T4>>
 	{
+		/// <summary>Gets the default instance of the <see cref="TupleSerializer{T1, T2, T3, T4}"/> class.</summary>
 		public static TupleSerializer<T1, T2, T3, T4> Default { get; } = new();
 
+		/// <summary>Packs the specified tuple into the writer.</summary>
+		/// <param name="writer">The writer to pack the tuple into.</param>
+		/// <param name="tuple">The tuple to pack.</param>
 		public void PackTo(ref TupleWriter writer, in STuple<T1, T2, T3, T4> tuple)
 		{
 			TuplePackers.SerializeTo(ref writer, tuple.Item1);
@@ -89,6 +134,9 @@ namespace Doxense.Collections.Tuples.Encoding
 			TuplePackers.SerializeTo(ref writer, tuple.Item4);
 		}
 
+		/// <summary>Unpacks a tuple from the specified reader.</summary>
+		/// <param name="reader">The reader to unpack the tuple from.</param>
+		/// <param name="tuple">The unpacked tuple.</param>
 		public void UnpackFrom(ref TupleReader reader, out STuple<T1, T2, T3, T4> tuple)
 		{
 			TupleEncoder.DecodeKey(ref reader, out tuple);
@@ -96,10 +144,22 @@ namespace Doxense.Collections.Tuples.Encoding
 
 	}
 
-	public sealed class TupleSerializer<T1, T2, T3, T4, T5> : ITupleSerializer<STuple<T1, T2, T3, T4, T5>>
+	/// <summary>Serializer for keys composed of 5 elements</summary>
+	public sealed class TupleSerializer<
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5>
+		: ITupleSerializer<STuple<T1, T2, T3, T4, T5>>
 	{
+
+		/// <summary>Gets the default instance of the <see cref="TupleSerializer{T1, T2, T3, T4, T5}"/> class.</summary>
 		public static TupleSerializer<T1, T2, T3, T4, T5> Default { get; } = new();
 
+		/// <summary>Packs the specified tuple into the writer.</summary>
+		/// <param name="writer">The writer to pack the tuple into.</param>
+		/// <param name="tuple">The tuple to pack.</param>
 		public void PackTo(ref TupleWriter writer, in STuple<T1, T2, T3, T4, T5> tuple)
 		{
 			TuplePackers.SerializeTo(ref writer, tuple.Item1);
@@ -109,6 +169,9 @@ namespace Doxense.Collections.Tuples.Encoding
 			TuplePackers.SerializeTo(ref writer, tuple.Item5);
 		}
 
+		/// <summary>Unpacks a tuple from the specified reader.</summary>
+		/// <param name="reader">The reader to unpack the tuple from.</param>
+		/// <param name="tuple">The unpacked tuple.</param>
 		public void UnpackFrom(ref TupleReader reader, out STuple<T1, T2, T3, T4, T5> tuple)
 		{
 			TupleEncoder.DecodeKey(ref reader, out tuple);
@@ -116,10 +179,23 @@ namespace Doxense.Collections.Tuples.Encoding
 
 	}
 
-	public sealed class TupleSerializer<T1, T2, T3, T4, T5, T6> : ITupleSerializer<STuple<T1, T2, T3, T4, T5, T6>>
+	/// <summary>Serializer for keys composed of 6 elements</summary>
+	public sealed class TupleSerializer<
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6>
+		: ITupleSerializer<STuple<T1, T2, T3, T4, T5, T6>>
 	{
+
+		/// <summary>Gets the default instance of the <see cref="TupleSerializer{T1, T2, T3, T4, T5, T6}"/> class.</summary>
 		public static TupleSerializer<T1, T2, T3, T4, T5, T6> Default { get; } = new();
 
+		/// <summary>Packs the specified tuple into the writer.</summary>
+		/// <param name="writer">The writer to pack the tuple into.</param>
+		/// <param name="tuple">The tuple to pack.</param>
 		public void PackTo(ref TupleWriter writer, in STuple<T1, T2, T3, T4, T5, T6> tuple)
 		{
 			TuplePackers.SerializeTo(ref writer, tuple.Item1);
@@ -130,6 +206,9 @@ namespace Doxense.Collections.Tuples.Encoding
 			TuplePackers.SerializeTo(ref writer, tuple.Item6);
 		}
 
+		/// <summary>Unpacks a tuple from the specified reader.</summary>
+		/// <param name="reader">The reader to unpack the tuple from.</param>
+		/// <param name="tuple">The unpacked tuple.</param>
 		public void UnpackFrom(ref TupleReader reader, out STuple<T1, T2, T3, T4, T5, T6> tuple)
 		{
 			TupleEncoder.DecodeKey(ref reader, out tuple);
@@ -137,10 +216,24 @@ namespace Doxense.Collections.Tuples.Encoding
 
 	}
 
-	public sealed class TupleSerializer<T1, T2, T3, T4, T5, T6, T7> : ITupleSerializer<STuple<T1, T2, T3, T4, T5, T6, T7>>
+	/// <summary>Serializer for keys composed of 7 elements</summary>
+	public sealed class TupleSerializer<
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7>
+		: ITupleSerializer<STuple<T1, T2, T3, T4, T5, T6, T7>>
 	{
+
+		/// <summary>Gets the default instance of the <see cref="TupleSerializer{T1, T2, T3, T4, T5, T6, T7}"/> class.</summary>
 		public static TupleSerializer<T1, T2, T3, T4, T5, T6, T7> Default { get; } = new();
 
+		/// <summary>Packs the specified tuple into the writer.</summary>
+		/// <param name="writer">The writer to pack the tuple into.</param>
+		/// <param name="tuple">The tuple to pack.</param>
 		public void PackTo(ref TupleWriter writer, in STuple<T1, T2, T3, T4, T5, T6, T7> tuple)
 		{
 			TuplePackers.SerializeTo(ref writer, tuple.Item1);
@@ -152,10 +245,14 @@ namespace Doxense.Collections.Tuples.Encoding
 			TuplePackers.SerializeTo(ref writer, tuple.Item7);
 		}
 
+		/// <summary>Unpacks a tuple from the specified reader.</summary>
+		/// <param name="reader">The reader to unpack the tuple from.</param>
+		/// <param name="tuple">The unpacked tuple.</param>
 		public void UnpackFrom(ref TupleReader reader, out STuple<T1, T2, T3, T4, T5, T6, T7> tuple)
 		{
 			TupleEncoder.DecodeKey(ref reader, out tuple);
 		}
 
 	}
+
 }
