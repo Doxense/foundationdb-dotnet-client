@@ -33,6 +33,9 @@
 namespace FoundationDB.Client.Tests
 {
 	using System.Diagnostics.CodeAnalysis;
+#if ENABLE_LOGGING
+	using FoundationDB.Filters.Logging;
+#endif
 	using FoundationDB.Layers.Allocators;
 	using NUnit.Framework.Constraints;
 
