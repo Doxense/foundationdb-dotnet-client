@@ -102,7 +102,7 @@ namespace FoundationDB.Client
 
 		public async IAsyncEnumerable<(FdbPath Path, IVarTuple Tuple, Slice Key, Slice Value)> Scan(IFdbReadOnlyTransaction tr, FdbDirectorySubspaceLocation root) //TODO: settings?
 		{
-			await foreach (var match in EnumerateDirectories(tr, root).WithCancellation(tr.Cancellation).ConfigureAwait(false))
+			await foreach (var match in FindDirectories(tr, root).WithCancellation(tr.Cancellation).ConfigureAwait(false))
 			{
 				Kenobi($"- Directory: {match}");
 				await foreach (var result in EnumerateKeys(tr, match, root.Path).WithCancellation(tr.Cancellation).ConfigureAwait(false))
@@ -112,7 +112,7 @@ namespace FoundationDB.Client
 			}
 		}
 
-		internal IAsyncEnumerable<FdbDirectorySubspace> EnumerateDirectories(IFdbReadOnlyTransaction tr, FdbDirectorySubspaceLocation root)
+		public IAsyncEnumerable<FdbDirectorySubspace> FindDirectories(IFdbReadOnlyTransaction tr, FdbDirectorySubspaceLocation root)
 		{
 			return AsyncEnumerable.Pump<FdbDirectorySubspace>(async (channel) =>
 			{

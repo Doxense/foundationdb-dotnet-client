@@ -113,7 +113,6 @@ namespace FoundationDB.Client.Tests
 
 			// populate with some fake data
 
-			var genres = (string[]) [ "rock", "techno", "folk", "classical" ];
 			var users = (string[]) [ "alice", "bob", "charlie" ];
 
 			var rnd = new Random(12345678);
@@ -149,9 +148,9 @@ namespace FoundationDB.Client.Tests
 						var json = CrystalJson.ToSlice(album, ArrayPool<byte>.Shared);
 						tr.Set(subspace.Encode(0, rid), json.Data);
 						tr.SetValueInt32(subspace.Encode(1, album.Id), rid);
-						tr.Set(subspace.Encode(2, rid, album.Genre), Slice.Empty);
-						tr.Set(subspace.Encode(3, rid, album.Artist), Slice.Empty);
-						tr.Set(subspace.Encode(4, rid, album.ReleaseDate.Year), Slice.Empty);
+						tr.Set(subspace.Encode(2, album.Genre, rid ), Slice.Empty);
+						tr.Set(subspace.Encode(3, album.Artist, rid), Slice.Empty);
+						tr.Set(subspace.Encode(4, album.ReleaseDate.Year, rid), Slice.Empty);
 						json.Dispose();
 					}
 				}, this.Cancellation);
@@ -171,7 +170,7 @@ namespace FoundationDB.Client.Tests
 			await db.ReadAsync(async tr =>
 			{
 				// find all the "techno" albums from all the users
-				var q = FqlQueryParser.Parse($"./users/<>/documents/music(2,<int>,\"{genre}\")");
+				var q = FqlQueryParser.Parse($"./users/<>/documents/music(2,\"{genre}\",<int>)");
 				Assert.That(q, Is.Not.Null);
 				Explain(q);
 
@@ -179,7 +178,7 @@ namespace FoundationDB.Client.Tests
 				await foreach (var match in q.Scan(tr, db.Root))
 				{
 					//Log($"- {match.Path}{match.Tuple} = {match.Value:V}");
-					results.Add(match.Tuple.Get<int>(1));
+					results.Add(match.Tuple.Get<int>(^1));
 				}
 				Log($"> Found {results.Count} results");
 				Assert.That(results, Is.EquivalentTo(albumsByGenre.Select(x => x.RowId)));
@@ -191,7 +190,7 @@ namespace FoundationDB.Client.Tests
 			await db.ReadAsync(async tr =>
 			{
 				// find all the "techno" albums from all the users
-				var q = FqlQueryParser.Parse($"./users/<>/documents/music(3,<int>,\"{artist}\")");
+				var q = FqlQueryParser.Parse($"./users/<>/documents/music(3,\"{artist}\",<int>)");
 				Assert.That(q, Is.Not.Null);
 				Explain(q);
 
@@ -199,7 +198,7 @@ namespace FoundationDB.Client.Tests
 				await foreach (var match in q.Scan(tr, db.Root))
 				{
 					//Log($"- {match.Path}{match.Tuple} = {match.Value:V}");
-					results.Add(match.Tuple.Get<int>(1));
+					results.Add(match.Tuple.Get<int>(^1));
 				}
 				Log($"> Found {results.Count} results");
 				Assert.That(results, Is.EquivalentTo(albumsByArtist.Select(x => x.RowId)));
@@ -211,7 +210,7 @@ namespace FoundationDB.Client.Tests
 			await db.ReadAsync(async tr =>
 			{
 				// find all the "techno" albums from all the users
-				var q = FqlQueryParser.Parse($"./users/<>/documents/music(4,<int>,{year})");
+				var q = FqlQueryParser.Parse($"./users/<>/documents/music(4,{year},<int>)");
 				Assert.That(q, Is.Not.Null);
 				Explain(q);
 
@@ -219,7 +218,7 @@ namespace FoundationDB.Client.Tests
 				await foreach (var match in q.Scan(tr, db.Root))
 				{
 					//Log($"- {match.Path}{match.Tuple} = {match.Value:V}");
-					results.Add(match.Tuple.Get<int>(1));
+					results.Add(match.Tuple.Get<int>(^1));
 				}
 				Log($"> Found {results.Count} results");
 				Assert.That(results, Is.EquivalentTo(albumsByYear.Select(x => x.RowId)));

@@ -66,9 +66,9 @@ namespace FoundationDB.Client
 
 		private Stack<string> Previous { get; } = [ ];
 		
-		public void WriteLine(string message) => this.Output.WriteLine(message);
+		public void WriteLine(string message) => this.Output.WriteLine(this.Indentation + message);
 
-		public void WriteLine(ref DefaultInterpolatedStringHandler message) => this.Output.WriteLine(message.ToStringAndClear());
+		public void WriteLine(ref DefaultInterpolatedStringHandler message) => this.Output.WriteLine(this.Indentation + message.ToStringAndClear());
 
 		public void ExplainChild<TExplainable>(TExplainable? child)
 			where TExplainable : ICanExplain
