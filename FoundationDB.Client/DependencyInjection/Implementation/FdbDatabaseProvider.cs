@@ -54,6 +54,12 @@ namespace FoundationDB.DependencyInjection
 		/// <inheritdoc cref="IFdbDatabaseScopeProvider.Root"/>
 		public FdbDirectorySubspaceLocation Root { get; }
 
+#if NET9_0_OR_GREATER
+		private Lock Lock { get; } = new();
+#else
+		private object Lock { get; } = new();
+#endif
+		
 		public static IFdbDatabaseProvider Create(FdbDatabaseProviderOptions options)
 		{
 			Contract.NotNull(options);
@@ -76,7 +82,7 @@ namespace FoundationDB.DependencyInjection
 		{
 			if (this.InitTask == null)
 			{
-				lock (this)
+				lock (this.Lock)
 				{
 					if (this.InitTask == null)
 					{
@@ -87,37 +93,53 @@ namespace FoundationDB.DependencyInjection
 			}
 		}
 
+		private void SetupClient()
+		{
+			// configure the native library
+			switch (this.ProviderOptions.NativeLibraryPath)
+			{
+				case null:
+				{ // disable pre-loading
+					Fdb.Options.DisableNativeLibraryPreloading();
+					break;
+				}
+				case "":
+				{ // enable pre-loading
+					Fdb.Options.EnableNativeLibraryPreloading();
+					break;
+				}
+				default:
+				{ // preload specified library
+					Fdb.Options.SetNativeLibPath(this.ProviderOptions.NativeLibraryPath); break;
+				}
+			}
+
+			// configure the API version
+			Fdb.Start(this.ProviderOptions.ApiVersion);
+		}
+		
 		private void StartCore()
 		{
 			var tcs = new TaskCompletionSource<IFdbDatabase>();
 			this.DbTask = tcs.Task;
 			this.InitTask = tcs;
+
+			// Configure the client inline.
+			// This prevents a race condition between startup logic that would call GetRequiredService<IFdbDatabaseProvider>().Start(), and then run the application without waiting.
+			try
+			{
+				SetupClient();
+			}
+			catch (Exception e)
+			{
+				SetDatabase(null, e);
+				return;
+			}
+
 			_ = Task.Run(async () =>
 			{
 				try
 				{
-					// configure the native library
-					switch (this.ProviderOptions.NativeLibraryPath)
-					{
-						case null:
-						{ // disable pre-loading
-							Fdb.Options.DisableNativeLibraryPreloading();
-							break;
-						}
-						case "":
-						{ // enable pre-loading
-							Fdb.Options.EnableNativeLibraryPreloading();
-							break;
-						}
-						default:
-						{ // preload specified library
-							Fdb.Options.SetNativeLibPath(this.ProviderOptions.NativeLibraryPath); break;
-						}
-					}
-
-					// configure the API version
-					Fdb.Start(this.ProviderOptions.ApiVersion);
-
 					// connect to the cluster
 					var db = await Fdb.OpenAsync(this.ProviderOptions.ConnectionOptions, this.LifeTime.Token).ConfigureAwait(false);
 
