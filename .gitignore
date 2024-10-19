@@ -33,7 +33,9 @@ packages/
 .vs/
 .vscode/
 
-fdb_c.dll
+# do not include the native libraries that are packed in the NuGet package:
+**/native/runtimes/**/*fdb_c*
+**/native/runtimes/**/fdbcli*
 
 [Aa]rtifacts/
 Redist/
