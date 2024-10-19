@@ -29,6 +29,8 @@ namespace System
 	using System.ComponentModel;
 	using System.Runtime.InteropServices;
 	using Doxense.Memory;
+	using Doxense.Serialization.Json;
+	using Globalization;
 
 	/// <summary>VersionStamp</summary>
 	/// <remarks>A VersionStamp is unique, monotonically (but not sequentially) increasing value for each committed transaction.
@@ -38,7 +40,10 @@ namespace System
 	/// </remarks>
 	[DebuggerDisplay("{ToString(),nq}")]
 	[ImmutableObject(true), PublicAPI, Serializable]
-	public readonly struct VersionStamp : IEquatable<VersionStamp>, IComparable<VersionStamp>
+	public readonly struct VersionStamp : IEquatable<VersionStamp>, IComparable<VersionStamp>, IJsonSerializable, IJsonPackable, IJsonDeserializable<VersionStamp>
+#if NET8_0_OR_GREATER
+		, ISpanParsable<VersionStamp>
+#endif
 	{
 		//note: they are called "Versionstamp" in the doc, but "VersionStamp" seems more .NETy (like 'TimeSpan').
 
@@ -370,7 +375,11 @@ namespace System
 			return TryParse(data, out var vs) ? vs : throw new FormatException("A VersionStamp is either 10 or 12 bytes.");
 		}
 
-		/// <summary>Try parsing a VersionStamp from a sequence of bytes</summary>
+		/// <summary>Attempts to parse a <see cref="VersionStamp"/> from a sequence of bytes.</summary>
+		/// <param name="data">The byte sequence to parse.</param>
+		/// <param name="vs">When this method returns, contains the parsed <see cref="VersionStamp"/> if the parsing succeeded, or the default value if it failed.</param>
+		/// <returns><see langword="true"/> if the parsing was successful; otherwise, <see langword="false"/>.</returns>
+		/// <remarks>A valid <see cref="VersionStamp"/> is either 10 or 12 bytes long.</remarks>
 		public static bool TryParse(ReadOnlySpan<byte> data, out VersionStamp vs)
 		{
 			if (data.Length != 10 && data.Length != 12)
@@ -398,6 +407,142 @@ namespace System
 			}
 		}
 
+		/// <summary>Parses the specified <see cref="ReadOnlySpan{T}"/> of characters into a <see cref="VersionStamp"/>.</summary>
+		/// <param name="s">The span of characters to parse.</param>
+		/// <param name="provider">This parameter is ignored.</param>
+		/// <returns><see cref="VersionStamp"/> value equivalent to the characters contained in <paramref name="s"/>.</returns>
+		/// <exception cref="FormatException">If the format is not valid.</exception>
+		/// <remarks>This method can parse the result of calling <see cref="ToString()"/></remarks>
+		public static VersionStamp Parse(string s, IFormatProvider? provider)
+		{
+			Contract.NotNull(s);
+			return Parse(s.AsSpan(), provider);
+		}
+
+		/// <summary>Attempts to parse the specified <see cref="ReadOnlySpan{T}"/> of characters into a <see cref="VersionStamp"/>.</summary>
+		/// <param name="s">The span of characters to parse.</param>
+		/// <param name="provider">This parameter is ignored.</param>
+		/// <param name="result">When this method returns, contains the <see cref="VersionStamp"/> value equivalent to the characters contained in <paramref name="s"/>, if the conversion succeeded, or the default value if the conversion failed.</param>
+		/// <returns><see langword="true"/> if the <paramref name="s"/> was successfully parsed; otherwise, <see langword="true"/>.</returns>
+		/// <remarks>This method can parse the result of calling <see cref="ToString()"/></remarks>
+		public static bool TryParse([NotNullWhen(true)] string? s, IFormatProvider? provider, out VersionStamp result)
+		{
+			if (s == null || !TryParse(s.AsSpan(), provider, out result))
+			{
+				result = default;
+				return false;
+			}
+			return true;
+		}
+
+		/// <summary>Parses the specified <see cref="ReadOnlySpan{T}"/> of characters into a <see cref="VersionStamp"/>.</summary>
+		/// <param name="s">The span of characters to parse.</param>
+		/// <param name="provider">This parameter is ignored.</param>
+		/// <returns><see cref="VersionStamp"/> value equivalent to the characters contained in <paramref name="s"/>.</returns>
+		/// <exception cref="FormatException">If the format is not valid.</exception>
+		/// <remarks>This method can parse the result of calling <see cref="ToString()"/></remarks>
+		public static VersionStamp Parse(ReadOnlySpan<char> s, IFormatProvider? provider = null)
+		{
+			if (!TryParse(s, provider, out var result))
+			{
+				throw new FormatException("Unrecognized VersionStamp format.");
+			}
+
+			return result;
+		}
+
+		/// <summary>Attempts to parse the specified <see cref="ReadOnlySpan{T}"/> of characters into a <see cref="VersionStamp"/>.</summary>
+		/// <param name="s">The span of characters to parse.</param>
+		/// <param name="provider">This parameter is ignored.</param>
+		/// <param name="result">When this method returns, contains the <see cref="VersionStamp"/> value equivalent to the characters contained in <paramref name="s"/>, if the conversion succeeded, or the default value if the conversion failed.</param>
+		/// <returns><see langword="true"/> if the <paramref name="s"/> was successfully parsed; otherwise, <see langword="true"/>.</returns>
+		/// <remarks>This method can parse the result of calling <see cref="ToString()"/></remarks>
+		public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, out VersionStamp result)
+		{
+			if (s.Length < 2) goto invalid;
+			if (s[0] != '@') goto invalid;
+
+			s = s[1..];
+
+			if (s[0] == '?')
+			{ // incomplete: "@?" or "@?#USER"
+
+				if (s.Length == 1)
+				{
+					result = Incomplete();
+					return true;
+				}
+				
+				if (s.Length < 3 || s[1] != '#') goto invalid;
+				
+#if NET8_0_OR_GREATER
+				if (!ushort.TryParse(s[2..], CultureInfo.InvariantCulture, out var x))
+#else
+				if (!ushort.TryParse(s[2..], out var x))
+#endif
+				{
+					goto invalid;
+				}
+
+				result = Incomplete(x);
+				return true;
+			}
+
+			// complete: "@VERSION-ORDER" or "@VERSION-ORDER#USER"
+			int p = s.IndexOf('-');
+			if (p <= 0) goto invalid;
+
+#if NET8_0_OR_GREATER
+			if (!ulong.TryParse(s[..p], CultureInfo.InvariantCulture, out var version))
+#else
+			if (!ulong.TryParse(s[..p], out var version))
+#endif
+			{
+				goto invalid;
+			}
+
+			s = s[(p + 1)..];
+
+			p = s.IndexOf('#');
+			if (p == 0) goto invalid;
+			ushort user, flags;
+			
+			if (p > 0)
+			{
+#if NET8_0_OR_GREATER
+				if (!ushort.TryParse(s[(p + 1)..], CultureInfo.InvariantCulture, out user))
+#else
+				if (!ushort.TryParse(s[(p + 1)..], out user))
+#endif
+				{
+					goto invalid;
+				}
+				s = s[..p];
+				flags = FLAGS_HAS_VERSION;
+			}
+			else
+			{
+				user = 0;
+				flags = NO_USER_VERSION;
+			}
+
+#if NET8_0_OR_GREATER
+			if (!ushort.TryParse(s, CultureInfo.InvariantCulture, out var order))
+#else
+			if (!ushort.TryParse(s, out var order))
+#endif
+			{
+				goto invalid;
+			}
+
+			result = new(version, order, user, flags);
+			return true;
+			
+		invalid:
+			result = default;
+			return false;
+		}
+		
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator VersionStamp(Uuid80 value) => FromUuid80(value);
 
@@ -527,6 +672,24 @@ namespace System
 			}
 
 		}
+
+		#endregion
+
+		#region JSON Serialization...
+
+		/// <inheritdoc />
+		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => writer.WriteValue(this.ToString());
+
+		/// <inheritdoc />
+		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => JsonString.Return(this.ToString());
+
+		/// <inheritdoc />
+		public static VersionStamp JsonDeserialize(JsonValue value, ICrystalJsonTypeResolver? resolver = null) => value switch
+		{
+			null or JsonNull => Incomplete(), //REVIEW: there is no real good candidate for this ... ?
+			JsonString str => Parse(str.Value),
+			_ => throw JsonBindingException.CannotBindJsonValueToThisType(value, typeof(VersionStamp)),
+		};
 
 		#endregion
 

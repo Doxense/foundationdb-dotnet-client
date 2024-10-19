@@ -38,7 +38,7 @@ namespace FoundationDB.Client.Tests
 		{
 			{ // 80-bits (no user version)
 				var vs = VersionStamp.Incomplete();
-				Dump(vs);
+				Log(vs);
 				Assert.That(vs.TransactionVersion, Is.EqualTo(ulong.MaxValue));
 				Assert.That(vs.TransactionOrder, Is.EqualTo(ushort.MaxValue));
 				Assert.That(vs.IsIncomplete, Is.True);
@@ -48,11 +48,12 @@ namespace FoundationDB.Client.Tests
 				Assert.That(vs.GetLength(), Is.EqualTo(10));
 				Assert.That(vs.ToSlice().ToHexString(' '), Is.EqualTo("FF FF FF FF FF FF FF FF FF FF"));
 				Assert.That(vs.ToString(), Is.EqualTo("@?"));
+				Assert.That(VersionStamp.Parse("@?"), Is.EqualTo(vs));
 			}
 
 			{ // 96-bits, default user version
 				var vs = VersionStamp.Incomplete(0);
-				Dump(vs);
+				Log(vs);
 				Assert.That(vs.TransactionVersion, Is.EqualTo(ulong.MaxValue));
 				Assert.That(vs.TransactionOrder, Is.EqualTo(ushort.MaxValue));
 				Assert.That(vs.IsIncomplete, Is.True);
@@ -62,11 +63,12 @@ namespace FoundationDB.Client.Tests
 				Assert.That(vs.GetLength(), Is.EqualTo(12));
 				Assert.That(vs.ToSlice().ToHexString(' '), Is.EqualTo("FF FF FF FF FF FF FF FF FF FF 00 00"));
 				Assert.That(vs.ToString(), Is.EqualTo("@?#0"));
+				Assert.That(VersionStamp.Parse("@?#0"), Is.EqualTo(vs));
 			}
 
 			{ // 96 bits, custom user version
 				var vs = VersionStamp.Incomplete(123);
-				Dump(vs);
+				Log(vs);
 				Assert.That(vs.TransactionVersion, Is.EqualTo(ulong.MaxValue));
 				Assert.That(vs.TransactionOrder, Is.EqualTo(ushort.MaxValue));
 				Assert.That(vs.HasUserVersion, Is.True);
@@ -74,11 +76,12 @@ namespace FoundationDB.Client.Tests
 				Assert.That(vs.IsIncomplete, Is.True);
 				Assert.That(vs.ToSlice().ToHexString(' '), Is.EqualTo("FF FF FF FF FF FF FF FF FF FF 00 7B"));
 				Assert.That(vs.ToString(), Is.EqualTo("@?#123"));
+				Assert.That(VersionStamp.Parse("@?#123"), Is.EqualTo(vs));
 			}
 
 			{ // 96 bits, large user version
 				var vs = VersionStamp.Incomplete(12345);
-				Dump(vs);
+				Log(vs);
 				Assert.That(vs.TransactionVersion, Is.EqualTo(ulong.MaxValue));
 				Assert.That(vs.TransactionOrder, Is.EqualTo(ushort.MaxValue));
 				Assert.That(vs.HasUserVersion, Is.True);
@@ -86,6 +89,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(vs.IsIncomplete, Is.True);
 				Assert.That(vs.ToSlice().ToHexString(' '), Is.EqualTo("FF FF FF FF FF FF FF FF FF FF 30 39"));
 				Assert.That(vs.ToString(), Is.EqualTo("@?#12345"));
+				Assert.That(VersionStamp.Parse("@?#12345"), Is.EqualTo(vs));
 			}
 
 			Assert.That(() => VersionStamp.Incomplete(-1), Throws.InstanceOf<ArgumentException>(), "User version cannot be negative");
@@ -121,7 +125,7 @@ namespace FoundationDB.Client.Tests
 		{
 			{ // 80-bits, no user version
 				var vs = VersionStamp.Complete(0x0123456789ABCDEFUL, 123);
-				Dump(vs);
+				Log(vs);
 				Assert.That(vs.TransactionVersion, Is.EqualTo(0x0123456789ABCDEFUL));
 				Assert.That(vs.TransactionOrder, Is.EqualTo(123));
 				Assert.That(vs.HasUserVersion, Is.False);
@@ -129,11 +133,12 @@ namespace FoundationDB.Client.Tests
 				Assert.That(vs.IsIncomplete, Is.False);
 				Assert.That(vs.ToSlice().ToHexString(' '), Is.EqualTo("01 23 45 67 89 AB CD EF 00 7B"));
 				Assert.That(vs.ToString(), Is.EqualTo("@81985529216486895-123"));
+				Assert.That(VersionStamp.Parse("@81985529216486895-123"), Is.EqualTo(vs));
 			}
 
 			{ // 96 bits, default user version
 				var vs = VersionStamp.Complete(0x0123456789ABCDEFUL, 123, 0);
-				Dump(vs);
+				Log(vs);
 				Assert.That(vs.TransactionVersion, Is.EqualTo(0x0123456789ABCDEFUL));
 				Assert.That(vs.TransactionOrder, Is.EqualTo(123));
 				Assert.That(vs.HasUserVersion, Is.True);
@@ -141,11 +146,12 @@ namespace FoundationDB.Client.Tests
 				Assert.That(vs.IsIncomplete, Is.False);
 				Assert.That(vs.ToSlice().ToHexString(' '), Is.EqualTo("01 23 45 67 89 AB CD EF 00 7B 00 00"));
 				Assert.That(vs.ToString(), Is.EqualTo("@81985529216486895-123#0"));
+				Assert.That(VersionStamp.Parse("@81985529216486895-123#0"), Is.EqualTo(vs));
 			}
 
 			{ // custom user version
 				var vs = VersionStamp.Complete(0x0123456789ABCDEFUL, 123, 456);
-				Dump(vs);
+				Log(vs);
 				Assert.That(vs.TransactionVersion, Is.EqualTo(0x0123456789ABCDEFUL));
 				Assert.That(vs.TransactionOrder, Is.EqualTo(123));
 				Assert.That(vs.HasUserVersion, Is.True);
@@ -153,17 +159,19 @@ namespace FoundationDB.Client.Tests
 				Assert.That(vs.IsIncomplete, Is.False);
 				Assert.That(vs.ToSlice().ToHexString(' '), Is.EqualTo("01 23 45 67 89 AB CD EF 00 7B 01 C8"));
 				Assert.That(vs.ToString(), Is.EqualTo("@81985529216486895-123#456"));
+				Assert.That(VersionStamp.Parse("@81985529216486895-123#456"), Is.EqualTo(vs));
 			}
 
 			{ // two bytes user version
 				var vs = VersionStamp.Complete(0x0123456789ABCDEFUL, 12345, 6789);
-				Dump(vs);
+				Log(vs);
 				Assert.That(vs.TransactionVersion, Is.EqualTo(0x0123456789ABCDEFUL));
 				Assert.That(vs.TransactionOrder, Is.EqualTo(12345));
 				Assert.That(vs.UserVersion, Is.EqualTo(6789));
 				Assert.That(vs.IsIncomplete, Is.False);
 				Assert.That(vs.ToSlice().ToHexString(' '), Is.EqualTo("01 23 45 67 89 AB CD EF 30 39 1A 85"));
 				Assert.That(vs.ToString(), Is.EqualTo("@81985529216486895-12345#6789"));
+				Assert.That(VersionStamp.Parse("@81985529216486895-12345#6789"), Is.EqualTo(vs));
 			}
 
 			Assert.That(() => VersionStamp.Complete(0x0123456789ABCDEFUL, 0, -1), Throws.InstanceOf<ArgumentException>(), "User version cannot be negative");
