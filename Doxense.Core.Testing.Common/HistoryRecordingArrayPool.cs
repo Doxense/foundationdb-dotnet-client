@@ -188,7 +188,7 @@ namespace SnowBank.Testing
 
 			public void AssertSame(T[]? array, string? message = null)
 			{
-				if (message != null) message = message + "\r\n";
+				if (message != null) message += "\r\n";
 
 				if (array == null)
 				{

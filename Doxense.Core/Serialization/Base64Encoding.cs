@@ -623,12 +623,12 @@ namespace Doxense.Serialization
 			}
 			else
 			{
-				switch(len % 4)
+				padding = (len % 4) switch
 				{
-					case 0: padding = 0; break;
-					case 1: case 2: padding = 1; break;
-					default: padding = 2; break;
-				}
+					0 => 0,
+					1 or 2 => 1,
+					_ => 2
+				};
 			}
 			return (len / 4) * 3 + padding;
 		}

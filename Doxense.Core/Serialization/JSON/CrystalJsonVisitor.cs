@@ -1718,18 +1718,17 @@ namespace Doxense.Serialization.Json
 				if (args.Length <= 7)
 				{
 					// lookup the corresponding VisitSTuple#N# method
-					MethodInfo m;
-					switch (args.Length)
+					var m = args.Length switch
 					{
-						case 1: m = typeof(CrystalJsonVisitor).GetMethod(nameof(VisitSTuple1))!; break;
-						case 2: m = typeof(CrystalJsonVisitor).GetMethod(nameof(VisitSTuple2))!; break;
-						case 3: m = typeof(CrystalJsonVisitor).GetMethod(nameof(VisitSTuple3))!; break;
-						case 4: m = typeof(CrystalJsonVisitor).GetMethod(nameof(VisitSTuple4))!; break;
-						case 5: m = typeof(CrystalJsonVisitor).GetMethod(nameof(VisitSTuple5))!; break;
-						case 6: m = typeof(CrystalJsonVisitor).GetMethod(nameof(VisitSTuple6))!; break;
-						case 7: m = typeof(CrystalJsonVisitor).GetMethod(nameof(VisitSTuple7))!; break;
-						default: throw new InvalidOperationException();
-					}
+						1 => typeof(CrystalJsonVisitor).GetMethod(nameof(VisitSTuple1))!,
+						2 => typeof(CrystalJsonVisitor).GetMethod(nameof(VisitSTuple2))!,
+						3 => typeof(CrystalJsonVisitor).GetMethod(nameof(VisitSTuple3))!,
+						4 => typeof(CrystalJsonVisitor).GetMethod(nameof(VisitSTuple4))!,
+						5 => typeof(CrystalJsonVisitor).GetMethod(nameof(VisitSTuple5))!,
+						6 => typeof(CrystalJsonVisitor).GetMethod(nameof(VisitSTuple6))!,
+						7 => typeof(CrystalJsonVisitor).GetMethod(nameof(VisitSTuple7))!,
+						_ => throw new InvalidOperationException()
+					};
 					Contract.Debug.Assert(m != null, "Missing method to serialize generic tuple");
 					// convert to a delegate
 					return (CrystalJsonTypeVisitor) m.MakeGenericMethod(args).CreateDelegate(typeof(CrystalJsonTypeVisitor));

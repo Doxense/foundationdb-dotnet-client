@@ -958,12 +958,12 @@ namespace Doxense.Serialization.Json
 		public override int CompareTo(JsonValue? other)
 		{
 			if (other is null) return +1;
-			switch (other.Type)
+			return other.Type switch
 			{
-				case JsonType.String: return CompareTo(other as JsonString);
-				case JsonType.Number: return -((JsonNumber)other).CompareTo(this);
-				default: return base.CompareTo(other);
-			}
+				JsonType.String => CompareTo(other as JsonString),
+				JsonType.Number => -((JsonNumber) other).CompareTo(this),
+				_ => base.CompareTo(other)
+			};
 		}
 
 		public int CompareTo(JsonString? other)

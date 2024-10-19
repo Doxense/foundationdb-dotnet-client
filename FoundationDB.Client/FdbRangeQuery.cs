@@ -153,7 +153,7 @@ namespace FoundationDB.Client
 			if (limit.HasValue)
 			{
 				// If k >= N, then the result will be empty
-				// If k < N, then we need to update the begin key, and limit accordingly
+				// If k < N, then we need to update the Begin key, and limit accordingly
 				if (count >= limit.Value)
 				{
 					limit = 0; // hopefully this would be optimized at runtime?
@@ -166,11 +166,11 @@ namespace FoundationDB.Client
 
 			if (this.Reversed)
 			{
-				end = end - count;
+				end -= count;
 			}
 			else
 			{
-				begin = begin + count;
+				begin += count;
 			}
 
 			return new FdbRangeQuery<TState, TResult>(

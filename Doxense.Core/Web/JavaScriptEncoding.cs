@@ -385,22 +385,40 @@ namespace Doxense.Web
 
 			// we have to return false for any of the following keywords (case-sensitive):
 			// "instanceof", "typeof", "break", "do", "new", "var", "case", "else", "return", "void", "catch", "finally", "continue", "for", "switch", "while", "this", "with", "debugger", "function", "throw", "default", "if", "try", "delete", "in"
-			switch (name[0])
+
+			//TODO: FUTURE: We cannot use SearchValues<string> because, as of .NET 9, it only has a Contains(string) method, and no Contains(ReadOnlySpan<char>) overload (see https://github.com/dotnet/runtime/issues/104977)
+			
+			//note: the JIT should replace with an optimized "binary search"
+			return name switch
 			{
-				case 'b': return name is ("break");
-				case 'c': return name is ("case" or "catch" or "continue");
-				case 'd': return name is ("debugger" or "default" or "delete" or "do");
-				case 'e': return name is ("else");
-				case 'f': return name is ("finally" or "for" or "function");
-				case 'i': return name is ("if" or "in" or "instanceof");
-				case 'n': return name is ("new");
-				case 'r': return name is ("return");
-				case 's': return name is ("switch");
-				case 't': return name is ("this" or "throw" or "try" or "typeof");
-				case 'v': return name is ("var" or "void");
-				case 'w': return name is ("while" or "with");
-				default: return false;
-			}
+				"break" => true,
+				"case" => true,
+				"catch" => true,
+				"continue" => true,
+				"debugger" => true,
+				"default" => true,
+				"delete" => true,
+				"do" => true,
+				"else" => true,
+				"finally" => true,
+				"for" => true,
+				"function" => true,
+				"if" => true,
+				"in" => true,
+				"instanceof" => true,
+				"new" => true,
+				"return" => true,
+				"switch" => true,
+				"this" => true,
+				"throw" => true,
+				"try" => true,
+				"typeof" => true,
+				"var" => true,
+				"void" => true,
+				"while" => true,
+				"with" => true,
+				_ => false
+			};
 		}
 
 	}

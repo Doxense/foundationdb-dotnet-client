@@ -2327,40 +2327,21 @@ namespace System
 		/// </remarks>
 		public string ToString(string? format, IFormatProvider? provider)
 		{
-			switch (format ?? "D")
+			return (format ?? "D") switch
 			{
-				case "D":
-				case "d":
-					return Dump(this);
-
-				case "N":
-					return ToHexString();
-				case "n":
-					return ToHexStringLower();
-
-				case "X":
-					return ToHexString(' ');
-				case "x":
-					return ToHexStringLower(' ');
-
-				case "P":
-					return PrettyPrint(this.Span, DefaultPrettyPrintSize, biasKey: null, lower: false);
-				case "p":
-					return PrettyPrint(this.Span, DefaultPrettyPrintSize, biasKey: null, lower: true);
-
-				case "K":
-					return PrettyPrint(this.Span, DefaultPrettyPrintSize, biasKey: true, lower: false);
-				case "k":
-					return PrettyPrint(this.Span, DefaultPrettyPrintSize, biasKey: true, lower: true);
-
-				case "V":
-					return PrettyPrint(this.Span, DefaultPrettyPrintSize, biasKey: false, lower: false);
-				case "v":
-					return PrettyPrint(this.Span, DefaultPrettyPrintSize, biasKey: false, lower: true);
-
-				default:
-					throw new FormatException("Format is invalid or not supported");
-			}
+				"D" or "d" => Dump(this),
+				"N" => ToHexString(),
+				"n" => ToHexStringLower(),
+				"X" => ToHexString(' '),
+				"x" => ToHexStringLower(' '),
+				"P" => PrettyPrint(this.Span, Slice.DefaultPrettyPrintSize, biasKey: null, lower: false),
+				"p" => PrettyPrint(this.Span, Slice.DefaultPrettyPrintSize, biasKey: null, lower: true),
+				"K" => PrettyPrint(this.Span, Slice.DefaultPrettyPrintSize, biasKey: true, lower: false),
+				"k" => PrettyPrint(this.Span, Slice.DefaultPrettyPrintSize, biasKey: true, lower: true),
+				"V" => PrettyPrint(this.Span, Slice.DefaultPrettyPrintSize, biasKey: false, lower: false),
+				"v" => PrettyPrint(this.Span, Slice.DefaultPrettyPrintSize, biasKey: false, lower: true),
+				_ => throw new FormatException("Format is invalid or not supported")
+			};
 		}
 
 		/// <summary>Returns a printable representation of a key</summary>

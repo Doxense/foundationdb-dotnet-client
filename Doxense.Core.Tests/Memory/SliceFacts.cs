@@ -24,6 +24,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+#pragma warning disable NUnit2043
+#pragma warning disable NUnit2010
 #pragma warning disable CA1825
 #pragma warning disable CA1861
 #pragma warning disable IDE0230

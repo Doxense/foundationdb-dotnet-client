@@ -740,7 +740,6 @@ namespace Doxense.Linq.Async.Tests
 				items.Add(x);
 			});
 
-			Assert.That(items.Count, Is.EqualTo(10));
 			Assert.That(items, Is.EqualTo(new[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }));
 		}
 
@@ -758,7 +757,6 @@ namespace Doxense.Linq.Async.Tests
 				items.Add(x);
 			});
 
-			Assert.That(items.Count, Is.EqualTo(10));
 			Assert.That(items, Is.EqualTo(new[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }));
 		}
 
@@ -967,7 +965,7 @@ namespace Doxense.Linq.Async.Tests
 				var source = items.ToAsyncEnumerable();
 				float sum = await source.SumAsync();
 				float expected = 0f;
-				foreach (var x in items) expected = expected + x;
+				foreach (var x in items) expected += x;
 				Assert.That(sum, Is.EqualTo(expected));
 
 				// empty should return 0
@@ -982,7 +980,7 @@ namespace Doxense.Linq.Async.Tests
 				var source = items.ToAsyncEnumerable();
 				double sum = await source.SumAsync();
 				double expected = 0f;
-				foreach (var x in items) expected = expected + x;
+				foreach (var x in items) expected += x;
 				Assert.That(sum, Is.EqualTo(expected));
 
 				// empty should return 0
@@ -1040,7 +1038,7 @@ namespace Doxense.Linq.Async.Tests
 				var source = items.ToAsyncEnumerable();
 				float sum = await source.SumAsync(x => (float) x.Decimal);
 				float expected = 0f;
-				foreach (var x in items) expected = expected + (float) x.Decimal;
+				foreach (var x in items) expected += (float) x.Decimal;
 				Assert.That(sum, Is.EqualTo(expected));
 			}
 
@@ -1048,7 +1046,7 @@ namespace Doxense.Linq.Async.Tests
 				var source = items.ToAsyncEnumerable();
 				double sum = await source.SumAsync(x => x.Decimal);
 				double expected = 0f;
-				foreach (var x in items) expected = expected + x.Decimal;
+				foreach (var x in items) expected += x.Decimal;
 				Assert.That(sum, Is.EqualTo(expected));
 			}
 

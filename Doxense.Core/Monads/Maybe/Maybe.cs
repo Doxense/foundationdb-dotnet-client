@@ -29,6 +29,8 @@ namespace Doxense
 	using System.Runtime;
 	using System.Runtime.ExceptionServices;
 
+	/// <summary>Represents a value that may or may not be present, along with an optional error state.</summary>
+	/// <typeparam name="T">The type of the value.</typeparam>
 	[DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
 	public readonly struct Maybe<T> : IEquatable<Maybe<T>>, IEquatable<T>, IComparable<Maybe<T>>, IComparable<T>, IFormattable
@@ -117,7 +119,7 @@ namespace Doxense
 				: m_errorContainer as Exception;
 		}
 
-		/// <summary>Return the captured error context, or null if there wasn't any</summary>
+		/// <summary>Returns the captured error context, or null if there wasn't any</summary>
 		public ExceptionDispatchInfo? CapturedError => m_errorContainer is Exception exception ? ExceptionDispatchInfo.Capture(exception) : m_errorContainer as ExceptionDispatchInfo;
 
 		/// <summary>The value failed to compute</summary>
@@ -134,7 +136,7 @@ namespace Doxense
 		{
 			if (m_errorContainer != null)
 			{
-				if (!(m_errorContainer is Exception exception))
+				if (m_errorContainer is not Exception exception)
 				{
 					((ExceptionDispatchInfo) m_errorContainer).Throw();
 					return; // never reached, but helps with code analysis
@@ -386,14 +388,19 @@ namespace Doxense
 
 	}
 
-	/// <summary>Helper class to deal with Maybe&lt;T&gt; monads</summary>
+	/// <summary>Provides a set of static methods to work with the <see cref="Maybe{T}"/> monad, enabling functional programming patterns in C#.</summary>
+	[PublicAPI]
 	public static class Maybe
 	{
 
-		/// <summary>Crée un Maybe&lt;T&gt; représentant une valeur connue</summary>
-		/// <typeparam name="T">Type de la valeur</typeparam>
-		/// <param name="value">Valeur à convertir</param>
-		/// <returns>Maybe&lt;T&gt; contenant la valeur</returns>
+		/// <summary>Returns a <see cref="Maybe{T}"/> instance containing the specified <typeparamref name="T"/>.</summary>
+		/// <typeparam name="T">A type of the value, which must be a Reference Type.</typeparam>
+		/// <param name="value">The value to wrap in a <see cref="Maybe{T}"/>.</param>
+		/// <returns>A <see cref="Maybe{T}"/> encapsulating the value.</returns>
+		/// <remarks>
+		/// <para>If <paramref name="value"/> is <see langword="null"/>, the <see cref="Maybe{T}"/> still has a value, and is not equal to <see cref="Maybe{T}.Nothing"/>.</para>
+		/// <para>If you need to map null values to <see cref="Maybe{T}.Nothing"/>, use <see cref="ReturnNotNull{T}(T?)"/> instead.</para>
+		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Maybe<T> Return<T>(T? value)
 		{
@@ -401,10 +408,10 @@ namespace Doxense
 			return new Maybe<T>(value);
 		}
 
-		/// <summary>Convertit les référence null en Maybe.Nothing</summary>
-		/// <typeparam name="T">Reference Type</typeparam>
-		/// <param name="value">Instance à protéger (peut être null)</param>
-		/// <returns>Maybe.Nothing si l'instance est null, sinon un Maybe encapsulant cette instance</returns>
+		/// <summary>Returns a <see cref="Maybe{T}"/> instance containing the specified <typeparamref name="T"/>, if it is not null.</summary>
+		/// <typeparam name="T">A type of the value, which must be a Reference Type.</typeparam>
+		/// <param name="value">The value to wrap in a <see cref="Maybe{T}"/>, which could be null.</param>
+		/// <returns><see cref="Maybe{T}.Nothing"/> if the instance is null, otherwise a <see cref="Maybe{T}"/> encapsulating the value.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Maybe<T> ReturnNotNull<T>(T? value)
 			where T : class
@@ -413,20 +420,20 @@ namespace Doxense
 			return value == null ? Maybe<T>.Nothing : new Maybe<T>(value);
 		}
 
-		/// <summary>Convertit un T? en Maybe&lt;T&;gt (lorsque T est un ValueType)</summary>
-		/// <typeparam name="T">ValueType</typeparam>
-		/// <param name="value">Nullable à convertir</param>
-		/// <returns>Version maybe du nullable, qui vaut Nothing si le nullable est default(T?), ou la valeur elle même s'il contient un résultat.</returns>
+		/// <summary>Returns a <see cref="Maybe{T}"/> instance containing the specified <see cref="Nullable{T}"/>.</summary>
+		/// <typeparam name="T">A type of the value, which must be a Value Type.</typeparam>
+		/// <param name="value">The value to wrap in a <see cref="Maybe{T}"/>.</param>
+		/// <returns><see cref="Maybe{T}.Nothing"/> if the instance is null, otherwise a <see cref="Maybe{T}"/> encapsulating the value.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Maybe<T> ReturnNotNull<T>(T? value)
+		public static Maybe<T> ReturnNotNull<T>(Nullable<T> value)
 			where T : struct
 		{
 			return value.HasValue ? new Maybe<T>(value.Value) : default(Maybe<T>);
 		}
 
-		/// <summary>Helper pour créer un Maybe&lt;T&gt;.Nothing</summary>
-		/// <typeparam name="T">Type de la valeur</typeparam>
-		/// <returns>Maybe vide</returns>
+		/// <summary>Creates an empty <see cref="Maybe{T}"/> instance.</summary>
+		/// <typeparam name="T">The type of the value.</typeparam>
+		/// <returns>An empty <see cref="Maybe{T}"/> instance.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Maybe<T> Nothing<T>()
 		{
@@ -434,10 +441,12 @@ namespace Doxense
 			return default(Maybe<T>);
 		}
 
-		/// <summary>Helper pour créer un Maybe&lt;T&gt;.Nothing en utilisant le compilateur pour inférer le type de la valeur</summary>
-		/// <typeparam name="T">Type de la valeur</typeparam>
-		/// <param name="_">Paramètre dont la valeur est ignorée, et qui sert juste à aider le compilateur à inférer le type</param>
-		/// <returns>Maybe vide</returns>
+		/// <summary>
+		/// Creates an empty <see cref="Maybe{T}"/> instance.
+		/// </summary>
+		/// <typeparam name="T">The type of the value.</typeparam>
+		/// <param name="_">A parameter whose value is ignored, used only to help the compiler infer the type.</param>
+		/// <returns>An empty <see cref="Maybe{T}"/> instance.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Maybe<T> Nothing<T>(T? _)
 		{
@@ -445,10 +454,10 @@ namespace Doxense
 			return default(Maybe<T>);
 		}
 
-		/// <summary>Helper pour créer un Maybe&lt;T&gt; représentant une Exception</summary>
-		/// <typeparam name="T">Type de la valeur</typeparam>
-		/// <param name="error">Exception à enrober</param>
-		/// <returns>Maybe encapsulant l'erreur</returns>
+		/// <summary>Creates a <see cref="Maybe{T}"/> instance representing an error.</summary>
+		/// <typeparam name="T">The type of the value.</typeparam>
+		/// <param name="error">The exception to encapsulate.</param>
+		/// <returns>A <see cref="Maybe{T}"/> instance encapsulating the error.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Maybe<T> Error<T>(Exception error)
 		{
@@ -456,10 +465,10 @@ namespace Doxense
 			return Maybe<T>.Failure(error);
 		}
 
-		/// <summary>Helper pour créer un Maybe&lt;T&gt; représentant une Exception</summary>
-		/// <typeparam name="T">Type de la valeur</typeparam>
-		/// <param name="error">Exception à enrober</param>
-		/// <returns>Maybe encapsulant l'erreur</returns>
+		/// <summary>Creates a <see cref="Maybe{T}"/> instance representing an error.</summary>
+		/// <typeparam name="T">The type of the value.</typeparam>
+		/// <param name="error">The exception to encapsulate.</param>
+		/// <returns>A <see cref="Maybe{T}"/> instance encapsulating the error.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Maybe<T> Error<T>(ExceptionDispatchInfo error)
 		{
@@ -467,11 +476,11 @@ namespace Doxense
 			return Maybe<T>.Failure(error);
 		}
 
-		/// <summary>Helper pour créer un Maybe&lt;T&gt; représentant une Exception, en utilisant le compilateur pour inférer le type de la valeur</summary>
-		/// <typeparam name="T">Type de la valeur</typeparam>
-		/// <param name="_">Paramètre dont la valeur est ignorée, et qui sert juste à aider le compilateur à inférer le type</param>
-		/// <param name="error">Exception à enrober</param>
-		/// <returns>Maybe encapsulant l'erreur</returns>
+		/// <summary>Creates a <see cref="Maybe{T}"/> instance representing an error, using the compiler to infer the type of the value.</summary>
+		/// <typeparam name="T">The type of the value.</typeparam>
+		/// <param name="_">A parameter whose value is ignored, used only to help the compiler infer the type.</param>
+		/// <param name="error">The exception to encapsulate.</param>
+		/// <returns>A <see cref="Maybe{T}"/> encapsulating the error.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Maybe<T> Error<T>(T? _, Exception error)
 		{
@@ -479,11 +488,11 @@ namespace Doxense
 			return Maybe<T>.Failure(error);
 		}
 
-		/// <summary>Helper pour créer un Maybe&lt;T&gt; représentant une Exception, en utilisant le compilateur pour inférer le type de la valeur</summary>
-		/// <typeparam name="T">Type de la valeur</typeparam>
-		/// <param name="_">Paramètre dont la valeur est ignorée, et qui sert juste à aider le compilateur à inférer le type</param>
-		/// <param name="error">Exception à enrober</param>
-		/// <returns>Maybe encapsulant l'erreur</returns>
+		/// <summary>Creates a <see cref="Maybe{T}"/> instance representing an exception, using the compiler to infer the type of the value.</summary>
+		/// <typeparam name="T">The type of the value.</typeparam>
+		/// <param name="_">A parameter whose value is ignored, used only to help the compiler infer the type.</param>
+		/// <param name="error">The exception to encapsulate.</param>
+		/// <returns>A <see cref="Maybe{T}"/> instance encapsulating the error.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Maybe<T> Error<T>(T? _, ExceptionDispatchInfo error)
 		{
@@ -491,12 +500,12 @@ namespace Doxense
 			return Maybe<T>.Failure(error);
 		}
 
-		/// <summary>Helper pour combiner des erreurs, en utilisant le compilateur pour inférer le type de la valeur</summary>
-		/// <typeparam name="T"></typeparam>
-		/// <param name="_">Paramètre dont la valeur est ignorée, et qui sert juste à aider le compilateur à inférer le type</param>
-		/// <param name="error0">Première exception (peut être null)</param>
-		/// <param name="error1">Deuxième exception (peut être null)</param>
-		/// <returns>Maybe encapsulant la ou les erreur. Si les deux erreurs sont présentes, elles sont combinées dans une AggregateException</returns>
+		/// <summary>Creates a <see cref="Maybe{T}"/> instance that encapsulates one or two exceptions.</summary>
+		/// <typeparam name="T">The type of the value that is ignored.</typeparam>
+		/// <param name="_">A parameter whose value is ignored, used to help the compiler infer the type.</param>
+		/// <param name="error0">The first exception, which can be null.</param>
+		/// <param name="error1">The second exception, which can be null.</param>
+		/// <returns>A <see cref="Maybe{T}"/> instance encapsulating the error(s). If both errors are present, they are combined into an <see cref="AggregateException"/>.</returns>
 		[Pure]
 		public static Maybe<T> Error<T>(T? _, Exception? error0, Exception? error1)
 		{
@@ -513,20 +522,23 @@ namespace Doxense
 			return Maybe<T>.Failure(new AggregateException(error0, error1));
 		}
 
-		/// <summary>Convertit un Maybe&lt;T&;gt en T? (lorsque T est un ValueType)</summary>
-		/// <typeparam name="T">ValueType</typeparam>
-		/// <param name="m">Maybe à convertir</param>
-		/// <returns>Version nullable du maybe, qui vaut default(T?) si le Maybe est Nothing, ou la valeur elle même s'il contient un résultat.</returns>
+		/// <summary>Converts a <see cref="Maybe{T}"/> into a <see cref="Nullable{T}"/>.</summary>
+		/// <typeparam name="T">The type of the value to convert, which must be a value type.</typeparam>
+		/// <param name="m">The instance to convert.</param>
+		/// <returns>Returns either <see langword="null"/> if the instance is <see cref="Maybe{T}.Nothing"/>,  or a <typeparamref name="T"/> if the value is present. </returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static T? ToNullable<T>(this Maybe<T> m)
 			where T : struct
 		{
 			// EXIT THE MONAD
-			//TODO: propager l'exception ?
 			return m.HasValue ? m.Value : default(T?);
 		}
 
-		/// <summary>Retourne le résultat d'un Maybe, ou une valeur par défaut s'il est vide.</summary>
+		/// <summary>Returns the value of the <see cref="Maybe{T}"/> if it has one, or the specified default value.</summary>
+		/// <typeparam name="T">The type of the value.</typeparam>
+		/// <param name="m">The <see cref="Maybe{T}"/> instance.</param>
+		/// <param name="default">The default value to return if the <see cref="Maybe{T}"/> does not have a value.</param>
+		/// <returns>The value of the <see cref="Maybe{T}"/> if it has one; otherwise, the specified default value.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static T? OrDefault<T>(this Maybe<T> m, T? @default = default)
 		{

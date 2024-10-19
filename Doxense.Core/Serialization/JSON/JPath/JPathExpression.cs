@@ -44,20 +44,17 @@ namespace Doxense.Serialization.Json.JPath
 			return null;
 		}
 
-		protected static bool IsTruthy(JsonValue x)
+		protected static bool IsTruthy(JsonValue x) => x switch
 		{
-			switch (x)
-			{
-				case null: return false;
-				case JsonNull: return false;
-				case JsonBoolean b: return b.Value;
-				case JsonString s: return s.Length > 0;
-				case JsonNumber n: return !n.IsDefault;
-				case JsonDateTime d: return !d.IsDefault;
-				case JsonArray a: return a.Count > 0;
-			}
-			return true;
-		}
+			null => false,
+			JsonNull => false,
+			JsonBoolean b => b.Value,
+			JsonString s => s.Length > 0,
+			JsonNumber n => !n.IsDefault,
+			JsonDateTime d => !d.IsDefault,
+			JsonArray a => a.Count > 0,
+			_ => true
+		};
 
 		protected static JsonValue? ArrayPseudoProperty(JsonArray array, string name)
 		{

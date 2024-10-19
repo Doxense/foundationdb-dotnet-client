@@ -1200,16 +1200,16 @@ namespace Doxense.Collections.Tuples.Encoding
 			int type = slice[0];
 			if (slice.Length == 1)
 			{
-				switch (type)
+				return type switch
 				{
-					case TupleTypes.Nil: return null;
-					case TupleTypes.Directory: return TuPackUserType.Directory;
-					case TupleTypes.Escape: return TuPackUserType.System;
-				}
-				return new TuPackUserType(type);
+					TupleTypes.Nil => null,
+					TupleTypes.Directory => TuPackUserType.Directory,
+					TupleTypes.Escape => TuPackUserType.System,
+					_ => new(type)
+				};
 			}
 
-			return new TuPackUserType(type, slice[1..].ToSlice());
+			return new(type, slice[1..].ToSlice());
 		}
 
 		/// <summary>Deserialize a tuple segment into a tuple</summary>
