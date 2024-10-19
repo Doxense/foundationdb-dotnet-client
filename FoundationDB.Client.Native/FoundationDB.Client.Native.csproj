@@ -14,7 +14,7 @@
 		<!-- These targets will be in the NuGet package -->
 		<TargetFrameworks>$(CoreSdkRuntimeVersions)</TargetFrameworks>
 		<!-- This must be present even though it's value is ignored; otherwise, "dotnet pack" will fail with NU5017 -->
-		<TargetFramework>netstandard2.0</TargetFramework>
+		<TargetFramework>net6.0</TargetFramework>
 		<!-- This must be set to false; otherwise, "dotnet pack" will fail with NU5017 -->
 		<IncludeSymbols>false</IncludeSymbols>
 		<!-- Gets rid of a warning when packing a project with no managed assembly -->
