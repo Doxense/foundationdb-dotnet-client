@@ -39,6 +39,7 @@ namespace SnowBank.Testing
 	using System.Xml;
 	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics;
+	using Doxense.Linq;
 	using Doxense.Mathematics.Statistics;
 	using Doxense.Reactive.Disposables;
 	using Doxense.Runtime;
@@ -1496,6 +1497,49 @@ namespace SnowBank.Testing
 			Log($"# Using random seed {seed.Value}");
 			m_rnd = rnd;
 			return rnd;
+		}
+
+		/// <summary>Pick a random element in a set</summary>
+		protected TItem Choose<TItem>(ReadOnlySpan<TItem> items) => items[NextInt32(items.Length)];
+
+		/// <summary>Pick a random element in a set</summary>
+		protected TItem Choose<TItem>(Span<TItem> items) => items[NextInt32(items.Length)];
+
+		/// <summary>Pick a random element in a set</summary>
+		protected TItem Choose<TItem>(TItem[] items) => items[NextInt32(items.Length)];
+		
+		/// <summary>Pick a random element in a set</summary>
+		protected TItem Choose<TItem>(List<TItem> items) => items[NextInt32(items.Count)];
+
+		/// <summary>Pick a random element in a set</summary>
+		protected TItem Choose<TItem>(ICollection<TItem> items)
+		{
+			if (Buffer<TItem>.TryGetSpan(items, out var span))
+			{
+				return Choose(span);
+			}
+
+			if (items is IList<TItem> list)
+			{
+				return list[NextInt32(list.Count)];
+			}
+
+			if (items.TryGetNonEnumeratedCount(out var count))
+			{
+				var index = NextInt32(count);
+				if (index == 0) return items.First();
+				return items.Skip(index - 1).First();
+			}
+			
+			// we have to copy the collection :(
+			return Choose(CollectionsMarshal.AsSpan(items.ToList()));
+		}
+
+		/// <summary>Pick a random key/value in a dictionary</summary>
+		protected KeyValuePair<TKey, TValue> Choose<TKey, TValue>(Dictionary<TKey, TValue> items) where TKey : notnull
+		{
+			var key = Choose(items.Keys);
+			return new(key, items[key]);
 		}
 
 		protected void Shuffle<T>(T[] items) => Shuffle<T>(this.Rnd, items.AsSpan());
