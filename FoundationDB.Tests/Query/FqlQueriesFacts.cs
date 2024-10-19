@@ -28,11 +28,61 @@
 
 namespace FoundationDB.Client.Tests
 {
+	using System.Buffers;
+	using Bogus;
+	using Doxense.Serialization.Json;
+
+
+	public sealed record Album
+	{
+		public required Guid Id { get; init; }
+		
+		public required string Title { get; init; }
+		
+		public required string Artist { get; init; }
+		
+		public required string Genre { get; init; }
+		
+		public required DateTime ReleaseDate { get; init; }
+		
+		public required int Tracks { get; init; }
+
+	}
+	
 	[TestFixture]
 	[Parallelizable(ParallelScope.All)]
 	public class FqlQueriesFacts : FdbTest
 	{
 
+		protected static void Explain(IFqlQuery? query)
+		{
+			if (query == null)
+			{
+				Log("# Query: <null>");
+			}
+			else
+			{
+				Log(query.Explain(prefix: "# "));
+			}
+		}
+		
+		public static List<Album> CreateAlbums(string user, int count)
+		{
+			var faker = new Faker<Album>()
+				.UseSeed(HashCode.Combine(user, count))
+				.RuleFor(a => a.Id, _ => Guid.NewGuid())
+				.RuleFor(a => a.Title, f => f.Lorem.Sentence())
+				.RuleFor(a => a.Artist, f => f.Name.FullName())
+				.RuleFor(a => a.Genre, f => f.Music.Genre())
+				.RuleFor(a => a.ReleaseDate, f => f.Date.Between(new(1970, 1, 1), DateTime.Now).Date)
+				.RuleFor(a => a.Tracks, f => f.Random.Number(4, 12))
+				;
+			
+			faker.AssertConfigurationIsValid();
+
+			return faker.Generate(count);
+		}
+		
 		[Test]
 		public async Task Test_Can_Filter_Directories()
 		{
@@ -49,12 +99,12 @@ namespace FoundationDB.Client.Tests
 				foreach (var path in (string[])
 				[
 					"foo/bar/baz/jazz",
-					"users/alice/documents/photos",
 					"users/alice/documents/music",
-					"users/bob/documents/photos",
+					"users/alice/documents/photos",
 					"users/bob/documents/music",
-					"users/charlie/documents/photos",
+					"users/bob/documents/photos",
 					"users/charlie/documents/music",
+					"users/charlie/documents/photos",
 				])
 				{
 					await parent.CreateAsync(tr, FdbPath.Relative(FdbPath.Parse(path)));
@@ -62,46 +112,120 @@ namespace FoundationDB.Client.Tests
 			}, this.Cancellation);
 
 			// populate with some fake data
-			await db.WriteAsync(async tr =>
-			{
-				var rnd = new Random(123456);
 
-				var genres = (string[]) [ "rock", "techno", "folk", "classical" ];
+			var genres = (string[]) [ "rock", "techno", "folk", "classical" ];
+			var users = (string[]) [ "alice", "bob", "charlie" ];
+
+			var rnd = new Random(12345678);
+
+			var dataset = new Dictionary<string, List<(int RowId, Album Album)>>();
+
+			int idCounter = 0;
+			
+			foreach (var user in users)
+			{
+				Log($"Generating data for user {user}...");
+
+				var count = rnd.Next(1_000, 2_000);
+
+				var albums = CreateAlbums(user, count);
+
+				var set = new List<(int, Album)>(count);
 				
-				foreach (var user in (string[]) [ "alice", "bob", "charlie" ])
+				dataset[user] = set;
+				
+				await db.WriteAsync(async tr =>
 				{
 					var subspace = (await db.Root[FdbPath.Parse($"users/{user}/documents/music")].Resolve(tr).ConfigureAwait(false))!;
-					Log($"Filling {subspace.Path} with pseudo data");
-
-					tr.SetValueString(subspace.Encode("name"), "Albums");
-					tr.SetValueInt32(subspace.Encode("count"), 100);
 					
-					for (int i = 0; i < 100; i++)
+					tr.SetValueString(subspace.Encode("name"), "Albums");
+					tr.SetValueInt32(subspace.Encode("count"), count);
+					
+					for (int i = 0; i < albums.Count; i++)
 					{
-						tr.Set(subspace.Encode(0, $"album{i:D4}"), Slice.FromString("{ /* some dummy json */ }"));
-						tr.Set(subspace.Encode(1, $"album{i:D4}", Uuid128.NewUuid()), Slice.Empty);
-						tr.Set(subspace.Encode(2, $"album{i:D4}", genres[rnd.Next(genres.Length)]), Slice.Empty);
-						tr.Set(subspace.Encode(3, $"album{i:D4}", 1970 + rnd.Next(55)), Slice.Empty);
+						var album = albums[i];
+						var rid = ++idCounter;
+						set.Add((rid, album));
+						var json = CrystalJson.ToSlice(album, ArrayPool<byte>.Shared);
+						tr.Set(subspace.Encode(0, rid), json.Data);
+						tr.SetValueInt32(subspace.Encode(1, album.Id), rid);
+						tr.Set(subspace.Encode(2, rid, album.Genre), Slice.Empty);
+						tr.Set(subspace.Encode(3, rid, album.Artist), Slice.Empty);
+						tr.Set(subspace.Encode(4, rid, album.ReleaseDate.Year), Slice.Empty);
+						json.Dispose();
 					}
-				}
-			}, this.Cancellation);
+				}, this.Cancellation);
+			}
 
-			//await DumpTree(db, location);
+			await DumpTree(db, location);
 
+			var genre = Choose(dataset[Choose(users)]).Album.Genre;
+			var artist = Choose(dataset[Choose(users)]).Album.Artist;
+			var year = Choose(dataset[Choose(users)]).Album.ReleaseDate.Year;
+
+			var albumsByGenre = dataset.Values.SelectMany(v => v.Where(x => x.Album.Genre == genre)).ToList();
+			var albumsByArtist = dataset.Values.SelectMany(v => v.Where(x => x.Album.Artist == artist)).ToList();
+			var albumsByYear = dataset.Values.SelectMany(v => v.Where(x => x.Album.ReleaseDate.Year == year)).ToList();
+
+			Log($"Querying Genre '{genre}', expect {albumsByGenre.Count:N0} results");
 			await db.ReadAsync(async tr =>
 			{
 				// find all the "techno" albums from all the users
-				var q = FqlQueryParser.Parse("./users/<>/documents/music(2,<string>,\"techno\")");
+				var q = FqlQueryParser.Parse($"./users/<>/documents/music(2,<int>,\"{genre}\")");
 				Assert.That(q, Is.Not.Null);
-				Log(q.Explain());
+				Explain(q);
 
-				Log("Listing matching folders:");
+				var results = new List<int>();
 				await foreach (var match in q.Scan(tr, db.Root))
 				{
-					Log($"- {match.Path}{match.Tuple} = {match.Value:V}");
+					//Log($"- {match.Path}{match.Tuple} = {match.Value:V}");
+					results.Add(match.Tuple.Get<int>(1));
 				}
+				Log($"> Found {results.Count} results");
+				Assert.That(results, Is.EquivalentTo(albumsByGenre.Select(x => x.RowId)));
 
 			}, this.Cancellation);
+			Log();
+
+			Log($"Querying Artist '{artist}', expect {albumsByArtist.Count:N0} results");
+			await db.ReadAsync(async tr =>
+			{
+				// find all the "techno" albums from all the users
+				var q = FqlQueryParser.Parse($"./users/<>/documents/music(3,<int>,\"{artist}\")");
+				Assert.That(q, Is.Not.Null);
+				Explain(q);
+
+				var results = new List<int>();
+				await foreach (var match in q.Scan(tr, db.Root))
+				{
+					//Log($"- {match.Path}{match.Tuple} = {match.Value:V}");
+					results.Add(match.Tuple.Get<int>(1));
+				}
+				Log($"> Found {results.Count} results");
+				Assert.That(results, Is.EquivalentTo(albumsByArtist.Select(x => x.RowId)));
+
+			}, this.Cancellation);
+			Log();
+
+			Log($"Querying Year {year}, expect {albumsByYear.Count:N0} results");
+			await db.ReadAsync(async tr =>
+			{
+				// find all the "techno" albums from all the users
+				var q = FqlQueryParser.Parse($"./users/<>/documents/music(4,<int>,{year})");
+				Assert.That(q, Is.Not.Null);
+				Explain(q);
+
+				var results = new List<int>();
+				await foreach (var match in q.Scan(tr, db.Root))
+				{
+					//Log($"- {match.Path}{match.Tuple} = {match.Value:V}");
+					results.Add(match.Tuple.Get<int>(1));
+				}
+				Log($"> Found {results.Count} results");
+				Assert.That(results, Is.EquivalentTo(albumsByYear.Select(x => x.RowId)));
+
+			}, this.Cancellation);
+			Log();
 
 		}
 

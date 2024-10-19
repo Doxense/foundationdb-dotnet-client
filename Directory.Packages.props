@@ -5,6 +5,7 @@
   </PropertyGroup>
   <!-- Packages that are common to all target frameworks -->
   <ItemGroup>
+    <PackageVersion Include="Bogus" Version="35.6.1" />
     <PackageVersion Include="MathNet.Numerics.Signed" Version="5.0.0" />
     <PackageVersion Include="Microsoft.CSharp" Version="4.7.0" />
     <PackageVersion Include="Microsoft.IO.RecyclableMemoryStream" Version="3.0.1" />
