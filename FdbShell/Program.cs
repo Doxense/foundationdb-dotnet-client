@@ -415,7 +415,12 @@ namespace FdbShell
 
 		private static readonly Dictionary<string, string> KnownCommands = new (StringComparer.OrdinalIgnoreCase)
 		{
+			["quit"] = "Stop the shell",
 			["cd"] = "Change the current directory",
+			["show"] = "List the keys and values in a directory",
+			["map"] = "Map the content of a directory and display a report",
+			["version"] = "Display the version of the client and cluster",
+			["find"] = "Find a directory",
 			["clear"] = "Clear a key in the current directory",
 			["clearrange"] = "Clear a range of keys in the current directory",
 			["get"] = "Read the value of a key in the current directory",
@@ -423,10 +428,8 @@ namespace FdbShell
 			["count"] = "Count the number of keys in the current directory",
 			["dir"] = "Display the list of sub-directories",
 			["dump"] = "Dump the content of the current directory",
-			["quit"] = "Stop the shell",
 			["help"] = "Display this list",
 			["layer"] = "Display of change the layer id of the current directory",
-			["map"] = "Map the content of a directory and display a report",
 			["mkdir"] = "Create a new sub-directory",
 			["mv"] = "Move a directory to another location",
 			["pwd"] = "Prints the current path",
@@ -434,11 +437,9 @@ namespace FdbShell
 			["rmdir"] = "Remove a directory",
 			["sampling"] = "Perform a random sampling of the keys in a directory",
 			["shards"] = "Display the shards that intersect a directory",
-			["show"] = "List the keys and values in a directory",
 			["status"] = "Display the status of cluster",
 			["topology"] = "Display the topology of the cluster",
 			["tree"] = "Show all the directories under the current directory",
-			["version"] = "Display the version of the client and cluster",
 			["wide"] = "Switch to wide screen (only on Windows)",
 		};
 
@@ -777,8 +778,8 @@ namespace FdbShell
 							{ // "mv SOURCE DESTINATION"
 
 								string? prm = PopParam(ref extras);
-								var srcPath = CombinePath(CurrentDirectoryPath, prm);
-								var dstPath = CombinePath(CurrentDirectoryPath, extras.Get<string>(0));
+								var srcPath = CombinePath(this.CurrentDirectoryPath, prm);
+								var dstPath = CombinePath(this.CurrentDirectoryPath, extras.Get<string>(0));
 								await RunAsyncCommand((db, log, ct) => BasicCommands.MoveDirectory(srcPath, dstPath, extras.Substring(1), db, log, ct), cancel);
 
 								break;
@@ -883,7 +884,7 @@ namespace FdbShell
 
 							case "coordinators":
 							{
-								await RunAsyncCommand((db, _, ct) => CoordinatorsCommand(db, ct), cancel);
+								await RunAsyncCommand((db, log, ct) => CoordinatorsCommand(db, ct), cancel);
 								break;
 							}
 
@@ -1006,6 +1007,29 @@ namespace FdbShell
 								}
 
 								StdOut(result.Value?.StdOut ?? "");
+								break;
+							}
+
+							case "find":
+							{
+								if (extras.Count == 0)
+								{
+									StdErr("You must specify a query.", ConsoleColor.Red);
+									break;
+								}
+								await RunAsyncCommand((db, log, ct) => BasicCommands.Find(this.CurrentDirectoryPath, extras, db, log, ct), cancel);
+								break;
+							}
+
+							case "r":
+							case "read":
+							{
+								if (extras.Count == 0)
+								{
+									StdErr("You must specify a query.", ConsoleColor.Red);
+									break;
+								}
+								await RunAsyncCommand((db, log, ct) => BasicCommands.Query(this.CurrentDirectoryPath, extras, db, log, ct), cancel);
 								break;
 							}
 

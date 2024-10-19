@@ -38,6 +38,7 @@ namespace FdbShell
 	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Linq;
 	using Doxense.Memory;
 	using FoundationDB.Client.Status;
 
@@ -1175,5 +1176,81 @@ namespace FdbShell
 			terminal.StdOut();
 		}
 
+		public static async Task Find(FdbPath path, IVarTuple extras, IFdbDatabase db, IFdbShellTerminal terminal, CancellationToken ct)
+		{
+			if (extras.Count == 0)
+			{
+				terminal.Error("You must specify a query!");
+				return;
+			}
+
+			var txt = extras.Get<string>(0);
+			if (!txt.StartsWith('.') && !txt.StartsWith('/')) txt = "./" + txt;
+			var query = FqlQueryParser.Parse(txt);
+			
+			//terminal.Comment(query.Explain());
+
+			var root = db.Root;
+			var current = root[path];
+			
+			var res = await db.ReadAsync(async tr =>
+			{
+				return await query.FindDirectories(tr, db.Root[path]).ToListAsync();
+			}, ct);
+
+			terminal.StdOut(res.Count switch
+			{
+				0 => "Found no matching directory",
+				1 => "Found 1 matching directory",
+				_ => $"Found {res.Count:N0} matching directories:"
+			});
+			
+			foreach (var x in res)
+			{
+				var subPath = x.Path.GetRelativePath(current.Path);
+				terminal.StdOut($"- {subPath}", ConsoleColor.White);
+			}
+			
+			terminal.StdOut();
+		}
+
+		public static async Task Query(FdbPath path, IVarTuple extras, IFdbDatabase db, IFdbShellTerminal terminal, CancellationToken ct)
+		{
+			if (extras.Count == 0)
+			{
+				terminal.Error("You must specify a query!");
+				return;
+			}
+
+			var txt = extras.Get<string>(0);
+			if (!txt.StartsWith('.') && !txt.StartsWith('/')) txt = "./" + txt;
+			var query = FqlQueryParser.Parse(txt);
+			
+			//terminal.Comment(query.Explain());
+
+			var root = db.Root;
+			var current = root[path];
+			
+			var res = await db.ReadAsync(async tr =>
+			{
+				return await query.Scan(tr, db.Root[path]).ToListAsync();
+			}, ct);
+
+			terminal.StdOut(res.Count switch
+			{
+				0 => "Found no results",
+				1 => "Found 1 matching result",
+				_ => $"Found {res.Count:N0} matching results:"
+			});
+			
+			foreach (var x in res)
+			{
+				terminal.StdOut($"- {x.Path}{x.Tuple} = {x.Value:P}", ConsoleColor.White);
+			}
+			
+			terminal.StdOut();
+		}
+		
 	}
+	
 }
