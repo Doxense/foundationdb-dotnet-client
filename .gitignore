@@ -34,8 +34,8 @@ packages/
 .vscode/
 
 # do not include the native libraries that are packed in the NuGet package:
-**/native/runtimes/**/*fdb_c*
-**/native/runtimes/**/fdbcli*
+**/runtimes/**/*fdb_c*
+**/runtimes/**/fdbcli*
 
 [Aa]rtifacts/
 Redist/

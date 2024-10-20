@@ -25,6 +25,11 @@
 		<AssemblyTitle>Native Client Libraries for FoundationDB</AssemblyTitle>
 		<Description>Includes the FoundationDB Native Client (fdb_c.dll, libfdbc.so, ...) for different runtimes.</Description>
 	</PropertyGroup>
+	
+	<!-- Building the native packages requires pre-downloading some files, which may not be possible in all CI -->
+	<PropertyGroup Condition="'$(DISABLE_NATIVE_PACKAGE)' == 'true'">
+		<IsPackable>false</IsPackable>
+	</PropertyGroup>
 
 	<ItemGroup Condition="'$(_IsPacking)' == 'true'">
 		<PackageReference Include="FoundationDB.Client" VersionOverride="[7.3.*-*, 8.0.0.0)" />
