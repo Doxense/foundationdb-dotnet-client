@@ -59,6 +59,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GitHub Actions", "GitHub Ac
 		.github\workflows\dotnetcore.yml = .github\workflows\dotnetcore.yml
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Client.Native", "FoundationDB.Client.Native\FoundationDB.Client.Native.csproj", "{BFC416AD-C6F9-4C55-8315-90304F636660}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -133,6 +135,10 @@ Global
 		{0957AC74-8650-444C-AEF7-3C579578BBD1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0957AC74-8650-444C-AEF7-3C579578BBD1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0957AC74-8650-444C-AEF7-3C579578BBD1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BFC416AD-C6F9-4C55-8315-90304F636660}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BFC416AD-C6F9-4C55-8315-90304F636660}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BFC416AD-C6F9-4C55-8315-90304F636660}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BFC416AD-C6F9-4C55-8315-90304F636660}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -156,6 +162,7 @@ Global
 		{47BAC7E5-2197-4EC2-8671-A654D210DC70} = {E899F094-1A78-4652-862C-9FF6356AC738}
 		{0957AC74-8650-444C-AEF7-3C579578BBD1} = {E899F094-1A78-4652-862C-9FF6356AC738}
 		{F98174E6-7402-42CF-997E-C3DD77E17AAB} = {A7D90DEE-38B0-449C-93B5-32D7B845D990}
+		{BFC416AD-C6F9-4C55-8315-90304F636660} = {E899F094-1A78-4652-862C-9FF6356AC738}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {07944E4B-042C-4338-8E28-99FB373F52AA}

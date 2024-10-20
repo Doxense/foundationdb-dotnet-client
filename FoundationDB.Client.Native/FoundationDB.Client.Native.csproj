@@ -1,47 +1,54 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+	<PropertyGroup>
+		<OutputType>Library</OutputType>
+		<TargetFrameworks>$(CoreSdkRuntimeVersions)</TargetFrameworks>
+		<AssemblyName>FoundationDB.Client.Native</AssemblyName>
+		<LangVersion>preview</LangVersion>
+		<Nullable>enable</Nullable>
+		<SignAssembly>true</SignAssembly>
+		<SignAssembly>true</SignAssembly>
+		<AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
+		<Deterministic>true</Deterministic>
+		<ProduceReferenceAssembly>true</ProduceReferenceAssembly>
+		<IsAotCompatible Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">true</IsAotCompatible>
+		<!-- Define the platforms that we support -->
+		<RuntimeIdentifiers>win-x64;linux-x64;linux-arm64</RuntimeIdentifiers>		
+	</PropertyGroup>
+	
 	<Import Project="..\Common\VersionInfo.props" />
 
 	<PropertyGroup>
-		<AssemblyTitle>Native client libraries for FoundationDB</AssemblyTitle>
-		<Description>Includes the FoundationDB Native Client (fdb_c.dll, libfdbc.so, ...) for different runtimes.</Description>
-		<!-- we override the version here, because it must match the verison of the native dlls, NOT the .NET binding itself! -->
+		<!-- Override the version here, because it must match the verison of the native dlls, NOT the .NET binding itself! -->
 		<VersionPrefix>7.3.52</VersionPrefix>
 		<VersionSuffix></VersionSuffix>
+		<AssemblyTitle>Native Client Libraries for FoundationDB</AssemblyTitle>
+		<Description>Includes the FoundationDB Native Client (fdb_c.dll, libfdbc.so, ...) for different runtimes.</Description>
 	</PropertyGroup>
 
-	<PropertyGroup>
-		<!-- These targets will be in the NuGet package -->
-		<TargetFrameworks>$(CoreSdkRuntimeVersions)</TargetFrameworks>
-		<!-- This must be present even though it's value is ignored; otherwise, "dotnet pack" will fail with NU5017 -->
-		<TargetFramework>net6.0</TargetFramework>
-		<!-- This must be set to false; otherwise, "dotnet pack" will fail with NU5017 -->
-		<IncludeSymbols>false</IncludeSymbols>
-		<!-- Gets rid of a warning when packing a project with no managed assembly -->
-		<NoWarn>NU5128</NoWarn>
-	</PropertyGroup>
+	<ItemGroup Condition="'$(_IsPacking)' == 'true'">
+		<PackageReference Include="FoundationDB.Client" VersionOverride="[7.3.*-*, 8.0.0.0)" />
+	</ItemGroup>
 
-	<!--Allows packing without passing the 'no-build' parameter to "dotnet pack" (which overrides both of these properties) -->
-	<PropertyGroup Condition="'$(_IsPacking)' == 'true'">
-		<NoBuild>true</NoBuild>
-		<IncludeBuildOutput>false</IncludeBuildOutput>
-	</PropertyGroup>
+	<ItemGroup Condition="'$(_IsPacking)' != 'true'">
+	  <ProjectReference Include="..\FoundationDB.Client\FoundationDB.Client.csproj" />
+	</ItemGroup>
 
 	<!-- Include all the native libraries and tools -->
 	<ItemGroup>
 
 		<!-- Windows x64 -->
-		<None Update="native\runtimes\win-x64\fdb_c.dll" Pack="true" PackagePath="runtimes/win-x64/native/" />
-		<None Update="native\runtimes\win-x64\fdbcli.exe" Pack="true" PackagePath="runtimes/win-x64/native/" />
+		<None Include="runtimes\win-x64\native\fdb_c.dll" Pack="true" PackagePath="runtimes/win-x64/native/" />
+		<None Include="runtimes\win-x64\native\fdbcli.exe" Pack="true" PackagePath="runtimes/win-x64/native/" />
 
 		<!-- Linux x64 -->
-		<None Update="native\runtimes\linux-x64\libfdb_c.so" Pack="true" PackagePath="runtimes/linux-x64/native/" />
-		<None Update="native\runtimes\linux-x64\fdbcli" Pack="true" PackagePath="runtimes/linux-x64/native/" />
+		<None Include="runtimes\linux-x64\native\libfdb_c.so" Pack="true" PackagePath="runtimes/linux-x64/native/" />
+		<None Include="runtimes\linux-x64\native\fdbcli" Pack="true" PackagePath="runtimes/linux-x64/native/" />
 
 		<!-- Linux arm64 -->
-		<None Update="native\runtimes\linux-arm64\libfdb_c.so" Pack="true" PackagePath="runtimes/linux-arm64/native/" />
-		<None Update="native\runtimes\linux-arm64\fdbcli" Pack="true" PackagePath="runtimes/linux-arm64/native/" />
+		<None Include="runtimes\linux-arm64\native\libfdb_c.so" Pack="true" PackagePath="runtimes/linux-arm64/native/" />
+		<None Include="runtimes\linux-arm64\native\fdbcli" Pack="true" PackagePath="runtimes/linux-arm64/native/" />
 
 	</ItemGroup>
-	
+
 </Project>
