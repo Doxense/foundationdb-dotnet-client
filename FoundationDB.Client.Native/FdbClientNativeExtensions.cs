@@ -49,7 +49,7 @@ namespace FoundationDB.Client
 		/// </list></para>
 		/// <para>The loader will <b>NOT</b> probe any other locations, like the default system folders (<c>System32</c>, ...) or any location defined in the <c>PATH</c> environment variable.</para>
 		/// </remarks>
-		public static FdbDatabaseProviderOptions UseNativeClient(this FdbDatabaseProviderOptions options)
+		public static FdbDatabaseProviderOptions UseNativeClient(this FdbDatabaseProviderOptions options, bool allowSystemFallback = false)
 		{
 			// find out the platform we are running on ("win-x64", "linux-x64", ...)
 			var (rid, fileName) = GetRuntimeIdentifierForCurrentPlatform();
@@ -73,7 +73,13 @@ namespace FoundationDB.Client
 				if (!File.Exists(nativeLibraryPath))
 				{
 					// we could not find the correct library!
-					throw new FileNotFoundException($"Could not find native FoundationDB Client Library '{fileName}' for platform '{rid}' under either '{runtimesNativePath}' nor the base directory '{AppContext.BaseDirectory}'");
+					if (!allowSystemFallback)
+					{
+						throw new FileNotFoundException($"Could not find native FoundationDB Client Library '{fileName}' for platform '{rid}' under either '{runtimesNativePath}' nor the base directory '{AppContext.BaseDirectory}'");
+					}
+
+					options.NativeLibraryPath = "";
+					return options;
 				}
 			}
 

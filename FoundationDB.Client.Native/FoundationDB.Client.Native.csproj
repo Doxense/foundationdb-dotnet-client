@@ -42,6 +42,9 @@
 	<!-- Include all the native libraries and tools -->
 	<ItemGroup>
 
+		<!-- Include the .targets file in the package -->
+		<None Include="UseNativeLibraries.targets" Pack="true" PackagePath="build/" />
+
 		<!-- Windows x64 -->
 		<None Include="runtimes\win-x64\native\fdb_c.dll" Pack="true" PackagePath="runtimes/win-x64/native/" />
 		<None Include="runtimes\win-x64\native\fdbcli.exe" Pack="true" PackagePath="runtimes/win-x64/native/" />

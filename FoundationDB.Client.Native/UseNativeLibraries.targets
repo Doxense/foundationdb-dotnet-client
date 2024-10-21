@@ -1,0 +1,70 @@
+<!--
+***********************************************************************************************
+FoundationDB.Client.Native.targets
+
+WARNING:  DO NOT MODIFY this file unless you are knowledgeable about MSBuild and have
+          created a backup copy.  Incorrect changes to this file will make it
+          impossible to load or build your projects from the command-line or the IDE.
+
+This target is used to copy the native libraries to the project output folder to facilitate local development
+when referencing the FoundationDB repository by source, instead of a NuGet package.
+
+To include this in your project, simply add the following at the end of your project file:
+
+	<ItemGroup>
+		<ProjectReference Include="..\Path\To\FoundationDB.Client\\FoundationDB.Client.csproj" />
+		<ProjectReference Include="..\Path\To\FoundationDB.Client.Native\\FoundationDB.Client.Native.csproj" />
+	</ItemGroup>
+
+	<Import Project="..\Path\To\FoundationDB.Native.Client\\UseNativeLibraries.targets" />
+
+The imported tagets will automatically copy the native libraries to your project's output folder.
+
+To enable the loader to find the libraries at runtime, find the section of your application
+startup logic that calls AddFoundationDB(...) and add a call to UseNativeClient() like so:
+		
+	builder.AddFoundationDb(730, options =>
+	{
+		// other options...
+				
+		// instruct the loader to use the native libraries that were distributed with
+		// the 'FoundationDB.Native.Client' package.
+		options.UseNativeClient();
+	});
+		
+By default, this will probe the for the native libraries, and fail if they are not found,
+which could happen if the application is running on a non-supported platform, or if the
+files where not properly bundled with the application.
+			
+Specifying "UseNativeClient(allowSystemFallback: true)" will allow the loader to fall back
+to the operating system mechanism for finding the native libraries, if you intend to deploy
+them separately from your .NET application.
+
+Copyright (c) 2023-2024 SnowBank SAS
+***********************************************************************************************
+-->
+
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+	<Target Name="CopyNativeLibraries" AfterTargets="Build">
+		
+		<!-- Get the list of native files to copy (explucing README.md) -->
+		<ItemGroup>
+			<NativeLibraries
+				Include="$(MSBuildThisFileDirectory)runtimes\**\*.*"
+				Exclude="$(MSBuildThisFileDirectory)runtimes\**\*.md"
+			/>
+		</ItemGroup>
+		
+		<Message Text="Copying FDB Client native libraries..." />
+		
+		<!-- Copy to the output directory, only if changed -->
+		<Copy
+			SourceFiles="@(NativeLibraries)"
+			DestinationFolder="$(OutDir)runtimes\%(RecursiveDir)"
+			SkipUnchangedFiles="true"
+		/>
+
+	</Target>
+	
+</Project>
