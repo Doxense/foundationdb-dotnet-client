@@ -56,6 +56,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FoundationDB.Aspire.Hosting
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GitHub Actions", "GitHub Actions", "{F98174E6-7402-42CF-997E-C3DD77E17AAB}"
 	ProjectSection(SolutionItems) = preProject
+		.github\workflows\build_native.yml = .github\workflows\build_native.yml
 		.github\workflows\dotnetcore.yml = .github\workflows\dotnetcore.yml
 	EndProjectSection
 EndProject

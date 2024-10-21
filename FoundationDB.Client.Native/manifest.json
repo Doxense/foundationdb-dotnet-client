@@ -1,0 +1,47 @@
+{
+	"latest": "7.3.52",
+	"versions": {
+		"7.3.52": {
+			"uri": "https://github.com/Doxense/foundationdb-windows-build/releases/tag/7.3.52",
+			"files": [
+				{
+					"name": "fdb_c.dll",
+					"rid": "win-x64",
+					"url": "https://github.com/Doxense/foundationdb-windows-build/releases/download/7.3.52/fdb_c.dll",
+					"checksum": "FB9834FC96FD73785C7F2631ACED4C9732A16ADC677C4784CD94AE935E3D4E8F"
+				},
+				{
+					"name": "fdbcli.exe",
+					"rid": "win-x64",
+					"url": "https://github.com/Doxense/foundationdb-windows-build/releases/download/7.3.52/fdbcli.exe",
+					"checksum": "2E411176257E6BA1BAD62A29A0484BDD7513EAE9DE97E96FF7165BF684F51899"
+				},
+				{
+					"name": "libfdb_c.so",
+					"rid": "linux-x64",
+					"url": "https://github.com/apple/foundationdb/releases/download/7.3.52/libfdb_c.x86_64.so",
+					"checksum": "64c92a25f3fce7b5b53d64978542c6ae8bc24c4847dcaa101e2b719bb2065622"
+				},
+				{
+					"name": "fdbcli",
+					"rid": "linux-x64",
+					"url": "https://github.com/apple/foundationdb/releases/download/7.3.52/fdbcli.x86_64",
+					"checksum": "cec526b9d9f87f5b012267ea2cd9e9f26387e0fccb623d719ec58d4b31000a74"
+				},
+				{
+					"name": "libfdb_c.so",
+					"rid": "linux-arm64",
+					"url": "https://github.com/apple/foundationdb/releases/download/7.3.52/libfdb_c.aarch64.so",
+					"checksum": "544464a6dec096e9c58380a96b4982ab2155885238914c1bbc16386c9b532b2c"
+				},
+				{
+					"name": "fdbcli",
+					"rid": "linux-arm64",
+					"url": "https://github.com/apple/foundationdb/releases/download/7.3.52/fdbcli.aarch64",
+					"fileName": "fdbcli",
+					"checksum": "95d61031fd7311bdee96e0ccfeaf894451a70acd63c052ec7c179008be0ef238"
+				}
+			]
+		}
+	}
+}
