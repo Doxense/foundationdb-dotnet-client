@@ -59,11 +59,11 @@ To include this package in your project, simply add the following at the end of 
 
 ```msbuild_build_script
 <ItemGroup>
-	<ProjectReference Include="..\Path\To\FoundationDB.Client\\FoundationDB.Client.csproj" />
-	<ProjectReference Include="..\Path\To\FoundationDB.Client.Native\\FoundationDB.Client.Native.csproj" />
+	<ProjectReference Include="..\Path\To\FoundationDB.Client\FoundationDB.Client.csproj" />
+	<ProjectReference Include="..\Path\To\FoundationDB.Client.Native\FoundationDB.Client.Native.csproj" />
 </ItemGroup>
 
-<Import Project="..\Path\To\FoundationDB.Native.Client\\UseNativeLibraries.targets" />
+<Import Project="..\Path\To\FoundationDB.Native.Client\UseNativeLibraries.targets" />
 ```
 
 The imported target will automatically copy the native libraries to your project's output folder.
@@ -117,27 +117,23 @@ them separately from your .NET application.
 
 # Publishing / Packing
 
-The package supports both Framework-Dependent/Self-Contained mode, and Portable/Platform specific.
+The package supports both Framework-Dependent/Self-Contained mode, and Portable/Platform-specific.
 
 When publishing to a specific runtime, for example `linux-x64` or `win-x64`,
-the `libfdb_c.so` or `fdb_cdll_` library will copied to the same folder as your executable.
+the `libfdb_c.so` or `fdb_c.dll` files will copied to the same folder as your executable.
 
-When publishing to for a portable that could run on any platform, all files for all supported
-platforms will be copied into the `runtimes/{rid}/native` sub-folders.
+When publishing as portable that could run on any platform, all files for all supported
+platforms will be copied to the relevant `runtimes/{rid}/native` sub-folders.
 
-If your are building a Docker image, you should target `linux-x64` or `linux-arm64`, in order to
-only include the library for this specific platform.
+If you are building a Docker image, you should target `linux-x64` or `linux-arm64`, in order to only include the library for this specific platform, and reduce the overall size of your image.
 
 # Alternatives
 
-Another solution, is to redistribute the native libraries via a separate mechanism.
+Another solution is to redistribute the native libraries via a separate mechanism.
 
 For local dev, install the fdb client libraries manually.
 
-When publishing to Docker, you can use the existing `foundationdb/foundationdb` Docker images,
-in order to copy the `libfdb_c.so` files into your own image:
-
-Make sure to copy a version that is compatible with the live FoundationDB cluster.
+When publishing to Docker, you can use the official `foundationdb/foundationdb` Docker images, in order to copy the `libfdb_c.so` files into your own image:
 
 Example of a `Dockerfile` that will grab v7.3.x binaries and inject them into you application container:
 
@@ -159,3 +155,5 @@ COPY . /App
 
 ENTRYPOINT ["dotnet", "MyWebApp.dll"]
 ```
+
+Make sure to reference a version that is compatible with your target FoundationDB cluster.
