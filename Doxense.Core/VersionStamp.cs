@@ -315,13 +315,6 @@ namespace System
 			return true;
 		}
 
-		public void WriteTo(MutableSlice buffer)
-		{
-			int len = GetLength(); // 10 or 12
-			if (buffer.Count < len) throw new ArgumentException($"The target buffer must be at least {len} bytes long.");
-			WriteUnsafe(buffer.Substring(0, len).Span, in this);
-		}
-
 		public void WriteTo(ref SliceWriter writer)
 		{
 			WriteUnsafe(writer.AllocateSpan(GetLength()), in this);

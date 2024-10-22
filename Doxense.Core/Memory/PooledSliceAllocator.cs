@@ -28,6 +28,7 @@
 
 namespace Doxense.Memory
 {
+	using System;
 	using System.Buffers;
 
 	/// <summary>Allocator that stores all data into slabs allocated from a pool (or the heap for large allocations)</summary>
@@ -147,24 +148,24 @@ namespace Doxense.Memory
 			m_slabWritten = 0;
 		}
 
-		/// <summary>Returns a <see cref="MutableSlice" /> to write to that is exactly the requested size (specified by <paramref name="size" />) and advance the cursor.</summary>
+		/// <summary>Returns a <see cref="ArraySegment{T}" /> to write to that is exactly the requested size (specified by <paramref name="size" />) and advance the cursor.</summary>
 		/// <param name="size">The exact length of the returned <see cref="Slice" />. If 0, a non-empty buffer is returned.</param>
 		/// <exception cref="T:System.OutOfMemoryException">The requested buffer size is not available.</exception>
-		/// <returns>A <see cref="MutableSlice" /> of at exactly the <paramref name="size" /> requested..</returns>
-		public MutableSlice Allocate(int size)
+		/// <returns>A <see cref="ArraySegment{T}" /> of at exactly the <paramref name="size" /> requested..</returns>
+		public ArraySegment<byte> Allocate(int size)
 		{
 			Contract.GreaterOrEqual(size, 0);
 
 			var (buffer, owned) = CheckAndResizeBuffer(size);
 			if (!owned)
 			{
-				return new MutableSlice(buffer, 0, size);
+				return new(buffer, 0, size);
 			}
 
 			var index = m_index;
 			Contract.Debug.Assert(buffer.Length > index && buffer.Length >= index + size);
 			m_index += size;
-			return new MutableSlice(buffer, index, size);
+			return new(buffer, index, size);
 		}
 
 		private (byte[] Buffer, bool Owned) CheckAndResizeBuffer(int sizeHint)

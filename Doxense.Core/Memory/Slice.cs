@@ -48,7 +48,11 @@ namespace System
 #if NET8_0_OR_GREATER
 	[CollectionBuilder(typeof(Slice), nameof(Slice.Copy))]
 #endif
-	public readonly partial struct Slice : IEquatable<Slice>, IEquatable<ArraySegment<byte>>, IEquatable<byte[]>, IEquatable<MutableSlice>, IComparable<Slice>, IFormattable, ISliceSerializable, ISpanFormattable
+	public readonly partial struct Slice : IEquatable<Slice>, IEquatable<ArraySegment<byte>>, IEquatable<byte[]>, IComparable<Slice>, IFormattable, ISliceSerializable, ISpanFormattable
+#if NET9_0_OR_GREATER
+		, IEquatable<ReadOnlySpan<byte>>
+		, IEquatable<Span<byte>>
+#endif
 	{
 		#region Static Members...
 
@@ -515,18 +519,6 @@ namespace System
 			if (buffer.Length == 0) return buffer;
 			this.Span.CopyTo(buffer);
 			return buffer.Slice(this.Count);
-		}
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void CopyTo(MutableSlice destination)
-		{
-			this.Span.CopyTo(destination.Span);
-		}
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool TryCopyTo(MutableSlice destination)
-		{
-			return this.Span.TryCopyTo(destination.Span);
 		}
 
 		/// <summary>Copy this slice into another buffer</summary>
@@ -1542,7 +1534,7 @@ namespace System
 		/// <summary>Concatenates all the elements of a slice array, using the specified separator between each element.</summary>
 		/// <param name="separator">The slice to use as a separator. Can be empty.</param>
 		/// <param name="values">An array that contains the elements to concatenate.</param>
-		/// <returns>A slice that consists of the elements in a value delimited by the <paramref name="separator"/> slice. If <paramref name="values"/> is an empty array, the method returns <see cref="MutableSlice.Empty"/>.</returns>
+		/// <returns>A slice that consists of the elements in a value delimited by the <paramref name="separator"/> slice. If <paramref name="values"/> is an empty array, the method returns <see cref="Slice.Empty"/>.</returns>
 		/// <exception cref="ArgumentNullException">If <paramref name="values"/> is null.</exception>
 		public static Slice Join(Slice separator, Slice[] values)
 		{
@@ -1560,7 +1552,7 @@ namespace System
 		/// <summary>Concatenates all the elements of a slice array, using the specified separator between each element.</summary>
 		/// <param name="separator">The slice to use as a separator. Can be empty.</param>
 		/// <param name="values">An array that contains the elements to concatenate.</param>
-		/// <returns>A slice that consists of the elements in a value delimited by the <paramref name="separator"/> slice. If <paramref name="values"/> is an empty array, the method returns <see cref="MutableSlice.Empty"/>.</returns>
+		/// <returns>A slice that consists of the elements in a value delimited by the <paramref name="separator"/> slice. If <paramref name="values"/> is an empty array, the method returns <see cref="Slice.Empty"/>.</returns>
 		/// <exception cref="ArgumentNullException">If <paramref name="values"/> is null.</exception>
 		public static Slice Join(Slice separator, ReadOnlySpan<Slice> values)
 		{
@@ -1594,7 +1586,7 @@ namespace System
 		/// <param name="values">An array that contains the elements to concatenate.</param>
 		/// <param name="startIndex">The first element in <paramref name="values"/> to use.</param>
 		/// <param name="count">The number of elements of <paramref name="values"/> to use.</param>
-		/// <returns>A slice that consists of the slices in <paramref name="values"/> delimited by the <paramref name="separator"/> slice. -or- <see cref="Empty"/> if <paramref name="count"/> is zero, <paramref name="values"/> has no elements, or <paramref name="separator"/> and all the elements of <paramref name="values"/> are <see cref="MutableSlice.Empty"/>.</returns>
+		/// <returns>A slice that consists of the slices in <paramref name="values"/> delimited by the <paramref name="separator"/> slice. -or- <see cref="Empty"/> if <paramref name="count"/> is zero, <paramref name="values"/> has no elements, or <paramref name="separator"/> and all the elements of <paramref name="values"/> are <see cref="Slice.Empty"/>.</returns>
 		/// <exception cref="ArgumentNullException">If <paramref name="values"/> is null.</exception>
 		/// <exception cref="ArgumentOutOfRangeException">If <paramref name="startIndex"/> or <paramref name="count"/> is less than zero. -or- <paramref name="startIndex"/> plus <paramref name="count"/> is greater than the number of elements in <paramref name="values"/>.</exception>
 		public static Slice Join(Slice separator, Slice[] values, int startIndex, int count)
@@ -1633,7 +1625,7 @@ namespace System
 		/// <summary>Concatenates the specified elements of a slice sequence, using the specified separator between each element.</summary>
 		/// <param name="separator">The slice to use as a separator. Can be empty.</param>
 		/// <param name="values">A sequence will return the elements to concatenate.</param>
-		/// <returns>A slice that consists of the slices in <paramref name="values"/> delimited by the <paramref name="separator"/> slice. -or- <see cref="Slice.Empty"/> if <paramref name="values"/> has no elements, or <paramref name="separator"/> and all the elements of <paramref name="values"/> are <see cref="MutableSlice.Empty"/>.</returns>
+		/// <returns>A slice that consists of the slices in <paramref name="values"/> delimited by the <paramref name="separator"/> slice. -or- <see cref="Slice.Empty"/> if <paramref name="values"/> has no elements, or <paramref name="separator"/> and all the elements of <paramref name="values"/> are <see cref="Slice.Empty"/>.</returns>
 		/// <exception cref="ArgumentNullException">If <paramref name="values"/> is null.</exception>
 		public static Slice Join(Slice separator, IEnumerable<Slice> values)
 		{
@@ -1647,7 +1639,7 @@ namespace System
 		/// <param name="values">An array that contains the elements to concatenate.</param>
 		/// <param name="startIndex">The first element in <paramref name="values"/> to use.</param>
 		/// <param name="count">The number of elements of <paramref name="values"/> to use.</param>
-		/// <returns>A byte array that consists of the slices in <paramref name="values"/> delimited by the <paramref name="separator"/> slice. -or- an empty array if <paramref name="count"/> is zero, <paramref name="values"/> has no elements, or <paramref name="separator"/> and all the elements of <paramref name="values"/> are <see cref="MutableSlice.Empty"/>.</returns>
+		/// <returns>A byte array that consists of the slices in <paramref name="values"/> delimited by the <paramref name="separator"/> slice. -or- an empty array if <paramref name="count"/> is zero, <paramref name="values"/> has no elements, or <paramref name="separator"/> and all the elements of <paramref name="values"/> are <see cref="Slice.Empty"/>.</returns>
 		/// <exception cref="ArgumentNullException">If <paramref name="values"/> is null.</exception>
 		/// <exception cref="ArgumentOutOfRangeException">If <paramref name="startIndex"/> or <paramref name="count"/> is less than zero. -or- <paramref name="startIndex"/> plus <paramref name="count"/> is greater than the number of elements in <paramref name="values"/>.</exception>
 		public static byte[] JoinBytes(Slice separator, Slice[] values, int startIndex, int count)
@@ -1686,7 +1678,7 @@ namespace System
 		/// <summary>Concatenates the specified elements of a slice sequence, using the specified separator between each element.</summary>
 		/// <param name="separator">The slice to use as a separator. Can be empty.</param>
 		/// <param name="values">A sequence will return the elements to concatenate.</param>
-		/// <returns>A byte array that consists of the slices in <paramref name="values"/> delimited by the <paramref name="separator"/> slice. -or- an empty array if <paramref name="values"/> has no elements, or <paramref name="separator"/> and all the elements of <paramref name="values"/> are <see cref="MutableSlice.Empty"/>.</returns>
+		/// <returns>A byte array that consists of the slices in <paramref name="values"/> delimited by the <paramref name="separator"/> slice. -or- an empty array if <paramref name="values"/> has no elements, or <paramref name="separator"/> and all the elements of <paramref name="values"/> are <see cref="Slice.Empty"/>.</returns>
 		/// <exception cref="ArgumentNullException">If <paramref name="values"/> is null.</exception>
 		public static byte[] JoinBytes(Slice separator, IEnumerable<Slice> values)
 		{
@@ -2626,7 +2618,6 @@ namespace System
 		{
 			null => this.IsNull,
 			Slice slice => Equals(slice),
-			MutableSlice slice => Equals(slice),
 			ArraySegment<byte> segment => Equals(segment),
 			byte[] bytes => Equals(bytes),
 			_ => false
@@ -2657,27 +2648,23 @@ namespace System
 			return !other.IsNull && this.Count == other.Count && this.Span.SequenceEqual(other.Span);
 		}
 
-		/// <summary>Checks if another slice is equal to the current slice.</summary>
-		/// <param name="other">Slice compared with the current instance</param>
-		/// <returns>true if both slices have the same size and contain the same sequence of bytes; otherwise, false.</returns>
-		public bool Equals(MutableSlice other)
+		/// <summary>Checks if the content of a span is equal to the current slice.</summary>
+		/// <param name="other">Span of memory compared with the current instance</param>
+		/// <returns>true if both locations have the same size and contain the same sequence of bytes; otherwise, false.</returns>
+		[Pure]
+		public bool Equals(ReadOnlySpan<byte> other)
 		{
-			other.EnsureSliceIsValid();
 			this.EnsureSliceIsValid();
 
-			if (this.IsNull)
-			{
-				return other.IsNull;
-			}
-
-			return !other.IsNull && this.Count == other.Count && this.Span.SequenceEqual(other.Span);
+			// note: Nil and Empty are both equal to empty span
+			return this.Count == other.Length && this.Span.SequenceEqual(other);
 		}
 
 		/// <summary>Checks if the content of a span is equal to the current slice.</summary>
 		/// <param name="other">Span of memory compared with the current instance</param>
 		/// <returns>true if both locations have the same size and contain the same sequence of bytes; otherwise, false.</returns>
 		[Pure]
-		public bool Equals(ReadOnlySpan<byte> other)
+		public bool Equals(Span<byte> other)
 		{
 			this.EnsureSliceIsValid();
 
@@ -2746,7 +2733,7 @@ namespace System
 			if (count != 0)
 			{
 				byte[]? array = this.Array;
-				if (array is null || (uint) this.Offset + (uint) count > (uint) array.Length)
+				if (array is null || (ulong) (uint) this.Offset + (ulong) (uint) count > (ulong) (uint) array.Length)
 				{
 					throw MalformedSlice(this);
 				}
@@ -2769,7 +2756,7 @@ namespace System
 			if (slice.Count > 0)
 			{
 				if (slice.IsNull) return UnsafeHelpers.Errors.SliceBufferNotNull();
-				if ((uint) slice.Offset + (uint) slice.Count > (uint) slice.Array.Length) return UnsafeHelpers.Errors.SliceBufferTooSmall();
+				if ((ulong) (uint) slice.Offset + (ulong) (uint) slice.Count > (ulong) (uint) slice.Array.Length) return UnsafeHelpers.Errors.SliceBufferTooSmall();
 			}
 			// maybe it's Lupus ?
 			return UnsafeHelpers.Errors.SliceInvalid();
@@ -3145,6 +3132,14 @@ namespace System
 			// ReSharper disable once AssignNullToNotNullAttribute
 			return self.Count != 0 ? new Slice(self.Array!, self.Offset, self.Count) : EmptyOrNil(self.Array, self.Count);
 		}
+
+		/// <summary>Returns a slice that is the wraps the same memory region as this <see cref="ArraySegment{T}"/></summary>
+		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice AsSlice(this ArraySegment<byte> self, int offset) => AsSlice(self).Substring(offset);
+
+		/// <summary>Returns a slice that is the wraps the same memory region as this <see cref="ArraySegment{T}"/></summary>
+		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice AsSlice(this ArraySegment<byte> self, int offset, int count) => AsSlice(self).Substring(offset, count);
 
 		/// <summary>Copies the content of this span into a new Slice</summary>
 		/// <param name="span">Span to copy</param>

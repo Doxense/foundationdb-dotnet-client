@@ -123,13 +123,13 @@ namespace Doxense.Memory
 		/// <exception cref="T:System.OutOfMemoryException">The requested buffer size is not available.</exception>
 		/// <returns>A <see cref="MutableSlice" /> of at least the size <paramref name="sizeHint" />. If <paramref name="sizeHint" /> is 0, returns a non-empty buffer.</returns>
 		/// <remarks>If the requested size exceeds the <see cref="FreeCapacity"/>, the internal buffer will be resized</remarks>
-		public MutableSlice GetSlice(int sizeHint = 0)
+		public ArraySegment<byte> GetSlice(int sizeHint = 0)
 		{
 			Contract.Positive(sizeHint);
 			var buffer = CheckAndResizeBuffer(sizeHint);
 			var index = m_index;
 			Contract.Debug.Assert(buffer.Length > index);
-			return new MutableSlice(buffer, index, buffer.Length - index);
+			return new(buffer, index, buffer.Length - index);
 		}
 
 		/// <summary>

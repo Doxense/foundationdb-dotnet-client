@@ -700,19 +700,6 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Writes a binary string</summary>
-		public static void WriteBytes(ref TupleWriter writer, MutableSlice value)
-		{
-			if (value.IsNull)
-			{
-				WriteNil(ref writer);
-			}
-			else
-			{
-				WriteNulEscapedBytes(ref writer, TupleTypes.Bytes, value.Span);
-			}
-		}
-
-		/// <summary>Writes a binary string</summary>
 		public static void WriteBytes(ref TupleWriter writer, ReadOnlySpan<byte> value)
 		{
 			WriteNulEscapedBytes(ref writer, TupleTypes.Bytes, value);

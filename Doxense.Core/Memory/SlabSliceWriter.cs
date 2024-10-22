@@ -32,7 +32,7 @@ namespace Doxense.Memory
 	/// <remarks>This buffer will allocate new slabs of memory as needed, and keep them alive until it is disposed or cleared.</remarks>
 	/// <remarks>Slice allocated from this writer CAN still be used after this instance has been disposed or cleared.</remarks>
 	/// <remarks>If you require all data to be consecutive in memory, use <see cref="ArraySliceWriter"/> instead.</remarks>
-	/// <remarks>If all data allocated from this writer is guarenteed to not be used outside of its lifetime, consider using <see cref="PooledSliceAllocator"/> for performance reasons.</remarks>
+	/// <remarks>If all data allocated from this writer is guaranteed to not be used outside its lifetime, consider using <see cref="PooledSliceAllocator"/> for performance reasons.</remarks>
 	[PublicAPI]
 	public sealed class SlabSliceWriter : IBufferWriter<byte>, ISliceBufferWriter
 	{
@@ -138,43 +138,43 @@ namespace Doxense.Memory
 			m_index += count;
 		}
 
-		/// <summary>Returns a <see cref="MutableSlice" /> to write to that is at least the requested size (specified by <paramref name="sizeHint" />).</summary>
+		/// <summary>Returns a <see cref="ArraySegment{T}" /> to write to that is at least the requested size (specified by <paramref name="sizeHint" />).</summary>
 		/// <param name="sizeHint">The minimum length of the returned <see cref="Slice" />. If 0, a non-empty buffer is returned.</param>
 		/// <exception cref="T:System.OutOfMemoryException">The requested buffer size is not available.</exception>
-		/// <returns>A <see cref="MutableSlice" /> of at least the size <paramref name="sizeHint" />. If <paramref name="sizeHint" /> is 0, returns a non-empty buffer.</returns>
-		public MutableSlice GetSlice(int sizeHint = 0)
+		/// <returns>A <see cref="ArraySegment{T}" /> of at least the size <paramref name="sizeHint" />. If <paramref name="sizeHint" /> is 0, returns a non-empty buffer.</returns>
+		public ArraySegment<byte> GetSlice(int sizeHint = 0)
 		{
 			Contract.Positive(sizeHint);
 			var (buffer, owned) = CheckAndResizeBuffer(sizeHint, canSpill: false);
 
 			if (!owned)
 			{
-				return new MutableSlice(buffer, 0, buffer.Length);
+				return new(buffer, 0, buffer.Length);
 			}
 
 			var index = m_index;
 			Contract.Debug.Assert(buffer.Length > index);
-			return new MutableSlice(buffer, index, buffer.Length - index);
+			return new(buffer, index, buffer.Length - index);
 		}
 
-		/// <summary>Returns a <see cref="MutableSlice" /> to write to that is exactly the requested size (specified by <paramref name="size" />) and advance the cursor.</summary>
+		/// <summary>Returns a <see cref="ArraySegment{T}" /> to write to that is exactly the requested size (specified by <paramref name="size" />) and advance the cursor.</summary>
 		/// <param name="size">The exact length of the returned <see cref="Slice" />. If 0, a non-empty buffer is returned.</param>
 		/// <exception cref="T:System.OutOfMemoryException">The requested buffer size is not available.</exception>
-		/// <returns>A <see cref="MutableSlice" /> of at exactly the <paramref name="size" /> requested..</returns>
-		public MutableSlice Allocate(int size)
+		/// <returns>A <see cref="ArraySegment{T}" /> of at exactly the <paramref name="size" /> requested..</returns>
+		public ArraySegment<byte> Allocate(int size)
 		{
 			Contract.GreaterOrEqual(size, 0);
 
 			var (buffer, owned) = CheckAndResizeBuffer(size, canSpill: true);
 			if (!owned)
 			{
-				return new MutableSlice(buffer, 0, size);
+				return new ArraySegment<byte>(buffer, 0, size);
 			}
 
 			var index = m_index;
 			Contract.Debug.Assert(buffer.Length > index && buffer.Length >= index + size);
 			m_index += size;
-			return new MutableSlice(buffer, index, size);
+			return new(buffer, index, size);
 		}
 
 		/// <summary>
@@ -195,7 +195,7 @@ namespace Doxense.Memory
 		/// </remarks>
 		public Memory<byte> GetMemory(int sizeHint = 0)
 		{
-			return GetSlice(sizeHint).Memory;
+			return GetSlice(sizeHint).AsMemory();
 		}
 
 		/// <summary>
@@ -216,7 +216,7 @@ namespace Doxense.Memory
 		/// </remarks>
 		public Span<byte> GetSpan(int sizeHint = 0)
 		{
-			return GetSlice(sizeHint).Span;
+			return GetSlice(sizeHint).AsSpan();
 		}
 
 		private (byte[] Buffer, bool Owned) CheckAndResizeBuffer(int sizeHint, bool canSpill)
@@ -250,7 +250,7 @@ namespace Doxense.Memory
 			}
 
 			// try allocating larger slabs, until we reach the max spill size.
-			// by default we will double the size until we either reach the max slab size, or enough to satisfy the request
+			// by default, we will double the size until we either reach the max slab size, or enough to satisfy the request
 			long newSize = Math.Min(current.Length, 2048);
 			do { newSize *= 2; } while (newSize < sizeHint);
 

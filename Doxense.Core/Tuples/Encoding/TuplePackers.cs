@@ -241,7 +241,6 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (typeof(T) == typeof(Uuid64)) { TupleParser.WriteUuid64(ref writer, (Uuid64) (object) value!); return; }
 			if (typeof(T) == typeof(VersionStamp)) { TupleParser.WriteVersionStamp(ref writer, (VersionStamp) (object) value!); return; }
 			if (typeof(T) == typeof(Slice)) { TupleParser.WriteBytes(ref writer, (Slice) (object) value!); return; }
-			if (typeof(T) == typeof(MutableSlice)) { TupleParser.WriteBytes(ref writer, (MutableSlice) (object) value!); return; }
 			if (typeof(T) == typeof(ArraySegment<byte>)) { TupleParser.WriteBytes(ref writer, (ArraySegment<byte>) (object) value!); return; }
 
 			if (typeof(T) == typeof(bool?)) { TupleParser.WriteBool(ref writer, (bool?) (object) value!); return; }
@@ -403,7 +402,6 @@ namespace Doxense.Collections.Tuples.Encoding
 				[typeof(decimal)] = (ref TupleWriter writer, object? value) => TupleParser.WriteDecimal(ref writer, (decimal) value!),
 				[typeof(decimal?)] = (ref TupleWriter writer, object? value) => TupleParser.WriteDecimal(ref writer, (decimal?) value),
 				[typeof(Slice)] = (ref TupleWriter writer, object? value) => TupleParser.WriteBytes(ref writer, (Slice) value!),
-				[typeof(MutableSlice)] = (ref TupleWriter writer, object? value) => TupleParser.WriteBytes(ref writer, (MutableSlice) value!),
 				[typeof(byte[])] = (ref TupleWriter writer, object? value) => TupleParser.WriteBytes(ref writer, (byte[]?) value),
 				[typeof(Guid)] = (ref TupleWriter writer, object? value) => TupleParser.WriteGuid(ref writer, (Guid) value!),
 				[typeof(Guid?)] = (ref TupleWriter writer, object? value) => TupleParser.WriteGuid(ref writer, (Guid?) value),
@@ -450,10 +448,6 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <summary>Writes a slice as a byte[] array</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(ref TupleWriter writer, Slice value) => TupleParser.WriteBytes(ref writer, value);
-
-		/// <summary>Writes a slice as a byte[] array</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, MutableSlice value) => TupleParser.WriteBytes(ref writer, value);
 
 		/// <summary>Writes a byte[] array</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]

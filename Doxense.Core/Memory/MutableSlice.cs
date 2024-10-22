@@ -24,6 +24,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+#if DEPRECATED
+
 namespace System
 {
 	using System.ComponentModel;
@@ -869,3 +871,5 @@ namespace System
 	}
 
 }
+
+#endif

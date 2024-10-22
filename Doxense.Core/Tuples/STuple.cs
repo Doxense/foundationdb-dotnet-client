@@ -724,7 +724,6 @@ namespace Doxense.Collections.Tuples
 					case bool b:       return Stringify(b);
 					case char c:       return Stringify(c);
 					case Slice sl:     return Stringify(sl);
-					case MutableSlice sl: return Stringify(sl);
 					case double d:     return Stringify(d);
 					case float f:      return Stringify(f);
 					case Guid guid:    return Stringify(guid);
@@ -748,7 +747,6 @@ namespace Doxense.Collections.Tuples
 				string s => Stringify(s),
 				byte[] bytes => Stringify(bytes.AsSlice()),
 				Slice slice => Stringify(slice),
-				MutableSlice slice => Stringify(slice),
 				ArraySegment<byte> buffer => Stringify(buffer.AsSlice()),
 				//TODO: Memory<T>, ReadOnlyMemory<T>, ...
 				IFormattable f => f.ToString(null, CultureInfo.InvariantCulture),
@@ -799,10 +797,6 @@ namespace Doxense.Collections.Tuples
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(Slice item) => item.IsNull ? "null" : item.Count == 0 ? "``" : ('`' + Slice.Dump(item, item.Count) + '`');
-
-			/// <summary>Encodes a value into a tuple text literal</summary>
-			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string Stringify(MutableSlice item) => item.IsNull ? "null" : '`' + Slice.Dump(item, item.Count) + '`';
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]

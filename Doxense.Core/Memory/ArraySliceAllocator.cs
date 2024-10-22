@@ -113,11 +113,11 @@ namespace Doxense.Memory
 			m_slabWritten = 0;
 		}
 
-		/// <summary>Returns a <see cref="MutableSlice" /> to write to that is exactly the requested size (specified by <paramref name="size" />) and advance the cursor.</summary>
+		/// <summary>Returns a <see cref="ArraySegment{T}" /> to write to that is exactly the requested size (specified by <paramref name="size" />) and advance the cursor.</summary>
 		/// <param name="size">The exact length of the returned <see cref="Slice" />. If 0, a non-empty buffer is returned.</param>
 		/// <exception cref="T:System.OutOfMemoryException">The requested buffer size is not available.</exception>
-		/// <returns>A <see cref="MutableSlice" /> of at exactly the <paramref name="size" /> requested.</returns>
-		public MutableSlice Allocate(int size)
+		/// <returns>A <see cref="ArraySegment{T}" /> of at exactly the <paramref name="size" /> requested.</returns>
+		public ArraySegment<byte> Allocate(int size)
 		{
 			Contract.GreaterOrEqual(size, 0);
 
@@ -125,7 +125,7 @@ namespace Doxense.Memory
 
 			if (size > this.MaxSlabSize)
 			{ // too large, use a dedicated buffer
-				return new MutableSlice(new byte[size], 0, size);
+				return new(new byte[size], 0, size);
 			}
 
 			if (buffer.Length - m_index < size)
@@ -136,7 +136,7 @@ namespace Doxense.Memory
 			var index = m_index;
 			Contract.Debug.Assert(buffer.Length > index && buffer.Length >= index + size);
 			m_index = index + size;
-			return new MutableSlice(buffer, index, size);
+			return new(buffer, index, size);
 		}
 
 		[MethodImpl(MethodImplOptions.NoInlining)]
@@ -165,9 +165,10 @@ namespace Doxense.Memory
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static ObjectDisposedException ThrowObjectDisposedException()
 		{
-			return new ObjectDisposedException("Buffer writer has already been disposed, or the buffer has already been acquired by someone else.");
+			return new("Buffer writer has already been disposed, or the buffer has already been acquired by someone else.");
 		}
 
+		/// <inheritdoc />
 		public void Dispose()
 		{
 			m_current = null;

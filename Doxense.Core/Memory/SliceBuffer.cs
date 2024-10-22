@@ -48,9 +48,9 @@ namespace Doxense.Memory
 		private int m_pos;
 		/// <summary>Number of bytes remaining in the current buffer</summary>
 		private int m_remaining;
-		/// <summary>If non null, list of previously used buffers (excluding the current buffer)</summary>
+		/// <summary>If non-null, list of previously used buffers (excluding the current buffer)</summary>
 		private List<Slice>? m_chunks;
-		/// <summary>Running total of the length of of all previously used buffers, excluding the size of the current buffer</summary>
+		/// <summary>Running total of the length of all previously used buffers, excluding the size of the current buffer</summary>
 		private int m_allocated;
 		/// <summary>Running total of the number of bytes stored in the previously used buffers, excluding the size of the current buffer</summary>
 		private int m_used;
@@ -96,7 +96,7 @@ namespace Doxense.Memory
 		/// <param name="aligned">If true, align the start of the slice with the default padding size.</param>
 		/// <returns>Slice pointing to a space in the buffer</returns>
 		/// <remarks>There is NO guarantees that the allocated slice will be pre-filled with zeroes.</remarks>
-		public MutableSlice Allocate(int count, bool aligned = false)
+		private Slice AllocateUnsafe(int count, bool aligned = false)
 		{
 			if (count < 0) throw new ArgumentException("Cannot allocate less than zero bytes.", nameof(count));
 
@@ -104,7 +104,7 @@ namespace Doxense.Memory
 
 			if (count == 0)
 			{
-				return MutableSlice.Empty;
+				return default;
 			}
 
 			int p = m_pos;
@@ -112,7 +112,7 @@ namespace Doxense.Memory
 			int extra = aligned ? (ALIGNMENT - (p & (ALIGNMENT - 1))) : 0;
 			if (count + extra > r)
 			{ // does not fit
-				return AllocateFallback(count);
+				return AllocateUnsafeFallback(count);
 			}
 
 			Contract.Debug.Assert(m_current != null && m_pos >= 0);
@@ -120,17 +120,17 @@ namespace Doxense.Memory
 			m_remaining = r - (count + extra);
 			Contract.Debug.Ensures(m_remaining >= 0);
 			//note: we rely on the fact that the buffer was pre-filled with zeroes
-			return new MutableSlice(m_current, p + extra, count);
+			return m_current.AsSlice(p + extra, count);
 		}
 
-		private MutableSlice AllocateFallback(int count)
+		private Slice AllocateUnsafeFallback(int count)
 		{
 			// keys that are too large are best kept in their own chunks
 			if (count > (m_pageSize >> 1))
 			{
-				var tmp = m_pool != null ? m_pool.Rent(count).AsMutableSlice(0, count) : MutableSlice.Zero(count);
-				Keep(tmp);
-				return tmp;
+				var array = m_pool?.Rent(count) ?? new byte[count];
+				Keep(array.AsSlice(0, count));
+				return array.AsSlice(0, count);
 			}
 
 			int pageSize = m_pageSize;
@@ -138,18 +138,79 @@ namespace Doxense.Memory
 			// double the page size on each new allocation
 			if (m_current != null)
 			{
-				if (m_pos > 0) Keep(new MutableSlice(m_current, 0, m_pos));
+				if (m_pos > 0) Keep(m_current.AsSlice(0, m_pos));
 				pageSize <<= 1;
 				if (pageSize > MaxPageSize) pageSize = MaxPageSize;
 				m_pageSize = pageSize;
 			}
 
-			var buffer = m_pool != null ? m_pool.Rent(pageSize) : new byte[pageSize];
+			var buffer = m_pool?.Rent(pageSize) ?? new byte[pageSize];
 			m_current = buffer;
 			m_pos = count;
 			m_remaining = pageSize - count;
 
-			return new MutableSlice(buffer, 0, count);
+			return buffer.AsSlice(0, count);
+		}
+		
+		/// <summary>Allocate an empty space in the buffer</summary>
+		/// <param name="count">Number of bytes to allocate</param>
+		/// <param name="aligned">If true, align the start of the slice with the default padding size.</param>
+		/// <returns>Slice pointing to a space in the buffer</returns>
+		/// <remarks>There is NO guarantees that the allocated slice will be pre-filled with zeroes.</remarks>
+		public Span<byte> AllocateSpan(int count, bool aligned = false)
+		{
+			if (count < 0) throw new ArgumentException("Cannot allocate less than zero bytes.", nameof(count));
+
+			const int ALIGNMENT = 4;
+
+			if (count == 0)
+			{
+				return default;
+			}
+
+			int p = m_pos;
+			int r = m_remaining;
+			int extra = aligned ? (ALIGNMENT - (p & (ALIGNMENT - 1))) : 0;
+			if (count + extra > r)
+			{ // does not fit
+				return AllocateSpanFallback(count);
+			}
+
+			Contract.Debug.Assert(m_current != null && m_pos >= 0);
+			m_pos = p + (count + extra);
+			m_remaining = r - (count + extra);
+			Contract.Debug.Ensures(m_remaining >= 0);
+			//note: we rely on the fact that the buffer was pre-filled with zeroes
+			return m_current.AsSpan(p + extra, count);
+		}
+
+		private Span<byte> AllocateSpanFallback(int count)
+		{
+			// keys that are too large are best kept in their own chunks
+			if (count > (m_pageSize >> 1))
+			{
+				var array = m_pool?.Rent(count) ?? new byte[count];
+				Keep(array.AsSlice(0, count));
+				return array.AsSpan(0, count);
+			}
+
+			int pageSize = m_pageSize;
+
+			// double the page size on each new allocation
+			if (m_current != null)
+			{
+				if (m_pos > 0) Keep(m_current.AsSlice(0, m_pos));
+				pageSize <<= 1;
+				if (pageSize > MaxPageSize) pageSize = MaxPageSize;
+				m_pageSize = pageSize;
+			}
+
+			var buffer = m_pool?.Rent(pageSize) ?? new byte[pageSize];
+			m_current = buffer;
+			m_pos = count;
+			m_remaining = pageSize - count;
+
+			return buffer.AsSpan(0, count);
 		}
 
 		/// <summary>Copy a slice into the buffer, with optional alignment, and return a new identical slice.</summary>
@@ -165,8 +226,9 @@ namespace Doxense.Memory
 			}
 
 			// allocate the slice
-			var slice = Allocate(data.Length, aligned);
-			data.CopyTo(slice.Span);
+			var slice = AllocateUnsafe(data.Length, aligned);
+			// DON'T TRY THIS AT HOME!
+			data.CopyTo(slice.Array.AsSpan(slice.Offset, slice.Count));
 			return slice;
 		}
 
@@ -185,8 +247,8 @@ namespace Doxense.Memory
 			data.EnsureSliceIsValid();
 
 			// allocate the slice
-			var slice = Allocate(data.Count, aligned);
-			data.CopyTo(slice.Span);
+			var slice = AllocateUnsafe(data.Count, aligned);
+			data.CopyTo(slice.Array.AsSpan(slice.Offset, slice.Count));
 			return slice;
 		}
 
@@ -207,9 +269,10 @@ namespace Doxense.Memory
 			data.EnsureSliceIsValid();
 			suffix.EnsureSliceIsValid();
 
-			var slice = Allocate(data.Count + suffix.Count, aligned);
-			data.CopyTo(slice.Span);
-			suffix.CopyTo(slice.Span.Slice(data.Count));
+			var slice = AllocateUnsafe(data.Count + suffix.Count, aligned);
+			var span = slice.Array.AsSpan(slice.Offset, slice.Count);
+			data.CopyTo(span);
+			suffix.CopyTo(span[data.Count..]);
 			return slice;
 		}
 
@@ -227,8 +290,8 @@ namespace Doxense.Memory
 			var res = new Slice[data.Length];
 			for (int i = 0; i < res.Length; i++)
 			{
-				var slice = Allocate(data[i].Count, aligned);
-				data[i].Span.CopyTo(slice.Span);
+				var slice = AllocateUnsafe(data[i].Count, aligned);
+				data[i].Span.CopyTo(slice.Array.AsSpan(slice.Offset, slice.Count));
 				res[i] = slice;
 			}
 
@@ -251,10 +314,10 @@ namespace Doxense.Memory
 
 			suffix.EnsureSliceIsValid();
 
-			var slice = Allocate(data.Length + suffix.Count, aligned);
-			var span = slice.Span;
+			var slice = AllocateUnsafe(data.Length + suffix.Count, aligned);
+			var span = slice.Array.AsSpan(slice.Offset, slice.Count);
 			data.CopyTo(span);
-			suffix.CopyTo(span.Slice(data.Length));
+			suffix.CopyTo(span[data.Length..]);
 			return slice;
 		}
 

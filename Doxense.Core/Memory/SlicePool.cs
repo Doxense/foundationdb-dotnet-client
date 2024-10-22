@@ -32,14 +32,14 @@ namespace Doxense.Memory
 	/// <remarks>
 	/// This is faster than a SliceWriter when writing a lot of keys that will not survive the lifetime of the pool itself.
 	/// Warning: Since the pool can reuse its internal buffer between sessions, this breaks the immutability contract for long lived Slices, and may introduce corruption if not used properly.
-	/// Warning: instances of this type are NOT thread-safe. In multi-threaded contexts, each thread should either use locking, or have its own pool instance.
+	/// Warning: instances of this type are NOT thread-safe. In multithreaded contexts, each thread should either use locking, or have its own pool instance.
 	/// </remarks>
 	[Obsolete("Use ISliceBufferWriter or ISliceAllocator instead")]
 	public sealed class SlicePool //REVIEW: change the name into something like "SliceAllocator", so that we can use "SlicePool" in the same meaning as MemoryPool or ArrayPool?
 	{
 		//note: a SliceWriter only keeps a single buffer (resized as needed) that remembers all the slices produced, while a SlicePool will allocate new buffers without copying.
 		// => SliceWriter should be used when formatting a binary protocol, where we need to complete buffer (in order to write it to disk or to a socket)
-		// => SlicePool should be used for short lived slices that are produced and then consumed immediately, or that have the same lifetime as the pool itself.
+		// => SlicePool should be used for short-lived slices that are produced and then consumed immediately, or that have the same lifetime as the pool itself.
 		// => SliceBuffer keeps a reference to all the buffers that were used, while SlicePool only keeps a reference on the last one!
 
 		/// <summary>Default initial capacity for a slice pool</summary>
@@ -118,12 +118,12 @@ namespace Doxense.Memory
 		/// <param name="count">Size of the slice</param>
 		/// <returns>Slice that maps the allocated region</returns>
 		/// <remarks>There is NO guarantee that the allocated slice is filled with zero! The caller should manually clear the slice before using it, if necessary</remarks>
-		public MutableSlice Allocate(int count)
+		public Span<byte> AllocateSpan(int count)
 		{
 			var buffer = EnsureBytes(count);
 			int p = this.Position;
 			this.Position = p + count;
-			return new MutableSlice(buffer, 0, count);
+			return buffer.AsSpan(p, count);
 		}
 
 		#region 8 bits

@@ -283,21 +283,6 @@ namespace Doxense.Memory
 			return SliceOwner.Create(slice, this.Pool);
 		}
 
-		/// <summary>Returns a <see cref="MutableSlice"/> pointing to the content of the buffer</summary>
-		/// <remarks>Any change to the slice will change the buffer !</remarks>
-		[Pure]
-		public readonly MutableSlice ToMutableSlice()
-		{
-			var buffer = this.Buffer;
-			var p = this.Position;
-			if (buffer == null || p == 0)
-			{ // empty buffer
-				return MutableSlice.Empty;
-			}
-			Contract.Debug.Assert(buffer.Length >= p, "Current position is outside of the buffer");
-			return new MutableSlice(buffer, 0, p);
-		}
-
 		/// <summary>Returns a slice pointing to the first <paramref name="count"/> bytes of the buffer</summary>
 		/// <param name="count">Size of the segment to return.</param>
 		/// <returns>Slice that contains the first <paramref name="count"/> bytes written to this buffer</returns>
@@ -514,27 +499,27 @@ namespace Doxense.Memory
 		/// <param name="pad">Pad value (0xFF by default)</param>
 		/// <returns>Slice that corresponds to the reserved segment in the buffer</returns>
 		/// <remarks>Will fill the reserved segment with <paramref name="pad"/> and the cursor will be positioned immediately after the segment.</remarks>
-		public MutableSlice Allocate(int count, byte pad)
+		public Span<byte> Allocate(int count, byte pad)
 		{
 			Contract.Positive(count);
-			if (count == 0) return MutableSlice.Empty;
+			if (count == 0) return default;
 
 			int offset = Skip(count, pad);
-			return new MutableSlice(this.Buffer!, offset, count);
+			return this.Buffer.AsSpan(offset, count);
 		}
 
 		/// <summary>Advance the cursor by the specified amount, and return the skipped over chunk (that can be filled later by the caller)</summary>
 		/// <param name="count">Number of bytes to allocate</param>
 		/// <returns>Slice that corresponds to the reserved segment in the buffer</returns>
-		public MutableSlice Allocate(int count)
+		public Span<byte> Allocate(int count)
 		{
 			Contract.Positive(count);
-			if (count == 0) return MutableSlice.Empty;
+			if (count == 0) return default;
 
 			var buffer = EnsureBytes(count);
 			int p = this.Position;
 			this.Position = p + count;
-			return new MutableSlice(buffer, p, count);
+			return buffer.AsSpan(p, count);
 		}
 
 		/// <summary>Advance the cursor by the amount required end up on an aligned byte position</summary>
@@ -776,13 +761,6 @@ namespace Doxense.Memory
 			WriteBytes(data.Span);
 		}
 
-		/// <summary>Write a slice of bytes to the end of the buffer</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void WriteBytes(MutableSlice data)
-		{
-			WriteBytes(data.Span);
-		}
-
 		/// <summary>Write a span of bytes to the end of the buffer</summary>
 #if NET9_0_OR_GREATER
 		public void WriteBytes(params ReadOnlySpan<byte> data)
@@ -811,14 +789,21 @@ namespace Doxense.Memory
 		}
 
 		/// <summary>Write a segment of bytes to the end of the buffer, with a prefix</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void WriteBytes(byte prefix, MutableSlice data)
+		public void WriteBytes(byte prefix, ReadOnlySpan<byte> data)
 		{
-			WriteBytes(prefix, data.Span);
+			int count = data.Length;
+			var buffer = EnsureBytes(checked(count + 1));
+			int p = this.Position;
+			buffer[p] = prefix;
+			if (count > 0)
+			{
+				data.CopyTo(buffer.AsSpan(p + 1));
+			}
+			this.Position = checked(p + count + 1);
 		}
 
 		/// <summary>Write a segment of bytes to the end of the buffer, with a prefix</summary>
-		public void WriteBytes(byte prefix, ReadOnlySpan<byte> data)
+		public void WriteBytes(byte prefix, Span<byte> data)
 		{
 			int count = data.Length;
 			var buffer = EnsureBytes(checked(count + 1));
@@ -898,10 +883,17 @@ namespace Doxense.Memory
 		/// <param name="data">Buffer containing the data to append</param>
 		/// <returns>Slice that maps the interned data using the writer's buffer.</returns>
 		/// <remarks>If you do not need the resulting Slice, you should call <see cref="WriteBytes(Slice)"/> instead!</remarks>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Slice AppendBytes(MutableSlice data)
+		[Pure]
+		public Slice AppendBytes(ReadOnlySpan<byte> data)
 		{
-			return AppendBytes(data.Span);
+			int count = data.Length;
+			if (count == 0) return Slice.Empty;
+
+			int p = this.Position;
+			var buffer = EnsureBytes(count);
+			data.CopyTo(buffer.AsSpan(p));
+			this.Position = checked(p + count);
+			return new Slice(buffer, p, count);
 		}
 
 		/// <summary>Append a segment of bytes to the end of the buffer</summary>
@@ -909,7 +901,7 @@ namespace Doxense.Memory
 		/// <returns>Slice that maps the interned data using the writer's buffer.</returns>
 		/// <remarks>If you do not need the resulting Slice, you should call <see cref="WriteBytes(Slice)"/> instead!</remarks>
 		[Pure]
-		public Slice AppendBytes(ReadOnlySpan<byte> data)
+		public Slice AppendBytes(Span<byte> data)
 		{
 			int count = data.Length;
 			if (count == 0) return Slice.Empty;
@@ -1280,14 +1272,28 @@ namespace Doxense.Memory
 		}
 
 		/// <summary>Writes a length-prefixed byte array, and advances the cursor</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void WriteVarBytes(MutableSlice value)
+		public void WriteVarBytes(ReadOnlySpan<byte> value)
 		{
-			WriteVarBytes(value.Span);
+			int n = value.Length;
+			if (n >= 128)
+			{
+				WriteVarBytesSlow(value);
+				return;
+			}
+
+			var buffer = EnsureBytes(n + 1);
+			int p = this.Position;
+
+			// write the count (single byte)
+			buffer[p] = (byte)n;
+
+			// write the bytes
+			if (n > 0) value.CopyTo(buffer.AsSpan(p + 1));
+			this.Position = checked(p + n + 1);
 		}
 
 		/// <summary>Writes a length-prefixed byte array, and advances the cursor</summary>
-		public void WriteVarBytes(ReadOnlySpan<byte> value)
+		public void WriteVarBytes(Span<byte> value)
 		{
 			int n = value.Length;
 			if (n >= 128)

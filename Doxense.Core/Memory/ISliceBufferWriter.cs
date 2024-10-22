@@ -30,11 +30,11 @@ namespace Doxense.Memory
 
 	public interface ISliceAllocator : IDisposable
 	{
-		/// <summary>Returns a <see cref="MutableSlice" /> to write to that is exactly the requested size (specified by <paramref name="size" />) and advance the cursor.</summary>
+		/// <summary>Returns a <see cref="ArraySegment{T}" /> to write to that is exactly the requested size (specified by <paramref name="size" />) and advance the cursor.</summary>
 		/// <param name="size">The exact length of the returned <see cref="Slice" />. If 0, a non-empty buffer is returned.</param>
 		/// <exception cref="T:System.OutOfMemoryException">The requested buffer size is not available.</exception>
-		/// <returns>A <see cref="MutableSlice" /> of at exactly the <paramref name="size" /> requested..</returns>
-		MutableSlice Allocate(int size);
+		/// <returns>A <see cref="ArraySegment{T}" /> of at exactly the <paramref name="size" /> requested...</returns>
+		ArraySegment<byte> Allocate(int size);
 
 		/// <summary>Returns the total amount of bytes that were allocated by this instance</summary>
 		long TotalAllocated { get; }
@@ -42,11 +42,12 @@ namespace Doxense.Memory
 
 	public interface ISliceBufferWriter : IBufferWriter<byte>
 	{
-		/// <summary>Returns a <see cref="MutableSlice" /> to write to that is at least the requested size (specified by <paramref name="sizeHint" />).</summary>
+		/// <summary>Returns a <see cref="Span{T}" /> to write to that is at least the requested size (specified by <paramref name="sizeHint" />).</summary>
 		/// <param name="sizeHint">The minimum length of the returned <see cref="Slice" />. If 0, a non-empty buffer is returned.</param>
 		/// <exception cref="T:System.OutOfMemoryException">The requested buffer size is not available.</exception>
-		/// <returns>A <see cref="MutableSlice" /> of at least the size <paramref name="sizeHint" />. If <paramref name="sizeHint" /> is 0, returns a non-empty buffer.</returns>
-		MutableSlice GetSlice(int sizeHint = 0);
+		/// <returns>A <see cref="Span{T}" /> of at least the size <paramref name="sizeHint" />. If <paramref name="sizeHint" /> is 0, returns a non-empty buffer.</returns>
+		ArraySegment<byte> GetSlice(int sizeHint = 0);
+		
 	}
 
 	public static class SliceBufferWriterExtensions
@@ -57,8 +58,8 @@ namespace Doxense.Memory
 			Contract.NotNull(writer);
 			if (data.Length == 0) return Slice.Empty;
 			var tmp = writer.Allocate(data.Length);
-			data.CopyTo(tmp.Span);
-			return tmp.Slice;
+			data.CopyTo(tmp.AsSpan());
+			return tmp.AsSlice();
 		}
 
 		public static Slice Intern(this ISliceAllocator writer, ReadOnlySpan<byte> data, Slice suffix)
@@ -70,9 +71,9 @@ namespace Doxense.Memory
 				return suffix.Count > 0 ? suffix : Slice.Empty;
 			}
 			var tmp = writer.Allocate(checked(data.Length + suffix.Count));
-			data.CopyTo(tmp.Span);
-			suffix.CopyTo(tmp.Span.Slice(data.Length));
-			return tmp.Slice;
+			data.CopyTo(tmp.AsSpan());
+			suffix.CopyTo(tmp.AsSpan(data.Length));
+			return tmp.AsSlice();
 		}
 
 		public static Slice Intern(this ISliceAllocator writer, ReadOnlySpan<byte> data, byte suffix)
@@ -84,9 +85,9 @@ namespace Doxense.Memory
 				return Slice.FromByte(suffix);
 			}
 			var tmp = writer.Allocate(data.Length + 1);
-			data.CopyTo(tmp.Span);
+			data.CopyTo(tmp.AsSpan());
 			tmp[data.Length] = suffix;
-			return tmp.Slice;
+			return tmp.AsSlice();
 		}
 
 		public static Slice Intern(this ISliceAllocator writer, ReadOnlyMemory<byte> data)
@@ -94,8 +95,8 @@ namespace Doxense.Memory
 			Contract.NotNull(writer);
 			if (data.Length == 0) return Slice.Empty;
 			var tmp = writer.Allocate(data.Length);
-			data.Span.CopyTo(tmp.Span);
-			return tmp.Slice;
+			data.Span.CopyTo(tmp.AsSpan());
+			return tmp.AsSlice();
 		}
 
 		public static Slice Intern(this ISliceAllocator writer, ReadOnlyMemory<byte> data, Slice suffix)
@@ -107,9 +108,9 @@ namespace Doxense.Memory
 				return suffix.Count > 0 ? suffix : Slice.Empty;
 			}
 			var tmp = writer.Allocate(checked(data.Length + suffix.Count));
-			data.Span.CopyTo(tmp.Span);
-			suffix.CopyTo(tmp.Span.Slice(data.Length));
-			return tmp.Slice;
+			data.Span.CopyTo(tmp.AsSpan());
+			suffix.CopyTo(tmp.AsSpan(data.Length));
+			return tmp.AsSlice();
 		}
 
 		public static Slice Intern(this ISliceAllocator writer, ReadOnlyMemory<byte> data, byte suffix)
@@ -121,9 +122,9 @@ namespace Doxense.Memory
 				return Slice.FromByte(suffix);
 			}
 			var tmp = writer.Allocate(data.Length + 1);
-			data.Span.CopyTo(tmp.Span);
+			data.Span.CopyTo(tmp.AsSpan());
 			tmp[data.Length] = suffix;
-			return tmp.Slice;
+			return tmp.AsSlice();
 		}
 
 		public static Slice Intern(this ISliceAllocator writer, Slice data)
@@ -131,8 +132,8 @@ namespace Doxense.Memory
 			Contract.NotNull(writer);
 			if (data.Count == 0) return data.IsNull ? Slice.Nil : Slice.Empty;
 			var tmp = writer.Allocate(data.Count);
-			data.CopyTo(tmp.Span);
-			return tmp.Slice;
+			data.CopyTo(tmp.AsSpan());
+			return tmp.AsSlice();
 		}
 
 		public static Slice Intern(this ISliceAllocator writer, Slice data, Slice suffix)
@@ -144,9 +145,9 @@ namespace Doxense.Memory
 				return suffix.Count > 0 ? suffix : data.IsNull ? default : Slice.Empty;
 			}
 			var tmp = writer.Allocate(checked(data.Count + suffix.Count));
-			data.CopyTo(tmp.Span);
-			suffix.CopyTo(tmp.Span.Slice(data.Count));
-			return tmp.Slice;
+			data.CopyTo(tmp.AsSpan());
+			suffix.CopyTo(tmp.AsSpan(data.Count));
+			return tmp.AsSlice();
 		}
 
 		public static Slice Intern(this ISliceAllocator writer, Slice data, byte suffix)
@@ -158,9 +159,9 @@ namespace Doxense.Memory
 				return Slice.FromByte(suffix);
 			}
 			var tmp = writer.Allocate(data.Count + 1);
-			data.CopyTo(tmp.Span);
+			data.CopyTo(tmp.AsSpan());
 			tmp[data.Count] = suffix;
-			return tmp.Slice;
+			return tmp.AsSlice();
 		}
 
 	}

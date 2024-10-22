@@ -321,75 +321,89 @@ namespace Doxense.Core.Tests
 		[Test]
 		public void Test_Uuid80_WriteTo()
 		{
+			static byte[] Repeat(byte value, int count)
+			{
+				var tmp = new byte[count];
+				tmp.AsSpan().Fill(value);
+				return tmp;
+			}
+
 			var original = Uuid80.Parse("1E2D-01234567-89ABCDEF");
-			(var hi, var lo) = original;
+			var (hi, lo) = original;
 			Assume.That(hi, Is.EqualTo(0x1E2D));
 			Assume.That(lo, Is.EqualTo(0x0123456789ABCDEF));
 
 			// span with more space
-			var scratch = MutableSlice.Repeat(0xAA, 20);
-			original.WriteTo(scratch.Span);
-			Assert.That(scratch.ToString("X"), Is.EqualTo("1E 2D 01 23 45 67 89 AB CD EF AA AA AA AA AA AA AA AA AA AA"));
+			var scratch = Repeat(0xAA, 20);
+			original.WriteTo(scratch.AsSpan());
+			Assert.That(scratch.AsSlice().ToString("X"), Is.EqualTo("1E 2D 01 23 45 67 89 AB CD EF AA AA AA AA AA AA AA AA AA AA"));
 
 			// span with no offset and exact size
-			scratch = MutableSlice.Repeat(0xAA, 20);
-			original.WriteTo(scratch.Substring(0, 10).Span);
-			Assert.That(scratch.ToString("X"), Is.EqualTo("1E 2D 01 23 45 67 89 AB CD EF AA AA AA AA AA AA AA AA AA AA"));
+			scratch = Repeat(0xAA, 20);
+			original.WriteTo(scratch.AsSpan(0, 10));
+			Assert.That(scratch.AsSlice().ToString("X"), Is.EqualTo("1E 2D 01 23 45 67 89 AB CD EF AA AA AA AA AA AA AA AA AA AA"));
 
 			// span with offset
-			scratch = MutableSlice.Repeat(0xAA, 20);
-			original.WriteTo(scratch.Substring(4).Span);
-			Assert.That(scratch.ToString("X"), Is.EqualTo("AA AA AA AA 1E 2D 01 23 45 67 89 AB CD EF AA AA AA AA AA AA"));
+			scratch = Repeat(0xAA, 20);
+			original.WriteTo(scratch.AsSpan(4));
+			Assert.That(scratch.AsSlice().ToString("X"), Is.EqualTo("AA AA AA AA 1E 2D 01 23 45 67 89 AB CD EF AA AA AA AA AA AA"));
 
 			// span with offset and exact size
-			scratch = MutableSlice.Repeat(0xAA, 20);
-			original.WriteTo(scratch.Substring(4, 10).Span);
-			Assert.That(scratch.ToString("X"), Is.EqualTo("AA AA AA AA 1E 2D 01 23 45 67 89 AB CD EF AA AA AA AA AA AA"));
+			scratch = Repeat(0xAA, 20);
+			original.WriteTo(scratch.AsSpan(4, 10));
+			Assert.That(scratch.AsSlice().ToString("X"), Is.EqualTo("AA AA AA AA 1E 2D 01 23 45 67 89 AB CD EF AA AA AA AA AA AA"));
 
 			// errors
 
 			Assert.That(() => original.WriteTo(Span<byte>.Empty), Throws.InstanceOf<ArgumentException>(), "Target buffer is empty");
 
-			scratch = MutableSlice.Repeat(0xAA, 16);
-			Assert.That(() => original.WriteTo(scratch.Substring(0, 9).Span), Throws.InstanceOf<ArgumentException>(), "Target buffer is too small");
-			Assert.That(scratch.ToString("X"), Is.EqualTo("AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA"), "Buffer should not have been overwritten!");
+			scratch = Repeat(0xAA, 16);
+			Assert.That(() => original.WriteTo(scratch.AsSpan(0, 9)), Throws.InstanceOf<ArgumentException>(), "Target buffer is too small");
+			Assert.That(scratch.AsSlice().ToString("X"), Is.EqualTo("AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA"), "Buffer should not have been overwritten!");
 		}
 
 		[Test]
 		public void Test_Uuid80_TryWriteTo()
 		{
+			static byte[] Repeat(byte value, int count)
+			{
+				var tmp = new byte[count];
+				tmp.AsSpan().Fill(value);
+				return tmp;
+			}
+
 			var original = Uuid80.Parse("1E2D-01234567-89ABCDEF");
-			(var hi, var lo) = original;
+			var (hi, lo) = original;
 			Assume.That(hi, Is.EqualTo(0x1E2D));
 			Assume.That(lo, Is.EqualTo(0x0123456789ABCDEF));
 
 			// span with more space
-			var scratch = MutableSlice.Repeat(0xAA, 20);
-			Assert.That(original.TryWriteTo(scratch.Span), Is.True);
-			Assert.That(scratch.ToString("X"), Is.EqualTo("1E 2D 01 23 45 67 89 AB CD EF AA AA AA AA AA AA AA AA AA AA"));
+			var scratch = Repeat(0xAA, 20);
+			Assert.That(original.TryWriteTo(scratch.AsSpan()), Is.True);
+			Assert.That(scratch.AsSlice().ToString("X"), Is.EqualTo("1E 2D 01 23 45 67 89 AB CD EF AA AA AA AA AA AA AA AA AA AA"));
 
 			// span with no offset and exact size
-			scratch = MutableSlice.Repeat(0xAA, 20);
-			Assert.That(original.TryWriteTo(scratch.Span.Slice(0, 10)), Is.True);
-			Assert.That(scratch.ToString("X"), Is.EqualTo("1E 2D 01 23 45 67 89 AB CD EF AA AA AA AA AA AA AA AA AA AA"));
+			scratch = Repeat(0xAA, 20);
+			Assert.That(original.TryWriteTo(scratch.AsSpan(0, 10)), Is.True);
+			Assert.That(scratch.AsSlice().ToString("X"), Is.EqualTo("1E 2D 01 23 45 67 89 AB CD EF AA AA AA AA AA AA AA AA AA AA"));
 
 			// span with offset
-			scratch = MutableSlice.Repeat(0xAA, 20);
-			Assert.That(original.TryWriteTo(scratch.Span.Slice(4)), Is.True);
-			Assert.That(scratch.ToString("X"), Is.EqualTo("AA AA AA AA 1E 2D 01 23 45 67 89 AB CD EF AA AA AA AA AA AA"));
+			scratch = Repeat(0xAA, 20);
+			Assert.That(original.TryWriteTo(scratch.AsSpan(4)), Is.True);
+			Assert.That(scratch.AsSlice().ToString("X"), Is.EqualTo("AA AA AA AA 1E 2D 01 23 45 67 89 AB CD EF AA AA AA AA AA AA"));
 
 			// span with offset and exact size
-			scratch = MutableSlice.Repeat(0xAA, 20);
-			Assert.That(original.TryWriteTo(scratch.Span.Slice(4, 10)), Is.True);
-			Assert.That(scratch.ToString("X"), Is.EqualTo("AA AA AA AA 1E 2D 01 23 45 67 89 AB CD EF AA AA AA AA AA AA"));
+			scratch = Repeat(0xAA, 20);
+			Assert.That(original.TryWriteTo(scratch.AsSpan(4, 10)), Is.True);
+			Assert.That(scratch.AsSlice().ToString("X"), Is.EqualTo("AA AA AA AA 1E 2D 01 23 45 67 89 AB CD EF AA AA AA AA AA AA"));
 
 			// errors
 
 			Assert.That(original.TryWriteTo(Span<byte>.Empty), Is.False, "Target buffer is empty");
 
-			scratch = MutableSlice.Repeat(0xAA, 20);
-			Assert.That(original.TryWriteTo(scratch.Substring(0, 9).Span), Is.False, "Target buffer is too small");
-			Assert.That(scratch.ToString("X"), Is.EqualTo("AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA"), "Buffer should not have been overwritten!");
+			scratch = Repeat(0xAA, 20);
+			Assert.That(original.TryWriteTo(scratch.AsSpan(0, 9)), Is.False, "Target buffer is too small");
+			Assert.That(scratch.AsSlice().ToString("X"), Is.EqualTo("AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA"), "Buffer should not have been overwritten!");
 
 		}
 

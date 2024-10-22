@@ -26,7 +26,6 @@
 
 namespace FoundationDB.Client.Tests
 {
-	using SnowBank.Testing;
 
 	[TestFixture]
 	[Parallelizable(ParallelScope.All)]
@@ -114,9 +113,10 @@ namespace FoundationDB.Client.Tests
 			}
 
 			{
-				var buf = MutableSlice.Repeat(0xAA, 18);
-				VersionStamp.Incomplete(123).WriteTo(buf.Substring(3, 12));
-				Assert.That(buf.Slice.ToHexString(' '), Is.EqualTo("AA AA AA FF FF FF FF FF FF FF FF FF FF 00 7B AA AA AA"));
+				var buf = new byte[18];
+				buf.AsSpan().Fill(0xAA);
+				VersionStamp.Incomplete(123).WriteTo(buf.AsSpan(3, 12));
+				Assert.That(buf.AsSlice().ToHexString(' '), Is.EqualTo("AA AA AA FF FF FF FF FF FF FF FF FF FF 00 7B AA AA AA"));
 			}
 		}
 
@@ -196,9 +196,10 @@ namespace FoundationDB.Client.Tests
 			}
 
 			{
-				var buf = MutableSlice.Repeat(0xAA, 18);
-				VersionStamp.Complete(0x0123456789ABCDEFUL, 123, 456).WriteTo(buf.Substring(3, 12));
-				Assert.That(buf.Slice.ToHexString(' '), Is.EqualTo("AA AA AA 01 23 45 67 89 AB CD EF 00 7B 01 C8 AA AA AA"));
+				var buf = new byte[18];
+				buf.AsSpan().Fill(0xAA);
+				VersionStamp.Complete(0x0123456789ABCDEFUL, 123, 456).WriteTo(buf.AsSpan(3, 12));
+				Assert.That(buf.AsSlice().ToHexString(' '), Is.EqualTo("AA AA AA 01 23 45 67 89 AB CD EF 00 7B 01 C8 AA AA AA"));
 			}
 		}
 
