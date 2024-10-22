@@ -2741,7 +2741,12 @@ namespace Doxense.Serialization.Json
 			return list;
 		}
 
-		public override object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null)
+		/// <inheritdoc />
+		public override object? Bind(
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
+			Type? type,
+			ICrystalJsonTypeResolver? resolver = null
+		)
 		{
 			//note: we cannot use JIT optimization here, because the type will usually be an array or list of value types, which itself is not a value type.
 			return (resolver ?? CrystalJson.DefaultResolver).BindJsonArray(type, this);

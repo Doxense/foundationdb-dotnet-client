@@ -296,7 +296,9 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		public override bool ValueEquals<TValue>(TValue? value, IEqualityComparer<TValue>? comparer = null) where TValue : default
+		public override bool ValueEquals<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TValue>
+			(TValue? value, IEqualityComparer<TValue>? comparer = null) where TValue : default
 		{
 			if (default(TValue) is null)
 			{

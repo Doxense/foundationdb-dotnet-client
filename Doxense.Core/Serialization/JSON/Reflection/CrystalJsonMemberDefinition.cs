@@ -62,6 +62,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Declared type of the member</summary>
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
 		public Type Type { get; }
 
 		/// <summary>Name of the member</summary>

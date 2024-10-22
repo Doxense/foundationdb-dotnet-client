@@ -77,13 +77,15 @@ namespace Doxense.Collections.Tuples
 			}
 		}
 
-		TItem IVarTuple.Get<TItem>(int index)
+		/// <inheritdoc />
+		TItem IVarTuple.Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(int index)
 		{
 			throw new InvalidOperationException("Tuple is empty");
 		}
 
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public IVarTuple Append<T1>(T1 value) => new STuple<T1>(value);
+		public IVarTuple Append<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1>(T1 value) => new STuple<T1>(value);
 
 		/// <inheritdoc />
 		public IVarTuple Concat(IVarTuple tuple)

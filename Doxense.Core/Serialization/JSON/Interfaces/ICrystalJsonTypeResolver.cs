@@ -38,31 +38,46 @@ namespace Doxense.Serialization.Json
 		/// <param name="type">Type to introspect</param>
 		/// <returns>List of compiled members, or <see langword="null"/> if the type is not compatible (primitive, delegate, ...)</returns>
 		/// <remarks>The list is computed on the first call for each type, and then cached in memory for subsequent calls</remarks>
-		CrystalJsonTypeDefinition? ResolveJsonType(Type type);
+		CrystalJsonTypeDefinition? ResolveJsonType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type type);
 
 		/// <summary>Returns the definition of a member of a type</summary>
 		/// <param name="type">Type that contains the member</param>
 		/// <param name="memberName">Name of the member</param>
 		/// <returns>If known, the definition for this member.</returns>
-		/// <remarks>This is usefull to inspect the custom serialization settings for a particular member of a type, that can be overriden, for example, by <see cref="JsonPropertyAttribute"/></remarks>
-		CrystalJsonMemberDefinition? ResolveMemberOfType(Type type, string memberName);
+		/// <remarks>This is useful to inspect the custom serialization settings for a particular member of a type, that can be overriden, for example, by <see cref="JsonPropertyAttribute"/></remarks>
+		CrystalJsonMemberDefinition? ResolveMemberOfType(
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			Type type,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)]
+			string memberName
+		);
 
 		/// <summary>Binds a JSON value into the corresponding CLR type</summary>
 		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
-		object? BindJsonValue(Type? type, JsonValue? value);
+		object? BindJsonValue(
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
+			Type? type,
+			JsonValue? value);
 
 		/// <summary>Binds a JSON value into the corresponding CLR type</summary>
 		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		T? BindJson<T>(JsonValue? value, T? defaultValue = default);
+		T? BindJson<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>
+			(JsonValue? value, T? defaultValue = default);
 
 		/// <summary>Binds a JSON object into the corresponding CLR type</summary>
 		/// <exception cref="JsonBindingException">If the object cannot be bound to the specified type.</exception>
-		object? BindJsonObject(Type? type, JsonObject? value);
+		object? BindJsonObject(
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]Type? type,
+			JsonObject? value);
 
 		/// <summary>Binds a JSON array into the corresponding CLR type</summary>
 		/// <exception cref="JsonBindingException">If the array cannot be bound to the specified type.</exception>
-		object? BindJsonArray(Type? type, JsonArray? array);
+		object? BindJsonArray(
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
+			Type? type,
+			JsonArray? array);
 
 	}
 

@@ -586,6 +586,9 @@ namespace Doxense.Runtime.Converters
 
 		/// <summary>Create a new delegate that cast a boxed valued of type T (object) into a T</summary>
 		/// <returns>Delegate that is of type Func&lt;object, <param name="type"/>&gt;</returns>
+#if NET8_0_OR_GREATER
+		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
+#endif
 		private static Delegate CreateCaster(Type type)
 		{
 			var prm = Expression.Parameter(typeof(object), "value");
@@ -755,15 +758,25 @@ namespace Doxense.Runtime.Converters
 			throw FailCannotConvert(type, targetType);
 		}
 
+#if NET8_0_OR_GREATER
+		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
+#endif
+		[RequiresUnreferencedCode("If some of the generic arguments are annotated (either with DynamicallyAccessedMembersAttribute, or generic constraints), trimming can't validate that the requirements of those annotations are met.")]
 		private static MethodInfo GetConverterMethod(Type input, Type output)
 		{
-			var m = typeof(TypeConverters).GetMethod(nameof(GetConverter), BindingFlags.Static | BindingFlags.Public)!.MakeGenericMethod(input, output);
+			var m = typeof(TypeConverters)
+			        .GetMethod(nameof(GetConverter), BindingFlags.Static | BindingFlags.Public)!
+			        .MakeGenericMethod(input, output);
 			Contract.Debug.Assert(m != null);
 			return m;
 		}
 
 		/// <summary>Create a boxed converter from <typeparamref name="TInput"/> to <paramref name="outputType"/></summary>
 		[Pure]
+#if NET8_0_OR_GREATER
+		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
+#endif
+		[RequiresUnreferencedCode("If some of the generic arguments are annotated (either with DynamicallyAccessedMembersAttribute, or generic constraints), trimming can't validate that the requirements of those annotations are met.")]
 		public static Func<TInput, object?> CreateBoxedConverter<TInput>(Type outputType)
 		{
 			var converter = (ITypeConverter) GetConverterMethod(typeof(TInput), outputType).Invoke(null, [ ])!;

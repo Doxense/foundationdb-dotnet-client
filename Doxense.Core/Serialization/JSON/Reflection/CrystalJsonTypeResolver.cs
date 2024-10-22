@@ -41,10 +41,6 @@ namespace Doxense.Serialization.Json
 	using Doxense.Runtime.Converters;
 
 	/// <summary>Default JSON resolver that uses reflection to serialize and deserialize managed types</summary>
-	[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
-#if NET8_0_OR_GREATER
-	[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
 	public sealed class CrystalJsonTypeResolver : ICrystalJsonTypeResolver
 	{
 
@@ -61,7 +57,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="type">Type to inspect</param>
 		/// <returns>List of compiled member definitions, or <see langword="null"/> if the type is not compatible</returns>
 		/// <remarks>The list is cached for later calls</remarks>
-		public CrystalJsonTypeDefinition? ResolveJsonType(Type type)
+		public CrystalJsonTypeDefinition? ResolveJsonType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type type)
 		{
 #if DEBUG_JSON_RESOLVER
 			Debug.WriteLine(this.GetType().Name + ".ResolveType(" + type + ")");
@@ -73,7 +69,12 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		public CrystalJsonMemberDefinition? ResolveMemberOfType(Type type, string memberName)
+		public CrystalJsonMemberDefinition? ResolveMemberOfType(
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			Type type,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)]
+			string memberName
+		)
 		{
 			var typeDef = ResolveJsonType(type);
 			if (typeDef != null)
@@ -265,7 +266,7 @@ namespace Doxense.Serialization.Json
 
 		/// <inheritdoc />
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public T? BindJson<T>(JsonValue? value, T? defaultValue = default)
+		public T? BindJson<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>(JsonValue? value, T? defaultValue = default)
 		{
 			switch (value)
 			{
@@ -295,7 +296,10 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		public object? BindJsonValue(Type? type, JsonValue? value)
+		public object? BindJsonValue(
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
+			Type? type,
+			JsonValue? value)
 		{
 #if DEBUG_JSON_BINDER
 			Debug.WriteLine(this.GetType().Name + ".BindValue(" + type + ", " + value + ")");
@@ -325,7 +329,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		public object? BindJsonObject(Type? type, JsonObject? value)
+		public object? BindJsonObject([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type? type, JsonObject? value)
 		{
 #if DEBUG_JSON_BINDER
 			Debug.WriteLine(this.GetType().Name + ".BindObject(" + type + ", " + value + ")");
@@ -357,7 +361,7 @@ namespace Doxense.Serialization.Json
 		private static readonly Func<Type, Func<CrystalJsonTypeResolver, JsonArray?, object?>> JsonArrayBinderCallback = CreateDefaultJsonArrayBinder;
 
 		/// <inheritdoc />
-		public object? BindJsonArray(Type? type, JsonArray? array)
+		public object? BindJsonArray([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type? type, JsonArray? array)
 		{
 			// ReSharper disable once ConvertClosureToMethodGroup
 			return CrystalJsonTypeResolver.DefaultArrayBinders.GetOrAdd(type ?? typeof(object), CrystalJsonTypeResolver.JsonArrayBinderCallback)(this, array);
@@ -898,41 +902,55 @@ namespace Doxense.Serialization.Json
 
 		private static bool FilterMemberByAttributes(MemberInfo member, bool hasDataContract, ref string name, ref object? defaultValue)
 		{
-			Attribute? attr;
 			if (hasDataContract)
 			{ // must have an attribute "[DataMember]" to be eligible
-				if (!member.TryGetCustomAttribute(nameof(System.Runtime.Serialization.DataMemberAttribute), true, out attr) || attr == null)
+				var attr = member.GetCustomAttribute<System.Runtime.Serialization.DataMemberAttribute>(inherit: true);
+				if (attr == null)
 				{ // skip!
 					return false;
 				}
 				// check if a custom name is specified
-				name = attr.GetProperty<string>(nameof(System.Runtime.Serialization.DataMemberAttribute.Name)) ?? name;
+				name = attr.Name ?? name;
+				return true;
 			}
-			else
-			{ // look for other common serialization attributes
 
-				// must not have "[XmlIgnore]"
-				if (member.TryGetCustomAttribute(nameof(System.Xml.Serialization.XmlIgnoreAttribute), true, out attr) && attr != null)
+			{ // must not have "[JsonIgnore]" (from JSON.NET)
+				// we cannot "say the name" of this attribute without a ref to the Json.NET package,
+				// so we have to search using the name. This could break when using code trimming!
+				if (member.TryGetCustomAttribute("JsonIgnoreAttribute", true, out var attr) && attr != null)
 				{ // skip!
 					return false;
 				}
-
-				// must not have "[JsonIgnore]" (from JSON.NET)
-				if (member.TryGetCustomAttribute("JsonIgnoreAttribute", true, out attr) && attr != null)
+			}
+			// look for other legacy serialization attributes
+			// REVIEW: TODO: these are old attributes used during the era of SOAP and XML serialization, maybe we could drop support for them?
+				
+			{ // must not have "[XmlIgnore]"
+				var attr = member.GetCustomAttribute<System.Xml.Serialization.XmlIgnoreAttribute>(inherit: true);
+				if (attr != null)
 				{ // skip!
 					return false;
 				}
+			}
 
-				// look for attributes used to specify a custom name
-				if (member.TryGetCustomAttribute(nameof(System.Xml.Serialization.XmlElementAttribute), true, out attr) && attr != null)
+			{ // [XmlElement]
+				var attr = member.GetCustomAttribute<System.Xml.Serialization.XmlElementAttribute>(inherit: true);
+				if (attr != null)
 				{ // [XmlElement(ElementName="xxx")]
-					name = attr.GetProperty<string>(nameof(System.Xml.Serialization.XmlElementAttribute.ElementName)) ?? name;
-				}
-				else if (member.TryGetCustomAttribute(nameof(System.Xml.Serialization.XmlAttributeAttribute), true, out attr) && attr != null)
-				{ // [XmlAttribute(AttributeName="xxx")]
-					name = attr.GetProperty<string>(nameof(System.Xml.Serialization.XmlAttributeAttribute.AttributeName)) ?? name;
+					name = attr.ElementName;
+					return true;
 				}
 			}
+
+			{ // [XmlAttribute]
+				var attr = member.GetCustomAttribute<System.Xml.Serialization.XmlAttributeAttribute>(inherit: true);
+				if (attr != null)
+				{ // [XmlAttribute(AttributeName="xxx")]
+					name = attr.AttributeName;
+					return true;
+				}
+			}
+
 			return true;
 		}
 
@@ -983,8 +1001,10 @@ namespace Doxense.Serialization.Json
 			return null;
 		}
 
-
-		public static CrystalJsonMemberDefinition[] GetMembersFromReflection([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.PublicProperties)] Type type)
+#if NET8_0_OR_GREATER
+		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
+#endif
+		private static CrystalJsonMemberDefinition[] GetMembersFromReflection([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type type)
 		{
 			Contract.NotNull(type);
 
@@ -993,12 +1013,12 @@ namespace Doxense.Serialization.Json
 			bool hasDataContract = type.GetCustomAttribute<DataContractAttribute>(inherit: true) != null;
 
 			var members = new List<CrystalJsonMemberDefinition>();
-			var fields = type.GetFields(BindingFlags.Instance | BindingFlags.Public);
-			foreach (var field in fields)
+			foreach (var field in type.GetFields(BindingFlags.Instance | BindingFlags.Public))
 			{
 				Contract.Debug.Assert(field != null);
 
 				var fieldType = field.FieldType;
+				
 				if (!FilterMemberByType(field, fieldType))
 				{
 					continue;
@@ -1697,6 +1717,10 @@ namespace Doxense.Serialization.Json
 			return instance.ToImmutable();
 		}
 
+#if NET8_0_OR_GREATER
+		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
+#endif
+		[RequiresUnreferencedCode("If some of the generic arguments are annotated (either with DynamicallyAccessedMembersAttribute, or generic constraints), trimming can't validate that the requirements of those annotations are met.")]
 		private static CrystalJsonTypeBinder? CreateBinderForDictionary(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)]
 			Type type,
