@@ -29,7 +29,6 @@
 namespace Doxense.Serialization
 {
 	using System.Collections.ObjectModel;
-	using System.Dynamic;
 	using System.Globalization;
 	using System.Linq.Expressions;
 	using System.Reflection;
@@ -67,7 +66,7 @@ namespace Doxense.Serialization
 		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
 #endif
 		[return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces | DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
-		public static Type? FindReplacementType(
+		private static Type? FindReplacementType(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces | DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
 			Type type
 		)
@@ -137,258 +136,7 @@ namespace Doxense.Serialization
 			return Expression.Lambda<Func<object>>(Expression.Convert(Expression.Default(type), typeof(object))).Compile();
 		}
 
-		/// <summary>Generates a factory method that will instantiate an object of the specified type, or equivalent, if possible</summary>
-		/// <typeparam name="TInstance">Type of the object to instantiate (can be an interface or abstract class, for a limited set of "well known" types)</typeparam>
-		/// <returns>Function that calls the parameterless constructor for the type, or <see langword="null"/> if it is impossible to create such a type (unsupported interface or abstract class, type without a parameterless ctor, ...)</returns>
-		[Pure]
-#if NET8_0_OR_GREATER
-		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
-		public static Func<TInstance>? CompileTypedGenerator<
-			[DynamicallyAccessedMembers( DynamicallyAccessedMemberTypes.Interfaces | DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
-			TInstance
-		>()
-		{
-			var type = typeof(TInstance);
-			if (type.IsInterface || type.IsAbstract)
-			{ // must be a well known type
-				var replacementType = FindReplacementType(type);
-				if (replacementType == null)
-				{ // no luck!
-					return null;
-				}
-				// we have an alternative type that'll do the job
-				type = replacementType;
-			}
-
-			if (type.IsClass)
-			{ // "object func() { return new T(); }"
-				var defaultConstructor = type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, Type.EmptyTypes, null);
-
-				if (defaultConstructor != null)
-				{
-					return Expression.Lambda<Func<TInstance>>(Expression.New(defaultConstructor)).Compile();
-				}
-				else
-				{
-					return () => (TInstance) Activator.CreateInstance(type)!;
-				}
-
-				//NOTE: we could also try FormatterServices.GetUninitializedObject(Type) that can instantiate without calling a ctor
-				// ( http://msdn.microsoft.com/en-us/library/system.runtime.serialization.formatterservices.getuninitializedobject.aspx )
-				// Problem: some types may not work properly if the ctor is not called (ex: private fields may not be initialized correctly!)
-			}
-
-			// we can always instantiate structs with the default ctor
-			return Expression.Lambda<Func<TInstance>>(Expression.Default(type)).Compile();
-		}
-
-		/// <summary>Generates a factory method that can instantiate an object using a ctor that takes one parameter</summary>
-		/// <typeparam name="TArg0">Type of the ctor parameter</typeparam>
-		/// <param name="type">Type of the object to instantiate, which must have a ctor with one parameter (can be private or public)</param>
-		/// <returns>Function that takes in a parameter and instantiate a instance of the type</returns>
-		/// <exception cref="InvalidOperationException">if the type does not have a ctor that takes a parameter of type <typeparamref name="TArg0"/></exception>
-		[Pure]
-		public static Func<TArg0, object> CompileGenerator<TArg0>(
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
-			this Type type
-		)
-		{
-			Contract.Debug.Requires(type != null);
-			var ctor = type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, [ typeof(TArg0) ], null);
-			if (ctor == null) throw new InvalidOperationException($"Type {type.GetFriendlyName()} does not have a constructor taking one argument of type {typeof(TArg0).GetFriendlyName()}");
-
-			var arg0 = Expression.Parameter(typeof(TArg0), "arg0");
-			var body = Expression.New(ctor, arg0).BoxToObject();
-			return Expression.Lambda<Func<TArg0, object>>(body, arg0).Compile();
-		}
-
-		/// <summary>Generates a factory method that can instantiate an object using a ctor that takes one parameter</summary>
-		/// <typeparam name="TArg0">Type of the ctor parameter</typeparam>
-		/// <typeparam name="TInstance">Type of the object to instantiate, which must have a ctor with one parameter (can be private or public)</typeparam>
-		/// <returns>Function that takes in a parameter and instantiate a instance of the type</returns>
-		/// <exception cref="InvalidOperationException">if the type does not have a ctor that takes a parameter of type <typeparamref name="TArg0"/></exception>
-		[Pure]
-		public static Func<TArg0, TInstance> CompileTypedGenerator<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
-			TInstance,
-			TArg0
-		>()
-		{
-			var type = typeof(TInstance);
-			var ctor = type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, [ typeof(TArg0) ], null);
-			if (ctor == null) throw new InvalidOperationException($"Type {type.GetFriendlyName()} does not have a constructor taking one argument of type {typeof(TArg0).GetFriendlyName()}");
-
-			var prms = ctor.GetParameters();
-			Contract.Debug.Assert(prms.Length == 1);
-			var arg0 = Expression.Parameter(typeof(TArg0), prms[0].Name);
-			var body = Expression.New(ctor, arg0);
-			return Expression.Lambda<Func<TArg0, TInstance>>(body, arg0).Compile();
-		}
-
-		/// <summary>Generates a factory method that can instantiate an object using a ctor that takes two parameters</summary>
-		/// <typeparam name="TArg0">Type of the first parameter</typeparam>
-		/// <typeparam name="TArg1">Type of the second parameter</typeparam>
-		/// <typeparam name="TInstance">Type of the object to instantiate, which must have a ctor with two parameters (can be private or public)</typeparam>
-		/// <returns>Function that takes in two parameters and instantiate a instance of the type</returns>
-		/// <exception cref="InvalidOperationException">if the type does not have a ctor that takes two parameters of type <typeparamref name="TArg0"/> and <typeparamref name="TArg1"/></exception>
-		[Pure]
-		public static Func<TArg0, TArg1, TInstance> CompileTypedGenerator<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
-			TInstance,
-			TArg0, TArg1
-		>()
-		{
-			var type = typeof(TInstance);
-			var ctor = type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, [ typeof(TArg0), typeof(TArg1) ], null);
-			if (ctor == null) throw new InvalidOperationException($"Type {type.GetFriendlyName()} does not have a constructor taking two arguments of types ({typeof(TArg0).GetFriendlyName()}, {typeof(TArg1).GetFriendlyName()})");
-
-			var prms = ctor.GetParameters();
-			Contract.Debug.Assert(prms.Length == 2);
-			var arg0 = Expression.Parameter(typeof(TArg0), prms[0].Name);
-			var arg1 = Expression.Parameter(typeof(TArg1), prms[1].Name);
-			var body = Expression.New(ctor, arg0, arg1);
-			return Expression.Lambda<Func<TArg0, TArg1, TInstance>>(body, arg0, arg1).Compile();
-		}
-
-		/// <summary>Generates a factory method that can instantiate an object using a ctor that takes three parameters</summary>
-		/// <typeparam name="TArg0">Type of the first parameter</typeparam>
-		/// <typeparam name="TArg1">Type of the second parameter</typeparam>
-		/// <typeparam name="TArg2">Type of the third parameter</typeparam>
-		/// <typeparam name="TInstance">Type of the object to instantiate, which must have a ctor with three parameters (can be private or public)</typeparam>
-		/// <returns>Function that takes in three parameters and instantiate a instance of the type</returns>
-		/// <exception cref="InvalidOperationException">if the type does not have a ctor that takes three parameters of type <typeparamref name="TArg0"/>, <typeparamref name="TArg1"/> and <typeparamref name="TArg2"/></exception>
-		[Pure]
-		public static Func<TArg0, TArg1, TArg2, TInstance> CompileTypedGenerator<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
-			TInstance,
-			TArg0, TArg1, TArg2
-		>()
-		{
-			var type = typeof(TInstance);
-			var ctor = type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, [ typeof(TArg0), typeof(TArg1), typeof(TArg2) ], null);
-			if (ctor == null) throw new InvalidOperationException($"Type {type.GetFriendlyName()} does not have a constructor taking three arguments of types ({typeof(TArg0).GetFriendlyName()}, {typeof(TArg1).GetFriendlyName()}, {typeof(TArg2).GetFriendlyName()})");
-
-			var prms = ctor.GetParameters();
-			Contract.Debug.Assert(prms.Length == 3);
-			var arg0 = Expression.Parameter(typeof(TArg0), prms[0].Name);
-			var arg1 = Expression.Parameter(typeof(TArg1), prms[1].Name);
-			var arg2 = Expression.Parameter(typeof(TArg2), prms[2].Name);
-			var body = Expression.New(ctor, arg0, arg1, arg2);
-			return Expression.Lambda<Func<TArg0, TArg1, TArg2, TInstance>>(body, arg0, arg1, arg2).Compile();
-		}
-
-		/// <summary>Generates a <see cref="System.Delegate"/> that will invoke the specified constructor</summary>
-		/// <param name="ctor">Constructor that must be wrapped</param>
-		/// <returns>Method that takes in the same arguments as the ctors, calls it, and return the newly created instance. This type can be cast into <c>Func&lt;TArg0, TArg1, ... TArgN, TInstance></c></returns>
-		[Pure]
-#if NET8_0_OR_GREATER
-		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
-		public static Delegate CompileTypedGenerator(ConstructorInfo ctor)
-		{
-			Contract.NotNull(ctor);
-
-			var prms = ctor.GetParameters();
-			var args = new ParameterExpression[prms.Length];
-			for (int i = 0; i < prms.Length; i++)
-			{
-				args[i] = Expression.Parameter(prms[i].ParameterType, prms[i].Name);
-			}
-			var body = Expression.New(ctor, args);
-			return Expression.Lambda(body, tailCall: true, args).Compile();
-		}
-
 		#region Getters / Setters...
-
-		/// <summary>Generates a getter Lambda <c>(object instance) => (object) (((TYPE) instance).MEMBER)</c></summary>
-		[Pure]
-		public static Func<object, object> CompileGetter(MemberInfo member)
-		{
-			Contract.NotNull(member);
-			switch (member)
-			{
-				case FieldInfo field:
-				{
-					return CompileGetter(field);
-				}
-				case PropertyInfo prop:
-				{
-					return CompileGetter(prop);
-				}
-				default:
-				{
-					throw new ArgumentException("Can only compile getters for fields and properties", nameof(member));
-				}
-			}
-		}
-
-		/// <summary>Generates a setter Lambda <c>(object instance, obj value) => (TInstance) instance).MEMBER = (TValue) value</c></summary>
-		[Pure]
-		public static Action<object, object>? CompileSetter(MemberInfo member)
-		{
-			Contract.NotNull(member);
-			switch (member)
-			{
-				case FieldInfo field:
-				{
-					return CompileSetter(field);
-				}
-				case PropertyInfo prop:
-				{
-					return CompileSetter(prop);
-				}
-				default:
-				{
-					throw new ArgumentException("Can only compile setters for fields and properties", nameof(member));
-				}
-			}
-		}
-
-		/// <summary>Generates a getter Lambda <c>(TInstance instance) => instance.MEMBER</c></summary>
-		[Pure]
-		public static Func<TInstance, object> CompileGetter<TInstance>(MemberInfo member)
-		{
-			Contract.NotNull(member);
-			switch (member)
-			{
-				case FieldInfo field:
-				{
-					return CompileGetter<TInstance>(field);
-				}
-				case PropertyInfo prop:
-				{
-					return CompileGetter<TInstance>(prop);
-				}
-				default:
-				{
-					throw new ArgumentException("Can only compile getters for fields and properties", nameof(member));
-				}
-			}
-		}
-
-		/// <summary>Generates a setter Lambda <c>(TInstance instance, object value) => instance.MEMBER = (TVALUE) value</c></summary>
-		[Pure]
-		public static Action<TInstance, object?>? CompileSetter<TInstance>(MemberInfo member)
-		{
-			Contract.NotNull(member);
-
-			switch (member)
-			{
-				case FieldInfo field:
-				{
-					return CompileSetter<TInstance>(field);
-				}
-				case PropertyInfo prop:
-				{
-					return CompileSetter<TInstance>(prop);
-				}
-				default:
-				{
-					throw new ArgumentException("Can only compile setters for fields and properties", nameof(member));
-				}
-			}
-		}
 
 		/// <summary>Generates a getter Lambda <c>(object instance) => (object) ((TInstance) instance).FIELD</c></summary>
 		[Pure]
@@ -399,28 +147,6 @@ namespace Doxense.Serialization
 			var prmInstance = Expression.Parameter(typeof(object), "instance");
 			var body = Expression.Field(prmInstance.CastFromObject(field.DeclaringType!), field).BoxToObject();
 			return Expression.Lambda<Func<object, object>>(body, prmInstance).Compile();
-		}
-
-		/// <summary>Generates a getter Lambda <c>(TInstance instance) => (object) (instance.FIELD)</c></summary>
-		[Pure]
-		public static Func<TInstance, object> CompileGetter<TInstance>(this FieldInfo field)
-		{
-			Contract.NotNull(field);
-			// "object func(instance.TYPE instance) { return (object) instance.Field; }"
-			var prmInstance = Expression.Parameter(typeof(TInstance), "instance");
-			var body = Expression.Field(prmInstance, field).BoxToObject();
-			return Expression.Lambda<Func<TInstance, object>>(body, prmInstance).Compile();
-		}
-
-		/// <summary>Generates a getter Lambda <c>(TInstance instance) => instance.FIELD</c></summary>
-		public static Func<TInstance, TValue> CompileGetter<TInstance, TValue>(FieldInfo field)
-		{
-			Contract.NotNull(field);
-			Contract.Debug.Requires(typeof(TValue).IsAssignableFrom(field.FieldType));
-			// "TValue func(instance.TYPE target) { return (TValue) instance.Field; }"
-			var prmInstance = Expression.Parameter(typeof(TInstance), "instance");
-			var body = Expression.Field(prmInstance, field);
-			return Expression.Lambda<Func<TInstance, TValue>>(body, prmInstance).Compile();
 		}
 
 		/// <summary>Generates a setter Lambda <c>(object instance, object value) => ((TInstance) instance).FIELD = (TValue) value</c></summary>
@@ -439,22 +165,6 @@ namespace Doxense.Serialization
 			return Expression.Lambda<Action<object, object?>>(body, prmInstance, prmValue).Compile();
 		}
 
-		/// <summary>Generates a setter Lambda <c>(TInstance instance, object value) => instance.FIELD = (TValue) value</c></summary>
-		/// <returns>Returns <c>null</c> if the field is read-only</returns>
-		[Pure]
-		public static Action<TInstance, object?>? CompileSetter<TInstance>(this FieldInfo field)
-		{
-			Contract.NotNull(field);
-			if (field.IsInitOnly) return null; // readonly !
-
-			// "void func(instance.TYPE instance, object value) { instance.Field = (value.TYPE)value); }"
-			var prmInstance = Expression.Parameter(typeof(TInstance), "instance");
-			var prmValue = Expression.Parameter(typeof(object), "value");
-
-			var body = Expression.Assign(Expression.Field(prmInstance, field), prmValue.CastFromObject(field.FieldType));
-			return Expression.Lambda<Action<TInstance, object?>>(body, prmInstance, prmValue).Compile();
-		}
-
 		/// <summary>Generates a getter Lambda <c>(object instance) => (object) ((TInstance) instance).PROPERTY</c></summary>
 		[Pure]
 		public static Func<object, object> CompileGetter(this PropertyInfo property)
@@ -464,29 +174,6 @@ namespace Doxense.Serialization
 			var prmInstance = Expression.Parameter(typeof(object), "instance");
 			var body = Expression.Call(prmInstance.CastFromObject(property.DeclaringType!), property.GetGetMethod()!).BoxToObject();
 			return Expression.Lambda<Func<object, object>>(body, prmInstance).Compile();
-		}
-
-		/// <summary>Generates a getter Lambda <c>(TInstance instance) => (object) (instance.PROPERTY)</c></summary>
-		[Pure]
-		public static Func<TInstance, object> CompileGetter<TInstance>(this PropertyInfo property)
-		{
-			Contract.NotNull(property);
-			// "object func(instance.TYPE target) { return (object) instance.get_Property(); }"
-			var prmInstance = Expression.Parameter(typeof(TInstance), "instance");
-			var body = Expression.Call(prmInstance, property.GetGetMethod()!).BoxToObject();
-			return Expression.Lambda<Func<TInstance, object>>(body, prmInstance).Compile();
-		}
-
-		/// <summary>Generates a getter Lambda <c>(TInstance instance) => instance.PROPERTY</c></summary>
-		[Pure]
-		public static Func<TInstance, TValue> CompileGetter<TInstance, TValue>(PropertyInfo property)
-		{
-			Contract.NotNull(property);
-			Contract.Debug.Requires(typeof(TValue).IsAssignableFrom(property.PropertyType));
-			// "TValue func(instance.TYPE target) { return (TValue) instance.get_Property(); }"
-			var prmInstance = Expression.Parameter(typeof(TInstance), "instance");
-			var body = Expression.Call(prmInstance, property.GetGetMethod()!);
-			return Expression.Lambda<Func<TInstance, TValue>>(body, prmInstance).Compile();
 		}
 
 		/// <summary>Generates a setter Lambda <c>(object instance, object value) => ((TInstance) instance).PROPERTY = (TValue) value</c></summary>
@@ -502,21 +189,6 @@ namespace Doxense.Serialization
 			var prmValue = Expression.Parameter(typeof(object), "value");
 			var body = Expression.Call(prmInstance.CastFromObject(property.DeclaringType!), setMethod, prmValue.CastFromObject(property.PropertyType));
 			return Expression.Lambda<Action<object, object?>>(body, prmInstance, prmValue).Compile();
-		}
-
-		/// <summary>Generates a setter Lambda <c>(TInstance instance, object value) => instance.PROPERTY = (TValue) value</c></summary>
-		/// <returns>Returns <c>null</c> if the property is readonly</returns>
-		[Pure]
-		public static Action<TInstance, object?>? CompileSetter<TInstance>(this PropertyInfo property)
-		{
-			Contract.NotNull(property);
-			var setMethod = property.GetSetMethod();
-			if (setMethod == null) return null; // read-only !?
-			// "void func(instance.TYPE target, object value) { instance.set_Property((value.TYPE)value)); }"
-			var prmInstance = Expression.Parameter(typeof(TInstance), "instance");
-			var prmValue = Expression.Parameter(typeof(object), "value");
-			var body = Expression.Call(prmInstance, setMethod, prmValue.CastFromObject(property.PropertyType));
-			return Expression.Lambda<Action<TInstance, object?>>(body, prmInstance, prmValue).Compile();
 		}
 
 		#endregion
@@ -535,42 +207,26 @@ namespace Doxense.Serialization
 			return attribute != null;
 		}
 
-		/// <summary>Returns the value of a named <see cref="System.Attribute"/>'s property, using reflection.</summary>
-		/// <param name="attribute">Attribute to query</param>
-		/// <param name="name">Name of the property of the attribute</param>
-		/// <returns>Value of the property, or <see langword="null"/> if there is no such property</returns>
-		[Pure]
-		public static T? GetProperty<T>(
-			this Attribute attribute,
-			string name)
-		{
-			Contract.Debug.Requires(attribute != null && name != null);
-			var prop = attribute.GetType().GetProperty(name);
-			if (prop == null) return default!;
-			var get = prop.GetGetMethod();
-			if (get == null) return default!;
-			return (T?) (get.Invoke(attribute, null));
-		}
-
 		#region Type Extension Methods..
 
 		/// <summary>Returns the default value for a type</summary>
 		/// <returns><see langword="null"/>, <see langword="0"/>, <see langword="false"/>, DateTime.MinValue, ...</returns>
 		[Pure]
-		public static object? GetDefaultValue([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] this Type type)
+		public static object? GetDefaultValue(
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
+			this Type type)
 		{
+			// notes:
+			// - Activator.CreateInstance() will invoke the default ctor() on the struct, if there is one
+			// - RuntimeHelpers.GetUninitializedObject() is supposed to revert to the old "default(T)" behavior.
+
+			// BUT: When called with nullable types, GetUninitializedObject(typeof(Nullable<T>) returns the default(T), not null !?!
+			// => Activator.CreateInstance(typeof(int?)) == null
+			// => RuntimeHelpers.GetUninitializedObject(typeof(int?)) == 0
+			
 			return type.IsValueType
 				? Activator.CreateInstance(type)
 				: null; // Reference Type / Interface
-		}
-
-		/// <summary>Returns the default value for a parameter of a method call</summary>
-		/// <param name="parameter">Parameter</param>
-		/// <returns>Default value for this parameter if present (ex: <c>..., string foo = "hello world", ...)</c>; otherwise <see langword="null"/>, <see langword="0"/>, <see langword="false"/>, DateTime.MinValue, ...</returns>
-		[Pure]
-		public static object? GetDefaultValue(this ParameterInfo parameter)
-		{
-			return ((parameter.Attributes & ParameterAttributes.HasDefault) != 0) ? parameter.RawDefaultValue : GetDefaultValue(parameter.ParameterType);
 		}
 
 		/// <summary>Returns the full name of a type, that can be later passed to Type.GetType(...) to retrieve the original type</summary>
@@ -689,7 +345,14 @@ namespace Doxense.Serialization
 					var outerArgs = outer.GetGenericArguments(); // these will be the generic types
 					var concreteArgs = new Type[outerArgs.Length];
 					Array.Copy(innerArgs, 0, concreteArgs, 0, concreteArgs.Length);
+
+					//note: we only make a generic version of the type to get its name, and will not invoke any member at runtime
+					#pragma warning disable IL3050
+					#pragma warning disable IL2055
 					outer = outer.MakeGenericType(concreteArgs);
+					#pragma warning restore IL2055
+					#pragma warning restore IL3050
+					
 					outerOffset = outerArgs.Length;
 				}
 
@@ -913,11 +576,11 @@ namespace Doxense.Serialization
 
 			if (genericType.IsInterface)
 			{ // we are looking for an interface...
-				foreach (var interf in type.GetInterfaces())
+				foreach (var t in type.GetInterfaces())
 				{
 					// warning: GetInterfaces() will return the "closed" generic types, which are not equal to typeof(IFoo<>)
 					// => we need to compare them using GetGenericTypeDefinition()
-					if (interf.IsSameGenericType(genericType)) return interf;
+					if (t.IsSameGenericType(genericType)) return t;
 				}
 				return null;
 			}
@@ -981,14 +644,6 @@ namespace Doxense.Serialization
 			return !type.IsValueType || IsNullableType(type);
 		}
 
-		/// <summary>Tests if an instance of type is dynamic (DLR)</summary>
-		[Pure]
-		public static bool IsDynamicType(this Type type)
-		{
-			// All dynamic objects (ExpandoObject, DynamicObject, ....) implement the interface IDynamicMetaObjectProvider
-			return typeof(IDynamicMetaObjectProvider).IsAssignableFrom(type);
-		}
-
 		/// <summary>Tests if a type is an anonymous type generated by the compiler (ie: <c>new { foo = ..., bar = .... }</c>)</summary>
 		[Pure]
 		public static bool IsAnonymousType(this Type type)
@@ -1010,29 +665,6 @@ namespace Doxense.Serialization
 				&& typeof(object) == type.BaseType
 				&& (type.Name.StartsWith("<>f__AnonymousType", StringComparison.Ordinal) || type.Name.StartsWith("VB$AnonymousType", StringComparison.Ordinal));
 				//&& type.IsDefined(typeof(System.Runtime.CompilerServices.CompilerGeneratedAttribute), false);
-		}
-
-		/// <summary>Tests if a method of a type is overriding the method from a base class</summary>
-		[Pure]
-		public static bool IsOverriding(
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)]
-			Type type,
-			string methodName
-		)
-		{
-			Contract.NotNull(type);
-			var method = type.GetMethod(methodName);
-			if (method == null) throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, "There is no method {0} on type {1}", methodName, type.GetFriendlyName()));
-			return IsOverriding(method);
-		}
-
-		/// <summary>Tests if a method of a type is overriding the method from a base class</summary>
-		[Pure]
-		public static bool IsOverriding(MethodInfo method)
-		{
-			// cf http://stackoverflow.com/questions/5746447/determine-whether-a-c-sharp-method-has-keyword-override-using-reflection
-			Contract.NotNull(method);
-			return method.DeclaringType == method.GetBaseDefinition().DeclaringType;
 		}
 
 		/// <summary>Returns the type returned by a 'Task-like' type (<c>Task</c>, <c>Task&gt;T&lt;</c>, <c>ValueTask&lt;T&gt;</c>, ...), or <see langword="null"/> if it is not a task.</summary>
