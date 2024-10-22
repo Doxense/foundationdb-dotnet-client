@@ -433,6 +433,7 @@ namespace Doxense.Collections.Lookup
 				m_current = default!;
 			}
 
+			/// <inheritdoc />
 			public bool MoveNext()
 			{
 				var grouping = m_grouping;
@@ -452,7 +453,8 @@ namespace Doxense.Collections.Lookup
 				return false;
 			}
 
-			public TElement Current
+			/// <inheritdoc />
+			public readonly TElement Current
 			{
 				[TargetedPatchingOptOut("Performance critical to inline this type of method across NGen image boundaries")]
 				[return: MaybeNull]
@@ -483,30 +485,22 @@ namespace Doxense.Collections.Lookup
 				m_current = default!;
 			}
 
-			[System.Runtime.TargetedPatchingOptOut("Performance critical to inline across NGen image boundaries")]
+			/// <inheritdoc />
 			public void Dispose()
 			{
 				//NOP
 			}
 		}
 
-		[TargetedPatchingOptOut("Performance critical to inline across NGen image boundaries")]
+		/// <summary>Returns an enumerator that iterates through the grouping.</summary>
 		public Enumerator GetEnumerator()
-		{
-			return new Enumerator(this);
-		}
+			=> new(this);
 
-		[TargetedPatchingOptOut("Performance critical to inline across NGen image boundaries")]
 		IEnumerator<TElement> IEnumerable<TElement>.GetEnumerator()
-		{
-			return new Enumerator(this);
-		}
+			=> new Enumerator(this);
 
-		[TargetedPatchingOptOut("Performance critical to inline across NGen image boundaries")]
 		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
-		{
-			return new Enumerator(this);
-		}
+			=> new Enumerator(this);
 
 		#endregion
 

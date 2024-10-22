@@ -878,6 +878,7 @@ namespace Doxense.Collections.Generic
 		internal static InvalidOperationException ErrorStoreVersionChanged()
 			=> new("The version of the store has changed. This usually means that the collection has been modified while it was being enumerated");
 
+		/// <summary>Enumerates the elements stored in a <see cref="ColaOrderedSet{T}"/></summary>
 		[StructLayout(LayoutKind.Sequential)]
 		public struct Enumerator<T> : IEnumerator<T>
 		{
@@ -898,6 +899,7 @@ namespace Doxense.Collections.Generic
 				Contract.Ensures(m_max >= m_min);
 			}
 
+			/// <inheritdoc />
 			public bool MoveNext()
 			{
 				if (m_max < m_min)
@@ -939,10 +941,13 @@ namespace Doxense.Collections.Generic
 				return true;
 			}
 
-			public T Current => m_current!;
+			/// <inheritdoc />
+			public readonly T Current => m_current!;
 
-			public bool Reverse => m_reverse;
+			/// <summary>Set to <see langword="true"/> if the store is enumerated in reverse order</summary>
+			public readonly bool Reverse => m_reverse;
 
+			/// <inheritdoc />
 			public void Dispose()
 			{
 				// we are a struct that can be copied by value, so there is no guarantee that Dispose() will accomplish anything anyway...

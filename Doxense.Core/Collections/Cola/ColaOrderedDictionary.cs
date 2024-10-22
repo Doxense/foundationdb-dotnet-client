@@ -480,6 +480,7 @@ namespace Doxense.Collections.Generic
 #endif
 		}
 
+		/// <summary>Enumerates the key/value pairs stored in a <see cref="ColaOrderedDictionary{TKey,TValue}"/></summary>
 		[StructLayout(LayoutKind.Sequential)]
 		public struct Enumerator : IEnumerator<KeyValuePair<TKey, TValue>>
 		{
@@ -491,9 +492,10 @@ namespace Doxense.Collections.Generic
 			{
 				m_version = parent.m_version;
 				m_parent = parent;
-				m_iterator = new ColaStore.Enumerator<KeyValuePair<TKey, TValue>>(parent.m_items, reverse);
+				m_iterator = new(parent.m_items, reverse);
 			}
 
+			/// <inheritdoc />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public bool MoveNext()
 			{
@@ -505,8 +507,10 @@ namespace Doxense.Collections.Generic
 				return m_iterator.MoveNext();
 			}
 
-			public KeyValuePair<TKey, TValue> Current => m_iterator.Current;
+			/// <inheritdoc />
+			public readonly KeyValuePair<TKey, TValue> Current => m_iterator.Current;
 
+			/// <inheritdoc />
 			public void Dispose()
 			{
 				// we are a struct that can be copied by value, so there is no guarantee that Dispose() will accomplish anything anyway...

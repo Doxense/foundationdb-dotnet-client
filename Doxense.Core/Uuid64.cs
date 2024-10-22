@@ -711,6 +711,7 @@ namespace System
 
 		#region IEquatable / IComparable...
 
+		/// <inheritdoc />
 		public override bool Equals(object? obj)
 		{
 			switch (obj)
@@ -723,16 +724,19 @@ namespace System
 			return false;
 		}
 
+		/// <inheritdoc />
 		public override int GetHashCode()
 		{
 			return ((int) m_value) ^ (int) (m_value >> 32);
 		}
 
+		/// <inheritdoc />
 		public bool Equals(Uuid64 other)
 		{
 			return m_value == other.m_value;
 		}
 
+		/// <inheritdoc />
 		public int CompareTo(Uuid64 other)
 		{
 			return m_value.CompareTo(other.m_value);
@@ -1146,20 +1150,24 @@ namespace System
 			private Comparer()
 			{ }
 
+			/// <inheritdoc />
 			public bool Equals(Uuid64 x, Uuid64 y)
 			{
 				return x.m_value == y.m_value;
 			}
 
+			/// <inheritdoc />
 			public int GetHashCode(Uuid64 obj)
 			{
 				return obj.m_value.GetHashCode();
 			}
 
+			/// <inheritdoc />
 			public int Compare(Uuid64 x, Uuid64 y)
 			{
 				return x.m_value.CompareTo(y.m_value);
 			}
+			
 		}
 
 		/// <summary>Generates 64-bit UUIDs using a secure random number generator</summary>

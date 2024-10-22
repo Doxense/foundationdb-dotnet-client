@@ -249,6 +249,7 @@ namespace System
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int GetLength() => 10 + 2 * (this.Flags & FLAGS_HAS_VERSION);
 
+		/// <inheritdoc />
 		public override string ToString()
 		{
 			if (this.HasUserVersion)
@@ -557,16 +558,19 @@ namespace System
 
 		#region Equality, Comparision, ...
 
+		/// <inheritdoc />
 		public override bool Equals(object? obj)
 		{
 			return obj is VersionStamp vs && Equals(vs);
 		}
 
+		/// <inheritdoc />
 		public override int GetHashCode()
 		{
 			return HashCode.Combine(this.TransactionVersion.GetHashCode(), (int) this.TransactionOrder, (int) this.UserVersion, (int) this.Flags);
 		}
 
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(VersionStamp other)
 		{
@@ -589,6 +593,7 @@ namespace System
 			return !left.Equals(right);
 		}
 
+		/// <inheritdoc />
 		[Pure]
 		public int CompareTo(VersionStamp other)
 		{

@@ -827,32 +827,39 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
+		/// <summary>Gets the number of elements in the <see cref="JsonObject"/></summary>
 		public int Count => m_items.Count;
 
 		ICollection<string> IDictionary<string, JsonValue>.Keys => m_items.Keys;
 
 		IEnumerable<string> IReadOnlyDictionary<string, JsonValue>.Keys => m_items.Keys;
 
+		/// <summary>Gets an enumerable collection that contains the keys in the <see cref="JsonObject"/>.</summary>
 		public Dictionary<string, JsonValue>.KeyCollection Keys => m_items.Keys;
 
 		ICollection<JsonValue> IDictionary<string, JsonValue>.Values => m_items.Values;
 
 		IEnumerable<JsonValue> IReadOnlyDictionary<string, JsonValue>.Values => m_items.Values;
 
+		/// <summary>Gets an enumerable collection that contains the values in the <see cref="JsonObject"/>.</summary>
 		public Dictionary<string, JsonValue>.ValueCollection Values => m_items.Values;
 
+		/// <summary>Returns an enumerator that iterates through the key/value pairs in the <see cref="JsonObject"/>.</summary>
 		public Dictionary<string, JsonValue>.Enumerator GetEnumerator() => m_items.GetEnumerator();
 
 		IEnumerator<KeyValuePair<string, JsonValue>> IEnumerable<KeyValuePair<string, JsonValue>>.GetEnumerator() => m_items.GetEnumerator();
 
 		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => m_items.GetEnumerator();
 
+		/// <inheritdoc cref="JsonValue.IsReadOnly" />
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public override bool IsReadOnly => m_readOnly;
 
+		/// <summary>Gets the <see cref="IEqualityComparer{T}"/> that is used to determine the equality of keys for the object</summary>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public IEqualityComparer<string> Comparer => m_items.Comparer;
 
+		/// <inheritdoc cref="JsonValue.this[string]" />
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		[AllowNull]
 		public override JsonValue this[string key]
@@ -864,6 +871,7 @@ namespace Doxense.Serialization.Json
 			set => Set(key, value);
 		}
 
+		/// <inheritdoc cref="JsonValue.this[ReadOnlySpan{char}]" />
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		[AllowNull]
 		public override JsonValue this[ReadOnlySpan<char> key]
@@ -875,6 +883,7 @@ namespace Doxense.Serialization.Json
 			set => Set(key, value);
 		}
 
+		/// <inheritdoc cref="JsonValue.TryGetPathValue(string,out Doxense.Serialization.Json.JsonValue)" />
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		[ContractAnnotation("halt<=key:null; =>true,value:notnull; =>false,value:null")]
 		public override bool TryGetValue(string key, [MaybeNullWhen(false)] out JsonValue value)
@@ -882,7 +891,7 @@ namespace Doxense.Serialization.Json
 			return m_items.TryGetValue(key, out value);
 		}
 
-		/// <inheritdoc/>
+		/// <inheritdoc cref="JsonValue.TryGetValue(ReadOnlySpan{char},out Doxense.Serialization.Json.JsonValue)" />
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		[ContractAnnotation("halt<=key:null; =>true,value:notnull; =>false,value:null")]
 		public override bool TryGetValue(ReadOnlySpan<char> key, [MaybeNullWhen(false)] out JsonValue value)
@@ -952,7 +961,8 @@ namespace Doxense.Serialization.Json
 #endif
 		}
 
-		/// <inheritdoc/>
+		/// <summary>Adds an element to this <see cref="JsonObject"/></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public void Add(string key, JsonValue? value)
 		{
@@ -961,6 +971,8 @@ namespace Doxense.Serialization.Json
 			m_items.Add(key, value ?? JsonNull.Null);
 		}
 
+		/// <summary>Adds an element to this <see cref="JsonObject"/></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		public void Add(ReadOnlySpan<char> key, JsonValue? value)
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
@@ -968,6 +980,8 @@ namespace Doxense.Serialization.Json
 			m_items.Add(key.ToString(), value ?? JsonNull.Null);
 		}
 
+		/// <summary>Adds an element to this <see cref="JsonObject"/>, only if it was not present before</summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public bool TryAdd(string key, JsonValue? value)
 		{
@@ -975,6 +989,8 @@ namespace Doxense.Serialization.Json
 			return m_items.TryAdd(key, value ?? JsonNull.Null);
 		}
 
+		/// <summary>Adds an element to this <see cref="JsonObject"/>, only if it was not present before</summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public bool TryAdd(ReadOnlySpan<char> key, JsonValue? value)
 		{
@@ -986,7 +1002,8 @@ namespace Doxense.Serialization.Json
 #endif
 		}
 
-		/// <inheritdoc/>
+		/// <summary>Adds an element to this <see cref="JsonObject"/></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public void Add(KeyValuePair<string, JsonValue> item)
 		{
@@ -995,6 +1012,8 @@ namespace Doxense.Serialization.Json
 			m_items.Add(item.Key, item.Value ?? JsonNull.Null);
 		}
 
+		/// <summary>Adds an element to this <see cref="JsonObject"/></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public void Add((string Key, JsonValue? Value) item)
 		{
@@ -1007,6 +1026,8 @@ namespace Doxense.Serialization.Json
 
 		#region Mutable...
 
+		/// <summary>Adds several elements to this <see cref="JsonObject"/></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRange(ReadOnlySpan<KeyValuePair<string, JsonValue>> items)
 		{
@@ -1026,6 +1047,8 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
+		/// <summary>Adds several elements to this <see cref="JsonObject"/></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRange(ReadOnlySpan<(string Key, JsonValue? Value)> items)
 		{
@@ -1044,6 +1067,8 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
+		/// <summary>Adds several elements to this <see cref="JsonObject"/></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddValues<TValue>(ReadOnlySpan<(string Key, TValue Value)> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
@@ -1062,6 +1087,7 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
+		/// <summary>Adds several elements to this <see cref="JsonObject"/></summary>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRange(KeyValuePair<string, JsonValue>[] items)
 		{
@@ -1069,6 +1095,7 @@ namespace Doxense.Serialization.Json
 			return AddRange(items.AsSpan());
 		}
 
+		/// <summary>Adds several elements to this <see cref="JsonObject"/></summary>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRange((string, JsonValue?)[] items)
 		{
@@ -1076,6 +1103,8 @@ namespace Doxense.Serialization.Json
 			return AddRange(items.AsSpan());
 		}
 
+		/// <summary>Adds the content of an existing dictionary to this <see cref="JsonObject"/></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRange(IDictionary<string, JsonValue> items)
 		{
@@ -1150,6 +1179,8 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
+		/// <summary>Adds several elements to this <see cref="JsonObject"/></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 #if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(-1)]
@@ -1200,6 +1231,8 @@ namespace Doxense.Serialization.Json
 
 		}
 
+		/// <summary>Adds several elements to this <see cref="JsonObject"/></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRange(IEnumerable<(string Key, JsonValue Value)> items)
 		{
@@ -1246,6 +1279,8 @@ namespace Doxense.Serialization.Json
 
 		#region Immutable...
 
+		/// <summary>Adds several read-only elements to this <see cref="JsonObject"/></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRangeReadOnly(ReadOnlySpan<KeyValuePair<string, JsonValue>> items)
 		{
@@ -1265,6 +1300,8 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
+		/// <summary>Adds several read-only elements to this <see cref="JsonObject"/></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRangeReadOnly(ReadOnlySpan<(string Key, JsonValue? Value)> items)
 		{
@@ -1284,6 +1321,7 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
+		/// <summary>Adds several read-only elements to this <see cref="JsonObject"/></summary>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRangeReadOnly(KeyValuePair<string, JsonValue>[] items)
 		{
@@ -1291,6 +1329,7 @@ namespace Doxense.Serialization.Json
 			return AddRangeReadOnly(items.AsSpan());
 		}
 
+		/// <summary>Adds several read-only elements to this <see cref="JsonObject"/></summary>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRangeReadOnly((string Key, JsonValue? Value)[] items)
 		{
@@ -1298,12 +1337,13 @@ namespace Doxense.Serialization.Json
 			return AddRangeReadOnly(items.AsSpan());
 		}
 
-		/// <summary>Add multiple fields, converting them read-only if required</summary>
+		/// <summary>Adds several read-only elements to this <see cref="JsonObject"/></summary>
 		/// <param name="items">Set of elements to add. If some values are mutable, a read-only copy will be added instead.</param>
 		/// <returns>Same instance (for chaining)</returns>
 		/// <remarks>
 		/// <para>Fields that already exist will be overwritten.</para>
 		/// <para>For performance reasons, added JSON Objects or Arrays should already be read-only, otherwise a deep-copy will be performed.</para></remarks>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRangeReadOnly(IDictionary<string, JsonValue> items)
 		{
@@ -1382,6 +1422,8 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
+		/// <summary>Adds several read-only elements to this <see cref="JsonObject"/></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRangeReadOnly(IEnumerable<KeyValuePair<string, JsonValue>> items)
 		{
@@ -1422,6 +1464,8 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		/// <summary>Adds several read-only elements to this <see cref="JsonObject"/></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRangeReadOnly(IEnumerable<(string Key, JsonValue Value)> items)
 		{
@@ -1466,6 +1510,8 @@ namespace Doxense.Serialization.Json
 
 		#region Mutable...
 
+		/// <summary>Adds several elements to this <see cref="JsonObject"/></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddValues<TValue>(ReadOnlySpan<KeyValuePair<string, TValue>> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
@@ -1484,6 +1530,8 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
+		/// <summary>Adds several elements to this <see cref="JsonObject"/></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddValues<TValue>(KeyValuePair<string, TValue>[]? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
@@ -1494,6 +1542,8 @@ namespace Doxense.Serialization.Json
 			return AddValues<TValue>(items.AsSpan(), settings, resolver);
 		}
 
+		/// <summary>Adds several elements to this <see cref="JsonObject"/></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddValues<TValue>(IDictionary<string, TValue>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
@@ -1522,6 +1572,8 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
+		/// <summary>Adds several elements to this <see cref="JsonObject"/></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddValues<TValue>(IEnumerable<KeyValuePair<string, TValue>>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
@@ -1558,6 +1610,8 @@ namespace Doxense.Serialization.Json
 
 		#region Immutable...
 
+		/// <summary>Adds several read-only elements to this <see cref="JsonObject"/></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddValuesReadOnly<TValue>(ReadOnlySpan<KeyValuePair<string, TValue>> items)
 		{
@@ -1576,6 +1630,7 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
+		/// <summary>Adds several read-only elements to this <see cref="JsonObject"/></summary>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddValuesReadOnly<TValue>(KeyValuePair<string, TValue>[] items)
 		{
@@ -1583,6 +1638,8 @@ namespace Doxense.Serialization.Json
 			return AddValuesReadOnly<TValue>(items.AsSpan());
 		}
 
+		/// <summary>Adds several read-only elements to this <see cref="JsonObject"/></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddValuesReadOnly<TValue>(Dictionary<string, TValue> items)
 		{
@@ -1602,6 +1659,8 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
+		/// <summary>Adds several read-only elements to this <see cref="JsonObject"/></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddValuesReadOnly<TValue>(List<KeyValuePair<string, TValue>> items)
 		{
@@ -1621,6 +1680,8 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
+		/// <summary>Adds several read-only elements to this <see cref="JsonObject"/></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddValuesReadOnly<TValue>(IEnumerable<KeyValuePair<string, TValue>> items)
 		{
@@ -1668,6 +1729,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="key">The key of the element to remove.</param>
 		/// <exception cref="T:System.ArgumentNullException"><paramref name="key" /> is <see langword="null" />.</exception>
 		/// <returns><see langword="true" /> if the element is successfully found and removed; otherwise, <see langword="false" />.</returns>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public bool Remove(string key)
 		{
@@ -1680,6 +1742,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="key">The key of the element to remove.</param>
 		/// <exception cref="T:System.ArgumentNullException"><paramref name="key" /> is <see langword="null" />.</exception>
 		/// <returns><see langword="true" /> if the element is successfully found and removed; otherwise, <see langword="false" />.</returns>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public bool Remove(ReadOnlySpan<char> key)
 		{
@@ -1697,6 +1760,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="key">The key of the element to remove.</param>
 		/// <exception cref="T:System.ArgumentNullException"><paramref name="key" /> is <see langword="null" />.</exception>
 		/// <returns><see langword="true" /> if the element is successfully found and removed; otherwise, <see langword="false" />.</returns>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public bool Remove(ReadOnlyMemory<char> key)
 		{
@@ -1715,6 +1779,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="value">The removed element.</param>
 		/// <exception cref="T:System.ArgumentNullException"><paramref name="key" /> is <see langword="null" />.</exception>
 		/// <returns><see langword="true" /> if the element is successfully found and removed; otherwise, <see langword="false" />.</returns>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public bool Remove(string key, [MaybeNullWhen(false)] out JsonValue value)
 		{
@@ -1727,6 +1792,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="value">The removed element.</param>
 		/// <exception cref="T:System.ArgumentNullException"><paramref name="key" /> is <see langword="null" />.</exception>
 		/// <returns><see langword="true" /> if the element is successfully found and removed; otherwise, <see langword="false" />.</returns>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public bool Remove(ReadOnlySpan<char> key, [MaybeNullWhen(false)] out JsonValue value)
 		{
@@ -1745,8 +1811,9 @@ namespace Doxense.Serialization.Json
 		/// <param name="key">The key of the element to remove.</param>
 		/// <param name="actualKey">The removed key.</param>
 		/// <param name="value">The removed element.</param>
-		/// <exception cref="T:System.ArgumentNullException"><paramref name="key" /> is <see langword="null" />.</exception>
 		/// <returns><see langword="true" /> if the element is successfully found and removed; otherwise, <see langword="false" />.</returns>
+		/// <exception cref="T:System.ArgumentNullException"><paramref name="key" /> is <see langword="null" />.</exception>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public bool Remove(ReadOnlySpan<char> key, [MaybeNullWhen(false)] out string actualKey, [MaybeNullWhen(false)] out JsonValue value)
 		{
@@ -1758,8 +1825,9 @@ namespace Doxense.Serialization.Json
 		/// <param name="key">The key of the element to remove.</param>
 		/// <param name="actualKey">The removed key.</param>
 		/// <param name="value">The removed element.</param>
-		/// <exception cref="T:System.ArgumentNullException"><paramref name="key" /> is <see langword="null" />.</exception>
 		/// <returns><see langword="true" /> if the element is successfully found and removed; otherwise, <see langword="false" />.</returns>
+		/// <exception cref="T:System.ArgumentNullException"><paramref name="key" /> is <see langword="null" />.</exception>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public bool Remove(ReadOnlyMemory<char> key, [MaybeNullWhen(false)] out string actualKey, [MaybeNullWhen(false)] out JsonValue value)
 		{
@@ -1769,6 +1837,8 @@ namespace Doxense.Serialization.Json
 
 #endif
 
+		/// <summary>Removes the value with the specified key from this object, only if its value has not changed.</summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public bool Remove(KeyValuePair<string, JsonValue> keyValuePair)
 		{
@@ -1781,6 +1851,8 @@ namespace Doxense.Serialization.Json
 			return m_items.Remove(keyValuePair.Key);
 		}
 
+		/// <summary>Removes all the element of this object</summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public void Clear()
 		{
@@ -2145,16 +2217,24 @@ namespace Doxense.Serialization.Json
 
 		#region Setters...
 
+		/// <summary>Sets the value of the field in this object</summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonObject Set<TValue>(string key, TValue? value)
 		{
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+
 			m_items[key] = FromValue(value);
 			return this;
 		}
 
+		/// <summary>Sets the value of the field in this object</summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonObject Set<TValue>(ReadOnlySpan<char> key, TValue? value)
 		{
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+
 #if NET9_0_OR_GREATER
 			var items = m_items.GetAlternateLookup<ReadOnlySpan<char>>();
 			items[key] = FromValue(value);
@@ -2164,9 +2244,13 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
+		/// <summary>Sets the value of the field in this object</summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonObject Set<TValue>(ReadOnlyMemory<char> key, TValue? value)
 		{
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+
 			// if we can get the original string, we won't need to allocate
 			if (key.TryGetString(out var k))
 			{
@@ -2185,6 +2269,8 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
+		/// <summary>Sets the value of a field in the object</summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonObject Set(string key, JsonValue? value)
 		{
@@ -2194,6 +2280,8 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
+		/// <summary>Sets the value of a field in the object</summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonObject Set(ReadOnlySpan<char> key, JsonValue? value)
 		{
@@ -2209,6 +2297,8 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
+		/// <summary>Sets the value of a field in the object</summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public JsonObject Set(ReadOnlyMemory<char> key, JsonValue? value)
 		{
@@ -2232,6 +2322,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Adds the "_class" attribute with the resolved type id</summary>
 		/// <typeparam name="TContainer">Type that must be resolved</typeparam>
 		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		public JsonObject SetClassId<TContainer>(ICrystalJsonTypeResolver? resolver = null)
 		{
 			return SetClassId(typeof(TContainer), resolver);
@@ -2240,6 +2331,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Adds the "_class" attribute with the resolved type id</summary>
 		/// <param name="type">Type that must be resolved</param>
 		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		public JsonObject SetClassId(Type type, ICrystalJsonTypeResolver? resolver = null)
 		{
 			Contract.NotNull(type);
@@ -2255,6 +2347,7 @@ namespace Doxense.Serialization.Json
 			get => this[JsonTokens.CustomClassAttribute].ToStringOrDefault();
 			set
 			{
+				if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 				if (string.IsNullOrEmpty(value))
 				{
 					Remove(JsonTokens.CustomClassAttribute);
@@ -2404,6 +2497,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Apply a patch to the object (in place)</summary>
 		/// <param name="patch">Object that will be copied to the parent.</param>
 		/// <param name="deepCopy"></param>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		public void ApplyPatch(JsonObject patch, bool deepCopy = false)
 		{
 			if (m_readOnly) throw FailCannotMutateImmutableValue(this);
@@ -2942,6 +3036,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Order the keys of this object</summary>
 		/// <param name="comparer">Optional key comparer, or <see cref="StringComparer.Ordinal"/> if omitted.</param>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		public void SortKeys(IComparer<string>? comparer = null)
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
@@ -3051,6 +3146,7 @@ namespace Doxense.Serialization.Json
 			return CrystalJsonParser.DeserializeCustomClassOrStruct(this, typeof(object), CrystalJson.DefaultResolver);
 		}
 
+		/// <inheritdoc />
 		public override TValue? Bind<
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TValue>
 			(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null) where TValue : default
@@ -3065,6 +3161,7 @@ namespace Doxense.Serialization.Json
 			return (TValue?) res;
 		}
 
+		/// <inheritdoc />
 		public override object? Bind(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type? type,
 			ICrystalJsonTypeResolver? resolver = null)
@@ -3087,6 +3184,7 @@ namespace Doxense.Serialization.Json
 			return CrystalJson.SerializeJson(this, settings);
 		}
 
+		/// <inheritdoc />
 		public override void JsonSerialize(CrystalJsonWriter writer)
 		{
 			var state = writer.BeginObject();
@@ -3139,8 +3237,10 @@ namespace Doxense.Serialization.Json
 
 		#region IEquatable<...>
 
+		/// <inheritdoc />
 		public override bool Equals(JsonValue? other) => other is JsonObject obj && Equals(obj);
 
+		/// <inheritdoc />
 		public bool Equals(JsonObject? other)
 		{
 			if (other is null || other.Count != this.Count)
@@ -3159,6 +3259,7 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
+		/// <summary>Tests if two objects are considered equal, using a custom equality comparer</summary>
 		public bool Equals(JsonObject? other, IEqualityComparer<JsonValue>? comparer)
 		{
 			if (other is null || other.Count != this.Count)
@@ -3177,12 +3278,14 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
+		/// <inheritdoc />
 		public override int GetHashCode()
 		{
 			// the hash code must NEVER change, even if the object is mutated!
 			return RuntimeHelpers.GetHashCode(this);
 		}
 
+		/// <inheritdoc />
 		public override int CompareTo(JsonValue? other)
 		{
 			throw new NotSupportedException("JSON Object cannot be compared with other elements");
@@ -3220,6 +3323,7 @@ namespace Doxense.Serialization.Json
 			((ICollection<KeyValuePair<string, JsonValue>>) m_items).CopyTo(array, 0);
 		}
 
+		/// <inheritdoc />
 		public void CopyTo(KeyValuePair<string, JsonValue>[] array, int arrayIndex)
 		{
 			((ICollection<KeyValuePair<string, JsonValue>>) m_items).CopyTo(array, arrayIndex);

@@ -64,9 +64,11 @@ namespace Doxense.Serialization.Json
 			m_kind = kind;
 		}
 
+		/// <inheritdoc />
 		public override string ToString() => string.Empty;
 
-		[ContractAnnotation("=> null")]
+		/// <inheritdoc />
+		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public override string? ToStringOrDefault(string? defaultValue = null) => defaultValue;
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
@@ -140,12 +142,14 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		public override bool IsReadOnly => true; //note: null is immutable
 
+		/// <summary>Tests if this is the <see cref="JsonNull.Missing"/> singleton</summary>
 		public bool IsMissing
 		{
 			[Pure]
 			get => m_kind == NullKind.Missing;
 		}
 
+		/// <summary>Tests if this is the <see cref="JsonNull.Error"/> singleton</summary>
 		public bool IsError
 		{
 			[Pure]
@@ -325,6 +329,7 @@ namespace Doxense.Serialization.Json
 			return m_kind.CompareTo(jn.m_kind);
 		}
 
+		/// <summary>Returns always <see langword="false"/></summary>
 		public static explicit operator bool(JsonNull obj)
 		{
 			return false;
@@ -334,130 +339,189 @@ namespace Doxense.Serialization.Json
 
 		#region IJsonConvertible...
 
+		/// <inheritdoc />
 		public override bool ToBoolean(bool defaultValue = false) => defaultValue;
 
+		/// <inheritdoc />
 		public override bool? ToBooleanOrDefault(bool? defaultValue = null) => defaultValue;
 
+		/// <inheritdoc />
 		public override byte ToByte(byte defaultValue = default) => defaultValue;
 
+		/// <inheritdoc />
 		public override byte? ToByteOrDefault(byte? defaultValue = null) => defaultValue;
 
+		/// <inheritdoc />
 		public override sbyte ToSByte(sbyte defaultValue = default) => defaultValue;
 
+		/// <inheritdoc />
 		public override sbyte? ToSByteOrDefault(sbyte? defaultValue = null) => defaultValue;
 
+		/// <inheritdoc />
 		public override char ToChar(char defaultValue = default) => defaultValue;
 
+		/// <inheritdoc />
 		public override char? ToCharOrDefault(char? defaultValue = null) => defaultValue;
 
+		/// <inheritdoc />
 		public override short ToInt16(short defaultValue = default) => defaultValue;
 
+		/// <inheritdoc />
 		public override short? ToInt16OrDefault(short? defaultValue = null) => defaultValue;
 
+		/// <inheritdoc />
 		public override ushort ToUInt16(ushort defaultValue = default) => defaultValue;
 
+		/// <inheritdoc />
 		public override ushort? ToUInt16OrDefault(ushort? defaultValue = null) => defaultValue;
 
+		/// <inheritdoc />
 		public override int ToInt32(int defaultValue = 0) => defaultValue;
 
+		/// <inheritdoc />
 		public override int? ToInt32OrDefault(int? defaultValue = null) => defaultValue;
 
+		/// <inheritdoc />
 		public override uint ToUInt32(uint defaultValue = default) => defaultValue;
 
+		/// <inheritdoc />
 		public override uint? ToUInt32OrDefault(uint? defaultValue = null) => defaultValue;
 
+		/// <inheritdoc />
 		public override long ToInt64(long defaultValue = default) => defaultValue;
 
+		/// <inheritdoc />
 		public override long? ToInt64OrDefault(long? defaultValue = null) => defaultValue;
 
+		/// <inheritdoc />
 		public override ulong ToUInt64(ulong defaultValue = default) => defaultValue;
 
+		/// <inheritdoc />
 		public override ulong? ToUInt64OrDefault(ulong? defaultValue = null) => defaultValue;
 
+		/// <inheritdoc />
 		public override float ToSingle(float defaultValue = default) => defaultValue;
 
+		/// <inheritdoc />
 		public override float? ToSingleOrDefault(float? defaultValue = null) => defaultValue;
 
+		/// <inheritdoc />
 		public override double ToDouble(double defaultValue = default) => defaultValue;
 
+		/// <inheritdoc />
 		public override double? ToDoubleOrDefault(double? defaultValue = null) => defaultValue;
 
+		/// <inheritdoc />
 		public override Half ToHalf(Half defaultValue = default) => defaultValue;
 
+		/// <inheritdoc />
 		public override Half? ToHalfOrDefault(Half? defaultValue = null) => defaultValue;
 
+		/// <inheritdoc />
 		public override decimal ToDecimal(decimal defaultValue = default) => defaultValue;
 
+		/// <inheritdoc />
 		public override decimal? ToDecimalOrDefault(decimal? defaultValue = null) => defaultValue;
 
 #if NET8_0_OR_GREATER
 
+		/// <inheritdoc />
 		public override Int128 ToInt128(Int128 defaultValue = default) => defaultValue;
 
+		/// <inheritdoc />
 		public override Int128? ToInt128OrDefault(Int128? defaultValue = null) => defaultValue;
 
+		/// <inheritdoc />
 		public override UInt128 ToUInt128(UInt128 defaultValue = default) => defaultValue;
 
+		/// <inheritdoc />
 		public override UInt128? ToUInt128OrDefault(UInt128? defaultValue = null) => defaultValue;
 
 #endif
 
+		/// <inheritdoc />
 		public override Guid ToGuid(Guid defaultValue = default) => defaultValue;
 
+		/// <inheritdoc />
 		public override Guid? ToGuidOrDefault(Guid? defaultValue = null) => defaultValue;
 
+		/// <inheritdoc />
 		public override Uuid128 ToUuid128(Uuid128 defaultValue = default) => defaultValue;
 
+		/// <inheritdoc />
 		public override Uuid128? ToUuid128OrDefault(Uuid128? defaultValue = null) => defaultValue;
 
+		/// <inheritdoc />
 		public override Uuid96 ToUuid96(Uuid96 defaultValue = default) => defaultValue;
 
+		/// <inheritdoc />
 		public override Uuid96? ToUuid96OrDefault(Uuid96? defaultValue = null) => defaultValue;
 
+		/// <inheritdoc />
 		public override Uuid80 ToUuid80(Uuid80 defaultValue = default) => defaultValue;
 
+		/// <inheritdoc />
 		public override Uuid80? ToUuid80OrDefault(Uuid80? defaultValue = null) => defaultValue;
 
+		/// <inheritdoc />
 		public override Uuid64 ToUuid64(Uuid64 defaultValue = default) => defaultValue;
 
+		/// <inheritdoc />
 		public override Uuid64? ToUuid64OrDefault(Uuid64? defaultValue = null) => defaultValue;
 
+		/// <inheritdoc />
 		public override DateTime ToDateTime(DateTime defaultValue = default) => defaultValue;
 
+		/// <inheritdoc />
 		public override DateTime? ToDateTimeOrDefault(DateTime? defaultValue = null) => defaultValue;
 
+		/// <inheritdoc />
 		public override DateTimeOffset ToDateTimeOffset(DateTimeOffset defaultValue = default) => defaultValue;
 
+		/// <inheritdoc />
 		public override DateTimeOffset? ToDateTimeOffsetOrDefault(DateTimeOffset? defaultValue = null) => defaultValue;
 
+		/// <inheritdoc />
 		public override DateOnly ToDateOnly(DateOnly defaultValue = default) => defaultValue;
 
+		/// <inheritdoc />
 		public override DateOnly? ToDateOnlyOrDefault(DateOnly? defaultValue = null) => defaultValue;
 
+		/// <inheritdoc />
 		public override TimeOnly ToTimeOnly(TimeOnly defaultValue = default) => defaultValue;
 
+		/// <inheritdoc />
 		public override TimeOnly? ToTimeOnlyOrDefault(TimeOnly? defaultValue = null) => defaultValue;
 
+		/// <inheritdoc />
 		public override TimeSpan ToTimeSpan(TimeSpan defaultValue = default) => defaultValue;
 
+		/// <inheritdoc />
 		public override TimeSpan? ToTimeSpanOrDefault(TimeSpan? defaultValue = null) => defaultValue;
 
+		/// <inheritdoc />
 		public override TEnum ToEnum<TEnum>(TEnum defaultValue = default) => defaultValue;
 
+		/// <inheritdoc />
 		public override TEnum? ToEnumOrDefault<TEnum>(TEnum? defaultValue = null) => defaultValue;
 
+		/// <inheritdoc />
 		public override NodaTime.Instant ToInstant(NodaTime.Instant defaultValue = default) => defaultValue;
 
+		/// <inheritdoc />
 		public override NodaTime.Instant? ToInstantOrDefault(NodaTime.Instant? defaultValue = null) => defaultValue;
 
+		/// <inheritdoc />
 		public override NodaTime.Duration ToDuration(NodaTime.Duration defaultValue = default) => defaultValue;
 
+		/// <inheritdoc />
 		public override NodaTime.Duration? ToDurationOrDefault(NodaTime.Duration? defaultValue = null) => defaultValue;
 
 		#endregion
 
 		#region ISliceSerializable...
 
+		/// <inheritdoc />
 		public override void WriteTo(ref SliceWriter writer)
 		{
 			// 'null' => 6E 75 6C 6C

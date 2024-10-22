@@ -49,20 +49,25 @@ namespace Doxense.Collections.Tuples
 		/// <inheritdoc />
 		public int Count => 0;
 
+		/// <inheritdoc />
 		object IReadOnlyList<object?>.this[int index] => throw new InvalidOperationException("Tuple is empty");
 
+		/// <inheritdoc />
 		object IVarTuple.this[int index] => throw new InvalidOperationException("Tuple is empty");
 
 		/// <inheritdoc />
 		int System.Runtime.CompilerServices.ITuple.Length => 0;
 
+		/// <inheritdoc />
 		object System.Runtime.CompilerServices.ITuple.this[int index] => throw new InvalidOperationException("Tuple is empty");
 
 		//REVIEW: should we throw if from/to are not null, 0 or -1 ?
 		IVarTuple IVarTuple.this[int? from, int? to] => this;
 
+		/// <inheritdoc />
 		object IVarTuple.this[Index index] => TupleHelpers.FailIndexOutOfRange<object>(index, 0);
 
+		/// <inheritdoc />
 		IVarTuple IVarTuple.this[Range range]
 		{
 			get
@@ -80,6 +85,7 @@ namespace Doxense.Collections.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public IVarTuple Append<T1>(T1 value) => new STuple<T1>(value);
 
+		/// <inheritdoc />
 		public IVarTuple Concat(IVarTuple tuple)
 		{
 			Contract.NotNull(tuple);
@@ -87,11 +93,13 @@ namespace Doxense.Collections.Tuples
 			return tuple;
 		}
 
+		/// <inheritdoc />
 		public void CopyTo(object?[] array, int offset)
 		{
 			//NO-OP
 		}
 
+		/// <inheritdoc />
 		public IEnumerator<object?> GetEnumerator()
 		{
 			yield break;
@@ -102,41 +110,49 @@ namespace Doxense.Collections.Tuples
 			return this.GetEnumerator();
 		}
 
+		/// <inheritdoc />
 		public override string ToString()
 		{
 			return "()";
 		}
 
+		/// <inheritdoc />
 		public override int GetHashCode()
 		{
 			return 0;
 		}
 
+		/// <inheritdoc />
 		public bool Equals(IVarTuple? value)
 		{
 			return value != null && value.Count == 0;
 		}
 
+		/// <inheritdoc />
 		public override bool Equals(object? obj)
 		{
 			return Equals(obj as IVarTuple);
 		}
 
+		/// <inheritdoc />
 		bool System.Collections.IStructuralEquatable.Equals(object? other, System.Collections.IEqualityComparer comparer)
 		{
 			return other is IVarTuple tuple && tuple.Count == 0;
 		}
 
+		/// <inheritdoc />
 		int System.Collections.IStructuralEquatable.GetHashCode(System.Collections.IEqualityComparer comparer)
 		{
 			return 0;
 		}
 
+		/// <inheritdoc />
 		int IVarTuple.GetItemHashCode(int index, IEqualityComparer comparer)
 		{
 			return index == 0 ? 0 : throw new IndexOutOfRangeException();
 		}
 
+		/// <inheritdoc />
 		void ITupleSerializable.PackTo(ref TupleWriter writer)
 		{
 			//NOP
@@ -340,6 +356,8 @@ namespace Doxense.Collections.Tuples
 			return new ListTuple<object?>(copy ? items.ToArray().AsMemory() : items);
 		}
 
+		/// <summary>Wraps an array into a tuple with the same items</summary>
+		/// <remarks>Changing the array will impact the tuple, which may break the expectations of some consumers, who assume that a tuple is immutable.</remarks>
 		public static IVarTuple WrapArray<T>(T[] items)
 		{
 			Contract.NotNull(items);
@@ -347,19 +365,15 @@ namespace Doxense.Collections.Tuples
 			return new ListTuple<T>(items.AsMemory());
 		}
 
-		public static IVarTuple WrapArray<T>(T[] items, int offset, int count)
-		{
-			if (count == 0) return STuple.Empty;
-			return new ListTuple<T>(items.AsMemory(offset, count));
-		}
-
+		/// <summary>Wraps an array into a tuple with the same items</summary>
+		/// <remarks>Changing the array will impact the tuple, which may break the expectations of some consumers, who assume that a tuple is immutable.</remarks>
 		public static IVarTuple WrapArray<T>(ReadOnlyMemory<T> items)
 		{
 			if (items.Length == 0) return STuple.Empty;
 			return new ListTuple<T>(items);
 		}
 
-		/// <summary>Create a new tuple, from an array of typed items</summary>
+		/// <summary>Creates a new tuple, from an array of typed items</summary>
 		/// <param name="items">Array of items</param>
 		/// <returns>Tuple with the same size as <paramref name="items"/> and where all the items are of type <typeparamref name="T"/></returns>
 		[Pure]
@@ -370,14 +384,14 @@ namespace Doxense.Collections.Tuples
 			return FromArray<T>(items.AsSpan());
 		}
 
-		/// <summary>Create a new tuple, from a section of an array of typed items</summary>
+		/// <summary>Creates a new tuple, from a section of an array of typed items</summary>
 		[Pure]
 		public static IVarTuple FromArray<T>(T[] items, int offset, int count)
 		{
 			return FromArray<T>(items.AsSpan(offset, count));
 		}
 
-		/// <summary>Create a new tuple, from a section of an array of typed items</summary>
+		/// <summary>Creates a new tuple, from a section of an array of typed items</summary>
 		[Pure]
 		public static IVarTuple FromArray<T>(ReadOnlySpan<T> items)
 		{
@@ -394,7 +408,7 @@ namespace Doxense.Collections.Tuples
 			}
 		}
 
-		/// <summary>Create a new tuple from a sequence of typed items</summary>
+		/// <summary>Creates a new tuple from a sequence of typed items</summary>
 		[Pure]
 		public static IVarTuple FromEnumerable<T>(IEnumerable<T> items)
 		{
@@ -470,126 +484,111 @@ namespace Doxense.Collections.Tuples
 			return new ListTuple<object?>(tmp.AsMemory());
 		}
 
+		/// <summary>Converts a <see cref="ValueTuple{T1}"/> into the equivalent <see cref="STuple{T1}"/> of the same size</summary>
 		[Pure]
 		public static STuple<T1> Create<T1>(ValueTuple<T1> tuple)
-		{
-			return new STuple<T1>(tuple.Item1);
-		}
+			=> new(tuple.Item1);
 
+		/// <summary>Converts a <see cref="ValueTuple{T1}"/> into the equivalent <see cref="STuple{T1}"/> of the same size</summary>
 		[Pure]
 		public static STuple<T1> Create<T1>(ref ValueTuple<T1> tuple)
-		{
-			return new STuple<T1>(tuple.Item1);
-		}
+			=> new(tuple.Item1);
 
+		/// <summary>Converts a <see cref="ValueTuple{T1,T2}"/> into the equivalent <see cref="STuple{T1,T2}"/> of the same size</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 #if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
 #endif
 		public static STuple<T1, T2> Create<T1, T2>((T1, T2) tuple)
-		{
-			return new STuple<T1, T2>(tuple.Item1, tuple.Item2);
-		}
+			=> new(tuple.Item1, tuple.Item2);
 
+		/// <summary>Converts a <see cref="ValueTuple{T1,T2}"/> into the equivalent <see cref="STuple{T1,T2}"/> of the same size</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 #if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
 #endif
 		public static STuple<T1, T2> Create<T1, T2>(ref (T1, T2) tuple)
-		{
-			return new STuple<T1, T2>(tuple.Item1, tuple.Item2);
-		}
+			=> new(tuple.Item1, tuple.Item2);
 
+		/// <summary>Converts a <see cref="ValueTuple{T1,T2,T3}"/> into the equivalent <see cref="STuple{T1,T2,T3}"/> of the same size</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 #if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
 #endif
 		public static STuple<T1, T2, T3> Create<T1, T2, T3>((T1, T2, T3) tuple)
-		{
-			return new STuple<T1, T2, T3>(tuple.Item1, tuple.Item2, tuple.Item3);
-		}
+			=> new(tuple.Item1, tuple.Item2, tuple.Item3);
 
+		/// <summary>Converts a <see cref="ValueTuple{T1,T2,T3}"/> into the equivalent <see cref="STuple{T1,T2,T3}"/> of the same size</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 #if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
 #endif
 		public static STuple<T1, T2, T3> Create<T1, T2, T3>(ref (T1, T2, T3) tuple)
-		{
-			return new STuple<T1, T2, T3>(tuple.Item1, tuple.Item2, tuple.Item3);
-		}
+			=> new(tuple.Item1, tuple.Item2, tuple.Item3);
 
+		/// <summary>Converts a <see cref="ValueTuple{T1,T2,T3,T4}"/> into the equivalent <see cref="STuple{T1,T2,T3,T4}"/> of the same size</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 #if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
 #endif
 		public static STuple<T1, T2, T3, T4> Create<T1, T2, T3, T4>((T1, T2, T3, T4) tuple)
-		{
-			return new STuple<T1, T2, T3, T4>(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
-		}
+			=> new(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
 
+		/// <summary>Converts a <see cref="ValueTuple{T1,T2,T3,T4}"/> into the equivalent <see cref="STuple{T1,T2,T3,T4}"/> of the same size</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 #if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
 #endif
 		public static STuple<T1, T2, T3, T4> Create<T1, T2, T3, T4>(ref (T1, T2, T3, T4) tuple)
-		{
-			return new STuple<T1, T2, T3, T4>(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
-		}
+			=> new(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
 
+		/// <summary>Converts a <see cref="ValueTuple{T1,T2,T3,T4,T5}"/> into the equivalent <see cref="STuple{T1,T2,T3,T4,T5}"/> of the same size</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 #if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
 #endif
 		public static STuple<T1, T2, T3, T4, T5> Create<T1, T2, T3, T4, T5>((T1, T2, T3, T4, T5) tuple)
-		{
-			return new STuple<T1, T2, T3, T4, T5>(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
-		}
+			=> new(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
 
-
+		/// <summary>Converts a <see cref="ValueTuple{T1,T2,T3,T4,T5}"/> into the equivalent <see cref="STuple{T1,T2,T3,T4,T5}"/> of the same size</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 #if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
 #endif
 		public static STuple<T1, T2, T3, T4, T5> Create<T1, T2, T3, T4, T5>(ref (T1, T2, T3, T4, T5) tuple)
-		{
-			return new STuple<T1, T2, T3, T4, T5>(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
-		}
+			=> new(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
 
+		/// <summary>Converts a <see cref="ValueTuple{T1,T2,T3,T4,T5,T6}"/> into the equivalent <see cref="STuple{T1,T2,T3,T4,T5,T6}"/> of the same size</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 #if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
 #endif
 		public static STuple<T1, T2, T3, T4, T5, T6> Create<T1, T2, T3, T4, T5, T6>((T1, T2, T3, T4, T5, T6) tuple)
-		{
-			return new STuple<T1, T2, T3, T4, T5, T6>(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6);
-		}
+			=> new(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6);
 
+		/// <summary>Converts a <see cref="ValueTuple{T1,T2,T3,T4,T5,T6}"/> into the equivalent <see cref="STuple{T1,T2,T3,T4,T5,T6}"/> of the same size</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 #if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
 #endif
 		public static STuple<T1, T2, T3, T4, T5, T6> Create<T1, T2, T3, T4, T5, T6>(ref (T1, T2, T3, T4, T5, T6) tuple)
-		{
-			return new STuple<T1, T2, T3, T4, T5, T6>(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6);
-		}
+			=> new(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6);
 
+		/// <summary>Converts a <see cref="ValueTuple{T1,T2,T3,T4,T5,T6,T7}"/> into the equivalent <see cref="STuple{T1,T2,T3,T4,T5,T6,T7}"/> of the same size</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 #if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
 #endif
 		public static STuple<T1, T2, T3, T4, T5, T6, T7> Create<T1, T2, T3, T4, T5, T6, T7>((T1, T2, T3, T4, T5, T6, T7) tuple)
-		{
-			return new STuple<T1, T2, T3, T4, T5, T6, T7>(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6, tuple.Item7);
-		}
+			=> new(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6, tuple.Item7);
 
+		/// <summary>Converts a <see cref="ValueTuple{T1,T2,T3,T4,T5,T6,T7}"/> into the equivalent <see cref="STuple{T1,T2,T3,T4,T5,T6,T7}"/> of the same size</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 #if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
 #endif
 		public static STuple<T1, T2, T3, T4, T5, T6, T7> Create<T1, T2, T3, T4, T5, T6, T7>(ref (T1, T2, T3, T4, T5, T6, T7) tuple)
-		{
-			return new STuple<T1, T2, T3, T4, T5, T6, T7>(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6, tuple.Item7);
-		}
+			=> new(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6, tuple.Item7);
 
 		#endregion
 
@@ -616,6 +615,7 @@ namespace Doxense.Collections.Tuples
 			return !ReferenceEquals(right, null) && TupleHelpers.Equals(left, right, TupleComparisons.Default);
 		}
 
+		/// <summary>Methods for formatting tuples into strings</summary>
 		public static class Formatter
 		{
 
@@ -753,71 +753,93 @@ namespace Doxense.Collections.Tuples
 				_ => item.ToString() ?? TokenNull
 			};
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			//TODO: escape the string? If it contains \0 or control chars, it can cause problems in the console or debugger output
 			public static string Stringify(string? item) => TokenDoubleQuote + item + TokenDoubleQuote; /* "hello" */
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(bool item) => item ? TokenTrue : TokenFalse;
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(int item) => StringConverters.ToString(item);
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(uint item) => StringConverters.ToString(item);
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(long item) => StringConverters.ToString(item);
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(ulong item) => StringConverters.ToString(item);
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(double item) => item.ToString("R", CultureInfo.InvariantCulture);
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(float item) => item.ToString("R", CultureInfo.InvariantCulture);
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(char item) => TokenSingleQuote + new string(item, 1) + TokenSingleQuote; /* 'X' */
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(ReadOnlySpan<byte> item) => item.Length == 0 ? "``" : ('`' + Slice.Dump(item, item.Length) + '`');
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(Slice item) => item.IsNull ? "null" : item.Count == 0 ? "``" : ('`' + Slice.Dump(item, item.Count) + '`');
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(MutableSlice item) => item.IsNull ? "null" : '`' + Slice.Dump(item, item.Count) + '`';
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(byte[]? item) => item == null ? "null" : item.Length == 0 ? "``" : ('`' + Slice.Dump(item, item.Length) + '`');
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(ArraySegment<byte> item) => Stringify(item.AsSlice());
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(Guid item) => item.ToString("B", CultureInfo.InstalledUICulture); /* {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx} */
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(Uuid128 item) => item.ToString("B", CultureInfo.InstalledUICulture); /* {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx} */
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(Uuid96 item) => item.ToString("B", CultureInfo.InstalledUICulture); /* {XXXXXXXX-XXXXXXXX-XXXXXXXX} */
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(Uuid80 item) => item.ToString("B", CultureInfo.InstalledUICulture); /* {XXXX-XXXXXXXX-XXXXXXXX} */
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(Uuid64 item) => item.ToString("B", CultureInfo.InstalledUICulture); /* {XXXXXXXX-XXXXXXXX} */
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(DateTime item) => "\"" + item.ToString("O", CultureInfo.InstalledUICulture) + "\""; /* "yyyy-mm-ddThh:mm:ss.ffffff" */
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(DateTimeOffset item) => "\"" + item.ToString("O", CultureInfo.InstalledUICulture) + "\""; /* "yyyy-mm-ddThh:mm:ss.ffffff+hh:mm" */
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(NodaTime.Instant item) => "\"" + item.ToDateTimeUtc().ToString("O", CultureInfo.InstalledUICulture) + "\""; /* "yyyy-mm-ddThh:mm:ss.ffffff" */
 
 			/// <summary>Converts a list of object into a displaying string, for loggin/debugging purpose</summary>
@@ -943,10 +965,11 @@ namespace Doxense.Collections.Tuples
 
 		}
 
-		/// <summary>Helper to parse strings back into tuples</summary>
+		/// <summary>Methods for parsing tuples from strings</summary>
 		public static class Deformatter
 		{
 
+			/// <summary>Parses a tuple expression from a string</summary>
 			[Pure]
 			public static IVarTuple Parse(string expression)
 			{
@@ -957,7 +980,7 @@ namespace Doxense.Collections.Tuples
 				return tuple;
 			}
 
-			/// <summary>Parse a tuple expression at the start of a string</summary>
+			/// <summary>Parses a tuple expression at the start of a string</summary>
 			/// <param name="expression">String that starts with a valid Tuple expression, with optional extra characters</param>
 			/// <param name="tuple"></param>
 			/// <param name="tail"></param>
@@ -990,11 +1013,12 @@ namespace Doxense.Collections.Tuples
 				}
 
 				private readonly string Expression;
+				
 				private int Cursor;
 
-				public bool HasMore => this.Cursor < this.Expression.Length;
+				public readonly bool HasMore => this.Cursor < this.Expression.Length;
 
-				public string? GetTail() => this.Cursor < this.Expression.Length ? this.Expression.Substring(this.Cursor) : null;
+				public readonly string? GetTail() => this.Cursor < this.Expression.Length ? this.Expression[this.Cursor..] : null;
 
 				private char ReadNext()
 				{

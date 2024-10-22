@@ -650,7 +650,7 @@ namespace Doxense.Runtime.Converters
 		/// <summary>Returns a converter that converts <typeparamref name="TInput"/>s into <typeparamref name="TOutput"/>s</summary>
 		/// <typeparam name="TInput">Source type</typeparam>
 		/// <typeparam name="TOutput">Destination type</typeparam>
-		/// <returns>Valid converter for this types, or an exception if there are no known conversions</returns>
+		/// <returns>Valid converter for these types, or an exception if there are no known conversions</returns>
 		/// <exception cref="System.InvalidOperationException">No valid converter for these types was found</exception>
 		public static ITypeConverter<TInput, TOutput> GetConverter<TInput, TOutput>()
 		{
@@ -704,7 +704,7 @@ namespace Doxense.Runtime.Converters
 		/// <summary>Cast a boxed value (known to be of type <typeparamref name="T"/>) into an unboxed value</summary>
 		/// <typeparam name="T">Runtime type of the value</typeparam>
 		/// <param name="value">Value that is known to be of type <typeparamref name="T"/>, but is boxed into an object</param>
-		/// <returns>Original value casted into its runtime type</returns>
+		/// <returns>Original value cast into its runtime type</returns>
 		[Pure, ContractAnnotation("null=>null")]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static T Unbox<T>(object value)

@@ -92,7 +92,7 @@ namespace Doxense.Collections.Tuples
 		/// </example>
 		//REVIEW: TODO: consider dropping the negative indexing? We have Index now for this use-case!
 		[Pure]
-		TItem? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]TItem>(int index);
+		TItem? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(int index);
 
 		/// <summary>Create a new Tuple by appending a single new value at the end of this tuple</summary>
 		/// <typeparam name="TItem">Type of the new value</typeparam>
@@ -101,7 +101,7 @@ namespace Doxense.Collections.Tuples
 		/// <example><c>STuple.Create("Hello").Append("World")</c> => <c>("Hello", "World")</c></example>
 		/// <remarks>If <typeparamref name="TItem"/> is an <see cref="IVarTuple"/>, then it will be appended as a single element. If you need to append the *items* of a tuple, you must call <see cref="IVarTuple.Concat"/></remarks>
 		[Pure]
-		IVarTuple Append<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]TItem>(TItem value);
+		IVarTuple Append<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(TItem value);
 
 		/// <summary>Create a new Tuple by appending the items of another tuple at the end of this tuple</summary>
 		/// <param name="tuple">Tuple whose items must be appended at the end of the current tuple</param>

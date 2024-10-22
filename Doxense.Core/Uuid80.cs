@@ -444,6 +444,7 @@ namespace System
 
 		#region IEquatable / IComparable...
 
+		/// <inheritdoc />
 		public override bool Equals(object? obj)
 		{
 			switch (obj)
@@ -454,18 +455,21 @@ namespace System
 			return false;
 		}
 
+		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public override int GetHashCode()
 		{
 			return this.Hi.GetHashCode() ^ this.Lo.GetHashCode();
 		}
 
+		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(Uuid80 other)
 		{
 			return this.Hi == other.Hi & this.Lo == other.Lo;
 		}
 
+		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo(Uuid80 other)
 		{
@@ -838,20 +842,24 @@ namespace System
 			private Comparer()
 			{ }
 
+			/// <inheritdoc />
 			public bool Equals(Uuid80 x, Uuid80 y)
 			{
 				return x.Hi == y.Hi & x.Lo == y.Lo;
 			}
 
+			/// <inheritdoc />
 			public int GetHashCode(Uuid80 obj)
 			{
 				return obj.GetHashCode();
 			}
 
+			/// <inheritdoc />
 			public int Compare(Uuid80 x, Uuid80 y)
 			{
 				return x.CompareTo(y);
 			}
+			
 		}
 
 		/// <summary>Generates 80-bit UUIDs using a secure random number generator</summary>
@@ -895,7 +903,7 @@ namespace System
 				{
 					// get 10 bytes of randomness (0 allowed)
 					this.Rng.GetBytes(this.Scratch);
-					//note: do *NOT* call GetBytes(byte[], int, int) because it creates creates a temp buffer, calls GetBytes(byte[]) and copy the result back! (as of .NET 4.7.1)
+					//note: do *NOT* call GetBytes(byte[], int, int) because it creates a temp buffer, calls GetBytes(byte[]) and copy the result back! (as of .NET 4.7.1)
 					//TODO: PERF: use Span<byte> APIs once (if?) they become available!
 					return Uuid80.Read(this.Scratch);
 				}

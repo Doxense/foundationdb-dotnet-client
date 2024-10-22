@@ -257,7 +257,7 @@ namespace System
 			get => new(this.Array, this.Offset, this.Count);
 		}
 
-		/// <summary>Returns true is the slice is not null</summary>
+		/// <summary>Returns <see langword="true"/> is the slice is not null</summary>
 		/// <remarks>An empty slice is NOT considered null</remarks>
 		public bool HasValue
 		{
@@ -265,7 +265,7 @@ namespace System
 			get => this.Array is not null;
 		}
 
-		/// <summary>Returns true if the slice is null</summary>
+		/// <summary>Returns <see langword="true"/> if the slice is null</summary>
 		/// <remarks>An empty slice is NOT considered null</remarks>
 		public bool IsNull
 		{
@@ -273,7 +273,7 @@ namespace System
 			get => this.Array is null;
 		}
 
-		/// <summary>Return true if the slice is not null but contains 0 bytes</summary>
+		/// <summary>Return <see langword="true"/> if the slice is not null but contains 0 bytes</summary>
 		/// <remarks>A null slice is NOT empty</remarks>
 		public bool IsEmpty
 		{
@@ -281,31 +281,33 @@ namespace System
 			get => this.Count == 0 && this.Array is not null;
 		}
 
-		/// <summary>Returns true if the slice is null or empty, or false if it contains at least one byte</summary>
+		/// <summary>Returns <see langword="true"/> if the slice is null or empty, or <see langword="false"/> if it contains at least one byte</summary>
 		public bool IsNullOrEmpty
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => this.Count == 0;
 		}
 
-		/// <summary>Returns true if the slice contains at least one byte, or false if it is null or empty</summary>
+		/// <summary>Returns <see langword="true"/> if the slice contains at least one byte, or <see langword="false"/> if it is null or empty</summary>
 		public bool IsPresent
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => this.Count != 0;
 		}
 
+		/// <summary>Throws an exception if the slice is equal to <see cref="Slice.Nil"/></summary>
 		public static void ThrowIfNull(Slice argument, string? message = null, [CallerArgumentExpression("argument")] string? paramName = null)
 		{
 			if (argument.IsNull) throw ThrowHelper.ArgumentException(paramName!, message ?? "Slice cannot be Nil");
 		}
 
+		/// <summary>Throws an exception if the slice is equal to <see cref="Slice.Nil"/> or <see cref="Slice.Empty"/></summary>
 		public static void ThrowIfNullOrEmpty(Slice argument, string? message = null, [CallerArgumentExpression("argument")] string? paramName = null)
 		{
 			if (argument.IsNullOrEmpty) throw ThrowHelper.ArgumentException(paramName!, message ?? "Slice cannot be Nil or Empty");
 		}
 
-		/// <summary>Replace <see cref="Nil"/> with <see cref="Empty"/></summary>
+		/// <summary>Replaces <see cref="Nil"/> with <see cref="Empty"/></summary>
 		/// <returns>The same slice if it is not <see cref="Nil"/>; otherwise, <see cref="Empty"/></returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Slice OrEmpty()
@@ -1269,7 +1271,7 @@ namespace System
 
 		/// <summary>Concatenate a sequence of slices into a single slice, allocated using a pool</summary>
 		/// <param name="pool">Pool used to allocate the buffer for the result</param>
-		/// <param name="args">List of spans to concatenante</param>
+		/// <param name="args">List of spans to concatenate</param>
 		/// <returns><see cref="SliceOwner"/> containing all the slices added one after the other</returns>
 		/// <remarks>The caller <b>MUST</b> dispose the result; otherwise, the buffer will not be returned to the pool</remarks>
 #if NET9_0_OR_GREATER
@@ -1297,6 +1299,7 @@ namespace System
 			return SliceOwner.Create(new Slice(tmp), pool);
 		}
 
+		/// <summary>Concatenate a sequence of slices into a single slice</summary>
 		public static Slice Concat(IEnumerable<Slice> args)
 		{
 			if (Doxense.Linq.Buffer<Slice>.TryGetSpan(args, out var span))
@@ -1336,6 +1339,7 @@ namespace System
 			}
 		}
 
+		/// <summary>Concatenate a sequence of slices into a single slice, allocated using a pool</summary>
 		public static SliceOwner Concat(ArrayPool<byte> pool, IEnumerable<Slice>? args)
 		{
 			if (args == null) return SliceOwner.Nil;
@@ -2001,6 +2005,7 @@ namespace System
 				: (b.CompareTo(c) <= 0 ? b : c);
 		}
 
+		/// <summary>Returns the lowest element in an array of keys</summary>
 		public static Slice Min(params Slice[] values)
 		{
 			switch (values.Length)
@@ -2021,6 +2026,7 @@ namespace System
 			}
 		}
 
+		/// <summary>Returns the lowest element in a span of keys</summary>
 #if NET9_0_OR_GREATER
 		public static Slice Min(params ReadOnlySpan<Slice> values)
 #else
@@ -2068,6 +2074,7 @@ namespace System
 				: (b.CompareTo(c) >= 0 ? b : c);
 		}
 
+		/// <summary>Returns the highest element in an array of keys</summary>
 		public static Slice Max(params Slice[] values)
 		{
 			switch (values.Length)
@@ -2088,6 +2095,7 @@ namespace System
 			}
 		}
 
+		/// <summary>Returns the highest element in a span of keys</summary>
 #if NET9_0_OR_GREATER
 		public static Slice Max(params ReadOnlySpan<Slice> values)
 #else
@@ -2255,6 +2263,7 @@ namespace System
 
 		#region ISliceSerializable
 
+		/// <inheritdoc />
 		public void WriteTo(ref SliceWriter writer)
 		{
 			writer.WriteBytes(this.Span);
@@ -2310,6 +2319,7 @@ namespace System
 			return Dump(this);
 		}
 
+		/// <inheritdoc cref="Slice.ToString()" />
 		public string ToString(string? format)
 		{
 			return ToString(format, null);
@@ -2322,7 +2332,7 @@ namespace System
 		/// <remarks>
 		/// The format <b>D</b> is the default, and produce a roundtrip-able version of the slice, using &lt;XX&gt; tokens for non-printable bytes.
 		/// The format <b>N</b> (or <b>n</b>) produces a compact hexadecimal string (without separators).
-		/// The format <b>X</b> (or <b>x</b>) produces an hexadecimal string with spaces between each bytes.
+		/// The format <b>X</b> (or <b>x</b>) produces a hexadecimal string with spaces between each byte.
 		/// The format <b>P</b> is the equivalent of calling <see cref="PrettyPrint()"/>.
 		/// </remarks>
 		public string ToString(string? format, IFormatProvider? provider)
@@ -2736,7 +2746,7 @@ namespace System
 			if (count != 0)
 			{
 				byte[]? array = this.Array;
-				if (array is null || (ulong) (uint) this.Offset + (ulong) (uint) count > (ulong) (uint) array.Length)
+				if (array is null || (uint) this.Offset + (uint) count > (uint) array.Length)
 				{
 					throw MalformedSlice(this);
 				}
@@ -2759,7 +2769,7 @@ namespace System
 			if (slice.Count > 0)
 			{
 				if (slice.IsNull) return UnsafeHelpers.Errors.SliceBufferNotNull();
-				if ((ulong) (uint) slice.Offset + (ulong) (uint) slice.Count > (ulong) (uint) slice.Array.Length) return UnsafeHelpers.Errors.SliceBufferTooSmall();
+				if ((uint) slice.Offset + (uint) slice.Count > (uint) slice.Array.Length) return UnsafeHelpers.Errors.SliceBufferTooSmall();
 			}
 			// maybe it's Lupus ?
 			return UnsafeHelpers.Errors.SliceInvalid();
@@ -2923,8 +2933,10 @@ namespace System
 				}
 			}
 
+			/// <inheritdoc cref="GCHandle.IsAllocated"/>
 			public readonly bool IsAllocated => this.Handle.IsAllocated;
 
+			/// <inheritdoc />
 			public void Dispose()
 			{
 				if (this.Owner is not null)

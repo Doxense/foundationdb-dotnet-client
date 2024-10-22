@@ -35,6 +35,7 @@ namespace Doxense.Serialization
 	using System.Reflection;
 	using Doxense.Runtime;
 
+	/// <summary>Extensions methods that add advanced features on <see cref="Type"/></summary>
 	[PublicAPI]
 	public static class TypeHelper
 	{
@@ -50,8 +51,8 @@ namespace Doxense.Serialization
 			{
 				null => null,
 				string name => name, // already a string
-				double d => d.ToString("R", CultureInfo.InvariantCulture), // we need to use "R" (roundtrip) so as not to loose the last digit
-				float f => f.ToString("R", CultureInfo.InvariantCulture), // we need to use "R" (roundtrip) so as not to loose the last digit
+				double d => d.ToString("R", CultureInfo.InvariantCulture), // we need to use "R" (roundtrip) so as not to lose the last digit
+				float f => f.ToString("R", CultureInfo.InvariantCulture), // we need to use "R" (roundtrip) so as not to lose the last digit
 				DateTime dt => dt.ToString("O", CultureInfo.InvariantCulture), // use ISO format
 				DateTimeOffset dto => dto.ToString("O", CultureInfo.InvariantCulture), // use ISO format
 				NodaTime.Instant t => NodaTime.Text.InstantPattern.ExtendedIso.Format(t), // use Extended ISO format
@@ -87,8 +88,6 @@ namespace Doxense.Serialization
 					return typeof(ReadOnlyCollection<>).MakeGenericType(type.GetGenericArguments());
 				}
 			}
-
-			//TODO: Hashtable/ArrayList ?
 
 			return null;
 		}
@@ -391,7 +390,7 @@ namespace Doxense.Serialization
 			}
 		}
 
-		/// <summary>Generates a getter Lambda <c>(object instance) => (object) ((TInstance) instance).FIELD)</c></summary>
+		/// <summary>Generates a getter Lambda <c>(object instance) => (object) ((TInstance) instance).FIELD</c></summary>
 		[Pure]
 		public static Func<object, object> CompileGetter(this FieldInfo field)
 		{
@@ -456,7 +455,7 @@ namespace Doxense.Serialization
 			return Expression.Lambda<Action<TInstance, object?>>(body, prmInstance, prmValue).Compile();
 		}
 
-		/// <summary>Generates a getter Lambda <c>(object instance) => (object) ((TInstance) instance).PROPERTY)</c></summary>
+		/// <summary>Generates a getter Lambda <c>(object instance) => (object) ((TInstance) instance).PROPERTY</c></summary>
 		[Pure]
 		public static Func<object, object> CompileGetter(this PropertyInfo property)
 		{
@@ -844,6 +843,16 @@ namespace Doxense.Serialization
 			return closedType != null;
 		}
 
+		/// <summary>Tests if a type implements <see cref="IEnumerable{T}"/> and returns the type of the enumerated elements when this is the case</summary>
+		/// <param name="type">Type of the inspected instance (ex: <c>List&lt;string&gt;</c>)</param>
+		/// <param name="elementType">When the method returns <see langword="true"/>, receives the types of the enumerated elements</param>
+		/// <returns><see langword="true"/> if the type implements <see cref="IEnumerable{T}"/>; otherwise, <see langword="false"/>.</returns>
+		/// <example><code>
+		/// typeof(List&lt;string&gt;).IsEnumerableType(out var elementType) == true; elementType == typeof(string)
+		/// typeof(Dictionary&lt;int, string&gt;).IsEnumerableType(out var elementType) == true; elementType == typeof(KeyValuePair&lt;int, string&gt;)
+		/// typeof(string).IsEnumerableType(out var elementType) == true; elementType == typeof(char)
+		/// typeof(int).IsEnumerableType(out var elementType) == false;
+		/// </code></example>
 		public static bool IsEnumerableType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] this Type type, [MaybeNullWhen(false)] out Type elementType)
 		{
 			if (type.IsArray)
@@ -863,6 +872,15 @@ namespace Doxense.Serialization
 			return false;
 		}
 
+		/// <summary>Tests if a type implements <see cref="IDictionary{TKey,TValue}"/> and returns the types of the keys and values when this is the case</summary>
+		/// <param name="type">Type of the inspected instance (ex: <c>List&lt;string&gt;</c>)</param>
+		/// <param name="keyType">When the method returns <see langword="true"/>, receives the types of the keys</param>
+		/// <param name="valueType">When the method returns <see langword="true"/>, receives the types of the values</param>
+		/// <returns><see langword="true"/> if the type implements <see cref="IDictionary{TKey, TValue}"/>; otherwise, <see langword="false"/>.</returns>
+		/// <example><code>
+		/// typeof(Dictionary&lt;int, string&gt;).IsDictionaryType(out var keyType, out var valueType) == true; keyType == typeof(int); valueType == typeof(string)
+		/// typeof(List&lt;KeyValuePair&lt;int, string&gt;&gt;).IsDictionaryType(...) == false
+		/// </code></example>
 		public static bool IsDictionaryType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] this Type type, [MaybeNullWhen(false)] out Type keyType, [MaybeNullWhen(false)] out Type valueType)
 		{
 			var dictionaryType = FindGenericType(type, typeof(IDictionary<,>));

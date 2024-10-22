@@ -264,6 +264,7 @@ namespace Doxense.Collections.Generic
 			}
 		}
 
+		/// <summary>Enumerates the elements stored in a <see cref="ColaOrderedSet{T}"/></summary>
 		[StructLayout(LayoutKind.Sequential)]
 		public struct Enumerator : IEnumerator<T>
 		{
@@ -275,9 +276,10 @@ namespace Doxense.Collections.Generic
 			{
 				m_version = parent.m_version;
 				m_parent = parent;
-				m_iterator = new ColaStore.Enumerator<T>(parent.m_items, reverse);
+				m_iterator = new(parent.m_items, reverse);
 			}
 
+			/// <inheritdoc />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public bool MoveNext()
 			{
@@ -289,8 +291,10 @@ namespace Doxense.Collections.Generic
 				return m_iterator.MoveNext();
 			}
 
-			public T Current => m_iterator.Current;
+			/// <inheritdoc />
+			public readonly T Current => m_iterator.Current;
 
+			/// <inheritdoc />
 			public void Dispose()
 			{
 				// we are a struct that can be copied by value, so there is no guarantee that Dispose() will accomplish anything anyway...

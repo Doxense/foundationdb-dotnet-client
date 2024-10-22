@@ -50,6 +50,8 @@ namespace Doxense.Serialization.Json
 		IEquatable<NodaTime.LocalDateTime>,
 		IEquatable<NodaTime.LocalDate>
 	{
+		
+		/// <summary>Returns the empty string</summary>
 		public static readonly JsonValue Empty = new JsonString(string.Empty);
 
 		private readonly string m_value;
@@ -62,41 +64,49 @@ namespace Doxense.Serialization.Json
 
 		#region Factory...
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonValue Return(string? value)
 		{
 			return value is null ? JsonNull.Null : value.Length == 0 ? JsonString.Empty : new JsonString(value);
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonValue Return(ReadOnlySpan<char> value)
 		{
 			return value.Length == 0 ? JsonString.Empty : new JsonString(value.ToString());
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonValue Return(System.Text.StringBuilder? value)
 		{
 			return value is null ? JsonNull.Null : value.Length == 0 ? JsonString.Empty : new JsonString(value.ToString());
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonString Return(char value)
 		{
 			return new JsonString(new string(value, 1));
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonValue Return(char? value)
 		{
 			return value is null ? JsonNull.Null : Return(value.Value);
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonValue Return(char[]? value, int offset, int count)
 		{
 			return count == 0 ? (value is null ? JsonNull.Null : JsonString.Empty) : new JsonString(new string(value!, offset, count));
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonValue Return(byte[]? value)
 		{
 			return value is null ? JsonNull.Null : value.Length == 0 ? JsonString.Empty : new JsonString(Convert.ToBase64String(value));
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonValue Return(Slice value)
 		{
 			return value.Count == 0
@@ -105,6 +115,7 @@ namespace Doxense.Serialization.Json
 				: new JsonString(value.ToBase64()!);
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonValue Return(ReadOnlySpan<byte> value)
 		{
 			return value.Length == 0
@@ -112,6 +123,7 @@ namespace Doxense.Serialization.Json
 				: new JsonString(Base64Encoding.ToBase64String(value));
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonValue Return(ArraySegment<byte> value)
 		{
 			return value.Count == 0
@@ -119,6 +131,7 @@ namespace Doxense.Serialization.Json
 				: new JsonString(Convert.ToBase64String(value.Array!, value.Offset, value.Count));
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonValue Return(Guid value)
 		{
 			return value != Guid.Empty
@@ -126,6 +139,7 @@ namespace Doxense.Serialization.Json
 				: JsonNull.Null;
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonValue Return(Guid? value)
 		{
 			Guid x;
@@ -134,6 +148,7 @@ namespace Doxense.Serialization.Json
 				: JsonNull.Null;
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonValue Return(Uuid128 value)
 		{
 			Guid x = value.ToGuid();
@@ -142,6 +157,7 @@ namespace Doxense.Serialization.Json
 				: JsonNull.Null;
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonValue Return(Uuid128? value)
 		{
 			Uuid128 x;
@@ -150,6 +166,7 @@ namespace Doxense.Serialization.Json
 				: JsonNull.Null;
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonValue Return(Uuid96 value)
 		{
 			return value != Uuid96.Empty
@@ -157,6 +174,7 @@ namespace Doxense.Serialization.Json
 				: JsonNull.Null;
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonValue Return(Uuid96? value)
 		{
 			Uuid96 x;
@@ -165,6 +183,7 @@ namespace Doxense.Serialization.Json
 				: JsonNull.Null;
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonValue Return(Uuid80 value)
 		{
 			return value != Uuid80.Empty
@@ -172,6 +191,7 @@ namespace Doxense.Serialization.Json
 				: JsonNull.Null;
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonValue Return(Uuid80? value)
 		{
 			Uuid80 x;
@@ -180,6 +200,7 @@ namespace Doxense.Serialization.Json
 				: JsonNull.Null;
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonValue Return(Uuid64 value)
 		{
 			return value != Uuid64.Empty
@@ -187,6 +208,7 @@ namespace Doxense.Serialization.Json
 				: JsonNull.Null;
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonValue Return(Uuid64? value)
 		{
 			Uuid64 x;
@@ -195,6 +217,7 @@ namespace Doxense.Serialization.Json
 				: JsonNull.Null;
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonValue Return(System.Net.IPAddress? value)
 		{
 			return value is not null
@@ -202,6 +225,7 @@ namespace Doxense.Serialization.Json
 				: JsonNull.Null;
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonValue Return(Uri? value)
 		{
 			return value is not null
@@ -209,6 +233,7 @@ namespace Doxense.Serialization.Json
 				: JsonNull.Null;
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonValue Return(Version? value)
 		{
 			return value is not null
@@ -311,54 +336,63 @@ namespace Doxense.Serialization.Json
 
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		[Pure]
 		public static JsonValue Return(Type? type)
 		{
 			return TypeNameCache.FromType(type) ?? JsonNull.Null;
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static JsonValue Return(DateTime value)
 		{
 			return value == DateTime.MinValue ? JsonString.Empty : new JsonString(value.ToString("O"));
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static JsonValue Return(DateTime? value)
 		{
 			return value is null ? JsonNull.Null : value.Value == DateTime.MinValue ? JsonString.Empty : new JsonString(value.Value.ToString("O"));
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static JsonValue Return(DateTimeOffset value)
 		{
 			return value == DateTime.MinValue ? JsonString.Empty : new JsonString(value.ToString("O"));
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static JsonValue Return(DateTimeOffset? value)
 		{
 			return value is null ? JsonNull.Null : value.Value == DateTime.MinValue ? JsonString.Empty : new JsonString(value.Value.ToString("O"));
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static JsonValue Return(DateOnly value)
 		{
 			return value == DateOnly.MinValue ? JsonString.Empty : new JsonString(value.ToString("O"));
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static JsonValue Return(DateOnly? value)
 		{
 			return value is null ? JsonNull.Null : value.Value == DateOnly.MinValue ? JsonString.Empty : new JsonString(value.Value.ToString("O"));
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static JsonValue Return(TimeOnly value)
 		{
 			return value == TimeOnly.MinValue ? JsonString.Empty : new JsonString(value.ToString("O"));
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static JsonValue Return(TimeOnly? value)
 		{
@@ -367,12 +401,14 @@ namespace Doxense.Serialization.Json
 
 		#region Noda Types...
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonValue Return(NodaTime.Instant value)
 		{
 			if (value.ToUnixTimeTicks() == 0) return JsonString.Empty; //REVIEW: retourner "" ou null ?
 			return new JsonString(CrystalJsonNodaPatterns.Instants.Format(value));
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonValue Return(NodaTime.Instant? value)
 		{
 			if (!value.HasValue) return JsonNull.Null;
@@ -380,17 +416,20 @@ namespace Doxense.Serialization.Json
 			return new JsonString(CrystalJsonNodaPatterns.Instants.Format(value.Value));
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonValue Return(NodaTime.ZonedDateTime value)
 		{
 			return new JsonString(CrystalJsonNodaPatterns.ZonedDateTimes.Format(value));
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonValue Return(NodaTime.ZonedDateTime? value)
 		{
 			if (!value.HasValue) return JsonNull.Null;
 			return new JsonString(CrystalJsonNodaPatterns.ZonedDateTimes.Format(value.Value));
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonValue Return(NodaTime.DateTimeZone? value)
 		{
 			return value is not null
@@ -398,55 +437,65 @@ namespace Doxense.Serialization.Json
 				: JsonNull.Null;
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonValue Return(NodaTime.LocalDateTime value)
 		{
 			return new JsonString(CrystalJsonNodaPatterns.LocalDateTimes.Format(value));
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonValue Return(NodaTime.LocalDateTime? value)
 		{
 			if (!value.HasValue) return JsonNull.Null;
 			return new JsonString(CrystalJsonNodaPatterns.LocalDateTimes.Format(value.Value));
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonValue Return(NodaTime.LocalDate value)
 		{
 			return new JsonString(CrystalJsonNodaPatterns.LocalDates.Format(value));
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonValue Return(NodaTime.LocalDate? value)
 		{
 			if (!value.HasValue) return JsonNull.Null;
 			return new JsonString(CrystalJsonNodaPatterns.LocalDates.Format(value.Value));
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonValue Return(NodaTime.LocalTime value)
 		{
 			return new JsonString(CrystalJsonNodaPatterns.LocalTimes.Format(value));
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonValue Return(NodaTime.LocalTime? value)
 		{
 			if (!value.HasValue) return JsonNull.Null;
 			return new JsonString(CrystalJsonNodaPatterns.LocalTimes.Format(value.Value));
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonValue Return(NodaTime.OffsetDateTime value)
 		{
 			return new JsonString(CrystalJsonNodaPatterns.OffsetDateTimes.Format(value));
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonValue Return(NodaTime.OffsetDateTime? value)
 		{
 			if (!value.HasValue) return JsonNull.Null;
 			return new JsonString(CrystalJsonNodaPatterns.OffsetDateTimes.Format(value.Value));
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonValue Return(NodaTime.Offset value)
 		{
 			return new JsonString(CrystalJsonNodaPatterns.Offsets.Format(value));
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonValue Return(NodaTime.Offset? value)
 		{
 			if (!value.HasValue) return JsonNull.Null;
@@ -459,30 +508,38 @@ namespace Doxense.Serialization.Json
 
 		#region Public Properties...
 
+		/// <summary>Gets the string literal</summary>
 		public string Value => m_value;
 
+		/// <summary>Gets the length of the string</summary>
 		public int Length => m_value.Length;
 
+		/// <summary>Returns <see langword="true"/> if the string is empty</summary>
 		public bool IsNullOrEmpty => string.IsNullOrEmpty(m_value);
 
+		/// <summary>Tests if the string starts with the specified literal</summary>
 		public bool StartsWith(string value)
 		{
 			//note: JsonString.Null ne commence par rien
 			return m_value.StartsWith(value, StringComparison.Ordinal);
 		}
 
+		/// <summary>Tests if the string ends with the specified literal</summary>
 		public bool EndsWith(string value)
 		{
 			//note: JsonString.Null ne fini par rien
 			return m_value.EndsWith(value, StringComparison.Ordinal);
 		}
 
+		/// <summary>Tests if the string contains the specified literal</summary>
 		public bool Contains(string value)
 		{
 			//note: JsonString.Null ne contient rien
 			return m_value.IndexOf(value, StringComparison.Ordinal) >= 0;
 		}
 
+		/// <summary>Returns the index of the first occurrence of the specified literal</summary>
+		/// <remarks>Returns <c>-1</c> if the string does not contain this literal</remarks>
 		public int IndexOf(string value)
 		{
 			//note: JsonString.Null ne contient rien
@@ -505,6 +562,7 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		public override bool IsReadOnly => true; //note: strings are immutable
 
+		/// <summary>Decodes this string as a Base64 encoded buffer</summary>
 		public byte[] ToBuffer() //REVIEW: => GetBytes()? DecodeBase64() ?
 		{
 			return m_value.Length != 0 ? Convert.FromBase64String(m_value) : [ ];
@@ -807,6 +865,7 @@ namespace Doxense.Serialization.Json
 
 		#region IJsonSerializable...
 
+		/// <inheritdoc />
 		public override void JsonSerialize(CrystalJsonWriter writer)
 		{
 			writer.WriteValue(m_value);
@@ -827,8 +886,6 @@ namespace Doxense.Serialization.Json
 		}
 
 #endif
-
-
 
 		#endregion
 
@@ -966,6 +1023,7 @@ namespace Doxense.Serialization.Json
 			};
 		}
 
+		/// <inheritdoc />
 		public int CompareTo(JsonString? other)
 		{
 			return other is not null ? string.CompareOrdinal(m_value, other.Value) : +1;
@@ -977,6 +1035,7 @@ namespace Doxense.Serialization.Json
 
 		#region String
 
+		/// <inheritdoc />
 		public override string ToJson(CrystalJsonSettings? settings = null)
 		{
 			return settings?.TargetLanguage != CrystalJsonSettings.Target.JavaScript
@@ -984,9 +1043,10 @@ namespace Doxense.Serialization.Json
 				: CrystalJsonFormatter.EncodeJavaScriptString(m_value);
 		}
 
+		/// <inheritdoc />
 		public override string ToString() => m_value;
 
-		[ContractAnnotation("=> notnull")]
+		/// <inheritdoc />
 		public override string ToStringOrDefault(string? defaultValue = null) => m_value;
 
 		public bool TryConvertString(out string value)
@@ -999,11 +1059,13 @@ namespace Doxense.Serialization.Json
 
 		#region Boolean
 
+		/// <inheritdoc />
 		public override bool ToBoolean(bool defaultValue = false)
 		{
 			return !string.IsNullOrEmpty(m_value) ? bool.Parse(m_value) : defaultValue;
 		}
 
+		/// <inheritdoc />
 		public override bool? ToBooleanOrDefault(bool? defaultValue = null)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : bool.Parse(m_value);
@@ -1013,19 +1075,23 @@ namespace Doxense.Serialization.Json
 
 		#region Byte
 
+		/// <inheritdoc />
 		public override byte ToByte(byte defaultValue = default) => string.IsNullOrEmpty(m_value) ? defaultValue : byte.Parse(m_value, NumberFormatInfo.InvariantInfo);
 
+		/// <inheritdoc />
 		public override byte? ToByteOrDefault(byte? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : byte.Parse(m_value, NumberFormatInfo.InvariantInfo);
 
 		#endregion
 
 		#region SByte
 
+		/// <inheritdoc />
 		public override sbyte ToSByte(sbyte defaultValue = default)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : sbyte.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
 
+		/// <inheritdoc />
 		public override sbyte? ToSByteOrDefault(sbyte? defaultValue = null)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : sbyte.Parse(m_value, NumberFormatInfo.InvariantInfo);
@@ -1035,11 +1101,13 @@ namespace Doxense.Serialization.Json
 
 		#region Char
 
+		/// <inheritdoc />
 		public override char ToChar(char defaultValue = default)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : m_value[0];
 		}
 
+		/// <inheritdoc />
 		public override char? ToCharOrDefault(char? defaultValue = null)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : m_value[0];
@@ -1049,11 +1117,13 @@ namespace Doxense.Serialization.Json
 
 		#region Int16
 
+		/// <inheritdoc />
 		public override short ToInt16(short defaultValue = default)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : short.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
 
+		/// <inheritdoc />
 		public override short? ToInt16OrDefault(short? defaultValue = null)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : ToInt16();
@@ -1068,11 +1138,13 @@ namespace Doxense.Serialization.Json
 
 		#region UInt16
 
+		/// <inheritdoc />
 		public override ushort ToUInt16(ushort defaultValue = default)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : ushort.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
 
+		/// <inheritdoc />
 		public override ushort? ToUInt16OrDefault(ushort? defaultValue = null)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : ToUInt16();
@@ -1087,6 +1159,7 @@ namespace Doxense.Serialization.Json
 
 		#region Int32
 
+		/// <inheritdoc />
 		public override int ToInt32(int defaultValue = default)
 		{
 			var value = m_value;
@@ -1104,6 +1177,7 @@ namespace Doxense.Serialization.Json
 			return int.Parse(value, NumberFormatInfo.InvariantInfo);
 		}
 
+		/// <inheritdoc />
 		public override int? ToInt32OrDefault(int? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : ToInt32();
 
 		public bool TryConvertInt32(out int value)
@@ -1123,11 +1197,13 @@ namespace Doxense.Serialization.Json
 
 		#region UInt32
 
+		/// <inheritdoc />
 		public override uint ToUInt32(uint defaultValue = default)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : uint.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
 
+		/// <inheritdoc />
 		public override uint? ToUInt32OrDefault(uint? defaultValue = null)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : ToUInt32();
@@ -1142,6 +1218,7 @@ namespace Doxense.Serialization.Json
 
 		#region Int64
 
+		/// <inheritdoc />
 		public override long ToInt64(long defaultValue = default)
 		{
 			var value = m_value;
@@ -1160,6 +1237,7 @@ namespace Doxense.Serialization.Json
 			return long.Parse(value, NumberFormatInfo.InvariantInfo);
 		}
 
+		/// <inheritdoc />
 		public override long? ToInt64OrDefault(long? defaultValue = null)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : ToInt64();
@@ -1182,11 +1260,13 @@ namespace Doxense.Serialization.Json
 
 		#region UInt64
 
+		/// <inheritdoc />
 		public override ulong ToUInt64(ulong defaultValue = default)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : ulong.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
 
+		/// <inheritdoc />
 		public override ulong? ToUInt64OrDefault(ulong? defaultValue = null)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : ToUInt64();
@@ -1203,11 +1283,13 @@ namespace Doxense.Serialization.Json
 
 #if NET8_0_OR_GREATER
 
+		/// <inheritdoc />
 		public override Int128 ToInt128(Int128 defaultValue = default)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : Int128.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
 
+		/// <inheritdoc />
 		public override Int128? ToInt128OrDefault(Int128? defaultValue = null)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : ToInt128();
@@ -1227,11 +1309,13 @@ namespace Doxense.Serialization.Json
 #if NET8_0_OR_GREATER
 
 
+		/// <inheritdoc />
 		public override UInt128 ToUInt128(UInt128 defaultValue = default)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : UInt128.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
 
+		/// <inheritdoc />
 		public override UInt128? ToUInt128OrDefault(UInt128? defaultValue = null)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : ToUInt128();
@@ -1248,11 +1332,13 @@ namespace Doxense.Serialization.Json
 
 		#region Single
 
+		/// <inheritdoc />
 		public override float ToSingle(float defaultValue = default)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : float.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
 
+		/// <inheritdoc />
 		public override float? ToSingleOrDefault(float? defaultValue = null)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : ToSingle();
@@ -1267,11 +1353,13 @@ namespace Doxense.Serialization.Json
 
 		#region Double
 
+		/// <inheritdoc />
 		public override double ToDouble(double defaultValue = default)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : double.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
 
+		/// <inheritdoc />
 		public override double? ToDoubleOrDefault(double? defaultValue = null)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : ToDouble();
@@ -1292,11 +1380,13 @@ namespace Doxense.Serialization.Json
 
 		#region Half
 
+		/// <inheritdoc />
 		public override Half ToHalf(Half defaultValue = default)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : Half.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
 
+		/// <inheritdoc />
 		public override Half? ToHalfOrDefault(Half? defaultValue = null)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : Half.Parse(m_value, NumberFormatInfo.InvariantInfo);
@@ -1317,11 +1407,13 @@ namespace Doxense.Serialization.Json
 
 		#region Decimal
 
+		/// <inheritdoc />
 		public override decimal ToDecimal(decimal defaultValue = default)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : decimal.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
 
+		/// <inheritdoc />
 		public override decimal? ToDecimalOrDefault(decimal? defaultValue = null)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : ToDecimal();
@@ -1336,11 +1428,13 @@ namespace Doxense.Serialization.Json
 
 		#region Guid
 
+		/// <inheritdoc />
 		public override Guid ToGuid(Guid defaultValue = default)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : Guid.Parse(m_value);
 		}
 
+		/// <inheritdoc />
 		public override Guid? ToGuidOrDefault(Guid? defaultValue = null)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : Guid.Parse(m_value);
@@ -1358,26 +1452,35 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
+		/// <inheritdoc />
 		public override Uuid128 ToUuid128(Uuid128 defaultValue = default) => string.IsNullOrEmpty(m_value) ? defaultValue : Uuid128.Parse(m_value);
 
+		/// <inheritdoc />
 		public override Uuid128? ToUuid128OrDefault(Uuid128? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : Uuid128.Parse(m_value);
 
+		/// <inheritdoc />
 		public override Uuid96 ToUuid96(Uuid96 defaultValue = default) => string.IsNullOrEmpty(m_value) ? defaultValue : Uuid96.Parse(m_value);
 
+		/// <inheritdoc />
 		public override Uuid96? ToUuid96OrDefault(Uuid96? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : Uuid96.Parse(m_value);
 
+		/// <inheritdoc />
 		public override Uuid80 ToUuid80(Uuid80 defaultValue = default) => string.IsNullOrEmpty(m_value) ? defaultValue : Uuid80.Parse(m_value);
 
+		/// <inheritdoc />
 		public override Uuid80? ToUuid80OrDefault(Uuid80? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : Uuid80.Parse(m_value);
 
+		/// <inheritdoc />
 		public override Uuid64 ToUuid64(Uuid64 defaultValue = default) => string.IsNullOrEmpty(m_value) ? defaultValue : Uuid64.Parse(m_value);
 
+		/// <inheritdoc />
 		public override Uuid64? ToUuid64OrDefault(Uuid64? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : Uuid64.Parse(m_value);
 
 		#endregion
 
 		#region DateTime
 
+		/// <inheritdoc />
 		public override DateTime ToDateTime(DateTime defaultValue = default)
 		{
 			if (string.IsNullOrEmpty(m_value))
@@ -1403,26 +1506,31 @@ namespace Doxense.Serialization.Json
 			return StringConverters.ParseDateTime(m_value);
 		}
 
+		/// <inheritdoc />
 		public override DateTime? ToDateTimeOrDefault(DateTime? defaultValue = null)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : ToDateTime();
 		}
 
+		/// <inheritdoc />
 		public override DateOnly ToDateOnly(DateOnly defaultValue = default)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : DateOnly.FromDateTime(ToDateTime());
 		}
 
+		/// <inheritdoc />
 		public override DateOnly? ToDateOnlyOrDefault(DateOnly? defaultValue = null)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : ToDateOnly();
 		}
 
+		/// <inheritdoc />
 		public override TimeOnly ToTimeOnly(TimeOnly defaultValue = default)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : TimeOnly.FromTimeSpan(ToTimeSpan());
 		}
 
+		/// <inheritdoc />
 		public override TimeOnly? ToTimeOnlyOrDefault(TimeOnly? defaultValue = null)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : ToTimeOnly();
@@ -1463,6 +1571,7 @@ namespace Doxense.Serialization.Json
 
 		#region DateTimeOffset
 
+		/// <inheritdoc />
 		public override DateTimeOffset ToDateTimeOffset(DateTimeOffset  defaultValue = default)
 		{
 			if (m_value.Length == 0)
@@ -1487,6 +1596,7 @@ namespace Doxense.Serialization.Json
 			return new(StringConverters.ParseDateTime(m_value));
 		}
 
+		/// <inheritdoc />
 		public override DateTimeOffset? ToDateTimeOffsetOrDefault(DateTimeOffset? defaultValue = null)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : ToDateTimeOffset();
@@ -1529,17 +1639,20 @@ namespace Doxense.Serialization.Json
 
 		#region TimeSpan
 
+		/// <inheritdoc />
 		public override TimeSpan ToTimeSpan(TimeSpan defaultValue = default)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : TimeSpan.Parse(m_value, CultureInfo.InvariantCulture);
 		}
 
+		/// <inheritdoc />
 		public override TimeSpan? ToTimeSpanOrDefault(TimeSpan? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : ToTimeSpan();
 
 		#endregion
 
 		#region NodaTime
 
+		/// <inheritdoc />
 		public override NodaTime.Instant ToInstant(NodaTime.Instant defaultValue = default)
 		{
 			if (string.IsNullOrEmpty(m_value))
@@ -1558,8 +1671,10 @@ namespace Doxense.Serialization.Json
 			return NodaTime.Instant.FromDateTimeOffset(dateTimeOffset);
 		}
 
+		/// <inheritdoc />
 		public override NodaTime.Instant? ToInstantOrDefault(NodaTime.Instant? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : ToInstant();
 
+		/// <inheritdoc />
 		public override NodaTime.Duration ToDuration(NodaTime.Duration defaultValue = default)
 		{
 			string value = m_value;
@@ -1568,6 +1683,7 @@ namespace Doxense.Serialization.Json
 				: NodaTime.Duration.FromTicks((long) (double.Parse(value) * NodaTime.NodaConstants.TicksPerSecond));
 		}
 
+		/// <inheritdoc />
 		public override NodaTime.Duration? ToDurationOrDefault(NodaTime.Duration? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : ToDuration();
 
 		public NodaTime.LocalDateTime ToLocalDateTime(NodaTime.LocalDateTime defaultValue = default)
@@ -1632,8 +1748,10 @@ namespace Doxense.Serialization.Json
 
 		#region Enums
 
+		/// <inheritdoc />
 		public override TEnum ToEnum<TEnum>(TEnum defaultValue = default) => string.IsNullOrEmpty(m_value) ? defaultValue : Enum.Parse<TEnum>(m_value, ignoreCase: true);
 
+		/// <inheritdoc />
 		public override TEnum? ToEnumOrDefault<TEnum>(TEnum? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : Enum.Parse<TEnum>(m_value, ignoreCase: true);
 
 		#endregion

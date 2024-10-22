@@ -311,10 +311,10 @@ namespace Doxense.Serialization.Json
 		private string GetLocalSerializerRef(Type type) => $"{this.SerializerContainerName}.{GetSerializerName(type)}";
 
 		private string GetReadOnlyProxyName(Type type) => $"{type.Name}ReadOnly";
-		private string GetLocalReadOnlyProxyRef(Type type) => $"{SerializerContainerName}.{GetReadOnlyProxyName(type)}";
+		private string GetLocalReadOnlyProxyRef(Type type) => $"{this.SerializerContainerName}.{GetReadOnlyProxyName(type)}";
 
 		private string GetMutableProxyName(Type type) => $"{type.Name}Mutable";
-		private string GetLocalMutableProxyRef(Type type) => $"{SerializerContainerName}.{GetMutableProxyName(type)}";
+		private string GetLocalMutableProxyRef(Type type) => $"{this.SerializerContainerName}.{GetMutableProxyName(type)}";
 
 		private string GetEncodedPropertyField(CrystalJsonMemberDefinition member) => "_" + member.Name;
 

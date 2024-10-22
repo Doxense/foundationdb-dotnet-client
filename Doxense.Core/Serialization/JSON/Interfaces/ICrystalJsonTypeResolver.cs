@@ -26,14 +26,15 @@
 
 namespace Doxense.Serialization.Json
 {
-	/// <summary>Resolveur JSON capable d'énumérer les membres d'un type</summary>
+	/// <summary>Type that is able to extra type metadata used during JSON serialization</summary>
+	[PublicAPI]
 	public interface ICrystalJsonTypeResolver
 	{
 
 		[RequiresUnreferencedCode("The type might be removed")]
 		Type? ResolveClassId(string classId);
 
-		/// <summary>Inspect a type, and generate a list of all its members</summary>
+		/// <summary>Inspects a type, and generate a list of all its members</summary>
 		/// <param name="type">Type to introspect</param>
 		/// <returns>List of compiled members, or <see langword="null"/> if the type is not compatible (primitive, delegate, ...)</returns>
 		/// <remarks>The list is computed on the first call for each type, and then cached in memory for subsequent calls</remarks>
@@ -46,20 +47,20 @@ namespace Doxense.Serialization.Json
 		/// <remarks>This is usefull to inspect the custom serialization settings for a particular member of a type, that can be overriden, for example, by <see cref="JsonPropertyAttribute"/></remarks>
 		CrystalJsonMemberDefinition? ResolveMemberOfType(Type type, string memberName);
 
-		/// <summary>Bind a JSON value into the corresponding CLR type</summary>
+		/// <summary>Binds a JSON value into the corresponding CLR type</summary>
 		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
 		object? BindJsonValue(Type? type, JsonValue? value);
 
-		/// <summary>Bind a JSON value into the corresponding CLR type</summary>
+		/// <summary>Binds a JSON value into the corresponding CLR type</summary>
 		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		T? BindJson<T>(JsonValue? value, T? defaultValue = default);
 
-		/// <summary>Bind a JSON object into the corresponding CLR type</summary>
+		/// <summary>Binds a JSON object into the corresponding CLR type</summary>
 		/// <exception cref="JsonBindingException">If the object cannot be bound to the specified type.</exception>
 		object? BindJsonObject(Type? type, JsonObject? value);
 
-		/// <summary>Bind a JSON array into the corresponding CLR type</summary>
+		/// <summary>Binds a JSON array into the corresponding CLR type</summary>
 		/// <exception cref="JsonBindingException">If the array cannot be bound to the specified type.</exception>
 		object? BindJsonArray(Type? type, JsonArray? array);
 

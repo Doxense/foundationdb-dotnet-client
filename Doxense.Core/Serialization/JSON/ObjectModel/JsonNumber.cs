@@ -1230,34 +1230,43 @@ namespace Doxense.Serialization.Json
 			m_literal = literal;
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonNumber Return(string value) => CrystalJsonParser.ParseJsonNumber(value) ?? Zero;
 
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonNumber Return(byte value) => SmallNumbers[value + CACHED_OFFSET_ZERO];
 
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Return(byte? value) => value.HasValue ? SmallNumbers[value.Value + CACHED_OFFSET_ZERO] : JsonNull.Null;
 
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonNumber Return(sbyte value) => SmallNumbers[value + CACHED_OFFSET_ZERO];
 
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Return(sbyte? value) => value.HasValue ? SmallNumbers[value.Value + CACHED_OFFSET_ZERO] : JsonNull.Null;
 
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonNumber Return(short value) => Return((int) value);
 
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Return(short? value) => value.HasValue ? Return((int) value.Value) : JsonNull.Null;
 
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonNumber Return(ushort value) => Return((uint) value);
 
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Return(ushort? value) => value.HasValue ? Return((uint) value.Value) : JsonNull.Null;
 
-		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the specified integer</summary>
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		/// <param name="value">Integer value</param>
 		/// <returns>JSON value that will be serialized as an integer.</returns>
 		/// <remarks>For small values a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
@@ -1289,14 +1298,14 @@ namespace Doxense.Serialization.Json
 			return SmallNumbers[value - CACHED_SIGNED_MIN];
 		}
 
-		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the specified integer</summary>
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		/// <param name="value">Integer value, that can be null.</param>
 		/// <returns>JSON value that will be serialized as an integer, or <see cref="JsonNull.Null"/>.</returns>
 		/// <remarks>For small values a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Return(int? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
 
-		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the specified integer</summary>
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		/// <param name="value">Integer value</param>
 		/// <returns>JSON value that will be serialized as an integer.</returns>
 		/// <remarks>For small values a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
@@ -1317,14 +1326,14 @@ namespace Doxense.Serialization.Json
 			return new JsonNumber(new Number(value), Kind.Signed, value.ToString(default(IFormatProvider)));
 		}
 
-		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the specified integer</summary>
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		/// <param name="value">Integer value, that can be null.</param>
 		/// <returns>JSON value that will be serialized as an integer, or <see cref="JsonNull.Null"/>.</returns>
 		/// <remarks>For small values a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Return(uint? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
 
-		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the specified integer</summary>
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		/// <param name="value">Integer value</param>
 		/// <returns>JSON value that will be serialized as an integer.</returns>
 		/// <remarks>For small values (between -128 and 255) a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
@@ -1346,6 +1355,7 @@ namespace Doxense.Serialization.Json
 			return new JsonNumber(new Number(value), Kind.Signed, value < 0 ? value.ToString(NumberFormatInfo.InvariantInfo) : value.ToString(default(IFormatProvider)));
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Return(long? value) =>
@@ -1353,7 +1363,7 @@ namespace Doxense.Serialization.Json
 				? Return(value.Value)
 				: JsonNull.Null;
 
-		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the specified integer</summary>
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		/// <param name="value">Integer value</param>
 		/// <returns>JSON value that will be serialized as an integer.</returns>
 		/// <remarks>For small values (between 0 and 255) a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
@@ -1374,6 +1384,7 @@ namespace Doxense.Serialization.Json
 			return new JsonNumber(new Number(value), Kind.Unsigned, value.ToString(default(IFormatProvider)));
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Return(ulong? value) =>
@@ -1381,7 +1392,7 @@ namespace Doxense.Serialization.Json
 				? Return(value.Value)
 				: JsonNull.Null;
 
-		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the specified number</summary>
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		/// <param name="value">Decimal value</param>
 		/// <returns>JSON value that will be serialized as a decimal value.</returns>
 		/// <remarks>For <see langword="0"/>, <see langword="1"/> and <c>NaN</c> a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
@@ -1392,11 +1403,12 @@ namespace Doxense.Serialization.Json
 			: double.IsNaN(value) ? NaN
 			: new JsonNumber(new Number(value), Kind.Double, StringConverters.ToString(value));
 
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Return(double? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
 
-		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the specified number</summary>
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		/// <param name="value">Decimal value</param>
 		/// <returns>JSON value that will be serialized as a decimal value.</returns>
 		/// <remarks>For <see langword="0"/>, <see langword="1"/> and <c>NaN</c> a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
@@ -1407,11 +1419,13 @@ namespace Doxense.Serialization.Json
 			: float.IsNaN(value) ? NaN
 			: new JsonNumber(new Number(value), Kind.Double, StringConverters.ToString(value));
 
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Return(Half? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
 
 #if NET8_0_OR_GREATER
-		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the specified number</summary>
+		
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		/// <param name="value">Decimal value</param>
 		/// <returns>JSON value that will be serialized as a decimal value.</returns>
 		/// <remarks>For <see langword="0"/>, <see langword="1"/> and <c>NaN</c> a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
@@ -1432,28 +1446,33 @@ namespace Doxense.Serialization.Json
 			: new JsonNumber(new Number((double) value), Kind.Double, StringConverters.ToString(value));
 #endif
 
-		[Pure]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Return(float? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
 
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure]
 		public static JsonNumber Return(decimal value) => new(new Number(value), Kind.Decimal, StringConverters.ToString(value));
 
-		[Pure]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Return(decimal? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
 
 #if NET8_0_OR_GREATER
 
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure]
 		public static JsonNumber Return(Int128 value) => new(new Number(value), Kind.Signed, StringConverters.ToString(value));
 
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Return(Int128? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
 
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure]
 		public static JsonNumber Return(UInt128 value) => new(new Number(value), Kind.Unsigned, StringConverters.ToString(value));
 
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Return(UInt128? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
 
@@ -1541,12 +1560,14 @@ namespace Doxense.Serialization.Json
 		public static JsonValue Return(DateTimeOffset? value)
 			=> value is not null ? Return(value.Value) : JsonNull.Null;
 
+		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of days elapsed since the UNIX Epoch</summary>
 		[Pure]
 		public static JsonValue Return(DateOnly value)
 			=> value == DateOnly.MinValue ? DecimalZero
 			 : value == DateOnly.MaxValue ? NaN
 			 : Return((value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc) - DateTime.UnixEpoch).TotalDays);
 
+		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of days elapsed since the UNIX Epoch</summary>
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static JsonValue Return(DateOnly? value)
 			=> value is not null ? Return(value.Value) : JsonNull.Null;
@@ -1583,13 +1604,16 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static JsonNumber Return(NodaTime.Instant value) => value != default ? Return((value - default(NodaTime.Instant)).TotalSeconds) : DecimalZero;
 
+		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds elapsed since UNIX Epoch</summary>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Return(NodaTime.Instant? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
 
+		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds elapsed</summary>
 		[Pure]
 		public static JsonNumber Return(NodaTime.Duration value) => value == NodaTime.Duration.Zero ? DecimalZero : Return((double)value.BclCompatibleTicks / NodaTime.NodaConstants.TicksPerSecond);
 
+		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds elapsed</summary>
 		[Pure]
 		public static JsonValue Return(NodaTime.Duration? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
 
@@ -1730,10 +1754,13 @@ namespace Doxense.Serialization.Json
 
 		#region JsonValue Members...
 
+		/// <inheritdoc />
 		public override JsonType Type => JsonType.Number;
 
+		/// <inheritdoc />
 		public override bool IsDefault => m_value.IsZero(m_kind);
 
+		/// <inheritdoc />
 		public override bool IsReadOnly => true; //note: numbers are immutable
 
 		/// <summary>Converts this number into a type that closely matches the value (integer or decimal)</summary>
@@ -1742,6 +1769,7 @@ namespace Doxense.Serialization.Json
 		[RequiresUnreferencedCode("The type might be removed")]
 		public override object? ToObject() => m_value.ToObject(m_kind);
 
+		/// <inheritdoc />
 		public override TValue? Bind<
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TValue>
 			(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null) where TValue : default
@@ -1811,6 +1839,7 @@ namespace Doxense.Serialization.Json
 			return (TValue?) Bind(typeof(TValue), resolver) ?? defaultValue;
 		}
 
+		/// <inheritdoc />
 		public override object? Bind(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type? type,
 			ICrystalJsonTypeResolver? resolver = null)
@@ -1947,6 +1976,7 @@ namespace Doxense.Serialization.Json
 
 		#region IJsonSerializable
 
+		/// <inheritdoc />
 		public override void JsonSerialize(CrystalJsonWriter writer)
 		{
 			// We want to keep the original literal intact, in order to maximize the chances of "perfect" round-tripping.
@@ -2073,40 +2103,56 @@ namespace Doxense.Serialization.Json
 
 		#region ToXXX() ...
 
+		/// <inheritdoc />
 		public override string ToString() => this.Literal;
 
+		/// <inheritdoc />
 		public override bool ToBoolean(bool _ = false) => m_value.ToBoolean(m_kind);
 
+		/// <inheritdoc />
 		public override byte ToByte(byte _ = 0) => m_value.ToByte(m_kind);
 
+		/// <inheritdoc />
 		public override sbyte ToSByte(sbyte _ = 0) => m_value.ToSByte(m_kind);
 
+		/// <inheritdoc />
 		public override short ToInt16(short _ = 0) => m_value.ToInt16(m_kind);
 
+		/// <inheritdoc />
 		public override ushort ToUInt16(ushort  _ = 0) => m_value.ToUInt16(m_kind);
 
+		/// <inheritdoc />
 		public override int ToInt32(int _ = 0) => m_value.ToInt32(m_kind);
 
+		/// <inheritdoc />
 		public override uint ToUInt32(uint _ = 0) => m_value.ToUInt32(m_kind);
 
+		/// <inheritdoc />
 		public override long ToInt64(long _ = 0) => m_value.ToInt64(m_kind);
 
+		/// <inheritdoc />
 		public override ulong ToUInt64(ulong _ = 0) => m_value.ToUInt64(m_kind);
 
+		/// <inheritdoc />
 		public override float ToSingle(float _ = 0) => m_value.ToSingle(m_kind);
 
+		/// <inheritdoc />
 		public override double ToDouble(double _ = 0) => m_value.ToDouble(m_kind);
 
+		/// <inheritdoc />
 		public override Half ToHalf(Half _ = default) => m_value.ToHalf(m_kind);
 
 #if NET8_0_OR_GREATER
 
+		/// <inheritdoc />
 		public override Int128 ToInt128(Int128 _ = default) => m_value.ToInt128(m_kind);
 
+		/// <inheritdoc />
 		public override UInt128 ToUInt128(UInt128 _ = default) => m_value.ToUInt128(m_kind);
 
 #endif
 
+		/// <inheritdoc />
 		public override decimal ToDecimal(decimal _ = 0) => m_value.ToDecimal(m_kind);
 
 		/// <summary>Converts a JSON Number, as the number of seconds since Unix Epoch, into a DateTime (UTC)</summary>
@@ -2149,14 +2195,17 @@ namespace Doxense.Serialization.Json
 			return new DateTimeOffset((long) ticks, TimeSpan.Zero);
 		}
 
+		/// <inheritdoc />
 		[Pure]
 		public override DateOnly ToDateOnly(DateOnly _ = default)
 			=> !IsNaN(this) ? new DateOnly(1970, 1, 1).AddDays(ToInt32()) : DateOnly.MaxValue;
 
+		/// <inheritdoc />
 		[Pure]
 		public override TimeOnly ToTimeOnly(TimeOnly _ = default)
 			=> !IsNaN(this) ? TimeOnly.FromTimeSpan(ToTimeSpan()) : TimeOnly.MaxValue;
 
+		/// <inheritdoc />
 		public override TimeSpan ToTimeSpan(TimeSpan _ = default)
 		{
 			// Timespan is encoded as a number of elapsed seconds (decimal number)
@@ -2198,6 +2247,7 @@ namespace Doxense.Serialization.Json
 			return Duration.FromSeconds((long) sec2).Plus(Duration.FromNanoseconds((long) ns));
 		}
 
+		/// <inheritdoc />
 		public override NodaTime.Duration ToDuration(NodaTime.Duration _ = default)
 		{
 			// Duration is encoded as a number of elapsed seconds (decimal number)
@@ -2214,6 +2264,7 @@ namespace Doxense.Serialization.Json
 			return ConvertSecondsToDurationUnsafe(seconds);
 		}
 
+		/// <inheritdoc />
 		public override NodaTime.Instant ToInstant(NodaTime.Instant _ = default)
 		{
 			// Instant is stored as the number of seconds since Unix Epoch (decimal number)
@@ -2229,8 +2280,10 @@ namespace Doxense.Serialization.Json
 			return default(NodaTime.Instant).Plus(ConvertSecondsToDurationUnsafe(secondsSinceEpoch));
 		}
 
+		/// <inheritdoc />
 		public override char ToChar(char _ = default) => (char) ToInt16();
 
+		/// <inheritdoc />
 		public override TEnum ToEnum<TEnum>(TEnum _ = default)
 		{
 			//BUGBUG: this only works for enums that are backed by int (or smaller) !
@@ -2243,6 +2296,7 @@ namespace Doxense.Serialization.Json
 
 		#region IEquatable<...>
 
+		/// <inheritdoc />
 		public override bool Equals(object? value)
 		{
 			if (value is null) return false;
@@ -2264,6 +2318,7 @@ namespace Doxense.Serialization.Json
 			return base.Equals(value);
 		}
 
+		/// <inheritdoc />
 		public override bool Equals(JsonValue? value) => value switch
 		{
 			JsonNumber num => Equals(num),
@@ -2318,8 +2373,10 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
+		/// <inheritdoc />
 		public bool Equals(JsonNumber? value) => value is not null && Number.Equals(in m_value, m_kind, in value.m_value, value.m_kind);
 
+		/// <inheritdoc />
 		public bool Equals(JsonString? value)
 		{
 			if (value is null) return false;
@@ -2354,10 +2411,13 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
+		/// <inheritdoc />
 		public bool Equals(JsonBoolean? value) => value is not null && ToBoolean() == value.Value;
 
+		/// <inheritdoc />
 		public bool Equals(JsonDateTime? value) => value is not null && ToDouble() == value.ToDouble();
 
+		/// <inheritdoc />
 		public bool Equals(short value) => m_kind switch
 		{
 			Kind.Decimal => m_value.Decimal == new decimal(value),
@@ -2367,6 +2427,7 @@ namespace Doxense.Serialization.Json
 			_ => false
 		};
 
+		/// <inheritdoc />
 		public bool Equals(ushort value) => m_kind switch
 		{
 			Kind.Decimal => m_value.Decimal == new decimal(value),
@@ -2376,6 +2437,7 @@ namespace Doxense.Serialization.Json
 			_ => false
 		};
 
+		/// <inheritdoc />
 		public bool Equals(int value) => m_kind switch
 		{
 			Kind.Decimal => m_value.Decimal == new decimal(value),
@@ -2385,6 +2447,7 @@ namespace Doxense.Serialization.Json
 			_ => false
 		};
 
+		/// <inheritdoc />
 		public bool Equals(uint value) => m_kind switch
 		{
 			Kind.Decimal => m_value.Decimal == new decimal(value),
@@ -2394,6 +2457,7 @@ namespace Doxense.Serialization.Json
 			_ => false
 		};
 
+		/// <inheritdoc />
 		public bool Equals(long value) => m_kind switch
 		{
 			Kind.Decimal => m_value.Decimal == new decimal(value),
@@ -2403,6 +2467,7 @@ namespace Doxense.Serialization.Json
 			_ => false
 		};
 
+		/// <inheritdoc />
 		public bool Equals(ulong value) => m_kind switch
 		{
 			Kind.Decimal => m_value.Decimal == new decimal(value),
@@ -2414,6 +2479,7 @@ namespace Doxense.Serialization.Json
 
 #if NET8_0_OR_GREATER
 
+		/// <inheritdoc />
 		public bool Equals(Int128 value) => m_kind switch
 		{
 			Kind.Decimal => m_value.Decimal == (decimal) value,
@@ -2423,6 +2489,7 @@ namespace Doxense.Serialization.Json
 			_ => false
 		};
 
+		/// <inheritdoc />
 		public bool Equals(UInt128 value) => m_kind switch
 		{
 			Kind.Decimal => m_value.Decimal == (decimal) value,
@@ -2434,6 +2501,7 @@ namespace Doxense.Serialization.Json
 
 #endif
 
+		/// <inheritdoc />
 		public bool Equals(float value) => m_kind switch
 		{
 			Kind.Decimal => m_value.Decimal == new decimal(value),
@@ -2443,6 +2511,7 @@ namespace Doxense.Serialization.Json
 			_ => false
 		};
 
+		/// <inheritdoc />
 		public bool Equals(double value) => m_kind switch
 		{
 			Kind.Decimal => m_value.Decimal == new decimal(value),
@@ -2453,6 +2522,8 @@ namespace Doxense.Serialization.Json
 		};
 
 #if NET8_0_OR_GREATER
+
+		/// <inheritdoc />
 		public bool Equals(Half value) => m_kind switch
 		{
 			Kind.Decimal => m_value.Decimal == (decimal) value,
@@ -2472,6 +2543,7 @@ namespace Doxense.Serialization.Json
 		};
 #endif
 
+		/// <inheritdoc />
 		public bool Equals(decimal value) => m_kind switch
 		{
 			Kind.Decimal => m_value.Decimal == value,
@@ -2481,8 +2553,10 @@ namespace Doxense.Serialization.Json
 			_ => false
 		};
 
+		/// <inheritdoc />
 		public bool Equals(TimeSpan value) => ToDouble() == value.TotalSeconds;
 
+		/// <inheritdoc />
 		public override int GetHashCode()
 		{
 			// note: we have to return the same hash code for 1, 1UL, 1.0d or 1m !
@@ -2520,6 +2594,7 @@ namespace Doxense.Serialization.Json
 
 		#region IComparable<...>
 
+		/// <inheritdoc />
 		public override int CompareTo(JsonValue? other) => other switch
 		{
 			JsonNumber jn => CompareTo(jn),
@@ -2527,12 +2602,15 @@ namespace Doxense.Serialization.Json
 			_ => base.CompareTo(other)
 		};
 
+		/// <inheritdoc />
 		public int CompareTo(JsonNumber? other) => other switch
 		{
 			null => +1,
 			_ => Number.CompareTo(in m_value, m_kind, in other.m_value, other.m_kind)
 		};
 
+
+		/// <inheritdoc />
 		public int CompareTo(long value) => m_value.CompareTo(m_kind, value);
 
 		public int CompareTo(ulong value) => m_value.CompareTo(m_kind, value);
@@ -2597,68 +2675,90 @@ namespace Doxense.Serialization.Json
 
 		#region Arithmetic operators
 
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator JsonNumber(int value) => Return(value);
 
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator JsonNumber(long value) => Return(value);
 
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator JsonNumber(uint value) => Return(value);
 
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator JsonNumber(ulong value) => Return(value);
 
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator JsonNumber(float value) => Return(value);
 
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator JsonNumber(double value) => Return(value);
 
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator JsonNumber(decimal value) => Return(value);
 
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator JsonNumber(System.Half value) => Return(value);
 
+		/// <summary>Tests if two <see cref="JsonNumber"/> are considered equal</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool operator ==(JsonNumber? left, JsonNumber? right)
 			=> left?.Equals(right) ?? right is null;
 
+		/// <summary>Tests if two <see cref="JsonNumber"/> are considered not equal</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool operator !=(JsonNumber? left, JsonNumber? right)
 			=> !(left?.Equals(right) ?? right is null);
 
+		/// <summary>Tests if a <see cref="JsonNumber"/> is less than the other</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool operator <(JsonNumber? left, JsonNumber? right)
 			=> (left ?? JsonNull.Null).CompareTo(right ?? JsonNull.Null) < 0;
 
+		/// <summary>Tests if a <see cref="JsonNumber"/> is less than or equal to the other</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool operator <=(JsonNumber? left, JsonNumber? right)
 			=> (left ?? JsonNull.Null).CompareTo(right ?? JsonNull.Null) <= 0;
 
+		/// <summary>Tests if a <see cref="JsonNumber"/> is greater than the other</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool operator >(JsonNumber? left, JsonNumber? right)
 			=> (left ?? JsonNull.Null).CompareTo(right ?? JsonNull.Null) > 0;
 
+		/// <summary>Tests if a <see cref="JsonNumber"/> is greater than or equal to the other</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool operator >=(JsonNumber? left, JsonNumber? right)
 			=> (left ?? JsonNull.Null).CompareTo(right ?? JsonNull.Null) >= 0;
 
+		/// <summary>Adds two <see cref="JsonNumber"/> together</summary>
 		public static JsonNumber operator +(JsonNumber value) => value;
 
+		/// <summary>Substracts a <see cref="JsonNumber"/> from another number</summary>
 		public static JsonNumber operator -(JsonNumber value) => MinusOne.Multiply(value);
 
+		/// <summary>Tests if a <see cref="JsonNumber"/> and an integer are considered equal</summary>
 		public static bool operator ==(JsonNumber? number, long value) => number is not null && number.Equals(value);
 
+		/// <summary>Tests if a <see cref="JsonNumber"/> and an integer are not considered equal</summary>
 		public static bool operator !=(JsonNumber? number, long value) => number is null || !number.Equals(value);
 
+		/// <summary>Tests if a <see cref="JsonNumber"/> is less than an integer</summary>
 		public static bool operator <(JsonNumber? number, long value) => number is not null && number.CompareTo(value) < 0;
 
+		/// <summary>Tests if a <see cref="JsonNumber"/> is less than or equal to an integer</summary>
 		public static bool operator <=(JsonNumber? number, long value) => number is not null && number.CompareTo(value) <= 0;
 
+		/// <summary>Tests if a <see cref="JsonNumber"/> is greater than an integer</summary>
 		public static bool operator >(JsonNumber? number, long value) => number is not null && number.CompareTo(value) > 0;
 
+		/// <summary>Tests if a <see cref="JsonNumber"/> is greater than or equal to an integer</summary>
 		public static bool operator >=(JsonNumber? number, long value) => number is not null && number.CompareTo(value) >= 0;
 
 		public static bool operator ==(JsonNumber? number, ulong value) => number is not null && number.Equals(value);
@@ -2709,6 +2809,7 @@ namespace Doxense.Serialization.Json
 
 		public static bool operator >=(JsonNumber? number, decimal value) => number is not null && number.CompareTo(value) >= 0;
 
+		/// <summary>Adds this number with another number</summary>
 		[Pure]
 		public JsonNumber Plus(JsonNumber number)
 		{
@@ -2724,6 +2825,7 @@ namespace Doxense.Serialization.Json
 			return Return(value, kind);
 		}
 
+		/// <summary>Subtracts a number from this number</summary>
 		[Pure]
 		public JsonNumber Minus(JsonNumber number)
 		{
@@ -2737,9 +2839,11 @@ namespace Doxense.Serialization.Json
 			return Return(value, kind);
 		}
 
+		/// <summary>Adds two numbers together</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonNumber operator +(JsonNumber left, JsonNumber right) => left.Plus(right);
 
+		/// <summary>Adds two numbers together</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonNumber operator +(JsonNumber left, long right)
 		{
@@ -2750,6 +2854,7 @@ namespace Doxense.Serialization.Json
 			return Return(value, kind);
 		}
 
+		/// <summary>Adds two numbers together</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonNumber operator +(JsonNumber left, ulong right)
 		{
@@ -2760,6 +2865,7 @@ namespace Doxense.Serialization.Json
 			return Return(value, kind);
 		}
 
+		/// <summary>Adds two numbers together</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonNumber operator +(JsonNumber left, double right)
 		{
@@ -2770,6 +2876,7 @@ namespace Doxense.Serialization.Json
 			return Return(value, kind);
 		}
 
+		/// <summary>Adds two numbers together</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonNumber operator +(JsonNumber left, float right)
 		{
@@ -2780,6 +2887,7 @@ namespace Doxense.Serialization.Json
 			return Return(value, kind);
 		}
 
+		/// <summary>Adds two numbers together</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonNumber operator +(JsonNumber left, decimal right)
 		{
@@ -2790,12 +2898,15 @@ namespace Doxense.Serialization.Json
 			return Return(value, kind);
 		}
 
+		/// <summary>Adds one to a number</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonNumber operator ++(JsonNumber left) => left.Plus(One);
 
+		/// <summary>Subtracts a number from another number</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonNumber operator -(JsonNumber left, JsonNumber right) => left.Minus(right);
 
+		/// <summary>Subtracts a number from another number</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonNumber operator -(JsonNumber left, long right)
 		{
@@ -2806,6 +2917,7 @@ namespace Doxense.Serialization.Json
 			return Return(value, kind);
 		}
 
+		/// <summary>Subtracts a number from another number</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonNumber operator -(JsonNumber left, ulong right)
 		{
@@ -2816,6 +2928,7 @@ namespace Doxense.Serialization.Json
 			return Return(value, kind);
 		}
 
+		/// <summary>Subtracts a number from another number</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonNumber operator -(JsonNumber left, double right)
 		{
@@ -2826,6 +2939,7 @@ namespace Doxense.Serialization.Json
 			return Return(value, kind);
 		}
 
+		/// <summary>Subtracts a number from another number</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonNumber operator -(JsonNumber left, float right)
 		{
@@ -2836,6 +2950,7 @@ namespace Doxense.Serialization.Json
 			return Return(value, kind);
 		}
 
+		/// <summary>Subtracts a number from another number</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonNumber operator -(JsonNumber left, decimal right)
 		{
@@ -2846,9 +2961,11 @@ namespace Doxense.Serialization.Json
 			return Return(value, kind);
 		}
 
+		/// <summary>Subtracts one from a number</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonNumber operator --(JsonNumber left) => left.Plus(MinusOne);
 
+		/// <summary>Multiply this number with another number</summary>
 		[Pure]
 		public JsonNumber Multiply(JsonNumber number)
 		{
@@ -2862,9 +2979,11 @@ namespace Doxense.Serialization.Json
 			return Return(value, kind);
 		}
 
+		/// <summary>Multiply two numbers together</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonNumber operator *(JsonNumber left, JsonNumber right) => left.Multiply(right);
 
+		/// <summary>Multiply two numbers together</summary>
 		[Pure]
 		public static JsonNumber operator *(JsonNumber left, long right)
 		{
@@ -2875,6 +2994,7 @@ namespace Doxense.Serialization.Json
 			return Return(value, kind);
 		}
 
+		/// <summary>Multiply two numbers together</summary>
 		[Pure]
 		public static JsonNumber operator *(JsonNumber left, ulong right)
 		{
@@ -2885,6 +3005,7 @@ namespace Doxense.Serialization.Json
 			return Return(value, kind);
 		}
 
+		/// <summary>Multiply two numbers together</summary>
 		[Pure]
 		public static JsonNumber operator *(JsonNumber left, double right)
 		{
@@ -2895,6 +3016,7 @@ namespace Doxense.Serialization.Json
 			return Return(value, kind);
 		}
 
+		/// <summary>Multiply two numbers together</summary>
 		[Pure]
 		public static JsonNumber operator *(JsonNumber left, float right)
 		{
@@ -2905,6 +3027,7 @@ namespace Doxense.Serialization.Json
 			return Return(value, kind);
 		}
 
+		/// <summary>Multiply two numbers together</summary>
 		[Pure]
 		public static JsonNumber operator *(JsonNumber left, decimal right)
 		{
@@ -2915,6 +3038,7 @@ namespace Doxense.Serialization.Json
 			return Return(value, kind);
 		}
 
+		/// <summary>Divides this number by another number</summary>
 		[Pure]
 		public JsonNumber Divide(JsonNumber number)
 		{
@@ -2928,9 +3052,11 @@ namespace Doxense.Serialization.Json
 			return Return(value, kind);
 		}
 
+		/// <summary>Divides a number by another number</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonNumber operator /(JsonNumber left, JsonNumber right) => left.Divide(right);
 
+		/// <summary>Divides a number by another number</summary>
 		[Pure]
 		public static JsonNumber operator /(JsonNumber left, long right)
 		{
@@ -2941,6 +3067,7 @@ namespace Doxense.Serialization.Json
 			return Return(value, kind);
 		}
 
+		/// <summary>Divides a number by another number</summary>
 		[Pure]
 		public static JsonNumber operator /(JsonNumber left, ulong right)
 		{
@@ -2951,6 +3078,7 @@ namespace Doxense.Serialization.Json
 			return Return(value, kind);
 		}
 
+		/// <summary>Divides a number by another number</summary>
 		[Pure]
 		public static JsonNumber operator /(JsonNumber left, double right)
 		{
@@ -2961,6 +3089,7 @@ namespace Doxense.Serialization.Json
 			return Return(value, kind);
 		}
 
+		/// <summary>Divides a number by another number</summary>
 		[Pure]
 		public static JsonNumber operator /(JsonNumber left, float right)
 		{
@@ -2971,6 +3100,7 @@ namespace Doxense.Serialization.Json
 			return Return(value, kind);
 		}
 
+		/// <summary>Divides a number by another number</summary>
 		[Pure]
 		public static JsonNumber operator /(JsonNumber left, decimal right)
 		{
@@ -2991,12 +3121,15 @@ namespace Doxense.Serialization.Json
 			_ => throw new NotSupportedException()
 		};
 
+		/// <summary>Returns <see cref="JsonNumber.Zero"/></summary>
 		public static JsonNumber AdditiveIdentity => JsonNumber.Zero;
 
+		/// <summary>Returns <see cref="JsonNumber.One"/></summary>
 		public static JsonNumber MultiplicativeIdentity => JsonNumber.One;
 
 		#endregion
 
+		/// <inheritdoc />
 		public override string ToJson(CrystalJsonSettings? settings = null)
 		{
 			//TODO: if javascript we have to special case for thins like NaN, infinities, ... !
@@ -3014,8 +3147,10 @@ namespace Doxense.Serialization.Json
 
 #if NET8_0_OR_GREATER
 
+		/// <inheritdoc />
 		public new static JsonNumber Parse(string s, IFormatProvider? provider) => Return(s);
 
+		/// <inheritdoc />
 		public static bool TryParse(string? s, IFormatProvider? provider, [MaybeNullWhen(false)] out JsonNumber result)
 		{
 			try
@@ -3030,8 +3165,10 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		/// <inheritdoc />
 		public new static JsonNumber Parse(ReadOnlySpan<char> s, IFormatProvider? provider) => Return(s.ToString());
 
+		/// <inheritdoc />
 		public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, [MaybeNullWhen(false)] out JsonNumber result)
 		{
 			try
@@ -3067,11 +3204,14 @@ namespace Doxense.Serialization.Json
 
 #endif
 
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonNumber Abs(JsonNumber value) => value.IsNegative ? value.Multiply(MinusOne) : value;
 
+		/// <inheritdoc />
 		public static bool IsZero(JsonNumber value) => value.m_value.IsZero(value.m_kind);
 
+		/// <inheritdoc />
 		public static bool IsPositive(JsonNumber value) => value.m_kind switch
 		{
 			Kind.Signed => value.m_value.Signed >= 0,
@@ -3086,6 +3226,7 @@ namespace Doxense.Serialization.Json
 			_ => false,
 		};
 
+		/// <inheritdoc />
 		public static bool IsInteger(JsonNumber value) => value.m_kind switch
 		{
 			Kind.Signed or Kind.Unsigned => true,
@@ -3101,6 +3242,7 @@ namespace Doxense.Serialization.Json
 
 #if NET8_0_OR_GREATER
 
+		/// <inheritdoc />
 		public static bool IsEvenInteger(JsonNumber value) => value.m_kind switch
 		{
 			Kind.Signed => long.IsEvenInteger(value.m_value.Signed),
@@ -3110,6 +3252,7 @@ namespace Doxense.Serialization.Json
 			_ => false,
 		};
 
+		/// <inheritdoc />
 		public static bool IsOddInteger(JsonNumber value) => value.m_kind switch
 		{
 			Kind.Signed => long.IsOddInteger(value.m_value.Signed),
@@ -3119,6 +3262,7 @@ namespace Doxense.Serialization.Json
 			_ => false,
 		};
 
+		/// <inheritdoc />
 		public static bool IsRealNumber(JsonNumber value) => value.m_kind switch
 		{
 			Kind.Double => double.IsRealNumber(value.m_value.Double), // returns false for NaN
@@ -3126,6 +3270,7 @@ namespace Doxense.Serialization.Json
 			_ => false,
 		};
 		
+		/// <inheritdoc />
 		public static bool IsFinite(JsonNumber value) => value.m_kind switch
 		{
 			Kind.Double => double.IsFinite(value.m_value.Double),
@@ -3141,28 +3286,38 @@ namespace Doxense.Serialization.Json
 
 #endif
 
+		/// <inheritdoc />
 		public static bool IsNaN(JsonNumber value) => value.m_kind == Kind.Double && double.IsNaN(value.m_value.Double);
 
+		/// <inheritdoc />
 		public static bool IsInfinity(JsonNumber value) => value.m_kind == Kind.Double && double.IsInfinity(value.m_value.Double);
 
+		/// <inheritdoc />
 		public static bool IsPositiveInfinity(JsonNumber value) => value.m_kind == Kind.Double && double.IsPositiveInfinity(value.m_value.Double);
 
+		/// <inheritdoc />
 		public static bool IsNegativeInfinity(JsonNumber value) => value.m_kind == Kind.Double && double.IsNegativeInfinity(value.m_value.Double);
 
+		/// <inheritdoc />
 		public static bool IsNormal(JsonNumber value) => value.m_kind switch
 		{
 			Kind.Double => double.IsNormal(value.m_value.Double),
 			_ => !IsZero(value),
 		};
 
+		/// <inheritdoc />
 		public static bool IsSubnormal(JsonNumber value) => value.m_kind == Kind.Double && double.IsSubnormal(value.m_value.Double);
 
+		/// <inheritdoc />
 		public static JsonNumber MaxMagnitude(JsonNumber x, JsonNumber y) => Abs(x).CompareTo(Abs(y)) < 0 ? y : x;
 
+		/// <inheritdoc />
 		public static JsonNumber MaxMagnitudeNumber(JsonNumber x, JsonNumber y) => IsNaN(x) ? y : IsNaN(y) ? x : Abs(x).CompareTo(Abs(y)) < 0 ? y : x;
 
+		/// <inheritdoc />
 		public static JsonNumber MinMagnitude(JsonNumber x, JsonNumber y) => Abs(x).CompareTo(Abs(y)) > 0 ? y : x;
 
+		/// <inheritdoc />
 		public static JsonNumber MinMagnitudeNumber(JsonNumber x, JsonNumber y) => IsNaN(x) ? y : IsNaN(y) ? x : Abs(x).CompareTo(Abs(y)) > 0 ? y : x;
 
 #if NET8_0_OR_GREATER
@@ -3238,18 +3393,22 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
+		/// <inheritdoc />
 		public static bool TryConvertFromChecked<TOther>(TOther value, [MaybeNullWhen(false)] out JsonNumber result)
 			where TOther : System.Numerics.INumberBase<TOther>
 			=> TryConvertFrom<TOther>(value, out result);
 
+		/// <inheritdoc />
 		public static bool TryConvertFromSaturating<TOther>(TOther value, [MaybeNullWhen(false)] out JsonNumber result)
 			where TOther : System.Numerics.INumberBase<TOther>
 			=> TryConvertFrom<TOther>(value, out result);
 
+		/// <inheritdoc />
 		public static bool TryConvertFromTruncating<TOther>(TOther value, [MaybeNullWhen(false)] out JsonNumber result)
 			where TOther : System.Numerics.INumberBase<TOther>
 			=> TryConvertFrom<TOther>(value, out result);
 
+		/// <inheritdoc />
 		public static bool TryConvertToChecked<TOther>(JsonNumber value, [MaybeNullWhen(false)] out TOther result)
 			where TOther : System.Numerics.INumberBase<TOther>
 			=>
@@ -3262,6 +3421,7 @@ namespace Doxense.Serialization.Json
 				_ => throw new InvalidOperationException()
 			};
 
+		/// <inheritdoc />
 		public static bool TryConvertToSaturating<TOther>(JsonNumber value, [MaybeNullWhen(false)] out TOther result)
 			where TOther : System.Numerics.INumberBase<TOther>
 			=>
@@ -3274,6 +3434,7 @@ namespace Doxense.Serialization.Json
 				_ => throw new InvalidOperationException()
 			};
 
+		/// <inheritdoc />
 		public static bool TryConvertToTruncating<TOther>(JsonNumber value, [MaybeNullWhen(false)] out TOther result)
 			where TOther : System.Numerics.INumberBase<TOther>
 			=>

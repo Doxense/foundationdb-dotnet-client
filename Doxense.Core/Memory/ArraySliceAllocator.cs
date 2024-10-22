@@ -116,7 +116,7 @@ namespace Doxense.Memory
 		/// <summary>Returns a <see cref="MutableSlice" /> to write to that is exactly the requested size (specified by <paramref name="size" />) and advance the cursor.</summary>
 		/// <param name="size">The exact length of the returned <see cref="Slice" />. If 0, a non-empty buffer is returned.</param>
 		/// <exception cref="T:System.OutOfMemoryException">The requested buffer size is not available.</exception>
-		/// <returns>A <see cref="MutableSlice" /> of at exactly the <paramref name="size" /> requested..</returns>
+		/// <returns>A <see cref="MutableSlice" /> of at exactly the <paramref name="size" /> requested.</returns>
 		public MutableSlice Allocate(int size)
 		{
 			Contract.GreaterOrEqual(size, 0);
@@ -143,7 +143,7 @@ namespace Doxense.Memory
 		private byte[] GrowBufferSlow(byte[] current, int sizeHint)
 		{
 			// try allocating larger slabs, until we reach the max spill size.
-			// by default we will double the size until we either reach the max slab size, or enough to satisfy the request
+			// by default, we will double the size until we either reach the max slab size, or enough to satisfy the request
 			long newSize = Math.Min(current.Length, 2048);
 			do { newSize *= 2; } while (newSize < sizeHint);
 

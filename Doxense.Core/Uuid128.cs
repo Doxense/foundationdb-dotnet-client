@@ -852,6 +852,7 @@ namespace System
 			WriteTo(writer.AllocateSpan(SizeOf));
 		}
 
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public override string ToString() => m_packed.ToString();
 
@@ -890,6 +891,7 @@ namespace System
 
 #endif
 
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public string ToString(
 #if NET8_0_OR_GREATER
@@ -1020,6 +1022,7 @@ namespace System
 
 		#region Equality / Comparison ...
 
+		/// <inheritdoc />
 		public override bool Equals(object? obj)
 		{
 			if (obj == null) return false;
@@ -1029,12 +1032,14 @@ namespace System
 			return false;
 		}
 
+		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(Uuid128 other)
 		{
 			return m_packed == other.m_packed;
 		}
 
+		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(Guid other)
 		{
@@ -1077,17 +1082,20 @@ namespace System
 			return a != b.m_packed;
 		}
 
+		/// <inheritdoc />
 		public override int GetHashCode()
 		{
 			return m_packed.GetHashCode();
 		}
 
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo(Uuid128 other)
 		{
 			return m_packed.CompareTo(other.m_packed);
 		}
 
+		/// <inheritdoc />
 		public int CompareTo(object? obj)
 		{
 			switch (obj)
@@ -1110,16 +1118,19 @@ namespace System
 			private Comparer()
 			{ }
 
+			/// <inheritdoc />
 			public bool Equals(Uuid128 x, Uuid128 y)
 			{
 				return x.m_packed.Equals(y.m_packed);
 			}
 
+			/// <inheritdoc />
 			public int GetHashCode(Uuid128 obj)
 			{
 				return obj.m_packed.GetHashCode();
 			}
 
+			/// <inheritdoc />
 			public int Compare(Uuid128 x, Uuid128 y)
 			{
 				return x.m_packed.CompareTo(y.m_packed);

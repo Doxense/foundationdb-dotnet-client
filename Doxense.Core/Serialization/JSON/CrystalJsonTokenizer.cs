@@ -69,6 +69,7 @@ namespace Doxense.Serialization.Json
 			this.FieldComparer = this.Settings.IgnoreCaseForNames ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
 		}
 
+		/// <inheritdoc />
 		public void Dispose()
 		{
 			this.Source = default;

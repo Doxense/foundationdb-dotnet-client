@@ -554,24 +554,31 @@ namespace Doxense.Serialization.Json
 
 		#region Tuples...
 
+		/// <summary>Converts a <see cref="ValueTuple{T1}"/> into the equivalent <see cref="JsonArray"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray Return<T1>(ValueTuple<T1> tuple) => new([ FromValue<T1>(tuple.Item1) ], 1, readOnly: false);
 
+		/// <summary>Converts a <see cref="ValueTuple{T1,T2}"/> into the equivalent <see cref="JsonArray"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray Return<T1, T2>(in ValueTuple<T1, T2> tuple) => new([ FromValue<T1>(tuple.Item1), FromValue<T2>(tuple.Item2) ], 2, readOnly: false);
 
+		/// <summary>Converts a <see cref="ValueTuple{T1,T2,T3}"/> into the equivalent <see cref="JsonArray"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray Return<T1, T2, T3>(in ValueTuple<T1, T2, T3> tuple) => new([ FromValue<T1>(tuple.Item1), FromValue<T2>(tuple.Item2), FromValue<T3>(tuple.Item3) ], 3, readOnly: false);
 
+		/// <summary>Converts a <see cref="ValueTuple{T1,T2,T3,T4}"/> into the equivalent <see cref="JsonArray"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray Return<T1, T2, T3, T4>(in ValueTuple<T1, T2, T3, T4> tuple) => new([ FromValue<T1>(tuple.Item1), FromValue<T2>(tuple.Item2), FromValue<T3>(tuple.Item3), FromValue<T4>(tuple.Item4) ], 4, readOnly: false);
 
+		/// <summary>Converts a <see cref="ValueTuple{T1,T2,T3,T4,T5}"/> into the equivalent <see cref="JsonArray"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray Return<T1, T2, T3, T4, T5>(in ValueTuple<T1, T2, T3, T4, T5> tuple) => new([ FromValue<T1>(tuple.Item1), FromValue<T2>(tuple.Item2), FromValue<T3>(tuple.Item3), FromValue<T4>(tuple.Item4), FromValue<T5>(tuple.Item5) ], 5, readOnly: false);
 
+		/// <summary>Converts a <see cref="ValueTuple{T1,T2,T3,T4,T5,T6}"/> into the equivalent <see cref="JsonArray"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray Return<T1, T2, T3, T4, T5, T6>(in ValueTuple<T1, T2, T3, T4, T5, T6> tuple) => new([ FromValue<T1>(tuple.Item1), FromValue<T2>(tuple.Item2), FromValue<T3>(tuple.Item3), FromValue<T4>(tuple.Item4), FromValue<T5>(tuple.Item5), FromValue<T6>(tuple.Item6) ], 6, readOnly: false);
 
+		/// <summary>Converts a <see cref="ValueTuple{T1,T2,T3,T4,T5,T6,T7}"/> into the equivalent <see cref="JsonArray"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray Return<T1, T2, T3, T4, T5, T6, T7>(in ValueTuple<T1, T2, T3, T4, T5, T6, T7> tuple) => new([ FromValue<T1>(tuple.Item1), FromValue<T2>(tuple.Item2), FromValue<T3>(tuple.Item3), FromValue<T4>(tuple.Item4), FromValue<T5>(tuple.Item5), FromValue<T6>(tuple.Item6), FromValue<T7>(tuple.Item7) ], 7, readOnly: false);
 
@@ -613,6 +620,7 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
+		/// <inheritdoc />
 		public override JsonType Type => JsonType.Array;
 
 		/// <inheritdoc />
@@ -778,6 +786,7 @@ namespace Doxense.Serialization.Json
 			set => Set(index, value);
 		}
 
+		/// <inheritdoc />
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public void Add(JsonValue? value)
 		{
@@ -793,6 +802,7 @@ namespace Doxense.Serialization.Json
 			m_size = size + 1;
 		}
 
+		/// <summary>Add a <see cref="JsonNull.Null"/> item to the array</summary>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public void AddNull()
 		{
@@ -800,6 +810,7 @@ namespace Doxense.Serialization.Json
 			Add(JsonNull.Null);
 		}
 
+		/// <summary>Adds a value of type <typeparamref name="TValue"/> item to the array</summary>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public void AddValue<TValue>(TValue value)
 		{
@@ -2516,12 +2527,14 @@ namespace Doxense.Serialization.Json
 
 		#region Enumerator...
 
+		/// <summary>Returns an enumerator that iterates through the array.</summary>
 		public Enumerator GetEnumerator() => new(m_items, m_size);
 
 		IEnumerator<JsonValue> IEnumerable<JsonValue>.GetEnumerator() => new Enumerator(m_items, m_size);
 
 		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
+		/// <summary>Enumerates through the elements of a <see cref="JsonArray"/></summary>
 		public struct Enumerator : IEnumerator<JsonValue>
 		{
 			private readonly JsonValue[] m_items;
@@ -2537,9 +2550,11 @@ namespace Doxense.Serialization.Json
 				m_current = null;
 			}
 
+			/// <inheritdoc />
 			public readonly void Dispose()
 			{ }
 
+			/// <inheritdoc />
 			public bool MoveNext()
 			{
 				if ((uint) m_index < m_size)
@@ -2576,6 +2591,7 @@ namespace Doxense.Serialization.Json
 				m_current = null;
 			}
 
+			/// <inheritdoc />
 			public readonly JsonValue Current => m_current!;
 
 		}
@@ -2731,7 +2747,7 @@ namespace Doxense.Serialization.Json
 			return (resolver ?? CrystalJson.DefaultResolver).BindJsonArray(type, this);
 		}
 
-		/// <summary>Returns a <see cref="JsonValue"/>[] with the same items as this JSON Array</summary>
+		/// <summary>Returns an array of <see cref="JsonValue"/> with the same items as this <see cref="JsonArray"/></summary>
 		/// <remarks>Return a shallow copy of the array.</remarks>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public JsonValue[] ToArray() => this.AsSpan().ToArray();
@@ -3256,7 +3272,6 @@ namespace Doxense.Serialization.Json
 #if NET8_0_OR_GREATER
 
 		/// <summary>Returns the sum of all the items in <see cref="JsonArray">JSON Array</see> interpreted as the corresponding <typeparamref name="TNumber"/></summary>
-		/// <remarks>This is equivalent to calling <c>array.ToArray&lt;TNumber&gt;().Sum()</c></remarks>
 		public TNumber Sum<TNumber>() where TNumber : System.Numerics.INumberBase<TNumber>
 		{
 			var total = TNumber.Zero;
@@ -3268,14 +3283,12 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Returns the average of all the items in <see cref="JsonArray">JSON Array</see> interpreted as the corresponding <typeparamref name="TNumber"/></summary>
-		/// <remarks>This is equivalent to calling <c>array.ToArray&lt;TNumber&gt;().Average()</c></remarks>
 		public TNumber Average<TNumber>() where TNumber : System.Numerics.INumberBase<TNumber>
 		{
 			return Sum<TNumber>() / TNumber.CreateChecked(this.Count);
 		}
 
 		/// <summary>Returns the sum of all the items in <see cref="JsonArray">JSON Array</see> interpreted as the corresponding <typeparamref name="TNumber"/></summary>
-		/// <remarks>This is equivalent to calling <c>array.ToArray&lt;TNumber&gt;().Sum()</c></remarks>
 		public TNumber Min<TNumber>() where TNumber : System.Numerics.INumberBase<TNumber>, System.Numerics.IComparisonOperators<TNumber, TNumber, bool>
 		{
 			var span = this.AsSpan();
@@ -3297,7 +3310,6 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Returns the sum of all the items in <see cref="JsonArray">JSON Array</see> interpreted as the corresponding <typeparamref name="TNumber"/></summary>
-		/// <remarks>This is equivalent to calling <c>array.ToArray&lt;TNumber&gt;().Sum()</c></remarks>
 		public TNumber Max<TNumber>() where TNumber : System.Numerics.INumberBase<TNumber>, System.Numerics.IComparisonOperators<TNumber, TNumber, bool>
 		{
 			var span = this.AsSpan();
@@ -3982,7 +3994,6 @@ namespace Doxense.Serialization.Json
 			_ => false
 		};
 
-
 		/// <inheritdoc />
 		public override string ToJson(CrystalJsonSettings? settings = null)
 		{
@@ -3994,6 +4005,7 @@ namespace Doxense.Serialization.Json
 			return CrystalJson.SerializeJson(this, settings);
 		}
 
+		/// <inheritdoc />
 		public override void JsonSerialize(CrystalJsonWriter writer)
 		{
 			var items = GetSpan();
@@ -4068,8 +4080,10 @@ namespace Doxense.Serialization.Json
 
 		#region IEquatable<...>
 
+		/// <inheritdoc />
 		public override bool Equals(JsonValue? other) => other is JsonArray arr && Equals(arr);
 
+		/// <summary>Tests if two arrays are considered equal</summary>
 		public bool Equals(JsonArray? other)
 		{
 			int n = m_size;
@@ -4089,6 +4103,7 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
+		/// <summary>Tests if two arrays are considered equal, using a custom equality comparer</summary>
 		public bool Equals(JsonArray? other, IEqualityComparer<JsonValue>? comparer)
 		{
 			int n = m_size;
@@ -4110,20 +4125,25 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
+		/// <inheritdoc />
 		public override int GetHashCode()
 		{
 			// the hash code of the array should never change, even if the _content_ of the array can change
 			return RuntimeHelpers.GetHashCode(this);
 		}
 
+		/// <inheritdoc />
 		public override int CompareTo(JsonValue? other)
 		{
 			if (other is JsonArray array) return CompareTo(array);
 			return base.CompareTo(other);
 		}
 
-		public int CompareTo(JsonArray other)
+		/// <inheritdoc />
+		public int CompareTo(JsonArray? other)
 		{
+			if (other is null) return +1;
+			
 			int n = Math.Min(m_size, other.m_size);
 			var l = m_items;
 			var r = other.m_items;
@@ -4139,6 +4159,7 @@ namespace Doxense.Serialization.Json
 
 		#region ISliceSerializable
 
+		/// <inheritdoc />
 		public override void WriteTo(ref SliceWriter writer)
 		{
 			writer.WriteByte('[');
@@ -4163,10 +4184,13 @@ namespace Doxense.Serialization.Json
 
 	}
 
+	/// <summary>Extension methods for <see cref="JsonArray"/></summary>
 	[PublicAPI]
 	public static class JsonArrayExtensions
 	{
 
+		/// <summary>Returns an array of <typeparamref name="TValue"/> containing the transformed elements of a <see cref="JsonArray"/></summary>
+		/// <remarks>This is the logical equivalent of <c>array.Select(transform).ToArray()</c></remarks>
 		[Pure]
 		public static TValue[] ToArray<TValue>(this JsonArray self, [InstantHandle] Func<JsonValue, TValue> transform)
 		{
@@ -4174,14 +4198,14 @@ namespace Doxense.Serialization.Json
 			Contract.NotNull(transform);
 
 			var items = self.AsSpan();
-			var buf = new TValue[items.Length];
+			var res = new TValue[items.Length];
 
 			for (int i = 0; i < items.Length; i++)
 			{
-				buf[i] = transform(items[i]);
+				res[i] = transform(items[i]);
 			}
 
-			return buf;
+			return res;
 		}
 
 		/// <summary>Appends all the elements of an <see cref="IEnumerable{T}"/> to the end of this <see cref="JsonArray"/></summary>
@@ -4525,6 +4549,7 @@ namespace Doxense.Serialization.Json
 			m_array = array;
 		}
 
+		/// <summary>Returns an enumerator that iterates through the array.</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Enumerator GetEnumerator() => new(m_array.AsMemory());
 
@@ -4546,13 +4571,14 @@ namespace Doxense.Serialization.Json
 				m_current = default;
 			}
 
+			/// <inheritdoc />
 			public readonly void Dispose()
 			{ }
 
+			/// <inheritdoc />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public bool MoveNext()
 			{
-				//TODO: check versioning?
 				var items = m_items.Span;
 				int index = m_index;
 				if ((uint) index >= (uint) items.Length)
@@ -4591,23 +4617,31 @@ namespace Doxense.Serialization.Json
 				m_current = default;
 			}
 
+			/// <inheritdoc />
 			public readonly TValue Current => m_current!;
 		}
 
+		/// <inheritdoc />
 		public int Count => m_array.Count;
 
+		/// <summary>Returns the element at the specified index, converted into type <typeparamref name="TValue"/></summary>
+		/// <remarks>Throw an exception if the index is out of bounds, or if the value is null or missing</remarks>
 		public TValue this[int index]
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => m_array.Get<TValue>(index);
 		}
 
+		/// <summary>Returns the element at the specified index, converted into type <typeparamref name="TValue"/></summary>
+		/// <remarks>Throw an exception if the index is out of bounds, or if the value is null or missing</remarks>
 		public TValue this[Index index]
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => m_array.Get<TValue>(index);
 		}
 
+		/// <summary>Returns an array with all the elements, converted into type <typeparamref name="TValue"/>.</summary>
+		/// <remarks>If any element is null or missing, an exception will be thrown.</remarks>
 		[Pure]
 		public TValue[] ToArray()
 		{
@@ -4622,6 +4656,8 @@ namespace Doxense.Serialization.Json
 			return res;
 		}
 
+		/// <summary>Returns a <see cref="List{TValue}"/> with all the elements, converted into type <typeparamref name="TValue"/>.</summary>
+		/// <remarks>If any element is null or missing, an exception will be thrown.</remarks>
 		[Pure]
 		public List<TValue> ToList()
 		{
@@ -4654,6 +4690,7 @@ namespace Doxense.Serialization.Json
 			m_missing = missing;
 		}
 
+		/// <summary>Returns an enumerator that iterates through the array.</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Enumerator GetEnumerator() => new(m_array.AsMemory(), m_missing);
 
@@ -4677,13 +4714,14 @@ namespace Doxense.Serialization.Json
 				m_missing = missing;
 			}
 
+			/// <inheritdoc />
 			public readonly void Dispose()
 			{ }
 
+			/// <inheritdoc />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public bool MoveNext()
 			{
-				//TODO: check versioning?
 				var items = m_items.Span;
 				int index = m_index;
 				if ((uint) index >= (uint) items.Length)
@@ -4722,23 +4760,32 @@ namespace Doxense.Serialization.Json
 				m_current = default;
 			}
 
+			/// <inheritdoc />
 			public readonly TValue Current => m_current!;
+			
 		}
 
+		/// <inheritdoc />
 		public int Count => m_array.Count;
 
+		/// <summary>Returns the element at the specified index, converted into type <typeparamref name="TValue"/></summary>
+		/// <remarks>Returns <see langword="null"/> if the index is out of bounds, or if the value is null or missing</remarks>
 		public TValue? this[int index]
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => m_array.Get<TValue?>(index, m_missing);
 		}
 
+		/// <summary>Returns the element at the specified index, converted into type <typeparamref name="TValue"/></summary>
+		/// <remarks>Returns <see langword="null"/> if the index is out of bounds, or if the value is null or missing</remarks>
 		public TValue? this[Index index]
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => m_array.Get<TValue?>(index, m_missing);
 		}
 
+		/// <summary>Returns an array with all the elements, converted into type <typeparamref name="TValue"/>.</summary>
+		/// <remarks>Any element that is null or missing will be <see langword="null"/> in the returned array.</remarks>
 		[Pure]
 		public TValue?[] ToArray()
 		{
@@ -4763,6 +4810,8 @@ namespace Doxense.Serialization.Json
 			return res;
 		}
 
+		/// <summary>Returns a <see cref="List{TValue}"/> with all the elements, converted into type <typeparamref name="TValue"/>.</summary>
+		/// <remarks>Any element that is null or missing will be <see langword="null"/> in the returned array.</remarks>
 		[Pure]
 		public List<TValue?> ToList()
 		{

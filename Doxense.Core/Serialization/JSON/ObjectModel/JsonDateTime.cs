@@ -41,34 +41,27 @@ namespace Doxense.Serialization.Json
 
 		#region Static Helpers...
 
+		/// <summary>Singleton equivalent to <see cref="DateTime.MinValue"/></summary>
 		public static readonly JsonDateTime MinValue = new(DateTime.MinValue, NO_TIMEZONE);
+		
+		/// <summary>Singleton equivalent to <see cref="DateTime.MinValue"/></summary>
 		public static readonly JsonDateTime MaxValue = new(DateTime.MaxValue, NO_TIMEZONE);
+		
 		private static readonly DateTime MaxValueDate = new DateTime(3155378112000000000);
+		
+		/// <summary>Singleton equivalent to <see cref="DateOnly.MinValue"/></summary>
 		public static readonly JsonDateTime DateOnlyMaxValue = new(MaxValueDate, NO_TIMEZONE);
-
-		public static JsonDateTime UtcNow => new(Truncate(DateTime.UtcNow));
-
-		public static JsonDateTime Now => new(Truncate(DateTime.Now));
 
 		/// <summary>Précision des dates JSON (lié à la façon dont elles sont sérialisées)</summary>
 		public static readonly long PrecisionTicks = TimeSpan.TicksPerMillisecond;
 
-		/// <summary>Arrondit une date en millisecondes</summary>
-		/// <param name="date"></param>
-		/// <returns></returns>
-		public static DateTime Truncate(DateTime date)
-		{
-			if (date == DateTime.MinValue || date == DateTime.MaxValue) return date;
-			return new DateTime((date.Ticks / PrecisionTicks) * PrecisionTicks, date.Kind);
-		}
-
-		/// <summary>Indique si deux dates sont identiques, à la précision près</summary>
+		/// <summary>Tests if two dates are considered equal within the minimum supported precision</summary>
 		public static bool AreEqual(DateTime left, DateTime right)
 		{
 			return Math.Abs(left.Ticks - right.Ticks) <= PrecisionTicks;
 		}
 
-		/// <summary>Indique si deux dates sont identiques, à la précision près</summary>
+		/// <summary>Tests if two dates are considered equal within the minimum supported precision</summary>
 		public static bool AreEqual(DateTimeOffset left, DateTimeOffset right)
 		{
 			return Math.Abs(left.Ticks - right.Ticks) <= PrecisionTicks;
@@ -139,6 +132,7 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonDateTime(int year, int month, int day, int hour, int minute, int second, int millisecond, DateTimeKind kind) : this(new DateTime(year, month, day, hour, minute, second, millisecond, kind)) { }
 
+		/// <summary>Returns the equivalent <see cref="JsonDateTime"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonDateTime Return(DateTime value)
 		{
@@ -147,12 +141,14 @@ namespace Doxense.Serialization.Json
 			return new JsonDateTime(value);
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonDateTime"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Return(DateTime? value)
 		{
 			return value.HasValue ? Return(value.Value) : JsonNull.Null;
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonDateTime"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonDateTime Return(DateTimeOffset value)
 		{
@@ -161,12 +157,14 @@ namespace Doxense.Serialization.Json
 			return new JsonDateTime(value);
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonDateTime"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Return(DateTimeOffset? value)
 		{
 			return value.HasValue ? Return(value.Value) : JsonNull.Null;
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonDateTime"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonDateTime Return(DateOnly value)
 		{
@@ -175,6 +173,7 @@ namespace Doxense.Serialization.Json
 			return new JsonDateTime(value);
 		}
 
+		/// <summary>Returns the equivalent <see cref="JsonDateTime"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Return(DateOnly? value)
 		{
@@ -363,6 +362,7 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		/// <inheritdoc />
 		public override void JsonSerialize(CrystalJsonWriter writer)
 		{
 			if (m_offset == NO_TIMEZONE)
@@ -480,6 +480,7 @@ namespace Doxense.Serialization.Json
 
 		#region IEquatable<...>
 
+		/// <inheritdoc />
 		public override bool Equals(object? obj)
 		{
 			if (obj is DateTime dt) return AreEqual(this.Date, dt);
@@ -509,31 +510,37 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		/// <inheritdoc />
 		public bool Equals(JsonDateTime? obj)
 		{
 			return obj is not null && m_value == obj.m_value && m_offset == obj.m_offset;
 		}
 
+		/// <inheritdoc />
 		public bool Equals(DateTime value)
 		{
 			return AreEqual(this.Date, value);
 		}
 
+		/// <inheritdoc />
 		public bool Equals(DateTimeOffset value)
 		{
 			return AreEqual(this.DateWithOffset, value);
 		}
 
+		/// <inheritdoc />
 		public bool Equals(NodaTime.LocalDateTime value)
 		{
 			return ToLocalDateTime() == value;
 		}
 
+		/// <inheritdoc />
 		public bool Equals(NodaTime.LocalDate value)
 		{
 			return ToLocalDate() == value;
 		}
 
+		/// <inheritdoc />
 		public override int GetHashCode()
 		{
 			return m_value.GetHashCode();
@@ -541,11 +548,13 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
+		/// <inheritdoc />
 		public override string ToString()
 		{
 			return this.HasOffset ? this.DateWithOffset.ToString("O") : this.Date.ToString("O");
 		}
 
+		/// <inheritdoc />
 		public override bool ToBoolean(bool _ = false)
 		{
 			return m_value != DateTime.MinValue;
@@ -642,6 +651,7 @@ namespace Doxense.Serialization.Json
 			return NodaTime.Duration.FromTicks(this.UtcTicks - UNIX_EPOCH_TICKS);
 		}
 
+		/// <inheritdoc />
 		public override NodaTime.Instant ToInstant(NodaTime.Instant _ = default)
 		{
 			if (m_offset == NO_TIMEZONE)
@@ -652,11 +662,13 @@ namespace Doxense.Serialization.Json
 			return NodaTime.Instant.FromDateTimeOffset(this.DateWithOffset);
 		}
 
+		/// <inheritdoc />
 		public override void WriteTo(ref SliceWriter writer)
 		{
 			//TODO: optimize!
 			writer.WriteStringUtf8(ToJson());
 		}
+		
 	}
 
 }

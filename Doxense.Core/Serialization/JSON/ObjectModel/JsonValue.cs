@@ -30,6 +30,8 @@ namespace Doxense.Serialization.Json
 	using System.Globalization;
 	using Doxense.Memory;
 
+	/// <summary>Represents a value in a JSON Document</summary>
+	/// <remarks>The value can be null or missing (<see cref="JsonNull"/>), a literal (<see cref="JsonString"/>, <see cref="JsonBoolean"/>, <see cref="JsonNumber"/>), an object (<see cref="JsonObject"/>) or an array (<see cref="JsonArray"/>)</remarks>
 	[Serializable]
 	[DebuggerNonUserCode]
 	[PublicAPI]
@@ -271,8 +273,17 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		protected internal virtual JsonValue Copy(bool deep, bool readOnly) => this;
 
+		/// <inheritdoc />
 		public override bool Equals(object? obj) => obj is JsonValue value && Equals(value);
 
+		/// <summary>Tests if these two JSON values are considered equal, using the default JSON comparison semantics</summary>
+		/// <remarks>
+		/// <para>Two values are considered "equal" if they would produce the same result when serialized using a canonical representation.</para>
+		/// <para>For example, <c>1</c> and <c>1.0</c> are considered equal, but not <c>1</c> and <c>"1"</c></para>
+		/// <para>Arrays are equal if they have the same length and all their elements are equals pairwise</para>
+		/// <para>Objects are equal if they have the same key/value pairs, irrespective of their order.</para>
+		/// <para>A missing field is not considered equal to an explicit <see cref="JsonNull.Null"/></para>
+		/// </remarks>
 		public abstract bool Equals(JsonValue? other);
 
 		/// <summary>Tests if the current instance is equal to the specified value</summary>
@@ -302,6 +313,7 @@ namespace Doxense.Serialization.Json
 		/// </remarks>
 		public abstract override int GetHashCode();
 
+		/// <summary>Compares two JSON values, and returns an integer that indicates whether the first value precedes, follows, or occurs in the same position in the sort order as the second value.</summary>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public virtual int CompareTo(JsonValue? other)
 		{
@@ -324,32 +336,34 @@ namespace Doxense.Serialization.Json
 			return c;
 		}
 
+		/// <summary>Tests if the current instance is an array that contains the specified value</summary>
+		/// <exception cref="InvalidOperationException"> when <paramref name="value"/> is not a <see cref="JsonArray"/></exception>
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public virtual bool Contains(JsonValue? value) => throw FailDoesNotSupportContains(this);
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		protected static InvalidOperationException FailDoesNotSupportContains(JsonValue value) => new($"Cannot index into a JSON {value.Type}, because it is not a JSON Array");
+		private static InvalidOperationException FailDoesNotSupportContains(JsonValue value) => new($"Cannot index into a JSON {value.Type}, because it is not a JSON Array");
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		protected static InvalidOperationException FailDoesNotSupportIndexingRead(JsonValue value, string key) => new($"Cannot read property '{key}' on a JSON {value.Type}, because it is not a JSON Object");
+		private static InvalidOperationException FailDoesNotSupportIndexingRead(JsonValue value, string key) => new($"Cannot read property '{key}' on a JSON {value.Type}, because it is not a JSON Object");
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		protected static InvalidOperationException FailDoesNotSupportIndexingRead(JsonValue value, int index) => new($"Cannot read value at index '{index}' on a JSON {value.Type}, because it is not a JSON Array");
+		private static InvalidOperationException FailDoesNotSupportIndexingRead(JsonValue value, int index) => new($"Cannot read value at index '{index}' on a JSON {value.Type}, because it is not a JSON Array");
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		protected static InvalidOperationException FailDoesNotSupportIndexingRead(JsonValue value, Index index) => new($"Cannot read value at index '{index}' on a JSON {value.Type}, because it is not a JSON Array");
+		private static InvalidOperationException FailDoesNotSupportIndexingRead(JsonValue value, Index index) => new($"Cannot read value at index '{index}' on a JSON {value.Type}, because it is not a JSON Array");
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		protected static InvalidOperationException FailDoesNotSupportIndexingWrite(JsonValue value, string key) => new($"Cannot set property '{key}' on a JSON {value.Type}, because it is not a JSON Object");
+		private static InvalidOperationException FailDoesNotSupportIndexingWrite(JsonValue value, string key) => new($"Cannot set property '{key}' on a JSON {value.Type}, because it is not a JSON Object");
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		protected static InvalidOperationException FailDoesNotSupportIndexingWrite(JsonValue value, ReadOnlySpan<char> key) => new($"Cannot set property '{key.ToString()}' on a JSON {value.Type}, because it is not a JSON Object");
+		private static InvalidOperationException FailDoesNotSupportIndexingWrite(JsonValue value, ReadOnlySpan<char> key) => new($"Cannot set property '{key.ToString()}' on a JSON {value.Type}, because it is not a JSON Object");
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		protected static InvalidOperationException FailDoesNotSupportIndexingWrite(JsonValue value, int index) => new($"Cannot set value at index '{index}' on a JSON {value.Type}, because it is not a JSON Array");
+		private static InvalidOperationException FailDoesNotSupportIndexingWrite(JsonValue value, int index) => new($"Cannot set value at index '{index}' on a JSON {value.Type}, because it is not a JSON Array");
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		protected static InvalidOperationException FailDoesNotSupportIndexingWrite(JsonValue value, Index index) => new($"Cannot set value at index '{index}' on a JSON {value.Type}, because it is not a JSON Array");
+		private static InvalidOperationException FailDoesNotSupportIndexingWrite(JsonValue value, Index index) => new($"Cannot set value at index '{index}' on a JSON {value.Type}, because it is not a JSON Array");
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		protected static InvalidOperationException FailCannotMutateReadOnlyValue(JsonValue value) => new($"Cannot mutate JSON {value.Type} because it is marked as read-only.");
@@ -383,6 +397,10 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
+		/// <summary>Returns the value of field with the specified name, if the current is an object and the field was found.</summary>
+		/// <param name="key">Name of the field to retrieve</param>
+		/// <param name="value">Value of the field, if it was found</param>
+		/// <returns><see langword="true"/> if the field was found, or <see langword="false"/> if the field was not found, or the current value is not an object</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public virtual bool TryGetValue(ReadOnlyMemory<char> key, [MaybeNullWhen(false)] out JsonValue value)
@@ -411,7 +429,7 @@ namespace Doxense.Serialization.Json
 
 #endif
 
-		/// <summary>Returns the value at the specified index, if it is contains inside the array's bound.</summary>
+		/// <summary>Returns the value at the specified index, if it is contained inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
 		/// <param name="value">When this method returns, the value located at the specified index, if the index is inside the bounds of the array; otherwise, <see langword="null"/>. This parameter is passed uninitialized.</param>
 		/// <returns><see langword="true"/> if <paramref name="index"/> is inside the bounds of the array; otherwise, <see langword="false"/>.</returns>
@@ -424,7 +442,7 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
-		/// <summary>Returns the value at the specified index, if it is contains inside the array's bound.</summary>
+		/// <summary>Returns the value at the specified index, if it is contained inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
 		/// <param name="value">When this method returns, the value located at the specified index, if the index is inside the bounds of the array; otherwise, <see langword="null"/>. This parameter is passed uninitialized.</param>
 		/// <returns><see langword="true"/> if <paramref name="index"/> is inside the bounds of the array; otherwise, <see langword="false"/>.</returns>
@@ -1460,39 +1478,71 @@ namespace Doxense.Serialization.Json
 			return current;
 		}
 
+		/// <summary>Returns the JSON Object at the specified <see cref="JsonPath">path</see> within this instance</summary>
+		/// <exception cref="JsonBindingException">If there is no matching value, it is null, missing, or not a JSON Object.</exception>
 		[Pure]
 		public JsonObject GetPathObject(string path) => GetPathCore(JsonPath.Create(path), null, required: true).AsObject();
 
+		/// <summary>Returns the JSON Object at the specified <see cref="JsonPath">path</see> within this instance</summary>
+		/// <exception cref="JsonBindingException">If there is no matching value, it is null, missing, or not a JSON Object.</exception>
 		[Pure]
 		public JsonObject GetPathObject(JsonPath path) => GetPathCore(path, null, required: true).AsObject();
 
+		/// <summary>Returns the JSON Object at the specified <see cref="JsonPath">path</see> within this instance</summary>
+		/// <returns>The matching object, or null if it was not found</returns>
+		/// <exception cref="JsonBindingException">If there is a matching value that is not null or missing, and is not a JSON object.</exception>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public JsonObject? GetPathObjectOrDefault(string path, JsonObject? defaultValue = null) => GetPathCore(JsonPath.Create(path), null, required: false).AsObjectOrDefault() ?? defaultValue;
 
+		/// <summary>Returns the JSON Object at the specified <see cref="JsonPath">path</see> within this instance</summary>
+		/// <returns>The matching object, or null if it was not found</returns>
+		/// <exception cref="JsonBindingException">If there is a matching value that is not null or missing, and is not a JSON object.</exception>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public JsonObject? GetPathObjectOrDefault(JsonPath path, JsonObject? defaultValue = null) => GetPathCore(path, null, required: false).AsObjectOrDefault() ?? defaultValue;
 
+		/// <summary>Returns the object at the specified <see cref="JsonPath">path</see> within this instance</summary>
+		/// <returns>The matching object, or <see cref="JsonObject.EmptyReadOnly"/> if it was not found</returns>
+		/// <exception cref="JsonBindingException">If there is a matching value that is not null or missing, and is not a JSON object.</exception>
 		[Pure]
 		public JsonObject GetPathObjectOrEmpty(string path) => GetPathCore(JsonPath.Create(path), null, required: false).AsObjectOrEmpty();
 
+		/// <summary>Returns the object at the specified <see cref="JsonPath">path</see> within this instance</summary>
+		/// <returns>The matching object, or <see cref="JsonObject.EmptyReadOnly"/> if it was not found</returns>
+		/// <exception cref="JsonBindingException">If there is a matching value that is not null or missing, and is not a JSON object.</exception>
 		[Pure]
 		public JsonObject GetPathObjectOrEmpty(JsonPath path) => GetPathCore(path, null, required: false).AsObjectOrEmpty();
 
+		/// <summary>Returns the JSON Array at the specified <see cref="JsonPath">path</see> within this instance</summary>
+		/// <exception cref="JsonBindingException">If there is no matching value, it is null, missing, or not a JSON Array.</exception>
 		[Pure]
 		public JsonArray GetPathArray(string path) => GetPathCore(JsonPath.Create(path), null, required: true).AsArray();
 
+		/// <summary>Returns the JSON Array at the specified <see cref="JsonPath">path</see> within this instance</summary>
+		/// <exception cref="JsonBindingException">If there is no matching value, it is null, missing, or not a JSON Array.</exception>
 		[Pure]
 		public JsonArray GetPathArray(JsonPath path) => GetPathCore(path, null, required: true).AsArray();
 
+		/// <summary>Returns the JSON AArray at the specified <see cref="JsonPath">path</see> within this instance</summary>
+		/// <returns>The matching array, or null if it was not found</returns>
+		/// <exception cref="JsonBindingException">If there is a matching value that is not null or missing, and is not a JSON Array.</exception>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public JsonArray? GetPathArrayOrDefault(string path, JsonArray? defaultValue = null) => GetPathCore(JsonPath.Create(path), null, required: false).AsArrayOrDefault() ?? defaultValue;
 
+		/// <summary>Returns the JSON AArray at the specified <see cref="JsonPath">path</see> within this instance</summary>
+		/// <returns>The matching array, or null if it was not found</returns>
+		/// <exception cref="JsonBindingException">If there is a matching value that is not null or missing, and is not a JSON Array.</exception>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public JsonArray? GetPathArrayOrDefault(JsonPath path, JsonArray? defaultValue = null) => GetPathCore(path, null, required: false).AsArrayOrDefault() ?? defaultValue;
 
+		/// <summary>Returns the JSON Array at the specified <see cref="JsonPath">path</see> within this instance</summary>
+		/// <returns>The matching object, or <see cref="JsonArray.EmptyReadOnly"/> if it was not found</returns>
+		/// <exception cref="JsonBindingException">If there is a matching value that is not null or missing, and is not a JSON Array.</exception>
 		[Pure]
 		public JsonArray GetPathArrayOrEmpty(string path) => GetPathCore(JsonPath.Create(path), null, required: false).AsArrayOrEmpty();
 
+		/// <summary>Returns the JSON Array at the specified <see cref="JsonPath">path</see> within this instance</summary>
+		/// <returns>The matching object, or <see cref="JsonArray.EmptyReadOnly"/> if it was not found</returns>
+		/// <exception cref="JsonBindingException">If there is a matching value that is not null or missing, and is not a JSON Array.</exception>
 		[Pure]
 		public JsonArray GetPathArrayOrEmpty(JsonPath path) => GetPathCore(path, null, required: false).AsArrayOrEmpty();
 
@@ -1542,6 +1592,7 @@ namespace Doxense.Serialization.Json
 
 		#region IJsonSerializable
 
+		/// <inheritdoc />
 		public abstract void JsonSerialize(CrystalJsonWriter writer);
 
 		#endregion
@@ -1724,32 +1775,42 @@ namespace Doxense.Serialization.Json
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public virtual DateOnly? ToDateOnlyOrDefault(DateOnly? defaultValue = default) => ToDateOnly();
 
+		/// <summary>Returns the equivalent <see cref="TimeOnly"/>, if there exists a valid conversion</summary>
 		public virtual TimeOnly ToTimeOnly(TimeOnly defaultValue = default) => throw Errors.JsonConversionNotSupported(this, typeof(TimeOnly));
 
+		/// <summary>Returns the equivalent <see cref="TimeOnly"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public virtual TimeOnly? ToTimeOnlyOrDefault(TimeOnly? defaultValue = default) => ToTimeOnly();
 
+		/// <summary>Returns the equivalent <see cref="TimeSpan"/>, if there exists a valid conversion</summary>
 		public virtual TimeSpan ToTimeSpan(TimeSpan defaultValue = default) => throw Errors.JsonConversionNotSupported(this, typeof(TimeSpan));
 
+		/// <summary>Returns the equivalent <see cref="TimeSpan"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public virtual TimeSpan? ToTimeSpanOrDefault(TimeSpan? defaultValue = default) => ToTimeSpan();
 
+		/// <summary>Returns the equivalent <see cref="Enum"/>, if there exists a valid conversion</summary>
 		public virtual TEnum ToEnum<TEnum>(TEnum defaultValue = default)
 			where TEnum : struct, Enum
 			=> throw Errors.JsonConversionNotSupported(this, typeof(TimeSpan));
 
+		/// <summary>Returns the equivalent <see cref="Enum"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public virtual TEnum? ToEnumOrDefault<TEnum>(TEnum? defaultValue = default)
 			where TEnum : struct, Enum
 			=> ToEnum<TEnum>();
 
+		/// <summary>Returns the equivalent <see cref="NodaTime.Instant"/>, if there exists a valid conversion</summary>
 		public virtual NodaTime.Instant ToInstant(NodaTime.Instant defaultValue = default) => throw Errors.JsonConversionNotSupported(this, typeof(NodaTime.Instant));
 
+		/// <summary>Returns the equivalent <see cref="NodaTime.Instant"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public virtual NodaTime.Instant? ToInstantOrDefault(NodaTime.Instant? defaultValue = default) => ToInstant();
 
+		/// <summary>Returns the equivalent <see cref="NodaTime.Duration"/>, if there exists a valid conversion</summary>
 		public virtual NodaTime.Duration ToDuration(NodaTime.Duration defaultValue = default) => throw Errors.JsonConversionNotSupported(this, typeof(NodaTime.Duration));
 
+		/// <summary>Returns the equivalent <see cref="NodaTime.Duration"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public virtual NodaTime.Duration? ToDurationOrDefault(NodaTime.Duration? defaultValue = default) => ToDuration();
 
@@ -1819,6 +1880,7 @@ namespace Doxense.Serialization.Json
 
 		#region ISliceSerializable...
 
+		/// <inheritdoc />
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public abstract void WriteTo(ref SliceWriter writer);
 
@@ -1871,6 +1933,7 @@ namespace Doxense.Serialization.Json
 
 #if NET8_0_OR_GREATER
 
+		/// <inheritdoc />
 		public abstract bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider);
 
 #endif
