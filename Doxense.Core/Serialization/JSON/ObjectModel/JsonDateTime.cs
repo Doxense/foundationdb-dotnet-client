@@ -488,13 +488,14 @@ namespace Doxense.Serialization.Json
 			if (obj is string s)
 			{
 				return this.HasOffset
-					? JsonString.TryConvertDateTimeOffset(s, out dto) && this.DateWithOffset == dto
-					: JsonString.TryConvertDateTime(s, out dt) && this.Date == dt;
+					? JsonString.TryConvertToDateTimeOffset(s, out dto) && this.DateWithOffset == dto
+					: JsonString.TryConvertToDateTime(s, out dt) && this.Date == dt;
 			}
 			//TODO: NodaTime?
 			return base.Equals(obj);
 		}
 
+		/// <inheritdoc />
 		public override bool Equals(JsonValue? obj)
 		{
 			switch (obj)
@@ -503,8 +504,8 @@ namespace Doxense.Serialization.Json
 				case JsonDateTime date: return Equals(date);
 				case JsonNumber num: return num.Equals(this);
 				case JsonString str: return this.HasOffset
-					? str.TryConvertDateTimeOffset(out var dto) && dto == this.DateWithOffset
-					: str.TryConvertDateTime(out var dt) && dt == this.DateWithOffset;
+					? str.TryConvertToDateTimeOffset(out var dto) && dto == this.DateWithOffset
+					: str.TryConvertToDateTime(out var dt) && dt == this.DateWithOffset;
 				//TODO: other?
 				default: return false;
 			}

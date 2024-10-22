@@ -43,11 +43,17 @@ namespace Doxense.Serialization.Json
 		, IEquatable<JsonBoolean>
 		, IEquatable<JsonDateTime>
 		, IEquatable<int>
+		, IComparable<int>
 		, IEquatable<long>
+		, IComparable<long>
 		, IEquatable<uint>
+		, IComparable<uint>
 		, IEquatable<ulong>
+		, IComparable<ulong>
 		, IEquatable<float>
+		, IComparable<float>
 		, IEquatable<double>
+		, IComparable<double>
 		, IEquatable<decimal>
 		, IEquatable<short>
 		, IEquatable<ushort>
@@ -2394,19 +2400,19 @@ namespace Doxense.Serialization.Json
 			{
 				case Kind.Decimal:
 				{
-					return value.TryConvertDecimal(out var x) && m_value.Decimal == x;
+					return value.TryConvertToDecimal(out var x) && m_value.Decimal == x;
 				}
 				case Kind.Double:
 				{
-					return value.TryConvertDouble(out var x) && m_value.Double == x;
+					return value.TryConvertToDouble(out var x) && m_value.Double == x;
 				}
 				case Kind.Signed:
 				{
-					return value.TryConvertInt64(out var x) && m_value.Signed == x;
+					return value.TryConvertToInt64(out var x) && m_value.Signed == x;
 				}
 				case Kind.Unsigned:
 				{
-					return value.TryConvertUInt64(out var x) && m_value.Unsigned == x;
+					return value.TryConvertToUInt64(out var x) && m_value.Unsigned == x;
 				}
 			}
 
@@ -2611,14 +2617,22 @@ namespace Doxense.Serialization.Json
 			_ => Number.CompareTo(in m_value, m_kind, in other.m_value, other.m_kind)
 		};
 
+		/// <inheritdoc />
+		public int CompareTo(int value) => m_value.CompareTo(m_kind, value);
 
 		/// <inheritdoc />
 		public int CompareTo(long value) => m_value.CompareTo(m_kind, value);
 
+		/// <inheritdoc />
+		public int CompareTo(uint value) => m_value.CompareTo(m_kind, value);
+
+		/// <inheritdoc />
 		public int CompareTo(ulong value) => m_value.CompareTo(m_kind, value);
 
+		/// <inheritdoc />
 		public int CompareTo(float value) => m_value.CompareTo(m_kind, value);
 
+		/// <inheritdoc />
 		public int CompareTo(double value) => m_value.CompareTo(m_kind, value);
 
 		public int CompareTo(JsonString? other)
@@ -2636,7 +2650,7 @@ namespace Doxense.Serialization.Json
 				{
 					case Kind.Decimal:
 					{
-						if (other.TryConvertDecimal(out var x))
+						if (other.TryConvertToDecimal(out var x))
 						{
 							return m_value.Decimal.CompareTo(x);
 						}
@@ -2644,7 +2658,7 @@ namespace Doxense.Serialization.Json
 					}
 					case Kind.Double:
 					{
-						if (other.TryConvertDouble(out var x))
+						if (other.TryConvertToDouble(out var x))
 						{
 							return m_value.Double.CompareTo(x);
 						}
@@ -2652,7 +2666,7 @@ namespace Doxense.Serialization.Json
 					}
 					case Kind.Signed:
 					{
-						if (other.TryConvertInt64(out var x))
+						if (other.TryConvertToInt64(out var x))
 						{
 							return m_value.Signed.CompareTo(x);
 						}
@@ -2660,7 +2674,7 @@ namespace Doxense.Serialization.Json
 					}
 					case Kind.Unsigned:
 					{
-						if (other.TryConvertUInt64(out var x))
+						if (other.TryConvertToUInt64(out var x))
 						{
 							return m_value.Unsigned.CompareTo(x);
 						}

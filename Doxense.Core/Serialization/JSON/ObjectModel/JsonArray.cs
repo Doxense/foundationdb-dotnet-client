@@ -48,7 +48,7 @@ namespace Doxense.Serialization.Json
 #if NET9_0_OR_GREATER
 	[CollectionBuilder(typeof(JsonArray), nameof(JsonArray.Create))]
 #endif
-	public sealed partial class JsonArray : JsonValue, IList<JsonValue>, IReadOnlyList<JsonValue>, IEquatable<JsonArray>
+	public sealed partial class JsonArray : JsonValue, IList<JsonValue>, IReadOnlyList<JsonValue>, IEquatable<JsonArray>, IComparable<JsonArray>
 	{
 		/// <summary>Initial resize capacity for an empty array</summary>
 		internal const int DEFAULT_CAPACITY = 4;
@@ -4211,6 +4211,35 @@ namespace Doxense.Serialization.Json
 			}
 
 			return res;
+		}
+
+		/// <summary>Returns a <see cref="List{TValue}"/> containing the transformed elements of a <see cref="JsonArray"/></summary>
+		/// <remarks>This is the logical equivalent of <c>array.Select(transform).ToList()</c></remarks>
+		[Pure]
+		public static List<TValue> ToList<TValue>(this JsonArray self, [InstantHandle] Func<JsonValue, TValue> transform)
+		{
+			Contract.NotNull(self);
+			Contract.NotNull(transform);
+
+			var items = self.AsSpan();
+			
+#if NET8_0_OR_GREATER
+			var res = new List<TValue>(items.Length);
+			CollectionsMarshal.SetCount(res, items.Length);
+			var buf = CollectionsMarshal.AsSpan(res);
+			for (int i = 0; i < items.Length; i++)
+			{
+				buf[i] = transform(items[i]);
+			}
+			return res;
+#else
+			var res = new List<TValue>(items.Length);
+			for (int i = 0; i < items.Length; i++)
+			{
+				res[i] = transform(items[i]);
+			}
+			return res;
+#endif
 		}
 
 		/// <summary>Appends all the elements of an <see cref="IEnumerable{T}"/> to the end of this <see cref="JsonArray"/></summary>

@@ -37,7 +37,9 @@ namespace Doxense.Serialization.Json
 	[PublicAPI]
 	public sealed class JsonString : JsonValue,
 		IEquatable<JsonString>,
+		IComparable<JsonString>,
 		IEquatable<string>,
+		IComparable<string>,
 		IEquatable<Guid>,
 		IEquatable<Uuid128>,
 		IEquatable<Uuid96>,
@@ -1031,6 +1033,12 @@ namespace Doxense.Serialization.Json
 			return other is not null ? string.CompareOrdinal(m_value, other.Value) : +1;
 		}
 
+		/// <inheritdoc />
+		public int CompareTo(string? other)
+		{
+			return other is not null ? string.CompareOrdinal(m_value, other) : +1;
+		}
+
 		#endregion
 
 		#region IJsonConvertible...
@@ -1051,7 +1059,7 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		public override string ToStringOrDefault(string? defaultValue = null) => m_value;
 
-		public bool TryConvertString(out string value)
+		public bool TryConvertToToString(out string value)
 		{
 			value = m_value;
 			return true;
@@ -1131,7 +1139,7 @@ namespace Doxense.Serialization.Json
 			return string.IsNullOrEmpty(m_value) ? defaultValue : ToInt16();
 		}
 
-		public bool TryConvertInt16(out short value)
+		public bool TryConvertToInt16(out short value)
 		{
 			return short.TryParse(m_value, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out value);
 		}
@@ -1152,7 +1160,7 @@ namespace Doxense.Serialization.Json
 			return string.IsNullOrEmpty(m_value) ? defaultValue : ToUInt16();
 		}
 
-		public bool TryConvertUInt16(out ushort value)
+		public bool TryConvertToUInt16(out ushort value)
 		{
 			return ushort.TryParse(m_value, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out value);
 		}
@@ -1182,7 +1190,7 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		public override int? ToInt32OrDefault(int? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : ToInt32();
 
-		public bool TryConvertInt32(out int value)
+		public bool TryConvertToInt32(out int value)
 		{
 			var lit = m_value;
 			if (lit.Length == 0) { value = 0; return false; }
@@ -1211,7 +1219,7 @@ namespace Doxense.Serialization.Json
 			return string.IsNullOrEmpty(m_value) ? defaultValue : ToUInt32();
 		}
 
-		public bool TryConvertUInt32(out uint value)
+		public bool TryConvertToUInt32(out uint value)
 		{
 			return uint.TryParse(m_value, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out value);
 		}
@@ -1245,7 +1253,7 @@ namespace Doxense.Serialization.Json
 			return string.IsNullOrEmpty(m_value) ? defaultValue : ToInt64();
 		}
 
-		public bool TryConvertInt64(out long value)
+		public bool TryConvertToInt64(out long value)
 		{
 			var lit = m_value;
 			if (lit.Length == 0) { value = 0L; return false; }
@@ -1274,7 +1282,7 @@ namespace Doxense.Serialization.Json
 			return string.IsNullOrEmpty(m_value) ? defaultValue : ToUInt64();
 		}
 
-		public bool TryConvertUInt64(out ulong value)
+		public bool TryConvertToUInt64(out ulong value)
 		{
 			return ulong.TryParse(m_value, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out value);
 		}
@@ -1297,7 +1305,7 @@ namespace Doxense.Serialization.Json
 			return string.IsNullOrEmpty(m_value) ? defaultValue : ToInt128();
 		}
 
-		public bool TryConvertInt128(out Int128 value)
+		public bool TryConvertToInt128(out Int128 value)
 		{
 			return Int128.TryParse(m_value, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out value);
 		}
@@ -1323,7 +1331,7 @@ namespace Doxense.Serialization.Json
 			return string.IsNullOrEmpty(m_value) ? defaultValue : ToUInt128();
 		}
 
-		public bool TryConvertUInt128(out UInt128 value)
+		public bool TryConvertToUInt128(out UInt128 value)
 		{
 			return UInt128.TryParse(m_value, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out value);
 		}
@@ -1346,7 +1354,7 @@ namespace Doxense.Serialization.Json
 			return string.IsNullOrEmpty(m_value) ? defaultValue : ToSingle();
 		}
 
-		public bool TryConvertSingle(out float value)
+		public bool TryConvertToSingle(out float value)
 		{
 			return float.TryParse(m_value, NumberStyles.Float | NumberStyles.AllowThousands, NumberFormatInfo.InvariantInfo, out value);
 		}
@@ -1368,12 +1376,12 @@ namespace Doxense.Serialization.Json
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool TryConvertDouble(out double value)
+		public bool TryConvertToDouble(out double value)
 		{
-			return TryConvertDouble(m_value, out value);
+			return TryConvertToDouble(m_value, out value);
 		}
 
-		internal static bool TryConvertDouble(string literal, out double value)
+		internal static bool TryConvertToDouble(string literal, out double value)
 		{
 			return double.TryParse(literal, NumberStyles.Float | NumberStyles.AllowThousands, NumberFormatInfo.InvariantInfo, out value);
 		}
@@ -1395,12 +1403,12 @@ namespace Doxense.Serialization.Json
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool TryConvertHalf(out Half value)
+		public bool TryConvertToHalf(out Half value)
 		{
-			return TryConvertHalf(m_value, out value);
+			return TryConvertToHalf(m_value, out value);
 		}
 
-		internal static bool TryConvertHalf(string literal, out Half value)
+		internal static bool TryConvertToHalf(string literal, out Half value)
 		{
 			return Half.TryParse(literal, NumberStyles.Float | NumberStyles.AllowThousands, NumberFormatInfo.InvariantInfo, out value);
 		}
@@ -1421,7 +1429,7 @@ namespace Doxense.Serialization.Json
 			return string.IsNullOrEmpty(m_value) ? defaultValue : ToDecimal();
 		}
 
-		public bool TryConvertDecimal(out decimal value)
+		public bool TryConvertToDecimal(out decimal value)
 		{
 			return decimal.TryParse(m_value, NumberStyles.Number, NumberFormatInfo.InvariantInfo, out value);
 		}
@@ -1442,7 +1450,7 @@ namespace Doxense.Serialization.Json
 			return string.IsNullOrEmpty(m_value) ? defaultValue : Guid.Parse(m_value);
 		}
 
-		public bool TryConvertGuid(out Guid value)
+		public bool TryConvertToGuid(out Guid value)
 		{
 			if (m_value.Length == 36 /* 00000000-0000-0000-0000-000000000000 */ ||
 				m_value.Length == 32 /* 00000000000000000000000000000000 */ ||
@@ -1538,12 +1546,12 @@ namespace Doxense.Serialization.Json
 			return string.IsNullOrEmpty(m_value) ? defaultValue : ToTimeOnly();
 		}
 
-		public bool TryConvertDateTime(out DateTime dt)
+		public bool TryConvertToDateTime(out DateTime dt)
 		{
-			return TryConvertDateTime(m_value, out dt);
+			return TryConvertToDateTime(m_value, out dt);
 		}
 
-		internal static bool TryConvertDateTime(ReadOnlySpan<char> literal, out DateTime dt)
+		internal static bool TryConvertToDateTime(ReadOnlySpan<char> literal, out DateTime dt)
 		{
 			if (literal.Length == 0)
 			{
@@ -1604,12 +1612,12 @@ namespace Doxense.Serialization.Json
 			return string.IsNullOrEmpty(m_value) ? defaultValue : ToDateTimeOffset();
 		}
 
-		public bool TryConvertDateTimeOffset(out DateTimeOffset dto)
+		public bool TryConvertToDateTimeOffset(out DateTimeOffset dto)
 		{
-			return TryConvertDateTimeOffset(m_value, out dto);
+			return TryConvertToDateTimeOffset(m_value, out dto);
 		}
 
-		internal static bool TryConvertDateTimeOffset(ReadOnlySpan<char> literal, out DateTimeOffset dto)
+		internal static bool TryConvertToDateTimeOffset(ReadOnlySpan<char> literal, out DateTimeOffset dto)
 		{
 			if (literal.Length == 0)
 			{
