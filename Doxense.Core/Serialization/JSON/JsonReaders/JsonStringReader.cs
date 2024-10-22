@@ -56,10 +56,10 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		public bool? HasMore => this.Pos < this.Text.Length;
+		public readonly bool? HasMore => this.Pos < this.Text.Length;
 
 		/// <inheritdoc />
-		public int? Remaining => Math.Max(this.Text.Length - this.Pos, 0);
+		public readonly int? Remaining => Math.Max(this.Text.Length - this.Pos, 0);
 
 	}
 

@@ -91,10 +91,10 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		public bool? HasMore => this.Cursor < this.End;
+		public readonly bool? HasMore => this.Cursor < this.End;
 
 		/// <inheritdoc />
-		public int? Remaining => this.Cursor < this.End ? (this.End - this.Cursor) : 0;
+		public readonly int? Remaining => this.Cursor < this.End ? (this.End - this.Cursor) : 0;
 
 	}
 
