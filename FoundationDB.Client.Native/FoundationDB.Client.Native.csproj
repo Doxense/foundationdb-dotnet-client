@@ -10,7 +10,7 @@
 		<AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
 		<Deterministic>true</Deterministic>
 		<ProduceReferenceAssembly>true</ProduceReferenceAssembly>
-		<IsAotCompatible Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">true</IsAotCompatible>
+		<!--<IsAotCompatible Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">true</IsAotCompatible>-->
 		<!-- Define the platforms that we support -->
 		<RuntimeIdentifiers>win-x64;linux-x64;linux-arm64</RuntimeIdentifiers>		
 	</PropertyGroup>

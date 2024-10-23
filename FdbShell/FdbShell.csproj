@@ -12,7 +12,7 @@
 		<AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
 		<AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
 		<PublishSingleFile Condition="'$(PublishSingleFile)' == '' AND '$(_IsPublishing)' == 'true'">true</PublishSingleFile>
-		<PublishAot Condition="'$(PublishAot)' == '' AND '$(_IsPublishing)' == 'true'">true</PublishAot>
+		<PublishTrimmed Condition="'$(PublishTrimmed)' == '' AND '$(_IsPublishing)' == 'true'">true</PublishTrimmed>
 		<Deterministic>true</Deterministic>
 	</PropertyGroup>
 

@@ -13,7 +13,6 @@
 		<AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
 		<PublishSingleFile Condition="'$(PublishSingleFile)' == '' AND '$(_IsPublishing)' == 'true'">true</PublishSingleFile>
 		<PublishTrimmed Condition="'$(PublishTrimmed)' == '' AND '$(_IsPublishing)' == 'true'">true</PublishTrimmed>
-		<!--<PublishAot Condition="'$(PublishAot)' == '' AND '$(_IsPublishing)' == 'true'">true</PublishAot>-->
 		<TrimmerRootAssembly>FoundationDB.Client</TrimmerRootAssembly>
 		<Deterministic>true</Deterministic>
 	</PropertyGroup>
