@@ -583,9 +583,9 @@ namespace Doxense.Linq
 
 			return AggregateAsync(
 				source,
-				new Buffer<T>(),
+				new Buffer<T>(0, ArrayPool<T>.Shared),
 				static (b, x) => b.Add(x),
-				static (b) => b.ToImmutableArray(),
+				static (b) => b.ToImmutableArrayAndClear(),
 				CancellationToken.None
 			);
 		}
@@ -597,7 +597,7 @@ namespace Doxense.Linq
 
 			return AggregateAsync(
 				source,
-				new Buffer<T>(),
+				new Buffer<T>(0, ArrayPool<T>.Shared),
 				static (b, x) => b.Add(x),
 				static (b) => b.ToListAndClear(),
 				ct
@@ -611,7 +611,7 @@ namespace Doxense.Linq
 
 			return AggregateAsync(
 				source,
-				new Buffer<T>(),
+				new Buffer<T>(0, ArrayPool<T>.Shared),
 				static (b, x) => b.Add(x),
 				static (b) => b.ToArrayAndClear(),
 				CancellationToken.None
@@ -625,7 +625,7 @@ namespace Doxense.Linq
 
 			return AggregateAsync(
 				source,
-				new Buffer<T>(),
+				new Buffer<T>(0, ArrayPool<T>.Shared),
 				static (b, x) => b.Add(x),
 				static (b) => b.ToArrayAndClear(),
 				ct
@@ -694,9 +694,9 @@ namespace Doxense.Linq
 
 			return AggregateAsync(
 				source,
-				new Buffer<T>(),
+				new Buffer<T>(0, ArrayPool<T>.Shared),
 				(buffer, x) => buffer.Add(x),
-				(buffer) => buffer.ToHashSet(comparer),
+				(buffer) => buffer.ToHashSetAndClear(comparer),
 				ct
 			);
 		}

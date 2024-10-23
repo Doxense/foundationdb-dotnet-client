@@ -32,6 +32,7 @@
 namespace FoundationDB.Client.Tests
 {
 	using System.IO;
+	using System.Runtime.InteropServices;
 	using Doxense.Linq.Async.Iterators;
 
 	[TestFixture]
@@ -387,6 +388,100 @@ namespace FoundationDB.Client.Tests
 						var key = folder.Unpack(kvp.Key);
 
 						if (i % 128 == 0) Log($"... {key} = {kvp.Value}");
+
+						Assert.That(key.Count, Is.EqualTo(1));
+						Assert.That(key.Get<int>(-1), Is.EqualTo(i));
+
+						// value should be equal to the index
+						Assert.That(kvp.Value.ToInt32(), Is.EqualTo(i));
+					}
+				}
+
+			}
+		}
+
+		[Test]
+		public async Task Test_Can_Get_Range_Paged()
+		{
+			// test that we can get a range of keys
+
+			const int N = 1000; // total item count
+
+			using (var db = await OpenTestPartitionAsync())
+			{
+				// put test values in a namespace
+				var location = db.Root["Queries"]["Range"];
+				await CleanLocation(db, location);
+
+				// insert all values (batched)
+				Log($"Inserting {N:N0} keys...");
+
+				var insert = Stopwatch.StartNew();
+				await db.WriteAsync(async tr =>
+				{
+					var folder = await location.Resolve(tr);
+					Assert.That(folder, Is.Not.Null);
+					foreach (int i in Enumerable.Range(0, N))
+					{
+						tr.Set(folder.Encode(i), Slice.FromInt32(i));
+					}
+				}, this.Cancellation);
+				insert.Stop();
+
+				Log($"Committed {N:N0} keys in {insert.Elapsed.TotalMilliseconds:N1} ms");
+
+				// GetRange values
+
+				using (var tr = db.BeginTransaction(this.Cancellation))
+				{
+					var folder = await location.Resolve(tr);
+					Assert.That(folder, Is.Not.Null);
+
+					var query = tr
+						.GetRange(folder.Encode(0), folder.Encode(N))
+						.Paged();
+
+					Assert.That(query, Is.Not.Null);
+					Assert.That(query.Transaction, Is.SameAs(tr));
+					Assert.That(query.Begin.Key, Is.EqualTo(folder.Encode(0)));
+					Assert.That(query.End.Key, Is.EqualTo(folder.Encode(N)));
+					Assert.That(query.Limit, Is.Null);
+					Assert.That(query.TargetBytes, Is.Null);
+					Assert.That(query.IsReversed, Is.False);
+					Assert.That(query.Streaming, Is.EqualTo(FdbStreamingMode.Iterator));
+					Assert.That(query.Fetch, Is.EqualTo(FdbFetchMode.KeysAndValues));
+					Assert.That(query.IsSnapshot, Is.False);
+					Assert.That(query.Range.Begin, Is.EqualTo(query.Begin));
+					Assert.That(query.Range.End, Is.EqualTo(query.End));
+
+					Log($"Getting range {query.Range} ...");
+
+					var items = new List<KeyValuePair<Slice, Slice>>();
+					var ts = Stopwatch.StartNew();
+					await foreach (var page in query)
+					{
+						Log($"- Batch: {page.Length,3:N0} result(s): {TuPack.Unpack(page.Span[0].Key)} .. {TuPack.Unpack(page.Span[^1].Key)}");
+#if NET8_0_OR_GREATER
+						items.AddRange(page.Span);
+#else
+						foreach (var item in MemoryMarshal.ToEnumerable(page))
+						{
+							items.Add(item);
+						}
+#endif
+					}
+					ts.Stop();
+
+					Assert.That(items, Is.Not.Null);
+					Assert.That(items.Count, Is.EqualTo(N));
+					Log($"Took {ts.Elapsed.TotalMilliseconds:N1} ms to get {items.Count:N0} results");
+
+					for (int i = 0; i < N; i++)
+					{
+						var kvp = items[i];
+
+						// key should be a tuple in the correct order
+						var key = folder.Unpack(kvp.Key);
 
 						Assert.That(key.Count, Is.EqualTo(1));
 						Assert.That(key.Get<int>(-1), Is.EqualTo(i));

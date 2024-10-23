@@ -28,12 +28,11 @@ namespace FoundationDB.Client
 {
 	using System.Diagnostics;
 	using Doxense.Linq;
-	using Doxense.Memory;
 
 	/// <summary>Query describing an ongoing GetRange operation</summary>
 	[DebuggerDisplay("Begin={Begin}, End={End}, Limit={Limit}, Mode={Streaming}, Reverse={Reverse}, Snapshot={IsSnapshot}")]
 	[PublicAPI]
-	internal partial class FdbRangeQuery<TState, TResult> : IFdbRangeQuery<TResult>
+	internal class FdbRangeQuery<TState, TResult> : IFdbRangeQuery<TResult>
 	{
 
 		/// <summary>Construct a query with a set of initial settings</summary>
@@ -190,10 +189,19 @@ namespace FoundationDB.Client
 			};
 		}
 
-		IFdbPagedQuery<TResult> IFdbRangeQuery<TResult>.Paged() => Paged();
+		IFdbPagedQuery<TResult> IFdbRangeQuery<TResult>.Paged() => this.Paged();
 
 		/// <inheritdoc cref="IFdbRangeQuery{TResult}.Paged"/>
-		public IFdbPagedQuery<TResult> Paged() => throw new NotImplementedException();
+		public IFdbPagedQuery<TResult> Paged() => new FdbPagedQuery<TState, TResult>(
+			this.Transaction,
+			this.Begin,
+			this.End,
+			this.State,
+			this.StateFactory,
+			this.Decoder,
+			this.IsSnapshot,
+			this.Options
+		);
 
 		IFdbRangeQuery<TResult> IFdbRangeQuery<TResult>.Reverse() => Reverse();
 
@@ -217,7 +225,7 @@ namespace FoundationDB.Client
 				}
 			}
 
-			return new FdbRangeQuery<TState, TResult>(
+			return new(
 				this,
 				this.Options with { IsReversed = !this.IsReversed }
 			)
@@ -292,7 +300,7 @@ namespace FoundationDB.Client
 
 		public IAsyncEnumerator<TResult> GetAsyncEnumerator(CancellationToken ct, AsyncIterationHint hint)
 		{
-			return new ResultIterator(this, GetState()).GetAsyncEnumerator(ct, hint);
+			return new FdbResultIterator<TState, TResult>(this, GetState()).GetAsyncEnumerator(ct, hint);
 		}
 
 		/// <summary>Returns a list of all the elements of the range results</summary>
@@ -588,43 +596,4 @@ namespace FoundationDB.Client
 		}
 
 	}
-
-	internal sealed class FdbKeyValueRangeQuery : FdbRangeQuery<SliceBuffer, KeyValuePair<Slice, Slice>>, IFdbKeyValueRangeQuery
-	{
-		/// <inheritdoc />
-		internal FdbKeyValueRangeQuery(IFdbReadOnlyTransaction transaction, KeySelector begin, KeySelector end, FdbKeyValueDecoder<SliceBuffer, KeyValuePair<Slice, Slice>> transform, bool snapshot, FdbRangeOptions? options)
-			: base(transaction, begin, end, null, () => new SliceBuffer(), transform, snapshot, options)
-		{
-		}
-
-		public IFdbRangeQuery<TResult> Decode<TState, TResult>(TState state, FdbKeyValueDecoder<TState, TResult> decoder)
-		{
-			return new FdbRangeQuery<TState, TResult>(
-				this.Transaction,
-				this.Begin,
-				this.End,
-				state,
-				null,
-				decoder,
-				this.IsSnapshot,
-				this.Options
-			);
-		}
-
-		public IFdbRangeQuery<TResult> Decode<TResult>(FdbKeyValueDecoder<TResult> decoder)
-		{
-			return new FdbRangeQuery<FdbKeyValueDecoder<TResult>, TResult>(
-				this.Transaction,
-				this.Begin,
-				this.End,
-				decoder,
-				null,
-				(s, k, v) => s(k, v),
-				this.IsSnapshot,
-				this.Options
-			);
-		}
-
-	}
-
 }

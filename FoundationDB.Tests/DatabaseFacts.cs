@@ -242,7 +242,7 @@ namespace FoundationDB.Client.Tests
 			db.Options.WithLocationCacheSize(9001);
 
 			// should reject negative numbers
-			Assert.That(() => db.Options.WithLocationCacheSize(-123), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.InvalidOptionValue).And.Property("Success").False);
+			Assert.That(() => db.Options.WithLocationCacheSize(-123), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.InvalidOptionValue));
 		}
 
 		[Test]

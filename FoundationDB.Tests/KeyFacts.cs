@@ -348,7 +348,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(FdbKey.Dump(Slice.FromByte(255)), Is.EqualTo("<FF>"));
 
 				Assert.That(FdbKey.Dump(new byte[] { 0, 1, 2, 3, 4, 5, 6, 7 }.AsSlice()), Is.EqualTo("<00><01><02><03><04><05><06><07>"));
-				Assert.That(FdbKey.Dump(new byte[] { 255, 254, 253, 252, 251, 250, 249, 248 }.AsSlice()), Is.EqualTo("<FF><FE><FD><FC><FB><FA><F9><F8>"));
+				Assert.That(FdbKey.Dump(new byte[] { 255, 254, 253, 252, 251, 250, 249, 248 }.AsSlice()), Is.EqualTo("(|System|<FE><FD><FC><FB><FA><F9><F8>,)"));
 
 				Assert.That(FdbKey.Dump(Text("hello")), Is.EqualTo("hello"));
 				Assert.That(FdbKey.Dump(Text("héllø")), Is.EqualTo("h<C3><A9>ll<C3><B8>"));

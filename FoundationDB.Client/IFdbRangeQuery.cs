@@ -29,6 +29,7 @@ namespace FoundationDB.Client
 {
 	using Doxense.Linq;
 
+	/// <summary>Base interface for queries that will read ranges of results from the database</summary>
 	public interface IFdbRangeQuery
 	{
 		/// <summary>Parent transaction used to perform the GetRange operation</summary>
@@ -66,10 +67,15 @@ namespace FoundationDB.Client
 
 	}
 
-	/// <summary>Query describing an ongoing GetRange operation</summary>
+	/// <summary>Query that will asynchronously stream decoded results from one or more GetRange operations</summary>
 	/// <typeparam name="TResult">Type of the results decoded from the key/value pairs</typeparam>
 	public interface IFdbRangeQuery<TResult> : IFdbRangeQuery, IConfigurableAsyncEnumerable<TResult>
 	{
+
+		/// <summary>Returns pages of results, as they arrive</summary>
+		/// <remarks>Processing a batch of results at a time can be more efficient than iterating on each individual key/value</remarks>
+		[MustUseReturnValue, LinqTunnel]
+		IFdbPagedQuery<TResult> Paged();
 
 		/// <summary>Reverse the order in which the results will be returned</summary>
 		/// <returns>A new query object that will return the results in reverse order when executed</returns>
@@ -162,7 +168,7 @@ namespace FoundationDB.Client
 
 	}
 
-	/// <summary>Query describing an ongoing GetRange operation</summary>
+	/// <summary>Query that will asynchronously stream the key/value pairs returned by one or more GetRange operations</summary>
 	public interface IFdbKeyValueRangeQuery : IFdbRangeQuery<KeyValuePair<Slice, Slice>>
 	{
 
@@ -181,6 +187,49 @@ namespace FoundationDB.Client
 		/// <returns></returns>
 		/// <remarks>This method is optimized to reduce redundant memory copies, and will decode the key/value directly from the native memory</remarks>
 		IFdbRangeQuery<TResult> Decode<TResult>(FdbKeyValueDecoder<TResult> decoder);
+
+	}
+
+	public delegate void PageAction<TResult>(ReadOnlySpan<TResult> page);
+
+	public delegate void PageFunc<TResult, TOther>(ReadOnlySpan<TResult> page, Span<TOther> output);
+
+	public delegate void PageAggregator<in TAggregate, TResult>(TAggregate aggregate, ReadOnlySpan<TResult> page);
+
+	/// <summary>Query that will asynchronously stream batches of decoded results from onr or more GetRange operations</summary>
+	/// <typeparam name="TResult">Type of the results decoded from the key/value pairs</typeparam>
+	/// <remarks>
+	/// <para>The results are returned batches of results, as soon as they are received by the client. The size of the batch may vary, and can be controlled by the <see cref="FdbRangeOptions.Streaming"/> option.</para>
+	/// </remarks>
+	public interface IFdbPagedQuery<TResult> : IFdbRangeQuery, IConfigurableAsyncEnumerable<ReadOnlyMemory<TResult>>
+	{
+
+		/// <summary>Reverses the order in which the results will be returned</summary>
+		/// <returns>A new query object that will return the results in reverse order when executed</returns>
+		/// <remarks>
+		/// <para>Calling <see cref="Reverse"/> on an already reversed query will cancel the effect, and the results will be returned in their natural order.</para>
+		/// </remarks>
+		[MustUseReturnValue, LinqTunnel]
+		IFdbPagedQuery<TResult> Reverse();
+
+		/// <summary>Projects each element of the range results into a new form.</summary>
+		/// <param name="lambda">Function that is invoked for each source element, and will return the corresponding transformed element.</param>
+		/// <returns>New range query that outputs the sequence of transformed elements</returns>
+		/// <example><c>query.Select((kv) => $"{kv.Key:K} = {kv.Value:V}")</c></example>
+		[MustUseReturnValue, LinqTunnel]
+		IFdbPagedQuery<TOther> Select<TOther>(PageFunc<TResult, TOther> lambda);
+
+		/// <summary>Executes an action on each pages of key/value pairs in the range results</summary>
+		Task ForEachAsync(PageAction<TResult> handler);
+
+		/// <summary>Executes an action on each pages of key/value pairs in the range results</summary>
+		Task<TAggregate> ForEachAsync<TAggregate>(TAggregate aggregate, PageAggregator<TAggregate, TResult> action);
+
+		/// <summary>Returns a flattened list of all the elements of the range results</summary>
+		Task<List<TResult>> ToListAsync();
+
+		/// <summary>Returns a flattened array with all the elements of the range results</summary>
+		Task<TResult[]> ToArrayAsync();
 
 	}
 
