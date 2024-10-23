@@ -740,7 +740,7 @@ namespace FoundationDB.Client
 			FdbKey.EnsureKeyIsValid(beginInclusive.Key);
 			FdbKey.EnsureKeyIsValid(endExclusive.Key, endExclusive: true);
 
-			options = FdbRangeOptions.EnsureDefaults(options, FdbStreamingMode.Iterator, FdbReadMode.Both);
+			options = FdbRangeOptions.EnsureDefaults(options, FdbStreamingMode.Iterator, FdbFetchMode.KeysAndValues);
 			options.EnsureLegalValues(iteration);
 
 			// The iteration value is only needed when in iterator mode, but then it should start from 1
@@ -757,7 +757,7 @@ namespace FoundationDB.Client
 			FdbKey.EnsureKeyIsValid(beginInclusive.Key);
 			FdbKey.EnsureKeyIsValid(endExclusive.Key, endExclusive: true);
 
-			options = FdbRangeOptions.EnsureDefaults(options, FdbStreamingMode.Iterator, FdbReadMode.Both);
+			options = FdbRangeOptions.EnsureDefaults(options, FdbStreamingMode.Iterator, FdbFetchMode.KeysAndValues);
 			options.EnsureLegalValues(iteration);
 
 			// The iteration value is only needed when in iterator mode, but then it should start from 1
@@ -855,7 +855,7 @@ namespace FoundationDB.Client
 			FdbKey.EnsureKeyIsValid(begin.Key);
 			FdbKey.EnsureKeyIsValid(end.Key, endExclusive: true);
 
-			options = FdbRangeOptions.EnsureDefaults(options, FdbStreamingMode.Iterator, FdbReadMode.Both);
+			options = FdbRangeOptions.EnsureDefaults(options, FdbStreamingMode.Iterator, FdbFetchMode.KeysAndValues);
 			options.EnsureLegalValues(0);
 
 #if DEBUG
@@ -866,24 +866,24 @@ namespace FoundationDB.Client
 		}
 
 		[Pure, LinqTunnel]
-		internal FdbRangeQuery GetRangeCore(KeySelector begin, KeySelector end, FdbRangeOptions? options, bool snapshot)
+		internal FdbKeyValueRangeQuery GetRangeCore(KeySelector begin, KeySelector end, FdbRangeOptions? options, bool snapshot)
 		{
 			EnsureCanRead();
 			FdbKey.EnsureKeyIsValid(begin.Key);
 			FdbKey.EnsureKeyIsValid(end.Key, endExclusive: true);
 
-			options = FdbRangeOptions.EnsureDefaults(options, FdbStreamingMode.Iterator, FdbReadMode.Both);
+			options = FdbRangeOptions.EnsureDefaults(options, FdbStreamingMode.Iterator, FdbFetchMode.KeysAndValues);
 			options.EnsureLegalValues(0);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetRangeCore", $"Getting range '{begin.ToString()} <= x < {end.ToString()}'");
 #endif
 
-			switch (options.Read)
+			switch (options.Fetch)
 			{
-				case FdbReadMode.Keys:
+				case FdbFetchMode.KeysOnly:
 				{
-					return new FdbRangeQuery(
+					return new FdbKeyValueRangeQuery(
 						this,
 						begin,
 						end,
@@ -892,9 +892,9 @@ namespace FoundationDB.Client
 						options
 					);
 				}
-				case FdbReadMode.Values:
+				case FdbFetchMode.ValuesOnly:
 				{
-					return new FdbRangeQuery(
+					return new FdbKeyValueRangeQuery(
 						this,
 						begin,
 						end,
@@ -905,7 +905,7 @@ namespace FoundationDB.Client
 				}
 				default:
 				{
-					return new FdbRangeQuery(
+					return new FdbKeyValueRangeQuery(
 						this,
 						begin,
 						end,
@@ -918,7 +918,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <inheritdoc />
-		public IFdbRangeQuery GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null)
+		public IFdbKeyValueRangeQuery GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null)
 		{
 			return GetRangeCore(
 				beginInclusive,

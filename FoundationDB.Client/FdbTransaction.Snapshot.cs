@@ -190,7 +190,7 @@ namespace FoundationDB.Client
 				FdbKey.EnsureKeyIsValid(beginInclusive.Key);
 				FdbKey.EnsureKeyIsValid(endExclusive.Key, endExclusive: true);
 
-				options = FdbRangeOptions.EnsureDefaults(options, FdbStreamingMode.Iterator, FdbReadMode.Both);
+				options = FdbRangeOptions.EnsureDefaults(options, FdbStreamingMode.Iterator, FdbFetchMode.KeysAndValues);
 				options.EnsureLegalValues(iteration);
 
 				// The iteration value is only needed when in iterator mode, but then it should start from 1
@@ -207,7 +207,7 @@ namespace FoundationDB.Client
 				FdbKey.EnsureKeyIsValid(beginInclusive.Key);
 				FdbKey.EnsureKeyIsValid(endExclusive.Key, endExclusive: true);
 
-				options = FdbRangeOptions.EnsureDefaults(options, FdbStreamingMode.Iterator, FdbReadMode.Both);
+				options = FdbRangeOptions.EnsureDefaults(options, FdbStreamingMode.Iterator, FdbFetchMode.KeysAndValues);
 				options.EnsureLegalValues(iteration);
 
 				// The iteration value is only needed when in iterator mode, but then it should start from 1
@@ -217,7 +217,7 @@ namespace FoundationDB.Client
 			}
 
 			/// <inheritdoc />
-			public IFdbRangeQuery GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null)
+			public IFdbKeyValueRangeQuery GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null)
 			{
 				return m_parent.GetRangeCore(
 					beginInclusive,

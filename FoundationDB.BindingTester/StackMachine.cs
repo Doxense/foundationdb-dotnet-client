@@ -478,8 +478,8 @@ namespace FoundationDB.Client.Testing
 					{
 						future = this.Db.ReadAsync(
 							tr => instr.IsSnapshot()
-								? tr.Snapshot.GetRangeAsync(begin, end, new() { Limit = limit, Reverse = reverse, Mode = streamingMode })
-								: tr.GetRangeAsync(begin, end, new() { Limit = limit, Reverse = reverse, Mode = streamingMode }),
+								? tr.Snapshot.GetRangeAsync(begin, end, new() { Limit = limit, IsReversed = reverse, Streaming = streamingMode })
+								: tr.GetRangeAsync(begin, end, new() { Limit = limit, IsReversed = reverse, Streaming = streamingMode }),
 							ct
 						);
 					}
@@ -487,8 +487,8 @@ namespace FoundationDB.Client.Testing
 					{
 						var tr = GetCurrentTransaction();
 						future = instr.IsSnapshot()
-							? tr.Snapshot.GetRangeAsync(begin, end, new() { Limit = limit, Reverse = reverse, Mode = streamingMode })
-							: tr.GetRangeAsync(begin, end, new () { Limit = limit, Reverse = reverse, Mode = streamingMode });
+							? tr.Snapshot.GetRangeAsync(begin, end, new() { Limit = limit, IsReversed = reverse, Streaming = streamingMode })
+							: tr.GetRangeAsync(begin, end, new () { Limit = limit, IsReversed = reverse, Streaming = streamingMode });
 					}
 
 					PushFuture(index, instr, future,

@@ -131,7 +131,7 @@ namespace FoundationDB.Layers.Indexing
 				);
 
 				return trans
-					.GetRange(space, new FdbRangeOptions { Reverse = reverse })
+					.GetRange(space, FdbRangeOptions.Reversed)
 					.Select((kvp) => this.Subspace.Decode(kvp.Key).Item2!);
 			}
 

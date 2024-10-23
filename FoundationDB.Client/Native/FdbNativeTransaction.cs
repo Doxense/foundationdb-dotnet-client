@@ -392,10 +392,10 @@ namespace FoundationDB.Client.Native
 				endExclusive,
 				options.Limit ?? 0,
 				options.TargetBytes ?? 0,
-				options.Mode ?? FdbStreamingMode.Iterator,
+				options.Streaming ?? FdbStreamingMode.Iterator,
 				iteration,
 				snapshot,
-				options.Reverse
+				options.IsReversed
 			);
 
 			return FdbFuture.CreateTaskFromHandle(
@@ -410,19 +410,19 @@ namespace FoundationDB.Client.Native
 
 					SliceOwner buffer = default;
 
-					switch (s.Options.Read ?? FdbReadMode.Both)
+					switch (s.Options.Fetch ?? FdbFetchMode.KeysAndValues)
 					{
-						case FdbReadMode.Both:
+						case FdbFetchMode.KeysAndValues:
 						{
 							items = GetKeyValueArrayResult(h, s.Options.Pool, out hasMore, out first, out last, out buffer, out totalBytes);
 							break;
 						}
-						case FdbReadMode.Keys:
+						case FdbFetchMode.KeysOnly:
 						{
 							items = GetKeyValueArrayResultKeysOnly(h, out hasMore, out first, out last, out totalBytes);
 							break;
 						}
-						case FdbReadMode.Values:
+						case FdbFetchMode.ValuesOnly:
 						{
 							items = GetKeyValueArrayResultValuesOnly(h, out hasMore, out first, out last, out totalBytes);
 							break;
@@ -454,10 +454,10 @@ namespace FoundationDB.Client.Native
 				endExclusive,
 				options.Limit ?? 0,
 				options.TargetBytes ?? 0,
-				options.Mode ?? FdbStreamingMode.Iterator,
+				options.Streaming ?? FdbStreamingMode.Iterator,
 				iteration,
 				snapshot,
-				options.Reverse
+				options.IsReversed
 			);
 
 			return FdbFuture.CreateTaskFromHandle(

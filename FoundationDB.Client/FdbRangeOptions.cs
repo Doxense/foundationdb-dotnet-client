@@ -31,7 +31,7 @@ namespace FoundationDB.Client
 	using System.Runtime.CompilerServices;
 
 	/// <summary>Container class for options in a Range query</summary>
-	[DebuggerDisplay("Limit={Limit}, Reverse={Reverse}, TargetBytes={TargetBytes}, Mode={Mode}, Read={Read}")]
+	[DebuggerDisplay("Limit={Limit}, Reverse={IsReversed}, TargetBytes={TargetBytes}, Mode={Streaming}, Read={Fetch}")]
 	[PublicAPI]
 	public sealed record FdbRangeOptions
 	{
@@ -41,66 +41,93 @@ namespace FoundationDB.Client
 		/// <summary>Maximum number of items to return</summary>
 		public int? Limit { get; init; }
 
-		/// <summary>If <see langword="true"/> , results are returned in reverse order (from last to first)</summary>
-		public bool Reverse { get; init; }
+		/// <summary>If <see langword="true"/>, results are returned in reverse order (from last to first)</summary>
+		public bool IsReversed { get; init; }
 
 		/// <summary>Maximum number of bytes to read</summary>
+		/// <remarks>The number is not exact, and a batch of result may overshoot this value by a small margin.</remarks>
 		public int? TargetBytes { get; init; }
 
 		/// <summary>Streaming mode</summary>
-		public FdbStreamingMode? Mode { get; init; }
+		public FdbStreamingMode? Streaming { get; init; }
 
 		/// <summary>Read only the keys, only the values, or both (default)</summary>
-		public FdbReadMode? Read { get; init; }
+		public FdbFetchMode? Fetch { get; init; }
 
 		/// <summary>If specified, pool used to allocate the buffer that will hold the keys and values</summary>
-		/// <remarks>If a pool is provided, then the <see cref="FdbRangeChunk"/> instance <b>MUST</b> be disposed, and the keys and values <b>CANNOT</b> be exposed outside the scope of the read operation</remarks>
+		/// <remarks>
+		/// <para>If a pool is provided, then the <see cref="FdbRangeChunk"/> instance <b>MUST</b> be disposed, and the keys and values <b>CANNOT</b> be exposed outside the scope of the read operation.</para>
+		/// <para>Incorrect usage of pooled data may lead to data corruption and overall instability. Use with caution!</para>
+		/// </remarks>
 		public ArrayPool<byte>? Pool { get; init; }
 
 		#endregion
 
 		#region Singletons...
 
+		/// <summary>Default range options</summary>
 		public static readonly FdbRangeOptions Default = new();
 
-		public static readonly FdbRangeOptions Reversed = new() { Reverse = true };
+		/// <summary>Read in reverse order</summary>
+		/// <remarks>Options with <see cref="IsReversed"/> set to <see langword="true"/></remarks>
+		public static readonly FdbRangeOptions Reversed = new() { IsReversed = true };
 
-		public static readonly FdbRangeOptions ValuesOnly = new() { Read = FdbReadMode.Values };
+		/// <summary>Read only the first result in the range</summary>
+		/// <remarks>Options with <see cref="Limit"/> set to <see langword="1"/></remarks>
+		public static readonly FdbRangeOptions First = new() { Limit = 1 };
 
-		public static readonly FdbRangeOptions KeysOnly = new() { Read = FdbReadMode.Keys };
+		/// <summary>Read only the last result in the range</summary>
+		/// <remarks>Options with <see cref="Limit"/> set to <see langword="1"/>, and <see cref="IsReversed"/> set to <see langword="true"/></remarks>
+		public static readonly FdbRangeOptions Last = new() { Limit = 1, IsReversed = true };
 
-		public static readonly FdbRangeOptions OnlyOne = new() { Limit = 1 };
+		/// <summary>Fetch only the values</summary>
+		/// <remarks>Options with <see cref="Fetch"/> set to <see cref="FdbFetchMode.ValuesOnly"/></remarks>
+		public static readonly FdbRangeOptions ValuesOnly = new() { Fetch = FdbFetchMode.ValuesOnly };
 
-		public static readonly FdbRangeOptions OnlyOneReversed = new() { Limit = 1, Reverse = true };
+		/// <summary>Fetch only the keys</summary>
+		/// <remarks>Options with <see cref="Fetch"/> set to <see cref="FdbFetchMode.KeysOnly"/></remarks>
+		public static readonly FdbRangeOptions KeysOnly = new() { Fetch = FdbFetchMode.KeysOnly };
 
-		public static readonly FdbRangeOptions WantAll = new() { Mode = FdbStreamingMode.WantAll };
+		/// <summary>Will read all the keys and values in the range, without filtering</summary>
+		/// <remarks>Options with <see cref="Streaming"/> set to <see cref="FdbStreamingMode.WantAll"/></remarks>
+		public static readonly FdbRangeOptions WantAll = new() { Streaming = FdbStreamingMode.WantAll };
 
-		public static readonly FdbRangeOptions WantAllValuesOnly = new() { Mode = FdbStreamingMode.WantAll, Read = FdbReadMode.Values };
+		/// <summary>Will read all the values in the range, without filtering</summary>
+		/// <remarks>Options with <see cref="Streaming"/> set to <see cref="FdbStreamingMode.WantAll"/>, and <see cref="Fetch"/> set to <see cref="FdbFetchMode.ValuesOnly"/></remarks>
+		public static readonly FdbRangeOptions WantAllValuesOnly = new() { Streaming = FdbStreamingMode.WantAll, Fetch = FdbFetchMode.ValuesOnly };
 
-		public static readonly FdbRangeOptions WantAllKeysOnly = new() { Mode = FdbStreamingMode.WantAll, Read = FdbReadMode.Keys };
+		/// <summary>Will read all the keys in the range, without filtering</summary>
+		/// <remarks>Options with <see cref="Streaming"/> set to <see cref="FdbStreamingMode.WantAll"/>, and <see cref="Fetch"/> set to <see cref="FdbFetchMode.KeysOnly"/></remarks>
+		public static readonly FdbRangeOptions WantAllKeysOnly = new() { Streaming = FdbStreamingMode.WantAll, Fetch = FdbFetchMode.KeysOnly };
 
-		public static readonly FdbRangeOptions WantAllReversed = new() { Mode = FdbStreamingMode.WantAll, Reverse = true };
+		/// <summary>Will read all the keys and values in the range, in reverse order, without filtering</summary>
+		/// <remarks>Options with <see cref="Streaming"/> set to <see cref="FdbStreamingMode.WantAll"/>, and <see cref="IsReversed"/> set to <see langword="true"/></remarks>
+		public static readonly FdbRangeOptions WantAllReversed = new() { Streaming = FdbStreamingMode.WantAll, IsReversed = true };
 
-		public static readonly FdbRangeOptions WantAllReversedValuesOnly = new() { Mode = FdbStreamingMode.WantAll, Read = FdbReadMode.Values, Reverse = true };
+		/// <summary>Will read all the values in the range, in reverse order, without filtering</summary>
+		/// <remarks>Options with <see cref="Streaming"/> set to <see cref="FdbStreamingMode.WantAll"/>, <see cref="IsReversed"/> set to <see langword="true"/>, and <see cref="Fetch"/> set to <see cref="FdbFetchMode.ValuesOnly"/></remarks>
+		public static readonly FdbRangeOptions WantAllReversedValuesOnly = new() { Streaming = FdbStreamingMode.WantAll, Fetch = FdbFetchMode.ValuesOnly, IsReversed = true };
 
-		public static readonly FdbRangeOptions WantAllReversedKeysOnly = new() { Mode = FdbStreamingMode.WantAll, Read = FdbReadMode.Keys, Reverse = true };
+		/// <summary>Will read all the keys in the range, in reverse order, without filtering</summary>
+		/// <remarks>Options with <see cref="Streaming"/> set to <see cref="FdbStreamingMode.WantAll"/>, <see cref="IsReversed"/> set to <see langword="true"/>, and <see cref="Fetch"/> set to <see cref="FdbFetchMode.KeysOnly"/></remarks>
+		public static readonly FdbRangeOptions WantAllReversedKeysOnly = new() { Streaming = FdbStreamingMode.WantAll, Fetch = FdbFetchMode.KeysOnly, IsReversed = true };
 
 		#endregion
 
 		/// <summary>Add all missing values from the provided defaults</summary>
 		/// <param name="options">Options provided by the caller (can be null)</param>
-		/// <param name="mode">Default value for <see cref="FdbRangeOptions.Mode"/> if not provided</param>
-		/// <param name="read">Default value for <see cref="FdbRangeOptions.Read"/> if not provided</param>
+		/// <param name="mode">Default value for <see cref="Streaming"/> if not provided</param>
+		/// <param name="fetch">Default value for <see cref="Fetch"/> if not provided</param>
 		/// <returns>Options with all the values filled</returns>
-		public static FdbRangeOptions EnsureDefaults(FdbRangeOptions? options, FdbStreamingMode mode, FdbReadMode read)
+		public static FdbRangeOptions EnsureDefaults(FdbRangeOptions? options, FdbStreamingMode mode, FdbFetchMode fetch)
 		{
 			if (options == null)
 			{
-				if (mode == FdbStreamingMode.Iterator && read == FdbReadMode.Both)
+				if (mode == FdbStreamingMode.Iterator && fetch == FdbFetchMode.KeysAndValues)
 				{
 					options = FdbRangeOptions.Default;
 				}
-				else if (mode == FdbStreamingMode.WantAll && read == FdbReadMode.Both)
+				else if (mode == FdbStreamingMode.WantAll && fetch == FdbFetchMode.KeysAndValues)
 				{
 					options = FdbRangeOptions.Default;
 				}
@@ -108,27 +135,27 @@ namespace FoundationDB.Client
 				{
 					options = new()
 					{
-						Mode = mode,
-						Read = read,
+						Streaming = mode,
+						Fetch = fetch,
 					};
 				}
 			}
 
-			if ((options.Mode == null && mode != FdbStreamingMode.Iterator)
-			  | (options.Read == null && read != FdbReadMode.Both))
+			if ((options.Streaming == null && mode != FdbStreamingMode.Iterator)
+			  | (options.Fetch == null && fetch != FdbFetchMode.KeysAndValues))
 			{
 				// the default is Iterator, so only change if that is not what we want
 				options = options with
 				{
-					Mode = options.Mode ?? mode,
-					Read = options.Read ?? read,
+					Streaming = options.Streaming ?? mode,
+					Fetch = options.Fetch ?? fetch,
 				};
 			}
 
 			Contract.Debug.Ensures((options.Limit ?? 0) >= 0, "Limit cannot be negative");
 			Contract.Debug.Ensures((options.TargetBytes ?? 0) >= 0, "TargetBytes cannot be negative");
-			Contract.Debug.Ensures(options.Mode == null || Enum.IsDefined(typeof(FdbStreamingMode), options.Mode.Value), "Streaming mode must be valid");
-			Contract.Debug.Ensures(options.Read == null || Enum.IsDefined(typeof(FdbReadMode), options.Read.Value), "Reading mode must be valid");
+			Contract.Debug.Ensures(options.Streaming == null || Enum.IsDefined(options.Streaming.Value), "Streaming mode must be valid");
+			Contract.Debug.Ensures(options.Fetch == null || Enum.IsDefined(options.Fetch.Value), "Reading mode must be valid");
 
 			return options;
 		}
@@ -136,59 +163,79 @@ namespace FoundationDB.Client
 		/// <summary>Throws if values are not legal</summary>
 		public void EnsureLegalValues(int iteration)
 		{
-			EnsureLegalValues(this.Limit, this.TargetBytes, this.Mode, this.Read, iteration);
+			EnsureLegalValues(this.Limit, this.TargetBytes, this.Streaming, this.Fetch, iteration);
 		}
 
-		internal static void EnsureLegalValues(int? limit, int? targetBytes, FdbStreamingMode? mode, FdbReadMode? read, int iteration)
+		internal static void EnsureLegalValues(int? limit, int? targetBytes, FdbStreamingMode? mode, FdbFetchMode? read, int iteration)
 		{
 			if (limit < 0) throw InvalidOptionValue("Range Limit cannot be negative.");
 			if (targetBytes < 0) throw InvalidOptionValue("Range TargetBytes cannot be negative.");
 			if (mode is < FdbStreamingMode.WantAll or > FdbStreamingMode.Serial) throw InvalidOptionValue("Range StreamingMode must be valid.");
-			if (read is < FdbReadMode.Both or > FdbReadMode.Values) throw InvalidOptionValue("Range ReadMode must be valid.");
+			if (read is < FdbFetchMode.KeysAndValues or > FdbFetchMode.ValuesOnly) throw InvalidOptionValue("Range ReadMode must be valid.");
 			if (iteration < 0) throw InvalidOptionValue("Iteration counter cannot be negative.");
 		}
 
-		[MethodImpl(MethodImplOptions.NoInlining)]
-		private static FdbException InvalidOptionValue(string message)
-		{
-			return new FdbException(FdbError.InvalidOptionValue, message);
-		}
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		private static FdbException InvalidOptionValue(string message) => new(FdbError.InvalidOptionValue, message);
 
-		/// <summary>Return the default range options</summary>
-		[Pure]
-		public static FdbRangeOptions FromDefault() => new();
+		#region Fluent API...
 
+		/// <summary>Sets the maximum number of results to return</summary>
 		[Pure]
 		public FdbRangeOptions WithLimit(int limit)
-			=> this.Limit == limit ? this : this with { Limit = limit };
+			=> this.Limit == limit ? this
+			: limit == 1 && ReferenceEquals(this, FdbRangeOptions.Default) ? FdbRangeOptions.First
+			: limit == 1 && ReferenceEquals(this, FdbRangeOptions.Reversed) ? FdbRangeOptions.Last
+			: this with { Limit = limit };
 
+		/// <summary>Sets a limit of bytes to read</summary>
 		[Pure]
 		public FdbRangeOptions WithTargetBytes(int targetBytes)
-			=> this.TargetBytes == targetBytes ? this : this with { TargetBytes = targetBytes };
+			=> this.TargetBytes == targetBytes ? this
+			: this with { TargetBytes = targetBytes };
 
+		/// <summary>Sets the <see cref="FdbStreamingMode"/> for range read</summary>
 		[Pure]
 		public FdbRangeOptions WithStreamingMode(FdbStreamingMode mode)
-			=> this.Mode == mode ? this : this with { Mode = mode };
+			=> this.Streaming == mode ? this
+			: mode == FdbStreamingMode.WantAll && ReferenceEquals(this, FdbRangeOptions.Default) ? FdbRangeOptions.WantAll
+			: this with { Streaming = mode };
 
+		/// <summary>Returns the results in reverse order (starting from the end key)</summary>
 		[Pure]
 		public FdbRangeOptions InReverse()
-			=> this.Reverse ? this
+			=> this.IsReversed ? this
 			: ReferenceEquals(this, FdbRangeOptions.Default) ? FdbRangeOptions.WantAllReversed
 			: ReferenceEquals(this, FdbRangeOptions.WantAll) ? FdbRangeOptions.WantAllReversed
+			: ReferenceEquals(this, FdbRangeOptions.First) ? FdbRangeOptions.Last
+			: ReferenceEquals(this, FdbRangeOptions.Last) ? FdbRangeOptions.First
 			: ReferenceEquals(this, FdbRangeOptions.WantAllValuesOnly) ? FdbRangeOptions.WantAllReversedValuesOnly
 			: ReferenceEquals(this, FdbRangeOptions.WantAllKeysOnly) ? FdbRangeOptions.WantAllReversedKeysOnly
-			: this with { Reverse = true };
+			: this with { IsReversed = true };
 
+		/// <summary>Only read the keys, and discard the values</summary>
 		[Pure]
 		public FdbRangeOptions OnlyKeys()
-			=> this.Read == FdbReadMode.Keys ? this : this with { Read = FdbReadMode.Keys };
+			=> this.Fetch == FdbFetchMode.KeysOnly ? this
+			: ReferenceEquals(this, FdbRangeOptions.WantAll) ? FdbRangeOptions.WantAllKeysOnly
+			: this with { Fetch = FdbFetchMode.KeysOnly };
 
+		/// <summary>Only read the values, and discard the keys</summary>
 		[Pure]
 		public FdbRangeOptions OnlyValues()
-			=> this.Read == FdbReadMode.Values ? this : this with { Read = FdbReadMode.Values };
+			=> this.Fetch == FdbFetchMode.ValuesOnly ? this
+			: ReferenceEquals(this, FdbRangeOptions.WantAll) ? FdbRangeOptions.WantAllValuesOnly
+			: this with { Fetch = FdbFetchMode.ValuesOnly };
 
+		/// <summary>Select an <see cref="ArrayPool{T}"/> to allocate the keys and/or values in memory.</summary>
+		/// <remarks>
+		/// <para>When using a pool, the caller MUST guarantee that the results are released to the pool; otherwise, the performances will be degraded.</para>
+		/// <para>Incorrect usage of pooled data may lead to data corruption and overall instability. Use with caution!</para>
+		/// </remarks>
 		public FdbRangeOptions WithPool(ArrayPool<byte> pool)
 			=> ReferenceEquals(this.Pool, pool) ? this : this with { Pool = pool };
+
+		#endregion
 
 	}
 

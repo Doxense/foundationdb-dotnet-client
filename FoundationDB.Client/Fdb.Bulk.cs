@@ -1411,7 +1411,7 @@ namespace FoundationDB.Client
 					var options = new FdbRangeOptions
 					{
 						// serial mode is optimized for a single client with maximum throughput
-						Mode = FdbStreamingMode.Serial,
+						Streaming = FdbStreamingMode.Serial,
 					};
 
 					long count = 0;
@@ -1564,7 +1564,7 @@ namespace FoundationDB.Client
 					var options = new FdbRangeOptions
 					{
 						// serial mode is optimized for a single client with maximum throughput
-						Mode = FdbStreamingMode.Serial,
+						Streaming = FdbStreamingMode.Serial,
 					};
 
 					long count = 0;

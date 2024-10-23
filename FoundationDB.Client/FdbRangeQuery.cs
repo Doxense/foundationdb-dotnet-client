@@ -31,7 +31,7 @@ namespace FoundationDB.Client
 	using Doxense.Memory;
 
 	/// <summary>Query describing an ongoing GetRange operation</summary>
-	[DebuggerDisplay("Begin={Begin}, End={End}, Limit={Limit}, Mode={Mode}, Reverse={Reverse}, Snapshot={Snapshot}")]
+	[DebuggerDisplay("Begin={Begin}, End={End}, Limit={Limit}, Mode={Streaming}, Reverse={Reverse}, Snapshot={IsSnapshot}")]
 	[PublicAPI]
 	internal partial class FdbRangeQuery<TState, TResult> : IFdbRangeQuery<TResult>
 	{
@@ -47,7 +47,7 @@ namespace FoundationDB.Client
 			this.State = state;
 			this.StateFactory = stateFactory;
 			this.Decoder = decoder;
-			this.Snapshot = snapshot;
+			this.IsSnapshot = snapshot;
 			this.Options = options ?? new FdbRangeOptions();
 			this.OriginalRange = KeySelectorPair.Create(begin, end);
 		}
@@ -63,7 +63,7 @@ namespace FoundationDB.Client
 			this.State = query.State;
 			this.StateFactory = query.StateFactory;
 			this.Decoder = query.Decoder;
-			this.Snapshot = query.Snapshot;
+			this.IsSnapshot = query.IsSnapshot;
 			this.Options = options;
 			this.OriginalRange = query.OriginalRange;
 		}
@@ -80,7 +80,7 @@ namespace FoundationDB.Client
 		public KeySelectorPair Range => new(this.Begin, this.End);
 
 		/// <summary>Stores all the settings for this range query</summary>
-		internal FdbRangeOptions Options { get; }
+		public FdbRangeOptions Options { get; }
 
 		/// <summary>Original key selector pair describing the bounds of the parent range. All the results returned by the query will be bounded by this original range.</summary>
 		/// <remarks>May differ from <see cref="Range"/> when combining certain operators.</remarks>
@@ -92,17 +92,24 @@ namespace FoundationDB.Client
 		/// <summary>Limit in number of bytes to return</summary>
 		public int? TargetBytes => this.Options.TargetBytes;
 
-		/// <summary>Streaming mode</summary>
-		public FdbStreamingMode Mode => this.Options.Mode ?? FdbStreamingMode.Iterator;
+		/// <summary>Streaming mode to enable or disable prefetching</summary>
+		/// <remarks>
+		/// <para>This setting changes how many items will be returned in the first batch but the storage servers</para>
+		/// <para>Queries that will return all the data in the range should use <see cref="FdbStreamingMode.WantAll"/>, while queries that will only take a fraction should use <see cref="FdbStreamingMode.Iterator"/></para>
+		/// </remarks>
+		public FdbStreamingMode Streaming => this.Options.Streaming ?? FdbStreamingMode.Iterator;
 
 		/// <summary>Read mode</summary>
-		public FdbReadMode Read => this.Options.Read ?? FdbReadMode.Both;
+		/// <remarks>
+		/// <para>Queries that need to decode both keys and values should use <see cref="FdbFetchMode.KeysAndValues"/>, while queries that need only one or the other should use either <see cref="FdbFetchMode.KeysOnly"/> or <see cref="FdbFetchMode.ValuesOnly"/></para>
+		/// </remarks>
+		public FdbFetchMode Fetch => this.Options.Fetch ?? FdbFetchMode.KeysAndValues;
 
 		/// <summary>Should we perform the range using snapshot mode ?</summary>
-		public bool Snapshot { get; }
+		public bool IsSnapshot { get; }
 
 		/// <summary>Should the results be returned in reverse order (from last key to first key)</summary>
-		public bool Reversed => this.Options.Reverse;
+		public bool IsReversed => this.Options.IsReversed;
 
 		/// <summary>Parent transaction used to perform the GetRange operation</summary>
 		public IFdbReadOnlyTransaction Transaction { get; }
@@ -164,7 +171,7 @@ namespace FoundationDB.Client
 				}
 			}
 
-			if (this.Reversed)
+			if (this.IsReversed)
 			{
 				end -= count;
 			}
@@ -183,14 +190,14 @@ namespace FoundationDB.Client
 			};
 		}
 
+		IFdbPagedQuery<TResult> IFdbRangeQuery<TResult>.Paged() => Paged();
+
+		/// <inheritdoc cref="IFdbRangeQuery{TResult}.Paged"/>
+		public IFdbPagedQuery<TResult> Paged() => throw new NotImplementedException();
+
 		IFdbRangeQuery<TResult> IFdbRangeQuery<TResult>.Reverse() => Reverse();
 
-		/// <summary>Reverse the order in which the results will be returned</summary>
-		/// <returns>A new query object that will return the results in reverse order when executed</returns>
-		/// <remarks>
-		/// <para>Calling Reverse() on an already reversed query will cancel the effect, and the results will be returned in their natural order.</para>
-		/// <para>Note: Combining the effects of Take()/Skip() and Reverse() may have an impact on performance, especially if the ReadYourWriteDisabled transaction is options set.</para>
-		/// </remarks>
+		/// <inheritdoc cref="IFdbRangeQuery{TResult}.Reverse"/>
 		[Pure]
 		public FdbRangeQuery<TState, TResult> Reverse()
 		{
@@ -200,7 +207,7 @@ namespace FoundationDB.Client
 			if (limit.HasValue)
 			{
 				// If Take() of Skip() have been called, we need to update the end bound when reversing (or begin if already reversed)
-				if (!this.Reversed)
+				if (!this.IsReversed)
 				{
 					end = this.Begin + limit.Value;
 				}
@@ -212,7 +219,7 @@ namespace FoundationDB.Client
 
 			return new FdbRangeQuery<TState, TResult>(
 				this,
-				this.Options with { Reverse = !this.Reversed }
+				this.Options with { IsReversed = !this.IsReversed }
 			)
 			{
 				Begin = begin,
@@ -247,7 +254,7 @@ namespace FoundationDB.Client
 
 			return new FdbRangeQuery<TState, TResult>(
 				this,
-				this.Options with { Mode = mode }
+				this.Options with { Streaming = mode }
 			);
 		}
 
@@ -266,7 +273,7 @@ namespace FoundationDB.Client
 				this.State,
 				this.StateFactory,
 				this.Decoder,
-				this.Snapshot,
+				this.IsSnapshot,
 				this.Options with { }
 			);
 		}
@@ -354,7 +361,7 @@ namespace FoundationDB.Client
 				this.State,
 				this.StateFactory,
 				Combine(this.Decoder, lambda),
-				this.Snapshot,
+				this.IsSnapshot,
 				this.Options with { }
 			);
 
@@ -391,7 +398,7 @@ namespace FoundationDB.Client
 				this.State,
 				this.StateFactory,
 				Combine(this.Decoder, lambda),
-				this.Snapshot,
+				this.IsSnapshot,
 				this.Options with { }
 			);
 
@@ -502,14 +509,14 @@ namespace FoundationDB.Client
 			// Optimized code path for First/Last/Single variants where we can be smart and only ask for 1 or 2 results from the db
 
 			// we can use the EXACT streaming mode with Limit = 1|2, and it will work if TargetBytes is 0
-			if ((this.TargetBytes ?? 0) != 0 || (this.Mode != FdbStreamingMode.Iterator && this.Mode != FdbStreamingMode.Exact))
+			if ((this.TargetBytes ?? 0) != 0 || (this.Streaming != FdbStreamingMode.Iterator && this.Streaming != FdbStreamingMode.Exact))
 			{ // fallback to the default implementation
 				return await AsyncEnumerable.Head(this, single, orDefault, this.Transaction.Cancellation).ConfigureAwait(false);
 			}
 
 			//BUGBUG: do we need special handling if OriginalRange != Range ? (weird combinations of Take/Skip and Reverse)
 
-			var tr = this.Snapshot ? this.Transaction.Snapshot : this.Transaction;
+			var tr = this.IsSnapshot ? this.Transaction.Snapshot : this.Transaction;
 
 			var results = await tr.GetRangeAsync<TState, TResult>(
 				this.Begin,
@@ -519,8 +526,8 @@ namespace FoundationDB.Client
 				new FdbRangeOptions()
 				{
 					Limit = Math.Min(single ? 2 : 1, this.Options.Limit ?? int.MaxValue),
-					Reverse = this.Reversed,
-					Mode = FdbStreamingMode.Exact,
+					IsReversed = this.IsReversed,
+					Streaming = FdbStreamingMode.Exact,
 				},
 				iteration: 0
 			).ConfigureAwait(false);
@@ -545,7 +552,7 @@ namespace FoundationDB.Client
 			// Optimized code path for Any/None where we can be smart and only ask for 1 from the db
 
 			// we can use the EXACT streaming mode with Limit = 1, and it will work if TargetBytes is 0
-			if ((this.TargetBytes ?? 0) != 0 || (this.Mode != FdbStreamingMode.Iterator && this.Mode != FdbStreamingMode.Exact))
+			if ((this.TargetBytes ?? 0) != 0 || (this.Streaming != FdbStreamingMode.Iterator && this.Streaming != FdbStreamingMode.Exact))
 			{ // fallback to the default implementation
 				// ReSharper disable InvokeAsExtensionMethod
 				return any
@@ -556,15 +563,15 @@ namespace FoundationDB.Client
 
 			//BUGBUG: do we need special handling if OriginalRange != Range ? (weird combinations of Take/Skip and Reverse)
 
-			var tr = this.Snapshot ? this.Transaction.Snapshot : this.Transaction;
+			var tr = this.IsSnapshot ? this.Transaction.Snapshot : this.Transaction;
 			var results = await tr.GetRangeAsync(
 				this.Begin,
 				this.End,
 				new FdbRangeOptions()
 				{
 					Limit = 1,
-					Reverse = this.Reversed,
-					Mode = FdbStreamingMode.Exact,
+					IsReversed = this.IsReversed,
+					Streaming = FdbStreamingMode.Exact,
 				},
 				iteration: 0
 			).ConfigureAwait(false);
@@ -577,15 +584,15 @@ namespace FoundationDB.Client
 		/// <summary>Returns a human-readable representation of this query</summary>
 		public override string ToString()
 		{
-			return $"Range({this.Range}, {this.Limit}, {(this.Reversed ? "reverse" : "forward")})";
+			return $"Range({this.Range}, {this.Limit}, {(this.IsReversed ? "reverse" : "forward")})";
 		}
 
 	}
 
-	internal sealed class FdbRangeQuery : FdbRangeQuery<SliceBuffer, KeyValuePair<Slice, Slice>>, IFdbRangeQuery
+	internal sealed class FdbKeyValueRangeQuery : FdbRangeQuery<SliceBuffer, KeyValuePair<Slice, Slice>>, IFdbKeyValueRangeQuery
 	{
 		/// <inheritdoc />
-		internal FdbRangeQuery(IFdbReadOnlyTransaction transaction, KeySelector begin, KeySelector end, FdbKeyValueDecoder<SliceBuffer, KeyValuePair<Slice, Slice>> transform, bool snapshot, FdbRangeOptions? options)
+		internal FdbKeyValueRangeQuery(IFdbReadOnlyTransaction transaction, KeySelector begin, KeySelector end, FdbKeyValueDecoder<SliceBuffer, KeyValuePair<Slice, Slice>> transform, bool snapshot, FdbRangeOptions? options)
 			: base(transaction, begin, end, null, () => new SliceBuffer(), transform, snapshot, options)
 		{
 		}
@@ -599,7 +606,7 @@ namespace FoundationDB.Client
 				state,
 				null,
 				decoder,
-				this.Snapshot,
+				this.IsSnapshot,
 				this.Options
 			);
 		}
@@ -613,7 +620,7 @@ namespace FoundationDB.Client
 				decoder,
 				null,
 				(s, k, v) => s(k, v),
-				this.Snapshot,
+				this.IsSnapshot,
 				this.Options
 			);
 		}

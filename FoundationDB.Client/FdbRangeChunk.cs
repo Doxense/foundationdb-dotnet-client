@@ -47,7 +47,7 @@ namespace FoundationDB.Client
 		public bool HasMore { get; }
 
 		/// <summary>Iteration number of this chunk, starting from 1 for the first page</summary>
-		/// <remarks>This value must be passed to subsequent calls to <see cref="IFdbReadOnlyTransaction.GetRangeAsync"/> to continue reading; otherwise, the <see cref="FdbRangeOptions.Mode">streaming</see> will not behave properly.</remarks>
+		/// <remarks>This value must be passed to subsequent calls to <see cref="IFdbReadOnlyTransaction.GetRangeAsync"/> to continue reading; otherwise, the <see cref="FdbRangeOptions.Streaming">streaming</see> will not behave properly.</remarks>
 		public int Iteration { get; }
 
 		/// <summary>Options used to perform this operation</summary>
@@ -88,10 +88,10 @@ namespace FoundationDB.Client
 		public bool IsEmpty => this.Items.Length == 0;
 
 		/// <summary>Set to <see langword="true"/> if the original range read was reversed (meaning the items are in reverse lexicographic order</summary>
-		public bool Reversed => this.Options.Reverse;
+		public bool Reversed => this.Options.IsReversed;
 
 		/// <summary>Specifies if the chunk contains only keys, only values, or both (default)</summary>
-		public FdbReadMode ReadMode => this.Options.Read ?? FdbReadMode.Both;
+		public FdbFetchMode FetchMode => this.Options.Fetch ?? FdbFetchMode.KeysAndValues;
 
 		/// <summary>Releases any buffer used by this chunk, if it was pooled</summary>
 		/// <remarks>
@@ -653,10 +653,10 @@ namespace FoundationDB.Client
 		public bool IsEmpty => this.Items.Length == 0;
 
 		/// <summary>Set to true if the original range read was reversed (meaning the items are in reverse lexicographic order</summary>
-		public bool Reversed => this.Options.Reverse;
+		public bool Reversed => this.Options.IsReversed;
 
 		/// <summary>Specifies if the chunk contains only keys, only values, or both (default)</summary>
-		public FdbReadMode ReadMode => this.Options.Read ?? FdbReadMode.Both;
+		public FdbFetchMode FetchMode => this.Options.Fetch ?? FdbFetchMode.KeysAndValues;
 
 		#region Items...
 

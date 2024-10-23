@@ -65,18 +65,26 @@ namespace FoundationDB.Client
 		/// <summary>
 		/// Transfer data in batches large enough that an individual client can get reasonable read bandwidth from the database. If the client stops iteration early, considerable disk and network bandwidth may be wasted.
 		/// </summary>
-		Serial = 4
+		Serial = 4,
+
 	}
 
 	/// <summary>Defines if the range read will only return the keys, values or both.</summary>
-	public enum FdbReadMode
+	public enum FdbFetchMode
 	{
+
 		/// <summary>Read both keys and values (default)</summary>
-		Both = 0,
-		/// <summary>Read only the keys. The values will all be equal to <see cref="Slice.Nil"/></summary>
-		Keys = 1,
-		/// <summary>Read only the values. The keys will all be equal to <see cref="Slice.Nil"/></summary>
-		Values = 2
+		/// <remarks>When exposed as a <see cref="KeyValuePair{T,T}"/>, both <see cref="KeyValuePair{T,T}.Key"/> and <see cref="KeyValuePair{T,T}.Value"/> will be filled with the results</remarks>
+		KeysAndValues = 0,
+		
+		/// <summary>Read only the keys. The values will be set to <see cref="Slice.Nil"/></summary>
+		/// <remarks>When exposed as a <see cref="KeyValuePair{T,T}"/>, only <see cref="KeyValuePair{T,T}.Key"/> will be filled, and <see cref="KeyValuePair{T,T}.Value"/> will be empty</remarks>
+		KeysOnly = 1,
+		
+		/// <summary>Read only the values. The keys will be set to <see cref="Slice.Nil"/></summary>
+		/// <remarks>When exposed as a <see cref="KeyValuePair{T,T}"/>, only <see cref="KeyValuePair{T,T}.Value"/> will be filled, and <see cref="KeyValuePair{T,T}.Key"/> will be empty</remarks>
+		ValuesOnly = 2,
+
 	}
 
 }

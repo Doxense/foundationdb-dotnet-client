@@ -1061,7 +1061,7 @@ namespace FdbShell
 			const string SCALE_VAL = "....--------========########@@@@@@@@M";
 			terminal.StdOut($"{"Count",9} ║{"Keys",10}{"med.",6} {SCALE_KEY,-29} ║{"Values",10}{"med.",7} {SCALE_VAL,-37} ║{"Total",10}");
 
-			var rangeOptions = new FdbRangeOptions { Mode = FdbStreamingMode.WantAll };
+			var rangeOptions = new FdbRangeOptions { Streaming = FdbStreamingMode.WantAll };
 
 			samples = samples.OrderBy(x => x.Begin).ToList();
 

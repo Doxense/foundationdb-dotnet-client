@@ -110,7 +110,7 @@ namespace FoundationDB.Client.Core
 		/// <param name="beginInclusive">key selector defining the beginning of the range</param>
 		/// <param name="endExclusive">key selector defining the end of the range</param>
 		/// <param name="options">Range read options</param>
-		/// <param name="iteration">If the <see cref="FdbRangeOptions.Mode">streaming mode</see> is set to <see cref="FdbStreamingMode.Iterator"/> (default), this parameter should start at <see langword="1"/> and be incremented by <see langword="1"/> for each successive call while reading this range. In all other cases it is ignored.</param>
+		/// <param name="iteration">If the <see cref="FdbRangeOptions.Streaming">streaming mode</see> is set to <see cref="FdbStreamingMode.Iterator"/> (default), this parameter should start at <see langword="1"/> and be incremented by <see langword="1"/> for each successive call while reading this range. In all other cases it is ignored.</param>
 		/// <param name="snapshot">Set to true for snapshot reads</param>
 		/// <param name="ct">Token used to cancel the operation from the outside</param>
 		/// <returns></returns>
@@ -123,7 +123,7 @@ namespace FoundationDB.Client.Core
 		/// <param name="state">Opaque state provided by the caller, and passed to the <paramref name="decoder"/></param>
 		/// <param name="decoder">Handler that will convert the result of the read, into a <typeparamref name="TResult"/> instance.</param>
 		/// <param name="options">Range read options</param>
-		/// <param name="iteration">If the <see cref="FdbRangeOptions.Mode">streaming mode</see> is set to <see cref="FdbStreamingMode.Iterator"/> (default), this parameter should start at <see langword="1"/> and be incremented by <see langword="1"/> for each successive call while reading this range. In all other cases it is ignored.</param>
+		/// <param name="iteration">If the <see cref="FdbRangeOptions.Streaming">streaming mode</see> is set to <see cref="FdbStreamingMode.Iterator"/> (default), this parameter should start at <see langword="1"/> and be incremented by <see langword="1"/> for each successive call while reading this range. In all other cases it is ignored.</param>
 		/// <param name="ct">Token used to cancel the operation from the outside</param>
 		/// <returns></returns>
 		Task<FdbRangeChunk<TResult>> GetRangeAsync<TState, TResult>(KeySelector beginInclusive, KeySelector endExclusive, bool snapshot, TState state, FdbKeyValueDecoder<TState, TResult> decoder, FdbRangeOptions options, int iteration, CancellationToken ct);

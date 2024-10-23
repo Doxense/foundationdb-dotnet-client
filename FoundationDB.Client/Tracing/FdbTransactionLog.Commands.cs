@@ -891,9 +891,9 @@ namespace FoundationDB.Filters.Logging
 				string s = this.Begin.PrettyPrint(FdbKey.PrettyPrintMode.Begin) + " <= k < " + this.End.PrettyPrint(FdbKey.PrettyPrintMode.End);
 				if (this.Iteration > 1) s += ", #" + this.Iteration.ToString();
 				if (this.Options.Limit != null && this.Options.Limit.Value > 0) s += ", limit(" + this.Options.Limit.Value.ToString() + ")";
-				if (this.Options.Reverse == true) s += ", reverse";
-				if (this.Options.Mode.HasValue) s += ", " + this.Options.Mode.Value.ToString();
-				if (this.Options.Read.HasValue) s += ", " + this.Options.Read.Value.ToString();
+				if (this.Options.IsReversed == true) s += ", reverse";
+				if (this.Options.Streaming.HasValue) s += ", " + this.Options.Streaming.Value.ToString();
+				if (this.Options.Fetch.HasValue) s += ", " + this.Options.Fetch.Value.ToString();
 				return s;
 			}
 
@@ -952,9 +952,9 @@ namespace FoundationDB.Filters.Logging
 				string s = this.Begin.PrettyPrint(FdbKey.PrettyPrintMode.Begin) + " <= k < " + this.End.PrettyPrint(FdbKey.PrettyPrintMode.End);
 				if (this.Iteration > 1) s += ", #" + this.Iteration.ToString();
 				if (this.Options.Limit != null && this.Options.Limit.Value > 0) s += ", limit(" + this.Options.Limit.Value.ToString() + ")";
-				if (this.Options.Reverse == true) s += ", reverse";
-				if (this.Options.Mode.HasValue) s += ", " + this.Options.Mode.Value.ToString();
-				if (this.Options.Read.HasValue) s += ", " + this.Options.Read.Value.ToString();
+				if (this.Options.IsReversed == true) s += ", reverse";
+				if (this.Options.Streaming.HasValue) s += ", " + this.Options.Streaming.Value.ToString();
+				if (this.Options.Fetch.HasValue) s += ", " + this.Options.Fetch.Value.ToString();
 				return s;
 			}
 

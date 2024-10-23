@@ -110,7 +110,7 @@ namespace FoundationDB.Client
 		/// <param name="beginInclusive">key selector defining the beginning of the range</param>
 		/// <param name="endExclusive">key selector defining the end of the range</param>
 		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
-		/// <param name="iteration">If <see cref="FdbRangeOptions.Mode">streaming mode</see> is <see cref="FdbStreamingMode.Iterator"/>, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
+		/// <param name="iteration">If <see cref="FdbRangeOptions.Streaming">streaming mode</see> is <see cref="FdbStreamingMode.Iterator"/>, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
 		/// <returns>Chunk of results</returns>
 		Task<FdbRangeChunk> GetRangeAsync(
 			KeySelector beginInclusive,
@@ -129,7 +129,7 @@ namespace FoundationDB.Client
 		/// <param name="state">State that will be forwarded to the <paramref name="decoder"/></param>
 		/// <param name="decoder">Decoder that will extract the result from the value found in the database</param>
 		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
-		/// <param name="iteration">If <see cref="FdbRangeOptions.Mode">streaming mode</see> is <see cref="FdbStreamingMode.Iterator"/>, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
+		/// <param name="iteration">If <see cref="FdbRangeOptions.Streaming">streaming mode</see> is <see cref="FdbStreamingMode.Iterator"/>, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
 		/// <returns>Chunk of results</returns>
 		Task<FdbRangeChunk<TResult>> GetRangeAsync<TState, TResult>(
 			KeySelector beginInclusive,
@@ -148,7 +148,7 @@ namespace FoundationDB.Client
 		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <returns>Range query that, once executed, will return all the key-value pairs matching the providing selector pair</returns>
 		[Pure, LinqTunnel]
-		IFdbRangeQuery GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null);
+		IFdbKeyValueRangeQuery GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null);
 
 		/// <summary>
 		/// Creates a new range query that will read all key-value pairs in the database snapshot represented by the transaction, and transform them into a result of type <typeparamref name="TResult"/>

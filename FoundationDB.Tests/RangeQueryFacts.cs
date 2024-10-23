@@ -153,7 +153,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(chunk.IsEmpty, Is.False, "Should not be empty");
 					Assert.That(chunk.HasMore, Is.False, "Should have all the results");
 					Assert.That(chunk.Items, Is.Not.Null.And.Length.EqualTo(chunk.Count), "Items array should match result count");
-					Assert.That(chunk.ReadMode, Is.EqualTo(FdbReadMode.Both));
+					Assert.That(chunk.FetchMode, Is.EqualTo(FdbFetchMode.KeysAndValues));
 					Assert.That(chunk.Reversed, Is.False);
 					Assert.That(chunk.Keys.Count, Is.EqualTo(chunk.Count), "Keys collection count does not match");
 					Assert.That(chunk.Values.Count, Is.EqualTo(chunk.Count), "Values collection count does not match");
@@ -180,7 +180,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(chunk.Count, Is.GreaterThan(0).And.LessThan(N), "Should only have read a portion of the results!");
 					Assert.That(chunk.HasMore, Is.True, "Should have more results after that!");
 					Assert.That(chunk.Items, Is.Not.Null.And.Length.EqualTo(chunk.Count), "Items array should match result count");
-					Assert.That(chunk.ReadMode, Is.EqualTo(FdbReadMode.Both));
+					Assert.That(chunk.FetchMode, Is.EqualTo(FdbFetchMode.KeysAndValues));
 					Assert.That(chunk.Reversed, Is.False);
 					Assert.That(chunk.Keys.Count, Is.EqualTo(chunk.Count), "Keys collection count does not match");
 					Assert.That(chunk.Values.Count, Is.EqualTo(chunk.Count), "Values collection count does not match");
@@ -256,7 +256,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(chunk.IsEmpty, Is.False, "Should not be empty");
 					Assert.That(chunk.HasMore, Is.False, "Should have all the results");
 					Assert.That(chunk.Items, Is.Not.Null.And.Length.EqualTo(chunk.Count), "Items array should match result count");
-					Assert.That(chunk.ReadMode, Is.EqualTo(FdbReadMode.Both));
+					Assert.That(chunk.FetchMode, Is.EqualTo(FdbFetchMode.KeysAndValues));
 					Assert.That(chunk.Reversed, Is.False);
 
 					Verify(chunk, data);
@@ -286,7 +286,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(chunk.Count, Is.GreaterThan(0).And.LessThan(N), "Should only have read a portion of the results!");
 					Assert.That(chunk.HasMore, Is.True, "Should have more results after that!");
 					Assert.That(chunk.Items, Is.Not.Null.And.Length.EqualTo(chunk.Count), "Items array should match result count");
-					Assert.That(chunk.ReadMode, Is.EqualTo(FdbReadMode.Both));
+					Assert.That(chunk.FetchMode, Is.EqualTo(FdbFetchMode.KeysAndValues));
 					Assert.That(chunk.Reversed, Is.False);
 					Assert.That(chunk.Iteration, Is.EqualTo(1));
 
@@ -362,10 +362,10 @@ namespace FoundationDB.Client.Tests
 					Assert.That(query.End.Key, Is.EqualTo(folder.Encode(N)));
 					Assert.That(query.Limit, Is.Null);
 					Assert.That(query.TargetBytes, Is.Null);
-					Assert.That(query.Reversed, Is.False);
-					Assert.That(query.Mode, Is.EqualTo(FdbStreamingMode.Iterator));
-					Assert.That(query.Read, Is.EqualTo(FdbReadMode.Both));
-					Assert.That(query.Snapshot, Is.False);
+					Assert.That(query.IsReversed, Is.False);
+					Assert.That(query.Streaming, Is.EqualTo(FdbStreamingMode.Iterator));
+					Assert.That(query.Fetch, Is.EqualTo(FdbFetchMode.KeysAndValues));
+					Assert.That(query.IsSnapshot, Is.False);
 					Assert.That(query.Range.Begin, Is.EqualTo(query.Begin));
 					Assert.That(query.Range.End, Is.EqualTo(query.End));
 
@@ -436,7 +436,7 @@ namespace FoundationDB.Client.Tests
 					// note: this will not read ALL the keys in one chunk !
 					Assert.That(chunk.Count, Is.GreaterThan(0).And.LessThanOrEqualTo(N));
 					Assert.That(chunk.HasMore, Is.EqualTo(chunk.Count < N), "HasMore flag is invalid");
-					Assert.That(chunk.ReadMode, Is.EqualTo(FdbReadMode.Keys));
+					Assert.That(chunk.FetchMode, Is.EqualTo(FdbFetchMode.KeysOnly));
 					Assert.That(chunk.First, Is.EqualTo(folder.Encode(0)), "First key does not match");
 					Assert.That(chunk.Last, Is.EqualTo(folder.Encode(chunk.Count - 1)), "Last key does not match");
 
@@ -462,7 +462,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(folder, Is.Not.Null);
 
 					var query = tr.GetRange(folder.Encode(0), folder.Encode(N), FdbRangeOptions.KeysOnly);
-					Assert.That(query.Read, Is.EqualTo(FdbReadMode.Keys));
+					Assert.That(query.Fetch, Is.EqualTo(FdbFetchMode.KeysOnly));
 
 					var items = await query.ToListAsync();
 
@@ -492,7 +492,7 @@ namespace FoundationDB.Client.Tests
 
 					var query = tr.GetRangeKeys(folder.Encode(0), folder.Encode(N));
 
-					Assert.That(query.Read, Is.EqualTo(FdbReadMode.Keys));
+					Assert.That(query.Fetch, Is.EqualTo(FdbFetchMode.KeysOnly));
 
 					var items = await query.ToListAsync();
 
@@ -549,7 +549,7 @@ namespace FoundationDB.Client.Tests
 					// note: this will not read ALL the keys in one chunk !
 					Assert.That(chunk.Count, Is.GreaterThan(0).And.LessThanOrEqualTo(N));
 					Assert.That(chunk.HasMore, Is.EqualTo(chunk.Count < N), "HasMore flag is invalid");
-					Assert.That(chunk.ReadMode, Is.EqualTo(FdbReadMode.Values));
+					Assert.That(chunk.FetchMode, Is.EqualTo(FdbFetchMode.ValuesOnly));
 					Assert.That(chunk.First, Is.EqualTo(folder.Encode(0)), "The chunk should still read the first key (even in Values only mode)");
 					Assert.That(chunk.Last, Is.EqualTo(folder.Encode(chunk.Count - 1)), "The chunk should still read the last key (even in Values only mode)");
 
@@ -578,7 +578,7 @@ namespace FoundationDB.Client.Tests
 						folder.Encode(N),
 						FdbRangeOptions.ValuesOnly
 					);
-					Assert.That(query.Read, Is.EqualTo(FdbReadMode.Values));
+					Assert.That(query.Fetch, Is.EqualTo(FdbFetchMode.ValuesOnly));
 
 					var items = await query.ToListAsync();
 
@@ -607,7 +607,7 @@ namespace FoundationDB.Client.Tests
 
 					var query = tr.GetRangeValues(folder.Encode(0), folder.Encode(N));
 
-					Assert.That(query.Read, Is.EqualTo(FdbReadMode.Values));
+					Assert.That(query.Fetch, Is.EqualTo(FdbFetchMode.ValuesOnly));
 
 					var items = await query.ToListAsync();
 
@@ -631,10 +631,10 @@ namespace FoundationDB.Client.Tests
 					var query = tr.GetRangeValues(
 						folder.Encode(0),
 						folder.Encode(N),
-						new FdbRangeOptions { Mode = FdbStreamingMode.Small }
+						new FdbRangeOptions { Streaming = FdbStreamingMode.Small }
 					);
 
-					Assert.That(query.Read, Is.EqualTo(FdbReadMode.Values));
+					Assert.That(query.Fetch, Is.EqualTo(FdbFetchMode.ValuesOnly));
 
 					var items = await query.ToListAsync();
 

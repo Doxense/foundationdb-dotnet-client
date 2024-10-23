@@ -45,7 +45,7 @@ namespace FoundationDB.Client
 
 			trans.EnsureCanRead();
 			return new MergeSortAsyncIterator<KeyValuePair<Slice, Slice>, TKey, KeyValuePair<Slice, Slice>>(
-				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { Mode = FdbStreamingMode.Iterator })),
+				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { Streaming = FdbStreamingMode.Iterator })),
 				default,
 				keySelector,
 				(kv) => kv,
@@ -64,7 +64,7 @@ namespace FoundationDB.Client
 
 			trans.EnsureCanRead();
 			return new MergeSortAsyncIterator<KeyValuePair<Slice, Slice>, TKey, TResult>(
-				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { Mode = FdbStreamingMode.Iterator })),
+				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { Streaming = FdbStreamingMode.Iterator })),
 				default,
 				keySelector,
 				resultSelector,
@@ -113,7 +113,7 @@ namespace FoundationDB.Client
 
 			trans.EnsureCanRead();
 			return new IntersectAsyncIterator<KeyValuePair<Slice, Slice>, TKey, KeyValuePair<Slice, Slice>>(
-				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { Mode = FdbStreamingMode.Iterator })),
+				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { Streaming = FdbStreamingMode.Iterator })),
 				default,
 				keySelector,
 				(kv) => kv,
@@ -128,7 +128,7 @@ namespace FoundationDB.Client
 
 			trans.EnsureCanRead();
 			return new IntersectAsyncIterator<KeyValuePair<Slice, Slice>, TKey, TResult>(
-				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { Mode = FdbStreamingMode.Iterator })),
+				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { Streaming = FdbStreamingMode.Iterator })),
 				default,
 				keySelector,
 				resultSelector,
@@ -212,7 +212,7 @@ namespace FoundationDB.Client
 
 			trans.EnsureCanRead();
 			return new ExceptAsyncIterator<KeyValuePair<Slice, Slice>, TKey, KeyValuePair<Slice, Slice>>(
-				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { Mode = FdbStreamingMode.Iterator })),
+				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { Streaming = FdbStreamingMode.Iterator })),
 				default,
 				keySelector,
 				(kv) => kv,
@@ -250,7 +250,7 @@ namespace FoundationDB.Client
 
 			trans.EnsureCanRead();
 			return new ExceptAsyncIterator<KeyValuePair<Slice, Slice>, TKey, TResult>(
-				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { Mode = FdbStreamingMode.Iterator })),
+				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { Streaming = FdbStreamingMode.Iterator })),
 				default,
 				keySelector,
 				resultSelector,

@@ -119,7 +119,7 @@ namespace FoundationDB.Client
 				if (this.Begin != bounds.Begin || this.End != bounds.End)
 				{
 					//TODO: find a better way to do this!
-					var tr = this.Query.Snapshot ? this.Query.Transaction.Snapshot : this.Query.Transaction;
+					var tr = this.Query.IsSnapshot ? this.Query.Transaction.Snapshot : this.Query.Transaction;
 					var keys = await tr.GetKeysAsync([ bounds.Begin, this.Begin, bounds.End, this.End ]).ConfigureAwait(false);
 
 					var min = keys[0] >= keys[1] ? keys[0] : keys[1];
@@ -166,7 +166,7 @@ namespace FoundationDB.Client
 				Debug.WriteLine("FdbRangeQuery.PagingIterator.FetchNextPageAsync(iter=" + this.Iteration + ") started");
 #endif
 
-				var mode = this.Query.Mode;
+				var mode = this.Query.Streaming;
 				// select the appropriate streaming mode if purpose is not default
 				switch(m_mode)
 				{
@@ -191,7 +191,7 @@ namespace FoundationDB.Client
 				}
 
 				//BUGBUG: mix the custom cancellation token with the transaction, if it is different !
-				var tr = (this.Query.Snapshot ? this.Query.Transaction.Snapshot : this.Query.Transaction);
+				var tr = (this.Query.IsSnapshot ? this.Query.Transaction.Snapshot : this.Query.Transaction);
 				var query = tr.GetRangeAsync<TState, TResult>(
 					this.Begin,
 					this.End,
@@ -200,10 +200,10 @@ namespace FoundationDB.Client
 					new FdbRangeOptions()
 					{
 						Limit = this.RemainingCount,
-						Reverse = this.Query.Reversed,
+						IsReversed = this.Query.IsReversed,
 						TargetBytes = this.RemainingSize,
-						Mode = mode,
-						Read = this.Query.Read,
+						Streaming = mode,
+						Fetch = this.Query.Fetch,
 					},
 					this.Iteration);
 				var task = ProcessResults(query);
@@ -231,7 +231,7 @@ namespace FoundationDB.Client
 					if (!this.AtEnd)
 					{
 						// update begin..end so that next call will continue from where we left...
-						if (this.Query.Reversed)
+						if (this.Query.IsReversed)
 						{
 							this.End = KeySelector.FirstGreaterOrEqual(result.Last);
 						}

@@ -100,7 +100,7 @@ namespace FoundationDB.Layers.Collections
 				tr.SetVersionStampedKey(this.Subspace[tr.CreateUniqueVersionStamp()], this.Encoder.EncodeValue(value));
 			}
 
-			private static readonly FdbRangeOptions SingleOptions = new() { Limit = 1, Mode = FdbStreamingMode.Exact };
+			private static readonly FdbRangeOptions SingleOptions = new() { Limit = 1, Streaming = FdbStreamingMode.Exact };
 
 			/// <summary>Pop the next item from the queue. Cannot be composed with other functions in a single transaction.</summary>
 			public async Task<(T? Value, bool HasValue)> PopAsync(IFdbTransaction tr)

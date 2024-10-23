@@ -29,11 +29,8 @@ namespace FoundationDB.Client
 {
 	using Doxense.Linq;
 
-	/// <summary>Query describing an ongoing GetRange operation</summary>
-	/// <typeparam name="TResult">Type of the results decoded from the key/value pairs</typeparam>
-	public interface IFdbRangeQuery<TResult> : IConfigurableAsyncEnumerable<TResult>
+	public interface IFdbRangeQuery
 	{
-
 		/// <summary>Parent transaction used to perform the GetRange operation</summary>
 		IFdbReadOnlyTransaction Transaction { get; }
 
@@ -47,7 +44,10 @@ namespace FoundationDB.Client
 		KeySelectorPair Range => new(this.Begin, this.End);
 
 		/// <summary>Should we perform the range using snapshot mode ?</summary>
-		bool Snapshot { get; }
+		bool IsSnapshot { get; }
+
+		/// <summary>Options used by this query</summary>
+		FdbRangeOptions Options { get; }
 
 		/// <summary>Limit in number of bytes to return</summary>
 		int? Limit { get; }
@@ -55,25 +55,32 @@ namespace FoundationDB.Client
 		/// <summary>Limit in number of bytes to return</summary>
 		int? TargetBytes { get; }
 
-		/// <summary>Streaming mode</summary>
-		FdbStreamingMode Mode { get; }
+		/// <summary>Returns the <see cref="FdbStreamingMode"/> used by this query</summary>
+		FdbStreamingMode Streaming { get; }
 
-		/// <summary>Read mode</summary>
-		FdbReadMode Read { get; }
+		/// <summary>Returns the <see cref="FdbFetchMode"/> used by this query</summary>
+		FdbFetchMode Fetch { get; }
 
 		/// <summary>Should the results be returned in reverse order (from last key to first key)</summary>
-		bool Reversed { get; }
+		bool IsReversed { get; }
+
+	}
+
+	/// <summary>Query describing an ongoing GetRange operation</summary>
+	/// <typeparam name="TResult">Type of the results decoded from the key/value pairs</typeparam>
+	public interface IFdbRangeQuery<TResult> : IFdbRangeQuery, IConfigurableAsyncEnumerable<TResult>
+	{
 
 		/// <summary>Reverse the order in which the results will be returned</summary>
 		/// <returns>A new query object that will return the results in reverse order when executed</returns>
 		/// <remarks>
-		/// <para>Calling Reverse() on an already reversed query will cancel the effect, and the results will be returned in their natural order.</para>
-		/// <para>Note: Combining the effects of Take()/Skip() and Reverse() may have an impact on performance, especially if the ReadYourWriteDisabled transaction is options set.</para>
+		/// <para>Calling <see cref="Reverse"/> on an already reversed query will cancel the effect, and the results will be returned in their natural order.</para>
+		/// <para>Note: Combining the effects of <see cref="Take"/>/<see cref="Skip"/> and <see cref="Reverse"/> may have an impact on performance, especially if the <see cref="FdbTransactionOption.ReadYourWritesDisable"/> option set.</para>
 		/// </remarks>
 		[MustUseReturnValue, LinqTunnel]
 		IFdbRangeQuery<TResult> Reverse();
 
-		/// <summary>Only return up to a specific number of results</summary>
+		/// <summary>Returns only up to a specific number of results</summary>
 		/// <param name="count">Maximum number of results to return</param>
 		/// <returns>A new query object that will only return up to <paramref name="count"/> results when executed</returns>
 		[MustUseReturnValue, LinqTunnel]
@@ -156,7 +163,7 @@ namespace FoundationDB.Client
 	}
 
 	/// <summary>Query describing an ongoing GetRange operation</summary>
-	public interface IFdbRangeQuery : IFdbRangeQuery<KeyValuePair<Slice, Slice>>
+	public interface IFdbKeyValueRangeQuery : IFdbRangeQuery<KeyValuePair<Slice, Slice>>
 	{
 
 		/// <summary>Decode the key/value pairs into instances of type <typeparamref name="TResult"/></summary>

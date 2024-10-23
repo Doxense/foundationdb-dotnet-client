@@ -1471,14 +1471,14 @@ namespace FoundationDB.Client
 		#region GetRange...
 
 		/// <summary>Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction</summary>
-		public static IFdbRangeQuery GetRange(this IFdbReadOnlyTransaction trans, KeyRange range, FdbRangeOptions? options = null)
+		public static IFdbKeyValueRangeQuery GetRange(this IFdbReadOnlyTransaction trans, KeyRange range, FdbRangeOptions? options = null)
 		{
 			var sp = KeySelectorPair.Create(range);
 			return trans.GetRange(sp.Begin, sp.End, options);
 		}
 
 		/// <summary>Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction</summary>
-		public static IFdbRangeQuery GetRange(this IFdbReadOnlyTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive, FdbRangeOptions? options = null)
+		public static IFdbKeyValueRangeQuery GetRange(this IFdbReadOnlyTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive, FdbRangeOptions? options = null)
 		{
 			Contract.NotNull(trans);
 
@@ -1493,7 +1493,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction</summary>
-		public static IFdbRangeQuery GetRange(this IFdbReadOnlyTransaction trans, KeySelectorPair range, FdbRangeOptions? options = null)
+		public static IFdbKeyValueRangeQuery GetRange(this IFdbReadOnlyTransaction trans, KeySelectorPair range, FdbRangeOptions? options = null)
 		{
 			Contract.NotNull(trans);
 

@@ -150,7 +150,7 @@ namespace FoundationDB.Layers.Collections
 				// is being represented sparsely. If so, we will be required to set it
 				// to the default value
 				var lastTwo = await tr
-					.GetRange(keyRange, new FdbRangeOptions { Reverse = true, Limit = 2 })
+					.GetRange(keyRange, FdbRangeOptions.Reversed.WithLimit(2))
 					.ToListAsync()
 					.ConfigureAwait(false);
 
