@@ -45,7 +45,7 @@ If you are not compiling the source of FoundationDB.Client, but instead are refe
 ```msbuild_build_script
 <ItemGroup>
 	<PackageReference Include"FoundationDB.Client" Version="x.y.z" />
-	<PackageReference Include"FoundationDB.Native.Client" Version="x.y.z" />
+	<PackageReference Include"FoundationDB.Client.Native" Version="x.y.z" />
 </ItemGroup>
 ```
 			
@@ -63,7 +63,7 @@ To include this package in your project, simply add the following at the end of 
 	<ProjectReference Include="..\Path\To\FoundationDB.Client.Native\FoundationDB.Client.Native.csproj" />
 </ItemGroup>
 
-<Import Project="..\Path\To\FoundationDB.Native.Client\UseNativeLibraries.targets" />
+<Import Project="..\Path\To\FoundationDB.Client.Native\UseNativeLibraries.targets" />
 ```
 
 The imported target will automatically copy the native libraries to your project's output folder.
@@ -101,7 +101,7 @@ builder.AddFoundationDb(730, options =>
 	// other options...
 		
 	// instruct the loader to use the native libraries that were distributed with
-	// the 'FoundationDB.Native.Client' package.
+	// the 'FoundationDB.Client.Native' package.
 	options.UseNativeClient();
 
 });

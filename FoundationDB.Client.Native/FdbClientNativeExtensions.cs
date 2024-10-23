@@ -27,15 +27,18 @@
 namespace FoundationDB.Client
 {
 	using System;
+	using System.Collections.Generic;
 	using System.IO;
 	using System.Runtime.InteropServices;
 	using FoundationDB.DependencyInjection;
 
+	/// <summary>Methods for locating and preloading the native client libraries for the current platform</summary>
 	public static class FdbClientNativeExtensions
 	{
 
 		/// <summary>Configures the <see cref="FdbDatabaseProviderOptions"/> to use the native FoundationDB client library that is redistributed with the <c>FoundationDB.Client.Native</c> package.</summary>
 		/// <param name="options">The <see cref="FdbDatabaseProviderOptions"/> to configure.</param>
+		/// <param name="allowSystemFallback">When <see langword="false"/> (default), only probe the expected locations.</param>
 		/// <returns>The configured <see cref="FdbDatabaseProviderOptions"/>.</returns>
 		/// <exception cref="FileNotFoundException">
 		/// Thrown when the native FoundationDB client library for the running platform could not be found.
@@ -51,6 +54,27 @@ namespace FoundationDB.Client
 		/// </remarks>
 		public static FdbDatabaseProviderOptions UseNativeClient(this FdbDatabaseProviderOptions options, bool allowSystemFallback = false)
 		{
+			var (path, fileName, rid, probedPaths) = ProbeNativeLibraryPaths();
+
+			if (path == null)
+			{
+				// we could not find the correct library!
+				if (!allowSystemFallback)
+				{
+					throw new FileNotFoundException($"Could not find native FoundationDB Client Library '{fileName}' for platform '{rid}' under the following folders: {string.Join(", ", probedPaths)}");
+				}
+
+				path = "";
+			}
+
+			options.NativeLibraryPath = path;
+			return options;
+		}
+
+		/// <summary>Probes multiple locations for the native library for corresponds to the currently running platform</summary>
+		/// <returns>Returns the path of the matching library, or null is none could be located. Includes the file name for the current platform, the runtime identifier, and the list of probed locations</returns>
+		public static (string? Path, string FileName, string Rid, List<string> ProbedPaths) ProbeNativeLibraryPaths()
+		{
 			// find out the platform we are running on ("win-x64", "linux-x64", ...)
 			var (rid, fileName) = GetRuntimeIdentifierForCurrentPlatform();
 
@@ -62,31 +86,27 @@ namespace FoundationDB.Client
 			// => The intent of "UseNativeClient()" is to use ONLY libs that came from the package,
 			//    and not inherit form a (probably incompatible) fdb_c.dll that would be there from
 			//    previous experiments, or a locally installed fdbserver.
-			
+
+			var probed = new List<string>();
+
 			// first probe in the runtimes/... subfolder for the native library
 			var runtimesNativePath = Path.Combine(AppContext.BaseDirectory, "runtimes", rid, "native");
 			var nativeLibraryPath = Path.Combine(runtimesNativePath, fileName);
+			probed.Add(runtimesNativePath);
 			if (!File.Exists(nativeLibraryPath))
 			{
 				// is it in the current directory?
 				nativeLibraryPath = Path.Combine(AppContext.BaseDirectory, fileName);
+				probed.Add(AppContext.BaseDirectory);
 				if (!File.Exists(nativeLibraryPath))
 				{
-					// we could not find the correct library!
-					if (!allowSystemFallback)
-					{
-						throw new FileNotFoundException($"Could not find native FoundationDB Client Library '{fileName}' for platform '{rid}' under either '{runtimesNativePath}' nor the base directory '{AppContext.BaseDirectory}'");
-					}
-
-					options.NativeLibraryPath = "";
-					return options;
+					nativeLibraryPath = null;
 				}
 			}
 
-			options.NativeLibraryPath = nativeLibraryPath;
-			return options;
+			return (nativeLibraryPath, fileName, rid, probed);
 		}
-		
+
 		private static (string Rid, string FileName) GetRuntimeIdentifierForCurrentPlatform()
 		{
 			// Determine the path to the native libraries based on the platform
@@ -101,7 +121,7 @@ namespace FoundationDB.Client
 				: RuntimeInformation.OSArchitecture == Architecture.Arm64 ? "arm64"
 				: null;
 
-			string fileName = platform == "win" ? "fdb_c.dll" : "libfbb_c.so";
+			string fileName = platform == "win" ? "fdb_c.dll" : "libfdb_c.so";
 
 			if (platform is null || arch is null)
 			{
@@ -112,6 +132,5 @@ namespace FoundationDB.Client
 		}
 		
 	}
-	
-	
+
 }
