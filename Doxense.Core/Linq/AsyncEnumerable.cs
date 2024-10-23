@@ -26,6 +26,7 @@
 
 namespace Doxense.Linq
 {
+	using System.Buffers;
 	using System.Collections.Immutable;
 	using Doxense.Linq.Async.Expressions;
 	using Doxense.Linq.Async.Iterators;
@@ -568,9 +569,9 @@ namespace Doxense.Linq
 
 			return AggregateAsync(
 				source,
-				new Buffer<T>(),
+				new Buffer<T>(0, ArrayPool<T>.Shared),
 				static (b, x) => b.Add(x),
-				static (b) => b.ToList(),
+				static (b) => b.ToListAndClear(),
 				CancellationToken.None
 			);
 		}
@@ -598,7 +599,7 @@ namespace Doxense.Linq
 				source,
 				new Buffer<T>(),
 				static (b, x) => b.Add(x),
-				static (b) => b.ToList(),
+				static (b) => b.ToListAndClear(),
 				ct
 			);
 		}
@@ -612,7 +613,7 @@ namespace Doxense.Linq
 				source,
 				new Buffer<T>(),
 				static (b, x) => b.Add(x),
-				static (b) => b.ToArray(),
+				static (b) => b.ToArrayAndClear(),
 				CancellationToken.None
 			);
 		}
@@ -626,7 +627,7 @@ namespace Doxense.Linq
 				source,
 				new Buffer<T>(),
 				static (b, x) => b.Add(x),
-				static (b) => b.ToArray(),
+				static (b) => b.ToArrayAndClear(),
 				ct
 			);
 		}

@@ -35,7 +35,7 @@ namespace Doxense.Linq
 	/// <typeparam name="T">Type of elements stored in the buffer</typeparam>
 	[DebuggerDisplay("Count={Count}, Chunks={Chunks.Length}, Current={Index}/{Current.Length}")]
 	[PublicAPI]
-	public sealed class Buffer<T> : IReadOnlyList<T>, IBufferWriter<T>
+	public sealed class Buffer<T> : IReadOnlyList<T>, IBufferWriter<T>, IDisposable
 	{
 		// We want to avoid growing the same array again and again !
 		// Instead, we grow list of chunks, that grow in size (until a max), and concatenate all the chunks together at the end, once we know the final size
@@ -60,7 +60,9 @@ namespace Doxense.Linq
 		private T[] Current;
 
 		/// <summary>List of previous chunks (not including the current one)</summary>
-		private Memory<T>[]? Chunks;
+		private ArraySegment<T>[]? Chunks;
+
+		private ArrayPool<T>? Pool;
 
 		/// <summary>Flag that sp</summary>
 		public bool IsSingleSegment
@@ -69,14 +71,42 @@ namespace Doxense.Linq
 			get => this.Chunks is null;
 		}
 
-		public Buffer(int capacity = 0)
+		public Buffer(int capacity = 0, ArrayPool<T>? pool = null)
 		{
 			Contract.Positive(capacity);
-			capacity = capacity > 0 ? capacity : DefaultCapacity;
+			capacity = capacity > 0 ? capacity : Buffer<T>.DefaultCapacity;
 
 			this.Count = 0;
 			this.Index = 0;
-			this.Current = new T[capacity];
+			this.Current = pool?.Rent(capacity) ?? new T[capacity];
+			this.Pool = pool;
+		}
+
+		public void Dispose()
+		{
+			if (this.Pool != null)
+			{
+				if (this.Current.Length > 0)
+				{
+					if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+					{
+						this.Current.AsSpan(0, this.Index).Clear();
+					}
+					this.Pool.Return(this.Current);
+					this.Current = [ ];
+				}
+
+				if (this.Chunks != null)
+				{
+					foreach (var chunk in this.Chunks)
+					{
+						chunk.AsSpan().Clear();
+						this.Pool.Return(chunk.Array!);
+					}
+					this.Chunks = null;
+				}
+			}
+
 		}
 
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
@@ -165,38 +195,36 @@ namespace Doxense.Linq
 			{
 				// first, fill the current segment
 
-				using (var iter = items.GetEnumerator())
-				{
-					// attempt to fill what remains in the current buffer
-					if (self.Index < self.Current.Length)
-					{
-						var span = self.GetSpan();
-						for (int i = 0; i < span.Length; i++)
-						{
-							if (!iter.MoveNext())
-							{
-								self.Advance(i);
-								return;
-							}
-							span[i] = iter.Current;
-						}
-						self.Advance(span.Length);
-						itemCount -= span.Length;
-					}
+				using var it = items.GetEnumerator();
 
-					// any extra item will be allocated in a dedicated buffer
-					if (itemCount > 0)
+				// attempt to fill what remains in the current buffer
+				if (self.Index < self.Current.Length)
+				{
+					var span = self.GetSpan();
+					for (int i = 0; i < span.Length; i++)
 					{
-						var span = self.GetSpan(itemCount);
-						int index = 0;
-						while (iter.MoveNext())
+						if (!it.MoveNext())
 						{
-							span[index++] = iter.Current;
+							self.Advance(i);
+							return;
 						}
-						self.Advance(index);
+						span[i] = it.Current;
 					}
+					self.Advance(span.Length);
+					itemCount -= span.Length;
 				}
 
+				// any extra item will be allocated in a dedicated buffer
+				if (itemCount > 0)
+				{
+					var span = self.GetSpan(itemCount);
+					int index = 0;
+					while (it.MoveNext())
+					{
+						span[index++] = it.Current;
+					}
+					self.Advance(index);
+				}
 			}
 
 			static void AddRangeUnknownSize(Buffer<T> self, IEnumerable<T> items)
@@ -212,7 +240,8 @@ namespace Doxense.Linq
 					if (index >= capacity)
 					{
 						chunks = [ ..(chunks ?? [ ]), current ];
-						current = new T[Math.Min(capacity * 2, MaxChunkSize)];
+						var chunkSize = Math.Min(capacity * 2, Buffer<T>.MaxChunkSize);
+						current = self.Pool?.Rent(chunkSize) ?? new T[chunkSize];
 						index = 0;
 						capacity = current.Length;
 					}
@@ -235,7 +264,8 @@ namespace Doxense.Linq
 			// - except the first chunk who is set to the initial capacity
 
 			var current = this.Current;
-			var tmp = new T[Math.Min(Math.Max(this.Count, current.Length), MaxChunkSize)];
+			var newCapacity = Math.Min(Math.Max(this.Count, current.Length), Buffer<T>.MaxChunkSize);
+			var tmp = this.Pool?.Rent(newCapacity) ?? new T[newCapacity];
 
 			// append current chunk to existing chunk list
 			this.Chunks = [ ..(Chunks ?? [ ]), current ];
@@ -254,8 +284,8 @@ namespace Doxense.Linq
 			// copy any previous chunk
 			foreach (var chunk in chunks)
 			{
-				chunk.Span.CopyTo(buffer);
-				buffer = buffer.Slice(chunk.Length);
+				chunk.AsSpan().CopyTo(buffer);
+				buffer = buffer[chunk.Count..];
 			}
 
 			// copy current chunk
@@ -280,15 +310,20 @@ namespace Doxense.Linq
 
 		/// <summary>Returns the content of the buffer as an array</summary>
 		/// <returns>Array of size <see cref="Count"/> containing all the items in this buffer</returns>
+		/// <exception cref="InvalidOperationException">If a <see cref="Pool"/> is attached to this buffer</exception>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public ReadOnlyMemory<T> ToMemory()
 		{
+			if (this.Pool != null) throw new InvalidOperationException($"This method cannot be used in combination with a pool. Please use {nameof(ToArrayAndClear)} instead.");
+
 			int count = this.Count;
+
+			if (count == 0) return default;
 
 			if (this.Chunks is null)
 			{ // a single buffer page was used
 				Contract.Debug.Assert(count == this.Index);
-				return Current.AsMemory(0, count);
+				return this.Current.AsMemory(0, count);
 			}
 			
 			// concatenate all the buffer pages into one big array
@@ -299,10 +334,15 @@ namespace Doxense.Linq
 
 		/// <summary>Returns the content of the buffer as an array</summary>
 		/// <returns>Array of size <see cref="Count"/> containing all the items in this buffer</returns>
+		/// <exception cref="InvalidOperationException">If a <see cref="Pool"/> is attached to this buffer</exception>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public T[] ToArray()
 		{
+			if (this.Pool != null) throw new InvalidOperationException($"This method cannot be used in combination with a pool. Please use {nameof(ToArrayAndClear)} instead.");
+
 			int count = this.Count;
+
+			if (count == 0) return [ ];
 
 			if (this.Chunks is null)
 			{ // a single buffer page was used
@@ -315,6 +355,36 @@ namespace Doxense.Linq
 			// concatenate all the buffer pages into one big array
 			var tmp = new T[count];
 			CopyChunksTo(tmp);
+			return tmp;
+		}
+
+		/// <summary>Returns the content of the buffer as an array, and returns all allocations to the pool</summary>
+		/// <returns>Array of size <see cref="Count"/> containing all the items in this buffer</returns>
+		/// <remarks>The buffer instance can be reused after this call.</remarks>
+		[MustUseReturnValue, CollectionAccess(CollectionAccessType.ModifyExistingContent)]
+		public T[] ToArrayAndClear()
+		{
+			int count = this.Count;
+
+			T[] tmp;
+
+			if (count == 0)
+			{
+				tmp = [ ];
+			}
+			else if (this.Chunks is null)
+			{ // a single buffer page was used
+				Contract.Debug.Assert(count == this.Index);
+				tmp = this.Current.AsSpan(0, count).ToArray();
+			}
+			else
+			{ // concatenate all the buffer pages into one big array
+				tmp = new T[count];
+				CopyChunksTo(tmp);
+			}
+
+			Dispose();
+
 			return tmp;
 		}
 
@@ -333,6 +403,17 @@ namespace Doxense.Linq
 			var tmp = new T[this.Count];
 			CopyChunksTo(tmp);
 			return [ ..tmp ];
+		}
+
+		/// <summary>Returns the content of the buffer as an <see cref="ImmutableArray{T}">immutable array</see>, and returns all allocations to the pool</summary>
+		/// <returns>Array of size <see cref="Count"/> containing all the items in this buffer</returns>
+		/// <remarks>The buffer instance can be reused after this call.</remarks>
+		[MustUseReturnValue, CollectionAccess(CollectionAccessType.ModifyExistingContent)]
+		public ImmutableArray<T> ToImmutableArrayAndClear()
+		{
+			var results = ToImmutableArray();
+			Dispose();
+			return results;
 		}
 
 		/// <summary>Returns the content of the buffer as a list</summary>
@@ -369,9 +450,9 @@ namespace Doxense.Linq
 				foreach (var chunk in chunks)
 				{
 #if NET9_0_OR_GREATER
-					list.AddRange(chunk.Span);
+					list.AddRange(chunk.AsSpan());
 #else
-					foreach (var item in chunk.Span)
+					foreach (var item in chunk.AsSpan())
 					{
 						list.Add(item);
 					}
@@ -394,8 +475,19 @@ namespace Doxense.Linq
 			}
 		}
 
-		/// <summary>Returns the content of the buffer as a set</summary>
+		/// <summary>Returns the content of the buffer as a list, and release all allocations to the pool</summary>
 		/// <returns>List of size <see cref="Count"/> containing all the items in this buffer</returns>
+		/// <remarks>The buffer instance can be reused after this call.</remarks>
+		[MustUseReturnValue, CollectionAccess(CollectionAccessType.ModifyExistingContent)]
+		public List<T> ToListAndClear()
+		{
+			var results = ToList();
+			Dispose();
+			return results;
+		}
+
+		/// <summary>Returns the content of the buffer as a set</summary>
+		/// <returns>Set of size <see cref="Count"/> containing all the unique items in this buffer</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public HashSet<T> ToHashSet(IEqualityComparer<T>? comparer = null)
 		{
@@ -409,7 +501,7 @@ namespace Doxense.Linq
 				{
 					foreach (var chunk in chunks)
 					{
-						foreach (var item in chunk.Span)
+						foreach (var item in chunk.AsSpan())
 						{
 							hashset.Add(item);
 						}
@@ -424,6 +516,17 @@ namespace Doxense.Linq
 			}
 
 			return hashset;
+		}
+
+		/// <summary>Returns the content of the buffer as a set, and release all allocations to the pool</summary>
+		/// <returns>Set of size <see cref="Count"/> containing all the unique items in this buffer</returns>
+		/// <remarks>The buffer instance can be reused after this call.</remarks>
+		[MustUseReturnValue, CollectionAccess(CollectionAccessType.ModifyExistingContent)]
+		public HashSet<T> ToHashSetAndClear(IEqualityComparer<T>? comparer = null)
+		{
+			var results = ToHashSet(comparer);
+			Dispose();
+			return results;
 		}
 
 		/// <summary>Returns the content of the buffer as a dictionary</summary>
@@ -442,7 +545,7 @@ namespace Doxense.Linq
 				{
 					foreach(var chunk in chunks)
 					{
-						foreach (var item in chunk.Span)
+						foreach (var item in chunk.AsSpan())
 						{
 							hashset.Add(keySelector(item), item);
 						}
@@ -475,7 +578,7 @@ namespace Doxense.Linq
 				{
 					foreach (var chunk in chunks)
 					{
-						foreach (var item in chunk.Span)
+						foreach (var item in chunk.AsSpan())
 						{
 							hashset.Add(keySelector(item), valueSelector(item));
 						}
@@ -561,11 +664,11 @@ namespace Doxense.Linq
 
 					foreach (var chunk in chunks)
 					{
-						if (offset < chunk.Length)
+						if (offset < chunk.Count)
 						{
-							return chunk.Span[offset];
+							return chunk.Array![chunk.Offset + offset];
 						}
-						offset -= chunk.Length;
+						offset -= chunk.Count;
 					}
 
 					return this.Current.AsSpan(0, this.Index)[offset];
@@ -589,11 +692,11 @@ namespace Doxense.Linq
 
 				foreach (var chunk in chunks)
 				{
-					if (offset < chunk.Length)
+					if (offset < chunk.Count)
 					{
-						return ref chunk.Span[offset];
+						return ref chunk.Array![chunk.Offset + offset];
 					}
-					offset -= chunk.Length;
+					offset -= chunk.Count;
 				}
 
 				var span = this.Current.AsSpan(0, this.Index);
@@ -611,9 +714,9 @@ namespace Doxense.Linq
 			{
 				foreach (var chunk in chunks)
 				{
-					for (int i = 0; i < chunk.Length; i++)
+					for (int i = 0; i < chunk.Count; i++)
 					{
-						yield return chunk.Span[i];
+						yield return chunk.Array![chunk.Offset + i];
 					}
 				}
 			}
@@ -671,7 +774,7 @@ namespace Doxense.Linq
 				if (self.Index > 0)
 				{
 					// we need to push what was written previously
-					self.Chunks = [ ..(self.Chunks ?? [ ]), current.AsMemory(0, self.Index) ];
+					self.Chunks = [ ..(self.Chunks ?? [ ]), new(current, 0, self.Index) ];
 					self.Index = 0;
 				}
 
@@ -679,7 +782,7 @@ namespace Doxense.Linq
 				int capacity = Math.Max(sizeHint, Math.Min(self.Current.Length * 2, Buffer<T>.MaxChunkSize));
 				Contract.Debug.Assert(capacity >= sizeHint);
 
-				current = new T[capacity];
+				current = self.Pool?.Rent(capacity) ?? new T[capacity];
 				self.Current = current;
 
 				Contract.Debug.Ensures(self.Index == 0 && current.Length >= sizeHint);
@@ -743,7 +846,7 @@ namespace Doxense.Linq
 			{
 				foreach (var chunk in chunks)
 				{
-					foreach (var item in chunk.Span)
+					foreach (var item in chunk.AsSpan())
 					{
 						action(state, item);
 					}
@@ -793,7 +896,7 @@ namespace Doxense.Linq
 			{
 				foreach (var chunk in chunks)
 				{
-					foreach (var item in chunk.Span)
+					foreach (var item in chunk.AsSpan())
 					{
 						value = action(value, item);
 					}
@@ -849,7 +952,7 @@ namespace Doxense.Linq
 			{
 				foreach (var chunk in chunks)
 				{
-					foreach (var item in chunk.Span)
+					foreach (var item in chunk.AsSpan())
 					{
 						action(ref aggregate, item);
 					}
@@ -905,9 +1008,9 @@ namespace Doxense.Linq
 			{
 				foreach (var chunk in chunks)
 				{
-					for(int i = 0; i < chunk.Length; i++)
+					for(int i = 0; i < chunk.Count; i++)
 					{
-						yield return selector(chunk.Span[i]);
+						yield return selector(chunk.Array![chunk.Offset + i]);
 					}
 				}
 			}
@@ -932,9 +1035,9 @@ namespace Doxense.Linq
 			{
 				foreach (var chunk in chunks)
 				{
-					for(int i = 0; i < chunk.Length; i++)
+					for(int i = 0; i < chunk.Count; i++)
 					{
-						yield return selector(chunk.Span[i], p++);
+						yield return selector(chunk.Array![chunk.Offset + i], p++);
 					}
 				}
 			}
@@ -957,9 +1060,9 @@ namespace Doxense.Linq
 			{
 				foreach (var chunk in chunks)
 				{
-					for(int i = 0; i < chunk.Length; i++)
+					for(int i = 0; i < chunk.Count; i++)
 					{
-						var item = chunk.Span[i];
+						var item = chunk.Array![chunk.Offset + i];
 						if (predicate(item))
 						{
 							yield return item;
@@ -991,9 +1094,9 @@ namespace Doxense.Linq
 			{
 				foreach (var chunk in chunks)
 				{
-					for(int i = 0; i < chunk.Length; i++)
+					for(int i = 0; i < chunk.Count; i++)
 					{
-						var item = chunk.Span[i];
+						var item = chunk.Array![chunk.Offset + i];
 						if (predicate(item, p++))
 						{
 							yield return item;
@@ -1031,7 +1134,7 @@ namespace Doxense.Linq
 			}
 			return this.Chunks is null
 				? this.Current[0]
-				: this.Chunks[0].Span[0];
+				: this.Chunks[0].AsSpan()[0];
 		}
 
 		/// <summary>Returns the only element of a buffer, or a default value if the buffer is empty; this method throws an exception if there is more than one element in the buffer.</summary>
@@ -1048,7 +1151,7 @@ namespace Doxense.Linq
 			}
 			return this.Chunks is null
 				? this.Current[0]
-				: this.Chunks[0].Span[0];
+				: this.Chunks[0].AsSpan()[0];
 		}
 
 		/// <summary>Returns the first element of a buffer.</summary>
@@ -1062,7 +1165,7 @@ namespace Doxense.Linq
 
 			return this.Chunks is null
 				? this.Current[0]
-				: this.Chunks[0].Span[0];
+				: this.Chunks[0].AsSpan()[0];
 		}
 
 		/// <summary>Returns the first element of a buffer, or a default value if the buffer contains no elements.</summary>
@@ -1076,7 +1179,7 @@ namespace Doxense.Linq
 
 			return this.Chunks is null
 				? this.Current[0]
-				: this.Chunks[0].Span[0];
+				: this.Chunks[0].AsSpan()[0];
 		}
 
 		/// <summary>Returns the last element of a buffer.</summary>
@@ -1090,7 +1193,7 @@ namespace Doxense.Linq
 
 			return this.Chunks is null
 				? this.Current[this.Index - 1]
-				: this.Chunks[^1].Span[^1];
+				: this.Chunks[^1].AsSpan()[^1];
 		}
 
 		/// <summary>Returns the last element of a buffer, or a default value if the buffer contains no elements.</summary>
@@ -1104,7 +1207,7 @@ namespace Doxense.Linq
 
 			return this.Chunks is null
 				? this.Current[this.Index - 1]
-				: this.Chunks[^1].Span[^1];
+				: this.Chunks[^1].AsSpan()[^1];
 		}
 
 		public static bool TryGetSpan([NoEnumeration] IEnumerable<T> items, out ReadOnlySpan<T> span)
