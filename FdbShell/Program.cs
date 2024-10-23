@@ -197,6 +197,8 @@ namespace FdbShell
 
 					options.ConnectionOptions.DefaultTimeout = TimeSpan.FromSeconds(Math.Max(0, timeout));
 					options.ConnectionOptions.DefaultRetryLimit = Math.Max(0, maxRetries);
+
+					options.UseNativeClient(allowSystemFallback: false);
 				});
 
 				builder.AddSingleton<FdbShellRunner>();
@@ -226,8 +228,6 @@ namespace FdbShell
 				await runner.RunAsync(shellArgs, this.Cancellation);
 			}
 		}
-
-
 	}
 
 	public interface IFdbShellTerminal
@@ -547,7 +547,7 @@ namespace FdbShell
 							var parent = path.Count > 1 ? path.GetParent() : path.IsAbsolute ? FdbPath.Root : FdbPath.Empty;
 							string search = hasLeadingSlash ? "" : path.Name;
 
-							var children = RunAsyncCommand((db, _, ct) => AutoCompleteDirectories(CombinePath(CurrentDirectoryPath, parent.ToString()), db, ct), cancel).GetAwaiter().GetResult();
+							var children = RunAsyncCommand((db, _, ct) => AutoCompleteDirectories(CombinePath(this.CurrentDirectoryPath, parent.ToString()), db, ct), cancel).GetAwaiter().GetResult();
 
 							if (children.GetValueOrDefault() == null)
 							{

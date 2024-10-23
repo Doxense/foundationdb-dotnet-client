@@ -44,10 +44,13 @@
 	
 	<ItemGroup>
 		<ProjectReference Include="..\Doxense.Core.Testing.Common\Doxense.Core.Testing.Common.csproj" />
+		<ProjectReference Include="..\FoundationDB.Client.Native\FoundationDB.Client.Native.csproj" />
 		<ProjectReference Include="..\FoundationDB.Client\FoundationDB.Client.csproj" />
 		<ProjectReference Include="..\FoundationDB.Layers.Common\FoundationDB.Layers.Common.csproj" />
 		<ProjectReference Include="..\FoundationDB.Layers.Experimental\FoundationDB.Layers.Experimental.csproj" />
 		<ProjectReference Include="..\FoundationDB.Linq.Providers\FoundationDB.Linq.Providers.csproj" />
 	</ItemGroup>
+
+	<Import Project="..\FoundationDB.Client.Native\UseNativeLibraries.targets" />
 
 </Project>

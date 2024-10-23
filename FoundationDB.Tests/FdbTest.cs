@@ -43,6 +43,14 @@ namespace FoundationDB.Client.Tests
 		[OneTimeSetUp]
 		protected void BeforeAllTests()
 		{
+			var probe = FdbClientNativeExtensions.ProbeNativeLibraryPaths();
+			if (probe.Path == null)
+			{
+				Assert.Fail($"Could not located the native client library for platform '{probe.Rid}'. Looked in the following places: {string.Join(", ", probe.ProbedPaths)}");
+				return;
+			}
+			Fdb.Options.NativeLibPath = probe.Path;
+
 			// We must ensure that FDB is running before executing the tests
 			// => By default, we always use 
 			if (Fdb.ApiVersion == 0)
