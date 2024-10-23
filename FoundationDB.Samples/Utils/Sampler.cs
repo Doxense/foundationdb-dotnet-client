@@ -104,8 +104,6 @@ namespace FoundationDB.Samples.Benchmarks
 			Console.WriteLine($"# Sampling {sz} out of {ranges.Count} shards ({(100.0 * sz / ranges.Count):N1}%) ...");
 			Console.WriteLine($"{"Count",9}{"Keys",10}{"Values",10}{"Total",10} : K+V size distribution");
 
-			var rangeOptions = new FdbRangeOptions { Mode = FdbStreamingMode.WantAll };
-
 			samples = samples.OrderBy(x => x.Begin).ToList();
 
 			long total = 0;
@@ -143,7 +141,7 @@ namespace FoundationDB.Samples.Benchmarks
 									data = await tr.Snapshot.GetRangeAsync(
 										beginSelector,
 										endSelector,
-										rangeOptions,
+										FdbRangeOptions.WantAll,
 										iter
 									).ConfigureAwait(false);
 								}
