@@ -126,7 +126,7 @@ namespace FdbTop
 		public static int ScreenHeight;
 		public static int ScreenWidth;
 
-		public static FdbClusterConnectionString CurrentCoordinators;
+		public static FdbClusterConnectionString? CurrentCoordinators;
 
 		private static async Task MainAsync(string[] args, CancellationToken cancel)
 		{
@@ -147,8 +147,8 @@ namespace FdbTop
 
 				DisplayMode mode = DisplayMode.Metrics;
 
-				Task<FdbSystemStatus> taskStatus = null;
-				FdbSystemStatus status = null;
+				Task<FdbSystemStatus?>? taskStatus = null;
+				FdbSystemStatus? status = null;
 
 				Program.Screen = new FrameBuffer(Console.WindowWidth, Console.WindowHeight);
 
@@ -265,7 +265,7 @@ namespace FdbTop
 
 						taskStatus ??= Fdb.System.GetStatusAsync(db, cancel);
 
-						if (saveNext)
+						if (status != null && saveNext)
 						{
 							using (var fs = System.IO.File.Create(@".\\status.json"))
 							{
@@ -274,7 +274,6 @@ namespace FdbTop
 							}
 							saveNext = false;
 						}
-
 
 						if (lap == DateTime.MinValue)
 						{
@@ -341,9 +340,9 @@ namespace FdbTop
 							}
 						}
 
-						if (updated)
+						if (status != null && updated)
 						{
-							var metric = History.LastOrDefault();
+							var metric = History.LastOrDefault() ?? new ();
 							switch (mode)
 							{
 								case DisplayMode.Metrics:
@@ -694,7 +693,9 @@ namespace FdbTop
 
 		}
 
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 		private static FrameBuffer Screen;
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
 		private static ConsoleColor CurrentColor = ConsoleColor.White;
 		private static ConsoleColor CurrentBackground = ConsoleColor.Black;
@@ -732,9 +733,9 @@ namespace FdbTop
 			Screen.Write(x, y, msg, Program.CurrentColor, CurrentBackground);
 		}
 
-		private static void WriteAt(int x, int y, string fmt, params object[] args)
+		private static void WriteAt(int x, int y, ref DefaultInterpolatedStringHandler message)
 		{
-			Screen.Write(x, y, string.Format(CultureInfo.InvariantCulture, fmt, args), CurrentColor, CurrentBackground);
+			Screen.Write(x, y, string.Create(CultureInfo.InvariantCulture, ref message), CurrentColor, CurrentBackground);
 		}
 
 		private static double GetMax(RingBuffer<HistoryMetric> metrics, Func<HistoryMetric, double> selector)
@@ -788,25 +789,25 @@ namespace FdbTop
 			Screen.Clear(Program.CurrentColor, Program.CurrentBackground);
 
 			SetColor(ConsoleColor.DarkGray);
-			WriteAt(TOP_COL0, TOP_ROW0, "Reads  : {0,8} Hz", "");
-			WriteAt(TOP_COL0, TOP_ROW1, "Writes : {0,8} Hz", "");
-			WriteAt(TOP_COL0, TOP_ROW2, "Written: {0,8} MB/s", "");
+			WriteAt(TOP_COL0, TOP_ROW0, $"Reads  : {"",8} Hz");
+			WriteAt(TOP_COL0, TOP_ROW1, $"Writes : {"",8} Hz");
+			WriteAt(TOP_COL0, TOP_ROW2, $"Written: {"",8} MB/s");
 
-			WriteAt(TOP_COL1, TOP_ROW0, "Total K/V: {0,10} MB", "");
-			WriteAt(TOP_COL1, TOP_ROW1, "Disk Used: {0,10} MB", "");
-			WriteAt(TOP_COL1, TOP_ROW2, "Shards: {0,5} x{0,6} MB", "");
+			WriteAt(TOP_COL1, TOP_ROW0, $"Total K/V: {"",10} MB");
+			WriteAt(TOP_COL1, TOP_ROW1, $"Disk Used: {"",10} MB");
+			WriteAt(TOP_COL1, TOP_ROW2, string.Format("Shards: {0,5} x{0,6} MB", ""));
 
-			WriteAt(TOP_COL2, TOP_ROW0, "Server Time : {0,19}", "");
-			WriteAt(TOP_COL2, TOP_ROW1, "Client Time : {0,19}", "");
-			WriteAt(TOP_COL2, TOP_ROW2, "Read Version: {0,10}", "");
+			WriteAt(TOP_COL2, TOP_ROW0, $"Server Time : {"",19}");
+			WriteAt(TOP_COL2, TOP_ROW1, $"Client Time : {"",19}");
+			WriteAt(TOP_COL2, TOP_ROW2, $"Read Version: {"",10}");
 
-			WriteAt(TOP_COL3, TOP_ROW0, "Coordinat.: {0,10}", "");
-			WriteAt(TOP_COL3, TOP_ROW1, "Storage   : {0,10}", "");
-			WriteAt(TOP_COL3, TOP_ROW2, "Redundancy: {0,10}", "");
+			WriteAt(TOP_COL3, TOP_ROW0, $"Coordinat.: {"",10}");
+			WriteAt(TOP_COL3, TOP_ROW1, $"Storage   : {"",10}");
+			WriteAt(TOP_COL3, TOP_ROW2, $"Redundancy: {"",10}");
 
-			WriteAt(TOP_COL4, TOP_ROW0, "State: {0,10}", "");
-			WriteAt(TOP_COL4, TOP_ROW1, "Data : {0,20}", "");
-			WriteAt(TOP_COL4, TOP_ROW2, "Perf.: {0,20}", "");
+			WriteAt(TOP_COL4, TOP_ROW0, $"State: {"",10}");
+			WriteAt(TOP_COL4, TOP_ROW1, $"Data : {"",20}");
+			WriteAt(TOP_COL4, TOP_ROW2, $"Perf.: {"",20}");
 
 			// Bottom
 
@@ -828,27 +829,27 @@ namespace FdbTop
 		private static void UpdateTopBar(FdbSystemStatus status, HistoryMetric current)
 		{
 			SetColor(ConsoleColor.White);
-			WriteAt(TOP_COL0 + 9, TOP_ROW0, "{0,8:N0}", current.ReadsPerSecond);
-			WriteAt(TOP_COL0 + 9, TOP_ROW1, "{0,8:N0}", current.WritesPerSecond);
-			WriteAt(TOP_COL0 + 9, TOP_ROW2, "{0,8:N2}", MegaBytes(current.WrittenBytesPerSecond));
+			WriteAt(TOP_COL0 + 9, TOP_ROW0, $"{current.ReadsPerSecond,8:N0}");
+			WriteAt(TOP_COL0 + 9, TOP_ROW1, $"{current.WritesPerSecond,8:N0}");
+			WriteAt(TOP_COL0 + 9, TOP_ROW2, $"{MegaBytes(current.WrittenBytesPerSecond),8:N2}");
 
-			WriteAt(TOP_COL1 + 11, TOP_ROW0, "{0,10:N1}", MegaBytes(status.Cluster.Data.TotalKVUsedBytes));
-			WriteAt(TOP_COL1 + 11, TOP_ROW1, "{0,10:N1}", MegaBytes(status.Cluster.Data.TotalDiskUsedBytes));
-			WriteAt(TOP_COL1 + 8, TOP_ROW2, "{0,5:N0}", status.Cluster.Data.PartitionsCount);
-			WriteAt(TOP_COL1 + 15, TOP_ROW2, "{0,6:N1}", MegaBytes(status.Cluster.Data.AveragePartitionSizeBytes));
+			WriteAt(TOP_COL1 + 11, TOP_ROW0, $"{MegaBytes(status.Cluster.Data.TotalKVUsedBytes),10:N1}");
+			WriteAt(TOP_COL1 + 11, TOP_ROW1, $"{MegaBytes(status.Cluster.Data.TotalDiskUsedBytes),10:N1}");
+			WriteAt(TOP_COL1 + 8, TOP_ROW2, $"{status.Cluster.Data.PartitionsCount,5:N0}");
+			WriteAt(TOP_COL1 + 15, TOP_ROW2, $"{MegaBytes(status.Cluster.Data.AveragePartitionSizeBytes),6:N1}");
 
 			var serverTime = Epoch.AddSeconds(current.Timestamp);
 			var clientTime = Epoch.AddSeconds(status.Client.Timestamp);
-			WriteAt(TOP_COL2 + 14, TOP_ROW0, "{0,19}", serverTime.ToString("u"));
+			WriteAt(TOP_COL2 + 14, TOP_ROW0, $"{serverTime.ToString("u"),19}");
 			SetColor(Math.Abs((serverTime - clientTime).TotalSeconds) >= 20 ? ConsoleColor.Red : ConsoleColor.White);
-			WriteAt(TOP_COL2 + 14, TOP_ROW1, "{0,19}", clientTime.ToString("u"));
+			WriteAt(TOP_COL2 + 14, TOP_ROW1, $"{clientTime.ToString("u"),19}");
 			SetColor(ConsoleColor.White);
-			WriteAt(TOP_COL2 + 14, TOP_ROW2, "{0:N0}", current.ReadVersion);
+			WriteAt(TOP_COL2 + 14, TOP_ROW2, $"{current.ReadVersion:N0}");
 
 			SetColor(ConsoleColor.White);
-			WriteAt(TOP_COL3 + 12, TOP_ROW0, "{0,-10}", status.Cluster.Configuration.CoordinatorsCount);
-			WriteAt(TOP_COL3 + 12, TOP_ROW1, "{0,-10}", status.Cluster.Configuration.StorageEngine);
-			WriteAt(TOP_COL3 + 12, TOP_ROW2, "{0,-10}", status.Cluster.Configuration.RedundancyMode);
+			WriteAt(TOP_COL3 + 12, TOP_ROW0, $"{status.Cluster.Configuration.CoordinatorsCount,-10}");
+			WriteAt(TOP_COL3 + 12, TOP_ROW1, $"{status.Cluster.Configuration.StorageEngine,-10}");
+			WriteAt(TOP_COL3 + 12, TOP_ROW2, $"{status.Cluster.Configuration.RedundancyMode,-10}");
 
 			if (!status.Client.DatabaseAvailable)
 			{
@@ -861,8 +862,8 @@ namespace FdbTop
 				WriteAt(TOP_COL4 + 7, TOP_ROW0, "Available  ");
 			}
 			SetColor(ConsoleColor.White);
-			WriteAt(TOP_COL4 + 7, TOP_ROW1, "{0,-40}", status.Cluster.Data.StateName);
-			WriteAt(TOP_COL4 + 7, TOP_ROW2, "{0,-40}", status.Cluster.Qos.PerformanceLimitedBy.Name);
+			WriteAt(TOP_COL4 + 7, TOP_ROW1, $"{status.Cluster.Data.StateName,-40}");
+			WriteAt(TOP_COL4 + 7, TOP_ROW2, $"{status.Cluster.Qos.PerformanceLimitedBy.Name,-40}");
 
 			//SetColor(ConsoleColor.Gray);
 			//var msgs = status.Cluster.Messages.Concat(status.Client.Messages).ToArray();
@@ -877,30 +878,30 @@ namespace FdbTop
 		private static void FailToBar()
 		{
 			SetColor(ConsoleColor.DarkRed);
-			WriteAt(TOP_COL0 + 9, TOP_ROW0, "{0,8:N0}", "?");
-			WriteAt(TOP_COL0 + 9, TOP_ROW1, "{0,8:N0}", "?");
-			WriteAt(TOP_COL0 + 9, TOP_ROW2, "{0,8:N2}", "?");
+			WriteAt(TOP_COL0 + 9, TOP_ROW0, $"{"?",8:N0}");
+			WriteAt(TOP_COL0 + 9, TOP_ROW1, $"{"?",8:N0}");
+			WriteAt(TOP_COL0 + 9, TOP_ROW2, $"{"?",8:N2}");
 
-			WriteAt(TOP_COL1 + 11, TOP_ROW0, "{0,10:N1}", "?");
-			WriteAt(TOP_COL1 + 11, TOP_ROW1, "{0,10:N1}", "?");
-			WriteAt(TOP_COL1 + 8, TOP_ROW2, "{0,5:N0}", "?");
-			WriteAt(TOP_COL1 + 15, TOP_ROW2, "{0,6:N1}", "?");
+			WriteAt(TOP_COL1 + 11, TOP_ROW0, $"{"?",10:N1}");
+			WriteAt(TOP_COL1 + 11, TOP_ROW1, $"{"?",10:N1}");
+			WriteAt(TOP_COL1 + 8, TOP_ROW2, $"{"?",5:N0}");
+			WriteAt(TOP_COL1 + 15, TOP_ROW2, $"{"?",6:N1}");
 
 			var clientTime = DateTime.Now;
-			WriteAt(TOP_COL2 + 14, TOP_ROW0, "{0,19}", "?");
-			WriteAt(TOP_COL2 + 14, TOP_ROW1, "{0,19}", clientTime);
+			WriteAt(TOP_COL2 + 14, TOP_ROW0, $"{"?",19}");
+			WriteAt(TOP_COL2 + 14, TOP_ROW1, $"{clientTime,19}");
 			SetColor(ConsoleColor.White);
-			WriteAt(TOP_COL2 + 14, TOP_ROW2, "{0:N0}", "?");
+			WriteAt(TOP_COL2 + 14, TOP_ROW2, $"{"?":N0}");
 
 			SetColor(ConsoleColor.White);
-			WriteAt(TOP_COL3 + 12, TOP_ROW0, "{0,-10}", "?");
-			WriteAt(TOP_COL3 + 12, TOP_ROW1, "{0,-10}", "?");
-			WriteAt(TOP_COL3 + 12, TOP_ROW2, "{0,-10}", "?");
+			WriteAt(TOP_COL3 + 12, TOP_ROW0, $"{"?",-10}");
+			WriteAt(TOP_COL3 + 12, TOP_ROW1, $"{"?",-10}");
+			WriteAt(TOP_COL3 + 12, TOP_ROW2, $"{"?",-10}");
 
 			WriteAt(TOP_COL4 + 7, TOP_ROW0, "UNAVAILABLE");
 
-			WriteAt(TOP_COL4 + 7, TOP_ROW1, "{0,-40}", "cluster_unreachable");
-			WriteAt(TOP_COL4 + 7, TOP_ROW2, "{0,-40}", "?");
+			WriteAt(TOP_COL4 + 7, TOP_ROW1, $"{"cluster_unreachable",-40}");
+			WriteAt(TOP_COL4 + 7, TOP_ROW2, $"{"?",-40}");
 		}
 
 		private static void ShowMetricsScreen(FdbSystemStatus status, HistoryMetric current, bool repaint)
@@ -932,9 +933,9 @@ namespace FdbTop
 			double scaleSpeed = GetMaxScale(maxSpeed);
 
 			SetColor(ConsoleColor.DarkGreen);
-			WriteAt(COL1 + 14, 5, "{0,35:N0}", maxRead);
-			WriteAt(COL2 + 14, 5, "{0,35:N0}", maxWrite);
-			WriteAt(COL3 + 18, 5, "{0,13:N3}", MegaBytes(maxSpeed));
+			WriteAt(COL1 + 14, 5, $"{maxRead,35:N0}");
+			WriteAt(COL2 + 14, 5, $"{maxWrite,35:N0}");
+			WriteAt(COL3 + 18, 5, $"{MegaBytes(maxSpeed),13:N3}");
 
 			int y = 7 + History.Count - 1;
 			foreach (var metric in History)
@@ -945,9 +946,8 @@ namespace FdbTop
 					WriteAt(
 						1,
 						y,
-						"{0} | {1,8} {1,40} | {1,8} {1,40} | {1,10} {1,20} |",
-						TimeSpan.FromSeconds(Math.Round(metric.LocalTime.TotalSeconds, MidpointRounding.AwayFromZero)),
-						""
+						string.Format("{0} | {1,8} {1,40} | {1,8} {1,40} | {1,10} {1,20} |", TimeSpan.FromSeconds(Math.Round(metric.LocalTime.TotalSeconds, MidpointRounding.AwayFromZero)),
+							"")
 					);
 
 					if (metric.Available)
@@ -957,11 +957,11 @@ namespace FdbTop
 						bool isMaxSpeed = maxSpeed > 0 && metric.WrittenBytesPerSecond == maxSpeed;
 
 						SetColor(isMaxRead ? ConsoleColor.Cyan : FrequencyColor(metric.ReadsPerSecond));
-						WriteAt(COL1, y, "{0,8:N0}", metric.ReadsPerSecond);
+						WriteAt(COL1, y, $"{metric.ReadsPerSecond,8:N0}");
 						SetColor(isMaxWrite ? ConsoleColor.Cyan : FrequencyColor(metric.WritesPerSecond));
-						WriteAt(COL2, y, "{0,8:N0}", metric.WritesPerSecond);
+						WriteAt(COL2, y, $"{metric.WritesPerSecond,8:N0}");
 						SetColor(isMaxSpeed ? ConsoleColor.Cyan : DiskSpeedColor(metric.WrittenBytesPerSecond));
-						WriteAt(COL3, y, "{0,10:N3}", MegaBytes(metric.WrittenBytesPerSecond));
+						WriteAt(COL3, y, $"{MegaBytes(metric.WrittenBytesPerSecond),10:N3}");
 
 						SetColor(metric.ReadsPerSecond > 10 ? ConsoleColor.Green : ConsoleColor.DarkCyan);
 						WriteAt(COL1 + 9, y, metric.ReadsPerSecond == 0 ? "-" : new string(GetBarChar(metric.ReadsPerSecond), Bar(metric.ReadsPerSecond, scaleRead, MAX_RW_WIDTH)));
@@ -973,9 +973,9 @@ namespace FdbTop
 					else
 					{
 						SetColor(ConsoleColor.DarkRed);
-						WriteAt(COL1, y, "{0,8}", "x");
-						WriteAt(COL2, y, "{0,8}", "x");
-						WriteAt(COL3, y, "{0,8}", "x");
+						WriteAt(COL1, y, $"{"x",8}");
+						WriteAt(COL2, y, $"{"x",8}");
+						WriteAt(COL3, y, $"{"x",8}");
 					}
 				}
 				--y;
@@ -1013,9 +1013,9 @@ namespace FdbTop
 			double scaleStart = GetMaxScale(maxStart);
 
 			SetColor(ConsoleColor.DarkGreen);
-			WriteAt(COL1 + 14, 5, "{0,35:N3}", maxCommit * 1000);
-			WriteAt(COL2 + 14, 5, "{0,35:N3}", maxRead * 1000);
-			WriteAt(COL3 + 14, 5, "{0,18:N3}", maxStart * 1000);
+			WriteAt(COL1 + 14, 5, $"{maxCommit * 1000,35:N3}");
+			WriteAt(COL2 + 14, 5, $"{maxRead * 1000,35:N3}");
+			WriteAt(COL3 + 14, 5, $"{maxStart * 1000,18:N3}");
 
 			int y = 7 + History.Count - 1;
 			foreach (var metric in History)
@@ -1026,9 +1026,8 @@ namespace FdbTop
 					WriteAt(
 						1,
 						y,
-						"{0} | {1,8} {1,40} | {1,8} {1,40} | {1,10} {1,20} |",
-						TimeSpan.FromSeconds(Math.Round(metric.LocalTime.TotalSeconds, MidpointRounding.AwayFromZero)),
-						""
+						string.Format("{0} | {1,8} {1,40} | {1,8} {1,40} | {1,10} {1,20} |", TimeSpan.FromSeconds(Math.Round(metric.LocalTime.TotalSeconds, MidpointRounding.AwayFromZero)),
+							"")
 					);
 
 					if (metric.Available)
@@ -1038,11 +1037,11 @@ namespace FdbTop
 						bool isMaxSpeed = maxStart > 0 && metric.LatencyStart == maxStart;
 
 						SetColor(isMaxRead ? ConsoleColor.Cyan : LatencyColor(metric.LatencyCommit));
-						WriteAt(COL1, y, "{0,8:N3}", metric.LatencyCommit * 1000);
+						WriteAt(COL1, y, $"{metric.LatencyCommit * 1000,8:N3}");
 						SetColor(isMaxWrite ? ConsoleColor.Cyan : LatencyColor(metric.LatencyRead));
-						WriteAt(COL2, y, "{0,8:N3}", metric.LatencyRead * 1000);
+						WriteAt(COL2, y, $"{metric.LatencyRead * 1000,8:N3}");
 						SetColor(isMaxSpeed ? ConsoleColor.Cyan : LatencyColor(metric.LatencyStart));
-						WriteAt(COL3, y, "{0,10:N3}", metric.LatencyStart * 1000);
+						WriteAt(COL3, y, $"{metric.LatencyStart * 1000,10:N3}");
 
 						SetColor(ConsoleColor.Green);
 						WriteAt(COL1 + 9, y, metric.LatencyCommit == 0 ? "-" : new string('|', Bar(metric.LatencyCommit, scaleCommit, MAX_RW_WIDTH)));
@@ -1052,9 +1051,9 @@ namespace FdbTop
 					else
 					{
 						SetColor(ConsoleColor.DarkRed);
-						WriteAt(COL1, y, "{0,8}", "x");
-						WriteAt(COL2, y, "{0,8}", "x");
-						WriteAt(COL3, y, "{0,8}", "x");
+						WriteAt(COL1, y, $"{"x",8}");
+						WriteAt(COL2, y, $"{"x",8}");
+						WriteAt(COL3, y, $"{"x",8}");
 					}
 				}
 
@@ -1093,9 +1092,9 @@ namespace FdbTop
 			double scaleConflicted = GetMaxScale(maxConflicted);
 
 			SetColor(ConsoleColor.DarkGreen);
-			WriteAt(COL1 + 14, 5, "{0,35:N0}", maxStarted);
-			WriteAt(COL2 + 16, 5, "{0,33:N0}", maxCommitted);
-			WriteAt(COL3 + 16, 5, "{0,15:N0}", maxConflicted);
+			WriteAt(COL1 + 14, 5, $"{maxStarted,35:N0}");
+			WriteAt(COL2 + 16, 5, $"{maxCommitted,33:N0}");
+			WriteAt(COL3 + 16, 5, $"{maxConflicted,15:N0}");
 
 			int y = 7 + History.Count - 1;
 			foreach (var metric in History)
@@ -1106,9 +1105,8 @@ namespace FdbTop
 					WriteAt(
 						1,
 						y,
-						"{0} | {1,8} {1,40} | {1,8} {1,40} | {1,10} {1,20} |",
-						TimeSpan.FromSeconds(Math.Round(metric.LocalTime.TotalSeconds, MidpointRounding.AwayFromZero)),
-						""
+						string.Format("{0} | {1,8} {1,40} | {1,8} {1,40} | {1,10} {1,20} |", TimeSpan.FromSeconds(Math.Round(metric.LocalTime.TotalSeconds, MidpointRounding.AwayFromZero)),
+							"")
 					);
 
 					if (metric.Available)
@@ -1118,11 +1116,11 @@ namespace FdbTop
 						bool isMaxSpeed = maxConflicted > 0 && metric.LatencyStart == maxConflicted;
 
 						SetColor(isMaxRead ? ConsoleColor.Cyan : FrequencyColor(metric.TransStarted));
-						WriteAt(COL1, y, "{0,8:N0}", metric.TransStarted);
+						WriteAt(COL1, y, $"{metric.TransStarted,8:N0}");
 						SetColor(isMaxWrite ? ConsoleColor.Cyan : FrequencyColor(metric.TransCommitted));
-						WriteAt(COL2, y, "{0,8:N0}", metric.TransCommitted);
+						WriteAt(COL2, y, $"{metric.TransCommitted,8:N0}");
 						SetColor(isMaxSpeed ? ConsoleColor.Cyan : FrequencyColor(metric.TransConflicted));
-						WriteAt(COL3, y, "{0,8:N1}", metric.TransConflicted);
+						WriteAt(COL3, y, $"{metric.TransConflicted,8:N1}");
 
 						SetColor(metric.TransStarted > 10 ? ConsoleColor.Green : ConsoleColor.DarkGreen);
 						WriteAt(COL1 + 9, y, metric.TransStarted == 0 ? "-" : new string('|', Bar(metric.TransStarted, scaleStarted, MAX_RW_WIDTH)));
@@ -1134,9 +1132,9 @@ namespace FdbTop
 					else
 					{
 						SetColor(ConsoleColor.DarkRed);
-						WriteAt(COL1, y, "{0,8}", "x");
-						WriteAt(COL2, y, "{0,8}", "x");
-						WriteAt(COL3, y, "{0,8}", "x");
+						WriteAt(COL1, y, $"{"x",8}");
+						WriteAt(COL2, y, $"{"x",8}");
+						WriteAt(COL3, y, $"{"x",8}");
 					}
 				}
 
@@ -1383,44 +1381,44 @@ namespace FdbTop
 				//"{0,-15} | net {2,8:N3} in {3,8:N3} out | cpu {4,5:N1}% | mem {5,5:N1} / {7,5:N1} GB {8,-20} | hdd {9,5:N1}% {10,-20}",
 				WriteAt(COL_HOST, y, machine.Address);
 				SetColor(MapConnectionsToColor(totalCnx));
-				WriteAt(COL_NET, y, "{0,4:N0}", totalCnx);
+				WriteAt(COL_NET, y, $"{totalCnx,4:N0}");
 				SetColor(MapMegabitsToColor(machine.Network.MegabitsReceived.Hz));
-				WriteAt(COL_NET + 5, y, "{0,8:N2}", machine.Network.MegabitsReceived.Hz);
+				WriteAt(COL_NET + 5, y, $"{machine.Network.MegabitsReceived.Hz,8:N2}");
 				SetColor(MapMegabitsToColor(machine.Network.MegabitsSent.Hz));
-				WriteAt(COL_NET + 14, y, "{0,8:N2}", machine.Network.MegabitsSent.Hz);
+				WriteAt(COL_NET + 14, y, $"{machine.Network.MegabitsSent.Hz,8:N2}");
 
-				WriteAt(COL_CPU, y, "{0,5:N1}", machine.Cpu.LogicalCoreUtilization * 100);
+				WriteAt(COL_CPU, y, $"{machine.Cpu.LogicalCoreUtilization * 100,5:N1}");
 
-				WriteAt(COL_MEM_USED, y, "{0,5:N1}", GigaBytes(machine.Memory.CommittedBytes));
-				WriteAt(COL_MEM_TOTAL, y, "{0,5:N1}", GigaBytes(machine.Memory.TotalBytes));
+				WriteAt(COL_MEM_USED, y, $"{GigaBytes(machine.Memory.CommittedBytes),5:N1}");
+				WriteAt(COL_MEM_TOTAL, y, $"{GigaBytes(machine.Memory.TotalBytes),5:N1}");
 
 				SetColor(ConsoleColor.DarkGray);
-				WriteAt(COL_ROLES, y, "{0,11}", map);
+				WriteAt(COL_ROLES, y, $"{map,11}");
 
 				SetColor(machine.Cpu.LogicalCoreUtilization >= 0.9 ? ConsoleColor.Red : ConsoleColor.Green);
-				WriteAt(COL_CPU + 7, y, "{0,-10}", BarGraph(machine.Cpu.LogicalCoreUtilization, 1, CPU_BARSZ, '=', ":", ".")); // 1 = all the (logical) cores
+				WriteAt(COL_CPU + 7, y, $"{BarGraph(machine.Cpu.LogicalCoreUtilization, 1, CPU_BARSZ, '=', ":", "."),-10}"); // 1 = all the (logical) cores
 
 				double memRatio = 1.0 * machine.Memory.CommittedBytes / machine.Memory.TotalBytes;
 				SetColor(memRatio >= 0.95 ? ConsoleColor.Red : memRatio >= 0.79 ? ConsoleColor.DarkYellow : ConsoleColor.Green);
-				WriteAt(COL_MEM_TOTAL + 6, y, "{0,-5}", BarGraph(machine.Memory.CommittedBytes, machine.Memory.TotalBytes, MEM_BARSZ, '=', ":", "."));
+				WriteAt(COL_MEM_TOTAL + 6, y, $"{BarGraph(machine.Memory.CommittedBytes, machine.Memory.TotalBytes, MEM_BARSZ, '=', ":", "."),-5}");
 
 				if (map.Log | map.Storage)
 				{
 					SetColor(MapQueueSizeToColor(totalQueueSize));
-					WriteAt(COL_DISK, y, "{0,8}", FriendlyBytes(totalQueueSize));
+					WriteAt(COL_DISK, y, $"{FriendlyBytes(totalQueueSize),8}");
 				}
 				if (map.Storage)
 				{
 					SetColor(MapDiskOpsToColor(totalQueriedBytes));
-					WriteAt(COL_DISK + 9, y, "{0,7:N1}", MegaBytes(totalQueriedBytes));
+					WriteAt(COL_DISK + 9, y, $"{MegaBytes(totalQueriedBytes),7:N1}");
 					SetColor(MapDiskOpsToColor(totalMutationBytes));
-					WriteAt(COL_DISK + 17, y, "{0,7:N1}", MegaBytes(totalMutationBytes));
+					WriteAt(COL_DISK + 17, y, $"{MegaBytes(totalMutationBytes),7:N1}");
 				}
 
 				SetColor(ConsoleColor.Gray);
-				WriteAt(COL_HDD, y, "{0,5:N1}", totalDiskBusy * 100);
+				WriteAt(COL_HDD, y, $"{totalDiskBusy * 100,5:N1}");
 				SetColor(totalDiskBusy == 0.0 ? ConsoleColor.DarkGray : totalDiskBusy >= 0.95 ? ConsoleColor.DarkRed : ConsoleColor.DarkGreen);
-				WriteAt(COL_HDD + 7, y, "{0,-10}", BarGraph(totalDiskBusy, 1, 10, '=', ":","."));
+				WriteAt(COL_HDD + 7, y, $"{BarGraph(totalDiskBusy, 1, 10, '=', ":", "."),-10}");
 
 				++y;
 
@@ -1454,62 +1452,61 @@ namespace FdbTop
 						WriteAt(
 							COL_HOST,
 							y,
-							"_______ | ______ | ____ ________ ________ | _____% __________ | _____ / _____ _____ | ________ _______ _______ | _____% __________ | ___________ |".Replace('_', ' '),
-							""
+							string.Format("_______ | ______ | ____ ________ ________ | _____% __________ | _____ / _____ _____ | ________ _______ _______ | _____% __________ | ___________ |".Replace('_', ' '), "")
 						);
 
 						SetColor(proc.Version != maxVersion ? ConsoleColor.DarkRed : ConsoleColor.DarkGray);
-						WriteAt(COL_HOST + 10, y, "{0,6}", proc.Version);
+						WriteAt(COL_HOST + 10, y, $"{proc.Version,6}");
 
 						SetColor(proc.Excluded ? ConsoleColor.DarkRed : ConsoleColor.Gray);
-						WriteAt(COL_HOST, y, "{0,7}", port);
+						WriteAt(COL_HOST, y, $"{port,7}");
 
 						SetColor(MapConnectionsToColor(proc.Network.CurrentConnections));
-						WriteAt(COL_NET, y, "{0,4:N0}", proc.Network.CurrentConnections);
+						WriteAt(COL_NET, y, $"{proc.Network.CurrentConnections,4:N0}");
 						SetColor(MapMegabitsToColor(proc.Network.MegabitsReceived.Hz));
-						WriteAt(COL_NET + 5, y, "{0,8:N2}", Nice(proc.Network.MegabitsReceived.Hz, "-", 0.005, "~"));
+						WriteAt(COL_NET + 5, y, $"{Nice(proc.Network.MegabitsReceived.Hz, "-", 0.005, "~"),8:N2}");
 						SetColor(MapMegabitsToColor(proc.Network.MegabitsSent.Hz));
-						WriteAt(COL_NET + 14, y, "{0,8:N2}", Nice(proc.Network.MegabitsSent.Hz, "-", 0.005, "~"));
+						WriteAt(COL_NET + 14, y, $"{Nice(proc.Network.MegabitsSent.Hz, "-", 0.005, "~"),8:N2}");
 
 						var cpuUsage = proc.Cpu.UsageCores;
 						SetColor(cpuUsage >= 0.95 ? ConsoleColor.DarkRed : cpuUsage >= 0.75 ? ConsoleColor.DarkYellow : cpuUsage >= 0.2 ? ConsoleColor.Gray : ConsoleColor.DarkGray);
-						WriteAt(COL_CPU, y, "{0,5:N1}", cpuUsage * 100);
+						WriteAt(COL_CPU, y, $"{cpuUsage * 100,5:N1}");
 						SetColor(cpuUsage >= 0.95 ? ConsoleColor.DarkRed : cpuUsage >= 0.75 ? ConsoleColor.DarkYellow : ConsoleColor.DarkGreen);
-						WriteAt(COL_CPU + 7, y, "{0,-10}", BarGraph(proc.Cpu.UsageCores, 1, CPU_BARSZ, '|', ":", "."));
+						WriteAt(COL_CPU + 7, y, $"{BarGraph(proc.Cpu.UsageCores, 1, CPU_BARSZ, '|', ":", "."),-10}");
 
 
 						long memoryUsed = proc.Memory.UsedBytes - proc.Memory.UnusedAllocatedMemory;
 						long memoryAllocated = proc.Memory.UsedBytes;
 						SetColor(MapMemoryToColor(memoryUsed));
-						WriteAt(COL_MEM_USED, y, "{0,5:N1}", GigaBytes(memoryUsed));
+						WriteAt(COL_MEM_USED, y, $"{GigaBytes(memoryUsed),5:N1}");
 						SetColor(MapMemoryToColor(memoryAllocated));
-						WriteAt(COL_MEM_TOTAL, y, "{0,5:N1}", GigaBytes(memoryAllocated));
+						WriteAt(COL_MEM_TOTAL, y, $"{GigaBytes(memoryAllocated),5:N1}");
 						SetColor(memoryUsed >= 0.9 * proc.Memory.LimitBytes ? ConsoleColor.DarkRed : memoryUsed >= 0.75 * proc.Memory.LimitBytes ? ConsoleColor.DarkYellow : ConsoleColor.DarkGreen);
-						WriteAt(COL_MEM_TOTAL + 6, y, "{0,-5}", BarGraph(memoryUsed, machine.Memory.CommittedBytes, MEM_BARSZ, '|', ":", "."));
+						WriteAt(COL_MEM_TOTAL + 6, y, $"{BarGraph(memoryUsed, machine.Memory.CommittedBytes, MEM_BARSZ, '|', ":", "."),-5}");
 
 						if (map.Log | map.Storage)
 						{
 							SetColor(MapQueueSizeToColor(queueSize));
-							WriteAt(COL_DISK, y, "{0,8}", FriendlyBytes(queueSize));
+							WriteAt(COL_DISK, y, $"{FriendlyBytes(queueSize),8}");
 						}
 						if (map.Storage)
 						{
 							SetColor(MapDiskOpsToColor(queriedBytes));
-							WriteAt(COL_DISK + 9, y, "{0,7:N1}", MegaBytes(queriedBytes));
+							WriteAt(COL_DISK + 9, y, $"{MegaBytes(queriedBytes),7:N1}");
 							SetColor(MapDiskOpsToColor(mutationBytes));
-							WriteAt(COL_DISK + 17, y, "{0,7:N1}", MegaBytes(mutationBytes));
+							WriteAt(COL_DISK + 17, y, $"{MegaBytes(mutationBytes),7:N1}");
 						}
 
 						SetColor(ConsoleColor.Gray);
-						WriteAt(COL_HDD, y, "{0,5:N1}", proc.Disk.Busy * 100);
+						WriteAt(COL_HDD, y, $"{proc.Disk.Busy * 100,5:N1}");
 						SetColor(proc.Disk.Busy == 0.0 ? ConsoleColor.DarkGray : proc.Disk.Busy >= 0.95 ? ConsoleColor.DarkRed : ConsoleColor.DarkGreen);
-						WriteAt(COL_HDD + 7, y, "{0,-10}", new string('|', Bar(proc.Disk.Busy, 1, 10)));
+						WriteAt(COL_HDD + 7, y, $"{new string('|', Bar(proc.Disk.Busy, 1, 10)),-10}");
 
 						SetColor(ConsoleColor.Gray);
-						WriteAt(COL_ROLES, y, "{0,11}", map);
+						WriteAt(COL_ROLES, y, $"{map,11}");
 
 						SetColor(ConsoleColor.DarkGray);
-						WriteAt(COL9, y, "{0,11}", proc.Uptime.ToString(@"d\.hh\:mm\:ss"));
+						WriteAt(COL9, y, $"{proc.Uptime.ToString(@"d\.hh\:mm\:ss"),11}");
 
 					}
 					++y;
@@ -1529,7 +1526,7 @@ namespace FdbTop
 
 		}
 
-		private static object Nice(double value, object zero, double? epsilon = null, object small = null)
+		private static object Nice(double value, object zero, double? epsilon = null, object? small = null)
 		{
 			if (value == 0) return zero;
 			if (epsilon != null && value < epsilon.Value) return small ?? ".";
@@ -1690,7 +1687,7 @@ namespace FdbTop
 				++y;
 
 				//TODO: use a set to map procs ot machines? Where(..) will be slow if there are a lot of machines x processes
-				string prevHost = null;
+				string? prevHost = null;
 				foreach (var (proc, role, machineId) in kv.OrderBy(x => x.Process.Address))
 				{
 					if (y < ScreenHeight)
@@ -1710,76 +1707,76 @@ namespace FdbTop
 						if (host != prevHost)
 						{
 							SetColor(ConsoleColor.Gray);
-							WriteAt(COL0 + 1, y, "{0,15}", host);
+							WriteAt(COL0 + 1, y, $"{host,15}");
 						}
 						SetColor(proc.Excluded ? ConsoleColor.DarkRed : ConsoleColor.Gray);
 						WriteAt(COL0 + 1 + 16, y, GetPortFromAddress(proc.Address));
 						prevHost = host;
 
 						SetColor(MapMegabitsToColor(proc.Network.MegabitsReceived.Hz));
-						WriteAt(COL_NET, y, "{0,7:N1}", Nice(proc.Network.MegabitsReceived.Hz, "-", 0.05, "~"));
+						WriteAt(COL_NET, y, $"{Nice(proc.Network.MegabitsReceived.Hz, "-", 0.05, "~"),7:N1}");
 						SetColor(MapMegabitsToColor(proc.Network.MegabitsSent.Hz));
-						WriteAt(COL2, y, "{0,7:N1}", Nice(proc.Network.MegabitsSent.Hz, "-", 0.05, "~"));
+						WriteAt(COL2, y, $"{Nice(proc.Network.MegabitsSent.Hz, "-", 0.05, "~"),7:N1}");
 
 						SetColor(ConsoleColor.Gray);
-						WriteAt(COL_CPU, y, "{0,5:N1}", proc.Cpu.UsageCores * 100);
+						WriteAt(COL_CPU, y, $"{proc.Cpu.UsageCores * 100,5:N1}");
 						SetColor(proc.Cpu.UsageCores >= 0.95 ? ConsoleColor.DarkRed : proc.Cpu.UsageCores >= 0.75 ? ConsoleColor.DarkYellow : ConsoleColor.DarkGreen);
-						WriteAt(COL_CPU + 7, y, "{0,-10}", BarGraph(proc.Cpu.UsageCores, 1, CPU_BARSZ, '|', ":", "."));
+						WriteAt(COL_CPU + 7, y, $"{BarGraph(proc.Cpu.UsageCores, 1, CPU_BARSZ, '|', ":", "."),-10}");
 
 						long memoryUsed = proc.Memory.UsedBytes;
 
 						SetColor(memoryUsed >= 0.75 * proc.Memory.LimitBytes ? ConsoleColor.White : memoryUsed >= GIBIBYTE ? ConsoleColor.Gray : ConsoleColor.DarkGray);
-						WriteAt(COL_MEMORY, y, "{0,8}", FriendlyBytes(memoryUsed));
+						WriteAt(COL_MEMORY, y, $"{FriendlyBytes(memoryUsed),8}");
 
 						if (role is StorageRoleMetrics storage)
 						{
 							// Queue Size
 							SetColor(MapQueueSizeToColor(storage.InputBytes.Counter - storage.DurableBytes.Counter));
-							WriteAt(COL_STORAGE, y, "{0,8}", FriendlyBytes(storage.InputBytes.Counter - storage.DurableBytes.Counter));
+							WriteAt(COL_STORAGE, y, $"{FriendlyBytes(storage.InputBytes.Counter - storage.DurableBytes.Counter),8}");
 
 							// Bytes Queried
 							SetColor(MapDiskOpsToColor(storage.BytesQueried.Hz));
-							WriteAt(COL_STORAGE + 9, y, "{0,7:N2}", Nice(MegaBytes(storage.BytesQueried.Hz), "-"));
+							WriteAt(COL_STORAGE + 9, y, $"{Nice(MegaBytes(storage.BytesQueried.Hz), "-"),7:N2}");
 
 							// Mutation Bytes
 							SetColor(MapDiskOpsToColor(storage.MutationBytes.Hz));
-							WriteAt(COL_STORAGE + 17, y, "{0,7:N2}", Nice(MegaBytes(storage.MutationBytes.Hz), "-"));
+							WriteAt(COL_STORAGE + 17, y, $"{Nice(MegaBytes(storage.MutationBytes.Hz), "-"),7:N2}");
 
 							SetColor(ConsoleColor.Gray);
-							WriteAt(COL_STORAGE + 25, y, "{0,8}", FriendlyBytes(storage.StoredBytes));
+							WriteAt(COL_STORAGE + 25, y, $"{FriendlyBytes(storage.StoredBytes),8}");
 
 							var dataLag = storage.DataLag.Seconds;
 							SetColor(dataLag < 0.5 ? ConsoleColor.DarkGray : dataLag < 1 ? ConsoleColor.Gray : dataLag < 2 ? ConsoleColor.White : dataLag < 6 ? ConsoleColor.Cyan : dataLag < 11 ? ConsoleColor.DarkYellow : ConsoleColor.DarkRed);
-							WriteAt(COL_DATAVERSION, y, "{0,5:N1}",  Nice(storage.DataLag.Seconds, "-"));
+							WriteAt(COL_DATAVERSION, y, $"{Nice(storage.DataLag.Seconds, "-"),5:N1}");
 							var durLag = storage.DurabilityLag.Seconds;
 							//should usually be around 
 							SetColor(durLag < 6 ? ConsoleColor.DarkGray : durLag < 8 ? ConsoleColor.Gray : durLag < 11 ? ConsoleColor.White : durLag < 16 ? ConsoleColor.Cyan : durLag < 26 ? ConsoleColor.DarkYellow : ConsoleColor.DarkRed);
-							WriteAt(COL_DATAVERSION + 7, y, "{0,5:N1}", durLag);
+							WriteAt(COL_DATAVERSION + 7, y, $"{durLag,5:N1}");
 
-							WriteAt(COL_KVSTORE, y, "{0,8}", FriendlyBytes(storage.KVStoreUsedBytes));
+							WriteAt(COL_KVSTORE, y, $"{FriendlyBytes(storage.KVStoreUsedBytes),8}");
 
 						}
 						else if (role is LogRoleMetrics log)
 						{
 							// Queue Size
 							SetColor(MapQueueSizeToColor(log.InputBytes.Counter - log.DurableBytes.Counter));
-							WriteAt(COL_STORAGE, y, "{0,8}", FriendlyBytes(log.InputBytes.Counter - log.DurableBytes.Counter));
+							WriteAt(COL_STORAGE, y, $"{FriendlyBytes(log.InputBytes.Counter - log.DurableBytes.Counter),8}");
 
 							// Durable Bytes
 							SetColor(MapDiskOpsToColor(log.InputBytes.Hz));
-							WriteAt(COL_STORAGE + 9, y, "{0,7:N1}", Nice(MegaBytes(log.InputBytes.Hz), "-"));
+							WriteAt(COL_STORAGE + 9, y, $"{Nice(MegaBytes(log.InputBytes.Hz), "-"),7:N1}");
 
 							SetColor(MapDiskOpsToColor(log.InputBytes.Hz));
-							WriteAt(COL_STORAGE + 17, y, "{0,7:N1}", Nice(MegaBytes(log.DurableBytes.Hz), "-"));
+							WriteAt(COL_STORAGE + 17, y, $"{Nice(MegaBytes(log.DurableBytes.Hz), "-"),7:N1}");
 
 							SetColor(ConsoleColor.Gray);
-							WriteAt(COL_STORAGE + 25, y, "{0,8:N1}", FriendlyBytes(log.QueueDiskUsedBytes));
+							WriteAt(COL_STORAGE + 25, y, $"{FriendlyBytes(log.QueueDiskUsedBytes),8:N1}");
 
 							long delta = log.DataVersion - maxLogTransaction;
 							SetColor(delta >= -500_000 ? ConsoleColor.DarkGray : delta >= -1_000_000 ? ConsoleColor.Gray : delta >= -2_000_000 ? ConsoleColor.White : delta >= -5_000_000 ? ConsoleColor.Cyan : delta >= -10_000_000 ? ConsoleColor.DarkYellow : ConsoleColor.DarkRed);
-							WriteAt(COL_DATAVERSION, y, "{0,13:N0}", Nice(delta, "-"));
+							WriteAt(COL_DATAVERSION, y, $"{Nice(delta, "-"),13:N0}");
 
-							WriteAt(COL_KVSTORE, y, "{0,8}", FriendlyBytes(log.KVStoreUsedBytes));
+							WriteAt(COL_KVSTORE, y, $"{FriendlyBytes(log.KVStoreUsedBytes),8}");
 						}
 
 						//if (map.Log)
@@ -1790,9 +1787,9 @@ namespace FdbTop
 						if (hasDisk)
 						{
 							SetColor(ConsoleColor.Gray);
-							WriteAt(COL_HDD, y, "{0,5:N1}", proc.Disk.Busy * 100);
+							WriteAt(COL_HDD, y, $"{proc.Disk.Busy * 100,5:N1}");
 							SetColor(proc.Disk.Busy == 0.0 ? ConsoleColor.DarkGray : proc.Disk.Busy >= 0.95 ? ConsoleColor.DarkRed : ConsoleColor.DarkGreen);
-							WriteAt(COL_HDD + 7, y, "{0,-5}", BarGraph(proc.Disk.Busy, 1, HDD_BARSZ, '|', ":", "."));
+							WriteAt(COL_HDD + 7, y, $"{BarGraph(proc.Disk.Busy, 1, HDD_BARSZ, '|', ":", "."),-5}");
 						}
 
 					}

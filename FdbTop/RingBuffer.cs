@@ -28,6 +28,8 @@ namespace FdbTop
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics.CodeAnalysis;
+	using Doxense.Diagnostics.Contracts;
 
 	public class RingBuffer<T> : IReadOnlyCollection<T>
 	{
@@ -36,7 +38,7 @@ namespace FdbTop
 
 		public RingBuffer(int capacity)
 		{
-			if (capacity < 0) throw new ArgumentOutOfRangeException(nameof(capacity));
+			Contract.Positive(capacity);
 
 			m_store = new Queue<T>(capacity);
 			m_size = capacity;
@@ -53,7 +55,7 @@ namespace FdbTop
 
 		public void Resize(int newCapacity)
 		{
-			if (newCapacity < 0) throw new ArgumentOutOfRangeException(nameof(newCapacity));
+			Contract.Positive(newCapacity);
 
 			var store = m_store;
 			if (newCapacity < store.Count)
@@ -76,12 +78,12 @@ namespace FdbTop
 			return m_store.Dequeue();
 		}
 
-		public bool TryDequeue(out T item)
+		public bool TryDequeue([MaybeNullWhen(false)] out T item)
 		{
 			var store = m_store;
 			if (store.Count == 0)
 			{
-				item = default(T);
+				item = default;
 				return false;
 			}
 			item = store.Dequeue();

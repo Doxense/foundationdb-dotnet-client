@@ -885,6 +885,12 @@ namespace FdbShell
 
 			var status = await Fdb.System.GetStatusAsync(db, ct);
 
+			if (status == null)
+			{
+				terminal.StdErr("Failed to get the status of the cluster!");
+				return;
+			}
+
 			var machinesByDatacenter = status.Cluster
 				.Machines.Values
 				.GroupBy(x => x.DataCenterId)
@@ -1184,7 +1190,7 @@ namespace FdbShell
 				return;
 			}
 
-			var txt = extras.Get<string>(0);
+			var txt = extras.Get<string>(0) ?? "";
 			if (!txt.StartsWith('.') && !txt.StartsWith('/')) txt = "./" + txt;
 			var query = FqlQueryParser.Parse(txt);
 			
@@ -1222,7 +1228,7 @@ namespace FdbShell
 				return;
 			}
 
-			var txt = extras.Get<string>(0);
+			var txt = extras.Get<string>(0) ?? "";
 			if (!txt.StartsWith('.') && !txt.StartsWith('/')) txt = "./" + txt;
 			var query = FqlQueryParser.Parse(txt);
 			
