@@ -78,7 +78,7 @@ namespace FoundationDB.Client
 			return this.Parent;
 		}
 
-		internal override FdbDirectorySubspace ChangeContext(ISubspaceContext context)
+		internal override FdbDirectorySubspace WithContext(ISubspaceContext context)
 		{
 			Contract.NotNull(context);
 

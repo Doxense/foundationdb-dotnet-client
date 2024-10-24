@@ -71,12 +71,14 @@ namespace FoundationDB.Client
 		public bool Cached { get; }
 
 		/// <summary>Returns a new subspace instance that is identical to this one, but attached to a different context</summary>
-		internal virtual FdbDirectorySubspace ChangeContext(ISubspaceContext context)
+		[MustUseReturnValue]
+		internal virtual FdbDirectorySubspace WithContext(ISubspaceContext context)
 		{
 			Contract.NotNull(context);
 
 			if (context == this.Context) return this;
-			return new FdbDirectorySubspace(this.Descriptor, this.KeyEncoder, context, true);
+
+			return new(this.Descriptor, this.KeyEncoder, context, true);
 		}
 
 		/// <summary>Convert a path relative to this directory, into a path relative to the root of the current partition</summary>

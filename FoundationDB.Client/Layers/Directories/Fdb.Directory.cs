@@ -47,16 +47,16 @@ namespace FoundationDB.Client
 
 				if (root.Count != 0)
 				{
-					// create the root partition if does not already exist
+					// create the root partition if it does not already exist
 					var descriptor = await db.ReadWriteAsync(tr => db.DirectoryLayer.CreateOrOpenAsync(tr, root), ct).ConfigureAwait(false);
 					if (Logging.On) Logging.Info(typeof(Fdb.Directory), "OpenNamedPartitionAsync", $"Opened partition {descriptor.Path} at {descriptor.GetPrefixUnsafe()}");
 				}
 			}
 
-			/// <summary>List and open the sub-directories of the given directory</summary>
+			/// <summary>List and open the subdirectories of the given directory</summary>
 			/// <param name="tr">Transaction used for the operation</param>
 			/// <param name="parent">Parent directory</param>
-			/// <returns>Dictionary of all the sub directories of the <paramref name="parent"/> directory.</returns>
+			/// <returns>Dictionary of all the subdirectories of the <paramref name="parent"/> directory.</returns>
 			public static async Task<Dictionary<string, FdbDirectorySubspace>> BrowseAsync(IFdbReadOnlyTransaction tr, IFdbDirectory parent)
 			{
 				Contract.NotNull(tr);

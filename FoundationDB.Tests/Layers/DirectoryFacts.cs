@@ -1447,11 +1447,11 @@ namespace FoundationDB.Client.Tests
 			{
 				var folder = await dl.TryOpenCachedAsync(tr, FdbPath.Absolute("Foo"));
 				Assert.That(folder, Is.Not.Null);
-				Assert.That(folder!.Context, Is.InstanceOf<FdbDirectoryLayer.State>());
-				return folder;
+				Assert.That(folder!.Context, Is.InstanceOf<FdbDirectoryLayer.State>(), $"Unexpected context for cached directory {folder.Path}");
+				return folder!;
 			}, this.Cancellation);
 
-			// the fooCached instance should dead outside the transaction!
+			// the fooCached instance should be dead outside the transaction!
 			Assert.That(() => fooCached.GetPrefix(), Throws.InstanceOf<InvalidOperationException>(), "Accessing a cached subspace outside the transaction should throw");
 
 			var fooUncached = await db.ReadAsync(tr => dl.TryOpenAsync(tr, FdbPath.Absolute("Foo")), this.Cancellation);

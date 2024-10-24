@@ -635,8 +635,7 @@ namespace FoundationDB.Client
 					var subspace = ContentsOfNode(existingNode.Path, existingNode.Prefix, existingNode.Layer, existingNode.ValidationChain, existingNode.Partition, existingNode.ParentPartition, context);
 					readTrans.Annotate($"Add {path} to the cache with prefix {existingNode.Prefix}");
 					context.AddSubspace(path, subspace, existingNode.ValidationChain);
-					subspace.ChangeContext(this);
-					return subspace;
+					return subspace.WithContext(this);
 				}
 				else
 				{
@@ -1310,6 +1309,13 @@ namespace FoundationDB.Client
 					if (trans.Context.TestValueCheckFromPreviousAttempt("DirectoryLayer") != FdbValueCheckResult.Failed)
 					{ // all good!
 						if (AnnotateTransactions) trans.Annotate($"{this.Layer} cache context #{context.ReadVersion} likely still valid (no failed value-checks at attempt #{trans.Context.Retries})");
+
+						// we may need to re-register the callback on the transaction
+						if (Interlocked.Exchange(ref this.CallbackRegistered, 1) == 0)
+						{
+							trans.Context.OnSuccess(this.OnTransactionStateChanged);
+						}
+
 						return context;
 					}
 					// the previous attempt yielded _at least_ one difference!
@@ -1343,10 +1349,16 @@ namespace FoundationDB.Client
 				// attach that context to the transaction
 				if (Interlocked.Exchange(ref this.Context, context) == null)
 				{
-					trans.Context.OnSuccess(this.OnTransactionStateChanged);
+					if (Interlocked.Exchange(ref this.CallbackRegistered, 1) == 0)
+					{
+						trans.Context.OnSuccess(this.OnTransactionStateChanged);
+					}
 				}
+
 				return context;
 			}
+
+			private volatile int CallbackRegistered;
 
 			internal void OnTransactionStateChanged(FdbOperationContext ctx, FdbTransactionState state)
 			{
@@ -1471,7 +1483,7 @@ namespace FoundationDB.Client
 				if (AnnotateTransactions) tr.Annotate($"{this.DirectoryLayer} subspace HIT for {path}: {candidate.Subspace?.ToString() ?? "<not_found>"}");
 
 				// the subspace was created with another context, we must migrate it to the current transaction's context
-				subspace = candidate.Subspace?.ChangeContext(state);
+				subspace = candidate.Subspace?.WithContext(state);
 				validationCain = candidate.ValidationChain;
 				return true;
 			}
