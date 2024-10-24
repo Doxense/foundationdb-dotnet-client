@@ -589,6 +589,16 @@ namespace FoundationDB.Client
 					++i;
 				}
 
+				// patch the layer id, if it is missing from the last segment (can be omitted by caller)
+				if (path.Count > 0 && !string.IsNullOrEmpty(layer))
+				{
+					var lastSeg = path[^1];
+					if (lastSeg.LayerId != layer)
+					{
+						path = path.GetParent()[lastSeg.Name, layer];
+					}
+				}
+
 				return new Node(path, current, layer, partition, parent, prefixInParentPartition, chain);
 			}
 
@@ -633,8 +643,9 @@ namespace FoundationDB.Client
 						throw new InvalidOperationException($"The directory {path} was created with incompatible layer '{layer}' instead of expected '{existingNode.Layer}'.");
 					}
 					var subspace = ContentsOfNode(existingNode.Path, existingNode.Prefix, existingNode.Layer, existingNode.ValidationChain, existingNode.Partition, existingNode.ParentPartition, context);
+
 					readTrans.Annotate($"Add {path} to the cache with prefix {existingNode.Prefix}");
-					context.AddSubspace(path, subspace, existingNode.ValidationChain);
+					context.AddSubspace(subspace, existingNode.ValidationChain);
 					return subspace.WithContext(this);
 				}
 				else
@@ -1360,7 +1371,7 @@ namespace FoundationDB.Client
 
 			private volatile int CallbackRegistered;
 
-			internal void OnTransactionStateChanged(FdbOperationContext ctx, FdbTransactionState state)
+			private void OnTransactionStateChanged(FdbOperationContext ctx, FdbTransactionState state)
 			{
 				if (state is not (FdbTransactionState.Commit or FdbTransactionState.Completed))
 				{ // reset the context in the initial state
@@ -1373,7 +1384,7 @@ namespace FoundationDB.Client
 				}
 			}
 
-			internal CacheContext? Context;
+			private CacheContext? Context;
 
 			string ISubspaceContext.Name => this.Context?.DirectoryLayer.FullName ?? "<invalid>";
 
@@ -1488,14 +1499,13 @@ namespace FoundationDB.Client
 				return true;
 			}
 
-			public void AddSubspace(FdbPath path, FdbDirectorySubspace subspace, IReadOnlyList<KeyValuePair<Slice, Slice>> validationChain)
+			public void AddSubspace(FdbDirectorySubspace subspace, IReadOnlyList<KeyValuePair<Slice, Slice>> validationChain)
 			{
-				Contract.Debug.Requires(subspace != null && subspace.Descriptor.Path == path);
-				Contract.Debug.Requires(validationChain != null);
+				Contract.Debug.Requires(subspace != null && validationChain != null);
 
 				using (this.Lock.GetWriteLock())
 				{
-					this.CachedSubspaces[path] = (subspace, validationChain);
+					this.CachedSubspaces[subspace.Path] = (subspace, validationChain);
 				}
 			}
 
@@ -1560,6 +1570,13 @@ namespace FoundationDB.Client
 			public PartitionDescriptor(FdbPath path, IDynamicKeySubspace content, PartitionDescriptor? parent)
 			{
 				Contract.Debug.Requires(path.IsAbsolute && content != null);
+
+				// the last segment must have the expected layer id
+				if (path.Count > 0 && string.IsNullOrEmpty(path[^1].LayerId))
+				{
+					path = path.GetParent()[path[^1].Name, FdbDirectoryPartition.LayerId];
+				}
+
 				this.Path = path;
 				this.Parent = parent;
 				this.Content = content;

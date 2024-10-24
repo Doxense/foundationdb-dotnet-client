@@ -357,7 +357,21 @@ namespace FoundationDB.Client
 		public bool IsChildOf(FdbPath prefix)
 		{
 			if (this.IsAbsolute != prefix.IsAbsolute) return false;
-			return prefix.Count < this.Count && this.Segments.Span.StartsWith(prefix.Segments.Span);
+			//note: we have to compare only the names, ignoring the partitions
+
+			var thisSpan = this.Segments.Span;
+			var parentSpan = prefix.Segments.Span;
+			if (thisSpan.Length <= parentSpan.Length) return false;
+
+			for (int i = 0; i < parentSpan.Length; i++)
+			{
+				if (thisSpan[i].Name != parentSpan[i].Name)
+				{
+					return false;
+				}
+			}
+
+			return true;
 		}
 
 		/// <summary>Tests if the current path is the same, or a child of another path</summary>
@@ -366,7 +380,22 @@ namespace FoundationDB.Client
 		public bool StartsWith(FdbPath prefix)
 		{
 			if (this.IsAbsolute != prefix.IsAbsolute) return false;
-			return this.Segments.Span.StartsWith(prefix.Segments.Span);
+
+			//note: we have to compare only the names, ignoring the partitions
+
+			var thisSpan = this.Segments.Span;
+			var parentSpan = prefix.Segments.Span;
+			if (thisSpan.Length < parentSpan.Length) return false;
+
+			for (int i = 0; i < parentSpan.Length; i++)
+			{
+				if (thisSpan[i].Name != parentSpan[i].Name)
+				{
+					return false;
+				}
+			}
+
+			return true;
 		}
 
 		/// <summary>Tests if the current path is a parent of another path</summary>
