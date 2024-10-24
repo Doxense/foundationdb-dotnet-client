@@ -41,6 +41,7 @@ namespace FdbShell
 	using Doxense.Linq;
 	using Doxense.Memory;
 	using FoundationDB.Client.Status;
+	using Spectre.Console;
 
 	public static class BasicCommands
 	{
@@ -79,15 +80,15 @@ namespace FdbShell
 					return;
 				}
 
-				if (!string.IsNullOrEmpty(parent.Layer))
-				{
-					terminal.StdOut($"# Layer: {parent.Layer}");
-				}
+				//if (!string.IsNullOrEmpty(parent.Layer))
+				//{
+				//	terminal.StdOut($"# Layer: {parent.Layer}");
+				//}
 
 				var folders = await Fdb.Directory.BrowseAsync(tr, parent);
 				if (folders.Count > 0)
 				{
-					// to better align the names, we allow between 16 to 40 chars for the first column.
+					// to better align the names, we allow between 16 and 40 chars for the first column.
 					// if there is a larger name, it will stick out!
 					var maxLen = Math.Min(Math.Max(folders.Keys.Max(n => n.Length), 16), 40);
 
@@ -97,21 +98,23 @@ namespace FdbShell
 						var subfolder = kvp.Value;
 						if (subfolder != null!)
 						{
+							var symbol = subfolder.IsPartition ? "[bold cyan]\udb84\udee4" : subfolder.Layer.Length != 0 ? "[bold yellow]\udb84\udc80" : "[silver]\udb80\ude56";
 							if ((options & DirectoryBrowseOptions.ShowCount) != 0)
 							{
+
 								if (subfolder is not FdbDirectoryPartition)
 								{
 									long count = await Fdb.System.EstimateCountAsync(db, subfolder.ToRange(), ct);
-									terminal.StdOut($"  {name.PadRight(maxLen)} {FdbKey.Dump(subfolder.Copy().GetPrefix()),-12} {(string.IsNullOrEmpty(subfolder.Layer) ? "-" : ("[" + subfolder.Layer + "]")),-12} {count,9:N0}", ConsoleColor.White);
+									terminal.Markup($"  {symbol} {terminal.Escape(name).PadRight(maxLen)}[/] {FdbKey.Dump(subfolder.Copy().GetPrefix()),-12} {(string.IsNullOrEmpty(subfolder.Layer) ? "-" : terminal.Escape("[" + subfolder.Layer + "]")),-12} {count,9:N0}");
 								}
 								else
 								{
-									terminal.StdOut($"  {name.PadRight(maxLen)} {FdbKey.Dump(subfolder.Copy().GetPrefix()),-12} {(string.IsNullOrEmpty(subfolder.Layer) ? "-" : ("[" + subfolder.Layer + "]")),-12} {"-",9}", ConsoleColor.White);
+									terminal.Markup($"  {symbol} {terminal.Escape(name).PadRight(maxLen)}[/] {FdbKey.Dump(subfolder.Copy().GetPrefix()),-12} {(string.IsNullOrEmpty(subfolder.Layer) ? "-" : terminal.Escape("[" + subfolder.Layer + "]")),-12} {"-",9}");
 								}
 							}
 							else
 							{
-								terminal.StdOut($"  {name.PadRight(maxLen)} {FdbKey.Dump(subfolder.Copy().GetPrefix()),-12} {(string.IsNullOrEmpty(subfolder.Layer) ? "-" : ("[" + subfolder.Layer + "]")),-12}", ConsoleColor.White);
+								terminal.Markup($"  {symbol} {terminal.Escape(name).PadRight(maxLen)}[/] [gray]{FdbKey.Dump(subfolder.Copy().GetPrefix()),-12}[/] {(string.IsNullOrEmpty(subfolder.Layer) ? "-" : terminal.Escape("[" + subfolder.Layer + "]")),-12}");
 							}
 						}
 						else
@@ -599,7 +602,12 @@ namespace FdbShell
 					terminal.Error("Cannot list the content of a Directory Partition!");
 					return;
 				}
-				terminal.Comment($"# Content of {FdbKey.Dump(folder.GetPrefix())} [{folder.GetPrefix().ToHexString(' ')}]");
+				terminal.Markup($"[gray]# Content of [/][cyan]{terminal.Escape(path.ToString("N"))}[/]");
+				terminal.Markup($"[gray]# Prefix: [cyan]{terminal.Escape(FdbKey.Dump(folder.GetPrefix()))}[/] \u279c 0x[teal]{folder.GetPrefix().ToHexString('\ue621')}[/][/]");
+				if (folder.Layer.Length != 0)
+				{
+					terminal.Markup($"[gray]# Layer: [cyan]{terminal.Escape(folder.Layer)}[/][/]");
+				}
 
 				var query = tr.GetRange(folder.ToRange());
 				var keys = await (reverse
@@ -612,7 +620,7 @@ namespace FdbShell
 					if (reverse) keys.Reverse();
 					foreach (var key in keys.Take(count))
 					{
-						terminal.StdOut($"...{FdbKey.Dump(folder.ExtractKey(key.Key))} = {key.Value:V}");
+						terminal.Markup($"[gray]...[/][white]{terminal.Escape(FdbKey.Dump(folder.ExtractKey(key.Key)))}[/] = [silver]{terminal.Escape(key.Value.ToString("V"))}[/]");
 					}
 					if (!reverse && keys.Count == count + 1)
 					{
@@ -999,7 +1007,7 @@ namespace FdbShell
 					last = range.End;
 					//TODO: we can probably get more details on this shard looking in the system keyspace (where it is, how many replicas, ...)
 				}
-				terminal.StdOut($"> ... {FdbKey.Dump(last)}");
+				terminal.StdOut($"> \uea7c {FdbKey.Dump(last)}");
 			}
 
 			//terminal.StdOut("Found " + ranges.Count + " shards in the cluster");

@@ -85,7 +85,7 @@ namespace Mono.Terminal
 		bool done = false;
 
 		// The thread where the Editing started taking place
-		CancellationTokenSource cancel;
+		CancellationToken cancel;
 
 		// Our object that tracks history
 		History history;
@@ -160,9 +160,9 @@ namespace Mono.Terminal
 
 		static Handler[] handlers;
 
-		public LineEditor(string name, CancellationTokenSource cancel) : this(name, 10, cancel) { }
+		public LineEditor(string name, CancellationToken cancel) : this(name, 10, cancel) { }
 
-		public LineEditor(string name, int histsize, CancellationTokenSource cancel)
+		public LineEditor(string name, int histsize, CancellationToken cancel)
 		{
 			handlers = new Handler[] {
 				new Handler (ConsoleKey.Home,       CmdHome),
@@ -824,14 +824,14 @@ namespace Mono.Terminal
 			ForceCursor(cursor);
 		}
 
-		void InterruptEdit(object sender, ConsoleCancelEventArgs a)
-		{
-			// Do not abort our program:
-			a.Cancel = true;
+		//void InterruptEdit(object sender, ConsoleCancelEventArgs a)
+		//{
+		//	// Do not abort our program:
+		//	a.Cancel = true;
 
-			// Interrupt the editor
-			this.cancel.Cancel();
-		}
+		//	// Interrupt the editor
+		//	this.cancel.Cancel();
+		//}
 
 		void HandleChar(char c)
 		{
@@ -847,6 +847,7 @@ namespace Mono.Terminal
 
 			while (!done)
 			{
+				this.cancel.ThrowIfCancellationRequested();
 				ConsoleModifiers mod;
 
 				cki = Console.ReadKey(true);
@@ -923,8 +924,9 @@ namespace Mono.Terminal
 
 		public string Edit(string prompt, string initial)
 		{
+			this.cancel.ThrowIfCancellationRequested();
 			searching = 0;
-			Console.CancelKeyPress += InterruptEdit;
+			//Console.CancelKeyPress += InterruptEdit;
 
 			done = false;
 			history.CursorToEnd();
@@ -937,6 +939,7 @@ namespace Mono.Terminal
 
 			do
 			{
+				this.cancel.ThrowIfCancellationRequested();
 				try
 				{
 					EditLoop();
@@ -952,8 +955,8 @@ namespace Mono.Terminal
 			} while (!done);
 			Console.WriteLine();
 
-			Console.CancelKeyPress -= InterruptEdit;
-
+			//Console.CancelKeyPress -= InterruptEdit;
+			
 			if (text == null)
 			{
 				history.Close();

@@ -2,7 +2,7 @@
   "profiles": {
     "FdbShell": {
       "commandName": "Project",
-      "commandLineArgs": "--aspire"
+      "commandLineArgs": "--docker 4529"
     }
   }
 }
