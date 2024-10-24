@@ -48,7 +48,7 @@ namespace FoundationDB.Client.Tests
 			Assert.That(db, Is.Not.Null);
 			Assert.Multiple(() =>
 			{
-				Assert.That(db.ClusterFile, Is.Null, ".ClusterFile");
+				Assert.That(db.Options.ClusterFile, Is.Null, ".ClusterFile");
 				Assert.That(db.Root, Is.Not.Null, ".Root");
 				Assert.That(db.Root.Path, Is.EqualTo(FdbPath.Root));
 				Assert.That(db.IsReadOnly, Is.False, ".IsReadOnly");
@@ -116,7 +116,7 @@ namespace FoundationDB.Client.Tests
 			using var db = await Fdb.OpenAsync(this.Cancellation);
 
 			Assert.That(db, Is.Not.Null, "Should return a valid database");
-			Assert.That(db.ClusterFile, Is.Null, "Cluster path should be null (default)");
+			Assert.That(db.Options.ClusterFile, Is.Null, "Cluster path should be null (default)");
 		}
 
 		[Test]
@@ -125,7 +125,7 @@ namespace FoundationDB.Client.Tests
 			using var db = await OpenTestDatabaseAsync();
 
 			Assert.That(db, Is.Not.Null, "Should return a valid database");
-			Assert.That(db.ClusterFile, Is.Null, "Cluster path should be null (default)");
+			Assert.That(db.Options.ClusterFile, Is.Null, "Cluster path should be null (default)");
 			Assert.That(db.Root, Is.Not.Null, ".Root");
 			Assert.That(db.Root.Path, Is.EqualTo(FdbPath.Root), ".Root");
 			Assert.That(db.DirectoryLayer, Is.Not.Null, ".DirectoryLayer");
