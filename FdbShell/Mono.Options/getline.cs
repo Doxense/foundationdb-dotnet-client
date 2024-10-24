@@ -85,7 +85,7 @@ namespace Mono.Terminal
 		bool done = false;
 
 		// The thread where the Editing started taking place
-		Thread edit_thread;
+		CancellationTokenSource cancel;
 
 		// Our object that tracks history
 		History history;
@@ -160,9 +160,9 @@ namespace Mono.Terminal
 
 		static Handler[] handlers;
 
-		public LineEditor(string name) : this(name, 10) { }
+		public LineEditor(string name, CancellationTokenSource cancel) : this(name, 10, cancel) { }
 
-		public LineEditor(string name, int histsize)
+		public LineEditor(string name, int histsize, CancellationTokenSource cancel)
 		{
 			handlers = new Handler[] {
 				new Handler (ConsoleKey.Home,       CmdHome),
@@ -203,10 +203,11 @@ namespace Mono.Terminal
 				Handler.Control ('Q', delegate { HandleChar (Console.ReadKey (true).KeyChar); })
 			};
 
-			rendered_text = new StringBuilder();
-			text = new StringBuilder();
+			this.rendered_text = new StringBuilder();
+			this.text = new StringBuilder();
 
-			history = new History(name, histsize);
+			this.history = new History(name, histsize);
+			this.cancel = cancel;
 
 			//if (File.Exists ("log"))File.Delete ("log");
 			//log = File.CreateText ("log"); 
@@ -214,7 +215,7 @@ namespace Mono.Terminal
 
 		void CmdDebug()
 		{
-			history.Dump();
+			this.history.Dump();
 			Console.WriteLine();
 			Render();
 		}
@@ -366,10 +367,10 @@ namespace Mono.Terminal
 
 		void InsertChar(char c)
 		{
-			int prev_lines = LineCount;
+			int prev_lines = this.LineCount;
 			text = text.Insert(cursor, c);
 			ComputeRendered();
-			if (prev_lines != LineCount)
+			if (prev_lines != this.LineCount)
 			{
 
 				Console.SetCursorPosition(0, home_row);
@@ -398,7 +399,7 @@ namespace Mono.Terminal
 
 			if (AutoCompleteEvent != null)
 			{
-				if (TabAtStartCompletes)
+				if (this.TabAtStartCompletes)
 					complete = true;
 				else
 				{
@@ -701,10 +702,10 @@ namespace Mono.Terminal
 
 		void InsertTextAtCursor(string str)
 		{
-			int prev_lines = LineCount;
+			int prev_lines = this.LineCount;
 			text.Insert(cursor, str);
 			ComputeRendered();
-			if (prev_lines != LineCount)
+			if (prev_lines != this.LineCount)
 			{
 				Console.SetCursorPosition(0, home_row);
 				Render();
@@ -829,7 +830,7 @@ namespace Mono.Terminal
 			a.Cancel = true;
 
 			// Interrupt the editor
-			edit_thread.Abort();
+			this.cancel.Cancel();
 		}
 
 		void HandleChar(char c)
@@ -922,7 +923,6 @@ namespace Mono.Terminal
 
 		public string Edit(string prompt, string initial)
 		{
-			edit_thread = Thread.CurrentThread;
 			searching = 0;
 			Console.CancelKeyPress += InterruptEdit;
 
@@ -930,7 +930,7 @@ namespace Mono.Terminal
 			history.CursorToEnd();
 			max_rendered = 0;
 
-			Prompt = prompt;
+			this.Prompt = prompt;
 			shown_prompt = prompt;
 			InitText(initial);
 			history.Append(initial);
@@ -944,7 +944,7 @@ namespace Mono.Terminal
 				catch (ThreadAbortException)
 				{
 					searching = 0;
-					Thread.ResetAbort();
+					//Thread.ResetAbort();
 					Console.WriteLine();
 					SetPrompt(prompt);
 					SetText("");
@@ -1073,7 +1073,7 @@ namespace Mono.Terminal
 
 			public void RemoveLast()
 			{
-				head = head - 1;
+				head--;
 				if (head < 0)
 					head = history.Length - 1;
 			}

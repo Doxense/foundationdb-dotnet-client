@@ -525,7 +525,10 @@ namespace FdbShell
 				StdOut("Ready...", ConsoleColor.DarkGreen);
 				StdOut("");
 
-				var le = new LineEditor("FDBShell");
+				var lifecycle = new CancellationTokenSource();
+				lifecycle.Token.Register(() => stop = true);
+
+				var le = new LineEditor("FDBShell", lifecycle);
 
 				le.AutoCompleteEvent = (txt, _) =>
 				{
@@ -934,7 +937,7 @@ namespace FdbShell
 								//	}
 								//}
 
-								break;
+								//break;
 							}
 
 							case "q":
@@ -975,7 +978,7 @@ namespace FdbShell
 								//	StdOut("- Private Bytes: " + PerfCounters.PrivateBytes!.NextValue().ToString("N0"));
 								//	StdOut("- BytesInAlHeap: " + PerfCounters.ClrBytesInAllHeaps!.NextValue().ToString("N0"));
 								//}
-								break;
+								//break;
 							}
 
 							case "wide":

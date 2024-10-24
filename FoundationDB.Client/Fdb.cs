@@ -123,7 +123,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Returns the default API version that is supported by the version of this binding</summary>
 		/// <remarks>
-		/// The version may be different than the version supported by the installed client, and the database cluster itself!
+		/// The version may be different from the version supported by the installed client, and the database cluster itself!
 		/// This version should only be used by tools that are versioned and deployed alongside the binding package.
 		/// Application and Layers should define their own API version and not rely on this value.
 		/// </remarks>
@@ -147,7 +147,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <remarks>
 		/// The version can only be set before calling <see cref="Fdb.Start(int)"/> or any method that indirectly calls it.
-		/// If the value is 0, then the the maximum version supported by both this binding and the FoundationDB client (see <see cref="GetMaxSafeApiVersion()"/>).
+		/// If the value is 0, then the maximum version supported by both this binding and the FoundationDB client (see <see cref="GetMaxSafeApiVersion()"/>).
 		/// If you want to be conservative, you should target a specific version level, and only change to newer versions after making sure that all tests are passing!
 		/// </remarks>
 		/// <exception cref="InvalidOperationException">When attempting to change the API version after the binding has been started.</exception>
@@ -265,7 +265,7 @@ namespace FoundationDB.Client
 			if (s_eventLoopStarted)
 			{
 
-				// We cannot be called from the network thread itself, or else we will dead lock !
+				// We cannot be called from the network thread itself, or else we will deadlock !
 				Fdb.EnsureNotOnNetworkThread();
 
 				if (Logging.On) Logging.Verbose(typeof(Fdb), "StopEventLoop", "Stopping network thread...");
@@ -302,7 +302,9 @@ namespace FoundationDB.Client
 							if (Logging.On) Logging.Warning(typeof(Fdb), "StopEventLoop", $"The fdb network thread has not stopped after {duration.Elapsed.TotalSeconds:N0} seconds. Forcing shutdown...");
 
 							// Force a shutdown
+#if !NET6_0_OR_GREATER
 							thread.Abort();
+#endif
 
 							bool stopped = thread.Join(TimeSpan.FromSeconds(30));
 							//REVIEW: is this even useful? If the thread is stuck in a native P/Invoke call, it won't get notified until it returns to managed code ...
@@ -359,7 +361,7 @@ namespace FoundationDB.Client
 						Console.Error.WriteLine("THE FDB NETWORK EVENT LOOP HAS FAILED!");
 						Console.Error.WriteLine("=> " + err);
 						// REVIEW: should we FailFast in release mode also?
-						// => this may be a bit surprising for most users when applications unexpectedly crash for for no apparent reason.
+						// => this may be a bit surprising for most users when applications unexpectedly crash for no apparent reason.
 						Environment.FailFast("The FoundationDB Network Event Loop failed with error " + err + " and was terminated.");
 #endif
 					}
@@ -367,13 +369,15 @@ namespace FoundationDB.Client
 			}
 			catch (Exception e)
 			{
+#if !NET6_0_OR_GREATER
 				if (e is ThreadAbortException)
 				{ // some other thread tried to Abort() us. This probably means that we should exit ASAP...
 					Thread.ResetAbort();
 					return;
 				}
+#endif
 
-				//note: any error is this thread is BAD NEWS for the process, the the network thread usually cannot be restarted safely.
+				//note: any error is this thread is BAD NEWS for the process, the network thread usually cannot be restarted safely.
 
 				if (e is AccessViolationException)
 				{
@@ -397,12 +401,12 @@ namespace FoundationDB.Client
 
 #if DEBUG
 				// if we are running in DEBUG build, we want to get the attention of the developer on this.
-				// the best way is to make the test runner explode in mid-air with a scary looking message!
+				// the best way is to make the test runner explode in midair with a scary looking message!
 
 				Console.Error.WriteLine("THE FDB NETWORK EVENT LOOP HAS CRASHED!");
 				Console.Error.WriteLine("=> " + e.ToString());
 				// REVIEW: should we FailFast in release mode also?
-				// => this may be a bit surprising for most users when applications unexpectedly crash for for no apparent reason.
+				// => this may be a bit surprising for most users when applications unexpectedly crash for no apparent reason.
 				Environment.FailFast("The FoundationDB Network Event Loop crashed and had to be terminated: " + e.Message, e);
 #endif
 			}
@@ -429,7 +433,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Throws if the current thread is the Network Thread.</summary>
-		/// <remarks>Should be used to ensure that we do not execute tasks continuations from the network thread, to avoid dead-locks.</remarks>
+		/// <remarks>Should be used to ensure that we do not execute tasks continuations from the network thread, to avoid deadlocks.</remarks>
 		internal static void EnsureNotOnNetworkThread([CallerMemberName] string? callerMethod = null)
 		{
 #if DEBUG_THREADS
