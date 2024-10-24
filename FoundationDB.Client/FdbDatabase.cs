@@ -127,10 +127,7 @@ namespace FoundationDB.Client
 
 		string IFdbDatabase.Name => "DB";
 
-		/// <inheritdoc />
-		public string? ClusterFile => m_handler.ClusterFile;
-
-		/// <inheritdoc />
+		/// <inheritdoc cref="IFdbDatabase.Cancellation" />
 		public CancellationToken Cancellation { get; }
 
 		/// <inheritdoc />
@@ -607,6 +604,12 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc/>
 		int IFdbDatabaseOptions.ApiVersion => GetApiVersion();
+
+		/// <inheritdoc />
+		public string? ClusterFile => m_handler.ClusterFile;
+
+		/// <inheritdoc />
+		public string? ConnectionString => m_handler.ConnectionString;
 
 		/// <inheritdoc />
 		public IFdbDatabaseOptions SetOption(FdbDatabaseOption option)

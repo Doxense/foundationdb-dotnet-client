@@ -34,6 +34,20 @@ namespace FoundationDB.Client
 		/// <summary>API version selected for this database</summary>
 		int ApiVersion { get; }
 
+		/// <summary>Full path to the '.cluster' file that contains the connection string to the cluster</summary>
+		/// <remarks>
+		/// <para>This should be a valid path, accessible with read and write permissions by the process.</para>
+		/// <para>This property and <see cref="ConnectionString"/> are mutually exclusive.</para>
+		/// </remarks>
+		string? ClusterFile { get; }
+
+		/// <summary>Connection string to the cluster</summary>
+		/// <remarks>
+		/// <para>The format of this string is the same as the content of a <c>.cluster</c> file.</para>
+		/// <para>This property and <see cref="ClusterFile"/> are mutually exclusive.</para>
+		/// </remarks>
+		string? ConnectionString { get; }
+
 		/// <summary>Default Timeout value (in milliseconds) for all transactions created from this database instance.</summary>
 		/// <remarks>If changed, will only be effective for future transactions</remarks>
 		int DefaultTimeout { get; set; }

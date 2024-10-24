@@ -36,10 +36,6 @@ namespace FoundationDB.Client
 		[Obsolete("This property is not supported anymore and will always return \"DB\".")]
 		string Name { get; }
 
-		/// <summary>Path to the cluster file used to connect to the database</summary>
-		/// <remarks>If null, the default path for this platform will be used</remarks>
-		string? ClusterFile { get; }
-
 		/// <summary>Returns a cancellation token that is linked with the lifetime of this database instance</summary>
 		/// <remarks>The token will be cancelled if the database instance is disposed</remarks>
 		CancellationToken Cancellation { get; }

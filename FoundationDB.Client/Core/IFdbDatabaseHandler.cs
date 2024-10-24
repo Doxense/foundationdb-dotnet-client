@@ -32,16 +32,25 @@ namespace FoundationDB.Client.Core
 	public interface IFdbDatabaseHandler : IDisposable
 	{
 
+		/// <summary>Full path to the '.cluster' file that contains the connection string to the cluster</summary>
 		string? ClusterFile { get; }
 
+		/// <summary>Connection string to the cluster</summary>
+		string? ConnectionString { get; }
+
+		/// <summary>Returns <see langword="true"/> if the handler failed to initialize</summary>
 		bool IsInvalid { get; }
 
+		/// <summary>Returns <see langword="true"/> if the handler has already been terminated</summary>
 		bool IsClosed { get; }
 
+		/// <summary>Set the value of a <see cref="FdbDatabaseOption">database option</see></summary>
 		void SetOption(FdbDatabaseOption option, ReadOnlySpan<byte> data);
 
+		/// <summary>Gets the <see cref="IFdbTransactionHandler"/> for a new transaction to read and/or write to this database</summary>
 		IFdbTransactionHandler CreateTransaction(FdbOperationContext context);
 
+		/// <summary>Gets the <see cref="IFdbTenantHandler">handler</see> for a specific tenant in the database</summary>
 		IFdbTenantHandler OpenTenant(FdbTenantName name);
 
 		Task RebootWorkerAsync(ReadOnlySpan<char> name, bool check, int duration, CancellationToken ct);
