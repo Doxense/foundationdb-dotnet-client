@@ -29,6 +29,7 @@ using SnowBank.Testing;
 namespace FoundationDB.Client.Tests
 {
 	[TestFixture]
+	[Category("Fdb-Client-InProc")]
 	[Parallelizable(ParallelScope.All)]
 	public class KeySubspaceFacts : FdbSimpleTest
 	{

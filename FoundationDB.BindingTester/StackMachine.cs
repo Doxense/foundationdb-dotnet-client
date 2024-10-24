@@ -259,8 +259,7 @@ namespace FoundationDB.Client.Testing
 						stack.Add((result, await result.Resolve()));
 					}
 
-
-					if (true) //HACKHACK
+#if true
 					{
 						var sb = new StringBuilder();
 						sb.AppendLine($"LogStack: {prefix}");
@@ -273,11 +272,12 @@ namespace FoundationDB.Client.Testing
 						}
 						this.Log.LogInformation(sb.ToString());
 					}
-					else
+#else
 					{
 						var kvs = stack.Select((entry, i) => KeyValuePair.Create(prefix + TuPack.EncodeKey(i, entry.Result.Index), TuPack.Pack(entry.Result.Value).Truncate(40_000))).ToArray();
 						await this.Db.WriteAsync((tr) => tr.SetValues(kvs), ct);
 					}
+#endif
 
 					this.Stack.Clear();
 					break;

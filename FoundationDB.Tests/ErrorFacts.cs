@@ -29,6 +29,7 @@ namespace FoundationDB.Client.Tests
 	using FoundationDB.Client.Native;
 
 	[TestFixture]
+	[Category("Fdb-Client-InProc")]
 	[Parallelizable(ParallelScope.All)]
 	public class ErrorFacts : FdbSimpleTest
 	{

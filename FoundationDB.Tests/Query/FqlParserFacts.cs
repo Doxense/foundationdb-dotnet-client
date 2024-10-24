@@ -31,6 +31,7 @@ namespace FoundationDB.Client.Tests
 	using System;
 
 	[TestFixture]
+	[Category("Fdb-Client-InProc")]
 	[Parallelizable(ParallelScope.All)]
 	public class FqlParserFacts : FdbSimpleTest
 	{
