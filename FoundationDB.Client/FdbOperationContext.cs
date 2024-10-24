@@ -91,7 +91,7 @@ namespace FoundationDB.Client
 		internal CancellationTokenSource? TokenSource { get; }
 
 		/// <summary>Transaction instance currently being used by this context</summary>
-		private FdbTransaction? Transaction;
+		internal FdbTransaction? Transaction;
 		//note: field accessed via interlocked operations!
 
 #if NET9_0_OR_GREATER
@@ -152,6 +152,7 @@ namespace FoundationDB.Client
 				}
 				else
 				{ // second handler
+					Contract.Debug.Assert(!ReferenceEquals(previous, callback));
 					this.StateCallbacks = new [] { previous, callback };
 				}
 			}
@@ -202,13 +203,15 @@ namespace FoundationDB.Client
 			}
 		}
 
-		/// <summary>Register a callback that will only be called once the transaction has been successfully committed</summary>
+		/// <summary>Register a callback that will only be called once the transaction has completed successfully (after a commit for write transactions)</summary>
 		/// <remarks>NOTE: there are _no_ guarantees that the callback will fire at all, so this should only be used for cache updates or idempotent operations!</remarks>
 		public void OnSuccess(Action<FdbOperationContext, FdbTransactionState> callback)
 		{
 			RegisterStateCallback(callback ?? throw new ArgumentNullException(nameof(callback)));
 		}
 
+		/// <summary>Register a callback that will only be called once the transaction has completed successfully (after a commit for write transactions)</summary>
+		/// <remarks>NOTE: there are _no_ guarantees that the callback will fire at all, so this should only be used for cache updates or idempotent operations!</remarks>
 		public void OnSuccess(Func<FdbOperationContext, FdbTransactionState, CancellationToken, Task> callback)
 		{
 			RegisterStateCallback(callback ?? throw new ArgumentNullException(nameof(callback)));
@@ -1179,7 +1182,7 @@ namespace FoundationDB.Client
 							// execute any state callbacks, if there are any
 							if (context.StateCallbacks != null)
 							{
-								await context.ExecuteHandlers(ref context.StateCallbacks, context, FdbTransactionState.Commit).ConfigureAwait(false);
+								await context.ExecuteHandlers(ref context.StateCallbacks, context, trans.IsReadOnly ? FdbTransactionState.Completed : FdbTransactionState.Commit).ConfigureAwait(false);
 							}
 
 							// execute any final logic, if there is any
@@ -1623,6 +1626,8 @@ namespace FoundationDB.Client
 	{
 		/// <summary>The last execution of the handler failed</summary>
 		Faulted,
+		/// <summary>The last execution of the handler successfully executed the read-only transaction</summary>
+		Completed,
 		/// <summary>The last execution of the handler successfully committed the transaction</summary>
 		Commit,
 		/// <summary>The last execution of the handler was aborted</summary>

@@ -1350,7 +1350,7 @@ namespace FoundationDB.Client
 
 			internal void OnTransactionStateChanged(FdbOperationContext ctx, FdbTransactionState state)
 			{
-				if (state != FdbTransactionState.Commit)
+				if (state is not (FdbTransactionState.Commit or FdbTransactionState.Completed))
 				{ // reset the context in the initial state
 					Interlocked.Exchange(ref this.Status, STATUS_NEUTRAL);
 					this.Context = null;
