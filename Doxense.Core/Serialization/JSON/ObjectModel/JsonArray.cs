@@ -2742,6 +2742,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
+		[RequiresUnreferencedCode("The type might be removed")]
 		public override object? Bind(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
 			Type? type,

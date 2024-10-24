@@ -2323,7 +2323,9 @@ namespace Doxense.Serialization.Json
 		/// <typeparam name="TContainer">Type that must be resolved</typeparam>
 		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
-		public JsonObject SetClassId<TContainer>(ICrystalJsonTypeResolver? resolver = null)
+		public JsonObject SetClassId<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TContainer>
+			(ICrystalJsonTypeResolver? resolver = null)
 		{
 			return SetClassId(typeof(TContainer), resolver);
 		}
@@ -2332,7 +2334,10 @@ namespace Doxense.Serialization.Json
 		/// <param name="type">Type that must be resolved</param>
 		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
-		public JsonObject SetClassId(Type type, ICrystalJsonTypeResolver? resolver = null)
+		public JsonObject SetClassId(
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type type,
+			ICrystalJsonTypeResolver? resolver = null
+		)
 		{
 			Contract.NotNull(type);
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
@@ -3147,6 +3152,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
+		[RequiresUnreferencedCode("The type might be removed")]
 		public override TValue? Bind<
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TValue>
 			(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null) where TValue : default
@@ -3162,6 +3168,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
+		[RequiresUnreferencedCode("The type might be removed")]
 		public override object? Bind(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type? type,
 			ICrystalJsonTypeResolver? resolver = null)
@@ -3312,6 +3319,7 @@ namespace Doxense.Serialization.Json
 			return res;
 		}
 
+		[RequiresUnreferencedCode("The type might be removed")]
 		public Dictionary<TKey, TValue> ToDictionary<TKey, TValue>(ICrystalJsonTypeResolver? resolver = null)
 			where TKey : notnull
 		{

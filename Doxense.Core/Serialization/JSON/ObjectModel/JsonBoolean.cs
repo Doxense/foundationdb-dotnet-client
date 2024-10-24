@@ -74,6 +74,7 @@ namespace Doxense.Serialization.Json
 		public override object ToObject() => m_value;
 
 		/// <inheritdoc />
+		[RequiresUnreferencedCode("The type might be removed")]
 		public override TValue? Bind<
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TValue>
 			(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null) where TValue : default
@@ -113,6 +114,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
+		[RequiresUnreferencedCode("The type might be removed")]
 		public override object? Bind(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type? type,
 			ICrystalJsonTypeResolver? resolver = null)
@@ -139,7 +141,10 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		public override bool ValueEquals<TValue>(TValue? value, IEqualityComparer<TValue>? comparer = null) where TValue : default
+		[RequiresUnreferencedCode("The type might be removed")]
+		public override bool ValueEquals<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TValue>
+			(TValue? value, IEqualityComparer<TValue>? comparer = null) where TValue : default
 		{
 			if (default(TValue) is null)
 			{

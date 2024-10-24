@@ -290,6 +290,7 @@ namespace Doxense.Serialization.Json
 
 		/// <inheritdoc />
 		[EditorBrowsable(EditorBrowsableState.Never)]
+		[RequiresUnreferencedCode("The type might be removed")]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public override TValue? Bind<
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TValue>
@@ -320,6 +321,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
+		[RequiresUnreferencedCode("The type might be removed")]
 		public override object? Bind(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type? type,
 			ICrystalJsonTypeResolver? resolver = null)

@@ -66,6 +66,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>If the target type is a Value Type, the instance will be boxed, which may cause extra memory allocations. Consider calling <see cref="Bind{TValue}"/> instance, or use any of the convenience methods like <see cref="JsonValueExtensions.Required{TValue}"/>, <see cref="JsonValueExtensions.As{TValue}"/>, ...</remarks>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Never)]
+		[RequiresUnreferencedCode("The type might be removed")]
 		public abstract object? Bind([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type? type, ICrystalJsonTypeResolver? resolver = null);
 
 		/// <summary>Bind this value into an instance of type <typeparamref name="TValue"/></summary>
@@ -76,6 +77,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="JsonBindingException">If the value cannot be bound into an instance of the target type <typeparamref name="TValue"/>.</exception>
 		/// <example><c>JsonNumber.Return(123).Bind&lt;long>()</c> will return the value <c>123</c>.</example>
 		[EditorBrowsable(EditorBrowsableState.Never)]
+		[RequiresUnreferencedCode("The type might be removed")]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public virtual TValue? Bind<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TValue>(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null)
 		{
@@ -292,6 +294,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="comparer">Custom equality comparer if specified; otherwise, uses the default comparer for this type</param>
 		/// <returns><see langword="true"/> if both arguments are considered equal; otherwise, <see langword="false"/></returns>
 		/// <remarks>This method tries to perform an optimized comparison, and should perform less memory allocations than calling </remarks>
+		[RequiresUnreferencedCode("The type might be removed")]
 		public virtual bool ValueEquals<
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TValue>
 			(TValue? value, IEqualityComparer<TValue>? comparer = null)
@@ -1874,7 +1877,11 @@ namespace Doxense.Serialization.Json
 		ulong IConvertible.ToUInt64(IFormatProvider? provider) => ToUInt64();
 
 		/// <inheritdoc />
+#pragma warning disable IL2026
+#pragma warning disable IL2067
 		object IConvertible.ToType(Type conversionType, IFormatProvider? provider) => Bind(conversionType)!;
+#pragma warning restore IL2067
+#pragma warning restore IL2026
 
 		#endregion
 

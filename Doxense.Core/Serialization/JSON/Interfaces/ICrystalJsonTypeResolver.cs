@@ -54,6 +54,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Binds a JSON value into the corresponding CLR type</summary>
 		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
+		[RequiresUnreferencedCode("The type might be removed")]
 		object? BindJsonValue(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
 			Type? type,
@@ -61,6 +62,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Binds a JSON value into the corresponding CLR type</summary>
 		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
+		[RequiresUnreferencedCode("The type might be removed")]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		T? BindJson<
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>
@@ -68,12 +70,14 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Binds a JSON object into the corresponding CLR type</summary>
 		/// <exception cref="JsonBindingException">If the object cannot be bound to the specified type.</exception>
+		[RequiresUnreferencedCode("The type might be removed")]
 		object? BindJsonObject(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]Type? type,
 			JsonObject? value);
 
 		/// <summary>Binds a JSON array into the corresponding CLR type</summary>
 		/// <exception cref="JsonBindingException">If the array cannot be bound to the specified type.</exception>
+		[RequiresUnreferencedCode("The type might be removed")]
 		object? BindJsonArray(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
 			Type? type,

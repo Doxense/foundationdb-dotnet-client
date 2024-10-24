@@ -578,6 +578,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
+		[RequiresUnreferencedCode("The type might be removed")]
 		public override T? Bind<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>(T? defaultValue = default, ICrystalJsonTypeResolver? resolver = null) where T : default
 		{
 			#region <JIT_HACK>
@@ -666,6 +667,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
+		[RequiresUnreferencedCode("The type might be removed")]
 		public override object? Bind([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type? type, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (type is null || typeof(string) == type || typeof(object) == type)
@@ -931,6 +933,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
+		[RequiresUnreferencedCode("The type might be removed")]
 		public override bool ValueEquals<
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TValue>
 			(TValue? value, IEqualityComparer<TValue>? comparer = null) where TValue : default

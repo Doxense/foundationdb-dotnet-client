@@ -41,6 +41,8 @@ namespace Doxense.Serialization.Json
 	using Doxense.Runtime.Converters;
 
 	/// <summary>Default JSON resolver that uses reflection to serialize and deserialize managed types</summary>
+	[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+	[RequiresUnreferencedCode("The type might be removed")]
 	public sealed class CrystalJsonTypeResolver : ICrystalJsonTypeResolver
 	{
 
@@ -93,12 +95,13 @@ namespace Doxense.Serialization.Json
 		}
 
 		private static readonly Func<Type, CrystalJsonTypeResolver, CrystalJsonTypeDefinition?> ResolveNewTypeHandler =
+#pragma warning disable IL3050
 			static ([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] t, self) => self.ResolveJsonTypeNoCache(t);
+#pragma warning restore IL3050
 
 #if NET8_0_OR_GREATER
 		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
 #endif
-		[RequiresUnreferencedCode("The type might be removed")]
 		private CrystalJsonTypeDefinition? ResolveJsonTypeNoCache(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
 			Type type
@@ -108,7 +111,6 @@ namespace Doxense.Serialization.Json
 			return GetTypeDefinition(type);
 		}
 
-		[RequiresUnreferencedCode("The type might be removed")]
 		public Type ResolveClassId(string classId)
 		{
 #if DEBUG_JSON_RESOLVER
@@ -131,7 +133,6 @@ namespace Doxense.Serialization.Json
 #if NET8_0_OR_GREATER
 		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
 #endif
-		[RequiresUnreferencedCode("The type might be removed")]
 		private CrystalJsonTypeDefinition? GetTypeDefinition(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
 			Type type
@@ -171,7 +172,6 @@ namespace Doxense.Serialization.Json
 #if NET8_0_OR_GREATER
 		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
 #endif
-		[RequiresUnreferencedCode("The type might be removed")]
 		private CrystalJsonTypeDefinition CreateFromKeyValuePair(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)]
 			Type type
@@ -255,7 +255,6 @@ namespace Doxense.Serialization.Json
 			return null;
 		}
 
-		[RequiresUnreferencedCode("The type might be removed")]
 		private Type? GetTypeByClassId(string classId)
 		{
 #if DEBUG_JSON_RESOLVER
@@ -358,7 +357,9 @@ namespace Doxense.Serialization.Json
 
 		private static readonly QuasiImmutableCache<Type, Func<CrystalJsonTypeResolver, JsonArray?, object?>> DefaultArrayBinders = new(TypeEqualityComparer.Default);
 
+#pragma warning disable IL3050
 		private static readonly Func<Type, Func<CrystalJsonTypeResolver, JsonArray?, object?>> JsonArrayBinderCallback = CreateDefaultJsonArrayBinder;
+#pragma warning restore IL3050
 
 		/// <inheritdoc />
 		public object? BindJsonArray([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type? type, JsonArray? array)
@@ -370,7 +371,6 @@ namespace Doxense.Serialization.Json
 #if NET8_0_OR_GREATER
 		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
 #endif
-		[RequiresUnreferencedCode("If some of the generic arguments are annotated (either with DynamicallyAccessedMembersAttribute, or generic constraints), trimming can't validate that the requirements of those annotations are met.")]
 		private static Func<CrystalJsonTypeResolver, JsonArray?, object?> CreateDefaultJsonArrayBinder(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces | DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods | DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
 			Type? type
@@ -628,7 +628,6 @@ namespace Doxense.Serialization.Json
 #if NET8_0_OR_GREATER
 		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
 #endif
-		[RequiresUnreferencedCode("If some of the generic arguments are annotated (either with DynamicallyAccessedMembersAttribute, or generic constraints), trimming can't validate that the requirements of those annotations are met.")]
 		private static Func<CrystalJsonTypeResolver, JsonArray?, object?> CreateDefaultJsonArrayBinder_ITuple(Type type)
 		{
 			var filler = CreateBinderForValueTuple(type);
@@ -638,7 +637,6 @@ namespace Doxense.Serialization.Json
 #if NET8_0_OR_GREATER
 		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
 #endif
-		[RequiresUnreferencedCode("The type might be removed")]
 		private static Func<CrystalJsonTypeResolver, JsonArray?, object?> CreateDefaultJsonArrayBinder_Filler(
 			string filler,
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)]
@@ -695,7 +693,6 @@ namespace Doxense.Serialization.Json
 #if NET8_0_OR_GREATER
 		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
 #endif
-		[RequiresUnreferencedCode("The type might be removed")]
 		private object? InvokeFiller(
 			string name,
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)]
@@ -714,7 +711,6 @@ namespace Doxense.Serialization.Json
 #if NET8_0_OR_GREATER
 		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
 #endif
-		[RequiresUnreferencedCode("The type might be removed")]
 		private static MethodInfo GetFillerMethod(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)]
 			Type resolverType,
@@ -730,7 +726,6 @@ namespace Doxense.Serialization.Json
 #if NET8_0_OR_GREATER
 		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
 #endif
-		[RequiresUnreferencedCode("The type might be removed")]
 		private static MethodInfo MakeFillerMethod(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)]
 			Type resolverType,
@@ -1246,7 +1241,9 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+#pragma warning disable IL2067
 		private static readonly CrystalJsonTypeBinder GenericJsonValueBinder = (v, t, r) => (v ?? JsonNull.Missing).Bind(t, r);
+#pragma warning restore IL2067
 
 		/// <summary>Extracts the type definition via reflection, and generate a list of compiled binders</summary>
 		/// <param name="type">Class, struct, interface. Primitive type are not supported</param>
@@ -1285,7 +1282,7 @@ namespace Doxense.Serialization.Json
 			Contract.NotNull(nullableType);
 			Contract.NotNull(definition);
 
-			return new CrystalJsonTypeDefinition(definition.Type, definition.BaseType, definition.ClassId, NullableBinder, null, definition.Members);
+			return new(definition.Type, definition.BaseType, definition.ClassId, NullableBinder, null, definition.Members);
 
 			object? NullableBinder(JsonValue? value, Type bindingType, ICrystalJsonTypeResolver resolver)
 			{
@@ -1672,14 +1669,18 @@ namespace Doxense.Serialization.Json
 #endif
 		private static CrystalJsonTypeBinder CreateBinderForImmutableDictionary_StringKey(Type valueType)
 		{
+#pragma warning disable IL2070
 			var m = typeof(CrystalJsonTypeResolver)
 				.GetMethod(nameof(BindImmutableDictionary_StringKey), BindingFlags.Static | BindingFlags.NonPublic)!
 				.MakeGenericMethod(valueType);
+#pragma warning restore IL2070
 
 			return m.CreateDelegate<CrystalJsonTypeBinder>();
 		}
 
-		private static object? BindImmutableDictionary_StringKey<TValue>(JsonValue? value, Type type, ICrystalJsonTypeResolver resolver)
+		private static object? BindImmutableDictionary_StringKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TValue>
+			(JsonValue? value, Type type, ICrystalJsonTypeResolver resolver)
 		{
 			if (value.IsNullOrMissing()) return null;
 			if (value is not JsonObject obj) throw FailCannotDeserializeNotJsonObject(type);
@@ -1697,14 +1698,18 @@ namespace Doxense.Serialization.Json
 #endif
 		private static CrystalJsonTypeBinder CreateBinderForImmutableDictionary_Int32Key(Type valueType)
 		{
+#pragma warning disable IL2070
 			var m = typeof(CrystalJsonTypeResolver)
-				.GetMethod(nameof(BindImmutableDictionary_Int32Key), BindingFlags.Static | BindingFlags.NonPublic)!
-				.MakeGenericMethod(valueType);
+			        .GetMethod(nameof(BindImmutableDictionary_Int32Key), BindingFlags.Static | BindingFlags.NonPublic)!
+			        .MakeGenericMethod(valueType);
+#pragma warning restore IL2070
 
 			return m.CreateDelegate<CrystalJsonTypeBinder>();
 		}
 
-		private static object? BindImmutableDictionary_Int32Key<TValue>(JsonValue? value, Type type, ICrystalJsonTypeResolver resolver)
+		private static object? BindImmutableDictionary_Int32Key<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TValue>
+			(JsonValue? value, Type type, ICrystalJsonTypeResolver resolver)
 		{
 			if (value.IsNullOrMissing()) return null;
 			if (value is not JsonObject obj) throw FailCannotDeserializeNotJsonObject(type);
@@ -1720,7 +1725,6 @@ namespace Doxense.Serialization.Json
 #if NET8_0_OR_GREATER
 		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
 #endif
-		[RequiresUnreferencedCode("If some of the generic arguments are annotated (either with DynamicallyAccessedMembersAttribute, or generic constraints), trimming can't validate that the requirements of those annotations are met.")]
 		private static CrystalJsonTypeBinder? CreateBinderForDictionary(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)]
 			Type type,
@@ -1766,7 +1770,10 @@ namespace Doxense.Serialization.Json
 			return null;
 		}
 
-		private static CrystalJsonTypeBinder CreateBinderForDictionary_StringKey(Func<object> generator, Type valueType)
+		private static CrystalJsonTypeBinder CreateBinderForDictionary_StringKey(
+			Func<object> generator,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type valueType
+		)
 		{
 			return (v, t, r) =>
 			{
@@ -1783,7 +1790,10 @@ namespace Doxense.Serialization.Json
 			};
 		}
 
-		private static CrystalJsonTypeBinder CreateBinderForDictionary_Int32Key(Func<object> generator, Type valueType)
+		private static CrystalJsonTypeBinder CreateBinderForDictionary_Int32Key(
+			Func<object> generator,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type valueType
+		)
 		{
 			return (v, t, r) =>
 			{
@@ -1800,7 +1810,11 @@ namespace Doxense.Serialization.Json
 			};
 		}
 
-		private static CrystalJsonTypeBinder CreateBinderForDictionary_BoxedKey(Func<object> generator, Type valueType, Func<string, object> convert)
+		private static CrystalJsonTypeBinder CreateBinderForDictionary_BoxedKey(
+			Func<object> generator,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type valueType,
+			Func<string, object> convert
+		)
 		{
 			return (v, t, r) =>
 			{
@@ -1849,7 +1863,12 @@ namespace Doxense.Serialization.Json
 			return CreateBinderForKeyValuePair_NoScope(keyType, valueType, empty, lambda);
 		}
 
-		private static CrystalJsonTypeBinder CreateBinderForKeyValuePair_NoScope(Type keyType, Type valueType, object? empty, Func<object?, object?, object> converter)
+		private static CrystalJsonTypeBinder CreateBinderForKeyValuePair_NoScope(
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type keyType,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type valueType,
+			object? empty,
+			Func<object?, object?, object> converter
+		)
 		{
 			return (v, t, r) =>
 			{
@@ -1873,7 +1892,6 @@ namespace Doxense.Serialization.Json
 #if NET8_0_OR_GREATER
 		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
 #endif
-		[RequiresUnreferencedCode("If some of the generic arguments are annotated (either with DynamicallyAccessedMembersAttribute, or generic constraints), trimming can't validate that the requirements of those annotations are met.")]
 		private static CrystalJsonTypeBinder CreateBinderForValueTuple(Type type)
 		{
 			// we want to generate: (value, ..., resolver) => (object) ValueTuple.Create(..., array[i].As<Ti>(resolver), ...)
