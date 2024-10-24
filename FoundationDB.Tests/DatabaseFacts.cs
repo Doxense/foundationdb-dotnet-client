@@ -170,12 +170,16 @@ namespace FoundationDB.Client.Tests
 			{
 				Log($"-  {x.Address}:{x.Port}{(x.Tls ? " (TLS)" : "")}");
 			}
-			Assert.That(coordinators.Description, Is.Not.Null.Or.Empty); //note: it should be a long numerical string, but it changes for each installation
-			Assert.That(coordinators.Id, Is.Not.Null.And.Length.GreaterThan(0));
-			Assert.That(coordinators.Coordinators, Is.Not.Null.And.Length.GreaterThan(0));
+
+			var server = GetLocalServer();
+
+			Assert.That(coordinators.Description, Is.EqualTo(server.Description));
+			Assert.That(coordinators.Id, Is.EqualTo(server.Id));
+			Assert.That(coordinators.Coordinators, Has.Length.EqualTo(1));
 
 			Assert.That(coordinators.Coordinators[0], Is.Not.Null);
-			Assert.That(coordinators.Coordinators[0].Port, Is.GreaterThanOrEqualTo(4500).And.LessThanOrEqualTo(4510)); //HACKHACK: may not work everywhere !
+			Assert.That(coordinators.Coordinators[0].Port, Is.EqualTo(server.Port));
+			Assert.That(coordinators.Coordinators[0].Address, Is.EqualTo(IPAddress.Loopback));
 
 			//TODO: how can we check that it is correct?
 			Log($"Coordinators: {coordinators}");

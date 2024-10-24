@@ -35,18 +35,6 @@ namespace FoundationDB.Client.Tests
 
 		//TODO: move these methods to FdbTest ?
 
-		/// <summary>Connect to the local test database</summary>
-		public static Task<IFdbDatabase> OpenTestDatabaseAsync(CancellationToken ct)
-		{
-			var options = new FdbConnectionOptions
-			{
-				ClusterFile = TestClusterFile,
-				Root = FdbPath.Root, // core tests cannot rely on the DirectoryLayer!
-				DefaultTimeout = TimeSpan.FromMilliseconds(DefaultTimeout),
-			};
-			return Fdb.OpenAsync(options, ct);
-		}
-
 		/// <summary>Connect to the local test partition</summary>
 		public static Task<IFdbDatabase> OpenTestPartitionAsync(CancellationToken ct, FdbPath? suffix = null)
 		{
