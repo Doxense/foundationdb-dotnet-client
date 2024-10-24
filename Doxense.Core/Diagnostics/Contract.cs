@@ -191,6 +191,7 @@ namespace Doxense.Diagnostics.Contracts
 		/// <para>Note that, even if <paramref name="value"/> is a Value Type, the JIT will optimize the method away, and no boxing should occur</para>
 		/// </remarks>
 		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void NotNull(
 			[System.Diagnostics.CodeAnalysis.NotNull, AssertionCondition(AssertionConditionType.IS_NOT_NULL), NoEnumeration] object? value,
 			string? message = null,
@@ -264,6 +265,7 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified string must not be null or empty (assert: value != null &amp;&amp; value.Length != 0)</summary>
 		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void NotNullOrEmpty(
 			[System.Diagnostics.CodeAnalysis.NotNull, AssertionCondition(AssertionConditionType.IS_NOT_NULL)] string? value,
 			string? message = null,
@@ -282,6 +284,7 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified string must not be null, empty or contain only whitespaces (assert: value != null &amp;&amp; value.Length != 0)</summary>
 		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void NotNullOrWhiteSpace(
 			[System.Diagnostics.CodeAnalysis.NotNull, AssertionCondition(AssertionConditionType.IS_NOT_NULL)] string? value,
 			string? message = null,
@@ -300,6 +303,7 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified array must not be null or empty (assert: value != null &amp;&amp; value.Count != 0)</summary>
 		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void NotNullOrEmpty<T>(
 			[System.Diagnostics.CodeAnalysis.NotNull, AssertionCondition(AssertionConditionType.IS_NOT_NULL)] T[]? value,
 			string? message = null,
@@ -319,6 +323,7 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified collection must not be null or empty (assert: value != null &amp;&amp; value.Count != 0)</summary>
 		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void NotNullOrEmpty<T>(
 			[System.Diagnostics.CodeAnalysis.NotNull, AssertionCondition(AssertionConditionType.IS_NOT_NULL)] ICollection<T>? value,
 			string? message = null,
@@ -344,6 +349,7 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified buffer must not be null or empty (assert: buffer.Array != null &amp;&amp; buffer.Count != 0)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void NotNullOrEmpty(Slice buffer, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(buffer))] string? paramName = null)
 		{
 			if (buffer.Array is null | buffer.Count == 0) throw FailBufferNullOrEmpty(buffer.Array, paramName!, message);
@@ -351,6 +357,7 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified buffer must not be null or empty (assert: buffer.Array != null &amp;&amp; buffer.Count != 0)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void NotNullOrEmpty<T>(ArraySegment<T> buffer, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(buffer))] string? paramName = null)
 		{
 			if (buffer.Array is null || buffer.Count == 0) throw FailBufferNullOrEmpty(buffer.Array, paramName!, message);
@@ -437,6 +444,7 @@ namespace Doxense.Diagnostics.Contracts
 		/// <summary>The specified value must not be a negative number (assert: value >= 0)</summary>
 		/// <exception cref="System.ArgumentOutOfRangeException">If the value is negative</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void Positive(int value, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
 			if (value < 0) throw FailArgumentNotPositive(paramName!, message);
@@ -445,6 +453,7 @@ namespace Doxense.Diagnostics.Contracts
 		/// <summary>The specified value must not be a negative number (assert: value >= 0)</summary>
 		/// <exception cref="System.ArgumentOutOfRangeException">If the value is negative</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void Positive(long value, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
 			if (value < 0) throw FailArgumentNotPositive(paramName!, message);
@@ -453,6 +462,7 @@ namespace Doxense.Diagnostics.Contracts
 		/// <summary>The specified value must not be a negative number (assert: value >= 0)</summary>
 		/// <exception cref="System.ArgumentOutOfRangeException">If the value is negative</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void Positive(double value, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
 			if (Math.Sign(value) != 1) throw FailArgumentNotPositive(paramName!, message);
@@ -461,6 +471,7 @@ namespace Doxense.Diagnostics.Contracts
 		/// <summary>The specified value must not be a negative number (assert: value >= 0)</summary>
 		/// <exception cref="System.ArgumentOutOfRangeException">If the value is negative</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void Positive(float value, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
 			if (MathF.Sign(value) != 1) throw FailArgumentNotPositive(paramName!, message);
@@ -472,6 +483,7 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified value must be a power of two (assert: NextPowerOfTwo(value) == value)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void PowerOfTwo(int value, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
 			if (value < 0 || unchecked((value & (value - 1)) != 0)) throw FailArgumentNotPowerOfTwo(paramName!, message);
@@ -479,6 +491,7 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified value must be a power of two (assert: NextPowerOfTwo(value) == value)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void PowerOfTwo(uint value, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
 			if (unchecked((value & (value - 1)) != 0)) throw FailArgumentNotPowerOfTwo(paramName!, message);
@@ -486,6 +499,7 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified value must be a power of two (assert: NextPowerOfTwo(value) == value)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void PowerOfTwo(long value, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
 			if (value < 0 || unchecked((value & (value - 1)) != 0)) throw FailArgumentNotPowerOfTwo(paramName!, message);
@@ -493,6 +507,7 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified value must be a power of two (assert: NextPowerOfTwo(value) == value)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void PowerOfTwo(ulong value, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
 			if (unchecked((value & (value - 1)) != 0)) throw FailArgumentNotPowerOfTwo(paramName!, message);
@@ -504,6 +519,7 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified value must not equal to the specified constant (assert: value != forbidden)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void EqualTo(int value, int expected, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
 			if (value != expected) throw FailArgumentExpected(paramName!, expected, message);
@@ -511,6 +527,7 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified value must not equal to the specified constant (assert: value != forbidden)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void EqualTo(long value, long expected, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
 			if (value != expected) throw FailArgumentExpected(paramName!, expected, message);
@@ -518,6 +535,7 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified value must not equal to the specified constant (assert: value != forbidden)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void EqualTo(uint value, uint expected, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
 			if (value != expected) throw FailArgumentExpected(paramName!, expected, message);
@@ -525,6 +543,7 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified value must not equal to the specified constant (assert: value != forbidden)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void EqualTo(ulong value, ulong expected, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
 			if (value != expected) throw FailArgumentExpected(paramName!, expected, message);
@@ -532,6 +551,7 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified value must not equal to the specified constant (assert: value != forbidden)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void EqualTo(string? value, string? expected, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
 			if (value != expected) throw FailArgumentExpected(paramName!, expected, message);
@@ -539,6 +559,7 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified value must not equal to the specified constant (assert: value != forbidden)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void EqualTo<T>(T value, T expected, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 			where T : struct, IEquatable<T>
 		{
@@ -551,6 +572,7 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified value must not equal to the specified constant (assert: value != forbidden)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void NotEqualTo(int value, int forbidden, string? message = null, [InvokerParameterName] [CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
 			if (value == forbidden) throw FailArgumentForbidden(paramName!, forbidden, message);
@@ -558,6 +580,7 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified value must not equal to the specified constant (assert: value != forbidden)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void NotEqualTo(long value, long forbidden, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
 			if (value == forbidden) throw FailArgumentForbidden(paramName!, forbidden, message);
@@ -565,6 +588,7 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified value must not equal to the specified constant (assert: value != forbidden)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void NotEqualTo(uint value, uint forbidden, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
 			if (value == forbidden) throw FailArgumentForbidden(paramName!, forbidden, message);
@@ -572,6 +596,7 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified value must not equal to the specified constant (assert: value != forbidden)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void NotEqualTo(ulong value, ulong forbidden, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
 			if (value == forbidden) throw FailArgumentForbidden(paramName!, forbidden, message);
@@ -579,6 +604,7 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified value must not equal to the specified constant (assert: value != forbidden)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void NotEqualTo(string value, string forbidden, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
 			if (value == forbidden) throw FailArgumentForbidden(paramName!, forbidden, message);
@@ -586,6 +612,7 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified value must not equal to the specified constant (assert: value != forbidden)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void NotEqualTo<T>(T value, T forbidden, string? message = null, [InvokerParameterName] [CallerArgumentExpression(nameof(value))] string? paramName = null)
 			where T : struct, IEquatable<T>
 		{
@@ -599,6 +626,7 @@ namespace Doxense.Diagnostics.Contracts
 #if NET8_0_OR_GREATER
 		/// <summary>The specified value must not less than or equal to the specified lower bound (assert: value > threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void GreaterThan<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 			where T : System.Numerics.INumber<T>
 		{
@@ -607,6 +635,7 @@ namespace Doxense.Diagnostics.Contracts
 #else
 		/// <summary>The specified value must not less than or equal to the specified lower bound (assert: value > threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void GreaterThan<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 			where T : struct, IComparable<T>
 		{
@@ -621,6 +650,7 @@ namespace Doxense.Diagnostics.Contracts
 #if NET8_0_OR_GREATER
 		/// <summary>The specified value must not less than the specified lower bound (assert: value >= threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void GreaterOrEqual<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 			where T : System.Numerics.INumber<T>
 		{
@@ -629,6 +659,7 @@ namespace Doxense.Diagnostics.Contracts
 #else
 		/// <summary>The specified value must not less than the specified lower bound (assert: value >= threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void GreaterOrEqual<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 			where T : struct, IComparable<T>
 		{
@@ -643,6 +674,7 @@ namespace Doxense.Diagnostics.Contracts
 #if NET8_0_OR_GREATER
 		/// <summary>The specified value must not greater than or equal to the specified upper bound (assert: value &lt; threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void LessThan<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 			where T : System.Numerics.INumber<T>
 		{
@@ -651,6 +683,7 @@ namespace Doxense.Diagnostics.Contracts
 #else
 		/// <summary>The specified value must not greater than or equal to the specified upper bound (assert: value &lt; threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void LessThan<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 			where T : struct, IComparable<T>
 		{
@@ -665,6 +698,7 @@ namespace Doxense.Diagnostics.Contracts
 #if NET8_0_OR_GREATER
 		/// <summary>The specified value must not greater than the specified upper bound (assert: value &lt;= threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void LessOrEqual<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 			where T : System.Numerics.INumber<T>
 		{
@@ -673,6 +707,7 @@ namespace Doxense.Diagnostics.Contracts
 #else
 		/// <summary>The specified value must not greater than the specified upper bound (assert: value &lt;= threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void LessOrEqual<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 			where T : struct, IComparable<T>
 		{
@@ -687,6 +722,7 @@ namespace Doxense.Diagnostics.Contracts
 #if NET8_0_OR_GREATER
 		/// <summary>The specified value must not be outside the specified bounds (assert: min &lt;= value &lt;= max)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void Between<T>(T value, T minimumInclusive, T maximumInclusive, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(minimumInclusive))] string? minExpression = null, [InvokerParameterName, CallerArgumentExpression("maximumInclusive")] string? maxExpression = null)
 			where T : System.Numerics.INumber<T>
 		{
@@ -695,6 +731,7 @@ namespace Doxense.Diagnostics.Contracts
 #else
 		/// <summary>The specified value must not be outside the specified bounds (assert: min &lt;= value &lt;= max)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void Between<T>(T value, T minimumInclusive, T maximumInclusive, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(minimumInclusive))] string? minExpression = null, [InvokerParameterName, CallerArgumentExpression("maximumInclusive")] string? maxExpression = null)
 			where T : IComparable<T>
 		{
@@ -708,6 +745,7 @@ namespace Doxense.Diagnostics.Contracts
 
 #if NET8_0_OR_GREATER
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void Multiple<T>(T value, T multiple, string? message = null, [InvokerParameterName] [CallerArgumentExpression(nameof(value))] string? paramName = null)
 			where T : System.Numerics.INumber<T>
 		{
@@ -715,24 +753,28 @@ namespace Doxense.Diagnostics.Contracts
 		}
 #else
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void Multiple(int value, int multiple, string? message = null, [InvokerParameterName] [CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
 			if (value % multiple != 0) throw FailArgumentNotMultiple(paramName!, message);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void Multiple(uint value, uint multiple, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
 			if (value % multiple != 0) throw FailArgumentNotMultiple(paramName!, message);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void Multiple(long value, long multiple, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
 			if (value % multiple != 0) throw FailArgumentNotMultiple(paramName!, message);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
 		public static void Multiple(ulong value, ulong multiple, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
 			if (value % multiple != 0) throw FailArgumentNotMultiple(paramName!, message);
@@ -747,6 +789,7 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified region must not be outside the specified buffer</summary>
 		[AssertionMethod]
+		[StackTraceHidden]
 		public static void DoesNotOverflow(
 			[System.Diagnostics.CodeAnalysis.NotNull]
 			[AssertionCondition(AssertionConditionType.IS_NOT_NULL)] string? buffer,
@@ -765,6 +808,7 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified region must not be outside the specified buffer</summary>
 		[AssertionMethod]
+		[StackTraceHidden]
 		public static void DoesNotOverflow(int bufferLength, int offset, int count, string? message = null)
 		{
 			if (offset < 0 || count < 0) throw FailArgumentNotNonNegative(offset < 0 ? nameof(offset) : nameof(count), message);
@@ -773,6 +817,7 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified region must not be outside the specified buffer</summary>
 		[AssertionMethod]
+		[StackTraceHidden]
 		public static void DoesNotOverflow(long bufferLength, long offset, long count, string? message = null)
 		{
 			if (offset < 0 || count < 0) throw FailArgumentNotNonNegative(offset < 0 ? nameof(offset) : nameof(count), message);
@@ -781,6 +826,7 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified region must not be outside the specified buffer</summary>
 		[AssertionMethod]
+		[StackTraceHidden]
 		public static void DoesNotOverflow<TElement>(
 			[System.Diagnostics.CodeAnalysis.NotNull]
 			[AssertionCondition(AssertionConditionType.IS_NOT_NULL)] TElement[]? buffer,
@@ -798,6 +844,8 @@ namespace Doxense.Diagnostics.Contracts
 		}
 
 		/// <summary>The specified region must not be outside the specified buffer</summary>
+		[AssertionMethod]
+		[StackTraceHidden]
 		public static void DoesNotOverflow<TElement>(
 			ArraySegment<TElement> buffer,
 			string? message = null,
@@ -818,6 +866,7 @@ namespace Doxense.Diagnostics.Contracts
 
 		/// <summary>The specified region must not be outside the specified buffer</summary>
 		[AssertionMethod]
+		[StackTraceHidden]
 		public static void DoesNotOverflow<TElement>(
 			[System.Diagnostics.CodeAnalysis.NotNull]
 			[AssertionCondition(AssertionConditionType.IS_NOT_NULL)] ICollection<TElement>? buffer,
