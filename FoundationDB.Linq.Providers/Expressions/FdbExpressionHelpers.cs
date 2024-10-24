@@ -26,6 +26,7 @@
 
 namespace FoundationDB.Linq.Expressions
 {
+	using System.Diagnostics.CodeAnalysis;
 
 	/// <summary>Helper class for working with extension expressions</summary>
 	public static class FdbExpressionHelpers
@@ -33,8 +34,11 @@ namespace FoundationDB.Linq.Expressions
 
 		#region DebugView...
 
+#pragma warning disable IL2026
 		private static readonly Func<Expression, string> DebugViewGetter = CreateDebugViewGetter();
+#pragma warning restore IL2026
 
+		[RequiresUnreferencedCode("The type might be removed")]
 		private static Func<Expression, string> CreateDebugViewGetter()
 		{
 			try

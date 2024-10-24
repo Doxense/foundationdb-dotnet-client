@@ -26,9 +26,15 @@
 
 namespace FoundationDB.Linq.Expressions
 {
+#if NET8_0_OR_GREATER
+	using System.Diagnostics.CodeAnalysis;
+#endif
 
 	/// <summary>Expression that represent a filter on a source sequence</summary>
 	/// <typeparam name="T">Type of elements in the source sequence</typeparam>
+#if NET8_0_OR_GREATER
+	[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
+#endif
 	public class FdbQueryFilterExpression<T> : FdbQuerySequenceExpression<T>
 	{
 

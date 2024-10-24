@@ -26,11 +26,17 @@
 
 namespace FoundationDB.Linq
 {
+#if NET8_0_OR_GREATER
+	using System.Diagnostics.CodeAnalysis;
+#endif
 	using FoundationDB.Layers.Indexing;
 	using FoundationDB.Linq.Providers;
 
 	/// <summary>Extensions methods that help create a query expression tree</summary>
 	[PublicAPI]
+#if NET8_0_OR_GREATER
+	[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
+#endif
 	public static class FdbAsyncQueryable
 	{
 
@@ -51,7 +57,7 @@ namespace FoundationDB.Linq
 		/// <returns>Query that will use this transaction as a source</returns>
 		public static IFdbTransactionQueryable Query(this IFdbReadOnlyTransaction tr)
 		{
-			if (tr == null) throw new ArgumentNullException(nameof(tr));
+			Contract.NotNull(tr);
 
 			return new FdbTransactionQuery(tr);
 		}
@@ -62,7 +68,7 @@ namespace FoundationDB.Linq
 		/// <returns>Query that will return the keys from the specified <paramref name="range"/></returns>
 		public static IFdbAsyncSequenceQueryable<KeyValuePair<Slice, Slice>> Range(this IFdbTransactionQueryable query, KeySelectorPair range)
 		{
-			if (query == null) throw new ArgumentNullException(nameof(query));
+			Contract.NotNull(query);
 
 			var expr = FdbQueryExpressions.Range(range);
 
@@ -75,7 +81,7 @@ namespace FoundationDB.Linq
 		/// <returns>Query that will return the keys that share the specified <paramref name="prefix"/></returns>
 		public static IFdbAsyncSequenceQueryable<KeyValuePair<Slice, Slice>> RangeStartsWith(this IFdbTransactionQueryable query, Slice prefix)
 		{
-			if (query == null) throw new ArgumentNullException(nameof(query));
+			Contract.NotNull(query);
 
 			var expr = FdbQueryExpressions.RangeStartsWith(prefix);
 
@@ -89,13 +95,13 @@ namespace FoundationDB.Linq
 		/// <summary>Creates a new query on this index</summary>
 		public static IFdbIndexQueryable<TId, TValue> Query<TId, TValue>(this FdbIndex<TId, TValue> index, IFdbDatabase db)
 		{
-			if (index == null) throw new ArgumentNullException(nameof(index));
-			if (db == null) throw new ArgumentNullException(nameof(db));
+			Contract.NotNull(index);
+			Contract.NotNull(db);
 
 			return new FdbIndexQuery<TId, TValue>(db, index);
 		}
 
-		/// <summary>Creates a new query that will lookup specific values on this index</summary>
+		/// <summary>Creates a new query that will look up specific values on this index</summary>
 		public static IFdbAsyncSequenceQueryable<TId> Lookup<TId, TValue>(this IFdbIndexQueryable<TId, TValue> query, Expression<Func<TValue , bool>> predicate)
 		{
 			var expr = FdbQueryIndexLookupExpression<TId, TValue>.Lookup(query.Index, predicate);

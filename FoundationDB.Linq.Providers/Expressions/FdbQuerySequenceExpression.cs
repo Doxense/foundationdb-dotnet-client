@@ -26,9 +26,13 @@
 
 namespace FoundationDB.Linq.Expressions
 {
+	using System.Diagnostics.CodeAnalysis;
 
 	/// <summary>Base class of all queries that return a sequence of elements (Ranges, Index lookups, ...)</summary>
 	/// <typeparam name="T">Type of items returned</typeparam>
+#if NET8_0_OR_GREATER
+	[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
+#endif
 	public abstract class FdbQuerySequenceExpression<T> : FdbQueryExpression<IAsyncEnumerable<T>>
 	{
 		/// <summary>Type of elements returned by the sequence</summary>

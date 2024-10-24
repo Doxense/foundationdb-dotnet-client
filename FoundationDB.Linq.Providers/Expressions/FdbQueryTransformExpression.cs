@@ -26,10 +26,16 @@
 
 namespace FoundationDB.Linq.Expressions
 {
+#if NET8_0_OR_GREATER
+	using System.Diagnostics.CodeAnalysis;
+#endif
 
 	/// <summary>Expression that represent a projection from one type into another</summary>
 	/// <typeparam name="TSource">Type of elements in the inner sequence</typeparam>
 	/// <typeparam name="TResult">Type of elements in the outer sequence</typeparam>
+#if NET8_0_OR_GREATER
+	[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
+#endif
 	public class FdbQueryTransformExpression<TSource, TResult> : FdbQuerySequenceExpression<TResult>
 	{
 

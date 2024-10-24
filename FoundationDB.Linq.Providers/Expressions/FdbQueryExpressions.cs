@@ -26,9 +26,15 @@
 
 namespace FoundationDB.Linq.Expressions
 {
+#if NET8_0_OR_GREATER
+	using System.Diagnostics.CodeAnalysis;
+#endif
 	using Doxense.Collections.Tuples;
 
 	/// <summary>Helper class to construct Query Expressions</summary>
+#if NET8_0_OR_GREATER
+	[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
+#endif
 	public static class FdbQueryExpressions
 	{
 
@@ -83,8 +89,8 @@ namespace FoundationDB.Linq.Expressions
 			Contract.NotNull(expressions);
 			if (expressions.Length <= 1) throw new ArgumentException("There must be at least two sequences to perform an intersection");
 
-			var type = expressions[0].Type;
 			//TODO: check that all the other have the same type
+			//var type = expressions[0].Type;
 
 			return new FdbQueryIntersectExpression<T>(expressions, null);
 		}
@@ -95,13 +101,13 @@ namespace FoundationDB.Linq.Expressions
 			Contract.NotNull(expressions);
 			if (expressions.Length <= 1) throw new ArgumentException("There must be at least two sequences to perform an intersection");
 
-			var type = expressions[0].Type;
 			//TODO: check that all the other have the same type
+			//var type = expressions[0].Type;
 
 			return new FdbQueryUnionExpression<T>(expressions, null);
 		}
 
-		/// <summary>Transform each elements of a sequence into a new sequence</summary>
+		/// <summary>Transform each element of a sequence into a new sequence</summary>
 		public static FdbQueryTransformExpression<TSource, TResult> Transform<TSource, TResult>(FdbQuerySequenceExpression<TSource> source, Expression<Func<TSource, TResult>> transform)
 		{
 			Contract.NotNull(source);

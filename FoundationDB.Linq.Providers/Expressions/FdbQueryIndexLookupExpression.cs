@@ -26,11 +26,17 @@
 
 namespace FoundationDB.Linq.Expressions
 {
+#if NET8_0_OR_GREATER
+	using System.Diagnostics.CodeAnalysis;
+#endif
 	using FoundationDB.Layers.Indexing;
 
 	/// <summary>Expression that represents a lookup on an FdbIndex</summary>
 	/// <typeparam name="TKey">Type of the Id of the entities being indexed</typeparam>
 	/// <typeparam name="TValue">Type of the value that will be looked up</typeparam>
+#if NET8_0_OR_GREATER
+	[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
+#endif
 	public abstract class FdbQueryLookupExpression<TKey, TValue> : FdbQuerySequenceExpression<TKey>
 	{
 
@@ -75,10 +81,12 @@ namespace FoundationDB.Linq.Expressions
 
 	}
 
-
 	/// <summary>Expression that represents a lookup on an FdbIndex</summary>
 	/// <typeparam name="TKey">Type of the Id of the entities being indexed</typeparam>
 	/// <typeparam name="TValue">Type of the value that will be looked up</typeparam>
+#if NET8_0_OR_GREATER
+	[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
+#endif
 	public class FdbQueryIndexLookupExpression<TKey, TValue> : FdbQueryLookupExpression<TKey, TValue>
 	{
 
@@ -156,8 +164,8 @@ namespace FoundationDB.Linq.Expressions
 		/// <summary>Create a lookup expression on an index</summary>
 		public static FdbQueryIndexLookupExpression<TKey, TValue> Lookup(FdbIndex<TKey, TValue> index, ExpressionType op, Expression value)
 		{
-			if (index == null) throw new ArgumentNullException(nameof(index));
-			if (value == null) throw new ArgumentNullException(nameof(value));
+			Contract.NotNull(index);
+			Contract.NotNull(value);
 
 			switch (op)
 			{
