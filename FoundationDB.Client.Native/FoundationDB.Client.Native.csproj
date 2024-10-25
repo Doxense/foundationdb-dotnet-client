@@ -12,7 +12,7 @@
 		<ProduceReferenceAssembly>true</ProduceReferenceAssembly>
 		<!--<IsAotCompatible Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">true</IsAotCompatible>-->
 		<!-- Define the platforms that we support -->
-		<RuntimeIdentifiers>win-x64;linux-x64;linux-arm64</RuntimeIdentifiers>		
+		<RuntimeIdentifiers>win-x64;linux-x64;linux-arm64</RuntimeIdentifiers>
 	</PropertyGroup>
 	
 	<Import Project="..\Common\VersionInfo.props" />
@@ -31,13 +31,17 @@
 	<PropertyGroup Condition="'$(DISABLE_NATIVE_PACKAGE)' == 'true'">
 		<IsPackable>false</IsPackable>
 	</PropertyGroup>
+	
+	<!-- Detect if we are being packed as part of another package -->
+	<PropertyGroup>
+		<IsPackingSelf Condition="'$(IsPackable)' == 'true' and '$(_IsPacking)' == 'true' and '$(MSBuildProjectName)' == 'FoundationDB.Client.Native'">true</IsPackingSelf>
+		<IsPackingSelf Condition="'$(IsPackingSelf)' == ''">false</IsPackingSelf>
+	</PropertyGroup>
 
-	<ItemGroup Condition="'$(_IsPacking)' == 'true'">
-		<PackageReference Include="FoundationDB.Client" VersionOverride="[7.3.*-*, 8.0.0.0)" />
-	</ItemGroup>
-
-	<ItemGroup Condition="'$(_IsPacking)' != 'true'">
-	  <ProjectReference Include="..\FoundationDB.Client\FoundationDB.Client.csproj" />
+	<!-- Reference FoundationDB.Client either as a direct project reference, or via NuGet -->
+	<ItemGroup>
+		<PackageReference Condition="'$(IsPackingSelf)' == 'true'" Include="FoundationDB.Client" VersionOverride="[7.3.*-*, 8.0.0.0)" />
+		<ProjectReference Condition="'$(IsPackingSelf)' != 'true'" Include="..\FoundationDB.Client\FoundationDB.Client.csproj" />
 	</ItemGroup>
 
 	<!-- Include all the native libraries and tools -->

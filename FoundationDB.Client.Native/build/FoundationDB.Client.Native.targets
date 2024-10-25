@@ -48,96 +48,81 @@ Copyright (c) 2023-2024 SnowBank SAS
 
 	<PropertyGroup>
 		<!-- Define the platform-specific runtime identifier -->
-		<TargetRID Condition="'$(TargetRID)' == ''">$(RuntimeIdentifier)</TargetRID>
-		<PathToRuntimeFolder>$(MSBuildThisFileDirectory)..\runtimes\</PathToRuntimeFolder>
-		<IsSourceProjectReference Condition="'$(MSBuildProjectExtension)' == '.csproj' and '$(TargetFramework)' != ''">true</IsSourceProjectReference>
-		<IsSourceProjectReference Condition="'$(IsSourceProjectReference)' == ''">false</IsSourceProjectReference>
-		<IsPortableBuild Condition="'$(RuntimeIdentifier)' == ''">true</IsPortableBuild>
-		<IsPortableBuild Condition="'$(IsPortableBuild)' == ''">false</IsPortableBuild>
+		<FdbTargetRuntimeIdentifier Condition="'$(FdbTargetRuntimeIdentifier)' == ''">$(RuntimeIdentifier)</FdbTargetRuntimeIdentifier>
+		<FdbPathToRuntimeFolder>$(MSBuildThisFileDirectory)..\runtimes\</FdbPathToRuntimeFolder>
+		<FdbIsSourceProjectReference Condition="'$(MSBuildProjectExtension)' == '.csproj' and '$(TargetFramework)' != ''">true</FdbIsSourceProjectReference>
+		<FdbIsSourceProjectReference Condition="'$(FdbIsSourceProjectReference)' == ''">false</FdbIsSourceProjectReference>
+		<FdbIsPortableBuild Condition="'$(RuntimeIdentifier)' == ''">true</FdbIsPortableBuild>
+		<FdbIsPortableBuild Condition="'$(FdbIsPortableBuild)' == ''">false</FdbIsPortableBuild>
 	</PropertyGroup>
 
-	<Target Name="CopyPortableNativeLibrariesToBuild" AfterTargets="Build" Condition="'$(IsPortableBuild)' == 'true' and '$(IsSourceProjectReference)' == 'true' and '$(_IsPublishing)' != 'true'">
-		
-		<Message Text="CopyPortableNativeLibrariesToBuild: Fw=$(TargetFramework), Rid=$(TargetRID), IsPortable=$(IsPortableBuild), IsFromSource=$(IsSourceProjectReference), ThisDir=$(MSBuildThisFileDirectory)" Importance="low"/>
-		<Message Text="Copying FDB Client native libraries to build output folder -> $(OutDir)" Importance="high"/>
+	<!-- Get the list of native files to copy (excluding README.md) -->
+	<ItemGroup>
+		<FdbPortableNativeLibraries
+			Include="$(FdbPathToRuntimeFolder)*\native\*.*"
+			Exclude="$(FdbPathToRuntimeFolder)*\native\*.md"
+		/>
+		<FdbPlatformNativeLibraries
+			Include="$(FdbPathToRuntimeFolder)$(FdbTargetRuntimeIdentifier)\native\*.*"
+			Exclude="$(FdbPathToRuntimeFolder)$(FdbTargetRuntimeIdentifier)\native\*.md"
+		/>
+	</ItemGroup>
 
-		<!-- Get the list of native files to copy (explucing README.md) -->
-		<ItemGroup>
-			<NativeLibraries
-				Include="$(PathToRuntimeFolder)*\native\*.*"
-				Exclude="$(PathToRuntimeFolder)*\native\*.md"
-			/>
-		</ItemGroup>
+	<!-- Include these files when packing has well -->
+	<ItemGroup Condition="'$(_IsPacking)' == 'true'">
+		<None Include="@(FdbPortableNativeLibraries)" Pack="true" PackagePath="runtimes/" />
+	</ItemGroup>
+	
+	<Target Name="FdbCopyPortableNativeLibrariesToBuild" BeforeTargets="Build" Condition="'$(FdbIsPortableBuild)' == 'true' and '$(FdbIsSourceProjectReference)' == 'true' and '$(_IsPublishing)' != 'true'">
+		
+		<Message Text="FdbCopyPortableNativeLibrariesToBuild: Fw=$(TargetFramework), Rid=$(FdbTargetRuntimeIdentifier), IsPortable=$(FdbIsPortableBuild), IsFromSource=$(FdbIsSourceProjectReference), ThisDir=$(MSBuildThisFileDirectory)" Importance="low"/>
+		<Message Text="Copying FDB Client native libraries to build output folder -> $(OutDir)" Importance="high"/>
 
 		<!-- Copy to the output directory, only if changed -->
 		<Copy
-			SourceFiles="@(NativeLibraries)"
+			SourceFiles="@(FdbPortableNativeLibraries)"
 			DestinationFolder="$(OutDir)runtimes\%(RecursiveDir)"
 			SkipUnchangedFiles="true"
 		/>
 
 	</Target>
 
-	<Target Name="CopyPlatformNativeLibrariesToBuild" AfterTargets="Build" Condition="'$(IsPortableBuild)' != 'true' and '$(IsSourceProjectReference)' == 'true' and '$(_IsPublishing)' != 'true'">
+	<Target Name="FdbCopyPlatformNativeLibrariesToBuild" BeforeTargets="Build" Condition="'$(FdbIsPortableBuild)' != 'true' and '$(FdbIsSourceProjectReference)' == 'true' and '$(_IsPublishing)' != 'true'">
 		
-		<Message Text="CopyPlatformNativeLibrariesToBuild: Fw=$(TargetFramework), Rid=$(TargetRID), IsPortable=$(IsPortableBuild), IsFromSource=$(IsSourceProjectReference), ThisDir=$(MSBuildThisFileDirectory)" Importance="low"/>
-		<Message Text="Copying FDB Client $(TargetRID) native libraries to build output folder -> $(OutDir)" Importance="high"/>
-
-		<!-- Get the list of native files to copy (explucing README.md) -->
-		<ItemGroup>
-			<NativeLibraries
-				Include="$(PathToRuntimeFolder)$(TargetRID)\native\*.*"
-				Exclude="$(PathToRuntimeFolder)$(TargetRID)\native\*.md"
-			/>
-		</ItemGroup>
+		<Message Text="FdbCopyPlatformNativeLibrariesToBuild: Fw=$(TargetFramework), Rid=$(FdbTargetRuntimeIdentifier), IsPortable=$(FdbIsPortableBuild), IsFromSource=$(FdbIsSourceProjectReference), ThisDir=$(MSBuildThisFileDirectory)" Importance="low"/>
+		<Message Text="Copying FDB Client $(FdbTargetRuntimeIdentifier) native libraries to build output folder -> $(OutDir)" Importance="high"/>
 
 		<!-- Copy to the output directory, only if changed -->
 		<Copy
-			SourceFiles="@(NativeLibraries)"
+			SourceFiles="@(FdbPlatformNativeLibraries)"
 			DestinationFolder="$(OutDir)%(RecursiveDir)"
 			SkipUnchangedFiles="true"
 		/>
 
 	</Target>
 
-	<Target Name="CopyPortableNativeLibrariesToPublish" AfterTargets="Publish" Condition="'$(IsPortableBuild)' == 'true' and '$(IsSourceProjectReference)' == 'true'">
+	<Target Name="FdbCopyPortableNativeLibrariesToPublish" AfterTargets="Publish" Condition="'$(FdbIsPortableBuild)' == 'true' and '$(FdbIsSourceProjectReference)' == 'true'">
 		
-		<Message Text="CopyNativeLibrariesToPortablePublish: Fw=$(TargetFramework), Rid=$(TargetRID), IsPortable=$(IsPortableBuild), IsFromSource=$(IsSourceProjectReference), ThisDir=$(MSBuildThisFileDirectory)" Importance="low"/>
+		<Message Text="FdbCopyPortableNativeLibrariesToPublish: Fw=$(TargetFramework), Rid=$(FdbTargetRuntimeIdentifier), IsPortable=$(FdbIsPortableBuild), IsFromSource=$(FdbIsSourceProjectReference), ThisDir=$(MSBuildThisFileDirectory)" Importance="low"/>
 		<Message Text="Copying FDB Client native libraries to publish folder -> $(PublishDir)" Importance="high"/>
-
-		<!-- Get the list of native files to copy (excluding README.md) -->
-		<ItemGroup>
-			<NativeLibraries
-				Include="$(PathToRuntimeFolder)*\native\*.*"
-				Exclude="$(PathToRuntimeFolder)*\native\*.md"
-			/>
-		</ItemGroup>
 
 		<!-- Copy to the publish directory, only if changed -->
 		<Copy
-			SourceFiles="@(NativeLibraries)"
+			SourceFiles="@(FdbPortableNativeLibraries)"
 			DestinationFolder="$(PublishDir)runtimes\%(RecursiveDir)"
 			SkipUnchangedFiles="true"
 		/>
 		
 	</Target>
 
-	<Target Name="CopyPlatformNativeLibrariesToPublish" AfterTargets="Publish" Condition="'$(IsPortableBuild)' != 'true' and '$(IsSourceProjectReference)' == 'true'">
+	<Target Name="FdbCopyPlatformNativeLibrariesToPublish" AfterTargets="Publish" Condition="'$(FdbIsPortableBuild)' != 'true' and '$(FdbIsSourceProjectReference)' == 'true'">
 		
-		<Message Text="CopyNativeLibrariesToPlatformPublish: Fw=$(TargetFramework), Rid=$(TargetRID), IsPortable=$(IsPortableBuild), IsFromSource=$(IsSourceProjectReference), ThisDir=$(MSBuildThisFileDirectory)" Importance="low"/>
-		<Message Text="Copying FDB Client $(TargetRID) native library to publish folder -> $(PublishDir)" Importance="high"/>
-
-		<!-- Get the list of native files to copy (excluding README.md) -->
-		<ItemGroup>
-			<NativeLibraries
-				Include="$(PathToRuntimeFolder)$(TargetRID)\native\*.*"
-				Exclude="$(PathToRuntimeFolder)$(TargetRID)\native\*.md"
-			/>
-		</ItemGroup>
+		<Message Text="FdbCopyPlatformNativeLibrariesToPublish: Fw=$(TargetFramework), Rid=$(FdbTargetRuntimeIdentifier), IsPortable=$(FdbIsPortableBuild), IsFromSource=$(FdbIsSourceProjectReference), ThisDir=$(MSBuildThisFileDirectory)" Importance="low"/>
+		<Message Text="Copying FDB Client $(FdbTargetRuntimeIdentifier) native library to publish folder -> $(PublishDir)" Importance="high"/>
 
 		<!-- Copy to the publish directory, only if changed -->
 		<Copy
-			SourceFiles="@(NativeLibraries)"
+			SourceFiles="@(FdbPlatformNativeLibraries)"
 			DestinationFolder="$(PublishDir)%(RecursiveDir)"
 			SkipUnchangedFiles="true"
 		/>
