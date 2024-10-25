@@ -43,6 +43,6 @@
 		<ProjectReference Include="..\FoundationDB.Client.Native\FoundationDB.Client.Native.csproj" />
 	</ItemGroup>
 	
-	<Import Project="..\FoundationDB.Client.Native\UseNativeLibraries.targets" />
+	<Import Project="..\FoundationDB.Client.Native\build\FoundationDB.Client.Native.targets" />
 
 </Project>

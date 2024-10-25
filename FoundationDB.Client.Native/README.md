@@ -63,7 +63,7 @@ To include this package in your project, simply add the following at the end of 
 	<ProjectReference Include="..\Path\To\FoundationDB.Client.Native\FoundationDB.Client.Native.csproj" />
 </ItemGroup>
 
-<Import Project="..\Path\To\FoundationDB.Client.Native\UseNativeLibraries.targets" />
+<Import Project="..\Path\To\FoundationDB.Client.Native\build\FoundationDB.Client.Native.targets" />
 ```
 
 The imported target will automatically copy the native libraries to your project's output folder.

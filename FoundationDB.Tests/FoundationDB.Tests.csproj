@@ -52,6 +52,6 @@
 		<ProjectReference Include="..\FoundationDB.Linq.Providers\FoundationDB.Linq.Providers.csproj" />
 	</ItemGroup>
 
-	<Import Project="..\FoundationDB.Client.Native\UseNativeLibraries.targets" />
+	<Import Project="..\FoundationDB.Client.Native\build\FoundationDB.Client.Native.targets" />
 
 </Project>
