@@ -40,7 +40,7 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_ReadAsync_Should_Normally_Execute_Only_Once()
 		{
 			using var db = await OpenTestPartitionAsync();
-			var location = db.Root["Retryable"];
+			var location = db.Root;
 			await CleanLocation(db, location);
 
 			string secret = Guid.NewGuid().ToString();
@@ -143,7 +143,7 @@ namespace FoundationDB.Client.Tests
 			db.Options.DefaultRetryLimit = 10;
 			// => with 10 retries, this test may consume about 5 GB of ram is there is a leak.
 
-			var location = db.Root["Retryable"];
+			var location = db.Root;
 			await CleanLocation(db, location);
 
 			// insert a good amount of test data
@@ -230,7 +230,7 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Retryable_ReadOnly_Should_Deny_Write_Attempts()
 		{
 			using var db = await OpenTestPartitionAsync();
-			var location = db.Root["Retryable"];
+			var location = db.Root;
 			await CleanLocation(db, location);
 
 			var t = db.ReadAsync(async (tr) =>
@@ -259,7 +259,7 @@ namespace FoundationDB.Client.Tests
 			// A read-only transaction will never see changes that have been committed after its read-version, whether it uses Snapshot reads or not.
 
 			using var db = await OpenTestPartitionAsync();
-			var location = db.Root["Retryable"];
+			var location = db.Root;
 			await CleanLocation(db, location);
 
 			// setup the keys from 0 to 9
@@ -316,7 +316,7 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Retryable_Execute_Success_Handler_Only_Once()
 		{
 			using var db = await OpenTestPartitionAsync();
-			var location = db.Root["Retryable"];
+			var location = db.Root;
 			await CleanLocation(db, location);
 
 			string secret = Guid.NewGuid().ToString();
@@ -352,7 +352,7 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Retryable_Never_Execute_Success_Handler_If_Failed()
 		{
 			using var db = await OpenTestPartitionAsync();
-			var location = db.Root["Retryable"];
+			var location = db.Root;
 			await CleanLocation(db, location);
 
 			string secret = Guid.NewGuid().ToString();
@@ -386,7 +386,7 @@ namespace FoundationDB.Client.Tests
 			// Verify that attempting to keep using the transaction instance in the success handler will throw and InvalidOperationException
 
 			using var db = await OpenTestPartitionAsync();
-			var location = db.Root["Retryable"];
+			var location = db.Root;
 			await CleanLocation(db, location);
 
 			// Cannot set a key after commit
@@ -469,8 +469,8 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Retryable_GetVersionStamp_Pattern()
 		{
-			using var db = await OpenTestDatabaseAsync();
-			var location = db.Root["Retryable"];
+			using var db = await OpenTestPartitionAsync();
+			var location = db.Root;
 			await CleanLocation(db, location);
 
 			// Cannot get version stamp after commit

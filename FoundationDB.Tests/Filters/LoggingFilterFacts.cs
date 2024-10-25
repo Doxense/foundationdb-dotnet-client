@@ -40,7 +40,7 @@ namespace FoundationDB.Filters.Logging.Tests
 
 			using var db = await OpenTestPartitionAsync();
 			// get a tuple view of the directory
-			var location = db.Root["Logging"];
+			var location = db.Root;
 			await CleanLocation(db, location);
 
 			// note: ensure that all methods are JITed

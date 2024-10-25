@@ -38,7 +38,7 @@ namespace FoundationDB.Layers.Collections.Tests
 		public async Task Test_Queue_Fast()
 		{
 			using var db = await OpenTestPartitionAsync();
-			var location = db.Root["queue"];
+			var location = db.Root;
 			await CleanLocation(db, location);
 
 #if ENABLE_LOGGING
@@ -116,7 +116,7 @@ namespace FoundationDB.Layers.Collections.Tests
 		public async Task Test_Queue_Batch()
 		{
 			using var db = await OpenTestPartitionAsync();
-			var location = db.Root["queue"];
+			var location = db.Root;
 			await CleanLocation(db, location);
 
 #if ENABLE_LOGGING
@@ -314,7 +314,7 @@ namespace FoundationDB.Layers.Collections.Tests
 			const int NUM = 100;
 
 			using var db = await OpenTestPartitionAsync();
-			var location = db.Root["queue"];
+			var location = db.Root;
 			await CleanLocation(db, location);
 
 			await RunMultiClientTest(db, location, "simple queue", 1, NUM, this.Cancellation);
@@ -329,7 +329,7 @@ namespace FoundationDB.Layers.Collections.Tests
 			const int NUM = 100;
 
 			using var db = await OpenTestPartitionAsync();
-			var location = db.Root["queue"];
+			var location = db.Root;
 			await CleanLocation(db, location);
 
 #if ENABLE_LOGGING

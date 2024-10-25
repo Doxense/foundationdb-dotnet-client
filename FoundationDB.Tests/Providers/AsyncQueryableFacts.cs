@@ -39,7 +39,7 @@ namespace FoundationDB.Linq.Tests
 		{
 			using(var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Root["Linq"];
+				var location = db.Root;
 				await CleanLocation(db, location);
 
 				await db.WriteAsync(async (tr) =>
@@ -83,7 +83,7 @@ namespace FoundationDB.Linq.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 
-				var location = db.Root["Linq"];
+				var location = db.Root;
 				await CleanLocation(db, location);
 
 				var indexFoos = new FdbIndex<long, string>(location.ByKey("Foos", "ByColor"));
@@ -120,7 +120,7 @@ namespace FoundationDB.Linq.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Root["Linq"];
+				var location = db.Root;
 				await CleanLocation(db, location);
 
 				var index = new FdbIndex<string, int>(location.ByKey("Foos", "ByScore"));

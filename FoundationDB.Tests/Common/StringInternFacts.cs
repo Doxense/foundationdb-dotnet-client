@@ -37,7 +37,7 @@ namespace FoundationDB.Layers.Interning.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Root["StringInterning"];
+				var location = db.Root;
 				await CleanLocation(db, location);
 
 				var stringSpace = location.ByKey("Strings");

@@ -120,6 +120,15 @@ namespace FoundationDB.Client.Tests
 				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().AddVariable(FqlVariableTypes.Int).AddString("Goodwin").AddMaybeMore()));
 			}
 
+			// `(...)`
+			{
+				var q = FqlQueryParser.Parse("(...)");
+				Assert.That(q, Is.Not.Null);
+				Log(q.Explain());
+				Assert.That(q.Directory, Is.Null);
+				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().AddMaybeMore()));
+			}
+
 			// `(0xFF, "thing", ...)`
 			{
 				var q = FqlQueryParser.Parse("(0xFF, \"thing\", ...)");

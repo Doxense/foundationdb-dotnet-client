@@ -37,7 +37,7 @@ namespace FoundationDB.Layers.Collections.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Root["ranked_set"];
+				var location = db.Root;
 				await CleanLocation(db, location);
 
 				var rankedSet = new FdbRankedSet(location);

@@ -35,25 +35,23 @@ namespace FoundationDB.Layers.Counters.Tests
 		[Test]
 		public async Task Test_FdbCounter_Can_Increment_And_SetTotal()
 		{
-			using (var db = await OpenTestPartitionAsync())
-			{
-				var location = db.Root["counters"]["simple"];
-				await CleanLocation(db, location);
+			using var db = await this.OpenTestPartitionAsync();
+			var location = db.Root;
+			await this.CleanLocation(db, location);
 
-				var counter = new FdbHighContentionCounter(location);
+			var counter = new FdbHighContentionCounter(location);
 
-				await db.WriteAsync(async tr => await counter.Add(tr, 100), this.Cancellation);
-				var res = await db.ReadAsync(tr => counter.GetSnapshot(tr), this.Cancellation);
-				Assert.That(res, Is.EqualTo(100));
+			await db.WriteAsync(async tr => await counter.Add(tr, 100), this.Cancellation);
+			var res = await db.ReadAsync(tr => counter.GetSnapshot(tr), this.Cancellation);
+			Assert.That(res, Is.EqualTo(100));
 
-				await db.WriteAsync(async tr => await counter.Add(tr, -10), this.Cancellation);
-				res = await db.ReadAsync(tr => counter.GetSnapshot(tr), this.Cancellation);
-				Assert.That(res, Is.EqualTo(90));
+			await db.WriteAsync(async tr => await counter.Add(tr, -10), this.Cancellation);
+			res = await db.ReadAsync(tr => counter.GetSnapshot(tr), this.Cancellation);
+			Assert.That(res, Is.EqualTo(90));
 
-				await db.WriteAsync(async tr => await counter.SetTotal(tr, 500), this.Cancellation);
-				res = await db.ReadAsync(tr => counter.GetSnapshot(tr), this.Cancellation);
-				Assert.That(res, Is.EqualTo(500));
-			}
+			await db.WriteAsync(async tr => await counter.SetTotal(tr, 500), this.Cancellation);
+			res = await db.ReadAsync(tr => counter.GetSnapshot(tr), this.Cancellation);
+			Assert.That(res, Is.EqualTo(500));
 		}
 
 		[Test]
@@ -61,32 +59,29 @@ namespace FoundationDB.Layers.Counters.Tests
 		{
 			const int N = 100;
 
-			using (var db = await OpenTestPartitionAsync())
+			using var db = await this.OpenTestPartitionAsync();
+			var location = db.Root;
+			await this.CleanLocation(db, location);
+
+			var c = new FdbHighContentionCounter(location);
+
+			Log($"Doing {N:N0} inserts in one thread...");
+
+			var sw = Stopwatch.StartNew();
+			for (int i = 0; i < N; i++)
 			{
-				var location = db.Root["counters"]["big"];
-				await CleanLocation(db, location);
+				await db.WriteAsync(async tr => await c.Add(tr, 1), this.Cancellation);
+			}
+			sw.Stop();
 
-				var c = new FdbHighContentionCounter(location);
-
-				Log($"Doing {N:N0} inserts in one thread...");
-
-				var sw = Stopwatch.StartNew();
-				for (int i = 0; i < N; i++)
-				{
-					await db.WriteAsync(async tr => await c.Add(tr, 1), this.Cancellation);
-				}
-				sw.Stop();
-
-				Log($"> {N:N0} inserts completed in {sw.Elapsed.TotalMilliseconds:N1} ms ({(sw.Elapsed.TotalMilliseconds * 1000 / N):N0} µs/add)");
+			Log($"> {N:N0} inserts completed in {sw.Elapsed.TotalMilliseconds:N1} ms ({(sw.Elapsed.TotalMilliseconds * 1000 / N):N0} µs/add)");
 
 #if DEBUG
-				await DumpSubspace(db, location);
+			await this.DumpSubspace(db, location);
 #endif
 
-				var res = await db.ReadAsync(tr => c.GetSnapshot(tr), this.Cancellation);
-				Assert.That(res, Is.EqualTo(N));
-			}
-
+			var res = await db.ReadAsync(tr => c.GetSnapshot(tr), this.Cancellation);
+			Assert.That(res, Is.EqualTo(N));
 		}
 
 		[Test]
@@ -101,7 +96,7 @@ namespace FoundationDB.Layers.Counters.Tests
 
 				using (var db = await OpenTestPartitionAsync())
 				{
-					var location = db.Root["counters"]["big"][W.ToString()];
+					var location = db.Root[$"run_{W}"];
 					await CleanLocation(db, location);
 
 					var c = new FdbHighContentionCounter(location);

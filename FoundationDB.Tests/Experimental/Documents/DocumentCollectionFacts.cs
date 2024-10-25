@@ -73,7 +73,7 @@ namespace FoundationDB.Layers.Documents.Tests
 		public async Task Test_Can_Insert_And_Retrieve_Json_Documents()
 		{
 			using var db = await OpenTestPartitionAsync();
-			var location = db.Root["Books"]["JSON"];
+			var location = db.Root;
 			await CleanLocation(db, location);
 
 			var docs = new FdbDocumentCollection<Book, int>(
@@ -113,7 +113,7 @@ namespace FoundationDB.Layers.Documents.Tests
 		public async Task Test_Can_Insert_And_Retrieve_ProtoBuf_Documents()
 		{
 			using var db = await OpenTestPartitionAsync();
-			var location = db.Root["Books"]["ProtoBuf"];
+			var location = db.Root;
 			await CleanLocation(db, location);
 
 			// quickly define the metatype for Books, because I'm too lazy to write a .proto for this, or add [ProtoMember] attributes everywhere

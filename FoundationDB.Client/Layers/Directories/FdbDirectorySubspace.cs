@@ -205,7 +205,7 @@ namespace FoundationDB.Client
 		public async ValueTask<FdbDirectorySubspace?> TryOpenCachedAsync(IFdbReadOnlyTransaction trans, FdbPath path)
 		{
 			Contract.NotNull(trans);
-			if (path.IsEmpty) throw new InvalidOperationException( "Cannot open empty path");
+			if (path.IsEmpty) throw new InvalidOperationException("Cannot open empty path");
 
 			EnsureIsValid();
 

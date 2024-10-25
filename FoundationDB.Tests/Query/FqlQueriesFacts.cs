@@ -99,12 +99,12 @@ namespace FoundationDB.Client.Tests
 				foreach (var path in (string[])
 				[
 					"foo/bar/baz/jazz",
-					"users/alice/documents/music",
-					"users/alice/documents/photos",
-					"users/bob/documents/music",
-					"users/bob/documents/photos",
-					"users/charlie/documents/music",
-					"users/charlie/documents/photos",
+					"users/alice[tenant]/documents/music[table]",
+					"users/alice/documents/photos[table]",
+					"users/bob[tenant]/documents/music[table]",
+					"users/bob/documents/photos[table]",
+					"users/charlie[tenant]/documents/music[table]",
+					"users/charlie/documents/photos[table]",
 				])
 				{
 					await parent.CreateAsync(tr, FdbPath.Relative(FdbPath.Parse(path)));

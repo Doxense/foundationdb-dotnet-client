@@ -209,7 +209,7 @@ namespace FoundationDB.Client
 		[Pure]
 		internal static Slice StealPrefix(IKeySubspace subspace)
 		{
-			//note: we can workaround the 'security' in top directory partition by accessing their key prefix without triggering an exception!
+			//note: we can work around the 'security' in top directory partition by accessing their key prefix without triggering an exception!
 			return subspace is KeySubspace ks
 				? ks.GetPrefixUnsafe().Copy()
 				: subspace.GetPrefix().Copy();

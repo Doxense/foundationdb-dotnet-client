@@ -43,7 +43,7 @@ namespace FoundationDB.Layers.Collections.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Root["Collections"]["Maps"];
+				var location = db.Root;
 				await CleanLocation(db, location);
 
 #if ENABLE_LOGGING
@@ -119,7 +119,7 @@ namespace FoundationDB.Layers.Collections.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Root["Collections"]["Maps"];
+				var location = db.Root;
 				await CleanLocation(db, location);
 
 #if ENABLE_LOGGING
@@ -183,7 +183,7 @@ namespace FoundationDB.Layers.Collections.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Root["Collections"]["Maps"];
+				var location = db.Root;
 				await CleanLocation(db, location);
 
 #if ENABLE_LOGGING

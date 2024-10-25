@@ -38,7 +38,7 @@ namespace FoundationDB.Layers.Tables.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Root["Indexing"];
+				var location = db.Root;
 
 				// clear previous values
 				await CleanLocation(db, location);
@@ -120,7 +120,7 @@ namespace FoundationDB.Layers.Tables.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 
-				var location = db.Root["Indexing"];
+				var location = db.Root;
 				await CleanLocation(db, location);
 
 				// summon our main cast

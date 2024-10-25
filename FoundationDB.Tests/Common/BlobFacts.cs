@@ -32,10 +32,10 @@ namespace FoundationDB.Layers.Blobs.Tests
 	{
 
 		[Test]
-		public async Task Test_FdbBlob_NotFound_Blob_Is_Empty()
+		public async Task Test_NotFound_Blob_Is_Empty()
 		{
 			using var db = await OpenTestPartitionAsync();
-			var location = db.Root["BlobsFromOuterSpace"];
+			var location = db.Root;
 			await CleanLocation(db, location);
 
 			var blob = new FdbBlob(location.ByKey("Empty"));
@@ -45,78 +45,72 @@ namespace FoundationDB.Layers.Blobs.Tests
 		}
 
 		[Test]
-		public async Task Test_FdbBlob_Can_AppendToBlob()
+		public async Task Test_Can_Append_To_Blob()
 		{
-			using (var db = await OpenTestPartitionAsync())
+			using var db = await this.OpenTestPartitionAsync();
+			var location = db.Root;
+			await this.CleanLocation(db, location);
+
+			var blob = new FdbBlob(location);
+
+			Log("Insert blob in 3 chunks...");
+			await blob.WriteAsync(db, async (tr, state) =>
 			{
-				var location = db.Root["BlobsFromOuterSpace"];
-				await CleanLocation(db, location);
+				await state.AppendAsync(tr, Text("Attack"));
+				await state.AppendAsync(tr, Text(" of the "));
+				await state.AppendAsync(tr, Text("Blobs!"));
 
-				var blob = new FdbBlob(location);
-
-				Log("Insert blob in 3 chunks...");
-				await blob.WriteAsync(db, async (tr, state) =>
-				{
-					await state.AppendAsync(tr, Text("Attack"));
-					await state.AppendAsync(tr, Text(" of the "));
-					await state.AppendAsync(tr, Text("Blobs!"));
-
-				}, this.Cancellation);
+			}, this.Cancellation);
 #if DEBUG
-				await DumpSubspace(db, location);
+			await this.DumpSubspace(db, location);
 #endif
 
-				Log("Checking blob size...");
-				long? size = await blob.ReadAsync(db, (tr, state) => state.GetSizeAsync(tr), this.Cancellation);
-				Log($"> {size:N0}");
-				Assert.That(size, Is.EqualTo(20));
+			Log("Checking blob size...");
+			long? size = await blob.ReadAsync(db, (tr, state) => state.GetSizeAsync(tr), this.Cancellation);
+			Log($"> {size:N0}");
+			Assert.That(size, Is.EqualTo(20));
 
-				Log("Checking blob content...");
-				var data = await blob.ReadAsync(db, (tr, state) => state.ReadAsync(tr, 0, (int) (size ?? 0)), this.Cancellation);
-				Log($"> {data.Count:N0} bytes");
-				Assert.That(data.ToUnicode(), Is.EqualTo("Attack of the Blobs!"));
-
-			}
+			Log("Checking blob content...");
+			var data = await blob.ReadAsync(db, (tr, state) => state.ReadAsync(tr, 0, (int) (size ?? 0)), this.Cancellation);
+			Log($"> {data.Count:N0} bytes");
+			Assert.That(data.ToUnicode(), Is.EqualTo("Attack of the Blobs!"));
 		}
 
 		[Test]
-		public async Task Test_FdbBlob_CanAppendLargeChunks()
+		public async Task Test_Can_Append_Large_Chunks()
 		{
-			using (var db = await OpenTestPartitionAsync())
+			using var db = await this.OpenTestPartitionAsync();
+			var location = db.Root;
+			await this.CleanLocation(db, location);
+
+			var blob = new FdbBlob(location.ByKey("BigBlob"));
+
+			var data = Slice.Zero(100_000);
+			for (int i = 0; i < data.Count; i++) data.Array[data.Offset + i] = (byte)i;
+
+			Log("Construct blob by appending chunks...");
+			for (int i = 0; i < 50; i++)
 			{
-				var location = db.Root["BlobsFromOuterSpace"];
-				await CleanLocation(db, location);
+				await blob.WriteAsync(db, (tr, state) => state.AppendAsync(tr, data), this.Cancellation);
+			}
 
-				var blob = new FdbBlob(location.ByKey("BigBlob"));
+			Log("Reading blob size:");
+			long? size = await blob.ReadAsync(db, (tr, state) => state.GetSizeAsync(tr), this.Cancellation);
+			Log($"> {size:N0}");
+			Assert.That(size, Is.EqualTo(50 * data.Count));
 
-				var data = Slice.Zero(100_000);
-				for (int i = 0; i < data.Count; i++) data.Array[data.Offset + i] = (byte)i;
+			Log("Reading blob content:");
+			var s = await blob.ReadAsync(db, (tr, state) => state.ReadAsync(tr, 1234567, 1_000_000), this.Cancellation);
+			Log($"> {s.Count:N0} bytes");
+			Assert.That(s.Count, Is.EqualTo(1_000_000));
 
-				Log("Construct blob by appending chunks...");
-				for (int i = 0; i < 50; i++)
+			// should contains the correct data
+			for (int i = 0; i < s.Count; i++)
+			{
+				if (s[i] != (byte) ((1234567 + i) % data.Count))
 				{
-					await blob.WriteAsync(db, (tr, state) => state.AppendAsync(tr, data), this.Cancellation);
+					Assert.Fail($"Corrupted blob chunk at {i}: {s[i, i + 128]}");
 				}
-
-				Log("Reading blob size:");
-				long? size = await blob.ReadAsync(db, (tr, state) => state.GetSizeAsync(tr), this.Cancellation);
-				Log($"> {size:N0}");
-				Assert.That(size, Is.EqualTo(50 * data.Count));
-
-				Log("Reading blob content:");
-				var s = await blob.ReadAsync(db, (tr, state) => state.ReadAsync(tr, 1234567, 1_000_000), this.Cancellation);
-				Log($"> {s.Count:N0} bytes");
-				Assert.That(s.Count, Is.EqualTo(1_000_000));
-
-				// should contains the correct data
-				for (int i = 0; i < s.Count; i++)
-				{
-					if (s[i] != (byte) ((1234567 + i) % data.Count))
-					{
-						Assert.Fail($"Corrupted blob chunk at {i}: {s[i, i + 128]}");
-					}
-				}
-
 			}
 		}
 
