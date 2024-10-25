@@ -210,13 +210,33 @@ namespace FdbShell
 
 				var terminal = services.GetRequiredService<IFdbShellTerminal>();
 
-				if (terminal.IsInteractive)
+				IFdbDatabaseProvider dbProvider;
+				try
 				{
-					terminal.SetWindowSize(160, 60);
+					dbProvider = services.GetRequiredService<IFdbDatabaseProvider>();
+				}
+				catch (FileNotFoundException e)
+				{ // the most probably reason is that the native library could not be found
+					
+					terminal.StdErr("FoundationDB Client failed to initialize!", ConsoleColor.Red);
+					terminal.StdErr("> " + e.Message);
+					Environment.ExitCode = -2;
+					return;
+				}
+				catch (Exception e)
+				{
+					terminal.StdErr("FoundationDB Client failed to start!", ConsoleColor.Red);
+					terminal.StdErr("> " + e.ToString());
+					Environment.ExitCode = -1;
+					return;
 				}
 
-				var dbProvider = services.GetRequiredService<IFdbDatabaseProvider>();
 				var runner = services.GetRequiredService<FdbShellRunner>();
+
+				//if (terminal.IsInteractive)
+				//{
+				//	terminal.SetWindowSize(160, 60);
+				//}
 
 				var shellArgs = new FdbShellRunnerArguments()
 				{
@@ -247,9 +267,9 @@ namespace FdbShell
 
 		void Markup(ref DefaultInterpolatedStringHandler msg, bool newLine = true);
 
-		void StdErr(string msg, ConsoleColor color = ConsoleColor.DarkGray);
+		void StdErr(string msg, ConsoleColor color = ConsoleColor.DarkRed);
 
-		void StdErr(ref DefaultInterpolatedStringHandler msg, ConsoleColor color = ConsoleColor.DarkGray);
+		void StdErr(ref DefaultInterpolatedStringHandler msg, ConsoleColor color = ConsoleColor.DarkRed);
 
 		void Beep();
 
