@@ -54,30 +54,40 @@ namespace FdbShell
 			ShowCount = 2,
 		}
 
-		public static async Task<IFdbDirectory?> TryOpenCurrentDirectoryAsync(IFdbReadOnlyTransaction tr, FdbPath path)
+		public static async Task<(IFdbDirectory? Directory, FdbDirectorySubspace? Subspace, Slice Prefix)> TryOpenCurrentDirectoryAsync(IFdbReadOnlyTransaction tr, FdbPath path)
 		{
 			var location = new FdbDirectorySubspaceLocation(path);
 			if (location.Path.Count != 0)
 			{
-				return await location.Resolve(tr);
+				var subspace = await location.Resolve(tr);
+				return (subspace, subspace, subspace?.Copy().GetPrefix() ?? Slice.Nil);
 			}
 			else
 			{
-				return location;
+				return (location, null, Slice.Empty);
 			}
 		}
 
 		public static async Task Dir(FdbPath path, IVarTuple extras, DirectoryBrowseOptions options, IFdbDatabase db, IFdbShellTerminal terminal, CancellationToken ct)
 		{
-			terminal.Comment($"# Listing {path}:");
+			terminal.Markup($"[gray]# Listing [cyan]{terminal.Escape(path.ToString("N"))}[/][/]");
 
 			await db.ReadAsync(async tr =>
 			{
-				var parent = await TryOpenCurrentDirectoryAsync(tr, path);
+				var (parent, folder, prefix) = await TryOpenCurrentDirectoryAsync(tr, path);
 				if (parent == null)
 				{
 					terminal.Error("Directory not found.");
 					return;
+				}
+
+				if (prefix.Count > 0)
+				{
+					terminal.Markup($"[gray]# Prefix: [cyan]{terminal.Escape(FdbKey.Dump(prefix))}[/] \u279c 0x[teal]{prefix.ToHexString('\ue621')}[/][/]");
+				}
+				else
+				{
+					terminal.Markup($"[gray]# Prefix: [cyan]{terminal.Escape(FdbKey.Dump(prefix))}[/][/]");
 				}
 
 				//if (!string.IsNullOrEmpty(parent.Layer))
@@ -98,7 +108,13 @@ namespace FdbShell
 						var subfolder = kvp.Value;
 						if (subfolder != null!)
 						{
-							var symbol = subfolder.IsPartition ? "[bold cyan]\udb84\udee4" : subfolder.Layer.Length != 0 ? "[bold yellow]\udb84\udc80" : "[silver]\udb80\ude56";
+							var symbol =
+								  subfolder.Layer == FdbDirectoryPartition.LayerId ? "[bold cyan]\udb84\udee4"
+								: subfolder.Layer == "tenant" ? "[bold #9BCFFF]\udb83\uddab"
+								: subfolder.Layer == "table" ? "[bold #9BCFFF]\udb81\udcf1"
+								: subfolder.Layer == "test" ? "[bold #9BCFFF]\udb80\udc96"
+								: subfolder.Layer.Length != 0 ? "[bold yellow]\udb84\udc80"
+								: "[silver]\udb80\ude56";
 							if ((options & DirectoryBrowseOptions.ShowCount) != 0)
 							{
 
@@ -246,7 +262,7 @@ namespace FdbShell
 
 		public static async Task ShowDirectoryLayer(FdbPath path, IVarTuple extras, IFdbDatabase db, IFdbShellTerminal terminal, CancellationToken ct)
 		{
-			var dir = await db.ReadAsync(tr => TryOpenCurrentDirectoryAsync(tr, path), ct);
+			var (_, dir, _) = await db.ReadAsync(tr => TryOpenCurrentDirectoryAsync(tr, path), ct);
 			if (dir == null)
 			{
 				terminal.Error($"# Directory {path} does not exist anymore");
@@ -266,7 +282,7 @@ namespace FdbShell
 		{
 			return db.WriteAsync(async tr =>
 			{
-				var dir = await BasicCommands.TryOpenCurrentDirectoryAsync(tr, path);
+				var (_, dir, _) = await BasicCommands.TryOpenCurrentDirectoryAsync(tr, path);
 				if (dir == null)
 				{
 					terminal.Error($"# Directory {path} does not exist anymore");
@@ -551,7 +567,7 @@ namespace FdbShell
 		public static async Task Count(FdbPath path, IVarTuple extras, IFdbDatabase db, IFdbShellTerminal terminal, CancellationToken ct)
 		{
 			// look if there is something under there
-			var folder = (await db.ReadWriteAsync(tr => TryOpenCurrentDirectoryAsync(tr, path), ct)) as FdbDirectorySubspace;
+			var folder = (await db.ReadWriteAsync(tr => TryOpenCurrentDirectoryAsync(tr, path), ct)).Subspace;
 			if (folder == null)
 			{
 				terminal.Error($"# Directory {path} does not exist");
@@ -751,7 +767,7 @@ namespace FdbShell
 			// we want to merge the map of shards, with the map of directories from the Directory Layer, and count for each directory how many shards intersect
 			bool progress = terminal.IsInteractive;
 
-			var folder = await db.ReadAsync(tr => TryOpenCurrentDirectoryAsync(tr, path), ct);
+			var (directory, folder, prefix) = await db.ReadAsync(tr => TryOpenCurrentDirectoryAsync(tr, path), ct);
 			if (folder == null)
 			{
 				terminal.Error("# Directory not found");
@@ -992,7 +1008,9 @@ namespace FdbShell
 			terminal.StdOut($"Found {ranges.Count} shards in the whole cluster");
 
 			// look if there is something under there
-			if ((await db.ReadAsync(tr => TryOpenCurrentDirectoryAsync(tr, path), ct)) is FdbDirectorySubspace folder)
+			var (directory, folder, prefix) = await db.ReadAsync(tr => TryOpenCurrentDirectoryAsync(tr, path), ct);
+
+			if (folder != null)
 			{
 				var r = KeyRange.StartsWith(folder.Copy().GetPrefix());
 				terminal.StdOut($"Searching for shards that intersect with {path} ...");
@@ -1025,11 +1043,11 @@ namespace FdbShell
 				auto = false;
 			}
 
-			var folder = await db.ReadAsync(tr => TryOpenCurrentDirectoryAsync(tr, path), ct);
+			var (directory, folder, prefix) = await db.ReadAsync(tr => TryOpenCurrentDirectoryAsync(tr, path), ct);
 			KeyRange span;
-			if (folder is FdbDirectorySubspace subspace)
+			if (folder != null)
 			{
-				span = KeyRange.StartsWith(subspace.Copy().GetPrefix());
+				span = KeyRange.StartsWith(folder.Copy().GetPrefix());
 				terminal.StdOut($"Reading list of shards for {path} under {FdbKey.Dump(span.Begin)} ...");
 			}
 			else

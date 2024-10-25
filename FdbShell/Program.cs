@@ -448,13 +448,17 @@ namespace FdbShell
 			this.Terminal = terminal;
 		}
 
-		private void StdOut(string? log, ConsoleColor color = ConsoleColor.DarkGray, bool newLine = true) => this.Terminal.StdOut(log, color, newLine);
+		private void Markup(string? log, bool newLine = true) => this.Terminal.Markup(log, newLine);
 
-		private void StdOut(ref DefaultInterpolatedStringHandler log, ConsoleColor color = ConsoleColor.DarkGray, bool newLine = true) => this.Terminal.StdOut(string.Create(CultureInfo.InvariantCulture, ref log), color, newLine);
+		private void Markup(ref DefaultInterpolatedStringHandler log, bool newLine = true) => this.Terminal.Markup(ref log, newLine);
+
+		private void StdOut(string? log = null, ConsoleColor color = ConsoleColor.DarkGray, bool newLine = true) => this.Terminal.StdOut(log, color, newLine);
+
+		private void StdOut(ref DefaultInterpolatedStringHandler log, ConsoleColor color = ConsoleColor.DarkGray, bool newLine = true) => this.Terminal.StdOut(ref log, color, newLine);
 
 		private void StdErr(string log, ConsoleColor color = ConsoleColor.DarkRed) => this.Terminal.StdErr(log, color);
 
-		private void StdErr(ref DefaultInterpolatedStringHandler log, ConsoleColor color = ConsoleColor.DarkRed) => this.Terminal.StdErr(string.Create(CultureInfo.InvariantCulture, ref log), color);
+		private void StdErr(ref DefaultInterpolatedStringHandler log, ConsoleColor color = ConsoleColor.DarkRed) => this.Terminal.StdErr(ref log, color);
 
 		private static readonly Dictionary<string, string> KnownCommands = new (StringComparer.OrdinalIgnoreCase)
 		{
@@ -516,11 +520,8 @@ namespace FdbShell
 			bool stop = false;
 			try
 			{
-				StdOut($"FdbShell v{this.GetType().Assembly.GetName().Version} - Copyright (c) SnowBank SAS 2023-2024");
-				StdOut("Using API ", newLine: false);
-				StdOut($"{Fdb.ApiVersion}", ConsoleColor.Cyan, newLine: false);
-				StdOut($" and client ", newLine: false);
-				StdOut($"v{Fdb.GetClientVersion().Version}", ConsoleColor.Cyan);
+				Markup($"[bold white]FdbShell v{this.GetType().Assembly.GetName().Version}[/] - Copyright (c) SnowBank SAS 2023-2024");
+				Markup($"Using API [cyan]{Fdb.ApiVersion}[/] and client v[cyan]{Fdb.GetClientVersion().Version}[/]");
 
 				string desc = !string.IsNullOrEmpty(this.Db.ProviderOptions.ConnectionOptions.ConnectionString)
 					? $"Connecting to cluster at {(this.Db.ProviderOptions.ConnectionOptions.ConnectionString)}"
@@ -581,11 +582,9 @@ namespace FdbShell
 									if (taskConnect.IsCompletedSuccessfully)
 									{
 										var cf = await taskConnect;
-										StdOut("");
-										StdOut("Connected to: ", newLine: false);
-										StdOut(cf.Description, ConsoleColor.Cyan);
-										StdOut("Coordinators: ", newLine: false);
-										StdOut(string.Join(", ", cf.Coordinators.Select(x => x.ToString())), ConsoleColor.Cyan);
+										StdOut();
+										Markup($"Connected to: [cyan]{cf.Description}[/]");
+										Markup($"Coordinators: [cyan]{string.Join("[/], [cyan]", cf.Coordinators.Select(x => x.ToString()))}[/]");
 
 										if (cf.Coordinators.Length == 1)
 										{
@@ -605,7 +604,7 @@ namespace FdbShell
 									{
 										await taskConnect;
 									}
-									catch (FdbException e)
+									catch (FdbException)
 									{
 										// retry!
 									}
@@ -623,14 +622,12 @@ namespace FdbShell
 					return;
 				}
 				
-				StdOut("");
+				StdOut();
 				StdOut("FoundationDB Shell menu:");
 				foreach (var cmd in (string[]) ["cd", "dir", "show", "tree", "help", "quit"])
 				{
-					StdOut($"  {cmd,-8} {FdbShellRunner.KnownCommands[cmd]}");
+					Markup($"  [white]{cmd,-8}[/] {FdbShellRunner.KnownCommands[cmd]}");
 				}
-				StdOut("");
-				StdOut("Ready...", ConsoleColor.DarkGreen);
 				StdOut("");
 
 				var le = new LineEditor("FDBShell", cancel);
@@ -693,21 +690,34 @@ namespace FdbShell
 				string? statusPrompt;
 				string? prompt;
 
-				const string colorFdb0 = "#9BCFFF";
-				const string colorFdb1 = "#379CF6";
-				const string colorFdb2 = "#0073E6";
+				const string COLOR_FDB_BLUE_LIGHT = "#9BCFFF";
+				const string COLOR_FDB_BLUE_MEDIUM = "#379CF6";
+				const string COLOR_FDB_BLUE_DARK = "#0073E6";
+
+				const string ICON_DATABASE = "\ue64d";
+				const string ICON_TRIANGLE = "\ue0b0";
+				const string ICON_CHEVRON = "\ue0b1";
+
+				const string ICON_PARTITION = "\udb82\udf9c";
+				const string ICON_TENANT = "\udb83\uddab";
+				const string ICON_TABLE = "\udb81\udcf1";
+				const string ICON_TEST = "\udb80\udc96";
+				const string ICON_SPECIAL = "\udb84\udc80";
 
 				static string Decorate(FdbPathSegment seg) => seg.LayerId switch
 				{
 					null or "" => seg.Name,
-					"partition" => "\udb84\udee4 " + seg.Name,
-					_ => "\udb84\udc80 " + seg.Name
+					"partition" => ICON_PARTITION + " " + seg.Name,
+					"tenant" => ICON_TENANT + " " + seg.Name,
+					"table" => ICON_TABLE + " " + seg.Name,
+					"test" => ICON_TEST + " " + seg.Name,
+					_ => ICON_SPECIAL + " " + seg.Name
 				};
 
 				void UpdatePrompt(FdbPath path)
 				{
 					//[{colorFdb1} on black][/]
-					statusPrompt = $"[white on {colorFdb1}] \ue64d [/][{colorFdb1} on white]\ue0b0[/][black on white] {this.Description} [/][white on {colorFdb1}]\ue0b0[/][white on {colorFdb1}] ";
+					statusPrompt = $"[white on {COLOR_FDB_BLUE_MEDIUM}] {ICON_DATABASE} [/][{COLOR_FDB_BLUE_MEDIUM} on white]{ICON_TRIANGLE}[/][black on white] {this.Description} [/][white on {COLOR_FDB_BLUE_MEDIUM}]{ICON_TRIANGLE}[/][white on {COLOR_FDB_BLUE_MEDIUM}] ";
 
 					// compute the estimated size
 					int size = 0;
@@ -758,11 +768,11 @@ namespace FdbShell
 								{
 									if (first)
 									{
-										statusPrompt += $" [/][{colorFdb1} on {colorFdb2}]\ue0b0[/][white on {colorFdb2}] \uea7c";
+										statusPrompt += $" [/][{COLOR_FDB_BLUE_MEDIUM} on {COLOR_FDB_BLUE_DARK}]{ICON_TRIANGLE}[/][white on {COLOR_FDB_BLUE_DARK}] \uea7c";
 									}
 									else
 									{
-										statusPrompt += $" [/][black on {colorFdb2}]\ue0b1[/][white on {colorFdb2}] \uea7c";
+										statusPrompt += $" [/][black on {COLOR_FDB_BLUE_DARK}]{ICON_CHEVRON}[/][white on {COLOR_FDB_BLUE_DARK}] \uea7c";
 									}
 								}
 								skiped = true;
@@ -772,11 +782,11 @@ namespace FdbShell
 
 							if (first && i == 0)
 							{
-								statusPrompt += $" [/][{colorFdb1} on {colorFdb2}]\ue0b0[/][white on {colorFdb2}] " + Decorate(path[0]);
+								statusPrompt += $" [/][{COLOR_FDB_BLUE_MEDIUM} on {COLOR_FDB_BLUE_DARK}]{ICON_TRIANGLE}[/][white on {COLOR_FDB_BLUE_DARK}] " + Decorate(path[0]);
 							}
 							else
 							{
-								statusPrompt += $" [/][black on {(i == 0 ? colorFdb1 : colorFdb2)}]\ue0b1[/][white on {colorFdb2}] " + Decorate(seg);
+								statusPrompt += $" [/][black on {(i == 0 ? COLOR_FDB_BLUE_MEDIUM : COLOR_FDB_BLUE_DARK)}]{ICON_CHEVRON}[/][white on {COLOR_FDB_BLUE_DARK}] " + Decorate(seg);
 							}
 							first = false;
 						}
@@ -784,11 +794,11 @@ namespace FdbShell
 
 					if (first)
 					{
-						statusPrompt += $" [/][{colorFdb1} on black]\ue0b0 [/]";
+						statusPrompt += $" [/][{COLOR_FDB_BLUE_MEDIUM} on black]{ICON_TRIANGLE} [/]";
 					}
 					else
 					{
-						statusPrompt += $" [/][{colorFdb2} on black]\ue0b0 [/]";
+						statusPrompt += $" [/][{COLOR_FDB_BLUE_DARK} on black]{ICON_TRIANGLE} [/]";
 					}
 
 					//statusPrompt = $"[fdb:{this.Description} {path}]";
@@ -798,6 +808,11 @@ namespace FdbShell
 				UpdatePrompt(this.CurrentDirectoryPath);
 
 				string? nextCommand = args.StartCommand;
+
+				if (nextCommand == null)
+				{
+					await RunAsyncCommand((db, log, ct) => BasicCommands.Dir(this.CurrentDirectoryPath, STuple.Empty, BasicCommands.DirectoryBrowseOptions.Default, db, log, ct), cancel);
+				}
 
 				while (!stop && !this.Lifecycle.IsCancellationRequested)
 				{
@@ -816,6 +831,8 @@ namespace FdbShell
 					}
 
 					if (s == null) break;
+
+					StdOut();
 
 					//TODO: we need a tokenizer that recognizes binary keys, tuples, escaped paths, etc...
 					var tokens = Tokenize(s);
@@ -928,14 +945,14 @@ namespace FdbShell
 										StdErr($"# Failed to open Directory {newPath}: {res.Error!.Message}", ConsoleColor.Red);
 										this.Terminal.Beep();
 									}
-									else if (res.Value == null)
+									else if (!res.HasValue || res.Value.Directory == null)
 									{
 										StdOut($"# Directory {newPath} does not exist!", ConsoleColor.Red);
 										this.Terminal.Beep();
 									}
 									else
 									{
-										this.CurrentDirectoryPath = res.Value.Path;
+										this.CurrentDirectoryPath = res.Value.Directory.Path;
 
 										// auto "dir" !
 										await RunAsyncCommand((db, log, ct) => BasicCommands.Dir(this.CurrentDirectoryPath, extras, BasicCommands.DirectoryBrowseOptions.Default, db, log, ct), cancel);
@@ -951,14 +968,14 @@ namespace FdbShell
 									{
 										StdErr($"# Failed to query Directory {this.CurrentDirectoryPath}: {res.Error!.Message}", ConsoleColor.Red);
 									}
-									else if (res.Value == null)
+									else if (!res.HasValue || res.Value.Directory == null)
 									{
 										StdOut($"# Directory {this.CurrentDirectoryPath} does not exist anymore");
 									}
 									else
 									{
 										StdOut("Current path: ", newLine: false);
-										StdOut(res.Value.Path.ToString(), ConsoleColor.Cyan);
+										StdOut(res.Value.Directory.Path.ToString(), ConsoleColor.Cyan);
 										StdOut("");
 									}
 								}
@@ -1388,7 +1405,7 @@ namespace FdbShell
 			{
 				return await db.ReadAsync(async tr =>
 				{
-					var parent = await BasicCommands.TryOpenCurrentDirectoryAsync(tr, path);
+					var (parent, _, _) = await BasicCommands.TryOpenCurrentDirectoryAsync(tr, path);
 					if (parent == null) return null;
 					var paths = await parent.ListAsync(tr);
 					return paths.Select(p => p.Name).ToArray();
