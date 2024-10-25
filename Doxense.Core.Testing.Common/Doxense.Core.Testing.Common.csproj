@@ -6,11 +6,13 @@
 		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 		<LangVersion>preview</LangVersion>
 		<Nullable>enable</Nullable>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
 		<RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
 		<SignAssembly>true</SignAssembly>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
+		<Deterministic>true</Deterministic>
 	</PropertyGroup>
 
 	<Import Project="..\Common\VersionInfo.props" />

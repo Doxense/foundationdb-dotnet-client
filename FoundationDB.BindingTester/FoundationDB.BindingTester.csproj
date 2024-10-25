@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>$(CoreSdkToolsVersions)</TargetFrameworks>
+		<TargetFrameworks>$(CoreSdkUtilityVersions)</TargetFrameworks>
 		<RootNamespace>FoundationDB.Client.Testing</RootNamespace>
 		<AssemblyName>FoundationDB.BindingTester</AssemblyName>
 		<LangVersion>12.0</LangVersion>
