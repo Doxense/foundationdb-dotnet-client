@@ -36,6 +36,7 @@ namespace Doxense.Diagnostics.Contracts
 		// ReSharper disable MemberHidesStaticFromOuterClass
 
 		/// <summary>Contracts that are only evaluated in Debug builds</summary>
+		[DebuggerNonUserCode]
 		public static class Debug
 		{
 

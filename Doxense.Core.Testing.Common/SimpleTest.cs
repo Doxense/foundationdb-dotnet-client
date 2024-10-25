@@ -983,7 +983,7 @@ namespace SnowBank.Testing
 		[DebuggerNonUserCode]
 		public static void Log(ITuple item) => WriteToLog(item.ToString());
 
-		//[DebuggerNonUserCode]
+		[DebuggerNonUserCode]
 		public static void Log(IVarTuple item) => WriteToLog(item.ToString());
 
 		[DebuggerNonUserCode]
