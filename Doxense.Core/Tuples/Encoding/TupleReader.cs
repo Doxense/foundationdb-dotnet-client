@@ -147,6 +147,81 @@ namespace Doxense.Collections.Tuples.Encoding
 			return false;
 		}
 
+		/// <summary>Tries to read a positive Big Integer</summary>
+		/// <param name="token">Receives the range that starts from the current cursor up until the end of the string</param>
+		/// <param name="error">Receives an exception if the string is incomplete</param>
+		/// <returns><see langword="true"/> if the big integer was successfully read, or <see langword="false"/> if the string was truncated, or if there was no more data in the buffer</returns>
+		public bool TryReadPositiveBigInteger(out Range token, [NotNullWhen(false)] out Exception? error)
+		{
+			int start = this.Cursor;
+			var buffer = this.Input;
+			// we need at least 2 bytes (header + length)
+
+			int end = checked(start + 2);
+			if (end > buffer.Length)
+			{
+				goto too_small;
+			}
+
+			Contract.Debug.Assert(buffer[0] is TupleTypes.PositiveBigInteger);
+
+			int len = buffer[start + 1];
+			end = checked(start + 2 + len);
+			if (end > buffer.Length)
+			{
+				goto too_small;
+			}
+
+			token = new Range(start, end);
+			this.Cursor = end;
+			error = null;
+			return true;
+
+		too_small:
+			token = default;
+			error = SliceReader.NotEnoughBytes(end - start);
+			return false;
+		}
+
+		/// <summary>Tries to read a positive Big Integer</summary>
+		/// <param name="token">Receives the range that starts from the current cursor up until the end of the string</param>
+		/// <param name="error">Receives an exception if the string is incomplete</param>
+		/// <returns><see langword="true"/> if the big integer was successfully read, or <see langword="false"/> if the string was truncated, or if there was no more data in the buffer</returns>
+		public bool TryReadNegativeBigInteger(out Range token, [NotNullWhen(false)] out Exception? error)
+		{
+			int start = this.Cursor;
+			var buffer = this.Input;
+			// we need at least 2 bytes (header + length)
+
+			int end = checked(start + 2);
+			if (end > buffer.Length)
+			{
+				goto too_small;
+			}
+
+			Contract.Debug.Assert(buffer[0] is TupleTypes.NegativeBigInteger);
+
+			int len = buffer[start + 1];
+			if (len == 0) goto too_small;
+			len = 256 - len;
+
+			end = checked(start + 2 + len);
+			if (end > buffer.Length)
+			{
+				goto too_small;
+			}
+
+			token = new Range(start, end);
+			this.Cursor = end;
+			error = null;
+			return true;
+
+		too_small:
+			token = default;
+			error = SliceReader.NotEnoughBytes(end - start);
+			return false;
+		}
+
 		/// <summary>Unpack the content of an embedded tuple</summary>
 		/// <param name="packed">Packed tuple (starts with <c>0x02</c> and ends with <c>0x00</c></param>
 		/// <returns></returns>

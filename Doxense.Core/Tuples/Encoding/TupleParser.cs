@@ -390,6 +390,169 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (!value.HasValue) WriteNil(ref writer); else WriteDecimal(ref writer, value.Value);
 		}
 
+#if NET8_0_OR_GREATER
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteInt128(ref TupleWriter writer, Int128 value)
+		{
+			if (value >= 0)
+			{
+				WriteUInt128(ref writer, (UInt128) value);
+			}
+			else
+			{
+				WriteNegativeInt128(ref writer, value);
+			}
+
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			static void WriteNegativeInt128(ref TupleWriter writer, Int128 value)
+			{
+
+				if (value >= long.MinValue)
+				{
+					WriteInt64(ref writer, (long) value);
+					return;
+				}
+
+				// Negative values are stored as one's complement (-1 => 0xFE)
+				// - -256 ➜ -1 => 0B 01 00 00 ➜ 0B 01 FE
+
+				// To get a compact representation, we need to get rid of the leading "FF",
+				// BUT, to key ordering, we also need to reverse the length!
+				// - we format the number as the one's complement of the absolute value, so -1 will be ... FF FF FF FE
+				// - we remove all the leading 'FF', so we end up with only 'FE', which would take one byte to encode
+				// - we compute 256 - LENGTH = 255, and use 0xFF as the "count"
+
+				// get the one's complement of the absolute value (-1 => ... FF FE)
+				value = ~(-value);
+
+				// write the value into a tmp buffer, so that we can extract the minimum length
+				Span<byte> tmp = stackalloc byte[16];
+				BinaryPrimitives.WriteInt128BigEndian(tmp, value);
+
+				// count the number of leading zeros
+				int p = tmp.IndexOfAnyExcept((byte) 0xFF);
+				if (p > 0)
+				{
+					tmp = tmp[p..];
+				}
+
+				var buffer = writer.Output.AllocateSpan(1 + 1 + tmp.Length);
+				buffer[0] = TupleTypes.NegativeBigInteger;
+				buffer[1] = (byte) (256 - tmp.Length);
+				tmp.CopyTo(buffer[2..]);
+			}
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteInt128(ref TupleWriter writer, Int128? value)
+		{
+			if (!value.HasValue) WriteNil(ref writer); else WriteInt128(ref writer, value.Value);
+		}
+
+		public static void WriteUInt128(ref TupleWriter writer, UInt128 value)
+		{
+			if (value == 0)
+			{ // zero is encoded as a 0-length number
+				writer.Output.WriteByte(TupleTypes.IntZero);
+			}
+			else if (value <= ulong.MaxValue)
+			{ // "small big" integer fits in a single byte
+				WriteUInt64(ref writer, (ulong) value);
+			}
+			else
+			{
+				WriteUInt128Slow(ref writer, value);
+			}
+
+			static void WriteUInt128Slow(ref TupleWriter writer, UInt128 value)
+			{
+
+				// write the value into a tmp buffer, so that we can extract the minimum length
+				Span<byte> tmp = stackalloc byte[16];
+				BinaryPrimitives.WriteUInt128BigEndian(tmp, value);
+
+				// count the number of leading zeros
+				int p = tmp.IndexOfAnyExcept((byte) 0);
+				if (p > 0)
+				{
+					tmp = tmp[p..];
+				}
+
+				// we don't know the size yet, but the maximum length will be 18 bytes (header, count, 16 bytes)
+				var buffer = writer.Output.AllocateSpan(1 + 1 + tmp.Length);
+				buffer[0] = TupleTypes.PositiveBigInteger;
+				buffer[1] = (byte) tmp.Length;
+				tmp.CopyTo(buffer[2..]);
+			}
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteUInt128(ref TupleWriter writer, UInt128? value)
+		{
+			if (!value.HasValue) WriteNil(ref writer); else WriteUInt128(ref writer, value.Value);
+		}
+
+#endif
+
+		public static void WriteBigInteger(ref TupleWriter writer, BigInteger value)
+		{
+			// lala
+			if (value.IsZero)
+			{ // zero 
+				writer.Output.WriteByte(TupleTypes.IntZero);
+				return;
+			}
+
+			if (value.Sign >= 0)
+			{
+				if (value <= ulong.MaxValue)
+				{ // "small big number"
+					WriteUInt64(ref writer, (ulong) value);
+					return;
+				}
+
+				int count = value.GetByteCount();
+				var buffer = writer.Output.GetSpan(checked(2 + count));
+
+				value.TryWriteBytes(buffer[2..], out int written, isUnsigned: true, isBigEndian: true);
+
+				buffer[0] = TupleTypes.PositiveBigInteger;
+				buffer[1] = (byte) written;
+
+				writer.Output.Advance(2 + written);
+			}
+			else
+			{
+				if (value >= long.MinValue)
+				{ // "small big number"
+					WriteInt64(ref writer, (long) value);
+					return;
+				}
+
+				//TODO: handle the range between -(2^63 - 1) and -(2^64 - 1), we still are in "IntNeg8" !
+
+				--value;
+
+				int count = value.GetByteCount();
+				var buffer = writer.Output.GetSpan(checked(2 + count));
+
+				value.TryWriteBytes(buffer[2..], out int written, isUnsigned: false, isBigEndian: true);
+
+				buffer[0] = TupleTypes.NegativeBigInteger;
+				buffer[1] = (byte) (256 - written);
+
+				writer.Output.Advance(2 + written);
+			}
+
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteBigInteger(ref TupleWriter writer, BigInteger? value)
+		{
+			if (!value.HasValue) WriteNil(ref writer); else WriteBigInteger(ref writer, value.Value);
+		}
+
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void WriteTimeSpan(ref TupleWriter writer, TimeSpan value)
 		{
@@ -1174,6 +1337,47 @@ namespace Doxense.Collections.Tuples.Encoding
 			return TuplePackers.Unpack(ref reader);
 		}
 
+		/// <summary>Parse a tuple segment containing a negative big integer</summary>
+		public static BigInteger ParseNegativeBigInteger(ReadOnlySpan<byte> slice)
+		{
+			Contract.Debug.Requires(slice.Length > 2 && slice[0] == TupleTypes.NegativeBigInteger);
+
+			if (slice.Length is < 3)
+			{
+				throw new FormatException("Slice has invalid size for a Big Integer containing a UInt128");
+			}
+
+			int len = slice[1];
+			len = 256 - len;
+			if (slice.Length != len + 2)
+			{
+				throw new FormatException("Slice length does not match the embedded length for a Big Integer");
+			}
+
+			var value = new BigInteger(slice[2..], isUnsigned: false, isBigEndian: true);
+
+			return value + 1;
+		}
+
+		/// <summary>Parse a tuple segment containing a positive big integer</summary>
+		public static BigInteger ParsePositiveBigInteger(ReadOnlySpan<byte> slice)
+		{
+			Contract.Debug.Requires(slice.Length > 1 && slice[0] == TupleTypes.PositiveBigInteger);
+
+			if (slice.Length is < 2)
+			{
+				throw new FormatException("Slice has invalid size for a Big Integer containing a UInt128");
+			}
+
+			int len = slice[1];
+			if (slice.Length != len + 2)
+			{
+				throw new FormatException("Slice length does not match the embedded length for a Big Integer");
+			}
+
+			return new BigInteger(slice[2..], isUnsigned: true, isBigEndian: true);
+		}
+
 		/// <summary>Parse a tuple segment containing a single precision number (float32)</summary>
 		[Pure]
 		public static float ParseSingle(Slice slice)
@@ -1327,6 +1531,82 @@ namespace Doxense.Collections.Tuples.Encoding
 
 			throw new NotImplementedException();
 		}
+
+#if NET8_0_OR_GREATER
+
+		/// <summary>Parse a tuple segment containing a positive big integer into a <see cref="UInt128"/></summary>
+		[Pure]
+		public static UInt128 ParsePositiveUInt128(ReadOnlySpan<byte> slice)
+		{
+			Contract.Debug.Requires(slice.Length > 0 && slice[0] == TupleTypes.PositiveBigInteger);
+
+			if (slice.Length is < 2 or > 18)
+			{
+				throw new FormatException("Slice has invalid size for a Big Integer containing a UInt128");
+			}
+
+			int len = slice[1];
+			if (slice.Length != len + 2)
+			{
+				throw new FormatException("Slice length does not match the embedded length for a Big Integer");
+			}
+
+			if (len >= 16)
+			{
+				return BinaryPrimitives.ReadUInt128BigEndian(slice[2..]);
+			}
+
+			// we need to copy it to add back the leading zeroes
+			Span<byte> tmp = stackalloc byte[16];
+			tmp.Clear();
+			slice[2..].CopyTo(tmp[(16 - len)..]);
+			return BinaryPrimitives.ReadUInt128BigEndian(tmp);
+		}
+
+		/// <summary>Parse a tuple segment containing a negative big integer into a <see cref="Int128"/></summary>
+		[Pure]
+		public static Int128 ParseNegativeInt128(ReadOnlySpan<byte> slice)
+		{
+			Contract.Debug.Requires(slice.Length > 0 && slice[0] == TupleTypes.NegativeBigInteger);
+
+			if (slice.Length is < 2 or > 18)
+			{
+				throw new FormatException("Slice has invalid size for a negative Big Integer containing a Int128");
+			}
+
+			int len = slice[1];
+			if (len == 0)
+			{
+				throw new FormatException("Slice cannot have an embedded length of 0 for a negative Big Integer");
+			}
+
+			len = 256 - len;
+			if (slice.Length != len + 2)
+			{
+				throw new FormatException("Slice length does not match the embedded length for a negative Big Integer");
+			}
+
+			Int128 value;
+			if (len >= 16)
+			{
+				value = BinaryPrimitives.ReadInt128BigEndian(slice[2..]);
+			}
+			else
+			{
+				// we need to copy it to add back the leading zeroes
+				Span<byte> tmp = stackalloc byte[16];
+				tmp.Fill(0xFF);
+				slice[2..].CopyTo(tmp[(16 - len)..]);
+				value = BinaryPrimitives.ReadInt128BigEndian(tmp);
+			}
+
+			// inverse the one's complement (0xFE -> -1)
+			value += 1;
+
+			return value;
+		}
+
+ #endif
 
 		/// <summary>Parse a tuple segment containing a 128-bit GUID</summary>
 		[Pure]
@@ -1512,6 +1792,16 @@ namespace Doxense.Collections.Tuples.Encoding
 					//PERF: currently, we will first scan to get all the bytes of this tuple, and parse it later.
 					// This means that we may need to scan multiple times the bytes, which may not be efficient if there are multiple embedded tuples inside each other
 					return TryReadEmbeddedTupleBytes(ref reader, out token, out error);
+				}
+
+				case TupleTypes.NegativeBigInteger:
+				{ // <0B><##>(bytes)
+					return reader.TryReadNegativeBigInteger(out token, out error);
+				}
+
+				case TupleTypes.PositiveBigInteger:
+				{ // <1D><##>(bytes)
+					return reader.TryReadPositiveBigInteger(out token, out error);
 				}
 
 				case TupleTypes.Single:

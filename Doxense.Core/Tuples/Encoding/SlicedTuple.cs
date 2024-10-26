@@ -127,7 +127,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		int System.Runtime.CompilerServices.ITuple.Length => this.Count;
 
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
-		public object? this[int index] => TuplePackers.DeserializeBoxed(GetSlice(index));
+		public object? this[int index] => TuplePackers.DeserializeBoxed(GetSpan(index));
 
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public SlicedTuple this[int? fromIncluded, int? toExcluded]
@@ -150,7 +150,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		/// <inheritdoc />
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
-		public object? this[Index index] => TuplePackers.DeserializeBoxed(m_slices.Span[index.GetOffset(m_slices.Length)]);
+		public object? this[Index index] => TuplePackers.DeserializeBoxed(GetSpan(index));
 
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public SlicedTuple this[Range range]
@@ -230,46 +230,71 @@ namespace Doxense.Collections.Tuples.Encoding
 			return slices[TupleHelpers.MapIndex(index, slices.Length)];
 		}
 
-		/// <summary>Test if the element at the specified index is <see cref="TupleSegmentType.Nil"/></summary>
+		/// <summary>Return the encoded binary representation of the element at the specified index</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Slice GetSlice(Index index) => m_slices.Span[index];
+
+		/// <summary>Return the encoded binary representation of the element at the specified index</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public ReadOnlySpan<byte> GetSpan(int index)
+		{
+			var slices = m_slices.Span;
+			return slices[TupleHelpers.MapIndex(index, slices.Length)].Span;
+		}
+
+		/// <summary>Return the encoded binary representation of the element at the specified index</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public ReadOnlySpan<byte> GetSpan(Index index) => m_slices.Span[index].Span;
+
+		/// <summary>Tests if the element at the specified index is <see cref="TupleSegmentType.Nil"/></summary>
 		/// <returns><see langword="true"/> if this the value is either a byte string, or null</returns>
 		public bool IsNil(int index) => GetElementType(index) is TupleSegmentType.Nil;
 
-		/// <summary>Test if the element at the specified index is a <see cref="TupleSegmentType.ByteString"/></summary>
+		/// <summary>Tests if the element at the specified index is a <see cref="TupleSegmentType.ByteString"/></summary>
 		/// <returns><see langword="true"/> if this the value is a byte string</returns>
 		/// <remarks>This could either be an array of bytes, OR a non-unicode Python string</remarks>
 		public bool IsBytes(int index) => GetElementType(index) is (TupleSegmentType.ByteString);
 
-		/// <summary>Test if the element at the specified index is either a <see cref="TupleSegmentType.ByteString"/> or a <see cref="TupleSegmentType.Nil"/></summary>
+		/// <summary>Tests if the element at the specified index is either a <see cref="TupleSegmentType.ByteString"/> or a <see cref="TupleSegmentType.Nil"/></summary>
 		/// <returns><see langword="true"/> if this the value is either a byte string, or null</returns>
 		/// <remarks>This could either be an array of bytes, OR a non-unicode Python string</remarks>
 		public bool IsBytesOrDefault(int index) => GetElementType(index) is (TupleSegmentType.ByteString or TupleSegmentType.Nil);
 
-		/// <summary>Test if the element at the specified index is a <see cref="TupleSegmentType.UnicodeString"/></summary>
+		/// <summary>Tests if the element at the specified index is a <see cref="TupleSegmentType.UnicodeString"/></summary>
 		/// <returns><see langword="true"/> if this the value is either a unicode string</returns>
 		public bool IsUnicodeString(int index) => GetElementType(index) is (TupleSegmentType.UnicodeString);
 
-		/// <summary>Test if the element at the specified index is either a <see cref="TupleSegmentType.UnicodeString"/> or a <see cref="TupleSegmentType.Nil"/></summary>
+		/// <summary>Tests if the element at the specified index is either a <see cref="TupleSegmentType.UnicodeString"/> or a <see cref="TupleSegmentType.Nil"/></summary>
 		/// <returns><see langword="true"/> if this the value is either a unicode string, or null</returns>
 		public bool IsUnicodeStringOrDefault(int index) => GetElementType(index) is (TupleSegmentType.UnicodeString or TupleSegmentType.Nil);
 
-		/// <summary>Test if the element at the specified index is an <see cref="TupleSegmentType.Integer"/></summary>
+		/// <summary>Tests if the element at the specified index is an <see cref="TupleSegmentType.Integer"/></summary>
+		/// <remarks>Floating points numbers (<see cref="TupleSegmentType.Single"/>, <see cref="TupleSegmentType.Double"/>, ...) or Big Integers (<see cref="TupleSegmentType.BigInteger"/>, ...) are not in this category</remarks>
 		public bool IsInteger(int index) => GetElementType(index) is TupleSegmentType.Integer;
 
-		/// <summary>Test if the element at the specified index is a <see cref="TupleSegmentType.Double"/></summary>
+		/// <summary>Tests if the element at the specified index is a <see cref="TupleSegmentType.Double"/></summary>
 		public bool IsDouble(int index) => GetElementType(index) is TupleSegmentType.Double;
 
-		/// <summary>Test if the element at the specified index is a <see cref="TupleSegmentType.Single"/></summary>
+		/// <summary>Tests if the element at the specified index is a <see cref="TupleSegmentType.Single"/></summary>
 		public bool IsSingle(int index) => GetElementType(index) is TupleSegmentType.Single;
 
-		/// <summary>Test if the element at the specified index is any of the floating points types (<see cref="TupleSegmentType.Single"/>, <see cref="TupleSegmentType.Double"/>, <see cref="TupleSegmentType.Triple"/> or <see cref="TupleSegmentType.Decimal"/>)</summary>
+		/// <summary>Tests if the element at the specified index is a <see cref="TupleSegmentType.Decimal"/></summary>
+		public bool IsDecimal(int index) => GetElementType(index) is TupleSegmentType.Decimal;
+
+		/// <summary>Tests if the element at the specified index is any of the floating points types (<see cref="TupleSegmentType.Single"/>, <see cref="TupleSegmentType.Double"/>, <see cref="TupleSegmentType.Triple"/> or <see cref="TupleSegmentType.Decimal"/>)</summary>
 		public bool IsFloatingPoint(int index) => GetElementType(index) is (TupleSegmentType.Double or TupleSegmentType.Single or TupleSegmentType.Decimal or TupleSegmentType.Triple);
 
-		/// <summary>Test if the element at the specified index is a number of any type (integer or floating point)</summary>
-		public bool IsNumber(int index) => GetElementType(index) is (TupleSegmentType.Integer or TupleSegmentType.Double or TupleSegmentType.Single or TupleSegmentType.Decimal or TupleSegmentType.Triple);
+		/// <summary>Tests if the element at the specified index is a <see cref="TupleSegmentType.BigInteger"/></summary>
+		public bool IsBigInteger(int index) => GetElementType(index) is TupleSegmentType.BigInteger;
 
-		/// <summary>Return the encoded binary representation of the element at the specified index</summary>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Slice GetSlice(Index index) => m_slices.Span[index];
+		/// <summary>Tests if the element at the specified index is a number of any type (integer, floating point or big integer)</summary>
+		public bool IsNumber(int index) => GetElementType(index) is (TupleSegmentType.Integer or TupleSegmentType.Double or TupleSegmentType.Single or TupleSegmentType.Decimal or TupleSegmentType.Triple or TupleSegmentType.BigInteger);
+
+		/// <summary>Tests if the element at the specified index is a <see cref="TupleSegmentType.Boolean"/></summary>
+		public bool IsBoolean(int index) => GetElementType(index) is TupleSegmentType.Boolean;
+
+		/// <summary>Tests if the element at the specified index is a reserved custom type code (application specific)</summary>
+		public bool IsUserType(int index) => GetElementType(index) is TupleSegmentType.UserType;
 
 		/// <summary>Returns the <see cref="TupleSegmentType">encoded type</see> of the element at the specified index</summary>
 		/// <returns>This helps test if a parser element is a string, a number, a boolean, etc...</returns>
