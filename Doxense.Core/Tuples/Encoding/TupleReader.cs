@@ -203,7 +203,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 			int len = buffer[start + 1];
 			if (len == 0) goto too_small;
-			len = 256 - len;
+			len ^= 0xFF;
 
 			end = checked(start + 2 + len);
 			if (end > buffer.Length)

@@ -439,7 +439,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 				var buffer = writer.Output.AllocateSpan(1 + 1 + tmp.Length);
 				buffer[0] = TupleTypes.NegativeBigInteger;
-				buffer[1] = (byte) (256 - tmp.Length);
+				buffer[1] = (byte) (tmp.Length ^ 0xFF);
 				tmp.CopyTo(buffer[2..]);
 			}
 		}
@@ -540,7 +540,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				value.TryWriteBytes(buffer[2..], out int written, isUnsigned: false, isBigEndian: true);
 
 				buffer[0] = TupleTypes.NegativeBigInteger;
-				buffer[1] = (byte) (256 - written);
+				buffer[1] = (byte) (written ^ 0xFF);
 
 				writer.Output.Advance(2 + written);
 			}
@@ -1348,7 +1348,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			}
 
 			int len = slice[1];
-			len = 256 - len;
+			len ^= 0xFF;
 			if (slice.Length != len + 2)
 			{
 				throw new FormatException("Slice length does not match the embedded length for a Big Integer");
@@ -1580,7 +1580,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				throw new FormatException("Slice cannot have an embedded length of 0 for a negative Big Integer");
 			}
 
-			len = 256 - len;
+			len ^= 0xFF;
 			if (slice.Length != len + 2)
 			{
 				throw new FormatException("Slice length does not match the embedded length for a negative Big Integer");

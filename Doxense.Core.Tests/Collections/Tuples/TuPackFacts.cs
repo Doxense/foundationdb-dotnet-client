@@ -464,53 +464,17 @@ namespace Doxense.Collections.Tuples.Tests
 			// - 1..255 => <15><##>
 			// - 256..65535 .. => <16><HH><LL>
 			// - ulong.MaxValue => <1C><FF><FF><FF><FF><FF><FF><FF><FF>
-
-			Assert.That(
-				TuPack.EncodeKey(0).ToString(),
-				Is.EqualTo("<14>")
-			);
-
-			Assert.That(
-				TuPack.EncodeKey(1).ToString(),
-				Is.EqualTo("<15><01>")
-			);
-
-			Assert.That(
-				TuPack.EncodeKey(255).ToString(),
-				Is.EqualTo("<15><FF>")
-			);
-
-			Assert.That(
-				TuPack.EncodeKey(256).ToString(),
-				Is.EqualTo("<16><01><00>")
-			);
-
-			Assert.That(
-				TuPack.EncodeKey(65535).ToString(),
-				Is.EqualTo("<16><FF><FF>")
-			);
-
-			Assert.That(
-				TuPack.EncodeKey(65536).ToString(),
-				Is.EqualTo("<17><01><00><00>")
-			);
-
-			Assert.That(
-				TuPack.EncodeKey(int.MaxValue).ToString(),
-				Is.EqualTo("<18><7F><FF><FF><FF>")
-			);
-
-			// signed max
-			Assert.That(
-				TuPack.EncodeKey(long.MaxValue).ToString(),
-				Is.EqualTo("<1C><7F><FF><FF><FF><FF><FF><FF><FF>")
-			);
-
-			// unsigned max
-			Assert.That(
-				TuPack.EncodeKey(ulong.MaxValue).ToString(),
-				Is.EqualTo("<1C><FF><FF><FF><FF><FF><FF><FF><FF>")
-			);
+			
+			Assert.That(TuPack.EncodeKey(0).ToHexString(' '), Is.EqualTo("14"));
+			Assert.That(TuPack.EncodeKey(1).ToHexString(' '), Is.EqualTo("15 01"));
+			Assert.That(TuPack.EncodeKey(255).ToHexString(' '), Is.EqualTo("15 FF"));
+			Assert.That(TuPack.EncodeKey(256).ToHexString(' '), Is.EqualTo("16 01 00"));
+			Assert.That(TuPack.EncodeKey(65535).ToHexString(' '), Is.EqualTo("16 FF FF"));
+			Assert.That(TuPack.EncodeKey(65536).ToHexString(' '), Is.EqualTo("17 01 00 00"));
+			Assert.That(TuPack.EncodeKey(int.MaxValue).ToHexString(' '), Is.EqualTo("18 7F FF FF FF"));
+			Assert.That(TuPack.EncodeKey(long.MaxValue).ToHexString(' '), Is.EqualTo("1C 7F FF FF FF FF FF FF FF"));
+			Assert.That(TuPack.EncodeKey(59604644783353249UL).ToHexString(' '), Is.EqualTo("1B D3 C2 1B CF 46 6D A1"));
+			Assert.That(TuPack.EncodeKey(ulong.MaxValue).ToHexString(' '), Is.EqualTo("1C FF FF FF FF FF FF FF FF"));
 		}
 
 		[Test]
@@ -635,43 +599,15 @@ namespace Doxense.Collections.Tuples.Tests
 			// - -65535..-256 => <12><00>00> .. <12><FE><FF>
 			// - long.MinValue => <0C><7F><FF><FF><FF><FF><FF><FF><FF>
 
-			Assert.That(
-				TuPack.EncodeKey(-1).ToString(),
-				Is.EqualTo("<13><FE>")
-			);
-
-			Assert.That(
-				TuPack.EncodeKey(-255).ToString(),
-				Is.EqualTo("<13><00>")
-			);
-
-			Assert.That(
-				TuPack.EncodeKey(-256).ToString(),
-				Is.EqualTo("<12><FE><FF>")
-			);
-			Assert.That(
-				TuPack.EncodeKey(-257).ToString(),
-				Is.EqualTo("<12><FE><FE>")
-			);
-
-			Assert.That(
-				TuPack.EncodeKey(-65535).ToString(),
-				Is.EqualTo("<12><00><00>")
-			);
-			Assert.That(
-				TuPack.EncodeKey(-65536).ToString(),
-				Is.EqualTo("<11><FE><FF><FF>")
-			);
-
-			Assert.That(
-				TuPack.EncodeKey(int.MinValue).ToString(),
-				Is.EqualTo("<10><7F><FF><FF><FF>")
-			);
-
-			Assert.That(
-				TuPack.EncodeKey(long.MinValue).ToString(),
-				Is.EqualTo("<0C><7F><FF><FF><FF><FF><FF><FF><FF>")
-			);
+			Assert.That(TuPack.EncodeKey(-1).ToHexString(' '), Is.EqualTo("13 FE"));
+			Assert.That(TuPack.EncodeKey(-255).ToHexString(' '), Is.EqualTo("13 00"));
+			Assert.That(TuPack.EncodeKey(-256).ToHexString(' '), Is.EqualTo("12 FE FF"));
+			Assert.That(TuPack.EncodeKey(-257).ToHexString(' '), Is.EqualTo("12 FE FE"));
+			Assert.That(TuPack.EncodeKey(-65535).ToHexString(' '), Is.EqualTo("12 00 00"));
+			Assert.That(TuPack.EncodeKey(-65536).ToHexString(' '), Is.EqualTo("11 FE FF FF"));
+			Assert.That(TuPack.EncodeKey(int.MinValue).ToHexString(' '), Is.EqualTo("10 7F FF FF FF"));
+			Assert.That(TuPack.EncodeKey(-59604644783353249).ToHexString(' '), Is.EqualTo("0D 2C 3D E4 30 B9 92 5E"));
+			Assert.That(TuPack.EncodeKey(long.MinValue).ToHexString(' '), Is.EqualTo("0C 7F FF FF FF FF FF FF FF"));
 		}
 
 		[Test]
@@ -939,7 +875,7 @@ namespace Doxense.Collections.Tuples.Tests
 		}
 
 		[Test]
-		public void Test_TuplePack_Serialize_BigIntegers()
+		public void Test_TuplePack_Serialize_Big_Integers()
 		{
 #if NET8_0_OR_GREATER
 
@@ -950,7 +886,12 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(TuPack.EncodeKey(UInt128.One).ToHexString(' '), Is.EqualTo("15 01"));
 				Assert.That(TuPack.EncodeKey((UInt128) 0x1234).ToHexString(' '), Is.EqualTo("16 12 34"));
 				Assert.That(TuPack.EncodeKey((UInt128) 0x12345678).ToHexString(' '), Is.EqualTo("18 12 34 56 78"));
+				Assert.That(TuPack.EncodeKey((UInt128) uint.MaxValue).ToHexString(' '), Is.EqualTo("18 FF FF FF FF"));
+				Assert.That(TuPack.EncodeKey((UInt128.One << 32)).ToHexString(' '), Is.EqualTo("19 01 00 00 00 00"));
 				Assert.That(TuPack.EncodeKey((UInt128) 0x0123456789ABCDEF).ToHexString(' '), Is.EqualTo("1C 01 23 45 67 89 AB CD EF"));
+				Assert.That(TuPack.EncodeKey((UInt128) long.MaxValue).ToHexString(' '), Is.EqualTo("1C 7F FF FF FF FF FF FF FF"));
+				Assert.That(TuPack.EncodeKey((UInt128.One << 63)).ToHexString(' '), Is.EqualTo("1C 80 00 00 00 00 00 00 00"));
+				Assert.That(TuPack.EncodeKey((UInt128) ulong.MaxValue).ToHexString(' '), Is.EqualTo("1C FF FF FF FF FF FF FF FF"));
 				Assert.That(TuPack.EncodeKey((UInt128.One << 64)).ToHexString(' '), Is.EqualTo("1D 09 01 00 00 00 00 00 00 00 00"));
 				Assert.That(TuPack.EncodeKey((UInt128.One << 72) - 1).ToHexString(' '), Is.EqualTo("1D 09 FF FF FF FF FF FF FF FF FF"));
 				Assert.That(TuPack.EncodeKey(UInt128.MaxValue).ToHexString(' '), Is.EqualTo("1D 10 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"));
@@ -963,7 +904,13 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(TuPack.EncodeKey(Int128.One).ToHexString(' '), Is.EqualTo("15 01"));
 				Assert.That(TuPack.EncodeKey((Int128) 0x1234).ToHexString(' '), Is.EqualTo("16 12 34"));
 				Assert.That(TuPack.EncodeKey((Int128) 0x12345678).ToHexString(' '), Is.EqualTo("18 12 34 56 78"));
+				Assert.That(TuPack.EncodeKey((Int128) uint.MaxValue).ToHexString(' '), Is.EqualTo("18 FF FF FF FF"));
+				Assert.That(TuPack.EncodeKey((Int128.One << 32)).ToHexString(' '), Is.EqualTo("19 01 00 00 00 00"));
+				Assert.That(TuPack.EncodeKey((Int128) 59604644783353249).ToHexString(' '), Is.EqualTo("1B D3 C2 1B CF 46 6D A1"));
 				Assert.That(TuPack.EncodeKey((Int128) 0x0123456789ABCDEF).ToHexString(' '), Is.EqualTo("1C 01 23 45 67 89 AB CD EF"));
+				Assert.That(TuPack.EncodeKey((Int128) long.MaxValue).ToHexString(' '), Is.EqualTo("1C 7F FF FF FF FF FF FF FF"));
+				Assert.That(TuPack.EncodeKey((Int128.One << 63)).ToHexString(' '), Is.EqualTo("1C 80 00 00 00 00 00 00 00"));
+				Assert.That(TuPack.EncodeKey((Int128) ulong.MaxValue).ToHexString(' '), Is.EqualTo("1C FF FF FF FF FF FF FF FF"));
 				Assert.That(TuPack.EncodeKey((Int128.One << 64)).ToHexString(' '), Is.EqualTo("1D 09 01 00 00 00 00 00 00 00 00"));
 				Assert.That(TuPack.EncodeKey((Int128.One << 72) - 1).ToHexString(' '), Is.EqualTo("1D 09 FF FF FF FF FF FF FF FF FF"));
 				Assert.That(TuPack.EncodeKey(Int128.MaxValue).ToHexString(' '), Is.EqualTo("1D 10 7F FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"));
@@ -971,8 +918,14 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(TuPack.EncodeKey((Int128) (-1)).ToHexString(' '), Is.EqualTo("13 FE"));
 				Assert.That(TuPack.EncodeKey((Int128) (-0x1234)).ToHexString(' '), Is.EqualTo("12 ED CB"));
 				Assert.That(TuPack.EncodeKey((Int128) (-0x12345678)).ToHexString(' '), Is.EqualTo("10 ED CB A9 87"));
+				Assert.That(TuPack.EncodeKey(((Int128) int.MinValue) + 1).ToHexString(' '), Is.EqualTo("10 80 00 00 00"));
+				Assert.That(TuPack.EncodeKey((Int128) int.MinValue).ToHexString(' '), Is.EqualTo("10 7F FF FF FF"));
+				Assert.That(TuPack.EncodeKey((Int128) (-59604644783353249)).ToHexString(' '), Is.EqualTo("0D 2C 3D E4 30 B9 92 5E"));
 				Assert.That(TuPack.EncodeKey((Int128) (-0x0123456789ABCDEF)).ToHexString(' '), Is.EqualTo("0C FE DC BA 98 76 54 32 10"));
-				Assert.That(TuPack.EncodeKey(Int128.MinValue).ToHexString(' '), Is.EqualTo("0B F0 7F FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"));
+				Assert.That(TuPack.EncodeKey((Int128) long.MinValue + 1).ToHexString(' '), Is.EqualTo("0C 80 00 00 00 00 00 00 00"));
+				Assert.That(TuPack.EncodeKey((Int128) long.MinValue).ToHexString(' '), Is.EqualTo("0C 7F FF FF FF FF FF FF FF"));
+				Assert.That(TuPack.EncodeKey(((Int128) long.MinValue) - 1).ToHexString(' '), Is.EqualTo("0B F7 7F FF FF FF FF FF FF FE"));
+				Assert.That(TuPack.EncodeKey(Int128.MinValue).ToHexString(' '), Is.EqualTo("0B EF 7F FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"));
 			});
 #endif
 
@@ -999,6 +952,10 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(TuPack.EncodeKey(p2).ToHexString(' '), Is.EqualTo("1D 0C 01 B0 E7 2C 08 E0 2B 29 11 A0 55 61"));
 				Assert.That(TuPack.EncodeKey(p3).ToHexString(' '), Is.EqualTo("1D 13 01 66 16 C7 81 93 27 97 1A 06 81 C5 66 9B 71 21 B5 FF 01"));
 				Assert.That(TuPack.EncodeKey(p4).ToHexString(' '), Is.EqualTo("1D 22 04 D5 EB 06 BA DA 9B AE 61 1C 34 E6 7A 38 93 0E FA 56 63 F6 6B 09 E3 35 28 B8 EE 10 E8 96 43 55 2C 21"));
+				Assert.That(TuPack.EncodeKey(-p1).ToHexString(' '), Is.EqualTo("0D 2C 3D E4 30 B9 92 5E"));
+				Assert.That(TuPack.EncodeKey(-p2).ToHexString(' '), Is.EqualTo("0B F3 FE 4F 18 D3 F7 1F D4 D6 EE 5F AA 9E"));
+				Assert.That(TuPack.EncodeKey(-p3).ToHexString(' '), Is.EqualTo("0B EC FE 99 E9 38 7E 6C D8 68 E5 F9 7E 3A 99 64 8E DE 4A 00 FE"));
+				Assert.That(TuPack.EncodeKey(-p4).ToHexString(' '), Is.EqualTo("0B DD FB 2A 14 F9 45 25 64 51 9E E3 CB 19 85 C7 6C F1 05 A9 9C 09 94 F6 1C CA D7 47 11 EF 17 69 BC AA D3 DE"));
 			});
 
 		}
@@ -1025,7 +982,7 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(TuPack.DecodeKey<Int128>(Slice.FromHexa("14")), Is.EqualTo(Int128.Zero));
 				Assert.That(TuPack.DecodeKey<Int128>(Slice.FromHexa("15 01")), Is.EqualTo(Int128.One));
 				Assert.That(TuPack.DecodeKey<Int128>(Slice.FromHexa("13 FE")), Is.EqualTo((Int128) (-1)));
-				Assert.That(TuPack.DecodeKey<Int128>(Slice.FromHexa("0B F0 7F FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF")), Is.EqualTo(Int128.MinValue));
+				Assert.That(TuPack.DecodeKey<Int128>(Slice.FromHexa("0B EF 7F FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF")), Is.EqualTo(Int128.MinValue));
 			});
 #endif
 
@@ -1045,6 +1002,10 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(TuPack.DecodeKey<BigInteger>(Slice.FromHexa("1D 0C 01 B0 E7 2C 08 E0 2B 29 11 A0 55 61")), Is.EqualTo(p2));
 				Assert.That(TuPack.DecodeKey<BigInteger>(Slice.FromHexa("1D 13 01 66 16 C7 81 93 27 97 1A 06 81 C5 66 9B 71 21 B5 FF 01")), Is.EqualTo(p3));
 				Assert.That(TuPack.DecodeKey<BigInteger>(Slice.FromHexa("1D 22 04 D5 EB 06 BA DA 9B AE 61 1C 34 E6 7A 38 93 0E FA 56 63 F6 6B 09 E3 35 28 B8 EE 10 E8 96 43 55 2C 21")), Is.EqualTo(p4));
+				Assert.That(TuPack.DecodeKey<BigInteger>(Slice.FromHexa("0D 2C 3D E4 30 B9 92 5E")), Is.EqualTo(-p1));
+				Assert.That(TuPack.DecodeKey<BigInteger>(Slice.FromHexa("0B F3 FE 4F 18 D3 F7 1F D4 D6 EE 5F AA 9E")), Is.EqualTo(-p2));
+				Assert.That(TuPack.DecodeKey<BigInteger>(Slice.FromHexa("0B EC FE 99 E9 38 7E 6C D8 68 E5 F9 7E 3A 99 64 8E DE 4A 00 FE")), Is.EqualTo(-p3));
+				Assert.That(TuPack.DecodeKey<BigInteger>(Slice.FromHexa("0B DD FB 2A 14 F9 45 25 64 51 9E E3 CB 19 85 C7 6C F1 05 A9 9C 09 94 F6 1C CA D7 47 11 EF 17 69 BC AA D3 DE")), Is.EqualTo(-p4));
 			});
 		}
 
