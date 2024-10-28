@@ -166,22 +166,31 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Maps a relative index into an absolute index</summary>
 		/// <param name="index">Relative index in the tuple (from the end if negative)</param>
 		/// <param name="count">Size of the tuple</param>
-		/// <returns>Absolute index from the start of the tuple, or exception if outside of the tuple</returns>
-		/// <exception cref="System.IndexOutOfRangeException">If the absolute index is outside of the tuple (&lt;0 or &gt;=<paramref name="count"/>)</exception>
+		/// <returns>Absolute index from the start of the tuple, or exception if outside the tuple</returns>
+		/// <exception cref="System.IndexOutOfRangeException">If the absolute index is outside the tuple (&lt;0 or &gt;=<paramref name="count"/>)</exception>
 		[Pure]
 		public static int MapIndex(int index, int count)
 		{
 			Contract.Debug.Requires(count >= 0);
 			int offset = index;
-			if (offset < 0) offset += count;
+			if (offset < 0)
+			{
+#if DEBUG
+				// we are attempting to phase out negative indexing (legacy)!
+				// please use the new Index type and syntax: tuple[-1] => tuple[^1]
+				if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
+#endif
+				offset += count;
+			}
+
 			return (uint) offset < count ? offset : FailIndexOutOfRange<int>(index, count);
 		}
 
 		/// <summary>Maps a relative index into an absolute index</summary>
 		/// <param name="index">Relative index in the tuple (from the end if negative)</param>
 		/// <param name="count">Size of the tuple</param>
-		/// <returns>Absolute index from the start of the tuple, or exception if outside of the tuple</returns>
-		/// <exception cref="System.IndexOutOfRangeException">If the absolute index is outside of the tuple (&lt;0 or &gt;=<paramref name="count"/>)</exception>
+		/// <returns>Absolute index from the start of the tuple, or exception if outside the tuple</returns>
+		/// <exception cref="System.IndexOutOfRangeException">If the absolute index is outside the tuple (&lt;0 or &gt;=<paramref name="count"/>)</exception>
 		[Pure]
 		public static int MapIndex(Index index, int count)
 		{
