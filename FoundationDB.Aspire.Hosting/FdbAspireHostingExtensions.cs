@@ -382,7 +382,7 @@ namespace Aspire.Hosting
 					{
 						case (7, 3):
 						{
-							return "7.3.35";
+							return "7.3.55";
 						}
 						case (7, 2):
 						{
@@ -390,7 +390,7 @@ namespace Aspire.Hosting
 						}
 						case (7, 1):
 						{
-							return "7.1.59";
+							return "7.1.63";
 						}
 						default:
 						{
