@@ -935,7 +935,9 @@ namespace Doxense.Diagnostics.Contracts
 
 			if (exception is null)
 			{ // Is this a complex exception type ?
+#pragma warning disable IL2067
 				exception = ThrowHelper.TryMapToComplexException(exceptionType, description, paramName);
+#pragma warning restore IL2067
 			}
 
 			if (exception is null)

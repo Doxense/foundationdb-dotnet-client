@@ -72,9 +72,9 @@ namespace Doxense
 			m_errorContainer = null;
 		}
 
-		internal Maybe(bool hasValue, T? value, object errorContainer)
+		internal Maybe(bool hasValue, T? value, object? errorContainer)
 		{
-			Contract.Debug.Requires(errorContainer == null || (errorContainer is Exception) || (errorContainer is ExceptionDispatchInfo));
+			Contract.Debug.Requires(errorContainer is null or Exception or ExceptionDispatchInfo);
 
 			m_hasValue = hasValue;
 			m_value = value;
@@ -119,6 +119,38 @@ namespace Doxense
 				: m_errorContainer as Exception;
 		}
 
+		/// <summary>Tests if the value failed to compute</summary>
+		/// <param name="result">Receives the result of the computation, if it completed successfully</param>
+		/// <param name="error">Receives the captured error if the computation has failed.</param>
+		/// <returns> <see langword="true"/> if the computation has completed successfully; otherwise, <see langword="false"/>.</returns>
+		/// <example><code>
+		/// Maybe&lt;int&gt; ComputeInner() { .... }
+		///
+		/// Maybe&lt;string&gt; ComputeOuter()
+		/// {
+		///   if (!ComputeSomething().Check(out var result, out var error))
+		///   {
+		///     return error; // auto-cast to Maybe&lt;string&gt; with the error
+		///   }
+		///   return "inner = " + result;
+		/// }
+		/// </code></example>
+		public bool Check([MaybeNullWhen(false)] out T result, out MaybeError error)
+		{
+			if (m_hasValue)
+			{
+				result = m_value!;
+				error = default;
+				return true;
+			}
+			else
+			{
+				result = default;
+				error = new(m_errorContainer);
+				return false;
+			}
+		}
+
 		/// <summary>Returns the captured error context, or null if there wasn't any</summary>
 		public ExceptionDispatchInfo? CapturedError => m_errorContainer is Exception exception ? ExceptionDispatchInfo.Capture(exception) : m_errorContainer as ExceptionDispatchInfo;
 
@@ -129,6 +161,40 @@ namespace Doxense
 			[TargetedPatchingOptOut("Performance critical to inline this type of method across NGen image boundaries")]
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => m_errorContainer != null;
+		}
+
+		/// <summary>Returns the result of the computation, or re-throws any captured exception</summary>
+		/// <example><code>
+		/// Maybe&lt;string&gt; ComputeSomething() { .... }
+		///
+		/// var result = ComputeSometing().Resolve(); // throws if failed
+		/// Console.WriteLine("Result is: " + result);
+		/// </code></example>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public T Resolve()
+		{
+			return m_hasValue ? m_value! : HandleNonSuccess();
+		}
+
+		[StackTraceHidden, MethodImpl(MethodImplOptions.NoInlining)]
+		private T HandleNonSuccess()
+		{
+			switch (m_errorContainer)
+			{
+				case ExceptionDispatchInfo edi:
+				{
+					edi.Throw();
+					throw null!; // never reached, but helps with code analysis
+				}
+				case Exception ex:
+				{
+					throw ex;
+				}
+				default:
+				{
+					throw new InvalidOperationException("Computation yielded no result");
+				}
+			}
 		}
 
 		/// <summary>Rethrows any captured error, if there was one.</summary>
@@ -174,34 +240,25 @@ namespace Doxense
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Maybe<T> Failure(Exception error)
-		{
-			return new Maybe<T>(false, default, error);
-		}
+		public static Maybe<T> Failure(Exception error) => new(false, default, error);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Maybe<T> Failure(ExceptionDispatchInfo error)
-		{
-			return new Maybe<T>(false, default, error);
-		}
+		public static Maybe<T> Failure(ExceptionDispatchInfo error) => new(false, default, error);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static explicit operator T(Maybe<T> m)
-		{
-			return m.Value;
-		}
+		public static Maybe<T> Failure(MaybeError error) => new(false, default, error.Container);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator Maybe<T>(T value)
-		{
-			return new Maybe<T>(value);
-		}
+		public static explicit operator T(Maybe<T> m) => m.Value;
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator Maybe<T>(Exception error)
-		{
-			return Failure(error);
-		}
+		public static implicit operator Maybe<T>(T value) => new(value);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator Maybe<T>(Exception error) => Failure(error);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator Maybe<T>(MaybeError error) => Failure(error);
 
 		public bool Equals(Maybe<T> other)
 		{
@@ -425,10 +482,10 @@ namespace Doxense
 		/// <param name="value">The value to wrap in a <see cref="Maybe{T}"/>.</param>
 		/// <returns><see cref="Maybe{T}.Nothing"/> if the instance is null, otherwise a <see cref="Maybe{T}"/> encapsulating the value.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Maybe<T> ReturnNotNull<T>(Nullable<T> value)
+		public static Maybe<T> ReturnNotNull<T>(T? value)
 			where T : struct
 		{
-			return value.HasValue ? new Maybe<T>(value.Value) : default(Maybe<T>);
+			return value.HasValue ? new(value.Value) : default(Maybe<T>);
 		}
 
 		/// <summary>Creates an empty <see cref="Maybe{T}"/> instance.</summary>
@@ -739,6 +796,63 @@ namespace Doxense
 		public static Func<Maybe<TU>, Maybe<TResult>> Bind<TU, TIntermediate, TResult>(Func<TU, Maybe<TIntermediate>> f, Func<Maybe<TIntermediate>, Maybe<TResult>> g)
 		{
 			return Combine(Maybe<TU>.Bind(f), g);
+		}
+
+	}
+
+	/// <summary>Represents an error captured during a computation</summary>
+	/// <remarks>Wraps any exception captured or returned by a called method</remarks>
+	public readonly struct MaybeError
+	{
+
+		private readonly object? m_errorContainer; // either an Exception, or an ExceptionDispatchInfo
+
+		internal MaybeError(object? errorContainer)
+		{
+			Contract.Debug.Requires(errorContainer is null or Exception or ExceptionDispatchInfo);
+			m_errorContainer = errorContainer;
+		}
+
+		public MaybeError(Exception error)
+		{
+			Contract.Debug.Requires(error != null);
+			m_errorContainer = error;
+		}
+
+		public MaybeError(ExceptionDispatchInfo capturedError)
+		{
+			Contract.Debug.Requires(capturedError != null);
+			m_errorContainer = capturedError;
+		}
+
+		internal object? Container => m_errorContainer;
+
+		public Exception? Error => m_errorContainer switch
+		{
+			ExceptionDispatchInfo edi => edi.SourceException,
+			Exception ex => ex,
+			_ => null,
+		};
+
+		[StackTraceHidden]
+		public void Throw()
+		{
+			switch (m_errorContainer)
+			{
+				case ExceptionDispatchInfo edi:
+				{
+					edi.Throw();
+					throw null!;
+				}
+				case Exception ex:
+				{
+					throw ex;
+				}
+				default:
+				{
+					throw new InvalidOperationException("Computation yielded not results");
+				}
+			}
 		}
 
 	}
