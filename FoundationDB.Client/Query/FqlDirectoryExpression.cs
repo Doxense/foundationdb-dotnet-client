@@ -143,19 +143,13 @@ namespace FoundationDB.Client
 			return this;
 		}
 
-		public FqlDirectoryExpression AddLiteral(FdbPathSegment segment)
-		{
-			this.Segments.Add(FqlPathSegment.Literal(segment));
-			return this;
-		}
-
-		public FqlDirectoryExpression AddLiteral(string name)
+		public FqlDirectoryExpression Add(string name)
 		{
 			this.Segments.Add(FqlPathSegment.Literal(FdbPathSegment.Create(name)));
 			return this;
 		}
 
-		public FqlDirectoryExpression AddLiteral(string name, string layerId)
+		public FqlDirectoryExpression Add(string name, string layerId)
 		{
 			this.Segments.Add(FqlPathSegment.Literal(FdbPathSegment.Create(name, layerId)));
 			return this;

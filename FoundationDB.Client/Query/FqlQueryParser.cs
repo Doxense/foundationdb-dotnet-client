@@ -31,28 +31,44 @@ namespace FoundationDB.Client
 	using System;
 	using System.Buffers;
 	using System.Text;
+	using Doxense;
 
 	public static class FqlQueryParser
 	{
 
 		public static FqlQuery Parse(ReadOnlySpan<char> text)
 		{
+			return ParseNext(text, out _).Value;
+		}
+
+		public static Maybe<FqlQuery> ParseNext(ReadOnlySpan<char> text, out ReadOnlySpan<char> rest)
+		{
+			rest = default;
 
 			FqlDirectoryExpression? directoryExpr = null;
 			FqlTupleExpression? tupleExpr = null;
 
-			var remaining = text;
+			var remaining = text.Trim();
 
-			while(remaining.Length != 0)
+			bool complete = false;
+
+			while(remaining.Length != 0 && !complete)
 			{
-				switch (remaining[0])
+				char c = remaining[0];
+				switch (c)
 				{
 					case '/':
 					{
-						if (tupleExpr != null) throw new FormatException("Invalid directory after tuple");
+						if (tupleExpr != null)
+						{
+							return new FormatException("Cannot have '/' after a tuple expression");
+						}
 
 						remaining = remaining[1..];
-						var segment = ReadDirectory(ref remaining);
+						if (!ReadDirectory(ref remaining).Check(out var segment, out var error))
+						{
+							return error;
+						}
 
 						if (directoryExpr == null)
 						{
@@ -69,13 +85,27 @@ namespace FoundationDB.Client
 					}
 					case '(':
 					{
-						if (tupleExpr != null) throw new FormatException("Only one tuple expression per query");
+						if (tupleExpr != null)
+						{
+							return new FormatException("Only one tuple expression per query");
+						}
+
 						remaining = remaining[1..];
-						tupleExpr = ReadTuple(ref remaining);
+						if (!ReadTuple(ref remaining).Check(out var tuple, out var error))
+						{
+							return error;
+						}
+						tupleExpr = tuple;
+						complete = true;
 						break;
 					}
 					case '.':
 					{
+						if (tupleExpr != null)
+						{
+							return new FormatException("Cannot have '.' after a tuple expression");
+						}
+
 						// supported:
 						// - "." => all in the current directory
 						// - ".(...)" => all in the current with a tuple expression
@@ -83,7 +113,7 @@ namespace FoundationDB.Client
 
 						if (remaining.Length != 1 && remaining[1] is not ('/' or '('))
 						{
-							throw new FormatException("Unexpected '.' in query expression");
+							return new FormatException("Unexpected '.' in query expression");
 						}
 						
 						directoryExpr ??= new();
@@ -92,12 +122,23 @@ namespace FoundationDB.Client
 					}
 					default:
 					{
-						throw new InvalidOperationException($"oops! {text} : [{remaining}]");
+						if (char.IsWhiteSpace(c))
+						{
+							complete = true;
+							break;
+						}
+
+						return new FormatException($"Unexpected token '{c}'");
 					}
 				}
 			}
 
-			return new() { Directory = directoryExpr, Tuple = tupleExpr };
+			rest = remaining;
+			return new FqlQuery()
+			{
+				Directory = directoryExpr,
+				Tuple = tupleExpr
+			};
 		}
 
 		public static readonly SearchValues<char> CategoryWhitespace = SearchValues.Create("\t ");
@@ -110,7 +151,7 @@ namespace FoundationDB.Client
 		private static bool IsWhitespace(char c) => c is ' ' or '\t';
 		private static bool IsNewLine(char c) => c is '\r' or '\n';
 
-		private static FqlPathSegment ReadDirectory(ref ReadOnlySpan<char> text)
+		private static Maybe<FqlPathSegment> ReadDirectory(ref ReadOnlySpan<char> text)
 		{
 			// directory = '/' ( '<>' | name | string ) [ directory ]
 
@@ -122,13 +163,18 @@ namespace FoundationDB.Client
 			}
 
 			char next = text[0];
+			if (char.IsWhiteSpace(next))
+			{
+				return FqlPathSegment.Root();
+			}
+
 			switch (next)
 			{
 				case '<':
 				{ // "<>"?
 					if (text.Length == 1)
 					{
-						throw new FormatException("Truncated '<'");
+						return new FormatException("Truncated '<'");
 					}
 					text = text[2..];
 					return FqlPathSegment.Any();
@@ -137,23 +183,27 @@ namespace FoundationDB.Client
 				{ // text?
 
 					text = text[1..];
-					var literal = ReadString(ref text);
+					if (!ReadString(ref text).Check(out var literal, out var error))
+					{
+						return error;
+					}
 					return FqlPathSegment.Literal(FdbPathSegment.Create(literal));
 				}
 				default:
 				{
+
 					if (CategoryName.Contains(next))
 					{
 						var literal = ReadName(ref text);
 						return FqlPathSegment.Literal(FdbPathSegment.Create(literal));
 					}
 
-					throw new FormatException("TODO: unexpected char while reading directory");
+					return new FormatException($"TODO: unexpected char '{next}' while reading directory: [{text}]");
 				}
 			}
 		}
 
-		private static string ReadString(ref ReadOnlySpan<char> text)
+		private static Maybe<string> ReadString(ref ReadOnlySpan<char> text)
 		{
 			// we already consumed the '"'
 
@@ -220,7 +270,7 @@ namespace FoundationDB.Client
 			return name;
 		}
 
-		private static FqlVariableTypes ReadVariable(ref ReadOnlySpan<char> text)
+		private static (FqlVariableTypes Types, string? Name) ReadVariable(ref ReadOnlySpan<char> text)
 		{
 			// we already have consumed the '<';
 
@@ -228,30 +278,29 @@ namespace FoundationDB.Client
 
 			while (text.Length != 0)
 			{
-				int p = text.IndexOfAny('>', '|');
+				int p = text.IndexOfAny('>', '|', ':');
 				if (p < 0) break;
 
-				switch (text[..p])
-				{
-					case "nil": types |= FqlVariableTypes.Nil; break;
-					case "bool": types |= FqlVariableTypes.Bool; break;
-					case "int": types |= FqlVariableTypes.Int; break;
-					case "uint": types |= FqlVariableTypes.UInt; break;
-					case "float": types |= FqlVariableTypes.Float; break;
-					case "string": types |= FqlVariableTypes.String; break;
-					case "uuid": types |= FqlVariableTypes.Uuid; break;
-					case "bytes": types |= FqlVariableTypes.Bytes; break;
-					case "tuple": types |= FqlVariableTypes.Tuple; break;
-					default:
-					{
-						throw new FormatException($"Invalid variable type '{text[..p]}'");
-					}
+				ReadOnlySpan<char> name = default;
+				if (text[p] == ':')
+				{ // we have a name
+					name = text[..p];
+					text = text[(p + 1)..];
+					p = text.IndexOfAny('>', '|', ':');
+					if (p < 0) break;
 				}
+
+				var type = FqlTupleItem.ParseVariableTypeLiteral(text[..p]);
+				if (type == FqlVariableTypes.None)
+				{
+					throw new FormatException($"Invalid variable type '{text[..p]}'");
+				}
+				types |= type;
 
 				if (text[p] == '>')
 				{
 					text = text[(p + 1)..];
-					return types;
+					return (types, name.Length != 0 ? name.ToString() : null);
 				}
 
 				Contract.Debug.Assert(text[p] == '|');
@@ -263,13 +312,13 @@ namespace FoundationDB.Client
 
 		private static bool CouldBeUuid(ReadOnlySpan<char> text) => text.Length >= 36 && text[8] == '-' && text[13] == '-' && text[18] == '-' && text[23] == '-';
 
-		private static FqlTupleExpression ReadTuple(ref ReadOnlySpan<char> text)
+		private static Maybe<FqlTupleExpression> ReadTuple(ref ReadOnlySpan<char> text)
 		{
 			// we already have consumed the '('
 
 			if (text.Length == 0)
 			{
-				throw new FormatException("TODO: truncated tuple");
+				return new FormatException("TODO: truncated tuple");
 			}
 
 			var tuple = new FqlTupleExpression();
@@ -306,7 +355,7 @@ namespace FoundationDB.Client
 						// could be 'nil'
 						if (text.StartsWith("nil"))
 						{
-							tuple.AddNil();
+							tuple.AddNilConst();
 							text = text[3..];
 							continue;
 						}
@@ -317,7 +366,7 @@ namespace FoundationDB.Client
 					{
 						if (text.StartsWith("false"))
 						{
-							tuple.AddBoolean(false);
+							tuple.AddBooleanConst(false);
 							text = text[5..];
 							continue;
 						}
@@ -329,7 +378,7 @@ namespace FoundationDB.Client
 						// could be 'true'
 						if (text.StartsWith("true"))
 						{
-							tuple.AddBoolean(true);
+							tuple.AddBooleanConst(true);
 							text = text[4..];
 							continue;
 						}
@@ -348,7 +397,7 @@ namespace FoundationDB.Client
 							var slice = Slice.FromHexString(text[..p]);
 							text = text[p..];
 
-							tuple.AddBytes(slice);
+							tuple.AddBytesConst(slice);
 							continue;
 						}
 
@@ -359,7 +408,7 @@ namespace FoundationDB.Client
 							if (Guid.TryParseExact(text[..36], "D", out var uuid))
 							{
 								text = text[36..];
-								tuple.AddUuid(uuid);
+								tuple.AddUuidConst(uuid);
 								continue;
 							}
 
@@ -382,15 +431,15 @@ namespace FoundationDB.Client
 
 						if (num <= int.MaxValue)
 						{
-							tuple.AddInt((int) num);
+							tuple.AddIntConst((int) num);
 						}
 						else if (num <= long.MaxValue)
 						{
-							tuple.AddInt((long) num);
+							tuple.AddIntConst((long) num);
 						}
 						else
 						{
-							tuple.AddUInt(num);
+							tuple.AddUIntConst(num);
 						}
 
 						continue;
@@ -400,7 +449,7 @@ namespace FoundationDB.Client
 						if (CouldBeUuid(text) && Guid.TryParseExact(text[..36], "D", out var uuid))
 						{
 							text = text[36..];
-							tuple.AddUuid(uuid);
+							tuple.AddUuidConst(uuid);
 							continue;
 						}
 						break;
@@ -409,16 +458,19 @@ namespace FoundationDB.Client
 					{ // string
 
 						text = text[1..];
-						var x = ReadString(ref text);
-						tuple.AddString(x);
+						if (!ReadString(ref text).Check(out var x, out var error))
+						{
+							return error;
+						}
+						tuple.AddStringConst(x);
 						continue;
 					}
 					case '<':
 					{ // variable
 
 						text = text[1..];
-						var types = ReadVariable(ref text);
-						tuple.AddVariable(types);
+						var (types, name) = ReadVariable(ref text);
+						tuple.AddVariable(types, name);
 						continue;
 					}
 					case ',':
@@ -431,16 +483,20 @@ namespace FoundationDB.Client
 					{ // sub-tuple!
 
 						text = text[1..];
-						var sub = ReadTuple(ref text);
-						tuple.AddTuple(sub);
+						if (!ReadTuple(ref text).Check(out var sub, out var error))
+						{
+							return error;
+						}
+						tuple.AddTupleConst(sub);
 						continue;
 					}
 
 				}
-				throw new FormatException($"Unexpected token '{next}' in tuple");
+
+				return new FormatException($"Unexpected token '{next}' in tuple");
 			}
 
-			throw new FormatException("Truncated tuple");
+			return new FormatException("Truncated tuple");
 		}
 
 	}

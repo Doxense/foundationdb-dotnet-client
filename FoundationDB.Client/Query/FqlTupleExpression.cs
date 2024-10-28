@@ -49,6 +49,7 @@ namespace FoundationDB.Client
 		Bool,
 		Int,
 		UInt,
+		BigInt,
 		Float,
 		String,
 		Bytes,
@@ -57,18 +58,45 @@ namespace FoundationDB.Client
 
 	}
 
-	[Flags]
-	public enum FqlVariableTypes
+	public enum FqlVariableType
 	{
+		//note: must be in sync with FqlVariableTypes (flags)
+
+		Any = -1,
+
+		None = 0,
+
 		Nil = 1 << 0,
 		Bool = 1 << 1,
 		Int = 1 << 2,
 		UInt = 1 << 3,
-		Float = 1 << 4,
-		String = 1 << 5,
-		Bytes = 1 << 6,
-		Uuid = 1 << 7,
-		Tuple = 1 << 8,
+		BigInt = 1 << 4,
+		Float = 1 << 5,
+		String = 1 << 6,
+		Bytes = 1 << 7,
+		Uuid = 1 << 8,
+		Tuple = 1 << 9,
+	}
+
+	[Flags]
+	public enum FqlVariableTypes
+	{
+		//note: must be in sync with FqlVariableType (non-flags)
+
+		Any = -1,
+
+		None = 0,
+
+		Nil = 1 << 0,
+		Bool = 1 << 1,
+		Int = 1 << 2,
+		UInt = 1 << 3,
+		BigInt = 1 << 4,
+		Float = 1 << 5,
+		String = 1 << 6,
+		Bytes = 1 << 7,
+		Uuid = 1 << 8,
+		Tuple = 1 << 9,
 	}
 
 	[DebuggerDisplay("{ToString(),nq}")]
@@ -86,10 +114,13 @@ namespace FoundationDB.Client
 
 		public readonly object? Value;
 
-		public FqlTupleItem(FqlItemType type, object? value)
+		public readonly string? Name;
+
+		public FqlTupleItem(FqlItemType type, object? value = null, string? name = null)
 		{
 			this.Type = type;
 			this.Value = value;
+			this.Name = name;
 		}
 
 		/// <inheritdoc />
@@ -235,6 +266,8 @@ namespace FoundationDB.Client
 				Guid => types.HasFlag(FqlVariableTypes.Uuid),
 				Uuid128 => types.HasFlag(FqlVariableTypes.Uuid),
 				IVarTuple => types.HasFlag(FqlVariableTypes.Tuple),
+				Int128 => types.HasFlag(FqlVariableTypes.BigInt),
+				UInt128 => types.HasFlag(FqlVariableTypes.BigInt),
 				_ => false,
 			};
 		}
@@ -242,12 +275,13 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public override string ToString() => this.Type switch
 		{
-			FqlItemType.Variable => "<" + ToTypeLiteral((FqlVariableTypes) this.Value!) + ">",
+			FqlItemType.Variable => "<" + (this.Name != null ? (this.Name + ":") : "") + ToVariableTypeLiteral((FqlVariableTypes) this.Value!) + ">",
 			FqlItemType.MaybeMore => "...",
 			FqlItemType.Nil => "nil",
 			FqlItemType.Bool => ((bool) this.Value!) ? "true" : "false",
 			FqlItemType.Int => ((long) this.Value!).ToString(null, CultureInfo.InvariantCulture),
 			FqlItemType.UInt => ((ulong) this.Value!).ToString(null, CultureInfo.InvariantCulture),
+			FqlItemType.BigInt => ((Int128) this.Value!).ToString(null, CultureInfo.InvariantCulture),
 			FqlItemType.Float => ((double) this.Value!).ToString("R", CultureInfo.InvariantCulture),
 			FqlItemType.String => $"\"{((string) this.Value!).Replace("\"", "\\\"")}\"",
 			FqlItemType.Uuid => ((Uuid128) this.Value!).ToString("B"),
@@ -267,9 +301,44 @@ namespace FoundationDB.Client
 			builder.WriteLine($"{this.Type}: {this.ToString()}");
 		}
 
-		private static readonly Dictionary<FqlVariableTypes, string> s_typesLiteralCache = new();
+		private static readonly Dictionary<FqlVariableTypes, string> s_typesLiteralCache = CreateInitialTypeLiteralCache();
 
-		public string ToTypeLiteral(FqlVariableTypes types)
+		private static Dictionary<FqlVariableTypes, string> CreateInitialTypeLiteralCache()
+		{
+			return new()
+			{
+				[FqlVariableTypes.Nil] = "nil",
+				[FqlVariableTypes.Bool] = "bool",
+				[FqlVariableTypes.Int] = "int",
+				[FqlVariableTypes.UInt] = "uint",
+				[FqlVariableTypes.BigInt] = "bint",
+				[FqlVariableTypes.Float] = "float",
+				[FqlVariableTypes.String] = "str",
+				[FqlVariableTypes.Uuid] = "uuid",
+				[FqlVariableTypes.Bytes] = "bytes",
+				[FqlVariableTypes.Tuple] = "tup",
+				// some of the usual suspects
+			};
+		}
+
+		public static FqlVariableTypes ParseVariableTypeLiteral(ReadOnlySpan<char> literal) => literal switch
+		{
+			"nil" => FqlVariableTypes.Nil,
+			"bool" => FqlVariableTypes.Bool,
+			"int" => FqlVariableTypes.Int,
+			"uint" => FqlVariableTypes.UInt,
+			"bint" => FqlVariableTypes.BigInt,
+			"float" or "double" => FqlVariableTypes.Float,
+			"str" or "string" => FqlVariableTypes.String,
+			"uuid" => FqlVariableTypes.Uuid,
+			"bytes" => FqlVariableTypes.Bytes,
+			"tup" or "tuple" => FqlVariableTypes.Tuple,
+			_ => FqlVariableTypes.None
+		};
+
+		public static string ToVariableTypeLiteral(FqlVariableType type) => ToVariableTypeLiteral((FqlVariableTypes) type);
+
+		public static string ToVariableTypeLiteral(FqlVariableTypes types)
 		{
 			lock (s_typesLiteralCache)
 			{
@@ -285,18 +354,13 @@ namespace FoundationDB.Client
 
 			static string CreateTypeLiteral(FqlVariableTypes types)
 			{
-				if (BitOperations.PopCount((uint) types) == 1)
-				{
-					return types.ToString().ToLowerInvariant();
-				}
-
 				var sb = new StringBuilder();
 				foreach (var x in Enum.GetValues<FqlVariableTypes>())
 				{
 					if ((types & x) != 0)
 					{
 						if (sb.Length != 0) sb.Append('|');
-						sb.Append(x.ToString().ToLowerInvariant());
+						sb.Append(s_typesLiteralCache[x]);
 					}
 				}
 
@@ -305,7 +369,7 @@ namespace FoundationDB.Client
 
 		}
 
-		public static FqlTupleItem Variable(FqlVariableTypes types) => new(FqlItemType.Variable, types);
+		public static FqlTupleItem Variable(FqlVariableTypes types, string? name = null) => new(FqlItemType.Variable, types, name);
 
 		public static FqlTupleItem MaybeMore() => new(FqlItemType.MaybeMore, null);
 
@@ -320,6 +384,12 @@ namespace FoundationDB.Client
 		public static FqlTupleItem UInt(uint value) => new(FqlItemType.UInt, value < s_smallUIntCache.Length ? s_smallUIntCache[value] : (ulong) value);
 
 		public static FqlTupleItem UInt(ulong value) => new(FqlItemType.UInt, value < (ulong) s_smallUIntCache.Length ? s_smallUIntCache[value] : value);
+
+		public static FqlTupleItem BigInt(Int128 value) => new(FqlItemType.BigInt, value);
+
+		public static FqlTupleItem BigInt(UInt128 value) => new(FqlItemType.BigInt, value);
+
+		public static FqlTupleItem BigInt(BigInteger value) => new(FqlItemType.BigInt, value);
 
 		public static FqlTupleItem Float(float value) => new(FqlItemType.Float, (double) value);
 
@@ -422,33 +492,59 @@ namespace FoundationDB.Client
 
 		public FqlTupleExpression AddMaybeMore() => Add(FqlTupleItem.MaybeMore());
 
-		public FqlTupleExpression AddVariable(FqlVariableTypes types) => Add(FqlTupleItem.Variable(types));
+		public FqlTupleExpression AddVariable(FqlVariableTypes types, string? name = null) => Add(FqlTupleItem.Variable(types, name));
 
-		public FqlTupleExpression AddNil() => Add(FqlTupleItem.Nil());
+		public FqlTupleExpression AddAnyVariable(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.Any, name));
 
-		public FqlTupleExpression AddBoolean(bool value) => Add(FqlTupleItem.Boolean(value));
+		public FqlTupleExpression AddBytesVariable(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.Bytes, name));
 
-		public FqlTupleExpression AddInt(int value) => Add(FqlTupleItem.Int(value));
+		public FqlTupleExpression AddStringVariable(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.String, name));
 
-		public FqlTupleExpression AddInt(long value) => Add(FqlTupleItem.Int(value));
+		public FqlTupleExpression AddBooleanVariable(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.Bool, name));
 
-		public FqlTupleExpression AddUInt(uint value) => Add(FqlTupleItem.UInt(value));
+		public FqlTupleExpression AddNilVariable(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.Nil, name));
 
-		public FqlTupleExpression AddUInt(ulong value) => Add(FqlTupleItem.UInt(value));
+		public FqlTupleExpression AddIntVariable(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.Int, name));
 
-		public FqlTupleExpression AddFloat(float value) => Add(FqlTupleItem.Float(value));
+		public FqlTupleExpression AddUIntVariable(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.UInt, name));
 
-		public FqlTupleExpression AddFloat(double value) => Add(FqlTupleItem.Float(value));
+		public FqlTupleExpression AddBigIntVariable(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.BigInt, name));
 
-		public FqlTupleExpression AddString(string value) => Add(FqlTupleItem.String(value));
+		public FqlTupleExpression AddFloatVariable(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.Float, name));
 
-		public FqlTupleExpression AddBytes(Slice value) => Add(FqlTupleItem.Bytes(value));
+		public FqlTupleExpression AddUuidVariable(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.Uuid, name));
 
-		public FqlTupleExpression AddUuid(Guid value) => Add(FqlTupleItem.Uuid(value));
+		public FqlTupleExpression AddTupleVariable(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.Tuple, name));
 
-		public FqlTupleExpression AddUuid(Uuid128 value) => Add(FqlTupleItem.Uuid(value));
+		public FqlTupleExpression AddNilConst() => Add(FqlTupleItem.Nil());
 
-		public FqlTupleExpression AddTuple(FqlTupleExpression value) => Add(FqlTupleItem.Tuple(value));
+		public FqlTupleExpression AddBooleanConst(bool value) => Add(FqlTupleItem.Boolean(value));
+
+		public FqlTupleExpression AddIntConst(int value) => Add(FqlTupleItem.Int(value));
+
+		public FqlTupleExpression AddIntConst(long value) => Add(FqlTupleItem.Int(value));
+
+		public FqlTupleExpression AddUIntConst(uint value) => Add(FqlTupleItem.UInt(value));
+
+		public FqlTupleExpression AddUIntConst(ulong value) => Add(FqlTupleItem.UInt(value));
+
+		public FqlTupleExpression AddBigIntConst(Int128 value) => Add(FqlTupleItem.BigInt(value));
+
+		public FqlTupleExpression AddBigIntConst(UInt128 value) => Add(FqlTupleItem.BigInt(value));
+
+		public FqlTupleExpression AddFloatConst(float value) => Add(FqlTupleItem.Float(value));
+
+		public FqlTupleExpression AddFloatConst(double value) => Add(FqlTupleItem.Float(value));
+
+		public FqlTupleExpression AddStringConst(string value) => Add(FqlTupleItem.String(value));
+
+		public FqlTupleExpression AddBytesConst(Slice value) => Add(FqlTupleItem.Bytes(value));
+
+		public FqlTupleExpression AddUuidConst(Guid value) => Add(FqlTupleItem.Uuid(value));
+
+		public FqlTupleExpression AddUuidConst(Uuid128 value) => Add(FqlTupleItem.Uuid(value));
+
+		public FqlTupleExpression AddTupleConst(FqlTupleExpression value) => Add(FqlTupleItem.Tuple(value));
 
 		#endregion
 

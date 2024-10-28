@@ -65,7 +65,7 @@ namespace FoundationDB.Client.Tests
 				Log(query.Explain(prefix: "# "));
 			}
 		}
-		
+
 		public static List<Album> CreateAlbums(string user, int count)
 		{
 			var faker = new Faker<Album>()
