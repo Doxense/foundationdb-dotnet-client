@@ -683,7 +683,7 @@ namespace Doxense.Serialization.Json
 		[return: NotNullIfNotNull(nameof(value))]
 		public static JsonObject? FromObject<TValue>(TValue value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return CrystalJsonDomWriter.Default.ParseObject(value, typeof(TValue)).AsObjectOrDefault();
+			return CrystalJsonDomWriter.Create(settings, resolver).ParseObject(value, typeof(TValue)).AsObjectOrDefault();
 		}
 
 		/// <summary>Converts an instance of type <typeparamref name="TValue"/> into the equivalent read-only JSON Object.</summary>
