@@ -193,6 +193,7 @@ namespace FoundationDB.Client.Tests
 				Explain(q);
 				Assert.That(q.Directory, Is.Null);
 				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().AddMaybeMore()));
+				Assert.That(q.Tuple!.ToString(), Is.EqualTo("(...)"));
 			}
 
 			// `(0xFF, "thing", ...)`
@@ -202,6 +203,7 @@ namespace FoundationDB.Client.Tests
 				Explain(q);
 				Assert.That(q.Directory, Is.Null);
 				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().AddBytesConst(Slice.FromByte(255)).AddStringConst("thing").AddMaybeMore()));
+				Assert.That(q.Tuple!.ToString(), Is.EqualTo("(0xff,\"thing\",...)"));
 			}
 
 			{
@@ -211,6 +213,7 @@ namespace FoundationDB.Client.Tests
 				Explain(q);
 				Assert.That(q.Directory, Is.Null);
 				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().AddStringConst("one").AddIntConst(2).AddBytesConst(Slice.FromByte(3)).AddTupleConst(FqlTupleExpression.Create().AddStringConst("subtuple")).AddUuidConst(Uuid128.Parse("5825d3f8-de5b-40c6-ac32-47ea8b98f7b4"))));
+				Assert.That(q.Tuple!.ToString(), Is.EqualTo("(\"one\",2,0x03,(\"subtuple\"),5825d3f8-de5b-40c6-ac32-47ea8b98f7b4)"));
 			}
 
 			// 
@@ -236,6 +239,15 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public void Test_Fql_Parse_Tuple_With_Variables()
 		{
+			// `(<>)`
+			{
+				var q = FqlQueryParser.Parse("(<>)");
+				Assert.That(q, Is.Not.Null);
+				Explain(q);
+				Assert.That(q.Directory, Is.Null);
+				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().AddAnyVariable()));
+				Assert.That(q.Tuple!.ToString(), Is.EqualTo("(<>)"));
+			}
 			// `(<nil>)`
 			{
 				var q = FqlQueryParser.Parse("(<nil>)");
@@ -243,6 +255,7 @@ namespace FoundationDB.Client.Tests
 				Explain(q);
 				Assert.That(q.Directory, Is.Null);
 				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().AddNilVariable()));
+				Assert.That(q.Tuple!.ToString(), Is.EqualTo("(<nil>)"));
 			}
 			// `(<int>)`
 			{
@@ -251,6 +264,7 @@ namespace FoundationDB.Client.Tests
 				Explain(q);
 				Assert.That(q.Directory, Is.Null);
 				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().AddIntVariable()));
+				Assert.That(q.Tuple!.ToString(), Is.EqualTo("(<int>)"));
 			}
 			// `(<str>)`
 			{
@@ -259,15 +273,17 @@ namespace FoundationDB.Client.Tests
 				Explain(q);
 				Assert.That(q.Directory, Is.Null);
 				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().AddStringVariable()));
+				Assert.That(q.Tuple!.ToString(), Is.EqualTo("(<str>)"));
 			}
 
-			// `(<nil>, <bool>, <int>, <num>, <str>, <bytes>, <uuid>, <tup>)`
+			// `(<>, <nil>, <bool>, <int>, <num>, <str>, <bytes>, <uuid>, <tup>)`
 			{
-				var q = FqlQueryParser.Parse("(<nil>, <bool>, <int>, <num>, <str>, <bytes>, <uuid>, <tup>)");
+				var q = FqlQueryParser.Parse("(<>, <nil>, <bool>, <int>, <num>, <str>, <bytes>, <uuid>, <tup>)");
 				Assert.That(q, Is.Not.Null);
 				Explain(q);
 				Assert.That(q.Directory, Is.Null);
 				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create()
+					.AddAnyVariable()
 					.AddNilVariable()
 					.AddBooleanVariable()
 					.AddIntVariable()
@@ -277,6 +293,7 @@ namespace FoundationDB.Client.Tests
 					.AddUuidVariable()
 					.AddTupleVariable()
 				));
+				Assert.That(q.Tuple!.ToString(), Is.EqualTo("(<>,<nil>,<bool>,<int>,<num>,<str>,<bytes>,<uuid>,<tup>)"));
 			}
 		}
 
@@ -552,6 +569,27 @@ namespace FoundationDB.Client.Tests
 					Assert.That(tuple.Match(STuple.Create(123f)), Is.False);
 					Assert.That(tuple.Match(STuple.Create(123, "hello")), Is.False);
 					Assert.That(tuple.Match(STuple.Create(123, 123)), Is.False);
+				});
+			}
+			{ // (1.23)
+				var q = FqlQueryParser.Parse("(1.23)");
+				Explain(q);
+				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().AddNumConst(1.23)));
+				Assert.That(q.Directory, Is.Null);
+				Assert.That(q.IsPattern, Is.False);
+
+				Assert.Multiple(() =>
+				{
+					var tuple = q.Tuple!;
+					Assert.That(tuple.Match(STuple.Create(1.23)), Is.True);
+					Assert.That(tuple.Match(STuple.Create(1.23f)), Is.True);
+					Assert.That(tuple.Match(STuple.Create(1.23m)), Is.True);
+					Assert.That(tuple.Match(STuple.Create((Half) 1.23)), Is.True);
+
+					Assert.That(tuple.Match(STuple.Create()), Is.False);
+					Assert.That(tuple.Match(STuple.Create(1)), Is.False);
+					Assert.That(tuple.Match(STuple.Create(2)), Is.False);
+					Assert.That(tuple.Match(STuple.Create("1.23")), Is.False);
 				});
 			}
 			{ // ("hello", 123)

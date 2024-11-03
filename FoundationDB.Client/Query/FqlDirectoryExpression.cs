@@ -45,7 +45,7 @@ namespace FoundationDB.Client
 
 	[DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
-	public readonly struct FqlPathSegment : IEquatable<FqlPathSegment>, IFqlExpression
+	public readonly struct FqlPathSegment : IEquatable<FqlPathSegment>, IFqlExpression, IFormattable
 	{
 
 		public readonly FqlPathSegmentType Type;
@@ -118,6 +118,9 @@ namespace FoundationDB.Client
 		};
 
 		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? formatProvider) => ToString();
+
+		/// <inheritdoc />
 		public void Explain(ExplanationBuilder builder)
 		{
 			builder.WriteLine(ToString());
@@ -127,7 +130,7 @@ namespace FoundationDB.Client
 
 	[DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
-	public sealed class FqlDirectoryExpression : IEquatable<FqlDirectoryExpression>, IFqlExpression
+	public sealed class FqlDirectoryExpression : IEquatable<FqlDirectoryExpression>, IFqlExpression, IFormattable
 	{
 
 		public List<FqlPathSegment> Segments { get; } = [ ];
@@ -199,7 +202,6 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public override string ToString()
 		{
-
 			var sb = new StringBuilder();
 
 			var segments = CollectionsMarshal.AsSpan(this.Segments);
@@ -222,6 +224,9 @@ namespace FoundationDB.Client
 
 			return sb.ToString();
 		}
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? formatProvider) => ToString();
 
 		/// <inheritdoc />
 		public void Explain(ExplanationBuilder builder)

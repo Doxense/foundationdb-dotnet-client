@@ -30,6 +30,8 @@ namespace FoundationDB.Client
 {
 	using System;
 	using System.Buffers;
+	using System.Globalization;
+	using System.Numerics;
 	using System.Text;
 	using Doxense;
 
@@ -38,7 +40,13 @@ namespace FoundationDB.Client
 
 		public static FqlQuery Parse(ReadOnlySpan<char> text)
 		{
-			return ParseNext(text, out _).Value;
+			if (!ParseNext(text, out _).Check(out var res, out var error))
+			{
+				error.Throw();
+				throw null!;
+			}
+
+			return res;
 		}
 
 		public static Maybe<FqlQuery> ParseNext(ReadOnlySpan<char> text, out ReadOnlySpan<char> rest)
@@ -147,7 +155,9 @@ namespace FoundationDB.Client
 		public static readonly SearchValues<char> CategoryWhitespace = SearchValues.Create("\t ");
 		public static readonly SearchValues<char> CategoryNewLine = SearchValues.Create("\t\r\n ");
 		public static readonly SearchValues<char> CategoryDigit = SearchValues.Create("0123456789");
-		public static readonly SearchValues<char> CategoryHexDigit = SearchValues.Create("0123456789ABCDEF");
+		public static readonly SearchValues<char> CategoryHexDigit = SearchValues.Create("0123456789ABCDEFabcdef");
+		public static readonly SearchValues<char> CategoryNumber = SearchValues.Create("0123456789+-Ee.");
+		public static readonly SearchValues<char> CategoryInteger = SearchValues.Create("0123456789+-");
 		public static readonly SearchValues<char> CategoryName = SearchValues.Create("-.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz");
 		public static readonly SearchValues<char> CategoryText = SearchValues.Create(" !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~");
 
@@ -215,7 +225,7 @@ namespace FoundationDB.Client
 			while(text.Length > 0)
 			{
 				// find the next "non-string" character
-				int p = text.IndexOfAnyExcept(FqlQueryParser.CategoryText);
+				int p = text.IndexOfAnyExcept(CategoryText);
 
 				// must be either a `"` or a `\`
 				if (p < 0)
@@ -394,7 +404,7 @@ namespace FoundationDB.Client
 						{
 							text = text[2..];
 
-							int p = text.IndexOfAnyExcept(FqlQueryParser.CategoryHexDigit);
+							int p = text.IndexOfAnyExcept(CategoryHexDigit);
 							if (p < 2) throw new FormatException("Invalid bytes");
 
 							var slice = Slice.FromHexString(text[..p]);
@@ -419,31 +429,75 @@ namespace FoundationDB.Client
 
 						// it's a number
 						//TODO: parse a number!
-						ulong num = (uint) (next - '0');
-						text = text[1..];
-						while (text.Length > 0)
-						{
-							next = text[0];
-							if (!char.IsDigit(next))
-							{
-								break;
-							}
-							num = num * 10 + (uint) (next - '0');
-							text = text[1..];
-						}
 
-						if (num <= int.MaxValue)
-						{
-							tuple.AddIntConst((int) num);
-						}
-						else if (num <= long.MaxValue)
-						{
-							tuple.AddIntConst((long) num);
+						// could be an integer or a floating point number
+						int q = text.IndexOfAnyExcept(CategoryNumber);
+						if (q == 0) throw new FormatException("Invalid number literal: " + text.ToString());
+
+						var chunk = q > 0 ? text[..q] : text;
+						if (chunk.ContainsAnyExcept(CategoryInteger))
+						{ // floating point
+
+							if (!decimal.TryParse(chunk, CultureInfo.InvariantCulture, out var d128))
+							{ // fits in 64 bits
+								return new FormatException("Invalid floating point number");
+							}
+
+							var d64 = (double) d128;
+							if ((decimal) d64 == d128)
+							{ // no precision loss, we prefer using double
+								tuple.AddNumConst(d64);
+							}
+							else
+							{ // requires the full precision of decimal
+								tuple.AddNumConst(d128);
+							}
 						}
 						else
-						{
-							tuple.AddUIntConst(num);
+						{ // integer
+							if (chunk[0] == '-')
+							{ // negative
+								if (long.TryParse(chunk, CultureInfo.InvariantCulture, out var l64))
+								{ // fits in 64 bits
+									tuple.AddIntConst(l64);
+								}
+								else if (Int128.TryParse(chunk, CultureInfo.InvariantCulture, out var l128))
+								{ // bit integer
+									tuple.AddIntConst(l128);
+								}
+								else if (BigInteger.TryParse(chunk, CultureInfo.InvariantCulture, out var big))
+								{ // big integer
+									tuple.AddIntConst(big);
+								}
+								else
+								{
+									// this is not supposed to happen?
+									return new FormatException("Could not parse integer literal");
+								}
+							}
+							else
+							{ // positive
+								if (ulong.TryParse(chunk, CultureInfo.InvariantCulture, out var l64))
+								{ // fits in 64 bits
+									tuple.AddIntConst(l64);
+								}
+								else if (UInt128.TryParse(chunk, CultureInfo.InvariantCulture, out var l128))
+								{ // bit integer
+									tuple.AddIntConst(l128);
+								}
+								else if (BigInteger.TryParse(chunk, CultureInfo.InvariantCulture, out var big))
+								{ // big integer
+									tuple.AddIntConst(big);
+								}
+								else
+								{
+									// this is not supposed to happen?
+									return new FormatException("Could not parse integer literal");
+								}
+							}
 						}
+
+						text = chunk.Length == text.Length ? default : text[chunk.Length..];
 
 						continue;
 					}
