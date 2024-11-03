@@ -48,7 +48,9 @@ namespace FoundationDB.Client
 			FqlDirectoryExpression? directoryExpr = null;
 			FqlTupleExpression? tupleExpr = null;
 
-			var remaining = text.Trim();
+			text = text.Trim();
+
+			var remaining = text;
 
 			bool complete = false;
 
@@ -136,6 +138,7 @@ namespace FoundationDB.Client
 			rest = remaining;
 			return new FqlQuery()
 			{
+				Text = text[..^remaining.Length].ToString(),
 				Directory = directoryExpr,
 				Tuple = tupleExpr
 			};

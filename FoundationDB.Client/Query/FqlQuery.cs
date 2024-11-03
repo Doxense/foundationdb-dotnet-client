@@ -31,34 +31,24 @@
 namespace FoundationDB.Client
 {
 	using System.Diagnostics;
-	using System.IO;
 	using System.Linq;
 	using Doxense.Collections.Tuples;
 	using Doxense.Linq;
 
+	[DebuggerDisplay("{this.Text,nq}")]
 	public sealed class FqlQuery : IFqlQuery
 	{
 
+		/// <summary>Text of the query (has it was parsed)</summary>
+		public required string Text { get; init; }
+
+		/// <summary>Expression used to filter directories (or null if there is none)</summary>
 		public FqlDirectoryExpression? Directory { get; init; }
 
+		/// <summary>Expression used to filter tuples (or null if there is none)</summary>
 		public FqlTupleExpression? Tuple { get; init; }
 
-		public override string ToString()
-		{
-			string? s = null;
-
-			if (this.Directory != null)
-			{
-				s += this.Directory.ToString();
-			}
-
-			if (this.Tuple != null)
-			{
-				s += this.Tuple.ToString();
-			}
-
-			return s ?? "";
-		}
+		public override string ToString() => this.Text;
 
 		/// <inheritdoc />
 		public bool IsPattern => (this.Directory?.IsPattern ?? false) || (this.Tuple?.IsPattern ?? false);
@@ -66,7 +56,7 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public void Explain(ExplanationBuilder builder)
 		{
-			builder.WriteLine($"Query: `{ToString()}`");
+			builder.WriteLine($"Query: `{this.Text}`");
 			if (!builder.Recursive)
 			{
 				return;
@@ -78,7 +68,7 @@ namespace FoundationDB.Client
 			}
 			else
 			{
-				builder.WriteLine($"Directory: <none>");
+				builder.WriteLine("Directory: <none>");
 			}
 
 			if (this.Tuple != null)
@@ -87,7 +77,7 @@ namespace FoundationDB.Client
 			}
 			else
 			{
-				builder.WriteLine($"Tuple: <none>");
+				builder.WriteLine("Tuple: <none>");
 			}
 		}
 
@@ -260,4 +250,5 @@ namespace FoundationDB.Client
 	}
 
 }
+
 #endif

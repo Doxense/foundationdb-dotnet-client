@@ -261,9 +261,9 @@ namespace FoundationDB.Client.Tests
 				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().AddStringVariable()));
 			}
 
-			// `(<nil>, <bool>, <int>, <uint>, <bint>, <float>, <str>, <bytes>, <uuid>, <tup>)`
+			// `(<nil>, <bool>, <int>, <num>, <str>, <bytes>, <uuid>, <tup>)`
 			{
-				var q = FqlQueryParser.Parse("(<nil>, <bool>, <int>, <uint>, <bint>, <float>, <str>, <bytes>, <uuid>, <tup>)");
+				var q = FqlQueryParser.Parse("(<nil>, <bool>, <int>, <num>, <str>, <bytes>, <uuid>, <tup>)");
 				Assert.That(q, Is.Not.Null);
 				Explain(q);
 				Assert.That(q.Directory, Is.Null);
@@ -271,9 +271,7 @@ namespace FoundationDB.Client.Tests
 					.AddNilVariable()
 					.AddBooleanVariable()
 					.AddIntVariable()
-					.AddUIntVariable()
-					.AddBigIntVariable()
-					.AddFloatVariable()
+					.AddNumVariable()
 					.AddStringVariable()
 					.AddBytesVariable()
 					.AddUuidVariable()
@@ -670,30 +668,35 @@ namespace FoundationDB.Client.Tests
 				});
 			}
 
-			// (<uint>)
+			// (<num>)
 			{
-				var q = FqlQueryParser.Parse("(<uint>)");
+				var q = FqlQueryParser.Parse("(<num>)");
 				Explain(q);
-				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().AddVariable(FqlVariableTypes.UInt)));
+				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().AddVariable(FqlVariableTypes.Num)));
 				Assert.That(q.Directory, Is.Null);
 				Assert.That(q.IsPattern, Is.True);
 
 				Assert.Multiple(() =>
 				{
 					var tuple = q.Tuple!;
-					Assert.That(tuple.Match(STuple.Create(0)), Is.True);
-					Assert.That(tuple.Match(STuple.Create(1)), Is.True);
-					Assert.That(tuple.Match(STuple.Create(1L)), Is.True);
-					Assert.That(tuple.Match(STuple.Create(1U)), Is.True);
-					Assert.That(tuple.Match(STuple.Create(1UL)), Is.True);
+					Assert.That(tuple.Match(STuple.Create(1.0d)), Is.True);
+					Assert.That(tuple.Match(STuple.Create(Math.PI)), Is.True);
+					Assert.That(tuple.Match(STuple.Create(123f)), Is.True);
+					Assert.That(tuple.Match(STuple.Create(123d)), Is.True);
+					Assert.That(tuple.Match(STuple.Create(123m)), Is.True);
+					Assert.That(tuple.Match(STuple.Create((Half) 123d)), Is.True);
 
 					Assert.That(tuple.Match(STuple.Create()), Is.False);
 					Assert.That(tuple.Match(STuple.Create(default(object))), Is.False);
 					Assert.That(tuple.Match(STuple.Create(false)), Is.False);
 					Assert.That(tuple.Match(STuple.Create(true)), Is.False);
 					Assert.That(tuple.Match(STuple.Create(-1)), Is.False);
+					Assert.That(tuple.Match(STuple.Create(0)), Is.False);
+					Assert.That(tuple.Match(STuple.Create(1)), Is.False);
+					Assert.That(tuple.Match(STuple.Create(1L)), Is.False);
+					Assert.That(tuple.Match(STuple.Create(1U)), Is.False);
+					Assert.That(tuple.Match(STuple.Create(1UL)), Is.False);
 					Assert.That(tuple.Match(STuple.Create(-1L)), Is.False);
-					Assert.That(tuple.Match(STuple.Create(123d)), Is.False);
 					Assert.That(tuple.Match(STuple.Create("hello")), Is.False);
 					Assert.That(tuple.Match(STuple.Create(Guid.Empty)), Is.False);
 					Assert.That(tuple.Match(STuple.Create(Slice.Empty)), Is.False);
@@ -757,6 +760,31 @@ namespace FoundationDB.Client.Tests
 				});
 			}
 
+			// (<typ>)
+			{
+				var q = FqlQueryParser.Parse("(<tup>)");
+				Explain(q);
+				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().AddVariable(FqlVariableTypes.Tuple)));
+				Assert.That(q.Directory, Is.Null);
+				Assert.That(q.IsPattern, Is.True);
+
+				Assert.Multiple(() =>
+				{
+					var tuple = q.Tuple!;
+					Assert.That(tuple.Match(STuple.Create(STuple.Create())), Is.True);
+					Assert.That(tuple.Match(STuple.Create(STuple.Create(Slice.Empty))), Is.True);
+
+					Assert.That(tuple.Match(STuple.Create()), Is.False);
+					Assert.That(tuple.Match(STuple.Create(default(object))), Is.False);
+					Assert.That(tuple.Match(STuple.Create(false)), Is.False);
+					Assert.That(tuple.Match(STuple.Create(true)), Is.False);
+					Assert.That(tuple.Match(STuple.Create(0)), Is.False);
+					Assert.That(tuple.Match(STuple.Create(123d)), Is.False);
+					Assert.That(tuple.Match(STuple.Create("hello")), Is.False);
+					Assert.That(tuple.Match(STuple.Create(Slice.Empty)), Is.False);
+					Assert.That(tuple.Match(STuple.Create(Slice.Copy("hello"u8))), Is.False);
+				});
+			}
 		}
 
 		[Test]

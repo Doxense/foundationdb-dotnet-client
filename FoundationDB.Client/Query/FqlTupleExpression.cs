@@ -48,9 +48,7 @@ namespace FoundationDB.Client
 		Nil,
 		Bool,
 		Int,
-		UInt,
-		BigInt,
-		Float,
+		Num,
 		String,
 		Bytes,
 		Uuid,
@@ -69,13 +67,11 @@ namespace FoundationDB.Client
 		Nil = 1 << 0,
 		Bool = 1 << 1,
 		Int = 1 << 2,
-		UInt = 1 << 3,
-		BigInt = 1 << 4,
-		Float = 1 << 5,
-		String = 1 << 6,
-		Bytes = 1 << 7,
-		Uuid = 1 << 8,
-		Tuple = 1 << 9,
+		Num = 1 << 3,
+		String = 1 << 4,
+		Uuid = 1 << 5,
+		Bytes = 1 << 6,
+		Tuple = 1 << 7,
 	}
 
 	[Flags]
@@ -90,17 +86,34 @@ namespace FoundationDB.Client
 		Nil = 1 << 0,
 		Bool = 1 << 1,
 		Int = 1 << 2,
-		UInt = 1 << 3,
-		BigInt = 1 << 4,
-		Float = 1 << 5,
-		String = 1 << 6,
-		Bytes = 1 << 7,
-		Uuid = 1 << 8,
-		Tuple = 1 << 9,
+		Num = 1 << 3,
+		String = 1 << 4,
+		Uuid = 1 << 5,
+		Bytes = 1 << 6,
+		Tuple = 1 << 7,
 	}
 
 	[DebuggerDisplay("{ToString(),nq}")]
-	public readonly struct FqlTupleItem : IEquatable<FqlTupleItem>, IFqlExpression
+	public readonly struct FqlTupleItem : IFqlExpression,
+		IEquatable<FqlTupleItem>,
+		IEquatable<int>,
+		IEquatable<long>,
+		IEquatable<uint>,
+		IEquatable<ulong>,
+		IEquatable<float>,
+		IEquatable<double>,
+		IEquatable<decimal>,
+		IEquatable<Half>,
+		IEquatable<Int128>,
+		IEquatable<UInt128>,
+		IEquatable<string>,
+#if NET9_0_OR_GREATER
+		IEquatable<ReadOnlySpan<char>>,
+#endif
+		IEquatable<Slice>,
+		IEquatable<Guid>,
+		IEquatable<Uuid128>,
+		IEquatable<IVarTuple>
 	{
 		private static readonly object s_false = true;
 
@@ -137,8 +150,7 @@ namespace FoundationDB.Client
 			FqlItemType.Nil => HashCode.Combine(FqlItemType.Nil),
 			FqlItemType.Bool => HashCode.Combine(FqlItemType.Bytes, (bool) this.Value!),
 			FqlItemType.Int => HashCode.Combine(FqlItemType.String, (long) this.Value!),
-			FqlItemType.UInt => HashCode.Combine(FqlItemType.String, (ulong) this.Value!),
-			FqlItemType.Float => HashCode.Combine(FqlItemType.String, (double) this.Value!),
+			FqlItemType.Num => HashCode.Combine(FqlItemType.String, (double) this.Value!),
 			FqlItemType.String => HashCode.Combine(FqlItemType.String, (string) this.Value!),
 			FqlItemType.Bytes => HashCode.Combine(FqlItemType.Bytes, (Slice) this.Value!),
 			FqlItemType.Tuple => HashCode.Combine(FqlItemType.Tuple, (FqlTupleExpression) this.Value!),
@@ -151,18 +163,22 @@ namespace FoundationDB.Client
 			FqlItemType.MaybeMore => ReferenceEquals(value, null),
 			FqlItemType.Nil => ReferenceEquals(value, null),
 			FqlItemType.Bool => value is bool b && Equals(b),
-			FqlItemType.Int or FqlItemType.UInt => value switch
+			FqlItemType.Int => value switch
 			{
 				int i => Equals(i),
 				long l => Equals(l),
 				uint ui => Equals(ui),
 				ulong ul => Equals(ul),
+				Int128 i => Equals(i),
+				UInt128 ui => Equals(ui),
 				_ => false,
 			},
-			FqlItemType.Float => value switch
+			FqlItemType.Num => value switch
 			{
 				float f => Equals(f),
 				double d => Equals(d),
+				Half h => Equals(h),
+				decimal d => Equals(d),
 				//TODO: decimal, Half
 				_ => false,
 			},
@@ -179,45 +195,113 @@ namespace FoundationDB.Client
 
 		public bool Equals(FqlTupleItem other) => other.Type == this.Type && object.Equals(this.Value, other.Value);
 
-		public bool Equals(int value)
+		public bool Equals(int value) => this.Type == FqlItemType.Int && this.Value switch
 		{
-			if (this.Type == FqlItemType.Int) return ((long) this.Value!) == value;
-			if (this.Type == FqlItemType.UInt) return value >= 0 && ((ulong) this.Value!) == (ulong) value;
-			return false;
-		}
+			int i => i == value,
+			uint ui => value >= 0 && ui == (uint) value,
+			long l => l == value,
+			ulong ul => value >= 0 && ul == (ulong) value,
+			Int128 l => l == value,
+			UInt128 ul => value >= 0 && ul == (UInt128) value,
+			_ => false
+		};
 
-		public bool Equals(long value)
+		public bool Equals(long value) => this.Type == FqlItemType.Int && this.Value switch
 		{
-			if (this.Type == FqlItemType.Int) return ((long) this.Value!) == value;
-			if (this.Type == FqlItemType.UInt) return value >= 0 && ((ulong) this.Value!) == (ulong) value;
-			return false;
-		}
+			int i => i == value,
+			uint ui => value >= 0 && ui == (ulong) value,
+			long l => l == value,
+			ulong ul => value >= 0 && ul == (ulong) value,
+			Int128 l => l == value,
+			UInt128 ul => value >= 0 && ul == (UInt128) value,
+			_ => false
+		};
 
-		public bool Equals(uint value)
+		public bool Equals(uint value) => this.Type == FqlItemType.Int && this.Value switch
 		{
-			if (this.Type == FqlItemType.Int) return ((long) this.Value!) >= 0 && ((ulong) (long) this.Value!) == value;
-			if (this.Type == FqlItemType.UInt) return ((ulong) this.Value!) == value;
-			return false;
-		}
+			int i => i >= 0 && (uint) i == value,
+			uint ui => ui == value,
+			long l => l >= 0 && (ulong) l == value,
+			ulong ul => ul == value,
+			Int128 l => l == value,
+			UInt128 ul => ul == value,
+			_ => false
+		};
 
-		public bool Equals(ulong value)
+		public bool Equals(ulong value) => this.Type == FqlItemType.Int && this.Value switch
 		{
-			if (this.Type == FqlItemType.Int) return ((long) this.Value!) >= 0 && ((ulong) (long) this.Value!) == value;
-			if (this.Type == FqlItemType.UInt) return ((ulong) this.Value!) == value;
-			return false;
-		}
+			int i => i >= 0 && (ulong) i == value,
+			uint ui => ui == value,
+			long l => l >= 0 && (ulong) l == value,
+			ulong ul => ul == value,
+			Int128 l => l == value,
+			UInt128 ul => ul == value,
+			_ => false
+		};
 
-		public bool Equals(float value)
+		public bool Equals(Int128 value) => this.Type == FqlItemType.Int && this.Value switch
 		{
-			// ReSharper disable once CompareOfFloatsByEqualityOperator
-			return this.Type == FqlItemType.Float && (float.IsNaN(value) ? double.IsNaN((double) this.Value!) : ((double) this.Value!) == value);
-		}
+			int i => i == value,
+			uint ui => value >= 0 && ui == value,
+			long l => l == value,
+			ulong ul => value >= 0 && ul == value,
+			Int128 l => l == value,
+			UInt128 ul => value >= 0 && ul == (UInt128) value,
+			_ => false
+		};
 
-		public bool Equals(double value)
+		public bool Equals(UInt128 value) => this.Type == FqlItemType.Int && this.Value switch
 		{
-			// ReSharper disable once CompareOfFloatsByEqualityOperator
-			return this.Type == FqlItemType.Float && (double.IsNaN(value) ? double.IsNaN((double) this.Value!) : ((double) this.Value!) == value);
-		}
+			int i => i >= 0 && (UInt128) i == value,
+			uint ui => ui == value,
+			long l => l >= 0 && (UInt128) l == value,
+			ulong ul => ul == value,
+			Int128 l => l >= 0 && (UInt128) l == value,
+			UInt128 ul => ul == value,
+			_ => false
+		};
+
+		public bool Equals(float value) => this.Type == FqlItemType.Num && this.Value switch
+		{
+			// ReSharper disable CompareOfFloatsByEqualityOperator
+			float f => float.IsNaN(value) ? float.IsNaN(f) : f == value,
+			double d => float.IsNaN(value) ? double.IsNaN(d) : d == value,
+			decimal d => !float.IsNaN(value) && d == (decimal) value,
+			Half h => float.IsNaN(value) ? Half.IsNaN(h) : (float) h == value,
+			_ => false,
+			// ReSharper restore CompareOfFloatsByEqualityOperator
+		};
+
+		public bool Equals(double value) => this.Type == FqlItemType.Num && this.Value switch
+		{
+			// ReSharper disable CompareOfFloatsByEqualityOperator
+			float f => double.IsNaN(value) ? float.IsNaN(f) : f == value,
+			double d => double.IsNaN(value) ? double.IsNaN(d) : d == value,
+			decimal d => !double.IsNaN(value) && d == (decimal) value,
+			Half h => double.IsNaN(value) ? Half.IsNaN(h) : (float) h == value,
+			_ => false,
+			// ReSharper restore CompareOfFloatsByEqualityOperator
+		};
+
+		public bool Equals(Half value) => this.Type == FqlItemType.Num && this.Value switch
+		{
+			// ReSharper disable CompareOfFloatsByEqualityOperator
+			float f => Half.IsNaN(value) ? float.IsNaN(f) : f == (float) value,
+			double d => Half.IsNaN(value) ? double.IsNaN(d) : d == (double) value,
+			decimal d => !Half.IsNaN(value) && d == (decimal) value,
+			Half h => Half.IsNaN(value) ? Half.IsNaN(h) : h == value,
+			_ => false,
+			// ReSharper restore CompareOfFloatsByEqualityOperator
+		};
+
+		public bool Equals(decimal value) => this.Type == FqlItemType.Num && this.Value switch
+		{
+			float f => !float.IsNaN(f) && (decimal) f == value,
+			double d => !double.IsNaN(d) && (decimal) d == value,
+			decimal d => d == value,
+			Half h => !Half.IsNaN(h) && (decimal) h == value,
+			_ => false,
+		};
 
 		public bool Equals(string value)
 		{
@@ -255,19 +339,21 @@ namespace FoundationDB.Client
 			{
 				null => types.HasFlag(FqlVariableTypes.Nil),
 				bool => types.HasFlag(FqlVariableTypes.Bool),
-				int i => i < 0 ? types.HasFlag(FqlVariableTypes.Int) : (types.HasFlag(FqlVariableTypes.Int) || types.HasFlag(FqlVariableTypes.UInt)),
-				uint => (types.HasFlag(FqlVariableTypes.Int) || types.HasFlag(FqlVariableTypes.UInt)),
-				long l => l < 0 ? types.HasFlag(FqlVariableTypes.Int) : (types.HasFlag(FqlVariableTypes.Int) || types.HasFlag(FqlVariableTypes.UInt)),
-				ulong => (types.HasFlag(FqlVariableTypes.Int) || types.HasFlag(FqlVariableTypes.UInt)),
-				float => types.HasFlag(FqlVariableTypes.Float),
-				double => types.HasFlag(FqlVariableTypes.Float),
+				int => types.HasFlag(FqlVariableTypes.Int),
+				uint => types.HasFlag(FqlVariableTypes.Int),
+				long => types.HasFlag(FqlVariableTypes.Int),
+				ulong => types.HasFlag(FqlVariableTypes.Int),
+				Int128 => types.HasFlag(FqlVariableTypes.Int),
+				UInt128 => types.HasFlag(FqlVariableTypes.Int),
+				float => types.HasFlag(FqlVariableTypes.Num),
+				double => types.HasFlag(FqlVariableTypes.Num),
+				Half => types.HasFlag(FqlVariableTypes.Num),
+				decimal => types.HasFlag(FqlVariableTypes.Num),
 				string => types.HasFlag(FqlVariableTypes.String),
 				Slice => types.HasFlag(FqlVariableTypes.Bytes),
 				Guid => types.HasFlag(FqlVariableTypes.Uuid),
 				Uuid128 => types.HasFlag(FqlVariableTypes.Uuid),
 				IVarTuple => types.HasFlag(FqlVariableTypes.Tuple),
-				Int128 => types.HasFlag(FqlVariableTypes.BigInt),
-				UInt128 => types.HasFlag(FqlVariableTypes.BigInt),
 				_ => false,
 			};
 		}
@@ -279,10 +365,25 @@ namespace FoundationDB.Client
 			FqlItemType.MaybeMore => "...",
 			FqlItemType.Nil => "nil",
 			FqlItemType.Bool => ((bool) this.Value!) ? "true" : "false",
-			FqlItemType.Int => ((long) this.Value!).ToString(null, CultureInfo.InvariantCulture),
-			FqlItemType.UInt => ((ulong) this.Value!).ToString(null, CultureInfo.InvariantCulture),
-			FqlItemType.BigInt => ((Int128) this.Value!).ToString(null, CultureInfo.InvariantCulture),
-			FqlItemType.Float => ((double) this.Value!).ToString("R", CultureInfo.InvariantCulture),
+			FqlItemType.Int => this.Value switch
+			{
+				int x        => x.ToString(null, CultureInfo.InvariantCulture),
+				uint x       => x.ToString(null, CultureInfo.InvariantCulture),
+				long x       => x.ToString(null, CultureInfo.InvariantCulture),
+				ulong x      => x.ToString(null, CultureInfo.InvariantCulture),
+				Int128 x     => x.ToString(null, CultureInfo.InvariantCulture),
+				UInt128 x    => x.ToString(null, CultureInfo.InvariantCulture),
+				BigInteger x => x.ToString(null, CultureInfo.InvariantCulture),
+				_ => throw new InvalidOperationException("Invalid Int storage type"),
+			},
+			FqlItemType.Num => this.Value switch
+			{
+				Half x    => x.ToString("R", CultureInfo.InvariantCulture),
+				float x   => x.ToString("R", CultureInfo.InvariantCulture),
+				double x  => x.ToString("R", CultureInfo.InvariantCulture),
+				decimal x => x.ToString("R", CultureInfo.InvariantCulture),
+				_ => throw new InvalidOperationException("Invalid Int storage type"),
+			},
 			FqlItemType.String => $"\"{((string) this.Value!).Replace("\"", "\\\"")}\"",
 			FqlItemType.Uuid => ((Uuid128) this.Value!).ToString("B"),
 			FqlItemType.Bytes => "0x" + ((Slice) this.Value!).ToString("x"),
@@ -303,37 +404,30 @@ namespace FoundationDB.Client
 
 		private static readonly Dictionary<FqlVariableTypes, string> s_typesLiteralCache = CreateInitialTypeLiteralCache();
 
-		private static Dictionary<FqlVariableTypes, string> CreateInitialTypeLiteralCache()
+		private static Dictionary<FqlVariableTypes, string> CreateInitialTypeLiteralCache() => new()
 		{
-			return new()
-			{
-				[FqlVariableTypes.Nil] = "nil",
-				[FqlVariableTypes.Bool] = "bool",
-				[FqlVariableTypes.Int] = "int",
-				[FqlVariableTypes.UInt] = "uint",
-				[FqlVariableTypes.BigInt] = "bint",
-				[FqlVariableTypes.Float] = "float",
-				[FqlVariableTypes.String] = "str",
-				[FqlVariableTypes.Uuid] = "uuid",
-				[FqlVariableTypes.Bytes] = "bytes",
-				[FqlVariableTypes.Tuple] = "tup",
-				// some of the usual suspects
-			};
-		}
+			[FqlVariableTypes.Nil]    = "nil",
+			[FqlVariableTypes.Bool]   = "bool",
+			[FqlVariableTypes.Int]    = "int",
+			[FqlVariableTypes.Num]    = "num",
+			[FqlVariableTypes.String] = "str",
+			[FqlVariableTypes.Uuid]   = "uuid",
+			[FqlVariableTypes.Bytes]  = "bytes",
+			[FqlVariableTypes.Tuple]  = "tup",
+			// some of the usual suspects
+		};
 
 		public static FqlVariableTypes ParseVariableTypeLiteral(ReadOnlySpan<char> literal) => literal switch
 		{
-			"nil" => FqlVariableTypes.Nil,
-			"bool" => FqlVariableTypes.Bool,
-			"int" => FqlVariableTypes.Int,
-			"uint" => FqlVariableTypes.UInt,
-			"bint" => FqlVariableTypes.BigInt,
-			"float" or "double" => FqlVariableTypes.Float,
-			"str" or "string" => FqlVariableTypes.String,
-			"uuid" => FqlVariableTypes.Uuid,
+			"nil"   => FqlVariableTypes.Nil,
+			"bool"  => FqlVariableTypes.Bool,
+			"int"   => FqlVariableTypes.Int,
+			"num"   => FqlVariableTypes.Num,
+			"str"   => FqlVariableTypes.String,
+			"uuid"  => FqlVariableTypes.Uuid,
 			"bytes" => FqlVariableTypes.Bytes,
-			"tup" or "tuple" => FqlVariableTypes.Tuple,
-			_ => FqlVariableTypes.None
+			"tup"   => FqlVariableTypes.Tuple,
+			_       => FqlVariableTypes.None
 		};
 
 		public static string ToVariableTypeLiteral(FqlVariableType type) => ToVariableTypeLiteral((FqlVariableTypes) type);
@@ -381,19 +475,23 @@ namespace FoundationDB.Client
 
 		public static FqlTupleItem Int(long value) => new(FqlItemType.Int, (value >= 0 && value < s_smallIntCache.Length) ? s_smallIntCache[value] : value);
 
-		public static FqlTupleItem UInt(uint value) => new(FqlItemType.UInt, value < s_smallUIntCache.Length ? s_smallUIntCache[value] : (ulong) value);
+		public static FqlTupleItem Int(uint value) => new(FqlItemType.Int, value < s_smallUIntCache.Length ? s_smallUIntCache[value] : (ulong) value);
 
-		public static FqlTupleItem UInt(ulong value) => new(FqlItemType.UInt, value < (ulong) s_smallUIntCache.Length ? s_smallUIntCache[value] : value);
+		public static FqlTupleItem Int(ulong value) => new(FqlItemType.Int, value < (ulong) s_smallUIntCache.Length ? s_smallUIntCache[value] : value);
 
-		public static FqlTupleItem BigInt(Int128 value) => new(FqlItemType.BigInt, value);
+		public static FqlTupleItem Int(Int128 value) => new(FqlItemType.Int, value);
 
-		public static FqlTupleItem BigInt(UInt128 value) => new(FqlItemType.BigInt, value);
+		public static FqlTupleItem Int(UInt128 value) => new(FqlItemType.Int, value);
 
-		public static FqlTupleItem BigInt(BigInteger value) => new(FqlItemType.BigInt, value);
+		public static FqlTupleItem Int(BigInteger value) => new(FqlItemType.Int, value);
 
-		public static FqlTupleItem Float(float value) => new(FqlItemType.Float, (double) value);
+		public static FqlTupleItem Num(float value) => new(FqlItemType.Num, value);
 
-		public static FqlTupleItem Float(double value) => new(FqlItemType.Float, value);
+		public static FqlTupleItem Num(double value) => new(FqlItemType.Num, value);
+
+		public static FqlTupleItem Num(Half value) => new(FqlItemType.Num, value);
+
+		public static FqlTupleItem Num(decimal value) => new(FqlItemType.Num, value);
 
 		public static FqlTupleItem String(string value) => new(FqlItemType.String, value);
 
@@ -506,11 +604,7 @@ namespace FoundationDB.Client
 
 		public FqlTupleExpression AddIntVariable(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.Int, name));
 
-		public FqlTupleExpression AddUIntVariable(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.UInt, name));
-
-		public FqlTupleExpression AddBigIntVariable(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.BigInt, name));
-
-		public FqlTupleExpression AddFloatVariable(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.Float, name));
+		public FqlTupleExpression AddNumVariable(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.Num, name));
 
 		public FqlTupleExpression AddUuidVariable(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.Uuid, name));
 
@@ -524,17 +618,17 @@ namespace FoundationDB.Client
 
 		public FqlTupleExpression AddIntConst(long value) => Add(FqlTupleItem.Int(value));
 
-		public FqlTupleExpression AddUIntConst(uint value) => Add(FqlTupleItem.UInt(value));
+		public FqlTupleExpression AddUIntConst(uint value) => Add(FqlTupleItem.Int(value));
 
-		public FqlTupleExpression AddUIntConst(ulong value) => Add(FqlTupleItem.UInt(value));
+		public FqlTupleExpression AddUIntConst(ulong value) => Add(FqlTupleItem.Int(value));
 
-		public FqlTupleExpression AddBigIntConst(Int128 value) => Add(FqlTupleItem.BigInt(value));
+		public FqlTupleExpression AddBigIntConst(Int128 value) => Add(FqlTupleItem.Int(value));
 
-		public FqlTupleExpression AddBigIntConst(UInt128 value) => Add(FqlTupleItem.BigInt(value));
+		public FqlTupleExpression AddBigIntConst(UInt128 value) => Add(FqlTupleItem.Int(value));
 
-		public FqlTupleExpression AddFloatConst(float value) => Add(FqlTupleItem.Float(value));
+		public FqlTupleExpression AddFloatConst(float value) => Add(FqlTupleItem.Num(value));
 
-		public FqlTupleExpression AddFloatConst(double value) => Add(FqlTupleItem.Float(value));
+		public FqlTupleExpression AddFloatConst(double value) => Add(FqlTupleItem.Num(value));
 
 		public FqlTupleExpression AddStringConst(string value) => Add(FqlTupleItem.String(value));
 
