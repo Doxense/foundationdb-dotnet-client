@@ -27,6 +27,8 @@
 // ReSharper disable AccessToModifiedClosure
 // ReSharper disable JoinDeclarationAndInitializer
 // ReSharper disable InlineOutVariableDeclaration
+// ReSharper disable StringLiteralTypo
+// ReSharper disable GrammarMistakeInComment
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
 
 namespace Doxense.Collections.Tuples.Tests
@@ -159,19 +161,52 @@ namespace Doxense.Collections.Tuples.Tests
 		{
 			// Unicode strings are stored with prefix '02' followed by the utf8 bytes, and terminated by '00'. All occurrences of '00' in the UTF8 bytes are escaped with '00 FF'
 
-			// simple string
-			Assert.That(TuPack.EncodeKey("hello world").ToString(), Is.EqualTo("<02>hello world<00>"));
-			Assert.That(TuPack.Pack(ValueTuple.Create("hello world")).ToString(), Is.EqualTo("<02>hello world<00>"));
+			Assert.Multiple(() =>
+			{
+				// simple string
+				Assert.That(TuPack.EncodeKey("hello").ToString(), Is.EqualTo("<02>hello<00>"));
+				Assert.That(TuPack.EncodeKey("hello, world!").ToString(), Is.EqualTo("<02>hello, world!<00>"));
 
-			// empty
-			Assert.That(TuPack.EncodeKey(String.Empty).ToString(), Is.EqualTo("<02><00>"));
+				Assert.That(TuPack.Pack(ValueTuple.Create("hello")).ToString(), Is.EqualTo("<02>hello<00>"));
+				Assert.That(TuPack.Pack(ValueTuple.Create("hello, world!")).ToString(), Is.EqualTo("<02>hello, world!<00>"));
 
-			// null
-			Assert.That(TuPack.EncodeKey(default(string)).ToString(), Is.EqualTo("<00>"));
+				// empty
+				Assert.That(TuPack.EncodeKey(String.Empty).ToString(), Is.EqualTo("<02><00>"));
 
-			// unicode
-			// note: Encoding.UTF8.GetBytes("こんにちは世界") => { e3 81 93 e3 82 93 e3 81 ab e3 81 a1 e3 81 af e4 b8 96 e7 95 8c }
-			Assert.That(TuPack.EncodeKey("こんにちは世界").ToString(), Is.EqualTo("<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>"));
+				// null
+				Assert.That(TuPack.EncodeKey(default(string)).ToString(), Is.EqualTo("<00>"));
+
+				// Unicode Latin
+				Assert.That(
+					TuPack.EncodeKey("Voix ambiguë d’un cœur qui, au zéphyr, préfère les jattes de kiwis").ToString(),
+					Is.EqualTo("<02>Voix ambigu<C3><AB> d<E2><80><99>un c<C5><93>ur qui, au z<C3><A9>phyr, pr<C3><A9>f<C3><A8>re les jattes de kiwis<00>")
+				);
+				Assert.That(
+					TuPack.EncodeKey("Fünf jugendliche Wölfe zählten über große Äpfel und böse Kühe").ToString(),
+					Is.EqualTo("<02>F<C3><BC>nf jugendliche W<C3><B6>lfe z<C3><A4>hlten <C3><BC>ber gro<C3><9F>e <C3><84>pfel und b<C3><B6>se K<C3><BC>he<00>")
+				);
+				Assert.That(
+					TuPack.EncodeKey("È un viaggio strano, ma l’arte è l’unica vera magia.").ToString(),
+					Is.EqualTo("<02><C3><88> un viaggio strano, ma l<E2><80><99>arte <C3><A8> l<E2><80><99>unica vera magia.<00>")
+				);
+				Assert.That(
+					TuPack.EncodeKey("¿Qué fácil es ver la acción en la exposición?").ToString(),
+					Is.EqualTo("<02><C2><BF>Qu<C3><A9> f<C3><A1>cil es ver la acci<C3><B3>n en la exposici<C3><B3>n?<00>")
+				);
+
+				// Unicode Non-Latin
+				Assert.That(TuPack.EncodeKey("\u3053\u3093\u306b\u3061\u306f\u4e16\u754c").ToString(), Is.EqualTo("<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>"));
+				Assert.That(TuPack.EncodeKey("\u4e2d\u6587").ToString(), Is.EqualTo("<02><E4><B8><AD><E6><96><87><00>"));
+				Assert.That(TuPack.EncodeKey("\u0395\u03bb\u03bb\u03b7\u03bd\u03b9\u03ba\u03ac").ToString(), Is.EqualTo("<02><CE><95><CE><BB><CE><BB><CE><B7><CE><BD><CE><B9><CE><BA><CE><AC><00>"));
+				Assert.That(TuPack.EncodeKey("\u0627\u064e\u0644\u0652\u0639\u064e\u0631\u064e\u0628\u0650\u064a\u064e\u0651\u0629\u064f").ToString(), Is.EqualTo("<02><D8><A7><D9><8E><D9><84><D9><92><D8><B9><D9><8E><D8><B1><D9><8E><D8><A8><D9><90><D9><8A><D9><8E><D9><91><D8><A9><D9><8F><00>"));
+				Assert.That(TuPack.EncodeKey("\u0e20\u0e32\u0e29\u0e32\u0e44\u0e17\u0e22").ToString(), Is.EqualTo("<02><E0><B8><A0><E0><B8><B2><E0><B8><A9><E0><B8><B2><E0><B9><84><E0><B8><97><E0><B8><A2><00>"));
+				Assert.That(TuPack.EncodeKey("\u0421\u043B\u0430\u0432\u0430\u0020\u0423\u043A\u0440\u0430\u0457\u043D\u0456").ToString(), Is.EqualTo("<02><D0><A1><D0><BB><D0><B0><D0><B2><D0><B0> <D0><A3><D0><BA><D1><80><D0><B0><D1><97><D0><BD><D1><96><00>"));
+
+				// Hi/Lo Surrogates
+				Assert.That(TuPack.EncodeKey("🐶").ToString(), Is.EqualTo("<02><F0><9F><90><B6><00>"));
+				Assert.That(TuPack.EncodeKey("🐉🔥").ToString(), Is.EqualTo("<02><F0><9F><90><89><F0><9F><94><A5><00>"));
+				Assert.That(TuPack.EncodeKey("\U0010ffff").ToString(), Is.EqualTo("<02><F4><8F><BF><BF><00>"));
+			});
 		}
 
 		[Test]
@@ -200,7 +235,37 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(t.Get<string>(0), Is.EqualTo("こんにちは世界"));
 			Assert.That(t[0], Is.EqualTo("こんにちは世界"));
 
-			Assert.That(TuPack.DecodeKey<string>(Slice.Unescape("<02>hello world<00>")), Is.EqualTo("hello world"));
+			// ASCII
+			Assert.That(TuPack.DecodeKey<string>(Slice.Unescape("<02>hello<00>")), Is.EqualTo("hello"));
+			Assert.That(TuPack.DecodeKey<string>(Slice.Unescape("<02>hello, world!<00>")), Is.EqualTo("hello, world!"));
+
+			// Unicode Latin
+			Assert.That(
+				TuPack.DecodeKey<string>(Slice.Unescape("<02>Voix ambigu<C3><AB> d<E2><80><99>un c<C5><93>ur qui, au z<C3><A9>phyr, pr<C3><A9>f<C3><A8>re les jattes de kiwis<00>")),
+				Is.EqualTo("Voix ambiguë d’un cœur qui, au zéphyr, préfère les jattes de kiwis")
+			);
+			Assert.That(
+				TuPack.DecodeKey<string>(Slice.Unescape("<02>F<C3><BC>nf jugendliche W<C3><B6>lfe z<C3><A4>hlten <C3><BC>ber gro<C3><9F>e <C3><84>pfel und b<C3><B6>se K<C3><BC>he<00>")),
+				Is.EqualTo("Fünf jugendliche Wölfe zählten über große Äpfel und böse Kühe")
+			);
+			Assert.That(
+				TuPack.DecodeKey<string>(Slice.Unescape("<02><C3><88> un viaggio strano, ma l<E2><80><99>arte <C3><A8> l<E2><80><99>unica vera magia.<00>")),
+				Is.EqualTo("È un viaggio strano, ma l’arte è l’unica vera magia.")
+			);
+			Assert.That(
+				TuPack.DecodeKey<string>(Slice.Unescape("<02><C2><BF>Qu<C3><A9> f<C3><A1>cil es ver la acci<C3><B3>n en la exposici<C3><B3>n?<00>")),
+				Is.EqualTo("¿Qué fácil es ver la acción en la exposición?")
+			);
+
+			// Unicode Non-Latin
+			Assert.That(TuPack.DecodeKey<string>(Slice.Unescape("<02><E4><B8><AD><E6><96><87><00>")), Is.EqualTo("中文"));
+
+			// Hi/Lo Surrogates
+			Assert.That(TuPack.DecodeKey<string>(Slice.Unescape("<02><F0><9F><90><B6><00>")), Is.EqualTo("🐶"));
+			Assert.That(TuPack.DecodeKey<string>(Slice.Unescape("<02><F0><9F><90><89><F0><9F><94><A5><00>")), Is.EqualTo("🐉🔥"));
+
+			Assert.That(TuPack.DecodeKey<string>(Slice.Unescape("<02><F4><8F><BF><BF><00>")), Is.EqualTo("\U0010ffff"));
+
 		}
 
 		[Test]
@@ -215,7 +280,6 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(TuPack.Pack(ValueTuple.Create(Guid.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f"))).ToString(), Is.EqualTo("0<00><01><02><03><04><05><06><07><08><09><0A><0B><0C><0D><0E><0F>"));
 
 			Assert.That(TuPack.EncodeKey(Guid.Empty).ToString(), Is.EqualTo("0<00><00><00><00><00><00><00><00><00><00><00><00><00><00><00><00>"));
-
 		}
 
 		[Test]
@@ -615,24 +679,32 @@ namespace Doxense.Collections.Tuples.Tests
 		{
 			// 32-bit floats are stored in 5 bytes, using the prefix 0x20 followed by the High-Endian representation of their normalized form
 
-			Assert.That(TuPack.EncodeKey(0f).ToHexString(' '), Is.EqualTo("20 80 00 00 00"));
-			Assert.That(TuPack.EncodeKey(42f).ToHexString(' '), Is.EqualTo("20 C2 28 00 00"));
-			Assert.That(TuPack.EncodeKey(-42f).ToHexString(' '), Is.EqualTo("20 3D D7 FF FF"));
+			Assert.Multiple(() =>
+			{
+				Assert.That(TuPack.EncodeKey(0f).ToHexString(' '), Is.EqualTo("20 80 00 00 00"));
+				Assert.That(TuPack.EncodeKey(-0f).ToHexString(' '), Is.EqualTo("20 7F FF FF FF"));
+				Assert.That(TuPack.EncodeKey(42f).ToHexString(' '), Is.EqualTo("20 C2 28 00 00"));
+				Assert.That(TuPack.EncodeKey(-42f).ToHexString(' '), Is.EqualTo("20 3D D7 FF FF"));
 
-			Assert.That(TuPack.EncodeKey((float) Math.Sqrt(2)).ToHexString(' '), Is.EqualTo("20 BF B5 04 F3"));
+				Assert.That(TuPack.EncodeKey((float) Math.Sqrt(2)).ToHexString(' '), Is.EqualTo("20 BF B5 04 F3"));
 
-			Assert.That(TuPack.EncodeKey(float.MinValue).ToHexString(' '), Is.EqualTo("20 00 80 00 00"), "float.MinValue");
-			Assert.That(TuPack.EncodeKey(float.MaxValue).ToHexString(' '), Is.EqualTo("20 FF 7F FF FF"), "float.MaxValue");
-			Assert.That(TuPack.EncodeKey(-0f).ToHexString(' '), Is.EqualTo("20 7F FF FF FF"), "-0f");
-			Assert.That(TuPack.EncodeKey(float.NegativeInfinity).ToHexString(' '), Is.EqualTo("20 00 7F FF FF"), "float.NegativeInfinity");
-			Assert.That(TuPack.EncodeKey(float.PositiveInfinity).ToHexString(' '), Is.EqualTo("20 FF 80 00 00"), "float.PositiveInfinity");
-			Assert.That(TuPack.EncodeKey(float.Epsilon).ToHexString(' '), Is.EqualTo("20 80 00 00 01"), "+float.Epsilon");
-			Assert.That(TuPack.EncodeKey(-float.Epsilon).ToHexString(' '), Is.EqualTo("20 7F FF FF FE"), "-float.Epsilon");
+				Assert.That(TuPack.EncodeKey(3.14f).ToHexString(' '), Is.EqualTo("20 C0 48 F5 C3"));
+				Assert.That(TuPack.EncodeKey(-3.14f).ToHexString(' '), Is.EqualTo("20 3F B7 0A 3C"));
+				Assert.That(TuPack.EncodeKey((float) Math.PI).ToHexString(' '), Is.EqualTo("20 C0 49 0F DB"));
+				Assert.That(TuPack.EncodeKey((float) Math.Tau).ToHexString(' '), Is.EqualTo("20 C0 C9 0F DB"));
 
-			// all possible variants of NaN should all be equal
-			Assert.That(TuPack.EncodeKey(float.NaN).ToHexString(' '), Is.EqualTo("20 00 3F FF FF"), "float.NaN");
+				Assert.That(TuPack.EncodeKey(float.MinValue).ToHexString(' '), Is.EqualTo("20 00 80 00 00"));
+				Assert.That(TuPack.EncodeKey(float.MaxValue).ToHexString(' '), Is.EqualTo("20 FF 7F FF FF"));
+				Assert.That(TuPack.EncodeKey(float.NegativeInfinity).ToHexString(' '), Is.EqualTo("20 00 7F FF FF"));
+				Assert.That(TuPack.EncodeKey(float.PositiveInfinity).ToHexString(' '), Is.EqualTo("20 FF 80 00 00"));
+				Assert.That(TuPack.EncodeKey(float.Epsilon).ToHexString(' '), Is.EqualTo("20 80 00 00 01"));
+				Assert.That(TuPack.EncodeKey(-float.Epsilon).ToHexString(' '), Is.EqualTo("20 7F FF FF FE"));
 
-			// cook up a non standard NaN (with some bits set in the fraction)
+				// all possible variants of NaN should all be equal
+				Assert.That(TuPack.EncodeKey(float.NaN).ToHexString(' '), Is.EqualTo("20 00 3F FF FF"));
+			});
+
+			// cook up a non-standard NaN (with some bits set in the fraction)
 			float f = float.NaN; // defined as 1f / 0f
 			uint nan;
 			unsafe { nan = *((uint*) &f); }
@@ -645,31 +717,38 @@ namespace Doxense.Collections.Tuples.Tests
 				"All variants of NaN must be normalized"
 				//note: if we have 20 00 3F FF 84, that means that the NaN was not normalized
 			);
-
 		}
 
 		[Test]
 		public void Test_TuplePack_Deserialize_Singles()
 		{
-			Assert.That(TuPack.DecodeKey<float>(Slice.FromHexa("20 80 00 00 00")), Is.EqualTo(0f), "0f");
-			Assert.That(TuPack.DecodeKey<float>(Slice.FromHexa("20 C2 28 00 00")), Is.EqualTo(42f), "42f");
-			Assert.That(TuPack.DecodeKey<float>(Slice.FromHexa("20 3D D7 FF FF")), Is.EqualTo(-42f), "-42f");
+			Assert.Multiple(() =>
+			{
+				Assert.That(TuPack.DecodeKey<float>(Slice.FromHexa("20 80 00 00 00")), Is.EqualTo(0f));
+				Assert.That(TuPack.DecodeKey<float>(Slice.FromHexa("20 7F FF FF FF")), Is.EqualTo(-0f));
+				Assert.That(TuPack.DecodeKey<float>(Slice.FromHexa("20 C2 28 00 00")), Is.EqualTo(42f));
+				Assert.That(TuPack.DecodeKey<float>(Slice.FromHexa("20 3D D7 FF FF")), Is.EqualTo(-42f));
 
-			Assert.That(TuPack.DecodeKey<float>(Slice.FromHexa("20 BF B5 04 F3")), Is.EqualTo((float) Math.Sqrt(2)), "Sqrt(2)");
+				Assert.That(TuPack.DecodeKey<float>(Slice.FromHexa("20 BF B5 04 F3")), Is.EqualTo(MathF.Sqrt(2)));
+				Assert.That(TuPack.DecodeKey<float>(Slice.FromHexa("20 C0 48 F5 C3")), Is.EqualTo(3.14f));
+				Assert.That(TuPack.DecodeKey<float>(Slice.FromHexa("20 3F B7 0A 3C")), Is.EqualTo(-3.14f));
+				Assert.That(TuPack.DecodeKey<float>(Slice.FromHexa("20 C0 49 0F DB")), Is.EqualTo((float) Math.PI));
+				Assert.That(TuPack.DecodeKey<float>(Slice.FromHexa("20 C0 C9 0F DB")), Is.EqualTo((float) Math.Tau));
 
-			// well known values
-			Assert.That(TuPack.DecodeKey<float>(Slice.FromHexa("20 00 80 00 00")), Is.EqualTo(float.MinValue), "float.MinValue");
-			Assert.That(TuPack.DecodeKey<float>(Slice.FromHexa("20 FF 7F FF FF")), Is.EqualTo(float.MaxValue), "float.MaxValue");
-			Assert.That(TuPack.DecodeKey<float>(Slice.FromHexa("20 7F FF FF FF")), Is.EqualTo(-0f), "-0f");
-			Assert.That(TuPack.DecodeKey<float>(Slice.FromHexa("20 00 7F FF FF")), Is.EqualTo(float.NegativeInfinity), "float.NegativeInfinity");
-			Assert.That(TuPack.DecodeKey<float>(Slice.FromHexa("20 FF 80 00 00")), Is.EqualTo(float.PositiveInfinity), "float.PositiveInfinity");
-			Assert.That(TuPack.DecodeKey<float>(Slice.FromHexa("20 00 80 00 00")), Is.EqualTo(float.MinValue), "float.Epsilon");
-			Assert.That(TuPack.DecodeKey<float>(Slice.FromHexa("20 80 00 00 01")), Is.EqualTo(float.Epsilon), "+float.Epsilon");
-			Assert.That(TuPack.DecodeKey<float>(Slice.FromHexa("20 7F FF FF FE")), Is.EqualTo(-float.Epsilon), "-float.Epsilon");
+				// well known values
+				Assert.That(TuPack.DecodeKey<float>(Slice.FromHexa("20 00 80 00 00")), Is.EqualTo(float.MinValue), "float.MinValue");
+				Assert.That(TuPack.DecodeKey<float>(Slice.FromHexa("20 FF 7F FF FF")), Is.EqualTo(float.MaxValue), "float.MaxValue");
+				Assert.That(TuPack.DecodeKey<float>(Slice.FromHexa("20 7F FF FF FF")), Is.EqualTo(-0f), "-0f");
+				Assert.That(TuPack.DecodeKey<float>(Slice.FromHexa("20 00 7F FF FF")), Is.EqualTo(float.NegativeInfinity), "float.NegativeInfinity");
+				Assert.That(TuPack.DecodeKey<float>(Slice.FromHexa("20 FF 80 00 00")), Is.EqualTo(float.PositiveInfinity), "float.PositiveInfinity");
+				Assert.That(TuPack.DecodeKey<float>(Slice.FromHexa("20 00 80 00 00")), Is.EqualTo(float.MinValue), "float.Epsilon");
+				Assert.That(TuPack.DecodeKey<float>(Slice.FromHexa("20 80 00 00 01")), Is.EqualTo(float.Epsilon), "+float.Epsilon");
+				Assert.That(TuPack.DecodeKey<float>(Slice.FromHexa("20 7F FF FF FE")), Is.EqualTo(-float.Epsilon), "-float.Epsilon");
 
-			// all possible variants of NaN should end up equal and normalized to float.NaN
-			Assert.That(TuPack.DecodeKey<float>(Slice.FromHexa("20 00 3F FF FF")), Is.EqualTo(float.NaN), "float.NaN");
-			Assert.That(TuPack.DecodeKey<float>(Slice.FromHexa("20 00 3F FF FF")), Is.EqualTo(float.NaN), "float.NaN");
+				// all possible variants of NaN should end up equal and normalized to float.NaN
+				Assert.That(TuPack.DecodeKey<float>(Slice.FromHexa("20 00 3F FF FF")), Is.EqualTo(float.NaN), "float.NaN");
+				Assert.That(TuPack.DecodeKey<float>(Slice.FromHexa("20 00 3F FF FF")), Is.EqualTo(float.NaN), "float.NaN");
+			});
 		}
 
 		[Test]
@@ -677,26 +756,36 @@ namespace Doxense.Collections.Tuples.Tests
 		{
 			// 64-bit floats are stored in 9 bytes, using the prefix 0x21 followed by the High-Endian representation of their normalized form
 
-			Assert.That(TuPack.EncodeKey(0d).ToHexString(' '), Is.EqualTo("21 80 00 00 00 00 00 00 00"));
-			Assert.That(TuPack.EncodeKey(42d).ToHexString(' '), Is.EqualTo("21 C0 45 00 00 00 00 00 00"));
-			Assert.That(TuPack.EncodeKey(-42d).ToHexString(' '), Is.EqualTo("21 3F BA FF FF FF FF FF FF"));
+			Assert.Multiple(() =>
+			{
+				Assert.That(TuPack.EncodeKey(0d).ToHexString(' '), Is.EqualTo("21 80 00 00 00 00 00 00 00"));
+				Assert.That(TuPack.EncodeKey(-0d).ToHexString(' '), Is.EqualTo("21 7F FF FF FF FF FF FF FF"));
+				Assert.That(TuPack.EncodeKey(42d).ToHexString(' '), Is.EqualTo("21 C0 45 00 00 00 00 00 00"));
+				Assert.That(TuPack.EncodeKey(-42d).ToHexString(' '), Is.EqualTo("21 3F BA FF FF FF FF FF FF"));
 
-			Assert.That(TuPack.EncodeKey(Math.PI).ToHexString(' '), Is.EqualTo("21 C0 09 21 FB 54 44 2D 18"));
-			Assert.That(TuPack.EncodeKey(Math.E).ToHexString(' '), Is.EqualTo("21 C0 05 BF 0A 8B 14 57 69"));
+				Assert.That(TuPack.EncodeKey(1.00).ToHexString(' '), Is.EqualTo("21 BF F0 00 00 00 00 00 00"));
+				Assert.That(TuPack.EncodeKey(0.50).ToHexString(' '), Is.EqualTo("21 BF E0 00 00 00 00 00 00"));
+				Assert.That(TuPack.EncodeKey(0.25).ToHexString(' '), Is.EqualTo("21 BF D0 00 00 00 00 00 00"));
 
-			Assert.That(TuPack.EncodeKey(double.MinValue).ToHexString(' '), Is.EqualTo("21 00 10 00 00 00 00 00 00"), "double.MinValue");
-			Assert.That(TuPack.EncodeKey(double.MaxValue).ToHexString(' '), Is.EqualTo("21 FF EF FF FF FF FF FF FF"), "double.MaxValue");
-			Assert.That(TuPack.EncodeKey(-0d).ToHexString(' '), Is.EqualTo("21 7F FF FF FF FF FF FF FF"), "-0d");
-			Assert.That(TuPack.EncodeKey(double.NegativeInfinity).ToHexString(' '), Is.EqualTo("21 00 0F FF FF FF FF FF FF"), "double.NegativeInfinity");
-			Assert.That(TuPack.EncodeKey(double.PositiveInfinity).ToHexString(' '), Is.EqualTo("21 FF F0 00 00 00 00 00 00"), "double.PositiveInfinity");
-			Assert.That(TuPack.EncodeKey(double.Epsilon).ToHexString(' '), Is.EqualTo("21 80 00 00 00 00 00 00 01"), "+double.Epsilon");
-			Assert.That(TuPack.EncodeKey(-double.Epsilon).ToHexString(' '), Is.EqualTo("21 7F FF FF FF FF FF FF FE"), "-double.Epsilon");
+				Assert.That(TuPack.EncodeKey(3.14).ToHexString(' '), Is.EqualTo("21 C0 09 1E B8 51 EB 85 1F"));
+				Assert.That(TuPack.EncodeKey(-3.14).ToHexString(' '), Is.EqualTo("21 3F F6 E1 47 AE 14 7A E0"));
+				Assert.That(TuPack.EncodeKey(Math.PI).ToHexString(' '), Is.EqualTo("21 C0 09 21 FB 54 44 2D 18"));
+				Assert.That(TuPack.EncodeKey(Math.Tau).ToHexString(' '), Is.EqualTo("21 C0 19 21 FB 54 44 2D 18"));
+				Assert.That(TuPack.EncodeKey(Math.E).ToHexString(' '), Is.EqualTo("21 C0 05 BF 0A 8B 14 57 69"));
+				Assert.That(TuPack.EncodeKey(Math.Sqrt(2)).ToHexString(' '), Is.EqualTo("21 BF F6 A0 9E 66 7F 3B CD"));
 
-			// all possible variants of NaN should all be equal
+				Assert.That(TuPack.EncodeKey(double.MinValue).ToHexString(' '), Is.EqualTo("21 00 10 00 00 00 00 00 00"));
+				Assert.That(TuPack.EncodeKey(double.MaxValue).ToHexString(' '), Is.EqualTo("21 FF EF FF FF FF FF FF FF"));
+				Assert.That(TuPack.EncodeKey(double.NegativeInfinity).ToHexString(' '), Is.EqualTo("21 00 0F FF FF FF FF FF FF"));
+				Assert.That(TuPack.EncodeKey(double.PositiveInfinity).ToHexString(' '), Is.EqualTo("21 FF F0 00 00 00 00 00 00"));
+				Assert.That(TuPack.EncodeKey(double.Epsilon).ToHexString(' '), Is.EqualTo("21 80 00 00 00 00 00 00 01"));
+				Assert.That(TuPack.EncodeKey(-double.Epsilon).ToHexString(' '), Is.EqualTo("21 7F FF FF FF FF FF FF FE"));
 
-			Assert.That(TuPack.EncodeKey(double.NaN).ToHexString(' '), Is.EqualTo("21 00 07 FF FF FF FF FF FF"), "double.NaN");
+				// all possible variants of NaN should all be equal
+				Assert.That(TuPack.EncodeKey(double.NaN).ToHexString(' '), Is.EqualTo("21 00 07 FF FF FF FF FF FF"));
+			});
 
-			// cook up a non standard NaN (with some bits set in the fraction)
+			// cook up a non-standard NaN (with some bits set in the fraction)
 			double d = double.NaN; // defined as 1d / 0d
 			ulong nan;
 			unsafe { nan = *((ulong*) &d); }
@@ -719,24 +808,34 @@ namespace Doxense.Collections.Tuples.Tests
 		[Test]
 		public void Test_TuplePack_Deserialize_Doubles()
 		{
-			Assert.That(TuPack.DecodeKey<double>(Slice.FromHexa("21 80 00 00 00 00 00 00 00")), Is.EqualTo(0d), "0d");
-			Assert.That(TuPack.DecodeKey<double>(Slice.FromHexa("21 C0 45 00 00 00 00 00 00")), Is.EqualTo(42d), "42d");
-			Assert.That(TuPack.DecodeKey<double>(Slice.FromHexa("21 3F BA FF FF FF FF FF FF")), Is.EqualTo(-42d), "-42d");
+			Assert.Multiple(() =>
+			{
+				Assert.That(TuPack.DecodeKey<double>(Slice.FromHexa("21 80 00 00 00 00 00 00 00")), Is.EqualTo(0d));
+				Assert.That(TuPack.DecodeKey<double>(Slice.FromHexa("21 7F FF FF FF FF FF FF FF")), Is.EqualTo(-0d));
+				Assert.That(TuPack.DecodeKey<double>(Slice.FromHexa("21 C0 45 00 00 00 00 00 00")), Is.EqualTo(42d));
+				Assert.That(TuPack.DecodeKey<double>(Slice.FromHexa("21 3F BA FF FF FF FF FF FF")), Is.EqualTo(-42d));
 
-			Assert.That(TuPack.DecodeKey<double>(Slice.FromHexa("21 C0 09 21 FB 54 44 2D 18")), Is.EqualTo(Math.PI), "Math.PI");
-			Assert.That(TuPack.DecodeKey<double>(Slice.FromHexa("21 C0 05 BF 0A 8B 14 57 69")), Is.EqualTo(Math.E), "Math.E");
+				Assert.That(TuPack.DecodeKey<double>(Slice.FromHexa("21 BF F0 00 00 00 00 00 00")), Is.EqualTo(1.00));
+				Assert.That(TuPack.DecodeKey<double>(Slice.FromHexa("21 BF E0 00 00 00 00 00 00")), Is.EqualTo(0.50));
+				Assert.That(TuPack.DecodeKey<double>(Slice.FromHexa("21 BF D0 00 00 00 00 00 00")), Is.EqualTo(0.25));
 
-			Assert.That(TuPack.DecodeKey<double>(Slice.FromHexa("21 00 10 00 00 00 00 00 00")), Is.EqualTo(double.MinValue), "double.MinValue");
-			Assert.That(TuPack.DecodeKey<double>(Slice.FromHexa("21 FF EF FF FF FF FF FF FF")), Is.EqualTo(double.MaxValue), "double.MaxValue");
-			Assert.That(TuPack.DecodeKey<double>(Slice.FromHexa("21 7F FF FF FF FF FF FF FF")), Is.EqualTo(-0d), "-0d");
-			Assert.That(TuPack.DecodeKey<double>(Slice.FromHexa("21 00 0F FF FF FF FF FF FF")), Is.EqualTo(double.NegativeInfinity), "double.NegativeInfinity");
-			Assert.That(TuPack.DecodeKey<double>(Slice.FromHexa("21 FF F0 00 00 00 00 00 00")), Is.EqualTo(double.PositiveInfinity), "double.PositiveInfinity");
-			Assert.That(TuPack.DecodeKey<double>(Slice.FromHexa("21 80 00 00 00 00 00 00 01")), Is.EqualTo(double.Epsilon), "+double.Epsilon");
-			Assert.That(TuPack.DecodeKey<double>(Slice.FromHexa("21 7F FF FF FF FF FF FF FE")), Is.EqualTo(-double.Epsilon), "-double.Epsilon");
+				Assert.That(TuPack.DecodeKey<double>(Slice.FromHexa("21 C0 09 1E B8 51 EB 85 1F")), Is.EqualTo(3.14));
+				Assert.That(TuPack.DecodeKey<double>(Slice.FromHexa("21 3F F6 E1 47 AE 14 7A E0")), Is.EqualTo(-3.14));
+				Assert.That(TuPack.DecodeKey<double>(Slice.FromHexa("21 C0 09 21 FB 54 44 2D 18")), Is.EqualTo(Math.PI));
+				Assert.That(TuPack.DecodeKey<double>(Slice.FromHexa("21 C0 19 21 FB 54 44 2D 18")), Is.EqualTo(Math.Tau));
+				Assert.That(TuPack.DecodeKey<double>(Slice.FromHexa("21 C0 05 BF 0A 8B 14 57 69")), Is.EqualTo(Math.E));
 
-			// all possible variants of NaN should end up equal and normalized to double.NaN
-			Assert.That(TuPack.DecodeKey<double>(Slice.FromHexa("21 00 07 FF FF FF FF FF FF")), Is.EqualTo(double.NaN), "double.NaN");
-			Assert.That(TuPack.DecodeKey<double>(Slice.FromHexa("21 00 07 FF FF FF FF FF 84")), Is.EqualTo(double.NaN), "double.NaN");
+				Assert.That(TuPack.DecodeKey<double>(Slice.FromHexa("21 00 10 00 00 00 00 00 00")), Is.EqualTo(double.MinValue));
+				Assert.That(TuPack.DecodeKey<double>(Slice.FromHexa("21 FF EF FF FF FF FF FF FF")), Is.EqualTo(double.MaxValue));
+				Assert.That(TuPack.DecodeKey<double>(Slice.FromHexa("21 00 0F FF FF FF FF FF FF")), Is.EqualTo(double.NegativeInfinity));
+				Assert.That(TuPack.DecodeKey<double>(Slice.FromHexa("21 FF F0 00 00 00 00 00 00")), Is.EqualTo(double.PositiveInfinity));
+				Assert.That(TuPack.DecodeKey<double>(Slice.FromHexa("21 80 00 00 00 00 00 00 01")), Is.EqualTo(double.Epsilon));
+				Assert.That(TuPack.DecodeKey<double>(Slice.FromHexa("21 7F FF FF FF FF FF FF FE")), Is.EqualTo(-double.Epsilon));
+
+				// all possible variants of NaN should end up equal and normalized to double.NaN
+				Assert.That(TuPack.DecodeKey<double>(Slice.FromHexa("21 00 07 FF FF FF FF FF FF")), Is.EqualTo(double.NaN));
+				Assert.That(TuPack.DecodeKey<double>(Slice.FromHexa("21 00 07 FF FF FF FF FF 84")), Is.EqualTo(double.NaN));
+			});
 		}
 
 		[Test]
@@ -1407,7 +1506,6 @@ namespace Doxense.Collections.Tuples.Tests
 			}
 			sw.Stop();
 			Log($"Checked {N:N0} tuples in {sw.ElapsedMilliseconds:N1} ms");
-
 		}
 
 		#endregion
@@ -1471,7 +1569,6 @@ namespace Doxense.Collections.Tuples.Tests
 				TuPack.Pack(STuple.FromEnumerable(new List<object> {"hello world", 123, false, new byte[] {123, 1, 66, 0, 42}})).ToString(),
 				Is.EqualTo("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>")
 			);
-
 		}
 
 		[Test]
@@ -1770,7 +1867,6 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
 				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
 			}
-
 		}
 
 		[Test]
@@ -1816,7 +1912,6 @@ namespace Doxense.Collections.Tuples.Tests
 				TuPack.EncodeKey("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }, Math.PI, -1234L, "こんにちは世界", true).ToString(),
 				Is.EqualTo("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>'")
 			);
-
 		}
 
 		[Test]
@@ -1864,7 +1959,6 @@ namespace Doxense.Collections.Tuples.Tests
 				TuPack.EncodePrefixedKey(prefix, "hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }, Math.PI, -1234L, "こんにちは世界", true).ToString(),
 				Is.EqualTo("ABC<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>'")
 			);
-
 		}
 
 		[Test]
@@ -1984,7 +2078,6 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
 				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
 			}
-
 		}
 
 		[Test]
@@ -2021,7 +2114,6 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
 				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
 			}
-
 
 			{ // params ReadOnlySpan<int>
 				var packed = TuPack.EncodePrefixedKeys(prefix, [ 123, 456, 789 ]);
@@ -2067,6 +2159,7 @@ namespace Doxense.Collections.Tuples.Tests
 				serializer.PackTo(ref tw, in t);
 				Assert.That(tw.ToSlice().ToString(), Is.EqualTo("ABC<15>{"));
 			}
+
 			{
 				var serializer = TupleSerializer<string>.Default;
 				var t = STuple.Create("foo");
@@ -2120,8 +2213,8 @@ namespace Doxense.Collections.Tuples.Tests
 				serializer.PackTo(ref tw, in t);
 				Assert.That(tw.ToSlice().ToString(), Is.EqualTo("ABC<02>foo<00>&<15>{<13><FE><02>narf<00>!<C0><09>!<FB>TD-<18>"));
 			}
-
 		}
+
 		[Test]
 		public void Test_TuplePack_Unpack()
 		{
@@ -2191,7 +2284,7 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(tuple.Get<string>(^1), Is.EqualTo("hello world"));
 				Assert.That(tuple.First<string>(), Is.EqualTo("hello world"));
 				Assert.That(tuple.Last<string>(), Is.EqualTo("hello world"));
-				Assert.That(tuple.GetSlice(0), Is.EqualTo(Slice.FromByteString("\x02hello world\0")));
+				Assert.That(tuple.GetSlice(0), Is.EqualTo(Slice.Unescape("<02>hello world<00>")));
 				Assert.That(tuple.ToSlice(), Is.EqualTo(packed));
 				Assert.That(tuple.GetElementType(0), Is.EqualTo(TupleSegmentType.UnicodeString));
 				Assert.That(tuple.IsUnicodeString(0), Is.True);
@@ -2214,7 +2307,7 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(tuple.Get<int>(^1), Is.EqualTo(123));
 				Assert.That(tuple.First<string>(), Is.EqualTo("hello world"));
 				Assert.That(tuple.Last<int>(), Is.EqualTo(123));
-				Assert.That(tuple.GetSlice(0), Is.EqualTo(Slice.FromByteString("\x02hello world\0")));
+				Assert.That(tuple.GetSlice(0), Is.EqualTo(Slice.Unescape("<02>hello world<00>")));
 				Assert.That(tuple.GetSlice(1), Is.EqualTo(Slice.FromHexa("15 7B")));
 				Assert.That(tuple.ToSlice(), Is.EqualTo(packed));
 				Assert.That(tuple.GetElementType(0), Is.EqualTo(TupleSegmentType.UnicodeString));
@@ -2404,7 +2497,6 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(tuple.IsDouble(4), Is.True);
 				Assert.That(tuple.IsDouble(5), Is.False);
 			}
-
 		}
 
 		[Test]
@@ -2424,7 +2516,7 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(tuple.Get<string>(^1), Is.EqualTo("hello world"));
 				Assert.That(tuple.First<string>(), Is.EqualTo("hello world"));
 				Assert.That(tuple.Last<string>(), Is.EqualTo("hello world"));
-				Assert.That(tuple.GetSlice(0), Is.EqualTo(Slice.FromByteString("\x02hello world\0")));
+				Assert.That(tuple.GetSlice(0), Is.EqualTo(Slice.Unescape("<02>hello world<00>")));
 				Assert.That(tuple.ToSlice(), Is.EqualTo(packed));
 				Assert.That(tuple.GetElementType(0), Is.EqualTo(TupleSegmentType.UnicodeString));
 				Assert.That(tuple.IsUnicodeString(0), Is.True);
@@ -2446,7 +2538,7 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(tuple.Get<int>(^1), Is.EqualTo(123));
 				Assert.That(tuple.First<string>(), Is.EqualTo("hello world"));
 				Assert.That(tuple.Last<int>(), Is.EqualTo(123));
-				Assert.That(tuple.GetSlice(0), Is.EqualTo(Slice.FromByteString("\x02hello world\0")));
+				Assert.That(tuple.GetSlice(0), Is.EqualTo(Slice.Unescape("<02>hello world<00>")));
 				Assert.That(tuple.GetSlice(1), Is.EqualTo(Slice.FromHexa("15 7B")));
 				Assert.That(tuple.ToSlice(), Is.EqualTo(packed));
 				Assert.That(tuple.GetElementType(0), Is.EqualTo(TupleSegmentType.UnicodeString));
@@ -2631,7 +2723,6 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(tuple.IsDouble(4), Is.True);
 				Assert.That(tuple.IsDouble(5), Is.False);
 			}
-
 		}
 
 		[Test]
@@ -3116,7 +3207,6 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(() => TuPack.DecodeKey<int>(TuPack.EncodeKey(1, 2, 3, 4, 5, 6)), Throws.InstanceOf<FormatException>());
 			Assert.That(() => TuPack.DecodeKey<int>(TuPack.EncodeKey(1, 2, 3, 4, 5, 6, 7)), Throws.InstanceOf<FormatException>());
 			Assert.That(() => TuPack.DecodeKey<int>(TuPack.EncodeKey(1, 2, 3, 4, 5, 6, 7, 8)), Throws.InstanceOf<FormatException>());
-
 		}
 
 		[Test]
@@ -3214,7 +3304,6 @@ namespace Doxense.Collections.Tuples.Tests
 			range = TuPack.ToRange(Slice.Empty, STuple.Create("Hello", 123));
 			Assert.That(range.Begin.ToString(), Is.EqualTo("<02>Hello<00><15>{<00>"));
 			Assert.That(range.End.ToString(), Is.EqualTo("<02>Hello<00><15>{<FF>"));
-
 		}
 
 		[Test]
@@ -3254,7 +3343,6 @@ namespace Doxense.Collections.Tuples.Tests
 				var t = TuPack.DecodeKey<string, (int, bool), string>(packed);
 				Assert.That(t, Is.EqualTo(("hello", (123, false), "world")));
 			}
-
 		}
 
 	}
