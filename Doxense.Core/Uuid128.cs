@@ -852,10 +852,14 @@ namespace System
 			WriteTo(writer.AllocateSpan(SizeOf));
 		}
 
-		/// <inheritdoc />
+		/// <summary>Returns a string representation of the value of this instance of the <see cref="Uuid128"/> structure.</summary>
+		/// <returns>The value of this Guid, formatted by using the "D" format specifier as follows: <c>xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx</c></returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public override string ToString() => m_packed.ToString();
 
+		/// <summary>Returns a string representation of the value of this instance of the <see cref="Uuid128"/> structure.</summary>
+		/// <param name="format">A single format specifier that indicates how to format the value of this <see cref="Uuid128"/>. The format parameter can be "N", "D", "B", "P", "C", "Z" or "X". If format is null or an empty string (""), "D" is used.</param>
+		/// <returns>The value of this <see cref="Uuid128"/>, represented as a series of lowercase hexadecimal digits in the specified format.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public string ToString(
 #if NET8_0_OR_GREATER
@@ -877,21 +881,10 @@ namespace System
 #endif
 		}
 
-#if NET8_0_OR_GREATER
-
-		public string ToBase62(bool padded = false)
-		{
-			return Base62Encoding.Encode(this.ToUInt128(), padded ? Base62FormattingOptions.Lexicographic | Base62FormattingOptions.Padded : Base62FormattingOptions.Lexicographic);
-		}
-
-		private bool TryFormatToBase62(Span<char> destination, out int charsWritten, bool padded = false)
-		{
-			return Base62Encoding.TryEncodeTo(destination, out charsWritten, this.ToUInt128(), padded ? Base62FormattingOptions.Lexicographic | Base62FormattingOptions.Padded : Base62FormattingOptions.Lexicographic);
-		}
-
-#endif
-
-		/// <inheritdoc />
+		/// <summary>Returns a string representation of the value of this instance of the <see cref="Uuid128"/> structure.</summary>
+		/// <param name="format">A single format specifier that indicates how to format the value of this <see cref="Uuid128"/>. The format parameter can be "N", "D", "B", "P", "C", "Z" or "X". If format is null or an empty string (""), "D" is used.</param>
+		/// <param name="provider">An object that supplies culture-specific formatting information.</param>
+		/// <returns>The value of this <see cref="Uuid128"/>, represented as a series of lowercase hexadecimal digits in the specified format.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public string ToString(
 #if NET8_0_OR_GREATER
@@ -899,7 +892,42 @@ namespace System
 #endif
 			string? format,
 			IFormatProvider? provider
-		) => m_packed.ToString(format, provider);
+		)
+		{
+#if NET8_0_OR_GREATER
+			return format switch
+			{
+				null or "D" => m_packed.ToString(format, provider),
+				"C" or "c" => ToBase62(padded: false), // base 62, compact, up to 22 characters
+				"Z" or "z" => ToBase62(padded: true),  // base 62, padded to 22 characters
+				_ => m_packed.ToString(format, provider)
+			};
+#else
+			return m_packed.ToString(format, provider);
+#endif
+		}
+
+#if NET8_0_OR_GREATER
+
+		/// <summary>Returns a string representation of the value of this instance of the <see cref="Uuid128"/> structure in Base62 format.</summary>
+		/// <param name="padded">If <see langword="false"/> (default), the shortest possible literal is returned. If <see langword="true"/>, the literal is padded with <c>0</c> so that the resulting string can be sorted lexicographically</param>
+		/// <returns>The value of this <see cref="Uuid128"/>, represented using the Base62 characters that are safe to be included in any Uri without escaping.</returns>
+		public string ToBase62(bool padded = false)
+		{
+			return Base62Encoding.Encode(this.ToUInt128(), padded ? Base62FormattingOptions.Lexicographic | Base62FormattingOptions.Padded : Base62FormattingOptions.Lexicographic);
+		}
+
+		/// <summary>Tries to format the value of this instance of the <see cref="Uuid128"/> structure in Base62 format to the specified destination.</summary>
+		/// <param name="destination">Destination buffer</param>
+		/// <param name="charsWritten">Receives the number of characters written to <see cref="destination"/></param>
+		/// <param name="padded">If <see langword="false"/> (default), the shortest possible literal is returned. If <see langword="true"/>, the literal is padded with <c>0</c> so that the resulting string can be sorted lexicographically</param>
+		/// <returns><see langword="true"/> if the buffer was large enough; otherwise, <see langword="false"/></returns>
+		private bool TryFormatToBase62(Span<char> destination, out int charsWritten, bool padded = false)
+		{
+			return Base62Encoding.TryEncodeTo(destination, out charsWritten, this.ToUInt128(), padded ? Base62FormattingOptions.Lexicographic | Base62FormattingOptions.Padded : Base62FormattingOptions.Lexicographic);
+		}
+
+#endif
 
 		/// <summary>Tries to format the value of the current instance into the provided span of characters.</summary>
 		/// <param name="destination">The span in which to write this instance's value formatted as a span of characters.</param>
