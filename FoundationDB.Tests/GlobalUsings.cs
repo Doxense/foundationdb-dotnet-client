@@ -34,6 +34,7 @@ global using System.Threading.Tasks;
 global using Doxense.Collections.Tuples;
 global using Doxense.Linq;
 global using Doxense.Memory;
+global using Doxense.Runtime;
 global using FoundationDB.Client;
 global using FoundationDB.Client.Tests;
 global using NUnit.Framework;

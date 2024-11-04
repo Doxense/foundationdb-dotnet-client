@@ -32,7 +32,6 @@ namespace FoundationDB.Client
 {
 	using System.Diagnostics;
 	using System.Linq;
-	using Doxense.Collections.Tuples;
 	using Doxense.Linq;
 
 	[DebuggerDisplay("{this.Text,nq}")]

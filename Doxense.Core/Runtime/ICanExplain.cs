@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace FoundationDB.Client
+namespace Doxense.Runtime
 {
 	using System.IO;
 	using System.Runtime.CompilerServices;
