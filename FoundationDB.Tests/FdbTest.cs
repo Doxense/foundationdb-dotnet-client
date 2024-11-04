@@ -58,7 +58,7 @@ namespace FoundationDB.Client.Tests
 
 		public string ConnectionString { get; }
 
-		public FdbServerTestContainer(string name, string? tag = "7.3.53", int port = 4540, string volumeName = "fdb_test")
+		public FdbServerTestContainer(string name, string? tag = "7.3.55", int port = 4540, string volumeName = "fdb_test")
 		{
 			this.Description = "docker";
 			this.Id = "docker";
@@ -147,7 +147,7 @@ namespace FoundationDB.Client.Tests
 			var volumeName = "fdb-test-" + target;
 
 			var tag = Environment.GetEnvironmentVariable("FDB_TEST_DOCKER_TAG");
-			if (string.IsNullOrEmpty(tag)) tag = "7.3.53"; //TODO: make this a constant somewhere visible?
+			if (string.IsNullOrEmpty(tag)) tag = "7.3.55"; //TODO: make this a constant somewhere visible?
 
 			this.Server = FdbServerTestContainer.Global;
 			if (this.Server == null)
