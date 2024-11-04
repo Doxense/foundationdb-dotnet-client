@@ -56,6 +56,8 @@ namespace SnowBank.Shell.Prompt.Tests
 
 		public static readonly ConsoleKeyInfo Space = new(' ', ConsoleKey.Spacebar, false, false, false);
 
+		public static readonly ConsoleKeyInfo Dash = new('-', ConsoleKey.OemMinus, false, false, false);
+
 		public static readonly ConsoleKeyInfo Tab = new('\t', ConsoleKey.Tab, false, false, false);
 
 		public static readonly ConsoleKeyInfo Backspace = new('\b', ConsoleKey.Backspace, false, false, false);

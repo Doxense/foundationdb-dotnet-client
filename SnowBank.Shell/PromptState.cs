@@ -58,6 +58,15 @@ namespace SnowBank.Shell.Prompt
 
 		public required IPromptCommandBuilder CommandBuilder { get; init; }
 
+		public ReadOnlySpan<char> TextWithoutCommand
+		{
+			get
+			{
+				if (this.TokenStart == 0) return default;
+				return this.Text.AsSpan(this.Command.Token.Length + 1);
+			}
+		}
+
 		/// <summary>List of all auto-complete candidates</summary>
 		public List<string>? Candidates { get; init; }
 
@@ -75,7 +84,9 @@ namespace SnowBank.Shell.Prompt
 
 		public void Explain(ExplanationBuilder builder)
 		{
-			builder.WriteLine($"Text   : '{this.Text}'");
+			builder.WriteLine($"Prompt: '{this.Text}'");
+			builder.Enter();
+			builder.WriteLine($"Change : {this.Change}");
 			builder.WriteLine($"Token  : '{this.Token}' (start={this.TokenStart}, len={this.Text?.Length})");
 			builder.WriteLine($"Command: <{this.Command.GetType().GetFriendlyName()}>, '{this.Command.SyntaxHint}'");
 			builder.WriteLine($"Builder: <{this.CommandBuilder?.GetType().GetFriendlyName()}>, {this.CommandBuilder}");
@@ -97,6 +108,7 @@ namespace SnowBank.Shell.Prompt
 			{
 				builder.WriteLine($"Prefix: '{this.CommonPrefix}'");
 			}
+			builder.Leave();
 
 		}
 	}

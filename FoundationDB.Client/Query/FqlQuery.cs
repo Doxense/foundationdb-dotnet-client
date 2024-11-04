@@ -33,9 +33,10 @@ namespace FoundationDB.Client
 	using System.Diagnostics;
 	using System.Linq;
 	using Doxense.Linq;
+	using Doxense.Serialization.Json;
 
 	[DebuggerDisplay("{this.Text,nq}")]
-	public sealed class FqlQuery : IFqlQuery
+	public sealed class FqlQuery : IFqlQuery, IFormattable, IJsonSerializable, IJsonPackable, IJsonDeserializable<FqlQuery>
 	{
 
 		/// <summary>Text of the query (has it was parsed)</summary>
@@ -47,10 +48,29 @@ namespace FoundationDB.Client
 		/// <summary>Expression used to filter tuples (or null if there is none)</summary>
 		public FqlTupleExpression? Tuple { get; init; }
 
-		public override string ToString() => this.Text;
-
 		/// <inheritdoc />
 		public bool IsPattern => (this.Directory?.IsPattern ?? false) || (this.Tuple?.IsPattern ?? false);
+
+		public override string ToString() => this.Text;
+
+		public string ToString(string? format, IFormatProvider? formatProvider) => format switch
+		{
+			null or "" or "D" or "d" => this.Text,
+			"P" or "p" => this.Directory?.ToString() ?? "",
+			"T" or "t" => this.Tuple?.ToString() ?? "",
+			_ => throw new ArgumentException("Invalid format", nameof(format))
+		};
+
+		public static FqlQuery JsonDeserialize(JsonValue value, ICrystalJsonTypeResolver? resolver = null)
+		{
+			if (value is not JsonString str) throw JsonBindingException.CannotBindJsonValueToThisType(value, typeof(FqlQuery));
+			//TODO: is this a good idea? we could get injected some badly formatted query on purpose?
+			return FqlQueryParser.Parse(str.Value);
+		}
+
+		public JsonValue JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => JsonString.Return(this.Text);
+
+		public void JsonSerialize(CrystalJsonWriter writer) => writer.WriteValue(this.Text);
 
 		/// <inheritdoc />
 		public void Explain(ExplanationBuilder builder)

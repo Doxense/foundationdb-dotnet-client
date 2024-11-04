@@ -31,6 +31,7 @@ namespace SnowBank.Shell.Prompt.Tests
 	using System.Collections.Generic;
 	using System.Threading.Tasks;
 	using Doxense.Serialization;
+	using Doxense.Serialization.Json;
 	using FoundationDB.Client;
 	using FoundationDB.Client.Tests;
 	using NUnit.Framework;
@@ -173,13 +174,8 @@ namespace SnowBank.Shell.Prompt.Tests
 
 		}
 
-		private static void DumpState(PromptState? state, string? label = null)
+		private static void DumpState(PromptState? state)
 		{
-			if (label != null)
-			{
-				Log($"# {label}:");
-			}
-
 			if (state is null)
 			{
 				Log("# <null>");
@@ -271,8 +267,12 @@ namespace SnowBank.Shell.Prompt.Tests
 					}
 					catch (AssertionException)
 					{
-						DumpState(step.Expected.State, "Expected");
-						DumpState(state, "Actual");
+						Log();
+						Log("Actual State:");
+						DumpState(state);
+						Log();
+						Log("Expected State:");
+						DumpState(step.Expected.State);
 						throw;
 					}
 
@@ -411,14 +411,25 @@ namespace SnowBank.Shell.Prompt.Tests
 
 				public required FqlQuery Query { get; init; }
 
+				public required JsonObject Options { get; init; }
+
 			}
 
 			public sealed record Builder : PromptCommandBuilder<FakeQuery, FakeQuery.Command>
 			{
 
+				/// <summary>We got a full query (either finished by ENTER or SPACE)</summary>
+				public bool HasQuery { get; init; }
+
+				/// <summary>Parsed query (maybe incomplete)</summary>
 				public FqlQuery? Query { get; init; }
 
+				/// <summary>Error when parsing the query</summary>
 				public Exception? Error { get; init; }
+
+				public JsonObject? Options { get; init; }
+
+				public bool HasInvalidOption { get; init; }
 
 				public override bool IsValid() => this.Query != null;
 
@@ -430,15 +441,92 @@ namespace SnowBank.Shell.Prompt.Tests
 				{
 					if (state.IsDone())
 					{
+						if (!this.HasQuery && this.Query != null)
+						{ // the query is valid
+							return state with { CommandBuilder = this with { HasQuery = true } };
+						}
 						return state;
 					}
 
-					if (!FqlQueryParser.ParseNext(state.Token, out _).Check(out var query, out var error))
+					if (!FqlQueryParser.ParseNext(state.TextWithoutCommand, out var rest).Check(out var query, out var error))
 					{ // incomplete or invalid query
-						return state with { CommandBuilder = new Builder { Error = error.Error } };
+
+						//TODO: heuristic to "complete" the query into a temporary query?
+						// ex: we have type "/foo/bar(" we could complete with "/foo/bar(...)"
+
+						return state with
+						{
+							CommandBuilder = new Builder
+							{
+								HasQuery = false,
+								Error = error.Error,
+							}
+						};
 					}
 
-					return state with { CommandBuilder = new Builder { Query = query } };
+					rest = rest.Trim();
+
+					// do we have options after that?
+					JsonObject? options = null;
+					bool hasInvalidOption = false;
+					if (rest.Length > 0)
+					{
+						//TODO: parse options here
+						//HACKHACK: do it the naive way first
+
+						Span<Range> splits = stackalloc Range[16]; //TODO: how do we deal with this?
+						int n = rest.Split(splits, ' ', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+						foreach(var r in splits[..n])
+						{
+							var opt = rest[r];
+							switch (opt)
+							{
+								case "-d":
+								case "--dump":
+								{
+									(options ??= []).Add("dump", true);
+									break;
+								}
+								case "-f":
+								case "--force":
+								{
+									(options ??= []).Add("force", true);
+									break;
+								}
+								default:
+								{
+									hasInvalidOption = true;
+									break;
+								}
+							}
+						}
+					}
+
+					var builder = this with
+					{
+						HasQuery = true,
+						Query = query,
+						Options = options?.ToReadOnly(),
+						HasInvalidOption = hasInvalidOption,
+					};
+
+					if (state.Token.EndsWith(' '))
+					{
+						return state with
+						{
+							Change = PromptChange.NextToken,
+							TokenStart = state.Text.Length,
+							Token = "",
+							CommandBuilder = builder,
+						};
+					}
+					else
+					{
+						return state with
+						{
+							CommandBuilder = builder,
+						};
+					}
 				}
 
 				public override Command Build(PromptState state, FakeQuery descriptor)
@@ -448,7 +536,11 @@ namespace SnowBank.Shell.Prompt.Tests
 						throw new InvalidOperationException("Invalid FQL query", this.Error);
 					}
 
-					return new(descriptor, state.Text) { Query = this.Query };
+					return new(descriptor, state.Text)
+					{
+						Query = this.Query,
+						Options = this.Options ?? JsonObject.EmptyReadOnly,
+					};
 				}
 
 			}
@@ -502,6 +594,67 @@ namespace SnowBank.Shell.Prompt.Tests
 			Assert.That(cmd.Query.Directory, Is.EqualTo(FqlDirectoryExpression.Create().AddRoot().Add("abc")));
 			Assert.That(cmd.Query.Tuple, Is.EqualTo(FqlTupleExpression.Create().AddIntConst(1).AddMaybeMore()));
 			Log($"Markup: {FqlSyntaxHighlighter.GetMarkup(cmd.Query)}");
+
+			// we should not have any options
+			Assert.That(cmd.Options, IsJson.ReadOnly.And.Empty);
+		}
+
+		[Test]
+		public async Task Test_Can_Type_FqlQuery_Followed_By_Option()
+		{
+			var query = new FakeQuery();
+			var root = new RootPromptCommand() { Commands = [query], };
+			var keyHandler = new DefaultPromptKeyHandler();
+			var autoComplete = new DefaultPromptAutoCompleter() { Root = root };
+
+			Log("Typing...");
+
+			var state = await Run(
+				keyHandler,
+				autoComplete,
+				PromptState.CreateEmpty(root),
+				[
+					(Keyboard.q,           Expr(root).Add().Text("q", "q").Candidates(["query"], commonPrefix: "query")),
+					(Keyboard.Tab,         Expr(root).Completed().Text("query", "query").Candidates(["query"], exactMatch: "query")),
+					(Keyboard.Space,       Expr(query).Token().Text("query ", "")),
+					(Keyboard.Slash,       Expr(query).Add().Text("query /", "/")),
+					(Keyboard.a,           Expr(query).Add().Text("query /a", "/a")),
+					(Keyboard.b,           Expr(query).Add().Text("query /ab", "/ab")),
+					(Keyboard.c,           Expr(query).Add().Text("query /abc", "/abc")),
+					(Keyboard.OpenParens,  Expr(query).Add().Text("query /abc(", "/abc(")),
+					(Keyboard.Dot,         Expr(query).Add().Text("query /abc(.", "/abc(.")),
+					(Keyboard.Dot,         Expr(query).Add().Text("query /abc(..", "/abc(..")),
+					(Keyboard.Dot,         Expr(query).Add().Text("query /abc(...", "/abc(...")),
+					(Keyboard.CloseParens, Expr(query).Add().Text("query /abc(...)", "/abc(...)")),
+					(Keyboard.Space,       Expr(query).Token().Text("query /abc(...) ", "")),
+					(Keyboard.Dash,       Expr(query).Add().Text("query /abc(...) -", "-")),
+					(Keyboard.d,       Expr(query).Add().Text("query /abc(...) -d", "-d")),
+					(Keyboard.Enter,       Expr(query).Done().Text("query /abc(...) -d", "")),
+				]
+			);
+
+			// create the query command that should contain the parsed FqlQuery 
+			Log($"Command: {state.Command.GetType().GetFriendlyName()}");
+			Assert.That(state.Command, Is.SameAs(query));
+			Assert.That(state.CommandBuilder, Is.InstanceOf<FakeQuery.Builder>());
+			var result = state.CommandBuilder.Build(state);
+			Assert.That(result, Is.InstanceOf<FakeQuery.Command>());
+
+			// verify the query
+			var cmd = (FakeQuery.Command) result;
+
+			Dump(cmd);
+
+			// we must have the query
+			Assert.That(cmd.Query, Is.Not.Null);
+			Log(cmd.Query.Explain(prefix: "# "));
+			Assert.That(cmd.Query.Directory, Is.EqualTo(FqlDirectoryExpression.Create().AddRoot().Add("abc")));
+			Assert.That(cmd.Query.Tuple, Is.EqualTo(FqlTupleExpression.Create().AddMaybeMore()));
+
+			// we must have the "-d" command
+			Assert.That(cmd.Options, IsJson.ReadOnly);
+			Assert.That(cmd.Options["dump"], IsJson.True);
+			Assert.That(cmd.Options, IsJson.OfSize(1));
 		}
 
 	}
