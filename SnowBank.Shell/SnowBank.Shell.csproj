@@ -1,0 +1,40 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>Library</OutputType>
+		<TargetFrameworks>$(CloudSdkRuntimeVersions)</TargetFrameworks>
+		<CopyLocalLocFileAssemblies>true</CopyLocalLocFileAssemblies>
+		<LangVersion>preview</LangVersion>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+		<RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
+		<SignAssembly>true</SignAssembly>
+		<AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
+		<Deterministic>true</Deterministic>
+		<ProduceReferenceAssembly>true</ProduceReferenceAssembly>
+	</PropertyGroup>
+
+	<Import Project="..\Common\VersionInfo.props" />
+
+	<PropertyGroup>
+		<AssemblyTitle>SnowBank Console Prompt</AssemblyTitle>
+		<Description>Prettify your shells!</Description>
+		<PackageTags>snowbank sdk cli prompt shell</PackageTags>
+		<!--<PackageReadmeFile>README.md</PackageReadmeFile>-->
+		<PackageIcon>snowbank.png</PackageIcon>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="../Common/snowbank.png" Pack="true" Visible="false" PackagePath="\" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Spectre.Console" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Doxense.Core\Doxense.Core.csproj" />
+	</ItemGroup>
+
+</Project>

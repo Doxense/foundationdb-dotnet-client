@@ -62,6 +62,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GitHub Actions", "GitHub Ac
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Client.Native", "FoundationDB.Client.Native\FoundationDB.Client.Native.csproj", "{BFC416AD-C6F9-4C55-8315-90304F636660}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SnowBank.Shell.Tests", "SnowBank.Shell.Tests\SnowBank.Shell.Tests.csproj", "{10AF9D57-490E-4085-B6AC-E3BF96379C8D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SnowBank.Shell", "SnowBank.Shell\SnowBank.Shell.csproj", "{6686A531-681F-4797-8D04-3BC675BD1F46}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -140,6 +144,14 @@ Global
 		{BFC416AD-C6F9-4C55-8315-90304F636660}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BFC416AD-C6F9-4C55-8315-90304F636660}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BFC416AD-C6F9-4C55-8315-90304F636660}.Release|Any CPU.Build.0 = Release|Any CPU
+		{10AF9D57-490E-4085-B6AC-E3BF96379C8D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{10AF9D57-490E-4085-B6AC-E3BF96379C8D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{10AF9D57-490E-4085-B6AC-E3BF96379C8D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{10AF9D57-490E-4085-B6AC-E3BF96379C8D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6686A531-681F-4797-8D04-3BC675BD1F46}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6686A531-681F-4797-8D04-3BC675BD1F46}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6686A531-681F-4797-8D04-3BC675BD1F46}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6686A531-681F-4797-8D04-3BC675BD1F46}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -164,6 +176,8 @@ Global
 		{0957AC74-8650-444C-AEF7-3C579578BBD1} = {E899F094-1A78-4652-862C-9FF6356AC738}
 		{F98174E6-7402-42CF-997E-C3DD77E17AAB} = {A7D90DEE-38B0-449C-93B5-32D7B845D990}
 		{BFC416AD-C6F9-4C55-8315-90304F636660} = {E899F094-1A78-4652-862C-9FF6356AC738}
+		{10AF9D57-490E-4085-B6AC-E3BF96379C8D} = {A00227EE-033B-40BB-A159-3CBC99AE54F8}
+		{6686A531-681F-4797-8D04-3BC675BD1F46} = {A00227EE-033B-40BB-A159-3CBC99AE54F8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {07944E4B-042C-4338-8E28-99FB373F52AA}

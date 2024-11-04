@@ -1,0 +1,52 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>Library</OutputType>
+		<TargetFrameworks>$(CoreSdkToolsVersions)</TargetFrameworks>
+		<LangVersion>preview</LangVersion>
+		<Nullable>enable</Nullable>
+		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+		<AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+		<SignAssembly>true</SignAssembly>
+		<AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
+	</PropertyGroup>
+
+	<Import Project="..\Common\VersionInfo.props" />
+
+	<PropertyGroup>
+		<IsTestProject>true</IsTestProject>
+		<IsPackable>false</IsPackable>
+		<RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<NoWarn>1701;1702</NoWarn>
+		<WarningsAsErrors>105,108,109,114,472,660,661,628,1066,NU1605</WarningsAsErrors>
+		<DebugType>full</DebugType>
+		<DebugSymbols>true</DebugSymbols>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<NoWarn>1701;1702</NoWarn>
+		<WarningsAsErrors>105,108,109,114,472,660,661,628,1066,NU1605</WarningsAsErrors>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Bogus" />
+		<PackageReference Include="MathNet.Numerics.Signed" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" />
+		<PackageReference Include="NUnit" />
+		<PackageReference Include="NUnit3TestAdapter" />
+		<PackageReference Include="protobuf-net" />
+		<PackageReference Include="Testcontainers" />
+	</ItemGroup>
+	
+	<ItemGroup>
+		<ProjectReference Include="..\Doxense.Core.Testing.Common\Doxense.Core.Testing.Common.csproj" />
+		<ProjectReference Include="..\FoundationDB.Client\FoundationDB.Client.csproj" />
+		<ProjectReference Include="..\SnowBank.Shell\SnowBank.Shell.csproj" />
+	</ItemGroup>
+
+</Project>
