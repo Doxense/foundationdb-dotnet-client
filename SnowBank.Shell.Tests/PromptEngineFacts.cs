@@ -25,17 +25,20 @@
 #endregion
 
 // ReSharper disable StringLiteralTypo
-namespace FoundationDB.Client.Tests
+namespace SnowBank.Shell.Prompt.Tests
 {
 	using System;
 	using System.Collections.Generic;
-	using System.Diagnostics.CodeAnalysis;
-	using JetBrains.Annotations;
+	using System.Threading.Tasks;
+	using Doxense.Serialization;
+	using FoundationDB.Client;
+	using FoundationDB.Client.Tests;
 	using NUnit.Framework;
-	using SnowBank.Shell.Prompt;
 	using SnowBank.Testing;
 
 	[TestFixture]
+	[Category("Core-SDK")]
+	[Parallelizable(ParallelScope.All)]
 	public class PromptEngineFacts : SimpleTest
 	{
 
@@ -78,19 +81,26 @@ namespace FoundationDB.Client.Tests
 
 				public override bool IsValid() => !string.IsNullOrWhiteSpace(this.Argument);
 
+				public override string ToString() => $"Hello {{ Argument = \"{Argument}\" }}";
+
 				public override PromptState Update(PromptState state)
 				{
+					if (state.IsDone())
+					{
+						return state;
+					}
+
 					return state with { CommandBuilder = new Builder { Argument = state.Token } };
 				}
 
-				public override Command Build(PromptState state)
+				public override Command Build(PromptState state, FakeHello descriptor)
 				{
 					if (!IsValid())
 					{
 						throw new InvalidOperationException("Argument is missing");
 					}
 
-					return new((FakeHello) state.Command, state.Text) { Argument = this.Argument };
+					return new(descriptor, state.Text) { Argument = this.Argument };
 				}
 			}
 
@@ -137,9 +147,27 @@ namespace FoundationDB.Client.Tests
 
 				public override bool IsValid() => !string.IsNullOrWhiteSpace(this.CommandName);
 
-				public override PromptState Update(PromptState state) => throw new NotImplementedException();
+				public override string ToString() => $"Help {{ CommandName = \"{CommandName}\" }}";
 
-				public override Command Build(PromptState state) => new Command((FakeHelp) state.Command, state.Text) { CommandName = this.CommandName, };
+				public override PromptState Update(PromptState state)
+				{
+					if (state.IsDone())
+					{
+						return state;
+					}
+
+					return state with { CommandBuilder = new Builder { CommandName = state.Token } };
+				}
+
+				public override Command Build(PromptState state, FakeHelp descriptor)
+				{
+					if (!IsValid())
+					{
+						throw new InvalidOperationException("Argument is missing");
+					}
+
+					return new(descriptor, state.Text) { CommandName = this.CommandName, };
+				}
 
 			}
 
@@ -147,14 +175,18 @@ namespace FoundationDB.Client.Tests
 
 		private static void DumpState(PromptState? state, string? label = null)
 		{
-			Log($"# {(label ?? "State")}:");
+			if (label != null)
+			{
+				Log($"# {label}:");
+			}
+
 			if (state is null)
 			{
-				Log("<null>");
+				Log("# <null>");
 			}
 			else
 			{
-				Log(state.Explain());
+				Log(state.Explain(prefix: "# ").Trim());
 			}
 		}
 
@@ -184,217 +216,81 @@ namespace FoundationDB.Client.Tests
 			Assert.That(state.CommonPrefix, Is.EqualTo(expected.CommonPrefix), message);
 		}
 
-		[UsedImplicitly]
-		[SuppressMessage("ReSharper", "InconsistentNaming")]
-		[SuppressMessage("ReSharper", "UnusedMember.Global")]
-		public static class Keyboard
+		private static PromptStateExpression<TCommand> Expr<TCommand>(TCommand command) where TCommand : IPromptCommandDescriptor => PromptStateExpression.For<TCommand>(command);
+
+		/// <summary>Sends keystrokes to a mock prompt, checking the state at every step</summary>
+		/// <param name="keyHandler"></param>
+		/// <param name="autoCompleter"></param>
+		/// <param name="initial"></param>
+		/// <param name="steps"></param>
+		/// <returns>Final state, after the last keystroke</returns>
+		private async Task<PromptState> Run(IPromptKeyHandler keyHandler, IPromptAutoCompleter autoCompleter, PromptState initial, (ConsoleKeyInfo Key, PromptStateExpression Expected)[] steps)
 		{
-
-			public static readonly ConsoleKeyInfo Enter = new('\n', ConsoleKey.Enter, false, false, false);
-
-			public static readonly ConsoleKeyInfo Space = new(' ', ConsoleKey.Spacebar, false, false, false);
-
-			public static readonly ConsoleKeyInfo Tab = new('\t', ConsoleKey.Tab, false, false, false);
-
-			public static readonly ConsoleKeyInfo Backspace = new('\b', ConsoleKey.Backspace, false, false, false);
-
-			public static readonly ConsoleKeyInfo Dot = new('.', ConsoleKey.Decimal, false, false, false);
-
-			public static readonly ConsoleKeyInfo Comma = new(',', ConsoleKey.OemComma, false, false, false);
-
-			public static readonly ConsoleKeyInfo Slash = new('/', ConsoleKey.Divide, false, false, false);
-
-			public static readonly ConsoleKeyInfo BackSlash = new('\\', 0, false, false, false);
-
-			public static readonly ConsoleKeyInfo OpenParens = new('(', 0, false, false, false);
-
-			public static readonly ConsoleKeyInfo CloseParens = new(')', 0, false, false, false);
-
-			public static readonly ConsoleKeyInfo Digit0 = new('0', ConsoleKey.D0, false, false, false);
-
-			public static readonly ConsoleKeyInfo Digit1 = new('1', ConsoleKey.D1, false, false, false);
-
-			public static readonly ConsoleKeyInfo Digit2 = new('2', ConsoleKey.D2, false, false, false);
-
-			public static readonly ConsoleKeyInfo Digit3 = new('3', ConsoleKey.D3, false, false, false);
-
-			public static readonly ConsoleKeyInfo Digit4 = new('4', ConsoleKey.D4, false, false, false);
-
-			public static readonly ConsoleKeyInfo Digit5 = new('5', ConsoleKey.D5, false, false, false);
-
-			public static readonly ConsoleKeyInfo Digit6 = new('6', ConsoleKey.D6, false, false, false);
-
-			public static readonly ConsoleKeyInfo Digit7 = new('7', ConsoleKey.D7, false, false, false);
-
-			public static readonly ConsoleKeyInfo Digit8 = new('8', ConsoleKey.D8, false, false, false);
-
-			public static readonly ConsoleKeyInfo Digit9 = new('9', ConsoleKey.D9, false, false, false);
-
-			#region Uppercase
-
-			public static readonly ConsoleKeyInfo A = new('A', ConsoleKey.A, false, false, false);
-
-			public static readonly ConsoleKeyInfo B = new('B', ConsoleKey.B, false, false, false);
-
-			public static readonly ConsoleKeyInfo C = new('C', ConsoleKey.C, false, false, false);
-
-			public static readonly ConsoleKeyInfo D = new('D', ConsoleKey.D, false, false, false);
-
-			public static readonly ConsoleKeyInfo E = new('E', ConsoleKey.E, false, false, false);
-
-			public static readonly ConsoleKeyInfo F = new('F', ConsoleKey.F, false, false, false);
-
-			public static readonly ConsoleKeyInfo G = new('G', ConsoleKey.G, false, false, false);
-
-			public static readonly ConsoleKeyInfo H = new('H', ConsoleKey.H, false, false, false);
-
-			public static readonly ConsoleKeyInfo I = new('I', ConsoleKey.I, false, false, false);
-
-			public static readonly ConsoleKeyInfo J = new('J', ConsoleKey.J, false, false, false);
-
-			public static readonly ConsoleKeyInfo K = new('K', ConsoleKey.K, false, false, false);
-
-			public static readonly ConsoleKeyInfo L = new('L', ConsoleKey.L, false, false, false);
-
-			public static readonly ConsoleKeyInfo M = new('M', ConsoleKey.M, false, false, false);
-
-			public static readonly ConsoleKeyInfo N = new('N', ConsoleKey.N, false, false, false);
-
-			public static readonly ConsoleKeyInfo O = new('O', ConsoleKey.O, false, false, false);
-
-			public static readonly ConsoleKeyInfo P = new('P', ConsoleKey.P, false, false, false);
-
-			public static readonly ConsoleKeyInfo Q = new('Q', ConsoleKey.Q, false, false, false);
-
-			public static readonly ConsoleKeyInfo R = new('R', ConsoleKey.R, false, false, false);
-
-			public static readonly ConsoleKeyInfo S = new('S', ConsoleKey.S, false, false, false);
-
-			public static readonly ConsoleKeyInfo T = new('T', ConsoleKey.T, false, false, false);
-
-			public static readonly ConsoleKeyInfo U = new('U', ConsoleKey.U, false, false, false);
-
-			public static readonly ConsoleKeyInfo V = new('V', ConsoleKey.V, false, false, false);
-
-			public static readonly ConsoleKeyInfo W = new('W', ConsoleKey.W, false, false, false);
-
-			public static readonly ConsoleKeyInfo X = new('X', ConsoleKey.X, false, false, false);
-
-			public static readonly ConsoleKeyInfo Y = new('Y', ConsoleKey.Y, false, false, false);
-
-			public static readonly ConsoleKeyInfo Z = new('Z', ConsoleKey.Z, false, false, false);
-
-			#endregion
-
-			#region Lowercase
-
-			public static readonly ConsoleKeyInfo a = new('a', ConsoleKey.A, false, false, false);
-
-			public static readonly ConsoleKeyInfo b = new('b', ConsoleKey.B, false, false, false);
-
-			public static readonly ConsoleKeyInfo c = new('c', ConsoleKey.C, false, false, false);
-
-			public static readonly ConsoleKeyInfo d = new('d', ConsoleKey.D, false, false, false);
-
-			public static readonly ConsoleKeyInfo e = new('e', ConsoleKey.E, false, false, false);
-
-			public static readonly ConsoleKeyInfo f = new('f', ConsoleKey.F, false, false, false);
-
-			public static readonly ConsoleKeyInfo g = new('g', ConsoleKey.G, false, false, false);
-
-			public static readonly ConsoleKeyInfo h = new('h', ConsoleKey.H, false, false, false);
-
-			public static readonly ConsoleKeyInfo i = new('i', ConsoleKey.I, false, false, false);
-
-			public static readonly ConsoleKeyInfo j = new('j', ConsoleKey.J, false, false, false);
-
-			public static readonly ConsoleKeyInfo k = new('k', ConsoleKey.K, false, false, false);
-
-			public static readonly ConsoleKeyInfo l = new('l', ConsoleKey.L, false, false, false);
-
-			public static readonly ConsoleKeyInfo m = new('m', ConsoleKey.M, false, false, false);
-
-			public static readonly ConsoleKeyInfo n = new('n', ConsoleKey.N, false, false, false);
-
-			public static readonly ConsoleKeyInfo o = new('o', ConsoleKey.O, false, false, false);
-
-			public static readonly ConsoleKeyInfo p = new('p', ConsoleKey.P, false, false, false);
-
-			public static readonly ConsoleKeyInfo q = new('q', ConsoleKey.Q, false, false, false);
-
-			public static readonly ConsoleKeyInfo r = new('r', ConsoleKey.R, false, false, false);
-
-			public static readonly ConsoleKeyInfo s = new('s', ConsoleKey.S, false, false, false);
-
-			public static readonly ConsoleKeyInfo t = new('t', ConsoleKey.T, false, false, false);
-
-			public static readonly ConsoleKeyInfo u = new('u', ConsoleKey.U, false, false, false);
-
-			public static readonly ConsoleKeyInfo v = new('v', ConsoleKey.V, false, false, false);
-
-			public static readonly ConsoleKeyInfo w = new('w', ConsoleKey.W, false, false, false);
-
-			public static readonly ConsoleKeyInfo x = new('x', ConsoleKey.X, false, false, false);
-
-			public static readonly ConsoleKeyInfo y = new('y', ConsoleKey.Y, false, false, false);
-
-			public static readonly ConsoleKeyInfo z = new('z', ConsoleKey.Z, false, false, false);
-
-			#endregion
-
-		}
-
-		public static string KeyName(ConsoleKeyInfo key)
-		{
-			return key.Key switch
+			var input = new MockPromptInput();
+			foreach (var step in steps)
 			{
-				ConsoleKey.Enter => "[ENTER]",
-				ConsoleKey.Spacebar => "[SPACE]",
-				ConsoleKey.Tab => "[TAB]",
-				ConsoleKey.Escape => "[ESC]",
-				ConsoleKey.Backspace => "[BACKSPACE]",
-				ConsoleKey.Delete => "[DEL]",
-				ConsoleKey.LeftArrow => "[<-]",
-				ConsoleKey.RightArrow => "[->]",
-
-				_ => "[" + key.KeyChar + "]",
-			};
-		}
-
-		private static PromptState Run(IPromptKeyHandler keyHandler, IPromptAutoCompleter autoCompleter, PromptState initial, ReadOnlySpan<(ConsoleKeyInfo Key, PromptStateExpression Expected)> steps)
-		{
-			var state = initial;
-
-			for (int i = 0; i < steps.Length; i++)
-			{
-				var key = steps[i].Key;
-				var expr = steps[i].Expected;
-
-				var label = $"'{state.Text}' + {KeyName(key)} => '{expr.State.Text}'";
-
-				Log($"# {label}");
-
-				state = keyHandler.HandleKeyPress(state, key);
-				state = state.CommandBuilder.Update(state);
-				state = autoCompleter.HandleAutoComplete(state);
-				//DumpState(state);
-				try
-				{
-					VerifyState(state, expr.State, label);
-				}
-				catch (AssertionException)
-				{
-					DumpState(expr.State, "Expected");
-					DumpState(state, "Actual");
-					throw;
-				}
+				input.KeyStrokes.Add(step.Key);
 			}
 
-			return state;
+			var theme = new MockPromptTheme()
+			{
+				Prompt = "fake> ",
+				MaxRows = 5,
+			};
+			var renderer = new MockPromptRenderer()
+			{
+
+			};
+
+			PromptState lastState = initial;
+			int index = 0;
+
+			var engine = new PromptEngine()
+			{
+				Input = input,
+				KeyHandler = keyHandler,
+				AutoCompleter = autoCompleter,
+				Theme = theme,
+				Renderer = renderer,
+
+				OnBefore = (state, renderState) =>
+				{
+					Assert.That(input.Position, Is.EqualTo(index));
+					var step = steps[index];
+
+					Log($"[{(index + 1):N0}/{steps.Length:N0}]: '{state.Text}' + {Keyboard.GetKeyName(step.Key)} => '{step.Expected.State.Text}'");
+				},
+
+				OnAfter = (key, state, renderState) =>
+				{
+					Assert.That(input.Position, Is.EqualTo(index + 1));
+					var step = steps[index];
+					try
+					{
+						VerifyState(state, step.Expected.State, $"'{state.Text}' + {Keyboard.GetKeyName(step.Key)} => '{step.Expected.State.Text}'");
+					}
+					catch (AssertionException)
+					{
+						DumpState(step.Expected.State, "Expected");
+						DumpState(state, "Actual");
+						throw;
+					}
+
+					DumpState(state);
+					Log();
+
+					lastState = state;
+					++index;
+				},
+			};
+
+			await engine.Prompt(this.Cancellation);
+
+			return lastState;
 		}
 
 		[Test]
-		public void Test_Can_Type_Hello_Command()
+		public async Task Test_Can_Type_Hello_Command()
 		{
 			// Fully type the "hello world" command, character by character
 			// - The shell has two commands "hello" and "help", which have common prefix "hel".
@@ -411,29 +307,40 @@ namespace FoundationDB.Client.Tests
 			var keyHandler = new DefaultPromptKeyHandler();
 			var autoComplete = new DefaultPromptAutoCompleter() { Root = root };
 
-			Run(
+			var state = await Run(
 				keyHandler,
 				autoComplete,
 				PromptState.CreateEmpty(root),
 				[
-					(Keyboard.h, PromptStateExpression.For(root).Add().Text("h", "h").Candidates(["hello", "help"], commonPrefix: "hel")),
-					(Keyboard.e, PromptStateExpression.For(root).Add().Text("he", "he").Candidates(["hello", "help"], commonPrefix: "hel")),
-					(Keyboard.l, PromptStateExpression.For(root).Add().Text("hel", "hel").Candidates(["hello", "help"], commonPrefix: "hel")),
-					(Keyboard.l, PromptStateExpression.For(root).Add().Text("hell", "hell").Candidates(["hello"], commonPrefix: "hello")),
-					(Keyboard.o, PromptStateExpression.For(root).Add().Text("hello", "hello").Candidates(["hello"], exactMatch: "hello")),
-					(Keyboard.Space, PromptStateExpression.For(hello).Space().Text("hello ", "", start: 6).Candidates(["world", "there"])),
-					(Keyboard.w, PromptStateExpression.For(hello).Add().Text("hello w", "w", start: 6).Candidates(["world"], commonPrefix: "world")),
-					(Keyboard.o, PromptStateExpression.For(hello).Add().Text("hello wo", "wo", start: 6).Candidates(["world"], commonPrefix: "world")),
-					(Keyboard.r, PromptStateExpression.For(hello).Add().Text("hello wor", "wor", start: 6).Candidates(["world"], commonPrefix: "world")),
-					(Keyboard.l, PromptStateExpression.For(hello).Add().Text("hello worl", "worl", start: 6).Candidates(["world"], commonPrefix: "world")),
-					(Keyboard.d, PromptStateExpression.For(hello).Add().Text("hello world", "world", start: 6).Candidates(["world"], exactMatch: "world")),
-					(Keyboard.Enter, PromptStateExpression.For(hello).Done().Text("hello world", "", start: 11)),
+					(Keyboard.h,     Expr(root).Add().Text("h", "h").Candidates(["hello", "help"], commonPrefix: "hel")),
+					(Keyboard.e,     Expr(root).Add().Text("he", "he").Candidates(["hello", "help"], commonPrefix: "hel")),
+					(Keyboard.l,     Expr(root).Add().Text("hel", "hel").Candidates(["hello", "help"], commonPrefix: "hel")),
+					(Keyboard.l,     Expr(root).Add().Text("hell", "hell").Candidates(["hello"], commonPrefix: "hello")),
+					(Keyboard.o,     Expr(root).Add().Text("hello", "hello").Candidates(["hello"], exactMatch: "hello")),
+					(Keyboard.Space, Expr(hello).Token().Text("hello ", "", start: 6).Candidates(["world", "there"])),
+					(Keyboard.w,     Expr(hello).Add().Text("hello w", "w", start: 6).Candidates(["world"], commonPrefix: "world")),
+					(Keyboard.o,     Expr(hello).Add().Text("hello wo", "wo", start: 6).Candidates(["world"], commonPrefix: "world")),
+					(Keyboard.r,     Expr(hello).Add().Text("hello wor", "wor", start: 6).Candidates(["world"], commonPrefix: "world")),
+					(Keyboard.l,     Expr(hello).Add().Text("hello worl", "worl", start: 6).Candidates(["world"], commonPrefix: "world")),
+					(Keyboard.d,     Expr(hello).Add().Text("hello world", "world", start: 6).Candidates(["world"], exactMatch: "world")),
+					(Keyboard.Enter, Expr(hello).Done().Text("hello world", "", start: 11)),
 				]
 			);
+
+			// create the query command that should contain the parsed FqlQuery 
+			Log($"Command: {state.Command.GetType()?.GetFriendlyName()}");
+			Assert.That(state.Command, Is.SameAs(hello));
+			Assert.That(state.CommandBuilder, Is.InstanceOf<FakeHello.Builder>());
+			var result = state.CommandBuilder.Build(state);
+			Assert.That(result, Is.InstanceOf<FakeHello.Command>());
+
+			// verify the argument
+			var cmd = (FakeHello.Command) result;
+			Assert.That(cmd.Argument, Is.EqualTo("world"));
 		}
 
 		[Test]
-		public void Test_Can_Type_Hello_World_With_AutoComplete_Shortcut()
+		public async Task Test_Can_Type_Hello_World_With_AutoComplete_Shortcut()
 		{
 			// Type "hell[TAB]w[TAB]" which should produce the "hello world" via autocompletion.
 			// - The shell has two commands "hello" and "help", which have common prefix "hel".
@@ -452,23 +359,33 @@ namespace FoundationDB.Client.Tests
 			var keyHandler = new DefaultPromptKeyHandler();
 			var autoComplete = new DefaultPromptAutoCompleter() { Root = root };
 
-			Run(
+			var state = await Run(
 				keyHandler,
 				autoComplete,
 				PromptState.CreateEmpty(root),
 				[
-					(Keyboard.h, PromptStateExpression.For(root).Add().Text("h", "h").Candidates(["hello", "help"], commonPrefix: "hel")),
-					(Keyboard.e, PromptStateExpression.For(root).Add().Text("he", "he").Candidates(["hello", "help"], commonPrefix: "hel")),
-					(Keyboard.l, PromptStateExpression.For(root).Add().Text("hel", "hel").Candidates(["hello", "help"], commonPrefix: "hel")),
-					(Keyboard.l, PromptStateExpression.For(root).Add().Text("hell", "hell").Candidates(["hello"], commonPrefix: "hello")),
-					(Keyboard.Tab, PromptStateExpression.For(root).Completed().Text("hello", "hello").Candidates(["hello"], exactMatch: "hello")),
-					(Keyboard.Space, PromptStateExpression.For(hello).Space().Text("hello ", "", start: 6).Candidates(["world", "there"])),
-					(Keyboard.w, PromptStateExpression.For(hello).Add().Text("hello w", "w", start: 6).Candidates(["world"], commonPrefix: "world")),
-					(Keyboard.Tab, PromptStateExpression.For(hello).Completed().Text("hello world", "world", start: 6).Candidates(["world"], exactMatch: "world")),
-					(Keyboard.Enter, PromptStateExpression.For(hello).Done().Text("hello world", "")),
+					(Keyboard.h,     Expr(root).Add().Text("h", "h").Candidates(["hello", "help"], commonPrefix: "hel")),
+					(Keyboard.e,     Expr(root).Add().Text("he", "he").Candidates(["hello", "help"], commonPrefix: "hel")),
+					(Keyboard.l,     Expr(root).Add().Text("hel", "hel").Candidates(["hello", "help"], commonPrefix: "hel")),
+					(Keyboard.l,     Expr(root).Add().Text("hell", "hell").Candidates(["hello"], commonPrefix: "hello")),
+					(Keyboard.Tab,   Expr(root).Completed().Text("hello", "hello").Candidates(["hello"], exactMatch: "hello")),
+					(Keyboard.Space, Expr(hello).Token().Text("hello ", "", start: 6).Candidates(["world", "there"])),
+					(Keyboard.w,     Expr(hello).Add().Text("hello w", "w", start: 6).Candidates(["world"], commonPrefix: "world")),
+					(Keyboard.Tab,   Expr(hello).Completed().Text("hello world", "world", start: 6).Candidates(["world"], exactMatch: "world")),
+					(Keyboard.Enter, Expr(hello).Done().Text("hello world", "")),
 				]
 			);
 
+			// create the query command that should contain the parsed FqlQuery 
+			Log($"Command: {state.Command.GetType()?.GetFriendlyName()}");
+			Assert.That(state.Command, Is.SameAs(hello));
+			Assert.That(state.CommandBuilder, Is.InstanceOf<FakeHello.Builder>());
+			var result = state.CommandBuilder.Build(state);
+			Assert.That(result, Is.InstanceOf<FakeHello.Command>());
+
+			// verify the argument
+			var cmd = (FakeHello.Command) result;
+			Assert.That(cmd.Argument, Is.EqualTo("world"));
 		}
 
 		public sealed record FakeQuery : PromptCommandDescriptor
@@ -505,11 +422,13 @@ namespace FoundationDB.Client.Tests
 
 				public override bool IsValid() => this.Query != null;
 
-				public override string ToString() => this.Query != null ? this.Query.ToString() : this.Error != null ? $"ERR: {this.Error.Message}" : "<none>";
+				public override string ToString() => this.Query != null
+					? $"Query {{ Expr = {this.Query} }}"
+					: $"Query {{ Error = {this.Error?.Message} }}";
 
 				public override PromptState Update(PromptState state)
 				{
-					if (state.Change is (PromptChange.Done or PromptChange.Aborted))
+					if (state.IsDone())
 					{
 						return state;
 					}
@@ -522,60 +441,67 @@ namespace FoundationDB.Client.Tests
 					return state with { CommandBuilder = new Builder { Query = query } };
 				}
 
-				public override Command Build(PromptState state)
+				public override Command Build(PromptState state, FakeQuery descriptor)
 				{
 					if (this.Query == null)
 					{
 						throw new InvalidOperationException("Invalid FQL query", this.Error);
 					}
 
-					return new((FakeQuery) state.Command, state.Text) { Query = this.Query };
+					return new(descriptor, state.Text) { Query = this.Query };
 				}
+
 			}
 
 		}
 
 		[Test]
-		public void Test_Can_Type_FqlQuery()
+		public async Task Test_Can_Type_FqlQuery()
 		{
 			var query = new FakeQuery();
 			var root = new RootPromptCommand() { Commands = [query], };
 			var keyHandler = new DefaultPromptKeyHandler();
 			var autoComplete = new DefaultPromptAutoCompleter() { Root = root };
 
-			var state = Run(
+			Log("Typing...");
+
+			var state = await Run(
 				keyHandler,
 				autoComplete,
 				PromptState.CreateEmpty(root),
 				[
-					(Keyboard.q, PromptStateExpression.For(root).Add().Text("q", "q").Candidates(["query"], commonPrefix: "query")),
-					(Keyboard.Tab, PromptStateExpression.For(root).Completed().Text("query", "query").Candidates(["query"], exactMatch: "query")),
-					(Keyboard.Space, PromptStateExpression.For(query).Space().Text("query ", "")),
-					(Keyboard.Slash, PromptStateExpression.For(query).Add().Text("query /", "/", start: 6)),
-					(Keyboard.a, PromptStateExpression.For(query).Add().Text("query /a", "/a", start: 6)),
-					(Keyboard.b, PromptStateExpression.For(query).Add().Text("query /ab", "/ab", start: 6)),
-					(Keyboard.c, PromptStateExpression.For(query).Add().Text("query /abc", "/abc", start: 6)),
-					(Keyboard.OpenParens, PromptStateExpression.For(query).Add().Text("query /abc(", "/abc(", start: 6)),
-					(Keyboard.Digit1, PromptStateExpression.For(query).Add().Text("query /abc(1", "/abc(1", start: 6)),
-					(Keyboard.Comma, PromptStateExpression.For(query).Add().Text("query /abc(1,", "/abc(1,", start: 6)),
-					(Keyboard.Dot, PromptStateExpression.For(query).Add().Text("query /abc(1,.", "/abc(1,.", start: 6)),
-					(Keyboard.Dot, PromptStateExpression.For(query).Add().Text("query /abc(1,..", "/abc(1,..", start: 6)),
-					(Keyboard.Dot, PromptStateExpression.For(query).Add().Text("query /abc(1,...", "/abc(1,...", start: 6)),
-					(Keyboard.CloseParens, PromptStateExpression.For(query).Add().Text("query /abc(1,...)", "/abc(1,...)", start: 6)),
-					(Keyboard.Enter, PromptStateExpression.For(query).Done().Text("query /abc(1,...)", "")),
+					(Keyboard.q,           Expr(root).Add().Text("q", "q").Candidates(["query"], commonPrefix: "query")),
+					(Keyboard.Tab,         Expr(root).Completed().Text("query", "query").Candidates(["query"], exactMatch: "query")),
+					(Keyboard.Space,       Expr(query).Token().Text("query ", "")),
+					(Keyboard.Slash,       Expr(query).Add().Text("query /", "/")),
+					(Keyboard.a,           Expr(query).Add().Text("query /a", "/a")),
+					(Keyboard.b,           Expr(query).Add().Text("query /ab", "/ab")),
+					(Keyboard.c,           Expr(query).Add().Text("query /abc", "/abc")),
+					(Keyboard.OpenParens,  Expr(query).Add().Text("query /abc(", "/abc(")),
+					(Keyboard.Digit1,      Expr(query).Add().Text("query /abc(1", "/abc(1")),
+					(Keyboard.Comma,       Expr(query).Add().Text("query /abc(1,", "/abc(1,")),
+					(Keyboard.Dot,         Expr(query).Add().Text("query /abc(1,.", "/abc(1,.")),
+					(Keyboard.Dot,         Expr(query).Add().Text("query /abc(1,..", "/abc(1,..")),
+					(Keyboard.Dot,         Expr(query).Add().Text("query /abc(1,...", "/abc(1,...")),
+					(Keyboard.CloseParens, Expr(query).Add().Text("query /abc(1,...)", "/abc(1,...)")),
+					(Keyboard.Enter,       Expr(query).Done().Text("query /abc(1,...)", "")),
 				]
 			);
 
+			// create the query command that should contain the parsed FqlQuery 
+			Log($"Command: {state.Command.GetType().GetFriendlyName()}");
 			Assert.That(state.Command, Is.SameAs(query));
 			Assert.That(state.CommandBuilder, Is.InstanceOf<FakeQuery.Builder>());
 			var result = state.CommandBuilder.Build(state);
 			Assert.That(result, Is.InstanceOf<FakeQuery.Command>());
 
+			// verify the query
 			var cmd = (FakeQuery.Command) result;
 			Assert.That(cmd.Query, Is.Not.Null);
-			Log(cmd.Query.Explain());
+			Log(cmd.Query.Explain(prefix: "# "));
 			Assert.That(cmd.Query.Directory, Is.EqualTo(FqlDirectoryExpression.Create().AddRoot().Add("abc")));
 			Assert.That(cmd.Query.Tuple, Is.EqualTo(FqlTupleExpression.Create().AddIntConst(1).AddMaybeMore()));
+			Log($"Markup: {FqlSyntaxHighlighter.GetMarkup(cmd.Query)}");
 		}
 
 	}

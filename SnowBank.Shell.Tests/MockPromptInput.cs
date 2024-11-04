@@ -24,24 +24,52 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace SnowBank.Shell.Prompt
+namespace FoundationDB.Client.Tests
 {
+	using System.Threading;
+	using System.Threading.Tasks;
+	using SnowBank.Shell.Prompt;
 
-	[PublicAPI]
-	public abstract record PromptCommandBuilder<TDescriptor, TCommand> : IPromptCommandBuilder
-		where TDescriptor : PromptCommandDescriptor
-		where TCommand : PromptCommand<TDescriptor>
+	/// <summary>Mock input that simulates keystrokes from an initial list</summary>
+	public class MockPromptInput : IPromptInput
 	{
 
-		public Type GetCommandType() => typeof(TCommand);
+		/// <summary>List of keystrokes that will be sent</summary>
+		public List<ConsoleKeyInfo> KeyStrokes { get; init; } = [];
 
-		public abstract bool IsValid();
+		/// <summary>Number of keys that have already been sent</summary>
+		public int Position { get; private set; }
 
-		public abstract PromptState Update(PromptState state);
+		/// <summary>Last key that was sent</summary>
+		public ConsoleKeyInfo? LastKey { get; private set; }
 
-		IPromptCommand IPromptCommandBuilder.Build(PromptState state) => this.Build(state, (TDescriptor) state.Command);
+		public MockPromptInput Add(ConsoleKeyInfo key)
+		{
+			this.KeyStrokes.Add(key);
+			return this;
+		}
 
-		public abstract TCommand Build(PromptState state, TDescriptor command);
+		public bool TryReadKey(out ConsoleKeyInfo? key)
+		{
+			key = this.Position < this.KeyStrokes.Count
+				? this.KeyStrokes[this.Position++]
+				: null;
+
+			this.LastKey = key;
+
+			return true;
+		}
+
+		public Task<ConsoleKeyInfo?> ReadKey(CancellationToken ct)
+		{
+			ConsoleKeyInfo? key = this.Position < this.KeyStrokes.Count
+				? this.KeyStrokes[this.Position++]
+				: null;
+
+			this.LastKey = key;
+
+			return Task.FromResult(key);
+		}
 
 	}
 

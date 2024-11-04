@@ -145,7 +145,7 @@ namespace Doxense.Runtime
 			var sw = new StringWriter();
 			var builder = new ExplanationBuilder(sw, recursive, prefix);
 			node.Explain(builder);
-			return sw.ToString();
+			return sw.ToString().Trim();
 		}
 
 	}

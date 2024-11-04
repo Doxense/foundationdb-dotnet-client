@@ -24,24 +24,25 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace SnowBank.Shell.Prompt
+namespace SnowBank.Shell.Prompt.Tests
 {
 
-	[PublicAPI]
-	public abstract record PromptCommandBuilder<TDescriptor, TCommand> : IPromptCommandBuilder
-		where TDescriptor : PromptCommandDescriptor
-		where TCommand : PromptCommand<TDescriptor>
+	/// <summary>Mock theme that captures all the calls</summary>
+	/// <remarks>Defers painting to <see cref="AnsiConsolePromptRenderer"/></remarks>
+	public class MockPromptTheme : AnsiConsolePromptTheme
 	{
 
-		public Type GetCommandType() => typeof(TCommand);
+		public List<(PromptState State, RenderState Render)> States { get; init; } = [ ];
 
-		public abstract bool IsValid();
+		public bool WasCalled { get; set; }
 
-		public abstract PromptState Update(PromptState state);
-
-		IPromptCommand IPromptCommandBuilder.Build(PromptState state) => this.Build(state, (TDescriptor) state.Command);
-
-		public abstract TCommand Build(PromptState state, TDescriptor command);
+		public override RenderState Paint(PromptState state)
+		{
+			var res = base.Paint(state);
+			this.States.Add((state, res));
+			this.WasCalled = true;
+			return res;
+		}
 
 	}
 

@@ -34,7 +34,7 @@ namespace SnowBank.Shell.Prompt
 		/// <summary>Updates a <see cref="PromptState"/> with up-to-date auto-complete context</summary>
 		public PromptState HandleAutoComplete(PromptState state)
 		{
-			if (state.Change is PromptChange.Done or PromptChange.Aborted)
+			if (state.IsDone())
 			{ // nothing to do anymore
 				return state with
 				{

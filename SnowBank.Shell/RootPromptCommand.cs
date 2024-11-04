@@ -70,6 +70,8 @@ namespace SnowBank.Shell.Prompt
 
 			Type IPromptCommandBuilder.GetCommandType() => null!;
 
+			public override string ToString() => $"Root {{ Command = \"{CommandName}\" }}";
+
 			public bool IsValid() => this.Descriptor.Commands.Any(x => x.Token == this.CommandName);
 
 			public bool TryGetCommand(string token, [MaybeNullWhen(false)] out IPromptCommandDescriptor command)
@@ -84,16 +86,29 @@ namespace SnowBank.Shell.Prompt
 			{
 				Contract.Debug.Requires(ReferenceEquals(state.CommandBuilder, this));
 
-				if (state.Change is PromptChange.Space)
-				{ // we should have a valid command
+				// first we have to detect if we change to the next token, by looking for a space in the token:
+				// - "hello_" we are still writing the token (maybe there are more to come)
+				// - "hello _" we have written the command, we must switch to it
 
+				if (state.Token.Length > 0 && state.TokenStart == 0 && state.Token[^1] == ' ')
+				{
 					if (!TryGetCommand(this.CommandName, out var cmd))
-					{ // uhoh?
-						return state with { CommandBuilder = this with { CommandName = state.Token } };
+					{ // no command with this name!
+						return state with
+						{
+							CommandBuilder = this with
+							{
+								CommandName = state.Token
+							}
+						};
 					}
 
+					// switch to this command
 					return state with
 					{
+						Change = PromptChange.NextToken,
+						TokenStart = state.Text.Length,
+						Token = "",
 						Command = cmd,
 						CommandBuilder = cmd.StartNew(),
 					};
@@ -118,6 +133,7 @@ namespace SnowBank.Shell.Prompt
 				builder.WriteLine($"CommandName: '{this.CommandName}'");
 				//TODO!
 			}
+
 		}
 
 	}

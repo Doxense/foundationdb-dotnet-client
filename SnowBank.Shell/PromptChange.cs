@@ -42,7 +42,7 @@ namespace SnowBank.Shell.Prompt
 		/// <summary>Removed some text from the current token</summary>
 		BackSpace,
 		/// <summary>Switch to the next token after a space</summary>
-		Space,
+		NextToken,
 		/// <summary>Autocompleted the current token</summary>
 		Completed,
 		/// <summary>Moved the cursor to the left</summary>

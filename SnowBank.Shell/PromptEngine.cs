@@ -27,9 +27,64 @@
 namespace SnowBank.Shell.Prompt
 {
 	using System;
+	using Doxense.Diagnostics.Contracts;
+
+	public interface IPromptInput
+	{
+
+		/// <summary>Attempts to read the next key, if one is available</summary>
+		/// <param name="key">When the method returns <see langword="true"/>, receives the next key in the buffer, or <see langword="null"/> if the input buffer has completed</param>
+		/// <returns><see langword="true"/> if a key was present in the buffer; or <see langword="false"/> if there are no keys available yet.</returns>
+		bool TryReadKey(out ConsoleKeyInfo? key);
+
+		/// <summary>Reads the next key from the buffer</summary>
+		/// <param name="ct">Token used to cancel the read</param>
+		/// <returns>Task that will return either the next key in the buffer, or <see langword="null"/> if the input buffer has completed.</returns>
+		Task<ConsoleKeyInfo?> ReadKey(CancellationToken ct);
+
+	}
+
+	public class DefaultConsoleInput : IPromptInput
+	{
+
+		public bool TryReadKey(out ConsoleKeyInfo? key)
+		{
+			if (Console.KeyAvailable)
+			{
+				key = Console.ReadKey(intercept: true);
+				return true;
+			}
+
+			key = default;
+			return false;
+		}
+
+		public async Task<ConsoleKeyInfo?> ReadKey(CancellationToken ct)
+		{
+			//HACKHACK: TODO: is there a better way to do a cancellable key read, without doing polling, or spinning a new thread everytime ??
+
+			while (true)
+			{
+				ct.ThrowIfCancellationRequested();
+
+				// Read the next key
+				if (!Console.KeyAvailable)
+				{
+					await Task.Delay(15, ct);
+					continue;
+				}
+
+				var key = Console.ReadKey(intercept: true);
+				return key;
+			}
+		}
+
+	}
 
 	public class PromptEngine
 	{
+
+		public required IPromptInput Input { get; init; }
 
 		public required IPromptKeyHandler KeyHandler { get; init; }
 
@@ -40,6 +95,21 @@ namespace SnowBank.Shell.Prompt
 		public required IPromptAutoCompleter AutoCompleter { get; init; }
 
 		public RenderState? State { get; private set; }
+
+		// HOOKS
+
+		public Action<PromptState, RenderState>? OnBefore { get; init; }
+
+		public Action<ConsoleKeyInfo, PromptState, RenderState>? OnAfter { get; init; }
+
+		public Func<PromptState, ConsoleKeyInfo, PromptState>? OnUserInput { get; init; }
+
+		public Func<PromptState, PromptState>? OnCommandUpdate { get; init; }
+
+		public Func<PromptState, RenderState, RenderState>? OnBeforeRender { get; init; }
+
+		public Action<PromptState, RenderState>? OnAfterRender { get; init; }
+
 
 		public async Task<string?> Prompt(CancellationToken ct)
 		{
@@ -59,25 +129,37 @@ namespace SnowBank.Shell.Prompt
 			// record the new state
 			this.State = renderState;
 
-			while (!ct.IsCancellationRequested && state.Change is not (PromptChange.Done or PromptChange.Aborted))
+			while (!ct.IsCancellationRequested && !state.IsDone())
 			{
-				// Read the next key
-				if (!Console.KeyAvailable)
-				{
-					await Task.Delay(15, ct);
-					continue;
-				}
 
-				var key = Console.ReadKey(intercept: true);
+				this.OnBefore?.Invoke(state, renderState);
+
+				// wait for the next user input...
+				var keyOrStop = await this.Input.ReadKey(ct);
+
+				// no more input? => consider this is the same as the "ENTER" key
+				var key = keyOrStop ?? new ConsoleKeyInfo('\n', ConsoleKey.Enter, false, false, false);
+
+				if (this.OnUserInput != null)
+				{
+					state = this.OnUserInput(state, key);
+					Contract.Debug.Assert(state != null);
+				}
 
 				// update the state with this key
 				var newState = this.KeyHandler.HandleKeyPress(state, key);
 
 				// if the text changed, we need to update the auto-complete information
-				if (newState.Text != state.Text)
+				if (newState.Change != PromptChange.None)
 				{
 					newState = newState.CommandBuilder.Update(newState);
 					newState = this.AutoCompleter.HandleAutoComplete(newState);
+
+					if (this.OnCommandUpdate != null)
+					{
+						state = this.OnCommandUpdate(state);
+						Contract.Debug.Assert(state != null);
+					}
 				}
 
 				// if the state has changed in any way, we need to repaint
@@ -86,10 +168,20 @@ namespace SnowBank.Shell.Prompt
 					state = newState;
 					var newRenderState = this.Theme.Paint(newState);
 
+					if (this.OnBeforeRender != null)
+					{
+						newRenderState = this.OnBeforeRender(state, newRenderState);
+						Contract.Debug.Assert(newRenderState != null);
+					}
+
 					// if the changed produced actual UI change, we need to render it
 					this.Renderer.Render(newRenderState, renderState);
 					renderState = newRenderState;
+
+					this.OnAfterRender?.Invoke(state, renderState);
 				}
+
+				this.OnAfter?.Invoke(key, state, renderState);
 			}
 
 			return state.Text;

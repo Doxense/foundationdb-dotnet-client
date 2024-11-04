@@ -65,8 +65,6 @@ namespace SnowBank.Shell.Prompt
 					if (state.ExactMatch != null)
 					{ // we already have written the word, only add a space!
 
-						var text = state.Text ?? "";
-
 						if (state.Change == PromptChange.Completed)
 						{ // double "TAB" after an auto-complete, equivalent to a space
 
@@ -85,7 +83,7 @@ namespace SnowBank.Shell.Prompt
 						state = state with
 						{
 							Change = PromptChange.Completed,
-							Text = text,
+							Text = state.Text,
 							Token = state.ExactMatch,
 						};
 						break;
@@ -142,28 +140,11 @@ namespace SnowBank.Shell.Prompt
 					};
 					break;
 				}
-				case ConsoleKey.Spacebar:
-				{
-					if (string.IsNullOrEmpty(state.Text) || state.Text.EndsWith(' '))
-					{ // cannot add another space here
-						return state with { Change = PromptChange.None };
-					}
-
-					var text = state.Text + " ";
-
-					return state with
-					{
-						Change = PromptChange.Space,
-						Text = text,
-						TokenStart = text.Length,
-						Token = "",
-					};
-				}
 				default:
 				{
 					char c = key.KeyChar;
 
-					var text = state.Text ?? "";
+					var text = state.Text;
 					// simply add the character
 
 					text += c;

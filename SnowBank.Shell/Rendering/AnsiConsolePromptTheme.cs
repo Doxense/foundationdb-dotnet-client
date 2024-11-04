@@ -36,7 +36,7 @@ namespace SnowBank.Shell.Prompt
 		public required int MaxRows { get; init; } = 5;
 
 		/// <inheritdoc />
-		public RenderState Paint(PromptState state)
+		public virtual RenderState Paint(PromptState state)
 		{
 			var promptMarkup = "[gray]" + this.Prompt + "[/]";
 			var text = state.Text;

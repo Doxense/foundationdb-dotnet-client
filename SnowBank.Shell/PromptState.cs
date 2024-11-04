@@ -50,6 +50,8 @@ namespace SnowBank.Shell.Prompt
 		/// </remarks>
 		public required PromptChange Change { get; init; }
 
+		public bool IsDone() => this.Change is PromptChange.Done or PromptChange.Aborted;
+
 		public required string Text { get; init; }
 
 		public required IPromptCommandDescriptor Command { get; init; }
@@ -75,8 +77,8 @@ namespace SnowBank.Shell.Prompt
 		{
 			builder.WriteLine($"Text   : '{this.Text}'");
 			builder.WriteLine($"Token  : '{this.Token}' (start={this.TokenStart}, len={this.Text?.Length})");
-			builder.WriteLine($"Command: <{this.Command.GetType().GetFriendlyName()}>");
-			builder.WriteLine($"Builder: ({this.CommandBuilder?.GetType().GetFriendlyName()}) {this.CommandBuilder}");
+			builder.WriteLine($"Command: <{this.Command.GetType().GetFriendlyName()}>, '{this.Command.SyntaxHint}'");
+			builder.WriteLine($"Builder: <{this.CommandBuilder?.GetType().GetFriendlyName()}>, {this.CommandBuilder}");
 			if (this.CommandBuilder is ICanExplain explain)
 			{
 				builder.ExplainChild(explain);

@@ -24,10 +24,9 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace FoundationDB.Client.Tests
+namespace SnowBank.Shell.Prompt.Tests
 {
 	using JetBrains.Annotations;
-	using SnowBank.Shell.Prompt;
 
 	[UsedImplicitly]
 	public abstract class PromptStateExpression
@@ -61,7 +60,7 @@ namespace FoundationDB.Client.Tests
 		public PromptStateExpression<TCommand> Add() => WithState(PromptChange.Add);
 
 		[MustUseReturnValue]
-		public PromptStateExpression<TCommand> Space() => WithState(PromptChange.Space);
+		public PromptStateExpression<TCommand> Token() => WithState(PromptChange.NextToken);
 
 		[MustUseReturnValue]
 		public PromptStateExpression<TCommand> Completed() => WithState(PromptChange.Completed);

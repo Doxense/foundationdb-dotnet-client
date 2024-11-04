@@ -31,8 +31,9 @@ namespace Doxense
 
 	/// <summary>Represents a value that may or may not be present, along with an optional error state.</summary>
 	/// <typeparam name="T">The type of the value.</typeparam>
-	[DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
+	[DebuggerDisplay("{ToString(),nq}")]
+	[DebuggerNonUserCode]
 	public readonly struct Maybe<T> : IEquatable<Maybe<T>>, IEquatable<T>, IComparable<Maybe<T>>, IComparable<T>, IFormattable
 	{
 
