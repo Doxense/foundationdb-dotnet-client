@@ -104,7 +104,7 @@ namespace Doxense.Diagnostics.Contracts
 		/// <param name="condition">Condition that should never be false</param>
 		/// <param name="userMessage">Message that describes the failed assertion (optional)</param>
 		/// <param name="conditionText">Text of the condition (optional, injected by the compiler)</param>
-		/// <remarks>No-op if <see cref="condition"/> is <c>true</c>. Otherwise, throws a ContractException, after attempting to breakpoint (if a debugger is attached)</remarks>
+		/// <remarks>No-op if <paramref name="condition"/> is <c>true</c>. Otherwise, throws a ContractException, after attempting to breakpoint (if a debugger is attached)</remarks>
 		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[StackTraceHidden]
 		public static void Requires(
@@ -122,7 +122,7 @@ namespace Doxense.Diagnostics.Contracts
 		/// <param name="condition">Condition that should never be false</param>
 		/// <param name="userMessage">Message that describes the failed assertion (optional)</param>
 		/// <param name="conditionText">Text of the condition (optional, injected by the compiler)</param>
-		/// <remarks>No-op if <see cref="condition"/> is <c>true</c>. Otherwise, throws a ContractException, after attempting to breakpoint (if a debugger is attached)</remarks>
+		/// <remarks>No-op if <paramref name="condition"/> is <c>true</c>. Otherwise, throws a ContractException, after attempting to breakpoint (if a debugger is attached)</remarks>
 		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[StackTraceHidden]
 		public static void Assert(
@@ -139,7 +139,7 @@ namespace Doxense.Diagnostics.Contracts
 		/// <param name="condition">Condition that should never be false</param>
 		/// <param name="userMessage">Message that describes the failed assertion (optional)</param>
 		/// <param name="conditionText">Text of the condition (optional, injected by the compiler)</param>
-		/// <remarks>No-op if <see cref="condition"/> is <c>true</c>. Otherwise, throws a ContractException, after attempting to breakpoint (if a debugger is attached)</remarks>
+		/// <remarks>No-op if <paramref name="condition"/> is <c>true</c>. Otherwise, throws a ContractException, after attempting to breakpoint (if a debugger is attached)</remarks>
 		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[StackTraceHidden]
 		public static void Ensures(
@@ -157,7 +157,7 @@ namespace Doxense.Diagnostics.Contracts
 		/// <param name="condition">Condition that should never be false</param>
 		/// <param name="userMessage">Message that describes the failed assertion (optional)</param>
 		/// <param name="conditionText">Text of the condition (optional, injected by the compiler)</param>
-		/// <remarks>No-op if <see cref="condition"/> is <c>true</c>. Otherwise, throws a ContractException, after attempting to breakpoint (if a debugger is attached)</remarks>
+		/// <remarks>No-op if <paramref name="condition"/> is <c>true</c>. Otherwise, throws a ContractException, after attempting to breakpoint (if a debugger is attached)</remarks>
 		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[StackTraceHidden]
 		public static void Invariant(

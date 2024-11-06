@@ -193,7 +193,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="format">Desired format, or "D" (default) if omitted</param>
 		/// <param name="provider">This parameter is ignored. JSON values are always formatted using <see cref="CultureInfo.InvariantCulture"/>.</param>
 		/// <remarks>Supported values for <paramref name="format"/> are:
-		/// <list type="bullet">
+		/// <list type="table">
 		///   <listheader><term>format</term><description>foo</description></listheader>
 		///   <item><term>D</term><description>Default, equivalent to calling <see cref="ToJson"/> with <see cref="CrystalJsonSettings.Json"/></description></item>
 		///   <item><term>C</term><description>Compact, equivalent to calling <see cref="ToJson"/> with <see cref="CrystalJsonSettings.JsonCompact"/></description></item>

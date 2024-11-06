@@ -1371,7 +1371,7 @@ namespace Doxense.Collections.Generic
 
 			/// <summary>Seek the iterator at the smallest value that is less (or equal) to the desired item</summary>
 			/// <param name="item">Item to seek to</param>
-			/// <param name="orEqual">When <see cref="item"/> exists: if <c>true</c>, then seek to this item. If <c>false</c>, seek to the previous entry.</param>
+			/// <param name="orEqual">When <paramref name="item"/> exists: if <c>true</c>, then seek to this item. If <c>false</c>, seek to the previous entry.</param>
 			public bool Seek(T item, bool orEqual)
 			{
 				// Goal: we want to find the item key itself (if it exists and orEqual==true), or the max key that is strictly less than item

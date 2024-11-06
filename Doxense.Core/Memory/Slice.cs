@@ -875,7 +875,7 @@ namespace System
 
 		/// <summary>Determines whether the slice is equal to the specified ASCII keyword</summary>
 		/// <param name="asciiString">String of ASCII chars. Any character with a code pointer greater or equal to 128 will not work as intended</param>
-		/// <returns><b>true</b> if <see cref="asciiString"/>, when interpreted as bytes, represents the same bytes as this slice; otherwise, <b>false</b></returns>
+		/// <returns><b>true</b> if <paramref name="asciiString"/>, when interpreted as bytes, represents the same bytes as this slice; otherwise, <b>false</b></returns>
 		/// <remarks>This method is only intended to test the presence of specific keywords or header signatures when parsing protocols, NOT for matching natural text!</remarks>
 		public bool Equals(ReadOnlySpan<char> asciiString)
 		{
@@ -895,7 +895,7 @@ namespace System
 
 		/// <summary>Determines whether the beginning of this slice instance matches a specified ASCII keyword</summary>
 		/// <param name="asciiString">String of ASCII chars. Any character with a code pointer greater or equal to 128 will not work as intended</param>
-		/// <returns><b>true</b> if <see cref="asciiString"/>, when interpreted as bytes, matches the beginning of this slice; otherwise, <b>false</b></returns>
+		/// <returns><b>true</b> if <paramref name="asciiString"/>, when interpreted as bytes, matches the beginning of this slice; otherwise, <b>false</b></returns>
 		/// <remarks>This method is only intended to test the presence of specific keywords or header signatures when parsing protocols, NOT for matching natural text!</remarks>
 		public bool StartsWith(ReadOnlySpan<char> asciiString)
 		{
@@ -906,7 +906,7 @@ namespace System
 
 		/// <summary>Determines whether the end of this slice instance matches a specified ASCII keyword</summary>
 		/// <param name="asciiString">String of ASCII chars. Any character with a code pointer greater or equal to 128 will not work as intended</param>
-		/// <returns><b>true</b> if <see cref="asciiString"/>, when interpreted as bytes, matches the end of this slice; otherwise, <b>false</b></returns>
+		/// <returns><b>true</b> if <paramref name="asciiString"/>, when interpreted as bytes, matches the end of this slice; otherwise, <b>false</b></returns>
 		/// <remarks>This method is only intended to test the presence of specific keywords or header signatures when parsing protocols, NOT for matching natural text!</remarks>
 		public bool EndsWith(ReadOnlySpan<char> asciiString)
 		{

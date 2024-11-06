@@ -275,7 +275,7 @@ namespace Doxense.IO.Hashing
 		/// <returns>Number of bytes consumed from <paramref name="input"/>.</returns>
 		/// <remarks>
 		/// <para>This method will only consume multiples of 32 bytes chunks.</para>
-		/// <para>If <see cref="input"/> is smaller than 32 bytes, nothing will be done and the method will return 0.</para>
+		/// <para>If <paramref name="input"/> is smaller than 32 bytes, nothing will be done and the method will return 0.</para>
 		/// <para>If the method returns less than the size of <paramref name="input"/>, the caller is responsible for keeping track the extra bytes that were not consume, and present them again on the next call, once more data is available.</para>
 		/// </remarks>
 		public static unsafe int AppendData(ref StreamContext state, ReadOnlySpan<byte> input)

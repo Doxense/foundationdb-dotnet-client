@@ -294,7 +294,7 @@ namespace Doxense.Linq
 
 		/// <summary>Returns the content of the buffer as a span, if it fits in a single chunk</summary>
 		/// <param name="segment">Receives a view of the content, or default if the buffer spans multiple chunks</param>
-		/// <returns><see langword="true"/> if the buffer is empty, or its content is stored in a single continuous chunk, available in <see cref="segment"/>; otherwise, <see langword="false"/></returns>
+		/// <returns><see langword="true"/> if the buffer is empty, or its content is stored in a single continuous chunk, available in <paramref name="segment"/>; otherwise, <see langword="false"/></returns>
 		public bool TryGetSpan(out Span<T> segment)
 		{
 			if (this.Chunks is null)

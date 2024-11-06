@@ -482,7 +482,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Create a new JSON object with the specified items</summary>
 		/// <param name="items">Map of key/values to copy</param>
-		/// <returns>New JSON object with the same elements in <see cref="items"/></returns>
+		/// <returns>New JSON object with the same elements in <paramref name="items"/></returns>
 		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
 		public static JsonObject Create(IDictionary<string, JsonValue> items)
 		{
@@ -493,7 +493,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Create a new JSON object with the specified items</summary>
 		/// <param name="items">Map of key/values to copy</param>
 		/// <param name="comparer"></param>
-		/// <returns>New JSON object with the same elements in <see cref="items"/></returns>
+		/// <returns>New JSON object with the same elements in <paramref name="items"/></returns>
 		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
 		public static JsonObject Create(ReadOnlySpan<KeyValuePair<string, JsonValue>> items, IEqualityComparer<string>? comparer = null)
 		{
@@ -502,7 +502,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Create a new JSON object with the specified items</summary>
 		/// <param name="items">Map of key/values to copy</param>
-		/// <returns>New JSON object with the same elements in <see cref="items"/></returns>
+		/// <returns>New JSON object with the same elements in <paramref name="items"/></returns>
 		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
 		public static JsonObject Create(ReadOnlySpan<(string Key, JsonValue? Value)> items)
 		{
@@ -514,7 +514,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Create a new JSON object with the specified items</summary>
 		/// <param name="items">Map of key/values to copy</param>
-		/// <returns>New JSON object with the same elements in <see cref="items"/></returns>
+		/// <returns>New JSON object with the same elements in <paramref name="items"/></returns>
 		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
 		public static JsonObject FromValues<TValue>(ReadOnlySpan<(string Key, TValue Value)> items)
 		{
@@ -527,7 +527,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Create a new JSON object with the specified items</summary>
 		/// <param name="items">Map of key/values to copy</param>
 		/// <param name="comparer"></param>
-		/// <returns>New JSON object with the same elements in <see cref="items"/></returns>
+		/// <returns>New JSON object with the same elements in <paramref name="items"/></returns>
 		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
 		public static JsonObject Create(ReadOnlySpan<(string Key, JsonValue? Value)> items, IEqualityComparer<string>? comparer)
 		{
@@ -537,7 +537,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Create a new JSON object with the specified items</summary>
 		/// <param name="items">Map of key/values to copy</param>
 		/// <param name="comparer"></param>
-		/// <returns>New JSON object with the same elements in <see cref="items"/></returns>
+		/// <returns>New JSON object with the same elements in <paramref name="items"/></returns>
 		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
 		public static JsonObject Create(KeyValuePair<string, JsonValue>[] items, IEqualityComparer<string>? comparer)
 		{
@@ -548,7 +548,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Create a new JSON object with the specified items</summary>
 		/// <param name="items">Map of key/values to copy</param>
 		/// <param name="comparer"></param>
-		/// <returns>New JSON object with the same elements in <see cref="items"/></returns>
+		/// <returns>New JSON object with the same elements in <paramref name="items"/></returns>
 		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
 		public static JsonObject Create((string Key, JsonValue? Value)[] items, IEqualityComparer<string>? comparer = null)
 		{
@@ -559,7 +559,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Create a new JSON object with the specified items</summary>
 		/// <param name="items">Map of key/values to copy</param>
 		/// <param name="comparer"></param>
-		/// <returns>New JSON object with the same elements in <see cref="items"/></returns>
+		/// <returns>New JSON object with the same elements in <paramref name="items"/></returns>
 		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
 		public static JsonObject Create(IEnumerable<KeyValuePair<string, JsonValue>> items, IEqualityComparer<string>? comparer = null)
 		{
@@ -570,7 +570,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Create a new JSON object with the specified items</summary>
 		/// <param name="items">Map of key/values to copy</param>
 		/// <param name="comparer"></param>
-		/// <returns>New JSON object with the same elements in <see cref="items"/></returns>
+		/// <returns>New JSON object with the same elements in <paramref name="items"/></returns>
 		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
 		public static JsonObject Create(IEnumerable<(string Key, JsonValue Value)> items, IEqualityComparer<string>? comparer = null)
 		{

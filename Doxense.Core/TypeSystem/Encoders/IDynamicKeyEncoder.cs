@@ -215,13 +215,13 @@ namespace Doxense.Serialization.Encoders
 		/// <summary>Attempts to decode a binary slice into a tuple of arbitrary length</summary>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="PackKey{TTuple}"/></param>
 		/// <param name="tuple">Tuple of any size (0 to N), if the method returns true</param>
-		/// <returns>True if <paramref name="packed"/> was a legal binary representation; otherwise, false.</returns>
+		/// <returns><see langword="true"/> if <paramref name="packed"/> was a legal binary representation; otherwise, <see langword="false"/>.</returns>
 		bool TryUnpackKey(Slice packed, [NotNullWhen(true)] out IVarTuple? tuple);
 
 		/// <summary>Attempts to decode a binary slice into a tuple of arbitrary length</summary>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="PackKey{TTuple}"/></param>
 		/// <param name="tuple">Tuple of any size (0 to N), if the method returns true</param>
-		/// <returns>True if <paramref name="packed"/> was a legal binary representation; otherwise, false.</returns>
+		/// <returns><see langword="true"/> if <paramref name="packed"/> was a legal binary representation; otherwise, <see langword="false"/>.</returns>
 		bool TryUnpackKey(ReadOnlySpan<byte> packed, out SpanTuple tuple);
 
 		/// <summary>Decodes a binary slice containing exactly on element</summary>

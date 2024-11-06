@@ -2858,13 +2858,13 @@ namespace Doxense.Serialization.Json
 
 #endif
 
-		/// <summary>Deserializes a <see cref="JsonArray">JSON Array</see> into an array of <see cref="TValue"/></summary>
+		/// <summary>Deserializes a <see cref="JsonArray">JSON Array</see> into an array of <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Types of the items in the deserialized array</typeparam>
 		/// <param name="value">JSON value known to be a JSON Array</param>
 		/// <param name="defaultValue">Default value if the value is null or missing</param>
 		/// <param name="resolver">Optional type resolver</param>
 		/// <param name="required">If <see langword="true"/>, all items must be non-null</param>
-		/// <returns>Array of <see cref="TValue"/></returns>
+		/// <returns>Array of <typeparamref name="TValue"/></returns>
 		[Pure, ContractAnnotation("required:true => notnull")]
 		public static TValue?[]? BindArray<TValue>(JsonValue? value, TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null, bool required = false)
 		{
@@ -4520,8 +4520,8 @@ namespace Doxense.Serialization.Json
 		/// <param name="keySelector">Lambda used to extract a key for each element in the sequence</param>
 		/// <param name="valueSelector">Lambda used to extract a value for each element in the sequence</param>
 		/// <param name="resolver">Custom type resolver</param>
-		/// <param name="overwrite">If <see langword="true"/>, overwrite existing keys in <paramref name="target"/>. If <see langwoird="false"/>, throws an exception in case of duplicate keys</param>
-		/// <returns>The value of <see cref="target"/></returns>
+		/// <param name="overwrite">If <see langword="true"/>, overwrite existing keys in <paramref name="target"/>. If <see langword="false"/>, throws an exception in case of duplicate keys</param>
+		/// <returns>The value of <paramref name="target"/></returns>
 		/// <exception cref="System.ArgumentNullException">If a required parameter is null</exception>
 		/// <exception cref="System.InvalidOperationException">If an element of the sequence is null, or not of the expected type</exception>
 		public static IDictionary<TKey, TValue> MapTo<TKey, TValue>(

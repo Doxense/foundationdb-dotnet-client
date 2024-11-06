@@ -287,11 +287,11 @@ namespace Doxense.Memory
 		/// <param name="count">Size of the segment to return.</param>
 		/// <returns>Slice that contains the first <paramref name="count"/> bytes written to this buffer</returns>
 		/// <remarks>Any change to the slice will change the buffer !</remarks>
-		/// <example>
+		/// <example><code>
 		/// ({HELLO WORLD}).Head(5) => {HELLO}
 		/// ({HELLO WORLD}).Head(1) => {H}
 		/// {{HELLO WORLD}).Head(0) => {}
-		/// </example>
+		/// </code></example>
 		/// <exception cref="ArgumentException">If <paramref name="count"/> is less than zero, or larger than the current buffer size</exception>
 		[Pure]
 		public readonly Slice Head(int count)
@@ -341,11 +341,11 @@ namespace Doxense.Memory
 		/// <param name="count">Size of the segment to return.</param>
 		/// <returns>Slice that contains the last <paramref name="count"/> bytes written to this buffer</returns>
 		/// <remarks>Any change to the slice will change the buffer !</remarks>
-		/// <example>
+		/// <example><code>
 		/// ({HELLO WORLD}).Tail(5) => {WORLD}
 		/// ({HELLO WORLD}).Tail(1) => {D}
 		/// {{HELLO WORLD}).Tail(0) => {}
-		/// </example>
+		/// </code></example>
 		/// <exception cref="ArgumentException">If <paramref name="count"/> is less than zero, or larger than the current buffer size</exception>
 		public readonly Slice Tail(uint count)
 		{
@@ -2234,10 +2234,10 @@ namespace Doxense.Memory
 
 		/// <summary>Allocates a buffer at the current cursor location, but do not advance the cursor</summary>
 		/// <param name="minCapacity">Minimum allocated capacity</param>
-		/// <returns>Buffer located at the current cursor position, and of size at least equal to <see cref="minCapacity"/></returns>
+		/// <returns>Buffer located at the current cursor position, and of size at least equal to <paramref name="minCapacity"/></returns>
 		/// <remarks>
 		/// <para>After filling the returned buffer, the caller MUST advance the cursor manually!</para>
-		/// <para>This is intented to be used in combination with methods like <see cref="ISpanFormattable.TryFormat"/></para>
+		/// <para>This is intended to be used in combination with methods like <see cref="ISpanFormattable.TryFormat"/></para>
 		/// </remarks>
 		public Span<byte> GetSpan(int minCapacity)
 		{
@@ -2255,7 +2255,7 @@ namespace Doxense.Memory
 		
 		/// <summary>Allocates a buffer at the current cursor location, but do not advance the cursor</summary>
 		/// <param name="minCapacity">Minimum allocated capacity</param>
-		/// <returns>Buffer located at the current cursor position, and of size at least equal to <see cref="minCapacity"/></returns>
+		/// <returns>Buffer located at the current cursor position, and of size at least equal to <paramref name="minCapacity"/></returns>
 		/// <remarks>
 		/// <para>After filling the returned buffer, the caller MUST advance the cursor manually!</para>
 		/// <para>This is intented to be used in combination with methods like <see cref="ISpanFormattable.TryFormat"/></para>
@@ -2276,7 +2276,7 @@ namespace Doxense.Memory
 
 		/// <summary>Allocates a buffer at the current cursor location, and advance the cursor</summary>
 		/// <param name="count">Number of bytes to allocate</param>
-		/// <returns>Buffer located at the current cursor position, and of size equal to <see cref="count"/></returns>
+		/// <returns>Buffer located at the current cursor position, and of size equal to <paramref name="count"/></returns>
 		/// <remarks>
 		/// <para>The buffer must be completely filled, otherwise any pre-existing data in the buffer will leak!</para>
 		/// </remarks>
@@ -2297,7 +2297,7 @@ namespace Doxense.Memory
 
 		/// <summary>Allocates a buffer at the current cursor location, and advance the cursor</summary>
 		/// <param name="count">Number of bytes to allocate</param>
-		/// <returns>Buffer located at the current cursor position, and of size equal to <see cref="count"/></returns>
+		/// <returns>Buffer located at the current cursor position, and of size equal to <paramref name="count"/></returns>
 		/// <remarks>
 		/// <para>The buffer must be completely filled, otherwise any pre-existing data in the buffer will leak!</para>
 		/// </remarks>
@@ -2360,6 +2360,7 @@ namespace Doxense.Memory
 
 		/// <summary>Resize a buffer by doubling its capacity</summary>
 		/// <param name="buffer">Reference to the variable holding the buffer to create/resize. If null, a new buffer will be allocated. If not, the content of the buffer will be copied into the new buffer.</param>
+		/// <param name="keep"></param>
 		/// <param name="minimumCapacity">Minimum guaranteed buffer size after resizing.</param>
 		/// <param name="pool">Optional pool used by this buffer</param>
 		/// <remarks>The buffer will be resized to the maximum between the previous size multiplied by 2, and <paramref name="minimumCapacity"/>. The capacity will always be rounded to a multiple of 16 to reduce memory fragmentation</remarks>

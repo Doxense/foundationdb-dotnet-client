@@ -1078,9 +1078,9 @@ namespace Doxense.Collections.Generic
 		}
 
 		/// <summary>Returns the value of the range that contains the specified key, if there is one.</summary>
-		/// <param name="key">Key that is beeing looked up</param>
+		/// <param name="key">Key that is being looked up</param>
 		/// <param name="value">If the key intersects a range, receives the value of this range.</param>
-		/// <returns><see langword="true"/> if there is a range that contains <see cref="key"/>; otherwise, <see langword="false"/> (outside the bounds, or between two ranges)</returns>
+		/// <returns><see langword="true"/> if there is a range that contains <paramref name="key"/>; otherwise, <see langword="false"/> (outside the bounds, or between two ranges)</returns>
 		[CollectionAccess(CollectionAccessType.Read)]
 		public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
 		{
@@ -1122,9 +1122,9 @@ namespace Doxense.Collections.Generic
 		}
 
 		/// <summary>Returns the value of the range that contains the specified key, or a default value if there is none.</summary>
-		/// <param name="key">Key that is beeing looked up</param>
+		/// <param name="key">Key that is being looked up</param>
 		/// <param name="defaultValue">Value that will be returned if the key is outside the bounds, or falls between two ranges.</param>
-		/// <returns>Value of the range that contains <see cref="key"/>; otherwise, <paramref name="defaultValue"/></returns>
+		/// <returns>Value of the range that contains <paramref name="key"/>; otherwise, <paramref name="defaultValue"/></returns>
 		[CollectionAccess(CollectionAccessType.Read)]
 		public TValue GetValueOrDefault(TKey key, TValue defaultValue) => TryGetValue(key, out var value) ? value : defaultValue;
 

@@ -142,7 +142,7 @@ namespace Doxense.Serialization.Json
 
 			/// <summary>Creates a new JSON object with the specified items</summary>
 			/// <param name="items">Map of key/values to copy</param>
-			/// <returns>New JSON object with the same elements in <see cref="items"/></returns>
+			/// <returns>New JSON object with the same elements in <paramref name="items"/></returns>
 			/// <remarks>
 			/// <para>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</para>
 			/// <para>For a mutable object, see <see cref="JsonObject.Create(IDictionary{string,JsonValue})"/></para>
@@ -156,7 +156,7 @@ namespace Doxense.Serialization.Json
 			/// <summary>Creates a new JSON object with the specified items</summary>
 			/// <param name="items">Map of key/values to copy</param>
 			/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
-			/// <returns>New JSON object with the same elements in <see cref="items"/></returns>
+			/// <returns>New JSON object with the same elements in <paramref name="items"/></returns>
 			/// <remarks>
 			/// <para>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</para>
 			/// <para>For a mutable object, see <see cref="JsonObject.Create(ReadOnlySpan{KeyValuePair{string,JsonValue}},IEqualityComparer{string}?)"/></para>
@@ -169,7 +169,7 @@ namespace Doxense.Serialization.Json
 			/// <summary>Creates a new JSON object with the specified items</summary>
 			/// <param name="items">Map of key/values to copy</param>
 			/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
-			/// <returns>New JSON object with the same elements in <see cref="items"/></returns>
+			/// <returns>New JSON object with the same elements in <paramref name="items"/></returns>
 			/// <remarks>
 			/// <para>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</para>
 			/// <para>For a mutable object, see <see cref="JsonObject.Create(ReadOnlySpan{ValueTuple{string,JsonValue}},IEqualityComparer{string}?)"/></para>
@@ -182,7 +182,7 @@ namespace Doxense.Serialization.Json
 			/// <summary>Creates a new JSON object with the specified items</summary>
 			/// <param name="items">Map of key/values to copy</param>
 			/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
-			/// <returns>New JSON object with the same elements in <see cref="items"/></returns>
+			/// <returns>New JSON object with the same elements in <paramref name="items"/></returns>
 			/// <remarks>
 			/// <para>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</para>
 			/// <para>For a mutable object, see <see cref="JsonObject.Create(KeyValuePair{string,JsonValue}[],IEqualityComparer{string}?)"/></para>
@@ -196,7 +196,7 @@ namespace Doxense.Serialization.Json
 			/// <summary>Creates a new JSON object with the specified items</summary>
 			/// <param name="items">Map of key/values to copy</param>
 			/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
-			/// <returns>New JSON object with the same elements in <see cref="items"/></returns>
+			/// <returns>New JSON object with the same elements in <paramref name="items"/></returns>
 			/// <remarks>
 			/// <para>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</para>
 			/// <para>For a mutable object, see <see cref="JsonObject.Create(ValueTuple{string,JsonValue}[],IEqualityComparer{string}?)"/></para>
@@ -210,7 +210,7 @@ namespace Doxense.Serialization.Json
 			/// <summary>Creates a new JSON object with the specified items</summary>
 			/// <param name="items">Map of key/values to copy</param>
 			/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
-			/// <returns>New JSON object with the same elements in <see cref="items"/></returns>
+			/// <returns>New JSON object with the same elements in <paramref name="items"/></returns>
 			/// <remarks>
 			/// <para>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</para>
 			/// <para>For a mutable object, see <see cref="JsonObject.Create(IEnumerable{KeyValuePair{string,JsonValue}},IEqualityComparer{string}?)"/></para>
@@ -224,7 +224,7 @@ namespace Doxense.Serialization.Json
 			/// <summary>Creates a new JSON object with the specified items</summary>
 			/// <param name="items">Map of key/values to copy</param>
 			/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
-			/// <returns>New JSON object with the same elements in <see cref="items"/></returns>
+			/// <returns>New JSON object with the same elements in <paramref name="items"/></returns>
 			/// <remarks>
 			/// <para>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</para>
 			/// <para>For a mutable object, see <see cref="JsonObject.Create(IEnumerable{ValueTuple{string,JsonValue}},IEqualityComparer{string}?)"/></para>
@@ -480,7 +480,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="previous">If the field was already present, receives its previous value. If not, receives <see langword="null"/>.</param>
 		/// <returns>A new instance with the same content of the original object, plus the additional item</returns>
 		/// <remarks>
-		/// <para>If a field with the same name already exists, its value will be overwritten and the previous value will be stored in <see cref="previous"/>.</para>
+		/// <para>If a field with the same name already exists, its value will be overwritten and the previous value will be stored in <paramref name="previous"/>.</para>
 		/// <para>If the object was not-readonly, existing non-readonly fields will also be converted to read-only.</para>
 		/// <para>For best performances, this should only be used on already-readonly objects, and with read-only values.</para>
 		/// </remarks>

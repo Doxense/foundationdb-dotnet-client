@@ -81,7 +81,7 @@ namespace System
 		}
 
 		/// <summary>Returns a <see cref="SliceOwner"/> that will dispose the content of a slice allocated from a pool</summary>
-		/// <param name="data">Slice of data, that is either <see cref="Slice.Nil"/>, <see cref="Slice.Empty"/>, or uses an array rented from <see cref="pool"/></param>
+		/// <param name="data">Slice of data, that is either <see cref="Slice.Nil"/>, <see cref="Slice.Empty"/>, or uses an array rented from <paramref name="pool"/></param>
 		/// <param name="pool">Pool (optional) that was used to allocate the content of <paramref name="data"/>, or <see langword="null"/> if the content was allocated on the heap or must not be returned to any pool.</param>
 		/// <returns><see cref="SliceOwner"/> that will return the content to pool once disposed (if one was provided).</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]

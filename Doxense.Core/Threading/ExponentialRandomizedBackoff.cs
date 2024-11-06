@@ -65,7 +65,7 @@ namespace Doxense.Threading
 		/// <param name="maximum">Maximum retry delay (before taking into account the randomization)</param>
 		/// <param name="backoffFactor">Factor that is multiplied with the last delay to get th next delay (must be greater than 0, and usually greater than 1)</param>
 		/// <param name="randomLow">Minimum randomized factor applied to each delay (must be greater than 0)</param>
-		/// <param name="randomHigh">Maximum randomized factor applied to each delay (must be greater than, or equal to <see cref="randomLow"/>)</param>
+		/// <param name="randomHigh">Maximum randomized factor applied to each delay (must be greater than, or equal to <paramref name="randomLow"/>)</param>
 		/// <param name="rng">Pseudo-random number generator used by this instance</param>
 		/// <exception cref="ArgumentOutOfRangeException">If any of the settings is out of range</exception>
 		public ExponentialRandomizedBackoff(TimeSpan initial, TimeSpan maximum, double backoffFactor = 2.0d, double randomLow = 1.0d, double randomHigh = 1.5d, Random? rng = null)

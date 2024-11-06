@@ -29,7 +29,7 @@ namespace Doxense.Memory
 	/// <summary>Buffer writer that writes all data into a single consecutive buffer allocated from the heap</summary>
 	/// <remarks>
 	/// <para>This buffer will grow and copy the underlying array as needed. For performance reason, prefer using <see cref="SlabSliceWriter"/> if you don't require the final output to be consecutive in memory</para>
-	/// <para>If all data allocated from this writer is guarenteed to not be used outside of its lifetime, consider using <see cref="PooledSliceWriter"/> for performance reasons.</para>
+	/// <para>If all data allocated from this writer is guaranteed to not be used outside its lifetime, consider using <see cref="PooledSliceWriter"/> for performance reasons.</para>
 	/// </remarks>
 	[PublicAPI]
 	public sealed class ArraySliceWriter : ISliceBufferWriter
@@ -118,10 +118,10 @@ namespace Doxense.Memory
 			m_index += count;
 		}
 
-		/// <summary>Returns a <see cref="MutableSlice" /> to write to that is at least the requested size (specified by <paramref name="sizeHint" />).</summary>
+		/// <summary>Returns an <see cref="ArraySegment{T}" /> to write to that is at least the requested size (specified by <paramref name="sizeHint" />).</summary>
 		/// <param name="sizeHint">The minimum length of the returned <see cref="Slice" />. If 0, a non-empty buffer is returned.</param>
 		/// <exception cref="T:System.OutOfMemoryException">The requested buffer size is not available.</exception>
-		/// <returns>A <see cref="MutableSlice" /> of at least the size <paramref name="sizeHint" />. If <paramref name="sizeHint" /> is 0, returns a non-empty buffer.</returns>
+		/// <returns>A <see cref="ArraySegment{T}" /> of at least the size <paramref name="sizeHint" />. If <paramref name="sizeHint" /> is 0, returns a non-empty buffer.</returns>
 		/// <remarks>If the requested size exceeds the <see cref="FreeCapacity"/>, the internal buffer will be resized</remarks>
 		public ArraySegment<byte> GetSlice(int sizeHint = 0)
 		{
