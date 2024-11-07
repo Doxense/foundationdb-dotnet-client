@@ -31,16 +31,27 @@ namespace Doxense.Linq
 	using System.Collections.Immutable;
 	using System.Runtime.InteropServices;
 
+#if NET8_0_OR_GREATER
 	/// <summary>Buffer that will accumulate data in a contiguous span, starting from a stack allocated buffer, and switching to pooled buffers if required</summary>
 	/// <typeparam name="T">Type of elements stored in the buffer</typeparam>
 	/// <remarks>
 	/// <para>The final list of items will be available as a single contiguous <see cref="Span{T}"/></para>
-	/// <para>If the caller does not need to consume the items as a single span, <see cref="SegmentedValueBuffer{T}"/> may be faster</para>
 	/// </remarks>
+	/// <seealso cref="SegmentedValueBuffer{T}">If the caller does not need to consume the items as a single span, <see cref="SegmentedValueBuffer{T}"/> may be faster</seealso>
+#else
+	/// <summary>Buffer that will accumulate data in a contiguous span, starting from a stack allocated buffer, and switching to pooled buffers if required</summary>
+	/// <typeparam name="T">Type of elements stored in the buffer</typeparam>
+	/// <remarks>
+	/// <para>The final list of items will be available as a single contiguous <see cref="Span{T}"/></para>
+	/// </remarks>
+#endif
 	[DebuggerDisplay("Count={Count}, Capacity{Buffer.Length}")]
 	[DebuggerTypeProxy(typeof(ValueBufferDebugView<>))]
 	[PublicAPI]
-	public ref struct ValueBuffer<T> : IDisposable
+	public ref struct ValueBuffer<T>
+#if NET9_0_OR_GREATER
+		: IDisposable
+#endif
 	{
 
 		// This should only be used when needing to create a list of array of a few elements with as few memory allocations as possible,
@@ -675,6 +686,7 @@ namespace Doxense.Linq
 
 	}
 
+	[PublicAPI]
 	public static class ValueBufferExtensions
 	{
 

@@ -40,9 +40,12 @@ namespace Doxense.Linq
 	/// <para>If the caller does not need to consume the items as a single span, <see cref="SegmentedValueBuffer{T}"/> may be faster</para>
 	/// </remarks>
 	[DebuggerDisplay("Count={Count}, Capacity{Capacity}, Depth={Depth}")]
-//	[DebuggerTypeProxy(typeof(SegmentedValueBufferDebugView<>))]
+	[DebuggerTypeProxy(typeof(SegmentedValueBufferDebugView<>))]
 	[PublicAPI]
-	public ref struct SegmentedValueBuffer<T> : IDisposable
+	public ref struct SegmentedValueBuffer<T>
+#if NET9_0_OR_GREATER
+		: IDisposable
+#endif
 	{
 
 		#region Constants...
@@ -586,7 +589,10 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Enumerates the contents of a <see cref="SegmentedValueBuffer{T}"/></summary>
-		public ref struct Enumerator : IEnumerator<T>
+		public ref struct Enumerator
+#if NET9_0_OR_GREATER
+			: IEnumerator<T>
+#endif
 		{
 			private ReadOnlySpan<T> Segment;
 			private int Offset;
@@ -654,8 +660,12 @@ namespace Doxense.Linq
 			/// <inheritdoc />
 			public T Current => this.Segment[this.Offset];
 
+#if NET9_0_OR_GREATER
+
 			/// <inheritdoc />
 			object? IEnumerator.Current => this.Segment[this.Offset];
+
+#endif
 
 			/// <inheritdoc />
 			public void Dispose()

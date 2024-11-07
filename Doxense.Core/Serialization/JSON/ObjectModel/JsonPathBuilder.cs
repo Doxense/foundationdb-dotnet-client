@@ -29,7 +29,10 @@ namespace Doxense.Serialization.Json
 	using System.Buffers;
 
 	[PublicAPI]
-	public ref struct JsonPathBuilder : IDisposable
+	public ref struct JsonPathBuilder
+#if NET9_0_OR_GREATER
+		: IDisposable
+#endif
 	{
 		public const int MaxLength = 1_000_000;
 

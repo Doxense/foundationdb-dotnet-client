@@ -33,7 +33,10 @@ namespace Doxense.Collections.Tuples.Encoding
 	using Doxense.Serialization;
 
 	/// <summary>Lazily-evaluated tuple that was unpacked from a key</summary>
-	public ref struct SpanTuple : IVarTuple, ITupleSerializable, ISliceSerializable
+	public readonly ref struct SpanTuple
+#if NET9_0_OR_GREATER
+		: IVarTuple, ITupleSerializable, ISliceSerializable
+#endif
 	{
 
 		/// <summary>Buffer containing the original content.</summary>
@@ -118,10 +121,14 @@ namespace Doxense.Collections.Tuples.Encoding
 			}
 		}
 
+#if NET9_0_OR_GREATER
+
 		void ITupleSerializable.PackTo(ref TupleWriter writer)
 		{
 			PackTo(ref writer);
 		}
+
+#endif
 
 		internal void PackTo(ref TupleWriter writer)
 		{
@@ -136,8 +143,12 @@ namespace Doxense.Collections.Tuples.Encoding
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public int Count => m_slices.Length;
 
+#if NET9_0_OR_GREATER
+
 		/// <inheritdoc />
 		int System.Runtime.CompilerServices.ITuple.Length => this.Count;
+
+#endif
 
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public object? this[int index] => TuplePackers.DeserializeBoxed(GetSpan(index));
@@ -158,8 +169,12 @@ namespace Doxense.Collections.Tuples.Encoding
 			}
 		}
 
+#if NET9_0_OR_GREATER
+
 		/// <inheritdoc />
 		IVarTuple IVarTuple.this[int? fromIncluded, int? toExcluded] => throw new NotSupportedException();
+
+#endif
 
 		/// <inheritdoc />
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
@@ -178,8 +193,12 @@ namespace Doxense.Collections.Tuples.Encoding
 			}
 		}
 
+#if NET9_0_OR_GREATER
+
 		/// <inheritdoc />
 		IVarTuple IVarTuple.this[Range range] => throw new NotSupportedException();
+
+#endif
 
 		/// <inheritdoc />
 		[EditorBrowsable(EditorBrowsableState.Always)]
@@ -305,9 +324,13 @@ namespace Doxense.Collections.Tuples.Encoding
 		[Pure]
 		public TupleSegmentType GetElementType(Index index) => (TupleSegmentType) GetSlice(index)[0];
 
+#if NET9_0_OR_GREATER
+
 		IVarTuple IVarTuple.Append<T>(T value) => throw new NotSupportedException();
 
 		IVarTuple IVarTuple.Concat(IVarTuple tuple) => throw new NotSupportedException();
+
+#endif
 
 		/// <inheritdoc />
 		public void CopyTo(object?[] array, int offset)
@@ -403,9 +426,13 @@ namespace Doxense.Collections.Tuples.Encoding
 			return ((IEnumerable<object?>) ToArray()).GetEnumerator();
 		}
 
+#if NET9_0_OR_GREATER
+
 		IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
 
-		/// <summary>Returns a human readable representation of this tuple</summary>
+#endif
+
+		/// <summary>Returns a human-readable representation of this tuple</summary>
 		public override string ToString()
 		{
 			//TODO: PERF: this could be optimized, because it may be called a lot when logging is enabled on keys parsed from range reads
@@ -419,9 +446,13 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		public override int GetHashCode() => GetHashCode(SimilarValueComparer.Default);
 
+#if NET9_0_OR_GREATER
+
 		bool IStructuralEquatable.Equals(object? other, IEqualityComparer comparer) => Equals(other, comparer);
 
 		int IStructuralEquatable.GetHashCode(IEqualityComparer comparer) => GetHashCode(comparer);
+
+#endif
 
 		private bool Equals(object? other, IEqualityComparer comparer)
 		{
@@ -450,7 +481,12 @@ namespace Doxense.Collections.Tuples.Encoding
 			return hc.ToHashCode();
 		}
 
+#if NET9_0_OR_GREATER
+
 		int IVarTuple.GetItemHashCode(int index, IEqualityComparer comparer) => comparer.GetHashCode(m_slices[index]);
+
+#endif
+
 	}
 
 }
