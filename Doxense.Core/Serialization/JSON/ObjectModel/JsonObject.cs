@@ -977,6 +977,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 			Contract.Debug.Requires(!ReferenceEquals(this, value));
+			//note: there is no "Add" on AlternateLookup<...> (only "TryAdd") so there is no real point in optimizing the allocation here (if we assume that the failure case is very rare/a bug)
 			m_items.Add(key.ToString(), value ?? JsonNull.Null);
 		}
 
@@ -1000,6 +1001,34 @@ namespace Doxense.Serialization.Json
 #else
 			return m_items.TryAdd(key.ToString(), value ?? JsonNull.Null);
 #endif
+		}
+
+		/// <summary>Adds an element to this <see cref="JsonObject"/>, only if its value is not null or missing</summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
+		/// <remarks>The method is a no-op if <paramref name="value"/> is <see langword="null"/> or an instance of <see cref="JsonNull"/></remarks>
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		public void AddIfNotNull(string key, JsonValue? value)
+		{
+			//note: this method is mostly used by generated source code
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+			Contract.Debug.Requires(key is not null && !ReferenceEquals(this, value));
+			if (value is not (null or JsonNull))
+			{
+				m_items.Add(key, value);
+			}
+		}
+
+		/// <summary>Adds an element to this <see cref="JsonObject"/></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
+		public void AddIfNotNull(ReadOnlySpan<char> key, JsonValue? value)
+		{
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+			Contract.Debug.Requires(!ReferenceEquals(this, value));
+			if (value is not (null or JsonNull))
+			{
+				//note: there is no "Add" on AlternateLookup<...> (only "TryAdd") so there is no real point in optimizing the allocation here (if we assume that the failure case is very rare/a bug)
+				m_items.Add(key.ToString(), value);
+			}
 		}
 
 		/// <summary>Adds an element to this <see cref="JsonObject"/></summary>
@@ -1897,15 +1926,18 @@ namespace Doxense.Serialization.Json
 
 		#region Getters...
 
-		/// <summary>Tests if the object contains the <paramref name="key"/> property.</summary>
-		/// <param name="key">Name of the property</param>
+		/// <summary>Determines whether this <see cref="JsonObject"/> contains an element with the given <paramref name="key"/>.</summary>
+		/// <param name="key">Name of the key</param>
 		/// <returns>Returns <see langword="true" /> if the entry is present; otherwise, <see langword="false" /></returns>
-		/// <remarks>Please note that this will return <see langword="true" /> even if the property value is null. To treat <c>null</c> the same as missing, please use <see cref="Has(string)"/> instead.</remarks>
+		/// <remarks>Please note that this will return <see langword="true" /> even if the property value is <see langword="null"/>. To treat <see langword="null"/> the same as missing, please use <see cref="Has(string)"/> instead.</remarks>
 		/// <example><code>
-		/// { Foo: "..." }.Has("Foo") => true
-		/// { Foo: ""    }.Has("Foo") => true  // empty string
-		/// { Foo: null  }.Has("Foo") => true  // explicit null
-		/// { Bar: "..." }.Has("Foo") => false // not found
+		/// // Cases that return 'true':
+		/// new JsonObject { ["Foo"] = "hello" }.Has("Foo") => true  // 'Foo' exists
+		/// new JsonObject { ["Foo"] = ""      }.Has("Foo") => true  // 'Foo' is the empty string, which is not 'null'
+		/// new JsonObject { ["Foo"] = false   }.Has("Foo") => true  // 'Foo' is false, which is not 'null'
+		/// new JsonObject { ["Foo"] = null    }.Has("Foo") => true  // 'Foo' is an explicit 'null', ***: behavior different from Has(key)
+		/// // Cases that return 'false':
+		/// new JsonObject { ["Bar"] = "world" }.Has("Foo") => false // 'Foo' not found
 		/// </code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Always)]
@@ -1913,15 +1945,21 @@ namespace Doxense.Serialization.Json
 
 		bool ICollection<KeyValuePair<string, JsonValue>>.Contains(KeyValuePair<string, JsonValue> keyValuePair) => ((ICollection<KeyValuePair<string, JsonValue>>)m_items).Contains(keyValuePair);
 
-		/// <summary>Tests if the object contains the <paramref name="key"/> property, and that its value is not <c>null</c></summary>
-		/// <param name="key">Name of the property</param>
+		/// <summary>Determines whether this <see cref="JsonObject"/> contains an element with the given <paramref name="key"/> and with a non-null value</summary>
+		/// <param name="key">Name of the key</param>
 		/// <returns>Returns <see langword="true" /> if the entry is present and not <see cref="JsonNull.Null"/> or <see cref="JsonNull.Missing"/>.</returns>
-		/// <example><code>
-		/// { "Foo": "..." }.Has("Foo") => true
-		/// { "Foo": ""    }.Has("Foo") => true  // empty string is not 'null'
-		/// { "Foo": null  }.Has("Foo") => false // found but explicit null
-		/// { "Bar": "..." }.Has("Foo") => false // not found
-		/// </code></example>
+		/// <seealso cref="ContainsKey"/>
+		/// <remarks>
+		/// Result of <c>obj.Has("Foo")</c>:
+		/// <list type="table">
+		///   <listheader><term>JSON</term><description>Result</description></listheader>
+		///   <item><term><c>{ "Foo" = "hello" }</c></term><description><c>true</c>, 'Foo' exists</description></item>
+		///   <item><term><c>{ "Foo" = ""      }</c></term><description><c>true</c>, 'Foo' is the empty string, which is not 'null'</description></item>
+		///   <item><term><c>{ "Foo" = false   }</c></term><description><c>true</c>, 'Foo' is false, which is not 'null'</description></item>
+		///   <item><term><c>{ "Foo" = null    }</c></term><description><c>false</c>, 'Foo' is an explicit 'null', ***: behavior different from ContainsKey(key)</description></item>
+		///   <item><term><c>{ "Bar" = "world" }</c></term><description><c>false</c>, 'Foo' not found</description></item>
+		/// </list>
+		/// </remarks>
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public bool Has(string key) => m_items.TryGetValue(key, out var value) && !value.IsNullOrMissing();
 

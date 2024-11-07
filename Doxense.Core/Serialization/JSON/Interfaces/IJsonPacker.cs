@@ -32,10 +32,11 @@ namespace Doxense.Serialization.Json
 	public interface IJsonPacker<in T>
 	{
 
-		/// <summary>Converts an instance of this type into the equivalent JSON value, usually a JSON Object or Array</summary>
+		/// <summary>Converts an instance of this type into the equivalent <see cref="JsonValue"/></summary>
 		/// <param name="instance">Value to convert</param>
 		/// <param name="settings">Serialization settings</param>
 		/// <param name="resolver">Custom resolver used to bind the value into a managed type.</param>
+		/// <remarks>Most types will produce a <see cref="JsonObject"/>, but some simple types may return a packed <see cref="JsonString"/>, or as a tuple represented by a <see cref="JsonArray"/></remarks>
 		JsonValue Pack(T instance, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null);
 
 	}

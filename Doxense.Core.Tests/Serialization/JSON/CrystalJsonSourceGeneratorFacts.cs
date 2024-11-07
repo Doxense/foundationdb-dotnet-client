@@ -162,6 +162,8 @@ namespace Doxense.Serialization.Json.Tests
 			Assume.That(typeof(string[]).GetFriendlyName(), Is.EqualTo("string[]"));
 			Assume.That(TypeHelper.GetCompilableTypeName(typeof(string[]), omitNamespace: false, global: true), Is.EqualTo("string[]"));
 			Assume.That(TypeHelper.GetCompilableTypeName(typeof(bool?[]), omitNamespace: false, global: true), Is.EqualTo("bool?[]"));
+			Assume.That(TypeHelper.GetCompilableTypeName(typeof(JsonValue), omitNamespace: false, global: true), Is.EqualTo("global::Doxense.Serialization.Json.JsonValue"));
+			Assume.That(TypeHelper.GetCompilableTypeName(typeof(JsonPath?[]), omitNamespace: false, global: true), Is.EqualTo("global::Doxense.Serialization.Json.JsonPath?[]"));
 
 			var gen = new CrystalJsonSourceGenerator()
 			{

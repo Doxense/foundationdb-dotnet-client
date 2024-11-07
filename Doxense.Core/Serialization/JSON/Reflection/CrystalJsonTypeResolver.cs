@@ -220,26 +220,39 @@ namespace Doxense.Serialization.Json
 			);
 			var binder = Expression.Lambda<CrystalJsonTypeBinder>(body, $"<>_KV_{keyType.Name}_{valueType.Name}_Unpack", true, [ prmValue, prmType, prmResolver ]).Compile();
 
+			var keyProperty = type.GetProperty("Key")!;
+			var valueProperty = type.GetProperty("Value")!;
+
 			//REVIEW: not sure if this is necessary, since we already have a custom binder?
 			var members = new[]
 			{
-				new CrystalJsonMemberDefinition(keyType, "Key")
+				new CrystalJsonMemberDefinition()
 				{
-					HasDefaultValue = false,
+					Type = keyType,
+					Member = keyProperty,
+					Name = "Key",
+					OriginalName = "Key",
+					EncodedName = new("Key"),
+					NullableOfType = GetNullableType(keyType),
 					DefaultValue = keyType.GetDefaultValue(),
 					ReadOnly = true,
-					Getter = type.GetProperty("Key")!.CompileGetter(),
+					Getter = keyProperty.CompileGetter(),
 					Setter = null, //TODO: private setter?
 					//TODO: visitor? binder?
 					Visitor = (_, _, _, _) => throw new NotImplementedException(),
 					Binder = (_, _, _) => throw new NotImplementedException(),
 				},
-				new CrystalJsonMemberDefinition(valueType, "Value")
+				new CrystalJsonMemberDefinition()
 				{
-					HasDefaultValue = false,
+					Type = valueType,
+					Member = valueProperty,
+					Name = "Value",
+					OriginalName = "Value",
+					EncodedName = new("Value"),
+					NullableOfType = GetNullableType(valueType),
 					DefaultValue = valueType.GetDefaultValue(),
 					ReadOnly = true,
-					Getter = type.GetProperty("Value")!.CompileGetter(),
+					Getter = valueProperty.CompileGetter(),
 					Setter = null, //TODO: private setter?
 					//TODO: visitor? binder?
 					Visitor = (_, _, _, _) => throw new NotImplementedException(),
@@ -1040,8 +1053,18 @@ namespace Doxense.Serialization.Json
 				var visitor = CrystalJsonVisitor.GetVisitorForType(fieldType, atRuntime: false);
 				if (visitor == null) throw new ArgumentException($"Doesn't know how to serialize field {field.Name} of type {fieldType.GetFriendlyName()}", nameof(type));
 
-				members.Add(new(field, fieldType, name, field.Name)
+				var definition = new CrystalJsonMemberDefinition()
 				{
+					Type = fieldType,
+					Member = field,
+					Name = name,
+					OriginalName = field.Name,
+					EncodedName = new(name),
+					NullableOfType = GetNullableType(fieldType),
+					IsNotNull = IsNotNullMemberType(field, fieldType),
+					IsRequired = IsRequiredMember(field),
+					IsKey = IsKeyMember(field),
+					IsInitOnly = IsInitOnlyMember(field),
 					Attributes = jp,
 					HasDefaultValue = defaultValue is not null && !defaultValue.Equals(fieldType.GetDefaultValue()),
 					DefaultValue = defaultValue,
@@ -1050,7 +1073,9 @@ namespace Doxense.Serialization.Json
 					Setter = field.CompileSetter(),
 					Visitor = visitor,
 					Binder = GenericJsonValueBinder,
-				});
+				};
+
+				members.Add(definition);
 			}
 
 			var properties = type.GetProperties(BindingFlags.GetProperty | BindingFlags.Instance | BindingFlags.Public);
@@ -1101,8 +1126,18 @@ namespace Doxense.Serialization.Json
 					setter = TryCompileAdderForReadOnlyCollection(property);
 				}
 
-				members.Add(new(property, propertyType, name, property.Name)
+				var definition = new CrystalJsonMemberDefinition()
 				{
+					Type = propertyType,
+					Member = property,
+					Name = name,
+					OriginalName = property.Name,
+					EncodedName = new(name),
+					NullableOfType = GetNullableType(propertyType),
+					IsNotNull = IsNotNullMemberType(property, propertyType),
+					IsRequired = IsRequiredMember(property),
+					IsKey = IsKeyMember(property),
+					IsInitOnly = IsInitOnlyMember(property),
 					Attributes = jp,
 					HasDefaultValue = defaultValue is not null && !defaultValue.Equals(propertyType.GetDefaultValue()),
 					DefaultValue = defaultValue,
@@ -1111,7 +1146,8 @@ namespace Doxense.Serialization.Json
 					Setter = setter,
 					Visitor = visitor,
 					Binder = GenericJsonValueBinder,
-				});
+				};
+				members.Add(definition);
 			}
 
 			return members.ToArray();

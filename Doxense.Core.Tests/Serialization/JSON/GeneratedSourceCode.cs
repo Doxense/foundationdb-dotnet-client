@@ -8,6 +8,7 @@
 namespace Doxense.Serialization.Json.Tests
 {
 	using Doxense.Serialization.Json;
+	using static Doxense.Serialization.Json.JsonSerializerExtensions;
 
 	/// <summary>Generated source code for JSON operations on application types</summary>
 	[global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)]
@@ -29,9 +30,31 @@ namespace Doxense.Serialization.Json.Tests
 
 			#region Serialization...
 
-			internal static readonly JsonEncodedPropertyName _firstName = new("firstName");
-			internal static readonly JsonEncodedPropertyName _familyName = new("familyName");
+			/// <summary>Names of all serialized members for this type</summary>
+			public static class PropertyNames
+			{
 
+				/// <summary>Serialized name of the <see cref="global::Doxense.Serialization.Json.Tests.Person.FirstName"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.Person"/> class</summary>
+				public const string FirstName = "firstName";
+
+				/// <summary>Serialized name of the <see cref="global::Doxense.Serialization.Json.Tests.Person.FamilyName"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.Person"/> class</summary>
+				public const string FamilyName = "familyName";
+
+			}
+
+			/// <summary>Cached encoded names for all serialized members for this type</summary>
+			public static class PropertyEncodedNames
+			{
+
+				/// <summary>Encoded name of the <see cref="global::Doxense.Serialization.Json.Tests.Person.FirstName"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.Person"/> class</summary>
+				public static readonly JsonEncodedPropertyName FirstName = new(PropertyNames.FirstName);
+
+				/// <summary>Encoded name of the <see cref="global::Doxense.Serialization.Json.Tests.Person.FamilyName"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.Person"/> class</summary>
+				public static readonly JsonEncodedPropertyName FamilyName = new(PropertyNames.FamilyName);
+
+			}
+
+			/// <summary>Writes a JSON representation of an instance of type <see cref="global::Doxense.Serialization.Json.Tests.Person"/></summary>
 			public void Serialize(CrystalJsonWriter writer, global::Doxense.Serialization.Json.Tests.Person? instance)
 			{
 				if (instance is null)
@@ -49,12 +72,10 @@ namespace Doxense.Serialization.Json.Tests
 				var state = writer.BeginObject();
 
 				// string FirstName => "firstName"
-				// fast!
-				writer.WriteField(_firstName, instance.FirstName);
+				writer.WriteField(PropertyEncodedNames.FirstName, instance.FirstName);
 
 				// string FamilyName => "familyName"
-				// fast!
-				writer.WriteField(_familyName, instance.FamilyName);
+				writer.WriteField(PropertyEncodedNames.FamilyName, instance.FamilyName);
 
 				writer.EndObject(state);
 			}
@@ -63,6 +84,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			#region Packing...
 
+			/// <summary>Converts an instance of <see cref="global::Doxense.Serialization.Json.Tests.Person"/> into the equivalent <see cref="JsonValue"/></summary>
 			public JsonValue Pack(global::Doxense.Serialization.Json.Tests.Person? instance, CrystalJsonSettings? settings = default, ICrystalJsonTypeResolver? resolver = default)
 			{
 				if (instance is null)
@@ -75,45 +97,32 @@ namespace Doxense.Serialization.Json.Tests
 					return JsonValue.FromValue(instance);
 				}
 
-				JsonValue? value;
-				var readOnly = settings?.ReadOnly ?? false;
-				var keepNulls = settings?.ShowNullMembers ?? false;
-
 				var obj = new JsonObject(2);
 
-				// string FirstName => "firstName"
-				value = JsonString.Return(instance.FirstName);
-				if (keepNulls || value is not null or JsonNull)
-				{
-					obj["firstName"] = value;
-				}
+				// "firstName" => string? FirstName, prop
+				obj.AddIfNotNull(PropertyNames.FirstName, JsonString.Return(instance.FirstName));
 
-				// string FamilyName => "familyName"
-				value = JsonString.Return(instance.FamilyName);
-				if (keepNulls || value is not null or JsonNull)
-				{
-					obj["familyName"] = value;
-				}
-				if (readOnly)
-				{
-					return CrystalJsonMarshall.FreezeTopLevel(obj);
-				}
+				// "familyName" => string? FamilyName, prop
+				obj.AddIfNotNull(PropertyNames.FamilyName, JsonString.Return(instance.FamilyName));
 
-				return obj;
+				return settings.IsReadOnly() ? CrystalJsonMarshall.FreezeTopLevel(obj) : obj;
 			}
 
 			#endregion
 
-			#region Deserialization...
+			#region Unpacking...
 
-			// FirstName { get; init; }
+			/// <summary>Unsafe accessor for the <see cref="global::Doxense.Serialization.Json.Tests.Person.FirstName"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.Person"/> class</summary>
+			/// <remarks><code>string FirstName { get; set; }</code></remarks>
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<FirstName>k__BackingField")]
 			private static extern ref string? FirstNameAccessor(global::Doxense.Serialization.Json.Tests.Person instance);
 
-			// FamilyName { get; init; }
+			/// <summary>Unsafe accessor for the <see cref="global::Doxense.Serialization.Json.Tests.Person.FamilyName"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.Person"/> class</summary>
+			/// <remarks><code>string FamilyName { get; set; }</code></remarks>
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<FamilyName>k__BackingField")]
 			private static extern ref string? FamilyNameAccessor(global::Doxense.Serialization.Json.Tests.Person instance);
 
+			/// <summary>Deserializes a <see cref="JsonValue"/> into an instance of type <see cref="global::Doxense.Serialization.Json.Tests.Person"/></summary>
 			public global::Doxense.Serialization.Json.Tests.Person Unpack(JsonValue value, ICrystalJsonTypeResolver? resolver = default)
 			{
 				var obj = value.AsObject();
@@ -123,8 +132,8 @@ namespace Doxense.Serialization.Json.Tests
 				{
 					switch (kv.Key)
 					{
-						case "firstName": FirstNameAccessor(instance) = kv.Value.ToStringOrDefault(); break;
-						case "familyName": FamilyNameAccessor(instance) = kv.Value.ToStringOrDefault(); break;
+						case PropertyNames.FirstName: FirstNameAccessor(instance) = kv.Value.ToStringOrDefault(); break;
+						case PropertyNames.FamilyName: FamilyNameAccessor(instance) = kv.Value.ToStringOrDefault(); break;
 					}
 				}
 
@@ -259,16 +268,73 @@ namespace Doxense.Serialization.Json.Tests
 
 			#region Serialization...
 
-			internal static readonly JsonEncodedPropertyName _id = new("id");
-			internal static readonly JsonEncodedPropertyName _displayName = new("displayName");
-			internal static readonly JsonEncodedPropertyName _email = new("email");
-			internal static readonly JsonEncodedPropertyName _type = new("type");
-			internal static readonly JsonEncodedPropertyName _roles = new("roles");
-			internal static readonly JsonEncodedPropertyName _metadata = new("metadata");
-			internal static readonly JsonEncodedPropertyName _items = new("items");
-			internal static readonly JsonEncodedPropertyName _devices = new("devices");
-			internal static readonly JsonEncodedPropertyName _extras = new("extras");
+			/// <summary>Names of all serialized members for this type</summary>
+			public static class PropertyNames
+			{
 
+				/// <summary>Serialized name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser.Id"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/> class</summary>
+				public const string Id = "id";
+
+				/// <summary>Serialized name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser.DisplayName"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/> class</summary>
+				public const string DisplayName = "displayName";
+
+				/// <summary>Serialized name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser.Email"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/> class</summary>
+				public const string Email = "email";
+
+				/// <summary>Serialized name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser.Type"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/> class</summary>
+				public const string Type = "type";
+
+				/// <summary>Serialized name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser.Roles"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/> class</summary>
+				public const string Roles = "roles";
+
+				/// <summary>Serialized name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser.Metadata"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/> class</summary>
+				public const string Metadata = "metadata";
+
+				/// <summary>Serialized name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser.Items"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/> class</summary>
+				public const string Items = "items";
+
+				/// <summary>Serialized name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser.Devices"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/> class</summary>
+				public const string Devices = "devices";
+
+				/// <summary>Serialized name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser.Extras"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/> class</summary>
+				public const string Extras = "extras";
+
+			}
+
+			/// <summary>Cached encoded names for all serialized members for this type</summary>
+			public static class PropertyEncodedNames
+			{
+
+				/// <summary>Encoded name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser.Id"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/> class</summary>
+				public static readonly JsonEncodedPropertyName Id = new(PropertyNames.Id);
+
+				/// <summary>Encoded name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser.DisplayName"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/> class</summary>
+				public static readonly JsonEncodedPropertyName DisplayName = new(PropertyNames.DisplayName);
+
+				/// <summary>Encoded name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser.Email"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/> class</summary>
+				public static readonly JsonEncodedPropertyName Email = new(PropertyNames.Email);
+
+				/// <summary>Encoded name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser.Type"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/> class</summary>
+				public static readonly JsonEncodedPropertyName Type = new(PropertyNames.Type);
+
+				/// <summary>Encoded name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser.Roles"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/> class</summary>
+				public static readonly JsonEncodedPropertyName Roles = new(PropertyNames.Roles);
+
+				/// <summary>Encoded name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser.Metadata"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/> class</summary>
+				public static readonly JsonEncodedPropertyName Metadata = new(PropertyNames.Metadata);
+
+				/// <summary>Encoded name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser.Items"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/> class</summary>
+				public static readonly JsonEncodedPropertyName Items = new(PropertyNames.Items);
+
+				/// <summary>Encoded name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser.Devices"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/> class</summary>
+				public static readonly JsonEncodedPropertyName Devices = new(PropertyNames.Devices);
+
+				/// <summary>Encoded name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser.Extras"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/> class</summary>
+				public static readonly JsonEncodedPropertyName Extras = new(PropertyNames.Extras);
+
+			}
+
+			/// <summary>Writes a JSON representation of an instance of type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/></summary>
 			public void Serialize(CrystalJsonWriter writer, global::Doxense.Serialization.Json.Tests.MyAwesomeUser? instance)
 			{
 				if (instance is null)
@@ -280,40 +346,31 @@ namespace Doxense.Serialization.Json.Tests
 				var state = writer.BeginObject();
 
 				// string Id => "id"
-				// fast!
-				writer.WriteField(_id, instance.Id);
+				writer.WriteField(PropertyEncodedNames.Id, instance.Id);
 
 				// string DisplayName => "displayName"
-				// fast!
-				writer.WriteField(_displayName, instance.DisplayName);
+				writer.WriteField(PropertyEncodedNames.DisplayName, instance.DisplayName);
 
 				// string Email => "email"
-				// fast!
-				writer.WriteField(_email, instance.Email);
+				writer.WriteField(PropertyEncodedNames.Email, instance.Email);
 
 				// int Type => "type"
-				// fast!
-				writer.WriteField(_type, instance.Type);
+				writer.WriteField(PropertyEncodedNames.Type, instance.Type);
 
 				// string[] Roles => "roles"
-				// fast array!
-				writer.WriteFieldArray(_roles, instance.Roles);
+				writer.WriteFieldArray(PropertyEncodedNames.Roles, instance.Roles);
 
 				// MyAwesomeMetadata Metadata => "metadata"
-				// custom!
-				writer.WriteField(_metadata, instance.Metadata, GeneratedSerializers.MyAwesomeMetadata);
+				writer.WriteField(PropertyEncodedNames.Metadata, instance.Metadata, GeneratedSerializers.MyAwesomeMetadata);
 
 				// List<MyAwesomeStruct> Items => "items"
-				// custom array!
-				writer.WriteFieldArray(_items, instance.Items, GeneratedSerializers.MyAwesomeStruct);
+				writer.WriteFieldArray(PropertyEncodedNames.Items, instance.Items, GeneratedSerializers.MyAwesomeStruct);
 
 				// Dictionary<string, MyAwesomeDevice> Devices => "devices"
-				// dictionary with string key
-				writer.WriteFieldDictionary(_devices, instance.Devices, GeneratedSerializers.MyAwesomeDevice);
+				writer.WriteFieldDictionary(PropertyEncodedNames.Devices, instance.Devices, GeneratedSerializers.MyAwesomeDevice);
 
 				// JsonObject Extras => "extras"
-				// fast!
-				writer.WriteField(_extras, instance.Extras);
+				writer.WriteField(PropertyEncodedNames.Extras, instance.Extras);
 
 				writer.EndObject(state);
 			}
@@ -322,6 +379,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			#region Packing...
 
+			/// <summary>Converts an instance of <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/> into the equivalent <see cref="JsonValue"/></summary>
 			public JsonValue Pack(global::Doxense.Serialization.Json.Tests.MyAwesomeUser? instance, CrystalJsonSettings? settings = default, ICrystalJsonTypeResolver? resolver = default)
 			{
 				if (instance is null)
@@ -329,109 +387,88 @@ namespace Doxense.Serialization.Json.Tests
 					return JsonNull.Null;
 				}
 
-				JsonValue? value;
-				var readOnly = settings?.ReadOnly ?? false;
-				var keepNulls = settings?.ShowNullMembers ?? false;
-
 				var obj = new JsonObject(9);
 
-				// string Id => "id"
-				value = JsonString.Return(instance.Id);
-				obj["id"] = value;
+				// "id" => string Id, KEY, prop, required, initOnly
+				obj.Add(PropertyNames.Id, JsonString.Return(instance.Id));
 
-				// string DisplayName => "displayName"
-				value = JsonString.Return(instance.DisplayName);
-				obj["displayName"] = value;
+				// "displayName" => string DisplayName, prop, required, initOnly
+				obj.Add(PropertyNames.DisplayName, JsonString.Return(instance.DisplayName));
 
-				// string Email => "email"
-				value = JsonString.Return(instance.Email);
-				obj["email"] = value;
+				// "email" => string Email, prop, required, initOnly
+				obj.Add(PropertyNames.Email, JsonString.Return(instance.Email));
 
-				// int Type => "type"
-				// fast!
-				value = JsonNumber.Return(instance.Type);
-				obj["type"] = value;
+				// "type" => int Type, prop, hasDefault, initOnly
+				obj.Add(PropertyNames.Type, JsonNumber.Return(instance.Type));
 
-				// string[] Roles => "roles"
-				value = JsonSerializerExtensions.JsonPackArray(instance.Roles, settings, resolver);
-				if (keepNulls || value is not null or JsonNull)
-				{
-					obj["roles"] = value;
-				}
+				// "roles" => string[]? Roles, prop, initOnly
+				obj.AddIfNotNull(PropertyNames.Roles, JsonPackArray(instance.Roles, settings, resolver));
 
-				// MyAwesomeMetadata Metadata => "metadata"
-				// custom!
-				value = GeneratedSerializers.MyAwesomeMetadata.Pack(instance.Metadata, settings, resolver);
-				obj["metadata"] = value;
+				// "metadata" => MyAwesomeMetadata Metadata, prop, required, initOnly
+				obj.Add(PropertyNames.Metadata, GeneratedSerializers.MyAwesomeMetadata.Pack(instance.Metadata, settings, resolver));
 
-				// List<MyAwesomeStruct> Items => "items"
-				value = GeneratedSerializers.MyAwesomeStruct.JsonPackList(instance.Items, settings, resolver);
-				if (keepNulls || value is not null or JsonNull)
-				{
-					obj["items"] = value;
-				}
+				// "items" => List<MyAwesomeStruct>? Items, prop, required, initOnly
+				obj.AddIfNotNull(PropertyNames.Items, GeneratedSerializers.MyAwesomeStruct.JsonPackList(instance.Items, settings, resolver));
 
-				// Dictionary<string, MyAwesomeDevice> Devices => "devices"
-				value = GeneratedSerializers.MyAwesomeDevice.JsonPackObject(instance.Devices, settings, resolver);
-				if (keepNulls || value is not null or JsonNull)
-				{
-					obj["devices"] = value;
-				}
+				// "devices" => Dictionary<string, MyAwesomeDevice>? Devices, prop, initOnly
+				obj.AddIfNotNull(PropertyNames.Devices, GeneratedSerializers.MyAwesomeDevice.JsonPackObject(instance.Devices, settings, resolver));
 
-				// JsonObject Extras => "extras"
-				value = readOnly ? instance.Extras?.ToReadOnly() : instance.Extras;
-				if (keepNulls || value is not null or JsonNull)
-				{
-					obj["extras"] = value;
-				}
-				if (readOnly)
-				{
-					return CrystalJsonMarshall.FreezeTopLevel(obj);
-				}
+				// "extras" => JsonObject? Extras, prop, initOnly
+				obj.AddIfNotNull(PropertyNames.Extras, settings.IsReadOnly() ? instance.Extras?.ToReadOnly() : instance.Extras);
 
-				return obj;
+				return settings.IsReadOnly() ? CrystalJsonMarshall.FreezeTopLevel(obj) : obj;
 			}
 
 			#endregion
 
-			#region Deserialization...
+			#region Unpacking...
 
-			// Id { get; init; }
+			/// <summary>Unsafe accessor for the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser.Id"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/> class</summary>
+			/// <remarks><code>string Id { get; init; }</code></remarks>
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Id>k__BackingField")]
 			private static extern ref string IdAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeUser instance);
 
-			// DisplayName { get; init; }
+			/// <summary>Unsafe accessor for the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser.DisplayName"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/> class</summary>
+			/// <remarks><code>string DisplayName { get; init; }</code></remarks>
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<DisplayName>k__BackingField")]
 			private static extern ref string DisplayNameAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeUser instance);
 
-			// Email { get; init; }
+			/// <summary>Unsafe accessor for the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser.Email"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/> class</summary>
+			/// <remarks><code>string Email { get; init; }</code></remarks>
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Email>k__BackingField")]
 			private static extern ref string EmailAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeUser instance);
 
-			// Type { get; init; }
+			/// <summary>Unsafe accessor for the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser.Type"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/> class</summary>
+			/// <remarks><code>int Type { get; init; }</code></remarks>
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Type>k__BackingField")]
 			private static extern ref int TypeAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeUser instance);
 
-			// Roles { get; init; }
+			/// <summary>Unsafe accessor for the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser.Roles"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/> class</summary>
+			/// <remarks><code>string[] Roles { get; init; }</code></remarks>
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Roles>k__BackingField")]
 			private static extern ref string[]? RolesAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeUser instance);
 
-			// Metadata { get; init; }
+			/// <summary>Unsafe accessor for the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser.Metadata"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/> class</summary>
+			/// <remarks><code>MyAwesomeMetadata Metadata { get; init; }</code></remarks>
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Metadata>k__BackingField")]
 			private static extern ref global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata MetadataAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeUser instance);
 
-			// Items { get; init; }
+			/// <summary>Unsafe accessor for the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser.Items"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/> class</summary>
+			/// <remarks><code>List&lt;MyAwesomeStruct&gt; Items { get; init; }</code></remarks>
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Items>k__BackingField")]
 			private static extern ref global::System.Collections.Generic.List<global::Doxense.Serialization.Json.Tests.MyAwesomeStruct>? ItemsAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeUser instance);
 
-			// Devices { get; init; }
+			/// <summary>Unsafe accessor for the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser.Devices"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/> class</summary>
+			/// <remarks><code>Dictionary&lt;string, MyAwesomeDevice&gt; Devices { get; init; }</code></remarks>
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Devices>k__BackingField")]
 			private static extern ref global::System.Collections.Generic.Dictionary<string, global::Doxense.Serialization.Json.Tests.MyAwesomeDevice>? DevicesAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeUser instance);
 
-			// Extras { get; init; }
+			/// <summary>Unsafe accessor for the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser.Extras"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/> class</summary>
+			/// <remarks><code>JsonObject Extras { get; init; }</code></remarks>
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Extras>k__BackingField")]
 			private static extern ref JsonObject? ExtrasAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeUser instance);
 
+			/// <summary>Deserializes a <see cref="JsonValue"/> into an instance of type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/></summary>
 			public global::Doxense.Serialization.Json.Tests.MyAwesomeUser Unpack(JsonValue value, ICrystalJsonTypeResolver? resolver = default)
 			{
 				var obj = value.AsObject();
@@ -441,15 +478,15 @@ namespace Doxense.Serialization.Json.Tests
 				{
 					switch (kv.Key)
 					{
-						case "id": IdAccessor(instance) = kv.Value.RequiredField("Id").ToString(); break;
-						case "displayName": DisplayNameAccessor(instance) = kv.Value.RequiredField("DisplayName").ToString(); break;
-						case "email": EmailAccessor(instance) = kv.Value.RequiredField("Email").ToString(); break;
-						case "type": TypeAccessor(instance) = kv.Value.ToInt32(777); break;
-						case "roles": RolesAccessor(instance) = /* array_nullable */ kv.Value.AsArrayOrDefault()?.ToArray<string>(null, resolver)!; break;
-						case "metadata": MetadataAccessor(instance) = GeneratedSerializers.MyAwesomeMetadata.UnpackRequired(kv.Value, resolver: resolver, fieldName: "Metadata"); break;
-						case "items": ItemsAccessor(instance) = /* list_required */ GeneratedSerializers.MyAwesomeStruct.JsonDeserializeListRequired(kv.Value, resolver: resolver, fieldName: "Items"); break;
-						case "devices": DevicesAccessor(instance) = GeneratedSerializers.MyAwesomeDevice.JsonDeserializeDictionary(kv.Value, resolver: resolver)!; break;
-						case "extras": ExtrasAccessor(instance) = kv.Value.AsObjectOrDefault(); break;
+						case PropertyNames.Id: IdAccessor(instance) = kv.Value.RequiredField("Id").ToString(); break;
+						case PropertyNames.DisplayName: DisplayNameAccessor(instance) = kv.Value.RequiredField("DisplayName").ToString(); break;
+						case PropertyNames.Email: EmailAccessor(instance) = kv.Value.RequiredField("Email").ToString(); break;
+						case PropertyNames.Type: TypeAccessor(instance) = kv.Value.ToInt32(777); break;
+						case PropertyNames.Roles: RolesAccessor(instance) = /* array_nullable */ kv.Value.AsArrayOrDefault()?.ToArray<string>(null, resolver)!; break;
+						case PropertyNames.Metadata: MetadataAccessor(instance) = GeneratedSerializers.MyAwesomeMetadata.UnpackRequired(kv.Value, resolver: resolver, fieldName: "Metadata"); break;
+						case PropertyNames.Items: ItemsAccessor(instance) = /* list_required */ GeneratedSerializers.MyAwesomeStruct.JsonDeserializeListRequired(kv.Value, resolver: resolver, fieldName: "Items"); break;
+						case PropertyNames.Devices: DevicesAccessor(instance) = GeneratedSerializers.MyAwesomeDevice.JsonDeserializeDictionary(kv.Value, resolver: resolver)!; break;
+						case PropertyNames.Extras: ExtrasAccessor(instance) = kv.Value.AsObjectOrDefault(); break;
 					}
 				}
 
@@ -610,21 +647,21 @@ namespace Doxense.Serialization.Json.Tests
 			/// <inheritdoc cref="MyAwesomeUser.Metadata" />
 			public GeneratedSerializers.MyAwesomeMetadataMutable Metadata
 			{
-				get => new(m_obj.GetObject("metadata"), name: MyAwesomeUserJsonConverter._metadata);
+				get => new(m_obj.GetObject("metadata"), name: MyAwesomeUserJsonConverter.PropertyEncodedNames.Metadata);
 				set => m_obj["metadata"] = value.ToJson();
 			}
 
 			/// <inheritdoc cref="MyAwesomeUser.Items" />
 			public JsonMutableProxyArray<global::Doxense.Serialization.Json.Tests.MyAwesomeStruct, GeneratedSerializers.MyAwesomeStructMutable> Items
 			{
-				get => new(m_obj["items"], parent: this, name: MyAwesomeUserJsonConverter._items);
+				get => new(m_obj["items"], parent: this, name: MyAwesomeUserJsonConverter.PropertyEncodedNames.Items);
 				set => m_obj["items"] = value.ToJson();
 			}
 
 			/// <inheritdoc cref="MyAwesomeUser.Devices" />
 			public JsonMutableProxyDictionary<global::Doxense.Serialization.Json.Tests.MyAwesomeDevice, GeneratedSerializers.MyAwesomeDeviceMutable> Devices
 			{
-				get => new(m_obj["devices"], parent: this, name: MyAwesomeUserJsonConverter._devices);
+				get => new(m_obj["devices"], parent: this, name: MyAwesomeUserJsonConverter.PropertyEncodedNames.Devices);
 				set => m_obj["devices"] = value.ToJson();
 			}
 
@@ -654,10 +691,37 @@ namespace Doxense.Serialization.Json.Tests
 
 			#region Serialization...
 
-			internal static readonly JsonEncodedPropertyName _accountCreated = new("accountCreated");
-			internal static readonly JsonEncodedPropertyName _accountModified = new("accountModified");
-			internal static readonly JsonEncodedPropertyName _accountDisabled = new("accountDisabled");
+			/// <summary>Names of all serialized members for this type</summary>
+			public static class PropertyNames
+			{
 
+				/// <summary>Serialized name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata.AccountCreated"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata"/> class</summary>
+				public const string AccountCreated = "accountCreated";
+
+				/// <summary>Serialized name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata.AccountModified"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata"/> class</summary>
+				public const string AccountModified = "accountModified";
+
+				/// <summary>Serialized name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata.AccountDisabled"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata"/> class</summary>
+				public const string AccountDisabled = "accountDisabled";
+
+			}
+
+			/// <summary>Cached encoded names for all serialized members for this type</summary>
+			public static class PropertyEncodedNames
+			{
+
+				/// <summary>Encoded name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata.AccountCreated"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata"/> class</summary>
+				public static readonly JsonEncodedPropertyName AccountCreated = new(PropertyNames.AccountCreated);
+
+				/// <summary>Encoded name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata.AccountModified"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata"/> class</summary>
+				public static readonly JsonEncodedPropertyName AccountModified = new(PropertyNames.AccountModified);
+
+				/// <summary>Encoded name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata.AccountDisabled"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata"/> class</summary>
+				public static readonly JsonEncodedPropertyName AccountDisabled = new(PropertyNames.AccountDisabled);
+
+			}
+
+			/// <summary>Writes a JSON representation of an instance of type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata"/></summary>
 			public void Serialize(CrystalJsonWriter writer, global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata? instance)
 			{
 				if (instance is null)
@@ -669,16 +733,13 @@ namespace Doxense.Serialization.Json.Tests
 				var state = writer.BeginObject();
 
 				// DateTimeOffset AccountCreated => "accountCreated"
-				// fast!
-				writer.WriteField(_accountCreated, instance.AccountCreated);
+				writer.WriteField(PropertyEncodedNames.AccountCreated, instance.AccountCreated);
 
 				// DateTimeOffset AccountModified => "accountModified"
-				// fast!
-				writer.WriteField(_accountModified, instance.AccountModified);
+				writer.WriteField(PropertyEncodedNames.AccountModified, instance.AccountModified);
 
 				// DateTimeOffset? AccountDisabled => "accountDisabled"
-				// fast!
-				writer.WriteField(_accountDisabled, instance.AccountDisabled);
+				writer.WriteField(PropertyEncodedNames.AccountDisabled, instance.AccountDisabled);
 
 				writer.EndObject(state);
 			}
@@ -687,6 +748,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			#region Packing...
 
+			/// <summary>Converts an instance of <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata"/> into the equivalent <see cref="JsonValue"/></summary>
 			public JsonValue Pack(global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata? instance, CrystalJsonSettings? settings = default, ICrystalJsonTypeResolver? resolver = default)
 			{
 				if (instance is null)
@@ -694,56 +756,40 @@ namespace Doxense.Serialization.Json.Tests
 					return JsonNull.Null;
 				}
 
-				JsonValue? value;
-				var readOnly = settings?.ReadOnly ?? false;
-				var keepNulls = settings?.ShowNullMembers ?? false;
-
 				var obj = new JsonObject(3);
 
-				// DateTimeOffset AccountCreated => "accountCreated"
-				// fast!
-				value = JsonDateTime.Return(instance.AccountCreated);
-				obj["accountCreated"] = value;
+				// "accountCreated" => DateTimeOffset AccountCreated, prop, initOnly
+				obj.Add(PropertyNames.AccountCreated, JsonDateTime.Return(instance.AccountCreated));
 
-				// DateTimeOffset AccountModified => "accountModified"
-				// fast!
-				value = JsonDateTime.Return(instance.AccountModified);
-				obj["accountModified"] = value;
+				// "accountModified" => DateTimeOffset AccountModified, prop, initOnly
+				obj.Add(PropertyNames.AccountModified, JsonDateTime.Return(instance.AccountModified));
 
-				// DateTimeOffset? AccountDisabled => "accountDisabled"
-				// fast!
-				{
-					var tmp = instance.AccountDisabled;
-					value = tmp.HasValue ? JsonDateTime.Return(tmp.Value) : null;
-					if (keepNulls || value is not null or JsonNull)
-					{
-						obj["accountDisabled"] = value;
-					}
-				}
-				if (readOnly)
-				{
-					return CrystalJsonMarshall.FreezeTopLevel(obj);
-				}
+				// "accountDisabled" => DateTimeOffset? AccountDisabled, prop, initOnly
+				obj.AddIfNotNull(PropertyNames.AccountDisabled, JsonDateTime.Return(instance.AccountDisabled));
 
-				return obj;
+				return settings.IsReadOnly() ? CrystalJsonMarshall.FreezeTopLevel(obj) : obj;
 			}
 
 			#endregion
 
-			#region Deserialization...
+			#region Unpacking...
 
-			// AccountCreated { get; init; }
+			/// <summary>Unsafe accessor for the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata.AccountCreated"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata"/> class</summary>
+			/// <remarks><code>DateTimeOffset AccountCreated { get; init; }</code></remarks>
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<AccountCreated>k__BackingField")]
 			private static extern ref global::System.DateTimeOffset AccountCreatedAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata instance);
 
-			// AccountModified { get; init; }
+			/// <summary>Unsafe accessor for the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata.AccountModified"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata"/> class</summary>
+			/// <remarks><code>DateTimeOffset AccountModified { get; init; }</code></remarks>
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<AccountModified>k__BackingField")]
 			private static extern ref global::System.DateTimeOffset AccountModifiedAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata instance);
 
-			// AccountDisabled { get; init; }
+			/// <summary>Unsafe accessor for the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata.AccountDisabled"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata"/> class</summary>
+			/// <remarks><code>DateTimeOffset? AccountDisabled { get; init; }</code></remarks>
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<AccountDisabled>k__BackingField")]
 			private static extern ref global::System.DateTimeOffset? AccountDisabledAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata instance);
 
+			/// <summary>Deserializes a <see cref="JsonValue"/> into an instance of type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata"/></summary>
 			public global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata Unpack(JsonValue value, ICrystalJsonTypeResolver? resolver = default)
 			{
 				var obj = value.AsObject();
@@ -753,9 +799,9 @@ namespace Doxense.Serialization.Json.Tests
 				{
 					switch (kv.Key)
 					{
-						case "accountCreated": AccountCreatedAccessor(instance) = kv.Value.ToDateTimeOffset(); break;
-						case "accountModified": AccountModifiedAccessor(instance) = kv.Value.ToDateTimeOffset(); break;
-						case "accountDisabled": AccountDisabledAccessor(instance) = kv.Value.ToDateTimeOffsetOrDefault(); break;
+						case PropertyNames.AccountCreated: AccountCreatedAccessor(instance) = kv.Value.ToDateTimeOffset(); break;
+						case PropertyNames.AccountModified: AccountModifiedAccessor(instance) = kv.Value.ToDateTimeOffset(); break;
+						case PropertyNames.AccountDisabled: AccountDisabledAccessor(instance) = kv.Value.ToDateTimeOffsetOrDefault(); break;
 					}
 				}
 
@@ -900,40 +946,76 @@ namespace Doxense.Serialization.Json.Tests
 
 			#region Serialization...
 
-			internal static readonly JsonEncodedPropertyName _id = new("id");
-			internal static readonly JsonEncodedPropertyName _level = new("level");
-			internal static readonly JsonEncodedPropertyName _path = new("path");
-			internal static readonly JsonEncodedPropertyName _paths = new("paths");
-			internal static readonly JsonEncodedPropertyName _maybePath = new("maybePath");
-			internal static readonly JsonEncodedPropertyName _disabled = new("disabled");
+			/// <summary>Names of all serialized members for this type</summary>
+			public static class PropertyNames
+			{
 
+				/// <summary>Serialized name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct.Id"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct"/> struct</summary>
+				public const string Id = "id";
+
+				/// <summary>Serialized name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct.Level"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct"/> struct</summary>
+				public const string Level = "level";
+
+				/// <summary>Serialized name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct.Path"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct"/> struct</summary>
+				public const string Path = "path";
+
+				/// <summary>Serialized name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct.Paths"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct"/> struct</summary>
+				public const string Paths = "paths";
+
+				/// <summary>Serialized name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct.MaybePath"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct"/> struct</summary>
+				public const string MaybePath = "maybePath";
+
+				/// <summary>Serialized name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct.Disabled"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct"/> struct</summary>
+				public const string Disabled = "disabled";
+
+			}
+
+			/// <summary>Cached encoded names for all serialized members for this type</summary>
+			public static class PropertyEncodedNames
+			{
+
+				/// <summary>Encoded name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct.Id"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct"/> struct</summary>
+				public static readonly JsonEncodedPropertyName Id = new(PropertyNames.Id);
+
+				/// <summary>Encoded name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct.Level"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct"/> struct</summary>
+				public static readonly JsonEncodedPropertyName Level = new(PropertyNames.Level);
+
+				/// <summary>Encoded name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct.Path"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct"/> struct</summary>
+				public static readonly JsonEncodedPropertyName Path = new(PropertyNames.Path);
+
+				/// <summary>Encoded name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct.Paths"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct"/> struct</summary>
+				public static readonly JsonEncodedPropertyName Paths = new(PropertyNames.Paths);
+
+				/// <summary>Encoded name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct.MaybePath"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct"/> struct</summary>
+				public static readonly JsonEncodedPropertyName MaybePath = new(PropertyNames.MaybePath);
+
+				/// <summary>Encoded name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct.Disabled"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct"/> struct</summary>
+				public static readonly JsonEncodedPropertyName Disabled = new(PropertyNames.Disabled);
+
+			}
+
+			/// <summary>Writes a JSON representation of an instance of type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct"/></summary>
 			public void Serialize(CrystalJsonWriter writer, global::Doxense.Serialization.Json.Tests.MyAwesomeStruct instance)
 			{
 				var state = writer.BeginObject();
 
 				// string Id => "id"
-				// fast!
-				writer.WriteField(_id, instance.Id);
+				writer.WriteField(PropertyEncodedNames.Id, instance.Id);
 
 				// int Level => "level"
-				// fast!
-				writer.WriteField(_level, instance.Level);
+				writer.WriteField(PropertyEncodedNames.Level, instance.Level);
 
 				// JsonPath Path => "path"
-				// IJsonSerializable
-				writer.WriteFieldJsonSerializable(_path, instance.Path);
+				writer.WriteFieldJsonSerializable(PropertyEncodedNames.Path, instance.Path);
 
 				// JsonPath[] Paths => "paths"
-				// array of IJsonSerializable
-				writer.WriteFieldJsonSerializableArray(_paths, instance.Paths);
+				writer.WriteFieldJsonSerializableArray(PropertyEncodedNames.Paths, instance.Paths);
 
 				// JsonPath? MaybePath => "maybePath"
-				// unknown type
-				writer.WriteField(_maybePath, instance.MaybePath);
+				writer.WriteField(PropertyEncodedNames.MaybePath, instance.MaybePath);
 
 				// bool? Disabled => "disabled"
-				// fast!
-				writer.WriteField(_disabled, instance.Disabled);
+				writer.WriteField(PropertyEncodedNames.Disabled, instance.Disabled);
 
 				writer.EndObject(state);
 			}
@@ -942,92 +1024,67 @@ namespace Doxense.Serialization.Json.Tests
 
 			#region Packing...
 
+			/// <summary>Converts an instance of <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct"/> into the equivalent <see cref="JsonValue"/></summary>
 			public JsonValue Pack(global::Doxense.Serialization.Json.Tests.MyAwesomeStruct instance, CrystalJsonSettings? settings = default, ICrystalJsonTypeResolver? resolver = default)
 			{
-				JsonValue? value;
-				var readOnly = settings?.ReadOnly ?? false;
-				var keepNulls = settings?.ShowNullMembers ?? false;
-
 				var obj = new JsonObject(6);
 
-				// string Id => "id"
-				value = JsonString.Return(instance.Id);
-				obj["id"] = value;
+				// "id" => string Id, KEY, prop, required, initOnly
+				obj.Add(PropertyNames.Id, JsonString.Return(instance.Id));
 
-				// int Level => "level"
-				// fast!
-				value = JsonNumber.Return(instance.Level);
-				obj["level"] = value;
+				// "level" => int Level, prop, required, initOnly
+				obj.Add(PropertyNames.Level, JsonNumber.Return(instance.Level));
 
-				// JsonPath Path => "path"
-				// fast!
-				value = JsonValue.FromValue<JsonPath>(instance.Path);
-				obj["path"] = value;
+				// "path" => JsonPath Path, prop, required, initOnly
+				obj.Add(PropertyNames.Path, JsonValue.FromValue<JsonPath>(instance.Path));
 
-				// JsonPath[] Paths => "paths"
-				value = JsonSerializerExtensions.JsonPackArray(instance.Paths, settings, resolver);
-				if (keepNulls || value is not null or JsonNull)
-				{
-					obj["paths"] = value;
-				}
+				// "paths" => JsonPath[]? Paths, prop, initOnly
+				obj.AddIfNotNull(PropertyNames.Paths, JsonPackArray(instance.Paths, settings, resolver));
 
-				// JsonPath? MaybePath => "maybePath"
-				// fast!
-				{
-					var tmp = instance.MaybePath;
-					value = tmp.HasValue ? JsonValue.FromValue<JsonPath>(tmp.Value) : null;
-					if (keepNulls || value is not null or JsonNull)
-					{
-						obj["maybePath"] = value;
-					}
-				}
+				// "maybePath" => JsonPath? MaybePath, prop, initOnly
+				obj.AddIfNotNull(PropertyNames.MaybePath, JsonValue.FromValue<global::Doxense.Serialization.Json.JsonPath?>(instance.MaybePath));
 
-				// bool? Disabled => "disabled"
-				// fast!
-				{
-					var tmp = instance.Disabled;
-					value = tmp.HasValue ? JsonBoolean.Return(tmp.Value) : null;
-					if (keepNulls || value is not null or JsonNull)
-					{
-						obj["disabled"] = value;
-					}
-				}
-				if (readOnly)
-				{
-					return CrystalJsonMarshall.FreezeTopLevel(obj);
-				}
+				// "disabled" => bool? Disabled, prop, initOnly
+				obj.AddIfNotNull(PropertyNames.Disabled, JsonBoolean.Return(instance.Disabled));
 
-				return obj;
+				return settings.IsReadOnly() ? CrystalJsonMarshall.FreezeTopLevel(obj) : obj;
 			}
 
 			#endregion
 
-			#region Deserialization...
+			#region Unpacking...
 
-			// Id { get; init; }
+			/// <summary>Unsafe accessor for the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct.Id"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct"/> struct</summary>
+			/// <remarks><code>string Id { get; init; }</code></remarks>
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Id>k__BackingField")]
 			private static extern ref string IdAccessor(ref global::Doxense.Serialization.Json.Tests.MyAwesomeStruct instance);
 
-			// Level { get; init; }
+			/// <summary>Unsafe accessor for the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct.Level"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct"/> struct</summary>
+			/// <remarks><code>int Level { get; init; }</code></remarks>
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Level>k__BackingField")]
 			private static extern ref int LevelAccessor(ref global::Doxense.Serialization.Json.Tests.MyAwesomeStruct instance);
 
-			// Path { get; init; }
+			/// <summary>Unsafe accessor for the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct.Path"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct"/> struct</summary>
+			/// <remarks><code>JsonPath Path { get; init; }</code></remarks>
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Path>k__BackingField")]
 			private static extern ref JsonPath PathAccessor(ref global::Doxense.Serialization.Json.Tests.MyAwesomeStruct instance);
 
-			// Paths { get; init; }
+			/// <summary>Unsafe accessor for the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct.Paths"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct"/> struct</summary>
+			/// <remarks><code>JsonPath[] Paths { get; init; }</code></remarks>
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Paths>k__BackingField")]
 			private static extern ref JsonPath[]? PathsAccessor(ref global::Doxense.Serialization.Json.Tests.MyAwesomeStruct instance);
 
-			// MaybePath { get; init; }
+			/// <summary>Unsafe accessor for the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct.MaybePath"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct"/> struct</summary>
+			/// <remarks><code>JsonPath? MaybePath { get; init; }</code></remarks>
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<MaybePath>k__BackingField")]
 			private static extern ref global::Doxense.Serialization.Json.JsonPath? MaybePathAccessor(ref global::Doxense.Serialization.Json.Tests.MyAwesomeStruct instance);
 
-			// Disabled { get; init; }
+			/// <summary>Unsafe accessor for the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct.Disabled"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct"/> struct</summary>
+			/// <remarks><code>bool? Disabled { get; init; }</code></remarks>
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Disabled>k__BackingField")]
 			private static extern ref bool? DisabledAccessor(ref global::Doxense.Serialization.Json.Tests.MyAwesomeStruct instance);
 
+			/// <summary>Deserializes a <see cref="JsonValue"/> into an instance of type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct"/></summary>
 			public global::Doxense.Serialization.Json.Tests.MyAwesomeStruct Unpack(JsonValue value, ICrystalJsonTypeResolver? resolver = default)
 			{
 				var obj = value.AsObject();
@@ -1037,12 +1094,12 @@ namespace Doxense.Serialization.Json.Tests
 				{
 					switch (kv.Key)
 					{
-						case "id": IdAccessor(ref instance) = kv.Value.RequiredField("Id").ToString(); break;
-						case "level": LevelAccessor(ref instance) = kv.Value.ToInt32(); break;
-						case "path": PathAccessor(ref instance) = /* required_deserializable */ JsonSerializerExtensions.UnpackRequired<JsonPath>(kv.Value, resolver: resolver, fieldName: "Path"); break;
-						case "paths": PathsAccessor(ref instance) = /* array_nullable */ kv.Value.AsArrayOrDefault()?.ToArray<JsonPath>(default, resolver)!; break;
-						case "maybePath": MaybePathAccessor(ref instance) = /* vt_nullable_deserializable */ JsonSerializerExtensions.UnpackNullable<JsonPath>(kv.Value, resolver: resolver); break;
-						case "disabled": DisabledAccessor(ref instance) = kv.Value.ToBooleanOrDefault(); break;
+						case PropertyNames.Id: IdAccessor(ref instance) = kv.Value.RequiredField("Id").ToString(); break;
+						case PropertyNames.Level: LevelAccessor(ref instance) = kv.Value.ToInt32(); break;
+						case PropertyNames.Path: PathAccessor(ref instance) = /* required_deserializable */ UnpackRequired<JsonPath>(kv.Value, resolver: resolver, fieldName: "Path"); break;
+						case PropertyNames.Paths: PathsAccessor(ref instance) = /* array_nullable */ kv.Value.AsArrayOrDefault()?.ToArray<JsonPath>(default, resolver)!; break;
+						case PropertyNames.MaybePath: MaybePathAccessor(ref instance) = /* vt_nullable_deserializable */ UnpackNullable<JsonPath>(kv.Value, resolver: resolver); break;
+						case PropertyNames.Disabled: DisabledAccessor(ref instance) = kv.Value.ToBooleanOrDefault(); break;
 					}
 				}
 
@@ -1217,11 +1274,47 @@ namespace Doxense.Serialization.Json.Tests
 
 			#region Serialization...
 
-			internal static readonly JsonEncodedPropertyName _id = new("id");
-			internal static readonly JsonEncodedPropertyName _model = new("model");
-			internal static readonly JsonEncodedPropertyName _lastSeen = new("lastSeen");
-			internal static readonly JsonEncodedPropertyName _lastAddress = new("lastAddress");
+			/// <summary>Names of all serialized members for this type</summary>
+			public static class PropertyNames
+			{
 
+				/// <summary>Serialized name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice.Id"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice"/> class</summary>
+				public const string Id = "id";
+
+				/// <summary>Serialized name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice.Model"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice"/> class</summary>
+				public const string Model = "model";
+
+				/// <summary>Serialized name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice.LastSeen"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice"/> class</summary>
+				public const string LastSeen = "lastSeen";
+
+				/// <summary>Serialized name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice.LastAddress"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice"/> class</summary>
+				public const string LastAddress = "lastAddress";
+
+				private static readonly System.Collections.Immutable.ImmutableArray<string> m_names = [PropertyNames.Id, PropertyNames.Model, PropertyNames.LastSeen, PropertyNames.LastAddress];
+
+				public static global::System.ReadOnlySpan<string> GetAllNames() => m_names.AsSpan();
+
+			}
+
+			/// <summary>Cached encoded names for all serialized members for this type</summary>
+			public static class PropertyEncodedNames
+			{
+
+				/// <summary>Encoded name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice.Id"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice"/> class</summary>
+				public static readonly JsonEncodedPropertyName Id = new(PropertyNames.Id);
+
+				/// <summary>Encoded name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice.Model"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice"/> class</summary>
+				public static readonly JsonEncodedPropertyName Model = new(PropertyNames.Model);
+
+				/// <summary>Encoded name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice.LastSeen"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice"/> class</summary>
+				public static readonly JsonEncodedPropertyName LastSeen = new(PropertyNames.LastSeen);
+
+				/// <summary>Encoded name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice.LastAddress"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice"/> class</summary>
+				public static readonly JsonEncodedPropertyName LastAddress = new(PropertyNames.LastAddress);
+
+			}
+
+			/// <summary>Writes a JSON representation of an instance of type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice"/></summary>
 			public void Serialize(CrystalJsonWriter writer, global::Doxense.Serialization.Json.Tests.MyAwesomeDevice? instance)
 			{
 				if (instance is null)
@@ -1233,20 +1326,16 @@ namespace Doxense.Serialization.Json.Tests
 				var state = writer.BeginObject();
 
 				// string Id => "id"
-				// fast!
-				writer.WriteField(_id, instance.Id);
+				writer.WriteField(PropertyEncodedNames.Id, instance.Id);
 
 				// string Model => "model"
-				// fast!
-				writer.WriteField(_model, instance.Model);
+				writer.WriteField(PropertyEncodedNames.Model, instance.Model);
 
 				// DateTimeOffset? LastSeen => "lastSeen"
-				// fast!
-				writer.WriteField(_lastSeen, instance.LastSeen);
+				writer.WriteField(PropertyEncodedNames.LastSeen, instance.LastSeen);
 
 				// IPAddress LastAddress => "lastAddress"
-				// unknown type
-				writer.WriteField(_lastAddress, instance.LastAddress);
+				writer.WriteField(PropertyEncodedNames.LastAddress, instance.LastAddress);
 
 				writer.EndObject(state);
 			}
@@ -1255,6 +1344,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			#region Packing...
 
+			/// <summary>Converts an instance of <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice"/> into the equivalent <see cref="JsonValue"/></summary>
 			public JsonValue Pack(global::Doxense.Serialization.Json.Tests.MyAwesomeDevice? instance, CrystalJsonSettings? settings = default, ICrystalJsonTypeResolver? resolver = default)
 			{
 				if (instance is null)
@@ -1262,65 +1352,48 @@ namespace Doxense.Serialization.Json.Tests
 					return JsonNull.Null;
 				}
 
-				JsonValue? value;
-				var readOnly = settings?.ReadOnly ?? false;
-				var keepNulls = settings?.ShowNullMembers ?? false;
-
 				var obj = new JsonObject(4);
 
-				// string Id => "id"
-				value = JsonString.Return(instance.Id);
-				obj["id"] = value;
+				// "id" => string Id, prop, required, initOnly
+				obj.Add(PropertyNames.Id, JsonString.Return(instance.Id));
 
-				// string Model => "model"
-				value = JsonString.Return(instance.Model);
-				obj["model"] = value;
+				// "model" => string Model, prop, required, initOnly
+				obj.Add(PropertyNames.Model, JsonString.Return(instance.Model));
 
-				// DateTimeOffset? LastSeen => "lastSeen"
-				// fast!
-				{
-					var tmp = instance.LastSeen;
-					value = tmp.HasValue ? JsonDateTime.Return(tmp.Value) : null;
-					if (keepNulls || value is not null or JsonNull)
-					{
-						obj["lastSeen"] = value;
-					}
-				}
+				// "lastSeen" => DateTimeOffset? LastSeen, prop, initOnly
+				obj.AddIfNotNull(PropertyNames.LastSeen, JsonDateTime.Return(instance.LastSeen));
 
-				// IPAddress LastAddress => "lastAddress"
-				value = JsonValue.FromValue<global::System.Net.IPAddress>(instance.LastAddress);
-				if (keepNulls || value is not null or JsonNull)
-				{
-					obj["lastAddress"] = value;
-				}
-				if (readOnly)
-				{
-					return CrystalJsonMarshall.FreezeTopLevel(obj);
-				}
+				// "lastAddress" => IPAddress? LastAddress, prop, initOnly
+				obj.AddIfNotNull(PropertyNames.LastAddress, JsonValue.FromValue<global::System.Net.IPAddress>(instance.LastAddress));
 
-				return obj;
+				return settings.IsReadOnly() ? CrystalJsonMarshall.FreezeTopLevel(obj) : obj;
 			}
 
 			#endregion
 
-			#region Deserialization...
+			#region Unpacking...
 
-			// Id { get; init; }
+			/// <summary>Unsafe accessor for the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice.Id"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice"/> class</summary>
+			/// <remarks><code>string Id { get; init; }</code></remarks>
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Id>k__BackingField")]
 			private static extern ref string IdAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeDevice instance);
 
-			// Model { get; init; }
+			/// <summary>Unsafe accessor for the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice.Model"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice"/> class</summary>
+			/// <remarks><code>string Model { get; init; }</code></remarks>
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<Model>k__BackingField")]
 			private static extern ref string ModelAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeDevice instance);
 
-			// LastSeen { get; init; }
+			/// <summary>Unsafe accessor for the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice.LastSeen"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice"/> class</summary>
+			/// <remarks><code>DateTimeOffset? LastSeen { get; init; }</code></remarks>
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<LastSeen>k__BackingField")]
 			private static extern ref global::System.DateTimeOffset? LastSeenAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeDevice instance);
 
-			// LastAddress { get; init; }
+			/// <summary>Unsafe accessor for the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice.LastAddress"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice"/> class</summary>
+			/// <remarks><code>IPAddress LastAddress { get; init; }</code></remarks>
 			[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "<LastAddress>k__BackingField")]
 			private static extern ref global::System.Net.IPAddress? LastAddressAccessor(global::Doxense.Serialization.Json.Tests.MyAwesomeDevice instance);
 
+			/// <summary>Deserializes a <see cref="JsonValue"/> into an instance of type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice"/></summary>
 			public global::Doxense.Serialization.Json.Tests.MyAwesomeDevice Unpack(JsonValue value, ICrystalJsonTypeResolver? resolver = default)
 			{
 				var obj = value.AsObject();
@@ -1330,10 +1403,10 @@ namespace Doxense.Serialization.Json.Tests
 				{
 					switch (kv.Key)
 					{
-						case "id": IdAccessor(instance) = kv.Value.RequiredField("Id").ToString(); break;
-						case "model": ModelAccessor(instance) = kv.Value.RequiredField("Model").ToString(); break;
-						case "lastSeen": LastSeenAccessor(instance) = kv.Value.ToDateTimeOffsetOrDefault(); break;
-						case "lastAddress": LastAddressAccessor(instance) = /* fallback_no_default */ kv.Value.As<global::System.Net.IPAddress>(resolver: resolver)!; break;
+						case PropertyNames.Id: IdAccessor(instance) = kv.Value.RequiredField("Id").ToString(); break;
+						case PropertyNames.Model: ModelAccessor(instance) = kv.Value.RequiredField("Model").ToString(); break;
+						case PropertyNames.LastSeen: LastSeenAccessor(instance) = kv.Value.ToDateTimeOffsetOrDefault(); break;
+						case PropertyNames.LastAddress: LastAddressAccessor(instance) = /* fallback_no_default */ kv.Value.As<global::System.Net.IPAddress>(resolver: resolver)!; break;
 					}
 				}
 

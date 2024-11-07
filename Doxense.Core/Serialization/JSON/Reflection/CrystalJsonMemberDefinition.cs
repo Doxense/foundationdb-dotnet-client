@@ -34,49 +34,22 @@ namespace Doxense.Serialization.Json
 	public sealed record CrystalJsonMemberDefinition
 	{
 
-		public CrystalJsonMemberDefinition(Type type, string name, string? originalName = null)
-		{
-			Contract.Debug.Requires(type != null && name != null);
-
-			this.Type = type;
-			this.Name = name;
-			this.OriginalName = originalName ?? name;
-			this.EncodedName = new(name);
-			this.NullableOfType = CrystalJsonTypeResolver.GetNullableType(type);
-		}
-
-		public CrystalJsonMemberDefinition(MemberInfo member, Type memberType, string name, string? originalName = null)
-		{
-			Contract.Debug.Requires(member != null && memberType != null && name != null);
-
-			this.Type = memberType;
-			this.Member = member;
-			this.Name = name;
-			this.OriginalName = originalName ?? name;
-			this.EncodedName = new(name);
-			this.NullableOfType = CrystalJsonTypeResolver.GetNullableType(memberType);
-			this.IsNotNull = CrystalJsonTypeResolver.IsNotNullMemberType(member, memberType);
-			this.IsRequired = CrystalJsonTypeResolver.IsRequiredMember(member);
-			this.IsKey = CrystalJsonTypeResolver.IsKeyMember(member);
-			this.IsInitOnly = CrystalJsonTypeResolver.IsInitOnlyMember(member);
-		}
-
 		/// <summary>Declared type of the member</summary>
 		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
-		public Type Type { get; }
+		public required Type Type { get; init; }
 
 		/// <summary>Name of the member</summary>
-		public string Name { get; }
+		public required string Name { get; init; }
 
 		/// <summary>Name in the enclosing type</summary>
 		/// <remarks>Represent the original name in the c# code, while <see cref="Name"/> is the name in the JSON object</remarks>
-		public string OriginalName { get; }
+		public required string OriginalName { get; init; }
 
 		/// <summary>Optional <see cref="JsonPropertyAttribute"/> attribute that was applied to this member</summary>
 		public JsonPropertyAttribute? Attributes { get; init; }
 
 		/// <summary>Original <see cref="PropertyInfo"/> or <see cref="FieldInfo"/> of the member in its declaring type</summary>
-		public MemberInfo? Member { get; init; }
+		public required MemberInfo Member { get; init; }
 
 		/// <summary>If <see langword="true"/>, the field has a <see cref="DefaultValue"/> that is not the default for this type.</summary>
 		/// <remarks>This is <see langword="false"/> if the default is <see langword="null"/>, <see langword="false"/>, <see langword="0"/>, etc...</remarks>
@@ -104,7 +77,7 @@ namespace Doxense.Serialization.Json
 		public bool IsDefaultValue(object? value) => this.DefaultValue?.Equals(value) ?? (value is null);
 
 		/// <summary>Cache for the various encoded versions of a property name</summary>
-		public JsonEncodedPropertyName EncodedName { get; }
+		public required JsonEncodedPropertyName EncodedName { get; init; }
 
 		/// <summary>If not <see langword="null"/>, the member is an instance of <see cref="Nullable{T}"/> and this property contains the base value type</summary>
 		/// <remarks>Examples: <code>

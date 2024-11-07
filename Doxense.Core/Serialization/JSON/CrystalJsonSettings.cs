@@ -779,6 +779,12 @@ namespace Doxense.Serialization.Json
 		public static bool IsReadOnly(this CrystalJsonSettings? settings)
 			=> settings is not null && settings.ReadOnly;
 
+		/// <summary>Tests if the settings specify whether reference type properties and fields should be included when <see langword="null"/></summary>
+		/// <remarks>Example: The property <c>string? Name { get; ... }</c>, when its value is null, should always be written when the return value is <see langword="true"/>, or skipped if <see langword="false"/></remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool IncludesNullMembers(this CrystalJsonSettings? settings)
+			=> settings is not null && settings.ShowNullMembers;
+
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool IsCompactLayout(this CrystalJsonSettings? settings)
 			=> settings is not null && settings.TextLayout == CrystalJsonSettings.Layout.Compact;
