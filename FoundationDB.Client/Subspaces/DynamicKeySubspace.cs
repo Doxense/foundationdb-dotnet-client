@@ -70,12 +70,28 @@ namespace FoundationDB.Client
 		/// <returns>Original tuple</returns>
 		IVarTuple Unpack(Slice packedKey);
 
+		/// <summary>Unpacks a key of this subspace, back into a tuple</summary>
+		/// <param name="packedKey">Key that was produced by a previous call to <see cref="Pack{TTuple}"/></param>
+		/// <param name="tuple">Tuple of any size (0 to N), if the method returns true</param>
+		/// <returns><see langword="true"/> if <paramref name="packedKey"/> was a legal binary representation; otherwise, <see langword="false"/>.</returns>
+		bool TryUnpack(Slice packedKey, [NotNullWhen(true)] out IVarTuple? tuple);
+
 		//TODO: TryUnpack<TTuple>(Slice packedKey, out TTuple) ?
+
+#if NET9_0_OR_GREATER
 
 		/// <summary>Unpacks a key of this subspace, back into a tuple</summary>
 		/// <param name="packedKey">Key that was produced by a previous call to <see cref="Pack{TTuple}"/></param>
 		/// <returns>Original tuple</returns>
 		SpanTuple Unpack(ReadOnlySpan<byte> packedKey);
+
+		/// <summary>Unpacks a key of this subspace, back into a tuple</summary>
+		/// <param name="packedKey">Key that was produced by a previous call to <see cref="Pack{TTuple}"/></param>
+		/// <param name="tuple">Tuple of any size (0 to N), if the method returns true</param>
+		/// <returns><see langword="true"/> if <paramref name="packedKey"/> was a legal binary representation; otherwise, <see langword="false"/>.</returns>
+		bool TryUnpack(ReadOnlySpan<byte> packedKey, out SpanTuple tuple);
+
+#endif
 
 	}
 
@@ -142,11 +158,33 @@ namespace FoundationDB.Client
 
 		/// <summary>Unpack a key of this subspace, back into a tuple</summary>
 		/// <param name="packedKey">Key that was produced by a previous call to <see cref="Pack{TTuple}"/></param>
+		/// <param name="tuple">Tuple of any size (0 to N), if the method returns true</param>
+		/// <returns><see langword="true"/> if <paramref name="packedKey"/> was a legal binary representation; otherwise, <see langword="false"/>.</returns>
+		public bool TryUnpack(Slice packedKey, [NotNullWhen(true)] out IVarTuple? tuple)
+		{
+			return this.KeyEncoder.TryUnpackKey(ExtractKey(packedKey), out tuple);
+		}
+
+#if NET9_0_OR_GREATER
+
+		/// <summary>Unpack a key of this subspace, back into a tuple</summary>
+		/// <param name="packedKey">Key that was produced by a previous call to <see cref="Pack{TTuple}"/></param>
 		/// <returns>Original tuple</returns>
 		public SpanTuple Unpack(ReadOnlySpan<byte> packedKey)
 		{
 			return this.KeyEncoder.UnpackKey(ExtractKey(packedKey));
 		}
+
+		/// <summary>Unpack a key of this subspace, back into a tuple</summary>
+		/// <param name="packedKey">Key that was produced by a previous call to <see cref="Pack{TTuple}"/></param>
+		/// <param name="tuple">Tuple of any size (0 to N), if the method returns true</param>
+		/// <returns><see langword="true"/> if <paramref name="packedKey"/> was a legal binary representation; otherwise, <see langword="false"/>.</returns>
+		public bool TryUnpack(ReadOnlySpan<byte> packedKey, out SpanTuple tuple)
+		{
+			return this.KeyEncoder.TryUnpackKey(ExtractKey(packedKey), out tuple);
+		}
+
+#endif
 
 		/// <summary>Return a user-friendly string representation of a key of this subspace</summary>
 		public override string PrettyPrint(Slice packedKey)
