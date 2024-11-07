@@ -47,7 +47,7 @@ namespace Doxense.Linq
 		// in which case another buffer will be used from a shared pool.
 
 		/// <summary>Current buffer</summary>
-		private char[] Buffer;
+		private char[]? Buffer;
 
 		/// <summary>Number of items in the buffer</summary>
 		public int Count;
@@ -59,14 +59,6 @@ namespace Doxense.Linq
 			this.Buffer = capacity > 0 ? ArrayPool<char>.Shared.Rent(capacity) : [ ];
 		}
 
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-
-		/// <summary><c>YOU MUST PROVIDE AN INITIAL CAPACITY!</c></summary>
-		[Obsolete("You must specify an initial capacity", error: true)]
-		public ValueStringWriter() { }
-
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-
 		/// <summary>Returns a span with all the items already written to this buffer</summary>
 		public readonly Span<char> Span => this.Count > 0 ? this.Buffer.AsSpan(0, this.Count) : default;
 
@@ -74,17 +66,17 @@ namespace Doxense.Linq
 		public readonly Memory<char> Memory => this.Count > 0 ? this.Buffer.AsMemory(0, this.Count) : default;
 
 		/// <summary>Returns a span with all the items already written to this buffer</summary>
-		public readonly ArraySegment<char> Segment => this.Count > 0 ? new ArraySegment<char>(this.Buffer, 0, this.Count) : default;
+		public readonly ArraySegment<char> Segment => this.Count > 0 ? new ArraySegment<char>(this.Buffer ?? [ ], 0, this.Count) : default;
 
 		/// <summary>Returns the current capacity of the buffer</summary>
-		public readonly int Capacity => this.Buffer.Length;
+		public readonly int Capacity => this.Buffer?.Length ?? 0;
 
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public void Write(char item)
 		{
 			int pos = this.Count;
 			var buff = this.Buffer;
-			if ((uint) pos < (uint) buff.Length)
+			if (buff != null && (uint) pos < (uint) buff.Length)
 			{
 				buff[pos] = item;
 				this.Count = pos + 1;
@@ -99,8 +91,8 @@ namespace Doxense.Linq
 		private void AddWithResize(char item)
 		{
 			int pos = this.Count;
-			Grow(1);
-			this.Buffer[pos] = item;
+			var buffer = Grow(1);
+			buffer[pos] = item;
 			this.Count = pos + 1;
 		}
 
@@ -117,11 +109,10 @@ namespace Doxense.Linq
 		public void Write(scoped ReadOnlySpan<char> items)
 		{
 			int pos = this.Count;
-			var buf = this.Buffer;
-			Contract.Debug.Assert(buf != null);
-			if ((uint) (items.Length + this.Count) <= (uint) buf.Length)
+			var buffer = this.Buffer ?? [ ];
+			if ((uint) (items.Length + this.Count) <= (uint) buffer.Length)
 			{
-				items.CopyTo(buf.AsSpan(pos));
+				items.CopyTo(buffer.AsSpan(pos));
 				this.Count = pos + items.Length;
 			}
 			else
@@ -129,6 +120,11 @@ namespace Doxense.Linq
 				AddWithResize(items);
 			}
 		}
+
+		[CollectionAccess(CollectionAccessType.UpdatedContent)]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Write(ReadOnlyMemory<char> items)
+			=> Write(items.Span);
 
 		public void Write(char prefix, char value)
 		{
@@ -223,14 +219,16 @@ namespace Doxense.Linq
 		[MethodImpl(MethodImplOptions.NoInlining)]
 		private void AddWithResize(scoped ReadOnlySpan<char> items)
 		{
-			Grow(items.Length);
+			var buffer = Grow(items.Length);
+
 			int pos = this.Count;
-			items.CopyTo(this.Buffer.AsSpan(pos));
+			items.CopyTo(buffer.AsSpan(pos));
 			this.Count = pos + items.Length;
 		}
 
 		[MethodImpl(MethodImplOptions.NoInlining)]
-		private void Grow(int required)
+		[MustUseReturnValue]
+		private char[] Grow(int required)
 		{
 			Contract.GreaterThan(required, 0);
 			// Growth rate:
@@ -240,7 +238,8 @@ namespace Doxense.Linq
 
 			const long MAX_CAPACITY = int.MaxValue & ~63;
 
-			int length = this.Buffer.Length;
+			var oldBuffer = this.Buffer ?? [];
+			int length = oldBuffer.Length;
 			long capacity = (long) length + required;
 			if (capacity > MAX_CAPACITY)
 			{
@@ -249,18 +248,22 @@ namespace Doxense.Linq
 			capacity = Math.Max(length != 0 ? length * 2 : 4, length + required);
 
 			// allocate a new buffer (note: may be bigger than requested)
-			var tmp = ArrayPool<char>.Shared.Rent((int) capacity);
-			this.Buffer.AsSpan().CopyTo(tmp);
+			var newBuffer = ArrayPool<char>.Shared.Rent((int) capacity);
+			if (length > 0)
+			{
+				oldBuffer.AsSpan().CopyTo(newBuffer);
+			}
 
-			var array = this.Buffer;
-			this.Buffer = tmp;
+			this.Buffer = newBuffer;
 
 			// return any previous buffer to the pool
-			if (array.Length != 0)
+			if (oldBuffer.Length != 0)
 			{
-				array.AsSpan(0, this.Count).Clear();
-				ArrayPool<char>.Shared.Return(array);
+				oldBuffer.AsSpan(0, this.Count).Clear();
+				ArrayPool<char>.Shared.Return(oldBuffer);
 			}
+
+			return newBuffer;
 		}
 
 		private void Clear(bool release)
@@ -274,12 +277,12 @@ namespace Doxense.Linq
 			// return the array to the pool
 			if (release)
 			{
-				var array = this.Buffer;
-				this.Buffer = [ ];
+				var buffer = this.Buffer;
+				this.Buffer = null;
 
-				if (array?.Length > 0)
+				if (buffer?.Length > 0)
 				{
-					ArrayPool<char>.Shared.Return(array);
+					ArrayPool<char>.Shared.Return(buffer);
 				}
 			}
 		}
@@ -288,11 +291,36 @@ namespace Doxense.Linq
 		/// <remarks>The buffer count is reset to zero, but the current backing store remains the same</remarks>
 		public void Clear() => Clear(release: false);
 
-		/// <summary>Returns the content of the buffer as an array</summary>
-		/// <returns>Array of size <see cref="Count"/> containing all the items in this buffer</returns>
+		/// <summary>Returns a <see cref="string"/> with a copy of the content in this instance</summary>
+		/// <remarks>
+		/// <para>Calling this method will not release the buffer allocated by this instance.</para>
+		/// <para>Use <see cref="ToStringAndDispose"/> to dispose the buffer as well, or <see cref="ToStringAndClear"/> if you intend to reuse the buffer for the next operation.</para>
+		/// </remarks>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public readonly override string ToString() => this.Span.ToString();
 
+		/// <summary>Returns a <see cref="string"/> with a copy of the content in this instance, and clears the buffer so that it can be reused immediately</summary>
+		/// <remarks>This is the equivalent to calling <see cref="ToString"/>, followed by <see cref="Clear"/></remarks>
+		public string ToStringAndClear()
+		{
+			var s = ToString();
+			this.Dispose();
+			return s;
+		}
+
+		/// <summary>Returns a <see cref="string"/> with a copy of the content in this instance, and returns the buffer to the pool</summary>
+		/// <remarks>This is the equivalent to calling <see cref="ToString"/>, followed by <see cref="Dispose"/></remarks>
+		public string ToStringAndDispose()
+		{
+			var s = ToString();
+			this.Dispose();
+			return s;
+		}
+
+		/// <summary>Returns a <see cref="Slice"/> with a copy of the content in this instance</summary>
+		/// <param name="pool">If non-null, pool used to allocate the b</param>
+		/// <para>Calling this method will not release the buffer allocated by this instance.</para>
+		/// <para>Use <see cref="ToUtf8SliceAndDispose"/> to dispose the buffer as well, or <see cref="ToUtf8SliceAndClear"/> if you intend to reuse the buffer for the next operation.</para>
 		public readonly Slice ToUtf8Slice(ArrayPool<byte>? pool = null)
 		{
 			var enc = CrystalJsonFormatter.Utf8NoBom;
@@ -303,6 +331,37 @@ namespace Doxense.Linq
 			return tmp.AsSlice(0, written);
 		}
 
+		/// <summary>Returns a <see cref="Slice"/> with a copy of the content in this instance, and clears the buffer so that it can be reused immediately</summary>
+		/// <param name="pool">If non-null, pool used to allocate the b</param>
+		/// <remarks>
+		/// <para>This is the equivalent to calling <see cref="ToUtf8SliceOwner"/>, followed by <see cref="Clear"/></para>
+		/// </remarks>
+		public Slice ToUtf8SliceAndClear(ArrayPool<byte>? pool = null)
+		{
+			var slice = ToUtf8Slice(pool);
+			Clear();
+			return slice;
+		}
+
+		/// <summary>Returns a <see cref="Slice"/> with a copy of the content in this instance, and returns the buffer to the pool</summary>
+		/// <param name="pool">If non-null, pool used to allocate the buffer for the returned slice. Otherwise, the buffer will be allocated on the heap</param>
+		/// <remarks>
+		/// <para>This is the equivalent to calling <see cref="ToUtf8Slice"/>, followed by <see cref="Dispose"/></para>
+		/// </remarks>
+		public Slice ToUtf8SliceAndDispose(ArrayPool<byte>? pool = null)
+		{
+			var slice = ToUtf8Slice(pool);
+			Dispose();
+			return slice;
+		}
+
+		/// <summary>Returns a <see cref="SliceOwner"/> with a copy of the content in this instance</summary>
+		/// <param name="pool">Pool used has the backing store for the <see cref="SliceOwner"/> (<see cref="ArrayPool{T}.Shared"/> is not specified)</param>
+		/// <returns>
+		/// <para><see cref="SliceOwner"/> instance with a copy of the content allocated using <paramref name="pool"/>. The value <b>MUST</b> be disposed at a later point; otherwise, the buffer will not be returned to the pool.</para>
+		/// <para>Calling this method will not release the buffer allocated by this instance.</para>
+		/// <para>Use <see cref="ToUtf8SliceOwnerAndDispose"/> to dispose the buffer as well, or <see cref="ToUtf8SliceOwnerAndClear"/> if you intend to reuse the buffer for the next operation.</para>
+		/// </returns>
 		public readonly SliceOwner ToUtf8SliceOwner(ArrayPool<byte>? pool = null)
 		{
 			pool ??= ArrayPool<byte>.Shared;
@@ -312,6 +371,34 @@ namespace Doxense.Linq
 			var tmp = pool.Rent(size);
 			var written = enc.GetBytes(span, tmp);
 			return SliceOwner.Create(tmp.AsSlice(0, written), pool);
+		}
+
+		/// <summary>Returns a <see cref="SliceOwner"/> with a copy of the content in this instance, and clears the buffer so that it can be reused immediately</summary>
+		/// <param name="pool">Pool used has the backing store for the <see cref="SliceOwner"/> (<see cref="ArrayPool{T}.Shared"/> is not specified)</param>
+		/// <returns>
+		/// <para><see cref="SliceOwner"/> instance with a copy of the content allocated using <paramref name="pool"/>. The value <b>MUST</b> be disposed at a later point; otherwise, the buffer will not be returned to the pool.</para>
+		/// <para>Calling this method will not release the buffer allocated by this instance.</para>
+		/// <para>This is the equivalent to calling <see cref="ToUtf8SliceOwner"/>, followed by <see cref="Clear"/></para>
+		/// </returns>
+		public SliceOwner ToUtf8SliceOwnerAndClear(ArrayPool<byte>? pool = null)
+		{
+			var slice = ToUtf8SliceOwner(pool);
+			Clear();
+			return slice;
+		}
+
+		/// <summary>Returns a <see cref="SliceOwner"/> with a copy of the content in this instance, and returns the buffer to the pool</summary>
+		/// <param name="pool">Pool used has the backing store for the <see cref="SliceOwner"/> (<see cref="ArrayPool{T}.Shared"/> is not specified)</param>
+		/// <returns>
+		/// <para><see cref="SliceOwner"/> instance with a copy of the content allocated using <paramref name="pool"/>. The value <b>MUST</b> be disposed at a later point; otherwise, the buffer will not be returned to the pool.</para>
+		/// <para>Calling this method will not release the buffer allocated by this instance.</para>
+		/// <para>This is the equivalent to calling <see cref="ToUtf8SliceOwner"/>, followed by <see cref="Dispose"/></para>
+		/// </returns>
+		public SliceOwner ToUtf8SliceOwnerAndDispose(ArrayPool<byte>? pool = null)
+		{
+			var slice = ToUtf8SliceOwner(pool);
+			Dispose();
+			return slice;
 		}
 
 		/// <summary>Copies the content of the buffer into a destination span</summary>
@@ -439,16 +526,17 @@ namespace Doxense.Linq
 			Contract.Positive(size);
 
 			// do we have enough space in the current segment?
+			var buffer = this.Buffer ?? [ ];
 			var count = this.Count;
 			int newCount = count + size;
-			if ((uint) newCount > (uint) this.Buffer.Length)
+			if ((uint) newCount > (uint) buffer.Length)
 			{
-				Grow(size);
+				buffer = Grow(size);
 			}
 
 			// we have enough remaining data to accomodate the requested size
 			this.Count = newCount;
-			return this.Buffer.AsSpan(count, size);
+			return buffer.AsSpan(count, size);
 		}
 
 		/// <summary>Allocate a fixed-size section, and returns an unsafe reference to the start of the segment.</summary>
@@ -467,29 +555,31 @@ namespace Doxense.Linq
 			Contract.Debug.Requires(size > 0);
 
 			// do we have enough space in the current segment?
+			var buffer = this.Buffer ?? [ ];
 			var count = this.Count;
 			int newCount = count + size;
-			if ((uint) newCount > (uint) this.Buffer.Length)
+			if ((uint) newCount > (uint) buffer.Length)
 			{
-				Grow(size);
+				buffer = Grow(size);
 			}
 
 			// we have enough remaining data to accomodate the requested size
 			this.Count = newCount;
-			return ref this.Buffer[count];
+			return ref buffer[count];
 		}
 
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public void Advance(int count)
 		{
 			Contract.Positive(count);
+			var buffer = this.Buffer ?? [ ];
 			var newIndex = checked(this.Count + count);
-			if ((uint) newIndex > (uint) this.Buffer.Length)
+			if ((uint) newIndex > (uint) buffer.Length)
 			{
 				throw new ArgumentException("Cannot advance past the previously allocated buffer");
 			}
 			this.Count = newIndex;
-			Contract.Debug.Ensures((uint) this.Count <= this.Buffer.Length);
+			Contract.Debug.Ensures((uint) this.Count <= buffer.Length);
 		}
 
 		/// <inheritdoc />
@@ -498,15 +588,16 @@ namespace Doxense.Linq
 			Contract.Positive(sizeHint);
 
 			// do we have enough space in the current segment?
-			int remaining = this.Buffer.Length - this.Count;
+			var buffer = this.Buffer ?? [ ];
+			int remaining = buffer.Length - this.Count;
 
 			if (remaining <= 0 || (sizeHint != 0 && remaining < sizeHint))
 			{
-				Grow(sizeHint);
+				buffer = Grow(sizeHint);
 			}
 
 			// we have enough remaining data to accomodate the requested size
-			return this.Buffer.AsMemory(this.Count);
+			return buffer.AsMemory(this.Count);
 		}
 
 		/// <inheritdoc />
@@ -516,15 +607,16 @@ namespace Doxense.Linq
 			Contract.Positive(sizeHint);
 
 			// do we have enough space in the current segment?
-			int remaining = this.Buffer.Length - this.Count;
+			var buffer = this.Buffer ?? [ ];
+			int remaining = buffer.Length - this.Count;
 
 			if (remaining <= 0 || (sizeHint != 0 && remaining < sizeHint))
 			{
-				Grow(sizeHint);
+				buffer = Grow(sizeHint);
 			}
 
 			// we have enough remaining data to accomodate the requested size
-			return this.Buffer.AsSpan(this.Count);
+			return buffer.AsSpan(this.Count);
 		}
 
 		#endregion
@@ -755,7 +847,7 @@ namespace Doxense.Linq
 		{
 			Span<char> buf = GetSpan(StringConverters.Base16MaxCapacityGuid);
 
-			bool success = value.TryFormat(buf, out int written, default, null);
+			bool success = value.TryFormat(buf, out int written);
 			if (!success) StringConverters.ReportInternalFormattingError();
 
 			Advance(written);
@@ -767,7 +859,7 @@ namespace Doxense.Linq
 		{
 			Span<char> buf = GetSpan(StringConverters.Base16MaxCapacityUuid64);
 
-			bool success = value.TryFormat(buf, out int written, default, null);
+			bool success = value.TryFormat(buf, out int written);
 			if (!success) StringConverters.ReportInternalFormattingError();
 			
 			Advance(written);

@@ -605,7 +605,7 @@ namespace System
 		public bool TryFormat(
 			Span<char> destination,
 			out int charsWritten,
-			ReadOnlySpan<char> format,
+			ReadOnlySpan<char> format = default,
 			IFormatProvider? provider = null
 		)
 		{
