@@ -120,7 +120,7 @@ namespace SnowBank.Shell.Prompt
 
 			var root = this.AutoCompleter.Root;
 
-			var state = PromptState.CreateEmpty(root);
+			var state = PromptState.CreateEmpty(root, this.Theme);
 
 			var renderState = this.Theme.Paint(state);
 
@@ -149,8 +149,7 @@ namespace SnowBank.Shell.Prompt
 				// update the state with this key
 				var newState = this.KeyHandler.HandleKeyPress(state, key);
 
-				// if the text changed, we need to update the auto-complete information
-				if (newState.Change != PromptChange.None)
+				if (!ReferenceEquals(state, newState) && !ReferenceEquals(newState, state.Parent))
 				{
 					newState = newState.CommandBuilder.Update(newState);
 					newState = this.AutoCompleter.HandleAutoComplete(newState);
@@ -184,7 +183,7 @@ namespace SnowBank.Shell.Prompt
 				this.OnAfter?.Invoke(key, state, renderState);
 			}
 
-			return state.Text;
+			return state.RawText;
 		}
 
 	}

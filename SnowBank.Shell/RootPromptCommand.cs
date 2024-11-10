@@ -68,11 +68,13 @@ namespace SnowBank.Shell.Prompt
 
 			public string CommandName { get; init; } = "";
 
+			public IPromptCommandDescriptor? Command { get; init; }
+
 			Type IPromptCommandBuilder.GetCommandType() => null!;
 
-			public override string ToString() => $"Root {{ Command = \"{CommandName}\" }}";
+			public override string ToString() => $"Root {{ Name = \"{this.CommandName}\" }}";
 
-			public bool IsValid() => this.Descriptor.Commands.Any(x => x.Token == this.CommandName);
+			public bool IsValid() => this.Command is not null;
 
 			public bool TryGetCommand(string token, [MaybeNullWhen(false)] out IPromptCommandDescriptor command)
 			{
@@ -90,15 +92,32 @@ namespace SnowBank.Shell.Prompt
 				// - "hello_" we are still writing the token (maybe there are more to come)
 				// - "hello _" we have written the command, we must switch to it
 
-				if (state.Token.Length > 0 && state.TokenStart == 0 && state.Token[^1] == ' ')
-				{
-					if (!TryGetCommand(this.CommandName, out var cmd))
+				if (state.Tokens.Length > 0)
+				{ // this is not supposed to happen, unless we are parsing an invalid command?
+					throw new NotImplementedException();
+				}
+
+				if (state.RawToken.Length == 0)
+				{ // we are empty, or became empty again!
+					return state with
+					{
+						Token = default,
+						CommandBuilder = this with { CommandName = "", Command = null }
+					};
+				}
+
+
+				if (state.RawToken[^1] == ' ')
+				{ // we completed the command name
+
+					if (this.Command is null)
 					{ // no command with this name!
 						return state with
 						{
+							Token = PromptToken.Create("error", state.RawToken), // TODO: use color names? like "@invalid" or "@error" ?
 							CommandBuilder = this with
 							{
-								CommandName = state.Token
+								CommandName = state.RawToken[..^1],
 							}
 						};
 					}
@@ -107,20 +126,38 @@ namespace SnowBank.Shell.Prompt
 					return state with
 					{
 						Change = PromptChange.NextToken,
-						TokenStart = state.Text.Length,
-						Token = "",
-						Command = cmd,
-						CommandBuilder = cmd.StartNew(),
+						Command = this.Command,
+						RawToken = "",
+						Tokens = [ PromptToken.Create("command", state.RawToken.Trim()) ],
+						Token = default,
+						CommandBuilder = this.Command.StartNew(),
 					};
 				}
 
+				if (this.TryGetCommand(state.RawToken, out var cmd))
+				{ // we typed a name that matches a command
+					return state with
+					{
+						Token = PromptToken.Create("command", cmd.Token),
+						CommandBuilder = this with
+						{
+							CommandName = cmd.Token,
+							Command = cmd,
+						}
+					};
+				}
+
+				// TODO: partial, vs unknown
 				return state with
 				{
+					Token = PromptToken.Create("incomplete", state.RawToken),
 					CommandBuilder = this with
 					{
-						CommandName = state.Token,
+						CommandName = state.RawToken,
+						Command = null,
 					}
 				};
+
 			}
 
 			public IPromptCommand Build(PromptState state)

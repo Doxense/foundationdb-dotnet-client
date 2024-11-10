@@ -30,6 +30,7 @@ namespace SnowBank.Shell.Prompt.Tests
 	using System;
 	using System.Collections.Generic;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization;
 	using Doxense.Serialization.Json;
 	using FoundationDB.Client;
@@ -88,10 +89,21 @@ namespace SnowBank.Shell.Prompt.Tests
 				{
 					if (state.IsDone())
 					{
-						return state;
+						return state with
+						{
+							Tokens = [ ..state.Tokens, PromptToken.Create("argument", this.Argument), ],
+							Token = default,
+							RawToken = "",
+						};
 					}
 
-					return state with { CommandBuilder = new Builder { Argument = state.Token } };
+					bool isKnown = state.RawToken is ("world" or "there");
+
+					return state with
+					{
+						Token = PromptToken.Create(isKnown ? "argument" : "incomplete", state.RawToken),
+						CommandBuilder = new Builder { Argument = state.RawToken },
+					};
 				}
 
 				public override Command Build(PromptState state, FakeHello descriptor)
@@ -101,7 +113,7 @@ namespace SnowBank.Shell.Prompt.Tests
 						throw new InvalidOperationException("Argument is missing");
 					}
 
-					return new(descriptor, state.Text) { Argument = this.Argument };
+					return new(descriptor, state.RawText) { Argument = this.Argument };
 				}
 			}
 
@@ -157,7 +169,7 @@ namespace SnowBank.Shell.Prompt.Tests
 						return state;
 					}
 
-					return state with { CommandBuilder = new Builder { CommandName = state.Token } };
+					return state with { CommandBuilder = new Builder { CommandName = state.RawToken } };
 				}
 
 				public override Command Build(PromptState state, FakeHelp descriptor)
@@ -167,7 +179,7 @@ namespace SnowBank.Shell.Prompt.Tests
 						throw new InvalidOperationException("Argument is missing");
 					}
 
-					return new(descriptor, state.Text) { CommandName = this.CommandName, };
+					return new(descriptor, state.RawText) { CommandName = this.CommandName, };
 				}
 
 			}
@@ -192,15 +204,17 @@ namespace SnowBank.Shell.Prompt.Tests
 			var message = "Expected state does not match for step: " + label;
 
 			Assert.That(state.Change, Is.EqualTo(expected.Change), message);
-			Assert.That(state.Text, Is.EqualTo(expected.Text), message);
+			Assert.That(state.RawText, Is.EqualTo(expected.RawText), message);
+			Assert.That(state.RawToken, Is.EqualTo(expected.RawToken), message);
+			Assert.That(state.Tokens.ToArray(), Is.EqualTo(expected.Tokens.ToArray()), message);
 			Assert.That(state.Token, Is.EqualTo(expected.Token), message);
-			Assert.That(state.TokenStart, Is.EqualTo(expected.TokenStart), message);
 			Assert.That(state.Command, Is.SameAs(expected.Command), message);
 			Assert.That(state.CommandBuilder, Is.Not.Null, message);
 
-			if (expected.Candidates is null)
+			Assert.That(expected.Candidates, Is.Not.Null);
+			if (expected.Candidates.Length == 0)
 			{
-				Assert.That(state.Candidates, Is.Null.Or.Empty, message);
+				Assert.That(state.Candidates, Is.Empty, message);
 			}
 			else
 			{
@@ -212,7 +226,8 @@ namespace SnowBank.Shell.Prompt.Tests
 			Assert.That(state.CommonPrefix, Is.EqualTo(expected.CommonPrefix), message);
 		}
 
-		private static PromptStateExpression<TCommand> Expr<TCommand>(TCommand command) where TCommand : IPromptCommandDescriptor => PromptStateExpression.For<TCommand>(command);
+		private static PromptStateExpression<TCommand> Expr<TCommand>(IPromptTheme theme, TCommand command) where TCommand : IPromptCommandDescriptor
+			=> PromptStateExpression.For<TCommand>(command, theme);
 
 		/// <summary>Sends keystrokes to a mock prompt, checking the state at every step</summary>
 		/// <param name="keyHandler"></param>
@@ -220,19 +235,13 @@ namespace SnowBank.Shell.Prompt.Tests
 		/// <param name="initial"></param>
 		/// <param name="steps"></param>
 		/// <returns>Final state, after the last keystroke</returns>
-		private async Task<PromptState> Run(IPromptKeyHandler keyHandler, IPromptAutoCompleter autoCompleter, PromptState initial, (ConsoleKeyInfo Key, PromptStateExpression Expected)[] steps)
+		private async Task<PromptState> Run(IPromptKeyHandler keyHandler, IPromptAutoCompleter autoCompleter, IPromptTheme theme, PromptState initial, (ConsoleKeyInfo Key, PromptStateExpression Expected)[] steps)
 		{
 			var input = new MockPromptInput();
 			foreach (var step in steps)
 			{
 				input.KeyStrokes.Add(step.Key);
 			}
-
-			var theme = new MockPromptTheme()
-			{
-				Prompt = "fake> ",
-				MaxRows = 5,
-			};
 			var renderer = new MockPromptRenderer()
 			{
 
@@ -254,7 +263,7 @@ namespace SnowBank.Shell.Prompt.Tests
 					Assert.That(input.Position, Is.EqualTo(index));
 					var step = steps[index];
 
-					Log($"[{(index + 1):N0}/{steps.Length:N0}]: '{state.Text}' + {Keyboard.GetKeyName(step.Key)} => '{step.Expected.State.Text}'");
+					Log($"[{(index + 1):N0}/{steps.Length:N0}]: '{state.RawText}' + {Keyboard.GetKeyName(step.Key)} => '{step.Expected.State.RawText}'");
 				},
 
 				OnAfter = (key, state, renderState) =>
@@ -263,7 +272,7 @@ namespace SnowBank.Shell.Prompt.Tests
 					var step = steps[index];
 					try
 					{
-						VerifyState(state, step.Expected.State, $"'{state.Text}' + {Keyboard.GetKeyName(step.Key)} => '{step.Expected.State.Text}'");
+						VerifyState(state, step.Expected.State, $"'{state.RawText}' + {Keyboard.GetKeyName(step.Key)} => '{step.Expected.State.RawText}'");
 					}
 					catch (AssertionException)
 					{
@@ -281,6 +290,12 @@ namespace SnowBank.Shell.Prompt.Tests
 
 					lastState = state;
 					++index;
+				},
+
+				OnBeforeRender = (state, renderState) =>
+				{
+					Log($"# Markup: {renderState.TextMarkup}");
+					return renderState;
 				},
 			};
 
@@ -306,24 +321,26 @@ namespace SnowBank.Shell.Prompt.Tests
 			var root = new RootPromptCommand() { Commands = [hello, help], };
 			var keyHandler = new DefaultPromptKeyHandler();
 			var autoComplete = new DefaultPromptAutoCompleter() { Root = root };
+			var theme = new AnsiConsolePromptTheme() { MaxRows = 5, Prompt = "> " };
 
 			var state = await Run(
 				keyHandler,
 				autoComplete,
-				PromptState.CreateEmpty(root),
+				theme,
+				PromptState.CreateEmpty(root, theme),
 				[
-					(Keyboard.h,     Expr(root).Add().Text("h", "h").Candidates(["hello", "help"], commonPrefix: "hel")),
-					(Keyboard.e,     Expr(root).Add().Text("he", "he").Candidates(["hello", "help"], commonPrefix: "hel")),
-					(Keyboard.l,     Expr(root).Add().Text("hel", "hel").Candidates(["hello", "help"], commonPrefix: "hel")),
-					(Keyboard.l,     Expr(root).Add().Text("hell", "hell").Candidates(["hello"], commonPrefix: "hello")),
-					(Keyboard.o,     Expr(root).Add().Text("hello", "hello").Candidates(["hello"], exactMatch: "hello")),
-					(Keyboard.Space, Expr(hello).Token().Text("hello ", "", start: 6).Candidates(["world", "there"])),
-					(Keyboard.w,     Expr(hello).Add().Text("hello w", "w", start: 6).Candidates(["world"], commonPrefix: "world")),
-					(Keyboard.o,     Expr(hello).Add().Text("hello wo", "wo", start: 6).Candidates(["world"], commonPrefix: "world")),
-					(Keyboard.r,     Expr(hello).Add().Text("hello wor", "wor", start: 6).Candidates(["world"], commonPrefix: "world")),
-					(Keyboard.l,     Expr(hello).Add().Text("hello worl", "worl", start: 6).Candidates(["world"], commonPrefix: "world")),
-					(Keyboard.d,     Expr(hello).Add().Text("hello world", "world", start: 6).Candidates(["world"], exactMatch: "world")),
-					(Keyboard.Enter, Expr(hello).Done().Text("hello world", "", start: 11)),
+					(Keyboard.h,     Expr(theme, root).Add('h').Tokens("incomplete:h").Candidates(["hello", "help"], commonPrefix: "hel")),
+					(Keyboard.e,     Expr(theme, root).Add('e').Tokens("incomplete:he").Candidates(["hello", "help"], commonPrefix: "hel")),
+					(Keyboard.l,     Expr(theme, root).Add('l').Tokens("incomplete:hel").Candidates(["hello", "help"], commonPrefix: "hel")),
+					(Keyboard.l,     Expr(theme, root).Add('l').Tokens("incomplete:hell").Candidates(["hello"], commonPrefix: "hello")),
+					(Keyboard.o,     Expr(theme, root).Add('o').Tokens("command:hello").Candidates(["hello"], exactMatch: "hello")),
+					(Keyboard.Space, Expr(theme, hello).Next().Tokens("command:hello", "").Candidates(["world", "there"])),
+					(Keyboard.w,     Expr(theme, hello).Add('w').Tokens("command:hello", "incomplete:w").Candidates(["world"], commonPrefix: "world")),
+					(Keyboard.o,     Expr(theme, hello).Add('o').Tokens("command:hello", "incomplete:wo").Candidates(["world"], commonPrefix: "world")),
+					(Keyboard.r,     Expr(theme, hello).Add('r').Tokens("command:hello", "incomplete:wor").Candidates(["world"], commonPrefix: "world")),
+					(Keyboard.l,     Expr(theme, hello).Add('l').Tokens("command:hello", "incomplete:worl").Candidates(["world"], commonPrefix: "world")),
+					(Keyboard.d,     Expr(theme, hello).Add('d').Tokens("command:hello", "argument:world").Candidates(["world"], exactMatch: "world")),
+					(Keyboard.Enter, Expr(theme, hello).Done().Tokens("command:hello", "argument:world")),
 				]
 			);
 
@@ -338,6 +355,58 @@ namespace SnowBank.Shell.Prompt.Tests
 			var cmd = (FakeHello.Command) result;
 			Assert.That(cmd.Argument, Is.EqualTo("world"));
 		}
+
+				[Test]
+		public async Task Test_Can_Type_Hello_Command_With_Typos_And_Backspaces()
+		{
+			// Fully type the "hello world" command, but simulating some typos + backspaces
+
+			var hello = new FakeHello();
+			var help = new FakeHelp();
+			var root = new RootPromptCommand() { Commands = [hello, help], };
+			var keyHandler = new DefaultPromptKeyHandler();
+			var autoComplete = new DefaultPromptAutoCompleter() { Root = root };
+			var theme = new AnsiConsolePromptTheme() { MaxRows = 5, Prompt = "> " };
+
+			var state = await Run(
+				keyHandler,
+				autoComplete,
+				theme,
+				PromptState.CreateEmpty(root, theme),
+				[
+					(Keyboard.h,         Expr(theme, root).Add('h').Tokens("incomplete:h").Candidates(["hello", "help"], commonPrefix: "hel")),
+					(Keyboard.e,         Expr(theme, root).Add('e').Tokens("incomplete:he").Candidates(["hello", "help"], commonPrefix: "hel")),
+					(Keyboard.l,         Expr(theme, root).Add('l').Tokens("incomplete:hel").Candidates(["hello", "help"], commonPrefix: "hel")),
+					(Keyboard.l,         Expr(theme, root).Add('l').Tokens("incomplete:hell").Candidates(["hello"], commonPrefix: "hello")),
+					(Keyboard.l,         Expr(theme, root).Add('l').Tokens("incomplete:helll")), //TYPO!
+					(Keyboard.Backspace, Expr(theme, root).Add('l').Tokens("incomplete:hell").Candidates(["hello"], commonPrefix: "hello")),
+					(Keyboard.o,         Expr(theme, root).Add('o').Tokens("command:hello").Candidates(["hello"], exactMatch: "hello")),
+					(Keyboard.Space,     Expr(theme, hello).Next().Tokens("command:hello", "").Candidates(["world", "there"])),
+					(Keyboard.z,         Expr(theme, hello).Add('z').Tokens("command:hello", "incomplete:z")), //TYPO!
+					(Keyboard.Backspace, Expr(theme, hello).Next().Tokens("command:hello", "").Candidates(["world", "there"])),
+					(Keyboard.w,         Expr(theme, hello).Add('w').Tokens("command:hello", "incomplete:w").Candidates(["world"], commonPrefix: "world")),
+					(Keyboard.o,         Expr(theme, hello).Add('o').Tokens("command:hello", "incomplete:wo").Candidates(["world"], commonPrefix: "world")),
+					(Keyboard.r,         Expr(theme, hello).Add('r').Tokens("command:hello", "incomplete:wor").Candidates(["world"], commonPrefix: "world")),
+					(Keyboard.l,         Expr(theme, hello).Add('l').Tokens("command:hello", "incomplete:worl").Candidates(["world"], commonPrefix: "world")),
+					(Keyboard.d,         Expr(theme, hello).Add('d').Tokens("command:hello", "argument:world").Candidates(["world"], exactMatch: "world")),
+					(Keyboard.d,         Expr(theme, hello).Add('d').Tokens("command:hello", "incomplete:worldd")), //TYPO!
+					(Keyboard.Backspace, Expr(theme, hello).Add('d').Tokens("command:hello", "argument:world").Candidates(["world"], exactMatch: "world")),
+					(Keyboard.Enter,     Expr(theme, hello).Done().Tokens("command:hello", "argument:world")),
+				]
+			);
+
+			// create the query command that should contain the parsed FqlQuery 
+			Log($"Command: {state.Command.GetType()?.GetFriendlyName()}");
+			Assert.That(state.Command, Is.SameAs(hello));
+			Assert.That(state.CommandBuilder, Is.InstanceOf<FakeHello.Builder>());
+			var result = state.CommandBuilder.Build(state);
+			Assert.That(result, Is.InstanceOf<FakeHello.Command>());
+
+			// verify the argument
+			var cmd = (FakeHello.Command) result;
+			Assert.That(cmd.Argument, Is.EqualTo("world"));
+		}
+
 
 		[Test]
 		public async Task Test_Can_Type_Hello_World_With_AutoComplete_Shortcut()
@@ -358,21 +427,23 @@ namespace SnowBank.Shell.Prompt.Tests
 			var root = new RootPromptCommand() { Commands = [hello, help], };
 			var keyHandler = new DefaultPromptKeyHandler();
 			var autoComplete = new DefaultPromptAutoCompleter() { Root = root };
+			var theme = new AnsiConsolePromptTheme() { MaxRows = 5, Prompt = "> " };
 
 			var state = await Run(
 				keyHandler,
 				autoComplete,
-				PromptState.CreateEmpty(root),
+				theme,
+				PromptState.CreateEmpty(root, theme),
 				[
-					(Keyboard.h,     Expr(root).Add().Text("h", "h").Candidates(["hello", "help"], commonPrefix: "hel")),
-					(Keyboard.e,     Expr(root).Add().Text("he", "he").Candidates(["hello", "help"], commonPrefix: "hel")),
-					(Keyboard.l,     Expr(root).Add().Text("hel", "hel").Candidates(["hello", "help"], commonPrefix: "hel")),
-					(Keyboard.l,     Expr(root).Add().Text("hell", "hell").Candidates(["hello"], commonPrefix: "hello")),
-					(Keyboard.Tab,   Expr(root).Completed().Text("hello", "hello").Candidates(["hello"], exactMatch: "hello")),
-					(Keyboard.Space, Expr(hello).Token().Text("hello ", "", start: 6).Candidates(["world", "there"])),
-					(Keyboard.w,     Expr(hello).Add().Text("hello w", "w", start: 6).Candidates(["world"], commonPrefix: "world")),
-					(Keyboard.Tab,   Expr(hello).Completed().Text("hello world", "world", start: 6).Candidates(["world"], exactMatch: "world")),
-					(Keyboard.Enter, Expr(hello).Done().Text("hello world", "")),
+					(Keyboard.h,     Expr(theme, root).Add('h').Tokens("incomplete:h").Candidates(["hello", "help"], commonPrefix: "hel")),
+					(Keyboard.e,     Expr(theme, root).Add('e').Tokens("incomplete:he").Candidates(["hello", "help"], commonPrefix: "hel")),
+					(Keyboard.l,     Expr(theme, root).Add('l').Tokens("incomplete:hel").Candidates(["hello", "help"], commonPrefix: "hel")),
+					(Keyboard.l,     Expr(theme, root).Add('l').Tokens("incomplete:hell").Candidates(["hello"], commonPrefix: "hello")),
+					(Keyboard.Tab,   Expr(theme, root).Completed().Tokens("command:hello").Candidates(["hello"], exactMatch: "hello")),
+					(Keyboard.Space, Expr(theme, hello).Next().Tokens("command:hello", "").Candidates(["world", "there"])),
+					(Keyboard.w,     Expr(theme, hello).Add('w').Tokens("command:hello", "incomplete:w").Candidates(["world"], commonPrefix: "world")),
+					(Keyboard.Tab,   Expr(theme, hello).Completed().Tokens("command:hello", "argument:world").Candidates(["world"], exactMatch: "world")),
+					(Keyboard.Enter, Expr(theme, hello).Done().Tokens("command:hello", "argument:world")),
 				]
 			);
 
@@ -427,14 +498,19 @@ namespace SnowBank.Shell.Prompt.Tests
 				/// <summary>Error when parsing the query</summary>
 				public Exception? Error { get; init; }
 
+				/// <summary>If true, the previous token is an option that expects a value</summary>
+				public bool ExpectOptionValue { get; init; }
+
 				public JsonObject? Options { get; init; }
+
+				public string? LastOption { get; init; }
 
 				public bool HasInvalidOption { get; init; }
 
 				public override bool IsValid() => this.Query != null;
 
 				public override string ToString() => this.Query != null
-					? $"Query {{ Expr = {this.Query} }}"
+					? $"Query {{ Expr = {this.Query}, Options = {this.Options?.ToJsonCompact() } }}"
 					: $"Query {{ Error = {this.Error?.Message} }}";
 
 				public override PromptState Update(PromptState state)
@@ -443,89 +519,202 @@ namespace SnowBank.Shell.Prompt.Tests
 					{
 						if (!this.HasQuery && this.Query != null)
 						{ // the query is valid
-							return state with { CommandBuilder = this with { HasQuery = true } };
+							return state with
+							{
+								Tokens = [..state.Tokens, state.Token],
+								Token = default,
+								RawToken = "",
+								CommandBuilder = this with { HasQuery = true }
+							};
 						}
-						return state;
-					}
-
-					if (!FqlQueryParser.ParseNext(state.TextWithoutCommand, out var rest).Check(out var query, out var error))
-					{ // incomplete or invalid query
-
-						//TODO: heuristic to "complete" the query into a temporary query?
-						// ex: we have type "/foo/bar(" we could complete with "/foo/bar(...)"
-
 						return state with
 						{
-							CommandBuilder = new Builder
-							{
-								HasQuery = false,
-								Error = error.Error,
-							}
+							Tokens = [..state.Tokens, state.Token],
+							Token = default,
+							RawToken = "",
 						};
 					}
 
-					rest = rest.Trim();
+					if (!this.HasQuery)
+					{ // we are parsing the query...
 
-					// do we have options after that?
-					JsonObject? options = null;
-					bool hasInvalidOption = false;
-					if (rest.Length > 0)
-					{
-						//TODO: parse options here
-						//HACKHACK: do it the naive way first
+						Contract.Debug.Assert(state.Tokens.Length == 1);
 
-						Span<Range> splits = stackalloc Range[16]; //TODO: how do we deal with this?
-						int n = rest.Split(splits, ' ', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-						foreach(var r in splits[..n])
-						{
-							var opt = rest[r];
-							switch (opt)
+						if (!FqlQueryParser.ParseNext(state.RawToken, out var rest).Check(out var query, out var error))
+						{ // incomplete or invalid query
+
+							//TODO: heuristic to "complete" the query into a temporary query?
+							// ex: we have type "/foo/bar(" we could complete with "/foo/bar(...)"
+
+							return state with
 							{
-								case "-d":
-								case "--dump":
+								Token = PromptToken.Create("incomplete", state.RawToken), //TODO: detect error vs incomplete!
+								CommandBuilder = new Builder
 								{
-									(options ??= []).Add("dump", true);
-									break;
+									HasQuery = false,
+									Error = error.Error,
 								}
-								case "-f":
-								case "--force":
-								{
-									(options ??= []).Add("force", true);
-									break;
-								}
-								default:
-								{
-									hasInvalidOption = true;
-									break;
-								}
-							}
+							};
 						}
+
+						if (rest.Length == 0)
+						{ // the query may or may not be complete yet!
+							return state with
+							{
+								Token = PromptToken.Create("fql", state.RawToken), //TODO: detect error vs incomplete!
+								CommandBuilder = new Builder
+								{
+									HasQuery = false,
+									Query = query,
+								}
+							};
+						}
+
+						// if we have something more, and it is a space, we are going to the next token
+						if (rest[0] == ' ')
+						{ // next token!
+							return state with
+							{
+								Change = PromptChange.NextToken,
+								Tokens = [ ..state.Tokens, state.Token ],
+								Token = default,
+								RawToken = "",
+								CommandBuilder = new Builder
+								{
+									HasQuery = true,
+									Query = query,
+								}
+							};
+						}
+						else
+						{ // the query is followed by extra characters!
+							return state with
+							{
+								Token = PromptToken.Create("error", state.RawToken),
+								CommandBuilder = new Builder
+								{
+									HasQuery = false,
+									Query = null,
+								}
+							};
+						}
+					}
+
+					// we are parsing options
+
+					if (state.RawToken.EndsWith(' '))
+					{ // next!
+						return state with
+						{
+							Change = PromptChange.NextToken,
+							Tokens = [ ..state.Tokens, state.Token ],
+							Token = default,
+							RawToken = "",
+						};
+					}
+
+					var options = this.Options ?? JsonObject.EmptyReadOnly;
+					bool invalid = false;
+
+					var res = ParseOptionToken(state.RawToken, options, this.LastOption);
+					if (res.Valid == true)
+					{
+						options = res.Options;
+					}
+					else if (res.Valid == false)
+					{
+						invalid = true;
 					}
 
 					var builder = this with
 					{
-						HasQuery = true,
-						Query = query,
 						Options = options?.ToReadOnly(),
-						HasInvalidOption = hasInvalidOption,
+						HasInvalidOption = this.HasInvalidOption | invalid,
+						LastOption = res.Last,
 					};
 
-					if (state.Token.EndsWith(' '))
+					if (state.RawToken.EndsWith(' '))
 					{
 						return state with
 						{
 							Change = PromptChange.NextToken,
-							TokenStart = state.Text.Length,
-							Token = "",
+							RawToken = "",
+							Tokens = [..state.Tokens, state.Token],
+							Token = default,
 							CommandBuilder = builder,
 						};
 					}
-					else
+					if (invalid)
 					{
 						return state with
 						{
+							Token = PromptToken.Create("error", state.RawToken),
 							CommandBuilder = builder,
 						};
+					}
+					return state with
+					{
+						Token = PromptToken.Create(res.Valid is null ? "incomplete" : this.LastOption is not null ? "number" : "option", state.RawToken),
+						CommandBuilder = builder,
+					};
+				}
+
+				private (bool? Valid, JsonObject? Options, string? Last) ParseOptionToken(string token, JsonObject options, string? last)
+				{
+					if (last != null)
+					{
+						if (last == "top")
+						{
+							if (!int.TryParse(token, out var x))
+							{
+								return (false, options, null);
+							}
+							options = options.CopyAndSet("top", x);
+							return (true, options, last);
+						}
+						return (false, options, last);
+					}
+
+					if (!token.StartsWith('-'))
+					{
+						return (false, options, null);
+					}
+
+					switch (token)
+					{
+						case "-":
+						case "--":
+						{
+							return (null, options, null);
+						}
+						case "-d":
+						case "--dump":
+						{
+							options = options.CopyAndSet("dump", true);
+							return (true, options, null);
+						}
+						case "-f":
+						case "--force":
+						{
+							options = options.CopyAndSet("force", true);
+							return (true, options, null);
+						}
+						case "--top":
+						{
+							return (true, options, "top");
+						}
+
+						//HACKHACK: until we get auto-complete!
+						case "--t":
+						case "--to":
+						{
+							return (null, options, null);
+						}
+
+						default:
+						{
+							return (false, options, null);
+						}
 					}
 				}
 
@@ -536,7 +725,7 @@ namespace SnowBank.Shell.Prompt.Tests
 						throw new InvalidOperationException("Invalid FQL query", this.Error);
 					}
 
-					return new(descriptor, state.Text)
+					return new(descriptor, state.RawText)
 					{
 						Query = this.Query,
 						Options = this.Options ?? JsonObject.EmptyReadOnly,
@@ -554,29 +743,31 @@ namespace SnowBank.Shell.Prompt.Tests
 			var root = new RootPromptCommand() { Commands = [query], };
 			var keyHandler = new DefaultPromptKeyHandler();
 			var autoComplete = new DefaultPromptAutoCompleter() { Root = root };
+			var theme = new AnsiConsolePromptTheme() { MaxRows = 5, Prompt = "> " };
 
 			Log("Typing...");
 
 			var state = await Run(
 				keyHandler,
 				autoComplete,
-				PromptState.CreateEmpty(root),
+				theme,
+				PromptState.CreateEmpty(root, theme),
 				[
-					(Keyboard.q,           Expr(root).Add().Text("q", "q").Candidates(["query"], commonPrefix: "query")),
-					(Keyboard.Tab,         Expr(root).Completed().Text("query", "query").Candidates(["query"], exactMatch: "query")),
-					(Keyboard.Space,       Expr(query).Token().Text("query ", "")),
-					(Keyboard.Slash,       Expr(query).Add().Text("query /", "/")),
-					(Keyboard.a,           Expr(query).Add().Text("query /a", "/a")),
-					(Keyboard.b,           Expr(query).Add().Text("query /ab", "/ab")),
-					(Keyboard.c,           Expr(query).Add().Text("query /abc", "/abc")),
-					(Keyboard.OpenParens,  Expr(query).Add().Text("query /abc(", "/abc(")),
-					(Keyboard.Digit1,      Expr(query).Add().Text("query /abc(1", "/abc(1")),
-					(Keyboard.Comma,       Expr(query).Add().Text("query /abc(1,", "/abc(1,")),
-					(Keyboard.Dot,         Expr(query).Add().Text("query /abc(1,.", "/abc(1,.")),
-					(Keyboard.Dot,         Expr(query).Add().Text("query /abc(1,..", "/abc(1,..")),
-					(Keyboard.Dot,         Expr(query).Add().Text("query /abc(1,...", "/abc(1,...")),
-					(Keyboard.CloseParens, Expr(query).Add().Text("query /abc(1,...)", "/abc(1,...)")),
-					(Keyboard.Enter,       Expr(query).Done().Text("query /abc(1,...)", "")),
+					(Keyboard.q,           Expr(theme, root).Add('q').Tokens("incomplete:q").Candidates(["query"], commonPrefix: "query")),
+					(Keyboard.Tab,         Expr(theme, root).Completed().Tokens("command:query").Candidates(["query"], exactMatch: "query")),
+					(Keyboard.Space,       Expr(theme, query).Next().Tokens("command:query", "")),
+					(Keyboard.Slash,       Expr(theme, query).Add('/').Tokens("command:query", "fql:/")),
+					(Keyboard.a,           Expr(theme, query).Add('a').Tokens("command:query", "fql:/a")),
+					(Keyboard.b,           Expr(theme, query).Add('b').Tokens("command:query", "fql:/ab")),
+					(Keyboard.c,           Expr(theme, query).Add('c').Tokens("command:query", "fql:/abc")),
+					(Keyboard.OpenParens,  Expr(theme, query).Add('(').Tokens("command:query", "incomplete:/abc(")),
+					(Keyboard.Digit1,      Expr(theme, query).Add('1').Tokens("command:query", "incomplete:/abc(1")),
+					(Keyboard.Comma,       Expr(theme, query).Add(',').Tokens("command:query", "incomplete:/abc(1,")),
+					(Keyboard.Dot,         Expr(theme, query).Add('.').Tokens("command:query", "incomplete:/abc(1,.")),
+					(Keyboard.Dot,         Expr(theme, query).Add('.').Tokens("command:query", "incomplete:/abc(1,..")),
+					(Keyboard.Dot,         Expr(theme, query).Add('.').Tokens("command:query", "incomplete:/abc(1,...")),
+					(Keyboard.CloseParens, Expr(theme, query).Add(')').Tokens("command:query", "fql:/abc(1,...)")),
+					(Keyboard.Enter,       Expr(theme, query).Done().Tokens("command:query", "fql:/abc(1,...)")),
 				]
 			);
 
@@ -591,8 +782,8 @@ namespace SnowBank.Shell.Prompt.Tests
 			var cmd = (FakeQuery.Command) result;
 			Assert.That(cmd.Query, Is.Not.Null);
 			Log(cmd.Query.Explain(prefix: "# "));
-			Assert.That(cmd.Query.Directory, Is.EqualTo(FqlDirectoryExpression.Create().AddRoot().Add("abc")));
-			Assert.That(cmd.Query.Tuple, Is.EqualTo(FqlTupleExpression.Create().AddIntConst(1).AddMaybeMore()));
+			Assert.That(cmd.Query.Directory, Is.EqualTo(FqlDirectoryExpression.Create().Root().Name("abc")));
+			Assert.That(cmd.Query.Tuple, Is.EqualTo(FqlTupleExpression.Create().Integer(1).MaybeMore()));
 			Log($"Markup: {FqlSyntaxHighlighter.GetMarkup(cmd.Query)}");
 
 			// we should not have any options
@@ -606,30 +797,41 @@ namespace SnowBank.Shell.Prompt.Tests
 			var root = new RootPromptCommand() { Commands = [query], };
 			var keyHandler = new DefaultPromptKeyHandler();
 			var autoComplete = new DefaultPromptAutoCompleter() { Root = root };
+			var theme = new AnsiConsolePromptTheme() { MaxRows = 5, Prompt = "> " };
 
 			Log("Typing...");
 
 			var state = await Run(
 				keyHandler,
 				autoComplete,
-				PromptState.CreateEmpty(root),
+				theme,
+				PromptState.CreateEmpty(root, theme),
 				[
-					(Keyboard.q,           Expr(root).Add().Text("q", "q").Candidates(["query"], commonPrefix: "query")),
-					(Keyboard.Tab,         Expr(root).Completed().Text("query", "query").Candidates(["query"], exactMatch: "query")),
-					(Keyboard.Space,       Expr(query).Token().Text("query ", "")),
-					(Keyboard.Slash,       Expr(query).Add().Text("query /", "/")),
-					(Keyboard.a,           Expr(query).Add().Text("query /a", "/a")),
-					(Keyboard.b,           Expr(query).Add().Text("query /ab", "/ab")),
-					(Keyboard.c,           Expr(query).Add().Text("query /abc", "/abc")),
-					(Keyboard.OpenParens,  Expr(query).Add().Text("query /abc(", "/abc(")),
-					(Keyboard.Dot,         Expr(query).Add().Text("query /abc(.", "/abc(.")),
-					(Keyboard.Dot,         Expr(query).Add().Text("query /abc(..", "/abc(..")),
-					(Keyboard.Dot,         Expr(query).Add().Text("query /abc(...", "/abc(...")),
-					(Keyboard.CloseParens, Expr(query).Add().Text("query /abc(...)", "/abc(...)")),
-					(Keyboard.Space,       Expr(query).Token().Text("query /abc(...) ", "")),
-					(Keyboard.Dash,       Expr(query).Add().Text("query /abc(...) -", "-")),
-					(Keyboard.d,       Expr(query).Add().Text("query /abc(...) -d", "-d")),
-					(Keyboard.Enter,       Expr(query).Done().Text("query /abc(...) -d", "")),
+					(Keyboard.q,           Expr(theme, root).Add('q').Tokens("incomplete:q").Candidates(["query"], commonPrefix: "query")),
+					(Keyboard.Tab,         Expr(theme, root).Completed().Tokens("command:query").Candidates(["query"], exactMatch: "query")),
+					(Keyboard.Space,       Expr(theme, query).Next().Tokens("command:query", "")),
+					(Keyboard.Slash,       Expr(theme, query).Add('/').Tokens("command:query", "fql:/")),
+					(Keyboard.a,           Expr(theme, query).Add('a').Tokens("command:query", "fql:/a")),
+					(Keyboard.b,           Expr(theme, query).Add('b').Tokens("command:query", "fql:/ab")),
+					(Keyboard.c,           Expr(theme, query).Add('c').Tokens("command:query", "fql:/abc")),
+					(Keyboard.OpenParens,  Expr(theme, query).Add('(').Tokens("command:query", "incomplete:/abc(")),
+					(Keyboard.Dot,         Expr(theme, query).Add('.').Tokens("command:query", "incomplete:/abc(.")),
+					(Keyboard.Dot,         Expr(theme, query).Add('.').Tokens("command:query", "incomplete:/abc(..")),
+					(Keyboard.Dot,         Expr(theme, query).Add('.').Tokens("command:query", "incomplete:/abc(...")),
+					(Keyboard.CloseParens, Expr(theme, query).Add(')').Tokens("command:query", "fql:/abc(...)")),
+					(Keyboard.Space,       Expr(theme, query).Next().Tokens("command:query", "fql:/abc(...)", "")),
+					(Keyboard.Dash,        Expr(theme, query).Add('-').Tokens("command:query", "fql:/abc(...)", "incomplete:-")),
+					(Keyboard.d,           Expr(theme, query).Add('d').Tokens("command:query", "fql:/abc(...)", "option:-d")),
+					(Keyboard.Space,       Expr(theme, query).Next().Tokens("command:query", "fql:/abc(...)", "option:-d", "")),
+					(Keyboard.Dash,        Expr(theme, query).Add('-').Tokens("command:query", "fql:/abc(...)", "option:-d", "incomplete:-")),
+					(Keyboard.Dash,        Expr(theme, query).Add('-').Tokens("command:query", "fql:/abc(...)", "option:-d", "incomplete:--")),
+					(Keyboard.t,           Expr(theme, query).Add('t').Tokens("command:query", "fql:/abc(...)", "option:-d", "incomplete:--t")),
+					(Keyboard.o,           Expr(theme, query).Add('o').Tokens("command:query", "fql:/abc(...)", "option:-d", "incomplete:--to")),
+					(Keyboard.p,           Expr(theme, query).Add('p').Tokens("command:query", "fql:/abc(...)", "option:-d", "option:--top")),
+					(Keyboard.Space,       Expr(theme, query).Next().Tokens("command:query", "fql:/abc(...)", "option:-d", "option:--top", "")),
+					(Keyboard.Digit1,      Expr(theme, query).Add('1').Tokens("command:query", "fql:/abc(...)", "option:-d", "option:--top", "number:1")),
+					(Keyboard.Digit0,      Expr(theme, query).Add('0').Tokens("command:query", "fql:/abc(...)", "option:-d", "option:--top", "number:10")),
+					(Keyboard.Enter,       Expr(theme, query).Done().Tokens("command:query", "fql:/abc(...)", "option:-d", "option:--top", "number:10")),
 				]
 			);
 
@@ -648,13 +850,117 @@ namespace SnowBank.Shell.Prompt.Tests
 			// we must have the query
 			Assert.That(cmd.Query, Is.Not.Null);
 			Log(cmd.Query.Explain(prefix: "# "));
-			Assert.That(cmd.Query.Directory, Is.EqualTo(FqlDirectoryExpression.Create().AddRoot().Add("abc")));
-			Assert.That(cmd.Query.Tuple, Is.EqualTo(FqlTupleExpression.Create().AddMaybeMore()));
+			Assert.That(cmd.Query.Directory, Is.EqualTo(FqlDirectoryExpression.Create().Root().Name("abc")));
+			Assert.That(cmd.Query.Tuple, Is.EqualTo(FqlTupleExpression.Create().MaybeMore()));
 
 			// we must have the "-d" command
 			Assert.That(cmd.Options, IsJson.ReadOnly);
 			Assert.That(cmd.Options["dump"], IsJson.True);
-			Assert.That(cmd.Options, IsJson.OfSize(1));
+			Assert.That(cmd.Options["top"], IsJson.EqualTo(10));
+			Assert.That(cmd.Options, IsJson.OfSize(2));
+		}
+
+		[Test]
+		public void Test_PromptTokenBuilder_Basics()
+		{
+			var theme = new AnsiConsolePromptTheme() { MaxRows = 5, Prompt = "> " };
+
+			{
+				var builder = new PromptBuilder(theme);
+				builder.Add("foo", "Hello", "yellow");
+				builder.Add("bar", "World", "cyan", "blue");
+				Log("Raw   : " + builder.ToString());
+
+				Assert.That(builder.ToString(), Is.EqualTo("Hello World"));
+				Assert.That(builder.Count, Is.EqualTo(2));
+				Assert.That(builder[0], Is.EqualTo(PromptToken.Create("foo", "Hello", "yellow")));
+				Assert.That(builder[1], Is.EqualTo(PromptToken.Create("bar", "World", "cyan", "blue")));
+			}
+
+			{
+				var builder = new PromptBuilder(theme);
+				builder.Add("path", [
+					PromptTokenFragment.Create("/", "gray"),
+					PromptTokenFragment.Create("foo", "red"),
+					PromptTokenFragment.Create("/", "gray"),
+					PromptTokenFragment.Create("bar", "green"),
+					PromptTokenFragment.Create("/", "gray"),
+					PromptTokenFragment.Create("baz", "blue"),
+				]);
+				Log("Raw   : " + builder.ToString());
+
+				Assert.That(builder.ToString(), Is.EqualTo("/foo/bar/baz"));
+				Assert.That(builder.Count, Is.EqualTo(1));
+				var token = builder[0];
+				Assert.That(token.Count, Is.EqualTo(6));
+				Assert.That(token[0], Is.EqualTo(PromptTokenFragment.Create("/", "gray")));
+				Assert.That(token[1], Is.EqualTo(PromptTokenFragment.Create("foo", "red")));
+				Assert.That(token[2], Is.EqualTo(PromptTokenFragment.Create("/", "gray")));
+				Assert.That(token[3], Is.EqualTo(PromptTokenFragment.Create("bar", "green")));
+				Assert.That(token[4], Is.EqualTo(PromptTokenFragment.Create("/", "gray")));
+				Assert.That(token[5], Is.EqualTo(PromptTokenFragment.Create("baz", "blue")));
+			}
+		}
+
+		[Test]
+		public void Test_PromptTokenBuilder_AnsiConsole_Render_Markup()
+		{
+			// test that the renderer can generate the markup string
+			// - all fragments should be decorated with optional "[color]...[/]", and stitched together to form the token
+			// - all tokens should be concatenated with a space between them
+
+			var renderer = new AnsiConsolePromptRenderer();
+
+			{
+				var theme = new AnsiConsolePromptTheme()
+				{
+					MaxRows = 5,
+					Prompt = "> ",
+				};
+
+				var builder = new PromptBuilder(theme);
+				builder.Add("foo", "Hello", "yellow");
+				builder.Add("bar", "World", "cyan", "blue");
+				var prompt = builder.Build();
+				Log($"Raw   : {prompt}");
+
+				var markup = prompt.Render(renderer);
+				Log($"Markup: {markup}");
+				Assert.That(markup, Is.EqualTo("[yellow]Hello[/] [cyan on blue]World[/]"));
+			}
+
+			{
+				var theme = new AnsiConsolePromptTheme()
+				{
+					MaxRows = 5,
+					Prompt = "> ",
+					DefaultForeground = "gray",
+				};
+
+				var builder = new PromptBuilder(theme);
+				builder.Add("command", "query", "magenta");
+				builder.Add("path",
+				[
+					PromptTokenFragment.Create("/"),
+					PromptTokenFragment.Create("foo", "red"),
+					PromptTokenFragment.Create("/"),
+					PromptTokenFragment.Create("bar", "green"),
+					PromptTokenFragment.Create("/"),
+					PromptTokenFragment.Create("baz", "blue"),
+				]);
+				builder.Add("option", "--top", "yellow");
+				builder.Add("number", "10", "cyan");
+
+				var prompt = builder.Build();
+
+				Log($"Raw   : {prompt}");
+				Assert.That(prompt.ToString(), Is.EqualTo("query /foo/bar/baz --top 10"));
+
+				var markup = prompt.Render(renderer);
+				Log($"Markup: {markup}");
+				Assert.That(markup, Is.EqualTo("[gray][magenta]query[/] /[red]foo[/]/[green]bar[/]/[blue]baz[/] [yellow]--top[/] [cyan]10[/][/]"));
+			}
+
 		}
 
 	}

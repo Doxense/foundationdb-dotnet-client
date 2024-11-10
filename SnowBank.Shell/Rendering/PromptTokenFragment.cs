@@ -26,30 +26,42 @@
 
 namespace SnowBank.Shell.Prompt
 {
-	using JetBrains.Annotations;
+	using System.Runtime.CompilerServices;
 
-	/// <summary>Generates the <see cref="RenderState"/> that represents a current prompt state, using a specific theme or layout</summary>
-	/// <remarks>This is similar to generating a "virtual dom" that is not rendered yet, but only describes what should be visible</remarks>
+	/// <summary>Represents a fragment of a token in a prompt.</summary>
+	/// <remarks>
+	/// <para>A fragment correspond to a span of contiguous letters that have the same colors.</para>
+	/// </remarks>
+	/// <seealso cref="PromptToken"/>
 	[PublicAPI]
-	public interface IPromptTheme
+	public readonly record struct PromptTokenFragment
 	{
 
-		/// <summary>Default foreground color for all tokens</summary>
-		/// <remarks>
-		/// <para>Any text fragment that does not define a foreground color will use this color</para>
-		/// <para>If <see langword="null"/>, then the default shell color will be used.</para>
-		/// </remarks>
-		string? DefaultForeground { get; }
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static PromptTokenFragment Create(string? literal, string? foreground = null, string? background = null)
+			=> new(literal.AsMemory(), !string.IsNullOrEmpty(foreground) ? foreground : null, !string.IsNullOrEmpty(background) ? background : null);
 
-		/// <summary>Default background color for all tokens</summary>
-		/// <remarks>
-		/// <para>Any text fragment that does not define a background color will use this color</para>
-		/// <para>If <see langword="null"/>, then the default shell color will be used.</para>
-		/// </remarks>
-		string? DefaultBackground { get; }
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private PromptTokenFragment(ReadOnlyMemory<char> literal, string? foreground = null, string? background = null)
+		{
+			this.Literal = literal;
+			this.Foreground = foreground;
+			this.Background = background;
+		}
 
-		/// <summary>Generates the <see cref="RenderState"/> that corresponds to a <see cref="PromptState"/></summary>
-		RenderState Paint(PromptState state);
+		public readonly ReadOnlyMemory<char> Literal;
+
+		public readonly string? Foreground;
+
+		public readonly string? Background;
+
+		public override string ToString() => this.Literal.ToString();
+
+		public bool HasColor => !string.IsNullOrEmpty(this.Foreground) || !string.IsNullOrEmpty(this.Background);
+
+		public bool Equals(PromptTokenFragment other) => other.Literal.Span.SequenceEqual(this.Literal.Span) && other.Foreground == this.Foreground && other.Background == this.Background;
+
+		public override int GetHashCode() => string.GetHashCode(this.Literal.Span, StringComparison.Ordinal);
 
 	}
 

@@ -26,6 +26,9 @@
 
 namespace SnowBank.Shell.Prompt
 {
+	using System.Runtime.CompilerServices;
+	using Doxense.Linq;
+	using Spectre.Console;
 
 	public class AnsiConsolePromptTheme : IPromptTheme
 	{
@@ -35,19 +38,23 @@ namespace SnowBank.Shell.Prompt
 
 		public required int MaxRows { get; init; } = 5;
 
+		public string? DefaultForeground { get; init; }
+
+		public string? DefaultBackground { get; init; }
+
 		/// <inheritdoc />
 		public virtual RenderState Paint(PromptState state)
 		{
 			var promptMarkup = "[gray]" + this.Prompt + "[/]";
-			var text = state.Text;
-			var token = state.Token;
+			var text = state.RawText;
+			var token = state.RawToken;
 			var candidates = state.Candidates;
 			var rows = new List<(string Raw, string Markup)>();
 
 			// if we have multiple candidates, first jump ahead, write them, and then go back up!
-			if (candidates?.Count > 0)
+			if (candidates.Length > 0)
 			{
-				for (var i = 0; i < candidates.Count; i++)
+				for (var i = 0; i < candidates.Length; i++)
 				{
 					if (i >= this.MaxRows) break;
 
@@ -69,14 +76,14 @@ namespace SnowBank.Shell.Prompt
 			}
 
 			string markup = "";
-			if (state.TokenStart > 0)
+			if (state.Tokens.Length > 0)
 			{
-				markup += (!state.CommandBuilder.IsValid() ? "[red]" : "[silver]") + text[..state.TokenStart] + "[/]";
+				markup += (!state.CommandBuilder.IsValid() ? "[red]" : "[silver]") + text[..^state.RawToken.Length] + "[/]";
 			}
 
 			int extra = 0;
 
-			if (state.TokenStart < text.Length)
+			if (state.RawToken.Length > 0)
 			{
 				// if we have an exact match => green
 				// if we have a single incomplete match => cyan
@@ -84,15 +91,15 @@ namespace SnowBank.Shell.Prompt
 				// otherwise, white
 				string color =
 					state.ExactMatch != null ? "[green]"
-					: candidates?.Count == 1 ? "[cyan]"
-					: (candidates?.Count ?? 0) != 0 ? "[yellow]"
+					: candidates.Length == 1 ? "[cyan]"
+					: candidates.Length != 0 ? "[yellow]"
 					: "[white]";
 
-				markup += color + text[state.TokenStart..] + "[/]";
+				markup += color + text[^state.RawToken.Length..] + "[/]";
 
-				if (candidates?.Count == 1)
+				if (candidates.Length == 1)
 				{ // we have a candidate, write a "ghost" with the remainder (TAB will auto-complete)
-					var suffix = candidates[0][state.Token.Length..];
+					var suffix = candidates[0][token.Length..];
 					markup = markup + "[darkcyan]" + suffix + "[/]";
 					extra = suffix.Length;
 				}

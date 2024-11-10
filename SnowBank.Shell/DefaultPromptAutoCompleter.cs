@@ -38,14 +38,14 @@ namespace SnowBank.Shell.Prompt
 			{ // nothing to do anymore
 				return state with
 				{
-					Candidates = null,
+					Candidates = [ ],
 					ExactMatch = null,
 					CommonPrefix = null,
 				};
 			}
 
-			var text = state.Text ?? "";
-			var token = state.Token;
+			var text = state.RawText;
+			var token = state.Token.RawText;
 
 			//if (commandToken == null && state.TokenStart > 0)
 			//{ // we just validated the command
@@ -110,7 +110,7 @@ namespace SnowBank.Shell.Prompt
 
 			return state with
 			{
-				Candidates = candidates,
+				Candidates = candidates.ToArray(),
 				ExactMatch = exactMatch,
 				CommonPrefix = commonPrefix,
 			};

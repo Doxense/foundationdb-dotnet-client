@@ -26,11 +26,23 @@
 
 namespace SnowBank.Shell.Prompt
 {
+	using Doxense.Linq;
 
 	[PublicAPI]
 	public interface IPromptRenderer
 	{
+
+		/// <summary>Generate the markup for or more tokens</summary>
+		/// <param name="destination">Destination buffer</param>
+		/// <param name="tokens">Builder lists all the tokens in the prompt</param>
+		/// <remarks>Writes the token literals, decorated with markup, to the destination buffer</remarks>
+		void ToMarkup(ref ValueStringWriter destination, PromptTokens tokens);
+
+		/// <summary>Render the prompt to the screen</summary>
+		/// <param name="state">New state</param>
+		/// <param name="prev">Previous state, or <see langword="null"/> on the first render</param>
 		void Render(RenderState state, RenderState? prev);
+
 	}
 
 }

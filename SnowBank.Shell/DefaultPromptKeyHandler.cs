@@ -39,27 +39,31 @@ namespace SnowBank.Shell.Prompt
 				{
 					return state with
 					{
-						Text = state.Text.Trim(),
-						Token = "",
-						TokenStart = state.Text.Length,
 						Change = PromptChange.Done,
+						LastKey = '\n',
+						Parent = null,
+						RawText = state.RawText.Trim(),
 					};
 				}
 				case ConsoleKey.Escape:
 				{
 					return state with
 					{
-						Text = "",
-						Token = "",
-						TokenStart = 0,
 						Change = PromptChange.Aborted,
+						LastKey = '\e',
+						Parent = null,
+						RawText = "",
+						RawToken = "",
+						Tokens = [ ],
+						Token = default,
 					};
 				}
 				case ConsoleKey.Tab:
 				{
-					if (state.Token.Length == 0)
+					var candidates = state.Candidates;
+					if (candidates.Length == 0)
 					{ // nothing to complete?
-						return state with { Change = PromptChange.None }; //TODO: "ding!" ?
+						return state;
 					}
 
 					if (state.ExactMatch != null)
@@ -67,92 +71,84 @@ namespace SnowBank.Shell.Prompt
 
 						if (state.Change == PromptChange.Completed)
 						{ // double "TAB" after an auto-complete, equivalent to a space
-
 							//TODO: implemented looping through all the possible candidates
-							return state with
-							{
-								Change = PromptChange.None,
-							};
+							return state;
 						}
 
-						if (string.IsNullOrEmpty(state.Text))
+						if (string.IsNullOrEmpty(state.RawText))
 						{
-							return state with { Change = PromptChange.None }; // DING!
+							return state;
 						}
 
 						state = state with
 						{
 							Change = PromptChange.Completed,
-							Text = state.Text,
-							Token = state.ExactMatch,
+							LastKey = '\t',
+							Parent = state,
+							RawText = state.RawText,
 						};
 						break;
 					}
 
-					if (state.Candidates?.Count == 1)
+					if (candidates.Length == 1)
 					{ // we have only one candidate, output it
-						var c = state.Candidates[0];
-						var text = state.TokenStart == 0 ? c : (state.Text![..state.TokenStart] + c);
+						var c = candidates[0];
+						var text = state.Tokens.Length == 0 ? c : (state.RawText[..^state.RawToken.Length] + c);
 						state = state with
 						{
 							Change = PromptChange.Completed,
-							Text = text,
-							Token = c,
+							LastKey = '\t',
+							Parent = state,
+							RawText = text,
+							RawToken = c,
 						};
 						break;
 					}
 
 					if (state.CommonPrefix != null)
-					{ // we have a common prefix with all candiates, we can jump forward
-						var text = state.Text + state.CommonPrefix[state.Token.Length..];
+					{ // we have a common prefix with all candidates, we can jump forward
+						var partial = state.CommonPrefix[state.Token.RawText.Length..];
+						var text = state.RawText + partial;
 						state = state with
 						{
 							Change = PromptChange.Completed,
-							Text = text,
-							Token = text[state.TokenStart..],
+							LastKey = '\t',
+							Parent = state,
+							RawText = text,
+							RawToken = partial,
 						};
 						break;
 					}
 
-					return state with { Change = PromptChange.None };
+					return state;
 				}
 				case ConsoleKey.Backspace:
 				{
-					if (string.IsNullOrEmpty(state.Text))
+					if (state.Parent == null)
 					{ // nothing to delete
-						return state with { Change = PromptChange.None };
+						return state;
 					}
 
-					var text = state.Text[..^1];
-					var tokenStart = text.Length == 0 ? 0 : Math.Max(0, text.LastIndexOf(' '));
-
-					if (tokenStart == 0)
-					{
-						//TODO: go back to the root command!
-					}
-
-					state = state with
-					{
-						Change = PromptChange.BackSpace,
-						Text = text,
-						TokenStart = tokenStart,
-						Token = text[tokenStart..],
-					};
-					break;
+					return state.Parent;
 				}
 				default:
 				{
 					char c = key.KeyChar;
 
-					var text = state.Text;
+					var rawText = state.RawText;
+					var rawToken = state.RawToken;
 					// simply add the character
 
-					text += c;
+					rawText += c;
+					rawToken += c;
+
 					state = state with
 					{
 						Change = PromptChange.Add,
-						Text = text,
-						Token = text[state.TokenStart..],
+						LastKey = c,
+						Parent = state,
+						RawText = rawText,
+						RawToken = rawToken,
 					};
 
 					break;

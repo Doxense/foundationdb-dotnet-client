@@ -26,6 +26,8 @@
 
 namespace SnowBank.Shell.Prompt
 {
+	using System.Runtime.CompilerServices;
+	using Doxense.Linq;
 	using Spectre.Console;
 	using Console = System.Console;
 
@@ -114,6 +116,144 @@ namespace SnowBank.Shell.Prompt
 			Console.CursorLeft = cursorStart + state.Cursor;
 			Console.CursorVisible = true;
 
+		}
+
+
+		public static string EscapeMarkup(string literal)
+		{
+			// note: SpectreConsole only provide an extension method for strings, not ReadOnlySpans!
+			// => it only encode [ into [[ and ] into ]] so we just replicate it here
+			if (literal.AsSpan().ContainsAny('[', ']'))
+			{
+				return EscapeMarkupSlow(literal);
+			}
+
+			return literal;
+
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			static string EscapeMarkupSlow(string literal) => literal
+				.Replace("[", "[[", StringComparison.Ordinal)
+				.Replace("]", "]]", StringComparison.Ordinal);
+		}
+
+		public static void WriteEscaped(ref ValueStringWriter destination, ReadOnlySpan<char> literal)
+		{
+			if (literal.ContainsAny('[', ']'))
+			{
+				WriteEscapedSlow(ref destination, literal);
+			}
+			else
+			{
+				destination.Write(literal);
+			}
+
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			static void WriteEscapedSlow(ref ValueStringWriter destination, ReadOnlySpan<char> literal)
+			{
+				foreach (var c in literal)
+				{
+					switch (c)
+					{
+						case '[':
+						{
+							destination.Write("[[");
+							break;
+						}
+						case ']':
+						{
+							destination.Write("]]");
+							break;
+						}
+						default:
+						{
+							destination.Write(c);
+							break;
+						}
+					}
+				}
+			}
+		}
+
+		private static void BeginColor(ref ValueStringWriter output, ReadOnlySpan<char> foreground, ReadOnlySpan<char> background)
+		{
+			if (foreground.Length != 0)
+			{
+				if (background.Length == 0)
+				{ // "[FGND]"
+					output.Write('[');
+					output.Write(foreground);
+					output.Write(']');
+				}
+				else
+				{ // "[FGND on BGND]"
+					output.Write('[');
+					output.Write(foreground);
+					output.Write(" on ");
+					output.Write(background);
+					output.Write(']');
+				}
+			}
+			else if (background.Length == 0)
+			{ // "[on BGND]"
+				output.Write("[ on");
+				output.Write(background);
+				output.Write(']');
+			}
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void EndColor(ref ValueStringWriter output)
+		{
+			output.Write("[/]");
+		}
+
+		private static void Write(ref ValueStringWriter output, ReadOnlySpan<char> literal, ReadOnlySpan<char> foreground, ReadOnlySpan<char> background)
+		{
+			if (foreground.Length == 0 && background.Length == 0)
+			{
+				WriteEscaped(ref output, literal);
+			}
+			else
+			{
+				BeginColor(ref output, foreground, background);
+				WriteEscaped(ref output, literal);
+				EndColor(ref output);
+			}
+		}
+
+		public void ToMarkup(ref ValueStringWriter destination, PromptTokens prompt)
+		{
+			var tokens = prompt.Span;
+			var foreground = prompt.Theme.DefaultForeground ?? "";
+			var background = prompt.Theme.DefaultBackground ?? "";
+			bool hasDefaultColors = !string.IsNullOrEmpty(foreground) || !string.IsNullOrEmpty(background);
+
+			if (hasDefaultColors)
+			{
+				BeginColor(ref destination, foreground, background);
+			}
+
+			for(int i = 0; i < tokens.Length; i++)
+			{
+				if (i > 0)
+				{
+					destination.Write(' ');
+				}
+				foreach (var frag in tokens[i].Fragments.Span)
+				{
+					var f = frag.Foreground ?? "";
+					if (f == foreground) f = null;
+					var b = frag.Background ?? "";
+					if (b == background) b = null;
+
+					Write(ref destination, frag.Literal.Span, f, b);
+				}
+			}
+
+			if (hasDefaultColors)
+			{
+				EndColor(ref destination);
+			}
 		}
 
 	}

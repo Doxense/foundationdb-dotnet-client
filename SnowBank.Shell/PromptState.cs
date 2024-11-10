@@ -26,21 +26,28 @@
 
 namespace SnowBank.Shell.Prompt
 {
+	using System.Collections.Immutable;
 	using Doxense.Runtime;
 	using Doxense.Serialization;
+	using Doxense.Serialization.Json;
 
 	/// <summary>Snapshot of a prompt at a point in time</summary>
 	/// <remarks>Any keystroke transforms a current prompt state into a new prompt state (which could be the same)</remarks>
 	public sealed record PromptState : ICanExplain
 	{
 
-		public static PromptState CreateEmpty(RootPromptCommand root) => new()
+		public static PromptState CreateEmpty(RootPromptCommand root, IPromptTheme theme) => new()
 		{
 			Change = PromptChange.Empty,
-			Text = "",
-			Token = "",
+			LastKey = '\0',
+			RawText = "",
+			RawToken = "",
+			Tokens = [ ],
+			Token = default,
+			Candidates = [ ],
 			Command = root,
 			CommandBuilder = root.StartNew(),
+			Theme = theme,
 		};
 
 		/// <summary>The change due to the last user action (from the previous state to this state)</summary>
@@ -50,32 +57,35 @@ namespace SnowBank.Shell.Prompt
 		/// </remarks>
 		public required PromptChange Change { get; init; }
 
+		public char LastKey { get; init; }
+
 		public bool IsDone() => this.Change is PromptChange.Done or PromptChange.Aborted;
 
-		public required string Text { get; init; }
+		public PromptState? Parent { get; init; }
+
+		/// <summary>List of completed tokens in the prompt</summary>
+		/// <remarks>
+		/// <para>Does not include the token currently being edited!</para>
+		/// </remarks>
+		public required ImmutableArray<PromptToken> Tokens { get; init; }
+
+		/// <summary>The decorated version of <see cref="RawToken"/></summary>
+		public required PromptToken Token { get; init; }
+
+		/// <summary>The raw text of the whole prompt</summary>
+		public required string RawText { get; init; }
+
+		/// <summary>The raw text of the currently edited token</summary>
+		public required string RawToken { get; init; }
 
 		public required IPromptCommandDescriptor Command { get; init; }
 
 		public required IPromptCommandBuilder CommandBuilder { get; init; }
 
-		public ReadOnlySpan<char> TextWithoutCommand
-		{
-			get
-			{
-				if (this.TokenStart == 0) return default;
-				return this.Text.AsSpan(this.Command.Token.Length + 1);
-			}
-		}
+		public required IPromptTheme Theme { get; init; }
 
 		/// <summary>List of all auto-complete candidates</summary>
-		public List<string>? Candidates { get; init; }
-
-		/// <summary>Start position of the current token (relative to the start of <see cref="Text"/></summary>
-		public int TokenStart { get; init; }
-
-		/// <summary>Current token</summary>
-		public required string Token { get; init; }
-
+		public required string[] Candidates { get; init; }
 		/// <summary>There is an exact match with an auto-complete</summary>
 		public string? ExactMatch { get; init; }
 
@@ -84,10 +94,11 @@ namespace SnowBank.Shell.Prompt
 
 		public void Explain(ExplanationBuilder builder)
 		{
-			builder.WriteLine($"Prompt: '{this.Text}'");
+			builder.WriteLine($"Prompt: '{this.RawText}'");
 			builder.Enter();
-			builder.WriteLine($"Change : {this.Change}");
-			builder.WriteLine($"Token  : '{this.Token}' (start={this.TokenStart}, len={this.Text?.Length})");
+			builder.WriteLine($"Change : {this.Change}, Char={(this.LastKey < 32 ? $"0x{(int) this.LastKey:x02}" : $"'{this.LastKey}'")}");
+			builder.WriteLine($"Tokens : [ {string.Join(", ", this.Tokens)} ] (count={this.Tokens.Length})");
+			builder.WriteLine($"Token  : '{this.RawToken}' ({this.Token.ToString()})");
 			builder.WriteLine($"Command: <{this.Command.GetType().GetFriendlyName()}>, '{this.Command.SyntaxHint}'");
 			builder.WriteLine($"Builder: <{this.CommandBuilder?.GetType().GetFriendlyName()}>, {this.CommandBuilder}");
 			if (this.CommandBuilder is ICanExplain explain)
@@ -95,9 +106,9 @@ namespace SnowBank.Shell.Prompt
 				builder.ExplainChild(explain);
 			}
 
-			if (this.Candidates is not null)
+			if (this.Candidates.Length > 0)
 			{
-				builder.WriteLine($"Candidates: ({this.Candidates.Count}) [ {string.Join(", ", this.Candidates.Select(c => $"'{c}'"))} ]");
+				builder.WriteLine($"Candidates: ({this.Candidates.Length}) [ {string.Join(", ", this.Candidates.Select(c => $"'{c}'"))} ]");
 			}
 
 			if (this.ExactMatch is not null)

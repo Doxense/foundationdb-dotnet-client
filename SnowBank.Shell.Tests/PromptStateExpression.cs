@@ -26,20 +26,26 @@
 
 namespace SnowBank.Shell.Prompt.Tests
 {
+	using System.Text;
 	using JetBrains.Annotations;
+	using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 
 	[UsedImplicitly]
 	public abstract class PromptStateExpression
 	{
 
-		public static PromptStateExpression<TCommand> For<TCommand>(TCommand command) where TCommand : IPromptCommandDescriptor
+		public static PromptStateExpression<TCommand> For<TCommand>(TCommand command, IPromptTheme theme) where TCommand : IPromptCommandDescriptor
 			=> new(new()
 			{
 				Change = PromptChange.None,
-				Text = "",
-				Token = "",
+				RawText = "",
+				RawToken = "",
+				Tokens = [ ],
+				Token = default,
+				Candidates = [ ],
 				Command = command,
 				CommandBuilder = command.StartNew(),
+				Theme = theme,
 			});
 
 
@@ -57,31 +63,65 @@ namespace SnowBank.Shell.Prompt.Tests
 		public PromptStateExpression(PromptState state) : base(state) { }
 
 		[MustUseReturnValue]
-		public PromptStateExpression<TCommand> Add() => WithState(PromptChange.Add);
+		public PromptStateExpression<TCommand> Add(char c) => WithState(PromptChange.Add, c);
 
 		[MustUseReturnValue]
-		public PromptStateExpression<TCommand> Token() => WithState(PromptChange.NextToken);
+		public PromptStateExpression<TCommand> Next() => WithState(PromptChange.NextToken, ' ');
 
 		[MustUseReturnValue]
-		public PromptStateExpression<TCommand> Completed() => WithState(PromptChange.Completed);
+		public PromptStateExpression<TCommand> Completed() => WithState(PromptChange.Completed, '\t');
 
 		[MustUseReturnValue]
-		public PromptStateExpression<TCommand> Done() => WithState(PromptChange.Done);
+		public PromptStateExpression<TCommand> Done() => WithState(PromptChange.Done, '\n');
 
 		[MustUseReturnValue]
-		public PromptStateExpression<TCommand> Aborted() => WithState(PromptChange.Aborted);
+		public PromptStateExpression<TCommand> Aborted() => WithState(PromptChange.Aborted, '\e');
 
 		[MustUseReturnValue]
-		public PromptStateExpression<TCommand> WithState(PromptChange change) => new(this.State with { Change = change });
+		public PromptStateExpression<TCommand> WithState(PromptChange change, char lastKey) => new(this.State with { Change = change, LastKey = lastKey });
 
-		[MustUseReturnValue]
-		public PromptStateExpression<TCommand> Text(string text, string token, int? start = null)
+		private static PromptToken DecodeWord(string word)
 		{
+			if (string.IsNullOrEmpty(word))
+			{
+				return default;
+			}
+
+			int p = word.IndexOf(':');
+			if (p < 1) throw new FormatException($"Word '{word}' must include type");
+			return PromptToken.Create(word[..p], word[(p + 1)..]);
+		}
+
+		[MustUseReturnValue]
+		public PromptStateExpression<TCommand> Tokens(params string[] words)
+		{
+			if (words.Length == 0) words = [""];
+
+			var tokens = new List<PromptToken>();
+
+			foreach (var word in words)
+			{
+				tokens.Add(DecodeWord(word));
+			}
+
+			var rawText = string.Join(" ", tokens.Select(t => t.RawText));
+
+			PromptToken token = default;
+			string rawToken = "";
+
+			if (this.State.Change != PromptChange.Done)
+			{
+				token = tokens[^1];
+				rawToken = token.RawText;
+				tokens.RemoveAt(tokens.Count - 1);
+			}
+
 			return new(this.State with
 			{
-				Text = text,
+				RawText = rawText,
+				RawToken = rawToken,
+				Tokens = [..tokens],
 				Token = token,
-				TokenStart = start ?? (string.IsNullOrEmpty(token) ? (text?.Length ?? 0) : ((text?.Length ?? 0) - token.Length)),
 			});
 		}
 
