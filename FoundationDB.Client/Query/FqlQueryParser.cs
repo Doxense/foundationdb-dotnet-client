@@ -56,8 +56,6 @@ namespace FoundationDB.Client
 			FqlDirectoryExpression? directoryExpr = null;
 			FqlTupleExpression? tupleExpr = null;
 
-			text = text.Trim();
-
 			var remaining = text;
 
 			bool complete = false;
@@ -85,10 +83,10 @@ namespace FoundationDB.Client
 							directoryExpr = new();
 							if (!segment.IsRoot)
 							{ // add implicit root
-								directoryExpr.Add(FqlPathSegment.Root());
+								directoryExpr.Name(FqlPathSegment.Root());
 							}
 						}
-						directoryExpr.Add(segment);
+						directoryExpr.Name(segment);
 
 
 						break;
@@ -356,7 +354,7 @@ namespace FoundationDB.Client
 					{ // could be '...'
 						if (text.StartsWith("..."))
 						{
-							tuple.AddMaybeMore();
+							tuple.MaybeMore();
 							text = text[3..];
 							continue;
 						}
@@ -368,7 +366,7 @@ namespace FoundationDB.Client
 						// could be 'nil'
 						if (text.StartsWith("nil"))
 						{
-							tuple.AddNilConst();
+							tuple.Nil();
 							text = text[3..];
 							continue;
 						}
@@ -379,7 +377,7 @@ namespace FoundationDB.Client
 					{
 						if (text.StartsWith("false"))
 						{
-							tuple.AddBooleanConst(false);
+							tuple.Boolean(false);
 							text = text[5..];
 							continue;
 						}
@@ -391,7 +389,7 @@ namespace FoundationDB.Client
 						// could be 'true'
 						if (text.StartsWith("true"))
 						{
-							tuple.AddBooleanConst(true);
+							tuple.Boolean(true);
 							text = text[4..];
 							continue;
 						}
@@ -410,7 +408,7 @@ namespace FoundationDB.Client
 							var slice = Slice.FromHexString(text[..p]);
 							text = text[p..];
 
-							tuple.AddBytesConst(slice);
+							tuple.Bytes(slice);
 							continue;
 						}
 
@@ -421,7 +419,7 @@ namespace FoundationDB.Client
 							if (Guid.TryParseExact(text[..36], "D", out var uuid))
 							{
 								text = text[36..];
-								tuple.AddUuidConst(uuid);
+								tuple.Uuid(uuid);
 								continue;
 							}
 
@@ -446,11 +444,11 @@ namespace FoundationDB.Client
 							var d64 = (double) d128;
 							if ((decimal) d64 == d128)
 							{ // no precision loss, we prefer using double
-								tuple.AddNumConst(d64);
+								tuple.Number(d64);
 							}
 							else
 							{ // requires the full precision of decimal
-								tuple.AddNumConst(d128);
+								tuple.Number(d128);
 							}
 						}
 						else
@@ -459,15 +457,15 @@ namespace FoundationDB.Client
 							{ // negative
 								if (long.TryParse(chunk, CultureInfo.InvariantCulture, out var l64))
 								{ // fits in 64 bits
-									tuple.AddIntConst(l64);
+									tuple.Integer(l64);
 								}
 								else if (Int128.TryParse(chunk, CultureInfo.InvariantCulture, out var l128))
 								{ // bit integer
-									tuple.AddIntConst(l128);
+									tuple.Integer(l128);
 								}
 								else if (BigInteger.TryParse(chunk, CultureInfo.InvariantCulture, out var big))
 								{ // big integer
-									tuple.AddIntConst(big);
+									tuple.Integer(big);
 								}
 								else
 								{
@@ -479,15 +477,15 @@ namespace FoundationDB.Client
 							{ // positive
 								if (ulong.TryParse(chunk, CultureInfo.InvariantCulture, out var l64))
 								{ // fits in 64 bits
-									tuple.AddIntConst(l64);
+									tuple.Integer(l64);
 								}
 								else if (UInt128.TryParse(chunk, CultureInfo.InvariantCulture, out var l128))
 								{ // bit integer
-									tuple.AddIntConst(l128);
+									tuple.Integer(l128);
 								}
 								else if (BigInteger.TryParse(chunk, CultureInfo.InvariantCulture, out var big))
 								{ // big integer
-									tuple.AddIntConst(big);
+									tuple.Integer(big);
 								}
 								else
 								{
@@ -506,7 +504,7 @@ namespace FoundationDB.Client
 						if (CouldBeUuid(text) && Guid.TryParseExact(text[..36], "D", out var uuid))
 						{
 							text = text[36..];
-							tuple.AddUuidConst(uuid);
+							tuple.Uuid(uuid);
 							continue;
 						}
 						break;
@@ -519,7 +517,7 @@ namespace FoundationDB.Client
 						{
 							return error;
 						}
-						tuple.AddStringConst(x);
+						tuple.String(x);
 						continue;
 					}
 					case '<':
@@ -527,7 +525,7 @@ namespace FoundationDB.Client
 
 						text = text[1..];
 						var (types, name) = ReadVariable(ref text);
-						tuple.AddVariable(types, name);
+						tuple.Var(types, name);
 						continue;
 					}
 					case ',':
@@ -544,7 +542,7 @@ namespace FoundationDB.Client
 						{
 							return error;
 						}
-						tuple.AddTupleConst(sub);
+						tuple.Tuple(sub);
 						continue;
 					}
 

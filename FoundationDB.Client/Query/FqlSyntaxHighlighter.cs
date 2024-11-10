@@ -48,8 +48,8 @@ namespace FoundationDB.Client
 			FqlItemType.Nil => $"[{COLOR_TYPE}]nil[/]",
 			FqlItemType.Variable => $"[{COLOR_ITEM}]<[/][{COLOR_TYPE}]{(item.Name != null ? (item.Name + ":") : "")}{FqlTupleItem.ToVariableTypeLiteral((FqlVariableTypes) item.Value!)}[/][{COLOR_ITEM}]>[/]",
 			FqlItemType.MaybeMore => $"[{COLOR_ITEM}]...[/]",
-			FqlItemType.Bool => ((bool) item.Value!) ? $"[{COLOR_TYPE}]true[/]" : $"[{COLOR_TYPE}]false[/]",
-			FqlItemType.Int => $"[{COLOR_ITEM}]" + item.Value switch
+			FqlItemType.Boolean => ((bool) item.Value!) ? $"[{COLOR_TYPE}]true[/]" : $"[{COLOR_TYPE}]false[/]",
+			FqlItemType.Integer => $"[{COLOR_ITEM}]" + item.Value switch
 			{
 				int x        => x.ToString(null, CultureInfo.InvariantCulture),
 				uint x       => x.ToString(null, CultureInfo.InvariantCulture),
@@ -60,7 +60,7 @@ namespace FoundationDB.Client
 				BigInteger x => x.ToString(null, CultureInfo.InvariantCulture),
 				_ => throw new InvalidOperationException("Invalid Int storage type"),
 			} + "[/]",
-			FqlItemType.Num => $"[{COLOR_ITEM}]" + item.Value switch
+			FqlItemType.Number => $"[{COLOR_ITEM}]" + item.Value switch
 			{
 				Half x    => x.ToString("R", CultureInfo.InvariantCulture),
 				float x   => x.ToString("R", CultureInfo.InvariantCulture),

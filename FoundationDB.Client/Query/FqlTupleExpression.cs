@@ -40,27 +40,29 @@ namespace FoundationDB.Client
 	[PublicAPI]
 	public enum FqlItemType
 	{
+		Indirection = -3,
 		Variable = -2,
 		MaybeMore = -1,
 
 		Invalid = 0,
 
 		Nil,
-		Bool,
-		Int,
-		Num,
+		Boolean,
+		Integer,
+		Number,
 		String,
 		Bytes,
 		Uuid,
 		Tuple,
-
 	}
 
 	[Flags]
 	public enum FqlVariableTypes
 	{
+		/// <summary>All possible types are allowed</summary>
 		Any = -1,
 
+		/// <summary>No type was specified</summary>
 		None = 0,
 
 		Nil = 1 << 0,
@@ -71,6 +73,11 @@ namespace FoundationDB.Client
 		Uuid = 1 << 5,
 		Bytes = 1 << 6,
 		Tuple = 1 << 7,
+
+		/// <summary>Combines the chunks of a large value that was split into several keys</summary>
+		Append = 1 << 8,
+		Sum = 1 << 9,
+		Count = 1 << 10,
 	}
 
 	[DebuggerDisplay("{ToString(),nq}")]
@@ -125,7 +132,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <inheritdoc />
-		public bool IsPattern => this.Type is FqlItemType.Variable or FqlItemType.MaybeMore;
+		public bool IsPattern => this.Type is FqlItemType.Variable or FqlItemType.MaybeMore or FqlItemType.Indirection;
 
 		/// <inheritdoc />
 		public override bool Equals([NotNullWhen(true)] object? obj) => obj is FqlTupleItem other && Equals(other);
@@ -133,26 +140,27 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public override int GetHashCode() => this.Type switch
 		{
-			FqlItemType.Variable => HashCode.Combine(FqlItemType.Tuple, (FqlVariableTypes) this.Value!),
+			FqlItemType.Indirection => HashCode.Combine(FqlItemType.Indirection, this.Name),
+			FqlItemType.Variable => HashCode.Combine(FqlItemType.Variable, this.Name, (FqlVariableTypes) this.Value!),
 			FqlItemType.MaybeMore => HashCode.Combine(FqlItemType.MaybeMore),
 			FqlItemType.Nil => HashCode.Combine(FqlItemType.Nil),
-			FqlItemType.Bool => HashCode.Combine(FqlItemType.Bytes, (bool) this.Value!),
-			FqlItemType.Int => this.Value switch
+			FqlItemType.Boolean => HashCode.Combine(FqlItemType.Bytes, (bool) this.Value!),
+			FqlItemType.Integer => this.Value switch
 			{
-				int x => HashCode.Combine(FqlItemType.Int, x),
-				long x => HashCode.Combine(FqlItemType.Int, x),
-				uint x => HashCode.Combine(FqlItemType.Int, x),
-				ulong x => HashCode.Combine(FqlItemType.Int, x),
-				Int128 x => HashCode.Combine(FqlItemType.Int, x),
-				UInt128 x => HashCode.Combine(FqlItemType.Int, x),
+				int x => HashCode.Combine(FqlItemType.Integer, x),
+				long x => HashCode.Combine(FqlItemType.Integer, x),
+				uint x => HashCode.Combine(FqlItemType.Integer, x),
+				ulong x => HashCode.Combine(FqlItemType.Integer, x),
+				Int128 x => HashCode.Combine(FqlItemType.Integer, x),
+				UInt128 x => HashCode.Combine(FqlItemType.Integer, x),
 				_ => throw new InvalidOperationException(),
 			},
-			FqlItemType.Num => this.Value switch
+			FqlItemType.Number => this.Value switch
 			{
-				double x => HashCode.Combine(FqlItemType.Num, x),
-				float x => HashCode.Combine(FqlItemType.Num, x),
-				decimal x => HashCode.Combine(FqlItemType.Num, x),
-				Half x => HashCode.Combine(FqlItemType.Num, x),
+				double x => HashCode.Combine(FqlItemType.Number, x),
+				float x => HashCode.Combine(FqlItemType.Number, x),
+				decimal x => HashCode.Combine(FqlItemType.Number, x),
+				Half x => HashCode.Combine(FqlItemType.Number, x),
 				_ => throw new InvalidOperationException(),
 			},
 			FqlItemType.String => HashCode.Combine(FqlItemType.String, (string) this.Value!),
@@ -164,11 +172,12 @@ namespace FoundationDB.Client
 
 		public bool Matches(object? value) => this.Type switch
 		{
+			FqlItemType.Indirection => throw new NotImplementedException(),
 			FqlItemType.Variable => MatchType((FqlVariableTypes) this.Value!, value),
 			FqlItemType.MaybeMore => ReferenceEquals(value, null),
 			FqlItemType.Nil => ReferenceEquals(value, null),
-			FqlItemType.Bool => value is bool b && Equals(b),
-			FqlItemType.Int => value switch
+			FqlItemType.Boolean => value is bool b && Equals(b),
+			FqlItemType.Integer => value switch
 			{
 				int i => Equals(i),
 				long l => Equals(l),
@@ -178,7 +187,7 @@ namespace FoundationDB.Client
 				UInt128 ui => Equals(ui),
 				_ => false,
 			},
-			FqlItemType.Num => value switch
+			FqlItemType.Number => value switch
 			{
 				float f => Equals(f),
 				double d => Equals(d),
@@ -209,17 +218,18 @@ namespace FoundationDB.Client
 			return this.Type switch
 			{
 				FqlItemType.Invalid or FqlItemType.Nil or FqlItemType.MaybeMore => true,
-				FqlItemType.Variable => other.Value switch
+				FqlItemType.Indirection => other.Name == this.Name,
+				FqlItemType.Variable => other.Name == this.Name && other.Value switch
 				{
 					FqlVariableTypes types => this.Equals(types),
 					_ => false,
 				},
-				FqlItemType.Bool => other.Value switch
+				FqlItemType.Boolean => other.Value switch
 				{
 					bool b => this.Equals(b),
 					_ => false,
 				},
-				FqlItemType.Int => other.Value switch
+				FqlItemType.Integer => other.Value switch
 				{
 					int x => this.Equals(x),
 					long x => this.Equals(x),
@@ -230,7 +240,7 @@ namespace FoundationDB.Client
 					BigInteger x => this.Equals(x),
 					_ => false,
 				},
-				FqlItemType.Num => other.Value switch
+				FqlItemType.Number => other.Value switch
 				{
 					double d => this.Equals(d),
 					float f => this.Equals(f),
@@ -263,13 +273,13 @@ namespace FoundationDB.Client
 			};
 		}
 
-		public bool Equals(bool value) => this.Type == FqlItemType.Bool && this.Value switch
+		public bool Equals(bool value) => this.Type == FqlItemType.Boolean && this.Value switch
 		{
 			bool b => b == value,
 			_ => false
 		};
 
-		public bool Equals(int value) => this.Type == FqlItemType.Int && this.Value switch
+		public bool Equals(int value) => this.Type == FqlItemType.Integer && this.Value switch
 		{
 			int x => x == value,
 			uint x => value >= 0 && x == (uint) value,
@@ -281,7 +291,7 @@ namespace FoundationDB.Client
 			_ => false
 		};
 
-		public bool Equals(long value) => this.Type == FqlItemType.Int && this.Value switch
+		public bool Equals(long value) => this.Type == FqlItemType.Integer && this.Value switch
 		{
 			int x => x == value,
 			uint x => value >= 0 && x == (ulong) value,
@@ -293,7 +303,7 @@ namespace FoundationDB.Client
 			_ => false
 		};
 
-		public bool Equals(uint value) => this.Type == FqlItemType.Int && this.Value switch
+		public bool Equals(uint value) => this.Type == FqlItemType.Integer && this.Value switch
 		{
 			int x => x >= 0 && (uint) x == value,
 			uint x => x == value,
@@ -305,7 +315,7 @@ namespace FoundationDB.Client
 			_ => false
 		};
 
-		public bool Equals(ulong value) => this.Type == FqlItemType.Int && this.Value switch
+		public bool Equals(ulong value) => this.Type == FqlItemType.Integer && this.Value switch
 		{
 			int x => x >= 0 && (ulong) x == value,
 			uint x => x == value,
@@ -317,7 +327,7 @@ namespace FoundationDB.Client
 			_ => false
 		};
 
-		public bool Equals(Int128 value) => this.Type == FqlItemType.Int && this.Value switch
+		public bool Equals(Int128 value) => this.Type == FqlItemType.Integer && this.Value switch
 		{
 			int x => x == value,
 			uint x => value >= 0 && x == value,
@@ -329,7 +339,7 @@ namespace FoundationDB.Client
 			_ => false
 		};
 
-		public bool Equals(UInt128 value) => this.Type == FqlItemType.Int && this.Value switch
+		public bool Equals(UInt128 value) => this.Type == FqlItemType.Integer && this.Value switch
 		{
 			int x => x >= 0 && (UInt128) x == value,
 			uint x => x == value,
@@ -341,7 +351,7 @@ namespace FoundationDB.Client
 			_ => false
 		};
 
-		public bool Equals(BigInteger value) => this.Type == FqlItemType.Int && this.Value switch
+		public bool Equals(BigInteger value) => this.Type == FqlItemType.Integer && this.Value switch
 		{
 			int x => x >= 0 && (BigInteger) x == value,
 			uint x => (BigInteger) x == value,
@@ -353,7 +363,7 @@ namespace FoundationDB.Client
 			_ => false
 		};
 
-		public bool Equals(float value) => this.Type == FqlItemType.Num && this.Value switch
+		public bool Equals(float value) => this.Type == FqlItemType.Number && this.Value switch
 		{
 			// ReSharper disable CompareOfFloatsByEqualityOperator
 			float x => float.IsNaN(value) ? float.IsNaN(x) : x == value,
@@ -364,7 +374,7 @@ namespace FoundationDB.Client
 			// ReSharper restore CompareOfFloatsByEqualityOperator
 		};
 
-		public bool Equals(double value) => this.Type == FqlItemType.Num && this.Value switch
+		public bool Equals(double value) => this.Type == FqlItemType.Number && this.Value switch
 		{
 			// ReSharper disable CompareOfFloatsByEqualityOperator
 			float x => double.IsNaN(value) ? float.IsNaN(x) : x == (float) value,
@@ -375,7 +385,7 @@ namespace FoundationDB.Client
 			// ReSharper restore CompareOfFloatsByEqualityOperator
 		};
 
-		public bool Equals(Half value) => this.Type == FqlItemType.Num && this.Value switch
+		public bool Equals(Half value) => this.Type == FqlItemType.Number && this.Value switch
 		{
 			// ReSharper disable CompareOfFloatsByEqualityOperator
 			float x => Half.IsNaN(value) ? float.IsNaN(x) : (Half) x == value,
@@ -386,7 +396,7 @@ namespace FoundationDB.Client
 			// ReSharper restore CompareOfFloatsByEqualityOperator
 		};
 
-		public bool Equals(decimal value) => this.Type == FqlItemType.Num && this.Value switch
+		public bool Equals(decimal value) => this.Type == FqlItemType.Number && this.Value switch
 		{
 			// ReSharper disable CompareOfFloatsByEqualityOperator
 			float x => !float.IsNaN(x) && x == (float) value,
@@ -465,11 +475,12 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public override string ToString() => this.Type switch
 		{
+			FqlItemType.Indirection => ":" + this.Name,
 			FqlItemType.Variable => "<" + (this.Name != null ? (this.Name + ":") : "") + ToVariableTypeLiteral((FqlVariableTypes) this.Value!) + ">",
 			FqlItemType.MaybeMore => "...",
 			FqlItemType.Nil => "nil",
-			FqlItemType.Bool => ((bool) this.Value!) ? "true" : "false",
-			FqlItemType.Int => this.Value switch
+			FqlItemType.Boolean => ((bool) this.Value!) ? "true" : "false",
+			FqlItemType.Integer => this.Value switch
 			{
 				int x        => x.ToString(null, CultureInfo.InvariantCulture),
 				uint x       => x.ToString(null, CultureInfo.InvariantCulture),
@@ -480,7 +491,7 @@ namespace FoundationDB.Client
 				BigInteger x => x.ToString(null, CultureInfo.InvariantCulture),
 				_ => throw new InvalidOperationException("Invalid Int storage type"),
 			},
-			FqlItemType.Num => this.Value switch
+			FqlItemType.Number => this.Value switch
 			{
 				Half x    => x.ToString("R", CultureInfo.InvariantCulture),
 				float x   => x.ToString("R", CultureInfo.InvariantCulture),
@@ -522,21 +533,26 @@ namespace FoundationDB.Client
 			[FqlVariableTypes.Uuid]   = "uuid",
 			[FqlVariableTypes.Bytes]  = "bytes",
 			[FqlVariableTypes.Tuple]  = "tup",
-			// some of the usual suspects
+			[FqlVariableTypes.Append] = "append",
+			[FqlVariableTypes.Sum]    = "sum",
+			[FqlVariableTypes.Count]  = "count",
 		};
 
 		public static FqlVariableTypes ParseVariableTypeLiteral(ReadOnlySpan<char> literal) => literal switch
 		{
-			""      => FqlVariableTypes.Any,
-			"nil"   => FqlVariableTypes.Nil,
-			"bool"  => FqlVariableTypes.Bool,
-			"int"   => FqlVariableTypes.Int,
-			"num"   => FqlVariableTypes.Num,
-			"str"   => FqlVariableTypes.String,
-			"uuid"  => FqlVariableTypes.Uuid,
-			"bytes" => FqlVariableTypes.Bytes,
-			"tup"   => FqlVariableTypes.Tuple,
-			_       => FqlVariableTypes.None
+			""       => FqlVariableTypes.Any,
+			"nil"    => FqlVariableTypes.Nil,
+			"bool"   => FqlVariableTypes.Bool,
+			"int"    => FqlVariableTypes.Int,
+			"num"    => FqlVariableTypes.Num,
+			"str"    => FqlVariableTypes.String,
+			"uuid"   => FqlVariableTypes.Uuid,
+			"bytes"  => FqlVariableTypes.Bytes,
+			"tup"    => FqlVariableTypes.Tuple,
+			"append" => FqlVariableTypes.Append,
+			"count"  => FqlVariableTypes.Sum,
+			"sum"    => FqlVariableTypes.Count,
+			_        => FqlVariableTypes.None
 		};
 
 		public static string ToVariableTypeLiteral(FqlVariableTypes types)
@@ -570,35 +586,37 @@ namespace FoundationDB.Client
 
 		}
 
+		public static FqlTupleItem Indirection(string name) => new(FqlItemType.Indirection, null, name);
+
 		public static FqlTupleItem Variable(FqlVariableTypes types, string? name = null) => new(FqlItemType.Variable, types, name);
 
 		public static FqlTupleItem MaybeMore() => new(FqlItemType.MaybeMore);
 
 		public static FqlTupleItem Nil() => new(FqlItemType.Nil);
 
-		public static FqlTupleItem Boolean(bool value) => new(FqlItemType.Bool, value ? s_true : s_false);
+		public static FqlTupleItem Boolean(bool value) => new(FqlItemType.Boolean, value ? s_true : s_false);
 
-		public static FqlTupleItem Int(int value) => new(FqlItemType.Int, (uint) value < s_smallIntCache.Length ? s_smallIntCache[value] : (long) value);
+		public static FqlTupleItem Int(int value) => new(FqlItemType.Integer, (uint) value < s_smallIntCache.Length ? s_smallIntCache[value] : (long) value);
 
-		public static FqlTupleItem Int(long value) => new(FqlItemType.Int, (value >= 0 && value < s_smallIntCache.Length) ? s_smallIntCache[value] : value);
+		public static FqlTupleItem Int(long value) => new(FqlItemType.Integer, (value >= 0 && value < s_smallIntCache.Length) ? s_smallIntCache[value] : value);
 
-		public static FqlTupleItem Int(uint value) => new(FqlItemType.Int, value < s_smallUIntCache.Length ? s_smallUIntCache[value] : (ulong) value);
+		public static FqlTupleItem Int(uint value) => new(FqlItemType.Integer, value < s_smallUIntCache.Length ? s_smallUIntCache[value] : (ulong) value);
 
-		public static FqlTupleItem Int(ulong value) => new(FqlItemType.Int, value < (ulong) s_smallUIntCache.Length ? s_smallUIntCache[value] : value);
+		public static FqlTupleItem Int(ulong value) => new(FqlItemType.Integer, value < (ulong) s_smallUIntCache.Length ? s_smallUIntCache[value] : value);
 
-		public static FqlTupleItem Int(Int128 value) => new(FqlItemType.Int, value);
+		public static FqlTupleItem Int(Int128 value) => new(FqlItemType.Integer, value);
 
-		public static FqlTupleItem Int(UInt128 value) => new(FqlItemType.Int, value);
+		public static FqlTupleItem Int(UInt128 value) => new(FqlItemType.Integer, value);
 
-		public static FqlTupleItem Int(BigInteger value) => new(FqlItemType.Int, value);
+		public static FqlTupleItem Int(BigInteger value) => new(FqlItemType.Integer, value);
 
-		public static FqlTupleItem Num(float value) => new(FqlItemType.Num, value);
+		public static FqlTupleItem Num(float value) => new(FqlItemType.Number, value);
 
-		public static FqlTupleItem Num(double value) => new(FqlItemType.Num, value);
+		public static FqlTupleItem Num(double value) => new(FqlItemType.Number, value);
 
-		public static FqlTupleItem Num(Half value) => new(FqlItemType.Num, value);
+		public static FqlTupleItem Num(Half value) => new(FqlItemType.Number, value);
 
-		public static FqlTupleItem Num(decimal value) => new(FqlItemType.Num, value);
+		public static FqlTupleItem Num(decimal value) => new(FqlItemType.Number, value);
 
 		public static FqlTupleItem String(string value) => new(FqlItemType.String, value);
 
@@ -696,63 +714,104 @@ namespace FoundationDB.Client
 			return this;
 		}
 
-		public FqlTupleExpression AddMaybeMore() => Add(FqlTupleItem.MaybeMore());
+		/// <summary>Adds a <c>...</c> glob, that matches zero or more elements</summary>
+		public FqlTupleExpression MaybeMore() => Add(FqlTupleItem.MaybeMore());
 
-		public FqlTupleExpression AddVariable(FqlVariableTypes types, string? name = null) => Add(FqlTupleItem.Variable(types, name));
+		/// <summary>Adds a variable with the given type filter and with an optional name</summary>
+		public FqlTupleExpression Var(FqlVariableTypes types, string? name = null) => Add(FqlTupleItem.Variable(types, name));
 
-		public FqlTupleExpression AddAnyVariable(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.Any, name));
+		/// <summary>Adds a variable that matches any type, and with optional name</summary>
+		public FqlTupleExpression VarAny(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.Any, name));
 
-		public FqlTupleExpression AddBytesVariable(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.Bytes, name));
+		/// <summary>Adds a variable of type <see cref="FqlVariableTypes.Nil"/>, and with optional name</summary>
+		public FqlTupleExpression VarNil(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.Nil, name));
 
-		public FqlTupleExpression AddStringVariable(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.String, name));
+		/// <summary>Adds a variable of type <see cref="FqlVariableTypes.Bytes"/>, and with optional name</summary>
+		public FqlTupleExpression VarBytes(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.Bytes, name));
 
-		public FqlTupleExpression AddBooleanVariable(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.Bool, name));
+		/// <summary>Adds a variable of type <see cref="FqlVariableTypes.String"/>, and with optional name</summary>
+		public FqlTupleExpression VarString(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.String, name));
 
-		public FqlTupleExpression AddNilVariable(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.Nil, name));
+		/// <summary>Adds a variable of type <see cref="FqlVariableTypes.Bool"/>, and with optional name</summary>
+		public FqlTupleExpression VarBoolean(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.Bool, name));
 
-		public FqlTupleExpression AddIntVariable(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.Int, name));
+		/// <summary>Adds a variable of type <see cref="FqlVariableTypes.Int"/>, and with optional name</summary>
+		public FqlTupleExpression VarInteger(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.Int, name));
 
-		public FqlTupleExpression AddNumVariable(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.Num, name));
+		/// <summary>Adds a variable of type <see cref="FqlVariableTypes.Num"/>, and with optional name</summary>
+		public FqlTupleExpression VarNumber(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.Num, name));
 
-		public FqlTupleExpression AddUuidVariable(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.Uuid, name));
+		/// <summary>Adds a variable of type <see cref="FqlVariableTypes.Uuid"/>, and with optional name</summary>
+		public FqlTupleExpression VarUuid(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.Uuid, name));
 
-		public FqlTupleExpression AddTupleVariable(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.Tuple, name));
+		/// <summary>Adds a variable of type <see cref="FqlVariableTypes.Tuple"/>, and with optional name</summary>
+		public FqlTupleExpression VarTuple(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.Tuple, name));
 
-		public FqlTupleExpression AddNilConst() => Add(FqlTupleItem.Nil());
+		/// <summary>Adds a variable of type <see cref="FqlVariableTypes.Append"/>, and with optional name</summary>
+		/// <remarks>This variable is only allowed in values</remarks>
+		public FqlTupleExpression VarAppend(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.Append, name));
 
-		public FqlTupleExpression AddBooleanConst(bool value) => Add(FqlTupleItem.Boolean(value));
+		/// <summary>Adds a variable of type <see cref="FqlVariableTypes.Sum"/>, and with optional name</summary>
+		/// <remarks>This variable is only allowed in values</remarks>
+		public FqlTupleExpression VarSum(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.Sum, name));
 
-		public FqlTupleExpression AddIntConst(int value) => Add(FqlTupleItem.Int(value));
+		/// <summary>Adds a variable of type <see cref="FqlVariableTypes.Count"/>, and with optional name</summary>
+		/// <remarks>This variable is only allowed in values</remarks>
+		public FqlTupleExpression VarCount(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.Count, name));
 
-		public FqlTupleExpression AddIntConst(long value) => Add(FqlTupleItem.Int(value));
+		/// <summary>Adds a <see cref="FqlItemType.Nil"/> constant literal</summary>
+		public FqlTupleExpression Nil() => Add(FqlTupleItem.Nil());
 
-		public FqlTupleExpression AddIntConst(uint value) => Add(FqlTupleItem.Int(value));
+		/// <summary>Adds a <see cref="FqlItemType.Boolean"/> constant literal</summary>
+		public FqlTupleExpression Boolean(bool value) => Add(FqlTupleItem.Boolean(value));
 
-		public FqlTupleExpression AddIntConst(ulong value) => Add(FqlTupleItem.Int(value));
+		/// <summary>Adds a constant <see cref="FqlItemType.Integer"/> literal</summary>
+		public FqlTupleExpression Integer(int value) => Add(FqlTupleItem.Int(value));
 
-		public FqlTupleExpression AddIntConst(Int128 value) => Add(FqlTupleItem.Int(value));
+		/// <summary>Adds a constant <see cref="FqlItemType.Integer"/> literal</summary>
+		public FqlTupleExpression Integer(long value) => Add(FqlTupleItem.Int(value));
 
-		public FqlTupleExpression AddIntConst(UInt128 value) => Add(FqlTupleItem.Int(value));
+		/// <summary>Adds a constant <see cref="FqlItemType.Integer"/> literal</summary>
+		public FqlTupleExpression Integer(uint value) => Add(FqlTupleItem.Int(value));
 
-		public FqlTupleExpression AddIntConst(BigInteger value) => Add(FqlTupleItem.Int(value));
+		/// <summary>Adds a constant <see cref="FqlItemType.Integer"/> literal</summary>
+		public FqlTupleExpression Integer(ulong value) => Add(FqlTupleItem.Int(value));
 
-		public FqlTupleExpression AddNumConst(float value) => Add(FqlTupleItem.Num(value));
+		/// <summary>Adds a constant <see cref="FqlItemType.Integer"/> literal</summary>
+		public FqlTupleExpression Integer(Int128 value) => Add(FqlTupleItem.Int(value));
 
-		public FqlTupleExpression AddNumConst(double value) => Add(FqlTupleItem.Num(value));
+		/// <summary>Adds a constant <see cref="FqlItemType.Integer"/> literal</summary>
+		public FqlTupleExpression Integer(UInt128 value) => Add(FqlTupleItem.Int(value));
 
-		public FqlTupleExpression AddNumConst(Half value) => Add(FqlTupleItem.Num(value));
+		/// <summary>Adds a constant <see cref="FqlItemType.Integer"/> literal</summary>
+		public FqlTupleExpression Integer(BigInteger value) => Add(FqlTupleItem.Int(value));
 
-		public FqlTupleExpression AddNumConst(decimal value) => Add(FqlTupleItem.Num(value));
+		/// <summary>Adds a constant <see cref="FqlItemType.Number"/> literal</summary>
+		public FqlTupleExpression Number(float value) => Add(FqlTupleItem.Num(value));
 
-		public FqlTupleExpression AddStringConst(string value) => Add(FqlTupleItem.String(value));
+		/// <summary>Adds a constant <see cref="FqlItemType.Number"/> literal</summary>
+		public FqlTupleExpression Number(double value) => Add(FqlTupleItem.Num(value));
 
-		public FqlTupleExpression AddBytesConst(Slice value) => Add(FqlTupleItem.Bytes(value));
+		/// <summary>Adds a constant <see cref="FqlItemType.Number"/> literal</summary>
+		public FqlTupleExpression Number(Half value) => Add(FqlTupleItem.Num(value));
 
-		public FqlTupleExpression AddUuidConst(Guid value) => Add(FqlTupleItem.Uuid(value));
+		/// <summary>Adds a constant <see cref="FqlItemType.Number"/> literal</summary>
+		public FqlTupleExpression Number(decimal value) => Add(FqlTupleItem.Num(value));
 
-		public FqlTupleExpression AddUuidConst(Uuid128 value) => Add(FqlTupleItem.Uuid(value));
+		/// <summary>Adds a constant <see cref="FqlItemType.String"/> literal</summary>
+		public FqlTupleExpression String(string value) => Add(FqlTupleItem.String(value));
 
-		public FqlTupleExpression AddTupleConst(FqlTupleExpression value) => Add(FqlTupleItem.Tuple(value));
+		/// <summary>Adds a constant <see cref="FqlItemType.Bytes"/> literal</summary>
+		public FqlTupleExpression Bytes(Slice value) => Add(FqlTupleItem.Bytes(value));
+
+		/// <summary>Adds a constant <see cref="FqlItemType.Uuid"/> literal</summary>
+		public FqlTupleExpression Uuid(Guid value) => Add(FqlTupleItem.Uuid(value));
+
+		/// <summary>Adds a constant <see cref="FqlItemType.Uuid"/> literal</summary>
+		public FqlTupleExpression Uuid(Uuid128 value) => Add(FqlTupleItem.Uuid(value));
+
+		/// <summary>Adds an embedded <see cref="FqlItemType.Tuple"/></summary>
+		public FqlTupleExpression Tuple(FqlTupleExpression value) => Add(FqlTupleItem.Tuple(value));
 
 		#endregion
 

@@ -140,32 +140,32 @@ namespace FoundationDB.Client
 
 		public static FqlDirectoryExpression Create() => new();
 
-		public FqlDirectoryExpression Add(FqlPathSegment segment)
+		public FqlDirectoryExpression Name(FqlPathSegment segment)
 		{
 			this.Segments.Add(segment);
 			return this;
 		}
 
-		public FqlDirectoryExpression Add(string name)
+		public FqlDirectoryExpression Name(string name)
 		{
 			this.Segments.Add(FqlPathSegment.Literal(FdbPathSegment.Create(name)));
 			return this;
 		}
 
-		public FqlDirectoryExpression Add(string name, string layerId)
+		public FqlDirectoryExpression Name(string name, string layerId)
 		{
 			this.Segments.Add(FqlPathSegment.Literal(FdbPathSegment.Create(name, layerId)));
 			return this;
 		}
 
-		public FqlDirectoryExpression AddRoot()
+		public FqlDirectoryExpression Root()
 		{
 			if (this.Segments.Count != 0) throw new InvalidOleVariantTypeException("Root must be the first item");
 			this.Segments.Add(FqlPathSegment.Root());
 			return this;
 		}
 
-		public FqlDirectoryExpression AddAny()
+		public FqlDirectoryExpression Any()
 		{
 			this.Segments.Add(FqlPathSegment.Any());
 			return this;
