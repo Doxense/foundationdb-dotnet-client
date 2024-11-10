@@ -40,6 +40,8 @@ namespace Doxense.Serialization.Json.Tests
 				/// <summary>Serialized name of the <see cref="global::Doxense.Serialization.Json.Tests.Person.FamilyName"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.Person"/> class</summary>
 				public const string FamilyName = "familyName";
 
+				public static string[] GetAllNames() => new [] { PropertyNames.FirstName, PropertyNames.FamilyName };
+
 			}
 
 			/// <summary>Cached encoded names for all serialized members for this type</summary>
@@ -142,9 +144,69 @@ namespace Doxense.Serialization.Json.Tests
 
 			#endregion
 
+			/// <summary>Returns a read-only JSON Proxy that wraps a <see cref="JsonValue"/> into a type-safe emulation of type <see cref="global::Doxense.Serialization.Json.Tests.Person"/></summary>
+			/// <returns>An instance of <see cref="GeneratedSerializers.PersonReadOnly"/> that wraps <paramref name="value"/> and exposes all the original members of <see cref="global::Doxense.Serialization.Json.Tests.Person"/> as getter-only properties.</returns>
+
+			/// <remarks>
+			/// <para>The read-only view cannot modify the original JSON value but, unless <paramref name="value"/> is itself read-only, any changes to the original will be reflected in the view.</para>
+			/// <para>How to use:<code>
+			/// JsonValue json = JsonValue.Parse(/* JSON text */);
+			/// var proxy = GeneratedSerializers.Person.AsReadOnly();
+			/// var value = proxy.FirstName; // returns the value of the "firstName" field exposed as <see cref="string"/>
+			/// proxy.FirstName = newValue; // ERROR: will not compile (there is no setter defined for this member)
+			/// </code></para>
+			/// </remarks>
+			/// <seealso cref="ToMutable(JsonValue)">If you need a writable view</seealso>
+			public GeneratedSerializers.PersonReadOnly AsReadOnly(JsonValue value) => GeneratedSerializers.PersonReadOnly.Create(value, this);
+
+			/// <summary>Converts an instance of type <see cref="global::Doxense.Serialization.Json.Tests.Person"/> into a read-only type-safe JSON Proxy.</summary>
+			/// <returns>An instance of <see cref="GeneratedSerializers.PersonReadOnly"/> that exposes all the original members of <see cref="global::Doxense.Serialization.Json.Tests.Person"/> as getter-only properties.</returns>
+
+			/// <remarks>
+			/// <para>How to use:<code>
+			/// var instance = new Person() { FirstName = ..., ... };
+			/// // ...
+			/// var proxy = GeneratedSerializers.Person.AsReadOnly(instance);
+			/// var value = proxy.FirstName;
+			/// proxy.FirstName = /* ... */; // ERROR: will not compile (there is no setter defined for this member)
+			/// </code></para>
+			/// </remarks>
+			public GeneratedSerializers.PersonReadOnly AsReadOnly(global::Doxense.Serialization.Json.Tests.Person? instance) => GeneratedSerializers.PersonReadOnly.Create(instance);
+
+			/// <summary>Returns a writable JSON Proxy that wraps a <see cref="JsonValue"/> into a type-safe emulation of type <see cref="global::Doxense.Serialization.Json.Tests.Person"/></summary>
+			/// <returns>An instance of <see cref="GeneratedSerializers.PersonMutable"/> that wraps <paramref name="value"/> and exposes all the original members of <see cref="global::Doxense.Serialization.Json.Tests.Person"/> as writable properties.</returns>
+
+			/// <remarks>
+			/// <para>If <paramref name="value"/> is read-only, a mutable copy will be created and used instead.</para>
+			/// <para>If <paramref name="value"/> is mutable, then it will be modified in-place. You can call <see cref="JsonValue.ToMutable"/> if you need to make a copy in all cases.</para>
+			/// <para>How to use:<code>
+			/// JsonValue json = JsonValue.Parse(/* JSON text */);
+			/// var proxy = GeneratedSerializers.Person.AsMutable();
+			/// var value = proxy.FirstName; // returns the value of the "firstName" field exposed as <see cref="string"/>
+			/// proxy.FirstName = newValue; // change the value of the "firstName" field
+			/// </code></para>
+			/// </remarks>
+			/// <seealso cref="AsReadOnly(JsonValue)">If you need a read-only view</seealso>
+			public GeneratedSerializers.PersonMutable ToMutable(JsonValue value) => GeneratedSerializers.PersonMutable.Create(value, converter: this);
+
+			/// <summary>Converts an instance of type <see cref="global::Doxense.Serialization.Json.Tests.Person"/> into a read-only type-safe JSON Proxy.</summary>
+			/// <returns>An instance of <see cref="GeneratedSerializers.PersonReadOnly"/> that exposes all the original members of <see cref="global::Doxense.Serialization.Json.Tests.Person"/> as writable properties.</returns>
+
+			/// <remarks>
+			/// <para>How to use:<code>
+			/// var instance = new Person() { FirstName = ..., ... };
+			/// // ...
+			/// var proxy = GeneratedSerializers.Person.ToMutable(instance);
+			/// var value = proxy.FirstName;
+			/// proxy.FirstName = newValue;
+			/// </code></para>
+			/// </remarks>
+			public GeneratedSerializers.PersonMutable ToMutable(global::Doxense.Serialization.Json.Tests.Person? instance) => GeneratedSerializers.PersonMutable.Create(instance);
+
 		}
 
-		/// <summary>Wraps a <see cref="JsonObject"/> into something that looks like a Person</summary>
+		/// <summary>Wraps a <see cref="JsonObject"/> into a read-only type-safe view that emulates the type <see cref="global::Doxense.Serialization.Json.Tests.Person"/></summary>
+		/// <seealso cref="IJsonReadOnlyProxy{T}"/>
 		public readonly record struct PersonReadOnly : IJsonReadOnlyProxy<global::Doxense.Serialization.Json.Tests.Person, PersonReadOnly, PersonMutable>
 		{
 
@@ -159,7 +221,7 @@ namespace Doxense.Serialization.Json.Tests
 			public static PersonReadOnly Create(JsonValue value, IJsonConverter<Person>? converter = null) => new(value.AsObject());
 
 			/// <inheritdoc />
-			public static PersonReadOnly Create(global::Doxense.Serialization.Json.Tests.Person value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) => new(GeneratedSerializers.Person.Pack(value, settings.AsReadOnly(), resolver));
+			public static PersonReadOnly Create(global::Doxense.Serialization.Json.Tests.Person? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) => new(GeneratedSerializers.Person.Pack(value, settings.AsReadOnly(), resolver));
 
 			/// <inheritdoc />
 			public static IJsonConverter<Person> Converter => GeneratedSerializers.Person;
@@ -199,7 +261,8 @@ namespace Doxense.Serialization.Json.Tests
 
 		}
 
-		/// <summary>Wraps a <see cref="JsonObject"/> into something that looks like a Person</summary>
+		/// <summary>Wraps a <see cref="JsonObject"/> into a writable type-safe view that emulates the type <see cref="global::Doxense.Serialization.Json.Tests.Person"/></summary>
+		/// <seealso cref="IJsonMutableProxy{T}"/>
 		public sealed record PersonMutable : JsonMutableProxyObjectBase, IJsonMutableProxy<global::Doxense.Serialization.Json.Tests.Person, PersonMutable, PersonReadOnly>
 		{
 
@@ -213,7 +276,7 @@ namespace Doxense.Serialization.Json.Tests
 			public static PersonMutable Create(JsonValue value, IJsonMutableParent? parent = null, JsonEncodedPropertyName? name = null, int index = 0, IJsonConverter<Person>? converter = null) => new(value, parent, name, index);
 
 			/// <inheritdoc />
-			public static PersonMutable Create(global::Doxense.Serialization.Json.Tests.Person value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) => new(GeneratedSerializers.Person.Pack(value, settings.AsMutable(), resolver));
+			public static PersonMutable Create(global::Doxense.Serialization.Json.Tests.Person? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) => new(GeneratedSerializers.Person.Pack(value, settings.AsMutable(), resolver));
 
 			/// <inheritdoc />
 			public static IJsonConverter<Person> Converter => GeneratedSerializers.Person;
@@ -298,6 +361,8 @@ namespace Doxense.Serialization.Json.Tests
 
 				/// <summary>Serialized name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser.Extras"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/> class</summary>
 				public const string Extras = "extras";
+
+				public static string[] GetAllNames() => new [] { PropertyNames.Id, PropertyNames.DisplayName, PropertyNames.Email, PropertyNames.Type, PropertyNames.Roles, PropertyNames.Metadata, PropertyNames.Items, PropertyNames.Devices, PropertyNames.Extras };
 
 			}
 
@@ -495,9 +560,69 @@ namespace Doxense.Serialization.Json.Tests
 
 			#endregion
 
+			/// <summary>Returns a read-only JSON Proxy that wraps a <see cref="JsonValue"/> into a type-safe emulation of type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/></summary>
+			/// <returns>An instance of <see cref="GeneratedSerializers.MyAwesomeUserReadOnly"/> that wraps <paramref name="value"/> and exposes all the original members of <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/> as getter-only properties.</returns>
+
+			/// <remarks>
+			/// <para>The read-only view cannot modify the original JSON value but, unless <paramref name="value"/> is itself read-only, any changes to the original will be reflected in the view.</para>
+			/// <para>How to use:<code>
+			/// JsonValue json = JsonValue.Parse(/* JSON text */);
+			/// var proxy = GeneratedSerializers.MyAwesomeUser.AsReadOnly();
+			/// var value = proxy.Id; // returns the value of the "id" field exposed as <see cref="string"/>
+			/// proxy.Id = newValue; // ERROR: will not compile (there is no setter defined for this member)
+			/// </code></para>
+			/// </remarks>
+			/// <seealso cref="ToMutable(JsonValue)">If you need a writable view</seealso>
+			public GeneratedSerializers.MyAwesomeUserReadOnly AsReadOnly(JsonValue value) => GeneratedSerializers.MyAwesomeUserReadOnly.Create(value, this);
+
+			/// <summary>Converts an instance of type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/> into a read-only type-safe JSON Proxy.</summary>
+			/// <returns>An instance of <see cref="GeneratedSerializers.MyAwesomeUserReadOnly"/> that exposes all the original members of <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/> as getter-only properties.</returns>
+
+			/// <remarks>
+			/// <para>How to use:<code>
+			/// var instance = new MyAwesomeUser() { Id = ..., ... };
+			/// // ...
+			/// var proxy = GeneratedSerializers.MyAwesomeUser.AsReadOnly(instance);
+			/// var value = proxy.Id;
+			/// proxy.Id = /* ... */; // ERROR: will not compile (there is no setter defined for this member)
+			/// </code></para>
+			/// </remarks>
+			public GeneratedSerializers.MyAwesomeUserReadOnly AsReadOnly(global::Doxense.Serialization.Json.Tests.MyAwesomeUser? instance) => GeneratedSerializers.MyAwesomeUserReadOnly.Create(instance);
+
+			/// <summary>Returns a writable JSON Proxy that wraps a <see cref="JsonValue"/> into a type-safe emulation of type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/></summary>
+			/// <returns>An instance of <see cref="GeneratedSerializers.MyAwesomeUserMutable"/> that wraps <paramref name="value"/> and exposes all the original members of <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/> as writable properties.</returns>
+
+			/// <remarks>
+			/// <para>If <paramref name="value"/> is read-only, a mutable copy will be created and used instead.</para>
+			/// <para>If <paramref name="value"/> is mutable, then it will be modified in-place. You can call <see cref="JsonValue.ToMutable"/> if you need to make a copy in all cases.</para>
+			/// <para>How to use:<code>
+			/// JsonValue json = JsonValue.Parse(/* JSON text */);
+			/// var proxy = GeneratedSerializers.MyAwesomeUser.AsMutable();
+			/// var value = proxy.Id; // returns the value of the "id" field exposed as <see cref="string"/>
+			/// proxy.Id = newValue; // change the value of the "id" field
+			/// </code></para>
+			/// </remarks>
+			/// <seealso cref="AsReadOnly(JsonValue)">If you need a read-only view</seealso>
+			public GeneratedSerializers.MyAwesomeUserMutable ToMutable(JsonValue value) => GeneratedSerializers.MyAwesomeUserMutable.Create(value, converter: this);
+
+			/// <summary>Converts an instance of type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/> into a read-only type-safe JSON Proxy.</summary>
+			/// <returns>An instance of <see cref="GeneratedSerializers.MyAwesomeUserReadOnly"/> that exposes all the original members of <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/> as writable properties.</returns>
+
+			/// <remarks>
+			/// <para>How to use:<code>
+			/// var instance = new MyAwesomeUser() { Id = ..., ... };
+			/// // ...
+			/// var proxy = GeneratedSerializers.MyAwesomeUser.ToMutable(instance);
+			/// var value = proxy.Id;
+			/// proxy.Id = newValue;
+			/// </code></para>
+			/// </remarks>
+			public GeneratedSerializers.MyAwesomeUserMutable ToMutable(global::Doxense.Serialization.Json.Tests.MyAwesomeUser? instance) => GeneratedSerializers.MyAwesomeUserMutable.Create(instance);
+
 		}
 
-		/// <summary>Wraps a <see cref="JsonObject"/> into something that looks like a MyAwesomeUser</summary>
+		/// <summary>Wraps a <see cref="JsonObject"/> into a read-only type-safe view that emulates the type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/></summary>
+		/// <seealso cref="IJsonReadOnlyProxy{T}"/>
 		public readonly record struct MyAwesomeUserReadOnly : IJsonReadOnlyProxy<global::Doxense.Serialization.Json.Tests.MyAwesomeUser, MyAwesomeUserReadOnly, MyAwesomeUserMutable>
 		{
 
@@ -512,7 +637,7 @@ namespace Doxense.Serialization.Json.Tests
 			public static MyAwesomeUserReadOnly Create(JsonValue value, IJsonConverter<MyAwesomeUser>? converter = null) => new(value.AsObject());
 
 			/// <inheritdoc />
-			public static MyAwesomeUserReadOnly Create(global::Doxense.Serialization.Json.Tests.MyAwesomeUser value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) => new(GeneratedSerializers.MyAwesomeUser.Pack(value, settings.AsReadOnly(), resolver));
+			public static MyAwesomeUserReadOnly Create(global::Doxense.Serialization.Json.Tests.MyAwesomeUser? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) => new(GeneratedSerializers.MyAwesomeUser.Pack(value, settings.AsReadOnly(), resolver));
 
 			/// <inheritdoc />
 			public static IJsonConverter<MyAwesomeUser> Converter => GeneratedSerializers.MyAwesomeUser;
@@ -573,7 +698,8 @@ namespace Doxense.Serialization.Json.Tests
 
 		}
 
-		/// <summary>Wraps a <see cref="JsonObject"/> into something that looks like a MyAwesomeUser</summary>
+		/// <summary>Wraps a <see cref="JsonObject"/> into a writable type-safe view that emulates the type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/></summary>
+		/// <seealso cref="IJsonMutableProxy{T}"/>
 		public sealed record MyAwesomeUserMutable : JsonMutableProxyObjectBase, IJsonMutableProxy<global::Doxense.Serialization.Json.Tests.MyAwesomeUser, MyAwesomeUserMutable, MyAwesomeUserReadOnly>
 		{
 
@@ -587,7 +713,7 @@ namespace Doxense.Serialization.Json.Tests
 			public static MyAwesomeUserMutable Create(JsonValue value, IJsonMutableParent? parent = null, JsonEncodedPropertyName? name = null, int index = 0, IJsonConverter<MyAwesomeUser>? converter = null) => new(value, parent, name, index);
 
 			/// <inheritdoc />
-			public static MyAwesomeUserMutable Create(global::Doxense.Serialization.Json.Tests.MyAwesomeUser value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) => new(GeneratedSerializers.MyAwesomeUser.Pack(value, settings.AsMutable(), resolver));
+			public static MyAwesomeUserMutable Create(global::Doxense.Serialization.Json.Tests.MyAwesomeUser? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) => new(GeneratedSerializers.MyAwesomeUser.Pack(value, settings.AsMutable(), resolver));
 
 			/// <inheritdoc />
 			public static IJsonConverter<MyAwesomeUser> Converter => GeneratedSerializers.MyAwesomeUser;
@@ -704,6 +830,8 @@ namespace Doxense.Serialization.Json.Tests
 				/// <summary>Serialized name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata.AccountDisabled"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata"/> class</summary>
 				public const string AccountDisabled = "accountDisabled";
 
+				public static string[] GetAllNames() => new [] { PropertyNames.AccountCreated, PropertyNames.AccountModified, PropertyNames.AccountDisabled };
+
 			}
 
 			/// <summary>Cached encoded names for all serialized members for this type</summary>
@@ -810,9 +938,69 @@ namespace Doxense.Serialization.Json.Tests
 
 			#endregion
 
+			/// <summary>Returns a read-only JSON Proxy that wraps a <see cref="JsonValue"/> into a type-safe emulation of type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata"/></summary>
+			/// <returns>An instance of <see cref="GeneratedSerializers.MyAwesomeMetadataReadOnly"/> that wraps <paramref name="value"/> and exposes all the original members of <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata"/> as getter-only properties.</returns>
+
+			/// <remarks>
+			/// <para>The read-only view cannot modify the original JSON value but, unless <paramref name="value"/> is itself read-only, any changes to the original will be reflected in the view.</para>
+			/// <para>How to use:<code>
+			/// JsonValue json = JsonValue.Parse(/* JSON text */);
+			/// var proxy = GeneratedSerializers.MyAwesomeMetadata.AsReadOnly();
+			/// var value = proxy.AccountCreated; // returns the value of the "accountCreated" field exposed as <see cref="global::System.DateTimeOffset"/>
+			/// proxy.AccountCreated = newValue; // ERROR: will not compile (there is no setter defined for this member)
+			/// </code></para>
+			/// </remarks>
+			/// <seealso cref="ToMutable(JsonValue)">If you need a writable view</seealso>
+			public GeneratedSerializers.MyAwesomeMetadataReadOnly AsReadOnly(JsonValue value) => GeneratedSerializers.MyAwesomeMetadataReadOnly.Create(value, this);
+
+			/// <summary>Converts an instance of type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata"/> into a read-only type-safe JSON Proxy.</summary>
+			/// <returns>An instance of <see cref="GeneratedSerializers.MyAwesomeMetadataReadOnly"/> that exposes all the original members of <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata"/> as getter-only properties.</returns>
+
+			/// <remarks>
+			/// <para>How to use:<code>
+			/// var instance = new MyAwesomeMetadata() { AccountCreated = ..., ... };
+			/// // ...
+			/// var proxy = GeneratedSerializers.MyAwesomeMetadata.AsReadOnly(instance);
+			/// var value = proxy.AccountCreated;
+			/// proxy.AccountCreated = /* ... */; // ERROR: will not compile (there is no setter defined for this member)
+			/// </code></para>
+			/// </remarks>
+			public GeneratedSerializers.MyAwesomeMetadataReadOnly AsReadOnly(global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata? instance) => GeneratedSerializers.MyAwesomeMetadataReadOnly.Create(instance);
+
+			/// <summary>Returns a writable JSON Proxy that wraps a <see cref="JsonValue"/> into a type-safe emulation of type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata"/></summary>
+			/// <returns>An instance of <see cref="GeneratedSerializers.MyAwesomeMetadataMutable"/> that wraps <paramref name="value"/> and exposes all the original members of <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata"/> as writable properties.</returns>
+
+			/// <remarks>
+			/// <para>If <paramref name="value"/> is read-only, a mutable copy will be created and used instead.</para>
+			/// <para>If <paramref name="value"/> is mutable, then it will be modified in-place. You can call <see cref="JsonValue.ToMutable"/> if you need to make a copy in all cases.</para>
+			/// <para>How to use:<code>
+			/// JsonValue json = JsonValue.Parse(/* JSON text */);
+			/// var proxy = GeneratedSerializers.MyAwesomeMetadata.AsMutable();
+			/// var value = proxy.AccountCreated; // returns the value of the "accountCreated" field exposed as <see cref="global::System.DateTimeOffset"/>
+			/// proxy.AccountCreated = newValue; // change the value of the "accountCreated" field
+			/// </code></para>
+			/// </remarks>
+			/// <seealso cref="AsReadOnly(JsonValue)">If you need a read-only view</seealso>
+			public GeneratedSerializers.MyAwesomeMetadataMutable ToMutable(JsonValue value) => GeneratedSerializers.MyAwesomeMetadataMutable.Create(value, converter: this);
+
+			/// <summary>Converts an instance of type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata"/> into a read-only type-safe JSON Proxy.</summary>
+			/// <returns>An instance of <see cref="GeneratedSerializers.MyAwesomeMetadataReadOnly"/> that exposes all the original members of <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata"/> as writable properties.</returns>
+
+			/// <remarks>
+			/// <para>How to use:<code>
+			/// var instance = new MyAwesomeMetadata() { AccountCreated = ..., ... };
+			/// // ...
+			/// var proxy = GeneratedSerializers.MyAwesomeMetadata.ToMutable(instance);
+			/// var value = proxy.AccountCreated;
+			/// proxy.AccountCreated = newValue;
+			/// </code></para>
+			/// </remarks>
+			public GeneratedSerializers.MyAwesomeMetadataMutable ToMutable(global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata? instance) => GeneratedSerializers.MyAwesomeMetadataMutable.Create(instance);
+
 		}
 
-		/// <summary>Wraps a <see cref="JsonObject"/> into something that looks like a MyAwesomeMetadata</summary>
+		/// <summary>Wraps a <see cref="JsonObject"/> into a read-only type-safe view that emulates the type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata"/></summary>
+		/// <seealso cref="IJsonReadOnlyProxy{T}"/>
 		public readonly record struct MyAwesomeMetadataReadOnly : IJsonReadOnlyProxy<global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata, MyAwesomeMetadataReadOnly, MyAwesomeMetadataMutable>
 		{
 
@@ -827,7 +1015,7 @@ namespace Doxense.Serialization.Json.Tests
 			public static MyAwesomeMetadataReadOnly Create(JsonValue value, IJsonConverter<MyAwesomeMetadata>? converter = null) => new(value.AsObject());
 
 			/// <inheritdoc />
-			public static MyAwesomeMetadataReadOnly Create(global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) => new(GeneratedSerializers.MyAwesomeMetadata.Pack(value, settings.AsReadOnly(), resolver));
+			public static MyAwesomeMetadataReadOnly Create(global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) => new(GeneratedSerializers.MyAwesomeMetadata.Pack(value, settings.AsReadOnly(), resolver));
 
 			/// <inheritdoc />
 			public static IJsonConverter<MyAwesomeMetadata> Converter => GeneratedSerializers.MyAwesomeMetadata;
@@ -870,7 +1058,8 @@ namespace Doxense.Serialization.Json.Tests
 
 		}
 
-		/// <summary>Wraps a <see cref="JsonObject"/> into something that looks like a MyAwesomeMetadata</summary>
+		/// <summary>Wraps a <see cref="JsonObject"/> into a writable type-safe view that emulates the type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata"/></summary>
+		/// <seealso cref="IJsonMutableProxy{T}"/>
 		public sealed record MyAwesomeMetadataMutable : JsonMutableProxyObjectBase, IJsonMutableProxy<global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata, MyAwesomeMetadataMutable, MyAwesomeMetadataReadOnly>
 		{
 
@@ -884,7 +1073,7 @@ namespace Doxense.Serialization.Json.Tests
 			public static MyAwesomeMetadataMutable Create(JsonValue value, IJsonMutableParent? parent = null, JsonEncodedPropertyName? name = null, int index = 0, IJsonConverter<MyAwesomeMetadata>? converter = null) => new(value, parent, name, index);
 
 			/// <inheritdoc />
-			public static MyAwesomeMetadataMutable Create(global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) => new(GeneratedSerializers.MyAwesomeMetadata.Pack(value, settings.AsMutable(), resolver));
+			public static MyAwesomeMetadataMutable Create(global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) => new(GeneratedSerializers.MyAwesomeMetadata.Pack(value, settings.AsMutable(), resolver));
 
 			/// <inheritdoc />
 			public static IJsonConverter<MyAwesomeMetadata> Converter => GeneratedSerializers.MyAwesomeMetadata;
@@ -967,6 +1156,8 @@ namespace Doxense.Serialization.Json.Tests
 
 				/// <summary>Serialized name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct.Disabled"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct"/> struct</summary>
 				public const string Disabled = "disabled";
+
+				public static string[] GetAllNames() => new [] { PropertyNames.Id, PropertyNames.Level, PropertyNames.Path, PropertyNames.Paths, PropertyNames.MaybePath, PropertyNames.Disabled };
 
 			}
 
@@ -1108,9 +1299,69 @@ namespace Doxense.Serialization.Json.Tests
 
 			#endregion
 
+			/// <summary>Returns a read-only JSON Proxy that wraps a <see cref="JsonValue"/> into a type-safe emulation of type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct"/></summary>
+			/// <returns>An instance of <see cref="GeneratedSerializers.MyAwesomeStructReadOnly"/> that wraps <paramref name="value"/> and exposes all the original members of <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct"/> as getter-only properties.</returns>
+
+			/// <remarks>
+			/// <para>The read-only view cannot modify the original JSON value but, unless <paramref name="value"/> is itself read-only, any changes to the original will be reflected in the view.</para>
+			/// <para>How to use:<code>
+			/// JsonValue json = JsonValue.Parse(/* JSON text */);
+			/// var proxy = GeneratedSerializers.MyAwesomeStruct.AsReadOnly();
+			/// var value = proxy.Id; // returns the value of the "id" field exposed as <see cref="string"/>
+			/// proxy.Id = newValue; // ERROR: will not compile (there is no setter defined for this member)
+			/// </code></para>
+			/// </remarks>
+			/// <seealso cref="ToMutable(JsonValue)">If you need a writable view</seealso>
+			public GeneratedSerializers.MyAwesomeStructReadOnly AsReadOnly(JsonValue value) => GeneratedSerializers.MyAwesomeStructReadOnly.Create(value, this);
+
+			/// <summary>Converts an instance of type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct"/> into a read-only type-safe JSON Proxy.</summary>
+			/// <returns>An instance of <see cref="GeneratedSerializers.MyAwesomeStructReadOnly"/> that exposes all the original members of <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct"/> as getter-only properties.</returns>
+
+			/// <remarks>
+			/// <para>How to use:<code>
+			/// var instance = new MyAwesomeStruct() { Id = ..., ... };
+			/// // ...
+			/// var proxy = GeneratedSerializers.MyAwesomeStruct.AsReadOnly(instance);
+			/// var value = proxy.Id;
+			/// proxy.Id = /* ... */; // ERROR: will not compile (there is no setter defined for this member)
+			/// </code></para>
+			/// </remarks>
+			public GeneratedSerializers.MyAwesomeStructReadOnly AsReadOnly(global::Doxense.Serialization.Json.Tests.MyAwesomeStruct instance) => GeneratedSerializers.MyAwesomeStructReadOnly.Create(instance);
+
+			/// <summary>Returns a writable JSON Proxy that wraps a <see cref="JsonValue"/> into a type-safe emulation of type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct"/></summary>
+			/// <returns>An instance of <see cref="GeneratedSerializers.MyAwesomeStructMutable"/> that wraps <paramref name="value"/> and exposes all the original members of <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct"/> as writable properties.</returns>
+
+			/// <remarks>
+			/// <para>If <paramref name="value"/> is read-only, a mutable copy will be created and used instead.</para>
+			/// <para>If <paramref name="value"/> is mutable, then it will be modified in-place. You can call <see cref="JsonValue.ToMutable"/> if you need to make a copy in all cases.</para>
+			/// <para>How to use:<code>
+			/// JsonValue json = JsonValue.Parse(/* JSON text */);
+			/// var proxy = GeneratedSerializers.MyAwesomeStruct.AsMutable();
+			/// var value = proxy.Id; // returns the value of the "id" field exposed as <see cref="string"/>
+			/// proxy.Id = newValue; // change the value of the "id" field
+			/// </code></para>
+			/// </remarks>
+			/// <seealso cref="AsReadOnly(JsonValue)">If you need a read-only view</seealso>
+			public GeneratedSerializers.MyAwesomeStructMutable ToMutable(JsonValue value) => GeneratedSerializers.MyAwesomeStructMutable.Create(value, converter: this);
+
+			/// <summary>Converts an instance of type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct"/> into a read-only type-safe JSON Proxy.</summary>
+			/// <returns>An instance of <see cref="GeneratedSerializers.MyAwesomeStructReadOnly"/> that exposes all the original members of <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct"/> as writable properties.</returns>
+
+			/// <remarks>
+			/// <para>How to use:<code>
+			/// var instance = new MyAwesomeStruct() { Id = ..., ... };
+			/// // ...
+			/// var proxy = GeneratedSerializers.MyAwesomeStruct.ToMutable(instance);
+			/// var value = proxy.Id;
+			/// proxy.Id = newValue;
+			/// </code></para>
+			/// </remarks>
+			public GeneratedSerializers.MyAwesomeStructMutable ToMutable(global::Doxense.Serialization.Json.Tests.MyAwesomeStruct instance) => GeneratedSerializers.MyAwesomeStructMutable.Create(instance);
+
 		}
 
-		/// <summary>Wraps a <see cref="JsonObject"/> into something that looks like a MyAwesomeStruct</summary>
+		/// <summary>Wraps a <see cref="JsonObject"/> into a read-only type-safe view that emulates the type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct"/></summary>
+		/// <seealso cref="IJsonReadOnlyProxy{T}"/>
 		public readonly record struct MyAwesomeStructReadOnly : IJsonReadOnlyProxy<global::Doxense.Serialization.Json.Tests.MyAwesomeStruct, MyAwesomeStructReadOnly, MyAwesomeStructMutable>
 		{
 
@@ -1177,7 +1428,8 @@ namespace Doxense.Serialization.Json.Tests
 
 		}
 
-		/// <summary>Wraps a <see cref="JsonObject"/> into something that looks like a MyAwesomeStruct</summary>
+		/// <summary>Wraps a <see cref="JsonObject"/> into a writable type-safe view that emulates the type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct"/></summary>
+		/// <seealso cref="IJsonMutableProxy{T}"/>
 		public sealed record MyAwesomeStructMutable : JsonMutableProxyObjectBase, IJsonMutableProxy<global::Doxense.Serialization.Json.Tests.MyAwesomeStruct, MyAwesomeStructMutable, MyAwesomeStructReadOnly>
 		{
 
@@ -1290,9 +1542,7 @@ namespace Doxense.Serialization.Json.Tests
 				/// <summary>Serialized name of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice.LastAddress"/> property of the <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice"/> class</summary>
 				public const string LastAddress = "lastAddress";
 
-				private static readonly System.Collections.Immutable.ImmutableArray<string> m_names = [PropertyNames.Id, PropertyNames.Model, PropertyNames.LastSeen, PropertyNames.LastAddress];
-
-				public static global::System.ReadOnlySpan<string> GetAllNames() => m_names.AsSpan();
+				public static string[] GetAllNames() => new [] { PropertyNames.Id, PropertyNames.Model, PropertyNames.LastSeen, PropertyNames.LastAddress };
 
 			}
 
@@ -1415,9 +1665,69 @@ namespace Doxense.Serialization.Json.Tests
 
 			#endregion
 
+			/// <summary>Returns a read-only JSON Proxy that wraps a <see cref="JsonValue"/> into a type-safe emulation of type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice"/></summary>
+			/// <returns>An instance of <see cref="GeneratedSerializers.MyAwesomeDeviceReadOnly"/> that wraps <paramref name="value"/> and exposes all the original members of <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice"/> as getter-only properties.</returns>
+
+			/// <remarks>
+			/// <para>The read-only view cannot modify the original JSON value but, unless <paramref name="value"/> is itself read-only, any changes to the original will be reflected in the view.</para>
+			/// <para>How to use:<code>
+			/// JsonValue json = JsonValue.Parse(/* JSON text */);
+			/// var proxy = GeneratedSerializers.MyAwesomeDevice.AsReadOnly();
+			/// var value = proxy.Id; // returns the value of the "id" field exposed as <see cref="string"/>
+			/// proxy.Id = newValue; // ERROR: will not compile (there is no setter defined for this member)
+			/// </code></para>
+			/// </remarks>
+			/// <seealso cref="ToMutable(JsonValue)">If you need a writable view</seealso>
+			public GeneratedSerializers.MyAwesomeDeviceReadOnly AsReadOnly(JsonValue value) => GeneratedSerializers.MyAwesomeDeviceReadOnly.Create(value, this);
+
+			/// <summary>Converts an instance of type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice"/> into a read-only type-safe JSON Proxy.</summary>
+			/// <returns>An instance of <see cref="GeneratedSerializers.MyAwesomeDeviceReadOnly"/> that exposes all the original members of <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice"/> as getter-only properties.</returns>
+
+			/// <remarks>
+			/// <para>How to use:<code>
+			/// var instance = new MyAwesomeDevice() { Id = ..., ... };
+			/// // ...
+			/// var proxy = GeneratedSerializers.MyAwesomeDevice.AsReadOnly(instance);
+			/// var value = proxy.Id;
+			/// proxy.Id = /* ... */; // ERROR: will not compile (there is no setter defined for this member)
+			/// </code></para>
+			/// </remarks>
+			public GeneratedSerializers.MyAwesomeDeviceReadOnly AsReadOnly(global::Doxense.Serialization.Json.Tests.MyAwesomeDevice? instance) => GeneratedSerializers.MyAwesomeDeviceReadOnly.Create(instance);
+
+			/// <summary>Returns a writable JSON Proxy that wraps a <see cref="JsonValue"/> into a type-safe emulation of type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice"/></summary>
+			/// <returns>An instance of <see cref="GeneratedSerializers.MyAwesomeDeviceMutable"/> that wraps <paramref name="value"/> and exposes all the original members of <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice"/> as writable properties.</returns>
+
+			/// <remarks>
+			/// <para>If <paramref name="value"/> is read-only, a mutable copy will be created and used instead.</para>
+			/// <para>If <paramref name="value"/> is mutable, then it will be modified in-place. You can call <see cref="JsonValue.ToMutable"/> if you need to make a copy in all cases.</para>
+			/// <para>How to use:<code>
+			/// JsonValue json = JsonValue.Parse(/* JSON text */);
+			/// var proxy = GeneratedSerializers.MyAwesomeDevice.AsMutable();
+			/// var value = proxy.Id; // returns the value of the "id" field exposed as <see cref="string"/>
+			/// proxy.Id = newValue; // change the value of the "id" field
+			/// </code></para>
+			/// </remarks>
+			/// <seealso cref="AsReadOnly(JsonValue)">If you need a read-only view</seealso>
+			public GeneratedSerializers.MyAwesomeDeviceMutable ToMutable(JsonValue value) => GeneratedSerializers.MyAwesomeDeviceMutable.Create(value, converter: this);
+
+			/// <summary>Converts an instance of type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice"/> into a read-only type-safe JSON Proxy.</summary>
+			/// <returns>An instance of <see cref="GeneratedSerializers.MyAwesomeDeviceReadOnly"/> that exposes all the original members of <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice"/> as writable properties.</returns>
+
+			/// <remarks>
+			/// <para>How to use:<code>
+			/// var instance = new MyAwesomeDevice() { Id = ..., ... };
+			/// // ...
+			/// var proxy = GeneratedSerializers.MyAwesomeDevice.ToMutable(instance);
+			/// var value = proxy.Id;
+			/// proxy.Id = newValue;
+			/// </code></para>
+			/// </remarks>
+			public GeneratedSerializers.MyAwesomeDeviceMutable ToMutable(global::Doxense.Serialization.Json.Tests.MyAwesomeDevice? instance) => GeneratedSerializers.MyAwesomeDeviceMutable.Create(instance);
+
 		}
 
-		/// <summary>Wraps a <see cref="JsonObject"/> into something that looks like a MyAwesomeDevice</summary>
+		/// <summary>Wraps a <see cref="JsonObject"/> into a read-only type-safe view that emulates the type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice"/></summary>
+		/// <seealso cref="IJsonReadOnlyProxy{T}"/>
 		public readonly record struct MyAwesomeDeviceReadOnly : IJsonReadOnlyProxy<global::Doxense.Serialization.Json.Tests.MyAwesomeDevice, MyAwesomeDeviceReadOnly, MyAwesomeDeviceMutable>
 		{
 
@@ -1432,7 +1742,7 @@ namespace Doxense.Serialization.Json.Tests
 			public static MyAwesomeDeviceReadOnly Create(JsonValue value, IJsonConverter<MyAwesomeDevice>? converter = null) => new(value.AsObject());
 
 			/// <inheritdoc />
-			public static MyAwesomeDeviceReadOnly Create(global::Doxense.Serialization.Json.Tests.MyAwesomeDevice value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) => new(GeneratedSerializers.MyAwesomeDevice.Pack(value, settings.AsReadOnly(), resolver));
+			public static MyAwesomeDeviceReadOnly Create(global::Doxense.Serialization.Json.Tests.MyAwesomeDevice? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) => new(GeneratedSerializers.MyAwesomeDevice.Pack(value, settings.AsReadOnly(), resolver));
 
 			/// <inheritdoc />
 			public static IJsonConverter<MyAwesomeDevice> Converter => GeneratedSerializers.MyAwesomeDevice;
@@ -1478,7 +1788,8 @@ namespace Doxense.Serialization.Json.Tests
 
 		}
 
-		/// <summary>Wraps a <see cref="JsonObject"/> into something that looks like a MyAwesomeDevice</summary>
+		/// <summary>Wraps a <see cref="JsonObject"/> into a writable type-safe view that emulates the type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice"/></summary>
+		/// <seealso cref="IJsonMutableProxy{T}"/>
 		public sealed record MyAwesomeDeviceMutable : JsonMutableProxyObjectBase, IJsonMutableProxy<global::Doxense.Serialization.Json.Tests.MyAwesomeDevice, MyAwesomeDeviceMutable, MyAwesomeDeviceReadOnly>
 		{
 
@@ -1492,7 +1803,7 @@ namespace Doxense.Serialization.Json.Tests
 			public static MyAwesomeDeviceMutable Create(JsonValue value, IJsonMutableParent? parent = null, JsonEncodedPropertyName? name = null, int index = 0, IJsonConverter<MyAwesomeDevice>? converter = null) => new(value, parent, name, index);
 
 			/// <inheritdoc />
-			public static MyAwesomeDeviceMutable Create(global::Doxense.Serialization.Json.Tests.MyAwesomeDevice value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) => new(GeneratedSerializers.MyAwesomeDevice.Pack(value, settings.AsMutable(), resolver));
+			public static MyAwesomeDeviceMutable Create(global::Doxense.Serialization.Json.Tests.MyAwesomeDevice? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) => new(GeneratedSerializers.MyAwesomeDevice.Pack(value, settings.AsMutable(), resolver));
 
 			/// <inheritdoc />
 			public static IJsonConverter<MyAwesomeDevice> Converter => GeneratedSerializers.MyAwesomeDevice;

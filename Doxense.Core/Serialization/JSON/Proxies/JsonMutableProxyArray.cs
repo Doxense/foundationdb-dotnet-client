@@ -258,7 +258,7 @@ namespace Doxense.Serialization.Json
 		int IList<TProxy>.IndexOf(TProxy item) => throw new NotSupportedException("This operation is too costly.");
 
 		/// <inheritdoc />
-		public int Count { get; }
+		public int Count => m_value is JsonArray arr ? arr.Count : 0;
 
 		/// <inheritdoc />
 		bool ICollection<TProxy>.IsReadOnly => false;

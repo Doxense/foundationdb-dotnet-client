@@ -40,7 +40,9 @@ namespace Doxense.Serialization.Json
 		public TValue ToValue();
 
 		/// <summary>Returns the proxied JSON Value</summary>
-		/// <remarks>The returned value is read-only and cannot be changed.</remarks>
+		/// <remarks>
+		/// <para>The returned value is read-only and cannot be changed.</para>
+		/// </remarks>
 		public JsonValue ToJson();
 
 	}

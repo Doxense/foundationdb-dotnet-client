@@ -353,6 +353,7 @@ namespace Doxense.Serialization.Json
 				[ ],
 				() =>
 				{
+
 					#region JsonSerialize...
 
 					sb.AppendLine("#region Serialization...");
@@ -369,7 +370,7 @@ namespace Doxense.Serialization.Json
 						sb.NewLine();
 					}
 
-					sb.AppendLine($"public static ReadOnlySpan<string> GetAllNames() => [ {string.Join(", ", typeDef.Members.Select(m => GetPropertyNameRef(m)))} ];");
+					sb.AppendLine($"public static string[] GetAllNames() => new [] {{ {string.Join(", ", typeDef.Members.Select(m => GetPropertyNameRef(m)))} }};"); //TODO: PERF!
 					sb.NewLine();
 
 					sb.LeaveBlock("properties");
@@ -832,18 +833,85 @@ namespace Doxense.Serialization.Json
 					sb.NewLine();
 
 					#endregion
+
+					#region Proxy...
+
+					sb.AppendLine($"/// <summary>Returns a read-only JSON Proxy that wraps a <see cref=\"{nameof(JsonValue)}\"/> into a type-safe emulation of type <see cref=\"{typeName}\"/></summary>");
+					sb.AppendLine($"/// <returns>An instance of <see cref=\"{GetLocalReadOnlyProxyRef(type)}\"/> that wraps <paramref name=\"value\"/> and exposes all the original members of <see cref=\"{typeName}\"/> as getter-only properties.</returns>\r\n");
+					sb.AppendLine($"/// <remarks>");
+					sb.AppendLine($"/// <para>The read-only view cannot modify the original JSON value but, unless <paramref name=\"value\"/> is itself read-only, any changes to the original will be reflected in the view.</para>");
+					sb.AppendLine($"/// <para>How to use:<code>");
+					sb.AppendLine($"/// JsonValue json = {nameof(JsonValue)}.{nameof(JsonValue.Parse)}(/* JSON text */);");
+					sb.AppendLine($"/// var proxy = {this.SerializerContainerName}.{GetSerializerName(type)}.AsReadOnly();");
+					sb.AppendLine($"/// var value = proxy.{typeDef.Members[0].OriginalName}; // returns the value of the {sb.Constant(typeDef.Members[0].Name)} field exposed as <see cref=\"{sb.TypeName(typeDef.Members[0].Type)}\"/>");
+					sb.AppendLine($"/// proxy.{typeDef.Members[0].OriginalName} = newValue; // ERROR: will not compile (there is no setter defined for this member)");
+					sb.AppendLine($"/// </code></para>");
+					sb.AppendLine($"/// </remarks>");
+					sb.AppendLine($"/// <seealso cref=\"ToMutable({nameof(JsonValue)})\">If you need a writable view</seealso>");
+					sb.AppendLine($"public {GetLocalReadOnlyProxyRef(type)} AsReadOnly({nameof(JsonValue)} value) => {GetLocalReadOnlyProxyRef(type)}.Create(value, this);");
+					sb.NewLine();
+
+					sb.AppendLine($"/// <summary>Converts an instance of type <see cref=\"{typeName}\"/> into a read-only type-safe JSON Proxy.</summary>");
+					sb.AppendLine($"/// <returns>An instance of <see cref=\"{GetLocalReadOnlyProxyRef(type)}\"/> that exposes all the original members of <see cref=\"{typeName}\"/> as getter-only properties.</returns>\r\n");
+					sb.AppendLine($"/// <remarks>");
+					sb.AppendLine($"/// <para>How to use:<code>");
+					sb.AppendLine($"/// var instance = new {type.GetFriendlyName()}() {{ {typeDef.Members[0].OriginalName} = ..., ... }};");
+					sb.AppendLine($"/// // ...");
+					sb.AppendLine($"/// var proxy = {this.SerializerContainerName}.{GetSerializerName(type)}.AsReadOnly(instance);");
+					sb.AppendLine($"/// var value = proxy.{typeDef.Members[0].OriginalName};");
+					sb.AppendLine($"/// proxy.{typeDef.Members[0].OriginalName} = /* ... */; // ERROR: will not compile (there is no setter defined for this member)");
+					sb.AppendLine($"/// </code></para>");
+					sb.AppendLine($"/// </remarks>");
+					sb.AppendLine($"public {GetLocalReadOnlyProxyRef(type)} AsReadOnly({typeName}{(type.IsValueType ? "" : "?")} instance) => {GetLocalReadOnlyProxyRef(type)}.Create(instance);");
+					sb.NewLine();
+
+					sb.AppendLine($"/// <summary>Returns a writable JSON Proxy that wraps a <see cref=\"{nameof(JsonValue)}\"/> into a type-safe emulation of type <see cref=\"{typeName}\"/></summary>");
+					sb.AppendLine($"/// <returns>An instance of <see cref=\"{GetLocalMutableProxyRef(type)}\"/> that wraps <paramref name=\"value\"/> and exposes all the original members of <see cref=\"{typeName}\"/> as writable properties.</returns>\r\n");
+					sb.AppendLine($"/// <remarks>");
+					sb.AppendLine($"/// <para>If <paramref name=\"value\"/> is read-only, a mutable copy will be created and used instead.</para>");
+					sb.AppendLine($"/// <para>If <paramref name=\"value\"/> is mutable, then it will be modified in-place. You can call <see cref=\"{nameof(JsonValue)}.{nameof(JsonValue.ToMutable)}\"/> if you need to make a copy in all cases.</para>");
+					sb.AppendLine($"/// <para>How to use:<code>");
+					sb.AppendLine($"/// JsonValue json = {nameof(JsonValue)}.{nameof(JsonValue.Parse)}(/* JSON text */);");
+					sb.AppendLine($"/// var proxy = {this.SerializerContainerName}.{GetSerializerName(type)}.AsMutable();");
+					sb.AppendLine($"/// var value = proxy.{typeDef.Members[0].OriginalName}; // returns the value of the {sb.Constant(typeDef.Members[0].Name)} field exposed as <see cref=\"{sb.TypeName(typeDef.Members[0].Type)}\"/>");
+					sb.AppendLine($"/// proxy.{typeDef.Members[0].OriginalName} = newValue; // change the value of the {sb.Constant(typeDef.Members[0].Name)} field");
+					sb.AppendLine($"/// </code></para>");
+					sb.AppendLine($"/// </remarks>");
+					sb.AppendLine($"/// <seealso cref=\"AsReadOnly({nameof(JsonValue)})\">If you need a read-only view</seealso>");
+					sb.AppendLine($"public {GetLocalMutableProxyRef(type)} ToMutable({nameof(JsonValue)} value) => {GetLocalMutableProxyRef(type)}.Create(value, converter: this);");
+					sb.NewLine();
+
+					sb.AppendLine($"/// <summary>Converts an instance of type <see cref=\"{typeName}\"/> into a read-only type-safe JSON Proxy.</summary>");
+					sb.AppendLine($"/// <returns>An instance of <see cref=\"{GetLocalReadOnlyProxyRef(type)}\"/> that exposes all the original members of <see cref=\"{typeName}\"/> as writable properties.</returns>\r\n");
+					sb.AppendLine($"/// <remarks>");
+					sb.AppendLine($"/// <para>How to use:<code>");
+					sb.AppendLine($"/// var instance = new {type.GetFriendlyName()}() {{ {typeDef.Members[0].OriginalName} = ..., ... }};");
+					sb.AppendLine($"/// // ...");
+					sb.AppendLine($"/// var proxy = {this.SerializerContainerName}.{GetSerializerName(type)}.ToMutable(instance);");
+					sb.AppendLine($"/// var value = proxy.{typeDef.Members[0].OriginalName};");
+					sb.AppendLine($"/// proxy.{typeDef.Members[0].OriginalName} = newValue;");
+					sb.AppendLine($"/// </code></para>");
+					sb.AppendLine($"/// </remarks>");
+					sb.AppendLine($"public {GetLocalMutableProxyRef(type)} ToMutable({typeName}{(type.IsValueType ? "" : "?")} instance) => {GetLocalMutableProxyRef(type)}.Create(instance);");
+					sb.NewLine();
+
+					#endregion
 				}
 			);
 
 			string readOnlyProxyTypeName = GetReadOnlyProxyName(type);
 			string mutableProxyTypeName = GetMutableProxyName(type);
 
+			string readOnlyProxyInterfaceName = sb.TypeNameGeneric(typeof(IJsonReadOnlyProxy<,,>), [typeName, readOnlyProxyTypeName, mutableProxyTypeName]);
+			string mutableProxyInterfaceName = sb.TypeNameGeneric(typeof(IJsonMutableProxy<,,>), [typeName, mutableProxyTypeName, readOnlyProxyTypeName]);
+
 			// IJsonReadOnlyProxy<T>
-			sb.AppendLine($"/// <summary>Wraps a <see cref=\"JsonObject\"/> into something that looks like a {type.GetFriendlyName()}</summary>");
+			sb.AppendLine($"/// <summary>Wraps a <see cref=\"{nameof(JsonObject)}\"/> into a read-only type-safe view that emulates the type <see cref=\"{typeName}\"/></summary>");
+			sb.AppendLine($"/// <seealso cref=\"{nameof(IJsonReadOnlyProxy<object>)}{{T}}\"/>");
 			sb.Struct(
 				"public readonly record",
 				readOnlyProxyTypeName,
-				[ sb.TypeNameGeneric(typeof(IJsonReadOnlyProxy<,,>), [ typeName, readOnlyProxyTypeName, mutableProxyTypeName ]) ],
+				[ readOnlyProxyInterfaceName ],
 				[ ],
 				() =>
 				{
@@ -867,7 +935,7 @@ namespace Doxense.Serialization.Json
 
 					// static Create()
 					sb.AppendLine($"/// <inheritdoc />");
-					sb.AppendLine($"public static {readOnlyProxyTypeName} Create({typeName} value, {nameof(CrystalJsonSettings)}? settings = null, {nameof(ICrystalJsonTypeResolver)}? resolver = null) => new({GetLocalSerializerRef(type)}.{nameof(IJsonPacker<object>.Pack)}(value, settings.AsReadOnly(), resolver));");
+					sb.AppendLine($"public static {readOnlyProxyTypeName} Create({typeName}{(type.IsValueType ? "" : "?")} value, {nameof(CrystalJsonSettings)}? settings = null, {nameof(ICrystalJsonTypeResolver)}? resolver = null) => new({GetLocalSerializerRef(type)}.{nameof(IJsonPacker<object>.Pack)}(value, settings.AsReadOnly(), resolver));");
 					sb.NewLine();
 
 					// static Converter
@@ -1023,13 +1091,14 @@ namespace Doxense.Serialization.Json
 			);
 
 			// IJsonMutableProxy<T>
-			sb.AppendLine($"/// <summary>Wraps a <see cref=\"JsonObject\"/> into something that looks like a {type.GetFriendlyName()}</summary>");
+			sb.AppendLine($"/// <summary>Wraps a <see cref=\"{nameof(JsonObject)}\"/> into a writable type-safe view that emulates the type <see cref=\"{typeName}\"/></summary>");
+			sb.AppendLine($"/// <seealso cref=\"{nameof(IJsonMutableProxy<object>)}{{T}}\"/>");
 			sb.Record(
 				"public sealed",
 				mutableProxyTypeName,
 				[
 					sb.TypeName<JsonMutableProxyObjectBase>(),
-					sb.TypeNameGeneric(typeof(IJsonMutableProxy<,,>), [ typeName, mutableProxyTypeName, readOnlyProxyTypeName ])
+					mutableProxyInterfaceName
 				],
 				[],
 				() =>
@@ -1055,7 +1124,7 @@ namespace Doxense.Serialization.Json
 
 					// static Create()
 					sb.AppendLine($"/// <inheritdoc />");
-					sb.AppendLine($"public static {mutableProxyTypeName} Create({typeName} value, {nameof(CrystalJsonSettings)}? settings = null, {nameof(ICrystalJsonTypeResolver)}? resolver = null) => new({GetLocalSerializerRef(type)}.{nameof(IJsonPacker<object>.Pack)}(value, settings.AsMutable(), resolver));");
+					sb.AppendLine($"public static {mutableProxyTypeName} Create({typeName}{(type.IsValueType ? "" : "?")} value, {nameof(CrystalJsonSettings)}? settings = null, {nameof(ICrystalJsonTypeResolver)}? resolver = null) => new({GetLocalSerializerRef(type)}.{nameof(IJsonPacker<object>.Pack)}(value, settings.AsMutable(), resolver));");
 					sb.NewLine();
 
 					// static Converter

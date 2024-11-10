@@ -30,6 +30,8 @@ namespace Doxense.Serialization.Json.Tests
 {
 	using System.Buffers;
 	using System.Collections.Generic;
+	using System.Collections.Immutable;
+	using System.Collections.ObjectModel;
 	using System.ComponentModel.DataAnnotations;
 	using System.Net;
 	using Doxense.Mathematics.Statistics;
@@ -182,7 +184,6 @@ namespace Doxense.Serialization.Json.Tests
 
 #if !DISABLED
 			WriteSourceCode("GeneratedSourceCode.cs", source);
-
 
 			static void WriteSourceCode(string fileName, string source, [System.Runtime.CompilerServices.CallerFilePath] string? callerPath = null)
 			{
@@ -424,7 +425,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			// Convert the Person into a proxy that wraps a read-only JsonObject
 			Log("FromValue(Person)");
-			var proxy = GeneratedSerializers.PersonReadOnly.Create(person);
+			var proxy = GeneratedSerializers.Person.AsReadOnly(person);
 			Log(proxy.ToString());
 			Assert.That(proxy.FamilyName, Is.EqualTo("Bond"));
 			Assert.That(proxy.FirstName, Is.EqualTo("James"));
@@ -460,33 +461,110 @@ namespace Doxense.Serialization.Json.Tests
 			Dump(person);
 
 			Log("ReadOnly:");
-			var proxy = GeneratedSerializers.PersonReadOnly.Create(person);
+			var proxy = GeneratedSerializers.Person.AsReadOnly(person);
 			Log(proxy.ToString());
 			Assert.That(proxy.FamilyName, Is.EqualTo("Bond"));
 			Assert.That(proxy.FirstName, Is.EqualTo("James"));
 			Assert.That(proxy.ToJson(), IsJson.ReadOnly);
 
-			var mutated = proxy.With(m =>
-			{
-				Assert.That(m.FamilyName, Is.EqualTo("Bond"));
-				Assert.That(m.FirstName, Is.EqualTo("James"));
-				// the JSON should a mutable copy of the original
-				Assert.That(m.ToJson(), IsJson.Object.And.Mutable.And.EqualTo(proxy.ToJson()));
+			{ // ReadOnly.With(Mutable => .... }
+				var mutated = proxy.With(
+					m =>
+					{
+						Assert.That(m.FamilyName, Is.EqualTo("Bond"));
+						Assert.That(m.FirstName, Is.EqualTo("James"));
+						// the JSON should a mutable copy of the original
+						Assert.That(m.ToJson(), IsJson.Object.And.Mutable.And.EqualTo(proxy.ToJson()));
 
-				m.FirstName = "Jim";
-				Assert.That(m.FirstName, Is.EqualTo("Jim"));
-				Assert.That(m.ToJson()["firstName"], IsJson.EqualTo("Jim"));
-			});
+						m.FirstName = "Jim";
+						Assert.That(m.FirstName, Is.EqualTo("Jim"));
+						Assert.That(m.ToJson()["firstName"], IsJson.EqualTo("Jim"));
+					});
 
-			Log(mutated.ToString());
-			// should return an updated object
-			Assert.That(mutated.FamilyName, Is.EqualTo("Bond"));
-			Assert.That(mutated.FirstName, Is.EqualTo("Jim"));
-			Assert.That(mutated.ToJson(), IsJson.ReadOnly);
+				Log(mutated.ToString());
+				// should return an updated object
+				Assert.That(mutated.FamilyName, Is.EqualTo("Bond"));
+				Assert.That(mutated.FirstName, Is.EqualTo("Jim"));
+				Assert.That(mutated.ToJson(), IsJson.ReadOnly);
 
-			// should not change the original!
-			Assert.That(proxy.FamilyName, Is.EqualTo("Bond"));
-			Assert.That(proxy.FirstName, Is.EqualTo("James"));
+				// should not change the original!
+				Assert.That(proxy.FamilyName, Is.EqualTo("Bond"));
+				Assert.That(proxy.FirstName, Is.EqualTo("James"));
+			}
+
+			{ // ReadOnly.ToMutable with { ... }
+
+				var mutated = proxy.ToMutable() with { FirstName = "Jim" };
+				Log(mutated.ToString());
+
+				// should return an updated object
+				Assert.That(mutated.FamilyName, Is.EqualTo("Bond"));
+				Assert.That(mutated.FirstName, Is.EqualTo("Jim"));
+				Assert.That(mutated.ToJson(), IsJson.Mutable);
+
+				// should not change the original!
+				Assert.That(proxy.FamilyName, Is.EqualTo("Bond"));
+				Assert.That(proxy.FirstName, Is.EqualTo("James"));
+
+			}
+		}
+
+		[Test]
+		public void Test_JsonReadOnlyProxy_Mutate_ComplexType()
+		{
+			var user = MakeSampleUser();
+
+			Log("User:");
+			Dump(user);
+
+			Log("ReadOnly:");
+			var proxy = GeneratedSerializers.MyAwesomeUser.AsReadOnly(user);
+			Log(proxy.ToString());
+			Assert.That(user.DisplayName, Is.EqualTo("James Bond"));
+			Assert.That(user.Roles, Is.EqualTo((string[]) ["user", "secret_agent"]));
+			Assert.That(proxy.ToJson(), IsJson.ReadOnly);
+
+			{ // ReadOnly.With(Mutable => .... }
+				var mutated = proxy.With(
+					m =>
+					{
+						Assert.That(m.DisplayName, Is.EqualTo("James Bond"));
+						Assert.That(m.Roles, Is.EqualTo((string[]) ["user", "secret_agent"]));
+						// the JSON should a mutable copy of the original
+						Assert.That(m.ToJson(), IsJson.Object.And.Mutable.And.EqualTo(proxy.ToJson()));
+
+						m.DisplayName = "Jim Bond";
+						Assert.That(m.DisplayName, Is.EqualTo("Jim Bond"));
+						Assert.That(m.ToJson()["displayName"], IsJson.EqualTo("Jim Bond"));
+
+						m.Roles = ["user", "secret_agent", "retired"];
+						Assert.That(m.Roles, Is.EqualTo((string[]) ["user", "secret_agent", "retired"]));
+						Assert.That(m.ToJson()["roles"], IsJson.Array.And.EqualTo((string[]) ["user", "secret_agent", "retired"]));
+					});
+
+				Log(mutated.ToString());
+				// should return an updated object
+				Assert.That(mutated.DisplayName, Is.EqualTo("Jim Bond"));
+				Assert.That(mutated.Roles, Is.EqualTo((string[]) ["user", "secret_agent", "retired"]));
+				Assert.That(mutated.ToJson(), IsJson.ReadOnly);
+
+				// should not change the original!
+				Assert.That(proxy.DisplayName, Is.EqualTo("James Bond"));
+				Assert.That(proxy.Roles, Is.EqualTo((string[]) ["user", "secret_agent"]));
+			}
+
+			{ // ReadOnly.ToMutable with { ... }
+
+				var mutated = proxy.ToMutable() with { Type = 008 };
+				Log(mutated.ToString());
+
+				// should return an updated object
+				Assert.That(mutated.Type, Is.EqualTo(8));
+				Assert.That(mutated.ToJson(), IsJson.Mutable);
+
+				// should not change the original!
+				Assert.That(proxy.Type, Is.EqualTo(7));
+			}
 		}
 
 		[Test]
@@ -505,7 +583,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			// Convert the Person into a proxy that wraps a read-only JsonObject
 			Log("FromValue(Person)");
-			var proxy = GeneratedSerializers.PersonMutable.FromValue(person);
+			var proxy = GeneratedSerializers.Person.ToMutable(person);
 			Log(proxy.ToString());
 			Assert.That(proxy.FamilyName, Is.EqualTo("Bond"));
 			Assert.That(proxy.FirstName, Is.EqualTo("James"));
@@ -573,7 +651,7 @@ namespace Doxense.Serialization.Json.Tests
 			Log(user.ToString());
 
 			Log("ReadOnly:");
-			var proxy = GeneratedSerializers.MyAwesomeUserReadOnly.Create(user);
+			var proxy = GeneratedSerializers.MyAwesomeUser.AsReadOnly(user);
 			Log(proxy.ToString());
 			Assert.That(proxy.Id, Is.EqualTo(user.Id));
 			Assert.That(proxy.DisplayName, Is.EqualTo(user.DisplayName));
@@ -608,7 +686,7 @@ namespace Doxense.Serialization.Json.Tests
 			Log(user.ToString());
 
 			Log("ReadOnly:");
-			var proxy = GeneratedSerializers.MyAwesomeUserMutable.FromValue(user);
+			var proxy = GeneratedSerializers.MyAwesomeUser.ToMutable(user);
 			Log(proxy.ToString());
 			Assert.That(proxy.Id, Is.EqualTo(user.Id));
 			Assert.That(proxy.DisplayName, Is.EqualTo(user.DisplayName));

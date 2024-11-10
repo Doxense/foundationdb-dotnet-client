@@ -69,7 +69,6 @@ namespace Doxense.Linq
 		/// <summary>Optional array coming from a pool</summary>
 		private T[]? Array;
 
-		[MustDisposeResource]
 		public ValueBuffer(Span<T> initialBuffer)
 		{
 			this.Count = 0;
@@ -77,7 +76,6 @@ namespace Doxense.Linq
 			this.Buffer = initialBuffer;
 		}
 
-		[MustDisposeResource]
 		public ValueBuffer(int capacity)
 		{
 			Contract.Positive(capacity);
