@@ -4,7 +4,7 @@
 	</PropertyGroup>
 	<PropertyGroup>
 		<!-- Framework versions for the core libraries (Core, FoundationDb.Client, ...) -->
-		<CoreSdkRuntimeVersions Condition="'$(CloudSdkRuntimeVersions)' == ''">net9.0;net8.0;net6.0</CoreSdkRuntimeVersions>
+		<CoreSdkRuntimeVersions Condition="'$(CloudSdkRuntimeVersions)' == ''">net9.0;net8.0</CoreSdkRuntimeVersions>
 		<!-- Framework versions for tools that are packed (FdbTop, FdbShell, ...) -->
 		<CoreSdkToolsVersions Condition="'$(CoreSdkToolsVersions)' == ''">net9.0;net8.0</CoreSdkToolsVersions>
 		<!-- Framework versions for local tools that are not packed (FdbBurner, Sandboxes, ...) -->

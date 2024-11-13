@@ -32,6 +32,7 @@
 namespace FoundationDB.Client.Tests
 {
 	using System.IO;
+	using System.Collections.Generic;
 	using System.Runtime.InteropServices;
 	using Doxense.Linq.Async.Iterators;
 
@@ -1194,20 +1195,20 @@ namespace FoundationDB.Client.Tests
 					Assert.That(folder, Is.Not.Null);
 
 					var query = tr.GetRange(folder.ToRange());
-					var data = dataSet.Select(kv => new KeyValuePair<Slice, Slice>(folder.Encode(kv.Index), kv.Value)).ToArray();
+					var data = dataSet.Select(kv => new KeyValuePair<Slice, Slice>(folder.Encode(kv.Index), kv.Value)).ToList();
 
 					// |(0 <--------- 49)<<<<<<<<<<<<<|
 					var res = await query.Reverse().Skip(50).ToListAsync();
-					Assert.That(res, Is.EqualTo(data.Reverse().Skip(50).ToList()), "0 <-- 49");
+					Assert.That(res, Is.EqualTo(data.Reverse<KeyValuePair<Slice, Slice>>().Skip(50).ToList()), "0 <-- 49");
 
 					// |(0 <----- 39)<<<<<<<<<<<<<<<<<|
 					res = await query.Reverse().Skip(50).Skip(10).ToListAsync();
-					Assert.That(res, Is.EqualTo(data.Reverse().Skip(60).ToList()), "0 <-- 39");
+					Assert.That(res, Is.EqualTo(data.Reverse<KeyValuePair<Slice, Slice>>().Skip(60).ToList()), "0 <-- 39");
 
 					// |(<- 0)<<<<<<<<<<<<<<<<<<<<<<<<|
 					res = await query.Reverse().Skip(99).ToListAsync();
 					Assert.That(res.Count, Is.EqualTo(1));
-					Assert.That(res, Is.EqualTo(data.Reverse().Skip(99).ToList()), "0 <-- 0");
+					Assert.That(res, Is.EqualTo(data.Reverse<KeyValuePair<Slice, Slice>>().Skip(99).ToList()), "0 <-- 0");
 
 					// (<- -1)|<<<<<<<<<<<<<<<<<<<<<<<<<<<<<|
 					res = await query.Reverse().Skip(100).ToListAsync();

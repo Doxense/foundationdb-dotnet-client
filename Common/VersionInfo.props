@@ -1,8 +1,8 @@
 <Project>
 
 	<PropertyGroup>
-		<VersionPrefix>7.3.0</VersionPrefix>
-		<VersionSuffix>preview3</VersionSuffix>
+		<VersionPrefix>7.3.1</VersionPrefix>
+		<VersionSuffix>preview.1</VersionSuffix>
 		<Authors>Snowbank SAS</Authors>
 		<PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
 		<PackageProjectUrl>https://github.com/Doxense/foundationdb-dotnet-client</PackageProjectUrl>
