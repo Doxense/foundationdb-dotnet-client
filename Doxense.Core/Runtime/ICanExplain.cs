@@ -70,11 +70,15 @@ namespace Doxense.Runtime
 
 		public void WriteLine(ref DefaultInterpolatedStringHandler message) => this.Output.WriteLine(this.Indentation + message.ToStringAndClear());
 
-		public void ExplainChild<TExplainable>(TExplainable? child)
+		public void ExplainChild<TExplainable>(TExplainable? child, string? label = null)
 			where TExplainable : ICanExplain
 		{
 			if (child != null)
 			{
+				if (label != null)
+				{
+					WriteLine(label);
+				}
 				Enter();
 				child.Explain(this);
 				Leave();
