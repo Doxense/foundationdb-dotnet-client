@@ -363,6 +363,12 @@ namespace Aspire.Hosting
 
 		private static string ComputeDockerTagFromVersion(Version version, FdbVersionPolicy rollForward)
 		{
+			// Important Note:
+			// - As of know, there they are always released in pairs: one with AVX instructions enabled (odd number, ex: 7.3.49) and one without AVX enabled (even number, ex: 7.3.48)
+			// - The AVX enabled versions are faster, but are NOT compatible with ARM64 and will not run on Apple M-chip enabled laptops, where you need a non-AVX version.
+			// - As this method is mostly used for the local dev loop, and to make it easier to develop on MBP or Mac Mini, we will always roll foward to even version (non-AVX)
+			// => In production deployment, you should use the most appropriate version depending on the target platform.
+
 			//TODO: maybe query the docker hub API, but use a local cache?
 			// => https://registry.hub.docker.com/v2/repositories/foundationdb/foundationdb/tags?name=X.Y&ordering=last_updated
 
@@ -382,7 +388,7 @@ namespace Aspire.Hosting
 					{
 						case (7, 3):
 						{
-							return "7.3.55";
+							return "7.3.54";
 						}
 						case (7, 2):
 						{
@@ -390,7 +396,7 @@ namespace Aspire.Hosting
 						}
 						case (7, 1):
 						{
-							return "7.1.63";
+							return "7.1.62";
 						}
 						default:
 						{

@@ -30,6 +30,7 @@ namespace FoundationDB.Client.Tests
 	using DotNet.Testcontainers.Builders;
 	using DotNet.Testcontainers.Configurations;
 	using DotNet.Testcontainers.Containers;
+	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization;
 	using SnowBank.Testing;
 
@@ -58,8 +59,12 @@ namespace FoundationDB.Client.Tests
 
 		public string ConnectionString { get; }
 
-		public FdbServerTestContainer(string name, string? tag = "7.3.55", int port = 4540, string volumeName = "fdb_test")
+		public FdbServerTestContainer(string name, string tag, int port, string volumeName)
 		{
+			Contract.NotNullOrEmpty(tag);
+			Contract.GreaterOrEqual(port, 0);
+			Contract.NotNullOrEmpty(volumeName);
+
 			this.Description = "docker";
 			this.Id = "docker";
 			this.Port = port;
@@ -122,6 +127,8 @@ namespace FoundationDB.Client.Tests
 	public abstract class FdbTest : FdbSimpleTest
 	{
 
+		internal const string DockerImageTag73 = "7.3.54";
+
 		protected int OverrideApiVersion;
 
 		protected virtual Task OnBeforeAllTests() => Task.CompletedTask;
@@ -147,7 +154,7 @@ namespace FoundationDB.Client.Tests
 			var volumeName = "fdb-test-" + target;
 
 			var tag = Environment.GetEnvironmentVariable("FDB_TEST_DOCKER_TAG");
-			if (string.IsNullOrEmpty(tag)) tag = "7.3.55"; //TODO: make this a constant somewhere visible?
+			if (string.IsNullOrEmpty(tag)) tag = DockerImageTag73;
 
 			this.Server = FdbServerTestContainer.Global;
 			if (this.Server == null)
