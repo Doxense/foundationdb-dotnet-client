@@ -36,12 +36,13 @@ namespace SnowBank.Shell.Prompt
 		/// <param name="destination">Destination buffer</param>
 		/// <param name="tokens">Builder lists all the tokens in the prompt</param>
 		/// <remarks>Writes the token literals, decorated with markup, to the destination buffer</remarks>
-		void ToMarkup(ref ValueStringWriter destination, PromptTokens tokens);
+		void ToMarkup(ref ValueStringWriter destination, PromptTokenStack tokens, IPromptTheme theme);
 
 		/// <summary>Render the prompt to the screen</summary>
-		/// <param name="state">New state</param>
-		/// <param name="prev">Previous state, or <see langword="null"/> on the first render</param>
-		void Render(RenderState state, RenderState? prev);
+		/// <param name="state">New prompt state (with up to date <see cref="PromptState.Render"/> data)</param>
+		/// <param name="prev"><see cref="RenderState"/> of the previous state, or <see langword="null"/> on the first render</param>
+		/// <remarks>Note that <paramref name="prev"/> may be different from the render state of the <see cref="PromptState.Parent"/> of <paramref name="state"/>, when rolling back a change (backspace, escape, ...)</remarks>
+		void Render(PromptState state, RenderState? prev);
 
 	}
 

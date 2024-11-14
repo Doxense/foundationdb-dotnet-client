@@ -92,7 +92,7 @@ namespace SnowBank.Shell.Prompt
 				// - "hello_" we are still writing the token (maybe there are more to come)
 				// - "hello _" we have written the command, we must switch to it
 
-				if (state.Tokens.Length > 0)
+				if (state.Tokens.Count > 1)
 				{ // this is not supposed to happen, unless we are parsing an invalid command?
 					throw new NotImplementedException();
 				}
@@ -101,11 +101,9 @@ namespace SnowBank.Shell.Prompt
 				{ // we are empty, or became empty again!
 					return state with
 					{
-						Token = default,
 						CommandBuilder = this with { CommandName = "", Command = null }
 					};
 				}
-
 
 				if (state.RawToken[^1] == ' ')
 				{ // we completed the command name
@@ -114,7 +112,7 @@ namespace SnowBank.Shell.Prompt
 					{ // no command with this name!
 						return state with
 						{
-							Token = PromptToken.Create("error", state.RawToken), // TODO: use color names? like "@invalid" or "@error" ?
+							Tokens = state.Tokens.Update("error", state.RawToken), // TODO: use color names? like "@invalid" or "@error" ?
 							CommandBuilder = this with
 							{
 								CommandName = state.RawToken[..^1],
@@ -128,8 +126,7 @@ namespace SnowBank.Shell.Prompt
 						Change = PromptChange.NextToken,
 						Command = this.Command,
 						RawToken = "",
-						Tokens = [ PromptToken.Create("command", state.RawToken.Trim()) ],
-						Token = default,
+						Tokens = state.Tokens.Push(PromptToken.Create("command", state.RawToken.Trim())),
 						CommandBuilder = this.Command.StartNew(),
 					};
 				}
@@ -138,7 +135,7 @@ namespace SnowBank.Shell.Prompt
 				{ // we typed a name that matches a command
 					return state with
 					{
-						Token = PromptToken.Create("command", cmd.Token),
+						Tokens = state.Tokens.Update("command", cmd.Token),
 						CommandBuilder = this with
 						{
 							CommandName = cmd.Token,
@@ -150,7 +147,7 @@ namespace SnowBank.Shell.Prompt
 				// TODO: partial, vs unknown
 				return state with
 				{
-					Token = PromptToken.Create("incomplete", state.RawToken),
+					Tokens = state.Tokens.Update("incomplete", state.RawToken),
 					CommandBuilder = this with
 					{
 						CommandName = state.RawToken,

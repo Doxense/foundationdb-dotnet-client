@@ -49,7 +49,7 @@ namespace SnowBank.Shell.Prompt
 		string? DefaultBackground { get; }
 
 		/// <summary>Generates the <see cref="RenderState"/> that corresponds to a <see cref="PromptState"/></summary>
-		RenderState Paint(PromptState state);
+		PromptState Paint(PromptState state);
 
 	}
 

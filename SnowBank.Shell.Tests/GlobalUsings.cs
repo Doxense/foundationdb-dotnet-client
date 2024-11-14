@@ -30,3 +30,7 @@ global using System.Diagnostics;
 global using System.Linq;
 global using Doxense.Linq;
 global using Doxense.Runtime;
+
+global using MustUseReturnValueAttribute = JetBrains.Annotations.MustUseReturnValueAttribute;
+global using PublicAPIAttribute = JetBrains.Annotations.PublicAPIAttribute;
+global using UsedImplicitlyAttribute = JetBrains.Annotations.UsedImplicitlyAttribute;

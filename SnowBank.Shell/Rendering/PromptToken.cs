@@ -26,8 +26,10 @@
 
 namespace SnowBank.Shell.Prompt
 {
+	using System.Collections.Immutable;
 	using System.Runtime.CompilerServices;
 	using System.Text;
+	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq;
 
 	/// <summary>Represents a single token in a prompt.</summary>
@@ -39,131 +41,66 @@ namespace SnowBank.Shell.Prompt
 	/// If a token uses multiple colors, it will split into has many fragments as required.
 	/// </para>
 	/// </remarks>
-	/// <seealso cref="PromptTokenFragment"/>
+	/// <seealso cref="PromptMarkupFragment"/>
 	[PublicAPI]
 	public readonly record struct PromptToken
 	{
-		// Single fragment:
-		// - Fragments = [ ("hello", "yellow") ]
-		//   - Raw = "hello"
-		//   - Markup = "[yellow]hello[/]"
+		public static readonly PromptToken Empty = new ("", "", []);
 
-		// Multiple fragments:
-		// - Fragments = [ ("--", "gray"), ("force", "white") ]
-		//   - Raw = "--force"
-		//   - Markup = "[gray]--[/][white]force[/]"
+		public readonly string Type; //TODO!!
 
-		public readonly string? Type; //TODO!!
+		public readonly string Text;
 
-		public readonly ReadOnlyMemory<PromptTokenFragment> Fragments;
+		public readonly ImmutableArray<PromptMarkupFragment> Markup;
 
-		private readonly string? m_rawText;
-
-		public string RawText => m_rawText ?? "";
+		/// <summary>Create an undecorated token</summary>
+		/// <param name="type">Type of the token</param>
+		/// <param name="text">Raw text</param>
+		/// <returns>Token without any markup details (will be completed at a later stage)</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static PromptToken Create(string? type, string? text) => new (type ?? "", text ?? "", []);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static PromptToken Create(string type, string? literal, string? foreground = null, string? background = null)
-			=> Create(type, PromptTokenFragment.Create(literal, foreground, background));
+		public static PromptToken Create(string? type, PromptMarkupFragment fragment) => new(type ?? "", fragment.Literal, [fragment]);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static PromptToken Create(string type, PromptTokenFragment fragment) => new(type, new [] { fragment });
+		public static PromptToken Create(string? type, ImmutableArray<PromptMarkupFragment> fragments) => new (type ?? "", GetRawText(fragments.AsSpan()), fragments);
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static PromptToken Create(string type, PromptTokenFragment[]? fragments) => new(type, fragments ?? [ ]);
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static PromptToken Create(string type, ReadOnlySpan<PromptTokenFragment> fragments) => new(type, fragments.ToArray());
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static PromptToken Create(string type, ReadOnlyMemory<PromptTokenFragment> fragments) => new(type, fragments);
-
-		public static PromptToken Create(string type, IEnumerable<PromptTokenFragment>? fragments) => new(type, fragments?.ToArray() ?? [ ]);
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public PromptToken(string type, ReadOnlyMemory<PromptTokenFragment> fragments)
+		internal static string GetRawText(ReadOnlySpan<PromptMarkupFragment> fragments)
 		{
+			var sw = new ValueStringWriter();
+			foreach (var frag in fragments)
+			{
+				sw.Write(frag.Literal);
+			}
+			return sw.ToStringAndDispose();
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static PromptToken Create(string? type, string? text, string? foreground, string? background = null) => new(type ?? "", text ?? "", [ PromptMarkupFragment.Create(text, foreground, background) ]);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public PromptToken(string type, string text, ImmutableArray<PromptMarkupFragment> markup)
+		{
+			Contract.Debug.Requires(type != null && text != null);
 			this.Type = type;
-			this.Fragments = fragments;
-			m_rawText = GetRawText(fragments.Span);
+			this.Text = text;
+			this.Markup = markup;
 		}
 
-		public int Count => this.Fragments.Length;
+		public int Length => this.Text?.Length ?? 0;
 
-		public PromptTokenFragment this[int index] => this.Fragments.Span[index];
+		public bool HasMarkup => this.Markup.Length > 0;
 
-		public PromptTokenFragment this[Index index] => this.Fragments.Span[index];
+		public override string ToString() => !string.IsNullOrEmpty(this.Type) ? $"<{this.Type}:'{this.Text}'>" : "<empty>";
 
-		internal static string GetRawText(ReadOnlySpan<PromptTokenFragment> fragments)
+		public override int GetHashCode() => HashCode.Combine(this.Type ?? "", this.Text ?? "");
+
+		public bool Equals(PromptToken other) => this.Type.AsSpan().SequenceEqual(other.Type) && this.Text.AsSpan().SequenceEqual(other.Text);
+
+		public PromptToken WithMarkup(string literal, string? foreground = null, string? background = null)
 		{
-			return fragments.Length switch
-			{
-				0 => "",
-				1 => fragments[0].Literal.GetStringOrCopy(),
-				2 => string.Concat(fragments[0].Literal.Span, fragments[1].Literal.Span),
-				3 => string.Concat(fragments[0].Literal.Span, fragments[1].Literal.Span, fragments[2].Literal.Span),
-				4 => string.Concat(fragments[0].Literal.Span, fragments[1].Literal.Span, fragments[2].Literal.Span, fragments[3].Literal.Span),
-				_ => ConcatMultipleFragments(fragments),
-			};
-
-			static string ConcatMultipleFragments(ReadOnlySpan<PromptTokenFragment> fragments)
-			{
-				var sw = new ValueStringWriter();
-				foreach (var fragment in fragments) sw.Write(fragment.Literal);
-				return sw.ToStringAndDispose();
-			}
-
-		}
-
-		public void AppendRawTo(ref ValueStringWriter destination)
-		{
-			foreach (var frag in this.Fragments.Span)
-			{
-				destination.Write(frag.Literal);
-			}
-		}
-
-		public override string ToString()
-		{
-			var sb = new StringBuilder();
-			sb.Append(this.Type).Append(':');
-			var span = this.Fragments.Span;
-			for(int i = 0; i < span.Length; i++)
-			{
-				ref readonly var frag = ref span[i];
-				if (i != 0) sb.Append('|');
-				sb.Append('\'').Append(frag.Literal).Append('\'');
-				if (frag.HasColor) sb.Append($"[F={frag.Foreground},B={frag.Background}]");
-			}
-			return sb.ToString();
-		}
-
-		public override int GetHashCode()
-		{
-			var h = new HashCode();
-			foreach (var frag in this.Fragments.Span)
-			{
-				h.Add(frag);
-			}
-			return h.ToHashCode();
-		}
-
-		public bool Equals(PromptToken other)
-		{
-			if (this.Type != other.Type) return false;
-			if (m_rawText != other.m_rawText) return false;
-
-			var thisFrags = this.Fragments.Span;
-			var otherFrags = other.Fragments.Span;
-			if (otherFrags.Length != thisFrags.Length) return false;
-			for (int i = 0; i < thisFrags.Length; i++)
-			{
-				if (!thisFrags[i].Equals(otherFrags[i]))
-				{
-					return false;
-				}
-			}
-
-			return true;
+			return new(this.Type, this.Text, [ PromptMarkupFragment.Create(literal, foreground, background) ]);
 		}
 	}
 

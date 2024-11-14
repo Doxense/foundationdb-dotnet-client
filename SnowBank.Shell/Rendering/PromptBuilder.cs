@@ -24,6 +24,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+#if DISABLED
+
 namespace SnowBank.Shell.Prompt
 {
 	using System.Collections;
@@ -32,7 +34,7 @@ namespace SnowBank.Shell.Prompt
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq;
 
-	/// <summary>Represents a complete prompt, made up of one or more <see cref="PromptToken"/> (or "words"), composed of one or more <see cref="PromptTokenFragment"/> of different colors.</summary>
+	/// <summary>Represents a complete prompt, made up of one or more <see cref="PromptToken"/> (or "words"), composed of one or more <see cref="PromptMarkupFragment"/> of different colors.</summary>
 	/// <remarks>Each command will appends one or more several tokens, with optional internal subdivisions for syntax color highlighting.</remarks>
 	public sealed class PromptBuilder
 	{
@@ -69,11 +71,11 @@ namespace SnowBank.Shell.Prompt
 
 		/// <summary>Adds a new token composed of a single text fragment</summary>
 		/// <param name="fragment">Fragment that makes up the new token</param>
-		public void Add(string type, PromptTokenFragment fragment) => this.Add(PromptToken.Create(type, fragment));
+		public void Add(string type, PromptMarkupFragment fragment) => this.Add(PromptToken.Create(type, fragment));
 
 		/// <summary>Adds a new token composed of one or more text fragments</summary>
 		/// <param name="fragments">Fragments that make up the new token</param>
-		public void Add(string type, scoped ReadOnlySpan<PromptTokenFragment> fragments) => this.Add(PromptToken.Create(type, fragments));
+		public void Add(string type, scoped ReadOnlySpan<PromptMarkupFragment> fragments) => this.Add(PromptToken.Create(type, fragments));
 
 		/// <summary>Number of tokens in the prompt</summary>
 		public int Count => this.Buffer.Count;
@@ -113,7 +115,7 @@ namespace SnowBank.Shell.Prompt
 
 	}
 
-	/// <summary>Represents a complete prompt, made up of one or more <see cref="PromptToken"/> (or "words"), composed of one or more <see cref="PromptTokenFragment"/> of different colors.</summary>
+	/// <summary>Represents a complete prompt, made up of one or more <see cref="PromptToken"/> (or "words"), composed of one or more <see cref="PromptMarkupFragment"/> of different colors.</summary>
 	/// <remarks>Each command will appends one or more several tokens, with optional internal subdivisions for syntax color highlighting.</remarks>
 	public sealed record PromptTokens : IReadOnlyList<PromptToken>
 	{
@@ -185,3 +187,5 @@ namespace SnowBank.Shell.Prompt
 	}
 
 }
+
+#endif

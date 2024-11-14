@@ -94,22 +94,19 @@ namespace SnowBank.Shell.Prompt
 
 		public required IPromptAutoCompleter AutoCompleter { get; init; }
 
-		public RenderState? State { get; private set; }
+		public PromptState? State { get; private set; }
 
 		// HOOKS
 
-		public Action<PromptState, RenderState>? OnBefore { get; init; }
+		public Action<PromptState>? OnBefore { get; init; }
 
-		public Action<ConsoleKeyInfo, PromptState, RenderState>? OnAfter { get; init; }
+		public Action<ConsoleKeyInfo, PromptState>? OnAfter { get; init; }
 
 		public Func<PromptState, ConsoleKeyInfo, PromptState>? OnUserInput { get; init; }
 
 		public Func<PromptState, PromptState>? OnCommandUpdate { get; init; }
 
-		public Func<PromptState, RenderState, RenderState>? OnBeforeRender { get; init; }
-
-		public Action<PromptState, RenderState>? OnAfterRender { get; init; }
-
+		public Func<PromptState, RenderState?, PromptState>? OnBeforeRender { get; init; }
 
 		public async Task<string?> Prompt(CancellationToken ct)
 		{
@@ -122,17 +119,21 @@ namespace SnowBank.Shell.Prompt
 
 			var state = PromptState.CreateEmpty(root, this.Theme);
 
-			var renderState = this.Theme.Paint(state);
+			state = this.Theme.Paint(state);
 
 			// initial render
-			this.Renderer.Render(renderState, null);
+			this.Renderer.Render(state, null);
+
 			// record the new state
-			this.State = renderState;
+			this.State = state;
+
+			// capture the current render state (used by the render to patch the screen, instead of performing a full repaint)
+			var lastRenderState = state.Render;
 
 			while (!ct.IsCancellationRequested && !state.IsDone())
 			{
 
-				this.OnBefore?.Invoke(state, renderState);
+				this.OnBefore?.Invoke(state);
 
 				// wait for the next user input...
 				var keyOrStop = await this.Input.ReadKey(ct);
@@ -161,26 +162,22 @@ namespace SnowBank.Shell.Prompt
 					}
 				}
 
-				// if the state has changed in any way, we need to repaint
-				if (!ReferenceEquals(state, newState))
+				// repaint the state
+				state = this.Theme.Paint(newState);
+
+				if (this.OnBeforeRender != null)
 				{
-					state = newState;
-					var newRenderState = this.Theme.Paint(newState);
-
-					if (this.OnBeforeRender != null)
-					{
-						newRenderState = this.OnBeforeRender(state, newRenderState);
-						Contract.Debug.Assert(newRenderState != null);
-					}
-
-					// if the changed produced actual UI change, we need to render it
-					this.Renderer.Render(newRenderState, renderState);
-					renderState = newRenderState;
-
-					this.OnAfterRender?.Invoke(state, renderState);
+					state = this.OnBeforeRender(state, lastRenderState);
+					Contract.Debug.Assert(state != null);
 				}
 
-				this.OnAfter?.Invoke(key, state, renderState);
+				// if the changed produced actual UI change, we need to render it
+				this.Renderer.Render(state, this.State?.Render);
+
+				this.OnAfter?.Invoke(key, state);
+
+				lastRenderState = state.Render;
+				this.State = state;
 			}
 
 			return state.RawText;

@@ -26,9 +26,6 @@
 
 namespace SnowBank.Shell.Prompt.Tests
 {
-	using System.Text;
-	using JetBrains.Annotations;
-	using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 
 	[UsedImplicitly]
 	public abstract class PromptStateExpression
@@ -38,10 +35,10 @@ namespace SnowBank.Shell.Prompt.Tests
 			=> new(new()
 			{
 				Change = PromptChange.None,
+				Render = null,
 				RawText = "",
 				RawToken = "",
-				Tokens = [ ],
-				Token = default,
+				Tokens = PromptTokenStack.Empty,
 				Candidates = [ ],
 				Command = command,
 				CommandBuilder = command.StartNew(),
@@ -84,7 +81,7 @@ namespace SnowBank.Shell.Prompt.Tests
 		{
 			if (string.IsNullOrEmpty(word))
 			{
-				return default;
+				return PromptToken.Empty;
 			}
 
 			int p = word.IndexOf(':');
@@ -95,33 +92,20 @@ namespace SnowBank.Shell.Prompt.Tests
 		[MustUseReturnValue]
 		public PromptStateExpression<TCommand> Tokens(params string[] words)
 		{
-			if (words.Length == 0) words = [""];
-
-			var tokens = new List<PromptToken>();
-
+			var tmp = new List<PromptToken>();
 			foreach (var word in words)
 			{
-				tokens.Add(DecodeWord(word));
+				tmp.Add(DecodeWord(word));
 			}
+			if (tmp.Count == 0) tmp.Add(PromptToken.Empty);
 
-			var rawText = string.Join(" ", tokens.Select(t => t.RawText));
-
-			PromptToken token = default;
-			string rawToken = "";
-
-			if (this.State.Change != PromptChange.Done)
-			{
-				token = tokens[^1];
-				rawToken = token.RawText;
-				tokens.RemoveAt(tokens.Count - 1);
-			}
+			var tokens = PromptTokenStack.Create(tmp);
 
 			return new(this.State with
 			{
-				RawText = rawText,
-				RawToken = rawToken,
-				Tokens = [..tokens],
-				Token = token,
+				RawText = tokens.GetRawText(),
+				RawToken = tokens.Last.Text,
+				Tokens = tokens,
 			});
 		}
 

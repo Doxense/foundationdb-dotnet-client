@@ -54,8 +54,7 @@ namespace SnowBank.Shell.Prompt
 						Parent = null,
 						RawText = "",
 						RawToken = "",
-						Tokens = [ ],
-						Token = default,
+						Tokens = PromptTokenStack.Empty,
 					};
 				}
 				case ConsoleKey.Tab:
@@ -93,7 +92,7 @@ namespace SnowBank.Shell.Prompt
 					if (candidates.Length == 1)
 					{ // we have only one candidate, output it
 						var c = candidates[0];
-						var text = state.Tokens.Length == 0 ? c : (state.RawText[..^state.RawToken.Length] + c);
+						var text = state.Tokens.Count == 1 ? c : (state.RawText[..^state.RawToken.Length] + c);
 						state = state with
 						{
 							Change = PromptChange.Completed,
@@ -107,7 +106,7 @@ namespace SnowBank.Shell.Prompt
 
 					if (state.CommonPrefix != null)
 					{ // we have a common prefix with all candidates, we can jump forward
-						var partial = state.CommonPrefix[state.Token.RawText.Length..];
+						var partial = state.CommonPrefix[state.Tokens.Last.Length..];
 						var text = state.RawText + partial;
 						state = state with
 						{

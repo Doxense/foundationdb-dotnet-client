@@ -36,10 +36,10 @@ namespace SnowBank.Shell.Prompt.Tests
 
 		public bool WasCalled { get; set; }
 
-		public override RenderState Paint(PromptState state)
+		public override PromptState Paint(PromptState state)
 		{
 			var res = base.Paint(state);
-			this.States.Add((state, res));
+			this.States.Add((state, res.Render!));
 			this.WasCalled = true;
 			return res;
 		}

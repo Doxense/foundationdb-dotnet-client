@@ -45,7 +45,7 @@ namespace SnowBank.Shell.Prompt
 			}
 
 			var text = state.RawText;
-			var token = state.Token.RawText;
+			var token = state.Tokens.Last.Text;
 
 			//if (commandToken == null && state.TokenStart > 0)
 			//{ // we just validated the command

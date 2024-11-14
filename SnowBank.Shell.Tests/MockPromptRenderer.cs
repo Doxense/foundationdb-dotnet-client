@@ -35,25 +35,24 @@ namespace SnowBank.Shell.Prompt.Tests
 
 		public bool WasCalled { get; set; }
 
-		public void ToMarkup(ref ValueStringWriter destination, PromptTokens tokens)
+		public void ToMarkup(ref ValueStringWriter destination, PromptTokenStack tokens, IPromptTheme theme)
 		{
-			var span = tokens.Span;
-			for(int i = 0; i < span.Length; i++)
+			for(int i = 0; i < tokens.Count; i++)
 			{
 				if (i > 0)
 				{
 					destination.Write(' ');
 				}
-				foreach (var frag in tokens[i].Fragments.Span)
+				foreach (var frag in tokens[i].Markup)
 				{
 					destination.Write(frag.Literal);
 				}
 			}
 		}
 
-		public void Render(RenderState state, RenderState? prev)
+		public void Render(PromptState state, RenderState? prev)
 		{
-			this.States.Add(( state, prev ));
+			this.States.Add(( state.Render!, prev ));
 			this.WasCalled = true;
 		}
 

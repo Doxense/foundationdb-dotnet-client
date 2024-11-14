@@ -26,9 +26,10 @@
 
 namespace SnowBank.Shell.Prompt
 {
+	using System.Collections.Immutable;
 
 	/// <summary>Represent the state of what should be rendered</summary>
-	public sealed record RenderState
+	public sealed record RenderState : ICanExplain
 	{
 
 		public required string PromptRaw { get; init; }
@@ -41,13 +42,26 @@ namespace SnowBank.Shell.Prompt
 		/// <summary>Prompt decorated with markup code (not part of the user input)</summary>
 		public required string PromptMarkup { get; init; }
 
+		/// <summary>List of completed tokens in the prompt</summary>
+		/// <remarks>
+		/// <para>Does not include the token currently being edited!</para>
+		/// </remarks>
+		public required PromptTokenStack Tokens { get; init; }
+
 		/// <summary>User Input decorated with markup code</summary>
 		public required string TextMarkup { get; init; }
 
 		/// <summary>Position of the cursor (relative to the start of the user input)</summary>
 		public required int Cursor { get; init; }
 
-		public required List<(string Raw, string Markup)> Rows { get; init; }
+		public required ImmutableArray<(string Raw, string Markup)> Rows { get; init; }
+
+		public void Explain(ExplanationBuilder builder)
+		{
+			builder.WriteLine($"Raw:    '{this.PromptRaw}{this.TextRaw}'");
+			builder.WriteLine($"Markup: '{this.PromptMarkup}' '{this.TextMarkup}'");
+			builder.WriteLine($"Tokens: {this.Tokens}");
+		}
 
 	}
 

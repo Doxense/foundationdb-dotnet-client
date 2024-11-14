@@ -27,6 +27,7 @@
 namespace SnowBank.Shell.Prompt
 {
 	using System.Runtime.CompilerServices;
+	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq;
 	using Spectre.Console;
 	using Console = System.Console;
@@ -48,10 +49,14 @@ namespace SnowBank.Shell.Prompt
 
 		private string GetClearMask(int count) => (uint) count < AnsiConsolePromptRenderer.CachedClearMasks.Length ? AnsiConsolePromptRenderer.CachedClearMasks[count] : new string(' ', count);
 
-		public void Render(RenderState state, RenderState? prev)
+		public void Render(PromptState state, RenderState? prev)
 		{
+			Contract.Debug.Requires(state != null && state.Render != null);
+
 			// hide the cursor while we are moving around during repaint
 			Console.CursorVisible = false;
+
+			var render = state.Render!;
 
 			int skippedRows = 0;
 
@@ -59,13 +64,13 @@ namespace SnowBank.Shell.Prompt
 
 			// render the prompt
 			Console.CursorLeft = 0;
-			AnsiConsole.Markup(state.PromptMarkup);
+			AnsiConsole.Markup(render.PromptMarkup);
 
 			// render the user input
 			int cursorStart = Console.CursorLeft;
-			AnsiConsole.Markup(state.TextMarkup);
+			AnsiConsole.Markup(render.TextMarkup);
 
-			int removed = prev == null ? 0 : (prev.TextRaw.Length + prev.Extra) - (state.TextRaw.Length + state.Extra);
+			int removed = prev == null ? 0 : (prev.TextRaw.Length + prev.Extra) - (render.TextRaw.Length + render.Extra);
 			if (removed > 0)
 			{
 				Console.Write(this.GetClearMask(removed));
@@ -77,13 +82,13 @@ namespace SnowBank.Shell.Prompt
 
 			//TODO: clear any difference!
 
-			for (int i = 0; i < state.Rows.Count; i++)
+			for (int i = 0; i < render.Rows.Length; i++)
 			{
-				var row = state.Rows[i];
+				var row = render.Rows[i];
 				Console.WriteLine();
 				++skippedRows;
 				AnsiConsole.Markup(row.Markup);
-				removed = prev == null || i >= prev.Rows.Count ? 0 : prev.Rows[i].Raw.Length - row.Raw.Length;
+				removed = prev == null || i >= prev.Rows.Length ? 0 : prev.Rows[i].Raw.Length - row.Raw.Length;
 				if (removed > 0)
 				{
 					Console.Write(this.GetClearMask(removed));
@@ -93,7 +98,7 @@ namespace SnowBank.Shell.Prompt
 			// clear out any rows from the previous state that don't exist anymore
 			if (prev != null)
 			{
-				for (int i = state.Rows.Count; i < prev.Rows.Count; i++)
+				for (int i = render.Rows.Length; i < prev.Rows.Length; i++)
 				{
 					if (prev.Rows[i].Raw.Length > 0)
 					{
@@ -113,7 +118,7 @@ namespace SnowBank.Shell.Prompt
 			}
 
 			// and set the cursor to the expected position
-			Console.CursorLeft = cursorStart + state.Cursor;
+			Console.CursorLeft = cursorStart + render.Cursor;
 			Console.CursorVisible = true;
 
 		}
@@ -221,11 +226,10 @@ namespace SnowBank.Shell.Prompt
 			}
 		}
 
-		public void ToMarkup(ref ValueStringWriter destination, PromptTokens prompt)
+		public void ToMarkup(ref ValueStringWriter destination, PromptTokenStack tokens, IPromptTheme theme)
 		{
-			var tokens = prompt.Span;
-			var foreground = prompt.Theme.DefaultForeground ?? "";
-			var background = prompt.Theme.DefaultBackground ?? "";
+			var foreground = theme.DefaultForeground ?? "";
+			var background = theme.DefaultBackground ?? "";
 			bool hasDefaultColors = !string.IsNullOrEmpty(foreground) || !string.IsNullOrEmpty(background);
 
 			if (hasDefaultColors)
@@ -233,20 +237,20 @@ namespace SnowBank.Shell.Prompt
 				BeginColor(ref destination, foreground, background);
 			}
 
-			for(int i = 0; i < tokens.Length; i++)
+			for(int i = 0; i < tokens.Count; i++)
 			{
 				if (i > 0)
 				{
 					destination.Write(' ');
 				}
-				foreach (var frag in tokens[i].Fragments.Span)
+				foreach (var frag in tokens[i].Markup)
 				{
 					var f = frag.Foreground ?? "";
 					if (f == foreground) f = null;
 					var b = frag.Background ?? "";
 					if (b == background) b = null;
 
-					Write(ref destination, frag.Literal.Span, f, b);
+					Write(ref destination, frag.Literal, f, b);
 				}
 			}
 

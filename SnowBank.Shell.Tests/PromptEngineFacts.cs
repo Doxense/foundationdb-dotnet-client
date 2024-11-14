@@ -72,7 +72,7 @@ namespace SnowBank.Shell.Prompt.Tests
 					: base(descriptor, commandText)
 				{ }
 
-				public string Argument { get; init; }
+				public required string Argument { get; init; }
 
 			}
 
@@ -91,9 +91,7 @@ namespace SnowBank.Shell.Prompt.Tests
 					{
 						return state with
 						{
-							Tokens = [ ..state.Tokens, PromptToken.Create("argument", this.Argument), ],
-							Token = default,
-							RawToken = "",
+							Tokens = state.Tokens.Update(PromptToken.Create("argument", this.Argument)),
 						};
 					}
 
@@ -101,7 +99,7 @@ namespace SnowBank.Shell.Prompt.Tests
 
 					return state with
 					{
-						Token = PromptToken.Create(isKnown ? "argument" : "incomplete", state.RawToken),
+						Tokens = state.Tokens.Update(isKnown ? "argument" : "incomplete", state.RawToken),
 						CommandBuilder = new Builder { Argument = state.RawToken },
 					};
 				}
@@ -198,8 +196,20 @@ namespace SnowBank.Shell.Prompt.Tests
 			}
 		}
 
+		private static void DumpState(RenderState? state)
+		{
+			if (state is null)
+			{
+				Log("# <null>");
+			}
+			else
+			{
+				Log(state.Explain(prefix: "# ").Trim());
+			}
+		}
+
 		[DebuggerNonUserCode]
-		private static void VerifyState(PromptState state, PromptState expected, string label)
+		private static void VerifyPromptState(PromptState state, PromptState expected, string label)
 		{
 			var message = "Expected state does not match for step: " + label;
 
@@ -207,7 +217,6 @@ namespace SnowBank.Shell.Prompt.Tests
 			Assert.That(state.RawText, Is.EqualTo(expected.RawText), message);
 			Assert.That(state.RawToken, Is.EqualTo(expected.RawToken), message);
 			Assert.That(state.Tokens.ToArray(), Is.EqualTo(expected.Tokens.ToArray()), message);
-			Assert.That(state.Token, Is.EqualTo(expected.Token), message);
 			Assert.That(state.Command, Is.SameAs(expected.Command), message);
 			Assert.That(state.CommandBuilder, Is.Not.Null, message);
 
@@ -258,7 +267,7 @@ namespace SnowBank.Shell.Prompt.Tests
 				Theme = theme,
 				Renderer = renderer,
 
-				OnBefore = (state, renderState) =>
+				OnBefore = (state) =>
 				{
 					Assert.That(input.Position, Is.EqualTo(index));
 					var step = steps[index];
@@ -266,21 +275,21 @@ namespace SnowBank.Shell.Prompt.Tests
 					Log($"[{(index + 1):N0}/{steps.Length:N0}]: '{state.RawText}' + {Keyboard.GetKeyName(step.Key)} => '{step.Expected.State.RawText}'");
 				},
 
-				OnAfter = (key, state, renderState) =>
+				OnAfter = (key, state) =>
 				{
 					Assert.That(input.Position, Is.EqualTo(index + 1));
 					var step = steps[index];
 					try
 					{
-						VerifyState(state, step.Expected.State, $"'{state.RawText}' + {Keyboard.GetKeyName(step.Key)} => '{step.Expected.State.RawText}'");
+						VerifyPromptState(state, step.Expected.State, $"'{state.RawText}' + {Keyboard.GetKeyName(step.Key)} => '{step.Expected.State.RawText}'");
 					}
 					catch (AssertionException)
 					{
 						Log();
-						Log("Actual State:");
+						Log("Actual Prompt State:");
 						DumpState(state);
 						Log();
-						Log("Expected State:");
+						Log("Expected Prompt State:");
 						DumpState(step.Expected.State);
 						throw;
 					}
@@ -292,10 +301,10 @@ namespace SnowBank.Shell.Prompt.Tests
 					++index;
 				},
 
-				OnBeforeRender = (state, renderState) =>
+				OnBeforeRender = (state, prev) =>
 				{
-					Log($"# Markup: {renderState.TextMarkup}");
-					return renderState;
+					Log($"# Markup: {state.Render!.TextMarkup}");
+					return state;
 				},
 			};
 
@@ -521,24 +530,16 @@ namespace SnowBank.Shell.Prompt.Tests
 						{ // the query is valid
 							return state with
 							{
-								Tokens = [..state.Tokens, state.Token],
-								Token = default,
-								RawToken = "",
 								CommandBuilder = this with { HasQuery = true }
 							};
 						}
-						return state with
-						{
-							Tokens = [..state.Tokens, state.Token],
-							Token = default,
-							RawToken = "",
-						};
+						return state;
 					}
 
 					if (!this.HasQuery)
 					{ // we are parsing the query...
 
-						Contract.Debug.Assert(state.Tokens.Length == 1);
+						Contract.Debug.Assert(state.Tokens.Count == 2);
 
 						if (!FqlQueryParser.ParseNext(state.RawToken, out var rest).Check(out var query, out var error))
 						{ // incomplete or invalid query
@@ -548,7 +549,7 @@ namespace SnowBank.Shell.Prompt.Tests
 
 							return state with
 							{
-								Token = PromptToken.Create("incomplete", state.RawToken), //TODO: detect error vs incomplete!
+								Tokens = state.Tokens.Update("incomplete", state.RawToken), //TODO: detect error vs incomplete!
 								CommandBuilder = new Builder
 								{
 									HasQuery = false,
@@ -561,7 +562,7 @@ namespace SnowBank.Shell.Prompt.Tests
 						{ // the query may or may not be complete yet!
 							return state with
 							{
-								Token = PromptToken.Create("fql", state.RawToken), //TODO: detect error vs incomplete!
+								Tokens = state.Tokens.Update("fql", state.RawToken), //TODO: detect error vs incomplete!
 								CommandBuilder = new Builder
 								{
 									HasQuery = false,
@@ -576,8 +577,7 @@ namespace SnowBank.Shell.Prompt.Tests
 							return state with
 							{
 								Change = PromptChange.NextToken,
-								Tokens = [ ..state.Tokens, state.Token ],
-								Token = default,
+								Tokens = state.Tokens.Push(state.Tokens.Last),
 								RawToken = "",
 								CommandBuilder = new Builder
 								{
@@ -590,7 +590,7 @@ namespace SnowBank.Shell.Prompt.Tests
 						{ // the query is followed by extra characters!
 							return state with
 							{
-								Token = PromptToken.Create("error", state.RawToken),
+								Tokens = state.Tokens.Update("error", state.RawToken),
 								CommandBuilder = new Builder
 								{
 									HasQuery = false,
@@ -607,8 +607,7 @@ namespace SnowBank.Shell.Prompt.Tests
 						return state with
 						{
 							Change = PromptChange.NextToken,
-							Tokens = [ ..state.Tokens, state.Token ],
-							Token = default,
+							Tokens = state.Tokens.Push(state.Tokens.Last),
 							RawToken = "",
 						};
 					}
@@ -639,8 +638,7 @@ namespace SnowBank.Shell.Prompt.Tests
 						{
 							Change = PromptChange.NextToken,
 							RawToken = "",
-							Tokens = [..state.Tokens, state.Token],
-							Token = default,
+							Tokens = state.Tokens.Push(state.Tokens.Last),
 							CommandBuilder = builder,
 						};
 					}
@@ -648,13 +646,13 @@ namespace SnowBank.Shell.Prompt.Tests
 					{
 						return state with
 						{
-							Token = PromptToken.Create("error", state.RawToken),
+							Tokens = state.Tokens.Update("error", state.RawToken),
 							CommandBuilder = builder,
 						};
 					}
 					return state with
 					{
-						Token = PromptToken.Create(res.Valid is null ? "incomplete" : this.LastOption is not null ? "number" : "option", state.RawToken),
+						Tokens = state.Tokens.Update(res.Valid is null ? "incomplete" : this.LastOption is not null ? "number" : "option", state.RawToken),
 						CommandBuilder = builder,
 					};
 				}
@@ -861,48 +859,6 @@ namespace SnowBank.Shell.Prompt.Tests
 		}
 
 		[Test]
-		public void Test_PromptTokenBuilder_Basics()
-		{
-			var theme = new AnsiConsolePromptTheme() { MaxRows = 5, Prompt = "> " };
-
-			{
-				var builder = new PromptBuilder(theme);
-				builder.Add("foo", "Hello", "yellow");
-				builder.Add("bar", "World", "cyan", "blue");
-				Log("Raw   : " + builder.ToString());
-
-				Assert.That(builder.ToString(), Is.EqualTo("Hello World"));
-				Assert.That(builder.Count, Is.EqualTo(2));
-				Assert.That(builder[0], Is.EqualTo(PromptToken.Create("foo", "Hello", "yellow")));
-				Assert.That(builder[1], Is.EqualTo(PromptToken.Create("bar", "World", "cyan", "blue")));
-			}
-
-			{
-				var builder = new PromptBuilder(theme);
-				builder.Add("path", [
-					PromptTokenFragment.Create("/", "gray"),
-					PromptTokenFragment.Create("foo", "red"),
-					PromptTokenFragment.Create("/", "gray"),
-					PromptTokenFragment.Create("bar", "green"),
-					PromptTokenFragment.Create("/", "gray"),
-					PromptTokenFragment.Create("baz", "blue"),
-				]);
-				Log("Raw   : " + builder.ToString());
-
-				Assert.That(builder.ToString(), Is.EqualTo("/foo/bar/baz"));
-				Assert.That(builder.Count, Is.EqualTo(1));
-				var token = builder[0];
-				Assert.That(token.Count, Is.EqualTo(6));
-				Assert.That(token[0], Is.EqualTo(PromptTokenFragment.Create("/", "gray")));
-				Assert.That(token[1], Is.EqualTo(PromptTokenFragment.Create("foo", "red")));
-				Assert.That(token[2], Is.EqualTo(PromptTokenFragment.Create("/", "gray")));
-				Assert.That(token[3], Is.EqualTo(PromptTokenFragment.Create("bar", "green")));
-				Assert.That(token[4], Is.EqualTo(PromptTokenFragment.Create("/", "gray")));
-				Assert.That(token[5], Is.EqualTo(PromptTokenFragment.Create("baz", "blue")));
-			}
-		}
-
-		[Test]
 		public void Test_PromptTokenBuilder_AnsiConsole_Render_Markup()
 		{
 			// test that the renderer can generate the markup string
@@ -918,13 +874,16 @@ namespace SnowBank.Shell.Prompt.Tests
 					Prompt = "> ",
 				};
 
-				var builder = new PromptBuilder(theme);
-				builder.Add("foo", "Hello", "yellow");
-				builder.Add("bar", "World", "cyan", "blue");
-				var prompt = builder.Build();
-				Log($"Raw   : {prompt}");
+				var builder = PromptTokenStack.Create(
+				[
+					PromptToken.Create("foo", "Hello", "yellow"),
+					PromptToken.Create("bar", "World", "cyan", "blue"),
+				]);
 
-				var markup = prompt.Render(renderer);
+				var writer = new ValueStringWriter();
+				renderer.ToMarkup(ref writer, builder, theme);
+				var markup = writer.ToStringAndDispose();
+
 				Log($"Markup: {markup}");
 				Assert.That(markup, Is.EqualTo("[yellow]Hello[/] [cyan on blue]World[/]"));
 			}
@@ -937,26 +896,28 @@ namespace SnowBank.Shell.Prompt.Tests
 					DefaultForeground = "gray",
 				};
 
-				var builder = new PromptBuilder(theme);
-				builder.Add("command", "query", "magenta");
-				builder.Add("path",
+				var builder = PromptTokenStack.Create(
 				[
-					PromptTokenFragment.Create("/"),
-					PromptTokenFragment.Create("foo", "red"),
-					PromptTokenFragment.Create("/"),
-					PromptTokenFragment.Create("bar", "green"),
-					PromptTokenFragment.Create("/"),
-					PromptTokenFragment.Create("baz", "blue"),
+					PromptToken.Create("command", "query", "magenta"),
+					PromptToken.Create(
+						"path",
+						[
+							PromptMarkupFragment.Create("/"),
+							PromptMarkupFragment.Create("foo", "red"),
+							PromptMarkupFragment.Create("/"),
+							PromptMarkupFragment.Create("bar", "green"),
+							PromptMarkupFragment.Create("/"),
+							PromptMarkupFragment.Create("baz", "blue"),
+						]
+					),
+					PromptToken.Create("option", "--top", "yellow"),
+					PromptToken.Create("number", "10", "cyan"),
 				]);
-				builder.Add("option", "--top", "yellow");
-				builder.Add("number", "10", "cyan");
 
-				var prompt = builder.Build();
+				var writer = new ValueStringWriter();
+				renderer.ToMarkup(ref writer, builder, theme);
+				var markup = writer.ToStringAndDispose();
 
-				Log($"Raw   : {prompt}");
-				Assert.That(prompt.ToString(), Is.EqualTo("query /foo/bar/baz --top 10"));
-
-				var markup = prompt.Render(renderer);
 				Log($"Markup: {markup}");
 				Assert.That(markup, Is.EqualTo("[gray][magenta]query[/] /[red]foo[/]/[green]bar[/]/[blue]baz[/] [yellow]--top[/] [cyan]10[/][/]"));
 			}

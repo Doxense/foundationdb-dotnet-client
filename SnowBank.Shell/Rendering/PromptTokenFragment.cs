@@ -34,22 +34,22 @@ namespace SnowBank.Shell.Prompt
 	/// </remarks>
 	/// <seealso cref="PromptToken"/>
 	[PublicAPI]
-	public readonly record struct PromptTokenFragment
+	public readonly record struct PromptMarkupFragment
 	{
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static PromptTokenFragment Create(string? literal, string? foreground = null, string? background = null)
-			=> new(literal.AsMemory(), !string.IsNullOrEmpty(foreground) ? foreground : null, !string.IsNullOrEmpty(background) ? background : null);
+		public static PromptMarkupFragment Create(string? literal, string? foreground = null, string? background = null)
+			=> new(literal ?? "", !string.IsNullOrEmpty(foreground) ? foreground : null, !string.IsNullOrEmpty(background) ? background : null);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private PromptTokenFragment(ReadOnlyMemory<char> literal, string? foreground = null, string? background = null)
+		private PromptMarkupFragment(string literal, string? foreground = null, string? background = null)
 		{
 			this.Literal = literal;
 			this.Foreground = foreground;
 			this.Background = background;
 		}
 
-		public readonly ReadOnlyMemory<char> Literal;
+		public readonly string Literal;
 
 		public readonly string? Foreground;
 
@@ -59,9 +59,9 @@ namespace SnowBank.Shell.Prompt
 
 		public bool HasColor => !string.IsNullOrEmpty(this.Foreground) || !string.IsNullOrEmpty(this.Background);
 
-		public bool Equals(PromptTokenFragment other) => other.Literal.Span.SequenceEqual(this.Literal.Span) && other.Foreground == this.Foreground && other.Background == this.Background;
+		public bool Equals(PromptMarkupFragment other) => other.Literal == this.Literal && other.Foreground == this.Foreground && other.Background == this.Background;
 
-		public override int GetHashCode() => string.GetHashCode(this.Literal.Span, StringComparison.Ordinal);
+		public override int GetHashCode() => HashCode.Combine(this.Literal, this.Foreground, this.Background);
 
 	}
 

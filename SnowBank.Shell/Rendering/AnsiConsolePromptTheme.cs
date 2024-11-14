@@ -26,6 +26,7 @@
 
 namespace SnowBank.Shell.Prompt
 {
+	using System.Collections.Immutable;
 	using System.Runtime.CompilerServices;
 	using Doxense.Linq;
 	using Spectre.Console;
@@ -43,8 +44,43 @@ namespace SnowBank.Shell.Prompt
 		public string? DefaultBackground { get; init; }
 
 		/// <inheritdoc />
-		public virtual RenderState Paint(PromptState state)
+		public virtual PromptState Paint(PromptState state)
 		{
+			// we normaly only need to update the last token, IF it has changed
+			var tokens = state.Tokens;
+			var last = tokens.Last;
+			if (!last.HasMarkup)
+			{
+				switch (last.Type)
+				{
+					case "command":
+					{
+						last = last.WithMarkup(last.Text, "darkcyan");
+						break;
+					}
+					case "fql":
+					{
+						last = last.WithMarkup(last.Text, "cyan");
+						break;
+					}
+					case "argument":
+					{
+						last = last.WithMarkup(last.Text, "yellow");
+						break;
+					}
+					default:
+					{
+						last = last.WithMarkup(last.Text, null);
+						break;
+					}
+				}
+				tokens = state.Tokens.Update(last);
+			}
+
+			// for each of the token, use its type to generate the decorated markup fragments
+			// - some tokens will use a single fragment (ex: a command name, a literal value, ...)
+			// - others will be split into fragments with different colors, such as a query, a path, etc...
+
 			var promptMarkup = "[gray]" + this.Prompt + "[/]";
 			var text = state.RawText;
 			var token = state.RawToken;
@@ -76,7 +112,7 @@ namespace SnowBank.Shell.Prompt
 			}
 
 			string markup = "";
-			if (state.Tokens.Length > 0)
+			if (state.Tokens.Count > 1)
 			{
 				markup += (!state.CommandBuilder.IsValid() ? "[red]" : "[silver]") + text[..^state.RawToken.Length] + "[/]";
 			}
@@ -105,15 +141,19 @@ namespace SnowBank.Shell.Prompt
 				}
 			}
 
-			return new()
+			return state with
 			{
-				PromptRaw = this.Prompt,
-				TextRaw = text,
-				PromptMarkup = promptMarkup,
-				TextMarkup = markup,
-				Extra = extra,
-				Cursor = text.Length,
-				Rows = rows,
+				Render = new()
+				{
+					PromptRaw = this.Prompt,
+					TextRaw = text,
+					PromptMarkup = promptMarkup,
+					TextMarkup = markup,
+					Tokens = tokens,
+					Extra = extra,
+					Cursor = text.Length,
+					Rows = [..rows],
+				},
 			};
 		}
 
