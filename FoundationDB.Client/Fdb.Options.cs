@@ -111,6 +111,10 @@ namespace FoundationDB.Client
 				{
 					return FdbNative.FDB_C_DLL + ".dll";
 				}
+				if (OperatingSystem.IsMacOS())
+				{
+					return "libfdb_c.dylib";
+				}
 				//TODO: macOS ?
 				return FdbNative.FDB_C_DLL + ".so";
 			}
