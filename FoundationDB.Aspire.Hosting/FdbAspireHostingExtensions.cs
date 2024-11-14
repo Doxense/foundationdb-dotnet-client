@@ -37,6 +37,15 @@ namespace Aspire.Hosting
 	public static class FdbAspireHostingExtensions
 	{
 
+		/// <summary>Tag for the latest v7.3 docker image</summary>
+		public static readonly Version LatestVersion73 = new Version(7, 3, 54);
+
+		/// <summary>Tag for the latest v7.2 docker image</summary>
+		public static readonly Version LatestVersion72 = new Version(7, 2, 9);
+
+		/// <summary>Tag for the latest v7.1 docker image</summary>
+		public static readonly Version LatestVersion71 = new Version(7, 1, 62);
+
 		#region Fdb Cluster Connections...
 
 		/// <summary>Adds a connection to an external FoundationDB cluster</summary>
@@ -64,7 +73,7 @@ namespace Aspire.Hosting
 			Contract.NotNullOrWhiteSpace(name);
 			Contract.GreaterThan(apiVersion, 0);
 
-			//REVIEW: TODO: should we allow formats like "7.2" or "7.2.*" to mean "I don't know exactly, but it is 7.2.something, figure it out!" ?
+			//REVIEW: TODO: should we allow formats like "7.3" or "7.3.*" to mean "I don't know exactly, but it is 7.3.something, figure it out!" ?
 			//REVIEW: should we also include a "RollForward" policy here? The version of the cluster is fixed, we can only use this to select a client version with more limited wriggle room (cannot jump minor or major version, for example)
 			Version? ver = null;
 			if (!string.IsNullOrWhiteSpace(clusterVersion) && !Version.TryParse(clusterVersion, out ver))
@@ -388,15 +397,15 @@ namespace Aspire.Hosting
 					{
 						case (7, 3):
 						{
-							return "7.3.54";
+							return LatestVersion73.ToString();
 						}
 						case (7, 2):
 						{
-							return "7.2.9";
+							return LatestVersion72.ToString();
 						}
 						case (7, 1):
 						{
-							return "7.1.62";
+							return LatestVersion71.ToString();
 						}
 						default:
 						{
@@ -420,9 +429,9 @@ namespace Aspire.Hosting
 								throw ErrorVersionIsGreaterThanSupportedByThisPackage(version);
 							}
 
-							return version is { Minor: 3, Build: > 35 }
+							return version.Minor == 3 && version.Build > LatestVersion73.Build
 								? "7.3." + version.Build.ToString(CultureInfo.InvariantCulture)
-								: "7.3.35";
+								: LatestVersion73.ToString();
 						}
 						default:
 						{
@@ -438,13 +447,13 @@ namespace Aspire.Hosting
 						throw ErrorVersionIsGreaterThanSupportedByThisPackage(version);
 					}
 
-					if (version is { Major: 7, Minor: 3, Build: > 35 })
+					if (version.Minor == 3 && version.Build > LatestVersion73.Build)
 					{
 						return "7.3." + version.Build.ToString(CultureInfo.InvariantCulture);
 					}
 					else
 					{
-						return "7.3.35";
+						return LatestVersion73.ToString();
 					}
 				}
 				default:
