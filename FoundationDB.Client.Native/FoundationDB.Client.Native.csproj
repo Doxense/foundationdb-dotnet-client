@@ -25,6 +25,7 @@
 		<Description>Includes the FoundationDB Native Client (fdb_c.dll, libfdbc.so, ...) for different runtimes.</Description>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageIcon>foundationdb.png</PackageIcon>
+		<IsPackable>true</IsPackable>
 	</PropertyGroup>
 	
 	<!-- Building the native packages requires pre-downloading some files, which may not be possible in all CI -->
@@ -38,10 +39,26 @@
 		<IsPackingSelf Condition="'$(IsPackingSelf)' == ''">false</IsPackingSelf>
 	</PropertyGroup>
 
-	<!-- Reference FoundationDB.Client either as a direct project reference, or via NuGet -->
-	<ItemGroup>
-		<PackageReference Condition="'$(IsPackingSelf)' == 'true'" Include="FoundationDB.Client" VersionOverride="[7.3.*-*, 8.0.0.0)" />
-		<ProjectReference Condition="'$(IsPackingSelf)' != 'true'" Include="..\FoundationDB.Client\FoundationDB.Client.csproj" />
+	<ItemGroup Condition="'$(IsPackingSelf)' != 'true'">
+		<!-- Reference FoundationDB.Client either as a direct project reference, or via NuGet -->
+		<ProjectReference Include="..\FoundationDB.Client\FoundationDB.Client.csproj" />
+	</ItemGroup>
+	
+	<ItemGroup Condition="'$(IsPackingSelf)' == 'true'">
+		<!-- Reference FoundationDB.Client via NuGet -->
+		<PackageReference Include="FoundationDB.Client" VersionOverride="[7.3.0-0,)" />
+		<!-- Exclude the other dependencies to prevent them from appearing in the .nuspec -->
+		
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" ExcludeAssets="All" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" ExcludeAssets="All" />
+		<PackageReference Include="Microsoft.Extensions.Options" ExcludeAssets="All" />
+		<PackageReference Include="NodaTime" ExcludeAssets="All" />
+		<PackageReference Include="OpenTelemetry.Api" ExcludeAssets="All" />
+		<PackageReference Include="System.Collections.Immutable" ExcludeAssets="All" />
+		<PackageReference Include="System.IO.Pipelines" ExcludeAssets="All" />
+		<PackageReference Include="System.Memory" ExcludeAssets="All" />
+		<PackageReference Include="System.Reflection.Metadata" ExcludeAssets="All" />
+		<PackageReference Include="System.Threading.Channels" ExcludeAssets="All" />
 	</ItemGroup>
 
 	<!-- Include all the native libraries and tools -->
