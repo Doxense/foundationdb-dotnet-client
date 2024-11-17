@@ -66,6 +66,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SnowBank.Shell.Tests", "Sno
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SnowBank.Shell", "SnowBank.Shell\SnowBank.Shell.csproj", "{6686A531-681F-4797-8D04-3BC675BD1F46}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SnowBank.Serialization.Json.CodeGen", "SnowBank.Serialization.Json.CodeGen\SnowBank.Serialization.Json.CodeGen.csproj", "{95384A47-E4C5-3AF2-730A-912914A0845A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SnowBank.Serialization.Json.CodeGen.Tests", "SnowBank.Serialization.Json.CodeGen.Tests\SnowBank.Serialization.Json.CodeGen.Tests.csproj", "{5AAA17F3-75B8-C8D7-F5C8-45D6C795476F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -152,6 +156,14 @@ Global
 		{6686A531-681F-4797-8D04-3BC675BD1F46}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6686A531-681F-4797-8D04-3BC675BD1F46}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6686A531-681F-4797-8D04-3BC675BD1F46}.Release|Any CPU.Build.0 = Release|Any CPU
+		{95384A47-E4C5-3AF2-730A-912914A0845A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{95384A47-E4C5-3AF2-730A-912914A0845A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{95384A47-E4C5-3AF2-730A-912914A0845A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{95384A47-E4C5-3AF2-730A-912914A0845A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5AAA17F3-75B8-C8D7-F5C8-45D6C795476F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5AAA17F3-75B8-C8D7-F5C8-45D6C795476F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5AAA17F3-75B8-C8D7-F5C8-45D6C795476F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5AAA17F3-75B8-C8D7-F5C8-45D6C795476F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -178,6 +190,8 @@ Global
 		{BFC416AD-C6F9-4C55-8315-90304F636660} = {E899F094-1A78-4652-862C-9FF6356AC738}
 		{10AF9D57-490E-4085-B6AC-E3BF96379C8D} = {A00227EE-033B-40BB-A159-3CBC99AE54F8}
 		{6686A531-681F-4797-8D04-3BC675BD1F46} = {A00227EE-033B-40BB-A159-3CBC99AE54F8}
+		{95384A47-E4C5-3AF2-730A-912914A0845A} = {A00227EE-033B-40BB-A159-3CBC99AE54F8}
+		{5AAA17F3-75B8-C8D7-F5C8-45D6C795476F} = {A00227EE-033B-40BB-A159-3CBC99AE54F8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {07944E4B-042C-4338-8E28-99FB373F52AA}

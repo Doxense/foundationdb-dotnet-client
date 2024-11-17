@@ -45,6 +45,8 @@ Redist/
 /build/output/
 /build/.fake
 
+Generated/
+
 # JetBrains
 .idea
 
