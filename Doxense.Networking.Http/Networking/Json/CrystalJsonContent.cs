@@ -115,7 +115,7 @@ namespace Doxense.Serialization.Json
 			catch (Exception ex)
 			{
 				activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-				activity?.RecordException(ex);
+				activity?.AddException(ex);
 				throw;
 			}
 		}

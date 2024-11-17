@@ -173,7 +173,7 @@ namespace Doxense.Networking.Http
 			catch (Exception ex)
 			{
 				activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-				activity?.RecordException(ex);
+				activity?.AddException(ex);
 				throw;
 			}
 		}
@@ -196,7 +196,7 @@ namespace Doxense.Networking.Http
 			catch (Exception ex)
 			{
 				activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-				activity?.RecordException(ex);
+				activity?.AddException(ex);
 				throw;
 			}
 		}
@@ -218,7 +218,7 @@ namespace Doxense.Networking.Http
 			catch (Exception ex)
 			{
 				activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-				activity?.RecordException(ex);
+				activity?.AddException(ex);
 				throw;
 			}
 		}
@@ -240,7 +240,7 @@ namespace Doxense.Networking.Http
 			catch (Exception ex)
 			{
 				activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-				activity?.RecordException(ex);
+				activity?.AddException(ex);
 				throw;
 			}
 		}
@@ -275,7 +275,7 @@ namespace Doxense.Networking.Http
 			catch (Exception ex)
 			{
 				activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-				activity?.RecordException(ex);
+				activity?.AddException(ex);
 				throw;
 			}
 		}

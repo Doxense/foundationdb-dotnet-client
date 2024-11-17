@@ -1547,7 +1547,7 @@ namespace FoundationDB.Client
 			}
 			catch (Exception e)
 			{
-				//TODO: REVIEW: in order to call "RecordException(...)" we need a ref to package OpenTelemetry.API !
+				//TODO: REVIEW: in order to call "AddException(...)" we need a ref to package OpenTelemetry.API !
 				mainActivity?.SetStatus(ActivityStatusCode.Error, e.Message);
 				throw;
 			}

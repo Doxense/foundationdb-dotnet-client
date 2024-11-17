@@ -707,7 +707,7 @@ namespace Doxense.Threading.Operations
 					activity.SetStatus(ActivityStatusCode.Error, error.Code);
 					activity.SetTag("operation.error.code", error.Code);
 					var ex = error.Exception?.SourceException;
-					if (ex != null) activity.RecordException(ex);
+					if (ex != null) activity.AddException(ex);
 				}
 
 			}
