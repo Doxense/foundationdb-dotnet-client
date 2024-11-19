@@ -1,0 +1,57 @@
+{
+	"metadata": [
+		{
+			"allowCompilationErrors": true,
+			"src": [
+				{
+					"src": "../",
+					"files": [
+						"Doxense.Core/Doxense.Core.csproj",
+						"FoundationDB.Client/FoundationDB.Client.csproj",
+						"FoundationDB.Aspire/FoundationDB.Aspire.csproj",
+						"FoundationDB.Aspire.Hosting/FoundationDB.Aspire.Hosting.csproj"
+					],
+					"exclude": [ "**/bin/**", "**/obj/**", "**/*.Tests.csproj" ]
+				}
+			],
+			"dest": "../artifacts/api",
+			"properties": {
+				"TargetFramework": "net8.0"
+			}
+		}
+	],
+	"build": {
+		"content": [
+			{
+				"files": [ "**/*.{md,yml}" ]
+			},
+			{
+				"files": [ "**/*.yml" ],
+				"src": "../artifacts/api",
+				"dest": "api"
+			}
+		],
+		"resource": [
+			{
+				"files": [ "images/**" ],
+				"exclude": [ "_site/**", "**/obj/**", "**.meta" ]
+			}
+		],
+		"output": "../artifacts/_site",
+		"xrefService": [
+			"https://xref.docs.microsoft.com/query?uid={uid}"
+		],
+		"template": [
+			"default",
+			"modern",
+			"templates/singulinkfx"
+		],
+		"markdownEngineName": "markdig",
+		"globalMetadata": {
+			"_appName": "SnowBank SDK",
+			"_appTitle": "SnowBank SDK | Docs",
+			"_enableSearch": true,
+			"pdf": false
+		}
+	}
+}
