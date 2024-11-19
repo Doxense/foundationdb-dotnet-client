@@ -26,12 +26,19 @@
 
 namespace FoundationDB.Client.Tests
 {
+	using System.IO;
 	using System.Runtime.CompilerServices;
+	using DependencyInjection;
 	using DotNet.Testcontainers.Builders;
 	using DotNet.Testcontainers.Configurations;
 	using DotNet.Testcontainers.Containers;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization;
+	using Microsoft.Extensions.DependencyInjection;
+	using Microsoft.Extensions.DependencyInjection.Extensions;
+
+	using NodaTime;
+
 	using SnowBank.Testing;
 
 	public class FdbServerTestContainer : IAsyncDisposable
@@ -118,7 +125,6 @@ namespace FoundationDB.Client.Tests
 		}
 
 	}
-
 
 	/// <summary>Base class for all FoundationDB tests that will interact with a live FoundationDB cluster</summary>
 	[NonParallelizable]
@@ -284,31 +290,139 @@ namespace FoundationDB.Client.Tests
 		protected Task CleanLocation(IFdbDatabase db, ISubspaceLocation location)
 		{
 			Log($"# Using location {location.Path}");
-			return TestHelpers.CleanLocation(db, location, this.Cancellation);
+			Assert.That(db, Is.Not.Null, "null db");
+			if (location.Path.Count == 0 && location.Prefix.Count == 0)
+			{
+				Assert.Fail("Cannot clean the root of the database!");
+			}
+
+			// if the prefix part is empty, then we simply recursively remove the corresponding subdirectory tree
+			// If it is not empty, we only remove the corresponding subspace (without touching the subdirectories!)
+
+			return db.WriteAsync(async tr =>
+			{
+				tr.StopLogging();
+
+				if (location.Path.Count == 0)
+				{ // subspace under the root of the partition
+
+					// get and clear subspace
+					tr.ClearRange(KeyRange.StartsWith(location.Prefix));
+				}
+				else if (location.Prefix.Count == 0)
+				{
+					// remove previous
+					await db.DirectoryLayer.TryRemoveAsync(tr, location.Path);
+
+					// create new
+					_ = await db.DirectoryLayer.CreateAsync(tr, location.Path);
+				}
+				else
+				{ // subspace under a directory subspace
+
+					// make sure the parent path exists!
+					var subspace = await db.DirectoryLayer.CreateOrOpenAsync(tr, location.Path);
+
+					// get and clear subspace
+					tr.ClearRange(subspace.Partition[location.Prefix].ToRange());
+				}
+			}, this.Cancellation);
 		}
 
 		[DebuggerStepThrough]
 		protected Task CleanSubspace(IFdbDatabase db, IKeySubspace subspace)
 		{
-			return TestHelpers.CleanSubspace(db, subspace, this.Cancellation);
+			Assert.That(subspace, Is.Not.Null, "null db");
+			Assert.That(subspace.GetPrefix(), Is.Not.EqualTo(Slice.Empty), "Cannot clean the root of the database!");
+
+			return db.WriteAsync(tr => tr.ClearRange(subspace.ToRange()), this.Cancellation);
 		}
 
 		[DebuggerStepThrough]
-		protected Task DumpSubspace(IFdbDatabase db, IKeySubspace subspace)
+		protected async Task DumpSubspace(IFdbDatabase db, IKeySubspace subspace)
 		{
-			return TestHelpers.DumpSubspace(db, subspace, this.Cancellation);
+			Assert.That(db, Is.Not.Null);
+
+			using var tr = db.BeginTransaction(this.Cancellation);
+
+			tr.StopLogging();
+			await DumpSubspace(tr, subspace).ConfigureAwait(false);
 		}
 
 		[DebuggerStepThrough]
-		protected Task DumpSubspace(IFdbDatabase db, ISubspaceLocation path)
+		protected async Task DumpSubspace(IFdbDatabase db, ISubspaceLocation path)
 		{
-			return TestHelpers.DumpLocation(db, path, this.Cancellation);
+			Assert.That(db, Is.Not.Null);
+
+			using (var tr = db.BeginTransaction(this.Cancellation))
+			{
+				tr.StopLogging();
+
+				var subspace = await path.Resolve(tr);
+				if (subspace == null)
+				{
+					Log($"Dumping content of subspace {path}:");
+					Log("> EMPTY!");
+					return;
+				}
+
+				await DumpSubspace(tr, subspace).ConfigureAwait(false);
+
+				if (path.Prefix.Count == 0)
+				{
+					var names = await db.DirectoryLayer.TryListAsync(tr, path.Path);
+					if (names != null)
+					{
+						foreach (var name in names)
+						{
+							var child = await db.DirectoryLayer.TryOpenAsync(tr, name);
+							if (child != null)
+							{
+								await DumpSubspace(tr, child);
+							}
+						}
+					}
+				}
+			}
 		}
 
 		[DebuggerStepThrough]
-		protected Task DumpSubspace(IFdbReadOnlyTransaction tr, IKeySubspace subspace)
+		protected async Task DumpSubspace(IFdbReadOnlyTransaction tr, IKeySubspace subspace)
 		{
-			return TestHelpers.DumpSubspace(tr, subspace);
+			Assert.That(tr, Is.Not.Null);
+			Assert.That(subspace, Is.Not.Null);
+
+			Log($"Dumping content of {subspace} at {subspace.GetPrefix():K}:");
+			int count = 0;
+			await tr
+				.GetRange(KeyRange.StartsWith(subspace.GetPrefix()))
+				.ForEachAsync((kvp) =>
+				{
+					var key = subspace.ExtractKey(kvp.Key, boundCheck: true);
+					++count;
+					string keyDump;
+					try
+					{
+						// attempts decoding it as a tuple
+						keyDump = TuPack.Unpack(key).ToString()!;
+					}
+					catch (Exception)
+					{
+						// not a tuple, dump as bytes
+						keyDump = "'" + key.ToString() + "'";
+					}
+						
+					Log($"- {keyDump} = {kvp.Value}");
+				});
+
+			if (count == 0)
+			{
+				Log("> empty !");
+			}
+			else
+			{
+				Log("> Found " + count + " values");
+			}
 		}
 
 		[DebuggerStepThrough]
@@ -317,7 +431,7 @@ namespace FoundationDB.Client.Tests
 			var subspace = await location.Resolve(tr);
 			if (subspace != null)
 			{
-				await TestHelpers.DumpSubspace(tr, subspace);
+				await DumpSubspace(tr, subspace);
 			}
 			else
 			{
@@ -336,9 +450,46 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[DebuggerStepThrough]
-		protected Task DumpTree(IFdbDatabase db, FdbDirectorySubspaceLocation location)
+		protected async Task DumpTree(IFdbDatabase db, FdbDirectorySubspaceLocation path)
 		{
-			return TestHelpers.DumpTree(db, location, this.Cancellation);
+			Assert.That(db, Is.Not.Null);
+
+			Log($"# Tree of {path}:");
+
+			using (var tr = db.BeginTransaction(this.Cancellation))
+			{
+				tr.StopLogging();
+
+				await ProcessFolder(tr, path, 0);
+			}
+
+			Log();
+
+
+			static async Task ProcessFolder(IFdbReadOnlyTransaction tr, FdbDirectorySubspaceLocation path, int depth)
+			{
+				var indent = new string('\t', depth);
+
+				var subspace = await path.Resolve(tr);
+				if (subspace == null)
+				{
+					Log($"# {indent}- {path} => NOT FOUND");
+					return;
+				}
+
+				long n = await tr.GetEstimatedRangeSizeBytesAsync(subspace.ToRange());
+
+				Log($"# {indent}- {subspace.Path[^1]} at {TuPack.Unpack(subspace.GetPrefix())} {(n == 0 ? "<empty>" : $"~{n:N0} bytes")}");
+
+				var names = await tr.Database.DirectoryLayer.TryListAsync(tr, path.Path);
+				if (names != null)
+				{
+					foreach (var name in names)
+					{
+						await ProcessFolder(tr, path[name[^1]], depth + 1);
+					}
+				}
+			}
 		}
 
 		#region Read/Write Helpers...
@@ -367,6 +518,91 @@ namespace FoundationDB.Client.Tests
 		{
 			return db.ReadAsync(async (tr) => { await handler(tr); return true; }, this.Cancellation);
 		}
+
+		#endregion
+
+		#region IFdbDatabaseProvider helpers...
+
+		/// <summary>Service provider that is shared by all methods of this test class</summary>
+		/// <remarks>Can be overriden by calling <see cref="ConfigureCommonServices"/> during the setup stage of the test method</remarks>
+		private IServiceCollection? SharedServices { get; set; }
+
+		private IServiceProvider? LocalServices { get; set; }
+
+		protected void ConfigureCommonServices(Action<IServiceCollection>? configure = null)
+		{
+			Assume.That(this.SharedServices, Is.Null, "Common services can only be configured once per test class!");
+			var server = this.Server!;
+			Assume.That(server, Is.Not.Null);
+
+			var services = new ServiceCollection();
+			services.AddOptions().AddLogging();
+			services.AddSingleton<IClock>(this.Clock);
+			services.AddFoundationDb(Fdb.ApiVersion, (options) =>
+			{
+				options.ConnectionOptions.ConnectionString = server.ConnectionString;
+			});
+
+			configure?.Invoke(services);
+
+			this.SharedServices = services;
+		}
+
+		protected IServiceProvider ConfigureServices(Action<IServiceCollection>? configure = null)
+		{
+			Assume.That(this.SharedServices, Is.Null, "Common services can only be configured once per test class!");
+			var server = this.Server!;
+			Assume.That(server, Is.Not.Null);
+
+			var services = new ServiceCollection();
+			services.Add(this.SharedServices!);
+
+			configure?.Invoke(services);
+
+			var provider = services.BuildServiceProvider();
+			this.LocalServices = provider;
+			return provider;
+		}
+
+		protected IServiceProvider GetServices() => this.LocalServices ?? ConfigureServices();
+
+		protected T GetRequiredService<T>() => GetServices().GetRequiredService<T>();
+
+		/// <summary>Return the database provider for this test</summary>
+		protected IFdbDatabaseProvider GetDatabaseProvider() => GetRequiredService<IFdbDatabaseProvider>();
+
+		/// <summary>Resolve the database instance that can be used by this test</summary>
+		protected async ValueTask<IFdbDatabase> GetDatabaseAsync()
+		{
+			var db = await GetDatabaseProvider().GetDatabase(this.Cancellation);
+			//Log("# Using database location /{0}", db.Root.Path);
+			db.SetDefaultLogHandler(null);
+			return db;
+		}
+
+		/// <summary>Run an idempotent transactional block that returns a value, inside a read-write transaction, which can be executed more than once if any retry-able error occurs.</summary>
+		protected Task WriteAsync(Func<IFdbTransaction, Task> handler)
+			=> GetDatabaseProvider().WriteAsync(handler, this.Cancellation);
+
+		/// <summary>Run an idempotent transaction block inside a write-only transaction, which can be executed more than once if any retry-able error occurs.</summary>
+		protected Task WriteAsync(Action<IFdbTransaction> handler)
+			=> GetDatabaseProvider().WriteAsync(handler, this.Cancellation);
+
+		/// <summary>Runs a transactional lambda function inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
+		protected Task<TResult> ReadAsync<TResult>(Func<IFdbReadOnlyTransaction, Task<TResult>> handler)
+			=> GetDatabaseProvider().ReadAsync(handler, this.Cancellation);
+
+		/// <summary>Run an idempotent transactional block that returns a value, inside a read-write transaction, which can be executed more than once if any retry-able error occurs.</summary>
+		protected Task<TResult> ReadWriteAsync<TResult>(Func<IFdbTransaction, Task<TResult>> handler)
+			=> GetDatabaseProvider().ReadWriteAsync(handler, this.Cancellation);
+
+		/// <summary>Runs a transactional lambda function inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
+		protected Task<List<TResult>> QueryAsync<TResult>(Func<IFdbReadOnlyTransaction, IAsyncEnumerable<TResult>> handler)
+			=> GetDatabaseProvider().QueryAsync(handler, this.Cancellation);
+
+		/// <summary>Runs a transactional lambda function inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
+		protected Task<List<TResult>> QueryAsync<TResult>(Func<IFdbReadOnlyTransaction, Task<IAsyncEnumerable<TResult>>> handler)
+			=> GetDatabaseProvider().QueryAsync(handler, this.Cancellation);
 
 		#endregion
 

@@ -50,6 +50,7 @@
 		<ProjectReference Include="..\FoundationDB.Layers.Common\FoundationDB.Layers.Common.csproj" />
 		<ProjectReference Include="..\FoundationDB.Layers.Experimental\FoundationDB.Layers.Experimental.csproj" />
 		<ProjectReference Include="..\FoundationDB.Linq.Providers\FoundationDB.Linq.Providers.csproj" />
+		<ProjectReference Include="..\FoundationDB.Testing\FoundationDB.Testing.csproj" />
 	</ItemGroup>
 
 	<Import Project="..\FoundationDB.Client.Native\build\FoundationDB.Client.Native.targets" />
