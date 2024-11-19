@@ -37,7 +37,6 @@ namespace Doxense.Linq.Async.Tests
 	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense;
 	using Doxense.Async;
 	using Doxense.Linq;
 	using Doxense.Linq.Async.Iterators;

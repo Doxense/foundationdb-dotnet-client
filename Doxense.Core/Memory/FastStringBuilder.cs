@@ -593,7 +593,6 @@ namespace Doxense.Memory
 			AppendSlow("\r\n");
 		}
 
-
 		public void AppendHex(int value, int digits, bool lowerCase = false)
 		{
 			Contract.Positive(digits);

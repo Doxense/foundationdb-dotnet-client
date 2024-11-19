@@ -33,7 +33,6 @@ namespace FoundationDB.Client
 	using System.Globalization;
 	using System.Numerics;
 	using System.Text;
-	using Doxense;
 
 	public static class FqlQueryParser
 	{
