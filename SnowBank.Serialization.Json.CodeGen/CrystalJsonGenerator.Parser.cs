@@ -1,138 +1,53 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of SnowBank nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL SNOWBANK SAS BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-#define FULL_DEBUG
+//#define FULL_DEBUG
 
 namespace Doxense.Serialization.Json.CodeGen
 {
 	using System;
-	using System.CodeDom.Compiler;
 	using System.Collections.Generic;
 	using System.Collections.Immutable;
-	using System.ComponentModel;
-	using System.Diagnostics;
 	using System.Threading;
 	using Microsoft.CodeAnalysis;
 	using Microsoft.CodeAnalysis.CSharp;
 	using Microsoft.CodeAnalysis.CSharp.Syntax;
-
-	[Generator(LanguageNames.CSharp)]
-	public partial class CrystalJsonSourceGenerator : IIncrementalGenerator
+	
+	public partial class CrystalJsonSourceGenerator
 	{
 
-		internal const string JsonValueFullNameFullName = KnownTypeSymbols.CrystalJsonNamespace + ".JsonValue";
-
-		internal const string CrystalJsonSettingsFullName = KnownTypeSymbols.CrystalJsonNamespace + ".CrystalJsonSettings";
-		
-		internal const string ICrystalJsonTypeResolverFullName = KnownTypeSymbols.CrystalJsonNamespace + ".ICrystalJsonTypeResolver";
-		
-		internal const string JsonNullFullName = KnownTypeSymbols.CrystalJsonNamespace + ".JsonNull";
-
-		internal const string JsonObjectFullName = KnownTypeSymbols.CrystalJsonNamespace + ".JsonObject";
-
-		internal const string JsonArrayFullName = KnownTypeSymbols.CrystalJsonNamespace + ".JsonArray";
-
-		internal const string JsonConverterInterfaceFullName = KnownTypeSymbols.CrystalJsonNamespace + ".IJsonConverter";
-		
-		internal const string JsonSerializerExtensionsFullName = KnownTypeSymbols.CrystalJsonNamespace + ".JsonSerializerExtensions";
-
-		internal const string CrystalJsonGeneratedNamespace = "CrystalJsonGenerated";
-
-		internal const string CrystalJsonGeneratedNamespaceGlobal = "global::" + CrystalJsonGeneratedNamespace;
-
-		internal const string CrystalJsonConverterAttributePrefix = "CrystalJsonConverter";
-
-		internal const string CrystalJsonConverterAttributeTypeName = CrystalJsonConverterAttributePrefix + "Attribute";
-
-		internal const string CrystalJsonConverterAttributeFullName = KnownTypeSymbols.CrystalJsonNamespace + ".CrystalJsonConverterAttribute";
-		
-		internal const string CrystalJsonSerializableAttributePrefix = "CrystalJsonSerializable";
-
-		internal const string CrystalJsonSerializableAttributeTypeName = CrystalJsonSourceGenerator.CrystalJsonSerializableAttributePrefix + "Attribute";
-
-		[Conditional("FULL_DEBUG")]
-		public static void Kenobi(string msg)
-		{
-#if FULL_DEBUG
-			System.Diagnostics.Debug.WriteLine(msg);
-#pragma warning disable RS1035
-			Console.WriteLine(msg);
-#pragma warning restore RS1035
-#pragma warning disable RS1035
-			System.IO.File.AppendAllText(@"c:\temp\analyzer.log", $"[{DateTime.Now:O}] {msg}\r\n");
-#pragma warning restore RS1035
-#endif
-		}
-
-		public void Initialize(IncrementalGeneratorInitializationContext context)
-		{
-			Kenobi("------- INITIALIZE -------------");
-
-			//REVIEW: do we need a generated global file ?
-			//context.RegisterPostInitializationOutput((pi) =>
-			//{
-			//	pi.AddSource(
-			//		"CrystalJson_MainAttributes__.g.cs",
-			//		$"""
-			//		 namespace {CrystalJsonGeneratedNamespace};
-
-			//		 //TODO: put global code here!
-			//		 """
-			//	);
-			//});
-
-			var knownTypeSymbols = context.CompilationProvider.Select((compilation, _) => new KnownTypeSymbols(compilation));
-			
-			// find all possible converters (partial classes with a [CrystalJsonConverter] attribute)
-			var converterTypes = context.SyntaxProvider
-                .ForAttributeWithMetadataName(
-                    CrystalJsonConverterAttributeFullName,
-                    (node, _) => node is ClassDeclarationSyntax,
-                    (context, _) => (ContextClass: (ClassDeclarationSyntax) context.TargetNode, context.SemanticModel, context.Attributes)
-                )
-                .Combine(knownTypeSymbols)
-                .Select(static (tuple, ct) =>
-                {
-                    var parser = new Parser(tuple.Right);
-                    var contextGenerationSpec = parser.ParseContainerMetadata(tuple.Left.ContextClass, tuple.Left.SemanticModel, tuple.Left.Attributes, ct);
-                    var diagnostics = ImmutableEquatableArray<DiagnosticInfo>.Empty; //TODO!
-                    return (Metadata: contextGenerationSpec, Diagnostics: diagnostics, Symbols: tuple.Right);
-                })
-                .WithTrackingName("CrystalJsonSpec")
-				;
-
-			context.RegisterSourceOutput(converterTypes, EmitSourceCode);
-		}
-
-		private void EmitSourceCode(SourceProductionContext ctx, (CrystalJsonContainerMetadata? Metadata, ImmutableEquatableArray<DiagnosticInfo> Diagnostics, KnownTypeSymbols Symbols) args)
-		{
-			try
-			{
-				foreach (DiagnosticInfo diagnostic in args.Diagnostics)
-				{
-					ctx.ReportDiagnostic(diagnostic.CreateDiagnostic());
-				}
-
-				if (args.Metadata is not null)
-				{
-					var emitter = new Emitter(ctx, args.Symbols);
-					emitter.GenerateCode(args.Metadata);
-				}
-			}
-			catch (Exception ex)
-			{
-				Kenobi("CRASH: " + ex.ToString());
-			}
-		}
-
+		/// <summary>Parse the symbols from the compilation, in order to extract metadata for the serialization of application types</summary>
 		internal sealed class Parser
 		{
+
+			public const string JsonPropertyAttributeFullName = KnownTypeSymbols.CrystalJsonNamespace + ".JsonPropertyAttribute";
+
+			public const string RequiredMemberAttributeFullName = "System.Runtime.CompilerServices.RequiredMemberAttribute";
 			
+			/// <summary>Table of known symbols from this compilation</summary>
 			private KnownTypeSymbols KnownSymbols { get; }
 			
 			public Parser(KnownTypeSymbols knownSymbols)
@@ -142,14 +57,17 @@ namespace Doxense.Serialization.Json.CodeGen
 
 			public CrystalJsonContainerMetadata? ParseContainerMetadata(ClassDeclarationSyntax contextClassDeclaration, SemanticModel semanticModel, ImmutableArray<AttributeData> attributes, CancellationToken cancellationToken)
 			{
+				// we are inspecting the "container" type that will host all the generated serialization code
+				// - the container should be a partial class
+				// - it should have the [CrystalJsonConverter] attribute applied to it (which is the marker for triggering this code generator)
+				// - it should have one or more [CrystalJsonSerializable(typeof(...))] attributes for each of the "root" application types to serialize
+				
 				var symbol = semanticModel.GetDeclaredSymbol(contextClassDeclaration, cancellationToken);
 				if (symbol == null) return null;
 				
 				Kenobi($"ParseContainerMetadata({symbol.Name}, [{attributes.Length}])");
-				
-				var name = symbol.ToDisplayString();
-				var nameSpace = symbol.ContainingNamespace.ToDisplayString();
-				var attr = attributes[0];
+
+				var converterAttribute = attributes[0];
 
 				var includedTypes = new List<CrystalJsonTypeMetadata>();
 				foreach (var typeAttribute in symbol.GetAttributes())
@@ -157,19 +75,16 @@ namespace Doxense.Serialization.Json.CodeGen
 					var ac = typeAttribute.AttributeClass;
 					if (ac == null) continue;
 
-					Kenobi("check " + ac.Name);
-					if (ac.Name != CrystalJsonSourceGenerator.CrystalJsonSerializableAttributeTypeName && ac.Name != CrystalJsonSourceGenerator.CrystalJsonSerializableAttributePrefix)
+					if (ac.ToDisplayString() != CrystalJsonSourceGenerator.CrystalJsonSerializableAttributeFullName)
 					{
 						continue;
 					}
 
-					Kenobi("check type args " + typeAttribute.ConstructorArguments.Length);
 					if (typeAttribute.ConstructorArguments.Length < 1)
 					{
 						continue;
 					}
 
-					Kenobi($"check arg0 {typeAttribute.ConstructorArguments[0].Type?.ToDisplayString()} {typeAttribute.ConstructorArguments[0].Value?.GetType().FullName}");
 					if (typeAttribute.ConstructorArguments[0].Value is not INamedTypeSymbol type)
 					{
 						continue;
@@ -183,7 +98,14 @@ namespace Doxense.Serialization.Json.CodeGen
 					}
 				}
 
-				return new(symbol, attr, includedTypes);
+				var containerName = symbol.Name;
+				
+				return new()
+				{
+					Name = containerName,
+					Symbol = new(symbol),
+					IncludedTypes = includedTypes.ToImmutableEquatableArray(),
+				};
 			}
 
 			public CrystalJsonTypeMetadata? ParseTypeMetadata(INamedTypeSymbol type, AttributeData? attribute)
@@ -192,25 +114,12 @@ namespace Doxense.Serialization.Json.CodeGen
 
 				foreach (var member in type.GetMembers())
 				{
-					switch (member)
+					if (member.Kind is SymbolKind.Property or SymbolKind.Field or SymbolKind.Method)
 					{
-						case IFieldSymbol field:
+						var memberDef = this.ParseMemberMetadata(type, member);
+						if (memberDef != null)
 						{
-							var memberDef = ParseFieldMetadata(type, field);
-							if (memberDef != null)
-							{
-								members.Add(memberDef);
-							}
-							break;
-						}
-						case IPropertySymbol property:
-						{
-							var memberDef = ParsePropertyMetadata(type, property);
-							if (memberDef != null)
-							{
-								members.Add(memberDef);
-							}
-							break;
+							members.Add(memberDef);
 						}
 					}
 				}
@@ -218,218 +127,104 @@ namespace Doxense.Serialization.Json.CodeGen
 				return new CrystalJsonTypeMetadata()
 				{
 					Symbol = new(type),
-					Attribute = attribute, 
 					Members = members.ToImmutableEquatableArray(),
 				};
 			}
 
-			public CrystalJsonMemberMetadata? ParseFieldMetadata(INamedTypeSymbol type, IFieldSymbol field)
+			public CrystalJsonMemberMetadata? ParseMemberMetadata(INamedTypeSymbol containerType, ISymbol member)
 			{
-				Kenobi($"Parsing field {field.ToDisplayString()}");
-				if (field.DeclaredAccessibility == Accessibility.Private)
-				{
-					//note: we see the backing fields here, we could maybe capture them somewhere in order to generate optimized unsafe accessors?return null;
-					return null;
-				}
+				var memberName = member.Name;
+				bool isField;
+				ITypeSymbol typeSymbol;
+				bool isReadOnly = false;
+				bool isInitOnly = false;
 				
-				
-				return new()
+				switch (member)
 				{
-					Type = new(field.Type),
-					Name = field.Name,
-					MemberName = field.Name,
-					IsField = true,
-					IsInitOnly = false, //TODO
-					IsReadOnly = false, //TODO
-				};
-			}
-
-			public CrystalJsonMemberMetadata? ParsePropertyMetadata(INamedTypeSymbol type, IPropertySymbol property)
-			{
-				Kenobi($"Parsing property {property.ToDisplayString()}");
-				if (property.DeclaredAccessibility == Accessibility.Private)
-				{
-					return null;
-				}
-
-				var name = property.Name;
-				
-				var attr = property.GetAttributes().FirstOrDefault(attr => attr.AttributeClass?.Name == "JsonPropertyAttribute");
-				if (attr != null)
-				{
-					name = attr.ToString();
-				}
-				
-				return new()
-				{
-					Type = new(property.Type),
-					Name = name,
-					MemberName = property.Name,
-					IsField = false,
-					IsInitOnly = false, //TODO
-					IsReadOnly = false, //TODO
-				};
-			}
-
-		}
-		
-		private static string? ExtractName(NameSyntax? name)
-		{
-			return name switch
-			{
-				SimpleNameSyntax ins => ins.Identifier.Text,
-				QualifiedNameSyntax qns => qns.Right.Identifier.Text,
-				_ => null
-			};
-		}
-
-		private sealed class Emitter
-		{
-			
-			private SourceProductionContext Context { get; }
-			
-			private KnownTypeSymbols KnownSymbols { get; }
-
-			public Emitter(SourceProductionContext ctx, KnownTypeSymbols knownSymbols)
-			{
-				this.Context = ctx;
-				this.KnownSymbols = knownSymbols;
-			}
-			
-			public void GenerateCode(CrystalJsonContainerMetadata obj)
-			{
-				this.Context.CancellationToken.ThrowIfCancellationRequested();
-
-				Kenobi($"GEN [{DateTime.UtcNow:hh:mm:ss}]: {obj.Symbol.Name}");
-
-				var code = GenerateConverterSource(obj);
-			
-				Kenobi("Use the source:\r\n" + code);
-			
-				this.Context.AddSource($"{obj.Symbol.Name}.g.cs", code);
-			}
-
-			public string GenerateConverterSource(CrystalJsonContainerMetadata metadata)
-			{
-				Kenobi($"Generated {metadata.Symbol.Name} with {metadata.IncludedTypes.Count} included types");
-
-				var sb = new CodeBuilder();
-				sb.Comment("<auto-generated/>");
-				sb.NewLine();
-
-				sb.Comment($"Name: '{metadata.Symbol.Name}'");
-				sb.Comment($"NameSpace: '{metadata.Symbol.NameSpace}'");
-				sb.Comment($"Types: {metadata.IncludedTypes.Count}");
-				foreach (var t in metadata.IncludedTypes)
-				{
-					sb.Comment($"- {t.Name}");
-				}
-
-				//sb.AppendLine("#if NET8_0_OR_GREATER");
-				//sb.NewLine();
-				sb.AppendLine("#nullable enable annotations");
-				sb.AppendLine("#nullable enable warnings"); //TODO: REVIEW: to disable or not to disable warnings?
-				sb.NewLine();
-
-				sb.Namespace(
-					metadata.Symbol.NameSpace,
-					() =>
+					case IPropertySymbol property:
 					{
-						// we don't want to have to specify the namespace everytime
-						sb.AppendLine($"using {KnownTypeSymbols.CrystalJsonNamespace};");
-						// we also use a lot of helper static methods from this type
-						sb.AppendLine($"using static {JsonSerializerExtensionsFullName};");
-						sb.NewLine();
-
-						sb.AppendLine("/// <summary>Generated source code for JSON operations on application types</summary>");
-						//sb.Attribute<DynamicallyAccessedMembersAttribute>([sb.Constant(DynamicallyAccessedMemberTypes.All)]);
-						sb.Attribute<GeneratedCodeAttribute>([sb.Constant(nameof(CrystalJsonSourceGenerator)), sb.Constant("0.1")]);
-						sb.Attribute<DebuggerNonUserCodeAttribute>();
-						sb.AppendLine($"public static partial class {metadata.Symbol.Name}");
-						sb.EnterBlock("Container");
-						foreach (var typeDef in metadata.IncludedTypes)
+						if (property.DeclaredAccessibility == Accessibility.Private)
 						{
-							GenerateCodeForType(sb, metadata, typeDef);
+							// REVIEW: TODO: what should we do with private properties?
+							// - if they have a backing field, the object may not incomplete when deserialized
+							return null;
 						}
-						sb.LeaveBlock("Container");
-						sb.NewLine();
+						isField = false;
+						typeSymbol = property.Type;
+						isReadOnly = property.IsReadOnly;
+						isInitOnly = false; //TODO: detect "IsExternalInit" modifier!
+						break;
 					}
-				);
-
-				sb.NewLine();
-				//sb.AppendLine("#endif");
-
-				Kenobi("Done!");
-
-				return sb.ToStringAndClear();
-			}
-
-			public void GenerateCodeForType(CodeBuilder sb, CrystalJsonContainerMetadata metadata, CrystalJsonTypeMetadata typeDef)
-			{
-				var typeFullName = typeDef.Symbol.FullyQualifiedName;
-				var typeName = typeDef.Symbol.Name;
-
-				var serializerName = typeName;
-				var serializerTypeName = serializerName + "JsonConverter";
-			
-				sb.Comment($"Generating for type {typeDef.Symbol.FullyQualifiedName}");
-				foreach (var member in typeDef.Members)
-				{
-					sb.Comment($"- {member.Name}: {member.Type.Name} {member.MemberName}");
+					case IFieldSymbol field:
+					{
+						if (field.DeclaredAccessibility == Accessibility.Private)
+						{
+							//note: we see the backing fields here, we could maybe capture them somewhere in order to generate optimized unsafe accessors?return null;
+							return null;
+						}
+						isField = true;
+						typeSymbol = field.Type;
+						isReadOnly = field.IsReadOnly;
+						isInitOnly = false; //TODO: detect "IsExternalInit" modifier!
+						break;
+					}
+					default:
+					{
+						return null;
+					}
 				}
 
-				sb.AppendLine($"/// <summary>JSON converter for type <see cref=\"{typeFullName}\">{typeName}</see></summary>");
-				sb.AppendLine($"public static {serializerTypeName} {serializerName} => m_cached{serializerName} ??= new();");
-				sb.NewLine();
-				sb.AppendLine($"private static {serializerTypeName}? m_cached{serializerName};");
-				sb.NewLine();
-			
-				sb.AppendLine($"public sealed class {serializerTypeName} : {JsonConverterInterfaceFullName}<{typeFullName}>"); //TODO: implements!
-				sb.EnterBlock("type:" + typeDef.Name);
+				var type = new TypeRef(typeSymbol);
+	
+				// parameters that can be modified via attributes or keywords on the member
+				var name = memberName;
+				bool isRequired = false;
+				bool isKey = false;
+				
+				foreach (var attribute in member.GetAttributes())
+				{
+					var attributeType = attribute.AttributeClass;
+					if (attributeType is null) continue;
 
-				// Serialize
-			
-				sb.AppendLine($"public void Serialize(CrystalJsonWriter writer, {typeFullName}? instance)");
-				sb.EnterBlock("serialize");
-				//sb.AppendLine("throw new NotImplementedException();");
-				sb.LeaveBlock("serialize");
-				sb.NewLine();
-
-				// Pack
-
-				sb.AppendLine($"public {JsonValueFullNameFullName} Pack({typeFullName}? instance, {CrystalJsonSettingsFullName}? settings = default, {ICrystalJsonTypeResolverFullName}? resolver = default)");
-				sb.AppendLine("{ throw new NotImplementedException(); }");
-				sb.NewLine();
-			
-				// UnPack
-
-				sb.AppendLine($"public {typeFullName} Unpack({CrystalJsonSourceGenerator.JsonValueFullNameFullName} value, {ICrystalJsonTypeResolverFullName}? resolver = default)");
-				sb.AppendLine("{ throw new NotImplementedException(); }");
-				sb.NewLine();
-			
-				sb.LeaveBlock("type:" + typeDef.Name);
+					switch (attributeType.ToDisplayString())
+					{
+						case JsonPropertyAttributeFullName:
+						{
+							if (attribute.ConstructorArguments.Length > 0)
+							{
+								name = (string) attribute.ConstructorArguments[0].Value!;
+							}
+							break;
+						}
+						case "System.ComponentModel.DataAnnotations.KeyAttribute":
+						{
+							isKey = true;
+							break;
+						}
+						case RequiredMemberAttributeFullName:
+						{
+							isRequired = true;
+							break;
+						}
+							
+					}
+				}
+				
+				return new()
+				{
+					Type = type,
+					Name = name,
+					MemberName = memberName,
+					IsField = isField,
+					IsReadOnly = isReadOnly,
+					IsInitOnly = isInitOnly,
+					IsRequired = isRequired,
+					IsKey = isKey,
+				};
 			}
-			
+
 		}
 		
-		static string GetGlobalTypeName(ITypeSymbol type)
-		{
-			switch (type.SpecialType)
-			{
-				case SpecialType.None:
-				{
-					if (type is IArrayTypeSymbol arr && arr.ElementType.SpecialType != SpecialType.None)
-					{
-						return type.ToDisplayString();
-					}
-
-					if (type.ContainingNamespace.Name == "System") return type.ToDisplayString();
-					return "global::" + type.ToDisplayString();
-				}
-				default: return type.ToDisplayString();
-			}
-		}
-
 	}
 	
 }

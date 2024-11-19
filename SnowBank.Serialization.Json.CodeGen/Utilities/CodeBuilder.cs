@@ -1,4 +1,29 @@
-﻿
+﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of SnowBank nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL SNOWBANK SAS BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#endregion
+
 namespace Doxense.Serialization.Json.CodeGen
 {
 	using System.Collections.Generic;
@@ -39,6 +64,14 @@ namespace Doxense.Serialization.Json.CodeGen
 			this.Output.AppendLine();
 		}
 
+		public void WriteLines(string text)
+		{
+			// we need to parse the text and insert the proper indentation
+			//TODO: optimized version later (the roslyn implementation uses readonly spans to split each line
+			
+			this.Output.Append(new string('\t', this.Depth) + text.Replace("\r\n", "\r\n" + new string('\t', this.Depth)));
+		}
+		
 		public string Constant(string literal) => "\"" + literal.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\""; //TODO: more!
 
 		public string Constant(bool literal) => literal ? "true" : "false";
@@ -175,7 +208,7 @@ namespace Doxense.Serialization.Json.CodeGen
 		public void LeaveBlock(string? type = null, bool semicolon = false)
 		{
 			var expected = this.Structure.Count > 0 ? this.Structure.Peek() : null;
-			if (expected == null || expected != type)
+			if (expected != null && expected != type)
 			{
 				throw new InvalidOperationException($"Code structure mismatch: cannot leave '{type}' while inside a '{expected}'");
 			}

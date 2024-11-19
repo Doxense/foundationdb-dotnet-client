@@ -1,4 +1,5 @@
-﻿
+﻿#define FULL_DEBUG
+
 namespace Doxense.Serialization.Json.CodeGen
 {
 	using Microsoft.CodeAnalysis;
@@ -29,13 +30,20 @@ namespace Doxense.Serialization.Json.CodeGen
 		public string FullyQualifiedName { get; }
 
 		public bool IsValueType { get; }
+		
 		public TypeKind TypeKind { get; }
+		
 		public SpecialType SpecialType { get; }
 
 		public bool CanBeNull => !this.IsValueType || this.SpecialType is SpecialType.System_Nullable_T;
 
-		public bool Equals(TypeRef? other) => other != null && this.FullyQualifiedName == other.FullyQualifiedName;
 		public override bool Equals(object? obj) => this.Equals(obj as TypeRef);
+	
+		public bool Equals(TypeRef? other) => other != null && this.FullyQualifiedName == other.FullyQualifiedName;
+
 		public override int GetHashCode() => this.FullyQualifiedName.GetHashCode();
+
+		public override string ToString() => $"{{ FQN = {this.FullyQualifiedName}, Kind = {TypeKind}, ValueType = {IsValueType}, Special = {SpecialType} }}";
 	}
+	
 }

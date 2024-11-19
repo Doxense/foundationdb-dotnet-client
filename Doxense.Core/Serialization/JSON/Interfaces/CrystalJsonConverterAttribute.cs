@@ -30,11 +30,11 @@ namespace Doxense.Serialization.Json
 	/// <summary>Marker attribute to enable JSON source code generation</summary>
 	/// <remarks>
 	/// <para>This attribute should be applied on a partial class, that will act as a container for all generated types.</para>
-	/// <para>All "root" data types should be included via the <see cref="CrystalJsonInclude"/> attribute</para>
+	/// <para>All "root" data types should be included via the <see cref="CrystalJsonSerializableAttribute"/> attribute</para>
 	/// <para>Sample: <code>
 	/// [CrystalJsonConverter]
-	/// [CrystalJsonInclude(typeof(User))]
-	/// [CrystalJsonInclude(typeof(Product))]
+	/// [CrystalJsonSerializable(typeof(User))]
+	/// [CrystalJsonSerializable(typeof(Product))]
 	/// // ... one for each "top level" type, nested/linked types are automatically discovered
 	/// public static partial class ApplicationSerializers
 	/// {
@@ -42,6 +42,7 @@ namespace Doxense.Serialization.Json
 	/// }
 	/// </code></para>
 	/// </remarks>
+	[AttributeUsage(AttributeTargets.Class)]
 	public sealed class CrystalJsonConverterAttribute : Attribute
 	{
 
@@ -51,15 +52,16 @@ namespace Doxense.Serialization.Json
 
 	/// <summary>Attribute that will generate a converter for the specified type</summary>
 	/// <remarks>Any nested type, or types referenced by the members will also be included in the source code generation</remarks>
-	public sealed class CrystalJsonInclude : Attribute
+	[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+	public sealed class CrystalJsonSerializableAttribute : Attribute
 	{
 
-		public CrystalJsonInclude(Type type)
+		public CrystalJsonSerializableAttribute(Type type)
 		{
 			this.Types = [ type ];
 		}
 
-		public CrystalJsonInclude(params Type[] types)
+		public CrystalJsonSerializableAttribute(params Type[] types)
 		{
 			this.Types = types;
 		}

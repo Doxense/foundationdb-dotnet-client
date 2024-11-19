@@ -2,17 +2,20 @@
 
 	<PropertyGroup>
 		<TargetFramework>netstandard2.0</TargetFramework>
-		<LangVersion>11.0</LangVersion>
+		<LangVersion>preview</LangVersion>
 		<Nullable>enable</Nullable>
 		<IsRoslynComponent>true</IsRoslynComponent>
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 		<CentralPackageVersionOverrideEnabled>true</CentralPackageVersionOverrideEnabled>
 		<ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+
+		<AnalyzerRoslynVersion>4.4</AnalyzerRoslynVersion>
+		<RoslynApiVersion>$(MicrosoftCodeAnalysisVersion_4_4)</RoslynApiVersion>
+		<DefineConstants>$(DefineConstants);ROSLYN4_0_OR_GREATER;ROSLYN4_4_OR_GREATER</DefineConstants>
+		
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="System.Collections.Immutable" Version="8.0.0" />
-		<PackageReference Include="System.Reflection.Metadata" Version="8.0.1" />
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0-3.final" PrivateAssets="all" />
 		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" PrivateAssets="all" />
 	</ItemGroup>
