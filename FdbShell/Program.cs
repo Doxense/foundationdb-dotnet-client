@@ -1320,18 +1320,18 @@ namespace FdbShell
 			}
 		}
 
-		public async Task<Doxense.Maybe<T>> RunAsyncCommand<T>(Func<IFdbDatabase, IFdbShellTerminal, CancellationToken, Task<T>> command, CancellationToken cancel)
+		public async Task<Maybe<T>> RunAsyncCommand<T>(Func<IFdbDatabase, IFdbShellTerminal, CancellationToken, Task<T>> command, CancellationToken cancel)
 		{
 			using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancel);
 			try
 			{
 				var db = await this.Db.GetDatabase(cancel);
 
-				return Doxense.Maybe.Return<T>(await command(db, this.Terminal, cts.Token).ConfigureAwait(false));
+				return Maybe.Return<T>(await command(db, this.Terminal, cts.Token).ConfigureAwait(false));
 			}
 			catch (Exception e)
 			{
-				return Doxense.Maybe.Error<T>(e);
+				return Maybe.Error<T>(e);
 			}
 			finally
 			{
