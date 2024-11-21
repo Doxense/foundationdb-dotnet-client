@@ -39,24 +39,8 @@ namespace Doxense.Serialization.Json.CodeGen
 	public partial class CrystalJsonSourceGenerator : IIncrementalGenerator
 	{
 
-		internal const string JsonValueFullNameFullName = KnownTypeSymbols.CrystalJsonNamespace + ".JsonValue";
-
-		internal const string CrystalJsonSettingsFullName = KnownTypeSymbols.CrystalJsonNamespace + ".CrystalJsonSettings";
-		
-		internal const string ICrystalJsonTypeResolverFullName = KnownTypeSymbols.CrystalJsonNamespace + ".ICrystalJsonTypeResolver";
-		
-		internal const string JsonNullFullName = KnownTypeSymbols.CrystalJsonNamespace + ".JsonNull";
-
-		internal const string JsonObjectFullName = KnownTypeSymbols.CrystalJsonNamespace + ".JsonObject";
-
-		internal const string JsonArrayFullName = KnownTypeSymbols.CrystalJsonNamespace + ".JsonArray";
-
-		internal const string JsonConverterInterfaceFullName = KnownTypeSymbols.CrystalJsonNamespace + ".IJsonConverter";
-		
-		internal const string JsonSerializerExtensionsFullName = KnownTypeSymbols.CrystalJsonNamespace + ".JsonSerializerExtensions";
-
 		internal const string CrystalJsonConverterAttributeFullName = KnownTypeSymbols.CrystalJsonNamespace + ".CrystalJsonConverterAttribute";
-		
+
 		internal const string CrystalJsonSerializableAttributeFullName = KnownTypeSymbols.CrystalJsonNamespace + ".CrystalJsonSerializableAttribute";
 
 #if FULL_DEBUG
@@ -64,7 +48,7 @@ namespace Doxense.Serialization.Json.CodeGen
 		private static readonly string ProcessIdentifier = "[" + Process.GetCurrentProcess().ProcessName + ":" + Process.GetCurrentProcess().Id.ToString() + "]";
 #pragma warning restore RS1035
 #endif
-		
+
 		[Conditional("FULL_DEBUG")]
 		public static void Kenobi(string msg)
 		{
@@ -83,28 +67,30 @@ namespace Doxense.Serialization.Json.CodeGen
 		{
 #if LAUNCH_DEBUGGER
             System.Diagnostics.Debugger.Launch();
-#endif			
-		
+#endif
+
 			Kenobi("------- INITIALIZE -------------");
 
-			var knownTypeSymbols = context.CompilationProvider.Select((compilation, _) => new KnownTypeSymbols(compilation));
-			
+			var knownTypeSymbols = context
+				.CompilationProvider
+				.Select((compilation, _) => new KnownTypeSymbols(compilation));
+
 			// find all possible converters (partial classes with a [CrystalJsonConverter] attribute)
 			var converterTypes = context.SyntaxProvider
-                .ForAttributeWithMetadataName(
-                    CrystalJsonConverterAttributeFullName,
-                    (node, _) => node is ClassDeclarationSyntax,
-                    (context, _) => (ContextClass: (ClassDeclarationSyntax) context.TargetNode, context.SemanticModel, context.Attributes)
-                )
-                .Combine(knownTypeSymbols)
-                .Select(static (tuple, ct) =>
-                {
-                    var parser = new Parser(tuple.Right);
-                    var contextGenerationSpec = parser.ParseContainerMetadata(tuple.Left.ContextClass, tuple.Left.SemanticModel, tuple.Left.Attributes, ct);
-                    var diagnostics = ImmutableEquatableArray<DiagnosticInfo>.Empty; //TODO!
-                    return (Metadata: contextGenerationSpec, Diagnostics: diagnostics);
-                })
-                .WithTrackingName("CrystalJsonSpec")
+				.ForAttributeWithMetadataName(
+					CrystalJsonConverterAttributeFullName,
+					(node, _) => node is ClassDeclarationSyntax,
+					(context, _) => (ContextClass: (ClassDeclarationSyntax) context.TargetNode, context.SemanticModel, context.Attributes)
+				)
+				.Combine(knownTypeSymbols)
+				.Select(static (tuple, ct) =>
+				{
+					var parser = new Parser(tuple.Right);
+					var contextGenerationSpec = parser.ParseContainerMetadata(tuple.Left.ContextClass, tuple.Left.SemanticModel, tuple.Left.Attributes, ct);
+					var diagnostics = ImmutableEquatableArray<DiagnosticInfo>.Empty; //TODO!
+					return (Metadata: contextGenerationSpec, Diagnostics: diagnostics);
+				})
+				.WithTrackingName("CrystalJsonSpec")
 				;
 
 			context.RegisterSourceOutput(converterTypes, EmitSourceCode);
@@ -132,5 +118,5 @@ namespace Doxense.Serialization.Json.CodeGen
 		}
 
 	}
-	
+
 }

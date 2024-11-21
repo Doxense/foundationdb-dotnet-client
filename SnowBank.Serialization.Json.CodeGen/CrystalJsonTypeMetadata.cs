@@ -26,15 +26,22 @@
 
 namespace Doxense.Serialization.Json.CodeGen
 {
+	using System.Text;
 
 	/// <summary>Metadata about the container type that will host the generated code for one or more types</summary>
 	public sealed record CrystalJsonContainerMetadata
 	{
+
+		/// <summary>Name of the container</summary>
 		public required string Name { get; init; }
 		
-		public required TypeRef Symbol { get; init; }
-		
+		/// <summary>Type of the container</summary>
+		public required TypeMetadata Type { get; init; }
+
+		/// <summary>List of all application types that will be part of the generated source code</summary>
 		public required ImmutableEquatableArray<CrystalJsonTypeMetadata> IncludedTypes { get; init; }
+
+		//TODO: settings!
 
 	}
 	
@@ -43,17 +50,26 @@ namespace Doxense.Serialization.Json.CodeGen
 	{
 		
 		/// <summary>Symbol for the serialized type</summary>
-		public required TypeRef Symbol { get; init; }
+		public required TypeMetadata Type { get; init; }
 
 		/// <summary>Friendly name of the type, used as the prefix of the generated converters (ex: "User", "Account", "Order", ...)</summary>
-		public string Name => this.Symbol.Name;
-
-		/// <summary>Namespace of the type (ex: "Contoso.Backend.Models")</summary>
-		public string NameSpace => this.Symbol.NameSpace;
+		public string Name => this.Type.Name;
 
 		/// <summary>For objects, list of included members in this type</summary>
 		public required ImmutableEquatableArray<CrystalJsonMemberMetadata> Members { get; init; }
-		
+
+		public void Explain(StringBuilder sb, string? indent = null)
+		{
+			sb.Append(indent).Append("Name = ").AppendLine(this.Name);
+			sb.Append(indent).Append("Type = ").AppendLine(this.Type.Ref.ToString());
+			this.Type.Explain(sb, indent is null ? "- " : ("  " + indent));
+			sb.Append(indent).Append("Members = [").Append(this.Members.Count).AppendLine("]");
+			foreach (var member in this.Members)
+			{
+				member.Explain(sb, indent is null ? "- " : ("  " + indent));
+			}
+		}
+
 	}
 
 	/// <summary>Metadata about a member (field or property) of a serialized type</summary>
@@ -65,7 +81,7 @@ namespace Doxense.Serialization.Json.CodeGen
 		public required string Name { get; init; }
 		
 		/// <summary>Type of the member</summary>
-		public required TypeRef Type { get; init; }
+		public required TypeMetadata Type { get; init; }
 		
 		/// <summary>Name of the member in the container type</summary>
 		/// <example><c>public string HelloWorld { get; init;}</c> has member name <c>"HelloWorld"</c></example>
@@ -87,9 +103,45 @@ namespace Doxense.Serialization.Json.CodeGen
 		/// <example><c>public required string Id { ... }</c> is required</example>
 		public required bool IsRequired { get; init; } 
 		
-		/// <summary><c>true</c> if the member is annotated with the <see cref="T:System.ComponentModel.DataAnnotations.KeyAttribute"/> attibute</summary>
-		/// <example><c>[Key] public required string Id { get; init; }</c> is marked as part of the key for instances of this type</example>
+		/// <summary>The member has the <see cref="T:System.ComponentModel.DataAnnotations.KeyAttribute"/> attribute</summary>
+		/// <remarks>Examples: <code>
+		/// int Id { get; ... } // IsKey == false
+		/// 
+		/// [Key]
+		/// int Id { get; ... } // IsKey == true
+		/// </code></remarks>
 		public required bool IsKey { get; init; }
+
+		/// <summary>The member cannot be null, or is annotated with <see cref="T:System.Diagnostics.CodeAnalysis.NotNullAttribute"/></summary>
+		/// <remarks>Examples: <code>
+		/// int Foo { get; ... }     // IsNotNull == true
+		/// int? Foo { get; ... }    // IsNotNull == false
+		/// string Foo { get; ... }  // IsNotNull == true
+		/// string? Foo { get; ... } // IsNotNull == false
+		/// </code></remarks>
+		public required bool IsNotNull { get; init; }
+
+		/// <summary>The member if a reference type that is declared as nullable in its parent type</summary>
+		/// <remarks>Examples: <code>
+		/// int Foo { get; ... }     // IsNullableRefType == false
+		/// int? Foo { get; ... }    // IsNullableRefType == false
+		/// string Foo { get; ... }  // IsNullableRefType == false
+		/// string? Foo { get; ... } // IsNullableRefType == true
+		/// </code></remarks>
+		public bool IsNullableRefType() => !this.IsNotNull && this.Type.UnderlyingType is null;
+
+		public void Explain(StringBuilder sb, string? indent = null)
+		{
+			sb.Append(indent).Append("Name = ").AppendLine(this.Name);
+			sb.Append(indent).Append("MemberName = ").AppendLine(this.MemberName);
+			sb.Append(indent).AppendLine("Type:");
+			this.Type.Explain(sb, indent is null ? "- " : ("  " + indent));
+			if (this.IsField) sb.Append(indent).AppendLine("IsField = true");
+			if (this.IsReadOnly) sb.Append(indent).AppendLine("IsReadOnly = true");
+			if (this.IsInitOnly) sb.Append(indent).AppendLine("IsInitOnly = true");
+			if (this.IsRequired) sb.Append(indent).AppendLine("IsRequired = true");
+			if (this.IsKey) sb.Append(indent).AppendLine("IsKey = true");
+		}
 
 	}
 	

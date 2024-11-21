@@ -55,6 +55,9 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
+		/// <summary>Returns a <see cref="IJsonConverter{T}"/> that will use serialization at runtime</summary>
+		public IJsonConverter<T> GetDefaultConverter<T>() => RuntimeJsonConverter<T>.Default;
+
 		/// <summary>Inspects a type to retrieve the definitions of its members</summary>
 		/// <param name="type">Type to inspect</param>
 		/// <returns>List of compiled member definitions, or <see langword="null"/> if the type is not compatible</returns>

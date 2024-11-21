@@ -43,7 +43,6 @@ namespace Doxense.Serialization.Json.CodeGen
 		internal sealed class Parser
 		{
 
-			public const string JsonPropertyAttributeFullName = KnownTypeSymbols.CrystalJsonNamespace + ".JsonPropertyAttribute";
 
 			public const string RequiredMemberAttributeFullName = "System.Runtime.CompilerServices.RequiredMemberAttribute";
 			
@@ -68,6 +67,7 @@ namespace Doxense.Serialization.Json.CodeGen
 				Kenobi($"ParseContainerMetadata({symbol.Name}, [{attributes.Length}])");
 
 				var converterAttribute = attributes[0];
+				//TODO: extract some settings from this?
 
 				var includedTypes = new List<CrystalJsonTypeMetadata>();
 				foreach (var typeAttribute in symbol.GetAttributes())
@@ -75,7 +75,7 @@ namespace Doxense.Serialization.Json.CodeGen
 					var ac = typeAttribute.AttributeClass;
 					if (ac == null) continue;
 
-					if (ac.ToDisplayString() != CrystalJsonSourceGenerator.CrystalJsonSerializableAttributeFullName)
+					if (ac.ToDisplayString() != CrystalJsonSerializableAttributeFullName)
 					{
 						continue;
 					}
@@ -91,10 +91,17 @@ namespace Doxense.Serialization.Json.CodeGen
 					}
 
 					Kenobi($"Include type {type}");
-					var typeDef = ParseTypeMetadata(type, typeAttribute);
-					if (typeDef != null)
+					try
 					{
-						includedTypes.Add(typeDef);
+						var typeDef = ParseTypeMetadata(type, typeAttribute);
+						if (typeDef != null)
+						{
+							includedTypes.Add(typeDef);
+						}
+					}
+					catch (Exception ex)
+					{
+						Kenobi($"CRASH for {type}: {ex.ToString()}");
 					}
 				}
 
@@ -103,13 +110,19 @@ namespace Doxense.Serialization.Json.CodeGen
 				return new()
 				{
 					Name = containerName,
-					Symbol = new(symbol),
+					Type = TypeMetadata.Create(symbol),
 					IncludedTypes = includedTypes.ToImmutableEquatableArray(),
 				};
 			}
 
 			public CrystalJsonTypeMetadata? ParseTypeMetadata(INamedTypeSymbol type, AttributeData? attribute)
 			{
+				// we have to extract all the properties that will be required later during the code generation phase
+				
+				// does the type implement IJsonSerializable or IJsonPackable?
+				var x = type.FindImplementationForInterfaceMember(this.KnownSymbols.IJsonSerializable);
+				var y = type.FindImplementationForInterfaceMember(this.KnownSymbols.IJsonPackable);
+
 				var members = new List<CrystalJsonMemberMetadata>();
 
 				foreach (var member in type.GetMembers())
@@ -124,9 +137,9 @@ namespace Doxense.Serialization.Json.CodeGen
 					}
 				}
 				
-				return new CrystalJsonTypeMetadata()
+				return new()
 				{
-					Symbol = new(type),
+					Type = TypeMetadata.Create(type),
 					Members = members.ToImmutableEquatableArray(),
 				};
 			}
@@ -136,14 +149,14 @@ namespace Doxense.Serialization.Json.CodeGen
 				var memberName = member.Name;
 				bool isField;
 				ITypeSymbol typeSymbol;
-				bool isReadOnly = false;
-				bool isInitOnly = false;
-				
+				bool isReadOnly;
+				bool isInitOnly;
+
 				switch (member)
 				{
 					case IPropertySymbol property:
 					{
-						if (property.DeclaredAccessibility == Accessibility.Private)
+						if (property.IsImplicitlyDeclared || property.DeclaredAccessibility is (Accessibility.Private or Accessibility.Protected))
 						{
 							// REVIEW: TODO: what should we do with private properties?
 							// - if they have a backing field, the object may not incomplete when deserialized
@@ -157,7 +170,7 @@ namespace Doxense.Serialization.Json.CodeGen
 					}
 					case IFieldSymbol field:
 					{
-						if (field.DeclaredAccessibility == Accessibility.Private)
+						if (field.IsImplicitlyDeclared || field.DeclaredAccessibility is (Accessibility.Private or Accessibility.Protected))
 						{
 							//note: we see the backing fields here, we could maybe capture them somewhere in order to generate optimized unsafe accessors?return null;
 							return null;
@@ -174,8 +187,18 @@ namespace Doxense.Serialization.Json.CodeGen
 					}
 				}
 
-				var type = new TypeRef(typeSymbol);
-	
+				var type = TypeMetadata.Create(typeSymbol);
+
+				bool isNotNull;
+				if (type.IsValueType())
+				{
+					isNotNull = type.UnderlyingType == null;
+				}
+				else
+				{
+					isNotNull = type.Nullability == NullableAnnotation.Annotated;
+				}
+
 				// parameters that can be modified via attributes or keywords on the member
 				var name = memberName;
 				bool isRequired = false;
@@ -188,7 +211,7 @@ namespace Doxense.Serialization.Json.CodeGen
 
 					switch (attributeType.ToDisplayString())
 					{
-						case JsonPropertyAttributeFullName:
+						case KnownTypeSymbols.JsonPropertyAttributeFullName:
 						{
 							if (attribute.ConstructorArguments.Length > 0)
 							{
@@ -206,7 +229,6 @@ namespace Doxense.Serialization.Json.CodeGen
 							isRequired = true;
 							break;
 						}
-							
 					}
 				}
 				
@@ -219,6 +241,7 @@ namespace Doxense.Serialization.Json.CodeGen
 					IsReadOnly = isReadOnly,
 					IsInitOnly = isInitOnly,
 					IsRequired = isRequired,
+					IsNotNull = isNotNull,
 					IsKey = isKey,
 				};
 			}

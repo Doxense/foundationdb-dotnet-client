@@ -30,8 +30,6 @@ namespace Doxense.Serialization.Json.Tests
 {
 	using System.Buffers;
 	using System.Collections.Generic;
-	using System.Collections.Immutable;
-	using System.Collections.ObjectModel;
 	using System.ComponentModel.DataAnnotations;
 	using System.Net;
 	using Doxense.Mathematics.Statistics;

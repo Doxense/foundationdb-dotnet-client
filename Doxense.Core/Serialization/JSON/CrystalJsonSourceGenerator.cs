@@ -219,7 +219,7 @@ namespace Doxense.Serialization.Json
 
 			if (allowNullables)
 			{
-				if (type == typeof(DateTime?) || type == typeof(DateTimeOffset?) || type == typeof(TimeOnly?) || type == typeof(NodaTime.Instant?))
+				if (type == typeof(DateTime?) || type == typeof(DateTimeOffset?) || type == typeof(DateOnly?) || type == typeof(NodaTime.Instant?))
 				{
 					return true;
 				}
@@ -1004,7 +1004,7 @@ namespace Doxense.Serialization.Json
 							getterExpr = $"new(m_obj.{(member.IsNullableRefType ? "GetObjectOrDefault" : member.IsRequired ? "GetObject" : "GetObjectOrEmpty")}({sb.Constant(member.Name)}))";
 							proxyType = GetLocalReadOnlyProxyRef(member.Type);
 						}
-						else if (IsStringLike(member.Type) || IsStringLike(member.Type) || IsBooleanLike(member.Type) || IsNumberLike(member.Type) || IsDateLike(member.Type))
+						else if (IsStringLike(member.Type) || IsBooleanLike(member.Type) || IsNumberLike(member.Type) || IsDateLike(member.Type))
 						{
 							//use default getter
 							getterExpr = null;

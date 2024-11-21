@@ -69,7 +69,17 @@ namespace Doxense.Serialization.Json.CodeGen
 			// we need to parse the text and insert the proper indentation
 			//TODO: optimized version later (the roslyn implementation uses readonly spans to split each line
 			
-			this.Output.Append(new string('\t', this.Depth) + text.Replace("\r\n", "\r\n" + new string('\t', this.Depth)));
+			if (text.Contains("\r\n"))
+			{
+				foreach (var line in text.Split(CodeBuilder.LineBreakChars, StringSplitOptions.RemoveEmptyEntries))
+				{
+					this.Output.Append('\t', this.Depth).AppendLine(line.TrimEnd());
+				}
+			}
+			else
+			{
+				this.Output.Append('\t', this.Depth).AppendLine(text);
+			}
 		}
 		
 		public string Constant(string literal) => "\"" + literal.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\""; //TODO: more!
@@ -355,7 +365,7 @@ namespace Doxense.Serialization.Json.CodeGen
 		{
 			if (comment.Contains("\r\n"))
 			{
-				foreach (var line in comment.Split(CodeBuilder.LineBreakChars))
+				foreach (var line in comment.Split(CodeBuilder.LineBreakChars, StringSplitOptions.RemoveEmptyEntries))
 				{
 					this.Output.Append('\t', this.Depth).Append("// ").AppendLine(line.TrimEnd());
 				}
