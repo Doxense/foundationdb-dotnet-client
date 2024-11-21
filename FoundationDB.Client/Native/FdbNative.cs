@@ -39,7 +39,7 @@ namespace FoundationDB.Client.Native
 
 	internal static unsafe partial class FdbNative
 	{
-		public const int FDB_API_MIN_VERSION = 200;
+		public const int FDB_API_MIN_VERSION = 610;
 		public const int FDB_API_MAX_VERSION = 730;
 
 		/// <summary>Name of the C API dll used for P/Invoking</summary>
@@ -196,50 +196,6 @@ namespace FoundationDB.Client.Native
 #else
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_stop_network();
-#endif
-
-			#endregion
-
-			#region Cluster
-
-			[Obsolete("Not supported any more")]
-#if NET8_0_OR_GREATER
-			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
-			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
-			public static partial FutureHandle fdb_create_cluster([MarshalAs(UnmanagedType.LPStr)] string? clusterFilePath);
-#else
-			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi, BestFitMapping = false, ThrowOnUnmappableChar = true)]
-			public static extern FutureHandle fdb_create_cluster([MarshalAs(UnmanagedType.LPStr)] string? clusterFilePath);
-#endif
-
-			[Obsolete("Not supported any more")]
-#if NET8_0_OR_GREATER
-			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
-			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
-			public static partial void fdb_cluster_destroy(IntPtr cluster);
-#else
-			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			public static extern void fdb_cluster_destroy(IntPtr cluster);
-#endif
-
-			[Obsolete("Not supported any more")]
-#if NET8_0_OR_GREATER
-			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
-			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
-			public static partial FdbError fdb_cluster_set_option(ClusterHandle cluster, FdbClusterOption option, byte* value, int valueLength);
-#else
-			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			public static extern FdbError fdb_cluster_set_option(ClusterHandle cluster, FdbClusterOption option, byte* value, int valueLength);
-#endif
-
-			[Obsolete("Not supported any more")]
-#if NET8_0_OR_GREATER
-			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
-			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
-			public static partial FutureHandle fdb_cluster_create_database(ClusterHandle cluster, [MarshalAs(UnmanagedType.LPStr)] string dbName, int dbNameLength);
-#else
-			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi, BestFitMapping = false, ThrowOnUnmappableChar = true)]
-			public static extern FutureHandle fdb_cluster_create_database(ClusterHandle cluster, [MarshalAs(UnmanagedType.LPStr)] string dbName, int dbNameLength);
 #endif
 
 			#endregion
@@ -1079,16 +1035,6 @@ namespace FoundationDB.Client.Native
 			public static extern FdbError fdb_future_get_key(FutureHandle future, out byte* key, out int keyLength);
 #endif
 
-			[Obsolete("Deprecated since API level 610")]
-#if NET8_0_OR_GREATER
-			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
-			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
-			public static partial FdbError fdb_future_get_cluster(FutureHandle future, out ClusterHandle cluster);
-#else
-			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			public static extern FdbError fdb_future_get_cluster(FutureHandle future, out ClusterHandle cluster);
-#endif
-
 #if NET8_0_OR_GREATER
 			[LibraryImport(FDB_C_DLL, StringMarshalling = StringMarshalling.Utf8)]
 			[UnmanagedCallConv(CallConvs = [ typeof(CallConvCdecl) ])]
@@ -1452,48 +1398,6 @@ namespace FoundationDB.Client.Native
 
 		#endregion
 
-		#region Clusters...
-
-		[Obsolete("Deprecated since API level 610")]
-		public static FutureHandle CreateCluster(string? path)
-		{
-			var future = NativeMethods.fdb_create_cluster(path);
-			Contract.Debug.Assert(future != null);
-#if DEBUG_NATIVE_CALLS
-			LogNative($"fdb_create_cluster({path}) => 0x{future.Handle:x}");
-#endif
-
-			return future;
-		}
-
-		[Obsolete("Deprecated since API level 610")]
-		public static void ClusterDestroy(IntPtr handle)
-		{
-			if (handle != IntPtr.Zero)
-			{
-				NativeMethods.fdb_cluster_destroy(handle);
-			}
-		}
-
-		[Obsolete("Deprecated since API level 610")]
-		public static FdbError ClusterSetOption(ClusterHandle cluster, FdbClusterOption option, byte* value, int valueLength)
-		{
-			return NativeMethods.fdb_cluster_set_option(cluster, option, value, valueLength);
-		}
-
-		[Obsolete("Deprecated since API level 610")]
-		public static FdbError FutureGetCluster(FutureHandle future, out ClusterHandle cluster)
-		{
-			var err = NativeMethods.fdb_future_get_cluster(future, out cluster);
-#if DEBUG_NATIVE_CALLS
-			LogNative($"fdb_future_get_cluster(0x{future.Handle:x}) => err={err}, handle=0x{cluster.Handle:x}");
-#endif
-			//TODO: check if err == Success ?
-			return err;
-		}
-
-		#endregion
-
 		#region Databases...
 
 		/// <summary>fdb_create_database</summary>
@@ -1554,17 +1458,6 @@ namespace FoundationDB.Client.Native
 
 			EnsureLibraryIsLoaded();
 			return NativeMethods.fdb_database_get_main_thread_busyness(handle);
-		}
-
-		[Obsolete("Deprecated since API level 610")]
-		public static FutureHandle ClusterCreateDatabase(ClusterHandle cluster, string name)
-		{
-			var future = NativeMethods.fdb_cluster_create_database(cluster, name, name.Length);
-			Contract.Debug.Assert(future != null);
-#if DEBUG_NATIVE_CALLS
-			LogNative($"fdb_cluster_create_database(0x{cluster.Handle:x}, name: '{name}') => 0x{future.Handle:x}");
-#endif
-			return future;
 		}
 
 		/// <summary>fdb_database_open_tenant, >= 710</summary>

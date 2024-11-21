@@ -39,11 +39,6 @@ namespace FoundationDB.Client.Native
 		/// <summary>Handle that wraps the native FDB_DATABASE*</summary>
 		private readonly DatabaseHandle m_handle;
 
-		/// <summary>Optional Cluster handle (only for API 600 or below)</summary>
-#pragma warning disable CS0618 // Type or member is obsolete
-		private readonly ClusterHandle? m_clusterHandle;
-#pragma warning restore CS0618 // Type or member is obsolete
-
 		/// <summary>Path to the cluster file</summary>
 		private readonly string? m_clusterFile;
 
@@ -67,19 +62,6 @@ namespace FoundationDB.Client.Native
 #endif
 		}
 
-		[Obsolete("Deprecated since API level 610")]
-		internal FdbNativeDatabase(DatabaseHandle handle, string? clusterFile, ClusterHandle cluster)
-		{
-			Contract.NotNull(handle);
-
-			m_handle = handle;
-			m_clusterFile = clusterFile;
-			m_clusterHandle = cluster;
-#if CAPTURE_STACKTRACES
-			m_stackTrace = new StackTrace();
-#endif
-		}
-
 #if DEBUG
 		// We add a destructor in DEBUG builds to help track leaks of databases...
 		~FdbNativeDatabase()
@@ -96,10 +78,8 @@ namespace FoundationDB.Client.Native
 		public static ValueTask<IFdbDatabaseHandler> CreateDatabaseAsync(string? clusterFile, CancellationToken ct)
 		{
 			if (Fdb.GetMaxApiVersion() < 610)
-			{ // Older version used a different way to create a database handle
-#pragma warning disable CS0618
-				return CreateDatabaseLegacyAsync(clusterFile, ct);
-#pragma warning restore CS0618
+			{ // Older version used a different way to create a database handle (fdb_create_cluster) which is not supported anymore
+				throw new NotSupportedException("API versions older than 610 are not supported.");
 			}
 
 			// Starting from 6.1, creating a database handler can be done directly
@@ -117,50 +97,6 @@ namespace FoundationDB.Client.Native
 			FdbNative.DieOnError(err);
 
 			return new ValueTask<IFdbDatabaseHandler>(new FdbNativeDatabase(handle, default(string), connectionString));
-		}
-
-		[Obsolete("Deprecated since API level 610")]
-		private static async ValueTask<IFdbDatabaseHandler> CreateDatabaseLegacyAsync(string? clusterFile, CancellationToken ct)
-		{
-			// In legacy API versions, you first had to create "cluster" handle and then obtain a database handle that that cluster.
-			// The API is async, but the future always completed inline...
-
-			ClusterHandle? cluster = null;
-			DatabaseHandle? database = null;
-			try
-			{
-				cluster = await FdbFuture.CreateTaskFromHandle(
-					FdbNative.CreateCluster(clusterFile),
-					default(object),
-					static (h, _) =>
-					{
-						var err = FdbNative.FutureGetCluster(h, out var handle);
-						FdbNative.DieOnError(err);
-
-						return handle;
-					},
-					ct).ConfigureAwait(false);
-
-				database = await FdbFuture.CreateTaskFromHandle(
-					FdbNative.ClusterCreateDatabase(cluster, "DB"),
-					default(object),
-					static (h, _) =>
-					{
-						var err = FdbNative.FutureGetDatabase(h, out var handle);
-						FdbNative.DieOnError(err);
-
-						return handle;
-					}, 
-					ct).ConfigureAwait(false);
-
-				return new FdbNativeDatabase(database, clusterFile, cluster);
-			}
-			catch (Exception)
-			{
-				database?.Dispose();
-				cluster?.Dispose();
-				throw;
-			}
 		}
 
 		public string? ClusterFile => m_clusterFile;
@@ -316,7 +252,6 @@ namespace FoundationDB.Client.Native
 			if (disposing)
 			{
 				m_handle.Dispose();
-				m_clusterHandle?.Dispose();
 			}
 		}
 
