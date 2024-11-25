@@ -1,6 +1,7 @@
 <Project>
 	<PropertyGroup>
 		<ArtifactsPath>$(MSBuildThisFileDirectory)artifacts</ArtifactsPath>
+		<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
 	</PropertyGroup>
 	<PropertyGroup>
 		<!-- Framework versions for the core libraries (Core, FoundationDb.Client, ...) -->
