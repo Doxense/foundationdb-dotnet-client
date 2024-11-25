@@ -162,10 +162,29 @@ namespace SnowBank.Serialization.Json.CodeGen
 					{
 						//TODO: inject a diagnostic!
 						Kenobi("CRASH: failed to generate " + typeDef.Name + ": " + ex.ToString());
-						sb.NewLine();
+
+						this.Context.AddSource($"{this.Metadata.Type.Name}.{typeDef.Name}.g.cs", sb.ToString());
+
+						sb.Clear();
 						sb.NewLine();
 						sb.Comment("ERROR: generator failed!");
 						sb.Comment(ex.ToString());
+						sb.NewLine();
+						// note: we need to write _something_ to the file, otherwise we may get errors like "Only one compilation unit can have top-level statements."
+						sb.AppendLine($"namespace {symbol.NameSpace}");
+						sb.EnterBlock("namespace");
+
+						// we don't want to have to specify the namespace everytime
+						sb.AppendLine($"using {KnownTypeSymbols.CrystalJsonNamespace};");
+						// we also use a lot of helper static methods from this type
+						sb.AppendLine($"using static {KnownTypeSymbols.JsonSerializerExtensionsFullName};");
+						sb.NewLine();
+
+						sb.AppendLine($"public static partial class {symbol.Name}");
+						sb.EnterBlock("Container");
+
+						sb.AppendLine($"#error Generation failed for {symbol.Name}: {ex.ToString().Replace("\r\n", "  ")}");
+						sb.NewLine();
 					}
 
 					sb.LeaveBlock("Container");
@@ -174,7 +193,6 @@ namespace SnowBank.Serialization.Json.CodeGen
 					sb.LeaveBlock("namespace");
 					sb.NewLine();
 
-					//Kenobi(sb.ToString());
 					this.Context.AddSource($"{this.Metadata.Type.Name}.{typeDef.Name}.g.cs", sb.ToString());
 				}
 				Kenobi("Done!");

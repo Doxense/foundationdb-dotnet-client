@@ -40,11 +40,17 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 		public int Depth;
 
+		public void Clear()
+		{
+			this.Depth = 0;
+			this.Output.Clear();
+		}
+
 		public string ToStringAndClear()
 		{
 			if (this.Depth != 0) throw new InvalidOperationException("Code seems to be truncated");
 			var s = this.Output.ToString();
-			this.Output.Clear();
+			Clear();
 			return s;
 		}
 

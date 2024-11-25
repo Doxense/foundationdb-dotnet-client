@@ -39,19 +39,41 @@ namespace SnowBank.Serialization.Json.CodeGen
 	public partial class CrystalJsonSourceGenerator
 	{
 
-		/// <summary>Parse the symbols from the compilation, in order to extract metadata for the serialization of application types</summary>
+		/// <summary>Parses the symbols from the compilation, in order to extract metadata for the serialization of application types</summary>
 		internal sealed class Parser
 		{
 
+			private const string RequiredMemberAttributeFullName = "System.Runtime.CompilerServices.RequiredMemberAttribute";
 
-			public const string RequiredMemberAttributeFullName = "System.Runtime.CompilerServices.RequiredMemberAttribute";
-			
+			private const string KeyAttributeFullName = "System.ComponentModel.DataAnnotations.KeyAttribute";
+
 			/// <summary>Table of known symbols from this compilation</summary>
 			private KnownTypeSymbols KnownSymbols { get; }
+
+			public List<DiagnosticInfo> Diagnostics { get; } = [ ];
 			
+			private Location? ContextClassLocation { get; set; }
+
 			public Parser(KnownTypeSymbols knownSymbols)
 			{
 				this.KnownSymbols = knownSymbols;
+			}
+
+			public void ReportDiagnostic(DiagnosticDescriptor descriptor, Location? location, params object?[]? messageArgs)
+			{
+				Debug.Assert(this.ContextClassLocation != null);
+
+				if (location is null || !ContainsLocation(this.KnownSymbols.Compilation, location))
+				{
+					// If location is null or is a location outside the current compilation, fall back to the location of the context class.
+					location = this.ContextClassLocation;
+				}
+
+				this.Diagnostics.Add(DiagnosticInfo.Create(descriptor, location, messageArgs));
+
+				static bool ContainsLocation(Compilation compilation, Location location)
+					=> location.SourceTree != null && compilation.ContainsSyntaxTree(location.SourceTree);
+
 			}
 
 			public CrystalJsonContainerMetadata? ParseContainerMetadata(ClassDeclarationSyntax contextClassDeclaration, SemanticModel semanticModel, ImmutableArray<AttributeData> attributes, CancellationToken cancellationToken)
@@ -63,8 +85,28 @@ namespace SnowBank.Serialization.Json.CodeGen
 				
 				var symbol = semanticModel.GetDeclaredSymbol(contextClassDeclaration, cancellationToken);
 				if (symbol == null) return null;
+
+				this.ContextClassLocation = contextClassDeclaration.GetLocation();
 				
 				Kenobi($"ParseContainerMetadata({symbol.Name}, [{attributes.Length}])");
+
+				var langVersion = (this.KnownSymbols.Compilation as CSharpCompilation)?.LanguageVersion;
+				if (langVersion is null or < LanguageVersion.CSharp9)
+				{
+					// Unsupported lang version should be the first (and only) diagnostic emitted by the generator.
+					ReportDiagnostic(
+						new(
+							"CJSON0003",
+							"You must include at least one type in {0} by adding one ore more [CrystalJsonSerializable] attributes",
+							"The project target C# language version {0} which is lower than the minimum supported version {1}.",
+							"SnowBank.Serialization.Json.CodeGen",
+							DiagnosticSeverity.Error,
+							isEnabledByDefault: true
+						),
+						this.ContextClassLocation,
+						langVersion?.ToDisplayString(), LanguageVersion.CSharp9.ToDisplayString());
+					return null;
+				}
 
 				var converterAttribute = attributes[0];
 				//TODO: extract some settings from this?
@@ -102,11 +144,42 @@ namespace SnowBank.Serialization.Json.CodeGen
 					catch (Exception ex)
 					{
 						Kenobi($"CRASH for {type}: {ex.ToString()}");
+						ReportDiagnostic(
+							new DiagnosticDescriptor(
+								"CJSON0001",
+								"Failed to parse JSON metadata",
+								"Failed to extract the JSON serialization metadata for type {0}: {1}",
+								"SnowBank.Serialization.Json.CodeGen",
+								DiagnosticSeverity.Error,
+								isEnabledByDefault: true
+							),
+							this.ContextClassLocation,
+							type.ToDisplayString(),
+							ex.ToString()
+						);
 					}
 				}
 
+				if (includedTypes.Count == 0)
+				{
+					ReportDiagnostic(
+						new(
+							"CJSON0002",
+							"At least one type must be included",
+							"The container type {0} must specify at only one application type to include, using the [CrystalJsonSerializable] attribute",
+							"SnowBank.Serialization.Json.CodeGen",
+							DiagnosticSeverity.Warning,
+							isEnabledByDefault: true
+						),
+						this.ContextClassLocation,
+						symbol.ToDisplayString()
+					);
+				}
+
 				var containerName = symbol.Name;
-				
+
+				this.ContextClassLocation = null;
+
 				return new()
 				{
 					Name = containerName,
@@ -235,7 +308,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 							//TODO: check if a default value was provided!
 							break;
 						}
-						case "System.ComponentModel.DataAnnotations.KeyAttribute":
+						case KeyAttributeFullName:
 						{
 							isKey = true;
 							break;

@@ -87,7 +87,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 				{
 					var parser = new Parser(tuple.Right);
 					var contextGenerationSpec = parser.ParseContainerMetadata(tuple.Left.ContextClass, tuple.Left.SemanticModel, tuple.Left.Attributes, ct);
-					var diagnostics = ImmutableEquatableArray<DiagnosticInfo>.Empty; //TODO!
+					var diagnostics = parser.Diagnostics.ToImmutableEquatableArray();
 					return (Metadata: contextGenerationSpec, Diagnostics: diagnostics);
 				})
 				.WithTrackingName("CrystalJsonSpec")
