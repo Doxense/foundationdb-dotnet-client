@@ -1,6 +1,6 @@
 ﻿#define FULL_DEBUG
 
-namespace Doxense.Serialization.Json.CodeGen
+namespace SnowBank.Serialization.Json.CodeGen
 {
 	using System.Collections.Generic;
 	using System.Text;
@@ -17,30 +17,46 @@ namespace Doxense.Serialization.Json.CodeGen
 		private static readonly Dictionary<SpecialType, TypeRef> s_cachedTypes = new();
 		private static readonly ReaderWriterLockSlim s_lock = new();
 
-		public static TypeRef Create(ITypeSymbol type)
+		public static bool IsPrimitiveType(ITypeSymbol type)
 		{
 			switch (type.SpecialType)
 			{
-				case >= SpecialType.System_Boolean and<= SpecialType.System_String:
+				case >= SpecialType.System_Boolean and <= SpecialType.System_String:
 				case SpecialType.System_DateTime:
-				//TODO: more!
-				{
-					s_lock.EnterUpgradeableReadLock();
-					if (!s_cachedTypes.TryGetValue(type.SpecialType, out var cached))
-					{
-						cached = new(type);
-						s_lock.EnterWriteLock();
-						s_cachedTypes[type.SpecialType] = cached;
-						s_lock.ExitWriteLock();
-					}
-					s_lock.ExitUpgradeableReadLock();
-					return cached;
-				}
+					return true;
+			}
 
-				default:
+			switch(type.ContainingNamespace?.ToDisplayString())
+			{
+				case "System":
 				{
-					return new TypeRef(type);
+					if (type.Name is "DateTimeOffset" or "Guid" or "Half" or "Int128" or "UInt128")
+					{
+						return true;
+					}
+					break;
 				}
+			}
+
+			return false;
+		}
+
+		public static TypeRef Create(ITypeSymbol type)
+		{
+			return IsPrimitiveType(type) ? CachedPrimitiveType(type) : new(type);
+
+			static TypeRef CachedPrimitiveType(ITypeSymbol type)
+			{
+				s_lock.EnterUpgradeableReadLock();
+				if (!s_cachedTypes.TryGetValue(type.SpecialType, out var cached))
+				{
+					cached = new(type);
+					s_lock.EnterWriteLock();
+					s_cachedTypes[type.SpecialType] = cached;
+					s_lock.ExitWriteLock();
+				}
+				s_lock.ExitUpgradeableReadLock();
+				return cached;
 			}
 		}
 
@@ -49,15 +65,23 @@ namespace Doxense.Serialization.Json.CodeGen
 			if (type is null) throw new ArgumentNullException(nameof(type));
 
 			this.Name = type.Name;
+			this.NameSpace = type.ContainingNamespace?.ToDisplayString() ?? "";
+			this.FullName = type.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat);
 			this.FullyQualifiedName = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+			this.Assembly = type.ContainingAssembly?.Name ?? "";
 		}
 
 		public string Name { get; }
 
-		/// <summary>
-		/// Fully qualified assembly name, prefixed with "global::", e.g. global::System.Numerics.BigInteger.
-		/// </summary>
+		public string NameSpace { get; }
+
+		/// <summary>Fully qualified assembly name, prefixed with "global::", e.g. <c>global::System.Numerics.BigInteger.</c></summary>
 		public string FullyQualifiedName { get; }
+
+		/// <summary>Full name of the type (with namespace and name)</summary>
+		public string FullName { get; }
+
+		public string Assembly { get; }
 
 		public override bool Equals(object? obj) => this.Equals(obj as TypeRef);
 	
@@ -67,54 +91,72 @@ namespace Doxense.Serialization.Json.CodeGen
 
 		public override string ToString() => $"typeof({this.FullyQualifiedName})";
 
+		public bool IsIEnumerableOf() => this.Name == "IEnumerable" && this.NameSpace == "System.Collections.Generic";
+
+		public bool IsIDictionaryOf() => this.Name == "IDictionary" && this.NameSpace == "System.Collections.Generic";
+
 	}
 
-	/// <summary>
-	/// An equatable value representing type identity.
-	/// </summary>
+	public enum JsonPrimitiveType
+	{
+		None,
+		Value,
+		Object,
+		Array,
+		String,
+		Number,
+		Boolean,
+		DateTime
+	}
+
+	/// <summary>Extracted metadata about a type symbol, that can be used to detect changes.</summary>
 	[DebuggerDisplay("Name = {Name}")]
 	public sealed record TypeMetadata
 	{
 
-		private static readonly Dictionary<SpecialType, TypeMetadata> s_cachedTypes = new();
-		private static readonly ReaderWriterLockSlim s_lock = new();
+		private static readonly Dictionary<(SpecialType Type, NullableAnnotation Annotation), TypeMetadata> s_cachedTypes = new();
+		private static readonly ReaderWriterLockSlim s_lock = new(LockRecursionPolicy.SupportsRecursion);
 
 		public static TypeMetadata Create(ITypeSymbol type)
 		{
-			switch (type.SpecialType)
-			{
-				case >= SpecialType.System_Boolean and<= SpecialType.System_String:
-				case SpecialType.System_DateTime:
-				//TODO: more!
-				{
-					s_lock.EnterUpgradeableReadLock();
-					if (!s_cachedTypes.TryGetValue(type.SpecialType, out var cached))
-					{
-						cached = new(type);
-						s_lock.EnterWriteLock();
-						s_cachedTypes[type.SpecialType] = cached;
-						s_lock.ExitWriteLock();
-					}
-					s_lock.ExitUpgradeableReadLock();
-					return cached;
-				}
+			//return new(type, primitive: false);
+			return TypeRef.IsPrimitiveType(type) ? CachedPrimitiveType(type) : new(type, primitive: false);
 
-				default:
+			static TypeMetadata CachedPrimitiveType(ITypeSymbol type)
+			{
+				s_lock.EnterUpgradeableReadLock();
+				if (!s_cachedTypes.TryGetValue((type.SpecialType, type.NullableAnnotation), out var cached))
 				{
-					return new TypeMetadata(type);
+					cached = new(type, true);
+					s_lock.EnterWriteLock();
+					s_cachedTypes[(type.SpecialType, type.NullableAnnotation)] = cached;
+					s_lock.ExitWriteLock();
 				}
+				s_lock.ExitUpgradeableReadLock();
+				return cached;
 			}
 		}
 
-		public TypeMetadata(ITypeSymbol type)
+		private static bool IsTopLevelType(INamedTypeSymbol type)
+		{
+			if (type.Name is "Object" or "ValueType" or "Array")
+			{
+				return type.ContainingNamespace?.ToDisplayString() is "System";
+			}
+
+			return false;
+		}
+
+		internal TypeMetadata(ITypeSymbol type, bool primitive)
 		{
 			if (type is null) throw new ArgumentNullException(nameof(type));
 
 			this.Ref = TypeRef.Create(type);
 			this.Name = type.Name;
-			this.NameSpace = type.ContainingNamespace?.ToDisplayString() ?? "";
 			this.IsSealed = type.IsSealed;
 			this.TypeKind = type.TypeKind;
+			this.FullyQualifiedNameAnnotated = this.TypeKind == TypeKind.Struct ? this.FullyQualifiedName : (this.FullyQualifiedName + "?");
+			this.IsPrimitive = primitive;
 			this.SpecialType = type.OriginalDefinition?.SpecialType ?? default;
 			this.Nullability = type.NullableAnnotation;
 			this.IsRecord = type.IsRecord;
@@ -124,13 +166,13 @@ namespace Doxense.Serialization.Json.CodeGen
 				if (underlyingType is not null)
 				{
 					this.Name = "Nullable<" + underlyingType.Name + ">";
-					this.UnderlyingType = Create(underlyingType);
+					this.NullableOfType = Create(underlyingType);
 				}
 			}
 
 			// we want to generate the hierarchy of derived classes
 			var parent = type.BaseType;
-			if (parent is not null)
+			if (parent is not null && !IsTopLevelType(parent))
 			{
 				var parents = new List<TypeRef>();
 				do
@@ -138,7 +180,7 @@ namespace Doxense.Serialization.Json.CodeGen
 					parents.Add(TypeRef.Create(parent));
 					parent = parent.BaseType;
 				}
-				while (parent is not null);
+				while (parent is not null && !IsTopLevelType(parent));
 				this.Parents = parents.ToImmutableEquatableArray();
 			}
 			else
@@ -149,12 +191,127 @@ namespace Doxense.Serialization.Json.CodeGen
 			var ifaces = type.Interfaces;
 			if (ifaces.Length > 0)
 			{
+				// capture this for debugging purpose!
 				this.Interfaces = ifaces.Select(TypeRef.Create).ToImmutableEquatableArray();
+				foreach (var iface in ifaces)
+				{
+					if (iface.ContainingNamespace?.ToDisplayString() == KnownTypeSymbols.CrystalJsonNamespace)
+					{
+						switch (iface.Name)
+						{
+							case "IJsonPackable":
+							{
+								this.IsJsonPackable = true;
+								break;
+							}
+							case "IJsonSerializable":
+							{
+								this.IsJsonSerializable = true;
+								break;
+							}
+							case "IJsonDeserializable":
+							{
+								this.IsJsonDeserializable = true;
+								break;
+							}
+						}
+					}
+				}
 			}
 			else
 			{
 				this.Interfaces = ImmutableEquatableArray<TypeRef>.Empty;
 			}
+
+			if (type is IArrayTypeSymbol array)
+			{
+				this.ElementType = Create(array.ElementType);
+				this.Name = this.ElementType.Name + "[]";
+				//TODO: capture the nullability of the element type?
+			}
+			else if (type is INamedTypeSymbol named)
+			{
+				if (this.NameSpace is KnownTypeSymbols.CrystalJsonNamespace)
+				{ // is it JsonValue (or derived) ?
+					switch (this.Name)
+					{
+						case "JsonValue":
+						{
+							this.JsonType = JsonPrimitiveType.Value;
+							break;
+						}
+						case "JsonObject":
+						{
+							this.JsonType = JsonPrimitiveType.Object;
+							break;
+						}
+						case "JsonArray":
+						{
+							this.JsonType = JsonPrimitiveType.Array;
+							break;
+						}
+						case "JsonString":
+						{
+							this.JsonType = JsonPrimitiveType.String;
+							break;
+						}
+						case "JsonBoolean":
+						{
+							this.JsonType = JsonPrimitiveType.Boolean;
+							break;
+						}
+						case "JsonNumber":
+						{
+							this.JsonType = JsonPrimitiveType.Number;
+							break;
+						}
+						case "JsonDateTime":
+						{
+							this.JsonType = JsonPrimitiveType.DateTime;
+							break;
+						}
+					}
+				}
+
+				if (named.IsGenericType)
+				{
+					var typeArgs = new List<TypeRef>(named.Arity);
+					foreach (var arg in named.TypeArguments)
+					{
+						//note: we cannot create TypeMetadata because there is a possibility of infinite recursion
+						// when using CRTPs like `class Foo<TFoo> where TFoo: Foo<TFoo>`
+						typeArgs.Add(TypeRef.Create(arg));
+					}
+					this.TypeArguments = typeArgs.ToImmutableEquatableArray();
+				}
+
+				if (this.Ref.IsIEnumerableOf())
+				{ // this is IEnumerable<T> explicitly
+					this.ElementType = Create(named.TypeArguments[0]);
+				}
+				else if (this.Ref.IsIDictionaryOf())
+				{ // this is IDictionary<TKey, TValue> explicitly
+					this.KeyType = Create(named.TypeArguments[0]);
+					this.ValueType = Create(named.TypeArguments[1]);
+				}
+				else if (this.Interfaces.Count > 0)
+				{
+					for (int i = 0; i < this.Interfaces.Count; i++)
+					{
+						if (this.Interfaces[i].IsIEnumerableOf())
+						{
+							this.ElementType = Create(ifaces[i].TypeArguments[0]);
+						}
+						else if (this.Interfaces[i].IsIDictionaryOf())
+						{
+							this.KeyType = Create(ifaces[i].TypeArguments[0]);
+							this.ValueType = Create(ifaces[i].TypeArguments[1]);
+						}
+					}
+				}
+			}
+
+			this.TypeArguments ??= ImmutableEquatableArray<TypeRef>.Empty;
 		}
 
 		public ImmutableEquatableArray<TypeRef> Parents { get; set; }
@@ -163,10 +320,17 @@ namespace Doxense.Serialization.Json.CodeGen
 
 		public string Name { get; }
 
+		public string NameSpace => this.Ref.NameSpace;
+
+		public string Assembly => this.Ref.Assembly;
+		public string FullName => this.Ref.FullName;
+
 		/// <summary>Fully qualified assembly name, prefixed with "global::", e.g. global::System.Numerics.BigInteger.</summary>
 		public string FullyQualifiedName => this.Ref.FullyQualifiedName;
 
-		public string NameSpace { get; }
+		/// <summary>Fully qualified assembly name, including optional nullability annotations</summary>
+		/// <remarks>Returns the <see cref="FullyQualifiedName"/> with an extra <c>?</c> marker if this is a reference type.</remarks>
+		public string FullyQualifiedNameAnnotated { get; }
 
 		public bool IsSealed { get; }
 
@@ -177,47 +341,107 @@ namespace Doxense.Serialization.Json.CodeGen
 		/// <summary>Enumeration that identifies 'special' types</summary>
 		public SpecialType SpecialType { get; }
 
+		/// <summary>If this is a "primitive" type that is defined by mscorlib (like <c>string</c>, <c>bool</c>, <c>int</c>, <c>DateTime</c>, <c>Guid</c>, ...)</summary>
+		public bool IsPrimitive { get; }
+
+		/// <summary>Type of element if this type either JsonValue or one of its derived type; otherwise, <see cref="JsonPrimitiveType.None"/></summary>
+		public JsonPrimitiveType JsonType { get; }
+
 		/// <summary>If this is a <see cref="Nullable{T}"/> (ex: <c>int?</c>) references the underlying concrete type (ex: <c>int</c>); otherwise, <c>null</c></summary>
-		public TypeMetadata? UnderlyingType { get; }
+		public TypeMetadata? NullableOfType { get; }
+
+		/// <summary>If this is a generic type, the list of type arguments</summary>
+		public ImmutableEquatableArray<TypeRef> TypeArguments { get; }
+
+		/// <summary>If this is an array or collection (ex: <c>int[]</c>, <c>List&lt;int&gt;</c>), references the type of the elements of the array or collection (ex: <c>int</c>)</summary>
+		public TypeMetadata? ElementType { get; }
+
+		/// <summary>If this is a dictionary or set type (ex: <c>Dictionary&lt;int, string&gt;</c>), references the type of the keys of the dictionary or set (ex: <c>int</c>)</summary>
+		public TypeMetadata? KeyType { get; }
+
+		/// <summary>If this is a dictionary type (ex: <c>Dictionary&lt;int, string&gt;</c>), references the type of the values of the dictionary (ex: <c>string</c>).</summary>
+		public TypeMetadata? ValueType { get; }
 
 		public NullableAnnotation Nullability { get; }
 
-		public ImmutableEquatableArray<TypeRef> Interfaces { get; }
+		public ImmutableEquatableArray<TypeRef> Interfaces { get; } //HACKHACK: temporary, while we are debugging this thing!
 
-		public override string ToString() => $"{{ Name = {this.Name}, Kind = {TypeKind}, Special = {SpecialType}{(IsSealed?", Sealed" : "")}{(IsRecord?", Record" : "")}, FullName = {this.FullyQualifiedName}}}";
+		/// <summary>If this implements <c>IJsonPackable</c></summary>
+		public bool IsJsonPackable { get; }
+
+		/// <summary>If this implements <c>IJsonSerializable</c></summary>
+		public bool IsJsonSerializable { get; }
+
+		/// <summary>If this implements <c>IJsonDeserializable&lt;T&gt;</c></summary>
+		public bool IsJsonDeserializable { get; }
+
+		public override string ToString() => $"{{ Name = {this.Name}, Kind = {TypeKind}, Special = {SpecialType}{(IsSealed?", Sealed" : "")}{(IsRecord?", Record" : "")}, FullName = {this.Ref.FullName}}}";
 
 		public void Explain(StringBuilder sb, string? indent = null)
 		{
 			sb.Append(indent).Append("Name = ").AppendLine(this.Name);
-			sb.Append(indent).Append("NameSpace = ").AppendLine(this.NameSpace);
-			sb.Append(indent).Append("FullyQualifiedName = ").AppendLine(this.FullyQualifiedName);
-			if (this.UnderlyingType != null)
+			sb.Append(indent).Append("NameSpace = ").AppendLine(this.Ref.NameSpace);
+			sb.Append(indent).Append("Assembly = ").AppendLine(this.Ref.Assembly);
+			sb.Append(indent).Append("FullName = ").AppendLine(this.Ref.FullName);
+			sb.Append(indent).Append("FullyQualifiedName = ").AppendLine(this.Ref.FullyQualifiedName);
+			if (this.NullableOfType != null)
 			{
 				sb.Append(indent).AppendLine("Underlying Type:");
-				this.UnderlyingType.Explain(sb, indent is null ? "- " : ("  " + indent));
+				this.NullableOfType.Explain(sb, indent is null ? "- " : ("  " + indent));
 				return;
 			}
 			sb.Append(indent).Append("TypeKind = ").AppendLine(this.TypeKind.ToString());
 			if (this.SpecialType != SpecialType.None) sb.Append(indent).Append("SpecialType = ").AppendLine(this.SpecialType.ToString());
 			if (this.Nullability != NullableAnnotation.None) sb.Append(indent).Append("Nullability = ").AppendLine(this.Nullability.ToString());
+			if (this.IsPrimitive)
+			{
+				sb.Append(indent).AppendLine("IsPrimitive = true");
+				// don't need to say more for basic types!
+				return;
+			}
+
 			if (this.IsSealed) sb.Append(indent).AppendLine("IsSealed = true");
 			if (this.IsRecord) sb.Append(indent).AppendLine("IsRecord = true");
+			if (this.TypeArguments.Count > 0)
+			{
+				sb.Append(indent).AppendLine("TypeArguments:");
+				var subIndent = indent is null ? "- " : ("  " + indent);
+				foreach (var typeArg in this.TypeArguments)
+				{
+					sb.Append(subIndent).AppendLine(typeArg.FullName);
+				}
+			}
+			if (this.ElementType is not null)
+			{
+				sb.Append(indent).AppendLine("ElementType:");
+				this.ElementType.Explain(sb, indent is null ? "- " : ("  " + indent));
+			}
+			if (this.KeyType is not null)
+			{
+				sb.Append(indent).AppendLine("KeyType:");
+				this.KeyType.Explain(sb, indent is null ? "- " : ("  " + indent));
+			}
+			if (this.ValueType is not null)
+			{
+				sb.Append(indent).AppendLine("ValueType:");
+				this.ValueType.Explain(sb, indent is null ? "- " : ("  " + indent));
+			}
 			if (this.Parents.Count > 0)
 			{
 				sb.Append(indent).AppendLine("Parents:");
-				indent = indent is null ? "- " : ("  " + indent);
+				var subIndent = indent is null ? "- " : ("  " + indent);
 				foreach (var @class in this.Parents)
 				{
-					sb.Append(indent).AppendLine(@class.FullyQualifiedName);
+					sb.Append(subIndent).AppendLine(@class.FullyQualifiedName);
 				}
 			}
 			if (this.Interfaces.Count > 0)
 			{
 				sb.Append(indent).AppendLine("Interfaces:");
-				indent = indent is null ? "- " : ("  " + indent);
+				var subIndent = indent is null ? "- " : ("  " + indent);
 				foreach (var iface in this.Interfaces)
 				{
-					sb.Append(indent).AppendLine(iface.FullyQualifiedName);
+					sb.Append(subIndent).AppendLine(iface.FullyQualifiedName);
 				}
 			}
 		}
@@ -225,10 +449,6 @@ namespace Doxense.Serialization.Json.CodeGen
 		public bool CanBeNull() => this.TypeKind is not TypeKind.Struct || this.SpecialType is SpecialType.System_Nullable_T;
 
 		public bool IsValueType() => this.TypeKind is TypeKind.Struct;
-
-		/// <summary>Returns the type name annotated as nullable, if this is allowed by the type</summary>
-		/// <remarks>This should be used when referencing this type as a method argument that allows null</remarks>
-		public string GetAnnotatedTypeName() => IsValueType() ? this.FullyQualifiedName : (this.FullyQualifiedName + "?");
 
 		public bool IsNullableOfT()
 		{
@@ -239,7 +459,7 @@ namespace Doxense.Serialization.Json.CodeGen
 		{
 			if (this.SpecialType is SpecialType.System_Nullable_T)
 			{
-				underlyingType = this.UnderlyingType!;
+				underlyingType = this.NullableOfType!;
 				return true;
 			}
 
@@ -247,13 +467,25 @@ namespace Doxense.Serialization.Json.CodeGen
 			return false;
 		}
 
+		/// <summary>Tests if this is a generic type</summary>
+		public bool IsGeneric() => this.TypeArguments.Count > 0;
+
+		public bool IsString() => this.SpecialType is SpecialType.System_String;
+
+		/// <summary>Tests if this is an array (ex: <c>int[]</c>, <c>string?[]</c>)</summary>
+		/// <remarks>If <c>true</c>, <see cref="ElementType"/> holds the type of the elements of this array</remarks>
 		public bool IsArray() => this.TypeKind is TypeKind.Array;
 
+		/// <summary>Tests if this type is <see cref="List{T}"/> (ex: <c>List&lt;int&gt;</c>, <c>List&lt;string?&gt;</c>)</summary>
+		/// <remarks>If <c>true</c>, <see cref="ElementType"/> holds the type of the elements of this list</remarks>
+		public bool IsList() => this.Name is "List" && this.NameSpace is "System.Collections.Generic";
+
+		/// <summary>Tests if instances of this type will be packed into a <c>JsonString</c> value</summary>
 		public bool IsStringLike(bool allowNullables = true)
 		{
-			if (allowNullables && this.UnderlyingType is not null)
+			if (allowNullables && this.NullableOfType is not null)
 			{
-				return this.UnderlyingType.IsStringLike();
+				return this.NullableOfType.IsStringLike();
 			}
 
 			switch (this.SpecialType)
@@ -272,21 +504,23 @@ namespace Doxense.Serialization.Json.CodeGen
 			return false;
 		}
 
+		/// <summary>Tests if instances of this type will be packed into a <c>JsonBoolean</c> value</summary>
 		public bool IsBooleanLike(bool allowNullables = true)
 		{
-			if (allowNullables && this.UnderlyingType is not null)
+			if (allowNullables && this.NullableOfType is not null)
 			{
-				return this.UnderlyingType.IsBooleanLike();
+				return this.NullableOfType.IsBooleanLike();
 			}
 
 			return this.SpecialType == SpecialType.System_Boolean;
 		}
 
+		/// <summary>Tests if instances of this type will be packed into a <c>JsonNumber</c> value</summary>
 		public bool IsNumberLike(bool allowNullables = true)
 		{
-			if (allowNullables && this.UnderlyingType is not null)
+			if (allowNullables && this.NullableOfType is not null)
 			{
-				return this.UnderlyingType.IsNumberLike();
+				return this.NullableOfType.IsNumberLike();
 			}
 
 			switch (this.SpecialType)
@@ -313,11 +547,12 @@ namespace Doxense.Serialization.Json.CodeGen
 			return false;
 		}
 
+		/// <summary>Tests if instances of this type will be packed into a <c>JsonDateTime</c> value</summary>
 		public bool IsDateLike(bool allowNullables = true)
 		{
-			if (allowNullables && this.UnderlyingType is not null)
+			if (allowNullables && this.NullableOfType is not null)
 			{
-				return this.UnderlyingType.IsDateLike();
+				return this.NullableOfType.IsDateLike();
 			}
 
 			if (this.SpecialType == SpecialType.System_DateTime)
@@ -338,27 +573,33 @@ namespace Doxense.Serialization.Json.CodeGen
 			return false;
 		}
 
-		public bool DerivesFrom(string baseClassFullName)
-		{
-			return false;
-		}
-
-		public bool Implements(string interfaceFullName)
-		{
-			return false;
-		}
-
+		/// <summary>Tests if this type is an array or an enumerable</summary>
+		/// <param name="elemType">Receives the element type</param>
 		public bool IsEnumerable(out TypeMetadata elemType)
 		{
-			elemType = null!;
-			return false;
+			if (this.ElementType is null)
+			{
+				elemType = null!;
+				return false;
+			}
+			elemType = this.ElementType;
+			return true;
 		}
 
+		/// <summary>Tests if this type is a dictionary</summary>
+		/// <param name="keyType">Receives the type of the keys</param>
+		/// <param name="valueType">Receives the type of the values</param>
 		public bool IsDictionary(out TypeMetadata keyType, out TypeMetadata valueType)
 		{
-			keyType = null!;
-			valueType = null!;
-			return false;
+			if (this.ValueType is null)
+			{
+				keyType = null!;
+				valueType = null!;
+				return false;
+			}
+			keyType = this.KeyType!;
+			valueType = this.ValueType;
+			return true;
 		}
 
 	}

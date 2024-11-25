@@ -1,5 +1,5 @@
 ﻿
-namespace Doxense.Serialization.Json.CodeGen
+namespace SnowBank.Serialization.Json.CodeGen
 {
 	using Microsoft.CodeAnalysis;
 
@@ -21,7 +21,7 @@ namespace Doxense.Serialization.Json.CodeGen
 			this.MessageArgs = messageArgs;
 			this.Location = location;
 		}
-	    
+
 		public static DiagnosticInfo Create(DiagnosticDescriptor descriptor, Location? location, object?[]? messageArgs)
 		{
 			Location? trimmedLocation = location is null ? null : GetTrimmedLocation(location);

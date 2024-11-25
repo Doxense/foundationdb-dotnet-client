@@ -26,7 +26,7 @@
 
 //#define FULL_DEBUG
 
-namespace Doxense.Serialization.Json.CodeGen
+namespace SnowBank.Serialization.Json.CodeGen
 {
 	using System;
 	using System.Collections.Generic;
@@ -119,10 +119,6 @@ namespace Doxense.Serialization.Json.CodeGen
 			{
 				// we have to extract all the properties that will be required later during the code generation phase
 				
-				// does the type implement IJsonSerializable or IJsonPackable?
-				var x = type.FindImplementationForInterfaceMember(this.KnownSymbols.IJsonSerializable);
-				var y = type.FindImplementationForInterfaceMember(this.KnownSymbols.IJsonPackable);
-
 				var members = new List<CrystalJsonMemberMetadata>();
 
 				foreach (var member in type.GetMembers())
@@ -165,7 +161,20 @@ namespace Doxense.Serialization.Json.CodeGen
 						isField = false;
 						typeSymbol = property.Type;
 						isReadOnly = property.IsReadOnly;
-						isInitOnly = false; //TODO: detect "IsExternalInit" modifier!
+
+						var setMethod = property.SetMethod;
+						isInitOnly = false;
+						if (setMethod is not null)
+						{
+							foreach (var mod in setMethod.ReturnTypeCustomModifiers)
+							{
+								if (mod.Modifier.Name == "IsExternalInit")
+								{
+									isInitOnly = true;
+								}
+							}
+						}
+
 						break;
 					}
 					case IFieldSymbol field:
@@ -178,7 +187,7 @@ namespace Doxense.Serialization.Json.CodeGen
 						isField = true;
 						typeSymbol = field.Type;
 						isReadOnly = field.IsReadOnly;
-						isInitOnly = false; //TODO: detect "IsExternalInit" modifier!
+						isInitOnly = false; // not possible on a field
 						break;
 					}
 					default:
@@ -189,20 +198,26 @@ namespace Doxense.Serialization.Json.CodeGen
 
 				var type = TypeMetadata.Create(typeSymbol);
 
+				var attributes = typeSymbol.GetAttributes().Select(attr => attr.ToString()).ToImmutableEquatableArray();
+
 				bool isNotNull;
 				if (type.IsValueType())
-				{
-					isNotNull = type.UnderlyingType == null;
+				{ 
+					// only Nullable<T> is nullable
+					isNotNull = type.NullableOfType == null;
 				}
 				else
 				{
-					isNotNull = type.Nullability == NullableAnnotation.Annotated;
+					// look for nullability annotations
+					//TODO: should we check if nullability annotations are enabled for ths type/assembly?
+					isNotNull = type.Nullability == NullableAnnotation.NotAnnotated;
 				}
 
 				// parameters that can be modified via attributes or keywords on the member
 				var name = memberName;
 				bool isRequired = false;
 				bool isKey = false;
+				string? defaultValueLiteral = null;
 				
 				foreach (var attribute in member.GetAttributes())
 				{
@@ -217,6 +232,7 @@ namespace Doxense.Serialization.Json.CodeGen
 							{
 								name = (string) attribute.ConstructorArguments[0].Value!;
 							}
+							//TODO: check if a default value was provided!
 							break;
 						}
 						case "System.ComponentModel.DataAnnotations.KeyAttribute":
@@ -229,6 +245,7 @@ namespace Doxense.Serialization.Json.CodeGen
 							isRequired = true;
 							break;
 						}
+						//TODO: any other argument for setting a default value?
 					}
 				}
 				
@@ -237,12 +254,14 @@ namespace Doxense.Serialization.Json.CodeGen
 					Type = type,
 					Name = name,
 					MemberName = memberName,
+					Attributes = attributes,
 					IsField = isField,
 					IsReadOnly = isReadOnly,
 					IsInitOnly = isInitOnly,
 					IsRequired = isRequired,
 					IsNotNull = isNotNull,
 					IsKey = isKey,
+					DefaultValueLiteral = defaultValueLiteral,
 				};
 			}
 

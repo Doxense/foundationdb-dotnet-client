@@ -24,12 +24,12 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Serialization.Json.CodeGen.Tests
+namespace SnowBank.Serialization.Json.CodeGen.Tests
 {
 	using System.Buffers;
 	using System.ComponentModel.DataAnnotations;
-	using System.Net;
-
+	using System.Runtime.CompilerServices;
+	using Doxense.Serialization.Json;
 	using NUnit.Framework;
 	using SnowBank.Testing;
 
@@ -132,7 +132,7 @@ namespace Doxense.Serialization.Json.CodeGen.Tests
 		[JsonProperty("lastSeen")]
 		public DateTimeOffset? LastSeen { get; init; }
 
-		[JsonProperty("lastAddressz")]
+		[JsonProperty("lastAddress")]
 		public System.Net.IPAddress? LastAddress { get; init; }
 
 	}
@@ -151,7 +151,26 @@ namespace Doxense.Serialization.Json.CodeGen.Tests
 	[TestFixture]
 	public class CrystalJsonGeneratorFacts : SimpleTest
 	{
-		
+
+		[Test]
+		public void Test_Get_Converter_From_Type()
+		{
+			// the source generate makes a static generic GetConverterFor<T> method,
+			// that returns the converter singleton for each generated type
+			{
+				var converter = GeneratedConverters.GetConverterFor<Person>();
+				Assert.That(converter, Is.InstanceOf<IJsonConverter<Person>>());
+			}
+			{
+				var converter = GeneratedConverters.GetConverterFor<MyAwesomeUser>();
+				Assert.That(converter, Is.InstanceOf<IJsonConverter<MyAwesomeUser>>());
+			}
+			{
+				var converter = GeneratedConverters.GetConverterFor<MyAwesomeMetadata>();
+				Assert.That(converter, Is.InstanceOf<IJsonConverter<MyAwesomeMetadata>>());
+			}
+		}
+
 		[Test]
 		public void Test_Generates_Code_For_Person()
 		{

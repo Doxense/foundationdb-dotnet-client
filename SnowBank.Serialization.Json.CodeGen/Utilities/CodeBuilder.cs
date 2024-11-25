@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Serialization.Json.CodeGen
+namespace SnowBank.Serialization.Json.CodeGen
 {
 	using System.Collections.Generic;
 	using System.Globalization;

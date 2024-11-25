@@ -28,7 +28,7 @@
 
 //#define FULL_DEBUG
 
-namespace Doxense.Serialization.Json.CodeGen
+namespace SnowBank.Serialization.Json.CodeGen
 {
 	using System;
 	using System.Diagnostics;

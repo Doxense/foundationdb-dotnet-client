@@ -1,5 +1,5 @@
 ﻿
-namespace Doxense.Serialization.Json.CodeGen
+namespace SnowBank.Serialization.Json.CodeGen
 {
 	using Microsoft.CodeAnalysis;
 
@@ -11,6 +11,7 @@ namespace Doxense.Serialization.Json.CodeGen
 
 		public const string CrystalJsonNamespace = "Doxense.Serialization.Json";
 
+		public const string CrystalJsonFullName = CrystalJsonNamespace + ".CrystalJson";
 		public const string CrystalJsonConverterAttributeFullName = CrystalJsonNamespace + ".CrystalJsonConverterAttribute";
 		public const string JsonPropertyAttributeFullName = CrystalJsonNamespace + ".JsonPropertyAttribute";
 
@@ -18,6 +19,7 @@ namespace Doxense.Serialization.Json.CodeGen
 		public const string CrystalJsonSettingsFullName = CrystalJsonNamespace + ".CrystalJsonSettings";
 		public const string CrystalJsonVisitorFullName = CrystalJsonNamespace + ".CrystalJsonVisitor";
 		public const string CrystalJsonWriterFullName = CrystalJsonNamespace + ".CrystalJsonWriter";
+		public const string CrystalJsonMarshallFullName = CrystalJsonNamespace + ".CrystalJsonMarshall";
 		public const string JsonSerializerExtensionsFullName = CrystalJsonNamespace + ".JsonSerializerExtensions";
 
 		public const string ICrystalJsonTypeResolverFullName = CrystalJsonNamespace + ".ICrystalJsonTypeResolver";

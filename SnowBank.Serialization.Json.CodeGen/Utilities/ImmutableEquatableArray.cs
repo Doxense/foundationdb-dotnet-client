@@ -1,5 +1,5 @@
 ﻿
-namespace Doxense.Serialization.Json.CodeGen
+namespace SnowBank.Serialization.Json.CodeGen
 {
 	using System.Collections;
 	using System.Collections.Generic;
@@ -36,7 +36,7 @@ namespace Doxense.Serialization.Json.CodeGen
 		public override int GetHashCode()
 		{
 			int hash = 0;
-			foreach (T value in this.Values)
+			foreach (var value in this.Values)
 			{
 				hash = CombineHash(hash, value?.GetHashCode() ?? 0);
 			}
@@ -50,6 +50,20 @@ namespace Doxense.Serialization.Json.CodeGen
 			// Related GitHub pull request: https://github.com/dotnet/coreclr/pull/1830
 			uint rol5 = ((uint) h1 << 5) | ((uint) h1 >> 27);
 			return ((int) rol5 + h1) ^ h2;
+		}
+
+		public bool Contains(T element) => Contains(element, EqualityComparer<T>.Default);
+
+		public bool Contains(T element, IEqualityComparer<T> comparer)
+		{
+			foreach (var value in this.Values)
+			{
+				if (comparer.Equals(value, element))
+				{
+					return true;
+				}
+			}
+			return false;
 		}
 
 		public Enumerator GetEnumerator() => new(this.Values);

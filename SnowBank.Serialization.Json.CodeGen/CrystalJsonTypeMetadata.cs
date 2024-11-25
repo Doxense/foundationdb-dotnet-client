@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Serialization.Json.CodeGen
+namespace SnowBank.Serialization.Json.CodeGen
 {
 	using System.Text;
 
@@ -64,9 +64,12 @@ namespace Doxense.Serialization.Json.CodeGen
 			sb.Append(indent).Append("Type = ").AppendLine(this.Type.Ref.ToString());
 			this.Type.Explain(sb, indent is null ? "- " : ("  " + indent));
 			sb.Append(indent).Append("Members = [").Append(this.Members.Count).AppendLine("]");
+			var subIndent = indent is null ? "- " : ("  " + indent);
+			var subIndent2 = ("  " + subIndent);
 			foreach (var member in this.Members)
 			{
-				member.Explain(sb, indent is null ? "- " : ("  " + indent));
+				sb.Append(subIndent).AppendLine(member.Name);
+				member.Explain(sb, subIndent2);
 			}
 		}
 
@@ -87,6 +90,8 @@ namespace Doxense.Serialization.Json.CodeGen
 		/// <example><c>public string HelloWorld { get; init;}</c> has member name <c>"HelloWorld"</c></example>
 		public required string MemberName { get; init; }
 
+		public required ImmutableEquatableArray<string> Attributes { get; init; } //HACKHACK: TEMP: to be able to diagnose attribute stuff!
+
 		/// <summary><c>true</c> if the member is a field, <c>false</c> if it is a property</summary>
 		public required bool IsField { get; init; } // true = field, false = prop
 
@@ -102,7 +107,11 @@ namespace Doxense.Serialization.Json.CodeGen
 		/// <summary><c>true</c> if the member is annotated with the <c>required</c> keyword</summary>
 		/// <example><c>public required string Id { ... }</c> is required</example>
 		public required bool IsRequired { get; init; } 
-		
+
+		/// <summary>If not-null, this is the expression that represents the default value for this member, when it is missing</summary>
+		/// <remarks>This should be a valid C# constant expression, like <c>123</c>, <c>"hello"</c>, <c>true</c>, ...</remarks>
+		public required string? DefaultValueLiteral { get; init; }
+
 		/// <summary>The member has the <see cref="T:System.ComponentModel.DataAnnotations.KeyAttribute"/> attribute</summary>
 		/// <remarks>Examples: <code>
 		/// int Id { get; ... } // IsKey == false
@@ -128,19 +137,27 @@ namespace Doxense.Serialization.Json.CodeGen
 		/// string Foo { get; ... }  // IsNullableRefType == false
 		/// string? Foo { get; ... } // IsNullableRefType == true
 		/// </code></remarks>
-		public bool IsNullableRefType() => !this.IsNotNull && this.Type.UnderlyingType is null;
+		public bool IsNullableRefType() => !this.IsNotNull && this.Type.NullableOfType is null;
 
 		public void Explain(StringBuilder sb, string? indent = null)
 		{
 			sb.Append(indent).Append("Name = ").AppendLine(this.Name);
 			sb.Append(indent).Append("MemberName = ").AppendLine(this.MemberName);
-			sb.Append(indent).AppendLine("Type:");
-			this.Type.Explain(sb, indent is null ? "- " : ("  " + indent));
 			if (this.IsField) sb.Append(indent).AppendLine("IsField = true");
+			if (this.IsNotNull) sb.Append(indent).AppendLine("IsNotNull = true");
 			if (this.IsReadOnly) sb.Append(indent).AppendLine("IsReadOnly = true");
 			if (this.IsInitOnly) sb.Append(indent).AppendLine("IsInitOnly = true");
 			if (this.IsRequired) sb.Append(indent).AppendLine("IsRequired = true");
 			if (this.IsKey) sb.Append(indent).AppendLine("IsKey = true");
+			if (this.DefaultValueLiteral is not null) sb.Append(indent).Append("DefaultValue = ").AppendLine(this.DefaultValueLiteral);
+			var subIndent = indent is null ? "- " : ("  " + indent);
+			sb.Append(indent).AppendLine("Attributes:");
+			foreach (var attr in this.Attributes)
+			{
+				sb.Append(subIndent).AppendLine(attr);
+			}
+			sb.Append(indent).AppendLine("Type:");
+			this.Type.Explain(sb, subIndent);
 		}
 
 	}

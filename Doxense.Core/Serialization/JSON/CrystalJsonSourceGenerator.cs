@@ -700,7 +700,7 @@ namespace Doxense.Serialization.Json
 
 									if (converter == null)
 									{
-										//note: for Nullable<T>, memberType has already been unwraped to T, so we have to use member.Type to handle the null case!
+										//note: for Nullable<T>, memberType has already been unwrapped to T, so we have to use member.Type to handle the null case!
 										converter = $"{nameof(JsonValue)}.{nameof(JsonValue.FromValue)}<{sb.TypeName(member.Type)}>($VALUE$)";
 										handlesNullable = true;
 									}

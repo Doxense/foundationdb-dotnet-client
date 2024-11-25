@@ -6,7 +6,7 @@
 //
 #endregion
 
-namespace Doxense.Serialization.Json.CodeGen
+namespace SnowBank.Serialization.Json.CodeGen
 {
 
 	public static class TypeHelper
