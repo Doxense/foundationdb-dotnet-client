@@ -14,19 +14,30 @@ jobs:
       NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
 
     steps:
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+    # checkout code from repository
+    - name: Checkout repository
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+    # install the latest .NET SDK on the local worker
     - name: Install .NET SDK
       uses: actions/setup-dotnet@3e891b0cb619bf60e2c25674b222b8940e2c1c25 # v4.1.0
       with:
         dotnet-version: 9.0.x
         cache: true
         cache-dependency-path: '**/packages.lock.json'
+
+    # build the solution (Release)
     - name: Build (Release)
       run: dotnet build -c Release
+
+    # Pack the libraries and tools
     - name: NuGet Pack
       env:
         DISABLE_NATIVE_PACKAGE: true
       run: dotnet pack -c Release --output Redist
+
+    # Capture the build packages
     - name: Upload artifacts
       uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
       with:
@@ -35,3 +46,11 @@ jobs:
           Redist/*.nupkg
           Redist/*.snupkg
         if-no-files-found: error
+
+    # In case of error, we want to capture any generated file for troubleshooting
+    - name: Capture generated source files
+      if: failure()  
+      uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+      with:
+        name: Generarated Source Files
+        path: '**/*.g.cs' 
