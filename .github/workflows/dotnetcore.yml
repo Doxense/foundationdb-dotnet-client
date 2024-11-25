@@ -20,6 +20,7 @@ jobs:
       with:
         dotnet-version: 9.0.x
         cache: true
+        cache-dependency-path: '**/packages.lock.json'
     - name: Build (Release)
       run: dotnet build -c Release
     - name: NuGet Pack
