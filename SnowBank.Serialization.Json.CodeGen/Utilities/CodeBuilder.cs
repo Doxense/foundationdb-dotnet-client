@@ -75,7 +75,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 			// we need to parse the text and insert the proper indentation
 			//TODO: optimized version later (the roslyn implementation uses readonly spans to split each line
 			
-			if (text.Contains("\r\n"))
+			if (text.Contains("\n"))
 			{
 				foreach (var line in text.Split(CodeBuilder.LineBreakChars, StringSplitOptions.RemoveEmptyEntries))
 				{
@@ -369,7 +369,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 		
 		public void Comment(string comment)
 		{
-			if (comment.Contains("\r\n"))
+			if (comment.Contains("\n"))
 			{
 				foreach (var line in comment.Split(CodeBuilder.LineBreakChars, StringSplitOptions.RemoveEmptyEntries))
 				{
