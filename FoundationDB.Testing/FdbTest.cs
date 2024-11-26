@@ -550,11 +550,15 @@ namespace FoundationDB.Client.Tests
 
 		protected IServiceProvider ConfigureServices(Action<IServiceCollection>? configure = null)
 		{
-			Assume.That(this.SharedServices, Is.Null, "Common services can only be configured once per test class!");
+			Assume.That(this.LocalServices, Is.Null, "Local services can only be configured once per test method!");
 			var server = this.Server!;
 			Assume.That(server, Is.Not.Null);
 
 			var services = new ServiceCollection();
+			if (this.SharedServices is null)
+			{
+				ConfigureCommonServices();
+			}
 			services.Add(this.SharedServices!);
 
 			configure?.Invoke(services);
@@ -566,7 +570,7 @@ namespace FoundationDB.Client.Tests
 
 		protected IServiceProvider GetServices() => this.LocalServices ?? ConfigureServices();
 
-		protected T GetRequiredService<T>() => GetServices().GetRequiredService<T>();
+		protected T GetRequiredService<T>() where T : notnull => GetServices().GetRequiredService<T>();
 
 		/// <summary>Return the database provider for this test</summary>
 		protected IFdbDatabaseProvider GetDatabaseProvider() => GetRequiredService<IFdbDatabaseProvider>();
