@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -111,7 +111,15 @@ namespace SnowBank.Serialization.Json.CodeGen
 				var converterAttribute = attributes[0];
 				//TODO: extract some settings from this?
 
+				// key: fullyQualifiedName
 				var includedTypes = new List<CrystalJsonTypeMetadata>();
+				var mappedTypes = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
+
+				// the application only needs to specify "root" types, and we will crawl any nested or referenced types,
+				// in order to construct the full graph of custom serializers to generate
+
+				Queue<INamedTypeSymbol> work = [];
+
 				foreach (var typeAttribute in symbol.GetAttributes())
 				{
 					var ac = typeAttribute.AttributeClass;
@@ -132,13 +140,40 @@ namespace SnowBank.Serialization.Json.CodeGen
 						continue;
 					}
 
-					Kenobi($"Include type {type}");
+					if (!mappedTypes.Add(type))
+					{
+						//TODO: report a diagnostic about a duplicated type?
+						continue;
+					}
+					work.Enqueue(type);
+				}
+
+				Kenobi($"Found {work.Count} root types to include");
+
+				while(work.Count > 0)
+				{
+					var type = work.Dequeue();
+
+					Kenobi($"Inspect type {type}");
 					try
 					{
-						var typeDef = ParseTypeMetadata(type, typeAttribute);
+						var typeDef = ParseTypeMetadata(type, mappedTypes, work);
 						if (typeDef != null)
 						{
 							includedTypes.Add(typeDef);
+						}
+
+						// are there any nested types?
+						foreach (var memberType in type.GetTypeMembers())
+						{
+							Kenobi($"Inspected nested type {memberType}");
+							if (memberType.DeclaredAccessibility is Accessibility.Public)
+							{
+								if (mappedTypes.Add(memberType))
+								{
+									work.Enqueue(memberType);
+								}
+							}
 						}
 					}
 					catch (Exception ex)
@@ -176,6 +211,8 @@ namespace SnowBank.Serialization.Json.CodeGen
 					);
 				}
 
+				Kenobi($"Found {includedTypes.Count} total types to generate");
+
 				var containerName = symbol.Name;
 
 				this.ContextClassLocation = null;
@@ -188,7 +225,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 				};
 			}
 
-			public CrystalJsonTypeMetadata? ParseTypeMetadata(INamedTypeSymbol type, AttributeData? attribute)
+			public CrystalJsonTypeMetadata? ParseTypeMetadata(INamedTypeSymbol type, HashSet<INamedTypeSymbol> mappedTypes, Queue<INamedTypeSymbol> work)
 			{
 				// we have to extract all the properties that will be required later during the code generation phase
 				
@@ -198,9 +235,10 @@ namespace SnowBank.Serialization.Json.CodeGen
 				{
 					if (member.Kind is SymbolKind.Property or SymbolKind.Field or SymbolKind.Method)
 					{
-						var memberDef = this.ParseMemberMetadata(type, member);
+						var (memberDef, memberType) = ParseMemberMetadata(member, mappedTypes, work);
 						if (memberDef != null)
 						{
+							Kenobi($"Inspect member {member.Name} with type {memberDef.Type.FullName}, N={memberDef.Type.NullableOfType?.Name}, E={memberDef.Type.ElementType?.Name}, K={memberDef.Type.KeyType?.Name}, V={memberDef.Type.ValueType?.Name}");
 							members.Add(memberDef);
 						}
 					}
@@ -213,7 +251,88 @@ namespace SnowBank.Serialization.Json.CodeGen
 				};
 			}
 
-			public CrystalJsonMemberMetadata? ParseMemberMetadata(INamedTypeSymbol containerType, ISymbol member)
+			private void MaybeAddLinkedType(TypeMetadata metadata, INamedTypeSymbol type, HashSet<INamedTypeSymbol> mappedTypes, Queue<INamedTypeSymbol> work)
+			{
+				if (metadata.IsPrimitive)
+				{
+					return;
+				}
+
+				Kenobi($"Should we include {type} ?");
+
+				if (metadata.NullableOfType is not null)
+				{ // unwrap nullables, we want to inspect the concrete type
+					if (!metadata.NullableOfType.IsPrimitive)
+					{
+						Kenobi($"--> Nullable<{metadata.NullableOfType.FullName}>");
+						MaybeAddLinkedType(metadata.NullableOfType, (INamedTypeSymbol) type.TypeArguments[0], mappedTypes, work);
+					}
+					return;
+				}
+
+				// is this a dictionary, or a set?
+				if (metadata.KeyType is not null)
+				{
+					if (!metadata.KeyType.IsPrimitive)
+					{
+						var target = this.KnownSymbols.Compilation.GetBestTypeByMetadataName(metadata.KeyType.FullName);
+						Kenobi($"--> KeyType<{metadata.KeyType.FullName}>: {target}");
+						if (target is not null)
+						{
+							MaybeAddLinkedType(metadata.KeyType, target, mappedTypes, work);
+						}
+					}
+					if (metadata.ValueType is not null && !metadata.ValueType.IsPrimitive)
+					{
+						var target = this.KnownSymbols.Compilation.GetBestTypeByMetadataName(metadata.ValueType.FullName);
+						Kenobi($"--> ValueType<{metadata.ValueType.FullName}>: {target}");
+						if (target is not null)
+						{
+							MaybeAddLinkedType(metadata.ValueType, target, mappedTypes, work);
+						}
+					}
+					return;
+				}
+
+				// is this a collection of something that we could be interested in?
+				if (metadata.ElementType is not null)
+				{
+					if (!metadata.ElementType.IsPrimitive)
+					{
+						var target = this.KnownSymbols.Compilation.GetBestTypeByMetadataName(metadata.ElementType.FullName);
+						Kenobi($"--> ElementType<{metadata.ElementType.FullName}>: {target}");
+						if (target is not null)
+						{
+							MaybeAddLinkedType(metadata.ElementType, target, mappedTypes, work);
+						}
+					}
+					return;
+				}
+
+				if (!IsTypeOfInterest(metadata, type))
+				{
+					Kenobi("---> ignore " + type);
+					return;
+				}
+
+				// add this type to the list!
+				if (mappedTypes.Add(type))
+				{
+					Kenobi("### Include " + type);
+					work.Enqueue(type);
+				}
+			}
+
+			public static bool IsTypeOfInterest(TypeMetadata metadata, INamedTypeSymbol type)
+			{
+				if (metadata.IsPrimitive) return false;
+				if (metadata.JsonType is not JsonPrimitiveType.None) return false;
+				if (metadata.NameSpace == "System" || metadata.NameSpace.StartsWith("System.")) return false;
+				if (metadata.NameSpace == "Microsoft" || metadata.NameSpace.StartsWith("Microsoft.")) return false;
+				return true;
+			}
+
+			public (CrystalJsonMemberMetadata? Metadata, ITypeSymbol Type) ParseMemberMetadata(ISymbol member, HashSet<INamedTypeSymbol> mappedTypes, Queue<INamedTypeSymbol> work)
 			{
 				var memberName = member.Name;
 				bool isField;
@@ -229,7 +348,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 						{
 							// REVIEW: TODO: what should we do with private properties?
 							// - if they have a backing field, the object may not incomplete when deserialized
-							return null;
+							return default;
 						}
 						isField = false;
 						typeSymbol = property.Type;
@@ -255,9 +374,10 @@ namespace SnowBank.Serialization.Json.CodeGen
 						if (field.IsImplicitlyDeclared || field.DeclaredAccessibility is (Accessibility.Private or Accessibility.Protected))
 						{
 							//note: we see the backing fields here, we could maybe capture them somewhere in order to generate optimized unsafe accessors?return null;
-							return null;
+							return default;
 						}
 						isField = true;
+						//Debug.Assert(field.Type is INamedTypeSymbol);
 						typeSymbol = field.Type;
 						isReadOnly = field.IsReadOnly;
 						isInitOnly = false; // not possible on a field
@@ -265,11 +385,20 @@ namespace SnowBank.Serialization.Json.CodeGen
 					}
 					default:
 					{
-						return null;
+						return default;
 					}
 				}
 
 				var type = TypeMetadata.Create(typeSymbol);
+
+				if (typeSymbol is INamedTypeSymbol named)
+				{
+					MaybeAddLinkedType(type, named, mappedTypes, work);
+				}
+				else if (type.ElementType is not null && typeSymbol is IArrayTypeSymbol array && array.ElementType is INamedTypeSymbol elemType)
+				{
+					MaybeAddLinkedType(type.ElementType, elemType, mappedTypes, work);
+				}
 
 				var attributes = typeSymbol.GetAttributes().Select(attr => attr.ToString()).ToImmutableEquatableArray();
 
@@ -290,8 +419,9 @@ namespace SnowBank.Serialization.Json.CodeGen
 				var name = memberName;
 				bool isRequired = false;
 				bool isKey = false;
-				string? defaultValueLiteral = null;
-				
+
+				string? defaultLiteral = GetDefaultLiteral(type);
+
 				foreach (var attribute in member.GetAttributes())
 				{
 					var attributeType = attribute.AttributeClass;
@@ -322,24 +452,46 @@ namespace SnowBank.Serialization.Json.CodeGen
 					}
 				}
 				
-				return new()
-				{
-					Type = type,
-					Name = name,
-					MemberName = memberName,
-					Attributes = attributes,
-					IsField = isField,
-					IsReadOnly = isReadOnly,
-					IsInitOnly = isInitOnly,
-					IsRequired = isRequired,
-					IsNotNull = isNotNull,
-					IsKey = isKey,
-					DefaultValueLiteral = defaultValueLiteral,
-				};
+				return (
+					new()
+					{
+						Type = type,
+						Name = name,
+						MemberName = memberName,
+						Attributes = attributes,
+						IsField = isField,
+						IsReadOnly = isReadOnly,
+						IsInitOnly = isInitOnly,
+						IsRequired = isRequired,
+						IsNotNull = isNotNull,
+						IsKey = isKey,
+						DefaultLiteral = defaultLiteral,
+					},
+					typeSymbol
+				);
 			}
 
+			private static string GetDefaultLiteral(TypeMetadata type) => type.SpecialType switch
+			{
+				SpecialType.System_Boolean => "false",
+				SpecialType.System_Char => "'\0'",
+				SpecialType.System_Byte => "default(byte)",
+				SpecialType.System_SByte => "default(sbyte)",
+				SpecialType.System_Int16 => "default(short)",
+				SpecialType.System_UInt16 => "default(ushort)",
+				SpecialType.System_Int32 => "0",
+				SpecialType.System_UInt32 => "0U",
+				SpecialType.System_Int64 => "0L",
+				SpecialType.System_UInt64 => "0UL",
+				SpecialType.System_Single => "0f",
+				SpecialType.System_Double => "0d",
+				SpecialType.System_Decimal => "0m",
+				SpecialType.System_String => "null",
+				SpecialType.System_DateTime => "DateTime.MinValue",
+				_ => type.IsValueType() ? "default" : "null"
+			};
 		}
-		
+
 	}
-	
+
 }

@@ -28,7 +28,9 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 {
 	using System.Buffers;
 	using System.ComponentModel.DataAnnotations;
+	using System.Net;
 	using System.Runtime.CompilerServices;
+	using Doxense.Mathematics.Statistics;
 	using Doxense.Serialization.Json;
 	using NUnit.Framework;
 	using SnowBank.Testing;
@@ -139,14 +141,16 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 	
 	[CrystalJsonConverter]
 	[CrystalJsonSerializable(typeof(Person))]
-	[CrystalJsonSerializable(typeof(MyAwesomeMetadata))]
-	[CrystalJsonSerializable(typeof(MyAwesomeStruct))]
-	[CrystalJsonSerializable(typeof(MyAwesomeDevice))]
 	[CrystalJsonSerializable(typeof(MyAwesomeUser))]
 	public static partial class GeneratedConverters
 	{
 		// generated code goes here!
 	}
+
+	[System.Text.Json.Serialization.JsonSourceGenerationOptions(System.Text.Json.JsonSerializerDefaults.Web)]
+	[System.Text.Json.Serialization.JsonSerializable(typeof(MyAwesomeUser))]
+	[System.Text.Json.Serialization.JsonSerializable(typeof(Person))]
+	public partial class SystemTextJsonGeneratedSerializers : System.Text.Json.Serialization.JsonSerializerContext;
 
 	[TestFixture]
 	public class CrystalJsonGeneratorFacts : SimpleTest
@@ -222,7 +226,6 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			}
 
 		}
-
 
 		private static MyAwesomeUser MakeSampleUser() => new()
 		{
@@ -536,8 +539,8 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 				// should not change the original!
 				Assert.That(proxy.FamilyName, Is.EqualTo("Bond"));
 				Assert.That(proxy.FirstName, Is.EqualTo("James"));
-
 			}
+
 		}
 
 		[Test]
@@ -709,68 +712,195 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			Assert.That(decoded.DisplayName, Is.EqualTo(user.DisplayName));
 		}
 
-		//[Test]
-		//public void Test_JsonMutableProxy_FromValue_ComplexType()
-		//{
-		//	var user = MakeSampleUser();
-		//	Log("User:");
-		//	Log(user.ToString());
+		[Test]
+		public void Test_JsonMutableProxy_FromValue_ComplexType()
+		{
+			var user = MakeSampleUser();
+			Log("User:");
+			Log(user.ToString());
 
-		//	Log("ReadOnly:");
-		//	var proxy = GeneratedConverters.MyAwesomeUser.ToMutable(user);
-		//	Log(proxy.ToString());
-		//	Assert.That(proxy.Id, Is.EqualTo(user.Id));
-		//	Assert.That(proxy.DisplayName, Is.EqualTo(user.DisplayName));
-		//	Assert.That(proxy.Metadata.AccountCreated, Is.EqualTo(user.Metadata.AccountCreated));
-		//	Assert.That(proxy.Metadata.AccountModified, Is.EqualTo(user.Metadata.AccountModified));
-		//	Assert.That(proxy.Items[0].Id, Is.EqualTo(user.Items![0].Id));
-		//	Assert.That(proxy.Devices["Foo"].Id, Is.EqualTo(user.Devices!["Foo"].Id));
-		//	Assert.That(proxy.Extras, IsJson.Mutable.And.EqualTo(user.Extras));
+			Log("ReadOnly:");
+			var proxy = GeneratedConverters.MyAwesomeUser.ToMutable(user);
+			Log(proxy.ToString());
+			Assert.That(proxy.Id, Is.EqualTo(user.Id));
+			Assert.That(proxy.DisplayName, Is.EqualTo(user.DisplayName));
+			Assert.That(proxy.Metadata.AccountCreated, Is.EqualTo(user.Metadata.AccountCreated));
+			Assert.That(proxy.Metadata.AccountModified, Is.EqualTo(user.Metadata.AccountModified));
+			Assert.That(proxy.Items[0].Id, Is.EqualTo(user.Items![0].Id));
+			Assert.That(proxy.Devices["Foo"].Id, Is.EqualTo(user.Devices!["Foo"].Id));
+			Assert.That(proxy.Extras, IsJson.Mutable.And.EqualTo(user.Extras));
 
-		//	Assert.That(proxy.Metadata.GetPath().ToString(), Is.EqualTo("metadata"));
-		//	Assert.That(proxy.Items.GetPath().ToString(), Is.EqualTo("items"));
-		//	Assert.That(proxy.Items[0].GetPath().ToString(), Is.EqualTo("items[0]"));
-		//	Assert.That(proxy.Items[1].GetPath().ToString(), Is.EqualTo("items[1]"));
-		//	Assert.That(proxy.Devices.GetPath().ToString(), Is.EqualTo("devices"));
-		//	Assert.That(proxy.Devices["Foo"].GetPath().ToString(), Is.EqualTo("devices.Foo"));
+			Assert.That(proxy.Metadata.GetPath().ToString(), Is.EqualTo("metadata"));
+			Assert.That(proxy.Items.GetPath().ToString(), Is.EqualTo("items"));
+			Assert.That(proxy.Items[0].GetPath().ToString(), Is.EqualTo("items[0]"));
+			Assert.That(proxy.Items[1].GetPath().ToString(), Is.EqualTo("items[1]"));
+			Assert.That(proxy.Devices.GetPath().ToString(), Is.EqualTo("devices"));
+			Assert.That(proxy.Devices["Foo"].GetPath().ToString(), Is.EqualTo("devices.Foo"));
 
-		//	var json = proxy.ToJson();
-		//	Log("JSON:");
-		//	Dump(json);
-		//	Assert.That(json, IsJson.Object.And.Mutable);
-		//	Assert.That(json["id"], IsJson.EqualTo(user.Id));
-		//	Assert.That(json["displayName"], IsJson.EqualTo(user.DisplayName));
-		//	Assert.That(json["metadata"]["accountCreated"], IsJson.EqualTo(user.Metadata.AccountCreated));
-		//	Assert.That(json["items"][0]["level"], IsJson.EqualTo(user.Items[0].Level));
-		//	Assert.That(json["devices"]["Foo"]["id"], IsJson.EqualTo(user.Devices["Foo"].Id));
-		//	Assert.That(json["extras"], IsJson.ReadOnly.And.EqualTo(user.Extras));
+			var json = proxy.ToJson();
+			Log("JSON:");
+			Dump(json);
+			Assert.That(json, IsJson.Object.And.Mutable);
+			Assert.That(json["id"], IsJson.EqualTo(user.Id));
+			Assert.That(json["displayName"], IsJson.EqualTo(user.DisplayName));
+			Assert.That(json["metadata"]["accountCreated"], IsJson.EqualTo(user.Metadata.AccountCreated));
+			Assert.That(json["items"][0]["level"], IsJson.EqualTo(user.Items[0].Level));
+			Assert.That(json["devices"]["Foo"]["id"], IsJson.EqualTo(user.Devices["Foo"].Id));
+			Assert.That(json["extras"], IsJson.ReadOnly.And.EqualTo(user.Extras));
 
-		//	// mutate
+			// mutate
 
-		//	proxy.DisplayName = "Jim Bond";
-		//	proxy.Metadata.AccountModified = DateTimeOffset.Parse("2024-10-12T17:37:42.6732914Z");
-		//	proxy.Items[0].Level = 8001;
-		//	proxy.Items.Add(new MyAwesomeStruct() { Id = "47c774e7-29e7-40fe-ba06-3098cafe77be", Level = 789, Path = JsonPath.Create("hello") });
-		//	proxy.Devices["Foo"].LastAddress = IPAddress.Parse("192.168.1.2");
-		//	proxy.Devices.Remove("Bar");
+			proxy.DisplayName = "Jim Bond";
+			proxy.Metadata.AccountModified = DateTimeOffset.Parse("2024-10-12T17:37:42.6732914Z");
+			proxy.Items[0].Level = 8001;
+			proxy.Items.Add(new MyAwesomeStruct() { Id = "47c774e7-29e7-40fe-ba06-3098cafe77be", Level = 789, Path = JsonPath.Create("hello") });
+			proxy.Devices["Foo"].LastAddress = IPAddress.Parse("192.168.1.2");
+			proxy.Devices.Remove("Bar");
 
-		//	Log("Mutated:");
-		//	Dump(proxy.ToJson());
+			Log("Mutated:");
+			Dump(proxy.ToJson());
 
-		//	var decoded = proxy.ToValue();
-		//	Log("Decoded:");
-		//	Log(decoded.ToString());
-		//	Assert.That(decoded, Is.Not.Null);
-		//	Assert.That(decoded.Id, Is.EqualTo(user.Id));
-		//	Assert.That(decoded.DisplayName, Is.EqualTo("Jim Bond"));
-		//	Assert.That(decoded.Metadata.AccountCreated, Is.EqualTo(user.Metadata.AccountCreated));
-		//	Assert.That(decoded.Metadata.AccountModified, Is.Not.EqualTo(user.Metadata.AccountCreated).And.EqualTo(DateTimeOffset.Parse("2024-10-12T17:37:42.6732914Z")));
-		//	Assert.That(decoded.Items![0].Level, Is.EqualTo(8001));
-		//	Assert.That(decoded.Items, Has.Count.EqualTo(3));
-		//	Assert.That(decoded.Items![2].Level, Is.EqualTo(789));
-		//	Assert.That(decoded.Devices!["Foo"].LastAddress, Is.EqualTo(IPAddress.Parse("192.168.1.2")));
-		//	Assert.That(decoded.Devices, Does.Not.ContainKey("Bar"));
-		//}
+			var decoded = proxy.ToValue();
+			Log("Decoded:");
+			Log(decoded.ToString());
+			Assert.That(decoded, Is.Not.Null);
+			Assert.That(decoded.Id, Is.EqualTo(user.Id));
+			Assert.That(decoded.DisplayName, Is.EqualTo("Jim Bond"));
+			Assert.That(decoded.Metadata.AccountCreated, Is.EqualTo(user.Metadata.AccountCreated));
+			Assert.That(decoded.Metadata.AccountModified, Is.Not.EqualTo(user.Metadata.AccountCreated).And.EqualTo(DateTimeOffset.Parse("2024-10-12T17:37:42.6732914Z")));
+			Assert.That(decoded.Items![0].Level, Is.EqualTo(8001));
+			Assert.That(decoded.Items, Has.Count.EqualTo(3));
+			Assert.That(decoded.Items![2].Level, Is.EqualTo(789));
+			Assert.That(decoded.Devices!["Foo"].LastAddress, Is.EqualTo(IPAddress.Parse("192.168.1.2")));
+			Assert.That(decoded.Devices, Does.Not.ContainKey("Bar"));
+		}
+
+		[Test]
+		[Category("Benchmark")]
+		public void Bench_Custom_Serializer()
+		{
+			var user = new MyAwesomeUser()
+			{
+				Id = "b6a16abe-e30c-4198-8358-5f0d8fd9c283",
+				DisplayName = "James Bond",
+				Email = "bond@example.org",
+				Type = 007,
+				Roles = [ "user", "secret_agent" ],
+				Metadata = new ()
+				{
+					AccountCreated = DateTimeOffset.Parse("2024-09-20T12:34:56.7890123Z"),
+					AccountModified = DateTimeOffset.Parse("2024-09-21T10:00:25.5461402Z"),
+				},
+				Items =
+				[
+					new() { Id = "382bb7cd-f9e4-4906-874e-ab88df954fa8", Level = 123, Path = JsonPath.Create("foo.bar") },
+					new() { Id = "8092e57d-16b4-4afb-ae04-28acbeb22aa8", Level = 456, Path = JsonPath.Create("bars[2].foo"), Disabled = true }
+				],
+				Devices = new()
+				{
+					["Foo"] = new() { Id = "Foo", Model = "ACME Ultra Core 9100XX Ultra Series" },
+					["Bar"] = new() { Id = "Bar", Model = "iHAL 42 Pro Ultra MaXX" },
+				},
+			};
+
+			var stjOps = new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web);
+
+			var json = CrystalJson.Serialize(user, GeneratedConverters.MyAwesomeUser);
+			var parsed = JsonValue.ParseObject(json);
+
+			// warmup
+			{
+				_ = JsonValue.Parse(CrystalJson.Serialize(user)).As<MyAwesomeUser>();
+				_ = GeneratedConverters.MyAwesomeUser.Unpack(JsonValue.Parse(CrystalJson.Serialize(user, GeneratedConverters.MyAwesomeUser)));
+				_ = CrystalJson.Deserialize<MyAwesomeUser>(json);
+				_ = System.Text.Json.JsonSerializer.Deserialize<MyAwesomeUser>(json, stjOps);
+				_ = System.Text.Json.JsonSerializer.Deserialize<MyAwesomeUser>(json, SystemTextJsonGeneratedSerializers.Default.MyAwesomeUser);
+			}
+
+			Log($"JSON: {json.Length:N0} chars");
+
+#if DEBUG
+			const int RUNS = 25;
+			const int ITERATIONS = 1_000;
+#else
+			const int RUNS = 50;
+			const int ITERATIONS = 10_000;
+#endif
+
+			static void Report(string label, RobustBenchmark.Report<long> report)
+			{
+				Log($"* {label,-23}: {report.IterationsPerRun,7:N0} in {report.BestDuration.TotalMilliseconds,8:F1} ms at {report.BestIterationsPerSecond,10:N0} op/s ({report.BestIterationsNanos,9:N0} nanos), {(report.GcAllocatedOnThread / (report.NumberOfRuns * report.IterationsPerRun)),9:N0} allocated");
+			}
+
+			{
+				var report = RobustBenchmark.Run(() => System.Text.Json.JsonSerializer.Serialize(user, stjOps), RUNS, ITERATIONS);
+				Report("SERIALIZE TEXT STJ_DYN", report);
+			}
+			{
+				var report = RobustBenchmark.Run(() => System.Text.Json.JsonSerializer.Serialize(user, SystemTextJsonGeneratedSerializers.Default.MyAwesomeUser), RUNS, ITERATIONS);
+				Report("SERIALIZE TEXT STJ_GEN", report);
+			}
+			{
+				var report = RobustBenchmark.Run(() => CrystalJson.Serialize(user), RUNS, ITERATIONS);
+				Report("SERIALIZE TEXT CRY_DYN", report);
+			}
+			{
+				var report = RobustBenchmark.Run(() => CrystalJson.Serialize(user, GeneratedConverters.MyAwesomeUser), RUNS, ITERATIONS);
+				Report("SERIALIZE TEXT CRY_GEN", report);
+			}
+			{
+				var report = RobustBenchmark.Run(() => CrystalJson.ToSlice(user), RUNS, ITERATIONS);
+				Report("SERIALIZE UTF8 CRY_DYN", report);
+			}
+			{
+				var report = RobustBenchmark.Run(() => CrystalJson.ToSlice(user, GeneratedConverters.MyAwesomeUser), RUNS, ITERATIONS);
+				Report("SERIALIZE UTF8 CRY_GEN", report);
+			}
+			{
+				var report = RobustBenchmark.Run(() =>
+				{
+					using var res = CrystalJson.ToSlice(user, GeneratedConverters.MyAwesomeUser, ArrayPool<byte>.Shared);
+					// use the JSON here to do something!
+				}, RUNS, ITERATIONS);
+				Report("SERIALIZE UTF8 POOLED", report);
+			}
+
+			{
+				var report = RobustBenchmark.Run(() => System.Text.Json.JsonSerializer.Deserialize<MyAwesomeUser>(json, stjOps), RUNS, ITERATIONS);
+				Report("DESERIALIZE STJ_DYN", report);
+			}
+			{
+				var report = RobustBenchmark.Run(() => System.Text.Json.JsonSerializer.Deserialize<MyAwesomeUser>(json, SystemTextJsonGeneratedSerializers.Default.MyAwesomeUser), RUNS, ITERATIONS);
+				Report("DESERIALIZE STJ_GEN", report);
+			}
+			{
+				var report = RobustBenchmark.Run(() => CrystalJson.Deserialize<MyAwesomeUser>(json), RUNS, ITERATIONS);
+				Report("DESERIALIZE RUNTIME", report);
+			}
+			{
+				var report = RobustBenchmark.Run(() => GeneratedConverters.MyAwesomeUser.Unpack(JsonValue.Parse(json)), RUNS, ITERATIONS);
+				Report("DESERIALIZE CODEGEN", report);
+			}
+
+			{
+				var report = RobustBenchmark.Run(() => parsed.As<MyAwesomeUser>(), RUNS, ITERATIONS);
+				Report("AS<T> RUNTIME", report);
+			}
+			{
+				var report = RobustBenchmark.Run(() => GeneratedConverters.MyAwesomeUser.Unpack(parsed), RUNS, ITERATIONS);
+				Report("AS<T> CODEGEN", report);
+			}
+
+			{
+				var report = RobustBenchmark.Run(() => JsonValue.FromValue<MyAwesomeUser>(user), RUNS, ITERATIONS);
+				Report("PACK RUNTIME", report);
+			}
+			{
+				var report = RobustBenchmark.Run(() => GeneratedConverters.MyAwesomeUser.Pack(user), RUNS, ITERATIONS);
+				Report("PACK CODEGEN", report);
+			}
+
+		}
 
 	}
 

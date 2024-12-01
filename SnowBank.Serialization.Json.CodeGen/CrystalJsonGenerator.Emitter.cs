@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -148,7 +148,6 @@ namespace SnowBank.Serialization.Json.CodeGen
 					// we don't want to have to specify the namespace everytime
 					sb.AppendLine($"using {KnownTypeSymbols.CrystalJsonNamespace};");
 					// we also use a lot of helper static methods from this type
-					sb.AppendLine($"using static {KnownTypeSymbols.JsonSerializerExtensionsFullName};");
 					sb.NewLine();
 
 					sb.AppendLine($"public static partial class {symbol.Name}");
@@ -439,7 +438,6 @@ namespace SnowBank.Serialization.Json.CodeGen
 							sb.AppendLine($"/// <inheritdoc cref=\"{typeFullName}.{member.MemberName}\" />");
 
 							//HACKHACK: TODO: BUGBUG: generate the proper literal for the default of the type ("default", "null", "0", "false", ...)
-							var defaultValue = member.DefaultValueLiteral ?? "default";
 
 							string? getterExpr = null;
 							string proxyType = member.Type.FullyQualifiedNameAnnotated;
@@ -502,7 +500,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 							{
 								if (member.IsNullableRefType())
 								{
-									getterExpr = $"m_obj.Get<{member.Type.FullyQualifiedNameAnnotated}>({GetTargetPropertyNameRef(typeDef, member)}, {defaultValue})";
+									getterExpr = $"m_obj.Get<{member.Type.FullyQualifiedNameAnnotated}>({GetTargetPropertyNameRef(typeDef, member)}, {member.DefaultLiteral})";
 								}
 								else if (member.IsRequired)
 								{
@@ -510,11 +508,11 @@ namespace SnowBank.Serialization.Json.CodeGen
 								}
 								else if (member.Type.IsValueType() && !member.Type.IsNullableOfT())
 								{ // TODO: BUGBUG: it is the same as the next statement?
-									getterExpr = $"m_obj.Get<{member.Type.FullyQualifiedName}>({GetTargetPropertyNameRef(typeDef, member)}, {defaultValue})";
+									getterExpr = $"m_obj.Get<{member.Type.FullyQualifiedNameAnnotated}>({GetTargetPropertyNameRef(typeDef, member)}, {member.DefaultLiteral})";
 								}
 								else
 								{
-									getterExpr = $"m_obj.Get<{member.Type.FullyQualifiedName}>({GetTargetPropertyNameRef(typeDef, member)}, {defaultValue}!)";
+									getterExpr = $"m_obj.Get<{member.Type.FullyQualifiedNameAnnotated}>({GetTargetPropertyNameRef(typeDef, member)}, {member.DefaultLiteral}!)";
 								}
 							}
 
@@ -857,7 +855,18 @@ namespace SnowBank.Serialization.Json.CodeGen
 				sb.EnterBlock();
 				foreach (var member in typeDef.Members)
 				{
-					sb.AppendLine($"{member.MemberName} = obj.Get<{member.Type.FullyQualifiedName}>({GetLocalPropertyNameRef(member)}, default),");
+					if (member.IsNullableRefType())
+					{
+						sb.AppendLine($"{member.MemberName} = obj.Get<{member.Type.FullyQualifiedNameAnnotated}>({GetLocalPropertyNameRef(member)}, {member.DefaultLiteral}),");
+					}
+					else if (member.IsRequired)
+					{
+						sb.AppendLine($"{member.MemberName} = obj.Get<{member.Type.FullyQualifiedName}>({GetLocalPropertyNameRef(member)}),");
+					}
+					else
+					{
+						sb.AppendLine($"{member.MemberName} = obj.Get<{member.Type.FullyQualifiedNameAnnotated}>({GetLocalPropertyNameRef(member)}, {member.DefaultLiteral}),");
+					}
 				}
 				sb.LeaveBlock(semicolon: true);
 				sb.LeaveBlock();
@@ -883,7 +892,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 				foreach (var member in typeDef.Members)
 				{
-					sb.Comment($"\"{member.Name}\" => {member.Type.FullName}{(member.IsNullableRefType() ? "?" : "")} {member.MemberName}{(member.IsKey ? ", KEY" : "")}{(member.IsField ? ", field" : ", prop")}{(member.IsRequired ? ", required" : "")}{(member.DefaultValueLiteral is not null ? ", hasDefault" : "")}{(member.IsInitOnly ? ", initOnly" : member.IsReadOnly ? ", readOnly" : "")}");
+					sb.Comment($"\"{member.Name}\" => {member.Type.FullName}{(member.IsNullableRefType() ? "?" : "")} {member.MemberName}{(member.IsKey ? ", KEY" : "")}{(member.IsField ? ", field" : ", prop")}{(member.IsRequired ? ", required" : "")}{(member.IsInitOnly ? ", initOnly" : member.IsReadOnly ? ", readOnly" : "")}");
 
 					var getterExpr = $"instance.{member.MemberName}"; //TODO: maybe use unsafe accessors for some fields?
 					var packerExpr = GetMemberPackerExpression(member, getterExpr);
@@ -918,6 +927,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 					sb.AppendLine("if (instance is null)");
 					sb.EnterBlock();
 					sb.AppendLine($"writer.WriteNull();");
+					sb.AppendLine("return;");
 					sb.LeaveBlock();
 				}
 

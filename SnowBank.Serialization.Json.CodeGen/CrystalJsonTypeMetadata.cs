@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -110,7 +110,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 		/// <summary>If not-null, this is the expression that represents the default value for this member, when it is missing</summary>
 		/// <remarks>This should be a valid C# constant expression, like <c>123</c>, <c>"hello"</c>, <c>true</c>, ...</remarks>
-		public required string? DefaultValueLiteral { get; init; }
+		public required string DefaultLiteral { get; init; }
 
 		/// <summary>The member has the <see cref="T:System.ComponentModel.DataAnnotations.KeyAttribute"/> attribute</summary>
 		/// <remarks>Examples: <code>
@@ -149,7 +149,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 			if (this.IsInitOnly) sb.Append(indent).AppendLine("IsInitOnly = true");
 			if (this.IsRequired) sb.Append(indent).AppendLine("IsRequired = true");
 			if (this.IsKey) sb.Append(indent).AppendLine("IsKey = true");
-			if (this.DefaultValueLiteral is not null) sb.Append(indent).Append("DefaultValue = ").AppendLine(this.DefaultValueLiteral);
+			if (this.DefaultLiteral is not ("null" or "default")) sb.Append(indent).Append("DefaultValue = ").AppendLine(this.DefaultLiteral);
 			var subIndent = indent is null ? "- " : ("  " + indent);
 			sb.Append(indent).AppendLine("Attributes:");
 			foreach (var attr in this.Attributes)
