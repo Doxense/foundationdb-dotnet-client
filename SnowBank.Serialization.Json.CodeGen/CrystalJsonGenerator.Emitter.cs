@@ -235,8 +235,8 @@ namespace SnowBank.Serialization.Json.CodeGen
 				var readOnlyProxyTypeName = GetReadOnlyProxyName(typeDef.Type);
 				var mutableProxyTypeName = GetMutableProxyName(typeDef.Type);
 
-				var readOnlyProxyInterfaceName = $"{KnownTypeSymbols.IJsonReadOnlyProxyFullName}<{typeName}, {readOnlyProxyTypeName}, {mutableProxyTypeName}>";
-				var mutableProxyInterfaceName = $"{KnownTypeSymbols.IJsonMutableProxyFullName}<{typeName}, {mutableProxyTypeName}, {readOnlyProxyTypeName}>";
+				var readOnlyProxyInterfaceName = $"{KnownTypeSymbols.IJsonReadOnlyProxyFullName}<{typeFullName}, {readOnlyProxyTypeName}, {mutableProxyTypeName}>";
+				var mutableProxyInterfaceName = $"{KnownTypeSymbols.IJsonMutableProxyFullName}<{typeFullName}, {mutableProxyTypeName}, {readOnlyProxyTypeName}>";
 
 #if FULL_DEBUG
 				sb.Comment($"Generating for type {typeDef.Type.FullyQualifiedName}");
@@ -393,7 +393,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 						// TValue ToValue()
 						sb.AppendLine($"/// <inheritdoc />");
-						sb.AppendLine($"public {typeFullName} ToValue() => {GetLocalSerializerRef(typeDef)}.Unpack(m_obj);"); //TODO: resolver?
+						sb.AppendLine($"public {typeDef.Type.FullyQualifiedName} ToValue() => {GetLocalSerializerRef(typeDef)}.Unpack(m_obj);"); //TODO: resolver?
 						sb.NewLine();
 
 						// JsonObject ToJson()
@@ -542,7 +542,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 					mutableProxyTypeName,
 					[
 						KnownTypeSymbols.JsonMutableProxyObjectBaseFullName,
-					mutableProxyInterfaceName
+						mutableProxyInterfaceName
 					],
 					[],
 					() =>
@@ -578,7 +578,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 						// TMutable FromValue(TValue)
 						sb.AppendLine($"/// <summary>Pack an instance of <see cref=\"{typeDef.Type.FullyQualifiedName}\"/> into a mutable JSON proxy</summary>");
-						sb.AppendLine($"public static {mutableProxyTypeName} FromValue({typeName} value)");
+						sb.AppendLine($"public static {mutableProxyTypeName} FromValue({typeDef.Type.FullyQualifiedName} value)");
 						sb.EnterBlock();
 						if (!typeDef.Type.IsValueType())
 						{
@@ -590,7 +590,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 						// TValue ToValue()
 						sb.AppendLine($"/// <inheritdoc />");
-						sb.AppendLine($"public {typeName} ToValue() => {GetLocalSerializerRef(typeDef)}.Unpack(m_obj);"); //TODO: resolver?
+						sb.AppendLine($"public {typeDef.Type.FullyQualifiedName} ToValue() => {GetLocalSerializerRef(typeDef)}.Unpack(m_obj);"); //TODO: resolver?
 						sb.NewLine();
 
 						//// JsonObject ToJson()
@@ -883,7 +883,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 				foreach (var member in typeDef.Members)
 				{
-					sb.Comment($"\"{member.Name}\" => {member.Type.Name}{(member.IsNullableRefType() ? "?" : "")} {member.MemberName}{(member.IsKey ? ", KEY" : "")}{(member.IsField ? ", field" : ", prop")}{(member.IsRequired ? ", required" : "")}{(member.DefaultValueLiteral is not null ? ", hasDefault" : "")}{(member.IsInitOnly ? ", initOnly" : member.IsReadOnly ? ", readOnly" : "")}");
+					sb.Comment($"\"{member.Name}\" => {member.Type.FullName}{(member.IsNullableRefType() ? "?" : "")} {member.MemberName}{(member.IsKey ? ", KEY" : "")}{(member.IsField ? ", field" : ", prop")}{(member.IsRequired ? ", required" : "")}{(member.DefaultValueLiteral is not null ? ", hasDefault" : "")}{(member.IsInitOnly ? ", initOnly" : member.IsReadOnly ? ", readOnly" : "")}");
 
 					var getterExpr = $"instance.{member.MemberName}"; //TODO: maybe use unsafe accessors for some fields?
 					var packerExpr = GetMemberPackerExpression(member, getterExpr);
