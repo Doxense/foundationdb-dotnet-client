@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-// enables consitency checks after each operation to the set
+// enables consistency checks after each operation to the set
 //#define ENFORCE_INVARIANTS
 
 namespace Doxense.Collections.Generic
@@ -173,11 +173,11 @@ namespace Doxense.Collections.Generic
 
 		public ColaStore(ColaStore<T> copy)
 		{
-			var pool = copy.m_pool;
+			m_pool = copy.m_pool;
 			m_count = copy.m_count;
 
 			// copy the levels from the original
-			var levels = ColaStore.GetLevelCount(m_count);
+			var levels = Math.Max(ColaStore.GetLevelCount(m_count), ColaStore.INITIAL_LEVELS);
 
 #if NET8_0_OR_GREATER
 			// levels already initialized
@@ -197,8 +197,8 @@ namespace Doxense.Collections.Generic
 				m_levels[i] = tmp;
 			}
 
+			m_allocatedLevels = levels;
 			m_comparer = copy.m_comparer;
-			m_pool = pool;
 		}
 
 		public ColaStore<T> Copy() => new(this);
@@ -294,7 +294,7 @@ namespace Doxense.Collections.Generic
 			Contract.Debug.Invariant(m_allocatedLevels >= ColaStore.GetLevelCount(m_count));
 			for (int i = 0; i <= ColaStore.MAX_LEVEL; i++)
 			{
-				var segment = m_levelsZOBI[i];
+				var segment = m_levels[i];
 				var expectedSize = ColaStore.GetLevelSize(i);
 
 				if (i == 0)
