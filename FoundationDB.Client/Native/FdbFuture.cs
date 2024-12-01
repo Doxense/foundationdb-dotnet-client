@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -115,10 +115,16 @@ namespace FoundationDB.Client.Native
 			return new FdbFutureArray<TState, TResult>(handles, state, selector, ct).Task;
 		}
 
+		/// <summary>Create a generic <see cref="FdbFuture{T}"/> that has a lifetime tied to a cancellation token</summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="ct">Token used to cancel the future from the outside</param>
+		/// <param name="options">Optional creation options for the underlying <see cref="Task{T}"/></param>
+		/// <returns>Future that will automatically be cancelled if the linked token is cancelled.</returns>
+		/// <remarks>This is mostly used to create Watches or futures that behave similarly to watches.</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbFuture<T> Create<T>(CancellationToken ct)
+		public static FdbFuture<T> Create<T>(CancellationToken ct, TaskCreationOptions options = TaskCreationOptions.None)
 		{
-			return new FdbFutureTask<T>(ct);
+			return new FdbFutureTask<T>(ct, options);
 		}
 
 	}
@@ -142,6 +148,10 @@ namespace FoundationDB.Client.Native
 		protected CancellationTokenRegistration m_ctr;
 
 		#endregion
+
+		protected FdbFuture() { }
+
+		protected FdbFuture(TaskCreationOptions options) : base(options) { }
 
 		#region State Management...
 
@@ -402,10 +412,12 @@ namespace FoundationDB.Client.Native
 
 	}
 
+	/// <summary>Generic <see cref="FdbFuture{TResult}"/> that will behave like a <see cref="Task{TResult}"/></summary>
+	/// <remarks>Can be used to replicate the behaviors of Watches or other async database operations</remarks>
 	public sealed class FdbFutureTask<TResult> : FdbFuture<TResult>
 	{
 
-		public FdbFutureTask(CancellationToken ct)
+		public FdbFutureTask(CancellationToken ct, TaskCreationOptions options) : base(options)
 		{
 			if (ct.CanBeCanceled)
 			{
