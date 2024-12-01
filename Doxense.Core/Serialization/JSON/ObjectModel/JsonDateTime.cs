@@ -180,6 +180,90 @@ namespace Doxense.Serialization.Json
 			return value.HasValue ? Return(value.Value) : JsonNull.Null;
 		}
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(NodaTime.Instant value)
+		{
+			//TODO: support this type natively as well!
+			return JsonString.Return(value);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(NodaTime.Instant? value)
+		{
+			//TODO: support this type natively as well!
+			return JsonString.Return(value);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(NodaTime.ZonedDateTime value)
+		{
+			//TODO: support this type natively as well!
+			return JsonString.Return(value);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(NodaTime.ZonedDateTime? value)
+		{
+			//TODO: support this type natively as well!
+			return JsonString.Return(value);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(NodaTime.LocalDateTime value)
+		{
+			//TODO: support this type natively as well!
+			return JsonString.Return(value);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(NodaTime.LocalDateTime? value)
+		{
+			//TODO: support this type natively as well!
+			return JsonString.Return(value);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(NodaTime.LocalDate value)
+		{
+			//TODO: support this type natively as well!
+			return JsonString.Return(value);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(NodaTime.LocalDate? value)
+		{
+			//TODO: support this type natively as well!
+			return JsonString.Return(value);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(NodaTime.LocalTime value)
+		{
+			//TODO: support this type natively as well!
+			return JsonString.Return(value);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(NodaTime.LocalTime? value)
+		{
+			//TODO: support this type natively as well!
+			return JsonString.Return(value);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(NodaTime.OffsetDateTime value)
+		{
+			//TODO: support this type natively as well!
+			return JsonString.Return(value);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(NodaTime.OffsetDateTime? value)
+		{
+			//TODO: support this type natively as well!
+			return JsonString.Return(value);
+		}
+
 		#endregion
 
 		#region Public Members...
