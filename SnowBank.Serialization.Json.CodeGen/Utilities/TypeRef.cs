@@ -14,8 +14,8 @@ namespace SnowBank.Serialization.Json.CodeGen
 	public sealed class TypeRef : IEquatable<TypeRef>
 	{
 
-		private static readonly Dictionary<SpecialType, TypeRef> s_cachedTypes = new();
-		private static readonly ReaderWriterLockSlim s_lock = new();
+		// private static readonly Dictionary<SpecialType, TypeRef> s_cachedTypes = new();
+		// private static readonly ReaderWriterLockSlim s_lock = new();
 
 		public static bool IsPrimitiveType(ITypeSymbol type)
 		{
@@ -43,21 +43,22 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 		public static TypeRef Create(ITypeSymbol type)
 		{
-			return IsPrimitiveType(type) ? CachedPrimitiveType(type) : new(type);
+			return new(type);
+			//return IsPrimitiveType(type) ? CachedPrimitiveType(type) : new(type);
 
-			static TypeRef CachedPrimitiveType(ITypeSymbol type)
-			{
-				s_lock.EnterUpgradeableReadLock();
-				if (!s_cachedTypes.TryGetValue(type.SpecialType, out var cached))
-				{
-					cached = new(type);
-					s_lock.EnterWriteLock();
-					s_cachedTypes[type.SpecialType] = cached;
-					s_lock.ExitWriteLock();
-				}
-				s_lock.ExitUpgradeableReadLock();
-				return cached;
-			}
+			// static TypeRef CachedPrimitiveType(ITypeSymbol type)
+			// {
+			// 	s_lock.EnterUpgradeableReadLock();
+			// 	if (!s_cachedTypes.TryGetValue(type.SpecialType, out var cached))
+			// 	{
+			// 		cached = new(type);
+			// 		s_lock.EnterWriteLock();
+			// 		s_cachedTypes[type.SpecialType] = cached;
+			// 		s_lock.ExitWriteLock();
+			// 	}
+			// 	s_lock.ExitUpgradeableReadLock();
+			// 	return cached;
+			// }
 		}
 
 		public TypeRef(ITypeSymbol type)
@@ -114,27 +115,27 @@ namespace SnowBank.Serialization.Json.CodeGen
 	public sealed record TypeMetadata
 	{
 
-		private static readonly Dictionary<(SpecialType Type, NullableAnnotation Annotation), TypeMetadata> s_cachedTypes = new();
-		private static readonly ReaderWriterLockSlim s_lock = new(LockRecursionPolicy.SupportsRecursion);
+		//private static readonly Dictionary<(SpecialType Type, NullableAnnotation Annotation), TypeMetadata> s_cachedTypes = new();
+		//private static readonly ReaderWriterLockSlim s_lock = new(LockRecursionPolicy.SupportsRecursion);
 
 		public static TypeMetadata Create(ITypeSymbol type)
 		{
-			//return new(type, primitive: false);
-			return TypeRef.IsPrimitiveType(type) ? CachedPrimitiveType(type) : new(type, primitive: false);
+			return new (type, TypeRef.IsPrimitiveType(type));
+			//return TypeRef.IsPrimitiveType(type) ? CachedPrimitiveType(type) : new(type, primitive: false);
 
-			static TypeMetadata CachedPrimitiveType(ITypeSymbol type)
-			{
-				s_lock.EnterUpgradeableReadLock();
-				if (!s_cachedTypes.TryGetValue((type.SpecialType, type.NullableAnnotation), out var cached))
-				{
-					cached = new(type, true);
-					s_lock.EnterWriteLock();
-					s_cachedTypes[(type.SpecialType, type.NullableAnnotation)] = cached;
-					s_lock.ExitWriteLock();
-				}
-				s_lock.ExitUpgradeableReadLock();
-				return cached;
-			}
+			// static TypeMetadata CachedPrimitiveType(ITypeSymbol type)
+			// {
+			// 	s_lock.EnterUpgradeableReadLock();
+			// 	if (!s_cachedTypes.TryGetValue((type.SpecialType, type.NullableAnnotation), out var cached))
+			// 	{
+			// 		cached = new(type, true);
+			// 		s_lock.EnterWriteLock();
+			// 		s_cachedTypes[(type.SpecialType, type.NullableAnnotation)] = cached;
+			// 		s_lock.ExitWriteLock();
+			// 	}
+			// 	s_lock.ExitUpgradeableReadLock();
+			// 	return cached;
+			// }
 		}
 
 		private static bool IsTopLevelType(INamedTypeSymbol type)
