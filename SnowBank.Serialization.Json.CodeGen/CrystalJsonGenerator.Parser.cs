@@ -47,6 +47,8 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 			private const string KeyAttributeFullName = "System.ComponentModel.DataAnnotations.KeyAttribute";
 
+			public const string JsonPropertyNameAttributeFullName = "System.Text.Json.Serialization.JsonPropertyNameAttribute";
+
 			/// <summary>Table of known symbols from this compilation</summary>
 			private KnownTypeSymbols KnownSymbols { get; }
 
@@ -430,12 +432,20 @@ namespace SnowBank.Serialization.Json.CodeGen
 					switch (attributeType.ToDisplayString())
 					{
 						case KnownTypeSymbols.JsonPropertyAttributeFullName:
-						{
+						{ // [JsonProperty("fooBar", ...)]
 							if (attribute.ConstructorArguments.Length > 0)
 							{
 								name = (string) attribute.ConstructorArguments[0].Value!;
 							}
 							//TODO: check if a default value was provided!
+							break;
+						}
+						case JsonPropertyNameAttributeFullName:
+						{ // [JsonPropertyName("fooBar")]
+							if (attribute.ConstructorArguments.Length > 0)
+							{
+								name = (string) attribute.ConstructorArguments[0].Value!;
+							}
 							break;
 						}
 						case KeyAttributeFullName:

@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -990,25 +990,49 @@ namespace Doxense.Serialization.Json
 
 		private static JsonPropertyAttribute? FindPropertyAttribute(FieldInfo field)
 		{
+			System.Text.Json.Serialization.JsonPropertyNameAttribute? fallback = null;
 			foreach (var attr in field.GetCustomAttributes(true))
 			{
 				if (attr is JsonPropertyAttribute jp)
 				{
 					return jp;
 				}
+
+				if (attr is System.Text.Json.Serialization.JsonPropertyNameAttribute jpn)
+				{
+					fallback = jpn;
+				}
 			}
+
+			if (fallback is not null)
+			{ // fake the original [JsonProperty("...")] by copying the name of the other attribute
+				return new JsonPropertyAttribute(fallback.Name);
+			}
+
 			return null;
 		}
 
 		private static JsonPropertyAttribute? FindPropertyAttribute(PropertyInfo prop)
 		{
+			System.Text.Json.Serialization.JsonPropertyNameAttribute? fallback = null;
 			foreach (var attr in prop.GetCustomAttributes(true))
 			{
 				if (attr is JsonPropertyAttribute jp)
 				{
 					return jp;
 				}
+
+				if (attr is System.Text.Json.Serialization.JsonPropertyNameAttribute jpn)
+				{
+					fallback = jpn;
+				}
 			}
+
+			if (fallback is not null)
+			{ // fake the original [JsonProperty("...")] by copying the name of the other attribute
+				return new JsonPropertyAttribute(fallback.Name);
+			}
+
 			return null;
 		}
 

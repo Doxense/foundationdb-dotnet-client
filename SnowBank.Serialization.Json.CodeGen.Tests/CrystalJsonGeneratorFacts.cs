@@ -30,6 +30,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 	using System.ComponentModel.DataAnnotations;
 	using System.Net;
 	using System.Runtime.CompilerServices;
+	using System.Text.Json.Serialization;
 	using Doxense.Mathematics.Statistics;
 	using Doxense.Serialization.Json;
 	using NUnit.Framework;
@@ -50,33 +51,33 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 	{
 
 		/// <summary>User ID.</summary>
-		[Key, JsonProperty("id")]
+		[Key, JsonPropertyName("id")]
 		public required string Id { get; init; }
 
 		/// <summary>Full name, for display purpose</summary>
-		[JsonProperty("displayName")]
+		[JsonPropertyName("displayName")]
 		public required string DisplayName { get; init; }
 
 		/// <summary>Primary email for this account</summary>
-		[JsonProperty("email")]
+		[JsonPropertyName("email")]
 		public required string Email { get; init; }
 
 		[JsonProperty("type", DefaultValue = 777)]
 		public int Type { get; init; }
 
-		[JsonProperty("roles")]
+		[JsonPropertyName("roles")]
 		public string[]? Roles { get; init; }
 
-		[JsonProperty("metadata")]
+		[JsonPropertyName("metadata")]
 		public required MyAwesomeMetadata Metadata { get; init; }
 
-		[JsonProperty("items")]
+		[JsonPropertyName("items")]
 		public required List<MyAwesomeStruct>? Items { get; init; }
 
-		[JsonProperty("devices")]
+		[JsonPropertyName("devices")]
 		public Dictionary<string, MyAwesomeDevice>? Devices { get; init; }
 
-		[JsonProperty("extras")]
+		[JsonPropertyName("extras")]
 		public JsonObject? Extras { get; init; }
 
 	}
@@ -153,6 +154,8 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 	public partial class SystemTextJsonGeneratedSerializers : System.Text.Json.Serialization.JsonSerializerContext;
 
 	[TestFixture]
+	[Category("Core-SDK")]
+	[Category("Core-JSON")]
 	public class CrystalJsonGeneratorFacts : SimpleTest
 	{
 
