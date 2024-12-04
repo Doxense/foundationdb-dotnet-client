@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -47,6 +47,15 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 
 	}
 
+	public enum MyAwesomeEnumType
+	{
+		Invalid = 0,
+		User = 1,
+		Administrator = 2,
+		SecretAgent = 007,
+		DoubleAgent = 8,
+	}
+
 	public sealed record MyAwesomeUser
 	{
 
@@ -62,8 +71,8 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 		[JsonPropertyName("email")]
 		public required string Email { get; init; }
 
-		[JsonProperty("type", DefaultValue = 777)]
-		public int Type { get; init; }
+		[JsonProperty("type", DefaultValue = 7)]
+		public MyAwesomeEnumType Type { get; init; }
 
 		[JsonPropertyName("roles")]
 		public string[]? Roles { get; init; }
@@ -235,7 +244,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			Id = "b6a16abe-e30c-4198-8358-5f0d8fd9c283",
 			DisplayName = "James Bond",
 			Email = "bond@example.org",
-			Type = 007,
+			Type = MyAwesomeEnumType.SecretAgent,
 			Roles = ["user", "secret_agent"],
 			Metadata = new()
 			{
@@ -382,7 +391,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 				Assert.That(parsed["id"], IsJson.EqualTo(user.Id));
 				Assert.That(parsed["displayName"], IsJson.EqualTo(user.DisplayName));
 				Assert.That(parsed["email"], IsJson.EqualTo(user.Email));
-				Assert.That(parsed["type"], IsJson.EqualTo(user.Type));
+				Assert.That(parsed["type"], IsJson.EqualTo((int) user.Type)); //REVIEW: TODO: enum default as numbers or string ?
 				Assert.That(parsed["metadata"], IsJson.Object);
 				Assert.That(parsed["metadata"]["accountCreated"], IsJson.EqualTo(user.Metadata.AccountCreated));
 				Assert.That(parsed["metadata"]["accountModified"], IsJson.EqualTo(user.Metadata.AccountModified));
@@ -592,15 +601,15 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 
 			{ // ReadOnly.ToMutable with { ... }
 
-				var mutated = proxy.ToMutable() with { Type = 008 };
+				var mutated = proxy.ToMutable() with { Type = MyAwesomeEnumType.DoubleAgent };
 				Log(mutated.ToString());
 
 				// should return an updated object
-				Assert.That(mutated.Type, Is.EqualTo(8));
+				Assert.That(mutated.Type, Is.EqualTo(MyAwesomeEnumType.DoubleAgent));
 				Assert.That(mutated.ToJson(), IsJson.Mutable);
 
 				// should not change the original!
-				Assert.That(proxy.Type, Is.EqualTo(7));
+				Assert.That(proxy.Type, Is.EqualTo(MyAwesomeEnumType.SecretAgent));
 			}
 		}
 
@@ -787,7 +796,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 				Id = "b6a16abe-e30c-4198-8358-5f0d8fd9c283",
 				DisplayName = "James Bond",
 				Email = "bond@example.org",
-				Type = 007,
+				Type = MyAwesomeEnumType.SecretAgent,
 				Roles = [ "user", "secret_agent" ],
 				Metadata = new ()
 				{

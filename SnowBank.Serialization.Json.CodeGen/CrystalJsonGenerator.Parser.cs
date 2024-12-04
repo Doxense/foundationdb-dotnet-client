@@ -328,9 +328,11 @@ namespace SnowBank.Serialization.Json.CodeGen
 			public static bool IsTypeOfInterest(TypeMetadata metadata, INamedTypeSymbol type)
 			{
 				if (metadata.IsPrimitive) return false;
+				if (metadata.IsEnum()) return false;
 				if (metadata.JsonType is not JsonPrimitiveType.None) return false;
 				if (metadata.NameSpace == "System" || metadata.NameSpace.StartsWith("System.")) return false;
 				if (metadata.NameSpace == "Microsoft" || metadata.NameSpace.StartsWith("Microsoft.")) return false;
+				if (metadata.NameSpace == "NodaTime" || metadata.NameSpace.StartsWith("NodaTime.")) return false;
 				return true;
 			}
 

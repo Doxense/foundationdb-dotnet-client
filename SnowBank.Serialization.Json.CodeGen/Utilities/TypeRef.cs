@@ -1,15 +1,36 @@
-﻿#define FULL_DEBUG
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of SnowBank nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL SNOWBANK SAS BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#endregion
 
 namespace SnowBank.Serialization.Json.CodeGen
 {
 	using System.Collections.Generic;
 	using System.Text;
-	using System.Threading;
 	using Microsoft.CodeAnalysis;
 
-	/// <summary>
-	/// An equatable value representing type identity.
-	/// </summary>
+	/// <summary>A token that represents a type (with optional nullability annotations).</summary>
 	[DebuggerDisplay("{ToString(),nq}")]
 	public sealed class TypeRef : IEquatable<TypeRef>
 	{
@@ -98,15 +119,24 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 	}
 
+	/// <summary>Type of JsonValue instance that would be used to represent a serialized type</summary>
 	public enum JsonPrimitiveType
 	{
+		/// <summary>The type is not a JSON value</summary>
 		None,
+		/// <summary>The type can be anything derived from JsonValue</summary>
 		Value,
+		/// <summary>The type is an instance of JsonObject</summary>
 		Object,
+		/// <summary>The type is an instance of JsonArray</summary>
 		Array,
+		/// <summary>The type is an instance of JsonString</summary>
 		String,
+		/// <summary>The type is an instance of JsonNumber</summary>
 		Number,
+		/// <summary>The type is an instance of JsonBoolean</summary>
 		Boolean,
+		/// <summary>The type is an instance of JsonDateTime</summary>
 		DateTime
 	}
 
@@ -156,7 +186,6 @@ namespace SnowBank.Serialization.Json.CodeGen
 			this.Name = type.Name;
 			this.IsSealed = type.IsSealed;
 			this.TypeKind = type.TypeKind;
-			this.FullyQualifiedNameAnnotated = this.TypeKind == TypeKind.Struct ? this.FullyQualifiedName : (this.FullyQualifiedName + "?");
 			this.IsPrimitive = primitive;
 			this.SpecialType = type.OriginalDefinition?.SpecialType ?? default;
 			this.Nullability = type.NullableAnnotation;
@@ -236,37 +265,37 @@ namespace SnowBank.Serialization.Json.CodeGen
 				{ // is it JsonValue (or derived) ?
 					switch (this.Name)
 					{
-						case "JsonValue":
+						case KnownTypeSymbols.JsonValueName:
 						{
 							this.JsonType = JsonPrimitiveType.Value;
 							break;
 						}
-						case "JsonObject":
+						case KnownTypeSymbols.JsonObjectName:
 						{
 							this.JsonType = JsonPrimitiveType.Object;
 							break;
 						}
-						case "JsonArray":
+						case KnownTypeSymbols.JsonArrayName:
 						{
 							this.JsonType = JsonPrimitiveType.Array;
 							break;
 						}
-						case "JsonString":
+						case KnownTypeSymbols.JsonStringName:
 						{
 							this.JsonType = JsonPrimitiveType.String;
 							break;
 						}
-						case "JsonBoolean":
+						case KnownTypeSymbols.JsonBooleanName:
 						{
 							this.JsonType = JsonPrimitiveType.Boolean;
 							break;
 						}
-						case "JsonNumber":
+						case KnownTypeSymbols.JsonNumberName:
 						{
 							this.JsonType = JsonPrimitiveType.Number;
 							break;
 						}
-						case "JsonDateTime":
+						case KnownTypeSymbols.JsonDateTimeName:
 						{
 							this.JsonType = JsonPrimitiveType.DateTime;
 							break;
@@ -313,6 +342,12 @@ namespace SnowBank.Serialization.Json.CodeGen
 			}
 
 			this.TypeArguments ??= ImmutableEquatableArray<TypeRef>.Empty;
+
+			this.FullyQualifiedNameAnnotated =
+				(this.Nullability == NullableAnnotation.Annotated && this.NullableOfType is null)
+					? (this.FullyQualifiedName + "?")
+					: this.FullyQualifiedName;
+
 		}
 
 		public ImmutableEquatableArray<TypeRef> Parents { get; set; }
@@ -385,6 +420,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 			sb.Append(indent).Append("Assembly = ").AppendLine(this.Ref.Assembly);
 			sb.Append(indent).Append("FullName = ").AppendLine(this.Ref.FullName);
 			sb.Append(indent).Append("FullyQualifiedName = ").AppendLine(this.Ref.FullyQualifiedName);
+			sb.Append(indent).Append("FullyQualifiedNameAnnotated = ").AppendLine(this.FullyQualifiedNameAnnotated);
 			if (this.NullableOfType != null)
 			{
 				sb.Append(indent).AppendLine("Underlying Type:");
@@ -450,6 +486,8 @@ namespace SnowBank.Serialization.Json.CodeGen
 		public bool CanBeNull() => this.TypeKind is not TypeKind.Struct || this.SpecialType is SpecialType.System_Nullable_T;
 
 		public bool IsValueType() => this.TypeKind is TypeKind.Struct;
+
+		public bool IsEnum() => this.TypeKind is TypeKind.Enum;
 
 		public bool IsNullableOfT()
 		{
