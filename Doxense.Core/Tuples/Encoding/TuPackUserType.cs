@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -26,16 +26,21 @@
 
 namespace Doxense.Collections.Tuples.Encoding
 {
+
 	/// <summary>Represent a custom user type for the TuPack encoding</summary>
 	[DebuggerDisplay("{ToString()},nq")]
-	public sealed class TuPackUserType : IEquatable<TuPackUserType>
+	[PublicAPI]
+	public sealed class TuPackUserType : IEquatable<TuPackUserType>, IFormattable
 	{
 
-		public const byte TypeDirectory= 0xFE;
+		public const byte TypeDirectory = 0xFE;
+
 		public const byte TypeSystem = 0xFF;
 
+		/// <summary>Directory Layer (<c>0xFE</c>)</summary>
 		public static readonly TuPackUserType Directory = new(TypeDirectory);
 
+		/// <summary>System Subspace (<c>0xFF</c>)</summary>
 		public static readonly TuPackUserType System = new(TypeSystem);
 
 		public TuPackUserType(int type)
@@ -68,6 +73,8 @@ namespace Doxense.Collections.Tuples.Encoding
 			return $"|User-{this.Type:X02}:{this.Value:N}|";
 		}
 
+		public string ToString(string? format, IFormatProvider? formatProvider) => ToString();
+
 		/// <summary>Returns a type that matches a system key (ex: <c>'\xFF/metadataVersion'</c>)</summary>
 		/// <param name="name">Key, excluding the initial <c>\xFF</c> byte (ex: "/metadataVersion" instead of "\xFF/metadataVersion")</param>
 		public static TuPackUserType SystemKey(Slice name) => new(TypeSystem, name);
@@ -82,10 +89,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		#region Equality...
 
-		public override bool Equals(object? obj)
-		{
-			return obj is TuPackUserType ut && Equals(ut);
-		}
+		public override bool Equals(object? obj) => obj is TuPackUserType ut && Equals(ut);
 
 		public bool Equals(TuPackUserType? other)
 		{
@@ -94,10 +98,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			return this.Type == other.Type && this.Value.Equals(other.Value);
 		}
 
-		public override int GetHashCode()
-		{
-			return HashCode.Combine(this.Type, this.Value.GetHashCode());
-		}
+		public override int GetHashCode() => HashCode.Combine(this.Type, this.Value.GetHashCode());
 
 		#endregion
 
