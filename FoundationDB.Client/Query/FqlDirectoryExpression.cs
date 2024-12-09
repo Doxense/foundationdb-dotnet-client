@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,7 @@ namespace FoundationDB.Client
 	{
 		Invalid = 0,
 		Root, // only valid as the single segment of "/"
+		Parent, // ".."
 		Literal,
 		Any,
 	}
@@ -63,6 +64,8 @@ namespace FoundationDB.Client
 
 		public bool IsRoot => this.Type is FqlPathSegmentType.Root;
 
+		public bool IsParent => this.Type is FqlPathSegmentType.Parent;
+
 		public bool IsAny => this.Type is FqlPathSegmentType.Any;
 
 		public static FqlPathSegment Literal(FdbPathSegment segment) => new(FqlPathSegmentType.Literal, segment);
@@ -72,6 +75,8 @@ namespace FoundationDB.Client
 		public static FqlPathSegment Any() => new(FqlPathSegmentType.Any, null);
 
 		public static FqlPathSegment Root() => new(FqlPathSegmentType.Root, null);
+
+		public static FqlPathSegment Parent() => new(FqlPathSegmentType.Parent, null);
 
 		public bool Matches(FdbPathSegment segment)
 		{
@@ -86,6 +91,11 @@ namespace FoundationDB.Client
 					return string.IsNullOrEmpty(this.Value.LayerId)
 						? this.Value.Name == segment.Name
 						: this.Value.Name == segment.Name && this.Value.LayerId == segment.LayerId;
+				}
+				case FqlPathSegmentType.Parent:
+				{
+					// parent paths should be normalized before being evaluated!
+					return false;
 				}
 				case FqlPathSegmentType.Any:
 				{
@@ -112,6 +122,7 @@ namespace FoundationDB.Client
 		public override string ToString() => this.Type switch
 		{
 			FqlPathSegmentType.Root => "/",
+			FqlPathSegmentType.Parent => "..",
 			FqlPathSegmentType.Literal => (this.Value.Name.Contains('"') ? $"\"{this.Value.Name.Replace("\"", "\\\"")}\"" : this.Value.Name) + (!string.IsNullOrEmpty(this.Value.LayerId) ? $"[{this.Value.LayerId}]" : ""),
 			FqlPathSegmentType.Any => "<>",
 			_ => "<invalid>"
@@ -143,6 +154,12 @@ namespace FoundationDB.Client
 		public FqlDirectoryExpression Name(FqlPathSegment segment)
 		{
 			this.Segments.Add(segment);
+			return this;
+		}
+
+		public FqlDirectoryExpression Parent()
+		{
+			this.Segments.Add(FqlPathSegment.Parent());
 			return this;
 		}
 
@@ -217,6 +234,7 @@ namespace FoundationDB.Client
 				{
 					case FqlPathSegmentType.Root: sb.Append('/'); break;
 					case FqlPathSegmentType.Literal: sb.Append(segments[i].ToString()); needsSlash = true; break;
+					case FqlPathSegmentType.Parent: sb.AppendLine(".."); break;
 					case FqlPathSegmentType.Any: sb.Append("<>"); needsSlash = true; break;
 					default: sb.Append("<???>"); needsSlash = true; break;
 				}

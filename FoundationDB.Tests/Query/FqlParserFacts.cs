@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -50,7 +50,7 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
-		public void Test_Fql_Parse_Path_Only()
+		public void Test_Fql_Parse_Path()
 		{
 			// `/`
 			{
@@ -103,6 +103,22 @@ namespace FoundationDB.Client.Tests
 				Assert.That(q, Is.Not.Null);
 				Explain(q);
 				Assert.That(q.Directory, Is.EqualTo(FqlDirectoryExpression.Create().Name("foo").Name("bar").Name("baz")));
+				Assert.That(q.Tuple, Is.Null);
+			}
+			// `../bar/baz`
+			{
+				var q = FqlQueryParser.Parse("../bar/baz");
+				Assert.That(q, Is.Not.Null);
+				Explain(q);
+				Assert.That(q.Directory, Is.EqualTo(FqlDirectoryExpression.Create().Parent().Name("bar").Name("baz")));
+				Assert.That(q.Tuple, Is.Null);
+			}
+			// `/foo/bar/../baz`
+			{
+				var q = FqlQueryParser.Parse("/foo/bar/../baz");
+				Assert.That(q, Is.Not.Null);
+				Explain(q);
+				Assert.That(q.Directory, Is.EqualTo(FqlDirectoryExpression.Create().Root().Name("foo").Name("bar").Parent().Name("baz")));
 				Assert.That(q.Tuple, Is.Null);
 			}
 		}
@@ -316,7 +332,7 @@ namespace FoundationDB.Client.Tests
 		{
 			// `/ hello`
 			{
-				var q = FqlQueryParser.ParseNext("/ hello", out var rest).Resolve();
+				var q = FqlQueryParser.ParseNext("/ hello", FqlParsingOptions.Default, out var rest).Resolve();
 				Explain(q);
 				Log($"# rest : [{rest.ToString()}]");
 				Assert.That(q, Is.Not.Null);
@@ -328,7 +344,7 @@ namespace FoundationDB.Client.Tests
 
 			// `/users hello`
 			{
-				var q = FqlQueryParser.ParseNext("/users\thello", out var rest).Resolve();
+				var q = FqlQueryParser.ParseNext("/users\thello", FqlParsingOptions.Default, out var rest).Resolve();
 				Explain(q);
 				Log($"# rest : [{rest.ToString()}]");
 				Assert.That(q, Is.Not.Null);
@@ -340,7 +356,7 @@ namespace FoundationDB.Client.Tests
 
 			// `/foo/bar hello`
 			{
-				var q = FqlQueryParser.ParseNext("/foo/bar hello", out var rest).Resolve();
+				var q = FqlQueryParser.ParseNext("/foo/bar hello", FqlParsingOptions.Default, out var rest).Resolve();
 				Explain(q);
 				Log($"# rest : [{rest.ToString()}]");
 				Assert.That(q, Is.Not.Null);
@@ -352,7 +368,7 @@ namespace FoundationDB.Client.Tests
 
 			// `/"foo bar" hello`
 			{
-				var q = FqlQueryParser.ParseNext("/\"foo bar\" hello", out var rest).Resolve();
+				var q = FqlQueryParser.ParseNext("/\"foo bar\" hello", FqlParsingOptions.Default, out var rest).Resolve();
 				Explain(q);
 				Log($"# rest : [{rest.ToString()}]");
 				Assert.That(q, Is.Not.Null);
@@ -364,7 +380,7 @@ namespace FoundationDB.Client.Tests
 
 			// `/users(<int>, 123) hello`
 			{
-				var q = FqlQueryParser.ParseNext("/users(<int>, 123)\r\nhello", out var rest).Resolve();
+				var q = FqlQueryParser.ParseNext("/users(<int>, 123)\r\nhello", FqlParsingOptions.Default, out var rest).Resolve();
 				Explain(q);
 				Log($"# rest : [{rest.ToString()}]");
 				Assert.That(q, Is.Not.Null);
@@ -376,7 +392,7 @@ namespace FoundationDB.Client.Tests
 
 			// `/users (<int>, 123) hello`
 			{
-				var q = FqlQueryParser.ParseNext("/users (<int>, 123)", out var rest).Resolve();
+				var q = FqlQueryParser.ParseNext("/users (<int>, 123)", FqlParsingOptions.Default, out var rest).Resolve();
 				Explain(q);
 				Log($"# rest : [{rest.ToString()}]");
 				Assert.That(q, Is.Not.Null);
@@ -384,6 +400,82 @@ namespace FoundationDB.Client.Tests
 				Assert.That(q.Tuple, Is.Null);
 				Assert.That(rest.ToString(), Is.EqualTo(" (<int>, 123)"));
 				Log();
+			}
+
+		}
+
+		[Test]
+		public void Test_Fql_Parse_With_FqlParsingOptions_PathOnly()
+		{
+			// the option FqlParsingOptions.PathOnly should reject any query with a tuple
+			// - "/foo/bar" is allowed
+			// - "/foo/bar(1,...)" or "(1,...)" are not allowed
+
+			// query with only a path should return a valid expression
+			{
+				var q = FqlQueryParser.Parse("/foo/bar", FqlParsingOptions.PathOnly);
+				Assert.That(q, Is.Not.Null);
+				Explain(q);
+				Assert.That(q.Directory, Is.EqualTo(FqlDirectoryExpression.Create().Root().Name("foo").Name("bar")));
+				Assert.That(q.Tuple, Is.Null);
+			}
+
+			// queries that include both a path and tuple should throw
+			{
+				// it should be accepted with the default options
+				Assume.That(() => FqlQueryParser.Parse("/foo/bar(1,...)"), Throws.Nothing);
+				// but rejected if PathOnly is specified
+				Assert.That(() => FqlQueryParser.Parse("/foo/bar(1,...)", FqlParsingOptions.PathOnly), Throws.InstanceOf<FormatException>());
+			}
+
+			// queries that include only tuple should throw as well
+			{
+				// it should be accepted with the default options
+				Assume.That(() => FqlQueryParser.Parse("(1,...)"), Throws.Nothing);
+				// but rejected if PathOnly is specified
+				Assert.That(() => FqlQueryParser.Parse("(1,...)", FqlParsingOptions.PathOnly), Throws.InstanceOf<FormatException>());
+			}
+
+		}
+
+		[Test]
+		public void Test_Fql_Parse_With_FqlParsingOptions_TupleOnly()
+		{
+			// the option FqlParsingOptions.TupleOnly should reject any query with a path
+			// - "(1,...)" is allowed
+			// - "/foo/bar", "/foo/bar(1,...)" or "./(1,...)" are not allowed
+
+			// query with only a tuple should return a valid expression
+			{
+				var q = FqlQueryParser.Parse("(1,...)", FqlParsingOptions.TupleOnly);
+				Assert.That(q, Is.Not.Null);
+				Explain(q);
+				Assert.That(q.Directory, Is.Null);
+				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().Integer(1).MaybeMore()));
+			}
+
+			// queries that include only a path should throw
+			{
+				// it should be accepted with the default options
+				Assume.That(() => FqlQueryParser.Parse("/foo/bar"), Throws.Nothing);
+				// but rejected if PathOnly is specified
+				Assert.That(() => FqlQueryParser.Parse("/foo/bar", FqlParsingOptions.TupleOnly), Throws.InstanceOf<FormatException>());
+			}
+
+			// queries that include both a path and tuple should throw
+			{
+				// it should be accepted with the default options
+				Assume.That(() => FqlQueryParser.Parse("/foo/bar(1,...)"), Throws.Nothing);
+				// but rejected if PathOnly is specified
+				Assert.That(() => FqlQueryParser.Parse("/foo/bar(1,...)", FqlParsingOptions.TupleOnly), Throws.InstanceOf<FormatException>());
+			}
+
+			// relative queries should throw as well
+			{
+				// it should be accepted with the default options
+				Assume.That(() => FqlQueryParser.Parse(".(1,...)"), Throws.Nothing);
+				// but rejected if PathOnly is specified
+				Assert.That(() => FqlQueryParser.Parse(".(1,...)", FqlParsingOptions.TupleOnly), Throws.InstanceOf<FormatException>());
 			}
 
 		}

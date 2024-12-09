@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -34,12 +34,29 @@ namespace FoundationDB.Client
 	using System.Numerics;
 	using System.Text;
 
+	/// <summary>Options for configuration the parsing of FQL expressions</summary>
+	public enum FqlParsingOptions
+	{
+		/// <summary>Use the default settings (both path and tuples are allowed)</summary>
+		Default = 0,
+		/// <summary>The expression should only contain a path.</summary>
+		PathOnly,
+		/// <summary>The expression should only contain a tuple.</summary>
+		TupleOnly,
+	}
+
+	/// <summary>Parser for FQL queries</summary>
 	public static class FqlQueryParser
 	{
 
-		public static FqlQuery Parse(ReadOnlySpan<char> text)
+		/// <summary>Parses a text literal that contains an FQL query, into the equivalent query expression</summary>
+		/// <param name="text">Text that contains a valid FQL statement</param>
+		/// <param name="options">Parsing options (uses <see cref="FqlParsingOptions.Default"/> if not specified)</param>
+		/// <returns>Expression that represents the content of the query text</returns>
+		/// <exception cref="FormatException">If the query is invalid or malformed</exception>
+		public static FqlQuery Parse(ReadOnlySpan<char> text, FqlParsingOptions options = default)
 		{
-			if (!ParseNext(text, out _).Check(out var res, out var error))
+			if (!ParseNext(text, options, out _).Check(out var res, out var error))
 			{
 				error.Throw();
 				throw null!;
@@ -48,7 +65,16 @@ namespace FoundationDB.Client
 			return res;
 		}
 
-		public static Maybe<FqlQuery> ParseNext(ReadOnlySpan<char> text, out ReadOnlySpan<char> rest)
+		/// <summary>Parses an FQL query from a text snippet into a query expression, plus any text remainder</summary>
+		/// <param name="text">Text that contains an FQL query, optionally followed by extra text that is not part of the query</param>
+		/// <param name="options">Parsing options (uses <see cref="FqlParsingOptions.Default"/> if not specified)</param>
+		/// <param name="rest">Receives the rest of the text after the query, or empty if the query ended at the last character</param>
+		/// <returns>Either the parsed query, or an error condition if the query was invalid or malformed</returns>
+		/// <remarks>
+		/// <para>This method is intended to parse queries that would be part of a command line or prompt, that would include additional arguments or options after the query.</para>
+		/// <para>It will parse up to the logical end of a query, usually the first unescaped space, or closing parens following after a valid query.</para>
+		/// </remarks>
+		public static Maybe<FqlQuery> ParseNext(ReadOnlySpan<char> text, FqlParsingOptions options, out ReadOnlySpan<char> rest)
 		{
 			rest = default;
 
@@ -71,6 +97,11 @@ namespace FoundationDB.Client
 							return new FormatException("Cannot have '/' after a tuple expression");
 						}
 
+						if (options == FqlParsingOptions.TupleOnly)
+						{
+							return new FormatException("Path are not allowed in tuple-only queries");
+						}
+
 						remaining = remaining[1..];
 						if (!ReadDirectory(ref remaining).Check(out var segment, out var error))
 						{
@@ -82,12 +113,10 @@ namespace FoundationDB.Client
 							directoryExpr = new();
 							if (!segment.IsRoot)
 							{ // add implicit root
-								directoryExpr.Name(FqlPathSegment.Root());
+								directoryExpr = directoryExpr.Root();
 							}
 						}
-						directoryExpr.Name(segment);
-
-
+						directoryExpr = directoryExpr.Name(segment);
 						break;
 					}
 					case '(':
@@ -95,6 +124,11 @@ namespace FoundationDB.Client
 						if (tupleExpr != null)
 						{
 							return new FormatException("Only one tuple expression per query");
+						}
+
+						if (options == FqlParsingOptions.PathOnly)
+						{
+							return new FormatException("Tuples are not allowed in path-only queries");
 						}
 
 						remaining = remaining[1..];
@@ -113,18 +147,56 @@ namespace FoundationDB.Client
 							return new FormatException("Cannot have '.' after a tuple expression");
 						}
 
+						if (options == FqlParsingOptions.TupleOnly)
+						{
+							return new FormatException("Path are not allowed in tuple-only queries");
+						}
+
 						// supported:
 						// - "." => all in the current directory
 						// - ".(...)" => all in the current with a tuple expression
-						// -" ./foo/..." => a path starting from the current directory
+						// - "./foo/..." => a path starting from the current directory
+						// - ".." => the parent directory (if we are not at the root)
+						// - "../foo" => in the "foo" sibling directory (if we are not at the root)
 
-						if (remaining.Length != 1 && remaining[1] is not ('/' or '('))
-						{
-							return new FormatException("Unexpected '.' in query expression");
+						// detect if this is "." or ".."
+
+						if (remaining.Length == 1)
+						{ // "."
+							directoryExpr ??= new();
+							remaining = default;
+							break;
 						}
-						
-						directoryExpr ??= new();
-						remaining = remaining[1..];
+
+						if (remaining.Length == 2 && remaining[1] == '.')
+						{ // ".."
+							directoryExpr ??= new();
+							directoryExpr = directoryExpr.Parent();
+							remaining = default;
+							break;
+						}
+
+						bool isParent = remaining.Length > 1 && remaining[1] == '.';
+						if (isParent)
+						{
+							if (remaining[2] is not ('/' or '('))
+							{
+								return new FormatException("Unexpected '.' in query expression");
+							}
+							directoryExpr ??= new();
+							directoryExpr = directoryExpr.Parent();
+							remaining = remaining[2..];
+						}
+						else
+						{
+							if (remaining[1] is not ('/' or '('))
+							{
+								return new FormatException("Unexpected '.' in query expression");
+							}
+							directoryExpr ??= new();
+							remaining = remaining[1..];
+						}
+					
 						break;
 					}
 					default:
@@ -149,23 +221,21 @@ namespace FoundationDB.Client
 			};
 		}
 
-		public static readonly SearchValues<char> CategoryWhitespace = SearchValues.Create("\t ");
-		public static readonly SearchValues<char> CategoryNewLine = SearchValues.Create("\t\r\n ");
-		public static readonly SearchValues<char> CategoryDigit = SearchValues.Create("0123456789");
-		public static readonly SearchValues<char> CategoryHexDigit = SearchValues.Create("0123456789ABCDEFabcdef");
-		public static readonly SearchValues<char> CategoryNumber = SearchValues.Create("0123456789+-Ee.");
-		public static readonly SearchValues<char> CategoryInteger = SearchValues.Create("0123456789+-");
-		public static readonly SearchValues<char> CategoryName = SearchValues.Create("-.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz");
-		public static readonly SearchValues<char> CategoryText = SearchValues.Create(" !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~");
+		// ReSharper disable StringLiteralTypo
+		private static readonly SearchValues<char> CategoryNewLine = SearchValues.Create("\t\r\n ");
+		private static readonly SearchValues<char> CategoryHexDigit = SearchValues.Create("0123456789ABCDEFabcdef");
+		private static readonly SearchValues<char> CategoryNumber = SearchValues.Create("0123456789+-Ee.");
+		private static readonly SearchValues<char> CategoryInteger = SearchValues.Create("0123456789+-");
+		private static readonly SearchValues<char> CategoryName = SearchValues.Create("-.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz");
+		private static readonly SearchValues<char> CategoryText = SearchValues.Create(" !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~");
+		// ReSharper restore StringLiteralTypo
 
-		private static bool IsWhitespace(char c) => c is ' ' or '\t';
-		private static bool IsNewLine(char c) => c is '\r' or '\n';
-
+		/// <summary>Reads the next path segment in a directory expression</summary>
 		private static Maybe<FqlPathSegment> ReadDirectory(ref ReadOnlySpan<char> text)
 		{
-			// directory = '/' ( '<>' | name | string ) [ directory ]
+			// directory = '/' ( '<>' | '..' | name | string ) [ directory ]
 
-			// note: we already have consumed the '/'
+			// note: the called has already consumed the '/' character
 
 			if (text.Length == 0)
 			{
@@ -199,6 +269,25 @@ namespace FoundationDB.Client
 					}
 					return FqlPathSegment.Literal(FdbPathSegment.Create(literal));
 				}
+				case '.':
+				{ // only '.' or '..' allowed
+
+					if (text.Length == 1 || text[1] is ('/' or '('))
+					{ // '.'
+						text = text[1..];
+						return FqlPathSegment.Literal(".", null);
+					}
+
+					if (text[1] == '.')
+					{ // '..'
+						if (text.Length == 2 || text[2] is ('/' or '('))
+						{
+							text = text[2..];
+							return FqlPathSegment.Parent();
+						}
+					}
+					return new FormatException($"TODO: unexpected char '{next}' while reading directory: [{text}]");
+				}
 				default:
 				{
 
@@ -213,9 +302,10 @@ namespace FoundationDB.Client
 			}
 		}
 
+		/// <summary>Reads and decodes an escaped string (surrounded by double quotes)</summary>
 		private static Maybe<string> ReadString(ref ReadOnlySpan<char> text)
 		{
-			// we already consumed the '"'
+			// note: the called has already consumed the leading '"'
 
 			StringBuilder? sb = null;
 
@@ -262,6 +352,7 @@ namespace FoundationDB.Client
 			throw new FormatException("TODO: truncated string");
 		}
 
+		/// <summary>Reads an unescaped directory name</summary>
 		private static string ReadName(ref ReadOnlySpan<char> text)
 		{
 			int p = text.IndexOfAnyExcept(CategoryName);
@@ -280,9 +371,10 @@ namespace FoundationDB.Client
 			return name;
 		}
 
+		/// <summary>Reads an decodes a variable</summary>
 		private static (FqlVariableTypes Types, string? Name) ReadVariable(ref ReadOnlySpan<char> text)
 		{
-			// we already have consumed the '<';
+			// note: the called has already consumed the leading '<'
 
 			FqlVariableTypes types = default;
 
@@ -322,6 +414,8 @@ namespace FoundationDB.Client
 
 		private static bool CouldBeUuid(ReadOnlySpan<char> text) => text.Length >= 36 && text[8] == '-' && text[13] == '-' && text[18] == '-' && text[23] == '-';
 
+		/// <summary>Reads a tuple expression (including any embedded tuples)</summary>
+		/// <remarks>Reads until the tuple is closed with <c>')'</c></remarks>
 		private static Maybe<FqlTupleExpression> ReadTuple(ref ReadOnlySpan<char> text)
 		{
 			// we already have consumed the '('
@@ -411,7 +505,7 @@ namespace FoundationDB.Client
 							continue;
 						}
 
-						// it could be a uuid, IF the next 36 chars are only hex digits with '-' at the correct place
+						// it could be an uuid, IF the next 36 chars are only hex digits with '-' at the correct place
 						//TODO: check for uuid!
 						if (CouldBeUuid(text))
 						{
@@ -425,7 +519,6 @@ namespace FoundationDB.Client
 						}
 
 						// it's a number
-						//TODO: parse a number!
 
 						// could be an integer or a floating point number
 						int q = text.IndexOfAnyExcept(CategoryNumber);

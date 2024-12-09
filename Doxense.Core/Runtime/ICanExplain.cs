@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -69,6 +69,20 @@ namespace Doxense.Runtime
 		public void WriteLine(string message) => this.Output.WriteLine(this.Indentation + message);
 
 		public void WriteLine(ref DefaultInterpolatedStringHandler message) => this.Output.WriteLine(this.Indentation + message.ToStringAndClear());
+
+		public void WriteChildrenLine(string message)
+		{
+			Enter();
+			WriteLine(message);
+			Leave();
+		}
+
+		public void WriteChildrenLine(ref DefaultInterpolatedStringHandler message)
+		{
+			Enter();
+			WriteLine(ref message);
+			Leave();
+		}
 
 		public void ExplainChild<TExplainable>(TExplainable? child, string? label = null)
 			where TExplainable : ICanExplain
