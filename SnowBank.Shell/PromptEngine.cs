@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -108,7 +108,7 @@ namespace SnowBank.Shell.Prompt
 
 		public Func<PromptState, RenderState?, PromptState>? OnBeforeRender { get; init; }
 
-		public async Task<string?> Prompt(CancellationToken ct)
+		public async Task<PromptState> Prompt(CancellationToken ct)
 		{
 			// this is the complete text, (used to render the prompt up to the cursor)
 
@@ -180,7 +180,7 @@ namespace SnowBank.Shell.Prompt
 				this.State = state;
 			}
 
-			return state.RawText;
+			return state;
 		}
 
 	}

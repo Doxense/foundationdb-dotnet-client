@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -91,6 +91,26 @@ namespace SnowBank.Shell.Prompt
 				// first we have to detect if we change to the next token, by looking for a space in the token:
 				// - "hello_" we are still writing the token (maybe there are more to come)
 				// - "hello _" we have written the command, we must switch to it
+
+				if (state.Change == PromptChange.Done)
+				{
+					if (this.Command is not null)
+					{ // we either have a command that does not have any argument or options, or the caller forgot to pass any!
+
+						var builder = this.Command.StartNew();
+						Contract.Debug.Assert(builder != null);
+						state = state with
+						{
+							Change = PromptChange.Done,
+							Command = this.Command,
+							RawToken = "",
+							Tokens = state.Tokens.Push(PromptToken.Create("command", state.RawToken.Trim())),
+							CommandBuilder = builder,
+						};
+
+						return builder.Update(state);
+					}
+				}
 
 				if (state.Tokens.Count > 1)
 				{ // this is not supposed to happen, unless we are parsing an invalid command?

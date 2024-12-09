@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -44,6 +44,54 @@ namespace SnowBank.Shell.Prompt.Tests
 	public class PromptEngineFacts : SimpleTest
 	{
 
+		public sealed record FakeVersion : PromptCommandDescriptor
+		{
+			public override string Token => "version";
+
+			public override string Description => "Display version information";
+
+			public override string SyntaxHint => "version";
+
+			public override IPromptCommandBuilder StartNew() => new Builder();
+
+			public override void GetTokens(List<string> candidates, string command, string tok)
+			{
+				// nothing to auto-complete
+			}
+
+			public sealed class Command : PromptCommand<FakeVersion>
+			{
+				public Command(FakeVersion descriptor, string commandText)
+					: base(descriptor, commandText)
+				{ }
+
+			}
+
+			public sealed record Builder : PromptCommandBuilder<FakeVersion, FakeVersion.Command>
+			{
+
+				public override bool IsValid() => true;
+
+				public override string ToString() => "Version";
+
+				public override PromptState Update(PromptState state)
+				{
+					// we don't expect any argument or option
+					return state with
+					{
+						Tokens = PromptTokenStack.Empty,
+					};
+				}
+
+				public override Command Build(PromptState state, FakeVersion descriptor)
+				{
+					return new(descriptor, state.RawText);
+				}
+			}
+
+		}
+
+		/// <summary>Generic command that takes one argument: <c>hello &lt;word&gt;</c></summary>
 		public sealed record FakeHello : PromptCommandDescriptor
 		{
 			public override string Token => "hello";
@@ -83,7 +131,7 @@ namespace SnowBank.Shell.Prompt.Tests
 
 				public override bool IsValid() => !string.IsNullOrWhiteSpace(this.Argument);
 
-				public override string ToString() => $"Hello {{ Argument = \"{Argument}\" }}";
+				public override string ToString() => $"Hello {{ Argument = \"{this.Argument}\" }}";
 
 				public override PromptState Update(PromptState state)
 				{
@@ -158,7 +206,7 @@ namespace SnowBank.Shell.Prompt.Tests
 
 				public override bool IsValid() => !string.IsNullOrWhiteSpace(this.CommandName);
 
-				public override string ToString() => $"Help {{ CommandName = \"{CommandName}\" }}";
+				public override string ToString() => $"Help {{ CommandName = \"{this.CommandName}\" }}";
 
 				public override PromptState Update(PromptState state)
 				{
@@ -256,7 +304,6 @@ namespace SnowBank.Shell.Prompt.Tests
 
 			};
 
-			PromptState lastState = initial;
 			int index = 0;
 
 			var engine = new PromptEngine()
@@ -297,7 +344,6 @@ namespace SnowBank.Shell.Prompt.Tests
 					DumpState(state);
 					Log();
 
-					lastState = state;
 					++index;
 				},
 
@@ -308,9 +354,51 @@ namespace SnowBank.Shell.Prompt.Tests
 				},
 			};
 
-			await engine.Prompt(this.Cancellation);
+			return await engine.Prompt(this.Cancellation);
+		}
 
-			return lastState;
+		[Test]
+		public async Task Test_Can_Type_Version_Command()
+		{
+			// Fully type the "version" command, character by character
+			// - The shell has two commands "version" and "help", that do not have any characters in common
+			// - The "version" command does not take any argument or option
+			// - ENTER should generate the VersionCommand singleton
+
+			var version = new FakeVersion();
+			var help = new FakeHelp();
+			var root = new RootPromptCommand() { Commands = [version, help], };
+			var keyHandler = new DefaultPromptKeyHandler();
+			var autoComplete = new DefaultPromptAutoCompleter() { Root = root };
+			var theme = new AnsiConsolePromptTheme() { MaxRows = 5, Prompt = "> " };
+
+			var state = await Run(
+				keyHandler,
+				autoComplete,
+				theme,
+				PromptState.CreateEmpty(root, theme),
+				[
+					(Keyboard.v,     Expr(theme, root).Add('v').Tokens("incomplete:v").Candidates(["version"], commonPrefix: "version")),
+					(Keyboard.e,     Expr(theme, root).Add('e').Tokens("incomplete:ve").Candidates(["version"], commonPrefix: "version")),
+					(Keyboard.r,     Expr(theme, root).Add('r').Tokens("incomplete:ver").Candidates(["version"], commonPrefix: "version")),
+					(Keyboard.s,     Expr(theme, root).Add('s').Tokens("incomplete:vers").Candidates(["version"], commonPrefix: "version")),
+					(Keyboard.i,     Expr(theme, root).Add('i').Tokens("incomplete:versi").Candidates(["version"], commonPrefix: "version")),
+					(Keyboard.o,     Expr(theme, root).Add('o').Tokens("incomplete:versio").Candidates(["version"], commonPrefix: "version")),
+					(Keyboard.n,     Expr(theme, root).Add('n').Tokens("command:version").Candidates(["version"], exactMatch: "version")),
+					(Keyboard.Enter, Expr(theme, version).Done().Tokens("command:version")),
+				]
+			);
+
+			// create the query command that should contain the parsed FqlQuery 
+			Log($"Command: {state.Command.GetType()?.GetFriendlyName()}");
+			Assert.That(state.Command, Is.SameAs(version));
+			Assert.That(state.CommandBuilder, Is.InstanceOf<FakeVersion.Builder>());
+			var result = state.CommandBuilder.Build(state);
+			Assert.That(result, Is.InstanceOf<FakeVersion.Command>());
+
+			// verify the argument
+			var cmd = (FakeVersion.Command) result;
+			//TODO: check that this is the singleton
 		}
 
 		[Test]
@@ -365,7 +453,7 @@ namespace SnowBank.Shell.Prompt.Tests
 			Assert.That(cmd.Argument, Is.EqualTo("world"));
 		}
 
-				[Test]
+		[Test]
 		public async Task Test_Can_Type_Hello_Command_With_Typos_And_Backspaces()
 		{
 			// Fully type the "hello world" command, but simulating some typos + backspaces
@@ -541,7 +629,7 @@ namespace SnowBank.Shell.Prompt.Tests
 
 						Contract.Debug.Assert(state.Tokens.Count == 2);
 
-						if (!FqlQueryParser.ParseNext(state.RawToken, out var rest).Check(out var query, out var error))
+						if (!FqlQueryParser.ParseNext(state.RawToken, FqlParsingOptions.Default, out var rest).Check(out var query, out var error))
 						{ // incomplete or invalid query
 
 							//TODO: heuristic to "complete" the query into a temporary query?
