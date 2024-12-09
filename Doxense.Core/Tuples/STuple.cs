@@ -1002,6 +1002,16 @@ namespace Doxense.Collections.Tuples
 
 				private const char EOF = '\xFFFF';
 
+				// to reduce boxing, we pre-allocate some well known singletons
+
+				private static readonly object FalseSingleton = false;
+				private static readonly object TrueSingleton = true;
+				private static readonly object ZeroSingleton = 0;
+				private static readonly object OneSingleton = 1;
+				private static readonly object TwoSingleton = 2;
+				private static readonly object ThreeSingleton = 3;
+				private static readonly object FourSingleton = 4;
+
 				public Parser(string expression)
 				{
 					this.Expression = expression;
@@ -1148,18 +1158,18 @@ namespace Doxense.Collections.Tuples
 									break;
 								}
 
-								if (c == 't' || c == 'T')
+								if (c is 't' or 'T')
 								{ // true?
 									if (!TryReadKeyword("true")) throw new FormatException("Unrecognized keyword in Tuple expression. Did you meant to write 'true' instead?");
-									items.Add(true);
+									items.Add(TrueSingleton);
 									expectItem = false;
 									break;
 								}
 
-								if (c == 'f' || c == 'F')
+								if (c is 'f' or 'F')
 								{ // false?
 									if (!TryReadKeyword("false")) throw new FormatException("Unrecognized keyword in Tuple expression. Did you meant to write 'false' instead?");
-									items.Add(false);
+									items.Add(FalseSingleton);
 									expectItem = false;
 									break;
 								}
@@ -1225,7 +1235,7 @@ namespace Doxense.Collections.Tuples
 							continue;
 						}
 
-						if (c == '-' || c == '+')
+						if (c is '-' or '+')
 						{
 							if (!exp) throw new FormatException("Unexpected sign in number.");
 							++p;
@@ -1247,7 +1257,20 @@ namespace Doxense.Collections.Tuples
 							throw new OverflowException("Parsed number is too large");
 						}
 
-						if (x <= int.MaxValue) return (int) x;
+						if (x <= int.MaxValue)
+						{
+							// to reduce boxing, we have a few pre-allocated singletons for the most common values (0, 1, 2, ...)
+							return x switch
+							{
+								0 => ZeroSingleton,
+								1 => OneSingleton,
+								2 => TwoSingleton,
+								3 => ThreeSingleton,
+								4 => FourSingleton,
+								_ => (int) x
+							};
+						}
+
 						if (x <= long.MaxValue) return (long) x;
 						return x;
 					}

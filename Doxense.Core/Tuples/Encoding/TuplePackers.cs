@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -1147,6 +1147,15 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <remarks>You should avoid working with untyped values as much as possible! Blindly casting the returned object may be problematic because this method may need to return very large integers as Int64 or even UInt64.</remarks>
 		public static object? DeserializeBoxed(Slice slice) => DeserializeBoxed(slice.Span);
 
+		// to reduce boxing, we pre-allocate some well known singletons
+		private static readonly object FalseSingleton = false;
+		private static readonly object TrueSingleton = true;
+		private static readonly object ZeroSingleton = 0;
+		private static readonly object OneSingleton = 1;
+		private static readonly object TwoSingleton = 2;
+		private static readonly object ThreeSingleton = 3;
+		private static readonly object FourSingleton = 4;
+
 		/// <summary>Deserializes a packed element into an object by choosing the most appropriate type at runtime</summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
 		/// <returns>Decoded element, in the type that is the best fit.</returns>
@@ -1158,7 +1167,19 @@ namespace Doxense.Collections.Tuples.Encoding
 			int type = slice[0];
 			if (type <= TupleTypes.IntPos8)
 			{
-				if (type >= TupleTypes.IntNeg8) return TupleParser.ParseInt64(type, slice);
+				if (type >= TupleTypes.IntNeg8)
+				{
+					long l = TupleParser.ParseInt64(type, slice);
+					return l switch
+					{
+						0 => ZeroSingleton,
+						1 => OneSingleton,
+						2 => TwoSingleton,
+						3 => ThreeSingleton,
+						4 => FourSingleton,
+						_ => l
+					};
+				}
 
 				switch (type)
 				{
@@ -1179,8 +1200,8 @@ namespace Doxense.Collections.Tuples.Encoding
 					case TupleTypes.Double: return TupleParser.ParseDouble(slice);
 					//TODO: Triple
 					case TupleTypes.Decimal: return TupleParser.ParseDecimal(slice);
-					case TupleTypes.False: return false;
-					case TupleTypes.True: return true;
+					case TupleTypes.False: return FalseSingleton;
+					case TupleTypes.True: return TrueSingleton;
 					case TupleTypes.Uuid128: return TupleParser.ParseGuid(slice);
 					case TupleTypes.Uuid64: return TupleParser.ParseUuid64(slice);
 					case TupleTypes.VersionStamp80: return TupleParser.ParseVersionStamp(slice);

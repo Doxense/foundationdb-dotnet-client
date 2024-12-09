@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -649,6 +649,49 @@ namespace Doxense.Collections.Tuples.Tests
 			Verify("<10><7F><FF><FF><FF>", int.MinValue);
 			Verify("<1C><7F><FF><FF><FF><FF><FF><FF><FF>", long.MaxValue);
 			Verify("<0C><7F><FF><FF><FF><FF><FF><FF><FF>", long.MinValue);
+		}
+
+		[Test]
+		public void Test_TuplePack_Deserialize_WellKnownValues_Into_Singletons()
+		{
+			// some very frequent values, such as booleans and very small integers, should returned pre-allocated singletons instead of using boxing
+			// ex: (false, false, false) should return 3 times the same singleton
+
+			static void Verify<T>(T value)
+			{
+				var t = (value, value, value);
+				var packed = TuPack.Pack(t);
+
+				// they should all be the same objects when repeated in a single tuple
+				var slicedTuple = TuPack.Unpack(packed);
+				Assert.That(slicedTuple, Has.Count.EqualTo(3));
+				Assert.That(slicedTuple, Is.All.EqualTo(value));
+
+				var singleton = slicedTuple[0];
+				Assert.That(singleton, Is.EqualTo(value));
+				Assert.That(slicedTuple[1], Is.SameAs(singleton));
+				Assert.That(slicedTuple[2], Is.SameAs(singleton));
+
+				// they should also be the same when parsed from different tuples
+				var slicedTuple2 = TuPack.Unpack(TuPack.EncodeKey(value));
+				Assert.That(slicedTuple2, Has.Count.EqualTo(1));
+				Assert.That(slicedTuple2[0], Is.SameAs(singleton));
+
+				// this should behave the same when parsing from spans
+				var spanTuple = TuPack.Unpack(packed.Span);
+				Assert.That(spanTuple.Count, Is.EqualTo(3));
+				Assert.That(spanTuple[0], Is.SameAs(singleton));
+				Assert.That(spanTuple[1], Is.SameAs(singleton));
+				Assert.That(spanTuple[2], Is.SameAs(singleton));
+			}
+
+			Verify(false);
+			Verify(true);
+			Verify(0);
+			Verify(1);
+			Verify(2);
+			Verify(3);
+			Verify(4);
 		}
 
 		[Test]
