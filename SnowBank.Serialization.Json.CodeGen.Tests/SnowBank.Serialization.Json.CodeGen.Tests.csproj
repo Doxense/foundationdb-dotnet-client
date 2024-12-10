@@ -15,17 +15,19 @@
 	</PropertyGroup>
 
 	<!-- Source Code Generator -->
+	<!--
 	<PropertyGroup>
 		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
-		<!--<CompilerGeneratedFilesOutputPath>$(ProjectDir)Generated</CompilerGeneratedFilesOutputPath>-->
+		<GeneratedFolder>Generated</GeneratedFolder>
+		<CompilerGeneratedFilesOutputPath>$(GeneratedFolder)\$(TargetFramework)</CompilerGeneratedFilesOutputPath>
 	</PropertyGroup>
-	<!--
-	<Target Name="SkipSourceGeneratedFiles" BeforeTargets="CoreCompile">
-		<ItemGroup>
-			<Compile Remove="Generated/**/*" />
-		</ItemGroup>
-	</Target>-->
-	
+
+	<ItemGroup>
+		<Compile Remove="$(GeneratedFolder)/**/*.cs" />
+		<None Include="$(GeneratedFolder)/**/*.cs" />
+	</ItemGroup>
+	-->
+
 	<ItemGroup>
 		<PackageReference Include="Microsoft.NET.Test.Sdk" />
 		<PackageReference Include="Microsoft.TestPlatform.TestHost" />
