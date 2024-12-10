@@ -372,7 +372,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Reads an decodes a variable</summary>
-		private static (FqlVariableTypes Types, string? Name) ReadVariable(ref ReadOnlySpan<char> text)
+		private static Maybe<(FqlVariableTypes Types, string? Name)> ReadVariable(ref ReadOnlySpan<char> text)
 		{
 			// note: the called has already consumed the leading '<'
 
@@ -395,7 +395,7 @@ namespace FoundationDB.Client
 				var type = FqlTupleItem.ParseVariableTypeLiteral(text[..p]);
 				if (type == FqlVariableTypes.None)
 				{
-					throw new FormatException($"Invalid variable type '{text[..p]}'");
+					return new FormatException($"Invalid variable type '{text[..p]}'");
 				}
 				types |= type;
 
@@ -409,7 +409,7 @@ namespace FoundationDB.Client
 				text = text[(p + 1)..];
 			}
 
-			throw new FormatException("Truncated variable");
+			return new FormatException("Truncated variable");
 		}
 
 		private static bool CouldBeUuid(ReadOnlySpan<char> text) => text.Length >= 36 && text[8] == '-' && text[13] == '-' && text[18] == '-' && text[23] == '-';
@@ -616,8 +616,11 @@ namespace FoundationDB.Client
 					{ // variable
 
 						text = text[1..];
-						var (types, name) = ReadVariable(ref text);
-						tuple.Var(types, name);
+						if (!ReadVariable(ref text).Check(out var res, out var error))
+						{
+							return error;
+						}
+						tuple.Var(res.Types, res.Name);
 						continue;
 					}
 					case ',':
