@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -350,7 +350,7 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[DebuggerStepThrough]
-		protected async Task DumpSubspace(IFdbDatabase db, ISubspaceLocation path)
+		protected async Task DumpSubspace(IFdbDatabase db, ISubspaceLocation path, bool recursive = true)
 		{
 			Assert.That(db, Is.Not.Null);
 
@@ -368,7 +368,7 @@ namespace FoundationDB.Client.Tests
 
 				await DumpSubspace(tr, subspace).ConfigureAwait(false);
 
-				if (path.Prefix.Count == 0)
+				if (recursive && path.Prefix.Count == 0)
 				{
 					var names = await db.DirectoryLayer.TryListAsync(tr, path.Path);
 					if (names != null)
