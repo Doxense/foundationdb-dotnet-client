@@ -25,6 +25,7 @@
 	<ItemGroup>
 		<PackageReference Include="Microsoft.NET.Test.Sdk" />
 		<PackageReference Include="Microsoft.TestPlatform.TestHost" />
+		<PackageReference Include="Newtonsoft.Json" />
 		<PackageReference Include="NodaTime.Testing" />
 		<PackageReference Include="NUnit" />
 		<PackageReference Include="NUnit.Analyzers">

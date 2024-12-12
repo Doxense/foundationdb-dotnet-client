@@ -988,51 +988,44 @@ namespace Doxense.Serialization.Json
 			return null;
 		}
 
-		private static JsonPropertyAttribute? FindPropertyAttribute(FieldInfo field)
+		private static JsonPropertyAttribute? FindPropertyAttribute(MemberInfo member)
 		{
-			System.Text.Json.Serialization.JsonPropertyNameAttribute? fallback = null;
-			foreach (var attr in field.GetCustomAttributes(true))
+			System.Text.Json.Serialization.JsonPropertyNameAttribute? fallbackSystemTextJson = null;
+			Attribute? fallbackNewtonsoftJson = null;
+			foreach (var attr in member.GetCustomAttributes(true))
 			{
+				// look for our own attribute, that has priority
 				if (attr is JsonPropertyAttribute jp)
 				{
 					return jp;
 				}
 
+				// recognize [JsonPropertyName(...)] from System.Text.Json, if present
 				if (attr is System.Text.Json.Serialization.JsonPropertyNameAttribute jpn)
 				{
-					fallback = jpn;
+					fallbackSystemTextJson = jpn;
 				}
-			}
-
-			if (fallback is not null)
-			{ // fake the original [JsonProperty("...")] by copying the name of the other attribute
-				return new JsonPropertyAttribute(fallback.Name);
-			}
-
-			return null;
-		}
-
-		private static JsonPropertyAttribute? FindPropertyAttribute(PropertyInfo prop)
-		{
-			System.Text.Json.Serialization.JsonPropertyNameAttribute? fallback = null;
-			foreach (var attr in prop.GetCustomAttributes(true))
-			{
-				if (attr is JsonPropertyAttribute jp)
+				
+				// likewise, recognize the attribute from JSON.Net
+				//note: since we don't reference the package, we have to test the name+namespace !
+				if (attr.GetType().Name == "JsonPropertyAttribute" && attr.GetType().Namespace == "Newtonsoft.Json")
 				{
-					return jp;
-				}
-
-				if (attr is System.Text.Json.Serialization.JsonPropertyNameAttribute jpn)
-				{
-					fallback = jpn;
+					fallbackNewtonsoftJson = (Attribute) attr;
 				}
 			}
 
-			if (fallback is not null)
+			if (fallbackSystemTextJson is not null)
 			{ // fake the original [JsonProperty("...")] by copying the name of the other attribute
-				return new JsonPropertyAttribute(fallback.Name);
+				return new JsonPropertyAttribute(fallbackSystemTextJson.Name);
 			}
 
+			if (fallbackNewtonsoftJson is not null)
+			{ // we need to access the "PropertyName" property via reflection!
+				var name = (string?) fallbackNewtonsoftJson.GetType().GetProperty("PropertyName")?.GetValue(fallbackNewtonsoftJson);
+				if (name != null) return new JsonPropertyAttribute(name);
+			}
+
+			// no valid candidate found
 			return null;
 		}
 

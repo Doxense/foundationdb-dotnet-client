@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -90,6 +90,9 @@ namespace Doxense.Serialization.Json.Tests
 	using Doxense.Runtime.Converters;
 	using NodaTime;
 	using NUnit.Framework.Constraints;
+
+	using STJ = System.Text.Json;
+	using NJ = Newtonsoft.Json;
 
 	[TestFixture]
 	[Category("Core-SDK")]
@@ -3506,6 +3509,75 @@ namespace Doxense.Serialization.Json.Tests
 			Verify_TryFormat(DateOnly.MinValue);
 			Verify_TryFormat(DateOnly.MaxValue);
 			Verify_TryFormat(DateOnly.FromDateTime(DateTime.Now));
+		}
+
+		[Test]
+		public void Test_PropertyNames_CrystalJson()
+		{
+			var instance = new DummyCrystalJsonTextPropertyNames()
+			{
+				HelloWorld = "hello", // => "helloWorld": "hello"
+				Foo = "world",        // => "bar": "world"
+			};
+
+			var json = CrystalJson.Serialize(instance, CrystalJsonSettings.Json);
+			Log(json);
+			Assert.That(json, Is.EqualTo("{ \"helloWorld\": \"hello\", \"bar\": \"world\" }"));
+
+			var obj = JsonObject.FromObject(instance);
+			Dump(obj);
+			Assert.That(obj["helloWorld"], IsJson.EqualTo("hello"));
+			Assert.That(obj["bar"], IsJson.EqualTo("world"));
+
+			var decoded = obj.As<DummyCrystalJsonTextPropertyNames>()!;
+			Assert.That(decoded.HelloWorld, Is.EqualTo("hello"));
+			Assert.That(decoded.Foo, Is.EqualTo("world"));
+		}
+
+		[Test]
+		public void Test_PropertyNames_SystemTextJson()
+		{
+			var instance = new DummySystemJsonTextPropertyNames()
+			{
+				HelloWorld = "hello", // => "helloWorld": "hello"
+				Foo = "world",        // => "bar": "world"
+			};
+
+			var json = CrystalJson.Serialize(instance, CrystalJsonSettings.Json);
+			Log(json);
+			Assert.That(json, Is.EqualTo("{ \"helloWorld\": \"hello\", \"bar\": \"world\" }"));
+
+			var obj = JsonObject.FromObject(instance);
+			Dump(obj);
+			Assert.That(obj["helloWorld"], IsJson.EqualTo("hello"));
+			Assert.That(obj["bar"], IsJson.EqualTo("world"));
+
+			var decoded = obj.As<DummySystemJsonTextPropertyNames>()!;
+			Assert.That(decoded.HelloWorld, Is.EqualTo("hello"));
+			Assert.That(decoded.Foo, Is.EqualTo("world"));
+		}
+
+		[Test]
+		public void Test_PropertyNames_NewtonsoftJson()
+		{
+			var instance = new DummyNewtonsoftJsonPropertyNames()
+			{
+				HelloWorld = "hello", // => "helloWorld": "hello"
+				Foo = "world",        // => "bar": "world"
+			};
+
+			var json = CrystalJson.Serialize(instance, CrystalJsonSettings.Json);
+			Log(json);
+			Assert.That(json, Is.EqualTo("{ \"helloWorld\": \"hello\", \"bar\": \"world\" }"));
+
+			var obj = JsonObject.FromObject(instance);
+			Dump(obj);
+			Assert.That(obj["helloWorld"], IsJson.EqualTo("hello"));
+			Assert.That(obj["bar"], IsJson.EqualTo("world"));
+
+			var decoded = obj.As<DummyNewtonsoftJsonPropertyNames>()!;
+			Assert.That(decoded.HelloWorld, Is.EqualTo("hello"));
+			Assert.That(decoded.Foo, Is.EqualTo("world"));
 		}
 
 		#endregion
@@ -10936,6 +11008,39 @@ namespace Doxense.Serialization.Json.Tests
 		public string InvisibleProperty => "ShouldNotBeSeen";
 	}
 #pragma warning restore 649
+
+	public sealed class DummyCrystalJsonTextPropertyNames
+	{
+		// test that we recognize our own JsonPropertyAttribute
+
+		[JsonProperty("helloWorld")]
+		public string? HelloWorld { get; set; }
+
+		[JsonProperty("bar")]
+		public string? Foo { get; set; }
+	}
+
+	public sealed class DummySystemJsonTextPropertyNames
+	{
+		// test that we recognize System.Text.Json.Serialization.JsonPropertyNameAttribute
+
+		[STJ.Serialization.JsonPropertyName("helloWorld")]
+		public string? HelloWorld { get; set; }
+
+		[STJ.Serialization.JsonPropertyName("bar")]
+		public string? Foo { get; set; }
+	}
+
+	public sealed class DummyNewtonsoftJsonPropertyNames
+	{
+		// test that we recognize Newtonsoft.Json.JsonPropertyAttribute
+
+		[NJ.JsonProperty("helloWorld")]
+		public string? HelloWorld { get; set; }
+
+		[NJ.JsonProperty("bar")]
+		public string? Foo { get; set; }
+	}
 
 	#endregion
 
