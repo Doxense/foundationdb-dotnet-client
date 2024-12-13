@@ -73,15 +73,15 @@
 
 		<!-- Windows x64 -->
 		<None Include="runtimes\win-x64\native\fdb_c.dll" Pack="true" PackagePath="runtimes/win-x64/native/" />
-		<None Include="runtimes\win-x64\native\fdbcli.exe" Pack="true" PackagePath="runtimes/win-x64/native/" />
 
 		<!-- Linux x64 -->
 		<None Include="runtimes\linux-x64\native\libfdb_c.so" Pack="true" PackagePath="runtimes/linux-x64/native/" />
-		<None Include="runtimes\linux-x64\native\fdbcli" Pack="true" PackagePath="runtimes/linux-x64/native/" />
 
 		<!-- Linux arm64 -->
 		<None Include="runtimes\linux-arm64\native\libfdb_c.so" Pack="true" PackagePath="runtimes/linux-arm64/native/" />
-		<None Include="runtimes\linux-arm64\native\fdbcli" Pack="true" PackagePath="runtimes/linux-arm64/native/" />
+
+		<!-- macOS arm64 -->
+		<None Include="runtimes\linux-arm64\native\libfdb_c.dylib" Pack="true" PackagePath="runtimes/macos-arm64/native/" />
 
 	</ItemGroup>
 
