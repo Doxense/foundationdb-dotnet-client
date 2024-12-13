@@ -1,8 +1,20 @@
 <Project>
+
+	<!-- Detect if we are used as a submodule in a parent repository, and if this is true, try to import the parent Directory.Build.props folder that could override the properties defined here -->
+	<!-- We use the fact that git-submodules have a .git _file_, instead of a .git _directory_, which can help prevent from an attacker somehow being able to inject a fake .props file above us -->
+	<Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))"
+	        Condition="Exists('$(MSBuildThisFileDirectory)../Directory.Build.props') AND $([System.IO.File]::Exists('$(MSBuildThisFileDirectory)/.git'))" />
+
 	<PropertyGroup>
 		<ArtifactsPath>$(MSBuildThisFileDirectory)artifacts</ArtifactsPath>
 		<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
 	</PropertyGroup>
+
+	<!--
+		These settings are used by all other projects to define the build target.
+		When this repository is included as a submodule, the parent folder can override these values
+	    in its own Directory.Build.props file, in order to not have to build extra targets that are not used.
+	-->
 	<PropertyGroup>
 		<!-- Framework versions for the core libraries (Core, FoundationDb.Client, ...) -->
 		<CoreSdkRuntimeVersions Condition="'$(CloudSdkRuntimeVersions)' == ''">net9.0;net8.0</CoreSdkRuntimeVersions>
@@ -13,4 +25,5 @@
 		<!-- Framework versions for Aspire (only .NET8+) -->
 		<CloudSdkRuntimeVersions Condition="'$(CloudSdkRuntimeVersions)' == ''">net9.0;net8.0</CloudSdkRuntimeVersions>
 	</PropertyGroup>
+
 </Project>
