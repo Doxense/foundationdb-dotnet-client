@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -111,7 +111,7 @@ namespace Doxense.Serialization.Json
 		#region Constructors...
 
 		/// <summary>Returns a new empty JSON Array</summary>
-		[Obsolete("OLD_API: Use JsonArray.CreateEmpty() instead, or use JsonArray.EmptyReadOnly or a readonly empty singleton", error: true)]
+		[Obsolete("Use JsonArray.Create() for a mutable array, or JsonArray.EmptyReadOnly for an immutable empty singleton", error: true)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static JsonArray Empty
 		{
@@ -119,7 +119,7 @@ namespace Doxense.Serialization.Json
 			get => new([], 0, readOnly: false);
 		}
 
-		/// <summary>Return an empty, read-only, <see cref="JsonArray">JSON Array</see> singleton</summary>
+		/// <summary>Returns an empty, read-only, <see cref="JsonArray">JSON Array</see> singleton</summary>
 		/// <remarks>This instance cannot be modified, and should be used to reduce memory allocations when working with read-only JSON</remarks>
 		public static readonly JsonArray EmptyReadOnly = new([], 0, readOnly: true);
 

@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -66,7 +66,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static JsonObject Empty => new(new(0, StringComparer.Ordinal), readOnly: false);
 
-		/// <summary>Empty read-only JSON object singleton</summary>
+		/// <summary>Returns an empty, read-only, <see cref="JsonObject">JSON Object</see> singleton</summary>
 		/// <remarks>This instance cannot be modified, and should be used to reduce memory allocations when working with read-only JSON</remarks>
 		public static readonly JsonObject EmptyReadOnly = new(new(0, StringComparer.Ordinal), readOnly: true);
 
