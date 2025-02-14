@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -484,6 +484,28 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public virtual JsonValue GetValue(ReadOnlyMemory<char> key) => GetValueOrDefault(key, JsonNull.Missing).RequiredField(key.Span);
 
+#if NET9_0_OR_GREATER
+
+		/// <summary>Returns the value of the <b>required</b> field with the specified name.</summary>
+		/// <param name="key">Name of the field to retrieve</param>
+		/// <param name="actualKey">Receives the previously allocated key.</param>
+		/// <returns>The value of the specified field, or an exception if it is null or missing.</returns>
+		/// <exception cref="InvalidOperationException">If the field is null or missing</exception>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public virtual JsonValue GetValue(ReadOnlySpan<char> key, out string actualKey) => GetValueOrDefault(key, JsonNull.Missing, out actualKey!).RequiredField(key);
+
+		/// <summary>Returns the value of the <b>required</b> field with the specified name.</summary>
+		/// <param name="key">Name of the field to retrieve</param>
+		/// <param name="actualKey">Receives the previously allocated key.</param>
+		/// <returns>The value of the specified field, or an exception if it is null or missing.</returns>
+		/// <exception cref="InvalidOperationException">If the field is null or missing</exception>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public virtual JsonValue GetValue(ReadOnlyMemory<char> key, out string actualKey) => GetValueOrDefault(key, JsonNull.Missing, out actualKey!).RequiredField(key.Span);
+
+#endif
+
 		/// <summary>Returns the value at the <b>required</b> item at the specified index.</summary>
 		/// <param name="index">Index of the item to retrieve</param>
 		/// <returns>The value located at the specified index, or an exception if the index is outside the bounds of the array, or if the item is null or missing.</returns>
@@ -530,7 +552,33 @@ namespace Doxense.Serialization.Json
 		/// <para>If the value is not a <see cref="JsonObject"/> or <see cref="JsonNull">null or missing</see>, an exception will be thrown.</para>
 		/// </remarks>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public virtual JsonValue GetValueOrDefault(ReadOnlyMemory<char> key, JsonValue? defaultValue = null) => throw FailDoesNotSupportIndexingRead(this, key.ToString());
+		public virtual JsonValue GetValueOrDefault(ReadOnlyMemory<char> key, JsonValue? defaultValue = null) => throw FailDoesNotSupportIndexingRead(this, key.GetStringOrCopy());
+
+#if NET9_0_OR_GREATER
+
+		/// <summary>Returns the value of the <i>optional</i> field with the specified name.</summary>
+		/// <param name="key">Name of the field to retrieve</param>
+		/// <param name="defaultValue">The value that is returned if field was null or missing.</param>
+		/// <param name="actualKey">If the field is present, receives the previously allocated key; otherwise, <c>null</c>.</param>
+		/// <returns>The value of the specified field, or <paramref name="defaultValue"/> if it is null or missing.</returns>
+		/// <remarks>
+		/// <para>If the value is not a <see cref="JsonObject"/> or <see cref="JsonNull">null or missing</see>, an exception will be thrown.</para>
+		/// </remarks>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		public virtual JsonValue GetValueOrDefault(ReadOnlySpan<char> key, JsonValue? defaultValue, out string? actualKey) => throw FailDoesNotSupportIndexingRead(this, key.ToString());
+
+		/// <summary>Returns the value of the <i>optional</i> field with the specified name.</summary>
+		/// <param name="key">Name of the field to retrieve</param>
+		/// <param name="defaultValue">The value that is returned if field was null or missing.</param>
+		/// <param name="actualKey">If the field is present, receives the previously allocated key; otherwise, <c>null</c>.</param>
+		/// <returns>The value of the specified field, or <paramref name="defaultValue"/> if it is null or missing.</returns>
+		/// <remarks>
+		/// <para>If the value is not a <see cref="JsonObject"/> or <see cref="JsonNull">null or missing</see>, an exception will be thrown.</para>
+		/// </remarks>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		public virtual JsonValue GetValueOrDefault(ReadOnlyMemory<char> key, JsonValue? defaultValue, out string? actualKey) => throw FailDoesNotSupportIndexingRead(this, key.GetStringOrCopy());
+
+#endif
 
 		/// <summary>Returns the value at the <i>optional</i> item at the specified index, if it is contained inside the array's bound.</summary>
 		/// <param name="index">Index of the item to retrieve</param>

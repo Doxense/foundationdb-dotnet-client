@@ -1969,19 +1969,58 @@ namespace Doxense.Serialization.Json
 		public override JsonValue GetValue(string key) => m_items.TryGetValue(key, out var value) && value is not (null or JsonNull) ? value : JsonValueExtensions.FailFieldIsNullOrMissing(value, key);
 
 		/// <inheritdoc/>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[EditorBrowsable(EditorBrowsableState.Always)]
-		public override JsonValue GetValueOrDefault(string key, JsonValue? missingValue = null) => m_items.TryGetValue(key, out var value) ? value : (missingValue ?? JsonNull.Missing);
+		[Pure]
+		public override JsonValue GetValue(ReadOnlySpan<char> key) => TryGetValue(key, out var value) ? value : JsonValueExtensions.FailFieldIsNullOrMissing(value, key);
+
+		/// <inheritdoc/>
+		[Pure]
+		public override JsonValue GetValue(ReadOnlyMemory<char> key) => TryGetValue(key, out var value) ? value : JsonValueExtensions.FailFieldIsNullOrMissing(value, key.Span);
+
+#if NET9_0_OR_GREATER
+
+		/// <inheritdoc/>
+		[Pure]
+		public override JsonValue GetValue(ReadOnlySpan<char> key, out string actualKey) => TryGetValue(key, out actualKey!, out var value) ? value : JsonValueExtensions.FailFieldIsNullOrMissing(value, key);
+
+		/// <inheritdoc/>
+		[Pure]
+		public override JsonValue GetValue(ReadOnlyMemory<char> key, out string actualKey) => TryGetValue(key.Span, out actualKey!, out var value) ? value : JsonValueExtensions.FailFieldIsNullOrMissing(value, key.Span);
+
+#endif
 
 		/// <inheritdoc/>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Always)]
-		public override JsonValue GetValueOrDefault(ReadOnlySpan<char> key, JsonValue? missingValue = null) => TryGetValue(key, out var value) ? value : (missingValue ?? JsonNull.Missing);
+		public override JsonValue GetValueOrDefault(string key, JsonValue? missingValue = null)
+			=> m_items.TryGetValue(key, out var value) ? value : (missingValue ?? JsonNull.Missing);
 
 		/// <inheritdoc/>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Always)]
-		public override JsonValue GetValueOrDefault(ReadOnlyMemory<char> key, JsonValue? missingValue = null) => TryGetValue(key, out var value) ? value : (missingValue ?? JsonNull.Missing);
+		public override JsonValue GetValueOrDefault(ReadOnlySpan<char> key, JsonValue? missingValue = null)
+			=> TryGetValue(key, out var value) ? value : (missingValue ?? JsonNull.Missing);
+
+		/// <inheritdoc/>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		public override JsonValue GetValueOrDefault(ReadOnlyMemory<char> key, JsonValue? missingValue = null)
+			=> TryGetValue(key, out var value) ? value : (missingValue ?? JsonNull.Missing);
+
+#if NET9_0_OR_GREATER
+
+		/// <inheritdoc/>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		public override JsonValue GetValueOrDefault(ReadOnlySpan<char> key, JsonValue? missingValue, out string? actualKey)
+			=> TryGetValue(key, out actualKey, out var value) ? value : (missingValue ?? JsonNull.Missing);
+
+		/// <inheritdoc/>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		public override JsonValue GetValueOrDefault(ReadOnlyMemory<char> key, JsonValue? missingValue, out string? actualKey)
+			=> TryGetValue(key.Span, out actualKey, out var value) ? value : (missingValue ?? JsonNull.Missing);
+
+#endif
 
 		/// <summary>Returns a JSON Object at the given path, or create a new empty object if missing</summary>
 		/// <param name="path"><see cref="JsonPath">path</see> to the object</param>

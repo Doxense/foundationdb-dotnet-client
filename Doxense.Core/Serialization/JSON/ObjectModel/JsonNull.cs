@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -26,6 +26,7 @@
 
 namespace Doxense.Serialization.Json
 {
+	using System.ComponentModel;
 	using Doxense.Memory;
 
 	/// <summary>JSON null</summary>
@@ -191,6 +192,23 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		public override JsonValue GetValueOrDefault(ReadOnlySpan<char> key, JsonValue? defaultValue = null) => defaultValue ?? JsonNull.Missing;
 
+#if NET9_0_OR_GREATER
+
+		public override JsonValue GetValueOrDefault(ReadOnlyMemory<char> key, JsonValue? defaultValue, out string? actualKey)
+		{
+			actualKey = null;
+			return defaultValue ?? JsonNull.Missing;
+		}
+
+		/// <inheritdoc />
+		public override JsonValue GetValueOrDefault(ReadOnlySpan<char> key, JsonValue? defaultValue, out string? actualKey)
+		{
+			actualKey = null;
+			return defaultValue ?? JsonNull.Missing;
+		}
+
+#endif
+
 		/// <inheritdoc />
 		public override JsonValue GetValueOrDefault(int index, JsonValue? defaultValue = null) => defaultValue ?? JsonNull.Missing;
 
@@ -198,18 +216,35 @@ namespace Doxense.Serialization.Json
 		public override JsonValue GetValueOrDefault(Index index, JsonValue? defaultValue = null) => defaultValue ?? JsonNull.Missing;
 
 		/// <inheritdoc />
+		[DoesNotReturn, EditorBrowsable(EditorBrowsableState.Never)]
 		public override JsonValue GetValue(string key) => JsonValueExtensions.FailFieldIsNullOrMissing(this, key);
 
 		/// <inheritdoc />
+		[DoesNotReturn, EditorBrowsable(EditorBrowsableState.Never)]
 		public override JsonValue GetValue(ReadOnlyMemory<char> key) => JsonValueExtensions.FailFieldIsNullOrMissing(this, key.Span);
 
 		/// <inheritdoc />
+		[DoesNotReturn, EditorBrowsable(EditorBrowsableState.Never)]
 		public override JsonValue GetValue(ReadOnlySpan<char> key) => JsonValueExtensions.FailFieldIsNullOrMissing(this, key);
 
+#if NET9_0_OR_GREATER
+
 		/// <inheritdoc />
+		[DoesNotReturn, EditorBrowsable(EditorBrowsableState.Never)]
+		public override JsonValue GetValue(ReadOnlySpan<char> key, out string actualKey) => throw CrystalJson.Errors.Parsing_FieldIsNullOrMissing(this, key.ToString(), null);
+
+		/// <inheritdoc />
+		[DoesNotReturn, EditorBrowsable(EditorBrowsableState.Never)]
+		public override JsonValue GetValue(ReadOnlyMemory<char> key, out string actualKey) => throw CrystalJson.Errors.Parsing_FieldIsNullOrMissing(this, key.GetStringOrCopy(), null);
+
+#endif
+
+		/// <inheritdoc />
+		[DoesNotReturn, EditorBrowsable(EditorBrowsableState.Never)]
 		public override JsonValue GetValue(int index) => JsonValueExtensions.FailIndexIsNullOrMissing(index, JsonNull.Error);
 
 		/// <inheritdoc />
+		[DoesNotReturn, EditorBrowsable(EditorBrowsableState.Never)]
 		public override JsonValue GetValue(Index index) => JsonValueExtensions.FailIndexIsNullOrMissing(index, JsonNull.Error);
 
 		/// <inheritdoc />
