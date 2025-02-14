@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2025 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -34,6 +34,25 @@ namespace Doxense.Serialization.Json
 	/// </remarks>
 	public interface IJsonConverter<T> : IJsonSerializer<T>, IJsonDeserializer<T>, IJsonPacker<T>
 	{
+
+	}
+
+	/// <summary>Bundle interface that is implemented by source-generated encoders</summary>
+	/// <typeparam name="TValue"></typeparam>
+	/// <typeparam name="TReadOnlyProxy"></typeparam>
+	/// <typeparam name="TMutableProxy"></typeparam>
+	public interface IJsonConverter<TValue, out TReadOnlyProxy, out TMutableProxy, out TOservableProxy> : IJsonConverter<TValue>
+		where TReadOnlyProxy : IJsonReadOnlyProxy<TValue, TReadOnlyProxy>
+		where TMutableProxy : IJsonMutableProxy<TValue, TMutableProxy>
+		where TOservableProxy : IJsonObservableProxy<TValue, TOservableProxy>
+	{
+		TReadOnlyProxy AsReadOnly(JsonValue value);
+
+		TReadOnlyProxy AsReadOnly(TValue instance);
+
+		TMutableProxy ToMutable(JsonValue value);
+
+		TMutableProxy ToMutable(TValue instance);
 
 	}
 
@@ -105,4 +124,5 @@ namespace Doxense.Serialization.Json
 		}
 
 	}
+
 }

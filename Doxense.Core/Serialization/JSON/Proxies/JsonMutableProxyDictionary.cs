@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -310,13 +310,8 @@ namespace Doxense.Serialization.Json
 		public override string ToString() => $"Dictionary<string, {typeof(TValue).GetFriendlyName()}>";
 
 		/// <inheritdoc />
-		public void AddPath(StringBuilder builder)
-		{
-			throw new NotImplementedException();
-		}
-
-		/// <inheritdoc />
 		public JsonType Type { get; }
+
 	}
 
 	public static class JsonMutableParentExtensions
