@@ -2380,6 +2380,49 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
+		/// <summary>Forms a new array out of the given array, beginning at 'start'.</summary>
+		/// <param name="start">The zero-based index at which to begin this slice.</param>
+		/// <exception cref="ArgumentOutOfRangeException">Thrown when the specified <paramref name="start"/> index is not in range (&lt;0 or &gt;Length).</exception>
+		/// <remarks>
+		/// <para>The returned array keeps the "readonly-ness" of the original</para>
+		/// </remarks>
+		public JsonArray Slice(int start)
+		{
+			// let the runtime perform the bound-checking
+			var items = AsSpan().Slice(start).ToArray();
+			return new(items, items.Length, m_readOnly);
+		}
+
+		/// <summary>Forms a new array out of the given array, beginning at 'start', of given length</summary>
+		/// <param name="start">The zero-based index at which to begin this slice.</param>
+		/// <param name="length">The desired length for the slice (exclusive).</param>
+		/// <exception cref="ArgumentOutOfRangeException">Thrown when the specified <paramref name="start"/> or end index is not in range (&lt;0 or &gt;Length).</exception>
+		/// <remarks>
+		/// <para>The returned array keeps the "readonly-ness" of the original</para>
+		/// </remarks>
+		public JsonArray Slice(int start, int length)
+		{
+			// let the runtime perform the bound-checking
+			var items = AsSpan().Slice(start, length).ToArray();
+			return new(items, items.Length, m_readOnly);
+		}
+
+		/// <summary>Forms a new array out of the given array, using a given range</summary>
+		/// <param name="range">The range the specifies the elements to copy.</param>
+		/// <exception cref="ArgumentOutOfRangeException">Thrown when the specified <paramref name="range"/> exceeds the bounds of the array.</exception>
+		/// <remarks>
+		/// <para>The returned array keeps the "readonly-ness" of the original</para>
+		/// </remarks>
+		public JsonArray this[Range range]
+		{
+			get
+			{
+				// let the runtime perform the bound-checking
+				var items = AsSpan()[range].ToArray();
+				return new(items, items.Length, m_readOnly);
+			}
+		}
+
 		/// <summary>Keep only the elements that match a predicate</summary>
 		/// <param name="predicate">Predicate that should return <see langword="true"/> for elements to keep, and <see langword="false"/> for elements to discard</param>
 		/// <returns>Number of elements that where kept</returns>
