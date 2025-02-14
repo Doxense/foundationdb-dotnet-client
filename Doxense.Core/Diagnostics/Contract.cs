@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -301,6 +301,54 @@ namespace Doxense.Diagnostics.Contracts
 				: ReportFailure(typeof(ArgumentException), ContractMessages.CollectionCannotBeEmpty, message, paramName, ContractMessages.ConditionNotEmptyCount);
 		}
 
+		/// <summary>The specified span must not be empty (assert: value.Length != 0)</summary>
+		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
+		public static void NotEmpty<T>(
+			Span<T> value,
+			string? message = null,
+			[InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null
+		)
+		{
+			if (value.Length == 0) throw FailBufferEmpty(paramName, message);
+		}
+
+		/// <summary>The specified span must not be empty (assert: value.Length != 0)</summary>
+		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
+		public static void NotEmpty<T>(
+			ReadOnlySpan<T> value,
+			string? message = null,
+			[InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null
+		)
+		{
+			if (value.Length == 0) throw FailBufferEmpty(paramName, message);
+		}
+
+		/// <summary>The specified memory must not be empty (assert: value.Length != 0)</summary>
+		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
+		public static void NotEmpty<T>(
+			Memory<T> value,
+			string? message = null,
+			[InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null
+		)
+		{
+			if (value.Length == 0) throw FailBufferEmpty(paramName, message);
+		}
+
+		/// <summary>The specified memory must not be empty (assert: value.Length != 0)</summary>
+		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
+		public static void NotEmpty<T>(
+			ReadOnlyMemory<T> value,
+			string? message = null,
+			[InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null
+		)
+		{
+			if (value.Length == 0) throw FailBufferEmpty(paramName, message);
+		}
+
 		/// <summary>The specified array must not be null or empty (assert: value != null &amp;&amp; value.Count != 0)</summary>
 		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[StackTraceHidden]
@@ -337,6 +385,12 @@ namespace Doxense.Diagnostics.Contracts
 		public static Exception FailBufferNull(string paramName, string? message = null)
 		{
 			return ReportFailure(typeof(ArgumentNullException), ContractMessages.BufferCannotBeNull, message, paramName, ContractMessages.ConditionNotNull);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static Exception FailBufferEmpty(string? paramName, string? message = null)
+		{
+			return ReportFailure(typeof(ArgumentException), ContractMessages.BufferCannotBeEmpty, message, paramName, ContractMessages.ConditionNotEmptyCount);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
