@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -36,13 +36,13 @@ namespace FoundationDB.Client
 	public readonly struct KeyRange : IEquatable<KeyRange>, IComparable<KeyRange>, IEquatable<(Slice Begin, Slice End)>, IComparable<(Slice Begin, Slice End)>, IFormattable
 	{
 
-		/// <summary>Start of the range</summary>
+		/// <summary>Start of the range (usually included)</summary>
 		public readonly Slice Begin;
 
-		/// <summary>End of the range</summary>
+		/// <summary>End of the range (usually excluded)</summary>
 		public readonly Slice End;
 
-		/// <summary>Create a new range of keys</summary>
+		/// <summary>Creates a new range of keys</summary>
 		/// <param name="begin">Start of range (usually included)</param>
 		/// <param name="end">End of range (usually excluded)</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -65,7 +65,10 @@ namespace FoundationDB.Client
 		/// <summary>Returns a range that contains all the keys in the database</summary>
 		public static KeyRange All => new KeyRange(FdbKey.MinValue, FdbKey.MaxValue);
 
-		/// <summary>Create a range that will return all keys starting with <paramref name="prefix"/>: ('prefix' &lt;= k &lt; strinc('prefix'))</summary>
+		/// <summary>Creates a range that will return all keys starting with <paramref name="prefix"/>: <c>prefix &lt;= k &lt; increment(prefix)</c></summary>
+		/// <param name="prefix">Key prefix (that will be included in the range)</param>
+		/// <returns>Range including all keys that start with the specified prefix.</returns>
+		/// <example><c>KeyRange.StartsWith(Slice.FromString("hello"))</c> => <c>(`hello`, `hellp`)</c></example>
 		[Pure]
 		public static KeyRange StartsWith(Slice prefix)
 		{
@@ -82,9 +85,10 @@ namespace FoundationDB.Client
 			);
 		}
 
-		/// <summary>Create a range that selects all keys starting with <paramref name="prefix"/>, but not the prefix itself: ('prefix\x00' &lt;= k &lt; string('prefix')</summary>
+		/// <summary>Creates a range that selects all keys starting with <paramref name="prefix"/>, but not the prefix itself: <c>prefix.'\0' &lt;= k &lt; increment(prefix)</c></summary>
 		/// <param name="prefix">Key prefix (that will be excluded from the range)</param>
 		/// <returns>Range including all keys with the specified prefix.</returns>
+		/// <example><c>KeyRange.PrefixedBy(Slice.FromString("hello"))</c> => <c>(`hello\0`, `hellp`)</c></example>
 		[Pure]
 		public static KeyRange PrefixedBy(Slice prefix)
 		{
@@ -97,9 +101,10 @@ namespace FoundationDB.Client
 			);
 		}
 
-		/// <summary>Create a range that will only return <paramref name="key"/> itself ('key' &lt;= k &lt; 'key\x00')</summary>
+		/// <summary>Creates a range that will only return <paramref name="key"/> itself: <c>key &lt;= k &lt; key.'\0'</c></summary>
 		/// <param name="key">Key that will be returned by the range</param>
 		/// <returns>Range that only return the specified key.</returns>
+		/// <example><c>KeyRange.FromKey(Slice.FromString("hello"))</c> => <c>(`hello`, `hello\0`)</c></example>
 		[Pure]
 		public static KeyRange FromKey(Slice key)
 		{
@@ -113,6 +118,47 @@ namespace FoundationDB.Client
 				key,
 				key + FdbKey.MinValue
 			);
+		}
+
+		/// <summary>Returns a range that will only return the keys that start with the specified prefix, and that are after a specific cursor</summary>
+		/// <param name="prefix">Common prefix of the keys that must be read (usually the containing subspace)</param>
+		/// <param name="cursor">Value of the cursor, that is appended to <paramref name="prefix"/>. The caller has already read any keys that are before this point, and wants to resume reading past this point</param>
+		/// <param name="included">Specifies whether the cursor is included (<see langword="true"/>) or excluded (<see langword="false"/>, default)</param>
+		/// <returns>Range that will read any keys with the specified prefix, starting from the specified cursor (or its successor)</returns>
+		/// <remarks>
+		/// <para>This is a common usage pattern when consuming a stream of logs or records that are indexed by a <see cref="VersionStamp"/> or a counter.</para>
+		/// <para>Depending on the algorithm used, <paramref name="cursor"/> may represent the last read entry, in which case <paramref name="included"/> should be <see langword="false"/>; or it could represent the next expected entry, in which case <paramref name="included"/> should be <see langword="true"/>.</para>
+		/// </remarks>
+		/// <example>
+		/// <para><c>KeyRange.Tail(Slice.FromString("ABC"), Slice.FromString("def"))</c> => <c>(`ABCdef\0`, `ABD`)</c></para>
+		/// <para><c>KeyRange.Tail(Slice.FromString("ABC"), Slice.FromString("def"), included: true)</c> => <c>(`ABCdef`, `ABD`)</c></para>
+		/// </example>
+		public static KeyRange Tail(Slice prefix, Slice cursor, bool included = false)
+		{
+			var begin = prefix + cursor;
+			var end = FdbKey.Increment(prefix); // first key that follows the common prefix
+			return new(begin, end);
+		}
+
+		/// <summary>Returns a range that will select all the keys that start with the specified prefix, up until a specific cursor</summary>
+		/// <param name="prefix">Common prefix of the keys that must be read (usually the containing subspace)</param>
+		/// <param name="cursor">Value of the cursor, that is appended to <paramref name="prefix"/>. The caller wants to read or clear any keys that are before this point</param>
+		/// <param name="included">Specifies whether the cursor is included (<see langword="true"/>) or excluded (<see langword="false"/>, default)</param>
+		/// <returns>Range that will read any keys with the specified prefix, up to the specified cursor (included or excluded)</returns>
+		/// <remarks>
+		/// <para>This is a common usage pattern when clearing the consumed portion of a stream or log or records that are indexed by a <see cref="VersionStamp"/> (or any other monotonic counter).</para>
+		/// <para>For example in a <c>CLEAR_RANGE</c> operation, <paramref name="cursor"/> may represent the oldest entry to keep, in which case <see cref="included"/> should be <see langword="false"/>; or it could represent the last entry to delete, in which case <see cref="included"/> should be <see langword="true"/>.</para>
+		/// </remarks>
+		/// <example>
+		/// <para><c>KeyRange.Head(Slice.FromString("ABC"), Slice.FromString("def"))</c> => <c>(`ABC\0`, `ABCdef`)</c></para>
+		/// <para><c>KeyRange.Head(Slice.FromString("ABC"), Slice.FromString("def"), included: true)</c> => <c>(`ABC\0`, `ABCdeg`)</c></para>
+		/// </example>
+		public static KeyRange Head(Slice prefix, Slice cursor, bool included = false)
+		{
+			var begin = FdbKey.Increment(prefix); //note: the prefix itself is NOT included!
+			var end = prefix + cursor;
+			if (included) end = FdbKey.Increment(end);
+			return new(begin, end);
 		}
 
 		public override bool Equals(object? obj)
