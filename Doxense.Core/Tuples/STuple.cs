@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -79,9 +79,15 @@ namespace Doxense.Collections.Tuples
 
 		/// <inheritdoc />
 		TItem IVarTuple.Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(int index)
-		{
-			throw new InvalidOperationException("Tuple is empty");
-		}
+			=> throw TupleHelpers.FailTupleIsEmpty();
+
+		/// <inheritdoc />
+		TItem IVarTuple.GetFirst<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>()
+			=> throw TupleHelpers.FailTupleIsEmpty();
+
+		/// <inheritdoc />
+		TItem IVarTuple.GetLast<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>()
+			=> throw TupleHelpers.FailTupleIsEmpty();
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -91,8 +97,7 @@ namespace Doxense.Collections.Tuples
 		public IVarTuple Concat(IVarTuple tuple)
 		{
 			Contract.NotNull(tuple);
-			if (tuple.Count == 0) return this;
-			return tuple;
+			return tuple.Count == 0 ? this : tuple;
 		}
 
 		/// <inheritdoc />
@@ -618,18 +623,14 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Methods for formatting tuples into strings</summary>
+		[PublicAPI]
 		public static class Formatter
 		{
 
 			private const string TokenNull = "null";
 			private const string TokenFalse = "false";
 			private const string TokenTrue = "true";
-			private const string TokenDoubleQuote = "\"";
-			private const string TokenSingleQuote = "'";
 			private const string TokenTupleEmpty = "()";
-			private const string TokenTupleSep = ", ";
-			private const string TokenTupleClose = ")";
-			private const string TokenTupleSingleClose = ",)";
 
 			/// <summary>Converts any object into a displayable string, for logging/debugging purpose</summary>
 			/// <param name="item">Object to stringify</param>
@@ -641,12 +642,12 @@ namespace Doxense.Collections.Tuples
 			/// Stringify&lt;double&gt;(123.4d) => "123.4"
 			/// Stringify&lt;bool&gt;(true) => "true"
 			/// Stringify&lt;char&gt;('Z') => "'Z'"
-			/// Stringify&lt;Slice&gt;((...) => hexa decimal string ("01 23 45 67 89 AB CD EF")
+			/// Stringify&lt;Slice&gt;((...) => hexadecimal string ("01 23 45 67 89 AB CD EF")
 			/// </example>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify<T>(T? item)
 			{
-				if (item is null) return Formatter.TokenNull;
+				if (item is null) return TokenNull;
 
 				if (default(T) is not null)
 				{
@@ -756,7 +757,7 @@ namespace Doxense.Collections.Tuples
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			//TODO: escape the string? If it contains \0 or control chars, it can cause problems in the console or debugger output
-			public static string Stringify(string? item) => TokenDoubleQuote + item + TokenDoubleQuote; /* "hello" */
+			public static string Stringify(string? item) => string.IsNullOrEmpty(item) ? "\"\"" : string.Concat("\"", item, "\""); /* "hello" */
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -788,7 +789,7 @@ namespace Doxense.Collections.Tuples
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string Stringify(char item) => TokenSingleQuote + new string(item, 1) + TokenSingleQuote; /* 'X' */
+			public static string Stringify(char item) => new([ '\'', item, '\'']); /* 'X' */
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -868,14 +869,14 @@ namespace Doxense.Collections.Tuples
 
 				if (items.Length == 1)
 				{ // singleton tuple : "(X,)"
-					return sb.Append(TokenTupleSingleClose).ToString();
+					return sb.Append(",)").ToString();
 				}
 
 				while (offset < items.Length)
 				{
-					sb.Append(TokenTupleSep /* ", " */).Append(boxed ? StringifyBoxed(items[offset++]) : Stringify<T>(items[offset++]));
+					sb.Append(", ").Append(boxed ? StringifyBoxed(items[offset++]) : Stringify<T>(items[offset++]));
 				}
-				return sb.Append(TokenTupleClose /* ",)" */).ToString();
+				return sb.Append(')').ToString();
 			}
 
 			public static string ToString(ReadOnlySpan<object?> items)
@@ -893,14 +894,14 @@ namespace Doxense.Collections.Tuples
 
 				if (items.Length == 1)
 				{ // singleton tuple : "(X,)"
-					return sb.Append(TokenTupleSingleClose).ToString();
+					return sb.Append(",)").ToString();
 				}
 
 				while (offset < items.Length)
 				{
-					sb.Append(TokenTupleSep /* ", " */).Append(StringifyBoxed(items[offset++]));
+					sb.Append(", ").Append(StringifyBoxed(items[offset++]));
 				}
-				return sb.Append(TokenTupleClose /* ",)" */).ToString();
+				return sb.Append(')').ToString();
 			}
 
 			/// <summary>Converts a sequence of object into a displaying string, for loggin/debugging purpose</summary>
@@ -926,10 +927,10 @@ namespace Doxense.Collections.Tuples
 					while (enumerator.MoveNext())
 					{
 						singleton = false;
-						sb.Append(TokenTupleSep).Append(StringifyBoxed(enumerator.Current));
+						sb.Append(", ").Append(StringifyBoxed(enumerator.Current));
 					}
 					// add a trailing ',' for singletons
-					return sb.Append(singleton ? TokenTupleSingleClose : TokenTupleClose).ToString();
+					return (singleton ? sb.Append(",)") : sb.Append(')')).ToString();
 				}
 			}
 
@@ -952,10 +953,10 @@ namespace Doxense.Collections.Tuples
 					while (enumerator.MoveNext())
 					{
 						singleton = false;
-						sb.Append(TokenTupleSep).Append(StringifyBoxed(enumerator.Current));
+						sb.Append(", ").Append(StringifyBoxed(enumerator.Current));
 					}
 					// add a trailing ',' for singletons
-					return sb.Append(singleton ? TokenTupleSingleClose : TokenTupleClose).ToString();
+					return (singleton ? sb.Append(",)") : sb.Append(')')).ToString();
 				}
 			}
 
@@ -1052,7 +1053,7 @@ namespace Doxense.Collections.Tuples
 
 				private bool TryReadKeyword(string keyword)
 				{
-					//IMPORTANT: 'keyword' doit être en lowercase!
+					//IMPORTANT: 'keyword' must be lowercased !
 					int p = this.Cursor;
 					string s = this.Expression;
 					int r = keyword.Length;
@@ -1215,8 +1216,8 @@ namespace Doxense.Collections.Tuples
 
 						if (c == '.')
 						{
-							if (dec) throw new FormatException("Redundant '.' in number that already has a decimal point.");
-							if (exp) throw new FormatException("Unexpected '.' in exponent part of number.");
+							if (dec) throw FailRedundantDotInNumber();
+							if (exp) throw FailUnexpectedDotInNumberExponent();
 							dec = true;
 							++p;
 							continue;
@@ -1229,7 +1230,7 @@ namespace Doxense.Collections.Tuples
 
 						if (c == 'E')
 						{
-							if (dec) throw new FormatException("Redundant 'E' in number that already has an exponent.");
+							if (dec) throw FailRedundantExponentInNumber();
 							exp = true;
 							++p;
 							continue;
@@ -1237,12 +1238,12 @@ namespace Doxense.Collections.Tuples
 
 						if (c is '-' or '+')
 						{
-							if (!exp) throw new FormatException("Unexpected sign in number.");
+							if (!exp) throw FailUnexpectedSignInNumber();
 							++p;
 							continue;
 						}
 
-						throw new FormatException($"Unexpected token '{c}' while parsing number in Tuple expression.");
+						throw FailInvalidTokenInNumber(c);
 					}
 
 					this.Cursor = p;
@@ -1275,8 +1276,21 @@ namespace Doxense.Collections.Tuples
 						return x;
 					}
 
-					return double.Parse(s.Substring(start, p - start), CultureInfo.InvariantCulture);
+					return double.Parse(s.AsSpan(start, p - start), CultureInfo.InvariantCulture);
 				}
+
+				[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+				private static FormatException FailRedundantDotInNumber() => new("Redundant '.' in number that already has a decimal point.");
+
+				[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+				private static FormatException FailUnexpectedDotInNumberExponent() => new("Unexpected '.' in exponent part of number.");
+
+				[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+				private static FormatException FailRedundantExponentInNumber() => new("Redundant 'E' in number that already has an exponent.");
+
+				private static FormatException FailUnexpectedSignInNumber() => new("Unexpected sign in number.");
+
+				private static FormatException FailInvalidTokenInNumber(char c) => new($"Unexpected token '{c}' while parsing number in Tuple expression.");
 
 				private string ReadStringLiteral()
 				{
@@ -1288,7 +1302,7 @@ namespace Doxense.Collections.Tuples
 					// If we find the first instance of '\', then we switch to a secondary loop that uses a StringBuilder to decode each character
 
 					char c = s[p++];
-					if (c != '"') throw new FormatException("Expected '\"' token is missing in Tuple expression");
+					if (c != '"') throw FailMissingExpectedBackslashToken();
 					int start = p;
 
 					while (p < end)
@@ -1312,7 +1326,7 @@ namespace Doxense.Collections.Tuples
 				parse_escaped_string:
 					bool escape = true;
 					var sb = StringBuilderCache.Acquire(128);
-					if (p > start + 1) sb.Append(s.Substring(start, p - start - 1)); // copy what we have parsed so far
+					if (p > start + 1) sb.Append(s.AsSpan(start, p - start - 1)); // copy what we have parsed so far
 					while (p < end)
 					{
 						c = s[p];
@@ -1340,23 +1354,35 @@ namespace Doxense.Collections.Tuples
 						}
 						else if (escape)
 						{
-							if (c == 't') c = '\t';
-							else if (c == 'r') c = '\r';
-							else if (c == 'n') c = '\n';
-							//TODO: \x## and \u#### syntax!
-							else throw new FormatException($"Unrecognized '\\{c}' token while parsing string in Tuple expression");
+							c = c switch
+							{
+								't' => '\t',
+								'r' => '\r',
+								'n' => '\n',
+								//TODO: \x## and \u#### syntax!
+								_ => throw FailInvalidTokenInString(c)
+							};
 							escape = false;
 						}
 						++p;
 						sb.Append(c);
 					}
 				truncated_string:
-					throw new FormatException("Missing double quote at end of string in Tuple expression");
+					throw FailMissingDoubleAtEndOfString();
 				}
+
+				[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+				private static FormatException FailMissingExpectedBackslashToken() => new("Expected '\"' token is missing in Tuple expression");
+
+				[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+				private static FormatException FailInvalidTokenInString(char c) => new($"Unexpected token '\\{c}' while parsing string in Tuple expression");
+
+				[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+				private static FormatException FailMissingDoubleAtEndOfString() => new("Missing double quote at end of string in Tuple expression");
 
 				private Guid ReadGuidLiteral()
 				{
-					var s = this.Expression;
+					var s = this.Expression.AsSpan();
 					int p = this.Cursor;
 					int end = s.Length;
 					char c = s[p];
@@ -1368,9 +1394,9 @@ namespace Doxense.Collections.Tuples
 						c = s[p];
 						if (c == '}')
 						{
-							string lit = s.Substring(start, p - start);
+							var lit = s.Slice(start, p - start);
 							// Shortcut: "{} or {0} means "00000000-0000-0000-0000-000000000000"
-							Guid g = lit == "" || lit == "0" ? Guid.Empty : Guid.Parse(lit);
+							Guid g = lit is "" or "0" ? Guid.Empty : Guid.Parse(lit);
 							this.Cursor = p + 1;
 							return g;
 						}
@@ -1382,7 +1408,7 @@ namespace Doxense.Collections.Tuples
 
 				private TuPackUserType ReadCustomTypeLiteral()
 				{
-					var s = this.Expression;
+					var s = this.Expression.AsSpan();
 					int p = this.Cursor;
 					int end = s.Length;
 					char c = s[p];
@@ -1394,13 +1420,13 @@ namespace Doxense.Collections.Tuples
 						c = s[p];
 						if (c == '|')
 						{
-							string lit = s.Substring(start, p - start);
+							var lit = s.Slice(start, p - start);
 							TuPackUserType ut;
-							if (lit == "System")
+							if (lit is "System")
 							{
 								ut = TuPackUserType.System;
 							}
-							else if (lit == "Directory")
+							else if (lit is "Directory")
 							{
 								ut = TuPackUserType.Directory;
 							}

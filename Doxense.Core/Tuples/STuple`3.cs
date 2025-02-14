@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -122,16 +122,22 @@ namespace Doxense.Collections.Tuples
 		/// <typeparam name="TItem">Expected type of the item</typeparam>
 		/// <param name="index">Position of the item (if negative, means relative from the end)</param>
 		/// <returns>Value of the item at position <paramref name="index"/>, adapted into type <typeparamref name="TItem"/>.</returns>
-		public TItem? Get<TItem>(int index) => index switch
+		public TItem? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(int index) => index switch
 		{
 			0  => TypeConverters.Convert<T1, TItem?>(this.Item1),
 			1  => TypeConverters.Convert<T2, TItem?>(this.Item2),
 			2  => TypeConverters.Convert<T3, TItem?>(this.Item3),
-			-2 => TypeConverters.Convert<T2, TItem?>(this.Item2),
 			-1 => TypeConverters.Convert<T3, TItem?>(this.Item3),
+			-2 => TypeConverters.Convert<T2, TItem?>(this.Item2),
 			-3 => TypeConverters.Convert<T1, TItem?>(this.Item1),
 			_  => TupleHelpers.FailIndexOutOfRange<TItem>(index, 3)
 		};
+
+		TItem? IVarTuple.GetFirst<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>()
+			where TItem : default => TypeConverters.Convert<T1, TItem?>(this.Item1);
+
+		TItem? IVarTuple.GetLast<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>()
+			where TItem : default => TypeConverters.Convert<T3, TItem?>(this.Item3);
 
 		/// <summary>Return the value of the last item in the tuple</summary>
 		public T3 Last
@@ -148,7 +154,7 @@ namespace Doxense.Collections.Tuples
 			get => new(this.Item2, this.Item3);
 		}
 
-		IVarTuple IVarTuple.Append<T4>(T4 value) where T4 : default
+		IVarTuple IVarTuple.Append<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4>(T4 value) where T4 : default
 		{
 			// here, the caller doesn't care about the exact tuple type, so we simply return a boxed List Tuple.
 			return new LinkedTuple<T4>(this, value);

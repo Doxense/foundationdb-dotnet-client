@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -201,10 +201,10 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <para><c>(123, 456).First&lt;string&gt;() => "123"</c></para>
 		/// </example>
 		[EditorBrowsable(EditorBrowsableState.Always)]
-		public T? First<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>()
+		public T? GetFirst<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>()
 		{
 			var slices = m_slices.Span;
-			return slices.Length != 0 ? TuplePacker<T>.Deserialize(slices[0]) : throw new InvalidOperationException("Tuple is empty");
+			return slices.Length != 0 ? TuplePacker<T>.Deserialize(slices[0]) : throw TupleHelpers.FailTupleIsEmpty();
 		}
 
 		/// <summary>Returns the typed value of the last item of the tuple</summary>
@@ -216,10 +216,10 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <para><c>(123, 456).Last&lt;string&gt;() => "456"</c></para>
 		/// </example>
 		[EditorBrowsable(EditorBrowsableState.Always)]
-		public T? Last<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>()
+		public T? GetLast<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>()
 		{
 			var slices = m_slices.Span;
-			return slices.Length != 0 ? TuplePacker<T>.Deserialize(slices[^1]) : throw new InvalidOperationException("Tuple is empty");
+			return slices.Length != 0 ? TuplePacker<T>.Deserialize(slices[^1]) : throw TupleHelpers.FailTupleIsEmpty();
 		}
 
 		/// <summary>Return the encoded binary representation of the element at the specified index</summary>

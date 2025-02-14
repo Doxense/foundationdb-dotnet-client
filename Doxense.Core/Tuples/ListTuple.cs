@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -145,24 +145,24 @@ namespace Doxense.Collections.Tuples
 			}
 		}
 
-		public TItem? Get<TItem>(int index)
+		public TItem? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(int index)
 		{
 			return TypeConverters.ConvertBoxed<TItem>(this[index]);
 		}
 
-		public TItem? First<TItem>()
+		public TItem? GetFirst<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>()
 		{
-			if (m_items.Length == 0) throw new InvalidOperationException("Tuple is empty.");
+			if (m_items.Length == 0) throw TupleHelpers.FailTupleIsEmpty();
 			return TypeConverters.ConvertBoxed<TItem>(m_items.Span[0]);
 		}
 
-		public TItem? Last<TItem>()
+		public TItem? GetLast<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>()
 		{
-			if (m_items.Length == 0) throw new InvalidOperationException("Tuple is empty.");
+			if (m_items.Length == 0) throw TupleHelpers.FailTupleIsEmpty();
 			return TypeConverters.ConvertBoxed<TItem>(m_items.Span[^1]);
 		}
 
-		public IVarTuple Append<TItem>(TItem value)
+		public IVarTuple Append<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(TItem value)
 		{
 			return new LinkedTuple<TItem>(this, value);
 		}

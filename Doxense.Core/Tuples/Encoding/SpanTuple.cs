@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -202,7 +202,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		/// <inheritdoc />
 		[EditorBrowsable(EditorBrowsableState.Always)]
-		public T? Get<T>(int index)
+		public T? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(int index)
 		{
 			//REVIEW: TODO: consider dropping the negative indexing? We have Index now for this use-case!
 			return TuplePacker<T>.Deserialize(GetSlice(index));
@@ -219,7 +219,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <para><c>("Hello", "World", 123,).Get&lt;int&gt;(^1) => 123</c></para>
 		/// <para><c>("Hello", "World", 123,).Get&lt;string&gt;(^1) => "123"</c></para>
 		/// </example>
-		public T? Get<T>(Index index)
+		public T? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(Index index)
 		{
 			return TuplePacker<T>.Deserialize(m_buffer[m_slices[index]]);
 		}
@@ -233,10 +233,10 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <para><c>(123, 456).First&lt;string&gt;() => "123"</c></para>
 		/// </example>
 		[EditorBrowsable(EditorBrowsableState.Always)]
-		public T? First<T>()
+		public T? GetFirst<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>()
 		{
 			var slices = m_slices;
-			return slices.Length != 0 ? TuplePacker<T>.Deserialize(m_buffer[slices[0]]) : throw ThrowHelper.InvalidOperationException("Tuple is empty");
+			return slices.Length != 0 ? TuplePacker<T>.Deserialize(m_buffer[slices[0]]) : throw TupleHelpers.FailTupleIsEmpty();
 		}
 
 		/// <summary>Returns the typed value of the last item of the tuple</summary>
@@ -248,10 +248,10 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <para><c>(123, 456).Last&lt;string&gt;() => "456"</c></para>
 		/// </example>
 		[EditorBrowsable(EditorBrowsableState.Always)]
-		public T? Last<T>()
+		public T? GetLast<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>()
 		{
 			var slices = m_slices;
-			return slices.Length != 0 ? TuplePacker<T>.Deserialize(m_buffer[slices[^1]]) : throw ThrowHelper.InvalidOperationException("Tuple is empty");
+			return slices.Length != 0 ? TuplePacker<T>.Deserialize(m_buffer[slices[^1]]) : throw TupleHelpers.FailTupleIsEmpty();
 		}
 
 		/// <summary>Returns the encoded binary representation of the element at the specified index</summary>
@@ -326,7 +326,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 #if NET9_0_OR_GREATER
 
-		IVarTuple IVarTuple.Append<T>(T value) => throw new NotSupportedException();
+		IVarTuple IVarTuple.Append<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(T value) => throw new NotSupportedException();
 
 		IVarTuple IVarTuple.Concat(IVarTuple tuple) => throw new NotSupportedException();
 
@@ -394,7 +394,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			var slices = m_slices;
 			var buffer = m_buffer;
 			var items = new object?[slices.Length];
-			//note: I'm not sure if we're allowed to use a local variable of type Span<..> in here?
+			//note: I'm not sure if we're allowed to use a local variable of type Span<...> in here?
 			for (int i = 0; i < slices.Length; i++)
 			{
 				items[i] = TuplePackers.DeserializeBoxed(buffer[slices[i]]);

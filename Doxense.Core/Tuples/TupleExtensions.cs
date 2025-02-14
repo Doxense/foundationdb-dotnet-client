@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -97,34 +97,6 @@ namespace Doxense.Collections.Tuples
 		public static T? Get<T>(this IVarTuple tuple, Index index)
 		{
 			return tuple.Get<T>(index.GetOffset(tuple.Count));
-		}
-
-		/// <summary>Returns the typed value of the first item in this tuple</summary>
-		/// <returns>Value of the item at the first position, adapted into type <typeparamref name="T"/>.</returns>
-		/// <exception cref="System.IndexOutOfRangeException">If the tuple is empty</exception>
-		/// <example>
-		/// <para><c>("Hello", "World").First&lt;string&gt;() => "Hello"</c></para>
-		/// <para><c>(123, 456).First&lt;int&gt;() => 123</c></para>
-		/// <para><c>(123, 456).First&lt;string&gt;() => "123"</c></para>
-		/// </example>
-		[Pure]
-		public static T? First<T>(this IVarTuple tuple)
-		{
-			return tuple.Get<T>(0);
-		}
-
-		/// <summary>Returns the typed value of the last item of the tuple</summary>
-		/// <returns>Value of the item at the last position, adapted into type <typeparamref name="T"/>.</returns>
-		/// <exception cref="System.IndexOutOfRangeException">If the tuple is empty</exception>
-		/// <example>
-		/// <para><c>("Hello",).Last&lt;string&gt;() => "Hello"</c></para>
-		/// <para><c>(123, 456).Last&lt;int&gt;() => 456</c></para>
-		/// <para><c>(123, 456).Last&lt;string&gt;() => "456"</c></para>
-		/// </example>
-		[Pure]
-		public static T? Last<T>(this IVarTuple tuple)
-		{
-			return tuple.Get<T>(-1);
 		}
 
 		/// <summary>Appends two values at the end of a tuple</summary>

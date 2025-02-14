@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -84,21 +84,17 @@ namespace Doxense.Collections.Tuples.Encoding
 		public IVarTuple this[Range range] => m_items[range];
 		//REVIEW: should we allow this? this silently drops the prefix from the result...
 
-		public T? Get<T>(int index)
-		{
-			return m_items.Get<T>(index);
-		}
+		public T? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(int index)
+			=> m_items.Get<T>(index);
 
-		public T? Last<T>()
-		{
-			return m_items.Last<T>();
-		}
+		public T? GetFirst<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>()
+			=> m_items.GetFirst<T>();
 
-		IVarTuple IVarTuple.Append<T>(T value)
-			where T : default
-		{
-			return Append<T>(value);
-		}
+		public T? GetLast<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>()
+			=> m_items.GetLast<T>();
+
+		IVarTuple IVarTuple.Append<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(T value)
+			where T : default => Append<T>(value);
 
 		IVarTuple IVarTuple.Concat(IVarTuple tuple)
 		{

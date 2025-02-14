@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -185,6 +185,12 @@ namespace Doxense.Collections.Tuples
 				default: return TupleHelpers.FailIndexOutOfRange<TItem>(index, 6);
 			}
 		}
+
+		TItem? IVarTuple.GetFirst<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>()
+			where TItem : default => TypeConverters.Convert<T1, TItem?>(this.Item1);
+
+		TItem? IVarTuple.GetLast<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>()
+			where TItem : default => TypeConverters.Convert<T6, TItem?>(this.Item6);
 
 		/// <summary>Return the value of the last item in the tuple</summary>
 		public T6 Last

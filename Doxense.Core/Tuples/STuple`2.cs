@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -109,7 +109,7 @@ namespace Doxense.Collections.Tuples
 		/// <typeparam name="TItem">Expected type of the item</typeparam>
 		/// <param name="index">Position of the item (if negative, means relative from the end)</param>
 		/// <returns>Value of the item at position <paramref name="index"/>, adapted into type <typeparamref name="TItem"/>.</returns>
-		public TItem? Get<TItem>(int index)
+		public TItem? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(int index)
 		{
 			return index switch
 			{
@@ -120,6 +120,12 @@ namespace Doxense.Collections.Tuples
 				_  => TupleHelpers.FailIndexOutOfRange<TItem>(index, 2)
 			};
 		}
+
+		TItem? IVarTuple.GetFirst<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>()
+			where TItem : default => TypeConverters.Convert<T1, TItem?>(this.Item1);
+
+		TItem? IVarTuple.GetLast<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>()
+			where TItem : default => TypeConverters.Convert<T2, TItem?>(this.Item2);
 
 		/// <summary>Return the value of the last item in the tuple</summary>
 		public T2 Last
@@ -136,7 +142,7 @@ namespace Doxense.Collections.Tuples
 			get => new(this.Item2);
 		}
 
-		IVarTuple IVarTuple.Append<T3>(T3 value) where T3 : default
+		IVarTuple IVarTuple.Append<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3>(T3 value) where T3 : default
 		{
 			return new STuple<T1, T2, T3>(this.Item1, this.Item2, value);
 		}

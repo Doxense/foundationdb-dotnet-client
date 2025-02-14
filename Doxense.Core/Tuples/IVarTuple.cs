@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -93,6 +93,10 @@ namespace Doxense.Collections.Tuples
 		//REVIEW: TODO: consider dropping the negative indexing? We have Index now for this use-case!
 		[Pure]
 		TItem? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(int index);
+
+		TItem? GetFirst<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>();
+
+		TItem? GetLast<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>();
 
 		/// <summary>Create a new Tuple by appending a single new value at the end of this tuple</summary>
 		/// <typeparam name="TItem">Type of the new value</typeparam>

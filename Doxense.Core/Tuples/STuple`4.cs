@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -141,7 +141,7 @@ namespace Doxense.Collections.Tuples
 		/// <typeparam name="TItem">Expected type of the item</typeparam>
 		/// <param name="index">Position of the item (if negative, means relative from the end)</param>
 		/// <returns>Value of the item at position <paramref name="index"/>, adapted into type <typeparamref name="TItem"/>.</returns>
-		public TItem? Get<TItem>(int index) => index switch
+		public TItem? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(int index) => index switch
 		{
 			0  => TypeConverters.Convert<T1, TItem?>(this.Item1),
 			1  => TypeConverters.Convert<T2, TItem?>(this.Item2),
@@ -153,6 +153,12 @@ namespace Doxense.Collections.Tuples
 			-4 => TypeConverters.Convert<T1, TItem?>(this.Item1),
 			_  => TupleHelpers.FailIndexOutOfRange<TItem>(index, 4)
 		};
+
+		TItem? IVarTuple.GetFirst<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>()
+			where TItem : default => TypeConverters.Convert<T1, TItem?>(this.Item1);
+
+		TItem? IVarTuple.GetLast<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>()
+			where TItem : default => TypeConverters.Convert<T4, TItem?>(this.Item4);
 
 		/// <summary>Return the value of the last item in the tuple</summary>
 		public T4 Last
@@ -174,7 +180,7 @@ namespace Doxense.Collections.Tuples
 		/// <returns>New tuple with one extra item</returns>
 		/// <remarks>If <paramref name="value"/> is a tuple, and you want to append the *items*  of this tuple, and not the tuple itself, please call <see cref="Concat"/>!</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public IVarTuple Append<T5>(T5 value)
+		public IVarTuple Append<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5>(T5 value)
 		{
 			// the caller probably cares about the return type, since it is using a struct, but whatever tuple type we use will end up boxing this tuple on the heap, and we will lose type information.
 			// but, by returning a LinkedTuple<T5>, the tuple will still remember the exact type, and efficiently serializer/convert the values (without having to guess the type)

@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -104,12 +104,18 @@ namespace Doxense.Collections.Tuples
 			}
 		}
 
-		public TItem? Get<TItem>(int index)
+		public TItem? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(int index)
 		{
 			if (index == this.HeadCount || index == -1) return TypeConverters.Convert<T, TItem?>(this.Tail);
 			if (index < -1) index++;
 			return this.Head.Get<TItem>(index);
 		}
+
+		public TItem? GetFirst<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>()
+			=> this.HeadCount > 0 ? this.Head.GetFirst<TItem>() : TypeConverters.Convert<T, TItem?>(this.Tail);
+
+		public TItem? GetLast<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>()
+			=> TypeConverters.Convert<T, TItem?>(this.Tail);
 
 		public T Last
 		{
@@ -118,7 +124,7 @@ namespace Doxense.Collections.Tuples
 			get => this.Tail;
 		}
 
-		public IVarTuple Append<TItem>(TItem value)
+		public IVarTuple Append<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(TItem value)
 		{
 			return new JoinedTuple(this.Head, new STuple<T, TItem>(this.Tail, value));
 		}

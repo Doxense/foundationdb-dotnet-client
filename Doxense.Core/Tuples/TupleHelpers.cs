@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -209,6 +209,9 @@ namespace Doxense.Collections.Tuples
 			if (index < 0) index += count;
 			return Math.Max(Math.Min(index, count), 0);
 		}
+
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static InvalidOperationException FailTupleIsEmpty() => new("Tuple is empty.");
 
 		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
 		public static T FailIndexOutOfRange<T>(int index, int count)

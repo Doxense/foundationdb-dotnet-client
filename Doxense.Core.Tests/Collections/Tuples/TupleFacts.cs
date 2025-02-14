@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -869,66 +869,68 @@ namespace Doxense.Collections.Tuples.Tests
 
 			var t1 = STuple.Create(1);
 			Log(t1);
-			Assert.That(t1.First<int>(), Is.EqualTo(1));
-			Assert.That(t1.First<string>(), Is.EqualTo("1"));
-			Assert.That(t1.Last<int>(), Is.EqualTo(1));
-			Assert.That(t1.Last<string>(), Is.EqualTo("1"));
+			Assert.That(((IVarTuple) t1).GetFirst<int>(), Is.EqualTo(1));
+			Assert.That(((IVarTuple) t1).GetFirst<string>(), Is.EqualTo("1"));
+			Assert.That(((IVarTuple) t1).GetLast<int>(), Is.EqualTo(1));
+			Assert.That(((IVarTuple) t1).GetLast<string>(), Is.EqualTo("1"));
 
 			var t2 = STuple.Create(1, 2);
 			Log(t2);
-			Assert.That(t2.First<int>(), Is.EqualTo(1));
-			Assert.That(t2.First<string>(), Is.EqualTo("1"));
 			Assert.That(t2.Last, Is.EqualTo(2));
-			Assert.That(t2.Last<int>(), Is.EqualTo(2));
-			Assert.That(t2.Last<string>(), Is.EqualTo("2"));
+			Assert.That(((IVarTuple) t2).GetFirst<int>(), Is.EqualTo(1));
+			Assert.That(((IVarTuple) t2).GetFirst<string>(), Is.EqualTo("1"));
+			Assert.That(((IVarTuple) t2).GetLast<int>(), Is.EqualTo(2));
+			Assert.That(((IVarTuple) t2).GetLast<string>(), Is.EqualTo("2"));
 
 			var t3 = STuple.Create(1, 2, 3);
 			Log(t3);
-			Assert.That(t3.First<int>(), Is.EqualTo(1));
-			Assert.That(t3.First<string>(), Is.EqualTo("1"));
 			Assert.That(t3.Last, Is.EqualTo(3));
-			Assert.That(t3.Last<int>(), Is.EqualTo(3));
-			Assert.That(t3.Last<string>(), Is.EqualTo("3"));
+			Assert.That(((IVarTuple) t3).GetFirst<int>(), Is.EqualTo(1));
+			Assert.That(((IVarTuple) t3).GetFirst<string>(), Is.EqualTo("1"));
+			Assert.That(((IVarTuple) t3).GetLast<int>(), Is.EqualTo(3));
+			Assert.That(((IVarTuple) t3).GetLast<string>(), Is.EqualTo("3"));
 
 			var t4 = STuple.Create(1, 2, 3, 4);
 			Log(t4);
-			Assert.That(t4.First<int>(), Is.EqualTo(1));
-			Assert.That(t4.First<string>(), Is.EqualTo("1"));
 			Assert.That(t4.Last, Is.EqualTo(4));
-			Assert.That(t4.Last<int>(), Is.EqualTo(4));
-			Assert.That(t4.Last<string>(), Is.EqualTo("4"));
+			Assert.That(((IVarTuple) t4).GetFirst<int>(), Is.EqualTo(1));
+			Assert.That(((IVarTuple) t4).GetFirst<string>(), Is.EqualTo("1"));
+			Assert.That(((IVarTuple) t4).GetLast<int>(), Is.EqualTo(4));
+			Assert.That(((IVarTuple) t4).GetLast<string>(), Is.EqualTo("4"));
 
 			var t5 = STuple.Create(1, 2, 3, 4, 5);
 			Log(t5);
-			Assert.That(t5.First<int>(), Is.EqualTo(1));
-			Assert.That(t5.First<string>(), Is.EqualTo("1"));
 			Assert.That(t5.Last, Is.EqualTo(5));
-			Assert.That(t5.Last<int>(), Is.EqualTo(5));
-			Assert.That(t5.Last<string>(), Is.EqualTo("5"));
+			Assert.That(((IVarTuple) t5).GetFirst<int>(), Is.EqualTo(1));
+			Assert.That(((IVarTuple) t5).GetFirst<string>(), Is.EqualTo("1"));
+			Assert.That(((IVarTuple) t5).GetLast<int>(), Is.EqualTo(5));
+			Assert.That(((IVarTuple) t5).GetLast<string>(), Is.EqualTo("5"));
 
 			var t6 = STuple.Create(1, 2, 3, 4, 5, 6);
 			Log(t6);
-			Assert.That(t6.First<int>(), Is.EqualTo(1));
-			Assert.That(t6.First<string>(), Is.EqualTo("1"));
-			Assert.That(t6.Last<int>(), Is.EqualTo(6));
-			Assert.That(t6.Last<string>(), Is.EqualTo("6"));
+			Assert.That(t6.Last, Is.EqualTo(6));
+			Assert.That(((IVarTuple) t6).GetFirst<int>(), Is.EqualTo(1));
+			Assert.That(((IVarTuple) t6).GetFirst<string>(), Is.EqualTo("1"));
+			Assert.That(((IVarTuple) t6).GetLast<int>(), Is.EqualTo(6));
+			Assert.That(((IVarTuple) t6).GetLast<string>(), Is.EqualTo("6"));
 
 			var t7 = STuple.Create(1, 2, 3, 4, 5, 6, 7);
 			Log(t7);
-			Assert.That(t7.First<int>(), Is.EqualTo(1));
-			Assert.That(t7.First<string>(), Is.EqualTo("1"));
-			Assert.That(t7.Last<int>(), Is.EqualTo(7));
-			Assert.That(t7.Last<string>(), Is.EqualTo("7"));
+			Assert.That(t7.Last, Is.EqualTo(7));
+			Assert.That(((IVarTuple) t7).GetFirst<int>(), Is.EqualTo(1));
+			Assert.That(((IVarTuple) t7).GetFirst<string>(), Is.EqualTo("1"));
+			Assert.That(((IVarTuple) t7).GetLast<int>(), Is.EqualTo(7));
+			Assert.That(((IVarTuple) t7).GetLast<string>(), Is.EqualTo("7"));
 
 			var tn = STuple.Create(1, 2, 3, 4, 5, 6, 7, 8);
 			Log(tn);
-			Assert.That(tn.First<int>(), Is.EqualTo(1));
-			Assert.That(tn.First<string>(), Is.EqualTo("1"));
-			Assert.That(tn.Last<int>(), Is.EqualTo(8));
-			Assert.That(tn.Last<string>(), Is.EqualTo("8"));
+			Assert.That(tn.GetFirst<int>(), Is.EqualTo(1));
+			Assert.That(tn.GetFirst<string>(), Is.EqualTo("1"));
+			Assert.That(tn.GetLast<int>(), Is.EqualTo(8));
+			Assert.That(tn.GetLast<string>(), Is.EqualTo("8"));
 
-			Assert.That(() => STuple.Empty.First<string>(), Throws.InstanceOf<InvalidOperationException>());
-			Assert.That(() => STuple.Empty.Last<string>(), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(() => STuple.Empty.GetFirst<string>(), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(() => STuple.Empty.GetLast<string>(), Throws.InstanceOf<InvalidOperationException>());
 		}
 
 		[Test]

@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -129,21 +129,23 @@ namespace Doxense.Collections.Tuples
 			}
 		}
 
-		public T? Get<T>(int index)
+		public T? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(int index)
 		{
 			index = TupleHelpers.MapIndex(index, this.Count);
 			return index < this.HeadCount ? this.Head.Get<T>(index) : this.Tail.Get<T>(index - this.HeadCount);
 		}
 
-		IVarTuple IVarTuple.Append<T>(T value)
-		{
-			return new LinkedTuple<T>(this, value);
-		}
+		public T? GetFirst<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>()
+			=> this.HeadCount > 0 ? this.Head.GetFirst<T>() : this.Tail.GetFirst<T>();
+
+		public T? GetLast<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>()
+			=> this.HeadCount >= this.Count ? this.Head.GetLast<T>() : this.Tail.GetLast<T>();
+
+		IVarTuple IVarTuple.Append<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(T value)
+			=> new LinkedTuple<T>(this, value);
 
 		public LinkedTuple<T> Append<T>(T value)
-		{
-			return new LinkedTuple<T>(this, value);
-		}
+			=> new(this, value);
 
 		public IVarTuple Concat(IVarTuple tuple)
 		{
