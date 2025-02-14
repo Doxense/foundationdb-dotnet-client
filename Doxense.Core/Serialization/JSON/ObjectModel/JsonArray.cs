@@ -2323,6 +2323,63 @@ namespace Doxense.Serialization.Json
 			return false;
 		}
 
+		/// <summary>Determines whether the elements of specified array appears at the start of the current array.</summary>
+		/// <param name="prefix">An array of elements to search for at the start of the current array</param>
+		/// <returns><see langword="true"/> all the elements of <paramref name="prefix"/> match the first elements of the current array; otherwise, <see langword="false"/></returns>
+		public bool StartsWith(JsonArray? prefix)
+		{
+			return prefix == null || StartsWith(prefix.AsSpan());
+		}
+
+		/// <summary>Determines whether the specified elements appear at the start of the current array.</summary>
+		/// <param name="prefix">A span of elements to search for at the start of the current array</param>
+		/// <returns><see langword="true"/> all the elements of <paramref name="prefix"/> match the first elements of the current array; otherwise, <see langword="false"/></returns>
+		public bool StartsWith(ReadOnlySpan<JsonValue> prefix)
+		{
+			// null or the empty array are always a prefix of any array
+			if (prefix.Length == 0) return true;
+
+			var selfItems = AsSpan();
+			if (prefix.Length > selfItems.Length) return false;
+			for (int i = 0; i < prefix.Length; i++)
+			{
+				if (!prefix[i].Equals(selfItems[i]))
+				{
+					return false;
+				}
+			}
+			return true;
+		}
+
+		/// <summary>Determines whether the elements of specified array appears at the end of the current array.</summary>
+		/// <param name="suffix">An array of elements to search for at the end of the current array</param>
+		/// <returns><see langword="true"/> all the elements of <paramref name="suffix"/> match the last elements of the current array; otherwise, <see langword="false"/></returns>
+		public bool EndsWith(JsonArray? suffix)
+		{
+			return suffix == null || EndsWith(suffix.AsSpan());
+		}
+
+		/// <summary>Determines whether the specified elements appear at the end of the current array.</summary>
+		/// <param name="suffix">A span to search for at the end of the current array</param>
+		/// <returns><see langword="true"/> all the elements of <paramref name="suffix"/> match the last elements of the current array; otherwise, <see langword="false"/></returns>
+		public bool EndsWith(ReadOnlySpan<JsonValue> suffix)
+		{
+			// null or the empty array are always a prefix of any array
+			if (suffix.Length == 0) return true;
+
+			var selfItems = AsSpan();
+			if (suffix.Length > selfItems.Length) return false;
+			selfItems = selfItems[^suffix.Length..];
+			for (int i = 0; i < suffix.Length; i++)
+			{
+				if (!suffix[i].Equals(selfItems[i]))
+				{
+					return false;
+				}
+			}
+			return true;
+		}
+
 		/// <summary>Keep only the elements that match a predicate</summary>
 		/// <param name="predicate">Predicate that should return <see langword="true"/> for elements to keep, and <see langword="false"/> for elements to discard</param>
 		/// <returns>Number of elements that where kept</returns>
