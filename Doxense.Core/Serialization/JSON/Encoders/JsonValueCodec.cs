@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -31,9 +31,12 @@ namespace Doxense.Serialization.Json.Encoders
 	using Doxense.Serialization.Encoders;
 
 	/// <summary>Codec that encodes <see cref="JsonValue"/> instances into either database keys (ordered) or values (unordered)</summary>
+	[PublicAPI]
 	public sealed class JsonValueCodec : IKeyEncoder<JsonValue>, IValueEncoder<JsonValue>, IKeyEncoding
 	{
-		private static readonly CrystalJsonSettings s_defaultSettings = CrystalJsonSettings.JsonCompact.WithEnumAsStrings().WithIso8601Dates();
+		/// <summary>Default settings</summary>
+		/// <remarks>We use a compact representation, with ISO8601 dates, and always return read-only arrays</remarks>
+		private static readonly CrystalJsonSettings s_defaultSettings = CrystalJsonSettings.JsonCompact.WithEnumAsStrings().WithIso8601Dates().AsReadOnly();
 
 		public static readonly JsonValueCodec Default = new JsonValueCodec();
 
@@ -41,11 +44,7 @@ namespace Doxense.Serialization.Json.Encoders
 			: this(null, null)
 		{ }
 
-		public JsonValueCodec(CrystalJsonSettings settings)
-			: this(settings, null)
-		{ }
-
-		public JsonValueCodec(CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public JsonValueCodec(CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver = null)
 		{
 			this.Settings = settings ?? s_defaultSettings;
 			this.Resolver = resolver ?? CrystalJson.DefaultResolver;
@@ -55,67 +54,67 @@ namespace Doxense.Serialization.Json.Encoders
 
 		public ICrystalJsonTypeResolver Resolver { get; }
 
-		/// <summary>Encode une valeur JSON en un tuple</summary>
-		/// <param name="prefix"></param>
-		/// <param name="value">Valeur JSON de type quelconque</param>
-		/// <returns>Tuple contenant la (ou les) valeurs tu tuple</returns>
-		/// <remarks>Certaines valeurs (comme des JsonArray) peuvent retourner un embedded tuple!</remarks>
-		public static IVarTuple Append(IVarTuple prefix, JsonValue? value)
+		private static readonly IVarTuple CachedNull = STuple.Create(default(string));
+		private static readonly IVarTuple CachedZero = STuple.Create(0);
+		private static readonly IVarTuple CachedOne = STuple.Create(1);
+
+		/// <summary>Appends a JSON value onto a <see cref="IVarTuple">tuple</see></summary>
+		/// <param name="prefix">Prefix onto which the key will be added (use <see cref="STuple.Empty"/> if not prefix is needed)</param>
+		/// <param name="value">JSON value to encode. Only primitive types and arrays are supported. Objects are not allowed.</param>
+		/// <returns>Tuple that represents this value</returns>
+		/// <remarks>
+		/// <para>Primitive types (like string, number, boolean...) are converted as a single item of a similar type, for ex: <c>"hello" => (...prefix, "hello", )</c></para>
+		/// <para>Arrays are converted as embedded tuples, for ex: <c>[ "hello", "world", 123 ] => (...prefix, ( "hello", "world", 123 ), )</c>.</para></remarks>
+		public static IVarTuple Append(IVarTuple? prefix, JsonValue? value)
 		{
 			value ??= JsonNull.Null;
-			switch (value.Type)
+			switch (value)
 			{
-				case JsonType.Null:
+				case JsonNull:
 				{
-					return prefix.Append(default(string));
+					// note: we do not preserve the difference between Null and Empty
+					return prefix?.Append(default(string)) ?? CachedNull;
 				}
-				case JsonType.String:
+				case JsonBoolean b:
 				{
-					//TODO: détecter le DateTime et les Guids ?
-					return prefix.Append(value.ToString());
+					// False => (int) 0
+					// True => (int) 1
+					return prefix?.Append(b.Value ? 1 : 0) ?? (b.Value ? CachedOne : CachedZero);
 				}
-				case JsonType.Number:
+				case JsonNumber num:
 				{
 					// 123 => (int) 123
 					// 12.3 => (double) 12.3
-					var num = (JsonNumber)value;
 					if (!num.IsDecimal)
 					{
-						if (num.IsUnsigned)
+						if (prefix != null)
 						{
-							return prefix.Append(num.ToUInt64());
+							return num.IsUnsigned ? prefix.Append(num.ToUInt64()) : prefix.Append(num.ToInt64());
 						}
 						else
 						{
-							return prefix.Append(num.ToInt64());
+							return num.IsUnsigned ? STuple.Create(num.ToUInt64()) : STuple.Create(num.ToInt64());
 						}
 					}
 					else
 					{
-						//TODO: auto-detect float vs double ?
-						return prefix.Append(num.ToDouble());
+						return prefix?.Append(num.ToDouble()) ?? STuple.Create(num.ToDouble());
 					}
 				}
-				case JsonType.Boolean:
+				case JsonDateTime dt:
 				{
-					// False => (int) 0
-					// True => (int) 1
-					return prefix.Append(value.ToBoolean() ? 1 : 0);
+					// note: to maintain round-tripping, we encode dates as string
+					return prefix?.Append(dt.ToString()) ?? STuple.Create(dt.ToString());
 				}
-				case JsonType.Array:
+				case JsonString str:
+				{
+					return prefix?.Append(str.Value) ?? STuple.Create(str.Value);
+				}
+				case JsonArray arr:
 				{
 					// [1, 2, 3] => (1, 2, 3)
-					IVarTuple tuple = STuple.Empty;
-					foreach (var item in (JsonArray) value)
-					{
-						tuple = Append(tuple, item);
-					}
-					return prefix.Append<IVarTuple>(tuple);
-				}
-				case JsonType.DateTime:
-				{
-					// note: pour des raison de round-tripping, on va encoder les dates en string
-					return prefix.Append<string>(value.ToString());
+					var tuple = EncodeJsonArray(arr);
+					return prefix?.Append(tuple) ?? STuple.Create(tuple);
 				}
 				default:
 				{
@@ -124,60 +123,97 @@ namespace Doxense.Serialization.Json.Encoders
 			}
 		}
 
+		/// <summary>Encodes a JSON value into a <see cref="IVarTuple">tuple</see></summary>
+		/// <param name="value">JSON value to encode. Only primitive types and arrays are supported. Objects are not allowed.</param>
+		/// <returns>Tuple that represents this value</returns>
+		/// <remarks>
+		/// <para>Primitive types (like string, number, boolean...) are converted as a single item of a similar type, for ex: <c>"hello" => ( "hello", )</c></para>
+		/// <para>Arrays are converted as embedded tuples, for ex: <c>[ "hello", "world", 123 ] => ( ( "hello", "world", 123 ), )</c>.</para></remarks>
 		public static IVarTuple ToTuple(JsonValue? value)
 		{
-			return Append(STuple.Empty, value);
+			return Append(null, value);
 		}
 
-		public static JsonValue DecodeToJson(object? o)
+		public static IVarTuple EncodeJsonArray(JsonArray? value)
 		{
-			if (o is IVarTuple tuple)
+			IVarTuple? tuple = null;
+			if (value is not null)
 			{
-				return tuple.ToJsonArray((item) => DecodeToJson(item));
+				foreach (var item in value)
+				{
+					tuple = Append(tuple, item);
+				}
 			}
-			else
-			{
-				return JsonValue.FromValue(o);
-			}
+			return tuple ?? STuple.Empty;
 		}
 
-		/// <summary>Décode le premier élément d'un tuple contenant une valeur JSON</summary>
-		/// <param name="tuple">Tuple dont le début contient un valeur JSON</param>
-		/// <param name="remaining">Retourne le reste du tuple, moins les données consommées pour décoder la valeur, ou null</param>
-		/// <returns></returns>
-		public static JsonValue DecodeNext(IVarTuple tuple, out IVarTuple? remaining)
+		public static JsonValue FromTuple(IVarTuple? tuple)
 		{
-			Contract.NotNull(tuple);
+			return DecodeNext(tuple, out _);
+		}
 
-			//TODO: si on voulait optimiser le décodage des tuples (sans les boxer), il faudrait une API sur FdbSlicedTuple pour scanner chaque token!
-			if (tuple.Count == 0)
+		public static JsonValue DecodeJsonValue(object? o) => o switch
+		{
+			null => JsonNull.Null,
+			string s => JsonString.Return(s),
+			bool b => JsonBoolean.Return(b),
+			int i => JsonNumber.Return(i),
+			long l => JsonNumber.Return(l),
+			double d => JsonNumber.Return(d),
+			decimal m => JsonNumber.Return(m),
+			float f => JsonNumber.Return(f),
+			VersionStamp vs => JsonString.Return(vs.ToString()),
+			IVarTuple tuple => DecodeJsonArray(tuple),
+			_ => JsonValue.FromValue(o)
+		};
+
+		public static JsonArray DecodeJsonArray(IVarTuple? tuple)
+		{
+			if (tuple is null || tuple.Count == 0)
+			{
+				return JsonArray.EmptyReadOnly;
+			}
+
+			var arr = new JsonArray(tuple.Count);
+			foreach (var item in tuple)
+			{
+				arr.Add(DecodeJsonValue(item));
+			}
+
+			// we always return read-only arrays
+			arr.FreezeUnsafe();
+
+			return arr;
+		}
+
+		/// <summary>Decodes the first element of a tuple, back into a JSON value</summary>
+		/// <param name="tuple">Tuple with a JSON value encoded in the first element</param>
+		/// <param name="remaining">Receives the rest of the tuple, or <c>null</c> if this was the last element</param>
+		/// <returns>Decoded JSON Value, or <see cref="JsonNull.Missing"/> if <see cref="tuple"/> was already empty</returns>
+		/// <remarks>This is intended to decode tuples that where previously encoded by <see cref="ToTuple"/> or <see cref="Append"/></remarks>
+		public static JsonValue DecodeNext(IVarTuple? tuple, out IVarTuple? remaining)
+		{
+
+			if (tuple is null || tuple.Count == 0)
 			{
 				remaining = null;
 				return JsonNull.Missing;
 			}
-			else
-			{
-				remaining = tuple.Count > 1 ? tuple.Substring(1) : null;
-				return DecodeToJson(tuple[0]);
-			}
+
+			remaining = tuple.Count > 1 ? tuple.Substring(1) : null;
+			return DecodeJsonValue(tuple[0]);
 		}
 
-		/// <summary>Décode le premier élément d'un tuple contenant une valeur JSON</summary>
-		/// <param name="tuple">Tuple dont le début contient un valeur JSON</param>
-		/// <returns></returns>
+		/// <summary>Decodes the element at the given location in a tuple, back into a JSON value</summary>
+		/// <param name="tuple">Tuple with a JSON value encoded at some position</param>
+		/// <param name="offset">Position, in the tuple, where the encoded value is located.</param>
+		/// <returns>Decoded JSON Value, or <see cref="JsonNull.Missing"/> if <see cref="offset"/> falls outside of the tuple.</returns>
+		/// <remarks>This is intended to decode tuples that where previously encoded by <see cref="ToTuple"/> or <see cref="Append"/></remarks>
 		public static JsonValue DecodeNext(IVarTuple tuple, int offset)
 		{
 			Contract.NotNull(tuple);
 
-			//TODO: si on voulait optimiser le décodage des tuples (sans les boxer), il faudrait une API sur FdbSlicedTuple pour scanner chaque token!
-			if (tuple.Count <= offset)
-			{
-				return JsonNull.Missing;
-			}
-			else
-			{
-				return DecodeToJson(tuple[offset]);
-			}
+			return tuple.Count > offset ? DecodeJsonValue(tuple[offset]) : JsonNull.Missing;
 		}
 
 		public void WriteKeyTo(ref SliceWriter writer, JsonValue? value)
@@ -238,6 +274,7 @@ namespace Doxense.Serialization.Json.Encoders
 		ICompositeKeyEncoder<T1, T2, T3, T4> IKeyEncoding.GetKeyEncoder<T1, T2, T3, T4>() => throw new NotSupportedException();
 
 		#endregion
+
 	}
 
 }
