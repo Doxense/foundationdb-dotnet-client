@@ -52,6 +52,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 		public const string IJsonPackableFullName = CrystalJsonNamespace + ".IJsonPackable";
 		public const string IJsonReadOnlyProxyFullName = CrystalJsonNamespace + ".IJsonReadOnlyProxy";
 		public const string IJsonMutableProxyFullName = CrystalJsonNamespace + ".IJsonMutableProxy";
+		public const string IJsonObservableProxyFullName = CrystalJsonNamespace + ".IJsonObservableProxy";
 		public const string IJsonConverterInterfaceFullName = CrystalJsonNamespace + ".IJsonConverter";
 		public const string IJsonMutableParentFullName = CrystalJsonNamespace + ".IJsonMutableParent";
 
@@ -74,10 +75,14 @@ namespace SnowBank.Serialization.Json.CodeGen
 		public const string JsonDateTimeFullName = CrystalJsonNamespace + "." + JsonDateTimeName;
 
 		public const string JsonMutableProxyObjectBaseFullName = CrystalJsonNamespace + ".JsonMutableProxyObjectBase";
-		public const string JsonReadOnlyProxyObjectFullName = CrystalJsonNamespace + ".JsonReadOnlyProxyObject";
-		public const string JsonReadOnlyProxyArrayFullName = CrystalJsonNamespace + ".JsonReadOnlyProxyArray";
 		public const string JsonMutableProxyDictionaryFullName = CrystalJsonNamespace + ".JsonMutableProxyDictionary";
 		public const string JsonMutableProxyArrayFullName = CrystalJsonNamespace + ".JsonMutableProxyArray";
+		public const string JsonReadOnlyProxyObjectFullName = CrystalJsonNamespace + ".JsonReadOnlyProxyObject";
+		public const string JsonReadOnlyProxyArrayFullName = CrystalJsonNamespace + ".JsonReadOnlyProxyArray";
+		public const string JsonObservableProxyObjectBaseFullName = CrystalJsonNamespace + ".JsonObservableProxyObjectBase";
+		public const string JsonObservableProxyDictionaryFullName = CrystalJsonNamespace + ".JsonObservableProxyDictionary";
+		public const string JsonObservableProxyArrayFullName = CrystalJsonNamespace + ".JsonObservableProxyArray";
+		public const string ObservableJsonValueFullName = CrystalJsonNamespace + ".ObservableJsonValue";
 
 		#endregion
 		
