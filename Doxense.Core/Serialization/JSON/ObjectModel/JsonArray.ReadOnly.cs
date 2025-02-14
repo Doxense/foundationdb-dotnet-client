@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -293,6 +293,48 @@ namespace Doxense.Serialization.Json
 					items[i] = items[i].ToReadOnly();
 				}
 			}
+		}
+
+		/// <summary>Returns a new <b>read-only</b> copy of this array concatenated with another array</summary>
+		/// <param name="tail">Array that will be appended to the end of the new copy</param>
+		/// <returns>A new instance with the same content of the original array, plus the content of the tail</returns>
+		/// <remarks>
+		/// <para>If the array was not read-only, existing non-readonly items will also be converted to read-only.</para>
+		/// <para>For best performance, this should only be used on already read-only arrays.</para>
+		/// </remarks>
+		public JsonArray CopyAndConcat(JsonArray tail)
+		{
+			if (tail.Count == 0)
+			{ // nothing to append, but we may not to return a copy !
+				return ToReadOnly();
+			}
+
+			if (m_size == 0)
+			{ // return the tail as readonly
+				return tail.ToReadOnly();
+			}
+
+			// copy and append the tail
+			int newSize = checked(m_size + tail.Count);
+			var items = new JsonValue[newSize];
+
+			// copy the original array
+			var chunk = items[..m_size];
+			this.AsSpan().CopyTo(chunk);
+			if (!m_readOnly)
+			{
+				MakeReadOnly(chunk);
+			}
+
+			// copy the tail
+			chunk = items[m_size..];
+			tail.AsSpan().CopyTo(chunk);
+			if (!tail.m_readOnly)
+			{
+				MakeReadOnly(chunk);
+			}
+
+			return new(items, newSize, readOnly: true);
 		}
 
 		/// <summary>Returns a new <b>read-only</b> copy of this array with an additional item</summary>
