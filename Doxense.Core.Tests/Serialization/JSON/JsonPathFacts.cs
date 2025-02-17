@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -29,7 +29,6 @@
 
 namespace Doxense.Serialization.Json.Tests
 {
-	using JetBrains.Annotations;
 
 	[TestFixture]
 	[Category("Core-SDK")]

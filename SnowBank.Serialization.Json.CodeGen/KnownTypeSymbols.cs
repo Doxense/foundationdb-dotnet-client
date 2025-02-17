@@ -55,6 +55,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 		public const string IJsonObservableProxyFullName = CrystalJsonNamespace + ".IJsonObservableProxy";
 		public const string IJsonConverterInterfaceFullName = CrystalJsonNamespace + ".IJsonConverter";
 		public const string IJsonMutableParentFullName = CrystalJsonNamespace + ".IJsonMutableParent";
+		public const string IObservableJsonTransaction = CrystalJsonNamespace + ".IObservableJsonTransaction";
 
 		public const string JsonValueName = "JsonValue";
 		public const string JsonNullName = "JsonNull";
@@ -83,6 +84,8 @@ namespace SnowBank.Serialization.Json.CodeGen
 		public const string JsonObservableProxyDictionaryFullName = CrystalJsonNamespace + ".JsonObservableProxyDictionary";
 		public const string JsonObservableProxyArrayFullName = CrystalJsonNamespace + ".JsonObservableProxyArray";
 		public const string ObservableJsonValueFullName = CrystalJsonNamespace + ".ObservableJsonValue";
+		public const string ObservableJsonFullName = CrystalJsonNamespace + ".ObservableJson";
+		public const string ObservableJsonPathFullName = CrystalJsonNamespace + ".ObservableJsonPath";
 
 		#endregion
 		

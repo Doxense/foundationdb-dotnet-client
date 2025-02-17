@@ -28,6 +28,19 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		[return: NotNullIfNotNull(nameof(instance))]
+		public static string? ComputePath(ObservableJsonValue? instance, string key) => ComputePath(instance, key.AsSpan(), null);
+
+		[return: NotNullIfNotNull(nameof(instance))]
+		public static string? ComputePath(ObservableJsonValue? instance, ReadOnlySpan<char> key) => ComputePath(instance, key, null);
+
+		[return: NotNullIfNotNull(nameof(instance))]
+		public static string? ComputePath(ObservableJsonValue? instance, int index) => ComputePath(instance, default, index);
+
+		[return: NotNullIfNotNull(nameof(instance))]
+		public static string? ComputePath(ObservableJsonValue? instance, Index index) => ComputePath(instance, default, index);
+
+		[return: NotNullIfNotNull(nameof(instance))]
 		public static string? ComputePath(ObservableJsonValue? instance, ReadOnlySpan<char> key, Index? index)
 		{
 			if (instance == null)
@@ -78,22 +91,22 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		public static ObservableJsonValue FromJson(IObservableJsonTransaction builder, ObservableJsonPath path, JsonValue value)
+		public static ObservableJsonValue FromJson(IObservableJsonTransaction tr, ObservableJsonPath path, JsonValue value)
 		{
 			switch (value)
 			{
 				case JsonObject obj:
 				{
-					return new ObservableJsonValue(builder, path, obj.ToReadOnly());
+					return new(tr, path, obj.ToReadOnly());
 				}
 				case JsonArray arr:
 				{
-					return new ObservableJsonValue(builder, path, arr.ToReadOnly());
+					return new(tr, path, arr.ToReadOnly());
 				}
 				default:
 				{
 					Contract.Debug.Assert(value.IsReadOnly);
-					return new ObservableJsonValue(builder, path, value);
+					return new(tr, path, value);
 				}
 			}
 		}

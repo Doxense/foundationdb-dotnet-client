@@ -32,9 +32,6 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 	using System.Runtime.CompilerServices;
 	using System.Text.Json.Serialization;
 	using Doxense.Mathematics.Statistics;
-	using Doxense.Serialization.Json;
-	using NUnit.Framework;
-	using SnowBank.Testing;
 
 	public record Person
 	{
