@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -33,6 +33,7 @@ namespace Doxense.Networking.Http
 	using System.Security.Cryptography.X509Certificates;
 
 	/// <summary>Base class of generic options for <see cref="BetterHttpClient">HTTP clients</see></summary>
+	[PublicAPI]
 	public record BetterHttpClientOptions
 	{
 
@@ -47,10 +48,10 @@ namespace Doxense.Networking.Http
 		public HttpVersionPolicy DefaultVersionPolicy { get; set; } = HttpVersionPolicy.RequestVersionOrHigher;
 
 		/// <summary>List of filters that will be able to intercept and or modify the request and response</summary>
-		public List<IBetterHttpFilter> Filters { get; } = new();
+		public List<IBetterHttpFilter> Filters { get; } = [ ];
 
 		/// <summary>List of wrappers that can be applied to the underlying HTTP message handler</summary>
-		public List<Func<HttpMessageHandler, IServiceProvider, HttpMessageHandler>> Handlers { get; set; } = new();
+		public List<Func<HttpMessageHandler, IServiceProvider, HttpMessageHandler>> Handlers { get; set; } = [ ];
 
 		/// <summary>List of default headers applied to each requests</summary>
 		public BetterDefaultHeaders DefaultRequestHeaders { get; set; } = new();
@@ -61,10 +62,10 @@ namespace Doxense.Networking.Http
 		/// <summary>Specifies the type of decompression method used by the handler for automatic decompression of the HTTP content response.</summary>
 		public DecompressionMethods? AutomaticDecompression { get; set; }
 
-		/// <summary>Default cookie container that will be used by each requests.</summary>
+		/// <summary>Default cookie container that will be used by each request.</summary>
 		public CookieContainer? Cookies { get; set; }
 
-		/// <summary>Default credentials that will be used by each requests.</summary>
+		/// <summary>Default credentials that will be used by each request.</summary>
 		public ICredentials? Credentials { get; set; }
 
 		/// <summary>Specifies whether default credentials are sent with requests by the client.</summary>

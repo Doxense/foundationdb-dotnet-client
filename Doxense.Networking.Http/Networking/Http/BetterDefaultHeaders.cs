@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -27,20 +27,121 @@
 namespace Doxense.Networking.Http
 {
 	using System.Net.Http.Headers;
+	using System.Runtime.InteropServices;
 
 	/// <summary>Helper to configure default headers for <see cref="BetterHttpClient">HTTP clients</see></summary>
+	[PublicAPI]
 	public sealed class BetterDefaultHeaders
 	{
 
-		/// <summary>Add a custom default HTTP header</summary>
+		/// <summary>Adds a custom default HTTP header</summary>
 		/// <param name="name">Name of the header</param>
 		/// <param name="value">Value of the header</param>
-		public void Add(string name, string value) => this.Extra.Add(new KeyValuePair<string, IEnumerable<string>>(name, new [] { value }));
+		public void Add(string name, string? value)
+		{
+			Contract.NotNullOrWhiteSpace(name);
 
-		/// <summary>Add a custom default HTTP header with multiple values</summary>
+			if (value is null)
+			{
+				return;
+			}
+
+			if (!this.Extra.TryGetValue(name, out var existing))
+			{
+				existing = [ ];
+				this.Extra[name] = existing;
+			}
+
+			existing.Add(value);
+		}
+
+		/// <summary>Adds a custom default HTTP header with multiple values</summary>
 		/// <param name="name">Name of the header</param>
 		/// <param name="values">Values of the header</param>
-		public void Add(string name, IEnumerable<string> values) => this.Extra.Add(new KeyValuePair<string, IEnumerable<string>>(name, values as string[] ?? values.ToArray()));
+		public void Add(string name, ReadOnlySpan<string> values)
+		{
+			Contract.NotNullOrWhiteSpace(name);
+
+			if (values.Length == 0)
+			{
+				return;
+			}
+
+			if (!this.Extra.TryGetValue(name, out var existing))
+			{
+				existing = [ ];
+				this.Extra[name] = existing;
+			}
+
+			foreach (var value in values)
+			{
+				existing.Add(value);
+			}
+		}
+
+		/// <summary>Adds a custom default HTTP header with multiple values</summary>
+		/// <param name="name">Name of the header</param>
+		/// <param name="values">Values of the header</param>
+		public void Add(string name, string[]? values)
+		{
+			Contract.NotNullOrWhiteSpace(name);
+
+			if (values is null || values.Length == 0)
+			{
+				return;
+			}
+
+			if (!this.Extra.TryGetValue(name, out var existing))
+			{
+				existing = [ ];
+				this.Extra[name] = existing;
+			}
+
+			foreach (var value in values)
+			{
+				existing.Add(value);
+			}
+		}
+
+		/// <summary>Adds a custom default HTTP header with multiple values</summary>
+		/// <param name="name">Name of the header</param>
+		/// <param name="values">Values of the header</param>
+		public void Add(string name, IEnumerable<string>? values)
+		{
+			Contract.NotNullOrWhiteSpace(name);
+
+			if (values is null)
+			{
+				return;
+			}
+
+			if (Doxense.Linq.Buffer<string>.TryGetSpan(values, out var span))
+			{
+				Add(name, span);
+				return;
+			}
+
+			var items = values.ToList();
+			if (items.Count == 0)
+			{
+				return;
+			}
+
+			if (!this.Extra.TryGetValue(name, out var existing))
+			{
+				existing = items;
+				this.Extra[name] = existing;
+			}
+			else
+			{
+				existing.AddRange(items);
+			}
+		}
+
+		public string this[string name]
+		{
+			set { Add(name, value); }
+		}
 
 		public IList<MediaTypeWithQualityHeaderValue>? Accept { get; set; }
 
@@ -60,9 +161,7 @@ namespace Doxense.Networking.Http
 
 		public IList<ViaHeaderValue>? Via { get; set; }
 
-		//TODO: ajouter ce qu'il manque!!!
-
-		public List<KeyValuePair<string, IEnumerable<string>>> Extra { get; set; } = new();
+		public Dictionary<string, List<string>> Extra { get; set; } = new(StringComparer.Ordinal); //REVIEW: should this be OrdinalIgnoreCase?
 
 		public Uri? Referrer { get; set; }
 
