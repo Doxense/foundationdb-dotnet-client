@@ -407,7 +407,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 						// JsonObject ToJson()
 						sb.AppendLine($"/// <inheritdoc />");
-						sb.AppendLine($"public {KnownTypeSymbols.JsonValueFullName} ToJson() => m_obj;");
+						sb.AppendLine($"public {KnownTypeSymbols.JsonValueFullName} ToJson() => m_obj ?? JsonNull.Missing;");
 						sb.NewLine();
 
 						// TMutable ToMutable()
@@ -853,7 +853,11 @@ namespace SnowBank.Serialization.Json.CodeGen
 						sb.NewLine();
 
 						sb.AppendLine("/// <inheritdoc />");
-						sb.AppendLine($"public void Set({KnownTypeSymbols.JsonValueFullName} value) => m_obj.Set(value);");
+						sb.AppendLine($"public void Set({KnownTypeSymbols.JsonValueFullName}? value) => m_obj.Set(value);");
+						sb.NewLine();
+
+						sb.AppendLine("/// <inheritdoc />");
+						sb.AppendLine($"public void Set(string name, {KnownTypeSymbols.JsonValueFullName}? value) => m_obj.Set(name, value);");
 						sb.NewLine();
 
 						sb.AppendLine("/// <inheritdoc />");

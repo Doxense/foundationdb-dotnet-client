@@ -459,6 +459,11 @@ namespace Doxense.Serialization.Json
 					patch = before.ComputePatch(after);
 					break;
 				}
+				case (_, JsonNull):
+				{ // delete
+					this.Transaction.RecordDelete(this, key);
+					return true;
+				}
 				default:
 				{ // overwrite
 					patch = null;
@@ -604,7 +609,7 @@ namespace Doxense.Serialization.Json
 
 		public void Set<TValue>(TValue? value) => InsertOrUpdate(JsonValue.FromValueReadOnly(value), InsertionBehavior.OverwriteExisting);
 
-		public void Set(string key, JsonValue value) => InsertOrUpdate(key, value, InsertionBehavior.OverwriteExisting);
+		public void Set(string key, JsonValue? value) => InsertOrUpdate(key, value, InsertionBehavior.OverwriteExisting);
 
 		public void Set(string key, ObservableJsonValue value) => InsertOrUpdate(key, value.Json, InsertionBehavior.OverwriteExisting);
 

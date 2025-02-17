@@ -2534,19 +2534,18 @@ namespace Doxense.Serialization.Json
 				}
 			}
 
-			// add/update any new  keys
+			// add/update any new keys
 			foreach (var kv in after)
 			{
 				if (!items.TryGetValue(kv.Key, out var p))
-				{
-					// add
+				{ // add new key
 					if (!kv.Value.IsNullOrMissing())
 					{
 						patch[kv.Key] = deepCopy ? kv.Value.Copy() : kv.Value;
 					}
 				}
 				else if (!p.Equals(kv.Value))
-				{ // update
+				{ // update/patch
 					switch (p, kv.Value)
 					{
 						case (JsonObject a, JsonObject b):
