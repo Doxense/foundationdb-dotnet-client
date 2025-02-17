@@ -445,6 +445,13 @@ namespace Doxense.Serialization.Json
 					}
 				}
 			}
+			else
+			{
+				if (value is JsonNull)
+				{ // idempotent
+					return true;
+				}
+			}
 
 			JsonValue? patch;
 			switch (prevJson, value)
