@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -46,28 +46,28 @@ namespace FoundationDB.Layers.Blobs
 		/// <summary>Subspace used as a prefix for all hashsets in this collection</summary>
 		public IDynamicKeySubspace Subspace { get; }
 
-		/// <summary>Returns the key prefix of an HashSet: (subspace, id, )</summary>
+		/// <summary>Returns the key prefix of an HashSet: (subspace, id)</summary>
 		protected virtual Slice GetKey(IVarTuple id)
 		{
-			//REVIEW: should the id be encoded as a an embedded tuple or not?
+			//REVIEW: should the id be encoded as an embedded tuple or not?
 			return this.Subspace.Pack(id);
 		}
 
-		/// <summary>Returns the key of a specific field of an HashSet: (subspace, id, field, )</summary>
+		/// <summary>Returns the key of a specific field of an HashSet: (subspace, id, field)</summary>
 		protected virtual Slice GetFieldKey(IVarTuple id, string field)
 		{
-			//REVIEW: should the id be encoded as a an embedded tuple or not?
+			//REVIEW: should the id be encoded as an embedded tuple or not?
 			return this.Subspace.Pack(id.Append(field));
 		}
 
 		protected virtual string ParseFieldKey(IVarTuple key)
 		{
-			return key.Last<string>()!;
+			return key.GetLast<string>()!;
 		}
 
 		#region Get
 
-		/// <summary>Returns the value of a specific field of an hashset</summary>
+		/// <summary>Returns the value of a specific field of a hashset</summary>
 		/// <param name="trans">Transaction that will be used for this request</param>
 		/// <param name="id">Unique identifier of the hashset</param>
 		/// <param name="field">Name of the field to read</param>
@@ -81,7 +81,7 @@ namespace FoundationDB.Layers.Blobs
 			return trans.GetAsync(GetFieldKey(id, field));
 		}
 
-		/// <summary>Returns all fields of an hashset</summary>
+		/// <summary>Returns all fields of a hashset</summary>
 		/// <param name="trans">Transaction that will be used for this request</param>
 		/// <param name="id">Unique identifier of the hashset</param>
 		/// <returns>Dictionary containing, for all fields, their associated values</returns>
@@ -105,7 +105,7 @@ namespace FoundationDB.Layers.Blobs
 			return results;
 		}
 
-		/// <summary>Returns one or more fields of an hashset</summary>
+		/// <summary>Returns one or more fields of a hashset</summary>
 		/// <param name="trans">Transaction that will be used for this request</param>
 		/// <param name="id">Unique identifier of the hashset</param>
 		/// <param name="fields">List of the fields to read</param>
@@ -159,7 +159,7 @@ namespace FoundationDB.Layers.Blobs
 
 		#region Delete
 
-		/// <summary>Removes a field of an hashset</summary>
+		/// <summary>Removes a field of a hashset</summary>
 		public void DeleteValue(IFdbTransaction trans, IVarTuple id, string field)
 		{
 			Contract.NotNull(trans);
@@ -169,7 +169,7 @@ namespace FoundationDB.Layers.Blobs
 			trans.Clear(GetFieldKey(id, field));
 		}
 
-		/// <summary>Removes all fields of an hashset</summary>
+		/// <summary>Removes all fields of a hashset</summary>
 		public void Delete(IFdbTransaction trans, IVarTuple id)
 		{
 			Contract.NotNull(trans);
@@ -179,7 +179,7 @@ namespace FoundationDB.Layers.Blobs
 			trans.ClearRange(KeyRange.StartsWith(GetKey(id)));
 		}
 
-		/// <summary>Removes one or more fields of an hashset</summary>
+		/// <summary>Removes one or more fields of a hashset</summary>
 		public void Delete(IFdbTransaction trans, IVarTuple id, params string[] fields)
 		{
 			Contract.NotNull(trans);
@@ -197,7 +197,7 @@ namespace FoundationDB.Layers.Blobs
 
 		#region Keys
 
-		/// <summary>Returns the list the names of all fields of an hashset</summary>
+		/// <summary>Returns the list the names of all fields of a hashset</summary>
 		/// <param name="trans">Transaction that will be used for this request</param>
 		/// <param name="id">Unique identifier of the hashset</param>
 		/// <returns>List of all fields. If the list is empty, the hashset does not exist</returns>

@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -72,7 +72,7 @@ namespace FoundationDB.Layers.Documents
 	public static class FdbDocumentHandlers
 	{
 
-		/// <summary>Document handler that handle dictionarys of string to objects</summary>
+		/// <summary>Document handler that handle dictionaries of string to objects</summary>
 		/// <typeparam name="TDictionary"></typeparam>
 		/// <typeparam name="TId"></typeparam>
 		public sealed class DictionaryHandler<TDictionary, TId> : IDocumentHandler<TDictionary, TId, List<KeyValuePair<string, IVarTuple>>>
@@ -91,7 +91,7 @@ namespace FoundationDB.Layers.Documents
 
 			public KeyValuePair<IVarTuple, Slice>[] Split(List<KeyValuePair<string, IVarTuple>> document)
 			{
-				if (document == null) throw new ArgumentNullException(nameof(document));
+				Contract.NotNull(document);
 
 				return document
 					// don't include the id
@@ -106,13 +106,13 @@ namespace FoundationDB.Layers.Documents
 
 			public List<KeyValuePair<string, IVarTuple>> Build(KeyValuePair<IVarTuple, Slice>[] parts)
 			{
-				if (parts == null) throw new ArgumentNullException(nameof(parts));
+				Contract.NotNull(parts);
 
 				var list = new List<KeyValuePair<string, IVarTuple>>(parts.Length);
 				foreach(var part in parts)
 				{
-					list.Add(new KeyValuePair<string, IVarTuple>(
-						part.Key.Last<string>()!,
+					list.Add(new(
+						part.Key.GetLast<string>()!,
 						TuPack.Unpack(part.Value)
 					));
 				}
@@ -121,7 +121,7 @@ namespace FoundationDB.Layers.Documents
 
 			public TId GetId(TDictionary document)
 			{
-				return (TId)document[this.IdName];
+				return (TId) document[this.IdName];
 			}
 
 			public void SetId(Dictionary<string, IVarTuple> document, TId id)
@@ -138,7 +138,7 @@ namespace FoundationDB.Layers.Documents
 				{
 					if (!m_keyComparer.Equals(kvp.Key, this.IdName))
 					{
-						dic.Add(new KeyValuePair<string, IVarTuple>(kvp.Key, STuple.Create(kvp.Key)));
+						dic.Add(new(kvp.Key, STuple.Create(kvp.Key)));
 					}
 				}
 
