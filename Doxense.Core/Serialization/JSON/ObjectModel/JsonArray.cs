@@ -41,7 +41,7 @@ namespace Doxense.Serialization.Json
 
 	/// <summary>Array of JSON values</summary>
 	[Serializable]
-	[DebuggerDisplay("JSON Array[{m_size}] {GetCompactRepresentation(0),nq}")]
+	[DebuggerDisplay("JSON Array[{m_size}]{GetMutabilityDebugLiteral(),nq} {GetCompactRepresentation(0),nq}")]
 	[DebuggerTypeProxy(typeof(DebugView))]
 	[DebuggerNonUserCode]
 	[PublicAPI]
@@ -2776,6 +2776,8 @@ namespace Doxense.Serialization.Json
 		}
 
 		internal override bool IsInlinable() => false;
+
+		private string GetMutabilityDebugLiteral() => m_readOnly ? " ReadOnly" : "";
 
 		internal override string GetCompactRepresentation(int depth)
 		{
