@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -788,6 +788,40 @@ namespace System
 
 #endif
 
+		/// <summary>Determines whether this slice instance starts with the specified byte.</summary>
+		/// <param name="value">The byte to compare.</param>
+		/// <returns><b>true</b> if <paramref name="value"/> matches the beginning of this slice; otherwise, <b>false</b></returns>
+		public bool StartsWith(byte value)
+		{
+			var span = this.Span;
+			return span.Length > 0 && span[0] == value;
+		}
+
+		/// <summary>Determines whether this slice instance starts with the specified byte.</summary>
+		/// <param name="value">The value to compare, interpreted as a byte (between 0 and 255).</param>
+		/// <returns><b>true</b> if <paramref name="value"/> matches the beginning of this slice; otherwise, <b>false</b></returns>
+		public bool StartsWith(int value)
+		{
+			var span = this.Span;
+			return span.Length > 0 && span[0] == (byte) value;
+		}
+
+		/// <summary>Determines whether this slice instance starts with the specified byte.</summary>
+		/// <param name="value">The value to compare, interpreted as a byte (between 0 and 255).</param>
+		/// <returns><b>true</b> if <paramref name="value"/> matches the beginning of this slice; otherwise, <b>false</b></returns>
+		/// <remarks>
+		/// <para>This is a convenience method, where <paramref name="value"/> is expected to be an ASCII character, allowing for easy checks like.</para>
+		/// </remarks>
+		/// <example><code>
+		/// if (data.StartsWith('{') &amp;&amp; data.EndsWith('}')) { /* probably JSON */ }
+		/// </code>
+		/// </example>
+		public bool StartsWith(char value)
+		{
+			var span = this.Span;
+			return span.Length > 0 && span[0] == (byte) value;
+		}
+
 		/// <summary>Determines whether the beginning of this slice instance matches a specified slice.</summary>
 		/// <param name="value">The slice to compare. <see cref="Slice.Nil"/> is not allowed.</param>
 		/// <returns><b>true</b> if <paramref name="value"/> matches the beginning of this slice; otherwise, <b>false</b></returns>
@@ -811,6 +845,40 @@ namespace System
 		public bool StartsWith(ReadOnlySpan<byte> value)
 		{
 			return value.Length == 0 || this.Span.StartsWith(value);
+		}
+
+		/// <summary>Determines whether this slice instance ends with the specified byte.</summary>
+		/// <param name="value">The byte to compare.</param>
+		/// <returns><b>true</b> if <paramref name="value"/> matches the end of this slice; otherwise, <b>false</b></returns>
+		public bool EndsWith(byte value)
+		{
+			var span = this.Span;
+			return span.Length > 0 && span[^1] == value;
+		}
+
+		/// <summary>Determines whether this slice instance ends with the specified byte.</summary>
+		/// <param name="value">The value to compare, interpreted as a byte (between 0 and 255).</param>
+		/// <returns><b>true</b> if <paramref name="value"/> matches the end of this slice; otherwise, <b>false</b></returns>
+		public bool EndsWith(int value)
+		{
+			var span = this.Span;
+			return span.Length > 0 && span[^1] == (byte) value;
+		}
+
+		/// <summary>Determines whether this slice instance ends with the specified byte.</summary>
+		/// <param name="value">The value to compare, interpreted as a byte (between 0 and 255).</param>
+		/// <returns><b>true</b> if <paramref name="value"/> matches the end of this slice; otherwise, <b>false</b></returns>
+		/// <remarks>
+		/// <para>This is a convenience method, where <paramref name="value"/> is expected to be an ASCII character, allowing for easy checks like.</para>
+		/// </remarks>
+		/// <example><code>
+		/// if (data.StartsWith('{') &amp;&amp; data.EndsWith('}')) { /* probably JSON */ }
+		/// </code>
+		/// </example>
+		public bool EndsWith(char value)
+		{
+			var span = this.Span;
+			return span.Length > 0 && span[^1] == (byte) value;
 		}
 
 		/// <summary>Determines whether the end of this slice instance matches a specified slice.</summary>
