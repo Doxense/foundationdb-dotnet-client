@@ -893,7 +893,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 							{
 								proxyType = GetLocalObservableProxyRef(target);
 								getterExpr = $"new(m_obj[{GetTargetPropertyNameRef(typeDef, member)}])";
-								setterExpr = $"m_obj[{GetTargetPropertyNameRef(typeDef, member)}].Set(value.GetValue())";
+								setterExpr = $"m_obj.Set({GetTargetPropertyNameRef(typeDef, member)}, value.GetValue())";
 							}
 							else if (member.Type.IsStringLike() || member.Type.IsBooleanLike() || member.Type.IsNumberLike() || member.Type.IsDateLike())
 							{
@@ -942,24 +942,24 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 								if (member.Type.IsStringLike(allowNullables: true))
 								{
-									setterExpr = $"m_obj[{GetTargetPropertyNameRef(typeDef, member)}].Set({KnownTypeSymbols.JsonStringFullName}.Return(value))";
+									setterExpr = $"m_obj.Set({GetTargetPropertyNameRef(typeDef, member)}, ({KnownTypeSymbols.JsonValueFullName}) {KnownTypeSymbols.JsonStringFullName}.Return(value))";
 								}
 								else if (member.Type.IsBooleanLike(allowNullables: true))
 								{
-									setterExpr = $"m_obj[{GetTargetPropertyNameRef(typeDef, member)}].Set({KnownTypeSymbols.JsonBooleanFullName}.Return(value))";
+									setterExpr = $"m_obj.Set({GetTargetPropertyNameRef(typeDef, member)}, ({KnownTypeSymbols.JsonValueFullName}) {KnownTypeSymbols.JsonBooleanFullName}.Return(value))";
 								}
 								else if (member.Type.IsNumberLike(allowNullables: true))
 								{
-									setterExpr = $"m_obj[{GetTargetPropertyNameRef(typeDef, member)}].Set({KnownTypeSymbols.JsonNumberFullName}.Return(value))";
+									setterExpr = $"m_obj.Set({GetTargetPropertyNameRef(typeDef, member)}, ({KnownTypeSymbols.JsonValueFullName}) {KnownTypeSymbols.JsonNumberFullName}.Return(value))";
 								}
 								else if (member.Type.IsDateLike(allowNullables: true))
 								{
-									setterExpr = $"m_obj[{GetTargetPropertyNameRef(typeDef, member)}].Set({KnownTypeSymbols.JsonDateTimeFullName}.Return(value))";
+									setterExpr = $"m_obj.Set({GetTargetPropertyNameRef(typeDef, member)}, ({KnownTypeSymbols.JsonValueFullName}) {KnownTypeSymbols.JsonDateTimeFullName}.Return(value))";
 								}
 							}
 							else if (member.Type.JsonType is not JsonPrimitiveType.None)
 							{
-								setterExpr = $"m_obj[{GetTargetPropertyNameRef(typeDef, member)}].Set(value?.Json ?? JsonNull.Null)";
+								setterExpr = $"m_obj.Set({GetTargetPropertyNameRef(typeDef, member)}, value?.Json ?? JsonNull.Null)";
 
 								if (member.Type.JsonType is JsonPrimitiveType.Object)
 								{
@@ -986,7 +986,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 									{
 										proxyType = $"{KnownTypeSymbols.JsonObservableProxyDictionaryFullName}<{valueType.FullyQualifiedName}, {this.GetLocalObservableProxyRef(target)}>";
 										getterExpr = $"new(m_obj[{GetTargetPropertyNameRef(typeDef, member)}])";
-										setterExpr = $"m_obj[{GetTargetPropertyNameRef(typeDef, member)}].Set(value.GetValue())";
+										setterExpr = $"m_obj.Set({GetTargetPropertyNameRef(typeDef, member)}, value.GetValue())";
 									}
 								}
 							}
@@ -996,7 +996,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 								{
 									proxyType = $"{KnownTypeSymbols.JsonObservableProxyArrayFullName}<{elemType.FullyQualifiedName}, {this.GetLocalObservableProxyRef(target)}>";
 									getterExpr = $"new(m_obj[{GetTargetPropertyNameRef(typeDef, member)}])";
-									setterExpr = $"m_obj[{GetTargetPropertyNameRef(typeDef, member)}].Set(value.GetValue())";
+									setterExpr = $"m_obj.Set({GetTargetPropertyNameRef(typeDef, member)}, value.GetValue())";
 								}
 							}
 
@@ -1018,7 +1018,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 							if (setterExpr == null)
 							{
-								setterExpr ??= $"m_obj[{GetTargetPropertyNameRef(typeDef, member)}].Set(value)";
+								setterExpr ??= $"m_obj.Set({GetTargetPropertyNameRef(typeDef, member)}, value)";
 							}
 
 							sb.AppendLine($"/// <inheritdoc cref=\"{typeDef.Type.FullyQualifiedName}.{member.MemberName}\" />");

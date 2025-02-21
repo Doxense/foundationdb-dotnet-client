@@ -102,9 +102,9 @@ namespace Doxense.Serialization.Json
 			//set => Set(index, value.Json);
 		}
 
-		/// <summary>Returns the value at the given location, if it was non-null and inside the bounds of the array</summary>
+		/// <summary>Returns the value of the given field, if it is not null or missing</summary>
 		/// <param name="key">Name of the field in this object</param>
-		/// <param name="value">Value that represents this index in the current array.</param>
+		/// <param name="value">Value that represents this field in the current object.</param>
 		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
 		/// <remarks><para>This can be used to perform a different operation if the value exists or not (initialize a counter or increment its value, throw a specialized exception, ....)</para></remarks>
 		/// <example><code>
@@ -121,6 +121,7 @@ namespace Doxense.Serialization.Json
 		///		// root will now have { ..., "Error": { "Attempts": (+1), "FirstAttempt": "...", "LastAttempt": "..." } }
 		/// }
 		/// </code></example>
+		[Pure]
 		public bool TryGetValue(string key, out ObservableJsonValue value)
 		{
 			var items = this.Json;
@@ -134,6 +135,32 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
+		/// <summary>Returns the value of the given field, if it is not null or missing</summary>
+		/// <param name="key">Name of the field in this object</param>
+		/// <param name="value">Value that represents this field in the current object.</param>
+		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
+		/// <remarks><para>This can be used to perform a different operation if the value exists or not (initialize a counter or increment its value, throw a specialized exception, ....)</para></remarks>
+		/// <example><code>
+		/// if (!root.TryGetValue&lt;Foo>("foo", out var foo))
+		/// { // first time
+		///		foo = new Foo { /* ... */ }
+		///     root.Set("foo", foo);
+		/// }
+		/// </code></example>
+		[Pure]
+		public bool TryGetValue<TValue>(string key, [MaybeNullWhen(false)] out TValue value)
+		{
+			var items = this.Json;
+			if (!items.TryGetValue(key, out var child) || child.IsNullOrMissing())
+			{
+				value = default;
+				return false;
+			}
+
+			value = child.As<TValue>()!;
+			return true;
+		}
+
 		/// <summary>Returns the value at the given location, if it was non-null and inside the bounds of the array</summary>
 		/// <param name="index">Index of the element in this array</param>
 		/// <param name="value">Value that represents this index in the current array.</param>
@@ -141,7 +168,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks><para>This can be used to perform a different operation if the value exists or not (initialize a counter or increment its value, throw a specialized exception, ....)</para></remarks>
 		/// <example><code>
 		/// if (!root["Foos"].TryGetValue(2, out var item))
-		/// { // either Foos[] has size less then 3, or Foos[2] is null.
+		/// { // either Foos[] has size less than 3, or Foos[2] is null.
 		///		item["Version"] = 0;
 		///		item["Created"] = DateTimeOffset.UtcNow;
 		///		// Foos[2] will now be equal to { "Version": 0, "Created": "..." }
@@ -153,7 +180,40 @@ namespace Doxense.Serialization.Json
 		///		// Foos[2] will now be equal to { "Version": (+ 1), "Created": "...", "LastModified": "..." }
 		/// }
 		/// </code></example>
+		[Pure]
 		public bool TryGetValue(int index, out ObservableJsonValue value)
+		{
+			if (!this.Json.TryGetValue(index, out var child) || child.IsNullOrMissing())
+			{
+				value = this.Transaction.FromJson(this, index, JsonNull.Error);
+				return false;
+			}
+
+			value = this.Transaction.FromJson(this, index, child);
+			return true;
+		}
+
+		/// <summary>Returns the value at the given location, if it was non-null and inside the bounds of the array</summary>
+		/// <param name="index">Index of the element in this array</param>
+		/// <param name="value">Value that represents this index in the current array.</param>
+		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
+		/// <remarks><para>This can be used to perform a different operation if the value exists or not (initialize a counter or increment its value, throw a specialized exception, ....)</para></remarks>
+		/// <example><code>
+		/// if (!root["Foos"].TryGetValue(2, out var item))
+		/// { // either Foos[] has size less than 3, or Foos[2] is null.
+		///		item["Version"] = 0;
+		///		item["Created"] = DateTimeOffset.UtcNow;
+		///		// Foos[2] will now be equal to { "Version": 0, "Created": "..." }
+		/// }
+		/// else
+		/// { // Foos[2] already had a non-null value
+		///		item["Version"].Increment();
+		///		item["LastModified"] = DateTimeOffset.UtcNow;
+		///		// Foos[2] will now be equal to { "Version": (+ 1), "Created": "...", "LastModified": "..." }
+		/// }
+		/// </code></example>
+		[Pure]
+		public bool TryGetValue(Index index, out ObservableJsonValue value)
 		{
 			if (!this.Json.TryGetValue(index, out var child) || child.IsNullOrMissing())
 			{
@@ -168,6 +228,10 @@ namespace Doxense.Serialization.Json
 		[Pure, MustUseReturnValue]
 		public ObservableJsonValue Get(string key) => this.Transaction.FromJson(this, key, this.Json.GetValueOrDefault(key));
 
+		[Pure, MustUseReturnValue]
+		public TValue? Get<TValue>(string key) => this.Json.GetValueOrDefault(key).As<TValue>(default(TValue));
+
+		[Pure, MustUseReturnValue]
 		public ObservableJsonValue Get(ReadOnlySpan<char> key)
 		{
 #if NET9_0_OR_GREATER
@@ -179,6 +243,10 @@ namespace Doxense.Serialization.Json
 #endif
 		}
 
+		[Pure, MustUseReturnValue]
+		public TValue? Get<TValue>(ReadOnlySpan<char> key) => this.Json.GetValueOrDefault(key).As<TValue>(default(TValue));
+
+		[Pure, MustUseReturnValue]
 		public ObservableJsonValue Get(ReadOnlyMemory<char> key)
 		{
 #if NET9_0_OR_GREATER
@@ -191,10 +259,19 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, MustUseReturnValue]
-		public ObservableJsonValue Get(int index) => this.Transaction.FromJson(this, index, this.Json[index]);
+		public TValue? Get<TValue>(ReadOnlyMemory<char> key) => this.Json.GetValueOrDefault(key).As<TValue>(default(TValue));
 
 		[Pure, MustUseReturnValue]
-		public ObservableJsonValue Get(Index index) => this.Transaction.FromJson(this, index, this.Json[index]);
+		public ObservableJsonValue Get(int index) => this.Transaction.FromJson(this, index, this.Json.GetValueOrDefault(index));
+
+		[Pure, MustUseReturnValue]
+		public TValue? Get<TValue>(int index) => this.Json.GetValueOrDefault(index).As<TValue>(default(TValue));
+
+		[Pure, MustUseReturnValue]
+		public ObservableJsonValue Get(Index index) => this.Transaction.FromJson(this, index, this.Json.GetValueOrDefault(index));
+
+		[Pure, MustUseReturnValue]
+		public TValue? Get<TValue>(Index index) => this.Json.GetValueOrDefault(index).As<TValue>(default(TValue));
 
 		[Pure, MustUseReturnValue]
 		public ObservableJsonValue Get(JsonPath path)
@@ -588,6 +665,10 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
+		private JsonValue Convert<T>(T? value) => JsonValue.FromValueReadOnly(value); //TODO: pass the parent settings?
+
+		#region Set(value)
+
 		/// <summary>Changes the value of the current instance in its parent</summary>
 		/// <param name="value">New value for this element</param>
 		/// <remarks>
@@ -598,72 +679,218 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Changes the value of the current instance in its parent</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(JsonObject? value)
-		{
-			// this exists so that root["xxx"].Set(new JsonObject(...)) does not call Set<TValue>(...) instead!
-			InsertOrUpdate(value, InsertionBehavior.OverwriteExisting);
-		}
+		public void Set(JsonNull? value) => Set((JsonValue?) value);
 
 		/// <summary>Changes the value of the current instance in its parent</summary>
-		/// <param name="value"></param>
-		public void Set(JsonArray? value)
-		{
-			// this exists so that root["xxx"].Set(JsonArray.Create(...)) does not call Set<TValue>(...) instead!
-			InsertOrUpdate(value, InsertionBehavior.OverwriteExisting);
-		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(JsonBoolean? value) => Set((JsonValue?) value);
 
-		public void Set(ObservableJsonValue value) => InsertOrUpdate(value.Json, InsertionBehavior.OverwriteExisting);
+		/// <summary>Changes the value of the current instance in its parent</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(JsonNumber? value) => Set((JsonValue?) value);
 
-		public void Set<TValue>(TValue? value) => InsertOrUpdate(JsonValue.FromValueReadOnly(value), InsertionBehavior.OverwriteExisting);
+		/// <summary>Changes the value of the current instance in its parent</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(JsonString? value) => Set((JsonValue?) value);
+
+		/// <summary>Changes the value of the current instance in its parent</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(JsonDateTime? value) => Set((JsonValue?) value);
+
+		/// <summary>Changes the value of the current instance in its parent</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(JsonObject? value) => Set((JsonValue?) value);
+
+		/// <summary>Changes the value of the current instance in its parent</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(JsonArray? value) => Set((JsonValue?) value);
+
+		/// <summary>Changes the value of the current instance in its parent</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(ObservableJsonValue? value) => Set(value?.Json);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set<TValue>(TValue? value) => Set(Convert<TValue>(value));
+
+		#endregion
+
+		#region Set(key, value)
 
 		public void Set(string key, JsonValue? value) => InsertOrUpdate(key, value, InsertionBehavior.OverwriteExisting);
 
-		public void Set(string key, ObservableJsonValue value) => InsertOrUpdate(key, value.Json, InsertionBehavior.OverwriteExisting);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(string key, JsonNull? value) => Set(key, (JsonValue?) value);
 
-		public void Set<T>(string key, T? value) => InsertOrUpdate(key, JsonValue.FromValueReadOnly(value), InsertionBehavior.OverwriteExisting);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(string key, JsonBoolean? value) => Set(key, (JsonValue?) value);
 
-		public void Set(JsonPath path, JsonValue value) => Get(path).Set(value);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(string key, JsonNumber? value) => Set(key, (JsonValue?) value);
 
-		public void Set(JsonPath path, ObservableJsonValue value) => Get(path).Set(value.Json);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(string key, JsonString? value) => Set(key, (JsonValue?) value);
 
-		public void Set<T>(JsonPath path, T? value) => Get(path).Set<T>(value);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(string key, JsonDateTime? value) => Set(key, (JsonValue?) value);
 
-		public void Set(int index, JsonValue value) => InsertOrUpdate(index, value, InsertionBehavior.OverwriteExisting);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(string key, JsonObject? value) => Set(key, (JsonValue?) value);
 
-		public void Set(Index index, JsonValue value) => InsertOrUpdate(index, value, InsertionBehavior.OverwriteExisting);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(string key, JsonArray? value) => Set(key, (JsonValue?) value);
 
-		public void Set<T>(int index, T? value) => InsertOrUpdate(index, JsonValue.FromValueReadOnly(value), InsertionBehavior.OverwriteExisting);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(string key, ObservableJsonValue? value) => Set(key, value?.Json);
 
-		public void Set<T>(Index index, T? value) => InsertOrUpdate(index, JsonValue.FromValueReadOnly(value), InsertionBehavior.OverwriteExisting);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set<TValue>(string key, TValue? value) => Set(key, Convert<TValue>(value));
+
+		#endregion
+
+		#region Set(path, value)
+
+		public void Set(JsonPath path, JsonValue? value) => Get(path).Set(value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(JsonPath path, JsonNull? value) => Set(path, (JsonValue?) value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(JsonPath path, JsonBoolean? value) => Set(path, (JsonValue?) value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(JsonPath path, JsonNumber? value) => Set(path, (JsonValue?) value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(JsonPath path, JsonString? value) => Set(path, (JsonValue?) value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(JsonPath path, JsonDateTime? value) => Set(path, (JsonValue?) value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(JsonPath path, JsonObject? value) => Set(path, (JsonValue?) value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(JsonPath path, JsonArray? value) => Set(path, (JsonValue?) value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(JsonPath path, ObservableJsonValue? value) => Set(path, value?.Json);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set<TValue>(JsonPath path, TValue? value) => Set(path, Convert<TValue>(value)); //TODO: pass the parent settings?
+
+		#endregion
+
+		#region Set(index, value)
+
+		public void Set(int index, JsonValue? value) => InsertOrUpdate(index, value, InsertionBehavior.OverwriteExisting);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(int index, JsonNull? value) => Set(index, (JsonValue?) value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(int index, JsonBoolean? value) => Set(index, (JsonValue?) value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(int index, JsonNumber? value) => Set(index, (JsonValue?) value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(int index, JsonString? value) => Set(index, (JsonValue?) value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(int index, JsonDateTime? value) => Set(index, (JsonValue?) value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(int index, JsonObject? value) => Set(index, (JsonValue?) value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(int index, JsonArray? value) => Set(index, (JsonValue?) value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(int index, ObservableJsonValue? value) => Set(index, value?.Json);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set<TValue>(int index, TValue? value) => Set(index, Convert<TValue>(value)); //TODO: pass the parent settings?
+
+		public void Set(Index index, JsonValue? value) => InsertOrUpdate(index, value, InsertionBehavior.OverwriteExisting);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(Index index, JsonNull? value) => Set(index, (JsonValue?) value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(Index index, JsonBoolean? value) => Set(index, (JsonValue?) value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(Index index, JsonNumber? value) => Set(index, (JsonValue?) value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(Index index, JsonString? value) => Set(index, (JsonValue?) value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(Index index, JsonDateTime? value) => Set(index, (JsonValue?) value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(Index index, JsonObject? value) => Set(index, (JsonValue?) value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(Index index, JsonArray? value) => Set(index, (JsonValue?) value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(Index index, ObservableJsonValue? value) => Set(index, value?.Json);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set<TValue>(Index index, TValue? value) => Set(index, Convert<TValue>(value)); //TODO: pass the parent settings?
+
+		#endregion
 
 		/// <summary>Adds a new value to the parent object or array</summary>
 		/// <param name="value">Value of the new field or item</param>
 		/// <remarks>
-		/// <para>If the current element is null or missing, it will automatically promoted to an array with <paramref name="value"/> as its single element.</para>
+		/// <para>If the current element is null or missing, it will automatically be promoted to an array with <paramref name="value"/> as its single element.</para>
 		/// <para>If the current element is a field of an object, then it will be created in the parent object, unless it already has a non-null value, in which case an exception will be thrown.</para>
 		/// <para>If the current element is an index in an array, then it will be filled with <paramref name="value"/>, unless it previously had a non-null value, in which case an exception will be thrown.</para>
 		/// </remarks>
 		/// <exception cref="ArgumentException">If the current element already exists.</exception>
-		public void Add(JsonValue value) => InsertOrUpdate(value, InsertionBehavior.ThrowOnExisting);
+		public void Add(JsonValue? value) => InsertOrUpdate(value, InsertionBehavior.ThrowOnExisting);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Add(JsonNull? value) => Add((JsonValue?) value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Add(JsonBoolean? value) => Add((JsonValue?) value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Add(JsonNumber? value) => Add((JsonValue?) value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Add(JsonString? value) => Add((JsonValue?) value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Add(JsonDateTime? value) => Add((JsonValue?) value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Add(JsonObject? value) => Add((JsonValue?) value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Add(JsonArray? value) => Add((JsonValue?) value);
 
 		/// <summary>Adds a new field to the object</summary>
 		/// <param name="value">Value of the field</param>
-		/// <remarks>If the current value is null or missing, it will automatically promoted to an empty object.</remarks>
+		/// <remarks>If the current value is null or missing, it will automatically be promoted to an empty object.</remarks>
 		/// <exception cref="NotSupportedException">If the current value is not an Object.</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Add(ObservableJsonValue value) => Add(value.Json);
+		public void Add(ObservableJsonValue? value) => Add(value?.Json);
 
 		/// <summary>Adds a new field to the object</summary>
 		/// <param name="value">Value of the field</param>
-		/// <remarks>If the current value is null or missing, it will automatically promoted to an empty object.</remarks>
+		/// <remarks>If the current value is null or missing, it will automatically be promoted to an empty object.</remarks>
 		/// <exception cref="NotSupportedException">If the current value is not an Object.</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Add<T>(T value) => Add(JsonValue.FromValue<T>(value));
+		public void Add<TValue>(TValue value) => Add(Convert<TValue>(value));
 
 		/// <summary>Adds a new field to the object</summary>
-		/// <param name="path">Name of the field</param>
+		/// <param name="key">Name of the field</param>
 		/// <param name="value">Value of the field</param>
-		/// <remarks>If the current value is null or missing, it will automatically promoted to an empty object.</remarks>
+		/// <remarks>If the current value is null or missing, it will automatically be promoted to an empty object.</remarks>
 		/// <exception cref="NotSupportedException">If the current value is not an Object.</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Add(string key, JsonValue value) => Get(key).Add(value);
@@ -671,7 +898,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Adds a new field to the object</summary>
 		/// <param name="path">Name of the field</param>
 		/// <param name="value">Value of the field</param>
-		/// <remarks>If the current value is null or missing, it will automatically promoted to an empty object.</remarks>
+		/// <remarks>If the current value is null or missing, it will automatically be promoted to an empty object.</remarks>
 		/// <exception cref="NotSupportedException">If the current value is not an Object.</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Add(JsonPath path, JsonValue value) => Get(path).Add(value);
@@ -679,16 +906,22 @@ namespace Doxense.Serialization.Json
 		/// <summary>Adds a new field to the object</summary>
 		/// <param name="key">Name of the field</param>
 		/// <param name="value">Value of the field</param>
-		/// <remarks>If the current value is null or missing, it will automatically promoted to an empty object.</remarks>
+		/// <remarks>If the current value is null or missing, it will automatically be promoted to an empty object.</remarks>
 		/// <exception cref="NotSupportedException">If the current value is not an Object.</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Add(string key, ObservableJsonValue value) => Get(key).Add(value.Json);
+		public void Add(string key, ObservableJsonValue? value) => Get(key).Add(value?.Json);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool TryAdd(string key, JsonValue value) => Get(key).InsertOrUpdate(value, InsertionBehavior.None);
+		public bool TryAdd(string key, JsonValue? value) => Get(key).InsertOrUpdate(value, InsertionBehavior.None);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool TryAdd(JsonPath path, JsonValue value) => Get(path).InsertOrUpdate(value, InsertionBehavior.None);
+		public bool TryAdd(string key, ObservableJsonValue? value) => Get(key).InsertOrUpdate(value?.Json, InsertionBehavior.None);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryAdd(JsonPath path, JsonValue? value) => Get(path).InsertOrUpdate(value, InsertionBehavior.None);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryAdd(JsonPath path, ObservableJsonValue? value) => Get(path).InsertOrUpdate(value?.Json, InsertionBehavior.None);
 
 		public void Remove()
 		{
@@ -735,6 +968,38 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
+		public bool Remove(int index)
+		{
+			if (this.Json is not JsonArray prevJson) throw new NotSupportedException();
+			if ((uint) index >= prevJson.Count)
+			{ // not found
+				return false;
+			}
+
+			var newJson = prevJson.CopyAndRemove(index);
+			this.Json = newJson;
+			this.Path.NotifyParent(this);
+			this.Transaction.RecordDelete(this, index);
+			return true;
+		}
+
+		public bool Remove(int index, [MaybeNullWhen(false)] out JsonValue value)
+		{
+			if (this.Json is not JsonArray prevJson) throw new NotSupportedException();
+			if ((uint) index >= prevJson.Count)
+			{ // not found
+				value = default;
+				return false;
+			}
+
+			value = prevJson[index];
+			var newJson = prevJson.CopyAndRemove(index);
+			this.Json = newJson;
+			this.Path.NotifyParent(this);
+			this.Transaction.RecordDelete(this, index);
+			return true;
+		}
+
 		public bool Remove(Index index)
 		{
 			if (this.Json is not JsonArray prevJson) throw new NotSupportedException();
@@ -767,6 +1032,119 @@ namespace Doxense.Serialization.Json
 			this.Path.NotifyParent(this);
 			this.Transaction.RecordDelete(this, offset);
 			return true;
+		}
+
+		private static void Increment(ObservableJsonValue value)
+		{
+			switch (value.Json)
+			{
+				case JsonNumber num:
+				{
+					value.Set(num + 1);
+					break;
+				}
+				case JsonNull:
+				{
+					value.Set(JsonNumber.One);
+					break;
+				}
+				default:
+				{
+					throw new InvalidOperationException($"Cannot increment '{value.Path.ToString()}' because it is a {value.Json.Type}");
+				}
+			}
+		}
+
+		public void Increment()
+		{
+			Increment(this);
+		}
+
+		public ObservableJsonValue Increment(string key)
+		{
+			var prev = Get(key);
+			Increment(prev);
+			return prev;
+		}
+
+		public ObservableJsonValue Increment(int index)
+		{
+			var prev = Get(index);
+			Increment(prev);
+			return prev;
+		}
+
+		public ObservableJsonValue Increment(Index index)
+		{
+			var prev = Get(index);
+			Increment(prev);
+			return prev;
+		}
+
+		public bool CompareExchange<TValue>(TValue? value, TValue? comparand)
+		{
+			if (!this.Json.ValueEquals(comparand))
+			{
+				return false;
+			}
+			Set(Convert<TValue>(value));
+			return true;
+		}
+
+		public JsonValue Exchange(JsonValue? value)
+		{
+			var prev = this.Json;
+			Set(value);
+			return prev;
+		}
+
+		public TValue? Exchange<TValue>(TValue? value)
+		{
+			var prev = this.As<TValue>();
+			Set(Convert<TValue>(value));
+			return prev;
+		}
+
+		public JsonValue Exchange(string key, JsonValue? value)
+		{
+			var prev = this.Json[key];
+			Set(key, value);
+			return prev;
+		}
+
+		public JsonValue Exchange(int index, JsonValue? value)
+		{
+			var prev = this.Json[index];
+			Set(index, value);
+			return prev;
+		}
+
+		public JsonValue Exchange(Index index, JsonValue? value)
+		{
+			var prev = this.Json[index];
+			Set(index, value);
+			return prev;
+		}
+
+		public TValue? Exchange<TValue>(string key, TValue? value)
+		{
+			var prev = Get<TValue>(key);
+			Set(key, value);
+			return prev;
+		}
+
+		public TValue? Exchange<TValue>(int index, TValue? value)
+		{
+			var prev = Get<TValue>(index);
+			Set(index, value);
+			return prev;
+		}
+
+		public TValue? Exchange<TValue>(Index index, TValue? value)
+		{
+			var prev = Get<TValue>(index);
+			Set(index, value);
+			return prev;
 		}
 
 		public void Clear()
