@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -33,7 +33,6 @@ namespace Doxense.Threading.Operations
 	using Microsoft.Extensions.DependencyInjection;
 	using Microsoft.Extensions.DependencyInjection.Extensions;
 	using Microsoft.Extensions.Logging;
-	using OpenTelemetry.Trace;
 
 	/// <summary>Represents the execution context for an asynchronous operation that can be observed from the outside</summary>
 	[PublicAPI]
@@ -81,7 +80,7 @@ namespace Doxense.Threading.Operations
 		/// <param name="label">Label of the sub-step (for humans)</param>
 		/// <returns>Token that must be disposed at the end of the sub-step</returns>
 		/// <remarks>
-		/// <para>Sub-steps should be used to wrap the various parts of an operation, that are not large enough to be <see cref="ExecuteSubOperation{TResult}">split into sub-operations.</see>.</para>
+		/// <para>Sub-steps should be used to wrap the various parts of an operation, that are not large enough to be <see cref="ExecuteSubOperation{TResult}">split into sub-operations</see>.</para>
 		/// <para>They will be exposed to observers who are following the execution.</para>
 		/// </remarks>
 		IDisposable ExecuteStep(string id, string? label = null);
@@ -97,13 +96,25 @@ namespace Doxense.Threading.Operations
 		
 	}
 
+	/// <summary>Represents the context of an Operation</summary>
+	/// <typeparam name="TResult">Type of the result returned by the operation attached to this context</typeparam>
 	[PublicAPI]
 	public interface IOperationContext<TResult> : IOperationContext
 	{
+
+		/// <summary>Marks this context as failed</summary>
+		/// <param name="error">Description of the error</param>
+		/// <returns>Failed operation result</returns>
 		OperationResult<TResult> Failed(OperationError error);
 
+		/// <summary>Marks this context as successful</summary>
+		/// <param name="result">Result of the operation</param>
+		/// <returns>Successful operation result</returns>
 		OperationResult<TResult> Success(TResult result);
 
+		/// <summary>Returns the result attached to this context, if it ran successfully</summary>
+		/// <param name="result">Receives the result of the operation, if it was a success</param>
+		/// <returns><c>true</c> if the context was marked as a success; otherwise, <c>false</c></returns>
 		bool TryGetResult([MaybeNullWhen(false)] out TResult result);
 
 	}
@@ -128,10 +139,16 @@ namespace Doxense.Threading.Operations
 			this.Context = context;
 		}
 
+		/// <summary>Context of the operation that produced this result</summary>
 		public readonly IOperationContext Context;
 
+		/// <summary>Tests if the result represents a failure condition</summary>
 		public bool HasFailed => this.Context.Error != null;
 
+		/// <summary>Returns the result of the operation, or throws if the operation failed</summary>
+		/// <returns>Result of the operation (if it was successful)</returns>
+		/// <exception cref="InvalidOperationException">If the operation did not run to completion (success or failure)</exception>
+		//REVIEW: rename to "GetResult()" to match tasks?
 		public TResult EnsureSuccess()
 		{
 			if (this.Context.State != OperationState.Completed)
@@ -141,7 +158,7 @@ namespace Doxense.Threading.Operations
 
 			if (this.Context.Error != null)
 			{
-				Context.Error.Exception?.Throw();
+				this.Context.Error.Exception?.Throw();
 				//TODO: map the error to something more specific?
 				throw new InvalidOperationException($"Operation failed: [{this.Context.Error.Code}] {this.Context.Error.Message}"); }
 
@@ -165,6 +182,10 @@ namespace Doxense.Threading.Operations
 			}
 		}
 
+		/// <summary>Checks whether the operation was a success or a failure, and return either the result or the error</summary>
+		/// <param name="result">If the operation succeeded, receives the result; otherwise, <c>null</c></param>
+		/// <param name="error">If the operation failed, receives the error; otherwise, <c>null</c></param>
+		/// <returns><c>true</c> if the operation completed successfully; otherwise, <c>false</c>.</returns>
 		public bool Check([MaybeNullWhen(false)] out TResult result, [MaybeNullWhen(true)] out OperationError error)
 		{
 			if (this.Context.State != OperationState.Completed)
@@ -216,6 +237,8 @@ namespace Doxense.Threading.Operations
 			return true;
 		}
 
+		/// <summary>Returns a result that represents a failed operation.</summary>
+		/// <param name="failed">Description of the failure</param>
 		public static implicit operator OperationResult<TResult>(OperationFailed failed)
 		{
 			return new OperationResult<TResult>(failed.Context);
@@ -223,10 +246,27 @@ namespace Doxense.Threading.Operations
 
 	}
 
+	/// <summary>Represents the result of a failed Operation.</summary>
 	[PublicAPI]
 	public readonly struct OperationFailed
 	{
 
+		//note: the error message is encapsulated in the context
+		// => this type is only there to help with auto-casting errors to the expected operation result type:
+		//
+		// public async Task<IOperationResult<Foo>> DoSomething(IOperationContext ctx, ....)
+		// {
+		//     // ...
+		//     if (/* some error condition*/)
+		//     {
+		//         // this returns an "OperationFailed" that will be implicitly cast to the expected IOperationResult<Foo>
+		//         return ctx.Failed("some_error", "Something is not right", /*....*/);
+		//     }
+		//     // ...
+		//     return ctx.Success(new Foo { /* ... */ });
+		// }
+
+		/// <summary>Context of the failed operation</summary>
 		public readonly IOperationContext Context;
 
 		public OperationFailed(IOperationContext context)
@@ -234,22 +274,31 @@ namespace Doxense.Threading.Operations
 			this.Context = context;
 		}
 
+		/// <summary>Error produced by the failed operation.</summary>
 		public OperationError Error => this.Context.Error!;
 
 	}
 
+	/// <summary>Result of a failed Operation.</summary>
 	[PublicAPI]
 	public sealed record OperationError
 	{
+		/// <summary>Code that represent the specific error condition (for robots)</summary>
 		public required string Code { get; init; }
 
+		/// <summary>Text that describes the error condition (for humans)</summary>
 		public required string Message { get; init; }
 
+		/// <summary>Exception that triggered the failure (optional)</summary>
 		public ExceptionDispatchInfo? Exception { get; init; }
 
+		/// <summary>Additional details that can help diagnose the error</summary>
+		/// <remarks>This object <b>MUST</b> support serialization to JSON or other formats.</remarks>
 		public object? Details { get; init; }
+
 	}
 
+	/// <summary>Exception that can be used to bubble up an <see cref="OperationError"/> from deep inside the execution of an Operatin.</summary>
 	[PublicAPI]
 	public sealed class OperationErrorException : Exception
 	{
@@ -270,6 +319,7 @@ namespace Doxense.Threading.Operations
 			this.Error = new OperationError { Code = code, Message = message, Details = details, Exception = exception };
 		}
 
+		/// <summary>Error that should be returned by the top-level code that runs the operation.</summary>
 		public OperationError Error { get; }
 
 	}
@@ -277,74 +327,132 @@ namespace Doxense.Threading.Operations
 	[PublicAPI]
 	public interface IStoryBook
 	{
+
 		string Type { get; }
 
 		string Recipee { get; }
+
 	}
 
+	/// <summary>Base interface for a Workflow</summary>
+	/// <remarks>
+	/// This non-generic version of <see cref="IOperationWorkflow{TArguments, TResult}"/> is required
+	/// when multiple workflows with different signatures must be stored in the same list of dictionary.
+	/// </remarks>
 	[PublicAPI]
 	public interface IOperationWorkflow;
 
+	/// <summary>Base interface of a Workflow that processes a <typeparamref name="TArguments"/> and returns a <typeparamref name="TResult"/></summary>
+	/// <typeparam name="TArguments">Type of the arguments that this workflow will process</typeparam>
+	/// <typeparam name="TResult">Type of the result that this workflow returns upon successful execution of the request</typeparam>
 	[PublicAPI]
-	public interface IOperationWorkflow<in TRequest, TResult> : IOperationWorkflow
+	public interface IOperationWorkflow<in TArguments, TResult> : IOperationWorkflow
 	{
-		Task<OperationResult<TResult>> ExecuteAsync(TRequest request);
+
+		/// <summary>Runs the workflow on a set of arguments</summary>
+		/// <param name="arguments">Arguments for this execution</param>
+		/// <returns>Result of the execution</returns>
+		Task<OperationResult<TResult>> ExecuteAsync(TArguments arguments);
+
 	}
 
+	/// <summary>Base interface of a Workflow that processes a <typeparamref name="TArguments"/> and returns a <typeparamref name="TResult"/></summary>
+	/// <typeparam name="TWorkflow">Type of the class that implements this interface (CRTP)</typeparam>
+	/// <typeparam name="TArguments">Type of the arguments that this workflow will process</typeparam>
+	/// <typeparam name="TResult">Type of the result that this workflow returns upon successful execution of the request</typeparam>
 	[PublicAPI]
-	public interface IOperationWorkflow<TWorkflow, in TRequest, TResult> : IOperationWorkflow<TRequest, TResult>
-		where TWorkflow: IOperationWorkflow<TWorkflow, TRequest, TResult>
+	public interface IOperationWorkflow<TWorkflow, in TArguments, TResult> : IOperationWorkflow<TArguments, TResult>
+		where TWorkflow: IOperationWorkflow<TWorkflow, TArguments, TResult>
 	{
 		
-		//static abstract TWorkflow CreateInstance(IServiceProvider services, string name, IOperationScheduler scheduler, TRequest req, CancellationToken ct);
+		//static abstract TWorkflow CreateInstance(IServiceProvider services, string name, IOperationScheduler scheduler, TArguments req, CancellationToken ct);
 
-		//static abstract TWorkflow CreateInstance(IServiceProvider services, IOperationContext<TRequest, TResult> ctx);
+		//static abstract TWorkflow CreateInstance(IServiceProvider services, IOperationContext<TArguments, TResult> ctx);
 
 	}
 
+	/// <summary>Generic implementation for Workflows</summary>
+	/// <typeparam name="TWorkflow">Type of the concrete class that derives from this base type.</typeparam>
+	/// <typeparam name="TArguments">Type of the arguments that this workflow will process</typeparam>
+	/// <typeparam name="TResult">Type of the result that this workflow returns upon successful execution of the request</typeparam>
 	[PublicAPI]
-	public abstract class OperationWorkflowBase<TWorkflow, TParameter, TResult> : IOperationWorkflow<TWorkflow, TParameter, TResult>
-		where TWorkflow: OperationWorkflowBase<TWorkflow, TParameter, TResult>
+	public abstract class OperationWorkflowBase<TWorkflow, TArguments, TResult> : IOperationWorkflow<TWorkflow, TArguments, TResult>
+		where TWorkflow: OperationWorkflowBase<TWorkflow, TArguments, TResult>
 	{
 
+		/// <summary>Context of the currently running operation</summary>
 		protected IOperationContext<TResult> Context { get; }
 
+		/// <summary>Base constructor</summary>
+		/// <param name="context">Context for the operation</param>
 		protected OperationWorkflowBase(IOperationContext<TResult> context)
 		{
 			this.Context = context;
 		}
 
-		public Task<OperationResult<TResult>> ExecuteAsync(TParameter request)
+		/// <inheritdoc />
+		public Task<OperationResult<TResult>> ExecuteAsync(TArguments arguments)
 		{
-			return this.Context.Scheduler.ExecuteOperation<TResult>(this.Context, _ => this.ExecuteInternalAsync(request));
+			return this.Context.Scheduler.ExecuteOperation<TResult>(this.Context, _ => this.ExecuteInternalAsync(arguments));
 		}
 
-		protected abstract Task<OperationResult<TResult>> ExecuteInternalAsync(TParameter request);
+		/// <summary>Executes the workflow on the given set of parameters</summary>
+		/// <param name="parameters">Parameters for the operation</param>
+		/// <returns>Result of the operation</returns>
+		protected abstract Task<OperationResult<TResult>> ExecuteInternalAsync(TArguments parameters);
 
+		/// <summary>Token that will trigger if the operation is canceled during its execution</summary>
 		protected CancellationToken Cancellation => this.Context.Cancellation;
 
+		/// <summary>Logs a message using the <see cref="LogLevel.Trace"/> log level</summary>
+		protected void LogTrace(string message) => this.Context.LogTrace(message);
+
+		/// <summary>Logs a message using the <see cref="LogLevel.Debug"/> log level</summary>
 		protected void LogDebug(string message) => this.Context.LogDebug(message);
 
+		/// <summary>Logs a message using the <see cref="LogLevel.Information"/> log level</summary>
 		protected void LogInformation(string message) => this.Context.LogInformation(message);
 
+		/// <summary>Logs a message using the <see cref="LogLevel.Warning"/> log level</summary>
 		protected void LogWarning(string message) => this.Context.LogWarning(message);
 
+		/// <summary>Logs a message using the <see cref="LogLevel.Error"/> log level</summary>
 		protected void LogError(string message) => this.Context.LogError(message);
 
+		/// <summary>Logs a message using the <see cref="LogLevel.Error"/> log level</summary>
 		protected void LogError(Exception e, string message) => this.Context.LogError(e, message);
 
+		/// <summary>Marks the operation as completed successfully with the specified result</summary>
+		/// <param name="result">Result returned by the operation.</param>
+		/// <returns>Successful operation result</returns>
 		protected OperationResult<TResult> Success(TResult result) => this.Context.Success(result);
 
+		/// <summary>Marks the operation as failed, with the specified error.</summary>
+		/// <param name="error">Error returned by the operation.</param>
+		/// <returns>Failed operation result</returns>
 		protected OperationResult<TResult> Failed(OperationError error) => this.Context.Failed(error);
 
+		/// <summary>Marks the operation as failed, with the specified exception.</summary>
+		/// <param name="exception">Exception that should be returned to the caller.</param>
+		/// <returns>Failed operation result</returns>
 		protected OperationResult<TResult> Throw(Exception exception) => this.Context.Throw(exception);
 
+		/// <summary>Creates a new instance of this workflow</summary>
+		/// <param name="services">Provider that can be used to instantiate this workflow</param>
+		/// <param name="name">Name of the workflow</param>
+		/// <param name="scheduler">Scheduler that will be used to run this operation</param>
+		/// <param name="ct">Token that can be used to cancel this operation</param>
+		/// <returns>New workflow instance that is ready to run an operation using a newly created context.</returns>
 		public static TWorkflow CreateInstance(IServiceProvider services, string name, IOperationScheduler scheduler, CancellationToken ct)
 		{
 			var ctx = scheduler.Create<TResult>(name, null, null, ct);
 			return CreateInstance(services, ctx);
 		}
 
+		/// <summary>Creates a new instance of this workflow, using an already created operation context.</summary>
+		/// <param name="services">Provider that can be used to instantiate this workflow</param>
+		/// <param name="ctx">Context that will run this operation</param>
+		/// <returns>New workflow instance that is ready to run an operation using the specified context.</returns>
 		public static TWorkflow CreateInstance(IServiceProvider services, IOperationContext ctx)
 		{
 			return ActivatorUtilities.CreateInstance<TWorkflow>(services, ctx);
@@ -356,7 +464,7 @@ namespace Doxense.Threading.Operations
 	public static class OperationContextExtensions
 	{
 
-		/// <summary>Register the <see cref="IOperationScheduler"/> and <see cref="IEventBus"/> services</summary>
+		/// <summary>Registers the <see cref="IOperationScheduler"/> and <see cref="IEventBus"/> services</summary>
 		public static IServiceCollection AddBackgroundOperations(this IServiceCollection services)
 		{
 #if DEBUG
@@ -370,6 +478,14 @@ namespace Doxense.Threading.Operations
 			return services;
 		}
 
+		/// <summary>Runs an Operation on this scheduler</summary>
+		/// <typeparam name="TResult">Results of the operation</typeparam>
+		/// <param name="scheduler">Scheduler that will run the operation</param>
+		/// <param name="type">Type (or category) of this operation.</param>
+		/// <param name="key">Key of the operation in this category, or <c>null</c> for operations that are unique per category.</param>
+		/// <param name="handler">Lambda that will be called to run the operation.</param>
+		/// <param name="ct">Token that can be used to cancel the operation</param>
+		/// <returns>Result of the operation (success or failure)</returns>
 		public static Task<OperationResult<TResult>> Run<TResult>(this IOperationScheduler scheduler, string type, string? key, Func<IOperationContext<TResult>, Task<OperationResult<TResult>>> handler, CancellationToken ct)
 		{
 			Contract.NotNull(scheduler);
@@ -378,6 +494,16 @@ namespace Doxense.Threading.Operations
 			return scheduler.ExecuteOperation(scheduler.Create<TResult>(type, key, null, ct), handler);
 		}
 
+		/// <summary>Runs an Operation on this scheduler</summary>
+		/// <typeparam name="TResult">Results of the operation</typeparam>
+		/// <typeparam name="T0">Type of the argument for this operation</typeparam>
+		/// <param name="scheduler">Scheduler that will run the operation</param>
+		/// <param name="type">Type (or category) of this operation.</param>
+		/// <param name="key">Key of the operation in this category, or <c>null</c> for operations that are unique per category.</param>
+		/// <param name="handler">Lambda that will be called to run the operation.</param>
+		/// <param name="arg0">Argument of the operation</param>
+		/// <param name="ct">Token that can be used to cancel the operation</param>
+		/// <returns>Result of the operation (success or failure)</returns>
 		public static Task<OperationResult<TResult>> Run<TResult, T0>(this IOperationScheduler scheduler, string type, string? key, Func<IOperationContext<TResult>, T0, Task<OperationResult<TResult>>> handler, T0 arg0, CancellationToken ct)
 		{
 			Contract.NotNull(scheduler);
@@ -386,6 +512,18 @@ namespace Doxense.Threading.Operations
 			return scheduler.ExecuteOperation(scheduler.Create<TResult>(type, key, null, ct), (ctx) => handler(ctx, arg0));
 		}
 
+		/// <summary>Runs an Operation on this scheduler</summary>
+		/// <typeparam name="TResult">Results of the operation</typeparam>
+		/// <typeparam name="T0">Type of the first argument for this operation</typeparam>
+		/// <typeparam name="T1">Type of the segment argument for this operation</typeparam>
+		/// <param name="scheduler">Scheduler that will run the operation</param>
+		/// <param name="type">Type (or category) of this operation.</param>
+		/// <param name="key">Key of the operation in this category, or <c>null</c> for operations that are unique per category.</param>
+		/// <param name="handler">Lambda that will be called to run the operation.</param>
+		/// <param name="arg0">First argument of the operation</param>
+		/// <param name="arg1">Second argument of the operation</param>
+		/// <param name="ct">Token that can be used to cancel the operation</param>
+		/// <returns>Result of the operation (success or failure)</returns>
 		public static Task<OperationResult<TResult>> Run<TResult, T0, T1>(this IOperationScheduler scheduler, string type, string? key, Func<IOperationContext<TResult>, T0, T1, Task<OperationResult<TResult>>> handler, T0 arg0, T1 arg1, CancellationToken ct)
 		{
 			Contract.NotNull(scheduler);
@@ -394,6 +532,20 @@ namespace Doxense.Threading.Operations
 			return scheduler.ExecuteOperation(scheduler.Create<TResult>(type, key, null, ct), (ctx) => handler(ctx, arg0, arg1));
 		}
 
+		/// <summary>Runs an Operation on this scheduler</summary>
+		/// <typeparam name="TResult">Results of the operation</typeparam>
+		/// <typeparam name="T0">Type of the first argument for this operation</typeparam>
+		/// <typeparam name="T1">Type of the segment argument for this operation</typeparam>
+		/// <typeparam name="T2">Type of the segment argument for this operation</typeparam>
+		/// <param name="scheduler">Scheduler that will run the operation</param>
+		/// <param name="type">Type (or category) of this operation.</param>
+		/// <param name="key">Key of the operation in this category, or <c>null</c> for operations that are unique per category.</param>
+		/// <param name="handler">Lambda that will be called to run the operation.</param>
+		/// <param name="arg0">First argument of the operation</param>
+		/// <param name="arg1">Second argument of the operation</param>
+		/// <param name="arg2">Second argument of the operation</param>
+		/// <param name="ct">Token that can be used to cancel the operation</param>
+		/// <returns>Result of the operation (success or failure)</returns>
 		public static Task<OperationResult<TResult>> Run<TResult, T0, T1, T2>(this IOperationScheduler scheduler, string type, string? key, Func<IOperationContext<TResult>, T0, T1, T2, Task<OperationResult<TResult>>> handler, T0 arg0, T1 arg1, T2 arg2, CancellationToken ct)
 		{
 			Contract.NotNull(scheduler);
@@ -402,6 +554,13 @@ namespace Doxense.Threading.Operations
 			return scheduler.ExecuteOperation(scheduler.Create<TResult>(type, key, null, ct), (ctx) => handler(ctx, arg0, arg1, arg2));
 		}
 
+		/// <summary>Runs a sub-operation that will be attached to this parent Operation</summary>
+		/// <typeparam name="TResult">Results of the sub-operation</typeparam>
+		/// <param name="parent">Parent operation of this new sub-operation.</param>
+		/// <param name="type">Type (or category) of this sub-operation.</param>
+		/// <param name="key">Key of the sub-operation in this category, or <c>null</c> for operations that are unique per category.</param>
+		/// <param name="handler">Lambda that will be called to run the sub-operation.</param>
+		/// <returns>Result of the sub-operation (success or failure)</returns>
 		public static Task<OperationResult<TResult>> Run<TResult>(this IOperationContext parent, string type, string? key, Func<IOperationContext<TResult>, Task<OperationResult<TResult>>> handler)
 		{
 			if (key == null)
@@ -417,6 +576,7 @@ namespace Doxense.Threading.Operations
 			return parent.Scheduler.ExecuteOperation(subContext, handler);
 		}
 
+		/// <summary>Throws a <see cref="OperationCanceledException"/> if this context has been aborted</summary>
 		public static void ThrowIfCancellationRequested(this IOperationContext context)
 		{
 			context.Cancellation.ThrowIfCancellationRequested();
@@ -424,6 +584,13 @@ namespace Doxense.Threading.Operations
 
 		#region OperationResult factories...
 
+		/// <summary>Marks this context as failed</summary>
+		/// <typeparam name="TResult">Type of the operation result</typeparam>
+		/// <param name="context">Context that has failed</param>
+		/// <param name="code">Code that represent the specific error condition (for robots)</param>
+		/// <param name="message">Text that describes the error condition (for humans)</param>
+		/// <param name="details">Additional details that can help diagnose the error. This object <b>MUST</b> be serializable into JSON (or other format)</param>
+		/// <returns>Failed operation result</returns>
 		public static OperationResult<TResult> Failed<TResult>(this IOperationContext<TResult> context, string code, string message, object? details = null)
 		{
 			Contract.Debug.Requires(context != null && code != null);
@@ -435,6 +602,10 @@ namespace Doxense.Threading.Operations
 			});
 		}
 
+		/// <summary>Marks this context as canceled</summary>
+		/// <typeparam name="TResult">Type of the operation result</typeparam>
+		/// <param name="context">Context that has been canceled</param>
+		/// <returns>Failed operation result</returns>
 		public static OperationResult<TResult> Cancelled<TResult>(this IOperationContext<TResult> context)
 		{
 			Contract.Debug.Requires(context != null && context.Cancellation.IsCancellationRequested);
@@ -446,7 +617,13 @@ namespace Doxense.Threading.Operations
 			});
 		}
 
+		/// <summary>Marks this context as failed due to a missing required parameter or argument</summary>
+		/// <typeparam name="TResult">Type of the operation result</typeparam>
+		/// <param name="context">Context that has failed</param>
+		/// <param name="paramName">Name of the parameter or argument that is missing</param>
+		/// <returns>Failed operation result</returns>
 		public static OperationResult<TResult> MissingParameters<TResult>(this IOperationContext<TResult> context, string paramName)
+		//REVIEW: why plural? shouldn't it be MissingParameter<..> ?
 		{
 			return context.Failed(new OperationError
 			{
@@ -456,6 +633,11 @@ namespace Doxense.Threading.Operations
 			});
 		}
 
+		/// <summary>Marks this context as failed due to an invalid parameter or argument</summary>
+		/// <typeparam name="TResult">Type of the operation result</typeparam>
+		/// <param name="context">Context that has failed</param>
+		/// <param name="paramName">Name of the parameter or argument that is invalid</param>
+		/// <returns>Failed operation result</returns>
 		public static OperationResult<TResult> InvalidParameter<TResult>(this IOperationContext<TResult> context, string paramName)
 		{
 			return context.Failed(new OperationError
@@ -466,6 +648,14 @@ namespace Doxense.Threading.Operations
 			});
 		}
 
+		/// <summary>Marks this context as failed due to an internal exception</summary>
+		/// <typeparam name="TResult">Type of the operation result</typeparam>
+		/// <param name="context">Context that has failed</param>
+		/// <param name="error">Exception that was caught (or manually thrown) during the execution of this operation</param>
+		/// <param name="code">Optional code that represent the specific error condition (for robots)</param>
+		/// <param name="message">Optional text that describes the error condition (for humans)</param>
+		/// <param name="details">Optional additional details that can help diagnose the error. This object <b>MUST</b> be serializable into JSON (or other format)</param>
+		/// <returns>Failed operation result</returns>
 		public static OperationResult<TResult> Throw<TResult>(this IOperationContext<TResult> context, Exception error, string? code = null, string? message = null, object? details = null)
 		{
 			Contract.Debug.Requires(context != null && error != null);
@@ -491,66 +681,51 @@ namespace Doxense.Threading.Operations
 			});
 		}
 
-		public static OperationResult<TResult> AccountLinkError<TResult>(this IOperationContext<TResult> context, string providerId, string? message = null)
-		{
-			return context.Failed(new OperationError
-			{
-				Code = "account_link",
-				Message = message ?? "Could not interact with remote provider because user account is not linked",
-				Details = new { ProviderId = providerId},
-			});
-		}
-
-		public static OperationResult<TResult> RemoteStoreError<TResult>(this IOperationContext<TResult> context, string providerId, string? message = null)
-		{
-			return context.Failed(new OperationError
-			{
-				Code = "remote_error",
-				Message = message ?? $"An error occurred while trying to call remote store '{providerId}'",
-				Details = new { ProviderId = providerId},
-			});
-		}
-
-		public static OperationResult<TResult> PathNotFoundError<TResult>(this IOperationContext<TResult> context, string providerId, string path, object? details = null)
-		{
-			return context.Failed(new OperationError
-			{
-				Code = "path_not_found",
-				Message = $"[Provider '{providerId}'] Could not find path '{path}'",
-				Details = details ?? new { ProviderId = providerId, Path = path},
-			});
-		}
-
-		//TODO: ...
-
 		#endregion
 
 		#region Logs...
 
+		/// <summary>Logs a message using the <see cref="LogLevel.Trace"/> log level</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void LogTrace(this IOperationContext context, string message) => context.Log(LogLevel.Trace, null, message);
+		
+		/// <summary>Logs a message using the <see cref="LogLevel.Trace"/> log level</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void LogTrace(this IOperationContext context, string format, params object[]? args) => context.Log(LogLevel.Trace, null, format, args);
+
+		/// <summary>Logs a message using the <see cref="LogLevel.Debug"/> log level</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void LogDebug(this IOperationContext context, string message) => context.Log(LogLevel.Debug, null, message);
 		
+		/// <summary>Logs a message using the <see cref="LogLevel.Debug"/> log level</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void LogDebug(this IOperationContext context, string format, params object[]? args) => context.Log(LogLevel.Debug, null, format, args);
 
+		/// <summary>Logs a message using the <see cref="LogLevel.Information"/> log level</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void LogInformation(this IOperationContext context, string message) => context.Log(LogLevel.Information, null, message);
 
+		/// <summary>Logs a message using the <see cref="LogLevel.Information"/> log level</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void LogInformation(this IOperationContext context, string format, params object[]? args) => context.Log(LogLevel.Information, null, format, args);
 
+		/// <summary>Logs a message using the <see cref="LogLevel.Warning"/> log level</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void LogWarning(this IOperationContext context, string message) => context.Log(LogLevel.Warning, null, message);
 
+		/// <summary>Logs a message using the <see cref="LogLevel.Warning"/> log level</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void LogWarning(this IOperationContext context, string format, params object[]? args) => context.Log(LogLevel.Warning, null, format, args);
 
+		/// <summary>Logs a message using the <see cref="LogLevel.Error"/> log level</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void LogError(this IOperationContext context, string message) => context.Log(LogLevel.Error, null, message);
 		
+		/// <summary>Logs a message using the <see cref="LogLevel.Error"/> log level</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void LogError(this IOperationContext context, string format, params object[] args) => context.Log(LogLevel.Error, null, format, args);
 
+		/// <summary>Logs a message using the <see cref="LogLevel.Error"/> log level</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void LogError(this IOperationContext context, Exception exception, string message) => context.Log(LogLevel.Error, exception, message);
 
@@ -558,6 +733,8 @@ namespace Doxense.Threading.Operations
 
 	}
 
+	/// <summary>Context of an operation</summary>
+	/// <typeparam name="TResult">Type of the result returned by the operation</typeparam>
 	[DebuggerDisplay("Type={Type}, Key={Key}, Id={Id}, State={State}")]
 	[PublicAPI]
 	public class OperationContext<TResult> : IOperationContext<TResult>
@@ -576,30 +753,45 @@ namespace Doxense.Threading.Operations
 			this.Lifetime = cts;
 		}
 
+		/// <inheritdoc />
 		public string Id { get; }
 
+		/// <inheritdoc />
 		public OperationState State { get; private set; }
 
+		/// <inheritdoc />
 		public string Type { get; }
 
+		/// <inheritdoc />
 		public string? Key { get; }
 
 		protected CancellationTokenSource Lifetime { get; }
 
+		/// <inheritdoc />
 		public CancellationToken Cancellation => this.Lifetime.Token;
 
+		/// <inheritdoc />
 		public IOperationContext? Parent { get; }
 
+		/// <summary>Returns <c>true</c> if the operation attached to this context has completed successfully</summary>
+		/// <remarks>
+		/// <para>This flag is required because <see cref="TResult"/> can be nullable, and a <c>null</c> <see cref="Result"/> does not necessary mean that the operation failed.</para>
+		/// </remarks>
 		public bool HasResult { get; private set; }
 
+		/// <summary>Result of the successful completion of the operation attached to this context</summary>
 		public TResult? Result { get; private set; }
 
+		/// <summary>Error produced by operation attached to this context.</summary>
 		public OperationError? Error { get; private set; }
 
+		/// <summary>Scheduler that handles the execution of this context</summary>
 		public OperationScheduler Scheduler { get; }
 
+		/// <inheritdoc />
 		IOperationScheduler IOperationContext.Scheduler => this.Scheduler;
 
+		/// <summary>Invokes the handler that will run operation attached to this context</summary>
 		internal async Task Run(Func<IOperationContext, Task> handler)
 		{
 			if (this.Cancellation.IsCancellationRequested)
@@ -649,6 +841,7 @@ namespace Doxense.Threading.Operations
 
 		}
 
+		/// <inheritdoc />
 		bool IOperationContext.TryGetResult(out object? result, [MaybeNullWhen(false)] out Type type)
 		{
 			if (!this.HasResult || this.State != OperationState.Completed)
@@ -663,6 +856,7 @@ namespace Doxense.Threading.Operations
 			return true;
 		}
 
+		/// <inheritdoc />
 		public bool TryGetResult([MaybeNullWhen(false)] out TResult result)
 		{
 			if (!this.HasResult || this.State != OperationState.Completed)
@@ -675,6 +869,7 @@ namespace Doxense.Threading.Operations
 			return true;
 		}
 
+		/// <inheritdoc />
 		public OperationResult<TResult> Success(TResult result)
 		{
 			lock (this)
@@ -689,6 +884,7 @@ namespace Doxense.Threading.Operations
 			return new OperationResult<TResult>(this);
 		}
 
+		/// <inheritdoc />
 		public OperationResult<TResult> Failed(OperationError error)
 		{
 			Contract.NotNull(error);
@@ -714,16 +910,19 @@ namespace Doxense.Threading.Operations
 			return new OperationFailed(this);
 		}
 
+		/// <inheritdoc />
 		public void Dispatch(IEvent evt)
 		{
 			this.Scheduler.Dispatch(this, evt);
 		}
 
+		/// <inheritdoc />
 		public void Log(LogLevel level, Exception? exception, string message, object?[]? args = null)
 		{
 			this.Scheduler.Log(this, level, exception, message, args);
 		}
 
+		/// <inheritdoc />
 		public IDisposable ExecuteStep(string id, string? label = null)
 		{
 			Contract.NotNull(id);
@@ -731,6 +930,7 @@ namespace Doxense.Threading.Operations
 			return Disposable.Empty();
 		}
 
+		/// <inheritdoc />
 		public Task<OperationResult<TSubResult>> ExecuteSubOperation<TSubResult>(
 			IOperationContext<TSubResult> operation,
 			Func<IOperationContext<TSubResult>, Task<OperationResult<TSubResult>>> handler)
@@ -741,6 +941,7 @@ namespace Doxense.Threading.Operations
 			return this.Scheduler.ExecuteOperation(operation, handler);
 		}
 
+		/// <inheritdoc />
 		public Activity? Activity { get; private set; }
 
 		internal void SetActivity(Activity? activity)
@@ -758,22 +959,31 @@ namespace Doxense.Threading.Operations
 
 	}
 
+	/// <summary>Service that monitors the executions of operations in the scope of the process</summary>
 	[PublicAPI]
 	public interface IOperationOverlord
 	{
 
+		/// <summary>Returns the context for the operation with the given unique identifier, if it exists</summary>
+		/// <param name="id">Identifier of the operation</param>
+		/// <param name="context">Receives the context of the corresponding context, if found.</param>
+		/// <returns><c>true</c> if there is an operation with the given id; otherwise, <c>false</c></returns>
 		bool TryGetOperationById(string id, [MaybeNullWhen(false)] out IOperationContext context);
 
-		//bool TryGetOperationByKey(string key, out IOperationContext? context);
-
+		/// <summary>Lists all currently running operations</summary>
+		/// <returns></returns>
 		IOperationContext[] ListOperations();
+		//TODO: add filters, like "string? type" ?
+		//REVIEW: should we return a List? ReadOnly? a Set (by id), .... ?
 
 	}
 
+	/// <summary>Service that can schedule and run <see cref="IOperationContext">Operations</see></summary>
 	[PublicAPI]
 	public interface IOperationScheduler
 	{
-		/// <summary>Create a new context for running an operation</summary>
+
+		/// <summary>Creates a new context for running an operation</summary>
 		/// <typeparam name="TResult">Type of result returned by the operation</typeparam>
 		/// <param name="type">Operation type (for diagnostic purpose)</param>
 		/// <param name="key">If not null, used to distinguish multiple concurrent operations of the type <paramref name="type"/></param>
@@ -782,7 +992,7 @@ namespace Doxense.Threading.Operations
 		/// <returns>Context initialized and ready to run</returns>
 		IOperationContext<TResult> Create<TResult>(string type, string? key, IOperationContext? parent = null, CancellationToken ct = default);
 
-		/// <summary>Execute an operation under the control of this scheduler</summary>
+		/// <summary>Executes an operation under the control of this scheduler</summary>
 		/// <typeparam name="TResult">Type of result returned by the operation</typeparam>
 		/// <param name="context">Context of the operation</param>
 		/// <param name="handler">Handler that will run the operation</param>
@@ -793,7 +1003,7 @@ namespace Doxense.Threading.Operations
 		/// </remarks>
 		Task<OperationResult<TResult>> ExecuteOperation<TResult>(IOperationContext<TResult> context, Func<IOperationContext<TResult>, Task<OperationResult<TResult>>> handler);
 
-		/// <summary>Log a message that will be visible to the observers of an operation</summary>
+		/// <summary>Logs a message that will be visible to the observers of an operation</summary>
 		/// <param name="context">Context of the operation that is producing this log</param>
 		/// <param name="level">Log level</param>
 		/// <param name="exception">Optional exception that is linked to this log message</param>
@@ -801,10 +1011,14 @@ namespace Doxense.Threading.Operations
 		/// <param name="args">Optional arguments used to format the log message</param>
 		void Log(IOperationContext context, LogLevel level, Exception? exception, string message, params object[]? args);
 
+		/// <summary>Dispatches an event linked to the specified <see cref="IOperationContext"/></summary>
+		/// <param name="context">Context of the operation that is triggering this event</param>
+		/// <param name="evt">Event triggered by this operation</param>
 		void Dispatch(IOperationContext context, IEvent evt);
 
 	}
 
+	/// <summary>Service that tracks and runs <see cref="IOperationContext">Operations</see></summary>
 	public class OperationScheduler : IOperationScheduler, IOperationOverlord
 	{
 
@@ -827,12 +1041,14 @@ namespace Doxense.Threading.Operations
 			this.Lifetime = new CancellationTokenSource();
 		}
 
+		/// <summary>Generates a new unique Operation identifier</summary>
 		public string NewId()
 		{
 			//TODO: external generator?
 			return Uuid128.NewUuid().ToString();
 		}
 
+		/// <inheritdoc />
 		public bool TryGetOperationById(string id, [MaybeNullWhen(false)] out IOperationContext context)
 		{
 			//BUGBUG: TODO !
@@ -840,12 +1056,14 @@ namespace Doxense.Threading.Operations
 			return false;
 		}
 
+		/// <inheritdoc />
 		public IOperationContext[] ListOperations()
 		{
 			//BUGBUG: TODO !
 			return [ ];
 		}
 
+		/// <inheritdoc />
 		public IOperationContext<TResult> Create<TResult>(string type, string? key, IOperationContext? parent = null, CancellationToken ct = default)
 		{
 			var cts = CancellationTokenSource.CreateLinkedTokenSource(this.Lifetime.Token, ct);
@@ -858,6 +1076,7 @@ namespace Doxense.Threading.Operations
 			return context.Error != null ? new OperationFailed(context) : context.Cancelled();
 		}
 
+		/// <inheritdoc />
 		public async Task<OperationResult<TResult>> ExecuteOperation<TResult>(IOperationContext<TResult> context, Func<IOperationContext<TResult>, Task<OperationResult<TResult>>> handler)
 		{
 			Contract.NotNull(context);
@@ -895,6 +1114,7 @@ namespace Doxense.Threading.Operations
 			}
 		}
 
+		/// <inheritdoc />
 		public void Log(IOperationContext context, LogLevel level, Exception? exception, string message, params object?[]? args)
 		{
 			if (exception == null)
@@ -907,6 +1127,7 @@ namespace Doxense.Threading.Operations
 			}
 		}
 
+		/// <inheritdoc />
 		public void Dispatch(IOperationContext context, IEvent evt)
 		{
 			this.EventBus.Dispatch(evt);
@@ -944,11 +1165,15 @@ namespace Doxense.Threading.Operations
 	[PublicAPI]
 	public interface IOperationInvoker<out TService>
 	{
+		/// <summary>Returns the <see cref="IOperationScheduler"/> used by this invoker</summary>
+		/// <returns></returns>
 		IOperationScheduler GetScheduler();
 
+		/// <summary>Returns the instance of the service that the invoker will call</summary>
 		TService GetInstance();
 	}
 
+	/// <summary>Call-site of an operation that takes one argument</summary>
 	[PublicAPI]
 	public sealed class OperationCallSite<TResult, T0>
 	{
@@ -978,6 +1203,7 @@ namespace Doxense.Threading.Operations
 
 	}
 
+	/// <summary>Call-site of an operation that takes two arguments</summary>
 	[PublicAPI]
 	public sealed class OperationCallSite<TResult, T0, T1>
 	{
@@ -1008,6 +1234,7 @@ namespace Doxense.Threading.Operations
 
 	}
 
+	/// <summary>Call-site of an operation that takes three arguments</summary>
 	[PublicAPI]
 	public sealed class OperationCallSite<TResult, T0, T1, T2>
 	{
@@ -1038,6 +1265,7 @@ namespace Doxense.Threading.Operations
 
 	}
 
+	/// <summary>Call-site of an operation that takes four arguments</summary>
 	[PublicAPI]
 	public sealed class OperationCallSite<TResult, T0, T1, T2, T3>
 	{
@@ -1068,6 +1296,7 @@ namespace Doxense.Threading.Operations
 
 	}
 
+	/// <summary>Call-site of an operation that takes five arguments</summary>
 	[PublicAPI]
 	public sealed class OperationCallSite<TResult, T0, T1, T2, T3, T4>
 	{
@@ -1098,6 +1327,7 @@ namespace Doxense.Threading.Operations
 
 	}
 
+	/// <summary>Call-site of an operation that takes six arguments</summary>
 	[PublicAPI]
 	public sealed class OperationCallSite<TResult, T0, T1, T2, T3, T4, T5>
 	{
@@ -1128,6 +1358,7 @@ namespace Doxense.Threading.Operations
 
 	}
 
+	/// <summary>Helper methods for Operation Invokers</summary>
 	[PublicAPI]
 	public static class OperationInvokerExtensions
 	{
