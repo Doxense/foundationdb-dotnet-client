@@ -4038,6 +4038,22 @@ namespace Doxense.Serialization.Json.Tests
 		}
 
 		[Test]
+		public void Test_JsonBoolean_ValueEquals()
+		{
+			Assert.That(JsonBoolean.False.ValueEquals<bool>(false), Is.True);
+			Assert.That(JsonBoolean.False.ValueEquals<bool>(true), Is.False);
+			Assert.That(JsonBoolean.False.ValueEquals(0), Is.False);
+			Assert.That(JsonBoolean.False.ValueEquals(1), Is.False);
+			Assert.That(JsonBoolean.False.ValueEquals(""), Is.False);
+
+			Assert.That(JsonBoolean.True.ValueEquals<bool>(false), Is.False);
+			Assert.That(JsonBoolean.True.ValueEquals<bool>(true), Is.True);
+			Assert.That(JsonBoolean.True.ValueEquals(0), Is.False);
+			Assert.That(JsonBoolean.True.ValueEquals(1), Is.False);
+			Assert.That(JsonBoolean.True.ValueEquals("true"), Is.False);
+		}
+
+		[Test]
 		public void Test_JsonBoolean_StrictEquals()
 		{
 			Assert.That(JsonBoolean.False.StrictEquals(JsonBoolean.False), Is.True);
@@ -6949,6 +6965,112 @@ namespace Doxense.Serialization.Json.Tests
 				var arr = JsonArray.Create([ "hello", "there" ]);
 				Assert.That(JsonArray.Create("foo", arr, "bar").IndexOf(arr), Is.EqualTo(1));
 
+			});
+		}
+
+		[Test]
+		public void Test_JsonArray_ValueEquals()
+		{
+			// note: do not confuse ValueEquals<TCollection>(TCollection) vs ValuesEqual<TItem>(IEnumerable<TItem>) !
+
+			Assert.Multiple(() =>
+			{
+				var arr = JsonArray.EmptyReadOnly;
+
+				Assert.That(arr.ValueEquals<string[]>([ ]), Is.True);
+				Assert.That(arr.ValueEquals<List<string>>([ ]), Is.True);
+				Assert.That(arr.ValueEquals<IEnumerable<string>>([ ]), Is.True);
+
+				Assert.That(arr.ValuesEqual((string[]) [ ]), Is.True);
+				Assert.That(arr.ValuesEqual((List<string>) [ ]), Is.True);
+				Assert.That(arr.ValuesEqual((IEnumerable<string>) [ ]), Is.True);
+
+				Assert.That(arr.ValuesEqual(Enumerable.Empty<string>()), Is.True);
+				Assert.That(arr.ValuesEqual(Enumerable.Empty<int>()), Is.True);
+				Assert.That(arr.ValuesEqual(Enumerable.Empty<bool>()), Is.True);
+
+				Assert.That(arr.ValuesEqual(new JsonArray()), Is.True);
+			});
+		
+			Assert.Multiple(() =>
+			{
+				var arr = JsonArray.Create([ "foo", "bar" ]);
+
+
+				Assert.That(arr.ValueEquals(JsonArray.Create("foo", "bar")), Is.True);
+				Assert.That(arr.ValueEquals<string[]>([ "foo", "bar" ]), Is.True);
+				Assert.That(arr.ValueEquals<List<string>>([ "foo", "bar" ]), Is.True);
+				Assert.That(arr.ValueEquals<IEnumerable<string>>([ "foo", "bar" ]), Is.True);
+				Assert.That(arr.ValueEquals<IEnumerable<string>>(Enumerable.Range(0, 2).Select(i => i == 0 ? "foo" : "bar")), Is.True);
+
+				Assert.That(arr.ValueEquals(JsonArray.Create("foo", "baz")), Is.False);
+				Assert.That(arr.ValueEquals(JsonArray.Create("foo", "bar", "baz")), Is.False);
+				Assert.That(arr.ValueEquals<string[]>([ "foo", "baz" ]), Is.False);
+				Assert.That(arr.ValueEquals<List<string>>([ "foo", "bar", "baz" ]), Is.False);
+				Assert.That(arr.ValueEquals<IEnumerable<string>>(Enumerable.Empty<string>()), Is.False);
+				Assert.That(arr.ValueEquals<IEnumerable<string>>(Enumerable.Range(0, 1).Select(_ => "foo")), Is.False);
+				Assert.That(arr.ValueEquals<IEnumerable<string>>(Enumerable.Range(0, 2).Select(i => i == 0 ? "foo" : "baz")), Is.False);
+				Assert.That(arr.ValueEquals<IEnumerable<string>>(Enumerable.Range(0, 3).Select(i => i == 0 ? "foo" : i == 1 ? "bar" : "baz")), Is.False);
+
+				Assert.That(arr.ValuesEqual(JsonArray.Create("foo", "bar")), Is.True);
+				Assert.That(arr.ValuesEqual((ReadOnlySpan<string>) [ "foo", "bar" ]), Is.True);
+				Assert.That(arr.ValuesEqual((string[]) [ "foo", "bar" ]), Is.True);
+				Assert.That(arr.ValuesEqual((List<string>) [ "foo", "bar" ]), Is.True);
+				Assert.That(arr.ValuesEqual(Enumerable.Range(0, 2).Select(i => i == 0 ? "foo" : "bar")), Is.True);
+
+				Assert.That(arr.ValuesEqual(JsonArray.Create("foo", "baz")), Is.False);
+				Assert.That(arr.ValuesEqual(JsonArray.Create("foo", "bar", "baz")), Is.False);
+				Assert.That(arr.ValuesEqual((string[]) [ "foo", "baz" ]), Is.False);
+				Assert.That(arr.ValuesEqual((List<string>) [ "foo", "bar", "baz" ]), Is.False);
+				Assert.That(arr.ValuesEqual(Enumerable.Empty<string>()), Is.False);
+				Assert.That(arr.ValuesEqual(Enumerable.Range(0, 1).Select(_ => "foo")), Is.False);
+				Assert.That(arr.ValuesEqual(Enumerable.Range(0, 2).Select(i => i == 0 ? "foo" : "baz")), Is.False);
+				Assert.That(arr.ValuesEqual(Enumerable.Range(0, 3).Select(i => i == 0 ? "foo" : i == 1 ? "bar" : "baz")), Is.False);
+
+			});
+
+			Assert.Multiple(() =>
+			{
+				var arr = JsonArray.Create([ 1, 2, 3 ]);
+
+				Assert.That(arr.ValuesEqual(JsonArray.Create(1, 2, 3)), Is.True);
+
+				Assert.That(arr.ValueEquals<int[]>([ 1, 2, 3 ]), Is.True);
+				Assert.That(arr.ValueEquals<long[]>([ 1, 2, 3 ]), Is.True);
+				Assert.That(arr.ValueEquals<double[]>([ 1.0, 2.0, 3.0 ]), Is.True);
+				Assert.That(arr.ValueEquals<float[]>([ 1.0f, 2.0f, 3.0f ]), Is.True);
+				Assert.That(arr.ValueEquals<List<int>>([ 1, 2, 3 ]), Is.True);
+				Assert.That(arr.ValueEquals<List<long>>([ 1, 2, 3 ]), Is.True);
+				Assert.That(arr.ValueEquals<List<double>>([ 1.0, 2.0, 3.0 ]), Is.True);
+				Assert.That(arr.ValueEquals<List<float>>([ 1.0f, 2.0f, 3.0f ]), Is.True);
+
+				Assert.That(arr.ValueEquals<int[]>([ 1, 2 ]), Is.False);
+				Assert.That(arr.ValueEquals<int[]>([ 1, 2, 3, 4 ]), Is.False);
+				Assert.That(arr.ValueEquals<string[]>([ "1", "2", "3" ]), Is.False);
+
+				Assert.That(arr.ValuesEqual((ReadOnlySpan<int>) [ 1, 2, 3 ]), Is.True);
+				Assert.That(arr.ValuesEqual((int[]) [ 1, 2, 3 ]), Is.True);
+				Assert.That(arr.ValuesEqual((List<int>) [ 1, 2, 3 ]), Is.True);
+				Assert.That(arr.ValuesEqual((IEnumerable<int>) [ 1, 2, 3 ]), Is.True);
+				Assert.That(arr.ValuesEqual(Enumerable.Range(1, 3)), Is.True);
+
+				Assert.That(arr.ValuesEqual<long>([ 1L, 2L, 3L ]), Is.True);
+				Assert.That(arr.ValuesEqual<double>([ 1.0, 2.0, 3.0 ]), Is.True);
+				Assert.That(arr.ValuesEqual<float>([ 1.0f, 2.0f, 3.0f ]), Is.True);
+				Assert.That(arr.ValuesEqual<decimal>([ 1.0m, 2.0m, 3.0m ]), Is.True);
+			});
+
+			Assert.Multiple(() =>
+			{
+				var arr = JsonArray.Create("foo", "bar");
+				Assert.That(arr.ValueEquals<string[]>([ "foo", "bar" ]));
+				Assert.That(arr.ValueEquals<List<string>>([ "foo", "bar" ]));
+				Assert.That(arr.ValueEquals<IEnumerable<string>>(Enumerable.Range(0, 2).Select(i => i == 0 ? "foo" : "bar")));
+
+				Assert.That(arr.ValuesEqual((ReadOnlySpan<string>) [ "foo", "bar" ]));
+				Assert.That(arr.ValuesEqual((string[]) [ "foo", "bar" ]));
+				Assert.That(arr.ValuesEqual((List<string>) [ "foo", "bar" ]));
+				Assert.That(arr.ValuesEqual(Enumerable.Range(0, 2).Select(i => i == 0 ? "foo" : "bar")));
 			});
 		}
 

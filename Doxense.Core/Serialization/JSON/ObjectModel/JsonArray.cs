@@ -33,6 +33,7 @@ namespace Doxense.Serialization.Json
 	using System.Collections.Immutable;
 	using System.ComponentModel;
 	using System.Buffers;
+	using System.Reflection;
 	using System.Runtime.InteropServices;
 	using System.Text;
 	using Doxense.Linq;
@@ -4076,6 +4077,44 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
+		#region Changes...
+
+		/// <summary>Compare this array with a previous version, and return the list of added, removed and unchanged elements</summary>
+		/// <param name="previous">Previous version of this array</param>
+		/// <remarks>The change detection is "by value" semantics, but will be faster if both the current and previous arrays are "immutable" and where unchanged elements are copied by reference</remarks>
+		public (JsonArray Added, JsonArray Removed, JsonArray Unchanged) ComputeChanges(JsonArray previous)
+		{
+			//TODO: find a better algorithm!
+
+			var added = new JsonArray();
+			var removed = new JsonArray();
+			var unchanged = new JsonArray();
+
+			var items = new HashSet<JsonValue>(previous, JsonValueComparer.Default);
+
+			//HACKHACK: first naive implementation, just to get things working!
+			foreach (var item in this)
+			{
+				if (items.Remove(item))
+				{
+					unchanged.Add(item);
+				}
+				else
+				{
+					added.Add(item);
+				}
+			}
+
+			foreach (var item in items)
+			{
+				removed.Add(item);
+			}
+
+			return (added, removed, unchanged);
+		}
+
+		#endregion
+
 		#region Errors...
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
@@ -4278,6 +4317,145 @@ namespace Doxense.Serialization.Json
 				}
 			}
 			return p == span.Length;
+		}
+
+		/// <inheritdoc />
+		[RequiresUnreferencedCode("The type might be removed")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public override bool ValueEquals<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TCollection>
+			(TCollection? value, IEqualityComparer<TCollection>? comparer = null)
+			where TCollection : default
+		{
+			// we will attempt to optimize for some of the most common array and list types,
+			// in order to reduce memory allocations, otherwise we have to "materialize" the array into the corresponding type,
+			// which could be _very_ costly, especially if this is an embedded array inside a larger object in diff/delta operations
+
+			if (default(TCollection) is null)
+			{
+				if (value is null) return false;
+
+				return value switch
+				{
+					JsonValue j => StrictEquals(j),
+
+					// common array types
+					string[] xs => ValuesEqual(xs),
+					int[] xs => ValuesEqual(xs),
+					bool[] xs => ValuesEqual(xs),
+					long[] xs => ValuesEqual(xs),
+					double[] xs => ValuesEqual(xs),
+					float[] xs => ValuesEqual(xs),
+					Guid[] xs => ValuesEqual(xs),
+					Uuid128[] xs => ValuesEqual(xs),
+					decimal[] xs => ValuesEqual(xs),
+#if NET8_0_OR_GREATER
+					Half[] xs => ValuesEqual(xs),
+					Int128[] xs => ValuesEqual(xs),
+#endif
+					// common list types
+					List<string> xs => ValuesEqual(xs),
+					List<int> xs => ValuesEqual(xs),
+					List<bool> xs => ValuesEqual(xs),
+					List<long> xs => ValuesEqual(xs),
+					List<double> xs => ValuesEqual(xs),
+					List<float> xs => ValuesEqual(xs),
+					List<Guid> xs => ValuesEqual(xs),
+					List<Uuid128> xs => ValuesEqual(xs),
+					List<decimal> xs => ValuesEqual(xs),
+#if NET8_0_OR_GREATER
+					List<Half> xs => ValuesEqual(xs),
+					List<Int128> xs => ValuesEqual(xs),
+#endif
+					_ => ValueEqualsSlow(this, value, comparer),
+				};
+			}
+			else
+			{
+				return ValueEqualsSlow(this, value!, comparer);
+			}
+
+			static bool ValueEqualsSlow([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.NonPublicMethods)] JsonArray self, TCollection value, IEqualityComparer<TCollection>? comparer)
+			{
+				var type = typeof(TCollection);
+				if (type.IsEnumerableType(out var itemType))
+				{
+					if (type.IsArray)
+					{ // optimized for arrays
+						return (bool) (s_helperArray ??= GetArrayComparisonHelper()).MakeGenericMethod(itemType).Invoke(self, [ value ])!;
+					}
+					else
+					{
+						// TODO: call the IEnumerable<T> variant
+						return (bool) (s_helperEnumerable ??= GetEnumerableComparisonHelper()).MakeGenericMethod(itemType).Invoke(self, [ value ])!;
+					}
+				}
+
+				var x = self.Bind<TCollection>();
+				return (comparer ?? EqualityComparer<TCollection>.Default).Equals(x, value);
+			}
+		}
+
+		private static MethodInfo? s_helperArray;
+		private static MethodInfo GetArrayComparisonHelper() => typeof(JsonArray).GetMethod(nameof(ValuesEqualArrayHelper), BindingFlags.Instance | BindingFlags.NonPublic)!;
+
+		private static MethodInfo? s_helperEnumerable;
+		private static MethodInfo GetEnumerableComparisonHelper() => typeof(JsonArray).GetMethod(nameof(ValuesEqualEnumerableHelper), BindingFlags.Instance | BindingFlags.NonPublic)!;
+
+		private bool ValuesEqualArrayHelper<TValue>(TValue[] values) => ValuesEqual(values);
+
+		private bool ValuesEqualEnumerableHelper<TValue>(IEnumerable<TValue> values) => ValuesEqual(values);
+
+		/// <summary>Tests if the elements of this array are equal to the elements of the specified span, using the strict JSON comparison semantics</summary>
+		[Pure]
+		[RequiresUnreferencedCode("The type might be removed")]
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(1)]
+#endif
+		public bool ValuesEqual<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TValue>
+			(ReadOnlySpan<TValue> items)
+		{
+			var span = AsSpan();
+			if (span.Length != items.Length) return false;
+			for (int i = 0; i < span.Length; i++)
+			{
+				if (!span[i].ValueEquals(items[i])) return false;
+			}
+			return true;
+		}
+
+		/// <summary>Tests if the elements of this array are equal to the elements of the specified span, using the strict JSON comparison semantics</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool ValuesEqual<TValue>(ReadOnlyMemory<TValue> items) => ValuesEqual<TValue>(items.Span);
+
+		/// <summary>Tests if the elements of this array are equal to the elements of the specified array, using the strict JSON comparison semantics</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool ValuesEqual<TValue>(TValue[]? items) => items is not null && ValuesEqual<TValue>(new ReadOnlySpan<TValue>(items));
+
+		/// <summary>Tests if the elements of this array are equal to the elements of the specified sequence, using the strict JSON comparison semantics</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[RequiresUnreferencedCode("The type might be removed")]
+		public bool ValuesEqual<TValue>(IEnumerable<TValue>? items)
+		{
+			if (items is null) return false;
+			if (items is JsonArray arr) return StrictEquals(arr);
+			if (Buffer<TValue>.TryGetSpan(items, out var xs)) return ValuesEqual<TValue>(xs);
+			return ValueEqualsEnumerable(AsSpan(), items);
+
+			[RequiresUnreferencedCode("The type might be removed")]
+			static bool ValueEqualsEnumerable(ReadOnlySpan<JsonValue> values, IEnumerable<TValue> items)
+			{
+				int p = 0;
+				foreach (var item in items)
+				{
+					if (p >= values.Length || !values[p++].ValueEquals(item))
+					{
+						return false;
+					}
+				}
+				return p == values.Length;
+			}
 		}
 
 		/// <inheritdoc />
