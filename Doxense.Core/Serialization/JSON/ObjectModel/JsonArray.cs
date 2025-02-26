@@ -4294,6 +4294,13 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc cref="StrictEquals(JsonValue?)" />
+		public bool StrictEquals(JsonValue[]? other)
+		{
+			if (other is null) return false;
+			return StrictEquals(new ReadOnlySpan<JsonValue>(other));
+		}
+
+		/// <inheritdoc cref="StrictEquals(JsonValue?)" />
 		public bool StrictEquals(JsonArray? other)
 		{
 			if (other is null) return false;
