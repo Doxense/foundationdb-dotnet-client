@@ -3364,22 +3364,65 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		public override bool StrictEquals(JsonValue? other) => other is JsonObject obj && StrictEquals(obj);
 
-		public bool StrictEquals(JsonObject? other)
+		private static int CountNonNullOrMissingValues(Dictionary<string, JsonValue> items)
 		{
-			if (other is null || other.Count != this.Count)
+			int n = 0;
+			foreach (var v in items.Values)
 			{
-				return false;
+				if (!v.IsNullOrMissing()) { ++n; }
 			}
+			return n;
+		}
 
-			var otherItems = other.m_items;
-			foreach (var kvp in this)
+		static bool StrictEqualsEnumerable(Dictionary<string, JsonValue> items, Dictionary<string, JsonValue> other)
+		{
+			Contract.Debug.Requires(items != null && other != null);
+
+			// We have to take special care of null/missing entries, because an explicit null field on one side is equivalent to the field missing on the other side:
+			// - if 'other' contains an item with a value that is null/missing, then 'this' should either not have the key, or the key should also be null/missing
+			// - if 'this' contains an item that is not in 'other', then its value should be null/missing
+			// ex: { "foo": 123, "bar": null } and { "foo": 123, "baz": null } are strictly equal, because they both have foo==123, and all the other elements are null/missing
+
+			// first, check if all items in 'other' are also in 'this' (except null fields that should not have a value in 'this')
+			// we also maintain a count of 'non-null' values in 'other', to speed up the second check
+			int otherCount = 0;
+			foreach (var (k, v) in other)
 			{
-				if (!otherItems.TryGetValue(kvp.Key, out var o) || !o.StrictEquals(kvp.Value))
+				//TODO: handle case where v == JsonNull.Missing ?
+				if (v.IsNullOrMissing())
 				{
-					return false;
+					if (items.TryGetValue(k, out var o) && !o.IsNullOrMissing())
+					{ // we have a value for this, even though we want it to be null or missing
+						return false;
+					}
+				}
+				else
+				{
+					if (!items.TryGetValue(k, out var o) || !o.StrictEquals(v))
+					{ // we don't have a value, or it is not equal to what we are expecting
+						return false;
+					}
+					++otherCount;
 				}
 			}
-			return true;
+
+			// if there was N non-null items in 'other', and we did not find any difference, then 'this' should also have N non-null items
+			// (technically it cannot have less than N, otherwise we would have already returned false above)
+			return otherCount == CountNonNullOrMissingValues(items);
+		}
+
+		/// <inheritdoc cref="StrictEquals(JsonValue?)" />
+		[Pure]
+		public bool StrictEquals(JsonObject? other)
+		{
+			return other is not null && StrictEqualsEnumerable(m_items, other.m_items);
+		}
+
+		/// <inheritdoc cref="StrictEquals(JsonValue?)" />
+		[Pure]
+		public bool StrictEquals(Dictionary<string, JsonValue>? other)
+		{
+			return other is not null && StrictEqualsEnumerable(m_items, other);
 		}
 
 		/// <inheritdoc />

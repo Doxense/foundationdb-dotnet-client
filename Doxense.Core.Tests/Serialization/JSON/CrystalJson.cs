@@ -7129,6 +7129,17 @@ namespace Doxense.Serialization.Json.Tests
 			});
 			Assert.Multiple(() =>
 			{
+				var arr = JsonArray.Create(JsonArray.Create(1, 2, 3), JsonArray.Create("foo", "bar", "baz"), JsonArray.Create(true, false), JsonObject.Create("hello", "there"));
+
+				Assert.That(arr.StrictEquals(JsonArray.Create(JsonArray.Create(1, 2, 3), JsonArray.Create("foo", "bar", "baz"), JsonArray.Create(true, false), JsonObject.Create("hello", "there"))), Is.True);
+				Assert.That(arr.StrictEquals(JsonArray.Create(JsonArray.Create(1.0, 2.0f, 3m), JsonArray.Create("foo", "bar", "baz"), JsonArray.Create(true, false), JsonObject.Create("hello", "there"))), Is.True);
+
+				Assert.That(arr.StrictEquals(JsonArray.Create(JsonArray.Create("1", 2, 3), JsonArray.Create("foo", "bar", "baz"), JsonArray.Create(true, false), JsonObject.Create("hello", "there"))), Is.False);
+				Assert.That(arr.StrictEquals(JsonArray.Create(JsonArray.Create(1, 2, 3), JsonArray.Create("foo", "baz", "bar"), JsonArray.Create(true, false), JsonObject.Create("hello", "there"))), Is.False);
+				Assert.That(arr.StrictEquals(JsonArray.Create(JsonArray.Create(1, 2, 3), JsonArray.Create("foo", "bar", "baz"), JsonArray.Create(1, 0), JsonObject.Create("hello", "there"))), Is.False);
+			});
+			Assert.Multiple(() =>
+			{
 				Assert.That(JsonArray.Create(default(string)).StrictEquals(JsonArray.Create(JsonNull.Null)), Is.True);
 				Assert.That(JsonArray.Create(JsonNull.Null).StrictEquals(JsonArray.Create(default(string))), Is.True);
 				Assert.That(JsonArray.Create(default(string)).StrictEquals(JsonArray.Create(JsonNull.Missing)), Is.False);
@@ -8807,6 +8818,66 @@ namespace Doxense.Serialization.Json.Tests
 					}
 				}
 			}
+		}
+
+		[Test]
+		public void Test_JsonObject_StrictEquals()
+		{
+			Assert.Multiple(() =>
+			{
+				Assert.That(JsonObject.EmptyReadOnly.StrictEquals(JsonObject.EmptyReadOnly), Is.True);
+				Assert.That(JsonObject.EmptyReadOnly.StrictEquals(new JsonObject()), Is.True);
+				Assert.That(new JsonObject().StrictEquals(JsonObject.EmptyReadOnly), Is.True);
+
+				Assert.That(JsonObject.EmptyReadOnly.StrictEquals(JsonObject.Create("hello", "world")), Is.False);
+				Assert.That(JsonObject.EmptyReadOnly.StrictEquals(JsonObject.Create("hello", null)), Is.True);
+			});
+			Assert.Multiple(() =>
+			{
+				var obj = JsonObject.Create([ ("hello", "world"), ("foo", 123), ("bar", true) ]);
+
+				Assert.That(obj.StrictEquals(JsonObject.Create([ ("hello", "world"), ("foo", 123), ("bar", true) ])), Is.True);
+				Assert.That(obj.StrictEquals(JsonObject.Create([ ("hello", "world"), ("foo", 123L), ("bar", true) ])), Is.True);
+				Assert.That(obj.StrictEquals(JsonObject.Create([ ("hello", "world"), ("foo", 123.0), ("bar", true) ])), Is.True);
+				Assert.That(obj.StrictEquals(JsonObject.Create([ ("hello", "world"), ("foo", 123.0f), ("bar", true) ])), Is.True);
+				Assert.That(obj.StrictEquals(JsonObject.Create([ ("hello", "world"), ("foo", 123m), ("bar", true) ])), Is.True);
+				Assert.That(obj.StrictEquals(JsonObject.Create([ ("bar", true), ("foo", 123), ("hello", "world") ])), Is.True);
+
+				Assert.That(obj.StrictEquals(JsonObject.EmptyReadOnly), Is.False);
+				Assert.That(obj.StrictEquals(new JsonObject()), Is.False);
+				Assert.That(obj.StrictEquals(JsonObject.Create([ ("hello", "world"), ("foo", 123) ])), Is.False);
+				Assert.That(obj.StrictEquals(JsonObject.Create([ ("hello", "world"), ("foo", 123), ("bar", true), ("baz", 456) ])), Is.False);
+				Assert.That(obj.StrictEquals(JsonObject.Create([ ("hello", "there"), ("foo", 123), ("bar", true) ])), Is.False);
+				Assert.That(obj.StrictEquals(JsonObject.Create([ ("hello", "world"), ("foo", 456), ("bar", true) ])), Is.False);
+				Assert.That(obj.StrictEquals(JsonObject.Create([ ("hello", "world"), ("foo", "123"), ("bar", true) ])), Is.False);
+				Assert.That(obj.StrictEquals(JsonObject.Create([ ("hello", "world"), ("foo", 123), ("bar", false) ])), Is.False);
+				Assert.That(obj.StrictEquals(JsonObject.Create([ ("hello", 123), ("foo", true), ("bar", "world") ])), Is.False);
+
+				Assert.That(obj.StrictEquals(new Dictionary<string, JsonValue> { { "hello", "world" }, { "foo", 123 }, { "bar", true } }), Is.True);
+				Assert.That(obj.StrictEquals(new Dictionary<string, JsonValue> { { "hello", "there" }, { "foo", 123 }, { "bar", true } }), Is.False);
+				Assert.That(obj.StrictEquals(new Dictionary<string, JsonValue> { { "hello", "world" }, { "foo", 456 }, { "bar", true } }), Is.False);
+				Assert.That(obj.StrictEquals(new Dictionary<string, JsonValue> { { "hello", "world" }, { "foo", 123 }, { "bar", false } }), Is.False);
+			});
+			Assert.Multiple(() =>
+			{
+				var obj = JsonObject.Create("foo", JsonObject.Create("bar", JsonArray.Create("baz", 123, true)));
+
+				Assert.That(obj.StrictEquals(JsonObject.Create("foo", JsonObject.Create("bar", JsonArray.Create("baz", 123, true)))), Is.True);
+				Assert.That(obj.StrictEquals(JsonObject.Create("foo", JsonObject.Create("bar", JsonArray.Create("baz", "123", true)))), Is.False);
+				Assert.That(obj.StrictEquals(JsonObject.Create("foo", JsonObject.Create("bar", JsonArray.Create("baz", 123, 456)))), Is.False);
+			});
+			Assert.Multiple(() =>
+			{
+				// check that explicit null/missing are equivalent to "not present" on the other side
+				Assert.That(JsonObject.Create([ ("foo", 123), ("bar", null) ]).StrictEquals(JsonObject.Create([ ("foo", 123), ("baz", null) ])), Is.True);
+				Assert.That(JsonObject.Create([ ("foo", 123), ("bar", JsonNull.Missing) ]).StrictEquals(JsonObject.Create([ ("foo", 123), ("baz", JsonNull.Null) ])), Is.True);
+
+				// but if one is null/missing, the other should not have a value
+				Assert.That(JsonObject.Create([ ("foo", 123), ("bar", 456) ]).StrictEquals(JsonObject.Create([ ("foo", 123), ("baz", null) ])), Is.False);
+				Assert.That(JsonObject.Create([ ("foo", 123), ("bar", 456) ]).StrictEquals(JsonObject.Create([ ("foo", 123), ("baz", JsonNull.Missing) ])), Is.False);
+				Assert.That(JsonObject.Create([ ("foo", 123), ("bar", null) ]).StrictEquals(JsonObject.Create([ ("foo", 123), ("baz", 456) ])), Is.False);
+				Assert.That(JsonObject.Create([ ("foo", 123), ("bar", JsonNull.Missing) ]).StrictEquals(JsonObject.Create([ ("foo", 123), ("baz", 456) ])), Is.False);
+			});
 		}
 
 		#endregion
