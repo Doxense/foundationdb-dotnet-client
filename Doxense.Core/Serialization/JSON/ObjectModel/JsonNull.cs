@@ -333,6 +333,11 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
+		public override bool StrictEquals(JsonValue? other) => other is JsonNull n && n.m_kind == m_kind;
+
+		public bool StrictEquals(JsonNull? other) => other is not null && other.m_kind == m_kind;
+
+		/// <inheritdoc />
 		[RequiresUnreferencedCode("The type might be removed")]
 		public override bool ValueEquals<
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TValue>

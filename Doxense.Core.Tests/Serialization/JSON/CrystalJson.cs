@@ -3622,6 +3622,14 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(value.Equals(JsonObject.Create()), Is.False);
 				Assert.That(value.Equals(JsonArray.Create()), Is.False);
 
+				Assert.That(value.StrictEquals(JsonNull.Null), Is.True, "EQ null");
+				Assert.That(value.StrictEquals(JsonNull.Missing), Is.False, "NEQ missing");
+				Assert.That(value.StrictEquals(JsonNull.Error), Is.False, "NEQ error");
+				Assert.That(value.StrictEquals(false), Is.False);
+				Assert.That(value.StrictEquals(0), Is.False);
+				Assert.That(value.StrictEquals(""), Is.False);
+				Assert.That(value.StrictEquals("null"), Is.False);
+
 				Assert.That(value.CompareTo(default(JsonValue)), Is.EqualTo(0));
 				Assert.That(value.CompareTo(JsonNull.Null), Is.EqualTo(0));
 				Assert.That(value.CompareTo(JsonNull.Missing), Is.EqualTo(-1));
@@ -3787,6 +3795,14 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(value.Equals(JsonObject.Create()), Is.False);
 				Assert.That(value.Equals(JsonArray.Create()), Is.False);
 
+				Assert.That(value.StrictEquals(JsonNull.Missing), Is.True, "EQ missing");
+				Assert.That(value.StrictEquals(JsonNull.Null), Is.False, "NEQ null");
+				Assert.That(value.StrictEquals(JsonNull.Error), Is.False, "NEQ error");
+				Assert.That(value.StrictEquals(false), Is.False);
+				Assert.That(value.StrictEquals(0), Is.False);
+				Assert.That(value.StrictEquals(""), Is.False);
+				Assert.That(value.StrictEquals("null"), Is.False);
+
 				Assert.That(value.CompareTo(default(JsonValue)), Is.EqualTo(0));
 				Assert.That(value.CompareTo(JsonNull.Null), Is.EqualTo(1));
 				Assert.That(value.CompareTo(JsonNull.Missing), Is.EqualTo(0));
@@ -3871,6 +3887,14 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(value.Equals("hello"), Is.False);
 				Assert.That(value.Equals(JsonObject.Create()), Is.False);
 				Assert.That(value.Equals(JsonArray.Create()), Is.False);
+
+				Assert.That(value.StrictEquals(JsonNull.Error), Is.True, "EQ error");
+				Assert.That(value.StrictEquals(JsonNull.Null), Is.False, "NEQ null");
+				Assert.That(value.StrictEquals(JsonNull.Missing), Is.False, "NEQ missing");
+				Assert.That(value.StrictEquals(false), Is.False);
+				Assert.That(value.StrictEquals(0), Is.False);
+				Assert.That(value.StrictEquals(""), Is.False);
+				Assert.That(value.StrictEquals("null"), Is.False);
 
 				Assert.That(value.CompareTo(default(JsonValue)), Is.EqualTo(0));
 				Assert.That(value.CompareTo(JsonNull.Null), Is.EqualTo(1));
@@ -4011,6 +4035,24 @@ namespace Doxense.Serialization.Json.Tests
 
 			Assert.That(SerializeToSlice(JsonBoolean.False), Is.EqualTo(Slice.Copy("false"u8)));
 			Assert.That(SerializeToSlice(JsonBoolean.True), Is.EqualTo(Slice.Copy("true"u8)));
+		}
+
+		[Test]
+		public void Test_JsonBoolean_StrictEquals()
+		{
+			Assert.That(JsonBoolean.False.StrictEquals(JsonBoolean.False), Is.True);
+			Assert.That(JsonBoolean.True.StrictEquals(JsonBoolean.True), Is.True);
+			Assert.That(JsonBoolean.False.StrictEquals(false), Is.True);
+			Assert.That(JsonBoolean.True.StrictEquals(true), Is.True);
+
+			Assert.That(JsonBoolean.False.StrictEquals(JsonNull.Missing), Is.False);
+			Assert.That(JsonBoolean.False.StrictEquals(0), Is.False);
+			Assert.That(JsonBoolean.False.StrictEquals(""), Is.False);
+			Assert.That(JsonBoolean.False.StrictEquals("false"), Is.False);
+			Assert.That(JsonBoolean.True.StrictEquals(JsonArray.EmptyReadOnly), Is.False);
+			Assert.That(JsonBoolean.True.StrictEquals(1), Is.False);
+			Assert.That(JsonBoolean.True.StrictEquals(""), Is.False);
+			Assert.That(JsonBoolean.True.StrictEquals("true"), Is.False);
 		}
 
 		#endregion
@@ -4379,6 +4421,20 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(JsonString.Return("hello").ValueEquals<int>(123), Is.False);
 			Assert.That(JsonString.Return("123").ValueEquals<int>(123), Is.False);
 			Assert.That(JsonString.Return("").ValueEquals<bool>(false), Is.False);
+		}
+
+		[Test]
+		public void Test_JsonString_StrictEquals()
+		{
+			Assert.That(JsonString.Return("").StrictEquals(""), Is.True);
+			Assert.That(JsonString.Return("hello").StrictEquals("hello"), Is.True);
+
+			Assert.That(JsonString.Return("hello").StrictEquals("world"), Is.False);
+			Assert.That(JsonString.Return("hello").StrictEquals("Hello"), Is.False);
+			Assert.That(JsonString.Return("123").StrictEquals(123), Is.False);
+			Assert.That(JsonString.Return("").StrictEquals(false), Is.False);
+			Assert.That(JsonString.Return("false").StrictEquals(false), Is.False);
+			Assert.That(JsonString.Return("true").StrictEquals(true), Is.False);
 		}
 
 		[Test]
@@ -5124,6 +5180,19 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(JsonNumber.Return(decimal.One).ValueEquals<decimal?>(decimal.One), Is.True);
 			Assert.That(JsonNumber.Return(decimal.One).ValueEquals<decimal?>(decimal.Zero), Is.False);
 			Assert.That(JsonNumber.Return(decimal.One).ValueEquals<decimal?>(null), Is.False);
+		}
+
+		[Test]
+		public void Test_JsonNumber_StrictEquals()
+		{
+			Assert.That(JsonNumber.Return(123).StrictEquals(123), Is.True);
+			Assert.That(JsonNumber.Return(123).StrictEquals(123L), Is.True);
+			Assert.That(JsonNumber.Return(123).StrictEquals(123.0), Is.True);
+
+			Assert.That(JsonNumber.Return(0).StrictEquals(false), Is.False);
+			Assert.That(JsonNumber.Return(0).StrictEquals(""), Is.False);
+			Assert.That(JsonNumber.Return(1).StrictEquals(true), Is.False);
+			Assert.That(JsonNumber.Return(123).StrictEquals("123"), Is.False);
 		}
 
 		[Test]
@@ -6880,6 +6949,77 @@ namespace Doxense.Serialization.Json.Tests
 				var arr = JsonArray.Create([ "hello", "there" ]);
 				Assert.That(JsonArray.Create("foo", arr, "bar").IndexOf(arr), Is.EqualTo(1));
 
+			});
+		}
+
+		[Test]
+		public void Test_JsonArray_StrictEquals()
+		{
+			Assert.Multiple(() =>
+			{
+				var arr = JsonArray.EmptyReadOnly;
+
+				Assert.That(arr.StrictEquals(JsonArray.EmptyReadOnly), Is.True);
+				Assert.That(arr.StrictEquals(new JsonArray()), Is.True);
+				Assert.That(arr.StrictEquals(JsonArray.Create([])), Is.True);
+
+				Assert.That(arr.StrictEquals(JsonNull.Null), Is.False);
+				Assert.That(arr.StrictEquals(JsonNull.Missing), Is.False);
+				Assert.That(arr.StrictEquals(JsonNull.Error), Is.False);
+				Assert.That(arr.StrictEquals(JsonBoolean.False), Is.False);
+				Assert.That(arr.StrictEquals(JsonBoolean.True), Is.False);
+				Assert.That(arr.StrictEquals(JsonArray.Create("")), Is.False);
+				Assert.That(arr.StrictEquals(JsonObject.EmptyReadOnly), Is.False);
+				Assert.That(arr.StrictEquals(JsonString.Return("")), Is.False);
+
+				Assert.That(arr.StrictEquals(default(ReadOnlySpan<JsonValue>)), Is.True);
+				Assert.That(arr.StrictEquals(new JsonValue[0]), Is.True);
+				Assert.That(arr.StrictEquals(new List<JsonValue>()), Is.True);
+				Assert.That(arr.StrictEquals(Enumerable.Empty<JsonValue>()), Is.True);
+
+			});
+			Assert.Multiple(() =>
+			{
+				var arr = JsonArray.Create([ "hello", 123, true ]);
+
+				Assert.That(arr.StrictEquals(JsonArray.Create("hello", 123, true)), Is.True);
+				Assert.That(arr.StrictEquals(JsonArray.Create("hello", 123L, true)), Is.True);
+				Assert.That(arr.StrictEquals(JsonArray.Create("hello", 123.0, true)), Is.True);
+				Assert.That(arr.StrictEquals(JsonArray.Create("hello", 123.0f, true)), Is.True);
+
+				Assert.That(arr.StrictEquals(JsonNull.Null), Is.False);
+				Assert.That(arr.StrictEquals(JsonNull.Missing), Is.False);
+				Assert.That(arr.StrictEquals(JsonNull.Error), Is.False);
+				Assert.That(arr.StrictEquals(JsonBoolean.False), Is.False);
+				Assert.That(arr.StrictEquals(JsonBoolean.True), Is.False);
+				Assert.That(arr.StrictEquals(JsonArray.EmptyReadOnly), Is.False);
+				Assert.That(arr.StrictEquals(JsonArray.Create("world", 123, true)), Is.False);
+				Assert.That(arr.StrictEquals(JsonArray.Create("hello", 456, true)), Is.False);
+				Assert.That(arr.StrictEquals(JsonArray.Create("hello", 123, false)), Is.False);
+				Assert.That(arr.StrictEquals(JsonArray.Create("hello", 123, true, "world")), Is.False);
+				Assert.That(arr.StrictEquals(JsonArray.Create("hello", "123", true)), Is.False);
+				Assert.That(arr.StrictEquals(JsonObject.Create([ ("0", "hello"), ("1", 123), ("2", true) ])), Is.False);
+
+				Assert.That(arr.StrictEquals((ReadOnlySpan<JsonValue>) [ "hello", 123, true ]), Is.True);
+				Assert.That(arr.StrictEquals((JsonValue[]) [ "hello", 123, true ]), Is.True);
+				Assert.That(arr.StrictEquals((List<JsonValue>) [ "hello", 123, true ]), Is.True);
+				Assert.That(arr.StrictEquals(Enumerable.Range(0, 3).Select(i => ((ReadOnlySpan<JsonValue>) [ "hello", 123, true ])[i])), Is.True);
+			});
+			Assert.Multiple(() =>
+			{
+				Assert.That(JsonArray.Create(default(string)).StrictEquals(JsonArray.Create(JsonNull.Null)), Is.True);
+				Assert.That(JsonArray.Create(JsonNull.Null).StrictEquals(JsonArray.Create(default(string))), Is.True);
+				Assert.That(JsonArray.Create(default(string)).StrictEquals(JsonArray.Create(JsonNull.Missing)), Is.False);
+				Assert.That(JsonArray.Create(JsonNull.Missing).StrictEquals(JsonArray.Create(default(string))), Is.False);
+
+				Assert.That(JsonArray.Create(0).StrictEquals(JsonArray.Create(false)), Is.False);
+				Assert.That(JsonArray.Create(1).StrictEquals(JsonArray.Create(true)), Is.False);
+				Assert.That(JsonArray.Create(false).StrictEquals(JsonArray.Create(0)), Is.False);
+				Assert.That(JsonArray.Create(true).StrictEquals(JsonArray.Create(1)), Is.False);
+				Assert.That(JsonArray.Create(false).StrictEquals(JsonArray.Create(JsonNull.Null)), Is.False);
+
+				Assert.That(JsonArray.Create(Guid.Empty).StrictEquals(JsonArray.Create(JsonNull.Null)), Is.True); // Guid.Empty <=> null
+				Assert.That(JsonArray.Create(JsonNull.Null).StrictEquals(JsonArray.Create(Guid.Empty)), Is.True); // Guid.Empty <=> null
 			});
 		}
 

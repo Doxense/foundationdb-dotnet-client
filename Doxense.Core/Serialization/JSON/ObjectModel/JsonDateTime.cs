@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -596,6 +596,18 @@ namespace Doxense.Serialization.Json
 				default: return false;
 			}
 		}
+
+		/// <inheritdoc />
+		public override bool StrictEquals(JsonValue? other) => other switch
+		{
+			JsonDateTime dt => Equals(dt),
+			JsonString s => Equals(s),
+			_ => false
+		};
+
+		public bool StrictEquals(JsonDateTime? other) => other is not null && Equals(other);
+	
+		public bool StrictEquals(JsonString? other) => other is not null && Equals(other);
 
 		/// <inheritdoc />
 		public bool Equals(JsonDateTime? obj)

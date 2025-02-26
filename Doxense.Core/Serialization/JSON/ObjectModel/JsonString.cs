@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -134,6 +134,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
+		/// <remarks><para>The <see cref="Guid.Empty"/> guid is equivalent to a <see cref="JsonNull.Null"/> entry</para></remarks>
 		public static JsonValue Return(Guid value)
 		{
 			return value != Guid.Empty
@@ -142,6 +143,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
+		/// <remarks><para>The <see cref="Guid.Empty"/> guid is equivalent to a <see cref="JsonNull.Null"/> entry</para></remarks>
 		public static JsonValue Return(Guid? value)
 		{
 			Guid x;
@@ -151,6 +153,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
+		/// <remarks><para>The <see cref="Uuid128.Empty"/> uuid is equivalent to a <see cref="JsonNull.Null"/> entry</para></remarks>
 		public static JsonValue Return(Uuid128 value)
 		{
 			Guid x = value.ToGuid();
@@ -160,6 +163,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
+		/// <remarks><para>The <see cref="Uuid128.Empty"/> uuid is equivalent to a <see cref="JsonNull.Null"/> entry</para></remarks>
 		public static JsonValue Return(Uuid128? value)
 		{
 			Uuid128 x;
@@ -169,6 +173,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
+		/// <remarks><para>The <see cref="Uuid96.Empty"/> uuid is equivalent to a <see cref="JsonNull.Null"/> entry</para></remarks>
 		public static JsonValue Return(Uuid96 value)
 		{
 			return value != Uuid96.Empty
@@ -177,6 +182,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
+		/// <remarks><para>The <see cref="Uuid96.Empty"/> uuid is equivalent to a <see cref="JsonNull.Null"/> entry</para></remarks>
 		public static JsonValue Return(Uuid96? value)
 		{
 			Uuid96 x;
@@ -186,6 +192,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
+		/// <remarks><para>The <see cref="Uuid80.Empty"/> uuid is equivalent to a <see cref="JsonNull.Null"/> entry</para></remarks>
 		public static JsonValue Return(Uuid80 value)
 		{
 			return value != Uuid80.Empty
@@ -194,6 +201,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
+		/// <remarks><para>The <see cref="Uuid80.Empty"/> uuid is equivalent to a <see cref="JsonNull.Null"/> entry</para></remarks>
 		public static JsonValue Return(Uuid80? value)
 		{
 			Uuid80 x;
@@ -203,6 +211,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
+		/// <remarks><para>The <see cref="Uuid64.Empty"/> uuid is equivalent to a <see cref="JsonNull.Null"/> entry</para></remarks>
 		public static JsonValue Return(Uuid64 value)
 		{
 			return value != Uuid64.Empty
@@ -211,6 +220,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
+		/// <remarks><para>The <see cref="Uuid64.Empty"/> uuid is equivalent to a <see cref="JsonNull.Null"/> entry</para></remarks>
 		public static JsonValue Return(Uuid64? value)
 		{
 			Uuid64 x;
@@ -929,8 +939,13 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		public bool Equals(JsonString? obj)
 		{
-			return obj is not null && string.Equals(m_value, obj.m_value, StringComparison.Ordinal);
+			return obj is not null && m_value ==  obj.m_value;
 		}
+
+		/// <inheritdoc />
+		public override bool StrictEquals(JsonValue? other) => other is JsonString s && m_value == s.Value;
+
+		public bool StrictEquals(JsonString? other) => other is not null && other.Value == this.Value;
 
 		/// <inheritdoc />
 		[RequiresUnreferencedCode("The type might be removed")]

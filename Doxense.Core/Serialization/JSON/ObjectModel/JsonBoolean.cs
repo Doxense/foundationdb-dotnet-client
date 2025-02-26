@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -185,11 +185,16 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(bool value) => m_value == value;
 
+		/// <inheritdoc />
+		public override bool StrictEquals(JsonValue? other) => other is JsonBoolean b && b.Value == this.Value;
+
+		public bool StrictEquals(JsonBoolean? other) => other is not null && other.Value == this.Value;
+
 		public override int GetHashCode() => m_value ? 1 : 0;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator bool(JsonBoolean? obj) => obj?.m_value == true;
-		//TODO: REVIEW: is this useful ? when do we have a variable of explicit type JsonBoolean?
+		public static explicit operator bool(JsonBoolean? obj) => obj?.m_value == true;
+		//note: we cannot implicit cast, because this creates possible infinite recursions when a method has bool overloads for 'boolean' and 'JsonBoolean'
 
 		#endregion
 

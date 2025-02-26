@@ -278,17 +278,19 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		public override bool Equals(object? obj) => obj is JsonValue value && Equals(value);
 
-		/// <summary>Tests if these two JSON values are considered equal, using the default JSON comparison semantics</summary>
+		/// <summary>Tests if these two JSON values are considered equal, using the relaxed JSON comparison semantics</summary>
 		/// <remarks>
 		/// <para>Two values are considered "equal" if they would produce the same result when serialized using a canonical representation.</para>
-		/// <para>For example, <c>1</c> and <c>1.0</c> are considered equal, but not <c>1</c> and <c>"1"</c></para>
+		/// <para>Numbers are equal if they represent the "same" number (ie: <c>1</c> and <c>1.0</c> are equal)</para>
+		/// <para>Numbers and strings can be equal, if the later can be parsed into a number equal to the former (ie: <c>123</c> and <c>"123"</c> are equal)</para>
 		/// <para>Arrays are equal if they have the same length and all their elements are equals pairwise</para>
 		/// <para>Objects are equal if they have the same key/value pairs, irrespective of their order.</para>
-		/// <para>A missing field is not considered equal to an explicit <see cref="JsonNull.Null"/></para>
+		/// <para>A <see cref="JsonNull.Missing"/> field is not considered equal to an explicit <see cref="JsonNull.Null"/> field, and vice versa</para>
+		/// <para>If you require strict equality (ie: <c>"123"</c> and <c>123</c> are different), consider calling <see cref="StrictEquals"/> instead.</para>
 		/// </remarks>
 		public abstract bool Equals(JsonValue? other);
 
-		/// <summary>Tests if the current instance is equal to the specified value</summary>
+		/// <summary>Tests if the current instance is equal to the specified value, using the strict JSON comparison semantics</summary>
 		/// <typeparam name="TValue">Type of the value</typeparam>
 		/// <param name="value">Value to test with the current instance</param>
 		/// <param name="comparer">Custom equality comparer if specified; otherwise, uses the default comparer for this type</param>
@@ -299,6 +301,15 @@ namespace Doxense.Serialization.Json
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TValue>
 			(TValue? value, IEqualityComparer<TValue>? comparer = null)
 			=> (comparer ?? EqualityComparer<TValue>.Default).Equals(Bind<TValue>(), value);
+
+		/// <summary>Tests if these two JSON values are considered equal, using the strict JSON comparison semantics</summary>
+		/// <remarks>
+		/// <para>For two values to be considered "equal", they must be of the same type (string, number, array, ...) AND have the same result when serialized using a canonical representation.</para>
+		/// <para>Arrays are equals if they have the same length and all their elements are also strictly equal.</para>
+		/// <para>Objects are equal if they have the same keys, irrespective of their order, and each value is strictly equal.</para>
+		/// <para>A <see cref="JsonNull.Missing"/> field is not considered equal to an explicit <see cref="JsonNull.Null"/> field, and vice versa</para>
+		/// </remarks>
+		public abstract bool StrictEquals(JsonValue? other);
 
 		/// <summary>Tests if two JSON values are equivalent</summary>
 		public static bool Equals(JsonValue? left, JsonValue? right) => (left ?? JsonNull.Missing).Equals(right ?? JsonNull.Missing);

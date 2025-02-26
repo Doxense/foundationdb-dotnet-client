@@ -4234,6 +4234,53 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
+		public override bool StrictEquals(JsonValue? other) => other is JsonArray arr && StrictEquals(arr);
+
+		/// <inheritdoc cref="StrictEquals(JsonValue?)" />
+		public bool StrictEquals(ReadOnlySpan<JsonValue> other)
+		{
+			var items = m_items;
+			if (other.Length != items.Length)
+			{
+				return false;
+			}
+			for (int i = 0; i < items.Length; i++)
+			{
+				if (!items[i].StrictEquals(other[i]))
+				{
+					return false;
+				}
+			}
+			return true;
+		}
+
+		/// <inheritdoc cref="StrictEquals(JsonValue?)" />
+		public bool StrictEquals(JsonArray? other)
+		{
+			if (other is null) return false;
+			return StrictEquals(other.AsSpan());
+		}
+
+		/// <inheritdoc cref="StrictEquals(JsonValue?)" />
+		public bool StrictEquals(IEnumerable<JsonValue>? other)
+		{
+			if (other is null) return false;
+			if (other is JsonArray arr) return StrictEquals(arr.AsSpan());
+			if (Buffer<JsonValue>.TryGetSpan(other, out var span)) return StrictEquals(span);
+
+			span = AsSpan();
+			int p = 0;
+			foreach (var item in other)
+			{
+				if (p >= span.Length || !span[p++].Equals(item))
+				{
+					return false;
+				}
+			}
+			return p == span.Length;
+		}
+
+		/// <inheritdoc />
 		public override int GetHashCode()
 		{
 			// the hash code of the array should never change, even if the _content_ of the array can change

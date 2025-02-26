@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -2335,6 +2335,11 @@ namespace Doxense.Serialization.Json
 			JsonDateTime dt => Equals(dt),
 			_ => false
 		};
+
+		/// <inheritdoc />
+		public override bool StrictEquals(JsonValue? other) => other is JsonNumber num && Equals(num);
+
+		public bool StrictEquals(JsonNumber? other) => other is not null && Equals(other);
 
 		/// <inheritdoc />
 		[RequiresUnreferencedCode("The type might be removed")]

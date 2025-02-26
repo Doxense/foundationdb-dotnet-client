@@ -3362,6 +3362,27 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
+		public override bool StrictEquals(JsonValue? other) => other is JsonObject obj && StrictEquals(obj);
+
+		public bool StrictEquals(JsonObject? other)
+		{
+			if (other is null || other.Count != this.Count)
+			{
+				return false;
+			}
+
+			var otherItems = other.m_items;
+			foreach (var kvp in this)
+			{
+				if (!otherItems.TryGetValue(kvp.Key, out var o) || !o.StrictEquals(kvp.Value))
+				{
+					return false;
+				}
+			}
+			return true;
+		}
+
+		/// <inheritdoc />
 		public override int GetHashCode()
 		{
 			// the hash code must NEVER change, even if the object is mutated!
