@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -127,6 +127,18 @@ namespace FoundationDB.Client.Core
 		/// <param name="ct">Token used to cancel the operation from the outside</param>
 		/// <returns></returns>
 		Task<FdbRangeChunk<TResult>> GetRangeAsync<TState, TResult>(KeySelector beginInclusive, KeySelector endExclusive, bool snapshot, TState state, FdbKeyValueDecoder<TState, TResult> decoder, FdbRangeOptions options, int iteration, CancellationToken ct);
+
+		/// <summary>Visit all key-value pairs in the database snapshot represented by transaction (potentially limited by Limit, TargetBytes, or Mode) which have a key lexicographically greater than or equal to the key resolved by the Begin key selector and lexicographically less than the key resolved by the End key selector.</summary>
+		/// <param name="beginInclusive">key selector defining the beginning of the range</param>
+		/// <param name="endExclusive">key selector defining the end of the range</param>
+		/// <param name="snapshot">Set to true for snapshot reads</param>
+		/// <param name="state">Opaque state provided by the caller, and passed to the <paramref name="visitor"/></param>
+		/// <param name="visitor">Handler that will observe the result of the read.</param>
+		/// <param name="options">Range read options</param>
+		/// <param name="iteration">If the <see cref="FdbRangeOptions.Streaming">streaming mode</see> is set to <see cref="FdbStreamingMode.Iterator"/> (default), this parameter should start at <see langword="1"/> and be incremented by <see langword="1"/> for each successive call while reading this range. In all other cases it is ignored.</param>
+		/// <param name="ct">Token used to cancel the operation from the outside</param>
+		/// <returns><c>true</c> if the range </returns>
+		Task<FdbRangeResult> VisitRangeAsync<TState>(KeySelector beginInclusive, KeySelector endExclusive, bool snapshot, TState state, FdbKeyValueAction<TState> visitor, FdbRangeOptions options, int iteration, CancellationToken ct);
 
 		/// <summary>Checks the value of a key in the database snapshot is equal to the expected value.</summary>
 		/// <param name="key">Key to check</param>

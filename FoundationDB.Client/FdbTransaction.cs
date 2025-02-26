@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -842,6 +842,47 @@ namespace FoundationDB.Client
 				);
 		}
 
+		private Task<FdbRangeResult> PerformVisitRangeOperation<TState>(
+			KeySelector beginInclusive,
+			KeySelector endExclusive,
+			bool snapshot,
+			TState state,
+			FdbKeyValueAction<TState> visitor,
+			FdbRangeOptions options,
+			int iteration
+		)
+		{
+			FdbClientInstrumentation.ReportGetRange(this);
+
+			return m_log == null
+				? m_handler.VisitRangeAsync<TState>(beginInclusive, endExclusive, snapshot, state, visitor, options, iteration, m_cancellation)
+				: ExecuteLogged(this, beginInclusive, endExclusive, snapshot, state, visitor, options, iteration);
+
+			static Task<FdbRangeResult> ExecuteLogged(FdbTransaction self, KeySelector beginInclusive, KeySelector endExclusive, bool snapshot, TState state, FdbKeyValueAction<TState> visitor, FdbRangeOptions options, int iteration)
+				=> self.m_log!.ExecuteAsync(
+					self,
+					new FdbTransactionLog.VisitRangeCommand<TState>(
+						self.m_log.Grab(beginInclusive),
+						self.m_log.Grab(endExclusive),
+						snapshot,
+						options,
+						iteration,
+						state,
+						visitor
+					),
+					(tr, cmd) => tr.m_handler.VisitRangeAsync<TState>(
+						cmd.Begin,
+						cmd.End,
+						cmd.Snapshot,
+						cmd.State,
+						cmd.Visitor,
+						cmd.Options,
+						cmd.Iteration,
+						tr.m_cancellation
+					)
+				);
+		}
+
 		#endregion
 
 		#region GetRange...
@@ -866,17 +907,17 @@ namespace FoundationDB.Client
 		}
 
 		[Pure, LinqTunnel]
-		internal FdbKeyValueRangeQuery GetRangeCore(KeySelector begin, KeySelector end, FdbRangeOptions? options, bool snapshot)
+		internal FdbKeyValueRangeQuery GetRangeCore(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options, bool snapshot)
 		{
 			EnsureCanRead();
-			FdbKey.EnsureKeyIsValid(begin.Key);
-			FdbKey.EnsureKeyIsValid(end.Key, endExclusive: true);
+			FdbKey.EnsureKeyIsValid(beginInclusive.Key);
+			FdbKey.EnsureKeyIsValid(endExclusive.Key, endExclusive: true);
 
 			options = FdbRangeOptions.EnsureDefaults(options, FdbStreamingMode.Iterator, FdbFetchMode.KeysAndValues);
 			options.EnsureLegalValues(0);
 
 #if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetRangeCore", $"Getting range '{begin.ToString()} <= x < {end.ToString()}'");
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetRangeCore", $"Getting range '{beginInclusive.ToString()} <= x < {endExclusive.ToString()}'");
 #endif
 
 			switch (options.Fetch)
@@ -885,8 +926,8 @@ namespace FoundationDB.Client
 				{
 					return new FdbKeyValueRangeQuery(
 						this,
-						begin,
-						end,
+						beginInclusive,
+						endExclusive,
 						static (s, k, _) => new KeyValuePair<Slice, Slice>(s.Intern(k), default),
 						snapshot,
 						options
@@ -896,8 +937,8 @@ namespace FoundationDB.Client
 				{
 					return new FdbKeyValueRangeQuery(
 						this,
-						begin,
-						end,
+						beginInclusive,
+						endExclusive,
 						static (s, _, v) => new KeyValuePair<Slice, Slice>(default, s.Intern(v)),
 						snapshot,
 						options
@@ -907,13 +948,49 @@ namespace FoundationDB.Client
 				{
 					return new FdbKeyValueRangeQuery(
 						this,
-						begin,
-						end,
+						beginInclusive,
+						endExclusive,
 						static (s, k, v) => new KeyValuePair<Slice, Slice>(s.Intern(k), s.Intern(v)),
 						snapshot,
 						options
 					);
 				}
+			}
+		}
+
+		[LinqTunnel]
+		internal async Task VisitRangeCore<TState>(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options, bool snapshot, TState state, FdbKeyValueAction<TState> handler)
+		{
+			Contract.Debug.Requires(handler != null);
+
+			EnsureCanRead();
+			FdbKey.EnsureKeyIsValid(beginInclusive.Key);
+			FdbKey.EnsureKeyIsValid(endExclusive.Key, endExclusive: true);
+
+			options = FdbRangeOptions.EnsureDefaults(options, FdbStreamingMode.Iterator, FdbFetchMode.KeysAndValues);
+			options.EnsureLegalValues(0);
+
+#if DEBUG
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "VisitRangeCore", $"Getting range '{beginInclusive.ToString()} <= x < {endExclusive.ToString()}'");
+#endif
+
+			// the iteration starts at 1
+			int iteration = 1;
+			var cursor = beginInclusive;
+
+			while (true)
+			{
+				// visit the next page of results
+				var result = await PerformVisitRangeOperation(cursor, endExclusive, snapshot, state, handler, options, iteration).ConfigureAwait(false);
+
+				if (!result.HasMore)
+				{ // we are done
+					break;
+				}
+
+				// update the cursor to continue reading after the last key of this chunk
+				cursor = KeySelector.FirstGreaterThan(result.Last);
+				++iteration;
 			}
 		}
 
@@ -952,6 +1029,19 @@ namespace FoundationDB.Client
 				snapshot: false,
 				state: state,
 				decoder: decoder
+			);
+		}
+
+		/// <inheritdoc />
+		public Task VisitRangeAsync<TState>(KeySelector beginInclusive, KeySelector endExclusive, TState state, FdbKeyValueAction<TState> visitor, FdbRangeOptions? options = null)
+		{
+			return VisitRangeCore(
+				beginInclusive,
+				endExclusive,
+				options,
+				snapshot: false,
+				state: state,
+				handler: visitor
 			);
 		}
 

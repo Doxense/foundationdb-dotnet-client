@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -31,6 +31,51 @@ namespace FoundationDB.Client
 	using System.Runtime.CompilerServices;
 	using Doxense.Memory;
 	using Doxense.Serialization.Encoders;
+
+	/// <summary>Metadata about the result of a range read operation</summary>
+	public sealed class FdbRangeResult
+	{
+
+		// this is used for by the "visitor" to keep track of some metadata required to do multipage reads
+		// => the keys and values have already been consumed (and probably returned to the pool) before this instance is created!
+
+		public FdbRangeResult(int count, bool hasMore, int iteration, FdbRangeOptions options, Slice first, Slice last, int totalBytes)
+		{
+			this.Count = count;
+			this.HasMore = hasMore;
+			this.Iteration = iteration;
+			this.Options = options;
+			this.First = first;
+			this.Last = last;
+			this.TotalBytes = totalBytes;
+		}
+
+		/// <summary>Number of results returned by this range read</summary>
+		public int Count { get; }
+
+		/// <summary>Set to <see langword="true"/> if there are more results in the database than could fit in a single chunk</summary>
+		public bool HasMore { get; }
+
+		/// <summary>Iteration number of this chunk, starting from 1 for the first page</summary>
+		/// <remarks>This value must be passed to subsequent calls to <see cref="IFdbReadOnlyTransaction.GetRangeAsync"/> to continue reading; otherwise, the <see cref="FdbRangeOptions.Streaming">streaming</see> will not behave properly.</remarks>
+		public int Iteration { get; }
+
+		/// <summary>Options used to perform this operation</summary>
+		/// <remarks>They can be passed again to <see cref="IFdbReadOnlyTransaction.GetRangeAsync"/>, together with <c><see cref="Iteration"/> + 1</c> to continue reading from the database.</remarks>
+		public FdbRangeOptions Options { get; }
+
+		/// <summary>Returns the first item in the chunk</summary>
+		/// <remarks>Note that if the range is reversed, then the first item will be GREATER than the last !</remarks>
+		public Slice Last { get; private set; }
+
+		/// <summary>Returns the last item in the chunk</summary>
+		/// <remarks>Note that if the range is reversed, then the last item will be LESS than the first!</remarks>
+		public Slice First { get; private set; }
+
+		/// <summary>Sum of the size (in bytes) of all the keys and values read from the database</summary>
+		public int TotalBytes { get; private set; }
+
+	}
 
 	/// <summary>Page of results from a <see cref="IFdbReadOnlyTransaction.GetRangeAsync"/> operation</summary>
 	/// <remarks>If a pool was specified in the <see cref="FdbRangeOptions"/>, then this instance <b>MUST</b> be disposed; otherwise, rented buffers will not be returned to the pool</remarks>

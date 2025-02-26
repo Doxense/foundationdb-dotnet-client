@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -442,7 +442,6 @@ namespace FoundationDB.Client.Native
 		}
 
 		/// <summary>Asynchronously fetch a new page of results</summary>
-		/// <returns>True if Chunk contains a new page of results. False if all results have been read.</returns>
 		public Task<FdbRangeChunk<TResult>> GetRangeAsync<TState, TResult>(KeySelector beginInclusive, KeySelector endExclusive, bool snapshot, TState state, FdbKeyValueDecoder<TState, TResult> decoder, FdbRangeOptions options, int iteration, CancellationToken ct)
 		{
 			Contract.Debug.Requires(decoder != null && options != null);
@@ -466,13 +465,49 @@ namespace FoundationDB.Client.Native
 				static (h, s) =>
 				{
 					// note: we don't have a way currently to do KeyOnly or ValueOnly, we always have both coming from the native client
-					// but since we don't have to copy them into the managed heap, this is not really an issue
+					// but since we don't have to copy them into the managed heap, this is less of an issue
 
 					var items = FdbNative.FutureGetKeyValueArray(h, s.State, s.Decoder, out var hasMore, out var first, out var last, out var totalBytes);
 
 					s.Transaction.AccountReadOperation(items.Length, totalBytes);
 
 					return new FdbRangeChunk<TResult>(items, hasMore, s.Iteration, s.Options, first, last, totalBytes);
+				},
+				ct
+			);
+		}
+
+		/// <summary>Asynchronously fetch a new page of results and visit all returned key-value pairs</summary>
+		public Task<FdbRangeResult> VisitRangeAsync<TState>(KeySelector beginInclusive, KeySelector endExclusive, bool snapshot, TState state, FdbKeyValueAction<TState> visitor, FdbRangeOptions options, int iteration, CancellationToken ct)
+		{
+			Contract.Debug.Requires(visitor != null && options != null);
+			if (ct.IsCancellationRequested) return Task.FromCanceled<FdbRangeResult>(ct);
+
+			var future = FdbNative.TransactionGetRange(
+				m_handle,
+				beginInclusive,
+				endExclusive,
+				options.Limit ?? 0,
+				options.TargetBytes ?? 0,
+				options.Streaming ?? FdbStreamingMode.Iterator,
+				iteration,
+				snapshot,
+				options.IsReversed
+			);
+
+			return FdbFuture.CreateTaskFromHandle(
+				future,
+				(Transaction: this, Options: options, Iteration: iteration, State: state, Visitor: visitor),
+				static (h, s) =>
+				{
+					// note: we don't have a way currently to do KeyOnly or ValueOnly, we always have both coming from the native client
+					// but since we don't have to copy them into the managed heap, this is less of an issue
+
+					var count = FdbNative.VisitKeyValueArray(h, s.State, s.Visitor, out var hasMore, out var first, out var last, out var totalBytes);
+
+					s.Transaction.AccountReadOperation(count, totalBytes);
+
+					return new FdbRangeResult(count, hasMore, s.Iteration, s.Options, first, last, totalBytes);
 				},
 				ct
 			);

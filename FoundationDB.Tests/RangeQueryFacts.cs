@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -31,9 +31,8 @@
 
 namespace FoundationDB.Client.Tests
 {
-	using System.IO;
 	using System.Collections.Generic;
-	using System.Runtime.InteropServices;
+	using System.IO;
 	using Doxense.Linq.Async.Iterators;
 
 	[TestFixture]
@@ -1619,6 +1618,78 @@ namespace FoundationDB.Client.Tests
 			}
 
 		}
+
+		[Test]
+		public async Task Test_Can_Visit_Range()
+		{
+			// test that we can visit the key/values of a range, without allocation managed memory
+
+			const int N = 1000; // total item count
+
+			using (var db = await OpenTestPartitionAsync())
+			{
+				// put test values in a namespace
+				var location = db.Root;
+				await CleanLocation(db, location);
+
+				// insert all values (batched)
+				Log($"Inserting {N:N0} keys...");
+
+				var insert = Stopwatch.StartNew();
+				await db.WriteAsync(async tr =>
+				{
+					var folder = await location.Resolve(tr);
+					Assert.That(folder, Is.Not.Null);
+					foreach (int i in Enumerable.Range(0, N))
+					{
+						tr.Set(folder.Encode(i), Slice.FromInt32(i));
+					}
+				}, this.Cancellation);
+				insert.Stop();
+
+				Log($"Committed {N:N0} keys in {insert.Elapsed.TotalMilliseconds:N1} ms");
+
+				// GetRange values
+
+				using (var tr = db.BeginTransaction(this.Cancellation))
+				{
+					var folder = await location.Resolve(tr);
+					Assert.That(folder, Is.Not.Null);
+
+					Log("Visiting range ...");
+
+					var ts = Stopwatch.StartNew();
+					var items = new List<(IVarTuple Key, int Value)>(N);
+					await tr.VisitRangeAsync(folder.Encode(0), folder.Encode(N), items, (state, k, v) =>
+					{
+#if NET9_0_OR_GREATER
+						state.Add((folder.Unpack(k).ToTuple(), v.ToInt32()));
+#else
+						state.Add((folder.Unpack(k.ToSlice()), v.ToInt32()));
+#endif
+					});
+					ts.Stop();
+
+					Assert.That(items, Is.Not.Null);
+					Assert.That(items.Count, Is.EqualTo(N));
+					Log($"Took {ts.Elapsed.TotalMilliseconds:N1} ms to visit {items.Count:N0} results");
+
+					for (int i = 0; i < N; i++)
+					{
+						var (key, value) = items[i];
+						if (i % 128 == 0) Log($"... {key} = {value}");
+
+						// key should be a tuple in the correct order
+						Assert.That(key.Count, Is.EqualTo(1));
+						Assert.That(key.Get<int>(-1), Is.EqualTo(i));
+						// value should be equal to the index
+						Assert.That(value, Is.EqualTo(i));
+					}
+				}
+
+			}
+		}
+
 
 	}
 

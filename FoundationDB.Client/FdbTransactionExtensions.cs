@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -1743,6 +1743,48 @@ namespace FoundationDB.Client
 		{
 			var range = KeySelectorPair.Create(beginInclusive, endExclusive);
 			return trans.GetRangeAsync<TState, TResult>(range.Begin, range.End, state, decoder, options, iteration);
+		}
+
+		#endregion
+
+		#region VisitRangeAsync...
+
+		/// <summary>Visits all key-value pairs in the database snapshot represent by the transaction</summary>
+		/// <typeparam name="TState">Type of the state that is passed to the handler</typeparam>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="range">Range of keys defining the beginning (inclusive) and the end (exclusive) of the range</param>
+		/// <param name="state">State that will be forwarded to the <paramref name="visitor"/></param>
+		/// <param name="visitor">Lambda called for each key-value pair, in order.</param>
+		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
+		/// <returns></returns>
+		public static Task VisitRangeAsync<TState>(this IFdbReadOnlyTransaction trans, KeyRange range, TState state, FdbKeyValueAction<TState> visitor, FdbRangeOptions? options = null)
+		{
+			return VisitRangeAsync(trans, range.Begin, range.End, state, visitor, options);
+		}
+
+		/// <summary>Visits all key-value pairs in the database snapshot represent by the transaction</summary>
+		/// <typeparam name="TState">Type of the state that is passed to the handler</typeparam>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="beginInclusive">Key defining the beginning (inclusive) of the range</param>
+		/// <param name="endExclusive">Key defining the end (exclusive) of the range</param>
+		/// <param name="state">State that will be forwarded to the <paramref name="visitor"/></param>
+		/// <param name="visitor">Lambda called for each key-value pair, in order.</param>
+		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
+		/// <returns></returns>
+		public static Task VisitRangeAsync<TState>(this IFdbReadOnlyTransaction trans, Slice beginInclusive, Slice endExclusive, TState state, FdbKeyValueAction<TState> visitor, FdbRangeOptions? options = null)
+		{
+			Contract.NotNull(trans);
+
+			if (beginInclusive.IsNullOrEmpty) beginInclusive = FdbKey.MinValue;
+			if (endExclusive.IsNullOrEmpty) endExclusive = FdbKey.MaxValue;
+
+			return trans.VisitRangeAsync(
+				KeySelector.FirstGreaterOrEqual(beginInclusive),
+				KeySelector.FirstGreaterOrEqual(endExclusive),
+				state,
+				visitor,
+				options
+			);
 		}
 
 		#endregion

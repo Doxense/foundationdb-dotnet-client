@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -173,6 +173,16 @@ namespace FoundationDB.Client
 		[Pure, LinqTunnel]
 		IFdbRangeQuery<TResult> GetRange<TState, TResult>(KeySelector beginInclusive, KeySelector endExclusive, TState state, FdbKeyValueDecoder<TState, TResult> selector, FdbRangeOptions? options = null);
 
+		/// <summary>Visits all key-value pairs in the database snapshot represent by the transaction</summary>
+		/// <typeparam name="TState">Type of the state that is passed to the handler</typeparam>
+		/// <param name="beginInclusive">key selector defining the beginning of the range</param>
+		/// <param name="endExclusive">key selector defining the end of the range</param>
+		/// <param name="state">State that will be forwarded to the <paramref name="visitor"/></param>
+		/// <param name="visitor">Lambda called for each key-value pair, in order.</param>
+		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
+		/// <returns></returns>
+		Task VisitRangeAsync<TState>(KeySelector beginInclusive, KeySelector endExclusive, TState state, FdbKeyValueAction<TState> visitor, FdbRangeOptions? options = null);
+
 		/// <summary>Check if the value from the database snapshot represented by the current transaction is equal to some <paramref name="expected"/> value.</summary>
 		/// <param name="key">Key to be looked up in the database</param>
 		/// <param name="expected">Expected value for this key</param>
@@ -281,6 +291,12 @@ namespace FoundationDB.Client
 
 	}
 
+	/// <summary>Delegate that will observe a value read from the database</summary>
+	/// <typeparam name="TState">Type of the state provided by the caller</typeparam>
+	/// <param name="state">State that will be passed to the delegate, in order to reduce scope allocations</param>
+	/// <param name="value">Binary data representing the value to observe</param>
+	public delegate void FdbValueAction<in TState>(TState state, ReadOnlySpan<byte> value);
+
 	/// <summary>Delegate that will decode a value read from the database</summary>
 	/// <typeparam name="TState">Type of the state provided by the caller</typeparam>
 	/// <typeparam name="TResult">Type of the decoded result</typeparam>
@@ -296,6 +312,13 @@ namespace FoundationDB.Client
 	/// <param name="found">If <see langword="false"/>, the value was not found, and the returned value should represent a "logical" null for this type.</param>
 	/// <returns>Decoded value</returns>
 	public delegate TResult FdbValueDecoder<out TResult>(ReadOnlySpan<byte> value, bool found);
+
+	/// <summary>Delegate that will observe a key/value pair read from the database</summary>
+	/// <typeparam name="TState">Type of the state provided by the caller</typeparam>
+	/// <param name="state">State that will be passed to the delegate, in order to reduce scope allocations</param>
+	/// <param name="key">Binary key representing the key to observe. Empty span if the key was not found</param>
+	/// <param name="value">Binary data representing the value to observe</param>
+	public delegate void FdbKeyValueAction<in TState>(TState state, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value);
 
 	/// <summary>Delegate that will decode a key/value pair read from the database</summary>
 	/// <typeparam name="TState">Type of the state provided by the caller</typeparam>

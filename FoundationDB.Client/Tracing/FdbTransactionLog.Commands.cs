@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -951,7 +951,7 @@ namespace FoundationDB.Filters.Logging
 				string s = this.Begin.PrettyPrint(FdbKey.PrettyPrintMode.Begin) + " <= k < " + this.End.PrettyPrint(FdbKey.PrettyPrintMode.End);
 				if (this.Iteration > 1) s += ", #" + this.Iteration.ToString();
 				if (this.Options.Limit != null && this.Options.Limit.Value > 0) s += ", limit(" + this.Options.Limit.Value.ToString() + ")";
-				if (this.Options.IsReversed == true) s += ", reverse";
+				if (this.Options.IsReversed) s += ", reverse";
 				if (this.Options.Streaming.HasValue) s += ", " + this.Options.Streaming.Value.ToString();
 				if (this.Options.Fetch.HasValue) s += ", " + this.Options.Fetch.Value.ToString();
 				return s;
@@ -964,6 +964,67 @@ namespace FoundationDB.Filters.Logging
 				{
 					string s = $"{chunk.Count:N0} result(s)";
 					if (chunk.HasMore) s += ", has_more";
+					return s;
+				}
+				return base.GetResult(resolver);
+			}
+
+		}
+
+		public sealed class VisitRangeCommand<TState> : Command<FdbRangeResult>
+		{
+			/// <summary>Selector to the start of the range</summary>
+			public KeySelector Begin { get; }
+
+			/// <summary>Selector to the end of the range</summary>
+			public KeySelector End { get; }
+
+			/// <summary>Options of the range read</summary>
+			public FdbRangeOptions Options { get; }
+
+			/// <summary>Iteration number</summary>
+			public int Iteration { get; }
+
+			public TState State { get; }
+
+			public FdbKeyValueAction<TState> Visitor { get; }
+
+			public override Operation Op => Operation.GetRange;
+
+			public VisitRangeCommand(KeySelector begin, KeySelector end, bool snapshot, FdbRangeOptions options, int iteration, TState state, FdbKeyValueAction<TState> visitor)
+			{
+				this.Begin = begin;
+				this.End = end;
+				this.Snapshot = snapshot;
+				this.Options = options;
+				this.Iteration = iteration;
+				this.State = state;
+				this.Visitor = visitor;
+			}
+
+			public override int? ArgumentBytes => this.Begin.Key.Count + this.End.Key.Count;
+
+			public override int? ResultBytes => this.Result.GetValueOrDefault()?.TotalBytes;
+
+			public override string GetArguments(KeyResolver resolver)
+			{
+				//TODO: use resolver!
+				string s = this.Begin.PrettyPrint(FdbKey.PrettyPrintMode.Begin) + " <= k < " + this.End.PrettyPrint(FdbKey.PrettyPrintMode.End);
+				if (this.Iteration > 1) s += ", #" + this.Iteration.ToString();
+				if (this.Options.Limit != null && this.Options.Limit.Value > 0) s += ", limit(" + this.Options.Limit.Value.ToString() + ")";
+				if (this.Options.IsReversed) s += ", reverse";
+				if (this.Options.Streaming.HasValue) s += ", " + this.Options.Streaming.Value.ToString();
+				if (this.Options.Fetch.HasValue) s += ", " + this.Options.Fetch.Value.ToString();
+				return s;
+			}
+
+			public override string GetResult(KeyResolver resolver)
+			{
+				var result = this.Result.GetValueOrDefault();
+				if (result != null)
+				{
+					string s = $"{result.Count:N0} result(s)";
+					if (result.HasMore) s += ", has_more";
 					return s;
 				}
 				return base.GetResult(resolver);
@@ -1011,7 +1072,6 @@ namespace FoundationDB.Filters.Logging
 			}
 
 		}
-
 
 		public sealed class GetVersionStampCommand : Command<VersionStamp>
 		{
