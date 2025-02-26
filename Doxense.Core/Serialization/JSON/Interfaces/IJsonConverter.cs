@@ -37,23 +37,47 @@ namespace Doxense.Serialization.Json
 
 	}
 
-	/// <summary>Bundle interface that is implemented by source-generated encoders</summary>
-	/// <typeparam name="TValue"></typeparam>
-	/// <typeparam name="TReadOnlyProxy"></typeparam>
-	/// <typeparam name="TMutableProxy"></typeparam>
-	public interface IJsonConverter<TValue, out TReadOnlyProxy, out TMutableProxy, out TOservableProxy> : IJsonConverter<TValue>
+	public interface IJsonReadOnlyConverter<TValue, out TReadOnlyProxy> : IJsonConverter<TValue>
 		where TReadOnlyProxy : IJsonReadOnlyProxy<TValue, TReadOnlyProxy>
-		where TMutableProxy : IJsonMutableProxy<TValue, TMutableProxy>
-		where TOservableProxy : IJsonObservableProxy<TValue, TOservableProxy>
 	{
 		TReadOnlyProxy AsReadOnly(JsonValue value);
 
 		TReadOnlyProxy AsReadOnly(TValue instance);
+	}
 
+	public interface IJsonMutableConverter<TValue, out TMutableProxy> : IJsonConverter<TValue>
+		where TMutableProxy : IJsonMutableProxy<TValue, TMutableProxy>
+	{
 		TMutableProxy ToMutable(JsonValue value);
 
 		TMutableProxy ToMutable(TValue instance);
 
+	}
+
+	public interface IJsonObservableConverter<TValue, out TReadOnlyProxy, out TObservableProxy> : IJsonReadOnlyConverter<TValue, TReadOnlyProxy>
+		where TReadOnlyProxy : IJsonReadOnlyProxy<TValue, TReadOnlyProxy>
+		where TObservableProxy : IJsonObservableProxy<TValue, TObservableProxy>
+	{
+		//TObservableProxy ToObservable(ObservableJsonValue value);
+
+		//TObservableProxy ToObservable(TValue value);
+
+	}
+
+	/// <summary>Bundle interface that is implemented by source-generated encoders</summary>
+	/// <typeparam name="TValue"></typeparam>
+	/// <typeparam name="TReadOnlyProxy"></typeparam>
+	/// <typeparam name="TMutableProxy"></typeparam>
+	/// <typeparam name="TObservableProxy"></typeparam>
+	public interface IJsonConverter<TValue, out TReadOnlyProxy, out TMutableProxy, out TObservableProxy> :
+		IJsonConverter<TValue>,
+		IJsonReadOnlyConverter<TValue, TReadOnlyProxy>,
+		IJsonMutableConverter<TValue, TMutableProxy>,
+		IJsonObservableConverter<TValue, TReadOnlyProxy, TObservableProxy>
+		where TReadOnlyProxy : IJsonReadOnlyProxy<TValue, TReadOnlyProxy>
+		where TMutableProxy : IJsonMutableProxy<TValue, TMutableProxy>
+		where TObservableProxy : IJsonObservableProxy<TValue, TObservableProxy>
+	{
 	}
 
 	internal sealed class DefaultJsonConverter<T> : IJsonConverter<T>
