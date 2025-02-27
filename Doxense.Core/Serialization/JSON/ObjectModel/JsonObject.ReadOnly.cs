@@ -42,7 +42,7 @@ namespace Doxense.Serialization.Json
 			/// <summary>Returns a <b>read-only</b> empty object, that cannot be modified</summary>
 			/// <remarks>
 			/// <para>This method will always return <see cref="JsonObject.EmptyReadOnly"/> singleton.</para>
-			/// <para>For a mutable array, see <see cref="JsonObject.Create()"/></para>
+			/// <para>For a mutable object, see <see cref="JsonObject.Create()"/></para>
 			/// </remarks>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static JsonObject Create() => EmptyReadOnly;

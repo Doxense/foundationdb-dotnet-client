@@ -219,7 +219,7 @@ namespace Doxense.Serialization.Json
 		public override JsonArray Copy()
 		{
 			var items = this.AsSpan();
-			if (items.Length == 0) return new JsonArray();
+			if (items.Length == 0) return [ ];
 
 			var buf = new JsonValue[items.Length];
 			// copy all children
@@ -227,7 +227,7 @@ namespace Doxense.Serialization.Json
 			{
 				buf[i] = items[i].Copy();
 			}
-			return new JsonArray(buf, items.Length, readOnly: false);
+			return new(buf, items.Length, readOnly: false);
 		}
 
 		/// <summary>Creates a copy of this array</summary>
@@ -255,13 +255,13 @@ namespace Doxense.Serialization.Json
 
 			if (array.Count == 0)
 			{ // empty mutable singleton
-				return new JsonArray();
+				return [ ];
 			}
 
 			var items = array.AsSpan();
 			if (!deep)
 			{
-				return new JsonArray(items.ToArray(), items.Length, readOnly);
+				return new(items.ToArray(), items.Length, readOnly);
 			}
 
 			// copy all children
@@ -270,7 +270,7 @@ namespace Doxense.Serialization.Json
 			{
 				buf[i] = items[i].Copy();
 			}
-			return new JsonArray(buf, items.Length, readOnly: false);
+			return new(buf, items.Length, readOnly: false);
 		}
 
 		#region Create [JsonValue] ...
@@ -598,7 +598,7 @@ namespace Doxense.Serialization.Json
 			arr1.AsSpan().CopyTo(tmp);
 			arr2.AsSpan().CopyTo(tmp.AsSpan(size1));
 
-			return new JsonArray(tmp, newSize, readOnly: false);
+			return new(tmp, newSize, readOnly: false);
 		}
 
 		/// <summary>Combines three JsonArrays into a single new array</summary>
@@ -616,7 +616,7 @@ namespace Doxense.Serialization.Json
 			arr2.CopyTo(tmp.AsSpan(size1));
 			arr3.CopyTo(tmp.AsSpan(size1 + size2));
 
-			return new JsonArray(tmp, newSize, readOnly: false);
+			return new(tmp, newSize, readOnly: false);
 		}
 
 		#endregion
@@ -679,16 +679,16 @@ namespace Doxense.Serialization.Json
 		private void GrowBuffer(int requiredCapacity)
 		{
 			// Double the array size until it fits the expected capacity
-			long newCapacity = Math.Max(m_items.Length, JsonArray.DEFAULT_CAPACITY);
+			long newCapacity = Math.Max(m_items.Length, DEFAULT_CAPACITY);
 			while (newCapacity < requiredCapacity)
 			{
 				newCapacity <<= 1;
 			}
 
 			// After a certain size, we cannot double anymore!
-			if (newCapacity > JsonArray.MAX_GROWTH_CAPACITY)
+			if (newCapacity > MAX_GROWTH_CAPACITY)
 			{
-				newCapacity = JsonArray.MAX_GROWTH_CAPACITY;
+				newCapacity = MAX_GROWTH_CAPACITY;
 				if (newCapacity < requiredCapacity)
 				{
 					throw ThrowHelper.InvalidOperationException("Cannot resize JSON array because it would exceed the maximum allowed size");
@@ -1975,7 +1975,7 @@ namespace Doxense.Serialization.Json
 				value = m_items[index];
 				return true;
 			}
-			value = default;
+			value = null;
 			return false;
 		}
 
@@ -1989,7 +1989,7 @@ namespace Doxense.Serialization.Json
 				value = m_items[offset];
 				return true;
 			}
-			value = default;
+			value = null;
 			return false;
 		}
 
@@ -2173,7 +2173,7 @@ namespace Doxense.Serialization.Json
 				items.AsSpan(index + 1, size - index).CopyTo(items.AsSpan(index));
 			}
 		
-			items[size] = default!; // clear the reference to prevent any GC leak!
+			items[size] = null!; // clear the reference to prevent any GC leak!
 			m_size = size;
 		}
 
@@ -3058,7 +3058,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns the equivalent <see cref="float"/> array</summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public float[] ToSingleArray(float defaultValue = default)
+		public float[] ToSingleArray(float defaultValue = 0)
 		{
 			var items = this.AsSpan();
 			if (items.Length == 0) return [];
@@ -3073,7 +3073,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns the equivalent <see cref="double"/> array</summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public double[] ToDoubleArray(double defaultValue = default)
+		public double[] ToDoubleArray(double defaultValue = 0)
 		{
 			var items = this.AsSpan();
 			if (items.Length == 0) return [];
@@ -3103,7 +3103,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns the equivalent <see cref="decimal"/> array</summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public decimal[] ToDecimalArray(decimal defaultValue = default)
+		public decimal[] ToDecimalArray(decimal defaultValue = 0)
 		{
 			var items = this.AsSpan();
 			if (items.Length == 0) return [];
@@ -3193,7 +3193,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns the equivalent <see cref="string"/> array</summary>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public string?[] ToStringArray(string? defaultValue = default)
+		public string?[] ToStringArray(string? defaultValue = null)
 		{
 			var items = this.AsSpan();
 			if (items.Length == 0) return [];
