@@ -739,7 +739,7 @@ namespace Doxense.Serialization.Json
 			var map = new Dictionary<string, JsonValue>(members.Count, comparer ?? ExtractKeyComparer(members) ?? StringComparer.Ordinal);
 			foreach (var kvp in members)
 			{
-				map.Add(kvp.Key, FromValueReadOnly(kvp.Value));
+				map.Add(kvp.Key, JsonValue.ReadOnly.FromValue(kvp.Value));
 			}
 			return new JsonObject(map, readOnly: true);
 		}
@@ -1653,7 +1653,7 @@ namespace Doxense.Serialization.Json
 
 			foreach (var kvp in items)
 			{
-				self.Add(kvp.Key, FromValueReadOnly(kvp.Value));
+				self.Add(kvp.Key, JsonValue.ReadOnly.FromValue(kvp.Value));
 			}
 
 			return this;
@@ -1682,7 +1682,7 @@ namespace Doxense.Serialization.Json
 
 			foreach (var kvp in items)
 			{
-				self.Add(kvp.Key, FromValueReadOnly(kvp.Value));
+				self.Add(kvp.Key, JsonValue.ReadOnly.FromValue(kvp.Value));
 			}
 
 			return this;
@@ -1703,7 +1703,7 @@ namespace Doxense.Serialization.Json
 
 			foreach (var kvp in items)
 			{
-				self.Add(kvp.Key, FromValueReadOnly(kvp.Value));
+				self.Add(kvp.Key, JsonValue.ReadOnly.FromValue(kvp.Value));
 			}
 
 			return this;
@@ -1742,7 +1742,7 @@ namespace Doxense.Serialization.Json
 
 					foreach (var kvp in items)
 					{
-						self.Add(kvp.Key, FromValueReadOnly(kvp.Value));
+						self.Add(kvp.Key, JsonValue.ReadOnly.FromValue(kvp.Value));
 					}
 
 					return this;

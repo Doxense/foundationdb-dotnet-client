@@ -35,7 +35,8 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Operations for <b>read-only</b> JSON arrays</summary>
 		[SuppressMessage("ReSharper", "MemberHidesStaticFromOuterClass")]
-		public static class ReadOnly
+		[PublicAPI]
+		public new static class ReadOnly
 		{
 
 			#region Create...
@@ -178,6 +179,42 @@ namespace Doxense.Serialization.Json
 			}
 
 #endif
+
+			#endregion
+
+			#region Parse...
+
+			// these are just alias to JsonValue.ReadOnly.ParseArray(...)
+
+			/// <inheritdoc cref="JsonValue.ReadOnly.ParseArray(string?,CrystalJsonSettings?)"/>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static JsonArray Parse(
+#if NET8_0_OR_GREATER
+				[StringSyntax("json")]
+#endif
+				string? jsonText,
+				CrystalJsonSettings? settings = null
+			) => JsonValue.ReadOnly.ParseArray(jsonText, settings);
+
+			/// <inheritdoc cref="JsonValue.ReadOnly.ParseArray(ReadOnlySpan{char},CrystalJsonSettings?)"/>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static JsonArray Parse(
+#if NET8_0_OR_GREATER
+				[StringSyntax("json")]
+#endif
+				ReadOnlySpan<char> jsonText,
+				CrystalJsonSettings? settings = null
+			) => JsonValue.ReadOnly.ParseArray(jsonText, settings);
+
+			/// <inheritdoc cref="JsonValue.ReadOnly.ParseArray(ReadOnlySpan{byte},CrystalJsonSettings?)"/>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static JsonArray Parse(ReadOnlySpan<byte> jsonBytes, CrystalJsonSettings? settings = null)
+				=> JsonValue.ReadOnly.ParseArray(jsonBytes, settings);
+
+			/// <inheritdoc cref="JsonValue.ReadOnly.ParseArray(Slice,CrystalJsonSettings?)"/>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static JsonArray Parse(Slice jsonBytes, CrystalJsonSettings? settings = null)
+				=> JsonValue.ReadOnly.ParseArray(jsonBytes, settings);
 
 			#endregion
 

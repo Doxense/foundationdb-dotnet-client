@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -770,7 +770,7 @@ namespace Doxense.Serialization.Json.Tests
 			var stjOps = new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web);
 
 			var json = CrystalJson.Serialize(user, GeneratedSerializers.MyAwesomeUser);
-			var parsed = JsonValue.ParseObject(json);
+			var parsed = JsonObject.Parse(json);
 
 			// warmup
 			{

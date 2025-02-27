@@ -208,7 +208,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 				GeneratedConverters.Person.Serialize(writer, person);
 				var jsonText = writer.GetString();
 				Log(jsonText);
-				var obj = JsonValue.ParseObject(jsonText);
+				var obj = JsonObject.Parse(jsonText);
 				Assert.That(obj["familyName"], IsJson.EqualTo("Bond"));
 				Assert.That(obj["firstName"], IsJson.EqualTo("James"));
 			}
@@ -815,7 +815,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			var stjOps = new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web);
 
 			var json = CrystalJson.Serialize(user, GeneratedConverters.MyAwesomeUser);
-			var parsed = JsonValue.ParseObject(json);
+			var parsed = JsonObject.Parse(json);
 
 			// warmup
 			{

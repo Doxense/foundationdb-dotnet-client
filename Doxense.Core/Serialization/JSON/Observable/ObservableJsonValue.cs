@@ -665,7 +665,7 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
-		private JsonValue Convert<T>(T? value) => JsonValue.FromValueReadOnly(value); //TODO: pass the parent settings?
+		private JsonValue Convert<T>(T? value) => JsonValue.ReadOnly.FromValue(value); //TODO: pass the parent settings?
 
 		#region Set(value)
 

@@ -1952,47 +1952,37 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
-		/// <inheritdoc />
-		public static JsonValue Parse(string s, IFormatProvider? provider)
-		{
-			return CrystalJson.Parse(s);
-		}
+		#region IFormattable, IParsable<>, ...
 
 		/// <inheritdoc />
+		[Pure]
+		public static JsonValue Parse(string jsonText, IFormatProvider? provider)
+			=> Parse(jsonText, CrystalJsonSettings.Json);
+
+		/// <inheritdoc />
+		[Pure]
 		public static bool TryParse([NotNullWhen(true)] string? s, IFormatProvider? provider, [MaybeNullWhen(false)] out JsonValue result)
-		{
-			try
-			{
-				result = CrystalJson.Parse(s);
-				return true;
-			}
-			catch
-			{
-				result = default;
-				return false;
-			}
-		}
+			=> TryParse(s, CrystalJsonSettings.Json, out result);
 
-		/// <inheritdoc />
-		public static JsonValue Parse(ReadOnlySpan<char> s, IFormatProvider? provider = null)
-		{
-			return CrystalJson.Parse(s);
-		}
+		/// <summary>Parses a JSON text literal, and returns the corresponding JSON value.</summary>
+		/// <param name="jsonText">JSON text document to parse</param>
+		/// <param name="provider">This parameter is ignored.</param>
+		/// <returns>Corresponding JSON value. If <paramref name="jsonText"/> is empty, will return <see cref="JsonNull.Missing"/></returns>
+		/// <remarks>It is better to call overloads of this method that accept a <see cref="CrystalJsonSettings"/> argument.</remarks>
+		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
+		[Pure]
+		public static JsonValue Parse(ReadOnlySpan<char> jsonText, IFormatProvider? provider)
+			=> Parse(jsonText, CrystalJsonSettings.Json);
 
-		/// <inheritdoc />
-		public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, [MaybeNullWhen(false)] out JsonValue result)
-		{
-			try
-			{
-				result = CrystalJson.Parse(s);
-				return true;
-			}
-			catch
-			{
-				result = default;
-				return false;
-			}
-		}
+		/// <summary>Parses a JSON text literal, and returns the corresponding JSON value if it is valid.</summary>
+		/// <param name="jsonText">JSON text document to parse</param>
+		/// <param name="provider">This parameter is ignored.</param>
+		/// <param name="result">Corresponding JSON value. If <paramref name="jsonText"/> is empty, will return <see cref="JsonNull.Missing"/></param>
+		/// <returns><c>true</c> if <paramref name="jsonText"/> contained valid JSON; otherwise, <c>false</c></returns>
+		/// <remarks>It is better to call overloads of this method that accept a <see cref="CrystalJsonSettings"/> argument.</remarks>
+		[Pure]
+		public static bool TryParse(ReadOnlySpan<char> jsonText, IFormatProvider? provider, [MaybeNullWhen(false)] out JsonValue result)
+			=> TryParse(jsonText, CrystalJsonSettings.Json, out result);
 
 		/// <inheritdoc />
 		public abstract bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider);
@@ -2003,6 +1993,8 @@ namespace Doxense.Serialization.Json
 		public abstract bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider);
 
 #endif
+
+		#endregion
 
 	}
 

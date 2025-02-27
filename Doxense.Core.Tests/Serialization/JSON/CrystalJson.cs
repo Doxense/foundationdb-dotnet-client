@@ -2427,7 +2427,7 @@ namespace Doxense.Serialization.Json.Tests
 			}
 
 			{ // As<...> should also use the ctor(JsonObject)
-				var x = JsonValue.ParseObject(json).Required<DummyCtorBasedJsonSerializableClass>();
+				var x = JsonObject.Parse(json).Required<DummyCtorBasedJsonSerializableClass>();
 				Assert.That(x, Is.Not.Null);
 				Assert.That(x.Id, Is.EqualTo(123));
 				Assert.That(x.Name, Is.EqualTo("Bob"));
@@ -2471,7 +2471,7 @@ namespace Doxense.Serialization.Json.Tests
 			}
 
 			{ // As<...> should also use the ctor(JsonObject)
-				var x = JsonValue.ParseObject(json).Required<DummyCtorBasedJsonSerializableStruct>();
+				var x = JsonObject.Parse(json).Required<DummyCtorBasedJsonSerializableStruct>();
 				Assert.That(x.Id, Is.EqualTo(123));
 				Assert.That(x.Name, Is.EqualTo("Bob"));
 				Assert.That(x.X, Is.EqualTo(5));
@@ -2516,7 +2516,7 @@ namespace Doxense.Serialization.Json.Tests
 			}
 
 			{ // As<...> should also use the ctor(JsonObject)
-				var x = JsonValue.ParseObject(json).Required<DummyCtorBasedJsonBindableClass>();
+				var x = JsonObject.Parse(json).Required<DummyCtorBasedJsonBindableClass>();
 				Assert.That(x, Is.Not.Null);
 				Assert.That(x.Id, Is.EqualTo(123));
 				Assert.That(x.Name, Is.EqualTo("Bob"));
@@ -3036,7 +3036,7 @@ namespace Doxense.Serialization.Json.Tests
 		public void Test_JsonDeserialize_Dictionary()
 		{
 			// key => string
-			var obj = JsonValue.ParseObject("""{ "hello": "World", "foo": 123, "bar": true }""");
+			var obj = JsonObject.Parse("""{ "hello": "World", "foo": 123, "bar": true }""");
 			Assert.That(obj, Is.Not.Null.And.InstanceOf<JsonObject>());
 
 			var dic = obj.Required<Dictionary<string, string>>();
@@ -3053,7 +3053,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(dic, Has.Count.EqualTo(3));
 
 			// key => int
-			obj = JsonValue.ParseObject("""{ "1": "Hello World", "42": "Narf!", "007": "James Bond" }""");
+			obj = JsonObject.Parse("""{ "1": "Hello World", "42": "Narf!", "007": "James Bond" }""");
 			Assert.That(obj, Is.Not.Null.And.InstanceOf<JsonObject>());
 
 			var dicInt = obj.Required<Dictionary<int, string>>();
@@ -3722,8 +3722,8 @@ namespace Doxense.Serialization.Json.Tests
 				};
 
 				// when deserializing an object with all members explicitly set to null, we should return the default of this type
-				var j = JsonValue
-					.ParseObject("""{ "Int32": null, "Bool": null, "String": null, "Guid": null, "NullInt32": null, "NullBool": null, "NullGuid": null, "JsonValue": null, "JsonNull": null, "JsonArray": null, "JsonObject": null }""")
+				var j = JsonObject
+					.Parse("""{ "Int32": null, "Bool": null, "String": null, "Guid": null, "NullInt32": null, "NullBool": null, "NullGuid": null, "JsonValue": null, "JsonNull": null, "JsonArray": null, "JsonObject": null }""")
 					.As(template);
 
 				Assert.That(j.Int32, Is.Zero);
@@ -6663,7 +6663,7 @@ namespace Doxense.Serialization.Json.Tests
 			AssertIsImmutable(JsonArray.Create("one", 1, "two", 2, "three", 3).ToReadOnly());
 
 			// parsing with JsonImmutable should return an already immutable object
-			var obj = JsonValue.ParseObject("""{ "hello": "world", "foo": { "id": 123, "name": "Foo", "address" : { "street": 123, "city": "Paris" } }, "bar": [ 1, 2, 3 ], "baz": [ { "jazz": 42 } ] }""", CrystalJsonSettings.JsonReadOnly);
+			var obj = JsonObject.Parse("""{ "hello": "world", "foo": { "id": 123, "name": "Foo", "address" : { "street": 123, "city": "Paris" } }, "bar": [ 1, 2, 3 ], "baz": [ { "jazz": 42 } ] }""", CrystalJsonSettings.JsonReadOnly);
 			AssertIsImmutable(obj);
 			var foo = obj.GetObject("foo");
 			AssertIsImmutable(foo);
@@ -8523,7 +8523,7 @@ namespace Doxense.Serialization.Json.Tests
 			AssertIsImmutable(JsonObject.Create([ ("one", 1), ("two", 2), ("three", 3) ]).ToReadOnly());
 
 			// parsing with JsonImmutable should return an already immutable object
-			var obj = JsonValue.ParseObject("""{ "hello": "world", "foo": { "id": 123, "name": "Foo", "address" : { "street": 123, "city": "Paris" } }, "bar": [ 1, 2, 3 ], "baz": [ { "jazz": 42 } ] }""", CrystalJsonSettings.JsonReadOnly);
+			var obj = JsonObject.Parse("""{ "hello": "world", "foo": { "id": 123, "name": "Foo", "address" : { "street": 123, "city": "Paris" } }, "bar": [ 1, 2, 3 ], "baz": [ { "jazz": 42 } ] }""", CrystalJsonSettings.JsonReadOnly);
 			AssertIsImmutable(obj);
 			var foo = obj.GetObject("foo");
 			AssertIsImmutable(foo);
@@ -9570,12 +9570,12 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_Parse_Comment()
 		{
-			var obj = JsonValue.ParseObject("{ // hello world\r\n}");
+			var obj = JsonObject.Parse("{ // hello world\r\n}");
 			Log(obj);
 			Assert.That(obj, Is.Not.Null.And.InstanceOf<JsonObject>());
 			Assert.That(obj, Has.Count.EqualTo(0));
 
-			obj = JsonValue.ParseObject(
+			obj = JsonObject.Parse(
 				"""
 				{
 					// comment 1
@@ -9677,13 +9677,13 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(() => JsonValue.Parse("[ 1, 2, 3, ]", CrystalJsonSettings.Json), Throws.Nothing, "By default, trailing commas are allowed");
 			Assert.That(() => JsonValue.Parse("[ 1, 2, 3, ]", CrystalJsonSettings.JsonStrict), Throws.InstanceOf<JsonSyntaxException>(), "Should fail is trailing commas are forbidden");
 			Assert.That(() => JsonValue.Parse("[ 1, 2, 3, ]", CrystalJsonSettings.Json.WithoutTrailingCommas()), Throws.InstanceOf<JsonSyntaxException>(), "Should fail when trailing commas are explicitly forbidden");
-			Assert.That(JsonValue.ParseArray("[ 1, 2, 3, ]"), Has.Count.EqualTo(3), "Ignored trailing commas should not add any extra item to the array");
-			Assert.That(JsonValue.ParseArray("[ 1, 2, 3, ]", CrystalJsonSettings.Json), Has.Count.EqualTo(3), "Ignored trailing commas should not add any extra item to the array");
+			Assert.That(JsonArray.Parse("[ 1, 2, 3, ]"), Has.Count.EqualTo(3), "Ignored trailing commas should not add any extra item to the array");
+			Assert.That(JsonArray.Parse("[ 1, 2, 3, ]", CrystalJsonSettings.Json), Has.Count.EqualTo(3), "Ignored trailing commas should not add any extra item to the array");
 
 			// interning corner cases
 
 			{ // array of small integers (-128..255) should all be refs to cached instances
-				var arr = JsonValue.ParseArray("[ 0, 1, 42, -1, 255, -128 ]");
+				var arr = JsonArray.Parse("[ 0, 1, 42, -1, 255, -128 ]");
 				Assert.That(arr, Is.Not.Null.And.Count.EqualTo(6));
 				Assert.That(arr[0], Is.SameAs(JsonNumber.Zero));
 				Assert.That(arr[1], Is.SameAs(JsonNumber.One));
@@ -9705,7 +9705,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(parsed, Has.Count.EqualTo(0));
 
 			jsonText = "{ }";
-			parsed = JsonValue.ParseObject(jsonText);
+			parsed = JsonObject.Parse(jsonText);
 			Assert.That(parsed, Is.Not.Null, jsonText);
 			Assert.That(parsed, Has.Count.EqualTo(0));
 			Assert.That(parsed, Is.EqualTo(JsonObject.Create()), jsonText);
@@ -9720,14 +9720,14 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(parsed["Name"], IsJson.EqualTo("James Bond"));
 
 			jsonText = """{ "Id":7, "Name":"James Bond", "IsDeadly":true }""";
-			parsed = JsonValue.ParseObject(jsonText);
+			parsed = JsonObject.Parse(jsonText);
 			Assert.That(parsed, Has.Count.EqualTo(3));
 			Assert.That(parsed["Name"], IsJson.EqualTo("James Bond"));
 			Assert.That(parsed["Id"], IsJson.EqualTo(7));
 			Assert.That(parsed["IsDeadly"], IsJson.True);
 
 			jsonText = """{ "Id":7, "Name":"James Bond", "IsDeadly":true, "Created":"\/Date(-52106400000+0200)\/", "Weapons":[{"Name":"Walter PPK"}] }""";
-			parsed = JsonValue.ParseObject(jsonText);
+			parsed = JsonObject.Parse(jsonText);
 			Assert.That(parsed, Has.Count.EqualTo(5));
 			Assert.That(parsed["Name"], IsJson.EqualTo("James Bond"));
 			Assert.That(parsed["Id"], IsJson.EqualTo(7));
@@ -9754,13 +9754,13 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(() => JsonValue.Parse(jsonText, CrystalJsonSettings.Json), Throws.Nothing, "By default, trailing commas are allowed");
 			Assert.That(() => JsonValue.Parse(jsonText, CrystalJsonSettings.JsonStrict), Throws.InstanceOf<JsonSyntaxException>(), "Strict mode does not allow trailing commas");
 			Assert.That(() => JsonValue.Parse(jsonText, CrystalJsonSettings.Json.WithoutTrailingCommas()), Throws.InstanceOf<JsonSyntaxException>(), "Should fail when commas are explicitly forbidden");
-			Assert.That(JsonValue.ParseObject(jsonText), Has.Count.EqualTo(2), "Ignored trailing commas should not add any extra item to the object");
-			Assert.That(JsonValue.ParseObject(jsonText, CrystalJsonSettings.Json), Has.Count.EqualTo(2), "Ignored trailing commas should not add any extra item to the object");
+			Assert.That(JsonObject.Parse(jsonText), Has.Count.EqualTo(2), "Ignored trailing commas should not add any extra item to the object");
+			Assert.That(JsonObject.Parse(jsonText, CrystalJsonSettings.Json), Has.Count.EqualTo(2), "Ignored trailing commas should not add any extra item to the object");
 
 			// interning corner cases
 
 			{ // values that are small integers (-128..255à should all be refs to cached instances
-				obj = JsonValue.ParseObject("""{ "A": 0, "B": 1, "C": 42, "D": -1, "E": 255, "F": -128 }""");
+				obj = JsonObject.Parse("""{ "A": 0, "B": 1, "C": 42, "D": -1, "E": 255, "F": -128 }""");
 				Assert.That(obj, Is.Not.Null.And.Count.EqualTo(6));
 				Assert.That(obj["A"], Is.SameAs(JsonNumber.Zero));
 				Assert.That(obj["B"], Is.SameAs(JsonNumber.One));
@@ -9780,7 +9780,7 @@ namespace Doxense.Serialization.Json.Tests
 			const string TEXT = @"[ { ""Foo"":""Bar"" }, { ""Foo"":""Bar"" } ]";
 
 			// by default, only the keys are interned, not the values
-			var array = JsonValue.ParseArray(TEXT, CrystalJsonSettings.Json.WithInterning(CrystalJsonSettings.StringInterning.Default)).Select(x => ((JsonObject) x).First()).ToArray();
+			var array = JsonArray.Parse(TEXT, CrystalJsonSettings.Json.WithInterning(CrystalJsonSettings.StringInterning.Default)).Select(x => ((JsonObject) x).First()).ToArray();
 			var one = array[0];
 			var two = array[1];
 
@@ -9796,7 +9796,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			// when disabling interning, neither keys nor values should be interned
 
-			array = JsonValue.ParseArray(TEXT, CrystalJsonSettings.Json.DisableInterning()).Select(x => ((JsonObject)x).First()).ToArray();
+			array = JsonArray.Parse(TEXT, CrystalJsonSettings.Json.DisableInterning()).Select(x => ((JsonObject)x).First()).ToArray();
 			one = array[0];
 			two = array[1];
 
@@ -9812,7 +9812,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			// when enabling full interning, both keys and values should be interned
 
-			array = JsonValue.ParseArray(TEXT, CrystalJsonSettings.Json.WithInterning(CrystalJsonSettings.StringInterning.IncludeValues)).Select(x => ((JsonObject)x).First()).ToArray();
+			array = JsonArray.Parse(TEXT, CrystalJsonSettings.Json.WithInterning(CrystalJsonSettings.StringInterning.IncludeValues)).Select(x => ((JsonObject)x).First()).ToArray();
 			one = array[0];
 			two = array[1];
 
@@ -9839,13 +9839,12 @@ namespace Doxense.Serialization.Json.Tests
 			Slice bytes = CrystalJson.ToSlice(obj);
 			Log(bytes.ToString("P"));
 
-			var json = JsonValue.ParseObject(bytes);
+			var json = JsonObject.Parse(bytes);
 			Assert.That(json, Is.Not.Null);
 			Assert.That(json.Get<string>("Foo"), Is.EqualTo("Héllö"));
 			Assert.That(json.Get<string>("Bar"), Is.EqualTo("世界!"));
 			Assert.That(json.Get<string>("ಠ_ಠ"), Is.EqualTo("(╯°□°）╯︵ ┻━┻"));
 			Assert.That(json, Has.Count.EqualTo(3));
-			_ = JsonValue.ParseObject(bytes);
 		}
 
 		[Test]
@@ -9854,17 +9853,17 @@ namespace Doxense.Serialization.Json.Tests
 			// by default, an object with a duplicate field should throw
 
 			Assert.That(
-				() => JsonValue.ParseObject("""{ "Foo": "1", "Bar": "Baz", "Foo": "2" }"""),
+				() => JsonObject.Parse("""{ "Foo": "1", "Bar": "Baz", "Foo": "2" }"""),
 				Throws.InstanceOf<JsonSyntaxException>(),
 				"JSON Object with duplicate fields should throw by default");
 
 			// but it can be overriden via the settings, and in this case the last value wins
 			Assert.That(
-				() => JsonValue.ParseObject("""{ "Foo": "1", "Bar": "Baz", "Foo": "2" }""", CrystalJsonSettings.Json.FlattenDuplicateFields()),
+				() => JsonObject.Parse("""{ "Foo": "1", "Bar": "Baz", "Foo": "2" }""", CrystalJsonSettings.Json.FlattenDuplicateFields()),
 				Throws.Nothing,
 				"JSON Object with duplicate fields should not throw is 'FlattenDuplicateFields' option is set"
 			);
-			var obj = JsonValue.ParseObject("""{ "Foo": "1", "Bar": "Baz", "Foo": "2" }""", CrystalJsonSettings.Json.FlattenDuplicateFields());
+			var obj = JsonObject.Parse("""{ "Foo": "1", "Bar": "Baz", "Foo": "2" }""", CrystalJsonSettings.Json.FlattenDuplicateFields());
 			Assert.That(obj.Get<string>("Foo"), Is.EqualTo("2"), "Duplicate fields should keep the last occurrence");
 			Assert.That(obj.Get<string>("Bar"), Is.EqualTo("Baz"));
 			Assert.That(obj, Has.Count.EqualTo(2));

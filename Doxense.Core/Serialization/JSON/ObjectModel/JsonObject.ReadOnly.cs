@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -33,8 +33,10 @@ namespace Doxense.Serialization.Json
 	public partial class JsonObject
 	{
 
+		/// <summary>Operations for <b>read-only</b> JSON objects</summary>
 		[SuppressMessage("ReSharper", "MemberHidesStaticFromOuterClass")]
-		public static class ReadOnly
+		[PublicAPI]
+		public new static class ReadOnly
 		{
 
 			#region Create...
@@ -234,6 +236,42 @@ namespace Doxense.Serialization.Json
 				Contract.NotNull(items);
 				return CreateEmptyWithComparer(comparer).AddRangeReadOnly(items).FreezeUnsafe();
 			}
+
+			#endregion
+
+			#region Parse...
+
+			// these are just alias to JsonValue.ReadOnly.ParseObject(...)
+
+			/// <inheritdoc cref="JsonValue.ReadOnly.ParseObject(string?,CrystalJsonSettings?)"/>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static JsonObject Parse(
+#if NET8_0_OR_GREATER
+				[StringSyntax("json")]
+#endif
+				string? jsonText,
+				CrystalJsonSettings? settings = null
+			) => JsonValue.ReadOnly.ParseObject(jsonText, settings);
+
+			/// <inheritdoc cref="JsonValue.ReadOnly.ParseObject(ReadOnlySpan{char},CrystalJsonSettings?)"/>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static JsonObject Parse(
+#if NET8_0_OR_GREATER
+				[StringSyntax("json")]
+#endif
+				ReadOnlySpan<char> jsonText,
+				CrystalJsonSettings? settings = null
+			) => JsonValue.ReadOnly.ParseObject(jsonText, settings);
+
+			/// <inheritdoc cref="JsonValue.ReadOnly.ParseObject(ReadOnlySpan{byte},CrystalJsonSettings?)"/>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static JsonObject Parse(ReadOnlySpan<byte> jsonBytes, CrystalJsonSettings? settings = null)
+				=> JsonValue.ReadOnly.ParseObject(jsonBytes, settings);
+
+			/// <inheritdoc cref="JsonValue.ReadOnly.ParseObject(Slice,CrystalJsonSettings?)"/>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static JsonObject Parse(Slice jsonBytes, CrystalJsonSettings? settings = null)
+				=> JsonValue.ReadOnly.ParseObject(jsonBytes, settings);
 
 			#endregion
 
