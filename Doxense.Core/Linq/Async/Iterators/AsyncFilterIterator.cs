@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -27,37 +27,35 @@
 namespace Doxense.Linq.Async.Iterators
 {
 
-	public abstract class AsyncFilterIterator<TSource, TResult> : AsyncIterator<TResult>
+	public abstract class AsyncFilterIterator<TSource, TResult> : AsyncLinqIterator<TResult>
 	{
 
 		/// <summary>Source sequence (when in iterable mode)</summary>
-		protected IAsyncEnumerable<TSource> m_source;
+		protected readonly IAsyncQuery<TSource> m_source;
 
 		/// <summary>Active iterator on the source (when in iterator mode)</summary>
 		protected IAsyncEnumerator<TSource>? m_iterator;
 		protected bool m_innerHasCompleted;
 
-		protected AsyncFilterIterator(IAsyncEnumerable<TSource> source)
+		protected AsyncFilterIterator(IAsyncQuery<TSource> source)
 		{
 			Contract.Debug.Requires(source != null);
 			m_source = source;
 		}
 
+		public override CancellationToken Cancellation => m_source.Cancellation;
+
 		/// <summary>Start the inner iterator</summary>
-		protected virtual IAsyncEnumerator<TSource> StartInner(CancellationToken ct)
+		protected virtual IAsyncEnumerator<TSource> StartInner()
 		{
-			ct.ThrowIfCancellationRequested();
+			m_source.Cancellation.ThrowIfCancellationRequested();
+
 			// filtering changes the number of items, so that means that, even if the underlying caller wants one item, we may need to read more.
 			// => change all "Head" requests into "Iterator" to prevent any wrong optimizations by the underlying source (ex: using a too small batch size)
-			if (m_source is IConfigurableAsyncEnumerable<TSource> configurable)
-			{
-				var mode = m_mode;
-				if (mode == AsyncIterationHint.Head) mode = AsyncIterationHint.Iterator;
+			var mode = m_mode;
+			if (mode == AsyncIterationHint.Head) mode = AsyncIterationHint.Iterator;
 
-				return configurable.GetAsyncEnumerator(m_ct, mode);
-			}
-
-			return m_source.GetAsyncEnumerator(m_ct);
+			return m_source.GetAsyncEnumerator(mode);
 		}
 
 		protected ValueTask MarkInnerAsCompleted()
@@ -75,8 +73,8 @@ namespace Doxense.Linq.Async.Iterators
 			IAsyncEnumerator<TSource>? iterator = null;
 			try
 			{
-				iterator = StartInner(m_ct);
-				if (iterator == null) return false;
+				iterator = StartInner();
+				if (iterator == null!) return false;
 				OnStarted(iterator);
 				return true;
 			}

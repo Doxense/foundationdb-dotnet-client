@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -59,7 +59,7 @@ namespace Doxense.Linq.Async.Iterators
 		private AsyncTransformQueue<TSource, TResult>? m_processingQueue;
 
 		public ParallelSelectAsyncIterator(
-			IAsyncEnumerable<TSource> source,
+			IAsyncQuery<TSource> source,
 			Func<TSource, CancellationToken, Task<TResult>> taskSelector,
 			ParallelAsyncQueryOptions options
 		)
@@ -71,7 +71,7 @@ namespace Doxense.Linq.Async.Iterators
 			m_options = options;
 		}
 
-		protected override AsyncIterator<TResult> Clone()
+		protected override AsyncLinqIterator<TResult> Clone()
 		{
 			return new ParallelSelectAsyncIterator<TSource, TResult>(m_source, m_taskSelector, m_options);
 		}
@@ -119,7 +119,7 @@ namespace Doxense.Linq.Async.Iterators
 				if (m_done) return false;
 
 				Contract.Debug.Requires(m_processingQueue != null);
-				var next = await m_processingQueue.ReceiveAsync(m_ct).ConfigureAwait(false);
+				var next = await m_processingQueue.ReceiveAsync(this.Cancellation).ConfigureAwait(false);
 				LogDebug("[OnNextAsync] got result from queue");
 
 				if (!next.HasValue)

@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -26,17 +26,18 @@
 
 namespace System.Collections.Generic
 {
+	using Doxense.Linq;
 
 	// note: these interfaces are modeled after the IAsyncEnumerable<T> and IAsyncEnumerator<T> found in Rx
 	//TODO: if/when async enumerables are avail in C#, we would just need to either remove these interfaces, or make them implement the real stuff
 
 	/// <summary>Asynchronous version of the <see cref="System.Linq.IOrderedEnumerable{T}"/> interface, allowing elements of the enumerable sequence to be retrieved asynchronously.</summary>
 	/// <typeparam name="TSource"></typeparam>
-	public interface IAsyncOrderedEnumerable<out TSource> : IAsyncEnumerable<TSource>
+	public interface IOrderedAsyncQuery<out TSource> : IAsyncQuery<TSource>
 	{
 
 		[LinqTunnel]
-		IAsyncOrderedEnumerable<TSource> CreateOrderedEnumerable<TKey>(Func<TSource, TKey> keySelector, IComparer<TKey>? comparer, bool descending);
+		IOrderedAsyncQuery<TSource> CreateOrderedEnumerable<TKey>(Func<TSource, TKey> keySelector, IComparer<TKey>? comparer, bool descending);
 
 	}
 

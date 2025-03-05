@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -31,7 +31,7 @@ namespace Doxense.Linq.Async.Iterators
 	/// <typeparam name="TSource">Type of the elements in the source queries</typeparam>
 	/// <typeparam name="TKey">Type of values extracted from the keys, that will be used for sorting</typeparam>
 	/// <typeparam name="TResult">Type of results returned</typeparam>
-	public abstract class MergeAsyncIterator<TSource, TKey, TResult> : AsyncIterator<TResult>
+	public abstract class MergeAsyncIterator<TSource, TKey, TResult> : AsyncLinqIterator<TResult>
 	{
 		// Takes several range queries that return **SORTED** lists of items
 		// - Make all iterators run concurrently
@@ -40,10 +40,11 @@ namespace Doxense.Linq.Async.Iterators
 
 		// The order of the extracted keys MUST be the same as the order of the binary keys ! This algorithm will NOT work if extracted keys are not in the same order as there binary representation !
 
-		protected IEnumerable<IAsyncEnumerable<TSource>> m_sources;
-		protected Func<TSource, TKey> m_keySelector;
-		protected IComparer<TKey> m_keyComparer;
-		protected Func<TSource, TResult> m_resultSelector;
+		protected readonly IEnumerable<IAsyncQuery<TSource>> m_sources;
+		protected readonly Func<TSource, TKey> m_keySelector;
+		protected readonly IComparer<TKey> m_keyComparer;
+		protected readonly Func<TSource, TResult> m_resultSelector;
+		protected readonly CancellationToken m_ct;
 		protected int? m_limit;
 
 		protected IteratorState[]? m_iterators;
@@ -58,7 +59,7 @@ namespace Doxense.Linq.Async.Iterators
 			public TKey Current;
 		}
 
-		protected MergeAsyncIterator(IEnumerable<IAsyncEnumerable<TSource>> sources, int? limit, Func<TSource, TKey> keySelector, Func<TSource, TResult> resultSelector, IComparer<TKey>? comparer)
+		protected MergeAsyncIterator(IEnumerable<IAsyncQuery<TSource>> sources, int? limit, Func<TSource, TKey> keySelector, Func<TSource, TResult> resultSelector, IComparer<TKey>? comparer, CancellationToken ct)
 		{
 			Contract.Debug.Requires(sources != null && (limit == null || limit >= 0) && keySelector != null && resultSelector != null);
 			m_sources = sources;
@@ -66,7 +67,10 @@ namespace Doxense.Linq.Async.Iterators
 			m_keySelector = keySelector;
 			m_keyComparer = comparer ?? Comparer<TKey>.Default;
 			m_resultSelector = resultSelector;
+			m_ct = ct;
 		}
+
+		public override CancellationToken Cancellation => m_ct;
 
 		protected override async ValueTask<bool> OnFirstAsync()
 		{
@@ -79,7 +83,11 @@ namespace Doxense.Linq.Async.Iterators
 			var mode = m_mode;
 			if (mode == AsyncIterationHint.Head) mode = AsyncIterationHint.Iterator;
 
-			var sources = m_sources.ToArray();
+			if (!Buffer<IAsyncQuery<TSource>>.TryGetSpan(m_sources, out var sources))
+			{
+				sources = this.m_sources.ToArray();
+			}
+
 			var iterators = new IteratorState[sources.Length];
 			try
 			{
@@ -89,7 +97,7 @@ namespace Doxense.Linq.Async.Iterators
 					var state = new IteratorState
 					{
 						Active = true,
-						Iterator = sources[i] is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(m_ct, mode) : sources[i].GetAsyncEnumerator(m_ct)
+						Iterator = sources[i].GetAsyncEnumerator(mode)
 					};
 					state.Next = state.Iterator.MoveNextAsync();
 
@@ -161,7 +169,7 @@ namespace Doxense.Linq.Async.Iterators
 
 			// store the current pair
 			if (!Publish(result))
-			{ // something happened..
+			{ // something happened...
 				return false;
 			}
 

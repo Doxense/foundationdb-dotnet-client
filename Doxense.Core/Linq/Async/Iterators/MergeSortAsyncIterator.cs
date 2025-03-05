@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -34,13 +34,13 @@ namespace Doxense.Linq.Async.Iterators
 	public sealed class MergeSortAsyncIterator<TSource, TKey, TResult> : MergeAsyncIterator<TSource, TKey, TResult>
 	{
 
-		public MergeSortAsyncIterator(IEnumerable<IAsyncEnumerable<TSource>> sources, int? limit, Func<TSource, TKey> keySelector, Func<TSource, TResult> resultSelector, IComparer<TKey>? comparer)
-			: base(sources, limit, keySelector, resultSelector, comparer)
+		public MergeSortAsyncIterator(IEnumerable<IAsyncQuery<TSource>> sources, int? limit, Func<TSource, TKey> keySelector, Func<TSource, TResult> resultSelector, IComparer<TKey>? comparer, CancellationToken ct)
+			: base(sources, limit, keySelector, resultSelector, comparer, ct)
 		{ }
 
-		protected override AsyncIterator<TResult> Clone()
+		protected override AsyncLinqIterator<TResult> Clone()
 		{
-			return new MergeSortAsyncIterator<TSource, TKey, TResult>(m_sources, m_limit, m_keySelector, m_resultSelector, m_keyComparer);
+			return new MergeSortAsyncIterator<TSource, TKey, TResult>(m_sources, m_limit, m_keySelector, m_resultSelector, m_keyComparer, this.Cancellation);
 		}
 
 		protected override bool FindNext(out int index, out TSource current)
@@ -77,21 +77,22 @@ namespace Doxense.Linq.Async.Iterators
 		}
 
 		/// <summary>Apply a transformation on the results of the merge sort</summary>
-		public override AsyncIterator<TNew> Select<TNew>(Func<TResult, TNew> selector)
+		public override AsyncLinqIterator<TNew> Select<TNew>(Func<TResult, TNew> selector)
 		{
 			return new MergeSortAsyncIterator<TSource, TKey, TNew>(
 				m_sources,
 				m_limit,
 				m_keySelector,
 				(kvp) => selector(m_resultSelector(kvp)),
-				m_keyComparer
+				m_keyComparer,
+				this.Cancellation
 			);
 		}
 
 		/// <summary>Limit the number of elements returned by the MergeSort</summary>
 		/// <param name="limit">Maximum number of results to return</param>
 		/// <returns>New MergeSort that will only return the specified number of results</returns>
-		public override AsyncIterator<TResult> Take(int limit)
+		public override AsyncLinqIterator<TResult> Take(int limit)
 		{
 			if (limit < 0) throw new ArgumentOutOfRangeException(nameof(limit), "Value cannot be less than zero");
 
@@ -102,7 +103,8 @@ namespace Doxense.Linq.Async.Iterators
 				limit,
 				m_keySelector,
 				m_resultSelector,
-				m_keyComparer
+				m_keyComparer,
+				this.Cancellation
 			);
 		}
 

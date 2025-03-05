@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -27,7 +27,7 @@
 namespace Doxense.Linq
 {
 
-	public static partial class AsyncEnumerable
+	public static partial class AsyncQuery
 	{
 		// These classes contain the logic to sort items (by themselves or by keys)
 		// They are single-use and constructed at runtime, when an ordered sequence starts enumerating.

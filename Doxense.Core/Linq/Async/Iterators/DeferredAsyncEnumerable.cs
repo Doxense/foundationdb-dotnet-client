@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -29,23 +29,24 @@ namespace Doxense.Linq.Async.Iterators
 	/// <summary>Iterator that will generate the underlying async sequence "just in time" when it is itself iterated</summary>
 	/// <typeparam name="TState">State that is passed to the generator</typeparam>
 	/// <typeparam name="TResult">Type of elements of the async sequence</typeparam>
-	/// <typeparam name="TCollection">Concrete type of the async sequence</typeparam>
-	public class DeferredAsyncIterator<TState, TResult, TCollection> : AsyncIterator<TResult>
-		where TCollection : IAsyncEnumerable<TResult>
+	internal class DeferredAsyncQueryIterator<TState, TResult> : AsyncLinqIterator<TResult>
 	{
 
 		public TState State { get; }
 
-		public Func<TState, CancellationToken, Task<TCollection>> Generator { get; }
+		private Delegate Generator { get; }
 
 		private IAsyncEnumerator<TResult>? Inner { get; set; }
 
-		public DeferredAsyncIterator(TState state, Func<TState, CancellationToken, Task<TCollection>> generator)
+		public DeferredAsyncQueryIterator(TState state, Delegate generator, CancellationToken ct)
 		{
-			Contract.NotNull(generator);
+			Contract.Debug.Requires(generator != null);
 			this.State = state;
 			this.Generator = generator;
+			this.Cancellation = ct;
 		}
+
+		public override CancellationToken Cancellation { get; }
 
 		protected override ValueTask Cleanup()
 		{
@@ -54,17 +55,149 @@ namespace Doxense.Linq.Async.Iterators
 			return inner?.DisposeAsync() ?? default;
 		}
 
-		protected override AsyncIterator<TResult> Clone()
+		protected override AsyncLinqIterator<TResult> Clone()
 		{
-			return new DeferredAsyncIterator<TState, TResult, TCollection>(this.State, this.Generator);
+			return new DeferredAsyncQueryIterator<TState, TResult>(this.State, this.Generator, this.Cancellation);
 		}
 
 		protected override async ValueTask<bool> OnFirstAsync()
 		{
-			var sequence = await this.Generator(this.State, m_ct).ConfigureAwait(false);
+			IAsyncQuery<TResult> sequence;
+
+			switch (this.Generator)
+			{
+				#region IAsyncQuery<TResult>...
+
+				case Func<IAsyncQuery<TResult>> fn:
+				{
+					sequence = fn();
+					break;
+				}
+				case Func<TState, IAsyncQuery<TResult>> fn:
+				{
+					sequence = fn(this.State);
+					break;
+				}
+				case Func<Task<IAsyncQuery<TResult>>> fn:
+				{
+					sequence = await fn().ConfigureAwait(false);
+					break;
+				}
+				case Func<CancellationToken, Task<IAsyncQuery<TResult>>> fn:
+				{
+					sequence = await fn(this.Cancellation).ConfigureAwait(false);
+					break;
+				}
+				case Func<TState, Task<IAsyncQuery<TResult>>> fn:
+				{
+					sequence = await fn(this.State).ConfigureAwait(false);
+					break;
+				}
+				case Func<TState, CancellationToken, Task<IAsyncQuery<TResult>>> fn:
+				{
+					sequence = await fn(this.State, this.Cancellation).ConfigureAwait(false);
+					break;
+				}
+				case Func<TState, ValueTask<IAsyncQuery<TResult>>> fn:
+				{
+					sequence = await fn(this.State).ConfigureAwait(false);
+					break;
+				}
+				case Func<TState, CancellationToken, ValueTask<IAsyncQuery<TResult>>> fn:
+				{
+					sequence = await fn(this.State, this.Cancellation).ConfigureAwait(false);
+					break;
+				}
+
+				#endregion
+
+				#region IAsyncLinqQuery<TResult>...
+
+				case Func<Task<IAsyncLinqQuery<TResult>>> fn:
+				{
+					sequence = await fn().ConfigureAwait(false);
+					break;
+				}
+				case Func<CancellationToken, Task<IAsyncLinqQuery<TResult>>> fn:
+				{
+					sequence = await fn(this.Cancellation).ConfigureAwait(false);
+					break;
+				}
+				case Func<TState, Task<IAsyncLinqQuery<TResult>>> fn:
+				{
+					sequence = await fn(this.State).ConfigureAwait(false);
+					break;
+				}
+				case Func<TState, CancellationToken, Task<IAsyncLinqQuery<TResult>>> fn:
+				{
+					sequence = await fn(this.State, this.Cancellation).ConfigureAwait(false);
+					break;
+				}
+				case Func<TState, ValueTask<IAsyncLinqQuery<TResult>>> fn:
+				{
+					sequence = await fn(this.State).ConfigureAwait(false);
+					break;
+				}
+				case Func<TState, CancellationToken, ValueTask<IAsyncLinqQuery<TResult>>> fn:
+				{
+					sequence = await fn(this.State, this.Cancellation).ConfigureAwait(false);
+					break;
+				}
+
+				#endregion
+
+				#region IAsyncEnumerable<TResult>...
+
+				case Func<IAsyncEnumerable<TResult>> fn:
+				{
+					sequence = fn().ToAsyncQuery(this.Cancellation);
+					break;
+				}
+				case Func<TState, IAsyncEnumerable<TResult>> fn:
+				{
+					sequence = fn(this.State).ToAsyncQuery(this.Cancellation);
+					break;
+				}
+				case Func<Task<IAsyncEnumerable<TResult>>> fn:
+				{
+					sequence = (await fn().ConfigureAwait(false)).ToAsyncQuery(this.Cancellation);
+					break;
+				}
+				case Func<TState, Task<IAsyncEnumerable<TResult>>> fn:
+				{
+					sequence = (await fn(this.State).ConfigureAwait(false)).ToAsyncQuery(this.Cancellation);
+					break;
+				}
+				case Func<TState, CancellationToken, Task<IAsyncEnumerable<TResult>>> fn:
+				{
+					sequence = (await fn(this.State, this.Cancellation).ConfigureAwait(false)).ToAsyncQuery(this.Cancellation);
+					break;
+				}
+				case Func<TState, ValueTask<IAsyncEnumerable<TResult>>> fn:
+				{
+					sequence = (await fn(this.State).ConfigureAwait(false)).ToAsyncQuery(this.Cancellation);
+					break;
+				}
+				case Func<TState, CancellationToken, ValueTask<IAsyncEnumerable<TResult>>> fn:
+				{
+					sequence = (await fn(this.State, this.Cancellation).ConfigureAwait(false)).ToAsyncQuery(this.Cancellation);
+					break;
+				}
+
+				#endregion
+
+				default:
+				{
+#if DEBUG
+					if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
+#endif
+					throw new InvalidOperationException("Unsupported deferred delegate type");
+				}
+			}
+
 			if (sequence == null) throw new InvalidOperationException("Deferred generator cannot return a null async sequence.");
 
-			this.Inner = sequence.GetAsyncEnumerator(m_ct);
+			this.Inner = sequence.GetAsyncEnumerator(AsyncIterationHint.Default); //TODO: configurable hint?
 			Contract.Debug.Assert(this.Inner != null);
 
 			return true;

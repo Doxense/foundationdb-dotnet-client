@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -26,117 +26,263 @@
 
 namespace Doxense.Linq
 {
+	using System.Collections.Immutable;
+	using Doxense.Linq.Async.Iterators;
 
-	public static partial class AsyncEnumerable
+	public static partial class AsyncQuery
 	{
 
-		/// <summary>An empty sequence</summary>
-		private sealed class EmptySequence<TSource> : IConfigurableAsyncEnumerable<TSource>, IAsyncEnumerator<TSource>
+		/// <summary>A query that returns nothing</summary>
+		internal sealed class EmptyQuery<TSource> : AsyncLinqIterator<TSource>
 		{
-			public static readonly EmptySequence<TSource> Default = new EmptySequence<TSource>();
+			public static readonly EmptyQuery<TSource> Default = new();
 
-			private EmptySequence()
+			private EmptyQuery()
 			{ }
 
-			public IAsyncEnumerator<TSource> GetAsyncEnumerator(CancellationToken ct) => this;
+			public override CancellationToken Cancellation => CancellationToken.None;
 
-			public IAsyncEnumerator<TSource> GetAsyncEnumerator(CancellationToken ct, AsyncIterationHint hint) => this;
+			/// <inheritdoc />
+			protected override EmptyQuery<TSource> Clone() => this;
 
-			ValueTask<bool> IAsyncEnumerator<TSource>.MoveNextAsync() => new(false);
+			/// <inheritdoc />
+			protected override ValueTask<bool> OnFirstAsync() => new(false);
 
-			TSource IAsyncEnumerator<TSource>.Current => throw new InvalidOperationException();
+			/// <inheritdoc />
+			protected override ValueTask<bool> OnNextAsync() => Completed();
 
-			ValueTask IAsyncDisposable.DisposeAsync() => default;
+			/// <inheritdoc />
+			protected override ValueTask Cleanup() => default;
+
+			/// <inheritdoc />
+			public override Task<bool> AnyAsync() => Task.FromResult(false);
+
+			/// <inheritdoc />
+			public override Task<bool> AnyAsync(Func<TSource, bool> predicate) => Task.FromResult(false);
+
+			/// <inheritdoc />
+			public override Task<bool> AnyAsync(Func<TSource, CancellationToken, Task<bool>> predicate) => Task.FromResult(false);
+
+			/// <inheritdoc />
+			public override Task<bool> AllAsync(Func<TSource, bool> predicate) => Task.FromResult(true);
+
+			/// <inheritdoc />
+			public override Task<bool> AllAsync(Func<TSource, CancellationToken, Task<bool>> predicate) => Task.FromResult(true);
+
+			/// <inheritdoc />
+			public override Task<int> CountAsync() => Task.FromResult(0);
+
+			/// <inheritdoc />
+			public override Task<int> CountAsync(Func<TSource, bool> predicate) => Task.FromResult(0);
+
+			/// <inheritdoc />
+			public override Task<int> CountAsync(Func<TSource, CancellationToken, Task<bool>> predicate) => Task.FromResult(0);
+
+			/// <inheritdoc />
+			public override IAsyncLinqQuery<TSource> Skip(int count) => this;
+
+			/// <inheritdoc />
+			public override IAsyncLinqQuery<TSource> Take(int count) => this;
+
+			/// <inheritdoc />
+			public override IAsyncLinqQuery<TSource> TakeWhile(Func<TSource, bool> condition) => this;
+
+			/// <inheritdoc />
+			public override Task<TSource[]> ToArrayAsync() => Task.FromResult(Array.Empty<TSource>());
+
+			/// <inheritdoc />
+			public override Task<List<TSource>> ToListAsync() => Task.FromResult(new List<TSource>());
+
+			/// <inheritdoc />
+			public override Task<HashSet<TSource>> ToHashSetAsync(IEqualityComparer<TSource>? comparer = null) => Task.FromResult(new HashSet<TSource>(comparer));
+
+			/// <inheritdoc />
+			public override Task<ImmutableArray<TSource>> ToImmutableArrayAsync() => Task.FromResult(ImmutableArray<TSource>.Empty);
+
+			/// <inheritdoc />
+			public override Task<Dictionary<TKey, TSource>> ToDictionaryAsync<TKey>(Func<TSource, TKey> keySelector, IEqualityComparer<TKey>? comparer = null) => Task.FromResult(new Dictionary<TKey, TSource>(comparer));
+
+			/// <inheritdoc />
+			public override Task<Dictionary<TKey, TElement>> ToDictionaryAsync<TKey, TElement>(Func<TSource, TKey> keySelector, Func<TSource, TElement> elementSelector, IEqualityComparer<TKey>? comparer = null) => Task.FromResult(new Dictionary<TKey, TElement>(comparer));
+
+			/// <inheritdoc />
+			public override Task<TSource> FirstOrDefaultAsync(TSource defaultValue) => Task.FromResult(defaultValue);
+
+			/// <inheritdoc />
+			public override Task<TSource> FirstOrDefaultAsync(Func<TSource, bool> predicate, TSource defaultValue) => Task.FromResult(defaultValue);
+
+			/// <inheritdoc />
+			public override Task<TSource> FirstOrDefaultAsync(Func<TSource, CancellationToken, Task<bool>> predicate, TSource defaultValue) => Task.FromResult(defaultValue);
+
+			/// <inheritdoc />
+			public override Task<TSource> FirstAsync() => Task.FromException<TSource>(ErrorNoElements());
+
+			/// <inheritdoc />
+			public override Task<TSource> FirstAsync(Func<TSource, bool> predicate) => Task.FromException<TSource>(ErrorNoElements());
+
+			/// <inheritdoc />
+			public override Task<TSource> FirstAsync(Func<TSource, CancellationToken, Task<bool>> predicate) => Task.FromException<TSource>(ErrorNoElements());
+
+			/// <inheritdoc />
+			public override Task<TSource> LastOrDefaultAsync(TSource defaultValue) => Task.FromResult(defaultValue);
+
+			/// <inheritdoc />
+			public override Task<TSource> LastOrDefaultAsync(Func<TSource, bool> predicate, TSource defaultValue) => Task.FromResult(defaultValue);
+
+			/// <inheritdoc />
+			public override Task<TSource> LastOrDefaultAsync(Func<TSource, CancellationToken, Task<bool>> predicate, TSource defaultValue) => Task.FromResult(defaultValue);
+
+			/// <inheritdoc />
+			public override Task<TSource> LastAsync() => Task.FromException<TSource>(ErrorNoElements());
+
+			/// <inheritdoc />
+			public override Task<TSource> LastAsync(Func<TSource, bool> predicate) => Task.FromException<TSource>(ErrorNoElements());
+
+			/// <inheritdoc />
+			public override Task<TSource> LastAsync(Func<TSource, CancellationToken, Task<bool>> predicate) => Task.FromException<TSource>(ErrorNoElements());
+
+			/// <inheritdoc />
+			public override Task<TSource> SingleAsync() => Task.FromException<TSource>(ErrorNoElements());
+
+			/// <inheritdoc />
+			public override Task<TSource> SingleAsync(Func<TSource, bool> predicate) => Task.FromException<TSource>(ErrorNoElements());
+
+			/// <inheritdoc />
+			public override Task<TSource> SingleAsync(Func<TSource, CancellationToken, Task<bool>> predicate) => Task.FromException<TSource>(ErrorNoElements());
+
+			/// <inheritdoc />
+			public override Task<TSource> SingleOrDefaultAsync(TSource defaultValue) => Task.FromResult(defaultValue);
+
+			/// <inheritdoc />
+			public override Task<TSource> SingleOrDefaultAsync(Func<TSource, bool> predicate, TSource defaultValue) => Task.FromResult(defaultValue);
+
+			/// <inheritdoc />
+			public override Task<TSource> SingleOrDefaultAsync(Func<TSource, CancellationToken, Task<bool>> predicate, TSource defaultValue) => Task.FromResult(defaultValue);
+
+
+			/// <inheritdoc />
+			public override IAsyncLinqQuery<TSource> Where(Func<TSource, bool> predicate) => this;
+
+			/// <inheritdoc />
+			public override IAsyncLinqQuery<TSource> Where(Func<TSource, int, bool> predicate) => this;
+
+			/// <inheritdoc />
+			public override IAsyncLinqQuery<TSource> Where(Func<TSource, CancellationToken, Task<bool>> asyncPredicate) => this;
+
+			/// <inheritdoc />
+			public override IAsyncLinqQuery<TSource> Where(Func<TSource, int, CancellationToken, Task<bool>> asyncPredicate) => this;
+
+			/// <inheritdoc />
+			public override IAsyncLinqQuery<TNew> Select<TNew>(Func<TSource, TNew> selector) => EmptyQuery<TNew>.Default;
+
+			/// <inheritdoc />
+			public override IAsyncLinqQuery<TNew> Select<TNew>(Func<TSource, int, TNew> selector) => EmptyQuery<TNew>.Default;
+
+			/// <inheritdoc />
+			public override IAsyncLinqQuery<TNew> Select<TNew>(Func<TSource, CancellationToken, Task<TNew>> asyncSelector) => EmptyQuery<TNew>.Default;
+
+			/// <inheritdoc />
+			public override IAsyncLinqQuery<TNew> Select<TNew>(Func<TSource, int, CancellationToken, Task<TNew>> asyncSelector) => EmptyQuery<TNew>.Default;
+
+			/// <inheritdoc />
+			public override IAsyncLinqQuery<TNew> SelectMany<TNew>(Func<TSource, IEnumerable<TNew>> selector) => EmptyQuery<TNew>.Default;
+
+			/// <inheritdoc />
+			public override IAsyncLinqQuery<TNew> SelectMany<TNew>(Func<TSource, CancellationToken, Task<IEnumerable<TNew>>> asyncSelector) => EmptyQuery<TNew>.Default;
+
+			/// <inheritdoc />
+			public override IAsyncLinqQuery<TNew> SelectMany<TCollection, TNew>(Func<TSource, IEnumerable<TCollection>> collectionSelector, Func<TSource, TCollection, TNew> resultSelector) => EmptyQuery<TNew>.Default;
+
+			/// <inheritdoc />
+			public override IAsyncLinqQuery<TNew> SelectMany<TCollection, TNew>(Func<TSource, CancellationToken, Task<IEnumerable<TCollection>>> asyncCollectionSelector, Func<TSource, TCollection, TNew> resultSelector) => EmptyQuery<TNew>.Default;
+
+			/// <inheritdoc />
+			public override IAsyncLinqQuery<TNew> SelectMany<TNew>(Func<TSource, IAsyncEnumerable<TNew>> selector) => EmptyQuery<TNew>.Default;
+
+			/// <inheritdoc />
+			public override IAsyncLinqQuery<TNew> SelectMany<TNew>(Func<TSource, IAsyncQuery<TNew>> selector) => EmptyQuery<TNew>.Default;
 
 		}
 
-		private sealed class SingletonSequence<TElement> : IConfigurableAsyncEnumerable<TElement>
+		/// <summary>A query that will return only a single element</summary>
+		internal sealed class SingletonQuery<TElement> : AsyncLinqIterator<TElement>
 		{
 
-			private readonly Delegate m_lambda;
+			private Delegate? Factory { get; }
 
-			private SingletonSequence(Delegate lambda)
+			private bool Called { get; set; }
+
+			private SingletonQuery(Delegate lambda, CancellationToken ct)
 			{
 				Contract.Debug.Requires(lambda != null);
-				m_lambda = lambda;
+				this.Factory = lambda;
+				this.Cancellation = ct;
 			}
 
-			public SingletonSequence(Func<TElement> lambda)
-				: this((Delegate)lambda)
+			public SingletonQuery(Func<TElement> lambda, CancellationToken ct)
+				: this((Delegate) lambda, ct)
 			{ }
 
-			public SingletonSequence(Func<Task<TElement>> lambda)
-				: this((Delegate)lambda)
+			public SingletonQuery(Func<Task<TElement>> lambda, CancellationToken ct)
+				: this((Delegate) lambda, ct)
 			{ }
 
-			public SingletonSequence(Func<CancellationToken, Task<TElement>> lambda)
-				: this((Delegate)lambda)
+			public SingletonQuery(Func<ValueTask<TElement>> lambda, CancellationToken ct)
+				: this((Delegate) lambda, ct)
 			{ }
 
-			public IAsyncEnumerator<TElement> GetAsyncEnumerator(CancellationToken ct) => new Enumerator(m_lambda, ct);
+			public SingletonQuery(Func<CancellationToken, Task<TElement>> lambda, CancellationToken ct)
+				: this((Delegate) lambda, ct)
+			{ }
 
-			public IAsyncEnumerator<TElement> GetAsyncEnumerator(CancellationToken ct, AsyncIterationHint mode)
+			public SingletonQuery(Func<CancellationToken, ValueTask<TElement>> lambda, CancellationToken ct)
+				: this((Delegate) lambda, ct)
+			{ }
+
+			public override CancellationToken Cancellation { get; }
+
+			/// <inheritdoc />
+			protected override SingletonQuery<TElement> Clone() => new(this.Factory!, this.Cancellation);
+
+			/// <inheritdoc />
+			protected override ValueTask<bool> OnFirstAsync()
 			{
-				ct.ThrowIfCancellationRequested();
-				return new Enumerator(m_lambda, ct);
+				if (this.Factory == null)
+				{
+					return new(false);
+				}
+
+				this.Called = false;
+				return new(true);
 			}
 
-			private sealed class Enumerator : IAsyncEnumerator<TElement>
+			/// <inheritdoc />
+			protected override async ValueTask<bool> OnNextAsync()
 			{
-				//REVIEW: we could have specialized version for Task returning vs non-Task returning lambdas
-
-				private readonly CancellationToken m_ct;
-				private readonly Delegate m_lambda;
-				private bool m_called;
-				private TElement? m_current;
-
-				public Enumerator(Delegate lambda, CancellationToken ct)
+				var factory = this.Factory;
+				if (factory == null || this.Called)
 				{
-					m_ct = ct;
-					m_lambda = lambda;
+					return await this.Completed().ConfigureAwait(false);
 				}
 
-				public async ValueTask<bool> MoveNextAsync()
+				this.Called = true;
+				var current = factory switch
 				{
-					m_ct.ThrowIfCancellationRequested();
-					if (m_called)
-					{
-						m_current = default!;
-						return false;
-					}
+					Func<TElement> fn => fn(),
+					Func<Task<TElement>> fn => await fn().ConfigureAwait(false),
+					Func<CancellationToken, Task<TElement>> fn => await fn(this.Cancellation).ConfigureAwait(false),
+					Func<ValueTask<TElement>> fn => await fn().ConfigureAwait(false),
+					Func<CancellationToken, ValueTask<TElement>> fn => await fn(this.Cancellation).ConfigureAwait(false),
+					_ => throw new InvalidOperationException("Unsupported delegate type")
+				};
 
-					//note: avoid using local variables as much as possible!
-					m_called = true;
-					var lambda = m_lambda;
-					if (lambda is Func<TElement> f)
-					{
-						m_current = f();
-						return true;
-					}
+				return Publish(current);
+			}
 
-					if (lambda is Func<Task<TElement>> ft)
-					{
-						m_current = await ft().ConfigureAwait(false);
-						return true;
-					}
-
-					if (lambda is Func<CancellationToken, Task<TElement>> fct)
-					{
-						m_current = await fct(m_ct).ConfigureAwait(false);
-						return true;
-					}
-
-					throw new InvalidOperationException("Unsupported delegate type");
-				}
-
-				public TElement Current => m_current!;
-
-				public ValueTask DisposeAsync()
-				{
-					m_called = true;
-					m_current = default;
-					return default;
-				}
+			/// <inheritdoc />
+			protected override ValueTask Cleanup()
+			{
+				return default;
 			}
 
 		}

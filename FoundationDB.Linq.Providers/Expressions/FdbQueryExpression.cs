@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -81,7 +81,7 @@ namespace FoundationDB.Linq.Expressions
 		{ }
 
 		/// <summary>Returns a new expression that will execute this query on a transaction and return a single result</summary>
-		public abstract Expression<Func<IFdbReadOnlyTransaction, CancellationToken, Task<T>>> CompileSingle();
+		public abstract Expression<Func<IFdbReadOnlyTransaction, Task<T>>> CompileSingle();
 
 	}
 

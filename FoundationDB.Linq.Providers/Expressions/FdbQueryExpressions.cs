@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -39,7 +39,7 @@ namespace FoundationDB.Linq.Expressions
 	{
 
 		/// <summary>Return a single result from the query</summary>
-		public static FdbQuerySingleExpression<TSource, TResult> Single<TSource, TResult>(FdbQuerySequenceExpression<TSource> source, string? name, Expression<Func<IAsyncEnumerable<TSource>, CancellationToken, Task<TResult>>> lambda)
+		public static FdbQuerySingleExpression<TSource, TResult> Single<TSource, TResult>(FdbQuerySequenceExpression<TSource> source, string? name, Expression<Func<IAsyncQuery<TSource>, Task<TResult>>> lambda)
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(lambda);
@@ -50,7 +50,7 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Return a sequence of results from the query</summary>
-		public static FdbQueryAsyncEnumerableExpression<T> Sequence<T>(IAsyncEnumerable<T> source)
+		public static FdbQueryAsyncEnumerableExpression<T> Sequence<T>(IAsyncQuery<T> source)
 		{
 			Contract.NotNull(source);
 

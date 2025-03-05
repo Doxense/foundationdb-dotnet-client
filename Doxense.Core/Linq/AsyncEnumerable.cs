@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -26,15 +26,17 @@
 
 namespace Doxense.Linq
 {
+	using System;
 	using System.Buffers;
 	using System.Collections.Immutable;
+	using System.Numerics;
 	using Doxense.Linq.Async.Expressions;
 	using Doxense.Linq.Async.Iterators;
 	using Doxense.Threading.Tasks;
 
 	/// <summary>Provides a set of static methods for querying objects that implement <see cref="IAsyncEnumerable{T}"/>.</summary>
 	[PublicAPI]
-	public static partial class AsyncEnumerable
+	public static partial class AsyncQuery
 	{
 		// Welcome to the wonderful world of the Monads!
 
@@ -42,74 +44,64 @@ namespace Doxense.Linq
 
 		/// <summary>Returns an empty async sequence</summary>
 		[Pure]
-		public static IAsyncEnumerable<T> Empty<T>()
+		public static IAsyncLinqQuery<T> Empty<T>()
 		{
-			return EmptySequence<T>.Default;
+			return EmptyQuery<T>.Default;
 		}
 
 		/// <summary>Returns an async sequence with a single element, which is a constant</summary>
 		[Pure]
-		public static IAsyncEnumerable<T> Singleton<T>(T value)
+		public static IAsyncLinqQuery<T> Singleton<T>(T value, CancellationToken ct = default)
 		{
 			//note: we can't call this method Single<T>(T), because then Single<T>(Func<T>) would be ambiguous with Single<Func<T>>(T)
-			return new SingletonSequence<T>(() => value);
+			return new EnumerableSequence<T>([ value ], ct);
 		}
 
 		/// <summary>Returns an async sequence which will produce a single element, using the specified lambda</summary>
-		/// <param name="lambda">Lambda that will be called once per iteration, to produce the single element of this sequence</param>
-		/// <remarks>If the sequence is iterated multiple times, then <paramref name="lambda"/> will be called once for each iteration.</remarks>
+		/// <param name="selector">Lambda that will be called once per iteration, to produce the single element of this sequence</param>
+		/// <remarks>If the sequence is iterated multiple times, then <paramref name="selector"/> will be called once for each iteration.</remarks>
 		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<T> Single<T>(Func<T> lambda)
+		public static IAsyncLinqQuery<T> Single<T>(Func<T> selector, CancellationToken ct = default)
 		{
-			Contract.NotNull(lambda);
-			return new SingletonSequence<T>(lambda);
+			Contract.NotNull(selector);
+			return new SingletonQuery<T>(selector, ct);
 		}
 
 		/// <summary>Returns an async sequence which will produce a single element, using the specified lambda</summary>
-		/// <param name="asyncLambda">Lambda that will be called once per iteration, to produce the single element of this sequence</param>
-		/// <remarks>If the sequence is iterated multiple times, then <paramref name="asyncLambda"/> will be called once for each iteration.</remarks>
+		/// <param name="selector">Lambda that will be called once per iteration, to produce the single element of this sequence</param>
+		/// <remarks>If the sequence is iterated multiple times, then <paramref name="selector"/> will be called once for each iteration.</remarks>
 		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<T> Single<T>(Func<Task<T>> asyncLambda)
+		public static IAsyncLinqQuery<T> Single<T>(Func<CancellationToken, Task<T>> selector, CancellationToken ct = default)
 		{
-			Contract.NotNull(asyncLambda);
-			return new SingletonSequence<T>(asyncLambda);
+			Contract.NotNull(selector);
+			return new SingletonQuery<T>(selector, ct);
 		}
 
 		/// <summary>Returns an async sequence which will produce a single element, using the specified lambda</summary>
-		/// <param name="asyncLambda">Lambda that will be called once per iteration, to produce the single element of this sequence</param>
-		/// <remarks>If the sequence is iterated multiple times, then <paramref name="asyncLambda"/> will be called once for each iteration.</remarks>
+		/// <param name="selector">Lambda that will be called once per iteration, to produce the single element of this sequence</param>
+		/// <remarks>If the sequence is iterated multiple times, then <paramref name="selector"/> will be called once for each iteration.</remarks>
 		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<T> Single<T>(Func<CancellationToken, Task<T>> asyncLambda)
+		public static IAsyncLinqQuery<T> Single<T>(Func<Task<T>> selector, CancellationToken ct = default)
 		{
-			Contract.NotNull(asyncLambda);
-			return new SingletonSequence<T>(asyncLambda);
+			Contract.NotNull(selector);
+			return new SingletonQuery<T>(selector, ct);
 		}
 
 		/// <summary>Apply an async lambda to a sequence of elements to transform it into an async sequence</summary>
 		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<TOutput> ToAsyncEnumerable<TInput, TOutput>(this IEnumerable<TInput> source, Func<TInput, Task<TOutput>> lambda)
-		{
-			Contract.NotNull(source);
-			Contract.NotNull(lambda);
-
-			return Create<TInput, TOutput>(source, (iterator, ct) => new EnumerableIterator<TInput, TOutput>(iterator, lambda, ct));
-		}
-
-		/// <summary>Apply an async lambda to a sequence of elements to transform it into an async sequence</summary>
-		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(this IEnumerable<T> source)
+		public static IAsyncLinqQuery<T> ToAsyncQuery<T>(this IEnumerable<T> source, CancellationToken ct)
 		{
 			Contract.NotNull(source);
 
-			return Create<T, T>(source, (iterator, ct) => new EnumerableIterator<T, T>(iterator, x => Task.FromResult(x), ct));
+			return new EnumerableSequence<T>(source, ct);
 		}
 
 		/// <summary>Wraps an async lambda into an async sequence that will return the result of the lambda</summary>
 		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<T> FromTask<T>(Func<Task<T>> asyncLambda)
+		public static IAsyncLinqQuery<T> FromTask<T>(Func<CancellationToken, Task<T>> asyncLambda, CancellationToken ct)
 		{
 			//TODO: create a custom iterator for this ?
-			return ToAsyncEnumerable([ asyncLambda ]).Select(x => x());
+			return ToAsyncQuery([ asyncLambda ], ct).Select((x, cancel) => x(cancel));
 		}
 
 		#endregion
@@ -118,87 +110,116 @@ namespace Doxense.Linq
 
 		#region SelectMany...
 
-		/// <summary>Projects each element of an async sequence to an <see cref="IAsyncEnumerable{T}"/> and flattens the resulting sequences into one async sequence.</summary>
+		/// <summary>Projects each element of an async sequence to an <see cref="IEnumerable{T}"/> and flattens the resulting sequences into one async sequence.</summary>
 		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<TResult> SelectMany<TSource, TResult>(this IAsyncEnumerable<TSource> source, Func<TSource, IEnumerable<TResult>> selector)
+		public static IAsyncLinqQuery<TResult> SelectMany<TSource, TResult>(this IAsyncQuery<TSource> source, Func<TSource, IEnumerable<TResult>> selector)
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(selector);
 
-			if (source is AsyncIterator<TSource> iterator)
+			if (source is IAsyncLinqQuery<TSource> iterator)
 			{
 				return iterator.SelectMany(selector);
 			}
 
+			return SelectManyImpl(source, selector);
+		}
+
+		internal static SelectManyAsyncIterator<TSource, TResult> SelectManyImpl<TSource, TResult>(IAsyncQuery<TSource> source, Func<TSource, IEnumerable<TResult>> selector)
+		{
+			return new(source, selector);
+		}
+
+		/// <summary>Projects each element of an async sequence to an <see cref="IAsyncEnumerable{T}"/> and flattens the resulting sequences into one async sequence.</summary>
+		[Pure, LinqTunnel]
+		public static IAsyncLinqQuery<TResult> SelectMany<TSource, TResult>(this IAsyncQuery<TSource> source, Func<TSource, IAsyncEnumerable<TResult>> selector)
+		{
+			Contract.NotNull(source);
+			Contract.NotNull(selector);
+
+			if (source is IAsyncLinqQuery<TSource> iterator)
+			{
+				return iterator.SelectMany(selector);
+			}
+
+			return Flatten(source, new AsyncTransformExpression<TSource, IAsyncEnumerable<TResult>>(selector));
+		}
+
+		/// <summary>Projects each element of an async sequence to an <see cref="IAsyncQuery{T}"/> and flattens the resulting sequences into one async sequence.</summary>
+		[Pure, LinqTunnel]
+		public static IAsyncLinqQuery<TResult> SelectMany<TSource, TResult>(this IAsyncQuery<TSource> source, Func<TSource, IAsyncQuery<TResult>> selector)
+		{
+			Contract.NotNull(source);
+			Contract.NotNull(selector);
+
+			if (source is IAsyncLinqQuery<TSource> iterator)
+			{
+				return iterator.SelectMany(selector);
+			}
+
+			return Flatten(source, new AsyncTransformExpression<TSource, IAsyncQuery<TResult>>(selector));
+		}
+
+		/// <summary>Projects each element of an async sequence to an <see cref="IEnumerable{T}"/> and flattens the resulting sequences into one async sequence.</summary>
+		[Pure, LinqTunnel]
+		public static IAsyncLinqQuery<TResult> SelectMany<TSource, TResult>(this IAsyncQuery<TSource> source, Func<TSource, CancellationToken, Task<IEnumerable<TResult>>> selector)
+		{
+			Contract.NotNull(source);
+			Contract.NotNull(selector);
+
+			if (source is IAsyncLinqQuery<TSource> iterator)
+			{
+				return iterator.SelectMany(selector);
+			}
+
+			return SelectManyImpl(source, selector);
+		}
+
+		internal static IAsyncLinqQuery<TResult> SelectManyImpl<TSource, TResult>(IAsyncQuery<TSource> source, Func<TSource, CancellationToken, Task<IEnumerable<TResult>>> selector)
+		{
 			return Flatten(source, new AsyncTransformExpression<TSource,IEnumerable<TResult>>(selector));
 		}
 
-		/// <summary>Projects each element of an async sequence to an <see cref="IAsyncEnumerable{T}"/> and flattens the resulting sequences into one async sequence.</summary>
+		/// <summary>Projects each element of an async sequence to an <see cref="IEnumerable{T}"/> flattens the resulting sequences into one async sequence, and invokes a result selector function on each element therein.</summary>
 		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<TResult> SelectMany<TSource, TResult>(this IAsyncEnumerable<TSource> source, Func<TSource, Task<IEnumerable<TResult>>> asyncSelector)
-		{
-			Contract.NotNull(source);
-			Contract.NotNull(asyncSelector);
-
-			return SelectMany(source, TaskHelpers.WithCancellation(asyncSelector));
-		}
-
-		/// <summary>Projects each element of an async sequence to an <see cref="IAsyncEnumerable{T}"/> and flattens the resulting sequences into one async sequence.</summary>
-		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<TResult> SelectMany<TSource, TResult>(this IAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, Task<IEnumerable<TResult>>> asyncSelector)
-		{
-			Contract.NotNull(source);
-			Contract.NotNull(asyncSelector);
-
-			if (source is AsyncIterator<TSource> iterator)
-			{
-				return iterator.SelectMany(asyncSelector);
-			}
-
-			return Flatten(source, new AsyncTransformExpression<TSource,IEnumerable<TResult>>(asyncSelector));
-		}
-
-		/// <summary>Projects each element of an async sequence to an <see cref="IAsyncEnumerable{T}"/> flattens the resulting sequences into one async sequence, and invokes a result selector function on each element therein.</summary>
-		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<TResult> SelectMany<TSource, TCollection, TResult>(this IAsyncEnumerable<TSource> source, Func<TSource, IEnumerable<TCollection>> collectionSelector, Func<TSource, TCollection, TResult> resultSelector)
+		public static IAsyncLinqQuery<TResult> SelectMany<TSource, TCollection, TResult>(this IAsyncQuery<TSource> source, Func<TSource, IEnumerable<TCollection>> collectionSelector, Func<TSource, TCollection, TResult> resultSelector)
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(collectionSelector);
 			Contract.NotNull(resultSelector);
 
-			if (source is AsyncIterator<TSource> iterator)
+			if (source is IAsyncLinqQuery<TSource> iterator)
 			{
 				return iterator.SelectMany(collectionSelector, resultSelector);
 			}
 
-			return Flatten(source, new AsyncTransformExpression<TSource,IEnumerable<TCollection>>(collectionSelector), resultSelector);
+			return SelectManyImpl(source, collectionSelector, resultSelector);
 		}
 
-		/// <summary>Projects each element of an async sequence to an <see cref="IAsyncEnumerable{T}"/> flattens the resulting sequences into one async sequence, and invokes a result selector function on each element therein.</summary>
-		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<TResult> SelectMany<TSource, TCollection, TResult>(this IAsyncEnumerable<TSource> source, Func<TSource, Task<IEnumerable<TCollection>>> asyncCollectionSelector, Func<TSource, TCollection, TResult> resultSelector)
+		internal static IAsyncLinqQuery<TResult> SelectManyImpl<TSource, TCollection, TResult>(IAsyncQuery<TSource> source, Func<TSource, IEnumerable<TCollection>> collectionSelector, Func<TSource, TCollection, TResult> resultSelector)
 		{
-			Contract.NotNull(source);
-			Contract.NotNull(asyncCollectionSelector);
-			Contract.NotNull(resultSelector);
-
-			return SelectMany(source, TaskHelpers.WithCancellation(asyncCollectionSelector), resultSelector);
+			return Flatten(source, new(collectionSelector), resultSelector);
 		}
 
-		/// <summary>Projects each element of an async sequence to an <see cref="IAsyncEnumerable{T}"/> flattens the resulting sequences into one async sequence, and invokes a result selector function on each element therein.</summary>
+		/// <summary>Projects each element of an async sequence to an <see cref="IEnumerable{T}"/> flattens the resulting sequences into one async sequence, and invokes a result selector function on each element therein.</summary>
 		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<TResult> SelectMany<TSource, TCollection, TResult>(this IAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, Task<IEnumerable<TCollection>>> asyncCollectionSelector, Func<TSource, TCollection, TResult> resultSelector)
+		public static IAsyncLinqQuery<TResult> SelectMany<TSource, TCollection, TResult>(this IAsyncQuery<TSource> source, Func<TSource, CancellationToken, Task<IEnumerable<TCollection>>> collectionSelector, Func<TSource, TCollection, TResult> resultSelector)
 		{
 			Contract.NotNull(source);
-			Contract.NotNull(asyncCollectionSelector);
+			Contract.NotNull(collectionSelector);
 			Contract.NotNull(resultSelector);
 
-			if (source is AsyncIterator<TSource> iterator)
+			if (source is IAsyncLinqQuery<TSource> iterator)
 			{
-				return iterator.SelectMany(asyncCollectionSelector, resultSelector);
+				return iterator.SelectMany(collectionSelector, resultSelector);
 			}
 
-			return Flatten(source, new AsyncTransformExpression<TSource,IEnumerable<TCollection>>(asyncCollectionSelector), resultSelector);
+			return SelectManyImpl(source, collectionSelector, resultSelector);
+		}
+
+		internal static IAsyncLinqQuery<TResult> SelectManyImpl<TSource, TCollection, TResult>(IAsyncQuery<TSource> source, Func<TSource, CancellationToken, Task<IEnumerable<TCollection>>> collectionSelector, Func<TSource, TCollection, TResult> resultSelector)
+		{
+			return Flatten(source, new(collectionSelector), resultSelector);
 		}
 
 		#endregion
@@ -207,42 +228,107 @@ namespace Doxense.Linq
 
 		/// <summary>Projects each element of an async sequence into a new form.</summary>
 		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<TResult> Select<TSource, TResult>(this IAsyncEnumerable<TSource> source, Func<TSource, TResult> selector)
+		public static IAsyncLinqQuery<TResult> Select<TSource, TResult>(this IAsyncQuery<TSource> source, Func<TSource, TResult> selector)
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(selector);
 
-			if (source is AsyncIterator<TSource> iterator)
+			if (source is IAsyncLinqQuery<TSource> iterator)
 			{
 				return iterator.Select(selector);
 			}
 
-			return Map(source, new AsyncTransformExpression<TSource,TResult>(selector));
+			return SelectImpl(source, selector);
+		}
+
+		internal static SelectAsyncIterator<TSource,TResult> SelectImpl<TSource, TResult>(IAsyncQuery<TSource> source, Func<TSource, TResult> selector)
+		{
+			Contract.Debug.Requires(source != null && selector != null);
+
+			return new(source, selector);
 		}
 
 		/// <summary>Projects each element of an async sequence into a new form.</summary>
 		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<TResult> Select<TSource, TResult>(this IAsyncEnumerable<TSource> source, Func<TSource, Task<TResult>> asyncSelector)
+		public static IAsyncLinqQuery<TResult> Select<TSource, TResult>(this IAsyncQuery<TSource> source, Func<TSource, int, TResult> selector)
 		{
 			Contract.NotNull(source);
-			Contract.NotNull(asyncSelector);
+			Contract.NotNull(selector);
 
-			return Select(source, TaskHelpers.WithCancellation(asyncSelector));
-		}
-
-		/// <summary>Projects each element of an async sequence into a new form.</summary>
-		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<TResult> Select<TSource, TResult>(this IAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, Task<TResult>> asyncSelector)
-		{
-			Contract.NotNull(source);
-			Contract.NotNull(asyncSelector);
-
-			if (source is AsyncIterator<TSource> iterator)
+			if (source is IAsyncLinqQuery<TSource> iterator)
 			{
-				return iterator.Select(asyncSelector);
+				return iterator.Select(selector);
 			}
 
-			return Map(source, new AsyncTransformExpression<TSource,TResult>(asyncSelector));
+			return SelectImpl(source, selector);
+		}
+
+		internal static IAsyncLinqQuery<TResult> SelectImpl<TResult, TSource>(IAsyncQuery<TSource> source, Func<TSource, int, TResult> selector)
+		{
+			Contract.Debug.Requires(source != null && selector != null);
+
+			//note: we have to create a new scope everytime GetAsyncEnumerator() is called,
+			// otherwise multiple enumerations of the same query would not reset the index to 0!
+			return Defer(() =>
+			{
+				int index = -1;
+				return source.Select((item) => selector(item, checked(++index)));
+
+			}, source.Cancellation);
+		}
+
+		/// <summary>Projects each element of an async sequence into a new form.</summary>
+		[Pure, LinqTunnel]
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(1)]
+#endif
+		public static IAsyncLinqQuery<TResult> Select<TSource, TResult>(this IAsyncQuery<TSource> source, Func<TSource, CancellationToken, Task<TResult>> selector)
+		{
+			Contract.NotNull(source);
+			Contract.NotNull(selector);
+
+			if (source is IAsyncLinqQuery<TSource> iterator)
+			{
+				return iterator.Select(selector);
+			}
+
+			return SelectImpl(source, selector);
+		}
+
+		internal static SelectTaskAsyncIterator<TSource,TResult> SelectImpl<TSource, TResult>(IAsyncQuery<TSource> source, Func<TSource, CancellationToken, Task<TResult>> selector)
+		{
+			Contract.Debug.Requires(source != null && selector != null);
+
+			return new(source, selector);
+		}
+
+		/// <summary>Projects each element of an async sequence into a new form.</summary>
+		[Pure, LinqTunnel]
+		public static IAsyncLinqQuery<TResult> Select<TSource, TResult>(this IAsyncQuery<TSource> source, Func<TSource, int, CancellationToken, Task<TResult>> selector)
+		{
+			Contract.NotNull(source);
+			Contract.NotNull(selector);
+
+			if (source is IAsyncLinqQuery<TSource> iterator)
+			{
+				return iterator.Select(selector);
+			}
+
+			return SelectImpl(source, selector);
+		}
+
+		internal static IAsyncLinqQuery<TResult> SelectImpl<TResult, TSource>(IAsyncQuery<TSource> source, Func<TSource, int, CancellationToken, Task<TResult>> selector)
+		{
+			Contract.Debug.Requires(source != null && selector != null);
+
+			//note: we have to create a new scope everytime GetAsyncEnumerator() is called,
+			// otherwise multiple enumerations of the same query would not reset the index to 0!
+			return Defer(() =>
+			{
+				int index = -1;
+				return source.Select((item, ct) => selector(item, checked(++index), ct));
+
+			}, source.Cancellation);
 		}
 
 		#endregion
@@ -251,42 +337,104 @@ namespace Doxense.Linq
 
 		/// <summary>Filters an async sequence of values based on a predicate.</summary>
 		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<TResult> Where<TResult>(this IAsyncEnumerable<TResult> source, Func<TResult, bool> predicate)
+		public static IAsyncLinqQuery<TResult> Where<TResult>(this IAsyncQuery<TResult> source, Func<TResult, bool> predicate)
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(predicate);
 
-			if (source is AsyncIterator<TResult> iterator)
+			if (source is IAsyncLinqQuery<TResult> iterator)
 			{
 				return iterator.Where(predicate);
 			}
 
-			return Filter(source, new AsyncFilterExpression<TResult>(predicate));
+			return WhereImpl(source, predicate);
+		}
+
+		internal static WhereAsyncIterator<TResult> WhereImpl<TResult>(IAsyncQuery<TResult> source, Func<TResult, bool> predicate)
+		{
+			Contract.Debug.Requires(source != null && predicate != null);
+
+			return new(source, predicate);
 		}
 
 		/// <summary>Filters an async sequence of values based on a predicate.</summary>
 		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<T> Where<T>(this IAsyncEnumerable<T> source, Func<T, Task<bool>> asyncPredicate)
+		public static IAsyncLinqQuery<TResult> Where<TResult>(this IAsyncQuery<TResult> source, Func<TResult, int, bool> predicate)
 		{
 			Contract.NotNull(source);
-			Contract.NotNull(asyncPredicate);
+			Contract.NotNull(predicate);
 
-			return Where(source, TaskHelpers.WithCancellation(asyncPredicate));
-		}
-
-		/// <summary>Filters an async sequence of values based on a predicate.</summary>
-		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<TResult> Where<TResult>(this IAsyncEnumerable<TResult> source, Func<TResult, CancellationToken, Task<bool>> asyncPredicate)
-		{
-			Contract.NotNull(source);
-			Contract.NotNull(asyncPredicate);
-
-			if (source is AsyncIterator<TResult> iterator)
+			if (source is IAsyncLinqQuery<TResult> iterator)
 			{
-				return iterator.Where(asyncPredicate);
+				return iterator.Where(predicate);
 			}
 
-			return Filter(source, new AsyncFilterExpression<TResult>(asyncPredicate));
+			return WhereImpl(source, predicate);
+		}
+
+		internal static IAsyncLinqQuery<TResult> WhereImpl<TResult>(IAsyncQuery<TResult> source, Func<TResult, int, bool> predicate)
+		{
+			Contract.Debug.Requires(source != null && predicate != null);
+
+			//note: we have to create a new scope everytime GetAsyncEnumerator() is called,
+			// otherwise multiple enumerations of the same query would not reset the index to 0!
+
+			return Defer(() =>
+			{
+				int index = -1;
+				return source.Where((item) => predicate(item, checked(++index)));
+			}, source.Cancellation);
+		}
+
+		/// <summary>Filters an async sequence of values based on a predicate.</summary>
+		[Pure, LinqTunnel]
+		public static IAsyncLinqQuery<TResult> Where<TResult>(this IAsyncQuery<TResult> source, Func<TResult, CancellationToken, Task<bool>> predicate)
+		{
+			Contract.NotNull(source);
+			Contract.NotNull(predicate);
+
+			if (source is IAsyncLinqQuery<TResult> iterator)
+			{
+				return iterator.Where(predicate);
+			}
+
+			return WhereImpl(source, predicate);
+		}
+
+		internal static WhereExpressionAsyncIterator<TResult> WhereImpl<TResult>(IAsyncQuery<TResult> source, Func<TResult, CancellationToken, Task<bool>> predicate)
+		{
+			Contract.Debug.Requires(source != null && predicate != null);
+
+			return new(source, new(predicate));
+		}
+
+		/// <summary>Filters an async sequence of values based on a predicate.</summary>
+		[Pure, LinqTunnel]
+		public static IAsyncLinqQuery<TResult> Where<TResult>(this IAsyncQuery<TResult> source, Func<TResult, int, CancellationToken, Task<bool>> predicate)
+		{
+			Contract.NotNull(source);
+			Contract.NotNull(predicate);
+
+			if (source is IAsyncLinqQuery<TResult> iterator)
+			{
+				return iterator.Where(predicate);
+			}
+
+			return WhereImpl(source, predicate);
+		}
+
+		internal static IAsyncLinqQuery<TResult> WhereImpl<TResult>(IAsyncQuery<TResult> source, Func<TResult, int, CancellationToken, Task<bool>> predicate)
+		{
+			Contract.Debug.Requires(source != null && predicate != null);
+
+			//note: we have to create a new scope everytime GetAsyncEnumerator() is called,
+			// otherwise multiple enumerations of the same query would not reset the index to 0!
+
+			return Defer(() =>
+			{
+				int index = -1;
+				return source.Where((item, ct) => predicate(item, checked(++index), ct));
+			}, source.Cancellation);
 		}
 
 		#endregion
@@ -295,17 +443,24 @@ namespace Doxense.Linq
 
 		/// <summary>Returns a specified number of contiguous elements from the start of an async sequence.</summary>
 		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<TSource> Take<TSource>(this IAsyncEnumerable<TSource> source, int count)
+		public static IAsyncLinqQuery<TSource> Take<TSource>(this IAsyncQuery<TSource> source, int count)
 		{
 			Contract.NotNull(source);
-			if (count < 0) throw new ArgumentOutOfRangeException(nameof(count), count, "Count cannot be less than zero");
+			Contract.Positive(count, "Count cannot be less than zero");
 
-			if (source is AsyncIterator<TSource> iterator)
+			if (source is IAsyncLinqQuery<TSource> iterator)
 			{
 				return iterator.Take(count);
 			}
 
-			return Limit(source, count);
+			return TakeImpl(source, count);
+		}
+
+		internal static WhereSelectExpressionAsyncIterator<TResult, TResult> TakeImpl<TResult>(IAsyncQuery<TResult> source, int limit)
+		{
+			Contract.Debug.Requires(source != null && limit >= 0);
+
+			return new(source, filter: null, transform: new(), limit: limit, offset: null);
 		}
 
 		#endregion
@@ -314,21 +469,21 @@ namespace Doxense.Linq
 
 		/// <summary>Returns elements from an async sequence as long as a specified condition is true, and then skips the remaining elements.</summary>
 		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<TSource> TakeWhile<TSource>(this IAsyncEnumerable<TSource> source, Func<TSource, bool> condition)
+		public static IAsyncLinqQuery<TSource> TakeWhile<TSource>(this IAsyncQuery<TSource> source, Func<TSource, bool> condition)
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(condition);
 
-			if (source is AsyncIterator<TSource> iterator)
+			if (source is IAsyncLinqQuery<TSource> iterator)
 			{
 				return iterator.TakeWhile(condition);
 			}
 
-			return Limit(source, condition);
+			return TakeWhileImpl(source, condition);
 		}
 
 		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<TSource> TakeWhile<TSource>(this IAsyncEnumerable<TSource> source, Func<TSource, bool> condition, out QueryStatistics<bool> stopped)
+		public static IAsyncLinqQuery<TSource> TakeWhile<TSource>(this IAsyncQuery<TSource> source, Func<TSource, bool> condition, out QueryStatistics<bool> stopped)
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(condition);
@@ -347,23 +502,33 @@ namespace Doxense.Linq
 			return TakeWhile(source, Wrapped);
 		}
 
+		internal static TakeWhileAsyncIterator<TResult> TakeWhileImpl<TResult>(IAsyncQuery<TResult> source, Func<TResult, bool> condition)
+		{
+			return new(source, condition);
+		}
+
 		#endregion
 
 		#region Skip...
 
 		/// <summary>Skips the first elements of an async sequence.</summary>
 		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<TSource> Skip<TSource>(this IAsyncEnumerable<TSource> source, int count)
+		public static IAsyncLinqQuery<TSource> Skip<TSource>(this IAsyncQuery<TSource> source, int count)
 		{
 			Contract.NotNull(source);
 			if (count < 0) throw new ArgumentOutOfRangeException(nameof(count), count, "Count cannot be less than zero");
 
-			if (source is AsyncIterator<TSource> iterator)
+			if (source is IAsyncLinqQuery<TSource> iterator)
 			{
 				return iterator.Skip(count);
 			}
 
-			return Offset(source, count);
+			return SkipImpl(source, count);
+		}
+
+		internal static WhereSelectExpressionAsyncIterator<TResult, TResult> SkipImpl<TResult>(IAsyncQuery<TResult> source, int offset)
+		{
+			return new(source, filter: null, transform: new(), limit: null, offset: offset);
 		}
 
 		#endregion
@@ -372,7 +537,7 @@ namespace Doxense.Linq
 
 		/// <summary>Projects each element of an async sequence into a new form.</summary>
 		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<TResult> SelectAsync<TSource, TResult>(this IAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, Task<TResult>> asyncSelector, ParallelAsyncQueryOptions? options = null)
+		public static IAsyncLinqQuery<TResult> SelectAsync<TSource, TResult>(this IAsyncQuery<TSource> source, Func<TSource, CancellationToken, Task<TResult>> asyncSelector, ParallelAsyncQueryOptions? options = null)
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(asyncSelector);
@@ -389,13 +554,27 @@ namespace Doxense.Linq
 		/// Avoid pre-fetching from a source that is already reading from a buffer of results.
 		/// </remarks>
 		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<TSource> Prefetch<TSource>(this IAsyncEnumerable<TSource> source)
+		public static IAsyncLinqQuery<TSource> Prefetch<TSource>(this IAsyncQuery<TSource> source)
 		{
 			Contract.NotNull(source);
 
 			return new PrefetchingAsyncIterator<TSource>(source, 1);
 		}
 
+		/// <summary>Always prefetch the next item from the inner sequence.</summary>
+		/// <typeparam name="TSource">Type of the items in the source sequence</typeparam>
+		/// <param name="source">Source sequence that has a high latency, and from which we want to prefetch a set number of items.</param>
+		/// <returns>Sequence that prefetch the next item, when outputting the current item.</returns>
+		/// <remarks>
+		/// This iterator can help smooth out the query pipeline when every call to the inner sequence has a somewhat high latency (ex: reading the next page of results from the database).
+		/// Avoid pre-fetching from a source that is already reading from a buffer of results.
+		/// </remarks>
+		[Pure, LinqTunnel]
+		public static IAsyncLinqQuery<TSource> Prefetch<TSource>(this IAsyncEnumerable<TSource> source, CancellationToken ct = default)
+		{
+			Contract.NotNull(source);
+			return new PrefetchingAsyncIterator<TSource>(source.ToAsyncQuery(ct), 1);
+		}
 		/// <summary>Prefetch a certain number of items from the inner sequence, before outputting the results one by one.</summary>
 		/// <typeparam name="TSource">Type of the items in the source sequence</typeparam>
 		/// <param name="source">Source sequence that has a high latency, and from which we want to prefetch a set number of items.</param>
@@ -406,7 +585,7 @@ namespace Doxense.Linq
 		/// Avoid pre-fetching from a source that is already reading from a buffer of results.
 		/// </remarks>
 		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<TSource> Prefetch<TSource>(this IAsyncEnumerable<TSource> source, int prefetchCount)
+		public static IAsyncLinqQuery<TSource> Prefetch<TSource>(this IAsyncQuery<TSource> source, int prefetchCount)
 		{
 			Contract.NotNull(source);
 			if (prefetchCount <= 0) throw new ArgumentOutOfRangeException(nameof(prefetchCount), prefetchCount, "Prefetch count must be at least one.");
@@ -424,7 +603,7 @@ namespace Doxense.Linq
 		/// You should avoid using this operator on sequences where each call to MoveNext() is asynchronous, since it would only produce batchs with only a single item.
 		/// </remarks>
 		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<TSource[]> Window<TSource>(this IAsyncEnumerable<TSource> source, int maxWindowSize)
+		public static IAsyncLinqQuery<TSource[]> Window<TSource>(this IAsyncQuery<TSource> source, int maxWindowSize)
 		{
 			Contract.NotNull(source);
 			if (maxWindowSize <= 0) throw ThrowHelper.ArgumentOutOfRangeException(nameof(maxWindowSize), maxWindowSize, "Window size must be at least one.");
@@ -442,7 +621,7 @@ namespace Doxense.Linq
 		/// If you are working on an inner sequence that is bursty in nature, where items arrives in waves, you should use <see cref="Window{TSource}"/> which attempts to minimize the latency by outputting incomplete batches if needed.
 		/// </remarks>
 		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<TSource[]> Batch<TSource>(this IAsyncEnumerable<TSource> source, int batchSize)
+		public static IAsyncLinqQuery<TSource[]> Batch<TSource>(this IAsyncQuery<TSource> source, int batchSize)
 		{
 			Contract.NotNull(source);
 			if (batchSize <= 0) throw ThrowHelper.ArgumentOutOfRangeException(nameof(batchSize), batchSize, "Batch size must be at least one.");
@@ -455,7 +634,7 @@ namespace Doxense.Linq
 		#region Distinct...
 
 		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<TSource> Distinct<TSource>(this IAsyncEnumerable<TSource> source, IEqualityComparer<TSource>? comparer = null)
+		public static IAsyncLinqQuery<TSource> Distinct<TSource>(this IAsyncQuery<TSource> source, IEqualityComparer<TSource>? comparer = null)
 		{
 			Contract.NotNull(source);
 			return new DistinctAsyncIterator<TSource>(source, comparer ?? EqualityComparer<TSource>.Default);
@@ -466,7 +645,7 @@ namespace Doxense.Linq
 		#region OrderBy...
 
 		[Pure, LinqTunnel]
-		public static IAsyncOrderedEnumerable<TSource> OrderBy<TSource, TKey>(this IAsyncEnumerable<TSource> source, Func<TSource, TKey> keySelector, IComparer<TKey>? comparer = null)
+		public static IOrderedAsyncQuery<TSource> OrderBy<TSource, TKey>(this IAsyncQuery<TSource> source, Func<TSource, TKey> keySelector, IComparer<TKey>? comparer = null)
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(keySelector);
@@ -475,7 +654,7 @@ namespace Doxense.Linq
 		}
 
 		[Pure, LinqTunnel]
-		public static IAsyncOrderedEnumerable<TSource> OrderByDescending<TSource, TKey>(this IAsyncEnumerable<TSource> source, Func<TSource, TKey> keySelector, IComparer<TKey>? comparer = null)
+		public static IOrderedAsyncQuery<TSource> OrderByDescending<TSource, TKey>(this IAsyncQuery<TSource> source, Func<TSource, TKey> keySelector, IComparer<TKey>? comparer = null)
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(keySelector);
@@ -484,14 +663,14 @@ namespace Doxense.Linq
 		}
 
 		[Pure, LinqTunnel]
-		public static IAsyncOrderedEnumerable<TSource> ThenBy<TSource, TKey>(this IAsyncOrderedEnumerable<TSource> source, Func<TSource, TKey> keySelector, IComparer<TKey>? comparer = null)
+		public static IOrderedAsyncQuery<TSource> ThenBy<TSource, TKey>(this IOrderedAsyncQuery<TSource> source, Func<TSource, TKey> keySelector, IComparer<TKey>? comparer = null)
 		{
 			Contract.NotNull(source);
 			return source.CreateOrderedEnumerable(keySelector, comparer, descending: false);
 		}
 
 		[Pure, LinqTunnel]
-		public static IAsyncOrderedEnumerable<TSource> ThenByDescending<TSource, TKey>(this IAsyncOrderedEnumerable<TSource> source, Func<TSource, TKey> keySelector, IComparer<TKey>? comparer = null)
+		public static IOrderedAsyncQuery<TSource> ThenByDescending<TSource, TKey>(this IOrderedAsyncQuery<TSource> source, Func<TSource, TKey> keySelector, IComparer<TKey>? comparer = null)
 		{
 			Contract.NotNull(source);
 			return source.CreateOrderedEnumerable(keySelector, comparer, descending: true);
@@ -510,134 +689,123 @@ namespace Doxense.Linq
 		#region Leaving the Monad...
 
 		/// <summary>Execute an action for each element of an async sequence</summary>
-		public static Task ForEachAsync<TElement>(this IAsyncEnumerable<TElement> source, [InstantHandle] Action<TElement> action, CancellationToken ct = default)
+		public static Task ForEachAsync<TElement>(this IAsyncQuery<TElement> source, [InstantHandle] Action<TElement> action)
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(action);
 
 			return source switch
 			{
-				AsyncIterator<TElement> iterator => iterator.ExecuteAsync(action, ct),
-				_ => Run(source, AsyncIterationHint.All, action, ct)
+				AsyncLinqIterator<TElement> iterator => iterator.ExecuteAsync(action),
+				_ => Run(source, AsyncIterationHint.All, action)
 			};
 		}
 
-		/// <summary>Execute an action for each element of an async sequence</summary>
-		public static Task ForEachAsync<TState, TElement>(this IAsyncEnumerable<TElement> source, TState state, [InstantHandle] Action<TState, TElement> action, CancellationToken ct = default)
+		/// <summary>Executes an action for each element of an async sequence</summary>
+		public static Task ForEachAsync<TState, TElement>(this IAsyncQuery<TElement> source, TState state, [InstantHandle] Action<TState, TElement> action)
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(action);
 
 			return source switch
 			{
-				AsyncIterator<TElement> iterator => iterator.ExecuteAsync(state, action, ct),
-				_ => Run(source, AsyncIterationHint.All, state, action, ct)
+				AsyncLinqIterator<TElement> iterator => iterator.ExecuteAsync(state, action),
+				_ => Run(source, AsyncIterationHint.All, state, action)
 			};
 		}
 
-		/// <summary>Execute an async action for each element of an async sequence</summary>
-		public static Task ForEachAsync<TElement>(this IAsyncEnumerable<TElement> source, [InstantHandle] Func<TElement, Task> asyncAction, CancellationToken ct = default)
+		/// <summary>Executes an async action for each element of an async sequence</summary>
+		public static Task ForEachAsync<TElement>(this IAsyncQuery<TElement> source, [InstantHandle] Func<TElement, Task> asyncAction)
 		{
 			Contract.NotNull(asyncAction);
 
 			return source switch
 			{
-				AsyncIterator<TElement> iterator => iterator.ExecuteAsync(TaskHelpers.WithCancellation(asyncAction), ct),
-				_ => ForEachAsync(source, TaskHelpers.WithCancellation(asyncAction), ct)
+				AsyncLinqIterator<TElement> iterator => iterator.ExecuteAsync(TaskHelpers.WithCancellation(asyncAction)),
+				_ => ForEachAsync(source, TaskHelpers.WithCancellation(asyncAction))
 			};
 		}
 
-		/// <summary>Execute an async action for each element of an async sequence</summary>
-		public static Task ForEachAsync<TElement>(this IAsyncEnumerable<TElement> source, [InstantHandle] Func<TElement, CancellationToken, Task> asyncAction, CancellationToken ct = default)
+		/// <summary>Executes an async action for each element of an async sequence</summary>
+		public static Task ForEachAsync<TElement>(this IAsyncQuery<TElement> source, [InstantHandle] Func<TElement, CancellationToken, Task> asyncAction)
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(asyncAction);
 
 			return source switch
 			{
-				AsyncIterator<TElement> iterator => iterator.ExecuteAsync(asyncAction, ct),
-				_ => Run(source, AsyncIterationHint.All, asyncAction, ct)
+				AsyncLinqIterator<TElement> iterator => iterator.ExecuteAsync(asyncAction),
+				_ => Run(source, AsyncIterationHint.All, asyncAction)
 			};
 		}
 
 		#region ToList/Array/Dictionary/HashSet...
 
-		/// <summary>Create a list from an async sequence.</summary>
-		public static Task<List<T>> ToListAsync<T>(this IAsyncEnumerable<T> source)
+		/// <summary>Creates a list from an async sequence.</summary>
+		public static Task<List<T>> ToListAsync<T>(this IAsyncQuery<T> source)
 		{
 			Contract.NotNull(source);
+
+			if (source is IAsyncLinqQuery<T> query)
+			{
+				return query.ToListAsync();
+			}
 
 			return AggregateAsync(
 				source,
 				new Buffer<T>(0, ArrayPool<T>.Shared),
 				static (b, x) => b.Add(x),
-				static (b) => b.ToListAndClear(),
-				CancellationToken.None
+				static (b) => b.ToListAndClear()
 			);
 		}
 
-		/// <summary>Create a list from an async sequence.</summary>
-		public static Task<ImmutableArray<T>> ToImmutableArrayAsync<T>(this IAsyncEnumerable<T> source)
+		/// <summary>Creates a list from an async sequence.</summary>
+		public static Task<ImmutableArray<T>> ToImmutableArrayAsync<T>(this IAsyncQuery<T> source)
 		{
 			Contract.NotNull(source);
+
+			if (source is IAsyncLinqQuery<T> query)
+			{
+				return query.ToImmutableArrayAsync();
+			}
 
 			return AggregateAsync(
 				source,
 				new Buffer<T>(0, ArrayPool<T>.Shared),
 				static (b, x) => b.Add(x),
-				static (b) => b.ToImmutableArrayAndClear(),
-				CancellationToken.None
+				static (b) => b.ToImmutableArrayAndClear()
 			);
 		}
 
-		/// <summary>Create a list from an async sequence.</summary>
-		public static Task<List<T>> ToListAsync<T>(this IAsyncEnumerable<T> source, CancellationToken ct)
+		/// <summary>Creates an array from an async sequence.</summary>
+		public static Task<T[]> ToArrayAsync<T>(this IAsyncQuery<T> source)
 		{
 			Contract.NotNull(source);
+
+			if (source is IAsyncLinqQuery<T> query)
+			{
+				return query.ToArrayAsync();
+			}
 
 			return AggregateAsync(
 				source,
 				new Buffer<T>(0, ArrayPool<T>.Shared),
 				static (b, x) => b.Add(x),
-				static (b) => b.ToListAndClear(),
-				ct
-			);
-		}
-
-		/// <summary>Create an array from an async sequence.</summary>
-		public static Task<T[]> ToArrayAsync<T>(this IAsyncEnumerable<T> source)
-		{
-			Contract.NotNull(source);
-
-			return AggregateAsync(
-				source,
-				new Buffer<T>(0, ArrayPool<T>.Shared),
-				static (b, x) => b.Add(x),
-				static (b) => b.ToArrayAndClear(),
-				CancellationToken.None
-			);
-		}
-
-		/// <summary>Create an array from an async sequence.</summary>
-		public static Task<T[]> ToArrayAsync<T>(this IAsyncEnumerable<T> source, CancellationToken ct)
-		{
-			Contract.NotNull(source);
-
-			return AggregateAsync(
-				source,
-				new Buffer<T>(0, ArrayPool<T>.Shared),
-				static (b, x) => b.Add(x),
-				static (b) => b.ToArrayAndClear(),
-				ct
+				static (b) => b.ToArrayAndClear()
 			);
 		}
 
 		/// <summary>Creates a Dictionary from an async sequence according to a specified key selector function and key comparer.</summary>
-		public static Task<Dictionary<TKey, TSource>> ToDictionaryAsync<TSource, TKey>(this IAsyncEnumerable<TSource> source, [InstantHandle] Func<TSource, TKey> keySelector, IEqualityComparer<TKey>? comparer = null, CancellationToken ct = default)
+		public static Task<Dictionary<TKey, TSource>> ToDictionaryAsync<TSource, TKey>(this IAsyncQuery<TSource> source, [InstantHandle] Func<TSource, TKey> keySelector, IEqualityComparer<TKey>? comparer = null)
 			where TKey: notnull
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(keySelector);
+
+			if (source is IAsyncLinqQuery<TSource> query)
+			{
+				return query.ToDictionaryAsync(keySelector, comparer);
+			}
 
 			return AggregateAsync(
 				source,
@@ -646,17 +814,21 @@ namespace Doxense.Linq
 					KeySelector: keySelector
 				),
 				static (s, x) => s.Results.Add(s.KeySelector(x), x),
-				static (s) => s.Results,
-				ct
+				static (s) => s.Results
 			);
 		}
 
 		/// <summary>Creates a Dictionary from an async sequence according to a specified key selector function, a comparer, and an element selector function.</summary>
-		public static Task<Dictionary<TKey, TElement>> ToDictionaryAsync<TSource, TKey, TElement>(this IAsyncEnumerable<TSource> source, [InstantHandle] Func<TSource, TKey> keySelector, [InstantHandle] Func<TSource, TElement> elementSelector, IEqualityComparer<TKey>? comparer = null, CancellationToken ct = default)
+		public static Task<Dictionary<TKey, TElement>> ToDictionaryAsync<TSource, TKey, TElement>(this IAsyncQuery<TSource> source, [InstantHandle] Func<TSource, TKey> keySelector, [InstantHandle] Func<TSource, TElement> elementSelector, IEqualityComparer<TKey>? comparer = null)
 			where TKey: notnull
 		{
 			Contract.NotNull(keySelector);
 			Contract.NotNull(elementSelector);
+
+			if (source is IAsyncLinqQuery<TSource> query)
+			{
+				return query.ToDictionaryAsync(keySelector, elementSelector, comparer);
+			}
 
 			return AggregateAsync(
 				source,
@@ -666,38 +838,32 @@ namespace Doxense.Linq
 					ElementSelector: elementSelector
 				),
 				static (s, x) => s.Results.Add(s.KeySelector(x), s.ElementSelector(x)),
-				static (s) => s.Results,
-				ct
+				static (s) => s.Results
 			);
 		}
 
 		/// <summary>Creates a Dictionary from an async sequence of pairs of keys and values.</summary>
-		public static Task<Dictionary<TKey, TValue>> ToDictionaryAsync<TKey, TValue>(this IAsyncEnumerable<KeyValuePair<TKey, TValue>> source, IEqualityComparer<TKey>? comparer = null, CancellationToken ct = default)
+		public static Task<Dictionary<TKey, TValue>> ToDictionaryAsync<TKey, TValue>(this IAsyncQuery<KeyValuePair<TKey, TValue>> source, IEqualityComparer<TKey>? comparer = null)
 			where TKey: notnull
 		{
-			Contract.NotNull(source);
-			ct.ThrowIfCancellationRequested();
-
-			return AggregateAsync(
-				source,
-				new Dictionary<TKey, TValue>(comparer ?? EqualityComparer<TKey>.Default),
-				(results, x) => { results[x.Key] = x.Value; },
-				ct
-			);
+			return ToDictionaryAsync(source, kv => kv.Key, kv => kv.Value, comparer);
 		}
 
-		/// <summary>Create an Hashset from an async sequence.</summary>
-		public static Task<HashSet<T>> ToHashSetAsync<T>(this IAsyncEnumerable<T> source, IEqualityComparer<T>? comparer = null, CancellationToken ct = default)
+		/// <summary>Creates a Hashset from an async sequence.</summary>
+		public static Task<HashSet<T>> ToHashSetAsync<T>(this IAsyncQuery<T> source, IEqualityComparer<T>? comparer = null)
 		{
 			Contract.NotNull(source);
-			ct.ThrowIfCancellationRequested();
+
+			if (source is IAsyncLinqQuery<T> query)
+			{
+				return query.ToHashSetAsync(comparer);
+			}
 
 			return AggregateAsync(
 				source,
 				new Buffer<T>(0, ArrayPool<T>.Shared),
 				(buffer, x) => buffer.Add(x),
-				(buffer) => buffer.ToHashSetAndClear(comparer),
-				ct
+				(buffer) => buffer.ToHashSetAndClear(comparer)
 			);
 		}
 
@@ -706,19 +872,18 @@ namespace Doxense.Linq
 		#region Aggregate...
 
 		/// <summary>Applies an accumulator function over an async sequence.</summary>
-		public static async Task<TSource> AggregateAsync<TSource>(this IAsyncEnumerable<TSource> source, [InstantHandle] Func<TSource, TSource, TSource> aggregator, CancellationToken ct = default)
+		public static async Task<TSource> AggregateAsync<TSource>(this IAsyncQuery<TSource> source, [InstantHandle] Func<TSource, TSource, TSource> aggregator)
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(aggregator);
 
-			ct.ThrowIfCancellationRequested();
-			await using (var iterator = source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, AsyncIterationHint.All) : source.GetAsyncEnumerator(ct))
+			await using (var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All))
 			{
 				Contract.Debug.Assert(iterator != null, "The sequence returned a null async iterator");
 
 				if (!(await iterator.MoveNextAsync().ConfigureAwait(false)))
 				{
-					throw new InvalidOperationException("The sequence was empty");
+					throw ErrorNoElements();
 				}
 
 				var item = iterator.Current;
@@ -732,19 +897,19 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Applies an accumulator function over an async sequence.</summary>
-		public static async Task<TAggregate> AggregateAsync<TSource, TAggregate>(this IAsyncEnumerable<TSource> source, TAggregate seed, [InstantHandle] Func<TAggregate, TSource, TAggregate> aggregator, CancellationToken ct = default)
+		public static async Task<TAggregate> AggregateAsync<TSource, TAggregate>(this IAsyncQuery<TSource> source, TAggregate seed, [InstantHandle] Func<TAggregate, TSource, TAggregate> aggregator)
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(aggregator);
 
 			//TODO: optimize this to not have to allocate lambdas!
 			var accumulate = seed;
-			await ForEachAsync(source, (x) => { accumulate = aggregator(accumulate, x); }, ct).ConfigureAwait(false);
+			await ForEachAsync(source, (x) => { accumulate = aggregator(accumulate, x); }).ConfigureAwait(false);
 			return accumulate;
 		}
 
 		/// <summary>Applies an accumulator function over an async sequence.</summary>
-		public static async Task<TAggregate> AggregateAsync<TSource, TAggregate>(this IAsyncEnumerable<TSource> source, TAggregate seed, [InstantHandle] Action<TAggregate, TSource> aggregator, CancellationToken ct = default)
+		public static async Task<TAggregate> AggregateAsync<TSource, TAggregate>(this IAsyncQuery<TSource> source, TAggregate seed, [InstantHandle] Action<TAggregate, TSource> aggregator)
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(aggregator);
@@ -752,27 +917,26 @@ namespace Doxense.Linq
 			await ForEachAsync(
 				source,
 				(Fn: aggregator, Acc: seed),
-				static (s, x) => s.Fn(s.Acc, x),
-				ct
+				static (s, x) => s.Fn(s.Acc, x)
 			).ConfigureAwait(false);
 
 			return seed;
 		}
 
 		/// <summary>Applies an accumulator function over an async sequence.</summary>
-		public static async Task<TResult> AggregateAsync<TSource, TAggregate, TResult>(this IAsyncEnumerable<TSource> source, TAggregate seed, [InstantHandle] Func<TAggregate, TSource, TAggregate> aggregator, [InstantHandle] Func<TAggregate, TResult> resultSelector, CancellationToken ct = default)
+		public static async Task<TResult> AggregateAsync<TSource, TAggregate, TResult>(this IAsyncQuery<TSource> source, TAggregate seed, [InstantHandle] Func<TAggregate, TSource, TAggregate> aggregator, [InstantHandle] Func<TAggregate, TResult> resultSelector)
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(aggregator);
 			Contract.NotNull(resultSelector);
 
 			var accumulate = seed;
-			await ForEachAsync(source, (x) => { accumulate = aggregator(accumulate, x); }, ct).ConfigureAwait(false);
+			await ForEachAsync(source, (x) => { accumulate = aggregator(accumulate, x); }).ConfigureAwait(false);
 			return resultSelector(accumulate);
 		}
 
 		/// <summary>Applies an accumulator function over an async sequence.</summary>
-		public static async Task<TResult> AggregateAsync<TSource, TAggregate, TResult>(this IAsyncEnumerable<TSource> source, TAggregate seed, [InstantHandle] Action<TAggregate, TSource> aggregator, [InstantHandle] Func<TAggregate, TResult> resultSelector, CancellationToken ct = default)
+		public static async Task<TResult> AggregateAsync<TSource, TAggregate, TResult>(this IAsyncQuery<TSource> source, TAggregate seed, [InstantHandle] Action<TAggregate, TSource> aggregator, [InstantHandle] Func<TAggregate, TResult> resultSelector)
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(aggregator);
@@ -781,8 +945,7 @@ namespace Doxense.Linq
 			await ForEachAsync(
 				source,
 				(Fn: aggregator, Acc: seed),
-				static (s, x) => s.Fn(s.Acc, x), 
-				ct
+				static (s, x) => s.Fn(s.Acc, x)
 			).ConfigureAwait(false);
 
 			return resultSelector(seed);
@@ -790,209 +953,513 @@ namespace Doxense.Linq
 
 		#endregion
 
-		#region First/Last/Single...
+		#region First...
 
 		/// <summary>Returns the first element of an async sequence, or an exception if it is empty</summary>
-		public static Task<T> FirstAsync<T>(this IAsyncEnumerable<T> source, CancellationToken ct = default)
+		public static Task<T> FirstAsync<T>(this IAsyncQuery<T> source)
 		{
 			Contract.NotNull(source);
-			ct.ThrowIfCancellationRequested();
 
-			//TODO:REFACTORING: create some interface or base class for this?
-			//var rq = source as FdbRangeQuery<T>;
-			//if (rq != null) return rq.FirstAsync();
+			if (source is IAsyncLinqQuery<T> query)
+			{
+				return query.FirstAsync();
+			}
 
-			return Head(source, single: false, orDefault: false, ct: ct);
+			return Impl(source);
+
+			static async Task<T> Impl(IAsyncQuery<T> source)
+			{
+				await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Head);
+
+				if (await iterator.MoveNextAsync().ConfigureAwait(false))
+				{
+					return iterator.Current;
+				}
+
+				throw ErrorNoElements();
+			}
 		}
 
 		/// <summary>Returns the first element of an async sequence, or an exception if it is empty</summary>
-		public static Task<T> FirstAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, bool> predicate, CancellationToken ct = default)
+		public static Task<T> FirstAsync<T>(this IAsyncQuery<T> source, [InstantHandle] Func<T, bool> predicate)
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(predicate);
-			ct.ThrowIfCancellationRequested();
 
-			//TODO:REFACTORING: create some interface or base class for this?
-			//var rq = source as FdbRangeQuery<T>;
-			//if (rq != null) return rq.FirstAsync();
+			if (source is IAsyncLinqQuery<T> query)
+			{
+				return query.FirstAsync(predicate);
+			}
 
-			//TODO: PERF: custom implementation for this?
-			return Head(source.Where(predicate), single: false, orDefault: false, ct: ct);
+			return Impl(source, predicate);
+
+			static async Task<T> Impl(IAsyncQuery<T> source, Func<T, bool> predicate)
+			{
+				await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Iterator);
+
+				while(await iterator.MoveNextAsync().ConfigureAwait(false))
+				{
+					if (predicate(iterator.Current))
+					{
+						return iterator.Current;
+					}
+				}
+
+				throw ErrorNoElements();
+			}
 		}
 
-		/// <summary>Returns the first element of an async sequence, or the default value for the type if it is empty</summary>
-		public static Task<T> FirstOrDefaultAsync<T>(this IAsyncEnumerable<T> source, CancellationToken ct = default)
-		{
-			Contract.NotNull(source);
-			ct.ThrowIfCancellationRequested();
-
-			//TODO:REFACTORING: create some interface or base class for this?
-			//var rq = source as FdbRangeQuery<T>;
-			//if (rq != null) return rq.FirstOrDefaultAsync();
-
-			return Head(source, single: false, orDefault: true, ct: ct);
-		}
-
-		/// <summary>Returns the first element of an async sequence, or the default value for the type if it is empty</summary>
-		public static Task<T> FirstOrDefaultAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, bool> predicate, CancellationToken ct = default)
+		/// <summary>Returns the first element of an async sequence, or an exception if it is empty</summary>
+		public static Task<T> FirstAsync<T>(this IAsyncQuery<T> source, [InstantHandle] Func<T, CancellationToken, Task<bool>> predicate)
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(predicate);
-			ct.ThrowIfCancellationRequested();
 
-			//TODO:REFACTORING: create some interface or base class for this?
-			//var rq = source as FdbRangeQuery<T>;
-			//if (rq != null) return rq.FirstOrDefaultAsync();
+			if (source is IAsyncLinqQuery<T> query)
+			{
+				return query.FirstAsync(predicate);
+			}
 
-			//TODO: PERF: custom implementation for this?
-			return Head(source.Where(predicate), single: false, orDefault: true, ct: ct);
+			return Impl(source, predicate);
+
+			static async Task<T> Impl(IAsyncQuery<T> source, Func<T, CancellationToken, Task<bool>> predicate)
+			{
+				await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Iterator);
+
+				var ct = source.Cancellation;
+				while(await iterator.MoveNextAsync().ConfigureAwait(false))
+				{
+					if (await predicate(iterator.Current, ct).ConfigureAwait(false))
+					{
+						return iterator.Current;
+					}
+				}
+
+				throw ErrorNoElements();
+			}
+		}
+
+		#endregion
+
+		#region FirstOrDefaultAsync...
+
+		/// <summary>Returns the first element of an async sequence, or the default value for the type if it is empty</summary>
+		public static Task<T?> FirstOrDefaultAsync<T>(this IAsyncQuery<T> source)
+			=> FirstOrDefaultAsync(source, default(T?));
+
+		/// <summary>Returns the first element of an async sequence, or the default value for the type if it is empty</summary>
+		public static Task<T> FirstOrDefaultAsync<T>(this IAsyncQuery<T> source, T defaultValue)
+		{
+			Contract.NotNull(source);
+
+			if (source is IAsyncLinqQuery<T> query)
+			{
+				return query.FirstOrDefaultAsync(defaultValue);
+			}
+
+			return Impl(source, defaultValue);
+
+			static async Task<T> Impl(IAsyncQuery<T> source, T defaultValue)
+			{
+				await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Head);
+
+				if (await iterator.MoveNextAsync().ConfigureAwait(false))
+				{
+					return iterator.Current;
+				}
+
+				return defaultValue;
+			}
+		}
+
+		/// <summary>Returns the first element of an async sequence, or the default value for the type if it is empty</summary>
+		public static Task<T?> FirstOrDefaultAsync<T>(this IAsyncQuery<T> source, [InstantHandle] Func<T, bool> predicate)
+			=> FirstOrDefaultAsync(source, predicate!, default(T?));
+
+		/// <summary>Returns the first element of an async sequence, or the default value for the type if it is empty</summary>
+		public static Task<T> FirstOrDefaultAsync<T>(this IAsyncQuery<T> source, [InstantHandle] Func<T, bool> predicate, T defaultValue)
+		{
+			Contract.NotNull(source);
+			Contract.NotNull(predicate);
+
+			if (source is IAsyncLinqQuery<T> query)
+			{
+				return query.FirstOrDefaultAsync(predicate, defaultValue);
+			}
+
+			return Impl(source, predicate, defaultValue);
+
+			static async Task<T> Impl(IAsyncQuery<T> source, Func<T, bool> predicate, T defaultValue)
+			{
+				await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Iterator);
+
+				while(await iterator.MoveNextAsync().ConfigureAwait(false))
+				{
+					if (predicate(iterator.Current))
+					{
+						return iterator.Current;
+					}
+				}
+
+				return defaultValue;
+			}
+		}
+
+		/// <summary>Returns the first element of an async sequence, or the default value for the type if it is empty</summary>
+		public static Task<T?> FirstOrDefaultAsync<T>(this IAsyncQuery<T> source, [InstantHandle] Func<T, CancellationToken, Task<bool>> predicate)
+			=> FirstOrDefaultAsync(source, predicate!, default(T?));
+
+		/// <summary>Returns the first element of an async sequence, or the default value for the type if it is empty</summary>
+		public static Task<T> FirstOrDefaultAsync<T>(this IAsyncQuery<T> source, [InstantHandle] Func<T, CancellationToken, Task<bool>> predicate, T defaultValue)
+		{
+			Contract.NotNull(source);
+			Contract.NotNull(predicate);
+
+			if (source is IAsyncLinqQuery<T> query)
+			{
+				return query.FirstOrDefaultAsync(predicate, defaultValue);
+			}
+
+			return Impl(source, predicate, defaultValue);
+
+			static async Task<T> Impl(IAsyncQuery<T> source, Func<T, CancellationToken, Task<bool>> predicate, T defaultValue)
+			{
+				await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Iterator);
+
+				var ct = source.Cancellation;
+				while(await iterator.MoveNextAsync().ConfigureAwait(false))
+				{
+					if (await predicate(iterator.Current,ct).ConfigureAwait(false))
+					{
+						return iterator.Current;
+					}
+				}
+
+				return defaultValue;
+			}
+		}
+
+		#endregion
+
+		#region SingleAsync...
+
+		/// <summary>Returns the first and only element of an async sequence, or an exception if it is empty or have two or more elements</summary>
+		/// <remarks>Will need to call MoveNext at least twice to ensure that there is no second element.</remarks>
+		public static Task<T> SingleAsync<T>(this IAsyncQuery<T> source)
+		{
+			Contract.NotNull(source);
+
+			if (source is IAsyncLinqQuery<T> query)
+			{
+				return query.SingleAsync();
+			}
+
+			return Head(source, single: true, orDefault: false, default!);
 		}
 
 		/// <summary>Returns the first and only element of an async sequence, or an exception if it is empty or have two or more elements</summary>
 		/// <remarks>Will need to call MoveNext at least twice to ensure that there is no second element.</remarks>
-		public static Task<T> SingleAsync<T>(this IAsyncEnumerable<T> source, CancellationToken ct = default)
+		public static Task<T> SingleAsync<T>(this IAsyncQuery<T> source, [InstantHandle] Func<T, bool> predicate)
 		{
 			Contract.NotNull(source);
-			ct.ThrowIfCancellationRequested();
+			Contract.NotNull(predicate);
 
-			//TODO:REFACTORING: create some interface or base class for this?
-			//var rq = source as FdbRangeQuery<T>;
-			//if (rq != null) return rq.SingleAsync();
+			if (source is IAsyncLinqQuery<T> query)
+			{
+				return query.SingleAsync(predicate);
+			}
 
-			return Head(source, single: true, orDefault: false, ct: ct);
+			return Head(source.Where(predicate), single: true, orDefault: false, default!);
 		}
 
 		/// <summary>Returns the first and only element of an async sequence, or an exception if it is empty or have two or more elements</summary>
 		/// <remarks>Will need to call MoveNext at least twice to ensure that there is no second element.</remarks>
-		public static Task<T> SingleAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, bool> predicate, CancellationToken ct = default)
+		public static Task<T> SingleAsync<T>(this IAsyncQuery<T> source, [InstantHandle] Func<T, CancellationToken, Task<bool>> predicate)
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(predicate);
-			ct.ThrowIfCancellationRequested();
 
-			//TODO:REFACTORING: create some interface or base class for this?
-			//var rq = source as FdbRangeQuery<T>;
-			//if (rq != null) return rq.SingleAsync();
+			if (source is IAsyncLinqQuery<T> query)
+			{
+				return query.SingleAsync(predicate);
+			}
 
-			//TODO: PERF: custom implementation for this?
-			return Head(source.Where(predicate), single: true, orDefault: false, ct: ct);
+			return Head(source.Where(predicate), single: true, orDefault: false, default!);
+		}
+
+		#endregion
+
+		#region SingleOrDefaultAsync...
+
+		/// <summary>Returns the first and only element of an async sequence, the default value for the type if it is empty, or an exception if it has two or more elements</summary>
+		/// <remarks>Will need to call MoveNext at least twice to ensure that there is no second element.</remarks>
+		public static Task<T?> SingleOrDefaultAsync<T>(this IAsyncQuery<T> source) => SingleOrDefaultAsync(source, default(T?));
+
+		/// <summary>Returns the first and only element of an async sequence, the default value for the type if it is empty, or an exception if it has two or more elements</summary>
+		/// <remarks>Will need to call MoveNext at least twice to ensure that there is no second element.</remarks>
+		public static Task<T> SingleOrDefaultAsync<T>(this IAsyncQuery<T> source, T defaultValue)
+		{
+			Contract.NotNull(source);
+
+			if (source is IAsyncLinqQuery<T> query)
+			{
+				return query.SingleOrDefaultAsync(defaultValue);
+			}
+
+			return Head(source, single: true, orDefault: true, defaultValue);
 		}
 
 		/// <summary>Returns the first and only element of an async sequence, the default value for the type if it is empty, or an exception if it has two or more elements</summary>
 		/// <remarks>Will need to call MoveNext at least twice to ensure that there is no second element.</remarks>
-		public static Task<T> SingleOrDefaultAsync<T>(this IAsyncEnumerable<T> source, CancellationToken ct = default)
+		public static Task<T?> SingleOrDefaultAsync<T>(this IAsyncQuery<T> source, [InstantHandle] Func<T, bool> predicate) => SingleOrDefaultAsync(source, predicate!, default(T?));
+
+		/// <summary>Returns the first and only element of an async sequence, the default value for the type if it is empty, or an exception if it has two or more elements</summary>
+		/// <remarks>Will need to call MoveNext at least twice to ensure that there is no second element.</remarks>
+		public static Task<T> SingleOrDefaultAsync<T>(this IAsyncQuery<T> source, [InstantHandle] Func<T, bool> predicate, T defaultValue)
 		{
 			Contract.NotNull(source);
-			ct.ThrowIfCancellationRequested();
+			Contract.NotNull(predicate);
 
-			//TODO:REFACTORING: create some interface or base class for this?
-			//var rq = source as FdbRangeQuery<T>;
-			//if (rq != null) return rq.SingleOrDefaultAsync();
+			if (source is IAsyncLinqQuery<T> query)
+			{
+				return query.SingleOrDefaultAsync(predicate, defaultValue);
+			}
 
-			return Head(source, single: true, orDefault: true, ct: ct);
+			return Head(source.Where(predicate), single: true, orDefault: true, defaultValue);
 		}
 
 		/// <summary>Returns the first and only element of an async sequence, the default value for the type if it is empty, or an exception if it has two or more elements</summary>
 		/// <remarks>Will need to call MoveNext at least twice to ensure that there is no second element.</remarks>
-		public static Task<T> SingleOrDefaultAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, bool> predicate, CancellationToken ct = default)
+		public static Task<T?> SingleOrDefaultAsync<T>(this IAsyncQuery<T> source, [InstantHandle] Func<T, CancellationToken, Task<bool>> predicate) => SingleOrDefaultAsync(source, predicate!, default(T?));
+
+		/// <summary>Returns the first and only element of an async sequence, the default value for the type if it is empty, or an exception if it has two or more elements</summary>
+		/// <remarks>Will need to call MoveNext at least twice to ensure that there is no second element.</remarks>
+		public static Task<T> SingleOrDefaultAsync<T>(this IAsyncQuery<T> source, [InstantHandle] Func<T, CancellationToken, Task<bool>> predicate, T defaultValue)
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(predicate);
-			ct.ThrowIfCancellationRequested();
 
-			//TODO:REFACTORING: create some interface or base class for this?
-			//var rq = source as FdbRangeQuery<T>;
-			//if (rq != null) return rq.SingleOrDefaultAsync();
+			if (source is IAsyncLinqQuery<T> query)
+			{
+				return query.SingleOrDefaultAsync(predicate, defaultValue);
+			}
 
-			return Head(source.Where(predicate), single: true, orDefault: true, ct: ct);
+			return Head(source.Where(predicate), single: true, orDefault: true, defaultValue);
+		}
+
+		#endregion
+
+		#region LastAsync...
+
+		/// <summary>Returns the last element of an async sequence, or an exception if it is empty</summary>
+		public static Task<T> LastAsync<T>(this IAsyncQuery<T> source)
+		{
+			Contract.NotNull(source);
+
+			if (source is IAsyncLinqQuery<T> query)
+			{
+				return query.LastAsync();
+			}
+
+			return Impl(source);
+
+			static async Task<T> Impl(IAsyncQuery<T> source)
+			{
+				await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+				bool found = false;
+				T last = default!;
+
+				while(await iterator.MoveNextAsync().ConfigureAwait(false))
+				{
+					found = true;
+					last = iterator.Current;
+				}
+
+				return found ? last : throw ErrorNoElements();
+			}
 		}
 
 		/// <summary>Returns the last element of an async sequence, or an exception if it is empty</summary>
-		public static async Task<T> LastAsync<T>(this IAsyncEnumerable<T> source, CancellationToken ct = default)
+		public static Task<T> LastAsync<T>(this IAsyncQuery<T> source, [InstantHandle] Func<T, bool> predicate)
 		{
 			Contract.NotNull(source);
-			ct.ThrowIfCancellationRequested();
+			Contract.NotNull(predicate);
 
-			//TODO:REFACTORING: create some interface or base class for this?
-			//var rq = source as FdbRangeQuery<T>;
-			//if (rq != null) return await rq.LastAsync();
+			if (source is IAsyncLinqQuery<T> query)
+			{
+				return query.LastAsync(predicate);
+			}
 
-			bool found = false;
-			T last = default!;
+			return Impl(source, predicate);
 
-			await ForEachAsync(source, (x) => { found = true; last = x; }, ct).ConfigureAwait(false);
+			static async Task<T> Impl(IAsyncQuery<T> source, Func<T, bool> predicate)
+			{
+				await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
 
-			if (!found) throw new InvalidOperationException("The sequence was empty");
-			return last;
+				T result = default!;
+				bool found = false;
+				while (await iterator.MoveNextAsync().ConfigureAwait(false))
+				{
+					var item = iterator.Current;
+					if (predicate(item))
+					{
+						found = true;
+						result = item;
+					}
+				}
+
+				return found ? result : throw ErrorNoElements();
+			}
 		}
 
 		/// <summary>Returns the last element of an async sequence, or an exception if it is empty</summary>
-		public static async Task<T> LastAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, bool> predicate, CancellationToken ct = default)
+		public static Task<T> LastAsync<T>(this IAsyncQuery<T> source, [InstantHandle] Func<T, CancellationToken, Task<bool>> predicate)
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(predicate);
-			ct.ThrowIfCancellationRequested();
 
-			//TODO:REFACTORING: create some interface or base class for this?
-			//var rq = source as FdbRangeQuery<T>;
-			//if (rq != null) return await rq.LastAsync();
+			if (source is IAsyncLinqQuery<T> query)
+			{
+				return query.LastAsync(predicate);
+			}
 
-			bool found = false;
-			T last = default!;
+			return Impl(source, predicate);
 
-			await ForEachAsync(source, (x) => { if (predicate(x)) { found = true; last = x; } }, ct).ConfigureAwait(false);
+			static async Task<T> Impl(IAsyncQuery<T> source, Func<T, CancellationToken, Task<bool>> predicate)
+			{
+				await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
 
-			if (!found) throw new InvalidOperationException("The sequence was empty");
-			return last;
+				T result = default!;
+				bool found = false;
+				var ct = source.Cancellation;
+				while (await iterator.MoveNextAsync().ConfigureAwait(false))
+				{
+					var item = iterator.Current;
+					if (await predicate(item, ct).ConfigureAwait(false))
+					{
+						found = true;
+						result = item;
+					}
+				}
+
+				return found ? result : throw ErrorNoElements();
+			}
+		}
+
+		#endregion
+
+		#region LastOrDefaultAsync...
+
+		/// <summary>Returns the last element of an async sequence, or the default value for the type if it is empty</summary>
+		public static Task<T?> LastOrDefaultAsync<T>(this IAsyncQuery<T> source) => LastOrDefaultAsync(source, default(T?));
+
+		/// <summary>Returns the last element of an async sequence, or the default value for the type if it is empty</summary>
+		public static Task<T> LastOrDefaultAsync<T>(this IAsyncQuery<T> source, T defaultValue)
+		{
+			Contract.NotNull(source);
+
+			if (source is IAsyncLinqQuery<T> query)
+			{
+				return query.LastOrDefaultAsync(defaultValue);
+			}
+
+			return Impl(source, defaultValue);
+
+			static async Task<T> Impl(IAsyncQuery<T> source, T defaultValue)
+			{
+				await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+				if (!await iterator.MoveNextAsync().ConfigureAwait(false))
+				{
+					return defaultValue;
+				}
+
+				T result;
+				do
+				{
+					result = iterator.Current;
+				}
+				while (await iterator.MoveNextAsync().ConfigureAwait(false));
+
+				return result;
+			}
 		}
 
 		/// <summary>Returns the last element of an async sequence, or the default value for the type if it is empty</summary>
-		public static async Task<T> LastOrDefaultAsync<T>(this IAsyncEnumerable<T> source, CancellationToken ct = default)
+		public static Task<T?> LastOrDefaultAsync<T>(this IAsyncQuery<T> source, [InstantHandle] Func<T, bool> predicate) => LastOrDefaultAsync(source, predicate!, default(T?));
+
+		/// <summary>Returns the last element of an async sequence, or the default value for the type if it is empty</summary>
+		public static Task<T> LastOrDefaultAsync<T>(this IAsyncQuery<T> source, [InstantHandle] Func<T, bool> predicate, T defaultValue)
 		{
 			Contract.NotNull(source);
-			ct.ThrowIfCancellationRequested();
 
-			//TODO:REFACTORING: create some interface or base class for this?
-			//var rq = source as FdbRangeQuery<T>;
-			//if (rq != null) return await rq.LastOrDefaultAsync();
+			if (source is IAsyncLinqQuery<T> query)
+			{
+				return query.LastOrDefaultAsync(predicate, defaultValue);
+			}
 
-			bool found = false;
-			T last = default!;
+			return Impl(source, predicate, defaultValue);
 
-			await ForEachAsync(source, (x) => { found = true; last = x; }, ct).ConfigureAwait(false);
+			static async Task<T> Impl(IAsyncQuery<T> source, Func<T, bool> predicate, T defaultValue)
+			{
+				await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
 
-			return found ? last : default!;
+				T result = defaultValue;
+				while (await iterator.MoveNextAsync().ConfigureAwait(false))
+				{
+					var item = iterator.Current;
+					if (predicate(item))
+					{
+						result = iterator.Current;
+					}
+				}
+				return result;
+			}
 		}
 
 		/// <summary>Returns the last element of an async sequence, or the default value for the type if it is empty</summary>
-		public static async Task<T> LastOrDefaultAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, bool> predicate, CancellationToken ct = default)
+		public static Task<T?> LastOrDefaultAsync<T>(this IAsyncQuery<T> source, [InstantHandle] Func<T, CancellationToken, Task<bool>> predicate) => LastOrDefaultAsync(source, predicate!, default(T?));
+
+		/// <summary>Returns the last element of an async sequence, or the default value for the type if it is empty</summary>
+		public static Task<T> LastOrDefaultAsync<T>(this IAsyncQuery<T> source, [InstantHandle] Func<T, CancellationToken, Task<bool>> predicate, T defaultValue)
 		{
 			Contract.NotNull(source);
-			Contract.NotNull(predicate);
-			ct.ThrowIfCancellationRequested();
 
-			//TODO:REFACTORING: create some interface or base class for this?
-			//var rq = source as FdbRangeQuery<T>;
-			//if (rq != null) return await rq.LastOrDefaultAsync();
+			if (source is IAsyncLinqQuery<T> query)
+			{
+				return query.LastOrDefaultAsync(predicate, defaultValue);
+			}
 
-			bool found = false;
-			T last = default!;
+			return Impl(source, predicate, defaultValue);
 
-			await ForEachAsync(source, (x) => { if (predicate(x)) { found = true; last = x; } }, ct).ConfigureAwait(false);
+			static async Task<T> Impl(IAsyncQuery<T> source, Func<T, CancellationToken, Task<bool>> predicate, T defaultValue)
+			{
+				await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
 
-			return found ? last : default!;
+				T result = defaultValue;
+				var ct = source.Cancellation;
+				while (await iterator.MoveNextAsync().ConfigureAwait(false))
+				{
+					var item = iterator.Current;
+					if (await predicate(item, ct).ConfigureAwait(false))
+					{
+						result = iterator.Current;
+					}
+				}
+				return result;
+			}
 		}
+
+		#endregion
+
+		#region ElemetAtAsync...
 
 		/// <summary>Returns the element at a specific location of an async sequence, or an exception if there are not enough elements</summary>
-		public static async Task<T> ElementAtAsync<T>(this IAsyncEnumerable<T> source, int index, CancellationToken ct = default)
+		public static async Task<T> ElementAtAsync<T>(this IAsyncQuery<T> source, int index)
 		{
 			Contract.NotNull(source);
 			if (index < 0) throw new ArgumentOutOfRangeException(nameof(index));
-			ct.ThrowIfCancellationRequested();
-
-			//TODO:REFACTORING: create some interface or base class for this?
-			//var rq = source as FdbRangeQuery<T>;
-			//if (rq != null) return await rq.Skip(index).SingleAsync();
 
 			int counter = index;
 			T item = default!;
@@ -1003,24 +1470,18 @@ namespace Doxense.Linq
 				{
 					if (counter-- == 0) { item = x; return false; }
 					return true;
-				},
-				ct
+				}
 			).ConfigureAwait(false);
 
 			if (counter >= 0) throw new InvalidOperationException("The sequence was too small");
 			return item;
 		}
 
-		/// <summary>Returns the element at a specific location of an async sequence, or the default value for the type if it there are not enough elements</summary>
-		public static async Task<T> ElementAtOrDefaultAsync<T>(this IAsyncEnumerable<T> source, int index, CancellationToken ct = default)
+		/// <summary>Returns the element at a specific location of an async sequence, or the default value for the type if there are not enough elements</summary>
+		public static async Task<T> ElementAtOrDefaultAsync<T>(this IAsyncQuery<T> source, int index)
 		{
 			Contract.NotNull(source);
 			if (index < 0) throw new ArgumentOutOfRangeException(nameof(index));
-			ct.ThrowIfCancellationRequested();
-
-			//TODO:REFACTORING: create some interface or base class for this?
-			//var rq = source as FdbRangeQuery<T>;
-			//if (rq != null) return await rq.Skip(index).SingleAsync();
 
 			int counter = index;
 			T item = default!;
@@ -1033,8 +1494,7 @@ namespace Doxense.Linq
 				{
 					if (counter-- == 0) { item = x; return false; }
 					return true;
-				},
-				ct
+				}
 			).ConfigureAwait(false);
 
 			if (counter >= 0) return default!;
@@ -1043,152 +1503,589 @@ namespace Doxense.Linq
 
 		#endregion
 
-		#region Count/Sum...
+		#region CountAsync...
 
 		/// <summary>Returns the number of elements in an async sequence.</summary>
-		public static async Task<int> CountAsync<T>(this IAsyncEnumerable<T> source, CancellationToken ct = default)
+		public static Task<int> CountAsync<T>(this IAsyncQuery<T> source)
 		{
 			Contract.NotNull(source);
-			ct.ThrowIfCancellationRequested();
 
-			int count = 0;
+			if (source is IAsyncLinqQuery<T> query)
+			{
+				return query.CountAsync();
+			}
 
-			await ForEachAsync(source, (_) => { ++count; }, ct).ConfigureAwait(false);
+			return Impl(source);
 
-			return count;
+			static async Task<int> Impl(IAsyncQuery<T> source)
+			{
+				int count = 0;
+				await ForEachAsync(source, (_) => { ++count; }).ConfigureAwait(false);
+				return count;
+			}
 		}
 
 		/// <summary>Returns a number that represents how many elements in the specified async sequence satisfy a condition.</summary>
-		public static async Task<int> CountAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, bool> predicate, CancellationToken ct = default)
+		public static Task<int> CountAsync<T>(this IAsyncQuery<T> source, [InstantHandle] Func<T, bool> predicate)
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(predicate);
-			ct.ThrowIfCancellationRequested();
 
-			int count = 0;
+			if (source is IAsyncLinqQuery<T> query)
+			{
+				return query.CountAsync(predicate);
+			}
 
-			await ForEachAsync(source, (x) => { if (predicate(x)) ++count; }, ct).ConfigureAwait(false);
+			return Impl(source, predicate);
 
-			return count;
+			static async Task<int> Impl(IAsyncQuery<T> source, Func<T, bool> predicate)
+			{
+				int count = 0;
+
+				await ForEachAsync(source, (x) =>
+				{
+					if (predicate(x))
+					{
+						checked { ++count; }
+					}
+				}).ConfigureAwait(false);
+
+				return count;
+			}
 		}
 
-		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
-		public static Task<uint> SumAsync(this IAsyncEnumerable<uint> source, CancellationToken ct = default)
+		/// <summary>Returns a number that represents how many elements in the specified async sequence satisfy a condition.</summary>
+		public static Task<int> CountAsync<T>(this IAsyncQuery<T> source, [InstantHandle] Func<T, CancellationToken, Task<bool>> predicate)
+		{
+			Contract.NotNull(source);
+			Contract.NotNull(predicate);
+
+			if (source is IAsyncLinqQuery<T> query)
+			{
+				return query.CountAsync(predicate);
+			}
+
+			return Impl(source, predicate);
+
+			static async Task<int> Impl(IAsyncQuery<T> source, Func<T, CancellationToken, Task<bool>> predicate)
+			{
+				int count = 0;
+
+				await ForEachAsync(source, async (x, ct) => {
+					if (await predicate(x, ct).ConfigureAwait(false))
+					{
+						checked { ++count; }
+					}
+				}).ConfigureAwait(false);
+
+				return count;
+			}
+		}
+
+		#endregion
+
+		#region SumAsync...
+
+		/// <summary>Returns the sum of all elements in the specified async sequence that satisfy a condition.</summary>
+		public static Task<T> SumAsync<T>(this IAsyncQuery<T> source)
+			where T : INumberBase<T>
 		{
 			Contract.NotNull(source);
 
-			return AggregateAsync(source, 0U, (sum, x) => checked(sum + x), ct);
+			if (source is IAsyncLinqQuery<T> query)
+			{
+				return query.SumAsync();
+			}
+
+			if (typeof(T) == typeof(int)) return (Task<T>) (object) SumAsyncInt32Impl((IAsyncQuery<int>) source);
+			if (typeof(T) == typeof(long)) return (Task<T>) (object) SumAsyncInt64Impl((IAsyncQuery<long>) source);
+			if (typeof(T) == typeof(float)) return (Task<T>) (object) SumAsyncFloatImpl((IAsyncQuery<float>) source);
+			if (typeof(T) == typeof(double)) return (Task<T>) (object) SumAsyncDoubleImpl((IAsyncQuery<double>) source);
+			if (typeof(T) == typeof(decimal)) return (Task<T>) (object) SumAsyncDecimalImpl((IAsyncQuery<decimal>) source);
+
+			return SumAsyncImpl(source);
+		}
+
+		internal static async Task<T> SumAsyncImpl<T>(IAsyncQuery<T> source) where T : INumberBase<T>
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			T sum = T.Zero;
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				sum = checked(sum + iterator.Current);
+			}
+
+			return sum;
 		}
 
 		/// <summary>Returns the sum of all elements in the specified async sequence that satisfy a condition.</summary>
-		public static Task<uint> SumAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, uint> selector, CancellationToken ct = default)
+		public static Task<T?> SumAsync<T>(this IAsyncQuery<T?> source)
+			where T : struct, INumberBase<T>
 		{
 			Contract.NotNull(source);
-			Contract.NotNull(selector);
 
-			return AggregateAsync(source, 0U, (sum, x) => checked(sum + selector(x)), ct);
+			if (source is IAsyncLinqQuery<T?> query)
+			{
+				return query.SumAsync();
+			}
+
+			if (typeof(T) == typeof(int)) return (Task<T?>) (object) SumAsyncInt32Impl((IAsyncQuery<int?>) source);
+			if (typeof(T) == typeof(long)) return (Task<T?>) (object) SumAsyncInt64Impl((IAsyncQuery<long?>) source);
+			if (typeof(T) == typeof(float)) return (Task<T?>) (object) SumAsyncFloatImpl((IAsyncQuery<float?>) source);
+			if (typeof(T) == typeof(double)) return (Task<T?>) (object) SumAsyncDoubleImpl((IAsyncQuery<double?>) source);
+			if (typeof(T) == typeof(decimal)) return (Task<T?>) (object) SumAsyncDecimalImpl((IAsyncQuery<decimal?>) source);
+
+			return SumAsyncNullableImpl(source);
+		}
+
+		internal static async Task<T?> SumAsyncNullableImpl<T>(IAsyncQuery<T?> source) where T : struct, INumberBase<T>
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			T sum = T.Zero;
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				var item = iterator.Current;
+				if (item is not null)
+				{
+					sum = checked(sum + item.GetValueOrDefault());
+				}
+			}
+
+			return sum;
 		}
 
 		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
-		public static Task<ulong> SumAsync(this IAsyncEnumerable<ulong> source, CancellationToken ct = default)
+		public static Task<int> SumAsync(this IAsyncQuery<int> source)
 		{
 			Contract.NotNull(source);
 
-			return AggregateAsync(source, 0UL, (sum, x) => checked(sum + x), ct);
+			if (source is IAsyncLinqQuery<int> query)
+			{
+				return query.SumAsync();
+			}
+
+			return SumAsyncInt32Impl(source);
 		}
 
-		/// <summary>Returns the sum of all elements in the specified async sequence that satisfy a condition.</summary>
-		public static Task<ulong> SumAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, ulong> selector, CancellationToken ct = default)
+		internal static async Task<int> SumAsyncInt32Impl(IAsyncQuery<int> source)
 		{
-			Contract.NotNull(source);
-			Contract.NotNull(selector);
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
 
-			return AggregateAsync(source, 0UL, (sum, x) => checked(sum + selector(x)), ct);
-		}
+			int sum = 0;
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				checked { sum += iterator.Current; }
+			}
 
-		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
-		public static Task<int> SumAsync(this IAsyncEnumerable<int> source, CancellationToken ct = default)
-		{
-			Contract.NotNull(source);
-
-			return AggregateAsync(source, 0, (sum, x) => checked(sum + x), ct);
-		}
-
-		/// <summary>Returns the sum of all elements in the specified async sequence that satisfy a condition.</summary>
-		public static Task<int> SumAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, int> selector, CancellationToken ct = default)
-		{
-			Contract.NotNull(source);
-			Contract.NotNull(selector);
-
-			return AggregateAsync(source, 0, (sum, x) => checked(sum + selector(x)), ct);
+			return sum;
 		}
 
 		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
-		public static Task<long> SumAsync(this IAsyncEnumerable<long> source, CancellationToken ct = default)
+		public static Task<int?> SumAsync(this IAsyncQuery<int?> source)
 		{
 			Contract.NotNull(source);
 
-			return AggregateAsync(source, 0L, (sum, x) => checked(sum + x), ct);
+			if (source is IAsyncLinqQuery<int?> query)
+			{
+				return query.SumAsync();
+			}
+
+			return SumAsyncInt32Impl(source);
 		}
 
-		/// <summary>Returns the sum of all elements in the specified async sequence that satisfy a condition.</summary>
-		public static Task<long> SumAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, long> selector, CancellationToken ct = default)
+		internal static async Task<int?> SumAsyncInt32Impl(IAsyncQuery<int?> source)
 		{
-			Contract.NotNull(source);
-			Contract.NotNull(selector);
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
 
-			return AggregateAsync(source, 0L, (sum, x) => checked(sum + selector(x)), ct);
-		}
+			int sum = 0;
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				var item = iterator.Current;
+				if (item is not null)
+				{
+					sum = checked(sum + item.GetValueOrDefault());
+				}
+			}
 
-		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
-		public static Task<float> SumAsync(this IAsyncEnumerable<float> source, CancellationToken ct = default)
-		{
-			Contract.NotNull(source);
-
-			return AggregateAsync(source, 0.0f, (sum, x) => sum + x, ct);
-		}
-
-		/// <summary>Returns the sum of all elements in the specified async sequence that satisfy a condition.</summary>
-		public static Task<float> SumAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, float> selector, CancellationToken ct = default)
-		{
-			Contract.NotNull(source);
-			Contract.NotNull(selector);
-
-			return AggregateAsync(source, 0.0f, (sum, x) => sum + selector(x), ct);
+			return sum;
 		}
 
 		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
-		public static Task<double> SumAsync(this IAsyncEnumerable<double> source, CancellationToken ct = default)
+		public static Task<long> SumAsync(this IAsyncQuery<long> source)
 		{
 			Contract.NotNull(source);
 
-			return AggregateAsync(source, 0.0, (sum, x) => sum + x, ct);
+			if (source is IAsyncLinqQuery<long> query)
+			{
+				return query.SumAsync();
+			}
+
+			return SumAsyncInt64Impl(source);
 		}
 
-		/// <summary>Returns the sum of all elements in the specified async sequence that satisfy a condition.</summary>
-		public static Task<double> SumAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, double> selector, CancellationToken ct = default)
+		internal static async Task<long> SumAsyncInt64Impl(IAsyncQuery<long> source)
 		{
-			Contract.NotNull(source);
-			Contract.NotNull(selector);
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
 
-			return AggregateAsync(source, 0.0, (sum, x) => sum + selector(x), ct);
+			long sum = 0;
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				checked { sum += iterator.Current; }
+			}
+
+			return sum;
 		}
 
 		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
-		public static Task<decimal> SumAsync(this IAsyncEnumerable<decimal> source, CancellationToken ct = default)
+		public static Task<long?> SumAsync(this IAsyncQuery<long?> source)
 		{
 			Contract.NotNull(source);
 
-			return AggregateAsync(source, 0m, (sum, x) => sum + x, ct);
+			if (source is IAsyncLinqQuery<long?> query)
+			{
+				return query.SumAsync();
+			}
+
+			return SumAsyncInt64Impl(source);
 		}
 
-		/// <summary>Returns the sum of all elements in the specified async sequence that satisfy a condition.</summary>
-		public static Task<decimal> SumAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, decimal> selector, CancellationToken ct = default)
+		internal static async Task<long?> SumAsyncInt64Impl(IAsyncQuery<long?> source)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			long sum = 0;
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				var item = iterator.Current;
+				if (item is not null)
+				{
+					sum = checked(sum + item.GetValueOrDefault());
+				}
+			}
+
+			return sum;
+		}
+
+		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
+		public static Task<float> SumAsync(this IAsyncQuery<float> source)
 		{
 			Contract.NotNull(source);
-			Contract.NotNull(selector);
 
-			return AggregateAsync(source, 0m, (sum, x) => sum + selector(x), ct);
+			if (source is IAsyncLinqQuery<float> query)
+			{
+				return query.SumAsync();
+			}
+
+			return SumAsyncFloatImpl(source);
+		}
+
+		internal static async Task<float> SumAsyncFloatImpl(IAsyncQuery<float> source)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			//note: like Enumerable and AsyncEnumerable, we will also use a double as the accumulator (to reduce precision loss)
+
+			double sum = 0;
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				sum += iterator.Current;
+			}
+
+			return (float) sum;
+		}
+
+		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
+		public static Task<float?> SumAsync(this IAsyncQuery<float?> source)
+		{
+			Contract.NotNull(source);
+
+			if (source is IAsyncLinqQuery<float?> query)
+			{
+				return query.SumAsync();
+			}
+
+			return SumAsyncFloatImpl(source);
+		}
+
+		internal static async Task<float?> SumAsyncFloatImpl(IAsyncQuery<float?> source)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			//note: like Enumerable and AsyncEnumerable, we will also use a double as the accumulator (to reduce precision loss)
+			double sum = 0;
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				var item = iterator.Current;
+				if (item is not null)
+				{
+					sum += item.GetValueOrDefault();
+				}
+			}
+
+			return (float) sum;
+		}
+
+		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
+		public static Task<double> SumAsync(this IAsyncQuery<double> source)
+		{
+			Contract.NotNull(source);
+
+			if (source is IAsyncLinqQuery<double> query)
+			{
+				return query.SumAsync();
+			}
+
+			return SumAsyncDoubleImpl(source);
+		}
+
+		internal static async Task<double> SumAsyncDoubleImpl(IAsyncQuery<double> source)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			double sum = 0;
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				sum += iterator.Current;
+			}
+
+			return sum;
+		}
+
+		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
+		public static Task<double?> SumAsync(this IAsyncQuery<double?> source)
+		{
+			Contract.NotNull(source);
+
+			if (source is IAsyncLinqQuery<double?> query)
+			{
+				return query.SumAsync();
+			}
+
+			return SumAsyncDoubleImpl(source);
+		}
+
+		internal static async Task<double?> SumAsyncDoubleImpl(IAsyncQuery<double?> source)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			double sum = 0;
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				var item = iterator.Current;
+				if (item is not null)
+				{
+					sum += item.GetValueOrDefault();
+				}
+			}
+
+			return sum;
+		}
+
+		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
+		public static Task<decimal> SumAsync(this IAsyncQuery<decimal> source)
+		{
+			Contract.NotNull(source);
+
+			if (source is IAsyncLinqQuery<decimal> query)
+			{
+				return query.SumAsync();
+			}
+
+			return SumAsyncDecimalImpl(source);
+		}
+
+		internal static async Task<decimal> SumAsyncDecimalImpl(IAsyncQuery<decimal> source)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			decimal sum = 0;
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				sum += iterator.Current;
+			}
+
+			return sum;
+		}
+
+		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
+		public static Task<decimal?> SumAsync(this IAsyncQuery<decimal?> source)
+		{
+			Contract.NotNull(source);
+
+			if (source is IAsyncLinqQuery<decimal?> query)
+			{
+				return query.SumAsync();
+			}
+
+			return SumAsyncDecimalImpl(source);
+		}
+
+		internal static async Task<decimal?> SumAsyncDecimalImpl(IAsyncQuery<decimal?> source)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			decimal sum = 0;
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				var item = iterator.Current;
+				if (item is not null)
+				{
+					sum += item.GetValueOrDefault();
+				}
+			}
+
+			return sum;
+		}
+
+		#endregion
+
+		#region AsEnumerable...
+
+		/// <summary>Helper method that checks that the cancellation token is the same as the source</summary>
+		/// <exception cref="InvalidOperationException">If the token is different</exception>
+		/// <remarks>This is used to simplify the pattern of adapting <see cref="IAsyncEnumerable{T}.GetAsyncEnumerator"/> calls.</remarks>
+		[MustDisposeResource]
+		public static IAsyncEnumerator<T> GetCancellableAsyncEnumerator<T>(IAsyncQuery<T> query, AsyncIterationHint hint, CancellationToken ct)
+		{
+			if (ct.CanBeCanceled && !ct.Equals(query.Cancellation))
+			{
+				throw new InvalidOperationException("The CancellationToken that is passed to GetAsyncEnumerator() MUST be the same as the source!");
+			}
+			return query.GetAsyncEnumerator(hint);
+		}
+
+		/// <summary>Adapts this query into the equivalent <see cref="IAsyncEnumerable{T}"/></summary>
+		/// <param name="source">Source query that will be adapted into an <see cref="IAsyncEnumerable{T}"/></param>
+		/// <param name="hint">Hint passed to the source provider.</param>
+		/// <returns>Sequence that will asynchronously return the results of this query.</returns>
+		/// <remarks>
+		/// <para>For best performance, the caller should take care to provide a <see cref="hint"/> that matches how this query will be consumed downstream.</para>
+		/// <para>If the hint does not match, performance may be degraded.
+		/// For example, if the caller will consumer this query using <c>await foreach</c> or <c>ToListAsync</c>, but uses <see cref="AsyncIterationHint.Iterator"/>, the provider may fetch small pages initially, before ramping up.
+		/// The opposite is also true if the caller uses <see cref="AsyncIterationHint.All"/> but consumes the query using <c>AnyAsync()</c> or <c>FirstOrDefaultAsync</c>, the provider may fetch large pages and waste most of it except the first few elements.
+		/// </para>
+		/// </remarks>
+		public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(this IAsyncQuery<T> source, AsyncIterationHint hint = AsyncIterationHint.Default)
+			=> source is IAsyncLinqQuery<T> query ? query.ToAsyncEnumerable() : new ConfiguredAsyncEnumerable<T>(source, hint);
+
+		public static IAsyncEnumerable<T> WantAll<T>(this IAsyncQuery<T> source)
+			=> new ConfiguredAsyncEnumerable<T>(source, AsyncIterationHint.All);
+
+		/// <summary>Exposes an async query as a regular <see cref="IAsyncEnumerable{T}"/>, with en explicit <see cref="AsyncIterationHint"/></summary>
+		internal sealed class ConfiguredAsyncEnumerable<T> : IAsyncEnumerable<T>
+		{
+
+			private IAsyncQuery<T> Source { get; }
+
+			private AsyncIterationHint Hint { get; }
+
+			public ConfiguredAsyncEnumerable(IAsyncQuery<T> source, AsyncIterationHint hint)
+			{
+				this.Source = source;
+				this.Hint = hint;
+			}
+
+			public CancellationToken Cancellation => this.Source.Cancellation;
+
+			[MustDisposeResource]
+			public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken ct = default)
+			{
+				//BUGBUG: if ct is not None and not the same as the source, we should maybe mix them!?
+				return this.Source.GetAsyncEnumerator(this.Hint);
+			}
+
+		}
+
+		public static IAsyncLinqQuery<T> ToAsyncQuery<T>(this IAsyncEnumerable<T> source, CancellationToken ct = default)
+		{
+			if (source is IAsyncLinqQuery<T> query)
+			{
+				if (ct.CanBeCanceled && !ct.Equals(query.Cancellation))
+				{
+					throw new InvalidOperationException("The CancellationToken that is passed to ToAsyncQuery() MUST be the same as the source!");
+				}
+				return query;
+			}
+			return new AdapterAsyncEnumerable<T>(source, ct);
+		}
+
+		internal sealed class AdapterAsyncEnumerable<T> : AsyncLinqIterator<T>
+		{
+
+			private IAsyncEnumerable<T> Source { get; }
+
+			private IAsyncEnumerator<T>? Iterator { get; set; }
+
+			public AdapterAsyncEnumerable(IAsyncEnumerable<T> source, CancellationToken ct)
+			{
+				this.Source = source;
+				this.Cancellation = ct;
+			}
+
+			public override CancellationToken Cancellation { get; }
+
+			/// <inheritdoc />
+			protected override AdapterAsyncEnumerable<T> Clone() => new(this.Source, this.Cancellation);
+
+			/// <inheritdoc />
+			protected override ValueTask<bool> OnFirstAsync()
+			{
+				this.Iterator = this.Source.GetAsyncEnumerator(this.Cancellation);
+				return new(true);
+			}
+
+			/// <inheritdoc />
+			protected override async ValueTask<bool> OnNextAsync()
+			{
+				var iterator = this.Iterator;
+				if (iterator == null || !(await iterator.MoveNextAsync().ConfigureAwait(false)))
+				{
+					return await this.Completed().ConfigureAwait(false);
+				}
+				return Publish(iterator.Current);
+			}
+
+			/// <inheritdoc />
+			protected override async ValueTask Cleanup()
+			{
+				var iterator = this.Iterator;
+				this.Iterator = null;
+				if (iterator != null)
+				{
+					await iterator.DisposeAsync().ConfigureAwait(false);
+				}
+			}
+
+#if NET10_0_OR_GREATER
+
+			/// <inheritdoc />
+			public override Task<T[]> ToArrayAsync() => this.Source.ToArrayAsync(this.Cancellation).AsTask();
+
+			/// <inheritdoc />
+			public override Task<List<T>> ToListAsync() => this.Source.ToListAsync(this.Cancellation).AsTask();
+
+			/// <inheritdoc />
+			public override Task<bool> AnyAsync() => this.Source.AnyAsync(this.Cancellation).AsTask();
+
+			/// <inheritdoc />
+			public override Task<bool> AnyAsync(Func<T, bool> predicate) => this.Source.AnyAsync(predicate, this.Cancellation).AsTask();
+
+			/// <inheritdoc />
+			public override IAsyncLinqQuery<TNew> Select<TNew>(Func<T, TNew> selector) => new AdapterAsyncEnumerable<TNew>(this.Source.Select(selector), this.Cancellation);
+
+			/// <inheritdoc />
+			public override IAsyncLinqQuery<TNew> Select<TNew>(Func<T, int, TNew> selector) => new AdapterAsyncEnumerable<TNew>(this.Source.Select(selector), this.Cancellation);
+
+			/// <inheritdoc />
+			public override IAsyncLinqQuery<T> Where(Func<T, bool> predicate) => new AdapterAsyncEnumerable<T>(this.Source.Where(predicate), this.Cancellation);
+
+			/// <inheritdoc />
+			public override IAsyncLinqQuery<T> Where(Func<T, int, bool> predicate) => new AdapterAsyncEnumerable<T>(this.Source.Where(predicate), this.Cancellation);
+
+#endif
+
 		}
 
 		#endregion
@@ -1196,89 +2093,115 @@ namespace Doxense.Linq
 		#region Min/Max...
 
 		/// <summary>Returns the smallest value in the specified async sequence</summary>
-		public static async Task<T> MinAsync<T>(this IAsyncEnumerable<T> source, IComparer<T>? comparer = null, CancellationToken ct = default)
+		public static Task<T?> MinAsync<T>(this IAsyncQuery<T> source, IComparer<T>? comparer = null)
 		{
 			Contract.NotNull(source);
 			comparer ??= Comparer<T>.Default;
 
-			bool found = false;
-			T min = default!;
-
-			await foreach(var x in source.WithCancellation(ct).ConfigureAwait(false))
+			if (source is IAsyncLinqQuery<T> query)
 			{
-				if (!found || comparer.Compare(x, min) < 0)
-				{
-					min = x;
-					found = true;
-				}
+				return query.MinAsync(comparer);
 			}
 
-			return found ? min : throw new InvalidOperationException("The sequence was empty");
+			return MinAsyncImpl(source, comparer);
+
 		}
 
-		/// <summary>Returns the smallest value in the specified async sequence</summary>
-		public static async Task<T> MinAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, bool> predicate, IComparer<T>? comparer = null, CancellationToken ct = default)
+		internal static async Task<T?> MinAsyncImpl<T>(IAsyncQuery<T> source, IComparer<T> comparer)
 		{
-			Contract.NotNull(source);
-			Contract.NotNull(predicate);
-			comparer ??= Comparer<T>.Default;
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
 
-			bool found = false;
-			T min = default!;
-
-			await foreach(var x in source.WithCancellation(ct).ConfigureAwait(false))
+			if (default(T) is null)
 			{
-				if (predicate(x) && (!found || comparer.Compare(x, min) < 0))
+				// we will return null if the query is empty, or only contains null
+				var min = default(T);
+				while (await iterator.MoveNextAsync().ConfigureAwait(false))
 				{
-					min = x;
-					found = true;
+					var candidate = iterator.Current;
+					if (candidate is not null && (min is null || comparer.Compare(candidate, candidate) > 0))
+					{
+						min = candidate;
+					}
 				}
+				return min;
 			}
-
-			return found ? min : throw new InvalidOperationException("The sequence was empty");
-		}
-
-		/// <summary>Returns the largest value in the specified async sequence</summary>
-		public static async Task<T> MaxAsync<T>(this IAsyncEnumerable<T> source, IComparer<T>? comparer = null, CancellationToken ct = default)
-		{
-			Contract.NotNull(source);
-			comparer ??= Comparer<T>.Default;
-
-			bool found = false;
-			T max = default!;
-
-			await foreach(var x in source.WithCancellation(ct).ConfigureAwait(false))
+			else
 			{
-				if (!found || comparer.Compare(x, max) > 0)
-				{
-					max = x;
-					found = true;
-				}
-			}
+				// we will throw if the query is empty
 
-			return found ? max : throw new InvalidOperationException("The sequence was empty");
+				// get the first
+				if (!await iterator.MoveNextAsync().ConfigureAwait(false))
+				{
+					throw ErrorNoElements();
+				}
+				var min = iterator.Current;
+
+				// compare with the rest
+				while (await iterator.MoveNextAsync().ConfigureAwait(false))
+				{
+					var candidate = iterator.Current;
+					if (comparer.Compare(candidate, min) < 0)
+					{
+						min = candidate;
+					}
+				}
+
+				return min;
+			}
 		}
 
 		/// <summary>Returns the largest value in the specified async sequence</summary>
-		public static async Task<T> MaxAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, bool> predicate, IComparer<T>? comparer = null, CancellationToken ct = default)
+		public static Task<T?> MaxAsync<T>(this IAsyncQuery<T> source, IComparer<T>? comparer = null)
 		{
 			Contract.NotNull(source);
-			Contract.NotNull(predicate);
 			comparer ??= Comparer<T>.Default;
 
-			bool found = false;
-			T max = default!;
-
-			await foreach(var x in source.WithCancellation(ct).ConfigureAwait(false))
+			if (source is IAsyncLinqQuery<T> query)
 			{
-				if (predicate(x) && (!found || comparer.Compare(x, max) > 0))
-				{
-					max = x;
-					found = true;
-				}
+				return query.MaxAsync(comparer);
 			}
 
-			return found ? max : throw new InvalidOperationException("The sequence was empty");
+			return MaxAsyncImpl(source, comparer);
+		}
+
+		internal static async Task<T?> MaxAsyncImpl<T>(IAsyncQuery<T> source, IComparer<T> comparer)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			if (default(T) is null)
+			{
+				var max = default(T);
+				while (await iterator.MoveNextAsync().ConfigureAwait(false))
+				{
+					var candidate = iterator.Current;
+					if (candidate is not null && (max is null || comparer.Compare(candidate, candidate) > 0))
+					{
+						max = candidate;
+					}
+				}
+				return max;
+			}
+			else
+			{
+				// get the first
+				if (!await iterator.MoveNextAsync().ConfigureAwait(false))
+				{
+					throw ErrorNoElements();
+				}
+				var max = iterator.Current;
+
+				// compare with the rest
+				while (await iterator.MoveNextAsync().ConfigureAwait(false))
+				{
+					var candidate = iterator.Current;
+					if (comparer.Compare(candidate, max) > 0)
+					{
+						max = candidate;
+					}
+				}
+
+				return max;
+			}
 		}
 
 		#endregion
@@ -1287,62 +2210,128 @@ namespace Doxense.Linq
 
 		/// <summary>Determines whether an async sequence contains any elements.</summary>
 		/// <remarks>This is the logical equivalent to "source.Count() > 0" but can be better optimized by some providers</remarks>
-		public static async Task<bool> AnyAsync<T>(this IAsyncEnumerable<T> source, CancellationToken ct = default)
+		public static Task<bool> AnyAsync<T>(this IAsyncQuery<T> source)
 		{
 			Contract.NotNull(source);
-			ct.ThrowIfCancellationRequested();
 
-			await using (var iterator = source is IConfigurableAsyncEnumerable<T> configurable ? configurable.GetAsyncEnumerator(ct, AsyncIterationHint.Head) : source.GetAsyncEnumerator(ct))
+			if (source is IAsyncLinqQuery<T> query)
 			{
+				return query.AnyAsync();
+			}
+
+			return Impl(source);
+
+			static async Task<bool> Impl(IAsyncQuery<T> source)
+			{
+				await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Head);
 				return await iterator.MoveNextAsync().ConfigureAwait(false);
 			}
 		}
 
 		/// <summary>Determines whether any element of an async sequence satisfies a condition.</summary>
-		public static async Task<bool> AnyAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, bool> predicate, CancellationToken ct = default)
+		public static Task<bool> AnyAsync<T>(this IAsyncQuery<T> source, [InstantHandle] Func<T, bool> predicate)
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(predicate);
-			ct.ThrowIfCancellationRequested();
 
-			await using (var iterator = source is IConfigurableAsyncEnumerable<T> configurable ? configurable.GetAsyncEnumerator(ct, AsyncIterationHint.Head) : source.GetAsyncEnumerator(ct))
+			if (source is IAsyncLinqQuery<T> query)
 			{
+				return query.AnyAsync(predicate);
+			}
+
+			return Impl(source, predicate);
+
+			static async Task<bool> Impl(IAsyncQuery<T> source, Func<T, bool> predicate)
+			{
+				await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Iterator);
+
 				while (await iterator.MoveNextAsync().ConfigureAwait(false))
 				{
 					if (predicate(iterator.Current)) return true;
 				}
-			}
-			return false;
-		}
 
-		/// <summary>Determines whether an async sequence contains no elements at all.</summary>
-		/// <remarks>This is the logical equivalent to "source.Count() == 0" or "!source.Any()" but can be better optimized by some providers</remarks>
-		public static async Task<bool> NoneAsync<T>(this IAsyncEnumerable<T> source, CancellationToken ct = default)
-		{
-			Contract.NotNull(source);
-			ct.ThrowIfCancellationRequested();
-
-			await using (var iterator = source is IConfigurableAsyncEnumerable<T> configurable ? configurable.GetAsyncEnumerator(ct, AsyncIterationHint.Head) : source.GetAsyncEnumerator(ct))
-			{
-				return !(await iterator.MoveNextAsync().ConfigureAwait(false));
+				return false;
 			}
 		}
 
-		/// <summary>Determines whether none of the elements of an async sequence satisfies a condition.</summary>
-		public static async Task<bool> NoneAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, bool> predicate, CancellationToken ct = default)
+		/// <summary>Determines whether any element of an async sequence satisfies a condition.</summary>
+		public static Task<bool> AnyAsync<T>(this IAsyncQuery<T> source, [InstantHandle] Func<T, CancellationToken, Task<bool>> predicate)
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(predicate);
-			ct.ThrowIfCancellationRequested();
 
-			await using (var iterator = source is IConfigurableAsyncEnumerable<T> configurable ? configurable.GetAsyncEnumerator(ct, AsyncIterationHint.Head) : source.GetAsyncEnumerator(ct))
+			if (source is IAsyncLinqQuery<T> query)
 			{
+				return query.AnyAsync(predicate);
+			}
+
+			return Impl(source, predicate);
+
+			static async Task<bool> Impl(IAsyncQuery<T> source, Func<T, CancellationToken, Task<bool>> predicate)
+			{
+				await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Iterator);
+
+				var ct = source.Cancellation;
 				while (await iterator.MoveNextAsync().ConfigureAwait(false))
 				{
-					if (predicate(iterator.Current)) return false;
+					if (await predicate(iterator.Current, ct).ConfigureAwait(false)) return true;
 				}
+
+				return false;
 			}
-			return true;
+		}
+
+		/// <summary>Determines whether any element of an async sequence satisfies a condition.</summary>
+		public static Task<bool> AllAsync<T>(this IAsyncQuery<T> source, [InstantHandle] Func<T, bool> predicate)
+		{
+			Contract.NotNull(source);
+			Contract.NotNull(predicate);
+
+			if (source is IAsyncLinqQuery<T> query)
+			{
+				return query.AllAsync(predicate);
+			}
+
+			return Impl(source, predicate);
+
+			static async Task<bool> Impl(IAsyncQuery<T> source, Func<T, bool> predicate)
+			{
+				await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+				while (await iterator.MoveNextAsync().ConfigureAwait(false))
+				{
+					if (!predicate(iterator.Current)) return false;
+				}
+
+				return true;
+			}
+		}
+
+		/// <summary>Determines whether any element of an async sequence satisfies a condition.</summary>
+		public static Task<bool> AllAsync<T>(this IAsyncQuery<T> source, [InstantHandle] Func<T, CancellationToken, Task<bool>> predicate)
+		{
+			Contract.NotNull(source);
+			Contract.NotNull(predicate);
+
+			if (source is IAsyncLinqQuery<T> query)
+			{
+				return query.AllAsync(predicate);
+			}
+
+			return Impl(source, predicate);
+
+			static async Task<bool> Impl(IAsyncQuery<T> source, Func<T, CancellationToken, Task<bool>> predicate)
+			{
+				await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+				var ct = source.Cancellation;
+				while (await iterator.MoveNextAsync().ConfigureAwait(false))
+				{
+					if (!(await predicate(iterator.Current, ct).ConfigureAwait(false))) return false;
+				}
+
+				return true;
+			}
 		}
 
 		#endregion
@@ -1356,7 +2345,7 @@ namespace Doxense.Linq
 		/// <summary>Measure the number of items that pass through this point of the query</summary>
 		/// <remarks>The values returned in <paramref name="counter"/> are only safe to read once the query has ended</remarks>
 		[LinqTunnel]
-		public static IAsyncEnumerable<TSource> WithCountStatistics<TSource>(this IAsyncEnumerable<TSource> source, out QueryStatistics<int> counter)
+		public static IAsyncLinqQuery<TSource> WithCountStatistics<TSource>(this IAsyncQuery<TSource> source, out QueryStatistics<int> counter)
 		{
 			Contract.NotNull(source);
 
@@ -1374,12 +2363,12 @@ namespace Doxense.Linq
 		/// <summary>Measure the number and size of slices that pass through this point of the query</summary>
 		/// <remarks>The values returned in <paramref name="statistics"/> are only safe to read once the query has ended</remarks>
 		[LinqTunnel]
-		public static IAsyncEnumerable<KeyValuePair<Slice, Slice>> WithSizeStatistics(this IAsyncEnumerable<KeyValuePair<Slice, Slice>> source, out QueryStatistics<KeyValueSizeStatistics> statistics)
+		public static IAsyncLinqQuery<KeyValuePair<Slice, Slice>> WithSizeStatistics(this IAsyncQuery<KeyValuePair<Slice, Slice>> source, out QueryStatistics<KeyValueSizeStatistics> statistics)
 		{
 			Contract.NotNull(source);
 
 			var data = new KeyValueSizeStatistics();
-			statistics = new QueryStatistics<KeyValueSizeStatistics>(data);
+			statistics = new(data);
 
 			// to count, we just increment the signal each type a value flows through here
 			return Select(source,(kvp) =>
@@ -1392,12 +2381,12 @@ namespace Doxense.Linq
 		/// <summary>Measure the number and sizes of the keys and values that pass through this point of the query</summary>
 		/// <remarks>The values returned in <paramref name="statistics"/> are only safe to read once the query has ended</remarks>
 		[LinqTunnel]
-		public static IAsyncEnumerable<Slice> WithSizeStatistics(this IAsyncEnumerable<Slice> source, out QueryStatistics<DataSizeStatistics> statistics)
+		public static IAsyncLinqQuery<Slice> WithSizeStatistics(this IAsyncQuery<Slice> source, out QueryStatistics<DataSizeStatistics> statistics)
 		{
 			Contract.NotNull(source);
 
 			var data = new DataSizeStatistics();
-			statistics = new QueryStatistics<DataSizeStatistics>(data);
+			statistics = new(data);
 
 			// to count, we just increment the signal each type a value flows through here
 			return Select(source, (x) =>
@@ -1410,24 +2399,41 @@ namespace Doxense.Linq
 		/// <summary>Execute an action on each item passing through the sequence, without modifying the original sequence</summary>
 		/// <remarks>The <paramref name="handler"/> is execute inline before passing the item down the line, and should not block</remarks>
 		[LinqTunnel]
-		public static IAsyncEnumerable<TSource> Observe<TSource>(this IAsyncEnumerable<TSource> source, Action<TSource> handler)
+		public static IAsyncLinqQuery<TSource> Observe<TSource>(this IAsyncQuery<TSource> source, Action<TSource> handler)
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(handler);
 
-			return new ObserverAsyncIterator<TSource>(source, new AsyncObserverExpression<TSource>(handler));
+			return new ObserverAsyncIterator<TSource>(source, new(handler));
 		}
 
 		/// <summary>Execute an action on each item passing through the sequence, without modifying the original sequence</summary>
 		/// <remarks>The <paramref name="asyncHandler"/> is execute inline before passing the item down the line, and should not block</remarks>
 		[LinqTunnel]
-		public static IAsyncEnumerable<TSource> Observe<TSource>(this IAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, Task> asyncHandler)
+		public static IAsyncLinqQuery<TSource> Observe<TSource>(this IAsyncQuery<TSource> source, Func<TSource, CancellationToken, Task> asyncHandler)
 		{
 			Contract.NotNull(source);
 			Contract.NotNull(asyncHandler);
 
-			return new ObserverAsyncIterator<TSource>(source, new AsyncObserverExpression<TSource>(asyncHandler));
+			return new ObserverAsyncIterator<TSource>(source, new(asyncHandler));
 		}
+
+		#endregion
+
+		#region Error Helpers...
+
+
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		internal static InvalidOperationException ErrorNoElements() => new("Sequence contains no elements");
+
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		internal static InvalidOperationException ErrorMoreThenOneElement() => new("Sequence contains more than one elements");
+
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		internal static InvalidOperationException ErrorNoMatch() => new("Sequence contains no matching element");
+
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		internal static InvalidOperationException ErrorMoreThanOneMatch() => new("Sequence contains more than one matching element");
 
 		#endregion
 

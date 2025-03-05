@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -307,7 +307,7 @@ namespace FoundationDB.Layers.Collections.Tests
 		}
 
 		[Test]
-		[Category("Bench")]
+		[Category("Benchmark")]
 		[Category("LongRunning")]
 		public async Task Bench_Concurrent_Clients()
 		{
@@ -323,7 +323,7 @@ namespace FoundationDB.Layers.Collections.Tests
 			await RunMultiClientTest(db, location, "simple queue", 10, NUM, this.Cancellation);
 		}
 
-		[Test, Category("Bench")]
+		[Test, Category("Benchmark")]
 		public async Task Test_Log_Queue()
 		{
 			const int NUM = 100;

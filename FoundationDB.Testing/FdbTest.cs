@@ -499,7 +499,7 @@ namespace FoundationDB.Client.Tests
 			return db.ReadAsync(handler, this.Cancellation);
 		}
 
-		protected Task<List<T>> DbQuery<T>(IFdbRetryable db, Func<IFdbReadOnlyTransaction, IAsyncEnumerable<T>> handler)
+		protected Task<List<T>> DbQuery<T>(IFdbRetryable db, Func<IFdbReadOnlyTransaction, IAsyncQuery<T>> handler)
 		{
 			return db.QueryAsync(handler, this.Cancellation);
 		}
@@ -601,11 +601,11 @@ namespace FoundationDB.Client.Tests
 			=> GetDatabaseProvider().ReadWriteAsync(handler, this.Cancellation);
 
 		/// <summary>Runs a transactional lambda function inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
-		protected Task<List<TResult>> QueryAsync<TResult>(Func<IFdbReadOnlyTransaction, IAsyncEnumerable<TResult>> handler)
+		protected Task<List<TResult>> QueryAsync<TResult>(Func<IFdbReadOnlyTransaction, IAsyncQuery<TResult>> handler)
 			=> GetDatabaseProvider().QueryAsync(handler, this.Cancellation);
 
 		/// <summary>Runs a transactional lambda function inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
-		protected Task<List<TResult>> QueryAsync<TResult>(Func<IFdbReadOnlyTransaction, Task<IAsyncEnumerable<TResult>>> handler)
+		protected Task<List<TResult>> QueryAsync<TResult>(Func<IFdbReadOnlyTransaction, Task<IAsyncQuery<TResult>>> handler)
 			=> GetDatabaseProvider().QueryAsync(handler, this.Cancellation);
 
 		#endregion

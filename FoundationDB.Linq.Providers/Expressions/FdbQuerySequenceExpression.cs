@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -33,7 +33,7 @@ namespace FoundationDB.Linq.Expressions
 #if NET8_0_OR_GREATER
 	[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
 #endif
-	public abstract class FdbQuerySequenceExpression<T> : FdbQueryExpression<IAsyncEnumerable<T>>
+	public abstract class FdbQuerySequenceExpression<T> : FdbQueryExpression<IAsyncQuery<T>>
 	{
 		/// <summary>Type of elements returned by the sequence</summary>
 		public Type ElementType => typeof(T);
@@ -42,10 +42,10 @@ namespace FoundationDB.Linq.Expressions
 		public override FdbQueryShape Shape => FdbQueryShape.Sequence;
 
 		/// <summary>Returns a new expression that creates an async sequence that will execute this query on a transaction</summary>
-		public abstract Expression<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<T>>> CompileSequence();
+		public abstract Expression<Func<IFdbReadOnlyTransaction, IAsyncQuery<T>>> CompileSequence();
 
 		/// <summary>Returns a new expression that creates an async sequence that will execute this query on a transaction</summary>
-		public override Expression<Func<IFdbReadOnlyTransaction, CancellationToken, Task<IAsyncEnumerable<T>>>> CompileSingle()
+		public override Expression<Func<IFdbReadOnlyTransaction, Task<IAsyncQuery<T>>>> CompileSingle()
 		{
 			//REVIEW: why is it called CompileSingle ??
 			return FdbExpressionHelpers.ToTask(CompileSequence());

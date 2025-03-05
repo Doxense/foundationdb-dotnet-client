@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -27,12 +27,13 @@
 namespace Doxense.Linq
 {
 
-	public static partial class AsyncEnumerable
+	public static partial class AsyncQuery
 	{
 
-		/// <summary>Iterates over a sequence of items</summary>
+		/// <summary>Query that iterates over a sequence of source elements, and return the result of an asynchronous transformation</summary>
 		/// <typeparam name="TSource">Type of elements of the inner sequence</typeparam>
 		/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
+		/// <remarks>This types adapts a regular <see cref="IEnumerable{TSource}"/> into a </remarks>
 		internal sealed class EnumerableIterator<TSource, TResult> : IAsyncEnumerator<TResult>
 		{
 
@@ -88,7 +89,7 @@ namespace Doxense.Linq
 				m_transform = null;
 				m_disposed = true;
 				m_current = default;
-				m_ct = default;
+				m_ct = CancellationToken.None;
 				return default;
 			}
 

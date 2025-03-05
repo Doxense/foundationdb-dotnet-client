@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -152,7 +152,7 @@ namespace FoundationDB.Client
 				tr.Clear(TenantMapPrefix + name.Value);
 			}
 
-			public static IAsyncEnumerable<FdbTenantMetadata> QueryTenants(IFdbReadOnlyTransaction tr, Slice? prefix = null, Func<Slice, bool>? filter = null)
+			public static IAsyncQuery<FdbTenantMetadata> QueryTenants(IFdbReadOnlyTransaction tr, Slice? prefix = null, Func<Slice, bool>? filter = null)
 			{
 				Contract.NotNull(tr);
 				return tr

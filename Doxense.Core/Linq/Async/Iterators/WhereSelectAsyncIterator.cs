@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -26,12 +26,15 @@
 
 namespace Doxense.Linq.Async.Iterators
 {
+	using System;
+	using System.Buffers;
+	using System.Collections.Immutable;
 	using Doxense.Linq.Async.Expressions;
 
 	/// <summary>Iterates over an async sequence of items</summary>
 	/// <typeparam name="TSource">Type of elements of the inner async sequence</typeparam>
 	/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
-	public sealed class WhereSelectAsyncIterator<TSource, TResult> : AsyncFilterIterator<TSource, TResult>
+	internal sealed class WhereSelectExpressionAsyncIterator<TSource, TResult> : AsyncFilterIterator<TSource, TResult>
 	{
 		private readonly AsyncFilterExpression<TSource>? m_filter;
 		private readonly AsyncTransformExpression<TSource, TResult> m_transform;
@@ -43,12 +46,12 @@ namespace Doxense.Linq.Async.Iterators
 		private int? m_remaining;
 		private int? m_skipped;
 
-		public WhereSelectAsyncIterator(
-			IAsyncEnumerable<TSource> source,
+		public WhereSelectExpressionAsyncIterator(
+			IAsyncQuery<TSource> source,
 			AsyncFilterExpression<TSource>? filter,
 			AsyncTransformExpression<TSource, TResult> transform,
-			int? limit,
-			int? offset
+			int? limit = null,
+			int? offset = null
 		)
 			: base(source)
 		{
@@ -61,9 +64,9 @@ namespace Doxense.Linq.Async.Iterators
 			m_offset = offset;
 		}
 
-		protected override AsyncIterator<TResult> Clone()
+		protected override AsyncLinqIterator<TResult> Clone()
 		{
-			return new WhereSelectAsyncIterator<TSource, TResult>(m_source, m_filter, m_transform, m_limit, m_offset);
+			return new WhereSelectExpressionAsyncIterator<TSource, TResult>(m_source, m_filter, m_transform, m_limit, m_offset);
 		}
 
 		protected override ValueTask<bool> OnFirstAsync()
@@ -80,16 +83,17 @@ namespace Doxense.Linq.Async.Iterators
 				return await Completed().ConfigureAwait(false);
 			}
 
+			var ct = this.Cancellation;
 			var iterator = m_iterator;
 			Contract.Debug.Requires(iterator != null);
 
-			while (!m_ct.IsCancellationRequested)
+			while (!ct.IsCancellationRequested)
 			{
 				if (!await iterator.MoveNextAsync().ConfigureAwait(false))
 				{ // completed
 					return await Completed().ConfigureAwait(false);
 				}
-				if (m_ct.IsCancellationRequested) break;
+				if (ct.IsCancellationRequested) break;
 
 				#region Filtering...
 
@@ -103,7 +107,7 @@ namespace Doxense.Linq.Async.Iterators
 					}
 					else
 					{
-						if (!await filter.InvokeAsync(current, m_ct).ConfigureAwait(false)) continue;
+						if (!await filter.InvokeAsync(current, ct).ConfigureAwait(false)) continue;
 					}
 				}
 
@@ -133,7 +137,7 @@ namespace Doxense.Linq.Async.Iterators
 				}
 				else
 				{
-					result = await m_transform.InvokeAsync(current, m_ct).ConfigureAwait(false);
+					result = await m_transform.InvokeAsync(current, ct).ConfigureAwait(false);
 				}
 
 				#endregion
@@ -151,11 +155,11 @@ namespace Doxense.Linq.Async.Iterators
 			return await Canceled().ConfigureAwait(false);
 		}
 
-		public override AsyncIterator<TNew> Select<TNew>(Func<TResult, TNew> selector)
+		public override IAsyncLinqQuery<TNew> Select<TNew>(Func<TResult, TNew> selector)
 		{
 			Contract.NotNull(selector);
 
-			return new WhereSelectAsyncIterator<TSource, TNew>(
+			return new WhereSelectExpressionAsyncIterator<TSource, TNew>(
 				m_source,
 				m_filter,
 				m_transform.Then(new AsyncTransformExpression<TResult, TNew>(selector)),
@@ -164,11 +168,11 @@ namespace Doxense.Linq.Async.Iterators
 			);
 		}
 
-		public override AsyncIterator<TNew> Select<TNew>(Func<TResult, CancellationToken, Task<TNew>> asyncSelector)
+		public override IAsyncLinqQuery<TNew> Select<TNew>(Func<TResult, CancellationToken, Task<TNew>> asyncSelector)
 		{
 			Contract.NotNull(asyncSelector);
 
-			return new WhereSelectAsyncIterator<TSource, TNew>(
+			return new WhereSelectExpressionAsyncIterator<TSource, TNew>(
 				m_source,
 				m_filter,
 				m_transform.Then(new AsyncTransformExpression<TResult, TNew>(asyncSelector)),
@@ -177,13 +181,13 @@ namespace Doxense.Linq.Async.Iterators
 			);
 		}
 
-		public override AsyncIterator<TNew> SelectMany<TNew>(Func<TResult, IEnumerable<TNew>> selector)
+		public override IAsyncLinqQuery<TNew> SelectMany<TNew>(Func<TResult, IEnumerable<TNew>> selector)
 		{
 			Contract.NotNull(selector);
 
 			if (m_filter == null && m_limit == null && m_offset == null)
 			{
-				return new SelectManyAsyncIterator<TSource, TNew>(
+				return new SelectManyExpressionAsyncIterator<TSource, TNew>(
 					m_source,
 					m_transform.Then(new AsyncTransformExpression<TResult, IEnumerable<TNew>>(selector))
 				);
@@ -193,13 +197,13 @@ namespace Doxense.Linq.Async.Iterators
 			return base.SelectMany(selector);
 		}
 
-		public override AsyncIterator<TNew> SelectMany<TNew>(Func<TResult, CancellationToken, Task<IEnumerable<TNew>>> asyncSelector)
+		public override IAsyncLinqQuery<TNew> SelectMany<TNew>(Func<TResult, CancellationToken, Task<IEnumerable<TNew>>> asyncSelector)
 		{
 			Contract.NotNull(asyncSelector);
 
 			if (m_filter == null && m_limit == null && m_offset == null)
 			{
-				return new SelectManyAsyncIterator<TSource, TNew>(
+				return new SelectManyExpressionAsyncIterator<TSource, TNew>(
 					m_source,
 					m_transform.Then(new AsyncTransformExpression<TResult, IEnumerable<TNew>>(asyncSelector))
 				);
@@ -209,17 +213,17 @@ namespace Doxense.Linq.Async.Iterators
 			return base.SelectMany(asyncSelector);
 		}
 
-		public override AsyncIterator<TResult> Take(int limit)
+		public override IAsyncLinqQuery<TResult> Take(int limit)
 		{
 			if (limit < 0) throw new ArgumentOutOfRangeException(nameof(limit), "Limit cannot be less than zero");
 
 			if (m_limit != null && m_limit.Value <= limit)
 			{
-				// we are already taking less then that
+				// we are already taking less than that
 				return this;
 			}
 
-			return new WhereSelectAsyncIterator<TSource, TResult>(
+			return new WhereSelectExpressionAsyncIterator<TSource, TResult>(
 				m_source,
 				m_filter,
 				m_transform,
@@ -228,7 +232,7 @@ namespace Doxense.Linq.Async.Iterators
 			);
 		}
 
-		public override AsyncIterator<TResult> Skip(int offset)
+		public override IAsyncLinqQuery<TResult> Skip(int offset)
 		{
 			if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset), "Offset cannot be less than zero");
 
@@ -236,7 +240,7 @@ namespace Doxense.Linq.Async.Iterators
 
 			if (m_offset != null) offset += m_offset.Value;
 
-			return new WhereSelectAsyncIterator<TSource, TResult>(
+			return new WhereSelectExpressionAsyncIterator<TSource, TResult>(
 				m_source,
 				m_filter,
 				m_transform,
@@ -245,7 +249,7 @@ namespace Doxense.Linq.Async.Iterators
 			);
 		}
 
-		public override AsyncIterator<TResult> Where(Func<TResult, bool> predicate)
+		public override IAsyncLinqQuery<TResult> Where(Func<TResult, bool> predicate)
 		{
 			Contract.NotNull(predicate);
 
@@ -263,7 +267,7 @@ namespace Doxense.Linq.Async.Iterators
 				//BUGBUG: if the query already has a select, it should be evaluated BEFORE the new filter,
 				// but currently WhereSelectAsyncIterator<> filters before transformations !
 
-				return new WhereSelectAsyncIterator<TSource, TResult>(
+				return new WhereSelectExpressionAsyncIterator<TSource, TResult>(
 					m_source,
 					filter,
 					m_transform,
@@ -276,7 +280,7 @@ namespace Doxense.Linq.Async.Iterators
 			return base.Where(predicate);
 		}
 
-		public override AsyncIterator<TResult> Where(Func<TResult, CancellationToken, Task<bool>> asyncPredicate)
+		public override IAsyncLinqQuery<TResult> Where(Func<TResult, CancellationToken, Task<bool>> asyncPredicate)
 		{
 			Contract.NotNull(asyncPredicate);
 
@@ -290,7 +294,7 @@ namespace Doxense.Linq.Async.Iterators
 				//BUGBUG: if the query already has a select, it should be evaluated BEFORE the new filter,
 				// but currently WhereSelectAsyncIterator<> filters before transformations !
 
-				return new WhereSelectAsyncIterator<TSource, TResult>(
+				return new WhereSelectExpressionAsyncIterator<TSource, TResult>(
 					m_source,
 					asyncFilter,
 					m_transform,
@@ -303,14 +307,15 @@ namespace Doxense.Linq.Async.Iterators
 			return base.Where(asyncPredicate);
 		}
 
-		public override async Task ExecuteAsync(Action<TResult> action, CancellationToken ct)
+		public override async Task ExecuteAsync(Action<TResult> handler)
 		{
-			Contract.NotNull(action);
+			Contract.NotNull(handler);
 
 			int? remaining = m_limit;
 			int? skipped = m_offset;
+			var ct = this.Cancellation;
 
-			await using(var iterator = StartInner(ct))
+			await using(var iterator = StartInner())
 			{
 				while (remaining == null || remaining.Value > 0)
 				{
@@ -366,21 +371,22 @@ namespace Doxense.Linq.Async.Iterators
 
 					// decrement remaining quota
 					--remaining;
-					action(result);
+					handler(result);
 				}
 
 				ct.ThrowIfCancellationRequested();
 			}
 		}
 
-		public override async Task ExecuteAsync<TState>(TState state, Action<TState, TResult> action, CancellationToken ct)
+		public override async Task ExecuteAsync<TState>(TState state, Action<TState, TResult> handler)
 		{
-			Contract.NotNull(action);
+			Contract.NotNull(handler);
 
 			int? remaining = m_limit;
 			int? skipped = m_offset;
+			var ct = this.Cancellation;
 
-			await using(var iterator = StartInner(ct))
+			await using(var iterator = StartInner())
 			{
 				while (remaining == null || remaining.Value > 0)
 				{
@@ -436,21 +442,22 @@ namespace Doxense.Linq.Async.Iterators
 
 					// decrement remaining quota
 					--remaining;
-					action(state, result);
+					handler(state, result);
 				}
 
 				ct.ThrowIfCancellationRequested();
 			}
 		}
 
-		public override async Task<TAggregate> ExecuteAsync<TAggregate>(TAggregate seed, Func<TAggregate, TResult, TAggregate> action, CancellationToken ct)
+		public override async Task<TAggregate> ExecuteAsync<TAggregate>(TAggregate seed, Func<TAggregate, TResult, TAggregate> handler)
 		{
-			Contract.NotNull(action);
+			Contract.NotNull(handler);
 
 			int? remaining = m_limit;
 			int? skipped = m_offset;
+			var ct = this.Cancellation;
 
-			await using(var iterator = StartInner(ct))
+			await using(var iterator = StartInner())
 			{
 				while (remaining == null || remaining.Value > 0)
 				{
@@ -506,7 +513,7 @@ namespace Doxense.Linq.Async.Iterators
 
 					// decrement remaining quota
 					--remaining;
-					seed = action(seed, result);
+					seed = handler(seed, result);
 				}
 
 				ct.ThrowIfCancellationRequested();
@@ -515,14 +522,15 @@ namespace Doxense.Linq.Async.Iterators
 			return seed;
 		}
 
-		public override async Task ExecuteAsync(Func<TResult, CancellationToken, Task> asyncAction, CancellationToken ct)
+		public override async Task ExecuteAsync(Func<TResult, CancellationToken, Task> handler)
 		{
-			Contract.NotNull(asyncAction);
+			Contract.NotNull(handler);
 
 			int? remaining = m_limit;
 			int? skipped = m_offset;
+			var ct = this.Cancellation;
 
-			await using (var iterator = StartInner(ct))
+			await using (var iterator = StartInner())
 			{
 				while (remaining == null || remaining.Value > 0)
 				{
@@ -579,11 +587,943 @@ namespace Doxense.Linq.Async.Iterators
 					// decrement remaining quota
 					--remaining;
 
-					await asyncAction(result, ct).ConfigureAwait(false);
+					await handler(result, ct).ConfigureAwait(false);
 				}
 
 				ct.ThrowIfCancellationRequested();
 			}
+		}
+
+	}
+
+	/// <summary>Iterates over an async sequence of items</summary>
+	/// <typeparam name="TSource">Type of elements of the inner async sequence</typeparam>
+	/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
+	/// <remarks>This is a simpler version that only supports non-async selectors and predicates (the most frequently used)</remarks>
+	internal sealed class SelectAsyncIterator<TSource, TResult> : AsyncLinqIterator<TResult>
+	{
+
+		public SelectAsyncIterator(IAsyncQuery<TSource> source, Func<TSource, TResult> transform)
+		{
+			this.Source = source;
+			this.Transform = transform;
+		}
+
+		private IAsyncQuery<TSource> Source { get; }
+
+		private Func<TSource, TResult> Transform { get; }
+
+		/// <inheritdoc />
+		public override CancellationToken Cancellation => this.Source.Cancellation;
+
+		private IAsyncEnumerator<TSource>? Iterator { get; set; }
+
+		/// <inheritdoc />
+		protected override SelectAsyncIterator<TSource, TResult> Clone() => new(this.Source, this.Transform);
+
+		/// <inheritdoc />
+		protected override ValueTask<bool> OnFirstAsync()
+		{
+			this.Iterator = this.Source.GetAsyncEnumerator(m_mode);
+			return new(true);
+		}
+
+		/// <inheritdoc />
+		protected override async ValueTask<bool> OnNextAsync()
+		{
+			var iterator = this.Iterator;
+			if (iterator == null)
+			{
+				return await Completed().ConfigureAwait(false);
+			}
+
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				return Publish(this.Transform(iterator.Current));
+			}
+
+			return await this.Completed().ConfigureAwait(false);
+		}
+
+		/// <inheritdoc />
+		protected override ValueTask Cleanup()
+		{
+			var iterator = this.Iterator;
+			if (iterator == null) return default;
+
+			this.Iterator = null;
+			return iterator.DisposeAsync();
+		}
+
+		/// <inheritdoc />
+		public override async Task ExecuteAsync(Action<TResult> handler)
+		{
+			await using var iterator = this.Source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			var transform = this.Transform;
+
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				handler(transform(iterator.Current));
+			}
+		}
+
+		/// <inheritdoc />
+		public override async Task ExecuteAsync<TState>(TState state, Action<TState, TResult> handler)
+		{
+			await using var iterator = this.Source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			var transform = this.Transform;
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				handler(state, transform(iterator.Current));
+			}
+		}
+
+		/// <inheritdoc />
+		public override async Task ExecuteAsync(Func<TResult, CancellationToken, Task> handler)
+		{
+			await using var iterator = this.Source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			var transform = this.Transform;
+			var ct = this.Cancellation;
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				var item = iterator.Current;
+				var value = transform(item);
+				await handler(value, ct).ConfigureAwait(false);
+			}
+		}
+
+		/// <inheritdoc />
+		public override async Task ExecuteAsync<TState>(TState state, Func<TState, TResult, CancellationToken, Task> handler)
+		{
+			await using var iterator = this.Source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			var transform = this.Transform;
+			var ct = this.Cancellation;
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				await handler(state, transform(iterator.Current), ct).ConfigureAwait(false);
+			}
+		}
+
+		/// <inheritdoc />
+		public override async Task<TAggregate> ExecuteAsync<TAggregate>(TAggregate seed, Func<TAggregate, TResult, TAggregate> handler)
+		{
+			await using var iterator = this.Source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			var transform = this.Transform;
+			var accumulator = seed;
+
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				accumulator = handler(accumulator, transform(iterator.Current));
+			}
+			return accumulator;
+		}
+
+		private async Task FillBufferAsync(Buffer<TResult> buffer)
+		{
+			await using var iterator = this.Source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			var transform = this.Transform;
+
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				buffer.Add(transform(iterator.Current));
+			}
+		}
+
+		/// <inheritdoc />
+		public override async Task<TResult[]> ToArrayAsync()
+		{
+			//note: we assume that the source does not implement IAsyncLinqQuery<TResult> (otherwise, we would have called their own implementation, instead of this one!)
+
+			var buffer = new Buffer<TResult>(pool: ArrayPool<TResult>.Shared);
+			await FillBufferAsync(buffer).ConfigureAwait(false);
+			return buffer.ToArrayAndClear();
+		}
+
+		/// <inheritdoc />
+		public override async Task<List<TResult>> ToListAsync()
+		{
+			//note: we assume that the source does not implement IAsyncLinqQuery<TResult> (otherwise, we would have called their own implementation, instead of this one!)
+
+			var buffer = new Buffer<TResult>(pool: ArrayPool<TResult>.Shared);
+			await FillBufferAsync(buffer).ConfigureAwait(false);
+			return buffer.ToListAndClear();
+		}
+
+		/// <inheritdoc />
+		public override async Task<ImmutableArray<TResult>> ToImmutableArrayAsync()
+		{
+			//note: we assume that the source does not implement IAsyncLinqQuery<TResult> (otherwise, we would have called their own implementation, instead of this one!)
+
+			var buffer = new Buffer<TResult>(pool: ArrayPool<TResult>.Shared);
+			await FillBufferAsync(buffer).ConfigureAwait(false);
+			return buffer.ToImmutableArrayAndClear();
+		}
+
+		/// <inheritdoc />
+		public override async Task<HashSet<TResult>> ToHashSetAsync(IEqualityComparer<TResult>? comparer = null)
+		{
+			await using var iterator = this.Source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			var transform = this.Transform;
+			var set = new HashSet<TResult>(comparer);
+
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				set.Add(transform(iterator.Current));
+			}
+
+			return set;
+		}
+
+		/// <inheritdoc />
+		public override async Task<Dictionary<TKey, TResult>> ToDictionaryAsync<TKey>(Func<TResult, TKey> keySelector, IEqualityComparer<TKey>? comparer = null)
+		{
+			await using var iterator = this.Source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			var transform = this.Transform;
+			var map = new Dictionary<TKey, TResult>(comparer);
+
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				var item = transform(iterator.Current);
+				map.Add(keySelector(item), item);
+			}
+
+			return map;
+		}
+
+		/// <inheritdoc />
+		public override async Task<Dictionary<TKey, TElement>> ToDictionaryAsync<TKey, TElement>(Func<TResult, TKey> keySelector, Func<TResult, TElement> elementSelector, IEqualityComparer<TKey>? comparer = null)
+		{
+			await using var iterator = this.Source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			var transform = this.Transform;
+			var map = new Dictionary<TKey, TElement>(comparer);
+
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				var item = transform(iterator.Current);
+				map.Add(keySelector(item), elementSelector(item));
+			}
+
+			return map;
+		}
+		/// <inheritdoc />
+		public override SelectAsyncIterator<TSource, TNew> Select<TNew>(Func<TResult, TNew> selector)
+		{
+			return new(this.Source, Combine(this.Transform, selector));
+
+			static Func<TSource, TNew> Combine(Func<TSource, TResult> inner, Func<TResult, TNew> outer) => (item) => outer(inner(item));
+		}
+
+		/// <inheritdoc />
+		public override SelectTaskAsyncIterator<TSource, TNew> Select<TNew>(Func<TResult, CancellationToken, Task<TNew>> selector)
+		{
+			return new(this.Source, Combine(this.Transform, selector));
+
+			static Func<TSource, CancellationToken, Task<TNew>> Combine(Func<TSource, TResult> inner, Func<TResult, CancellationToken, Task<TNew>> outer) => (item, ct) => outer(inner(item), ct);
+		}
+
+		/// <inheritdoc />
+		public override WhereSelectAsyncIterator<TSource, TResult> Where(Func<TResult, bool> predicate)
+		{
+			return new(this.Source, null, this.Transform, predicate);
+		}
+
+	}
+
+	/// <summary>Iterates over an async sequence of items</summary>
+	/// <typeparam name="TSource">Type of elements of the inner async sequence</typeparam>
+	/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
+	/// <remarks>This is a simpler version that only supports non-async selectors and predicates (the most frequently used)</remarks>
+	internal sealed class SelectTaskAsyncIterator<TSource, TResult> : AsyncLinqIterator<TResult>
+	{
+
+		public SelectTaskAsyncIterator(IAsyncQuery<TSource> source, Func<TSource, CancellationToken, Task<TResult>> transform)
+		{
+			this.Source = source;
+			this.Transform = transform;
+		}
+
+		private IAsyncQuery<TSource> Source { get; }
+
+		private Func<TSource, CancellationToken, Task<TResult>> Transform { get; }
+
+		/// <inheritdoc />
+		public override CancellationToken Cancellation => this.Source.Cancellation;
+
+		private IAsyncEnumerator<TSource>? Iterator { get; set; }
+
+		/// <inheritdoc />
+		protected override SelectTaskAsyncIterator<TSource, TResult> Clone() => new(this.Source, this.Transform);
+
+		/// <inheritdoc />
+		protected override ValueTask<bool> OnFirstAsync()
+		{
+			this.Iterator = this.Source.GetAsyncEnumerator(m_mode);
+			return new(true);
+		}
+
+		/// <inheritdoc />
+		protected override async ValueTask<bool> OnNextAsync()
+		{
+			var iterator = this.Iterator;
+			if (iterator == null || !await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				return await this.Completed().ConfigureAwait(false);
+			}
+
+			return Publish(await this.Transform(iterator.Current, this.Cancellation).ConfigureAwait(false));
+		}
+
+		/// <inheritdoc />
+		protected override ValueTask Cleanup()
+		{
+			var iterator = this.Iterator;
+			if (iterator == null) return default;
+
+			this.Iterator = null;
+			return iterator.DisposeAsync();
+		}
+
+		/// <inheritdoc />
+		public override async Task ExecuteAsync(Action<TResult> handler)
+		{
+			await using var iterator = this.Source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			var transform = this.Transform;
+			var ct = this.Cancellation;
+
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				handler(await transform(iterator.Current, ct).ConfigureAwait(false));
+			}
+		}
+
+		/// <inheritdoc />
+		public override async Task ExecuteAsync<TState>(TState state, Action<TState, TResult> handler)
+		{
+			await using var iterator = this.Source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			var transform = this.Transform;
+			var ct = this.Cancellation;
+
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				handler(state, await transform(iterator.Current, ct).ConfigureAwait(false));
+			}
+		}
+
+		/// <inheritdoc />
+		public override async Task ExecuteAsync(Func<TResult, CancellationToken, Task> handler)
+		{
+			await using var iterator = this.Source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			var transform = this.Transform;
+			var ct = this.Cancellation;
+
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				await handler(await transform(iterator.Current, ct).ConfigureAwait(false), ct).ConfigureAwait(false);
+			}
+		}
+
+		/// <inheritdoc />
+		public override async Task ExecuteAsync<TState>(TState state, Func<TState, TResult, CancellationToken, Task> handler)
+		{
+			await using var iterator = this.Source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			var transform = this.Transform;
+			var ct = this.Cancellation;
+
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				await handler(state, await transform(iterator.Current, ct).ConfigureAwait(false), ct).ConfigureAwait(false);
+			}
+		}
+
+		/// <inheritdoc />
+		public override async Task<TAggregate> ExecuteAsync<TAggregate>(TAggregate seed, Func<TAggregate, TResult, TAggregate> handler)
+		{
+			await using var iterator = this.Source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			var transform = this.Transform;
+			var accumulator = seed;
+			var ct = this.Cancellation;
+
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				accumulator = handler(accumulator, await transform(iterator.Current, ct).ConfigureAwait(false));
+			}
+
+			return accumulator;
+		}
+
+		private async Task FillBufferAsync(Buffer<TResult> buffer)
+		{
+			await using var iterator = this.Source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			var transform = this.Transform;
+			var ct = this.Cancellation;
+
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				buffer.Add(await transform(iterator.Current, ct).ConfigureAwait(false));
+			}
+		}
+
+		/// <inheritdoc />
+		public override async Task<TResult[]> ToArrayAsync()
+		{
+			//note: we assume that the source does not implement IAsyncLinqQuery<TResult> (otherwise, we would have called their own implementation, instead of this one!)
+
+			var buffer = new Buffer<TResult>(pool: ArrayPool<TResult>.Shared);
+			await FillBufferAsync(buffer).ConfigureAwait(false);
+			return buffer.ToArrayAndClear();
+		}
+
+		/// <inheritdoc />
+		public override async Task<List<TResult>> ToListAsync()
+		{
+			//note: we assume that the source does not implement IAsyncLinqQuery<TResult> (otherwise, we would have called their own implementation, instead of this one!)
+
+			var buffer = new Buffer<TResult>(pool: ArrayPool<TResult>.Shared);
+			await FillBufferAsync(buffer).ConfigureAwait(false);
+			return buffer.ToListAndClear();
+		}
+
+		/// <inheritdoc />
+		public override async Task<ImmutableArray<TResult>> ToImmutableArrayAsync()
+		{
+			//note: we assume that the source does not implement IAsyncLinqQuery<TResult> (otherwise, we would have called their own implementation, instead of this one!)
+
+			var buffer = new Buffer<TResult>(pool: ArrayPool<TResult>.Shared);
+			await FillBufferAsync(buffer).ConfigureAwait(false);
+			return buffer.ToImmutableArrayAndClear();
+		}
+
+		/// <inheritdoc />
+		public override async Task<HashSet<TResult>> ToHashSetAsync(IEqualityComparer<TResult>? comparer = null)
+		{
+			await using var iterator = this.Source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			var transform = this.Transform;
+			var ct = this.Cancellation;
+			var set = new HashSet<TResult>(comparer);
+
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				set.Add(await transform(iterator.Current, ct).ConfigureAwait(false));
+			}
+
+			return set;
+		}
+
+		/// <inheritdoc />
+		public override async Task<Dictionary<TKey, TResult>> ToDictionaryAsync<TKey>(Func<TResult, TKey> keySelector, IEqualityComparer<TKey>? comparer = null)
+		{
+			await using var iterator = this.Source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			var transform = this.Transform;
+			var ct = this.Cancellation;
+			var map = new Dictionary<TKey, TResult>(comparer);
+
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				var item = await transform(iterator.Current, ct).ConfigureAwait(false);
+				map.Add(keySelector(item), item);
+			}
+
+			return map;
+		}
+
+		/// <inheritdoc />
+		public override async Task<Dictionary<TKey, TElement>> ToDictionaryAsync<TKey, TElement>(Func<TResult, TKey> keySelector, Func<TResult, TElement> elementSelector, IEqualityComparer<TKey>? comparer = null)
+		{
+			await using var iterator = this.Source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			var transform = this.Transform;
+			var ct = this.Cancellation;
+			var map = new Dictionary<TKey, TElement>(comparer);
+
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				var item = await transform(iterator.Current, ct).ConfigureAwait(false);
+				map.Add(keySelector(item), elementSelector(item));
+			}
+
+			return map;
+		}
+
+		/// <inheritdoc />
+		public override SelectTaskAsyncIterator<TSource, TNew> Select<TNew>(Func<TResult, TNew> selector)
+		{
+			return new(this.Source, Combine(this.Transform, selector));
+
+			static Func<TSource, CancellationToken, Task<TNew>> Combine(Func<TSource, CancellationToken, Task<TResult>> inner, Func<TResult, TNew> outer) => async (item, ct) => outer(await inner(item, ct).ConfigureAwait(false));
+		}
+
+		/// <inheritdoc />
+		public override SelectTaskAsyncIterator<TSource, TNew> Select<TNew>(Func<TResult, CancellationToken, Task<TNew>> selector)
+		{
+			return new(this.Source, Combine(this.Transform, selector));
+
+			static Func<TSource, CancellationToken, Task<TNew>> Combine(Func<TSource, CancellationToken, Task<TResult>> inner, Func<TResult, CancellationToken, Task<TNew>> outer) => async (item, ct) => await outer(await inner(item, ct).ConfigureAwait(false), ct).ConfigureAwait(false);
+		}
+
+		/// <inheritdoc />
+		public override WhereSelectTaskAsyncIterator<TSource, TResult> Where(Func<TResult, bool> predicate)
+		{
+			return new(this.Source, null, this.Transform, predicate);
+		}
+
+	}
+
+	/// <summary>Iterates over an async sequence of items</summary>
+	/// <typeparam name="TSource">Type of elements of the inner async sequence</typeparam>
+	/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
+	/// <remarks>This is a simpler version that only supports non-async selectors and predicates (the most frequently used)</remarks>
+	internal sealed class WhereSelectAsyncIterator<TSource, TResult> : AsyncLinqIterator<TResult>
+	{
+
+		public WhereSelectAsyncIterator(IAsyncQuery<TSource> source, Func<TSource, bool>? preFilter, Func<TSource, TResult> transform, Func<TResult, bool>? postFilter)
+		{
+			this.Source = source;
+			this.PreFilter = preFilter;
+			this.Transform = transform;
+			this.PostFilter = postFilter;
+		}
+
+		private IAsyncQuery<TSource> Source { get; }
+
+		private Func<TSource, bool>? PreFilter { get; }
+
+		private Func<TResult, bool>? PostFilter { get; }
+
+		private Func<TSource, TResult> Transform { get; }
+
+		/// <inheritdoc />
+		public override CancellationToken Cancellation => this.Source.Cancellation;
+
+		private IAsyncEnumerator<TSource>? Iterator { get; set; }
+
+		/// <inheritdoc />
+		protected override WhereSelectAsyncIterator<TSource, TResult> Clone() => new(this.Source, this.PreFilter, this.Transform, this.PostFilter);
+
+		/// <inheritdoc />
+		protected override ValueTask<bool> OnFirstAsync()
+		{
+			this.Iterator = this.Source.GetAsyncEnumerator(m_mode);
+			return new(true);
+		}
+
+		/// <inheritdoc />
+		protected override async ValueTask<bool> OnNextAsync()
+		{
+			var iterator = this.Iterator;
+			if (iterator == null)
+			{
+				return await Completed().ConfigureAwait(false);
+			}
+
+			var preFilter = this.PreFilter;
+			var postFilter = this.PostFilter;
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				var item = iterator.Current;
+				if (preFilter == null || preFilter(item))
+				{
+					var value = this.Transform(item);
+					if (postFilter == null || postFilter(value))
+					{
+						return Publish(value);
+					}
+				}
+			}
+
+			return await this.Completed().ConfigureAwait(false);
+		}
+
+		/// <inheritdoc />
+		protected override ValueTask Cleanup()
+		{
+			var iterator = this.Iterator;
+			if (iterator == null) return default;
+
+			this.Iterator = null;
+			return iterator.DisposeAsync();
+		}
+
+		/// <inheritdoc />
+		public override async Task ExecuteAsync(Action<TResult> handler)
+		{
+			await using var iterator = this.Source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			var preFilter = this.PreFilter;
+			var transform = this.Transform;
+			var postFilter = this.PostFilter;
+
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				var item = iterator.Current;
+				if (preFilter == null || preFilter(item))
+				{
+					var value = transform(item);
+					if (postFilter == null || postFilter(value))
+					{
+						handler(value);
+					}
+				}
+			}
+		}
+
+		/// <inheritdoc />
+		public override async Task ExecuteAsync<TState>(TState state, Action<TState, TResult> handler)
+		{
+			await using var iterator = this.Source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			var preFilter = this.PreFilter;
+			var transform = this.Transform;
+			var postFilter = this.PostFilter;
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				var item = iterator.Current;
+				if (preFilter == null || preFilter(item))
+				{
+					var value = transform(item);
+					if (postFilter == null || postFilter(value))
+					{
+						handler(state, value);
+					}
+				}
+			}
+		}
+
+		/// <inheritdoc />
+		public override async Task ExecuteAsync(Func<TResult, CancellationToken, Task> handler)
+		{
+			await using var iterator = this.Source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			var preFilter = this.PreFilter;
+			var transform = this.Transform;
+			var postFilter = this.PostFilter;
+			var ct = this.Cancellation;
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				var item = iterator.Current;
+				if (preFilter == null || preFilter(item))
+				{
+					var value = transform(item);
+					if (postFilter == null || postFilter(value))
+					{
+						await handler(value, ct).ConfigureAwait(false);
+					}
+				}
+			}
+		}
+
+		/// <inheritdoc />
+		public override async Task ExecuteAsync<TState>(TState state, Func<TState, TResult, CancellationToken, Task> handler)
+		{
+			await using var iterator = this.Source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			var preFilter = this.PreFilter;
+			var transform = this.Transform;
+			var postFilter = this.PostFilter;
+			var ct = this.Cancellation;
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				var item = iterator.Current;
+				if (preFilter == null || preFilter(item))
+				{
+					var value = transform(item);
+					if (postFilter == null || postFilter(value))
+					{
+						await handler(state, value, ct).ConfigureAwait(false);
+					}
+				}
+			}
+		}
+
+		/// <inheritdoc />
+		public override async Task<TAggregate> ExecuteAsync<TAggregate>(TAggregate seed, Func<TAggregate, TResult, TAggregate> handler)
+		{
+			await using var iterator = this.Source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			var preFilter = this.PreFilter;
+			var transform = this.Transform;
+			var postFilter = this.PostFilter;
+			var accumulator = seed;
+
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				var item = iterator.Current;
+				if (preFilter == null || preFilter(item))
+				{
+					var value = transform(item);
+					if (postFilter == null || postFilter(value))
+					{
+						accumulator = handler(accumulator, value);
+					}
+				}
+			}
+			return accumulator;
+		}
+
+		private async Task FillBufferAsync(Buffer<TResult> buffer)
+		{
+			await using var iterator = this.Source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			var preFilter = this.PreFilter;
+			var transform = this.Transform;
+			var postFilter = this.PostFilter;
+
+			if (preFilter == null && postFilter == null)
+			{
+				while (await iterator.MoveNextAsync().ConfigureAwait(false))
+				{
+					buffer.Add(transform(iterator.Current));
+				}
+			}
+			else
+			{
+				while (await iterator.MoveNextAsync().ConfigureAwait(false))
+				{
+					var item = iterator.Current;
+					if (preFilter == null || preFilter(item))
+					{
+						var value = transform(item);
+						if (postFilter == null || postFilter(value))
+						{
+							buffer.Add(value);
+						}
+					}
+				}
+			}
+		}
+
+		/// <inheritdoc />
+		public override async Task<TResult[]> ToArrayAsync()
+		{
+			//note: we assume that the source does not implement IAsyncLinqQuery<TResult> (otherwise, we would have called their own implementation, instead of this one!)
+
+			var buffer = new Buffer<TResult>(pool: ArrayPool<TResult>.Shared);
+			await FillBufferAsync(buffer).ConfigureAwait(false);
+			return buffer.ToArrayAndClear();
+		}
+
+		/// <inheritdoc />
+		public override async Task<List<TResult>> ToListAsync()
+		{
+			//note: we assume that the source does not implement IAsyncLinqQuery<TResult> (otherwise, we would have called their own implementation, instead of this one!)
+
+			var buffer = new Buffer<TResult>(pool: ArrayPool<TResult>.Shared);
+			await FillBufferAsync(buffer).ConfigureAwait(false);
+			return buffer.ToListAndClear();
+		}
+
+		/// <inheritdoc />
+		public override async Task<ImmutableArray<TResult>> ToImmutableArrayAsync()
+		{
+			//note: we assume that the source does not implement IAsyncLinqQuery<TResult> (otherwise, we would have called their own implementation, instead of this one!)
+
+			var buffer = new Buffer<TResult>(pool: ArrayPool<TResult>.Shared);
+			await FillBufferAsync(buffer).ConfigureAwait(false);
+			return buffer.ToImmutableArrayAndClear();
+		}
+
+		/// <inheritdoc />
+		public override IAsyncLinqQuery<TNew> Select<TNew>(Func<TResult, TNew> selector)
+		{
+			if (this.PostFilter != null)
+			{
+				// we cannot easily combine the pre- and post-filter without calling the original selector twice!
+				return new WhereSelectAsyncIterator<TResult, TNew>(this, null, selector, null);
+			}
+
+			return new WhereSelectAsyncIterator<TSource, TNew>(this.Source, this.PreFilter, Combine(this.Transform, selector), null);
+
+			static Func<TSource, TNew> Combine(Func<TSource, TResult> inner, Func<TResult, TNew> outer) => (item) => outer(inner(item));
+		}
+
+		/// <inheritdoc />
+		public override WhereSelectAsyncIterator<TSource, TResult> Where(Func<TResult, bool> predicate)
+		{
+			return new(this.Source, this.PreFilter, this.Transform, this.PostFilter == null ? predicate : Combine(this.PostFilter, predicate));
+
+			static Func<TResult, bool> Combine(Func<TResult, bool> first, Func<TResult, bool> second) => (item) => first(item) && second(item);
+		}
+
+	}
+
+	/// <summary>Iterates over an async sequence of items</summary>
+	/// <typeparam name="TSource">Type of elements of the inner async sequence</typeparam>
+	/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
+	/// <remarks>This is a simpler version that only supports non-async selectors and predicates (the most frequently used)</remarks>
+	internal sealed class WhereSelectTaskAsyncIterator<TSource, TResult> : AsyncLinqIterator<TResult>
+	{
+
+		public WhereSelectTaskAsyncIterator(IAsyncQuery<TSource> source, Func<TSource, bool>? preFilter, Func<TSource, CancellationToken, Task<TResult>> transform, Func<TResult, bool>? postFilter)
+		{
+			this.Source = source;
+			this.PreFilter = preFilter;
+			this.Transform = transform;
+			this.PostFilter = postFilter;
+		}
+
+		private IAsyncQuery<TSource> Source { get; }
+
+		private Func<TSource, bool>? PreFilter { get; }
+
+		private Func<TResult, bool>? PostFilter { get; }
+
+		private Func<TSource, CancellationToken, Task<TResult>> Transform { get; }
+
+		/// <inheritdoc />
+		public override CancellationToken Cancellation => this.Source.Cancellation;
+
+		private IAsyncEnumerator<TSource>? Iterator { get; set; }
+
+		/// <inheritdoc />
+		protected override WhereSelectTaskAsyncIterator<TSource, TResult> Clone() => new(this.Source, this.PreFilter, this.Transform, this.PostFilter);
+
+		/// <inheritdoc />
+		protected override ValueTask<bool> OnFirstAsync()
+		{
+			this.Iterator = this.Source.GetAsyncEnumerator(m_mode);
+			return new(true);
+		}
+
+		/// <inheritdoc />
+		protected override async ValueTask<bool> OnNextAsync()
+		{
+			var iterator = this.Iterator;
+			if (iterator == null)
+			{
+				return await Completed().ConfigureAwait(false);
+			}
+
+			var preFilter = this.PreFilter;
+			var postFilter = this.PostFilter;
+			var ct = this.Cancellation;
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				var item = iterator.Current;
+				if (preFilter == null || preFilter(item))
+				{
+					var value = await this.Transform(iterator.Current, ct).ConfigureAwait(false);
+					if (postFilter == null || postFilter(value))
+					{
+						return Publish(value);
+					}
+				}
+			}
+
+			return await this.Completed().ConfigureAwait(false);
+		}
+
+		/// <inheritdoc />
+		protected override ValueTask Cleanup()
+		{
+			var iterator = this.Iterator;
+			if (iterator == null) return default;
+
+			this.Iterator = null;
+			return iterator.DisposeAsync();
+		}
+
+		private async Task FillBufferAsync(Buffer<TResult> buffer)
+		{
+			await using var iterator = this.Source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			var preFilter = this.PreFilter;
+			var transform = this.Transform;
+			var postFilter = this.PostFilter;
+			var ct = this.Cancellation;
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				var item = iterator.Current;
+				if (preFilter == null || preFilter(item))
+				{
+					var value = await transform(item, ct).ConfigureAwait(false);
+					if (postFilter == null || postFilter(value))
+					{
+						buffer.Add(value);
+					}
+				}
+			}
+		}
+
+		/// <inheritdoc />
+		public override async Task<TResult[]> ToArrayAsync()
+		{
+			//note: we assume that the source does not implement IAsyncLinqQuery<TResult> (otherwise, we would have called their own implementation, instead of this one!)
+
+			var buffer = new Buffer<TResult>(pool: ArrayPool<TResult>.Shared);
+			await FillBufferAsync(buffer).ConfigureAwait(false);
+			return buffer.ToArrayAndClear();
+		}
+
+		/// <inheritdoc />
+		public override async Task<List<TResult>> ToListAsync()
+		{
+			//note: we assume that the source does not implement IAsyncLinqQuery<TResult> (otherwise, we would have called their own implementation, instead of this one!)
+
+			var buffer = new Buffer<TResult>(pool: ArrayPool<TResult>.Shared);
+			await FillBufferAsync(buffer).ConfigureAwait(false);
+			return buffer.ToListAndClear();
+		}
+
+		/// <inheritdoc />
+		public override async Task<ImmutableArray<TResult>> ToImmutableArrayAsync()
+		{
+			//note: we assume that the source does not implement IAsyncLinqQuery<TResult> (otherwise, we would have called their own implementation, instead of this one!)
+
+			var buffer = new Buffer<TResult>(pool: ArrayPool<TResult>.Shared);
+			await FillBufferAsync(buffer).ConfigureAwait(false);
+			return buffer.ToImmutableArrayAndClear();
+		}
+
+		/// <inheritdoc />
+		public override IAsyncLinqQuery<TNew> Select<TNew>(Func<TResult, TNew> selector)
+		{
+			if (this.PostFilter != null)
+			{
+				// we cannot easily combine the pre- and post-filter without calling the original selector twice!
+				return new WhereSelectAsyncIterator<TResult, TNew>(this, null, selector, null);
+			}
+
+			return new WhereSelectTaskAsyncIterator<TSource, TNew>(this.Source, this.PreFilter, Combine(this.Transform, selector), null);
+
+			static Func<TSource, CancellationToken, Task<TNew>> Combine(Func<TSource, CancellationToken, Task<TResult>> inner, Func<TResult, TNew> outer) => async (item, ct) => outer(await inner(item, ct).ConfigureAwait(false));
+		}
+
+		/// <inheritdoc />
+		public override IAsyncLinqQuery<TNew> Select<TNew>(Func<TResult, CancellationToken, Task<TNew>> selector)
+		{
+			if (this.PostFilter != null)
+			{
+				// we cannot easily combine the pre- and post-filter without calling the original selector twice!
+				return new WhereSelectTaskAsyncIterator<TResult, TNew>(this, null, selector, null);
+			}
+
+			return new WhereSelectTaskAsyncIterator<TSource, TNew>(this.Source, this.PreFilter, Combine(this.Transform, selector), null);
+
+			static Func<TSource, CancellationToken, Task<TNew>> Combine(Func<TSource, CancellationToken, Task<TResult>> inner, Func<TResult, CancellationToken, Task<TNew>> outer) => async (item, ct) => await outer(await inner(item, ct).ConfigureAwait(false), ct).ConfigureAwait(false);
+		}
+
+		/// <inheritdoc />
+		public override WhereSelectTaskAsyncIterator<TSource, TResult> Where(Func<TResult, bool> predicate)
+		{
+			return new(this.Source, this.PreFilter, this.Transform, this.PostFilter == null ? predicate : Combine(this.PostFilter, predicate));
+
+			static Func<TResult, bool> Combine(Func<TResult, bool> first, Func<TResult, bool> second) => (item) => first(item) && second(item);
 		}
 
 	}

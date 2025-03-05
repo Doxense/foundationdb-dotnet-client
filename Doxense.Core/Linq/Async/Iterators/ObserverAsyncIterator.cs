@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -35,14 +35,14 @@ namespace Doxense.Linq.Async.Iterators
 
 		private readonly AsyncObserverExpression<TSource> m_observer;
 
-		public ObserverAsyncIterator(IAsyncEnumerable<TSource> source, AsyncObserverExpression<TSource> observer)
+		public ObserverAsyncIterator(IAsyncQuery<TSource> source, AsyncObserverExpression<TSource> observer)
 			: base(source)
 		{
 			Contract.Debug.Requires(observer != null);
 			m_observer = observer;
 		}
 
-		protected override AsyncIterator<TSource> Clone()
+		protected override AsyncLinqIterator<TSource> Clone()
 		{
 			return new ObserverAsyncIterator<TSource>(m_source, m_observer);
 		}
@@ -52,23 +52,25 @@ namespace Doxense.Linq.Async.Iterators
 			var iterator = m_iterator;
 			Contract.Debug.Requires(iterator != null);
 
-			while (!m_ct.IsCancellationRequested)
+			var ct = this.Cancellation;
+			while (!ct.IsCancellationRequested)
 			{
 				if (!await iterator.MoveNextAsync().ConfigureAwait(false))
 				{ // completed
 					return await Completed().ConfigureAwait(false);
 				}
 
-				if (m_ct.IsCancellationRequested) break;
+				if (ct.IsCancellationRequested) break;
 
 				TSource current = iterator.Current;
 				if (!m_observer.Async)
 				{
+					// ReSharper disable once MethodHasAsyncOverloadWithCancellation
 					m_observer.Invoke(current);
 				}
 				else
 				{
-					await m_observer.InvokeAsync(current, m_ct).ConfigureAwait(false);
+					await m_observer.InvokeAsync(current, ct).ConfigureAwait(false);
 				}
 
 				return Publish(current);

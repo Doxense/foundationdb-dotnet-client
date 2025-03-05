@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -46,9 +46,9 @@ namespace FoundationDB.Linq.Providers
 		public Type ElementType => typeof(T);
 
 		/// <summary>Return an async sequence that will return the results of this query</summary>
-		public IAsyncEnumerable<T> ToEnumerable(AsyncIterationHint mode = AsyncIterationHint.Default)
+		public IAsyncQuery<T> ToEnumerable()
 		{
-			return AsyncEnumerable.Create((_, _) => GetEnumerator(this, mode));
+			return AsyncQuery.Create((_, mode, _) => GetEnumerator(this, mode), null, this.Transaction?.Cancellation ?? CancellationToken.None); //BUGBUG: token when db only??
 		}
 
 	}

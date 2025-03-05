@@ -2165,7 +2165,7 @@ namespace FoundationDB.Client
 		/// <param name="handler">Lambda function that returns an async enumerable. The function may be called multiple times if the transaction conflicts.</param>
 		/// <param name="ct">Token used to cancel the operation</param>
 		/// <returns>Task returning the list of all the elements of the async enumerable returned by the last successful call to <paramref name="handler"/>.</returns>
-		public static Task<List<T>> QueryAsync<T>(this IFdbReadOnlyRetryable db, [InstantHandle] Func<IFdbReadOnlyTransaction, IAsyncEnumerable<T>> handler, CancellationToken ct)
+		public static Task<List<T>> QueryAsync<T>(this IFdbReadOnlyRetryable db, [InstantHandle] Func<IFdbReadOnlyTransaction, IAsyncQuery<T>> handler, CancellationToken ct)
 		{
 			Contract.NotNull(db);
 			Contract.NotNull(handler);
@@ -2183,7 +2183,7 @@ namespace FoundationDB.Client
 		/// <param name="handler">Lambda function that returns an async enumerable. The function may be called multiple times if the transaction conflicts.</param>
 		/// <param name="ct">Token used to cancel the operation</param>
 		/// <returns>Task returning the list of all the elements of the async enumerable returned by the last successful call to <paramref name="handler"/>.</returns>
-		public static Task<List<T>> QueryAsync<T>(this IFdbReadOnlyRetryable db, [InstantHandle] Func<IFdbReadOnlyTransaction, Task<IAsyncEnumerable<T>>> handler, CancellationToken ct)
+		public static Task<List<T>> QueryAsync<T>(this IFdbReadOnlyRetryable db, [InstantHandle] Func<IFdbReadOnlyTransaction, Task<IAsyncQuery<T>>> handler, CancellationToken ct)
 		{
 			Contract.NotNull(db);
 			Contract.NotNull(handler);
@@ -2193,6 +2193,66 @@ namespace FoundationDB.Client
 				var query = (await handler(tr).ConfigureAwait(false)) ?? throw new InvalidOperationException("The query handler returned a null sequence");
 				// ReSharper disable once MethodSupportsCancellation
 				return await query.ToListAsync().ConfigureAwait(false);
+			}, ct);
+		}
+
+		/// <summary>Runs a query inside a read-only transaction context, with retry-logic.</summary>
+		/// <param name="db">Database used for the operation</param>
+		/// <param name="handler">Lambda function that returns an async enumerable. The function may be called multiple times if the transaction conflicts.</param>
+		/// <param name="ct">Token used to cancel the operation</param>
+		/// <returns>Task returning the list of all the elements of the async enumerable returned by the last successful call to <paramref name="handler"/>.</returns>
+		public static Task<List<T>> QueryAsync<T>(this IFdbReadOnlyRetryable db, [InstantHandle] Func<IFdbReadOnlyTransaction, Task<IAsyncLinqQuery<T>>> handler, CancellationToken ct)
+		{
+			Contract.NotNull(db);
+			Contract.NotNull(handler);
+
+			return db.ReadAsync(async (tr) =>
+			{
+				var query = (await handler(tr).ConfigureAwait(false)) ?? throw new InvalidOperationException("The query handler returned a null sequence");
+				// ReSharper disable once MethodSupportsCancellation
+				return await query.ToListAsync().ConfigureAwait(false);
+			}, ct);
+		}
+
+		/// <summary>Runs a query inside a read-only transaction context, with retry-logic.</summary>
+		/// <param name="db">Database used for the operation</param>
+		/// <param name="handler">Lambda function that returns an async enumerable. The function may be called multiple times if the transaction conflicts.</param>
+		/// <param name="ct">Token used to cancel the operation</param>
+		/// <returns>Task returning the list of all the elements of the async enumerable returned by the last successful call to <paramref name="handler"/>.</returns>
+		public static Task<List<T>> QueryAsync<T>(this IFdbReadOnlyRetryable db, [InstantHandle] Func<IFdbReadOnlyTransaction, IAsyncEnumerable<T>> handler, CancellationToken ct)
+		{
+			Contract.NotNull(db);
+			Contract.NotNull(handler);
+
+			return db.ReadAsync(async (tr) =>
+			{
+				var query = handler(tr) ?? throw new InvalidOperationException("The query handler returned a null sequence");
+#if NET10_0_OR_GREATER
+				return await query.ToListAsync(ct).ConfigureAwait(false);
+#else
+				return await query.ToAsyncQuery(ct).ToListAsync().ConfigureAwait(false);
+#endif
+			}, ct);
+		}
+
+		/// <summary>Runs a query inside a read-only transaction context, with retry-logic.</summary>
+		/// <param name="db">Database used for the operation</param>
+		/// <param name="handler">Lambda function that returns an async enumerable. The function may be called multiple times if the transaction conflicts.</param>
+		/// <param name="ct">Token used to cancel the operation</param>
+		/// <returns>Task returning the list of all the elements of the async enumerable returned by the last successful call to <paramref name="handler"/>.</returns>
+		public static Task<List<T>> QueryAsync<T>(this IFdbReadOnlyRetryable db, [InstantHandle] Func<IFdbReadOnlyTransaction, Task<IAsyncEnumerable<T>>> handler, CancellationToken ct)
+		{
+			Contract.NotNull(db);
+			Contract.NotNull(handler);
+
+			return db.ReadAsync(async (tr) =>
+			{
+				var query = (await handler(tr).ConfigureAwait(false)) ?? throw new InvalidOperationException("The query handler returned a null sequence");
+#if NET10_0_OR_GREATER
+				return await query.ToListAsync(ct).ConfigureAwait(false);
+#else
+				return await query.ToAsyncQuery(ct).ToListAsync().ConfigureAwait(false);
+#endif
 			}, ct);
 		}
 

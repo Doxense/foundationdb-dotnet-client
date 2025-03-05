@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -26,24 +26,25 @@
 
 namespace Doxense.Linq
 {
+	using System.ComponentModel;
 	using Doxense.Linq.Async.Iterators;
 
-	public static partial class AsyncEnumerable
+	public static partial class AsyncQuery
 	{
 
 		/// <summary>Represent an async sequence that returns its elements according to a specific sort order</summary>
 		/// <typeparam name="TSource">Type of the elements of the sequence</typeparam>
-		internal class OrderedSequence<TSource> : IAsyncOrderedEnumerable<TSource>, IConfigurableAsyncEnumerable<TSource>
+		internal class OrderedSequence<TSource> : IOrderedAsyncQuery<TSource>, IAsyncEnumerable<TSource>
 		{
 			// If an instance of the base <TSource> class is constructed, it will sort by the items themselves (using a Comparer<TSource>)
-			// If an instance of the derived <TSource, TKey> class is constructed, then it will sort the a key extracted the each item (sing a Comparer<TKey>)
+			// If an instance of the derived <TSource, TKey> class is constructed, then it will sort the key extracted from each item (sing a Comparer<TKey>)
 
-			protected readonly IAsyncEnumerable<TSource> m_source;
+			protected readonly IAsyncQuery<TSource> m_source;
 			private readonly IComparer<TSource>? m_comparer; // null if comparing using keys
 			protected readonly bool m_descending;
 			protected readonly OrderedSequence<TSource>? m_parent;// null if primary sort key
 
-			public OrderedSequence(IAsyncEnumerable<TSource> source, IComparer<TSource>? comparer, bool descending, OrderedSequence<TSource>? parent)
+			public OrderedSequence(IAsyncQuery<TSource> source, IComparer<TSource>? comparer, bool descending, OrderedSequence<TSource>? parent)
 			{
 				Contract.Debug.Requires(source != null);
 
@@ -53,7 +54,7 @@ namespace Doxense.Linq
 				m_parent = parent;
 			}
 
-			protected OrderedSequence(IAsyncEnumerable<TSource> source, bool descending, OrderedSequence<TSource>? parent)
+			protected OrderedSequence(IAsyncQuery<TSource> source, bool descending, OrderedSequence<TSource>? parent)
 			{
 				Contract.Debug.Requires(source != null);
 
@@ -68,17 +69,24 @@ namespace Doxense.Linq
 				return m_parent == null ? sorter : m_parent.GetEnumerableSorter(sorter);
 			}
 
-			public IAsyncEnumerator<TSource> GetAsyncEnumerator(CancellationToken ct) => GetAsyncEnumerator(ct, AsyncIterationHint.Default);
+			public CancellationToken Cancellation => m_source.Cancellation;
 
-			public IAsyncEnumerator<TSource> GetAsyncEnumerator(CancellationToken ct, AsyncIterationHint mode)
+			[MustDisposeResource]
+			[EditorBrowsable(EditorBrowsableState.Never)]
+			public IAsyncEnumerator<TSource> GetAsyncEnumerator(CancellationToken ct)
+				=> GetCancellableAsyncEnumerator(this, AsyncIterationHint.All, ct);
+
+			[MustDisposeResource]
+			public IAsyncEnumerator<TSource> GetAsyncEnumerator(AsyncIterationHint mode)
 			{
+				var ct = m_source.Cancellation;
 				ct.ThrowIfCancellationRequested();
 				var sorter = GetEnumerableSorter(null);
 				var enumerator = default(IAsyncEnumerator<TSource>);
 				try
 				{
-					enumerator = m_source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : m_source.GetAsyncEnumerator(ct);
-					return new OrderedEnumerator<TSource>(enumerator, sorter, ct);
+					enumerator = m_source.GetAsyncEnumerator(mode);
+					return new OrderedEnumerator<TSource>(enumerator, sorter);
 				}
 				catch (Exception)
 				{
@@ -88,7 +96,7 @@ namespace Doxense.Linq
 				}
 			}
 
-			public IAsyncOrderedEnumerable<TSource> CreateOrderedEnumerable<TKey>(Func<TSource, TKey> keySelector, IComparer<TKey>? comparer, bool descending)
+			public IOrderedAsyncQuery<TSource> CreateOrderedEnumerable<TKey>(Func<TSource, TKey> keySelector, IComparer<TKey>? comparer, bool descending)
 			{
 				Contract.NotNull(keySelector);
 
@@ -105,7 +113,7 @@ namespace Doxense.Linq
 			private readonly Func<TSource, TKey> m_keySelector;
 			private readonly IComparer<TKey> m_keyComparer;
 
-			public OrderedSequence(IAsyncEnumerable<TSource> source, Func<TSource, TKey> keySelector, IComparer<TKey>? comparer, bool descending, OrderedSequence<TSource>? parent)
+			public OrderedSequence(IAsyncQuery<TSource> source, Func<TSource, TKey> keySelector, IComparer<TKey>? comparer, bool descending, OrderedSequence<TSource>? parent)
 				: base(source, descending, parent)
 			{
 				Contract.Debug.Requires(keySelector != null);
@@ -124,7 +132,7 @@ namespace Doxense.Linq
 		/// <summary>Iterator that will sort all the items produced by an inner iterator, before outputting the results all at once</summary>
 		internal sealed class OrderedEnumerator<TSource> : IAsyncEnumerator<TSource>
 		{
-			// This iterator must first before EVERY items of the source in memory, before being able to sort them.
+			// This iterator must first before EVERY item of the source in memory, before being able to sort them.
 			// The first MoveNext() will return only once the inner sequence has finished (successfully), which can take some time!
 			// Ordering is done in-memory using QuickSort
 
@@ -135,14 +143,12 @@ namespace Doxense.Linq
 			private int[]? m_map;
 			private int m_offset;
 			private TSource? m_current;
-			private readonly CancellationToken m_ct;
 
-			public OrderedEnumerator(IAsyncEnumerator<TSource> enumerator, SequenceSorter<TSource> sorter, CancellationToken ct)
+			public OrderedEnumerator(IAsyncEnumerator<TSource> enumerator, SequenceSorter<TSource> sorter)
 			{
 				Contract.Debug.Requires(enumerator != null && sorter != null);
 				m_inner = enumerator;
 				m_sorter = sorter;
-				m_ct = ct;
 			}
 
 			private async ValueTask<bool> ReadAllThenSort()
@@ -153,9 +159,9 @@ namespace Doxense.Linq
 				var buffer = new Buffer<TSource>();
 
 				var inner = m_inner;
-				if (inner is AsyncIterator<TSource> iterator)
+				if (inner is AsyncLinqIterator<TSource> iterator)
 				{
-					await iterator.ExecuteAsync(buffer, (b, x) => b.Add(x), m_ct).ConfigureAwait(false);
+					await iterator.ExecuteAsync(buffer, (b, x) => b.Add(x)).ConfigureAwait(false);
 				}
 				else
 				{

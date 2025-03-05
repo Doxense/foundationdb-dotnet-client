@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -1215,13 +1215,13 @@ namespace FoundationDB.Client
 
 				}
 
-				return await tr
+				return !(await tr
 					.GetRange(
 						partition.Nodes.Encode(prefix),
 						partition.Nodes.Encode(FdbKey.Increment(prefix))
 					)
-					.NoneAsync()
-					.ConfigureAwait(false);
+					.AnyAsync()
+					.ConfigureAwait(false));
 			}
 
 			private static Slice GetSubDirKey(PartitionDescriptor partition, Slice prefix, string segment)

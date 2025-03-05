@@ -36,6 +36,7 @@ global using Doxense.Runtime;
 global using ContractAnnotationAttribute = JetBrains.Annotations.ContractAnnotationAttribute;
 global using LinqTunnelAttribute = JetBrains.Annotations.LinqTunnelAttribute;
 global using InstantHandleAttribute = JetBrains.Annotations.InstantHandleAttribute;
+global using MustDisposeResourceAttribute = JetBrains.Annotations.MustDisposeResourceAttribute;
 global using MustUseReturnValueAttribute = JetBrains.Annotations.MustUseReturnValueAttribute;
 global using PositiveAttribute = JetBrains.Annotations.PositiveAttribute;
 global using PublicAPIAttribute = JetBrains.Annotations.PublicAPIAttribute;

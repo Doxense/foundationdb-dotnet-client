@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -92,14 +92,14 @@ namespace Doxense.Linq.Async.Iterators
 		/// <summary>Create a new batching iterator</summary>
 		/// <param name="source">Source sequence of items that must be batched by waves</param>
 		/// <param name="maxWindowSize">Maximum size of a batch to return down the line</param>
-		public WindowingAsyncIterator(IAsyncEnumerable<TInput> source, int maxWindowSize)
+		public WindowingAsyncIterator(IAsyncQuery<TInput> source, int maxWindowSize)
 			: base(source)
 		{
 			Contract.Debug.Requires(maxWindowSize > 0);
 			m_maxWindowSize = maxWindowSize;
 		}
 
-		protected override AsyncIterator<TInput[]> Clone()
+		protected override AsyncLinqIterator<TInput[]> Clone()
 		{
 			return new WindowingAsyncIterator<TInput>(m_source, m_maxWindowSize);
 		}
@@ -116,6 +116,7 @@ namespace Doxense.Linq.Async.Iterators
 
 			var iterator = m_iterator;
 			var buffer = m_buffer;
+			var ct = this.Cancellation;
 			Contract.Debug.Requires(iterator != null && buffer != null);
 
 			var ft = Interlocked.Exchange(ref m_nextTask, null);
@@ -128,10 +129,10 @@ namespace Doxense.Linq.Async.Iterators
 			// always wait for the first item (so that we have at least something in the batch)
 			bool hasMore = await ft.ConfigureAwait(false);
 
-			// most db queries will read items by chunks, so there is a high chance the the next following calls to MoveNext() will already be completed
+			// most db queries will read items by chunks, so there is a high chance the next following calls to MoveNext() will already be completed
 			// as long as this is the case, and that our buffer is not full, continue eating items. Stop only when we end up with a pending task.
 
-			while (hasMore && !m_ct.IsCancellationRequested)
+			while (hasMore && !ct.IsCancellationRequested)
 			{
 				buffer.Add(iterator.Current);
 
@@ -150,7 +151,7 @@ namespace Doxense.Linq.Async.Iterators
 				hasMore = vt.Result;
 				//note: if inner blows up, we won't send any previously read items down the line. This may change the behavior of queries with a .Take(N) that would have stopped before reading the (N+1)th item that would have failed.
 			}
-			m_ct.ThrowIfCancellationRequested();
+			ct.ThrowIfCancellationRequested();
 
 			if (!hasMore)
 			{

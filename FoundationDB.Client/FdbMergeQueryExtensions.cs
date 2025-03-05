@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -27,6 +27,7 @@
 namespace FoundationDB.Client
 {
 	using System.Linq;
+	using Doxense.Linq;
 	using Doxense.Linq.Async.Iterators;
 
 	[PublicAPI]
@@ -36,7 +37,7 @@ namespace FoundationDB.Client
 		#region MergeSort (x OR y)
 
 		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<KeyValuePair<Slice, Slice>> MergeSort<TKey>(this IFdbReadOnlyTransaction trans, IEnumerable<KeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey>? keyComparer = null)
+		public static IAsyncQuery<KeyValuePair<Slice, Slice>> MergeSort<TKey>(this IFdbReadOnlyTransaction trans, IEnumerable<KeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey>? keyComparer = null)
 		{
 			//TODO: Range options ?
 			Contract.NotNull(trans);
@@ -44,17 +45,19 @@ namespace FoundationDB.Client
 			Contract.NotNull(keySelector);
 
 			trans.EnsureCanRead();
+
 			return new MergeSortAsyncIterator<KeyValuePair<Slice, Slice>, TKey, KeyValuePair<Slice, Slice>>(
-				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { Streaming = FdbStreamingMode.Iterator })),
-				default,
+				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { Streaming = FdbStreamingMode.Iterator })).ToArray<IAsyncQuery<KeyValuePair<Slice, Slice>>>(),
+				null,
 				keySelector,
 				(kv) => kv,
-				keyComparer
+				keyComparer,
+				trans.Cancellation
 			);
 		}
 
 		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<TResult> MergeSort<TKey, TResult>(this IFdbReadOnlyTransaction trans, IEnumerable<KeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey>? keyComparer = null)
+		public static IAsyncQuery<TResult> MergeSort<TKey, TResult>(this IFdbReadOnlyTransaction trans, IEnumerable<KeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey>? keyComparer = null)
 		{
 			//TODO: Range options ?
 			Contract.NotNull(trans);
@@ -64,38 +67,51 @@ namespace FoundationDB.Client
 
 			trans.EnsureCanRead();
 			return new MergeSortAsyncIterator<KeyValuePair<Slice, Slice>, TKey, TResult>(
-				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { Streaming = FdbStreamingMode.Iterator })),
+				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { Streaming = FdbStreamingMode.Iterator })).ToArray<IAsyncQuery<KeyValuePair<Slice, Slice>>>(),
 				default,
 				keySelector,
 				resultSelector,
-				keyComparer
+				keyComparer,
+				trans.Cancellation
 			);
 		}
 
 		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<TResult> Union<TKey, TResult>(IEnumerable<IAsyncEnumerable<TResult>> sources, Func<TResult, TKey> keySelector, IComparer<TKey>? keyComparer = null)
+		public static IAsyncQuery<TResult> Union<TKey, TResult>(IEnumerable<IAsyncQuery<TResult>> sources, Func<TResult, TKey> keySelector, IComparer<TKey>? keyComparer = null)
 		{
 			Contract.NotNull(sources);
 			Contract.NotNull(keySelector);
+
+			var arr = (sources as IAsyncQuery<TResult>[]) ?? sources.ToArray();
+			if (arr.Length == 0) return AsyncQuery.Empty<TResult>();
+			var ct = arr[0].Cancellation;
+
 			return new MergeSortAsyncIterator<TResult, TKey, TResult>(
-				sources,
+				arr,
 				null,
 				keySelector,
 				(x) => x,
-				keyComparer
+				keyComparer,
+				ct
 			);
 		}
 
 		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<TResult> Union<TResult>(IEnumerable<IAsyncEnumerable<TResult>> sources, IComparer<TResult>? keyComparer = null)
+		public static IAsyncQuery<TResult> Union<TResult>(IEnumerable<IAsyncQuery<TResult>> sources, IComparer<TResult>? keyComparer = null)
 		{
 			Contract.NotNull(sources);
+
+			var arr = (sources as IAsyncQuery<TResult>[]) ?? sources.ToArray();
+			if (arr.Length == 0) return AsyncQuery.Empty<TResult>();
+			var ct = arr[0].Cancellation;
+
 			return new MergeSortAsyncIterator<TResult, TResult, TResult>(
-				sources,
+				arr,
 				null,
 				(x) => x,
 				(x) => x,
-				keyComparer
+				keyComparer,
+				ct
 			);
 		}
 
@@ -104,7 +120,7 @@ namespace FoundationDB.Client
 		#region Intersect (x AND y)
 
 		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<KeyValuePair<Slice, Slice>> Intersect<TKey>(this IFdbReadOnlyTransaction trans, IEnumerable<KeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey>? keyComparer = null)
+		public static IAsyncQuery<KeyValuePair<Slice, Slice>> Intersect<TKey>(this IFdbReadOnlyTransaction trans, IEnumerable<KeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey>? keyComparer = null)
 		{
 			//TODO: Range options ?
 			Contract.NotNull(trans);
@@ -113,81 +129,105 @@ namespace FoundationDB.Client
 
 			trans.EnsureCanRead();
 			return new IntersectAsyncIterator<KeyValuePair<Slice, Slice>, TKey, KeyValuePair<Slice, Slice>>(
-				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { Streaming = FdbStreamingMode.Iterator })),
-				default,
+				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { Streaming = FdbStreamingMode.Iterator })).ToArray<IAsyncQuery<KeyValuePair<Slice, Slice>>>(),
+				null,
 				keySelector,
 				(kv) => kv,
-				keyComparer
+				keyComparer,
+				trans.Cancellation
 			);
 		}
 
 		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<TResult> Intersect<TKey, TResult>(this IFdbReadOnlyTransaction trans, IEnumerable<KeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey>? keyComparer = null)
+		public static IAsyncQuery<TResult> Intersect<TKey, TResult>(this IFdbReadOnlyTransaction trans, IEnumerable<KeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey>? keyComparer = null)
 		{
 			//TODO: Range options ?
 
 			trans.EnsureCanRead();
 			return new IntersectAsyncIterator<KeyValuePair<Slice, Slice>, TKey, TResult>(
-				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { Streaming = FdbStreamingMode.Iterator })),
-				default,
+				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { Streaming = FdbStreamingMode.Iterator })).ToArray(),
+				null,
 				keySelector,
 				resultSelector,
-				keyComparer
+				keyComparer,
+				trans.Cancellation
 			);
 		}
 
 		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<TResult> Intersect<TKey, TResult>(this IAsyncEnumerable<TResult> first, IAsyncEnumerable<TResult> second, Func<TResult, TKey> keySelector, IComparer<TKey>? keyComparer = null)
+		public static IAsyncQuery<TResult> Intersect<TKey, TResult>(this IAsyncQuery<TResult> first, IAsyncQuery<TResult> second, Func<TResult, TKey> keySelector, IComparer<TKey>? keyComparer = null)
 		{
 			Contract.NotNull(first);
 			Contract.NotNull(second);
+
+			//TODO: check that both first & second have the cancellation token, otherwise combine them?
+
 			return new IntersectAsyncIterator<TResult, TKey, TResult>(
-				new[] { first, second },
+				[ first, second ],
 				null,
 				keySelector,
 				(x) => x,
-				keyComparer
+				keyComparer,
+				first.Cancellation
 			);
 		}
 
 		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<TResult> Intersect<TResult>(this IAsyncEnumerable<TResult> first, IAsyncEnumerable<TResult> second, IComparer<TResult>? comparer = null)
+		public static IAsyncQuery<TResult> Intersect<TResult>(this IAsyncQuery<TResult> first, IAsyncQuery<TResult> second, IComparer<TResult>? comparer = null)
 		{
 			Contract.NotNull(first);
 			Contract.NotNull(second);
+
+			//TODO: check that both first & second have the cancellation token, otherwise combine them?
+
 			return new IntersectAsyncIterator<TResult, TResult, TResult>(
-				new [] { first, second },
+				[first, second],
 				null,
 				(x) => x,
 				(x) => x,
-				comparer
+				comparer,
+				first.Cancellation
 			);
 		}
 
 		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<TResult> Intersect<TKey, TResult>(IEnumerable<IAsyncEnumerable<TResult>> sources, Func<TResult, TKey> keySelector, IComparer<TKey>? keyComparer = null)
+		public static IAsyncQuery<TResult> Intersect<TKey, TResult>(IEnumerable<IAsyncQuery<TResult>> sources, Func<TResult, TKey> keySelector, IComparer<TKey>? keyComparer = null)
 		{
 			Contract.NotNull(sources);
 			Contract.NotNull(keySelector);
+
+			var arr = (sources as IAsyncQuery<TResult>[]) ?? sources.ToArray();
+			if (arr.Length == 0) return AsyncQuery.Empty<TResult>();
+			var ct = arr[0].Cancellation;
+
+
 			return new IntersectAsyncIterator<TResult, TKey, TResult>(
-				sources,
+				arr,
 				null,
 				keySelector,
 				(x) => x,
-				keyComparer
+				keyComparer,
+				ct
 			);
 		}
 
 		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<TResult> Intersect<TResult>(IEnumerable<IAsyncEnumerable<TResult>> sources, IComparer<TResult>? keyComparer = null)
+		public static IAsyncQuery<TResult> Intersect<TResult>(IEnumerable<IAsyncQuery<TResult>> sources, IComparer<TResult>? keyComparer = null)
 		{
 			Contract.NotNull(sources);
+
+			var arr = (sources as IAsyncQuery<TResult>[]) ?? sources.ToArray();
+			if (arr.Length == 0) return AsyncQuery.Empty<TResult>();
+			var ct = arr[0].Cancellation;
+
+
 			return new IntersectAsyncIterator<TResult, TResult, TResult>(
-				sources,
+				arr,
 				null,
 				(x) => x,
 				(x) => x,
-				keyComparer
+				keyComparer,
+				ct
 			);
 		}
 
@@ -203,7 +243,7 @@ namespace FoundationDB.Client
 		/// <param name="keyComparer">Instance used to compare the keys returned by <paramref name="keySelector"/></param>
 		/// <returns>Async query that returns only the results that are in the first range, and not in any other range.</returns>
 		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<KeyValuePair<Slice, Slice>> Except<TKey>(this IFdbReadOnlyTransaction trans, IEnumerable<KeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey>? keyComparer = null)
+		public static IAsyncLinqQuery<KeyValuePair<Slice, Slice>> Except<TKey>(this IFdbReadOnlyTransaction trans, IEnumerable<KeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey>? keyComparer = null)
 		{
 			//TODO: Range options ?
 			Contract.NotNull(trans);
@@ -213,10 +253,11 @@ namespace FoundationDB.Client
 			trans.EnsureCanRead();
 			return new ExceptAsyncIterator<KeyValuePair<Slice, Slice>, TKey, KeyValuePair<Slice, Slice>>(
 				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { Streaming = FdbStreamingMode.Iterator })),
-				default,
+				null,
 				keySelector,
 				(kv) => kv,
-				keyComparer
+				keyComparer,
+				trans.Cancellation
 			);
 		}
 
@@ -228,7 +269,7 @@ namespace FoundationDB.Client
 		/// <param name="keyComparer">Instance used to compare the keys returned by <paramref name="keySelector"/></param>
 		/// <returns>Async query that returns only the results that are in the first range, and not in any other range.</returns>
 		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<KeyValuePair<Slice, Slice>> Except<TKey>(this IFdbReadOnlyTransaction trans, IEnumerable<KeyRange> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey>? keyComparer = null)
+		public static IAsyncLinqQuery<KeyValuePair<Slice, Slice>> Except<TKey>(this IFdbReadOnlyTransaction trans, IEnumerable<KeyRange> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey>? keyComparer = null)
 		{
 			Contract.NotNull(ranges);
 			return Except<TKey>(trans, ranges.Select(r => KeySelectorPair.Create(r)), keySelector, keyComparer);
@@ -244,17 +285,18 @@ namespace FoundationDB.Client
 		/// <param name="keyComparer">Instance used to compare the keys returned by <paramref name="keySelector"/></param>
 		/// <returns>Async query that returns only the results that are in the first range, and not in any other range.</returns>
 		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<TResult> Except<TKey, TResult>(this IFdbReadOnlyTransaction trans, IEnumerable<KeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey>? keyComparer = null)
+		public static IAsyncQuery<TResult> Except<TKey, TResult>(this IFdbReadOnlyTransaction trans, IEnumerable<KeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey>? keyComparer = null)
 		{
 			//TODO: Range options ?
 
 			trans.EnsureCanRead();
 			return new ExceptAsyncIterator<KeyValuePair<Slice, Slice>, TKey, TResult>(
 				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { Streaming = FdbStreamingMode.Iterator })),
-				default,
+				null,
 				keySelector,
 				resultSelector,
-				keyComparer
+				keyComparer,
+				trans.Cancellation
 			);
 		}
 
@@ -268,7 +310,7 @@ namespace FoundationDB.Client
 		/// <param name="keyComparer">Instance used to compare the keys returned by <paramref name="keySelector"/></param>
 		/// <returns>Async query that returns only the results that are in the first range, and not in any other range.</returns>
 		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<TResult> Except<TKey, TResult>(this IFdbReadOnlyTransaction trans, IEnumerable<KeyRange> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey>? keyComparer = null)
+		public static IAsyncQuery<TResult> Except<TKey, TResult>(this IFdbReadOnlyTransaction trans, IEnumerable<KeyRange> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey>? keyComparer = null)
 		{
 			Contract.NotNull(ranges);
 			return Except<TKey, TResult>(trans, ranges.Select(r => KeySelectorPair.Create(r)), keySelector, resultSelector, keyComparer);
@@ -283,17 +325,21 @@ namespace FoundationDB.Client
 		/// <param name="keyComparer">Instance used to compare keys</param>
 		/// <returns>Async query that returns only the elements that are in <paramref name="first"/>, and not in <paramref name="second"/></returns>
 		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<TResult> Except<TKey, TResult>(this IAsyncEnumerable<TResult> first, IAsyncEnumerable<TResult> second, Func<TResult, TKey> keySelector, IComparer<TKey>? keyComparer = null)
+		public static IAsyncQuery<TResult> Except<TKey, TResult>(this IAsyncQuery<TResult> first, IAsyncQuery<TResult> second, Func<TResult, TKey> keySelector, IComparer<TKey>? keyComparer = null)
 		{
 			Contract.NotNull(first);
 			Contract.NotNull(second);
 			Contract.NotNull(keySelector);
+
+			//TODO: check that both first & second have the cancellation token, otherwise combine them?
+
 			return new ExceptAsyncIterator<TResult, TKey, TResult>(
-				new[] { first, second },
+				[ first, second ],
 				null,
 				keySelector,
 				(x) => x,
-				keyComparer
+				keyComparer,
+				first.Cancellation
 			);
 		}
 
@@ -304,16 +350,20 @@ namespace FoundationDB.Client
 		/// <param name="comparer">Instance used to compare elements</param>
 		/// <returns>Async query that returns only the elements that are in <paramref name="first"/>, and not in <paramref name="second"/></returns>
 		[Pure, LinqTunnel]
-		public static IAsyncEnumerable<TResult> Except<TResult>(this IAsyncEnumerable<TResult> first, IAsyncEnumerable<TResult> second, IComparer<TResult>? comparer = null)
+		public static IAsyncQuery<TResult> Except<TResult>(this IAsyncQuery<TResult> first, IAsyncQuery<TResult> second, IComparer<TResult>? comparer = null)
 		{
 			Contract.NotNull(first);
 			Contract.NotNull(second);
+
+			//TODO: check that both first & second have the cancellation token, otherwise combine them?
+
 			return new ExceptAsyncIterator<TResult, TResult, TResult>(
-				new[] { first, second },
+				[ first, second ],
 				null,
 				(x) => x,
 				(x) => x,
-				comparer
+				comparer,
+				first.Cancellation
 			);
 		}
 

@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -26,13 +26,17 @@
 
 namespace FoundationDB.Client
 {
+	using System.Buffers;
+	using System.Collections.Immutable;
+	using System.ComponentModel;
 	using System.Diagnostics;
+	using System.Runtime.CompilerServices;
 	using Doxense.Linq;
 
 	/// <summary>Query describing an ongoing GetRange operation</summary>
 	[DebuggerDisplay("Begin={Begin}, End={End}, Limit={Limit}, Mode={Streaming}, Reverse={Reverse}, Snapshot={IsSnapshot}")]
 	[PublicAPI]
-	internal class FdbRangeQuery<TState, TResult> : IFdbRangeQuery<TResult>
+	internal class FdbRangeQuery<TState, TResult> : IFdbRangeQuery<TResult>, IAsyncEnumerable<TResult>
 	{
 
 		/// <summary>Construct a query with a set of initial settings</summary>
@@ -124,68 +128,16 @@ namespace FoundationDB.Client
 
 		#region Fluent API
 
-		/// <summary>Only return up to a specific number of results</summary>
-		/// <param name="count">Maximum number of results to return</param>
-		/// <returns>A new query object that will only return up to <paramref name="count"/> results when executed</returns>
-		[Pure]
-		public IFdbRangeQuery<TResult> Take([Positive] int count)
+		public IAsyncEnumerable<TResult> ToAsyncEnumerable(AsyncIterationHint hint = AsyncIterationHint.Default)
 		{
-			Contract.Positive(count);
-
-			if (this.Options.Limit == count)
+			// if the hint is compatible with the streaming mode, we can return the query unchanged; otherwise, we have to change the streaming mode in the options to match the hint.
+			return hint switch
 			{
-				return this;
-			}
-
-			return new FdbRangeQuery<TState, TResult>(
-				this,
-				this.Options with { Limit = count }
-			);
-		}
-
-		/// <summary>Bypasses a specified number of elements in a sequence and then returns the remaining elements.</summary>
-		/// <param name="count"></param>
-		/// <returns>A new query object that will skip the first <paramref name="count"/> results when executed</returns>
-		[Pure]
-		public IFdbRangeQuery<TResult> Skip([Positive] int count)
-		{
-			Contract.Positive(count);
-
-			var limit = this.Options.Limit;
-			var begin = this.Begin;
-			var end = this.End;
-
-			// Take(N).Skip(k) ?
-			if (limit.HasValue)
-			{
-				// If k >= N, then the result will be empty
-				// If k < N, then we need to update the Begin key, and limit accordingly
-				if (count >= limit.Value)
-				{
-					limit = 0; // hopefully this would be optimized at runtime?
-				}
-				else
-				{
-					limit -= count;
-				}
-			}
-
-			if (this.IsReversed)
-			{
-				end -= count;
-			}
-			else
-			{
-				begin += count;
-			}
-
-			return new FdbRangeQuery<TState, TResult>(
-				this,
-				this.Options with { Limit = limit }
-			)
-			{
-				Begin = begin,
-				End = end,
+				AsyncIterationHint.Default => this,
+				AsyncIterationHint.All => this.Streaming == FdbStreamingMode.WantAll ? this : new(this, this.Options with { Streaming = FdbStreamingMode.WantAll }),
+				AsyncIterationHint.Iterator => this.Streaming == FdbStreamingMode.Iterator ? this : new(this, this.Options with { Streaming = FdbStreamingMode.WantAll }),
+				AsyncIterationHint.Head => this.Streaming == FdbStreamingMode.Exact ? this : new(this, this.Options with { Streaming = FdbStreamingMode.Exact }),
+				_ => throw new NotSupportedException("Unsupported async iteration mode")
 			};
 		}
 
@@ -293,76 +245,581 @@ namespace FoundationDB.Client
 		//note: these methods are more optimized than regular AsyncLINQ methods, in that they can customize the query settings to return the least data possible over the network.
 		// ex: FirstOrDefault can set the Limit to 1, LastOrDefault can set Reverse to true, etc...
 
-		public IAsyncEnumerator<TResult> GetAsyncEnumerator(CancellationToken ct)
+		public CancellationToken Cancellation => this.Transaction.Cancellation;
+
+		[MustDisposeResource]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public IAsyncEnumerator<TResult> GetAsyncEnumerator(CancellationToken ct = default)
 		{
-			return GetAsyncEnumerator(ct, AsyncIterationHint.Default);
+			// We assume that the most frequent caller of this "alternate" entry point will be "await foreach" which wants to scan everything,
+			// and that "regular" LINQ usage will go through the IAsyncLinqQuery<T> interface, which calls the GetAsyncEnumerator(AsyncIterationHint) overload.
+			return AsyncQuery.GetCancellableAsyncEnumerator(this, AsyncIterationHint.All, ct);
 		}
 
-		public IAsyncEnumerator<TResult> GetAsyncEnumerator(CancellationToken ct, AsyncIterationHint hint)
-		{
-			return new FdbResultIterator<TState, TResult>(this, GetState()).GetAsyncEnumerator(ct, hint);
-		}
+		[MustDisposeResource]
+		public IAsyncEnumerator<TResult> GetAsyncEnumerator(AsyncIterationHint hint)
+			=> new FdbResultIterator<TState, TResult>(this, GetState()).GetAsyncEnumerator(hint);
+
+		[MustDisposeResource]
+		public IAsyncEnumerator<ReadOnlyMemory<TResult>> GetPagedAsyncIterator(AsyncIterationHint hint)
+			=> new FdbPagedIterator<TState, TResult>(this, this.OriginalRange, GetState(), this.Decoder).GetAsyncEnumerator(hint);
+
+		#region To{Collection}Async()...
 
 		/// <summary>Returns a list of all the elements of the range results</summary>
-		public Task<List<TResult>> ToListAsync()
+		public async Task<List<TResult>> ToListAsync()
 		{
-			// ReSharper disable once InvokeAsExtensionMethod
-			return AsyncEnumerable.ToListAsync(this, this.Transaction.Cancellation);
-		}
+			await using var iterator = GetPagedAsyncIterator(AsyncIterationHint.All);
 
-		/// <summary>Returns a list of all the elements of the range results</summary>
-		[Obsolete("The transaction already contains a cancellation token")]
-		public Task<List<TResult>> ToListAsync(CancellationToken ct)
-		{
-			//TODO: REVIEW: this method creates a lot of false positives on the rule that detect an overload that accepts a cancellation token, even though there is already one embedded in the source transaction.
-			// => ex: "tr.GetRange(....).Select(...).ToListAsync()" will have a hint on ToListAsync() that proposes to pass a cancellation token, which is most probably already used by the transaction.
-			// Should we simply remove this overload? What are the use cases where the caller must use a _different_ token here than the one from the transaction??
+			var buffer = new Buffer<TResult>(0, ArrayPool<TResult>.Shared);
+			while(await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				buffer.AddRange(iterator.Current.Span);
+			}
 
-			// ReSharper disable once InvokeAsExtensionMethod
-			return AsyncEnumerable.ToListAsync(this, ct);
+			return buffer.ToListAndClear();
 		}
 
 		/// <summary>Returns an array with all the elements of the range results</summary>
-		public Task<TResult[]> ToArrayAsync()
+		public async Task<TResult[]> ToArrayAsync()
 		{
-			// ReSharper disable once InvokeAsExtensionMethod
-			return AsyncEnumerable.ToArrayAsync(this, this.Transaction.Cancellation);
+			await using var iterator = GetPagedAsyncIterator(AsyncIterationHint.All);
+
+			var buffer = new Buffer<TResult>(0, ArrayPool<TResult>.Shared);
+			while(await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				buffer.AddRange(iterator.Current.Span);
+			}
+
+			return buffer.ToArrayAndClear();
 		}
 
 		/// <summary>Returns an array with all the elements of the range results</summary>
-		[Obsolete("The transaction already contains a cancellation token")]
-		public Task<TResult[]> ToArrayAsync(CancellationToken ct)
+		public async Task<ImmutableArray<TResult>> ToImmutableArrayAsync()
 		{
-			//TODO: REVIEW: this method creates a lot of false positives on the rule that detect an overload that accepts a cancellation token, even though there is already one embedded in the source transaction.
-			// => ex: "tr.GetRange(....).Select(...).ToArrayAsync()" will have a hint on ToArrayAsync() that proposes to pass a cancellation token, which is most probably already used by the transaction.
-			// Should we simply remove this overload? What are the use cases where the caller must use a _different_ token here than the one from the transaction??
+			await using var iterator = GetPagedAsyncIterator(AsyncIterationHint.All);
 
-			// ReSharper disable once InvokeAsExtensionMethod
-			return AsyncEnumerable.ToArrayAsync(this, ct);
+			var buffer = new Buffer<TResult>(0, ArrayPool<TResult>.Shared);
+			while(await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				buffer.AddRange(iterator.Current.Span);
+			}
+
+			return buffer.ToImmutableArrayAndClear();
 		}
 
 		/// <inheritdoc />
-		public Task<Dictionary<TKey, TValue>> ToDictionary<TKey, TValue>(Func<TResult, TKey> keySelector, Func<TResult, TValue> valueSelector, IEqualityComparer<TKey>? keyComparer = null)
+		public async Task<HashSet<TResult>> ToHashSetAsync(IEqualityComparer<TResult>? comparer = null)
+		{
+			await using var iterator = GetPagedAsyncIterator(AsyncIterationHint.All);
+
+			var res = new HashSet<TResult>(comparer);
+			while(await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				foreach (var item in iterator.Current.Span)
+				{
+					res.Add(item);
+				}
+			}
+			return res;
+		}
+
+		/// <inheritdoc />
+		public async Task<Dictionary<TKey, TResult>> ToDictionaryAsync<TKey>(Func<TResult, TKey> keySelector, IEqualityComparer<TKey>? comparer = null)
 			where TKey : notnull
 		{
-			// ReSharper disable once InvokeAsExtensionMethod
-			return AsyncEnumerable.ToDictionaryAsync(this, keySelector, valueSelector, keyComparer, this.Transaction.Cancellation);
+			await using var iterator = GetPagedAsyncIterator(AsyncIterationHint.All);
+
+			var res = new Dictionary<TKey, TResult>(comparer);
+			while(await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				foreach (var item in iterator.Current.Span)
+				{
+					res.Add(keySelector(item), item);
+				}
+			}
+			return res;
 		}
+
+		/// <inheritdoc />
+		public async Task<Dictionary<TKey, TElement>> ToDictionaryAsync<TKey, TElement>(Func<TResult, TKey> keySelector, Func<TResult, TElement> elementSelector, IEqualityComparer<TKey>? comparer = null)
+			where TKey : notnull
+		{
+			await using var iterator = GetPagedAsyncIterator(AsyncIterationHint.All);
+
+			var res = new Dictionary<TKey, TElement>(comparer);
+			while(await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				foreach (var item in iterator.Current.Span)
+				{
+					res.Add(keySelector(item), elementSelector(item));
+				}
+			}
+			return res;
+		}
+
+		#endregion
+
+		#region CountAsync...
 
 		/// <summary>Returns the number of elements in the range, by reading them</summary>
 		/// <remarks>This method has to read all the keys and values, which may exceed the lifetime of a transaction. Please consider using <see cref="Fdb.System.EstimateCountAsync(FoundationDB.Client.IFdbDatabase,FoundationDB.Client.KeyRange,System.Threading.CancellationToken)"/> when reading potentially large ranges.</remarks>
-		public Task<int> CountAsync()
+		public async Task<int> CountAsync()
 		{
-			// ReSharper disable once InvokeAsExtensionMethod
-			return AsyncEnumerable.CountAsync(this, this.Transaction.Cancellation);
+			await using var iterator = GetPagedAsyncIterator(AsyncIterationHint.All);
+
+			int count = 0;
+			while(await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				count = checked(count + iterator.Current.Length);
+			}
+			return count;
 		}
+
+		/// <inheritdoc />
+		public async Task<int> CountAsync(Func<TResult, bool> predicate)
+		{
+			await using var iterator = GetPagedAsyncIterator(AsyncIterationHint.All);
+
+			int count = 0;
+			while(await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				foreach (var item in iterator.Current.Span)
+				{
+					if (predicate(item))
+					{
+						count = checked(count + 1);
+					}
+				}
+			}
+			return count;
+		}
+
+		/// <inheritdoc />
+		public async Task<int> CountAsync(Func<TResult, CancellationToken, Task<bool>> predicate)
+		{
+			await using var iterator = GetPagedAsyncIterator(AsyncIterationHint.All);
+
+			int count = 0;
+			var ct = this.Cancellation;
+			while(await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				var batch = iterator.Current;
+				for(int i = 0; i < batch.Length; i++)
+				{
+					if (await predicate(batch.Span[i], ct).ConfigureAwait(false))
+					{
+						count = checked(count + 1);
+					}
+				}
+			}
+			return count;
+		}
+
+		#endregion
+
+		#region AnyAsync...
+
+		/// <summary>Returns <see langword="true"/> if the range query yields at least one element, or <see langword="false"/> if there was no result.</summary>
+		public Task<bool> AnyAsync()
+		{
+			// Optimized code path for Any, where we can be smart and only ask for 1 from the db
+
+			// we can use the EXACT streaming mode with Limit = 1, and it will work if TargetBytes is 0
+			if ((this.TargetBytes ?? 0) != 0 || (this.Streaming != FdbStreamingMode.Iterator && this.Streaming != FdbStreamingMode.Exact))
+			{ // fallback to the default implementation
+				return ImplSlow();
+			}
+
+			return ImplFast();
+
+			async Task<bool> ImplSlow()
+			{
+				await using var iterator = GetPagedAsyncIterator(AsyncIterationHint.Head);
+
+				return await iterator.MoveNextAsync().ConfigureAwait(false) && iterator.Current.Length > 0;
+			}
+
+			async Task<bool> ImplFast()
+			{
+				var tr = this.IsSnapshot ? this.Transaction.Snapshot : this.Transaction;
+
+				//BUGBUG: do we need special handling if OriginalRange != Range ? (weird combinations of Take/Skip and Reverse)
+				var results = await tr.GetRangeAsync(
+					this.Begin,
+					this.End,
+					new() { Limit = 1, IsReversed = this.IsReversed, Streaming = FdbStreamingMode.Exact, },
+					iteration: 0
+				).ConfigureAwait(false);
+
+				return !results.IsEmpty;
+			}
+		}
+
+		/// <inheritdoc />
+		public async Task<bool> AnyAsync(Func<TResult, bool> predicate)
+		{
+			await using var iterator = GetPagedAsyncIterator(AsyncIterationHint.Iterator);
+
+			while(await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				foreach (var item in iterator.Current.Span)
+				{
+					if (predicate(item))
+					{
+						return true;
+					}
+				}
+			}
+			return false;
+		}
+
+		/// <inheritdoc />
+		public async Task<bool> AnyAsync(Func<TResult, CancellationToken, Task<bool>> predicate)
+		{
+			await using var iterator = GetPagedAsyncIterator(AsyncIterationHint.Iterator);
+
+			var ct = this.Cancellation;
+			while(await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				var batch = iterator.Current;
+				for(int i = 0; i < batch.Length; i++)
+				{
+					if (await predicate(batch.Span[i], ct).ConfigureAwait(false))
+					{
+						return true;
+					}
+				}
+			}
+			return false;
+		}
+
+		#endregion
+
+		#region AllAsync...
+
+		/// <inheritdoc />
+		public async Task<bool> AllAsync(Func<TResult, bool> predicate)
+		{
+			await using var iterator = GetPagedAsyncIterator(AsyncIterationHint.All);
+
+			while(await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				foreach (var item in iterator.Current.Span)
+				{
+					if (!predicate(item))
+					{
+						return false;
+					}
+				}
+			}
+			return true;
+		}
+
+		/// <inheritdoc />
+		public async Task<bool> AllAsync(Func<TResult, CancellationToken, Task<bool>> predicate)
+		{
+			await using var iterator = GetPagedAsyncIterator(AsyncIterationHint.All);
+
+			var ct = this.Cancellation;
+			while(await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				var batch = iterator.Current;
+				for(int i = 0; i < batch.Length; i++)
+				{
+					if (!(await predicate(batch.Span[i], ct).ConfigureAwait(false)))
+					{
+						return false;
+					}
+				}
+			}
+			return true;
+		}
+
+		#endregion
+
+		#region FirstOrDefaultAsync...
+
+		/// <inheritdoc />
+		public Task<TResult> FirstOrDefaultAsync(TResult defaultValue)
+		{
+			return HeadAsync(single: false, orDefault: true, defaultValue);
+		}
+
+		/// <inheritdoc />
+		public async Task<TResult> FirstOrDefaultAsync(Func<TResult, bool> predicate, TResult defaultValue)
+		{
+			await using var iterator = GetPagedAsyncIterator(AsyncIterationHint.Iterator);
+
+			while(await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				foreach (var item in iterator.Current.Span)
+				{
+					if (!predicate(item))
+					{
+						return item;
+					}
+				}
+			}
+			return defaultValue;
+		}
+
+		/// <inheritdoc />
+		public async Task<TResult> FirstOrDefaultAsync(Func<TResult, CancellationToken, Task<bool>> predicate, TResult defaultValue)
+		{
+			await using var iterator = GetPagedAsyncIterator(AsyncIterationHint.Iterator);
+
+			var ct = this.Cancellation;
+			while(await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				var batch = iterator.Current;
+				for (int i = 0; i < batch.Length; i++)
+				{
+					if (!(await predicate(batch.Span[i], ct).ConfigureAwait(false)))
+					{
+						return batch.Span[i];
+					}
+				}
+			}
+			return defaultValue;
+
+		}
+
+		#endregion
+
+		#region FirstAsync...
+
+		/// <summary>Returns the first result of the query, or an exception if the query yields no result.</summary>
+		/// <exception cref="InvalidOperationException">If the query yields no result</exception>
+		public Task<TResult> FirstAsync()
+		{
+			// we can optimize this by passing Limit=1
+			return HeadAsync(single: false, orDefault: false, default!);
+		}
+
+		/// <inheritdoc />
+		public async Task<TResult> FirstAsync(Func<TResult, bool> predicate)
+		{
+			await using var iterator = GetPagedAsyncIterator(AsyncIterationHint.Iterator);
+
+			while(await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				foreach (var item in iterator.Current.Span)
+				{
+					if (!predicate(item))
+					{
+						return item;
+					}
+				}
+			}
+
+			throw ErrorRangeHasNotMatch();
+		}
+
+		/// <inheritdoc />
+		public async Task<TResult> FirstAsync(Func<TResult, CancellationToken, Task<bool>> predicate)
+		{
+			await using var iterator = GetPagedAsyncIterator(AsyncIterationHint.Iterator);
+
+			var ct = this.Cancellation;
+			while(await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				var batch = iterator.Current;
+				for (int i = 0; i < batch.Length; i++)
+				{
+					if (!(await predicate(batch.Span[i], ct).ConfigureAwait(false)))
+					{
+						return batch.Span[i];
+					}
+				}
+			}
+
+			throw ErrorRangeHasNotMatch();
+		}
+
+		#endregion
+
+		#region LastOrDefaultAsync...
+
+		/// <summary>Returns the last result of the query, or the default for this type if the query yields no results.</summary>
+		public Task<TResult> LastOrDefaultAsync(TResult defaultValue)
+		{
+			//BUGBUG: if there is a Take(N) on the query, Last() will mean "The Nth key" and not the "last key in the original range".
+
+			// we can optimize by reversing the current query and calling FirstOrDefault !
+			return this.Reverse().HeadAsync(single: false, orDefault: true, defaultValue);
+		}
+
+		/// <inheritdoc />
+		public Task<TResult> LastOrDefaultAsync(Func<TResult, bool> predicate, TResult defaultValue)
+		{
+			return Reverse().FirstOrDefaultAsync(predicate, defaultValue);
+		}
+
+		/// <inheritdoc />
+		public Task<TResult> LastOrDefaultAsync(Func<TResult, CancellationToken, Task<bool>> predicate, TResult defaultValue)
+		{
+			return Reverse().FirstOrDefaultAsync(predicate, defaultValue);
+		}
+
+		#endregion
+
+		#region LastAsync...
+
+		/// <summary>Returns the last result of the query, or an exception if the query yields no result.</summary>
+		/// <exception cref="InvalidOperationException">If the query yields no result</exception>
+		public Task<TResult> LastAsync()
+		{
+			//BUGBUG: if there is a Take(N) on the query, Last() will mean "The Nth key" and not the "last key in the original range".
+
+			// we can optimize this by reversing the current query and calling First !
+			return this.Reverse().HeadAsync(single: false, orDefault:false, default!);
+		}
+
+		/// <inheritdoc />
+		public Task<TResult> LastAsync(Func<TResult, bool> predicate)
+		{
+			return Reverse().FirstAsync(predicate);
+		}
+
+		/// <inheritdoc />
+		public Task<TResult> LastAsync(Func<TResult, CancellationToken, Task<bool>> predicate)
+		{
+			return Reverse().FirstAsync(predicate);
+		}
+
+		#endregion
+
+		#region SingleOrDefaultAsync...
+
+		/// <summary>Returns the only result of the query, the default for this type if the query yields no results, or an exception if it yields two or more results.</summary>
+		/// <exception cref="InvalidOperationException">If the query yields two or more results</exception>
+		public Task<TResult> SingleOrDefaultAsync(TResult defaultValue)
+		{
+			// we can optimize this by passing Limit=2
+			return HeadAsync(single: true, orDefault: true, defaultValue);
+		}
+
+		/// <inheritdoc />
+		public async Task<TResult> SingleOrDefaultAsync(Func<TResult, bool> predicate, TResult defaultValue)
+		{
+			await using var iterator = GetPagedAsyncIterator(AsyncIterationHint.Iterator);
+
+			TResult result = defaultValue;
+			bool found = false;
+
+			while(await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				foreach (var item in iterator.Current.Span)
+				{
+					if (!predicate(item))
+					{
+						if (found) throw ErrorRangeHasMoreThanOneMatch();
+						result = item;
+						found = true;
+					}
+				}
+			}
+
+			return result;
+		}
+
+		/// <inheritdoc />
+		public async Task<TResult> SingleOrDefaultAsync(Func<TResult, CancellationToken, Task<bool>> predicate, TResult defaultValue)
+		{
+			await using var iterator = GetPagedAsyncIterator(AsyncIterationHint.Iterator);
+
+			TResult result = defaultValue;
+			bool found = false;
+			var ct = this.Cancellation;
+
+			while(await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				var batch = iterator.Current;
+				for (int i = 0; i < batch.Length; i++)
+				{
+					if (!(await predicate(batch.Span[i], ct).ConfigureAwait(false)))
+					{
+						if (found) throw ErrorRangeHasMoreThanOneMatch();
+						result = batch.Span[i];
+						found = true;
+					}
+				}
+			}
+
+			return result;
+		}
+
+		#endregion
+
+		#region SingleAsync...
+
+		/// <summary>Returns the only result of the query, or an exception if it yields either zero, or more than one result.</summary>
+		/// <exception cref="InvalidOperationException">If the query yields two or more results</exception>
+		public Task<TResult> SingleAsync()
+		{
+			// we can optimize this by passing Limit=2
+			return HeadAsync(single: true, orDefault: false, default!);
+		}
+
+		/// <inheritdoc />
+		public async Task<TResult> SingleAsync(Func<TResult, bool> predicate)
+		{
+			await using var iterator = GetPagedAsyncIterator(AsyncIterationHint.Iterator);
+
+			TResult result = default!;
+			bool found = false;
+
+			while(await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				foreach (var item in iterator.Current.Span)
+				{
+					if (!predicate(item))
+					{
+						if (found) throw ErrorRangeHasMoreThanOneMatch();
+						result = item;
+						found = true;
+					}
+				}
+			}
+
+			return found ? result : throw ErrorRangeHasNotMatch();
+		}
+
+		/// <inheritdoc />
+		public async Task<TResult> SingleAsync(Func<TResult, CancellationToken, Task<bool>> predicate)
+		{
+			await using var iterator = GetPagedAsyncIterator(AsyncIterationHint.Iterator);
+
+			TResult result = default!;
+			bool found = false;
+			var ct = this.Cancellation;
+
+			while(await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				var batch = iterator.Current;
+				for (int i = 0; i < batch.Length; i++)
+				{
+					if (!(await predicate(batch.Span[i], ct).ConfigureAwait(false)))
+					{
+						if (found) throw ErrorRangeHasMoreThanOneMatch();
+						result = batch.Span[i];
+						found = true;
+					}
+				}
+			}
+
+			return found ? result : throw ErrorRangeHasNotMatch();
+		}
+
+		#endregion
 
 		[Pure]
 		internal FdbRangeQuery<TState, TOther> Map<TOther>(Func<TResult, TOther> lambda)
 		{
 			Contract.Debug.Requires(lambda != null);
 
-			return new FdbRangeQuery<TState, TOther>(
+			return new(
 				this.Transaction,
 				this.Begin,
 				this.End,
@@ -378,6 +835,151 @@ namespace FoundationDB.Client
 				return (s, k, v) => transform(decoder(s, k, v));
 			}
 		}
+		
+		#region MinAsync...
+
+		/// <inheritdoc />
+		async Task<TResult?> IAsyncLinqQuery<TResult>.MinAsync(IComparer<TResult>? comparer)
+		{
+#if NET10_0_OR_GREATER
+			return await ToAsyncEnumerable(AsyncIterationHint.All).MinAsync(comparer, this.Cancellation).ConfigureAwait(false);
+#else
+			throw new NotSupportedException();
+#endif
+		}
+
+		/// <inheritdoc />
+		async Task<TResult?> IAsyncLinqQuery<TResult>.MaxAsync(IComparer<TResult>? comparer)
+		{
+#if NET10_0_OR_GREATER
+			return await ToAsyncEnumerable(AsyncIterationHint.All).MaxAsync(comparer, this.Cancellation).ConfigureAwait(false);
+#else
+			throw new NotSupportedException();
+#endif
+		}
+
+		async Task<TResult> IAsyncLinqQuery<TResult>.SumAsync()
+		{
+#if NET10_0_OR_GREATER
+			if (default(TResult) is not null)
+			{
+				if (typeof(TResult) == typeof(int)) return (TResult) (object) await ((IAsyncEnumerable<int>) ToAsyncEnumerable(AsyncIterationHint.All)).SumAsync(this.Cancellation).ConfigureAwait(false);
+				if (typeof(TResult) == typeof(long)) return (TResult) (object) await ((IAsyncEnumerable<long>) ToAsyncEnumerable(AsyncIterationHint.All)).SumAsync(this.Cancellation).ConfigureAwait(false);
+				if (typeof(TResult) == typeof(float)) return (TResult) (object) await ((IAsyncEnumerable<float>) ToAsyncEnumerable(AsyncIterationHint.All)).SumAsync(this.Cancellation).ConfigureAwait(false);
+				if (typeof(TResult) == typeof(double)) return (TResult) (object) await ((IAsyncEnumerable<double>) ToAsyncEnumerable(AsyncIterationHint.All)).SumAsync(this.Cancellation).ConfigureAwait(false);
+				if (typeof(TResult) == typeof(decimal)) return (TResult) (object) await ((IAsyncEnumerable<decimal>) ToAsyncEnumerable(AsyncIterationHint.All)).SumAsync(this.Cancellation).ConfigureAwait(false);
+			}
+			else
+			{
+				if (typeof(TResult) == typeof(int?)) return (TResult) (object) await ((IAsyncEnumerable<int?>) ToAsyncEnumerable(AsyncIterationHint.All)).SumAsync(this.Cancellation).ConfigureAwait(false)!;
+				if (typeof(TResult) == typeof(long?)) return (TResult) (object) await ((IAsyncEnumerable<long?>) ToAsyncEnumerable(AsyncIterationHint.All)).SumAsync(this.Cancellation).ConfigureAwait(false)!;
+				if (typeof(TResult) == typeof(float?)) return (TResult) (object) await ((IAsyncEnumerable<float?>) ToAsyncEnumerable(AsyncIterationHint.All)).SumAsync(this.Cancellation).ConfigureAwait(false)!;
+				if (typeof(TResult) == typeof(double?)) return (TResult) (object) await ((IAsyncEnumerable<double?>) ToAsyncEnumerable(AsyncIterationHint.All)).SumAsync(this.Cancellation).ConfigureAwait(false)!;
+				if (typeof(TResult) == typeof(decimal?)) return (TResult) (object) await ((IAsyncEnumerable<decimal?>) ToAsyncEnumerable(AsyncIterationHint.All)).SumAsync(this.Cancellation).ConfigureAwait(false)!;
+			}
+			throw new NotSupportedException();
+#else
+			throw new NotSupportedException();
+#endif
+		}
+
+		#endregion
+
+		#region Take...
+
+		/// <inheritdoc />
+		IAsyncLinqQuery<TResult> IAsyncLinqQuery<TResult>.Take(int count) => Take(count);
+
+		/// <summary>Only return up to a specific number of results</summary>
+		/// <param name="count">Maximum number of results to return</param>
+		/// <returns>A new query object that will only return up to <paramref name="count"/> results when executed</returns>
+		[Pure]
+		public IFdbRangeQuery<TResult> Take([Positive] int count)
+		{
+			Contract.Positive(count);
+
+			if (this.Options.Limit == count)
+			{
+				return this;
+			}
+
+			return new FdbRangeQuery<TState, TResult>(
+				this,
+				this.Options with { Limit = count }
+			);
+		}
+
+		#endregion
+
+		#region TakeWhile...
+
+		/// <inheritdoc />
+		IAsyncLinqQuery<TResult> IAsyncLinqQuery<TResult>.TakeWhile(Func<TResult, bool> condition) => TakeWhile(condition);
+
+		/// <inheritdoc />
+		public IFdbRangeQuery<TResult> TakeWhile(Func<TResult, bool> condition) => throw new NotImplementedException();
+
+		#endregion
+
+		#region Skip...
+
+		/// <inheritdoc />
+		IAsyncLinqQuery<TResult> IAsyncLinqQuery<TResult>.Skip(int count) => Skip(count);
+
+		/// <summary>Bypasses a specified number of elements in a sequence and then returns the remaining elements.</summary>
+		/// <param name="count"></param>
+		/// <returns>A new query object that will skip the first <paramref name="count"/> results when executed</returns>
+		[Pure]
+		public IFdbRangeQuery<TResult> Skip([Positive] int count)
+		{
+			Contract.Positive(count);
+
+			var limit = this.Options.Limit;
+			var begin = this.Begin;
+			var end = this.End;
+
+			// Take(N).Skip(k) ?
+			if (limit.HasValue)
+			{
+				// If k >= N, then the result will be empty
+				// If k < N, then we need to update the Begin key, and limit accordingly
+				if (count >= limit.Value)
+				{
+					limit = 0; // hopefully this would be optimized at runtime?
+				}
+				else
+				{
+					limit -= count;
+				}
+			}
+
+			if (this.IsReversed)
+			{
+				end -= count;
+			}
+			else
+			{
+				begin += count;
+			}
+
+			return new FdbRangeQuery<TState, TResult>(
+				this,
+				this.Options with { Limit = limit }
+			)
+			{
+				Begin = begin,
+				End = end,
+			};
+		}
+
+		#endregion
+
+		#region Select...
+
+		IAsyncLinqQuery<TNew> IAsyncLinqQuery<TResult>.Select<TNew>(Func<TResult, TNew> selector) => Select(selector);
+		IAsyncLinqQuery<TNew> IAsyncLinqQuery<TResult>.Select<TNew>(Func<TResult, int, TNew> selector) => Select(selector);
+		IAsyncLinqQuery<TNew> IAsyncLinqQuery<TResult>.Select<TNew>(Func<TResult, CancellationToken, Task<TNew>> selector) => Select(selector);
+		IAsyncLinqQuery<TNew> IAsyncLinqQuery<TResult>.Select<TNew>(Func<TResult, int, CancellationToken, Task<TNew>> selector) => Select(selector);
 
 		/// <summary>Projects each element of the range results into a new form.</summary>
 		/// <param name="lambda">Function that is invoked for each source element, and will return the corresponding transformed element.</param>
@@ -418,108 +1020,115 @@ namespace FoundationDB.Client
 			}
 		}
 
-		/// <summary>Filters the range results based on a predicate.</summary>
-		/// <remarks>Caution: filtering occurs on the client side !</remarks>
-		/// <example><c>query.Where((kv) => kv.Key.StartsWith(prefix))</c> or <c>query.Where((kv) => !kv.Value.IsNull)</c></example>
-		[Pure]
-		public IAsyncEnumerable<TResult> Where(Func<TResult, bool> predicate)
+		/// <inheritdoc />
+		public IFdbRangeQuery<TNew> Select<TNew>(Func<TResult, CancellationToken, Task<TNew>> selector) => throw new NotImplementedException();
+
+		/// <inheritdoc />
+		public IFdbRangeQuery<TNew> Select<TNew>(Func<TResult, int, CancellationToken, Task<TNew>> selector) => throw new NotImplementedException();
+
+		#endregion
+
+		#region SelectMany...
+
+		IAsyncLinqQuery<TNew> IAsyncLinqQuery<TResult>.SelectMany<TNew>(Func<TResult, IEnumerable<TNew>> selector) => SelectMany(selector);
+
+		IAsyncLinqQuery<TNew> IAsyncLinqQuery<TResult>.SelectMany<TNew>(Func<TResult, CancellationToken, Task<IEnumerable<TNew>>> selector) => SelectMany(selector);
+
+		IAsyncLinqQuery<TNew> IAsyncLinqQuery<TResult>.SelectMany<TNew>(Func<TResult, IAsyncEnumerable<TNew>> selector) => SelectMany(selector);
+
+		IAsyncLinqQuery<TNew> IAsyncLinqQuery<TResult>.SelectMany<TNew>(Func<TResult, IAsyncQuery<TNew>> selector) => SelectMany(selector);
+
+		IAsyncLinqQuery<TNew> IAsyncLinqQuery<TResult>.SelectMany<TCollection, TNew>(Func<TResult, IEnumerable<TCollection>> collectionSelector, Func<TResult, TCollection, TNew> resultSelector) => SelectMany(collectionSelector, resultSelector);
+
+		IAsyncLinqQuery<TNew> IAsyncLinqQuery<TResult>.SelectMany<TCollection, TNew>(Func<TResult, CancellationToken, Task<IEnumerable<TCollection>>> collectionSelector, Func<TResult, TCollection, TNew> resultSelector) => SelectMany(collectionSelector, resultSelector);
+		/// <inheritdoc />
+		public IFdbRangeQuery<TNew> SelectMany<TNew>(Func<TResult, IEnumerable<TNew>> selector) => throw new NotImplementedException();
+
+		/// <inheritdoc />
+		public IFdbRangeQuery<TNew> SelectMany<TNew>(Func<TResult, CancellationToken, Task<IEnumerable<TNew>>> selector) => throw new NotImplementedException();
+
+		/// <inheritdoc />
+		public IFdbRangeQuery<TNew> SelectMany<TNew>(Func<TResult, IAsyncEnumerable<TNew>> selector) => throw new NotImplementedException();
+
+		/// <inheritdoc />
+		public IFdbRangeQuery<TNew> SelectMany<TNew>(Func<TResult, IAsyncQuery<TNew>> selector) => throw new NotImplementedException();
+
+		/// <inheritdoc />
+		public IFdbRangeQuery<TNew> SelectMany<TCollection, TNew>(Func<TResult, IEnumerable<TCollection>> collectionSelector, Func<TResult, TCollection, TNew> resultSelector) => throw new NotImplementedException();
+
+		/// <inheritdoc />
+		public IFdbRangeQuery<TNew> SelectMany<TCollection, TNew>(Func<TResult, CancellationToken, Task<IEnumerable<TCollection>>> collectionSelector, Func<TResult, TCollection, TNew> resultSelector) => throw new NotImplementedException();
+
+		#endregion
+
+		#region Where...
+
+		IAsyncLinqQuery<TResult> IAsyncLinqQuery<TResult>.Where(Func<TResult, bool> predicate) => Where(predicate);
+		IAsyncLinqQuery<TResult> IAsyncLinqQuery<TResult>.Where(Func<TResult, int, bool> predicate) => Where(predicate);
+		IAsyncLinqQuery<TResult> IAsyncLinqQuery<TResult>.Where(Func<TResult, CancellationToken, Task<bool>> predicate) => Where(predicate);
+		IAsyncLinqQuery<TResult> IAsyncLinqQuery<TResult>.Where(Func<TResult, int, CancellationToken, Task<bool>> predicate) => Where(predicate);
+
+		/// <inheritdoc />
+		[Pure, LinqTunnel]
+		public IAsyncLinqQuery<TResult> Where(Func<TResult, bool> predicate)
 		{
-			return AsyncEnumerable.Where(this, predicate);
+			return AsyncQuery.Where(this, predicate);
 		}
 
-		/// <summary>Returns the first result of the query, or the default for this type if the query yields no results.</summary>
-		public Task<TResult> FirstOrDefaultAsync()
-		{
-			// we can optimize this by passing Limit=1
-			return HeadAsync(single: false, orDefault: true);
-		}
+		/// <inheritdoc />
+		[Pure, LinqTunnel]
+		public IAsyncLinqQuery<TResult> Where(Func<TResult, int, bool> predicate) => throw new NotImplementedException();
 
-		/// <summary>Returns the first result of the query, or an exception if the query yields no result.</summary>
-		/// <exception cref="InvalidOperationException">If the query yields no result</exception>
-		public Task<TResult> FirstAsync()
-		{
-			// we can optimize this by passing Limit=1
-			return HeadAsync(single: false, orDefault: false);
-		}
+		/// <inheritdoc />
+		[Pure, LinqTunnel]
+		public IAsyncLinqQuery<TResult> Where(Func<TResult, CancellationToken, Task<bool>> predicate) => throw new NotImplementedException();
 
-		/// <summary>Returns the last result of the query, or the default for this type if the query yields no results.</summary>
-		public Task<TResult> LastOrDefaultAsync()
-		{
-			//BUGBUG: if there is a Take(N) on the query, Last() will mean "The Nth key" and not the "last key in the original range".
+		/// <inheritdoc />
+		[Pure, LinqTunnel]
+		public IAsyncLinqQuery<TResult> Where(Func<TResult, int, CancellationToken, Task<bool>> predicate) => throw new NotImplementedException();
 
-			// we can optimize by reversing the current query and calling FirstOrDefault !
-			return this.Reverse().HeadAsync(single:false, orDefault:true);
-		}
-
-		/// <summary>Returns the last result of the query, or an exception if the query yields no result.</summary>
-		/// <exception cref="InvalidOperationException">If the query yields no result</exception>
-		public Task<TResult> LastAsync()
-		{
-			//BUGBUG: if there is a Take(N) on the query, Last() will mean "The Nth key" and not the "last key in the original range".
-
-			// we can optimize this by reversing the current query and calling First !
-			return this.Reverse().HeadAsync(single: false, orDefault:false);
-		}
-
-		/// <summary>Returns the only result of the query, the default for this type if the query yields no results, or an exception if it yields two or more results.</summary>
-		/// <exception cref="InvalidOperationException">If the query yields two or more results</exception>
-		public Task<TResult> SingleOrDefaultAsync()
-		{
-			// we can optimize this by passing Limit=2
-			return HeadAsync(single: true, orDefault: true);
-		}
-
-		/// <summary>Returns the only result of the query, or an exception if it yields either zero, or more than one result.</summary>
-		/// <exception cref="InvalidOperationException">If the query yields two or more results</exception>
-		public Task<TResult> SingleAsync()
-		{
-			// we can optimize this by passing Limit=2
-			return HeadAsync(single: true, orDefault: false);
-		}
-
-		/// <summary>Returns <see langword="true"/> if the range query yields at least one element, or <see langword="false"/> if there was no result.</summary>
-		public Task<bool> AnyAsync()
-		{
-			// we can optimize this by using Limit = 1
-			return AnyOrNoneAsync(any: true);
-		}
-
-		/// <summary>Returns <see langword="true"/> if the range query does not yield any result, or <see langword="false"/> if there was at least one result.</summary>
-		/// <remarks>This is a convenience method that is there to help porting layer code from other languages. This is strictly equivalent to calling "!(await query.AnyAsync())".</remarks>
-		public Task<bool> NoneAsync()
-		{
-			// we can optimize this by using Limit = 1
-			return AnyOrNoneAsync(any: false);
-		}
+		#endregion
 
 		/// <summary>Executes an action on each of the range results</summary>
-		public Task ForEachAsync(Action<TResult> action)
+		public async Task ForEachAsync(Action<TResult> action)
 		{
-			// ReSharper disable once InvokeAsExtensionMethod
-			return AsyncEnumerable.ForEachAsync(this, action, this.Transaction.Cancellation);
+			await using var iterator = GetPagedAsyncIterator(AsyncIterationHint.All);
+
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				foreach (var item in iterator.Current.Span)
+				{
+					action(item);
+				}
+			}
 		}
 
 		/// <summary>Executes an action on each of the range results</summary>
 		public async Task<TAggregate> ForEachAsync<TAggregate>(TAggregate aggregate, Action<TAggregate, TResult> action)
 		{
-			// ReSharper disable once InvokeAsExtensionMethod
-			await foreach (var item in this.ConfigureAwait(false))
+			await using var iterator = GetPagedAsyncIterator(AsyncIterationHint.All);
+
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
 			{
-				action(aggregate, item);
+				foreach (var item in iterator.Current.Span)
+				{
+					action(aggregate, item);
+				}
 			}
+
 			return aggregate;
 		}
 
 		protected TState GetState() => this.StateFactory != null ? this.StateFactory() : this.State!;
 
-		internal async Task<TResult> HeadAsync(bool single, bool orDefault)
+		internal async Task<TResult> HeadAsync(bool single, bool orDefault, TResult defaultValue)
 		{
 			// Optimized code path for First/Last/Single variants where we can be smart and only ask for 1 or 2 results from the db
 
 			// we can use the EXACT streaming mode with Limit = 1|2, and it will work if TargetBytes is 0
 			if ((this.TargetBytes ?? 0) != 0 || (this.Streaming != FdbStreamingMode.Iterator && this.Streaming != FdbStreamingMode.Exact))
 			{ // fallback to the default implementation
-				return await AsyncEnumerable.Head(this, single, orDefault, this.Transaction.Cancellation).ConfigureAwait(false);
+				return await AsyncQuery.Head(this, single, orDefault, defaultValue).ConfigureAwait(false);
 			}
 
 			//BUGBUG: do we need special handling if OriginalRange != Range ? (weird combinations of Take/Skip and Reverse)
@@ -541,51 +1150,32 @@ namespace FoundationDB.Client
 			).ConfigureAwait(false);
 
 			if (results.IsEmpty)
-			{ // no result
-				if (!orDefault) throw new InvalidOperationException("The range was empty");
-				return default!;
+			{
+				// no result
+				return orDefault
+					? defaultValue
+					: throw ErrorRangeIsEmpty();
 			}
 
 			if (single && results.Count > 1)
 			{ // there was more than one result
-				throw new InvalidOperationException("The range contained more than one element");
+				throw ErrorRangeHasMoreThanOneElement();
 			}
 
 			// we have a result
 			return results[0];
 		}
 
-		internal async Task<bool> AnyOrNoneAsync(bool any)
-		{
-			// Optimized code path for Any/None where we can be smart and only ask for 1 from the db
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		private static InvalidOperationException ErrorRangeIsEmpty() => new("The range was empty.");
 
-			// we can use the EXACT streaming mode with Limit = 1, and it will work if TargetBytes is 0
-			if ((this.TargetBytes ?? 0) != 0 || (this.Streaming != FdbStreamingMode.Iterator && this.Streaming != FdbStreamingMode.Exact))
-			{ // fallback to the default implementation
-				// ReSharper disable InvokeAsExtensionMethod
-				return any
-					? await AsyncEnumerable.AnyAsync(this, this.Transaction.Cancellation).ConfigureAwait(false)
-					: await AsyncEnumerable.NoneAsync(this, this.Transaction.Cancellation).ConfigureAwait(false);
-				// ReSharper restore InvokeAsExtensionMethod
-			}
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		private static InvalidOperationException ErrorRangeHasMoreThanOneElement() => new("The range contained more than one element.");
 
-			//BUGBUG: do we need special handling if OriginalRange != Range ? (weird combinations of Take/Skip and Reverse)
+		private static InvalidOperationException ErrorRangeHasNotMatch() => new("The range has not matching elements.");
 
-			var tr = this.IsSnapshot ? this.Transaction.Snapshot : this.Transaction;
-			var results = await tr.GetRangeAsync(
-				this.Begin,
-				this.End,
-				new FdbRangeOptions()
-				{
-					Limit = 1,
-					IsReversed = this.IsReversed,
-					Streaming = FdbStreamingMode.Exact,
-				},
-				iteration: 0
-			).ConfigureAwait(false);
-
-			return any ? !results.IsEmpty : results.IsEmpty;
-		}
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		private static InvalidOperationException ErrorRangeHasMoreThanOneMatch() => new("The range contained more than one matching element.");
 
 		#endregion
 

@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -40,7 +40,7 @@ namespace FoundationDB.Linq.Expressions
 	public class FdbQuerySingleExpression<TSource, TResult> : FdbQueryExpression<TResult>
 	{
 		/// <summary>Create a new expression that returns a single result from a source sequence</summary>
-		public FdbQuerySingleExpression(FdbQuerySequenceExpression<TSource> sequence, string name, Expression<Func<IAsyncEnumerable<TSource>, CancellationToken, Task<TResult>>> lambda)
+		public FdbQuerySingleExpression(FdbQuerySequenceExpression<TSource> sequence, string name, Expression<Func<IAsyncQuery<TSource>, Task<TResult>>> lambda)
 		{
 			Contract.Debug.Requires(sequence != null && lambda != null);
 			this.Sequence = sequence;
@@ -57,7 +57,7 @@ namespace FoundationDB.Linq.Expressions
 		/// <summary>Name of this query</summary>
 		public string Name { get; }
 
-		public Expression<Func<IAsyncEnumerable<TSource>, CancellationToken, Task<TResult>>> Handler { get; }
+		public Expression<Func<IAsyncQuery<TSource>, Task<TResult>>> Handler { get; }
 
 		/// <summary>Apply a custom visitor to this expression</summary>
 		public override Expression Accept(FdbQueryExpressionVisitor visitor)
@@ -74,29 +74,26 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Returns a new expression that will execute this query on a transaction and return a single result</summary>
-		public override Expression<Func<IFdbReadOnlyTransaction, CancellationToken, Task<TResult>>> CompileSingle()
+		public override Expression<Func<IFdbReadOnlyTransaction, Task<TResult>>> CompileSingle()
 		{
 			// We want to generate: (trans, ct) => ExecuteEnumerable(source, lambda, trans, ct);
 
 			var sourceExpr = this.Sequence.CompileSequence();
 
 			var prmTrans = Expression.Parameter(typeof(IFdbReadOnlyTransaction), "trans");
-			var prmCancel = Expression.Parameter(typeof(CancellationToken), "ct");
 
-			var method = typeof(FdbExpressionHelpers).GetMethod("ExecuteEnumerable", BindingFlags.Static | BindingFlags.NonPublic)!.MakeGenericMethod(typeof(TSource), typeof(TResult));
+			var method = typeof(FdbExpressionHelpers).GetMethod(nameof(FdbExpressionHelpers.ExecuteEnumerable), BindingFlags.Static | BindingFlags.NonPublic)!.MakeGenericMethod(typeof(TSource), typeof(TResult));
 			Contract.Debug.Assert(method != null, "ExecuteEnumerable helper method is missing!");
 
 			var body = Expression.Call(
 				method,
 				sourceExpr,
 				this.Handler,
-				prmTrans,
-				prmCancel);
+				prmTrans);
 
-			return Expression.Lambda<Func<IFdbReadOnlyTransaction, CancellationToken, Task<TResult>>>(
+			return Expression.Lambda<Func<IFdbReadOnlyTransaction, Task<TResult>>>(
 				body,
-				prmTrans,
-				prmCancel
+				prmTrans
 			);
 		}
 

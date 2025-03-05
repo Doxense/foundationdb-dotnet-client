@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -68,7 +68,7 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Returns a new expression that creates an async sequence that will execute this query on a transaction</summary>
-		public override Expression<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<T>>> CompileSequence()
+		public override Expression<Func<IFdbReadOnlyTransaction, IAsyncQuery<T>>> CompileSequence()
 		{
 			var lambda = this.Filter.Compile();
 
@@ -78,13 +78,13 @@ namespace FoundationDB.Linq.Expressions
 
 			// (tr) => sourceEnumerable(tr).Where(lambda);
 
-			var body = FdbExpressionHelpers.RewriteCall<Func<IAsyncEnumerable<T>, Func<T, bool>, IAsyncEnumerable<T>>>(
+			var body = FdbExpressionHelpers.RewriteCall<Func<IAsyncQuery<T>, Func<T, bool>, IAsyncQuery<T>>>(
 				(sequence, predicate) => sequence.Where(predicate),
 				FdbExpressionHelpers.RewriteCall(enumerable, prmTrans),
 				Expression.Constant(lambda)
 			);
 
-			return Expression.Lambda<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<T>>>(body, prmTrans);
+			return Expression.Lambda<Func<IFdbReadOnlyTransaction, IAsyncQuery<T>>>(body, prmTrans);
 		}
 
 	}
