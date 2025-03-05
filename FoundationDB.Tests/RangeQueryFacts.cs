@@ -459,7 +459,7 @@ namespace FoundationDB.Client.Tests
 
 					var items = new List<KeyValuePair<Slice, Slice>>();
 					var ts = Stopwatch.StartNew();
-					await foreach (var page in query.WantAll())
+					await foreach (var page in query)
 					{
 						Log($"- Batch: {page.Length,3:N0} result(s): {TuPack.Unpack(page.Span[0].Key)} .. {TuPack.Unpack(page.Span[^1].Key)}");
 #if NET8_0_OR_GREATER

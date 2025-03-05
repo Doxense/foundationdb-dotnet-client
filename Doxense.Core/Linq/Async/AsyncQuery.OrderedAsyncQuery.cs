@@ -35,7 +35,7 @@ namespace SnowBank.Linq
 
 		/// <summary>Represent an async sequence that returns its elements according to a specific sort order</summary>
 		/// <typeparam name="TSource">Type of the elements of the sequence</typeparam>
-		internal class OrderedSequence<TSource> : IOrderedAsyncQuery<TSource>, IAsyncEnumerable<TSource>
+		internal class OrderedAsyncQuery<TSource> : IOrderedAsyncQuery<TSource>, IAsyncEnumerable<TSource>
 		{
 			// If an instance of the base <TSource> class is constructed, it will sort by the items themselves (using a Comparer<TSource>)
 			// If an instance of the derived <TSource, TKey> class is constructed, then it will sort the key extracted from each item (sing a Comparer<TKey>)
@@ -43,9 +43,9 @@ namespace SnowBank.Linq
 			protected readonly IAsyncQuery<TSource> m_source;
 			private readonly IComparer<TSource>? m_comparer; // null if comparing using keys
 			protected readonly bool m_descending;
-			protected readonly OrderedSequence<TSource>? m_parent;// null if primary sort key
+			protected readonly OrderedAsyncQuery<TSource>? m_parent;// null if primary sort key
 
-			public OrderedSequence(IAsyncQuery<TSource> source, IComparer<TSource>? comparer, bool descending, OrderedSequence<TSource>? parent)
+			public OrderedAsyncQuery(IAsyncQuery<TSource> source, IComparer<TSource>? comparer, bool descending, OrderedAsyncQuery<TSource>? parent)
 			{
 				Contract.Debug.Requires(source != null);
 
@@ -55,7 +55,7 @@ namespace SnowBank.Linq
 				m_parent = parent;
 			}
 
-			protected OrderedSequence(IAsyncQuery<TSource> source, bool descending, OrderedSequence<TSource>? parent)
+			protected OrderedAsyncQuery(IAsyncQuery<TSource> source, bool descending, OrderedAsyncQuery<TSource>? parent)
 			{
 				Contract.Debug.Requires(source != null);
 
@@ -87,7 +87,7 @@ namespace SnowBank.Linq
 				try
 				{
 					enumerator = m_source.GetAsyncEnumerator(mode);
-					return new OrderedEnumerator<TSource>(enumerator, sorter);
+					return new OrderedAsyncEnumerator<TSource>(enumerator, sorter);
 				}
 				catch (Exception)
 				{
@@ -101,7 +101,7 @@ namespace SnowBank.Linq
 			{
 				Contract.NotNull(keySelector);
 
-				return new OrderedSequence<TSource, TKey>(this, keySelector, comparer, descending, this);
+				return new OrderedAsyncQuery<TSource, TKey>(this, keySelector, comparer, descending, this);
 			}
 
 		}
@@ -109,12 +109,12 @@ namespace SnowBank.Linq
 		/// <summary>Represent an async sequence that returns its elements according to a specific sort order</summary>
 		/// <typeparam name="TSource">Type of the elements of the sequence</typeparam>
 		/// <typeparam name="TKey">Type of the keys used to sort the elements</typeparam>
-		internal sealed class OrderedSequence<TSource, TKey> : OrderedSequence<TSource>
+		internal sealed class OrderedAsyncQuery<TSource, TKey> : OrderedAsyncQuery<TSource>
 		{
 			private readonly Func<TSource, TKey> m_keySelector;
 			private readonly IComparer<TKey> m_keyComparer;
 
-			public OrderedSequence(IAsyncQuery<TSource> source, Func<TSource, TKey> keySelector, IComparer<TKey>? comparer, bool descending, OrderedSequence<TSource>? parent)
+			public OrderedAsyncQuery(IAsyncQuery<TSource> source, Func<TSource, TKey> keySelector, IComparer<TKey>? comparer, bool descending, OrderedAsyncQuery<TSource>? parent)
 				: base(source, descending, parent)
 			{
 				Contract.Debug.Requires(keySelector != null);
@@ -131,7 +131,7 @@ namespace SnowBank.Linq
 		}
 
 		/// <summary>Iterator that will sort all the items produced by an inner iterator, before outputting the results all at once</summary>
-		internal sealed class OrderedEnumerator<TSource> : IAsyncEnumerator<TSource>
+		internal sealed class OrderedAsyncEnumerator<TSource> : IAsyncEnumerator<TSource>
 		{
 			// This iterator must first before EVERY item of the source in memory, before being able to sort them.
 			// The first MoveNext() will return only once the inner sequence has finished (successfully), which can take some time!
@@ -145,7 +145,7 @@ namespace SnowBank.Linq
 			private int m_offset;
 			private TSource? m_current;
 
-			public OrderedEnumerator(IAsyncEnumerator<TSource> enumerator, SequenceSorter<TSource> sorter)
+			public OrderedAsyncEnumerator(IAsyncEnumerator<TSource> enumerator, SequenceSorter<TSource> sorter)
 			{
 				Contract.Debug.Requires(enumerator != null && sorter != null);
 				m_inner = enumerator;

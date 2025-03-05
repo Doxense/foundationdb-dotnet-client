@@ -26,169 +26,17 @@
 
 namespace SnowBank.Linq
 {
-	using System.Collections.Immutable;
-	using System.Numerics;
 	using SnowBank.Linq.Async.Iterators;
 
 	public static partial class AsyncQuery
 	{
-		/// <summary>Generates a sequence of integral numbers within a specified range.</summary>
-		/// <param name="start">The value of the first integer in the sequence.</param>
-		/// <param name="count">The number of sequential integers to generate.</param>
-		/// <param name="ct">Token used to cancel the execution of this query</param>
-		/// <returns>An <see cref="IAsyncEnumerable{T}"/> that contains a range of sequential integral numbers.</returns>
-		/// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is less than 0</exception>
-		/// <exception cref="ArgumentOutOfRangeException"><paramref name="start"/> + <paramref name="count"/> -1 is larger than <see cref="int.MaxValue"/>.</exception>
-		public static IAsyncLinqQuery<int> Range(int start, int count, CancellationToken ct = default)
-		{
-			if (count < 0 || (((long)start) + count - 1) > int.MaxValue)
-			{
-				ThrowHelper.ThrowArgumentOutOfRangeException(nameof(count));
-			}
-
-			return new RangeAsyncQuery<int>(start, 1, count, ct);
-		}
-
-		/// <summary>Generates a sequence of integral numbers within a specified range.</summary>
-		/// <param name="start">The value of the first element returned by the query.</param>
-		/// <param name="delta">The value that is added to each value return by the query.</param>
-		/// <param name="count">The number of elements returned by the query.</param>
-		/// <param name="ct">Token used to cancel the execution of this query</param>
-		/// <returns>An <see cref="IAsyncQuery{T}"/> that contains a range of sequential numbers.</returns>
-		/// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is less than 0</exception>
-		/// <exception cref="ArgumentOutOfRangeException"><paramref name="start"/> + <paramref name="count"/> -1 is larger than <see cref="int.MaxValue"/>.</exception>
-		public static IAsyncLinqQuery<TNumber> Range<TNumber>(TNumber start, TNumber delta, int count, CancellationToken ct = default)
-			where TNumber : INumberBase<TNumber>
-		{
-			if (count < 0)
-			{
-				ThrowHelper.ThrowArgumentOutOfRangeException(nameof(count));
-			}
-			return new RangeAsyncQuery<TNumber>(start, delta, count, ct);
-		}
-
-		internal sealed class RangeAsyncQuery<TNumber> : AsyncLinqIterator<TNumber>
-			where TNumber : INumberBase<TNumber>
-		{
-
-			public RangeAsyncQuery(TNumber start, TNumber delta, int count, CancellationToken ct)
-			{
-				this.Start = start;
-				this.Delta = delta;
-				this.Count = count;
-				this.Cancellation = ct;
-			}
-
-			public TNumber Start { get; }
-
-			public TNumber Delta { get; }
-
-			public int Count { get; }
-
-			private TNumber Cursor { get; set; } = TNumber.Zero;
-
-			private int Remaining { get; set; }
-
-			/// <inheritdoc />
-			public override CancellationToken Cancellation { get; }
-
-			/// <inheritdoc />
-			protected override RangeAsyncQuery<TNumber> Clone() => new(this.Start, this.Delta, this.Count, this.Cancellation);
-
-			/// <inheritdoc />
-			protected override ValueTask<bool> OnFirstAsync()
-			{
-				this.Cursor = this.Start;
-				this.Remaining = this.Count;
-				return new(true);
-			}
-
-			/// <inheritdoc />
-			protected override ValueTask<bool> OnNextAsync()
-			{
-				var remaining = this.Remaining;
-				if (remaining <= 0)
-				{
-					return this.Completed();
-				}
-
-				var cursor = this.Cursor;
-				this.Cursor = cursor + this.Delta;
-				this.Remaining = remaining - 1;
-				return new(this.Publish(cursor));
-			}
-
-			/// <inheritdoc />
-			protected override ValueTask Cleanup()
-			{
-				this.Cursor = TNumber.Zero;
-				this.Remaining = 0;
-				return default;
-			}
-
-			/// <inheritdoc />
-			public override Task<List<TNumber>> ToListAsync()
-			{
-				int count = this.Count;
-				var res = new List<TNumber>(count);
-				var cursor = this.Start;
-				var delta = this.Delta;
-				for(int i = 0; i < count; i++)
-				{
-					res.Add(cursor);
-					cursor += delta;
-				}
-				return Task.FromResult(res);
-			}
-
-			/// <inheritdoc />
-			public override Task<TNumber[]> ToArrayAsync()
-			{
-				int count = this.Count;
-				if (count == 0) return Task.FromResult(Array.Empty<TNumber>());
-
-				var res = new TNumber[count];
-				var cursor = this.Start;
-				var delta = this.Delta;
-				for(int i = 0; i < res.Length; i++)
-				{
-					res[i] = cursor;
-					cursor += delta;
-				}
-				return Task.FromResult(res);
-			}
-
-			/// <inheritdoc />
-			public override Task<ImmutableArray<TNumber>> ToImmutableArrayAsync()
-			{
-				int count = this.Count;
-				if (count == 0) return Task.FromResult(ImmutableArray<TNumber>.Empty);
-
-				var builder = ImmutableArray.CreateBuilder<TNumber>(count);
-				var cursor = this.Start;
-				var delta = this.Delta;
-				for(int i = 0; i < count; i++)
-				{
-					builder.Add(cursor);
-					cursor += delta;
-				}
-				return Task.FromResult(builder.ToImmutable());
-			}
-
-			/// <inheritdoc />
-			public override Task<int> CountAsync() => Task.FromResult(this.Count);
-
-			/// <inheritdoc />
-			public override Task<bool> AnyAsync() => Task.FromResult(this.Count > 0);
-
-		}
 
 		/// <summary>Wraps a sequence of items into an async sequence of items</summary>
 		/// <typeparam name="TSource">Type of elements of the inner sequence</typeparam>
-		internal sealed class EnumerableSequence<TSource> : AsyncLinqIterator<TSource>
+		internal sealed class EnumerableAsyncQuery<TSource> : AsyncLinqIterator<TSource>
 		{
 
-			public EnumerableSequence(IEnumerable<TSource> source, CancellationToken ct)
+			public EnumerableAsyncQuery(IEnumerable<TSource> source, CancellationToken ct)
 			{
 				this.Source = source;
 				this.Cancellation = ct;
@@ -199,7 +47,7 @@ namespace SnowBank.Linq
 			public override CancellationToken Cancellation { get; }
 
 			/// <inheritdoc />
-			protected override EnumerableSequence<TSource> Clone() => new(this.Source, this.Cancellation);
+			protected override EnumerableAsyncQuery<TSource> Clone() => new(this.Source, this.Cancellation);
 
 			private IEnumerator<TSource>? m_inner;
 
@@ -294,35 +142,35 @@ namespace SnowBank.Linq
 			public override Task<HashSet<TSource>> ToHashSetAsync(IEqualityComparer<TSource>? comparer = null) => Task.FromResult(this.Source.ToHashSet(comparer));
 
 			/// <inheritdoc />
-			public override IAsyncLinqQuery<TSource> Skip(int count) => new EnumerableSequence<TSource>(this.Source.Skip(count), this.Cancellation);
+			public override IAsyncLinqQuery<TSource> Skip(int count) => new EnumerableAsyncQuery<TSource>(this.Source.Skip(count), this.Cancellation);
 
 			/// <inheritdoc />
-			public override IAsyncLinqQuery<TSource> Take(int count) => new EnumerableSequence<TSource>(this.Source.Take(count), this.Cancellation);
+			public override IAsyncLinqQuery<TSource> Take(int count) => new EnumerableAsyncQuery<TSource>(this.Source.Take(count), this.Cancellation);
 
 			/// <inheritdoc />
-			public override IAsyncLinqQuery<TSource> TakeWhile(Func<TSource, bool> condition) => new EnumerableSequence<TSource>(this.Source.TakeWhile(condition), this.Cancellation);
+			public override IAsyncLinqQuery<TSource> TakeWhile(Func<TSource, bool> condition) => new EnumerableAsyncQuery<TSource>(this.Source.TakeWhile(condition), this.Cancellation);
 
 			/// <inheritdoc />
 			public override IAsyncLinqQuery<TNew> Select<TNew>(Func<TSource, TNew> selector)
-				=> new EnumerableSequence<TNew>(this.Source.Select(selector), this.Cancellation);
+				=> new EnumerableAsyncQuery<TNew>(this.Source.Select(selector), this.Cancellation);
 
 			/// <inheritdoc />
 			public override IAsyncLinqQuery<TNew> Select<TNew>(Func<TSource, int, TNew> selector)
-				=> new EnumerableSequence<TNew>(this.Source.Select(selector), this.Cancellation);
+				=> new EnumerableAsyncQuery<TNew>(this.Source.Select(selector), this.Cancellation);
 
 			/// <inheritdoc />
 			public override IAsyncLinqQuery<TNew> SelectMany<TNew>(Func<TSource, IEnumerable<TNew>> selector)
-				=> new EnumerableSequence<TNew>(this.Source.SelectMany(selector), this.Cancellation);
+				=> new EnumerableAsyncQuery<TNew>(this.Source.SelectMany(selector), this.Cancellation);
 
 			/// <inheritdoc />
 			public override IAsyncLinqQuery<TNew> SelectMany<TCollection, TNew>(Func<TSource, IEnumerable<TCollection>> collectionSelector, Func<TSource, TCollection, TNew> resultSelector)
-				=> new EnumerableSequence<TNew>(this.Source.SelectMany(collectionSelector, resultSelector), this.Cancellation);
+				=> new EnumerableAsyncQuery<TNew>(this.Source.SelectMany(collectionSelector, resultSelector), this.Cancellation);
 
 			/// <inheritdoc />
-			public override IAsyncLinqQuery<TSource> Where(Func<TSource, bool> predicate) => new EnumerableSequence<TSource>(this.Source.Where(predicate), this.Cancellation);
+			public override IAsyncLinqQuery<TSource> Where(Func<TSource, bool> predicate) => new EnumerableAsyncQuery<TSource>(this.Source.Where(predicate), this.Cancellation);
 
 			/// <inheritdoc />
-			public override IAsyncLinqQuery<TSource> Where(Func<TSource, int, bool> predicate) => new EnumerableSequence<TSource>(this.Source.Where(predicate), this.Cancellation);
+			public override IAsyncLinqQuery<TSource> Where(Func<TSource, int, bool> predicate) => new EnumerableAsyncQuery<TSource>(this.Source.Where(predicate), this.Cancellation);
 
 		}
 
