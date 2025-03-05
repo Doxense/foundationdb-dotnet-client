@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Linq.Async.Iterators
+namespace SnowBank.Linq.Async.Iterators
 {
 
 	/// <summary>Filters duplicate items from an async sequence</summary>

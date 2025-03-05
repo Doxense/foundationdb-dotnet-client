@@ -30,6 +30,7 @@ namespace FoundationDB.Linq.Expressions
 	using System.Diagnostics.CodeAnalysis;
 #endif
 	using Doxense.Collections.Tuples;
+	using SnowBank.Linq;
 
 	/// <summary>Helper class to construct Query Expressions</summary>
 #if NET8_0_OR_GREATER

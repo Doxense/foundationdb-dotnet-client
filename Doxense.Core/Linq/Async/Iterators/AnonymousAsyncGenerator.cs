@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Linq.Async.Iterators
+namespace SnowBank.Linq.Async.Iterators
 {
 
 	/// <summary>Generate items asynchronously, using a user-provided lambda</summary>

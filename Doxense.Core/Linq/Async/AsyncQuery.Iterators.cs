@@ -24,13 +24,13 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Linq
+namespace SnowBank.Linq
 {
 	using System.ComponentModel;
 	using System.Threading.Channels;
-	using Doxense.Linq.Async;
-	using Doxense.Linq.Async.Expressions;
-	using Doxense.Linq.Async.Iterators;
+	using SnowBank.Linq.Async;
+	using SnowBank.Linq.Async.Expressions;
+	using SnowBank.Linq.Async.Iterators;
 
 	public static partial class AsyncQuery
 	{

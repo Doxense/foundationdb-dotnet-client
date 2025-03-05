@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Linq.Iterators
+namespace SnowBank.Linq.Iterators
 {
 
 	/// <summary>Returns only the values for the keys that are in the first sub query, but not in the others</summary>
@@ -51,12 +51,12 @@ namespace Doxense.Linq.Iterators
 			var iterators = m_iterators;
 			Contract.Debug.Requires(iterators != null);
 
-			// we only returns values of the first that are not in the others
+			// we only return values of the first that are not in the others
 
 			// - if iterator[0] is complete, then stop
 			// - take X = iterator[0].Current
 			// - set flag_output to true, flag_found to false
-			// - for i in 1..n-1:
+			// - for i in 1...n-1:
 			//   - if iterator[i].Current < X, advance iterator i and set flag_output to false
 			//   - if iterator[i].Current = X, set flag_found to true, flag_output to false
 			// - if flag_output is true then output X

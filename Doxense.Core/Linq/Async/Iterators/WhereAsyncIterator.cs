@@ -24,9 +24,9 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Linq.Async.Iterators
+namespace SnowBank.Linq.Async.Iterators
 {
-	using Doxense.Linq.Async.Expressions;
+	using SnowBank.Linq.Async.Expressions;
 
 	/// <summary>Filters an async sequence of items</summary>
 	/// <typeparam name="TSource">Type of elements of the async sequence</typeparam>

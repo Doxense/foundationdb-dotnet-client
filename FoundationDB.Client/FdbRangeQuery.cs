@@ -32,6 +32,7 @@ namespace FoundationDB.Client
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
 	using Doxense.Linq;
+	using SnowBank.Linq;
 #if NET10_0_OR_GREATER
 	using System.Linq;
 #endif

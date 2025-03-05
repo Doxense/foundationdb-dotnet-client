@@ -28,7 +28,7 @@ namespace FoundationDB.Layers.Collections
 {
 	using System.Linq;
 	using System.Threading;
-	using Doxense.Linq;
+	using SnowBank.Linq;
 	using Doxense.Serialization.Encoders;
 
 	[DebuggerDisplay("Location={Location}")]

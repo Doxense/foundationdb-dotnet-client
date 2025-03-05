@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Linq.Async.Iterators
+namespace SnowBank.Linq.Async.Iterators
 {
 
 	/// <summary>Returns only the values for the keys that are in the first sub query, but not in the others</summary>

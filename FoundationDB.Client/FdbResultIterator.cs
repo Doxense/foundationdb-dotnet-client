@@ -30,7 +30,7 @@
 namespace FoundationDB.Client
 {
 	using System.Diagnostics;
-	using Doxense.Linq.Async.Iterators;
+	using SnowBank.Linq.Async.Iterators;
 
 	/// <summary>Async iterator that fetches the results by batch, but return them one by one</summary>
 	[DebuggerDisplay("State={m_state}, Current={m_current}, RemainingInChunk={m_itemsRemainingInChunk}, OutOfChunks={m_outOfChunks}")]

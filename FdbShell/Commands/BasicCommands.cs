@@ -38,10 +38,10 @@ namespace FdbShell
 	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Linq;
 	using Doxense.Memory;
 	using FoundationDB.Client.Status;
 	using Spectre.Console;
+	using SnowBank.Linq;
 
 	public static class BasicCommands
 	{

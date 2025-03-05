@@ -26,7 +26,7 @@
 
 namespace FoundationDB.Layers.Collections
 {
-	using Doxense.Linq;
+	using SnowBank.Linq;
 
 	/// <summary>Multimap that tracks the number of times a specific key/value pair has been inserted or removed.</summary>
 	/// <typeparam name="TKey">Type of the keys of the map</typeparam>
@@ -60,7 +60,7 @@ namespace FoundationDB.Layers.Collections
 
 		#region Public Properties...
 
-		/// <summary>Subspace used to encoded the keys for the items</summary>
+		/// <summary>Subspace used to encode the keys for the items</summary>
 		public TypedKeySubspaceLocation<TKey, TValue> Location { get; }
 
 		/// <summary>If true, allow negative or zero values to stay in the map.</summary>

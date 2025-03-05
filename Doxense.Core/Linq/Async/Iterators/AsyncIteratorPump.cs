@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -26,7 +26,7 @@
 
 //#define FULL_DEBUG
 
-namespace Doxense.Linq.Async.Iterators
+namespace SnowBank.Linq.Async.Iterators
 {
 	using System.Runtime.ExceptionServices;
 	using Doxense.Async;

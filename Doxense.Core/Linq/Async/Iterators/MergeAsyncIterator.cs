@@ -24,8 +24,9 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Linq.Async.Iterators
+namespace SnowBank.Linq.Async.Iterators
 {
+	using Doxense.Linq;
 
 	/// <summary>Performs a Merge Sort on several concurrent range queries</summary>
 	/// <typeparam name="TSource">Type of the elements in the source queries</typeparam>
@@ -85,7 +86,7 @@ namespace Doxense.Linq.Async.Iterators
 
 			if (!Buffer<IAsyncQuery<TSource>>.TryGetSpan(m_sources, out var sources))
 			{
-				sources = this.m_sources.ToArray();
+				sources = m_sources.ToArray();
 			}
 
 			var iterators = new IteratorState[sources.Length];

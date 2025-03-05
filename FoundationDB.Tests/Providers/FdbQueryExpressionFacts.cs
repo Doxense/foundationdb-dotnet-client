@@ -29,6 +29,7 @@
 	using System.Linq.Expressions;
 	using Doxense.Serialization;
 	using FoundationDB.Layers.Indexing;
+	using SnowBank.Linq;
 
 	[TestFixture]
 	public class FdbQueryExpressionFacts : FdbTest

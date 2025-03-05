@@ -26,7 +26,7 @@
 
 //#define FULL_DEBUG
 
-namespace Doxense.Linq.Async.Iterators
+namespace SnowBank.Linq.Async.Iterators
 {
 	using Doxense.Async;
 

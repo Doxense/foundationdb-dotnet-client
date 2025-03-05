@@ -24,14 +24,15 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Linq
+namespace SnowBank.Linq
 {
 	using System;
 	using System.Buffers;
 	using System.Collections.Immutable;
 	using System.Numerics;
-	using Doxense.Linq.Async.Expressions;
-	using Doxense.Linq.Async.Iterators;
+	using Doxense.Linq;
+	using SnowBank.Linq.Async.Expressions;
+	using SnowBank.Linq.Async.Iterators;
 	using Doxense.Threading.Tasks;
 
 	/// <summary>Provides a set of static methods for querying objects that implement <see cref="IAsyncEnumerable{T}"/>.</summary>

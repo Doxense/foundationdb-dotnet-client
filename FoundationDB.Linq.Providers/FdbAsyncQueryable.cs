@@ -31,6 +31,7 @@ namespace FoundationDB.Linq
 #endif
 	using FoundationDB.Layers.Indexing;
 	using FoundationDB.Linq.Providers;
+	using SnowBank.Linq;
 
 	/// <summary>Extensions methods that help create a query expression tree</summary>
 	[PublicAPI]
@@ -184,18 +185,18 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Returns the first element of a sequence query</summary>
-		public static Task<T> FirstOrDefaultAsync<T>(this IFdbAsyncSequenceQueryable<T> query, CancellationToken ct = default)
+		public static Task<T?> FirstOrDefaultAsync<T>(this IFdbAsyncSequenceQueryable<T> query, CancellationToken ct = default)
 		{
 			Contract.NotNull(query);
-			if (ct.IsCancellationRequested) return Task.FromCanceled<T>(ct);
+			if (ct.IsCancellationRequested) return Task.FromCanceled<T?>(ct);
 
-			var expr = FdbQueryExpressions.Single<T, T>(
+			var expr = FdbQueryExpressions.Single<T, T?>(
 				(FdbQuerySequenceExpression<T>) query.Expression!,
 				"FirstOrDefaultAsync",
 				(source) => source.FirstOrDefaultAsync()
 			);
 
-			return query.Provider.CreateQuery<T>(expr).ExecuteSingle(ct);
+			return query.Provider.CreateQuery<T?>(expr).ExecuteSingle(ct);
 		}
 
 		/// <summary>Immediately executes a sequence query and return a list of all the results once it has completed.</summary>

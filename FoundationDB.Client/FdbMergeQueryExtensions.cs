@@ -27,8 +27,8 @@
 namespace FoundationDB.Client
 {
 	using System.Linq;
-	using Doxense.Linq;
-	using Doxense.Linq.Async.Iterators;
+	using SnowBank.Linq;
+	using SnowBank.Linq.Async.Iterators;
 
 	[PublicAPI]
 	public static class FdbMergeQueryExtensions

@@ -38,7 +38,7 @@ namespace FoundationDB.Client.Tests
 	using Microsoft.Extensions.DependencyInjection.Extensions;
 
 	using NodaTime;
-
+	using SnowBank.Linq;
 	using SnowBank.Testing;
 
 	public class FdbServerTestContainer : IAsyncDisposable

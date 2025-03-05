@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Linq.Async.Iterators
+namespace SnowBank.Linq.Async.Iterators
 {
 	/// <summary>Iterator that will generate the underlying async sequence "just in time" when it is itself iterated</summary>
 	/// <typeparam name="TState">State that is passed to the generator</typeparam>

@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Linq.Async.Expressions
+namespace SnowBank.Linq.Async.Expressions
 {
 
 	/// <summary>Expression that applies a transformation on each item</summary>

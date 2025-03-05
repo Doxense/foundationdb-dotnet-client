@@ -27,10 +27,10 @@
 namespace FoundationDB.Linq.Providers
 {
 	using System.Runtime.CompilerServices;
+	using SnowBank.Linq;
 
-	/// <summary>Base class for all Async LINQ queries</summary>
+	/// <summary>Base class for all LINQ queries that uses a FoundationDB cluster as the remote source</summary>
 	/// <typeparam name="T">Type of the items returned by this query. Single queries return a single <typeparamref name="T"/> while Sequence queries will return a <see cref="List{T}"/></typeparam>
-	/// <remarks>The type <typeparamref name="T"/> will be int for queries that eint </remarks>
 	public abstract class FdbAsyncQuery<T> : IFdbAsyncQueryable, IFdbAsyncQueryProvider
 	{
 

@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Linq.Async.Iterators
+namespace SnowBank.Linq.Async.Iterators
 {
 	using System;
 	using System.Buffers;
@@ -33,8 +33,9 @@ namespace Doxense.Linq.Async.Iterators
 	using System.Diagnostics.CodeAnalysis;
 	using System.Numerics;
 	using System.Reflection;
-	using Doxense.Linq.Async.Expressions;
-	using Serialization;
+	using Doxense.Linq;
+	using SnowBank.Linq.Async.Expressions;
+	using Doxense.Serialization;
 
 	/// <summary>Base class for all async iterators</summary>
 	/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>

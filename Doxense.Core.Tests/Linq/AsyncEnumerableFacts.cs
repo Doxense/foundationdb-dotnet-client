@@ -30,7 +30,7 @@
 // ReSharper disable MethodSupportsCancellation
 // ReSharper disable MethodHasAsyncOverload
 
-namespace Doxense.Linq.Async.Tests
+namespace SnowBank.Linq.Async.Tests
 {
 	using System.Collections.Generic;
 	using System.Collections.Immutable;
@@ -39,9 +39,9 @@ namespace Doxense.Linq.Async.Tests
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Async;
-	using Doxense.Linq;
-	using Doxense.Linq.Async.Iterators;
+	using SnowBank.Linq;
 	using Doxense.Serialization.Json;
+	using Iterators;
 
 	[TestFixture]
 	[Category("Core-SDK")]

@@ -30,6 +30,7 @@ namespace FoundationDB.Client
 	using System.ComponentModel;
 	using System.Diagnostics;
 	using Doxense.Linq;
+	using SnowBank.Linq;
 
 	/// <summary>Query describing an ongoing GetRange operation</summary>
 	[DebuggerDisplay("Begin={Begin}, End={End}, Limit={Limit}, Mode={Streaming}, Reverse={Reverse}, Snapshot={IsSnapshot}")]

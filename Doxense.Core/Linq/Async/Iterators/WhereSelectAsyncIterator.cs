@@ -24,12 +24,13 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Linq.Async.Iterators
+namespace SnowBank.Linq.Async.Iterators
 {
 	using System;
 	using System.Buffers;
 	using System.Collections.Immutable;
-	using Doxense.Linq.Async.Expressions;
+	using Doxense.Linq;
+	using SnowBank.Linq.Async.Expressions;
 
 	/// <summary>Iterates over an async sequence of items</summary>
 	/// <typeparam name="TSource">Type of elements of the inner async sequence</typeparam>

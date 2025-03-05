@@ -26,7 +26,7 @@
 
 namespace FoundationDB.Client
 {
-	using Doxense.Linq;
+	using SnowBank.Linq;
 	using Doxense.Serialization.Json;
 
 	/// <summary>Tenant configuration mode of a FoundationDB cluster</summary>
