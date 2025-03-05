@@ -32,6 +32,9 @@ namespace FoundationDB.Client
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
 	using Doxense.Linq;
+#if NET10_0_OR_GREATER
+	using System.Linq;
+#endif
 
 	/// <summary>Query describing an ongoing GetRange operation</summary>
 	[DebuggerDisplay("Begin={Begin}, End={End}, Limit={Limit}, Mode={Streaming}, Reverse={Reverse}, Snapshot={IsSnapshot}")]
