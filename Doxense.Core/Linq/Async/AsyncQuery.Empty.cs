@@ -127,10 +127,24 @@ namespace SnowBank.Linq
 			}
 
 			/// <inheritdoc />
-			public override IAsyncLinqQuery<TSource> Skip(int count) => this;
+			public override IAsyncLinqQuery<TSource> Skip(int count)
+			{
+				Contract.Positive(count);
+				return this;
+			}
 
 			/// <inheritdoc />
-			public override IAsyncLinqQuery<TSource> Take(int count) => this;
+			public override IAsyncLinqQuery<TSource> Take(int count)
+			{
+				Contract.Positive(count);
+				return this;
+			}
+
+			/// <inheritdoc />
+			public override IAsyncLinqQuery<TSource> Take(Range range)
+			{
+				return this;
+			}
 
 			/// <inheritdoc />
 			public override IAsyncLinqQuery<TSource> TakeWhile(Func<TSource, bool> condition) => this;

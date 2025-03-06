@@ -70,6 +70,7 @@ namespace SnowBank.Linq
 
 			return AsyncIterators.LastAsync<T>(source, predicate);
 		}
+
 	}
 
 	public static partial class AsyncIterators
@@ -144,6 +145,7 @@ namespace SnowBank.Linq
 
 			return found ? result : throw AsyncQuery.ErrorNoMatch();
 		}
+
 	}
 
 }

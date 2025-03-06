@@ -70,6 +70,7 @@ namespace SnowBank.Linq
 
 			return AsyncIterators.CountAsync<T>(source, predicate);
 		}
+
 	}
 
 	public static partial class AsyncIterators
@@ -120,6 +121,7 @@ namespace SnowBank.Linq
 			}
 			return count;
 		}
+
 	}
 
 }

@@ -148,7 +148,6 @@ namespace SnowBank.Linq
 			return min;
 		}
 
-
 		public static Task<T?> MaxAsync<T>(IAsyncQuery<T> source, IComparer<T>? comparer)
 		{
 			comparer ??= Comparer<T>.Default;
@@ -207,6 +206,7 @@ namespace SnowBank.Linq
 				return max;
 			}
 		}
+
 	}
 
 }

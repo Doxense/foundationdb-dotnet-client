@@ -32,6 +32,7 @@
 
 namespace SnowBank.Linq.Async.Tests
 {
+	using System.Collections;
 	using System.Collections.Generic;
 	using System.Collections.Immutable;
 	using System.Diagnostics;
@@ -39,9 +40,9 @@ namespace SnowBank.Linq.Async.Tests
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Async;
-	using SnowBank.Linq;
 	using Doxense.Serialization.Json;
-	using Iterators;
+	using SnowBank.Linq;
+	using SnowBank.Linq.Async.Iterators;
 
 	[TestFixture]
 	[Category("Core-SDK")]
@@ -490,37 +491,94 @@ namespace SnowBank.Linq.Async.Tests
 		}
 
 		[Test]
-		public async Task Test_Can_Take()
+		public async Task Test_Can_Skip()
 		{
-			var source = AsyncQuery.Range(0, 42, this.Cancellation);
-
-			var query = source.Take(10);
-			Assert.That(query, Is.Not.Null);
-
-			await using (var iterator = query.GetAsyncEnumerator())
 			{
-				ValueTask<bool> next;
-				// first 10 calls should return an already completed 'true' task, and current value should match
-				for (int i = 0; i < 10; i++)
-				{
-					next = iterator.MoveNextAsync();
-					Assert.That(next.IsCompleted, Is.True);
-					Assert.That(next.Result, Is.True);
-					Assert.That(iterator.Current, Is.EqualTo(i));
-				}
-				// last call should return an already completed 'false' task
-				next = iterator.MoveNextAsync();
-				Assert.That(next.IsCompleted, Is.True);
-				Assert.That(next.Result, Is.False);
+				Assert.That(await AsyncQuery.Empty<int>().Skip(0).ToListAsync(), Is.Empty);
+				Assert.That(await AsyncQuery.Empty<int>().Skip(1).ToListAsync(), Is.Empty);
+				Assert.That(() => AsyncQuery.Empty<int>().Skip(-1), Throws.InstanceOf<ArgumentOutOfRangeException>());
 			}
+			{
+				var query = FakeAsyncLinqIterator([ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ]);
+				Assert.That(() => query.Skip(-1), Throws.InstanceOf<ArgumentOutOfRangeException>());
+				Assert.That(await query.Skip(0).ToArrayAsync(), Is.EqualTo((int[]) [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ]));
+				Assert.That(await query.Skip(1).ToArrayAsync(), Is.EqualTo((int[]) [ 1, 2, 3, 4, 5, 6, 7, 8, 9 ]));
+				Assert.That(await query.Skip(9).ToArrayAsync(), Is.EqualTo((int[]) [ 9 ]));
+				Assert.That(await query.Skip(10).ToArrayAsync(), Is.Empty);
+				Assert.That(await query.Skip(11).ToArrayAsync(), Is.Empty);
 
-			var list = await query.ToListAsync();
-			Assert.That(list, Is.EqualTo(new[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }));
+				Assert.That(await query.Skip(2).Skip(3).ToArrayAsync(), Is.EqualTo((int[]) [ 5, 6, 7, 8, 9 ]));
+				Assert.That(await query.Skip(7).Skip(5).ToArrayAsync(), Is.Empty);
 
-			var array = await query.ToArrayAsync();
-			Assert.That(array, Is.EqualTo(new[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }));
+				Assert.That(await query.Take(5).Skip(0).ToArrayAsync(), Is.EqualTo((int[]) [ 0, 1, 2, 3, 4 ]));
+				Assert.That(await query.Take(5).Skip(2).ToArrayAsync(), Is.EqualTo((int[]) [ 2, 3, 4 ]));
+				Assert.That(await query.Take(5).Skip(5).ToArrayAsync(), Is.Empty);
+
+				Assert.That(await query.Skip(2).Take(5).Skip(1).ToArrayAsync(), Is.EqualTo((int[]) [ 3, 4 ]));
+				Assert.That(await query.Skip(2).Take(5).Skip(5).ToArrayAsync(), Is.Empty);
+				Assert.That(await query.Skip(2).Take(5).Skip(6).ToArrayAsync(), Is.Empty);
+			}
 		}
 
+		[Test]
+		public async Task Test_Can_Take()
+		{
+			{
+				Assert.That(await AsyncQuery.Empty<int>().Take(0).ToListAsync(), Is.Empty);
+				Assert.That(await AsyncQuery.Empty<int>().Take(1).ToListAsync(), Is.Empty);
+				Assert.That(() => AsyncQuery.Empty<int>().Take(-1), Throws.InstanceOf<ArgumentException>());
+			}
+			{
+				var source = AsyncQuery.Range(0, 42, this.Cancellation);
+
+				var query = source.Take(10);
+				Assert.That(query, Is.Not.Null);
+
+				await using (var iterator = query.GetAsyncEnumerator())
+				{
+					ValueTask<bool> next;
+					// first 10 calls should return an already completed 'true' task, and current value should match
+					for (int i = 0; i < 10; i++)
+					{
+						next = iterator.MoveNextAsync();
+						Assert.That(next.IsCompleted, Is.True);
+						Assert.That(next.Result, Is.True);
+						Assert.That(iterator.Current, Is.EqualTo(i));
+					}
+
+					// last call should return an already completed 'false' task
+					next = iterator.MoveNextAsync();
+					Assert.That(next.IsCompleted, Is.True);
+					Assert.That(next.Result, Is.False);
+				}
+
+				var list = await query.ToListAsync();
+				Assert.That(list, Is.EqualTo(new[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }));
+
+				var array = await query.ToArrayAsync();
+				Assert.That(array, Is.EqualTo(new[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }));
+			}
+			{
+				var query = FakeAsyncLinqIterator([ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ]);
+				Assert.That(() => query.Take(-1), Throws.InstanceOf<ArgumentException>());
+				Assert.That(await query.Take(0).ToArrayAsync(), Is.Empty);
+				Assert.That(await query.Take(1).ToArrayAsync(), Is.EqualTo((int[]) [ 0 ]));
+				Assert.That(await query.Take(10).ToArrayAsync(), Is.EqualTo((int[]) [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ]));
+				Assert.That(await query.Take(11).ToArrayAsync(), Is.EqualTo((int[]) [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ]));
+
+				Assert.That(await query.Take(5).Take(3).ToArrayAsync(), Is.EqualTo((int[]) [ 0, 1, 2 ]));
+				Assert.That(await query.Take(3).Take(5).ToArrayAsync(), Is.EqualTo((int[]) [ 0, 1, 2 ]));
+				Assert.That(await query.Skip(2).Take(3).ToArrayAsync(), Is.EqualTo((int[]) [ 2, 3, 4 ]));
+				Assert.That(await query.Skip(10).Take(3).ToArrayAsync(), Is.Empty);
+
+				Assert.That(await query.Take(2..5).ToArrayAsync(), Is.EqualTo((int[]) [ 2, 3, 4 ]));
+
+#if NET10_0_OR_GREATER
+				//note: support of ranges with '^' require .NET 10 for now!
+				Assert.That(await query.Take(^5..^2).ToArrayAsync(), Is.EqualTo((int[]) [ 5, 6, 7 ]));
+#endif
+			}
+		}
 
 		[Test]
 		public async Task Test_Can_Where_And_Take()
@@ -975,13 +1033,13 @@ namespace SnowBank.Linq.Async.Tests
 			var items = new[] { 1, 42, 7, 42, 9, 13, 7, 66 };
 			var source = items.ToAsyncQuery(this.Cancellation);
 
-			var distincts = await source.Distinct().ToListAsync();
-			Assert.That(distincts, Is.Not.Null.And.EqualTo(items.Distinct().ToList()));
+			var results = await source.Distinct().ToListAsync();
+			Assert.That(results, Is.Not.Null.And.EqualTo(items.Distinct().ToList()));
 
 			var sequence = Enumerable.Range(0, 100).Select(x => (x * 1049) % 43);
 			source = sequence.ToAsyncQuery(this.Cancellation);
-			distincts = await source.Distinct().ToListAsync();
-			Assert.That(distincts, Is.Not.Null.And.EqualTo(sequence.Distinct().ToList()));
+			results = await source.Distinct().ToListAsync();
+			Assert.That(results, Is.Not.Null.And.EqualTo(sequence.Distinct().ToList()));
 		}
 
 		[Test]
@@ -991,11 +1049,11 @@ namespace SnowBank.Linq.Async.Tests
 
 			var source = items.ToAsyncQuery(this.Cancellation);
 
-			var distincts = await source.Distinct(StringComparer.Ordinal).ToListAsync();
-			Assert.That(distincts, Is.Not.Null.And.EqualTo(items.Distinct(StringComparer.Ordinal).ToList()));
+			var results = await source.Distinct(StringComparer.Ordinal).ToListAsync();
+			Assert.That(results, Is.Not.Null.And.EqualTo(items.Distinct(StringComparer.Ordinal).ToList()));
 
-			distincts = await source.Distinct(StringComparer.OrdinalIgnoreCase).ToListAsync();
-			Assert.That(distincts, Is.Not.Null.And.EqualTo(items.Distinct(StringComparer.OrdinalIgnoreCase).ToList()));
+			results = await source.Distinct(StringComparer.OrdinalIgnoreCase).ToListAsync();
+			Assert.That(results, Is.Not.Null.And.EqualTo(items.Distinct(StringComparer.OrdinalIgnoreCase).ToList()));
 		}
 
 		[Test]
@@ -1089,7 +1147,7 @@ namespace SnowBank.Linq.Async.Tests
 				this.Cancellation = ct;
 			}
 
-			public T[] Items { get; }
+			private T[] Items { get; }
 
 			/// <inheritdoc />
 			public CancellationToken Cancellation { get; }
@@ -2007,7 +2065,8 @@ namespace SnowBank.Linq.Async.Tests
 		[Test]
 		public async Task Test_Exceptions_Are_Propagated_To_Caller()
 		{
-			var query = AsyncQuery.Range(0, 10, this.Cancellation)
+			var query = AsyncQuery
+				.Range(0, 10, this.Cancellation)
 				.Select(x =>
 				{
 					if (x == 1) throw new FormatException("KABOOM");
@@ -2015,21 +2074,19 @@ namespace SnowBank.Linq.Async.Tests
 					return x;
 				});
 
-			await using (var iterator = query.GetAsyncEnumerator())
-			{
-				// first move next should succeed
-				bool res = await iterator.MoveNextAsync();
-				Assert.That(res, Is.True);
+			await using var iterator = query.GetAsyncEnumerator();
+			// first move next should succeed
+			bool res = await iterator.MoveNextAsync();
+			Assert.That(res, Is.True);
 
-				// second move next should fail
-				Assert.That(async () => await iterator.MoveNextAsync(), Throws.InstanceOf<FormatException>().With.Message.EqualTo("KABOOM"), "Should have failed");
+			// second move next should fail
+			Assert.That(async () => await iterator.MoveNextAsync(), Throws.InstanceOf<FormatException>().With.Message.EqualTo("KABOOM"), "Should have failed");
 
-				// accessing current should rethrow the exception
-				Assert.That(() => iterator.Current, Throws.InstanceOf<InvalidOperationException>());
+			// accessing current should rethrow the exception
+			Assert.That(() => iterator.Current, Throws.InstanceOf<InvalidOperationException>());
 
-				// another attempt at MoveNext should fail immediately but with a different error
-				Assert.That(async () => await iterator.MoveNextAsync(), Throws.InstanceOf<ObjectDisposedException>());
-			}
+			// another attempt at MoveNext should fail immediately but with a different error
+			Assert.That(async () => await iterator.MoveNextAsync(), Throws.InstanceOf<ObjectDisposedException>());
 		}
 
 		[Test]
@@ -2057,7 +2114,7 @@ namespace SnowBank.Linq.Async.Tests
 						await Task.Delay(ms, ct);
 						return x;
 					})
-					.SelectAsync(async (x, ct) =>
+					.SelectParallel(async (x, ct) =>
 					{
 						try
 						{
@@ -2235,7 +2292,7 @@ namespace SnowBank.Linq.Async.Tests
 			}
 			else if (referenceError != null)
 			{
-				Assert.Fail($"{label}(): The referency query {witness.Expression} failed ({referenceError.Message}) but the async query returned: {asyncResult}");
+				Assert.Fail($"{label}(): The reference query {witness.Expression} failed ({referenceError.Message}) but the async query returned: {asyncResult}");
 			}
 			else
 			{

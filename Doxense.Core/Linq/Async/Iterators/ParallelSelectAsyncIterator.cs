@@ -33,7 +33,7 @@ namespace SnowBank.Linq.Async.Iterators
 	/// <summary>[EXPERIMENTAL] Iterates over an async sequence of items, kick off an async task in parallel, and returning the results in order</summary>
 	/// <typeparam name="TSource">Type of elements of the inner async sequence</typeparam>
 	/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
-	public sealed class ParallelSelectAsyncIterator<TSource, TResult> : AsyncFilterIterator<TSource, TResult>
+	public sealed class ParallelAsyncIterator<TSource, TResult> : AsyncFilterIterator<TSource, TResult>
 	{
 
 		/// <summary>Default max concurrency when doing batch queries</summary>
@@ -58,7 +58,7 @@ namespace SnowBank.Linq.Async.Iterators
 		/// <summary>Queue that holds items that are being processed</summary>
 		private AsyncTransformQueue<TSource, TResult>? m_processingQueue;
 
-		public ParallelSelectAsyncIterator(
+		public ParallelAsyncIterator(
 			IAsyncQuery<TSource> source,
 			Func<TSource, CancellationToken, Task<TResult>> taskSelector,
 			ParallelAsyncQueryOptions options
@@ -73,7 +73,7 @@ namespace SnowBank.Linq.Async.Iterators
 
 		protected override AsyncLinqIterator<TResult> Clone()
 		{
-			return new ParallelSelectAsyncIterator<TSource, TResult>(m_source, m_taskSelector, m_options);
+			return new ParallelAsyncIterator<TSource, TResult>(m_source, m_taskSelector, m_options);
 		}
 		protected override async ValueTask<bool> OnFirstAsync()
 		{

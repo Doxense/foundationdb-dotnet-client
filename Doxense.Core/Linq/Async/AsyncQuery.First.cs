@@ -70,6 +70,7 @@ namespace SnowBank.Linq
 
 			return AsyncIterators.FirstAsync<T>(source, predicate);
 		}
+
 	}
 
 	public static partial class AsyncIterators
@@ -117,6 +118,7 @@ namespace SnowBank.Linq
 
 			throw AsyncQuery.ErrorNoElements();
 		}
+
 	}
 
 }

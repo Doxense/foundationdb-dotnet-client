@@ -82,6 +82,7 @@ namespace SnowBank.Linq
 
 			return AsyncIterators.FirstOrDefaultAsync<T>(source, predicate, defaultValue);
 		}
+
 	}
 
 	public static partial class AsyncIterators
@@ -128,6 +129,7 @@ namespace SnowBank.Linq
 
 			return defaultValue;
 		}
+
 	}
 
 }

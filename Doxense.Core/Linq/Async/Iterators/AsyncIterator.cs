@@ -509,7 +509,7 @@ namespace SnowBank.Linq.Async.Iterators
 		{
 			Contract.NotNull(predicate);
 
-			return AsyncQuery.WhereImpl(this, predicate);
+			return AsyncIterators.WhereImpl(this, predicate);
 		}
 
 		/// <inheritdoc />
@@ -517,7 +517,7 @@ namespace SnowBank.Linq.Async.Iterators
 		{
 			Contract.NotNull(predicate);
 
-			return AsyncQuery.WhereImpl(this, predicate);
+			return AsyncIterators.WhereImpl(this, predicate);
 		}
 
 		/// <inheritdoc />
@@ -525,7 +525,7 @@ namespace SnowBank.Linq.Async.Iterators
 		{
 			Contract.NotNull(predicate);
 
-			return AsyncQuery.WhereImpl(this, predicate);
+			return AsyncIterators.WhereImpl(this, predicate);
 		}
 
 		/// <inheritdoc />
@@ -533,7 +533,7 @@ namespace SnowBank.Linq.Async.Iterators
 		{
 			Contract.NotNull(predicate);
 
-			return AsyncQuery.WhereImpl(this, predicate);
+			return AsyncIterators.WhereImpl(this, predicate);
 		}
 
 		#endregion
@@ -545,7 +545,7 @@ namespace SnowBank.Linq.Async.Iterators
 		{
 			Contract.NotNull(selector);
 
-			return AsyncQuery.SelectImpl(this, selector);
+			return AsyncIterators.Select(this, selector);
 		}
 
 		/// <inheritdoc />
@@ -553,7 +553,7 @@ namespace SnowBank.Linq.Async.Iterators
 		{
 			Contract.NotNull(selector);
 
-			return AsyncQuery.SelectImpl(this, selector);
+			return AsyncIterators.Select(this, selector);
 		}
 
 		/// <inheritdoc />
@@ -561,7 +561,7 @@ namespace SnowBank.Linq.Async.Iterators
 		{
 			Contract.NotNull(selector);
 
-			return AsyncQuery.SelectImpl(this, selector);
+			return AsyncIterators.Select(this, selector);
 		}
 
 		/// <inheritdoc />
@@ -569,7 +569,7 @@ namespace SnowBank.Linq.Async.Iterators
 		{
 			Contract.NotNull(selector);
 
-			return AsyncQuery.SelectImpl(this, selector);
+			return AsyncIterators.Select(this, selector);
 		}
 
 		#endregion
@@ -581,7 +581,7 @@ namespace SnowBank.Linq.Async.Iterators
 		{
 			Contract.NotNull(selector);
 
-			return AsyncQuery.SelectManyImpl(this, selector);
+			return AsyncIterators.SelectManyImpl(this, selector);
 		}
 
 		/// <inheritdoc />
@@ -589,7 +589,7 @@ namespace SnowBank.Linq.Async.Iterators
 		{
 			Contract.NotNull(selector);
 
-			return AsyncQuery.SelectManyImpl(this, selector);
+			return AsyncIterators.SelectManyImpl(this, selector);
 		}
 
 		/// <inheritdoc />
@@ -598,7 +598,7 @@ namespace SnowBank.Linq.Async.Iterators
 			Contract.NotNull(collectionSelector);
 			Contract.NotNull(resultSelector);
 
-			return AsyncQuery.SelectManyImpl(this, collectionSelector, resultSelector);
+			return AsyncIterators.SelectManyImpl(this, collectionSelector, resultSelector);
 		}
 
 		/// <inheritdoc />
@@ -607,7 +607,7 @@ namespace SnowBank.Linq.Async.Iterators
 			Contract.NotNull(collectionSelector);
 			Contract.NotNull(resultSelector);
 
-			return AsyncQuery.SelectManyImpl(this, collectionSelector, resultSelector);
+			return AsyncIterators.SelectManyImpl(this, collectionSelector, resultSelector);
 		}
 
 		/// <inheritdoc />
