@@ -30,8 +30,6 @@ namespace SnowBank.Linq
 	public static partial class AsyncQuery
 	{
 
-		#region LastAsync...
-
 		/// <summary>Returns the last element of an async sequence, or an exception if it is empty</summary>
 		public static Task<T> LastAsync<T>(this IAsyncQuery<T> source)
 		{
@@ -42,23 +40,7 @@ namespace SnowBank.Linq
 				return query.LastAsync();
 			}
 
-			return Impl(source);
-
-			static async Task<T> Impl(IAsyncQuery<T> source)
-			{
-				await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
-
-				bool found = false;
-				T last = default!;
-
-				while(await iterator.MoveNextAsync().ConfigureAwait(false))
-				{
-					found = true;
-					last = iterator.Current;
-				}
-
-				return found ? last : throw ErrorNoElements();
-			}
+			return AsyncIterators.LastAsync<T>(source);
 		}
 
 		/// <summary>Returns the last element of an async sequence, or an exception if it is empty</summary>
@@ -72,26 +54,7 @@ namespace SnowBank.Linq
 				return query.LastAsync(predicate);
 			}
 
-			return Impl(source, predicate);
-
-			static async Task<T> Impl(IAsyncQuery<T> source, Func<T, bool> predicate)
-			{
-				await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
-
-				T result = default!;
-				bool found = false;
-				while (await iterator.MoveNextAsync().ConfigureAwait(false))
-				{
-					var item = iterator.Current;
-					if (predicate(item))
-					{
-						found = true;
-						result = item;
-					}
-				}
-
-				return found ? result : throw ErrorNoElements();
-			}
+			return AsyncIterators.LastAsync<T>(source, predicate);
 		}
 
 		/// <summary>Returns the last element of an async sequence, or an exception if it is empty</summary>
@@ -105,31 +68,82 @@ namespace SnowBank.Linq
 				return query.LastAsync(predicate);
 			}
 
-			return Impl(source, predicate);
+			return AsyncIterators.LastAsync<T>(source, predicate);
+		}
+	}
 
-			static async Task<T> Impl(IAsyncQuery<T> source, Func<T, CancellationToken, Task<bool>> predicate)
+	public static partial class AsyncIterators
+	{
+
+		public static async Task<T> LastAsync<T>(IAsyncQuery<T> source)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Head);
+
+			if (!await iterator.MoveNextAsync().ConfigureAwait(false))
 			{
-				await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
-
-				T result = default!;
-				bool found = false;
-				var ct = source.Cancellation;
-				while (await iterator.MoveNextAsync().ConfigureAwait(false))
-				{
-					var item = iterator.Current;
-					if (await predicate(item, ct).ConfigureAwait(false))
-					{
-						found = true;
-						result = item;
-					}
-				}
-
-				return found ? result : throw ErrorNoElements();
+				throw AsyncQuery.ErrorNoElements();
 			}
+
+			T item;
+			do
+			{
+				item = iterator.Current;
+			}
+			while (await iterator.MoveNextAsync().ConfigureAwait(false));
+
+			return item;
 		}
 
-		#endregion
+		public static async Task<T> LastAsync<T>(IAsyncQuery<T> source, Func<T, bool> predicate)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Head);
 
+			if (!await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				throw AsyncQuery.ErrorNoElements();
+			}
+
+			T result = default!;
+			bool found = false;
+			do
+			{
+				var item = iterator.Current;
+				if (predicate(item))
+				{
+					found = true;
+					result = item;
+				}
+			}
+			while (await iterator.MoveNextAsync().ConfigureAwait(false));
+
+			return found ? result : throw AsyncQuery.ErrorNoMatch();
+		}
+
+		public static async Task<T> LastAsync<T>(IAsyncQuery<T> source, Func<T, CancellationToken, Task<bool>> predicate)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Head);
+
+			if (!await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				throw AsyncQuery.ErrorNoElements();
+			}
+
+			T result = default!;
+			bool found = false;
+			var ct = source.Cancellation;
+			do
+			{
+				var item = iterator.Current;
+				if (await predicate(item, ct).ConfigureAwait(false))
+				{
+					found = true;
+					result = item;
+				}
+			}
+			while (await iterator.MoveNextAsync().ConfigureAwait(false));
+
+			return found ? result : throw AsyncQuery.ErrorNoMatch();
+		}
 	}
 
 }

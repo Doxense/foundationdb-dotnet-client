@@ -34,43 +34,145 @@ namespace SnowBank.Linq
 		public static Task<T?> MinAsync<T>(this IAsyncQuery<T> source, IComparer<T>? comparer = null)
 		{
 			Contract.NotNull(source);
-			comparer ??= Comparer<T>.Default;
 
 			if (source is IAsyncLinqQuery<T> query)
 			{
 				return query.MinAsync(comparer);
 			}
 
-			return MinAsyncImpl(source, comparer);
-
+			return AsyncIterators.MinAsync(source, comparer);
 		}
 
-		internal static async Task<T?> MinAsyncImpl<T>(IAsyncQuery<T> source, IComparer<T> comparer)
+	}
+
+	public static partial class AsyncIterators
+	{
+
+		public static async Task<int> MinAsync(IAsyncQuery<int> source)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
 
-			if (default(T) is null)
+			// get the first
+			if (!await iterator.MoveNextAsync().ConfigureAwait(false))
 			{
-				// we will return null if the query is empty, or only contains null
-				var min = default(T);
-				while (await iterator.MoveNextAsync().ConfigureAwait(false))
-				{
-					var candidate = iterator.Current;
-					if (candidate is not null && (min is null || comparer.Compare(candidate, candidate) > 0))
-					{
-						min = candidate;
-					}
-				}
-				return min;
+				throw AsyncQuery.ErrorNoElements();
 			}
-			else
-			{
-				// we will throw if the query is empty
+			var min = iterator.Current;
 
-				// get the first
+			// compare with the rest
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				min = Math.Min(iterator.Current, min);
+			}
+
+			return min;
+		}
+
+		public static async Task<long> MinAsync(IAsyncQuery<long> source)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			// get the first
+			if (!await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				throw AsyncQuery.ErrorNoElements();
+			}
+			var min = iterator.Current;
+
+			// compare with the rest
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				min = Math.Min(iterator.Current, min);
+			}
+
+			return min;
+		}
+
+		public static async Task<float> MinAsync(IAsyncQuery<float> source)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			// get the first
+			if (!await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				throw AsyncQuery.ErrorNoElements();
+			}
+			var min = iterator.Current;
+
+			// compare with the rest
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				min = Math.Min(iterator.Current, min);
+			}
+
+			return min;
+		}
+
+		public static async Task<double> MinAsync(IAsyncQuery<double> source)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			// get the first
+			if (!await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				throw AsyncQuery.ErrorNoElements();
+			}
+			var min = iterator.Current;
+
+			// compare with the rest
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				min = Math.Min(iterator.Current, min);
+			}
+
+			return min;
+		}
+
+		public static async Task<decimal> MinAsync(IAsyncQuery<decimal> source)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			// get the first
+			if (!await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				throw AsyncQuery.ErrorNoElements();
+			}
+			var min = iterator.Current;
+
+			// compare with the rest
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				min = Math.Min(iterator.Current, min);
+			}
+
+			return min;
+		}
+
+		public static Task<T?> MinAsync<T>(IAsyncQuery<T> source, IComparer<T>? comparer)
+		{
+			comparer ??= Comparer<T>.Default;
+
+			if (default(T) is not null)
+			{
+				if (typeof(T) == typeof(int) && ReferenceEquals(comparer, Comparer<int>.Default)) return (Task<T?>) (object) MinAsync((IAsyncQuery<int>) source);
+				if (typeof(T) == typeof(long) && ReferenceEquals(comparer, Comparer<long>.Default)) return (Task<T?>) (object) MinAsync((IAsyncQuery<long>) source);
+				if (typeof(T) == typeof(float) && ReferenceEquals(comparer, Comparer<float>.Default)) return (Task<T?>) (object) MinAsync((IAsyncQuery<float>) source);
+				if (typeof(T) == typeof(double) && ReferenceEquals(comparer, Comparer<double>.Default)) return (Task<T?>) (object) MinAsync((IAsyncQuery<double>) source);
+				if (typeof(T) == typeof(decimal) && ReferenceEquals(comparer, Comparer<decimal>.Default)) return (Task<T?>) (object) MinAsync((IAsyncQuery<decimal>) source);
+
+				return MinAsyncStruct(source, comparer);
+			}
+
+			return MinAsyncRef(source, comparer);
+
+			static async Task<T?> MinAsyncStruct(IAsyncQuery<T> source, IComparer<T> comparer)
+			{
+				await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+				// we will throw if the query is empty
 				if (!await iterator.MoveNextAsync().ConfigureAwait(false))
 				{
-					throw ErrorNoElements();
+					throw AsyncQuery.ErrorNoElements();
 				}
 				var min = iterator.Current;
 
@@ -84,6 +186,23 @@ namespace SnowBank.Linq
 					}
 				}
 
+				return min;
+			}
+
+			static async Task<T?> MinAsyncRef(IAsyncQuery<T> source, IComparer<T> comparer)
+			{
+				await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+				// we will return null if the query is empty, or only contains null
+				var min = default(T);
+				while (await iterator.MoveNextAsync().ConfigureAwait(false))
+				{
+					var candidate = iterator.Current;
+					if (candidate is not null && (min is null || comparer.Compare(candidate, min) < 0))
+					{
+						min = candidate;
+					}
+				}
 				return min;
 			}
 		}

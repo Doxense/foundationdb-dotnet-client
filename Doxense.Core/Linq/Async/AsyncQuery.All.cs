@@ -41,19 +41,7 @@ namespace SnowBank.Linq
 				return query.AllAsync(predicate);
 			}
 
-			return Impl(source, predicate);
-
-			static async Task<bool> Impl(IAsyncQuery<T> source, Func<T, bool> predicate)
-			{
-				await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
-
-				while (await iterator.MoveNextAsync().ConfigureAwait(false))
-				{
-					if (!predicate(iterator.Current)) return false;
-				}
-
-				return true;
-			}
+			return AsyncIterators.AllAsync<T>(source, predicate);
 		}
 
 		/// <summary>Determines whether any element of an async sequence satisfies a condition.</summary>
@@ -67,22 +55,39 @@ namespace SnowBank.Linq
 				return query.AllAsync(predicate);
 			}
 
-			return Impl(source, predicate);
-
-			static async Task<bool> Impl(IAsyncQuery<T> source, Func<T, CancellationToken, Task<bool>> predicate)
-			{
-				await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
-
-				var ct = source.Cancellation;
-				while (await iterator.MoveNextAsync().ConfigureAwait(false))
-				{
-					if (!(await predicate(iterator.Current, ct).ConfigureAwait(false))) return false;
-				}
-
-				return true;
-			}
+			return AsyncIterators.AllAsync<T>(source, predicate);
 		}
 
+	}
+
+	/// <summary>Contains generic fallback implementations for custom async iterators</summary>
+	public static partial class AsyncIterators
+	{
+
+		public static async Task<bool> AllAsync<T>(IAsyncQuery<T> source, Func<T, bool> predicate)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				if (!predicate(iterator.Current)) return false;
+			}
+
+			return true;
+		}
+
+		public static async Task<bool> AllAsync<T>(IAsyncQuery<T> source, Func<T, CancellationToken, Task<bool>> predicate)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			var ct = source.Cancellation;
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				if (!(await predicate(iterator.Current, ct).ConfigureAwait(false))) return false;
+			}
+
+			return true;
+		}
 	}
 
 }

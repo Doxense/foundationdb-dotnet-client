@@ -40,14 +40,7 @@ namespace SnowBank.Linq
 				return query.CountAsync();
 			}
 
-			return Impl(source);
-
-			static async Task<int> Impl(IAsyncQuery<T> source)
-			{
-				int count = 0;
-				await ForEachAsync(source, (_) => { ++count; }).ConfigureAwait(false);
-				return count;
-			}
+			return AsyncIterators.CountAsync<T>(source);
 		}
 
 		/// <summary>Returns a number that represents how many elements in the specified async sequence satisfy a condition.</summary>
@@ -61,22 +54,7 @@ namespace SnowBank.Linq
 				return query.CountAsync(predicate);
 			}
 
-			return Impl(source, predicate);
-
-			static async Task<int> Impl(IAsyncQuery<T> source, Func<T, bool> predicate)
-			{
-				int count = 0;
-
-				await ForEachAsync(source, (x) =>
-				{
-					if (predicate(x))
-					{
-						checked { ++count; }
-					}
-				}).ConfigureAwait(false);
-
-				return count;
-			}
+			return AsyncIterators.CountAsync<T>(source, predicate);
 		}
 
 		/// <summary>Returns a number that represents how many elements in the specified async sequence satisfy a condition.</summary>
@@ -90,23 +68,58 @@ namespace SnowBank.Linq
 				return query.CountAsync(predicate);
 			}
 
-			return Impl(source, predicate);
+			return AsyncIterators.CountAsync<T>(source, predicate);
+		}
+	}
 
-			static async Task<int> Impl(IAsyncQuery<T> source, Func<T, CancellationToken, Task<bool>> predicate)
+	public static partial class AsyncIterators
+	{
+		public static async Task<int> CountAsync<T>(IAsyncQuery<T> source)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			int count = 0;
+			while(await iterator.MoveNextAsync().ConfigureAwait(false))
 			{
-				int count = 0;
-
-				await ForEachAsync(source, async (x, ct) => {
-					if (await predicate(x, ct).ConfigureAwait(false))
-					{
-						checked { ++count; }
-					}
-				}).ConfigureAwait(false);
-
-				return count;
+				checked
+				{
+					count++;
+				}
 			}
+
+			return count;
 		}
 
+		public static async Task<int> CountAsync<T>(IAsyncQuery<T> source, Func<T, bool> predicate)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			int count = 0;
+			while(await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				if (predicate(iterator.Current))
+				{
+					checked { count++; }
+				}
+			}
+			return count;
+		}
+
+		public static async Task<int> CountAsync<T>(IAsyncQuery<T> source, Func<T, CancellationToken, Task<bool>> predicate)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			int count = 0;
+			var ct = source.Cancellation;
+			while(await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				if (await predicate(iterator.Current, ct).ConfigureAwait(false))
+				{
+					checked { count++; }
+				}
+			}
+			return count;
+		}
 	}
 
 }

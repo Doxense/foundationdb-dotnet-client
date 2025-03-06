@@ -27,23 +27,31 @@
 namespace SnowBank.Linq
 {
 	using System.Collections.Immutable;
+	using Doxense.Serialization;
 	using SnowBank.Linq.Async.Iterators;
 
 	public static partial class AsyncQuery
 	{
 
-		/// <summary>A query that returns nothing</summary>
-		internal sealed class EmptyQuery<TSource> : AsyncLinqIterator<TSource>
+		/// <summary>Returns an empty async sequence</summary>
+		[Pure]
+		public static IAsyncLinqQuery<T> Empty<T>()
 		{
-			public static readonly EmptyQuery<TSource> Default = new();
+			return EmptyIterator<T>.Default;
+		}
 
-			private EmptyQuery()
+		/// <summary>A query that returns nothing</summary>
+		internal sealed class EmptyIterator<TSource> : AsyncLinqIterator<TSource>
+		{
+			public static readonly EmptyIterator<TSource> Default = new();
+
+			private EmptyIterator()
 			{ }
 
 			public override CancellationToken Cancellation => CancellationToken.None;
 
 			/// <inheritdoc />
-			protected override EmptyQuery<TSource> Clone() => this;
+			protected override EmptyIterator<TSource> Clone() => this;
 
 			/// <inheritdoc />
 			protected override ValueTask<bool> OnFirstAsync() => new(false);
@@ -77,6 +85,46 @@ namespace SnowBank.Linq
 
 			/// <inheritdoc />
 			public override Task<int> CountAsync(Func<TSource, CancellationToken, Task<bool>> predicate) => Task.FromResult(0);
+
+			/// <inheritdoc />
+			public override Task<TSource> SumAsync()
+			{
+				if (default(TSource) is not null)
+				{
+					return Task.FromResult(default(TSource)!);
+				}
+
+				if (typeof(TSource).IsValueType)
+				{
+					// this is likely a Nullable<T> where we need to return 0 instead of null!
+					// note: RuntimeHelpers.GetUninitializedObject(typeof(int?)) returns 0 instead of null, which helps us here (for a change!)
+					return Task.FromResult((TSource) RuntimeHelpers.GetUninitializedObject(typeof(TSource)));
+				}
+
+				// we cannot simply return null here, because if TSource implements INumberBase<T> we should return T.Zero instead (which could be something else!)
+				// => fallback to the default impl which can deal with this
+				return AsyncIterators.SumUnconstrainedAsync(this);
+			}
+
+			/// <inheritdoc />
+			public override Task<TSource?> MinAsync(IComparer<TSource>? comparer = null)
+			{
+				if (default(TSource) is not null)
+				{
+					throw ErrorNoElements();
+				}
+				return Task.FromResult(default(TSource));
+			}
+
+			/// <inheritdoc />
+			public override Task<TSource?> MaxAsync(IComparer<TSource>? comparer = null)
+			{
+				if (default(TSource) is not null)
+				{
+					throw ErrorNoElements();
+				}
+				return Task.FromResult(default(TSource));
+			}
 
 			/// <inheritdoc />
 			public override IAsyncLinqQuery<TSource> Skip(int count) => this;
@@ -159,7 +207,6 @@ namespace SnowBank.Linq
 			/// <inheritdoc />
 			public override Task<TSource> SingleOrDefaultAsync(Func<TSource, CancellationToken, Task<bool>> predicate, TSource defaultValue) => Task.FromResult(defaultValue);
 
-
 			/// <inheritdoc />
 			public override IAsyncLinqQuery<TSource> Where(Func<TSource, bool> predicate) => this;
 
@@ -173,34 +220,34 @@ namespace SnowBank.Linq
 			public override IAsyncLinqQuery<TSource> Where(Func<TSource, int, CancellationToken, Task<bool>> asyncPredicate) => this;
 
 			/// <inheritdoc />
-			public override IAsyncLinqQuery<TNew> Select<TNew>(Func<TSource, TNew> selector) => EmptyQuery<TNew>.Default;
+			public override IAsyncLinqQuery<TNew> Select<TNew>(Func<TSource, TNew> selector) => EmptyIterator<TNew>.Default;
 
 			/// <inheritdoc />
-			public override IAsyncLinqQuery<TNew> Select<TNew>(Func<TSource, int, TNew> selector) => EmptyQuery<TNew>.Default;
+			public override IAsyncLinqQuery<TNew> Select<TNew>(Func<TSource, int, TNew> selector) => EmptyIterator<TNew>.Default;
 
 			/// <inheritdoc />
-			public override IAsyncLinqQuery<TNew> Select<TNew>(Func<TSource, CancellationToken, Task<TNew>> asyncSelector) => EmptyQuery<TNew>.Default;
+			public override IAsyncLinqQuery<TNew> Select<TNew>(Func<TSource, CancellationToken, Task<TNew>> asyncSelector) => EmptyIterator<TNew>.Default;
 
 			/// <inheritdoc />
-			public override IAsyncLinqQuery<TNew> Select<TNew>(Func<TSource, int, CancellationToken, Task<TNew>> asyncSelector) => EmptyQuery<TNew>.Default;
+			public override IAsyncLinqQuery<TNew> Select<TNew>(Func<TSource, int, CancellationToken, Task<TNew>> asyncSelector) => EmptyIterator<TNew>.Default;
 
 			/// <inheritdoc />
-			public override IAsyncLinqQuery<TNew> SelectMany<TNew>(Func<TSource, IEnumerable<TNew>> selector) => EmptyQuery<TNew>.Default;
+			public override IAsyncLinqQuery<TNew> SelectMany<TNew>(Func<TSource, IEnumerable<TNew>> selector) => EmptyIterator<TNew>.Default;
 
 			/// <inheritdoc />
-			public override IAsyncLinqQuery<TNew> SelectMany<TNew>(Func<TSource, CancellationToken, Task<IEnumerable<TNew>>> asyncSelector) => EmptyQuery<TNew>.Default;
+			public override IAsyncLinqQuery<TNew> SelectMany<TNew>(Func<TSource, CancellationToken, Task<IEnumerable<TNew>>> asyncSelector) => EmptyIterator<TNew>.Default;
 
 			/// <inheritdoc />
-			public override IAsyncLinqQuery<TNew> SelectMany<TCollection, TNew>(Func<TSource, IEnumerable<TCollection>> collectionSelector, Func<TSource, TCollection, TNew> resultSelector) => EmptyQuery<TNew>.Default;
+			public override IAsyncLinqQuery<TNew> SelectMany<TCollection, TNew>(Func<TSource, IEnumerable<TCollection>> collectionSelector, Func<TSource, TCollection, TNew> resultSelector) => EmptyIterator<TNew>.Default;
 
 			/// <inheritdoc />
-			public override IAsyncLinqQuery<TNew> SelectMany<TCollection, TNew>(Func<TSource, CancellationToken, Task<IEnumerable<TCollection>>> asyncCollectionSelector, Func<TSource, TCollection, TNew> resultSelector) => EmptyQuery<TNew>.Default;
+			public override IAsyncLinqQuery<TNew> SelectMany<TCollection, TNew>(Func<TSource, CancellationToken, Task<IEnumerable<TCollection>>> asyncCollectionSelector, Func<TSource, TCollection, TNew> resultSelector) => EmptyIterator<TNew>.Default;
 
 			/// <inheritdoc />
-			public override IAsyncLinqQuery<TNew> SelectMany<TNew>(Func<TSource, IAsyncEnumerable<TNew>> selector) => EmptyQuery<TNew>.Default;
+			public override IAsyncLinqQuery<TNew> SelectMany<TNew>(Func<TSource, IAsyncEnumerable<TNew>> selector) => EmptyIterator<TNew>.Default;
 
 			/// <inheritdoc />
-			public override IAsyncLinqQuery<TNew> SelectMany<TNew>(Func<TSource, IAsyncQuery<TNew>> selector) => EmptyQuery<TNew>.Default;
+			public override IAsyncLinqQuery<TNew> SelectMany<TNew>(Func<TSource, IAsyncQuery<TNew>> selector) => EmptyIterator<TNew>.Default;
 
 		}
 

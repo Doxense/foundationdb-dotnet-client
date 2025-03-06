@@ -30,8 +30,6 @@ namespace SnowBank.Linq
 	public static partial class AsyncQuery
 	{
 
-		#region LastOrDefaultAsync...
-
 		/// <summary>Returns the last element of an async sequence, or the default value for the type if it is empty</summary>
 		public static Task<T?> LastOrDefaultAsync<T>(this IAsyncQuery<T> source) => LastOrDefaultAsync(source, default(T?));
 
@@ -45,26 +43,7 @@ namespace SnowBank.Linq
 				return query.LastOrDefaultAsync(defaultValue);
 			}
 
-			return Impl(source, defaultValue);
-
-			static async Task<T> Impl(IAsyncQuery<T> source, T defaultValue)
-			{
-				await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
-
-				if (!await iterator.MoveNextAsync().ConfigureAwait(false))
-				{
-					return defaultValue;
-				}
-
-				T result;
-				do
-				{
-					result = iterator.Current;
-				}
-				while (await iterator.MoveNextAsync().ConfigureAwait(false));
-
-				return result;
-			}
+			return AsyncIterators.LastOrDefaultAsync<T>(source, defaultValue);
 		}
 
 		/// <summary>Returns the last element of an async sequence, or the default value for the type if it is empty</summary>
@@ -80,23 +59,7 @@ namespace SnowBank.Linq
 				return query.LastOrDefaultAsync(predicate, defaultValue);
 			}
 
-			return Impl(source, predicate, defaultValue);
-
-			static async Task<T> Impl(IAsyncQuery<T> source, Func<T, bool> predicate, T defaultValue)
-			{
-				await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
-
-				T result = defaultValue;
-				while (await iterator.MoveNextAsync().ConfigureAwait(false))
-				{
-					var item = iterator.Current;
-					if (predicate(item))
-					{
-						result = iterator.Current;
-					}
-				}
-				return result;
-			}
+			return AsyncIterators.LastOrDefaultAsync<T>(source, predicate, defaultValue);
 		}
 
 		/// <summary>Returns the last element of an async sequence, or the default value for the type if it is empty</summary>
@@ -112,27 +75,65 @@ namespace SnowBank.Linq
 				return query.LastOrDefaultAsync(predicate, defaultValue);
 			}
 
-			return Impl(source, predicate, defaultValue);
-
-			static async Task<T> Impl(IAsyncQuery<T> source, Func<T, CancellationToken, Task<bool>> predicate, T defaultValue)
-			{
-				await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
-
-				T result = defaultValue;
-				var ct = source.Cancellation;
-				while (await iterator.MoveNextAsync().ConfigureAwait(false))
-				{
-					var item = iterator.Current;
-					if (await predicate(item, ct).ConfigureAwait(false))
-					{
-						result = iterator.Current;
-					}
-				}
-				return result;
-			}
+			return AsyncIterators.LastOrDefaultAsync<T>(source, predicate, defaultValue);
 		}
 
-		#endregion
+	}
+
+	public static partial class AsyncIterators
+	{
+
+		public static async Task<T> LastOrDefaultAsync<T>(IAsyncQuery<T> source, T defaultValue)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			if (!await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				return defaultValue;
+			}
+
+			T result;
+			do
+			{
+				result = iterator.Current;
+			}
+			while (await iterator.MoveNextAsync().ConfigureAwait(false));
+
+			return result;
+		}
+
+		public static async Task<T> LastOrDefaultAsync<T>(IAsyncQuery<T> source, Func<T, bool> predicate, T defaultValue)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			T result = defaultValue;
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				var item = iterator.Current;
+				if (predicate(item))
+				{
+					result = iterator.Current;
+				}
+			}
+			return result;
+		}
+
+		public static async Task<T> LastOrDefaultAsync<T>(IAsyncQuery<T> source, Func<T, CancellationToken, Task<bool>> predicate, T defaultValue)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			T result = defaultValue;
+			var ct = source.Cancellation;
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				var item = iterator.Current;
+				if (await predicate(item, ct).ConfigureAwait(false))
+				{
+					result = iterator.Current;
+				}
+			}
+			return result;
+		}
 
 	}
 

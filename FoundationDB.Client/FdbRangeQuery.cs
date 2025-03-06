@@ -370,6 +370,8 @@ namespace FoundationDB.Client
 		/// <remarks>This method has to read all the keys and values, which may exceed the lifetime of a transaction. Please consider using <see cref="Fdb.System.EstimateCountAsync(FoundationDB.Client.IFdbDatabase,FoundationDB.Client.KeyRange,System.Threading.CancellationToken)"/> when reading potentially large ranges.</remarks>
 		public async Task<int> CountAsync()
 		{
+			//TODO: OPTIMIZE: there are ways to count the keys in a range without reading their values!
+
 			await using var iterator = GetPagedAsyncIterator(AsyncIterationHint.All);
 
 			int count = 0;
@@ -840,51 +842,32 @@ namespace FoundationDB.Client
 			}
 		}
 		
-		#region MinAsync...
+		#region MinAsync/MaxAsync...
 
 		/// <inheritdoc />
-		async Task<TResult?> IAsyncLinqQuery<TResult>.MinAsync(IComparer<TResult>? comparer)
+		public Task<TResult?> MinAsync(IComparer<TResult>? comparer)
 		{
-#if NET10_0_OR_GREATER
-			return await ToAsyncEnumerable(AsyncIterationHint.All).MinAsync(comparer, this.Cancellation).ConfigureAwait(false);
-#else
-			throw new NotSupportedException();
-#endif
+			return AsyncIterators.MaxAsync(this, comparer);
 		}
 
 		/// <inheritdoc />
-		async Task<TResult?> IAsyncLinqQuery<TResult>.MaxAsync(IComparer<TResult>? comparer)
+		public Task<TResult?> MaxAsync(IComparer<TResult>? comparer)
 		{
-#if NET10_0_OR_GREATER
-			return await ToAsyncEnumerable(AsyncIterationHint.All).MaxAsync(comparer, this.Cancellation).ConfigureAwait(false);
-#else
-			throw new NotSupportedException();
-#endif
+			return AsyncIterators.MaxAsync(this, comparer);
 		}
 
-		async Task<TResult> IAsyncLinqQuery<TResult>.SumAsync()
+		#endregion
+
+		#region CountAsync...
+
+		/// <inheritdoc />
+		public Task<TResult> SumAsync()
 		{
-#if NET10_0_OR_GREATER
-			if (default(TResult) is not null)
-			{
-				if (typeof(TResult) == typeof(int)) return (TResult) (object) await ((IAsyncEnumerable<int>) ToAsyncEnumerable(AsyncIterationHint.All)).SumAsync(this.Cancellation).ConfigureAwait(false);
-				if (typeof(TResult) == typeof(long)) return (TResult) (object) await ((IAsyncEnumerable<long>) ToAsyncEnumerable(AsyncIterationHint.All)).SumAsync(this.Cancellation).ConfigureAwait(false);
-				if (typeof(TResult) == typeof(float)) return (TResult) (object) await ((IAsyncEnumerable<float>) ToAsyncEnumerable(AsyncIterationHint.All)).SumAsync(this.Cancellation).ConfigureAwait(false);
-				if (typeof(TResult) == typeof(double)) return (TResult) (object) await ((IAsyncEnumerable<double>) ToAsyncEnumerable(AsyncIterationHint.All)).SumAsync(this.Cancellation).ConfigureAwait(false);
-				if (typeof(TResult) == typeof(decimal)) return (TResult) (object) await ((IAsyncEnumerable<decimal>) ToAsyncEnumerable(AsyncIterationHint.All)).SumAsync(this.Cancellation).ConfigureAwait(false);
-			}
-			else
-			{
-				if (typeof(TResult) == typeof(int?)) return (TResult) (object) await ((IAsyncEnumerable<int?>) ToAsyncEnumerable(AsyncIterationHint.All)).SumAsync(this.Cancellation).ConfigureAwait(false)!;
-				if (typeof(TResult) == typeof(long?)) return (TResult) (object) await ((IAsyncEnumerable<long?>) ToAsyncEnumerable(AsyncIterationHint.All)).SumAsync(this.Cancellation).ConfigureAwait(false)!;
-				if (typeof(TResult) == typeof(float?)) return (TResult) (object) await ((IAsyncEnumerable<float?>) ToAsyncEnumerable(AsyncIterationHint.All)).SumAsync(this.Cancellation).ConfigureAwait(false)!;
-				if (typeof(TResult) == typeof(double?)) return (TResult) (object) await ((IAsyncEnumerable<double?>) ToAsyncEnumerable(AsyncIterationHint.All)).SumAsync(this.Cancellation).ConfigureAwait(false)!;
-				if (typeof(TResult) == typeof(decimal?)) return (TResult) (object) await ((IAsyncEnumerable<decimal?>) ToAsyncEnumerable(AsyncIterationHint.All)).SumAsync(this.Cancellation).ConfigureAwait(false)!;
-			}
-			throw new NotSupportedException();
-#else
-			throw new NotSupportedException();
-#endif
+			// checks for the most common mistakes when called on a range with binary keys and/or values.
+			if (typeof(TResult) == typeof(KeyValuePair<Slice, Slice>)) throw new InvalidOperationException("Cannot compute the sum of key/value pairs. Please use Select(...) on the query to extract values that can be summed.");
+			if (typeof(TResult) == typeof(Slice)) throw new InvalidOperationException("Cannot compute the sum of raw keys or values. Please use Select(...) on the query to extract values that can be summed.");
+
+			return AsyncIterators.SumUnconstrainedAsync(this);
 		}
 
 		#endregion

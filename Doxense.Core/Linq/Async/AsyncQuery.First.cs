@@ -30,8 +30,6 @@ namespace SnowBank.Linq
 	public static partial class AsyncQuery
 	{
 
-		#region First...
-
 		/// <summary>Returns the first element of an async sequence, or an exception if it is empty</summary>
 		public static Task<T> FirstAsync<T>(this IAsyncQuery<T> source)
 		{
@@ -42,19 +40,7 @@ namespace SnowBank.Linq
 				return query.FirstAsync();
 			}
 
-			return Impl(source);
-
-			static async Task<T> Impl(IAsyncQuery<T> source)
-			{
-				await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Head);
-
-				if (await iterator.MoveNextAsync().ConfigureAwait(false))
-				{
-					return iterator.Current;
-				}
-
-				throw ErrorNoElements();
-			}
+			return AsyncIterators.FirstAsync<T>(source);
 		}
 
 		/// <summary>Returns the first element of an async sequence, or an exception if it is empty</summary>
@@ -68,22 +54,7 @@ namespace SnowBank.Linq
 				return query.FirstAsync(predicate);
 			}
 
-			return Impl(source, predicate);
-
-			static async Task<T> Impl(IAsyncQuery<T> source, Func<T, bool> predicate)
-			{
-				await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Iterator);
-
-				while(await iterator.MoveNextAsync().ConfigureAwait(false))
-				{
-					if (predicate(iterator.Current))
-					{
-						return iterator.Current;
-					}
-				}
-
-				throw ErrorNoElements();
-			}
+			return AsyncIterators.FirstAsync<T>(source, predicate);
 		}
 
 		/// <summary>Returns the first element of an async sequence, or an exception if it is empty</summary>
@@ -97,27 +68,55 @@ namespace SnowBank.Linq
 				return query.FirstAsync(predicate);
 			}
 
-			return Impl(source, predicate);
+			return AsyncIterators.FirstAsync<T>(source, predicate);
+		}
+	}
 
-			static async Task<T> Impl(IAsyncQuery<T> source, Func<T, CancellationToken, Task<bool>> predicate)
+	public static partial class AsyncIterators
+	{
+
+		public static async Task<T> FirstAsync<T>(IAsyncQuery<T> source)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Head);
+
+			if (await iterator.MoveNextAsync().ConfigureAwait(false))
 			{
-				await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Iterator);
-
-				var ct = source.Cancellation;
-				while(await iterator.MoveNextAsync().ConfigureAwait(false))
-				{
-					if (await predicate(iterator.Current, ct).ConfigureAwait(false))
-					{
-						return iterator.Current;
-					}
-				}
-
-				throw ErrorNoElements();
+				return iterator.Current;
 			}
+
+			throw AsyncQuery.ErrorNoElements();
 		}
 
-		#endregion
+		public static async Task<T> FirstAsync<T>(IAsyncQuery<T> source, Func<T, bool> predicate)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Iterator);
 
+			while(await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				if (predicate(iterator.Current))
+				{
+					return iterator.Current;
+				}
+			}
+
+			throw AsyncQuery.ErrorNoElements();
+		}
+
+		public static async Task<T> FirstAsync<T>(IAsyncQuery<T> source, Func<T, CancellationToken, Task<bool>> predicate)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Iterator);
+
+			var ct = source.Cancellation;
+			while(await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				if (await predicate(iterator.Current, ct).ConfigureAwait(false))
+				{
+					return iterator.Current;
+				}
+			}
+
+			throw AsyncQuery.ErrorNoElements();
+		}
 	}
 
 }

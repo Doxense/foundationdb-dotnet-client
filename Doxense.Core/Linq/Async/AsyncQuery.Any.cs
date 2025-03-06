@@ -41,13 +41,7 @@ namespace SnowBank.Linq
 				return query.AnyAsync();
 			}
 
-			return Impl(source);
-
-			static async Task<bool> Impl(IAsyncQuery<T> source)
-			{
-				await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Head);
-				return await iterator.MoveNextAsync().ConfigureAwait(false);
-			}
+			return AsyncIterators.AnyAsync<T>(source);
 		}
 
 		/// <summary>Determines whether any element of an async sequence satisfies a condition.</summary>
@@ -61,19 +55,7 @@ namespace SnowBank.Linq
 				return query.AnyAsync(predicate);
 			}
 
-			return Impl(source, predicate);
-
-			static async Task<bool> Impl(IAsyncQuery<T> source, Func<T, bool> predicate)
-			{
-				await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Iterator);
-
-				while (await iterator.MoveNextAsync().ConfigureAwait(false))
-				{
-					if (predicate(iterator.Current)) return true;
-				}
-
-				return false;
-			}
+			return AsyncIterators.AnyAsync<T>(source, predicate);
 		}
 
 		/// <summary>Determines whether any element of an async sequence satisfies a condition.</summary>
@@ -87,22 +69,43 @@ namespace SnowBank.Linq
 				return query.AnyAsync(predicate);
 			}
 
-			return Impl(source, predicate);
-
-			static async Task<bool> Impl(IAsyncQuery<T> source, Func<T, CancellationToken, Task<bool>> predicate)
-			{
-				await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Iterator);
-
-				var ct = source.Cancellation;
-				while (await iterator.MoveNextAsync().ConfigureAwait(false))
-				{
-					if (await predicate(iterator.Current, ct).ConfigureAwait(false)) return true;
-				}
-
-				return false;
-			}
+			return AsyncIterators.AnyAsync<T>(source, predicate);
 		}
-
 	}
 
+	public static partial class AsyncIterators
+	{
+
+		public static async Task<bool> AnyAsync<T>(IAsyncQuery<T> source)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Head);
+
+			return await iterator.MoveNextAsync().ConfigureAwait(false);
+		}
+
+		public static async Task<bool> AnyAsync<T>(IAsyncQuery<T> source, Func<T, bool> predicate)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Iterator);
+
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				if (predicate(iterator.Current)) return true;
+			}
+
+			return false;
+		}
+
+		public static async Task<bool> AnyAsync<T>(IAsyncQuery<T> source, Func<T, CancellationToken, Task<bool>> predicate)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Iterator);
+
+			var ct = source.Cancellation;
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				if (await predicate(iterator.Current, ct).ConfigureAwait(false)) return true;
+			}
+
+			return false;
+		}
+	}
 }

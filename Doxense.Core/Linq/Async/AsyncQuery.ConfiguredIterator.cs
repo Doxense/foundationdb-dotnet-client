@@ -41,17 +41,17 @@ namespace SnowBank.Linq
 		/// </para>
 		/// </remarks>
 		public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(this IAsyncQuery<T> source, AsyncIterationHint hint = AsyncIterationHint.Default)
-			=> source is IAsyncLinqQuery<T> query ? query.ToAsyncEnumerable() : new ConfiguredEnumerable<T>(source, hint);
+			=> source is IAsyncLinqQuery<T> query ? query.ToAsyncEnumerable() : new ConfiguredIterator<T>(source, hint);
 
 		/// <summary>Exposes an async query as a regular <see cref="IAsyncEnumerable{T}"/>, with en explicit <see cref="AsyncIterationHint"/></summary>
-		internal sealed class ConfiguredEnumerable<T> : IAsyncEnumerable<T>
+		internal sealed class ConfiguredIterator<T> : IAsyncEnumerable<T>
 		{
 
 			private IAsyncQuery<T> Source { get; }
 
 			private AsyncIterationHint Hint { get; }
 
-			public ConfiguredEnumerable(IAsyncQuery<T> source, AsyncIterationHint hint)
+			public ConfiguredIterator(IAsyncQuery<T> source, AsyncIterationHint hint)
 			{
 				this.Source = source;
 				this.Hint = hint;

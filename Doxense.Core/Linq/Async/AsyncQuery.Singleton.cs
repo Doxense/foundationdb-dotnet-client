@@ -26,50 +26,97 @@
 
 namespace SnowBank.Linq
 {
-	using SnowBank.Linq.Async.Iterators;
+	using Async.Iterators;
 
 	public static partial class AsyncQuery
 	{
 
+		/// <summary>Returns an async sequence with a single element, which is a constant</summary>
+		[Pure]
+		public static IAsyncLinqQuery<T> Singleton<T>(T value, CancellationToken ct = default)
+		{
+			return new SingletonIterator<T>(() => value, ct);
+		}
+
+		/// <summary>Returns an async sequence which will produce a single element, using the specified lambda</summary>
+		/// <param name="selector">Lambda that will be called once per iteration, to produce the single element of this sequence</param>
+		/// <remarks>If the sequence is iterated multiple times, then <paramref name="selector"/> will be called once for each iteration.</remarks>
+		[Pure, LinqTunnel]
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(1)]
+#endif
+		public static IAsyncLinqQuery<T> Singleton<T>(Func<T> selector, CancellationToken ct = default)
+		{
+			Contract.NotNull(selector);
+			return new SingletonIterator<T>(selector, ct);
+		}
+
+		/// <summary>Returns an async sequence which will produce a single element, using the specified lambda</summary>
+		/// <param name="selector">Lambda that will be called once per iteration, to produce the single element of this sequence</param>
+		/// <remarks>If the sequence is iterated multiple times, then <paramref name="selector"/> will be called once for each iteration.</remarks>
+		[Pure, LinqTunnel]
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(1)]
+#endif
+		public static IAsyncLinqQuery<T> Singleton<T>(Func<CancellationToken, Task<T>> selector, CancellationToken ct = default)
+		{
+			Contract.NotNull(selector);
+			return new SingletonIterator<T>(selector, ct);
+		}
+
+		/// <summary>Returns an async sequence which will produce a single element, using the specified lambda</summary>
+		/// <param name="selector">Lambda that will be called once per iteration, to produce the single element of this sequence</param>
+		/// <remarks>If the sequence is iterated multiple times, then <paramref name="selector"/> will be called once for each iteration.</remarks>
+		[Pure, LinqTunnel]
+#if NET9_0_OR_GREATER
+		[OverloadResolutionPriority(2)]
+#endif
+		public static IAsyncLinqQuery<T> Singleton<T>(Func<Task<T>> selector, CancellationToken ct = default)
+		{
+			Contract.NotNull(selector);
+			return new SingletonIterator<T>(selector, ct);
+		}
+
+
 		/// <summary>A query that will return only a single element</summary>
-		internal sealed class SingletonQuery<TElement> : AsyncLinqIterator<TElement>
+		internal sealed class SingletonIterator<TElement> : AsyncLinqIterator<TElement>
 		{
 
 			private Delegate? Factory { get; }
 
 			private bool Called { get; set; }
 
-			private SingletonQuery(Delegate lambda, CancellationToken ct)
+			private SingletonIterator(Delegate lambda, CancellationToken ct)
 			{
 				Contract.Debug.Requires(lambda != null);
 				this.Factory = lambda;
 				this.Cancellation = ct;
 			}
 
-			public SingletonQuery(Func<TElement> lambda, CancellationToken ct)
+			public SingletonIterator(Func<TElement> lambda, CancellationToken ct)
 				: this((Delegate) lambda, ct)
 			{ }
 
-			public SingletonQuery(Func<Task<TElement>> lambda, CancellationToken ct)
+			public SingletonIterator(Func<Task<TElement>> lambda, CancellationToken ct)
 				: this((Delegate) lambda, ct)
 			{ }
 
-			public SingletonQuery(Func<ValueTask<TElement>> lambda, CancellationToken ct)
+			public SingletonIterator(Func<ValueTask<TElement>> lambda, CancellationToken ct)
 				: this((Delegate) lambda, ct)
 			{ }
 
-			public SingletonQuery(Func<CancellationToken, Task<TElement>> lambda, CancellationToken ct)
+			public SingletonIterator(Func<CancellationToken, Task<TElement>> lambda, CancellationToken ct)
 				: this((Delegate) lambda, ct)
 			{ }
 
-			public SingletonQuery(Func<CancellationToken, ValueTask<TElement>> lambda, CancellationToken ct)
+			public SingletonIterator(Func<CancellationToken, ValueTask<TElement>> lambda, CancellationToken ct)
 				: this((Delegate) lambda, ct)
 			{ }
 
 			public override CancellationToken Cancellation { get; }
 
 			/// <inheritdoc />
-			protected override SingletonQuery<TElement> Clone() => new(this.Factory!, this.Cancellation);
+			protected override SingletonIterator<TElement> Clone() => new(this.Factory!, this.Cancellation);
 
 			/// <inheritdoc />
 			protected override ValueTask<bool> OnFirstAsync()

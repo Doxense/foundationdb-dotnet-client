@@ -27,6 +27,9 @@
 namespace SnowBank.Linq
 {
 	using System.Numerics;
+	using System.Reflection;
+
+	using Doxense.Serialization;
 
 	public static partial class AsyncQuery
 	{
@@ -42,26 +45,13 @@ namespace SnowBank.Linq
 				return query.SumAsync();
 			}
 
-			if (typeof(T) == typeof(int)) return (Task<T>) (object) SumAsyncInt32Impl((IAsyncQuery<int>) source);
-			if (typeof(T) == typeof(long)) return (Task<T>) (object) SumAsyncInt64Impl((IAsyncQuery<long>) source);
-			if (typeof(T) == typeof(float)) return (Task<T>) (object) SumAsyncFloatImpl((IAsyncQuery<float>) source);
-			if (typeof(T) == typeof(double)) return (Task<T>) (object) SumAsyncDoubleImpl((IAsyncQuery<double>) source);
-			if (typeof(T) == typeof(decimal)) return (Task<T>) (object) SumAsyncDecimalImpl((IAsyncQuery<decimal>) source);
+			if (typeof(T) == typeof(int)) return (Task<T>) (object) AsyncIterators.SumInt32Async((IAsyncQuery<int>) source);
+			if (typeof(T) == typeof(long)) return (Task<T>) (object) AsyncIterators.SumInt64Async((IAsyncQuery<long>) source);
+			if (typeof(T) == typeof(float)) return (Task<T>) (object) AsyncIterators.SumFloatAsync((IAsyncQuery<float>) source);
+			if (typeof(T) == typeof(double)) return (Task<T>) (object) AsyncIterators.SumDoubleAsync((IAsyncQuery<double>) source);
+			if (typeof(T) == typeof(decimal)) return (Task<T>) (object) AsyncIterators.SumDecimalAsync((IAsyncQuery<decimal>) source);
 
-			return SumAsyncImpl(source);
-		}
-
-		internal static async Task<T> SumAsyncImpl<T>(IAsyncQuery<T> source) where T : INumberBase<T>
-		{
-			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
-
-			T sum = T.Zero;
-			while (await iterator.MoveNextAsync().ConfigureAwait(false))
-			{
-				sum = checked(sum + iterator.Current);
-			}
-
-			return sum;
+			return AsyncIterators.SumAsync(source);
 		}
 
 		/// <summary>Returns the sum of all elements in the specified async sequence that satisfy a condition.</summary>
@@ -75,16 +65,241 @@ namespace SnowBank.Linq
 				return query.SumAsync();
 			}
 
-			if (typeof(T) == typeof(int)) return (Task<T?>) (object) SumAsyncInt32Impl((IAsyncQuery<int?>) source);
-			if (typeof(T) == typeof(long)) return (Task<T?>) (object) SumAsyncInt64Impl((IAsyncQuery<long?>) source);
-			if (typeof(T) == typeof(float)) return (Task<T?>) (object) SumAsyncFloatImpl((IAsyncQuery<float?>) source);
-			if (typeof(T) == typeof(double)) return (Task<T?>) (object) SumAsyncDoubleImpl((IAsyncQuery<double?>) source);
-			if (typeof(T) == typeof(decimal)) return (Task<T?>) (object) SumAsyncDecimalImpl((IAsyncQuery<decimal?>) source);
+			if (typeof(T) == typeof(int)) return (Task<T?>) (object) AsyncIterators.SumInt32Async((IAsyncQuery<int?>) source);
+			if (typeof(T) == typeof(long)) return (Task<T?>) (object) AsyncIterators.SumInt64Async((IAsyncQuery<long?>) source);
+			if (typeof(T) == typeof(float)) return (Task<T?>) (object) AsyncIterators.SumFloatAsync((IAsyncQuery<float?>) source);
+			if (typeof(T) == typeof(double)) return (Task<T?>) (object) AsyncIterators.SumDoubleAsync((IAsyncQuery<double?>) source);
+			if (typeof(T) == typeof(decimal)) return (Task<T?>) (object) AsyncIterators.SumDecimalAsync((IAsyncQuery<decimal?>) source);
 
-			return SumAsyncNullableImpl(source);
+			return AsyncIterators.SumNullableAsync(source);
 		}
 
-		internal static async Task<T?> SumAsyncNullableImpl<T>(IAsyncQuery<T?> source) where T : struct, INumberBase<T>
+		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
+		public static Task<int> SumAsync(this IAsyncQuery<int> source)
+		{
+			Contract.NotNull(source);
+
+			if (source is IAsyncLinqQuery<int> query)
+			{
+				return query.SumAsync();
+			}
+
+			return AsyncIterators.SumInt32Async(source);
+		}
+
+		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
+		public static Task<int?> SumAsync(this IAsyncQuery<int?> source)
+		{
+			Contract.NotNull(source);
+
+			if (source is IAsyncLinqQuery<int?> query)
+			{
+				return query.SumAsync();
+			}
+
+			return AsyncIterators.SumInt32Async(source);
+		}
+
+		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
+		public static Task<long> SumAsync(this IAsyncQuery<long> source)
+		{
+			Contract.NotNull(source);
+
+			if (source is IAsyncLinqQuery<long> query)
+			{
+				return query.SumAsync();
+			}
+
+			return AsyncIterators.SumInt64Async(source);
+		}
+
+		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
+		public static Task<long?> SumAsync(this IAsyncQuery<long?> source)
+		{
+			Contract.NotNull(source);
+
+			if (source is IAsyncLinqQuery<long?> query)
+			{
+				return query.SumAsync();
+			}
+
+			return AsyncIterators.SumInt64Async(source);
+		}
+
+		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
+		public static Task<float> SumAsync(this IAsyncQuery<float> source)
+		{
+			Contract.NotNull(source);
+
+			if (source is IAsyncLinqQuery<float> query)
+			{
+				return query.SumAsync();
+			}
+
+			return AsyncIterators.SumFloatAsync(source);
+		}
+
+		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
+		public static Task<float?> SumAsync(this IAsyncQuery<float?> source)
+		{
+			Contract.NotNull(source);
+
+			if (source is IAsyncLinqQuery<float?> query)
+			{
+				return query.SumAsync();
+			}
+
+			return AsyncIterators.SumFloatAsync(source);
+		}
+
+		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
+		public static Task<double> SumAsync(this IAsyncQuery<double> source)
+		{
+			Contract.NotNull(source);
+
+			if (source is IAsyncLinqQuery<double> query)
+			{
+				return query.SumAsync();
+			}
+
+			return AsyncIterators.SumDoubleAsync(source);
+		}
+
+		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
+		public static Task<double?> SumAsync(this IAsyncQuery<double?> source)
+		{
+			Contract.NotNull(source);
+
+			if (source is IAsyncLinqQuery<double?> query)
+			{
+				return query.SumAsync();
+			}
+
+			return AsyncIterators.SumDoubleAsync(source);
+		}
+
+		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
+		public static Task<decimal> SumAsync(this IAsyncQuery<decimal> source)
+		{
+			Contract.NotNull(source);
+
+			if (source is IAsyncLinqQuery<decimal> query)
+			{
+				return query.SumAsync();
+			}
+
+			return AsyncIterators.SumDecimalAsync(source);
+		}
+
+		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
+		public static Task<decimal?> SumAsync(this IAsyncQuery<decimal?> source)
+		{
+			Contract.NotNull(source);
+
+			if (source is IAsyncLinqQuery<decimal?> query)
+			{
+				return query.SumAsync();
+			}
+
+			return AsyncIterators.SumDecimalAsync(source);
+		}
+
+	}
+
+	public static partial class AsyncIterators
+	{
+
+		private static class SumTrampolines<T>
+		{
+
+			private static MethodInfo? s_sumAsyncImplMethod;
+
+			public static MethodInfo GetSumMethod() => s_sumAsyncImplMethod ??= CreateTrampoline();
+
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			private static MethodInfo CreateTrampoline()
+			{
+				var nullable = Nullable.GetUnderlyingType(typeof(T));
+				MethodInfo? m = nullable != null
+					? typeof(AsyncIterators).GetMethod(nameof(SumNullableAsync), BindingFlags.Static | BindingFlags.Public)?.MakeGenericMethod(nullable)
+					: typeof(AsyncIterators).GetMethod(nameof(SumAsync), BindingFlags.Static | BindingFlags.Public)?.MakeGenericMethod(typeof(T));
+
+				return m ?? throw new NotSupportedException("Can only sum elements of type that implement INumberBase<T>.");
+			}
+
+		}
+
+		/// <summary>Version of <see cref="SumAsync{T}"/> that does not have a generic constraint on <typeparamref name="T"/>, and that will perform a runtime dispatch to a compatible method</summary>
+		/// <typeparam name="T">Type of results, that should implement see <see cref="INumberBase{T}"/></typeparam>
+		/// <param name="source">Query to sum</param>
+		/// <returns>Sum of the results in the query, if <typeparamref name="T"/> is supported</returns>
+		/// <exception cref="NotSupportedException">If <typeparamref name="T"/> does not implement <see cref="INumberBase{T}"/></exception>
+		/// <remarks>This method can be used by generic iterators that cannot place a constraint on the types of their element, but still be able to provide summing if the type supports it.</remarks>
+		public static Task<T> SumUnconstrainedAsync<T>(IAsyncLinqQuery<T> source)
+		{
+			if (default(T) is not null)
+			{
+				if (typeof(T) == typeof(int)) return (Task<T>) (object) SumInt32Async((IAsyncQuery<int>) source);
+				if (typeof(T) == typeof(long)) return (Task<T>) (object) SumInt64Async((IAsyncQuery<long>) source);
+				if (typeof(T) == typeof(float)) return (Task<T>) (object) SumFloatAsync((IAsyncQuery<float>) source);
+				if (typeof(T) == typeof(double)) return (Task<T>) (object) SumDoubleAsync((IAsyncQuery<double>) source);
+				if (typeof(T) == typeof(decimal)) return (Task<T>) (object) SumDecimalAsync((IAsyncQuery<decimal>) source);
+			}
+			else
+			{
+				if (typeof(T) == typeof(int?)) return (Task<T>) (object) SumInt32Async((IAsyncQuery<int?>) source);
+				if (typeof(T) == typeof(long?)) return (Task<T>) (object) SumInt64Async((IAsyncQuery<long?>) source);
+				if (typeof(T) == typeof(float?)) return (Task<T>) (object) SumFloatAsync((IAsyncQuery<float?>) source);
+				if (typeof(T) == typeof(double?)) return (Task<T>) (object) SumDoubleAsync((IAsyncQuery<double?>) source);
+				if (typeof(T) == typeof(decimal?)) return (Task<T>) (object) SumDecimalAsync((IAsyncQuery<decimal?>) source);
+			}
+
+			var nullable = Nullable.GetUnderlyingType(typeof(T));
+			if (nullable != null)
+			{
+				if (nullable.IsGenericInstanceOf(typeof(INumberBase<>)))
+				{
+					return (Task<T>) SumTrampolines<T>.GetSumMethod().Invoke(null, [ source ])!;
+				}
+			}
+			else
+			{
+				if (typeof(T).IsGenericInstanceOf(typeof(INumberBase<>)))
+				{
+					return (Task<T>) SumTrampolines<T>.GetSumMethod().Invoke(null, [ source ])!;
+				}
+			}
+
+			throw new NotSupportedException();
+		}
+
+		/// <summary>Sums the results of a query</summary>
+		/// <typeparam name="T">Type of the elements</typeparam>
+		/// <param name="source">Query to sum</param>
+		/// <returns>Sum of all the results, or zero if the query is empty.</returns>
+		public static async Task<T> SumAsync<T>(IAsyncQuery<T> source) where T : INumberBase<T>
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			if (!await iterator.MoveNextAsync().ConfigureAwait(false))
+			{ // empty sequence
+				return T.Zero;
+			}
+
+			T sum = iterator.Current;
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				sum = checked(sum + iterator.Current);
+			}
+
+			return sum;
+		}
+
+		/// <summary>Sums the nullable results of a query</summary>
+		/// <typeparam name="T">Underlying type of the nullable elements</typeparam>
+		/// <param name="source">Query to sum</param>
+		/// <returns>Sum of all the results, or zero if the query is empty.</returns>
+		public static async Task<T?> SumNullableAsync<T>(IAsyncQuery<T?> source) where T : struct, INumberBase<T>
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
 
@@ -101,20 +316,7 @@ namespace SnowBank.Linq
 			return sum;
 		}
 
-		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
-		public static Task<int> SumAsync(this IAsyncQuery<int> source)
-		{
-			Contract.NotNull(source);
-
-			if (source is IAsyncLinqQuery<int> query)
-			{
-				return query.SumAsync();
-			}
-
-			return SumAsyncInt32Impl(source);
-		}
-
-		internal static async Task<int> SumAsyncInt32Impl(IAsyncQuery<int> source)
+		public static async Task<int> SumInt32Async(IAsyncQuery<int> source)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
 
@@ -127,20 +329,7 @@ namespace SnowBank.Linq
 			return sum;
 		}
 
-		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
-		public static Task<int?> SumAsync(this IAsyncQuery<int?> source)
-		{
-			Contract.NotNull(source);
-
-			if (source is IAsyncLinqQuery<int?> query)
-			{
-				return query.SumAsync();
-			}
-
-			return SumAsyncInt32Impl(source);
-		}
-
-		internal static async Task<int?> SumAsyncInt32Impl(IAsyncQuery<int?> source)
+		public static async Task<int?> SumInt32Async(IAsyncQuery<int?> source)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
 
@@ -157,20 +346,7 @@ namespace SnowBank.Linq
 			return sum;
 		}
 
-		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
-		public static Task<long> SumAsync(this IAsyncQuery<long> source)
-		{
-			Contract.NotNull(source);
-
-			if (source is IAsyncLinqQuery<long> query)
-			{
-				return query.SumAsync();
-			}
-
-			return SumAsyncInt64Impl(source);
-		}
-
-		internal static async Task<long> SumAsyncInt64Impl(IAsyncQuery<long> source)
+		public static async Task<long> SumInt64Async(IAsyncQuery<long> source)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
 
@@ -183,20 +359,7 @@ namespace SnowBank.Linq
 			return sum;
 		}
 
-		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
-		public static Task<long?> SumAsync(this IAsyncQuery<long?> source)
-		{
-			Contract.NotNull(source);
-
-			if (source is IAsyncLinqQuery<long?> query)
-			{
-				return query.SumAsync();
-			}
-
-			return SumAsyncInt64Impl(source);
-		}
-
-		internal static async Task<long?> SumAsyncInt64Impl(IAsyncQuery<long?> source)
+		public static async Task<long?> SumInt64Async(IAsyncQuery<long?> source)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
 
@@ -213,20 +376,7 @@ namespace SnowBank.Linq
 			return sum;
 		}
 
-		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
-		public static Task<float> SumAsync(this IAsyncQuery<float> source)
-		{
-			Contract.NotNull(source);
-
-			if (source is IAsyncLinqQuery<float> query)
-			{
-				return query.SumAsync();
-			}
-
-			return SumAsyncFloatImpl(source);
-		}
-
-		internal static async Task<float> SumAsyncFloatImpl(IAsyncQuery<float> source)
+		public static async Task<float> SumFloatAsync(IAsyncQuery<float> source)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
 
@@ -241,20 +391,7 @@ namespace SnowBank.Linq
 			return (float) sum;
 		}
 
-		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
-		public static Task<float?> SumAsync(this IAsyncQuery<float?> source)
-		{
-			Contract.NotNull(source);
-
-			if (source is IAsyncLinqQuery<float?> query)
-			{
-				return query.SumAsync();
-			}
-
-			return SumAsyncFloatImpl(source);
-		}
-
-		internal static async Task<float?> SumAsyncFloatImpl(IAsyncQuery<float?> source)
+		public static async Task<float?> SumFloatAsync(IAsyncQuery<float?> source)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
 
@@ -272,20 +409,7 @@ namespace SnowBank.Linq
 			return (float) sum;
 		}
 
-		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
-		public static Task<double> SumAsync(this IAsyncQuery<double> source)
-		{
-			Contract.NotNull(source);
-
-			if (source is IAsyncLinqQuery<double> query)
-			{
-				return query.SumAsync();
-			}
-
-			return SumAsyncDoubleImpl(source);
-		}
-
-		internal static async Task<double> SumAsyncDoubleImpl(IAsyncQuery<double> source)
+		public static async Task<double> SumDoubleAsync(IAsyncQuery<double> source)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
 
@@ -298,20 +422,7 @@ namespace SnowBank.Linq
 			return sum;
 		}
 
-		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
-		public static Task<double?> SumAsync(this IAsyncQuery<double?> source)
-		{
-			Contract.NotNull(source);
-
-			if (source is IAsyncLinqQuery<double?> query)
-			{
-				return query.SumAsync();
-			}
-
-			return SumAsyncDoubleImpl(source);
-		}
-
-		internal static async Task<double?> SumAsyncDoubleImpl(IAsyncQuery<double?> source)
+		public static async Task<double?> SumDoubleAsync(IAsyncQuery<double?> source)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
 
@@ -328,20 +439,7 @@ namespace SnowBank.Linq
 			return sum;
 		}
 
-		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
-		public static Task<decimal> SumAsync(this IAsyncQuery<decimal> source)
-		{
-			Contract.NotNull(source);
-
-			if (source is IAsyncLinqQuery<decimal> query)
-			{
-				return query.SumAsync();
-			}
-
-			return SumAsyncDecimalImpl(source);
-		}
-
-		internal static async Task<decimal> SumAsyncDecimalImpl(IAsyncQuery<decimal> source)
+		public static async Task<decimal> SumDecimalAsync(IAsyncQuery<decimal> source)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
 
@@ -354,20 +452,7 @@ namespace SnowBank.Linq
 			return sum;
 		}
 
-		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
-		public static Task<decimal?> SumAsync(this IAsyncQuery<decimal?> source)
-		{
-			Contract.NotNull(source);
-
-			if (source is IAsyncLinqQuery<decimal?> query)
-			{
-				return query.SumAsync();
-			}
-
-			return SumAsyncDecimalImpl(source);
-		}
-
-		internal static async Task<decimal?> SumAsyncDecimalImpl(IAsyncQuery<decimal?> source)
+		public static async Task<decimal?> SumDecimalAsync(IAsyncQuery<decimal?> source)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
 
@@ -383,7 +468,5 @@ namespace SnowBank.Linq
 
 			return sum;
 		}
-
 	}
-
 }

@@ -227,54 +227,23 @@ namespace SnowBank.Linq.Async.Iterators
 
 		#region CountAsync...
 
-		public virtual async Task<int> CountAsync()
+		public virtual Task<int> CountAsync()
 		{
-			int count = 0;
-			await using var iterator = GetAsyncEnumerator(AsyncIterationHint.All);
-
-			while(await iterator.MoveNextAsync().ConfigureAwait(false))
-			{
-				checked
-				{
-					count++;
-				}
-			}
-			return count;
+			return AsyncIterators.CountAsync(this);
 		}
 
-		public virtual async Task<int> CountAsync(Func<TResult, bool> predicate)
+		public virtual Task<int> CountAsync(Func<TResult, bool> predicate)
 		{
 			Contract.NotNull(predicate);
 
-			int count = 0;
-			await using var iterator = GetAsyncEnumerator(AsyncIterationHint.All);
-
-			await foreach(var item in this)
-			{
-				if (predicate(item))
-				{
-					checked { count++; }
-				}
-			}
-			return count;
+			return AsyncIterators.CountAsync(this, predicate);
 		}
 
-		public virtual async Task<int> CountAsync(Func<TResult, CancellationToken, Task<bool>> predicate)
+		public virtual Task<int> CountAsync(Func<TResult, CancellationToken, Task<bool>> predicate)
 		{
 			Contract.NotNull(predicate);
 
-			int count = 0;
-			var ct = this.Cancellation;
-			await using var iterator = GetAsyncEnumerator(AsyncIterationHint.All);
-
-			await foreach(var item in this)
-			{
-				if (await predicate(item, ct).ConfigureAwait(false))
-				{
-					checked { count++; }
-				}
-			}
-			return count;
+			return AsyncIterators.CountAsync(this, predicate);
 		}
 
 		#endregion
@@ -282,40 +251,25 @@ namespace SnowBank.Linq.Async.Iterators
 		#region AnyAsync...
 
 		/// <inheritdoc />
-		public virtual async Task<bool> AnyAsync()
+		public virtual Task<bool> AnyAsync()
 		{
-			await using var iterator = this.GetAsyncEnumerator(AsyncIterationHint.All);
-
-			return await iterator.MoveNextAsync().ConfigureAwait(false);
+			return AsyncIterators.AnyAsync(this);
 		}
 
 		/// <inheritdoc />
-		public virtual async Task<bool> AnyAsync(Func<TResult, bool> predicate)
+		public virtual Task<bool> AnyAsync(Func<TResult, bool> predicate)
 		{
 			Contract.NotNull(predicate);
 
-			await using var iterator = this.GetAsyncEnumerator(AsyncIterationHint.Iterator);
-
-			while (await iterator.MoveNextAsync().ConfigureAwait(false))
-			{
-				if (predicate(iterator.Current)) return true;
-			}
-			return false;
+			return AsyncIterators.AnyAsync(this, predicate);
 		}
 
 		/// <inheritdoc />
-		public virtual async Task<bool> AnyAsync(Func<TResult, CancellationToken, Task<bool>> predicate)
+		public virtual Task<bool> AnyAsync(Func<TResult, CancellationToken, Task<bool>> predicate)
 		{
 			Contract.NotNull(predicate);
 
-			await using var iterator = this.GetAsyncEnumerator(AsyncIterationHint.Iterator);
-
-			var ct = this.Cancellation;
-			while (await iterator.MoveNextAsync().ConfigureAwait(false))
-			{
-				if (await predicate(iterator.Current, ct).ConfigureAwait(false)) return true;
-			}
-			return false;
+			return AsyncIterators.AnyAsync(this, predicate);
 		}
 
 		#endregion
@@ -323,32 +277,19 @@ namespace SnowBank.Linq.Async.Iterators
 		#region AllAsync...
 
 		/// <inheritdoc />
-		public virtual async Task<bool> AllAsync(Func<TResult, bool> predicate)
+		public virtual Task<bool> AllAsync(Func<TResult, bool> predicate)
 		{
 			Contract.NotNull(predicate);
 
-			await using var iterator = this.GetAsyncEnumerator(AsyncIterationHint.Iterator);
-
-			while (await iterator.MoveNextAsync().ConfigureAwait(false))
-			{
-				if (!predicate(iterator.Current)) return false;
-			}
-			return true;
+			return AsyncIterators.AllAsync(this, predicate);
 		}
 
 		/// <inheritdoc />
-		public virtual async Task<bool> AllAsync(Func<TResult, CancellationToken, Task<bool>> predicate)
+		public virtual Task<bool> AllAsync(Func<TResult, CancellationToken, Task<bool>> predicate)
 		{
 			Contract.NotNull(predicate);
 
-			await using var iterator = this.GetAsyncEnumerator(AsyncIterationHint.Iterator);
-
-			var ct = this.Cancellation;
-			while (await iterator.MoveNextAsync().ConfigureAwait(false))
-			{
-				if (!(await predicate(iterator.Current, ct).ConfigureAwait(false))) return false;
-			}
-			return true;
+			return AsyncIterators.AllAsync(this, predicate);
 		}
 
 		#endregion
@@ -359,54 +300,31 @@ namespace SnowBank.Linq.Async.Iterators
 		public Task<TResult?> FirstOrDefaultAsync() => FirstOrDefaultAsync(default(TResult)!)!;
 
 		/// <inheritdoc />
-		public virtual async Task<TResult> FirstOrDefaultAsync(TResult defaultValue)
+		public virtual Task<TResult> FirstOrDefaultAsync(TResult defaultValue)
 		{
-			await using var iterator = this.GetAsyncEnumerator(AsyncIterationHint.Head);
-
-			if (await iterator.MoveNextAsync().ConfigureAwait(false))
-			{
-				return iterator.Current;
-			}
-			return defaultValue;
+			return AsyncIterators.FirstOrDefaultAsync(this, defaultValue);
 		}
 
 		/// <inheritdoc />
 		public Task<TResult?> FirstOrDefaultAsync(Func<TResult, bool> predicate) => FirstOrDefaultAsync(predicate, default(TResult)!)!;
 
 		/// <inheritdoc />
-		public virtual async Task<TResult> FirstOrDefaultAsync(Func<TResult, bool> predicate, TResult defaultValue)
+		public virtual Task<TResult> FirstOrDefaultAsync(Func<TResult, bool> predicate, TResult defaultValue)
 		{
-			await using var iterator = this.GetAsyncEnumerator(AsyncIterationHint.Iterator);
+			Contract.NotNull(predicate);
 
-			while(await iterator.MoveNextAsync().ConfigureAwait(false))
-			{
-				var item = iterator.Current;
-				if (predicate(item))
-				{
-					return item;
-				}
-			}
-			return defaultValue;
+			return AsyncIterators.FirstOrDefaultAsync(this, predicate, defaultValue);
 		}
 
 		/// <inheritdoc />
 		public Task<TResult?> FirstOrDefaultAsync(Func<TResult, CancellationToken, Task<bool>> predicate) => FirstOrDefaultAsync(predicate, default(TResult)!)!;
 
 		/// <inheritdoc />
-		public virtual async Task<TResult> FirstOrDefaultAsync(Func<TResult, CancellationToken, Task<bool>> predicate, TResult defaultValue)
+		public virtual Task<TResult> FirstOrDefaultAsync(Func<TResult, CancellationToken, Task<bool>> predicate, TResult defaultValue)
 		{
-			await using var iterator = this.GetAsyncEnumerator(AsyncIterationHint.Iterator);
+			Contract.NotNull(predicate);
 
-			var ct = this.Cancellation;
-			while (await iterator.MoveNextAsync().ConfigureAwait(false))
-			{
-				var item = iterator.Current;
-				if (await predicate(item, ct).ConfigureAwait(false))
-				{
-					return item;
-				}
-			}
-			return defaultValue;
+			return AsyncIterators.FirstOrDefaultAsync(this, predicate, defaultValue);
 		}
 
 		#endregion
@@ -414,50 +332,25 @@ namespace SnowBank.Linq.Async.Iterators
 		#region FirstAsync...
 
 		/// <inheritdoc />
-		public virtual async Task<TResult> FirstAsync()
+		public virtual Task<TResult> FirstAsync()
 		{
-			await using var iterator = this.GetAsyncEnumerator(AsyncIterationHint.Head);
-
-			if (!await iterator.MoveNextAsync().ConfigureAwait(false))
-			{
-				throw AsyncQuery.ErrorNoElements();
-			}
-
-			var item = iterator.Current;
-			return item;
+			return AsyncIterators.FirstAsync(this);
 		}
 
 		/// <inheritdoc />
-		public virtual async Task<TResult> FirstAsync(Func<TResult, bool> predicate)
+		public virtual Task<TResult> FirstAsync(Func<TResult, bool> predicate)
 		{
-			await using var iterator = this.GetAsyncEnumerator(AsyncIterationHint.Iterator);
+			Contract.NotNull(predicate);
 
-			while (await iterator.MoveNextAsync().ConfigureAwait(false))
-			{
-				var item = iterator.Current;
-				if (predicate(item))
-				{
-					return item;
-				}
-			}
-			throw AsyncQuery.ErrorNoMatch();
+			return AsyncIterators.FirstAsync(this, predicate);
 		}
 
 		/// <inheritdoc />
-		public virtual async Task<TResult> FirstAsync(Func<TResult, CancellationToken, Task<bool>> predicate)
+		public virtual Task<TResult> FirstAsync(Func<TResult, CancellationToken, Task<bool>> predicate)
 		{
-			await using var iterator = this.GetAsyncEnumerator(AsyncIterationHint.Iterator);
+			Contract.NotNull(predicate);
 
-			var ct = this.Cancellation;
-			while (await iterator.MoveNextAsync().ConfigureAwait(false))
-			{
-				var item = iterator.Current;
-				if (await predicate(item, ct).ConfigureAwait(false))
-				{
-					return item;
-				}
-			}
-			throw AsyncQuery.ErrorNoMatch();
+			return AsyncIterators.FirstAsync(this, predicate);
 		}
 
 		#endregion
@@ -468,65 +361,31 @@ namespace SnowBank.Linq.Async.Iterators
 		public Task<TResult?> SingleOrDefaultAsync() => SingleOrDefaultAsync(default(TResult)!)!;
 
 		/// <inheritdoc />
-		public virtual async Task<TResult> SingleOrDefaultAsync(TResult defaultValue)
+		public virtual Task<TResult> SingleOrDefaultAsync(TResult defaultValue)
 		{
-			await using var iterator = this.GetAsyncEnumerator(AsyncIterationHint.Head);
-
-			if (await iterator.MoveNextAsync().ConfigureAwait(false))
-			{
-				var item = iterator.Current;
-				if (await iterator.MoveNextAsync().ConfigureAwait(false))
-				{
-					throw AsyncQuery.ErrorMoreThenOneElement();
-				}
-				return item;
-			}
-			return defaultValue;
+			return AsyncIterators.SingleOrDefaultAsync(this, defaultValue);
 		}
 
 		/// <inheritdoc />
 		public Task<TResult?> SingleOrDefaultAsync(Func<TResult, bool> predicate) => SingleOrDefaultAsync(predicate, default(TResult)!)!;
 
 		/// <inheritdoc />
-		public virtual async Task<TResult> SingleOrDefaultAsync(Func<TResult, bool> predicate, TResult defaultValue)
+		public virtual Task<TResult> SingleOrDefaultAsync(Func<TResult, bool> predicate, TResult defaultValue)
 		{
-			await using var iterator = this.GetAsyncEnumerator(AsyncIterationHint.Iterator);
+			Contract.NotNull(predicate);
 
-			TResult result = defaultValue;
-			bool found = false;
-			while(await iterator.MoveNextAsync().ConfigureAwait(false))
-			{
-				var item = iterator.Current;
-				if (predicate(item))
-				{
-					if (found) throw AsyncQuery.ErrorMoreThanOneMatch();
-					result = item;
-				}
-			}
-			return result;
+			return AsyncIterators.SingleOrDefaultAsync(this, predicate, defaultValue);
 		}
 
 		/// <inheritdoc />
 		public Task<TResult?> SingleOrDefaultAsync(Func<TResult, CancellationToken, Task<bool>> predicate) => SingleOrDefaultAsync(predicate, default(TResult)!)!;
 
 		/// <inheritdoc />
-		public virtual async Task<TResult> SingleOrDefaultAsync(Func<TResult, CancellationToken, Task<bool>> predicate, TResult defaultValue)
+		public virtual Task<TResult> SingleOrDefaultAsync(Func<TResult, CancellationToken, Task<bool>> predicate, TResult defaultValue)
 		{
-			await using var iterator = this.GetAsyncEnumerator(AsyncIterationHint.Iterator);
+			Contract.NotNull(predicate);
 
-			TResult result = defaultValue;
-			bool found = false;
-			var ct = this.Cancellation;
-			while (await iterator.MoveNextAsync().ConfigureAwait(false))
-			{
-				var item = iterator.Current;
-				if (await predicate(item, ct).ConfigureAwait(false))
-				{
-					if (found) throw AsyncQuery.ErrorMoreThanOneMatch();
-					result = item;
-				}
-			}
-			return result;
+			return AsyncIterators.SingleOrDefaultAsync(this, predicate, defaultValue);
 		}
 
 		#endregion
@@ -534,84 +393,25 @@ namespace SnowBank.Linq.Async.Iterators
 		#region SingleAsync...
 
 		/// <inheritdoc />
-		public virtual async Task<TResult> SingleAsync()
+		public virtual Task<TResult> SingleAsync()
 		{
-			await using var iterator = this.GetAsyncEnumerator(AsyncIterationHint.Head);
-
-			if (!await iterator.MoveNextAsync().ConfigureAwait(false))
-			{
-				throw AsyncQuery.ErrorNoElements();
-			}
-
-			var item = iterator.Current;
-
-			if (await iterator.MoveNextAsync().ConfigureAwait(false))
-			{
-				throw AsyncQuery.ErrorMoreThenOneElement();
-			}
-
-			return item;
+			return AsyncIterators.SingleAsync(this);
 		}
 
 		/// <inheritdoc />
-		public virtual async Task<TResult> SingleAsync(Func<TResult, bool> predicate)
+		public virtual Task<TResult> SingleAsync(Func<TResult, bool> predicate)
 		{
-			await using var iterator = this.GetAsyncEnumerator(AsyncIterationHint.Iterator);
+			Contract.NotNull(predicate);
 
-			TResult? single = default;
-			bool found = false;
-
-			while (await iterator.MoveNextAsync().ConfigureAwait(false))
-			{
-				var item = iterator.Current;
-				if (predicate(item))
-				{
-					if (found)
-					{
-						throw AsyncQuery.ErrorMoreThanOneMatch();
-					}
-					single = item;
-					found = true;
-				}
-			}
-
-			if (!found)
-			{
-				throw AsyncQuery.ErrorNoMatch();
-			}
-
-			return single!;
+			return AsyncIterators.SingleAsync(this, predicate);
 		}
 
 		/// <inheritdoc />
-		public virtual async Task<TResult> SingleAsync(Func<TResult, CancellationToken, Task<bool>> predicate)
+		public virtual Task<TResult> SingleAsync(Func<TResult, CancellationToken, Task<bool>> predicate)
 		{
-			await using var iterator = this.GetAsyncEnumerator(AsyncIterationHint.Iterator);
+			Contract.NotNull(predicate);
 
-			TResult? single = default;
-			bool found = false;
-
-			var ct = this.Cancellation;
-			while (await iterator.MoveNextAsync().ConfigureAwait(false))
-			{
-				var item = iterator.Current;
-				if (await predicate(item, ct).ConfigureAwait(false))
-				{
-					if (found)
-					{
-						throw AsyncQuery.ErrorMoreThanOneMatch();
-					}
-					single = item;
-					found = true;
-				}
-			}
-
-			if (!found)
-			{
-				throw AsyncQuery.ErrorNoMatch();
-			}
-
-			return single!;
+			return AsyncIterators.SingleAsync(this, predicate);
 		}
 
 		#endregion
@@ -622,60 +422,31 @@ namespace SnowBank.Linq.Async.Iterators
 		public Task<TResult?> LastOrDefaultAsync() => LastOrDefaultAsync(default(TResult)!)!;
 
 		/// <inheritdoc />
-		public virtual async Task<TResult> LastOrDefaultAsync(TResult defaultValue)
+		public virtual Task<TResult> LastOrDefaultAsync(TResult defaultValue)
 		{
-			await using var iterator = this.GetAsyncEnumerator(AsyncIterationHint.Head);
-
-			var result = defaultValue;
-			while(await iterator.MoveNextAsync().ConfigureAwait(false))
-			{
-				result = iterator.Current;
-			}
-
-			return result;
+			return AsyncIterators.LastOrDefaultAsync(this, defaultValue);
 		}
 
 		/// <inheritdoc />
 		public Task<TResult?> LastOrDefaultAsync(Func<TResult, bool> predicate) => LastOrDefaultAsync(predicate, default(TResult)!)!;
 
 		/// <inheritdoc />
-		public virtual async Task<TResult> LastOrDefaultAsync(Func<TResult, bool> predicate, TResult defaultValue)
+		public virtual Task<TResult> LastOrDefaultAsync(Func<TResult, bool> predicate, TResult defaultValue)
 		{
-			await using var iterator = this.GetAsyncEnumerator(AsyncIterationHint.Head);
+			Contract.NotNull(predicate);
 
-			var result = defaultValue;
-			while(await iterator.MoveNextAsync().ConfigureAwait(false))
-			{
-				var item = iterator.Current;
-				if (predicate(item))
-				{
-					result = item;
-				}
-			}
-
-			return result;
+			return AsyncIterators.LastOrDefaultAsync(this, predicate, defaultValue);
 		}
 
 		/// <inheritdoc />
 		public Task<TResult?> LastOrDefaultAsync(Func<TResult, CancellationToken, Task<bool>> predicate) => LastOrDefaultAsync(predicate, default(TResult)!)!;
 
 		/// <inheritdoc />
-		public virtual async Task<TResult> LastOrDefaultAsync(Func<TResult, CancellationToken, Task<bool>> predicate, TResult defaultValue)
+		public virtual Task<TResult> LastOrDefaultAsync(Func<TResult, CancellationToken, Task<bool>> predicate, TResult defaultValue)
 		{
-			await using var iterator = this.GetAsyncEnumerator(AsyncIterationHint.Head);
+			Contract.NotNull(predicate);
 
-			var result = defaultValue;
-			var ct = this.Cancellation;
-			while(await iterator.MoveNextAsync().ConfigureAwait(false))
-			{
-				var item = iterator.Current;
-				if (await predicate(item, ct).ConfigureAwait(false))
-				{
-					result = item;
-				}
-			}
-
-			return result;
+			return AsyncIterators.LastOrDefaultAsync(this, predicate, defaultValue);
 		}
 
 		#endregion
@@ -683,76 +454,25 @@ namespace SnowBank.Linq.Async.Iterators
 		#region LastAsync...
 
 		/// <inheritdoc />
-		public virtual async Task<TResult> LastAsync()
+		public virtual Task<TResult> LastAsync()
 		{
-			await using var iterator = this.GetAsyncEnumerator(AsyncIterationHint.Head);
-
-			if (!await iterator.MoveNextAsync().ConfigureAwait(false))
-			{
-				throw AsyncQuery.ErrorNoElements();
-			}
-
-			TResult item;
-			do
-			{
-				item = iterator.Current;
-			}
-			while (await iterator.MoveNextAsync().ConfigureAwait(false));
-
-			return item;
+			return AsyncIterators.LastAsync(this);
 		}
 
 		/// <inheritdoc />
-		public virtual async Task<TResult> LastAsync(Func<TResult, bool> predicate)
+		public virtual Task<TResult> LastAsync(Func<TResult, bool> predicate)
 		{
-			await using var iterator = this.GetAsyncEnumerator(AsyncIterationHint.Head);
+			Contract.NotNull(predicate);
 
-			if (!await iterator.MoveNextAsync().ConfigureAwait(false))
-			{
-				throw AsyncQuery.ErrorNoElements();
-			}
-
-			TResult result = default!;
-			bool found = false;
-			do
-			{
-				var item = iterator.Current;
-				if (predicate(item))
-				{
-					found = true;
-					result = item;
-				}
-			}
-			while (await iterator.MoveNextAsync().ConfigureAwait(false));
-
-			return found ? result : throw AsyncQuery.ErrorNoMatch();
+			return AsyncIterators.LastAsync(this, predicate);
 		}
 
 		/// <inheritdoc />
-		public virtual async Task<TResult> LastAsync(Func<TResult, CancellationToken, Task<bool>> predicate)
+		public virtual Task<TResult> LastAsync(Func<TResult, CancellationToken, Task<bool>> predicate)
 		{
-			await using var iterator = this.GetAsyncEnumerator(AsyncIterationHint.Head);
+			Contract.NotNull(predicate);
 
-			if (!await iterator.MoveNextAsync().ConfigureAwait(false))
-			{
-				throw AsyncQuery.ErrorNoElements();
-			}
-
-			TResult result = default!;
-			bool found = false;
-			var ct = this.Cancellation;
-			do
-			{
-				var item = iterator.Current;
-				if (await predicate(item, ct).ConfigureAwait(false))
-				{
-					found = true;
-					result = item;
-				}
-			}
-			while (await iterator.MoveNextAsync().ConfigureAwait(false));
-
-			return found ? result : throw AsyncQuery.ErrorNoMatch();
+			return AsyncIterators.LastAsync(this, predicate);
 		}
 
 		#endregion
@@ -762,70 +482,23 @@ namespace SnowBank.Linq.Async.Iterators
 		/// <inheritdoc />
 		public virtual Task<TResult?> MinAsync(IComparer<TResult>? comparer = null)
 		{
-			return AsyncQuery.MinAsyncImpl<TResult>(this, comparer ?? Comparer<TResult>.Default);
+			return AsyncIterators.MinAsync<TResult>(this, comparer ?? Comparer<TResult>.Default);
 		}
 
 		/// <inheritdoc />
 		public virtual Task<TResult?> MaxAsync(IComparer<TResult>? comparer = null)
 		{
-			return AsyncQuery.MaxAsyncImpl<TResult>(this, comparer ?? Comparer<TResult>.Default);
+			return AsyncIterators.MaxAsync<TResult>(this, comparer ?? Comparer<TResult>.Default);
 		}
 
 		#endregion
 
 		#region SumAsync...
 
-#if NET8_0_OR_GREATER
-		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
 		public virtual Task<TResult> SumAsync()
 		{
-			if (default(TResult) is not null)
-			{
-				if (typeof(TResult) == typeof(int)) return (Task<TResult>) (object) AsyncQuery.SumAsyncInt32Impl((IAsyncQuery<int>) this);
-				if (typeof(TResult) == typeof(long)) return (Task<TResult>) (object) AsyncQuery.SumAsyncInt64Impl((IAsyncQuery<long>) this);
-				if (typeof(TResult) == typeof(float)) return (Task<TResult>) (object) AsyncQuery.SumAsyncFloatImpl((IAsyncQuery<float>) this);
-				if (typeof(TResult) == typeof(double)) return (Task<TResult>) (object) AsyncQuery.SumAsyncDoubleImpl((IAsyncQuery<double>) this);
-				if (typeof(TResult) == typeof(decimal)) return (Task<TResult>) (object) AsyncQuery.SumAsyncDecimalImpl((IAsyncQuery<decimal>) this);
-			}
-			else
-			{
-				if (typeof(TResult) == typeof(int?)) return (Task<TResult>) (object) AsyncQuery.SumAsyncInt32Impl((IAsyncQuery<int?>) this);
-				if (typeof(TResult) == typeof(long?)) return (Task<TResult>) (object) AsyncQuery.SumAsyncInt64Impl((IAsyncQuery<long?>) this);
-				if (typeof(TResult) == typeof(float?)) return (Task<TResult>) (object) AsyncQuery.SumAsyncFloatImpl((IAsyncQuery<float?>) this);
-				if (typeof(TResult) == typeof(double?)) return (Task<TResult>) (object) AsyncQuery.SumAsyncDoubleImpl((IAsyncQuery<double?>) this);
-				if (typeof(TResult) == typeof(decimal?)) return (Task<TResult>) (object) AsyncQuery.SumAsyncDecimalImpl((IAsyncQuery<decimal?>) this);
-			}
-
-			var nullable = Nullable.GetUnderlyingType(typeof(TResult));
-			if (nullable != null)
-			{
-				if (nullable.IsGenericInstanceOf(typeof(INumberBase<>)))
-				{
-					var m = s_sumAsyncNullableImplMethod ??= (typeof(AsyncQuery).GetMethod(nameof(AsyncQuery.SumAsyncNullableImpl), BindingFlags.Static | BindingFlags.NonPublic)?.MakeGenericMethod(nullable));
-					if (m != null)
-					{
-						return (Task<TResult>) m.Invoke(this, [ this ])!;
-					}
-				}
-			}
-			else
-			{
-				if (typeof(TResult).IsGenericInstanceOf(typeof(INumberBase<>)))
-				{
-					var m = s_sumAsyncImplMethod ??= (typeof(AsyncQuery).GetMethod(nameof(AsyncQuery.SumAsyncImpl), BindingFlags.Static | BindingFlags.NonPublic)?.MakeGenericMethod(typeof(TResult)));
-					if (m != null)
-					{
-						return (Task<TResult>) m.Invoke(this, [ this ])!;
-					}
-				}
-			}
-
-			throw new NotSupportedException();
+			return AsyncIterators.SumUnconstrainedAsync<TResult>(this);
 		}
-
-		private static MethodInfo? s_sumAsyncImplMethod;
-		private static MethodInfo? s_sumAsyncNullableImplMethod;
 
 		#endregion
 

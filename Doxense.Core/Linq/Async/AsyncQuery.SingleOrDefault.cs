@@ -30,8 +30,6 @@ namespace SnowBank.Linq
 	public static partial class AsyncQuery
 	{
 
-		#region SingleOrDefaultAsync...
-
 		/// <summary>Returns the first and only element of an async sequence, the default value for the type if it is empty, or an exception if it has two or more elements</summary>
 		/// <remarks>Will need to call MoveNext at least twice to ensure that there is no second element.</remarks>
 		public static Task<T?> SingleOrDefaultAsync<T>(this IAsyncQuery<T> source) => SingleOrDefaultAsync(source, default(T?));
@@ -47,7 +45,7 @@ namespace SnowBank.Linq
 				return query.SingleOrDefaultAsync(defaultValue);
 			}
 
-			return Head(source, single: true, orDefault: true, defaultValue);
+			return AsyncIterators.SingleOrDefaultAsync(source, defaultValue);
 		}
 
 		/// <summary>Returns the first and only element of an async sequence, the default value for the type if it is empty, or an exception if it has two or more elements</summary>
@@ -66,7 +64,7 @@ namespace SnowBank.Linq
 				return query.SingleOrDefaultAsync(predicate, defaultValue);
 			}
 
-			return Head(source.Where(predicate), single: true, orDefault: true, defaultValue);
+			return AsyncIterators.SingleOrDefaultAsync(source, predicate, defaultValue);
 		}
 
 		/// <summary>Returns the first and only element of an async sequence, the default value for the type if it is empty, or an exception if it has two or more elements</summary>
@@ -85,11 +83,67 @@ namespace SnowBank.Linq
 				return query.SingleOrDefaultAsync(predicate, defaultValue);
 			}
 
-			return Head(source.Where(predicate), single: true, orDefault: true, defaultValue);
+			return AsyncIterators.SingleOrDefaultAsync(source, predicate, defaultValue);
 		}
 
-		#endregion
+	}
 
+	public static partial class AsyncIterators
+	{
+		public static async Task<T> SingleOrDefaultAsync<T>(IAsyncQuery<T> source, T defaultValue)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Head);
+
+			if (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				var item = iterator.Current;
+				if (await iterator.MoveNextAsync().ConfigureAwait(false))
+				{
+					throw AsyncQuery.ErrorMoreThenOneElement();
+				}
+				return item;
+			}
+			return defaultValue;
+		}
+
+		public static async Task<T> SingleOrDefaultAsync<T>(IAsyncQuery<T> source, [InstantHandle] Func<T, bool> predicate, T defaultValue)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Iterator);
+
+			var result = defaultValue;
+			bool found = false;
+			while(await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				var item = iterator.Current;
+				if (predicate(item))
+				{
+					if (found) throw AsyncQuery.ErrorMoreThanOneMatch();
+					result = item;
+					found = true;
+				}
+			}
+			return result;
+		}
+
+		public static async Task<T> SingleOrDefaultAsync<T>(IAsyncQuery<T> source, [InstantHandle] Func<T, CancellationToken, Task<bool>> predicate, T defaultValue)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Iterator);
+
+			var result = defaultValue;
+			bool found = false;
+			var ct = source.Cancellation;
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				var item = iterator.Current;
+				if (await predicate(item, ct).ConfigureAwait(false))
+				{
+					if (found) throw AsyncQuery.ErrorMoreThanOneMatch();
+					result = item;
+					found = true;
+				}
+			}
+			return result;
+		}
 
 	}
 

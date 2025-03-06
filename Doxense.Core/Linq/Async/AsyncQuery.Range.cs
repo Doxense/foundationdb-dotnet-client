@@ -47,7 +47,7 @@ namespace SnowBank.Linq
 				ThrowHelper.ThrowArgumentOutOfRangeException(nameof(count));
 			}
 
-			return new RangeAsyncQuery<int>(start, 1, count, ct);
+			return new RangeIterator<int>(start, 1, count, ct);
 		}
 
 		/// <summary>Generates a sequence of integral numbers within a specified range.</summary>
@@ -65,14 +65,14 @@ namespace SnowBank.Linq
 			{
 				ThrowHelper.ThrowArgumentOutOfRangeException(nameof(count));
 			}
-			return new RangeAsyncQuery<TNumber>(start, delta, count, ct);
+			return new RangeIterator<TNumber>(start, delta, count, ct);
 		}
 
-		internal sealed class RangeAsyncQuery<TNumber> : AsyncLinqIterator<TNumber>
+		internal sealed class RangeIterator<TNumber> : AsyncLinqIterator<TNumber>
 			where TNumber : INumberBase<TNumber>
 		{
 
-			public RangeAsyncQuery(TNumber start, TNumber delta, int count, CancellationToken ct)
+			public RangeIterator(TNumber start, TNumber delta, int count, CancellationToken ct)
 			{
 				this.Start = start;
 				this.Delta = delta;
@@ -94,7 +94,7 @@ namespace SnowBank.Linq
 			public override CancellationToken Cancellation { get; }
 
 			/// <inheritdoc />
-			protected override RangeAsyncQuery<TNumber> Clone() => new(this.Start, this.Delta, this.Count, this.Cancellation);
+			protected override RangeIterator<TNumber> Clone() => new(this.Start, this.Delta, this.Count, this.Cancellation);
 
 			/// <inheritdoc />
 			protected override ValueTask<bool> OnFirstAsync()

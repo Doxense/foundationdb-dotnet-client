@@ -29,7 +29,6 @@ namespace SnowBank.Linq
 	using System;
 	using System.Buffers;
 	using System.Collections.Immutable;
-	using System.Numerics;
 	using Doxense.Linq;
 	using SnowBank.Linq.Async.Expressions;
 	using SnowBank.Linq.Async.Iterators;
@@ -39,74 +38,6 @@ namespace SnowBank.Linq
 	[PublicAPI]
 	public static partial class AsyncQuery
 	{
-		// Welcome to the wonderful world of the Monads!
-
-		#region Entering the Monad...
-
-		/// <summary>Returns an empty async sequence</summary>
-		[Pure]
-		public static IAsyncLinqQuery<T> Empty<T>()
-		{
-			return EmptyQuery<T>.Default;
-		}
-
-		/// <summary>Returns an async sequence with a single element, which is a constant</summary>
-		[Pure]
-		public static IAsyncLinqQuery<T> Singleton<T>(T value, CancellationToken ct = default)
-		{
-			//note: we can't call this method Single<T>(T), because then Single<T>(Func<T>) would be ambiguous with Single<Func<T>>(T)
-			return new EnumerableAsyncQuery<T>([ value ], ct);
-		}
-
-		/// <summary>Returns an async sequence which will produce a single element, using the specified lambda</summary>
-		/// <param name="selector">Lambda that will be called once per iteration, to produce the single element of this sequence</param>
-		/// <remarks>If the sequence is iterated multiple times, then <paramref name="selector"/> will be called once for each iteration.</remarks>
-		[Pure, LinqTunnel]
-		public static IAsyncLinqQuery<T> Single<T>(Func<T> selector, CancellationToken ct = default)
-		{
-			Contract.NotNull(selector);
-			return new SingletonQuery<T>(selector, ct);
-		}
-
-		/// <summary>Returns an async sequence which will produce a single element, using the specified lambda</summary>
-		/// <param name="selector">Lambda that will be called once per iteration, to produce the single element of this sequence</param>
-		/// <remarks>If the sequence is iterated multiple times, then <paramref name="selector"/> will be called once for each iteration.</remarks>
-		[Pure, LinqTunnel]
-		public static IAsyncLinqQuery<T> Single<T>(Func<CancellationToken, Task<T>> selector, CancellationToken ct = default)
-		{
-			Contract.NotNull(selector);
-			return new SingletonQuery<T>(selector, ct);
-		}
-
-		/// <summary>Returns an async sequence which will produce a single element, using the specified lambda</summary>
-		/// <param name="selector">Lambda that will be called once per iteration, to produce the single element of this sequence</param>
-		/// <remarks>If the sequence is iterated multiple times, then <paramref name="selector"/> will be called once for each iteration.</remarks>
-		[Pure, LinqTunnel]
-		public static IAsyncLinqQuery<T> Single<T>(Func<Task<T>> selector, CancellationToken ct = default)
-		{
-			Contract.NotNull(selector);
-			return new SingletonQuery<T>(selector, ct);
-		}
-
-		/// <summary>Apply an async lambda to a sequence of elements to transform it into an async sequence</summary>
-		[Pure, LinqTunnel]
-		public static IAsyncLinqQuery<T> ToAsyncQuery<T>(this IEnumerable<T> source, CancellationToken ct)
-		{
-			Contract.NotNull(source);
-
-			return new EnumerableAsyncQuery<T>(source, ct);
-		}
-
-		/// <summary>Wraps an async lambda into an async sequence that will return the result of the lambda</summary>
-		[Pure, LinqTunnel]
-		public static IAsyncLinqQuery<T> FromTask<T>(Func<CancellationToken, Task<T>> asyncLambda, CancellationToken ct)
-		{
-			//TODO: create a custom iterator for this ?
-			return ToAsyncQuery([ asyncLambda ], ct).Select((x, cancel) => x(cancel));
-		}
-
-		#endregion
-
 		#region Staying in the Monad...
 
 		#region SelectMany...

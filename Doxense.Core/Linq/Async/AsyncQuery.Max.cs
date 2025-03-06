@@ -34,39 +34,146 @@ namespace SnowBank.Linq
 		public static Task<T?> MaxAsync<T>(this IAsyncQuery<T> source, IComparer<T>? comparer = null)
 		{
 			Contract.NotNull(source);
-			comparer ??= Comparer<T>.Default;
 
 			if (source is IAsyncLinqQuery<T> query)
 			{
 				return query.MaxAsync(comparer);
 			}
 
-			return MaxAsyncImpl(source, comparer);
+			return AsyncIterators.MaxAsync(source, comparer);
 		}
 
-		internal static async Task<T?> MaxAsyncImpl<T>(IAsyncQuery<T> source, IComparer<T> comparer)
+	}
+
+	public static partial class AsyncIterators
+	{
+
+		public static async Task<int> MaxAsync(IAsyncQuery<int> source)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
 
-			if (default(T) is null)
+			// get the first
+			if (!await iterator.MoveNextAsync().ConfigureAwait(false))
 			{
-				var max = default(T);
-				while (await iterator.MoveNextAsync().ConfigureAwait(false))
-				{
-					var candidate = iterator.Current;
-					if (candidate is not null && (max is null || comparer.Compare(candidate, candidate) > 0))
-					{
-						max = candidate;
-					}
-				}
-				return max;
+				throw AsyncQuery.ErrorNoElements();
 			}
-			else
+			var min = iterator.Current;
+
+			// compare with the rest
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
 			{
-				// get the first
+				min = Math.Max(iterator.Current, min);
+			}
+
+			return min;
+		}
+
+		public static async Task<long> MaxAsync(IAsyncQuery<long> source)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			// get the first
+			if (!await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				throw AsyncQuery.ErrorNoElements();
+			}
+			var min = iterator.Current;
+
+			// compare with the rest
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				min = Math.Max(iterator.Current, min);
+			}
+
+			return min;
+		}
+
+		public static async Task<float> MaxAsync(IAsyncQuery<float> source)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			// get the first
+			if (!await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				throw AsyncQuery.ErrorNoElements();
+			}
+			var min = iterator.Current;
+
+			// compare with the rest
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				min = Math.Max(iterator.Current, min);
+			}
+
+			return min;
+		}
+
+		public static async Task<double> MaxAsync(IAsyncQuery<double> source)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			// get the first
+			if (!await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				throw AsyncQuery.ErrorNoElements();
+			}
+			var min = iterator.Current;
+
+			// compare with the rest
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				min = Math.Max(iterator.Current, min);
+			}
+
+			return min;
+		}
+
+		public static async Task<decimal> MaxAsync(IAsyncQuery<decimal> source)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			// get the first
+			if (!await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				throw AsyncQuery.ErrorNoElements();
+			}
+			var min = iterator.Current;
+
+			// compare with the rest
+			while (await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				min = Math.Max(iterator.Current, min);
+			}
+
+			return min;
+		}
+
+
+		public static Task<T?> MaxAsync<T>(IAsyncQuery<T> source, IComparer<T>? comparer)
+		{
+			comparer ??= Comparer<T>.Default;
+
+			if (default(T) is not null)
+			{
+				if (typeof(T) == typeof(int) && ReferenceEquals(comparer, Comparer<int>.Default)) return (Task<T?>) (object) MaxAsync((IAsyncQuery<int>) source);
+				if (typeof(T) == typeof(long) && ReferenceEquals(comparer, Comparer<long>.Default)) return (Task<T?>) (object) MaxAsync((IAsyncQuery<long>) source);
+				if (typeof(T) == typeof(float) && ReferenceEquals(comparer, Comparer<float>.Default)) return (Task<T?>) (object) MaxAsync((IAsyncQuery<float>) source);
+				if (typeof(T) == typeof(double) && ReferenceEquals(comparer, Comparer<double>.Default)) return (Task<T?>) (object) MaxAsync((IAsyncQuery<double>) source);
+				if (typeof(T) == typeof(decimal) && ReferenceEquals(comparer, Comparer<decimal>.Default)) return (Task<T?>) (object) MaxAsync((IAsyncQuery<decimal>) source);
+
+				return MaxAsyncStruct(source, comparer);
+			}
+
+			return MaxAsyncRef(source, comparer);
+
+			static async Task<T?> MaxAsyncStruct(IAsyncQuery<T> source, IComparer<T> comparer)
+			{
+				await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+				// we will throw if the query is empty
 				if (!await iterator.MoveNextAsync().ConfigureAwait(false))
 				{
-					throw ErrorNoElements();
+					throw AsyncQuery.ErrorNoElements();
 				}
 				var max = iterator.Current;
 
@@ -82,8 +189,24 @@ namespace SnowBank.Linq
 
 				return max;
 			}
-		}
 
+			static async Task<T?> MaxAsyncRef(IAsyncQuery<T> source, IComparer<T> comparer)
+			{
+				await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
+
+				// we will return null if the query is empty, or only contains null
+				var max = default(T);
+				while (await iterator.MoveNextAsync().ConfigureAwait(false))
+				{
+					var candidate = iterator.Current;
+					if (candidate is not null && (max is null || comparer.Compare(candidate, max) > 0))
+					{
+						max = candidate;
+					}
+				}
+				return max;
+			}
+		}
 	}
 
 }

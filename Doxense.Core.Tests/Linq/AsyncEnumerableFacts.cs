@@ -148,10 +148,9 @@ namespace SnowBank.Linq.Async.Tests
 		[Test]
 		public async Task Test_Empty()
 		{
-			var empty = AsyncQuery.Empty<int>();
-			Assert.That(empty, Is.Not.Null);
+			Assert.That(AsyncQuery.Empty<int>(), Is.Not.Null);
 
-			await using (var it = empty.GetAsyncEnumerator())
+			await using (var it = AsyncQuery.Empty<int>().GetAsyncEnumerator())
 			{
 				// accessing "Current" should always fail
 				Assert.That(() => it.Current, Throws.InvalidOperationException);
@@ -164,13 +163,33 @@ namespace SnowBank.Linq.Async.Tests
 				Assert.That(() => it.Current, Throws.InvalidOperationException);
 			}
 
-			Assert.That(await empty.ToListAsync(), Is.Empty);
+			Assert.That(await AsyncQuery.Empty<int>().ToArrayAsync(), Is.Empty);
+			Assert.That(await AsyncQuery.Empty<int>().ToListAsync(), Is.Empty);
+			Assert.That(await AsyncQuery.Empty<int>().ToImmutableArrayAsync(), Is.Empty);
+			Assert.That(await AsyncQuery.Empty<int>().ToDictionaryAsync(x => x), Is.Empty);
+			Assert.That(await AsyncQuery.Empty<int>().ToDictionaryAsync(x => x, x => x), Is.Empty);
+			Assert.That(await AsyncQuery.Empty<int>().AnyAsync(), Is.False);
+			Assert.That(await AsyncQuery.Empty<int>().AllAsync(x => x == 42), Is.True);
+			Assert.That(await AsyncQuery.Empty<int>().CountAsync(), Is.Zero);
+			Assert.That(await AsyncQuery.Empty<int>().SumAsync(), Is.Zero);
+			Assert.That(await AsyncQuery.Empty<int>().SingleOrDefaultAsync(), Is.Zero);
+			Assert.That(await AsyncQuery.Empty<int>().SingleOrDefaultAsync(-1), Is.EqualTo(-1));
+			Assert.That(await AsyncQuery.Empty<int>().FirstOrDefaultAsync(), Is.Zero);
+			Assert.That(await AsyncQuery.Empty<int>().FirstOrDefaultAsync(-1), Is.EqualTo(-1));
+			Assert.That(await AsyncQuery.Empty<int>().LastOrDefaultAsync(), Is.Zero);
+			Assert.That(await AsyncQuery.Empty<int>().LastOrDefaultAsync(-1), Is.EqualTo(-1));
+			Assert.That(async () => await AsyncQuery.Empty<int>().SingleAsync(), Throws.InvalidOperationException);
+			Assert.That(async () => await AsyncQuery.Empty<int>().FirstAsync(), Throws.InvalidOperationException);
+			Assert.That(async () => await AsyncQuery.Empty<int>().LastAsync(), Throws.InvalidOperationException);
+			Assert.That(async () => await AsyncQuery.Empty<int>().MinAsync(), Throws.InvalidOperationException);
+			Assert.That(async () => await AsyncQuery.Empty<int>().MaxAsync(), Throws.InvalidOperationException);
+			Assert.That(await AsyncQuery.Empty<string>().MinAsync(), Is.Null);
+			Assert.That(await AsyncQuery.Empty<string>().MaxAsync(), Is.Null);
 
-			Assert.That(await empty.AnyAsync(), Is.False);
-
-			Assert.That(await empty.AllAsync(x => x == 42), Is.True);
-
-			Assert.That(await empty.CountAsync(), Is.Zero);
+			Assert.That(await AsyncQuery.Empty<int>().Where(x => throw new InvalidOperationException()).ToListAsync(), Is.Empty);
+			Assert.That(await AsyncQuery.Empty<int>().Select<int, string>(x => throw new InvalidOperationException()).ToListAsync(), Is.Empty);
+			Assert.That(await AsyncQuery.Empty<int>().Skip(123).ToListAsync(), Is.Empty);
+			Assert.That(await AsyncQuery.Empty<int>().Take(123).ToListAsync(), Is.Empty);
 		}
 
 		[Test]
@@ -216,7 +235,7 @@ namespace SnowBank.Linq.Async.Tests
 			{
 				// Func<T>
 
-				var singleton = AsyncQuery.Single(() => 42);
+				var singleton = AsyncQuery.Singleton(() => 42);
 				Assert.That(singleton, Is.Not.Null);
 
 				await using (var iterator = singleton.GetAsyncEnumerator())
@@ -245,7 +264,7 @@ namespace SnowBank.Linq.Async.Tests
 			{
 				// Func<Task<T>>
 
-				var singleton = AsyncQuery.Single(() => Task.Delay(50).ContinueWith(_ => 42));
+				var singleton = AsyncQuery.Singleton(() => Task.Delay(50).ContinueWith(_ => 42));
 				Assert.That(singleton, Is.Not.Null);
 
 				await using (var iterator = singleton.GetAsyncEnumerator())
@@ -274,7 +293,7 @@ namespace SnowBank.Linq.Async.Tests
 			{
 				// Func<CancellationToken, Task<T>>
 
-				var singleton = AsyncQuery.Single((ct) => Task.Delay(50, ct).ContinueWith(_ => 42, ct));
+				var singleton = AsyncQuery.Singleton((ct) => Task.Delay(50, ct).ContinueWith(_ => 42, ct));
 				Assert.That(singleton, Is.Not.Null);
 
 				await using (var iterator = singleton.GetAsyncEnumerator())
@@ -788,13 +807,13 @@ namespace SnowBank.Linq.Async.Tests
 		public async Task Test_Can_Get_Single()
 		{
 			{
-				var source = AsyncQuery.Empty<int>();
+				var source = FakeAsyncLinqIterator<int>([ ]);
 				Assert.That(async () => await source.SingleAsync(), Throws.InstanceOf<InvalidOperationException>());
 				Assert.That(async () => await source.SingleAsync(x => x == 42), Throws.InstanceOf<InvalidOperationException>());
 				Assert.That(async () => await source.SingleAsync((x, _) => Task.FromResult(x == 42)), Throws.InstanceOf<InvalidOperationException>());
 			}
 			{
-				var source = AsyncQuery.Range(42, 1, this.Cancellation);
+				var source = FakeAsyncLinqIterator([ 42 ]);
 				Assert.That(await source.SingleAsync(), Is.EqualTo(42));
 				Assert.That(await source.SingleAsync(x => x == 42), Is.EqualTo(42));
 				Assert.That(async () => await source.SingleAsync(x => x != 42), Throws.InstanceOf<InvalidOperationException>());
@@ -802,7 +821,7 @@ namespace SnowBank.Linq.Async.Tests
 				Assert.That(async () => await source.SingleAsync((x, _) => Task.FromResult(x != 42)), Throws.InstanceOf<InvalidOperationException>());
 			}
 			{
-				var source = AsyncQuery.Range(42, 3, this.Cancellation);
+				var source = FakeAsyncLinqIterator([ 42, 43, 44 ]);
 				Assert.That(async () => await source.SingleAsync(), Throws.InstanceOf<InvalidOperationException>());
 				Assert.That(await source.SingleAsync(x => x % 2 == 1), Is.EqualTo(43));
 				Assert.That(async () => await source.SingleAsync(x => x % 2 == 0), Throws.InstanceOf<InvalidOperationException>());
@@ -814,16 +833,33 @@ namespace SnowBank.Linq.Async.Tests
 		[Test]
 		public async Task Test_Can_Get_SingleOrDefault()
 		{
-			var source = AsyncQuery.Range(42, 1, this.Cancellation);
-			int first = await source.SingleOrDefaultAsync();
-			Assert.That(first, Is.EqualTo(42));
-
-			source = AsyncQuery.Empty<int>();
-			first = await source.SingleOrDefaultAsync();
-			Assert.That(first, Is.EqualTo(0));
-
-			source = AsyncQuery.Range(42, 3, this.Cancellation);
-			Assert.That(() => source.SingleOrDefaultAsync().GetAwaiter().GetResult(), Throws.InstanceOf<InvalidOperationException>());
+			{
+				var source = FakeAsyncLinqIterator<int>([ ]);
+				Assert.That(async () => await source.SingleOrDefaultAsync(), Is.EqualTo(0));
+				Assert.That(async () => await source.SingleOrDefaultAsync(-1), Is.EqualTo(-1));
+				Assert.That(async () => await source.SingleOrDefaultAsync(x => x == 42), Is.EqualTo(0));
+				Assert.That(async () => await source.SingleOrDefaultAsync(x => x == 42, -1), Is.EqualTo(-1));
+				Assert.That(async () => await source.SingleOrDefaultAsync((x, _) => Task.FromResult(x == 42)), Is.EqualTo(0));
+				Assert.That(async () => await source.SingleOrDefaultAsync((x, _) => Task.FromResult(x == 42), -1), Is.EqualTo(-1));
+			}
+			{
+				var source = FakeAsyncLinqIterator([ 42 ]);
+				Assert.That(await source.SingleOrDefaultAsync(), Is.EqualTo(42));
+				Assert.That(await source.SingleOrDefaultAsync(x => x == 42), Is.EqualTo(42));
+				Assert.That(await source.SingleOrDefaultAsync(x => x != 42), Is.EqualTo(0));
+				Assert.That(await source.SingleOrDefaultAsync(x => x != 42, -1), Is.EqualTo(-1));
+				Assert.That(await source.SingleOrDefaultAsync((x, _) => Task.FromResult(x == 42)), Is.EqualTo(42));
+				Assert.That(await source.SingleOrDefaultAsync((x, _) => Task.FromResult(x != 42)), Is.EqualTo(0));
+				Assert.That(await source.SingleOrDefaultAsync((x, _) => Task.FromResult(x != 42), -1), Is.EqualTo(-1));
+			}
+			{
+				var source = FakeAsyncLinqIterator([ 42, 43, 44 ]);
+				Assert.That(async () => await source.SingleOrDefaultAsync(), Throws.InstanceOf<InvalidOperationException>());
+				Assert.That(await source.SingleOrDefaultAsync(x => x % 2 == 1), Is.EqualTo(43));
+				Assert.That(async () => await source.SingleOrDefaultAsync(x => x % 2 == 0), Throws.InstanceOf<InvalidOperationException>());
+				Assert.That(await source.SingleOrDefaultAsync((x, _) => Task.FromResult(x % 2 == 1)), Is.EqualTo(43));
+				Assert.That(async () => await source.SingleOrDefaultAsync((x, _) => Task.FromResult(x % 2 == 0)), Throws.InstanceOf<InvalidOperationException>());
+			}
 		}
 
 		[Test]
@@ -1262,9 +1298,20 @@ namespace SnowBank.Linq.Async.Tests
 		[Test]
 		public async Task Test_Can_Min()
 		{
-			{ // empty should fail
-				var source = AsyncQuery.Empty<int>();
-				Assert.That(() => source.MinAsync().GetAwaiter().GetResult(), Throws.InstanceOf<InvalidOperationException>());
+			{
+				// empty should fail for value types
+				var source = FakeAsyncLinqIterator<int>([]);
+				Assert.That(async () => await source.MinAsync(), Throws.InstanceOf<InvalidOperationException>());
+			}
+			{
+				// empty should return null for ref types
+				var source = FakeAsyncLinqIterator<string>([]);
+				Assert.That(async () => await source.MinAsync(), Is.Null);
+			}
+			{
+				// empty should return null for nullable types
+				var source = FakeAsyncLinqIterator<int?>([]);
+				Assert.That(async () => await source.MinAsync(), Is.Null);
 			}
 			{
 				var rnd = new Random(1234);
@@ -1291,8 +1338,32 @@ namespace SnowBank.Linq.Async.Tests
 				Assert.That(await source.MinAsync(), Is.EqualTo(1));
 			}
 			{
-				var source = FakeAsyncQuery([ 3, 4, 1, 2 ]);
-				Assert.That(await source.MinAsync(), Is.EqualTo(1));
+				var source = FakeAsyncLinqIterator([ 3L, 4L, 1L, 2L ]);
+				Assert.That(await source.MinAsync(), Is.EqualTo(1L));
+			}
+			{
+				var source = FakeAsyncLinqIterator([ 3.0, 4.0, 1.0, 2.0 ]);
+				Assert.That(await source.MinAsync(), Is.EqualTo(1.0));
+			}
+			{
+				var source = FakeAsyncLinqIterator([ 3.0f, 4.0f, 1.0f, 2.0f ]);
+				Assert.That(await source.MinAsync(), Is.EqualTo(1.0f));
+			}
+			{
+				var source = FakeAsyncLinqIterator([ 3.0m, 4.0m, 1.0m, 2.0m ]);
+				Assert.That(await source.MinAsync(), Is.EqualTo(1.0m));
+			}
+			{
+				var source = FakeAsyncLinqIterator([ 3UL, 4UL, 1UL, 2UL ]);
+				Assert.That(await source.MinAsync(), Is.EqualTo(1UL));
+			}
+			{
+				var source = FakeAsyncLinqIterator([ "once", "upon", "a", "time" ]);
+				Assert.That(await source.MinAsync(), Is.EqualTo("a"));
+			}
+			{
+				var source = FakeAsyncLinqIterator([ JsonNumber.Return(3), JsonNumber.Return(4), JsonNumber.Return(1), JsonNumber.Return(2) ]);
+				Assert.That(await source.MinAsync(), Is.EqualTo(JsonNumber.Return(1)));
 			}
 		}
 
@@ -1300,9 +1371,19 @@ namespace SnowBank.Linq.Async.Tests
 		public async Task Test_Can_Max()
 		{
 			{
-				// empty should fail
-				var source = AsyncQuery.Empty<int>();
+				// empty should fail for value types
+				var source = FakeAsyncLinqIterator<int>([]);
 				Assert.That(async () => await source.MaxAsync(), Throws.InstanceOf<InvalidOperationException>());
+			}
+			{
+				// empty should return null for ref types
+				var source = FakeAsyncLinqIterator<string>([]);
+				Assert.That(async () => await source.MaxAsync(), Is.Null);
+			}
+			{
+				// empty should return null for nullable types
+				var source = FakeAsyncLinqIterator<int?>([]);
+				Assert.That(async () => await source.MaxAsync(), Is.Null);
 			}
 			{
 				var rnd = new Random(1234);
@@ -1329,8 +1410,32 @@ namespace SnowBank.Linq.Async.Tests
 				Assert.That(await source.MaxAsync(), Is.EqualTo(4));
 			}
 			{
-				var source = FakeAsyncQuery([ 3, 4, 1, 2 ]);
-				Assert.That(await source.MaxAsync(), Is.EqualTo(4));
+				var source = FakeAsyncLinqIterator([ 3L, 4L, 1L, 2L ]);
+				Assert.That(await source.MaxAsync(), Is.EqualTo(4L));
+			}
+			{
+				var source = FakeAsyncLinqIterator([ 3.0, 4.0, 1.0, 2.0 ]);
+				Assert.That(await source.MaxAsync(), Is.EqualTo(4.0));
+			}
+			{
+				var source = FakeAsyncLinqIterator([ 3.0f, 4.0f, 1.0f, 2.0f ]);
+				Assert.That(await source.MaxAsync(), Is.EqualTo(4.0f));
+			}
+			{
+				var source = FakeAsyncLinqIterator([ 3.0m, 4.0m, 1.0m, 2.0m ]);
+				Assert.That(await source.MaxAsync(), Is.EqualTo(4.0m));
+			}
+			{
+				var source = FakeAsyncLinqIterator([ 3UL, 4UL, 1UL, 2UL ]);
+				Assert.That(await source.MaxAsync(), Is.EqualTo(4UL));
+			}
+			{
+				var source = FakeAsyncLinqIterator([ "once", "upon", "a", "time" ]);
+				Assert.That(await source.MaxAsync(), Is.EqualTo("upon"));
+			}
+			{
+				var source = FakeAsyncLinqIterator([ JsonNumber.Return(3), JsonNumber.Return(4), JsonNumber.Return(1), JsonNumber.Return(2) ]);
+				Assert.That(await source.MaxAsync(), Is.EqualTo(JsonNumber.Return(4)));
 			}
 		}
 
@@ -1480,7 +1585,7 @@ namespace SnowBank.Linq.Async.Tests
 			}
 
 			{ // JsonNumber (generic math)
-				Assert.That(await AsyncQuery.Empty<JsonNumber>().SumAsync(), Is.EqualTo(JsonNumber.Zero));
+				Assert.That(await AsyncQuery.Empty<JsonNumber>().SumAsync(), Is.SameAs(JsonNumber.Zero));
 
 				var items = Enumerable.Range(0, 100).Select(_ => JsonNumber.Return(rnd.Next(0, 1000))).ToArray();
 				long expected = 0;

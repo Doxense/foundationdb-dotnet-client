@@ -30,8 +30,6 @@ namespace SnowBank.Linq
 	public static partial class AsyncQuery
 	{
 
-		#region FirstOrDefaultAsync...
-
 		/// <summary>Returns the first element of an async sequence, or the default value for the type if it is empty</summary>
 		public static Task<T?> FirstOrDefaultAsync<T>(this IAsyncQuery<T> source)
 			=> FirstOrDefaultAsync(source, default(T?));
@@ -46,19 +44,7 @@ namespace SnowBank.Linq
 				return query.FirstOrDefaultAsync(defaultValue);
 			}
 
-			return Impl(source, defaultValue);
-
-			static async Task<T> Impl(IAsyncQuery<T> source, T defaultValue)
-			{
-				await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Head);
-
-				if (await iterator.MoveNextAsync().ConfigureAwait(false))
-				{
-					return iterator.Current;
-				}
-
-				return defaultValue;
-			}
+			return AsyncIterators.FirstOrDefaultAsync<T>(source, defaultValue);
 		}
 
 		/// <summary>Returns the first element of an async sequence, or the default value for the type if it is empty</summary>
@@ -76,22 +62,7 @@ namespace SnowBank.Linq
 				return query.FirstOrDefaultAsync(predicate, defaultValue);
 			}
 
-			return Impl(source, predicate, defaultValue);
-
-			static async Task<T> Impl(IAsyncQuery<T> source, Func<T, bool> predicate, T defaultValue)
-			{
-				await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Iterator);
-
-				while(await iterator.MoveNextAsync().ConfigureAwait(false))
-				{
-					if (predicate(iterator.Current))
-					{
-						return iterator.Current;
-					}
-				}
-
-				return defaultValue;
-			}
+			return AsyncIterators.FirstOrDefaultAsync<T>(source, predicate, defaultValue);
 		}
 
 		/// <summary>Returns the first element of an async sequence, or the default value for the type if it is empty</summary>
@@ -109,27 +80,54 @@ namespace SnowBank.Linq
 				return query.FirstOrDefaultAsync(predicate, defaultValue);
 			}
 
-			return Impl(source, predicate, defaultValue);
+			return AsyncIterators.FirstOrDefaultAsync<T>(source, predicate, defaultValue);
+		}
+	}
 
-			static async Task<T> Impl(IAsyncQuery<T> source, Func<T, CancellationToken, Task<bool>> predicate, T defaultValue)
+	public static partial class AsyncIterators
+	{
+		public static async Task<T> FirstOrDefaultAsync<T>(IAsyncQuery<T> source, T defaultValue)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Head);
+
+			if (await iterator.MoveNextAsync().ConfigureAwait(false))
 			{
-				await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Iterator);
-
-				var ct = source.Cancellation;
-				while(await iterator.MoveNextAsync().ConfigureAwait(false))
-				{
-					if (await predicate(iterator.Current,ct).ConfigureAwait(false))
-					{
-						return iterator.Current;
-					}
-				}
-
-				return defaultValue;
+				return iterator.Current;
 			}
+
+			return defaultValue;
 		}
 
-		#endregion
+		public static async Task<T> FirstOrDefaultAsync<T>(IAsyncQuery<T> source, Func<T, bool> predicate, T defaultValue)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Iterator);
 
+			while(await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				if (predicate(iterator.Current))
+				{
+					return iterator.Current;
+				}
+			}
+
+			return defaultValue;
+		}
+
+		public static async Task<T> FirstOrDefaultAsync<T>(IAsyncQuery<T> source, Func<T, CancellationToken, Task<bool>> predicate, T defaultValue)
+		{
+			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Iterator);
+
+			var ct = source.Cancellation;
+			while(await iterator.MoveNextAsync().ConfigureAwait(false))
+			{
+				if (await predicate(iterator.Current,ct).ConfigureAwait(false))
+				{
+					return iterator.Current;
+				}
+			}
+
+			return defaultValue;
+		}
 	}
 
 }
