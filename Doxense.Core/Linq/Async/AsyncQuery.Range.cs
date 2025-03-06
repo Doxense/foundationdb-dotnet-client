@@ -28,6 +28,7 @@ namespace SnowBank.Linq
 {
 	using System.Collections.Immutable;
 	using System.Numerics;
+	using System.Runtime.InteropServices;
 	using SnowBank.Linq.Async.Iterators;
 
 	public static partial class AsyncQuery
@@ -128,17 +129,104 @@ namespace SnowBank.Linq
 			}
 
 			/// <inheritdoc />
+			public override Task ExecuteAsync(Action<TNumber> handler)
+			{
+				var cursor = this.Start;
+				var delta = this.Delta;
+				var count = this.Count;
+				for(int i = 0; i < count; i++)
+				{
+					handler(cursor);
+					cursor += delta;
+				}
+
+				return Task.CompletedTask;
+			}
+
+			/// <inheritdoc />
+			public override Task ExecuteAsync<TState>(TState state, Action<TState, TNumber> handler)
+			{
+				var cursor = this.Start;
+				var delta = this.Delta;
+				var count = this.Count;
+				for(int i = 0; i < count; i++)
+				{
+					handler(state, cursor);
+					cursor += delta;
+				}
+
+				return Task.CompletedTask;
+			}
+
+			/// <inheritdoc />
+			public override async Task ExecuteAsync(Func<TNumber, CancellationToken, Task> handler)
+			{
+				var cursor = this.Start;
+				var delta = this.Delta;
+				var count = this.Count;
+				var ct = this.Cancellation;
+				for(int i = 0; i < count; i++)
+				{
+					await handler(cursor, ct).ConfigureAwait(false);
+					cursor += delta;
+				}
+			}
+
+			/// <inheritdoc />
+			public override async Task ExecuteAsync<TState>(TState state, Func<TState, TNumber, CancellationToken, Task> handler)
+			{
+				var cursor = this.Start;
+				var delta = this.Delta;
+				var count = this.Count;
+				var ct = this.Cancellation;
+				for(int i = 0; i < count; i++)
+				{
+					await handler(state, cursor, ct).ConfigureAwait(false);
+					checked { cursor += delta; }
+				}
+			}
+
+			/// <inheritdoc />
+			public override Task<TAggregate> ExecuteAsync<TAggregate>(TAggregate seed, Func<TAggregate, TNumber, TAggregate> handler)
+			{
+				var cursor = this.Start;
+				var delta = this.Delta;
+				var count = this.Count;
+				var accumulator = seed;
+				for(int i = 0; i < count; i++)
+				{
+					accumulator = handler(accumulator, cursor);
+					checked { cursor += delta; }
+				}
+
+				return Task.FromResult(accumulator);
+			}
+
+			private static void FillSpan(Span<TNumber> buffer, TNumber start, TNumber delta, int count)
+			{
+				var cursor = start;
+				for(int i = 0; i < count; i++)
+				{
+					buffer[i] = cursor;
+					checked { cursor += delta; }
+				}
+			}
+
+			/// <inheritdoc />
 			public override Task<List<TNumber>> ToListAsync()
 			{
 				int count = this.Count;
-				var res = new List<TNumber>(count);
-				var cursor = this.Start;
-				var delta = this.Delta;
-				for(int i = 0; i < count; i++)
+				if (count == 0) return Task.FromResult<List<TNumber>>([ ]);
+
+				//note: Enumerable.Range<int>.ToList() has an optimized implementation that uses SIMD, so we should probably hot-path it!
+				if (typeof(TNumber) == typeof(int))
 				{
-					res.Add(cursor);
-					cursor += delta;
+					return (Task<List<TNumber>>) (object) Task.FromResult(Enumerable.Range((int) (object) this.Start, count).ToList());
 				}
+
+				var res = new List<TNumber>(count);
+				CollectionsMarshal.SetCount(res, count);
+				FillSpan(CollectionsMarshal.AsSpan(res), this.Start, this.Delta, count);
 				return Task.FromResult(res);
 			}
 
@@ -148,14 +236,15 @@ namespace SnowBank.Linq
 				int count = this.Count;
 				if (count == 0) return Task.FromResult(Array.Empty<TNumber>());
 
-				var res = new TNumber[count];
-				var cursor = this.Start;
-				var delta = this.Delta;
-				for(int i = 0; i < res.Length; i++)
+				//note: Enumerable.Range<int>.ToArray() has an optimized implementation that uses SIMD, so we should probably hot-path it!
+				if (typeof(TNumber) == typeof(int))
 				{
-					res[i] = cursor;
-					cursor += delta;
+					// ReSharper disable once SuspiciousTypeConversion.Global
+					return (Task<TNumber[]>) (object) Task.FromResult(Enumerable.Range((int) (object) this.Start, count).ToArray());
 				}
+
+				var res = new TNumber[count];
+				FillSpan(res, this.Start, this.Delta, count);
 				return Task.FromResult(res);
 			}
 
@@ -171,7 +260,7 @@ namespace SnowBank.Linq
 				for(int i = 0; i < count; i++)
 				{
 					builder.Add(cursor);
-					cursor += delta;
+					checked { cursor += delta; }
 				}
 				return Task.FromResult(builder.ToImmutable());
 			}
@@ -181,6 +270,114 @@ namespace SnowBank.Linq
 
 			/// <inheritdoc />
 			public override Task<bool> AnyAsync() => Task.FromResult(this.Count > 0);
+
+			/// <inheritdoc />
+			public override Task<TNumber> FirstOrDefaultAsync(TNumber defaultValue)
+			{
+				return Task.FromResult(this.Count > 0 ? this.Start : defaultValue);
+			}
+
+			/// <inheritdoc />
+			public override Task<TNumber> FirstAsync()
+			{
+				return this.Count > 0 ? Task.FromResult(this.Start) : Task.FromException<TNumber>(ErrorNoElements());
+			}
+
+			/// <inheritdoc />
+			public override Task<TNumber> LastOrDefaultAsync(TNumber defaultValue)
+			{
+				return Task.FromResult(this.Count > 0 ? this.Start + (this.Delta * TNumber.CreateChecked(this.Count - 1)) : defaultValue);
+			}
+
+			/// <inheritdoc />
+			public override Task<TNumber> LastAsync()
+			{
+				return this.Count > 0 ? Task.FromResult(this.Start + (this.Delta * TNumber.CreateChecked(this.Count - 1))) : Task.FromException<TNumber>(ErrorNoElements());
+			}
+
+
+			/// <inheritdoc />
+			public override Task<TNumber> SingleOrDefaultAsync(TNumber defaultValue) => this.Count switch
+			{
+				0 => Task.FromResult(defaultValue),
+				1 => Task.FromResult(this.Start),
+				_ => Task.FromException<TNumber>(ErrorMoreThenOneElement())
+			};
+
+			/// <inheritdoc />
+			public override Task<TNumber> SingleAsync() => this.Count switch
+			{
+				0 => Task.FromException<TNumber>(ErrorNoElements()),
+				1 => Task.FromResult(this.Start),
+				_ => Task.FromException<TNumber>(ErrorMoreThenOneElement())
+			};
+
+			/// <inheritdoc />
+			public override Task<TNumber?> MinAsync(IComparer<TNumber>? comparer = null)
+			{
+				if (this.Count == 0)
+				{
+					return default(TNumber) is null ? Task.FromResult(default(TNumber)) : Task.FromException<TNumber?>(ErrorNoElements());
+				}
+				return TNumber.IsPositive(this.Delta)
+					? Task.FromResult<TNumber?>(this.Start)
+					: Task.FromResult<TNumber?>(checked(this.Start + this.Delta * TNumber.CreateChecked(this.Count - 1)));
+			}
+
+			/// <inheritdoc />
+			public override Task<TNumber?> MaxAsync(IComparer<TNumber>? comparer = null)
+			{
+				if (this.Count == 0)
+				{
+					return default(TNumber) is null ? Task.FromResult(default(TNumber)) : Task.FromException<TNumber?>(ErrorNoElements());
+				}
+				return TNumber.IsPositive(this.Delta)
+					? Task.FromResult<TNumber?>(checked(this.Start + this.Delta * TNumber.CreateChecked(this.Count - 1)))
+					: Task.FromResult<TNumber?>(this.Start);
+			}
+
+			/// <inheritdoc />
+			public override IAsyncLinqQuery<TNumber> Take(int count)
+			{
+				Contract.Positive(count);
+				if (count == 0) return AsyncQuery.Empty<TNumber>();
+				if (count >= this.Count) return this;
+
+				return new RangeIterator<TNumber>(this.Start, this.Delta, count, this.Cancellation);
+			}
+
+			/// <inheritdoc />
+			public override IAsyncLinqQuery<TNumber> Take(Range range)
+			{
+				if (typeof(TNumber) == typeof(int))
+				{
+					var (offset, length) = range.GetOffsetAndLength(this.Count);
+					if (length <= 0) return AsyncQuery.Empty<TNumber>();
+
+					int start = (int) (object) this.Start;
+					int delta = (int) (object) this.Delta;
+
+					return (RangeIterator<TNumber>) (object) new RangeIterator<int>(start + offset * delta, delta, length, this.Cancellation);
+				}
+
+				return base.Take(range);
+			}
+
+			/// <inheritdoc />
+			public override IAsyncLinqQuery<TNumber> Skip(int count)
+			{
+				Contract.Positive(count);
+				int remaining = checked(this.Count - count);
+
+				if (remaining <= 0)
+				{
+					return AsyncQuery.Empty<TNumber>();
+				}
+
+				var start = checked(this.Start + this.Delta * TNumber.CreateChecked(count));
+
+				return new RangeIterator<TNumber>(start, this.Delta, remaining, this.Cancellation);
+			}
 
 		}
 

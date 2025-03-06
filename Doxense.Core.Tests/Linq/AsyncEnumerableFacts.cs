@@ -32,7 +32,6 @@
 
 namespace SnowBank.Linq.Async.Tests
 {
-	using System.Collections;
 	using System.Collections.Generic;
 	using System.Collections.Immutable;
 	using System.Diagnostics;
@@ -231,6 +230,45 @@ namespace SnowBank.Linq.Async.Tests
 		}
 
 		[Test]
+		public async Task Test_Range()
+		{
+			{
+				Assert.That(await AsyncQuery.Range(0, 0).CountAsync(), Is.Zero);
+				Assert.That(await AsyncQuery.Range(0, 0).AnyAsync(), Is.False);
+				Assert.That(await AsyncQuery.Range(0, 0).ToListAsync(), Is.Empty);
+			}
+			{
+				Assert.That(await AsyncQuery.Range(42, 3).CountAsync(), Is.EqualTo(3));
+				Assert.That(await AsyncQuery.Range(42, 3).CountAsync(x => x % 2 == 1), Is.EqualTo(1));
+				Assert.That(await AsyncQuery.Range(42, 3).CountAsync(x => x % 2 == 42), Is.Zero);
+				Assert.That(await AsyncQuery.Range(42, 3).AnyAsync(), Is.True);
+				Assert.That(await AsyncQuery.Range(42, 3).AnyAsync(x => x % 2 == 1), Is.True);
+				Assert.That(await AsyncQuery.Range(42, 3).AnyAsync(x => x % 2 == 42), Is.False);
+				Assert.That(await AsyncQuery.Range(42, 3).ToArrayAsync(), Is.EqualTo((int[]) [ 42, 43, 44 ]));
+				Assert.That(await AsyncQuery.Range(42, 3).ToListAsync(), Is.EqualTo((List<int>) [ 42, 43, 44 ]));
+				Assert.That(await AsyncQuery.Range(42, 3).ToImmutableArrayAsync(), Is.EqualTo((ImmutableArray<int>) [ 42, 43, 44 ]));
+				Assert.That(await AsyncQuery.Range(42, 3).SumAsync(), Is.EqualTo(129));
+				Assert.That(await AsyncQuery.Range(42, 3).MinAsync(), Is.EqualTo(42));
+				Assert.That(await AsyncQuery.Range(42, 3).MaxAsync(), Is.EqualTo(44));
+				Assert.That(await AsyncQuery.Range(42, 3).FirstAsync(), Is.EqualTo(42));
+				Assert.That(await AsyncQuery.Range(42, 3).FirstOrDefaultAsync(-1), Is.EqualTo(42));
+				Assert.That(await AsyncQuery.Range(42, 3).LastAsync(), Is.EqualTo(44));
+				Assert.That(await AsyncQuery.Range(42, 3).LastOrDefaultAsync(-1), Is.EqualTo(44));
+				Assert.That(async () => await AsyncQuery.Range(42, 3).SingleAsync(), Throws.InvalidOperationException);
+				Assert.That(async () => await AsyncQuery.Range(42, 3).SingleOrDefaultAsync(-1), Throws.InvalidOperationException);
+			}
+			{
+				Assert.That(await AsyncQuery.Range(0, 10).Take(5).ToArrayAsync(), Is.EqualTo((int[]) [ 0, 1, 2, 3, 4 ]));
+				Assert.That(await AsyncQuery.Range(0, 10).Skip(5).ToArrayAsync(), Is.EqualTo((int[]) [ 5, 6, 7, 8, 9 ]));
+				Assert.That(await AsyncQuery.Range(0, 10).Skip(10).ToArrayAsync(), Is.Empty);
+				Assert.That(await AsyncQuery.Range(0, 10).Skip(2).Take(5).ToArrayAsync(), Is.EqualTo((int[]) [ 2, 3, 4, 5, 6 ]));
+				Assert.That(await AsyncQuery.Range(0, 10).Skip(5).Take(2).ToArrayAsync(), Is.EqualTo((int[]) [ 5, 6 ]));
+				Assert.That(await AsyncQuery.Range(0, 10).Take(5).Take(2).ToArrayAsync(), Is.EqualTo((int[]) [ 0, 1 ]));
+				Assert.That(await AsyncQuery.Range(0, 10).Take(3).Skip(5).ToArrayAsync(), Is.Empty);
+			}
+		}
+
+		[Test]
 		public async Task Test_Producer_Single()
 		{
 			{
@@ -332,27 +370,22 @@ namespace SnowBank.Linq.Async.Tests
 				Assert.That(await selected.ToListAsync(), Is.Empty);
 			}
 			{
-				var source = AsyncQuery.Range(0, 10, this.Cancellation);
+				var source = FakeAsyncLinqIterator([ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ]);
 
 				var selected = source.Select(x => x + 1);
 				Assert.That(selected, Is.Not.Null);
 
 				await using (var iterator = selected.GetAsyncEnumerator())
 				{
-					ValueTask<bool> next;
-					// first 10 calls should return an already completed 'true' task, and current value should match
+					// first 10 calls should return 'true', and current value should match
 					for (int i = 0; i < 10; i++)
 					{
-						next = iterator.MoveNextAsync();
-						Assert.That(next.IsCompleted, Is.True);
-						Assert.That(next.Result, Is.True);
+						Assert.That(await iterator.MoveNextAsync(), Is.True);
 						Assert.That(iterator.Current, Is.EqualTo(i + 1));
 					}
 
-					// last call should return an already completed 'false' task
-					next = iterator.MoveNextAsync();
-					Assert.That(next.IsCompleted, Is.True);
-					Assert.That(next.Result, Is.False);
+					// last call should return 'false'
+					Assert.That(await iterator.MoveNextAsync(), Is.False);
 				}
 
 				var list = await selected.ToListAsync();
@@ -385,7 +418,7 @@ namespace SnowBank.Linq.Async.Tests
 		public async Task Test_Can_Select_Async()
 		{
 			{
-				var source = AsyncQuery.Range(0, 10, this.Cancellation);
+				var source = FakeAsyncLinqIterator([ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ]);
 
 				var selected = source.Select(
 					async (x, ct) =>
@@ -425,7 +458,7 @@ namespace SnowBank.Linq.Async.Tests
 		[Test]
 		public async Task Test_Can_Select_Multiple_Times()
 		{
-			var source = AsyncQuery.Range(0, 10, this.Cancellation);
+			var source = FakeAsyncLinqIterator([ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ]);
 
 			var squares = source.Select(x => (long)x * x);
 			Assert.That(squares, Is.Not.Null);
@@ -443,7 +476,7 @@ namespace SnowBank.Linq.Async.Tests
 		[Test]
 		public async Task Test_Can_Select_Async_Multiple_Times()
 		{
-			var source = AsyncQuery.Range(0, 10, this.Cancellation);
+			var source = FakeAsyncLinqIterator([ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ]);
 
 			var squares = source.Select((int x, CancellationToken _) => Task.FromResult((long) x * x));
 			Assert.That(squares, Is.Not.Null);
@@ -461,26 +494,21 @@ namespace SnowBank.Linq.Async.Tests
 		[Test]
 		public async Task Test_Can_Where()
 		{
-			var source = AsyncQuery.Range(0, 10, this.Cancellation);
+			var source = FakeAsyncLinqIterator([ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ]);
 
 			var query = source.Where(x => x % 2 == 1);
 			Assert.That(query, Is.Not.Null);
 
 			await using (var iterator = query.GetAsyncEnumerator())
 			{
-				ValueTask<bool> next;
 				// only half the items match, so only 5 are expected to go out of the enumeration...
 				for (int i = 0; i < 5; i++)
 				{
-					next = iterator.MoveNextAsync();
-					Assert.That(next.IsCompleted, Is.True);
-					Assert.That(next.Result, Is.True);
+					Assert.That(await iterator.MoveNextAsync(), Is.True);
 					Assert.That(iterator.Current, Is.EqualTo(i * 2 + 1));
 				}
 				// last call should return false
-				next = iterator.MoveNextAsync();
-				Assert.That(next.IsCompleted, Is.True);
-				Assert.That(next.Result, Is.False);
+				Assert.That(await iterator.MoveNextAsync(), Is.False);
 			}
 
 			var list = await query.ToListAsync();
@@ -984,7 +1012,7 @@ namespace SnowBank.Linq.Async.Tests
 		{
 			var source = AsyncQuery.Range(42, 10, this.Cancellation);
 
-			Assert.That(() => source.ElementAtAsync(-1).GetAwaiter().GetResult(), Throws.InstanceOf<ArgumentOutOfRangeException>());
+			Assert.That(async () => await source.ElementAtAsync(-1), Throws.InstanceOf<ArgumentOutOfRangeException>());
 
 			int item = await source.ElementAtAsync(0);
 			Assert.That(item, Is.EqualTo(42));
@@ -995,10 +1023,10 @@ namespace SnowBank.Linq.Async.Tests
 			item = await source.ElementAtAsync(9);
 			Assert.That(item, Is.EqualTo(51));
 
-			Assert.That(() => source.ElementAtAsync(10).GetAwaiter().GetResult(), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(async () => await source.ElementAtAsync(10), Throws.InstanceOf<InvalidOperationException>());
 
 			source = AsyncQuery.Empty<int>();
-			Assert.That(() => source.ElementAtAsync(0).GetAwaiter().GetResult(), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(async () => await source.ElementAtAsync(0), Throws.InstanceOf<InvalidOperationException>());
 		}
 
 		[Test]
@@ -1030,8 +1058,9 @@ namespace SnowBank.Linq.Async.Tests
 		[Test]
 		public async Task Test_Can_Distinct()
 		{
-			var items = new[] { 1, 42, 7, 42, 9, 13, 7, 66 };
-			var source = items.ToAsyncQuery(this.Cancellation);
+			int[] items = [ 1, 42, 7, 42, 9, 13, 7, 66 ];
+
+			var source = FakeAsyncLinqIterator(items);
 
 			var results = await source.Distinct().ToListAsync();
 			Assert.That(results, Is.Not.Null.And.EqualTo(items.Distinct().ToList()));
@@ -1045,9 +1074,9 @@ namespace SnowBank.Linq.Async.Tests
 		[Test]
 		public async Task Test_Can_Distinct_With_Comparer()
 		{
-			var items = new [] { "World", "hello", "Hello", "world", "World!", "FileNotFound" };
+			string[] items = [ "World", "hello", "Hello", "world", "World!", "FileNotFound" ];
 
-			var source = items.ToAsyncQuery(this.Cancellation);
+			var source = FakeAsyncLinqIterator(items);
 
 			var results = await source.Distinct(StringComparer.Ordinal).ToListAsync();
 			Assert.That(results, Is.Not.Null.And.EqualTo(items.Distinct(StringComparer.Ordinal).ToList()));
@@ -1056,10 +1085,26 @@ namespace SnowBank.Linq.Async.Tests
 			Assert.That(results, Is.Not.Null.And.EqualTo(items.Distinct(StringComparer.OrdinalIgnoreCase).ToList()));
 		}
 
+		
+		[Test]
+		public async Task Test_Can_Await_ForEach()
+		{
+			var source = FakeAsyncLinqIterator([ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ]);
+
+			var items = new List<int>();
+			await foreach (var x in source)
+			{
+				Assert.That(items.Count, Is.LessThan(10));
+				items.Add(x);
+			};
+
+			Assert.That(items, Is.EqualTo((int[]) [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ]));
+		}
+
 		[Test]
 		public async Task Test_Can_ForEach()
 		{
-			var source = AsyncQuery.Range(0, 10, this.Cancellation);
+			var source = FakeAsyncLinqIterator([ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ]);
 
 			var items = new List<int>();
 
@@ -1069,13 +1114,13 @@ namespace SnowBank.Linq.Async.Tests
 				items.Add(x);
 			});
 
-			Assert.That(items, Is.EqualTo(new[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }));
+			Assert.That(items, Is.EqualTo((int[]) [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ]));
 		}
 
 		[Test]
 		public async Task Test_Can_ForEach_Async()
 		{
-			var source = AsyncQuery.Range(0, 10, this.Cancellation);
+			var source = FakeAsyncLinqIterator([ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ]);
 
 			var items = new List<int>();
 
@@ -1086,7 +1131,7 @@ namespace SnowBank.Linq.Async.Tests
 				items.Add(x);
 			});
 
-			Assert.That(items, Is.EqualTo(new[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }));
+			Assert.That(items, Is.EqualTo((int[]) [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ]));
 		}
 
 		internal sealed class CustomAsyncLinqIterator<T> : AsyncLinqIterator<T>
