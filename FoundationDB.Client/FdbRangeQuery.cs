@@ -877,9 +877,7 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		IAsyncLinqQuery<TResult> IAsyncLinqQuery<TResult>.Take(int count) => Take(count);
 
-		/// <summary>Only return up to a specific number of results</summary>
-		/// <param name="count">Maximum number of results to return</param>
-		/// <returns>A new query object that will only return up to <paramref name="count"/> results when executed</returns>
+		/// <inheritdoc />
 		[Pure]
 		public IFdbRangeQuery<TResult> Take([Positive] int count)
 		{
@@ -895,6 +893,12 @@ namespace FoundationDB.Client
 				this.Options with { Limit = count }
 			);
 		}
+
+		/// <inheritdoc />
+		IAsyncLinqQuery<TResult> IAsyncLinqQuery<TResult>.Take(Range range) => throw new NotImplementedException();
+
+		/// <inheritdoc />
+		IFdbRangeQuery<TResult> IFdbRangeQuery<TResult>.Take(Range range) => throw new NotImplementedException();
 
 		#endregion
 

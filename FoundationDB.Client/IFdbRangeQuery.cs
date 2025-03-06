@@ -92,6 +92,11 @@ namespace FoundationDB.Client
 		[MustUseReturnValue, LinqTunnel]
 		new IFdbRangeQuery<TResult> Take([Positive] int count);
 
+		/// <summary>Returns only results in a specific range</summary>
+		/// <param name="range">Range of the results to return</param>
+		/// <returns>A new query object that will only a range of results when executed</returns>
+		new IFdbRangeQuery<TResult> Take(Range range);
+
 		/// <summary>Skips a specific number of results</summary>
 		/// <param name="count">Number of results to skip</param>
 		/// <returns>A new query object that will ignore the <paramref name="count"/> results when executed</returns>

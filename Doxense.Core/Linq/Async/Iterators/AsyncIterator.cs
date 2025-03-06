@@ -633,19 +633,25 @@ namespace SnowBank.Linq.Async.Iterators
 		/// <inheritdoc />
 		public virtual IAsyncLinqQuery<TResult> Take(int count)
 		{
-			return AsyncQuery.TakeImpl(this, count);
+			return AsyncIterators.Take(this, count);
+		}
+
+		/// <inheritdoc />
+		public virtual IAsyncLinqQuery<TResult> Take(Range range)
+		{
+			return AsyncIterators.Take(this, range);
 		}
 
 		/// <inheritdoc />
 		public virtual IAsyncLinqQuery<TResult> TakeWhile(Func<TResult, bool> condition)
 		{
-			return AsyncQuery.TakeWhileImpl(this, condition);
+			return AsyncIterators.TakeWhile(this, condition);
 		}
 
 		/// <inheritdoc />
 		public virtual IAsyncLinqQuery<TResult> Skip(int count)
 		{
-			return AsyncQuery.SkipImpl(this, count);
+			return AsyncIterators.Skip(this, count);
 		}
 
 		#endregion

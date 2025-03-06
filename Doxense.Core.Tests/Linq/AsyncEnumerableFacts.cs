@@ -496,7 +496,7 @@ namespace SnowBank.Linq.Async.Tests
 			{
 				Assert.That(await AsyncQuery.Empty<int>().Skip(0).ToListAsync(), Is.Empty);
 				Assert.That(await AsyncQuery.Empty<int>().Skip(1).ToListAsync(), Is.Empty);
-				Assert.That(() => AsyncQuery.Empty<int>().Skip(-1), Throws.InstanceOf<ArgumentOutOfRangeException>());
+				Assert.That(() => AsyncQuery.Empty<int>().Skip(-1), Throws.InstanceOf<ArgumentException>());
 			}
 			{
 				var query = FakeAsyncLinqIterator([ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ]);
@@ -514,7 +514,7 @@ namespace SnowBank.Linq.Async.Tests
 				Assert.That(await query.Take(5).Skip(2).ToArrayAsync(), Is.EqualTo((int[]) [ 2, 3, 4 ]));
 				Assert.That(await query.Take(5).Skip(5).ToArrayAsync(), Is.Empty);
 
-				Assert.That(await query.Skip(2).Take(5).Skip(1).ToArrayAsync(), Is.EqualTo((int[]) [ 3, 4 ]));
+				Assert.That(await query.Skip(2).Take(5).Skip(1).ToArrayAsync(), Is.EqualTo((int[]) [ 3, 4, 5, 6 ]));
 				Assert.That(await query.Skip(2).Take(5).Skip(5).ToArrayAsync(), Is.Empty);
 				Assert.That(await query.Skip(2).Take(5).Skip(6).ToArrayAsync(), Is.Empty);
 			}

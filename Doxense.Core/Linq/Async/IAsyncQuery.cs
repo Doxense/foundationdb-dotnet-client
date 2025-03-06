@@ -291,6 +291,8 @@ namespace SnowBank.Linq
 
 		IAsyncLinqQuery<T> Take(int count);
 
+		IAsyncLinqQuery<T> Take(Range range);
+
 		IAsyncLinqQuery<T> TakeWhile(Func<T, bool> condition);
 
 	}

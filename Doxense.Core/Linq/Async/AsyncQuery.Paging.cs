@@ -66,6 +66,20 @@ namespace SnowBank.Linq
 			return AsyncIterators.Take(source, count);
 		}
 
+		/// <summary>Returns a specified number of contiguous elements from the start of an async sequence.</summary>
+		[Pure, LinqTunnel]
+		public static IAsyncLinqQuery<TSource> Take<TSource>(this IAsyncQuery<TSource> source, Range range)
+		{
+			Contract.NotNull(source);
+
+			if (source is IAsyncLinqQuery<TSource> iterator)
+			{
+				return iterator.Take(range);
+			}
+
+			return AsyncIterators.Take(source, range);
+		}
+
 		/// <summary>Returns elements from an async sequence as long as a specified condition is true, and then skips the remaining elements.</summary>
 		[Pure, LinqTunnel]
 		public static IAsyncLinqQuery<TSource> TakeWhile<TSource>(this IAsyncQuery<TSource> source, Func<TSource, bool> condition)
@@ -120,6 +134,29 @@ namespace SnowBank.Linq
 			return new PaginatedAsyncIterator<TResult>(source, null, limit);
 		}
 
+		public static IAsyncLinqQuery<TResult> Take<TResult>(IAsyncQuery<TResult> source, Range range)
+		{
+			var start = range.Start;
+			var end = range.End;
+
+			if (!start.IsFromEnd && !end.IsFromEnd)
+			{
+				if (start.Value >= end.Value)
+				{ // result would be empty
+					return AsyncQuery.Empty<TResult>();
+				}
+				return new PaginatedAsyncIterator<TResult>(source, start.Value > 0 ? start.Value : null, end.Value - start.Value);
+			}
+
+			// we cannot pre-compute the index if they start from the end, because we don't already know the number of results!
+#if NET10_0_OR_GREATER
+			// for now, defer to the .NET 10's implementation, that buffers the results in memory
+			return source.ToAsyncEnumerable().Take(range).ToAsyncQuery(source.Cancellation);
+#else
+			//TODO: do our own implementation for .NET 9 or lower ?
+			throw new NotSupportedException("Support for from-end indexing requires .NET 10 ");
+#endif
+		}
 
 		public static IAsyncLinqQuery<TResult> TakeWhile<TResult>(IAsyncQuery<TResult> source, Func<TResult, bool> condition)
 		{
