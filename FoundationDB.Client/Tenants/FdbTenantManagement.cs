@@ -26,6 +26,7 @@
 
 namespace FoundationDB.Client
 {
+	using System.Buffers.Text;
 	using Doxense.Linq;
 	using Doxense.Serialization.Json;
 
@@ -56,11 +57,11 @@ namespace FoundationDB.Client
 		public static class Tenants
 		{
 
-			/// <summary><c>\xFF\xFF/management/tenant_map/</c></summary>
-			private static readonly Slice TenantMapPrefix = Fdb.System.SpecialKey("/management/tenant_map/");
+			/// <summary><c>\xFF\xFF/management/tenant/map/</c></summary>
+			private static readonly Slice TenantMapPrefix = Fdb.System.SpecialKey("/management/tenant/map/");
 
-			/// <summary><c>\xFF\xFF/management/tenant_map/...</c></summary>
-			private static readonly KeyRange TenantMapRange = KeyRange.Create(TenantMapPrefix, Fdb.System.SpecialKey("/management/tenant_map0"));
+			/// <summary><c>\xFF\xFF/management/tenant/map/...</c></summary>
+			private static readonly KeyRange TenantMapRange = KeyRange.Create(TenantMapPrefix, Fdb.System.SpecialKey("/management/tenant/map0"));
 
 			/// <summary><c>\xFF/conf/tenant_mode</c></summary>
 			private static readonly Slice TenantModeKey = Fdb.System.ConfigKey("tenant_mode");
@@ -102,28 +103,22 @@ namespace FoundationDB.Client
 			{
 				Contract.Debug.Requires(data.Count > 0);
 
-				// as of version 7.2, this is a JSON document that looks like { "id":xxx, "prefix": "\u0000\u0000\u000...\u0042" }
+				// as of version 7.3, this is a JSON document that looks like { "id":xxx, "prefix": { "base64": "AAA...E=", "printable": "\u0000\u0000\u000...\u0042" } }
 				// The current implementation assign each tenant a new unique sequential integer id, and it's prefix will be this id encoded as 64-bit big-endian.
-				// note: the prefix is encoded as a Unicode String, with one "code point" per byte (???) which is weird (it should probably have been encoded as Base64 ??)
-				//       this means that "\u0001\u0002\u0003\u0004\u0005\u0006\u0007\u0008" represents the prefix '\x01\x02\x03\x04\x05\x06\x07\x08` or <00 01 02 03 04 05 06 07 08>
-
+				
 				var obj = CrystalJson.Parse(data).AsObjectOrDefault();
 				if (obj == null) throw new FormatException("Invalid Tenant Metadata format: required JSON document is missing.");
 
 				var id = obj.Get<int?>("id", null);
 				if (id == null) throw new FormatException("Invalid Tenant Metadata format: required 'id' field is missing.");
 
-				var prefixLiteral = obj.Get<string?>("prefix", null);
-				if (prefixLiteral == null) throw new FormatException("Invalid Tenant Metadata format: required 'prefix' field is missing.");
-
-				// the prefix is encoded _as a string_ in the JSON which is NOT a good idea :(
-				// each character is a unicode value from 0 to FF which corresponds to one byte of the prefix
-				var tmp = new byte[prefixLiteral.Length];
-				for (int i = 0; i < prefixLiteral.Length; i++)
-				{
-					tmp[i] = (byte) prefixLiteral[i];
-				}
-				var prefix = tmp.AsSlice();
+				if (!obj.ContainsKey("prefix")) throw new FormatException("Invalid Tenant Metadata format: required 'prefix' field is missing.");
+				
+				var prefixObj = obj.GetObject("prefix");
+				var prefixBase64 = prefixObj.Get<string?>("base64", null);
+				if (prefixBase64 == null) throw new FormatException("Invalid Tenant Metadata format: required 'prefix.base64' field is missing.");
+				
+				var prefix = Slice.FromBase64(prefixBase64);
 
 				return new FdbTenantMetadata()
 				{
@@ -156,7 +151,7 @@ namespace FoundationDB.Client
 			{
 				Contract.NotNull(tr);
 				return tr
-					// get all keys in the "/management/tenant_map/...." table
+					// get all keys in the "/management/tenant/map/...." table
 					.GetRange(prefix == null ? TenantMapRange : KeyRange.StartsWith(TenantMapPrefix + prefix.Value))
 					// remove the table prefix to get only the name
 					.Select(kv => (Name: kv.Key.Substring(TenantMapPrefix.Count), Data: kv.Value))
