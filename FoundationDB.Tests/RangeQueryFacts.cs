@@ -33,7 +33,8 @@ namespace FoundationDB.Client.Tests
 {
 	using System.Collections.Generic;
 	using System.IO;
-	using Doxense.Linq.Async.Iterators;
+	using SnowBank.Linq;
+	using SnowBank.Linq.Async.Iterators;
 
 	[TestFixture]
 	public class RangeQueryFacts : FdbTest

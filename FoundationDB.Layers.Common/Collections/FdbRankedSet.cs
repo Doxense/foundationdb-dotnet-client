@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -249,7 +249,7 @@ namespace FoundationDB.Layers.Collections
 			{
 				if (level == -1)
 				{
-					return Task.FromResult<long>(beginKey.IsPresent ? 1 : 0);
+					return Task.FromResult(beginKey.IsPresent ? 1L : 0);
 				}
 
 				return trans

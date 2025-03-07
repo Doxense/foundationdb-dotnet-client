@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -26,7 +26,7 @@
 
 namespace FoundationDB.Layers.Collections
 {
-	using Doxense.Linq;
+	using SnowBank.Linq;
 
 	/// <summary>Multimap that tracks the number of times a specific key/value pair has been inserted or removed.</summary>
 	/// <typeparam name="TKey">Type of the keys of the map</typeparam>
@@ -60,7 +60,7 @@ namespace FoundationDB.Layers.Collections
 
 		#region Public Properties...
 
-		/// <summary>Subspace used to encoded the keys for the items</summary>
+		/// <summary>Subspace used to encode the keys for the items</summary>
 		public TypedKeySubspaceLocation<TKey, TValue> Location { get; }
 
 		/// <summary>If true, allow negative or zero values to stay in the map.</summary>
@@ -124,8 +124,8 @@ namespace FoundationDB.Layers.Collections
 			/// <param name="trans"></param>
 			/// <param name="key"></param>
 			/// <param name="value"></param>
-			/// <returns>Value for this value, or null if the index does not contains that particular value</returns>
-			/// <remarks>The count can be zero or negative if AllowNegativeValues is enable.</remarks>
+			/// <returns>Value for this value, or null if the index does not contain that particular value</returns>
+			/// <remarks>The count can be zero or negative if AllowNegativeValues is enabled.</remarks>
 			public async Task<long?> GetCountAsync(IFdbReadOnlyTransaction trans, TKey key, TValue value)
 			{
 				Contract.NotNull(trans);
@@ -133,14 +133,14 @@ namespace FoundationDB.Layers.Collections
 				var v = await trans.GetAsync(this.Subspace[key, value]).ConfigureAwait(false);
 				if (v.IsNullOrEmpty) return null;
 				long c = v.ToInt64();
-				return this.AllowNegativeValues || c > 0 ? c : default(long?);
+				return this.AllowNegativeValues || c > 0 ? c : null;
 			}
 
 			/// <summary>Query that will return the values for a specific key</summary>
 			/// <param name="trans"></param>
 			/// <param name="key"></param>
 			/// <returns></returns>
-			public IAsyncEnumerable<TValue?> Get(IFdbReadOnlyTransaction trans, TKey key)
+			public IAsyncQuery<TValue?> Get(IFdbReadOnlyTransaction trans, TKey key)
 			{
 				Contract.NotNull(trans);
 
@@ -173,7 +173,7 @@ namespace FoundationDB.Layers.Collections
 			/// <param name="trans"></param>
 			/// <param name="key"></param>
 			/// <returns></returns>
-			public IAsyncEnumerable<(TValue? Value, long Count)> GetCounts(IFdbReadOnlyTransaction trans, TKey key)
+			public IAsyncQuery<(TValue? Value, long Count)> GetCounts(IFdbReadOnlyTransaction trans, TKey key)
 			{
 				var range = KeyRange.StartsWith(this.Subspace.EncodePartial(key));
 

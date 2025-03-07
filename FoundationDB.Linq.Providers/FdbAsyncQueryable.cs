@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -31,6 +31,7 @@ namespace FoundationDB.Linq
 #endif
 	using FoundationDB.Layers.Indexing;
 	using FoundationDB.Linq.Providers;
+	using SnowBank.Linq;
 
 	/// <summary>Extensions methods that help create a query expression tree</summary>
 	[PublicAPI]
@@ -142,7 +143,7 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Returns an async sequence that would return the results of this query as they arrive.</summary>
-		public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(this IFdbAsyncSequenceQueryable<T> query)
+		public static IAsyncQuery<T> ToAsyncEnumerable<T>(this IFdbAsyncSequenceQueryable<T> query)
 		{
 			Contract.NotNull(query);
 
@@ -162,7 +163,7 @@ namespace FoundationDB.Linq
 			var expr = FdbQueryExpressions.Single<T, int>(
 				(FdbQuerySequenceExpression<T>) query.Expression!,
 				"CountAsync",
-				(source, _ct) => source.CountAsync(_ct)
+				(source) => source.CountAsync()
 			);
 
 			return query.Provider.CreateQuery<int>(expr).ExecuteSingle(ct);
@@ -177,25 +178,25 @@ namespace FoundationDB.Linq
 			var expr = FdbQueryExpressions.Single<T, T>(
 				(FdbQuerySequenceExpression<T>) query.Expression!,
 				"FirstAsync",
-				(source, _ct) => source.FirstAsync(_ct)
+				(source) => source.FirstAsync()
 			);
 
 			return query.Provider.CreateQuery<T>(expr).ExecuteSingle(ct);
 		}
 
 		/// <summary>Returns the first element of a sequence query</summary>
-		public static Task<T> FirstOrDefaultAsync<T>(this IFdbAsyncSequenceQueryable<T> query, CancellationToken ct = default)
+		public static Task<T?> FirstOrDefaultAsync<T>(this IFdbAsyncSequenceQueryable<T> query, CancellationToken ct = default)
 		{
 			Contract.NotNull(query);
-			if (ct.IsCancellationRequested) return Task.FromCanceled<T>(ct);
+			if (ct.IsCancellationRequested) return Task.FromCanceled<T?>(ct);
 
-			var expr = FdbQueryExpressions.Single<T, T>(
+			var expr = FdbQueryExpressions.Single<T, T?>(
 				(FdbQuerySequenceExpression<T>) query.Expression!,
 				"FirstOrDefaultAsync",
-				(source, _ct) => source.FirstOrDefaultAsync(_ct)
+				(source) => source.FirstOrDefaultAsync()
 			);
 
-			return query.Provider.CreateQuery<T>(expr).ExecuteSingle(ct);
+			return query.Provider.CreateQuery<T?>(expr).ExecuteSingle(ct);
 		}
 
 		/// <summary>Immediately executes a sequence query and return a list of all the results once it has completed.</summary>

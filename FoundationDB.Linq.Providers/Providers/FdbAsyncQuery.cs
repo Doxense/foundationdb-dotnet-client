@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -27,10 +27,10 @@
 namespace FoundationDB.Linq.Providers
 {
 	using System.Runtime.CompilerServices;
+	using SnowBank.Linq;
 
-	/// <summary>Base class for all Async LINQ queries</summary>
+	/// <summary>Base class for all LINQ queries that uses a FoundationDB cluster as the remote source</summary>
 	/// <typeparam name="T">Type of the items returned by this query. Single queries return a single <typeparamref name="T"/> while Sequence queries will return a <see cref="List{T}"/></typeparam>
-	/// <remarks>The type <typeparamref name="T"/> will be int for queries that eint </remarks>
 	public abstract class FdbAsyncQuery<T> : IFdbAsyncQueryable, IFdbAsyncQueryProvider
 	{
 
@@ -121,7 +121,7 @@ namespace FoundationDB.Linq.Providers
 
 		#region Single...
 
-		private Func<IFdbReadOnlyTransaction, CancellationToken, Task<T>> CompileSingle(FdbQueryExpression expression)
+		private Func<IFdbReadOnlyTransaction, Task<T>> CompileSingle(FdbQueryExpression expression)
 		{
 			//TODO: caching !
 
@@ -146,7 +146,7 @@ namespace FoundationDB.Linq.Providers
 					trans = this.Database!.BeginTransaction(ct);
 				}
 
-				T result = await generator(trans, ct).ConfigureAwait(false);
+				T result = await generator(trans).ConfigureAwait(false);
 
 				return result;
 
@@ -162,7 +162,7 @@ namespace FoundationDB.Linq.Providers
 
 		#region Sequence...
 
-		private Func<IFdbReadOnlyTransaction, IAsyncEnumerable<T>> CompileSequence(FdbQueryExpression expression)
+		private Func<IFdbReadOnlyTransaction, IAsyncQuery<T>> CompileSequence(FdbQueryExpression expression)
 		{
 #if false
 			//TODO: caching !
@@ -188,7 +188,7 @@ namespace FoundationDB.Linq.Providers
 			{
 				var source = generator(sequence.Transaction);
 				Contract.Debug.Assert(source != null);
-				return source is IConfigurableAsyncEnumerable<T> configurable ? configurable.GetAsyncEnumerator(sequence.Transaction.Cancellation, mode) : source.GetAsyncEnumerator(sequence.Transaction.Cancellation);
+				return source.GetAsyncEnumerator(mode);
 			}
 
 			//BUGBUG: how do we get a CancellationToken without a transaction?
@@ -202,7 +202,7 @@ namespace FoundationDB.Linq.Providers
 				trans = sequence.Database!.BeginTransaction(ct);
 				var source = generator(trans);
 				Contract.Debug.Assert(source != null);
-				iterator = source is IConfigurableAsyncEnumerable<T> configurable ? configurable.GetAsyncEnumerator(ct, mode) : source.GetAsyncEnumerator(ct);
+				iterator = source.GetAsyncEnumerator(mode);
 
 				return new TransactionIterator(trans, iterator);
 			}
@@ -276,11 +276,11 @@ namespace FoundationDB.Linq.Providers
 
 				if (typeof(T[]).IsAssignableFrom(resultType))
 				{
-					result = await enumerable.ToArrayAsync(ct).ConfigureAwait(false);
+					result = await enumerable.ToArrayAsync().ConfigureAwait(false);
 				}
 				else if (typeof(IEnumerable<T>).IsAssignableFrom(resultType))
 				{
-					result = await enumerable.ToListAsync(ct).ConfigureAwait(false);
+					result = await enumerable.ToListAsync().ConfigureAwait(false);
 				}
 				else
 				{

@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Linq.Async.Iterators
+namespace SnowBank.Linq.Async.Iterators
 {
 
 	/// <summary>Packs items from an inner sequence, into a sequence of fixed-size arrays.</summary>
@@ -47,14 +47,14 @@ namespace Doxense.Linq.Async.Iterators
 		/// <summary>Create a new batching iterator</summary>
 		/// <param name="source">Source sequence of items that must be batched by waves</param>
 		/// <param name="batchSize">Maximum size of a batch to return down the line</param>
-		public BatchingAsyncIterator(IAsyncEnumerable<TInput> source, int batchSize)
+		public BatchingAsyncIterator(IAsyncQuery<TInput> source, int batchSize)
 			: base(source)
 		{
 			Contract.Debug.Requires(batchSize > 0);
 			m_batchSize = batchSize;
 		}
 
-		protected override AsyncIterator<TInput[]> Clone()
+		protected override AsyncLinqIterator<TInput[]> Clone()
 		{
 			return new BatchingAsyncIterator<TInput>(m_source, m_batchSize);
 		}
@@ -80,14 +80,15 @@ namespace Doxense.Linq.Async.Iterators
 
 			bool hasMore = await iterator.MoveNextAsync().ConfigureAwait(false);
 
-			while(hasMore && !m_ct.IsCancellationRequested)
+			var ct = m_source.Cancellation;
+			while(hasMore && !ct.IsCancellationRequested)
 			{
 				buffer.Add(iterator.Current);
 				if (buffer.Count >= m_batchSize) break;
 
 				hasMore = await iterator.MoveNextAsync().ConfigureAwait(false);
 			}
-			m_ct.ThrowIfCancellationRequested();
+			ct.ThrowIfCancellationRequested();
 
 			if (!hasMore)
 			{

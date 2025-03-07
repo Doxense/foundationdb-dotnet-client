@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Linq.Async.Expressions
+namespace SnowBank.Linq.Async.Expressions
 {
 
 	/// <summary>Expression that applies a transformation on each item</summary>
@@ -62,7 +62,7 @@ namespace Doxense.Linq.Async.Expressions
 		public bool IsIdentity()
 		{
 			//note: Identity Function is not async, and is only possible if TSource == TResult, so we can skip checking the types ourselves...
-			return m_transform != null && object.ReferenceEquals(m_transform, IdentityTransform);
+			return m_transform != null && ReferenceEquals(m_transform, IdentityTransform);
 		}
 
 		public TResult Invoke(TSource item)
@@ -84,11 +84,8 @@ namespace Doxense.Linq.Async.Expressions
 			}
 		}
 
-		[Pure]
-		private static InvalidOperationException FailInvalidOperation()
-		{
-			return new InvalidOperationException("Cannot invoke asynchronous transform synchronously");
-		}
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		private static InvalidOperationException FailInvalidOperation() => new("Cannot invoke asynchronous transform synchronously");
 
 		public AsyncTransformExpression<TSource, TCasted> Cast<TCasted>()
 		{
@@ -102,12 +99,12 @@ namespace Doxense.Linq.Async.Expressions
 				if (m_transform != null)
 				{
 					var f = m_transform;
-					return new AsyncTransformExpression<TSource, TCasted>((x) => (TCasted) (object) f(x)!);
+					return new((x) => (TCasted) (object) f(x)!);
 				}
 				else
 				{
 					var f = m_asyncTransform!;
-					return new AsyncTransformExpression<TSource, TCasted>(async (x, ct) => (TCasted) (object) (await f(x, ct).ConfigureAwait(false))!);
+					return new(async (x, ct) => (TCasted) (object) (await f(x, ct).ConfigureAwait(false))!);
 				}
 			}
 		}
@@ -141,13 +138,13 @@ namespace Doxense.Linq.Async.Expressions
 				{
 					var g = right.m_transform;
 					Contract.Debug.Assert(g != null);
-					return new AsyncTransformExpression<TSource, TOuter>((x) => g(f(x)));
+					return new((x) => g(f(x)));
 				}
 				else
 				{
 					var g = right.m_asyncTransform;
 					Contract.Debug.Assert(g != null);
-					return new AsyncTransformExpression<TSource, TOuter>((x, ct) => g(f(x), ct));
+					return new((x, ct) => g(f(x), ct));
 				}
 			}
 			else
@@ -158,13 +155,13 @@ namespace Doxense.Linq.Async.Expressions
 				{
 					var g = right.m_asyncTransform;
 					Contract.Debug.Assert(g != null);
-					return new AsyncTransformExpression<TSource, TOuter>(async (x, ct) => await g(await f(x, ct).ConfigureAwait(false), ct).ConfigureAwait(false));
+					return new(async (x, ct) => await g(await f(x, ct).ConfigureAwait(false), ct).ConfigureAwait(false));
 				}
 				else
 				{
 					var g = right.m_transform;
 					Contract.Debug.Assert(g != null);
-					return new AsyncTransformExpression<TSource, TOuter>(async (x, ct) => g(await f(x, ct).ConfigureAwait(false)));
+					return new(async (x, ct) => g(await f(x, ct).ConfigureAwait(false)));
 				}
 			}
 		}

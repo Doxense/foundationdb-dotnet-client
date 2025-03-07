@@ -21,9 +21,10 @@ jobs:
 
     # install the latest .NET SDK on the local worker
     - name: Install .NET SDK
-      uses: actions/setup-dotnet@3e891b0cb619bf60e2c25674b222b8940e2c1c25 # v4.1.0
+      uses: actions/setup-dotnet@3951f0dfe7a07e2313ec93c75700083e2005cbab # v4.3.0
       with:
-        dotnet-version: 9.0.x
+        dotnet-version: 10.0.x
+        dotnet-quality: 'preview'
 
     # build the solution (Release)
     - name: Build (Release)
@@ -37,7 +38,7 @@ jobs:
 
     # Capture the build packages
     - name: Upload artifacts
-      uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
       with:
         name: NuGet Packages
         path: |
@@ -48,7 +49,7 @@ jobs:
     # In case of error, we want to capture any generated file for troubleshooting
     - name: Capture generated source files
       if: failure()  
-      uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
       with:
         name: Generated Source Files
         path: '**/*.g.cs' 

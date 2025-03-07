@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -26,6 +26,7 @@
 
 namespace FoundationDB.Client
 {
+	using System.Runtime.CompilerServices;
 
 	/// <summary>Transactional context that can execute, inside a retry loop, idempotent actions using read-only transactions.</summary>
 	[PublicAPI]
@@ -56,7 +57,7 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		/// <summary>Run an idempotent transaction block inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <summary>Runs an idempotent transaction block inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
 		/// <param name="handler">Idempotent handler that will only read from the database, and may be retried if a recoverable error occurs.</param>
 		/// <param name="ct">Token used to cancel the operation</param>
 		/// <returns>Task that succeeds if no error occurred during execution of <paramref name="handler"/>.</returns>
@@ -68,7 +69,7 @@ namespace FoundationDB.Client
 		/// </remarks>
 		Task ReadAsync(Func<IFdbReadOnlyTransaction, Task> handler, CancellationToken ct);
 
-		/// <summary>Run an idempotent transaction block inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <summary>Runs an idempotent transaction block inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
 		/// <param name="state">Caller-provided context or state that will be passed through to the <paramref name="handler"/></param>
 		/// <param name="handler">Idempotent handler that will only read from the database, and may be retried if a recoverable error occurs.</param>
 		/// <param name="ct">Token used to cancel the operation</param>
@@ -81,7 +82,7 @@ namespace FoundationDB.Client
 		/// </remarks>
 		Task ReadAsync<TState>(TState state, Func<IFdbReadOnlyTransaction, TState, Task> handler, CancellationToken ct);
 
-		/// <summary>Run an idempotent transaction block inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <summary>Runs an idempotent transaction block inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
 		/// <param name="handler">Idempotent handler that will only read from the database, and may be retried if a recoverable error occurs.</param>
 		/// <param name="ct">Token used to cancel the operation</param>
 		/// <returns>Result of the last successful execution of <paramref name="handler"/>.</returns>
@@ -92,7 +93,7 @@ namespace FoundationDB.Client
 		/// </remarks>
 		Task<TResult> ReadAsync<TResult>(Func<IFdbReadOnlyTransaction, Task<TResult>> handler, CancellationToken ct);
 
-		/// <summary>Run an idempotent transaction block inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <summary>Runs an idempotent transaction block inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
 		/// <param name="state">Caller-provided context or state that will be passed through to the <paramref name="handler"/></param>
 		/// <param name="handler">Idempotent handler that will only read from the database, and may be retried if a recoverable error occurs.</param>
 		/// <param name="ct">Token used to cancel the operation</param>
@@ -104,9 +105,9 @@ namespace FoundationDB.Client
 		/// </remarks>
 		Task<TResult> ReadAsync<TState, TResult>(TState state, Func<IFdbReadOnlyTransaction, TState, Task<TResult>> handler, CancellationToken ct);
 
-		/// <summary>Run an idempotent transaction block inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <summary>Runs an idempotent transaction block inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
 		/// <param name="handler">Idempotent handler that will only read from the database, and may be retried if a recoverable error occurs.</param>
-		/// <param name="success">Handler that will be called once the transaction executes successfully. The result from the last invocation of <paramref name="handler"/> will be passed as the seconde parameter.</param>
+		/// <param name="success">Handler that will be called once the transaction executes successfully. The result from the last invocation of <paramref name="handler"/> will be passed as the second parameter.</param>
 		/// <param name="ct">Token used to cancel the operation</param>
 		/// <returns>Result of the last successful execution of <paramref name="handler"/>.</returns>
 		/// <remarks>
@@ -116,9 +117,9 @@ namespace FoundationDB.Client
 		/// </remarks>
 		Task<TResult> ReadAsync<TResult>(Func<IFdbReadOnlyTransaction, Task<TResult>> handler, Action<IFdbReadOnlyTransaction, TResult> success, CancellationToken ct);
 
-		/// <summary>Run an idempotent transaction block inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <summary>Runs an idempotent transaction block inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
 		/// <param name="handler">Idempotent handler that will only read from the database, and may be retried if a recoverable error occurs.</param>
-		/// <param name="success">Handler that will be called once the transaction executes successfully. The result from the last invocation of <paramref name="handler"/> will be passed as the seconde parameter.</param>
+		/// <param name="success">Handler that will be called once the transaction executes successfully. The result from the last invocation of <paramref name="handler"/> will be passed as the second parameter.</param>
 		/// <param name="ct">Token used to cancel the operation</param>
 		/// <returns>Result return by <paramref name="success"/>, if it was called.</returns>
 		/// <remarks>
@@ -128,9 +129,9 @@ namespace FoundationDB.Client
 		/// </remarks>
 		Task<TResult> ReadAsync<TIntermediate, TResult>(Func<IFdbReadOnlyTransaction, Task<TIntermediate>> handler, Func<IFdbReadOnlyTransaction, TIntermediate, TResult> success, CancellationToken ct);
 
-		/// <summary>Run an idempotent transaction block inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <summary>Runs an idempotent transaction block inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
 		/// <param name="handler">Idempotent handler that will only read from the database, and may be retried if a recoverable error occurs.</param>
-		/// <param name="success">Handler that will be called once the transaction executes successfully. The result from the last invocation of <paramref name="handler"/> will be passed as the seconde parameter.</param>
+		/// <param name="success">Handler that will be called once the transaction executes successfully. The result from the last invocation of <paramref name="handler"/> will be passed as the second parameter.</param>
 		/// <param name="ct">Token used to cancel the operation</param>
 		/// <returns>Result return by <paramref name="success"/>, if it was called.</returns>
 		/// <remarks>
@@ -140,10 +141,10 @@ namespace FoundationDB.Client
 		/// </remarks>
 		Task<TResult> ReadAsync<TIntermediate, TResult>(Func<IFdbReadOnlyTransaction, Task<TIntermediate>> handler, Func<IFdbReadOnlyTransaction, TIntermediate, Task<TResult>> success, CancellationToken ct);
 
-		/// <summary>Run an idempotent transaction block inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <summary>Runs an idempotent transaction block inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
 		/// <param name="state">Caller-provided context or state that will be passed through to the <paramref name="handler"/></param>
 		/// <param name="handler">Idempotent handler that will only read from the database, and may be retried if a recoverable error occurs.</param>
-		/// <param name="success">Handler that will be called once the transaction executes successfully. The result from the last invocation of <paramref name="handler"/> will be passed as the seconde parameter.</param>
+		/// <param name="success">Handler that will be called once the transaction executes successfully. The result from the last invocation of <paramref name="handler"/> will be passed as the second parameter.</param>
 		/// <param name="ct">Token used to cancel the operation</param>
 		/// <returns>Result return by <paramref name="success"/>, if it was called.</returns>
 		/// <remarks>

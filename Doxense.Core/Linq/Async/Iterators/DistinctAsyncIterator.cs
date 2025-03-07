@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Linq.Async.Iterators
+namespace SnowBank.Linq.Async.Iterators
 {
 
 	/// <summary>Filters duplicate items from an async sequence</summary>
@@ -36,7 +36,7 @@ namespace Doxense.Linq.Async.Iterators
 
 		private HashSet<TSource>? m_set;
 
-		public DistinctAsyncIterator(IAsyncEnumerable<TSource> source, IEqualityComparer<TSource> comparer)
+		public DistinctAsyncIterator(IAsyncQuery<TSource> source, IEqualityComparer<TSource> comparer)
 			: base(source)
 		{
 			Contract.Debug.Requires(comparer != null);
@@ -44,7 +44,7 @@ namespace Doxense.Linq.Async.Iterators
 			m_comparer = comparer;
 		}
 
-		protected override AsyncIterator<TSource> Clone()
+		protected override AsyncLinqIterator<TSource> Clone()
 		{
 			return new DistinctAsyncIterator<TSource>(m_source, m_comparer);
 		}
@@ -61,7 +61,7 @@ namespace Doxense.Linq.Async.Iterators
 		{
 			var iterator = m_iterator;
 			var set = m_set;
-			var ct = m_ct;
+			var ct = this.Cancellation;
 			Contract.Debug.Requires(iterator != null && set != null);
 
 			while (!ct.IsCancellationRequested)
@@ -87,9 +87,10 @@ namespace Doxense.Linq.Async.Iterators
 			return await Canceled().ConfigureAwait(false);
 		}
 
-		public override async Task ExecuteAsync(Action<TSource> handler, CancellationToken ct)
+		public override async Task ExecuteAsync(Action<TSource> handler)
 		{
 			Contract.NotNull(handler);
+			var ct = this.Cancellation;
 			ct.ThrowIfCancellationRequested();
 
 			var mode = m_mode;
@@ -98,7 +99,7 @@ namespace Doxense.Linq.Async.Iterators
 				mode = AsyncIterationHint.Iterator;
 			}
 
-			await using (var iter = m_source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : m_source.GetAsyncEnumerator(ct))
+			await using (var iter = m_source.GetAsyncEnumerator(mode))
 			{
 				var set = new HashSet<TSource>(m_comparer);
 
@@ -115,9 +116,10 @@ namespace Doxense.Linq.Async.Iterators
 			ct.ThrowIfCancellationRequested();
 		}
 
-		public override async Task ExecuteAsync<TState>(TState state, Action<TState, TSource> handler, CancellationToken ct)
+		public override async Task ExecuteAsync<TState>(TState state, Action<TState, TSource> handler)
 		{
 			Contract.NotNull(handler);
+			var ct = this.Cancellation;
 			ct.ThrowIfCancellationRequested();
 
 			var mode = m_mode;
@@ -126,7 +128,7 @@ namespace Doxense.Linq.Async.Iterators
 				mode = AsyncIterationHint.Iterator;
 			}
 
-			await using (var iter = m_source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : m_source.GetAsyncEnumerator(ct))
+			await using (var iter = m_source.GetAsyncEnumerator(mode))
 			{
 				var set = new HashSet<TSource>(m_comparer);
 
@@ -143,9 +145,10 @@ namespace Doxense.Linq.Async.Iterators
 			ct.ThrowIfCancellationRequested();
 		}
 
-		public override async Task<TAggregate> ExecuteAsync<TAggregate>(TAggregate seed, Func<TAggregate, TSource, TAggregate> handler, CancellationToken ct)
+		public override async Task<TAggregate> ExecuteAsync<TAggregate>(TAggregate seed, Func<TAggregate, TSource, TAggregate> handler)
 		{
 			Contract.NotNull(handler);
+			var ct = this.Cancellation;
 			ct.ThrowIfCancellationRequested();
 
 			var mode = m_mode;
@@ -154,7 +157,7 @@ namespace Doxense.Linq.Async.Iterators
 				mode = AsyncIterationHint.Iterator;
 			}
 
-			await using (var iter = m_source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : m_source.GetAsyncEnumerator(ct))
+			await using (var iter = m_source.GetAsyncEnumerator(mode))
 			{
 				var set = new HashSet<TSource>(m_comparer);
 
@@ -172,9 +175,10 @@ namespace Doxense.Linq.Async.Iterators
 			return seed;
 		}
 
-		public override async Task ExecuteAsync(Func<TSource, CancellationToken, Task> asyncHandler, CancellationToken ct)
+		public override async Task ExecuteAsync(Func<TSource, CancellationToken, Task> handler)
 		{
-			Contract.NotNull(asyncHandler);
+			Contract.NotNull(handler);
+			var ct = this.Cancellation;
 			ct.ThrowIfCancellationRequested();
 
 			var mode = m_mode;
@@ -183,7 +187,7 @@ namespace Doxense.Linq.Async.Iterators
 				mode = AsyncIterationHint.Iterator;
 			}
 
-			await using (var iter = m_source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : m_source.GetAsyncEnumerator(ct))
+			await using (var iter = m_source.GetAsyncEnumerator(mode))
 			{
 				var set = new HashSet<TSource>(m_comparer);
 
@@ -192,7 +196,7 @@ namespace Doxense.Linq.Async.Iterators
 					var current = iter.Current;
 					if (set.Add(current))
 					{ // first occurence of this item
-						await asyncHandler(current, ct).ConfigureAwait(false);
+						await handler(current, ct).ConfigureAwait(false);
 					}
 				}
 			}

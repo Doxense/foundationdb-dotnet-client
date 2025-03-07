@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,7 @@ namespace FoundationDB.Linq.Expressions
 	using System.Diagnostics.CodeAnalysis;
 #endif
 	using FoundationDB.Layers.Indexing;
+	using SnowBank.Linq;
 
 	/// <summary>Expression that represents a lookup on an FdbIndex</summary>
 	/// <typeparam name="TKey">Type of the Id of the entities being indexed</typeparam>
@@ -101,7 +102,7 @@ namespace FoundationDB.Linq.Expressions
 		public FdbIndex<TKey, TValue> Index { get; }
 
 		/// <summary>Returns a new expression that creates an async sequence that will execute this query on a transaction</summary>
-		public override Expression<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<TKey>>> CompileSequence()
+		public override Expression<Func<IFdbReadOnlyTransaction, IAsyncQuery<TKey>>> CompileSequence()
 		{
 			var prmTrans = Expression.Parameter(typeof(IFdbReadOnlyTransaction), "trans");
 			Expression body;
@@ -110,7 +111,7 @@ namespace FoundationDB.Linq.Expressions
 			{
 				case ExpressionType.Equal:
 				{
-					body = FdbExpressionHelpers.RewriteCall<Func<FdbIndex<TKey, TValue>, IFdbReadOnlyTransaction, TValue, bool, IAsyncEnumerable<TKey>>>(
+					body = FdbExpressionHelpers.RewriteCall<Func<FdbIndex<TKey, TValue>, IFdbReadOnlyTransaction, TValue, bool, IAsyncQuery<TKey>>>(
 						(index, trans, value, reverse) => index.Lookup(trans, value, reverse),
 						Expression.Constant(this.Index, typeof(FdbIndex<TKey, TValue>)),
 						prmTrans,
@@ -123,7 +124,7 @@ namespace FoundationDB.Linq.Expressions
 				case ExpressionType.GreaterThan:
 				case ExpressionType.GreaterThanOrEqual:
 				{
-					body = FdbExpressionHelpers.RewriteCall<Func<FdbIndex<TKey, TValue>, IFdbReadOnlyTransaction, TValue, bool, IAsyncEnumerable<TKey>>>(
+					body = FdbExpressionHelpers.RewriteCall<Func<FdbIndex<TKey, TValue>, IFdbReadOnlyTransaction, TValue, bool, IAsyncQuery<TKey>>>(
 						(index, trans, value, reverse) => index.LookupGreaterThan(trans, value, this.Operator == ExpressionType.GreaterThanOrEqual, reverse),
 						Expression.Constant(this.Index, typeof(FdbIndex<TKey, TValue>)),
 						prmTrans,
@@ -136,7 +137,7 @@ namespace FoundationDB.Linq.Expressions
 				case ExpressionType.LessThan:
 				case ExpressionType.LessThanOrEqual:
 				{
-					body = FdbExpressionHelpers.RewriteCall<Func<FdbIndex<TKey, TValue>, IFdbReadOnlyTransaction, TValue, bool, IAsyncEnumerable<TKey>>>(
+					body = FdbExpressionHelpers.RewriteCall<Func<FdbIndex<TKey, TValue>, IFdbReadOnlyTransaction, TValue, bool, IAsyncQuery<TKey>>>(
 						(index, trans, value, reverse) => index.LookupLessThan(trans, value, this.Operator == ExpressionType.LessThanOrEqual, reverse),
 						Expression.Constant(this.Index, typeof(FdbIndex<TKey, TValue>)),
 						prmTrans,
@@ -152,7 +153,7 @@ namespace FoundationDB.Linq.Expressions
 				}
 			}
 
-			return Expression.Lambda<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<TKey>>>(body, prmTrans);
+			return Expression.Lambda<Func<IFdbReadOnlyTransaction, IAsyncQuery<TKey>>>(body, prmTrans);
 		}
 
 		/// <summary>Returns a textual representation of expression</summary>

@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -27,6 +27,7 @@
 namespace FoundationDB.Client.Tests
 {
 	using Doxense.Collections.Tuples.Encoding;
+	using SnowBank.Linq;
 
 	[TestFixture]
 	public class TenantFacts : FdbTest
@@ -342,12 +343,12 @@ namespace FoundationDB.Client.Tests
 			return DbRead(this.Db, handler);
 		}
 
-		protected Task<List<T>> TenantQuery<T>(FdbTenantName tenant, Func<IFdbReadOnlyTransaction, IAsyncEnumerable<T>> handler)
+		protected Task<List<T>> TenantQuery<T>(FdbTenantName tenant, Func<IFdbReadOnlyTransaction, IAsyncQuery<T>> handler)
 		{
 			return DbQuery(this.Db.GetTenant(tenant), handler);
 		}
 
-		protected Task<List<T>> GlobalQuery<T>(Func<IFdbReadOnlyTransaction, IAsyncEnumerable<T>> handler)
+		protected Task<List<T>> GlobalQuery<T>(Func<IFdbReadOnlyTransaction, IAsyncQuery<T>> handler)
 		{
 			return DbQuery(this.Db, handler);
 		}
@@ -357,7 +358,7 @@ namespace FoundationDB.Client.Tests
 			return DbWrite(this.Db.GetTenant(tenant), handler);
 		}
 
-		protected Task GlolbalWrite(Action<IFdbTransaction> handler)
+		protected Task GlobalWrite(Action<IFdbTransaction> handler)
 		{
 			return DbWrite(this.Db, handler);
 		}

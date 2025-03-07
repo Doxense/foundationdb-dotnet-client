@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Linq.Async.Iterators
+namespace SnowBank.Linq.Async.Iterators
 {
 
 	/// <summary>Returns only the values for the keys that are in the first sub query, but not in the others</summary>
@@ -34,13 +34,13 @@ namespace Doxense.Linq.Async.Iterators
 	public sealed class ExceptAsyncIterator<TSource, TKey, TResult> : MergeAsyncIterator<TSource, TKey, TResult>
 	{
 
-		public ExceptAsyncIterator(IEnumerable<IAsyncEnumerable<TSource>> sources, int? limit, Func<TSource, TKey> keySelector, Func<TSource, TResult> resultSelector, IComparer<TKey>? comparer)
-			: base(sources, limit, keySelector, resultSelector, comparer)
+		public ExceptAsyncIterator(IEnumerable<IAsyncQuery<TSource>> sources, int? limit, Func<TSource, TKey> keySelector, Func<TSource, TResult> resultSelector, IComparer<TKey>? comparer, CancellationToken ct)
+			: base(sources, limit, keySelector, resultSelector, comparer, ct)
 		{ }
 
-		protected override AsyncIterator<TResult> Clone()
+		protected override AsyncLinqIterator<TResult> Clone()
 		{
-			return new ExceptAsyncIterator<TSource, TKey, TResult>(m_sources, m_limit, m_keySelector, m_resultSelector, m_keyComparer);
+			return new ExceptAsyncIterator<TSource, TKey, TResult>(m_sources, m_limit, m_keySelector, m_resultSelector, m_keyComparer, this.Cancellation);
 		}
 
 		protected override bool FindNext(out int index, out TSource current)
@@ -50,12 +50,12 @@ namespace Doxense.Linq.Async.Iterators
 			var iterators = m_iterators;
 			Contract.Debug.Requires(iterators != null);
 
-			// we only returns values of the first that are not in the others
+			// we only return values of the first that are not in the others
 
 			// - if iterator[0] is complete, then stop
 			// - take X = iterator[0].Current
 			// - set flag_output to true, flag_found to false
-			// - for i in 1..n-1:
+			// - for i in 1...n-1:
 			//   - if iterator[i].Current < X, advance iterator i and set flag_output to false
 			//   - if iterator[i].Current = X, set flag_found to true, flag_output to false
 			// - if flag_output is true then output X
@@ -99,21 +99,22 @@ namespace Doxense.Linq.Async.Iterators
 		}
 
 		/// <summary>Apply a transformation on the results of the intersection</summary>
-		public override AsyncIterator<TNew> Select<TNew>(Func<TResult, TNew> selector)
+		public override AsyncLinqIterator<TNew> Select<TNew>(Func<TResult, TNew> selector)
 		{
 			return new ExceptAsyncIterator<TSource, TKey, TNew>(
 				m_sources,
 				m_limit,
 				m_keySelector,
 				(kvp) => selector(m_resultSelector(kvp)),
-				m_keyComparer
+				m_keyComparer,
+				this.Cancellation
 			);
 		}
 
 		/// <summary>Limit the number of elements returned by the intersection</summary>
 		/// <param name="limit">Maximum number of results to return</param>
 		/// <returns>New Intersect that will only return the specified number of results</returns>
-		public override AsyncIterator<TResult> Take(int limit)
+		public override AsyncLinqIterator<TResult> Take(int limit)
 		{
 			if (limit < 0) throw new ArgumentOutOfRangeException(nameof(limit), "Value cannot be less than zero");
 
@@ -124,7 +125,8 @@ namespace Doxense.Linq.Async.Iterators
 				limit,
 				m_keySelector,
 				m_resultSelector,
-				m_keyComparer
+				m_keyComparer,
+				this.Cancellation
 			);
 		}
 

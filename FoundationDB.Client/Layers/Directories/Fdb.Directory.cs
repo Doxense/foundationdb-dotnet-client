@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -27,7 +27,7 @@
 namespace FoundationDB.Client
 {
 	using System.Linq;
-	using Doxense.Linq;
+	using SnowBank.Linq;
 
 	public static partial class Fdb
 	{
@@ -67,8 +67,8 @@ namespace FoundationDB.Client
 
 				// open all the subdirectories
 				var folders = await children
-					.ToAsyncEnumerable()
-					.SelectAsync((child, _) => parent.OpenAsync(tr, FdbPath.Relative(child.Name)))
+					.ToAsyncQuery(tr.Cancellation)
+					.SelectParallel((FdbPath child, CancellationToken _) => parent.OpenAsync(tr, FdbPath.Relative(child.Name)))
 					.ToListAsync()
 					.ConfigureAwait(false);
 

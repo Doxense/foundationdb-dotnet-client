@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -26,6 +26,7 @@
 
 namespace FoundationDB.Linq.Expressions
 {
+	using SnowBank.Linq;
 #if NET8_0_OR_GREATER
 	using System.Diagnostics.CodeAnalysis;
 #endif
@@ -65,7 +66,7 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Returns a new expression that creates an async sequence that will execute this query on a transaction</summary>
-		public override Expression<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<KeyValuePair<Slice, Slice>>>> CompileSequence()
+		public override Expression<Func<IFdbReadOnlyTransaction, IAsyncQuery<KeyValuePair<Slice, Slice>>>> CompileSequence()
 		{
 			var prmTrans = Expression.Parameter(typeof(IFdbReadOnlyTransaction), "trans");
 
@@ -76,7 +77,7 @@ namespace FoundationDB.Linq.Expressions
 				Expression.Constant(this.Options, typeof(FdbRangeOptions))
 			);
 
-			return Expression.Lambda<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<KeyValuePair<Slice, Slice>>>>(
+			return Expression.Lambda<Func<IFdbReadOnlyTransaction, IAsyncQuery<KeyValuePair<Slice, Slice>>>>(
 				body,
 				prmTrans
 			);

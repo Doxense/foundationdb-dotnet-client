@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -30,12 +30,12 @@
 namespace FoundationDB.Client
 {
 	using System.Diagnostics;
-	using Doxense.Linq;
-	using Doxense.Linq.Async.Iterators;
+	using SnowBank.Linq;
+	using SnowBank.Linq.Async.Iterators;
 
 	/// <summary>Async iterator that fetches the results by batch, but return them one by one</summary>
 	[DebuggerDisplay("State={m_state}, Current={m_current}, Iteration={Iteration}, AtEnd={AtEnd}, HasMore={HasMore}")]
-	internal sealed class FdbPagedIterator<TState, TResult> : AsyncIterator<ReadOnlyMemory<TResult>>
+	internal sealed class FdbPagedIterator<TState, TResult> : AsyncLinqIterator<ReadOnlyMemory<TResult>>
 	{
 
 		#region Iterable Properties...
@@ -94,12 +94,14 @@ namespace FoundationDB.Client
 			this.Decoder = decoder;
 		}
 
-		protected override AsyncIterator<ReadOnlyMemory<TResult>> Clone()
+		protected override AsyncLinqIterator<ReadOnlyMemory<TResult>> Clone()
 		{
 			return new FdbPagedIterator<TState, TResult>(this.Query, this.Range, this.State, this.Decoder);
 		}
 
 		#region IFdbAsyncEnumerator<T>...
+
+		public override CancellationToken Cancellation => this.Query.Transaction.Cancellation;
 
 		protected override async ValueTask<bool> OnFirstAsync()
 		{
@@ -160,7 +162,7 @@ namespace FoundationDB.Client
 			Contract.Debug.Requires(!this.AtEnd);
 			Contract.Debug.Requires(this.Iteration >= 0);
 
-			m_ct.ThrowIfCancellationRequested();
+			this.Cancellation.ThrowIfCancellationRequested();
 			this.Query.Transaction.EnsureCanRead();
 
 			this.Iteration++;

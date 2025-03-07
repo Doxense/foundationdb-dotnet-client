@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -27,8 +27,10 @@
 namespace FoundationDB.Client
 {
 	using System.Buffers;
+	using System.ComponentModel;
 	using System.Diagnostics;
 	using Doxense.Linq;
+	using SnowBank.Linq;
 
 	/// <summary>Query describing an ongoing GetRange operation</summary>
 	[DebuggerDisplay("Begin={Begin}, End={End}, Limit={Limit}, Mode={Streaming}, Reverse={Reverse}, Snapshot={IsSnapshot}")]
@@ -221,22 +223,26 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public async Task<TAggregate> ForEachAsync<TAggregate>(TAggregate aggregate, PageAggregator<TAggregate, TResult> action)
 		{
-			// ReSharper disable once InvokeAsExtensionMethod
-			await foreach (var item in this.ConfigureAwait(false))
+			await using var iterator = this.GetAsyncEnumerator(AsyncIterationHint.All);
+
+			while(await iterator.MoveNextAsync().ConfigureAwait(false))
 			{
-				action(aggregate, item.Span);
+				action(aggregate, iterator.Current.Span);
 			}
+
 			return aggregate;
 		}
 
 		/// <inheritdoc />
 		public async Task<List<TResult>> ToListAsync()
 		{
-			using var buf = new Buffer<TResult>(0, ArrayPool<TResult>.Shared);
+			await using var iterator = this.GetAsyncEnumerator(AsyncIterationHint.All);
 
-			await foreach (var page in this.WithCancellation(this.Transaction.Cancellation).ConfigureAwait(false))
+			var buf = new Buffer<TResult>(0, ArrayPool<TResult>.Shared);
+
+			while(await iterator.MoveNextAsync().ConfigureAwait(false))
 			{
-				buf.AddRange(page.Span);
+				buf.AddRange(iterator.Current.Span);
 			}
 
 			return buf.ToListAndClear();
@@ -245,11 +251,13 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public async Task<TResult[]> ToArrayAsync()
 		{
-			using var buf = new Buffer<TResult>(0, ArrayPool<TResult>.Shared);
+			await using var iterator = this.GetAsyncEnumerator(AsyncIterationHint.All);
 
-			await foreach (var page in this.WithCancellation(this.Transaction.Cancellation).ConfigureAwait(false))
+			var buf = new Buffer<TResult>(0, ArrayPool<TResult>.Shared);
+
+			while(await iterator.MoveNextAsync().ConfigureAwait(false))
 			{
-				buf.AddRange(page.Span);
+				buf.AddRange(iterator.Current.Span);
 			}
 
 			return buf.ToArrayAndClear();
@@ -257,17 +265,20 @@ namespace FoundationDB.Client
 
 		#region Pseudo-LINQ
 
+		public CancellationToken Cancellation => this.Transaction.Cancellation;
+
 		//note: these methods are more optimized than regular AsyncLINQ methods, in that they can customize the query settings to return the least data possible over the network.
 		// ex: FirstOrDefault can set the Limit to 1, LastOrDefault can set Reverse to true, etc...
 
+		[MustDisposeResource]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public IAsyncEnumerator<ReadOnlyMemory<TResult>> GetAsyncEnumerator(CancellationToken ct)
-		{
-			return GetAsyncEnumerator(ct, AsyncIterationHint.Default);
-		}
+			=> AsyncQuery.GetCancellableAsyncEnumerator(this, AsyncIterationHint.All, ct);
 
-		public IAsyncEnumerator<ReadOnlyMemory<TResult>> GetAsyncEnumerator(CancellationToken ct, AsyncIterationHint hint)
+		[MustDisposeResource]
+		public IAsyncEnumerator<ReadOnlyMemory<TResult>> GetAsyncEnumerator(AsyncIterationHint hint)
 		{
-			return new FdbPagedIterator<TState, TResult>(this, this.OriginalRange, GetState(), this.Decoder).GetAsyncEnumerator(ct, hint);
+			return new FdbPagedIterator<TState, TResult>(this, this.OriginalRange, GetState(), this.Decoder).GetAsyncEnumerator(hint);
 		}
 
 		[Pure]

@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -24,35 +24,42 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Linq.Async
+namespace SnowBank.Linq.Async
 {
+	using System.ComponentModel;
 
 	/// <summary>Wraps an async sequence of items into another async sequence of items</summary>
 	/// <typeparam name="TSource">Type of elements of the inner async sequence</typeparam>
 	/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
-	internal sealed class AsyncSequence<TSource, TResult> : IConfigurableAsyncEnumerable<TResult>
+	internal sealed class AsyncSequence<TSource, TResult> : IAsyncQuery<TResult>, IAsyncEnumerable<TResult>
 	{
 
-		public readonly IAsyncEnumerable<TSource> Source;
+		public readonly IAsyncQuery<TSource> Source;
 
 		public readonly Func<IAsyncEnumerator<TSource>, IAsyncEnumerator<TResult>> Factory;
 
-		public AsyncSequence(IAsyncEnumerable<TSource> source, Func<IAsyncEnumerator<TSource>, IAsyncEnumerator<TResult>> factory)
+		public AsyncSequence(IAsyncQuery<TSource> source, Func<IAsyncEnumerator<TSource>, IAsyncEnumerator<TResult>> factory)
 		{
 			Contract.Debug.Requires(source != null && factory != null);
 			this.Source = source;
 			this.Factory = factory;
 		}
 
-		public IAsyncEnumerator<TResult> GetAsyncEnumerator(CancellationToken ct) => GetAsyncEnumerator(ct, AsyncIterationHint.Default);
+		public CancellationToken Cancellation => this.Source.Cancellation;
 
-		public IAsyncEnumerator<TResult> GetAsyncEnumerator(CancellationToken ct, AsyncIterationHint mode)
+		[MustDisposeResource]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public IAsyncEnumerator<TResult> GetAsyncEnumerator(CancellationToken ct)
+			=> AsyncQuery.GetCancellableAsyncEnumerator(this, AsyncIterationHint.All, ct);
+
+		[MustDisposeResource]
+		public IAsyncEnumerator<TResult> GetAsyncEnumerator(AsyncIterationHint mode)
 		{
-			ct.ThrowIfCancellationRequested();
+			this.Source.Cancellation.ThrowIfCancellationRequested();
 			IAsyncEnumerator<TSource>? inner = null;
 			try
 			{
-				inner = this.Source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : this.Source.GetAsyncEnumerator(ct);
+				inner = this.Source.GetAsyncEnumerator(mode);
 				Contract.Debug.Requires(inner != null, "The underlying async sequence returned an empty enumerator");
 
 				var outer = this.Factory(inner);

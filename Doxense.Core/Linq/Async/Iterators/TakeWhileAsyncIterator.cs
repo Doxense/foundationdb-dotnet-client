@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Linq.Async.Iterators
+namespace SnowBank.Linq.Async.Iterators
 {
 
 	/// <summary>Reads an async sequence of items until a condition becomes false</summary>
@@ -35,7 +35,7 @@ namespace Doxense.Linq.Async.Iterators
 		private readonly Func<TSource, bool> m_condition;
 		//TODO: also accept a Func<TSource, CT, Task<bool>> ?
 
-		public TakeWhileAsyncIterator(IAsyncEnumerable<TSource> source, Func<TSource, bool> condition)
+		public TakeWhileAsyncIterator(IAsyncQuery<TSource> source, Func<TSource, bool> condition)
 			: base(source)
 		{
 			Contract.Debug.Requires(condition != null);
@@ -43,24 +43,25 @@ namespace Doxense.Linq.Async.Iterators
 			m_condition = condition;
 		}
 
-		protected override AsyncIterator<TSource> Clone()
+		protected override AsyncLinqIterator<TSource> Clone()
 		{
 			return new TakeWhileAsyncIterator<TSource>(m_source, m_condition);
 		}
 
 		protected override async ValueTask<bool> OnNextAsync()
 		{
+			var ct = this.Cancellation;
 			var iterator = m_iterator;
 			Contract.Debug.Requires(iterator != null);
 
-			while (!m_ct.IsCancellationRequested)
+			while (!ct.IsCancellationRequested)
 			{
 				if (!await iterator.MoveNextAsync().ConfigureAwait(false))
 				{ // completed
 					return await Completed().ConfigureAwait(false);
 				}
 
-				if (m_ct.IsCancellationRequested) break;
+				if (ct.IsCancellationRequested) break;
 
 				TSource current = iterator.Current;
 				if (!m_condition(current))
@@ -70,6 +71,7 @@ namespace Doxense.Linq.Async.Iterators
 
 				return Publish(current);
 			}
+
 			return await Canceled().ConfigureAwait(false);
 		}
 

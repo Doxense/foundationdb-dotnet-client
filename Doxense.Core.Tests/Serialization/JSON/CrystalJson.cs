@@ -9300,7 +9300,9 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(obj["true"], Is.EqualTo(true)); // note: Is.True cannot work because it does true.Equals(actual) instead of actual.Equals(true) :(
 			Assert.That(obj["zero"], Is.Zero); // but Is.Zero is fine because it's an alias for EqualTo(0)
 			Assert.That(obj["id"], Is.EqualTo(id));
+#if DISABLED // this is currently broken in NUnit 4.3.2, see https://github.com/nunit/nunit/issues/4954
 			Assert.That(obj["date"], Is.EqualTo(now));
+#endif
 			Assert.That(obj["null"], Is.EqualTo(JsonNull.Null));
 
 			var top = new JsonObject
@@ -9318,7 +9320,9 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(top["foo"]["false"], Is.EqualTo(false));
 			Assert.That(top["foo"]["zero"], Is.Zero);
 			Assert.That(top["foo"]["id"], Is.EqualTo(id));
+#if DISABLED // this is currently broken in NUnit 4.3.2, see https://github.com/nunit/nunit/issues/4954
 			Assert.That(top["foo"]["date"], Is.EqualTo(now));
+#endif
 
 			Assert.That(top["bar"], Is.Not.Null);
 			Assert.That(top["bar"][0], Is.Not.Null);
@@ -9329,7 +9333,9 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(top["bar"][0]["false"], Is.EqualTo(false));
 			Assert.That(top["bar"][0]["zero"], Is.Zero);
 			Assert.That(top["bar"][0]["id"], Is.EqualTo(id));
+#if DISABLED // this is currently broken in NUnit 4.3.2, see https://github.com/nunit/nunit/issues/4954
 			Assert.That(top["bar"][0]["date"], Is.EqualTo(now));
+#endif
 
 			// ISSUES: the following statement unfortunately will not work as intended:
 

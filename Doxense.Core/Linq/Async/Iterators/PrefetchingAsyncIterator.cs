@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Linq.Async.Iterators
+namespace SnowBank.Linq.Async.Iterators
 {
 	using Doxense.Threading.Tasks;
 
@@ -51,14 +51,14 @@ namespace Doxense.Linq.Async.Iterators
 		/// <summary>Create a new batching iterator</summary>
 		/// <param name="source">Source sequence of items that must be batched by waves</param>
 		/// <param name="prefetchCount">Maximum size of a batch to return down the line</param>
-		public PrefetchingAsyncIterator(IAsyncEnumerable<TInput> source, int prefetchCount)
+		public PrefetchingAsyncIterator(IAsyncQuery<TInput> source, int prefetchCount)
 			: base(source)
 		{
 			Contract.Debug.Requires(prefetchCount > 0);
 			m_prefetchCount = prefetchCount;
 		}
 
-		protected override AsyncIterator<TInput> Clone()
+		protected override AsyncLinqIterator<TInput> Clone()
 		{
 			return new PrefetchingAsyncIterator<TInput>(m_source, m_prefetchCount);
 		}
@@ -86,6 +86,9 @@ namespace Doxense.Linq.Async.Iterators
 
 		protected virtual async ValueTask<bool> PrefetchNextItemsAsync()
 		{
+			var ct = this.Cancellation;
+			ct.ThrowIfCancellationRequested();
+
 			// read items from the source until the next call to Inner.MoveNext() is not already complete, or we have filled our prefetch buffer, then returns the first item in the buffer.
 			var iterator = m_iterator;
 			Contract.Debug.Requires(m_innerHasCompleted || iterator != null);
@@ -100,10 +103,10 @@ namespace Doxense.Linq.Async.Iterators
 			// always wait for the first item (so that we have at least something in the batch)
 			bool hasMore = await ft.ConfigureAwait(false);
 
-			// most db queries will read items by chunks, so there is a high chance the the next following calls to MoveNext() will already be completed
+			// most db queries will read items by chunks, so there is a high chance the next following calls to MoveNext() will already be completed
 			// as long as this is the case, and that our buffer is not full, continue eating items. Stop only when we end up with a pending task.
 
-			while (hasMore && !m_ct.IsCancellationRequested)
+			while (hasMore && !ct.IsCancellationRequested)
 			{
 				m_buffer ??= new Queue<TInput>(m_prefetchCount);
 				m_buffer.Enqueue(iterator!.Current);
@@ -119,7 +122,7 @@ namespace Doxense.Linq.Async.Iterators
 				hasMore = vt.Result;
 				//note: if inner blows up, we won't send any previously read items down the line. This may change the behavior of queries with a .Take(N) that would have stopped before reading the (N+1)th item that would have failed.
 			}
-			m_ct.ThrowIfCancellationRequested();
+			ct.ThrowIfCancellationRequested();
 
 			if (!hasMore)
 			{

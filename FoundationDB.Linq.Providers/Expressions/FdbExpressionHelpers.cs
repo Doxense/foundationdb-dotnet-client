@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -27,6 +27,7 @@
 namespace FoundationDB.Linq.Expressions
 {
 	using System.Diagnostics.CodeAnalysis;
+	using SnowBank.Linq;
 
 	/// <summary>Helper class for working with extension expressions</summary>
 	public static class FdbExpressionHelpers
@@ -87,11 +88,11 @@ namespace FoundationDB.Linq.Expressions
 			throw new NotSupportedException($"Unsupported expression {expr}: '{expression.GetType().Name}' should return a constant value");
 		}
 
-		private static Task<T> Inline<T>(Func<IFdbReadOnlyTransaction, T> func, IFdbReadOnlyTransaction trans, CancellationToken ct)
+		private static Task<T> Inline<T>(Func<IFdbReadOnlyTransaction, T> func, IFdbReadOnlyTransaction trans)
 		{
 			try
 			{
-				if (ct.IsCancellationRequested) return Task.FromCanceled<T>(ct);
+				if (trans.Cancellation.IsCancellationRequested) return Task.FromCanceled<T>(trans.Cancellation);
 				return Task.FromResult(func(trans));
 			}
 			catch(Exception e)
@@ -101,31 +102,28 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Wraps an expression into another expression that returns a <see cref="Task{T}"/> with the result of the expression</summary>
-		public static Expression<Func<IFdbReadOnlyTransaction, CancellationToken, Task<T>>> ToTask<T>(Expression<Func<IFdbReadOnlyTransaction, T>> lambda)
+		public static Expression<Func<IFdbReadOnlyTransaction, Task<T>>> ToTask<T>(Expression<Func<IFdbReadOnlyTransaction, T>> lambda)
 		{
 			// rewrite a Func<..., T> into a Func<..., Task<T>>
 
 			var prmTrans = Expression.Parameter(typeof(IFdbReadOnlyTransaction), "trans");
-			var prmCancel = Expression.Parameter(typeof(CancellationToken), "ct");
 
-			var body = RewriteCall<Func<IFdbReadOnlyTransaction, CancellationToken, Func<IFdbReadOnlyTransaction, T>, Task<T>>>(
-				(trans, ct, func) => Inline<T>(func, trans, ct),
+			var body = RewriteCall<Func<IFdbReadOnlyTransaction, Func<IFdbReadOnlyTransaction, T>, Task<T>>>(
+				(trans, func) => Inline<T>(func, trans),
 				prmTrans,
-				prmCancel,
 				lambda
 			);
 
-			return Expression.Lambda<Func<IFdbReadOnlyTransaction, CancellationToken, Task<T>>>(
+			return Expression.Lambda<Func<IFdbReadOnlyTransaction, Task<T>>>(
 				body,
-				prmTrans,
-				prmCancel
+				prmTrans
 			);
 		}
 
-		internal static Task<TResult> ExecuteEnumerable<TSource, TResult>(Func<IFdbReadOnlyTransaction, IAsyncEnumerable<TSource>> generator, Func<IAsyncEnumerable<TSource>, CancellationToken, Task<TResult>> lambda, IFdbReadOnlyTransaction trans, CancellationToken ct)
+		internal static Task<TResult> ExecuteEnumerable<TSource, TResult>(Func<IFdbReadOnlyTransaction, IAsyncQuery<TSource>> generator, Func<IAsyncQuery<TSource>, Task<TResult>> lambda, IFdbReadOnlyTransaction trans)
 		{
 			Contract.Debug.Requires(generator != null && lambda != null && trans != null);
-			if (ct.IsCancellationRequested) return Task.FromCanceled<TResult>(ct);
+			if (trans.Cancellation.IsCancellationRequested) return Task.FromCanceled<TResult>(trans.Cancellation);
 			try
 			{
 				var enumerable = generator(trans);
@@ -133,7 +131,7 @@ namespace FoundationDB.Linq.Expressions
 				{
 					return Task.FromException<TResult>(new InvalidOperationException("Source query returned null"));
 				}
-				return lambda(enumerable, ct);
+				return lambda(enumerable);
 			}
 			catch (Exception e)
 			{

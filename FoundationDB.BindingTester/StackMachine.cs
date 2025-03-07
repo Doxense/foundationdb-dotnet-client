@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -142,12 +142,11 @@ namespace FoundationDB.Client.Testing
 
 			this.Stack.Clear();
 
-			var instructions = await db.ReadAsync(
+			var instructions = await db.QueryAsync(
 				tr => tr
 					.GetRangeValues(KeyRange.StartsWith(this.Prefix))
 					.Select((v) => TestInstruction.Parse(v))
-					.ToListAsync(),
-				ct);
+				, ct);
 
 			int index = 0;
 			foreach (var instr in instructions)

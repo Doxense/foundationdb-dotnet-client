@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -27,7 +27,7 @@
 
 namespace FoundationDB.Client
 {
-	using Doxense.Linq;
+	using SnowBank.Linq;
 
 	/// <summary>Base interface for queries that will read ranges of results from the database</summary>
 	public interface IFdbRangeQuery
@@ -69,7 +69,7 @@ namespace FoundationDB.Client
 
 	/// <summary>Query that will asynchronously stream decoded results from one or more GetRange operations</summary>
 	/// <typeparam name="TResult">Type of the results decoded from the key/value pairs</typeparam>
-	public interface IFdbRangeQuery<TResult> : IFdbRangeQuery, IConfigurableAsyncEnumerable<TResult>
+	public interface IFdbRangeQuery<TResult> : IFdbRangeQuery, IAsyncLinqQuery<TResult>
 	{
 
 		/// <summary>Returns pages of results, as they arrive</summary>
@@ -90,66 +90,18 @@ namespace FoundationDB.Client
 		/// <param name="count">Maximum number of results to return</param>
 		/// <returns>A new query object that will only return up to <paramref name="count"/> results when executed</returns>
 		[MustUseReturnValue, LinqTunnel]
-		IFdbRangeQuery<TResult> Take([Positive] int count);
+		new IFdbRangeQuery<TResult> Take([Positive] int count);
+
+		/// <summary>Returns only results in a specific range</summary>
+		/// <param name="range">Range of the results to return</param>
+		/// <returns>A new query object that will only a range of results when executed</returns>
+		new IFdbRangeQuery<TResult> Take(Range range);
 
 		/// <summary>Skips a specific number of results</summary>
 		/// <param name="count">Number of results to skip</param>
 		/// <returns>A new query object that will ignore the <paramref name="count"/> results when executed</returns>
 		[MustUseReturnValue, LinqTunnel]
-		IFdbRangeQuery<TResult> Skip([Positive] int count);
-
-		/// <summary>Projects each element of the range results into a new form.</summary>
-		/// <param name="lambda">Function that is invoked for each source element, and will return the corresponding transformed element.</param>
-		/// <returns>New range query that outputs the sequence of transformed elements</returns>
-		/// <example><c>query.Select((kv) => $"{kv.Key:K} = {kv.Value:V}")</c></example>
-		[MustUseReturnValue, LinqTunnel]
-		IFdbRangeQuery<TOther> Select<TOther>(Func<TResult, TOther> lambda);
-
-		/// <summary>Projects each element of the range results into a new form.</summary>
-		/// <param name="lambda">Function that is invoked for each source element, and will return the corresponding transformed element.</param>
-		/// <returns>New range query that outputs the sequence of transformed elements</returns>
-		/// <example><c>query.Select((kv) => $"{kv.Key:K} = {kv.Value:V}")</c></example>
-		[MustUseReturnValue, LinqTunnel]
-		IFdbRangeQuery<TOther> Select<TOther>(Func<TResult, int, TOther> lambda);
-
-		/// <summary>Filters the range results based on a predicate.</summary>
-		/// <remarks>Caution: filtering occurs on the client side !</remarks>
-		/// <example><c>query.Where((kv) => kv.Key.StartsWith(prefix))</c> or <c>query.Where((kv) => !kv.Value.IsNull)</c></example>
-		[MustUseReturnValue, LinqTunnel]
-		IAsyncEnumerable<TResult> Where(Func<TResult, bool> predicate);
-
-		/// <summary>Returns the first result of the query, or the default for this type if the query yields no results.</summary>
-		Task<TResult> FirstOrDefaultAsync();
-
-		/// <summary>Returns the first result of the query, or an exception if the query yields no result.</summary>
-		/// <exception cref="InvalidOperationException">If the query yields no result</exception>
-		Task<TResult> FirstAsync();
-
-		/// <summary>Returns the last result of the query, or the default for this type if the query yields no results.</summary>
-		Task<TResult> LastOrDefaultAsync();
-
-		/// <summary>Returns the last result of the query, or an exception if the query yields no result.</summary>
-		/// <exception cref="InvalidOperationException">If the query yields no result</exception>
-		Task<TResult> LastAsync();
-
-		/// <summary>Returns the only result of the query, the default for this type if the query yields no results, or an exception if it yields two or more results.</summary>
-		/// <exception cref="InvalidOperationException">If the query yields two or more results</exception>
-		Task<TResult> SingleOrDefaultAsync();
-
-		/// <summary>Returns the only result of the query, or an exception if it yields either zero, or more than one result.</summary>
-		/// <exception cref="InvalidOperationException">If the query yields two or more results</exception>
-		Task<TResult> SingleAsync();
-
-		/// <summary>Returns the number of elements in the range, by reading them</summary>
-		/// <remarks>This method has to read all the keys and values, which may exceed the lifetime of a transaction. Please consider using <see cref="Fdb.System.EstimateCountAsync(FoundationDB.Client.IFdbDatabase,FoundationDB.Client.KeyRange,System.Threading.CancellationToken)"/> when reading potentially large ranges.</remarks>
-		Task<int> CountAsync();
-
-		/// <summary>Returns <see langword="true"/> if the range query yields at least one element, or <see langword="false"/> if there was no result.</summary>
-		Task<bool> AnyAsync();
-
-		/// <summary>Returns <see langword="true"/> if the range query does not yield any result, or <see langword="false"/> if there was at least one result.</summary>
-		/// <remarks>This is a convenience method that is there to help porting layer code from other languages. This is strictly equivalent to calling "!(await query.AnyAsync())".</remarks>
-		Task<bool> NoneAsync();
+		new IFdbRangeQuery<TResult> Skip([Positive] int count);
 
 		/// <summary>Executes an action on each key/value pairs in the range results</summary>
 		Task ForEachAsync(Action<TResult> action);
@@ -157,14 +109,55 @@ namespace FoundationDB.Client
 		/// <summary>Executes an action on each key/value pairs in the range results</summary>
 		Task<TAggregate> ForEachAsync<TAggregate>(TAggregate aggregate, Action<TAggregate, TResult> action);
 
-		/// <summary>Returns a list of all the elements of the range results</summary>
-		Task<List<TResult>> ToListAsync();
+		#region Pseudo-LINQ...
 
-		/// <summary>Returns an array with all the elements of the range results</summary>
-		Task<TResult[]> ToArrayAsync();
+		// we override some of these to return the same interface
 
-		/// <summary>Returns a dictionary with the decoded keys and values of the range results</summary>
-		Task<Dictionary<TKey, TValue>> ToDictionary<TKey, TValue>(Func<TResult, TKey> keySelector, Func<TResult, TValue> valueSelector, IEqualityComparer<TKey>? keyComparer = null) where TKey : notnull;
+		/// <summary>Filters the range results based on a predicate.</summary>
+		/// <remarks>Caution: filtering occurs on the client side !</remarks>
+		/// <example><c>query.Where((kv) => kv.Key.StartsWith(prefix))</c> or <c>query.Where((kv) => !kv.Value.IsNull)</c></example>
+		[MustUseReturnValue, LinqTunnel]
+		new IAsyncLinqQuery<TResult> Where(Func<TResult, bool> predicate);
+
+		new IAsyncLinqQuery<TResult> Where(Func<TResult, int, bool> predicate);
+
+		new IAsyncLinqQuery<TResult> Where(Func<TResult, CancellationToken, Task<bool>> predicate);
+
+		new IAsyncLinqQuery<TResult> Where(Func<TResult, int, CancellationToken, Task<bool>> predicate);
+
+		/// <summary>Projects each element of the range results into a new form.</summary>
+		/// <param name="selector">Function that is invoked for each source element, and will return the corresponding transformed element.</param>
+		/// <returns>New range query that outputs the sequence of transformed elements</returns>
+		/// <example><c>query.Select((kv) => $"{kv.Key:K} = {kv.Value:V}")</c></example>
+		[MustUseReturnValue, LinqTunnel]
+		new IFdbRangeQuery<TNew> Select<TNew>(Func<TResult, TNew> selector);
+
+		/// <summary>Projects each element of the range results into a new form.</summary>
+		/// <param name="selector">Function that is invoked for each source element, and will return the corresponding transformed element.</param>
+		/// <returns>New range query that outputs the sequence of transformed elements</returns>
+		/// <example><c>query.Select((kv) => $"{kv.Key:K} = {kv.Value:V}")</c></example>
+		[MustUseReturnValue, LinqTunnel]
+		new IFdbRangeQuery<TNew> Select<TNew>(Func<TResult, int, TNew> selector);
+
+		new IFdbRangeQuery<TNew> Select<TNew>(Func<TResult, CancellationToken, Task<TNew>> selector);
+
+		new IFdbRangeQuery<TNew> Select<TNew>(Func<TResult, int, CancellationToken, Task<TNew>> selector);
+
+		new IFdbRangeQuery<TNew> SelectMany<TNew>(Func<TResult, IEnumerable<TNew>> selector);
+
+		new IFdbRangeQuery<TNew> SelectMany<TNew>(Func<TResult, CancellationToken, Task<IEnumerable<TNew>>> selector);
+
+		new IFdbRangeQuery<TNew> SelectMany<TNew>(Func<TResult, IAsyncEnumerable<TNew>> selector);
+
+		new IFdbRangeQuery<TNew> SelectMany<TNew>(Func<TResult, IAsyncQuery<TNew>> selector);
+
+		new IFdbRangeQuery<TNew> SelectMany<TCollection, TNew>(Func<TResult, IEnumerable<TCollection>> collectionSelector, Func<TResult, TCollection, TNew> resultSelector);
+
+		new IFdbRangeQuery<TNew> SelectMany<TCollection, TNew>(Func<TResult, CancellationToken, Task<IEnumerable<TCollection>>> collectionSelector, Func<TResult, TCollection, TNew> resultSelector);
+
+		new IFdbRangeQuery<TResult> TakeWhile(Func<TResult, bool> condition);
+
+		#endregion
 
 	}
 
@@ -201,7 +194,7 @@ namespace FoundationDB.Client
 	/// <remarks>
 	/// <para>The results are returned batches of results, as soon as they are received by the client. The size of the batch may vary, and can be controlled by the <see cref="FdbRangeOptions.Streaming"/> option.</para>
 	/// </remarks>
-	public interface IFdbPagedQuery<TResult> : IFdbRangeQuery, IConfigurableAsyncEnumerable<ReadOnlyMemory<TResult>>
+	public interface IFdbPagedQuery<TResult> : IFdbRangeQuery, IAsyncQuery<ReadOnlyMemory<TResult>>
 	{
 
 		/// <summary>Reverses the order in which the results will be returned</summary>

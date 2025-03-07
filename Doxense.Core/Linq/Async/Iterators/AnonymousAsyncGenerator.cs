@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -24,12 +24,12 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Linq.Async.Iterators
+namespace SnowBank.Linq.Async.Iterators
 {
 
 	/// <summary>Generate items asynchronously, using a user-provided lambda</summary>
 	/// <typeparam name="TOutput">Type of the items produced by this generator</typeparam>
-	public class AnonymousAsyncGenerator<TOutput> : AsyncIterator<TOutput>
+	public class AnonymousAsyncGenerator<TOutput> : AsyncLinqIterator<TOutput>
 	{
 		// use a custom lambda that returns Maybe<TOutput> results, asynchronously
 		// => as long as the result has a value, continue iterating
@@ -47,24 +47,29 @@ namespace Doxense.Linq.Async.Iterators
 
 		private long m_index;
 
-		public AnonymousAsyncGenerator(Func<long, CancellationToken, Task<Maybe<TOutput>>> generator)
-			: this((Delegate) generator)
+		private readonly CancellationToken m_ct;
+
+		public AnonymousAsyncGenerator(Func<long, CancellationToken, Task<Maybe<TOutput>>> generator, CancellationToken ct)
+			: this((Delegate) generator, ct)
 		{ }
 
-		public AnonymousAsyncGenerator(Func<long, CancellationToken, ValueTask<Maybe<TOutput>>> generator)
-			: this((Delegate)generator)
+		public AnonymousAsyncGenerator(Func<long, CancellationToken, ValueTask<Maybe<TOutput>>> generator, CancellationToken ct)
+			: this((Delegate) generator, ct)
 		{ }
 
-		private AnonymousAsyncGenerator(Delegate generator)
+		private AnonymousAsyncGenerator(Delegate generator, CancellationToken ct)
 		{
 			Contract.Debug.Requires(generator != null);
 			m_generator = generator;
 			m_index = -1;
+			m_ct = ct;
 		}
 
-		protected override AsyncIterator<TOutput> Clone()
+		public override CancellationToken Cancellation => m_ct;
+
+		protected override AsyncLinqIterator<TOutput> Clone()
 		{
-			return new AnonymousAsyncGenerator<TOutput>(m_generator);
+			return new AnonymousAsyncGenerator<TOutput>(m_generator, m_ct);
 		}
 
 		protected override ValueTask<bool> OnFirstAsync()

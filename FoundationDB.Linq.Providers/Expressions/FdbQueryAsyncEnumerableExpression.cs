@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -26,6 +26,7 @@
 
 namespace FoundationDB.Linq.Expressions
 {
+	using SnowBank.Linq;
 #if NET8_0_OR_GREATER
 	using System.Diagnostics.CodeAnalysis;
 #endif
@@ -37,7 +38,7 @@ namespace FoundationDB.Linq.Expressions
 	public sealed class FdbQueryAsyncEnumerableExpression<T> : FdbQuerySequenceExpression<T>
 	{
 
-		internal FdbQueryAsyncEnumerableExpression(IAsyncEnumerable<T> source)
+		internal FdbQueryAsyncEnumerableExpression(IAsyncQuery<T> source)
 		{
 			Contract.Debug.Requires(source != null);
 			this.Source = source;
@@ -47,7 +48,7 @@ namespace FoundationDB.Linq.Expressions
 		public override FdbQueryShape Shape => FdbQueryShape.Sequence;
 
 		/// <summary>Source sequence of this expression</summary>
-		public IAsyncEnumerable<T> Source { get; }
+		public IAsyncQuery<T> Source { get; }
 
 		/// <summary>Apply a custom visitor to this expression</summary>
 		public override Expression Accept(FdbQueryExpressionVisitor visitor)
@@ -62,17 +63,17 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Returns a new expression that will execute this query on a transaction and return a single result</summary>
-		public override Expression<Func<IFdbReadOnlyTransaction, CancellationToken, Task<IAsyncEnumerable<T>>>> CompileSingle()
+		public override Expression<Func<IFdbReadOnlyTransaction, Task<IAsyncQuery<T>>>> CompileSingle()
 		{
 			return FdbExpressionHelpers.ToTask(CompileSequence());
 		}
 
 		/// <summary>Returns a new expression that creates an async sequence that will execute this query on a transaction</summary>
-		public override Expression<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<T>>> CompileSequence()
+		public override Expression<Func<IFdbReadOnlyTransaction, IAsyncQuery<T>>> CompileSequence()
 		{
 			var prmTrans = Expression.Parameter(typeof(IFdbReadOnlyTransaction), "trans");
 
-			return Expression.Lambda<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<T>>>(
+			return Expression.Lambda<Func<IFdbReadOnlyTransaction, IAsyncQuery<T>>>(
 				Expression.Constant(this.Source), 
 				prmTrans
 			);

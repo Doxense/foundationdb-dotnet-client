@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -28,6 +28,7 @@ namespace FoundationDB.Layers.Collections
 {
 	using System.Linq;
 	using System.Threading;
+	using SnowBank.Linq;
 	using Doxense.Serialization.Encoders;
 
 	[DebuggerDisplay("Location={Location}")]
@@ -134,7 +135,7 @@ namespace FoundationDB.Layers.Collections
 			/// <param name="options"></param>
 			/// <returns>Async sequence of pairs of keys and values, ordered by keys ascending.</returns>
 			/// <remarks>CAUTION: This can be dangerous if the map contains a lot of entries! You should always use .Take() to limit the number of results returned.</remarks>
-			public IAsyncEnumerable<KeyValuePair<TKey, TValue?>> All(IFdbReadOnlyTransaction trans, FdbRangeOptions? options = null)
+			public IAsyncQuery<KeyValuePair<TKey, TValue?>> All(IFdbReadOnlyTransaction trans, FdbRangeOptions? options = null)
 			{
 				Contract.NotNull(trans);
 
@@ -153,7 +154,7 @@ namespace FoundationDB.Layers.Collections
 				Contract.NotNull(ids);
 
 				var kv = await trans.GetValuesAsync(ids.Select(id => this.Subspace[id])).ConfigureAwait(false);
-				if (kv.Length == 0) return Array.Empty<TValue>();
+				if (kv.Length == 0) return [ ];
 
 				var result = new TValue?[kv.Length];
 				var decoder = this.ValueEncoder;

@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -3845,7 +3845,7 @@ namespace FoundationDB.Client.Tests
 
 					var estimatedSize = await tr.GetEstimatedRangeSizeBytesAsync(begin, end);
 
-					var exactSize = await tr.GetRange(begin, end).SumAsync(kv => kv.Value.Count + kv.Key.Count);
+					var exactSize = await tr.GetRange(begin, end).Select(kv => kv.Value.Count + kv.Key.Count).SumAsync();
 
 					Log($"> ({x,6:N0} .. {y,6:N0}): estimated = {estimatedSize,9:N0} bytes, exact(key+value) = {exactSize,9:N0} bytes, ratio = {(100.0 * estimatedSize) / exactSize,6:N1}%");
 					Assert.That(estimatedSize, Is.GreaterThanOrEqualTo(0)); //note: it is _possible_ to have 0 for very small ranges :(

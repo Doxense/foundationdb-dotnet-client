@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -26,8 +26,7 @@
 
 namespace FoundationDB.Client
 {
-	using System.Buffers.Text;
-	using Doxense.Linq;
+	using SnowBank.Linq;
 	using Doxense.Serialization.Json;
 
 	/// <summary>Tenant configuration mode of a FoundationDB cluster</summary>
@@ -73,7 +72,7 @@ namespace FoundationDB.Client
 				var val = await tr.GetAsync(TenantModeKey).ConfigureAwait(false);
 				if (val.IsNullOrEmpty) return FdbTenantMode.Disabled;
 				// this is a number represented as a decimal string
-				// so "0" is Disabled, "1" is Optional, etc..
+				// so "0" is Disabled, "1" is Optional, etc...
 				if (!int.TryParse(val.ToString(), out var value))
 				{
 					return FdbTenantMode.Invalid;
@@ -85,7 +84,7 @@ namespace FoundationDB.Client
 			/// <summary>Creates a new tenant in the cluster</summary>
 			public static void CreateTenant(IFdbTransaction tr, FdbTenantName name)
 			{
-				// just setting the key in the tenant module will trigger the creation of the teant, once the transaction commits
+				// just setting the key in the tenant module will trigger the creation of the tenant, once the transaction commits
 				// the tenant module will do the prefix allocation and generate the new tenant entry in the cluster.
 				tr.Options.WithSpecialKeySpaceEnableWrites();
 				tr.Set(TenantMapPrefix + name.Value, Slice.Empty);
@@ -105,7 +104,7 @@ namespace FoundationDB.Client
 
 				// as of version 7.3, this is a JSON document that looks like { "id":xxx, "prefix": { "base64": "AAA...E=", "printable": "\u0000\u0000\u000...\u0042" } }
 				// The current implementation assign each tenant a new unique sequential integer id, and it's prefix will be this id encoded as 64-bit big-endian.
-				
+
 				var obj = CrystalJson.Parse(data).AsObjectOrDefault();
 				if (obj == null) throw new FormatException("Invalid Tenant Metadata format: required JSON document is missing.");
 
@@ -113,11 +112,11 @@ namespace FoundationDB.Client
 				if (id == null) throw new FormatException("Invalid Tenant Metadata format: required 'id' field is missing.");
 
 				if (!obj.ContainsKey("prefix")) throw new FormatException("Invalid Tenant Metadata format: required 'prefix' field is missing.");
-				
+
 				var prefixObj = obj.GetObject("prefix");
 				var prefixBase64 = prefixObj.Get<string?>("base64", null);
 				if (prefixBase64 == null) throw new FormatException("Invalid Tenant Metadata format: required 'prefix.base64' field is missing.");
-				
+
 				var prefix = Slice.FromBase64(prefixBase64);
 
 				return new FdbTenantMetadata()
@@ -147,7 +146,7 @@ namespace FoundationDB.Client
 				tr.Clear(TenantMapPrefix + name.Value);
 			}
 
-			public static IAsyncEnumerable<FdbTenantMetadata> QueryTenants(IFdbReadOnlyTransaction tr, Slice? prefix = null, Func<Slice, bool>? filter = null)
+			public static IAsyncQuery<FdbTenantMetadata> QueryTenants(IFdbReadOnlyTransaction tr, Slice? prefix = null, Func<Slice, bool>? filter = null)
 			{
 				Contract.NotNull(tr);
 				return tr

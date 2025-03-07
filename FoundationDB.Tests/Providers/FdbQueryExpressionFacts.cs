@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,7 @@
 	using System.Linq.Expressions;
 	using Doxense.Serialization;
 	using FoundationDB.Layers.Indexing;
+	using SnowBank.Linq;
 
 	[TestFixture]
 	public class FdbQueryExpressionFacts : FdbTest
@@ -67,7 +68,7 @@
 			Assert.That(expr.Value, Is.Not.Null);
 			Assert.That(expr.Value, Is.InstanceOf<ConstantExpression>().With.Property("Value").EqualTo("world"));
 
-			Assert.That(expr.Type, Is.EqualTo(typeof(IAsyncEnumerable<int>)));
+			Assert.That(expr.Type, Is.EqualTo(typeof(IAsyncQuery<int>)));
 			Assert.That(expr.ElementType, Is.EqualTo(typeof(int)));
 
 			Log(FdbQueryExpressions.ExplainSequence(expr));
@@ -89,7 +90,7 @@
 			Assert.That(expr.Value, Is.Not.Null);
 			Assert.That(expr.Value, Is.InstanceOf<ConstantExpression>().With.Property("Value").EqualTo("world"));
 
-			Assert.That(expr.Type, Is.EqualTo(typeof(IAsyncEnumerable<int>)));
+			Assert.That(expr.Type, Is.EqualTo(typeof(IAsyncQuery<int>)));
 			Assert.That(expr.ElementType, Is.EqualTo(typeof(int)));
 
 			Log(FdbQueryExpressions.ExplainSequence(expr));
@@ -108,7 +109,7 @@
 			Assert.That(expr.Range.Begin.Key.ToString(), Is.EqualTo("<02>Foo<00><00>"));
 			Assert.That(expr.Range.End.Key.ToString(), Is.EqualTo("<02>Foo<00><FF>"));
 
-			Assert.That(expr.Type, Is.EqualTo(typeof(IAsyncEnumerable<KeyValuePair<Slice, Slice>>)));
+			Assert.That(expr.Type, Is.EqualTo(typeof(IAsyncQuery<KeyValuePair<Slice, Slice>>)));
 			Assert.That(expr.ElementType, Is.EqualTo(typeof(KeyValuePair<Slice, Slice>)));
 
 			Log(FdbQueryExpressions.ExplainSequence(expr));
@@ -138,7 +139,7 @@
 			Assert.That(expr.Terms[0], Is.SameAs(expr1));
 			Assert.That(expr.Terms[1], Is.SameAs(expr2));
 
-			Assert.That(expr.Type, Is.EqualTo(typeof(IAsyncEnumerable<int>)));
+			Assert.That(expr.Type, Is.EqualTo(typeof(IAsyncQuery<int>)));
 			Assert.That(expr.ElementType, Is.EqualTo(typeof(int)));
 
 			Log(FdbQueryExpressions.ExplainSequence(expr));
@@ -168,7 +169,7 @@
 			Assert.That(expr.Terms[0], Is.SameAs(expr1));
 			Assert.That(expr.Terms[1], Is.SameAs(expr2));
 
-			Assert.That(expr.Type, Is.EqualTo(typeof(IAsyncEnumerable<int>)));
+			Assert.That(expr.Type, Is.EqualTo(typeof(IAsyncQuery<int>)));
 			Assert.That(expr.ElementType, Is.EqualTo(typeof(int)));
 
 			Log(FdbQueryExpressions.ExplainSequence(expr));
@@ -187,7 +188,7 @@
 			Assert.That(expr.Source, Is.Not.Null.And.InstanceOf<FdbQueryRangeExpression>());
 			Assert.That(expr.Transform, Is.Not.Null);
 
-			Assert.That(expr.Type, Is.EqualTo(typeof(IAsyncEnumerable<string>)));
+			Assert.That(expr.Type, Is.EqualTo(typeof(IAsyncQuery<string>)));
 			Assert.That(expr.ElementType, Is.EqualTo(typeof(string)));
 
 			Log(FdbQueryExpressions.ExplainSequence(expr));
@@ -206,7 +207,7 @@
 			Assert.That(expr.Source, Is.Not.Null.And.InstanceOf<FdbQueryRangeExpression>());
 			Assert.That(expr.Filter, Is.Not.Null);
 
-			Assert.That(expr.Type, Is.EqualTo(typeof(IAsyncEnumerable<KeyValuePair<Slice, Slice>>)));
+			Assert.That(expr.Type, Is.EqualTo(typeof(IAsyncQuery<KeyValuePair<Slice, Slice>>)));
 			Assert.That(expr.ElementType, Is.EqualTo(typeof(KeyValuePair<Slice, Slice>)));
 
 			Log(FdbQueryExpressions.ExplainSequence(expr));

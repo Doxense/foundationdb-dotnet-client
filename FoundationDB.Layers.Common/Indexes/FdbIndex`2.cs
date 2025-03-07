@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -26,7 +26,7 @@
 
 namespace FoundationDB.Layers.Indexing
 {
-	using Doxense.Linq;
+	using SnowBank.Linq;
 
 	/// <summary>Simple index that maps values of type <typeparamref name="TValue"/> into lists of ids of type <typeparamref name="TId"/></summary>
 	/// <typeparam name="TId">Type of the unique id of each document or entity</typeparam>
@@ -204,10 +204,10 @@ namespace FoundationDB.Layers.Indexing
 		/// <param name="value">Value to lookup</param>
 		/// <param name="reverse">If true, returns the results in reverse identifier order</param>
 		/// <returns>List of the ids of entities that match the value</returns>
-		public IAsyncEnumerable<TId> Lookup(IFdbReadOnlyTransaction trans, TValue? value, bool reverse = false)
+		public IAsyncQuery<TId> Lookup(IFdbReadOnlyTransaction trans, TValue? value, bool reverse = false)
 		{
 			Contract.NotNull(trans);
-			return AsyncEnumerable.Defer<TId, IFdbRangeQuery<TId>>((_) => CreateLookupQuery(trans, value, reverse));
+			return AsyncQuery.Defer((Index: this, Trans: trans, Value: value, Reverse: reverse), (args, _) => args.Index.CreateLookupQuery(args.Trans, args.Value, args.Reverse), trans.Cancellation);
 		}
 
 		/// <summary>Returns a query that will return all id of the entities that have the specified value in this index</summary>
@@ -215,31 +215,31 @@ namespace FoundationDB.Layers.Indexing
 		/// <param name="value">Value to lookup</param>
 		/// <param name="reverse">If true, returns the results in reverse identifier order</param>
 		/// <returns>Range query that returns all the ids of entities that match the value</returns>
-		public async Task<IFdbRangeQuery<TId>> CreateLookupQuery(IFdbReadOnlyTransaction trans, TValue? value, bool reverse = false)
+		public async Task<IAsyncLinqQuery<TId>> CreateLookupQuery(IFdbReadOnlyTransaction trans, TValue? value, bool reverse = false)
 		{
 			var state = await Resolve(trans);
 			return state.Lookup(trans, value, reverse);
 		}
 
-		public IAsyncEnumerable<TId> LookupGreaterThan(IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
+		public IAsyncLinqQuery<TId> LookupGreaterThan(IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
 		{
 			Contract.NotNull(trans);
-			return AsyncEnumerable.Defer<TId, IFdbRangeQuery<TId>>((_) => CreateLookupGreaterThanQuery(trans, value, orEqual, reverse));
+			return AsyncQuery.Defer((_) => CreateLookupGreaterThanQuery(trans, value, orEqual, reverse), trans.Cancellation);
 		}
 
-		public async Task<IFdbRangeQuery<TId>> CreateLookupGreaterThanQuery(IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
+		public async Task<IAsyncLinqQuery<TId>> CreateLookupGreaterThanQuery(IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
 		{
 			var state = await Resolve(trans);
 			return state.LookupGreaterThan(trans, value, orEqual, reverse);
 		}
 
-		public IAsyncEnumerable<TId> LookupLessThan(IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
+		public IAsyncLinqQuery<TId> LookupLessThan(IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
 		{
 			Contract.NotNull(trans);
-			return AsyncEnumerable.Defer<TId, IFdbRangeQuery<TId>>((_) => CreateLookupLessThanQuery(trans, value, orEqual, reverse));
+			return AsyncQuery.Defer((_) => CreateLookupLessThanQuery(trans, value, orEqual, reverse), trans.Cancellation);
 		}
 
-		public async Task<IFdbRangeQuery<TId>> CreateLookupLessThanQuery(IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
+		public async Task<IAsyncLinqQuery<TId>> CreateLookupLessThanQuery(IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
 		{
 			var state = await Resolve(trans);
 			return state.LookupLessThan(trans, value, orEqual, reverse);

@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -38,10 +38,10 @@ namespace FdbShell
 	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Linq;
 	using Doxense.Memory;
 	using FoundationDB.Client.Status;
 	using Spectre.Console;
+	using SnowBank.Linq;
 
 	public static class BasicCommands
 	{
@@ -1225,9 +1225,9 @@ namespace FdbShell
 			var root = db.Root;
 			var current = root[path];
 			
-			var res = await db.ReadAsync(async tr =>
+			var res = await db.QueryAsync(async tr =>
 			{
-				return await query.FindDirectories(tr, db.Root[path]).ToListAsync();
+				return query.FindDirectories(tr, db.Root[path]);
 			}, ct);
 
 			terminal.StdOut(res.Count switch
@@ -1263,10 +1263,7 @@ namespace FdbShell
 			var root = db.Root;
 			var current = root[path];
 			
-			var res = await db.ReadAsync(async tr =>
-			{
-				return await query.Scan(tr, db.Root[path]).ToListAsync();
-			}, ct);
+			var res = await db.QueryAsync(tr => query.Scan(tr, db.Root[path]), ct);
 
 			terminal.StdOut(res.Count switch
 			{

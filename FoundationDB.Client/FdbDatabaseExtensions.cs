@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -26,7 +26,9 @@
 
 namespace FoundationDB.Client
 {
+	using System.ComponentModel;
 	using System.Runtime.CompilerServices;
+
 	using Doxense.Collections.Tuples;
 
 	/// <summary>Provides a set of extensions methods shared by all FoundationDB database implementations.</summary>
@@ -69,6 +71,7 @@ namespace FoundationDB.Client
 		/// <remarks>You MUST call Dispose() on the transaction when you are done with it. You SHOULD wrap it in a 'using' statement to ensure that it is disposed in all cases.</remarks>
 		[Pure]
 		[Obsolete("Use BeginTransaction() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static ValueTask<IFdbTransaction> BeginTransactionAsync(this IFdbDatabase db, CancellationToken ct)
 		{
 			Contract.NotNull(db);

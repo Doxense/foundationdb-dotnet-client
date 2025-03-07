@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -24,13 +24,23 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Linq.Async.Iterators
+namespace SnowBank.Linq.Async.Iterators
 {
-	using Doxense.Linq.Async.Expressions;
+	using System;
+	using System.Buffers;
+	using System.Collections.Immutable;
+	using System.ComponentModel;
+	using System.Diagnostics.CodeAnalysis;
+	using System.Numerics;
+	using System.Reflection;
+	using Doxense.Linq;
+	using SnowBank.Linq.Async.Expressions;
+	using Doxense.Serialization;
 
 	/// <summary>Base class for all async iterators</summary>
 	/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
-	public abstract class AsyncIterator<TResult> : IConfigurableAsyncEnumerable<TResult>, IAsyncEnumerator<TResult>
+	[PublicAPI]
+	public abstract class AsyncLinqIterator<TResult> : IAsyncLinqQuery<TResult>, IAsyncEnumerable<TResult>, IAsyncEnumerator<TResult>
 	{
 		//REVIEW: we could need an IAsyncIterator<T> interface that holds all the Select(),Where(),Take(),... so that it can be used by AsyncEnumerable to either call them directly (if the query supports it) or use a generic implementation
 		// => this would be implemented by AsyncIterator<T> as well as FdbRangeQuery<T> (and ony other 'self optimizing' class)
@@ -44,33 +54,41 @@ namespace Doxense.Linq.Async.Iterators
 		protected TResult? m_current;
 		protected int m_state;
 		protected AsyncIterationHint m_mode;
-		protected CancellationToken m_ct;
 
 		#region IAsyncEnumerable<TResult>...
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public IAsyncEnumerator<TResult> GetAsyncEnumerator(CancellationToken ct) => GetAsyncEnumerator(ct, AsyncIterationHint.Default);
+		public abstract CancellationToken Cancellation { get; }
 
-		public IAsyncEnumerator<TResult> GetAsyncEnumerator(CancellationToken ct, AsyncIterationHint mode)
+		[MustDisposeResource]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		IAsyncEnumerator<TResult> IAsyncEnumerable<TResult>.GetAsyncEnumerator(CancellationToken ct)
+			=> AsyncQuery.GetCancellableAsyncEnumerator(this, AsyncIterationHint.All, ct);
+
+		[MustDisposeResource]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		IAsyncEnumerator<TResult> IAsyncQuery<TResult>.GetAsyncEnumerator(CancellationToken ct)
+			=> AsyncQuery.GetCancellableAsyncEnumerator(this, AsyncIterationHint.All, ct);
+
+		[MustDisposeResource]
+		public IAsyncEnumerator<TResult> GetAsyncEnumerator(AsyncIterationHint mode)
 		{
-			ct.ThrowIfCancellationRequested();
+			this.Cancellation.ThrowIfCancellationRequested();
 
 			// reuse the same instance the first time
 			if (Interlocked.CompareExchange(ref m_state, STATE_INIT, STATE_SEQ) == STATE_SEQ)
 			{
 				m_mode = mode;
-				m_ct = ct;
 				return this;
 			}
+
 			// create a new one
-			var iter = Clone();
-			iter.m_mode = mode;
-			iter.m_ct = ct;
-			Volatile.Write(ref iter.m_state, STATE_INIT);
-			return iter;
+			var iterator = Clone();
+			iterator.m_mode = mode;
+			Volatile.Write(ref iterator.m_state, STATE_INIT);
+			return iterator;
 		}
 
-		protected abstract AsyncIterator<TResult> Clone();
+		protected abstract AsyncLinqIterator<TResult> Clone();
 
 		#endregion
 
@@ -99,7 +117,7 @@ namespace Doxense.Linq.Async.Iterators
 				return false;
 			}
 
-			if (m_ct.IsCancellationRequested)
+			if (this.Cancellation.IsCancellationRequested)
 			{
 				return await Canceled().ConfigureAwait(false);
 			}
@@ -114,7 +132,7 @@ namespace Doxense.Linq.Async.Iterators
 					}
 
 					if (Interlocked.CompareExchange(ref m_state, STATE_ITERATING, STATE_INIT) != STATE_INIT)
-					{ // something happened while we where starting ?
+					{ // something happened while we were starting ?
 						return false;
 					}
 				}
@@ -132,100 +150,538 @@ namespace Doxense.Linq.Async.Iterators
 
 		#region LINQ...
 
-		public virtual AsyncIterator<TResult> Where(Func<TResult, bool> predicate)
+		/// <inheritdoc />
+		public virtual IAsyncEnumerable<TResult> ToAsyncEnumerable(AsyncIterationHint hint = AsyncIterationHint.Default)
+		{
+			return this;
+		}
+
+		#region To{Collection}Async...
+
+		/// <inheritdoc />
+		public virtual async Task<TResult[]> ToArrayAsync()
+		{
+			var buffer = new Buffer<TResult>(0, ArrayPool<TResult>.Shared);
+			await foreach (var item in this)
+			{
+				buffer.Add(item);
+			}
+			return buffer.ToArrayAndClear();
+		}
+
+		/// <inheritdoc />
+		public virtual async Task<List<TResult>> ToListAsync()
+		{
+			var buffer = new Buffer<TResult>(0, ArrayPool<TResult>.Shared);
+			await foreach (var item in this)
+			{
+				buffer.Add(item);
+			}
+			return buffer.ToListAndClear();
+		}
+
+		/// <inheritdoc />
+		public virtual async Task<ImmutableArray<TResult>> ToImmutableArrayAsync()
+		{
+			var buffer = new Buffer<TResult>(0, ArrayPool<TResult>.Shared);
+			await foreach (var item in this)
+			{
+				buffer.Add(item);
+			}
+			return buffer.ToImmutableArrayAndClear();
+		}
+
+		/// <inheritdoc />
+		public virtual Task<Dictionary<TKey, TResult>> ToDictionaryAsync<TKey>([InstantHandle] Func<TResult, TKey> keySelector, IEqualityComparer<TKey>? comparer = null)
+			where TKey : notnull
+		{
+			return ToDictionaryAsync(keySelector, x => x, comparer);
+		}
+
+		/// <inheritdoc />
+		public virtual async Task<Dictionary<TKey, TElement>> ToDictionaryAsync<TKey, TElement>([InstantHandle] Func<TResult, TKey> keySelector, [InstantHandle] Func<TResult, TElement> elementSelector, IEqualityComparer<TKey>? comparer = null)
+			where TKey : notnull
+		{
+
+			var map = new Dictionary<TKey, TElement>(comparer);
+			await foreach (var item in this)
+			{
+				map.Add(keySelector(item), elementSelector(item));
+			}
+
+			return map;
+		}
+
+		/// <inheritdoc />
+		public virtual async Task<HashSet<TResult>> ToHashSetAsync(IEqualityComparer<TResult>? comparer = null)
+		{
+			var buffer = new Buffer<TResult>(0, ArrayPool<TResult>.Shared);
+			await foreach (var item in this)
+			{
+				buffer.Add(item);
+			}
+			return buffer.ToHashSetAndClear(comparer);
+		}
+
+		#endregion
+
+		#region CountAsync...
+
+		public virtual Task<int> CountAsync()
+		{
+			return AsyncIterators.CountAsync(this);
+		}
+
+		public virtual Task<int> CountAsync(Func<TResult, bool> predicate)
 		{
 			Contract.NotNull(predicate);
 
-			return AsyncEnumerable.Filter(this, new AsyncFilterExpression<TResult>(predicate));
+			return AsyncIterators.CountAsync(this, predicate);
 		}
 
-		public virtual AsyncIterator<TResult> Where(Func<TResult, CancellationToken, Task<bool>> asyncPredicate)
+		public virtual Task<int> CountAsync(Func<TResult, CancellationToken, Task<bool>> predicate)
 		{
-			Contract.NotNull(asyncPredicate);
+			Contract.NotNull(predicate);
 
-			return AsyncEnumerable.Filter(this, new AsyncFilterExpression<TResult>(asyncPredicate));
+			return AsyncIterators.CountAsync(this, predicate);
 		}
 
-		public virtual AsyncIterator<TNew> Select<TNew>(Func<TResult, TNew> selector)
+		#endregion
+
+		#region AnyAsync...
+
+		/// <inheritdoc />
+		public virtual Task<bool> AnyAsync()
+		{
+			return AsyncIterators.AnyAsync(this);
+		}
+
+		/// <inheritdoc />
+		public virtual Task<bool> AnyAsync(Func<TResult, bool> predicate)
+		{
+			Contract.NotNull(predicate);
+
+			return AsyncIterators.AnyAsync(this, predicate);
+		}
+
+		/// <inheritdoc />
+		public virtual Task<bool> AnyAsync(Func<TResult, CancellationToken, Task<bool>> predicate)
+		{
+			Contract.NotNull(predicate);
+
+			return AsyncIterators.AnyAsync(this, predicate);
+		}
+
+		#endregion
+
+		#region AllAsync...
+
+		/// <inheritdoc />
+		public virtual Task<bool> AllAsync(Func<TResult, bool> predicate)
+		{
+			Contract.NotNull(predicate);
+
+			return AsyncIterators.AllAsync(this, predicate);
+		}
+
+		/// <inheritdoc />
+		public virtual Task<bool> AllAsync(Func<TResult, CancellationToken, Task<bool>> predicate)
+		{
+			Contract.NotNull(predicate);
+
+			return AsyncIterators.AllAsync(this, predicate);
+		}
+
+		#endregion
+
+		#region FirstOrDefaultAsync...
+
+		/// <inheritdoc />
+		public Task<TResult?> FirstOrDefaultAsync() => FirstOrDefaultAsync(default(TResult)!)!;
+
+		/// <inheritdoc />
+		public virtual Task<TResult> FirstOrDefaultAsync(TResult defaultValue)
+		{
+			return AsyncIterators.FirstOrDefaultAsync(this, defaultValue);
+		}
+
+		/// <inheritdoc />
+		public Task<TResult?> FirstOrDefaultAsync(Func<TResult, bool> predicate) => FirstOrDefaultAsync(predicate, default(TResult)!)!;
+
+		/// <inheritdoc />
+		public virtual Task<TResult> FirstOrDefaultAsync(Func<TResult, bool> predicate, TResult defaultValue)
+		{
+			Contract.NotNull(predicate);
+
+			return AsyncIterators.FirstOrDefaultAsync(this, predicate, defaultValue);
+		}
+
+		/// <inheritdoc />
+		public Task<TResult?> FirstOrDefaultAsync(Func<TResult, CancellationToken, Task<bool>> predicate) => FirstOrDefaultAsync(predicate, default(TResult)!)!;
+
+		/// <inheritdoc />
+		public virtual Task<TResult> FirstOrDefaultAsync(Func<TResult, CancellationToken, Task<bool>> predicate, TResult defaultValue)
+		{
+			Contract.NotNull(predicate);
+
+			return AsyncIterators.FirstOrDefaultAsync(this, predicate, defaultValue);
+		}
+
+		#endregion
+
+		#region FirstAsync...
+
+		/// <inheritdoc />
+		public virtual Task<TResult> FirstAsync()
+		{
+			return AsyncIterators.FirstAsync(this);
+		}
+
+		/// <inheritdoc />
+		public virtual Task<TResult> FirstAsync(Func<TResult, bool> predicate)
+		{
+			Contract.NotNull(predicate);
+
+			return AsyncIterators.FirstAsync(this, predicate);
+		}
+
+		/// <inheritdoc />
+		public virtual Task<TResult> FirstAsync(Func<TResult, CancellationToken, Task<bool>> predicate)
+		{
+			Contract.NotNull(predicate);
+
+			return AsyncIterators.FirstAsync(this, predicate);
+		}
+
+		#endregion
+
+		#region SingleOrDefaultAsync...
+
+		/// <inheritdoc />
+		public Task<TResult?> SingleOrDefaultAsync() => SingleOrDefaultAsync(default(TResult)!)!;
+
+		/// <inheritdoc />
+		public virtual Task<TResult> SingleOrDefaultAsync(TResult defaultValue)
+		{
+			return AsyncIterators.SingleOrDefaultAsync(this, defaultValue);
+		}
+
+		/// <inheritdoc />
+		public Task<TResult?> SingleOrDefaultAsync(Func<TResult, bool> predicate) => SingleOrDefaultAsync(predicate, default(TResult)!)!;
+
+		/// <inheritdoc />
+		public virtual Task<TResult> SingleOrDefaultAsync(Func<TResult, bool> predicate, TResult defaultValue)
+		{
+			Contract.NotNull(predicate);
+
+			return AsyncIterators.SingleOrDefaultAsync(this, predicate, defaultValue);
+		}
+
+		/// <inheritdoc />
+		public Task<TResult?> SingleOrDefaultAsync(Func<TResult, CancellationToken, Task<bool>> predicate) => SingleOrDefaultAsync(predicate, default(TResult)!)!;
+
+		/// <inheritdoc />
+		public virtual Task<TResult> SingleOrDefaultAsync(Func<TResult, CancellationToken, Task<bool>> predicate, TResult defaultValue)
+		{
+			Contract.NotNull(predicate);
+
+			return AsyncIterators.SingleOrDefaultAsync(this, predicate, defaultValue);
+		}
+
+		#endregion
+
+		#region SingleAsync...
+
+		/// <inheritdoc />
+		public virtual Task<TResult> SingleAsync()
+		{
+			return AsyncIterators.SingleAsync(this);
+		}
+
+		/// <inheritdoc />
+		public virtual Task<TResult> SingleAsync(Func<TResult, bool> predicate)
+		{
+			Contract.NotNull(predicate);
+
+			return AsyncIterators.SingleAsync(this, predicate);
+		}
+
+		/// <inheritdoc />
+		public virtual Task<TResult> SingleAsync(Func<TResult, CancellationToken, Task<bool>> predicate)
+		{
+			Contract.NotNull(predicate);
+
+			return AsyncIterators.SingleAsync(this, predicate);
+		}
+
+		#endregion
+
+		#region LastOrDefaultAsync...
+
+		/// <inheritdoc />
+		public Task<TResult?> LastOrDefaultAsync() => LastOrDefaultAsync(default(TResult)!)!;
+
+		/// <inheritdoc />
+		public virtual Task<TResult> LastOrDefaultAsync(TResult defaultValue)
+		{
+			return AsyncIterators.LastOrDefaultAsync(this, defaultValue);
+		}
+
+		/// <inheritdoc />
+		public Task<TResult?> LastOrDefaultAsync(Func<TResult, bool> predicate) => LastOrDefaultAsync(predicate, default(TResult)!)!;
+
+		/// <inheritdoc />
+		public virtual Task<TResult> LastOrDefaultAsync(Func<TResult, bool> predicate, TResult defaultValue)
+		{
+			Contract.NotNull(predicate);
+
+			return AsyncIterators.LastOrDefaultAsync(this, predicate, defaultValue);
+		}
+
+		/// <inheritdoc />
+		public Task<TResult?> LastOrDefaultAsync(Func<TResult, CancellationToken, Task<bool>> predicate) => LastOrDefaultAsync(predicate, default(TResult)!)!;
+
+		/// <inheritdoc />
+		public virtual Task<TResult> LastOrDefaultAsync(Func<TResult, CancellationToken, Task<bool>> predicate, TResult defaultValue)
+		{
+			Contract.NotNull(predicate);
+
+			return AsyncIterators.LastOrDefaultAsync(this, predicate, defaultValue);
+		}
+
+		#endregion
+
+		#region LastAsync...
+
+		/// <inheritdoc />
+		public virtual Task<TResult> LastAsync()
+		{
+			return AsyncIterators.LastAsync(this);
+		}
+
+		/// <inheritdoc />
+		public virtual Task<TResult> LastAsync(Func<TResult, bool> predicate)
+		{
+			Contract.NotNull(predicate);
+
+			return AsyncIterators.LastAsync(this, predicate);
+		}
+
+		/// <inheritdoc />
+		public virtual Task<TResult> LastAsync(Func<TResult, CancellationToken, Task<bool>> predicate)
+		{
+			Contract.NotNull(predicate);
+
+			return AsyncIterators.LastAsync(this, predicate);
+		}
+
+		#endregion
+
+		#region MinAsync/MaxAsync...
+
+		/// <inheritdoc />
+		public virtual Task<TResult?> MinAsync(IComparer<TResult>? comparer = null)
+		{
+			return AsyncIterators.MinAsync<TResult>(this, comparer ?? Comparer<TResult>.Default);
+		}
+
+		/// <inheritdoc />
+		public virtual Task<TResult?> MaxAsync(IComparer<TResult>? comparer = null)
+		{
+			return AsyncIterators.MaxAsync<TResult>(this, comparer ?? Comparer<TResult>.Default);
+		}
+
+		#endregion
+
+		#region SumAsync...
+
+		public virtual Task<TResult> SumAsync()
+		{
+			return AsyncIterators.SumUnconstrainedAsync<TResult>(this);
+		}
+
+		#endregion
+
+		#region Where...
+
+		/// <inheritdoc />
+		public virtual IAsyncLinqQuery<TResult> Where(Func<TResult, bool> predicate)
+		{
+			Contract.NotNull(predicate);
+
+			return AsyncIterators.WhereImpl(this, predicate);
+		}
+
+		/// <inheritdoc />
+		public virtual IAsyncLinqQuery<TResult> Where(Func<TResult, int, bool> predicate)
+		{
+			Contract.NotNull(predicate);
+
+			return AsyncIterators.WhereImpl(this, predicate);
+		}
+
+		/// <inheritdoc />
+		public virtual IAsyncLinqQuery<TResult> Where(Func<TResult, CancellationToken, Task<bool>> predicate)
+		{
+			Contract.NotNull(predicate);
+
+			return AsyncIterators.WhereImpl(this, predicate);
+		}
+
+		/// <inheritdoc />
+		public virtual IAsyncLinqQuery<TResult> Where(Func<TResult, int, CancellationToken, Task<bool>> predicate)
+		{
+			Contract.NotNull(predicate);
+
+			return AsyncIterators.WhereImpl(this, predicate);
+		}
+
+		#endregion
+
+		#region Select...
+
+		/// <inheritdoc />
+		public virtual IAsyncLinqQuery<TNew> Select<TNew>(Func<TResult, TNew> selector)
 		{
 			Contract.NotNull(selector);
 
-			return AsyncEnumerable.Map(this, new AsyncTransformExpression<TResult,TNew>(selector));
+			return AsyncIterators.Select(this, selector);
 		}
 
-		public virtual AsyncIterator<TNew> Select<TNew>(Func<TResult, CancellationToken, Task<TNew>> asyncSelector)
-		{
-			Contract.NotNull(asyncSelector);
-
-			return AsyncEnumerable.Map(this, new AsyncTransformExpression<TResult,TNew>(asyncSelector));
-		}
-
-		public virtual AsyncIterator<TNew> SelectMany<TNew>(Func<TResult, IEnumerable<TNew>> selector)
+		/// <inheritdoc />
+		public virtual IAsyncLinqQuery<TNew> Select<TNew>(Func<TResult, int, TNew> selector)
 		{
 			Contract.NotNull(selector);
 
-			return AsyncEnumerable.Flatten(this, new AsyncTransformExpression<TResult,IEnumerable<TNew>>(selector));
+			return AsyncIterators.Select(this, selector);
 		}
 
-		public virtual AsyncIterator<TNew> SelectMany<TNew>(Func<TResult, CancellationToken, Task<IEnumerable<TNew>>> asyncSelector)
+		/// <inheritdoc />
+		public virtual IAsyncLinqQuery<TNew> Select<TNew>(Func<TResult, CancellationToken, Task<TNew>> selector)
 		{
-			Contract.NotNull(asyncSelector);
+			Contract.NotNull(selector);
 
-			return AsyncEnumerable.Flatten(this, new AsyncTransformExpression<TResult,IEnumerable<TNew>>(asyncSelector));
+			return AsyncIterators.Select(this, selector);
 		}
 
-		public virtual AsyncIterator<TNew> SelectMany<TCollection, TNew>(Func<TResult, IEnumerable<TCollection>> collectionSelector, Func<TResult, TCollection, TNew> resultSelector)
+		/// <inheritdoc />
+		public virtual IAsyncLinqQuery<TNew> Select<TNew>(Func<TResult, int, CancellationToken, Task<TNew>> selector)
+		{
+			Contract.NotNull(selector);
+
+			return AsyncIterators.Select(this, selector);
+		}
+
+		#endregion
+
+		#region SelectMany...
+
+		/// <inheritdoc />
+		public virtual IAsyncLinqQuery<TNew> SelectMany<TNew>(Func<TResult, IEnumerable<TNew>> selector)
+		{
+			Contract.NotNull(selector);
+
+			return AsyncIterators.SelectManyImpl(this, selector);
+		}
+
+		/// <inheritdoc />
+		public virtual IAsyncLinqQuery<TNew> SelectMany<TNew>(Func<TResult, CancellationToken, Task<IEnumerable<TNew>>> selector)
+		{
+			Contract.NotNull(selector);
+
+			return AsyncIterators.SelectManyImpl(this, selector);
+		}
+
+		/// <inheritdoc />
+		public virtual IAsyncLinqQuery<TNew> SelectMany<TCollection, TNew>(Func<TResult, IEnumerable<TCollection>> collectionSelector, Func<TResult, TCollection, TNew> resultSelector)
 		{
 			Contract.NotNull(collectionSelector);
 			Contract.NotNull(resultSelector);
 
-			return AsyncEnumerable.Flatten(this, new AsyncTransformExpression<TResult,IEnumerable<TCollection>>(collectionSelector), resultSelector);
+			return AsyncIterators.SelectManyImpl(this, collectionSelector, resultSelector);
 		}
 
-		public virtual AsyncIterator<TNew> SelectMany<TCollection, TNew>(Func<TResult, CancellationToken, Task<IEnumerable<TCollection>>> asyncCollectionSelector, Func<TResult, TCollection, TNew> resultSelector)
+		/// <inheritdoc />
+		public virtual IAsyncLinqQuery<TNew> SelectMany<TCollection, TNew>(Func<TResult, CancellationToken, Task<IEnumerable<TCollection>>> collectionSelector, Func<TResult, TCollection, TNew> resultSelector)
 		{
-			Contract.NotNull(asyncCollectionSelector);
+			Contract.NotNull(collectionSelector);
 			Contract.NotNull(resultSelector);
 
-			return AsyncEnumerable.Flatten(this, new AsyncTransformExpression<TResult,IEnumerable<TCollection>>(asyncCollectionSelector), resultSelector);
+			return AsyncIterators.SelectManyImpl(this, collectionSelector, resultSelector);
 		}
 
-		public virtual AsyncIterator<TResult> Take(int count)
+		/// <inheritdoc />
+		public virtual IAsyncLinqQuery<TNew> SelectMany<TNew>(Func<TResult, IAsyncEnumerable<TNew>> selector)
 		{
-			return AsyncEnumerable.Limit(this, count);
+			Contract.NotNull(selector);
+
+			return AsyncQuery.Flatten(this, new AsyncTransformExpression<TResult, IAsyncEnumerable<TNew>>(selector));
 		}
 
-		public virtual AsyncIterator<TResult> TakeWhile(Func<TResult, bool> condition)
+		/// <inheritdoc />
+		public virtual IAsyncLinqQuery<TNew> SelectMany<TNew>(Func<TResult, IAsyncQuery<TNew>> selector)
 		{
-			return AsyncEnumerable.Limit(this, condition);
+			Contract.NotNull(selector);
+
+			return AsyncQuery.Flatten(this, new AsyncTransformExpression<TResult, IAsyncQuery<TNew>>(selector));
 		}
 
-		public virtual AsyncIterator<TResult> Skip(int count)
+		#endregion
+
+		#region Take/TakeWhile/Skip...
+
+		/// <inheritdoc />
+		public virtual IAsyncLinqQuery<TResult> Take(int count)
 		{
-			return AsyncEnumerable.Offset(this, count);
+			return AsyncIterators.Take(this, count);
+		}
+
+		/// <inheritdoc />
+		public virtual IAsyncLinqQuery<TResult> Take(Range range)
+		{
+			return AsyncIterators.Take(this, range);
+		}
+
+		/// <inheritdoc />
+		public virtual IAsyncLinqQuery<TResult> TakeWhile(Func<TResult, bool> condition)
+		{
+			return AsyncIterators.TakeWhile(this, condition);
+		}
+
+		/// <inheritdoc />
+		public virtual IAsyncLinqQuery<TResult> Skip(int count)
+		{
+			return AsyncIterators.Skip(this, count);
+		}
+
+		#endregion
+
+		/// <summary>Execute an action on the result of this async sequence</summary>
+		public virtual Task ExecuteAsync(Action<TResult> handler)
+		{
+			return AsyncQuery.Run(this, AsyncIterationHint.All, handler);
 		}
 
 		/// <summary>Execute an action on the result of this async sequence</summary>
-		public virtual Task ExecuteAsync(Action<TResult> action, CancellationToken ct)
+		public virtual Task ExecuteAsync<TState>(TState state, Action<TState, TResult> handler)
 		{
-			return AsyncEnumerable.Run(this, AsyncIterationHint.All, action, ct);
+			return AsyncQuery.Run(this, AsyncIterationHint.All, state, handler);
 		}
 
 		/// <summary>Execute an action on the result of this async sequence</summary>
-		public virtual Task ExecuteAsync<TState>(TState state, Action<TState, TResult> action, CancellationToken ct)
+		public virtual Task<TAggregate> ExecuteAsync<TAggregate>(TAggregate seed, Func<TAggregate, TResult, TAggregate> handler)
 		{
-			return AsyncEnumerable.Run(this, AsyncIterationHint.All, state, action, ct);
+			return AsyncQuery.Run(this, AsyncIterationHint.All, seed, handler);
 		}
 
-		/// <summary>Execute an action on the result of this async sequence</summary>
-		public virtual Task<TAggregate> ExecuteAsync<TAggregate>(TAggregate seed, Func<TAggregate, TResult, TAggregate> action, CancellationToken ct)
+		public virtual Task ExecuteAsync(Func<TResult, CancellationToken, Task> handler)
 		{
-			return AsyncEnumerable.Run(this, AsyncIterationHint.All, seed, action, ct);
+			return AsyncQuery.Run(this, AsyncIterationHint.All, handler);
 		}
 
-		public virtual Task ExecuteAsync(Func<TResult, CancellationToken, Task> asyncAction, CancellationToken ct)
+		public virtual Task ExecuteAsync<TState>(TState state, Func<TState, TResult, CancellationToken, Task> handler)
 		{
-			return AsyncEnumerable.Run(this, AsyncIterationHint.All, asyncAction, ct);
+			return AsyncQuery.Run(this, AsyncIterationHint.All, state, handler);
 		}
 
 		#endregion
@@ -249,7 +705,7 @@ namespace Doxense.Linq.Async.Iterators
 		protected async ValueTask<bool> Completed()
 		{
 			if (Volatile.Read(ref m_state) == STATE_INIT)
-			{ // nothing should have been done by the iterator..
+			{ // nothing should have been done by the iterator
 				Interlocked.CompareExchange(ref m_state, STATE_COMPLETED, STATE_INIT);
 			}
 			else if (Interlocked.CompareExchange(ref m_state, STATE_COMPLETED, STATE_ITERATING) == STATE_ITERATING)
@@ -270,7 +726,7 @@ namespace Doxense.Linq.Async.Iterators
 		{
 			//TODO: store the state "canceled" somewhere?
 			await DisposeAsync().ConfigureAwait(false);
-			m_ct.ThrowIfCancellationRequested(); // should throw here!
+			this.Cancellation.ThrowIfCancellationRequested(); // should throw here!
 			return false; //note: should not be reached
 		}
 

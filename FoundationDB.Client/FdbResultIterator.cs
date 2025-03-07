@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -30,11 +30,11 @@
 namespace FoundationDB.Client
 {
 	using System.Diagnostics;
-	using Doxense.Linq.Async.Iterators;
+	using SnowBank.Linq.Async.Iterators;
 
 	/// <summary>Async iterator that fetches the results by batch, but return them one by one</summary>
 	[DebuggerDisplay("State={m_state}, Current={m_current}, RemainingInChunk={m_itemsRemainingInChunk}, OutOfChunks={m_outOfChunks}")]
-	internal sealed class FdbResultIterator<TState, TResult> : AsyncIterator<TResult>
+	internal sealed class FdbResultIterator<TState, TResult> : AsyncLinqIterator<TResult>
 	{
 
 		private readonly FdbRangeQuery<TState, TResult> m_query;
@@ -66,15 +66,17 @@ namespace FoundationDB.Client
 			m_queryState = state;
 		}
 
-		protected override AsyncIterator<TResult> Clone()
+		protected override AsyncLinqIterator<TResult> Clone()
 		{
 			return new FdbResultIterator<TState, TResult>(m_query, m_queryState);
 		}
 
+		public override CancellationToken Cancellation => m_query.Transaction.Cancellation;
+
 		protected override ValueTask<bool> OnFirstAsync()
 		{
-			// on first call, setup the page iterator
-			m_chunkIterator ??= new FdbPagedIterator<TState, TResult>(m_query, m_query.OriginalRange, m_queryState, m_query.Decoder).GetAsyncEnumerator(m_ct, m_mode);
+			// on first call, set up the page iterator
+			m_chunkIterator ??= new FdbPagedIterator<TState, TResult>(m_query, m_query.OriginalRange, m_queryState, m_query.Decoder).GetAsyncEnumerator(m_mode);
 			return new ValueTask<bool>(true);
 		}
 
@@ -152,14 +154,14 @@ namespace FoundationDB.Client
 
 		#region LINQ
 
-		public override AsyncIterator<TOther> Select<TOther>(Func<TResult, TOther> selector)
+		public override AsyncLinqIterator<TOther> Select<TOther>(Func<TResult, TOther> selector)
 		{
 			var query = (FdbRangeQuery<TState, TOther>) m_query.Select(selector);
 
 			return new FdbResultIterator<TState, TOther>(query, m_queryState);
 		}
 
-		public override AsyncIterator<TResult> Take(int limit)
+		public override AsyncLinqIterator<TResult> Take(int limit)
 		{
 			var query = (FdbRangeQuery<TState, TResult>) m_query.Take(limit);
 			return new FdbResultIterator<TState, TResult>(query, m_queryState);

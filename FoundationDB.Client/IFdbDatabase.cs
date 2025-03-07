@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -26,6 +26,7 @@
 
 namespace FoundationDB.Client
 {
+	using System.ComponentModel;
 	using FoundationDB.Filters.Logging;
 
 	/// <summary>Database connection context.</summary>
@@ -73,6 +74,7 @@ namespace FoundationDB.Client
 		/// }
 		/// </code></example>
 		[Obsolete("Use BeginTransaction() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		ValueTask<IFdbTransaction> BeginTransactionAsync(FdbTransactionMode mode, CancellationToken ct, FdbOperationContext? context = null);
 
 		/// <summary>Starts a new transaction on this database, with the specified mode</summary>

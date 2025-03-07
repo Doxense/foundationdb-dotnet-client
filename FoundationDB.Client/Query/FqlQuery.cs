@@ -32,7 +32,7 @@ namespace FoundationDB.Client
 {
 	using System.Diagnostics;
 	using System.Linq;
-	using Doxense.Linq;
+	using SnowBank.Linq;
 	using Doxense.Serialization.Json;
 
 	[DebuggerDisplay("{this.Text,nq}")]
@@ -123,7 +123,7 @@ namespace FoundationDB.Client
 
 		public IAsyncEnumerable<FdbDirectorySubspace> FindDirectories(IFdbReadOnlyTransaction tr, FdbDirectorySubspaceLocation root)
 		{
-			return AsyncEnumerable.Pump<FdbDirectorySubspace>(async (channel) =>
+			return AsyncQuery.Pump<FdbDirectorySubspace>(async (channel) =>
 			{
 				if (this.Directory == null)
 				{
@@ -250,7 +250,7 @@ namespace FoundationDB.Client
 
 			var path = subspace.Path.GetRelativePath(root);
 			
-			await foreach (var kv in tr.GetRange(subspace.ToRange()).ConfigureAwait(false))
+			await foreach (var kv in tr.GetRange(subspace.ToRange()))
 			{
 				// decode the tuple
 				var tuple = subspace.Unpack(kv.Key);
