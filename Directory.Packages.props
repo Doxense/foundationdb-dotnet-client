@@ -29,11 +29,11 @@
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageVersion Include="NodaTime" Version="3.2.1" />
     <PackageVersion Include="NodaTime.Testing" Version="3.2.1" />
-    <PackageVersion Include="NUnit" Version="4.2.2" />
-    <PackageVersion Include="NUnit.Analyzers" Version="4.3.0" />
-    <PackageVersion Include="NUnit.Console" Version="3.18.3" />
-    <PackageVersion Include="NUnit.ConsoleRunner" Version="3.18.3" />
-    <PackageVersion Include="NUnit3TestAdapter" Version="4.6.0" />
+    <PackageVersion Include="NUnit" Version="4.3.2" />
+    <PackageVersion Include="NUnit.Analyzers" Version="4.6.0" />
+    <PackageVersion Include="NUnit.Console" Version="3.19.2" />
+    <PackageVersion Include="NUnit.ConsoleRunner" Version="3.19.2" />
+    <PackageVersion Include="NUnit3TestAdapter" Version="5.0.0" />
     <PackageVersion Include="OpenTelemetry.Api" Version="1.11.2" />
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.11.2" />
     <PackageVersion Include="protobuf-net" Version="3.2.46" />
