@@ -39,7 +39,7 @@ namespace FoundationDB.Linq.Expressions
 		private static readonly Func<Expression, string> DebugViewGetter = CreateDebugViewGetter();
 #pragma warning restore IL2026
 
-		[RequiresUnreferencedCode("The type might be removed")]
+		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		private static Func<Expression, string> CreateDebugViewGetter()
 		{
 			try

@@ -26,15 +26,11 @@
 
 namespace FoundationDB.Linq.Expressions
 {
-	using SnowBank.Linq;
-#if NET8_0_OR_GREATER
 	using System.Diagnostics.CodeAnalysis;
-#endif
+	using SnowBank.Linq;
 
 	/// <summary>Expression that represents a GetRange query using a pair of key selectors</summary>
-#if NET8_0_OR_GREATER
-	[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+	[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 	public class FdbQueryRangeExpression : FdbQuerySequenceExpression<KeyValuePair<Slice, Slice>>
 	{
 

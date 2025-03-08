@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -31,7 +31,7 @@ namespace Doxense.Serialization.Json
 	public interface ICrystalJsonTypeResolver
 	{
 
-		[RequiresUnreferencedCode("The type might be removed")]
+		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		Type? ResolveClassId(string classId);
 
 		/// <summary>Inspects a type, and generate a list of all its members</summary>
@@ -54,7 +54,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Binds a JSON value into the corresponding CLR type</summary>
 		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
-		[RequiresUnreferencedCode("The type might be removed")]
+		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		object? BindJsonValue(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
 			Type? type,
@@ -62,7 +62,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Binds a JSON value into the corresponding CLR type</summary>
 		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
-		[RequiresUnreferencedCode("The type might be removed")]
+		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		T? BindJson<
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>
@@ -70,14 +70,14 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Binds a JSON object into the corresponding CLR type</summary>
 		/// <exception cref="JsonBindingException">If the object cannot be bound to the specified type.</exception>
-		[RequiresUnreferencedCode("The type might be removed")]
+		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		object? BindJsonObject(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]Type? type,
 			JsonObject? value);
 
 		/// <summary>Binds a JSON array into the corresponding CLR type</summary>
 		/// <exception cref="JsonBindingException">If the array cannot be bound to the specified type.</exception>
-		[RequiresUnreferencedCode("The type might be removed")]
+		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		object? BindJsonArray(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
 			Type? type,

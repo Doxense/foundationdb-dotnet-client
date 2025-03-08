@@ -1211,9 +1211,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Adds several elements to this <see cref="JsonObject"/></summary>
 		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
-#if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(-1)]
-#endif
 		public JsonObject AddRange(IEnumerable<KeyValuePair<string, JsonValue>> items)
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
@@ -3221,14 +3219,14 @@ namespace Doxense.Serialization.Json
 		/// <summary>Converts this JSON Object into a <see cref="Dictionary{TKey,TValue}">Dictionary&lt;string, object?&gt;</see>.</summary>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		[RequiresUnreferencedCode("The type might be removed")]
+		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public override object? ToObject()
 		{
 			return CrystalJsonParser.DeserializeCustomClassOrStruct(this, typeof(object), CrystalJson.DefaultResolver);
 		}
 
 		/// <inheritdoc />
-		[RequiresUnreferencedCode("The type might be removed")]
+		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public override TValue? Bind<
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TValue>
 			(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null) where TValue : default
@@ -3244,7 +3242,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		[RequiresUnreferencedCode("The type might be removed")]
+		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public override object? Bind(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type? type,
 			ICrystalJsonTypeResolver? resolver = null)
@@ -3440,7 +3438,7 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
-		[RequiresUnreferencedCode("The type might be removed")]
+		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public ExpandoObject ToExpando()
 		{
 			var expando = new ExpandoObject();
@@ -3459,7 +3457,7 @@ namespace Doxense.Serialization.Json
 			return res;
 		}
 
-		[RequiresUnreferencedCode("The type might be removed")]
+		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public Dictionary<TKey, TValue> ToDictionary<TKey, TValue>(ICrystalJsonTypeResolver? resolver = null)
 			where TKey : notnull
 		{

@@ -280,17 +280,13 @@ namespace Doxense.Serialization.Json
 		/// <summary>Creates a new <b>mutable</b> empty <see cref="JsonArray">JSON Array</see></summary>
 		/// <remarks>For a <b>read-only</b> array, see <see cref="JsonArray.ReadOnly.Create()"/></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
-#endif
 		public static JsonArray Create() => new();
 
 		/// <summary>Creates a new <b>mutable</b> <see cref="JsonArray">JSON Array</see> with a single element</summary>
 		/// <remarks>For a <b>read-only</b> array, see <see cref="JsonArray.ReadOnly.Create(JsonValue?)"/></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
-#endif
 		public static JsonArray Create(JsonValue? value) => new([
 			value ?? JsonNull.Null
 		], 1, readOnly: false);
@@ -298,9 +294,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Creates a new <b>mutable</b> <see cref="JsonArray">JSON Array</see> with 2 elements</summary>
 		/// <remarks>For a <b>read-only</b> array, see <see cref="JsonArray.ReadOnly.Create(JsonValue?,JsonValue?)"/></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
-#endif
 		public static JsonArray Create(JsonValue? value1, JsonValue? value2) => new([
 			value1 ?? JsonNull.Null,
 			value2 ?? JsonNull.Null
@@ -309,9 +303,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Creates a new <b>mutable</b> <see cref="JsonArray">JSON Array</see> with 3 elements</summary>
 		/// <remarks>For a <b>read-only</b> array, see <see cref="JsonArray.ReadOnly.Create(JsonValue?,JsonValue?,JsonValue?)"/></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
-#endif
 		public static JsonArray Create(JsonValue? value1, JsonValue? value2, JsonValue? value3) => new([
 			value1 ?? JsonNull.Null,
 			value2 ?? JsonNull.Null,
@@ -321,9 +313,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Creates a new <b>mutable</b> <see cref="JsonArray">JSON Array</see> with 4 elements</summary>
 		/// <remarks>For a <b>read-only</b> array, see <see cref="JsonArray.ReadOnly.Create(JsonValue?,JsonValue?,JsonValue?,JsonValue?)"/></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
-#endif
 		public static JsonArray Create(JsonValue? value1, JsonValue? value2, JsonValue? value3, JsonValue? value4) => new([
 			value1 ?? JsonNull.Null,
 			value2 ?? JsonNull.Null,
@@ -956,9 +946,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Appends all the elements of an <see cref="IEnumerable{T}"/> to the end of this <see cref="JsonArray"/></summary>
 		/// <remarks>Any mutable element in <paramref name="values"/> will be converted to read-only before being added. Elements that were already read-only will be added be reference.</remarks>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-#if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(-1)]
-#endif
 		public JsonArray AddRange(IEnumerable<JsonValue?> values)
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
@@ -1071,9 +1059,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Appends all the elements of an <see cref="IEnumerable{T}"/> to the end of this <see cref="JsonArray"/></summary>
 		/// <remarks>Any mutable element in <paramref name="values"/> will be converted to read-only before being added. Elements that were already read-only will be added be reference.</remarks>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-#if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(-1)]
-#endif
 		public JsonArray AddRangeReadOnly(IEnumerable<JsonValue?> values)
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
@@ -2830,7 +2816,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Converts this <see cref="JsonArray">JSON Array</see> with a <see cref="List{T}">List&lt;object?></see>.</summary>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		[RequiresUnreferencedCode("The type might be removed")]
+		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public override object ToObject()
 		{
 			//TODO: detect when all items have the same type T,
@@ -2845,7 +2831,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		[RequiresUnreferencedCode("The type might be removed")]
+		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public override object? Bind(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
 			Type? type,
@@ -4327,7 +4313,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		[RequiresUnreferencedCode("The type might be removed")]
+		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public override bool ValueEquals<
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TCollection>
@@ -4415,10 +4401,8 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Tests if the elements of this array are equal to the elements of the specified span, using the strict JSON comparison semantics</summary>
 		[Pure]
-		[RequiresUnreferencedCode("The type might be removed")]
-#if NET9_0_OR_GREATER
+		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		[OverloadResolutionPriority(1)]
-#endif
 		public bool ValuesEqual<
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TValue>
 			(ReadOnlySpan<TValue> items)
@@ -4442,7 +4426,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Tests if the elements of this array are equal to the elements of the specified sequence, using the strict JSON comparison semantics</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[RequiresUnreferencedCode("The type might be removed")]
+		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public bool ValuesEqual<TValue>(IEnumerable<TValue>? items)
 		{
 			if (items is null) return false;
@@ -4450,7 +4434,7 @@ namespace Doxense.Serialization.Json
 			if (Buffer<TValue>.TryGetSpan(items, out var xs)) return ValuesEqual<TValue>(xs);
 			return ValueEqualsEnumerable(AsSpan(), items);
 
-			[RequiresUnreferencedCode("The type might be removed")]
+			[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 			static bool ValueEqualsEnumerable(ReadOnlySpan<JsonValue> values, IEnumerable<TValue> items)
 			{
 				int p = 0;

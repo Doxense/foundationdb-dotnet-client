@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -62,9 +62,7 @@ namespace Doxense.Serialization
 		}
 
 		[Pure]
-#if NET8_0_OR_GREATER
-		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		[return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces | DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
 		private static Type? FindReplacementType(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces | DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
@@ -95,9 +93,7 @@ namespace Doxense.Serialization
 		/// <param name="type">Type of the object to instantiate (can be an interface or abstract class, for a limited set of "well known" types)</param>
 		/// <returns>Function that calls the parameterless constructor for the type, or <see langword="null"/> if it is impossible to create such a type (unsupported interface or abstract class, type without a parameterless ctor, ...)</returns>
 		[Pure]
-#if NET8_0_OR_GREATER
-		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		public static Func<object>? CompileGenerator(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces | DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
 			this Type type
@@ -445,9 +441,7 @@ namespace Doxense.Serialization
 		/// <param name="types">Types of the generic arguments of the method</param>
 		/// <returns>Corresponding generic method</returns>
 		[Pure]
-#if NET8_0_OR_GREATER
-		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		[RequiresUnreferencedCode("If some of the generic arguments are annotated (either with DynamicallyAccessedMembersAttribute, or generic constraints), trimming can't validate that the requirements of those annotations are met.")]
 		public static MethodInfo? MakeGenericMethod(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] this Type type,

@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -586,9 +586,7 @@ namespace Doxense.Runtime.Converters
 
 		/// <summary>Create a new delegate that cast a boxed valued of type T (object) into a T</summary>
 		/// <returns>Delegate that is of type Func&lt;object, <param name="type"/>&gt;</returns>
-#if NET8_0_OR_GREATER
-		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		private static Delegate CreateCaster(Type type)
 		{
 			var prm = Expression.Parameter(typeof(object), "value");
@@ -758,9 +756,7 @@ namespace Doxense.Runtime.Converters
 			throw FailCannotConvert(type, targetType);
 		}
 
-#if NET8_0_OR_GREATER
-		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		[RequiresUnreferencedCode("If some of the generic arguments are annotated (either with DynamicallyAccessedMembersAttribute, or generic constraints), trimming can't validate that the requirements of those annotations are met.")]
 		private static MethodInfo GetConverterMethod(Type input, Type output)
 		{
@@ -773,9 +769,7 @@ namespace Doxense.Runtime.Converters
 
 		/// <summary>Create a boxed converter from <typeparamref name="TInput"/> to <paramref name="outputType"/></summary>
 		[Pure]
-#if NET8_0_OR_GREATER
-		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		[RequiresUnreferencedCode("If some of the generic arguments are annotated (either with DynamicallyAccessedMembersAttribute, or generic constraints), trimming can't validate that the requirements of those annotations are met.")]
 		public static Func<TInput, object?> CreateBoxedConverter<TInput>(Type outputType)
 		{

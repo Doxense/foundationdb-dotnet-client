@@ -42,7 +42,7 @@ namespace Doxense.Serialization.Json
 
 	/// <summary>Default JSON resolver that uses reflection to serialize and deserialize managed types</summary>
 	[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
-	[RequiresUnreferencedCode("The type might be removed")]
+	[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 	public sealed class CrystalJsonTypeResolver : ICrystalJsonTypeResolver
 	{
 
@@ -102,9 +102,7 @@ namespace Doxense.Serialization.Json
 			static ([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] t, self) => self.ResolveJsonTypeNoCache(t);
 #pragma warning restore IL3050
 
-#if NET8_0_OR_GREATER
-		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		private CrystalJsonTypeDefinition? ResolveJsonTypeNoCache(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
 			Type type
@@ -133,9 +131,7 @@ namespace Doxense.Serialization.Json
 			);
 		}
 
-#if NET8_0_OR_GREATER
-		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		private CrystalJsonTypeDefinition? GetTypeDefinition(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
 			Type type
@@ -172,9 +168,7 @@ namespace Doxense.Serialization.Json
 			return CreateFromReflection(type);
 		}
 
-#if NET8_0_OR_GREATER
-		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		private CrystalJsonTypeDefinition CreateFromKeyValuePair(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)]
 			Type type
@@ -384,9 +378,7 @@ namespace Doxense.Serialization.Json
 			return CrystalJsonTypeResolver.DefaultArrayBinders.GetOrAdd(type ?? typeof(object), CrystalJsonTypeResolver.JsonArrayBinderCallback)(this, array);
 		}
 
-#if NET8_0_OR_GREATER
-		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		private static Func<CrystalJsonTypeResolver, JsonArray?, object?> CreateDefaultJsonArrayBinder(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces | DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods | DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
 			Type? type
@@ -613,9 +605,7 @@ namespace Doxense.Serialization.Json
 			return CreateDefaultJsonArrayBinder_Invalid(type);
 		}
 
-#if NET8_0_OR_GREATER
-		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		private static CrystalJsonTypeBinder CreateStaticJsonDeserializerBinder(Type type)
 		{
 			var m = typeof(CrystalJsonTypeResolver)
@@ -641,18 +631,14 @@ namespace Doxense.Serialization.Json
 			return (resolver, array) => ConvertToSTuple(type, array, resolver.BindJsonValue);
 		}
 
-#if NET8_0_OR_GREATER
-		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		private static Func<CrystalJsonTypeResolver, JsonArray?, object?> CreateDefaultJsonArrayBinder_ITuple(Type type)
 		{
 			var filler = CreateBinderForValueTuple(type);
 			return (resolver, array) => filler(array, type, resolver);
 		}
 
-#if NET8_0_OR_GREATER
-		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		private static Func<CrystalJsonTypeResolver, JsonArray?, object?> CreateDefaultJsonArrayBinder_Filler(
 			string filler,
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)]
@@ -706,9 +692,7 @@ namespace Doxense.Serialization.Json
 
 		private Func<Type, JsonValue?, object?>? m_cachedValueBinder;
 
-#if NET8_0_OR_GREATER
-		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		private object? InvokeFiller(
 			string name,
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)]
@@ -724,9 +708,7 @@ namespace Doxense.Serialization.Json
 		private static readonly QuasiImmutableCache<string, MethodInfo> s_fillers = new(null, StringComparer.Ordinal, null);
 
 		[Pure]
-#if NET8_0_OR_GREATER
-		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		private static MethodInfo GetFillerMethod(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)]
 			Type resolverType,
@@ -739,9 +721,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[MethodImpl(MethodImplOptions.NoInlining)]
-#if NET8_0_OR_GREATER
-		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		private static MethodInfo MakeFillerMethod(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)]
 			Type resolverType,
@@ -1029,9 +1009,7 @@ namespace Doxense.Serialization.Json
 			return null;
 		}
 
-#if NET8_0_OR_GREATER
-		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		private static CrystalJsonMemberDefinition[] GetMembersFromReflection([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type type)
 		{
 			Contract.NotNull(type);
@@ -1242,9 +1220,7 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-#if NET8_0_OR_GREATER
-		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		private static Action<object, object?>? TryCompileAdderForReadOnlyCollection(
 			PropertyInfo? property
 		)
@@ -1303,9 +1279,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Extracts the type definition via reflection, and generate a list of compiled binders</summary>
 		/// <param name="type">Class, struct, interface. Primitive type are not supported</param>
-#if NET8_0_OR_GREATER
-		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		private CrystalJsonTypeDefinition CreateFromReflection(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
 			Type type
@@ -1349,9 +1323,7 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-#if NET8_0_OR_GREATER
-		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		private static Func<object> RequireGeneratorForType(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces | DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] 
 			Type type
@@ -1360,9 +1332,7 @@ namespace Doxense.Serialization.Json
 			return type.CompileGenerator() ?? throw new InvalidOperationException($"Could not find any parameterless constructor required to deserialize instances of type '{type.GetFriendlyName()}'");
 		}
 
-#if NET8_0_OR_GREATER
-		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		private static CrystalJsonTypeBinder? FindCustomBinder(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces | DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods | DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
 			Type type,
@@ -1689,9 +1659,7 @@ namespace Doxense.Serialization.Json
 			return Expression.Lambda<CrystalJsonTypeBinder>(body, "<>_" + type.Name + "_JsonSerialize", true, new[] { prmValue, prmBindingType, prmResolver }).Compile();
 		}
 
-#if NET8_0_OR_GREATER
-		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		private static CrystalJsonTypeBinder? CreateBinderForImmutableDictionary(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)]
 			Type type
@@ -1720,9 +1688,7 @@ namespace Doxense.Serialization.Json
 			return null;
 		}
 
-#if NET8_0_OR_GREATER
-		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		private static CrystalJsonTypeBinder CreateBinderForImmutableDictionary_StringKey(Type valueType)
 		{
 #pragma warning disable IL2070
@@ -1749,9 +1715,7 @@ namespace Doxense.Serialization.Json
 			return instance.ToImmutable();
 		}
 
-#if NET8_0_OR_GREATER
-		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		private static CrystalJsonTypeBinder CreateBinderForImmutableDictionary_Int32Key(Type valueType)
 		{
 #pragma warning disable IL2070
@@ -1778,9 +1742,7 @@ namespace Doxense.Serialization.Json
 			return instance.ToImmutable();
 		}
 
-#if NET8_0_OR_GREATER
-		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		private static CrystalJsonTypeBinder? CreateBinderForDictionary(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)]
 			Type type,
@@ -1945,9 +1907,7 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static InvalidOperationException FailCannotDeserializeNotJsonArrayPair(Type t) => new($"Cannot deserialize {t.GetFriendlyName()} type because input value is not a JsonArray with 2 elements");
 
-#if NET8_0_OR_GREATER
-		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		private static CrystalJsonTypeBinder CreateBinderForValueTuple(Type type)
 		{
 			// we want to generate: (value, ..., resolver) => (object) ValueTuple.Create(..., array[i].As<Ti>(resolver), ...)

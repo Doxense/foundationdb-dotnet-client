@@ -171,9 +171,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Create a new empty tuple with 0 elements</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-#if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
-#endif
 		public static STuple Create()
 		{
 			//note: redundant with STuple.Empty, but is here to fit nicely with the other Create<T...> overloads
@@ -189,9 +187,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Create a new 2-tuple, holding two items</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-#if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
-#endif
 		public static STuple<T1, T2> Create<T1, T2>(T1 item1, T2 item2)
 		{
 			return new STuple<T1, T2>(item1, item2);
@@ -199,9 +195,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Create a new 3-tuple, holding three items</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-#if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
-#endif
 		public static STuple<T1, T2, T3> Create<T1, T2, T3>(T1 item1, T2 item2, T3 item3)
 		{
 			return new STuple<T1, T2, T3>(item1, item2, item3);
@@ -209,9 +203,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Create a new 4-tuple, holding four items</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-#if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
-#endif
 		public static STuple<T1, T2, T3, T4> Create<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4)
 		{
 			return new STuple<T1, T2, T3, T4>(item1, item2, item3, item4);
@@ -219,9 +211,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Create a new 5-tuple, holding five items</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-#if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
-#endif
 		public static STuple<T1, T2, T3, T4, T5> Create<T1, T2, T3, T4, T5>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 		{
 			return new STuple<T1, T2, T3, T4, T5>(item1, item2, item3, item4, item5);
@@ -229,9 +219,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Create a new 6-tuple, holding six items</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-#if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
-#endif
 		public static STuple<T1, T2, T3, T4, T5, T6> Create<T1, T2, T3, T4, T5, T6>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
 		{
 			return new STuple<T1, T2, T3, T4, T5, T6>(item1, item2, item3, item4, item5, item6);
@@ -239,9 +227,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Create a new 7-tuple, holding seven items</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-#if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
-#endif
 		public static STuple<T1, T2, T3, T4, T5, T6, T7> Create<T1, T2, T3, T4, T5, T6, T7>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
 		{
 			return new STuple<T1, T2, T3, T4, T5, T6, T7>(item1, item2, item3, item4, item5, item6, item7);
@@ -503,97 +489,73 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Converts a <see cref="ValueTuple{T1,T2}"/> into the equivalent <see cref="STuple{T1,T2}"/> of the same size</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
-#endif
 		public static STuple<T1, T2> Create<T1, T2>((T1, T2) tuple)
 			=> new(tuple.Item1, tuple.Item2);
 
 		/// <summary>Converts a <see cref="ValueTuple{T1,T2}"/> into the equivalent <see cref="STuple{T1,T2}"/> of the same size</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
-#endif
 		public static STuple<T1, T2> Create<T1, T2>(ref (T1, T2) tuple)
 			=> new(tuple.Item1, tuple.Item2);
 
 		/// <summary>Converts a <see cref="ValueTuple{T1,T2,T3}"/> into the equivalent <see cref="STuple{T1,T2,T3}"/> of the same size</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
-#endif
 		public static STuple<T1, T2, T3> Create<T1, T2, T3>((T1, T2, T3) tuple)
 			=> new(tuple.Item1, tuple.Item2, tuple.Item3);
 
 		/// <summary>Converts a <see cref="ValueTuple{T1,T2,T3}"/> into the equivalent <see cref="STuple{T1,T2,T3}"/> of the same size</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
-#endif
 		public static STuple<T1, T2, T3> Create<T1, T2, T3>(ref (T1, T2, T3) tuple)
 			=> new(tuple.Item1, tuple.Item2, tuple.Item3);
 
 		/// <summary>Converts a <see cref="ValueTuple{T1,T2,T3,T4}"/> into the equivalent <see cref="STuple{T1,T2,T3,T4}"/> of the same size</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
-#endif
 		public static STuple<T1, T2, T3, T4> Create<T1, T2, T3, T4>((T1, T2, T3, T4) tuple)
 			=> new(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
 
 		/// <summary>Converts a <see cref="ValueTuple{T1,T2,T3,T4}"/> into the equivalent <see cref="STuple{T1,T2,T3,T4}"/> of the same size</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
-#endif
 		public static STuple<T1, T2, T3, T4> Create<T1, T2, T3, T4>(ref (T1, T2, T3, T4) tuple)
 			=> new(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
 
 		/// <summary>Converts a <see cref="ValueTuple{T1,T2,T3,T4,T5}"/> into the equivalent <see cref="STuple{T1,T2,T3,T4,T5}"/> of the same size</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
-#endif
 		public static STuple<T1, T2, T3, T4, T5> Create<T1, T2, T3, T4, T5>((T1, T2, T3, T4, T5) tuple)
 			=> new(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
 
 		/// <summary>Converts a <see cref="ValueTuple{T1,T2,T3,T4,T5}"/> into the equivalent <see cref="STuple{T1,T2,T3,T4,T5}"/> of the same size</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
-#endif
 		public static STuple<T1, T2, T3, T4, T5> Create<T1, T2, T3, T4, T5>(ref (T1, T2, T3, T4, T5) tuple)
 			=> new(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
 
 		/// <summary>Converts a <see cref="ValueTuple{T1,T2,T3,T4,T5,T6}"/> into the equivalent <see cref="STuple{T1,T2,T3,T4,T5,T6}"/> of the same size</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
-#endif
 		public static STuple<T1, T2, T3, T4, T5, T6> Create<T1, T2, T3, T4, T5, T6>((T1, T2, T3, T4, T5, T6) tuple)
 			=> new(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6);
 
 		/// <summary>Converts a <see cref="ValueTuple{T1,T2,T3,T4,T5,T6}"/> into the equivalent <see cref="STuple{T1,T2,T3,T4,T5,T6}"/> of the same size</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
-#endif
 		public static STuple<T1, T2, T3, T4, T5, T6> Create<T1, T2, T3, T4, T5, T6>(ref (T1, T2, T3, T4, T5, T6) tuple)
 			=> new(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6);
 
 		/// <summary>Converts a <see cref="ValueTuple{T1,T2,T3,T4,T5,T6,T7}"/> into the equivalent <see cref="STuple{T1,T2,T3,T4,T5,T6,T7}"/> of the same size</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
-#endif
 		public static STuple<T1, T2, T3, T4, T5, T6, T7> Create<T1, T2, T3, T4, T5, T6, T7>((T1, T2, T3, T4, T5, T6, T7) tuple)
 			=> new(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6, tuple.Item7);
 
 		/// <summary>Converts a <see cref="ValueTuple{T1,T2,T3,T4,T5,T6,T7}"/> into the equivalent <see cref="STuple{T1,T2,T3,T4,T5,T6,T7}"/> of the same size</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
-#endif
 		public static STuple<T1, T2, T3, T4, T5, T6, T7> Create<T1, T2, T3, T4, T5, T6, T7>(ref (T1, T2, T3, T4, T5, T6, T7) tuple)
 			=> new(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6, tuple.Item7);
 

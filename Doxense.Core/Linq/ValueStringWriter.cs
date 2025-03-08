@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -103,9 +103,7 @@ namespace Doxense.Linq
 		}
 
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
-#if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
-#endif
 		public void Write(scoped ReadOnlySpan<char> items)
 		{
 			int pos = this.Count;

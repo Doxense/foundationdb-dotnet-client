@@ -51,9 +51,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <typeparam name="T">Type of values to serialize</typeparam>
 		/// <returns>Reusable action that knows how to serialize values of type <typeparamref name="T"/> into binary buffers, or that throws an exception if the type is not supported</returns>
 		[ContractAnnotation("required:true => notnull")]
-#if NET8_0_OR_GREATER
-		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		[RequiresUnreferencedCode("If some of the generic arguments are annotated (either with DynamicallyAccessedMembersAttribute, or generic constraints), trimming can't validate that the requirements of those annotations are met.")]
 		internal static Encoder<T>? GetSerializer<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(bool required)
 		{
@@ -70,9 +68,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			return (ref TupleWriter _, T? _) => throw new InvalidOperationException($"Does not know how to serialize values of type '{typeof(T).Name}' into keys");
 		}
 
-#if NET8_0_OR_GREATER
-		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		[RequiresUnreferencedCode("If some of the generic arguments are annotated (either with DynamicallyAccessedMembersAttribute, or generic constraints), trimming can't validate that the requirements of those annotations are met.")]
 		private static Delegate? GetSerializerFor(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
@@ -320,9 +316,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// May throw at runtime if the type is not supported.
 		/// This method will be very slow! Please consider using typed tuples instead!
 		/// </remarks>
-#if NET8_0_OR_GREATER
-		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		[RequiresUnreferencedCode("If some of the generic arguments are annotated (either with DynamicallyAccessedMembersAttribute, or generic constraints), trimming can't validate that the requirements of those annotations are met.")]
 		public static void SerializeObjectTo(ref TupleWriter writer, object? value)
 		{
@@ -335,9 +329,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			GetBoxedEncoder(value.GetType())(ref writer, value);
 		}
 
-#if NET8_0_OR_GREATER
-		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		[RequiresUnreferencedCode("If some of the generic arguments are annotated (either with DynamicallyAccessedMembersAttribute, or generic constraints), trimming can't validate that the requirements of those annotations are met.")]
 		private static Encoder<object> GetBoxedEncoder(Type type)
 		{
@@ -348,9 +340,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			}
 			return encoder;
 
-#if NET8_0_OR_GREATER
-			[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+			[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 			[RequiresUnreferencedCode("If some of the generic arguments are annotated (either with DynamicallyAccessedMembersAttribute, or generic constraints), trimming can't validate that the requirements of those annotations are met.")]
 			static Encoder<object> GetBoxedEncoderSlow(Type type)
 			{
@@ -430,9 +420,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			return encoders;
 		}
 
-#if NET8_0_OR_GREATER
-		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		[RequiresUnreferencedCode("If some of the generic arguments are annotated (either with DynamicallyAccessedMembersAttribute, or generic constraints), trimming can't validate that the requirements of those annotations are met.")]
 		private static Encoder<object> CreateBoxedEncoder(Type type)
 		{
@@ -978,9 +966,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <summary>Returns a lambda that will be able to serialize values of type <typeparamref name="T"/></summary>
 		/// <typeparam name="T">Type of values to serialize</typeparam>
 		/// <returns>Reusable action that knows how to serialize values of type <typeparamref name="T"/> into binary buffers, or an exception if the type is not supported</returns>
-#if NET8_0_OR_GREATER
-		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		internal static Decoder<T> GetDeserializer<T>(bool required)
 		{
 			Type type = typeof(T);
@@ -1055,9 +1041,7 @@ namespace Doxense.Collections.Tuples.Encoding
 #pragma warning restore IL2026
 
 		[Pure]
-#if NET8_0_OR_GREATER
-		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		private static Delegate MakeNullableDeserializer(Type nullableType, Type type, Delegate decoder)
 		{
 			Contract.Debug.Requires(nullableType != null && type != null && decoder != null);
@@ -1085,9 +1069,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			.ToDictionary(m => m.GetGenericArguments().Length);
 
 		[Pure]
-#if NET8_0_OR_GREATER
-		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		private static Delegate MakeSTupleDeserializer(Type type)
 		{
 			Contract.Debug.Requires(type != null);
@@ -1117,9 +1099,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			.ToDictionary(m => m.GetGenericArguments().Length);
 
 		[Pure]
-#if NET8_0_OR_GREATER
-		[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		private static Delegate MakeValueTupleDeserializer(Type type)
 		{
 			Contract.Debug.Requires(type != null);

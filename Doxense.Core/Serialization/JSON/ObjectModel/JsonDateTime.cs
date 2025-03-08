@@ -369,12 +369,12 @@ namespace Doxense.Serialization.Json
 		public override bool IsReadOnly => true; //note: dates are immutable
 
 		/// <inheritdoc />
-		[RequiresUnreferencedCode("The type might be removed")]
+		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public override object ToObject() => m_value;
 
 		/// <inheritdoc />
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		[RequiresUnreferencedCode("The type might be removed")]
+		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public override TValue? Bind<
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TValue>
@@ -405,7 +405,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		[RequiresUnreferencedCode("The type might be removed")]
+		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public override object? Bind(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type? type,
 			ICrystalJsonTypeResolver? resolver = null)

@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -125,7 +125,7 @@ namespace Doxense.Linq
 
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 #if NET9_0_OR_GREATER
-		public void AddRange(params scoped ReadOnlySpan<T> items)
+		public void AddRange(params ReadOnlySpan<T> items)
 #else
 		public void AddRange(scoped ReadOnlySpan<T> items)
 #endif

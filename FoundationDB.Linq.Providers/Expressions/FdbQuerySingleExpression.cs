@@ -26,18 +26,14 @@
 
 namespace FoundationDB.Linq.Expressions
 {
-#if NET8_0_OR_GREATER
 	using System.Diagnostics.CodeAnalysis;
-#endif
 	using System.Reflection;
 	using SnowBank.Linq;
 
 	/// <summary>Base class of all queries that return a single element</summary>
 	/// <typeparam name="TSource">Type of the elements of the source sequence</typeparam>
 	/// <typeparam name="TResult">Type of the result of the query</typeparam>
-#if NET8_0_OR_GREATER
-	[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+	[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 	public class FdbQuerySingleExpression<TSource, TResult> : FdbQueryExpression<TResult>
 	{
 		/// <summary>Create a new expression that returns a single result from a source sequence</summary>

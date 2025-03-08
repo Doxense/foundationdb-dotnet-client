@@ -26,18 +26,14 @@
 
 namespace FoundationDB.Linq
 {
-#if NET8_0_OR_GREATER
 	using System.Diagnostics.CodeAnalysis;
-#endif
 	using FoundationDB.Layers.Indexing;
 	using FoundationDB.Linq.Providers;
 	using SnowBank.Linq;
 
 	/// <summary>Extensions methods that help create a query expression tree</summary>
 	[PublicAPI]
-#if NET8_0_OR_GREATER
-	[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+	[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 	public static class FdbAsyncQueryable
 	{
 

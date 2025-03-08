@@ -26,10 +26,8 @@
 
 namespace FoundationDB.Linq.Expressions
 {
-	using SnowBank.Linq;
-#if NET8_0_OR_GREATER
 	using System.Diagnostics.CodeAnalysis;
-#endif
+	using SnowBank.Linq;
 
 	/// <summary>Mode of execution of a merge operation</summary>
 	public enum FdbQueryMergeType
@@ -44,9 +42,7 @@ namespace FoundationDB.Linq.Expressions
 
 	/// <summary>Intersection between two or more sequence</summary>
 	/// <typeparam name="T">Type of the keys returned</typeparam>
-#if NET8_0_OR_GREATER
-	[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+	[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 	public abstract class FdbQueryMergeExpression<T> : FdbQuerySequenceExpression<T>
 	{
 
@@ -146,9 +142,7 @@ namespace FoundationDB.Linq.Expressions
 
 	/// <summary>Intersection between two or more sequence</summary>
 	/// <typeparam name="T">Type of the keys returned</typeparam>
-#if NET8_0_OR_GREATER
-	[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+	[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 	public sealed class FdbQueryIntersectExpression<T> : FdbQueryMergeExpression<T>
 	{
 
@@ -162,9 +156,7 @@ namespace FoundationDB.Linq.Expressions
 
 	/// <summary>Union between two or more sequence</summary>
 	/// <typeparam name="T">Type of the keys returned</typeparam>
-#if NET8_0_OR_GREATER
-	[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+	[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 	public sealed class FdbQueryUnionExpression<T> : FdbQueryMergeExpression<T>
 	{
 

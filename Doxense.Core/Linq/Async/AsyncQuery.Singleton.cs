@@ -42,9 +42,7 @@ namespace SnowBank.Linq
 		/// <param name="selector">Lambda that will be called once per iteration, to produce the single element of this sequence</param>
 		/// <remarks>If the sequence is iterated multiple times, then <paramref name="selector"/> will be called once for each iteration.</remarks>
 		[Pure, LinqTunnel]
-#if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
-#endif
 		public static IAsyncLinqQuery<T> Singleton<T>(Func<T> selector, CancellationToken ct = default)
 		{
 			Contract.NotNull(selector);
@@ -55,9 +53,7 @@ namespace SnowBank.Linq
 		/// <param name="selector">Lambda that will be called once per iteration, to produce the single element of this sequence</param>
 		/// <remarks>If the sequence is iterated multiple times, then <paramref name="selector"/> will be called once for each iteration.</remarks>
 		[Pure, LinqTunnel]
-#if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
-#endif
 		public static IAsyncLinqQuery<T> Singleton<T>(Func<CancellationToken, Task<T>> selector, CancellationToken ct = default)
 		{
 			Contract.NotNull(selector);
@@ -68,9 +64,7 @@ namespace SnowBank.Linq
 		/// <param name="selector">Lambda that will be called once per iteration, to produce the single element of this sequence</param>
 		/// <remarks>If the sequence is iterated multiple times, then <paramref name="selector"/> will be called once for each iteration.</remarks>
 		[Pure, LinqTunnel]
-#if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(2)]
-#endif
 		public static IAsyncLinqQuery<T> Singleton<T>(Func<Task<T>> selector, CancellationToken ct = default)
 		{
 			Contract.NotNull(selector);

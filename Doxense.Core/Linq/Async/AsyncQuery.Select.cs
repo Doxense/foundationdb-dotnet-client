@@ -63,9 +63,7 @@ namespace SnowBank.Linq
 
 		/// <summary>Projects each element of an async sequence into a new form.</summary>
 		[Pure, LinqTunnel]
-#if NET9_0_OR_GREATER
 		[OverloadResolutionPriority(1)]
-#endif
 		public static IAsyncLinqQuery<TResult> Select<TSource, TResult>(this IAsyncQuery<TSource> source, Func<TSource, CancellationToken, Task<TResult>> selector)
 		{
 			Contract.NotNull(source);

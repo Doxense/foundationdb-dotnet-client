@@ -47,17 +47,13 @@ namespace Doxense.Serialization.Json
 			/// <para>For a mutable array, see <see cref="JsonArray.Create()"/></para>
 			/// </remarks>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if NET9_0_OR_GREATER
 			[OverloadResolutionPriority(1)]
-#endif
 			public static JsonArray Create() => JsonArray.EmptyReadOnly;
 
 			/// <summary>Creates a new <b>read-only</b> <see cref="JsonArray">JSON Array</see> with a single element</summary>
 			/// <remarks>For a mutable array, see <see cref="JsonArray.Create(JsonValue?)"/></remarks>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if NET9_0_OR_GREATER
 			[OverloadResolutionPriority(1)]
-#endif
 			public static JsonArray Create(JsonValue? value) => new([
 				(value ?? JsonNull.Null).ToReadOnly()
 			], 1, readOnly: true);
@@ -65,9 +61,7 @@ namespace Doxense.Serialization.Json
 			/// <summary>Create a new <b>read-only</b> <see cref="JsonArray">JSON Array</see> with 2 elements</summary>
 			/// <remarks>For a mutable array, see <see cref="JsonArray.Create(JsonValue?,JsonValue?)"/></remarks>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if NET9_0_OR_GREATER
 			[OverloadResolutionPriority(1)]
-#endif
 			public static JsonArray Create(JsonValue? value1, JsonValue? value2) => new([
 				(value1 ?? JsonNull.Null).ToReadOnly(),
 				(value2 ?? JsonNull.Null).ToReadOnly()
@@ -76,9 +70,7 @@ namespace Doxense.Serialization.Json
 			/// <summary>Create a new <b>read-only</b> <see cref="JsonArray">JSON Array</see> with 3 elements</summary>
 			/// <remarks>For a mutable array, see <see cref="JsonArray.Create(JsonValue?,JsonValue?,JsonValue?)"/></remarks>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if NET9_0_OR_GREATER
 			[OverloadResolutionPriority(1)]
-#endif
 			public static JsonArray Create(JsonValue? value1, JsonValue? value2, JsonValue? value3) => new([
 				(value1 ?? JsonNull.Null).ToReadOnly(),
 				(value2 ?? JsonNull.Null).ToReadOnly(),
@@ -88,9 +80,7 @@ namespace Doxense.Serialization.Json
 			/// <summary>Create a new <b>read-only</b> <see cref="JsonArray">JSON Array</see> with 4 elements</summary>
 			/// <remarks>For a mutable array, see <see cref="JsonArray.Create(JsonValue?,JsonValue?,JsonValue?,JsonValue?)"/></remarks>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if NET9_0_OR_GREATER
 			[OverloadResolutionPriority(1)]
-#endif
 			public static JsonArray Create(JsonValue? value1, JsonValue? value2, JsonValue? value3, JsonValue? value4) => new([
 				(value1 ?? JsonNull.Null).ToReadOnly(),
 				(value2 ?? JsonNull.Null).ToReadOnly(),

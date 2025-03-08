@@ -27,14 +27,10 @@
 namespace FoundationDB.Linq.Expressions
 {
 	using SnowBank.Linq;
-#if NET8_0_OR_GREATER
 	using System.Diagnostics.CodeAnalysis;
-#endif
 
 	/// <summary>Expression that uses an async sequence as the source of elements</summary>
-#if NET8_0_OR_GREATER
-	[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+	[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 	public sealed class FdbQueryAsyncEnumerableExpression<T> : FdbQuerySequenceExpression<T>
 	{
 

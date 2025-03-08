@@ -26,16 +26,12 @@
 
 namespace FoundationDB.Linq.Expressions
 {
-#if NET8_0_OR_GREATER
 	using System.Diagnostics.CodeAnalysis;
-#endif
 	using Doxense.Collections.Tuples;
 	using SnowBank.Linq;
 
 	/// <summary>Helper class to construct Query Expressions</summary>
-#if NET8_0_OR_GREATER
-	[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-#endif
+	[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 	public static class FdbQueryExpressions
 	{
 

@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,6 @@ namespace Doxense.Linq
 {
 	using System;
 	using System.Buffers;
-	using System.Collections;
 	using System.Runtime.InteropServices;
 
 	/// <summary>Buffer that will accumulate data in a contiguous span, starting from a stack allocated buffer, and switching to pooled buffers if required</summary>
@@ -611,7 +610,7 @@ namespace Doxense.Linq
 				this.Last = last;
 			}
 
-			/// <inheritdoc />
+			/// <inheritdoc cref="IEnumerator{T}.MoveNext"/>
 			public bool MoveNext()
 			{
 				var offset = this.Offset + 1;
@@ -649,7 +648,7 @@ namespace Doxense.Linq
 				return false;
 			}
 
-			/// <inheritdoc />
+			/// <inheritdoc cref="IEnumerator{T}.Reset"/>
 			public void Reset()
 			{
 				this.Index = -1;
@@ -657,17 +656,17 @@ namespace Doxense.Linq
 				this.Segment = this.First;
 			}
 
-			/// <inheritdoc />
+			/// <inheritdoc cref="IEnumerator{T}.Current"/>
 			public T Current => this.Segment[this.Offset];
 
 #if NET9_0_OR_GREATER
 
 			/// <inheritdoc />
-			object? IEnumerator.Current => this.Segment[this.Offset];
+			object? System.Collections.IEnumerator.Current => this.Segment[this.Offset];
 
 #endif
 
-			/// <inheritdoc />
+			/// <inheritdoc cref="IEnumerator{T}.Dispose"/>
 			public void Dispose()
 			{
 				this = default;
