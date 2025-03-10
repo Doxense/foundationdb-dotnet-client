@@ -29,6 +29,7 @@
 namespace Doxense.Serialization.Json
 {
 	using System.Collections.Generic;
+	using System.ComponentModel;
 
 	public partial class JsonObject
 	{
@@ -389,6 +390,65 @@ namespace Doxense.Serialization.Json
 			return new(items, readOnly: true);
 		}
 
+		/// <summary>Returns a new read-only copy of this object with an additional item</summary>
+		/// <param name="key">Name of the field to add. If a field with the same name already exists, an exception will be thrown.</param>
+		/// <param name="value">Value of the new item</param>
+		/// <returns>A new instance with the same content of the original object, plus the additional item</returns>
+		/// <remarks>
+		/// <para>If a field with the same name already exists, an exception will be thrown.</para>
+		/// <para>If the object was not-readonly, existing non-readonly fields will also be converted to read-only.</para>
+		/// <para>For best performances, this should only be used on already-readonly objects, and with read-only values.</para>
+		/// </remarks>
+		[Pure, MustUseReturnValue]
+#if !NET9_0_OR_GREATER
+		[EditorBrowsable(EditorBrowsableState.Never)]
+#endif
+		public JsonObject CopyAndAdd(ReadOnlySpan<char> key, JsonValue? value)
+		{
+			// copy and add the new value
+			var items = new Dictionary<string, JsonValue>(m_items);
+#if NET9_0_OR_GREATER
+			// note: there is no .Add() in alternate lookups as of .NET 10 :(
+			if (!items.GetAlternateLookup<ReadOnlySpan<char>>().TryAdd(key, value?.ToReadOnly() ?? JsonNull.Null))
+			{
+				throw new ArgumentException($"An item with the same key has already been added. Key: {key.ToString()}", nameof(key));
+			}
+#else
+			items.Add(key.ToString(), value?.ToReadOnly() ?? JsonNull.Null);
+#endif
+
+			if (!m_readOnly)
+			{ // some existing items may not be readonly, we may have to convert them as well
+				MakeReadOnly(items);
+			}
+
+			return new(items, readOnly: true);
+		}
+
+		/// <summary>Returns a new read-only copy of this object with an additional item</summary>
+		/// <param name="key">Name of the field to add. If a field with the same name already exists, an exception will be thrown.</param>
+		/// <param name="value">Value of the new item</param>
+		/// <returns>A new instance with the same content of the original object, plus the additional item</returns>
+		/// <remarks>
+		/// <para>If a field with the same name already exists, an exception will be thrown.</para>
+		/// <para>If the object was not-readonly, existing non-readonly fields will also be converted to read-only.</para>
+		/// <para>For best performances, this should only be used on already-readonly objects, and with read-only values.</para>
+		/// </remarks>
+		[Pure, MustUseReturnValue]
+#if !NET9_0_OR_GREATER
+		[EditorBrowsable(EditorBrowsableState.Never)]
+#endif
+		public JsonObject CopyAndAdd(ReadOnlyMemory<char> key, JsonValue? value)
+		{
+#if NET9_0_OR_GREATER
+			return key.TryGetString(out var str)
+				? CopyAndAdd(str, value)
+				: CopyAndAdd(key.Span, value);
+#else
+			return CopyAndAdd(key.GetStringOrCopy(), value);
+#endif
+		}
+
 		/// <summary>Replaces a published JSON Object with a new version with an added field, in a thread-safe manner, using a <see cref="SpinWait"/> if necessary.</summary>
 		/// <param name="original">Reference to the currently published JSON Object</param>
 		/// <param name="key">Name of the field to add. If a field with the same name already exists, an exception will be thrown.</param>
@@ -478,6 +538,62 @@ namespace Doxense.Serialization.Json
 			return new(items, readOnly: true);
 		}
 
+		/// <summary>Returns a new read-only copy of this object, with an additional field</summary>
+		/// <param name="key">Name of the field to set. If a field with the same name already exists, its previous value will be overwritten.</param>
+		/// <param name="value">Value of the new field</param>
+		/// <returns>A new instance with the same content of the original object, plus the additional item</returns>
+		/// <remarks>
+		/// <para>If a field with the same name already exists, its value will be overwritten.</para>
+		/// <para>If the object was not-readonly, existing non-readonly fields will also be converted to read-only.</para>
+		/// <para>For best performances, this should only be used on already-readonly objects, and with read-only values.</para>
+		/// </remarks>
+		[Pure, MustUseReturnValue]
+#if !NET9_0_OR_GREATER
+		[EditorBrowsable(EditorBrowsableState.Never)]
+#endif
+		public JsonObject CopyAndSet(ReadOnlySpan<char> key, JsonValue? value)
+		{
+#if !NET9_0_OR_GREATER
+			return CopyAndSet(key.ToString(), value);
+#else
+			// copy and set the new value
+			var items = new Dictionary<string, JsonValue>(m_items);
+			var alternate = items.GetAlternateLookup<ReadOnlySpan<char>>();
+			alternate[key] = value?.ToReadOnly() ?? JsonNull.Null;
+
+			if (!m_readOnly)
+			{ // some existing items may not be readonly, we may have to convert them as well
+				MakeReadOnly(items);
+			}
+
+			return new(items, readOnly: true);
+#endif
+		}
+
+		/// <summary>Returns a new read-only copy of this object, with an additional field</summary>
+		/// <param name="key">Name of the field to set. If a field with the same name already exists, its previous value will be overwritten.</param>
+		/// <param name="value">Value of the new field</param>
+		/// <returns>A new instance with the same content of the original object, plus the additional item</returns>
+		/// <remarks>
+		/// <para>If a field with the same name already exists, its value will be overwritten.</para>
+		/// <para>If the object was not-readonly, existing non-readonly fields will also be converted to read-only.</para>
+		/// <para>For best performances, this should only be used on already-readonly objects, and with read-only values.</para>
+		/// </remarks>
+		[Pure, MustUseReturnValue]
+#if !NET9_0_OR_GREATER
+		[EditorBrowsable(EditorBrowsableState.Never)]
+#endif
+		public JsonObject CopyAndSet(ReadOnlyMemory<char> key, JsonValue? value)
+		{
+#if NET9_0_OR_GREATER
+			return key.TryGetString(out var str)
+				? CopyAndSet(str, value)
+				: CopyAndSet(key.Span, value);
+#else
+			return CopyAndSet(key.GetStringOrCopy(), value);
+#endif
+		}
+
 		/// <summary>Replaces a published JSON Object with a new version with an added field, in a thread-safe manner, using a <see cref="SpinWait"/> if necessary.</summary>
 		/// <param name="original">Reference to the currently published JSON Object</param>
 		/// <param name="key">Name of the field to set. If a field with the same name already exists, its previous value will be overwritten.</param>
@@ -540,7 +656,7 @@ namespace Doxense.Serialization.Json
 			return new(items, readOnly: true);
 		}
 
-		/// <summary>Returns a new read-only copy of this object without the specifield item</summary>
+		/// <summary>Returns a new read-only copy of this object without the specified item</summary>
 		/// <param name="key">Name of the field to remove from the copy</param>
 		/// <returns>A new instance with the same content of the original object, but with the specified item removed.</returns>
 		/// <remarks>
@@ -549,6 +665,8 @@ namespace Doxense.Serialization.Json
 		/// </remarks>
 		public JsonObject CopyAndRemove(string key)
 		{
+			Contract.NotNull(key);
+
 			var items = m_items;
 			if (!items.ContainsKey(key))
 			{ // the key does not exist so there will be no changes
@@ -572,7 +690,64 @@ namespace Doxense.Serialization.Json
 			return new(items, readOnly: true);
 		}
 
-		/// <summary>Returns a new read-only copy of this object without the specifield item</summary>
+		/// <summary>Returns a new read-only copy of this object without the specified item</summary>
+		/// <param name="key">Name of the field to remove from the copy</param>
+		/// <returns>A new instance with the same content of the original object, but with the specified item removed.</returns>
+		/// <remarks>
+		/// <para>If the object was not read-only, existing non-readonly fields will also be converted to read-only.</para>
+		/// <para>For best performances, this should only be used on already read-only objects.</para>
+		/// </remarks>
+		public JsonObject CopyAndRemove(ReadOnlySpan<char> key)
+		{
+#if !NET9_0_OR_GREATER
+			// we will have to allocate in all cases, so we should probably call the string overload
+			return CopyAndRemove(key.ToString());
+#else
+			var items = m_items;
+			var alternate = items.GetAlternateLookup<ReadOnlySpan<char>>();
+			if (!alternate.ContainsKey(key))
+			{ // the key does not exist so there will be no changes
+				return m_readOnly ? this : ToReadOnly();
+			}
+
+			if (items.Count == 1)
+			{ // we already now key is contained in the object, so if it's the only one, the object will become empty.
+				return EmptyReadOnly;
+			}
+
+			// copy and remove
+			items = new(items);
+			alternate.Remove(key);
+
+			if (!m_readOnly)
+			{ // some existing items may not be readonly, we may have to convert them as well
+				MakeReadOnly(items);
+			}
+
+			return new(items, readOnly: true);
+#endif
+		}
+
+		/// <summary>Returns a new read-only copy of this object without the specified item</summary>
+		/// <param name="key">Name of the field to remove from the copy</param>
+		/// <returns>A new instance with the same content of the original object, but with the specified item removed.</returns>
+		/// <remarks>
+		/// <para>If the object was not read-only, existing non-readonly fields will also be converted to read-only.</para>
+		/// <para>For best performances, this should only be used on already read-only objects.</para>
+		/// </remarks>
+		public JsonObject CopyAndRemove(ReadOnlyMemory<char> key)
+		{
+#if NET9_0_OR_GREATER
+			return key.TryGetString(out var str)
+				? CopyAndRemove(str)
+				: CopyAndRemove(key.Span);
+#else
+			// we will have to allocate in all cases, so we should probably call the string overload
+			return CopyAndRemove(key.ToString());
+#endif
+		}
+
+		/// <summary>Returns a new read-only copy of this object without the specified item</summary>
 		/// <param name="key">Name of the field to remove from the copy</param>
 		/// <param name="previous"></param>
 		/// <returns>A new instance with the same content of the original object, but with the specified item removed.</returns>
@@ -582,6 +757,8 @@ namespace Doxense.Serialization.Json
 		/// </remarks>
 		public JsonObject CopyAndRemove(string key, out JsonValue? previous)
 		{
+			Contract.NotNull(key);
+
 			var items = m_items;
 			if (!items.TryGetValue(key, out previous))
 			{ // the key does not exist so there will be no changes
@@ -603,6 +780,65 @@ namespace Doxense.Serialization.Json
 			}
 
 			return new(items, readOnly: true);
+		}
+
+		/// <summary>Returns a new read-only copy of this object without the specified item</summary>
+		/// <param name="key">Name of the field to remove from the copy</param>
+		/// <param name="previous"></param>
+		/// <returns>A new instance with the same content of the original object, but with the specified item removed.</returns>
+		/// <remarks>
+		/// <para>If the object was not read-only, existing non-readonly fields will also be converted to read-only.</para>
+		/// <para>For best performances, this should only be used on already read-only objects.</para>
+		/// </remarks>
+		public JsonObject CopyAndRemove(ReadOnlySpan<char> key, out JsonValue? previous)
+		{
+#if !NET9_0_OR_GREATER
+			// we will have to allocate in all cases, so we should probably call the string overload
+			return CopyAndRemove(key.ToString(), out previous);
+#else
+			var items = m_items;
+			var alternate = items.GetAlternateLookup<ReadOnlySpan<char>>();
+			if (!alternate.TryGetValue(key, out previous))
+			{ // the key does not exist so there will be no changes
+				return m_readOnly ? this : ToReadOnly();
+			}
+
+			if (items.Count == 1)
+			{ // we already now key is contained in the object, so if it's the only one, the object will become empty.
+				return EmptyReadOnly;
+			}
+
+			// copy and remove
+			items = new(items);
+			alternate.Remove(key);
+
+			if (!m_readOnly)
+			{ // some existing items may not be readonly, we may have to convert them as well
+				MakeReadOnly(items);
+			}
+
+			return new(items, readOnly: true);
+#endif
+		}
+
+		/// <summary>Returns a new read-only copy of this object without the specified item</summary>
+		/// <param name="key">Name of the field to remove from the copy</param>
+		/// <param name="previous"></param>
+		/// <returns>A new instance with the same content of the original object, but with the specified item removed.</returns>
+		/// <remarks>
+		/// <para>If the object was not read-only, existing non-readonly fields will also be converted to read-only.</para>
+		/// <para>For best performances, this should only be used on already read-only objects.</para>
+		/// </remarks>
+		public JsonObject CopyAndRemove(ReadOnlyMemory<char> key, out JsonValue? previous)
+		{
+#if NET9_0_OR_GREATER
+			return key.TryGetString(out var str)
+				? CopyAndRemove(str, out previous)
+				: CopyAndRemove(key.Span, out previous);
+#else
+			// we will have to allocate in all cases, so we should probably call the string overload
+			return CopyAndRemove(key.ToString(), out previous);
+#endif
 		}
 
 		/// <summary>Replaces a published JSON Object with a new version without the specified field, in a thread-safe manner, using a <see cref="SpinWait"/> if necessary.</summary>

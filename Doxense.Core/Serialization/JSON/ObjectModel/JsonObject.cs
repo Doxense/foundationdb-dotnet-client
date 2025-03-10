@@ -883,6 +883,19 @@ namespace Doxense.Serialization.Json
 			set => Set(key, value);
 		}
 
+
+		/// <inheritdoc cref="JsonValue.this[ReadOnlyMemory{char}]" />
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		[AllowNull]
+		public override JsonValue this[ReadOnlyMemory<char> key]
+		{
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => TryGetValue(key, out var value) ? value : JsonNull.Missing;
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			set => Set(key, value);
+		}
+
 		/// <inheritdoc cref="JsonValue.TryGetPathValue(string,out Doxense.Serialization.Json.JsonValue)" />
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		[ContractAnnotation("halt<=key:null; =>true,value:notnull; =>false,value:null")]
@@ -933,19 +946,7 @@ namespace Doxense.Serialization.Json
 #endif
 		}
 
-#if NET9_0_OR_GREATER
-
-		/// <inheritdoc/>
-		[EditorBrowsable(EditorBrowsableState.Always)]
-		[ContractAnnotation("halt<=key:null; =>true,value:notnull; =>false,value:null")]
-		public override bool TryGetValue(ReadOnlySpan<char> key, [MaybeNullWhen(false)] out string actualKey, [MaybeNullWhen(false)] out JsonValue value)
-		{
-			return m_items.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(key, out actualKey, out value);
-		}
-
-#endif
-
-		/// <inheritdoc/>
+		/// <inheritdoc cref="JsonValue.TryGetValue(ReadOnlyMemory{char},out Doxense.Serialization.Json.JsonValue)" />
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		[ContractAnnotation("halt<=key:null; =>true,value:notnull; =>false,value:null")]
 		public override bool TryGetValue(ReadOnlyMemory<char> key, [MaybeNullWhen(false)] out JsonValue value)
@@ -961,6 +962,26 @@ namespace Doxense.Serialization.Json
 #endif
 		}
 
+#if NET9_0_OR_GREATER
+
+		/// <inheritdoc/>
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		[ContractAnnotation("halt<=key:null; =>true,value:notnull; =>false,value:null")]
+		public override bool TryGetValue(ReadOnlySpan<char> key, [MaybeNullWhen(false)] out string actualKey, [MaybeNullWhen(false)] out JsonValue value)
+		{
+			return m_items.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(key, out actualKey, out value);
+		}
+
+		/// <inheritdoc/>
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		[ContractAnnotation("halt<=key:null; =>true,value:notnull; =>false,value:null")]
+		public override bool TryGetValue(ReadOnlyMemory<char> key, [MaybeNullWhen(false)] out string actualKey, [MaybeNullWhen(false)] out JsonValue value)
+		{
+			return m_items.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(key.Span, out actualKey, out value);
+		}
+
+#endif
+
 		/// <summary>Adds an element to this <see cref="JsonObject"/></summary>
 		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		[EditorBrowsable(EditorBrowsableState.Always)]
@@ -973,7 +994,23 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Adds an element to this <see cref="JsonObject"/></summary>
 		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
+#if !NET9_0_OR_GREATER
+		[EditorBrowsable(EditorBrowsableState.Never)]
+#endif
 		public void Add(ReadOnlySpan<char> key, JsonValue? value)
+		{
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+			Contract.Debug.Requires(!ReferenceEquals(this, value));
+			//note: there is no "Add" on AlternateLookup<...> (only "TryAdd") so there is no real point in optimizing the allocation here (if we assume that the failure case is very rare/a bug)
+			m_items.Add(key.ToString(), value ?? JsonNull.Null);
+		}
+
+		/// <summary>Adds an element to this <see cref="JsonObject"/></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
+#if !NET9_0_OR_GREATER
+		[EditorBrowsable(EditorBrowsableState.Never)]
+#endif
+		public void Add(ReadOnlyMemory<char> key, JsonValue? value)
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 			Contract.Debug.Requires(!ReferenceEquals(this, value));
@@ -992,7 +1029,9 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Adds an element to this <see cref="JsonObject"/>, only if it was not present before</summary>
 		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
-		[EditorBrowsable(EditorBrowsableState.Always)]
+#if !NET9_0_OR_GREATER
+		[EditorBrowsable(EditorBrowsableState.Never)]
+#endif
 		public bool TryAdd(ReadOnlySpan<char> key, JsonValue? value)
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
@@ -1000,6 +1039,21 @@ namespace Doxense.Serialization.Json
 			return m_items.GetAlternateLookup<ReadOnlySpan<char>>().TryAdd(key, value ?? JsonNull.Null);
 #else
 			return m_items.TryAdd(key.ToString(), value ?? JsonNull.Null);
+#endif
+		}
+
+		/// <summary>Adds an element to this <see cref="JsonObject"/>, only if it was not present before</summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
+#if !NET9_0_OR_GREATER
+		[EditorBrowsable(EditorBrowsableState.Never)]
+#endif
+		public bool TryAdd(ReadOnlyMemory<char> key, JsonValue? value)
+		{
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+#if NET9_0_OR_GREATER
+			return m_items.GetAlternateLookup<ReadOnlySpan<char>>().TryAdd(key.Span, value ?? JsonNull.Null);
+#else
+			return m_items.TryAdd(key.GetStringOrCopy(), value ?? JsonNull.Null);
 #endif
 		}
 
@@ -1020,6 +1074,9 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Adds an element to this <see cref="JsonObject"/></summary>
 		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
+#if !NET9_0_OR_GREATER
+		[EditorBrowsable(EditorBrowsableState.Never)]
+#endif
 		public void AddIfNotNull(ReadOnlySpan<char> key, JsonValue? value)
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
@@ -1028,6 +1085,22 @@ namespace Doxense.Serialization.Json
 			{
 				//note: there is no "Add" on AlternateLookup<...> (only "TryAdd") so there is no real point in optimizing the allocation here (if we assume that the failure case is very rare/a bug)
 				m_items.Add(key.ToString(), value);
+			}
+		}
+
+		/// <summary>Adds an element to this <see cref="JsonObject"/></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
+#if !NET9_0_OR_GREATER
+		[EditorBrowsable(EditorBrowsableState.Never)]
+#endif
+		public void AddIfNotNull(ReadOnlyMemory<char> key, JsonValue? value)
+		{
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+			Contract.Debug.Requires(!ReferenceEquals(this, value));
+			if (value is not (null or JsonNull))
+			{
+				//note: there is no "Add" on AlternateLookup<...> (only "TryAdd") so there is no real point in optimizing the allocation here (if we assume that the failure case is very rare/a bug)
+				m_items.Add(key.GetStringOrCopy(), value);
 			}
 		}
 
@@ -1770,7 +1843,9 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="T:System.ArgumentNullException"><paramref name="key" /> is <see langword="null" />.</exception>
 		/// <returns><see langword="true" /> if the element is successfully found and removed; otherwise, <see langword="false" />.</returns>
 		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
-		[EditorBrowsable(EditorBrowsableState.Always)]
+#if !NET9_0_OR_GREATER
+		[EditorBrowsable(EditorBrowsableState.Never)]
+#endif
 		public bool Remove(ReadOnlySpan<char> key)
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
@@ -1788,7 +1863,9 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="T:System.ArgumentNullException"><paramref name="key" /> is <see langword="null" />.</exception>
 		/// <returns><see langword="true" /> if the element is successfully found and removed; otherwise, <see langword="false" />.</returns>
 		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
-		[EditorBrowsable(EditorBrowsableState.Always)]
+#if !NET9_0_OR_GREATER
+		[EditorBrowsable(EditorBrowsableState.Never)]
+#endif
 		public bool Remove(ReadOnlyMemory<char> key)
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
@@ -1820,7 +1897,9 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="T:System.ArgumentNullException"><paramref name="key" /> is <see langword="null" />.</exception>
 		/// <returns><see langword="true" /> if the element is successfully found and removed; otherwise, <see langword="false" />.</returns>
 		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
-		[EditorBrowsable(EditorBrowsableState.Advanced)]
+#if !NET9_0_OR_GREATER
+		[EditorBrowsable(EditorBrowsableState.Never)]
+#endif
 		public bool Remove(ReadOnlySpan<char> key, [MaybeNullWhen(false)] out JsonValue value)
 		{
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
@@ -1829,6 +1908,26 @@ namespace Doxense.Serialization.Json
 #else
 			// we have to allocate the string here :(
 			return m_items.Remove(key.ToString(), out value);
+#endif
+		}
+
+		/// <summary>Removes the value with the specified key from this object, and copies the element to the <paramref name="value" /> parameter.</summary>
+		/// <param name="key">The key of the element to remove.</param>
+		/// <param name="value">The removed element.</param>
+		/// <exception cref="T:System.ArgumentNullException"><paramref name="key" /> is <see langword="null" />.</exception>
+		/// <returns><see langword="true" /> if the element is successfully found and removed; otherwise, <see langword="false" />.</returns>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
+#if !NET9_0_OR_GREATER
+		[EditorBrowsable(EditorBrowsableState.Never)]
+#endif
+		public bool Remove(ReadOnlyMemory<char> key, [MaybeNullWhen(false)] out JsonValue value)
+		{
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+#if NET9_0_OR_GREATER
+			return m_items.GetAlternateLookup<ReadOnlySpan<char>>().Remove(key.Span, out _, out value);
+#else
+			// we may have to allocate the string here :(
+			return m_items.Remove(key.GetStringOrCopy(), out value);
 #endif
 		}
 
@@ -1941,6 +2040,35 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public bool ContainsKey(string key) => m_items.ContainsKey(key);
 
+		/// <summary>Determines whether this <see cref="JsonObject"/> contains an element with the given <paramref name="key"/>.</summary>
+		/// <param name="key">Name of the key</param>
+		/// <returns>Returns <see langword="true" /> if the entry is present; otherwise, <see langword="false" /></returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if !NET9_0_OR_GREATER
+		[EditorBrowsable(EditorBrowsableState.Never)] // allocates memory in .NET 8 or lower!
+#endif
+		public bool ContainsKey(ReadOnlySpan<char> key)
+		{
+#if NET9_0_OR_GREATER
+			return m_items.GetAlternateLookup<ReadOnlySpan<char>>().ContainsKey(key);
+#else
+			return m_items.ContainsKey(key.ToString());
+#endif
+		}
+
+		/// <summary>Determines whether this <see cref="JsonObject"/> contains an element with the given <paramref name="key"/>.</summary>
+		/// <param name="key">Name of the key</param>
+		/// <returns>Returns <see langword="true" /> if the entry is present; otherwise, <see langword="false" /></returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool ContainsKey(ReadOnlyMemory<char> key)
+		{
+#if NET9_0_OR_GREATER
+			return m_items.GetAlternateLookup<ReadOnlySpan<char>>().ContainsKey(key.Span);
+#else
+			return m_items.ContainsKey(key.GetStringOrCopy());
+#endif
+		}
+
 		bool ICollection<KeyValuePair<string, JsonValue>>.Contains(KeyValuePair<string, JsonValue> keyValuePair) => ((ICollection<KeyValuePair<string, JsonValue>>)m_items).Contains(keyValuePair);
 
 		/// <summary>Determines whether this <see cref="JsonObject"/> contains an element with the given <paramref name="key"/> and with a non-null value</summary>
@@ -1972,7 +2100,7 @@ namespace Doxense.Serialization.Json
 
 		/// <inheritdoc/>
 		[Pure]
-		public override JsonValue GetValue(ReadOnlyMemory<char> key) => TryGetValue(key, out var value) ? value : JsonValueExtensions.FailFieldIsNullOrMissing(value, key.Span);
+		public override JsonValue GetValue(ReadOnlyMemory<char> key) => TryGetValue(key, out var value) ? value : JsonValueExtensions.FailFieldIsNullOrMissing(value, key);
 
 #if NET9_0_OR_GREATER
 
@@ -1982,7 +2110,7 @@ namespace Doxense.Serialization.Json
 
 		/// <inheritdoc/>
 		[Pure]
-		public override JsonValue GetValue(ReadOnlyMemory<char> key, out string actualKey) => TryGetValue(key.Span, out actualKey!, out var value) ? value : JsonValueExtensions.FailFieldIsNullOrMissing(value, key.Span);
+		public override JsonValue GetValue(ReadOnlyMemory<char> key, out string actualKey) => TryGetValue(key.Span, out actualKey!, out var value) ? value : JsonValueExtensions.FailFieldIsNullOrMissing(value, key);
 
 #endif
 
@@ -2089,6 +2217,16 @@ namespace Doxense.Serialization.Json
 		/// <param name="value">New value</param>
 		/// <remarks>If any intermediate element in the traversed path is missing, it will be created as required (either as an object or an array)</remarks>
 		public void SetPath(string path, JsonValue? value)
+		{
+			JsonPath.ThrowIfEmpty(path);
+			SetPathInternal(JsonPath.Create(path), value ?? JsonNull.Null);
+		}
+
+		/// <summary>Sets the value at the given path</summary>
+		/// <param name="path"><see cref="JsonPath">path</see> of the value to set.</param>
+		/// <param name="value">New value</param>
+		/// <remarks>If any intermediate element in the traversed path is missing, it will be created as required (either as an object or an array)</remarks>
+		public void SetPath(ReadOnlyMemory<char> path, JsonValue? value)
 		{
 			JsonPath.ThrowIfEmpty(path);
 			SetPathInternal(JsonPath.Create(path), value ?? JsonNull.Null);
@@ -2271,6 +2409,18 @@ namespace Doxense.Serialization.Json
 		/// <c>{ "foo": { "bar": 123, "baz": 456 } }.RemovePath("foo.bar") => { "foo": { "baz": 456 } }</c>
 		/// </example>
 		public bool RemovePath(string path)
+		{
+			JsonPath.ThrowIfEmpty(path);
+			return !SetPathInternal(JsonPath.Create(path), null, JsonType.Null).IsNullOrMissing();
+		}
+
+		/// <summary>Removes the value at the given path</summary>
+		/// <param name="path"><see cref="JsonPath">path</see> of the value to remove.</param>
+		/// <returns><see langword="true"/> if the value was found and was removed, or <see langword="false"/> if it was no present.</returns>
+		/// <example>
+		/// <c>{ "foo": { "bar": 123, "baz": 456 } }.RemovePath("foo.bar") => { "foo": { "baz": 456 } }</c>
+		/// </example>
+		public bool RemovePath(ReadOnlyMemory<char> path)
 		{
 			JsonPath.ThrowIfEmpty(path);
 			return !SetPathInternal(JsonPath.Create(path), null, JsonType.Null).IsNullOrMissing();

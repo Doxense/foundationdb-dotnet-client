@@ -184,6 +184,22 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
+		[AllowNull] // setter only
+		public override JsonValue this[ReadOnlySpan<char> key]
+		{
+			get => ReferenceEquals(this, JsonNull.Error) ? this : JsonNull.Missing;
+			set => throw FailCannotMutateImmutableValue(this);
+		}
+
+		/// <inheritdoc />
+		[AllowNull] // setter only
+		public override JsonValue this[ReadOnlyMemory<char> key]
+		{
+			get => ReferenceEquals(this, JsonNull.Error) ? this : JsonNull.Missing;
+			set => throw FailCannotMutateImmutableValue(this);
+		}
+
+		/// <inheritdoc />
 		public override JsonValue GetValueOrDefault(string key, JsonValue? defaultValue = null) => defaultValue ?? JsonNull.Missing;
 
 		/// <inheritdoc />
@@ -221,11 +237,11 @@ namespace Doxense.Serialization.Json
 
 		/// <inheritdoc />
 		[DoesNotReturn, EditorBrowsable(EditorBrowsableState.Never)]
-		public override JsonValue GetValue(ReadOnlyMemory<char> key) => JsonValueExtensions.FailFieldIsNullOrMissing(this, key.Span);
+		public override JsonValue GetValue(ReadOnlySpan<char> key) => JsonValueExtensions.FailFieldIsNullOrMissing(this, key);
 
 		/// <inheritdoc />
 		[DoesNotReturn, EditorBrowsable(EditorBrowsableState.Never)]
-		public override JsonValue GetValue(ReadOnlySpan<char> key) => JsonValueExtensions.FailFieldIsNullOrMissing(this, key);
+		public override JsonValue GetValue(ReadOnlyMemory<char> key) => JsonValueExtensions.FailFieldIsNullOrMissing(this, key);
 
 #if NET9_0_OR_GREATER
 

@@ -7417,6 +7417,8 @@ namespace Doxense.Serialization.Json.Tests
 		public void Test_JsonObject_Span_Keys()
 		{
 			Span<char> spanKey = [ 'H', 'e', 'l', 'l', 'o' ]; // we assume that it is allocated on the stack!
+			ReadOnlyMemory<char> memKey = "Hello".AsMemory();
+
 
 			{ // stackalloc'ed keys
 				var obj = new JsonObject();
@@ -7424,8 +7426,12 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(obj["Hello"], IsJson.EqualTo("World"));
 				Assert.That(obj[spanKey], IsJson.EqualTo("World"));
 				Assert.That(obj.TryGetValue(spanKey, out var value), Is.True.WithOutput(value).EqualTo(JsonString.Return("World")));
+				Assert.That(obj[memKey], IsJson.EqualTo("World"));
+				Assert.That(obj.TryGetValue(memKey, out value), Is.True.WithOutput(value).EqualTo(JsonString.Return("World")));
 #if NET9_0_OR_GREATER
 				Assert.That(obj.TryGetValue(spanKey, out var actualKey, out value), Is.True.WithOutput(value).EqualTo(JsonString.Return("World")));
+				Assert.That(actualKey, Is.InstanceOf<string>().And.EqualTo("Hello"));
+				Assert.That(obj.TryGetValue(memKey, out actualKey, out value), Is.True.WithOutput(value).EqualTo(JsonString.Return("World")));
 				Assert.That(actualKey, Is.InstanceOf<string>().And.EqualTo("Hello"));
 #endif
 			}
@@ -7436,15 +7442,19 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(obj["Hello"], IsJson.EqualTo("World"));
 				Assert.That(obj["Hello".AsSpan()], IsJson.EqualTo("World"));
 				Assert.That(obj["HelloNot".AsSpan(0, 5)], IsJson.EqualTo("World"));
+				Assert.That(obj["Hello".AsMemory()], IsJson.EqualTo("World"));
 				Assert.That(obj.TryGetValue("NotHelloNot".AsSpan(3, 5), out var value), Is.True.WithOutput(value).EqualTo(JsonString.Return("World")));
+				Assert.That(obj.TryGetValue("NotHelloNot".AsMemory(3, 5), out value), Is.True.WithOutput(value).EqualTo(JsonString.Return("World")));
 #if NET9_0_OR_GREATER
 				Assert.That(obj.TryGetValue("NotHelloNot".AsSpan(3, 5), out var actualKey, out value), Is.True.WithOutput(value).EqualTo(JsonString.Return("World")));
+				Assert.That(actualKey, Is.InstanceOf<string>().And.EqualTo("Hello"));
+				Assert.That(obj.TryGetValue("NotHelloNot".AsMemory(3, 5), out actualKey, out value), Is.True.WithOutput(value).EqualTo(JsonString.Return("World")));
 				Assert.That(actualKey, Is.InstanceOf<string>().And.EqualTo("Hello"));
 #endif
 			}
 
 #if NET9_0_OR_GREATER
-			{ // TryGetValue span returns original key
+			{ // TryGetValue(span, ...) returns original key
 
 				// create a unique key, add it to the object, and check that TryGetValue with a span will return the exact same instance (and not a copy!)
 				string key = DateTime.Now.Ticks.ToString();
@@ -7456,20 +7466,49 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(value, IsJson.EqualTo("World"));
 				Assert.That(actualKey, Is.SameAs(key));
 			}
+			{ // TryGetValue(memory, ...) returns original key
+
+				// create a unique key, add it to the object, and check that TryGetValue with a span will return the exact same instance (and not a copy!)
+				string key = DateTime.Now.Ticks.ToString();
+				var obj = new JsonObject();
+				obj[key] = "World";
+				var memKeySpliced = ("hello" + key + "world").AsMemory()[5..^5];
+				Assert.That(obj.TryGetValue(memKeySpliced, out var actualKey, out var value), Is.True);
+				Assert.That(value, IsJson.EqualTo("World"));
+				Assert.That(actualKey, Is.SameAs(key));
+			}
 #endif
 
-			{ // Set(JsonValue)
+			{ // Set(span, JsonValue)
 				var obj = new JsonObject();
 				obj.Set(spanKey, "World");
 				Assert.That(obj["Hello"], IsJson.EqualTo("World"));
 				Assert.That(obj[spanKey], IsJson.EqualTo("World"));
+				Assert.That(obj[memKey], IsJson.EqualTo("World"));
 			}
 
-			{ // Set<T>(...)
+			{ // Set(memory, JsonValue)
+				var obj = new JsonObject();
+				obj.Set(memKey, "World");
+				Assert.That(obj["Hello"], IsJson.EqualTo("World"));
+				Assert.That(obj[spanKey], IsJson.EqualTo("World"));
+				Assert.That(obj[memKey], IsJson.EqualTo("World"));
+			}
+
+			{ // Set<T>(span, T)
 				var obj = new JsonObject();
 				obj.Set<string>(spanKey, "World");
 				Assert.That(obj["Hello"], IsJson.EqualTo("World"));
 				Assert.That(obj[spanKey], IsJson.EqualTo("World"));
+				Assert.That(obj[memKey], IsJson.EqualTo("World"));
+			}
+
+			{ // Set<T>(memory, T)
+				var obj = new JsonObject();
+				obj.Set<string>(memKey, "World");
+				Assert.That(obj["Hello"], IsJson.EqualTo("World"));
+				Assert.That(obj[spanKey], IsJson.EqualTo("World"));
+				Assert.That(obj[memKey], IsJson.EqualTo("World"));
 			}
 
 		}
@@ -7490,15 +7529,19 @@ namespace Doxense.Serialization.Json.Tests
 
 			Assert.That(obj.Get<string>("Hello"), Is.EqualTo("World"));
 			Assert.That(obj.Get<string>("Hello", "not_found"), Is.EqualTo("World"));
+			Assert.That(obj.Get<string>("XYZHello".AsSpan(3), "not_found"), Is.EqualTo("World"));
 
 			Assert.That(obj.Get<int>("Foo"), Is.EqualTo(123));
 			Assert.That(obj.Get<int>("Foo", -1), Is.EqualTo(123));
+			Assert.That(obj.Get<int>("XYZFoo".AsSpan(3), -1), Is.EqualTo(123));
 
 			Assert.That(obj.Get<bool>("Bar"), Is.True);
 			Assert.That(obj.Get<bool>("Bar", false), Is.True);
+			Assert.That(obj.Get<bool>("XYZBar".AsSpan(3), false), Is.True);
 
 			Assert.That(obj.Get<double>("Baz"), Is.EqualTo(Math.PI));
 			Assert.That(obj.Get<double>("Baz", double.NaN), Is.EqualTo(Math.PI));
+			Assert.That(obj.Get<double>("XYZBaz".AsSpan(3), double.NaN), Is.EqualTo(Math.PI));
 
 			// empty doit retourner default(T) pour les ValueType, càd 0/false/...
 			Assert.That(obj.Get<string>("Empty"), Is.EqualTo(""), "'' -> string");
@@ -7506,6 +7549,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(obj.Get<bool>("Empty"), Is.False, "'' -> bool");
 			Assert.That(obj.Get<double>("Empty"), Is.EqualTo(0.0), "'' -> double");
 			Assert.That(obj.Get<Guid>("Empty"), Is.EqualTo(Guid.Empty), "'' -> Guid");
+			Assert.That(obj.Get<string>("NotEmpty".AsSpan(3)), Is.EqualTo(""), "'' -> string");
 
 			// empty doit doit retourner default(T) pour les Nullable, càd null
 			Assert.That(obj.Get<int?>("Empty", null), Is.Null, "'' -> int?");
@@ -7518,6 +7562,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(obj.Get<int?>("olleH", null), Is.Null);
 			Assert.That(obj.Get<bool?>("olleH", null), Is.Null);
 			Assert.That(obj.Get<double?>("olleH", null), Is.Null);
+			Assert.That(obj.Get<string?>("olleH".AsSpan(), null), Is.Null);
 
 			// null + nullable
 			Assert.That(() => obj.Get<string>("Void"), Throws.InstanceOf<JsonBindingException>().With.Message.Contains("Void"));
@@ -7616,11 +7661,13 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(obj.GetPath<int>("Coords.Y"), Is.EqualTo(2));
 			Assert.That(obj.GetPath<int>("Coords.Z"), Is.EqualTo(3));
 			Assert.That(() => obj.GetPath<int>("Coords.NotFound"), Throws.InstanceOf<JsonBindingException>());
+			Assert.That(obj.GetPath<int>("XYZ.Coords.Z".AsMemory(4)), Is.EqualTo(3));
 
 			Assert.That(obj.GetPath<int?>("Foo.Bar.Baz", null), Is.EqualTo(123));
 			Assert.That(obj.GetPath<int?>("Foo.Bar.NotFound", null), Is.Null);
 			Assert.That(obj.GetPath<int?>("Foo.NotFound.Baz", null), Is.Null);
 			Assert.That(obj.GetPath<int?>("NotFound.Bar.Baz", null), Is.Null);
+			Assert.That(obj.GetPath<int?>("Foo.Bar.Baz.XYZ".AsMemory()[..^4], null), Is.EqualTo(123));
 
 			// Array Indexing
 
@@ -8678,7 +8725,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(obj["hello"], IsJson.Missing);
 
 			// copy and set second field
-			var obj3 = obj2.CopyAndSet("foo", "bar");
+			var obj3 = obj2.CopyAndSet("XYZfoo".AsSpan(3), "bar");
 			DumpCompact(obj3);
 			Assert.That(obj3, Is.Not.SameAs(obj2));
 			Assert.That(obj3, Has.Count.EqualTo(2));
@@ -8696,7 +8743,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(obj3["foo"], IsJson.EqualTo("bar"));
 
 			// copy and set should overwrite existing field
-			var obj4 = obj3.CopyAndSet("foo", "baz");
+			var obj4 = obj3.CopyAndSet("XYZfoo".AsMemory(3), "baz");
 			DumpCompact(obj4);
 			Assert.That(obj4, Is.Not.SameAs(obj3));
 			Assert.That(obj4, Has.Count.EqualTo(2));
@@ -10716,7 +10763,7 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(m.Get<string[]>("Metrics"), Has.Length.EqualTo(3));
 
 				// metrics value
-				foreach (var id in m.GetArray<string>("Metrics"))
+				foreach (var id in m.Get<string[]>("Metrics"))
 				{
 					Log($"> Readining batch for {id}...");
 					frag = reader.ReadNextFragment()!;

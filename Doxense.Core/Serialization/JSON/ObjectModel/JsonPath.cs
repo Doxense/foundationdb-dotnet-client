@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -241,6 +241,18 @@ namespace Doxense.Serialization.Json
 		public static void ThrowIfEmpty(string path, [CallerArgumentExpression(nameof(path))] string? paramName = null)
 		{
 			if (string.IsNullOrEmpty(path))
+			{
+				throw ThrowHelper.ArgumentException(paramName ?? nameof(path), "Path cannot be empty");
+			}
+		}
+
+		/// <summary>Throws an exception if the specified path is empty</summary>
+		/// <param name="path">Path to check</param>
+		/// <param name="paramName">Name of the parameter that contains the path</param>
+		/// <exception cref="ArgumentException">if <paramref name="path"/> is empty</exception>
+		public static void ThrowIfEmpty(ReadOnlyMemory<char> path, [CallerArgumentExpression(nameof(path))] string? paramName = null)
+		{
+			if (path.Length == 0)
 			{
 				throw ThrowHelper.ArgumentException(paramName ?? nameof(path), "Path cannot be empty");
 			}
@@ -1489,7 +1501,11 @@ namespace Doxense.Serialization.Json
 
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void WriteTo(StringBuilder sb, string key) => WriteTo(sb, key.AsSpan());
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteTo(StringBuilder sb, ReadOnlyMemory<char> key) => WriteTo(sb, key.Span);
 
 		public static void WriteTo(StringBuilder sb, ReadOnlySpan<char> key)
 		{
