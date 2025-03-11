@@ -4399,6 +4399,116 @@ namespace Doxense.Serialization.Json
 
 		private bool ValuesEqualEnumerableHelper<TValue>(IEnumerable<TValue> values) => ValuesEqual(values);
 
+		/// <summary>Tests if the elements of this array are equal to the elements of the specified array, using the strict JSON comparison semantics</summary>
+		[OverloadResolutionPriority(2)]
+		public bool ValuesEqual(string?[]? items) => items is not null && ValuesEqual(new ReadOnlySpan<string?>(items));
+
+		/// <summary>Tests if the elements of this array are equal to the elements of the specified span, using the strict JSON comparison semantics</summary>
+		[OverloadResolutionPriority(2)]
+		public bool ValuesEqual(ReadOnlySpan<string?> items)
+		{
+			var span = AsSpan();
+			if (span.Length != items.Length) return false;
+			for (int i = 0; i < span.Length; i++)
+			{
+				var item = items[i];
+				if (item == null)
+				{
+					if (span[i] is not JsonNull) return false;
+				}
+				else
+				{
+					if (span[i] is not JsonString str || !str.Equals(item)) return false;
+				}
+			}
+			return true;
+		}
+
+		/// <summary>Tests if the elements of this array are equal to the elements of the specified array, using the strict JSON comparison semantics</summary>
+		[OverloadResolutionPriority(2)]
+		public bool ValuesEqual(int[]? items) => items is not null && ValuesEqual(new ReadOnlySpan<int>(items));
+
+		/// <summary>Tests if the elements of this array are equal to the elements of the specified span, using the strict JSON comparison semantics</summary>
+		[OverloadResolutionPriority(2)]
+		public bool ValuesEqual(ReadOnlySpan<int> items)
+		{
+			var span = AsSpan();
+			if (span.Length != items.Length) return false;
+			for (int i = 0; i < span.Length; i++)
+			{
+				if (span[i] is not JsonNumber num || !num.Equals(items[i])) return false;
+			}
+			return true;
+		}
+
+		/// <summary>Tests if the elements of this array are equal to the elements of the specified array, using the strict JSON comparison semantics</summary>
+		[OverloadResolutionPriority(2)]
+		public bool ValuesEqual(long[]? items) => items is not null && ValuesEqual(new ReadOnlySpan<long>(items));
+
+		/// <summary>Tests if the elements of this array are equal to the elements of the specified span, using the strict JSON comparison semantics</summary>
+		[OverloadResolutionPriority(2)]
+		public bool ValuesEqual(ReadOnlySpan<long> items)
+		{
+			var span = AsSpan();
+			if (span.Length != items.Length) return false;
+			for (int i = 0; i < span.Length; i++)
+			{
+				if (span[i] is not JsonNumber num || !num.Equals(items[i])) return false;
+			}
+			return true;
+		}
+
+		/// <summary>Tests if the elements of this array are equal to the elements of the specified array, using the strict JSON comparison semantics</summary>
+		[OverloadResolutionPriority(2)]
+		public bool ValuesEqual(float[]? items) => items is not null && ValuesEqual(new ReadOnlySpan<float>(items));
+
+		/// <summary>Tests if the elements of this array are equal to the elements of the specified span, using the strict JSON comparison semantics</summary>
+		[OverloadResolutionPriority(2)]
+		public bool ValuesEqual(ReadOnlySpan<float> items)
+		{
+			var span = AsSpan();
+			if (span.Length != items.Length) return false;
+			for (int i = 0; i < span.Length; i++)
+			{
+				if (span[i] is not JsonNumber num || !num.Equals(items[i])) return false;
+			}
+			return true;
+		}
+
+		/// <summary>Tests if the elements of this array are equal to the elements of the specified array, using the strict JSON comparison semantics</summary>
+		[OverloadResolutionPriority(2)]
+		public bool ValuesEqual(double[]? items) => items is not null && ValuesEqual(new ReadOnlySpan<double>(items));
+
+		/// <summary>Tests if the elements of this array are equal to the elements of the specified span, using the strict JSON comparison semantics</summary>
+		[OverloadResolutionPriority(2)]
+		public bool ValuesEqual(ReadOnlySpan<double> items)
+		{
+			var span = AsSpan();
+			if (span.Length != items.Length) return false;
+			for (int i = 0; i < span.Length; i++)
+			{
+				if (span[i] is not JsonNumber num || !num.Equals(items[i])) return false;
+			}
+			return true;
+		}
+
+		/// <summary>Tests if the elements of this array are equal to the elements of the specified array, using the strict JSON comparison semantics</summary>
+		[OverloadResolutionPriority(2)]
+		public bool ValuesEqual(bool[]? items) => items is not null && ValuesEqual(new ReadOnlySpan<bool>(items));
+
+		/// <summary>Tests if the elements of this array are equal to the elements of the specified span, using the strict JSON comparison semantics</summary>
+		[OverloadResolutionPriority(2)]
+		public bool ValuesEqual(ReadOnlySpan<bool> items)
+		{
+			var span = AsSpan();
+			if (span.Length != items.Length) return false;
+			for (int i = 0; i < span.Length; i++)
+			{
+				if (span[i] is not JsonBoolean b || b.Value != items[i]) return false;
+			}
+			return true;
+		}
+
 		/// <summary>Tests if the elements of this array are equal to the elements of the specified span, using the strict JSON comparison semantics</summary>
 		[Pure]
 		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]

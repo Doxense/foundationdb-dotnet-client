@@ -6982,6 +6982,7 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(arr.ValueEquals<IEnumerable<string>>([ ]), Is.True);
 
 				Assert.That(arr.ValuesEqual((string[]) [ ]), Is.True);
+				Assert.That(arr.ValuesEqual((ReadOnlySpan<string>) [ ]), Is.True);
 				Assert.That(arr.ValuesEqual((List<string>) [ ]), Is.True);
 				Assert.That(arr.ValuesEqual((IEnumerable<string>) [ ]), Is.True);
 
@@ -6995,7 +6996,6 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.Multiple(() =>
 			{
 				var arr = JsonArray.Create([ "foo", "bar" ]);
-
 
 				Assert.That(arr.ValueEquals(JsonArray.Create("foo", "bar")), Is.True);
 				Assert.That(arr.ValueEquals<string[]>([ "foo", "bar" ]), Is.True);
@@ -7012,6 +7012,7 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(arr.ValueEquals<IEnumerable<string>>(Enumerable.Range(0, 2).Select(i => i == 0 ? "foo" : "baz")), Is.False);
 				Assert.That(arr.ValueEquals<IEnumerable<string>>(Enumerable.Range(0, 3).Select(i => i == 0 ? "foo" : i == 1 ? "bar" : "baz")), Is.False);
 
+				Assert.That(arr.ValuesEqual([ "foo", "bar" ]), Is.True);
 				Assert.That(arr.ValuesEqual(JsonArray.Create("foo", "bar")), Is.True);
 				Assert.That(arr.ValuesEqual((ReadOnlySpan<string>) [ "foo", "bar" ]), Is.True);
 				Assert.That(arr.ValuesEqual((string[]) [ "foo", "bar" ]), Is.True);
@@ -7058,19 +7059,14 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(arr.ValuesEqual<double>([ 1.0, 2.0, 3.0 ]), Is.True);
 				Assert.That(arr.ValuesEqual<float>([ 1.0f, 2.0f, 3.0f ]), Is.True);
 				Assert.That(arr.ValuesEqual<decimal>([ 1.0m, 2.0m, 3.0m ]), Is.True);
-			});
 
-			Assert.Multiple(() =>
-			{
-				var arr = JsonArray.Create("foo", "bar");
-				Assert.That(arr.ValueEquals<string[]>([ "foo", "bar" ]));
-				Assert.That(arr.ValueEquals<List<string>>([ "foo", "bar" ]));
-				Assert.That(arr.ValueEquals<IEnumerable<string>>(Enumerable.Range(0, 2).Select(i => i == 0 ? "foo" : "bar")));
+				// collection expression
+				Assert.That(arr.ValuesEqual([ 1, 2, 3 ]), Is.True);
+				Assert.That(arr.ValuesEqual([ 1L, 2L, 3L ]), Is.True);
+				Assert.That(arr.ValuesEqual([ 1.0, 2.0, 3.0 ]), Is.True);
+				Assert.That(arr.ValuesEqual([ 1.0f, 2.0f, 3.0f ]), Is.True);
+				Assert.That(arr.ValuesEqual([ 1.0m, 2.0m, 3.0m ]), Is.True);
 
-				Assert.That(arr.ValuesEqual((ReadOnlySpan<string>) [ "foo", "bar" ]));
-				Assert.That(arr.ValuesEqual((string[]) [ "foo", "bar" ]));
-				Assert.That(arr.ValuesEqual((List<string>) [ "foo", "bar" ]));
-				Assert.That(arr.ValuesEqual(Enumerable.Range(0, 2).Select(i => i == 0 ? "foo" : "bar")));
 			});
 		}
 
@@ -10763,7 +10759,7 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(m.Get<string[]>("Metrics"), Has.Length.EqualTo(3));
 
 				// metrics value
-				foreach (var id in m.Get<string[]>("Metrics"))
+				foreach (var id in m.GetArray("Metrics").Cast<string>())
 				{
 					Log($"> Readining batch for {id}...");
 					frag = reader.ReadNextFragment()!;
