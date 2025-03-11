@@ -27,6 +27,7 @@
 namespace Doxense.Serialization.Json
 {
 	using System.Globalization;
+	using System.Net;
 	using Doxense.Collections.Caching;
 	using Doxense.Memory;
 	using Doxense.Tools;
@@ -55,8 +56,12 @@ namespace Doxense.Serialization.Json
 		IEquatable<DateTimeOffset>,
 		IEquatable<DateOnly>,
 		IEquatable<TimeOnly>,
+		IEquatable<NodaTime.Instant>,
 		IEquatable<NodaTime.LocalDateTime>,
-		IEquatable<NodaTime.LocalDate>
+		IEquatable<NodaTime.LocalDate>,
+		IEquatable<Uri>,
+		IEquatable<IPAddress>,
+		IEquatable<Version>
 	{
 		
 		/// <summary>Returns the empty string</summary>
@@ -858,11 +863,11 @@ namespace Doxense.Serialization.Json
 				}
 				else if (typeof(System.Net.IPAddress) == type)
 				{
-					return m_value.Length != 0 ? System.Net.IPAddress.Parse(m_value) : null;
+					return ToIpAddress();
 				}
 				else if (typeof(Version) == type)
 				{
-					return m_value.Length != 0 ? Version.Parse(m_value) : null;
+					return ToVersion();
 				}
 				else if (typeof(Uri) == type)
 				{
@@ -984,21 +989,29 @@ namespace Doxense.Serialization.Json
 			{
 				JsonValue val      => Equals(val),
 				string s           => Equals(s),
+				Guid g             => Equals(g),
+				Uuid128 u128       => Equals(u128),
+				Uuid96 u96         => Equals(u96),
+				Uuid80 u80         => Equals(u80),
+				Uuid64 u64         => Equals(u64),
 				null               => false,
 				DateTime dt        => Equals(dt),
 				DateTimeOffset dto => Equals(dto),
 				NodaTime.Instant t => Equals(t),
+				Uri uri            => Equals(uri),
+				Version ver        => Equals(ver),
+				IPAddress ip       => Equals(ip),
 				_                  => false
 			};
 			//TODO: compare with int, long, ...?
 		}
 
 		/// <inheritdoc />
-		public override bool Equals(JsonValue? obj)
+		public override bool Equals(JsonValue? other)
 		{
-			if (ReferenceEquals(obj, this)) return true;
-			if (obj is null) return false;
-			switch (obj)
+			if (ReferenceEquals(other, this)) return true;
+			if (other is null) return false;
+			switch (other)
 			{
 				case JsonString str:    return Equals(str);
 				case JsonNumber num:    return num.Equals(this);
@@ -1008,9 +1021,9 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		public bool Equals(JsonString? obj)
+		public bool Equals(JsonString? other)
 		{
-			return obj is not null && m_value ==  obj.m_value;
+			return other is not null && m_value ==  other.m_value;
 		}
 
 		/// <inheritdoc />
@@ -1041,6 +1054,9 @@ namespace Doxense.Serialization.Json
 				if (typeof(TValue) == typeof(NodaTime.LocalDate?)) return Equals((NodaTime.LocalDate) (object) value);
 
 				if (typeof(TValue) == typeof(string)) return Equals(Unsafe.As<string>(value));
+				if (typeof(TValue) == typeof(Uri)) return Equals(Unsafe.As<Uri>(value));
+				if (typeof(TValue) == typeof(Version)) return Equals(Unsafe.As<Version>(value));
+				if (typeof(TValue) == typeof(IPAddress)) return Equals(Unsafe.As<IPAddress>(value));
 
 				if (value is JsonValue j) return Equals(j);
 			}
@@ -1063,9 +1079,9 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		public bool Equals(string? obj)
+		public bool Equals(string? other)
 		{
-			return obj is not null && string.Equals(m_value, obj, StringComparison.Ordinal);
+			return other is not null && string.Equals(m_value, other, StringComparison.Ordinal);
 		}
 
 #if NET9_0_OR_GREATER
@@ -1079,37 +1095,49 @@ namespace Doxense.Serialization.Json
 		public bool Equals(ReadOnlyMemory<char> other) => m_value.AsSpan().SequenceEqual(other.Span);
 
 		/// <inheritdoc />
-		public bool Equals(Guid obj) => ToGuid() == obj;
+		public bool Equals(Guid other) => TryConvertToGuid(out var value) && value == other;
 
 		/// <inheritdoc />
-		public bool Equals(Uuid128 obj) => ToUuid128() == obj;
+		public bool Equals(Uuid128 other) => TryConvertToUuid128(out var value) && value == other;
 
 		/// <inheritdoc />
-		public bool Equals(Uuid96 obj) => ToUuid96() == obj;
+		public bool Equals(Uuid96 other) => TryConvertToUuid96(out var value) && value == other;
 
 		/// <inheritdoc />
-		public bool Equals(Uuid80 obj) => ToUuid80() == obj;
+		public bool Equals(Uuid80 other) => TryConvertToUuid80(out var value) && value == other;
 
 		/// <inheritdoc />
-		public bool Equals(Uuid64 obj) => ToUuid64() == obj;
+		public bool Equals(Uuid64 other) => TryConvertToUuid64(out var value) && value == other;
 
 		/// <inheritdoc />
-		public bool Equals(DateTime obj) => ToDateTime() == obj;
+		public bool Equals(DateTime other) => TryConvertToDateTime(out var value) && value == other;
 
 		/// <inheritdoc />
-		public bool Equals(DateTimeOffset obj) => ToDateTimeOffset() == obj;
+		public bool Equals(DateTimeOffset other) => TryConvertToDateTimeOffset(out var value) && value == other;
 
 		/// <inheritdoc />
-		public bool Equals(DateOnly obj) => ToDateOnly() == obj;
+		public bool Equals(DateOnly other) => TryConvertToDateOnly(out var value) && value == other;
 
 		/// <inheritdoc />
-		public bool Equals(TimeOnly obj) => ToTimeOnly() == obj;
+		public bool Equals(TimeOnly other) => TryConvertToTimeOnly(out var value) && value == other;
 
 		/// <inheritdoc />
-		public bool Equals(NodaTime.LocalDateTime obj) => ToLocalDateTime() == obj;
+		public bool Equals(NodaTime.Instant other) => TryConvertToInstant(out var value) && value == other;
 
 		/// <inheritdoc />
-		public bool Equals(NodaTime.LocalDate obj) => ToLocalDate() == obj;
+		public bool Equals(NodaTime.LocalDateTime other) => TryConvertToLocalDateTime(out var value) && value == other;
+
+		/// <inheritdoc />
+		public bool Equals(NodaTime.LocalDate other) => TryConvertToLocalDate(out var value) && value == other;
+
+		/// <inheritdoc />
+		public bool Equals(IPAddress? other) => other != null && TryConvertToIpAddress(out var value) && other.Equals(value);
+
+		/// <inheritdoc />
+		public bool Equals(Uri? other) => other != null && TryConvertToUri(out var value) && other.Equals(value);
+
+		/// <inheritdoc />
+		public bool Equals(Version? other) => other != null && TryConvertToVersion(out var value) && other.Equals(value);
 
 		/// <inheritdoc />
 		public override int GetHashCode() => m_value.GetHashCode();
@@ -1201,7 +1229,7 @@ namespace Doxense.Serialization.Json
 		#region Byte
 
 		/// <inheritdoc />
-		public override byte ToByte(byte defaultValue = default) => string.IsNullOrEmpty(m_value) ? defaultValue : byte.Parse(m_value, NumberFormatInfo.InvariantInfo);
+		public override byte ToByte(byte defaultValue = 0) => string.IsNullOrEmpty(m_value) ? defaultValue : byte.Parse(m_value, NumberFormatInfo.InvariantInfo);
 
 		/// <inheritdoc />
 		public override byte? ToByteOrDefault(byte? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : byte.Parse(m_value, NumberFormatInfo.InvariantInfo);
@@ -1211,7 +1239,7 @@ namespace Doxense.Serialization.Json
 		#region SByte
 
 		/// <inheritdoc />
-		public override sbyte ToSByte(sbyte defaultValue = default)
+		public override sbyte ToSByte(sbyte defaultValue = 0)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : sbyte.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
@@ -1227,7 +1255,7 @@ namespace Doxense.Serialization.Json
 		#region Char
 
 		/// <inheritdoc />
-		public override char ToChar(char defaultValue = default)
+		public override char ToChar(char defaultValue = '\0')
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : m_value[0];
 		}
@@ -1243,7 +1271,7 @@ namespace Doxense.Serialization.Json
 		#region Int16
 
 		/// <inheritdoc />
-		public override short ToInt16(short defaultValue = default)
+		public override short ToInt16(short defaultValue = 0)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : short.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
@@ -1264,7 +1292,7 @@ namespace Doxense.Serialization.Json
 		#region UInt16
 
 		/// <inheritdoc />
-		public override ushort ToUInt16(ushort defaultValue = default)
+		public override ushort ToUInt16(ushort defaultValue = 0)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : ushort.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
@@ -1285,7 +1313,7 @@ namespace Doxense.Serialization.Json
 		#region Int32
 
 		/// <inheritdoc />
-		public override int ToInt32(int defaultValue = default)
+		public override int ToInt32(int defaultValue = 0)
 		{
 			var value = m_value;
 			if (string.IsNullOrEmpty(value))
@@ -1323,7 +1351,7 @@ namespace Doxense.Serialization.Json
 		#region UInt32
 
 		/// <inheritdoc />
-		public override uint ToUInt32(uint defaultValue = default)
+		public override uint ToUInt32(uint defaultValue = 0)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : uint.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
@@ -1344,7 +1372,7 @@ namespace Doxense.Serialization.Json
 		#region Int64
 
 		/// <inheritdoc />
-		public override long ToInt64(long defaultValue = default)
+		public override long ToInt64(long defaultValue = 0)
 		{
 			var value = m_value;
 			if (string.IsNullOrEmpty(value))
@@ -1386,7 +1414,7 @@ namespace Doxense.Serialization.Json
 		#region UInt64
 
 		/// <inheritdoc />
-		public override ulong ToUInt64(ulong defaultValue = default)
+		public override ulong ToUInt64(ulong defaultValue = 0)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : ulong.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
@@ -1458,7 +1486,7 @@ namespace Doxense.Serialization.Json
 		#region Single
 
 		/// <inheritdoc />
-		public override float ToSingle(float defaultValue = default)
+		public override float ToSingle(float defaultValue = 0)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : float.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
@@ -1479,7 +1507,7 @@ namespace Doxense.Serialization.Json
 		#region Double
 
 		/// <inheritdoc />
-		public override double ToDouble(double defaultValue = default)
+		public override double ToDouble(double defaultValue = 0)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : double.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
@@ -1533,7 +1561,7 @@ namespace Doxense.Serialization.Json
 		#region Decimal
 
 		/// <inheritdoc />
-		public override decimal ToDecimal(decimal defaultValue = default)
+		public override decimal ToDecimal(decimal defaultValue = 0)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : decimal.Parse(m_value, NumberFormatInfo.InvariantInfo);
 		}
@@ -1565,16 +1593,29 @@ namespace Doxense.Serialization.Json
 			return string.IsNullOrEmpty(m_value) ? defaultValue : Guid.Parse(m_value);
 		}
 
-		public bool TryConvertToGuid(out Guid value)
+		public bool TryConvertToGuid(out Guid result) => TryConvertToGuid(m_value, out result);
+
+		internal static bool TryConvertToGuid(ReadOnlySpan<char> literal, out Guid result)
 		{
-			if (m_value.Length == 36 /* 00000000-0000-0000-0000-000000000000 */ ||
-				m_value.Length == 32 /* 00000000000000000000000000000000 */ ||
-				m_value.Length == 38 /* {00000000-0000-0000-0000-000000000000} */)
+			switch (literal.Length)
 			{
-				return Guid.TryParse(m_value, out value);
+				case 0:
+				{
+					result = Guid.Empty;
+					return true;
+				}
+				case 36: /* 00000000-0000-0000-0000-000000000000 */
+				case 32: /* 00000000000000000000000000000000 */
+				case 38: /* {00000000-0000-0000-0000-000000000000} */
+				{
+					return Guid.TryParse(literal, out result);
+				}
+				default:
+				{
+					result = Guid.Empty;
+					return false;
+				}
 			}
-			value = default;
-			return false;
 		}
 
 		/// <inheritdoc />
@@ -1583,11 +1624,37 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		public override Uuid128? ToUuid128OrDefault(Uuid128? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : Uuid128.Parse(m_value);
 
+		public bool TryConvertToUuid128(out Uuid128 result) => TryConvertToUuid128(m_value, out result);
+
+		internal static bool TryConvertToUuid128(ReadOnlySpan<char> literal, out Uuid128 result)
+		{
+			if (literal.Length == 0)
+			{
+				result = Uuid128.Empty;
+				return true;
+			}
+
+			return Uuid128.TryParse(literal, out result);
+		}
+
 		/// <inheritdoc />
 		public override Uuid96 ToUuid96(Uuid96 defaultValue = default) => string.IsNullOrEmpty(m_value) ? defaultValue : Uuid96.Parse(m_value);
 
 		/// <inheritdoc />
 		public override Uuid96? ToUuid96OrDefault(Uuid96? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : Uuid96.Parse(m_value);
+
+		public bool TryConvertToUuid96(out Uuid96 result) => TryConvertToUuid96(m_value, out result);
+
+		internal static bool TryConvertToUuid96(ReadOnlySpan<char> literal, out Uuid96 result)
+		{
+			if (literal.Length == 0)
+			{
+				result = Uuid96.Empty;
+				return true;
+			}
+
+			return Uuid96.TryParse(literal, out result);
+		}
 
 		/// <inheritdoc />
 		public override Uuid80 ToUuid80(Uuid80 defaultValue = default) => string.IsNullOrEmpty(m_value) ? defaultValue : Uuid80.Parse(m_value);
@@ -1595,11 +1662,37 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		public override Uuid80? ToUuid80OrDefault(Uuid80? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : Uuid80.Parse(m_value);
 
+		public bool TryConvertToUuid80(out Uuid80 result) => TryConvertToUuid80(m_value, out result);
+
+		internal static bool TryConvertToUuid80(ReadOnlySpan<char> literal, out Uuid80 result)
+		{
+			if (literal.Length == 0)
+			{
+				result = Uuid80.Empty;
+				return true;
+			}
+
+			return Uuid80.TryParse(literal, out result);
+		}
+
 		/// <inheritdoc />
 		public override Uuid64 ToUuid64(Uuid64 defaultValue = default) => string.IsNullOrEmpty(m_value) ? defaultValue : Uuid64.Parse(m_value);
 
 		/// <inheritdoc />
 		public override Uuid64? ToUuid64OrDefault(Uuid64? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : Uuid64.Parse(m_value);
+
+		public bool TryConvertToUuid64(out Uuid64 result) => TryConvertToUuid64(m_value, out result);
+
+		internal static bool TryConvertToUuid64(ReadOnlySpan<char> literal, out Uuid64 result)
+		{
+			if (literal.Length == 0)
+			{
+				result = Uuid64.Empty;
+				return true;
+			}
+
+			return Uuid64.TryParse(literal, out result);
+		}
 
 		#endregion
 
@@ -1637,6 +1730,38 @@ namespace Doxense.Serialization.Json
 			return string.IsNullOrEmpty(m_value) ? defaultValue : ToDateTime();
 		}
 
+		public bool TryConvertToDateTime(out DateTime result)
+		{
+			return TryConvertToDateTime(m_value, out result);
+		}
+
+		internal static bool TryConvertToDateTime(ReadOnlySpan<char> literal, out DateTime result)
+		{
+			if (literal.Length == 0)
+			{
+				result = default;
+				return true;
+			}
+
+			if (CrystalJsonParser.TryParseIso8601DateTime(literal, out result))
+			{
+				return true;
+			}
+
+			if (CrystalJsonParser.TryParseMicrosoftDateTime(literal, out result, out var tz))
+			{
+				if (tz.HasValue)
+				{
+					var utcOffset = TimeZoneInfo.Local.GetUtcOffset(result).Subtract(tz.Value);
+					result = result.ToLocalTime().Add(utcOffset);
+				}
+				return true;
+			}
+
+			return StringConverters.TryParseDateTime(literal, CultureInfo.InvariantCulture, out result, false);
+		}
+
+
 		/// <inheritdoc />
 		public override DateOnly ToDateOnly(DateOnly defaultValue = default)
 		{
@@ -1647,6 +1772,23 @@ namespace Doxense.Serialization.Json
 		public override DateOnly? ToDateOnlyOrDefault(DateOnly? defaultValue = null)
 		{
 			return string.IsNullOrEmpty(m_value) ? defaultValue : ToDateOnly();
+		}
+
+		public bool TryConvertToDateOnly(out DateOnly result)
+		{
+			return TryConvertToDateOnly(m_value, out result);
+		}
+
+		internal static bool TryConvertToDateOnly(ReadOnlySpan<char> literal, out DateOnly result)
+		{
+			if (!TryConvertToDateTime(literal, out var dt))
+			{
+				result = default;
+				return false;
+			}
+
+			result = DateOnly.FromDateTime(dt);
+			return true;
 		}
 
 		/// <inheritdoc />
@@ -1661,35 +1803,18 @@ namespace Doxense.Serialization.Json
 			return string.IsNullOrEmpty(m_value) ? defaultValue : ToTimeOnly();
 		}
 
-		public bool TryConvertToDateTime(out DateTime dt)
-		{
-			return TryConvertToDateTime(m_value, out dt);
-		}
+		public bool TryConvertToTimeOnly(out TimeOnly result) => TryConvertToTimeOnly(m_value, out result);
 
-		internal static bool TryConvertToDateTime(ReadOnlySpan<char> literal, out DateTime dt)
+		internal static bool TryConvertToTimeOnly(ReadOnlySpan<char> literal, out TimeOnly result)
 		{
-			if (literal.Length == 0)
+			if (!TryConvertToTimeSpan(literal, out var ts))
 			{
-				dt = default;
+				result = default;
 				return false;
 			}
 
-			if (CrystalJsonParser.TryParseIso8601DateTime(literal, out dt))
-			{
-				return true;
-			}
-
-			if (CrystalJsonParser.TryParseMicrosoftDateTime(literal, out dt, out var tz))
-			{
-				if (tz.HasValue)
-				{
-					var utcOffset = TimeZoneInfo.Local.GetUtcOffset(dt).Subtract(tz.Value);
-					dt = dt.ToLocalTime().Add(utcOffset);
-				}
-				return true;
-			}
-
-			return StringConverters.TryParseDateTime(literal, CultureInfo.InvariantCulture, out dt, false);
+			result = TimeOnly.FromTimeSpan(ts);
+			return true;
 		}
 
 		#endregion
@@ -1773,6 +1898,19 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		public override TimeSpan? ToTimeSpanOrDefault(TimeSpan? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : ToTimeSpan();
 
+		public bool TryConvertToTimeSpan(out TimeSpan result) => TryConvertToTimeSpan(m_value, out result);
+
+		internal static bool TryConvertToTimeSpan(ReadOnlySpan<char> literal, out TimeSpan result)
+		{
+			if (literal.Length == 0)
+			{
+				result = TimeSpan.Zero;
+				return true;
+			}
+
+			return TimeSpan.TryParse(literal, CultureInfo.InvariantCulture, out result);
+		}
+
 		#endregion
 
 		#region NodaTime
@@ -1798,6 +1936,36 @@ namespace Doxense.Serialization.Json
 
 		/// <inheritdoc />
 		public override NodaTime.Instant? ToInstantOrDefault(NodaTime.Instant? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : ToInstant();
+
+		public bool TryConvertToInstant(out NodaTime.Instant result) => TryConvertToInstant(m_value, out result);
+
+		internal static bool TryConvertToInstant(string? literal, out NodaTime.Instant result)
+		{
+			//note: NodaTime does not currently support parsing from span, so we have to take a string as input for the moment!
+			// see https://github.com/nodatime/nodatime/issues/1131
+
+			if (string.IsNullOrEmpty(literal))
+			{
+				result = default;
+				return true;
+			}
+
+			var parseResult = CrystalJsonNodaPatterns.Instants.Parse(literal);
+			if (parseResult.TryGetValue(default(NodaTime.Instant), out result))
+			{
+				return true;
+			}
+
+			// this does not look like an "Instant", try going the DateTimeOffset route...
+			if (TryConvertToDateTimeOffset(literal, out var dateTimeOffset))
+			{
+				result = NodaTime.Instant.FromDateTimeOffset(dateTimeOffset);
+				return true;
+			}
+
+			result = default;
+			return false;
+		}
 
 		/// <inheritdoc />
 		public override NodaTime.Duration ToDuration(NodaTime.Duration defaultValue = default)
@@ -1831,6 +1999,39 @@ namespace Doxense.Serialization.Json
 
 		public NodaTime.LocalDateTime? ToLocalDateTimeOrDefault(NodaTime.LocalDateTime? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : ToLocalDateTime();
 
+		public bool TryConvertToLocalDateTime(out NodaTime.LocalDateTime result) => TryConvertToLocalDateTime(m_value, out result);
+
+		internal static bool TryConvertToLocalDateTime(string? literal, out NodaTime.LocalDateTime result)
+		{
+			if (string.IsNullOrEmpty(literal))
+			{
+				result = default;
+				return true;
+			}
+
+			if (literal[^1] == 'Z')
+			{ // this is a UTC date, probably an Instant
+				//HACK: not pretty, but we assume the original intention was to store a local time, so we convert to a local time as well
+				// => this will NOT work as intended if the server that serialized the JSON value is in a different timezone, but then the app should have used Instant, or a ZonedDateTime instead!
+				if (TryConvertToInstant(literal, out var value))
+				{
+					result = NodaTime.LocalDateTime.FromDateTime(value.ToDateTimeUtc().ToLocalTime());
+					return true;
+				}
+
+				result = default;
+				return false;
+			}
+
+			var parseResult = CrystalJsonNodaPatterns.LocalDateTimes.Parse(literal);
+			if (parseResult.TryGetValue(default, out result))
+			{
+				return true;
+			}
+			result = default;
+			return false;
+		}
+
 		public NodaTime.ZonedDateTime ToZonedDateTime(NodaTime.ZonedDateTime defaultValue = default)
 		{
 			string value = m_value;
@@ -1847,7 +2048,7 @@ namespace Doxense.Serialization.Json
 
 		public NodaTime.OffsetDateTime? ToOffsetDateTimeOrDefault(NodaTime.OffsetDateTime? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : ToOffsetDateTime();
 
-		public NodaTime.DateTimeZone? ToDateTimeZone(NodaTime.DateTimeZone? defaultValue = default)
+		public NodaTime.DateTimeZone? ToDateTimeZone(NodaTime.DateTimeZone? defaultValue = null)
 		{
 			string value = m_value;
 			return string.IsNullOrEmpty(value) ? defaultValue : (NodaTime.DateTimeZoneProviders.Tzdb.GetZoneOrNull(value));
@@ -1869,6 +2070,26 @@ namespace Doxense.Serialization.Json
 
 		public NodaTime.LocalDate? ToLocalDateOrDefault(NodaTime.LocalDate? defaultValue = null) => string.IsNullOrEmpty(m_value) ? defaultValue : ToLocalDate();
 
+		public bool TryConvertToLocalDate(out NodaTime.LocalDate result) => TryConvertToLocalDate(m_value, out result);
+
+		internal static bool TryConvertToLocalDate(string? literal, out NodaTime.LocalDate result)
+		{
+			if (string.IsNullOrEmpty(literal))
+			{
+				result = default;
+				return true;
+			}
+
+			var parseResult = CrystalJsonNodaPatterns.LocalDates.Parse(literal);
+			if (parseResult.TryGetValue(default, out result))
+			{
+				return true;
+			}
+
+			result = default;
+			return false;
+		}
+
 		#endregion
 
 		#region Enums
@@ -1887,6 +2108,45 @@ namespace Doxense.Serialization.Json
 		{
 			//note: new Uri("") is not valid, so we return null if this is the case
 			return string.IsNullOrEmpty(m_value) ? null : new Uri(m_value);
+		}
+
+		public bool TryConvertToUri([MaybeNullWhen(false)] out Uri result) => TryConvertToUri(m_value, out result);
+
+		internal static bool TryConvertToUri(string? literal, [MaybeNullWhen(false)] out Uri result)
+		{
+			return Uri.TryCreate(literal, UriKind.RelativeOrAbsolute, out result);
+		}
+
+		#endregion
+
+		#region IPAddress
+
+		public IPAddress? ToIpAddress()
+		{
+			return string.IsNullOrEmpty(m_value) ? null : System.Net.IPAddress.Parse(m_value);
+		}
+
+		public bool TryConvertToIpAddress([MaybeNullWhen(false)] out IPAddress result) => TryConvertToIpAddress(m_value, out result);
+
+		internal static bool TryConvertToIpAddress(ReadOnlySpan<char> literal, [MaybeNullWhen(false)] out IPAddress result)
+		{
+			return IPAddress.TryParse(literal, out result);
+		}
+
+		#endregion
+
+		#region Version
+
+		public Version? ToVersion()
+		{
+			return string.IsNullOrEmpty(m_value) ? null : Version.Parse(m_value);
+		}
+
+		public bool TryConvertToVersion([MaybeNullWhen(false)] out Version result) => TryConvertToVersion(m_value, out result);
+
+		internal static bool TryConvertToVersion(ReadOnlySpan<char> literal, [MaybeNullWhen(false)] out Version result)
+		{
+			return Version.TryParse(literal, out result);
 		}
 
 		#endregion

@@ -4210,18 +4210,21 @@ namespace Doxense.Serialization.Json.Tests
 		}
 
 		[Test]
-		public void Test_JsonString_Conversions()
+		public void Test_JsonString_Convert_ToBoolean()
 		{
-
-			// Conversions
 			Assert.That(JsonString.Return("false").ToBoolean(), Is.False);
+			Assert.That(JsonString.Return("false").ToBooleanOrDefault(), Is.False);
 			Assert.That(JsonString.Return("false").Bind<bool>(), Is.False);
 			Assert.That(JsonString.Return("false").Bind(typeof(bool)), Is.False);
 			Assert.That(JsonString.Return("true").ToBoolean(), Is.True);
+			Assert.That(JsonString.Return("true").ToBooleanOrDefault(), Is.True);
 			Assert.That(JsonString.Return("true").Bind<bool>(), Is.True);
 			Assert.That(JsonString.Return("true").Bind(typeof(bool)), Is.True);
-			Assert.That(JsonString.Return("true").Bind(typeof(bool)), Is.InstanceOf<bool>());
+		}
 
+		[Test]
+		public void Test_JsonString_Convert_ToInt32()
+		{
 			Assert.That(JsonString.Return("0").ToInt32(), Is.EqualTo(0));
 			Assert.That(JsonString.Return("0").ToInt32OrDefault(), Is.EqualTo(0));
 			Assert.That(JsonString.Return("0").Bind<int>(), Is.EqualTo(0));
@@ -4241,6 +4244,19 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(JsonString.Return("-2147483648").Bind<int>(), Is.EqualTo(int.MinValue));
 			Assert.That(JsonString.Return("-2147483648").Bind(typeof(int)), Is.InstanceOf<int>().And.EqualTo(int.MinValue));
 
+			Assert.That(((JsonString) JsonString.Return("123")).TryConvertToInt32(out var result), Is.True);
+			Assert.That(result, Is.EqualTo(123));
+
+			Assert.That(((JsonString) JsonString.Return("hello")).TryConvertToInt32(out result), Is.False);
+			Assert.That(result, Is.Zero);
+
+			Assert.That(((JsonString) JsonString.Return("123abc")).TryConvertToInt32(out result), Is.False);
+			Assert.That(result, Is.Zero);
+		}
+
+		[Test]
+		public void Test_JsonString_Convert_ToInt64()
+		{
 			Assert.That(JsonString.Return("0").ToInt64(), Is.EqualTo(0));
 			Assert.That(JsonString.Return("1").Bind<long>(), Is.EqualTo(1));
 			Assert.That(JsonString.Return("1").Bind(typeof(long)), Is.InstanceOf<long>().And.EqualTo(1));
@@ -4253,6 +4269,20 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(JsonString.Return("-9223372036854775808").Bind(typeof(long)), Is.InstanceOf<long>().And.EqualTo(long.MinValue));
 			Assert.That(JsonString.Return("123").Bind(typeof(long)), Is.InstanceOf<long>());
 
+			Assert.That(((JsonString) JsonString.Return("123")).TryConvertToInt64(out var result), Is.True);
+			Assert.That(result, Is.EqualTo(123L));
+
+			Assert.That(((JsonString) JsonString.Return("hello")).TryConvertToInt64(out result), Is.False);
+			Assert.That(result, Is.Zero);
+
+			Assert.That(((JsonString) JsonString.Return("123abc")).TryConvertToInt64(out result), Is.False);
+			Assert.That(result, Is.Zero);
+
+		}
+
+		[Test]
+		public void Test_JsonString_Convert_ToSingle()
+		{
 			Assert.That(JsonString.Return("0").ToSingle(), Is.EqualTo(0f));
 			Assert.That(JsonString.Return("1").Bind<float>(), Is.EqualTo(1f));
 			Assert.That(JsonString.Return("1").Bind(typeof(float)), Is.EqualTo(1f));
@@ -4268,6 +4298,19 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(JsonString.Return("-Infinity").Bind<float>(), Is.EqualTo(float.NegativeInfinity));
 			Assert.That(JsonString.Return("-Infinity").Bind(typeof(float)), Is.InstanceOf<float>().And.EqualTo(float.NegativeInfinity));
 
+			Assert.That(((JsonString) JsonString.Return("1.23")).TryConvertToSingle(out var result), Is.True);
+			Assert.That(result, Is.EqualTo(1.23f));
+
+			Assert.That(((JsonString) JsonString.Return("hello")).TryConvertToSingle(out result), Is.False);
+			Assert.That(result, Is.Zero);
+
+			Assert.That(((JsonString) JsonString.Return("123abc")).TryConvertToSingle(out result), Is.False);
+			Assert.That(result, Is.Zero);
+		}
+
+		[Test]
+		public void Test_JsonString_Convert_ToDouble()
+		{
 			Assert.That(JsonString.Return("0").ToDouble(), Is.EqualTo(0d));
 			Assert.That(JsonString.Return("1").Bind(typeof(double)), Is.EqualTo(1d));
 			Assert.That(JsonString.Return("1.23").ToDouble(), Is.EqualTo(1.23d));
@@ -4277,6 +4320,19 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(JsonString.Return("-Infinity").Bind(typeof(double)), Is.EqualTo(double.NegativeInfinity));
 			Assert.That(JsonString.Return("1.23").Bind(typeof(double)), Is.InstanceOf<double>());
 
+			Assert.That(((JsonString) JsonString.Return("1.23")).TryConvertToDouble(out var result), Is.True);
+			Assert.That(result, Is.EqualTo(1.23d));
+
+			Assert.That(((JsonString) JsonString.Return("hello")).TryConvertToDouble(out result), Is.False);
+			Assert.That(result, Is.Zero);
+
+			Assert.That(((JsonString) JsonString.Return("123abc")).TryConvertToDouble(out result), Is.False);
+			Assert.That(result, Is.Zero);
+		}
+
+		[Test]
+		public void Test_JsonString_Convert_ToDecimal()
+		{
 			Assert.That(JsonString.Return("0").ToDecimal(), Is.EqualTo(decimal.Zero));
 			Assert.That(JsonString.Return("1").Bind(typeof(decimal)), Is.EqualTo(decimal.One));
 			Assert.That(JsonString.Return("-1").Bind(typeof(decimal)), Is.EqualTo(decimal.MinusOne));
@@ -4286,12 +4342,42 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(JsonString.Return("-79228162514264337593543950335").Bind(typeof(decimal)), Is.EqualTo(decimal.MinValue));
 			Assert.That(JsonString.Return("1.23").Bind(typeof(decimal)), Is.InstanceOf<decimal>());
 
+			Assert.That(((JsonString) JsonString.Return("1.23")).TryConvertToDecimal(out var result), Is.True);
+			Assert.That(result, Is.EqualTo(1.23m));
+
+			Assert.That(((JsonString) JsonString.Return("hello")).TryConvertToDecimal(out result), Is.False);
+			Assert.That(result, Is.Zero);
+
+			Assert.That(((JsonString) JsonString.Return("123abc")).TryConvertToDecimal(out result), Is.False);
+			Assert.That(result, Is.Zero);
+		}
+
+		[Test]
+		public void Test_JsonString_Convert_ToGuid()
+		{
 			Assert.That(JsonString.Empty.ToGuid(), Is.EqualTo(Guid.Empty));
+			Assert.That(JsonString.Empty.ToGuidOrDefault(), Is.Null);
 			Assert.That(JsonString.Return("00000000-0000-0000-0000-000000000000").ToGuid(), Is.EqualTo(Guid.Empty));
+			Assert.That(JsonString.Return("00000000-0000-0000-0000-000000000000").ToGuidOrDefault(), Is.EqualTo(Guid.Empty));
 			Assert.That(JsonString.Return("b771bab0-7ad2-4945-a501-1dd939ca9bac").ToGuid(), Is.EqualTo(new Guid("b771bab0-7ad2-4945-a501-1dd939ca9bac")));
 			Assert.That(JsonString.Return("591d8e31-1b79-4532-b7b9-4f8a9c0d0010").Bind(typeof(Guid)), Is.EqualTo(new Guid("591d8e31-1b79-4532-b7b9-4f8a9c0d0010")));
-			Assert.That(JsonString.Return("133a3e6c-9ce5-4e9f-afe4-fa8c59945704").Bind(typeof(Guid)), Is.InstanceOf<Guid>());
 
+			Assert.That(((JsonString) JsonString.Return("133a3e6c-9ce5-4e9f-afe4-fa8c59945704")).TryConvertToGuid(out var result), Is.True);
+			Assert.That(result, Is.EqualTo(new Guid("133a3e6c-9ce5-4e9f-afe4-fa8c59945704")));
+
+			Assert.That(((JsonString) JsonString.Return("133a3e6c-9ce5-4e9f-afe4-fa8c5994570")).TryConvertToGuid(out result), Is.False);
+			Assert.That(result, Is.EqualTo(Guid.Empty));
+
+			Assert.That(((JsonString) JsonString.Return("133a3e6c-9ce5-4e9f-afe4-fa8c599457045")).TryConvertToGuid(out result), Is.False);
+			Assert.That(result, Is.EqualTo(Guid.Empty));
+
+			Assert.That(((JsonString) JsonString.Return("123abc")).TryConvertToGuid(out result), Is.False);
+			Assert.That(result, Is.EqualTo(Guid.Empty));
+		}
+
+		[Test]
+		public void Test_JsonString_Convert_ToDateTime()
+		{
 			Assert.That(JsonString.Return("2013-03-11T12:34:56.768").ToDateTime(), Is.EqualTo(new DateTime(2013, 3, 11, 12, 34, 56, 768, DateTimeKind.Unspecified)));
 			Assert.That(JsonString.Return("2013-03-11T12:34:56.768Z").ToDateTime(), Is.EqualTo(new DateTime(2013, 3, 11, 12, 34, 56, 768, DateTimeKind.Utc)));
 			Assert.That(JsonString.Return("2013-03-11T12:34:56.768+01:00").ToDateTime(), Is.EqualTo(new DateTime(2013, 3, 11, 12, 34, 56, 768, DateTimeKind.Local)), "Ne marche que si la local TZ est Paris !");
@@ -4300,18 +4386,63 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(JsonString.Return("2013-03-11T12:34:56.768+11:30").ToDateTime(), Is.EqualTo(new DateTime(2013, 3, 11, 12, 34, 56, 768, DateTimeKind.Local).AddHours(-10).AddMinutes(-30)), "Ne marche que si la local TZ est Paris !");
 			Assert.That(JsonString.Return("2013-03-11T12:34:56.768-11:30").ToDateTime(), Is.EqualTo(new DateTime(2013, 3, 11, 12, 34, 56, 768, DateTimeKind.Local).AddHours(12).AddMinutes(30)), "Ne marche que si la local TZ est Paris !");
 
+			Assert.That(((JsonString) JsonString.Return("2013-03-11T12:34:56.768")).TryConvertToDateTime(out var result), Is.True);
+			Assert.That(result, Is.EqualTo(new DateTime(2013, 3, 11, 12, 34, 56, 768, DateTimeKind.Unspecified)));
+
+			Assert.That(((JsonString) JsonString.Return("2013-03-11T12:34:56.768Z")).TryConvertToDateTime(out result), Is.True);
+			Assert.That(result, Is.EqualTo(new DateTime(2013, 3, 11, 12, 34, 56, 768, DateTimeKind.Utc)));
+
+			Assert.That(((JsonString) JsonString.Return("2013-03-11T12:34:56.768+01:00")).TryConvertToDateTime(out result), Is.True);
+			Assert.That(result, Is.EqualTo(new DateTime(2013, 3, 11, 12, 34, 56, 768, DateTimeKind.Local)));
+
+			Assert.That(((JsonString) JsonString.Return("hello")).TryConvertToDateTime(out result), Is.False);
+			Assert.That(result, Is.EqualTo(DateTime.MinValue));
+
+			Assert.That(((JsonString) JsonString.Return("yyyy-mm-ddThh:mm:ss.fff")).TryConvertToDateTime(out result), Is.False);
+			Assert.That(result, Is.EqualTo(DateTime.MinValue));
+
+			Assert.That(((JsonString) JsonString.Return("2013-13-01T12:34:56.768")).TryConvertToDateTime(out result), Is.False);
+			Assert.That(result, Is.EqualTo(DateTime.MinValue));
+
+			Assert.That(((JsonString) JsonString.Return("2013-03-32T12:34:56.768")).TryConvertToDateTime(out result), Is.False);
+			Assert.That(result, Is.EqualTo(DateTime.MinValue));
+
+			Assert.That(((JsonString) JsonString.Return("2013-03-11T25:34:56.768")).TryConvertToDateTime(out result), Is.False);
+			Assert.That(result, Is.EqualTo(DateTime.MinValue));
+
+			Assert.That(((JsonString) JsonString.Return("2013-03-11T12:60:56.768")).TryConvertToDateTime(out result), Is.False);
+			Assert.That(result, Is.EqualTo(DateTime.MinValue));
+
+			Assert.That(((JsonString) JsonString.Return("2013-03-11T12:34:60.768")).TryConvertToDateTime(out result), Is.False);
+			Assert.That(result, Is.EqualTo(DateTime.MinValue));
+
+			Assert.That(((JsonString) JsonString.Return("2013-03-11T12:34:56.00a")).TryConvertToDateTime(out result), Is.False);
+			Assert.That(result, Is.EqualTo(DateTime.MinValue));
+		}
+
+		[Test]
+		public void Test_JsonString_Convert_ToDateTimeOffset()
+		{
 			Assert.That(JsonString.Return("2013-03-11T12:34:56.768Z").ToDateTimeOffset(), Is.EqualTo(new DateTimeOffset(2013, 3, 11, 12, 34, 56, 768, TimeSpan.Zero)));
 			Assert.That(JsonString.Return("2013-03-11T12:34:56.768+01:00").ToDateTimeOffset(), Is.EqualTo(new DateTimeOffset(2013, 3, 11, 12, 34, 56, 768, TimeSpan.FromHours(1))));
 			Assert.That(JsonString.Return("2013-03-11T12:34:56.768+04").ToDateTimeOffset(), Is.EqualTo(new DateTimeOffset(2013, 3, 11, 12, 34, 56, 768, TimeSpan.FromHours(4))));
 			Assert.That(JsonString.Return("2013-03-11T12:34:56.768-07").ToDateTimeOffset(), Is.EqualTo(new DateTimeOffset(2013, 3, 11, 12, 34, 56, 768, TimeSpan.FromHours(-7))));
 			Assert.That(JsonString.Return("2013-03-11T12:34:56.768-11").ToDateTimeOffset(), Is.EqualTo(new DateTimeOffset(2013, 3, 11, 12, 34, 56, 768, TimeSpan.FromHours(-11))));
+		}
 
+		[Test]
+		public void Test_JsonString_Convert_Custom_Enum()
+		{
 			Assert.That(JsonString.Return("Foo").Required<DummyJsonEnum>(), Is.EqualTo(DummyJsonEnum.Foo));
 			Assert.That(JsonString.Return("Bar").Required<DummyJsonEnum>(), Is.EqualTo(DummyJsonEnum.Bar));
 			Assert.That(JsonString.Return("Bar").Required<DummyJsonEnumTypo>(), Is.EqualTo(DummyJsonEnumTypo.Bar));
 			Assert.That(JsonString.Return("Barrh").Required<DummyJsonEnumTypo>(), Is.EqualTo(DummyJsonEnumTypo.Bar));
 			Assert.That(() => JsonString.Return("Barrh").Required<DummyJsonEnum>(), Throws.InstanceOf<JsonBindingException>());
+		}
 
+		[Test]
+		public void Test_JsonString_Convert_IpAddress()
+		{
 			Assert.That(JsonNull.Null.As<IPAddress>(), Is.Null);
 			Assert.That(JsonString.Empty.As<IPAddress>(), Is.Null);
 			Assert.That(JsonString.Return("127.0.0.1").Required<IPAddress>(), Is.EqualTo(IPAddress.Loopback));
@@ -4326,37 +4457,45 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(JsonString.Return("[fe80::b8bc:1664:15a0:3a79%11]").Required<IPAddress>(), Is.EqualTo(IPAddress.Parse("fe80::b8bc:1664:15a0:3a79%11")));
 			Assert.That(() => JsonString.Return("127.0.0.").Required<IPAddress>(), Throws.InstanceOf<FormatException>());
 			Assert.That(() => JsonString.Return("127.0.0.1.2").Required<IPAddress>(), Throws.InstanceOf<FormatException>());
+		}
 
-			// empty => T : must return default(T) so 0/false/...
-			Assert.That(JsonString.Empty.Required<bool>(), Is.False, "'' -> bool");
-			Assert.That(JsonString.Empty.Required<int>(), Is.Zero, "'' -> int");
-			Assert.That(JsonString.Empty.Required<long>(), Is.Zero, "'' -> long");
-			Assert.That(JsonString.Empty.Required<float>(), Is.Zero, "'' -> float");
-			Assert.That(JsonString.Empty.Required<double>(), Is.Zero, "'' -> double");
-			Assert.That(JsonString.Empty.Required<DateTime>(), Is.EqualTo(DateTime.MinValue), "'' -> DateTime");
-			Assert.That(JsonString.Empty.Required<DateTimeOffset>(), Is.EqualTo(DateTimeOffset.MinValue), "'' -> DateTimeOffset");
+		[Test]
+		public void Test_JsonString_Convert_Empty_String()
+		{
 
-			// empty => T?: must return default(T?) so null
-			Assert.That(JsonString.Empty.As<bool?>(), Is.Null, "'' -> bool?");
-			Assert.That(JsonString.Empty.As<int?>(), Is.Null, "'' -> int?");
-			Assert.That(JsonString.Empty.As<long?>(), Is.Null, "'' -> long?");
-			Assert.That(JsonString.Empty.As<float?>(), Is.Null, "'' -> float?");
-			Assert.That(JsonString.Empty.As<double?>(), Is.Null, "'' -> double?");
-			Assert.That(JsonString.Empty.As<DateTime?>(), Is.Null, "'' -> DateTime?");
-			Assert.That(JsonString.Empty.As<DateTimeOffset?>(), Is.Null, "'' -> DateTimeOffset?");
-
-			// auto cast
-			{
-				JsonValue jval = "hello"; // implicit cast
-				Assert.That(jval, Is.Not.Null);
-				Assert.That(jval, Is.InstanceOf<JsonString>());
-				JsonString jstr = (JsonString) jval;
-				Assert.That(jstr.Value, Is.EqualTo("hello"));
-
-				var s = (string?) jval; // explicit cast
-				Assert.That(s, Is.Not.Null);
-				Assert.That(s, Is.EqualTo("hello"));
+			{ // empty => T : must return default(T) so 0/false/...
+				Assert.That(JsonString.Empty.Required<bool>(), Is.False, "'' -> bool");
+				Assert.That(JsonString.Empty.Required<int>(), Is.Zero, "'' -> int");
+				Assert.That(JsonString.Empty.Required<long>(), Is.Zero, "'' -> long");
+				Assert.That(JsonString.Empty.Required<float>(), Is.Zero, "'' -> float");
+				Assert.That(JsonString.Empty.Required<double>(), Is.Zero, "'' -> double");
+				Assert.That(JsonString.Empty.Required<DateTime>(), Is.EqualTo(DateTime.MinValue), "'' -> DateTime");
+				Assert.That(JsonString.Empty.Required<DateTimeOffset>(), Is.EqualTo(DateTimeOffset.MinValue), "'' -> DateTimeOffset");
 			}
+
+			{ // empty => T?: must return default(T?) so null
+				Assert.That(JsonString.Empty.As<bool?>(), Is.Null, "'' -> bool?");
+				Assert.That(JsonString.Empty.As<int?>(), Is.Null, "'' -> int?");
+				Assert.That(JsonString.Empty.As<long?>(), Is.Null, "'' -> long?");
+				Assert.That(JsonString.Empty.As<float?>(), Is.Null, "'' -> float?");
+				Assert.That(JsonString.Empty.As<double?>(), Is.Null, "'' -> double?");
+				Assert.That(JsonString.Empty.As<DateTime?>(), Is.Null, "'' -> DateTime?");
+				Assert.That(JsonString.Empty.As<DateTimeOffset?>(), Is.Null, "'' -> DateTimeOffset?");
+			}
+		}
+
+		[Test]
+		public void Test_JsonString_Convert_AutoCast()
+		{
+			JsonValue jval = "hello"; // implicit cast
+			Assert.That(jval, Is.Not.Null);
+			Assert.That(jval, Is.InstanceOf<JsonString>());
+			JsonString jstr = (JsonString) jval;
+			Assert.That(jstr.Value, Is.EqualTo("hello"));
+
+			var s = (string?) jval; // explicit cast
+			Assert.That(s, Is.Not.Null);
+			Assert.That(s, Is.EqualTo("hello"));
 		}
 
 		[Test]
