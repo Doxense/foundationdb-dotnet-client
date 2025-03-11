@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -40,10 +40,10 @@ namespace Doxense.Serialization.Json
 
 	}
 
-	public interface IJsonMutableParent
+	public interface IJsonProxyNode
 	{
 
-		IJsonMutableParent? Parent { get; }
+		IJsonProxyNode? Parent { get; }
 
 		JsonEncodedPropertyName? Name { get; }
 		
@@ -79,7 +79,7 @@ namespace Doxense.Serialization.Json
 	{
 
 		/// <summary>Wraps a JSON Value into a mutable proxy for type <typeparamref name="TValue"/></summary>
-		static abstract TMutableProxy Create(JsonValue obj, IJsonMutableParent? parent = null, JsonEncodedPropertyName? name = null, int index = 0, IJsonConverter<TValue>? converter = null);
+		static abstract TMutableProxy Create(JsonValue obj, IJsonProxyNode? parent = null, JsonEncodedPropertyName? name = null, int index = 0, IJsonConverter<TValue>? converter = null);
 
 		/// <summary>Wraps an instance type <typeparamref name="TValue"/> into mutable proxy</summary>
 		static abstract TMutableProxy Create(TValue value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null);
@@ -108,15 +108,15 @@ namespace Doxense.Serialization.Json
 
 	}
 
-	public abstract record JsonMutableProxyObjectBase
-		: IJsonMutableProxy, IJsonMutableParent
+	public abstract record JsonProxyObjectBase
+		: IJsonMutableProxy, IJsonProxyNode
 	{
 
 		/// <summary>Wrapped JSON Object</summary>
 		protected readonly JsonObject m_obj;
 
 		/// <summary>Parent object or array, or <c>null</c> if this is the top-level of the document</summary>
-		protected readonly IJsonMutableParent? m_parent;
+		protected readonly IJsonProxyNode? m_parent;
 
 		/// <summary>Name of the field in the parent object that contains this instance</summary>
 		protected readonly JsonEncodedPropertyName? m_name;
@@ -124,9 +124,9 @@ namespace Doxense.Serialization.Json
 		/// <summary>Index in the parent array that contains this instance</summary>
 		protected readonly int m_index;
 
-		JsonType IJsonMutableParent.Type => JsonType.Object;
+		JsonType IJsonProxyNode.Type => JsonType.Object;
 
-		protected JsonMutableProxyObjectBase(JsonValue value, IJsonMutableParent? parent, JsonEncodedPropertyName? name, int index)
+		protected JsonProxyObjectBase(JsonValue value, IJsonProxyNode? parent, JsonEncodedPropertyName? name, int index)
 		{
 			m_obj = value.AsObject();
 			m_parent = parent;
@@ -134,11 +134,11 @@ namespace Doxense.Serialization.Json
 			m_index = index;
 		}
 
-		IJsonMutableParent? IJsonMutableParent.Parent => m_parent;
+		IJsonProxyNode? IJsonProxyNode.Parent => m_parent;
 
-		JsonEncodedPropertyName? IJsonMutableParent.Name => m_name;
+		JsonEncodedPropertyName? IJsonProxyNode.Name => m_name;
 
-		int IJsonMutableParent.Index => m_index;
+		int IJsonProxyNode.Index => m_index;
 
 		/// <inheritdoc />
 		public void JsonSerialize(CrystalJsonWriter writer) => m_obj.JsonSerialize(writer);

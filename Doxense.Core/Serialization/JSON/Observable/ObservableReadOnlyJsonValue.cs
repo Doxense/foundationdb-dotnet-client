@@ -16,7 +16,7 @@ namespace Doxense.Serialization.Json
 	public sealed class ObservableReadOnlyJsonValue : IJsonSerializable, IJsonPackable
 	{
 
-		public ObservableReadOnlyJsonValue(IObservableJsonReadContext ctx, ObservableReadOnlyJsonValue? parent, ReadOnlyMemory<char> key, Index? index, JsonValue json)
+		public ObservableReadOnlyJsonValue(IObservableJsonContext ctx, ObservableReadOnlyJsonValue? parent, ReadOnlyMemory<char> key, Index? index, JsonValue json)
 		{
 			Contract.Debug.Requires(ctx != null && json != null);
 			this.Context = ctx;
@@ -40,9 +40,9 @@ namespace Doxense.Serialization.Json
 			return this.Json;
 		}
 
-		internal IObservableJsonReadContext Context { get; }
+		internal IObservableJsonContext Context { get; }
 
-		public IObservableJsonReadContext GetContext() => this.Context;
+		public IObservableJsonContext GetContext() => this.Context;
 
 		#region Path...
 

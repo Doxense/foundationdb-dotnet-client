@@ -549,7 +549,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 					"public sealed",
 					mutableProxyTypeName,
 					[
-						KnownTypeSymbols.JsonMutableProxyObjectBaseFullName,
+						KnownTypeSymbols.JsonProxyObjectBaseFullName,
 						mutableProxyInterfaceName
 					],
 					[],
@@ -559,7 +559,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 						//sb.NewLine();
 
 						// ctor()
-						sb.AppendLine($"public {mutableProxyTypeName}({KnownTypeSymbols.JsonValueFullName} value, {KnownTypeSymbols.IJsonMutableParentFullName}? parent = null, {KnownTypeSymbols.JsonEncodedPropertyNameFullName}? name = null, int index = 0) : base(value, parent, name, index)");
+						sb.AppendLine($"public {mutableProxyTypeName}({KnownTypeSymbols.JsonValueFullName} value, {KnownTypeSymbols.IJsonProxyNodeFullName}? parent = null, {KnownTypeSymbols.JsonEncodedPropertyNameFullName}? name = null, int index = 0) : base(value, parent, name, index)");
 						sb.EnterBlock();
 						sb.LeaveBlock();
 						sb.NewLine();
@@ -571,7 +571,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 						// static Create()
 						sb.AppendLine($"/// <inheritdoc />");
-						sb.AppendLine($"public static {mutableProxyTypeName} Create({KnownTypeSymbols.JsonValueFullName} value, {KnownTypeSymbols.IJsonMutableParentFullName}? parent = null, {KnownTypeSymbols.JsonEncodedPropertyNameFullName}? name = null, int index = 0, {jsonConverterInterfaceName}? converter = null) => new(value, parent, name, index);");
+						sb.AppendLine($"public static {mutableProxyTypeName} Create({KnownTypeSymbols.JsonValueFullName} value, {KnownTypeSymbols.IJsonProxyNodeFullName}? parent = null, {KnownTypeSymbols.JsonEncodedPropertyNameFullName}? name = null, int index = 0, {jsonConverterInterfaceName}? converter = null) => new(value, parent, name, index);");
 						sb.NewLine();
 
 						// static Create()
@@ -730,7 +730,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 								{
 									if (IsLocallyGeneratedType(valueType, out target))
 									{
-										proxyType = $"{KnownTypeSymbols.JsonMutableProxyDictionaryFullName}<{valueType.FullyQualifiedName}, {this.GetLocalMutableProxyRef(target)}>";
+										proxyType = $"{KnownTypeSymbols.JsonProxyDictionaryFullName}<{valueType.FullyQualifiedName}, {this.GetLocalMutableProxyRef(target)}>";
 										getterExpr = $"new(m_obj[{GetTargetPropertyNameRef(typeDef, member)}], parent: this, name: {serializerTypeName}.{GetPropertyEncodedNameRef(member)})";
 										setterExpr = $"m_obj[{GetTargetPropertyNameRef(typeDef, member)}] = value.ToJson()";
 									}
@@ -740,7 +740,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 							{
 								if (IsLocallyGeneratedType(elemType, out target))
 								{
-									proxyType = $"{KnownTypeSymbols.JsonMutableProxyArrayFullName}<{elemType.FullyQualifiedName}, {this.GetLocalMutableProxyRef(target)}>";
+									proxyType = $"{KnownTypeSymbols.JsonProxyArrayFullName}<{elemType.FullyQualifiedName}, {this.GetLocalMutableProxyRef(target)}>";
 									getterExpr = $"new(m_obj[{GetTargetPropertyNameRef(typeDef, member)}], parent: this, name: {serializerTypeName}.{GetPropertyEncodedNameRef(member)})";
 									setterExpr = $"m_obj[{GetTargetPropertyNameRef(typeDef, member)}] = value.ToJson()";
 								}
@@ -802,7 +802,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 					"public sealed",
 					observableProxyTypeName,
 					[
-						KnownTypeSymbols.JsonObservableProxyObjectBaseFullName,
+						KnownTypeSymbols.MutableJsonObjectBaseFullName,
 						observableProxyInterfaceName
 					],
 					[],
@@ -812,7 +812,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 						//sb.NewLine();
 
 						// ctor()
-						sb.AppendLine($"public {observableProxyTypeName}({KnownTypeSymbols.ObservableJsonValueFullName} value) : base(value)");
+						sb.AppendLine($"public {observableProxyTypeName}({KnownTypeSymbols.MutableJsonValueFullName} value) : base(value)");
 						sb.EnterBlock();
 						sb.LeaveBlock();
 						sb.NewLine();
@@ -824,17 +824,17 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 						// static Create(JsonValue)
 						sb.AppendLine("/// <inheritdoc />");
-						sb.AppendLine($"public static {observableProxyTypeName} Create({KnownTypeSymbols.ObservableJsonValueFullName} value) => new(value);");
+						sb.AppendLine($"public static {observableProxyTypeName} Create({KnownTypeSymbols.MutableJsonValueFullName} value) => new(value);");
 						sb.NewLine();
 
 						// static Create(IObservableJsonTransaction, JsonValue)
 						sb.AppendLine("/// <inheritdoc />");
-						sb.AppendLine($"public static {observableProxyTypeName} Create({KnownTypeSymbols.IObservableJsonTransaction} tr, {KnownTypeSymbols.JsonValueFullName} value) => new(tr.FromJson(value));");
+						sb.AppendLine($"public static {observableProxyTypeName} Create({KnownTypeSymbols.IMutableJsonTransactionFullName} tr, {KnownTypeSymbols.JsonValueFullName} value) => new(tr.FromJson(value));");
 						sb.NewLine();
 
 						// static Create(IObservableJsonTransaction, JsonValue)
 						sb.AppendLine("/// <inheritdoc />");
-						sb.AppendLine($"public static {observableProxyTypeName} Create({KnownTypeSymbols.IObservableJsonTransaction} tr, {typeDef.Type.FullyQualifiedNameAnnotated} value, {KnownTypeSymbols.CrystalJsonSettingsFullName}? settings = null, {KnownTypeSymbols.ICrystalJsonTypeResolverFullName}? resolver = null) => Create(tr, {GetLocalSerializerRef(typeDef)}.Pack(value, settings.AsMutable(), resolver));");
+						sb.AppendLine($"public static {observableProxyTypeName} Create({KnownTypeSymbols.IMutableJsonTransactionFullName} tr, {typeDef.Type.FullyQualifiedNameAnnotated} value, {KnownTypeSymbols.CrystalJsonSettingsFullName}? settings = null, {KnownTypeSymbols.ICrystalJsonTypeResolverFullName}? resolver = null) => Create(tr, {GetLocalSerializerRef(typeDef)}.Pack(value, settings.AsMutable(), resolver));");
 						sb.NewLine();
 
 						// static Converter { get; }
@@ -861,15 +861,15 @@ namespace SnowBank.Serialization.Json.CodeGen
 						sb.NewLine();
 
 						sb.AppendLine("/// <inheritdoc />");
-						sb.AppendLine($"public {KnownTypeSymbols.ObservableJsonValueFullName} this[string key] => m_obj[key];");
+						sb.AppendLine($"public {KnownTypeSymbols.MutableJsonValueFullName} this[string key] => m_obj[key];");
 						sb.NewLine();
 
 						sb.AppendLine("/// <inheritdoc />");
-						sb.AppendLine($"public {KnownTypeSymbols.ObservableJsonValueFullName} this[int index] => m_obj[index];");
+						sb.AppendLine($"public {KnownTypeSymbols.MutableJsonValueFullName} this[int index] => m_obj[index];");
 						sb.NewLine();
 
 						sb.AppendLine($"/// <inheritdoc />");
-						sb.AppendLine($"public {KnownTypeSymbols.ObservableJsonValueFullName} this[Index index] => m_obj[index];");
+						sb.AppendLine($"public {KnownTypeSymbols.MutableJsonValueFullName} this[Index index] => m_obj[index];");
 						sb.NewLine();
 
 						sb.AppendLine("#endregion");
@@ -963,12 +963,12 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 								if (member.Type.JsonType is JsonPrimitiveType.Object)
 								{
-									proxyType = KnownTypeSymbols.ObservableJsonValueFullName;
+									proxyType = KnownTypeSymbols.MutableJsonValueFullName;
 									getterExpr = $"m_obj[{GetTargetPropertyNameRef(typeDef, member)}]";
 								}
 								else if (member.Type.JsonType is JsonPrimitiveType.Array)
 								{
-									proxyType = KnownTypeSymbols.ObservableJsonValueFullName;
+									proxyType = KnownTypeSymbols.MutableJsonValueFullName;
 									getterExpr = $"m_obj[{GetTargetPropertyNameRef(typeDef, member)}]";
 								}
 								//TODO: JsonString, JsonNumber, ... (are they really used?)
@@ -984,7 +984,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 								{
 									if (IsLocallyGeneratedType(valueType, out target))
 									{
-										proxyType = $"{KnownTypeSymbols.JsonObservableProxyDictionaryFullName}<{valueType.FullyQualifiedName}, {this.GetLocalObservableProxyRef(target)}>";
+										proxyType = $"{KnownTypeSymbols.MutableJsonDictionaryFullName}<{valueType.FullyQualifiedName}, {this.GetLocalObservableProxyRef(target)}>";
 										getterExpr = $"new(m_obj[{GetTargetPropertyNameRef(typeDef, member)}])";
 										setterExpr = $"m_obj.Set({GetTargetPropertyNameRef(typeDef, member)}, value.GetValue())";
 									}
@@ -994,7 +994,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 							{
 								if (IsLocallyGeneratedType(elemType, out target))
 								{
-									proxyType = $"{KnownTypeSymbols.JsonObservableProxyArrayFullName}<{elemType.FullyQualifiedName}, {this.GetLocalObservableProxyRef(target)}>";
+									proxyType = $"{KnownTypeSymbols.MutableJsonArrayFullName}<{elemType.FullyQualifiedName}, {this.GetLocalObservableProxyRef(target)}>";
 									getterExpr = $"new(m_obj[{GetTargetPropertyNameRef(typeDef, member)}])";
 									setterExpr = $"m_obj.Set({GetTargetPropertyNameRef(typeDef, member)}, value.GetValue())";
 								}
@@ -1114,7 +1114,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 				sb.AppendLine($"/// </code></para>");
 				sb.AppendLine($"/// </remarks>");
 				sb.AppendLine($"/// <seealso cref=\"ToMutable({KnownTypeSymbols.JsonValueFullName})\">If you need a non-observed mutable view</seealso>");
-				sb.AppendLine($"public {GetLocalObservableProxyRef(typeDef)} ToObservable({KnownTypeSymbols.ObservableJsonValueFullName} value) => {GetLocalObservableProxyRef(typeDef)}.Create(value);");
+				sb.AppendLine($"public {GetLocalObservableProxyRef(typeDef)} ToObservable({KnownTypeSymbols.MutableJsonValueFullName} value) => {GetLocalObservableProxyRef(typeDef)}.Create(value);");
 				sb.NewLine();
 
 				sb.AppendLine($"/// <summary>Returns an observable JSON Proxy that wraps a <see cref=\"{KnownTypeSymbols.JsonValueFullName}\"/> into a type-safe emulation of type <see cref=\"{typeName}\"/></summary>");
@@ -1131,7 +1131,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 				sb.AppendLine($"/// </code></para>");
 				sb.AppendLine($"/// </remarks>");
 				sb.AppendLine($"/// <seealso cref=\"ToMutable({KnownTypeSymbols.JsonValueFullName})\">If you need a non-observed mutable view</seealso>");
-				sb.AppendLine($"public {GetLocalObservableProxyRef(typeDef)} ToObservable({KnownTypeSymbols.IObservableJsonTransaction} tr, {KnownTypeSymbols.JsonValueFullName} value) => {GetLocalObservableProxyRef(typeDef)}.Create(tr, value);");
+				sb.AppendLine($"public {GetLocalObservableProxyRef(typeDef)} ToObservable({KnownTypeSymbols.IMutableJsonTransactionFullName} tr, {KnownTypeSymbols.JsonValueFullName} value) => {GetLocalObservableProxyRef(typeDef)}.Create(tr, value);");
 				sb.NewLine();
 
 				sb.AppendLine($"/// <summary>Converts an instance of type <see cref=\"{typeName}\"/> into an observable type-safe JSON Proxy.</summary>");
@@ -1146,7 +1146,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 				sb.AppendLine($"/// </code></para>");
 				sb.AppendLine($"/// </remarks>");
 				sb.AppendLine($"/// <seealso cref=\"ToMutable({KnownTypeSymbols.JsonValueFullName})\">If you need a non-observed mutable view</seealso>");
-				sb.AppendLine($"public {GetLocalObservableProxyRef(typeDef)} ToObservable({KnownTypeSymbols.IObservableJsonTransaction} tr, {typeDef.Type.FullyQualifiedNameAnnotated} instance) => {GetLocalObservableProxyRef(typeDef)}.Create(tr, instance);");
+				sb.AppendLine($"public {GetLocalObservableProxyRef(typeDef)} ToObservable({KnownTypeSymbols.IMutableJsonTransactionFullName} tr, {typeDef.Type.FullyQualifiedNameAnnotated} instance) => {GetLocalObservableProxyRef(typeDef)}.Create(tr, instance);");
 				sb.NewLine();
 			}
 

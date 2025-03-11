@@ -35,20 +35,20 @@ namespace Doxense.Serialization.Json
 	/// <typeparam name="TValue">Emulated element type</typeparam>
 	[PublicAPI]
 	[DebuggerDisplay("{ToString(),nq}, Count={Count}")]
-	public readonly struct JsonMutableProxyDictionary<TValue> : IDictionary<string, TValue>, IJsonMutableParent, IJsonSerializable, IJsonPackable
+	public readonly struct JsonProxyDictionary<TValue> : IDictionary<string, TValue>, IJsonProxyNode, IJsonSerializable, IJsonPackable
 	{
 
 		private readonly JsonObject m_obj;
 
 		private readonly IJsonConverter<TValue> m_converter;
 	
-		private readonly IJsonMutableParent? m_parent;
+		private readonly IJsonProxyNode? m_parent;
 
 		private readonly JsonEncodedPropertyName? m_name;
 
 		private readonly int m_index;
 
-		public JsonMutableProxyDictionary(JsonObject? obj, IJsonConverter<TValue>? converter = null, IJsonMutableParent? parent = null, JsonEncodedPropertyName? name = null, int index = 0)
+		public JsonProxyDictionary(JsonObject? obj, IJsonConverter<TValue>? converter = null, IJsonProxyNode? parent = null, JsonEncodedPropertyName? name = null, int index = 0)
 		{
 			m_obj = obj ?? JsonObject.EmptyReadOnly;
 			m_converter = converter ?? RuntimeJsonConverter<TValue>.Default;
@@ -57,13 +57,13 @@ namespace Doxense.Serialization.Json
 			m_index = index;
 		}
 
-		JsonType IJsonMutableParent.Type => JsonType.Object;
+		JsonType IJsonProxyNode.Type => JsonType.Object;
 
-		IJsonMutableParent? IJsonMutableParent.Parent => m_parent;
+		IJsonProxyNode? IJsonProxyNode.Parent => m_parent;
 
-		JsonEncodedPropertyName? IJsonMutableParent.Name => m_name;
+		JsonEncodedPropertyName? IJsonProxyNode.Name => m_name;
 
-		int IJsonMutableParent.Index => m_index;
+		int IJsonProxyNode.Index => m_index;
 
 		/// <inheritdoc />
 		void ICollection<KeyValuePair<string, TValue>>.Add(KeyValuePair<string, TValue> item) => Add(item.Key, item.Value);
@@ -163,19 +163,19 @@ namespace Doxense.Serialization.Json
 	/// <typeparam name="TValue">Emulated element type</typeparam>
 	/// <typeparam name="TProxy">Corresponding <see cref="IJsonMutableProxy{TValue}"/> for type <typeparamref name="TValue"/>, usually source-generated</typeparam>
 	[PublicAPI]
-	public readonly struct JsonMutableProxyDictionary<TValue, TProxy> : IDictionary<string, TProxy>, IJsonMutableParent, IJsonSerializable, IJsonPackable
+	public readonly struct JsonProxyDictionary<TValue, TProxy> : IDictionary<string, TProxy>, IJsonProxyNode, IJsonSerializable, IJsonPackable
 		where TProxy : IJsonMutableProxy<TValue, TProxy>
 	{
 
 		private readonly JsonValue m_value;
 
-		private readonly IJsonMutableParent? m_parent;
+		private readonly IJsonProxyNode? m_parent;
 
 		private readonly JsonEncodedPropertyName? m_name;
 
 		private readonly int m_index;
 
-		public JsonMutableProxyDictionary(JsonValue? value, IJsonMutableParent? parent = null, JsonEncodedPropertyName? name = null, int index = 0)
+		public JsonProxyDictionary(JsonValue? value, IJsonProxyNode? parent = null, JsonEncodedPropertyName? name = null, int index = 0)
 		{
 			m_value = value ?? JsonObject.EmptyReadOnly;
 			m_parent = parent;
@@ -183,11 +183,11 @@ namespace Doxense.Serialization.Json
 			m_index = index;
 		}
 
-		IJsonMutableParent? IJsonMutableParent.Parent => m_parent;
+		IJsonProxyNode? IJsonProxyNode.Parent => m_parent;
 
-		JsonEncodedPropertyName? IJsonMutableParent.Name => m_name;
+		JsonEncodedPropertyName? IJsonProxyNode.Name => m_name;
 
-		int IJsonMutableParent.Index => m_index;
+		int IJsonProxyNode.Index => m_index;
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private InvalidOperationException OperationRequiresObjectOrNull() => new("This operation requires a valid JSON Object");
@@ -317,7 +317,7 @@ namespace Doxense.Serialization.Json
 	public static class JsonMutableParentExtensions
 	{
 
-		public static JsonPath GetPath(this IJsonMutableParent self)
+		public static JsonPath GetPath(this IJsonProxyNode self)
 		{
 			// in most cases, we don't have any parent
 			var parent = self.Parent;
@@ -329,9 +329,9 @@ namespace Doxense.Serialization.Json
 
 			return GetPathMultiple(self, parent);
 
-			static JsonPath GetPathMultiple(IJsonMutableParent node, IJsonMutableParent? parent)
+			static JsonPath GetPathMultiple(IJsonProxyNode node, IJsonProxyNode? parent)
 			{
-				using var buf = new ValueBuffer<IJsonMutableParent>(8);
+				using var buf = new ValueBuffer<IJsonProxyNode>(8);
 				{
 					while (parent != null)
 					{

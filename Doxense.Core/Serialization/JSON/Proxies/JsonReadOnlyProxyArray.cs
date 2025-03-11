@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS
+#region Copyright (c) 2023-2024 SnowBank SAS
 //
 // All rights are reserved. Reproduction or transmission in whole or in part, in
 // any form or by any means, electronic, mechanical or otherwise, is prohibited
@@ -43,9 +43,9 @@ namespace Doxense.Serialization.Json
 
 		public JsonValue ToJson() => m_array;
 
-		public JsonMutableProxyArray<TValue> ToMutable() => new(m_array.Copy(), m_converter);
+		public JsonProxyArray<TValue> ToMutable() => new(m_array.Copy(), m_converter);
 
-		public JsonReadOnlyProxyArray<TValue> With(Action<JsonMutableProxyArray<TValue>> modifier)
+		public JsonReadOnlyProxyArray<TValue> With(Action<JsonProxyArray<TValue>> modifier)
 		{
 			var copy = m_array.Copy();
 			modifier(new(copy, m_converter));

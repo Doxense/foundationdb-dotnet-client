@@ -13,7 +13,7 @@ namespace Doxense.Serialization.Json
 	{
 
 		/// <summary>Returns the underlying observable value</summary>
-		ObservableJsonValue GetValue();
+		MutableJsonValue GetValue();
 
 		/// <summary>Returns the proxied JSON Value</summary>
 		/// <remarks>The returned value is mutable and can be changed directly.</remarks>
@@ -34,26 +34,26 @@ namespace Doxense.Serialization.Json
 	{
 
 		/// <summary>Wraps a JSON Value into a mutable proxy for type <typeparamref name="TValue"/></summary>
-		static abstract TObservableProxy Create(ObservableJsonValue obj);
+		static abstract TObservableProxy Create(MutableJsonValue obj);
 
 		/// <summary>Returns the <see cref="IJsonConverter{TValue}"/> used by proxies of this type</summary>
 		static abstract IJsonConverter<TValue> Converter { get; }
 
 	}
 
-	public abstract record JsonObservableProxyObjectBase
+	public abstract record MutableJsonObjectBase
 		: IJsonObservableProxy, IJsonSerializable, IJsonPackable
 	{
 
 		/// <summary>Wrapped JSON Object</summary>
-		protected readonly ObservableJsonValue m_obj;
+		protected readonly MutableJsonValue m_obj;
 
-		protected JsonObservableProxyObjectBase(ObservableJsonValue obj)
+		protected MutableJsonObjectBase(MutableJsonValue obj)
 		{
 			m_obj = obj;
 		}
 
-		public ObservableJsonValue GetValue() => m_obj;
+		public MutableJsonValue GetValue() => m_obj;
 
 		/// <inheritdoc />
 		public void JsonSerialize(CrystalJsonWriter writer) => m_obj.Json.JsonSerialize(writer);

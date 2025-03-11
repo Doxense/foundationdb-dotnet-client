@@ -17,10 +17,10 @@ namespace Doxense.Serialization.Json
 
 	/// <summary>Mutable JSON Object</summary>
 	[DebuggerDisplay("Count={Count}, Path={ToString(),nq}")]
-	public sealed class ObservableJsonValue : IJsonSerializable, IJsonPackable
+	public sealed class MutableJsonValue : IJsonSerializable, IJsonPackable
 	{
 
-		public ObservableJsonValue(IObservableJsonTransaction tr, ObservableJsonValue? parent, ReadOnlyMemory<char> key, Index? index, JsonValue json)
+		public MutableJsonValue(IMutableJsonTransaction tr, MutableJsonValue? parent, ReadOnlyMemory<char> key, Index? index, JsonValue json)
 		{
 			Contract.Debug.Requires(tr != null && json != null);
 			this.Transaction = tr;
@@ -39,14 +39,14 @@ namespace Doxense.Serialization.Json
 		/// <summary>Contains the read-only version of this JSON object</summary>
 		public JsonValue Json { get; private set; }
 
-		internal IObservableJsonTransaction Transaction { get; }
+		internal IMutableJsonTransaction Transaction { get; }
 
-		public IObservableJsonTransaction GetTransaction() => this.Transaction;
+		public IMutableJsonTransaction GetTransaction() => this.Transaction;
 
 		#region Path...
 
 		/// <summary>Parent of this value, or <see langword="null"/> if this is the root of the document</summary>
-		internal readonly ObservableJsonValue? Parent;
+		internal readonly MutableJsonValue? Parent;
 
 		/// <summary>Name of the field that contains this value in its parent object, or <see langword="null"/> if it was not part of an object</summary>
 		internal readonly ReadOnlyMemory<char> Key;
@@ -195,32 +195,32 @@ namespace Doxense.Serialization.Json
 			_              => false
 		};
 
-		public ObservableJsonValue this[string key]
+		public MutableJsonValue this[string key]
 		{
 			[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => Get(key);
 		}
 
-		public ObservableJsonValue this[JsonPath path]
+		public MutableJsonValue this[JsonPath path]
 		{
 			[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => Get(path);
 		}
 
-		public ObservableJsonValue this[ReadOnlyMemory<char> key]
+		public MutableJsonValue this[ReadOnlyMemory<char> key]
 		{
 			[MustUseReturnValue]
 			get => Get(key);
 		}
 
-		public ObservableJsonValue this[int index]
+		public MutableJsonValue this[int index]
 		{
 			[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => Get(index);
 			//set => Set(index, value.Json);
 		}
 
-		public ObservableJsonValue this[Index index]
+		public MutableJsonValue this[Index index]
 		{
 			[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => Get(index);
@@ -247,7 +247,7 @@ namespace Doxense.Serialization.Json
 		/// }
 		/// </code></example>
 		[Pure]
-		public bool TryGetValue(string key, out ObservableJsonValue value)
+		public bool TryGetValue(string key, out MutableJsonValue value)
 		{
 			var items = this.Json;
 			if (!items.TryGetValue(key, out var child))
@@ -280,7 +280,7 @@ namespace Doxense.Serialization.Json
 		/// }
 		/// </code></example>
 		[Pure]
-		public bool TryGetValue(ReadOnlyMemory<char> key, out ObservableJsonValue value)
+		public bool TryGetValue(ReadOnlyMemory<char> key, out MutableJsonValue value)
 		{
 			var items = this.Json;
 			if (!items.TryGetValue(key, out var child))
@@ -365,7 +365,7 @@ namespace Doxense.Serialization.Json
 		/// }
 		/// </code></example>
 		[Pure]
-		public bool TryGetValue(int index, out ObservableJsonValue value)
+		public bool TryGetValue(int index, out MutableJsonValue value)
 		{
 			if (!this.Json.TryGetValue(index, out var child) || child.IsNullOrMissing())
 			{
@@ -397,7 +397,7 @@ namespace Doxense.Serialization.Json
 		/// }
 		/// </code></example>
 		[Pure]
-		public bool TryGetValue(Index index, out ObservableJsonValue value)
+		public bool TryGetValue(Index index, out MutableJsonValue value)
 		{
 			if (!this.Json.TryGetValue(index, out var child) || child.IsNullOrMissing())
 			{
@@ -410,13 +410,13 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, MustUseReturnValue]
-		public ObservableJsonValue Get(string key) => new(this.Transaction, this, key.AsMemory(), null, this.Json.GetValueOrDefault(key));
+		public MutableJsonValue Get(string key) => new(this.Transaction, this, key.AsMemory(), null, this.Json.GetValueOrDefault(key));
 
 		[Pure, MustUseReturnValue]
 		public TValue? Get<TValue>(string key) => this.Json.GetValueOrDefault(key).As<TValue>(default(TValue));
 
 		[Pure, MustUseReturnValue]
-		public ObservableJsonValue Get(ReadOnlySpan<char> key)
+		public MutableJsonValue Get(ReadOnlySpan<char> key)
 		{
 #if NET9_0_OR_GREATER
 			var value = this.Json.GetValueOrDefault(key, JsonNull.Missing, out var actualKey);
@@ -431,7 +431,7 @@ namespace Doxense.Serialization.Json
 		public TValue? Get<TValue>(ReadOnlySpan<char> key) => this.Json.GetValueOrDefault(key).As<TValue>(default(TValue));
 
 		[Pure, MustUseReturnValue]
-		public ObservableJsonValue Get(ReadOnlyMemory<char> key)
+		public MutableJsonValue Get(ReadOnlyMemory<char> key)
 		{
 #if NET9_0_OR_GREATER
 			var value = this.Json.GetValueOrDefault(key, JsonNull.Missing, out var actualKey);
@@ -446,19 +446,19 @@ namespace Doxense.Serialization.Json
 		public TValue? Get<TValue>(ReadOnlyMemory<char> key) => this.Json.GetValueOrDefault(key).As<TValue>(default(TValue));
 
 		[Pure, MustUseReturnValue]
-		public ObservableJsonValue Get(int index) => new(this.Transaction, this, null, index, this.Json.GetValueOrDefault(index));
+		public MutableJsonValue Get(int index) => new(this.Transaction, this, null, index, this.Json.GetValueOrDefault(index));
 
 		[Pure, MustUseReturnValue]
 		public TValue? Get<TValue>(int index) => this.Json.GetValueOrDefault(index).As<TValue>(default(TValue));
 
 		[Pure, MustUseReturnValue]
-		public ObservableJsonValue Get(Index index) => new(this.Transaction, this, null, index, this.Json.GetValueOrDefault(index));
+		public MutableJsonValue Get(Index index) => new(this.Transaction, this, null, index, this.Json.GetValueOrDefault(index));
 
 		[Pure, MustUseReturnValue]
 		public TValue? Get<TValue>(Index index) => this.Json.GetValueOrDefault(index).As<TValue>(default(TValue));
 
 		[Pure, MustUseReturnValue]
-		public ObservableJsonValue Get(JsonPath path)
+		public MutableJsonValue Get(JsonPath path)
 		{
 			var current = this;
 			foreach (var (parent, key, index, last) in path)
@@ -477,12 +477,12 @@ namespace Doxense.Serialization.Json
 
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private void NotifyParent(ObservableJsonValue child)
+		private void NotifyParent(MutableJsonValue child)
 		{
 			this.Parent?.NotifyChildChanged(child, this.Key, this.Index);
 		}
 
-		private static void InsertInParent(ObservableJsonValue parent, ReadOnlyMemory<char> key, Index? index, ObservableJsonValue value)
+		private static void InsertInParent(MutableJsonValue parent, ReadOnlyMemory<char> key, Index? index, MutableJsonValue value)
 		{
 			Contract.Debug.Assert(parent != null);
 			if (index != null)
@@ -508,7 +508,7 @@ namespace Doxense.Serialization.Json
 				json = this.Transaction.NewObject();
 				this.Json = json;
 
-				var res = new ObservableJsonValue(this.Transaction, this.Parent, this.Key, this.Index, json);
+				var res = new MutableJsonValue(this.Transaction, this.Parent, this.Key, this.Index, json);
 				if (this.Parent != null)
 				{
 					InsertInParent(this.Parent, this.Key, this.Index, res);
@@ -530,7 +530,7 @@ namespace Doxense.Serialization.Json
 				json = this.Transaction.NewArray();
 				this.Json = json;
 
-				var res = new ObservableJsonValue(this.Transaction, this.Parent, this.Key, this.Index, json);
+				var res = new MutableJsonValue(this.Transaction, this.Parent, this.Key, this.Index, json);
 				if (this.Parent != null)
 				{
 					InsertInParent(this.Parent, this.Key, this.Index, res);
@@ -543,7 +543,7 @@ namespace Doxense.Serialization.Json
 			return arr;
 		}
 
-		internal void NotifyChildChanged(ObservableJsonValue child, ReadOnlyMemory<char> key, Index? index)
+		internal void NotifyChildChanged(MutableJsonValue child, ReadOnlyMemory<char> key, Index? index)
 		{
 			JsonValue newJson;
 			if (key.Length != 0)
@@ -906,7 +906,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Changes the value of the current instance in its parent</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(ObservableJsonValue? value) => Set(value?.Json);
+		public void Set(MutableJsonValue? value) => Set(value?.Json);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Set<TValue>(TValue? value) => Set(Convert<TValue>(value));
@@ -941,7 +941,7 @@ namespace Doxense.Serialization.Json
 		public void Set(string key, JsonArray? value) => Set(key, (JsonValue?) value);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(string key, ObservableJsonValue? value) => Set(key, value?.Json);
+		public void Set(string key, MutableJsonValue? value) => Set(key, value?.Json);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Set<TValue>(string key, TValue? value) => Set(key, Convert<TValue>(value));
@@ -974,7 +974,7 @@ namespace Doxense.Serialization.Json
 		public void Set(JsonPath path, JsonArray? value) => Set(path, (JsonValue?) value);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(JsonPath path, ObservableJsonValue? value) => Set(path, value?.Json);
+		public void Set(JsonPath path, MutableJsonValue? value) => Set(path, value?.Json);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Set<TValue>(JsonPath path, TValue? value) => Set(path, Convert<TValue>(value)); //TODO: pass the parent settings?
@@ -1007,7 +1007,7 @@ namespace Doxense.Serialization.Json
 		public void Set(int index, JsonArray? value) => Set(index, (JsonValue?) value);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(int index, ObservableJsonValue? value) => Set(index, value?.Json);
+		public void Set(int index, MutableJsonValue? value) => Set(index, value?.Json);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Set<TValue>(int index, TValue? value) => Set(index, Convert<TValue>(value)); //TODO: pass the parent settings?
@@ -1036,7 +1036,7 @@ namespace Doxense.Serialization.Json
 		public void Set(Index index, JsonArray? value) => Set(index, (JsonValue?) value);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(Index index, ObservableJsonValue? value) => Set(index, value?.Json);
+		public void Set(Index index, MutableJsonValue? value) => Set(index, value?.Json);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Set<TValue>(Index index, TValue? value) => Set(index, Convert<TValue>(value)); //TODO: pass the parent settings?
@@ -1079,7 +1079,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>If the current value is null or missing, it will automatically be promoted to an empty object.</remarks>
 		/// <exception cref="NotSupportedException">If the current value is not an Object.</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Add(ObservableJsonValue? value) => Add(value?.Json);
+		public void Add(MutableJsonValue? value) => Add(value?.Json);
 
 		/// <summary>Adds a new field to the object</summary>
 		/// <param name="value">Value of the field</param>
@@ -1110,19 +1110,19 @@ namespace Doxense.Serialization.Json
 		/// <remarks>If the current value is null or missing, it will automatically be promoted to an empty object.</remarks>
 		/// <exception cref="NotSupportedException">If the current value is not an Object.</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Add(string key, ObservableJsonValue? value) => Get(key).Add(value?.Json);
+		public void Add(string key, MutableJsonValue? value) => Get(key).Add(value?.Json);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryAdd(string key, JsonValue? value) => Get(key).InsertOrUpdate(value, InsertionBehavior.None);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool TryAdd(string key, ObservableJsonValue? value) => Get(key).InsertOrUpdate(value?.Json, InsertionBehavior.None);
+		public bool TryAdd(string key, MutableJsonValue? value) => Get(key).InsertOrUpdate(value?.Json, InsertionBehavior.None);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryAdd(JsonPath path, JsonValue? value) => Get(path).InsertOrUpdate(value, InsertionBehavior.None);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool TryAdd(JsonPath path, ObservableJsonValue? value) => Get(path).InsertOrUpdate(value?.Json, InsertionBehavior.None);
+		public bool TryAdd(JsonPath path, MutableJsonValue? value) => Get(path).InsertOrUpdate(value?.Json, InsertionBehavior.None);
 
 		public void Remove()
 		{
@@ -1266,7 +1266,7 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
-		private static void Increment(ObservableJsonValue value)
+		private static void Increment(MutableJsonValue value)
 		{
 			switch (value.Json)
 			{
@@ -1292,21 +1292,21 @@ namespace Doxense.Serialization.Json
 			Increment(this);
 		}
 
-		public ObservableJsonValue Increment(string key)
+		public MutableJsonValue Increment(string key)
 		{
 			var prev = Get(key);
 			Increment(prev);
 			return prev;
 		}
 
-		public ObservableJsonValue Increment(int index)
+		public MutableJsonValue Increment(int index)
 		{
 			var prev = Get(index);
 			Increment(prev);
 			return prev;
 		}
 
-		public ObservableJsonValue Increment(Index index)
+		public MutableJsonValue Increment(Index index)
 		{
 			var prev = Get(index);
 			Increment(prev);
@@ -1406,7 +1406,7 @@ namespace Doxense.Serialization.Json
 			this.Transaction.RecordClear(this);
 		}
 
-		public ObservableJsonValue GetOrCreateObject(string path)
+		public MutableJsonValue GetOrCreateObject(string path)
 		{
 			var child = this.Get(path);
 			if (child.IsNullOrMissing())
@@ -1416,7 +1416,7 @@ namespace Doxense.Serialization.Json
 			return child;
 		}
 
-		public ObservableJsonValue GetOrCreateArray(string path)
+		public MutableJsonValue GetOrCreateArray(string path)
 		{
 			var child = this.Get(path);
 			if (child.IsNullOrMissing())

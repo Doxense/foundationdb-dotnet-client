@@ -17,7 +17,7 @@ namespace Doxense.Serialization.Json.Tests
 	public sealed class ObservableJsonFacts : SimpleTest
 	{
 
-		public class FakeObservableTransaction : IObservableJsonTransaction
+		public class FakeMutableTransaction : IMutableJsonTransaction
 		{
 
 			public List<(string Op, JsonPath Path, JsonValue? Argument)> Changes { get; } = [ ];
@@ -37,13 +37,13 @@ namespace Doxense.Serialization.Json.Tests
 			public JsonArray NewArray() => new JsonArray();
 
 			/// <inheritdoc />
-			public ObservableJsonValue FromJson(JsonValue value) => new(this, null, default, null, value);
+			public MutableJsonValue FromJson(JsonValue value) => new(this, null, default, null, value);
 
 			/// <inheritdoc />
-			public ObservableJsonValue FromJson(ObservableJsonValue parent, ReadOnlyMemory<char> key, JsonValue value) => new(this, parent, key, null, value);
+			public MutableJsonValue FromJson(MutableJsonValue parent, ReadOnlyMemory<char> key, JsonValue value) => new(this, parent, key, null, value);
 
 			/// <inheritdoc />
-			public ObservableJsonValue FromJson(ObservableJsonValue parent, Index index, JsonValue value) => new(this, parent, default, index, value);
+			public MutableJsonValue FromJson(MutableJsonValue parent, Index index, JsonValue value) => new(this, parent, default, index, value);
 
 			private void RecordMutation((string Op, JsonPath Path, JsonValue? Arg) record)
 			{
@@ -52,34 +52,34 @@ namespace Doxense.Serialization.Json.Tests
 			}
 
 			/// <inheritdoc />
-			public void RecordAdd(ObservableJsonValue instance, ReadOnlyMemory<char> key, JsonValue argument) => RecordMutation(("add", instance.GetPath(key), argument));
+			public void RecordAdd(MutableJsonValue instance, ReadOnlyMemory<char> key, JsonValue argument) => RecordMutation(("add", instance.GetPath(key), argument));
 
 			/// <inheritdoc />
-			public void RecordAdd(ObservableJsonValue instance, int index, JsonValue argument) => RecordMutation(("add", instance.GetPath(index), argument));
+			public void RecordAdd(MutableJsonValue instance, int index, JsonValue argument) => RecordMutation(("add", instance.GetPath(index), argument));
 
 			/// <inheritdoc />
-			public void RecordUpdate(ObservableJsonValue instance, ReadOnlyMemory<char> key, JsonValue argument) => RecordMutation(("update", instance.GetPath(key), argument));
+			public void RecordUpdate(MutableJsonValue instance, ReadOnlyMemory<char> key, JsonValue argument) => RecordMutation(("update", instance.GetPath(key), argument));
 
 			/// <inheritdoc />
-			public void RecordUpdate(ObservableJsonValue instance, int index, JsonValue argument) => RecordMutation(("update", instance.GetPath(index), argument));
+			public void RecordUpdate(MutableJsonValue instance, int index, JsonValue argument) => RecordMutation(("update", instance.GetPath(index), argument));
 
 			/// <inheritdoc />
-			public void RecordPatch(ObservableJsonValue instance, ReadOnlyMemory<char> key, JsonValue argument) => RecordMutation(("patch", instance.GetPath(key), argument));
+			public void RecordPatch(MutableJsonValue instance, ReadOnlyMemory<char> key, JsonValue argument) => RecordMutation(("patch", instance.GetPath(key), argument));
 
 			/// <inheritdoc />
-			public void RecordPatch(ObservableJsonValue instance, int index, JsonValue argument) => RecordMutation(("patch", instance.GetPath(index), argument));
+			public void RecordPatch(MutableJsonValue instance, int index, JsonValue argument) => RecordMutation(("patch", instance.GetPath(index), argument));
 
 			/// <inheritdoc />
-			public void RecordDelete(ObservableJsonValue instance, ReadOnlyMemory<char> key) => RecordMutation(("delete", instance.GetPath(key), null));
+			public void RecordDelete(MutableJsonValue instance, ReadOnlyMemory<char> key) => RecordMutation(("delete", instance.GetPath(key), null));
 
 			/// <inheritdoc />
-			public void RecordDelete(ObservableJsonValue instance, int index) => RecordMutation(("delete", instance.GetPath(index), null));
+			public void RecordDelete(MutableJsonValue instance, int index) => RecordMutation(("delete", instance.GetPath(index), null));
 
 			/// <inheritdoc />
-			public void RecordTruncate(ObservableJsonValue instance, int length) => RecordMutation(("truncate", instance.GetPath(), length));
+			public void RecordTruncate(MutableJsonValue instance, int length) => RecordMutation(("truncate", instance.GetPath(), length));
 
 			/// <inheritdoc />
-			public void RecordClear(ObservableJsonValue instance) => RecordMutation(("delete", instance.GetPath(), null));
+			public void RecordClear(MutableJsonValue instance) => RecordMutation(("delete", instance.GetPath(), null));
 
 			/// <inheritdoc />
 			public void Reset() => this.Changes.Clear();
@@ -89,7 +89,7 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_Fill_Empty_Observable_Object()
 		{
-			var tr = new FakeObservableTransaction() { Logged = true };
+			var tr = new FakeMutableTransaction() { Logged = true };
 			var obj = tr.FromJson(tr.NewObject());
 
 			obj["hello"].Set("world");
@@ -126,7 +126,7 @@ namespace Doxense.Serialization.Json.Tests
 
 		}
 
-		public class ReadCapturingContext : IObservableJsonReadContext
+		public class ObservableJsonCapturingContext : IObservableJsonContext
 		{
 
 			public List<(string Op, JsonPath Path, JsonValue Value)> Reads { get; } = [ ];
@@ -166,7 +166,7 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_Read_Access()
 		{
-			var tr = new ReadCapturingContext();
+			var tr = new ObservableJsonCapturingContext();
 			var obj = GetSampleObject();
 			var doc = tr.FromJson(obj);
 

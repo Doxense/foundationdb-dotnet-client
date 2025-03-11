@@ -9,8 +9,8 @@
 namespace Doxense.Serialization.Json
 {
 
-	/// <summary>Transaction that will record all the changes made to an <see cref="ObservableJsonValue"/></summary>
-	public interface IObservableJsonTransaction
+	/// <summary>Transaction that will record all the changes made to an <see cref="MutableJsonValue"/></summary>
+	public interface IMutableJsonTransaction
 	{
 
 		/// <summary>Tests if the underlying observed object has been changed during this transaction</summary>
@@ -24,11 +24,11 @@ namespace Doxense.Serialization.Json
 		/// <remarks>This method can be used to reuse the current transaction instance</remarks>
 		void Reset();
 
-		ObservableJsonValue FromJson(JsonValue value);
+		MutableJsonValue FromJson(JsonValue value);
 
-		ObservableJsonValue FromJson(ObservableJsonValue parent, ReadOnlyMemory<char> key, JsonValue value);
+		MutableJsonValue FromJson(MutableJsonValue parent, ReadOnlyMemory<char> key, JsonValue value);
 
-		ObservableJsonValue FromJson(ObservableJsonValue parent, Index index, JsonValue value);
+		MutableJsonValue FromJson(MutableJsonValue parent, Index index, JsonValue value);
 
 		/// <summary>Creates a new empty object, using the transactions default settings</summary>
 		JsonObject NewObject();
@@ -43,7 +43,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>
 		/// <para>This records the facts that a new field is added to an object, OR that a field previously set to <c>null</c> now has a non-null value.</para>
 		/// </remarks>
-		void RecordAdd(ObservableJsonValue instance, ReadOnlyMemory<char> key, JsonValue argument);
+		void RecordAdd(MutableJsonValue instance, ReadOnlyMemory<char> key, JsonValue argument);
 
 		/// <summary>Records the addition or insertion of a new item into an array</summary>
 		/// <param name="instance">Parent instance (expected to be an object)</param>
@@ -54,7 +54,7 @@ namespace Doxense.Serialization.Json
 		/// <para>If there is a gap between the end of the array and <paramref name="index"/>, extra <c>null</c> entries will be inserted</para>
 		/// <para></para>
 		/// </remarks>
-		void RecordAdd(ObservableJsonValue instance, int index, JsonValue argument);
+		void RecordAdd(MutableJsonValue instance, int index, JsonValue argument);
 
 		/// <summary>Truncate an array to the specified length</summary>
 		/// <param name="instance">Parent instance (expected to be an array)</param>
@@ -63,7 +63,7 @@ namespace Doxense.Serialization.Json
 		/// <para>Any item that would fall outside the new bounds of the array will be removed.</para>
 		/// <para>If the array is smaller than <paramref name="length"/>, extra <c>null</c> entries will be appended as needed.</para>
 		/// </remarks>
-		void RecordTruncate(ObservableJsonValue instance, int length);
+		void RecordTruncate(MutableJsonValue instance, int length);
 
 		/// <summary>Records the update of an existing field of an object</summary>
 		/// <param name="instance">Parent instance (expected to be an object)</param>
@@ -73,7 +73,7 @@ namespace Doxense.Serialization.Json
 		/// <para>This records the fact that the value of a field of the object as been replaced by another value.</para>
 		/// <para>Any previous mutation on this field, or any child, is superseded by this record</para>
 		/// </remarks>
-		void RecordUpdate(ObservableJsonValue instance, ReadOnlyMemory<char> key, JsonValue argument);
+		void RecordUpdate(MutableJsonValue instance, ReadOnlyMemory<char> key, JsonValue argument);
 
 		/// <summary>Records the update of an existing item of an array</summary>
 		/// <param name="instance">Parent instance (expected to be an array)</param>
@@ -83,7 +83,7 @@ namespace Doxense.Serialization.Json
 		/// <para>This records the fact that the value of an item of the array as been replaced by another value.</para>
 		/// <para>Any previous mutation on this item, or any child, is superseded by this record</para>
 		/// </remarks>
-		void RecordUpdate(ObservableJsonValue instance, int index, JsonValue argument);
+		void RecordUpdate(MutableJsonValue instance, int index, JsonValue argument);
 
 		/// <summary>Records the update of an existing field of an object, using a patch definition</summary>
 		/// <param name="instance">Parent instance (expected to be an object)</param>
@@ -93,7 +93,7 @@ namespace Doxense.Serialization.Json
 		/// <para>This records the fact that the value of a field of the object as been patched.</para>
 		/// <para>Any previous mutation on this field, or any child, should be merged with this patch</para>
 		/// </remarks>
-		void RecordPatch(ObservableJsonValue instance, ReadOnlyMemory<char> key, JsonValue argument);
+		void RecordPatch(MutableJsonValue instance, ReadOnlyMemory<char> key, JsonValue argument);
 
 		/// <summary>Records the update of an existing item of an array</summary>
 		/// <param name="instance">Parent instance (expected to be an array)</param>
@@ -103,7 +103,7 @@ namespace Doxense.Serialization.Json
 		/// <para>This records the fact that the value of an item of the array as been patched.</para>
 		/// <para>Any previous mutation on this item, or any child, should be merged with this patch</para>
 		/// </remarks>
-		void RecordPatch(ObservableJsonValue instance, int index, JsonValue argument);
+		void RecordPatch(MutableJsonValue instance, int index, JsonValue argument);
 
 		/// <summary>Records the deletion of an existing field of an object</summary>
 		/// <param name="instance">Parent instance (expected to be an object)</param>
@@ -113,7 +113,7 @@ namespace Doxense.Serialization.Json
 		/// <para>Setting a field to null is logically equivalent to deleting the field</para>
 		/// <para>Any previous mutation on this item, or any child, should be superseded by this record.</para>
 		/// </remarks>
-		void RecordDelete(ObservableJsonValue instance, ReadOnlyMemory<char> key);
+		void RecordDelete(MutableJsonValue instance, ReadOnlyMemory<char> key);
 
 		/// <summary>Records the deletion of an existing item of an array</summary>
 		/// <param name="instance">Parent instance (expected to be an array)</param>
@@ -124,14 +124,14 @@ namespace Doxense.Serialization.Json
 		/// <para>Removing the last item is equivalent to calling <see cref="RecordTruncate"/> with a smaller length, and should be preferred if more than one item are removed from the tail.</para>
 		/// <para>Any previous mutation on this item, or any child, should be superseded by this record.</para>
 		/// </remarks>
-		void RecordDelete(ObservableJsonValue instance, int index);
+		void RecordDelete(MutableJsonValue instance, int index);
 
 		/// <summary>Records the removal of all fields in object, or items in an array</summary>
 		/// <param name="instance">Parent instance (expected to be an either an object or array)</param>
 		/// <remarks>
 		/// <para>The object or array instance will we cleared of any content.</para>
 		/// </remarks>
-		void RecordClear(ObservableJsonValue instance);
+		void RecordClear(MutableJsonValue instance);
 
 	}
 

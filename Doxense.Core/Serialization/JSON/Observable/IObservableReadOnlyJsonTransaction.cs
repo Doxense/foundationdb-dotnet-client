@@ -10,7 +10,7 @@ namespace Doxense.Serialization.Json
 {
 
 	/// <summary>Context that will record all the reads performed on a <see cref="ObservableReadOnlyJsonValue"/></summary>
-	public interface IObservableJsonReadContext
+	public interface IObservableJsonContext
 	{
 
 		/// <summary>Reset the context to its initial state, reverting any previous mutations.</summary>

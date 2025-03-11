@@ -263,17 +263,17 @@ namespace Doxense.Serialization.Json.Tests
 
 		/// <summary>Wraps a <see cref="JsonObject"/> into a writable type-safe view that emulates the type <see cref="global::Doxense.Serialization.Json.Tests.Person"/></summary>
 		/// <seealso cref="IJsonMutableProxy{T}"/>
-		public sealed record PersonMutable : JsonMutableProxyObjectBase, IJsonMutableProxy<global::Doxense.Serialization.Json.Tests.Person, PersonMutable, PersonReadOnly>
+		public sealed record PersonMutable : JsonProxyObjectBase, IJsonMutableProxy<global::Doxense.Serialization.Json.Tests.Person, PersonMutable, PersonReadOnly>
 		{
 
-			public PersonMutable(JsonValue value, IJsonMutableParent? parent = null, JsonEncodedPropertyName? name = null, int index = 0) : base(value, parent, name, index)
+			public PersonMutable(JsonValue value, IJsonProxyNode? parent = null, JsonEncodedPropertyName? name = null, int index = 0) : base(value, parent, name, index)
 			{
 			}
 
 			#region Public Methods...
 
 			/// <inheritdoc />
-			public static PersonMutable Create(JsonValue value, IJsonMutableParent? parent = null, JsonEncodedPropertyName? name = null, int index = 0, IJsonConverter<Person>? converter = null) => new(value, parent, name, index);
+			public static PersonMutable Create(JsonValue value, IJsonProxyNode? parent = null, JsonEncodedPropertyName? name = null, int index = 0, IJsonConverter<Person>? converter = null) => new(value, parent, name, index);
 
 			/// <inheritdoc />
 			public static PersonMutable Create(global::Doxense.Serialization.Json.Tests.Person? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) => new(GeneratedSerializers.Person.Pack(value, settings.AsMutable(), resolver));
@@ -700,17 +700,17 @@ namespace Doxense.Serialization.Json.Tests
 
 		/// <summary>Wraps a <see cref="JsonObject"/> into a writable type-safe view that emulates the type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/></summary>
 		/// <seealso cref="IJsonMutableProxy{T}"/>
-		public sealed record MyAwesomeUserMutable : JsonMutableProxyObjectBase, IJsonMutableProxy<global::Doxense.Serialization.Json.Tests.MyAwesomeUser, MyAwesomeUserMutable, MyAwesomeUserReadOnly>
+		public sealed record MyAwesomeUserMutable : JsonProxyObjectBase, IJsonMutableProxy<global::Doxense.Serialization.Json.Tests.MyAwesomeUser, MyAwesomeUserMutable, MyAwesomeUserReadOnly>
 		{
 
-			public MyAwesomeUserMutable(JsonValue value, IJsonMutableParent? parent = null, JsonEncodedPropertyName? name = null, int index = 0) : base(value, parent, name, index)
+			public MyAwesomeUserMutable(JsonValue value, IJsonProxyNode? parent = null, JsonEncodedPropertyName? name = null, int index = 0) : base(value, parent, name, index)
 			{
 			}
 
 			#region Public Methods...
 
 			/// <inheritdoc />
-			public static MyAwesomeUserMutable Create(JsonValue value, IJsonMutableParent? parent = null, JsonEncodedPropertyName? name = null, int index = 0, IJsonConverter<MyAwesomeUser>? converter = null) => new(value, parent, name, index);
+			public static MyAwesomeUserMutable Create(JsonValue value, IJsonProxyNode? parent = null, JsonEncodedPropertyName? name = null, int index = 0, IJsonConverter<MyAwesomeUser>? converter = null) => new(value, parent, name, index);
 
 			/// <inheritdoc />
 			public static MyAwesomeUserMutable Create(global::Doxense.Serialization.Json.Tests.MyAwesomeUser? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) => new(GeneratedSerializers.MyAwesomeUser.Pack(value, settings.AsMutable(), resolver));
@@ -778,14 +778,14 @@ namespace Doxense.Serialization.Json.Tests
 			}
 
 			/// <inheritdoc cref="MyAwesomeUser.Items" />
-			public JsonMutableProxyArray<global::Doxense.Serialization.Json.Tests.MyAwesomeStruct, GeneratedSerializers.MyAwesomeStructMutable> Items
+			public JsonProxyArray<global::Doxense.Serialization.Json.Tests.MyAwesomeStruct, GeneratedSerializers.MyAwesomeStructMutable> Items
 			{
 				get => new(m_obj["items"], parent: this, name: MyAwesomeUserJsonConverter.PropertyEncodedNames.Items);
 				set => m_obj["items"] = value.ToJson();
 			}
 
 			/// <inheritdoc cref="MyAwesomeUser.Devices" />
-			public JsonMutableProxyDictionary<global::Doxense.Serialization.Json.Tests.MyAwesomeDevice, GeneratedSerializers.MyAwesomeDeviceMutable> Devices
+			public JsonProxyDictionary<global::Doxense.Serialization.Json.Tests.MyAwesomeDevice, GeneratedSerializers.MyAwesomeDeviceMutable> Devices
 			{
 				get => new(m_obj["devices"], parent: this, name: MyAwesomeUserJsonConverter.PropertyEncodedNames.Devices);
 				set => m_obj["devices"] = value.ToJson();
@@ -1060,17 +1060,17 @@ namespace Doxense.Serialization.Json.Tests
 
 		/// <summary>Wraps a <see cref="JsonObject"/> into a writable type-safe view that emulates the type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata"/></summary>
 		/// <seealso cref="IJsonMutableProxy{T}"/>
-		public sealed record MyAwesomeMetadataMutable : JsonMutableProxyObjectBase, IJsonMutableProxy<global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata, MyAwesomeMetadataMutable, MyAwesomeMetadataReadOnly>
+		public sealed record MyAwesomeMetadataMutable : JsonProxyObjectBase, IJsonMutableProxy<global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata, MyAwesomeMetadataMutable, MyAwesomeMetadataReadOnly>
 		{
 
-			public MyAwesomeMetadataMutable(JsonValue value, IJsonMutableParent? parent = null, JsonEncodedPropertyName? name = null, int index = 0) : base(value, parent, name, index)
+			public MyAwesomeMetadataMutable(JsonValue value, IJsonProxyNode? parent = null, JsonEncodedPropertyName? name = null, int index = 0) : base(value, parent, name, index)
 			{
 			}
 
 			#region Public Methods...
 
 			/// <inheritdoc />
-			public static MyAwesomeMetadataMutable Create(JsonValue value, IJsonMutableParent? parent = null, JsonEncodedPropertyName? name = null, int index = 0, IJsonConverter<MyAwesomeMetadata>? converter = null) => new(value, parent, name, index);
+			public static MyAwesomeMetadataMutable Create(JsonValue value, IJsonProxyNode? parent = null, JsonEncodedPropertyName? name = null, int index = 0, IJsonConverter<MyAwesomeMetadata>? converter = null) => new(value, parent, name, index);
 
 			/// <inheritdoc />
 			public static MyAwesomeMetadataMutable Create(global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) => new(GeneratedSerializers.MyAwesomeMetadata.Pack(value, settings.AsMutable(), resolver));
@@ -1430,17 +1430,17 @@ namespace Doxense.Serialization.Json.Tests
 
 		/// <summary>Wraps a <see cref="JsonObject"/> into a writable type-safe view that emulates the type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct"/></summary>
 		/// <seealso cref="IJsonMutableProxy{T}"/>
-		public sealed record MyAwesomeStructMutable : JsonMutableProxyObjectBase, IJsonMutableProxy<global::Doxense.Serialization.Json.Tests.MyAwesomeStruct, MyAwesomeStructMutable, MyAwesomeStructReadOnly>
+		public sealed record MyAwesomeStructMutable : JsonProxyObjectBase, IJsonMutableProxy<global::Doxense.Serialization.Json.Tests.MyAwesomeStruct, MyAwesomeStructMutable, MyAwesomeStructReadOnly>
 		{
 
-			public MyAwesomeStructMutable(JsonValue value, IJsonMutableParent? parent = null, JsonEncodedPropertyName? name = null, int index = 0) : base(value, parent, name, index)
+			public MyAwesomeStructMutable(JsonValue value, IJsonProxyNode? parent = null, JsonEncodedPropertyName? name = null, int index = 0) : base(value, parent, name, index)
 			{
 			}
 
 			#region Public Methods...
 
 			/// <inheritdoc />
-			public static MyAwesomeStructMutable Create(JsonValue value, IJsonMutableParent? parent = null, JsonEncodedPropertyName? name = null, int index = 0, IJsonConverter<MyAwesomeStruct>? converter = null) => new(value, parent, name, index);
+			public static MyAwesomeStructMutable Create(JsonValue value, IJsonProxyNode? parent = null, JsonEncodedPropertyName? name = null, int index = 0, IJsonConverter<MyAwesomeStruct>? converter = null) => new(value, parent, name, index);
 
 			/// <inheritdoc />
 			public static MyAwesomeStructMutable Create(global::Doxense.Serialization.Json.Tests.MyAwesomeStruct value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) => new(GeneratedSerializers.MyAwesomeStruct.Pack(value, settings.AsMutable(), resolver));
@@ -1790,17 +1790,17 @@ namespace Doxense.Serialization.Json.Tests
 
 		/// <summary>Wraps a <see cref="JsonObject"/> into a writable type-safe view that emulates the type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice"/></summary>
 		/// <seealso cref="IJsonMutableProxy{T}"/>
-		public sealed record MyAwesomeDeviceMutable : JsonMutableProxyObjectBase, IJsonMutableProxy<global::Doxense.Serialization.Json.Tests.MyAwesomeDevice, MyAwesomeDeviceMutable, MyAwesomeDeviceReadOnly>
+		public sealed record MyAwesomeDeviceMutable : JsonProxyObjectBase, IJsonMutableProxy<global::Doxense.Serialization.Json.Tests.MyAwesomeDevice, MyAwesomeDeviceMutable, MyAwesomeDeviceReadOnly>
 		{
 
-			public MyAwesomeDeviceMutable(JsonValue value, IJsonMutableParent? parent = null, JsonEncodedPropertyName? name = null, int index = 0) : base(value, parent, name, index)
+			public MyAwesomeDeviceMutable(JsonValue value, IJsonProxyNode? parent = null, JsonEncodedPropertyName? name = null, int index = 0) : base(value, parent, name, index)
 			{
 			}
 
 			#region Public Methods...
 
 			/// <inheritdoc />
-			public static MyAwesomeDeviceMutable Create(JsonValue value, IJsonMutableParent? parent = null, JsonEncodedPropertyName? name = null, int index = 0, IJsonConverter<MyAwesomeDevice>? converter = null) => new(value, parent, name, index);
+			public static MyAwesomeDeviceMutable Create(JsonValue value, IJsonProxyNode? parent = null, JsonEncodedPropertyName? name = null, int index = 0, IJsonConverter<MyAwesomeDevice>? converter = null) => new(value, parent, name, index);
 
 			/// <inheritdoc />
 			public static MyAwesomeDeviceMutable Create(global::Doxense.Serialization.Json.Tests.MyAwesomeDevice? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) => new(GeneratedSerializers.MyAwesomeDevice.Pack(value, settings.AsMutable(), resolver));

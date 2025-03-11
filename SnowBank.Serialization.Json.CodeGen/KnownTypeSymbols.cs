@@ -54,8 +54,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 		public const string IJsonMutableProxyFullName = CrystalJsonNamespace + ".IJsonMutableProxy";
 		public const string IJsonObservableProxyFullName = CrystalJsonNamespace + ".IJsonObservableProxy";
 		public const string IJsonConverterInterfaceFullName = CrystalJsonNamespace + ".IJsonConverter";
-		public const string IJsonMutableParentFullName = CrystalJsonNamespace + ".IJsonMutableParent";
-		public const string IObservableJsonTransaction = CrystalJsonNamespace + ".IObservableJsonTransaction";
+		public const string IJsonProxyNodeFullName = CrystalJsonNamespace + ".IJsonProxyNode";
 
 		public const string JsonValueName = "JsonValue";
 		public const string JsonNullName = "JsonNull";
@@ -75,16 +74,25 @@ namespace SnowBank.Serialization.Json.CodeGen
 		public const string JsonStringFullName = CrystalJsonNamespace + "." + JsonStringName;
 		public const string JsonDateTimeFullName = CrystalJsonNamespace + "." + JsonDateTimeName;
 
-		public const string JsonMutableProxyObjectBaseFullName = CrystalJsonNamespace + ".JsonMutableProxyObjectBase";
-		public const string JsonMutableProxyDictionaryFullName = CrystalJsonNamespace + ".JsonMutableProxyDictionary";
-		public const string JsonMutableProxyArrayFullName = CrystalJsonNamespace + ".JsonMutableProxyArray";
+		// JSON proxies are mutable typed wrappers other a JsonValue
+		public const string JsonProxyObjectBaseFullName = CrystalJsonNamespace + ".JsonProxyObjectBase";
+		public const string JsonProxyDictionaryFullName = CrystalJsonNamespace + ".JsonProxyDictionary";
+		public const string JsonProxyArrayFullName = CrystalJsonNamespace + ".JsonProxyArray";
+
+		// JSON readonly proxies are immutable typed wrappers other a JsonValue
 		public const string JsonReadOnlyProxyObjectFullName = CrystalJsonNamespace + ".JsonReadOnlyProxyObject";
 		public const string JsonReadOnlyProxyArrayFullName = CrystalJsonNamespace + ".JsonReadOnlyProxyArray";
-		public const string JsonObservableProxyObjectBaseFullName = CrystalJsonNamespace + ".JsonObservableProxyObjectBase";
-		public const string JsonObservableProxyDictionaryFullName = CrystalJsonNamespace + ".JsonObservableProxyDictionary";
-		public const string JsonObservableProxyArrayFullName = CrystalJsonNamespace + ".JsonObservableProxyArray";
+
+		// "mutable" json values will record all changes into a transaction object
+		public const string IMutableJsonTransactionFullName = CrystalJsonNamespace + ".IMutableJsonTransaction";
+		public const string MutableJsonObjectBaseFullName = CrystalJsonNamespace + ".MutableJsonObjectBase";
+		public const string MutableJsonDictionaryFullName = CrystalJsonNamespace + ".MutableJsonDictionary";
+		public const string MutableJsonArrayFullName = CrystalJsonNamespace + ".MutableJsonArray";
+		public const string MutableJsonValueFullName = CrystalJsonNamespace + ".MutableJsonValue";
+
+		// "observable" json values will record all reads into a context object
+		public const string IObservableJsonContextFullName = CrystalJsonNamespace + ".IObservableJsonContext";
 		public const string ObservableJsonValueFullName = CrystalJsonNamespace + ".ObservableJsonValue";
-		public const string ObservableJsonFullName = CrystalJsonNamespace + ".ObservableJson";
 
 		#endregion
 		

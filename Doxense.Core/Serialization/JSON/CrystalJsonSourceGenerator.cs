@@ -1098,7 +1098,7 @@ namespace Doxense.Serialization.Json
 				"public sealed",
 				mutableProxyTypeName,
 				[
-					sb.TypeName<JsonMutableProxyObjectBase>(),
+					sb.TypeName<JsonProxyObjectBase>(),
 					mutableProxyInterfaceName
 				],
 				[],
@@ -1108,7 +1108,7 @@ namespace Doxense.Serialization.Json
 					//sb.NewLine();
 
 					// ctor()
-					sb.AppendLine($"public {mutableProxyTypeName}({nameof(JsonValue)} value, {nameof(IJsonMutableParent)}? parent = null, {nameof(JsonEncodedPropertyName)}? name = null, int index = 0) : base(value, parent, name, index)");
+					sb.AppendLine($"public {mutableProxyTypeName}({nameof(JsonValue)} value, {nameof(IJsonProxyNode)}? parent = null, {nameof(JsonEncodedPropertyName)}? name = null, int index = 0) : base(value, parent, name, index)");
 					sb.EnterBlock();
 					sb.LeaveBlock();
 					sb.NewLine();
@@ -1120,7 +1120,7 @@ namespace Doxense.Serialization.Json
 
 					// static Create()
 					sb.AppendLine($"/// <inheritdoc />");
-					sb.AppendLine($"public static {mutableProxyTypeName} Create({nameof(JsonValue)} value, {nameof(IJsonMutableParent)}? parent = null, {nameof(JsonEncodedPropertyName)}? name = null, int index = 0, {sb.TypeName(jsonConverterType)}? converter = null) => new(value, parent, name, index);");
+					sb.AppendLine($"public static {mutableProxyTypeName} Create({nameof(JsonValue)} value, {nameof(IJsonProxyNode)}? parent = null, {nameof(JsonEncodedPropertyName)}? name = null, int index = 0, {sb.TypeName(jsonConverterType)}? converter = null) => new(value, parent, name, index);");
 					sb.NewLine();
 
 					// static Create()
@@ -1279,7 +1279,7 @@ namespace Doxense.Serialization.Json
 							{
 								if (this.TypeMap.ContainsKey(valueType))
 								{
-									proxyType = sb.TypeNameGeneric(typeof(JsonMutableProxyDictionary<,>), sb.TypeName(valueType), GetLocalMutableProxyRef(valueType));
+									proxyType = sb.TypeNameGeneric(typeof(JsonProxyDictionary<,>), sb.TypeName(valueType), GetLocalMutableProxyRef(valueType));
 									getterExpr = $"new(m_obj[{sb.Constant(member.Name)}], parent: this, name: {serializerTypeName}.{GetPropertyEncodedNameRef(member)})";
 									setterExpr = $"m_obj[{sb.Constant(member.Name)}] = value.ToJson()";
 								}
@@ -1289,7 +1289,7 @@ namespace Doxense.Serialization.Json
 						{
 							if (this.TypeMap.ContainsKey(elemType))
 							{
-								proxyType = sb.TypeNameGeneric(typeof(JsonMutableProxyArray<,>), sb.TypeName(elemType), GetLocalMutableProxyRef(elemType));
+								proxyType = sb.TypeNameGeneric(typeof(JsonProxyArray<,>), sb.TypeName(elemType), GetLocalMutableProxyRef(elemType));
 								getterExpr = $"new(m_obj[{sb.Constant(member.Name)}], parent: this, name: {serializerTypeName}.{GetPropertyEncodedNameRef(member)})";
 								setterExpr = $"m_obj[{sb.Constant(member.Name)}] = value.ToJson()";
 							}

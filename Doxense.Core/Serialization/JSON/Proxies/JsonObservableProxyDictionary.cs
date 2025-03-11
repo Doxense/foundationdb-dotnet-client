@@ -9,18 +9,18 @@
 namespace Doxense.Serialization.Json
 {
 
-	public readonly struct JsonObservableProxyDictionary<TValue, TProxy>
+	public readonly struct MutableJsonDictionary<TValue, TProxy>
 		where TProxy : IJsonObservableProxy<TValue, TProxy>
 	{
 
-		private readonly ObservableJsonValue m_obj;
+		private readonly MutableJsonValue m_obj;
 
-		public JsonObservableProxyDictionary(ObservableJsonValue array)
+		public MutableJsonDictionary(MutableJsonValue array)
 		{
 			m_obj = array;
 		}
 
-		public ObservableJsonValue GetValue() => m_obj;
+		public MutableJsonValue GetValue() => m_obj;
 
 		public TProxy this[string key] => TProxy.Create(m_obj[key]);
 

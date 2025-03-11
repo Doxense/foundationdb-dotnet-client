@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -31,20 +31,20 @@ namespace Doxense.Serialization.Json
 	/// <summary>Wraps a <see cref="JsonArray"/> into a typed mutable proxy that emulates an array of elements of type <typeparamref name="TValue"/></summary>
 	/// <typeparam name="TValue">Emulated element type</typeparam>
 	[PublicAPI]
-	public readonly struct JsonMutableProxyArray<TValue> : IList<TValue>, IJsonSerializable, IJsonPackable
+	public readonly struct JsonProxyArray<TValue> : IList<TValue>, IJsonSerializable, IJsonPackable
 	{
 
 		private readonly JsonArray m_array;
 
 		private readonly IJsonConverter<TValue> m_converter;
 
-		private readonly IJsonMutableParent? m_parent;
+		private readonly IJsonProxyNode? m_parent;
 
 		private readonly JsonEncodedPropertyName? m_name;
 
 		private readonly int m_index;
 
-		public JsonMutableProxyArray(JsonArray? array, IJsonConverter<TValue>? converter = null, IJsonMutableParent? parent = null, JsonEncodedPropertyName? name = null, int index = 0)
+		public JsonProxyArray(JsonArray? array, IJsonConverter<TValue>? converter = null, IJsonProxyNode? parent = null, JsonEncodedPropertyName? name = null, int index = 0)
 		{
 			m_array = array ?? [ ];
 			m_converter = converter ?? RuntimeJsonConverter<TValue>.Default;
@@ -63,7 +63,7 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_array;
 
-		public static JsonMutableProxyArray<TValue> FromValue(TValue[] values, IJsonConverter<TValue>? converter = null)
+		public static JsonProxyArray<TValue> FromValue(TValue[] values, IJsonConverter<TValue>? converter = null)
 		{
 			converter ??= RuntimeJsonConverter<TValue>.Default;
 			return new(converter.JsonPackArray(values), converter);
@@ -141,19 +141,19 @@ namespace Doxense.Serialization.Json
 	/// <typeparam name="TValue">Emulated element type</typeparam>
 	/// <typeparam name="TProxy">Corresponding <see cref="IJsonMutableProxy{TValue}"/> for type <typeparamref name="TValue"/>, usually source-generated</typeparam>
 	[PublicAPI]
-	public sealed class JsonMutableProxyArray<TValue, TProxy> : IList<TProxy>, IJsonMutableParent, IJsonSerializable, IJsonPackable
+	public sealed class JsonProxyArray<TValue, TProxy> : IList<TProxy>, IJsonProxyNode, IJsonSerializable, IJsonPackable
 		where TProxy : IJsonMutableProxy<TValue, TProxy>
 	{
 
 		private readonly JsonValue m_value;
 
-		private readonly IJsonMutableParent? m_parent;
+		private readonly IJsonProxyNode? m_parent;
 
 		private readonly JsonEncodedPropertyName? m_name;
 
 		private readonly int m_index;
 
-		public JsonMutableProxyArray(JsonValue? value, IJsonMutableParent? parent = null, JsonEncodedPropertyName? name = null, int index = 0, IJsonConverter<TValue>? converter = null)
+		public JsonProxyArray(JsonValue? value, IJsonProxyNode? parent = null, JsonEncodedPropertyName? name = null, int index = 0, IJsonConverter<TValue>? converter = null)
 		{
 			m_value = value ?? JsonNull.Null;
 			m_parent = parent;
@@ -161,13 +161,13 @@ namespace Doxense.Serialization.Json
 			m_index = index;
 		}
 
-		JsonType IJsonMutableParent.Type => JsonType.Array;
+		JsonType IJsonProxyNode.Type => JsonType.Array;
 
-		IJsonMutableParent? IJsonMutableParent.Parent => m_parent;
+		IJsonProxyNode? IJsonProxyNode.Parent => m_parent;
 
-		JsonEncodedPropertyName? IJsonMutableParent.Name => m_name;
+		JsonEncodedPropertyName? IJsonProxyNode.Name => m_name;
 
-		int IJsonMutableParent.Index => m_index;
+		int IJsonProxyNode.Index => m_index;
 
 		TValue[] ToArray() => TProxy.Converter.JsonDeserializeArray(m_value)!;
 
@@ -179,7 +179,7 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_value;
 
-		public static JsonMutableProxyArray<TValue> FromValue(TValue[] values, IJsonConverter<TValue>? converter = null)
+		public static JsonProxyArray<TValue> FromValue(TValue[] values, IJsonConverter<TValue>? converter = null)
 		{
 			converter ??= RuntimeJsonConverter<TValue>.Default;
 			return new(converter.JsonPackArray(values), converter);
