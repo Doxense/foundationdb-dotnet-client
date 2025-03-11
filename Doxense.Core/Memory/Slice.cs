@@ -50,8 +50,9 @@ namespace System
 #endif
 	public readonly partial struct Slice : IEquatable<Slice>, IEquatable<ArraySegment<byte>>, IEquatable<byte[]>, IComparable<Slice>, IFormattable, ISliceSerializable, ISpanFormattable
 #if NET9_0_OR_GREATER
-		, IEquatable<ReadOnlySpan<byte>>
-		, IEquatable<Span<byte>>
+		, IEquatable<ReadOnlySpan<byte>>, IEquatable<Span<byte>>, IEquatable<ReadOnlyMemory<byte>>
+		, IEquatable<ReadOnlySpan<char>>, IEquatable<ReadOnlyMemory<char>>
+		
 #endif
 	{
 		#region Static Members...
@@ -934,7 +935,7 @@ namespace System
 			int len = this.Count;
 			if (len == 0) return false;
 
-			// we must have at least one more byte then the parent
+			// we must have at least one more byte than the parent
 			if (len <= count) return false;
 
 			// must start with the same bytes
@@ -960,6 +961,12 @@ namespace System
 			return true;
 #endif
 		}
+
+		/// <summary>Determines whether the slice is equal to the specified ASCII keyword</summary>
+		/// <param name="asciiString">String of ASCII chars. Any character with a code pointer greater or equal to 128 will not work as intended</param>
+		/// <returns><b>true</b> if <paramref name="asciiString"/>, when interpreted as bytes, represents the same bytes as this slice; otherwise, <b>false</b></returns>
+		/// <remarks>This method is only intended to test the presence of specific keywords or header signatures when parsing protocols, NOT for matching natural text!</remarks>
+		public bool Equals(ReadOnlyMemory<char> asciiString) => Equals(asciiString.Span);
 
 		/// <summary>Determines whether the beginning of this slice instance matches a specified ASCII keyword</summary>
 		/// <param name="asciiString">String of ASCII chars. Any character with a code pointer greater or equal to 128 will not work as intended</param>
@@ -2727,6 +2734,12 @@ namespace System
 			// note: Nil and Empty are both equal to empty span
 			return this.Count == other.Length && this.Span.SequenceEqual(other);
 		}
+
+		/// <summary>Checks if the content of a span is equal to the current slice.</summary>
+		/// <param name="other">Span of memory compared with the current instance</param>
+		/// <returns>true if both locations have the same size and contain the same sequence of bytes; otherwise, false.</returns>
+		[Pure]
+		public bool Equals(ReadOnlyMemory<byte> other) => Equals(other.Span);
 
 		/// <summary>Checks if the content of a span is equal to the current slice.</summary>
 		/// <param name="other">Span of memory compared with the current instance</param>

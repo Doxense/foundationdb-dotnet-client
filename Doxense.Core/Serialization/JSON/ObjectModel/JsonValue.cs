@@ -1807,6 +1807,20 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Gets the value at the specified path</summary>
 		/// <param name="path">Path to the value. ex: <c>"foo"</c>, <c>"foo.bar"</c> or <c>"foo[2].baz"</c></param>
+		/// <returns>the value found at this location, or <see cref="JsonNull.Missing"/> if no match was found</returns>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		public JsonValue GetPathValue(ReadOnlyMemory<char> path) => GetPathCore(JsonPath.Create(path), null, required: true);
+
+		/// <summary>Gets the value at the specified path</summary>
+		/// <param name="path">Path to the value. ex: <c>"foo"</c>, <c>"foo.bar"</c> or <c>"foo[2].baz"</c></param>
+		/// <returns>the value found at this location, or <see cref="JsonNull.Missing"/> if no match was found</returns>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[EditorBrowsable(EditorBrowsableState.Always)]
+		public JsonValue GetPathValue(JsonPath path) => GetPathCore(path, null, required: true);
+
+		/// <summary>Gets the value at the specified path</summary>
+		/// <param name="path">Path to the value. ex: <c>"foo"</c>, <c>"foo.bar"</c> or <c>"foo[2].baz"</c></param>
 		/// <param name="defaultValue">Value that is returned if the path was not found, or the value is null or missing.</param>
 		/// <returns>the value found at this location, or <paramref name="defaultValue"/> if no match was found</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
@@ -1815,10 +1829,11 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Gets the value at the specified path</summary>
 		/// <param name="path">Path to the value. ex: <c>"foo"</c>, <c>"foo.bar"</c> or <c>"foo[2].baz"</c></param>
-		/// <returns>the value found at this location, or <see cref="JsonNull.Missing"/> if no match was found</returns>
+		/// <param name="defaultValue">Value that is returned if the path was not found, or the value is null or missing.</param>
+		/// <returns>the value found at this location, or <paramref name="defaultValue"/> if no match was found</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Always)]
-		public JsonValue GetPathValue(JsonPath path) => GetPathCore(path, null, required: true);
+		public JsonValue GetPathValueOrDefault(ReadOnlyMemory<char> path, JsonValue? defaultValue = null) => GetPathCore(JsonPath.Create(path), defaultValue, required: false);
 
 		/// <summary>Gets the value at the specified path</summary>
 		/// <param name="path">Path to the value. ex: <c>"foo"</c>, <c>"foo.bar"</c> or <c>"foo[2].baz"</c></param>
@@ -1877,6 +1892,11 @@ namespace Doxense.Serialization.Json
 		/// <summary>Returns the JSON Object at the specified <see cref="JsonPath">path</see> within this instance</summary>
 		/// <exception cref="JsonBindingException">If there is no matching value, it is null, missing, or not a JSON Object.</exception>
 		[Pure]
+		public JsonObject GetPathObject(ReadOnlyMemory<char> path) => GetPathCore(JsonPath.Create(path), null, required: true).AsObject();
+
+		/// <summary>Returns the JSON Object at the specified <see cref="JsonPath">path</see> within this instance</summary>
+		/// <exception cref="JsonBindingException">If there is no matching value, it is null, missing, or not a JSON Object.</exception>
+		[Pure]
 		public JsonObject GetPathObject(JsonPath path) => GetPathCore(path, null, required: true).AsObject();
 
 		/// <summary>Returns the JSON Object at the specified <see cref="JsonPath">path</see> within this instance</summary>
@@ -1884,6 +1904,12 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="JsonBindingException">If there is a matching value that is not null or missing, and is not a JSON object.</exception>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public JsonObject? GetPathObjectOrDefault(string path, JsonObject? defaultValue = null) => GetPathCore(JsonPath.Create(path), null, required: false).AsObjectOrDefault() ?? defaultValue;
+
+		/// <summary>Returns the JSON Object at the specified <see cref="JsonPath">path</see> within this instance</summary>
+		/// <returns>The matching object, or null if it was not found</returns>
+		/// <exception cref="JsonBindingException">If there is a matching value that is not null or missing, and is not a JSON object.</exception>
+		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
+		public JsonObject? GetPathObjectOrDefault(ReadOnlyMemory<char> path, JsonObject? defaultValue = null) => GetPathCore(JsonPath.Create(path), null, required: false).AsObjectOrDefault() ?? defaultValue;
 
 		/// <summary>Returns the JSON Object at the specified <see cref="JsonPath">path</see> within this instance</summary>
 		/// <returns>The matching object, or null if it was not found</returns>
@@ -1901,12 +1927,23 @@ namespace Doxense.Serialization.Json
 		/// <returns>The matching object, or <see cref="JsonObject.EmptyReadOnly"/> if it was not found</returns>
 		/// <exception cref="JsonBindingException">If there is a matching value that is not null or missing, and is not a JSON object.</exception>
 		[Pure]
+		public JsonObject GetPathObjectOrEmpty(ReadOnlyMemory<char> path) => GetPathCore(JsonPath.Create(path), null, required: false).AsObjectOrEmpty();
+
+		/// <summary>Returns the object at the specified <see cref="JsonPath">path</see> within this instance</summary>
+		/// <returns>The matching object, or <see cref="JsonObject.EmptyReadOnly"/> if it was not found</returns>
+		/// <exception cref="JsonBindingException">If there is a matching value that is not null or missing, and is not a JSON object.</exception>
+		[Pure]
 		public JsonObject GetPathObjectOrEmpty(JsonPath path) => GetPathCore(path, null, required: false).AsObjectOrEmpty();
 
 		/// <summary>Returns the JSON Array at the specified <see cref="JsonPath">path</see> within this instance</summary>
 		/// <exception cref="JsonBindingException">If there is no matching value, it is null, missing, or not a JSON Array.</exception>
 		[Pure]
 		public JsonArray GetPathArray(string path) => GetPathCore(JsonPath.Create(path), null, required: true).AsArray();
+
+		/// <summary>Returns the JSON Array at the specified <see cref="JsonPath">path</see> within this instance</summary>
+		/// <exception cref="JsonBindingException">If there is no matching value, it is null, missing, or not a JSON Array.</exception>
+		[Pure]
+		public JsonArray GetPathArray(ReadOnlyMemory<char> path) => GetPathCore(JsonPath.Create(path), null, required: true).AsArray();
 
 		/// <summary>Returns the JSON Array at the specified <see cref="JsonPath">path</see> within this instance</summary>
 		/// <exception cref="JsonBindingException">If there is no matching value, it is null, missing, or not a JSON Array.</exception>
@@ -1923,6 +1960,12 @@ namespace Doxense.Serialization.Json
 		/// <returns>The matching array, or null if it was not found</returns>
 		/// <exception cref="JsonBindingException">If there is a matching value that is not null or missing, and is not a JSON Array.</exception>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
+		public JsonArray? GetPathArrayOrDefault(ReadOnlyMemory<char> path, JsonArray? defaultValue = null) => GetPathCore(JsonPath.Create(path), null, required: false).AsArrayOrDefault() ?? defaultValue;
+
+		/// <summary>Returns the JSON AArray at the specified <see cref="JsonPath">path</see> within this instance</summary>
+		/// <returns>The matching array, or null if it was not found</returns>
+		/// <exception cref="JsonBindingException">If there is a matching value that is not null or missing, and is not a JSON Array.</exception>
+		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
 		public JsonArray? GetPathArrayOrDefault(JsonPath path, JsonArray? defaultValue = null) => GetPathCore(path, null, required: false).AsArrayOrDefault() ?? defaultValue;
 
 		/// <summary>Returns the JSON Array at the specified <see cref="JsonPath">path</see> within this instance</summary>
@@ -1930,6 +1973,12 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="JsonBindingException">If there is a matching value that is not null or missing, and is not a JSON Array.</exception>
 		[Pure]
 		public JsonArray GetPathArrayOrEmpty(string path) => GetPathCore(JsonPath.Create(path), null, required: false).AsArrayOrEmpty();
+
+		/// <summary>Returns the JSON Array at the specified <see cref="JsonPath">path</see> within this instance</summary>
+		/// <returns>The matching object, or <see cref="JsonArray.EmptyReadOnly"/> if it was not found</returns>
+		/// <exception cref="JsonBindingException">If there is a matching value that is not null or missing, and is not a JSON Array.</exception>
+		[Pure]
+		public JsonArray GetPathArrayOrEmpty(ReadOnlyMemory<char> path) => GetPathCore(JsonPath.Create(path), null, required: false).AsArrayOrEmpty();
 
 		/// <summary>Returns the JSON Array at the specified <see cref="JsonPath">path</see> within this instance</summary>
 		/// <returns>The matching object, or <see cref="JsonArray.EmptyReadOnly"/> if it was not found</returns>

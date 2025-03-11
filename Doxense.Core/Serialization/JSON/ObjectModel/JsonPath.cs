@@ -35,6 +35,9 @@ namespace Doxense.Serialization.Json
 	[PublicAPI]
 	[DebuggerDisplay("{ToString(),nq}")]
 	public readonly struct JsonPath : IEnumerable<(JsonPath Parent, ReadOnlyMemory<char> Key, Index Index, bool Last)>, IJsonSerializable, IJsonPackable, IJsonDeserializable<JsonPath>, IEquatable<JsonPath>, IEquatable<string>, ISpanFormattable
+#if NET9_0_OR_GREATER
+		, IEquatable<ReadOnlySpan<char>>, IEquatable<ReadOnlyMemory<char>>
+#endif
 	{
 		// the goal is to wrap a string with the full path, and expose each "segment" as a ReadOnlySpan<char>, in order to reduce allocations
 
@@ -193,6 +196,9 @@ namespace Doxense.Serialization.Json
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(ReadOnlySpan<char> other) => this.Value.Span.SequenceEqual(other);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(ReadOnlyMemory<char> other) => this.Value.Span.SequenceEqual(other.Span);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool operator ==(JsonPath left, JsonPath right) => left.Equals(right);
@@ -642,6 +648,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Appends a field to this path (ex: <c>JsonPath.Return("user")["id"]</c> => "user.id")</summary>
 		public JsonPath this[string key]
 		{
+			[MustUseReturnValue]
 			get
 			{
 				Contract.NotNull(key);
@@ -681,9 +688,9 @@ namespace Doxense.Serialization.Json
 		/// <summary>Appends a field to this path (ex: <c>JsonPath.Return("user")["xxxidxxx".AsSpan(3, 2)]</c> => "user.id")</summary>
 		public JsonPath this[ReadOnlySpan<char> key]
 		{
+			[MustUseReturnValue]
 			get
 			{
-
 				// we may need to encode the key if it contains any of '\', '.' or '['
 				if (RequiresEscaping(key))
 				{
@@ -752,6 +759,13 @@ namespace Doxense.Serialization.Json
 
 #endif
 			}
+		}
+
+		/// <summary>Appends a field to this path (ex: <c>JsonPath.Return("user")["xxxidxxx".AsSpan(3, 2)]</c> => "user.id")</summary>
+		public JsonPath this[ReadOnlyMemory<char> key]
+		{
+			[MustUseReturnValue]
+			get => key.TryGetString(out var str) ? this[str] : this[key.Span];
 		}
 
 		private static string ConcatWithIndexer(ReadOnlyMemory<char> head, ReadOnlyMemory<char> tail)
@@ -1493,7 +1507,7 @@ namespace Doxense.Serialization.Json
 			{
 				this.Path = default;
 				this.Tail = default;
-				this.Offset = default;
+				this.Offset = 0;
 				this.Consumed = 0;
 				this.Key = default;
 				this.Index = default;

@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -183,6 +183,12 @@ namespace Doxense.Serialization.Json
 		{
 			Contract.NotNull(name);
 			Append(name.AsSpan());
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Append(ReadOnlyMemory<char> name)
+		{
+			Append(name.Span);
 		}
 
 		public void Append(scoped ReadOnlySpan<char> name)

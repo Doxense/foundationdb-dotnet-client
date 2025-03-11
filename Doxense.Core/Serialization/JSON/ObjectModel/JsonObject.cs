@@ -2174,6 +2174,22 @@ namespace Doxense.Serialization.Json
 		/// <remarks>If any intermediate element in the traversed path is missing, it will be created as required (either as an object or an array)</remarks>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="path"/> is <see langword="null"/> or empty</exception>
 		/// <exception cref="System.ArgumentException">If any traversed node in the path is of an incompatible path. For example with <c>"foo[1].bar.baz"</c> if either <c>foo</c> is not an array, or <c>bar</c> is not an object</exception>
+		public JsonObject GetOrCreateObject(ReadOnlyMemory<char> path)
+		{
+			JsonPath.ThrowIfEmpty(path);
+			return (JsonObject) SetPathInternal(JsonPath.Create(path), null, JsonType.Object);
+		}
+
+		/// <summary>Returns a JSON Object at the given path, or create a new empty object if missing</summary>
+		/// <param name="path"><see cref="JsonPath">path</see> to the object</param>
+		/// <returns>Existing object, or a new empty object.</returns>
+		/// <example><code>
+		/// { }.GetOrCreateObject("foo").Set("bar", 123) => { "foo": { "bar": 123 } }
+		/// { }.GetOrCreateObject("foo.bar").Set("baz", 123) => { "foo": { "bar": { "baz": 123 } } }
+		/// </code></example>
+		/// <remarks>If any intermediate element in the traversed path is missing, it will be created as required (either as an object or an array)</remarks>
+		/// <exception cref="System.ArgumentNullException">If <paramref name="path"/> is <see langword="null"/> or empty</exception>
+		/// <exception cref="System.ArgumentException">If any traversed node in the path is of an incompatible path. For example with <c>"foo[1].bar.baz"</c> if either <c>foo</c> is not an array, or <c>bar</c> is not an object</exception>
 		public JsonObject GetOrCreateObject(JsonPath path)
 		{
 			JsonPath.ThrowIfEmpty(path);
@@ -2191,6 +2207,22 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="System.ArgumentNullException">If <paramref name="path"/> is <see langword="null"/> or empty</exception>
 		/// <exception cref="System.ArgumentException">If any traversed node in the path is of an incompatible path. For example with <c>"foo[1].bar.baz"</c> if either <c>foo</c> is not an array, or <c>bar</c> is not an object</exception>
 		public JsonArray GetOrCreateArray(string path)
+		{
+			JsonPath.ThrowIfEmpty(path);
+			return (JsonArray) SetPathInternal(JsonPath.Create(path), null, JsonType.Array);
+		}
+
+		/// <summary>Returns a JSON Array at the given path, or create a new empty array if missing</summary>
+		/// <param name="path"><see cref="JsonPath">path</see> to the array</param>
+		/// <returns>Existing array, or a new empty array.</returns>
+		/// <example><code>
+		/// { }.GetOrCreateArray("foo").Set(0, "bar") => { "foo": [ "bar" ] }
+		/// { }.GetOrCreateArray("foo.bar").Set(0, "baz") => { "foo": { "bar": [ "baz" ] } }
+		/// </code></example>
+		/// <remarks>If any intermediate element in the traversed path is missing, it will be created as required (either as an object or an array)</remarks>
+		/// <exception cref="System.ArgumentNullException">If <paramref name="path"/> is <see langword="null"/> or empty</exception>
+		/// <exception cref="System.ArgumentException">If any traversed node in the path is of an incompatible path. For example with <c>"foo[1].bar.baz"</c> if either <c>foo</c> is not an array, or <c>bar</c> is not an object</exception>
+		public JsonArray GetOrCreateArray(ReadOnlyMemory<char> path)
 		{
 			JsonPath.ThrowIfEmpty(path);
 			return (JsonArray) SetPathInternal(JsonPath.Create(path), null, JsonType.Array);

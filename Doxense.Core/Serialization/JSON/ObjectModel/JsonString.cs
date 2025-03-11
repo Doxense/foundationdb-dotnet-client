@@ -40,6 +40,12 @@ namespace Doxense.Serialization.Json
 		IComparable<JsonString>,
 		IEquatable<string>,
 		IComparable<string>,
+#if NET9_0_OR_GREATER
+		IEquatable<ReadOnlySpan<char>>,
+		IEquatable<ReadOnlyMemory<char>>,
+		IComparable<ReadOnlySpan<char>>,
+		IComparable<ReadOnlyMemory<char>>,
+#endif
 		IEquatable<Guid>,
 		IEquatable<Uuid128>,
 		IEquatable<Uuid96>,
@@ -76,6 +82,12 @@ namespace Doxense.Serialization.Json
 		public static JsonValue Return(ReadOnlySpan<char> value)
 		{
 			return value.Length == 0 ? JsonString.Empty : new JsonString(value.ToString());
+		}
+
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
+		public static JsonValue Return(ReadOnlyMemory<char> value)
+		{
+			return value.Length == 0 ? JsonString.Empty : new JsonString(value.GetStringOrCopy());
 		}
 
 		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
@@ -123,6 +135,14 @@ namespace Doxense.Serialization.Json
 			return value.Length == 0
 				? JsonString.Empty
 				: new JsonString(Base64Encoding.ToBase64String(value));
+		}
+
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
+		public static JsonValue Return(ReadOnlyMemory<byte> value)
+		{
+			return value.Length == 0
+				? JsonString.Empty
+				: new JsonString(Base64Encoding.ToBase64String(value.Span));
 		}
 
 		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
@@ -530,33 +550,84 @@ namespace Doxense.Serialization.Json
 		public bool IsNullOrEmpty => string.IsNullOrEmpty(m_value);
 
 		/// <summary>Tests if the string starts with the specified literal</summary>
-		public bool StartsWith(string value)
-		{
-			//note: JsonString.Null ne commence par rien
-			return m_value.StartsWith(value, StringComparison.Ordinal);
-		}
+		[Pure]
+		public bool StartsWith(string? value) => value != null && m_value.StartsWith(value, StringComparison.Ordinal);
+
+		/// <summary>Tests if the string starts with the specified literal</summary>
+		[Pure]
+		public bool StartsWith(ReadOnlySpan<char> value) => m_value.AsSpan().StartsWith(value, StringComparison.Ordinal);
+
+		/// <summary>Tests if the string starts with the specified literal</summary>
+		[Pure]
+		public bool StartsWith(ReadOnlyMemory<char> value) => m_value.AsSpan().StartsWith(value.Span, StringComparison.Ordinal);
+
+		/// <summary>Tests if the string starts with the specified literal</summary>
+		[Pure]
+		public bool StartsWith(JsonString value) => m_value.StartsWith(value.m_value, StringComparison.Ordinal);
+
+		/// <summary>Tests if the string starts with the specified literal</summary>
+		[Pure]
+		public bool StartsWith(JsonValue value) => value is JsonString str && m_value.StartsWith(str.m_value, StringComparison.Ordinal);
 
 		/// <summary>Tests if the string ends with the specified literal</summary>
-		public bool EndsWith(string value)
-		{
-			//note: JsonString.Null ne fini par rien
-			return m_value.EndsWith(value, StringComparison.Ordinal);
-		}
+		[Pure]
+		public bool EndsWith(string? value) => value != null && m_value.EndsWith(value, StringComparison.Ordinal);
+
+		/// <summary>Tests if the string ends with the specified literal</summary>
+		[Pure]
+		public bool EndsWith(ReadOnlySpan<char> value) => m_value.AsSpan().EndsWith(value, StringComparison.Ordinal);
+
+		/// <summary>Tests if the string ends with the specified literal</summary>
+		[Pure]
+		public bool EndsWith(ReadOnlyMemory<char> value) => m_value.AsSpan().EndsWith(value.Span, StringComparison.Ordinal);
+
+		/// <summary>Tests if the string ends with the specified literal</summary>
+		[Pure]
+		public bool EndsWith(JsonString value) => m_value.EndsWith(value.m_value, StringComparison.Ordinal);
+
+		/// <summary>Tests if the string ends with the specified literal</summary>
+		[Pure]
+		public bool EndsWith(JsonValue value) => value is JsonString str && m_value.EndsWith(str.m_value, StringComparison.Ordinal);
 
 		/// <summary>Tests if the string contains the specified literal</summary>
-		public bool Contains(string value)
-		{
-			//note: JsonString.Null ne contient rien
-			return m_value.IndexOf(value, StringComparison.Ordinal) >= 0;
-		}
+		[Pure]
+		public bool Contains(string? value) => value != null && m_value.IndexOf(value, StringComparison.Ordinal) >= 0;
+
+		/// <summary>Tests if the string contains the specified literal</summary>
+		[Pure]
+		public bool Contains(ReadOnlySpan<char> value) => m_value.AsSpan().IndexOf(value, StringComparison.Ordinal) >= 0;
+
+		/// <summary>Tests if the string contains the specified literal</summary>
+		[Pure]
+		public bool Contains(ReadOnlyMemory<char> value) => m_value.AsSpan().IndexOf(value.Span, StringComparison.Ordinal) >= 0;
+
+		/// <summary>Tests if the string contains the specified literal</summary>
+		[Pure]
+		public bool Contains(JsonString value) => m_value.IndexOf(value.m_value, StringComparison.Ordinal) >= 0;
+
+		/// <summary>Tests if the string contains the specified literal</summary>
+		[Pure]
+		public override bool Contains(JsonValue? value) => value is JsonString str && m_value.IndexOf(str.m_value, StringComparison.Ordinal) >= 0;
 
 		/// <summary>Returns the index of the first occurrence of the specified literal</summary>
 		/// <remarks>Returns <c>-1</c> if the string does not contain this literal</remarks>
-		public int IndexOf(string value)
-		{
-			//note: JsonString.Null ne contient rien
-			return m_value.IndexOf(value, StringComparison.Ordinal);
-		}
+		public int IndexOf(string? value) => value != null ? m_value.IndexOf(value, StringComparison.Ordinal) : -1;
+
+		/// <summary>Returns the index of the first occurrence of the specified literal</summary>
+		/// <remarks>Returns <c>-1</c> if the string does not contain this literal</remarks>
+		public int IndexOf(ReadOnlySpan<char> value) => m_value.AsSpan().IndexOf(value, StringComparison.Ordinal);
+
+		/// <summary>Returns the index of the first occurrence of the specified literal</summary>
+		/// <remarks>Returns <c>-1</c> if the string does not contain this literal</remarks>
+		public int IndexOf(ReadOnlyMemory<char> value) => m_value.AsSpan().IndexOf(value.Span, StringComparison.Ordinal);
+
+		/// <summary>Returns the index of the first occurrence of the specified literal</summary>
+		/// <remarks>Returns <c>-1</c> if the string does not contain this literal</remarks>
+		public int IndexOf(JsonString value) => m_value.IndexOf(value.m_value, StringComparison.Ordinal);
+
+		/// <summary>Returns the index of the first occurrence of the specified literal</summary>
+		/// <remarks>Returns <c>-1</c> if the string does not contain this literal</remarks>
+		public int IndexOf(JsonValue value) => value is JsonString str ? m_value.IndexOf(str.m_value, StringComparison.Ordinal) : -1;
 
 		#endregion
 
@@ -997,6 +1068,16 @@ namespace Doxense.Serialization.Json
 			return obj is not null && string.Equals(m_value, obj, StringComparison.Ordinal);
 		}
 
+#if NET9_0_OR_GREATER
+		/// <inheritdoc />
+#endif
+		public bool Equals(ReadOnlySpan<char> other) => m_value.AsSpan().SequenceEqual(other);
+
+#if NET9_0_OR_GREATER
+		/// <inheritdoc />
+#endif
+		public bool Equals(ReadOnlyMemory<char> other) => m_value.AsSpan().SequenceEqual(other.Span);
+
 		/// <inheritdoc />
 		public bool Equals(Guid obj) => ToGuid() == obj;
 
@@ -1055,6 +1136,22 @@ namespace Doxense.Serialization.Json
 		public int CompareTo(string? other)
 		{
 			return other is not null ? string.CompareOrdinal(m_value, other) : +1;
+		}
+
+#if NET9_0_OR_GREATER
+		/// <inheritdoc />
+#endif
+		public int CompareTo(ReadOnlySpan<char> other)
+		{
+			return m_value.AsSpan().CompareTo(other, StringComparison.Ordinal);
+		}
+
+#if NET9_0_OR_GREATER
+		/// <inheritdoc />
+#endif
+		public int CompareTo(ReadOnlyMemory<char> other)
+		{
+			return m_value.AsSpan().CompareTo(other.Span, StringComparison.Ordinal);
 		}
 
 		#endregion

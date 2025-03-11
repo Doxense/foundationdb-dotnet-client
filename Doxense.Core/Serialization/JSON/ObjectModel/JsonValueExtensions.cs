@@ -131,6 +131,14 @@ namespace Doxense.Serialization.Json
 		/// <returns>The same value, if it is not null or missing; otherwise, an exception is thrown</returns>
 		/// <exception cref="JsonBindingException">If the value is null or missing</exception>
 		[ContractAnnotation("value:null => halt"), MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue RequiredPath(this JsonValue? value, ReadOnlyMemory<char> path) => value is not (null or JsonNull) ? value : FailPathIsNullOrMissing(value, JsonPath.Create(path));
+
+		/// <summary>Ensures that the value of a field in a JSON Object is not null or missing</summary>
+		/// <param name="value">Value at the specified <paramref name="path"/> in the parent object.</param>
+		/// <param name="path">Path to a field</param>
+		/// <returns>The same value, if it is not null or missing; otherwise, an exception is thrown</returns>
+		/// <exception cref="JsonBindingException">If the value is null or missing</exception>
+		[ContractAnnotation("value:null => halt"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue RequiredPath(this JsonValue? value, JsonPath path) => value is not (null or JsonNull) ? value : FailPathIsNullOrMissing(value, path);
 
 		/// <summary>Ensures that a JSON Array is not null</summary>
