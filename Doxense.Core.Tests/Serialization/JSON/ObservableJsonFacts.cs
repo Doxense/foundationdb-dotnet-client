@@ -131,20 +131,20 @@ namespace Doxense.Serialization.Json.Tests
 
 			public List<(string Op, JsonPath Path, JsonValue Value)> Reads { get; } = [ ];
 
-			public ObservableReadOnlyJsonValue FromJson(JsonValue value) => new(this, null, default, null, value);
+			public ObservableJsonValue FromJson(JsonValue value) => new(this, null, default, null, value);
 
-			public ObservableReadOnlyJsonValue FromJson(ObservableReadOnlyJsonValue? parent, ReadOnlyMemory<char> key, JsonValue value) => new(this, parent, key, null, value);
+			public ObservableJsonValue FromJson(ObservableJsonValue? parent, ReadOnlyMemory<char> key, JsonValue value) => new(this, parent, key, null, value);
 
-			public ObservableReadOnlyJsonValue FromJson(ObservableReadOnlyJsonValue? parent, Index index, JsonValue value) => new(this, parent, default, index, value);
-
-			/// <inheritdoc />
-			public void RecordRead(ObservableReadOnlyJsonValue instance, ReadOnlyMemory<char> key, JsonValue argument, bool existOnly) => this.Reads.Add((existOnly ? "test" : "read", instance.GetPath(key), argument));
+			public ObservableJsonValue FromJson(ObservableJsonValue? parent, Index index, JsonValue value) => new(this, parent, default, index, value);
 
 			/// <inheritdoc />
-			public void RecordRead(ObservableReadOnlyJsonValue instance, Index index, JsonValue argument, bool existOnly) => this.Reads.Add((existOnly ? "test" : "read", instance.GetPath(index), argument));
+			public void RecordRead(ObservableJsonValue instance, ReadOnlyMemory<char> key, JsonValue argument, bool existOnly) => this.Reads.Add((existOnly ? "test" : "read", instance.GetPath(key), argument));
 
 			/// <inheritdoc />
-			public void RecordLength(ObservableReadOnlyJsonValue instance, JsonValue argument) => this.Reads.Add(("size", instance.GetPath(), argument));
+			public void RecordRead(ObservableJsonValue instance, Index index, JsonValue argument, bool existOnly) => this.Reads.Add((existOnly ? "test" : "read", instance.GetPath(index), argument));
+
+			/// <inheritdoc />
+			public void RecordLength(ObservableJsonValue instance, JsonValue argument) => this.Reads.Add(("size", instance.GetPath(), argument));
 
 			/// <inheritdoc />
 			public void Reset()

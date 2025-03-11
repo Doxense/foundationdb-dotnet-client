@@ -27,29 +27,13 @@
 namespace Doxense.Serialization.Json
 {
 
-	/// <summary>Wraps a <see cref="JsonValue"/> into typed mutable proxy that emulates the type <typeparamref name="TValue"/></summary>
-	/// <remarks>
-	/// <para>This interface is a marker for "wrapper types" that replicate the same set of properties and fields as <typeparamref name="TValue"/>, using a wrapped <see cref="JsonValue"/> as source.</para>
-	/// </remarks>
+	/// <summary>Wraps a <see cref="JsonValue"/> into typed mutable proxy</summary>
 	[PublicAPI]
-	public interface IJsonMutableProxy : IJsonSerializable, IJsonPackable
+	public interface IJsonWritableProxy : IJsonSerializable, IJsonPackable
 	{
 		/// <summary>Returns the proxied JSON Value</summary>
 		/// <remarks>The returned value is mutable and can be changed directly.</remarks>
 		JsonValue ToJson();
-
-	}
-
-	public interface IJsonProxyNode
-	{
-
-		IJsonProxyNode? Parent { get; }
-
-		JsonEncodedPropertyName? Name { get; }
-		
-		int Index { get; }
-
-		JsonType Type { get; }
 
 	}
 
@@ -59,7 +43,7 @@ namespace Doxense.Serialization.Json
 	/// <para>This interface is a marker for "wrapper types" that replicate the same set of properties and fields as <typeparamref name="TValue"/>, using a wrapped <see cref="JsonValue"/> as source.</para>
 	/// </remarks>
 	[PublicAPI]
-	public interface IJsonMutableProxy<out TValue> : IJsonMutableProxy
+	public interface IJsonWritableProxy<out TValue> : IJsonWritableProxy
 	{
 
 		/// <summary>Returns an instance of <typeparamref name="TValue"/> with the same content as this proxy.</summary>
@@ -74,8 +58,8 @@ namespace Doxense.Serialization.Json
 	/// <para>This interface is a marker for "wrapper types" that replicate the same set of properties and fields as <typeparamref name="TValue"/>, using a wrapped <see cref="JsonValue"/> as source.</para>
 	/// </remarks>
 	[PublicAPI]
-	public interface IJsonMutableProxy<TValue, out TMutableProxy> : IJsonMutableProxy<TValue>
-		where TMutableProxy : IJsonMutableProxy<TValue, TMutableProxy>
+	public interface IJsonWritableProxy<TValue, out TMutableProxy> : IJsonWritableProxy<TValue>
+		where TMutableProxy : IJsonWritableProxy<TValue, TMutableProxy>
 	{
 
 		/// <summary>Wraps a JSON Value into a mutable proxy for type <typeparamref name="TValue"/></summary>
@@ -97,8 +81,8 @@ namespace Doxense.Serialization.Json
 	/// <para>This interface is a marker for "wrapper types" that replicate the same set of properties and fields as <typeparamref name="TValue"/>, using a wrapped <see cref="JsonValue"/> as source.</para>
 	/// </remarks>
 	[PublicAPI]
-	public interface IJsonMutableProxy<TValue, out TMutableProxy, out TReadOnlyProxy> : IJsonMutableProxy<TValue, TMutableProxy>
-		where TMutableProxy : IJsonMutableProxy<TValue, TMutableProxy, TReadOnlyProxy>
+	public interface IJsonWritableProxy<TValue, out TMutableProxy, out TReadOnlyProxy> : IJsonWritableProxy<TValue, TMutableProxy>
+		where TMutableProxy : IJsonWritableProxy<TValue, TMutableProxy, TReadOnlyProxy>
 		where TReadOnlyProxy : IJsonReadOnlyProxy<TValue, TReadOnlyProxy, TMutableProxy>
 	{
 
@@ -108,8 +92,10 @@ namespace Doxense.Serialization.Json
 
 	}
 
-	public abstract record JsonProxyObjectBase
-		: IJsonMutableProxy, IJsonProxyNode
+	/// <summary>Base class for custom or source generated implementations of a <see cref="IJsonWritableProxy"/></summary>
+	/// <remarks>This contains all the boilerplate implementation that is common to most custom implementations</remarks>
+	public abstract record JsonWritableProxyObjectBase
+		: IJsonWritableProxy, IJsonProxyNode
 	{
 
 		/// <summary>Wrapped JSON Object</summary>
@@ -124,9 +110,10 @@ namespace Doxense.Serialization.Json
 		/// <summary>Index in the parent array that contains this instance</summary>
 		protected readonly int m_index;
 
+		/// <inheritdoc />
 		JsonType IJsonProxyNode.Type => JsonType.Object;
 
-		protected JsonProxyObjectBase(JsonValue value, IJsonProxyNode? parent, JsonEncodedPropertyName? name, int index)
+		protected JsonWritableProxyObjectBase(JsonValue value, IJsonProxyNode? parent, JsonEncodedPropertyName? name, int index)
 		{
 			m_obj = value.AsObject();
 			m_parent = parent;
@@ -134,10 +121,13 @@ namespace Doxense.Serialization.Json
 			m_index = index;
 		}
 
+		/// <inheritdoc />
 		IJsonProxyNode? IJsonProxyNode.Parent => m_parent;
 
+		/// <inheritdoc />
 		JsonEncodedPropertyName? IJsonProxyNode.Name => m_name;
 
+		/// <inheritdoc />
 		int IJsonProxyNode.Index => m_index;
 
 		/// <inheritdoc />

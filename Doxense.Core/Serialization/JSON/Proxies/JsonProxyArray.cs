@@ -31,7 +31,7 @@ namespace Doxense.Serialization.Json
 	/// <summary>Wraps a <see cref="JsonArray"/> into a typed mutable proxy that emulates an array of elements of type <typeparamref name="TValue"/></summary>
 	/// <typeparam name="TValue">Emulated element type</typeparam>
 	[PublicAPI]
-	public readonly struct JsonProxyArray<TValue> : IList<TValue>, IJsonSerializable, IJsonPackable
+	public readonly struct JsonWritableProxyArray<TValue> : IList<TValue>, IJsonSerializable, IJsonPackable
 	{
 
 		private readonly JsonArray m_array;
@@ -44,7 +44,7 @@ namespace Doxense.Serialization.Json
 
 		private readonly int m_index;
 
-		public JsonProxyArray(JsonArray? array, IJsonConverter<TValue>? converter = null, IJsonProxyNode? parent = null, JsonEncodedPropertyName? name = null, int index = 0)
+		public JsonWritableProxyArray(JsonArray? array, IJsonConverter<TValue>? converter = null, IJsonProxyNode? parent = null, JsonEncodedPropertyName? name = null, int index = 0)
 		{
 			m_array = array ?? [ ];
 			m_converter = converter ?? RuntimeJsonConverter<TValue>.Default;
@@ -63,7 +63,7 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_array;
 
-		public static JsonProxyArray<TValue> FromValue(TValue[] values, IJsonConverter<TValue>? converter = null)
+		public static JsonWritableProxyArray<TValue> FromValue(TValue[] values, IJsonConverter<TValue>? converter = null)
 		{
 			converter ??= RuntimeJsonConverter<TValue>.Default;
 			return new(converter.JsonPackArray(values), converter);
@@ -139,10 +139,10 @@ namespace Doxense.Serialization.Json
 
 	/// <summary>Wraps a <see cref="JsonArray"/> into a typed mutable proxy that emulates an array of elements of type <typeparamref name="TValue"/></summary>
 	/// <typeparam name="TValue">Emulated element type</typeparam>
-	/// <typeparam name="TProxy">Corresponding <see cref="IJsonMutableProxy{TValue}"/> for type <typeparamref name="TValue"/>, usually source-generated</typeparam>
+	/// <typeparam name="TProxy">Corresponding <see cref="IJsonWritableProxy{TValue}"/> for type <typeparamref name="TValue"/>, usually source-generated</typeparam>
 	[PublicAPI]
-	public sealed class JsonProxyArray<TValue, TProxy> : IList<TProxy>, IJsonProxyNode, IJsonSerializable, IJsonPackable
-		where TProxy : IJsonMutableProxy<TValue, TProxy>
+	public sealed class JsonWritableProxyArray<TValue, TProxy> : IList<TProxy>, IJsonProxyNode, IJsonSerializable, IJsonPackable
+		where TProxy : IJsonWritableProxy<TValue, TProxy>
 	{
 
 		private readonly JsonValue m_value;
@@ -153,7 +153,7 @@ namespace Doxense.Serialization.Json
 
 		private readonly int m_index;
 
-		public JsonProxyArray(JsonValue? value, IJsonProxyNode? parent = null, JsonEncodedPropertyName? name = null, int index = 0, IJsonConverter<TValue>? converter = null)
+		public JsonWritableProxyArray(JsonValue? value, IJsonProxyNode? parent = null, JsonEncodedPropertyName? name = null, int index = 0, IJsonConverter<TValue>? converter = null)
 		{
 			m_value = value ?? JsonNull.Null;
 			m_parent = parent;
@@ -179,7 +179,7 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_value;
 
-		public static JsonProxyArray<TValue> FromValue(TValue[] values, IJsonConverter<TValue>? converter = null)
+		public static JsonWritableProxyArray<TValue> FromValue(TValue[] values, IJsonConverter<TValue>? converter = null)
 		{
 			converter ??= RuntimeJsonConverter<TValue>.Default;
 			return new(converter.JsonPackArray(values), converter);

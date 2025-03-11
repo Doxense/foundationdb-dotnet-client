@@ -8,15 +8,13 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System.Text;
-	using Doxense.Text;
 
 	/// <summary>Observable JSON Object that will capture all reads</summary>
 	[DebuggerDisplay("Count={Count}, Path={ToString(),nq}")]
-	public sealed class ObservableReadOnlyJsonValue : IJsonSerializable, IJsonPackable
+	public sealed class ObservableJsonValue : IJsonSerializable, IJsonPackable
 	{
 
-		public ObservableReadOnlyJsonValue(IObservableJsonContext ctx, ObservableReadOnlyJsonValue? parent, ReadOnlyMemory<char> key, Index? index, JsonValue json)
+		public ObservableJsonValue(IObservableJsonContext ctx, ObservableJsonValue? parent, ReadOnlyMemory<char> key, Index? index, JsonValue json)
 		{
 			Contract.Debug.Requires(ctx != null && json != null);
 			this.Context = ctx;
@@ -46,7 +44,7 @@ namespace Doxense.Serialization.Json
 
 		#region Path...
 
-		private ObservableReadOnlyJsonValue? Parent { get; }
+		private ObservableJsonValue? Parent { get; }
 
 		/// <summary>Name of the field that contains this value in its parent object, or <see langword="null"/> if it was not part of an object</summary>
 		private ReadOnlyMemory<char> Key { get; }
@@ -229,13 +227,13 @@ namespace Doxense.Serialization.Json
 		private void RecordChildAccess(Index index, JsonValue value, bool existOnly) => this.Context.RecordRead(this, index, value, existOnly);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private ObservableReadOnlyJsonValue ReturnChild(ReadOnlyMemory<char> key, JsonValue value)
+		private ObservableJsonValue ReturnChild(ReadOnlyMemory<char> key, JsonValue value)
 		{
 			return this.Context.FromJson(this, key, value);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private ObservableReadOnlyJsonValue ReturnChild(Index index, JsonValue value)
+		private ObservableJsonValue ReturnChild(Index index, JsonValue value)
 		{
 			return this.Context.FromJson(this, index, value);
 		}
@@ -270,31 +268,31 @@ namespace Doxense.Serialization.Json
 			};
 		}
 
-		public ObservableReadOnlyJsonValue this[string key]
+		public ObservableJsonValue this[string key]
 		{
 			[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => Get(key);
 		}
 
-		public ObservableReadOnlyJsonValue this[JsonPath path]
+		public ObservableJsonValue this[JsonPath path]
 		{
 			[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => Get(path);
 		}
 
-		public ObservableReadOnlyJsonValue this[ReadOnlyMemory<char> key]
+		public ObservableJsonValue this[ReadOnlyMemory<char> key]
 		{
 			[MustUseReturnValue]
 			get => Get(key);
 		}
 
-		public ObservableReadOnlyJsonValue this[int index]
+		public ObservableJsonValue this[int index]
 		{
 			[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => Get(index);
 		}
 
-		public ObservableReadOnlyJsonValue this[Index index]
+		public ObservableJsonValue this[Index index]
 		{
 			[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => Get(index);
@@ -306,7 +304,7 @@ namespace Doxense.Serialization.Json
 		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
 		/// <remarks><para>This can be used to perform a different operation if the value exists or not (initialize a counter or increment its value, throw a specialized exception, ....)</para></remarks>
 		[Pure]
-		public bool TryGetValue(string key, out ObservableReadOnlyJsonValue value)
+		public bool TryGetValue(string key, out ObservableJsonValue value)
 		{
 			if (!this.Json.TryGetValue(key, out var child) || child.IsNullOrMissing())
 			{
@@ -344,7 +342,7 @@ namespace Doxense.Serialization.Json
 		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
 		/// <remarks><para>This can be used to perform a different operation if the value exists or not (initialize a counter or increment its value, throw a specialized exception, ....)</para></remarks>
 		[Pure]
-		public bool TryGetValue(int index, out ObservableReadOnlyJsonValue value)
+		public bool TryGetValue(int index, out ObservableJsonValue value)
 		{
 			if (!this.Json.TryGetValue(index, out var child) || child.IsNullOrMissing())
 			{
@@ -362,7 +360,7 @@ namespace Doxense.Serialization.Json
 		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
 		/// <remarks><para>This can be used to perform a different operation if the value exists or not (initialize a counter or increment its value, throw a specialized exception, ....)</para></remarks>
 		[Pure]
-		public bool TryGetValue(Index index, out ObservableReadOnlyJsonValue value)
+		public bool TryGetValue(Index index, out ObservableJsonValue value)
 		{
 			if (!this.Json.TryGetValue(index, out var child) || child.IsNullOrMissing())
 			{
@@ -375,7 +373,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, MustUseReturnValue]
-		public ObservableReadOnlyJsonValue Get(string key)
+		public ObservableJsonValue Get(string key)
 		{
 			return ReturnChild(key.AsMemory(), this.Json.GetValueOrDefault(key));
 		}
@@ -390,7 +388,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, MustUseReturnValue]
-		public ObservableReadOnlyJsonValue Get(ReadOnlyMemory<char> key)
+		public ObservableJsonValue Get(ReadOnlyMemory<char> key)
 		{
 #if NET9_0_OR_GREATER
 			var value = this.Json.GetValueOrDefault(key, JsonNull.Missing, out var actualKey);
@@ -416,7 +414,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, MustUseReturnValue]
-		public ObservableReadOnlyJsonValue Get(int index)
+		public ObservableJsonValue Get(int index)
 		{
 			return ReturnChild(index, this.Json.GetValueOrDefault(index));
 		}
@@ -431,7 +429,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, MustUseReturnValue]
-		public ObservableReadOnlyJsonValue Get(Index index)
+		public ObservableJsonValue Get(Index index)
 		{
 			return ReturnChild(index, this.Json.GetValueOrDefault(index));
 		}
@@ -447,7 +445,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, MustUseReturnValue]
-		public ObservableReadOnlyJsonValue Get(JsonPath path)
+		public ObservableJsonValue Get(JsonPath path)
 		{
 			var current = this;
 			foreach (var (parent, key, index, last) in path)

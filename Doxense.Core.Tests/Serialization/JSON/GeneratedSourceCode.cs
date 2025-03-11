@@ -262,8 +262,8 @@ namespace Doxense.Serialization.Json.Tests
 		}
 
 		/// <summary>Wraps a <see cref="JsonObject"/> into a writable type-safe view that emulates the type <see cref="global::Doxense.Serialization.Json.Tests.Person"/></summary>
-		/// <seealso cref="IJsonMutableProxy{T}"/>
-		public sealed record PersonMutable : JsonProxyObjectBase, IJsonMutableProxy<global::Doxense.Serialization.Json.Tests.Person, PersonMutable, PersonReadOnly>
+		/// <seealso cref="IJsonWritableProxy{TValue}"/>
+		public sealed record PersonMutable : JsonWritableProxyObjectBase, IJsonWritableProxy<global::Doxense.Serialization.Json.Tests.Person, PersonMutable, PersonReadOnly>
 		{
 
 			public PersonMutable(JsonValue value, IJsonProxyNode? parent = null, JsonEncodedPropertyName? name = null, int index = 0) : base(value, parent, name, index)
@@ -689,7 +689,7 @@ namespace Doxense.Serialization.Json.Tests
 			public JsonReadOnlyProxyArray<global::Doxense.Serialization.Json.Tests.MyAwesomeStruct, GeneratedSerializers.MyAwesomeStructReadOnly> Items => new(m_obj.GetArrayOrDefault("items"));
 
 			/// <inheritdoc cref="MyAwesomeUser.Devices" />
-			public JsonReadOnlyProxyObject<global::Doxense.Serialization.Json.Tests.MyAwesomeDevice, GeneratedSerializers.MyAwesomeDeviceReadOnly> Devices => new(m_obj.GetObjectOrDefault("devices"));
+			public JsonReadOnlyProxyDictionary<global::Doxense.Serialization.Json.Tests.MyAwesomeDevice, GeneratedSerializers.MyAwesomeDeviceReadOnly> Devices => new(m_obj.GetObjectOrDefault("devices"));
 
 			/// <inheritdoc cref="MyAwesomeUser.Extras" />
 			public JsonObject? Extras => m_obj.GetObjectOrDefault("extras");
@@ -699,8 +699,8 @@ namespace Doxense.Serialization.Json.Tests
 		}
 
 		/// <summary>Wraps a <see cref="JsonObject"/> into a writable type-safe view that emulates the type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeUser"/></summary>
-		/// <seealso cref="IJsonMutableProxy{T}"/>
-		public sealed record MyAwesomeUserMutable : JsonProxyObjectBase, IJsonMutableProxy<global::Doxense.Serialization.Json.Tests.MyAwesomeUser, MyAwesomeUserMutable, MyAwesomeUserReadOnly>
+		/// <seealso cref="IJsonWritableProxy{TValue}"/>
+		public sealed record MyAwesomeUserMutable : JsonWritableProxyObjectBase, IJsonWritableProxy<global::Doxense.Serialization.Json.Tests.MyAwesomeUser, MyAwesomeUserMutable, MyAwesomeUserReadOnly>
 		{
 
 			public MyAwesomeUserMutable(JsonValue value, IJsonProxyNode? parent = null, JsonEncodedPropertyName? name = null, int index = 0) : base(value, parent, name, index)
@@ -778,14 +778,14 @@ namespace Doxense.Serialization.Json.Tests
 			}
 
 			/// <inheritdoc cref="MyAwesomeUser.Items" />
-			public JsonProxyArray<global::Doxense.Serialization.Json.Tests.MyAwesomeStruct, GeneratedSerializers.MyAwesomeStructMutable> Items
+			public JsonWritableProxyArray<global::Doxense.Serialization.Json.Tests.MyAwesomeStruct, GeneratedSerializers.MyAwesomeStructMutable> Items
 			{
 				get => new(m_obj["items"], parent: this, name: MyAwesomeUserJsonConverter.PropertyEncodedNames.Items);
 				set => m_obj["items"] = value.ToJson();
 			}
 
 			/// <inheritdoc cref="MyAwesomeUser.Devices" />
-			public JsonProxyDictionary<global::Doxense.Serialization.Json.Tests.MyAwesomeDevice, GeneratedSerializers.MyAwesomeDeviceMutable> Devices
+			public JsonWritableProxyDictionary<global::Doxense.Serialization.Json.Tests.MyAwesomeDevice, GeneratedSerializers.MyAwesomeDeviceMutable> Devices
 			{
 				get => new(m_obj["devices"], parent: this, name: MyAwesomeUserJsonConverter.PropertyEncodedNames.Devices);
 				set => m_obj["devices"] = value.ToJson();
@@ -1059,8 +1059,8 @@ namespace Doxense.Serialization.Json.Tests
 		}
 
 		/// <summary>Wraps a <see cref="JsonObject"/> into a writable type-safe view that emulates the type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata"/></summary>
-		/// <seealso cref="IJsonMutableProxy{T}"/>
-		public sealed record MyAwesomeMetadataMutable : JsonProxyObjectBase, IJsonMutableProxy<global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata, MyAwesomeMetadataMutable, MyAwesomeMetadataReadOnly>
+		/// <seealso cref="IJsonWritableProxy{TValue}"/>
+		public sealed record MyAwesomeMetadataMutable : JsonWritableProxyObjectBase, IJsonWritableProxy<global::Doxense.Serialization.Json.Tests.MyAwesomeMetadata, MyAwesomeMetadataMutable, MyAwesomeMetadataReadOnly>
 		{
 
 			public MyAwesomeMetadataMutable(JsonValue value, IJsonProxyNode? parent = null, JsonEncodedPropertyName? name = null, int index = 0) : base(value, parent, name, index)
@@ -1429,8 +1429,8 @@ namespace Doxense.Serialization.Json.Tests
 		}
 
 		/// <summary>Wraps a <see cref="JsonObject"/> into a writable type-safe view that emulates the type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeStruct"/></summary>
-		/// <seealso cref="IJsonMutableProxy{T}"/>
-		public sealed record MyAwesomeStructMutable : JsonProxyObjectBase, IJsonMutableProxy<global::Doxense.Serialization.Json.Tests.MyAwesomeStruct, MyAwesomeStructMutable, MyAwesomeStructReadOnly>
+		/// <seealso cref="IJsonWritableProxy{TValue}"/>
+		public sealed record MyAwesomeStructMutable : JsonWritableProxyObjectBase, IJsonWritableProxy<global::Doxense.Serialization.Json.Tests.MyAwesomeStruct, MyAwesomeStructMutable, MyAwesomeStructReadOnly>
 		{
 
 			public MyAwesomeStructMutable(JsonValue value, IJsonProxyNode? parent = null, JsonEncodedPropertyName? name = null, int index = 0) : base(value, parent, name, index)
@@ -1789,8 +1789,8 @@ namespace Doxense.Serialization.Json.Tests
 		}
 
 		/// <summary>Wraps a <see cref="JsonObject"/> into a writable type-safe view that emulates the type <see cref="global::Doxense.Serialization.Json.Tests.MyAwesomeDevice"/></summary>
-		/// <seealso cref="IJsonMutableProxy{T}"/>
-		public sealed record MyAwesomeDeviceMutable : JsonProxyObjectBase, IJsonMutableProxy<global::Doxense.Serialization.Json.Tests.MyAwesomeDevice, MyAwesomeDeviceMutable, MyAwesomeDeviceReadOnly>
+		/// <seealso cref="IJsonWritableProxy{TValue}"/>
+		public sealed record MyAwesomeDeviceMutable : JsonWritableProxyObjectBase, IJsonWritableProxy<global::Doxense.Serialization.Json.Tests.MyAwesomeDevice, MyAwesomeDeviceMutable, MyAwesomeDeviceReadOnly>
 		{
 
 			public MyAwesomeDeviceMutable(JsonValue value, IJsonProxyNode? parent = null, JsonEncodedPropertyName? name = null, int index = 0) : base(value, parent, name, index)

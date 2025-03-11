@@ -43,9 +43,9 @@ namespace Doxense.Serialization.Json
 
 		public JsonValue ToJson() => m_array;
 
-		public JsonProxyArray<TValue> ToMutable() => new(m_array.Copy(), m_converter);
+		public JsonWritableProxyArray<TValue> ToMutable() => new(m_array.Copy(), m_converter);
 
-		public JsonReadOnlyProxyArray<TValue> With(Action<JsonProxyArray<TValue>> modifier)
+		public JsonReadOnlyProxyArray<TValue> With(Action<JsonWritableProxyArray<TValue>> modifier)
 		{
 			var copy = m_array.Copy();
 			modifier(new(copy, m_converter));

@@ -904,7 +904,7 @@ namespace Doxense.Serialization.Json
 			string mutableProxyTypeName = GetMutableProxyName(type);
 
 			string readOnlyProxyInterfaceName = sb.TypeNameGeneric(typeof(IJsonReadOnlyProxy<,,>), [typeName, readOnlyProxyTypeName, mutableProxyTypeName]);
-			string mutableProxyInterfaceName = sb.TypeNameGeneric(typeof(IJsonMutableProxy<,,>), [typeName, mutableProxyTypeName, readOnlyProxyTypeName]);
+			string mutableProxyInterfaceName = sb.TypeNameGeneric(typeof(IJsonWritableProxy<,,>), [typeName, mutableProxyTypeName, readOnlyProxyTypeName]);
 
 			// IJsonReadOnlyProxy<T>
 			sb.AppendLine($"/// <summary>Wraps a <see cref=\"{nameof(JsonObject)}\"/> into a read-only type-safe view that emulates the type <see cref=\"{typeName}\"/></summary>");
@@ -1036,12 +1036,12 @@ namespace Doxense.Serialization.Json
 								if (this.TypeMap.ContainsKey(valueType))
 								{
 									getterExpr = $"new(m_obj.{(member.IsNullableRefType ? "GetObjectOrDefault" : member.IsRequired ? "GetObject" : "GetObjectOrEmpty")}({sb.Constant(member.Name)}))";
-									proxyType = $"{nameof(JsonReadOnlyProxyObject<object>)}<{sb.TypeName(valueType)}, {GetLocalReadOnlyProxyRef(valueType)}>";
+									proxyType = $"{nameof(JsonReadOnlyProxyDictionary<object>)}<{sb.TypeName(valueType)}, {GetLocalReadOnlyProxyRef(valueType)}>";
 								}
 								else
 								{
 									getterExpr = $"new(m_obj.{(member.IsNullableRefType ? "GetObjectOrDefault" : member.IsRequired ? "GetObject" : "GetObjectOrEmpty")}({sb.Constant(member.Name)}))";
-									proxyType = $"{nameof(JsonReadOnlyProxyObject<object>)}<{sb.TypeName(valueType)}>";
+									proxyType = $"{nameof(JsonReadOnlyProxyDictionary<object>)}<{sb.TypeName(valueType)}>";
 								}
 							}
 						}
@@ -1093,12 +1093,12 @@ namespace Doxense.Serialization.Json
 
 			// IJsonMutableProxy<T>
 			sb.AppendLine($"/// <summary>Wraps a <see cref=\"{nameof(JsonObject)}\"/> into a writable type-safe view that emulates the type <see cref=\"{typeName}\"/></summary>");
-			sb.AppendLine($"/// <seealso cref=\"{nameof(IJsonMutableProxy<object>)}{{T}}\"/>");
+			sb.AppendLine($"/// <seealso cref=\"{nameof(IJsonWritableProxy<object>)}{{T}}\"/>");
 			sb.Record(
 				"public sealed",
 				mutableProxyTypeName,
 				[
-					sb.TypeName<JsonProxyObjectBase>(),
+					sb.TypeName<JsonWritableProxyObjectBase>(),
 					mutableProxyInterfaceName
 				],
 				[],
@@ -1279,7 +1279,7 @@ namespace Doxense.Serialization.Json
 							{
 								if (this.TypeMap.ContainsKey(valueType))
 								{
-									proxyType = sb.TypeNameGeneric(typeof(JsonProxyDictionary<,>), sb.TypeName(valueType), GetLocalMutableProxyRef(valueType));
+									proxyType = sb.TypeNameGeneric(typeof(JsonWritableProxyDictionary<,>), sb.TypeName(valueType), GetLocalMutableProxyRef(valueType));
 									getterExpr = $"new(m_obj[{sb.Constant(member.Name)}], parent: this, name: {serializerTypeName}.{GetPropertyEncodedNameRef(member)})";
 									setterExpr = $"m_obj[{sb.Constant(member.Name)}] = value.ToJson()";
 								}
@@ -1289,7 +1289,7 @@ namespace Doxense.Serialization.Json
 						{
 							if (this.TypeMap.ContainsKey(elemType))
 							{
-								proxyType = sb.TypeNameGeneric(typeof(JsonProxyArray<,>), sb.TypeName(elemType), GetLocalMutableProxyRef(elemType));
+								proxyType = sb.TypeNameGeneric(typeof(JsonWritableProxyArray<,>), sb.TypeName(elemType), GetLocalMutableProxyRef(elemType));
 								getterExpr = $"new(m_obj[{sb.Constant(member.Name)}], parent: this, name: {serializerTypeName}.{GetPropertyEncodedNameRef(member)})";
 								setterExpr = $"m_obj[{sb.Constant(member.Name)}] = value.ToJson()";
 							}

@@ -28,14 +28,12 @@ namespace Doxense.Serialization.Json
 {
 	using System;
 	using System.Collections;
-	using System.Text;
-	using Doxense.Linq;
 
 	/// <summary>Wraps a <see cref="JsonObject"/> into a typed mutable proxy that emulates a dictionary of elements of type <typeparamref name="TValue"/></summary>
 	/// <typeparam name="TValue">Emulated element type</typeparam>
 	[PublicAPI]
 	[DebuggerDisplay("{ToString(),nq}, Count={Count}")]
-	public readonly struct JsonProxyDictionary<TValue> : IDictionary<string, TValue>, IJsonProxyNode, IJsonSerializable, IJsonPackable
+	public readonly struct JsonWritableProxyDictionary<TValue> : IDictionary<string, TValue>, IJsonProxyNode, IJsonSerializable, IJsonPackable
 	{
 
 		private readonly JsonObject m_obj;
@@ -48,7 +46,7 @@ namespace Doxense.Serialization.Json
 
 		private readonly int m_index;
 
-		public JsonProxyDictionary(JsonObject? obj, IJsonConverter<TValue>? converter = null, IJsonProxyNode? parent = null, JsonEncodedPropertyName? name = null, int index = 0)
+		public JsonWritableProxyDictionary(JsonObject? obj, IJsonConverter<TValue>? converter = null, IJsonProxyNode? parent = null, JsonEncodedPropertyName? name = null, int index = 0)
 		{
 			m_obj = obj ?? JsonObject.EmptyReadOnly;
 			m_converter = converter ?? RuntimeJsonConverter<TValue>.Default;
@@ -161,10 +159,10 @@ namespace Doxense.Serialization.Json
 
 	/// <summary>Wraps a <see cref="JsonObject"/> into a typed mutable proxy that emulates a dictionary of elements of type <typeparamref name="TValue"/></summary>
 	/// <typeparam name="TValue">Emulated element type</typeparam>
-	/// <typeparam name="TProxy">Corresponding <see cref="IJsonMutableProxy{TValue}"/> for type <typeparamref name="TValue"/>, usually source-generated</typeparam>
+	/// <typeparam name="TProxy">Corresponding <see cref="IJsonWritableProxy{TValue}"/> for type <typeparamref name="TValue"/>, usually source-generated</typeparam>
 	[PublicAPI]
-	public readonly struct JsonProxyDictionary<TValue, TProxy> : IDictionary<string, TProxy>, IJsonProxyNode, IJsonSerializable, IJsonPackable
-		where TProxy : IJsonMutableProxy<TValue, TProxy>
+	public readonly struct JsonWritableProxyDictionary<TValue, TProxy> : IDictionary<string, TProxy>, IJsonProxyNode, IJsonSerializable, IJsonPackable
+		where TProxy : IJsonWritableProxy<TValue, TProxy>
 	{
 
 		private readonly JsonValue m_value;
@@ -175,7 +173,7 @@ namespace Doxense.Serialization.Json
 
 		private readonly int m_index;
 
-		public JsonProxyDictionary(JsonValue? value, IJsonProxyNode? parent = null, JsonEncodedPropertyName? name = null, int index = 0)
+		public JsonWritableProxyDictionary(JsonValue? value, IJsonProxyNode? parent = null, JsonEncodedPropertyName? name = null, int index = 0)
 		{
 			m_value = value ?? JsonObject.EmptyReadOnly;
 			m_parent = parent;
@@ -311,54 +309,6 @@ namespace Doxense.Serialization.Json
 
 		/// <inheritdoc />
 		public JsonType Type { get; }
-
-	}
-
-	public static class JsonProxyNodeExtensions
-	{
-
-		public static JsonPath GetPath(this IJsonProxyNode self)
-		{
-			// in most cases, we don't have any parent
-			var parent = self.Parent;
-			if (parent == null)
-			{
-				var name = self.Name;
-				return name != null ? JsonPath.Create(name.Value) : JsonPath.Create(self.Index);
-			}
-
-			return GetPathMultiple(self, parent);
-
-			static JsonPath GetPathMultiple(IJsonProxyNode node, IJsonProxyNode? parent)
-			{
-				using var buf = new ValueBuffer<IJsonProxyNode>(8);
-				{
-					while (parent != null)
-					{
-						buf.Add(node);
-						node = parent;
-						parent = node.Parent;
-					}
-				}
-
-				var stack = buf.Span;
-				var sb = new StringBuilder();
-				for (int i = stack.Length - 1; i >= 0; i--)
-				{
-					var name = stack[i].Name;
-					if (name != null)
-					{
-						if (sb.Length != 0) sb.Append('.');
-						sb.Append(name.Value);
-					}
-					else
-					{
-						sb.Append('[').Append(StringConverters.ToString(stack[i].Index)).Append(']');
-					}
-				}
-				return JsonPath.Create(sb.ToString());
-			}
-		}
 
 	}
 

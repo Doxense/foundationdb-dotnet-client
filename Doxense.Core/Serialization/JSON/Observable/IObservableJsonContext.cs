@@ -9,7 +9,7 @@
 namespace Doxense.Serialization.Json
 {
 
-	/// <summary>Context that will record all the reads performed on a <see cref="ObservableReadOnlyJsonValue"/></summary>
+	/// <summary>Context that will record all the reads performed on a <see cref="ObservableJsonValue"/></summary>
 	public interface IObservableJsonContext
 	{
 
@@ -17,11 +17,11 @@ namespace Doxense.Serialization.Json
 		/// <remarks>This method can be used to reuse the current context for a different session</remarks>
 		void Reset();
 
-		ObservableReadOnlyJsonValue FromJson(JsonValue value);
+		ObservableJsonValue FromJson(JsonValue value);
 
-		ObservableReadOnlyJsonValue FromJson(ObservableReadOnlyJsonValue? parent, ReadOnlyMemory<char> key, JsonValue value);
+		ObservableJsonValue FromJson(ObservableJsonValue? parent, ReadOnlyMemory<char> key, JsonValue value);
 
-		ObservableReadOnlyJsonValue FromJson(ObservableReadOnlyJsonValue? parent, Index index, JsonValue value);
+		ObservableJsonValue FromJson(ObservableJsonValue? parent, Index index, JsonValue value);
 
 		/// <summary>Records the access to a field of an object</summary>
 		/// <param name="instance">Parent instance (expected to be an object)</param>
@@ -33,7 +33,7 @@ namespace Doxense.Serialization.Json
 		/// <para>If <paramref name="argument"/> is <see cref="JsonNull.Missing"/>, it means the field is not present in the object.</para>
 		/// <para>If <paramref name="key"/> is empty, it means the itself was accessed</para>
 		/// </remarks>
-		void RecordRead(ObservableReadOnlyJsonValue instance, ReadOnlyMemory<char> key, JsonValue argument, bool existOnly);
+		void RecordRead(ObservableJsonValue instance, ReadOnlyMemory<char> key, JsonValue argument, bool existOnly);
 
 		/// <summary>Records the access to an item of an array</summary>
 		/// <param name="instance">Parent instance (expected to be an array)</param>
@@ -45,10 +45,10 @@ namespace Doxense.Serialization.Json
 		/// <para>If <paramref name="argument"/> is <see cref="JsonNull.Error"/>, it means the index is outside the bounds of the array.</para>
 		/// <para>If <paramref name="index"/> is equal to <c>^0</c>, it means the length of the array was accessed, but not the contents of the array.</para>
 		/// </remarks>
-		void RecordRead(ObservableReadOnlyJsonValue instance, Index index, JsonValue argument, bool existOnly);
+		void RecordRead(ObservableJsonValue instance, Index index, JsonValue argument, bool existOnly);
 
 		/// <summary>Records the fact that the length of an array was accessed</summary>
-		void RecordLength(ObservableReadOnlyJsonValue instance, JsonValue argument);
+		void RecordLength(ObservableJsonValue instance, JsonValue argument);
 
 	}
 

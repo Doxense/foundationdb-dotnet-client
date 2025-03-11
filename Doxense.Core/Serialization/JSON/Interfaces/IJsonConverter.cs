@@ -46,7 +46,7 @@ namespace Doxense.Serialization.Json
 	}
 
 	public interface IJsonMutableConverter<TValue, out TMutableProxy> : IJsonConverter<TValue>
-		where TMutableProxy : IJsonMutableProxy<TValue, TMutableProxy>
+		where TMutableProxy : IJsonWritableProxy<TValue, TMutableProxy>
 	{
 		TMutableProxy ToMutable(JsonValue value);
 
@@ -75,7 +75,7 @@ namespace Doxense.Serialization.Json
 		IJsonMutableConverter<TValue, TMutableProxy>,
 		IJsonObservableConverter<TValue, TReadOnlyProxy, TObservableProxy>
 		where TReadOnlyProxy : IJsonReadOnlyProxy<TValue, TReadOnlyProxy>
-		where TMutableProxy : IJsonMutableProxy<TValue, TMutableProxy>
+		where TMutableProxy : IJsonWritableProxy<TValue, TMutableProxy>
 		where TObservableProxy : IJsonObservableProxy<TValue, TObservableProxy>
 	{
 	}

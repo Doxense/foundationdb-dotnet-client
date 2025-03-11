@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -31,13 +31,13 @@ namespace Doxense.Serialization.Json
 	/// <summary>Wraps a <see cref="JsonObject"/> into a typed read-only proxy that emulates a dictionary of elements of type <typeparamref name="TValue"/></summary>
 	/// <typeparam name="TValue">Emulated element type</typeparam>
 	[PublicAPI]
-	public readonly struct JsonReadOnlyProxyObject<TValue> : IReadOnlyDictionary<string, TValue>, IJsonSerializable, IJsonPackable
+	public readonly struct JsonReadOnlyProxyDictionary<TValue> : IReadOnlyDictionary<string, TValue>, IJsonSerializable, IJsonPackable
 	{
 
 		private readonly JsonValue m_value;
 		private readonly IJsonConverter<TValue> m_converter;
 
-		public JsonReadOnlyProxyObject(JsonValue? value, IJsonConverter<TValue>? converter = null)
+		public JsonReadOnlyProxyDictionary(JsonValue? value, IJsonConverter<TValue>? converter = null)
 		{
 			m_value = value ?? JsonNull.Null;
 			m_converter = converter ?? RuntimeJsonConverter<TValue>.Default;
@@ -129,13 +129,13 @@ namespace Doxense.Serialization.Json
 	/// <typeparam name="TValue">Emulated element type</typeparam>
 	/// <typeparam name="TProxy">Corresponding <see cref="IJsonReadOnlyProxy{TValue}"/> for type <typeparamref name="TValue"/>, usually source-generated</typeparam>
 	[PublicAPI]
-	public readonly struct JsonReadOnlyProxyObject<TValue, TProxy> : IReadOnlyDictionary<string, TProxy>, IJsonSerializable, IJsonPackable
+	public readonly struct JsonReadOnlyProxyDictionary<TValue, TProxy> : IReadOnlyDictionary<string, TProxy>, IJsonSerializable, IJsonPackable
 		where TProxy : IJsonReadOnlyProxy<TValue, TProxy>
 	{
 
 		private readonly JsonValue m_value;
 
-		public JsonReadOnlyProxyObject(JsonValue? value)
+		public JsonReadOnlyProxyDictionary(JsonValue? value)
 		{
 			m_value = value ?? JsonNull.Null;
 		}

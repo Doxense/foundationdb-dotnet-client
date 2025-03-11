@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -72,14 +72,14 @@ namespace Doxense.Serialization.Json
 	/// <summary>Wraps a <see cref="JsonValue"/> into typed read-only proxy that emulates the type <typeparamref name="TValue"/></summary>
 	/// <typeparam name="TValue">Emulated data type</typeparam>
 	/// <typeparam name="TReadOnlyProxy">CRTP for the type that implements this interface</typeparam>
-	/// <typeparam name="TMutableProxy">CRTP for the corresponding <see cref="IJsonMutableProxy{TValue,TMutableProxy,TReadOnlyProxy}"/> of this type</typeparam>
+	/// <typeparam name="TMutableProxy">CRTP for the corresponding <see cref="IJsonWritableProxy{TValue,TMutableProxy,TReadOnlyProxy}"/> of this type</typeparam>
 	/// <remarks>
 	/// <para>This interface is a marker for "wrapper types" that replicate the same set of properties and fields as <typeparamref name="TValue"/>, using a wrapped <see cref="JsonValue"/> as source.</para>
 	/// </remarks>
 	[PublicAPI]
 	public interface IJsonReadOnlyProxy<TValue, out TReadOnlyProxy, out TMutableProxy> : IJsonReadOnlyProxy<TValue, TReadOnlyProxy>
 		where TReadOnlyProxy : IJsonReadOnlyProxy<TValue, TReadOnlyProxy, TMutableProxy>
-		where TMutableProxy : IJsonMutableProxy<TValue, TMutableProxy, TReadOnlyProxy>
+		where TMutableProxy : IJsonWritableProxy<TValue, TMutableProxy, TReadOnlyProxy>
 	{
 
 		/// <summary>Returns a mutable proxy that is able to update a <i>copy</i> of the wrapped JSON value</summary>

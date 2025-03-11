@@ -670,7 +670,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			]);
 			Dump(obj);
 
-			var proxy = new GeneratedConverters.PersonReadOnly(obj);
+			var proxy = new GeneratedConverters.PersonReadOnlyProxy(obj);
 			Log(proxy.ToString());
 			Assert.That(proxy.FamilyName, Is.EqualTo("Bond"));
 			Assert.That(proxy.FirstName, Is.EqualTo("James"));
