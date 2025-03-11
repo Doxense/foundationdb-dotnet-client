@@ -12,8 +12,6 @@ namespace Doxense.Serialization.Json
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
-	using System.Text;
-	using Doxense.Text;
 
 	/// <summary>Mutable JSON Object</summary>
 	[DebuggerDisplay("Count={Count}, Path={ToString(),nq}")]

@@ -314,7 +314,7 @@ namespace Doxense.Serialization.Json
 
 	}
 
-	public static class JsonMutableParentExtensions
+	public static class JsonProxyNodeExtensions
 	{
 
 		public static JsonPath GetPath(this IJsonProxyNode self)
