@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -27,35 +27,38 @@
 namespace Doxense.Serialization.Json
 {
 	using System.IO;
-	using System.Text;
 
-	/// <summary>Classe capable d'écrire des fragments de JSON, en mode stream</summary>
+	/// <summary>Writes JSON document fragments into a destination stream</summary>
 	[PublicAPI]
 	[DebuggerNonUserCode]
 	public sealed class CrystalJsonStreamWriter : IDisposable, IAsyncDisposable
 	{
-		// On utilise un CrystalJsonWriter classique, qui va écrire dans un MemoryStream qui sert de tampon, de manière classique.
-		// Le writer écrit dans un TextWriter, qui lui même flush périodiquement dans le MemoryStream. Jusque la, tout reste en non-async et ne bloque jamais.
-		// Régulièrement, ou lors que le tampon est assez gros, on le flush sur le stream, et cela de manière async.
+		// We use a regular CrystalJsonWriter to write into a TextWriter that then outputs into a MemoryStream that acts as an in-memory buffer.
+		// The TextWriter has its own small buffer, and must be periodically flushed into the MemoryStream. All of this is non-async since the target is in memory.
+		// Periodically, or when the buffer is large enough, we can flush into the destination stream asynchronously.
+		//
+		//     CrystalJsonWriter => TextWriter(Buffer=[]) => MemoryStream(Buffer=[]) => Stream
+		//
+		// The destination stream is expected to be either a FileStream, or a NetworkStream.
 
-		/// <summary>Limite de taille du tampon au delà de laquelle on va faire un flush implicite</summary>
-		/// <remarks>Ce n'est qu'une limite indicatif, et non pas une limite absolue! Si un item génère 1GB de JSON d'un seul coup, le tampon devra quand même grossir jusqu'à cette taille.</remarks>
+		/// <summary>Size after which the buffer will automatically be flushed to the output stream</summary>
 		private const int AUTO_FLUSH_THRESHOLD = 256 * 1024;
+		private const int SCRATCH_INITIAL_SIZE = 64 * 1024;
 
-		/// <summary>Stream sous-jacent (dans lequel on flush le tampon de manière asynchrone)</summary>
+		/// <summary>Destination stream</summary>
 		private readonly Stream m_stream;
-		/// <summary>Tampon mémoire</summary>
+		/// <summary>Memory buffer</summary>
 		private readonly MemoryStream m_scratch;
-		/// <summary>JSON writer qui écrit dans le tampon</summary>
+		/// <summary>JSON writer that writes to the buffer</summary>
 		private readonly CrystalJsonWriter m_writer;
-		/// <summary>Si true, il faut disposer m_stream lorsque cette instance est elle même disposée</summary>
+		/// <summary>If <c>true</c>, the destination stream will be disposed when this instance is disposed</summary>
 		private readonly bool m_ownStream;
-		/// <summary>Si true, cette instance a déjà été disposée</summary>
+		/// <summary>If <c>true</c>, this instance has already been disposed</summary>
 		private bool m_disposed;
 
-		/// <summary>Dernier type visité (m_visitor contient le delegate en cache)</summary>
+		/// <summary>Last visited type</summary>
 		private Type? m_lastType;
-		/// <summary>Visiteur en cache pour des éléments du même type que m_lastType</summary>
+		/// <summary>Cached visitor for the last visited type</summary>
 		private CrystalJsonTypeVisitor? m_visitor;
 
 		private string m_newLine = "\r\n";
@@ -69,31 +72,27 @@ namespace Doxense.Serialization.Json
 			settings ??= CrystalJsonSettings.JsonCompact;
 			resolver ??= CrystalJson.DefaultResolver;
 
-			m_scratch = new MemoryStream(65536);
-			m_writer = new CrystalJsonWriter(m_scratch, 0, settings, resolver);
+			m_scratch = new(SCRATCH_INITIAL_SIZE);
+			m_writer = new(m_scratch, 0, settings, resolver);
 		}
 
 		public CrystalJsonWriter.NodeType CurrentNode => m_writer.CurrentState.Node;
 
 		public string NewLine => m_newLine;
 
-		/// <summary>Retourne une estimation de la position dans le stream source, pour information</summary>
-		/// <remarks>ATTENTION: cette valeur ne peut être considérée comme valide que juste après un Flush!</remarks>
+		/// <summary>Returns the estimated position in the source stream</summary>
+		/// <remarks>CAUTION: this value is only accurate right after a Flush!</remarks>
 		public long? PositionHint
 		{
 			get
 			{
 				if (m_disposed) ThrowDisposed();
-				//note: s'il n'y a pas eu de flush récent, il peut y avoir des caractères encore en cache dans Writer (pas flushés dans le scratch buffer)
+				//note: if there has not been any recent flush, there can still be some characters inside the writer (but not yet flushed in the scratch buffer)
 				return m_stream.Position + m_scratch.Length;
 			}
 		}
 
-		/// <summary>Ecrit un fragment de document en une seule passe, et flush le stream</summary>
-		/// <typeparam name="T"></typeparam>
-		/// <param name="item"></param>
-		/// <param name="cancellationToken"></param>
-		/// <returns></returns>
+		/// <summary>Writes a document fragment, and flushes the stream</summary>
 		public void WriteFragment<T>(T item, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
@@ -105,11 +104,7 @@ namespace Doxense.Serialization.Json
 			FlushInternal(true);
 		}
 
-		/// <summary>Ecrit un fragment de document en une seule passe, et flush le stream</summary>
-		/// <typeparam name="T"></typeparam>
-		/// <param name="item"></param>
-		/// <param name="cancellationToken"></param>
-		/// <returns></returns>
+		/// <summary>Writes a document fragment, and flushes the stream</summary>
 		public Task WriteFragmentAsync<T>(T item, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
@@ -123,11 +118,14 @@ namespace Doxense.Serialization.Json
 
 		#region Objects...
 
-		/// <summary>Ecrit un document top-level de type object, et flush le stream</summary>
-		/// <param name="handler">Handler appelé, chargé d'écrire le contenu de l'objet</param>
-		/// <param name="cancellationToken"></param>
-		/// <returns>Task qui se termine quand l'objet a été écrit entièrement, et après voir flushé le buffer sur le stream</returns>
-		/// <remarks>Cette méthode ne doit idéalement être utilisé que pour des documents top-level. Pour des sous-objets, utilisez <see cref="BeginObjectFragment"/>.</remarks>
+		/// <summary>Writes a top-level object, and flushes the stream</summary>
+		/// <param name="handler">Handler that is responsible for writing the object content into the stream</param>
+		/// <param name="cancellationToken">Token used to cancel the operation</param>
+		/// <returns>Task that completes once the object has been completely written, and the buffer has been flushed into the stream</returns>
+		/// <remarks>
+		/// <para>The stream will be flushed after this call</para>
+		/// <para>This method should only be called for top-level object. For sub-objects, please use <see cref="BeginObjectFragment"/>.</para>
+		/// </remarks>
 		public void WriteObjectFragment([InstantHandle] Action<ObjectStream> handler, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
@@ -139,11 +137,14 @@ namespace Doxense.Serialization.Json
 			FlushInternal(true);
 		}
 
-		/// <summary>Ecrit un document top-level de type object, et flush le stream</summary>
-		/// <param name="handler">Handler appelé, chargé d'écrire le contenu de l'objet</param>
-		/// <param name="cancellationToken"></param>
-		/// <returns>Task qui se termine quand l'objet a été écrit entièrement, et après voir flushé le buffer sur le stream</returns>
-		/// <remarks>Cette méthode ne doit idéalement être utilisé que pour des documents top-level. Pour des sous-objets, utilisez <see cref="BeginObjectFragment"/>.</remarks>
+		/// <summary>Writes a top-level object, and flushes the stream</summary>
+		/// <param name="handler">Handler that is responsible for writing the object content into the stream</param>
+		/// <param name="cancellationToken">Token used to cancel the operation</param>
+		/// <returns>Task that completes once the object has been completely written, and the buffer has been flushed into the stream</returns>
+		/// <remarks>
+		/// <para>The stream will be flushed after this call</para>
+		/// <para>This method should only be called for top-level object. For sub-objects, please use <see cref="BeginObjectFragment"/>.</para>
+		/// </remarks>
 		public async Task WriteObjectFragmentAsync([InstantHandle] Func<ObjectStream, Task> handler, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
@@ -276,8 +277,8 @@ namespace Doxense.Serialization.Json
 
 		}
 
-		/// <summary>Démarre manuellement un object, quelque soit le niveau de profondeur actuel</summary>
-		/// <returns>Sous-stream dans lequel écrire le fragment, et qu'il faut Dispose() lorsqu'il est terminé</returns>
+		/// <summary>Starts manual serialization of an object</summary>
+		/// <returns>Sub-stream that can be used to write the object fragment, and which should Disposed once the object is complete.</returns>
 		[Pure]
 		public ObjectStream BeginObjectFragment(CancellationToken cancellationToken = default)
 		{
@@ -309,11 +310,13 @@ namespace Doxense.Serialization.Json
 
 		#region Arrays...
 
-		/// <summary>Ecrit un document top-level de type array, et flush le stream</summary>
-		/// <param name="handler">Handler appelé, chargé d'écrire le contenu de l'array</param>
-		/// <param name="cancellationToken"></param>
-		/// <returns>Task qui se termine quand l'array a été écrite entièrement, et après voir flushé le buffer sur le stream</returns>
-		/// <remarks>Cette méthode ne doit idéalement être utilisé que pour des documents top-level. Pour des sous-objets, utilisez <see cref="BeginArrayFragment"/>.</remarks>
+		/// <summary>Writes a top-level array, and flushes the stream</summary>
+		/// <param name="handler">Handler that is responsible for writing the array content into the stream</param>
+		/// <param name="cancellationToken">Token used to cancel the operation</param>
+		/// <remarks>
+		/// <para>The stream will be flushed after this call</para>
+		/// <para>This method should only be called for top-level object. For sub-objects, please use <see cref="BeginArrayFragment"/>.</para>
+		/// </remarks>
 		public void WriteArrayFragment([InstantHandle] Action<ArrayStream> handler, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
@@ -324,13 +327,12 @@ namespace Doxense.Serialization.Json
 			FlushInternal(true);
 		}
 
-		/// <summary>Write a top-level JSON array</summary>
-		/// <param name="state">Value that will be passed as argument to <paramref name="handler"/></param>
-		/// <param name="handler">Handler that will write the content of the array to the stream</param>
+		/// <summary>Writes a top-level array, and flushes the stream</summary>
+		/// <param name="handler">Handler that is responsible for writing the array content into the stream</param>
 		/// <param name="cancellationToken">Token used to cancel the operation</param>
 		/// <remarks>
 		/// <para>The stream will be flushed after this call</para>
-		/// <para>This method should only be used for top-level documents. If you want to output a collection of child objects, please use <see cref="BeginArrayFragment"/>.</para>
+		/// <para>This method should only be called for top-level object. For sub-objects, please use <see cref="BeginArrayFragment"/>.</para>
 		/// </remarks>
 		public void WriteArrayFragment<TState>(TState state, [InstantHandle] Action<TState, ArrayStream> handler, CancellationToken cancellationToken)
 		{
@@ -342,11 +344,14 @@ namespace Doxense.Serialization.Json
 			FlushInternal(true);
 		}
 
-		/// <summary>Ecrit un document top-level de type array, et flush le stream</summary>
-		/// <param name="handler">Handler appelé, chargé d'écrire le contenu de l'array</param>
-		/// <param name="cancellationToken"></param>
-		/// <returns>Task qui se termine quand l'array a été écrite entièrement, et après voir flushé le buffer sur le stream</returns>
-		/// <remarks>Cette méthode ne doit idéalement être utilisé que pour des documents top-level. Pour des sous-objets, utilisez <see cref="BeginArrayFragment"/>.</remarks>
+		/// <summary>Writes a top-level array, and flushes the stream</summary>
+		/// <param name="handler">Handler that is responsible for writing the array content into the stream</param>
+		/// <param name="cancellationToken">Token used to cancel the operation</param>
+		/// <returns>Task that completes once the array has been completely written, and the buffer has been flushed into the stream</returns>
+		/// <remarks>
+		/// <para>The stream will be flushed after this call</para>
+		/// <para>This method should only be called for top-level object. For sub-objects, please use <see cref="BeginArrayFragment"/>.</para>
+		/// </remarks>
 		public async Task WriteArrayFragmentAsync([InstantHandle] Func<ArrayStream, Task> handler, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
@@ -357,10 +362,13 @@ namespace Doxense.Serialization.Json
 			await FlushInternalAsync(true, cancellationToken).ConfigureAwait(false);
 		}
 
-		/// <summary>Ecrit un document top-level de type array, copie le contenu entier de la séquence d'élément une array spécifié, et flush le stream</summary>
-		/// <typeparam name="T"></typeparam>
-		/// <param name="items">Séquence de l'intégralité des éléments constituant l'array</param>
-		/// <param name="cancellationToken"></param>
+		/// <summary>Writes a top-level array, and flushes the stream</summary>
+		/// <param name="items">Sequence that contains the items that will be written to the stream</param>
+		/// <param name="cancellationToken">Token used to cancel the operation</param>
+		/// <remarks>
+		/// <para>The stream will be flushed after this call</para>
+		/// <para>This method should only be called for top-level object. For sub-objects, please use <see cref="BeginArrayFragment"/>.</para>
+		/// </remarks>
 		public void WriteArrayFragment<T>(IEnumerable<T> items, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
@@ -371,10 +379,14 @@ namespace Doxense.Serialization.Json
 			FlushInternal(true);
 		}
 
-		/// <summary>Ecrit un document top-level de type array, copie le contenu entier de la séquence d'élément une array spécifié, et flush le stream</summary>
-		/// <typeparam name="T"></typeparam>
-		/// <param name="items">Séquence de l'intégralité des éléments constituant l'array</param>
-		/// <param name="cancellationToken"></param>
+		/// <summary>Writes a top-level array, and flushes the stream</summary>
+		/// <param name="items">Sequence that contains the items that will be written to the stream</param>
+		/// <param name="cancellationToken">Token used to cancel the operation</param>
+		/// <returns>Task that completes once the array has been completely written, and the buffer has been flushed into the stream</returns>
+		/// <remarks>
+		/// <para>The stream will be flushed after this call</para>
+		/// <para>This method should only be called for top-level object. For sub-objects, please use <see cref="BeginArrayFragment"/>.</para>
+		/// </remarks>
 		public async Task WriteArrayFragmentAsync<T>(IEnumerable<T> items, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
@@ -385,9 +397,13 @@ namespace Doxense.Serialization.Json
 			await FlushInternalAsync(true, cancellationToken).ConfigureAwait(false);
 		}
 
-		/// <summary>Ecrit un document top-level de type array, copie le contenu entier de la séquence de valeur JSON, et flush le stream</summary>
-		/// <param name="items">Séquence de l'intégralité des éléments constituant l'array</param>
-		/// <param name="cancellationToken"></param>
+		/// <summary>Writes a top-level array, and flushes the stream</summary>
+		/// <param name="items">Sequence that contains the items that will be written to the stream</param>
+		/// <param name="cancellationToken">Token used to cancel the operation</param>
+		/// <remarks>
+		/// <para>The stream will be flushed after this call</para>
+		/// <para>This method should only be called for top-level object. For sub-objects, please use <see cref="BeginArrayFragment"/>.</para>
+		/// </remarks>
 		public void WriteArrayFragment(IEnumerable<JsonValue> items, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
@@ -398,9 +414,14 @@ namespace Doxense.Serialization.Json
 			FlushInternal(true);
 		}
 
-		/// <summary>Ecrit un document top-level de type array, copie le contenu entier de la séquence de valeur JSON, et flush le stream</summary>
-		/// <param name="items">Séquence de l'intégralité des éléments constituant l'array</param>
-		/// <param name="cancellationToken"></param>
+		/// <summary>Writes a top-level array, and flushes the stream</summary>
+		/// <param name="items">Sequence that contains the items that will be written to the stream</param>
+		/// <param name="cancellationToken">Token used to cancel the operation</param>
+		/// <returns>Task that completes once the array has been completely written, and the buffer has been flushed into the stream</returns>
+		/// <remarks>
+		/// <para>The stream will be flushed after this call</para>
+		/// <para>This method should only be called for top-level object. For sub-objects, please use <see cref="BeginArrayFragment"/>.</para>
+		/// </remarks>
 		public async Task WriteArrayFragmentAsync(IEnumerable<JsonValue> items, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
@@ -661,8 +682,8 @@ namespace Doxense.Serialization.Json
 
 		}
 
-		/// <summary>Démarre manuellement une array, quelque soit le niveau de profondeur actuel</summary>
-		/// <returns>Sous-stream, qu'il faut Dispose() une fois que l'array est terminée</returns>
+		/// <summary>Starts manual serialization of an array</summary>
+		/// <returns>Sub-stream that can be used to write the array fragment, and which should Disposed once the array is complete.</returns>
 		[Pure]
 		public ArrayStream BeginArrayFragment(CancellationToken cancellationToken = default)
 		{
@@ -719,66 +740,61 @@ namespace Doxense.Serialization.Json
 			return m_visitor;
 		}
 
-		/// <summary>Indique si le tampon mémoire dépasse la limite de taille acceptable</summary>
-		private bool ShouldFlush => !m_disposed && m_scratch.Length >= CrystalJsonStreamWriter.AUTO_FLUSH_THRESHOLD;
+		/// <summary>Tests if the internal buffer is large enough to be flushed</summary>
+		private bool ShouldFlush => !m_disposed && m_scratch.Length >= AUTO_FLUSH_THRESHOLD;
 
-		/// <summary>Fait en sorte que toutes les données écrites jusqu'a présent soient flushées dans le stream de destination</summary>
+		/// <summary>Ensures that all data written so far is flushed into the destination stream</summary>
 		private async Task FlushInternalAsync(bool flushStream, CancellationToken cancellationToken)
 		{
-			// Flush le TextWriter pour être sûr que tous les caractères écrits arrivent dans le scratch stream!
+			// Flush the TextWriter so that we are certain all characters written so far are in the scratch buffer!
 			await m_writer.FlushAsync(cancellationToken).ConfigureAwait(false);
 
-			// flush le scratch buffer dans le stream de destination si nécessaire
+			// Flush the scratch buffer into the destination stream
 			if (m_scratch.Length > 0)
 			{
 				try
 				{
 					m_scratch.Seek(0, SeekOrigin.Begin);
-					//note: MemoryStream.CopyToAsync() est optimisé pour écrire en une seul passe, et ignore la taille du buffer
+					//note: MemoryStream.CopyToAsync() ignores the value of bufferSize
 					await m_scratch.CopyToAsync(m_stream, 4096, cancellationToken).ConfigureAwait(false);
 				}
-				//TODO: si erreur, il faudrait nuker ??
 				finally
 				{
 					m_scratch.SetLength(0);
 				}
 			}
-			// force le stream à écrire sur le disque, si demandé par l'appelant
+
 			if (flushStream)
 			{
-				//note: même si c'est un FileStream, il n'y a AUCUNE garantie que les données seront durablement sauvées! (write cache de l'OS)
 				await m_stream.FlushAsync(cancellationToken).ConfigureAwait(false);
 			}
 		}
 
-		/// <summary>Fait en sorte que toutes les données écrites jusqu'a présent soient flushées dans le stream de destination</summary>
-		/// <param name="flushStream"></param>
+		/// <summary>Ensures that all data written so far is flushed into the destination stream</summary>
 		private void FlushInternal(bool flushStream)
 		{
-			// Flush le TextWriter pour être sûr que tous les caractères écrits arrivent dans le scratch stream!
+			// Flush the TextWriter so that we are certain all characters written so far are in the scratch buffer!
 			m_writer.Flush();
 
-			// flush le scratch buffer dans le stream de destination si nécessaire
+			// Flush the scratch buffer into the destination stream
 			if (m_scratch.Length != 0)
 			{
 				try
 				{
 					m_scratch.Seek(0, SeekOrigin.Begin);
-					//note: MemoryStream.CopyTo() est optimisé pour écrire en une seul passe, et ignore la taille du buffer
+					//note: MemoryStream.CopyTo() ignores the value of bufferSize
 					m_scratch.CopyTo(m_stream, 4096);
 				}
 				finally
 				{
-					// si la copie throw, Dispose() va être appelé juste après, et ne doit pas retry une deuxième fois!
-					// => on force le buffer a 0, pour que Dispose() ne Flush() rien
+					// if the copy fails, Dispose() will be called immediately after, and we should not be retried a second time!
+					// => we force the buffer size to 0, so that Dispose() does not attempt to flush
 					m_scratch.SetLength(0);
 				}
 			}
 
-			// force le stream à écrire sur le disque, si demandé par l'appelant
 			if (flushStream)
 			{
-				//note: même si c'est un FileStream, il n'y a AUCUNE garantie que les données seront durablement sauvées! (write cache de l'OS)
 				m_stream.Flush();
 			}
 		}
@@ -792,7 +808,7 @@ namespace Doxense.Serialization.Json
 			if (!m_disposed)
 			{
 				m_disposed = true;
-				//note: on ne peut pas fermer la hiérachie automatiquement, car Dispose() peut être appelé suite à une erreur I/O sur le stream lui-même !
+				//note: Dispose() can also be called again after an I/O error on the stream itself
 				try
 				{
 					FlushInternal(true);
@@ -812,7 +828,7 @@ namespace Doxense.Serialization.Json
 			if (!m_disposed)
 			{
 				m_disposed = true;
-				//note: on ne peut pas fermer la hiérachie automatiquement, car Dispose() peut être appelé suite à une erreur I/O sur le stream lui-même !
+				//note: Dispose() can also be called again after an I/O error on the stream itself
 				try
 				{
 					await FlushInternalAsync(true, CancellationToken.None).ConfigureAwait(true);
@@ -871,7 +887,7 @@ namespace Doxense.Serialization.Json
 			bool failed = true;
 			try
 			{
-				sw = new CrystalJsonStreamWriter(stream, settings, resolver, ownStream);
+				sw = new(stream, settings, resolver, ownStream);
 				failed = false;
 				return sw;
 			}

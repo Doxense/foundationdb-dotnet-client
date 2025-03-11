@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -182,7 +182,7 @@ namespace Doxense.Serialization.Json
 			}
 
 			if (type.IsInterface)
-			{ // for insterfaces, we need to perform a lookup at runtime for each instance
+			{ // for interfaces, we need to perform a lookup at runtime for each instance
 				if (atRuntime)
 				{ //BUGBUG: this should not be possible for concrete instances!
 					return (_, _, _, writer) => writer.WriteEmptyObject();
@@ -703,11 +703,11 @@ namespace Doxense.Serialization.Json
 			{ // generic array: T[]
 
 				if (type == typeof(string[]))
-				{ // Array of strings
+				{
 					return VisitStringArrayInternal;
 				}
 				if (type == typeof(int[]))
-				{ // Array of ints
+				{
 					return VisitInt32ArrayInternal;
 				}
 
@@ -718,11 +718,11 @@ namespace Doxense.Serialization.Json
 			if (type.IsGenericInstanceOf(typeof(List<>), out var listType))
 			{
 				if (listType == typeof(List<string>))
-				{ // Array of strings
+				{
 					return VisitStringListInternal;
 				}
 				if (listType == typeof(List<int>))
-				{ // Array of strings
+				{
 					return VisitInt32ListInternal;
 				}
 
@@ -810,7 +810,7 @@ namespace Doxense.Serialization.Json
 			Contract.Debug.Requires(type != null && method != null);
 			var parameters = method.GetParameters();
 			// We accept:
-			// - void TValue.JsonSeralize(TValue value, CrystalJsonWriter writer)
+			// - void TValue.JsonSerialize(TValue value, CrystalJsonWriter writer)
 			if (parameters.Length != 2) throw CrystalJson.Errors.Serialization_StaticJsonSerializeMethodInvalidSignature(type, method);
 			var prmType = parameters[0].ParameterType;
 			if (!type.IsAssignableFrom(prmType)) throw CrystalJson.Errors.Serialization_StaticJsonSerializeMethodInvalidFirstParam(type, method, prmType);
@@ -988,7 +988,7 @@ namespace Doxense.Serialization.Json
 			VisitValue(value, typeof(T), writer);
 		}
 
-		/// <summary>Visit a boxed value (primitive, valuetype, classe, struct, ...)</summary>
+		/// <summary>Visit a boxed value (Primitive, ValueType, Class, Struct, ...)</summary>
 		/// <param name="value">Value that needs to be serialized (could be of any type)</param>
 		/// <param name="declaredType">Type of this value as declared in the containing type, or null if unknown or top-level</param>
 		/// <param name="writer">Serialization context</param>
@@ -1533,7 +1533,7 @@ namespace Doxense.Serialization.Json
 			bool keyIsString = keyType == typeof(string);
 			bool valueIsString = valueType == typeof(string);
 
-			// il va falloir convertir les key et/ou values :(
+			// we will need to convert key and/or values :(
 			int n = 10;
 			foreach (DictionaryEntry entry in dictionary)
 			{
@@ -2204,10 +2204,10 @@ namespace Doxense.Serialization.Json
 			}
 
 			// find the visitor for this type
-			var visitor = GetVisitorForType(runtimeType, atRuntime: true); // atRuntime = true, pour éviter une boucle infinie (si false, ca retourne un callback qui va nous rappeler directement !)
+			var visitor = GetVisitorForType(runtimeType, atRuntime: true); // atRuntime = true, to prevent an infinite loop (if false, would return a callback that would call the same method again!)
 			if (visitor == null) throw CrystalJson.Errors.Serialization_DoesNotKnowHowToSerializeType(runtimeType);
 
-			// passthrough
+			// pass-through
 			visitor(value, declaringType, runtimeType, writer);
 		}
 
@@ -2268,9 +2268,9 @@ namespace Doxense.Serialization.Json
 				int k = path.LastIndexOf(separator);
 				if (k >= 0)
 				{// remove the key from the xpath, if it contains a separator
-					string key = path.Substring(k + 1);
-					path = path.Substring(0, k);
-					root.GetOrCreateObject(path).Set(key, kvp.Value);
+					var key = path.AsMemory(k + 1);
+					var parentPath = path.AsMemory(0, k);
+					root.GetOrCreateObject(parentPath).Set(key, kvp.Value);
 				}
 				else
 				{

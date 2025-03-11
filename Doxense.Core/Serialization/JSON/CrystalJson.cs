@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -79,7 +79,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns><c>`123`</c>, <c>`true`</c>, <c>`"ABC"`</c>, <c>`{ "foo":..., "bar": ... }`</c>, <c>`[ ... ]`</c>, ...</returns>
-		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
+		/// <exception cref="JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
 		[Pure]
 		public static string Serialize(object? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
@@ -92,7 +92,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns><c>`123`</c>, <c>`true`</c>, <c>`"ABC"`</c>, <c>`{ "foo":..., "bar": ... }`</c>, <c>`[ ... ]`</c>, ...</returns>
-		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
+		/// <exception cref="JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
 		[Pure]
 		public static string Serialize(object? value, Type declaredType, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
@@ -104,7 +104,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns><c>`123`</c>, <c>`true`</c>, <c>`"ABC"`</c>, <c>`{ "foo":..., "bar": ... }`</c>, <c>`[ ... ]`</c>, ...</returns>
-		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
+		/// <exception cref="JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
 		[Pure]
 		public static string SerializeJson(JsonValue value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
@@ -155,7 +155,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns><c>`123`</c>, <c>`true`</c>, <c>`"ABC"`</c>, <c>`{ "foo":..., "bar": ... }`</c>, <c>`[ ... ]`</c>, ...</returns>
-		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
+		/// <exception cref="JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
 		public static string SerializeJson(IJsonSerializable? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (value == null)
@@ -184,7 +184,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns><c>`123`</c>, <c>`true`</c>, <c>`"ABC"`</c>, <c>`{ "foo":..., "bar": ... }`</c>, <c>`[ ... ]`</c>, ...</returns>
-		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
+		/// <exception cref="JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
 		[Pure]
 		public static string Serialize<T>(T? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
@@ -215,7 +215,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns><c>`123`</c>, <c>`true`</c>, <c>`"ABC"`</c>, <c>`{ "foo":..., "bar": ... }`</c>, <c>`[ ... ]`</c>, ...</returns>
-		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
+		/// <exception cref="JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
 		[Pure]
 		public static string Serialize<T>(T? value, IJsonSerializer<T>? serializer, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
@@ -369,7 +369,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>The value of <paramref name="buffer"/>, for call chaining</returns>
-		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
+		/// <exception cref="JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
 		[Pure]
 		public static StringBuilder Serialize(object? value, StringBuilder? buffer, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
@@ -444,7 +444,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>The <paramref name="output"/> instance, for call chaining</returns>
-		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
+		/// <exception cref="JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
 		public static TextWriter SerializeTo(TextWriter output, object? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			return SerializeToTextWriter(output, value, typeof(object), settings, resolver);
@@ -456,7 +456,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>The <paramref name="output"/> instance, for call chaining</returns>
-		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
+		/// <exception cref="JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
 		public static TextWriter SerializeTo<T>(TextWriter output, T value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			return SerializeToTextWriter(output, value, typeof(T), settings, resolver);
@@ -467,7 +467,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="value">Instance to serialize (of any type)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
-		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
+		/// <exception cref="JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
 		public static void SerializeTo<T>(Stream output, T? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			Contract.NotNull(output);
@@ -481,7 +481,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <param name="options">Save settings</param>
-		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
+		/// <exception cref="JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
 		public static void SaveTo(string path, object? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null, SaveOptions options = SaveOptions.None)
 		{
 			SerializeAndSaveInternal(path, value, typeof(object), settings, resolver, options);
@@ -493,7 +493,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <param name="options">Save settings</param>
-		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
+		/// <exception cref="JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
 		public static void SaveTo<T>(string path, T? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null, SaveOptions options = SaveOptions.None)
 		{
 			SerializeAndSaveInternal(path, value, typeof(T), settings, resolver, options);
@@ -542,7 +542,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
-		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">if the serialization fails</exception>
+		/// <exception cref="JsonSerializationException">if the serialization fails</exception>
 		[Pure]
 		public static Slice ToSlice(object? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 			=> ToSlice(value, typeof(object), settings, resolver);
@@ -729,7 +729,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="resolver">Custom type resolver (use default behavior if <see langword="null"/>)</param>
 		/// <param name="pool">Pool used to allocate the content of the slice (use <see cref="ArrayPool{T}.Shared"/> if <see langword="null"/>)</param>
 		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
-		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">if the serialization fails</exception>
+		/// <exception cref="JsonSerializationException">if the serialization fails</exception>
 		/// <remarks>
 		/// <para>The <see cref="SliceOwner"/> returned <b>MUST</b> be disposed; otherwise, the rented buffer will not be returned to the <paramref name="pool"/>.</para>
 		/// </remarks>
@@ -746,7 +746,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="resolver">Custom type resolver (use default behavior if <see langword="null"/>)</param>
 		/// <param name="pool">Pool used to allocate the content of the slice (use <see cref="ArrayPool{T}.Shared"/> if <see langword="null"/>)</param>
 		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
-		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">if the serialization fails</exception>
+		/// <exception cref="JsonSerializationException">if the serialization fails</exception>
 		/// <remarks>
 		/// <para>The <see cref="SliceOwner"/> returned <b>MUST</b> be disposed; otherwise, the rented buffer will not be returned to the <paramref name="pool"/>.</para>
 		/// <para>If <paramref name="type"/> is an interface or abstract class, or if <paramref name="value"/> is a derived type of <paramref name="type"/>, the serialized document may include an additional attribute with the original type name, which may not be recognized by other libraries or platforms.</para>
@@ -783,7 +783,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if <see langword="null"/>).</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if <see langword="null"/>).</param>
 		/// <returns>Slice of memory that contains the UTF-8 encoded JSON document.</returns>
-		/// <exception cref="Doxense.Serialization.Json.JsonSerializationException">Thrown if the serialization fails.</exception>
+		/// <exception cref="JsonSerializationException">Thrown if the serialization fails.</exception>
 		/// <remarks>
 		/// <para>If the type of the value is an interface or abstract class, or if the value is a derived type, the serialized document may include an additional attribute with the original type name, which may not be recognized by other libraries or platforms.</para>
 		/// </remarks>
@@ -1136,8 +1136,6 @@ namespace Doxense.Serialization.Json
 				return Parse(jsonBytes.First.Span, settings);
 			}
 
-			//TODO: un reader de ReadOnlySequence<byte>?
-			// en attendant, on va copier les data dans un buffer pooled...
 			long len = jsonBytes.Length;
 			if (len > int.MaxValue) throw new NotSupportedException("Cannot parse sequence of bytes larger than 2 GiB.");
 			using (var scratch = MemoryPool<byte>.Shared.Rent((int) len))
@@ -1207,8 +1205,6 @@ namespace Doxense.Serialization.Json
 				return Parse(jsonText.First.Span, settings);
 			}
 
-			//TODO: un reader de ReadOnlySequence<char>?
-			// en attendant, on va copier les data dans un buffer pooled...
 			long len = jsonText.Length;
 			if (len > int.MaxValue) throw new NotSupportedException("Cannot parse sequence of chars larger than 4 GiB.");
 			using (var scratch = MemoryPool<char>.Shared.Rent((int) len))
@@ -1875,15 +1871,6 @@ namespace Doxense.Serialization.Json
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			internal static JsonBindingException Parsing_CannotCastFieldToJsonArray(JsonValue? value, string fieldName) => new($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} in field '{fieldName}' as an Array.", value);
-
-			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonBindingException Parsing_CannotCastFieldToJsonNumber(JsonValue? value, string fieldName) => new($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} in field '{fieldName}' as a Number.", value);
-
-			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonBindingException Parsing_CannotCastFieldToJsonString(JsonValue? value, string fieldName) => new($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} in field '{fieldName}' as a String.", value);
-
-			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonBindingException Parsing_CannotCastFieldToJsonBoolean(JsonValue? value, string fieldName) => new($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} in field '{fieldName}' as a Boolean.", value);
 
 			#endregion
 

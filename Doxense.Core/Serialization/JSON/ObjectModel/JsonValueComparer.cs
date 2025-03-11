@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -45,7 +45,7 @@ namespace Doxense.Serialization.Json
 
 		bool System.Collections.IEqualityComparer.Equals(object? x, object? y)
 		{
-			if (ReferenceEquals(x, y)) return true; // catch aussi le null
+			if (ReferenceEquals(x, y)) return true;
 			var jx = (x as JsonValue) ?? JsonValue.FromValue(x);
 			var jy = (y as JsonValue) ?? JsonValue.FromValue(y);
 			Contract.Debug.Assert(jx is not null && jy is not null);

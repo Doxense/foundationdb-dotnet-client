@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -34,6 +34,7 @@ namespace Doxense.Serialization.Json
 	using System.Runtime.InteropServices;
 	using System.Text;
 
+	[Obsolete("This tool has been replaced by an actual Source Generator that can be included in the build chain.")]
 	public class CrystalJsonSourceGenerator
 	{
 

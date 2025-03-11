@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -33,6 +33,7 @@ namespace Doxense.Serialization.Json
 	/// <remarks>Instances of this type are immutable and can be cached</remarks>
 	[DebuggerDisplay("<{ToString(),nq}> (Flags = {(int) m_flags,h})")]
 	[DebuggerNonUserCode]
+	[PublicAPI]
 	public sealed class CrystalJsonSettings : IEquatable<CrystalJsonSettings>
 	{
 
@@ -70,22 +71,19 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Rules for interning strings, and reduce memory allocations</summary>
-		/// <remarks>L'interning permet de réduire la taille occupée par un JSON Object en mémoire, en faisant en sorte que toutes les occurrences d'une même string pointent vers la même variable
-		/// C'est surtout intéressant par exemple pour une Array d'Object, où les noms des propriétés de l'objet est répété N fois en mémoire.
-		/// Interne les valeurs peut être aussi utile s'il y a beaucoup de redondance dans l'espace de valeur possible (mot clé, énumération sous forme chaîne, ...)
-		/// Le parseur doit faire lookup de chaque chaîne dans un dictionnaire, ce qui a un coût si le document est volumineux et avec quasiment aucune redondance...</remarks>
+		/// <remarks>Interning can reduce the memory footprint of a JSON Object, by using the same instance for similar strings, at the cost of some cpu overhead</remarks>
 		public enum StringInterning
 		{
-			// IMPORTANT: maximum 4 valeurs, car cette énumération est stockée avec 2 bits dans les flags ! (sinon, il faudra updater OptionFlags)
+			// IMPORTANT: this enum is stored in the flags using 2 bits, so can only have 4 values!
 
-			/// <summary>Only the names of objects fields, as well as small numbers (3 digits or less), will be interned</summary>
+			/// <summary>Only the names of objects fields, as well as small numbers (3 digits or fewer), will be interned</summary>
 			Default = 0,
 			/// <summary>No string will be interned</summary>
 			Disabled = 1,
 			/// <summary>Same as <see cref="Default"/>, but include all number literals</summary>
 			IncludeNumbers = 2,
 			/// <summary>All field types (names, string literals, guid, numbers), EXCEPT dates, will be interned</summary>
-			IncludeValues = 3, //REVIEW: renommer en "All" ?
+			IncludeValues = 3,
 		}
 
 		/// <summary>Rules for serializing special floating points numbers, like <see cref="double.NaN"/> or <see cref="double.PositiveInfinity"/></summary>
@@ -95,16 +93,17 @@ namespace Doxense.Serialization.Json
 			Default = 0,
 			/// <summary>Use symbols like <c>`NaN`</c>, <c>`Infinity`</c> or <c>`-Infinity`</c> (without quotes). Note: The generated JSON will not strictly conform to RFC7159, which does not specify these symbols</summary>
 			Symbol = 1,
-			/// <summary>Use string literals like <c>"NaN"</c>, <c>"Infinity"</c> or <c>"-Infinity"</c> (with double quotes), similarily to what JSON.NET is doing. The generated JSON will conform to RFC7159, but the caller may not expect a JSON string literal instead of a JSON number, and may either fail or replace all values by NaN !</summary>
+			/// <summary>Use string literals like <c>"NaN"</c>, <c>"Infinity"</c> or <c>"-Infinity"</c> (with double quotes), similarly to what JSON.NET is doing. The generated JSON will conform to RFC7159, but the caller may not expect a JSON string literal instead of a JSON number, and may either fail or replace all values by NaN !</summary>
 			String = 2,
-			/// <summary>Use the <c>`null`</c> token when serializing <see cref="double.NaN"/>, <see cref="double.PositiveInfinity"/> or <see cref="double.NegativeInfinity"/>. The generated JSON will be conform to RFC7159, but some information may be lost (all NaN and Inifinities will be replaced by null which may be deserialized as 0)</summary>
+			/// <summary>Use the <c>`null`</c> token when serializing <see cref="double.NaN"/>, <see cref="double.PositiveInfinity"/> or <see cref="double.NegativeInfinity"/>. The generated JSON will be conforming to RFC7159, but some information may be lost (all NaN and Inifinities will be replaced by null which may be deserialized as 0)</summary>
 			Null = 3,
-			/// <summary>Use the JavaScript notation (<c>Number.NaN</c>, <c>Number.POSITIVE_INFINITY</c>, ...). This will produce invalid JSON and is only valid when targetting JavaScript</summary>
+			/// <summary>Use the JavaScript notation (<c>Number.NaN</c>, <c>Number.POSITIVE_INFINITY</c>, ...). This will produce invalid JSON and is only valid when targeting JavaScript</summary>
 			JavaScript = 4,
 		}
 
 		// ReSharper disable InconsistentNaming
 		[Flags]
+		[PublicAPI]
 		public enum OptionFlags
 		{
 			None = 0,
@@ -189,7 +188,7 @@ namespace Doxense.Serialization.Json
 		public CrystalJsonSettings()
 		{ }
 
-		internal CrystalJsonSettings(OptionFlags flags)
+		private CrystalJsonSettings(OptionFlags flags)
 		{
 			m_flags = flags;
 		}
@@ -235,7 +234,7 @@ namespace Doxense.Serialization.Json
 			static OptionFlags FailInvalidTextLayout() => throw new ArgumentException("Invalid text layout mode", nameof(value));
 		}
 
-		/// <summary>Rules for serilization of dates and times</summary>
+		/// <summary>Rules for serialization of dates and times</summary>
 		public DateFormat DateFormatting
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -291,7 +290,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>If <see langword="true"/>, outputs all fields of an object, including all fields that are null.</summary>
 		/// <remarks>
-		/// <para>By default, all null fields are omitted, to reduce the size of the genreated JSON document.</para>
+		/// <para>By default, all null fields are omitted, to reduce the size of the generated JSON document.</para>
 		/// <para>This setting is ignored if HideDefaultValues is used.</para>
 		/// </remarks>
 		public bool ShowNullMembers
@@ -304,9 +303,9 @@ namespace Doxense.Serialization.Json
 		private static OptionFlags SetShowNullMembers(OptionFlags flags, bool value)
 			=> value ? flags | OptionFlags.ShowNullMembers : flags & ~OptionFlags.ShowNullMembers;
 
-		/// <summary>If <see langword="true"/>, ommit all fields that are equal to the default value of their type, including <see langword="null"/>, <see langword="0"/>, <see langword="false"/>, <c>DateTime.MinValue</c>, etc..</summary>
+		/// <summary>If <see langword="true"/>, omit all fields that are equal to the default value of their type, including <see langword="null"/>, <see langword="0"/>, <see langword="false"/>, <c>DateTime.MinValue</c>, etc...</summary>
 		/// <remarks>
-		/// <para>By default, all Value Types will be serialized, and only Ref Types or <see cref="Nullable{T}"/> are ommitted (unless <see cref="ShowNullMembers"/> is set)</para></remarks>
+		/// <para>By default, all Value Types will be serialized, and only Ref Types or <see cref="Nullable{T}"/> are omitted (unless <see cref="ShowNullMembers"/> is set)</para></remarks>
 		public bool HideDefaultValues
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -317,8 +316,8 @@ namespace Doxense.Serialization.Json
 		private static OptionFlags SetHideDefaultValues(OptionFlags flags, bool value)
 			=> value ? flags | OptionFlags.HideDefaultValues : flags & ~OptionFlags.HideDefaultValues;
 
-		/// <summary>If <see langword="true"/>, serialize all <see cref="System.Enum">enum types</see> as a string. If <see langword="false"/> serialize them as an number</summary>
-		/// <remarks>Will use the result of callsing <see cref="Enum.ToString()"/> on the enum to produce the string literal. The casing will be constrolled by <see cref="UseCamelCasingForEnums"/>.</remarks>
+		/// <summary>If <see langword="true"/>, serialize all <see cref="System.Enum">enum types</see> as a string. If <see langword="false"/> serialize them as a number</summary>
+		/// <remarks>Will use the result of calling <see cref="Enum.ToString()"/> on the enum to produce the string literal. The casing will be controlled by <see cref="UseCamelCasingForEnums"/>.</remarks>
 		public bool EnumsAsString
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -329,7 +328,7 @@ namespace Doxense.Serialization.Json
 		private static OptionFlags SetEnumsAsString(OptionFlags flags, bool value)
 			=> value ? flags | OptionFlags.EnumsAsString : flags & ~OptionFlags.EnumsAsString;
 
-		/// <summary>If <see langword="true"/>, convert all enum string literal to camelCasing (ex: "someValue"). If <see langword="false"/>, use the same casing as used in the C# source coude.</summary>
+		/// <summary>If <see langword="true"/>, convert all enum string literal to camelCasing (ex: "someValue"). If <see langword="false"/>, use the same casing as used in the C# source code.</summary>
 		public bool UseCamelCasingForEnums
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -341,7 +340,7 @@ namespace Doxense.Serialization.Json
 			=> value ? flags | OptionFlags.UseCamelCasingForEnums : flags & ~OptionFlags.UseCamelCasingForEnums;
 
 		/// <summary>If <see langword="true"/>, do not track the graph of visited objects, and disable any protection against cyclic references</summary>
-		/// <remarks><b>CAUTION</b>: Attempting to serialize an object that cointains cyclic references will either throw a <see cref="StackOverflowException"/> or an <see cref="OutOfMemoryException"/>, which may destabilize the system!</remarks>
+		/// <remarks><b>CAUTION</b>: Attempting to serialize an object that contains cyclic references will either throw a <see cref="StackOverflowException"/> or an <see cref="OutOfMemoryException"/>, which may destabilize the system!</remarks>
 		public bool DoNotTrackVisitedObjects
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -367,7 +366,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>If <see langword="true"/>, do not include the "_class" field in generated JSON objects</summary>
 		/// <remarks>
 		/// <para>This may have an impact when attempting to deserialized abstract classes or interfaces.</para>
-		/// <para>Please note that the content of the <c>_class</c> field has meaonly only for compatible .NET applications, and should only be used in a "closed" ecosystem where all parties that have to serialize/deserialize abstract JSON objects use the same type names for the same objects!</para>
+		/// <para>Please note that the content of the <c>_class</c> field has meaning only for compatible .NET applications, and should only be used in a "closed" ecosystem where all parties that have to serialize/deserialize abstract JSON objects use the same type names for the same objects!</para>
 		/// </remarks>
 		public bool HideClassId
 		{
@@ -395,8 +394,8 @@ namespace Doxense.Serialization.Json
 		private static OptionFlags SetDenyTrailingComma(OptionFlags flags, bool value)
 			=> value ? flags | OptionFlags.DenyTrailingComma : flags & ~OptionFlags.DenyTrailingComma;
 
-		/// <summary>If <see langword="true"/>, overwrite any duplicate field in a object, by keeping only the last value. If <see langword="false"/>, throws an exception in case of duplicates</summary>
-		/// <remarks><para>Please note that is <see cref="IgnoreCaseForNames"/> is set, this will also include include casing (ex: "userId" and "UserId" would be considered duplicates)</para></remarks>
+		/// <summary>If <see langword="true"/>, overwrite any duplicate field in an object, by keeping only the last value. If <see langword="false"/>, throws an exception in case of duplicates</summary>
+		/// <remarks><para>Please note that is <see cref="IgnoreCaseForNames"/> is set, this will also include casing (ex: "userId" and "UserId" would be considered duplicates)</para></remarks>
 		public bool OverwriteDuplicateFields
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -424,7 +423,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>If <see langword="true"/>, parsed JSON documents will be read-only. If <see langword="false"/>, they will be mutable by default.</summary>
 		/// <remarks>
-		/// <para>Parsed read-only documents will be immutable, and can be safely cached, shared or used as singleton. Mutable documents can be modified, but may required deep copy to prevent side effects.</para>
+		/// <para>Parsed read-only documents will be immutable, and can be safely cached, shared or used as singleton. Mutable documents can be modified, but may require deep copy to prevent side effects.</para>
 		/// <para>This setting as no effect when serializing.</para>
 		/// </remarks>
 		public bool ReadOnly
@@ -497,7 +496,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public CrystalJsonSettings WithNullMembers() => Update(SetShowNullMembers(m_flags, true));
 
-		/// <summary>Default values for all members will be ommitted</summary>
+		/// <summary>Default values for all members will be omitted</summary>
 		[Pure]
 		public CrystalJsonSettings WithoutDefaultValues() => Update(SetHideDefaultValues(m_flags, true));
 
@@ -544,14 +543,14 @@ namespace Doxense.Serialization.Json
 		public CrystalJsonSettings WithEnumAsStrings() => Update(SetEnumsAsString(m_flags, true));
 
 		/// <summary>Specify the way field names should be serialized</summary>
-		/// <param name="camelCased">If <see langword="true"/>, using camelCasing. If <see langword="false"/>, use the same literal as in the original source code)</param>
+		/// <param name="camelCased">If <see langword="true"/>, using camelCasing. If <see langword="false"/>, use the same literal as in the original source code</param>
 		[Pure]
 		public CrystalJsonSettings WithEnumAsStrings(bool camelCased) => Update(SetUseCamelCasingForEnums(SetEnumsAsString(m_flags, true), camelCased));
 
 		/// <summary>Disable tracking of visited objects, and inhibit any protection against cyclic references</summary>
 		/// <remarks>
-		/// <para>This should used with extreme caution, because it could lead to stack overflow or out of memory errors!</para>
-		/// <para>In some extreme circumstances, with a very large and deep object treee, this can give more performances, but should only be used when the constructed document is an acyclic graph.</para>
+		/// <para>This should be used with extreme caution, because it could lead to stack overflow or out of memory errors!</para>
+		/// <para>In some extreme circumstances, with a very large and deep object tree, this can give more performances, but should only be used when the constructed document is an acyclic graph.</para>
 		/// </remarks>
 		[Pure]
 		public CrystalJsonSettings WithoutObjectTracking() => Update(SetDoNotTrackVisitedObjects(m_flags, true));
@@ -611,7 +610,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public CrystalJsonSettings ThrowOnDuplicateFields() => Update(SetOverwriteDuplicateFields(m_flags, false));
 
-		/// <summary>Specifiy the wait special floating point numbers are serialized (<see cref="double.NaN"/>, <see cref="double.PositiveInfinity"/>, <see cref="double.NegativeInfinity"/>, ...)</summary>
+		/// <summary>Specify the wait special floating point numbers are serialized (<see cref="double.NaN"/>, <see cref="double.PositiveInfinity"/>, <see cref="double.NegativeInfinity"/>, ...)</summary>
 		[Pure]
 		public CrystalJsonSettings WithFloatFormat(FloatFormat format) => Update(SetFloatFormatting(m_flags, format));
 
@@ -741,13 +740,10 @@ namespace Doxense.Serialization.Json
 				var s2 = new CrystalJsonSettings(s.Flags | OptionFlags.EnumsAsString);
 				defaults[(int) s2.Flags] = s2;
 			}
-			Cached = new QuasiImmutableCache<int, CrystalJsonSettings>(defaults, valueFactory: (v) => new CrystalJsonSettings((OptionFlags) v));
+			Cached = new(defaults, valueFactory: (v) => new((OptionFlags) v));
 		}
 
-		internal static CrystalJsonSettings Create(OptionFlags flags)
-		{
-			return Cached.GetOrAdd((int) flags);
-		}
+		internal static CrystalJsonSettings Create(OptionFlags flags) => Cached.GetOrAdd((int) flags);
 
 		#endregion
 

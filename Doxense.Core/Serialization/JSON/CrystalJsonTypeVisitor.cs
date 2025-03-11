@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -29,7 +29,7 @@ namespace Doxense.Serialization.Json
 
 	/// <summary>Delegate that will serialize a value into JSON</summary>
 	/// <param name="value">Value (boxed) to serialize</param>
-	/// <param name="declaringType">Type of the field or property, as declared in the parent type Type or collection, or "typeof(object)" if unknown or top-level</param>
+	/// <param name="declaringType">Type of the field or property, as declared in the parent Type or collection, or "typeof(object)" if unknown or top-level</param>
 	/// <param name="runtimeType">Actual runtime type of this instance (or null when performing the initial mapping of the parent type)</param>
 	/// <param name="writer">Serialization context</param>
 	public delegate void CrystalJsonTypeVisitor(object? value, Type declaringType, Type? runtimeType, CrystalJsonWriter writer);

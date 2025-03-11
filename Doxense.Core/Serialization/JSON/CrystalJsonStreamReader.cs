@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -43,7 +43,7 @@ namespace Doxense.Serialization.Json
 
 			var source = new StreamReader(input, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
 			this.OwnSource = ownSource;
-			this.Tokenizer = new CrystalJsonTokenizer<JsonTextReader>(new JsonTextReader(source), settings ?? CrystalJsonSettings.Json);
+			this.Tokenizer = new(new(source), settings ?? CrystalJsonSettings.Json);
 		}
 
 		/// <summary>Reads JSON fragments from a <see cref="TextReader"/></summary>
@@ -51,7 +51,7 @@ namespace Doxense.Serialization.Json
 		{
 			Contract.NotNull(input);
 			this.OwnSource = ownSource;
-			this.Tokenizer = new CrystalJsonTokenizer<JsonTextReader>(new JsonTextReader(input), settings ?? CrystalJsonSettings.Json);
+			this.Tokenizer = new(new(input), settings ?? CrystalJsonSettings.Json);
 		}
 
 		/// <summary>Read the next JSON fragment from this stream</summary>
@@ -88,10 +88,7 @@ namespace Doxense.Serialization.Json
 		}
 		
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		private static ObjectDisposedException FailObjectDisposed()
-		{
-			return new ObjectDisposedException(nameof(CrystalJsonStreamReader));
-		}
+		private static ObjectDisposedException FailObjectDisposed() => new(nameof(CrystalJsonStreamReader));
 
 		#endregion
 
@@ -107,7 +104,7 @@ namespace Doxense.Serialization.Json
 			try
 			{
 				stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 0x400, FileOptions.SequentialScan);
-				sw = new CrystalJsonStreamReader(stream, settings, true);
+				sw = new(stream, settings, true);
 				failed = false;
 				return sw;
 			}
@@ -129,7 +126,7 @@ namespace Doxense.Serialization.Json
 			bool failed = true;
 			try
 			{
-				sr = new CrystalJsonStreamReader(stream, settings, ownStream);
+				sr = new(stream, settings, ownStream);
 				failed = false;
 				return sr;
 			}

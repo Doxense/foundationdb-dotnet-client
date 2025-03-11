@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -54,17 +54,18 @@ namespace Doxense.Serialization.Json
 			TopLevel = 0,
 			Object,
 			Array,
-			Property
 		}
 
 		[DebuggerDisplay("Node={Node}, Tail={Tail}")]
 		public struct State
 		{
-			/// <summary>False si c'est le premier "élément" (d'un objet ou d'une array)</summary>
+			/// <summary>False if this is the first "element" (of an object or array)</summary>
 			internal bool Tail;
-			/// <summary>Type de node actuel</summary>
+
+			/// <summary>Type of the current node</summary>
 			internal NodeType Node;
-			/// <summary>Valeur de l'indentation actuelle</summary>
+
+			/// <summary>Current indentation literal</summary>
 			internal string Indentation;
 		}
 
@@ -118,7 +119,7 @@ namespace Doxense.Serialization.Json
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
 		/// <summary>Constructor only intended for use with an object pool</summary>
-		/// <remarks>The <see cref="Initialize"/> method <b>MUST</b> be called immediately after, otherwise the objet will not be usable</remarks>
+		/// <remarks>The <see cref="M:Initialize"/> method <b>MUST</b> be called immediately after, otherwise the objet will not be usable</remarks>
 		internal CrystalJsonWriter()
 		{
 		}
@@ -239,7 +240,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns the JSON text written, and clear the writer</summary>
 		/// <returns>JSON text</returns>
-		/// <exception cref="InvalidOperationException">If this instance is outputing to a TextWriter</exception>
+		/// <exception cref="InvalidOperationException">If this instance is outputting to a TextWriter</exception>
 		public string GetString()
 		{
 			return m_output == null
@@ -1243,7 +1244,7 @@ namespace Doxense.Serialization.Json
 				Contract.Debug.Requires(buffer != null && cursor > 0 && cursor <= buffer.Length);
 				--cursor;
 				var obj = buffer[cursor];
-				buffer[cursor] = default!;
+				buffer[cursor] = null!;
 				return obj;
 			}
 		}
@@ -1252,7 +1253,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary><b>[CAUTION]</b> Writes a raw JSON literal into the output buffer, without any checks or encoding.</summary>
 		/// <param name="rawJson">JSON snippet that is already encoded</param>
-		/// <remarks>"Danger, Will Robinson !!!" Only use it if you know what you are doing, such as outputting already encoded JSON constants or in very specific use cases where performance superseeds safety!</remarks>
+		/// <remarks>"Danger, Will Robinson !!!" Only use it if you know what you are doing, such as outputting already encoded JSON constants or in very specific use cases where performance supersedes safety!</remarks>
 		public void WriteRaw(string? rawJson)
 		{
 			if (!string.IsNullOrEmpty(rawJson))
@@ -1263,7 +1264,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary><b>[CAUTION]</b> Writes a raw JSON literal into the output buffer, without any checks or encoding.</summary>
 		/// <param name="rawJson">JSON snippet that is already encoded</param>
-		/// <remarks>"Danger, Will Robinson !!!" Only use it if you know what you are doing, such as outputting already encoded JSON constants or in very specific use cases where performance superseeds safety!</remarks>
+		/// <remarks>"Danger, Will Robinson !!!" Only use it if you know what you are doing, such as outputting already encoded JSON constants or in very specific use cases where performance supersedes safety!</remarks>
 		public void WriteRaw(ref DefaultInterpolatedStringHandler rawJson)
 		{
 			WriteRaw(rawJson.ToStringAndClear());
@@ -1292,7 +1293,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Write a property name that MAY require escaping.</summary>
 		/// <param name="name">Name of the property that will be escaped if necessary</param>
 		/// <remarks>
-		/// <para>This method should be used whenever the origin of key is not controlled, and may contain any character that would require escaping ('\', '"', ...).</para>
+		/// <para>This method should be used whenever the origin of key is not controlled, and may contain any character that would require escaping ('<c>\</c>', '<c>"</c>', ...).</para>
 		/// </remarks>
 		public void WriteNameEscaped(string name)
 		{
@@ -1303,7 +1304,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Write a property name that MAY require escaping.</summary>
 		/// <param name="name">Name of the property that will be escaped if necessary</param>
 		/// <remarks>
-		/// <para>This method should be used whenever the origin of key is not controlled, and may contain any character that would require escaping ('\', '"', ...).</para>
+		/// <para>This method should be used whenever the origin of key is not controlled, and may contain any character that would require escaping ('<c>\</c>', '<c>"</c>', ...).</para>
 		/// </remarks>
 		public void WriteNameEscaped(ReadOnlySpan<char> name)
 		{

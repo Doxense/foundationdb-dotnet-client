@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -27,21 +27,14 @@
 namespace Doxense.Serialization.Json
 {
 
-	/// <summary>Internal class that holds various constants and tokens used dureing parsing and serialization</summary>
+	/// <summary>Internal class that holds various constants and tokens used during parsing and serialization</summary>
 	internal static class JsonTokens
 	{
 
-		// On load les différents tokens en static readonly pour éviter d'allouer sans arret les mêmes chaines ...
 		public const string Null = "null";
 		public const string Undefined = "undefined";
-		public const string EmptyString = "\"\"";
 		public const string True = "true";
 		public const string False = "false";
-		public const string EmptyObjectCompact = "{}";
-		public const string EmptyObjectFormatted = "{ }";
-		public const string EmptyArrayCompact = "[]";
-		public const string EmptyArrayFormatted = "[ ]";
-		public const string NewLine = "\r\n";
 		public const string SymbolNaN = "NaN";
 		public const string SymbolInfinityPos = "Infinity";
 		public const string SymbolInfinityNeg = "-Infinity";
@@ -51,17 +44,7 @@ namespace Doxense.Serialization.Json
 		public const string JavaScriptNaN = "Number.NaN";
 		public const string JavaScriptInfinityPos = "Number.POSITIVE_INFINITY";
 		public const string JavaScriptInfinityNeg = "Number.NEGATIVE_INFINITY";
-		public const string Zero = "0";
 		public const string LongMinValue = "-9223372036854775808";
-		public const string CurlyCloseFormatted = " }";
-		public const string BracketCloseFormatted = " ]";
-		public const string CommaFormatted = ", ";
-		public const string CommaIndented = ",\r\n";
-		public const string ColonFormatted = ": ";
-		public const string ColonCompact = ":";
-		public const string QuoteColonCompact = "\":";
-		public const string QuoteColonFormatted = "\": ";
-		public const string DoubleQuotes = "''";
 		public const string DateBeginMicrosoft = "\"\\/Date(";
 		public const string DateEndMicrosoft = ")\\/\"";
 		public const string DateBeginJavaScript = "new Date(";

@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -28,7 +28,6 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System.Globalization;
 	using System.Text;
 	using Doxense.Linq;
 	using Doxense.Web;
@@ -57,7 +56,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (text.Length == 0)
 			{ // "''"
-				writer.Write(JsonTokens.DoubleQuotes);
+				writer.Write("''");
 			}
 			else if (JavaScriptEncoding.IsCleanJavaScript(text))
 			{ // "'foo bar'"
@@ -78,51 +77,45 @@ namespace Doxense.Serialization.Json
 			}
 			if (text.Length == 0)
 			{ // => ""
-				return JsonTokens.EmptyString;
-			} // -> premiere passe pour voir s'il y a des caratères a remplacer..
-			if (JavaScriptEncoding.IsCleanJavaScript(text.AsSpan()))
-			{ // rien a modifier, retourne la chaine initiale (fast, no memory used)
-				return string.Concat("'", text, "'");
-			} // -> deuxieme passe: remplace les caractères invalides (slow, memory used)
-			// note: on estime a 6 caracs l'overhead typique d'un encoding (ou deux ou trois \", ou un \uXXXX)
-			return JavaScriptEncoding.EncodeSlow(new StringBuilder(), text.AsSpan(), includeQuotes: true).ToString();
+				return "\"\"";
+			}
+			return JavaScriptEncoding.IsCleanJavaScript(text.AsSpan())
+				? string.Concat("'", text, "'")
+				: JavaScriptEncoding.EncodeSlow(new StringBuilder(), text.AsSpan(), includeQuotes: true).ToString();
 		}
 
 		internal static void WriteFixedIntegerWithDecimalPartUnsafe(ref ValueStringWriter output, long integer, long decimals, int digits)
 		{
 			Span<char> buf = stackalloc char[StringConverters.Base10MaxCapacityInt64 + 1 + digits];
 
-			// on a un nombre décimale décomposé en deux partie: la partie entière, et N digits de la partie décimale:
-			//
-			// Le nombre X est décomposé en (INTEGER, DECIMALS, DIGITS) tel que X = INTEGER + (DECIMALS / 10^DIGITS)
-
+			// The number X is split into (INTEGER, DECIMALS, DIGITS) such that X = INTEGER + (DECIMALS / 10^DIGITS)
 			//                   <-- 'DIGITS' -->
 			// [  INTEGER  ] '.' [000...DECIMALS]
 
-			// Quelques exemples:
+			// Examples:
 			// - (integer: 123, dec: 456, digits: 3) => "123.456"
 			// - (integer: 123, dec: 456, digits: 4) => "123.0456"
 			// - (integer: 123, dec: 456, digits: 5) => "123.00456"
-			// - (integer: 123, dec:   1, digits: 3) => "123.001" // on rajoute les '0' entre le '.' et le premier digit non-0 de la partie décimale!
-			// - (integer: 123, dec:  10, digits: 3) => "123.01"  // on tronque les derniers '0' de la partie décimale
-			// - (integer: 123, dec:   0, digits: 3) => "123"     // ici on omet complètement la partie décimale si 0
+			// - (integer: 123, dec:   1, digits: 3) => "123.001" // we pad with '0' between '.' and the first non-0 digit in the decimal part
+			// - (integer: 123, dec:  10, digits: 3) => "123.01"  // we truncate the trailing '0' in the decimal part
+			// - (integer: 123, dec:   0, digits: 3) => "123"     // we completely skip the decimal part if it is 0
 
 			int len = buf.Length;
 			int p = buf.Length - 1;
 
-			// partie décimale (si nécessaire)
+			// decimal part (if required)
 			long value = decimals;
 
 			if (value != 0 && digits != 0)
 			{
-				bool allZero = true; // set à false dés qu'on trouve un digit non-zero
+				bool allZero = true; // set to false as soon as we find a non-zero digit
 				for (int i = 0; i < digits; i++)
 				{
 					int d = (int) (value % 10);
 					buf[p--] = (char) ('0' + d);
 					value /= 10;
 					if (d == 0 && allZero)
-					{ // pas encore de non-0, on tronque
+					{ // truncate trailing 0
 						len--;
 					}
 					else
@@ -133,7 +126,7 @@ namespace Doxense.Serialization.Json
 				buf[p--] = '.';
 			}
 
-			// partie entière
+			// integer part
 			value = integer;
 			bool neg = value < 0;
 			value = Math.Abs(value);
@@ -206,7 +199,7 @@ namespace Doxense.Serialization.Json
 
 		internal static ReadOnlySpan<char> FormatIso8601DateTime(Span<char> output, DateTime date, DateTimeKind kind, TimeSpan? utcOffset, char quotes = '\0')
 		{
-			// on va utiliser entre 28 et 33 (+2 avec les quotes) caractères dans le buffer
+			// we will need between 28 and 33 (+2 with quotes) characters for the buffer
 			if (output.Length < ISO8601_MAX_FORMATTED_SIZE) ThrowHelper.ThrowArgumentException(nameof(output), "Output buffer size is too small");
 
 			GetDateParts(date.Ticks, out var year, out var month, out var day, out var hour, out var min, out var sec, out var millis);
@@ -254,7 +247,7 @@ namespace Doxense.Serialization.Json
 
 		internal static int ComputeIso8601DateTimeSize(int millis, DateTimeKind kind, TimeSpan? utcOffset, char quotes)
 		{
-			// compute the exact required size
+			// Compute the exact required size
 			// - 'YYYY-DD-MMTHH:MM:SS___' => at least 19
 			// - '"...."' if quotes != 0 => +2
 			// - '___.0000000____" if there are milliseconds => +6
@@ -271,7 +264,7 @@ namespace Doxense.Serialization.Json
 
 			int size = ComputeIso8601DateTimeSize(millis, kind, utcOffset, quotes);
 
-			// on va utiliser entre 28 et 33 (+2 avec les quotes) caractères dans le buffer
+			// we will need between 28 and 33 (+2 with quotes) characters for the buffer
 			if (output.Length < size)
 			{
 				charsWritten = 0;
@@ -324,7 +317,7 @@ namespace Doxense.Serialization.Json
 
 		internal static ReadOnlySpan<char> FormatIso8601DateOnly(Span<char> output, DateOnly date, char quotes = '\0')
 		{
-			// on va utiliser entre 28 et 33 (+2 avec les quotes) caractères dans le buffer
+			// we will need between 28 and 33 (+2 with quotes) characters for the buffer
 			if (output.Length < ISO8601_MAX_FORMATTED_SIZE) ThrowHelper.ThrowArgumentException(nameof(output), "Output buffer size is too small");
 
 #if NET8_0_OR_GREATER
@@ -418,7 +411,7 @@ namespace Doxense.Serialization.Json
 		{
 			// special case: we still output 'Z' for DateTimeOffset with GMT offset, since we cannot distinguish with values set to UTC
 			// => we may mix up times set to GMT offset with UTC times, but if the server is set to GMT without any DST, this should not change the actual instant
-			if (utcOffset == default && !forceLocal)
+			if (utcOffset == TimeSpan.Zero && !forceLocal)
 			{ // "Z"
 				Unsafe.Add(ref ptr, 0) = 'Z';
 				return ref Unsafe.Add(ref ptr, 1);
@@ -443,9 +436,6 @@ namespace Doxense.Serialization.Json
 
 		public static void GetDateParts(long ticks, out int year, out int month, out int day, out int hour, out int minute, out int second, out int remainder)
 		{
-			// Version modifiée de DateTime.GetDatePart(..) qui retourne les 3 valeurs en une seule passe
-			// comments et noms des variables obtenues via Rotor...
-
 			// n = number of days since 1/1/0001
 			int n = (int)(ticks / (TimeSpan.TicksPerSecond * 86400));
 			// y400 = number of whole 400-year periods since 1/1/0001
@@ -472,7 +462,6 @@ namespace Doxense.Serialization.Json
 
 			// n = day number within year
 			n -= y1 * 365;
-			// note: si on veut le dayOfYear, il faut utiliser "n + 1"
 
 			// Leap year calculation looks different from IsLeapYear since y1, y4,
 			// and y100 are relative to year 1, not year 0

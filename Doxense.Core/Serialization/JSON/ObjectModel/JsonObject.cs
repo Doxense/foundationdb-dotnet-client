@@ -896,7 +896,7 @@ namespace Doxense.Serialization.Json
 			set => Set(key, value);
 		}
 
-		/// <inheritdoc cref="JsonValue.TryGetPathValue(string,out Doxense.Serialization.Json.JsonValue)" />
+		/// <inheritdoc cref="JsonValue.TryGetPathValue(string,out JsonValue)" />
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		[ContractAnnotation("halt<=key:null; =>true,value:notnull; =>false,value:null")]
 		public override bool TryGetValue(string key, [MaybeNullWhen(false)] out JsonValue value)
@@ -904,7 +904,7 @@ namespace Doxense.Serialization.Json
 			return m_items.TryGetValue(key, out value);
 		}
 
-		/// <inheritdoc cref="JsonValue.TryGetValue(ReadOnlySpan{char},out Doxense.Serialization.Json.JsonValue)" />
+		/// <inheritdoc cref="JsonValue.TryGetValue(ReadOnlySpan{char},out JsonValue)" />
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		[ContractAnnotation("halt<=key:null; =>true,value:notnull; =>false,value:null")]
 		public override bool TryGetValue(ReadOnlySpan<char> key, [MaybeNullWhen(false)] out JsonValue value)
@@ -946,7 +946,7 @@ namespace Doxense.Serialization.Json
 #endif
 		}
 
-		/// <inheritdoc cref="JsonValue.TryGetValue(ReadOnlyMemory{char},out Doxense.Serialization.Json.JsonValue)" />
+		/// <inheritdoc cref="JsonValue.TryGetValue(ReadOnlyMemory{char},out JsonValue)" />
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		[ContractAnnotation("halt<=key:null; =>true,value:notnull; =>false,value:null")]
 		public override bool TryGetValue(ReadOnlyMemory<char> key, [MaybeNullWhen(false)] out JsonValue value)

@@ -149,6 +149,8 @@ namespace Doxense.Serialization.Json.Tests
 	[TestFixture]
 	[Category("Core-SDK")]
 	[Category("Core-JSON")]
+	[Obsolete("These are tests for the legacy source generator!")]
+	[Ignore("Tests for the legacy source generator")]
 	public class CrystalJsonSourceGeneratorFacts : SimpleTest
 	{
 
