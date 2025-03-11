@@ -829,7 +829,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 						// static Create(IObservableJsonTransaction, JsonValue)
 						sb.AppendLine("/// <inheritdoc />");
-						sb.AppendLine($"public static {observableProxyTypeName} Create({KnownTypeSymbols.IObservableJsonTransaction} tr, {KnownTypeSymbols.JsonValueFullName} value) => new({KnownTypeSymbols.ObservableJsonFullName}.FromJson(tr, {KnownTypeSymbols.ObservableJsonPathFullName}.Root, value));");
+						sb.AppendLine($"public static {observableProxyTypeName} Create({KnownTypeSymbols.IObservableJsonTransaction} tr, {KnownTypeSymbols.JsonValueFullName} value) => new(tr.FromJson(value));");
 						sb.NewLine();
 
 						// static Create(IObservableJsonTransaction, JsonValue)

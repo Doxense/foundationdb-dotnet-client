@@ -12,23 +12,27 @@ namespace Doxense.Serialization.Json
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
+	using System.Text;
+	using Doxense.Text;
 
-	/// <summary>Observable JSON Object</summary>
+	/// <summary>Mutable JSON Object</summary>
 	[DebuggerDisplay("Count={Count}, Path={ToString(),nq}")]
 	public sealed class ObservableJsonValue : IJsonSerializable, IJsonPackable
 	{
 
-		public ObservableJsonValue(IObservableJsonTransaction tr, ObservableJsonPath path, JsonValue json)
+		public ObservableJsonValue(IObservableJsonTransaction tr, ObservableJsonValue? parent, ReadOnlyMemory<char> key, Index? index, JsonValue json)
 		{
 			Contract.Debug.Requires(tr != null && json != null);
 			this.Transaction = tr;
-			this.Path = path;
+			this.Parent = parent;
+			this.Key = key;
+			this.Index = index;
 			this.Json = json;
 		}
 
 		public override string ToString()
 		{
-			var path = ObservableJson.ComputePath(this, null, null);
+			var path = GetPath();
 			return path + ": " + this.Json.ToString("Q");
 		}
 
@@ -39,8 +43,129 @@ namespace Doxense.Serialization.Json
 
 		public IObservableJsonTransaction GetTransaction() => this.Transaction;
 
-		/// <summary>Path of this instance, relative to its parent</summary>
-		public ObservableJsonPath Path { get; }
+		#region Path...
+
+		/// <summary>Parent of this value, or <see langword="null"/> if this is the root of the document</summary>
+		internal readonly ObservableJsonValue? Parent;
+
+		/// <summary>Name of the field that contains this value in its parent object, or <see langword="null"/> if it was not part of an object</summary>
+		internal readonly ReadOnlyMemory<char> Key;
+
+		/// <summary>Position of this value in its parent array, or <see langword="null"/> if it was not part of an array</summary>
+		internal readonly Index? Index;
+
+		/// <summary>Tests if this is the top-level node of the document</summary>
+		public bool IsRoot() => this.Key.Length == 0 && this.Index == null;
+
+		/// <summary>Returns the path to a field of this object, from the root</summary>
+		/// <param name="key">Name of a field in this object</param>
+		public JsonPath GetPath(string key) => GetPath(key.AsMemory());
+
+		/// <summary>Returns the path to a field of this object, from the root</summary>
+		/// <param name="key">Name of a field in this object</param>
+		public JsonPath GetPath(ReadOnlyMemory<char> key)
+		{
+			if (this.IsRoot())
+			{
+				return JsonPath.Empty[key];
+			}
+
+			Span<char> scratch = stackalloc char[32];
+			var writer = new JsonPathBuilder(scratch);
+			try
+			{
+				PrependPath(ref writer);
+				writer.Append(key);
+				return writer.ToPath();
+			}
+			finally
+			{
+				writer.Dispose();
+			}
+		}
+
+		/// <summary>Returns the path to an item of this array, from the root</summary>
+		/// <param name="index">Index of the item in this array</param>
+		public JsonPath GetPath(int index)
+		{
+			if (this.IsRoot())
+			{
+				return JsonPath.Empty[index];
+			}
+
+			Span<char> scratch = stackalloc char[32];
+			var writer = new JsonPathBuilder(scratch);
+			try
+			{
+				PrependPath(ref writer);
+				writer.Append(index);
+				return writer.ToPath();
+			}
+			finally
+			{
+				writer.Dispose();
+			}
+		}
+
+		/// <summary>Returns the path to an item of this array, from the root</summary>
+		/// <param name="index">Index of the item in this array</param>
+		public JsonPath GetPath(Index index)
+		{
+			if (this.IsRoot())
+			{
+				return JsonPath.Empty[index];
+			}
+
+			Span<char> scratch = stackalloc char[32];
+			var writer = new JsonPathBuilder(scratch);
+			try
+			{
+				PrependPath(ref writer);
+				writer.Append(index);
+				return writer.ToPath();
+			}
+			finally
+			{
+				writer.Dispose();
+			}
+		}
+
+		/// <summary>Returns the path of this value, from the root</summary>
+		public JsonPath GetPath()
+		{
+			if (this.IsRoot())
+			{
+				return JsonPath.Empty;
+			}
+
+			Span<char> scratch = stackalloc char[32];
+			var builder = new JsonPathBuilder(scratch);
+			try
+			{
+				PrependPath(ref builder);
+				return builder.ToPath();
+			}
+			finally
+			{
+				builder.Dispose();
+			}
+		}
+
+		private void PrependPath(ref JsonPathBuilder sb)
+		{
+			this.Parent?.PrependPath(ref sb);
+
+			if (this.Index != null)
+			{
+				sb.Append(this.Index.Value);
+			}
+			else if (this.Key.Length != 0)
+			{
+				sb.Append(this.Key.Span);
+			}
+		}
+
+		#endregion
 
 		#region IDictionary<TKey, TValue>...
 
@@ -127,11 +252,44 @@ namespace Doxense.Serialization.Json
 			var items = this.Json;
 			if (!items.TryGetValue(key, out var child))
 			{
-				value = this.Transaction.FromJson(this, key, JsonNull.Missing);
+				value = new(this.Transaction, this, key.AsMemory(), null, JsonNull.Missing);
 				return false;
 			}
 
-			value = this.Transaction.FromJson(this, key, child);
+			value = new(this.Transaction, this, key.AsMemory(), null, child);
+			return true;
+		}
+
+		/// <summary>Returns the value of the given field, if it is not null or missing</summary>
+		/// <param name="key">Name of the field in this object</param>
+		/// <param name="value">Value that represents this field in the current object.</param>
+		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
+		/// <remarks><para>This can be used to perform a different operation if the value exists or not (initialize a counter or increment its value, throw a specialized exception, ....)</para></remarks>
+		/// <example><code>
+		/// if (!root.TryGetValue("Error", out var error))
+		/// { // this is the first error, will automatically create a new 'Error' object
+		///		error["Attempts"] = 1;
+		///		error["FirstAttempt"] = DateTimeOffset.UtcNow;
+		///		// root will now have { ..., "Error": { "Attempts": 1, "FirstAttempt": "..." } }
+		/// }
+		/// else
+		/// { // there was already an 'Error' object, record the new attempt
+		///		error["Attempts"].Increment();
+		///		error["LastAttempt"] = DateTimeOffset.UtcNow;
+		///		// root will now have { ..., "Error": { "Attempts": (+1), "FirstAttempt": "...", "LastAttempt": "..." } }
+		/// }
+		/// </code></example>
+		[Pure]
+		public bool TryGetValue(ReadOnlyMemory<char> key, out ObservableJsonValue value)
+		{
+			var items = this.Json;
+			if (!items.TryGetValue(key, out var child))
+			{
+				value = new(this.Transaction, this, key, null, JsonNull.Missing);
+				return false;
+			}
+
+			value = new(this.Transaction, this, key, null, child);
 			return true;
 		}
 
@@ -149,6 +307,32 @@ namespace Doxense.Serialization.Json
 		/// </code></example>
 		[Pure]
 		public bool TryGetValue<TValue>(string key, [MaybeNullWhen(false)] out TValue value)
+		{
+			var items = this.Json;
+			if (!items.TryGetValue(key, out var child) || child.IsNullOrMissing())
+			{
+				value = default;
+				return false;
+			}
+
+			value = child.As<TValue>()!;
+			return true;
+		}
+
+		/// <summary>Returns the value of the given field, if it is not null or missing</summary>
+		/// <param name="key">Name of the field in this object</param>
+		/// <param name="value">Value that represents this field in the current object.</param>
+		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
+		/// <remarks><para>This can be used to perform a different operation if the value exists or not (initialize a counter or increment its value, throw a specialized exception, ....)</para></remarks>
+		/// <example><code>
+		/// if (!root.TryGetValue&lt;Foo>("foo", out var foo))
+		/// { // first time
+		///		foo = new Foo { /* ... */ }
+		///     root.Set("foo", foo);
+		/// }
+		/// </code></example>
+		[Pure]
+		public bool TryGetValue<TValue>(ReadOnlyMemory<char> key, [MaybeNullWhen(false)] out TValue value)
 		{
 			var items = this.Json;
 			if (!items.TryGetValue(key, out var child) || child.IsNullOrMissing())
@@ -185,11 +369,11 @@ namespace Doxense.Serialization.Json
 		{
 			if (!this.Json.TryGetValue(index, out var child) || child.IsNullOrMissing())
 			{
-				value = this.Transaction.FromJson(this, index, JsonNull.Error);
+				value = new(this.Transaction, this, null, index, JsonNull.Error);
 				return false;
 			}
 
-			value = this.Transaction.FromJson(this, index, child);
+			value = new(this.Transaction, this, null, index, child);
 			return true;
 		}
 
@@ -217,16 +401,16 @@ namespace Doxense.Serialization.Json
 		{
 			if (!this.Json.TryGetValue(index, out var child) || child.IsNullOrMissing())
 			{
-				value = this.Transaction.FromJson(this, index, JsonNull.Error);
+				value = new(this.Transaction, this, null, index, JsonNull.Error);
 				return false;
 			}
 
-			value = this.Transaction.FromJson(this, index, child);
+			value = new(this.Transaction, this, null, index, child);
 			return true;
 		}
 
 		[Pure, MustUseReturnValue]
-		public ObservableJsonValue Get(string key) => this.Transaction.FromJson(this, key, this.Json.GetValueOrDefault(key));
+		public ObservableJsonValue Get(string key) => new(this.Transaction, this, key.AsMemory(), null, this.Json.GetValueOrDefault(key));
 
 		[Pure, MustUseReturnValue]
 		public TValue? Get<TValue>(string key) => this.Json.GetValueOrDefault(key).As<TValue>(default(TValue));
@@ -236,10 +420,10 @@ namespace Doxense.Serialization.Json
 		{
 #if NET9_0_OR_GREATER
 			var value = this.Json.GetValueOrDefault(key, JsonNull.Missing, out var actualKey);
-			return this.Transaction.FromJson(this, actualKey ?? key.ToString(), value);
+			return new(this.Transaction, this, (actualKey ?? key.ToString()).AsMemory(), null, value);
 #else
 			var value = this.Json.GetValueOrDefault(key, JsonNull.Missing);
-			return this.Transaction.FromJson(this, key.ToString(), value);
+			return new(this.Transaction, this, key.ToString().AsMemory(), null, value);
 #endif
 		}
 
@@ -251,10 +435,10 @@ namespace Doxense.Serialization.Json
 		{
 #if NET9_0_OR_GREATER
 			var value = this.Json.GetValueOrDefault(key, JsonNull.Missing, out var actualKey);
-			return this.Transaction.FromJson(this, actualKey ?? key.GetStringOrCopy(), value);
+			return new(this.Transaction, this, actualKey?.AsMemory() ?? key, null, value);
 #else
 			var value = this.Json.GetValueOrDefault(key, JsonNull.Missing);
-			return this.Transaction.FromJson(this, key.GetStringOrCopy(), value);
+			return new(this.Transaction, this, key, null, value);
 #endif
 		}
 
@@ -262,13 +446,13 @@ namespace Doxense.Serialization.Json
 		public TValue? Get<TValue>(ReadOnlyMemory<char> key) => this.Json.GetValueOrDefault(key).As<TValue>(default(TValue));
 
 		[Pure, MustUseReturnValue]
-		public ObservableJsonValue Get(int index) => this.Transaction.FromJson(this, index, this.Json.GetValueOrDefault(index));
+		public ObservableJsonValue Get(int index) => new(this.Transaction, this, null, index, this.Json.GetValueOrDefault(index));
 
 		[Pure, MustUseReturnValue]
 		public TValue? Get<TValue>(int index) => this.Json.GetValueOrDefault(index).As<TValue>(default(TValue));
 
 		[Pure, MustUseReturnValue]
-		public ObservableJsonValue Get(Index index) => this.Transaction.FromJson(this, index, this.Json.GetValueOrDefault(index));
+		public ObservableJsonValue Get(Index index) => new(this.Transaction, this, null, index, this.Json.GetValueOrDefault(index));
 
 		[Pure, MustUseReturnValue]
 		public TValue? Get<TValue>(Index index) => this.Json.GetValueOrDefault(index).As<TValue>(default(TValue));
@@ -291,16 +475,23 @@ namespace Doxense.Serialization.Json
 			return current;
 		}
 
-		private static void InsertInParent(in ObservableJsonPath path, ObservableJsonValue value)
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private void NotifyParent(ObservableJsonValue child)
 		{
-			Contract.Debug.Assert(path.Parent != null);
-			if (path.Key != null)
+			this.Parent?.NotifyChildChanged(child, this.Key, this.Index);
+		}
+
+		private static void InsertInParent(ObservableJsonValue parent, ReadOnlyMemory<char> key, Index? index, ObservableJsonValue value)
+		{
+			Contract.Debug.Assert(parent != null);
+			if (index != null)
 			{
-				path.Parent.Set(path.Key, value.Json);
+				parent.Set(index.Value, value.Json);
 			}
-			else if (path.Index != null)
+			else if (key.Length != 0)
 			{
-				path.Parent.Set(path.Index.Value, value.Json);
+				parent.Set(key, value.Json);
 			}
 			else
 			{
@@ -314,10 +505,14 @@ namespace Doxense.Serialization.Json
 			if (json.IsNullOrMissing())
 			{ // the parent should have been an object
 
-				var res = this.Transaction.NewObject(this.Path);
-				InsertInParent(this.Path, res);
-				json = res.Json;
+				json = this.Transaction.NewObject();
 				this.Json = json;
+
+				var res = new ObservableJsonValue(this.Transaction, this.Parent, this.Key, this.Index, json);
+				if (this.Parent != null)
+				{
+					InsertInParent(this.Parent, this.Key, this.Index, res);
+				}
 			}
 			if (json is not JsonObject obj)
 			{
@@ -332,10 +527,14 @@ namespace Doxense.Serialization.Json
 			if (json.IsNullOrMissing())
 			{ // the parent should have been an object
 
-				var res = this.Transaction.NewArray(this.Path);
-				ObservableJsonValue.InsertInParent(this.Path, res);
-				json = res.Json;
+				json = this.Transaction.NewArray();
 				this.Json = json;
+
+				var res = new ObservableJsonValue(this.Transaction, this.Parent, this.Key, this.Index, json);
+				if (this.Parent != null)
+				{
+					InsertInParent(this.Parent, this.Key, this.Index, res);
+				}
 			}
 			if (json is not JsonArray arr)
 			{
@@ -344,10 +543,10 @@ namespace Doxense.Serialization.Json
 			return arr;
 		}
 
-		internal void NotifyChildChanged(ObservableJsonValue child, string? key, Index? index)
+		internal void NotifyChildChanged(ObservableJsonValue child, ReadOnlyMemory<char> key, Index? index)
 		{
 			JsonValue newJson;
-			if (key != null)
+			if (key.Length != 0)
 			{
 				Contract.Debug.Assert(index == null);
 				var prevObj = RealizeObjectIfRequired();
@@ -384,7 +583,7 @@ namespace Doxense.Serialization.Json
 			}
 
 			this.Json = newJson;
-			this.Path.NotifyParent(this);
+			this.NotifyParent(this);
 		}
 
 		internal enum InsertionBehavior : byte
@@ -400,7 +599,7 @@ namespace Doxense.Serialization.Json
 			// validate the value
 			value ??= JsonNull.Missing;
 
-			var parent = this.Path.Parent;
+			var parent = this.Parent;
 			if (parent == null) throw new InvalidOperationException("Cannot replace the top level value");
 
 			var prevJson = this.Json;
@@ -457,22 +656,22 @@ namespace Doxense.Serialization.Json
 			}
 
 			this.Json = value;
-			this.Path.NotifyParent(this);
+			this.NotifyParent(this);
 
-			if (this.Path.Key != null)
+			if (this.Key.Length != 0)
 			{
 				if (patch == null)
 				{
-					this.Transaction.RecordUpdate(parent, this.Path.Key, value);
+					this.Transaction.RecordUpdate(parent, this.Key, value);
 				}
 				else
 				{
-					this.Transaction.RecordPatch(parent, this.Path.Key, patch);
+					this.Transaction.RecordPatch(parent, this.Key, patch);
 				}
 			}
-			else if (this.Path.Index != null)
+			else if (this.Index != null)
 			{
-				var idx = this.Path.Index.Value;
+				var idx = this.Index.Value;
 				// the pattern "[^0]" is used to append a new item to an array
 				// -> since the parent now contains the appended item, its Count is already incremented, so we have to replace it with "^1" instead!
 				if (idx.Equals(^0))
@@ -492,7 +691,7 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
-		internal bool InsertOrUpdate(string key, JsonValue? value, InsertionBehavior behavior)
+		internal bool InsertOrUpdate(ReadOnlyMemory<char> key, JsonValue? value, InsertionBehavior behavior)
 		{
 			// validate the value
 			value ??= JsonNull.Missing;
@@ -570,7 +769,7 @@ namespace Doxense.Serialization.Json
 			if (!ReferenceEquals(this.Json, newJson))
 			{
 				this.Json = newJson;
-				this.Path.NotifyParent(this);
+				this.NotifyParent(this);
 			}
 
 			if (patch == null)
@@ -651,7 +850,7 @@ namespace Doxense.Serialization.Json
 			if (!ReferenceEquals(this.Json, newJson))
 			{
 				this.Json = newJson;
-				this.Path.NotifyParent(this);
+				this.NotifyParent(this);
 			}
 
 			if (patch == null)
@@ -716,7 +915,9 @@ namespace Doxense.Serialization.Json
 
 		#region Set(key, value)
 
-		public void Set(string key, JsonValue? value) => InsertOrUpdate(key, value, InsertionBehavior.OverwriteExisting);
+		public void Set(string key, JsonValue? value) => InsertOrUpdate(key.AsMemory(), value, InsertionBehavior.OverwriteExisting);
+
+		public void Set(ReadOnlyMemory<char> key, JsonValue? value) => InsertOrUpdate(key, value, InsertionBehavior.OverwriteExisting);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Set(string key, JsonNull? value) => Set(key, (JsonValue?) value);
@@ -927,14 +1128,14 @@ namespace Doxense.Serialization.Json
 		{
 			// simulate the value to be Missing
 			this.Json = JsonNull.Missing;
-			if (this.Path.Key != null)
+			if (this.Key.Length != 0)
 			{
-				this.Path.Parent?.Remove(this.Path.Key);
+				this.Parent?.Remove(this.Key);
 			}
 			else
 			{
-				Contract.Debug.Requires(this.Path.Index != null);
-				this.Path.Parent?.Remove(this.Path.Index.Value);
+				Contract.Debug.Requires(this.Index != null);
+				this.Parent?.Remove(this.Index.Value);
 			}
 		}
 
@@ -948,7 +1149,23 @@ namespace Doxense.Serialization.Json
 
 			var newJson = prevJson.CopyAndRemove(key);
 			this.Json = newJson;
-			this.Path.NotifyParent(this);
+			this.NotifyParent(this);
+			this.Transaction.RecordDelete(this, key.AsMemory());
+			return true;
+		}
+
+
+		public bool Remove(ReadOnlyMemory<char> key)
+		{
+			if (this.Json is not JsonObject prevJson) throw new NotSupportedException();
+			if (!prevJson.ContainsKey(key))
+			{ // not found
+				return false;
+			}
+
+			var newJson = prevJson.CopyAndRemove(key);
+			this.Json = newJson;
+			this.NotifyParent(this);
 			this.Transaction.RecordDelete(this, key);
 			return true;
 		}
@@ -963,7 +1180,22 @@ namespace Doxense.Serialization.Json
 
 			var newJson = prevJson.CopyAndRemove(key);
 			this.Json = newJson;
-			this.Path.NotifyParent(this);
+			this.NotifyParent(this);
+			this.Transaction.RecordDelete(this, key.AsMemory());
+			return true;
+		}
+
+		public bool Remove(ReadOnlyMemory<char> key, [MaybeNullWhen(false)] out JsonValue value)
+		{
+			if (this.Json is not JsonObject prevJson) throw new NotSupportedException();
+			if (!prevJson.TryGetValue(key, out value))
+			{ // not found
+				return false;
+			}
+
+			var newJson = prevJson.CopyAndRemove(key);
+			this.Json = newJson;
+			this.NotifyParent(this);
 			this.Transaction.RecordDelete(this, key);
 			return true;
 		}
@@ -978,7 +1210,7 @@ namespace Doxense.Serialization.Json
 
 			var newJson = prevJson.CopyAndRemove(index);
 			this.Json = newJson;
-			this.Path.NotifyParent(this);
+			this.NotifyParent(this);
 			this.Transaction.RecordDelete(this, index);
 			return true;
 		}
@@ -995,7 +1227,7 @@ namespace Doxense.Serialization.Json
 			value = prevJson[index];
 			var newJson = prevJson.CopyAndRemove(index);
 			this.Json = newJson;
-			this.Path.NotifyParent(this);
+			this.NotifyParent(this);
 			this.Transaction.RecordDelete(this, index);
 			return true;
 		}
@@ -1011,7 +1243,7 @@ namespace Doxense.Serialization.Json
 
 			var newJson = prevJson.CopyAndRemove(offset);
 			this.Json = newJson;
-			this.Path.NotifyParent(this);
+			this.NotifyParent(this);
 			this.Transaction.RecordDelete(this, offset);
 			return true;
 		}
@@ -1029,7 +1261,7 @@ namespace Doxense.Serialization.Json
 			value = prevJson[offset];
 			var newJson = prevJson.CopyAndRemove(offset);
 			this.Json = newJson;
-			this.Path.NotifyParent(this);
+			this.NotifyParent(this);
 			this.Transaction.RecordDelete(this, offset);
 			return true;
 		}
@@ -1050,7 +1282,7 @@ namespace Doxense.Serialization.Json
 				}
 				default:
 				{
-					throw new InvalidOperationException($"Cannot increment '{value.Path.ToString()}' because it is a {value.Json.Type}");
+					throw new InvalidOperationException($"Cannot increment '{value.GetPath()}' because it is a {value.Json.Type}");
 				}
 			}
 		}
@@ -1170,7 +1402,7 @@ namespace Doxense.Serialization.Json
 				}
 			}
 			this.Json = newJson;
-			this.Path.NotifyParent(this);
+			this.NotifyParent(this);
 			this.Transaction.RecordClear(this);
 		}
 

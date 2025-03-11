@@ -20,7 +20,7 @@ namespace Doxense.Serialization.Json.Tests
 		public class FakeObservableTransaction : IObservableJsonTransaction
 		{
 
-			public List<(string Op, string? Path, JsonValue? Argument)> Changes { get; } = [ ];
+			public List<(string Op, JsonPath Path, JsonValue? Argument)> Changes { get; } = [ ];
 
 			public bool Logged { get; set; }
 
@@ -31,59 +31,58 @@ namespace Doxense.Serialization.Json.Tests
 			public int Count => this.Changes.Count;
 
 			/// <inheritdoc />
-			public ObservableJsonValue NewObject(ObservableJsonPath path) => new(this, path, JsonObject.Create());
+			public JsonObject NewObject() => JsonObject.Create();
 
 			/// <inheritdoc />
-			public ObservableJsonValue NewArray(ObservableJsonPath path) => new(this, path, new JsonArray());
+			public JsonArray NewArray() => new JsonArray();
 
 			/// <inheritdoc />
-			public ObservableJsonValue FromJson(ObservableJsonValue parent, string key, JsonValue? value) => ObservableJson.FromJson(this, new(parent, key), value ?? JsonNull.Null);
+			public ObservableJsonValue FromJson(JsonValue value) => new(this, null, default, null, value);
 
 			/// <inheritdoc />
-			public ObservableJsonValue FromJson(ObservableJsonValue parent, int index, JsonValue? value) => ObservableJson.FromJson(this, new(parent, index), value ?? JsonNull.Null);
+			public ObservableJsonValue FromJson(ObservableJsonValue parent, ReadOnlyMemory<char> key, JsonValue value) => new(this, parent, key, null, value);
 
 			/// <inheritdoc />
-			public ObservableJsonValue FromJson(ObservableJsonValue parent, Index index, JsonValue? value) => ObservableJson.FromJson(this, new(parent, index), value ?? JsonNull.Null);
+			public ObservableJsonValue FromJson(ObservableJsonValue parent, Index index, JsonValue value) => new(this, parent, default, index, value);
 
-			public void Record((string Op, string? Path, JsonValue? Arg) record)
+			private void RecordMutation((string Op, JsonPath Path, JsonValue? Arg) record)
 			{
 				this.Changes.Add(record);
 				if (this.Logged) Log($"# {record}");
 			}
 
-			public void Record(string op, ObservableJsonValue? instance, ReadOnlySpan<char> key, JsonValue? arg = null) => Record((op, ObservableJson.ComputePath(instance, key), arg?.Copy()));
-
-			public void Record(string op, ObservableJsonValue? instance, int index, JsonValue? arg = null) => Record((op, ObservableJson.ComputePath(instance, index), arg?.Copy()));
+			/// <inheritdoc />
+			public void RecordAdd(ObservableJsonValue instance, ReadOnlyMemory<char> key, JsonValue argument) => RecordMutation(("add", instance.GetPath(key), argument));
 
 			/// <inheritdoc />
-			public void RecordAdd(ObservableJsonValue instance, ReadOnlySpan<char> key, JsonValue argument) => Record("add", instance, key, argument);
+			public void RecordAdd(ObservableJsonValue instance, int index, JsonValue argument) => RecordMutation(("add", instance.GetPath(index), argument));
 
 			/// <inheritdoc />
-			public void RecordAdd(ObservableJsonValue instance, int index, JsonValue argument) => Record("add", instance, index, argument);
+			public void RecordUpdate(ObservableJsonValue instance, ReadOnlyMemory<char> key, JsonValue argument) => RecordMutation(("update", instance.GetPath(key), argument));
 
 			/// <inheritdoc />
-			public void RecordUpdate(ObservableJsonValue instance, ReadOnlySpan<char> key, JsonValue argument) => Record("update", instance, key, argument);
+			public void RecordUpdate(ObservableJsonValue instance, int index, JsonValue argument) => RecordMutation(("update", instance.GetPath(index), argument));
 
 			/// <inheritdoc />
-			public void RecordUpdate(ObservableJsonValue instance, int index, JsonValue argument) => Record("update", instance, index, argument);
+			public void RecordPatch(ObservableJsonValue instance, ReadOnlyMemory<char> key, JsonValue argument) => RecordMutation(("patch", instance.GetPath(key), argument));
 
 			/// <inheritdoc />
-			public void RecordPatch(ObservableJsonValue instance, ReadOnlySpan<char> key, JsonValue argument) => Record("patch", instance, key, argument);
+			public void RecordPatch(ObservableJsonValue instance, int index, JsonValue argument) => RecordMutation(("patch", instance.GetPath(index), argument));
 
 			/// <inheritdoc />
-			public void RecordPatch(ObservableJsonValue instance, int index, JsonValue argument) => Record("patch", instance, index, argument);
+			public void RecordDelete(ObservableJsonValue instance, ReadOnlyMemory<char> key) => RecordMutation(("delete", instance.GetPath(key), null));
 
 			/// <inheritdoc />
-			public void RecordDelete(ObservableJsonValue instance, ReadOnlySpan<char> key) => Record("delete", instance, key);
+			public void RecordDelete(ObservableJsonValue instance, int index) => RecordMutation(("delete", instance.GetPath(index), null));
 
 			/// <inheritdoc />
-			public void RecordDelete(ObservableJsonValue instance, int index) => Record("delete", instance, index);
+			public void RecordTruncate(ObservableJsonValue instance, int length) => RecordMutation(("truncate", instance.GetPath(), length));
 
 			/// <inheritdoc />
-			public void RecordClear(ObservableJsonValue instance) => Record("delete", instance, "");
+			public void RecordClear(ObservableJsonValue instance) => RecordMutation(("delete", instance.GetPath(), null));
 
 			/// <inheritdoc />
-			public void Reset() => Record("delete", null, null);
+			public void Reset() => this.Changes.Clear();
 
 		}
 
@@ -91,7 +90,7 @@ namespace Doxense.Serialization.Json.Tests
 		public void Test_Fill_Empty_Observable_Object()
 		{
 			var tr = new FakeObservableTransaction() { Logged = true };
-			var obj = tr.NewObject(ObservableJsonPath.Root);
+			var obj = tr.FromJson(tr.NewObject());
 
 			obj["hello"].Set("world");
 			obj["level"].Set(8001);
@@ -99,6 +98,7 @@ namespace Doxense.Serialization.Json.Tests
 			obj["point"].Set("y", 456);
 			obj.Set(JsonPath.Create("point.z"), 789);
 			obj["foo"]["bar"].Set("baz", true);
+			obj["items"][1].Set("two");
 
 			Dump(obj.Json);
 
@@ -115,6 +115,7 @@ namespace Doxense.Serialization.Json.Tests
 						("z", 789)
 					])),
 					("foo", JsonObject.Create("bar", JsonObject.Create("baz", true))),
+					("items", JsonArray.Create(null, "two")),
 				]))
 			);
 
@@ -123,6 +124,66 @@ namespace Doxense.Serialization.Json.Tests
 				Log($"- {op}, `{path}`, {arg:Q}");
 			}
 
+		}
+
+		public class ReadCapturingContext : IObservableJsonReadContext
+		{
+
+			public List<(string Op, JsonPath Path, JsonValue Value)> Reads { get; } = [ ];
+
+			public ObservableReadOnlyJsonValue FromJson(JsonValue value) => new(this, null, default, null, value);
+
+			public ObservableReadOnlyJsonValue FromJson(ObservableReadOnlyJsonValue? parent, ReadOnlyMemory<char> key, JsonValue value) => new(this, parent, key, null, value);
+
+			public ObservableReadOnlyJsonValue FromJson(ObservableReadOnlyJsonValue? parent, Index index, JsonValue value) => new(this, parent, default, index, value);
+
+			/// <inheritdoc />
+			public void RecordRead(ObservableReadOnlyJsonValue instance, ReadOnlyMemory<char> key, JsonValue argument, bool existOnly) => this.Reads.Add((existOnly ? "test" : "read", instance.GetPath(key), argument));
+
+			/// <inheritdoc />
+			public void RecordRead(ObservableReadOnlyJsonValue instance, Index index, JsonValue argument, bool existOnly) => this.Reads.Add((existOnly ? "test" : "read", instance.GetPath(index), argument));
+
+			/// <inheritdoc />
+			public void RecordLength(ObservableReadOnlyJsonValue instance, JsonValue argument) => this.Reads.Add(("size", instance.GetPath(), argument));
+
+			/// <inheritdoc />
+			public void Reset()
+			{
+				this.Reads.Clear();
+			}
+
+		}
+
+		private static JsonObject GetSampleObject() => new JsonObject()
+		{
+			["foo"] = 123,
+			["bar"] = true,
+			["hello"] = JsonObject.Create([ ("world", 456), ("there", 789) ]),
+			["items"] = JsonArray.Create([ "one", "two", "three", "four" ]),
+			["point"] = JsonObject.Create([ ("x", 1.0), ("y", -2.0), ("z", 3.0) ]),
+		};
+
+		[Test]
+		public void Test_Read_Access()
+		{
+			var tr = new ReadCapturingContext();
+			var obj = GetSampleObject();
+			var doc = tr.FromJson(obj);
+
+			Assert.That(doc["foo"].As<int>(), Is.EqualTo(123));
+			Assert.That(doc.Get<bool>("bar"), Is.True);
+			Assert.That(doc["hello"]["world"].ToJson(), IsJson.EqualTo(456));
+			Assert.That(doc["point"].ContainsKey("x"), Is.True);
+			Assert.That(doc["point"]["y"].Exists(), Is.True);
+			Assert.That(doc["point"]["z"].IsNullOrMissing(), Is.False);
+			Assert.That(doc["items"][1].As<string>(), Is.EqualTo("two"));
+			Assert.That(doc["items"][^1].As<string>(), Is.EqualTo("four"));
+
+			Log("Reads:");
+			foreach (var (op, path, value) in tr.Reads)
+			{
+				Log($"- {op} `{path}` => {value:Q}");
+			}
 		}
 
 	}
