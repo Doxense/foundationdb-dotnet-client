@@ -14,6 +14,9 @@
     <PackageVersion Include="Microsoft.CSharp" Version="4.7.0" />
     <PackageVersion Include="Microsoft.IO.RecyclableMemoryStream" Version="3.0.1" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageVersion Include="Microsoft.Testing.Extensions.Telemetry" Version="1.6.2" />
+    <PackageVersion Include="Microsoft.Testing.Platform" Version="1.6.2" />
+    <PackageVersion Include="Microsoft.Testing.Platform.MSBuild" Version="1.6.2" />
     <PackageVersion Include="Microsoft.TestPlatform.TestHost" Version="17.11.1" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageVersion Include="NodaTime" Version="3.2.1" />
@@ -39,7 +42,6 @@
     <PackageVersion Include="Testcontainers" Version="4.3.0" />
     <PackageVersion Include="ZstdSharp.Port" Version="0.8.5" />
   </ItemGroup>
-
   <!-- Packages for .NET 10 Preview -->
   <ItemGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net10.0'))">
     <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.0-preview.1.25080.5" />
@@ -68,7 +70,6 @@
     <PackageVersion Include="Microsoft.Extensions.Logging.Configuration" Version="9.0" />
     <PackageVersion Include="Microsoft.Extensions.Options" Version="9.0" />
   </ItemGroup>
-
   <!-- Packages for .NET 8 only -->
   <ItemGroup Condition="!$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net9.0'))">
     <PackageVersion Include="Microsoft.Net.Http.Headers" Version="8.0.11" />
