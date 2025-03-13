@@ -2075,7 +2075,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Determines whether this <see cref="JsonObject"/> contains an element with the given <paramref name="key"/> and with a non-null value</summary>
 		/// <param name="key">Name of the key</param>
 		/// <returns>Returns <see langword="true" /> if the entry is present and not <see cref="JsonNull.Null"/> or <see cref="JsonNull.Missing"/>.</returns>
-		/// <seealso cref="ContainsKey"/>
+		/// <seealso cref="ContainsKey(string)"/>
 		/// <remarks>
 		/// Result of <c>obj.Has("Foo")</c>:
 		/// <list type="table">
@@ -2839,55 +2839,59 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Generates a cacheable Picker that can extract a list of fields from a JSON Object</summary>
-		public static Func<JsonObject, JsonObject> CreatePicker(IDictionary<string, JsonValue?> defaults, bool removeFromSource = false)
+		public static Func<JsonObject, JsonObject> CreatePicker(IDictionary<string, JsonValue?> defaults, bool removeFromSource = false, bool keepMutable = false)
 		{
 			var projections = CheckProjectionDefaults(defaults);
-			return (obj) => Project(obj, projections, removeFromSource);
+			return (obj) => Project(obj, projections, removeFromSource, keepMutable);
 		}
 
 		/// <summary>Returns a new object that only contains the specified fields of this instance</summary>
 		/// <param name="fields">List of the names of the fields to keep, each with a default value if they are missing from the source</param>
 		/// <param name="keepMissing">If <see langword="false"/>, any field missing from the object will be omitted in the result. If <see langword="true"/>, they will be present but with a <see cref="JsonNull.Missing"/> value</param>
+		/// <param name="keepMutable">If <see langword="false"/>, the created object will be marked as read-only if the source is already read-only; otherwise, it will be mutable.</param>
 		/// <returns>New object that only contains the values of the fields specified in <paramref name="fields"/></returns>
-		public JsonObject Pick(ReadOnlySpan<string> fields, bool keepMissing = false)
+		public JsonObject Pick(ReadOnlySpan<string> fields, bool keepMissing = false, bool keepMutable = false)
 		{
-			return Project(this, CheckProjectionFields(fields, keepMissing));
+			return Project(this, CheckProjectionFields(fields, keepMissing), keepMutable: keepMutable);
 		}
 
 		/// <summary>Returns a new object that only contains the specified fields of this instance</summary>
 		/// <param name="fields">List of the names of the fields to keep, each with a default value if they are missing from the source</param>
 		/// <param name="keepMissing">If <see langword="false"/>, any field missing from the object will be omitted in the result. If <see langword="true"/>, they will be present but with a <see cref="JsonNull.Missing"/> value</param>
+		/// <param name="keepMutable">If <see langword="false"/>, the created object will be marked as read-only if the source is already read-only; otherwise, it will be mutable.</param>
 		/// <returns>New object that only contains the values of the fields specified in <paramref name="fields"/></returns>
-		public JsonObject Pick(string[] fields, bool keepMissing = false)
+		public JsonObject Pick(string[] fields, bool keepMissing = false, bool keepMutable = false)
 		{
-			return Project(this, CheckProjectionFields(fields, keepMissing));
+			return Project(this, CheckProjectionFields(fields, keepMissing), keepMutable: keepMutable);
 		}
 
 		/// <summary>Returns a new object that only contains the specified fields of this instance</summary>
 		/// <param name="fields">List of the names of the fields to keep, each with a default value if they are missing from the source</param>
 		/// <param name="keepMissing">If <see langword="false"/>, any field missing from the object will be omitted in the result. If <see langword="true"/>, they will be present but with a <see cref="JsonNull.Missing"/> value</param>
+		/// <param name="keepMutable">If <see langword="false"/>, the created object will be marked as read-only if the source is already read-only; otherwise, it will be mutable.</param>
 		/// <returns>New object that only contains the values of the fields specified in <paramref name="fields"/></returns>
-		public JsonObject Pick(IEnumerable<string> fields, bool keepMissing = false)
+		public JsonObject Pick(IEnumerable<string> fields, bool keepMissing = false, bool keepMutable = false)
 		{
-			return Project(this, CheckProjectionFields(fields as string[] ?? fields.ToArray(), keepMissing));
+			return Project(this, CheckProjectionFields(fields as string[] ?? fields.ToArray(), keepMissing), keepMutable: keepMutable);
+		}
+
+		/// <summary>Returns a new object that only contains the specified fields of this instance</summary>
+		/// <param name="fields">List of the names of the fields to keep, each with a default value if they are missing from the source</param>
+		/// <param name="keepMutable">If <see langword="false"/>, the created object will be marked as read-only if the source is already read-only; otherwise, it will be mutable.</param>
+		/// <returns>New object that only contains the values of the fields specified in <paramref name="fields"/></returns>
+		public JsonObject Project(ReadOnlySpan<(string Name, JsonPath Path, JsonValue? Fallback)> fields, bool keepMutable = false)
+		{
+			return Project(this, fields, keepMutable);
 		}
 
 		/// <summary>Returns a new object that only contains the specified fields of this instance</summary>
 		/// <param name="fields">List of the names of the fields to keep, each with a default value if they are missing from the source</param>
 		/// <param name="keepMissing">If <see langword="false"/>, any field missing from the object will be omitted in the result. If <see langword="true"/>, they will be present but with a <see cref="JsonNull.Missing"/> value</param>
+		/// <param name="keepMutable">If <see langword="false"/>, the created object will be marked as read-only if the source is already read-only; otherwise, it will be mutable.</param>
 		/// <returns>New object that only contains the values of the fields specified in <paramref name="fields"/></returns>
-		public JsonObject Project(ReadOnlySpan<(string Name, JsonPath Path, JsonValue? Fallback)> fields, bool keepMissing = false)
+		public JsonObject Project(ReadOnlySpan<(string Name, JsonPath Path)> fields, bool keepMissing = false, bool keepMutable = false)
 		{
-			return Project(this, fields);
-		}
-
-		/// <summary>Returns a new object that only contains the specified fields of this instance</summary>
-		/// <param name="fields">List of the names of the fields to keep, each with a default value if they are missing from the source</param>
-		/// <param name="keepMissing">If <see langword="false"/>, any field missing from the object will be omitted in the result. If <see langword="true"/>, they will be present but with a <see cref="JsonNull.Missing"/> value</param>
-		/// <returns>New object that only contains the values of the fields specified in <paramref name="fields"/></returns>
-		public JsonObject Project(ReadOnlySpan<(string Name, JsonPath Path)> fields, bool keepMissing = false)
-		{
-			return Project(this, CheckProjectionFields(fields, keepMissing));
+			return Project(this, CheckProjectionFields(fields, keepMissing), keepMutable);
 		}
 
 		/// <summary>Returns a new object containing only specific fields of this object</summary>
