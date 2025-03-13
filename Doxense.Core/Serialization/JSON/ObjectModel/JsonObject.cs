@@ -661,9 +661,10 @@ namespace Doxense.Serialization.Json
 		{
 			var map = new Dictionary<string, JsonValue>(source.TryGetNonEnumeratedCount(out var count) ? count : 0, comparer ?? StringComparer.Ordinal);
 			var context = new CrystalJsonDomWriter.VisitingContext();
+			var writer = CrystalJsonDomWriter.Create(settings, resolver);
 			foreach (var item in source)
 			{
-				var child = FromValue(CrystalJsonDomWriter.Default, ref context, valueSelector(item));
+				var child = FromValue(writer, ref context, valueSelector(item));
 				map.Add(keySelector(item), child);
 			}
 			return new JsonObject(map, readOnly: false);
