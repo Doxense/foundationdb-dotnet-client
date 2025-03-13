@@ -42,7 +42,23 @@ namespace Doxense.Serialization.Json
 
 		private char[]? Buffer;
 
-		public readonly int Length => this.Cursor;
+		public int Length
+		{
+			readonly get
+			{
+				return this.Cursor;
+			}
+			set
+			{
+				Contract.Positive(value);
+				if (value > this.Cursor)
+				{
+					throw new InvalidOperationException("Cannot set length greater than the current cursor");
+				}
+				this.Chars[value..this.Cursor].Clear();
+				this.Cursor = value;
+			}
+		}
 
 		public readonly int Capacity => this.Chars.Length;
 
@@ -169,14 +185,15 @@ namespace Doxense.Serialization.Json
 
 		public void Append(JsonPathSegment segment)
 		{
-			if (segment.Name.Length != 0)
+			if (segment.TryGetName(out var name))
 			{
-				Append(segment.Name.Span);
+				Append(name.Span);
 			}
-			else
+			else if (segment.TryGetIndex(out var index))
 			{
-				Append(segment.Index);
+				Append(index);
 			}
+			// else: empty!
 		}
 
 		public void Append(string name)
@@ -371,10 +388,11 @@ namespace Doxense.Serialization.Json
 			InsertBefore(span[..charsWritten]);
 		}
 
+		[Pure]
 		public readonly override string ToString() => this.Chars[..this.Cursor].ToString();
 
+		[Pure]
 		public readonly JsonPath ToPath() => JsonPath.Create(this.Chars[..this.Cursor]);
-
 	}
 
 }

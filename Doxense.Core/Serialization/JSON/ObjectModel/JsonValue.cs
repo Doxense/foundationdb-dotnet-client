@@ -26,6 +26,7 @@
 
 namespace Doxense.Serialization.Json
 {
+	using System;
 	using System.ComponentModel;
 	using System.Globalization;
 	using Doxense.Memory;
@@ -651,7 +652,6 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="System.ArgumentNullException">If <paramref name="key"/> is <see langword="null"/>.</exception>
 		/// <exception cref="System.InvalidOperationException">The current JSON value does not support indexing, or the object is read-only</exception>
 		/// <remarks>If the current value is null or missing, returns <see cref="JsonNull.Missing"/> in order to allow for null-propagation.</remarks>
-		[EditorBrowsable(EditorBrowsableState.Never)]
 		public virtual JsonValue this[string key]
 		{
 			[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -700,7 +700,6 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="System.InvalidOperationException">The current JSON value does not support indexing, or the array is read-only</exception>
 		/// <remarks>If the current value is null or missing, returns <see cref="JsonNull.Missing"/> in order to allow for null-propagation.</remarks>
 		[AllowNull]
-		[EditorBrowsable(EditorBrowsableState.Never)]
 		public virtual JsonValue this[int index]
 		{
 			[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -715,13 +714,30 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="System.InvalidOperationException">The current JSON value does not support indexing, or the array is read-only</exception>
 		/// <remarks>If the current value is null or missing, returns <see cref="JsonNull.Missing"/> in order to allow for null-propagation.</remarks>
 		[AllowNull]
-		[EditorBrowsable(EditorBrowsableState.Never)]
 		public virtual JsonValue this[Index index]
 		{
 			[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => GetValueOrDefault(index);
 			[CollectionAccess(CollectionAccessType.ModifyExistingContent)]
-			set => throw (this.IsReadOnly ? ThrowHelper.InvalidOperationException($"Cannot mutate a read-only JSON {this.Type}") : ThrowHelper.InvalidOperationException($"Cannot set value at index {index} on a JSON {this.Type}"));
+			set => throw (this.IsReadOnly ? FailCannotMutateReadOnlyValue(this) : ThrowHelper.InvalidOperationException($"Cannot set value at index {index} on a JSON {this.Type}"));
+		}
+
+		[AllowNull]
+		public virtual JsonValue this[JsonPath path]
+		{
+			[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => GetPathValueOrDefault(path);
+			[CollectionAccess(CollectionAccessType.ModifyExistingContent)]
+			set => throw (this.IsReadOnly ? FailCannotMutateReadOnlyValue(this) : ThrowHelper.InvalidOperationException($"Cannot set value of a child on a JSON {this.Type}"));
+		}
+
+		[AllowNull]
+		public virtual JsonValue this[JsonPathSegment segment]
+		{
+			[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => segment.TryGetName(out var name) ? GetValueOrDefault(name) : segment.TryGetIndex(out var index) ? GetValueOrDefault(index) : this;
+			[CollectionAccess(CollectionAccessType.ModifyExistingContent)]
+			set => throw (this.IsReadOnly ? FailCannotMutateReadOnlyValue(this) : ThrowHelper.InvalidOperationException($"Cannot set value of a child on a JSON {this.Type}"));
 		}
 
 		#region NEW API
@@ -1846,9 +1862,9 @@ namespace Doxense.Serialization.Json
 		private JsonValue GetPathCore(JsonPath path, JsonValue? defaultValue, bool required)
 		{
 			var current = this;
-			foreach (var (_, key, idx, _) in path)
+			foreach (var segment in path)
 			{
-				if (key.Length > 0)
+				if (segment.TryGetName(out var key))
 				{ // field access
 					if (current.IsNullOrMissing())
 					{
@@ -1860,7 +1876,7 @@ namespace Doxense.Serialization.Json
 					}
 					current = obj.GetValueOrDefault(key);
 				}
-				else
+				else if (segment.TryGetIndex(out var idx))
 				{ // array index
 					if (current.IsNullOrMissing())
 					{

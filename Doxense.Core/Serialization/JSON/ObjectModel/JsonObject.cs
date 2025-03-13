@@ -2280,9 +2280,9 @@ namespace Doxense.Serialization.Json
 			JsonValue? prevNode = null;
 			ReadOnlyMemory<char> prevKey = default;
 			Index prevIndex = default;
-			foreach (var (parent, key, idx, last) in path)
+			foreach (var (parent, segment, last) in path.Tokenize())
 			{
-				if (key.Length > 0)
+				if (segment.TryGetName(out var key))
 				{ // field access
 
 					// we have foo.bar, but foo was missing, so current = missing, key = "bar"
@@ -2357,7 +2357,7 @@ namespace Doxense.Serialization.Json
 					prevKey = key;
 					prevIndex = default;
 				}
-				else
+				else if (segment.TryGetIndex(out var idx))
 				{ // array index
 					
 					if (current is not JsonArray arr)
@@ -2758,8 +2758,9 @@ namespace Doxense.Serialization.Json
 		/// <summary>Apply a patch to the object (in place)</summary>
 		/// <param name="patch">Object that will be copied to the parent.</param>
 		/// <param name="deepCopy"></param>
+		/// <returns>The same object instance</returns>
 		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
-		public void ApplyPatch(JsonObject patch, bool deepCopy = false)
+		public JsonObject ApplyPatch(JsonObject patch, bool deepCopy = false)
 		{
 			if (m_readOnly) throw FailCannotMutateImmutableValue(this);
 
@@ -2814,6 +2815,8 @@ namespace Doxense.Serialization.Json
 					}
 				}
 			}
+
+			return this;
 		}
 
 		#endregion

@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -1095,11 +1095,11 @@ namespace Doxense.Serialization.Json.Binary
 
 				var current = GetRoot();
 
-				foreach(var x in path)
+				foreach(var x in path.Tokenize())
 				{
 					JValue child;
 
-					if (x.Key.Length != 0)
+					if (x.Segment.TryGetName(out var name))
 					{
 						if (!current.IsObject)
 						{ // current is not an object?
@@ -1107,7 +1107,7 @@ namespace Doxense.Serialization.Json.Binary
 						}
 
 						// encode the path
-						int keyLen = enc.GetBytes(x.Key.Span, keyBytes);
+						int keyLen = enc.GetBytes(name.Span, keyBytes);
 
 						var key = new JLookupKey(keyBytes.Slice(0, keyLen));
 
@@ -1116,7 +1116,7 @@ namespace Doxense.Serialization.Json.Binary
 							break;
 						}
 					}
-					else
+					else if (x.Segment.TryGetIndex(out var idx))
 					{
 						if (!current.IsArray)
 						{ // current is not an array?
@@ -1124,7 +1124,7 @@ namespace Doxense.Serialization.Json.Binary
 						}
 
 						int length = current.Count;
-						var index = x.Index.GetOffset(length);
+						var index = idx.GetOffset(length);
 
 						if ((uint) index >= length)
 						{ // outside the bounds of the array!
@@ -1132,6 +1132,11 @@ namespace Doxense.Serialization.Json.Binary
 						}
 
 						current.GetContainerEntry(index, length, out child);
+					}
+					else
+					{
+						//??
+						continue;
 					}
 
 					if (x.Last)

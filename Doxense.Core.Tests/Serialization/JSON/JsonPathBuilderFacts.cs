@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -337,7 +337,7 @@ namespace Doxense.Serialization.Json.Tests
 				var path = builder.ToPath();
 				Assert.That(path, Is.EqualTo(JsonPath.Empty["Hell[]"][^1]));
 				Assert.That(path.GetSegments()[0], Is.EqualTo("Hell[]"));
-				Assert.That(path.GetSegments()[1], Is.EqualTo("[^1]"));
+				Assert.That(path.GetSegments()[1], Is.EqualTo(^1));
 			}
 		}
 

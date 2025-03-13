@@ -777,6 +777,24 @@ namespace Doxense.Serialization.Json
 			set => Set(index, value);
 		}
 
+		/// <inheritdoc cref="JsonValue.this[JsonPathSegment]"/>
+		[AllowNull]
+		public override JsonValue this[JsonPathSegment segment]
+		{
+			get => segment.TryGetIndex(out var index) && TryGetValue(index, out var value) ? value : JsonNull.Error;
+			set
+			{
+				if (segment.TryGetIndex(out var index))
+				{
+					Set(index, value);
+				}
+				else
+				{
+					throw (m_readOnly ? FailCannotMutateReadOnlyValue(this) : ThrowHelper.InvalidOperationException($"Cannot set value at index {index} on a JSON {this.Type}"));
+				}
+			}
+		}
+
 		/// <inheritdoc />
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public void Add(JsonValue? value)

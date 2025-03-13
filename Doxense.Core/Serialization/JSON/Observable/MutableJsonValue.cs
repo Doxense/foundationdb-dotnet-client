@@ -15,6 +15,7 @@ namespace Doxense.Serialization.Json
 
 	/// <summary>Mutable JSON Object</summary>
 	[DebuggerDisplay("Count={Count}, Path={ToString(),nq}")]
+	[PublicAPI]
 	public sealed class MutableJsonValue : IJsonSerializable, IJsonPackable
 	{
 
@@ -459,20 +460,17 @@ namespace Doxense.Serialization.Json
 		public MutableJsonValue Get(JsonPath path)
 		{
 			var current = this;
-			foreach (var (parent, key, index, last) in path)
+			foreach (var segment in path)
 			{
-				if (key.Length > 0)
-				{
-					current = current.Get(key);
-				}
-				else
-				{
-					current = current.Get(index);
-				}
+				current = current.Get(segment);
 			}
 			return current;
 		}
 
+		public MutableJsonValue Get(JsonPathSegment segment)
+			=> segment.TryGetName(out var name) ? Get(name)
+			 : segment.TryGetIndex(out var idx) ? Get(idx)
+			 : this;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private void NotifyParent(MutableJsonValue child)

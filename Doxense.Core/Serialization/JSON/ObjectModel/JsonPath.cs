@@ -30,11 +30,13 @@ namespace Doxense.Serialization.Json
 	using System.Collections;
 	using System.Globalization;
 	using System.Text;
+	using Doxense.Linq;
 
 	/// <summary>Represents a path inside a JSON document to a nested child (ex: <c>"id"</c>, <c>"user.id"</c> <c>"tags[2].id"</c></summary>
 	[PublicAPI]
 	[DebuggerDisplay("{ToString(),nq}")]
-	public readonly struct JsonPath : IEnumerable<(JsonPath Parent, ReadOnlyMemory<char> Key, Index Index, bool Last)>, IJsonSerializable, IJsonPackable, IJsonDeserializable<JsonPath>, IEquatable<JsonPath>, IEquatable<string>, ISpanFormattable
+	[DebuggerNonUserCode]
+	public readonly struct JsonPath : IEnumerable<JsonPathSegment>, IJsonSerializable, IJsonPackable, IJsonDeserializable<JsonPath>, IEquatable<JsonPath>, IEquatable<string>, ISpanFormattable
 #if NET9_0_OR_GREATER
 		, IEquatable<ReadOnlySpan<char>>, IEquatable<ReadOnlyMemory<char>>
 #endif
@@ -54,50 +56,108 @@ namespace Doxense.Serialization.Json
 		public JsonPath(string? path) => this.Value = string.IsNullOrEmpty(path) ? default : path.AsMemory();
 
 		/// <summary>Returns a JsonPath that wraps a <see cref="ReadOnlySpan{T}">ReadOnlySpan&lt;char&gt;</see> literal</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonPath Create(ReadOnlyMemory<char> path) => path.Length == 0 ? default : new(path);
 
 		/// <summary>Returns a JsonPath that wraps a <see cref="ReadOnlySpan{T}">ReadOnlySpan&lt;char&gt;</see> literal</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonPath Create(ReadOnlySpan<char> path) => path.Length == 0 ? default : new(path.ToString());
 
 		/// <summary>Returns a JsonPath that wraps a <see cref="string">ReadOnlySpan&lt;char&gt;</see> literal</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonPath Create(string? path) => string.IsNullOrEmpty(path) ? default : new(path.AsMemory());
 
 		/// <summary>Returns a JsonPath that wraps an index</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure]
 		public static JsonPath Create(int index) => index switch
 		{
 			0 => new("[0]"),
 			1 => new("[1]"),
 			2 => new("[2]"),
+			3 => new("[3]"),
 			_ => new($"[{index}]"),
 		};
 
 		/// <summary>Returns a JsonPath that wraps an index</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonPath Create(Index index) => !index.IsFromEnd ? Create(index.Value) : index.Value == 1 ? new("[^1]") : new JsonPath($"[{index}]");
+		[Pure]
+		public static JsonPath Create(Index index) => !index.IsFromEnd ? Create(index.Value) : index.Value switch
+		{
+			0 => new("[^0]"), // used for append operations!
+			1 => new("[^1]"),
+			2 => new("[^2]"),
+			_ => new($"[{index}]")
+		};
+
+		/// <summary>Returns a JsonPath that wraps a single path segment</summary>
+		[Pure]
+		public static JsonPath Create(JsonPathSegment segment)
+			=> segment.TryGetName(out var name) ? Create(EncodeKeyName(name))
+			: segment.TryGetIndex(out var index) ? Create(index)
+			: default;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static explicit operator JsonPath(string? path) => path is null ? default : new(path.AsMemory());
 
+		[Pure]
+		public static JsonPath FromSegments(JsonPathSegment[]? segments)
+			=> segments == null ? JsonPath.Empty : FromSegments(new ReadOnlySpan<JsonPathSegment>(segments));
+
+		[Pure]
+		public static JsonPath FromSegments(ReadOnlySpan<JsonPathSegment> segments) => segments.Length switch
+		{
+			0 => default,
+			1 => Create(segments[0]),
+			_ => FromSegmentsMultiple(segments)
+		};
+
+		public static JsonPath FromSegments(IEnumerable<JsonPathSegment>? segments)
+			=> segments == null ? default
+			 : Buffer<JsonPathSegment>.TryGetSpan(segments, out var span) ? FromSegments(span)
+			 : FromSegmentsEnumerable(segments);
+
+
+		private static JsonPath FromSegmentsMultiple(ReadOnlySpan<JsonPathSegment> segments)
+		{
+			Span<char> scratch = stackalloc char[64];
+			using var builder = new JsonPathBuilder(scratch);
+			foreach (var segment in segments)
+			{
+				builder.Append(segment);
+			}
+			return builder.ToPath();
+		}
+
+		private static JsonPath FromSegmentsEnumerable(IEnumerable<JsonPathSegment> segments)
+		{
+			Span<char> scratch = stackalloc char[64];
+			using var builder = new JsonPathBuilder(scratch);
+			foreach (var segment in segments)
+			{
+				builder.Append(segment);
+			}
+			return builder.ToPath();
+		}
+
+		public Tokenizable Tokenize() => new(this);
+
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Tokenizer GetEnumerator() => new(this);
+		public SegmentTokenizer GetEnumerator() => new(this);
 
-		IEnumerator<(JsonPath, ReadOnlyMemory<char>, Index, bool)> IEnumerable<(JsonPath Parent, ReadOnlyMemory<char> Key, Index Index, bool Last)>.GetEnumerator() => new Tokenizer(this);
+		IEnumerator<JsonPathSegment> IEnumerable<JsonPathSegment>.GetEnumerator() => new SegmentTokenizer(this);
 
-		IEnumerator IEnumerable.GetEnumerator() => new Tokenizer(this);
+		IEnumerator IEnumerable.GetEnumerator() => new SegmentTokenizer(this);
 
-		public List<string> GetSegments()
+		/// <summary>Returns the list of segments that compose this path</summary>
+		/// <exception cref="FormatException">If this path is malformed</exception>
+		public List<JsonPathSegment> GetSegments()
 		{
 			var path = this.Value;
 			var tail = path;
-			List<string> res = [ ];
+			List<JsonPathSegment> res = [ ];
 
 			while (tail.Length > 0)
 			{
-				var consumed = ParseNext(tail.Span, out var keyLength, out var index);
+				var consumed = ParseNext(tail.Span, out int keyLength, out Index index);
 				Contract.Debug.Assert(consumed != 0 && consumed >= keyLength);
 
 				if (keyLength > 0)
@@ -109,7 +169,7 @@ namespace Doxense.Serialization.Json
 
 					if (chunk.TryGetString(out var s))
 					{ // we got the original string
-						res.Add(DecodeKeyName(s)); // returns the same string instance if not escaped
+						res.Add(new(DecodeKeyName(s))); // returns the same string instance if not escaped
 					}
 					else if (chunk.Span.Contains('\\'))
 					{ // the key is escaped, must be decoded
@@ -118,25 +178,94 @@ namespace Doxense.Serialization.Json
 						{
 							if (!TryDecodeKeyName(c.Span, buf, out int written) || written != buf.Length)
 							{ // should NOT happen! => decoded count does not match expected length ???
-								throw new InvalidOperationException("Internal decoding error");
+								throw new FormatException("Internal decoding error");
 							}
 						});
-						res.Add(s);
+						res.Add(new(s));
 					}
 					else
 					{ // the key does not need to be decoded
-						res.Add(chunk.ToString());
+						res.Add(new(chunk.ToString()));
 					}
 				}
 				else
 				{
-					res.Add($"[{index}]");
+					res.Add(new(index));
 				}
 
 				tail = tail.Slice(consumed);
 			}
 
 			return res;
+		}
+
+		/// <summary>Writes the segments that compose this path into the specified buffer, if it has enough capacity</summary>
+		/// <param name="buffer">Destination buffer (that must be large enough)</param>
+		/// <param name="segments">Receives the span of the buffer with the successfully decoded segments</param>
+		/// <returns><c>true</c> if buffer was large enough; otherwise, <c>false</c></returns>
+		/// <exception cref="FormatException"></exception>
+		public bool TryGetSegments(Span<JsonPathSegment> buffer, out ReadOnlySpan<JsonPathSegment> segments)
+		{
+
+			var path = this.Value;
+			if (path.Length == 0)
+			{
+				segments = default;
+				return true;
+			}
+
+			var tail = path;
+			int p = 0;
+
+			while (tail.Length > 0)
+			{
+				if (p >= buffer.Length)
+				{
+					segments = default;
+					return false;
+				}
+
+				var consumed = ParseNext(tail.Span, out int keyLength, out Index index);
+				Contract.Debug.Assert(consumed != 0 && consumed >= keyLength);
+
+				if (keyLength > 0)
+				{
+					// there is high probably that the key is a single key name, in which case chunk == path
+					// => we will try to extract the original string to reduce allocations as much as possible!
+
+					var chunk = tail[..keyLength];
+
+					if (chunk.TryGetString(out var s))
+					{ // we got the original string
+						buffer[p++] = new(DecodeKeyName(s)); // returns the same string instance if not escaped
+					}
+					else if (chunk.Span.Contains('\\'))
+					{ // the key is escaped, must be decoded
+						int l = GetDecodedKeyNameSize(chunk.Span);
+						s = string.Create(l, chunk, (buf, c) =>
+						{
+							if (!TryDecodeKeyName(c.Span, buf, out int written) || written != buf.Length)
+							{ // should NOT happen! => decoded count does not match expected length ???
+								throw new FormatException("Internal decoding error");
+							}
+						});
+						buffer[p++] = new(s);
+					}
+					else
+					{ // the key does not need to be decoded
+						buffer[p++] = new(chunk.ToString());
+					}
+				}
+				else
+				{
+					buffer[p++] = new(index);
+				}
+
+				tail = tail.Slice(consumed);
+			}
+
+			segments = buffer.Slice(0, p);
+			return true;
 		}
 
 		public int GetSegmentCount()
@@ -153,8 +282,6 @@ namespace Doxense.Serialization.Json
 			}
 			return count;
 		}
-
-
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public override string ToString() => this.Value.GetStringOrCopy();
@@ -549,6 +676,15 @@ namespace Doxense.Serialization.Json
 			return EncodeKeyNameWithPrefix(default, name.AsSpan());
 		}
 
+		public static ReadOnlyMemory<char> EncodeKeyName(ReadOnlyMemory<char> name)
+		{
+			if (name.Length == 0 || !RequiresEscaping(name.Span))
+			{
+				return name;
+			}
+			return EncodeKeyNameWithPrefix(default, name.Span).AsMemory();
+		}
+
 		public static ReadOnlySpan<char> EncodeKeyName(ReadOnlySpan<char> name)
 		{
 			if (name.Length == 0 || !RequiresEscaping(name))
@@ -642,7 +778,7 @@ namespace Doxense.Serialization.Json
 		public JsonPath this[JsonPathSegment segment]
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => segment.Name.Length != 0 ? this[segment.Name.Span] : this[segment.Index];
+			get => segment.TryGetName(out var name) ? this[name] : segment.TryGetIndex(out var index) ? this[index] : this;
 		}
 
 		/// <summary>Appends a field to this path (ex: <c>JsonPath.Return("user")["id"]</c> => "user.id")</summary>
@@ -1413,25 +1549,23 @@ namespace Doxense.Serialization.Json
 			return new JsonPath(str.Value.AsMemory());
 		}
 
-		public struct Tokenizer : IEnumerator<(JsonPath Parent, ReadOnlyMemory<char> Key, Index Index, bool Last)>
+		public struct SegmentTokenizer : IEnumerator<JsonPathSegment>
 		{
 
 			private JsonPath Path;
 			private ReadOnlyMemory<char> Tail;
 			private int Offset;
 			private int Consumed;
-			public ReadOnlyMemory<char> Key;
-			public Index Index;
+			public JsonPathSegment Segment;
 			public int Depth;
 
-			public Tokenizer(JsonPath path)
+			public SegmentTokenizer(JsonPath path)
 			{
 				this.Path = path;
 				this.Tail = path.Value;
 				this.Offset = 0;
 				this.Consumed = 0;
-				this.Key = default;
-				this.Index = default;
+				this.Segment = default;
 				this.Depth = -1;
 			}
 
@@ -1440,8 +1574,7 @@ namespace Doxense.Serialization.Json
 				this.Tail = this.Path.Value;
 				this.Offset = 0;
 				this.Consumed = 0;
-				this.Key = default;
-				this.Index = default;
+				this.Segment = default;
 				this.Depth = -1;
 			}
 
@@ -1455,49 +1588,44 @@ namespace Doxense.Serialization.Json
 
 				++this.Depth;
 
-				var consumed = ParseNext(tail.Span, out var keyLength, out this.Index);
+				var consumed = ParseNext(tail.Span, out var keyLength, out var index);
 				Contract.Debug.Assert(consumed >= keyLength);
 
 				if (consumed == 0)
 				{
-					this.Key = default;
+					this.Segment = default;
 					this.Consumed = 0;
 					this.Tail = default;
 					Contract.Debug.Assert(this.Offset == this.Path.Value.Length);
 					return false;
 				}
 
-				this.Key = keyLength > 0 ? tail[..keyLength] : default;
+				var key = keyLength > 0 ? tail[..keyLength] : default;
 
-				if (keyLength > 0 && RequiresEscaping(this.Key.Span))
+				if (keyLength > 0 && RequiresEscaping(key.Span))
 				{ // we need to decode the key to remove any '\'
 					//HACKHACK: OPTIMIZE: TODO: this allocates inside the tokenizer which is usually in the hot path of JsonValue.GetPath(...) !!
 					// => we _could_ use a small temp buffer from a pool, but we would need to make SURE that nobody can capture the Key
 					//    this is currently a ReadOnlyMemory<char> and would need to be changed into a ReadOnlySpan<char> ?
-					this.Key = DecodeKeyNameSlow(this.Key.Span).AsMemory();
+					key = DecodeKeyNameSlow(key.Span).AsMemory();
 				}
 
+				this.Segment = keyLength > 0 ? new(key) : new(index);
 				this.Offset += this.Consumed;
 				this.Tail = tail.Slice(consumed);
 				this.Consumed = consumed;
-				Contract.Debug.Ensures(!(this.Key.Length > 0 && (!this.Index.Equals(default)))); // both cannot be true at the same time
 				Contract.Debug.Ensures(this.Consumed > 0); // we should have advanced in the path
 				Contract.Debug.Ensures((uint) this.Offset < this.Path.Value.Length); // Path must not be fully consumed (only when we return false)
 				Contract.Debug.Ensures(this.Offset + this.Consumed <= this.Path.Value.Length);
 				return true;
 			}
 
-			public (JsonPath Parent, ReadOnlyMemory<char> Key, Index Index, bool Last) Current
+			public JsonPathSegment Current
 			{
 				[MethodImpl(MethodImplOptions.AggressiveInlining)]
 				get
 				{
-					var parent = this.Path.Value[..this.Offset];
-					if (parent.Length > 0 && parent.Span[^1] == '.')
-					{
-						parent = parent[..^1];
-					}
-					return (new JsonPath(parent), this.Key, this.Index, this.Offset + this.Consumed == this.Path.Value.Length);
+					return this.Segment;
 				}
 			}
 
@@ -1509,8 +1637,122 @@ namespace Doxense.Serialization.Json
 				this.Tail = default;
 				this.Offset = 0;
 				this.Consumed = 0;
-				this.Key = default;
-				this.Index = default;
+				this.Segment = default;
+			}
+
+		}
+
+		public readonly struct Tokenizable : IEnumerable<(JsonPath Parent, JsonPathSegment Segment, bool Last)>
+		{
+			private readonly JsonPath Path;
+
+			public Tokenizable(JsonPath path)
+			{
+				this.Path = path;
+			}
+
+			IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+			IEnumerator<(JsonPath Parent, JsonPathSegment Segment, bool Last)> IEnumerable<(JsonPath Parent, JsonPathSegment Segment, bool Last)>.GetEnumerator()
+				=> new Tokenizator(this.Path);
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public Tokenizator GetEnumerator() => new(this.Path);
+		}
+
+		public struct Tokenizator : IEnumerator<(JsonPath Parent, JsonPathSegment Segment, bool Last)>
+		{
+
+			private JsonPath Path;
+			private ReadOnlyMemory<char> Tail;
+			private int Offset;
+			private int Consumed;
+			public JsonPathSegment Segment;
+			public int Depth;
+
+			public Tokenizator(JsonPath path)
+			{
+				this.Path = path;
+				this.Tail = path.Value;
+				this.Offset = 0;
+				this.Consumed = 0;
+				this.Segment = default;
+				this.Depth = -1;
+			}
+
+			public void Reset()
+			{
+				this.Tail = this.Path.Value;
+				this.Offset = 0;
+				this.Consumed = 0;
+				this.Segment = default;
+				this.Depth = -1;
+			}
+
+			public bool MoveNext()
+			{
+				var tail = this.Tail;
+				if (tail.Length == 0)
+				{
+					return false;
+				}
+
+				++this.Depth;
+
+				var consumed = ParseNext(tail.Span, out var keyLength, out var index);
+				Contract.Debug.Assert(consumed >= keyLength);
+
+				if (consumed == 0)
+				{
+					this.Segment = default;
+					this.Consumed = 0;
+					this.Tail = default;
+					Contract.Debug.Assert(this.Offset == this.Path.Value.Length);
+					return false;
+				}
+
+				var key = keyLength > 0 ? tail[..keyLength] : default;
+				if (keyLength > 0 && RequiresEscaping(key.Span))
+				{ // we need to decode the key to remove any '\'
+					//HACKHACK: OPTIMIZE: TODO: this allocates inside the tokenizer which is usually in the hot path of JsonValue.GetPath(...) !!
+					// => we _could_ use a small temp buffer from a pool, but we would need to make SURE that nobody can capture the Key
+					//    this is currently a ReadOnlyMemory<char> and would need to be changed into a ReadOnlySpan<char> ?
+					key = DecodeKeyNameSlow(key.Span).AsMemory();
+				}
+
+				this.Segment = keyLength > 0 ? new(key) : new(index);
+				this.Offset += this.Consumed;
+				this.Tail = tail.Slice(consumed);
+				this.Consumed = consumed;
+				Contract.Debug.Ensures(this.Consumed > 0); // we should have advanced in the path
+				Contract.Debug.Ensures((uint) this.Offset < this.Path.Value.Length); // Path must not be fully consumed (only when we return false)
+				Contract.Debug.Ensures(this.Offset + this.Consumed <= this.Path.Value.Length);
+				return true;
+			}
+
+			public (JsonPath Parent, JsonPathSegment Segment, bool Last) Current
+			{
+				[MethodImpl(MethodImplOptions.AggressiveInlining)]
+				get
+				{
+					var parent = this.Path.Value[..Offset];
+					if (parent.Length > 0 && parent.Span[^1] == '.')
+					{
+						parent = parent[..^1];
+					}
+					return (new JsonPath(parent), this.Segment, this.Offset + this.Consumed == this.Path.Value.Length);
+				}
+			}
+
+			object IEnumerator.Current => this.Current;
+
+			public void Dispose()
+			{
+				this.Path = default;
+				this.Tail = default;
+				this.Offset = 0;
+				this.Consumed = 0;
+				this.Segment = default;
 			}
 
 		}
@@ -1594,43 +1836,241 @@ namespace Doxense.Serialization.Json
 
 	[PublicAPI]
 	[DebuggerDisplay("{ToString(),nq}")]
-	public readonly struct JsonPathSegment : IEquatable<JsonPathSegment>
+	[DebuggerNonUserCode]
+	public readonly struct JsonPathSegment : IJsonSerializable, IJsonPackable, IJsonDeserializable<JsonPathSegment>, ISpanFormattable
+		, IEquatable<JsonPathSegment>
+		, IEquatable<string>
+		, IEquatable<Index>
+		, IEquatable<int>
+		, IEquatable<ReadOnlyMemory<char>>
+#if NET9_0_OR_GREATER
+		, IEquatable<ReadOnlySpan<char>>
+#endif
 	{
+		public static readonly JsonPathSegment Empty;
 
 		public readonly ReadOnlyMemory<char> Name;
-		public readonly Index Index;
 
-		public JsonPathSegment(string name)
+		public readonly Index? Index;
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public JsonPathSegment(string? name)
 		{
 			this.Name = name.AsMemory();
-			this.Index = default;
+			this.Index = null;
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public JsonPathSegment(ReadOnlyMemory<char> name)
+		{
+			Contract.Debug.Requires(name.Length != 0);
+			this.Name = name;
+			this.Index = null;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonPathSegment(int index)
 		{
+			Contract.Debug.Requires(index >= 0);
 			this.Name = default;
 			this.Index = index;
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonPathSegment(Index index)
 		{
 			this.Name = default;
 			this.Index = index;
 		}
 
-		public bool IsField => this.Name.Length != 0;
+		/// <summary>Tests if this path segment is empty (ie: no path)</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool IsEmpty() => this.Name.Length == 0 && this.Index == null;
 
-		public override string ToString() => JsonPath.Empty[this].ToString();
+		/// <summary>Tests if this path is for an object field</summary>
+		/// <remarks>If <c>true</c>, this segment contains a valid field <see cref="Name"/></remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool IsName() => this.Name.Length != 0;
 
-		public override bool Equals([NotNullWhen(true)] object? obj) => obj is JsonPathSegment segment && Equals(segment);
+		/// <summary>Tests if this path is for an array item</summary>
+		/// <remarks>If <c>true</c>, this segment contains a valid item <see cref="Index"/></remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool IsIndex() => this.Index != null;
 
+		/// <summary>If this is a path to a field, return the name of the field</summary>
+		/// <param name="name">Receives the name of the field</param>
+		/// <returns><c>true</c> if this segments points to a field; otherwise, <c>false</c></returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryGetName(out ReadOnlyMemory<char> name)
+		{
+			name = this.Name;
+			return name.Length != 0;
+		}
+
+		/// <summary>If this is a path to an array item, return the index of the item</summary>
+		/// <param name="index">Receives the index of the item</param>
+		/// <returns><c>true</c> if this segments points to an array item; otherwise, <c>false</c></returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryGetIndex(out Index index)
+		{
+			index = this.Index.GetValueOrDefault();
+			return this.Index != null;
+		}
+
+		/// <inheritdoc />
+		public override bool Equals([NotNullWhen(true)] object? obj) => obj switch
+		{
+			null => IsEmpty(),
+			JsonPathSegment segment => Equals(segment),
+			string str => Equals(str),
+			int idx => Equals(idx),
+			Index idx => Equals(idx),
+			ReadOnlyMemory<char> str => Equals(str),
+			_ => false
+		};
+
+		/// <inheritdoc />
 		public override int GetHashCode()
 			=> HashCode.Combine(string.GetHashCode(this.Name.Span), this.Index.GetHashCode());
 
+		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(JsonPathSegment other)
-			=> this.Name.Length != 0
-			   ? this.Name.Span.SequenceEqual(other.Name.Span)
-			   : (this.Index.Equals(other.Index) && other.Name.Length == 0);
+			=> this.Name.Span.SequenceEqual(other.Name.Span) && (this.Index != null ? other.Index != null && this.Index.GetValueOrDefault().Equals(other.Index.GetValueOrDefault()) : other.Index == null);
+
+		/// <inheritdoc />
+		public bool Equals(string? key) => !string.IsNullOrEmpty(key) ? (this.Name.Length != 0 && this.Name.Span.SequenceEqual(key)) : this.IsEmpty();
+
+		/// <inheritdoc />
+		public bool Equals(ReadOnlyMemory<char> key) => this.Name.Length != 0 && this.Name.Span.SequenceEqual(key.Span);
+
+		/// <inheritdoc />
+		public bool Equals(ReadOnlySpan<char> key) => this.Name.Length != 0 && this.Name.Span.SequenceEqual(key);
+
+		/// <inheritdoc />
+		public bool Equals(int index) => this.Index != null && this.Index.GetValueOrDefault().Equals(index);
+
+		/// <inheritdoc />
+		public bool Equals(Index index) => this.Index != null && this.Index.GetValueOrDefault().Equals(index);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(JsonPathSegment left, JsonPathSegment right) => left.Equals(right);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(JsonPathSegment left, JsonPathSegment right) => !left.Equals(right);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonPathSegment(string? name) => new(name);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonPathSegment(ReadOnlyMemory<char> name) => new(name);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonPathSegment(int index) => new(index);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonPathSegment(Index index) => new(index);
+
+		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => writer.WriteValue(ToString());
+
+		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => JsonString.Return(ToString());
+
+		static JsonPathSegment IJsonDeserializable<JsonPathSegment>.JsonDeserialize(JsonValue value, ICrystalJsonTypeResolver? resolver)
+		{
+			if (value.IsNullOrMissing()) return default;
+			if (value is not JsonString str) throw new JsonBindingException("JsonPath must be represented as a string");
+			if (str.Value.Length == 0) return default;
+			if (str.Value.StartsWith('['))
+			{
+				if (!str.Value.EndsWith(']')) goto malformed;
+				if (str.Value[1] == '^')
+				{
+					if (!int.TryParse(str.Value.AsSpan()[2..^1], CultureInfo.InvariantCulture, out var idxValue))
+					{
+						return new(new Index(idxValue, fromEnd: true));
+					}
+				}
+				else
+				{
+					if (!int.TryParse(str.Value.AsSpan()[1..^1], CultureInfo.InvariantCulture, out var idxValue) || idxValue < 0)
+					{
+						goto malformed;
+					}
+					return new(idxValue);
+				}
+			}
+			return new(JsonPath.DecodeKeyName(str.Value));
+
+		malformed:
+			throw new JsonBindingException("Malformed JsonPathSegment literal");
+		}
+
+		public override string ToString() => ToString(null, null);
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? formatProvider)
+		{
+			if (TryGetName(out var name))
+			{
+				if (JsonPath.RequiresEscaping(name.Span))
+				{
+					return JsonPath.EncodeKeyName(name).GetStringOrCopy();
+				}
+				else
+				{
+					return name.GetStringOrCopy();
+				}
+			}
+			
+			if (TryGetIndex(out var index))
+			{
+				return string.Create(CultureInfo.InvariantCulture, $"[{index}]");
+			}
+
+			return "";
+		}
+
+		/// <inheritdoc />
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+		{
+			if (TryGetName(out var name))
+			{
+				if (JsonPath.RequiresEscaping(name.Span))
+				{
+					name = JsonPath.EncodeKeyName(name);
+				}
+				if (!name.Span.TryCopyTo(destination))
+				{
+					charsWritten = 0;
+					return false;
+				}
+				charsWritten = name.Length;
+				return true;
+			}
+			
+			if (TryGetIndex(out var index))
+			{
+				return destination.TryWrite(provider, $"[{index}]", out charsWritten);
+			}
+
+			charsWritten = 0;
+			return true;
+		}
+
+		public sealed class Comparer : IEqualityComparer<JsonPathSegment>
+		{
+
+			public static readonly Comparer Default = new();
+
+			private Comparer() { }
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public bool Equals(JsonPathSegment x, JsonPathSegment y) => x.Equals(y);
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public int GetHashCode(JsonPathSegment obj) => obj.GetHashCode();
+
+		}
 
 	}
 

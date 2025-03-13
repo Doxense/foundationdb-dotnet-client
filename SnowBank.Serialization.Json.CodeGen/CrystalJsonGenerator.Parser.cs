@@ -333,6 +333,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 				if (metadata.NameSpace == "System" || metadata.NameSpace.StartsWith("System.")) return false;
 				if (metadata.NameSpace == "Microsoft" || metadata.NameSpace.StartsWith("Microsoft.")) return false;
 				if (metadata.NameSpace == "NodaTime" || metadata.NameSpace.StartsWith("NodaTime.")) return false;
+				if (metadata.NameSpace == KnownTypeSymbols.CrystalJsonNamespace) return false;
 				return true;
 			}
 

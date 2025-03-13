@@ -10,18 +10,19 @@ namespace Doxense.Serialization.Json
 {
 
 	/// <summary>Observable JSON Object that will capture all reads</summary>
-	[DebuggerDisplay("Count={Count}, Path={ToString(),nq}")]
+	[DebuggerDisplay("{ToString(),nq}")]
+	[PublicAPI]
 	public sealed class ObservableJsonValue : IJsonSerializable, IJsonPackable
 	{
 
-		public ObservableJsonValue(IObservableJsonContext ctx, ObservableJsonValue? parent, ReadOnlyMemory<char> key, Index? index, JsonValue json)
+		public ObservableJsonValue(IObservableJsonContext ctx, ObservableJsonValue? parent, JsonPathSegment path, JsonValue json)
 		{
 			Contract.Debug.Requires(ctx != null && json != null);
 			this.Context = ctx;
 			this.Parent = parent;
-			this.Key = key;
-			this.Index = index;
+			this.Path = path;
 			this.Json = json;
+			this.Depth = (this.Parent?.Depth ?? -1) + 1;
 		}
 
 		public override string ToString()
@@ -32,9 +33,12 @@ namespace Doxense.Serialization.Json
 		/// <summary>Contains the read-only version of this JSON object</summary>
 		private JsonValue Json { get; }
 
+		/// <summary>Expose the underlying <see cref="JsonValue"/> of this node</summary>
+		/// <remarks>This will we recorded as a full use of the value</remarks>
 		public JsonValue ToJson()
 		{
-			RecordSelfAccess(existOnly: false);
+			// since we don't know what the caller will do, we have to assume that any content change would trigger a recompute
+			RecordSelfAccess(ObservableJsonAccess.Value);
 			return this.Json;
 		}
 
@@ -46,15 +50,26 @@ namespace Doxense.Serialization.Json
 
 		private ObservableJsonValue? Parent { get; }
 
-		/// <summary>Name of the field that contains this value in its parent object, or <see langword="null"/> if it was not part of an object</summary>
-		private ReadOnlyMemory<char> Key { get; }
+		/// <summary>Segment of path to this node from its parent</summary>
+		private JsonPathSegment Path { get; }
 
-		/// <summary>Position of this value in its parent array, or <see langword="null"/> if it was not part of an array</summary>
-		private Index? Index { get; }
-		//REVIEW: maybe not nullable? if Key != null then Index should be ignored (0), and if Key == null, then it is present?
+		/// <summary>Depth from the root to this node</summary>
+		/// <remarks>Required to pre-compute the size of path segment arrays</remarks>
+		private int Depth { get; }
 
 		/// <summary>Tests if this is the top-level node of the document</summary>
-		public bool IsRoot() => this.Key.Length == 0 && this.Index == null;
+		public bool IsRoot() => this.Depth == 0;
+
+		/// <summary>Returns the depth from the root to this value</summary>
+		/// <returns>Number of parents of this value, or 0 if this is the top-level value</returns>
+		public int GetDepth() => this.Depth;
+
+		public JsonPath GetPath(JsonPathSegment child)
+		{
+			return child.TryGetName(out var name) ? GetPath(name)
+				: child.TryGetIndex(out var index) ? GetPath(index)
+				: GetPath();
+		}
 
 		/// <summary>Returns the path to a field of this object, from the root</summary>
 		/// <param name="key">Name of a field in this object</param>
@@ -66,7 +81,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (this.IsRoot())
 			{
-				return JsonPath.Empty[key];
+				return JsonPath.Create(new JsonPathSegment(key));
 			}
 
 			Span<char> scratch = stackalloc char[32];
@@ -89,7 +104,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (this.IsRoot())
 			{
-				return JsonPath.Empty[index];
+				return JsonPath.Create(index);
 			}
 
 			Span<char> scratch = stackalloc char[32];
@@ -112,10 +127,11 @@ namespace Doxense.Serialization.Json
 		{
 			if (this.IsRoot())
 			{
-				return JsonPath.Empty[index];
+				return JsonPath.Create(index);
 			}
 
 			Span<char> scratch = stackalloc char[32];
+			// ReSharper disable once NotDisposedResource
 			var writer = new JsonPathBuilder(scratch);
 			try
 			{
@@ -154,21 +170,65 @@ namespace Doxense.Serialization.Json
 		{
 			this.Parent?.PrependPath(ref sb);
 
-			if (this.Index != null)
+			sb.Append(this.Path);
+		}
+
+		public JsonPathSegment[] GetPathSegments(JsonPathSegment child = default)
+		{
+			var hasChild = !child.IsEmpty();
+			var depth = this.Depth;
+
+			if (depth == 0) return hasChild ? [ child ] : [ ];
+
+			var buffer = new JsonPathSegment[depth + (hasChild ? 1 : 0)];
+			if (hasChild)
 			{
-				sb.Append(this.Index.Value);
+				buffer[depth] = child;
 			}
-			else if (this.Key.Length != 0)
+			WritePath(buffer);
+			return buffer;
+		}
+
+		public bool TryGetPathSegments(Span<JsonPathSegment> buffer, out ReadOnlySpan<JsonPathSegment> segments)
+		{
+			if (buffer.Length < this.Depth)
 			{
-				sb.Append(this.Key.Span);
+				segments = default;
+				return false;
+			}
+
+			WritePath(buffer);
+			segments = buffer.Slice(0, this.Depth);
+			return true;
+		}
+
+		private void WritePath(Span<JsonPathSegment> buffer)
+		{
+			int depth = this.Depth;
+			if (depth > 0)
+			{
+				buffer[depth - 1] = this.Path;
+				this.Parent!.WritePath(buffer);
 			}
 		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private void RecordSelfAccess(ObservableJsonAccess access, JsonValue? value = null)
+		{
+			this.Context.RecordRead(this, default, value ?? this.Json, access);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private void RecordChildAccess(ReadOnlyMemory<char> key, JsonValue value, ObservableJsonAccess access) => this.Context.RecordRead(this, new(key), value, access);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private void RecordChildAccess(Index index, JsonValue value, ObservableJsonAccess access) => this.Context.RecordRead(this, new(index), value, access);
 
 		#endregion
 
 		#region IDictionary<TKey, TValue>...
 
-		/// <summary>Number of fields in this object</summary>
+		/// <summary>Number of items in this array</summary>
 		public int Count
 		{
 			get
@@ -177,20 +237,15 @@ namespace Doxense.Serialization.Json
 #if DEBUG
 				Debugger.NotifyOfCrossThreadDependency();
 #endif
-				RecordLengthAccess();
-				return this.Json switch
-				{
-					JsonObject obj => obj.Count,
-					JsonArray arr => arr.Count,
-					_ => 0 // what should we do here?
-				};
+				RecordSelfAccess(ObservableJsonAccess.Length, this.Json);
+				return this.Json is JsonArray arr ? arr.Count : 0;
 			}
 		}
 
 		[Pure] 
 		public bool IsNullOrMissing()
 		{
-			RecordSelfAccess(existOnly: true);
+			RecordSelfAccess(ObservableJsonAccess.Exists);
 			return this.Json is JsonNull;
 		}
 
@@ -198,51 +253,22 @@ namespace Doxense.Serialization.Json
 		public bool Exists() => !this.IsNullOrMissing();
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private void RecordSelfAccess(bool existOnly)
-		{
-			// only register access to the root
-			if (this.Parent == null)
-			{
-				this.Context.RecordRead(this, null, this.Json, existOnly);
-			}
-			else if (this.Index != null)
-			{
-				this.Context.RecordRead(this.Parent, this.Index.GetValueOrDefault(), this.Json, existOnly);
-			}
-			else
-			{
-				this.Context.RecordRead(this.Parent, this.Key, this.Json, existOnly);
-			}
-		}
-
-		private void RecordLengthAccess()
-		{
-			this.Context.RecordLength(this, this.Json);
-		}
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private void RecordChildAccess(ReadOnlyMemory<char> key, JsonValue value, bool existOnly) => this.Context.RecordRead(this, key, value, existOnly);
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private void RecordChildAccess(Index index, JsonValue value, bool existOnly) => this.Context.RecordRead(this, index, value, existOnly);
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private ObservableJsonValue ReturnChild(ReadOnlyMemory<char> key, JsonValue value)
 		{
-			return this.Context.FromJson(this, key, value);
+			return this.Context.FromJson(this, new(key), value);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private ObservableJsonValue ReturnChild(Index index, JsonValue value)
 		{
-			return this.Context.FromJson(this, index, value);
+			return this.Context.FromJson(this, new(index), value);
 		}
 
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public TValue? As<TValue>(TValue? defaultValue = default)
 		{
-			RecordSelfAccess(existOnly: false);
+			RecordSelfAccess(ObservableJsonAccess.Value);
 			return this.Json.As<TValue>(defaultValue);
 		}
 
@@ -250,16 +276,16 @@ namespace Doxense.Serialization.Json
 		{
 			if (!this.Json.TryGetPathValue(key, out var child))
 			{
-				RecordChildAccess(key.AsMemory(), JsonNull.Missing, existOnly: false);
+				RecordChildAccess(key.AsMemory(), JsonNull.Missing, ObservableJsonAccess.Exists);
 				return false;
 			}
-			RecordChildAccess(key.AsMemory(), child, existOnly: false);
+			RecordChildAccess(key.AsMemory(), child, ObservableJsonAccess.Exists);
 			return true;
 		}
 
 		public bool ContainsValue(JsonValue value)
 		{
-			RecordSelfAccess(existOnly: false);
+			RecordSelfAccess(ObservableJsonAccess.Value);
 			return this.Json switch
 			{
 				JsonObject obj => obj.Contains(value),
@@ -326,12 +352,12 @@ namespace Doxense.Serialization.Json
 		{
 			if (!this.Json.TryGetValue(key, out var child) || child.IsNullOrMissing())
 			{
-				RecordChildAccess(key.AsMemory(), JsonNull.Missing, existOnly: false);
+				RecordChildAccess(key.AsMemory(), JsonNull.Missing, ObservableJsonAccess.Value);
 				value = default;
 				return false;
 			}
 
-			RecordChildAccess(key.AsMemory(), child, existOnly: false);
+			RecordChildAccess(key.AsMemory(), child, ObservableJsonAccess.Value);
 			value = child.As<TValue>()!;
 			return true;
 		}
@@ -383,7 +409,7 @@ namespace Doxense.Serialization.Json
 		public TValue? Get<TValue>(string key, TValue? defaultValue = default)
 		{
 			var child = this.Json.GetValueOrDefault(key);
-			RecordChildAccess(key.AsMemory(), child, existOnly: false);
+			RecordChildAccess(key.AsMemory(), child, ObservableJsonAccess.Value);
 			return child.As(defaultValue);
 		}
 
@@ -392,11 +418,11 @@ namespace Doxense.Serialization.Json
 		{
 #if NET9_0_OR_GREATER
 			var value = this.Json.GetValueOrDefault(key, JsonNull.Missing, out var actualKey);
-			return this.Context.FromJson(this, actualKey?.AsMemory() ?? key, value);
+			key = actualKey?.AsMemory() ?? key;
 #else
 			var value = this.Json.GetValueOrDefault(key, JsonNull.Missing);
-			return this.Context.FromJson(this, key, value);
 #endif
+			return this.Context.FromJson(this, new(key), value);
 		}
 
 		[Pure, MustUseReturnValue]
@@ -404,18 +430,19 @@ namespace Doxense.Serialization.Json
 		public TValue? Get<TValue>(ReadOnlyMemory<char> key, TValue? defaultValue = default)
 		{
 #if NET9_0_OR_GREATER
-			var child = this.Json.GetValueOrDefault(key, JsonNull.Missing, out var actualKey);
-			RecordChildAccess(actualKey?.AsMemory() ?? key, child, existOnly: false);
+			var value = this.Json.GetValueOrDefault(key, JsonNull.Missing, out var actualKey);
+			key = actualKey?.AsMemory() ?? key;
 #else
-			var child = this.Json.GetValueOrDefault(key, JsonNull.Missing);
-			RecordChildAccess(key, child, existOnly: false);
+			var value = this.Json.GetValueOrDefault(key, JsonNull.Missing);
 #endif
-			return child.As(defaultValue);
+			RecordChildAccess(key, value, ObservableJsonAccess.Value);
+			return value.As(defaultValue);
 		}
 
 		[Pure, MustUseReturnValue]
 		public ObservableJsonValue Get(int index)
 		{
+			//note: this fails is not JsonArray or JsonObject!
 			return ReturnChild(index, this.Json.GetValueOrDefault(index));
 		}
 
@@ -423,14 +450,16 @@ namespace Doxense.Serialization.Json
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public TValue? Get<TValue>(int index, TValue? defaultValue = default)
 		{
+			//note: this fails is not JsonArray or JsonObject!
 			var child = this.Json.GetValueOrDefault(index);
-			RecordChildAccess(index, child, existOnly: false);
+			RecordChildAccess(index, child, ObservableJsonAccess.Value);
 			return child.As(defaultValue);
 		}
 
 		[Pure, MustUseReturnValue]
 		public ObservableJsonValue Get(Index index)
 		{
+			//note: this fails is not JsonArray or JsonObject!
 			return ReturnChild(index, this.Json.GetValueOrDefault(index));
 		}
 
@@ -440,7 +469,7 @@ namespace Doxense.Serialization.Json
 		{
 			//note: this fails is not JsonArray or JsonObject!
 			var child = this.Json.GetValueOrDefault(index);
-			RecordChildAccess(index, child, existOnly: false);
+			RecordChildAccess(index, child, ObservableJsonAccess.Value);
 			return child.As(defaultValue);
 		}
 
@@ -448,19 +477,18 @@ namespace Doxense.Serialization.Json
 		public ObservableJsonValue Get(JsonPath path)
 		{
 			var current = this;
-			foreach (var (parent, key, index, last) in path)
+			foreach (var segment in path)
 			{
-				if (key.Length > 0)
-				{
-					current = current.Get(key);
-				}
-				else
-				{
-					current = current.Get(index);
-				}
+				current = current.Get(segment);
 			}
 			return current;
 		}
+
+		[Pure, MustUseReturnValue]
+		public ObservableJsonValue Get(JsonPathSegment segment)
+			=> segment.TryGetName(out var name) ? Get(name)
+			 : segment.TryGetIndex(out var index) ? Get(index)
+			 : this;
 
 		#endregion
 
