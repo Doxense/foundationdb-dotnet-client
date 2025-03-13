@@ -29,7 +29,9 @@
 namespace Doxense.Serialization.Json
 {
 	using System.Collections.Generic;
+#if !NET9_0_OR_GREATER
 	using System.ComponentModel;
+#endif
 
 	public partial class JsonObject
 	{
@@ -520,6 +522,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>A new instance with the same content of the original object, plus the additional item</returns>
 		/// <remarks>
 		/// <para>If a field with the same name already exists, its value will be overwritten.</para>
+		/// <para>If <paramref name="value"/> is <see cref="JsonNull.Missing"/>, the field will be <i>removed</i>.</para>
 		/// <para>If the object was not-readonly, existing non-readonly fields will also be converted to read-only.</para>
 		/// <para>For best performances, this should only be used on already-readonly objects, and with read-only values.</para>
 		/// </remarks>
@@ -528,7 +531,14 @@ namespace Doxense.Serialization.Json
 		{
 			// copy and set the new value
 			var items = new Dictionary<string, JsonValue>(m_items);
-			items[key] = value?.ToReadOnly() ?? JsonNull.Null;
+			if (ReferenceEquals(value, JsonNull.Missing))
+			{
+				items.Remove(key);
+			}
+			else
+			{
+				items[key] = value?.ToReadOnly() ?? JsonNull.Null;
+			}
 
 			if (!m_readOnly)
 			{ // some existing items may not be readonly, we may have to convert them as well
@@ -544,6 +554,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>A new instance with the same content of the original object, plus the additional item</returns>
 		/// <remarks>
 		/// <para>If a field with the same name already exists, its value will be overwritten.</para>
+		/// <para>If <paramref name="value"/> is <see cref="JsonNull.Missing"/>, the field will be <i>removed</i>.</para>
 		/// <para>If the object was not-readonly, existing non-readonly fields will also be converted to read-only.</para>
 		/// <para>For best performances, this should only be used on already-readonly objects, and with read-only values.</para>
 		/// </remarks>
@@ -559,7 +570,14 @@ namespace Doxense.Serialization.Json
 			// copy and set the new value
 			var items = new Dictionary<string, JsonValue>(m_items);
 			var alternate = items.GetAlternateLookup<ReadOnlySpan<char>>();
-			alternate[key] = value?.ToReadOnly() ?? JsonNull.Null;
+			if (ReferenceEquals(value, JsonNull.Missing))
+			{
+				alternate.Remove(key);
+			}
+			else
+			{
+				alternate[key] = value?.ToReadOnly() ?? JsonNull.Null;
+			}
 
 			if (!m_readOnly)
 			{ // some existing items may not be readonly, we may have to convert them as well
@@ -635,6 +653,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>A new instance with the same content of the original object, plus the additional item</returns>
 		/// <remarks>
 		/// <para>If a field with the same name already exists, its value will be overwritten and the previous value will be stored in <paramref name="previous"/>.</para>
+		/// <para>If <paramref name="value"/> is <see cref="JsonNull.Missing"/>, the field will be <i>removed</i>.</para>
 		/// <para>If the object was not-readonly, existing non-readonly fields will also be converted to read-only.</para>
 		/// <para>For best performances, this should only be used on already-readonly objects, and with read-only values.</para>
 		/// </remarks>
@@ -646,7 +665,14 @@ namespace Doxense.Serialization.Json
 			// get the previous value if it exists
 			items.TryGetValue(key, out previous);
 			// set the new value
-			items[key] = value?.ToReadOnly() ?? JsonNull.Null;
+			if (ReferenceEquals(value, JsonNull.Missing))
+			{
+				items.Remove(key);
+			}
+			else
+			{
+				items[key] = value?.ToReadOnly() ?? JsonNull.Null;
+			}
 
 			if (!m_readOnly)
 			{ // some existing items may not be readonly, we may have to convert them as well
@@ -654,6 +680,85 @@ namespace Doxense.Serialization.Json
 			}
 
 			return new(items, readOnly: true);
+		}
+
+		/// <summary>Returns a new read-only copy of this object, with an additional field</summary>
+		/// <param name="path">Path to the field</param>
+		/// <param name="value">Value of the new field</param>
+		/// <returns>A new instance with the same content of the original object, plus the additional field</returns>
+		/// <remarks>
+		/// <para>If a field with the same name already exists, its value will be overwritten.</para>
+		/// <para>If <paramref name="value"/> is <see cref="JsonNull.Missing"/>, the field will be <i>removed</i>.</para>
+		/// <para>If the object was not-readonly, existing non-readonly fields will also be converted to read-only.</para>
+		/// <para>For best performances, this should only be used on already-readonly objects, and with read-only values.</para>
+		/// </remarks>
+		public JsonObject CopyAndSet(JsonPath path, JsonValue? value) => CopyAndPatch(path, value ?? JsonNull.Null, remove: false);
+
+		internal JsonObject CopyAndPatch(JsonPath path, JsonValue value, bool remove)
+		{
+			JsonObject copy = this.Copy();
+			JsonValue current = copy;
+			var prevSegment = JsonPathSegment.Empty;
+			var prevNode = current;
+			foreach (var (_, segment, last) in path.Tokenize())
+			{
+				if (current.IsNullOrMissing())
+				{ // materialize the missing parent
+					// we can use the fact that segment is a field or index as a hint on whether the parent should be an object or an array
+					if (segment.IsName())
+					{
+						current = new JsonObject();
+					}
+					else
+					{
+						current = new JsonArray();
+					}
+
+					if (prevSegment.IsEmpty())
+					{
+						copy = (JsonObject) current;
+					}
+					else
+					{
+						prevNode[prevSegment] = current;
+					}
+				}
+
+				if (last)
+				{
+					if (segment.TryGetName(out var name))
+					{
+						if (remove)
+						{
+							((JsonObject) current).Remove(name);
+						}
+						else
+						{
+							current[name] = value;
+						}
+					}
+					else if (segment.TryGetIndex(out var index))
+					{
+						if (remove)
+						{
+							((JsonArray) current).RemoveAt(index);
+						}
+						else
+						{
+							current[index] = value;
+						}
+					}
+				}
+				else
+				{
+					prevNode = current;
+					prevSegment = segment;
+					var next = current[segment];
+					current = next;
+				}
+			}
+
+			return copy.Freeze();
 		}
 
 		/// <summary>Returns a new read-only copy of this object without the specified item</summary>
@@ -746,6 +851,15 @@ namespace Doxense.Serialization.Json
 			return CopyAndRemove(key.ToString());
 #endif
 		}
+
+		/// <summary>Returns a new read-only copy of this object without the specified item</summary>
+		/// <param name="path">Path of the field to remove from the copy</param>
+		/// <returns>A new instance with the same content of the original object, but with the specified item removed.</returns>
+		/// <remarks>
+		/// <para>If the object was not read-only, existing non-readonly fields will also be converted to read-only.</para>
+		/// <para>For best performances, this should only be used on already read-only objects.</para>
+		/// </remarks>
+		public JsonObject CopyAndRemove(JsonPath path) => CopyAndPatch(path, JsonNull.Missing, remove: true);
 
 		/// <summary>Returns a new read-only copy of this object without the specified item</summary>
 		/// <param name="key">Name of the field to remove from the copy</param>
