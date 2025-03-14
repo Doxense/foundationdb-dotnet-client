@@ -90,50 +90,104 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns a JsonPath that wraps a single path segment</summary>
 		[Pure]
-		public static JsonPath Create(JsonPathSegment segment)
+		public static JsonPath Create(in JsonPathSegment segment)
 			=> segment.TryGetName(out var name) ? Create(EncodeKeyName(name))
 			: segment.TryGetIndex(out var index) ? Create(index)
 			: default;
+
+		public static JsonPath Create(in JsonPathSegment segment0, in JsonPathSegment segment1)
+		{
+			Span<char> scratch = stackalloc char[24];
+			using var builder = new JsonPathBuilder(scratch);
+			builder.Append(in segment0);
+			builder.Append(in segment1);
+			return builder.ToPath();
+		}
+
+		public static JsonPath Create(in JsonPathSegment segment0, in JsonPathSegment segment1, in JsonPathSegment segment2)
+		{
+			Span<char> scratch = stackalloc char[32];
+			using var builder = new JsonPathBuilder(scratch);
+			builder.Append(in segment0);
+			builder.Append(in segment1);
+			builder.Append(in segment2);
+			return builder.ToPath();
+		}
+
+		public static JsonPath Create(in JsonPathSegment segment0, in JsonPathSegment segment1, in JsonPathSegment segment2, in JsonPathSegment segment3)
+		{
+			Span<char> scratch = stackalloc char[48];
+			using var builder = new JsonPathBuilder(scratch);
+			builder.Append(in segment0);
+			builder.Append(in segment1);
+			builder.Append(in segment2);
+			builder.Append(in segment3);
+			return builder.ToPath();
+		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static explicit operator JsonPath(string? path) => path is null ? default : new(path.AsMemory());
 
 		[Pure]
-		public static JsonPath FromSegments(JsonPathSegment[]? segments)
-			=> segments == null ? JsonPath.Empty : FromSegments(new ReadOnlySpan<JsonPathSegment>(segments));
+		public static JsonPath FromSegments(JsonPathSegment[]? segments, bool reversed = false)
+			=> segments == null ? JsonPath.Empty : FromSegments(new ReadOnlySpan<JsonPathSegment>(segments), reversed);
 
 		[Pure]
-		public static JsonPath FromSegments(ReadOnlySpan<JsonPathSegment> segments) => segments.Length switch
+		public static JsonPath FromSegments(ReadOnlySpan<JsonPathSegment> segments, bool reversed = false) => segments.Length switch
 		{
 			0 => default,
 			1 => Create(segments[0]),
-			_ => FromSegmentsMultiple(segments)
+			2 => reversed ? Create(segments[1], segments[0]) : Create(segments[0], segments[1]),
+			3 => reversed ? Create(segments[2], segments[1], segments[0]) : Create(segments[0], segments[1], segments[2]),
+			4 => reversed ? Create(in segments[3], in segments[2], in segments[1], in segments[0]) : Create(in segments[0], in segments[1], in segments[2], in segments[3]),
+			_ => FromSegmentsMultiple(segments, reversed)
 		};
 
-		public static JsonPath FromSegments(IEnumerable<JsonPathSegment>? segments)
+		public static JsonPath FromSegments(IEnumerable<JsonPathSegment>? segments, bool reversed = false)
 			=> segments == null ? default
-			 : Buffer<JsonPathSegment>.TryGetSpan(segments, out var span) ? FromSegments(span)
-			 : FromSegmentsEnumerable(segments);
+			 : Buffer<JsonPathSegment>.TryGetSpan(segments, out var span) ? FromSegments(span, reversed)
+			 : FromSegmentsEnumerable(segments, reversed);
 
 
-		private static JsonPath FromSegmentsMultiple(ReadOnlySpan<JsonPathSegment> segments)
+		private static JsonPath FromSegmentsMultiple(ReadOnlySpan<JsonPathSegment> segments, bool reversed)
 		{
+			// only called for 5 or more segments
 			Span<char> scratch = stackalloc char[64];
 			using var builder = new JsonPathBuilder(scratch);
-			foreach (var segment in segments)
+			if (reversed)
 			{
-				builder.Append(segment);
+				for (int i = segments.Length - 1; i >= 0; i--)
+				{
+					builder.Append(segments[i]);
+				}
+			}
+			else
+			{
+				foreach (var segment in segments)
+				{
+					builder.Append(segment);
+				}
 			}
 			return builder.ToPath();
 		}
 
-		private static JsonPath FromSegmentsEnumerable(IEnumerable<JsonPathSegment> segments)
+		private static JsonPath FromSegmentsEnumerable(IEnumerable<JsonPathSegment> segments, bool reversed)
 		{
 			Span<char> scratch = stackalloc char[64];
 			using var builder = new JsonPathBuilder(scratch);
-			foreach (var segment in segments)
+			if (reversed)
 			{
-				builder.Append(segment);
+				foreach (var segment in segments.Reverse())
+				{
+					builder.Append(segment);
+				}
+			}
+			else
+			{
+				foreach (var segment in segments)
+				{
+					builder.Append(segment);
+				}
 			}
 			return builder.ToPath();
 		}

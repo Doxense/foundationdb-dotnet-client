@@ -183,7 +183,7 @@ namespace Doxense.Serialization.Json
 			this.Chars = tmp;
 		}
 
-		public void Append(JsonPathSegment segment)
+		public void Append(in JsonPathSegment segment)
 		{
 			if (segment.TryGetName(out var name))
 			{
