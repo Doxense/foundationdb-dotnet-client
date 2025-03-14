@@ -344,6 +344,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 				ITypeSymbol typeSymbol;
 				bool isReadOnly;
 				bool isInitOnly;
+				bool isRequired = false;
 
 				switch (member)
 				{
@@ -358,6 +359,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 						isField = false;
 						typeSymbol = property.Type;
 						isReadOnly = property.IsReadOnly;
+						isRequired = property.IsRequired;
 
 						var setMethod = property.SetMethod;
 						isInitOnly = false;
@@ -386,6 +388,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 						typeSymbol = field.Type;
 						isReadOnly = field.IsReadOnly;
 						isInitOnly = false; // not possible on a field
+						isRequired = field.IsRequired;
 						break;
 					}
 					default:
@@ -405,7 +408,8 @@ namespace SnowBank.Serialization.Json.CodeGen
 					MaybeAddLinkedType(type.ElementType, elemType, mappedTypes, work);
 				}
 
-				var attributes = typeSymbol.GetAttributes().Select(attr => attr.ToString()).ToImmutableEquatableArray();
+				var memberAttributes = member.GetAttributes();
+				var attributes = memberAttributes.Select(attr => attr.ToString()).ToImmutableEquatableArray();
 
 				bool isNotNull;
 				if (type.IsValueType())
@@ -422,12 +426,11 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 				// parameters that can be modified via attributes or keywords on the member
 				var name = memberName;
-				bool isRequired = false;
 				bool isKey = false;
 
-				string? defaultLiteral = GetDefaultLiteral(type);
+				string defaultLiteral = GetDefaultLiteral(type);
 
-				foreach (var attribute in member.GetAttributes())
+				foreach (var attribute in memberAttributes)
 				{
 					var attributeType = attribute.AttributeClass;
 					if (attributeType is null) continue;
@@ -439,6 +442,21 @@ namespace SnowBank.Serialization.Json.CodeGen
 							if (attribute.ConstructorArguments.Length > 0)
 							{
 								name = (string) attribute.ConstructorArguments[0].Value!;
+							}
+
+							foreach(var kv in attribute.NamedArguments)
+							{
+								if (kv.Key == "DefaultValue")
+								{
+									if (type.IsPrimitive)
+									{
+										defaultLiteral = kv.Value.ToCSharpString();
+									}
+									else
+									{
+										defaultLiteral = $"({type.FullyQualifiedName}) {kv.Value.ToCSharpString()}";
+									}
+								}
 							}
 							//TODO: check if a default value was provided!
 							break;
@@ -454,11 +472,6 @@ namespace SnowBank.Serialization.Json.CodeGen
 						case KeyAttributeFullName:
 						{
 							isKey = true;
-							break;
-						}
-						case RequiredMemberAttributeFullName:
-						{
-							isRequired = true;
 							break;
 						}
 						//TODO: any other argument for setting a default value?
@@ -488,19 +501,22 @@ namespace SnowBank.Serialization.Json.CodeGen
 			{
 				SpecialType.System_Boolean => "false",
 				SpecialType.System_Char => "'\0'",
-				SpecialType.System_Byte => "default(byte)",
 				SpecialType.System_SByte => "default(sbyte)",
+				SpecialType.System_Byte => "default(byte)",
 				SpecialType.System_Int16 => "default(short)",
 				SpecialType.System_UInt16 => "default(ushort)",
 				SpecialType.System_Int32 => "0",
 				SpecialType.System_UInt32 => "0U",
 				SpecialType.System_Int64 => "0L",
 				SpecialType.System_UInt64 => "0UL",
+				SpecialType.System_Decimal => "0m",
 				SpecialType.System_Single => "0f",
 				SpecialType.System_Double => "0d",
-				SpecialType.System_Decimal => "0m",
 				SpecialType.System_String => "null",
+				SpecialType.System_IntPtr => "IntPtr.Zero",
+				SpecialType.System_UIntPtr => "UIntPtr.Zero",
 				SpecialType.System_DateTime => "DateTime.MinValue",
+				SpecialType.System_Enum => "0",
 				_ => type.IsValueType() ? "default" : "null"
 			};
 		}

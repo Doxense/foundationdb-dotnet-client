@@ -347,10 +347,9 @@ namespace SnowBank.Serialization.Json.CodeGen
 				(this.Nullability == NullableAnnotation.Annotated && this.NullableOfType is null)
 					? (this.FullyQualifiedName + "?")
 					: this.FullyQualifiedName;
-
 		}
 
-		public ImmutableEquatableArray<TypeRef> Parents { get; set; }
+		private ImmutableEquatableArray<TypeRef> Parents { get; }
 
 		public TypeRef Ref { get; }
 
@@ -483,9 +482,9 @@ namespace SnowBank.Serialization.Json.CodeGen
 			}
 		}
 
-		public bool CanBeNull() => this.TypeKind is not TypeKind.Struct || this.SpecialType is SpecialType.System_Nullable_T;
+		public bool CanBeNull() => this.TypeKind is not (TypeKind.Struct or TypeKind.Enum) || this.SpecialType is SpecialType.System_Nullable_T;
 
-		public bool IsValueType() => this.TypeKind is TypeKind.Struct;
+		public bool IsValueType() => this.TypeKind is TypeKind.Struct or TypeKind.Enum;
 
 		public bool IsEnum() => this.TypeKind is TypeKind.Enum;
 
