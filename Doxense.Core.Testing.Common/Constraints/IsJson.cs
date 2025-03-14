@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -719,13 +719,11 @@ namespace SnowBank.Testing
 						writer.WriteLine(Stringify(this.ExpectedValue));
 
 						writer.Write(TextMessageWriter.Pfx_Actual);
+						writer.WriteLine($"<{j.GetType().GetFriendlyName()}> {Jsonify(j)}");
 						if (TryBind(j, out var casted))
 						{
+							writer.Write("  Decoded:  ");
 							writer.WriteLine($"<{(casted?.GetType() ?? typeof(TValue)).GetFriendlyName()}> {Stringify(casted)}");
-						}
-						else
-						{
-							writer.WriteLine($"<{j.GetType().GetFriendlyName()}> {Jsonify(j)}");
 						}
 					}
 					else
@@ -760,16 +758,9 @@ namespace SnowBank.Testing
 						writer.WriteLine(Jsonify(jn));
 
 					}
-					else if (this.ActualValue is JsonValue value)
+					else if (this.ActualValue is JsonValue j)
 					{
-						if (TryBind(value, out var casted))
-						{
-							writer.WriteLine($"<{(casted?.GetType() ?? typeof(TValue)).GetFriendlyName()}> {Stringify(casted)}");
-						}
-						else
-						{
-							writer.WriteLine($"<{value.GetType().GetFriendlyName()}> {Jsonify(value)}");
-						}
+						writer.WriteLine($"<{j.GetType().GetFriendlyName()}> {Jsonify(j)}");
 					}
 					else
 					{
