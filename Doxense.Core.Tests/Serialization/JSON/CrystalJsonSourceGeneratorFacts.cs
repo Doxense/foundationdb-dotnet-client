@@ -24,6 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+#if DEPRECATED
 #if NET8_0_OR_GREATER
 
 namespace Doxense.Serialization.Json.Tests
@@ -872,4 +873,5 @@ namespace Doxense.Serialization.Json.Tests
 
 }
 
+#endif
 #endif
