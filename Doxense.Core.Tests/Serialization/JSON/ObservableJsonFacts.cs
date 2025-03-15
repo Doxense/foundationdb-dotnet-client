@@ -41,13 +41,10 @@ namespace Doxense.Serialization.Json.Tests
 			public JsonArray NewArray() => new JsonArray();
 
 			/// <inheritdoc />
-			public MutableJsonValue FromJson(JsonValue value) => new(this, null, default, null, value);
+			public MutableJsonValue FromJson(JsonValue value) => new(this, null, default, value);
 
 			/// <inheritdoc />
-			public MutableJsonValue FromJson(MutableJsonValue parent, ReadOnlyMemory<char> key, JsonValue value) => new(this, parent, key, null, value);
-
-			/// <inheritdoc />
-			public MutableJsonValue FromJson(MutableJsonValue parent, Index index, JsonValue value) => new(this, parent, default, index, value);
+			public MutableJsonValue FromJson(MutableJsonValue parent, JsonPathSegment segment, JsonValue value) => new(this, parent, segment, value);
 
 			private void RecordMutation((string Op, JsonPath Path, JsonValue? Arg) record)
 			{
@@ -56,34 +53,22 @@ namespace Doxense.Serialization.Json.Tests
 			}
 
 			/// <inheritdoc />
-			public void RecordAdd(MutableJsonValue instance, ReadOnlyMemory<char> key, JsonValue argument) => RecordMutation(("add", instance.GetPath(key), argument));
+			public void RecordAdd(IJsonProxyNode instance, JsonPathSegment child, JsonValue argument) => RecordMutation(("add", instance.GetPath(child), argument));
 
 			/// <inheritdoc />
-			public void RecordAdd(MutableJsonValue instance, int index, JsonValue argument) => RecordMutation(("add", instance.GetPath(index), argument));
+			public void RecordUpdate(IJsonProxyNode instance, JsonPathSegment child, JsonValue argument) => RecordMutation(("update", instance.GetPath(child), argument));
 
 			/// <inheritdoc />
-			public void RecordUpdate(MutableJsonValue instance, ReadOnlyMemory<char> key, JsonValue argument) => RecordMutation(("update", instance.GetPath(key), argument));
+			public void RecordPatch(IJsonProxyNode instance, JsonPathSegment child, JsonValue argument) => RecordMutation(("patch", instance.GetPath(child), argument));
 
 			/// <inheritdoc />
-			public void RecordUpdate(MutableJsonValue instance, int index, JsonValue argument) => RecordMutation(("update", instance.GetPath(index), argument));
+			public void RecordDelete(IJsonProxyNode instance, JsonPathSegment child) => RecordMutation(("delete", instance.GetPath(child), null));
 
 			/// <inheritdoc />
-			public void RecordPatch(MutableJsonValue instance, ReadOnlyMemory<char> key, JsonValue argument) => RecordMutation(("patch", instance.GetPath(key), argument));
+			public void RecordTruncate(IJsonProxyNode instance, int length) => RecordMutation(("truncate", instance.GetPath(), length));
 
 			/// <inheritdoc />
-			public void RecordPatch(MutableJsonValue instance, int index, JsonValue argument) => RecordMutation(("patch", instance.GetPath(index), argument));
-
-			/// <inheritdoc />
-			public void RecordDelete(MutableJsonValue instance, ReadOnlyMemory<char> key) => RecordMutation(("delete", instance.GetPath(key), null));
-
-			/// <inheritdoc />
-			public void RecordDelete(MutableJsonValue instance, int index) => RecordMutation(("delete", instance.GetPath(index), null));
-
-			/// <inheritdoc />
-			public void RecordTruncate(MutableJsonValue instance, int length) => RecordMutation(("truncate", instance.GetPath(), length));
-
-			/// <inheritdoc />
-			public void RecordClear(MutableJsonValue instance) => RecordMutation(("delete", instance.GetPath(), null));
+			public void RecordClear(IJsonProxyNode instance) => RecordMutation(("delete", instance.GetPath(), null));
 
 			/// <inheritdoc />
 			public void Reset() => this.Changes.Clear();

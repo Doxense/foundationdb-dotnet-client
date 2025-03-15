@@ -63,7 +63,7 @@ namespace Doxense.Serialization.Json
 	{
 
 		/// <summary>Wraps a JSON Value into a mutable proxy for type <typeparamref name="TValue"/></summary>
-		static abstract TMutableProxy Create(JsonValue obj, IJsonProxyNode? parent = null, JsonPathSegment segment = default, IJsonConverter<TValue>? converter = null);
+		static abstract TMutableProxy Create(MutableJsonValue obj, IJsonConverter<TValue>? converter = null);
 
 		/// <summary>Wraps an instance type <typeparamref name="TValue"/> into mutable proxy</summary>
 		static abstract TMutableProxy Create(TValue value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null);
@@ -99,51 +99,36 @@ namespace Doxense.Serialization.Json
 	{
 
 		/// <summary>Wrapped JSON Object</summary>
-		protected readonly JsonObject m_obj;
+		protected readonly MutableJsonValue m_obj;
 
-		/// <summary>Parent object or array, or <c>null</c> if this is the top-level of the document</summary>
-		protected readonly IJsonProxyNode? m_parent;
-
-		/// <summary>Segment of path from the parent node to this instance</summary>
-		protected readonly JsonPathSegment m_segment;
-
-		protected readonly int m_depth;
-
-		/// <inheritdoc />
-		JsonType IJsonProxyNode.Type => JsonType.Object;
-
-		protected JsonWritableProxyObjectBase(JsonValue value, IJsonProxyNode? parent, JsonPathSegment segment)
+		protected JsonWritableProxyObjectBase(MutableJsonValue value)
 		{
-			m_obj = value.AsObject();
-			m_parent = parent;
-			m_segment = segment;
-			m_depth = (parent?.Depth ?? -1) + 1;
+			m_obj = value;
 		}
 
 		/// <inheritdoc />
-		IJsonProxyNode? IJsonProxyNode.Parent => m_parent;
+		IJsonProxyNode? IJsonProxyNode.Parent => m_obj.Parent;
 
 		/// <inheritdoc />
-		JsonPathSegment IJsonProxyNode.Segment => m_segment;
+		JsonPathSegment IJsonProxyNode.Segment => m_obj.Segment;
 
 		/// <inheritdoc />
-		int IJsonProxyNode.Depth => m_depth;
+		int IJsonProxyNode.Depth => m_obj.Depth;
 
 		/// <inheritdoc />
-		void IJsonProxyNode.WritePath(ref JsonPathBuilder builder)
-		{
-			m_parent?.WritePath(ref builder);
-			builder.Append(m_segment);
-		}
+		JsonType IJsonProxyNode.Type => m_obj.Json.Type;
 
 		/// <inheritdoc />
-		public void JsonSerialize(CrystalJsonWriter writer) => m_obj.JsonSerialize(writer);
+		void IJsonProxyNode.WritePath(ref JsonPathBuilder builder) => m_obj.WritePath(ref builder);
 
 		/// <inheritdoc />
-		public JsonValue JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_obj;
+		public void JsonSerialize(CrystalJsonWriter writer) => m_obj.Json.JsonSerialize(writer);
 
 		/// <inheritdoc />
-		public JsonValue ToJson() => m_obj;
+		public JsonValue JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_obj.Json;
+
+		/// <inheritdoc />
+		public JsonValue ToJson() => m_obj.Json;
 
 	}
 

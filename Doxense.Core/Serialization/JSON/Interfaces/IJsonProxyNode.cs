@@ -87,6 +87,144 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+
+		public static JsonPath GetPath(this IJsonProxyNode self, JsonPathSegment child)
+		{
+			return child.TryGetName(out var name) ? self.GetPath(name)
+				: child.TryGetIndex(out var index) ? self.GetPath(index)
+				: self.GetPath();
+		}
+
+		/// <summary>Returns the path to a field of this object, from the root</summary>
+		/// <param name="key">Name of a field in this object</param>
+		public static JsonPath GetPath(this IJsonProxyNode self, string key) => self.GetPath(key.AsMemory());
+
+		/// <summary>Returns the path to a field of this object, from the root</summary>
+		/// <param name="key">Name of a field in this object</param>
+		public static JsonPath GetPath(this IJsonProxyNode self, ReadOnlyMemory<char> key)
+		{
+			if (self.Segment.IsEmpty())
+			{
+				return JsonPath.Create(new JsonPathSegment(key));
+			}
+
+			Span<char> scratch = stackalloc char[32];
+			var writer = new JsonPathBuilder(scratch);
+			try
+			{
+				self.WritePath(ref writer);
+				writer.Append(key);
+				return writer.ToPath();
+			}
+			finally
+			{
+				writer.Dispose();
+			}
+		}
+
+		/// <summary>Returns the path to an item of this array, from the root</summary>
+		/// <param name="index">Index of the item in this array</param>
+		public static JsonPath GetPath(this IJsonProxyNode self, int index)
+		{
+			if (self.Segment.IsEmpty())
+			{
+				return JsonPath.Create(index);
+			}
+
+			Span<char> scratch = stackalloc char[32];
+			var writer = new JsonPathBuilder(scratch);
+			try
+			{
+				self.WritePath(ref writer);
+				writer.Append(index);
+				return writer.ToPath();
+			}
+			finally
+			{
+				writer.Dispose();
+			}
+		}
+
+		/// <summary>Returns the path to an item of this array, from the root</summary>
+		/// <param name="index">Index of the item in this array</param>
+		public static JsonPath GetPath(this IJsonProxyNode self, Index index)
+		{
+			if (self.Segment.IsEmpty())
+			{
+				return JsonPath.Create(index);
+			}
+
+			Span<char> scratch = stackalloc char[32];
+			// ReSharper disable once NotDisposedResource
+			var writer = new JsonPathBuilder(scratch);
+			try
+			{
+				self.WritePath(ref writer);
+				writer.Append(index);
+				return writer.ToPath();
+			}
+			finally
+			{
+				writer.Dispose();
+			}
+		}
+
+		public static JsonPathSegment[] GetPathSegments(this IJsonProxyNode node, JsonPathSegment child = default)
+		{
+			var hasChild = !child.IsEmpty();
+			var depth = node.Depth;
+
+			if (depth == 0)
+			{
+				return hasChild ? [ child ] : [ ];
+			}
+
+			var buffer = new JsonPathSegment[checked(depth + (hasChild ? 1 : 0))];
+			if (hasChild)
+			{
+				buffer[depth] = child;
+			}
+
+			var current = node;
+			int p = depth - 1;
+			while (current != null)
+			{
+				buffer[p--] = current.Segment;
+				current = current.Parent;
+			}
+			Contract.Debug.Assert(p == 0);
+			return buffer;
+		}
+
+		public static bool TryGetPathSegments(this IJsonProxyNode node, JsonPathSegment child, Span<JsonPathSegment> buffer, out int written)
+		{
+			bool hasChild = !child.IsEmpty();
+			int depth = node.Depth;
+			int capacity = checked(depth + (hasChild ? 1 : 0));
+
+			if (buffer.Length < capacity)
+			{
+				written = 0;
+				return false;
+			}
+
+			if (hasChild)
+			{
+				buffer[depth] = child;
+			}
+
+			var current = node;
+			int p = depth - 1;
+			while(current != null)
+			{
+				buffer[p--] = current.Segment;
+				current = current.Parent;
+			}
+			Contract.Debug.Assert(p == 0);
+			written = capacity;
+			return true;
+		}
+
 	}
 
 }

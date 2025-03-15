@@ -26,9 +26,7 @@ namespace Doxense.Serialization.Json
 
 		MutableJsonValue FromJson(JsonValue value);
 
-		MutableJsonValue FromJson(MutableJsonValue parent, ReadOnlyMemory<char> key, JsonValue value);
-
-		MutableJsonValue FromJson(MutableJsonValue parent, Index index, JsonValue value);
+		MutableJsonValue FromJson(MutableJsonValue parent, JsonPathSegment path, JsonValue? value);
 
 		/// <summary>Creates a new empty object, using the transactions default settings</summary>
 		JsonObject NewObject();
@@ -43,18 +41,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>
 		/// <para>This records the facts that a new field is added to an object, OR that a field previously set to <c>null</c> now has a non-null value.</para>
 		/// </remarks>
-		void RecordAdd(MutableJsonValue instance, ReadOnlyMemory<char> key, JsonValue argument);
-
-		/// <summary>Records the addition or insertion of a new item into an array</summary>
-		/// <param name="instance">Parent instance (expected to be an object)</param>
-		/// <param name="index">Index of the item that is being added or inserted.</param>
-		/// <param name="argument">Value of the new item</param>
-		/// <remarks>
-		/// <para>Any existing item at or after the specified <paramref name="index"/> will be shifted to the right.</para>
-		/// <para>If there is a gap between the end of the array and <paramref name="index"/>, extra <c>null</c> entries will be inserted</para>
-		/// <para></para>
-		/// </remarks>
-		void RecordAdd(MutableJsonValue instance, int index, JsonValue argument);
+		void RecordAdd(IJsonProxyNode instance, JsonPathSegment child, JsonValue argument);
 
 		/// <summary>Truncate an array to the specified length</summary>
 		/// <param name="instance">Parent instance (expected to be an array)</param>
@@ -63,7 +50,7 @@ namespace Doxense.Serialization.Json
 		/// <para>Any item that would fall outside the new bounds of the array will be removed.</para>
 		/// <para>If the array is smaller than <paramref name="length"/>, extra <c>null</c> entries will be appended as needed.</para>
 		/// </remarks>
-		void RecordTruncate(MutableJsonValue instance, int length);
+		void RecordTruncate(IJsonProxyNode instance, int length);
 
 		/// <summary>Records the update of an existing field of an object</summary>
 		/// <param name="instance">Parent instance (expected to be an object)</param>
@@ -73,17 +60,7 @@ namespace Doxense.Serialization.Json
 		/// <para>This records the fact that the value of a field of the object as been replaced by another value.</para>
 		/// <para>Any previous mutation on this field, or any child, is superseded by this record</para>
 		/// </remarks>
-		void RecordUpdate(MutableJsonValue instance, ReadOnlyMemory<char> key, JsonValue argument);
-
-		/// <summary>Records the update of an existing item of an array</summary>
-		/// <param name="instance">Parent instance (expected to be an array)</param>
-		/// <param name="index">Index of the item that was updated</param>
-		/// <param name="argument">New value of the item</param>
-		/// <remarks>
-		/// <para>This records the fact that the value of an item of the array as been replaced by another value.</para>
-		/// <para>Any previous mutation on this item, or any child, is superseded by this record</para>
-		/// </remarks>
-		void RecordUpdate(MutableJsonValue instance, int index, JsonValue argument);
+		void RecordUpdate(IJsonProxyNode instance, JsonPathSegment child, JsonValue argument);
 
 		/// <summary>Records the update of an existing field of an object, using a patch definition</summary>
 		/// <param name="instance">Parent instance (expected to be an object)</param>
@@ -93,17 +70,7 @@ namespace Doxense.Serialization.Json
 		/// <para>This records the fact that the value of a field of the object as been patched.</para>
 		/// <para>Any previous mutation on this field, or any child, should be merged with this patch</para>
 		/// </remarks>
-		void RecordPatch(MutableJsonValue instance, ReadOnlyMemory<char> key, JsonValue argument);
-
-		/// <summary>Records the update of an existing item of an array</summary>
-		/// <param name="instance">Parent instance (expected to be an array)</param>
-		/// <param name="index">Index of the item that is being updated</param>
-		/// <param name="argument">Patch that describes the changes to this field</param>
-		/// <remarks>
-		/// <para>This records the fact that the value of an item of the array as been patched.</para>
-		/// <para>Any previous mutation on this item, or any child, should be merged with this patch</para>
-		/// </remarks>
-		void RecordPatch(MutableJsonValue instance, int index, JsonValue argument);
+		void RecordPatch(IJsonProxyNode instance, JsonPathSegment child, JsonValue argument);
 
 		/// <summary>Records the deletion of an existing field of an object</summary>
 		/// <param name="instance">Parent instance (expected to be an object)</param>
@@ -113,25 +80,14 @@ namespace Doxense.Serialization.Json
 		/// <para>Setting a field to null is logically equivalent to deleting the field</para>
 		/// <para>Any previous mutation on this item, or any child, should be superseded by this record.</para>
 		/// </remarks>
-		void RecordDelete(MutableJsonValue instance, ReadOnlyMemory<char> key);
-
-		/// <summary>Records the deletion of an existing item of an array</summary>
-		/// <param name="instance">Parent instance (expected to be an array)</param>
-		/// <param name="index">Index of the item that is being removed</param>
-		/// <remarks>
-		/// <para>This records the fact that the item does not exist any longer in the array</para>
-		/// <para>Any item after this item will be shifted to the left.</para>
-		/// <para>Removing the last item is equivalent to calling <see cref="RecordTruncate"/> with a smaller length, and should be preferred if more than one item are removed from the tail.</para>
-		/// <para>Any previous mutation on this item, or any child, should be superseded by this record.</para>
-		/// </remarks>
-		void RecordDelete(MutableJsonValue instance, int index);
+		void RecordDelete(IJsonProxyNode instance, JsonPathSegment child);
 
 		/// <summary>Records the removal of all fields in object, or items in an array</summary>
 		/// <param name="instance">Parent instance (expected to be an either an object or array)</param>
 		/// <remarks>
 		/// <para>The object or array instance will we cleared of any content.</para>
 		/// </remarks>
-		void RecordClear(MutableJsonValue instance);
+		void RecordClear(IJsonProxyNode instance);
 
 	}
 

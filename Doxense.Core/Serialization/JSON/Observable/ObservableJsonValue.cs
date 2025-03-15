@@ -77,7 +77,7 @@ namespace Doxense.Serialization.Json
 
 		#region Path...
 
-		private IJsonProxyNode? Parent { get; }
+		internal IJsonProxyNode? Parent { get; }
 
 		public IJsonProxyNode? GetParent() => this.Parent;
 
@@ -86,7 +86,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Depth from the root to this node</summary>
 		/// <remarks>Required to pre-compute the size of path segment arrays</remarks>
-		private int Depth { get; }
+		internal int Depth { get; }
 
 		/// <summary>Tests if this is the top-level node of the document</summary>
 		public bool IsRoot() => this.Depth == 0;
@@ -95,152 +95,12 @@ namespace Doxense.Serialization.Json
 		/// <returns>Number of parents of this value, or 0 if this is the top-level value</returns>
 		public int GetDepth() => this.Depth;
 
-		public JsonPath GetPath(JsonPathSegment child)
-		{
-			return child.TryGetName(out var name) ? GetPath(name)
-				: child.TryGetIndex(out var index) ? GetPath(index)
-				: GetPath();
-		}
+		void IJsonProxyNode.WritePath(ref JsonPathBuilder sb) => WritePath(ref sb);
 
-		/// <summary>Returns the path to a field of this object, from the root</summary>
-		/// <param name="key">Name of a field in this object</param>
-		public JsonPath GetPath(string key) => GetPath(key.AsMemory());
-
-		/// <summary>Returns the path to a field of this object, from the root</summary>
-		/// <param name="key">Name of a field in this object</param>
-		public JsonPath GetPath(ReadOnlyMemory<char> key)
-		{
-			if (this.IsRoot())
-			{
-				return JsonPath.Create(new JsonPathSegment(key));
-			}
-
-			Span<char> scratch = stackalloc char[32];
-			var writer = new JsonPathBuilder(scratch);
-			try
-			{
-				((IJsonProxyNode) this).WritePath(ref writer);
-				writer.Append(key);
-				return writer.ToPath();
-			}
-			finally
-			{
-				writer.Dispose();
-			}
-		}
-
-		/// <summary>Returns the path to an item of this array, from the root</summary>
-		/// <param name="index">Index of the item in this array</param>
-		public JsonPath GetPath(int index)
-		{
-			if (this.IsRoot())
-			{
-				return JsonPath.Create(index);
-			}
-
-			Span<char> scratch = stackalloc char[32];
-			var writer = new JsonPathBuilder(scratch);
-			try
-			{
-				((IJsonProxyNode) this).WritePath(ref writer);
-				writer.Append(index);
-				return writer.ToPath();
-			}
-			finally
-			{
-				writer.Dispose();
-			}
-		}
-
-		/// <summary>Returns the path to an item of this array, from the root</summary>
-		/// <param name="index">Index of the item in this array</param>
-		public JsonPath GetPath(Index index)
-		{
-			if (this.IsRoot())
-			{
-				return JsonPath.Create(index);
-			}
-
-			Span<char> scratch = stackalloc char[32];
-			// ReSharper disable once NotDisposedResource
-			var writer = new JsonPathBuilder(scratch);
-			try
-			{
-				((IJsonProxyNode) this).WritePath(ref writer);
-				writer.Append(index);
-				return writer.ToPath();
-			}
-			finally
-			{
-				writer.Dispose();
-			}
-		}
-
-		/// <summary>Returns the path of this value, from the root</summary>
-		public JsonPath GetPath()
-		{
-			if (this.IsRoot())
-			{
-				return JsonPath.Empty;
-			}
-
-			Span<char> scratch = stackalloc char[32];
-			var builder = new JsonPathBuilder(scratch);
-			try
-			{
-				((IJsonProxyNode) this).WritePath(ref builder);
-				return builder.ToPath();
-			}
-			finally
-			{
-				builder.Dispose();
-			}
-		}
-
-		void IJsonProxyNode.WritePath(ref JsonPathBuilder sb)
+		internal void WritePath(ref JsonPathBuilder sb)
 		{
 			this.Parent?.WritePath(ref sb);
-
 			sb.Append(this.Segment);
-		}
-
-		public JsonPathSegment[] GetPathSegments(JsonPathSegment child = default)
-		{
-			var hasChild = !child.IsEmpty();
-			var depth = this.Depth;
-
-			if (depth == 0) return hasChild ? [ child ] : [ ];
-
-			var buffer = new JsonPathSegment[depth + (hasChild ? 1 : 0)];
-			if (hasChild)
-			{
-				buffer[depth] = child;
-			}
-			WritePath(buffer);
-			return buffer;
-		}
-
-		public bool TryGetPathSegments(Span<JsonPathSegment> buffer, out ReadOnlySpan<JsonPathSegment> segments)
-		{
-			if (buffer.Length < this.Depth)
-			{
-				segments = default;
-				return false;
-			}
-
-			WritePath(buffer);
-			segments = buffer.Slice(0, this.Depth);
-			return true;
-		}
-
-		private void WritePath(Span<JsonPathSegment> buffer)
-		{
-			IJsonProxyNode node = this;
-			while(node.Parent != null)
-			{
-				buffer[node.Depth - 1] = node.Segment;
-				node = node.Parent;
-			}
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -312,7 +172,6 @@ namespace Doxense.Serialization.Json
 			value = this.Json as JsonObject;
 			return value is not null;
 		}
-
 
 		[Pure]
 		public bool IsNullOrMissing()
@@ -645,7 +504,8 @@ namespace Doxense.Serialization.Json
 			RecordChildAccess(name.AsMemory(), child, ObservableJsonAccess.Value);
 			if (child.IsNullOrMissing())
 			{
-				throw new JsonBindingException($"Required JSON field '{GetPath(name)}' was null or missing", GetPath(name), child, typeof(TValue));
+				var path = this.GetPath(name);
+				throw new JsonBindingException($"Required JSON field '{path}' was null or missing", path, child, typeof(TValue));
 			}
 			return child.As<TValue>()!;
 		}

@@ -37,15 +37,6 @@ namespace Doxense.Serialization.Json
 
 		public JsonValue ToJson() => m_array.ToJson();
 
-		public JsonWritableProxyArray<TValue> ToMutable() => new(m_array.GetJsonUnsafe().AsArrayOrDefault()?.Copy(), m_converter);
-
-		public JsonReadOnlyProxyArray<TValue> With(Action<JsonWritableProxyArray<TValue>> modifier)
-		{
-			var copy = m_array.GetJsonUnsafe().AsArrayOrEmpty().Copy();
-			modifier(new(copy, m_converter));
-			return new(m_array.Visit(copy.FreezeUnsafe()), m_converter);
-		}
-
 		/// <inheritdoc />
 		public IEnumerator<TValue> GetEnumerator()
 		{

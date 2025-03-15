@@ -8,6 +8,7 @@
 
 namespace Doxense.Serialization.Json
 {
+	using System.Buffers;
 	using System.Runtime.InteropServices;
 
 	/// <summary>Represents the type of read access to a node in an observable JSON document</summary>
@@ -74,7 +75,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="path">Path from the parent node to the child node</param>
 		/// <param name="value">Value of the child node</param>
 		/// <returns>Observable child node</returns>
-		ObservableJsonValue FromJson(IJsonProxyNode? parent, JsonPathSegment path, JsonValue value);
+		ObservableJsonValue FromJson(IJsonProxyNode parent, JsonPathSegment path, JsonValue value);
 
 		/// <summary>Records the access to a node, or one of its children</summary>
 		/// <param name="node">Node that was accessed.</param>
@@ -93,7 +94,7 @@ namespace Doxense.Serialization.Json
 		/// ctx.RecordRead(value, default, value, ObservableJsonAccess.Exists); // tested if the value is null or missing
 		/// ctx.RecordRead(obj, new("hello"), obj["hello"], ObservableJsonAccess.Exists); // tested for the present of the 'hello' field of obj
 		/// </code></example>
-		void RecordRead(ObservableJsonValue node, JsonPathSegment child, JsonValue argument, ObservableJsonAccess access);
+		void RecordRead(IJsonProxyNode node, JsonPathSegment child, JsonValue argument, ObservableJsonAccess access);
 
 	}
 
@@ -109,18 +110,29 @@ namespace Doxense.Serialization.Json
 		public ObservableJsonValue FromJson(IJsonProxyNode? parent, JsonPathSegment path, JsonValue value) => new(this, parent, path, value);
 
 		/// <inheritdoc />
-		public void RecordRead(ObservableJsonValue node, JsonPathSegment child, JsonValue argument, ObservableJsonAccess access)
+		public void RecordRead(IJsonProxyNode node, JsonPathSegment child, JsonValue argument, ObservableJsonAccess access)
 		{
 			Contract.Debug.Requires(node != null);
 
 			// we assume that most accesses are child of the top-level node, were we can skip the allocation for the segments array
-			if (node.GetDepth() == 0)
+			if (node.Depth == 0)
 			{
 				this.Trace.Add(child, access, argument);
 			}
 			else
 			{
-				this.Trace.Add(node.GetPathSegments(child), access, argument);
+				var pool = ArrayPool<JsonPathSegment>.Shared;
+				var segments = pool.Rent(node.Depth);
+				if (!node.TryGetPathSegments(child, segments, out var len))
+				{ // bug in the depth computation?
+#if DEBUG
+					if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
+#endif
+					throw new InvalidOperationException(); 
+				}
+				this.Trace.Add(segments.AsSpan(0, len), access, argument);
+				segments.AsSpan(0, len).Clear();
+				pool.Return(segments, clearArray: true);
 			}
 		}
 

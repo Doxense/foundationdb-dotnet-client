@@ -34,46 +34,54 @@ namespace Doxense.Serialization.Json
 	public readonly struct JsonWritableProxyArray<TValue> : IList<TValue>, IJsonSerializable, IJsonPackable
 	{
 
-		private readonly JsonArray m_array;
+		private readonly MutableJsonValue m_value;
 
 		private readonly IJsonConverter<TValue> m_converter;
 
-		private readonly IJsonProxyNode? m_parent;
-
-		private readonly JsonPathSegment m_segment;
-
-		public JsonWritableProxyArray(JsonArray? array, IJsonConverter<TValue>? converter = null, IJsonProxyNode? parent = null, JsonPathSegment segment = default)
+		public JsonWritableProxyArray(MutableJsonValue value, IJsonConverter<TValue>? converter = null, IJsonProxyNode? parent = null, JsonPathSegment segment = default)
 		{
-			m_array = array ?? [ ];
+			m_value = value;
 			m_converter = converter ?? RuntimeJsonConverter<TValue>.Default;
-			m_parent = parent;
-			m_segment = segment;
 		}
-	
-		TValue[] ToArray() => m_converter.JsonDeserializeArray(m_array);
 
-		List<TValue> ToList() => m_converter.JsonDeserializeList(m_array);
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		private static InvalidOperationException OperationRequiresArray() => new("This operation requires a valid JSON Array");
 
-		/// <inheritdoc />
-		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => m_array.JsonSerialize(writer);
-
-		/// <inheritdoc />
-		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_array;
-
-		public static JsonWritableProxyArray<TValue> FromValue(TValue[] values, IJsonConverter<TValue>? converter = null)
+		public TValue[] ToArray() => m_value.Json switch
 		{
-			converter ??= RuntimeJsonConverter<TValue>.Default;
-			return new(converter.JsonPackArray(values), converter);
-		}
+			JsonArray arr => m_converter.JsonDeserializeArray(arr),
+			JsonNull => [ ],
+			_ => throw OperationRequiresArray(),
+		};
 
-		public JsonArray ToJson() => m_array;
+		public List<TValue> ToList() => m_value.Json switch
+		{
+			JsonArray arr => m_converter.JsonDeserializeList(arr),
+			JsonNull => [ ],
+			_ => throw OperationRequiresArray(),
+		};
 
-		public JsonReadOnlyProxyArray<TValue> ToReadOnly() => new(new(null, m_parent, m_segment,m_array.ToReadOnly()), m_converter);
+		/// <inheritdoc />
+		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => m_value.Json.JsonSerialize(writer);
+
+		/// <inheritdoc />
+		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_value.Json;
+
+		public JsonValue ToJson() => m_value.Json;
 
 		/// <inheritdoc />
 		public IEnumerator<TValue> GetEnumerator()
 		{
-			foreach (var item in m_array)
+			if (m_value.Json is not JsonArray arr)
+			{
+				if (m_value.Json is JsonNull)
+				{
+					yield break;
+				}
+				throw OperationRequiresArray();
+			}
+
+			foreach (var item in arr)
 			{
 				yield return m_converter.Unpack(item);
 			}
@@ -83,10 +91,10 @@ namespace Doxense.Serialization.Json
 		IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
 
 		/// <inheritdoc />
-		public void Add(TValue item) => m_array.Add(m_converter.Pack(item));
+		public void Add(TValue item) => m_value.Add(m_converter.Pack(item));
 
 		/// <inheritdoc />
-		public void Clear() => m_array.Clear();
+		public void Clear() => m_value.Clear();
 
 		/// <inheritdoc />
 		bool ICollection<TValue>.Contains(TValue item) => throw new NotSupportedException("This operation is too costly.");
@@ -96,9 +104,18 @@ namespace Doxense.Serialization.Json
 		{
 			Contract.NotNull(array);
 			Contract.Positive(arrayIndex);
-			Contract.DoesNotOverflow(array, arrayIndex, m_array.Count);
+			Contract.DoesNotOverflow(array, arrayIndex, m_value.Count);
 
-			foreach (var item in m_array)
+			if (m_value.Json is not JsonArray arr)
+			{
+				if (m_value.Json is JsonNull)
+				{
+					return;
+				}
+				throw OperationRequiresArray();
+			}
+
+			foreach (var item in arr)
 			{
 				array[arrayIndex++] = m_converter.Unpack(item);
 			}
@@ -117,16 +134,16 @@ namespace Doxense.Serialization.Json
 		bool ICollection<TValue>.IsReadOnly => false;
 
 		/// <inheritdoc />
-		public void Insert(int index, TValue item) => m_array.Insert(index, m_converter.Pack(item));
+		public void Insert(int index, TValue item) => m_value.Insert(index, m_converter.Pack(item));
 
 		/// <inheritdoc />
-		public void RemoveAt(int index) => m_array.RemoveAt(index);
+		public void RemoveAt(int index) => m_value.RemoveAt(index);
 
 		/// <inheritdoc />
 		public TValue this[int index]
 		{
-			get => m_converter.Unpack(m_array[index]);
-			set => m_array[index] = m_converter.Pack(value);
+			get => m_converter.Unpack(m_value.Json[index]);
+			set => m_value.Set(index, m_converter.Pack(value));
 		}
 
 		/// <inheritdoc />
@@ -142,78 +159,71 @@ namespace Doxense.Serialization.Json
 		where TProxy : IJsonWritableProxy<TValue, TProxy>
 	{
 
-		private readonly JsonValue m_value;
+		private readonly MutableJsonValue m_value;
 
-		private readonly IJsonProxyNode? m_parent;
-
-		private readonly JsonPathSegment m_segment;
-
-		private readonly int m_depth;
-
-		public JsonWritableProxyArray(JsonValue? value, IJsonProxyNode? parent = null, JsonPathSegment segment = default, IJsonConverter<TValue>? converter = null)
+		public JsonWritableProxyArray(MutableJsonValue value)
 		{
-			m_value = value ?? JsonNull.Null;
-			m_parent = parent;
-			m_segment = segment;
-			m_depth = (parent?.Depth ?? -1) + 1;
+			m_value = value;
 		}
 
 		/// <inheritdoc />
 		JsonType IJsonProxyNode.Type => JsonType.Array;
 
 		/// <inheritdoc />
-		IJsonProxyNode? IJsonProxyNode.Parent => m_parent;
+		IJsonProxyNode? IJsonProxyNode.Parent => m_value.Parent;
 
 		/// <inheritdoc />
-		JsonPathSegment IJsonProxyNode.Segment => m_segment;
+		JsonPathSegment IJsonProxyNode.Segment => m_value.Segment;
 
 		/// <inheritdoc />
-		int IJsonProxyNode.Depth => m_depth;
+		int IJsonProxyNode.Depth => m_value.Depth;
 
 		/// <inheritdoc />
 		void IJsonProxyNode.WritePath(ref JsonPathBuilder builder)
 		{
-			m_parent?.WritePath(ref builder);
-			builder.Append(m_segment);
+			m_value.WritePath(ref builder);
 		}
 
-		TValue[] ToArray() => TProxy.Converter.JsonDeserializeArray(m_value)!;
-
-		List<TValue> ToList() => TProxy.Converter.JsonDeserializeList(m_value)!;
-
-		/// <inheritdoc />
-		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => m_value.JsonSerialize(writer);
-
-		/// <inheritdoc />
-		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_value;
-
-		public static JsonWritableProxyArray<TValue> FromValue(TValue[] values, IJsonConverter<TValue>? converter = null)
+		public TValue[] ToArray() => m_value.Json switch
 		{
-			converter ??= RuntimeJsonConverter<TValue>.Default;
-			return new(converter.JsonPackArray(values), converter);
-		}
+			JsonArray arr => TProxy.Converter.JsonDeserializeArray(arr),
+			JsonNull => [ ],
+			_ => throw OperationRequiresArrayOrNull(),
+		};
 
-		public JsonValue ToJson() => m_value;
+		public List<TValue> ToList() => m_value.Json switch
+		{
+			JsonArray arr => TProxy.Converter.JsonDeserializeList(arr),
+			JsonNull => [ ],
+			_ => throw OperationRequiresArrayOrNull(),
+		};
+
+		/// <inheritdoc />
+		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => m_value.Json.JsonSerialize(writer);
+
+		/// <inheritdoc />
+		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_value.Json;
+
+		public JsonValue ToJson() => m_value.Json;
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		private InvalidOperationException OperationRequiresArrayOrNull() => new("This operation requires a valid JSON Array");
+		private static InvalidOperationException OperationRequiresArrayOrNull() => new("This operation requires a valid JSON Array");
 
 		/// <inheritdoc />
 		public IEnumerator<TProxy> GetEnumerator()
 		{
-			if (m_value is not JsonArray array)
+			if (m_value.Json is not JsonArray array)
 			{
-				if (m_value is JsonNull)
+				if (m_value.Json is JsonNull)
 				{
 					yield break;
 				}
 				throw OperationRequiresArrayOrNull();
 			}
 
-			int index = 0;
-			foreach (var item in array)
+			for(int i = 0; i < array.Count; i++)
 			{
-				yield return TProxy.Create(item, parent: this, segment: new(index++));
+				yield return TProxy.Create(m_value[i]);
 			}
 		}
 
@@ -221,24 +231,12 @@ namespace Doxense.Serialization.Json
 		IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
 
 		/// <inheritdoc />
-		public void Add(TProxy item)
-		{
-			if (m_value is not JsonArray array) throw OperationRequiresArrayOrNull();
-			array.Add(item.ToJson());
-		}
+		public void Add(TProxy value) => m_value.Add(value.ToJson());
 
-		public void Add(TValue item)
-		{
-			if (m_value is not JsonArray array) throw OperationRequiresArrayOrNull();
-			array.Add(TProxy.Converter.Pack(item));
-		}
+		public void Add(TValue value) => m_value.Add(TProxy.Converter.Pack(value));
 
 		/// <inheritdoc />
-		public void Clear()
-		{
-			if (m_value is not JsonArray array) throw OperationRequiresArrayOrNull();
-			array.Clear();
-		}
+		public void Clear() => m_value.Clear();
 
 		/// <inheritdoc />
 		bool ICollection<TProxy>.Contains(TProxy item) => throw new NotSupportedException("This operation is too costly.");
@@ -249,13 +247,19 @@ namespace Doxense.Serialization.Json
 			Contract.NotNull(array);
 			Contract.Positive(arrayIndex);
 
-			if (m_value is not JsonArray arr) throw OperationRequiresArrayOrNull();
+			if (m_value.Json is not JsonArray arr)
+			{
+				if (m_value.Json is JsonNull)
+				{
+					return;
+				}
+				throw OperationRequiresArrayOrNull();
+			}
 			Contract.DoesNotOverflow(array, arrayIndex, arr.Count);
 
-			int index = 0;
-			foreach (var item in arr)
+			for(int i = 0; i < arr.Count; i++)
 			{
-				array[arrayIndex++] = TProxy.Create(item, parent: this, segment: new(index++));
+				array[arrayIndex++] = TProxy.Create(m_value[i]);
 			}
 		}
 
@@ -266,30 +270,26 @@ namespace Doxense.Serialization.Json
 		int IList<TProxy>.IndexOf(TProxy item) => throw new NotSupportedException("This operation is too costly.");
 
 		/// <inheritdoc />
-		public int Count => m_value is JsonArray arr ? arr.Count : 0;
+		public int Count => m_value.Count;
 
 		/// <inheritdoc />
 		bool ICollection<TProxy>.IsReadOnly => false;
 
 		/// <inheritdoc />
-		public void Insert(int index, TProxy item)
-		{
-			if (m_value is not JsonArray array) throw OperationRequiresArrayOrNull();
-			array.Insert(index, item.ToJson());
-		}
+		public void Insert(int index, TProxy item) => m_value.Insert(index, item.ToJson());
+
+		public void Insert(Index index, TProxy item) => m_value.Insert(index, item.ToJson());
 
 		/// <inheritdoc />
-		public void RemoveAt(int index)
-		{
-			if (m_value is not JsonArray array) throw OperationRequiresArrayOrNull();
-			array.RemoveAt(index);
-		}
+		public void RemoveAt(int index) => m_value.RemoveAt(index);
+
+		public void RemoveAt(Index index) => m_value.RemoveAt(index);
 
 		/// <inheritdoc />
 		public TProxy this[int index]
 		{
-			get => TProxy.Create(m_value[index], parent: this, segment: new(index));
-			set => m_value[index] = value.ToJson();
+			get => TProxy.Create(m_value[index]);
+			set => m_value.Set(index, value.ToJson());
 		}
 
 		/// <inheritdoc />
