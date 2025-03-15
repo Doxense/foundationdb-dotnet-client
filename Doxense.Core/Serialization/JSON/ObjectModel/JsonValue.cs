@@ -1811,7 +1811,7 @@ namespace Doxense.Serialization.Json
 		public bool TryGetPathValue(JsonPath path, out JsonValue value)
 		{
 			value = GetPathCore(path, null, required: false);
-			return value is not null or JsonNull;
+			return value is not (null or JsonNull);
 		}
 
 		/// <summary>Gets the value at the specified path</summary>

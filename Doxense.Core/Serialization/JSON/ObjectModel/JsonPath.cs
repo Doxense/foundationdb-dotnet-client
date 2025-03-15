@@ -148,7 +148,6 @@ namespace Doxense.Serialization.Json
 			 : Buffer<JsonPathSegment>.TryGetSpan(segments, out var span) ? FromSegments(span, reversed)
 			 : FromSegmentsEnumerable(segments, reversed);
 
-
 		private static JsonPath FromSegmentsMultiple(ReadOnlySpan<JsonPathSegment> segments, bool reversed)
 		{
 			// only called for 5 or more segments
