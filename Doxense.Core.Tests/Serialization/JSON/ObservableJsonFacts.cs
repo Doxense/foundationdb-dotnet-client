@@ -245,7 +245,7 @@ namespace Doxense.Serialization.Json.Tests
 			{ // array count on missing field
 				var reads = CaptureReads(obj, (doc) => _ = doc["not_found"].Count);
 				Assert.That(reads, Has.Count.EqualTo(1));
-				Assert.That(reads[0], Is.EqualTo(("not_found", ObservableJsonAccess.Length, JsonNull.Missing)));
+				Assert.That(reads[0], Is.EqualTo(("not_found", ObservableJsonAccess.Type, JsonNumber.Return((int) JsonType.Null))));
 			}
 
 		}

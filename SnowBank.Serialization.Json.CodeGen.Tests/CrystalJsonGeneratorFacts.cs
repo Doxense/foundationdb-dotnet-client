@@ -71,6 +71,9 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 		[JsonProperty("type", DefaultValue = 7)]
 		public MyAwesomeEnumType Type { get; init; }
 
+		[JsonPropertyName("desc")]
+		public string? Description { get; init; }
+
 		[JsonPropertyName("roles")]
 		public string[]? Roles { get; init; }
 
@@ -78,7 +81,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 		public required MyAwesomeMetadata Metadata { get; init; }
 
 		[JsonPropertyName("items")]
-		public required List<MyAwesomeStruct>? Items { get; init; }
+		public List<MyAwesomeStruct>? Items { get; init; }
 
 		[JsonPropertyName("devices")]
 		public Dictionary<string, MyAwesomeDevice>? Devices { get; init; }
@@ -611,7 +614,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 		}
 
 		[Test]
-		public void Test_JsonMutableProxy_FromValue_SimpleType()
+		public void Test_JsonWritableProxy_FromValue_SimpleType()
 		{
 			// Test that FromValue(TValue) returns a read-only proxy that match the original instance
 
@@ -670,7 +673,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			]);
 			Dump(obj);
 
-			var proxy = new GeneratedConverters.PersonReadOnlyProxy(obj);
+			var proxy = GeneratedConverters.PersonReadOnlyProxy.Create(obj);
 			Log(proxy.ToString());
 			Assert.That(proxy.FamilyName, Is.EqualTo("Bond"));
 			Assert.That(proxy.FirstName, Is.EqualTo("James"));
@@ -702,6 +705,10 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			Assert.That(proxy.Items[0].Id, Is.EqualTo(user.Items![0].Id));
 			Assert.That(proxy.Devices["Foo"].Id, Is.EqualTo(user.Devices!["Foo"].Id));
 			Assert.That(proxy.Extras, IsJson.ReadOnly.And.EqualTo(user.Extras));
+			Assert.That(proxy.HasId(), Is.True);
+			Assert.That(proxy.HasDisplayName(), Is.True);
+			Assert.That(proxy.HasEmail(), Is.True);
+			Assert.That(proxy.HasMetadata(), Is.True);
 
 			var json = proxy.ToJson();
 			Log("JSON:");
@@ -721,8 +728,42 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			Assert.That(decoded.DisplayName, Is.EqualTo(user.DisplayName));
 		}
 
+
 		[Test]
-		public void Test_JsonMutableProxy_FromValue_ComplexType()
+		public void Test_JsonReadOnlyProxy_With_Empty_Object()
+		{
+			Log("ReadOnly:");
+			var proxy = GeneratedConverters.MyAwesomeUser.AsReadOnly(JsonObject.EmptyReadOnly);
+
+			// all "required" members should throw
+			Assert.That(proxy.HasId(), Is.False);
+			Assert.That(() => proxy.Id, Throws.InstanceOf<JsonBindingException>());
+			Assert.That(proxy.HasEmail(), Is.False);
+			Assert.That(() => proxy.Email, Throws.InstanceOf<JsonBindingException>());
+			Assert.That(proxy.HasDisplayName(), Is.False);
+			Assert.That(() => proxy.DisplayName, Throws.InstanceOf<JsonBindingException>());
+
+			// optional members should return their default value
+			Assert.That(proxy.Description, Is.Null);
+			Assert.That(proxy.Type, Is.EqualTo(MyAwesomeEnumType.SecretAgent)); // custom default value!
+			Assert.That(proxy.Extras, Is.Null);
+
+			// required inner containers should not throw
+			Assert.That(proxy.HasMetadata(), Is.False);
+			Assert.That(() => proxy.Metadata, Throws.Nothing);
+			Assert.That(proxy.Metadata.Exists(), Is.False);
+			// their fields should return null
+			Assert.That(proxy.Metadata.AccountCreated, Is.Default);
+			Assert.That(proxy.Metadata.AccountModified, Is.Default);
+			Assert.That(proxy.Metadata.AccountDisabled, Is.Null);
+
+			// optional inner containers should not throw
+			Assert.That(() => proxy.Items, Throws.Nothing);
+			Assert.That(proxy.Items.Exists(), Is.False);
+		}
+
+		[Test]
+		public void Test_JsonWritableProxy_FromValue_ComplexType()
 		{
 			var user = MakeSampleUser();
 			Log("User:");

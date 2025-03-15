@@ -40,17 +40,14 @@ namespace Doxense.Serialization.Json
 
 		private readonly IJsonProxyNode? m_parent;
 
-		private readonly JsonEncodedPropertyName? m_name;
+		private readonly JsonPathSegment m_segment;
 
-		private readonly int m_index;
-
-		public JsonWritableProxyArray(JsonArray? array, IJsonConverter<TValue>? converter = null, IJsonProxyNode? parent = null, JsonEncodedPropertyName? name = null, int index = 0)
+		public JsonWritableProxyArray(JsonArray? array, IJsonConverter<TValue>? converter = null, IJsonProxyNode? parent = null, JsonPathSegment segment = default)
 		{
 			m_array = array ?? [ ];
 			m_converter = converter ?? RuntimeJsonConverter<TValue>.Default;
 			m_parent = parent;
-			m_name = name;
-			m_index = index;
+			m_segment = segment;
 		}
 	
 		TValue[] ToArray() => m_converter.JsonDeserializeArray(m_array);
@@ -71,7 +68,7 @@ namespace Doxense.Serialization.Json
 
 		public JsonArray ToJson() => m_array;
 
-		public JsonReadOnlyProxyArray<TValue> ToReadOnly() => new(m_array.ToReadOnly(), m_converter);
+		public JsonReadOnlyProxyArray<TValue> ToReadOnly() => new(new(null, m_parent, m_segment,m_array.ToReadOnly()), m_converter);
 
 		/// <inheritdoc />
 		public IEnumerator<TValue> GetEnumerator()
@@ -149,25 +146,36 @@ namespace Doxense.Serialization.Json
 
 		private readonly IJsonProxyNode? m_parent;
 
-		private readonly JsonEncodedPropertyName? m_name;
+		private readonly JsonPathSegment m_segment;
 
-		private readonly int m_index;
+		private readonly int m_depth;
 
-		public JsonWritableProxyArray(JsonValue? value, IJsonProxyNode? parent = null, JsonEncodedPropertyName? name = null, int index = 0, IJsonConverter<TValue>? converter = null)
+		public JsonWritableProxyArray(JsonValue? value, IJsonProxyNode? parent = null, JsonPathSegment segment = default, IJsonConverter<TValue>? converter = null)
 		{
 			m_value = value ?? JsonNull.Null;
 			m_parent = parent;
-			m_name = name;
-			m_index = index;
+			m_segment = segment;
+			m_depth = (parent?.Depth ?? -1) + 1;
 		}
 
+		/// <inheritdoc />
 		JsonType IJsonProxyNode.Type => JsonType.Array;
 
+		/// <inheritdoc />
 		IJsonProxyNode? IJsonProxyNode.Parent => m_parent;
 
-		JsonEncodedPropertyName? IJsonProxyNode.Name => m_name;
+		/// <inheritdoc />
+		JsonPathSegment IJsonProxyNode.Segment => m_segment;
 
-		int IJsonProxyNode.Index => m_index;
+		/// <inheritdoc />
+		int IJsonProxyNode.Depth => m_depth;
+
+		/// <inheritdoc />
+		void IJsonProxyNode.WritePath(ref JsonPathBuilder builder)
+		{
+			m_parent?.WritePath(ref builder);
+			builder.Append(m_segment);
+		}
 
 		TValue[] ToArray() => TProxy.Converter.JsonDeserializeArray(m_value)!;
 
@@ -205,7 +213,7 @@ namespace Doxense.Serialization.Json
 			int index = 0;
 			foreach (var item in array)
 			{
-				yield return TProxy.Create(item, parent: this, index: index++);
+				yield return TProxy.Create(item, parent: this, segment: new(index++));
 			}
 		}
 
@@ -247,7 +255,7 @@ namespace Doxense.Serialization.Json
 			int index = 0;
 			foreach (var item in arr)
 			{
-				array[arrayIndex++] = TProxy.Create(item, parent: this, index: index++);
+				array[arrayIndex++] = TProxy.Create(item, parent: this, segment: new(index++));
 			}
 		}
 
@@ -280,7 +288,7 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		public TProxy this[int index]
 		{
-			get => TProxy.Create(m_value[index], parent: this, index: index);
+			get => TProxy.Create(m_value[index], parent: this, segment: new(index));
 			set => m_value[index] = value.ToJson();
 		}
 

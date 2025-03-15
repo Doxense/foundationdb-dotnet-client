@@ -16,51 +16,53 @@ namespace Doxense.Serialization.Json
 	public readonly struct JsonReadOnlyProxyArray<TValue> : IReadOnlyList<TValue>, IJsonSerializable, IJsonPackable
 	{
 
-		private readonly JsonArray m_array;
+		private readonly ObservableJsonValue m_array;
 		private readonly IJsonConverter<TValue> m_converter;
 
-		public JsonReadOnlyProxyArray(JsonArray? array, IJsonConverter<TValue>? converter = null)
+		public JsonReadOnlyProxyArray(ObservableJsonValue array, IJsonConverter<TValue>? converter = null)
 		{
-			m_array = array ?? JsonArray.EmptyReadOnly;
+			m_array = array;
 			m_converter = converter ?? RuntimeJsonConverter<TValue>.Default;
 		}
 
 		/// <inheritdoc />
-		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => m_array.JsonSerialize(writer);
+		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => m_array.ToJson().JsonSerialize(writer);
 
 		/// <inheritdoc />
-		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_array;
+		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_array.ToJson();
 
-		public static JsonReadOnlyProxyArray<TValue> FromValue(TValue[] values, IJsonConverter<TValue>? converter = null)
-		{
-			converter ??= RuntimeJsonConverter<TValue>.Default;
-			return new(converter.JsonPackArray(values), converter);
-		}
+		public TValue[] ToArray() => m_converter.JsonDeserializeArray(m_array.ToJson().AsArrayOrEmpty());
 
-		public TValue[] ToArray() => m_converter.JsonDeserializeArray(m_array);
+		public List<TValue> ToList() => m_converter.JsonDeserializeList(m_array.ToJson().AsArrayOrEmpty());
 
-		public List<TValue> ToList() => m_converter.JsonDeserializeList(m_array);
+		public JsonValue ToJson() => m_array.ToJson();
 
-		public JsonValue ToJson() => m_array;
-
-		public JsonWritableProxyArray<TValue> ToMutable() => new(m_array.Copy(), m_converter);
+		public JsonWritableProxyArray<TValue> ToMutable() => new(m_array.GetJsonUnsafe().AsArrayOrDefault()?.Copy(), m_converter);
 
 		public JsonReadOnlyProxyArray<TValue> With(Action<JsonWritableProxyArray<TValue>> modifier)
 		{
-			var copy = m_array.Copy();
+			var copy = m_array.GetJsonUnsafe().AsArrayOrEmpty().Copy();
 			modifier(new(copy, m_converter));
-			return new(copy.FreezeUnsafe(), m_converter);
+			return new(m_array.Visit(copy.FreezeUnsafe()), m_converter);
 		}
 
 		/// <inheritdoc />
 		public IEnumerator<TValue> GetEnumerator()
 		{
-			if (m_array != null)
+			// we cannot know how the result will be used, so mark this a full "Value" read.
+
+			var value = m_array.ToJson();
+			if (value is not JsonArray array)
 			{
-				foreach (var item in m_array)
+				if (value is JsonNull)
 				{
-					yield return m_converter.Unpack(item);
+					yield break;
 				}
+				throw new InvalidOperationException("Cannot iterate a non-array");
+			}
+			foreach(var item in array)
+			{
+				yield return m_converter.Unpack(item);
 			}
 		}
 
@@ -70,8 +72,14 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		public int Count => m_array.Count;
 
+		/// <summary>Tests if the array is present.</summary>
+		/// <returns><c>false</c> if the wrapped JSON value is null or empty; otherwise, <c>true</c>.</returns>
+		public bool Exists() => m_array.Exists();
+
 		/// <inheritdoc />
-		public TValue this[int index] => m_converter.Unpack(m_array[index]);
+		public TValue this[int index] => m_array.TryGetValue(index, m_converter, out var value) ? value : m_converter.Unpack(JsonNull.Error);
+
+		public TValue this[Index index] => m_array.TryGetValue(index, m_converter, out var value) ? value : m_converter.Unpack(JsonNull.Error);
 
 		/// <inheritdoc />
 		public override string ToString() => typeof(TValue).GetFriendlyName() + "[]";
@@ -86,60 +94,56 @@ namespace Doxense.Serialization.Json
 		where TProxy : IJsonReadOnlyProxy<TValue, TProxy>
 	{
 
-		private readonly JsonValue m_value;
+		private readonly ObservableJsonValue m_value;
 
-		public JsonReadOnlyProxyArray(JsonValue? value)
+		public JsonReadOnlyProxyArray(ObservableJsonValue value)
 		{
-			m_value = value ?? JsonNull.Null;
+			m_value = value;
 		}
 
 		/// <inheritdoc />
-		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => m_value.JsonSerialize(writer);
+		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => m_value.ToJson().JsonSerialize(writer);
 
 		/// <inheritdoc />
-		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_value;
+		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_value.ToJson();
 
-		public static JsonReadOnlyProxyArray<TValue> FromValue(TValue[] values, IJsonConverter<TValue>? converter = null)
-		{
-			converter ??= RuntimeJsonConverter<TValue>.Default;
-			return new(converter.JsonPackArray(values), converter);
-		}
-
-		public JsonValue ToJson() => m_value;
+		public JsonValue ToJson() => m_value.ToJson();
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		private InvalidOperationException OperationRequiresObjectOrNull() => new("This operation requires a valid JSON Object");
+		private static InvalidOperationException OperationRequiresArrayOrNull() => new("This operation requires a valid JSON Array");
 
 		public IEnumerator<TProxy> GetEnumerator()
 		{
-			if (m_value is not JsonArray array)
+			// the result would change if there are additional items in the array
+			if (!m_value.TryGetCount(out var count))
 			{
-				if (m_value is JsonNull)
+				if (m_value.GetJsonUnsafe())
 				{
 					yield break;
 				}
-				throw OperationRequiresObjectOrNull();
+				throw OperationRequiresArrayOrNull();
 			}
 
-			foreach (var item in array)
+			for(int i = 0; i < count; i++)
 			{
-				yield return TProxy.Create(item);
+				yield return TProxy.Create(m_value[i]);
 			}
 		}
 
 		/// <inheritdoc />
 		IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
 
-		/// <inheritdoc />
-		public int Count => m_value switch
-		{
-			JsonArray array => array.Count,
-			JsonNull => 0,
-			_ => throw OperationRequiresObjectOrNull()
-		};
+		/// <summary>Tests if the array is present.</summary>
+		/// <returns><c>false</c> if the wrapped JSON value is null or empty; otherwise, <c>true</c>.</returns>
+		public bool Exists() => m_value.Exists();
 
 		/// <inheritdoc />
-		public TProxy this[int index] => TProxy.Create(m_value[index]);
+		public int Count => m_value.Count;
+
+		/// <inheritdoc />
+		public TProxy this[int index] => TProxy.Create(m_value.Get(index));
+
+		public TProxy this[Index index] => TProxy.Create(m_value.Get(index));
 
 		/// <inheritdoc />
 		public override string ToString() => typeof(TValue).GetFriendlyName() + "[]";

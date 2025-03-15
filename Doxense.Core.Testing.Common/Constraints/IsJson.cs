@@ -694,7 +694,7 @@ namespace SnowBank.Testing
 					if (op != null) writer.Write(op + " ");
 					if (this.ActualValue is TValue value)
 					{
-						if (this.ExpectedValue is not null or JsonNull)
+						if (this.ExpectedValue is not (null or JsonNull))
 						{
 							writer.Write($"<{(this.ExpectedValue.GetType()).GetFriendlyName()}> ");
 						}
@@ -712,7 +712,7 @@ namespace SnowBank.Testing
 					}
 					else if (this.ActualValue is JsonValue j)
 					{
-						if (this.ExpectedValue is not null or JsonNull)
+						if (this.ExpectedValue is not (null or JsonNull))
 						{
 							writer.Write($"<{(this.ExpectedValue.GetType()).GetFriendlyName()}> ");
 						}
@@ -728,7 +728,7 @@ namespace SnowBank.Testing
 					}
 					else
 					{
-						if (this.ExpectedValue is not null or JsonNull)
+						if (this.ExpectedValue is not (null or JsonNull))
 						{
 							writer.Write($"<{(this.ExpectedValue.GetType()).GetFriendlyName()}> ");
 						}

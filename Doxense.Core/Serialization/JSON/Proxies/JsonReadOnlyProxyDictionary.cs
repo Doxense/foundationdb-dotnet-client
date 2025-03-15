@@ -34,83 +34,69 @@ namespace Doxense.Serialization.Json
 	public readonly struct JsonReadOnlyProxyDictionary<TValue> : IReadOnlyDictionary<string, TValue>, IJsonSerializable, IJsonPackable
 	{
 
-		private readonly JsonValue m_value;
+		private readonly ObservableJsonValue m_value;
 		private readonly IJsonConverter<TValue> m_converter;
 
-		public JsonReadOnlyProxyDictionary(JsonValue? value, IJsonConverter<TValue>? converter = null)
+		public JsonReadOnlyProxyDictionary(ObservableJsonValue value, IJsonConverter<TValue>? converter = null)
 		{
-			m_value = value ?? JsonNull.Null;
+			m_value = value;
 			m_converter = converter ?? RuntimeJsonConverter<TValue>.Default;
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		private InvalidOperationException OperationRequiresObjectOrNull() => new("This operation requires a valid JSON Object");
+		private static InvalidOperationException OperationRequiresObjectOrNull() => new("This operation requires a valid JSON Object");
+
+		/// <summary>Tests if the object is present.</summary>
+		/// <returns><c>false</c> if the wrapped JSON value is null or empty; otherwise, <c>true</c>.</returns>
+		public bool Exists() => m_value.Exists();
 
 		/// <inheritdoc />
-		public int Count => m_value switch
-		{
-			JsonObject obj => obj.Count,
-			JsonNull => 0,
-			_ => throw OperationRequiresObjectOrNull()
-		};
+		public int Count => m_value.TryGetCount(out int count) ? count : m_value.IsNullOrMissing() ? 0 : throw OperationRequiresObjectOrNull();
 
 		/// <inheritdoc />
-		public TValue this[string key] => m_converter.Unpack(m_value[key]);
+		public TValue this[string key] => m_value.TryGetValue(key, m_converter, out var value) ? value : m_converter.Unpack(JsonNull.Missing);
+
+		public TValue this[ReadOnlyMemory<char> key] => m_value.TryGetValue(key, m_converter, out var value) ? value : m_converter.Unpack(JsonNull.Missing);
 
 		/// <inheritdoc />
-		public IEnumerable<string> Keys => m_value switch
-		{
-			JsonObject obj => obj.Keys,
-			JsonNull => Array.Empty<string>(),
-			_ => throw OperationRequiresObjectOrNull()
-		};
+		public IEnumerable<string> Keys
+			=> m_value.IsObjectUnsafe(out var obj) ? obj.Keys
+			 : m_value.GetJsonUnsafe().IsNullOrMissing() ? Array.Empty<string>()
+			 : throw OperationRequiresObjectOrNull();
 
 		/// <inheritdoc />
 		public IEnumerable<TValue> Values => throw new NotImplementedException();
 
 		/// <inheritdoc />
-		public bool ContainsKey(string key) => m_value switch
-		{
-			JsonObject obj => obj.ContainsKey(key),
-			JsonNull => false,
-			_ => throw OperationRequiresObjectOrNull()
-		};
+		public bool ContainsKey(string key) => m_value.ContainsKey(key);
 
 		/// <inheritdoc />
 		public bool TryGetValue(string key, [MaybeNullWhen(false)] out TValue value)
 		{
-			if (m_value is JsonObject obj && obj.TryGetValue(key, out var json))
-			{
-				value = m_converter.Unpack(json);
-				return true;
-			}
-
-			value = default;
-			return false;
+			return m_value.TryGetValue(key, m_converter, out value);
 		}
 
 		/// <inheritdoc />
-		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => m_value.JsonSerialize(writer);
+		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => m_value.ToJson().JsonSerialize(writer);
 
 		/// <inheritdoc />
-		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_value;
+		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_value.ToJson();
 
-		public Dictionary<string, TValue> ToDictionary() => m_converter.JsonDeserializeDictionary(m_value)!;
+		public Dictionary<string, TValue> ToDictionary() => m_converter.JsonDeserializeDictionary(m_value.ToJson())!;
 
-		public JsonValue ToJson() => m_value;
+		public JsonValue ToJson() => m_value.ToJson();
 
 		/// <inheritdoc />
 		public IEnumerator<KeyValuePair<string, TValue>> GetEnumerator()
 		{
-			if (m_value is not JsonObject obj)
+			if (!m_value.IsObjectUnsafe(out var obj))
 			{
-				if (m_value is JsonNull)
+				if (m_value.GetJsonUnsafe().IsNullOrMissing())
 				{
 					yield break;
 				}
 				throw OperationRequiresObjectOrNull();
 			}
-
 			foreach (var kv in obj)
 			{
 				yield return new(kv.Key, m_converter.Unpack(kv.Value));
@@ -133,50 +119,44 @@ namespace Doxense.Serialization.Json
 		where TProxy : IJsonReadOnlyProxy<TValue, TProxy>
 	{
 
-		private readonly JsonValue m_value;
+		private readonly ObservableJsonValue m_value;
 
-		public JsonReadOnlyProxyDictionary(JsonValue? value)
+		public JsonReadOnlyProxyDictionary(ObservableJsonValue value)
 		{
-			m_value = value ?? JsonNull.Null;
+			m_value = value;
 		}
 
+		/// <summary>Tests if the object is present.</summary>
+		/// <returns><c>false</c> if the wrapped JSON value is null or empty; otherwise, <c>true</c>.</returns>
+		public bool Exists() => m_value.Exists();
+
 		/// <inheritdoc />
-		public int Count => m_value switch
-		{
-			JsonObject obj => obj.Count,
-			JsonNull => 0,
-			_ => throw OperationRequiresObjectOrNull()
-		};
+		public int Count => m_value.TryGetCount(out int count) ? count : m_value.IsNullOrMissing() ? 0 : throw OperationRequiresObjectOrNull();
 
 		/// <inheritdoc />
 		public TProxy this[string key] => TProxy.Create(m_value[key]);
 
+		public TProxy this[ReadOnlyMemory<char> key] => TProxy.Create(m_value[key]);
+
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		private InvalidOperationException OperationRequiresObjectOrNull() => new("This operation requires a valid JSON Object");
+		private static InvalidOperationException OperationRequiresObjectOrNull() => new("This operation requires a valid JSON Object");
 
 		/// <inheritdoc />
-		public IEnumerable<string> Keys => m_value switch
-		{
-			JsonObject obj => obj.Keys,
-			JsonNull => Array.Empty<string>(),
-			_ => throw OperationRequiresObjectOrNull()
-		};
+		public IEnumerable<string> Keys
+			=> m_value.IsObjectUnsafe(out var obj) ? obj.Keys
+			 : m_value.GetJsonUnsafe().IsNullOrMissing() ? Array.Empty<string>()
+			 : throw OperationRequiresObjectOrNull();
 
 		/// <inheritdoc />
 		public IEnumerable<TProxy> Values => throw new NotImplementedException();
 
 		/// <inheritdoc />
-		public bool ContainsKey(string key) => m_value switch
-		{
-			JsonObject obj => obj.ContainsKey(key),
-			JsonNull => false,
-			_ => throw OperationRequiresObjectOrNull()
-		};
+		public bool ContainsKey(string key) => m_value.ContainsKey(key);
 
 		/// <inheritdoc />
 		public bool TryGetValue(string key, [MaybeNullWhen(false)] out TProxy value)
 		{
-			if (m_value is JsonObject obj && obj.TryGetValue(key, out var json))
+			if (m_value.TryGetValue(key, out var json))
 			{
 				value = TProxy.Create(json);
 				return true;
@@ -187,29 +167,29 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => m_value.JsonSerialize(writer);
+		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => m_value.ToJson().JsonSerialize(writer);
 
 		/// <inheritdoc />
-		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_value;
+		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_value.ToJson();
 
-		public Dictionary<string, TValue> ToDictionary() => TProxy.Converter.JsonDeserializeDictionary(m_value.AsObject());
+		public Dictionary<string, TValue> ToDictionary() => TProxy.Converter.JsonDeserializeDictionary(m_value.ToJson().AsObject());
 
-		public JsonValue ToJson() => m_value;
+		public JsonValue ToJson() => m_value.ToJson();
 
 		/// <inheritdoc />
 		public IEnumerator<KeyValuePair<string, TProxy>> GetEnumerator()
 		{
-			if (m_value is not JsonObject obj)
+			if (!m_value.IsObjectUnsafe(out var obj))
 			{
-				if (m_value is JsonNull)
+				if (m_value.GetJsonUnsafe().IsNullOrMissing())
 				{
 					yield break;
 				}
 				throw OperationRequiresObjectOrNull();
 			}
-			foreach (var kv in obj)
+			foreach (var k in obj.Keys)
 			{
-				yield return new(kv.Key, TProxy.Create(kv.Value));
+				yield return new(k, TProxy.Create(m_value.Get(k)));
 			}
 		}
 

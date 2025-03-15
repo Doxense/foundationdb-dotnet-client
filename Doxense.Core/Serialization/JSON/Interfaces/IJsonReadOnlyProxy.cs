@@ -59,7 +59,7 @@ namespace Doxense.Serialization.Json
 	{
 
 		/// <summary>Wraps a JSON Value into a read-only proxy for type <typeparamref name="TValue"/></summary>
-		static abstract TReadOnlyProxy Create(JsonValue value, IJsonConverter<TValue>? converter = null);
+		static abstract TReadOnlyProxy Create(ObservableJsonValue value, IJsonConverter<TValue>? converter = null);
 
 		/// <summary>Wraps an instance type <typeparamref name="TValue"/> into read-only proxy</summary>
 		static abstract TReadOnlyProxy Create(TValue value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null);

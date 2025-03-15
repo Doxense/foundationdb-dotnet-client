@@ -26,25 +26,34 @@ namespace Doxense.Serialization.Json
 		/// <remarks>
 		/// <para>The outcome could change if the value of the node changes from any value to any other value</para>
 		/// <para>The associated argument will be the value of this field in the original document</para>
-		/// <para>For example, <c>{ x: 123 } => { x: 456 }</c> will change the outcome, but <c>{ x: 123 } => { x: 123, y: 456 }</c> will not.</para>
+		/// <para>Example: <c>{ x: 123 } => { x: 456 }</c> will change the outcome, but <c>{ x: 123 } => { x: 123, y: 456 }</c> will not.</para>
 		/// </remarks>
 		Value,
-
-		/// <summary>Only the presence of the node was used.</summary>
-		/// <remarks>
-		/// <para>The outcome would only change if the node comes from null/missing to non-null, or vice versa.</para>
-		/// <para>The associated argument will be <c>true</c> if the node exists, or <c>false</c> if the node does not exist (null or missing) in the original document.</para>
-		/// <para><c>{ x: 123 } => { x: null }</c> or { } => { x: 123 } will change the outcome, but <c>{ x: 123 } => { x: 456 }</c> will not.</para>
-		/// </remarks>
-		Exists,
 
 		/// <summary>Only the length of the array was used.</summary>
 		/// <remarks>
 		/// <para>The outcome would only change if the length of the array would change (added/removed).</para>
 		/// <para>The associated argument must be the length of array in the original document, or <see cref="JsonNull.Missing"/> if the node was missing, or not an array.</para>
-		/// <example><c>{ xs: [ 1, 2, 3 ] } => { xs: [ 4, 5, 6 ] }</c> will not change the outcome, but <c>{ xs: [ 1, 2, 3 ] } => { xs: [ 1, 2, 3, 4 ] }</c> or { xs: [ 1, 2, 3 ] } => { xs: null } will.</example>
+		/// <para>Example: <c>{ xs: [ 1, 2, 3 ] } => { xs: [ 4, 5, 6 ] }</c> will not change the outcome, but <c>{ xs: [ 1, 2, 3 ] } => { xs: [ 1, 2, 3, 4 ] }</c> or { xs: [ 1, 2, 3 ] } => { xs: null } will.</para>
 		/// </remarks>
 		Length,
+
+		/// <summary>Only the presence of the node was used.</summary>
+		/// <remarks>
+		/// <para>The outcome would only change if the node comes from null/missing to non-null, or vice versa.</para>
+		/// <para>The associated argument will be <c>true</c> if the node exists, or <c>false</c> if the node does not exist (null or missing) in the original document.</para>
+		/// <para>Example: <c>{ x: 123 } => { x: null }</c> or { } => { x: 123 } will change the outcome, but <c>{ x: 123 } => { x: 456 }</c> will not.</para>
+		/// </remarks>
+		Exists,
+
+		/// <summary>Only the type of the node was used.</summary>
+		/// <remarks>
+		/// <para>The outcome would only change if the type of node would change (including to and from null)</para>
+		/// <para>The associated argument will be the integer value of the corresponding <see cref="JsonType"/> enum</para>
+		/// <para>This is more precise than <see cref="Exists"/> which only differentiate between <see cref="JsonType.Null"/> or any other type.</para>
+		/// <para>Example: <c>{ x: "hello" } => { x: "world" }</c> will not change the outcome, but <c>{ x: "hello" } => { x: [ "hello", "there"] }</c> or { x: "hello" } => { x: null } will.</para>
+		/// </remarks>
+		Type,
 
 	}
 
@@ -65,7 +74,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="path">Path from the parent node to the child node</param>
 		/// <param name="value">Value of the child node</param>
 		/// <returns>Observable child node</returns>
-		ObservableJsonValue FromJson(ObservableJsonValue? parent, JsonPathSegment path, JsonValue value);
+		ObservableJsonValue FromJson(IJsonProxyNode? parent, JsonPathSegment path, JsonValue value);
 
 		/// <summary>Records the access to a node, or one of its children</summary>
 		/// <param name="node">Node that was accessed.</param>
@@ -97,7 +106,7 @@ namespace Doxense.Serialization.Json
 
 		public ObservableJsonValue FromJson(JsonValue value) => new(this, null, JsonPathSegment.Empty, value);
 
-		public ObservableJsonValue FromJson(ObservableJsonValue? parent, JsonPathSegment path, JsonValue value) => new(this, parent, path, value);
+		public ObservableJsonValue FromJson(IJsonProxyNode? parent, JsonPathSegment path, JsonValue value) => new(this, parent, path, value);
 
 		/// <inheritdoc />
 		public void RecordRead(ObservableJsonValue node, JsonPathSegment child, JsonValue argument, ObservableJsonAccess access)
@@ -169,10 +178,20 @@ namespace Doxense.Serialization.Json
 					}
 					break;
 				}
+				case ObservableJsonAccess.Type:
+				{
+					// Type only has priority over Exists
+					if (leaf.Access is ObservableJsonAccess.None or ObservableJsonAccess.Exists)
+					{
+						leaf.Access = access;
+						leaf.Value = JsonNumber.Return((int) (value?.Type ?? JsonType.Null));
+					}
+					break;
+				}
 				case ObservableJsonAccess.Length:
 				{
 					// Length is a superset of Exists, is less than Value
-					if (leaf.Access is ObservableJsonAccess.None or ObservableJsonAccess.Exists)
+					if (leaf.Access is ObservableJsonAccess.None or ObservableJsonAccess.Exists or ObservableJsonAccess.Type)
 					{
 						leaf.Access = ObservableJsonAccess.Length;
 						leaf.Value = value is JsonArray arr ? JsonNumber.Return(arr.Count) : JsonNull.Missing;
@@ -255,6 +274,10 @@ namespace Doxense.Serialization.Json
 					case ObservableJsonAccess.Exists:
 					{
 						return current.Value is JsonBoolean b && b.Value == !value.IsNullOrMissing();
+					}
+					case ObservableJsonAccess.Type:
+					{
+						return current.Value is JsonNumber num && (JsonType) num.ToInt32() == value.Type;
 					}
 					case ObservableJsonAccess.Length:
 					{

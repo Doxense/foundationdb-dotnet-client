@@ -8,22 +8,27 @@
 
 namespace Doxense.Serialization.Json
 {
+	using System.ComponentModel;
 
 	/// <summary>Observable JSON Object that will capture all reads</summary>
 	[DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
-	public sealed class ObservableJsonValue : IJsonSerializable, IJsonPackable
+	public sealed class ObservableJsonValue : IJsonProxyNode, IJsonSerializable, IJsonPackable
 	{
 
-		public ObservableJsonValue(IObservableJsonContext ctx, ObservableJsonValue? parent, JsonPathSegment path, JsonValue json)
+		public ObservableJsonValue(IObservableJsonContext? ctx, IJsonProxyNode? parent, JsonPathSegment segment, JsonValue json)
 		{
-			Contract.Debug.Requires(ctx != null && json != null);
+			Contract.Debug.Requires(json != null);
 			this.Context = ctx;
 			this.Parent = parent;
-			this.Path = path;
+			this.Segment = segment;
 			this.Json = json;
-			this.Depth = (this.Parent?.Depth ?? -1) + 1;
+			this.Depth = (parent?.Depth ?? -1) + 1;
 		}
+
+		/// <summary>Returns an untracked JSON value</summary>
+		[Pure, MustUseReturnValue]
+		public static ObservableJsonValue Untracked(JsonValue value) => new(null, null, default, value);
 
 		public override string ToString()
 		{
@@ -42,16 +47,42 @@ namespace Doxense.Serialization.Json
 			return this.Json;
 		}
 
-		internal IObservableJsonContext Context { get; }
+		/// <summary>Expose the underlying <see cref="JsonValue"/> of this node, without recording it as a read access</summary>
+		/// <remarks>This should only be used by infrastructure that need to inspect the content of the node, outside the "view" of the context</remarks>
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public JsonValue GetJsonUnsafe()
+		{
+			return this.Json;
+		}
 
-		public IObservableJsonContext GetContext() => this.Context;
+		internal IObservableJsonContext? Context { get; }
+
+		public IObservableJsonContext? GetContext() => this.Context;
+
+		#region IJsonProxyNode...
+
+		/// <inheritdoc />
+		IJsonProxyNode? IJsonProxyNode.Parent => this.Parent;
+
+		/// <inheritdoc />
+		JsonPathSegment IJsonProxyNode.Segment => this.Segment;
+
+		/// <inheritdoc />
+		JsonType IJsonProxyNode.Type => this.Json.Type;
+
+		/// <inheritdoc />
+		int IJsonProxyNode.Depth => this.Depth;
+
+		#endregion
 
 		#region Path...
 
-		private ObservableJsonValue? Parent { get; }
+		private IJsonProxyNode? Parent { get; }
+
+		public IJsonProxyNode? GetParent() => this.Parent;
 
 		/// <summary>Segment of path to this node from its parent</summary>
-		private JsonPathSegment Path { get; }
+		private JsonPathSegment Segment { get; }
 
 		/// <summary>Depth from the root to this node</summary>
 		/// <remarks>Required to pre-compute the size of path segment arrays</remarks>
@@ -88,7 +119,7 @@ namespace Doxense.Serialization.Json
 			var writer = new JsonPathBuilder(scratch);
 			try
 			{
-				PrependPath(ref writer);
+				((IJsonProxyNode) this).WritePath(ref writer);
 				writer.Append(key);
 				return writer.ToPath();
 			}
@@ -111,7 +142,7 @@ namespace Doxense.Serialization.Json
 			var writer = new JsonPathBuilder(scratch);
 			try
 			{
-				PrependPath(ref writer);
+				((IJsonProxyNode) this).WritePath(ref writer);
 				writer.Append(index);
 				return writer.ToPath();
 			}
@@ -135,7 +166,7 @@ namespace Doxense.Serialization.Json
 			var writer = new JsonPathBuilder(scratch);
 			try
 			{
-				PrependPath(ref writer);
+				((IJsonProxyNode) this).WritePath(ref writer);
 				writer.Append(index);
 				return writer.ToPath();
 			}
@@ -157,7 +188,7 @@ namespace Doxense.Serialization.Json
 			var builder = new JsonPathBuilder(scratch);
 			try
 			{
-				PrependPath(ref builder);
+				((IJsonProxyNode) this).WritePath(ref builder);
 				return builder.ToPath();
 			}
 			finally
@@ -166,11 +197,11 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		private void PrependPath(ref JsonPathBuilder sb)
+		void IJsonProxyNode.WritePath(ref JsonPathBuilder sb)
 		{
-			this.Parent?.PrependPath(ref sb);
+			this.Parent?.WritePath(ref sb);
 
-			sb.Append(this.Path);
+			sb.Append(this.Segment);
 		}
 
 		public JsonPathSegment[] GetPathSegments(JsonPathSegment child = default)
@@ -204,25 +235,25 @@ namespace Doxense.Serialization.Json
 
 		private void WritePath(Span<JsonPathSegment> buffer)
 		{
-			int depth = this.Depth;
-			if (depth > 0)
+			IJsonProxyNode node = this;
+			while(node.Parent != null)
 			{
-				buffer[depth - 1] = this.Path;
-				this.Parent!.WritePath(buffer);
+				buffer[node.Depth - 1] = node.Segment;
+				node = node.Parent;
 			}
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private void RecordSelfAccess(ObservableJsonAccess access, JsonValue? value = null)
 		{
-			this.Context.RecordRead(this, default, value ?? this.Json, access);
+			this.Context?.RecordRead(this, default, value ?? this.Json, access);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private void RecordChildAccess(ReadOnlyMemory<char> key, JsonValue value, ObservableJsonAccess access) => this.Context.RecordRead(this, new(key), value, access);
+		private void RecordChildAccess(ReadOnlyMemory<char> key, JsonValue value, ObservableJsonAccess access) => this.Context?.RecordRead(this, new(key), value, access);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private void RecordChildAccess(Index index, JsonValue value, ObservableJsonAccess access) => this.Context.RecordRead(this, new(index), value, access);
+		private void RecordChildAccess(Index index, JsonValue value, ObservableJsonAccess access) => this.Context?.RecordRead(this, new(index), value, access);
 
 		#endregion
 
@@ -237,12 +268,53 @@ namespace Doxense.Serialization.Json
 #if DEBUG
 				Debugger.NotifyOfCrossThreadDependency();
 #endif
-				RecordSelfAccess(ObservableJsonAccess.Length, this.Json);
-				return this.Json is JsonArray arr ? arr.Count : 0;
+				return TryGetCount(out var count) ? count : 0;
+				//REVIEW: should we throw if this is not an array or null?
 			}
 		}
 
-		[Pure] 
+		/// <summary>Try getting the size of this array</summary>
+		/// <param name="count">Receives the length of the array, or 0 if this is not an array</param>
+		/// <returns><c>true</c> if this is an array; otherwise, <c>false</c></returns>
+		public bool TryGetCount(out int count)
+		{
+			if (this.Json is JsonArray arr)
+			{
+				//note: 'Length' already implies a check on the type
+				RecordSelfAccess(ObservableJsonAccess.Length, this.Json);
+				count = arr.Count;
+				return true;
+			}
+			else
+			{
+				RecordSelfAccess(ObservableJsonAccess.Type, this.Json);
+				count = 0;
+				return false;
+			}
+		}
+
+		public bool IsOfType(JsonType type)
+		{
+			RecordSelfAccess(ObservableJsonAccess.Length, this.Json);
+			return this.Json.Type == type;
+		}
+
+		public bool IsArrayUnsafe([MaybeNullWhen(false)] out JsonArray value)
+		{
+			RecordSelfAccess(ObservableJsonAccess.Type, this.Json);
+			value = this.Json as JsonArray;
+			return value is not null;
+		}
+
+		public bool IsObjectUnsafe([MaybeNullWhen(false)] out JsonObject value)
+		{
+			RecordSelfAccess(ObservableJsonAccess.Type, this.Json);
+			value = this.Json as JsonObject;
+			return value is not null;
+		}
+
+
+		[Pure]
 		public bool IsNullOrMissing()
 		{
 			RecordSelfAccess(ObservableJsonAccess.Exists);
@@ -255,13 +327,13 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private ObservableJsonValue ReturnChild(ReadOnlyMemory<char> key, JsonValue value)
 		{
-			return this.Context.FromJson(this, new(key), value);
+			return this.Context?.FromJson(this, new(key), value) ?? new(null, this, new(key), value);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private ObservableJsonValue ReturnChild(Index index, JsonValue value)
 		{
-			return this.Context.FromJson(this, new(index), value);
+			return this.Context?.FromJson(this, new(index), value) ?? new(null, this, new(index), value);
 		}
 
 		[Pure]
@@ -328,7 +400,6 @@ namespace Doxense.Serialization.Json
 		/// <param name="key">Name of the field in this object</param>
 		/// <param name="value">Value that represents this field in the current object.</param>
 		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
-		/// <remarks><para>This can be used to perform a different operation if the value exists or not (initialize a counter or increment its value, throw a specialized exception, ....)</para></remarks>
 		[Pure]
 		public bool TryGetValue(string key, out ObservableJsonValue value)
 		{
@@ -346,7 +417,23 @@ namespace Doxense.Serialization.Json
 		/// <param name="key">Name of the field in this object</param>
 		/// <param name="value">Value that represents this field in the current object.</param>
 		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
-		/// <remarks><para>This can be used to perform a different operation if the value exists or not (initialize a counter or increment its value, throw a specialized exception, ....)</para></remarks>
+		[Pure]
+		public bool TryGetValue(ReadOnlyMemory<char> key, out ObservableJsonValue value)
+		{
+			if (!this.Json.TryGetValue(key, out var child) || child.IsNullOrMissing())
+			{
+				value = ReturnChild(key, JsonNull.Missing);
+				return false;
+			}
+
+			value = ReturnChild(key, child);
+			return true;
+		}
+
+		/// <summary>Returns the value of the given field, if it is not null or missing</summary>
+		/// <param name="key">Name of the field in this object</param>
+		/// <param name="value">Value that represents this field in the current object.</param>
+		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
 		[Pure]
 		public bool TryGetValue<TValue>(string key, [MaybeNullWhen(false)] out TValue value)
 		{
@@ -362,11 +449,69 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
+		/// <summary>Returns the value of the given field, if it is not null or missing</summary>
+		/// <param name="key">Name of the field in this object</param>
+		/// <param name="value">Value that represents this field in the current object.</param>
+		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
+		[Pure]
+		public bool TryGetValue<TValue>(ReadOnlyMemory<char> key, [MaybeNullWhen(false)] out TValue value)
+		{
+			if (!this.Json.TryGetValue(key, out var child) || child.IsNullOrMissing())
+			{
+				RecordChildAccess(key, JsonNull.Missing, ObservableJsonAccess.Value);
+				value = default;
+				return false;
+			}
+
+			RecordChildAccess(key, child, ObservableJsonAccess.Value);
+			value = child.As<TValue>()!;
+			return true;
+		}
+
+		/// <summary>Returns the value of the given field, if it is not null or missing</summary>
+		/// <param name="key">Name of the field in this object</param>
+		/// <param name="converter">Converted used to unpack the JSON value into a <typeparamref name="TValue"/> instance</param>
+		/// <param name="value">Receives the unpacked value that represents this field in the current object.</param>
+		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
+		[Pure]
+		public bool TryGetValue<TValue>(string key, IJsonConverter<TValue> converter, [MaybeNullWhen(false)] out TValue value)
+		{
+			if (!this.Json.TryGetValue(key, out var child) || child.IsNullOrMissing())
+			{
+				RecordChildAccess(key.AsMemory(), JsonNull.Missing, ObservableJsonAccess.Value);
+				value = default;
+				return false;
+			}
+
+			RecordChildAccess(key.AsMemory(), child, ObservableJsonAccess.Value);
+			value = converter.Unpack(child);
+			return true;
+		}
+
+		/// <summary>Returns the value of the given field, if it is not null or missing</summary>
+		/// <param name="key">Name of the field in this object</param>
+		/// <param name="converter">Converted used to unpack the JSON value into a <typeparamref name="TValue"/> instance</param>
+		/// <param name="value">Receives the unpacked value that represents this field in the current object.</param>
+		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
+		[Pure]
+		public bool TryGetValue<TValue>(ReadOnlyMemory<char> key, IJsonConverter<TValue> converter, [MaybeNullWhen(false)] out TValue value)
+		{
+			if (!this.Json.TryGetValue(key, out var child) || child.IsNullOrMissing())
+			{
+				RecordChildAccess(key, JsonNull.Missing, ObservableJsonAccess.Value);
+				value = default;
+				return false;
+			}
+
+			RecordChildAccess(key, child, ObservableJsonAccess.Value);
+			value = converter.Unpack(child);
+			return true;
+		}
+
 		/// <summary>Returns the value at the given location, if it was non-null and inside the bounds of the array</summary>
 		/// <param name="index">Index of the element in this array</param>
 		/// <param name="value">Value that represents this index in the current array.</param>
 		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
-		/// <remarks><para>This can be used to perform a different operation if the value exists or not (initialize a counter or increment its value, throw a specialized exception, ....)</para></remarks>
 		[Pure]
 		public bool TryGetValue(int index, out ObservableJsonValue value)
 		{
@@ -377,6 +522,44 @@ namespace Doxense.Serialization.Json
 			}
 
 			value = ReturnChild(index, child);
+			return true;
+		}
+
+		/// <summary>Returns the value at the given location, if it was non-null and inside the bounds of the array</summary>
+		/// <param name="index">Index of the element in this array</param>
+		/// <param name="value">Value that represents this index in the current array.</param>
+		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
+		[Pure]
+		public bool TryGetValue<TValue>(int index, [MaybeNullWhen(false)] out TValue value)
+		{
+			if (!this.Json.TryGetValue(index, out var child) || child.IsNullOrMissing())
+			{
+				RecordChildAccess(index, JsonNull.Error, ObservableJsonAccess.Value);
+				value = default;
+				return false;
+			}
+
+			RecordChildAccess(index, child, ObservableJsonAccess.Value);
+			value = child.As<TValue>()!;
+			return true;
+		}
+
+		/// <summary>Returns the value at the given location, if it was non-null and inside the bounds of the array</summary>
+		/// <param name="index">Index of the element in this array</param>
+		/// <param name="value">Value that represents this index in the current array.</param>
+		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
+		[Pure]
+		public bool TryGetValue<TValue>(int index, IJsonConverter<TValue> converter, [MaybeNullWhen(false)] out TValue value)
+		{
+			if (!this.Json.TryGetValue(index, out var child) || child.IsNullOrMissing())
+			{
+				RecordChildAccess(index, JsonNull.Error, ObservableJsonAccess.Value);
+				value = default;
+				return false;
+			}
+
+			RecordChildAccess(index, child, ObservableJsonAccess.Value);
+			value = converter.Unpack(child);
 			return true;
 		}
 
@@ -398,52 +581,153 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
-		[Pure, MustUseReturnValue]
-		public ObservableJsonValue Get(string key)
+		/// <summary>Returns the value at the given location, if it was non-null and inside the bounds of the array</summary>
+		/// <param name="index">Index of the element in this array</param>
+		/// <param name="value">Value that represents this index in the current array.</param>
+		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
+		[Pure]
+		public bool TryGetValue<TValue>(Index index, [MaybeNullWhen(false)] out TValue value)
 		{
-			return ReturnChild(key.AsMemory(), this.Json.GetValueOrDefault(key));
+			if (!this.Json.TryGetValue(index, out var child) || child.IsNullOrMissing())
+			{
+				RecordChildAccess(index, JsonNull.Error, ObservableJsonAccess.Value);
+				value = default;
+				return false;
+			}
+
+			RecordChildAccess(index, child, ObservableJsonAccess.Value);
+			value = child.As<TValue>()!;
+			return true;
+		}
+
+		/// <summary>Returns the value at the given location, if it was non-null and inside the bounds of the array</summary>
+		/// <param name="index">Index of the element in this array</param>
+		/// <param name="value">Value that represents this index in the current array.</param>
+		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
+		[Pure]
+		public bool TryGetValue<TValue>(Index index, IJsonConverter<TValue> converter, [MaybeNullWhen(false)] out TValue value)
+		{
+			if (!this.Json.TryGetValue(index, out var child) || child.IsNullOrMissing())
+			{
+				RecordChildAccess(index, JsonNull.Error, ObservableJsonAccess.Value);
+				value = default;
+				return false;
+			}
+
+			RecordChildAccess(index, child, ObservableJsonAccess.Value);
+			value = converter.Unpack(child);
+			return true;
+		}
+
+		/// <summary>Returns a wrapper for the field with the specified name</summary>
+		/// <param name="name">Name of the field to return</param>
+		/// <returns>Corresponding field, or a null-or-missing placeholder.</returns>
+		/// <remarks>This operation in itself will not be recorded as a use of the object</remarks>
+		[Pure, MustUseReturnValue]
+		public ObservableJsonValue Get(string name) => ReturnChild(name.AsMemory(), this.Json.GetValueOrDefault(name));
+
+		/// <summary>Returns the underlying <see cref="JsonValue"/> of the field with the specified name</summary>
+		/// <param name="name">Name of the field to return</param>
+		/// <returns>Corresponding field</returns>
+		/// <remarks>This operation will be record as a <see cref="ObservableJsonAccess.Value"/> access.</remarks>
+		[Pure, MustUseReturnValue]
+		public JsonValue GetValue(string name)
+		{
+			var value = this.Json.GetValueOrDefault(name);
+			RecordChildAccess(name.AsMemory(), value, ObservableJsonAccess.Value);
+			return value;
+		}
+
+		[Pure, MustUseReturnValue]
+		public TValue Get<TValue>(string name) where TValue : notnull
+		{
+			var child = this.Json.GetValueOrDefault(name);
+			RecordChildAccess(name.AsMemory(), child, ObservableJsonAccess.Value);
+			if (child.IsNullOrMissing())
+			{
+				throw new JsonBindingException($"Required JSON field '{GetPath(name)}' was null or missing", GetPath(name), child, typeof(TValue));
+			}
+			return child.As<TValue>()!;
 		}
 
 		[Pure, MustUseReturnValue]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? Get<TValue>(string key, TValue? defaultValue = default)
+		public TValue? Get<TValue>(string name, TValue defaultValue)
 		{
-			var child = this.Json.GetValueOrDefault(key);
-			RecordChildAccess(key.AsMemory(), child, ObservableJsonAccess.Value);
+			var child = this.Json.GetValueOrDefault(name);
+			RecordChildAccess(name.AsMemory(), child, ObservableJsonAccess.Value);
 			return child.As(defaultValue);
 		}
 
+		/// <summary>Returns a wrapper for the field with the specified name</summary>
+		/// <param name="name">Name of the field to return</param>
+		/// <returns>Corresponding field, or a null-or-missing placeholder.</returns>
+		/// <remarks>This operation in itself will not be recorded as a use of the object</remarks>
 		[Pure, MustUseReturnValue]
-		public ObservableJsonValue Get(ReadOnlyMemory<char> key)
+		public ObservableJsonValue Get(ReadOnlyMemory<char> name)
 		{
 #if NET9_0_OR_GREATER
-			var value = this.Json.GetValueOrDefault(key, JsonNull.Missing, out var actualKey);
-			key = actualKey?.AsMemory() ?? key;
+			var value = this.Json.GetValueOrDefault(name, JsonNull.Missing, out var actualKey);
+			name = actualKey?.AsMemory() ?? name;
 #else
-			var value = this.Json.GetValueOrDefault(key, JsonNull.Missing);
+			var value = this.Json.GetValueOrDefault(name, JsonNull.Missing);
 #endif
-			return this.Context.FromJson(this, new(key), value);
+			return ReturnChild(name, value);
+		}
+
+		/// <summary>Returns the underlying <see cref="JsonValue"/> of the field with the specified name</summary>
+		/// <param name="name">Name of the field to return</param>
+		/// <returns>Corresponding field</returns>
+		/// <remarks>This operation will be record as a <see cref="ObservableJsonAccess.Value"/> access.</remarks>
+		[Pure, MustUseReturnValue]
+		public JsonValue GetValue(ReadOnlyMemory<char> name)
+		{
+#if NET9_0_OR_GREATER
+			var value = this.Json.GetValueOrDefault(name, JsonNull.Missing, out var actualKey);
+			name = actualKey?.AsMemory() ?? name;
+#else
+			var value = this.Json.GetValueOrDefault(name, JsonNull.Missing);
+#endif
+			RecordChildAccess(name, value, ObservableJsonAccess.Value);
+			return value;
 		}
 
 		[Pure, MustUseReturnValue]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? Get<TValue>(ReadOnlyMemory<char> key, TValue? defaultValue = default)
+		public TValue? Get<TValue>(ReadOnlyMemory<char> name, TValue? defaultValue = default)
 		{
 #if NET9_0_OR_GREATER
-			var value = this.Json.GetValueOrDefault(key, JsonNull.Missing, out var actualKey);
-			key = actualKey?.AsMemory() ?? key;
+			var value = this.Json.GetValueOrDefault(name, JsonNull.Missing, out var actualKey);
+			name = actualKey?.AsMemory() ?? name;
 #else
-			var value = this.Json.GetValueOrDefault(key, JsonNull.Missing);
+			var value = this.Json.GetValueOrDefault(name, JsonNull.Missing);
 #endif
-			RecordChildAccess(key, value, ObservableJsonAccess.Value);
+			RecordChildAccess(name, value, ObservableJsonAccess.Value);
 			return value.As(defaultValue);
 		}
 
+		/// <summary>Returns a wrapper for the field with the specified name</summary>
+		/// <param name="index">Index of the item to return</param>
+		/// <returns>Corresponding item, or an error placeholder.</returns>
+		/// <remarks>This operation in itself will not be recorded as a use of the array</remarks>
 		[Pure, MustUseReturnValue]
 		public ObservableJsonValue Get(int index)
 		{
 			//note: this fails is not JsonArray or JsonObject!
 			return ReturnChild(index, this.Json.GetValueOrDefault(index));
+		}
+
+		/// <summary>Returns the underlying <see cref="JsonValue"/> of the item at the specified location</summary>
+		/// <param name="index">Index of the item to return</param>
+		/// <returns>Corresponding item, or <see cref="JsonNull.Error"/> if the index is out of bounds, of this is not an array.</returns>
+		/// <remarks>This operation will be record as a <see cref="ObservableJsonAccess.Value"/> access.</remarks>
+		[Pure, MustUseReturnValue]
+		public JsonValue GetValue(int index)
+		{
+			//note: this fails is not JsonArray or JsonObject!
+			var child = this.Json.GetValueOrDefault(index);
+			RecordChildAccess(index, child, ObservableJsonAccess.Value);
+			return child;
 		}
 
 		[Pure, MustUseReturnValue]
@@ -456,11 +740,28 @@ namespace Doxense.Serialization.Json
 			return child.As(defaultValue);
 		}
 
+		/// <summary>Returns a wrapper for the field with the specified name</summary>
+		/// <param name="index">Index of the item to return</param>
+		/// <returns>Corresponding item, or an error placeholder.</returns>
+		/// <remarks>This operation in itself will not be recorded as a use of the array</remarks>
 		[Pure, MustUseReturnValue]
 		public ObservableJsonValue Get(Index index)
 		{
 			//note: this fails is not JsonArray or JsonObject!
 			return ReturnChild(index, this.Json.GetValueOrDefault(index));
+		}
+		
+		/// <summary>Returns the underlying <see cref="JsonValue"/> of the item at the specified location</summary>
+		/// <param name="index">Index of the item to return</param>
+		/// <returns>Corresponding item, or <see cref="JsonNull.Error"/> if the index is out of bounds, of this is not an array.</returns>
+		/// <remarks>This operation will be record as a <see cref="ObservableJsonAccess.Value"/> access.</remarks>
+		[Pure, MustUseReturnValue]
+		public JsonValue GetValue(Index index)
+		{
+			//note: this fails is not JsonArray or JsonObject!
+			var child = this.Json.GetValueOrDefault(index);
+			RecordChildAccess(index, child, ObservableJsonAccess.Value);
+			return child;
 		}
 
 		[Pure, MustUseReturnValue]
@@ -485,10 +786,31 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, MustUseReturnValue]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public JsonValue GetValue(JsonPath path) => Get(path).ToJson();
+
+		[Pure, MustUseReturnValue]
 		public ObservableJsonValue Get(JsonPathSegment segment)
 			=> segment.TryGetName(out var name) ? Get(name)
 			 : segment.TryGetIndex(out var index) ? Get(index)
 			 : this;
+
+		[Pure, MustUseReturnValue]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public JsonValue GetValue(JsonPathSegment segment) => Get(segment).ToJson();
+
+		/// <summary>Returns a new instance with the same path, but with the different value </summary>
+		/// <param name="newValue">New value of this instance</param>
+		/// <returns>Equivalent instance, that could replace the current one in its parent</returns>
+		public ObservableJsonValue Visit(JsonValue? newValue)
+		{
+			newValue ??= JsonNull.Null;
+			if (ReferenceEquals(this.Json, newValue))
+			{
+				return this;
+			}
+			return this.Context?.FromJson(this.Parent, this.Segment, newValue) ?? new(null, this.Parent, this.Segment, newValue);
+		}
 
 		#endregion
 

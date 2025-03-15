@@ -1852,6 +1852,24 @@ namespace Doxense.Serialization.Json
 			internal static JsonBindingException Parsing_FieldIsNullOrMissing(JsonValue? parent, string field, string? message) => new(message ?? $"Required JSON field '{field}' was null or missing.", JsonPath.Create(field), parent, null);
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+			internal static JsonBindingException Parsing_FieldIsNullOrMissing(JsonValue? parent, ReadOnlyMemory<char> field, string? message) => new(message ?? $"Required JSON field '{field}' was null or missing.", JsonPath.Create(field), parent, null);
+
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+			internal static JsonBindingException Parsing_ItemIsNullOrMissing(JsonValue? parent, Index index, string? message) => new(message ?? $"Required JSON item at index {index} was null or missing.", JsonPath.Create(index), parent, null);
+
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+			internal static JsonBindingException Parsing_ChildIsNullOrMissing(JsonValue? parent, JsonPathSegment segment, string? message)
+				=> segment.TryGetName(out var name) ? Parsing_FieldIsNullOrMissing(parent, name, message)
+					: segment.TryGetIndex(out var index) ? Parsing_ItemIsNullOrMissing(parent, index, message)
+					: Parsing_ValueIsNullOrMissing();
+
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+			internal static JsonBindingException Parsing_NodeIsNullOrMissing(JsonValue? parent, JsonPathSegment segment, string? message)
+				=> segment.TryGetName(out var name) ? Parsing_FieldIsNullOrMissing(parent, name, message)
+					: segment.TryGetIndex(out var index) ? Parsing_ItemIsNullOrMissing(parent, index, message)
+					: Parsing_ValueIsNullOrMissing();
+
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			internal static JsonBindingException Parsing_CannotCastToJsonObject(JsonValue? value) => new($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} as an Object.", value);
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]

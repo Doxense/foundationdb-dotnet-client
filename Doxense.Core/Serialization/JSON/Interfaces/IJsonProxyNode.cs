@@ -26,7 +26,6 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System.Text;
 	using Doxense.Linq;
 
 	/// <summary>Node in the hierarchy of a document proxy</summary>
@@ -37,14 +36,18 @@ namespace Doxense.Serialization.Json
 		/// <remarks>If <c>null</c>, this node if the root of the wrapped document</remarks>
 		IJsonProxyNode? Parent { get; }
 
-		/// <summary>If non-null, the name of field in the parent that contains this node</summary>
-		JsonEncodedPropertyName? Name { get; }
-
-		/// <summary>The index of this node in the parent array, if <see cref="Name"/> is <c>null</c></summary>
-		int Index { get; }
+		/// <summary>Segment of path from the parent to this node</summary>
+		JsonPathSegment Segment { get; }
 
 		/// <summary>Type of JSON value wrapped by this node</summary>
 		JsonType Type { get; }
+
+		/// <summary>Number of nodes between the root and this node</summary>
+		int Depth { get; }
+
+		/// <summary>Write the path from the root to this node</summary>
+		/// <param name="builder">Builder for the path</param>
+		void WritePath(ref JsonPathBuilder builder);
 
 	}
 
@@ -57,8 +60,7 @@ namespace Doxense.Serialization.Json
 			var parent = self.Parent;
 			if (parent == null)
 			{
-				var name = self.Name;
-				return name != null ? JsonPath.Create(name.Value) : JsonPath.Create(self.Index);
+				return JsonPath.Create(self.Segment);
 			}
 
 			return GetPathMultiple(self, parent);
@@ -66,31 +68,22 @@ namespace Doxense.Serialization.Json
 			static JsonPath GetPathMultiple(IJsonProxyNode node, IJsonProxyNode? parent)
 			{
 				using var buf = new ValueBuffer<IJsonProxyNode>(8);
+				while (parent != null)
 				{
-					while (parent != null)
-					{
-						buf.Add(node);
-						node = parent;
-						parent = node.Parent;
-					}
+					buf.Add(node);
+					node = parent;
+					parent = node.Parent;
 				}
 
+				Span<char> scratch = stackalloc char[32];
+				using var writer = new JsonPathBuilder(scratch);
+
 				var stack = buf.Span;
-				var sb = new StringBuilder();
 				for (int i = stack.Length - 1; i >= 0; i--)
 				{
-					var name = stack[i].Name;
-					if (name != null)
-					{
-						if (sb.Length != 0) sb.Append('.');
-						sb.Append(name.Value);
-					}
-					else
-					{
-						sb.Append('[').Append(StringConverters.ToString(stack[i].Index)).Append(']');
-					}
+					writer.Append(stack[i].Segment);
 				}
-				return JsonPath.Create(sb.ToString());
+				return writer.ToPath();
 			}
 		}
 

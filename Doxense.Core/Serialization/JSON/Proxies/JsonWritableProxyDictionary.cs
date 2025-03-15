@@ -42,26 +42,37 @@ namespace Doxense.Serialization.Json
 	
 		private readonly IJsonProxyNode? m_parent;
 
-		private readonly JsonEncodedPropertyName? m_name;
+		private readonly JsonPathSegment m_segment;
 
-		private readonly int m_index;
+		private readonly int m_depth;
 
-		public JsonWritableProxyDictionary(JsonObject? obj, IJsonConverter<TValue>? converter = null, IJsonProxyNode? parent = null, JsonEncodedPropertyName? name = null, int index = 0)
+		public JsonWritableProxyDictionary(JsonObject? obj, IJsonConverter<TValue>? converter = null, IJsonProxyNode? parent = null, JsonPathSegment segment = default)
 		{
 			m_obj = obj ?? JsonObject.EmptyReadOnly;
 			m_converter = converter ?? RuntimeJsonConverter<TValue>.Default;
 			m_parent = parent;
-			m_name = name;
-			m_index = index;
+			m_segment = segment;
+			m_depth = (parent?.Depth ?? -1) + 1;
 		}
 
+		/// <inheritdoc />
 		JsonType IJsonProxyNode.Type => JsonType.Object;
 
+		/// <inheritdoc />
 		IJsonProxyNode? IJsonProxyNode.Parent => m_parent;
 
-		JsonEncodedPropertyName? IJsonProxyNode.Name => m_name;
+		/// <inheritdoc />
+		JsonPathSegment IJsonProxyNode.Segment => m_segment;
 
-		int IJsonProxyNode.Index => m_index;
+		/// <inheritdoc />
+		int IJsonProxyNode.Depth => m_depth;
+
+		/// <inheritdoc />
+		void IJsonProxyNode.WritePath(ref JsonPathBuilder builder)
+		{
+			m_parent?.WritePath(ref builder);
+			builder.Append(m_segment);
+		}
 
 		/// <inheritdoc />
 		void ICollection<KeyValuePair<string, TValue>>.Add(KeyValuePair<string, TValue> item) => Add(item.Key, item.Value);
@@ -169,23 +180,33 @@ namespace Doxense.Serialization.Json
 
 		private readonly IJsonProxyNode? m_parent;
 
-		private readonly JsonEncodedPropertyName? m_name;
+		private readonly JsonPathSegment m_segment;
 
-		private readonly int m_index;
+		private readonly int m_depth;
 
-		public JsonWritableProxyDictionary(JsonValue? value, IJsonProxyNode? parent = null, JsonEncodedPropertyName? name = null, int index = 0)
+		public JsonWritableProxyDictionary(JsonValue? value, IJsonProxyNode? parent = null, JsonPathSegment segment = default)
 		{
 			m_value = value ?? JsonObject.EmptyReadOnly;
 			m_parent = parent;
-			m_name = name;
-			m_index = index;
+			m_segment = segment;
+			m_depth = (parent?.Depth ?? -1) + 1;
 		}
 
+		/// <inheritdoc />
 		IJsonProxyNode? IJsonProxyNode.Parent => m_parent;
 
-		JsonEncodedPropertyName? IJsonProxyNode.Name => m_name;
+		/// <inheritdoc />
+		JsonPathSegment IJsonProxyNode.Segment => m_segment;
 
-		int IJsonProxyNode.Index => m_index;
+		/// <inheritdoc />
+		int IJsonProxyNode.Depth => m_depth;
+
+		/// <inheritdoc />
+		void IJsonProxyNode.WritePath(ref JsonPathBuilder builder)
+		{
+			m_parent?.WritePath(ref builder);
+			builder.Append(m_segment);
+		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private InvalidOperationException OperationRequiresObjectOrNull() => new("This operation requires a valid JSON Object");
@@ -219,7 +240,7 @@ namespace Doxense.Serialization.Json
 
 			foreach (var kv in obj)
 			{
-				array[arrayIndex++] = new(kv.Key, TProxy.Create(kv.Value, parent: this, name: new (kv.Key))); //BUGBUG
+				array[arrayIndex++] = new(kv.Key, TProxy.Create(kv.Value, parent: this, segment: new(kv.Key))); //BUGBUG
 			}
 		}
 
@@ -253,7 +274,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (m_value is JsonObject obj && obj.TryGetValue(key, out var json))
 			{
-				value = TProxy.Create(json, parent: this, name: new(key)); //BUGBUG
+				value = TProxy.Create(json, parent: this, segment: new(key)); //BUGBUG
 				return true;
 			}
 
@@ -264,7 +285,7 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		public TProxy this[string key]
 		{
-			get => TProxy.Create(m_value[key], parent: this, name: new(key)); //BUGBUG
+			get => TProxy.Create(m_value[key], parent: this, segment: new(key)); //BUGBUG
 			set => m_value[key] = value.ToJson();
 		}
 
@@ -297,7 +318,7 @@ namespace Doxense.Serialization.Json
 			}
 			foreach (var kv in obj)
 			{
-				yield return new(kv.Key, TProxy.Create(kv.Value, parent: this, name: new (kv.Key))); //BUGBUG
+				yield return new(kv.Key, TProxy.Create(kv.Value, parent: this, segment: new (kv.Key))); //BUGBUG
 			}
 		}
 
