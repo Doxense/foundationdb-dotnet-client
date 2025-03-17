@@ -59,10 +59,13 @@ namespace Doxense.Serialization.Json
 		int IJsonProxyNode.Depth => m_value.Depth;
 
 		/// <inheritdoc />
-		void IJsonProxyNode.WritePath(ref JsonPathBuilder builder)
-		{
-			m_value.WritePath(ref builder);
-		}
+		void IJsonProxyNode.WritePath(ref JsonPathBuilder builder) => m_value.WritePath(ref builder);
+
+		/// <inheritdoc />
+		public JsonPath GetPath() => m_value.GetPath();
+
+		/// <inheritdoc />
+		public JsonPath GetPath(JsonPathSegment child) => m_value.GetPath(child);
 
 		/// <inheritdoc />
 		void ICollection<KeyValuePair<string, TValue>>.Add(KeyValuePair<string, TValue> item) => Add(item.Key, item.Value);
@@ -207,7 +210,7 @@ namespace Doxense.Serialization.Json
 		IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
 
 		/// <inheritdoc />
-		public override string ToString() => $"Dictionary<string, {typeof(TValue).GetFriendlyName()}>({this.GetPath()})";
+		public override string ToString() => $"(Dictionary<string, {typeof(TValue).GetFriendlyName()}>) {m_value}";
 	}
 
 	/// <summary>Wraps a <see cref="JsonObject"/> into a typed mutable proxy that emulates a dictionary of elements of type <typeparamref name="TValue"/></summary>
@@ -235,10 +238,13 @@ namespace Doxense.Serialization.Json
 		int IJsonProxyNode.Depth => m_value.Depth;
 
 		/// <inheritdoc />
-		void IJsonProxyNode.WritePath(ref JsonPathBuilder builder)
-		{
-			m_value.WritePath(ref builder);
-		}
+		void IJsonProxyNode.WritePath(ref JsonPathBuilder builder) => m_value.WritePath(ref builder);
+
+		/// <inheritdoc />
+		public JsonPath GetPath() => m_value.GetPath();
+
+		/// <inheritdoc />
+		public JsonPath GetPath(JsonPathSegment child) => m_value.GetPath(child);
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static InvalidOperationException OperationRequiresObjectOrNull() => new("This operation requires a valid JSON Object");
@@ -386,7 +392,7 @@ namespace Doxense.Serialization.Json
 		IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
 
 		/// <inheritdoc />
-		public override string ToString() => $"Dictionary<string, {typeof(TValue).GetFriendlyName()}>";
+		public override string ToString() => $"(Dictionary<string, {typeof(TValue).GetFriendlyName()}>) {m_value}";
 
 		/// <inheritdoc />
 		public JsonType Type { get; }

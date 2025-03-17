@@ -30,7 +30,7 @@ namespace Doxense.Serialization.Json
 	/// <summary>Base class for custom or source generated implementations of a <see cref="IJsonWritableProxy"/></summary>
 	/// <remarks>This contains all the boilerplate implementation that is common to most custom implementations</remarks>
 	public abstract record JsonWritableProxyObjectBase
-		: IJsonWritableProxy, IJsonProxyNode
+		: IJsonWritableProxy, IJsonProxyNode, IEquatable<JsonValue>, IEquatable<MutableJsonValue>
 	{
 
 		/// <summary>Wrapped JSON Object</summary>
@@ -60,11 +60,19 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public MutableJsonValue Get() => m_value;
 
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public MutableJsonValue Get(string key) => m_value.Get(key);
 		
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public MutableJsonValue Get(ReadOnlyMemory<char> key) => m_value.Get(key);
+
+		/// <inheritdoc />
+		MutableJsonValue IJsonWritableProxy.Get(int index) => m_value.Get(index);
+
+		/// <inheritdoc />
+		MutableJsonValue IJsonWritableProxy.Get(Index index) => m_value.Get(index);
 
 		public MutableJsonValue this[string key]
 		{
@@ -127,7 +135,23 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		public JsonValue ToJson() => m_value.Json;
 
+		/// <inheritdoc />
 		public IMutableJsonContext? GetContext() => m_value.Context;
+
+		/// <inheritdoc />
+		public JsonPath GetPath() => m_value.GetPath();
+
+		/// <inheritdoc />
+		public JsonPath GetPath(JsonPathSegment child) => m_value.GetPath(child);
+
+		/// <inheritdoc />
+		public bool Equals(JsonValue? value) => m_value.Equals(value);
+
+		/// <inheritdoc />
+		public bool Equals(MutableJsonValue? value) => m_value.Equals(value);
+
+		/// <inheritdoc />
+		public override string ToString() => m_value.ToString();
 
 	}
 

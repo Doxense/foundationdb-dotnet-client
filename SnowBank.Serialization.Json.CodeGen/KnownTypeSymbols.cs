@@ -65,6 +65,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 		public const string JsonPathFullName = CrystalJsonNamespace + ".JsonPath";
 		public const string JsonPathSegmentFullName = CrystalJsonNamespace + ".JsonPathSegment";
+		public const string JsonPathBuilderFullName = CrystalJsonNamespace + ".JsonPathBuilder";
 
 		public const string JsonValueFullName = CrystalJsonNamespace + "." + JsonValueName;
 		public const string JsonNullFullName = CrystalJsonNamespace + "." + JsonNullName;

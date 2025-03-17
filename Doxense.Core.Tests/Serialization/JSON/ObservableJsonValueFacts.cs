@@ -1,119 +1,40 @@
-#region Copyright (c) 2023-2024 SnowBank SAS
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of SnowBank nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL SNOWBANK SAS BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 namespace Doxense.Serialization.Json.Tests
 {
-	using System.Collections;
 	using System.Collections.Generic;
-	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
-	using System.Runtime.InteropServices;
 
 	[TestFixture]
 	[Category("Core-SDK")]
 	[Category("Core-JSON")]
 	[Parallelizable(ParallelScope.All)]
-	public sealed class ObservableJsonFacts : SimpleTest
+	public sealed class ObservableJsonValueFacts : SimpleTest
 	{
-
-		public class FakeMutableContext : IMutableJsonContext
-		{
-
-			public List<(string Op, JsonPath Path, JsonValue? Argument)> Changes { get; } = [ ];
-
-			public bool Logged { get; set; }
-
-			/// <inheritdoc />
-			public bool HasMutations => this.Changes.Count > 0;
-
-			/// <inheritdoc />
-			public int Count => this.Changes.Count;
-
-			/// <inheritdoc />
-			public JsonObject NewObject() => JsonObject.Create();
-
-			/// <inheritdoc />
-			public JsonArray NewArray() => new JsonArray();
-
-			/// <inheritdoc />
-			public MutableJsonValue FromJson(JsonValue value) => new(this, null, default, value);
-
-			/// <inheritdoc />
-			public MutableJsonValue FromJson(MutableJsonValue parent, JsonPathSegment segment, JsonValue value) => new(this, parent, segment, value);
-
-			private void RecordMutation((string Op, JsonPath Path, JsonValue? Arg) record)
-			{
-				this.Changes.Add(record);
-				if (this.Logged) Log($"# {record}");
-			}
-
-			/// <inheritdoc />
-			public void RecordAdd(IJsonProxyNode instance, JsonPathSegment child, JsonValue argument) => RecordMutation(("add", instance.GetPath(child), argument));
-
-			/// <inheritdoc />
-			public void RecordUpdate(IJsonProxyNode instance, JsonPathSegment child, JsonValue argument) => RecordMutation(("update", instance.GetPath(child), argument));
-
-			/// <inheritdoc />
-			public void RecordPatch(IJsonProxyNode instance, JsonPathSegment child, JsonValue argument) => RecordMutation(("patch", instance.GetPath(child), argument));
-
-			/// <inheritdoc />
-			public void RecordDelete(IJsonProxyNode instance, JsonPathSegment child) => RecordMutation(("delete", instance.GetPath(child), null));
-
-			/// <inheritdoc />
-			public void RecordTruncate(IJsonProxyNode instance, int length) => RecordMutation(("truncate", instance.GetPath(), length));
-
-			/// <inheritdoc />
-			public void RecordClear(IJsonProxyNode instance) => RecordMutation(("delete", instance.GetPath(), null));
-
-			/// <inheritdoc />
-			public void Reset() => this.Changes.Clear();
-
-		}
-
-		[Test]
-		public void Test_Fill_Empty_Observable_Object()
-		{
-			var tr = new FakeMutableContext() { Logged = true };
-			var obj = tr.FromJson(tr.NewObject());
-
-			obj["hello"].Set("world");
-			obj["level"].Set(8001);
-			obj["point"]["x"].Set(123);
-			obj["point"].Set("y", 456);
-			obj.Set(JsonPath.Create("point.z"), 789);
-			obj["foo"]["bar"].Set("baz", true);
-			obj["items"][1].Set("two");
-
-			Dump(obj.ToJson());
-
-			Assert.That(
-				obj.ToJson(),
-				IsJson.Object.And.EqualTo(JsonObject.Create(
-				[
-					("hello", "world"),
-					("level", 8001),
-					("point", JsonObject.Create(
-					[
-						("x", 123),
-						("y", 456),
-						("z", 789)
-					])),
-					("foo", JsonObject.Create("bar", JsonObject.Create("baz", true))),
-					("items", JsonArray.Create(null, "two")),
-				]))
-			);
-
-			foreach (var (op, path, arg) in tr.Changes)
-			{
-				Log($"- {op}, `{path}`, {arg:Q}");
-			}
-
-		}
 
 		private static JsonObject GetSampleObject() => new()
 		{

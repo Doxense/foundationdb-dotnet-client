@@ -45,6 +45,12 @@ namespace Doxense.Serialization.Json
 		/// <summary>Number of nodes between the root and this node</summary>
 		int Depth { get; }
 
+		/// <summary>Returns the path to this node, from the root</summary>
+		JsonPath GetPath();
+
+		/// <summary>Returns the path to a child of this value, from the root</summary>
+		JsonPath GetPath(JsonPathSegment child);
+
 		/// <summary>Write the path from the root to this node</summary>
 		/// <param name="builder">Builder for the path</param>
 		void WritePath(ref JsonPathBuilder builder);
@@ -54,56 +60,46 @@ namespace Doxense.Serialization.Json
 	public static class JsonProxyNodeExtensions
 	{
 
-		public static JsonPath GetPath(this IJsonProxyNode self)
+		/// <summary>Returns the path to the given node, from the root</summary>
+		public static JsonPath ComputePath(IJsonProxyNode? parent, in JsonPathSegment segment)
 		{
 			// in most cases, we don't have any parent
-			var parent = self.Parent;
 			if (parent == null)
 			{
-				return JsonPath.Create(self.Segment);
+				return JsonPath.Create(segment);
 			}
 
-			return GetPathMultiple(self, parent);
+			return GetPathMultiple(parent, segment);
 
-			static JsonPath GetPathMultiple(IJsonProxyNode node, IJsonProxyNode? parent)
+			static JsonPath GetPathMultiple(IJsonProxyNode? parent, JsonPathSegment segment)
 			{
-				using var buf = new ValueBuffer<IJsonProxyNode>(8);
+				using var buf = new ValueBuffer<JsonPathSegment>(8);
 				while (parent != null)
 				{
-					buf.Add(node);
-					node = parent;
-					parent = node.Parent;
+					buf.Add(segment);
+					segment = parent.Segment;
+					parent = parent.Parent;
 				}
 
-				Span<char> scratch = stackalloc char[32];
-				using var writer = new JsonPathBuilder(scratch);
-
-				var stack = buf.Span;
-				for (int i = stack.Length - 1; i >= 0; i--)
-				{
-					writer.Append(stack[i].Segment);
-				}
-				return writer.ToPath();
+				return JsonPath.FromSegments(buf.Span, reversed: true);
 			}
 		}
 
-
-		public static JsonPath GetPath(this IJsonProxyNode self, JsonPathSegment child)
+		/// <summary>Returns the path to a child of this node, from the root</summary>
+		public static JsonPath ComputePath(IJsonProxyNode? parent, in JsonPathSegment segment, JsonPathSegment child)
 		{
-			return child.TryGetName(out var name) ? self.GetPath(name)
-				: child.TryGetIndex(out var index) ? self.GetPath(index)
-				: self.GetPath();
+			return child.TryGetName(out var name) ? ComputePath(parent, in segment, name)
+				: child.TryGetIndex(out var index) ? ComputePath(parent, in segment, index)
+				: ComputePath(parent, in segment);
 		}
 
 		/// <summary>Returns the path to a field of this object, from the root</summary>
 		/// <param name="key">Name of a field in this object</param>
-		public static JsonPath GetPath(this IJsonProxyNode self, string key) => self.GetPath(key.AsMemory());
-
-		/// <summary>Returns the path to a field of this object, from the root</summary>
-		/// <param name="key">Name of a field in this object</param>
-		public static JsonPath GetPath(this IJsonProxyNode self, ReadOnlyMemory<char> key)
+		public static JsonPath ComputePath(IJsonProxyNode? parent, in JsonPathSegment segment, ReadOnlyMemory<char> key)
 		{
-			if (self.Segment.IsEmpty())
+			Contract.Debug.Requires(key.Length > 0);
+
+			if (segment.IsEmpty())
 			{
 				return JsonPath.Create(new JsonPathSegment(key));
 			}
@@ -112,7 +108,8 @@ namespace Doxense.Serialization.Json
 			var writer = new JsonPathBuilder(scratch);
 			try
 			{
-				self.WritePath(ref writer);
+				parent?.WritePath(ref writer);
+				writer.Append(in segment);
 				writer.Append(key);
 				return writer.ToPath();
 			}
@@ -123,33 +120,11 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Returns the path to an item of this array, from the root</summary>
+		/// <param name="node"></param>
 		/// <param name="index">Index of the item in this array</param>
-		public static JsonPath GetPath(this IJsonProxyNode self, int index)
+		public static JsonPath ComputePath(IJsonProxyNode? parent, in JsonPathSegment segment, Index index)
 		{
-			if (self.Segment.IsEmpty())
-			{
-				return JsonPath.Create(index);
-			}
-
-			Span<char> scratch = stackalloc char[32];
-			var writer = new JsonPathBuilder(scratch);
-			try
-			{
-				self.WritePath(ref writer);
-				writer.Append(index);
-				return writer.ToPath();
-			}
-			finally
-			{
-				writer.Dispose();
-			}
-		}
-
-		/// <summary>Returns the path to an item of this array, from the root</summary>
-		/// <param name="index">Index of the item in this array</param>
-		public static JsonPath GetPath(this IJsonProxyNode self, Index index)
-		{
-			if (self.Segment.IsEmpty())
+			if (segment.IsEmpty())
 			{
 				return JsonPath.Create(index);
 			}
@@ -159,7 +134,8 @@ namespace Doxense.Serialization.Json
 			var writer = new JsonPathBuilder(scratch);
 			try
 			{
-				self.WritePath(ref writer);
+				parent?.WritePath(ref writer);
+				writer.Append(in segment);
 				writer.Append(index);
 				return writer.ToPath();
 			}
@@ -187,12 +163,13 @@ namespace Doxense.Serialization.Json
 
 			var current = node;
 			int p = depth - 1;
-			while (current != null)
+			while (current.Parent != null)
 			{
+				Contract.Debug.Assert(p >= 0);
 				buffer[p--] = current.Segment;
 				current = current.Parent;
 			}
-			Contract.Debug.Assert(p == 0);
+			Contract.Debug.Assert(p == -1);
 			return buffer;
 		}
 
@@ -215,12 +192,13 @@ namespace Doxense.Serialization.Json
 
 			var current = node;
 			int p = depth - 1;
-			while(current != null)
+			while(current.Parent != null)
 			{
+				Contract.Debug.Assert(p >= 0);
 				buffer[p--] = current.Segment;
 				current = current.Parent;
 			}
-			Contract.Debug.Assert(p == 0);
+			Contract.Debug.Assert(p == -1);
 			written = capacity;
 			return true;
 		}

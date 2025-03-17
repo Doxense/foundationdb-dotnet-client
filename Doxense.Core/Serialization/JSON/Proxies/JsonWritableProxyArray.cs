@@ -31,7 +31,7 @@ namespace Doxense.Serialization.Json
 	/// <summary>Wraps a <see cref="JsonArray"/> into a typed mutable proxy that emulates an array of elements of type <typeparamref name="TValue"/></summary>
 	/// <typeparam name="TValue">Emulated element type</typeparam>
 	[PublicAPI]
-	public readonly struct JsonWritableProxyArray<TValue> : IList<TValue>, IJsonSerializable, IJsonPackable
+	public readonly struct JsonWritableProxyArray<TValue> : IList<TValue>, IJsonProxyNode, IJsonSerializable, IJsonPackable
 	{
 
 		private readonly MutableJsonValue m_value;
@@ -43,6 +43,32 @@ namespace Doxense.Serialization.Json
 			m_value = value;
 			m_converter = converter ?? RuntimeJsonConverter<TValue>.Default;
 		}
+
+
+		#region IJsonProxyNode...
+
+		/// <inheritdoc />
+		JsonType IJsonProxyNode.Type => JsonType.Array;
+
+		/// <inheritdoc />
+		IJsonProxyNode? IJsonProxyNode.Parent => m_value.Parent;
+
+		/// <inheritdoc />
+		JsonPathSegment IJsonProxyNode.Segment => m_value.Segment;
+
+		/// <inheritdoc />
+		int IJsonProxyNode.Depth => m_value.Depth;
+
+		/// <inheritdoc />
+		void IJsonProxyNode.WritePath(ref JsonPathBuilder builder) => m_value.WritePath(ref builder);
+
+		/// <inheritdoc />
+		public JsonPath GetPath() => m_value.GetPath();
+
+		/// <inheritdoc />
+		public JsonPath GetPath(JsonPathSegment child) => m_value.GetPath(child);
+
+		#endregion
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static InvalidOperationException OperationRequiresArray() => new("This operation requires a valid JSON Array");
@@ -171,7 +197,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		public override string ToString() => typeof(TValue).GetFriendlyName() + "[]";
+		public override string ToString() => $"({typeof(TValue).GetFriendlyName()}[]) {m_value}";
 
 	}
 
@@ -190,6 +216,8 @@ namespace Doxense.Serialization.Json
 			m_value = value;
 		}
 
+		#region IJsonProxyNode...
+
 		/// <inheritdoc />
 		JsonType IJsonProxyNode.Type => JsonType.Array;
 
@@ -203,10 +231,15 @@ namespace Doxense.Serialization.Json
 		int IJsonProxyNode.Depth => m_value.Depth;
 
 		/// <inheritdoc />
-		void IJsonProxyNode.WritePath(ref JsonPathBuilder builder)
-		{
-			m_value.WritePath(ref builder);
-		}
+		void IJsonProxyNode.WritePath(ref JsonPathBuilder builder) => m_value.WritePath(ref builder);
+
+		/// <inheritdoc />
+		public JsonPath GetPath() => m_value.GetPath();
+
+		/// <inheritdoc />
+		public JsonPath GetPath(JsonPathSegment child) => m_value.GetPath(child);
+
+		#endregion
 
 		public TValue[] ToArray() => m_value.Json switch
 		{
@@ -341,7 +374,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		public override string ToString() => typeof(TValue).GetFriendlyName() + "[]";
+		public override string ToString() => $"({typeof(TValue).GetFriendlyName()}[]) {m_value}";
 
 	}
 

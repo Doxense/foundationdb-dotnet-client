@@ -81,7 +81,7 @@ namespace Doxense.Serialization.Json
 		public IJsonProxyNode? GetParent() => this.Parent;
 
 		/// <summary>Segment of path to this node from its parent</summary>
-		private JsonPathSegment Segment { get; }
+		private readonly JsonPathSegment Segment;
 
 		/// <summary>Depth from the root to this node</summary>
 		/// <remarks>Required to pre-compute the size of path segment arrays</remarks>
@@ -94,9 +94,13 @@ namespace Doxense.Serialization.Json
 		/// <returns>Number of parents of this value, or 0 if this is the top-level value</returns>
 		public int GetDepth() => this.Depth;
 
-		void IJsonProxyNode.WritePath(ref JsonPathBuilder sb) => WritePath(ref sb);
+		/// <inheritdoc />
+		public JsonPath GetPath() => JsonProxyNodeExtensions.ComputePath(this.Parent, in this.Segment);
 
-		internal void WritePath(ref JsonPathBuilder sb)
+		/// <inheritdoc />
+		public JsonPath GetPath(JsonPathSegment child) => JsonProxyNodeExtensions.ComputePath(this.Parent, in this.Segment, child);
+
+		public void WritePath(ref JsonPathBuilder sb)
 		{
 			this.Parent?.WritePath(ref sb);
 			sb.Append(this.Segment);

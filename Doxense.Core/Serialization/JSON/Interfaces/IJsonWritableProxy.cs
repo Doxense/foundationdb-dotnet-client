@@ -36,6 +36,14 @@ namespace Doxense.Serialization.Json
 		/// <remarks>This value can be used to "escape" the type safety of the proxy, while still allowing for tracking of mutations.</remarks>
 		MutableJsonValue Get();
 
+		MutableJsonValue Get(string key);
+
+		MutableJsonValue Get(ReadOnlyMemory<char> key);
+
+		MutableJsonValue Get(int index);
+
+		MutableJsonValue Get(Index index);
+
 		/// <summary>Returns the proxied JSON Value</summary>
 		/// <remarks>
 		/// <para>The returned value may not be mutable and should only not be changed directly.</para>

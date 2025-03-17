@@ -1864,10 +1864,14 @@ namespace Doxense.Serialization.Json
 					: Parsing_ValueIsNullOrMissing();
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonBindingException Parsing_NodeIsNullOrMissing(JsonValue? parent, JsonPathSegment segment, string? message)
-				=> segment.TryGetName(out var name) ? Parsing_FieldIsNullOrMissing(parent, name, message)
-					: segment.TryGetIndex(out var index) ? Parsing_ItemIsNullOrMissing(parent, index, message)
-					: Parsing_ValueIsNullOrMissing();
+			internal static JsonBindingException Parsing_ChildIsNullOrMissing(IJsonProxyNode node, in JsonPathSegment child, string? message)
+			{
+				var path = node.GetPath(child);
+				return child.IsName() ? new(message ?? $"Required JSON field '{path}' was null or missing.", path, null, null)
+					: child.IsIndex() ? new(message ?? $"Required JSON item '{path}' was null or missing.", path, null, null)
+					: path.IsEmpty() ? new(message ?? $"Required JSON top-level value was null or missing.", path, null, null)
+					: new(message ?? $"Required JSON value '{path}' was null or missing.", path, null, null);
+			}
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			internal static JsonBindingException Parsing_CannotCastToJsonObject(JsonValue? value) => new($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} as an Object.", value);

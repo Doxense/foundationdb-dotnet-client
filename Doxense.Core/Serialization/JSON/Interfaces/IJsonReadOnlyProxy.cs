@@ -33,11 +33,14 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns the underlying observable value</summary>
 		/// <remarks>This value can be used to "escape" the type safety of the proxy, while still allowing for tracking of read access.</remarks>
-		public ObservableJsonValue Get();
+		ObservableJsonValue Get();
 
 		ObservableJsonValue Get(string key);
+
 		ObservableJsonValue Get(ReadOnlyMemory<char> key);
+
 		ObservableJsonValue Get(int index);
+
 		ObservableJsonValue Get(Index index);
 
 		/// <summary>Returns the proxied JSON Value</summary>
@@ -46,6 +49,10 @@ namespace Doxense.Serialization.Json
 		/// <para>The value will be marked as having been accessed by value.</para>
 		/// </remarks>
 		public JsonValue ToJson();
+
+		/// <summary>Returns the (optional) tracking context attached to this instance</summary>
+		/// <remarks>If <c>non-null</c>, this context will record all read access made to this instance, or any of its children</remarks>
+		IObservableJsonContext? GetContext();
 
 	}
 

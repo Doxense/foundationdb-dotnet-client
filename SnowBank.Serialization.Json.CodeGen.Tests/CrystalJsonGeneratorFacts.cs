@@ -779,7 +779,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			Assert.That(proxy.Items.IsArrayOrMissing(), Is.True);
 
 			// ToString() and equality methods
-			Assert.That(proxy.ToString(), Is.EqualTo("MyAwesomeUser: { }"));
+			Assert.That(proxy.ToString(), Is.EqualTo("(MyAwesomeUser) { }"));
 			Assert.That(proxy.Equals(JsonObject.EmptyReadOnly), Is.True);
 			Assert.That(proxy.Equals(JsonObject.Create()), Is.True);
 			Assert.That(proxy.Equals(ObservableJsonValue.Untracked(JsonObject.EmptyReadOnly)), Is.True);
@@ -822,14 +822,14 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			Assert.That(proxy.Extras["bar"][^1].ToJson(), IsJson.EqualTo(3));
 
 			// it should be able to generate full paths to any item
-			Assert.That(proxy.Metadata.GetPath().ToString(), Is.EqualTo("metadata"));
-			Assert.That(proxy.Items.GetPath().ToString(), Is.EqualTo("items"));
-			Assert.That(proxy.Items[0].GetPath().ToString(), Is.EqualTo("items[0]"));
-			Assert.That(proxy.Items[1].GetPath().ToString(), Is.EqualTo("items[1]"));
-			Assert.That(proxy.Items[1]["id"].GetPath().ToString(), Is.EqualTo("items[1].id"));
-			Assert.That(proxy.Devices.GetPath().ToString(), Is.EqualTo("devices"));
-			Assert.That(proxy.Devices["Foo"].GetPath().ToString(), Is.EqualTo("devices.Foo"));
-			Assert.That(proxy.Extras["bar"][^1].GetPath().ToString(), Is.EqualTo("extras.bar[^1]"));
+			Assert.That(proxy.Metadata.GetPath(), Is.EqualTo("metadata"));
+			Assert.That(proxy.Items.GetPath(), Is.EqualTo("items"));
+			Assert.That(proxy.Items[0].GetPath(), Is.EqualTo("items[0]"));
+			Assert.That(proxy.Items[1].GetPath(), Is.EqualTo("items[1]"));
+			Assert.That(proxy.Items[1]["id"].GetPath(), Is.EqualTo("items[1].id"));
+			Assert.That(proxy.Devices.GetPath(), Is.EqualTo("devices"));
+			Assert.That(proxy.Devices["Foo"].GetPath(), Is.EqualTo("devices.Foo"));
+			Assert.That(proxy.Extras["bar"][^1].GetPath(), Is.EqualTo("extras.bar[^1]"));
 
 			var json = proxy.ToJson();
 			Log("JSON:");
@@ -842,6 +842,16 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			Assert.That(json["devices"]["Foo"]["id"], IsJson.EqualTo(user.Devices["Foo"].Id));
 			Assert.That(json["extras"], IsJson.ReadOnly.And.EqualTo(user.Extras));
 
+			// misc
+			Assert.That(proxy.ToString(), Does.StartWith("(MyAwesomeUser) {").And.EndsWith("}"));
+			Assert.That(proxy.Equals(json), Is.True);
+			Assert.That(proxy.Equals(json.Copy()), Is.True);
+			Assert.That(proxy.Equals(((JsonObject) json).CopyAndAdd("random", Guid.NewGuid())), Is.False);
+			Assert.That(proxy.Equals(MutableJsonValue.Untracked(json)), Is.True);
+			Assert.That(proxy.Equals(MutableJsonValue.Untracked(((JsonObject) json).CopyAndAdd("random", Guid.NewGuid()))), Is.False);
+			// it is not allowed to get the hashcode of a mutable value!
+			Assert.That(() => proxy.GetHashCode(), Throws.InstanceOf<NotSupportedException>());
+
 			// mutate
 
 			proxy.DisplayName = "Jim Bond";
@@ -850,7 +860,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			proxy.Items.Add(new MyAwesomeStruct() { Id = "47c774e7-29e7-40fe-ba06-3098cafe77be", Level = 789, Path = JsonPath.Create("hello") });
 			proxy.Devices["Foo"].LastAddress = IPAddress.Parse("192.168.1.2");
 			proxy.Devices.Remove("Bar");
-			proxy.Extras.Set("bonus", 456); // the readonly-object should automatically upgraded to mutable!
+			proxy.Extras.Set("bonus", 456); // the readonly-object should be automatically upgraded to mutable!
 
 			Log("Mutated:");
 			Dump(proxy.ToJson());
@@ -882,7 +892,6 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			Assert.That(proxy.DisplayName, Is.Null);
 			Assert.That(proxy.Description, Is.Null);
 			Assert.That(proxy.Type, Is.EqualTo(MyAwesomeEnumType.SecretAgent)); // custom default value!
-			Assert.That(proxy.Extras, Is.Null);
 
 			// required inner containers should not throw
 			Assert.That(() => proxy.Metadata, Throws.Nothing);
@@ -895,6 +904,11 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			Assert.That(proxy.Metadata.AccountModified, Is.Default);
 			Assert.That(proxy.Metadata.AccountDisabled, Is.Null);
 
+			// JsonObject should be wrapped as MutableJsonValue
+			Assert.That(proxy.Extras, Is.Not.Null); // should be wrapped!
+			Assert.That(proxy.Extras.Exists(), Is.False);
+			Assert.That(proxy.Extras.ToJson(), IsJson.Null);
+
 			// optional inner containers should not throw
 			Assert.That(() => proxy.Items, Throws.Nothing);
 			Assert.That(proxy.Items.Exists(), Is.False);
@@ -903,12 +917,13 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			Assert.That(proxy.Items.IsArray(), Is.False);
 			Assert.That(proxy.Items.IsArrayOrMissing(), Is.True);
 
-			// ToString() and equality methods
-			Assert.That(proxy.ToString(), Is.EqualTo("MyAwesomeUser: { }"));
+			// misc
+			Assert.That(proxy.ToString(), Is.EqualTo("(MyAwesomeUser) { }"));
 			Assert.That(proxy.Equals(JsonObject.EmptyReadOnly), Is.True);
 			Assert.That(proxy.Equals(JsonObject.Create()), Is.True);
-			Assert.That(proxy.Equals(ObservableJsonValue.Untracked(JsonObject.EmptyReadOnly)), Is.True);
-			Assert.That(proxy.GetHashCode(), Is.EqualTo(JsonObject.EmptyReadOnly.GetHashCode()));
+			Assert.That(proxy.Equals(MutableJsonValue.Untracked(JsonObject.EmptyReadOnly)), Is.True);
+			// it is not allowed to get the hashcode of a mutable value!
+			Assert.That(() => proxy.GetHashCode(), Throws.InstanceOf<NotSupportedException>());
 		}
 
 
@@ -1037,28 +1052,6 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 				Report("PACK CODEGEN", report);
 			}
 
-		}
-
-		public class Blah
-		{
-
-			private string? m_foo;
-
-			[System.Diagnostics.CodeAnalysis.DisallowNull]
-			public string? Foo
-			{
-				get => m_foo;
-				set => m_foo = value;
-			}
-
-
-			public static void Zobi()
-			{
-				var blah = new Blah();
-				//int x = blah.Foo.Length;
-				blah.Foo = null;
-				blah.Foo = "hello";
-			}
 		}
 
 	}

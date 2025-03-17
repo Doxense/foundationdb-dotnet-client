@@ -362,7 +362,8 @@ namespace SnowBank.Serialization.Json.CodeGen
 					[],
 					() =>
 					{
-						sb.AppendLine("/// <summary>JSON Object that is wrapped</summary>");
+						// m_value
+						sb.AppendLine("/// <summary>Observable JSON Value wrapped by this instance</summary>");
 						sb.AppendLine($"private readonly {KnownTypeSymbols.ObservableJsonValueFullName} m_value;");
 						sb.NewLine();
 
@@ -418,6 +419,11 @@ namespace SnowBank.Serialization.Json.CodeGen
 						sb.AppendLine($"public {typeDef.Type.FullyQualifiedName} ToValue() => {GetLocalSerializerRef(typeDef)}.Unpack(m_value.ToJson());"); //TODO: resolver?
 						sb.NewLine();
 
+						// GetContext()
+						sb.AppendLine("/// <inheritdoc />");
+						sb.AppendLine($"public {KnownTypeSymbols.IObservableJsonContextFullName}? GetContext() => m_value.GetContext();");
+						sb.NewLine();
+
 						// bool IsNullOrMissing()
 						sb.AppendLine("/// <summary>Tests if this object is either null or missing</summary>");
 						sb.AppendLine("/// <returns><c>true</c> if the wrapped JSON value is null or empty; otherwise, <c>false</c>.</returns>");
@@ -442,17 +448,17 @@ namespace SnowBank.Serialization.Json.CodeGen
 						sb.AppendLine("public bool IsObjectOrMissing() => m_value.IsOfTypeOrNull(JsonType.Object);");
 						sb.NewLine();
 
-						// JsonObject ToJson()
+						// Get()
 						sb.AppendLine("/// <inheritdoc />");
 						sb.AppendLine($"public {KnownTypeSymbols.ObservableJsonValueFullName} Get() => m_value;");
 						sb.NewLine();
 
-						// JsonObject ToJson()
+						// ToJson()
 						sb.AppendLine("/// <inheritdoc />");
 						sb.AppendLine($"public {KnownTypeSymbols.JsonValueFullName} ToJson() => m_value.ToJson();");
 						sb.NewLine();
 
-						// TMutable ToMutable()
+						// ToMutable()
 						sb.AppendLine("/// <inheritdoc />");
 						sb.AppendLine($"public {writableProxyTypeName} ToMutable() => new({KnownTypeSymbols.MutableJsonValueFullName}.Untracked(m_value.GetJsonUnsafe().Copy()));");
 						sb.NewLine();
@@ -469,12 +475,12 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 						// Get(int)
 						sb.AppendLine("/// <inheritdoc />");
-						sb.AppendLine($"public {KnownTypeSymbols.ObservableJsonValueFullName} Get(int index) => m_value.Get(index);");
+						sb.AppendLine($"{KnownTypeSymbols.ObservableJsonValueFullName} {KnownTypeSymbols.IJsonReadOnlyProxyFullName}.Get(int index) => m_value.Get(index);");
 						sb.NewLine();
 
 						// Get(Index)
 						sb.AppendLine("/// <inheritdoc />");
-						sb.AppendLine($"public {KnownTypeSymbols.ObservableJsonValueFullName} Get(Index index) => m_value.Get(index);");
+						sb.AppendLine($"{KnownTypeSymbols.ObservableJsonValueFullName} {KnownTypeSymbols.IJsonReadOnlyProxyFullName}.Get(Index index) => m_value.Get(index);");
 						sb.NewLine();
 
 						// TReadOnly With(Action<TMutable>)
@@ -491,8 +497,8 @@ namespace SnowBank.Serialization.Json.CodeGen
 						sb.AppendLine("public override bool Equals(object? other) => other switch");
 						sb.EnterBlock();
 						sb.AppendLine($"{readOnlyProxyTypeName} value => m_value.Equals(value.m_value),");
-						sb.AppendLine("ObservableJsonValue value => m_value.Equals(value),");
-						sb.AppendLine("JsonValue value => m_value.Equals(value),");
+						sb.AppendLine($"{KnownTypeSymbols.ObservableJsonValueFullName} value => m_value.Equals(value),");
+						sb.AppendLine($"{KnownTypeSymbols.JsonValueFullName} value => m_value.Equals(value),");
 						sb.AppendLine("null => m_value.IsNullOrMissing(),");
 						sb.AppendLine("_ => false,");
 						sb.LeaveBlock(semicolon: true);
@@ -515,7 +521,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 						sb.NewLine();
 
 						sb.AppendLine("/// <inheritdoc />");
-						sb.AppendLine($"public override string ToString() => \"{typeName}: \" + m_value.ToString();");
+						sb.AppendLine($"public override string ToString() => \"({typeName}) \" + m_value.ToString();");
 						sb.NewLine();
 
 						// IJsonSerializable
@@ -629,6 +635,10 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 				#region Writable Proxy...
 
+				//note: we cannot generate a readonly struct, otherwise the following would not be allowed
+				//  obj.Foo = 123; // this can work
+				//	obj.Bar.Bar = 123; // this fails to compile because "obj.Bar" is not a valid 'this' for the Baz setter
+
 				// IJsonWritableProxy<T>
 				sb.AppendLine($"/// <summary>Wraps a <see cref=\"{KnownTypeSymbols.JsonObjectFullName}\"/> into a writable type-safe view that emulates the type <see cref=\"{typeName}\"/></summary>");
 				sb.AppendLine($"/// <seealso cref=\"{KnownTypeSymbols.IJsonWritableProxyFullName}{{T}}\"/>");
@@ -707,11 +717,11 @@ namespace SnowBank.Serialization.Json.CodeGen
 						sb.LeaveBlock();
 						sb.NewLine();
 
-						// TValue ToValue()
+						// ToValue()
 						sb.AppendLine("/// <inheritdoc />");
 						sb.AppendLine($"public {typeDef.Type.FullyQualifiedName} ToValue() => {GetLocalSerializerRef(typeDef)}.Unpack(m_value.ToJson());"); //TODO: resolver?
 						sb.NewLine();
-						
+
 						// TReadOnly ToReadOnly()
 						sb.AppendLine("/// <inheritdoc />");
 						sb.AppendLine($"public {readOnlyProxyTypeName} ToReadOnly() => new({KnownTypeSymbols.ObservableJsonValueFullName}.Untracked(m_value.ToJson().ToReadOnly()));");
@@ -727,6 +737,14 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 						// Set
 						sb.AppendLine($"public void Set({typeDef.Type.FullyQualifiedName} instance) => m_value.Set({GetLocalSerializerRef(typeDef)}.Pack(instance, {KnownTypeSymbols.CrystalJsonSettingsFullName}.Json));");
+						sb.NewLine();
+
+						sb.AppendLine("/// <inheritdoc />");
+						sb.AppendLine($"public bool Equals({writableProxyTypeName} value) => m_value.Equals(value.m_value);");
+						sb.NewLine();
+
+						sb.AppendLine("/// <inheritdoc />");
+						sb.AppendLine($"public override string ToString() => \"({typeName}) \" + m_value.ToString();");
 						sb.NewLine();
 
 						sb.AppendLine("#endregion");
@@ -750,7 +768,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 							if (IsLocallyGeneratedType(member.Type, out var target))
 							{
 								proxyType = GetLocalWritableProxyRef(target);
-								getterExpr = $"new(m_value[{GetTargetPropertyNameRef(typeDef, member)}])";
+								getterExpr = $"/* proxy */ new(m_value[{GetTargetPropertyNameRef(typeDef, member)}])";
 								setterExpr = $"m_value.Set({GetTargetPropertyNameRef(typeDef, member)}, value.ToJson())";
 							}
 							else if (member.Type.IsStringLike() || member.Type.IsBooleanLike() || member.Type.IsNumberLike() || member.Type.IsDateLike())
@@ -762,33 +780,34 @@ namespace SnowBank.Serialization.Json.CodeGen
 										attributeExpr = $"[{DisallowNullAttributeFullName}]";
 										if (!proxyType.EndsWith("?")) proxyType += "?";
 									}
-									getterExpr ??= $"m_value.GetValue({GetTargetPropertyNameRef(typeDef, member)}).ToStringOrDefault({defaultValue})";
+									getterExpr ??= $"/* fast-string */ m_value.GetValue({GetTargetPropertyNameRef(typeDef, member)}).ToStringOrDefault({defaultValue})";
 								}
 								else if (member.IsNullableRefType())
 								{
-									getterExpr ??= $"m_value.Get<{member.Type.FullyQualifiedName}?>({GetTargetPropertyNameRef(typeDef, member)}, {defaultValue})";
+									getterExpr ??= $"/* ref-nullable */ m_value.Get<{member.Type.FullyQualifiedName}?>({GetTargetPropertyNameRef(typeDef, member)}, {defaultValue})";
 								}
 								else if (member.IsRequired)
 								{
-									if (!member.Type.IsValueType())
+									if (!member.IsNotNull)
 									{
 										attributeExpr = $"[{DisallowNullAttributeFullName}]";
 										if (!proxyType.EndsWith("?")) proxyType += "?";
 									}
 									getterExpr ??= member.Type.SpecialType switch
 									{
-										SpecialType.System_Char => $"m_value.GetValue({GetTargetPropertyNameRef(typeDef, member)}).ToChar()",
-										SpecialType.System_Boolean => $"m_value.GetValue({GetTargetPropertyNameRef(typeDef, member)}).ToBoolean()",
-										SpecialType.System_Int32 => $"m_value.GetValue({GetTargetPropertyNameRef(typeDef, member)}).ToInt32()",
-										SpecialType.System_UInt32 => $"m_value.GetValue({GetTargetPropertyNameRef(typeDef, member)}).ToUInt32()",
-										SpecialType.System_Int64 => $"m_value.GetValue({GetTargetPropertyNameRef(typeDef, member)}).ToInt64()",
-										SpecialType.System_UInt64 => $"m_value.GetValue({GetTargetPropertyNameRef(typeDef, member)}).ToUInt64()",
-										SpecialType.System_Single => $"m_value.GetValue({GetTargetPropertyNameRef(typeDef, member)}).ToSingle()",
-										SpecialType.System_Double => $"m_value.GetValue({GetTargetPropertyNameRef(typeDef, member)}).ToDouble()",
-										SpecialType.System_Decimal => $"m_value.GetValue({GetTargetPropertyNameRef(typeDef, member)}).ToDecimal()",
-										SpecialType.System_DateTime => $"m_value.GetValue({GetTargetPropertyNameRef(typeDef, member)}).ToDateTime()",
-										_ => $"m_value.Get<{member.Type.FullyQualifiedName}>({GetTargetPropertyNameRef(typeDef, member)})"
+										SpecialType.System_Char => $"m_value.GetValue({GetTargetPropertyNameRef(typeDef, member)}).ToChar({defaultValue})",
+										SpecialType.System_Boolean => $"m_value.GetValue({GetTargetPropertyNameRef(typeDef, member)}).ToBoolean({defaultValue})",
+										SpecialType.System_Int32 => $"m_value.GetValue({GetTargetPropertyNameRef(typeDef, member)}).ToInt32({defaultValue})",
+										SpecialType.System_UInt32 => $"m_value.GetValue({GetTargetPropertyNameRef(typeDef, member)}).ToUInt32({defaultValue})",
+										SpecialType.System_Int64 => $"m_value.GetValue({GetTargetPropertyNameRef(typeDef, member)}).ToInt64({defaultValue})",
+										SpecialType.System_UInt64 => $"m_value.GetValue({GetTargetPropertyNameRef(typeDef, member)}).ToUInt64({defaultValue})",
+										SpecialType.System_Single => $"m_value.GetValue({GetTargetPropertyNameRef(typeDef, member)}).ToSingle({defaultValue})",
+										SpecialType.System_Double => $"m_value.GetValue({GetTargetPropertyNameRef(typeDef, member)}).ToDouble({defaultValue})",
+										SpecialType.System_Decimal => $"m_value.GetValue({GetTargetPropertyNameRef(typeDef, member)}).ToDecimal({defaultValue})",
+										SpecialType.System_DateTime => $"m_value.GetValue({GetTargetPropertyNameRef(typeDef, member)}).ToDateTime({defaultValue})",
+										_ => $"m_value.Get<{member.Type.FullyQualifiedName}>({GetTargetPropertyNameRef(typeDef, member)}, {defaultValue})"
 									};
+									getterExpr = "/* required */ " + getterExpr;
 								}
 								else if (member.Type.IsValueType() && !member.Type.IsNullableOfT())
 								{
@@ -806,10 +825,29 @@ namespace SnowBank.Serialization.Json.CodeGen
 										SpecialType.System_DateTime => $"m_value.GetValue({GetTargetPropertyNameRef(typeDef, member)}).ToDateTime({defaultValue})",
 										_ => $"m_value.Get<{member.Type.FullyQualifiedName}>({GetTargetPropertyNameRef(typeDef, member)}, {defaultValue})"
 									};
+									getterExpr = "/* value-type */ " + getterExpr;
+								}
+								else if (member.Type.IsNullableOfT())
+								{
+									getterExpr ??= member.Type.SpecialType switch
+									{
+										SpecialType.System_Boolean => $"m_value.GetValue({GetTargetPropertyNameRef(typeDef, member)}).ToBooleanOrDefault({defaultValue})",
+										SpecialType.System_Char => $"m_value.GetValue({GetTargetPropertyNameRef(typeDef, member)}).ToCharOrDefault({defaultValue})",
+										SpecialType.System_Int32 => $"m_value.GetValue({GetTargetPropertyNameRef(typeDef, member)}).ToInt32OrDefault({defaultValue})",
+										SpecialType.System_UInt32 => $"m_value.GetValue({GetTargetPropertyNameRef(typeDef, member)}).ToUInt32OrDefault({defaultValue})",
+										SpecialType.System_Int64 => $"m_value.GetValue({GetTargetPropertyNameRef(typeDef, member)}).ToInt64OrDefault({defaultValue})",
+										SpecialType.System_UInt64 => $"m_value.GetValue({GetTargetPropertyNameRef(typeDef, member)}).ToUInt64OrDefault({defaultValue})",
+										SpecialType.System_Single => $"m_value.GetValue({GetTargetPropertyNameRef(typeDef, member)}).ToSingleOrDefault({defaultValue})",
+										SpecialType.System_Double => $"m_value.GetValue({GetTargetPropertyNameRef(typeDef, member)}).ToDoubleOrDefault({defaultValue})",
+										SpecialType.System_Decimal => $"m_value.GetValue({GetTargetPropertyNameRef(typeDef, member)}).ToDecimalOrDefault({defaultValue})",
+										SpecialType.System_DateTime => $"m_value.GetValue({GetTargetPropertyNameRef(typeDef, member)}).ToDateTimeOrDefault({defaultValue})",
+										_ => $"m_value.Get<{member.Type.FullyQualifiedName}>({GetTargetPropertyNameRef(typeDef, member)}, {defaultValue})"
+									};
+									getterExpr = "/* vt-nullable */ " + getterExpr;
 								}
 								else
 								{
-									getterExpr ??= $"m_value.Get<{member.Type.FullyQualifiedName}>({GetTargetPropertyNameRef(typeDef, member)}, {defaultValue})";
+									getterExpr ??= $"/* else */ m_value.Get<{member.Type.FullyQualifiedName}>({GetTargetPropertyNameRef(typeDef, member)}, {defaultValue})";
 								}
 
 								if (member.Type.IsStringLike(allowNullables: true))
@@ -833,7 +871,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 							{
 								setterExpr = $"m_value.Set({GetTargetPropertyNameRef(typeDef, member)}, value?.ToJson() ?? JsonNull.Null)";
 								proxyType = KnownTypeSymbols.MutableJsonValueFullName;
-								getterExpr = $"m_value[{GetTargetPropertyNameRef(typeDef, member)}]";
+								getterExpr = $"/* json */ m_value[{GetTargetPropertyNameRef(typeDef, member)}]";
 							}
 							else if (member.Type.IsDictionary(out var keyType, out var valueType))
 							{
@@ -842,7 +880,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 									if (IsLocallyGeneratedType(valueType, out target))
 									{
 										proxyType = $"{KnownTypeSymbols.JsonWritableProxyDictionaryFullName}<{valueType.FullyQualifiedName}, {this.GetLocalWritableProxyRef(target)}>";
-										getterExpr = $"new(m_value[{GetTargetPropertyNameRef(typeDef, member)}])";
+										getterExpr = $"/* dict-proxy */ new(m_value[{GetTargetPropertyNameRef(typeDef, member)}])";
 										setterExpr = $"m_value.Set({GetTargetPropertyNameRef(typeDef, member)}, value.ToJson())";
 									}
 								}
@@ -852,7 +890,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 								if (IsLocallyGeneratedType(elemType, out target))
 								{
 									proxyType = $"{KnownTypeSymbols.JsonWritableProxyArrayFullName}<{elemType.FullyQualifiedName}, {this.GetLocalWritableProxyRef(target)}>";
-									getterExpr = $"new(m_value[{GetTargetPropertyNameRef(typeDef, member)}])";
+									getterExpr = $"/* array-proxy */ new(m_value[{GetTargetPropertyNameRef(typeDef, member)}])";
 									setterExpr = $"m_value.Set({GetTargetPropertyNameRef(typeDef, member)}, value.ToJson())";
 								}
 							}
@@ -861,15 +899,15 @@ namespace SnowBank.Serialization.Json.CodeGen
 							{
 								if (member.IsNullableRefType())
 								{
-									getterExpr = $"m_value.Get<{member.Type.FullyQualifiedName}?>({GetTargetPropertyNameRef(typeDef, member)}, {defaultValue})";
+									getterExpr = $"/* fallback-ref-nullable */ m_value.Get<{member.Type.FullyQualifiedName}?>({GetTargetPropertyNameRef(typeDef, member)}, {defaultValue})";
 								}
 								else if (member.IsRequired)
 								{
-									getterExpr = $"m_value.Get<{member.Type.FullyQualifiedName}>({GetTargetPropertyNameRef(typeDef, member)})";
+									getterExpr = $"/* fallback-required */ m_value.Get<{member.Type.FullyQualifiedName}>({GetTargetPropertyNameRef(typeDef, member)})";
 								}
 								else
 								{
-									getterExpr = $"m_value.Get<{member.Type.FullyQualifiedName}>({GetTargetPropertyNameRef(typeDef, member)}, {defaultValue})";
+									getterExpr = $"/* fallback-else */ m_value.Get<{member.Type.FullyQualifiedName}>({GetTargetPropertyNameRef(typeDef, member)}, {defaultValue})";
 								}
 							}
 
