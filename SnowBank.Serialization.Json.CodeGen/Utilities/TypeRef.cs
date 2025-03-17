@@ -598,9 +598,9 @@ namespace SnowBank.Serialization.Json.CodeGen
 				return true;
 			}
 
-			if (this.Name == "System")
+			if (this.NameSpace == "System")
 			{
-				return this.Name is nameof(DateTimeOffset) or "DateOnly";
+				return this.Name is (nameof(DateTimeOffset) or "DateOnly");
 			}
 
 			if (this.NameSpace == "NodaTime")
