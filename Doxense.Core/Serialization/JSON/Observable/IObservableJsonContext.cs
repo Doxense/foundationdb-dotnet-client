@@ -75,7 +75,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="path">Path from the parent node to the child node</param>
 		/// <param name="value">Value of the child node</param>
 		/// <returns>Observable child node</returns>
-		ObservableJsonValue FromJson(IJsonProxyNode parent, JsonPathSegment path, JsonValue value);
+		ObservableJsonValue FromJson(IJsonProxyNode? parent, JsonPathSegment path, JsonValue value);
 
 		/// <summary>Records the access to a node, or one of its children</summary>
 		/// <param name="node">Node that was accessed.</param>

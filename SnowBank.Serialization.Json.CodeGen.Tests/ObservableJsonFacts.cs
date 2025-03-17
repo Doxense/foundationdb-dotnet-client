@@ -16,7 +16,7 @@ namespace Doxense.Serialization.Json.Tests
 	public sealed class GeneratedObservableJsonFacts : SimpleTest
 	{
 
-		public class FakeMutableTransaction : IMutableJsonTransaction
+		public class FakeMutableContext : IMutableJsonContext
 		{
 
 			public List<(string Op, JsonPath Path, JsonValue? Argument)> Changes { get; } = [ ];
@@ -73,9 +73,9 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_Fill_Empty_Observable_Object()
 		{
-			var tr = new FakeMutableTransaction() { Logged = true };
+			var tr = new FakeMutableContext() { Logged = true };
 
-			var doc = SomeConverters.Something.ToObservable(tr, new JsonObject());
+			var doc = SomeConverters.Something.ToMutable(tr, new JsonObject());
 
 			doc.Hello = "world";
 			doc.Level = 8001;
@@ -84,10 +84,10 @@ namespace Doxense.Serialization.Json.Tests
 			doc.Point.Z = 789;
 			doc.Foo.Bar.Baz = true;
 
-			Dump(doc.GetValue());
+			Dump(doc.ToJson());
 
 			Assert.That(
-				doc.GetValue(),
+				doc.ToJson(),
 				IsJson.Object.And.EqualTo(JsonObject.Create(
 				[
 					("hello", "world"),

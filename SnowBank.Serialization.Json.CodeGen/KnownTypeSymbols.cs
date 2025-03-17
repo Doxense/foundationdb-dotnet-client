@@ -87,7 +87,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 		public const string JsonReadOnlyProxyArrayFullName = CrystalJsonNamespace + ".JsonReadOnlyProxyArray";
 
 		// "mutable" json values will record all changes into a transaction object
-		public const string IMutableJsonTransactionFullName = CrystalJsonNamespace + ".IMutableJsonTransaction";
+		public const string IMutableJsonContextFullName = CrystalJsonNamespace + ".IMutableJsonContext";
 		public const string MutableJsonObjectBaseFullName = CrystalJsonNamespace + ".MutableJsonObjectBase";
 		public const string MutableJsonDictionaryFullName = CrystalJsonNamespace + ".MutableJsonDictionary";
 		public const string MutableJsonArrayFullName = CrystalJsonNamespace + ".MutableJsonArray";

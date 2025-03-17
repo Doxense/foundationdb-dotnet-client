@@ -27,13 +27,25 @@
 namespace Doxense.Serialization.Json
 {
 
-	/// <summary>Wraps a <see cref="JsonValue"/> into typed mutable proxy</summary>
+	/// <summary>Wraps a <see cref="JsonValue"/> into a typed mutable proxy</summary>
 	[PublicAPI]
 	public interface IJsonWritableProxy : IJsonSerializable, IJsonPackable
 	{
+
+		/// <summary>Returns the underlying mutable value</summary>
+		/// <remarks>This value can be used to "escape" the type safety of the proxy, while still allowing for tracking of mutations.</remarks>
+		MutableJsonValue Get();
+
 		/// <summary>Returns the proxied JSON Value</summary>
-		/// <remarks>The returned value is mutable and can be changed directly.</remarks>
+		/// <remarks>
+		/// <para>The returned value may not be mutable and should only not be changed directly.</para>
+		/// <para>Any mutations made to this value will not be captured by the attached context!</para>
+		/// </remarks>
 		JsonValue ToJson();
+
+		/// <summary>Returns the (optional) tracking context attached to this instance</summary>
+		/// <remarks>If <c>non-null</c>, this context will record all changed made to this instance, or any of its children</remarks>
+		IMutableJsonContext? GetContext();
 
 	}
 
@@ -53,82 +65,32 @@ namespace Doxense.Serialization.Json
 
 	/// <summary>Wraps a <see cref="JsonValue"/> into typed mutable proxy that emulates the type <typeparamref name="TValue"/></summary>
 	/// <typeparam name="TValue">Emulated data type</typeparam>
-	/// <typeparam name="TMutableProxy">CRTP for the type that implements this interface</typeparam>
+	/// <typeparam name="TProxy">CRTP for the type that implements this interface</typeparam>
 	/// <remarks>
 	/// <para>This interface is a marker for "wrapper types" that replicate the same set of properties and fields as <typeparamref name="TValue"/>, using a wrapped <see cref="JsonValue"/> as source.</para>
 	/// </remarks>
 	[PublicAPI]
-	public interface IJsonWritableProxy<TValue, out TMutableProxy> : IJsonWritableProxy<TValue>
-		where TMutableProxy : IJsonWritableProxy<TValue, TMutableProxy>
+	public interface IJsonWritableProxy<TValue, out TProxy> : IJsonWritableProxy<TValue>
+		where TProxy : IJsonWritableProxy<TValue, TProxy>
 	{
 
 		/// <summary>Wraps a JSON Value into a mutable proxy for type <typeparamref name="TValue"/></summary>
-		static abstract TMutableProxy Create(MutableJsonValue obj, IJsonConverter<TValue>? converter = null);
+		static abstract TProxy Create(MutableJsonValue obj, IJsonConverter<TValue>? converter = null);
 
 		/// <summary>Wraps an instance type <typeparamref name="TValue"/> into mutable proxy</summary>
-		static abstract TMutableProxy Create(TValue value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null);
+		static abstract TProxy Create(JsonValue value);
+
+		/// <summary>Wraps an instance type <typeparamref name="TValue"/> into mutable proxy</summary>
+		static abstract TProxy Create(IMutableJsonContext tr, JsonValue value);
+
+		/// <summary>Wraps an instance type <typeparamref name="TValue"/> into mutable proxy</summary>
+		static abstract TProxy Create(TValue value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null);
+
+		/// <summary>Wraps an instance type <typeparamref name="TValue"/> into mutable proxy</summary>
+		static abstract TProxy Create(IMutableJsonContext tr, TValue value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null);
 
 		/// <summary>Returns the <see cref="IJsonConverter{TValue}"/> used by proxies of this type</summary>
 		static abstract IJsonConverter<TValue> Converter { get; }
-
-	}
-
-	/// <summary>Wraps a <see cref="JsonValue"/> into typed mutable proxy that emulates the type <typeparamref name="TValue"/></summary>
-	/// <typeparam name="TValue">Emulated data type</typeparam>
-	/// <typeparam name="TMutableProxy">CRTP for the type that implements this interface</typeparam>
-	/// <typeparam name="TReadOnlyProxy">CRTP for the corresponding <see cref="IJsonReadOnlyProxy{TValue,TReadOnlyProxy,TMutableProxy}"/> of this type</typeparam>
-	/// <remarks>
-	/// <para>This interface is a marker for "wrapper types" that replicate the same set of properties and fields as <typeparamref name="TValue"/>, using a wrapped <see cref="JsonValue"/> as source.</para>
-	/// </remarks>
-	[PublicAPI]
-	public interface IJsonWritableProxy<TValue, out TMutableProxy, out TReadOnlyProxy> : IJsonWritableProxy<TValue, TMutableProxy>
-		where TMutableProxy : IJsonWritableProxy<TValue, TMutableProxy, TReadOnlyProxy>
-		where TReadOnlyProxy : IJsonReadOnlyProxy<TValue, TReadOnlyProxy, TMutableProxy>
-	{
-
-		/// <summary>Converts this mutable proxy, back into the equivalent read-only proxy.</summary>
-		/// <remarks>Any future changes to this mutable proxy will not impact the returned value</remarks>
-		TReadOnlyProxy ToReadOnly();
-
-	}
-
-	/// <summary>Base class for custom or source generated implementations of a <see cref="IJsonWritableProxy"/></summary>
-	/// <remarks>This contains all the boilerplate implementation that is common to most custom implementations</remarks>
-	public abstract record JsonWritableProxyObjectBase
-		: IJsonWritableProxy, IJsonProxyNode
-	{
-
-		/// <summary>Wrapped JSON Object</summary>
-		protected readonly MutableJsonValue m_obj;
-
-		protected JsonWritableProxyObjectBase(MutableJsonValue value)
-		{
-			m_obj = value;
-		}
-
-		/// <inheritdoc />
-		IJsonProxyNode? IJsonProxyNode.Parent => m_obj.Parent;
-
-		/// <inheritdoc />
-		JsonPathSegment IJsonProxyNode.Segment => m_obj.Segment;
-
-		/// <inheritdoc />
-		int IJsonProxyNode.Depth => m_obj.Depth;
-
-		/// <inheritdoc />
-		JsonType IJsonProxyNode.Type => m_obj.Json.Type;
-
-		/// <inheritdoc />
-		void IJsonProxyNode.WritePath(ref JsonPathBuilder builder) => m_obj.WritePath(ref builder);
-
-		/// <inheritdoc />
-		public void JsonSerialize(CrystalJsonWriter writer) => m_obj.Json.JsonSerialize(writer);
-
-		/// <inheritdoc />
-		public JsonValue JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_obj.Json;
-
-		/// <inheritdoc />
-		public JsonValue ToJson() => m_obj.Json;
 
 	}
 

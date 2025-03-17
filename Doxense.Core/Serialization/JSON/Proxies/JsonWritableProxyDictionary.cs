@@ -36,13 +36,13 @@ namespace Doxense.Serialization.Json
 	public readonly struct JsonWritableProxyDictionary<TValue> : IDictionary<string, TValue>, IJsonProxyNode, IJsonSerializable, IJsonPackable
 	{
 
-		private readonly MutableJsonValue m_obj;
+		private readonly MutableJsonValue m_value;
 
 		private readonly IJsonConverter<TValue> m_converter;
 	
-		public JsonWritableProxyDictionary(MutableJsonValue obj, IJsonConverter<TValue>? converter = null, IJsonProxyNode? parent = null, JsonPathSegment segment = default)
+		public JsonWritableProxyDictionary(MutableJsonValue value, IJsonConverter<TValue>? converter = null, IJsonProxyNode? parent = null, JsonPathSegment segment = default)
 		{
-			m_obj = obj;
+			m_value = value;
 			m_converter = converter ?? RuntimeJsonConverter<TValue>.Default;
 		}
 
@@ -50,25 +50,25 @@ namespace Doxense.Serialization.Json
 		JsonType IJsonProxyNode.Type => JsonType.Object;
 
 		/// <inheritdoc />
-		IJsonProxyNode? IJsonProxyNode.Parent => m_obj.Parent;
+		IJsonProxyNode? IJsonProxyNode.Parent => m_value.Parent;
 
 		/// <inheritdoc />
-		JsonPathSegment IJsonProxyNode.Segment => m_obj.Segment;
+		JsonPathSegment IJsonProxyNode.Segment => m_value.Segment;
 
 		/// <inheritdoc />
-		int IJsonProxyNode.Depth => m_obj.Depth;
+		int IJsonProxyNode.Depth => m_value.Depth;
 
 		/// <inheritdoc />
 		void IJsonProxyNode.WritePath(ref JsonPathBuilder builder)
 		{
-			m_obj.WritePath(ref builder);
+			m_value.WritePath(ref builder);
 		}
 
 		/// <inheritdoc />
 		void ICollection<KeyValuePair<string, TValue>>.Add(KeyValuePair<string, TValue> item) => Add(item.Key, item.Value);
 
 		/// <inheritdoc />
-		public void Clear() => m_obj.Clear();
+		public void Clear() => m_value.Clear();
 
 		/// <inheritdoc />
 		bool ICollection<KeyValuePair<string, TValue>>.Contains(KeyValuePair<string, TValue> item) => throw new NotSupportedException("This operation is too costly.");
@@ -82,11 +82,11 @@ namespace Doxense.Serialization.Json
 		{
 			Contract.NotNull(array);
 			Contract.Positive(arrayIndex);
-			Contract.DoesNotOverflow(array, arrayIndex, m_obj.Count);
+			Contract.DoesNotOverflow(array, arrayIndex, m_value.Count);
 
-			if (m_obj.Json is not JsonObject obj)
+			if (m_value.Json is not JsonObject obj)
 			{
-				if (m_obj.Json.IsNullOrMissing())
+				if (m_value.Json.IsNullOrMissing())
 				{
 					return;
 				}
@@ -101,24 +101,47 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		public bool Remove(KeyValuePair<string, TValue> item) => throw new NotSupportedException("This operation is too costly.");
 
-		public int Count => m_obj.Count;
+		public int Count => m_value.Count;
 
+		/// <summary>Tests if the object is present.</summary>
+		/// <returns><c>false</c> if the wrapped JSON value is null or empty; otherwise, <c>true</c>.</returns>
+		public bool Exists() => m_value.Exists();
+
+		/// <summary>Tests if the object is null or missing.</summary>
+		/// <returns><c>true</c> if the wrapped JSON value is null or missing; otherwise, <c>false</c>.</returns>
+		/// <remarks>This can return <c>false</c> if the wrapped value is another type, like an array, string literal, etc...</remarks>
+		public bool IsNullOrMissing() => m_value.IsNullOrMissing();
+
+		/// <summary>Tests if the object is null, missing, or empty.</summary>
+		/// <returns><c>true</c> if the wrapped JSON value is null, missing or an empty object; otherwise, <c>false</c>.</returns>
+		/// <remarks>This can return <c>false</c> if the wrapped value is an empty object, or another type, like an array, string literal, etc...</remarks>
+		public bool IsNullOrEmpty() => m_value.Json switch { JsonArray arr =>  arr.Count != 0, JsonNull => true, _ => false };
+
+		/// <summary>Tests if the wrapped value is a valid JSON Object.</summary>
+		/// <returns><c>true</c> if the wrapped JSON value is a non-null Object; otherwise, <c>false</c></returns>
+		/// <remarks>This can be used to protect against malformed JSON document that would have a different type (array, string literal, ...).</remarks>
+		public bool IsObject() => m_value.Json is JsonObject;
+
+		/// <summary>Tests if the wrapped value is a valid JSON Object, or is null-or-missing.</summary>
+		/// <returns><c>true</c> if the wrapped JSON value either null-or-missing, or an Object; otherwise, <c>false</c></returns>
+		/// <remarks>This can be used to protect against malformed JSON document that would have a different type (array, string literal, ...).</remarks>
+		public bool IsObjectOrMissing() => m_value.Json is (JsonObject or JsonNull);
 		/// <inheritdoc />
 		bool ICollection<KeyValuePair<string, TValue>>.IsReadOnly => false;
 
 		/// <inheritdoc />
-		public void Add(string key, TValue value) => m_obj.Add(key, m_converter.Pack(value));
+		public void Add(string key, TValue value) => m_value.Add(key, m_converter.Pack(value));
 
 		/// <inheritdoc />
-		public bool ContainsKey(string key) => m_obj.ContainsKey(key);
+		public bool ContainsKey(string key) => m_value.ContainsKey(key);
 
 		/// <inheritdoc />
-		public bool Remove(string key) => m_obj.Remove(key);
+		public bool Remove(string key) => m_value.Remove(key);
 
 		/// <inheritdoc />
 		public bool TryGetValue(string key, [MaybeNullWhen(false)] out TValue value)
 		{
-			if (!m_obj.Json.TryGetValue(key, out var json))
+			if (!m_value.Json.TryGetValue(key, out var json))
 			{
 				value = default;
 				return false;
@@ -131,12 +154,12 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		public TValue this[string key]
 		{
-			get => m_converter.Unpack(m_obj.Json[key]);
-			set => m_obj.Set(key, m_converter.Pack(value));
+			get => m_converter.Unpack(m_value.Json[key]);
+			set => m_value.Set(key, m_converter.Pack(value));
 		}
 
 		/// <inheritdoc />
-		public ICollection<string> Keys => m_obj.Json switch
+		public ICollection<string> Keys => m_value.Json switch
 		{
 			JsonObject obj => obj.Keys,
 			JsonNull => [ ],
@@ -147,26 +170,26 @@ namespace Doxense.Serialization.Json
 		public ICollection<TValue> Values => throw new NotImplementedException();
 
 		/// <inheritdoc />
-		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => m_obj.Json.JsonSerialize(writer);
+		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => m_value.Json.JsonSerialize(writer);
 
 		/// <inheritdoc />
-		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_obj.Json;
+		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_value.Json;
 
-		public Dictionary<string, TValue> ToDictionary() => m_obj.Json switch
+		public Dictionary<string, TValue> ToDictionary() => m_value.Json switch
 		{
 			JsonObject obj => m_converter.JsonDeserializeDictionary(obj),
 			JsonNull => [ ],
 			_ => throw OperationRequiresObjectOrNull(),
 		};
 
-		public JsonValue ToJson() => m_obj.Json;
+		public JsonValue ToJson() => m_value.Json;
 
 		/// <inheritdoc />
 		public IEnumerator<KeyValuePair<string, TValue>> GetEnumerator()
 		{
-			if (m_obj.Json is not JsonObject obj)
+			if (m_value.Json is not JsonObject obj)
 			{
-				if (m_obj.Json is JsonNull)
+				if (m_value.Json is JsonNull)
 				{
 					yield break;
 				}
@@ -256,6 +279,30 @@ namespace Doxense.Serialization.Json
 
 		/// <inheritdoc />
 		bool ICollection<KeyValuePair<string, TProxy>>.IsReadOnly => false;
+
+		/// <summary>Tests if the object is present.</summary>
+		/// <returns><c>false</c> if the wrapped JSON value is null or empty; otherwise, <c>true</c>.</returns>
+		public bool Exists() => m_value.Exists();
+
+		/// <summary>Tests if the object is null or missing.</summary>
+		/// <returns><c>true</c> if the wrapped JSON value is null or missing; otherwise, <c>false</c>.</returns>
+		/// <remarks>This can return <c>false</c> if the wrapped value is another type, like an array, string literal, etc...</remarks>
+		public bool IsNullOrMissing() => m_value.IsNullOrMissing();
+
+		/// <summary>Tests if the object is null, missing, or empty.</summary>
+		/// <returns><c>true</c> if the wrapped JSON value is null, missing or an empty object; otherwise, <c>false</c>.</returns>
+		/// <remarks>This can return <c>false</c> if the wrapped value is an empty object, or another type, like an array, string literal, etc...</remarks>
+		public bool IsNullOrEmpty() => m_value.Json switch { JsonArray arr =>  arr.Count != 0, JsonNull => true, _ => false };
+
+		/// <summary>Tests if the wrapped value is a valid JSON Object.</summary>
+		/// <returns><c>true</c> if the wrapped JSON value is a non-null Object; otherwise, <c>false</c></returns>
+		/// <remarks>This can be used to protect against malformed JSON document that would have a different type (array, string literal, ...).</remarks>
+		public bool IsObject() => m_value.Json is JsonObject;
+
+		/// <summary>Tests if the wrapped value is a valid JSON Object, or is null-or-missing.</summary>
+		/// <returns><c>true</c> if the wrapped JSON value either null-or-missing, or an Object; otherwise, <c>false</c></returns>
+		/// <remarks>This can be used to protect against malformed JSON document that would have a different type (array, string literal, ...).</remarks>
+		public bool IsObjectOrMissing() => m_value.Json is (JsonObject or JsonNull);
 
 		/// <inheritdoc />
 		public void Add(string key, TProxy value) => m_value.Add(key, value.ToJson());

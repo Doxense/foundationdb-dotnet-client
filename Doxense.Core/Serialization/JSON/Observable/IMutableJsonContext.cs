@@ -9,8 +9,8 @@
 namespace Doxense.Serialization.Json
 {
 
-	/// <summary>Transaction that will record all the changes made to an <see cref="MutableJsonValue"/></summary>
-	public interface IMutableJsonTransaction
+	/// <summary>Context that will record all the changes made to a <see cref="MutableJsonValue"/></summary>
+	public interface IMutableJsonContext
 	{
 
 		/// <summary>Tests if the underlying observed object has been changed during this transaction</summary>
@@ -34,12 +34,12 @@ namespace Doxense.Serialization.Json
 		/// <summary>Creates a new empty array, using the transactions default settings</summary>
 		JsonArray NewArray();
 
-		/// <summary>Records the addition of a new field on an object</summary>
+		/// <summary>Records the addition of a new field on an object, or item to an array</summary>
 		/// <param name="instance">Parent instance (expected to be an object)</param>
-		/// <param name="key">Name of the field that was added</param>
-		/// <param name="argument">Value of the new field</param>
+		/// <param name="child">Path of the child (name of field for objects, index of item for arrays)</param>
+		/// <param name="argument">Value of the new child</param>
 		/// <remarks>
-		/// <para>This records the facts that a new field is added to an object, OR that a field previously set to <c>null</c> now has a non-null value.</para>
+		/// <para>This records the facts that a new field is added to an object, OR that an object field previously set to <c>null</c> now has a non-null value.</para>
 		/// </remarks>
 		void RecordAdd(IJsonProxyNode instance, JsonPathSegment child, JsonValue argument);
 
@@ -52,9 +52,9 @@ namespace Doxense.Serialization.Json
 		/// </remarks>
 		void RecordTruncate(IJsonProxyNode instance, int length);
 
-		/// <summary>Records the update of an existing field of an object</summary>
+		/// <summary>Records the update of an existing field of an object or item of an array, with a new value</summary>
 		/// <param name="instance">Parent instance (expected to be an object)</param>
-		/// <param name="key">Name of the field that was updated</param>
+		/// <param name="child">Path of the child (name of field for objects, index of item for arrays)</param>
 		/// <param name="argument">Updated value of the field</param>
 		/// <remarks>
 		/// <para>This records the fact that the value of a field of the object as been replaced by another value.</para>
@@ -62,9 +62,9 @@ namespace Doxense.Serialization.Json
 		/// </remarks>
 		void RecordUpdate(IJsonProxyNode instance, JsonPathSegment child, JsonValue argument);
 
-		/// <summary>Records the update of an existing field of an object, using a patch definition</summary>
+		/// <summary>Records the update of an existing field of an object or item of an array, using a patch definition</summary>
 		/// <param name="instance">Parent instance (expected to be an object)</param>
-		/// <param name="key">Name of the field that is being updated</param>
+		/// <param name="child">Path of the child (name of field for objects, index of item for arrays)</param>
 		/// <param name="argument">Patch that describes the changes to this field</param>
 		/// <remarks>
 		/// <para>This records the fact that the value of a field of the object as been patched.</para>
@@ -72,9 +72,9 @@ namespace Doxense.Serialization.Json
 		/// </remarks>
 		void RecordPatch(IJsonProxyNode instance, JsonPathSegment child, JsonValue argument);
 
-		/// <summary>Records the deletion of an existing field of an object</summary>
+		/// <summary>Records the deletion of an existing field of an object or item of an array</summary>
 		/// <param name="instance">Parent instance (expected to be an object)</param>
-		/// <param name="key">Name of the field that is being removed</param>
+		/// <param name="child">Path of the child (name of field for objects, index of item for arrays)</param>
 		/// <remarks>
 		/// <para>This records the fact that the field does not exist any longer in the object</para>
 		/// <para>Setting a field to null is logically equivalent to deleting the field</para>

@@ -8,41 +8,43 @@
 
 namespace Doxense.Serialization.Json
 {
+	using System;
 	using System.Collections;
 
 	/// <summary>Wraps a <see cref="JsonArray"/> into a typed read-only proxy that emulates an array of elements of type <typeparamref name="TValue"/></summary>
 	/// <typeparam name="TValue">Emulated element type</typeparam>
 	[PublicAPI]
-	public readonly struct JsonReadOnlyProxyArray<TValue> : IReadOnlyList<TValue>, IJsonSerializable, IJsonPackable
+	public readonly struct JsonReadOnlyProxyArray<TValue> : IReadOnlyList<TValue?>, IJsonSerializable, IJsonPackable, IEquatable<ObservableJsonValue>, IEquatable<JsonValue>, IEquatable<JsonReadOnlyProxyArray<TValue>>
 	{
 
-		private readonly ObservableJsonValue m_array;
+		private readonly ObservableJsonValue m_value;
 		private readonly IJsonConverter<TValue> m_converter;
 
-		public JsonReadOnlyProxyArray(ObservableJsonValue array, IJsonConverter<TValue>? converter = null)
+		public JsonReadOnlyProxyArray(ObservableJsonValue value, IJsonConverter<TValue>? converter = null)
 		{
-			m_array = array;
+			Contract.Debug.Requires(value != null);
+			m_value = value;
 			m_converter = converter ?? RuntimeJsonConverter<TValue>.Default;
 		}
 
 		/// <inheritdoc />
-		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => m_array.ToJson().JsonSerialize(writer);
+		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => m_value.ToJson().JsonSerialize(writer);
 
 		/// <inheritdoc />
-		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_array.ToJson();
+		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_value.ToJson();
 
-		public TValue[] ToArray() => m_converter.JsonDeserializeArray(m_array.ToJson().AsArrayOrEmpty());
+		public TValue[] ToArray() => m_converter.JsonDeserializeArray(m_value.ToJson().AsArrayOrEmpty());
 
-		public List<TValue> ToList() => m_converter.JsonDeserializeList(m_array.ToJson().AsArrayOrEmpty());
+		public List<TValue> ToList() => m_converter.JsonDeserializeList(m_value.ToJson().AsArrayOrEmpty());
 
-		public JsonValue ToJson() => m_array.ToJson();
+		public JsonValue ToJson() => m_value.ToJson();
 
 		/// <inheritdoc />
-		public IEnumerator<TValue> GetEnumerator()
+		public IEnumerator<TValue?> GetEnumerator()
 		{
 			// we cannot know how the result will be used, so mark this a full "Value" read.
 
-			var value = m_array.ToJson();
+			var value = m_value.ToJson();
 			if (value is not JsonArray array)
 			{
 				if (value is JsonNull)
@@ -61,19 +63,65 @@ namespace Doxense.Serialization.Json
 		IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
 
 		/// <inheritdoc />
-		public int Count => m_array.Count;
+		public int Count => m_value.Count;
 
 		/// <summary>Tests if the array is present.</summary>
-		/// <returns><c>false</c> if the wrapped JSON value is null or empty; otherwise, <c>true</c>.</returns>
-		public bool Exists() => m_array.Exists();
+		/// <returns><c>false</c> if the wrapped JSON value is null or missing; otherwise, <c>true</c>.</returns>
+		public bool Exists() => m_value.Exists();
+
+		/// <summary>Tests if the array is null or missing.</summary>
+		/// <returns><c>true</c> if the wrapped JSON value is null or missing; otherwise, <c>false</c>.</returns>
+		/// <remarks>This can return <c>false</c> if the wrapped value is another type, like an object, string literal, etc...</remarks>
+		public bool IsNullOrMissing() => m_value.IsNullOrMissing();
+
+		/// <summary>Tests if the array is null, missing, or empty.</summary>
+		/// <returns><c>true</c> if the wrapped JSON value is null, missing or an empty array; otherwise, <c>false</c>.</returns>
+		/// <remarks>This can return <c>false</c> if the wrapped value is another type, like an object, string literal, etc...</remarks>
+		public bool IsNullOrEmpty() => m_value.GetJsonUnsafe() is JsonArray ? m_value.Count != 0 : m_value.IsNullOrMissing();
+
+		/// <summary>Tests if the wrapped value is a valid JSON Array.</summary>
+		/// <returns><c>true</c> if the wrapped JSON value is a non-null Array; otherwise, <c>false</c></returns>
+		/// <remarks>This can be used to protect against malformed JSON document that would have a different type (object, string literal, ...).</remarks>
+		public bool IsArray() => m_value.IsOfType(JsonType.Array);
+
+		/// <summary>Tests if the wrapped value is a valid JSON Array, or is null-or-missing.</summary>
+		/// <returns><c>true</c> if the wrapped JSON value either null-or-missing, or an Array; otherwise, <c>false</c></returns>
+		/// <remarks>This can be used to protect against malformed JSON document that would have a different type (object, string literal, ...).</remarks>
+		public bool IsArrayOrMissing() => m_value.IsOfTypeOrNull(JsonType.Array);
 
 		/// <inheritdoc />
-		public TValue this[int index] => m_array.TryGetValue(index, m_converter, out var value) ? value : m_converter.Unpack(JsonNull.Error);
+		public TValue? this[int index] => m_value.TryGetValue(index, m_converter, out var value) ? value : default(TValue);
 
-		public TValue this[Index index] => m_array.TryGetValue(index, m_converter, out var value) ? value : m_converter.Unpack(JsonNull.Error);
+		public TValue? this[Index index] => m_value.TryGetValue(index, m_converter, out var value) ? value : default(TValue);
+
+		public TValue? Get(int index) => m_value.TryGetValue(index, m_converter, out var value) ? value : default(TValue);
+
+		public TValue? Get(Index index) => m_value.TryGetValue(index, m_converter, out var value) ? value : default(TValue);
+
+		public bool TryGet(int index, out TValue? value) => m_value.TryGetValue(index, m_converter, out value);
+
+		public bool TryGet(Index index, out TValue? value) => m_value.TryGetValue(index, m_converter, out value);
 
 		/// <inheritdoc />
-		public override string ToString() => typeof(TValue).GetFriendlyName() + "[]";
+		public override string ToString() => m_value.ToString();
+
+		/// <inheritdoc />
+		public override bool Equals(object? obj) => obj switch
+		{
+			ObservableJsonValue value => m_value.Equals(value),
+			JsonValue value => m_value.Equals(value),
+			null => m_value.IsNullOrMissing(),
+			_ => false,
+		};
+
+		/// <inheritdoc />
+		public override int GetHashCode() => m_value.GetHashCode();
+
+		public bool Equals(ObservableJsonValue? other) => m_value.Equals(other);
+
+		public bool Equals(JsonValue? other) => m_value.Equals(other);
+
+		public bool Equals(JsonReadOnlyProxyArray<TValue> other) => m_value.Equals(other.m_value);
 
 	}
 
@@ -124,20 +172,69 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
 
-		/// <summary>Tests if the array is present.</summary>
-		/// <returns><c>false</c> if the wrapped JSON value is null or empty; otherwise, <c>true</c>.</returns>
-		public bool Exists() => m_value.Exists();
-
 		/// <inheritdoc />
 		public int Count => m_value.Count;
+
+		/// <summary>Tests if the array is present.</summary>
+		/// <returns><c>false</c> if the wrapped JSON value is null, missing or empty; otherwise, <c>true</c>.</returns>
+		/// <remarks>This can return <c>true</c> if the wrapped value is another type, like an object, string literal, etc...</remarks>
+		public bool Exists() => m_value.Exists();
+
+		/// <summary>Tests if the array is null or missing.</summary>
+		/// <returns><c>true</c> if the wrapped JSON value is null or missing; otherwise, <c>false</c>.</returns>
+		/// <remarks>This can return <c>false</c> if the wrapped value is another type, like an object, string literal, etc...</remarks>
+		public bool IsNullOrMissing() => m_value.IsNullOrMissing();
+
+		/// <summary>Tests if the array is null, missing, or empty.</summary>
+		/// <returns><c>true</c> if the wrapped JSON value is null, missing or an empty array; otherwise, <c>false</c>.</returns>
+		/// <remarks>This can return <c>false</c> if the wrapped value is another type, like an object, string literal, etc...</remarks>
+		public bool IsNullOrEmpty() => m_value.GetJsonUnsafe() is JsonArray ? m_value.Count != 0 : m_value.IsNullOrMissing();
+
+		/// <summary>Tests if the wrapped value is a valid JSON Array.</summary>
+		/// <returns><c>true</c> if the wrapped JSON value is a non-null Array; otherwise, <c>false</c></returns>
+		/// <remarks>This can be used to protect against malformed JSON document that would have a different type (object, string literal, ...).</remarks>
+		public bool IsArray() => m_value.IsOfType(JsonType.Array);
+
+		/// <summary>Tests if the wrapped value is a valid JSON Array, or is null-or-missing.</summary>
+		/// <returns><c>true</c> if the wrapped JSON value either null-or-missing, or an Array; otherwise, <c>false</c></returns>
+		/// <remarks>This can be used to protect against malformed JSON document that would have a different type (object, string literal, ...).</remarks>
+		public bool IsArrayOrMissing() => m_value.IsOfTypeOrNull(JsonType.Array);
 
 		/// <inheritdoc />
 		public TProxy this[int index] => TProxy.Create(m_value.Get(index));
 
 		public TProxy this[Index index] => TProxy.Create(m_value.Get(index));
 
+		public TProxy Get(int index) => TProxy.Create(m_value.Get(index));
+
+		public TProxy Get(Index index) => TProxy.Create(m_value.Get(index));
+
+		public bool TryGet(int index, [MaybeNullWhen(false)] out TProxy value)
+		{
+			if (!m_value.TryGetValue(index, out var item))
+			{
+				value = default;
+				return false;
+			}
+
+			value = TProxy.Create(item);
+			return true;
+		}
+
+		public bool TryGet(Index index, [MaybeNullWhen(false)] out TProxy value)
+		{
+			if (!m_value.TryGetValue(index, out var item))
+			{
+				value = default;
+				return false;
+			}
+
+			value = TProxy.Create(item);
+			return true;
+		}
+
 		/// <inheritdoc />
-		public override string ToString() => typeof(TValue).GetFriendlyName() + "[]";
+		public override string ToString() => m_value.ToString();
 
 	}
 

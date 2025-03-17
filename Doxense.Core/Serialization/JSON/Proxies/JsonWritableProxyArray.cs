@@ -130,6 +130,30 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		public int Count { get; }
 
+		/// <summary>Tests if the array is present.</summary>
+		/// <returns><c>false</c> if the wrapped JSON value is null or missing; otherwise, <c>true</c>.</returns>
+		public bool Exists() => m_value.Exists();
+
+		/// <summary>Tests if the array is null or missing.</summary>
+		/// <returns><c>true</c> if the wrapped JSON value is null or missing; otherwise, <c>false</c>.</returns>
+		/// <remarks>This can return <c>false</c> if the wrapped value is another type, like an object, string literal, etc...</remarks>
+		public bool IsNullOrMissing() => m_value.IsNullOrMissing();
+
+		/// <summary>Tests if the array is null, missing, or empty.</summary>
+		/// <returns><c>true</c> if the wrapped JSON value is null, missing or an empty array; otherwise, <c>false</c>.</returns>
+		/// <remarks>This can return <c>false</c> if the wrapped value is another type, like an object, string literal, etc...</remarks>
+		public bool IsNullOrEmpty() => m_value.Json switch { JsonArray arr => arr.Count != 0, JsonNull => true, _ => false };
+
+		/// <summary>Tests if the wrapped value is a valid JSON Array.</summary>
+		/// <returns><c>true</c> if the wrapped JSON value is a non-null Array; otherwise, <c>false</c></returns>
+		/// <remarks>This can be used to protect against malformed JSON document that would have a different type (object, string literal, ...).</remarks>
+		public bool IsArray() => m_value.Json is JsonArray;
+
+		/// <summary>Tests if the wrapped value is a valid JSON Array, or is null-or-missing.</summary>
+		/// <returns><c>true</c> if the wrapped JSON value either null-or-missing, or an Array; otherwise, <c>false</c></returns>
+		/// <remarks>This can be used to protect against malformed JSON document that would have a different type (object, string literal, ...).</remarks>
+		public bool IsArrayOrMissing() => m_value.Json is (JsonArray or JsonNull);
+
 		/// <inheritdoc />
 		bool ICollection<TValue>.IsReadOnly => false;
 
@@ -271,6 +295,30 @@ namespace Doxense.Serialization.Json
 
 		/// <inheritdoc />
 		public int Count => m_value.Count;
+
+		/// <summary>Tests if the array is present.</summary>
+		/// <returns><c>false</c> if the wrapped JSON value is null or missing; otherwise, <c>true</c>.</returns>
+		public bool Exists() => m_value.Exists();
+
+		/// <summary>Tests if the array is null or missing.</summary>
+		/// <returns><c>true</c> if the wrapped JSON value is null or missing; otherwise, <c>false</c>.</returns>
+		/// <remarks>This can return <c>false</c> if the wrapped value is another type, like an object, string literal, etc...</remarks>
+		public bool IsNullOrMissing() => m_value.IsNullOrMissing();
+
+		/// <summary>Tests if the array is null, missing, or empty.</summary>
+		/// <returns><c>true</c> if the wrapped JSON value is null, missing or an empty array; otherwise, <c>false</c>.</returns>
+		/// <remarks>This can return <c>false</c> if the wrapped value is another type, like an object, string literal, etc...</remarks>
+		public bool IsNullOrEmpty() => m_value.Json switch { JsonArray arr => arr.Count != 0, JsonNull => true, _ => false };
+
+		/// <summary>Tests if the wrapped value is a valid JSON Array.</summary>
+		/// <returns><c>true</c> if the wrapped JSON value is a non-null Array; otherwise, <c>false</c></returns>
+		/// <remarks>This can be used to protect against malformed JSON document that would have a different type (object, string literal, ...).</remarks>
+		public bool IsArray() => m_value.Json is JsonArray;
+
+		/// <summary>Tests if the wrapped value is a valid JSON Array, or is null-or-missing.</summary>
+		/// <returns><c>true</c> if the wrapped JSON value either null-or-missing, or an Array; otherwise, <c>false</c></returns>
+		/// <remarks>This can be used to protect against malformed JSON document that would have a different type (object, string literal, ...).</remarks>
+		public bool IsArrayOrMissing() => m_value.Json is (JsonArray or JsonNull);
 
 		/// <inheritdoc />
 		bool ICollection<TProxy>.IsReadOnly => false;

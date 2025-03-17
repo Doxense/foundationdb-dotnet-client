@@ -47,8 +47,29 @@ namespace Doxense.Serialization.Json
 		private static InvalidOperationException OperationRequiresObjectOrNull() => new("This operation requires a valid JSON Object");
 
 		/// <summary>Tests if the object is present.</summary>
-		/// <returns><c>false</c> if the wrapped JSON value is null or empty; otherwise, <c>true</c>.</returns>
+		/// <returns><c>false</c> if the wrapped JSON value is null, missing or empty; otherwise, <c>true</c>.</returns>
+		/// <remarks>This can return <c>true</c> if the wrapped value is of another type, like an array, string literal, etc...</remarks>
 		public bool Exists() => m_value.Exists();
+
+		/// <summary>Tests if the object is null or missing.</summary>
+		/// <returns><c>true</c> if the wrapped JSON value is null or missing; otherwise, <c>false</c>.</returns>
+		/// <remarks>This can return <c>false</c> if the wrapped value is another type, like an array, string literal, etc...</remarks>
+		public bool IsNullOrMissing() => m_value.IsNullOrMissing();
+
+		/// <summary>Tests if the object is null, missing, or empty.</summary>
+		/// <returns><c>true</c> if the wrapped JSON value is null, missing or an empty object; otherwise, <c>false</c>.</returns>
+		/// <remarks>This can return <c>false</c> if the wrapped value is an empty object, or another type, like an array, string literal, etc...</remarks>
+		public bool IsNullOrEmpty() => m_value.GetJsonUnsafe() is JsonArray ? m_value.Count != 0 : m_value.IsNullOrMissing();
+
+		/// <summary>Tests if the wrapped value is a valid JSON Object.</summary>
+		/// <returns><c>true</c> if the wrapped JSON value is a non-null Object; otherwise, <c>false</c></returns>
+		/// <remarks>This can be used to protect against malformed JSON document that would have a different type (array, string literal, ...).</remarks>
+		public bool IsObject() => m_value.IsOfType(JsonType.Object);
+
+		/// <summary>Tests if the wrapped value is a valid JSON Object, or is null-or-missing.</summary>
+		/// <returns><c>true</c> if the wrapped JSON value either null-or-missing, or an Object; otherwise, <c>false</c></returns>
+		/// <remarks>This can be used to protect against malformed JSON document that would have a different type (array, string literal, ...).</remarks>
+		public bool IsObjectOrMissing() => m_value.IsOfTypeOrNull(JsonType.Object);
 
 		/// <inheritdoc />
 		public int Count => m_value.TryGetCount(out int count) ? count : m_value.IsNullOrMissing() ? 0 : throw OperationRequiresObjectOrNull();
@@ -126,12 +147,32 @@ namespace Doxense.Serialization.Json
 			m_value = value;
 		}
 
+		/// <inheritdoc />
+		public int Count => m_value.TryGetCount(out int count) ? count : m_value.IsNullOrMissing() ? 0 : throw OperationRequiresObjectOrNull();
+
 		/// <summary>Tests if the object is present.</summary>
 		/// <returns><c>false</c> if the wrapped JSON value is null or empty; otherwise, <c>true</c>.</returns>
 		public bool Exists() => m_value.Exists();
 
-		/// <inheritdoc />
-		public int Count => m_value.TryGetCount(out int count) ? count : m_value.IsNullOrMissing() ? 0 : throw OperationRequiresObjectOrNull();
+		/// <summary>Tests if the object is null or missing.</summary>
+		/// <returns><c>true</c> if the wrapped JSON value is null or missing; otherwise, <c>false</c>.</returns>
+		/// <remarks>This can return <c>false</c> if the wrapped value is another type, like an array, string literal, etc...</remarks>
+		public bool IsNullOrMissing() => m_value.IsNullOrMissing();
+
+		/// <summary>Tests if the object is null, missing, or empty.</summary>
+		/// <returns><c>true</c> if the wrapped JSON value is null, missing or an empty object; otherwise, <c>false</c>.</returns>
+		/// <remarks>This can return <c>false</c> if the wrapped value is an empty object, or another type, like an array, string literal, etc...</remarks>
+		public bool IsNullOrEmpty() => m_value.GetJsonUnsafe() is JsonArray ? m_value.Count != 0 : m_value.IsNullOrMissing();
+
+		/// <summary>Tests if the wrapped value is a valid JSON Object.</summary>
+		/// <returns><c>true</c> if the wrapped JSON value is a non-null Object; otherwise, <c>false</c></returns>
+		/// <remarks>This can be used to protect against malformed JSON document that would have a different type (array, string literal, ...).</remarks>
+		public bool IsObject() => m_value.IsOfType(JsonType.Object);
+
+		/// <summary>Tests if the wrapped value is a valid JSON Object, or is null-or-missing.</summary>
+		/// <returns><c>true</c> if the wrapped JSON value either null-or-missing, or an Object; otherwise, <c>false</c></returns>
+		/// <remarks>This can be used to protect against malformed JSON document that would have a different type (array, string literal, ...).</remarks>
+		public bool IsObjectOrMissing() => m_value.IsOfTypeOrNull(JsonType.Object);
 
 		/// <inheritdoc />
 		public TProxy this[string key] => TProxy.Create(m_value[key]);

@@ -28,8 +28,8 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 {
 	using System.Buffers;
 	using System.ComponentModel.DataAnnotations;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Net;
-	using System.Runtime.CompilerServices;
 	using System.Text.Json.Serialization;
 	using Doxense.Mathematics.Statistics;
 
@@ -95,11 +95,11 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 	{
 		/// <summary>Date at which this account was created</summary>
 		[JsonProperty("accountCreated")]
-		public DateTimeOffset AccountCreated { get; init; }
+		public required DateTimeOffset AccountCreated { get; init; }
 
 		/// <summary>Date at which this account was last modified</summary>
 		[JsonProperty("accountModified")]
-		public DateTimeOffset AccountModified { get; init; }
+		public required DateTimeOffset AccountModified { get; init; }
 
 		/// <summary>Date at which this account was deleted, or <see langword="null"/> if it is still active</summary>
 		[JsonProperty("accountDisabled")]
@@ -471,7 +471,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 
 			// Convert the Person into a proxy that wraps a read-only JsonObject
 			Log("FromValue(Person)");
-			var proxy = GeneratedConverters.Person.AsReadOnly(person);
+			var proxy = GeneratedConverters.Person.ToReadOnly(person);
 			Log(proxy.ToString());
 			Assert.That(proxy.FamilyName, Is.EqualTo("Bond"));
 			Assert.That(proxy.FirstName, Is.EqualTo("James"));
@@ -507,7 +507,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			Dump(person);
 
 			Log("ReadOnly:");
-			var proxy = GeneratedConverters.Person.AsReadOnly(person);
+			var proxy = GeneratedConverters.Person.ToReadOnly(person);
 			Log(proxy.ToString());
 			Assert.That(proxy.FamilyName, Is.EqualTo("Bond"));
 			Assert.That(proxy.FirstName, Is.EqualTo("James"));
@@ -564,7 +564,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			Dump(user);
 
 			Log("ReadOnly:");
-			var proxy = GeneratedConverters.MyAwesomeUser.AsReadOnly(user);
+			var proxy = GeneratedConverters.MyAwesomeUser.ToReadOnly(user);
 			Log(proxy.ToString());
 			Assert.That(user.DisplayName, Is.EqualTo("James Bond"));
 			Assert.That(user.Roles, Is.EqualTo((string[]) ["user", "secret_agent"]));
@@ -697,7 +697,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			Log(user.ToString());
 
 			Log("ReadOnly:");
-			var proxy = GeneratedConverters.MyAwesomeUser.AsReadOnly(user);
+			var proxy = GeneratedConverters.MyAwesomeUser.ToReadOnly(user);
 			Log(proxy.ToString());
 			Assert.That(proxy.Id, Is.EqualTo(user.Id));
 			Assert.That(proxy.DisplayName, Is.EqualTo(user.DisplayName));
@@ -720,6 +720,16 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			Assert.That(json["devices"]["Foo"]["id"], IsJson.EqualTo(user.Devices["Foo"].Id));
 			Assert.That(json["extras"], IsJson.ReadOnly.And.EqualTo(user.Extras));
 
+			Assert.That(proxy.Equals(json), Is.True);
+			Assert.That(proxy.Equals(proxy), Is.True);
+			Assert.That(proxy.Equals(proxy.Get()), Is.True);
+			Assert.That(proxy.Equals(JsonObject.EmptyReadOnly), Is.False);
+			Assert.That(proxy.Equals((object?) json), Is.True);
+			Assert.That(proxy.Equals((object?) proxy), Is.True);
+			Assert.That(proxy.Equals((object?) proxy.Get()), Is.True);
+			Assert.That(proxy.Equals(ObservableJsonValue.Untracked(json)), Is.True);
+			Assert.That(proxy.GetHashCode(), Is.EqualTo(json.GetHashCode()));
+
 			var decoded = proxy.ToValue();
 			Log("Decoded:");
 			Log(decoded.ToString());
@@ -728,12 +738,10 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			Assert.That(decoded.DisplayName, Is.EqualTo(user.DisplayName));
 		}
 
-
 		[Test]
 		public void Test_JsonReadOnlyProxy_With_Empty_Object()
 		{
-			Log("ReadOnly:");
-			var proxy = GeneratedConverters.MyAwesomeUser.AsReadOnly(JsonObject.EmptyReadOnly);
+			var proxy = GeneratedConverters.MyAwesomeUser.ToReadOnly(JsonObject.EmptyReadOnly);
 
 			// all "required" members should throw
 			Assert.That(proxy.HasId(), Is.False);
@@ -752,14 +760,30 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			Assert.That(proxy.HasMetadata(), Is.False);
 			Assert.That(() => proxy.Metadata, Throws.Nothing);
 			Assert.That(proxy.Metadata.Exists(), Is.False);
+			Assert.That(proxy.Metadata.IsNullOrMissing(), Is.True);
+			Assert.That(proxy.Metadata.IsObject(), Is.False);
+			Assert.That(proxy.Metadata.IsObjectOrMissing(), Is.True);
 			// their fields should return null
-			Assert.That(proxy.Metadata.AccountCreated, Is.Default);
-			Assert.That(proxy.Metadata.AccountModified, Is.Default);
+			Assert.That(proxy.Metadata.HasAccountCreated(), Is.False);
+			Assert.That(() => proxy.Metadata.AccountCreated, Throws.InstanceOf<JsonBindingException>());
+			Assert.That(proxy.Metadata.HasAccountModified(), Is.False);
+			Assert.That(() => proxy.Metadata.AccountModified, Throws.InstanceOf<JsonBindingException>());
 			Assert.That(proxy.Metadata.AccountDisabled, Is.Null);
 
 			// optional inner containers should not throw
 			Assert.That(() => proxy.Items, Throws.Nothing);
 			Assert.That(proxy.Items.Exists(), Is.False);
+			Assert.That(proxy.Items.IsNullOrMissing(), Is.True);
+			Assert.That(proxy.Items.IsNullOrEmpty(), Is.True);
+			Assert.That(proxy.Items.IsArray(), Is.False);
+			Assert.That(proxy.Items.IsArrayOrMissing(), Is.True);
+
+			// ToString() and equality methods
+			Assert.That(proxy.ToString(), Is.EqualTo("MyAwesomeUser: { }"));
+			Assert.That(proxy.Equals(JsonObject.EmptyReadOnly), Is.True);
+			Assert.That(proxy.Equals(JsonObject.Create()), Is.True);
+			Assert.That(proxy.Equals(ObservableJsonValue.Untracked(JsonObject.EmptyReadOnly)), Is.True);
+			Assert.That(proxy.GetHashCode(), Is.EqualTo(JsonObject.EmptyReadOnly.GetHashCode()));
 		}
 
 		[Test]
@@ -772,20 +796,40 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			Log("ReadOnly:");
 			var proxy = GeneratedConverters.MyAwesomeUser.ToMutable(user);
 			Log(proxy.ToString());
+
+			// it should wrap a MutableJsonValue
+			Assert.That(proxy.Get(), Is.Not.Null);
+			Assert.That(proxy.Get().Type, Is.EqualTo(JsonType.Object));
+			// which should wrap a mutable object
+			Assert.That(proxy.ToJson(), Is.Not.Null);
+			Assert.That(proxy.ToJson(), IsJson.Object.And.Mutable);
+			// it should be untracked
+			Assert.That(proxy.GetContext(), Is.Null);
+
+			// it should expose typed properties
 			Assert.That(proxy.Id, Is.EqualTo(user.Id));
 			Assert.That(proxy.DisplayName, Is.EqualTo(user.DisplayName));
 			Assert.That(proxy.Metadata.AccountCreated, Is.EqualTo(user.Metadata.AccountCreated));
 			Assert.That(proxy.Metadata.AccountModified, Is.EqualTo(user.Metadata.AccountModified));
+			Assert.That(proxy.Type, Is.EqualTo(user.Type));
 			Assert.That(proxy.Items[0].Id, Is.EqualTo(user.Items![0].Id));
 			Assert.That(proxy.Devices["Foo"].Id, Is.EqualTo(user.Devices!["Foo"].Id));
-			Assert.That(proxy.Extras, IsJson.Mutable.And.EqualTo(user.Extras));
+			Assert.That(proxy.Extras.ToJson(), IsJson.EqualTo(user.Extras));
+			Assert.That(proxy.Extras.ToJson(), IsJson.ReadOnly, "Original JSON should be left as-is until it is mutated");
+			Assert.That(proxy.Extras["foo"].As<int>(), Is.EqualTo(123));
+			Assert.That(proxy.Extras["bar"][^1].As<int>(), Is.EqualTo(3));
+			Assert.That(proxy.Extras["foo"].ToJson(), IsJson.EqualTo(123));
+			Assert.That(proxy.Extras["bar"][^1].ToJson(), IsJson.EqualTo(3));
 
+			// it should be able to generate full paths to any item
 			Assert.That(proxy.Metadata.GetPath().ToString(), Is.EqualTo("metadata"));
 			Assert.That(proxy.Items.GetPath().ToString(), Is.EqualTo("items"));
 			Assert.That(proxy.Items[0].GetPath().ToString(), Is.EqualTo("items[0]"));
 			Assert.That(proxy.Items[1].GetPath().ToString(), Is.EqualTo("items[1]"));
+			Assert.That(proxy.Items[1]["id"].GetPath().ToString(), Is.EqualTo("items[1].id"));
 			Assert.That(proxy.Devices.GetPath().ToString(), Is.EqualTo("devices"));
 			Assert.That(proxy.Devices["Foo"].GetPath().ToString(), Is.EqualTo("devices.Foo"));
+			Assert.That(proxy.Extras["bar"][^1].GetPath().ToString(), Is.EqualTo("extras.bar[^1]"));
 
 			var json = proxy.ToJson();
 			Log("JSON:");
@@ -806,6 +850,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			proxy.Items.Add(new MyAwesomeStruct() { Id = "47c774e7-29e7-40fe-ba06-3098cafe77be", Level = 789, Path = JsonPath.Create("hello") });
 			proxy.Devices["Foo"].LastAddress = IPAddress.Parse("192.168.1.2");
 			proxy.Devices.Remove("Bar");
+			proxy.Extras.Set("bonus", 456); // the readonly-object should automatically upgraded to mutable!
 
 			Log("Mutated:");
 			Dump(proxy.ToJson());
@@ -823,7 +868,49 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			Assert.That(decoded.Items![2].Level, Is.EqualTo(789));
 			Assert.That(decoded.Devices!["Foo"].LastAddress, Is.EqualTo(IPAddress.Parse("192.168.1.2")));
 			Assert.That(decoded.Devices, Does.Not.ContainKey("Bar"));
+			Assert.That(decoded.Extras?["bonus"], IsJson.EqualTo(456));
 		}
+
+		[Test]
+		public void Test_JsonWritableProxy_With_Empty_Object()
+		{
+			var proxy = GeneratedConverters.MyAwesomeUser.ToMutable(JsonObject.EmptyReadOnly);
+
+			// all members return their default value (even required member)
+			Assert.That(proxy.Id, Is.Null);
+			Assert.That(proxy.Email, Is.Null);
+			Assert.That(proxy.DisplayName, Is.Null);
+			Assert.That(proxy.Description, Is.Null);
+			Assert.That(proxy.Type, Is.EqualTo(MyAwesomeEnumType.SecretAgent)); // custom default value!
+			Assert.That(proxy.Extras, Is.Null);
+
+			// required inner containers should not throw
+			Assert.That(() => proxy.Metadata, Throws.Nothing);
+			Assert.That(proxy.Metadata.Exists(), Is.False);
+			Assert.That(proxy.Metadata.IsNullOrMissing(), Is.True);
+			Assert.That(proxy.Metadata.IsObject(), Is.False);
+			Assert.That(proxy.Metadata.IsObjectOrMissing(), Is.True);
+			// their fields should return null
+			Assert.That(proxy.Metadata.AccountCreated, Is.Default);
+			Assert.That(proxy.Metadata.AccountModified, Is.Default);
+			Assert.That(proxy.Metadata.AccountDisabled, Is.Null);
+
+			// optional inner containers should not throw
+			Assert.That(() => proxy.Items, Throws.Nothing);
+			Assert.That(proxy.Items.Exists(), Is.False);
+			Assert.That(proxy.Items.IsNullOrMissing(), Is.True);
+			Assert.That(proxy.Items.IsNullOrEmpty(), Is.True);
+			Assert.That(proxy.Items.IsArray(), Is.False);
+			Assert.That(proxy.Items.IsArrayOrMissing(), Is.True);
+
+			// ToString() and equality methods
+			Assert.That(proxy.ToString(), Is.EqualTo("MyAwesomeUser: { }"));
+			Assert.That(proxy.Equals(JsonObject.EmptyReadOnly), Is.True);
+			Assert.That(proxy.Equals(JsonObject.Create()), Is.True);
+			Assert.That(proxy.Equals(ObservableJsonValue.Untracked(JsonObject.EmptyReadOnly)), Is.True);
+			Assert.That(proxy.GetHashCode(), Is.EqualTo(JsonObject.EmptyReadOnly.GetHashCode()));
+		}
+
 
 		[Test]
 		[Category("Benchmark")]
@@ -950,6 +1037,28 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 				Report("PACK CODEGEN", report);
 			}
 
+		}
+
+		public class Blah
+		{
+
+			private string? m_foo;
+
+			[System.Diagnostics.CodeAnalysis.DisallowNull]
+			public string? Foo
+			{
+				get => m_foo;
+				set => m_foo = value;
+			}
+
+
+			public static void Zobi()
+			{
+				var blah = new Blah();
+				//int x = blah.Foo.Length;
+				blah.Foo = null;
+				blah.Foo = "hello";
+			}
 		}
 
 	}

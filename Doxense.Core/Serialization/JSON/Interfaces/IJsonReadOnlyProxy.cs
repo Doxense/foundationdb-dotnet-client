@@ -27,21 +27,23 @@
 namespace Doxense.Serialization.Json
 {
 
-	/// <summary>Wraps a <see cref="JsonValue"/> into typed read-only proxy that emulates the type <typeparamref name="TValue"/></summary>
-	/// <typeparam name="TValue">Emulated data type</typeparam>
-	/// <remarks>
-	/// <para>This interface is a marker for "wrapper types" that replicate the same set of properties and fields as <typeparamref name="TValue"/>, using a wrapped <see cref="JsonValue"/> as source.</para>
-	/// </remarks>
-	[PublicAPI]
-	public interface IJsonReadOnlyProxy<out TValue> : IJsonSerializable, IJsonPackable
+	/// <summary>Wraps a <see cref="JsonValue"/> into a typed read-only proxy</summary>
+	public interface IJsonReadOnlyProxy : IJsonSerializable, IJsonPackable, IEquatable<JsonValue>, IEquatable<ObservableJsonValue>
 	{
 
-		/// <summary>Returns an instance of <typeparamref name="TValue"/> with the same content as this proxy.</summary>
-		public TValue ToValue();
+		/// <summary>Returns the underlying observable value</summary>
+		/// <remarks>This value can be used to "escape" the type safety of the proxy, while still allowing for tracking of read access.</remarks>
+		public ObservableJsonValue Get();
+
+		ObservableJsonValue Get(string key);
+		ObservableJsonValue Get(ReadOnlyMemory<char> key);
+		ObservableJsonValue Get(int index);
+		ObservableJsonValue Get(Index index);
 
 		/// <summary>Returns the proxied JSON Value</summary>
 		/// <remarks>
 		/// <para>The returned value is read-only and cannot be changed.</para>
+		/// <para>The value will be marked as having been accessed by value.</para>
 		/// </remarks>
 		public JsonValue ToJson();
 
@@ -49,41 +51,64 @@ namespace Doxense.Serialization.Json
 
 	/// <summary>Wraps a <see cref="JsonValue"/> into typed read-only proxy that emulates the type <typeparamref name="TValue"/></summary>
 	/// <typeparam name="TValue">Emulated data type</typeparam>
-	/// <typeparam name="TReadOnlyProxy">CRTP for the type that implements this interface</typeparam>
 	/// <remarks>
 	/// <para>This interface is a marker for "wrapper types" that replicate the same set of properties and fields as <typeparamref name="TValue"/>, using a wrapped <see cref="JsonValue"/> as source.</para>
 	/// </remarks>
 	[PublicAPI]
-	public interface IJsonReadOnlyProxy<TValue, out TReadOnlyProxy> : IJsonReadOnlyProxy<TValue>
-		where TReadOnlyProxy : IJsonReadOnlyProxy<TValue, TReadOnlyProxy>
+	public interface IJsonReadOnlyProxy<out TValue> : IJsonReadOnlyProxy
+	{
+
+		/// <summary>Returns an instance of <typeparamref name="TValue"/> with the same content as this proxy.</summary>
+		public TValue ToValue();
+
+	}
+
+	/// <summary>Wraps a <see cref="JsonValue"/> into typed read-only proxy that emulates the type <typeparamref name="TValue"/></summary>
+	/// <typeparam name="TValue">Emulated data type</typeparam>
+	/// <typeparam name="TProxy">CRTP for the type that implements this interface</typeparam>
+	/// <remarks>
+	/// <para>This interface is a marker for "wrapper types" that replicate the same set of properties and fields as <typeparamref name="TValue"/>, using a wrapped <see cref="JsonValue"/> as source.</para>
+	/// </remarks>
+	[PublicAPI]
+	public interface IJsonReadOnlyProxy<TValue, out TProxy> : IJsonReadOnlyProxy<TValue>
+		where TProxy : IJsonReadOnlyProxy<TValue, TProxy>
 	{
 
 		/// <summary>Wraps a JSON Value into a read-only proxy for type <typeparamref name="TValue"/></summary>
-		static abstract TReadOnlyProxy Create(ObservableJsonValue value, IJsonConverter<TValue>? converter = null);
+		static abstract TProxy Create(ObservableJsonValue value, IJsonConverter<TValue>? converter = null);
 
 		/// <summary>Wraps an instance type <typeparamref name="TValue"/> into read-only proxy</summary>
-		static abstract TReadOnlyProxy Create(TValue value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null);
+		static abstract TProxy Create(JsonValue value, IJsonConverter<TValue>? converter = null);
+
+		/// <summary>Wraps an instance type <typeparamref name="TValue"/> into read-only proxy</summary>
+		static abstract TProxy Create(IObservableJsonContext ctx, JsonValue value, IJsonConverter<TValue>? converter = null);
+
+		/// <summary>Wraps an instance type <typeparamref name="TValue"/> into read-only proxy</summary>
+		static abstract TProxy Create(TValue value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null);
+
+		/// <summary>Wraps an instance type <typeparamref name="TValue"/> into read-only proxy</summary>
+		static abstract TProxy Create(IObservableJsonContext ctx, TValue value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null);
 
 		/// <summary>Returns the <see cref="IJsonConverter{TValue}"/> used by proxies of this type</summary>
 		static abstract IJsonConverter<TValue> Converter { get; }
 
 	}
 
-	/// <summary>Wraps a <see cref="JsonValue"/> into typed read-only proxy that emulates the type <typeparamref name="TValue"/></summary>
+	/// <summary>Wraps a <see cref="JsonValue"/> into typed read-only proxy that emulates the type <typeparamref name="TValue"/> with support for copy-on-write.</summary>
 	/// <typeparam name="TValue">Emulated data type</typeparam>
 	/// <typeparam name="TReadOnlyProxy">CRTP for the type that implements this interface</typeparam>
-	/// <typeparam name="TMutableProxy">CRTP for the corresponding <see cref="IJsonWritableProxy{TValue,TMutableProxy,TReadOnlyProxy}"/> of this type</typeparam>
+	/// <typeparam name="TWritableProxy">CRTP for the corresponding <see cref="IJsonWritableProxy{TValue,TWritableProxy}"/></typeparam>
 	/// <remarks>
 	/// <para>This interface is a marker for "wrapper types" that replicate the same set of properties and fields as <typeparamref name="TValue"/>, using a wrapped <see cref="JsonValue"/> as source.</para>
 	/// </remarks>
 	[PublicAPI]
-	public interface IJsonReadOnlyProxy<TValue, out TReadOnlyProxy, out TMutableProxy> : IJsonReadOnlyProxy<TValue, TReadOnlyProxy>
-		where TReadOnlyProxy : IJsonReadOnlyProxy<TValue, TReadOnlyProxy, TMutableProxy>
-		where TMutableProxy : IJsonWritableProxy<TValue, TMutableProxy, TReadOnlyProxy>
+	public interface IJsonReadOnlyProxy<TValue, out TReadOnlyProxy, out TWritableProxy> : IJsonReadOnlyProxy<TValue, TReadOnlyProxy>
+		where TReadOnlyProxy : IJsonReadOnlyProxy<TValue, TReadOnlyProxy, TWritableProxy>
+		where TWritableProxy : IJsonWritableProxy<TValue, TWritableProxy>
 	{
 
-		/// <summary>Returns a mutable proxy that is able to update a <i>copy</i> of the wrapped JSON value</summary>
-		public TMutableProxy ToMutable();
+		/// <summary>Returns a mutable proxy that is able to mutate a <i>copy</i> of the wrapped JSON value</summary>
+		public TWritableProxy ToMutable();
 
 		/// <summary>Returns an updated read-only version of this proxy, after applying a set of mutations.</summary>
 		/// <param name="modifier">Handler that is passed a mutable copy of the object, which will be frozen into a new read-only object after the handler returns.</param>
@@ -91,7 +116,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>
 		/// <para>The original read-only object will NOT be modified.</para>
 		/// </remarks>
-		public TReadOnlyProxy With(Action<TMutableProxy> modifier);
+		public TReadOnlyProxy With(Action<TWritableProxy> modifier);
 
 	}
 

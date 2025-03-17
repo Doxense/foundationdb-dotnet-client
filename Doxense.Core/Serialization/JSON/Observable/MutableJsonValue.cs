@@ -19,19 +19,22 @@ namespace Doxense.Serialization.Json
 	public sealed class MutableJsonValue : IJsonProxyNode, IJsonSerializable, IJsonPackable
 	{
 
-		public MutableJsonValue(IMutableJsonTransaction? tr, MutableJsonValue? parent, JsonPathSegment segment, JsonValue json)
+		public MutableJsonValue(IMutableJsonContext? ctx, MutableJsonValue? parent, JsonPathSegment segment, JsonValue json)
 		{
 			Contract.Debug.Requires(json != null);
-			this.Transaction = tr;
+			this.Context = ctx;
 			this.Parent = parent;
 			this.Segment = segment;
 			this.Json = json;
 			this.Depth = (parent?.Depth ?? -1) + 1;
 		}
 
-		/// <summary>Returns an untracked JSON value</summary>
+		/// <summary>Returns an untracked mutable JSON value</summary>
 		[Pure, MustUseReturnValue]
 		public static MutableJsonValue Untracked(JsonValue value) => new(null, null, default, value);
+
+		/// <summary>Returns a mutable JSON value tracked by a transaction</summary>
+		public static MutableJsonValue Tracked(IMutableJsonContext tr, JsonValue value) => new(tr, null, default, value);
 
 		public override string ToString()
 		{
@@ -40,11 +43,13 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Contains the read-only version of this JSON object</summary>
-		public JsonValue Json { get; private set; }
+		internal JsonValue Json { get; private set; }
 
-		internal IMutableJsonTransaction? Transaction { get; }
+		public JsonValue ToJson() => this.Json;
 
-		public IMutableJsonTransaction? GetTransaction() => this.Transaction;
+		internal IMutableJsonContext? Context { get; }
+
+		public IMutableJsonContext? GetContext() => this.Context;
 
 		#region Path...
 
@@ -57,7 +62,8 @@ namespace Doxense.Serialization.Json
 
 		int IJsonProxyNode.Depth => this.Depth;
 
-		JsonType IJsonProxyNode.Type => this.Json.Type;
+		/// <inheritdoc />
+		public JsonType Type => this.Json.Type;
 
 		/// <summary>Name of the field that contains this value in its parent object, or <see langword="null"/> if it was not part of an object</summary>
 		internal readonly JsonPathSegment Segment;
@@ -258,11 +264,11 @@ namespace Doxense.Serialization.Json
 			var items = this.Json;
 			if (!items.TryGetValue(key, out var child))
 			{
-				value = new(this.Transaction, this, new(key), JsonNull.Missing);
+				value = new(this.Context, this, new(key), JsonNull.Missing);
 				return false;
 			}
 
-			value = new(this.Transaction, this, new(key), child);
+			value = new(this.Context, this, new(key), child);
 			return true;
 		}
 
@@ -291,11 +297,11 @@ namespace Doxense.Serialization.Json
 			var items = this.Json;
 			if (!items.TryGetValue(key, out var child))
 			{
-				value = new(this.Transaction, this, new(key), JsonNull.Missing);
+				value = new(this.Context, this, new(key), JsonNull.Missing);
 				return false;
 			}
 
-			value = new(this.Transaction, this, new(key), child);
+			value = new(this.Context, this, new(key), child);
 			return true;
 		}
 
@@ -375,11 +381,11 @@ namespace Doxense.Serialization.Json
 		{
 			if (!this.Json.TryGetValue(index, out var child) || child.IsNullOrMissing())
 			{
-				value = new(this.Transaction, this, new(index), JsonNull.Error);
+				value = new(this.Context, this, new(index), JsonNull.Error);
 				return false;
 			}
 
-			value = new(this.Transaction, this, new(index), child);
+			value = new(this.Context, this, new(index), child);
 			return true;
 		}
 
@@ -407,11 +413,11 @@ namespace Doxense.Serialization.Json
 		{
 			if (!this.Json.TryGetValue(index, out var child) || child.IsNullOrMissing())
 			{
-				value = new(this.Transaction, this, new(index), JsonNull.Error);
+				value = new(this.Context, this, new(index), JsonNull.Error);
 				return false;
 			}
 
-			value = new(this.Transaction, this, new(index), child);
+			value = new(this.Context, this, new(index), child);
 			return true;
 		}
 
@@ -420,7 +426,7 @@ namespace Doxense.Serialization.Json
 		#region Get...
 
 		[Pure, MustUseReturnValue]
-		public MutableJsonValue Get(string key) => new(this.Transaction, this, new(key), this.Json.GetValueOrDefault(key));
+		public MutableJsonValue Get(string key) => new(this.Context, this, new(key), this.Json.GetValueOrDefault(key));
 
 		[Pure, MustUseReturnValue]
 		public JsonValue GetValue(string key) => this.Json.GetValueOrDefault(key);
@@ -437,10 +443,10 @@ namespace Doxense.Serialization.Json
 		{
 #if NET9_0_OR_GREATER
 			var value = this.Json.GetValueOrDefault(key, JsonNull.Missing, out var actualKey);
-			return new(this.Transaction, this, new(actualKey ?? key.ToString()), value);
+			return new(this.Context, this, new(actualKey ?? key.ToString()), value);
 #else
 			var value = this.Json.GetValueOrDefault(key, JsonNull.Missing);
-			return new(this.Transaction, this, new(key.ToString()), value);
+			return new(this.Context, this, new(key.ToString()), value);
 #endif
 		}
 
@@ -456,10 +462,10 @@ namespace Doxense.Serialization.Json
 		{
 #if NET9_0_OR_GREATER
 			var value = this.Json.GetValueOrDefault(key, JsonNull.Missing, out var actualKey);
-			return new(this.Transaction, this, new(actualKey?.AsMemory() ?? key), value);
+			return new(this.Context, this, new(actualKey?.AsMemory() ?? key), value);
 #else
 			var value = this.Json.GetValueOrDefault(key, JsonNull.Missing);
-			return new(this.Transaction, this, new(key), value);
+			return new(this.Context, this, new(key), value);
 #endif
 		}
 
@@ -472,7 +478,7 @@ namespace Doxense.Serialization.Json
 		public TValue? Get<TValue>(ReadOnlyMemory<char> key, TValue defaultValue) => this.Json.Get<TValue>(key, defaultValue);
 
 		[Pure, MustUseReturnValue]
-		public MutableJsonValue Get(int index) => new(this.Transaction, this, new(index), this.Json.GetValueOrDefault(index));
+		public MutableJsonValue Get(int index) => new(this.Context, this, new(index), this.Json.GetValueOrDefault(index));
 
 		[Pure, MustUseReturnValue]
 		public JsonValue GetValue(int index) => this.Json.GetValueOrDefault(index);
@@ -485,7 +491,7 @@ namespace Doxense.Serialization.Json
 		public TValue? Get<TValue>(int index, TValue defaultValue) => this.Json.Get<TValue>(index, defaultValue);
 
 		[Pure, MustUseReturnValue]
-		public MutableJsonValue Get(Index index) => new(this.Transaction, this, new(index), this.Json.GetValueOrDefault(index));
+		public MutableJsonValue Get(Index index) => new(this.Context, this, new(index), this.Json.GetValueOrDefault(index));
 
 		[Pure, MustUseReturnValue]
 		public JsonValue GetValue(Index index) => this.Json.GetValueOrDefault(index);
@@ -567,10 +573,10 @@ namespace Doxense.Serialization.Json
 			if (json.IsNullOrMissing())
 			{ // the parent should have been an object
 
-				json = this.Transaction?.NewObject() ?? new JsonObject();
+				json = this.Context?.NewObject() ?? new JsonObject();
 				this.Json = json;
 
-				var res = new MutableJsonValue(this.Transaction, this.Parent, this.Segment, json);
+				var res = new MutableJsonValue(this.Context, this.Parent, this.Segment, json);
 				if (this.Parent != null)
 				{
 					InsertInParent(this.Parent, in this.Segment, res);
@@ -589,10 +595,10 @@ namespace Doxense.Serialization.Json
 			if (json.IsNullOrMissing())
 			{ // the parent should have been an object
 
-				json = this.Transaction?.NewArray() ?? new JsonArray();
+				json = this.Context?.NewArray() ?? new JsonArray();
 				this.Json = json;
 
-				var res = new MutableJsonValue(this.Transaction, this.Parent, this.Segment, json);
+				var res = new MutableJsonValue(this.Context, this.Parent, this.Segment, json);
 				if (this.Parent != null)
 				{
 					InsertInParent(this.Parent, in this.Segment, res);
@@ -657,7 +663,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Changes the value of the current instance in its parent</summary>
-		internal bool InsertOrUpdate(JsonValue? value, InsertionBehavior behavior)
+		internal bool InsertOrUpdate(JsonValue? value, InsertionBehavior behavior = InsertionBehavior.OverwriteExisting)
 		{
 			// validate the value
 			value ??= JsonNull.Missing;
@@ -697,7 +703,7 @@ namespace Doxense.Serialization.Json
 			// for ex, sometimes only one (or two) subtrees are changed
 			// => HOW DO WE CHEAPLY COMPUTE THE COST OF THE CHECK VS THE REWARDS?
 
-			if (this.Transaction == null)
+			if (this.Context == null)
 			{
 				if (prevJson is JsonNull && value is JsonNull)
 				{
@@ -740,11 +746,11 @@ namespace Doxense.Serialization.Json
 				{
 					if (patch == null)
 					{
-						this.Transaction.RecordUpdate(this.Parent, key, value);
+						this.Context.RecordUpdate(this.Parent, key, value);
 					}
 					else
 					{
-						this.Transaction.RecordPatch(this.Parent, key, patch);
+						this.Context.RecordPatch(this.Parent, key, patch);
 					}
 				}
 				else if (this.Segment.TryGetIndex(out var idx))
@@ -759,18 +765,18 @@ namespace Doxense.Serialization.Json
 					var index = idx.GetOffset(this.Parent.Count);
 					if (patch == null)
 					{
-						this.Transaction.RecordUpdate(this.Parent, index, value);
+						this.Context.RecordUpdate(this.Parent, index, value);
 					}
 					else
 					{
-						this.Transaction.RecordPatch(this.Parent, index, patch);
+						this.Context.RecordPatch(this.Parent, index, patch);
 					}
 				}
 				return true;
 			}
 		}
 
-		internal bool InsertOrUpdate(ReadOnlyMemory<char> key, JsonValue? value, InsertionBehavior behavior)
+		internal bool InsertOrUpdate(ReadOnlyMemory<char> key, JsonValue? value, InsertionBehavior behavior = InsertionBehavior.OverwriteExisting)
 		{
 			// validate the value
 			value ??= JsonNull.Missing;
@@ -813,17 +819,17 @@ namespace Doxense.Serialization.Json
 			{
 				case (JsonObject before, JsonObject after):
 				{ // Object patch
-					patch = this.Transaction != null ? before.ComputePatch(after) : null;
+					patch = this.Context != null ? before.ComputePatch(after) : null;
 					break;
 				}
 				case (JsonArray before, JsonArray after):
 				{ // Array patch
-					patch = this.Transaction != null ? before.ComputePatch(after) : null;
+					patch = this.Context != null ? before.ComputePatch(after) : null;
 					break;
 				}
 				case (_, JsonNull):
 				{ // delete
-					this.Transaction?.RecordDelete(this, key);
+					this.Context?.RecordDelete(this, key);
 					return true;
 				}
 				default:
@@ -851,15 +857,15 @@ namespace Doxense.Serialization.Json
 				this.NotifyParent(this);
 			}
 
-			if (this.Transaction != null)
+			if (this.Context != null)
 			{
 				if (patch == null)
 				{
-					this.Transaction.RecordUpdate(this, key, value);
+					this.Context.RecordUpdate(this, key, value);
 				}
 				else
 				{
-					this.Transaction.RecordPatch(this, key, patch);
+					this.Context.RecordPatch(this, key, patch);
 				}
 			}
 			return true;
@@ -877,77 +883,203 @@ namespace Doxense.Serialization.Json
 		/// <para>If the current element is a field of an object, the field will either be added or updated in the parent object.</para>
 		/// <para>If the current element is an index in an array, the entry will be set to the new value. If the array was smaller, it will automatically be expanded, and any gaps will be filled with null values.</para>
 		/// </remarks>
-		public void Set(JsonValue? value) => InsertOrUpdate(value, InsertionBehavior.OverwriteExisting);
+		public void Set(JsonValue? value) => InsertOrUpdate(value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(JsonObject? value) => InsertOrUpdate(value);
 
 		/// <summary>Changes the value of the current instance in its parent</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(JsonNull? value) => Set((JsonValue?) value);
+		public void Set(JsonArray? value) => InsertOrUpdate(value);
 
 		/// <summary>Changes the value of the current instance in its parent</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(JsonBoolean? value) => Set((JsonValue?) value);
+		public void Set(MutableJsonValue? value) => InsertOrUpdate(value?.Json);
+
+		public void Set<TValue>(TValue? value) => InsertOrUpdate(Convert<TValue>(value));
+
+		#region Primitive Types...
 
 		/// <summary>Changes the value of the current instance in its parent</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(JsonNumber? value) => Set((JsonValue?) value);
+		public void Set(bool value) => InsertOrUpdate(value ? JsonBoolean.True : JsonBoolean.False);
 
 		/// <summary>Changes the value of the current instance in its parent</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(JsonString? value) => Set((JsonValue?) value);
+		public void Set(int value) => InsertOrUpdate(JsonNumber.Return(value));
 
 		/// <summary>Changes the value of the current instance in its parent</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(JsonDateTime? value) => Set((JsonValue?) value);
+		public void Set(uint value) => InsertOrUpdate(JsonNumber.Return(value));
 
 		/// <summary>Changes the value of the current instance in its parent</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(JsonObject? value) => Set((JsonValue?) value);
+		public void Set(long value) => InsertOrUpdate(JsonNumber.Return(value));
 
 		/// <summary>Changes the value of the current instance in its parent</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(JsonArray? value) => Set((JsonValue?) value);
+		public void Set(ulong value) => InsertOrUpdate(JsonNumber.Return(value));
 
 		/// <summary>Changes the value of the current instance in its parent</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(MutableJsonValue? value) => Set(value?.Json);
+		public void Set(float value) => InsertOrUpdate(JsonNumber.Return(value));
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set<TValue>(TValue? value) => Set(Convert<TValue>(value));
+		/// <summary>Changes the value of the current instance in its parent</summary>
+		public void Set(double value) => InsertOrUpdate(JsonNumber.Return(value));
+
+		/// <summary>Changes the value of the current instance in its parent</summary>
+		public void Set(decimal value) => InsertOrUpdate(JsonNumber.Return(value));
+
+#if NET8_0_OR_GREATER
+
+		/// <summary>Changes the value of the current instance in its parent</summary>
+		public void Set(Half value) => InsertOrUpdate(JsonNumber.Return(value));
+
+		/// <summary>Changes the value of the current instance in its parent</summary>
+		public void Set(Int128 value) => InsertOrUpdate(JsonNumber.Return(value));
+
+		/// <summary>Changes the value of the current instance in its parent</summary>
+		public void Set(UInt128 value) => InsertOrUpdate(JsonNumber.Return(value));
+
+#endif
+
+		/// <summary>Changes the value of the current instance in its parent</summary>
+		public void Set(string? value) => InsertOrUpdate(JsonString.Return(value));
+
+		/// <summary>Changes the value of the current instance in its parent</summary>
+		public void Set(DateTime value) => InsertOrUpdate(JsonDateTime.Return(value));
+
+		/// <summary>Changes the value of the current instance in its parent</summary>
+		public void Set(DateTimeOffset value) => InsertOrUpdate(JsonDateTime.Return(value));
+
+		/// <summary>Changes the value of the current instance in its parent</summary>
+		public void Set(NodaTime.Instant value) => InsertOrUpdate(JsonDateTime.Return(value));
+
+		/// <summary>Changes the value of the current instance in its parent</summary>
+		public void Set(DateOnly value) => InsertOrUpdate(JsonDateTime.Return(value));
+
+		/// <summary>Changes the value of the current instance in its parent</summary>
+		public void Set(TimeSpan value) => InsertOrUpdate(JsonNumber.Return(value));
+
+		/// <summary>Changes the value of the current instance in its parent</summary>
+		public void Set(NodaTime.Duration value) => InsertOrUpdate(JsonNumber.Return(value));
+
+		/// <summary>Changes the value of the current instance in its parent</summary>
+		public void Set(TimeOnly value) => InsertOrUpdate(JsonNumber.Return(value));
 
 		#endregion
 
-		#region Set(key, value)
+		#endregion
 
-		public void Set(string key, JsonValue? value) => InsertOrUpdate(key.AsMemory(), value, InsertionBehavior.OverwriteExisting);
+		#region Set(string, ...)
 
-		public void Set(ReadOnlyMemory<char> key, JsonValue? value) => InsertOrUpdate(key, value, InsertionBehavior.OverwriteExisting);
+		public void Set(string key, JsonValue? value) => InsertOrUpdate(key.AsMemory(), value);
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(string key, JsonNull? value) => Set(key, (JsonValue?) value);
+		public void Set(string key, JsonObject? value) => InsertOrUpdate(key.AsMemory(), value);
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(string key, JsonBoolean? value) => Set(key, (JsonValue?) value);
+		public void Set(string key, JsonArray? value) => InsertOrUpdate(key.AsMemory(), value);
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(string key, JsonNumber? value) => Set(key, (JsonValue?) value);
+		public void Set(string key, MutableJsonValue? value) => InsertOrUpdate(key.AsMemory(), value?.Json);
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(string key, JsonString? value) => Set(key, (JsonValue?) value);
+		public void Set<TValue>(string key, TValue? value) => InsertOrUpdate(key.AsMemory(), Convert<TValue>(value));
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(string key, JsonDateTime? value) => Set(key, (JsonValue?) value);
+		#region Primitive Types...
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(string key, JsonObject? value) => Set(key, (JsonValue?) value);
+		public void Set(string key, bool value) => InsertOrUpdate(key.AsMemory(), value ? JsonBoolean.True : JsonBoolean.False);
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(string key, JsonArray? value) => Set(key, (JsonValue?) value);
+		public void Set(string key, int value) => InsertOrUpdate(key.AsMemory(), JsonNumber.Return(value));
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(string key, MutableJsonValue? value) => Set(key, value?.Json);
+		public void Set(string key, uint value) => InsertOrUpdate(key.AsMemory(), JsonNumber.Return(value));
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set<TValue>(string key, TValue? value) => Set(key, Convert<TValue>(value));
+		public void Set(string key, long value) => InsertOrUpdate(key.AsMemory(), JsonNumber.Return(value));
+
+		public void Set(string key, ulong value) => InsertOrUpdate(key.AsMemory(), JsonNumber.Return(value));
+
+		public void Set(string key, float value) => InsertOrUpdate(key.AsMemory(), JsonNumber.Return(value));
+
+		public void Set(string key, double value) => InsertOrUpdate(key.AsMemory(), JsonNumber.Return(value));
+
+		public void Set(string key, decimal value) => InsertOrUpdate(key.AsMemory(), JsonNumber.Return(value));
+
+#if NET8_0_OR_GREATER
+
+		public void Set(string key, Half value) => InsertOrUpdate(key.AsMemory(), JsonNumber.Return(value));
+
+		public void Set(string key, Int128 value) => InsertOrUpdate(key.AsMemory(), JsonNumber.Return(value));
+
+		public void Set(string key, UInt128 value) => InsertOrUpdate(key.AsMemory(), JsonNumber.Return(value));
+
+#endif
+
+		public void Set(string key, string? value) => InsertOrUpdate(key.AsMemory(), JsonString.Return(value));
+
+		public void Set(string key, DateTime value) => InsertOrUpdate(key.AsMemory(), JsonDateTime.Return(value));
+
+		public void Set(string key, DateTimeOffset value) => InsertOrUpdate(key.AsMemory(), JsonDateTime.Return(value));
+
+		public void Set(string key, NodaTime.Instant value) => InsertOrUpdate(key.AsMemory(), JsonDateTime.Return(value));
+
+		public void Set(string key, DateOnly value) => InsertOrUpdate(key.AsMemory(), JsonDateTime.Return(value));
+
+		public void Set(string key, TimeSpan value) => InsertOrUpdate(key.AsMemory(), JsonNumber.Return(value));
+
+		public void Set(string key, NodaTime.Duration value) => InsertOrUpdate(key.AsMemory(), JsonNumber.Return(value));
+
+		public void Set(string key, TimeOnly value) => InsertOrUpdate(key.AsMemory(), JsonNumber.Return(value));
+
+		#endregion
+
+		#endregion
+
+		#region Set(ReadOnlyMemory<char>, ...)
+
+		public void Set(ReadOnlyMemory<char> key, JsonValue? value) => InsertOrUpdate(key, value);
+
+		public void Set(ReadOnlyMemory<char> key, JsonObject? value) => InsertOrUpdate(key, value);
+
+		public void Set(ReadOnlyMemory<char> key, JsonArray? value) => InsertOrUpdate(key, value);
+
+		public void Set(ReadOnlyMemory<char> key, MutableJsonValue? value) => InsertOrUpdate(key, value?.Json);
+
+		public void Set<TValue>(ReadOnlyMemory<char> key, TValue? value) => InsertOrUpdate(key, Convert<TValue>(value));
+
+		#region Primitive Types...
+
+		public void Set(ReadOnlyMemory<char> key, bool value) => InsertOrUpdate(key, value ? JsonBoolean.True : JsonBoolean.False);
+
+		public void Set(ReadOnlyMemory<char> key, int value) => InsertOrUpdate(key, JsonNumber.Return(value));
+
+		public void Set(ReadOnlyMemory<char> key, uint value) => InsertOrUpdate(key, JsonNumber.Return(value));
+
+		public void Set(ReadOnlyMemory<char> key, long value) => InsertOrUpdate(key, JsonNumber.Return(value));
+
+		public void Set(ReadOnlyMemory<char> key, ulong value) => InsertOrUpdate(key, JsonNumber.Return(value));
+
+		public void Set(ReadOnlyMemory<char> key, float value) => InsertOrUpdate(key, JsonNumber.Return(value));
+
+		public void Set(ReadOnlyMemory<char> key, double value) => InsertOrUpdate(key, JsonNumber.Return(value));
+
+		public void Set(ReadOnlyMemory<char> key, decimal value) => InsertOrUpdate(key, JsonNumber.Return(value));
+
+#if NET8_0_OR_GREATER
+
+		public void Set(ReadOnlyMemory<char> key, Half value) => InsertOrUpdate(key, JsonNumber.Return(value));
+
+		public void Set(ReadOnlyMemory<char> key, Int128 value) => InsertOrUpdate(key, JsonNumber.Return(value));
+
+		public void Set(ReadOnlyMemory<char> key, UInt128 value) => InsertOrUpdate(key, JsonNumber.Return(value));
+
+#endif
+
+		public void Set(ReadOnlyMemory<char> key, string? value) => InsertOrUpdate(key, JsonString.Return(value));
+
+		public void Set(ReadOnlyMemory<char> key, DateTime value) => InsertOrUpdate(key, JsonDateTime.Return(value));
+
+		public void Set(ReadOnlyMemory<char> key, DateTimeOffset value) => InsertOrUpdate(key, JsonDateTime.Return(value));
+
+		public void Set(ReadOnlyMemory<char> key, NodaTime.Instant value) => InsertOrUpdate(key, JsonDateTime.Return(value));
+
+		public void Set(ReadOnlyMemory<char> key, DateOnly value) => InsertOrUpdate(key, JsonDateTime.Return(value));
+
+		public void Set(ReadOnlyMemory<char> key, TimeSpan value) => InsertOrUpdate(key, JsonNumber.Return(value));
+
+		public void Set(ReadOnlyMemory<char> key, NodaTime.Duration value) => InsertOrUpdate(key, JsonNumber.Return(value));
+
+		public void Set(ReadOnlyMemory<char> key, TimeOnly value) => InsertOrUpdate(key, JsonNumber.Return(value));
+
+		#endregion
 
 		#endregion
 
@@ -1007,12 +1139,12 @@ namespace Doxense.Serialization.Json
 			{
 				case (JsonObject before, JsonObject after):
 				{ // Object patch
-					patch = this.Transaction != null ? before.ComputePatch(after) : null;
+					patch = this.Context != null ? before.ComputePatch(after) : null;
 					break;
 				}
 				case (JsonArray before, JsonArray after):
 				{ // Array patch
-					patch = this.Transaction != null ? before.ComputePatch(after) : null;
+					patch = this.Context != null ? before.ComputePatch(after) : null;
 					break;
 				}
 				default:
@@ -1041,15 +1173,15 @@ namespace Doxense.Serialization.Json
 				this.NotifyParent(this);
 			}
 
-			if (this.Transaction != null)
+			if (this.Context != null)
 			{
 				if (patch == null)
 				{
-					this.Transaction.RecordUpdate(this, offset, value);
+					this.Context.RecordUpdate(this, offset, value);
 				}
 				else
 				{
-					this.Transaction.RecordPatch(this, offset, patch);
+					this.Context.RecordPatch(this, offset, patch);
 				}
 			}
 
@@ -1234,7 +1366,7 @@ namespace Doxense.Serialization.Json
 				this.NotifyParent(this);
 			}
 
-			this.Transaction?.RecordAdd(this, offset, value);
+			this.Context?.RecordAdd(this, offset, value);
 			return true;
 		}
 
@@ -1331,7 +1463,7 @@ namespace Doxense.Serialization.Json
 			var newJson = prevJson.CopyAndRemove(key);
 			this.Json = newJson;
 			this.NotifyParent(this);
-			this.Transaction?.RecordDelete(this, key.AsMemory());
+			this.Context?.RecordDelete(this, key.AsMemory());
 			return true;
 		}
 
@@ -1346,7 +1478,7 @@ namespace Doxense.Serialization.Json
 			var newJson = prevJson.CopyAndRemove(key);
 			this.Json = newJson;
 			this.NotifyParent(this);
-			this.Transaction?.RecordDelete(this, key);
+			this.Context?.RecordDelete(this, key);
 			return true;
 		}
 
@@ -1361,7 +1493,7 @@ namespace Doxense.Serialization.Json
 			var newJson = prevJson.CopyAndRemove(key);
 			this.Json = newJson;
 			this.NotifyParent(this);
-			this.Transaction?.RecordDelete(this, key.AsMemory());
+			this.Context?.RecordDelete(this, key.AsMemory());
 			return true;
 		}
 
@@ -1376,7 +1508,7 @@ namespace Doxense.Serialization.Json
 			var newJson = prevJson.CopyAndRemove(key);
 			this.Json = newJson;
 			this.NotifyParent(this);
-			this.Transaction?.RecordDelete(this, key);
+			this.Context?.RecordDelete(this, key);
 			return true;
 		}
 
@@ -1391,7 +1523,7 @@ namespace Doxense.Serialization.Json
 			var newJson = prevJson.CopyAndRemove(index);
 			this.Json = newJson;
 			this.NotifyParent(this);
-			this.Transaction?.RecordDelete(this, index);
+			this.Context?.RecordDelete(this, index);
 			return true;
 		}
 
@@ -1408,7 +1540,7 @@ namespace Doxense.Serialization.Json
 			var newJson = prevJson.CopyAndRemove(index);
 			this.Json = newJson;
 			this.NotifyParent(this);
-			this.Transaction?.RecordDelete(this, index);
+			this.Context?.RecordDelete(this, index);
 			return true;
 		}
 
@@ -1424,7 +1556,7 @@ namespace Doxense.Serialization.Json
 			var newJson = prevJson.CopyAndRemove(offset);
 			this.Json = newJson;
 			this.NotifyParent(this);
-			this.Transaction?.RecordDelete(this, offset);
+			this.Context?.RecordDelete(this, offset);
 			return true;
 		}
 
@@ -1442,7 +1574,7 @@ namespace Doxense.Serialization.Json
 			var newJson = prevJson.CopyAndRemove(offset);
 			this.Json = newJson;
 			this.NotifyParent(this);
-			this.Transaction?.RecordDelete(this, offset);
+			this.Context?.RecordDelete(this, offset);
 			return true;
 		}
 
@@ -1456,12 +1588,12 @@ namespace Doxense.Serialization.Json
 			{
 				case JsonNumber num:
 				{
-					value.Set(num + 1);
+					value.Set((JsonValue) (num + 1));
 					break;
 				}
 				case JsonNull:
 				{
-					value.Set(JsonNumber.One);
+					value.Set((JsonValue) JsonNumber.One);
 					break;
 				}
 				default:
@@ -1593,7 +1725,7 @@ namespace Doxense.Serialization.Json
 			}
 			this.Json = newJson;
 			this.NotifyParent(this);
-			this.Transaction?.RecordClear(this);
+			this.Context?.RecordClear(this);
 		}
 
 		#endregion

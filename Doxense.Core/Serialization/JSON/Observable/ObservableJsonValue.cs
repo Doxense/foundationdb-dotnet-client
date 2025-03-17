@@ -13,7 +13,7 @@ namespace Doxense.Serialization.Json
 	/// <summary>Observable JSON Object that will capture all reads</summary>
 	[DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
-	public sealed class ObservableJsonValue : IJsonProxyNode, IJsonSerializable, IJsonPackable
+	public sealed class ObservableJsonValue : IJsonProxyNode, IJsonSerializable, IJsonPackable, IEquatable<ObservableJsonValue>, IEquatable<JsonValue>
 	{
 
 		public ObservableJsonValue(IObservableJsonContext? ctx, IJsonProxyNode? parent, JsonPathSegment segment, JsonValue json)
@@ -30,10 +30,9 @@ namespace Doxense.Serialization.Json
 		[Pure, MustUseReturnValue]
 		public static ObservableJsonValue Untracked(JsonValue value) => new(null, null, default, value);
 
-		public override string ToString()
-		{
-			return $"{this.GetPath()}: {this.Json.ToString("Q")}";
-		}
+		/// <summary>Returns an JSON value tracked by a context</summary>
+		[Pure, MustUseReturnValue]
+		public static ObservableJsonValue Tracked(IObservableJsonContext ctx, JsonValue value) => new(ctx, null, default, value);
 
 		/// <summary>Contains the read-only version of this JSON object</summary>
 		private JsonValue Json { get; }
@@ -155,8 +154,14 @@ namespace Doxense.Serialization.Json
 
 		public bool IsOfType(JsonType type)
 		{
-			RecordSelfAccess(ObservableJsonAccess.Length, this.Json);
+			RecordSelfAccess(ObservableJsonAccess.Type, this.Json);
 			return this.Json.Type == type;
+		}
+
+		public bool IsOfTypeOrNull(JsonType type)
+		{
+			RecordSelfAccess(ObservableJsonAccess.Type, this.Json);
+			return this.Json.Type == type || this.Json.Type == JsonType.Null;
 		}
 
 		public bool IsArrayUnsafe([MaybeNullWhen(false)] out JsonArray value)
@@ -673,6 +678,28 @@ namespace Doxense.Serialization.Json
 		}
 
 		#endregion
+
+		/// <inheritdoc />
+		public override string ToString() => this.Segment.IsEmpty() ? this.Json.ToString("Q") : $"{this.GetPath()}: {this.Json.ToString("Q")}";
+
+		/// <inheritdoc />
+		public override bool Equals(object? obj) => obj switch
+		{
+			ObservableJsonValue value => Equals(value),
+			JsonValue value => Equals(value),
+			null => IsNullOrMissing(),
+			_ => false,
+		};
+
+		/// <inheritdoc />
+		public override int GetHashCode() => this.Json.GetHashCode();
+		//REVIEW: should we register this as a read? this could be bad for perf if used as a key in a dictionary, and we expect Equals(...) to be called right after??
+
+		/// <inheritdoc />
+		public bool Equals(ObservableJsonValue? other) => other == null ? IsNullOrMissing() : this.ToJson().StrictEquals(other.ToJson());
+
+		/// <inheritdoc />
+		public bool Equals(JsonValue? other) => other == null ? IsNullOrMissing() : this.ToJson().StrictEquals(other);
 
 		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => this.ToJson().JsonSerialize(writer);
 

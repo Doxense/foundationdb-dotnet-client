@@ -579,7 +579,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 			if (this.NameSpace is "System")
 			{
-				return this.Name is "Half";
+				return this.Name is ("Half" or "Int128" or "UInt128");
 			}
 
 			return false;
@@ -600,7 +600,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 			if (this.Name == "System")
 			{
-				return this.Name is "DateTime" or "DateOnly";
+				return this.Name is nameof(DateTimeOffset) or "DateOnly";
 			}
 
 			if (this.NameSpace == "NodaTime")
