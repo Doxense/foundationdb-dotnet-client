@@ -17,7 +17,7 @@ namespace Doxense.Serialization.Json
 	/// <summary>Mutable JSON Object</summary>
 	[DebuggerDisplay("Count={Count}, Path={ToString(),nq}")]
 	[PublicAPI]
-	public sealed class MutableJsonValue : IJsonProxyNode, IJsonSerializable, IJsonPackable, IEquatable<JsonValue>, IEquatable<MutableJsonValue>
+	public sealed class MutableJsonValue : IJsonProxyNode, IJsonSerializable, IJsonPackable, IEquatable<JsonValue>, IEquatable<MutableJsonValue>, IEnumerable<MutableJsonValue>
 	{
 
 		public MutableJsonValue(IMutableJsonContext? ctx, MutableJsonValue? parent, JsonPathSegment segment, JsonValue json)
@@ -1492,7 +1492,7 @@ namespace Doxense.Serialization.Json
 			if (this.Json is not JsonArray prevJson) throw new NotSupportedException();
 			if ((uint) index >= prevJson.Count)
 			{ // not found
-				value = default;
+				value = null;
 				return false;
 			}
 
@@ -1526,7 +1526,7 @@ namespace Doxense.Serialization.Json
 			var offset = index.GetOffset(prevJson.Count);
 			if ((uint) offset >= prevJson.Count)
 			{ // not found
-				value = default;
+				value = null;
 				return false;
 			}
 
@@ -1692,9 +1692,42 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
+		#region IEnumerable<...>
+
+		/// <inheritdoc />
+		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+
+		/// <inheritdoc />
+		public IEnumerator<MutableJsonValue> GetEnumerator()
+		{
+			// we cannot know how the result will be used, so mark this a full "Value" read.
+
+			if (this.Json is not JsonArray array)
+			{
+				if (this.Json is JsonNull)
+				{
+					yield break;
+				}
+
+				throw new InvalidOperationException("Cannot iterate a non-array");
+			}
+
+			// but we don't know how the items will be consumed
+			for(int i = 0; i < array.Count; i++)
+			{
+				yield return new(this.Context, this, new(i), array[i]);
+			}
+		}
+
+		#endregion
+
+		#region JSON Serialization...
+
 		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => this.Json.JsonSerialize(writer);
 
 		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => this.Json;
+
+		#endregion
 
 	}
 

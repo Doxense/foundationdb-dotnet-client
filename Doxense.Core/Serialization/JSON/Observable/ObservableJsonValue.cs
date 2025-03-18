@@ -8,12 +8,13 @@
 
 namespace Doxense.Serialization.Json
 {
+	using System;
 	using System.ComponentModel;
 
 	/// <summary>Observable JSON Object that will capture all reads</summary>
 	[DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
-	public sealed class ObservableJsonValue : IJsonProxyNode, IJsonSerializable, IJsonPackable, IEquatable<ObservableJsonValue>, IEquatable<JsonValue>
+	public sealed class ObservableJsonValue : IJsonProxyNode, IJsonSerializable, IJsonPackable, IEquatable<ObservableJsonValue>, IEquatable<JsonValue>, IEnumerable<ObservableJsonValue>
 	{
 
 		public ObservableJsonValue(IObservableJsonContext? ctx, IJsonProxyNode? parent, JsonPathSegment segment, JsonValue json)
@@ -687,6 +688,36 @@ namespace Doxense.Serialization.Json
 		public override string ToString() => this.Segment.IsEmpty() ? this.Json.ToString("Q") : $"{this.GetPath()}: {this.Json.ToString("Q")}";
 
 		/// <inheritdoc />
+		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+
+		/// <inheritdoc />
+		public IEnumerator<ObservableJsonValue> GetEnumerator()
+		{
+			// we cannot know how the result will be used, so mark this a full "Value" read.
+
+			if (this.Json is not JsonArray array)
+			{
+				if (this.Json is JsonNull)
+				{
+					RecordSelfAccess(ObservableJsonAccess.Exists, this.Json);
+					yield break;
+				}
+
+				RecordSelfAccess(ObservableJsonAccess.Type, this.Json);
+				throw new InvalidOperationException("Cannot iterate a non-array");
+			}
+
+			// we depend on the size of the array!
+			RecordSelfAccess(ObservableJsonAccess.Length, this.Json);
+
+			// but we don't know how the items will be consumed
+			for(int i = 0; i < array.Count; i++)
+			{
+				yield return ReturnChild(i, array[i]);
+			}
+		}
+
+		/// <inheritdoc />
 		public override bool Equals(object? obj) => obj switch
 		{
 			ObservableJsonValue value => Equals(value),
@@ -708,6 +739,14 @@ namespace Doxense.Serialization.Json
 		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => this.ToJson().JsonSerialize(writer);
 
 		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => this.ToJson();
+
+		public JsonArray AsArray() => this.ToJson().AsArray();
+
+		public JsonArray? AsArrayOrDefault() => this.ToJson().AsArrayOrDefault();
+
+		public JsonObject AsObject() => this.ToJson().AsObject();
+
+		public JsonObject? AsObjectOrDefault() => this.ToJson().AsObjectOrDefault();
 
 	}
 
