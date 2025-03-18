@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -51,7 +51,7 @@ namespace SnowBank.Testing
 	using NodaTime;
 	using ILogger = Microsoft.Extensions.Logging.ILogger;
 
-	/// <summary>Base class for simple unit tests. Provides a set of usefull services (logging, cancellation, async helpers, ...)</summary>
+	/// <summary>Base class for simple unit tests. Provides a set of useful services (logging, cancellation, async helpers, ...)</summary>
 	[DebuggerNonUserCode]
 	[PublicAPI]
 	[FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
@@ -482,23 +482,39 @@ namespace SnowBank.Testing
 
 		#region Async Stuff...
 
-		/// <summary>Attend que toutes les tasks soient exécutées, ou que le timeout d'exécution du test se déclenche</summary>
-		public Task WhenAll(IEnumerable<Task> tasks, TimeSpan timeout, [CallerArgumentExpression(nameof(tasks))] string? tasksExpression = null)
+		/// <summary>Wait multiple tasks that should all complete within the specified time.</summary>
+		/// <param name="tasks">The list of tasks that will be awaited.</param>
+		/// <param name="timeout">The maximum allowed time for all the tasks to complete.</param>
+		/// <param name="message">Optional error message</param>
+		/// <param name="tasksExpression">Expression that generated the tasks (for logging purpose)</param>
+		/// <remarks>
+		/// <para>The test will abort if at least one task did not complete (successfully or not) within the specified timeout.</para>
+		/// <para>The <see cref="Cancellation">test cancellation token</see> should be used by the tasks in order for this safety feature to work! If any task is not linked to this token, it will not be canceled, and could run indefinitely.</para>
+		/// </remarks>
+		public Task WhenAll(IEnumerable<Task> tasks, TimeSpan timeout, string? message = null, [CallerArgumentExpression(nameof(tasks))] string? tasksExpression = null)
 		{
 			var ts = (tasks as Task[]) ?? tasks.ToArray();
 			if (m_cts?.IsCancellationRequested ?? false) return Task.FromCanceled(m_cts.Token);
 			if (ts.Length == 0) return Task.CompletedTask;
 			if (ts.Length == 1 && ts[0].IsCompleted) return ts[0];
-			return WaitForInternal(Task.WhenAll(ts), timeout, throwIfExpired: true, $"WhenAll({tasksExpression})");
+			return WaitForInternal(Task.WhenAll(ts), timeout, throwIfExpired: true, message, $"WhenAll({tasksExpression})");
 		}
 
-		/// <summary>Attend que toutes les tasks soient exécutées, ou que le timeout d'exécution du test se déclenche</summary>
-		public async Task<TResult[]> WhenAll<TResult>(IEnumerable<Task<TResult>> tasks, TimeSpan timeout, [CallerArgumentExpression(nameof(tasks))] string? tasksExpression = null)
+		/// <summary>Wait multiple tasks that should all complete within the specified time.</summary>
+		/// <param name="tasks">The list of tasks that will be awaited.</param>
+		/// <param name="timeout">The maximum allowed time for all the tasks to complete.</param>
+		/// <param name="message">Optional error message</param>
+		/// <param name="tasksExpression">Expression that generated the tasks (for logging purpose)</param>
+		/// <remarks>
+		/// <para>The test will abort if at least one task did not complete (successfully or not) within the specified timeout.</para>
+		/// <para>The <see cref="Cancellation">test cancellation token</see> should be used by the tasks in order for this safety feature to work! If any task is not linked to this token, it will not be canceled, and could run indefinitely.</para>
+		/// </remarks>
+		public async Task<TResult[]> WhenAll<TResult>(IEnumerable<Task<TResult>> tasks, TimeSpan timeout, string? message = null, [CallerArgumentExpression(nameof(tasks))] string? tasksExpression = null)
 		{
 			var ts = (tasks as Task<TResult>[]) ?? tasks.ToArray();
 			this.Cancellation.ThrowIfCancellationRequested();
 			if (ts.Length == 0) return [ ];
-			await WaitForInternal(Task.WhenAll(ts), timeout, throwIfExpired: true, $"WhenAll({tasksExpression})").ConfigureAwait(false);
+			await WaitForInternal(Task.WhenAll(ts), timeout, throwIfExpired: true, message, $"WhenAll({tasksExpression})").ConfigureAwait(false);
 			var res = new TResult[ts.Length];
 			for (int i = 0; i < res.Length; i++)
 			{
@@ -510,102 +526,105 @@ namespace SnowBank.Testing
 		/// <summary>Wait for a task that should complete within the specified time.</summary>
 		/// <param name="task">The task that will be awaited.</param>
 		/// <param name="timeoutMs">The maximum allowed time (in milliseconds) for the task to complete.</param>
+		/// <param name="message">Optional error message</param>
 		/// <param name="taskExpression">Expression that generated the task (for logging purpose)</param>
 		/// <remarks>
 		/// <para>The test will abort if the task did not complete (successfully or not) within the specified timeout.</para>
-		/// <para>The <see cref="Cancellation">test cancellation token</see> should be used by the task in order for this safety feature to work! If the task is not linked to this token, it will not cancel, and could timeout indefinitely.</para>
+		/// <para>The <see cref="Cancellation">test cancellation token</see> should be used by the task in order for this safety feature to work! If the task is not linked to this token, it will not be canceled, and could run indefinitely.</para>
 		/// </remarks>
-		public Task Await(Task task, int timeoutMs, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
+		public Task Await(Task task, int timeoutMs, string? message = null, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
 		{
-			return Await(task, TimeSpan.FromMilliseconds(timeoutMs), taskExpression!);
+			return Await(task, TimeSpan.FromMilliseconds(timeoutMs), message, taskExpression!);
 		}
 
 		/// <summary>Wait for a task that should complete within the specified time.</summary>
 		/// <param name="task">The task that will be awaited.</param>
 		/// <param name="timeoutMs">The maximum allowed time (in milliseconds) for the task to complete.</param>
+		/// <param name="message">Optional error message</param>
 		/// <param name="taskExpression">Expression that generated the task (for logging purpose)</param>
 		/// <remarks>
 		/// <para>The test will abort if the task did not complete (successfully or not) within the specified timeout.</para>
-		/// <para>The <see cref="Cancellation">test cancellation token</see> should be used by the task in order for this safety feature to work! If the task is not linked to this token, it will not cancel, and could timeout indefinitely.</para>
+		/// <para>The <see cref="Cancellation">test cancellation token</see> should be used by the task in order for this safety feature to work! If the task is not linked to this token, it will not be canceled, and could run indefinitely.</para>
 		/// </remarks>
-		public Task Await(ValueTask task, int timeoutMs, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
+		public Task Await(ValueTask task, int timeoutMs, string? message = null, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
 		{
-			return Await(task, TimeSpan.FromMilliseconds(timeoutMs), taskExpression!);
+			return Await(task, TimeSpan.FromMilliseconds(timeoutMs), message, taskExpression!);
 		}
 
 		/// <summary>Wait for a task that should complete within the specified time.</summary>
 		/// <param name="task">The task that will be awaited.</param>
 		/// <param name="timeout">The maximum allowed time for the task to complete.</param>
+		/// <param name="message">Optional error message</param>
 		/// <param name="taskExpression">Expression that generated the task (for logging purpose)</param>
 		/// <remarks>
 		/// <para>The test will abort if the task did not complete (successfully or not) within the specified <paramref name="timeout"/>.</para>
-		/// <para>The <see cref="Cancellation">test cancellation token</see> should be used by the task in order for this safety feature to work! If the task is not linked to this token, it will not cancel, and could timeout indefinitely.</para>
+		/// <para>The <see cref="Cancellation">test cancellation token</see> should be used by the task in order for this safety feature to work! If the task is not linked to this token, it will not be canceled, and could run indefinitely.</para>
 		/// </remarks>
-		public Task Await(Task task, TimeSpan timeout, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
+		public Task Await(Task task, TimeSpan timeout, string? message = null, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
 		{
 			return m_cts?.IsCancellationRequested == true ? Task.FromCanceled<bool>(m_cts.Token)
 			     : task.IsCompleted ? task
-			     : WaitForInternal(task, timeout, throwIfExpired: true, taskExpression!);
+			     : WaitForInternal(task, timeout, throwIfExpired: true, message, taskExpression!);
 		}
 
 		/// <summary>Wait for a task that should complete within the specified time.</summary>
 		/// <remarks>
 		/// <para>The test will abort if the task did not complete (successfully or not) within the specified <paramref name="timeout"/>.</para>
-		/// <para>The <see cref="Cancellation">test cancellation token</see> should be used by the task in order for this safety feature to work! If the task is not linked to this token, it will not cancel, and could timeout indefinitely.</para>
+		/// <para>The <see cref="Cancellation">test cancellation token</see> should be used by the task in order for this safety feature to work! If the task is not linked to this token, it will not be canceled, and could run indefinitely.</para>
 		/// </remarks>
-		public Task Await(ValueTask task, TimeSpan timeout, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
+		public Task Await(ValueTask task, TimeSpan timeout, string? message = null, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
 		{
 			return m_cts?.IsCancellationRequested == true ? Task.FromCanceled<bool>(m_cts.Token)
 				: task.IsCompleted ? task.AsTask()
-				: WaitForInternal(task.AsTask(), timeout, throwIfExpired: true, taskExpression!);
+				: WaitForInternal(task.AsTask(), timeout, throwIfExpired: true, message, taskExpression!);
 		}
 
 		/// <summary>Wait for a task that should complete within the specified time.</summary>
 		/// <remarks>
 		/// <para>The test will abort if the task did not complete (successfully or not) within the specified timeout.</para>
-		/// <para>The <see cref="Cancellation">test cancellation token</see> should be used by the task in order for this safety feature to work! If the task is not linked to this token, it will not cancel, and could timeout indefinitely.</para>
+		/// <para>The <see cref="Cancellation">test cancellation token</see> should be used by the task in order for this safety feature to work! If the task is not linked to this token, it will not be canceled, and could run indefinitely.</para>
 		/// </remarks>
-		public Task<TResult> Await<TResult>(Task<TResult> task, int timeoutMs, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
+		public Task<TResult> Await<TResult>(Task<TResult> task, int timeoutMs, string? message = null, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
 		{
-			return Await(task, TimeSpan.FromMilliseconds(timeoutMs), taskExpression);
+			return Await(task, TimeSpan.FromMilliseconds(timeoutMs), message, taskExpression);
 		}
 
 		/// <summary>Wait for a task that should complete within the specified time.</summary>
 		/// <remarks>
 		/// <para>The test will abort if the task did not complete (successfully or not) within the specified timeout.</para>
-		/// <para>The <see cref="Cancellation">test cancellation token</see> should be used by the task in order for this safety feature to work! If the task is not linked to this token, it will not cancel, and could timeout indefinitely.</para>
+		/// <para>The <see cref="Cancellation">test cancellation token</see> should be used by the task in order for this safety feature to work! If the task is not linked to this token, it will not be canceled, and could run indefinitely.</para>
 		/// </remarks>
-		public Task<TResult> Await<TResult>(ValueTask<TResult> task, int timeoutMs, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
+		public Task<TResult> Await<TResult>(ValueTask<TResult> task, int timeoutMs, string? message = null, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
 		{
-			return Await(task, TimeSpan.FromMilliseconds(timeoutMs), taskExpression);
+			return Await(task, TimeSpan.FromMilliseconds(timeoutMs), message, taskExpression);
 		}
 
 		/// <summary>Wait for a task that should complete within the specified time.</summary>
 		/// <remarks>
 		/// <para>The test will abort if the task did not complete (successfully or not) within the specified <paramref name="timeout"/>.</para>
-		/// <para>The <see cref="Cancellation">test cancellation token</see> should be used by the task in order for this safety feature to work! If the task is not linked to this token, it will not cancel, and could timeout indefinitely.</para>
+		/// <para>The <see cref="Cancellation">test cancellation token</see> should be used by the task in order for this safety feature to work! If the task is not linked to this token, it will not be canceled, and could run indefinitely.</para>
 		/// </remarks>
-		public Task<TResult> Await<TResult>(Task<TResult> task, TimeSpan timeout, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
+		public Task<TResult> Await<TResult>(Task<TResult> task, TimeSpan timeout, string? message = null, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
 		{
 			return m_cts?.IsCancellationRequested == true  ? Task.FromCanceled<TResult>(m_cts.Token)
 				: task.IsCompleted ? task
-				: WaitForInternal(task, timeout, taskExpression!);
+				: WaitForInternal(task, timeout, message, taskExpression!);
 		}
 
 		/// <summary>Wait for a task that should complete within the specified time.</summary>
 		/// <remarks>
 		/// <para>The test will abort if the task did not complete (successfully or not) within the specified <paramref name="timeout"/>.</para>
-		/// <para>The <see cref="Cancellation">test cancellation token</see> should be used by the task in order for this safety feature to work! If the task is not linked to this token, it will not cancel, and could timeout indefinitely.</para>
+		/// <para>The <see cref="Cancellation">test cancellation token</see> should be used by the task in order for this safety feature to work! If the task is not linked to this token, it will not be canceled, and could run indefinitely.</para>
 		/// </remarks>
-		public Task<TResult> Await<TResult>(ValueTask<TResult> task, TimeSpan timeout, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
+		public Task<TResult> Await<TResult>(ValueTask<TResult> task, TimeSpan timeout, string? message = null, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
 		{
 			return m_cts?.IsCancellationRequested == true  ? Task.FromCanceled<TResult>(m_cts.Token)
 				: task.IsCompleted ? task.AsTask()
-				: WaitForInternal(task.AsTask(), timeout, taskExpression!);
+				: WaitForInternal(task.AsTask(), timeout, message, taskExpression!);
 		}
 
 		[StackTraceHidden]
-		private async Task<bool> WaitForInternal(Task task, TimeSpan delay, bool throwIfExpired, string taskExpression)
+		private async Task<bool> WaitForInternal(Task task, TimeSpan delay, bool throwIfExpired, string? message, string taskExpression)
 		{
 			bool success = false;
 			Exception? error = null;
@@ -621,13 +640,19 @@ namespace SnowBank.Testing
 						if (ct.IsCancellationRequested)
 						{
 							Log("### Wait aborted due to test cancellation! ###");
-							Assert.Fail("Test execution has been aborted because it took too long to execute!");
+							Assert.Fail(message != null
+								? $"{message}. Test execution has been aborted because it took too long to execute!"
+								: "Test execution has been aborted because it took too long to execute!"
+							);
 						}
 
 						if (throwIfExpired)
 						{
 							Log("### Wait aborted due to timeout! ###");
-							Assert.Fail($"Operation took more than {delay} to execute: {taskExpression}");
+							Assert.Fail(message != null
+								? $"{message}. Operation took more than {delay} to execute: {taskExpression}"
+								: $"Operation took more than {delay} to execute: {taskExpression}"
+							);
 						}
 
 						return false;
@@ -638,7 +663,10 @@ namespace SnowBank.Testing
 				{ // re-throw error
 					var ex = task.Exception!.Unwrap();
 					error = ex;
-					Assert.Fail($"Task '{taskExpression}' failed with following error: {ex}");
+					Assert.Fail(message != null
+						? $"{message}. Task '{taskExpression}' failed with following error: {ex}"
+						: $"Task '{taskExpression}' failed with following error: {ex}"
+					);
 				}
 
 				success = true;
@@ -651,7 +679,7 @@ namespace SnowBank.Testing
 			}
 		}
 
-		private async Task<TResult> WaitForInternal<TResult>(Task<TResult> task, TimeSpan delay, string taskExpression)
+		private async Task<TResult> WaitForInternal<TResult>(Task<TResult> task, TimeSpan delay, string? message, string taskExpression)
 		{
 			bool? success = null;
 			Exception? error = null;
@@ -668,18 +696,27 @@ namespace SnowBank.Testing
 						if (ct.IsCancellationRequested)
 						{
 							Log("### Wait aborted due to test cancellation! ###");
-							Assert.Fail("Test execution has been aborted because it took too long to execute!");
+							Assert.Fail(message != null
+								? $"{message}. Test execution has been aborted because it took too long to execute!"
+								: "Test execution has been aborted because it took too long to execute!"
+							);
 						}
 						else
 						{
 							Log("### Wait aborted due to timeout! ###");
-							Assert.Fail($"Operation took more than {delay} to execute: {taskExpression}");
+							Assert.Fail(message != null
+								? $"{message}. Operation took more than {delay} to execute: {taskExpression}"
+								: $"Operation took more than {delay} to execute: {taskExpression}"
+							);
 						}
 					}
 
 					if (!task.IsCompleted)
 					{
-						Assert.Fail($"Task did not complete in time ({task.Status})");
+						Assert.Fail(message != null
+							? $"{message}. Task did not complete in time ({task.Status})"
+							: $"Task did not complete in time ({task.Status})"
+						);
 					}
 				}
 
@@ -692,7 +729,10 @@ namespace SnowBank.Testing
 				{
 					success = false;
 					error = ex;
-					Assert.Fail($"Task '{taskExpression}' failed with following error: {ex}");
+					Assert.Fail(message != null
+						? $"{message}. Task '{taskExpression}' failed with following error: {ex}"
+						: $"Task '{taskExpression}' failed with following error: {ex}"
+					);
 					throw null!;
 				}
 			}
