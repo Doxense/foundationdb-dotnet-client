@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -238,34 +238,9 @@ namespace Doxense.Collections.Lookup
 			return elements != null;
 		}
 
-		/// <summary>Execute, pour chaque grouping qui n'est pas vide, une action</summary>
-		/// <param name="handler">Action exécutée sur chaque grouping qui contient des éléments</param>
-		/// <returns>Nombre de groupings traités</returns>
-		public int ForEach(Action<TKey, TElement[]> handler)
-		{
-			Contract.NotNull(handler);
-
-			int count = 0;
-			foreach(var kvp in m_items.Values)
-			{
-				if (kvp.m_count == 0) continue;
-
-				if (kvp.m_count == kvp.m_elements.Length)
-				{ // si le buffer est à la bonne taille, on peut le passer directement
-					handler(kvp.Key, kvp.m_elements);
-				}
-				else
-				{ // sinon on est obligé de le copier
-					handler(kvp.Key, kvp.ToArray());
-				}
-				++count;
-			}
-			return count;
-		}
-
-		/// <summary>Execute, pour chaque grouping qui n'est pas vide, une action</summary>
-		/// <param name="handler">Action exécutée sur chaque grouping qui contient des éléments. Le 3ème argument contient le nombre d'éléments dans l'array qui sont utilisables.</param>
-		/// <returns>Nombre de groupings traités</returns>
+		/// <summary>Execute an action on each non-empty grouping in this table.</summary>
+		/// <param name="handler">Called with each grouping with at least one element. The 3rd argument is the number of items in the array.</param>
+		/// <returns>Number of grouping that were processed</returns>
 		public int ForEach(Action<TKey, TElement[], int> handler)
 		{
 			Contract.NotNull(handler);
@@ -276,6 +251,24 @@ namespace Doxense.Collections.Lookup
 				if (kvp.m_count == 0) continue;
 
 				handler(kvp.Key, kvp.m_elements, kvp.m_count);
+				++count;
+			}
+			return count;
+		}
+
+		/// <summary>Execute an action on each non-empty grouping in this table.</summary>
+		/// <param name="handler">Called with each grouping with at least one element.</param>
+		/// <returns>Number of grouping that were processed</returns>
+		public int ForEach(Action<TKey, ReadOnlyMemory<TElement>> handler)
+		{
+			Contract.NotNull(handler);
+
+			int count = 0;
+			foreach (var kvp in m_items.Values)
+			{
+				if (kvp.m_count == 0) continue;
+
+				handler(kvp.Key, kvp.m_elements.AsMemory(0, kvp.m_count));
 				++count;
 			}
 			return count;
