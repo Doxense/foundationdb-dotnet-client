@@ -20,7 +20,7 @@
 		<!-- Framework versions for tools that are packed (FdbTop, FdbShell, ...) -->
 		<CoreSdkToolsVersions Condition="'$(CoreSdkToolsVersions)' == ''">net10.0;net9.0;net8.0</CoreSdkToolsVersions>
 		<!-- Framework versions for local tools that are not packed (FdbBurner, Sandboxes, ...) -->
-		<CoreSdkUtilityVersions Condition="'$(CoreSdkUtilityVersions)' == ''">net9.0</CoreSdkUtilityVersions>
+		<CoreSdkUtilityVersions Condition="'$(CoreSdkUtilityVersions)' == ''">net10.0</CoreSdkUtilityVersions>
 		<!-- Framework versions for Aspire (only .NET8+) -->
 		<CloudSdkRuntimeVersions Condition="'$(CloudSdkRuntimeVersions)' == ''">net10.0;net9.0;net8.0</CloudSdkRuntimeVersions>
 	</PropertyGroup>
