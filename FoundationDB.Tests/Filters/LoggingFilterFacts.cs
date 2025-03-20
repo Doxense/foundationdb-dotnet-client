@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -47,7 +47,6 @@ namespace FoundationDB.Filters.Logging.Tests
 			await db.WriteAsync(async (tr) =>
 			{
 				var subspace = await location.Resolve(tr);
-				Assert.That(subspace, Is.Not.Null);
 
 				await tr.GetReadVersionAsync();
 				tr.Set(subspace.Encode("Warmup", 0), Slice.FromInt32(1));
@@ -60,7 +59,6 @@ namespace FoundationDB.Filters.Logging.Tests
 			await db.WriteAsync(async (tr) =>
 			{
 				var subspace = await location.Resolve(tr);
-				Assert.That(subspace, Is.Not.Null);
 
 				var rnd = new Random();
 				tr.Set(subspace.Encode("One"), Text("111111"));
@@ -108,7 +106,6 @@ namespace FoundationDB.Filters.Logging.Tests
 					Assert.That(tr.IsLogged(), Is.True);
 
 					var subspace = await location.Resolve(tr);
-					Assert.That(subspace, Is.Not.Null);
 
 					//tr.SetOption(FdbTransactionOption.CausalReadRisky);
 

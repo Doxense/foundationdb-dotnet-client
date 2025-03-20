@@ -480,7 +480,7 @@ namespace FoundationDB.Client
 
 		private async ValueTask<State> ResolveMetadata(IFdbReadOnlyTransaction tr)
 		{
-			var content = await this.Content.Resolve(tr).ConfigureAwait(false);
+			var content = await this.Content.TryResolve(tr).ConfigureAwait(false);
 			if (content == null) throw new InvalidOperationException("Directory Layer content subspace was not found");
 
 			var partition = new PartitionDescriptor(this.Path, content, null);

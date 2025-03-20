@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -266,7 +266,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 			{
-				var root = await db.Root.Resolve(tr);
+				var root = await db.Root.TryResolve(tr);
 				Assert.That(root, Is.Not.Null);
 				Assert.That(root!.Path, Is.EqualTo(db.Root.Path));
 				Assert.That(root.DirectoryLayer, Is.SameAs(dl));

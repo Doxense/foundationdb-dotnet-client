@@ -24,10 +24,10 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-#nullable disable
-// ReSharper disable AssignNullToNotNullAttribute
+// ReSharper disable ConvertToUsingDeclaration
+// ReSharper disable StringLiteralTypo
 
- namespace FoundationDB.Client.Tests
+namespace FoundationDB.Client.Tests
 {
 
 	[TestFixture][Ignore("These tests are not meant to be run as part of a CI build")]
@@ -84,7 +84,7 @@
 					tr.ClearRange(subspace.Encode("AAA"), Text("BBB"));
 					tr.ClearRange(subspace.Encode("BBB"), Text("CCC"));
 					tr.ClearRange(subspace.Encode("CCC"), Text("DDD"));
-					// should be merged into a single AAA..DDD
+					// should be merged into a single AAA...DDD
 					await tr.CommitAsync();
 				}
 			}

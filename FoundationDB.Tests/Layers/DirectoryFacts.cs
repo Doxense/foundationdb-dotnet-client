@@ -1093,7 +1093,6 @@ namespace FoundationDB.Client.Tests
 
 				ShouldFail(() => partition.Append(Slice.FromString("hello")));
 				var subspace = await location.Resolve(tr, dl);
-				Assert.That(subspace, Is.Not.Null);
 
 				ShouldFail(() => partition.Append(subspace!.GetPrefix()));
 				ShouldFail(() => partition[STuple.Create("hello", 123)]);
@@ -1215,10 +1214,10 @@ namespace FoundationDB.Client.Tests
 						tr2.GetReadVersionAsync()
 					);
 
-					var subspace1 = await location.Resolve(tr1, dl);
+					var subspace1 = await location.TryResolve(tr1, dl);
 					Assert.That(subspace1, Is.Not.Null);
 
-					var subspace2 = await location.Resolve(tr2, dl);
+					var subspace2 = await location.TryResolve(tr2, dl);
 					Assert.That(subspace2, Is.Not.Null);
 
 					var first = await dl.RegisterAsync(tr1, FdbPath.Absolute("First"), subspace1!.Encode("abc"));
@@ -1482,7 +1481,26 @@ namespace FoundationDB.Client.Tests
 
 			await DumpSubspace(db, location);
 
-			// resolve the location
+			// resolve the location (optional)
+			await db.ReadAsync(async tr =>
+			{
+				Log("Resolving " + dir);
+				var subspace = await dir.TryResolve(tr, directoryLayer);
+				Assert.That(subspace, Is.Not.Null);
+				Assert.That(subspace!.Path, Is.EqualTo(dir.Path), ".Path");
+				Log("> Found under " + subspace.GetPrefix());
+				Assert.That(subspace.GetPrefix(), Is.EqualTo(prefix), ".Prefix");
+			}, this.Cancellation);
+
+			// resolving again should return a cached version
+			await db.ReadAsync(async tr =>
+			{
+				var subspace = await dir.TryResolve(tr, directoryLayer);
+				Assert.That(subspace, Is.Not.Null);
+				Assert.That(subspace!.GetPrefix(), Is.EqualTo(prefix), ".Prefix");
+			}, this.Cancellation);
+
+			// resolve the location (required)
 			await db.ReadAsync(async tr =>
 			{
 				Log("Resolving " + dir);
@@ -1493,13 +1511,6 @@ namespace FoundationDB.Client.Tests
 				Assert.That(subspace.GetPrefix(), Is.EqualTo(prefix), ".Prefix");
 			}, this.Cancellation);
 
-			// resolving again should return a cached version
-			await db.ReadAsync(async tr =>
-			{
-				var subspace = await dir.Resolve(tr, directoryLayer);
-				Assert.That(subspace, Is.Not.Null);
-				Assert.That(subspace!.GetPrefix(), Is.EqualTo(prefix), ".Prefix");
-			}, this.Cancellation);
 		}
 
 	}

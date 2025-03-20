@@ -96,7 +96,6 @@ namespace FoundationDB.Layers.Interning
 		public async ValueTask<State> Resolve(IFdbReadOnlyTransaction tr)
 		{
 			var subspace = await this.Location.Resolve(tr);
-			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location} referenced by String Interning Layer was not found.");
 			return new State(this, subspace);
 		}
 

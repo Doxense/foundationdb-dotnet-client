@@ -369,7 +369,7 @@ namespace FoundationDB.Client.Tests
 			{
 				tr.StopLogging();
 
-				var subspace = await path.Resolve(tr);
+				var subspace = await path.TryResolve(tr);
 				if (subspace == null)
 				{
 					Log($"Dumping content of subspace {path}:");
@@ -439,7 +439,7 @@ namespace FoundationDB.Client.Tests
 		[DebuggerStepThrough]
 		protected async Task DumpSubspace(IFdbReadOnlyTransaction tr, ISubspaceLocation location)
 		{
-			var subspace = await location.Resolve(tr);
+			var subspace = await location.TryResolve(tr);
 			if (subspace != null)
 			{
 				await DumpSubspace(tr, subspace);
@@ -481,7 +481,7 @@ namespace FoundationDB.Client.Tests
 			{
 				var indent = new string('\t', depth);
 
-				var subspace = await path.Resolve(tr);
+				var subspace = await path.TryResolve(tr);
 				if (subspace == null)
 				{
 					Log($"# {indent}- {path} => NOT FOUND");

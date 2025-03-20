@@ -102,7 +102,7 @@ namespace FoundationDB.Client.Tests
 			using var tr = db.BeginReadOnlyTransaction(this.Cancellation);
 			Assert.That(tr, Is.Not.Null);
 
-			var subspace = (await db.Root.Resolve(tr))!;
+			var subspace = await db.Root.Resolve(tr);
 
 			// reading should not fail
 			await tr.GetAsync(subspace.Encode("Hello"));
@@ -217,7 +217,7 @@ namespace FoundationDB.Client.Tests
 			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
 			using var tr = db.BeginTransaction(this.Cancellation);
-			var subspace = (await location.Resolve(tr))!;
+			var subspace = await location.Resolve(tr);
 
 			tr.Set(subspace[1], Text("hello"));
 			tr.Cancel();
@@ -245,7 +245,7 @@ namespace FoundationDB.Client.Tests
 			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
 			using var tr = db.BeginTransaction(this.Cancellation);
-			var subspace = (await location.Resolve(tr))!;
+			var subspace = await location.Resolve(tr);
 
 			// Writes about 5 MB of stuff in 100k chunks
 			for (int i = 0; i < 50; i++)
@@ -286,7 +286,7 @@ namespace FoundationDB.Client.Tests
 
 			using var cts = new CancellationTokenSource();
 			using var tr = db.BeginTransaction(cts.Token);
-			var subspace = (await location.Resolve(tr))!;
+			var subspace = await location.Resolve(tr);
 
 			// Writes about 5 MB of stuff in 100k chunks
 			for (int i = 0; i < 50; i++)
@@ -340,7 +340,7 @@ namespace FoundationDB.Client.Tests
 			// write a bunch of keys
 			using (var tr = db.BeginTransaction(this.Cancellation))
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 
 				tr.Set(subspace["hello"], Text("World!"));
 				tr.Set(subspace["timestamp"], Slice.FromInt64(ticks));
@@ -355,7 +355,7 @@ namespace FoundationDB.Client.Tests
 			// read them back
 			using (var tr = db.BeginTransaction(this.Cancellation))
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 
 				readVersion = await tr.GetReadVersionAsync();
 				Assert.That(readVersion, Is.GreaterThan(0), "Read version should be > 0");
@@ -391,7 +391,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var tr = db.BeginTransaction(this.Cancellation))
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 
 				// keys
 				// - (test,) + \0
@@ -413,7 +413,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var tr = db.BeginTransaction(this.Cancellation))
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 
 				KeySelector sel;
 
@@ -540,7 +540,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var tr = db.BeginTransaction(this.Cancellation))
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 
 				for (int i = 0; i < ids.Length; i++)
 				{
@@ -554,7 +554,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var tr = db.BeginTransaction(this.Cancellation))
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 
 				var results = await tr.GetValuesAsync(subspace.Encode(ids));
 
@@ -583,7 +583,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var tr = db.BeginTransaction(this.Cancellation))
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 
 				// keys
 				// - (test,) + \0
@@ -605,7 +605,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var tr = db.BeginTransaction(this.Cancellation))
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 
 				var selectors = Enumerable
 					.Range(0, N)
@@ -643,7 +643,7 @@ namespace FoundationDB.Client.Tests
 			// write a bunch of keys
 			await db.WriteAsync(async tr =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				tr.Set(subspace["hello"], Text("World!"));
 				tr.Set(subspace["foo"], Slice.Empty);
 			}, this.Cancellation);
@@ -660,7 +660,7 @@ namespace FoundationDB.Client.Tests
 			// hello should only be equal to 'World!', not any other value, empty or nil
 			using (var tr = db.BeginTransaction(this.Cancellation))
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 
 				// hello should only be equal to 'World!', not any other value, empty or nil
 				await Check(tr, subspace["hello"], Text("World!"), FdbValueCheckResult.Success, Text("World!"));
@@ -672,7 +672,7 @@ namespace FoundationDB.Client.Tests
 			// foo should only be equal to Empty, *not* Nil or any other value
 			using (var tr = db.BeginTransaction(this.Cancellation))
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 
 				await Check(tr, subspace["foo"], Slice.Empty, FdbValueCheckResult.Success, Slice.Empty);
 				await Check(tr, subspace["foo"], Text("bar"), FdbValueCheckResult.Failed, Slice.Empty);
@@ -683,7 +683,7 @@ namespace FoundationDB.Client.Tests
 			// not_found should only be equal to Nil, *not* Empty or any other value
 			using (var tr = db.BeginTransaction(this.Cancellation))
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 
 				await Check(tr, subspace["not_found"], Slice.Nil, FdbValueCheckResult.Success, Slice.Nil);
 				await Check(tr, subspace["not_found"], Slice.Empty, FdbValueCheckResult.Failed, Slice.Nil);
@@ -694,7 +694,7 @@ namespace FoundationDB.Client.Tests
 			// not_found should only be equal to Nil, *not* Empty or any other value
 			using (var tr = db.BeginTransaction(this.Cancellation))
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 
 				await Check(tr, subspace["hello"], Text("World!"), FdbValueCheckResult.Success, Text("World!"));
 				await Check(tr, subspace["not_found"], Slice.Nil, FdbValueCheckResult.Success, Slice.Nil);
@@ -728,14 +728,14 @@ namespace FoundationDB.Client.Tests
 			{
 				return db.ReadAsync<TResult>(async tr =>
 				{
-					var subspace = (await location.Resolve(tr))!;
+					var subspace = await location.Resolve(tr);
 					return await handler(tr, subspace);
 				}, this.Cancellation);
 			}
 
 			await db.WriteAsync(async tr =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 
 				tr.Set(subspace["hello"], Text("World!"));
 				tr.Set(subspace["timestamp"], Slice.FromInt64(ticks));
@@ -826,7 +826,7 @@ namespace FoundationDB.Client.Tests
 			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
 			//note: we take a risk by reading the key separately, but this simplifies the rest of the code !
-			Task<Slice> ResolveKey(string name) => db.ReadAsync(async tr => (await location.Resolve(tr))!.Encode(name), this.Cancellation);
+			Task<Slice> ResolveKey(string name) => db.ReadAsync(async tr => (await location.Resolve(tr)).Encode(name), this.Cancellation);
 
 			Slice key;
 
@@ -906,7 +906,7 @@ namespace FoundationDB.Client.Tests
 			await db.WriteAsync(async (tr) =>
 			{
 				Log("resolving...");
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				Log(subspace);
 				tr.SetValueInt32(subspace["AAA"], 0);
 				tr.SetValueInt32(subspace["BBB"], 1);
@@ -921,7 +921,7 @@ namespace FoundationDB.Client.Tests
 			// execute
 			await db.WriteAsync(async (tr) =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				tr.AtomicAdd32(subspace["AAA"], 1);
 				tr.AtomicAdd32(subspace["BBB"], 42);
 				tr.AtomicAdd32(subspace["CCC"], -1);
@@ -935,7 +935,7 @@ namespace FoundationDB.Client.Tests
 			// check
 			await db.ReadAsync(async (tr) =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				Assert.That((await tr.GetValueInt32Async(subspace["AAA"])), Is.EqualTo(1));
 				Assert.That((await tr.GetValueInt32Async(subspace["BBB"])), Is.EqualTo(43));
 				Assert.That((await tr.GetValueInt32Async(subspace["CCC"])), Is.EqualTo(42));
@@ -959,7 +959,7 @@ namespace FoundationDB.Client.Tests
 			// setup
 			await db.WriteAsync(async tr =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				tr.SetValueInt32(subspace["AAA"], 0);
 				tr.SetValueInt32(subspace["BBB"], 1);
 				tr.SetValueInt32(subspace["CCC"], 42);
@@ -971,7 +971,7 @@ namespace FoundationDB.Client.Tests
 			// execute
 			await db.WriteAsync(async tr =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				tr.AtomicIncrement32(subspace["AAA"]);
 				tr.AtomicIncrement32(subspace["BBB"]);
 				tr.AtomicIncrement32(subspace["CCC"]);
@@ -983,7 +983,7 @@ namespace FoundationDB.Client.Tests
 			// check
 			await db.ReadAsync(async (tr) =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				Assert.That((await tr.GetValueInt32Async(subspace["AAA"])), Is.EqualTo(1));
 				Assert.That((await tr.GetValueInt32Async(subspace["BBB"])), Is.EqualTo(2));
 				Assert.That((await tr.GetValueInt32Async(subspace["CCC"])), Is.EqualTo(43));
@@ -1005,7 +1005,7 @@ namespace FoundationDB.Client.Tests
 			// setup
 			await db.WriteAsync(async (tr) =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				tr.SetValueInt64(subspace["AAA"], 0);
 				tr.SetValueInt64(subspace["BBB"], 1);
 				tr.SetValueInt64(subspace["CCC"], 43);
@@ -1019,7 +1019,7 @@ namespace FoundationDB.Client.Tests
 			// execute
 			await db.WriteAsync(async (tr) =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				tr.AtomicAdd64(subspace["AAA"], 1);
 				tr.AtomicAdd64(subspace["BBB"], 42);
 				tr.AtomicAdd64(subspace["CCC"], -1);
@@ -1033,7 +1033,7 @@ namespace FoundationDB.Client.Tests
 			// check
 			await db.ReadAsync(async (tr) =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				Assert.That((await tr.GetValueInt64Async(subspace["AAA"])), Is.EqualTo(1));
 				Assert.That((await tr.GetValueInt64Async(subspace["BBB"])), Is.EqualTo(43));
 				Assert.That((await tr.GetValueInt64Async(subspace["CCC"])), Is.EqualTo(42));
@@ -1057,7 +1057,7 @@ namespace FoundationDB.Client.Tests
 			// setup
 			await db.WriteAsync(async (tr) =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				tr.SetValueInt64(subspace["AAA"], 0);
 				tr.SetValueInt64(subspace["BBB"], 1);
 				tr.SetValueInt64(subspace["CCC"], 42);
@@ -1069,7 +1069,7 @@ namespace FoundationDB.Client.Tests
 			// execute
 			await db.WriteAsync(async (tr) =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				tr.AtomicIncrement64(subspace["AAA"]);
 				tr.AtomicIncrement64(subspace["BBB"]);
 				tr.AtomicIncrement64(subspace["CCC"]);
@@ -1081,7 +1081,7 @@ namespace FoundationDB.Client.Tests
 			// check
 			await db.ReadAsync(async (tr) =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				Assert.That((await tr.GetValueInt64Async(subspace["AAA"])), Is.EqualTo(1));
 				Assert.That((await tr.GetValueInt64Async(subspace["BBB"])), Is.EqualTo(2));
 				Assert.That((await tr.GetValueInt64Async(subspace["CCC"])), Is.EqualTo(43));
@@ -1103,7 +1103,7 @@ namespace FoundationDB.Client.Tests
 			// setup
 			await db.WriteAsync(async (tr) =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				tr.SetValueInt32(subspace["AAA"], 0);
 				tr.SetValueInt32(subspace["BBB"], 1);
 				tr.SetValueInt32(subspace["CCC"], 42);
@@ -1115,7 +1115,7 @@ namespace FoundationDB.Client.Tests
 			// execute
 			await db.WriteAsync(async (tr) =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				tr.AtomicCompareAndClear(subspace["AAA"], Slice.FromFixed32(0));  // should be cleared
 				tr.AtomicCompareAndClear(subspace["BBB"], Slice.FromFixed32(0));  // should not be touched
 				tr.AtomicCompareAndClear(subspace["CCC"], Slice.FromFixed32(42)); // should be cleared
@@ -1127,7 +1127,7 @@ namespace FoundationDB.Client.Tests
 			// check
 			await db.ReadAsync(async (tr) =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				Assert.That((await tr.GetValueInt32Async(subspace["AAA"])), Is.Null);
 				Assert.That((await tr.GetValueInt32Async(subspace["BBB"])), Is.EqualTo(1));
 				Assert.That((await tr.GetValueInt32Async(subspace["CCC"])), Is.Null);
@@ -1147,7 +1147,7 @@ namespace FoundationDB.Client.Tests
 			// setup
 			await db.WriteAsync(async (tr) =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				tr.Set(subspace["AAA"], Slice.Empty);
 				tr.Set(subspace["BBB"], Slice.Repeat('B', 10));
 				tr.Set(subspace["CCC"], Slice.Repeat('C', 90_000));
@@ -1160,7 +1160,7 @@ namespace FoundationDB.Client.Tests
 			// execute
 			await db.WriteAsync(async (tr) =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				tr.AtomicAppendIfFits(subspace["AAA"], Text("Hello, World!"));
 				tr.AtomicAppendIfFits(subspace["BBB"], Text("Hello"));
 				tr.AtomicAppendIfFits(subspace["BBB"], Text(", World!"));
@@ -1172,7 +1172,7 @@ namespace FoundationDB.Client.Tests
 			// check
 			await db.ReadAsync(async (tr) =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				Assert.That((await tr.GetAsync(subspace["AAA"])).ToString(), Is.EqualTo("Hello, World!"));
 				Assert.That((await tr.GetAsync(subspace["BBB"])).ToString(), Is.EqualTo("BBBBBBBBBBHello, World!"));
 				Assert.That((await tr.GetAsync(subspace["CCC"])), Is.EqualTo(Slice.Repeat('C', 90_000) + Slice.Repeat('c', 10_000)));
@@ -1193,7 +1193,7 @@ namespace FoundationDB.Client.Tests
 			// write a bunch of keys
 			await db.WriteAsync(async (tr) =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				tr.Set(subspace["hello"], Text("World!"));
 				tr.Set(subspace["foo"], Text("bar"));
 			}, this.Cancellation);
@@ -1201,7 +1201,7 @@ namespace FoundationDB.Client.Tests
 			// read them using snapshot
 			using (var tr = db.BeginTransaction(this.Cancellation))
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 
 				Slice bytes;
 
@@ -1224,7 +1224,7 @@ namespace FoundationDB.Client.Tests
 			long ver = tr.GetCommittedVersion();
 			Assert.That(ver, Is.EqualTo(-1), "Initial committed version");
 
-			var subspace = (await db.Root.Resolve(tr))!;
+			var subspace = await db.Root.Resolve(tr);
 			_ = await tr.GetAsync(subspace.Encode("foo"));
 
 			// until the transaction commits, the committed version will stay -1
@@ -1253,7 +1253,7 @@ namespace FoundationDB.Client.Tests
 			long ver = tr.GetCommittedVersion();
 			Assert.That(ver, Is.EqualTo(-1), "Initial committed version");
 
-			var subspace = (await db.Root.Resolve(tr))!;
+			var subspace = await db.Root.Resolve(tr);
 			tr.Set(subspace.Encode("foo"), Text("bar"));
 
 			// until the transaction commits, the committed version should still be -1
@@ -1279,7 +1279,7 @@ namespace FoundationDB.Client.Tests
 			// take the read version (to compare with the committed version below)
 			long rv1 = await tr.GetReadVersionAsync();
 
-			var subspace = (await db.Root.Resolve(tr))!;
+			var subspace = await db.Root.Resolve(tr);
 
 			// do something and commit
 			tr.Set(subspace.Encode("foo"), Text("bar"));
@@ -1316,7 +1316,7 @@ namespace FoundationDB.Client.Tests
 
 			await db.WriteAsync(async (tr) =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				tr.Set(subspace["foo"], Text("foo"));
 			}, this.Cancellation);
 
@@ -1325,8 +1325,8 @@ namespace FoundationDB.Client.Tests
 			using var trA = db.BeginTransaction(this.Cancellation);
 			using var trB = db.BeginTransaction(this.Cancellation);
 
-			var subspaceA = (await location.Resolve(trA))!;
-			var subspaceB = (await location.Resolve(trB))!;
+			var subspaceA = await location.Resolve(trA);
+			var subspaceB = await location.Resolve(trB);
 
 			// regular read
 			_ = await trA.GetAsync(subspaceA["foo"]);
@@ -1357,15 +1357,15 @@ namespace FoundationDB.Client.Tests
 
 			await db.WriteAsync(async (tr) =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				tr.Set(subspace["foo"], Text("foo"));
 			}, this.Cancellation);
 
 			using var trA = db.BeginTransaction(this.Cancellation);
 			using var trB = db.BeginTransaction(this.Cancellation);
 
-			var subspaceA = (await location.Resolve(trA))!;
-			var subspaceB = (await location.Resolve(trB))!;
+			var subspaceA = await location.Resolve(trA);
+			var subspaceB = await location.Resolve(trB);
 
 			// reading with snapshot mode should not conflict
 			_ = await trA.Snapshot.GetAsync(subspaceA["foo"]);
@@ -1388,7 +1388,7 @@ namespace FoundationDB.Client.Tests
 
 			await db.WriteAsync(async (tr) =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				tr.Set(subspace.Encode("foo", 50), Text("fifty"));
 			}, this.Cancellation);
 
@@ -1400,7 +1400,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var tr1 = db.BeginTransaction(this.Cancellation))
 			{
-				var subspace = (await location.Resolve(tr1))!;
+				var subspace = await location.Resolve(tr1);
 
 				// [0, 100) limit 1 => 50
 				var kvp = await tr1
@@ -1411,7 +1411,7 @@ namespace FoundationDB.Client.Tests
 				// 42 < 50 > conflict !!!
 				using (var tr2 = db.BeginTransaction(this.Cancellation))
 				{
-					var subspace2 = (await location.Resolve(tr2))!;
+					var subspace2 = await location.Resolve(tr2);
 					tr2.Set(subspace2.Encode("foo", 42), Text("forty-two"));
 					await tr2.CommitAsync();
 				}
@@ -1428,14 +1428,14 @@ namespace FoundationDB.Client.Tests
 
 			await db.WriteAsync(async (tr) =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				tr.ClearRange(subspace);
 				tr.Set(subspace.Encode("foo", 50), Text("fifty"));
 			}, this.Cancellation);
 
 			using (var tr1 = db.BeginTransaction(this.Cancellation))
 			{
-				var subspace = (await location.Resolve(tr1))!;
+				var subspace = await location.Resolve(tr1);
 
 				// [0, 100) limit 1 => 50
 				var kvp = await tr1
@@ -1446,7 +1446,7 @@ namespace FoundationDB.Client.Tests
 				// 77 > 50 => no conflict
 				using (var tr2 = db.BeginTransaction(this.Cancellation))
 				{
-					var subspace2 = (await location.Resolve(tr2))!;
+					var subspace2 = await location.Resolve(tr2);
 					tr2.Set(subspace2.Encode("foo", 77), Text("docm"));
 					await tr2.CommitAsync();
 				}
@@ -1468,7 +1468,7 @@ namespace FoundationDB.Client.Tests
 
 			await db.WriteAsync(async (tr) =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				tr.ClearRange(subspace);
 				tr.Set(subspace.Encode("foo", 50), Text("fifty"));
 			}, this.Cancellation);
@@ -1479,7 +1479,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var tr1 = db.BeginTransaction(this.Cancellation))
 			{
-				var subspace = (await location.Resolve(tr1))!;
+				var subspace = await location.Resolve(tr1);
 				var foo = subspace.Encode("foo", 0);
 				// fGE{0} => 50
 				var key = await tr1.GetKeyAsync(KeySelector.FirstGreaterOrEqual(foo));
@@ -1488,7 +1488,7 @@ namespace FoundationDB.Client.Tests
 				// 42 < 50 => conflict !!!
 				using (var tr2 = db.BeginTransaction(this.Cancellation))
 				{
-					var subspace2 = (await location.Resolve(tr2))!;
+					var subspace2 = await location.Resolve(tr2);
 					tr2.Set(subspace2.Encode("foo", 42), Text("forty-two"));
 					await tr2.CommitAsync();
 				}
@@ -1503,14 +1503,14 @@ namespace FoundationDB.Client.Tests
 
 			await db.WriteAsync(async (tr) =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				tr.ClearRange(subspace);
 				tr.Set(subspace.Encode("foo", 50), Text("fifty"));
 			}, this.Cancellation);
 
 			using (var tr1 = db.BeginTransaction(this.Cancellation))
 			{
-				var subspace = (await location.Resolve(tr1))!;
+				var subspace = await location.Resolve(tr1);
 				// fGE{0} => 50
 				var key = await tr1.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Encode("foo", 0)));
 				Assert.That(key, Is.EqualTo(subspace.Encode("foo", 50)));
@@ -1518,7 +1518,7 @@ namespace FoundationDB.Client.Tests
 				// 77 > 50 => no conflict
 				using (var tr2 = db.BeginTransaction(this.Cancellation))
 				{
-					var subspace2 = (await location.Resolve(tr2))!;
+					var subspace2 = await location.Resolve(tr2);
 					tr2.Set(subspace2.Encode("foo", 77), Text("docm"));
 					await tr2.CommitAsync();
 				}
@@ -1534,7 +1534,7 @@ namespace FoundationDB.Client.Tests
 
 			await db.WriteAsync(async (tr) =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				tr.ClearRange(subspace);
 				tr.Set(subspace.Encode("foo", 50), Text("fifty"));
 				tr.Set(subspace.Encode("foo", 100), Text("one hundred"));
@@ -1542,7 +1542,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var tr1 = db.BeginTransaction(this.Cancellation))
 			{
-				var subspace = (await location.Resolve(tr1))!;
+				var subspace = await location.Resolve(tr1);
 
 				// fGE{50} + 1 => 100
 				var key = await tr1.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Encode("foo", 50)) + 1);
@@ -1551,7 +1551,7 @@ namespace FoundationDB.Client.Tests
 				// 77 between 50 and 100 => conflict !!!
 				using (var tr2 = db.BeginTransaction(this.Cancellation))
 				{
-					var subspace2 = (await location.Resolve(tr2))!;
+					var subspace2 = await location.Resolve(tr2);
 					tr2.Set(subspace2.Encode("foo", 77), Text("docm"));
 					await tr2.CommitAsync();
 				}
@@ -1567,7 +1567,7 @@ namespace FoundationDB.Client.Tests
 
 			await db.WriteAsync(async (tr) =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				tr.ClearRange(subspace);
 				tr.Set(subspace.Encode("foo", 50), Text("fifty"));
 				tr.Set(subspace.Encode("foo", 100), Text("one hundred"));
@@ -1575,7 +1575,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var tr1 = db.BeginTransaction(this.Cancellation))
 			{
-				var subspace = (await location.Resolve(tr1))!;
+				var subspace = await location.Resolve(tr1);
 				// fGT{50} => 100
 				var key = await tr1.GetKeyAsync(KeySelector.FirstGreaterThan(subspace.Encode("foo", 50)));
 				Assert.That(key, Is.EqualTo(subspace.Encode("foo", 100)));
@@ -1583,7 +1583,7 @@ namespace FoundationDB.Client.Tests
 				// another transaction changes the VALUE of 50 and 100 (but does not change the fact that they exist nor add keys in between)
 				using (var tr2 = db.BeginTransaction(this.Cancellation))
 				{
-					var subspace2 = (await location.Resolve(tr2))!;
+					var subspace2 = await location.Resolve(tr2);
 					tr2.Set(subspace2.Encode("foo", 100), Text("cent"));
 					await tr2.CommitAsync();
 				}
@@ -1599,7 +1599,7 @@ namespace FoundationDB.Client.Tests
 
 			await db.WriteAsync(async (tr) =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				tr.ClearRange(subspace);
 				tr.Set(subspace.Encode("foo", 50), Text("fifty"));
 				tr.Set(subspace.Encode("foo", 100), Text("one hundred"));
@@ -1607,7 +1607,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var tr1 = db.BeginTransaction(this.Cancellation))
 			{
-				var subspace = (await location.Resolve(tr1))!;
+				var subspace = await location.Resolve(tr1);
 				// lLT{100} => 50
 				var key = await tr1.GetKeyAsync(KeySelector.LastLessThan(subspace.Encode("foo", 100)));
 				Assert.That(key, Is.EqualTo(subspace.Encode("foo", 50)));
@@ -1615,7 +1615,7 @@ namespace FoundationDB.Client.Tests
 				// another transaction changes the VALUE of 50 and 100 (but does not change the fact that they exist nor add keys in between)
 				using (var tr2 = db.BeginTransaction(this.Cancellation))
 				{
-					var subspace2 = (await location.Resolve(tr2))!;
+					var subspace2 = await location.Resolve(tr2);
 					tr2.Clear(subspace2.Encode("foo", 100));
 					await tr2.CommitAsync();
 				}
@@ -1650,7 +1650,7 @@ namespace FoundationDB.Client.Tests
 
 			await db.WriteAsync(async (tr) =>
 			{
-				var subspace = (await db.Root.Resolve(tr))!;
+				var subspace = await db.Root.Resolve(tr);
 				tr.Set(subspace.Encode("test", "A"), Slice.FromInt32(1));
 			}, this.Cancellation);
 			using(var tr1 = db.BeginTransaction(this.Cancellation))
@@ -1659,7 +1659,7 @@ namespace FoundationDB.Client.Tests
 				await tr1.GetReadVersionAsync();
 				//T1 should be locked to a specific version of the db
 
-				var subspace1 = (await db.Root.Resolve(tr1))!;
+				var subspace1 = await db.Root.Resolve(tr1);
 				var key = subspace1.Encode("test", "A");
 
 				// change the value in T2
@@ -1688,7 +1688,7 @@ namespace FoundationDB.Client.Tests
 			// T1 should see A == 2, because in reality, it was started after T2
 			await db.WriteAsync(async (tr) =>
 			{
-				var subspace = (await db.Root.Resolve(tr))!;
+				var subspace = await db.Root.Resolve(tr);
 				tr.Set(subspace.Encode("test", "A"), Slice.FromInt32(1));
 			}, this.Cancellation);
 			using (var tr1 = db.BeginTransaction(this.Cancellation))
@@ -1698,13 +1698,13 @@ namespace FoundationDB.Client.Tests
 				// change the value in T2
 				await db.WriteAsync(async (tr2) =>
 				{
-					var subspace2 = (await db.Root.Resolve(tr2))!;
+					var subspace2 = await db.Root.Resolve(tr2);
 					tr2.Set(subspace2.Encode("test", "A"), Slice.FromInt32(2));
 				}, this.Cancellation);
 
 
 				// read the value in T1 and commits
-				var subspace1 = (await db.Root.Resolve(tr1))!;
+				var subspace1 = await db.Root.Resolve(tr1);
 				var value = await tr1.GetAsync(subspace1.Encode("test", "A"));
 
 				Assert.That(value, Is.Not.Null);
@@ -1735,7 +1735,7 @@ namespace FoundationDB.Client.Tests
 
 			await db.WriteAsync(async (tr) =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				tr.Set(subspace["A"], Text("a"));
 				tr.Set(subspace["B"], Text("b"));
 				tr.Set(subspace["C"], Text("c"));
@@ -1749,7 +1749,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var tr = db.BeginTransaction(this.Cancellation))
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 
 				// check initial state
 				Assert.That((await tr.GetAsync(subspace["A"])).ToStringUtf8(), Is.EqualTo("a"));
@@ -1797,7 +1797,7 @@ namespace FoundationDB.Client.Tests
 
 			await db.WriteAsync(async (tr) =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				tr.Set(subspace["A"], Text("a"));
 				tr.Set(subspace["B"], Text("b"));
 				tr.Set(subspace["C"], Text("c"));
@@ -1809,7 +1809,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var tr = db.BeginTransaction(this.Cancellation))
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 
 				tr.Options.WithSnapshotReadYourWritesDisable();
 
@@ -1854,7 +1854,7 @@ namespace FoundationDB.Client.Tests
 
 			await db.WriteAsync(async (tr) =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				tr.Set(subspace.Encode("a"), Text("a"));
 				tr.Set(subspace.Encode("b", 10), Text("PRINT \"HELLO\""));
 				tr.Set(subspace.Encode("b", 20), Text("GOTO 10"));
@@ -1862,7 +1862,7 @@ namespace FoundationDB.Client.Tests
 
 			using(var tr = db.BeginTransaction(this.Cancellation))
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 
 				var data = await tr.GetAsync(subspace.Encode("a"));
 				Assert.That(data.ToUnicode(), Is.EqualTo("a"));
@@ -1897,7 +1897,7 @@ namespace FoundationDB.Client.Tests
 			using (var tr = db.BeginTransaction(this.Cancellation))
 			{
 				// resolve the subspace in a witness transaction
-				var subspace = (await location.Resolve(trSubspace))!;
+				var subspace = await location.Resolve(trSubspace);
 				tr.SetReadVersion(await trSubspace.GetReadVersionAsync());
 
 				tr.Options.WithReadYourWritesDisable();
@@ -1940,7 +1940,7 @@ namespace FoundationDB.Client.Tests
 			// create first version
 			using (var tr1 = db.BeginTransaction(this.Cancellation))
 			{
-				var subspace = (await location.Resolve(tr1))!;
+				var subspace = await location.Resolve(tr1);
 				tr1.Set(subspace["concurrent"], Slice.FromByte(1));
 				await tr1.CommitAsync();
 
@@ -1951,7 +1951,7 @@ namespace FoundationDB.Client.Tests
 			// mutate in another transaction
 			using (var tr2 = db.BeginTransaction(this.Cancellation))
 			{
-				var subspace = (await location.Resolve(tr2))!;
+				var subspace = await location.Resolve(tr2);
 				tr2.Set(subspace["concurrent"], Slice.FromByte(2));
 				await tr2.CommitAsync();
 			}
@@ -1964,7 +1964,7 @@ namespace FoundationDB.Client.Tests
 				long ver = await tr3.GetReadVersionAsync();
 				Assert.That(ver, Is.EqualTo(committedVersion), "GetReadVersion should return the same value as SetReadVersion!");
 
-				var subspace = (await location.Resolve(tr3))!;
+				var subspace = await location.Resolve(tr3);
 
 				var bytes = await tr3.GetAsync(subspace["concurrent"]);
 
@@ -2079,7 +2079,7 @@ namespace FoundationDB.Client.Tests
 						Assert.That(tr2.Options.MaxRetryDelay, Is.EqualTo(700), "tr2.Options.MaxRetryDelay");
 						Assert.That(tr2.Options.Tracing, Is.EqualTo(FdbTracingOptions.RecordApiCalls | FdbTracingOptions.RecordSteps), "tr2.Options.Tracing");
 
-						// original tr should not be affected
+						// original transaction should not be affected
 						Assert.That(tr.Options.Timeout, Is.EqualTo(500), "tr.Options.Timeout");
 						Assert.That(tr.Options.RetryLimit, Is.EqualTo(3), "tr.Options.RetryLimit");
 						Assert.That(tr.Options.MaxRetryDelay, Is.EqualTo(600), "tr.Options.MaxRetryDelay");
@@ -2087,7 +2087,7 @@ namespace FoundationDB.Client.Tests
 					});
 				}
 
-				// resetting tr should use the new database settings
+				// resetting the transaction should use the new database settings
 				tr.Reset();
 
 				Assert.Multiple(() =>
@@ -2167,7 +2167,7 @@ namespace FoundationDB.Client.Tests
 				await tr.OnErrorAsync(FdbError.TransactionTooOld);
 				Assert.That(tr.Options.RetryLimit, Is.Zero, "Retry limit should be reset");
 
-				// we still haven't failed 10 times..
+				// we still haven't failed 10 times...
 				tr.Options.RetryLimit = 10;
 				await tr.OnErrorAsync(FdbError.TransactionTooOld);
 				Assert.That(tr.Options.RetryLimit, Is.Zero, "Retry limit should be reset");
@@ -2189,7 +2189,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var tr1 = db.BeginTransaction(this.Cancellation))
 			{
-				var subspace = (await location.Resolve(tr1))!;
+				var subspace = await location.Resolve(tr1);
 
 				await tr1.GetAsync(subspace[1]);
 				// tr1 writes to one key
@@ -2199,7 +2199,7 @@ namespace FoundationDB.Client.Tests
 
 				using (var tr2 = db.BeginTransaction(this.Cancellation))
 				{
-					var subspace2 = (await location.Resolve(tr2))!;
+					var subspace2 = await location.Resolve(tr2);
 
 					// tr2 writes to the second key
 					tr2.Set(subspace2[2], Text("world"));
@@ -2228,7 +2228,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var tr1 = db.BeginTransaction(this.Cancellation))
 			{
-				var subspace = (await location.Resolve(tr1))!;
+				var subspace = await location.Resolve(tr1);
 
 				// tr1 reads the conflicting key
 				await tr1.GetAsync(subspace.Encode(0));
@@ -2237,7 +2237,7 @@ namespace FoundationDB.Client.Tests
 
 				using (var tr2 = db.BeginTransaction(this.Cancellation))
 				{
-					var subspace2 = (await location.Resolve(tr2))!;
+					var subspace2 = await location.Resolve(tr2);
 
 					// tr2 changes key2, but adds a conflict range on the conflicting key
 					tr2.Set(subspace2.Encode(2), Text("world"));
@@ -2268,7 +2268,7 @@ namespace FoundationDB.Client.Tests
 
 			await db.WriteAsync(async tr =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				tr.Set(subspace.Encode("watched"), Text("some value"));
 				tr.Set(subspace.Encode("witness"), Text("some other value"));
 			}, this.Cancellation);
@@ -2280,7 +2280,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var tr = db.BeginTransaction(this.Cancellation))
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				w1 = tr.Watch(subspace.Encode("watched"), cts.Token);
 				w2 = tr.Watch(subspace.Encode("witness"), cts.Token);
 				Assert.That(w1, Is.Not.Null);
@@ -2297,7 +2297,7 @@ namespace FoundationDB.Client.Tests
 
 			await db.WriteAsync(async (tr) =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				tr.Set(subspace.Encode("watched"), Text("some new value"));
 			}, this.Cancellation);
 
@@ -2324,7 +2324,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var tr = db.BeginTransaction(this.Cancellation))
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				var key = subspace.Encode("watched");
 
 				Assert.That(() => tr.Watch(key, tr.Cancellation), Throws.Exception, "Watch(...) should reject the transaction's own cancellation");
@@ -2359,14 +2359,14 @@ namespace FoundationDB.Client.Tests
 			Log("Set to initial value...");
 			await db.WriteAsync(async tr =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				tr.Set(subspace.Encode("watched"), Text("initial value"));
 			}, this.Cancellation);
 
 			Log("Create watch...");
 			var w = await db.ReadWriteAsync(async tr =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				return tr.Watch(subspace.Encode("watched"), this.Cancellation);
 			}, this.Cancellation);
 			Assert.That(w.IsAlive, Is.True, "Watch should still be alive");
@@ -2376,7 +2376,7 @@ namespace FoundationDB.Client.Tests
 			Log("Set to same value...");
 			await db.WriteAsync(async tr =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				tr.Set(subspace.Encode("watched"), Text("initial value"));
 			}, this.Cancellation);
 
@@ -2391,7 +2391,7 @@ namespace FoundationDB.Client.Tests
 			Log("Set to a different value...");
 			await db.WriteAsync(async tr =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				tr.Set(subspace.Encode("watched"), Text("new value"));
 			}, this.Cancellation);
 
@@ -2420,7 +2420,7 @@ namespace FoundationDB.Client.Tests
 
 			await db.WriteAsync(async tr =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				tr.Set(subspace.Encode("watched"), Text("some value"));
 			}, this.Cancellation);
 
@@ -2432,7 +2432,7 @@ namespace FoundationDB.Client.Tests
 			Log("Setup a watch on a key that will not be changed...");
 			using (var tr = db.BeginTransaction(this.Cancellation))
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				watch = tr.Watch(subspace.Encode("watched"), this.Cancellation);
 				Assert.That(watch, Is.Not.Null);
 
@@ -2472,7 +2472,7 @@ namespace FoundationDB.Client.Tests
 
 			await db.WriteAsync(async tr =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				tr.Set(subspace.Encode("watched"), Text("some value"));
 			}, this.Cancellation);
 
@@ -2482,7 +2482,7 @@ namespace FoundationDB.Client.Tests
 			Log("Setup a watch on a key that will not be changed...");
 			using (var tr = db.BeginTransaction(this.Cancellation))
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				watch = tr.Watch(subspace.Encode("watched"), this.Cancellation);
 				Assert.That(watch, Is.Not.Null);
 
@@ -2517,7 +2517,7 @@ namespace FoundationDB.Client.Tests
 
 			await db.WriteAsync(async (tr) =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				tr.Set(subspace.Encode(1), Text("one"));
 			}, this.Cancellation);
 
@@ -2526,7 +2526,7 @@ namespace FoundationDB.Client.Tests
 			// look for the address of key1
 			using (var tr = db.BeginTransaction(this.Cancellation))
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 
 				var addresses = await tr.GetAddressesForKeyAsync(subspace.Encode(1));
 				Assert.That(addresses, Is.Not.Null);
@@ -2553,7 +2553,7 @@ namespace FoundationDB.Client.Tests
 			// do the same but for a key that does not exist
 			using (var tr = db.BeginTransaction(this.Cancellation))
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 
 				var addresses = await tr.GetAddressesForKeyAsync(subspace.Encode(404));
 				Assert.That(addresses, Is.Not.Null);
@@ -2736,7 +2736,7 @@ namespace FoundationDB.Client.Tests
 			Log("Inserting keys with version stamps:");
 			using (var tr = db.BeginTransaction(this.Cancellation))
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 
 				// should return an 80-bit incomplete stamp, using a random token
 				var vs = tr.CreateVersionStamp();
@@ -2775,7 +2775,7 @@ namespace FoundationDB.Client.Tests
 			Log("Checking database content:");
 			using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 				{
 					var foo = await tr.GetRange(subspace.EncodeRange("foo")).SingleAsync();
 					Log("> Found 1 result under (foo,)");
@@ -2919,24 +2919,24 @@ namespace FoundationDB.Client.Tests
 
 			await db.WriteAsync(async tr =>
 			{
-				var subspace = (await db.Root.Resolve(tr))!;
+				var subspace = await db.Root.Resolve(tr);
 				tr.TouchMetadataVersionKey(subspace.Encode(FOO));
 			}, this.Cancellation);
 			await db.WriteAsync(async tr =>
 			{
-				var subspace = (await db.Root.Resolve(tr))!;
+				var subspace = await db.Root.Resolve(tr);
 				tr.TouchMetadataVersionKey(subspace.Encode(BAR));
 			}, this.Cancellation);
 			await db.WriteAsync(async tr =>
 			{
-				var subspace = (await db.Root.Resolve(tr))!;
+				var subspace = await db.Root.Resolve(tr);
 				tr.Clear(subspace.Encode(BAZ));
 			}, this.Cancellation);
 
 			// changing the metadata version and then reading it back from the same transaction CANNOT WORK!
 			await db.WriteAsync(async tr =>
 			{
-				var subspace = (await db.Root.Resolve(tr))!;
+				var subspace = await db.Root.Resolve(tr);
 
 				// We can read the version before
 				var before1 = await tr.GetMetadataVersionKeyAsync(subspace.Encode(FOO));
@@ -2993,7 +2993,7 @@ namespace FoundationDB.Client.Tests
 
 			await db.WriteAsync(async (tr) =>
 			{
-				var subspace = (await db.Root.Resolve(tr))!;
+				var subspace = await db.Root.Resolve(tr);
 				for (int i = 0; i < R; i++)
 				{
 					tr.Set(subspace.Encode("Fuzzer", i), Slice.FromInt32(i));
@@ -3062,7 +3062,7 @@ namespace FoundationDB.Client.Tests
 						int x = rnd.Next(R);
 						try
 						{
-							var subspace = (await db.Root.Resolve(tr))!; //TODO: cache subspace instance alongside transaction?
+							var subspace = await db.Root.Resolve(tr); //TODO: cache subspace instance alongside transaction?
 							_ = await tr.GetAsync(subspace.Encode("Fuzzer", x));
 						}
 						catch (FdbException)
@@ -3082,7 +3082,7 @@ namespace FoundationDB.Client.Tests
 						var tr = alive[p];
 
 						int x = rnd.Next(R);
-						var subspace = (await db.Root.Resolve(tr))!; //TODO: cache subspace instance alongside transaction?
+						var subspace = await db.Root.Resolve(tr); //TODO: cache subspace instance alongside transaction?
 						_ = tr.GetAsync(subspace.Encode("Fuzzer", x)).ContinueWith((_) => sb.Append('!') /*BUGBUG: locking ?*/, TaskContinuationOptions.NotOnRanToCompletion);
 						// => t is not stored
 						break;
@@ -3134,7 +3134,7 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync(async tr =>
 				{
 					tr.StopLogging();
-					var subspace = (await location.Resolve(tr))!;
+					var subspace = await location.Resolve(tr);
 
 					tr.ClearRange(subspace.ToRange());
 					tr.Set(subspace.Encode("AAA"), initialA);
@@ -3155,7 +3155,7 @@ namespace FoundationDB.Client.Tests
 
 					if (!test(tr)) return;
 
-					var subspace = (await location.Resolve(tr))!;
+					var subspace = await location.Resolve(tr);
 					await handler(tr, subspace);
 					tr.Set(subspace.Encode("Witness"), Slice.FromStringAscii("New witness value"));
 				}, this.Cancellation);
@@ -3165,7 +3165,7 @@ namespace FoundationDB.Client.Tests
 				var actual = await db.ReadAsync(async tr =>
 				{
 					tr.StopLogging();
-					var subspace = (await location.Resolve(tr))!;
+					var subspace = await location.Resolve(tr);
 					return await tr.GetAsync(subspace.Encode("Witness"));
 				}, this.Cancellation);
 
@@ -3498,7 +3498,7 @@ namespace FoundationDB.Client.Tests
 
 					await db.WriteAsync(async tr =>
 					{
-						var subspace = (await location.Resolve(tr))!;
+						var subspace = await location.Resolve(tr);
 						tr.Set(subspace.Encode("Foo"), Slice.FromStringAscii("NotReady"));
 						// Bar does not exist
 					}, this.Cancellation);
@@ -3507,7 +3507,7 @@ namespace FoundationDB.Client.Tests
 				var task = db.ReadWriteAsync(async tr =>
 				{
 					//note: this subspace does not use the DL so it does not introduce any value checks!
-					var subspace = (await location.Resolve(tr))!;
+					var subspace = await location.Resolve(tr);
 
 					if (tr.Context.TestValueCheckFromPreviousAttempt("foo") == FdbValueCheckResult.Failed)
 					{
@@ -3738,7 +3738,7 @@ namespace FoundationDB.Client.Tests
 			{
 				await db.WriteAsync(async (tr) =>
 				{
-					var subspace = (await location.Resolve(tr))!;
+					var subspace = await location.Resolve(tr);
 
 					// fill the db with keys from (0,) = XXX to (N-1,) = XXX
 					for (int j = 0; j < BATCH_SIZE && i + j < values.Length; j++)
@@ -3753,7 +3753,7 @@ namespace FoundationDB.Client.Tests
 			Log($"Get split points for chunks of {CHUNK_SIZE:N0} bytes...");
 			var keys = await db.ReadAsync(async (tr) =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 
 				var begin = subspace.Encode(0);
 				var end = subspace.Encode(values.Length);
@@ -3781,7 +3781,7 @@ namespace FoundationDB.Client.Tests
 			{
 				var (chunk, begin, end) = await db.ReadAsync(async tr => 
 				{
-					var subspace = (await location.Resolve(tr))!;
+					var subspace = await location.Resolve(tr);
 
 					// we will get all the keys in between and dump some statistics
 					var range = KeyRange.Create(keys[i], keys[i + 1]);
@@ -3819,7 +3819,7 @@ namespace FoundationDB.Client.Tests
 			Log($"Creating {values.Length:N0} keys ({VALUE_SIZE:N0} bytes per key) with {NUM_ITEMS * VALUE_SIZE:N0} total bytes");
 			await db.WriteAsync(async (tr) =>
 			{
-				var subspace = (await location.Resolve(tr))!;
+				var subspace = await location.Resolve(tr);
 
 				// fill the db with keys from (0,) = XXX to (N-1,) = XXX
 				for (int i = 0; i < values.Length; i++)
@@ -3833,7 +3833,7 @@ namespace FoundationDB.Client.Tests
 			{
 				await db.ReadAsync(async (tr) =>
 				{
-					var subspace = (await location.Resolve(tr))!;
+					var subspace = await location.Resolve(tr);
 
 					int x = rnd.Next(NUM_ITEMS);
 					int y = rnd.Next(NUM_ITEMS);

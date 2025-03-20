@@ -76,9 +76,7 @@ namespace FoundationDB.Layers.Blobs
 
 		public async ValueTask<State> Resolve(IFdbReadOnlyTransaction tr)
 		{
-			var subspace = await this.Location.Resolve(tr);
-			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location} referenced by Blob Layer was not found.");
-			return new State(subspace);
+			return new State(await this.Location.Resolve(tr).ConfigureAwait(false));
 		}
 
 		[PublicAPI]

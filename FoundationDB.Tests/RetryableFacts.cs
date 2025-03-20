@@ -27,8 +27,6 @@
 // ReSharper disable PossibleMultipleEnumeration
 // ReSharper disable AccessToDisposedClosure
 // ReSharper disable ReplaceAsyncWithTaskReturn
-#pragma warning disable CS8604 // Possible null reference argument.
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
 
 namespace FoundationDB.Client.Tests
 {
@@ -238,7 +236,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(tr, Is.Not.Null);
 
 				// force the read-only into a writable interface
-				var hijack = tr as IFdbTransaction;
+				var hijack = (tr as IFdbTransaction)!;
 				Assume.That(hijack, Is.Not.Null, "This test requires the transaction to implement IFdbTransaction !");
 
 				var subspace = await location.Resolve(tr);
