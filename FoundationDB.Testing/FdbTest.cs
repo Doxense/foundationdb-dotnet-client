@@ -292,6 +292,12 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[DebuggerStepThrough]
+		protected async Task CleanLocation(IFdbDatabaseProvider db, ISubspaceLocation location)
+		{
+			await CleanLocation(await db.GetDatabase(this.Cancellation), location);
+		}
+
+		[DebuggerStepThrough]
 		protected Task CleanLocation(IFdbDatabase db, ISubspaceLocation location)
 		{
 			Log($"# Using location {location.Path}");
