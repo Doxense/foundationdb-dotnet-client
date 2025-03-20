@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -44,14 +44,14 @@ namespace FoundationDB.Linq.Tests
 
 				await db.WriteAsync(async (tr) =>
 				{
-					var subspace = (await location.Resolve(tr))!;
+					var subspace = await location.Resolve(tr);
 					tr.Set(subspace.Encode("Hello"), Text("World!"));
 					tr.Set(subspace.Encode("Narf"), Text("Zort"));
 				}, this.Cancellation);
 
 				await db.ReadAsync(async tr =>
 				{
-					var subspace = (await location.Resolve(tr))!;
+					var subspace = await location.Resolve(tr);
 
 					var range = tr.Query().RangeStartsWith(subspace.GetPrefix());
 					Assert.That(range, Is.InstanceOf<FdbAsyncSequenceQuery<KeyValuePair<Slice, Slice>>>());

@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -27,8 +27,6 @@
 // ReSharper disable PossibleMultipleEnumeration
 // ReSharper disable AccessToDisposedClosure
 // ReSharper disable ReplaceAsyncWithTaskReturn
-#pragma warning disable CS8604 // Possible null reference argument.
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
 
 namespace FoundationDB.Client.Tests
 {
@@ -64,7 +62,7 @@ namespace FoundationDB.Client.Tests
 				return await tr.GetAsync(subspace.Encode("Hello"));
 			}, this.Cancellation);
 
-			Assert.That(called, Is.EqualTo(1)); // note: if this assert fails, first ensure that you did not get a transient error while running this test!
+			Assert.That(called, Is.EqualTo(1)); // note: if this assertion fails, first ensure that you did not get a transient error while running this test!
 			Assert.That(result.ToUnicode(), Is.EqualTo(secret));
 		}
 
@@ -165,7 +163,7 @@ namespace FoundationDB.Client.Tests
 			sw.Stop();
 			Log("> done in " + sw.Elapsed);
 
-			using (new Timer((_) => { Log($"WorkingSet: {Environment.WorkingSet:N0}, Managed: {GC.GetTotalMemory(false):N0}"); }, null, 1000, 1000))
+			await using (new Timer((_) => { Log($"WorkingSet: {Environment.WorkingSet:N0}, Managed: {GC.GetTotalMemory(false):N0}"); }, null, 1000, 1000))
 			{
 				try
 				{
@@ -238,7 +236,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(tr, Is.Not.Null);
 
 				// force the read-only into a writable interface
-				var hijack = tr as IFdbTransaction;
+				var hijack = (tr as IFdbTransaction)!;
 				Assume.That(hijack, Is.Not.Null, "This test requires the transaction to implement IFdbTransaction !");
 
 				var subspace = await location.Resolve(tr);

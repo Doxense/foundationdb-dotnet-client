@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -140,7 +140,7 @@ namespace FoundationDB.Client
 		#region Ranges...
 
 		/// <summary>Return the range of all legal keys in this subspace, that start with the specified value</summary>
-		/// <returns>Range that encompass all keys that start with (tuple.Item1, ..)</returns>
+		/// <returns>Range that encompass all keys that start with (tuple.Item1, ...)</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static KeyRange PackRange<T1>(this ITypedKeySubspace<T1> self, STuple<T1> tuple)
 		{
@@ -148,7 +148,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Return the range of all legal keys in this subspace, that start with the specified value</summary>
-		/// <returns>Range that encompass all keys that start with (tuple.Item1, ..)</returns>
+		/// <returns>Range that encompass all keys that start with (tuple.Item1, ...)</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static KeyRange PackRange<T1>(this ITypedKeySubspace<T1> self, ValueTuple<T1> tuple)
 		{

@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -65,13 +65,13 @@ namespace FoundationDB.Client
 		/// <param name="path">Relative path of the subdirectory to open</param>
 		Task<FdbDirectorySubspace> OpenAsync(IFdbReadOnlyTransaction trans, FdbPath path);
 
-		/// <summary>Opens a subdirectory with the given <paramref name="path"/>.</summary>
+		/// <summary>Attempts to open the directory with the given <paramref name="path"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Relative path of the subdirectory to open</param>
-		/// <returns>Returns the directory if it exists, or null if it was not found</returns>
+		/// <returns>Returns the directory if it exists, or <c>null</c> if it was not found</returns>
 		Task<FdbDirectorySubspace?> TryOpenAsync(IFdbReadOnlyTransaction trans, FdbPath path);
 
-		/// <summary>Opens a subdirectory with the given <paramref name="path"/>, using the partition's cache context.</summary>
+		/// <summary>Attempts to open a subdirectory with the given <paramref name="path"/>, using the partition's cache context.</summary>
 		/// <returns>Returns the directory if it exists, or null if it was not found</returns>
 		/// <remarks>The instance returned MUST NOT be stored or kept outside the context of the transaction!
 		/// You must call <see cref="TryOpenCachedAsync(IFdbReadOnlyTransaction, FdbPath)"/> on every new transaction to obtain either the previously cached instance, or a new instance.
@@ -95,7 +95,7 @@ namespace FoundationDB.Client
 		/// <param name="subPath">Relative path of the subdirectory to create</param>
 		Task<FdbDirectorySubspace> CreateAsync(IFdbTransaction trans, FdbPath subPath);
 
-		/// <summary>Creates a subdirectory with the given <paramref name="subPath"/> (creating intermediate subdirectories if necessary).
+		/// <summary>Creates a subdirectory with the given <paramref name="subPath"/> (creating intermediate subdirectories if necessary), unless it already exists.
 		/// An exception is thrown if the given subdirectory already exists.
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>

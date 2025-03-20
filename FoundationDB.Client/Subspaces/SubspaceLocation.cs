@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -56,13 +56,20 @@ namespace FoundationDB.Client
 		/// <remarks>The default is to use the <see cref="TuPack"/> encoding, but it can be any other custom encoding.</remarks>
 		IKeyEncoding Encoding { get; }
 
-		/// <summary>Resolves the subspace for this location</summary>
+		/// <summary>Resolves the subspace for this location, if it exists</summary>
 		/// <param name="tr">Transaction used for this operation.</param>
 		/// <param name="directory">Optional <see cref="FdbDirectoryLayer">Directory Layer</see> to use; otherwise, uses the global instance for the transaction's database.</param>
 		/// <returns>Resolved subspace if found; otherwise, <see langword="null"/></returns>
 		/// <remarks>The subspace may be cached, and be obsolete. The cache will add deferred value checks to the transaction, that will cause it to conflict and retry, if the directory has been deleted or has moved.</remarks>
-		ValueTask<IKeySubspace?> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null);
+		ValueTask<IKeySubspace?> TryResolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null);
 
+		/// <summary>Resolves the subspace for this location, or throws if it does not exist.</summary>
+		/// <param name="tr">Transaction used for this operation.</param>
+		/// <param name="directory">Optional <see cref="FdbDirectoryLayer">Directory Layer</see> to use; otherwise, uses the global instance for the transaction's database.</param>
+		/// <returns>Resolved subspace if found</returns>
+		/// <exception cref="InvalidOperationException">If this location does not exist in the database.</exception>
+		/// <remarks>The subspace may be cached, and be obsolete. The cache will add deferred value checks to the transaction, that will cause it to conflict and retry, if the directory has been deleted or has moved.</remarks>
+		ValueTask<IKeySubspace> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null);
 	}
 
 	/// <summary>Represents the path to a typed subspace in the database</summary>
@@ -71,15 +78,29 @@ namespace FoundationDB.Client
 	public interface ISubspaceLocation<TSubspace> : ISubspaceLocation
 		where TSubspace : class, IKeySubspace
 	{
-		/// <summary>Return the actual subspace that corresponds to this location</summary>
+		/// <summary>Returns the actual subspace that corresponds to this location, if it exists.</summary>
 		/// <param name="tr">Current transaction</param>
 		/// <param name="directory"><see cref="FdbDirectoryLayer">DirectoryLayer</see> instance to use for the resolve. If null, uses the default database directory layer.</param>
-		/// <returns>Key subspace using the resolved key prefix of this location in the context of the current transaction, or null if the directory does not exist</returns>
+		/// <returns>Key subspace using the resolved key prefix of this location in the context of the current transaction, or <c>null</c> if the directory does not exist</returns>
 		/// <remarks>
 		/// The instance resolved for this transaction SHOULD NOT be used in the context of a different transaction, because its location in the Directory Layer may have been changed concurrently!
-		/// Re-using cached subspace instances MAY lead to DATA CORRUPTION if not used carefully! The best practice is to re-<see cref="Resolve"/>() the subspace again in each new transaction opened.
+		/// <para>Re-using cached subspace instances <b>MAY</b> lead to <b>DATA CORRUPTION</b> if not used carefully! The best practice is to call <see cref="TryResolve"/>() every time it is needed by a new transaction.</para>
 		/// </remarks>
-		new ValueTask<TSubspace?> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null);
+		/// <seealso cref="Resolve"/>
+		new ValueTask<TSubspace?> TryResolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null);
+
+		/// <summary>Returns the actual subspace that corresponds to this location, or throws if it does not exist.</summary>
+		/// <param name="tr">Current transaction</param>
+		/// <param name="directory"><see cref="FdbDirectoryLayer">DirectoryLayer</see> instance to use for the resolve. If null, uses the default database directory layer.</param>
+		/// <returns>Key subspace using the resolved key prefix of this location in the context of the current transaction</returns>
+		/// <exception cref="InvalidOperationException">If this location does not exist in the database.</exception>
+		/// <remarks>
+		/// <para>The instance resolved for this transaction <b>SHOULD NOT</b> be used in the context of a different transaction, because its location in the Directory Layer may have been changed concurrently!</para>
+		/// <para>Re-using cached subspace instances <b>MAY</b> lead to <b>DATA CORRUPTION</b> if not used carefully! The best practice is to call <see cref="Resolve"/>() every time it is needed by a new transaction.</para>
+		/// </remarks>
+		/// <seealso cref="TryResolve"/>
+		new ValueTask<TSubspace> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null);
+
 	}
 
 	/// <summary>Default implementation of a subspace location</summary>
@@ -121,13 +142,30 @@ namespace FoundationDB.Client
 
 		public bool IsTopLevel => this.Path.Count == 0;
 
-		async ValueTask<IKeySubspace?> ISubspaceLocation.Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory)
+		async ValueTask<IKeySubspace?> ISubspaceLocation.TryResolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory)
+		{
+			return await TryResolve(tr, directory).ConfigureAwait(false);
+		}
+
+		/// <inheritdoc />
+		public abstract ValueTask<TSubspace?> TryResolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null);
+
+		async ValueTask<IKeySubspace> ISubspaceLocation.Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory)
 		{
 			return await Resolve(tr, directory).ConfigureAwait(false);
 		}
 
 		/// <inheritdoc />
-		public abstract ValueTask<TSubspace?> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null);
+		public virtual async ValueTask<TSubspace> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null)
+		{
+			var subspace = await TryResolve(tr, directory).ConfigureAwait(false);
+			if (subspace == null)
+			{
+				throw new InvalidOperationException($"The required location '{this.Path}' does not exist in the database.");
+			}
+			return subspace;
+		}
+
 		/// <inheritdoc />
 		public override bool Equals(object? obj) => obj is ISubspaceLocation path && Equals(path);
 
@@ -164,7 +202,7 @@ namespace FoundationDB.Client
 			|| (other is BinaryKeySubspaceLocation bin && bin.Path == this.Path && bin.Prefix == other.Prefix);
 
 		/// <inheritdoc />
-		public override ValueTask<IBinaryKeySubspace?> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null)
+		public override ValueTask<IBinaryKeySubspace?> TryResolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null)
 		{
 			if (this.IsTopLevel)
 			{ // not contained in a directory subspace
@@ -241,7 +279,7 @@ namespace FoundationDB.Client
 			|| (other is DynamicKeySubspaceLocation dyn && dyn.Encoding == this.Encoding && dyn.Path == this.Path && dyn.Prefix == other.Prefix);
 
 		/// <inheritdoc />
-		public override ValueTask<IDynamicKeySubspace?> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null)
+		public override ValueTask<IDynamicKeySubspace?> TryResolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null)
 		{
 			Contract.NotNull(tr);
 
@@ -261,21 +299,22 @@ namespace FoundationDB.Client
 			return this.Prefix.Count == 0 ? folder : new DynamicKeySubspace(folder.GetPrefix() + this.Prefix, folder.KeyEncoder, folder.Context);
 		}
 
-		public DynamicKeySubspaceLocation this[Slice prefix] => prefix.Count != 0 ? new DynamicKeySubspaceLocation(this.Path, this.Prefix + prefix, this.Encoder) : this;
+		public DynamicKeySubspaceLocation this[Slice prefix] => prefix.Count != 0 ? new(this.Path, this.Prefix + prefix, this.Encoder) : this;
 
 		public DynamicKeySubspaceLocation this[byte[] prefix] => this[prefix.AsSlice()];
 
-		public DynamicKeySubspaceLocation this[ReadOnlySpan<byte> prefix] => prefix.Length != 0 ? new DynamicKeySubspaceLocation(this.Path, this.Prefix.Concat(prefix), this.Encoder) : this;
+		public DynamicKeySubspaceLocation this[ReadOnlySpan<byte> prefix] => prefix.Length != 0 ? new(this.Path, this.Prefix.Concat(prefix), this.Encoder) : this;
 
-		public DynamicKeySubspaceLocation this[IVarTuple tuple] => new DynamicKeySubspaceLocation(this.Path, this.Encoding.GetDynamicKeyEncoder().Pack(this.Prefix, tuple), this.Encoder);
+		public DynamicKeySubspaceLocation this[IVarTuple tuple] => new(this.Path, this.Encoding.GetDynamicKeyEncoder().Pack(this.Prefix, tuple), this.Encoder);
 
-		public DynamicKeySubspaceLocation ByKey<T1>(T1 item1) => new DynamicKeySubspaceLocation(this.Path, this.Encoding.GetDynamicKeyEncoder().Pack(this.Prefix, STuple.Create(item1)), this.Encoder);
+		public DynamicKeySubspaceLocation ByKey<T1>(T1 item1) => new(this.Path, this.Encoding.GetDynamicKeyEncoder().Pack(this.Prefix, STuple.Create(item1)), this.Encoder);
 
-		public DynamicKeySubspaceLocation ByKey<T1, T2>(T1 item1, T2 item2) => new DynamicKeySubspaceLocation(this.Path, this.Encoding.GetDynamicKeyEncoder().Pack(this.Prefix, STuple.Create(item1, item2)), this.Encoder);
+		public DynamicKeySubspaceLocation ByKey<T1, T2>(T1 item1, T2 item2) => new(this.Path, this.Encoding.GetDynamicKeyEncoder().Pack(this.Prefix, STuple.Create(item1, item2)), this.Encoder);
 
-		public DynamicKeySubspaceLocation ByKey<T1, T2, T3>(T1 item1, T2 item2, T3 item3) => new DynamicKeySubspaceLocation(this.Path, this.Encoding.GetDynamicKeyEncoder().Pack(this.Prefix, STuple.Create(item1, item2, item3)), this.Encoder);
+		public DynamicKeySubspaceLocation ByKey<T1, T2, T3>(T1 item1, T2 item2, T3 item3) => new(this.Path, this.Encoding.GetDynamicKeyEncoder().Pack(this.Prefix, STuple.Create(item1, item2, item3)), this.Encoder);
 
-		//TODO: more?
+		public DynamicKeySubspaceLocation ByKey<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4) => new(this.Path, this.Encoding.GetDynamicKeyEncoder().Pack(this.Prefix, STuple.Create(item1, item2, item3, item4)), this.Encoder);
+
 	}
 
 	/// <summary>Path to a subspace that can represent keys of a specific type</summary>
@@ -314,7 +353,7 @@ namespace FoundationDB.Client
 			|| (other is TypedKeySubspaceLocation<T1> typed && typed.Encoding == this.Encoding && typed.Path == this.Path && typed.Prefix == other.Prefix);
 		
 		/// <inheritdoc/>
-		public override ValueTask<ITypedKeySubspace<T1>?> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null)
+		public override ValueTask<ITypedKeySubspace<T1>?> TryResolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null)
 		{
 			Contract.NotNull(tr);
 
@@ -370,7 +409,7 @@ namespace FoundationDB.Client
 			|| (other is TypedKeySubspaceLocation<T1, T2> typed && typed.Encoding == this.Encoding && typed.Path == this.Path && typed.Prefix == other.Prefix);
 
 		/// <inheritdoc/>
-		public override ValueTask<ITypedKeySubspace<T1, T2>?> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null)
+		public override ValueTask<ITypedKeySubspace<T1, T2>?> TryResolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null)
 		{
 			Contract.NotNull(tr);
 
@@ -392,7 +431,7 @@ namespace FoundationDB.Client
 			return new TypedKeySubspace<T1, T2>(folder.GetPrefix() + this.Prefix, this.Encoder, folder.Context);
 		}
 
-		public TypedKeySubspaceLocation<T2> this[T1 item1] => new TypedKeySubspaceLocation<T2>(this.Path, this.Encoder.EncodePartialKey(this.Prefix, item1), this.Encoding.GetKeyEncoder<T2>());
+		public TypedKeySubspaceLocation<T2> this[T1 item1] => new(this.Path, this.Encoder.EncodePartialKey(this.Prefix, item1), this.Encoding.GetKeyEncoder<T2>());
 
 	}
 
@@ -430,7 +469,7 @@ namespace FoundationDB.Client
 			|| (other is TypedKeySubspaceLocation<T1, T2, T3> typed && typed.Encoding == this.Encoding && typed.Path == this.Path && typed.Prefix == other.Prefix);
 
 		/// <inheritdoc/>
-		public override ValueTask<ITypedKeySubspace<T1, T2, T3>?> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null)
+		public override ValueTask<ITypedKeySubspace<T1, T2, T3>?> TryResolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null)
 		{
 			if (this.IsTopLevel)
 			{ // not contained in a directory subspace
@@ -491,7 +530,7 @@ namespace FoundationDB.Client
 			|| (other is TypedKeySubspaceLocation<T1, T2, T3, T4> typed && typed.Encoding == this.Encoding && typed.Path == this.Path && typed.Prefix == other.Prefix);
 
 		/// <inheritdoc/>
-		public override ValueTask<ITypedKeySubspace<T1, T2, T3, T4>?> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null)
+		public override ValueTask<ITypedKeySubspace<T1, T2, T3, T4>?> TryResolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null)
 		{
 			if (this.IsTopLevel)
 			{ // not contained in a directory subspace
@@ -704,10 +743,10 @@ namespace FoundationDB.Client
 	{
 
 		/// <summary>Represent the root directory of the Directory Layer</summary>
-		public static readonly DynamicKeySubspaceLocation Root = new DynamicKeySubspaceLocation(FdbPath.Root, Slice.Empty, TuPack.Encoding.GetDynamicKeyEncoder());
+		public static readonly DynamicKeySubspaceLocation Root = new(FdbPath.Root, Slice.Empty, TuPack.Encoding.GetDynamicKeyEncoder());
 
 		/// <summary>Represent a location without any prefix, and outside the jurisdiction of the Directory Layer</summary>
-		public static readonly DynamicKeySubspaceLocation Empty = new DynamicKeySubspaceLocation(Slice.Empty, TuPack.Encoding.GetDynamicKeyEncoder());
+		public static readonly DynamicKeySubspaceLocation Empty = new(Slice.Empty, TuPack.Encoding.GetDynamicKeyEncoder());
 
 		#region FromPath...
 

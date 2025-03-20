@@ -135,7 +135,7 @@ namespace FoundationDB.Client
 				if (this.Directory.TryGetPath(out FdbPath path))
 				{ // this is a fixed path, ex: "/foo/bar/baz", we can open it directly
 
-					subspace = await root[path].Resolve(tr).ConfigureAwait(false);
+					subspace = await root[path].TryResolve(tr).ConfigureAwait(false);
 					if (subspace != null)
 					{
 						await channel.WriteAsync(subspace).ConfigureAwait(false);

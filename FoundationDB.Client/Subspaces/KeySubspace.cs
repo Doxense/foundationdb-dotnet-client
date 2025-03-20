@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -31,7 +31,7 @@ namespace FoundationDB.Client
 	using Doxense.Collections.Tuples;
 	using Doxense.Serialization.Encoders;
 
-	/// <summary>Adds a prefix on every keys, to group them inside a common subspace</summary>
+	/// <summary>Adds a prefix on every key, to group them inside a common subspace</summary>
 	[PublicAPI]
 	[DebuggerDisplay("{ToString(),nq}")]
 	public class KeySubspace : IKeySubspace, IEquatable<IKeySubspace>, IComparable<IKeySubspace>
@@ -231,7 +231,7 @@ namespace FoundationDB.Client
 		/// <summary>Remove the subspace prefix from a binary key, and only return the tail, or <see cref="Slice.Nil"/> if the key does not fit inside the namespace</summary>
 		/// <param name="absoluteKey">Complete key that contains the current subspace prefix, and a binary suffix</param>
 		/// <param name="boundCheck">If true, verify that <paramref name="absoluteKey"/> is inside the bounds of the subspace</param>
-		/// <returns>Binary suffix of the key (or <see cref="Slice.Empty"/> is the key is exactly equal to the subspace prefix). If the key is outside of the subspace, returns <see cref="Slice.Nil"/></returns>
+		/// <returns>Binary suffix of the key (or <see cref="Slice.Empty"/> is the key is exactly equal to the subspace prefix). If the key is outside the subspace, returns <see cref="Slice.Nil"/></returns>
 		/// <remarks>This is the inverse operation of <see cref="P:FoundationDB.Client.IKeySubspace.Item(Slice)"/></remarks>
 		/// <exception cref="System.ArgumentException">If <paramref name="boundCheck"/> is true and <paramref name="absoluteKey"/> is outside the current subspace.</exception>
 		public virtual Slice ExtractKey(Slice absoluteKey, bool boundCheck = false)
@@ -250,7 +250,7 @@ namespace FoundationDB.Client
 		/// <summary>Remove the subspace prefix from a binary key, and only return the tail, or <see cref="Slice.Nil"/> if the key does not fit inside the namespace</summary>
 		/// <param name="absoluteKey">Complete key that contains the current subspace prefix, and a binary suffix</param>
 		/// <param name="boundCheck">If true, verify that <paramref name="absoluteKey"/> is inside the bounds of the subspace</param>
-		/// <returns>Binary suffix of the key (or <see cref="Slice.Empty"/> is the key is exactly equal to the subspace prefix). If the key is outside of the subspace, returns <see cref="Slice.Nil"/></returns>
+		/// <returns>Binary suffix of the key (or <see cref="Slice.Empty"/> is the key is exactly equal to the subspace prefix). If the key is outside the subspace, returns <see cref="Slice.Nil"/></returns>
 		/// <remarks>This is the inverse operation of <see cref="P:FoundationDB.Client.IKeySubspace.Item(Slice)"/></remarks>
 		/// <exception cref="System.ArgumentException">If <paramref name="boundCheck"/> is true and <paramref name="absoluteKey"/> is outside the current subspace.</exception>
 		public virtual ReadOnlySpan<byte> ExtractKey(ReadOnlySpan<byte> absoluteKey, bool boundCheck = false)

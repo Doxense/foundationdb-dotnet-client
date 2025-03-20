@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -24,10 +24,10 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-#nullable disable
-// ReSharper disable AssignNullToNotNullAttribute
+// ReSharper disable ConvertToUsingDeclaration
+// ReSharper disable StringLiteralTypo
 
- namespace FoundationDB.Client.Tests
+namespace FoundationDB.Client.Tests
 {
 
 	[TestFixture][Ignore("These tests are not meant to be run as part of a CI build")]
@@ -84,7 +84,7 @@
 					tr.ClearRange(subspace.Encode("AAA"), Text("BBB"));
 					tr.ClearRange(subspace.Encode("BBB"), Text("CCC"));
 					tr.ClearRange(subspace.Encode("CCC"), Text("DDD"));
-					// should be merged into a single AAA..DDD
+					// should be merged into a single AAA...DDD
 					await tr.CommitAsync();
 				}
 			}
@@ -237,7 +237,7 @@
 					var vA = Slice.FromFixedU32BE(0xAAAAAAAA); // 10101010
 					var vC = Slice.FromFixedU32BE(0xCCCCCCCC); // 11001100
 
-					var cmds = new[]
+					var commands = new[]
 					{
 						new { Op = "SET", Left = vX, Right = vY },
 						new { Op = "ADD", Left = vX, Right = vY },
@@ -279,14 +279,14 @@
 						}
 					}
 
-					for (int i = 0; i < cmds.Length; i++)
+					for (int i = 0; i < commands.Length; i++)
 					{
-						for (int j = 0; j < cmds.Length; j++)
+						for (int j = 0; j < commands.Length; j++)
 						{
-							var key = subspace.Encode(cmds[i].Op + "_" + cmds[j].Op);
+							var key = subspace.Encode(commands[i].Op + "_" + commands[j].Op);
 							Log($"{i};{j} = {key}");
-							Apply(tr, cmds[i].Op, key, cmds[i].Left);
-							Apply(tr, cmds[j].Op, key, cmds[j].Right);
+							Apply(tr, commands[i].Op, key, commands[i].Left);
+							Apply(tr, commands[j].Op, key, commands[j].Right);
 						}
 					}
 
@@ -622,13 +622,6 @@
 			{
 				db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
 
-				//using (var tr = db.BeginTransaction(this.Cancellation))
-				//{
-				//	tr.ClearRange(subspace.Encode("K"), subspace.Encode("KZZZZZZZZZ"));
-				//	await tr.CommitAsync();
-				//}
-				//return;
-
 				// set the key
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
@@ -740,24 +733,16 @@
 				{
 					for (int i = 0; i < 20; i++)
 					{
-						//tr.Timeout = 500;
-						//try
-						//{
-						//	await tr.GetAsync(Slice.FromAscii("SomeRandomKey"));
-						//	Assert.Fail("The database must be offline !");
-						//}
-						//catch(FdbException e)
-						{
-							var code = i > 1 && i < 10 ? FdbError.TransactionTooOld : FdbError.CommitUnknownResult;
-							var sw = Stopwatch.StartNew();
-							await tr.OnErrorAsync(code).ConfigureAwait(false);
-							sw.Stop();
-							Log($"{sw.Elapsed.TotalMilliseconds:N3}");
-						}
+						var code = i is > 1 and < 10 ? FdbError.TransactionTooOld : FdbError.CommitUnknownResult;
+						var sw = Stopwatch.StartNew();
+						await tr.OnErrorAsync(code).ConfigureAwait(false);
+						sw.Stop();
+						Log($"{sw.Elapsed.TotalMilliseconds:N3}");
 					}
 				}
 			}
 		}
 
 	}
+
 }

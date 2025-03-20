@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -33,7 +33,7 @@ namespace FoundationDB.Client
 	/// A "vanilla" data subspace does not imply any encoding scheme by default, but can be wrapped into a more complex subspace which includes Key Codec.
 	/// </remarks>
 	/// 
-	/// <example>In pseudo code, and given a 'MySubspaceImpl' that implement <see cref="IKeySubspace"/>:
+	/// <example>In pseudocode, and given a 'MySubspaceImpl' that implement <see cref="IKeySubspace"/>:
 	/// <code>
 	/// subspace = new MySubspaceImpl({ABC})
 	/// subspace.ConcatKey({123}) => {ABC123}

@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -29,7 +29,7 @@ namespace FoundationDB.Layers.Blobs
 	using System.Globalization;
 
 	/// <summary>Represents a potentially large binary value in FoundationDB.</summary>
-	[DebuggerDisplay("Subspace={" + nameof(FdbBlob.Location) + "}")]
+	[DebuggerDisplay("Location={Location}")]
 	[PublicAPI]
 	public class FdbBlob : IFdbLayer<FdbBlob.State>
 	{
@@ -76,11 +76,11 @@ namespace FoundationDB.Layers.Blobs
 
 		public async ValueTask<State> Resolve(IFdbReadOnlyTransaction tr)
 		{
-			var subspace = await this.Location.Resolve(tr);
-			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location} referenced by Blob Layer was not found.");
-			return new State(subspace);
+			return new State(await this.Location.Resolve(tr).ConfigureAwait(false));
 		}
 
+		[PublicAPI]
+		[DebuggerDisplay("Subspace={Subspace}")]
 		public sealed class State
 		{
 
@@ -96,7 +96,7 @@ namespace FoundationDB.Layers.Blobs
 			/// <returns>123 => (subspace, 'D', "             123")</returns>
 			private Slice DataKey(long offset)
 			{
-				//note: python code uses "%16d" % offset, which pads the value with spaces.. Not sure why ?
+				//note: python code uses "%16d" % offset, which pads the value with spaces... Not sure why ?
 				return this.Subspace.Encode(DataSuffix, offset.ToString("D16", CultureInfo.InvariantCulture));
 			}
 
@@ -210,9 +210,7 @@ namespace FoundationDB.Layers.Blobs
 
 			#endregion
 
-			/// <summary>
-			/// Delete all key-value pairs associated with the blob.
-			/// </summary>
+			/// <summary>Deletes all key-value pairs associated with the blob.</summary>
 			public void Delete(IFdbTransaction trans)
 			{
 				Contract.NotNull(trans);
@@ -220,10 +218,8 @@ namespace FoundationDB.Layers.Blobs
 				trans.ClearRange(this.Subspace.ToRange());
 			}
 
-			/// <summary>
-			/// Get the size (in bytes) of the blob.
-			/// </summary>
-			/// <returns>Return null if the blob does not exists, 0 if is empty, or the size in bytes</returns>
+			/// <summary>Gets the size (in bytes) of the blob.</summary>
+			/// <returns>Return null if the blob does not exist, 0 if is empty, or the size in bytes</returns>
 			public Task<long?> GetSizeAsync(IFdbReadOnlyTransaction trans)
 			{
 				Contract.NotNull(trans);
@@ -236,7 +232,7 @@ namespace FoundationDB.Layers.Blobs
 
 				Slice value = await trans.GetAsync(SizeKey()).ConfigureAwait(false);
 
-				if (value.IsNullOrEmpty) return default(long?);
+				if (value.IsNullOrEmpty) return null;
 
 				//note: python code stores the size as a string
 				long size = long.Parse(value.ToString());
@@ -244,9 +240,7 @@ namespace FoundationDB.Layers.Blobs
 				return size;
 			}
 
-			/// <summary>
-			/// Read from the blob, starting at <paramref name="offset"/>, retrieving up to <paramref name="n"/> bytes (fewer then n bytes are returned when the end of the blob is reached).
-			/// </summary>
+			/// <summary>Reads from the blob, starting at <paramref name="offset"/>, retrieving up to <paramref name="n"/> bytes (fewer than n bytes are returned when the end of the blob is reached).</summary>
 			public async Task<Slice> ReadAsync(IFdbReadOnlyTransaction trans, long offset, int n)
 			{
 				Contract.NotNull(trans);
@@ -297,7 +291,7 @@ namespace FoundationDB.Layers.Blobs
 				return buffer.AsSlice(0, buffer.Length);
 			}
 
-			/// <summary>Write <paramref name="data"/> to the blob, starting at <paramref name="offset"/> and overwriting any existing data at that location. The length of the blob is increased if necessary.</summary>
+			/// <summary>Writes <paramref name="data"/> to the blob, starting at <paramref name="offset"/> and overwriting any existing data at that location. The length of the blob is increased if necessary.</summary>
 			public async Task WriteAsync(IFdbTransaction trans, long offset, ReadOnlyMemory<byte> data)
 			{
 				Contract.NotNull(trans);
@@ -321,15 +315,13 @@ namespace FoundationDB.Layers.Blobs
 				}
 			}
 
-			/// <summary>Write <paramref name="data"/> to the blob, starting at <paramref name="offset"/> and overwriting any existing data at that location. The length of the blob is increased if necessary.</summary>
+			/// <summary>Writes <paramref name="data"/> to the blob, starting at <paramref name="offset"/> and overwriting any existing data at that location. The length of the blob is increased if necessary.</summary>
 			public Task WriteAsync(IFdbTransaction trans, long offset, Slice data)
 			{
 				return WriteAsync(trans, offset, data.Memory);
 			}
 
-			/// <summary>
-			/// Append the contents of <paramref name="data"/> onto the end of the blob.
-			/// </summary>
+			/// <summary>Appends the contents of <paramref name="data"/> onto the end of the blob.</summary>
 			public async Task AppendAsync(IFdbTransaction trans, ReadOnlyMemory<byte> data)
 			{
 				Contract.NotNull(trans);
@@ -342,17 +334,13 @@ namespace FoundationDB.Layers.Blobs
 				SetSize(trans, oldLength + data.Length);
 			}
 
-			/// <summary>
-			/// Append the contents of <paramref name="data"/> onto the end of the blob.
-			/// </summary>
+			/// <summary>Appends the contents of <paramref name="data"/> onto the end of the blob.</summary>
 			public Task AppendAsync(IFdbTransaction trans, Slice data)
 			{
 				return AppendAsync(trans, data.Memory);
 			}
 
-			/// <summary>
-			/// Change the blob length to <paramref name="newLength"/>, erasing any data when shrinking, and filling new bytes with 0 when growing.
-			/// </summary>
+			/// <summary>Changes the blob length to <paramref name="newLength"/>, erasing any data when shrinking, and filling new bytes with 0 when growing.</summary>
 			public async Task TruncateAsync(IFdbTransaction trans, long newLength)
 			{
 				Contract.NotNull(trans);

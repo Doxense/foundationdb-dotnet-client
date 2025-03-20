@@ -36,8 +36,9 @@ namespace FoundationDB.Layers.Collections
 	[PublicAPI]
 	public class FdbRankedSet : IFdbLayer<FdbRankedSet.State>
 	{
-		// based on the lost implementation that used to be at https://github.com/FoundationDB/python-layers/blob/master/lib/rankedset.py
-		// => this version as been "lost to time", and only this c# port remains (archive.org does not have a copy)
+		// Based on the lost implementation that used to be at https://github.com/FoundationDB/python-layers/blob/master/lib/rankedset.py
+		// => this version has been "lost to time", and only this c# port remains (archive.org does not have a copy)
+		// There is also a newer implementation in Java that can be seen at https://github.com/FoundationDB/fdb-record-layer/blob/main/fdb-extensions/src/main/java/com/apple/foundationdb/async/RankedSet.java
 
 		private const int MAX_LEVELS = 6;
 		private const int LEVEL_FAN_POW = 4; // 2^X per level
@@ -307,8 +308,6 @@ namespace FoundationDB.Layers.Collections
 		public async ValueTask<State> Resolve(IFdbReadOnlyTransaction tr)
 		{
 			var subspace = await this.Location.Resolve(tr);
-			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location} referenced by Ranked Set Layer was not found.");
-
 			return new State(subspace);
 		}
 

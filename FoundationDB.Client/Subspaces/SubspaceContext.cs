@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -39,7 +39,7 @@ namespace FoundationDB.Client
 	}
 
 	/// <summary>Context for key subspaces that are always valid</summary>
-	public class SubspaceContext : ISubspaceContext
+	public sealed class SubspaceContext : ISubspaceContext
 	{
 		private SubspaceContext() { }
 
@@ -52,6 +52,7 @@ namespace FoundationDB.Client
 		}
 
 		public string Name => string.Empty;
+
 	}
 
 }

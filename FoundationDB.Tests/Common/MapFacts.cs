@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -105,7 +105,6 @@ namespace FoundationDB.Layers.Collections.Tests
 
 					// also check directly
 					var folder = await location.Resolve(tr);
-					Assert.That(folder, Is.Not.Null);
 					var data = await tr.GetAsync(folder!.Encode("Foos", "hello"));
 					Assert.That(data, Is.EqualTo(Slice.Nil));
 				}, this.Cancellation);

@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -94,7 +94,7 @@ namespace FoundationDB.Client.Tests
 			// create the structure of directories
 			await db.WriteAsync(async tr =>
 			{
-				var parent = (await location.Resolve(tr, createIfMissing: true))!;
+				var parent = await location.ResolveOrCreate(tr);
 
 				foreach (var path in (string[])
 				[
@@ -135,7 +135,7 @@ namespace FoundationDB.Client.Tests
 				
 				await db.WriteAsync(async tr =>
 				{
-					var subspace = (await db.Root[FdbPath.Parse($"users/{user}/documents/music")].Resolve(tr).ConfigureAwait(false))!;
+					var subspace = await db.Root[FdbPath.Parse($"users/{user}/documents/music")].Resolve(tr).ConfigureAwait(false);
 					
 					tr.SetValueString(subspace.Encode("name"), "Albums");
 					tr.SetValueInt32(subspace.Encode("count"), count);

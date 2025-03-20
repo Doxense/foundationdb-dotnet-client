@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -61,7 +61,7 @@ namespace FoundationDB.Layers.Interning
 
 			public bool Equals(Uid? other)
 			{
-				return !object.ReferenceEquals(other, null) && other.HashCode == this.HashCode && other.Slice.Equals(this.Slice);
+				return !ReferenceEquals(other, null) && other.HashCode == this.HashCode && other.Slice.Equals(this.Slice);
 			}
 
 			public override bool Equals(object? obj)
@@ -96,7 +96,6 @@ namespace FoundationDB.Layers.Interning
 		public async ValueTask<State> Resolve(IFdbReadOnlyTransaction tr)
 		{
 			var subspace = await this.Location.Resolve(tr);
-			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location} referenced by String Interning Layer was not found.");
 			return new State(this, subspace);
 		}
 

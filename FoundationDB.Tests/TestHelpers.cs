@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -130,7 +130,7 @@ namespace FoundationDB.Client.Tests
 			{
 				tr.StopLogging();
 
-				var subspace = await path.Resolve(tr);
+				var subspace = await path.TryResolve(tr);
 				if (subspace == null)
 				{
 					SimpleTest.Log($"Dumping content of subspace {path}:");
@@ -178,7 +178,7 @@ namespace FoundationDB.Client.Tests
 			{
 				var indent = new string('\t', depth);
 
-				var subspace = await path.Resolve(tr);
+				var subspace = await path.TryResolve(tr);
 				if (subspace == null)
 				{
 					SimpleTest.Log($"# {indent}- {path} => NOT FOUND");

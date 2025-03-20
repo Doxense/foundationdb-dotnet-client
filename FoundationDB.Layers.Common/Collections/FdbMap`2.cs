@@ -263,7 +263,6 @@ namespace FoundationDB.Layers.Collections
 		public async ValueTask<State> Resolve(IFdbReadOnlyTransaction tr)
 		{
 			var subspace = await this.Location.Resolve(tr);
-			if (subspace is null) throw new InvalidOperationException($"Location '{this.Location} referenced by Map Layer was not found.");
 
 			//TODO: store in transaction context?
 			return new State(subspace, this.ValueEncoder);

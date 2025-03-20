@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -89,7 +89,6 @@ namespace FoundationDB.Layers.Documents
 			var packed = this.ValueEncoder.EncodeValue(document);
 
 			var subspace = await this.Location.Resolve(trans);
-			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location}' referenced by Document Collection Layer was not found.");
 
 			// Key Prefix = ...(id,)
 			var key = subspace.EncodePartial(id);
@@ -128,7 +127,6 @@ namespace FoundationDB.Layers.Documents
 			Contract.NotNull(id);
 
 			var subspace = await this.Location.Resolve(trans);
-			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location}' referenced by Document Collection Layer was not found.");
 
 			var parts = await LoadPartsAsync(subspace, trans, id).ConfigureAwait(false);
 
@@ -142,7 +140,6 @@ namespace FoundationDB.Layers.Documents
 			Contract.NotNull(ids);
 
 			var subspace = await this.Location.Resolve(trans);
-			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location}' referenced by Document Collection Layer was not found.");
 
 			var results = await Task.WhenAll(ids.Select(id => LoadPartsAsync(subspace, trans, id)));
 
@@ -156,7 +153,6 @@ namespace FoundationDB.Layers.Documents
 			Contract.NotNull(id);
 
 			var subspace = await this.Location.Resolve(trans);
-			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location}' referenced by Document Collection Layer was not found.");
 
 			var key = subspace.EncodePartial(id);
 			trans.ClearRange(KeyRange.StartsWith(key));
@@ -170,7 +166,6 @@ namespace FoundationDB.Layers.Documents
 			Contract.NotNull(ids);
 
 			var subspace = await this.Location.Resolve(trans);
-			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location}' referenced by Document Collection Layer was not found.");
 
 			foreach (var id in ids)
 			{

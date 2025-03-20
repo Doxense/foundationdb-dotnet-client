@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -52,7 +52,7 @@ namespace FoundationDB.Layers.Allocators
 
 		public async ValueTask<State> Resolve(IFdbReadOnlyTransaction tr)
 		{
-			var subspace = await this.Location.Resolve(tr).ConfigureAwait(false);
+			var subspace = await this.Location.TryResolve(tr).ConfigureAwait(false);
 			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location}' referenced by this high contention allocator was not found.");
 			return new State(subspace, m_rnd);
 		}

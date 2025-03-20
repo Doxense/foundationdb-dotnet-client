@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -79,13 +79,12 @@ namespace FoundationDB.Layers.Counters
 			}
 		}
 
-		private Task Coalesce(IFdbDatabase db, int N, CancellationToken ct)
+		private Task Coalesce(IFdbDatabase db, int limit, CancellationToken ct)
 		{
 			return db.WriteAsync(async tr =>
 			{
 				long total = 0;
 				var subspace = await this.Location.Resolve(tr);
-				if (subspace == null) throw new InvalidOperationException($"Location '{this.Location} referenced by High Contention Counter Layer was not found.");
 
 				// read N writes from a random place in ID space
 				var loc = subspace.Encode(RandomId());
@@ -93,8 +92,8 @@ namespace FoundationDB.Layers.Counters
 				bool right;
 				lock (this.Rng) { right = this.Rng.NextDouble() < 0.5; }
 				var query = right
-					? tr.Snapshot.GetRange(loc, subspace.ToRange().End, new FdbRangeOptions { Limit = N })
-					: tr.Snapshot.GetRange(subspace.ToRange().Begin, loc, new FdbRangeOptions { Limit = N , IsReversed = true });
+					? tr.Snapshot.GetRange(loc, subspace.ToRange().End, new() { Limit = limit })
+					: tr.Snapshot.GetRange(subspace.ToRange().Begin, loc, new() { Limit = limit , IsReversed = true });
 				var shards = await query.ToListAsync().ConfigureAwait(false);
 
 				if (shards.Count > 0)
@@ -174,7 +173,7 @@ namespace FoundationDB.Layers.Counters
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
-			var subspace = await this.Location.Resolve(trans);
+			var subspace = await this.Location.TryResolve(trans);
 			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location} referenced by High Contention Counter Layer was not found.");
 
 			trans.Set(subspace.Encode(RandomId()), this.Encoder.EncodeValue(x));

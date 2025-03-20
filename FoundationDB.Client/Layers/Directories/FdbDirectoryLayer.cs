@@ -190,9 +190,7 @@ namespace FoundationDB.Client
 			return (await metadata.CreateOrOpenInternalAsync(null, trans, location, prefix: Slice.Nil, allowCreate: true, allowOpen: false, throwOnError: true).ConfigureAwait(false))!;
 		}
 
-		/// <summary>Attempts to open the directory with the given <paramref name="path"/>.</summary>
-		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="path">Path of the directory to open.</param>
+		/// <inheritdoc />
 		public async Task<FdbDirectorySubspace?> TryOpenAsync(IFdbReadOnlyTransaction trans, FdbPath path)
 		{
 			Contract.NotNull(trans);
@@ -203,6 +201,7 @@ namespace FoundationDB.Client
 			return (await metadata.CreateOrOpenInternalAsync(trans, null, location, prefix: Slice.Nil, allowCreate: false, allowOpen: true, throwOnError: false).ConfigureAwait(false))!;
 		}
 
+		/// <inheritdoc />
 		public async ValueTask<FdbDirectorySubspace?> TryOpenCachedAsync(IFdbReadOnlyTransaction trans, FdbPath path)
 		{
 			Contract.NotNull(trans);
@@ -211,6 +210,7 @@ namespace FoundationDB.Client
 			return await metadata.OpenCachedInternalAsync(trans, path, throwOnError: false).ConfigureAwait(false);
 		}
 
+		/// <inheritdoc />
 		public async ValueTask<FdbDirectorySubspace?[]> TryOpenCachedAsync(IFdbReadOnlyTransaction trans, IEnumerable<FdbPath> paths)
 		{
 			Contract.NotNull(trans);
@@ -480,7 +480,7 @@ namespace FoundationDB.Client
 
 		private async ValueTask<State> ResolveMetadata(IFdbReadOnlyTransaction tr)
 		{
-			var content = await this.Content.Resolve(tr).ConfigureAwait(false);
+			var content = await this.Content.TryResolve(tr).ConfigureAwait(false);
 			if (content == null) throw new InvalidOperationException("Directory Layer content subspace was not found");
 
 			var partition = new PartitionDescriptor(this.Path, content, null);

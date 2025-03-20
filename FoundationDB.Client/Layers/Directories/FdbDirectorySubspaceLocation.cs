@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -51,7 +51,7 @@ namespace FoundationDB.Client
 
 		FdbDirectorySubspaceLocation IFdbDirectory.Location => this;
 
-		/// <summary>Create a new location that points to the Directory Subspace at the given path.</summary>
+		/// <summary>Creates a new location that points to the Directory Subspace at the given path.</summary>
 		/// <param name="path">Absolute path of the target Directory Subspace</param>
 		public FdbDirectorySubspaceLocation(FdbPath path)
 		{
@@ -61,89 +61,101 @@ namespace FoundationDB.Client
 		}
 
 		/// <inheritdoc />
-		async ValueTask<IKeySubspace?> ISubspaceLocation.Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory)
+		async ValueTask<IKeySubspace?> ISubspaceLocation.TryResolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory)
 		{
-			return await Resolve(tr, directory).ConfigureAwait(false);
+			return await TryResolve(tr, directory).ConfigureAwait(false);
 		}
 
-		public ValueTask<FdbDirectorySubspace?> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null)
+		/// <inheritdoc />
+		public ValueTask<FdbDirectorySubspace?> TryResolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null)
 		{
 			Contract.NotNull(tr);
 			directory ??= tr.Context.Database.DirectoryLayer;
 			return directory.TryOpenCachedAsync(tr, this.Path);
 		}
 
-		public ValueTask<FdbDirectorySubspace?> Resolve(IFdbTransaction tr, bool createIfMissing, FdbDirectoryLayer? directory = null)
+		/// <inheritdoc />
+		async ValueTask<IKeySubspace> ISubspaceLocation.Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory)
+		{
+			return await Resolve(tr, directory).ConfigureAwait(false);
+		}
+
+		/// <inheritdoc />
+		public async ValueTask<FdbDirectorySubspace> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null)
 		{
 			Contract.NotNull(tr);
-
-			if (!createIfMissing) return Resolve(tr, directory);
-
-			return ResolveOrCreate(tr, directory, this.Path);
-
-			static async ValueTask<FdbDirectorySubspace?> ResolveOrCreate(IFdbTransaction tr, FdbDirectoryLayer? directory, FdbPath path)
+			directory ??= tr.Context.Database.DirectoryLayer;
+			var subspace = await directory.TryOpenCachedAsync(tr, this.Path).ConfigureAwait(false);
+			if (subspace == null)
 			{
-				directory ??= tr.Context.Database.DirectoryLayer;
-				var subspace = await directory.TryOpenCachedAsync(tr, path).ConfigureAwait(false);
-				if (subspace != null) return subspace;
-				subspace = await directory.CreateAsync(tr, path).ConfigureAwait(false);
-				//TODO: how to handle the cache?
-				return subspace;
+				throw new InvalidOperationException($"The required directory '{this.Path}' does not exist in the database.");
 			}
+			return subspace;
 		}
 
-		public override string ToString()
+		/// <summary>Returns the actual subspace that corresponds to this location, or create it if it does not exist.</summary>
+		/// <remarks>
+		/// <para>This should only be called by infrastructure code that needs to initialize the database or perform maintenance operation.</para>
+		/// <para>Regular business logic should mostly call <see cref="TryResolve"/> or <see cref="Resolve"/> and not attempt to initialize the database by themselves!</para>
+		/// </remarks>
+		public async ValueTask<FdbDirectorySubspace> ResolveOrCreate(IFdbTransaction tr, FdbDirectoryLayer? directory = null)
 		{
-			return this.Path.ToString();
+			Contract.NotNull(tr);
+			directory ??= tr.Context.Database.DirectoryLayer;
+			var subspace = await directory.TryOpenCachedAsync(tr, this.Path).ConfigureAwait(false);
+
+			if (subspace == null)
+			{
+				subspace = await directory.CreateAsync(tr, this.Path).ConfigureAwait(false);
+				//TODO: how to handle the cache?
+			}
+
+			return subspace;
 		}
 
-		public override int GetHashCode()
-		{
-			return HashCode.Combine(this.Path.GetHashCode(), this.Layer.GetHashCode());
-		}
+		/// <inheritdoc />
+		public override string ToString() => this.Path.ToString();
 
-		public override bool Equals(object? obj)
-		{
-			return obj is FdbDirectorySubspaceLocation loc && Equals(loc);
-		}
+		/// <inheritdoc />
+		public override int GetHashCode() => HashCode.Combine(this.Path.GetHashCode(), this.Layer.GetHashCode());
 
-		public bool Equals(ISubspaceLocation? other)
-		{
-			return other != null && other.Path == this.Path && other.Prefix.Count == 0;
-		}
+		/// <inheritdoc />
+		public override bool Equals(object? obj) => obj is FdbDirectorySubspaceLocation loc && Equals(loc);
+
+		/// <inheritdoc />
+		public bool Equals(ISubspaceLocation? other) => other != null && other.Path == this.Path && other.Prefix.Count == 0;
 
 		internal FdbPath GetSafePath()
-		{
-			if (this.IsPartition && this.Path.Count != 0) throw ThrowHelper.InvalidOperationException($"Cannot create a binary subspace under the root of directory partition '{this.Path}'.");
-			return this.Path;
-		}
+			=> !this.IsPartition || this.Path.Count == 0
+				? this.Path
+				: throw ThrowHelper.InvalidOperationException($"Cannot create a binary subspace under the root of directory partition '{this.Path}'.");
 
-		/// <summary>Append a segment to the current path</summary>
+		/// <summary>Appends a segment to the current path</summary>
 		public FdbDirectorySubspaceLocation this[FdbPathSegment segment] => new(this.Path.Add(segment));
 
-		/// <summary>Append one or more segments to the current path</summary>
-		public FdbDirectorySubspaceLocation this[ReadOnlySpan<FdbPathSegment> segments] => segments.Length != 0 ? new FdbDirectorySubspaceLocation(this.Path.Add(segments)) : this;
+		/// <summary>Appends one or more segments to the current path</summary>
+		public FdbDirectorySubspaceLocation this[ReadOnlySpan<FdbPathSegment> segments] => segments.Length != 0 ? new(this.Path.Add(segments)) : this;
 
-		/// <summary>Append a segment to the current path</summary>
+		/// <summary>Appends a segment to the current path</summary>
 		/// <param name="name">Name of the segment</param>
 		/// <remarks>The new segment will not have a layer id.</remarks>
 		public FdbDirectorySubspaceLocation this[string name] => new(this.Path.Add(FdbPathSegment.Create(name)));
 
-		/// <summary>Append a segment - composed of a name and layer id - to the current path</summary>
+		/// <summary>Appends a segment - composed of a name and layer id - to the current path</summary>
 		/// <param name="name">Name of the segment</param>
 		/// <param name="layerId">Layer Id of the segment</param>
 		public FdbDirectorySubspaceLocation this[string name, string layerId] => new(this.Path.Add(new FdbPathSegment(name, layerId)));
 
-		/// <summary>Append a relative path to the current path</summary>
-		public FdbDirectorySubspaceLocation this[FdbPath relativePath] => !relativePath.IsEmpty ? new FdbDirectorySubspaceLocation(this.Path.Add(relativePath)) : this;
+		/// <summary>Appends a relative path to the current path</summary>
+		public FdbDirectorySubspaceLocation this[FdbPath relativePath] => !relativePath.IsEmpty ? new(this.Path.Add(relativePath)) : this;
 
-		/// <summary>Append an encoded key to the prefix of the current location</summary>
+		/// <summary>Appends an encoded key to the prefix of the current location</summary>
 		/// <typeparam name="T1">Type of the key</typeparam>
 		/// <param name="item1">Key that will be appended to the current location's binary prefix</param>
 		/// <returns>A new subspace location with an additional binary suffix</returns>
 		public DynamicKeySubspaceLocation ByKey<T1>(T1 item1) => new(GetSafePath(), TuPack.EncodeKey(item1), TuPack.Encoding.GetDynamicKeyEncoder());
 
-		/// <summary>Append a pair encoded keys to the prefix of the current location</summary>
+		/// <summary>Appends a pair encoded keys to the prefix of the current location</summary>
 		/// <typeparam name="T1">Type of the first key</typeparam>
 		/// <typeparam name="T2">Type of the second key</typeparam>
 		/// <param name="item1">Key that will be appended first to the current location's binary prefix</param>

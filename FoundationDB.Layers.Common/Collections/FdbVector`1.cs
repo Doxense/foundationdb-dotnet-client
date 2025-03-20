@@ -327,7 +327,6 @@ namespace FoundationDB.Layers.Collections
 		public async ValueTask<State> Resolve(IFdbReadOnlyTransaction tr)
 		{
 			var subspace = await this.Location.Resolve(tr);
-			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location} referenced by Vector Layer was not found.");
 			return new State(subspace, this.DefaultValue, this.Encoder);
 		}
 
