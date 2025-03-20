@@ -26,10 +26,12 @@
 
 namespace Doxense.Collections.Lookup
 {
-	/// <summary>Table de lookup utilisant une HashTable pour le stockage des éléments stockage (clés non ordonnées)</summary>
-	/// <typeparam name="TKey">Type des clés</typeparam>
-	/// <typeparam name="TElement">Type des éléments</typeparam>
-	public class HashLookup<TKey, TElement> : IEnumerable<Grouping<TKey, TElement>> where TKey : notnull
+	/// <summary>Lookup table that groups elements by a common key</summary>
+	/// <typeparam name="TKey">Type of the key used to group elements</typeparam>
+	/// <typeparam name="TElement">Type of the elements</typeparam>
+	[PublicAPI]
+	[DebuggerDisplay("Count={m_items.Count}")]
+	public class HashLookup<TKey, TElement> : IEnumerable<Grouping<TKey, TElement>>, ILookup<TKey, TElement> where TKey : notnull
 	{
 
 		private readonly Dictionary<TKey, Grouping<TKey, TElement>> m_items;
@@ -39,20 +41,20 @@ namespace Doxense.Collections.Lookup
 		{ }
 
 		public HashLookup(IEqualityComparer<TKey> comparer)
-			: this(919, comparer) // 919 (0x397) est le nombre premier le plu proche de 1000, ce qui représente une capacité initiale plus que correcte pour un map reduce
+			: this(919, comparer) // 919 (0x397) is the prime number closest to 1000
 		{ }
 
 		public HashLookup(int capacity, IEqualityComparer<TKey> comparer)
 		{
 			Contract.NotNull(comparer);
-			m_items = new Dictionary<TKey, Grouping<TKey, TElement>>(capacity, comparer);
+			m_items = new(capacity, comparer);
 		}
 
 		public HashLookup(HashLookup<TKey, TElement> elements, IEqualityComparer<TKey> comparer)
 		{
 			Contract.NotNull(elements);
 			Contract.NotNull(comparer);
-			m_items = new Dictionary<TKey, Grouping<TKey, TElement>>(elements.m_items, comparer);
+			m_items = new(elements.m_items, comparer);
 		}
 
 		public HashLookup(ILookup<TKey, TElement> elements, IEqualityComparer<TKey> comparer)
@@ -64,12 +66,12 @@ namespace Doxense.Collections.Lookup
 
 			if (elements is HashLookup<TKey, TElement> hl)
 			{
-				//TODO: vérifier si comparer et hl.m_comparer sont compatibles?
-				items = new Dictionary<TKey, Grouping<TKey, TElement>>(hl.m_items, comparer);
+				//TODO: check if 'comparer' and 'hl.m_comparer' are the same?
+				items = new(hl.m_items, comparer);
 			}
 			else
 			{
-				items = new Dictionary<TKey, Grouping<TKey, TElement>>(elements.Count, comparer);
+				items = new(elements.Count, comparer);
 				foreach(var grp in elements)
 				{
 					items.Add(grp.Key, Grouping.Create(grp));
@@ -91,10 +93,7 @@ namespace Doxense.Collections.Lookup
 		public IEqualityComparer<TKey> Comparer => m_items.Comparer;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Contains(TKey key)
-		{
-			return m_items.ContainsKey(key);
-		}
+		public bool Contains(TKey key) => m_items.ContainsKey(key);
 
 		public IEnumerable<TElement> this[TKey key]
 		{
@@ -102,10 +101,10 @@ namespace Doxense.Collections.Lookup
 			get => m_items[key];
 		}
 
-		/// <summary>Retourne le grouping d'une clé d'une hashlookup, ou une valeur par défaut si elle est manquante</summary>
-		/// <param name="key">Clé à lire</param>
-		/// <param name="missing">Valeur à retourner si la clé est manquante</param>
-		/// <returns>Valeur de la clé dans le dictionnaire, ou valeur par défaut si elle est manquante</returns>
+		/// <summary>Returns the grouping for the given key, or the default value</summary>
+		/// <param name="key">Key of the grouping</param>
+		/// <param name="missing">Value returned if there is no grouping with this key</param>
+		/// <returns>Corresponding grouping, or the default value</returns>
 		[ContractAnnotation("missing:notnull => notnull")]
 		[return: NotNullIfNotNull("missing")]
 		public Grouping<TKey, TElement>? GetValueOrDefault(TKey key, Grouping<TKey, TElement>? missing = null)
@@ -119,24 +118,23 @@ namespace Doxense.Collections.Lookup
 		public Grouping<TKey, TElement>? GetGrouping(TKey key, bool createIfMissing)
 		{
 			if (m_items.TryGetValue(key, out var grouping))
-			{ // il existait déjà
+			{
 				return grouping;
 			}
 
 			if (!createIfMissing)
-			{ // on ne doit pas le créer
+			{
 				return null;
 			}
 
-			// on crée un nouveau grouping (vide, mais avec la place pour un élément)
-			grouping = new Grouping<TKey, TElement>
+			// pre-allocate space for at least one element
+			grouping = new()
 			{
 				m_key = key,
-				m_elements = new TElement[1],
+				m_elements = [ ],
 				m_count = 0,
 			};
 
-			// on ajoute ce grouping au dictionnaire
 			m_items[key] = grouping;
 			return grouping;
 		}
@@ -144,20 +142,19 @@ namespace Doxense.Collections.Lookup
 		public Grouping<TKey, TElement> GetOrCreateGrouping(TKey key, out bool created)
 		{
 			if (m_items.TryGetValue(key, out var grouping))
-			{ // il existait déjà
+			{
 				created = false;
 				return grouping;
 			}
 
-			// on crée un nouveau grouping (vide, mais avec la place pour un élément)
-			grouping = new Grouping<TKey, TElement>
+			// pre-allocate space for at least one element
+			grouping = new()
 			{
 				m_key = key,
-				m_elements = new TElement[1],
+				m_elements = [ ],
 				m_count = 0,
 			};
 
-			// on ajoute ce grouping au dictionnaire
 			m_items[key] = grouping;
 			created = true;
 			return grouping;
@@ -173,22 +170,20 @@ namespace Doxense.Collections.Lookup
 		public Grouping<TKey, TElement> AddOrUpdateGrouping(TKey key, IEnumerable<TElement> elements, out bool created)
 		{
 			if (m_items.TryGetValue(key, out var grouping))
-			{ // il existait déjà
+			{
 				grouping.AddRange(elements);
 				created = false;
 				return grouping;
 			}
 
-			// on crée un nouveau grouping (vide, mais avec la place pour un élément)
 			var t = elements.ToArray();
-			grouping = new Grouping<TKey, TElement>
+			grouping = new()
 			{
 				m_key = key,
 				m_elements = t,
 				m_count = t.Length,
 			};
 
-			// on ajoute ce grouping au dictionnaire
 			m_items[key] = grouping;
 			created = true;
 			return grouping;
@@ -197,20 +192,45 @@ namespace Doxense.Collections.Lookup
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Add(TKey key, TElement element)
 		{
-			GetGrouping(key, true)!.Add(element);
+			GetOrCreateGrouping(key, out _).Add(element);
 		}
 
+		/// <summary>Add multiple elements to the grouping with the specified key</summary>
+		/// <param name="key">Key of the grouping</param>
+		/// <param name="elements">Sequence of elements that will be added to this grouping</param>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void AddRange(TKey key, ReadOnlySpan<TElement> elements)
+		{
+			GetOrCreateGrouping(key, out _).AddRange(elements);
+		}
+
+		/// <summary>Add multiple elements to the grouping with the specified key</summary>
+		/// <param name="key">Key of the grouping</param>
+		/// <param name="elements">Sequence of elements that will be added to this grouping</param>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void AddRange(TKey key, TElement[]? elements)
+		{
+			GetOrCreateGrouping(key, out _).AddRange(elements);
+		}
+
+		/// <summary>Add multiple elements to the grouping with the specified key</summary>
+		/// <param name="key">Key of the grouping</param>
+		/// <param name="elements">Sequence of elements that will be added to this grouping</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void AddRange(TKey key, IEnumerable<TElement> elements)
 		{
-			GetGrouping(key, true)!.AddRange(elements);
+			GetOrCreateGrouping(key, out _).AddRange(elements);
 		}
 
-		public bool Remove(TKey key)
-		{
-			return m_items.Remove(key);
-		}
+		/// <summary>Remove the grouping with the specified key from the lookup table</summary>
+		/// <param name="key">Key of the grouping to remove</param>
+		public bool Remove(TKey key) => m_items.Remove(key);
 
+		/// <summary>Remove an element from the lookup table</summary>
+		/// <param name="key">Key of the grouping containing the element</param>
+		/// <param name="element">Element to remove</param>
+		/// <param name="cleanupIfEmpty">If <c>true</c> and this was the last element in the grouping, it will be removed from the table; otherwise, the empty grouping will be kept.</param>
+		/// <returns><c>true</c> if a matching element was removed; otherwise, <c>false</c></returns>
 		public bool Remove(TKey key, TElement element, bool cleanupIfEmpty = false)
 		{
 			var grouping = GetGrouping(key, false);
@@ -227,18 +247,20 @@ namespace Doxense.Collections.Lookup
 			return res;
 		}
 
-		public void Clear()
-		{
-			m_items.Clear();
-		}
+		/// <summary>Clears all groupings</summary>
+		public void Clear() => m_items.Clear();
 
-		public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out IEnumerable<TElement> elements)
+		/// <summary>Returns the grouping for the specified key, if it exists</summary>
+		/// <param name="key">Key of the grouping</param>
+		/// <param name="elements">Receives the corresponding grouping</param>
+		/// <returns><c>true</c> if the grouping was found; otherwise, <c>false</c></returns>
+		public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out Grouping<TKey, TElement> elements)
 		{
 			elements = GetGrouping(key, false);
 			return elements != null;
 		}
 
-		/// <summary>Execute an action on each non-empty grouping in this table.</summary>
+		/// <summary>Executes an action on each non-empty grouping in this table.</summary>
 		/// <param name="handler">Called with each grouping with at least one element. The 3rd argument is the number of items in the array.</param>
 		/// <returns>Number of grouping that were processed</returns>
 		public int ForEach(Action<TKey, TElement[], int> handler)
@@ -256,7 +278,7 @@ namespace Doxense.Collections.Lookup
 			return count;
 		}
 
-		/// <summary>Execute an action on each non-empty grouping in this table.</summary>
+		/// <summary>Executes an action on each non-empty grouping in this table.</summary>
 		/// <param name="handler">Called with each grouping with at least one element.</param>
 		/// <returns>Number of grouping that were processed</returns>
 		public int ForEach(Action<TKey, ReadOnlyMemory<TElement>> handler)
@@ -289,6 +311,14 @@ namespace Doxense.Collections.Lookup
 		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
 		{
 			return m_items.Values.GetEnumerator();
+		}
+
+		IEnumerator<IGrouping<TKey, TElement>> IEnumerable<IGrouping<TKey, TElement>>.GetEnumerator()
+		{
+			foreach (var grouping in m_items.Values)
+			{
+				yield return grouping;
+			}
 		}
 
 		#endregion
