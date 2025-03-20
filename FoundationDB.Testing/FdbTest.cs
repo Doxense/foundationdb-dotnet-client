@@ -26,22 +26,20 @@
 
 namespace FoundationDB.Client.Tests
 {
-	using System.IO;
 	using System.Runtime.CompilerServices;
-	using DependencyInjection;
 	using DotNet.Testcontainers.Builders;
 	using DotNet.Testcontainers.Configurations;
 	using DotNet.Testcontainers.Containers;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization;
+	using FoundationDB.DependencyInjection;
 	using Microsoft.Extensions.DependencyInjection;
 	using Microsoft.Extensions.DependencyInjection.Extensions;
-
 	using NodaTime;
 	using SnowBank.Linq;
 	using SnowBank.Testing;
 
-	public class FdbServerTestContainer : IAsyncDisposable
+	public sealed class FdbServerTestContainer : IAsyncDisposable
 	{
 
 		public static FdbServerTestContainer? Global;
@@ -97,7 +95,7 @@ namespace FoundationDB.Client.Tests
 			this.Container = container;
 		}
 
-		public async Task StartContainer()
+		public async Task StartContainer(CancellationToken ct)
 		{
 			var cts = new TaskCompletionSource();
 			this.ReadyCts = cts;
@@ -107,13 +105,14 @@ namespace FoundationDB.Client.Tests
 			try
 			{
 				SimpleTest.Log($"Starting FdbServer test container for {this.ConnectionString}...");
-				await this.Container.StartAsync().ConfigureAwait(false);
+				await this.Container.StartAsync(ct).ConfigureAwait(false);
 				SimpleTest.Log($"FdbServer test container '{this.Container.Name}' ready");
 				cts.TrySetResult();
 			}
 			catch (Exception e)
 			{
 				cts.TrySetException(e);
+				throw;
 			}
 		}
 
@@ -140,7 +139,7 @@ namespace FoundationDB.Client.Tests
 		protected virtual Task OnBeforeAllTests() => Task.CompletedTask;
 
 		[OneTimeSetUp]
-		protected void BeforeAllTests()
+		protected async Task BeforeAllTests()
 		{
 			// we use the name of the .NET target framework
 
@@ -167,7 +166,13 @@ namespace FoundationDB.Client.Tests
 			{
 				var container = new FdbServerTestContainer(name, tag, port, volumeName);
 
-				_ = container.StartContainer();
+				// only allow ~20 seconds for the container to start
+				// => most common failure is when Docker Desktop has not started yet on the local machine!
+				using var timeout = new CancellationTokenSource();
+				{
+					timeout.CancelAfter(TimeSpan.FromSeconds(20));
+					await container.StartContainer(timeout.Token);
+				}
 
 				this.Server = container;
 				FdbServerTestContainer.Global = container;
@@ -200,7 +205,7 @@ namespace FoundationDB.Client.Tests
 			}
 
 			// call the hook if defined on the derived test class
-			OnBeforeAllTests().GetAwaiter().GetResult();
+			await OnBeforeAllTests();
 		}
 
 		[OneTimeTearDown]
