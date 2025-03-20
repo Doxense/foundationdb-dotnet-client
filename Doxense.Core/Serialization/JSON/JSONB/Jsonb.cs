@@ -867,7 +867,7 @@ namespace Doxense.Serialization.Json.Binary
 					if (typeof(TValue) == typeof(long)) return TryReadAsInteger(out var x) ? (TValue) (object) x : missing;
 					if (typeof(TValue) == typeof(float)) return TryReadAsDecimal(out var x) ? (TValue) (object) (float) x : missing;
 					if (typeof(TValue) == typeof(double)) return TryReadAsDecimal(out var x) ? (TValue) (object) x : missing;
-					if (typeof(TValue) == typeof(Guid)) return TryReadAsUuid128(out var x) ? (TValue) (object) x : missing;
+					if (typeof(TValue) == typeof(Guid)) return TryReadAsUuid128(out var x) ? (TValue) (object) x.ToGuid() : missing;
 					if (typeof(TValue) == typeof(Uuid128)) return TryReadAsUuid128(out var x) ? (TValue) (object) x : missing;
 				}
 
