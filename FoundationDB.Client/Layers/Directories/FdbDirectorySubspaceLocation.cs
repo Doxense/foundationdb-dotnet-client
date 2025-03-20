@@ -61,36 +61,56 @@ namespace FoundationDB.Client
 		}
 
 		/// <inheritdoc />
-		async ValueTask<IKeySubspace?> ISubspaceLocation.Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory)
+		async ValueTask<IKeySubspace?> ISubspaceLocation.TryResolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory)
 		{
-			return await Resolve(tr, directory).ConfigureAwait(false);
+			return await TryResolve(tr, directory).ConfigureAwait(false);
 		}
 
 		/// <inheritdoc />
-		public ValueTask<FdbDirectorySubspace?> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null)
+		public ValueTask<FdbDirectorySubspace?> TryResolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null)
 		{
 			Contract.NotNull(tr);
 			directory ??= tr.Context.Database.DirectoryLayer;
 			return directory.TryOpenCachedAsync(tr, this.Path);
 		}
 
-		public ValueTask<FdbDirectorySubspace?> Resolve(IFdbTransaction tr, bool createIfMissing, FdbDirectoryLayer? directory = null)
+		/// <inheritdoc />
+		async ValueTask<IKeySubspace> ISubspaceLocation.Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory)
+		{
+			return await Resolve(tr, directory).ConfigureAwait(false);
+		}
+
+		/// <inheritdoc />
+		public async ValueTask<FdbDirectorySubspace> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null)
 		{
 			Contract.NotNull(tr);
-
-			if (!createIfMissing) return Resolve(tr, directory);
-
-			return ResolveOrCreate(tr, directory, this.Path);
-
-			static async ValueTask<FdbDirectorySubspace?> ResolveOrCreate(IFdbTransaction tr, FdbDirectoryLayer? directory, FdbPath path)
+			directory ??= tr.Context.Database.DirectoryLayer;
+			var subspace = await directory.TryOpenCachedAsync(tr, this.Path).ConfigureAwait(false);
+			if (subspace == null)
 			{
-				directory ??= tr.Context.Database.DirectoryLayer;
-				var subspace = await directory.TryOpenCachedAsync(tr, path).ConfigureAwait(false);
-				if (subspace != null) return subspace;
-				subspace = await directory.CreateAsync(tr, path).ConfigureAwait(false);
-				//TODO: how to handle the cache?
-				return subspace;
+				throw new InvalidOperationException($"The required directory '{this.Path}' does not exist in the database.");
 			}
+			return subspace;
+		}
+
+		/// <summary>Returns the actual subspace that corresponds to this location, or create it if it does not exist.</summary>
+		/// <remarks>
+		/// <para>This should only be called by infrastructure code that needs to initialize the database or perform maintenance operation.</para>
+		/// <para>Regular business logic should mostly call <see cref="TryResolve"/> or <see cref="Resolve"/> and not attempt to initialize the database by themselves!</para>
+		/// </remarks>
+		public async ValueTask<FdbDirectorySubspace> ResolveOrCreate(IFdbTransaction tr, FdbDirectoryLayer? directory = null)
+		{
+			Contract.NotNull(tr);
+			directory ??= tr.Context.Database.DirectoryLayer;
+			var subspace = await directory.TryOpenCachedAsync(tr, this.Path).ConfigureAwait(false);
+
+			if (subspace == null)
+			{
+				subspace = await directory.CreateAsync(tr, this.Path).ConfigureAwait(false);
+				//TODO: how to handle the cache?
+			}
+
+			return subspace;
 		}
 
 		/// <inheritdoc />
