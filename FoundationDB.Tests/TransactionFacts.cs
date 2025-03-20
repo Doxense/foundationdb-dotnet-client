@@ -32,6 +32,8 @@
 // ReSharper disable JoinDeclarationAndInitializer
 // ReSharper disable TooWideLocalVariableScope
 // ReSharper disable StringLiteralTypo
+// ReSharper disable ConvertToUsingDeclaration
+// ReSharper disable MethodHasAsyncOverload
 
 namespace FoundationDB.Client.Tests
 {
@@ -1528,7 +1530,7 @@ namespace FoundationDB.Client.Tests
 				await tr1.CommitAsync();
 			}
 
-			// but if we have an large offset in the key selector, and another transaction insert something inside the offset window, the result would be different, and it should conflict
+			// but if we have a large offset in the key selector, and another transaction insert something inside the offset window, the result would be different, and it should conflict
 
 			await db.WriteAsync(async (tr) =>
 			{
@@ -1866,7 +1868,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(data.ToUnicode(), Is.EqualTo("a"));
 					
 				var res = await tr.GetRange(subspace.EncodeRange("b")).Select(kvp => kvp.Value.ToString()).ToArrayAsync();
-				Assert.That(res, Is.EqualTo(new [] { "PRINT \"HELLO\"", "GOTO 10" }));
+				Assert.That(res, Is.EqualTo([ "PRINT \"HELLO\"", "GOTO 10" ]));
 
 				tr.Set(subspace.Encode("a"), Text("aa"));
 				tr.Set(subspace.Encode("b", 15), Text("PRINT \"WORLD\""));
@@ -1874,7 +1876,7 @@ namespace FoundationDB.Client.Tests
 				data = await tr.GetAsync(subspace.Encode("a"));
 				Assert.That(data.ToUnicode(), Is.EqualTo("aa"), "The transaction own writes should be visible by default");
 				res = await tr.GetRange(subspace.EncodeRange("b")).Select(kvp => kvp.Value.ToString()).ToArrayAsync();
-				Assert.That(res, Is.EqualTo(new[] { "PRINT \"HELLO\"", "PRINT \"WORLD\"", "GOTO 10" }), "The transaction own writes should be visible by default");
+				Assert.That(res, Is.EqualTo([ "PRINT \"HELLO\"", "PRINT \"WORLD\"", "GOTO 10" ]), "The transaction own writes should be visible by default");
 
 				//note: don't commit
 			}
@@ -1903,7 +1905,7 @@ namespace FoundationDB.Client.Tests
 				var data = await tr.GetAsync(subspace.Encode("a"));
 				Assert.That(data.ToUnicode(), Is.EqualTo("a"));
 				var res = await tr.GetRange(subspace.EncodeRange("b")).Select(kvp => kvp.Value.ToString()).ToArrayAsync();
-				Assert.That(res, Is.EqualTo(new[] { "PRINT \"HELLO\"", "GOTO 10" }));
+				Assert.That(res, Is.EqualTo([ "PRINT \"HELLO\"", "GOTO 10" ]));
 
 				tr.Set(subspace.Encode("a"), Text("aa"));
 				tr.Set(subspace.Encode("b", 15), Text("PRINT \"WORLD\""));
@@ -1911,9 +1913,9 @@ namespace FoundationDB.Client.Tests
 				data = await tr.GetAsync(subspace.Encode("a"));
 				Assert.That(data.ToUnicode(), Is.EqualTo("a"), "The transaction own writes should not be seen with ReadYourWritesDisable option enabled");
 				res = await tr.GetRange(subspace.EncodeRange("b")).Select(kvp => kvp.Value.ToString()).ToArrayAsync();
-				Assert.That(res, Is.EqualTo(new[] { "PRINT \"HELLO\"", "GOTO 10" }), "The transaction own writes should not be seen with ReadYourWritesDisable option enabled");
+				Assert.That(res, Is.EqualTo([ "PRINT \"HELLO\"", "GOTO 10" ]), "The transaction own writes should not be seen with ReadYourWritesDisable option enabled");
 
-				//note: don't commit
+				//note: don't commit!
 			}
 
 			#endregion
@@ -2474,7 +2476,7 @@ namespace FoundationDB.Client.Tests
 				tr.Set(subspace.Encode("watched"), Text("some value"));
 			}, this.Cancellation);
 
-			// setup the watch
+			// configure the watch
 			FdbWatch watch;
 
 			Log("Setup a watch on a key that will not be changed...");
@@ -2536,13 +2538,12 @@ namespace FoundationDB.Client.Tests
 				// it will most probably be 127.0.0.1 unless you have customized the Test DB settings to point to somewhere else
 				// either way, it should look like a valid IP address (IPv4 or v6?)
 
-				for (int i = 0; i < addresses.Length; i++)
+				foreach (var address in addresses)
 				{
-					var addr = addresses[i];
-					Log($"- {addr}");
+					Log($"- {address}");
 					// we expect "IP:PORT" or "IP:PORT:tls"
-					Assert.That(addr, Is.Not.Null.Or.Empty);
-					Assert.That(FdbEndPoint.TryParse(addr, out var ep), Is.True, $"Result address '{addr}' is invalid");
+					Assert.That(address, Is.Not.Null.Or.Empty);
+					Assert.That(FdbEndPoint.TryParse(address, out var ep), Is.True, $"Result address '{address}' is invalid");
 					Assert.That(ep!.IsValid(), Is.True);
 					Assert.That(ep.Address, Is.Not.Null);
 					Assert.That(ep.Port, Is.GreaterThan(0));
@@ -2560,16 +2561,15 @@ namespace FoundationDB.Client.Tests
 
 				// the API still return a list of addresses, probably of servers that would store this value if you would call Set(...)
 
-				for (int i = 0; i < addresses.Length; i++)
+				foreach (var address in addresses)
 				{
-					var addr = addresses[i];
-					Log($"- {addr}");
+					Log($"- {address}");
 					// we expect "IP:PORT"
-					Assert.That(addr, Is.Not.Null.Or.Empty);
-					Assert.That(addr, Does.Contain(':'), "Result address '{0}' should contain a port number", addr);
-					int p = addr.IndexOf(':');
-					Assert.That(System.Net.IPAddress.TryParse(addr.AsSpan(0, p), out _), Is.True, "Result address '{0}' does not seem to have a valid IP address '{1}'", addr, addr.Substring(0, p));
-					Assert.That(int.TryParse(addr.AsSpan(p + 1), out _), Is.True, "Result address '{0}' does not seem to have a valid port number '{1}'", addr, addr.Substring(p + 1));
+					Assert.That(address, Is.Not.Null.Or.Empty);
+					Assert.That(address, Does.Contain(':'), "Result address '{0}' should contain a port number", address);
+					int p = address.IndexOf(':');
+					Assert.That(System.Net.IPAddress.TryParse(address.AsSpan(0, p), out _), Is.True, "Result address '{0}' does not seem to have a valid IP address '{1}'", address, address.Substring(0, p));
+					Assert.That(int.TryParse(address.AsSpan(p + 1), out _), Is.True, "Result address '{0}' does not seem to have a valid port number '{1}'", address, address[(p + 1)..]);
 				}
 
 			}
@@ -2611,7 +2611,7 @@ namespace FoundationDB.Client.Tests
 					.ToListAsync();
 				Log($"Key Servers: {shards.Count} shard(s)");
 
-				HashSet<string> distinctNodes = new HashSet<string>(StringComparer.Ordinal);
+				var distinctNodes = new HashSet<string>(StringComparer.Ordinal);
 				int replicationFactor = 0;
 				string[]? ids = null;
 				foreach (var key in shards)
@@ -3762,7 +3762,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(keys, Is.Not.Null.Or.Empty);
 				Log($"Found {keys.Length} split points");
 
-				// looking at the implementation, it guarantess that the first and last "split points" will be the bounds of the range repeated (even if the keys do not exist)
+				// looking at the implementation, it guarantees that the first and last "split points" will be the bounds of the range repeated (even if the keys do not exist)
 				Assert.That(keys, Has.Length.GreaterThan(2), "We expect at least 1 split point between the bounds of the range!");
 				Assert.That(keys[0], Is.EqualTo(begin), "First key should be the start of the range");
 				Assert.That(keys[^1], Is.EqualTo(end), "Last key should be the end of the range");

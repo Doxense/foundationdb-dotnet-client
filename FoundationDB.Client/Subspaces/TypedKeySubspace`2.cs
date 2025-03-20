@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -183,7 +183,7 @@ namespace FoundationDB.Client
 		#region Ranges
 
 		/// <summary>Return the range of all legal keys in this subspace, that start with the specified pair of values</summary>
-		/// <returns>Range that encompass all keys that start with (item1, item2, ..)</returns>
+		/// <returns>Range that encompass all keys that start with (item1, item2, ...)</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static KeyRange EncodeRange<T1, T2>(this ITypedKeySubspace<T1, T2> self, T1? item1, T2? item2)
 		{
@@ -192,7 +192,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Return the range of all legal keys in this subspace, that start with the specified pair of values</summary>
-		/// <returns>Range that encompass all keys that start with (tuple.Item1, tuple.Item2, ..)</returns>
+		/// <returns>Range that encompass all keys that start with (tuple.Item1, tuple.Item2, ...)</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static KeyRange PackRange<T1, T2>(this ITypedKeySubspace<T1, T2> self, (T1?, T2?) tuple)
 		{
@@ -200,7 +200,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Return the range of all legal keys in this subspace, that start with the specified pair of values</summary>
-		/// <returns>Range that encompass all keys that start with (tuple.Item1, tuple.Item2, ..)</returns>
+		/// <returns>Range that encompass all keys that start with (tuple.Item1, tuple.Item2, ...)</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static KeyRange PackRange<T1, T2, TTuple>(this ITypedKeySubspace<T1, T2> self, TTuple tuple)
 			where TTuple : IVarTuple
@@ -214,7 +214,7 @@ namespace FoundationDB.Client
 		#region ToRangePartial()
 
 		/// <summary>Return the range of all legal keys in this subspace, that start with the specified first item</summary>
-		/// <returns>Range that encompass all keys that start with (item1, ..)</returns>
+		/// <returns>Range that encompass all keys that start with (item1, ...)</returns>
 		[Pure]
 		public static KeyRange EncodePartialRange<T1, T2>(this ITypedKeySubspace<T1, T2> self, T1? item1)
 		{
@@ -222,7 +222,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Return the range of all legal keys in this subspace, that start with the specified first item</summary>
-		/// <returns>Range that encompass all keys that start with (tuple.Item1, ..)</returns>
+		/// <returns>Range that encompass all keys that start with (tuple.Item1, ...)</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static KeyRange PackPartialRange<T1, T2>(this ITypedKeySubspace<T1, T2> self, STuple<T1> tuple)
 		{

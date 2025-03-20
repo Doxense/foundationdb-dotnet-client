@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -64,7 +64,7 @@ namespace FoundationDB.Client.Tests
 				return await tr.GetAsync(subspace.Encode("Hello"));
 			}, this.Cancellation);
 
-			Assert.That(called, Is.EqualTo(1)); // note: if this assert fails, first ensure that you did not get a transient error while running this test!
+			Assert.That(called, Is.EqualTo(1)); // note: if this assertion fails, first ensure that you did not get a transient error while running this test!
 			Assert.That(result.ToUnicode(), Is.EqualTo(secret));
 		}
 
@@ -165,7 +165,7 @@ namespace FoundationDB.Client.Tests
 			sw.Stop();
 			Log("> done in " + sw.Elapsed);
 
-			using (new Timer((_) => { Log($"WorkingSet: {Environment.WorkingSet:N0}, Managed: {GC.GetTotalMemory(false):N0}"); }, null, 1000, 1000))
+			await using (new Timer((_) => { Log($"WorkingSet: {Environment.WorkingSet:N0}, Managed: {GC.GetTotalMemory(false):N0}"); }, null, 1000, 1000))
 			{
 				try
 				{

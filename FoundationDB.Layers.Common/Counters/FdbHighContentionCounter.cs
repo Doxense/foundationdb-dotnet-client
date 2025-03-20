@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -79,7 +79,7 @@ namespace FoundationDB.Layers.Counters
 			}
 		}
 
-		private Task Coalesce(IFdbDatabase db, int N, CancellationToken ct)
+		private Task Coalesce(IFdbDatabase db, int limit, CancellationToken ct)
 		{
 			return db.WriteAsync(async tr =>
 			{
@@ -93,8 +93,8 @@ namespace FoundationDB.Layers.Counters
 				bool right;
 				lock (this.Rng) { right = this.Rng.NextDouble() < 0.5; }
 				var query = right
-					? tr.Snapshot.GetRange(loc, subspace.ToRange().End, new FdbRangeOptions { Limit = N })
-					: tr.Snapshot.GetRange(subspace.ToRange().Begin, loc, new FdbRangeOptions { Limit = N , IsReversed = true });
+					? tr.Snapshot.GetRange(loc, subspace.ToRange().End, new() { Limit = limit })
+					: tr.Snapshot.GetRange(subspace.ToRange().Begin, loc, new() { Limit = limit , IsReversed = true });
 				var shards = await query.ToListAsync().ConfigureAwait(false);
 
 				if (shards.Count > 0)

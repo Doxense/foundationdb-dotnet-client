@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -51,7 +51,7 @@ namespace FoundationDB.Client
 
 		FdbDirectorySubspaceLocation IFdbDirectory.Location => this;
 
-		/// <summary>Create a new location that points to the Directory Subspace at the given path.</summary>
+		/// <summary>Creates a new location that points to the Directory Subspace at the given path.</summary>
 		/// <param name="path">Absolute path of the target Directory Subspace</param>
 		public FdbDirectorySubspaceLocation(FdbPath path)
 		{
@@ -66,6 +66,7 @@ namespace FoundationDB.Client
 			return await Resolve(tr, directory).ConfigureAwait(false);
 		}
 
+		/// <inheritdoc />
 		public ValueTask<FdbDirectorySubspace?> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null)
 		{
 			Contract.NotNull(tr);
@@ -92,58 +93,49 @@ namespace FoundationDB.Client
 			}
 		}
 
-		public override string ToString()
-		{
-			return this.Path.ToString();
-		}
+		/// <inheritdoc />
+		public override string ToString() => this.Path.ToString();
 
-		public override int GetHashCode()
-		{
-			return HashCode.Combine(this.Path.GetHashCode(), this.Layer.GetHashCode());
-		}
+		/// <inheritdoc />
+		public override int GetHashCode() => HashCode.Combine(this.Path.GetHashCode(), this.Layer.GetHashCode());
 
-		public override bool Equals(object? obj)
-		{
-			return obj is FdbDirectorySubspaceLocation loc && Equals(loc);
-		}
+		/// <inheritdoc />
+		public override bool Equals(object? obj) => obj is FdbDirectorySubspaceLocation loc && Equals(loc);
 
-		public bool Equals(ISubspaceLocation? other)
-		{
-			return other != null && other.Path == this.Path && other.Prefix.Count == 0;
-		}
+		/// <inheritdoc />
+		public bool Equals(ISubspaceLocation? other) => other != null && other.Path == this.Path && other.Prefix.Count == 0;
 
 		internal FdbPath GetSafePath()
-		{
-			if (this.IsPartition && this.Path.Count != 0) throw ThrowHelper.InvalidOperationException($"Cannot create a binary subspace under the root of directory partition '{this.Path}'.");
-			return this.Path;
-		}
+			=> !this.IsPartition || this.Path.Count == 0
+				? this.Path
+				: throw ThrowHelper.InvalidOperationException($"Cannot create a binary subspace under the root of directory partition '{this.Path}'.");
 
-		/// <summary>Append a segment to the current path</summary>
+		/// <summary>Appends a segment to the current path</summary>
 		public FdbDirectorySubspaceLocation this[FdbPathSegment segment] => new(this.Path.Add(segment));
 
-		/// <summary>Append one or more segments to the current path</summary>
-		public FdbDirectorySubspaceLocation this[ReadOnlySpan<FdbPathSegment> segments] => segments.Length != 0 ? new FdbDirectorySubspaceLocation(this.Path.Add(segments)) : this;
+		/// <summary>Appends one or more segments to the current path</summary>
+		public FdbDirectorySubspaceLocation this[ReadOnlySpan<FdbPathSegment> segments] => segments.Length != 0 ? new(this.Path.Add(segments)) : this;
 
-		/// <summary>Append a segment to the current path</summary>
+		/// <summary>Appends a segment to the current path</summary>
 		/// <param name="name">Name of the segment</param>
 		/// <remarks>The new segment will not have a layer id.</remarks>
 		public FdbDirectorySubspaceLocation this[string name] => new(this.Path.Add(FdbPathSegment.Create(name)));
 
-		/// <summary>Append a segment - composed of a name and layer id - to the current path</summary>
+		/// <summary>Appends a segment - composed of a name and layer id - to the current path</summary>
 		/// <param name="name">Name of the segment</param>
 		/// <param name="layerId">Layer Id of the segment</param>
 		public FdbDirectorySubspaceLocation this[string name, string layerId] => new(this.Path.Add(new FdbPathSegment(name, layerId)));
 
-		/// <summary>Append a relative path to the current path</summary>
-		public FdbDirectorySubspaceLocation this[FdbPath relativePath] => !relativePath.IsEmpty ? new FdbDirectorySubspaceLocation(this.Path.Add(relativePath)) : this;
+		/// <summary>Appends a relative path to the current path</summary>
+		public FdbDirectorySubspaceLocation this[FdbPath relativePath] => !relativePath.IsEmpty ? new(this.Path.Add(relativePath)) : this;
 
-		/// <summary>Append an encoded key to the prefix of the current location</summary>
+		/// <summary>Appends an encoded key to the prefix of the current location</summary>
 		/// <typeparam name="T1">Type of the key</typeparam>
 		/// <param name="item1">Key that will be appended to the current location's binary prefix</param>
 		/// <returns>A new subspace location with an additional binary suffix</returns>
 		public DynamicKeySubspaceLocation ByKey<T1>(T1 item1) => new(GetSafePath(), TuPack.EncodeKey(item1), TuPack.Encoding.GetDynamicKeyEncoder());
 
-		/// <summary>Append a pair encoded keys to the prefix of the current location</summary>
+		/// <summary>Appends a pair encoded keys to the prefix of the current location</summary>
 		/// <typeparam name="T1">Type of the first key</typeparam>
 		/// <typeparam name="T2">Type of the second key</typeparam>
 		/// <param name="item1">Key that will be appended first to the current location's binary prefix</param>
