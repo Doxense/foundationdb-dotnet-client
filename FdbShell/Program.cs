@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -54,6 +54,46 @@ namespace FdbShell
 
 			// Initialize FDB
 
+			if (args.Contains("--spawn"))
+			{
+				// compute a hash of the arguments, to detect if the child process is already started
+				var hash = Doxense.IO.Hashing.Fnv1aHash64.FromString(string.Join("¤", args), ignoreCase: false);
+
+				// respawn this process in a new terminal window, with the same arguments (minus the --spawn)
+				// -> this is a workaround to an issue in Aspire that, when FdbShell is started in the AppHost, it will not have a valid console (stdin/stdout)
+				var process = Process.GetCurrentProcess();
+				var psi = new ProcessStartInfo()
+				{
+					WorkingDirectory = Environment.CurrentDirectory,
+					FileName = process.ProcessName,
+					CreateNoWindow = false,
+					UseShellExecute = true,
+					WindowStyle = ProcessWindowStyle.Normal,
+					
+				};
+				foreach (var arg in args)
+				{
+					if (arg == "--spawn") continue;
+					psi.ArgumentList.Add(arg);
+				}
+				// add the hashcode
+				psi.ArgumentList.Add("--child=" + hash.ToString("x08", CultureInfo.InvariantCulture));
+				psi.ArgumentList.Add("--parent=" + process.Id.ToString(CultureInfo.InvariantCulture));
+
+				try
+				{
+					var child = Process.Start(psi)!;
+					child.WaitForExit();
+					Environment.ExitCode = child.ExitCode;
+				}
+				catch (Exception e)
+				{
+					Console.Error.WriteLine("CRASHED: " + e.ToString());
+					Environment.ExitCode = -1;
+				}
+				return;
+			}
+
 			try
 			{
 				using var go = new CancellationTokenSource();
@@ -97,6 +137,8 @@ namespace FdbShell
 				this.AddGlobalOption(RetriesOption);
 				this.AddGlobalOption(AspireOption);
 				this.AddGlobalOption(DockerOption);
+				this.AddGlobalOption(ChildHashOption);
+				this.AddGlobalOption(ParentProcessOption);
 				this.AddOption(ExecOption);
 
 				this.SetHandler(RunShell);
@@ -153,6 +195,16 @@ namespace FdbShell
 				"Connect to a local docker instance running on the given port"
 			);
 
+			private static readonly Option<string> ChildHashOption = new(
+				[ "--child" ],
+				"Hash of the arguments of the parent process that spawned this instance"
+			);
+
+			private static readonly Option<int?> ParentProcessOption = new(
+				[ "--parent" ],
+				"PID of the parent process that spawned this instance"
+			);
+
 			private async Task RunShell(InvocationContext context)
 			{
 				var clusterFile = context.ParseResult.GetValueForOption(ClusterFileOption);
@@ -164,6 +216,8 @@ namespace FdbShell
 				var execCommand = context.ParseResult.GetValueForOption(ExecOption);
 				var aspire = context.ParseResult.GetValueForOption(AspireOption);
 				var docker = context.ParseResult.GetValueForOption(DockerOption);
+				var childHash = context.ParseResult.GetValueForOption(ChildHashOption);
+				var parentProcess = context.ParseResult.GetValueForOption(ParentProcessOption);
 
 				if (aspire || docker != null)
 				{
@@ -188,6 +242,27 @@ namespace FdbShell
 				//{ // the remainder of the command line will be the first command to execute
 				//	startCommand = string.Join(" ", extra);
 				//}
+
+				if (parentProcess != null)
+				{
+					Process? parent;
+					try
+					{
+						parent = Process.GetProcessById(parentProcess.Value);
+					}
+					catch (ArgumentException)
+					{
+						Console.Error.WriteLine($"Parent process {parentProcess.Value} not found, or has already terminated.");
+						Environment.Exit(-1);
+						return;
+					}
+
+					_ = parent.WaitForExitAsync(this.Cancellation).ContinueWith(_ =>
+					{
+						Console.WriteLine($"Parent process {parent.Id} has exited!");
+						Environment.Exit(-1);
+					}, Cancellation);
+				}
 
 				var builder = new ServiceCollection();
 
@@ -246,6 +321,11 @@ namespace FdbShell
 
 				// pre-start FDB client
 				dbProvider.Start();
+
+				if (parentProcess != null)
+				{
+					terminal.StdOut($"Attaching to parent process {parentProcess.Value} and token {childHash}.");
+				}
 
 				await runner.RunAsync(shellArgs, this.Cancellation);
 			}
