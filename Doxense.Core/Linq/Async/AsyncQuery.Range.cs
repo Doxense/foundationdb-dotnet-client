@@ -38,7 +38,7 @@ namespace SnowBank.Linq
 		/// <param name="start">The value of the first integer in the sequence.</param>
 		/// <param name="count">The number of sequential integers to generate.</param>
 		/// <param name="ct">Token used to cancel the execution of this query</param>
-		/// <returns>An <see cref="IAsyncEnumerable{T}"/> that contains a range of sequential integral numbers.</returns>
+		/// <returns>An <see cref="IAsyncLinqQuery{T}"/> that contains a range of sequential integral numbers.</returns>
 		/// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is less than 0</exception>
 		/// <exception cref="ArgumentOutOfRangeException"><paramref name="start"/> + <paramref name="count"/> -1 is larger than <see cref="int.MaxValue"/>.</exception>
 		public static IAsyncLinqQuery<int> Range(int start, int count, CancellationToken ct = default)
@@ -69,6 +69,8 @@ namespace SnowBank.Linq
 			return new RangeIterator<TNumber>(start, delta, count, ct);
 		}
 
+		/// <summary>Async iterator that returns a set of numbers, with a fixed increment</summary>
+		/// <typeparam name="TNumber">Type of the numbers returned by this query</typeparam>
 		internal sealed class RangeIterator<TNumber> : AsyncLinqIterator<TNumber>
 			where TNumber : INumberBase<TNumber>
 		{
@@ -81,14 +83,19 @@ namespace SnowBank.Linq
 				this.Cancellation = ct;
 			}
 
+			/// <summary>Initial value of the query</summary>
 			public TNumber Start { get; }
 
+			/// <summary>Delta that is added to the value at each step</summary>
 			public TNumber Delta { get; }
 
+			/// <summary>Number of values returned by this query</summary>
 			public int Count { get; }
 
+			/// <summary>Current value when this iterator is enumerated</summary>
 			private TNumber Cursor { get; set; } = TNumber.Zero;
 
+			/// <summary>Number of remaining values, when this iterator is enumerated</summary>
 			private int Remaining { get; set; }
 
 			/// <inheritdoc />
@@ -202,6 +209,7 @@ namespace SnowBank.Linq
 				return Task.FromResult(accumulator);
 			}
 
+			/// <summary>Fill a span with all the results of this query</summary>
 			private static void FillSpan(Span<TNumber> buffer, TNumber start, TNumber delta, int count)
 			{
 				var cursor = start;

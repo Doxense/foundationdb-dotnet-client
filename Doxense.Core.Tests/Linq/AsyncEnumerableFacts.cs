@@ -280,6 +280,133 @@ namespace SnowBank.Linq.Async.Tests
 		}
 
 		[Test]
+		public async Task Test_Between_Int32()
+		{
+			{
+				Assert.That(await AsyncQuery.Between(0, 0).CountAsync(), Is.Zero);
+				Assert.That(await AsyncQuery.Between(0, 0).AnyAsync(), Is.False);
+				Assert.That(await AsyncQuery.Between(0, 0).ToListAsync(), Is.Empty);
+			}
+			{
+				Assert.That(await AsyncQuery.Between(5, 10).CountAsync(), Is.EqualTo(5));
+				Assert.That(await AsyncQuery.Between(5, 10).CountAsync(x => x % 2 == 0), Is.EqualTo(2));
+				Assert.That(await AsyncQuery.Between(5, 10).CountAsync(x => x % 2 == 1), Is.EqualTo(3));
+				Assert.That(await AsyncQuery.Between(5, 10).CountAsync(x => x % 2 == 42), Is.Zero);
+				Assert.That(await AsyncQuery.Between(5, 10).AnyAsync(), Is.True);
+				Assert.That(await AsyncQuery.Between(5, 10).AnyAsync(x => x % 2 == 1), Is.True);
+				Assert.That(await AsyncQuery.Between(5, 10).AnyAsync(x => x % 2 == 42), Is.False);
+				Assert.That(await AsyncQuery.Between(5, 10).ToArrayAsync(), Is.EqualTo((int[]) [ 5, 6, 7, 8, 9 ]));
+				Assert.That(await AsyncQuery.Between(5, 10).ToListAsync(), Is.EqualTo((List<int>) [ 5, 6, 7, 8, 9 ]));
+				Assert.That(await AsyncQuery.Between(5, 10).ToImmutableArrayAsync(), Is.EqualTo((ImmutableArray<int>) [ 5, 6, 7, 8, 9 ]));
+				Assert.That(await AsyncQuery.Between(5, 10).SumAsync(), Is.EqualTo(5 + 6 + 7 + 8 + 9));
+				Assert.That(await AsyncQuery.Between(5, 10).MinAsync(), Is.EqualTo(5));
+				Assert.That(await AsyncQuery.Between(5, 10).MaxAsync(), Is.EqualTo(9));
+				Assert.That(await AsyncQuery.Between(5, 10).FirstAsync(), Is.EqualTo(5));
+				Assert.That(await AsyncQuery.Between(5, 10).FirstOrDefaultAsync(-1), Is.EqualTo(5));
+				Assert.That(await AsyncQuery.Between(5, 10).LastAsync(), Is.EqualTo(9));
+				Assert.That(await AsyncQuery.Between(5, 10).LastOrDefaultAsync(-1), Is.EqualTo(9));
+				Assert.That(async () => await AsyncQuery.Between(5, 10).SingleAsync(), Throws.InvalidOperationException);
+				Assert.That(async () => await AsyncQuery.Between(5, 10).SingleOrDefaultAsync(-1), Throws.InvalidOperationException);
+			}
+		}
+
+		[Test]
+		public async Task Test_Between_Int64()
+		{
+			{
+				Assert.That(await AsyncQuery.Between(0L, 0L).CountAsync(), Is.Zero);
+				Assert.That(await AsyncQuery.Between(0L, 0L).AnyAsync(), Is.False);
+				Assert.That(await AsyncQuery.Between(0L, 0L).ToListAsync(), Is.Empty);
+			}
+			{
+				Assert.That(await AsyncQuery.Between(5L, 10L).CountAsync(), Is.EqualTo(5));
+				Assert.That(await AsyncQuery.Between(5L, 10L).CountAsync(x => x % 2 == 0), Is.EqualTo(2));
+				Assert.That(await AsyncQuery.Between(5L, 10L).CountAsync(x => x % 2 == 1), Is.EqualTo(3));
+				Assert.That(await AsyncQuery.Between(5L, 10L).CountAsync(x => x % 2 == 42), Is.Zero);
+				Assert.That(await AsyncQuery.Between(5L, 10L).AnyAsync(), Is.True);
+				Assert.That(await AsyncQuery.Between(5L, 10L).AnyAsync(x => x % 2 == 1), Is.True);
+				Assert.That(await AsyncQuery.Between(5L, 10L).AnyAsync(x => x % 2 == 42), Is.False);
+				Assert.That(await AsyncQuery.Between(5L, 10L).ToArrayAsync(), Is.EqualTo((long[]) [ 5, 6, 7, 8, 9 ]));
+				Assert.That(await AsyncQuery.Between(5L, 10L).ToListAsync(), Is.EqualTo((List<long>) [ 5, 6, 7, 8, 9 ]));
+				Assert.That(await AsyncQuery.Between(5L, 10L).ToImmutableArrayAsync(), Is.EqualTo((ImmutableArray<long>) [ 5, 6, 7, 8, 9 ]));
+				Assert.That(await AsyncQuery.Between(5L, 10L).SumAsync(), Is.EqualTo(5 + 6 + 7 + 8 + 9));
+				Assert.That(await AsyncQuery.Between(5L, 10L).MinAsync(), Is.EqualTo(5));
+				Assert.That(await AsyncQuery.Between(5L, 10L).MaxAsync(), Is.EqualTo(9));
+				Assert.That(await AsyncQuery.Between(5L, 10L).FirstAsync(), Is.EqualTo(5));
+				Assert.That(await AsyncQuery.Between(5L, 10L).FirstOrDefaultAsync(-1), Is.EqualTo(5));
+				Assert.That(await AsyncQuery.Between(5L, 10L).LastAsync(), Is.EqualTo(9));
+				Assert.That(await AsyncQuery.Between(5L, 10L).LastOrDefaultAsync(-1), Is.EqualTo(9));
+				Assert.That(async () => await AsyncQuery.Between(5L, 10L).SingleAsync(), Throws.InvalidOperationException);
+				Assert.That(async () => await AsyncQuery.Between(5L, 10L).SingleOrDefaultAsync(-1L), Throws.InvalidOperationException);
+			}
+		}
+
+		[Test]
+		public async Task Test_Between_Generic_Number()
+		{
+			{
+				Assert.That(await AsyncQuery.Between(JsonNumber.Zero, JsonNumber.Zero).CountAsync(), Is.Zero);
+				Assert.That(await AsyncQuery.Between(JsonNumber.Zero, JsonNumber.Zero).AnyAsync(), Is.False);
+				Assert.That(await AsyncQuery.Between(JsonNumber.Zero, JsonNumber.Zero).ToListAsync(), Is.Empty);
+			}
+			{
+				var five = JsonNumber.Return(5);
+				var ten = JsonNumber.Return(10);
+
+				Assert.That(await AsyncQuery.Between(five, ten).CountAsync(), Is.EqualTo(5));
+				Assert.That(await AsyncQuery.Between(five, ten).CountAsync(x => x.ToInt32() % 2 == 0), Is.EqualTo(2));
+				Assert.That(await AsyncQuery.Between(five, ten).CountAsync(x => x.ToInt32() % 2 == 1), Is.EqualTo(3));
+				Assert.That(await AsyncQuery.Between(five, ten).CountAsync(x => x.ToInt32() % 2 == 42), Is.Zero);
+				Assert.That(await AsyncQuery.Between(five, ten).AnyAsync(), Is.True);
+				Assert.That(await AsyncQuery.Between(five, ten).AnyAsync(x => x.ToInt32() % 2 == 1), Is.True);
+				Assert.That(await AsyncQuery.Between(five, ten).AnyAsync(x => x.ToInt32() % 2 == 42), Is.False);
+				Assert.That(await AsyncQuery.Between(five, ten).ToArrayAsync(), Is.EqualTo((long[]) [ 5, 6, 7, 8, 9 ]));
+				Assert.That(await AsyncQuery.Between(five, ten).ToListAsync(), Is.EqualTo((List<long>) [ 5, 6, 7, 8, 9 ]));
+				Assert.That(await AsyncQuery.Between(five, ten).ToImmutableArrayAsync(), Is.EqualTo((ImmutableArray<long>) [ 5, 6, 7, 8, 9 ]));
+				Assert.That(await AsyncQuery.Between(five, ten).SumAsync(), Is.EqualTo(5 + 6 + 7 + 8 + 9));
+				Assert.That(await AsyncQuery.Between(five, ten).MinAsync(), Is.EqualTo(5));
+				Assert.That(await AsyncQuery.Between(five, ten).MaxAsync(), Is.EqualTo(9));
+				Assert.That(await AsyncQuery.Between(five, ten).FirstAsync(), Is.EqualTo(5));
+				Assert.That(await AsyncQuery.Between(five, ten).FirstOrDefaultAsync(-1), Is.EqualTo(5));
+				Assert.That(await AsyncQuery.Between(five, ten).LastAsync(), Is.EqualTo(9));
+				Assert.That(await AsyncQuery.Between(five, ten).LastOrDefaultAsync(-1), Is.EqualTo(9));
+				Assert.That(async () => await AsyncQuery.Between(five, ten).SingleAsync(), Throws.InvalidOperationException);
+				Assert.That(async () => await AsyncQuery.Between(five, ten).SingleOrDefaultAsync(-1L), Throws.InvalidOperationException);
+			}
+		}
+
+		[Test]
+		public async Task Test_Between_Generic_Non_Number()
+		{
+			{
+				Assert.That(await AsyncQuery.Between("a", "a", (_) => "b").CountAsync(), Is.Zero);
+				Assert.That(await AsyncQuery.Between("a", "a", (_) => "b").AnyAsync(), Is.False);
+				Assert.That(await AsyncQuery.Between("a", "a", (_) => "b").ToListAsync(), Is.Empty);
+			}
+			{
+				Assert.That(await AsyncQuery.Between("a", "aaaaaa", (s) => s + "a").CountAsync(), Is.EqualTo(5));
+				Assert.That(await AsyncQuery.Between("a", "aaaaaa", (s) => s + "a").CountAsync(x => x.Length % 2 == 0), Is.EqualTo(2));
+				Assert.That(await AsyncQuery.Between("a", "aaaaaa", (s) => s + "a").CountAsync(x => x.Length % 2 == 1), Is.EqualTo(3));
+				Assert.That(await AsyncQuery.Between("a", "aaaaaa", (s) => s + "a").CountAsync(x => x.Length % 2 == 42), Is.Zero);
+				Assert.That(await AsyncQuery.Between("a", "aaaaaa", (s) => s + "a").AnyAsync(), Is.True);
+				Assert.That(await AsyncQuery.Between("a", "aaaaaa", (s) => s + "a").AnyAsync(x => x.Length % 2 == 1), Is.True);
+				Assert.That(await AsyncQuery.Between("a", "aaaaaa", (s) => s + "a").AnyAsync(x => x.Length % 2 == 42), Is.False);
+				Assert.That(await AsyncQuery.Between("a", "aaaaaa", (s) => s + "a").ToArrayAsync(), Is.EqualTo((string[]) [ "a", "aa", "aaa", "aaaa", "aaaaa" ]));
+				Assert.That(await AsyncQuery.Between("a", "aaaaaa", (s) => s + "a").ToListAsync(), Is.EqualTo((List<string>) [ "a", "aa", "aaa", "aaaa", "aaaaa" ]));
+				Assert.That(await AsyncQuery.Between("a", "aaaaaa", (s) => s + "a").ToImmutableArrayAsync(), Is.EqualTo((ImmutableArray<string>) [ "a", "aa", "aaa", "aaaa", "aaaaa" ]));
+				Assert.That(await AsyncQuery.Between("a", "aaaaaa", (s) => s + "a").MinAsync(), Is.EqualTo("a"));
+				Assert.That(await AsyncQuery.Between("a", "aaaaaa", (s) => s + "a").MaxAsync(), Is.EqualTo("aaaaa"));
+				Assert.That(await AsyncQuery.Between("a", "aaaaaa", (s) => s + "a").FirstAsync(), Is.EqualTo("a"));
+				Assert.That(await AsyncQuery.Between("a", "aaaaaa", (s) => s + "a").FirstOrDefaultAsync("?"), Is.EqualTo("a"));
+				Assert.That(await AsyncQuery.Between("a", "aaaaaa", (s) => s + "a").LastAsync(), Is.EqualTo("aaaaa"));
+				Assert.That(await AsyncQuery.Between("a", "aaaaaa", (s) => s + "a").LastOrDefaultAsync("?"), Is.EqualTo("aaaaa"));
+				Assert.That(async () => await AsyncQuery.Between("a", "aaaaaa", (s) => s + "a").SingleAsync(), Throws.InvalidOperationException);
+				Assert.That(async () => await AsyncQuery.Between("a", "aaaaaa", (s) => s + "a").SingleOrDefaultAsync("?"), Throws.InvalidOperationException);
+				Assert.That(async () => await AsyncQuery.Between("a", "aaaaaa", (s) => s + "a").SumAsync(), Throws.InstanceOf<NotSupportedException>());
+			}
+		}
+
+		[Test]
 		public async Task Test_Producer_Single()
 		{
 			{
@@ -2021,7 +2148,7 @@ namespace SnowBank.Linq.Async.Tests
 			{
 				Interlocked.Increment(ref called);
 				if (index >= 10) return Task.FromResult(Maybe.Nothing<int>());
-				if (index % 4 == 0) return Task.Delay(100, ct).ContinueWith((_) => Maybe.Return((int)index));
+				if (index % 4 == 0) return Task.Delay(50, ct).ContinueWith((_) => Maybe.Return((int)index));
 				return Task.FromResult(Maybe.Return((int)index));
 			}, this.Cancellation);
 
