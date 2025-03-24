@@ -60,12 +60,10 @@ namespace SnowBank.Linq.Async.Iterators
 		public abstract CancellationToken Cancellation { get; }
 
 		[MustDisposeResource]
-		[EditorBrowsable(EditorBrowsableState.Never)]
 		IAsyncEnumerator<TResult> IAsyncEnumerable<TResult>.GetAsyncEnumerator(CancellationToken ct)
 			=> AsyncQuery.GetCancellableAsyncEnumerator(this, AsyncIterationHint.All, ct);
 
 		[MustDisposeResource]
-		[EditorBrowsable(EditorBrowsableState.Never)]
 		IAsyncEnumerator<TResult> IAsyncQuery<TResult>.GetAsyncEnumerator(CancellationToken ct)
 			=> AsyncQuery.GetCancellableAsyncEnumerator(this, AsyncIterationHint.All, ct);
 

@@ -148,19 +148,30 @@ namespace SnowBank.Linq.Async.Tests
 		[Test]
 		public async Task Test_Empty()
 		{
+#if NET10_0_OR_GREATER
+			//note: as of .NET 10 preview 2, "Current" does not throw on AsyncEnumerable.Empty, but it DOES throw for Enumerable.Empty
+			// => we will align with this implementation, unless we have a good reason to!
+			{
+				var x = AsyncEnumerable.Empty<int>().GetAsyncEnumerator();
+				Assert.That(await x.MoveNextAsync(), Is.False);
+				Assert.That(() => x.Current, Throws.Nothing, "AsyncEnumerable.Empty currently does not throw calling Current");
+			}
+#endif
+
 			Assert.That(AsyncQuery.Empty<int>(), Is.Not.Null);
 
 			await using (var it = AsyncQuery.Empty<int>().GetAsyncEnumerator())
 			{
-				// accessing "Current" should always fail
-				Assert.That(() => it.Current, Throws.InvalidOperationException);
+				//Note: AsyncEnumerable in .NET 10 returns default instead of throwing
+				Assert.That(it.Current, Is.Zero); 
 
 				// MoveNext should return an already completed 'false' result
 				var next = it.MoveNextAsync();
 				Assert.That(next.IsCompleted, Is.True);
 				Assert.That(next.Result, Is.False);
 
-				Assert.That(() => it.Current, Throws.InvalidOperationException);
+				//Note: AsyncEnumerable in .NET 10 returns default instead of throwing
+				Assert.That(it.Current, Is.Zero);
 			}
 
 			Assert.That(await AsyncQuery.Empty<int>().ToArrayAsync(), Is.Empty);
