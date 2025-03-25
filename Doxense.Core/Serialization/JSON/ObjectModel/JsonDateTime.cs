@@ -47,12 +47,13 @@ namespace Doxense.Serialization.Json
 		/// <summary>Singleton equivalent to <see cref="DateTime.MinValue"/></summary>
 		public static readonly JsonDateTime MaxValue = new(DateTime.MaxValue, NO_TIMEZONE);
 		
-		private static readonly DateTime MaxValueDate = new DateTime(3155378112000000000);
+		private static readonly DateTime MaxValueDate = new(3155378112000000000);
 		
 		/// <summary>Singleton equivalent to <see cref="DateOnly.MinValue"/></summary>
 		public static readonly JsonDateTime DateOnlyMaxValue = new(MaxValueDate, NO_TIMEZONE);
 
-		/// <summary>Précision des dates JSON (lié à la façon dont elles sont sérialisées)</summary>
+		/// <summary>Default precision for JSON dates (due to truncation during serialization)</summary>
+		/// <remarks>Dates that differ by less than this value will be considered equal, and produce the same JSON text literal</remarks>
 		public static readonly long PrecisionTicks = TimeSpan.TicksPerMillisecond;
 
 		/// <summary>Tests if two dates are considered equal within the minimum supported precision</summary>
@@ -96,27 +97,24 @@ namespace Doxense.Serialization.Json
 			m_offset = offset;
 		}
 
-		/// <summary>Wrap un valeur de type DateTime</summary>
-		/// <param name="value"></param>
+		/// <summary>Wraps a <see cref="DateTime"/> instance</summary>
 		public JsonDateTime(DateTime value)
 		{
 			m_value = value;
 			m_offset = NO_TIMEZONE;
 		}
 
-		/// <summary>Wrap une valeur de type DateTimeOffset</summary>
-		/// <param name="value"></param>
+		/// <summary>Wraps a <see cref="DateTimeOffset"/> instance</summary>
 		public JsonDateTime(DateTimeOffset value)
 		{
 			m_value = value.DateTime;
 			m_offset = (short) value.Offset.TotalMinutes;
 		}
 
-		/// <summary>Wrap un valeur de type DateTime</summary>
-		/// <param name="value"></param>
+		/// <summary>Wraps a <see cref="DateOnly"/> instance</summary>
 		public JsonDateTime(DateOnly value)
 		{
-			m_value = value.ToDateTime(default, DateTimeKind.Local);
+			m_value = value.ToDateTime(default, DateTimeKind.Unspecified);
 			m_offset = NO_TIMEZONE;
 		}
 
@@ -279,10 +277,10 @@ namespace Doxense.Serialization.Json
 			get
 			{
 				if (m_offset == NO_TIMEZONE && m_value.Kind != DateTimeKind.Utc)
-				{ // Date local, il faut la convertir
+				{ // local DateTime => converted to UTC
 					return m_value.ToUniversalTime().Ticks;
 				}
-				//DTO: déja en UTC
+				//DTO: already UTC
 				return m_value.Ticks;
 			}
 		}
@@ -292,11 +290,11 @@ namespace Doxense.Serialization.Json
 			get
 			{
 				if (m_offset != NO_TIMEZONE)
-				{ // DateTimeOffset, ou DateTime local à convertir en UTC
+				{ // DateTimeOffset, or local DateTime => convert to UTC
 					return DateTime.SpecifyKind(m_value, DateTimeKind.Utc);
 				}
 				else
-				{ // DateTime retournée telle quelle
+				{ // return as-is
 					return m_value;
 				}
 			}
@@ -307,7 +305,7 @@ namespace Doxense.Serialization.Json
 			get
 			{
 				if (m_offset == NO_TIMEZONE)
-				{ // convert
+				{ // convert to DTO using local timezone
 					return new DateTimeOffset(m_value);
 				}
 				return new DateTimeOffset(m_value, TimeSpan.FromMinutes(m_offset));
@@ -319,11 +317,11 @@ namespace Doxense.Serialization.Json
 			get
 			{
 				if (m_offset != NO_TIMEZONE)
-				{ // DateTimeOffset, ou DateTime local à convertir en UTC
+				{ // DateTimeOffset, or local DateTime local => convert to UTC
 					return DateOnly.FromDateTime(DateTime.SpecifyKind(m_value, DateTimeKind.Utc));
 				}
 				else
-				{ // DateTime retournée telle quelle
+				{ // return as-is
 					return DateOnly.FromDateTime(m_value);
 				}
 			}
@@ -339,11 +337,11 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Number of milliseconds since Unix Epoch  (1970-01-01 00:00:00.000 UTC)</summary>
 		public long UnixTime => (this.UtcDateTime.Ticks - UNIX_EPOCH_TICKS) / TimeSpan.TicksPerMillisecond;
-		//note: c'est un long pour ne pas avoir de problème avec le Y2038 bug (Unix Time Epoch Bug)
+		//note: this is a long to hopefully not be vulnerable to the Y2038 bug (Unix Time Epoch Bug)
 
 		/// <summary>Number of days since Unix Epoch (1970-01-01 00:00:00.000 UTC)</summary>
 		public double UnixTimeDays => (this.UtcTicks - UNIX_EPOCH_TICKS) / (double) TimeSpan.TicksPerDay;
-		//note: this should be safe from the Y2038 bug
+		//note: this should hopefully be safe from the Y2038 bug
 
 		public bool IsLocalTime => m_offset == NO_TIMEZONE ? m_value.Kind == DateTimeKind.Local : m_offset != 0 /*TODO: compare with the local TZ ? */;
 
@@ -567,35 +565,27 @@ namespace Doxense.Serialization.Json
 		#region IEquatable<...>
 
 		/// <inheritdoc />
-		public override bool Equals(object? obj)
+		public override bool Equals(object? obj) => obj switch
 		{
-			if (obj is DateTime dt) return AreEqual(this.Date, dt);
-			if (obj is DateTimeOffset dto) return AreEqual(this.DateWithOffset, dto);
-			if (obj is string s)
-			{
-				return this.HasOffset
-					? JsonString.TryConvertToDateTimeOffset(s, out dto) && this.DateWithOffset == dto
-					: JsonString.TryConvertToDateTime(s, out dt) && this.Date == dt;
-			}
-			//TODO: NodaTime?
-			return base.Equals(obj);
-		}
+			DateTime dt => AreEqual(this.Date, dt),
+			DateTimeOffset dto => AreEqual(this.DateWithOffset, dto),
+			DateOnly d => AreEqual(this.Date, d.ToDateTime(TimeOnly.MinValue)),
+			string s => this.HasOffset
+				? JsonString.TryConvertToDateTimeOffset(s, out var dto) && this.DateWithOffset == dto
+				: JsonString.TryConvertToDateTime(s, out var dt) && this.Date == dt,
+			NodaTime.Instant i => ToInstant().Equals(i),
+			_ => base.Equals(obj),
+		};
 
 		/// <inheritdoc />
-		public override bool Equals(JsonValue? obj)
+		public override bool Equals(JsonValue? obj) => obj switch
 		{
-			switch (obj)
-			{
-				case null: return false;
-				case JsonDateTime date: return Equals(date);
-				case JsonNumber num: return num.Equals(this);
-				case JsonString str: return this.HasOffset
-					? str.TryConvertToDateTimeOffset(out var dto) && dto == this.DateWithOffset
-					: str.TryConvertToDateTime(out var dt) && dt == this.DateWithOffset;
-				//TODO: other?
-				default: return false;
-			}
-		}
+			null => false,
+			JsonDateTime date => Equals(date),
+			JsonNumber num => num.Equals(this),
+			JsonString str => this.HasOffset ? str.TryConvertToDateTimeOffset(out var dto) && dto == this.DateWithOffset : str.TryConvertToDateTime(out var dt) && dt == this.DateWithOffset,
+			_ => false
+		};
 
 		/// <inheritdoc />
 		public override bool StrictEquals(JsonValue? other) => other switch
@@ -650,7 +640,15 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		public override string ToString()
 		{
-			return this.HasOffset ? this.DateWithOffset.ToString("O") : this.Date.ToString("O");
+			if (this.HasOffset)
+			{
+				return this.DateWithOffset.ToString("O");
+			}
+
+			var date = this.Date;
+			return date.TimeOfDay == TimeSpan.Zero
+				? DateOnly.FromDateTime(date).ToString("O") // date only
+				: date.ToString("O"); // date with time
 		}
 
 		/// <inheritdoc />
@@ -672,7 +670,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns the number of milliseconds elapsed since Unix Epoch (1970-01-01 00:00:00.000 UTC)</summary>
 		/// <remarks>Note: will throw for years after 2100, for reasons similar to the Y2038 bug</remarks>
-		public override uint ToUInt32(uint _ = default)
+		public override uint ToUInt32(uint _ = 0)
 		{
 			//BUGBUG: will not throw in 2038 since it is unsigned, but will still throw in ~2100 for similar reasons!
 			return checked((uint) this.UnixTime);
@@ -680,32 +678,32 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns the number of ticks</summary>
 		/// <remarks>Similar to <see cref="DateTime.Ticks"/></remarks>
-		public override long ToInt64(long _ = default)
+		public override long ToInt64(long _ = 0)
 		{
 			return this.UtcTicks;
 		}
 
 		/// <summary>Returns the number of ticks</summary>
 		/// <remarks>Similar to <see cref="DateTime.Ticks"/></remarks>
-		public override ulong ToUInt64(ulong _ = default)
+		public override ulong ToUInt64(ulong _ = 0)
 		{
 			return (ulong) this.UtcTicks;
 		}
 
 		/// <summary>Returns the number of days elapsed since January 1st 1970 UTC</summary>
-		public override float ToSingle(float _ = default)
+		public override float ToSingle(float _ = 0)
 		{
 			return (float) this.UnixTimeDays;
 		}
 
 		/// <summary>Returns the number of days elapsed since January 1st 1970 UTC</summary>
-		public override double ToDouble(double _ = default)
+		public override double ToDouble(double _ = 0)
 		{
 			return this.UnixTimeDays;
 		}
 
 		/// <summary>Returns the number of days elapsed since January 1st 1970 UTC</summary>
-		public override decimal ToDecimal(decimal _ = default)
+		public override decimal ToDecimal(decimal _ = 0)
 		{
 			return (decimal) this.UnixTimeDays;
 		}

@@ -4683,7 +4683,7 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(value.ToDateTime(), Is.EqualTo(today.ToDateTime(default)));
 				Assert.That(value.ToDateOnly(), Is.EqualTo(today));
 				Assert.That(value.ToDateTimeOffset(), Is.EqualTo(new DateTimeOffset(today.ToDateTime(default), now.Offset)));
-				Assert.That(value.IsLocalTime, Is.True);
+				Assert.That(value.IsLocalTime, Is.False); // DateOnly are "unspecified"
 				Assert.That(value.IsUtc, Is.False);
 			}
 
