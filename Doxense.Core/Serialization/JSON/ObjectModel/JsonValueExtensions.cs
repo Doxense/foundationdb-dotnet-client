@@ -258,7 +258,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="resolver">Optional type resolver used to bind the value into a managed CLR type (<see cref="CrystalJson.DefaultResolver"/> is omitted)</param>
 		/// <exception cref="JsonBindingException">If <paramref name="value"/> is <see langword="null"/>, <see cref="JsonNull">null-like</see>, or cannot be bound to the specified type.</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static TValue Required<TValue>(this JsonValue? value, ICrystalJsonTypeResolver? resolver = null) where TValue : notnull
+		public static TValue Required<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(this JsonValue? value, ICrystalJsonTypeResolver? resolver = null) where TValue : notnull
 		{
 			if (value is null or JsonNull)
 			{
@@ -348,7 +348,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>If the value is <see langword="null"/> or "null-like", this will return the <paramref name="defaultValue"/>.</remarks>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static TValue? As<TValue>(this JsonValue? value, TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null)
+		public static TValue? As<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(this JsonValue? value, TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null)
 		{
 			value ??= JsonNull.Null;
 

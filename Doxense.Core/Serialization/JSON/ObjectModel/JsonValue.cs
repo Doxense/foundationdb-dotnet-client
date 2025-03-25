@@ -67,8 +67,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>If the target type is a Value Type, the instance will be boxed, which may cause extra memory allocations. Consider calling <see cref="Bind{TValue}"/> instance, or use any of the convenience methods like <see cref="JsonValueExtensions.Required{TValue}"/>, <see cref="JsonValueExtensions.As{TValue}"/>, ...</remarks>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
-		public abstract object? Bind([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type? type, ICrystalJsonTypeResolver? resolver = null);
+		public abstract object? Bind([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type? type, ICrystalJsonTypeResolver? resolver = null);
 
 		/// <summary>Bind this value into an instance of type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Target managed type</typeparam>
@@ -78,9 +77,8 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="JsonBindingException">If the value cannot be bound into an instance of the target type <typeparamref name="TValue"/>.</exception>
 		/// <example><c>JsonNumber.Return(123).Bind&lt;long>()</c> will return the value <c>123</c>.</example>
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public virtual TValue? Bind<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TValue>(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null)
+		public virtual TValue? Bind<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null)
 		{
 			var res = Bind(typeof(TValue), resolver);
 			return res is not null ? (TValue?) res : defaultValue;
@@ -297,9 +295,8 @@ namespace Doxense.Serialization.Json
 		/// <param name="comparer">Custom equality comparer if specified; otherwise, uses the default comparer for this type</param>
 		/// <returns><see langword="true"/> if both arguments are considered equal; otherwise, <see langword="false"/></returns>
 		/// <remarks>This method tries to perform an optimized comparison, and should perform less memory allocations than calling </remarks>
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public virtual bool ValueEquals<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TValue>
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>
 			(TValue? value, IEqualityComparer<TValue>? comparer = null)
 			=> (comparer ?? EqualityComparer<TValue>.Default).Equals(Bind<TValue>(), value);
 
@@ -847,7 +844,7 @@ namespace Doxense.Serialization.Json
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public bool TryGet<TValue>(string key, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
+		public bool TryGet<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(string key, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
 		{
 			if (TryGetValue(key, out var child) && child is not (null or JsonNull))
 			{
@@ -875,7 +872,7 @@ namespace Doxense.Serialization.Json
 #if !NET9_0_OR_GREATER
 		[EditorBrowsable(EditorBrowsableState.Never)]
 #endif
-		public bool TryGet<TValue>(ReadOnlySpan<char> key, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
+		public bool TryGet<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlySpan<char> key, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
 		{
 			if (TryGetValue(key, out var child) && child is not (null or JsonNull))
 			{
@@ -903,7 +900,7 @@ namespace Doxense.Serialization.Json
 #if !NET9_0_OR_GREATER
 		[EditorBrowsable(EditorBrowsableState.Never)]
 #endif
-		public bool TryGet<TValue>(ReadOnlyMemory<char> key, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
+		public bool TryGet<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlyMemory<char> key, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
 		{
 			if (TryGetValue(key, out var child) && child is not (null or JsonNull))
 			{
@@ -929,7 +926,7 @@ namespace Doxense.Serialization.Json
 		/// </example>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public bool TryGet<TValue>(string key, ICrystalJsonTypeResolver? resolver, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
+		public bool TryGet<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(string key, ICrystalJsonTypeResolver? resolver, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
 		{
 			if (TryGetValue(key, out var child) && child is not (null or JsonNull))
 			{
@@ -957,7 +954,7 @@ namespace Doxense.Serialization.Json
 #if !NET9_0_OR_GREATER
 		[EditorBrowsable(EditorBrowsableState.Never)]
 #endif
-		public bool TryGet<TValue>(ReadOnlySpan<char> key, ICrystalJsonTypeResolver? resolver, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
+		public bool TryGet<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlySpan<char> key, ICrystalJsonTypeResolver? resolver, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
 		{
 			if (TryGetValue(key, out var child) && child is not (null or JsonNull))
 			{
@@ -985,7 +982,7 @@ namespace Doxense.Serialization.Json
 #if !NET9_0_OR_GREATER
 		[EditorBrowsable(EditorBrowsableState.Never)]
 #endif
-		public bool TryGet<TValue>(ReadOnlyMemory<char> key, ICrystalJsonTypeResolver? resolver, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
+		public bool TryGet<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlyMemory<char> key, ICrystalJsonTypeResolver? resolver, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
 		{
 			if (TryGetValue(key, out var child) && child is not (null or JsonNull))
 			{
@@ -1016,7 +1013,7 @@ namespace Doxense.Serialization.Json
 		/// </example>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public TValue Get<TValue>(string key) where TValue : notnull => GetValue(key).Required<TValue>();
+		public TValue Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(string key) where TValue : notnull => GetValue(key).Required<TValue>();
 
 		/// <summary>Gets the value of the <b>required</b> field with the specified name, converted into type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Type of the value</typeparam>
@@ -1041,7 +1038,7 @@ namespace Doxense.Serialization.Json
 #if !NET9_0_OR_GREATER
 		[EditorBrowsable(EditorBrowsableState.Never)]
 #endif
-		public TValue Get<TValue>(ReadOnlySpan<char> key) where TValue : notnull => GetValue(key).Required<TValue>();
+		public TValue Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlySpan<char> key) where TValue : notnull => GetValue(key).Required<TValue>();
 
 		/// <summary>Gets the value of the <b>required</b> field with the specified name, converted into type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Type of the value</typeparam>
@@ -1066,7 +1063,7 @@ namespace Doxense.Serialization.Json
 #if !NET9_0_OR_GREATER
 		[EditorBrowsable(EditorBrowsableState.Never)]
 #endif
-		public TValue Get<TValue>(ReadOnlyMemory<char> key) where TValue : notnull => GetValue(key).Required<TValue>();
+		public TValue Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlyMemory<char> key) where TValue : notnull => GetValue(key).Required<TValue>();
 
 		/// <summary>Gets the value of the <b>required</b> field with the specified name, converted into type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Type of the value</typeparam>
@@ -1081,25 +1078,7 @@ namespace Doxense.Serialization.Json
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		// ReSharper disable once MethodOverloadWithOptionalParameter
-		public TValue Get<TValue>(string key, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TValue : notnull => GetValueOrDefault(key).RequiredField(key, message).Required<TValue>(resolver);
-
-		/// <summary>Gets the value of the <b>required</b> field with the specified name, converted into type <typeparamref name="TValue"/></summary>
-		/// <typeparam name="TValue">Type of the value</typeparam>
-		/// <param name="key">Name of the field</param>
-		/// <param name="resolver">Optional custom type resolver</param>
-		/// <param name="message">Optional error message if the field is null or missing</param>
-		/// <returns>Value converted into an instance of type <typeparamref name="TValue"/>, or an exception if the value is null or missing</returns>
-		/// <remarks>
-		/// <para>This method can never return <see langword="null"/>, which means that there is no point in using a <see cref="Nullable{T}">nullable value type</see> for <typeparamref name="TValue"/>.</para>
-		/// </remarks>
-		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
-		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if !NET9_0_OR_GREATER
-		[EditorBrowsable(EditorBrowsableState.Never)]
-#endif
-		// ReSharper disable once MethodOverloadWithOptionalParameter
-		public TValue Get<TValue>(ReadOnlySpan<char> key, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TValue : notnull => GetValueOrDefault(key).RequiredField(key, message).Required<TValue>(resolver);
+		public TValue Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(string key, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TValue : notnull => GetValueOrDefault(key).RequiredField(key, message).Required<TValue>(resolver);
 
 		/// <summary>Gets the value of the <b>required</b> field with the specified name, converted into type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Type of the value</typeparam>
@@ -1117,7 +1096,25 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Never)]
 #endif
 		// ReSharper disable once MethodOverloadWithOptionalParameter
-		public TValue Get<TValue>(ReadOnlyMemory<char> key, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TValue : notnull => GetValueOrDefault(key).RequiredField(key, message).Required<TValue>(resolver);
+		public TValue Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlySpan<char> key, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TValue : notnull => GetValueOrDefault(key).RequiredField(key, message).Required<TValue>(resolver);
+
+		/// <summary>Gets the value of the <b>required</b> field with the specified name, converted into type <typeparamref name="TValue"/></summary>
+		/// <typeparam name="TValue">Type of the value</typeparam>
+		/// <param name="key">Name of the field</param>
+		/// <param name="resolver">Optional custom type resolver</param>
+		/// <param name="message">Optional error message if the field is null or missing</param>
+		/// <returns>Value converted into an instance of type <typeparamref name="TValue"/>, or an exception if the value is null or missing</returns>
+		/// <remarks>
+		/// <para>This method can never return <see langword="null"/>, which means that there is no point in using a <see cref="Nullable{T}">nullable value type</see> for <typeparamref name="TValue"/>.</para>
+		/// </remarks>
+		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if !NET9_0_OR_GREATER
+		[EditorBrowsable(EditorBrowsableState.Never)]
+#endif
+		// ReSharper disable once MethodOverloadWithOptionalParameter
+		public TValue Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlyMemory<char> key, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TValue : notnull => GetValueOrDefault(key).RequiredField(key, message).Required<TValue>(resolver);
 
 		/// <summary>Gets the value of the <i>optional</i> field with the specified name, converted into type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Type of the value</typeparam>
@@ -1139,32 +1136,7 @@ namespace Doxense.Serialization.Json
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? Get<TValue>(string key, TValue defaultValue) => GetValueOrDefault(key).As(defaultValue);
-
-		/// <summary>Gets the value of the <i>optional</i> field with the specified name, converted into type <typeparamref name="TValue"/></summary>
-		/// <typeparam name="TValue">Type of the value</typeparam>
-		/// <param name="key">Name of the field</param>
-		/// <param name="defaultValue">Value returned if the value is null or missing</param>
-		/// <returns>Value converted into an instance of type <typeparamref name="TValue"/>, or <paramref name="defaultValue"/> if the value is null or missing</returns>
-		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
-		/// <example>
-		/// ({ "Hello": "World"}).Get&lt;string&gt;("Hello", "not_found") // => <c>"World"</c>
-		/// ({ "Hello": "123"}).Get&lt;int&gt;("Hello", -1) // => <c>123</c>
-		/// ({ }).Get&lt;string&gt;("Hello", null) // => <see langword="null"/>
-		/// ({ }).Get&lt;string&gt;("Hello", "not_found") // => <c>"not_found"</c>
-		/// ({ }).Get&lt;int&gt;("Hello", -1) // => <c>-1</c>
-		/// ({ }).Get&lt;int?&gt;("Hello", null) // => <see langword="null"/>
-		/// ({ "Hello": null }).Get&lt;string&gt;("Hello", "not_found") // => <c>"not_found"</c>
-		/// ({ "Hello": null }).Get&lt;int&gt;("Hello") // => Exception
-		/// ({ "Hello": null }).Get&lt;int?&gt;("Hello") // => Exception
-		/// </example>
-		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if !NET9_0_OR_GREATER
-		[EditorBrowsable(EditorBrowsableState.Never)]
-#endif
-		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? Get<TValue>(ReadOnlySpan<char> key, TValue defaultValue) => GetValueOrDefault(key).As(defaultValue);
+		public TValue? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(string key, TValue defaultValue) => GetValueOrDefault(key).As(defaultValue);
 
 		/// <summary>Gets the value of the <i>optional</i> field with the specified name, converted into type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Type of the value</typeparam>
@@ -1189,7 +1161,32 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Never)]
 #endif
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? Get<TValue>(ReadOnlyMemory<char> key, TValue defaultValue) => GetValueOrDefault(key).As(defaultValue);
+		public TValue? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlySpan<char> key, TValue defaultValue) => GetValueOrDefault(key).As(defaultValue);
+
+		/// <summary>Gets the value of the <i>optional</i> field with the specified name, converted into type <typeparamref name="TValue"/></summary>
+		/// <typeparam name="TValue">Type of the value</typeparam>
+		/// <param name="key">Name of the field</param>
+		/// <param name="defaultValue">Value returned if the value is null or missing</param>
+		/// <returns>Value converted into an instance of type <typeparamref name="TValue"/>, or <paramref name="defaultValue"/> if the value is null or missing</returns>
+		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
+		/// <example>
+		/// ({ "Hello": "World"}).Get&lt;string&gt;("Hello", "not_found") // => <c>"World"</c>
+		/// ({ "Hello": "123"}).Get&lt;int&gt;("Hello", -1) // => <c>123</c>
+		/// ({ }).Get&lt;string&gt;("Hello", null) // => <see langword="null"/>
+		/// ({ }).Get&lt;string&gt;("Hello", "not_found") // => <c>"not_found"</c>
+		/// ({ }).Get&lt;int&gt;("Hello", -1) // => <c>-1</c>
+		/// ({ }).Get&lt;int?&gt;("Hello", null) // => <see langword="null"/>
+		/// ({ "Hello": null }).Get&lt;string&gt;("Hello", "not_found") // => <c>"not_found"</c>
+		/// ({ "Hello": null }).Get&lt;int&gt;("Hello") // => Exception
+		/// ({ "Hello": null }).Get&lt;int?&gt;("Hello") // => Exception
+		/// </example>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if !NET9_0_OR_GREATER
+		[EditorBrowsable(EditorBrowsableState.Never)]
+#endif
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		public TValue? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlyMemory<char> key, TValue defaultValue) => GetValueOrDefault(key).As(defaultValue);
 
 		/// <summary>Gets the value of the <i>optional</i> field with the specified name, converted into type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Type of the value</typeparam>
@@ -1201,7 +1198,7 @@ namespace Doxense.Serialization.Json
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? Get<TValue>(string key, TValue defaultValue, ICrystalJsonTypeResolver? resolver) => GetValueOrDefault(key).As(defaultValue, resolver);
+		public TValue? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(string key, TValue defaultValue, ICrystalJsonTypeResolver? resolver) => GetValueOrDefault(key).As(defaultValue, resolver);
 
 		/// <summary>Gets the value of the <i>optional</i> field with the specified name, converted into type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Type of the value</typeparam>
@@ -1216,7 +1213,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Never)]
 #endif
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? Get<TValue>(ReadOnlySpan<char> key, TValue defaultValue, ICrystalJsonTypeResolver? resolver) => GetValueOrDefault(key).As(defaultValue, resolver);
+		public TValue? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlySpan<char> key, TValue defaultValue, ICrystalJsonTypeResolver? resolver) => GetValueOrDefault(key).As(defaultValue, resolver);
 
 		/// <summary>Gets the value of the <i>optional</i> field with the specified name, converted into type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Type of the value</typeparam>
@@ -1231,7 +1228,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Never)]
 #endif
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? Get<TValue>(ReadOnlyMemory<char> key, TValue defaultValue, ICrystalJsonTypeResolver? resolver) => GetValueOrDefault(key).As(defaultValue, resolver);
+		public TValue? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlyMemory<char> key, TValue defaultValue, ICrystalJsonTypeResolver? resolver) => GetValueOrDefault(key).As(defaultValue, resolver);
 
 		/// <summary>Gets the <b>required</b> JSON Object that corresponds to the field with the specified name.</summary>
 		/// <param name="key">Name of the field that is expected to be an object.</param>
@@ -1478,7 +1475,7 @@ namespace Doxense.Serialization.Json
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public bool TryGet<TValue>(int index, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
+		public bool TryGet<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(int index, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
 		{
 			if (TryGetValue(index, out var child) && child is not (null or JsonNull))
 			{
@@ -1504,7 +1501,7 @@ namespace Doxense.Serialization.Json
 		/// </example>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public bool TryGet<TValue>(int index, ICrystalJsonTypeResolver? resolver, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
+		public bool TryGet<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(int index, ICrystalJsonTypeResolver? resolver, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
 		{
 			if (TryGetValue(index, out var child) && child is not (null or JsonNull))
 			{
@@ -1530,7 +1527,7 @@ namespace Doxense.Serialization.Json
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public bool TryGet<TValue>(Index index, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
+		public bool TryGet<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(Index index, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
 		{
 			if (TryGetValue(index, out var child) && child is not (null or JsonNull))
 			{
@@ -1556,7 +1553,7 @@ namespace Doxense.Serialization.Json
 		/// </example>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public bool TryGet<TValue>(Index index, ICrystalJsonTypeResolver? resolver, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
+		public bool TryGet<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(Index index, ICrystalJsonTypeResolver? resolver, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
 		{
 			if (TryGetValue(index, out var child) && child is not (null or JsonNull))
 			{
@@ -1573,7 +1570,7 @@ namespace Doxense.Serialization.Json
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public TValue Get<TValue>(int index) where TValue : notnull => GetValue(index).Required<TValue>();
+		public TValue Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(int index) where TValue : notnull => GetValue(index).Required<TValue>();
 
 		/// <summary>Gets the converted value of the <b>required</b> item at the specified index, if it is contained inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
@@ -1584,7 +1581,7 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		// ReSharper disable once MethodOverloadWithOptionalParameter
-		public TValue Get<TValue>(int index, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TValue : notnull => GetValueOrDefault(index).RequiredIndex(index, message).Required<TValue>(resolver);
+		public TValue Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(int index, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TValue : notnull => GetValueOrDefault(index).RequiredIndex(index, message).Required<TValue>(resolver);
 
 		/// <summary>Gets the converted value of the <b>required</b> item at the specified index, if it is contained inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
@@ -1603,7 +1600,7 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		// ReSharper disable once MethodOverloadWithOptionalParameter
-		public TValue Get<TValue>(Index index, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TValue : notnull => GetValue(index).Required<TValue>(resolver);
+		public TValue Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(Index index, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TValue : notnull => GetValue(index).Required<TValue>(resolver);
 
 		/// <summary>Gets the converted value at the specified index, if it is contained inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
@@ -1613,7 +1610,7 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? Get<TValue>(int index, TValue defaultValue) => GetValueOrDefault(index).As(defaultValue);
+		public TValue? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(int index, TValue defaultValue) => GetValueOrDefault(index).As(defaultValue);
 
 		/// <summary>Gets the converted value at the specified index, if it is contained inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
@@ -1624,7 +1621,7 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? Get<TValue>(int index, TValue defaultValue, ICrystalJsonTypeResolver? resolver) => GetValueOrDefault(index).As(defaultValue, resolver);
+		public TValue? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(int index, TValue defaultValue, ICrystalJsonTypeResolver? resolver) => GetValueOrDefault(index).As(defaultValue, resolver);
 
 		/// <summary>Gets the converted value at the specified index, if it is contained inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
@@ -1634,7 +1631,7 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? Get<TValue>(Index index, TValue defaultValue) => GetValueOrDefault(index).As(defaultValue);
+		public TValue? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(Index index, TValue defaultValue) => GetValueOrDefault(index).As(defaultValue);
 
 		/// <summary>Gets the converted value at the specified index, if it is contained inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
@@ -1645,7 +1642,7 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? Get<TValue>(Index index, TValue defaultValue, ICrystalJsonTypeResolver? resolver) => GetValueOrDefault(index).As(defaultValue, resolver);
+		public TValue? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(Index index, TValue defaultValue, ICrystalJsonTypeResolver? resolver) => GetValueOrDefault(index).As(defaultValue, resolver);
 
 		/// <summary>Gets the <b>required</b> JSON Array that corresponds to the field with the specified name.</summary>
 		/// <param name="key">Name of the field that is expected to be an array.</param>
@@ -2007,7 +2004,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>the value found at this location, converted into an instance of type <typeparamref name="TValue"/>, or and exception if there was no match, or the matched value is null.</returns>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Always)]
-		public TValue GetPath<TValue>(string path) where TValue : notnull
+		public TValue GetPath<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(string path) where TValue : notnull
 		{
 			return GetPathCore(JsonPath.Create(path), null, required: true).Required<TValue>();
 		}
@@ -2017,7 +2014,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>the value found at this location, converted into an instance of type <typeparamref name="TValue"/>, or and exception if there was no match, or the matched value is null.</returns>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Always)]
-		public TValue GetPath<TValue>(ReadOnlyMemory<char> path) where TValue : notnull
+		public TValue GetPath<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlyMemory<char> path) where TValue : notnull
 		{
 			return GetPathCore(JsonPath.Create(path), null, required: true).Required<TValue>();
 		}
@@ -2029,7 +2026,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? GetPath<TValue>(string path, TValue defaultValue)
+		public TValue? GetPath<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(string path, TValue defaultValue)
 		{
 			return GetPathCore(JsonPath.Create(path), JsonNull.Missing, required: false).As(defaultValue);
 		}
@@ -2041,7 +2038,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? GetPath<TValue>(ReadOnlyMemory<char> path, TValue defaultValue)
+		public TValue? GetPath<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlyMemory<char> path, TValue defaultValue)
 		{
 			return GetPathCore(JsonPath.Create(path), JsonNull.Missing, required: false).As(defaultValue);
 		}
@@ -2051,7 +2048,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>the value found at this location, converted into an instance of type <typeparamref name="TValue"/>, or and exception if there was no match, or the matched value is null.</returns>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Always)]
-		public TValue GetPath<TValue>(JsonPath path) where TValue : notnull
+		public TValue GetPath<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(JsonPath path) where TValue : notnull
 		{
 			return GetPathCore(path, null, required: true).Required<TValue>();
 		}
@@ -2063,7 +2060,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? GetPath<TValue>(JsonPath path, TValue defaultValue)
+		public TValue? GetPath<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(JsonPath path, TValue defaultValue)
 		{
 			return GetPathCore(path, JsonNull.Missing, required: false).As(defaultValue);
 		}

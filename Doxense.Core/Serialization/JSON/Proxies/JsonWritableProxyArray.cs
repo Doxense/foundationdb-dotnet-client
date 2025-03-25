@@ -27,11 +27,13 @@
 namespace Doxense.Serialization.Json
 {
 	using System.Collections;
+	using System.Diagnostics.CodeAnalysis;
 
 	/// <summary>Wraps a <see cref="JsonArray"/> into a typed mutable proxy that emulates an array of elements of type <typeparamref name="TValue"/></summary>
 	/// <typeparam name="TValue">Emulated element type</typeparam>
 	[PublicAPI]
-	public readonly struct JsonWritableProxyArray<TValue> : IList<TValue>, IJsonProxyNode, IJsonSerializable, IJsonPackable
+	[CollectionBuilder(typeof(JsonWritableProxyArrayBuilder), nameof(JsonWritableProxyArrayBuilder.Create))]
+	public readonly struct JsonWritableProxyArray<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue> : IList<TValue>, IJsonProxyNode, IJsonSerializable, IJsonPackable
 	{
 
 		private readonly MutableJsonValue m_value;

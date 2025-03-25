@@ -372,10 +372,9 @@ namespace Doxense.Serialization.Json
 
 		/// <inheritdoc />
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public override TValue? Bind<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TValue>
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>
 			(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null) where TValue : default
 		{
 			#region <JIT_HACK>
@@ -403,9 +402,8 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public override object? Bind(
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type? type,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type? type,
 			ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (type == typeof(DateTimeOffset)) return this.DateWithOffset;
