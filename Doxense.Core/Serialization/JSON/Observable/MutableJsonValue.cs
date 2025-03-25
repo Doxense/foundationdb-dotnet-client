@@ -1317,7 +1317,7 @@ namespace Doxense.Serialization.Json
 				newJson = selfJson;
 			}
 
-			selfJson.Insert(offset, value);
+			newJson.Insert(offset, value);
 
 			// notify the parent chain if we changed the current json instance
 			if (!ReferenceEquals(this.Json, newJson))
