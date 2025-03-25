@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -119,14 +119,14 @@ namespace System
 		/// <summary>Generates a new random 64-bit UUID, using the specified random number generator</summary>
 		/// <param name="rng">Random number generator</param>
 		/// <param name="minValue">The inclusive lower bound of the random UUID to be generated.</param>
-		/// <param name="maxValue">The exclusive uppper bound of the random UUID to be generated.</param>
+		/// <param name="maxValue">The exclusive upper bound of the random UUID to be generated.</param>
 		/// <returns>A random <see cref="Uuid64"/> that is greater than or equal to <paramref name="minValue"/> and less than <paramref name="maxValue"/></returns>
 		public static Uuid64 Random(Random rng, Uuid64 minValue, Uuid64 maxValue) => Random(rng, minValue.m_value, maxValue.m_value);
 
 		/// <summary>Generates a new random 64-bit UUID, using the specified random number generator</summary>
 		/// <param name="rng">Random number generator</param>
 		/// <param name="minValue">The inclusive lower bound of the random UUID to be generated.</param>
-		/// <param name="maxValue">The exclusive uppper bound of the random UUID to be generated.</param>
+		/// <param name="maxValue">The exclusive upper bound of the random UUID to be generated.</param>
 		/// <returns>A random <see cref="Uuid64"/> that is greater than or equal to <paramref name="minValue"/> and less than <paramref name="maxValue"/></returns>
 		public static Uuid64 Random(Random rng, ulong minValue, ulong maxValue)
 		{
@@ -149,13 +149,13 @@ namespace System
 
 		/// <summary>Generates a new random 64-bit UUID, using the specified random number generator</summary>
 		/// <param name="rng">Random number generator</param>
-		/// <param name="maxValue">The exclusive uppper bound of the random UUID to be generated.</param>
+		/// <param name="maxValue">The exclusive upper bound of the random UUID to be generated.</param>
 		/// <returns>A random <see cref="Uuid64"/> that is less than <paramref name="maxValue"/></returns>
 		public static Uuid64 Random(Random rng, Uuid64 maxValue) => Random(rng, maxValue.m_value);
 
 		/// <summary>Generates a new random 64-bit UUID, using the specified random number generator</summary>
 		/// <param name="rng">Random number generator</param>
-		/// <param name="maxValue">The exclusive uppper bound of the random UUID to be generated.</param>
+		/// <param name="maxValue">The exclusive upper bound of the random UUID to be generated.</param>
 		/// <returns>A random <see cref="Uuid64"/> that is less than <paramref name="maxValue"/></returns>
 		public static Uuid64 Random(Random rng, ulong maxValue)
 		{
@@ -507,10 +507,10 @@ namespace System
 		/// <param name="formatProvider">An object that supplies culture-specific formatting information. Only used for the "R" format.</param>
 		/// <returns>The value of this <see cref="Uuid64"/>, using the specified format.</returns>
 		/// <example>
-		/// <p>The <b>D</b> format encodes the value as two groups of 8 hexadecimal digits, separated by an hyphen: "01234567-89abcdef" (17 characters).</p>
-		/// <p>The <b>X</b> format encodes the value as a single group of 16 hexadecimal digits: "0123456789abcdef" (16 characters).</p>
-		/// <p>The <b>B</b> format is equivalent to the <b>D</b> format, but surrounded with '{' and '}': "{01234567-89abcdef}" (19 characters).</p>
-		/// <p>The <b>R</b> format encodes the value as a decimal number "1234567890" (1 to 20 characters) which can be parsed as an UInt64 without loss.</p>
+		/// <p>The <b>D</b> format encodes the value as two groups of 8 hexadecimal digits, separated by a hyphen: <c>"01234567-89abcdef"</c> (17 characters).</p>
+		/// <p>The <b>X</b> format encodes the value as a single group of 16 hexadecimal digits: <c>"0123456789abcdef"</c> (16 characters).</p>
+		/// <p>The <b>B</b> format is equivalent to the <b>D</b> format, but surrounded with <c>'{'</c> and <c>'}'</c>: <c>"{01234567-89abcdef}"</c> (19 characters).</p>
+		/// <p>The <b>R</b> format encodes the value as a decimal number <c>"1234567890"</c> (1 to 20 characters) which can be parsed as an UInt64 without loss.</p>
 		/// <p>The <b>C</b> format uses a compact base-62 encoding that preserves lexicographical ordering, composed of digits, uppercase alpha and lowercase alpha, suitable for compact representation that can fit in a querystring.</p>
 		/// <p>The <b>Z</b> format is equivalent to the <b>C</b> format, but with extra padding so that the string is always 11 characters long.</p>
 		/// </example>
@@ -924,7 +924,7 @@ namespace System
 			return INVALID_CHAR;
 		}
 
-		private static bool TryCharsToHexsUnsafe(ReadOnlySpan<char> chars, out uint result)
+		private static bool TryCharsToHexUnsafe(ReadOnlySpan<char> chars, out uint result)
 		{
 			int word = 0;
 			for (int i = 0; i < 8; i++)
@@ -944,8 +944,8 @@ namespace System
 		private static bool TryDecode16Unsafe(ReadOnlySpan<char> chars, bool separator, out Uuid64 result)
 		{
 			if ((!separator || chars[8] == '-')
-			 && TryCharsToHexsUnsafe(chars, out uint hi)
-			 && TryCharsToHexsUnsafe(chars.Slice(separator ? 9 : 8), out uint lo))
+			 && TryCharsToHexUnsafe(chars, out uint hi)
+			 && TryCharsToHexUnsafe(chars.Slice(separator ? 9 : 8), out uint lo))
 			{
 				result = new Uuid64(((ulong)hi << 32) | lo);
 				return true;
@@ -1198,7 +1198,7 @@ namespace System
 			/// <summary>Return a new random 64-bit UUID</summary>
 			/// <returns>Uuid64 that contains 64 bits worth of randomness.</returns>
 			/// <remarks>
-			/// <p>This methods needs to acquire a lock. If multiple threads needs to generate ids concurrently, you may need to create an instance of this class for each threads.</p>
+			/// <p>This method needs to acquire a lock. If multiple threads needs to generate ids concurrently, you may need to create an instance of this class for each thread.</p>
 			/// <p>The uniqueness of the generated uuids depends on the quality of the random number generator. If you cannot tolerate collisions, you either have to check if a newly generated uid already exists, or use a different kind of generator.</p>
 			/// </remarks>
 			[Pure]
@@ -1211,7 +1211,7 @@ namespace System
 				{
 					// get 8 bytes of randomness (0 allowed)
 					this.Rng.GetBytes(this.Scratch);
-					//note: do *NOT* call GetBytes(byte[], int, int) because it creates creates a temp buffer, calls GetBytes(byte[]) and copy the result back! (as of .NET 4.7.1)
+					//note: do *NOT* call GetBytes(byte[], int, int) because it creates a temp buffer, calls GetBytes(byte[]) and copy the result back! (as of .NET 4.7.1)
 					//TODO: PERF: use Span<byte> APIs once (if?) they become available!
 					return Uuid64.Read(this.Scratch);
 				}

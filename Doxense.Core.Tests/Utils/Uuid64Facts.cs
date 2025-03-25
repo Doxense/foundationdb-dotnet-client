@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -357,7 +357,7 @@ namespace Doxense.Core.Tests
 			var rng = this.Rnd;
 
 			Uuid64 uuid;
-			for (int i = 0; i < 1_000; i++)
+			for (int i = 0; i < 10_000; i++)
 			{
 				uuid = Uuid64.Random(rng);
 				Assert.That(uuid.ToUInt64(), Is.GreaterThanOrEqualTo(0).And.LessThan(ulong.MaxValue));
@@ -369,7 +369,7 @@ namespace Doxense.Core.Tests
 				Assert.That(uuid.ToUInt64(), Is.GreaterThanOrEqualTo(0).And.LessThan(0x123456789));
 
 				uuid = Uuid64.Random(rng, ulong.MaxValue);
-				Assert.That(uuid.ToUInt64(), Is.GreaterThanOrEqualTo(0).And.LessThan(0xFFFF_0000_00000000));
+				Assert.That(uuid.ToUInt64(), Is.GreaterThanOrEqualTo(0).And.LessThan(ulong.MaxValue));
 
 				uuid = Uuid64.Random(rng, ulong.MaxValue - 1);
 				Assert.That(uuid.ToUInt64(), Is.GreaterThanOrEqualTo(0).And.LessThan(ulong.MaxValue - 1));
