@@ -40,12 +40,14 @@ namespace Doxense.Serialization.Json
 
 		private readonly IJsonConverter<TValue> m_converter;
 
-		public JsonWritableProxyArray(MutableJsonValue value, IJsonConverter<TValue>? converter = null, IJsonProxyNode? parent = null, JsonPathSegment segment = default)
+		private readonly IEqualityComparer<TValue> m_comparer;
+
+		public JsonWritableProxyArray(MutableJsonValue value, IJsonConverter<TValue>? converter = null, IJsonProxyNode? parent = null, JsonPathSegment segment = default, IEqualityComparer<TValue>? comparer = null)
 		{
 			m_value = value;
 			m_converter = converter ?? RuntimeJsonConverter<TValue>.Default;
+			m_comparer = comparer ?? EqualityComparer<TValue>.Default;
 		}
-
 
 		#region IJsonProxyNode...
 
@@ -119,13 +121,17 @@ namespace Doxense.Serialization.Json
 		IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
 
 		/// <inheritdoc />
-		public void Add(TValue item) => m_value.Add(m_converter.Pack(item));
+		public void Add(TValue item)
+		{
+			// this method could be called on an empty instance by the compiler when the call-site is a collection expression: (foo).SomeArray = [ 1, 2, 3 ];
+			// => in theory we have defined a CollectionBuilder for this type, but the behavior may change in future versions?
+			Contract.Debug.Requires(m_value != null && m_converter != null, "Invalid collection expression initializer");
+
+			m_value.Add(m_converter.Pack(item));
+		}
 
 		/// <inheritdoc />
 		public void Clear() => m_value.Clear();
-
-		/// <inheritdoc />
-		bool ICollection<TValue>.Contains(TValue item) => throw new NotSupportedException("This operation is too costly.");
 
 		/// <inheritdoc />
 		public void CopyTo(TValue[] array, int arrayIndex)
@@ -185,6 +191,20 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		bool ICollection<TValue>.IsReadOnly => false;
 
+
+		/// <inheritdoc />
+		public TValue this[int index]
+		{
+			get => m_converter.Unpack(m_value.Json[index]);
+			set => m_value.Set(index, m_converter.Pack(value));
+		}
+
+		public TValue this[Index index]
+		{
+			get => m_converter.Unpack(m_value.Json[index]);
+			set => m_value.Set(index, m_converter.Pack(value));
+		}
+
 		/// <inheritdoc />
 		public void Insert(int index, TValue item) => m_value.Insert(index, m_converter.Pack(item));
 
@@ -192,10 +212,239 @@ namespace Doxense.Serialization.Json
 		public void RemoveAt(int index) => m_value.RemoveAt(index);
 
 		/// <inheritdoc />
-		public TValue this[int index]
+		public bool Contains(TValue item)
 		{
-			get => m_converter.Unpack(m_value.Json[index]);
-			set => m_value.Set(index, m_converter.Pack(value));
+			if (m_value.Json is not JsonArray arr)
+			{
+				if (m_value.Json is JsonNull)
+				{
+					return false;
+				}
+				throw OperationRequiresArray();
+			}
+
+			foreach (var child in arr.GetSpan())
+			{
+				if (child.ValueEquals(item, m_comparer))
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+
+		/// <summary>Find the index of the first occurrence of the specified value in this array.</summary>
+		/// <param name="item">The item to locate in the array.</param>
+		/// <returns>The zero-based index of the first occurrence of <paramref name="item" /> within the entire array, if found; otherwise, -1</returns>
+		/// <exception cref="InvalidOperationException">If the wrapped JSON value is neither null nor an array.</exception>
+		public int IndexOf(TValue item) => IndexOf(item, 0);
+
+		/// <summary>Find the index of the first occurrence of the specified value in this array.</summary>
+		/// <param name="item">The item to locate in the array.</param>
+		/// <param name="index">The zero-based starting index of the search. 0 (zero) is valid in an empty array.</param>
+		/// <returns>The zero-based index of the first occurrence of <paramref name="item" /> within the range of elements in the array that extends from <paramref name="index" /> to the last element, if found; otherwise, -1</returns>
+		/// <exception cref="InvalidOperationException">If the wrapped JSON value is neither null nor an array.</exception>
+		public int IndexOf(TValue item, int index)
+		{
+			Contract.Positive(index);
+			const int NOT_FOUND = -1;
+
+			if (m_value.Json is not JsonArray arr)
+			{
+				if (m_value.Json is JsonNull)
+				{
+					return NOT_FOUND;
+				}
+				throw OperationRequiresArray();
+			}
+
+			var span = arr.GetSpan();
+			for (int i = index; i < span.Length; i++)
+			{
+				if (span[i].ValueEquals(item, m_comparer))
+				{
+					return i;
+				}
+			}
+
+			return NOT_FOUND;
+		}
+
+		/// <summary>Searches for an item that matches the conditions defined by the specified predicate, and returns the first occurrence within the entire array.</summary>
+		/// <param name="match">The <see cref="T:System.Predicate`1" /> delegate that defines the conditions of the element to search for.</param>
+		/// <returns>The first element that matches the conditions defined by the specified predicate, if found; otherwise, the default value for type <typeparamref name="TValue" />.</returns>
+		/// <exception cref="InvalidOperationException">If the wrapped JSON value is neither null nor an array.</exception>
+		public TValue? Find(Predicate<TValue> match)
+		{
+			if (m_value.Json is not JsonArray arr)
+			{
+				if (m_value.Json is JsonNull)
+				{
+					return default;
+				}
+				throw OperationRequiresArray();
+			}
+
+			foreach (var item in arr.GetSpan())
+			{
+				var value = m_converter.Unpack(item);
+				if (match(value))
+				{
+					return value;
+				}
+			}
+
+			return default;
+		}
+
+		/// <summary>Retrieves all the values that match the conditions defined by the specified predicate.</summary>
+		/// <param name="match">The <see cref="T:System.Predicate`1" /> delegate that defines the conditions of the element to search for.</param>
+		/// <returns>A <see cref="T:System.Collections.Generic.List`1" /> containing all the values that match the conditions defined by the specified predicate, if found; otherwise, an empty <see cref="T:System.Collections.Generic.List`1" />.</returns>
+		/// <exception cref="InvalidOperationException">If the wrapped JSON value is neither null nor an array.</exception>
+		public List<TValue> FindAll(Predicate<TValue> match)
+		{
+			if (m_value.Json is not JsonArray arr)
+			{
+				if (m_value.Json is JsonNull)
+				{
+					return [ ];
+				}
+				throw OperationRequiresArray();
+			}
+
+			var matches = new List<TValue>();
+			foreach (var item in arr.GetSpan())
+			{
+				var value = m_converter.Unpack(item);
+				if (match(value))
+				{
+					matches.Add(value);
+				}
+			}
+			return matches;
+		}
+
+		/// <summary>Removes the first occurence of a specific value from the array.</summary>
+		/// <param name="item">The value to remove from the array.</param>
+		/// <returns><see langword="true" /> if <paramref name="item" /> is found and removed; otherwise, <see langword="false" />.</returns>
+		/// <exception cref="InvalidOperationException">If the wrapped JSON value is neither null nor an array.</exception>
+		public bool Remove(TValue item)
+		{
+			if (m_value.Json is not JsonArray arr)
+			{
+				if (m_value.Json is JsonNull)
+				{
+					return false;
+				}
+				throw OperationRequiresArray();
+			}
+
+			var span = arr.GetSpan();
+			for (int i = 0; i < span.Length; i++)
+			{
+				if (span[i].ValueEquals(item, m_comparer))
+				{
+					m_value.RemoveAt(i);
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		/// <summary>Applies an accumulator function over the items on this array. The specified seed value is used as the initial accumulator value.</summary>
+		/// <typeparam name="TAccumulate">The type of the accumulator value.</typeparam>
+		/// <param name="seed">The initial accumulator value.</param>
+		/// <param name="handler">An accumulator function to be invoked on each element.</param>
+		/// <returns>The final accumulator value.</returns>
+		/// <exception cref="InvalidOperationException">If the wrapped JSON value is neither null nor an array.</exception>
+		public TAccumulate Aggregate<TAccumulate>(TAccumulate seed, Func<TAccumulate, TValue, TAccumulate> handler)
+		{
+			if (m_value.Json is not JsonArray arr)
+			{
+				if (m_value.Json is JsonNull)
+				{
+					return seed;
+				}
+				throw OperationRequiresArray();
+			}
+
+			var accumulator = seed;
+			foreach (var item in arr.GetSpan())
+			{
+				accumulator = handler(accumulator, m_converter.Unpack(item));
+			}
+
+			return accumulator;
+		}
+
+		/// <summary>Applies an accumulator function over the items on this array. The specified seed value is used as the initial accumulator value.</summary>
+		/// <typeparam name="TAccumulate">The type of the accumulator value.</typeparam>
+		/// <typeparam name="TResult">The type of the resulting value.</typeparam>
+		/// <param name="seed">The initial accumulator value.</param>
+		/// <param name="handler">An accumulator function to be invoked on each element.</param>
+		/// <param name="resultSelector">A function to transform the final accumulator value into the result value.</param>
+		/// <returns>The transformed final accumulator value.</returns>
+		/// <exception cref="InvalidOperationException">If the wrapped JSON value is neither null nor an array.</exception>
+		public TResult Aggregate<TAccumulate, TResult>(TAccumulate seed, Func<TAccumulate, TValue, TAccumulate> handler, Func<TAccumulate, TResult> resultSelector)
+		{
+			if (m_value.Json is not JsonArray arr)
+			{
+				if (m_value.Json is JsonNull)
+				{
+					return resultSelector(seed);
+				}
+				throw OperationRequiresArray();
+			}
+
+			var accumulator = seed;
+			foreach (var item in arr.GetSpan())
+			{
+				accumulator = handler(accumulator, m_converter.Unpack(item));
+			}
+
+			return resultSelector(accumulator);
+		}
+
+		/// <summary>Visit all the elements of this array.</summary>
+		/// <param name="handler">A function to be invoked on each element.</param>
+		/// <exception cref="InvalidOperationException">If the wrapped JSON value is neither null nor an array.</exception>
+		public void Visit(Action<TValue> handler)
+		{
+			if (m_value.Json is not JsonArray arr)
+			{
+				if (m_value.Json is JsonNull)
+				{
+					return;
+				}
+				throw OperationRequiresArray();
+			}
+
+			foreach (var item in arr.GetSpan())
+			{
+				handler(m_converter.Unpack(item));
+			}
+		}
+
+		/// <summary>Visit all the elements of this array.</summary>
+		/// <param name="handler">A function to be invoked on each element.</param>
+		/// <exception cref="InvalidOperationException">If the wrapped JSON value is neither null nor an array.</exception>
+		public void Visit(Action<TValue, int> handler)
+		{
+			if (m_value.Json is not JsonArray arr)
+			{
+				if (m_value.Json is JsonNull)
+				{
+					return;
+				}
+				throw OperationRequiresArray();
+			}
+
+			var span = arr.GetSpan();
+			for(int i = 0; i < span.Length; i++)
+			{
+				handler(m_converter.Unpack(span[i]), i);
+			}
 		}
 
 		/// <inheritdoc />
@@ -377,6 +626,17 @@ namespace Doxense.Serialization.Json
 
 		/// <inheritdoc />
 		public override string ToString() => $"({typeof(TValue).GetFriendlyName()}[]) {m_value}";
+
+	}
+
+	public static class JsonWritableProxyArrayBuilder
+	{
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonWritableProxyArray<TValue> Create<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlySpan<TValue> values)
+		{
+			return new(MutableJsonValue.Untracked(values.Length == 0 ? JsonArray.EmptyReadOnly : JsonArray.FromValues(values)));
+		}
 
 	}
 

@@ -784,6 +784,74 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
+		#region ValueEquals...
+
+		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
+		public bool ValueEquals<TValue>(TValue value, IEqualityComparer<TValue>? comparer = null) => this.ToJson().ValueEquals(value, comparer);
+
+		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
+		public bool ValueEquals<TValue>(string name, TValue value, IEqualityComparer<TValue>? comparer = null)
+		{
+			var child = this.Json.GetValueOrDefault(name);
+			RecordChildAccess(name.AsMemory(), child, ObservableJsonAccess.Value);
+			return child.ValueEquals(value, comparer);
+		}
+
+		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
+		public bool ValueEquals<TValue>(ReadOnlyMemory<char> name, TValue value, IEqualityComparer<TValue>? comparer = null)
+		{
+			var child = this.Json.GetValueOrDefault(name);
+			RecordChildAccess(name, child, ObservableJsonAccess.Value);
+			return child.ValueEquals(value, comparer);
+		}
+
+		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
+		public bool ValueEquals<TValue>(int index, TValue value, IEqualityComparer<TValue>? comparer = null)
+		{
+			var child = this.Json.GetValueOrDefault(index);
+			RecordChildAccess(index, child, ObservableJsonAccess.Value);
+			return child.ValueEquals(value, comparer);
+		}
+
+		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
+		public bool ValueEquals<TValue>(Index index, TValue value, IEqualityComparer<TValue>? comparer = null)
+		{
+			var child = this.Json.GetValueOrDefault(index);
+			RecordChildAccess(index, child, ObservableJsonAccess.Value);
+			return child.ValueEquals(value, comparer);
+		}
+
+		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
+		public bool ValueEquals<TValue>(JsonPathSegment segment, TValue value, IEqualityComparer<TValue>? comparer = null)
+		{
+			JsonValue item;
+			if (segment.TryGetName(out var name))
+			{
+				item = this.Json.GetValueOrDefault(name);
+				RecordChildAccess(name, item, ObservableJsonAccess.Value);
+			}
+			else if (segment.TryGetIndex(out var index))
+			{
+				item = this.Json.GetValueOrDefault(index);
+				RecordChildAccess(index, item, ObservableJsonAccess.Value);
+			}
+			else
+			{
+				item = this.Json;
+				RecordSelfAccess(ObservableJsonAccess.Value, item);
+			}
+			return item.ValueEquals(value, comparer);
+		}
+
+		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
+		public bool ValueEquals<TValue>(JsonPath path, TValue value, IEqualityComparer<TValue>? comparer = null)
+		{
+			//TODO: REVIEW: how can we optimize this?
+			return this[path].ValueEquals(value, comparer);
+		}
+
+		#endregion
+
 		/// <inheritdoc />
 		public override string ToString() => this.Segment.IsEmpty() ? this.Json.ToString("Q") : $"{this.GetPath()}: {this.Json.ToString("Q")}";
 

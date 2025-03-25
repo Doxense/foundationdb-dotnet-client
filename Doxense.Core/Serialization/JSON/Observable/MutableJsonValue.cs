@@ -123,6 +123,70 @@ namespace Doxense.Serialization.Json
 			_              => 0 // what should we do here?
 		};
 
+		/// <summary>Tests if the wrapped JSON value is of the given type</summary>
+		/// <param name="type">Expected type of the value</param>
+		/// <returns><c>true</c> if the value is of this type; otherwise, <c>false</c></returns>
+		/// <remarks>This method will record a <see cref="ObservableJsonAccess.Type"/> access.</remarks>
+		public bool IsOfType(JsonType type)
+		{
+			return this.Json.Type == type;
+		}
+
+		/// <summary>Tests if the wrapped JSON value is of the given type, or is null-or-missing</summary>
+		/// <param name="type">Expected type of the value</param>
+		/// <returns><c>true</c> if the value is of this type, null or missing; otherwise, <c>false</c></returns>
+		/// <remarks>This method will record a <see cref="ObservableJsonAccess.Type"/> access.</remarks>
+		public bool IsOfTypeOrNull(JsonType type)
+		{
+			return this.Json.Type == type || this.Json.Type == JsonType.Null;
+		}
+
+		/// <summary>Tests if the wrapped JSON value is a non-null array.</summary>
+		/// <returns><c>true</c> if the value is an array; otherwise, <c>false</c></returns>
+		/// <remarks>This method will record a <see cref="ObservableJsonAccess.Type"/> access.</remarks>
+		public bool IsArray() => IsOfType(JsonType.Array);
+
+		/// <summary>Tests if the wrapped JSON value is either an array, or null-or-missing.</summary>
+		/// <returns><c>true</c> if the value is an array, null or missing; otherwise, <c>false</c></returns>
+		/// <remarks>This method will record a <see cref="ObservableJsonAccess.Type"/> access.</remarks>
+		public bool IsArrayOrMissing() => IsOfTypeOrNull(JsonType.Array);
+
+		/// <summary>Tests if the wrapped JSON value is a non-null array.</summary>
+		/// <param name="value">Receives the underlying JSON array</param>
+		/// <returns><c>true</c> if the value is an array; otherwise, <c>false</c></returns>
+		/// <remarks>
+		/// <para>This method will record a <see cref="ObservableJsonAccess.Type"/> access, but any reads performed on <paramref name="value"/> will not be tracked by the attached context!</para>
+		/// <para>It is intended to be used by infrastructure code that will manually record any access to the value.</para>
+		/// </remarks>
+		public bool IsArrayUnsafe([MaybeNullWhen(false)] out JsonArray value)
+		{
+			value = this.Json as JsonArray;
+			return value is not null;
+		}
+
+		/// <summary>Tests if the wrapped JSON value is a non-null object.</summary>
+		/// <returns><c>true</c> if the value is an object; otherwise, <c>false</c></returns>
+		/// <remarks>This method will record a <see cref="ObservableJsonAccess.Type"/> access.</remarks>
+		public bool IsObject() => IsOfType(JsonType.Array);
+
+		/// <summary>Tests if the wrapped JSON value is either an object, or null-or-missing.</summary>
+		/// <returns><c>true</c> if the value is an object, null or missing; otherwise, <c>false</c></returns>
+		/// <remarks>This method will record a <see cref="ObservableJsonAccess.Type"/> access.</remarks>
+		public bool IsObjectOrMissing() => IsOfTypeOrNull(JsonType.Object);
+
+		/// <summary>Tests if the wrapped JSON value is a non-null object.</summary>
+		/// <param name="value">Receives the underlying JSON object</param>
+		/// <returns><c>true</c> if the value is an object; otherwise, <c>false</c></returns>
+		/// <remarks>
+		/// <para>This method will record a <see cref="ObservableJsonAccess.Type"/> access, but any reads performed on <paramref name="value"/> will not be tracked by the attached context!</para>
+		/// <para>It is intended to be used by infrastructure code that will manually record any access to the value.</para>
+		/// </remarks>
+		public bool IsObjectUnsafe([MaybeNullWhen(false)] out JsonObject value)
+		{
+			value = this.Json as JsonObject;
+			return value is not null;
+		}
+
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)] 
 		public bool IsNullOrMissing() => this.Json is JsonNull;
 
@@ -370,6 +434,8 @@ namespace Doxense.Serialization.Json
 
 		#region Get...
 
+		#region Get(string)...
+
 		[Pure, MustUseReturnValue]
 		public MutableJsonValue Get(string name) => new(this.Context, this, new(name), this.Json.GetValueOrDefault(name));
 
@@ -390,6 +456,10 @@ namespace Doxense.Serialization.Json
 		[Pure, MustUseReturnValue]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public TValue? Get<TValue>(string name, TValue defaultValue) => this.Json.GetValueOrDefault(name).As<TValue>(defaultValue);
+
+		#endregion
+
+		#region Get(ReadOnlyMemory<char>)...
 
 		[Pure, MustUseReturnValue]
 		public MutableJsonValue Get(ReadOnlyMemory<char> name)
@@ -421,6 +491,10 @@ namespace Doxense.Serialization.Json
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public TValue? Get<TValue>(ReadOnlyMemory<char> name, TValue defaultValue) => this.Json.GetValueOrDefault(name).As<TValue>(defaultValue);
 
+		#endregion
+
+		#region Get(int)...
+
 		[Pure, MustUseReturnValue]
 		public MutableJsonValue Get(int index) => new(this.Context, this, new(index), this.Json.GetValueOrDefault(index));
 
@@ -441,6 +515,10 @@ namespace Doxense.Serialization.Json
 		[Pure, MustUseReturnValue]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public TValue? Get<TValue>(int index, TValue defaultValue) => this.Json.GetValueOrDefault(index).As<TValue>(defaultValue);
+
+		#endregion
+
+		#region Get(Index)...
 
 		[Pure, MustUseReturnValue]
 		public MutableJsonValue Get(Index index) => new(this.Context, this, new(index), this.Json.GetValueOrDefault(index));
@@ -463,6 +541,10 @@ namespace Doxense.Serialization.Json
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public TValue? Get<TValue>(Index index, TValue defaultValue) => this.Json.Get<TValue>(index, defaultValue);
 
+		#endregion
+
+		#region Get(JsonPath)...
+
 		[Pure, MustUseReturnValue]
 		public MutableJsonValue Get(JsonPath path)
 		{
@@ -475,10 +557,55 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, MustUseReturnValue]
+		public JsonValue GetValue(JsonPath path) => this.Json.GetPathValueOrDefault(path);
+
+		[Pure, MustUseReturnValue]
+		public TValue Get<TValue>(JsonPath path) where TValue : notnull
+		{
+			var value = this.Json.GetPathValueOrDefault(path);
+			if (value.IsNullOrMissing())
+			{
+				throw CrystalJson.Errors.Parsing_DescendantIsNullOrMissing(this, path, null);
+			}
+			return value.As<TValue>()!;
+		}
+
+		[Pure, MustUseReturnValue]
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		public TValue? Get<TValue>(JsonPath path, TValue defaultValue) => this.Json.GetPathValueOrDefault(path).As<TValue>(defaultValue);
+
+		#endregion
+
+		#region Get(JsonPathSegment)...
+
+		[Pure, MustUseReturnValue]
 		public MutableJsonValue Get(JsonPathSegment segment)
 			=> segment.TryGetName(out var name) ? Get(name)
 			 : segment.TryGetIndex(out var idx) ? Get(idx)
 			 : this;
+
+		[Pure, MustUseReturnValue]
+		public JsonValue GetValue(JsonPathSegment segment)
+			=> segment.TryGetName(out var name) ? GetValue(name)
+			 : segment.TryGetIndex(out var idx) ? GetValue(idx)
+			 : this.Json;
+
+		[Pure, MustUseReturnValue]
+		public TValue Get<TValue>(JsonPathSegment segment) where TValue : notnull
+		{
+			var value = GetValue(segment);
+			if (value.IsNullOrMissing())
+			{
+				throw CrystalJson.Errors.Parsing_ChildIsNullOrMissing(this, segment, null);
+			}
+			return value.As<TValue>()!;
+		}
+
+		[Pure, MustUseReturnValue]
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		public TValue? Get<TValue>(JsonPathSegment segment, TValue defaultValue) => GetValue(segment).As<TValue>(defaultValue);
+
+		#endregion
 
 		[MustUseReturnValue]
 		public MutableJsonValue GetOrCreateObject(string path)
@@ -503,6 +630,129 @@ namespace Doxense.Serialization.Json
 		}
 
 		#endregion
+
+		#region ValueEquals...
+
+		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
+		public bool ValueEquals<TValue>(TValue value, IEqualityComparer<TValue>? comparer = null) => this.Json.ValueEquals(value, comparer);
+
+		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
+		public bool ValueEquals<TValue>(string name, TValue value, IEqualityComparer<TValue>? comparer = null) => this.GetValue(name).ValueEquals(value, comparer);
+
+		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
+		public bool ValueEquals<TValue>(ReadOnlyMemory<char> name, TValue value, IEqualityComparer<TValue>? comparer = null) => this.GetValue(name).ValueEquals(value, comparer);
+
+		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
+		public bool ValueEquals<TValue>(int index, TValue value, IEqualityComparer<TValue>? comparer = null) => this.GetValue(index).ValueEquals(value, comparer);
+
+		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
+		public bool ValueEquals<TValue>(Index index, TValue value, IEqualityComparer<TValue>? comparer = null) => this.GetValue(index).ValueEquals(value, comparer);
+
+		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
+		public bool ValueEquals<TValue>(JsonPathSegment segment, TValue value, IEqualityComparer<TValue>? comparer = null) => this.GetValue(segment).ValueEquals(value, comparer);
+
+		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
+		public bool ValueEquals<TValue>(JsonPath path, TValue value, IEqualityComparer<TValue>? comparer = null) => this.GetValue(path).ValueEquals(value, comparer);
+
+		#endregion
+
+		public void ApplyPatch(JsonObject patch, bool deepCopy = false)
+		{
+			Contract.NotNull(patch);
+
+			if (patch.ContainsKey("__patch"))
+			{ // we are patching an array
+				ApplyPatchToArray(patch, deepCopy);
+			}
+			else
+			{
+				ApplyPatchToObject(patch, deepCopy);
+			}
+		}
+
+		private void ApplyPatchToObject(JsonObject patch, bool deepCopy)
+		{
+			RealizeObjectIfRequired();
+
+			foreach (var kv in patch)
+			{
+				switch (kv.Value)
+				{
+					case JsonObject b:
+					{ // merge two objects together
+						this[kv.Key].ApplyPatch(b, deepCopy);
+						break;
+					}
+					case JsonNull:
+					{ // remove value (or set to null)
+						Remove(kv.Key);
+						break;
+					}
+					default:
+					{ // overwrite previous value
+						Set(kv.Key, deepCopy ? kv.Value.Copy() : kv.Value);
+						break;
+					}
+				}
+			}
+		}
+
+		private void ApplyPatchToArray(JsonObject patch, bool deepCopy)
+		{
+			int newSize = patch.Get<int?>("__patch", null) ?? throw new ArgumentException("Object is not a valid patch for an array: required '__patch' field is missing");
+			if (newSize == 0)
+			{ // clear all items
+				Clear();
+				return;
+			}
+
+			RealizeArrayIfRequired();
+
+			// patch all changed items
+			foreach (var kv in patch)
+			{
+				if (kv.Key == "__patch") continue;
+				if (!int.TryParse(kv.Key, out var idx)) throw new ArgumentException($"Object is not a valid patch for an array: unexpected '{kv.Key}' field");
+				if (idx >= newSize) throw new ArgumentException($"Object is not a valid patch for an array: key '{kv.Key}' is greater than the final size");
+
+				switch (kv.Value)
+				{
+					case JsonObject subPatch:
+					{
+						this[idx].ApplyPatch(subPatch, deepCopy);
+						break;
+					}
+					case (JsonNull):
+					{
+						RemoveAt(idx);
+						break;
+					}
+					default:
+					{
+						Set(idx, deepCopy ? kv.Value.Copy() : kv.Value);
+						break;
+					}
+				}
+			}
+		}
+
+		/// <summary>Returns the list of keys on this object</summary>
+		/// <exception cref="InvalidOperationException">If the wrapped JSON value is neither null nor an object</exception>
+		public ICollection<string> Keys
+		{
+			get
+			{
+				if (this.Json is not JsonObject obj)
+				{
+					if (this.Json is JsonNull)
+					{
+						return Array.Empty<string>();
+					}
+					throw new InvalidOperationException("Cannot iterate keys on a non-array");
+				}
+				return obj.Keys;
+			}
+		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private void NotifyParent(MutableJsonValue child)
