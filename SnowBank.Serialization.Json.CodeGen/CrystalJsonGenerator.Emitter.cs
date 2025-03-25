@@ -883,6 +883,13 @@ namespace SnowBank.Serialization.Json.CodeGen
 										getterExpr = $"/* dict-proxy */ new(m_value[{GetTargetPropertyNameRef(typeDef, member)}])";
 										setterExpr = $"m_value.Set({GetTargetPropertyNameRef(typeDef, member)}, value.ToJson())";
 									}
+									else if (valueType.IsStringLike() || valueType.IsBooleanLike() || valueType.IsNumberLike() || valueType.IsDateLike())
+									{
+										proxyType = $"{KnownTypeSymbols.JsonWritableProxyDictionaryFullName}<{valueType.FullyQualifiedName}, {this.GetLocalWritableProxyRef(target)}>";
+										getterExpr = $"/* dict */ new(m_value[{GetTargetPropertyNameRef(typeDef, member)}])";
+										setterExpr = $"m_value.Set({GetTargetPropertyNameRef(typeDef, member)}, value.ToJson())";
+									}
+									//TODO: other types?
 								}
 							}
 							else if (member.Type.IsEnumerable(out var elemType))
@@ -893,6 +900,13 @@ namespace SnowBank.Serialization.Json.CodeGen
 									getterExpr = $"/* array-proxy */ new(m_value[{GetTargetPropertyNameRef(typeDef, member)}])";
 									setterExpr = $"m_value.Set({GetTargetPropertyNameRef(typeDef, member)}, value.ToJson())";
 								}
+								else if (elemType.IsStringLike() || elemType.IsBooleanLike() || elemType.IsNumberLike() || elemType.IsDateLike())
+								{
+									proxyType = $"{KnownTypeSymbols.JsonWritableProxyArrayFullName}<{elemType.FullyQualifiedName}>";
+									getterExpr = $"/* array */ new(m_value[{GetTargetPropertyNameRef(typeDef, member)}])";
+									setterExpr = $"m_value.Set({GetTargetPropertyNameRef(typeDef, member)}, value.ToJson())";
+								}
+								//TODO: other types?
 							}
 
 							if (getterExpr == null)
