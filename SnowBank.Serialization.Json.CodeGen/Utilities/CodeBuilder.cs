@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -24,28 +24,36 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+// ReSharper disable MemberCanBePrivate.Global
+// ReSharper disable UnusedMember.Global
+
 namespace SnowBank.Serialization.Json.CodeGen
 {
 	using System.Collections.Generic;
-	using System.Globalization;
 	using System.Runtime.InteropServices;
 	using System.Text;
+	using Microsoft.CodeAnalysis.CSharp;
 
-	public sealed class CodeBuilder
+	/// <summary>Basic C# code source builder</summary>
+	[DebuggerDisplay("Length={Output.Length}")]
+	public sealed class CSharpCodeBuilder
 	{
 
 		public readonly StringBuilder Output = new();
 
 		public readonly Stack<string?> Structure = [ ];
 
-		public int Depth;
+		/// <summary>Current indentation depth</summary>
+		public int Depth { get; private set; }
 
+		/// <summary>Clear the buffer, so that it can be reused</summary>
 		public void Clear()
 		{
 			this.Depth = 0;
 			this.Output.Clear();
 		}
 
+		/// <summary>Returns the source code written so far, and clear the builder for reuse</summary>
 		public string ToStringAndClear()
 		{
 			if (this.Depth != 0) throw new InvalidOperationException("Code seems to be truncated");
@@ -55,21 +63,22 @@ namespace SnowBank.Serialization.Json.CodeGen
 		}
 
 		/// <inheritdoc />
-		public override string ToString()
-		{
-			return this.Output.ToString();
-		}
+		public override string ToString() => this.Output.ToString();
 
+		/// <summary>Writes a line of code</summary>
 		public void AppendLine(string text)
 		{
 			this.Output.Append('\t', this.Depth).AppendLine(text);
 		}
 
+		/// <summary>Writes an empty line</summary>
 		public void NewLine()
 		{
 			this.Output.AppendLine();
 		}
 
+		/// <summary>Writes multiple lines of code</summary>
+		/// <remarks>This method will automatically add the correct indentation for all the lines</remarks>
 		public void WriteLines(string text)
 		{
 			// we need to parse the text and insert the proper indentation
@@ -77,7 +86,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 			
 			if (text.Contains("\n"))
 			{
-				foreach (var line in text.Split(CodeBuilder.LineBreakChars, StringSplitOptions.RemoveEmptyEntries))
+				foreach (var line in text.Split(CSharpCodeBuilder.LineBreakChars, StringSplitOptions.RemoveEmptyEntries))
 				{
 					this.Output.Append('\t', this.Depth).AppendLine(line.TrimEnd());
 				}
@@ -87,31 +96,40 @@ namespace SnowBank.Serialization.Json.CodeGen
 				this.Output.Append('\t', this.Depth).AppendLine(text);
 			}
 		}
-		
-		public string Constant(string literal) => "\"" + literal.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\""; //TODO: more!
 
-		public string Constant(bool literal) => literal ? "true" : "false";
+		/// <summary>Encodes a value into the corresponding C# string literal, with quotes and proper escaping</summary>
+		public static string Constant(string literal) => SymbolDisplay.FormatLiteral(literal, quote: true);
 
-		public string Constant(char c) => c == 0 ? "'\0'" : char.IsLetter(c) || char.IsDigit(c) ? "'{c}'" : $"'\\u{(int) c:x04}'";
+		/// <summary>Encodes a value into the corresponding C# boolean literal</summary>
+		public static string Constant(bool literal) => literal ? "true" : "false";
 
-		public string Constant(int literal) => literal.ToString(CultureInfo.InvariantCulture);
+		/// <summary>Encodes a value into the corresponding C# char literal, with quotes and proper escaping</summary>
+		public static string Constant(char c) => SymbolDisplay.FormatLiteral(c, quote: true);
 
-		public string Constant(long literal) => literal.ToString(CultureInfo.InvariantCulture);
+		/// <summary>Encodes a value into the corresponding C# number literal</summary>
+		public static string Constant(int literal) => SymbolDisplay.FormatPrimitive(literal, false, false);
 
-		public string Constant(float literal) => float.IsNaN(literal) ? "float.NaN" : literal.ToString("R", CultureInfo.InvariantCulture);
+		/// <summary>Encodes a value into the corresponding C# number literal</summary>
+		public static string Constant(long literal) => SymbolDisplay.FormatPrimitive(literal, false, false);
 
-		public string Constant(double literal) => double.IsNaN(literal) ? "double.NaN" : literal.ToString("R", CultureInfo.InvariantCulture);
+		/// <summary>Encodes a value into the corresponding C# number literal</summary>
+		public static string Constant(float literal) => float.IsNaN(literal) ? "float.NaN" : SymbolDisplay.FormatPrimitive(literal, false, false);
 
-		public string Constant(Guid literal)
+		/// <summary>Encodes a value into the corresponding C# number literal</summary>
+		public static string Constant(double literal) => double.IsNaN(literal) ? "double.NaN" : SymbolDisplay.FormatPrimitive(literal, false, false);
+
+		/// <summary>Encodes a value into the corresponding C# Guid construction</summary>
+		public static string Constant(Guid literal)
 		{
 			if (literal == Guid.Empty) return nameof(Guid) + "." + nameof(Guid.Empty);
 
-			throw new NotImplementedException();
-			// var (hi, lo) = (Uuid128) literal;
-			// return $"new Uuid128(0x{hi.ToUInt64():x}UL, 0x{lo.ToUInt64():x}UL)).ToGuid()";
+			//note: we are targeting .NET 8+ where Guid as a ctor that takes a ReadOnlySpan<byte>
+			var bytes = literal.ToByteArray();
+			return $"new Guid([ {string.Join(", ", bytes)} ])";
 		}
 
-		public string Constant(DateTime literal)
+		/// <summary>Encodes a value into the corresponding C# DateTime construction</summary>
+		public static string Constant(DateTime literal)
 		{
 			if (literal == DateTime.MinValue) return "DateTime.MinValue";
 			if (literal == DateTime.MaxValue) return "DateTime.MaxValue";
@@ -124,7 +142,8 @@ namespace SnowBank.Serialization.Json.CodeGen
 			}
 		}
 
-		public string Constant(DateTimeOffset literal)
+		/// <summary>Encodes a value into the corresponding C# DateTimeOffset literal</summary>
+		public static string Constant(DateTimeOffset literal)
 		{
 			if (literal == DateTimeOffset.MinValue) return "DateTimeOffset.MinValue";
 			if (literal == DateTimeOffset.MaxValue) return "DateTimeOffset.MaxValue";
@@ -136,83 +155,98 @@ namespace SnowBank.Serialization.Json.CodeGen
 			return $"new DateTimeOffset({literal.Ticks}L, new TimeSpan({literal.Offset.Ticks}L))";
 		}
 
-		public string Constant(Type type, object? boxed)
+		/// <summary>Encodes a value into the corresponding C# enum literal</summary>
+		public static string Constant<TEnum>(TEnum literal) where TEnum : Enum
+		{
+			return TypeName<TEnum>() + "." + literal.ToString("G");
+		}
+
+		/// <summary>Encodes a value into the corresponding C# representation</summary>
+		public static string Constant(Type type, object? boxed)
 		{
 			return boxed switch
 			{
 				null => type.IsValueType ? "default" : "null",
-				string s => this.Constant(s),
-				bool b => this.Constant(b),
-				int i => this.Constant(i),
-				long l => this.Constant(l),
-				float f => this.Constant(f),
-				double d => this.Constant(d),
-				char c => this.Constant(c),
-				Guid g => this.Constant(g),
-				DateTime dt => this.Constant(dt),
-				DateTimeOffset dto => this.Constant(dto),
+				string s => Constant(s),
+				bool b => Constant(b),
+				int i => Constant(i),
+				long l => Constant(l),
+				float f => Constant(f),
+				double d => Constant(d),
+				char c => Constant(c),
+				Guid g => Constant(g),
+				DateTime dt => Constant(dt),
+				DateTimeOffset dto => Constant(dto),
 				_ => throw new NotSupportedException($"Does not know how to transform value '{boxed}' of type {type.Name} into a C# constant")
 			};
 		}
 
-		public string Constant<TEnum>(TEnum literal) where TEnum : Enum
+		/// <summary>Returns the most appropriate c# literal for the default value of this type (<c>null</c>, <c>0</c>, <c>false</c>, <c>default</c>, <c>Guid.Empty</c>, <c>TimeSpan.Zero</c>, ...)</summary>
+		public static string DefaultOf(Type type)
 		{
-			return this.TypeName<TEnum>() + "." + literal.ToString("G");
-		}
-
-		public string DefaultOf(Type type)
-		{
+			if (type == typeof(string)) return "null";
 			if (type == typeof(bool)) return "false";
-			if (type == typeof(int) || type == typeof(long) || type == typeof(uint) || type == typeof(ulong) || type == typeof(float) || type == typeof(double))
-			{
-				return "0";
-			}
+			if (type == typeof(int)) return "0";
+			if (type == typeof(long)) return "0L";
+			if (type == typeof(uint)) return "0U";
+			if (type == typeof(ulong)) return "0UL";
+			if (type == typeof(float)) return "0f";
+			if (type == typeof(double)) return "0d";
+			if (type == typeof(decimal)) return "0m";
+			if (type == typeof(char)) return "'\0'";
 			if (type == typeof(Guid)) return "Guid.Empty";
 			if (type == typeof(DateTime)) return "DateTime.MinValue";
 			if (type == typeof(DateTimeOffset)) return "DateTimeOffset.MinValue";
+			if (type == typeof(TimeSpan)) return "TimeSpan.Zero";
+			if (type == typeof(byte)) return "(byte) 0"; // not sure if there is more direct way?
+			if (type == typeof(IntPtr)) return "IntPtr.Zero";
+			if (type == typeof(UIntPtr)) return "UIntPtr.Zero";
 			if (!type.IsValueType || type.IsNullableType())
 			{
 				return "null";
 			}
-			return $"default";
+			return "default";
 		}
 
-		public string DefaultOf<T>() => $"default({this.TypeName<T>()})";
+		public static string DefaultOf<T>() => DefaultOf(typeof(T));
 
-		private static readonly string DefaultJsonNamespace = "Doxense.Serialization.Json"; //TODO: how can we find the correct namespace?
+		private const string DefaultJsonNamespace = "Doxense.Serialization.Json";
 
-		public bool CanUseShortName(Type t)
+		/// <summary>Tests if this type can be written without the namespace</summary>
+		public static bool CanUseShortName(Type t)
 		{
-			if (t.Namespace == CodeBuilder.DefaultJsonNamespace) return true;
+			if (t.Namespace == DefaultJsonNamespace) return true;
 			return false;
 		}
 
-		public string TypeName(Type t) => this.CanUseShortName(t)
-			                                  ? TypeHelper.GetCompilableTypeName(t, omitNamespace: true, global: false)
-			                                  : TypeHelper.GetCompilableTypeName(t, omitNamespace: false, global: true);
+		/// <summary>Returns the canonical name of this type, which can be reference in the generated code without ambiguity</summary>
+		public static string TypeName(Type t) => CanUseShortName(t)
+			? TypeHelper.GetCompilableTypeName(t, omitNamespace: true, global: false)
+			: TypeHelper.GetCompilableTypeName(t, omitNamespace: false, global: true);
 
-		public string TypeName<T>() => this.TypeName(typeof(T));
+		/// <summary>Returns the canonical name of this type, which can be reference in the generated code without ambiguity</summary>
+		public static string TypeName<T>() => TypeName(typeof(T));
 
-		public string TypeNameGeneric(Type genericType, params string[] arguments)
+		public static string TypeNameGeneric(Type genericType, params string[] arguments)
 		{
-			var name = this.CanUseShortName(genericType) ? genericType.Name : ("global::" + genericType.FullName!);
+			var name = CanUseShortName(genericType) ? genericType.Name : ("global::" + genericType.FullName!);
 			var suffix = "`" + arguments.Length;
 			if (!name.EndsWith(suffix)) throw new InvalidOleVariantTypeException("genericType type argument count mismatch");
 			name = name.Substring(0, name.Length - suffix.Length);
 			return $"{name}<{string.Join(", ", arguments)}>";
 		}
 
-		public string Parameter(string type, string name, bool nullable = false) => !nullable ? $"{type} {name}" : $"{type}? {name} = default";
+		public static string Parameter(string type, string name, bool nullable = false) => !nullable ? $"{type} {name}" : $"{type}? {name} = default";
 
-		public string Parameter<T>(string name, bool nullable = false) => this.Parameter(this.TypeName<T>(), name, nullable);
+		public static string Parameter<T>(string name, bool nullable = false) => Parameter(TypeName<T>(), name, nullable);
 
-		public string MethodName(Type parent, string name) => this.TypeName(parent) + "." + name;
+		public static string MethodName(Type parent, string name) => TypeName(parent) + "." + name;
 
-		public string MethodName<T>(string name) => this.TypeName<T>() + "." + name;
+		public static string MethodName<T>(string name) => TypeName<T>() + "." + name;
 
-		public string Singleton(Type type, string name) => this.TypeName(type) + "." + name;
+		public static string Singleton(Type type, string name) => TypeName(type) + "." + name;
 
-		public string Singleton<T>(string name) => this.TypeName<T>() + "." + name;
+		public static string Singleton<T>(string name) => TypeName<T>() + "." + name;
 
 		public void EnterBlock(string? type = null, string? comment = null)
 		{
@@ -285,7 +319,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 		{
 			if (implements.Length > 0)
 			{
-				this.AppendLine($"{modifiers} class {name} : {string.Join(", ", implements!)}");
+				this.AppendLine($"{modifiers} class {name} : {string.Join(", ", implements)}");
 			}
 			else
 			{
@@ -310,7 +344,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 		{
 			if (implements.Length > 0)
 			{
-				this.AppendLine($"{modifiers} record {name} : {string.Join(", ", implements!)}");
+				this.AppendLine($"{modifiers} record {name} : {string.Join(", ", implements)}");
 			}
 			else
 			{
@@ -335,7 +369,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 		{
 			if (implements.Length > 0)
 			{
-				this.AppendLine($"{modifiers} struct {name} : {string.Join(", ", implements!)}");
+				this.AppendLine($"{modifiers} struct {name} : {string.Join(", ", implements)}");
 			}
 			else
 			{
@@ -371,7 +405,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 		{
 			if (comment.Contains("\n"))
 			{
-				foreach (var line in comment.Split(CodeBuilder.LineBreakChars, StringSplitOptions.RemoveEmptyEntries))
+				foreach (var line in comment.Split(CSharpCodeBuilder.LineBreakChars, StringSplitOptions.RemoveEmptyEntries))
 				{
 					this.Output.Append('\t', this.Depth).Append("// ").AppendLine(line.TrimEnd());
 				}
@@ -433,10 +467,11 @@ namespace SnowBank.Serialization.Json.CodeGen
 		public void Attribute<TAttribute>(string[]? args = null, (string Name, string Value)[]? extras = null)
 			where TAttribute : Attribute
 		{
-			var name = this.TypeName<TAttribute>();
+			var name = TypeName<TAttribute>();
 			if (name.EndsWith("Attribute")) name = name.Substring(0, name.Length -"Attribute".Length);
 			this.Attribute(name, args, extras);
 		}
 
 	}
+
 }
