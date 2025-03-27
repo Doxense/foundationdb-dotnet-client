@@ -2,8 +2,9 @@
 
 	<!-- Detect if we are used as a submodule in a parent repository, and if this is true, try to import the parent Directory.Build.props folder that could override the properties defined here -->
 	<!-- We use the fact that git-submodules have a .git _file_, instead of a .git _directory_, which can help prevent from an attacker somehow being able to inject a fake .props file above us -->
+	<!-- If this heuristic does not work, this can be worked around by setting the FDB_BUILD_PROPS_OVERRIDE env variable to a non-empty value -->
 	<Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))"
-	        Condition="Exists('$(MSBuildThisFileDirectory)../Directory.Build.props') AND $([System.IO.File]::Exists('$(MSBuildThisFileDirectory)/.git'))" />
+	        Condition="Exists('$(MSBuildThisFileDirectory)../Directory.Build.props') AND ($([System.IO.File]::Exists('$(MSBuildThisFileDirectory)/.git')) OR '$(FDB_BUILD_PROPS_OVERRIDE)' != '')" />
 
 	<PropertyGroup>
 		<ArtifactsPath>$(MSBuildThisFileDirectory)artifacts</ArtifactsPath>
