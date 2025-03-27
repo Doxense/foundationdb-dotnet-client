@@ -1644,24 +1644,24 @@ namespace Doxense.Serialization.Json
 
 		#region Remove...
 
-		public void Remove()
+		/// <summary>Removes this node from its parent</summary>
+		public bool Remove()
 		{
 			// simulate the value to be Missing
 			this.Json = JsonNull.Missing;
 			if (this.Segment.TryGetName(out var name))
 			{
-				this.Parent?.Remove(name);
+				return this.Parent?.Remove(name) ?? false;
 			}
-			else if (this.Segment.TryGetIndex(out var index))
+			if (this.Segment.TryGetIndex(out var index))
 			{
-				this.Parent?.RemoveAt(index);
+				return this.Parent?.RemoveAt(index) ?? false;
 			}
-			else
-			{
-				throw new NotSupportedException();
-			}
+
+			throw new NotSupportedException();
 		}
 
+		/// <summary>Removes a field from this node</summary>
 		public bool Remove(string name)
 		{
 			if (this.Json is not JsonObject prevJson) throw new NotSupportedException();
@@ -1677,6 +1677,7 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
+		/// <summary>Removes a field from this node</summary>
 		public bool Remove(ReadOnlyMemory<char> name)
 		{
 			if (this.Json is not JsonObject prevJson) throw new NotSupportedException();
@@ -1692,6 +1693,7 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
+		/// <summary>Removes a field from this node</summary>
 		public bool Remove(string name, [MaybeNullWhen(false)] out JsonValue value)
 		{
 			if (this.Json is not JsonObject prevJson) throw new NotSupportedException();
@@ -1707,6 +1709,7 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
+		/// <summary>Removes a field from this node</summary>
 		public bool Remove(ReadOnlyMemory<char> name, [MaybeNullWhen(false)] out JsonValue value)
 		{
 			if (this.Json is not JsonObject prevJson) throw new NotSupportedException();
@@ -1722,6 +1725,7 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
+		/// <summary>Removes the element at the specified index from this node</summary>
 		public bool RemoveAt(int index)
 		{
 			if (this.Json is not JsonArray prevJson) throw new NotSupportedException();
@@ -1737,6 +1741,7 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
+		/// <summary>Removes the element at the specified index from this node</summary>
 		public bool RemoveAt(int index, [MaybeNullWhen(false)] out JsonValue value)
 		{
 			if (this.Json is not JsonArray prevJson) throw new NotSupportedException();
@@ -1754,6 +1759,7 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
+		/// <summary>Removes the element at the specified index from this node</summary>
 		public bool RemoveAt(Index index)
 		{
 			if (this.Json is not JsonArray prevJson) throw new NotSupportedException();
@@ -1770,6 +1776,7 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
+		/// <summary>Removes the element at the specified index from this node</summary>
 		public bool RemoveAt(Index index, [MaybeNullWhen(false)] out JsonValue value)
 		{
 			if (this.Json is not JsonArray prevJson) throw new NotSupportedException();
@@ -1786,6 +1793,28 @@ namespace Doxense.Serialization.Json
 			this.NotifyParent(this);
 			this.Context?.RecordDelete(this, offset);
 			return true;
+		}
+
+		/// <summary>Removes the specified child from this node</summary>
+		public bool Remove(JsonPathSegment segment)
+			=> segment.TryGetName(out var name) ? Remove(name)
+			 : segment.TryGetIndex(out var index) ? RemoveAt(index)
+			 : Remove();
+
+		/// <summary>Removes the child at the specified path</summary>
+		public bool Remove(JsonPath path)
+		{
+			var current = this;
+			foreach (var token in path.Tokenize())
+			{
+				if (!current.Exists()) return false;
+				if (token.Last)
+				{
+					return current.Remove(token.Segment);
+				}
+				current = current.Get(token.Segment);
+			}
+			return false;
 		}
 
 		#endregion
@@ -1888,21 +1917,21 @@ namespace Doxense.Serialization.Json
 
 		public TValue? Exchange<TValue>(string name, TValue? value)
 		{
-			var prev = Get<TValue>(name);
+			var prev = Get<TValue?>(name, default);
 			Set(name, value);
 			return prev;
 		}
 
 		public TValue? Exchange<TValue>(int index, TValue? value)
 		{
-			var prev = Get<TValue>(index);
+			var prev = Get<TValue?>(index, default);
 			Set(index, value);
 			return prev;
 		}
 
 		public TValue? Exchange<TValue>(Index index, TValue? value)
 		{
-			var prev = Get<TValue>(index);
+			var prev = Get<TValue?>(index, default);
 			Set(index, value);
 			return prev;
 		}
