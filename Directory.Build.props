@@ -16,13 +16,23 @@
 	    in its own Directory.Build.props file, in order to not have to build extra targets that are not used.
 	-->
 	<PropertyGroup>
+		
+		<!-- The 'CoreSdkVersions' variable can be used to override all the versions at once! -->
+		
 		<!-- Framework versions for the core libraries (Core, FoundationDb.Client, ...) -->
-		<CoreSdkRuntimeVersions Condition="'$(CloudSdkRuntimeVersions)' == ''">net10.0;net9.0;net8.0</CoreSdkRuntimeVersions>
+		<CoreSdkRuntimeVersions Condition="'$(CoreSdkRuntimeVersions)' == ''">$(CoreSdkVersions)</CoreSdkRuntimeVersions>
+		<CoreSdkRuntimeVersions Condition="'$(CoreSdkRuntimeVersions)' == ''">net10.0;net9.0;net8.0</CoreSdkRuntimeVersions>
+		
 		<!-- Framework versions for tools that are packed (FdbTop, FdbShell, ...) -->
+		<CoreSdkToolsVersions Condition="'$(CoreSdkToolsVersions)' == ''">$(CoreSdkVersions)</CoreSdkToolsVersions>
 		<CoreSdkToolsVersions Condition="'$(CoreSdkToolsVersions)' == ''">net10.0;net9.0;net8.0</CoreSdkToolsVersions>
+		
 		<!-- Framework versions for local tools that are not packed (FdbBurner, Sandboxes, ...) -->
+		<CoreSdkUtilityVersions Condition="'$(CoreSdkUtilityVersions)' == ''">$(CoreSdkVersions)</CoreSdkUtilityVersions>
 		<CoreSdkUtilityVersions Condition="'$(CoreSdkUtilityVersions)' == ''">net10.0</CoreSdkUtilityVersions>
+		
 		<!-- Framework versions for Aspire (only .NET8+) -->
+		<CloudSdkRuntimeVersions Condition="'$(CloudSdkRuntimeVersions)' == ''">$(CoreSdkVersions)</CloudSdkRuntimeVersions>
 		<CloudSdkRuntimeVersions Condition="'$(CloudSdkRuntimeVersions)' == ''">net10.0;net9.0;net8.0</CloudSdkRuntimeVersions>
 	</PropertyGroup>
 

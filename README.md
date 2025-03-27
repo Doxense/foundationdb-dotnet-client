@@ -362,6 +362,58 @@ You can also build, test and compile the NuGet packages from the command line us
 - `dotnet build` to build (in DEBUG) all the projects in the solution
 - `dotnet test` to run the unit tests (requires a working local FoundationDB cluster).
 
+### As a sub-module
+
+Most projects in this repository are targeting multiple frameworks, meaning that each project will be build several times, one for each target.
+
+When consuming this repository as a sub-module inside another repository, all the included projects will still want to build for all these targets, even if your parent solution only targets one framework (or a different subset).
+
+This can also cause issues if you application is targeting an older .NET runtime and SDK (for example `net9.0` using the .NET 9.0.x SDK), which do not support more recent targets from this repo (ex: `net10.0`).
+
+By default, the `Directory.Build.props` will attempt to detect when it is inside a git sub-module, and import any `Directory.Build.props` in the parent directory.
+_note: Some CI build environments may checkout sub-module in non-standard way. If this happens, you can set the environment variable `FDB_BUILD_PROPS_OVERRIDE` to `1` in order to bypass the check._
+
+This parent props file can then override a series of msbuild variables that are injected in the `TargetFrameworks` property of all `.csproj` in this repo:
+- `CoreSdkVersions`: overrides the value of all the other variables at once. Use this is you are single-targeting.
+
+If you are multi-targeting and need more fine grained precision, you can use the following variables:
+- `CoreSdkRuntimeVersions`: targets for all the core libraries (FoundationDB.Client.dll, ...) that are redistributed
+- `CoreSdkToolsVersions`: targets for all the tools and executables (FdbShell, FdbTop, ...) that are redistributed
+- `CoreSdkUtilityVersions`: targets for all the internal tools and executables that are only used for building, testing, and are not expected to be redistributed.
+- `CloudSdkRuntimeVersions`: targets for all libraries that reference .NET Aspire (which is only supports .NET 8 or later).
+
+If you parent repository is also multi-targeting, you can specify several targets, like for example `net9.0;net10.0`. Please note that is you target a more recent framework that is not supported by this repo, they may fail to build properly!
+
+An example of a parent `Directory.Build.props` that overrides the build to only target `net9.0`:
+```xml
+<Project>
+	<PropertyGroup>
+
+		<!-- Force all projects in the FoundationDB sub-module to target net9.0 -->
+		<CoreSdkVersions>net9.0</CoreSdkVersions>
+
+	</PropertyGroup>
+</Project>
+```
+
+An example of a parent `Directory.Build.props` that multi-targets `net9.0` and `net10.0`, but only want to build the tools for `net10.0`:
+```xml
+<Project>
+	<PropertyGroup>
+
+		<!-- If you are using FoundationDB.Client, Doxense.Core, etc... -->
+		<CoreSdkRuntimeVersions>net9.0;net10.0</CoreSdkRuntimeVersions>
+
+		<!-- If you are using the FoundationDB .NET Aspire Integration -->
+		<CloudSdkRuntimeVersions>net9.0;net10.0</CloudSdkRuntimeVersions>
+
+		<!-- If you are using any of the tools (FdbShell, FdbTop) -->
+		<CoreSdkToolsVersions>net10.0</CoreSdkToolsVersions>
+
+	</PropertyGroup>
+</Project>
+```
+
 # How to test
 
 The test projects are using NUnit 4, and the test running must run as a 64-bit process (32-bit is not supported).
