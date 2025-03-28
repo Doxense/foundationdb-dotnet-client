@@ -29,6 +29,7 @@ namespace Doxense.Serialization.Json.Binary
 	using System.Buffers;
 	using System.Buffers.Binary;
 	using System.Buffers.Text;
+	using System.ComponentModel;
 	using System.Runtime.InteropServices;
 	using System.Text;
 	using System.Text.Unicode;
@@ -50,7 +51,7 @@ namespace Doxense.Serialization.Json.Binary
 	{
 		#region Format Specifications...
 
-		// This is an adaptation of the jsonb (aka hstore2) from PostgreSQL 9.4+, that has been changed according to our needs.
+		// This is an adaptation of the jsonb (aka hstore2) from Postgres 9.4+, that has been changed according to our needs.
 		// The basic principle is the same (structured json, designed so that it is very easy to extract specific values without having to parse everything).
 
 		// All header fields and containers are always aligned to 32 bits. Meaning that the total size of a jsonb document is always divisible by 4 bytes. Padding is used to fill the gaps.
@@ -63,14 +64,14 @@ namespace Doxense.Serialization.Json.Binary
 		// - bit 30      : RESERVED   : Reserved for future use. Must be 0 in current version
 		// - bit 29      : RESERVED   : Reserved for future use. Must be 0 in current version
 		// - bit 28      : RESERVED   : Reserved for future use. Must be 0 in current version
-		// - bits 0..27  : TOTAL_SIZE : Total size (including this header, but excluding the padding) of the document. If the value is not a multiple of 4, there should be from 1 to 3 additionnal padding bytes (0) at the end of the document.
+		// - bits 0..27  : TOTAL_SIZE : Total size (including this header, but excluding the padding) of the document. If the value is not a multiple of 4, there should be from 1 to 3 additional padding bytes (0) at the end of the document.
 
 		// Since the total size must fit in 28 bits, it means that the maximum allowed data size is 268 435 455 (1 GB minus 1 byte). Chunking must be used to store more data.
 		// If multiple jsonb documents are sent via a stream, it is possible to know the size of the block to read by rounding up TOTAL_SIZE to the next multiple of 4, and reading that number of bytes from the stream.
 
-		/// <summary>Flag indiquant la présence d'un extra field contenant 32 bits</summary>
+		/// <summary>Flag indicating the presence of an extra 32-bits field</summary>
 		private const uint HEADER_FLAGS_EXTRA = 0x80_00_00_00U;
-		/// <summary>Flags réservés pour un usage future (= 00)</summary>
+		/// <summary>Flags reserved for future use (should be set to 0)</summary>
 		private const uint HEADER_FLAGS_RESERVED = 0x70_00_00_00U;
 
 		private const uint HEADER_SIZE_MASK = 0x0F_FF_FF_FFU; // 28 bits
@@ -129,13 +130,13 @@ namespace Doxense.Serialization.Json.Binary
 				this.BaseAddress = GetBaseAddress(header);
 			}
 
-			public readonly ReadOnlySpan<byte> Data;
+			private readonly ReadOnlySpan<byte> Data;
 
-			public readonly uint Header; // 4 flags + 28 bit count
+			private readonly uint Header; // 4 flags + 28 bit count
 
 			/// <summary>Offset (relative to the container) where the data starts (items, or key+values)</summary>
 			/// <remarks>If this is a Hashed Object, points directly to after the hashmap/idxmap</remarks>
-			public readonly int BaseAddress;
+			private readonly int BaseAddress;
 
 			public int Count
 			{
@@ -296,7 +297,7 @@ namespace Doxense.Serialization.Json.Binary
 			{
 				/*
 				 * If the length is stored directly in the JEntry, just return it.
-				 * Otherwise, get the begin offset of the entry, and subtract that from
+				 * Otherwise, get the start offset of the entry, and subtract that from
 				 * the stored end+1 offset.
 				 */
 
@@ -344,35 +345,20 @@ namespace Doxense.Serialization.Json.Binary
 				int numPairs = this.Count;
 				if (this.Data.Length  < checked(4 + numPairs * 2 * 4)) throw ThrowHelper.FormatException($"Json container is too small for an object of size {numPairs}.");
 
-				//TODO: utiliser un cache pour les buffers!
-				var keys = new string[numPairs];
-				var values = new JsonValue[numPairs];
+				//TODO: scan the entries, instead of calling GetArrayEntry(..) for each of them
 
-				//TODO: parser key et valeurs séparément
-				//TODO: scanner les entries, plutôt que d'appeler GetArrayEntry(..) a chaque fois
-
-				// decode the keys
+				// decode the keys and values in a single pass
+				var map = new JsonObject(numPairs);
 				for (int i = 0; i < numPairs; i++)
 				{
-					GetContainerEntry(i, numPairs * 2, out JValue item);
-					keys[i] = item.ToKey(table);
+					GetContainerEntry(i, numPairs * 2, out var keyItem);
+					GetContainerEntry(i + numPairs, numPairs * 2, out var valueItem);
+					map[keyItem.ToKey(table)] = valueItem.ToJsonValue(table);
 				}
-
-				// decode the values
-				for(int i = 0; i< numPairs; i++)
-				{
-					GetContainerEntry(i + numPairs, numPairs * 2, out JValue item);
-					values[i] = item.ToJsonValue(table);
-				}
-
 				//note: by default we will create immutable objects!
 				//REVIEW: if we need to make this configurable, we would need to add a way to pass settings to this method!
-				var map = new Dictionary<string, JsonValue>(numPairs, StringComparer.Ordinal);
-				for (int i = 0; i < numPairs; i++)
-				{
-					map[keys[i]] = values[i];
-				}
-				return new JsonObject(map, readOnly: true);
+				map.FreezeUnsafe();
+				return map;
 			}
 
 			public JsonValue ToJsonValue(StringTable? table = null)
