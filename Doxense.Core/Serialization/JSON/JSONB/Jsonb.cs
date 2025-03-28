@@ -933,11 +933,14 @@ namespace Doxense.Serialization.Json.Binary
 		public static JLookupSelector CreateSelector(string path)
 			=> CreateSelector(JsonPath.Create(path));
 
+		public static JLookupSelector CreateSelector(ReadOnlyMemory<char> path)
+			=> CreateSelector(JsonPath.Create(path));
+
 		public static JLookupSelector CreateSelector(JsonPath path)
 		{
 
 			// we assume that the sum of encoded path segments will never be more than the encoded complete path,
-			// we may allocate a little bit more than necessary but it should only be one or two bytes per segments
+			// we may allocate a little bit more than necessary, but it should only be one or two bytes per segments
 
 			var encoding = Encoding.UTF8;
 
@@ -1216,7 +1219,7 @@ namespace Doxense.Serialization.Json.Binary
 						break;
 					}
 
-					current = new JContainer(child.Value);
+					current = new(child.Value);
 				}
 
 				value = default;
@@ -1225,6 +1228,17 @@ namespace Doxense.Serialization.Json.Binary
 			}
 
 			public JsonValue Select(string path, StringTable? table = null)
+			{
+				Contract.NotNull(path);
+
+				if (!TryLookup(JsonPath.Create(path), out var value))
+				{
+					return JsonNull.Missing;
+				}
+				return value.ToJsonValue(table);
+			}
+
+			public JsonValue Select(ReadOnlyMemory<char> path, StringTable? table = null)
 			{
 				Contract.NotNull(path);
 
@@ -1285,6 +1299,14 @@ namespace Doxense.Serialization.Json.Binary
 
 		/// <summary>Reads a specific field in a jsonb binary blob, without decoding the entire document</summary>
 		[Pure]
+		public static JsonValue Select(Slice buffer, ReadOnlyMemory<char> path, StringTable? table = null)
+		{
+			if (buffer.Count == 0) return JsonNull.Missing;
+			return JDocument.Parse(buffer.Span).Select(path, table);
+		}
+
+		/// <summary>Reads a specific field in a jsonb binary blob, without decoding the entire document</summary>
+		[Pure]
 		public static JsonValue Select(Slice buffer, JsonPath path, StringTable? table = null)
 		{
 			if (buffer.Count == 0) return JsonNull.Missing;
@@ -1309,6 +1331,14 @@ namespace Doxense.Serialization.Json.Binary
 
 		/// <summary>Reads a specific field in a jsonb binary blob, without decoding the entire document</summary>
 		[Pure]
+		public static JsonValue Select(ReadOnlySpan<byte> buffer, ReadOnlyMemory<char> path, StringTable? table = null)
+		{
+			if (buffer.Length == 0) return JsonNull.Missing;
+			return JDocument.Parse(buffer).Select(path, table);
+		}
+
+		/// <summary>Reads a specific field in a jsonb binary blob, without decoding the entire document</summary>
+		[Pure]
 		public static JsonValue Select(ReadOnlySpan<byte> buffer, JsonPath path, StringTable? table = null)
 		{
 			if (buffer.Length == 0) return JsonNull.Missing;
@@ -1323,38 +1353,51 @@ namespace Doxense.Serialization.Json.Binary
 			return JDocument.Parse(buffer).Select(selector, table);
 		}
 
-		/// <summary>Tests if a specific field in a jsonb binary blob is equal to the expected value, without decoding the entire document</summary>
+		/// <summary>Decodes the value of a specific field in a jsonb binary blob, without decoding the entire document</summary>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(missing))]
 		[MethodImpl(MethodImplOptions.NoInlining)]
 		public static TValue? Get<TValue>(Slice buffer, string path, TValue? missing = default)
 			=> buffer.Count != 0 && JDocument.Parse(buffer.Span).TryLookup(JsonPath.Create(path), out var j) ? j.As(missing) : missing;
 
-		/// <summary>Tests if a specific field in a jsonb binary blob is equal to the expected value, without decoding the entire document</summary>
+		/// <summary>Decodes the value of a specific field in a jsonb binary blob, without decoding the entire document</summary>
+		[Pure]
+		[return: NotNullIfNotNull(nameof(missing))]
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		public static TValue? Get<TValue>(Slice buffer, ReadOnlyMemory<char> path, TValue? missing = default)
+			=> buffer.Count != 0 && JDocument.Parse(buffer.Span).TryLookup(JsonPath.Create(path), out var j) ? j.As(missing) : missing;
+
+		/// <summary>Decodes the value of a specific field in a jsonb binary blob, without decoding the entire document</summary>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(missing))]
 		public static TValue? Get<TValue>(Slice buffer, JsonPath path, TValue? missing = default)
 			=> buffer.Count != 0 && JDocument.Parse(buffer.Span).TryLookup(path, out var j) ? j.As(missing) : missing;
 
-		/// <summary>Tests if a specific field in a jsonb binary blob is equal to the expected value, without decoding the entire document</summary>
+		/// <summary>Decodes the value of a specific field in a jsonb binary blob, without decoding the entire document</summary>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(missing))]
 		public static TValue? Get<TValue>(Slice buffer, JLookupSelector selector, TValue? missing = default)
 			=> buffer.Count != 0 && JDocument.Parse(buffer.Span).TryLookup(selector, out var j) ? j.As(missing) : missing;
 
-		/// <summary>Tests if a specific field in a jsonb binary blob is equal to the expected value, without decoding the entire document</summary>
+		/// <summary>Decodes the value of a specific field in a jsonb binary blob, without decoding the entire document</summary>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(missing))]
 		public static TValue? Get<TValue>(ReadOnlySpan<byte> buffer, string path, TValue? missing = default)
 			=> buffer.Length != 0 && JDocument.Parse(buffer).TryLookup(JsonPath.Create(path), out var j) ? j.As(missing) : missing;
 
-		/// <summary>Tests if a specific field in a jsonb binary blob is equal to the expected value, without decoding the entire document</summary>
+		/// <summary>Decodes the value of a specific field in a jsonb binary blob, without decoding the entire document</summary>
+		[Pure]
+		[return: NotNullIfNotNull(nameof(missing))]
+		public static TValue? Get<TValue>(ReadOnlySpan<byte> buffer, ReadOnlyMemory<char> path, TValue? missing = default)
+			=> buffer.Length != 0 && JDocument.Parse(buffer).TryLookup(JsonPath.Create(path), out var j) ? j.As(missing) : missing;
+
+		/// <summary>Decodes the value of a specific field in a jsonb binary blob, without decoding the entire document</summary>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(missing))]
 		public static TValue? Get<TValue>(ReadOnlySpan<byte> buffer, JsonPath path, TValue? missing = default)
 			=> buffer.Length != 0 && JDocument.Parse(buffer).TryLookup(path, out var j) ? j.As(missing) : missing;
 
-		/// <summary>Tests if a specific field in a jsonb binary blob is equal to the expected value, without decoding the entire document</summary>
+		/// <summary>Decodes the value of a specific field in a jsonb binary blob, without decoding the entire document</summary>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(missing))]
 		public static TValue? Get<TValue>(ReadOnlySpan<byte> buffer, JLookupSelector selector, TValue? missing = default)
@@ -1365,10 +1408,17 @@ namespace Doxense.Serialization.Json.Binary
 		public static bool Test<TValue>(Slice buffer, string path, TValue? value)
 			=> buffer.Count != 0 && (JDocument.Parse(buffer.Span).TryLookup(JsonPath.Create(path), out var j) ? j.ValueEquals(value) : value is null or JsonNull);
 
+		/// <summary>Tests if a specific field in a jsonb binary blob is equal to the expected value, without decoding the entire document</summary>
+		[Pure]
+		public static bool Test<TValue>(Slice buffer, ReadOnlyMemory<char> path, TValue? value)
+			=> buffer.Count != 0 && (JDocument.Parse(buffer.Span).TryLookup(JsonPath.Create(path), out var j) ? j.ValueEquals(value) : value is null or JsonNull);
+
+		/// <summary>Tests if a specific field in a jsonb binary blob is equal to the expected value, without decoding the entire document</summary>
 		[Pure]
 		public static bool Test<TValue>(Slice buffer, JsonPath path, TValue? value)
 			=> buffer.Count != 0 && (JDocument.Parse(buffer.Span).TryLookup(path, out var j) ? j.ValueEquals(value) : value is null or JsonNull);
 
+		/// <summary>Tests if a specific field in a jsonb binary blob is equal to the expected value, without decoding the entire document</summary>
 		[Pure]
 		public static bool Test<TValue>(Slice buffer, JLookupSelector selector, TValue? value)
 			=> buffer.Count != 0 && (JDocument.Parse(buffer.Span).TryLookup(selector, out var j) ? j.ValueEquals(value) : value is null or JsonNull);
@@ -1378,10 +1428,17 @@ namespace Doxense.Serialization.Json.Binary
 		public static bool Test<TValue>(ReadOnlySpan<byte> buffer, string path, TValue? value)
 			=> buffer.Length != 0 && (JDocument.Parse(buffer).TryLookup(JsonPath.Create(path), out var j) ? j.ValueEquals(value) : value is null or JsonNull);
 
+		/// <summary>Tests if a specific field in a jsonb binary blob is equal to the expected value, without decoding the entire document</summary>
+		[Pure]
+		public static bool Test<TValue>(ReadOnlySpan<byte> buffer, ReadOnlyMemory<char> path, TValue? value)
+			=> buffer.Length != 0 && (JDocument.Parse(buffer).TryLookup(JsonPath.Create(path), out var j) ? j.ValueEquals(value) : value is null or JsonNull);
+
+		/// <summary>Tests if a specific field in a jsonb binary blob is equal to the expected value, without decoding the entire document</summary>
 		[Pure]
 		public static bool Test<TValue>(ReadOnlySpan<byte> buffer, JsonPath path, TValue? value)
 			=> buffer.Length != 0 && (JDocument.Parse(buffer).TryLookup(path, out var j) ? j.ValueEquals(value) : value is null or JsonNull);
 
+		/// <summary>Tests if a specific field in a jsonb binary blob is equal to the expected value, without decoding the entire document</summary>
 		[Pure]
 		public static bool Test<TValue>(ReadOnlySpan<byte> buffer, JLookupSelector selector, TValue? value)
 			=> buffer.Length != 0 && (JDocument.Parse(buffer).TryLookup(selector, out var j) ? j.ValueEquals(value) : value is null or JsonNull);
