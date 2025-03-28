@@ -3107,6 +3107,102 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
+		#region WriteField(..., DateOnly)
+
+		public void WriteField(string name, DateOnly value)
+		{
+			if (value != DateOnly.MinValue || !m_discardDefaults)
+			{
+				WriteName(name);
+				WriteValue(value);
+			}
+		}
+
+		public void WriteField(JsonEncodedPropertyName name, DateOnly value)
+		{
+			if (value != DateOnly.MinValue || !m_discardDefaults)
+			{
+				WriteName(name);
+				WriteValue(value);
+			}
+		}
+
+		public void WriteField(string name, DateOnly? value)
+		{
+			if (value.HasValue)
+			{
+				WriteName(name);
+				WriteValue(value.Value);
+			}
+			else
+			{
+				WriteFieldNull(name);
+			}
+		}
+
+		public void WriteField(JsonEncodedPropertyName name, DateOnly? value)
+		{
+			if (value.HasValue)
+			{
+				WriteName(name);
+				WriteValue(value.Value);
+			}
+			else
+			{
+				WriteFieldNull(name);
+			}
+		}
+
+		#endregion
+
+		#region WriteField(..., TimeOnly)
+
+		public void WriteField(string name, TimeOnly value)
+		{
+			if (value != TimeOnly.MinValue || !m_discardDefaults)
+			{
+				WriteName(name);
+				WriteValue(value);
+			}
+		}
+
+		public void WriteField(JsonEncodedPropertyName name, TimeOnly value)
+		{
+			if (value != TimeOnly.MinValue || !m_discardDefaults)
+			{
+				WriteName(name);
+				WriteValue(value);
+			}
+		}
+
+		public void WriteField(string name, TimeOnly? value)
+		{
+			if (value.HasValue)
+			{
+				WriteName(name);
+				WriteValue(value.Value);
+			}
+			else
+			{
+				WriteFieldNull(name);
+			}
+		}
+
+		public void WriteField(JsonEncodedPropertyName name, TimeOnly? value)
+		{
+			if (value.HasValue)
+			{
+				WriteName(name);
+				WriteValue(value.Value);
+			}
+			else
+			{
+				WriteFieldNull(name);
+			}
+		}
+
+		#endregion
+
 		#region WriteField(..., Guid)
 
 		public void WriteField(string name, Guid value)
