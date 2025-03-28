@@ -2713,6 +2713,8 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		#region WriteField(..., string)
+
 		public void WriteField(string name, string? value)
 		{
 			if (value != null || !m_discardNulls)
@@ -2751,6 +2753,10 @@ namespace Doxense.Serialization.Json
 			WriteName(name);
 			WriteValue(value.Span);
 		}
+
+		#endregion
+
+		#region WriteField(..., bool)
 
 		public void WriteField(string name, bool value)
 		{
@@ -2796,6 +2802,10 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		#endregion
+
+		#region WriteField(..., int)
+
 		public void WriteField(string name, int value)
 		{
 			if (value != 0 || !m_discardDefaults)
@@ -2839,6 +2849,10 @@ namespace Doxense.Serialization.Json
 				WriteFieldNull(name);
 			}
 		}
+
+		#endregion
+
+		#region WriteField(..., long)
 
 		public void WriteField(string name, long value)
 		{
@@ -2884,6 +2898,10 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		#endregion
+
+		#region WriteField(..., float)
+
 		public void WriteField(string name, float value)
 		{
 			// ReSharper disable once CompareOfFloatsByEqualityOperator
@@ -2919,6 +2937,10 @@ namespace Doxense.Serialization.Json
 				WriteFieldNull(name);
 			}
 		}
+
+		#endregion
+
+		#region WriteField(..., double)
 
 		public void WriteField(string name, double value)
 		{
@@ -2956,6 +2978,10 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		#endregion
+
+		#region WriteField(..., Half)
+
 #if NET8_0_OR_GREATER
 
 		public void WriteField(string name, Half value)
@@ -2982,6 +3008,10 @@ namespace Doxense.Serialization.Json
 		}
 
 #endif
+
+		#endregion
+
+		#region WriteField(..., DateTime)
 
 		public void WriteField(string name, DateTime value)
 		{
@@ -3027,6 +3057,10 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		#endregion
+
+		#region WriteField(..., DateTimeOffset)
+
 		public void WriteField(string name, DateTimeOffset value)
 		{
 			if (value != DateTimeOffset.MinValue || !m_discardDefaults)
@@ -3070,6 +3104,10 @@ namespace Doxense.Serialization.Json
 				WriteFieldNull(name);
 			}
 		}
+
+		#endregion
+
+		#region WriteField(..., Guid)
 
 		public void WriteField(string name, Guid value)
 		{
@@ -3115,6 +3153,10 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		#endregion
+
+		#region WriteField(..., Uuid128)
+
 		public void WriteField(string name, Uuid128 value)
 		{
 			if (value != Uuid128.Empty|| !m_discardDefaults)
@@ -3158,6 +3200,10 @@ namespace Doxense.Serialization.Json
 				WriteFieldNull(name);
 			}
 		}
+
+		#endregion
+
+		#region WriteField(..., Uuid96)
 
 		public void WriteField(string name, Uuid96 value)
 		{
@@ -3203,6 +3249,10 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		#endregion
+
+		#region WriteField(..., Uuid80)
+
 		public void WriteField(string name, Uuid80 value)
 		{
 			if (value != Uuid80.Empty || !m_discardDefaults)
@@ -3247,6 +3297,10 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		#endregion
+
+		#region WriteField(..., Uuid64)
+
 		public void WriteField(string name, Uuid64 value)
 		{
 			if (value != Uuid64.Empty || !m_discardDefaults)
@@ -3278,7 +3332,9 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		#region NodaTime Types...
+		#endregion
+
+		#region WriteField(..., Instant)
 
 		public void WriteField(string name, NodaTime.Instant value)
 		{
@@ -3324,6 +3380,10 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		#endregion
+
+		#region WriteField(..., Duration)
+
 		public void WriteField(string name, NodaTime.Duration value)
 		{
 			if (value.BclCompatibleTicks != 0 || !m_discardDefaults)
@@ -3368,6 +3428,10 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		#endregion
+
+		#region WriteField(..., ZonedDateTime)
+
 		public void WriteField(string name, NodaTime.ZonedDateTime value)
 		{
 			//TODO: defaults?
@@ -3407,6 +3471,10 @@ namespace Doxense.Serialization.Json
 				WriteFieldNull(name);
 			}
 		}
+
+		#endregion
+
+		#region WriteField(..., LocalDateTime)
 
 		public void WriteField(string name, NodaTime.LocalDateTime value)
 		{
@@ -3448,6 +3516,10 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		#endregion
+
+		#region WriteField(..., LocalDate)
+
 		public void WriteField(string name, NodaTime.LocalDate value)
 		{
 			//TODO: defaults?
@@ -3480,6 +3552,10 @@ namespace Doxense.Serialization.Json
 				WriteFieldNull(name);
 			}
 		}
+
+		#endregion
+
+		#region WriteField(..., LocalTime)
 
 		public void WriteField(string name, NodaTime.LocalTime value)
 		{
@@ -3525,6 +3601,10 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		#endregion
+
+		#region WriteField(..., OffsetDateTime)
+
 		public void WriteField(string name, NodaTime.OffsetDateTime value)
 		{
 			//TODO: defaults?
@@ -3564,6 +3644,10 @@ namespace Doxense.Serialization.Json
 				WriteFieldNull(name);
 			}
 		}
+
+		#endregion
+
+		#region WriteField(..., Offset)
 
 		public void WriteField(string name, NodaTime.Offset value)
 		{
@@ -3608,6 +3692,10 @@ namespace Doxense.Serialization.Json
 				WriteFieldNull(name);
 			}
 		}
+
+		#endregion
+
+		#region WriteField(..., DateTimeZone)
 
 		public void WriteField(string name, NodaTime.DateTimeZone? value)
 		{
