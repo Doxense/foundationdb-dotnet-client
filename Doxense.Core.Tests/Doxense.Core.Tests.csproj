@@ -16,6 +16,7 @@
 		<IsTestProject>true</IsTestProject>
 		<EnableNUnitRunner>true</EnableNUnitRunner>
 		<TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+		<TestingPlatformShowTestsFailure>true</TestingPlatformShowTestsFailure>
 		<IsPackable>false</IsPackable>
 		<RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
 	</PropertyGroup>
