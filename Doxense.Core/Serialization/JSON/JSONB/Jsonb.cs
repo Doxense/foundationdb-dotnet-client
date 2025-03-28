@@ -1519,9 +1519,15 @@ namespace Doxense.Serialization.Json.Binary
 		{
 			const int HEADER_SIZE = 4;
 
+			/// <summary>Output buffer</summary>
 			private SliceWriter m_output;
 
+			/// <summary>Minimum number of key/value pairs before embedding a hashtable in objects</summary>
 			private readonly int m_hashingThreshold;
+
+			/// <summary>Start of the current fragment in the output buffer</summary>
+			/// <remarks>Internal alignment is computed relative to this offset, and not the start of the buffer!</remarks>
+			private int m_fragmentOffset;
 
 			//TODO: OPTIMZE: use a buffer pool?
 
@@ -1538,12 +1544,17 @@ namespace Doxense.Serialization.Json.Binary
 			public Writer(SliceWriter buffer)
 			{
 				m_output = buffer;
+				m_hashingThreshold = JsonbWriterOptions.DefaultHashingThreshold;
 			}
 
 			public void Dispose()
 			{
 				//TODO?
 			}
+
+			/// <summary>Exposes the internal writer</summary>
+			[EditorBrowsable(EditorBrowsableState.Never)]
+			public ref SliceWriter GetWriterUnsafe() => ref m_output;
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public byte[] GetBytes()
@@ -1586,7 +1597,6 @@ namespace Doxense.Serialization.Json.Binary
 			/// <returns>Number of bytes written</returns>
 			public int WriteDocument(JsonValue value)
 			{
-
 				Contract.NotNull(value);
 
 				if (ReferenceEquals(value, JsonNull.Missing))
@@ -1595,26 +1605,23 @@ namespace Doxense.Serialization.Json.Binary
 				}
 
 				// reserve some space for the header (written at the end once we know the final size)
-				m_output.Skip(HEADER_SIZE);
+				int start = m_output.Skip(HEADER_SIZE);
+				m_fragmentOffset = start;
 
 				// serialize the value (recursive)
 				WriteValue(value, 0);
 
-				/*
-				 * Note: the JEntry of the root is discarded. Therefore the root
-				 * JsonbContainer struct must contain enough information to tell what kind
-				 * of value it is.
-				 */
-				int len = m_output.Position;
+				// Note: the JEntry of the root is discarded. Therefore, the root JsonbContainer struct must contain enough information to tell what kind of value it is.
+				int len = m_output.Position - start;
 
 				// varlena, uncompressed
 				if (len > HEADER_SIZE_MASK) throw ThrowHelper.InvalidOperationException($"This jsonb document ({len} bytes) exceeds the maximum allowed size ({len} > {HEADER_SIZE_MASK} bytes).");
-				m_output.PatchUInt32(0, ((uint)len & HEADER_SIZE_MASK));
+				m_output.PatchUInt32(start, ((uint)len & HEADER_SIZE_MASK));
 
 				return len;
 			}
 
-			public uint WriteValue(JsonValue value, int level)
+			private uint WriteValue(JsonValue value, int level)
 			{
 				Contract.Debug.Requires(value is not null && level >= 0);
 
@@ -1645,7 +1652,7 @@ namespace Doxense.Serialization.Json.Binary
 				}
 			}
 
-			public uint WriteScalar(JsonValue value, JsonType type)
+			private uint WriteScalar(JsonValue value, JsonType type)
 			{
 				Contract.Debug.Requires(value is not null);
 				switch (type)
@@ -1697,12 +1704,22 @@ namespace Doxense.Serialization.Json.Binary
 				}
 			}
 
-			public uint WriteArray(JsonValue arrayOrScalar, int level)
+			private void Align(int size)
+			{
+				// relative to the start of the current fragment (which may not be aligned in the parent buffer!)
+				int misalignment = (m_output.Position - m_fragmentOffset) % size;
+				if (misalignment != 0)
+				{
+					m_output.Skip(size - misalignment, 0);
+				}
+			}
+
+			private uint WriteArray(JsonValue arrayOrScalar, int level)
 			{
 				int baseOffset = m_output.Position;
 
 				// containers are always aligned to 32-bit boundaries
-				m_output.Align(4); // 32-bit
+				Align(4); // 32-bit
 
 				JsonArray? array;
 				int numElems;
@@ -1756,7 +1773,7 @@ namespace Doxense.Serialization.Json.Binary
 				return JENTRY_TYPE_CONTAINER | (uint) totalLen;
 			}
 
-			public uint WriteObject(JsonObject map, int level)
+			private uint WriteObject(JsonObject map, int level)
 			{
 				int baseOffset = m_output.Position;
 
@@ -1770,7 +1787,7 @@ namespace Doxense.Serialization.Json.Binary
 				// - The list of indexes is stored in either 1, 2 or 3 bytes, depending on the number of k/v pairs (<= 256 uses 1 byte per entry, <= 65536 uses 2 bytes, > 65536 uses 3 bytes).
 
 				// containers are always aligned to 32-bit boundaries
-				m_output.Align(4);
+				Align(4); // 32-bit
 
 				int numPairs = map.Count;
 				if ((uint) numPairs >= (1 << 24)) throw FailContainerTooManyElements(); // max 16 777 215 keys per object!
