@@ -1320,14 +1320,14 @@ namespace FoundationDB.Client
 			{ // prior to 520, the offset is only 16-bits
 				using var writer = new SliceWriter(key.Length + 2, ArrayPool<byte>.Shared);
 				writer.WriteBytes(key);
-				writer.WriteFixed16(checked((ushort) offset)); // 16-bits little endian
+				writer.WriteUInt16(checked((ushort) offset)); // 16-bits little endian
 				trans.Atomic(writer.ToSpan(), value, FdbMutationType.VersionStampedKey);
 			}
 			else
 			{ // starting from 520, the offset is 32 bits
 				using var writer = new SliceWriter(key.Length + 4, ArrayPool<byte>.Shared);
 				writer.WriteBytes(key);
-				writer.WriteFixed32(checked((uint) offset)); // 32-bits little endian
+				writer.WriteUInt32(checked((uint) offset)); // 32-bits little endian
 				trans.Atomic(writer.ToSpan(), value, FdbMutationType.VersionStampedKey);
 			}
 
@@ -1366,14 +1366,14 @@ namespace FoundationDB.Client
 				if (stampOffset > 0xFFFF) throw new ArgumentException("The offset is too large to fit within 16-bits.");
 				using var writer = new SliceWriter(key.Length + 2, ArrayPool<byte>.Shared);
 				writer.WriteBytes(key);
-				writer.WriteFixed16(checked((ushort) stampOffset)); //stored as 32-bits in Little Endian
+				writer.WriteUInt16(checked((ushort) stampOffset)); //stored as 32-bits in Little Endian
 				trans.Atomic(writer.ToSpan(), value, FdbMutationType.VersionStampedKey);
 			}
 			else
 			{ // starting from 520, the offset is 32 bits
 				using var writer = new SliceWriter(key.Length + 4, ArrayPool<byte>.Shared);
 				writer.WriteBytes(key);
-				writer.WriteFixed32(checked((uint) stampOffset)); //stored as 32-bits in Little Endian
+				writer.WriteUInt32(checked((uint) stampOffset)); //stored as 32-bits in Little Endian
 				trans.Atomic(writer.ToSpan(), value, FdbMutationType.VersionStampedKey);
 			}
 		}
@@ -1420,7 +1420,7 @@ namespace FoundationDB.Client
 
 				using var writer = new SliceWriter(value.Length + 4, ArrayPool<byte>.Shared);
 				writer.WriteBytes(value);
-				writer.WriteFixed32(checked((uint) offset));
+				writer.WriteUInt32(checked((uint) offset));
 				trans.Atomic(key, writer.ToSpan(), FdbMutationType.VersionStampedValue);
 			}
 		}
@@ -1460,7 +1460,7 @@ namespace FoundationDB.Client
 			{ // starting from 520, the offset is stored in the last 32 bits
 				using var writer = new SliceWriter(value.Length + 4, ArrayPool<byte>.Shared);
 				writer.WriteBytes(value);
-				writer.WriteFixed32(checked((uint) stampOffset));
+				writer.WriteUInt32(checked((uint) stampOffset));
 				trans.Atomic(key, writer.ToSpan(), FdbMutationType.VersionStampedValue);
 			}
 

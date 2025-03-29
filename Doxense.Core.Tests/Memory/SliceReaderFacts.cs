@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -120,11 +120,11 @@ namespace Doxense.Slices.Tests
 		{
 			var data = Slice.FromString("01234");
 			var reader = data.ToSliceReader();
-			Assert.That(reader.ReadFixed16(), Is.EqualTo(0x3130));
+			Assert.That(reader.ReadUInt16(), Is.EqualTo(0x3130));
 			Assert.That(reader.Position, Is.EqualTo(2));
-			Assert.That(reader.ReadFixed16BE(), Is.EqualTo(0x3233));
+			Assert.That(reader.ReadUInt16BE(), Is.EqualTo(0x3233));
 			Assert.That(reader.Position, Is.EqualTo(4));
-			Assert.That(() => reader.ReadFixed16(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => reader.ReadUInt16(), Throws.InstanceOf<FormatException>());
 			Assert.That(reader.Position, Is.EqualTo(4));
 			Assert.That(reader.Tail, Is.EqualTo(Slice.FromString("4")));
 		}
@@ -134,11 +134,11 @@ namespace Doxense.Slices.Tests
 		{
 			var data = Slice.FromString("01234567");
 			var reader = data.ToSliceReader();
-			Assert.That(reader.ReadFixed24(), Is.EqualTo(0x323130));
+			Assert.That(reader.ReadUInt24(), Is.EqualTo(0x323130));
 			Assert.That(reader.Position, Is.EqualTo(3));
-			Assert.That(reader.ReadFixed24BE(), Is.EqualTo(0x333435));
+			Assert.That(reader.ReadUInt24BE(), Is.EqualTo(0x333435));
 			Assert.That(reader.Position, Is.EqualTo(6));
-			Assert.That(() => reader.ReadFixed24(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => reader.ReadUInt24(), Throws.InstanceOf<FormatException>());
 			Assert.That(reader.Position, Is.EqualTo(6));
 			Assert.That(reader.Tail, Is.EqualTo(Slice.FromString("67")));
 		}
@@ -148,11 +148,11 @@ namespace Doxense.Slices.Tests
 		{
 			var data = Slice.FromString("0123456789");
 			var reader = data.ToSliceReader();
-			Assert.That(reader.ReadFixed32(), Is.EqualTo(0x33323130));
+			Assert.That(reader.ReadUInt32(), Is.EqualTo(0x33323130));
 			Assert.That(reader.Position, Is.EqualTo(4));
-			Assert.That(reader.ReadFixed32BE(), Is.EqualTo(0x34353637));
+			Assert.That(reader.ReadUInt32BE(), Is.EqualTo(0x34353637));
 			Assert.That(reader.Position, Is.EqualTo(8));
-			Assert.That(() => reader.ReadFixed32(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => reader.ReadUInt32(), Throws.InstanceOf<FormatException>());
 			Assert.That(reader.Position, Is.EqualTo(8));
 			Assert.That(reader.Tail, Is.EqualTo(Slice.FromString("89")));
 		}
@@ -162,11 +162,11 @@ namespace Doxense.Slices.Tests
 		{
 			var data = Slice.FromString("0123456789ABCDEFGH");
 			var reader = data.ToSliceReader();
-			Assert.That(reader.ReadFixed64(), Is.EqualTo(0x3736353433323130));
+			Assert.That(reader.ReadUInt64(), Is.EqualTo(0x3736353433323130));
 			Assert.That(reader.Position, Is.EqualTo(8));
-			Assert.That(reader.ReadFixed64BE(), Is.EqualTo(0x3839414243444546));
+			Assert.That(reader.ReadUInt64BE(), Is.EqualTo(0x3839414243444546));
 			Assert.That(reader.Position, Is.EqualTo(16));
-			Assert.That(() => reader.ReadFixed64(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => reader.ReadUInt64(), Throws.InstanceOf<FormatException>());
 			Assert.That(reader.Position, Is.EqualTo(16));
 			Assert.That(reader.Tail, Is.EqualTo(Slice.FromString("GH")));
 		}
@@ -178,11 +178,11 @@ namespace Doxense.Slices.Tests
 		{
 			var data = Slice.FromString("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef");
 			var reader = data.ToSliceReader();
-			Assert.That(reader.ReadFixed128(), Is.EqualTo(new UInt128(0x4645444342413938, 0x3736353433323130)));
+			Assert.That(reader.ReadUInt128(), Is.EqualTo(new UInt128(0x4645444342413938, 0x3736353433323130)));
 			Assert.That(reader.Position, Is.EqualTo(16));
-			Assert.That(reader.ReadFixed128BE(), Is.EqualTo(new UInt128(0x4748494A4B4C4D4E, 0x4F50515253545556)));
+			Assert.That(reader.ReadUInt128BE(), Is.EqualTo(new UInt128(0x4748494A4B4C4D4E, 0x4F50515253545556)));
 			Assert.That(reader.Position, Is.EqualTo(32));
-			Assert.That(() => reader.ReadFixed128(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => reader.ReadUInt128(), Throws.InstanceOf<FormatException>());
 			Assert.That(reader.Position, Is.EqualTo(32));
 			Assert.That(reader.Tail, Is.EqualTo(Slice.FromString("WXYZabcdef")));
 		}

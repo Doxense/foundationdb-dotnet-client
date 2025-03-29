@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -182,9 +182,9 @@ namespace Doxense.Serialization.Asn1
 			switch (len)
 			{
 				case 1: return reader.ReadByte();
-				case 2: return reader.ReadFixed16BE();
-				case 3: return (int) reader.ReadFixed24BE();
-				case 4: return (int) reader.ReadFixed32BE();
+				case 2: return reader.ReadInt16BE();
+				case 3: return reader.ReadInt24BE();
+				case 4: return reader.ReadInt32BE();
 				default:
 				{ // cas rare, on accumule octet par octet
 					int res = 0;

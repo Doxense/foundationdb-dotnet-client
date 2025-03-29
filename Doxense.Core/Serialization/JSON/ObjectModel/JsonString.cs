@@ -2161,7 +2161,7 @@ namespace Doxense.Serialization.Json
 			var value = m_value;
 			if (string.IsNullOrEmpty(value))
 			{ // "" => 22 22
-				writer.WriteFixed16(0x2222);
+				writer.WriteInt16(0x2222);
 				return;
 			}
 

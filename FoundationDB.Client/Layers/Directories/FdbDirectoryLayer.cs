@@ -1081,9 +1081,9 @@ namespace FoundationDB.Client
 			private static Slice MakeVersionValue()
 			{
 				var writer = new SliceWriter(3 * 4);
-				writer.WriteFixed32((uint) LayerVersion.Major);
-				writer.WriteFixed32((uint) LayerVersion.Minor);
-				writer.WriteFixed32((uint) LayerVersion.Build);
+				writer.WriteInt32(LayerVersion.Major);
+				writer.WriteInt32(LayerVersion.Minor);
+				writer.WriteInt32(LayerVersion.Build);
 				return writer.ToSlice();
 			}
 
@@ -1421,9 +1421,9 @@ namespace FoundationDB.Client
 		{
 			// the version is stored as 3 x 32-bit unsigned int, so (1, 0, 0) will be "<01><00><00><00> <00><00><00><00> <00><00><00><00>"
 			var reader = new SliceReader(value);
-			var major = reader.ReadFixed32();
-			var minor = reader.ReadFixed32();
-			var upgrade = reader.ReadFixed32();
+			var major = reader.ReadUInt32();
+			var minor = reader.ReadUInt32();
+			var upgrade = reader.ReadUInt32();
 
 			if (major > LayerVersion.Major) throw new InvalidOperationException($"Cannot load directory with version {major}.{minor}.{upgrade} using directory layer {FdbDirectoryLayer.LayerVersion}.");
 			if (writeAccess && minor > LayerVersion.Minor) throw new InvalidOperationException($"Directory with version {major}.{minor}.{upgrade} is read-only when opened using directory layer {FdbDirectoryLayer.LayerVersion}.");

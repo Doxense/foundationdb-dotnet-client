@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -56,7 +56,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 				m_current = 0;
 				return false;
 			}
-			m_current = m_reader.ReadFixed32();
+			m_current = m_reader.ReadUInt32();
 			return true;
 		}
 

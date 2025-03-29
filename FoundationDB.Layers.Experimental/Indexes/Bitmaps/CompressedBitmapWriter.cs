@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -163,7 +163,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 			// switch from one type to the other
 			m_words += m_counter;
-			m_writer.WriteFixed32(
+			m_writer.WriteUInt32(
 				previous == CompressedWord.ALL_ZEROES
 					? CompressedWord.MakeZeroes(m_counter)
 					: CompressedWord.MakeOnes(m_counter)
@@ -184,16 +184,16 @@ namespace FoundationDB.Layers.Experimental.Indexing
 				Contract.Debug.Assert(counter > 0);
 				if (previous == CompressedWord.ALL_ZEROES)
 				{
-					m_writer.WriteFixed32(CompressedWord.MakeZeroes(counter));
+					m_writer.WriteUInt32(CompressedWord.MakeZeroes(counter));
 				}
 				else if (previous == CompressedWord.ALL_ONES)
 				{
-					m_writer.WriteFixed32(CompressedWord.MakeOnes(counter));
+					m_writer.WriteUInt32(CompressedWord.MakeOnes(counter));
 				}
 				else
 				{
 					Contract.Debug.Assert(counter == 1);
-					m_writer.WriteFixed32(CompressedWord.MakeLiteral(previous));
+					m_writer.WriteUInt32(CompressedWord.MakeLiteral(previous));
 				}
 				m_words += counter;
 			}
@@ -203,7 +203,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			uint w = CompressedWord.MakeLiteral(word);
 			while(n--> 0)
 			{
-				m_writer.WriteFixed32(w);
+				m_writer.WriteUInt32(w);
 			}
 			m_words += count;
 			m_current = NO_VALUE;
@@ -224,7 +224,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			int counter = m_counter;
 			if (counter > 0 && m_current == CompressedWord.ALL_ONES)
 			{ // complete the last run only if it was all 1's
-				m_writer.WriteFixed32(CompressedWord.MakeOnes(counter));
+				m_writer.WriteUInt32(CompressedWord.MakeOnes(counter));
 				m_words += counter;
 			}
 			m_counter = 0;
@@ -255,7 +255,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 				// update the header
 				m_writer.Rewind(out var p, m_head);
 				//the last word is either a literal, or a 1-bit filler
-				m_writer.WriteFixed32(CompressedWord.MakeHeader(m_bounds.Highest));
+				m_writer.WriteUInt32(CompressedWord.MakeHeader(m_bounds.Highest));
 				m_writer.Position = p;
 			}
 
@@ -297,7 +297,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 				m_head = 0;
 				m_ownsBuffer = true;
 			}
-			m_writer.WriteFixed32(0xFFFFFFFF); // incomplete
+			m_writer.WriteUInt32(0xFFFFFFFF); // incomplete
 			m_current = NO_VALUE;
 			m_counter = 0;
 			m_words = 0;

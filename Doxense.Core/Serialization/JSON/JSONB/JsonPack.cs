@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -493,22 +493,22 @@ namespace Doxense.Serialization.Json.Binary
 				else if (value < (1L << 15))
 				{ // 128..32767: stored as two bytes
 					writer.WriteByte((byte) TypeTokens.FixedInt2);
-					writer.WriteFixed16((short) value);
+					writer.WriteInt16((short) value);
 				}
 				else if (value < (1L << 23))
 				{ // stored as three bytes
 					writer.WriteByte((byte) TypeTokens.FixedInt3);
-					writer.WriteFixed24((uint) value & 0x7FFFFF);
+					writer.WriteUInt24((uint) value & 0x7FFFFF);
 				}
 				else if (value < (1L << 31))
 				{ // stored as three bytes
 					writer.WriteByte((byte) TypeTokens.FixedInt4);
-					writer.WriteFixed32((uint) value);
+					writer.WriteUInt32((uint) value);
 				}
 				else
 				{
 					writer.WriteByte((byte) TypeTokens.FixedInt8);
-					writer.WriteFixed64((ulong) value);
+					writer.WriteUInt64((ulong) value);
 				}
 			}
 			else
@@ -525,22 +525,22 @@ namespace Doxense.Serialization.Json.Binary
 				else if (value >= -32_768)
 				{ // -129 .. -32768: stored as two bytes
 					writer.WriteByte((byte) TypeTokens.FixedInt2);
-					writer.WriteFixed16(unchecked((ushort) value));
+					writer.WriteUInt16(unchecked((ushort) value));
 				}
 				else if (value >= -8_388_608)
 				{ // -129 .. -32768: stored as two bytes
 					writer.WriteByte((byte) TypeTokens.FixedInt3);
-					writer.WriteFixed24(unchecked((uint) (value & 0xFFFFFF)));
+					writer.WriteUInt24(unchecked((uint) (value & 0xFFFFFF)));
 				}
 				else if (value >= -2_147_483_648)
 				{
 					writer.WriteByte((byte) TypeTokens.FixedInt4);
-					writer.WriteFixed32(unchecked((uint) value));
+					writer.WriteUInt32(unchecked((uint) value));
 				}
 				else
 				{
 					writer.WriteByte((byte) TypeTokens.FixedInt8);
-					writer.WriteFixed64(unchecked((ulong) value));
+					writer.WriteUInt64(unchecked((ulong) value));
 				}
 			}
 		}
@@ -564,19 +564,18 @@ namespace Doxense.Serialization.Json.Binary
 				writer.WriteByte(JENTRY_SMALL_STRING_BASE + count);
 			}
 			else if (count <= 0xFF)
-			{ // string size 60 .. 255
-				writer.WriteByte((byte) TypeTokens.StringSize1);
-				writer.WriteByte((byte) count);
+			{ // string size 60 ... 255
+				writer.WriteBytes((byte) TypeTokens.StringSize1, (byte) count);
 			}
 			else if (count <= 0xFFFF)
 			{ // string size 256..65535
 				writer.WriteByte((byte) TypeTokens.StringSize2);
-				writer.WriteFixed16((ushort) count);
+				writer.WriteUInt16((ushort) count);
 			}
 			else
 			{ // string size >= 65536
 				writer.WriteByte((byte) TypeTokens.StringSize4);
-				writer.WriteFixed32((uint) count);
+				writer.WriteUInt32((uint) count);
 			}
 
 			if (count == n)
@@ -693,51 +692,51 @@ namespace Doxense.Serialization.Json.Binary
 		private static JsonValue ParseFixedS2(ref SliceReader reader, int token, CrystalJsonSettings settings)
 		{
 			Contract.Debug.Requires(token == (int) TypeTokens.FixedInt2);
-			int x = reader.ReadFixed16();
+			int x = reader.ReadUInt16();
 			return x < (1 << 15) ? x : (x | unchecked((int) 0xFFFF0000));
 		}
 
 		private static JsonValue ParseFixedS3(ref SliceReader reader, int token, CrystalJsonSettings settings)
 		{
 			Contract.Debug.Requires(token == (int) TypeTokens.FixedInt3);
-			int x = (int) reader.ReadFixed24();
+			int x = reader.ReadInt24();
 			return x < (1 << 23) ? x : (x | unchecked((int) 0xFF000000));
 		}
 
 		private static JsonValue ParseFixedS4(ref SliceReader reader, int token, CrystalJsonSettings settings)
 		{
 			Contract.Debug.Requires(token == (int) TypeTokens.FixedInt4);
-			return (int) reader.ReadFixed32();
+			return JsonNumber.Return(reader.ReadInt32());
 		}
 
 		private static JsonValue ParseFixedS8(ref SliceReader reader, int token, CrystalJsonSettings settings)
 		{
 			Contract.Debug.Requires(token == (int) TypeTokens.FixedInt8);
-			return (long) reader.ReadFixed64();
+			return JsonNumber.Return(reader.ReadInt64());
 		}
 
 		private static JsonValue ParseFixedU4(ref SliceReader reader, int token, CrystalJsonSettings settings)
 		{
 			Contract.Debug.Requires(token == (int) TypeTokens.FixedUInt4);
-			return (int) reader.ReadFixed32();
+			return JsonNumber.Return(reader.ReadUInt32());
 		}
 
 		private static JsonValue ParseFixedU8(ref SliceReader reader, int token, CrystalJsonSettings settings)
 		{
 			Contract.Debug.Requires(token == (int) TypeTokens.FixedUInt8);
-			return (long) reader.ReadFixed64();
+			return JsonNumber.Return(reader.ReadUInt64());
 		}
 
 		private static JsonValue ParseFixedSingle(ref SliceReader reader, int token, CrystalJsonSettings settings)
 		{
 			Contract.Debug.Requires(token == (int) TypeTokens.FixedSingle);
-			return reader.ReadSingle();
+			return JsonNumber.Return(reader.ReadSingle());
 		}
 
 		private static JsonValue ParseFixedDouble(ref SliceReader reader, int token, CrystalJsonSettings settings)
 		{
 			Contract.Debug.Requires(token == (int) TypeTokens.FixedDouble);
-			return reader.ReadDouble();
+			return JsonNumber.Return(reader.ReadDouble());
 		}
 
 		private static JsonValue? ParseNumberLiteral(ref SliceReader reader, int token, CrystalJsonSettings settings)
@@ -768,7 +767,7 @@ namespace Doxense.Serialization.Json.Binary
 		private static JsonValue ParseString2(ref SliceReader reader, int token, CrystalJsonSettings settings)
 		{
 			Contract.Debug.Requires(token == (int) TypeTokens.StringSize2);
-			int count = reader.ReadFixed16();
+			int count = reader.ReadUInt16();
 			var txt = reader.ReadBytes(count).ToStringUtf8();
 			return JsonString.Return(txt);
 		}
@@ -776,7 +775,7 @@ namespace Doxense.Serialization.Json.Binary
 		private static JsonValue ParseString4(ref SliceReader reader, int token, CrystalJsonSettings settings)
 		{
 			Contract.Debug.Requires(token == (int) TypeTokens.StringSize2);
-			uint count = reader.ReadFixed32();
+			uint count = reader.ReadUInt32();
 			if (count > int.MaxValue) throw new FormatException("String size is too large");
 			var txt = reader.ReadBytes(count).ToStringUtf8();
 			return JsonString.Return(txt);

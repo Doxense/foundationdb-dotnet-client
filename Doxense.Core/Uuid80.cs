@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -353,8 +353,8 @@ namespace System
 		public Slice ToSlice()
 		{
 			var writer = new SliceWriter(SizeOf);
-			writer.WriteFixed16BE(this.Hi);
-			writer.WriteFixed64BE(this.Lo);
+			writer.WriteUInt16BE(this.Hi);
+			writer.WriteUInt64BE(this.Lo);
 			return writer.ToSlice();
 		}
 

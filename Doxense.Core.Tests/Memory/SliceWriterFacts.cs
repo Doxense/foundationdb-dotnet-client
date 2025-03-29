@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -120,7 +120,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		[Test]
 		public void Test_WriteFixed16_Unsigned()
 		{
-			static void Test(ref SliceWriter writer, ushort value) => writer.WriteFixed16(value);
+			static void Test(ref SliceWriter writer, ushort value) => writer.WriteUInt16(value);
 
 			PerformWriterTest<ushort>(Test, 0, "00 00");
 			PerformWriterTest<ushort>(Test, 1, "01 00");
@@ -132,7 +132,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		[Test]
 		public void Test_WriteFixed16_Signed()
 		{
-			static void Test(ref SliceWriter writer, short value) => writer.WriteFixed16(value);
+			static void Test(ref SliceWriter writer, short value) => writer.WriteInt16(value);
 
 			PerformWriterTest<short>(Test, 0, "00 00");
 			PerformWriterTest<short>(Test, 1, "01 00");
@@ -146,7 +146,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		[Test]
 		public void Test_WriteFixed16BE_Unsigned()
 		{
-			static void Test(ref SliceWriter writer, ushort value) => writer.WriteFixed16BE(value);
+			static void Test(ref SliceWriter writer, ushort value) => writer.WriteUInt16BE(value);
 
 			PerformWriterTest<ushort>(Test, 0, "00 00");
 			PerformWriterTest<ushort>(Test, 1, "00 01");
@@ -158,7 +158,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		[Test]
 		public void Test_WriteFixed16BE_Signed()
 		{
-			static void Test(ref SliceWriter writer, short value) => writer.WriteFixed16BE(value);
+			static void Test(ref SliceWriter writer, short value) => writer.WriteInt16BE(value);
 
 			PerformWriterTest<short>(Test, 0, "00 00");
 			PerformWriterTest<short>(Test, 1, "00 01");
@@ -172,7 +172,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		[Test]
 		public void Test_WriteFixed32_Unsigned()
 		{
-			static void Test(ref SliceWriter writer, uint value) => writer.WriteFixed32(value);
+			static void Test(ref SliceWriter writer, uint value) => writer.WriteUInt32(value);
 
 			PerformWriterTest<uint>(Test, 0U, "00 00 00 00");
 			PerformWriterTest<uint>(Test, 1U, "01 00 00 00");
@@ -187,7 +187,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		[Test]
 		public void Test_WriteFixed32_Signed()
 		{
-			static void Test(ref SliceWriter writer, int value) => writer.WriteFixed32(value);
+			static void Test(ref SliceWriter writer, int value) => writer.WriteInt32(value);
 
 			PerformWriterTest<int>(Test, 0, "00 00 00 00");
 			PerformWriterTest<int>(Test, 1, "01 00 00 00");
@@ -207,7 +207,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		[Test]
 		public void Test_WriteFixed32BE_Unsigned()
 		{
-			static void Test(ref SliceWriter writer, uint value) => writer.WriteFixed32BE(value);
+			static void Test(ref SliceWriter writer, uint value) => writer.WriteUInt32BE(value);
 
 			PerformWriterTest<uint>(Test, 0U, "00 00 00 00");
 			PerformWriterTest<uint>(Test, 1U, "00 00 00 01");
@@ -222,7 +222,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		[Test]
 		public void Test_WriteFixed32BE_Signed()
 		{
-			static void Test(ref SliceWriter writer, int value) => writer.WriteFixed32BE(value);
+			static void Test(ref SliceWriter writer, int value) => writer.WriteInt32BE(value);
 
 			PerformWriterTest<int>(Test, 0, "00 00 00 00");
 			PerformWriterTest<int>(Test, 1, "00 00 00 01");
@@ -242,7 +242,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		[Test]
 		public void Test_WriteFixed64_Unsigned()
 		{
-			static void Test(ref SliceWriter writer, ulong value) => writer.WriteFixed64(value);
+			static void Test(ref SliceWriter writer, ulong value) => writer.WriteUInt64(value);
 
 			PerformWriterTest<ulong>(Test, 0UL, "00 00 00 00 00 00 00 00");
 			PerformWriterTest<ulong>(Test, 1UL, "01 00 00 00 00 00 00 00");
@@ -262,7 +262,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		[Test]
 		public void Test_WriteFixed64_Signed()
 		{
-			static void Test(ref SliceWriter writer, long value) => writer.WriteFixed64(value);
+			static void Test(ref SliceWriter writer, long value) => writer.WriteInt64(value);
 
 			PerformWriterTest<long>(Test, 0L, "00 00 00 00 00 00 00 00");
 			PerformWriterTest<long>(Test, 1L, "01 00 00 00 00 00 00 00");
@@ -288,7 +288,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		[Test]
 		public void Test_WriteFixed64BE_Unsigned()
 		{
-			static void Test(ref SliceWriter writer, ulong value) => writer.WriteFixed64BE(value);
+			static void Test(ref SliceWriter writer, ulong value) => writer.WriteUInt64BE(value);
 
 			PerformWriterTest<ulong>(Test, 0UL, "00 00 00 00 00 00 00 00");
 			PerformWriterTest<ulong>(Test, 1UL, "00 00 00 00 00 00 00 01");
@@ -308,7 +308,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		[Test]
 		public void Test_WriteFixed64BE_Signed()
 		{
-			static void Test(ref SliceWriter writer, long value) => writer.WriteFixed64BE(value);
+			static void Test(ref SliceWriter writer, long value) => writer.WriteInt64BE(value);
 
 			PerformWriterTest<long>(Test, 0L, "00 00 00 00 00 00 00 00");
 			PerformWriterTest<long>(Test, 1L, "00 00 00 00 00 00 00 01");
@@ -336,7 +336,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		[Test]
 		public void Test_WriteFixed128_Unsigned()
 		{
-			static void Test(ref SliceWriter writer, UInt128 value) => writer.WriteFixed128(value);
+			static void Test(ref SliceWriter writer, UInt128 value) => writer.WriteUInt128(value);
 
 			PerformWriterTest<UInt128>(Test, 0UL, "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00");
 			PerformWriterTest<UInt128>(Test, 1UL, "01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00");
@@ -560,7 +560,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		public void Test_Indexer()
 		{
 			var slice = new SliceWriter();
-			slice.WriteFixed64(0xBADC0FFEE0DDF00DUL);
+			slice.WriteUInt64(0xBADC0FFEE0DDF00DUL);
 
 			Assert.That(slice[0], Is.EqualTo(0x0D));
 			Assert.That(slice[1], Is.EqualTo(0xF0));
@@ -992,7 +992,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 
 			for (int i = 0; i < N; i++)
 			{
-				writer.WriteFixed32(i);
+				writer.WriteInt32(i);
 			}
 
 			pool.Dump();

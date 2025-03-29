@@ -586,7 +586,7 @@ namespace Doxense.Serialization.Json
 		public override void WriteTo(ref SliceWriter writer)
 		{
 			// 'null' => 6E 75 6C 6C
-			writer.WriteFixed32(0x6C6C756E);
+			writer.WriteInt32(0x6C6C756E);
 		}
 
 		#endregion

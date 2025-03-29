@@ -1726,7 +1726,7 @@ namespace Doxense.Serialization.Json.Binary
 
 				uint header = (uint) numElems | JCONTAINER_FLAG_ARRAY;
 				if (array is null) header |= JCONTAINER_FLAG_SCALAR;
-				m_output.WriteFixed32(header);
+				m_output.WriteUInt32(header);
 
 				// reserve some space for the entries of each element
 				int jentryOffset = m_output.Skip(numElems * JENTRY_SIZEOF);
@@ -1798,7 +1798,7 @@ namespace Doxense.Serialization.Json.Binary
 				// header of the container
 				uint header = (uint) numPairs | JCONTAINER_FLAG_OBJECT;
 				if (hashed) header |= JCONTAINER_FLAG_HASHED;
-				m_output.WriteFixed32(header);
+				m_output.WriteUInt32(header);
 
 				// reserve some space for the jentries
 				int jEntryOffset = m_output.Position;
@@ -1983,7 +1983,7 @@ namespace Doxense.Serialization.Json.Binary
 					}
 					if (value <= (1L << 15) - 1)
 					{
-						m_output.WriteFixed16((short) value);
+						m_output.WriteInt16((short) value);
 						return 2;
 					}
 					if (value <= (1L << 23) - 1)
@@ -1993,12 +1993,11 @@ namespace Doxense.Serialization.Json.Binary
 					}
 					if (value <= (1L << 31) - 1)
 					{
-						m_output.WriteFixed32((int) value);
+						m_output.WriteInt32((int) value);
 						return 4;
 					}
 
-					//TODO: version plus optimisée? (pas le courage de la faire maintenant)
-					m_output.WriteFixed64(value);
+					m_output.WriteInt64(value);
 					return 8;
 				}
 				else
@@ -2011,7 +2010,7 @@ namespace Doxense.Serialization.Json.Binary
 					}
 					if (value >= -(1L << 15))
 					{
-						m_output.WriteFixed16((short) value);
+						m_output.WriteInt16((short) value);
 						return 2;
 					}
 					if (value >= -(1L << 23))
@@ -2021,12 +2020,11 @@ namespace Doxense.Serialization.Json.Binary
 					}
 					if (value >= -(1L << 31))
 					{
-						m_output.WriteFixed32((int) value);
+						m_output.WriteInt32((int) value);
 						return 4;
 					}
 
-					//TODO: OPTIMIZE: more optimized version?
-					m_output.WriteFixed64(value);
+					m_output.WriteInt64(value);
 					return 8;
 				}
 			}

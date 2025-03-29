@@ -458,7 +458,7 @@ namespace Doxense.Linq.Tests
 				var sr = new SliceReader(writer.ToSlice());
 				for (int i = 0; i < 100; i++)
 				{
-					Assert.That(sr.ReadFixed32(), Is.EqualTo(i));
+					Assert.That(sr.ReadInt32(), Is.EqualTo(i));
 				}
 				Assert.That(sr.HasMore, Is.False);
 			}
@@ -467,7 +467,7 @@ namespace Doxense.Linq.Tests
 				var writer = new SliceWriter();
 				buffer.ForEach(
 					ref writer,
-					static (ref SliceWriter sw, int item) => sw.WriteFixed32BE(item)
+					static (ref SliceWriter sw, int item) => sw.WriteInt32BE(item)
 				);
 				DumpHexa(writer.ToSlice());
 				Assert.That(writer.Position, Is.EqualTo(400));
@@ -475,7 +475,7 @@ namespace Doxense.Linq.Tests
 				var sr = new SliceReader(writer.ToSlice());
 				for (int i = 0; i < 100; i++)
 				{
-					Assert.That(sr.ReadFixed32BE(), Is.EqualTo(i));
+					Assert.That(sr.ReadInt32BE(), Is.EqualTo(i));
 				}
 				Assert.That(sr.HasMore, Is.False);
 			}

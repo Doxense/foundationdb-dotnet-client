@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -325,7 +325,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 			output.Append($"Compressed [{compressed.Count:N0} bytes]:");
 
-			uint header = reader.ReadFixed32();
+			uint header = reader.ReadUInt32();
 			int highestBit = (int)header;
 			output.Append($" {(compressed.Count >> 2) - 1:N0} words");
 
@@ -333,7 +333,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			int i = 0;
 			while(reader.Remaining >= 4)
 			{
-				uint word = reader.ReadFixed32();
+				uint word = reader.ReadUInt32();
 				if ((word & TYPE_MASK) == BIT_TYPE_LITERAL)
 				{
 					output.Append($", ({i}:{p}) 0x{word:X8}");

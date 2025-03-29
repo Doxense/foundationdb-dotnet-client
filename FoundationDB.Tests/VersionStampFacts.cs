@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -97,9 +97,9 @@ namespace FoundationDB.Client.Tests
 
 			{
 				var writer = default(SliceWriter);
-				writer.WriteFixed24BE(0xAAAAAA);
+				writer.WriteUInt24BE(0xAAAAAA);
 				VersionStamp.Incomplete(123).WriteTo(ref writer);
-				writer.WriteFixed24BE(0xAAAAAA);
+				writer.WriteUInt24BE(0xAAAAAA);
 				Assert.That(writer.ToSlice().ToHexString(' '), Is.EqualTo("AA AA AA FF FF FF FF FF FF FF FF FF FF 00 7B AA AA AA"));
 
 				var reader = new SliceReader(writer.ToSlice());
@@ -180,9 +180,9 @@ namespace FoundationDB.Client.Tests
 
 			{
 				var writer = default(SliceWriter);
-				writer.WriteFixed24BE(0xAAAAAA);
+				writer.WriteUInt24BE(0xAAAAAA);
 				VersionStamp.Complete(0x0123456789ABCDEFUL, 123, 456).WriteTo(ref writer);
-				writer.WriteFixed24BE(0xAAAAAA);
+				writer.WriteUInt24BE(0xAAAAAA);
 				Assert.That(writer.ToSlice().ToHexString(' '), Is.EqualTo("AA AA AA 01 23 45 67 89 AB CD EF 00 7B 01 C8 AA AA AA"));
 
 				var reader = new SliceReader(writer.ToSlice());

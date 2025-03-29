@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -541,10 +541,10 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			}
 
 			var writer = new SliceWriter(checked((size + 1) << 2), pool);
-			writer.WriteFixed32(CompressedWord.MakeHeader(highest));
+			writer.WriteUInt32(CompressedWord.MakeHeader(highest));
 			for (int i = 0; i < size; i++)
 			{
-				writer.WriteFixed32(words[i].RawValue);
+				writer.WriteUInt32(words[i].RawValue);
 			}
 			return writer.ToSliceOwner();
 		}

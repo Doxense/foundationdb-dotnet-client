@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -50,7 +50,7 @@ namespace Doxense.Serialization
 		public Int32Value(int value) => this.Value = value;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void WriteTo(ref SliceWriter writer) => writer.WriteFixed32(this.Value);
+		public void WriteTo(ref SliceWriter writer) => writer.WriteInt32(this.Value);
 
 		public static implicit operator Int32Value(int value) => new(value);
 
@@ -64,7 +64,7 @@ namespace Doxense.Serialization
 		public UInt32Value(uint value) => this.Value = value;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void WriteTo(ref SliceWriter writer) => writer.WriteFixed32(this.Value);
+		public void WriteTo(ref SliceWriter writer) => writer.WriteUInt32(this.Value);
 
 		public static implicit operator UInt32Value(uint value) => new(value);
 
@@ -78,7 +78,7 @@ namespace Doxense.Serialization
 		public Int64Value(long value) => this.Value = value;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void WriteTo(ref SliceWriter writer) => writer.WriteFixed64(this.Value);
+		public void WriteTo(ref SliceWriter writer) => writer.WriteInt64(this.Value);
 
 		public static implicit operator Int64Value(long value) => new(value);
 
@@ -92,7 +92,7 @@ namespace Doxense.Serialization
 		public UInt64Value(ulong value) => this.Value = value;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void WriteTo(ref SliceWriter writer) => writer.WriteFixed64(this.Value);
+		public void WriteTo(ref SliceWriter writer) => writer.WriteUInt64(this.Value);
 
 		public static implicit operator UInt64Value(ulong value) => new(value);
 
