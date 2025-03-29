@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -917,18 +917,38 @@ namespace Doxense.Memory
 
 		#region Fixed, Little-Endian
 
+		#region 16-bits
+
 		/// <summary>Writes a 16-bit unsigned integer, using little-endian encoding</summary>
 		/// <remarks>Advances the cursor by 2 bytes</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("Use WriteInt16 instead")]
 		public void WriteFixed16(short value) => BinaryPrimitives.WriteInt16LittleEndian(AllocateSpan(2), value);
 
 		/// <summary>Writes a 16-bit unsigned integer, using little-endian encoding</summary>
 		/// <remarks>Advances the cursor by 2 bytes</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteInt16(short value) => BinaryPrimitives.WriteInt16LittleEndian(AllocateSpan(2), value);
+
+		/// <summary>Writes a 16-bit unsigned integer, using little-endian encoding</summary>
+		/// <remarks>Advances the cursor by 2 bytes</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("Use WriteUInt16 instead")]
 		public void WriteFixed16(ushort value) => BinaryPrimitives.WriteUInt16LittleEndian(AllocateSpan(2), value);
 
 		/// <summary>Writes a 16-bit unsigned integer, using little-endian encoding</summary>
 		/// <remarks>Advances the cursor by 2 bytes</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteUInt16(ushort value) => BinaryPrimitives.WriteUInt16LittleEndian(AllocateSpan(2), value);
+
+		#endregion
+
+		#region 24-bits
+
+		/// <summary>Writes a 24-bit unsigned integer, using little-endian encoding</summary>
+		/// <param name="value">Value to write. The upper 8-bits are ignored.</param>
+		/// <remarks>Advances the cursor by 3 bytes</remarks>
+		[Obsolete("Use WriteInt24 instead")]
 		public void WriteFixed24(int value)
 		{
 			unsafe
@@ -940,8 +960,24 @@ namespace Doxense.Memory
 			}
 		}
 
-		/// <summary>Writes a 16-bit unsigned integer, using little-endian encoding</summary>
-		/// <remarks>Advances the cursor by 2 bytes</remarks>
+		/// <summary>Writes a 24-bit unsigned integer, using little-endian encoding</summary>
+		/// <param name="value">Value to write. The upper 8-bits are ignored.</param>
+		/// <remarks>Advances the cursor by 3 bytes</remarks>
+		public void WriteInt24(int value)
+		{
+			unsafe
+			{
+				fixed (byte* ptr = AllocateSpan(3))
+				{
+					UnsafeHelpers.StoreUInt24LE(ptr, (uint) value);
+				}
+			}
+		}
+
+		/// <summary>Writes a 24-bit unsigned integer, using little-endian encoding</summary>
+		/// <param name="value">Value to write. The upper 8-bits are ignored.</param>
+		/// <remarks>Advances the cursor by 3 bytes</remarks>
+		[Obsolete("Use WriteUInt24 instead")]
 		public void WriteFixed24(uint value)
 		{
 			unsafe
@@ -953,57 +989,152 @@ namespace Doxense.Memory
 			}
 		}
 
+		/// <summary>Writes a 24-bit unsigned integer, using little-endian encoding</summary>
+		/// <param name="value">Value to write. The upper 8-bits are ignored.</param>
+		/// <remarks>Advances the cursor by 3 bytes</remarks>
+		public void WriteUInt24(uint value)
+		{
+			unsafe
+			{
+				fixed (byte* ptr = AllocateSpan(3))
+				{
+					UnsafeHelpers.StoreUInt24LE(ptr, value);
+				}
+			}
+		}
+
+		#endregion
+
+		#region 32-bits
+
 		/// <summary>Writes a 32-bit signed integer, using little-endian encoding</summary>
 		/// <remarks>Advances the cursor by 4 bytes</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("Use WriteInt32 instead")]
 		public void WriteFixed32(int value) => BinaryPrimitives.WriteInt32LittleEndian(AllocateSpan(4), value);
+
+		/// <summary>Writes a 32-bit signed integer, using little-endian encoding</summary>
+		/// <remarks>Advances the cursor by 4 bytes</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteInt32(int value) => BinaryPrimitives.WriteInt32LittleEndian(AllocateSpan(4), value);
 
 		/// <summary>Writes a 32-bit unsigned integer, using little-endian encoding</summary>
 		/// <remarks>Advances the cursor by 4 bytes</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("Use WriteUInt32 instead")]
 		public void WriteFixed32(uint value) => BinaryPrimitives.WriteUInt32LittleEndian(AllocateSpan(4), value);
+
+		/// <summary>Writes a 32-bit unsigned integer, using little-endian encoding</summary>
+		/// <remarks>Advances the cursor by 4 bytes</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteUInt32(uint value) => BinaryPrimitives.WriteUInt32LittleEndian(AllocateSpan(4), value);
+
+		#endregion
+
+		#region 64-bits
 
 		/// <summary>Writes a 64-bit signed integer, using little-endian encoding</summary>
 		/// <remarks>Advances the cursor by 8 bytes</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("Use WriteInt64 instead")]
 		public void WriteFixed64(long value) => BinaryPrimitives.WriteInt64LittleEndian(AllocateSpan(8), value);
+
+		/// <summary>Writes a 64-bit signed integer, using little-endian encoding</summary>
+		/// <remarks>Advances the cursor by 8 bytes</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteInt64(long value) => BinaryPrimitives.WriteInt64LittleEndian(AllocateSpan(8), value);
 
 		/// <summary>Writes a 64-bit unsigned integer, using little-endian encoding</summary>
 		/// <remarks>Advances the cursor by 8 bytes</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("Use WriteUInt64 instead")]
 		public void WriteFixed64(ulong value) => BinaryPrimitives.WriteUInt64LittleEndian(AllocateSpan(8), value);
+
+		/// <summary>Writes a 64-bit unsigned integer, using little-endian encoding</summary>
+		/// <remarks>Advances the cursor by 8 bytes</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteUInt64(ulong value) => BinaryPrimitives.WriteUInt64LittleEndian(AllocateSpan(8), value);
+
+		#endregion
+
+		#region 128-bits
 
 #if NET8_0_OR_GREATER
 
 		/// <summary>Writes a 128-bit signed integer, using little-endian encoding</summary>
 		/// <remarks>Advances the cursor by 16 bytes</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("Use WriteInt128 instead")]
 		public void WriteFixed128(Int128 value) => BinaryPrimitives.WriteInt128LittleEndian(AllocateSpan(16), value);
+
+		/// <summary>Writes a 128-bit signed integer, using little-endian encoding</summary>
+		/// <remarks>Advances the cursor by 16 bytes</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteInt128(Int128 value) => BinaryPrimitives.WriteInt128LittleEndian(AllocateSpan(16), value);
 
 		/// <summary>Writes a 128-bit unsigned integer, using little-endian encoding</summary>
 		/// <remarks>Advances the cursor by 16 bytes</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("Use WriteUInt128 instead")]
 		public void WriteFixed128(UInt128 value) => BinaryPrimitives.WriteUInt128LittleEndian(AllocateSpan(16), value);
+
+		/// <summary>Writes a 128-bit unsigned integer, using little-endian encoding</summary>
+		/// <remarks>Advances the cursor by 16 bytes</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteUInt128(UInt128 value) => BinaryPrimitives.WriteUInt128LittleEndian(AllocateSpan(16), value);
 
 #endif
 
 		#endregion
 
+		#endregion
+
 		#region Fixed, Big-Endian
+
+		#region 16-bits
 
 		/// <summary>Writes a 16-bit signed integer, using big-endian encoding</summary>
 		/// <remarks>Advances the cursor by 2 bytes</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("Use WriteInt16BE instead")]
 		public void WriteFixed16BE(short value) => BinaryPrimitives.WriteInt16BigEndian(AllocateSpan(2), value);
+
+		/// <summary>Writes a 16-bit signed integer, using big-endian encoding</summary>
+		/// <remarks>Advances the cursor by 2 bytes</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteInt16BE(short value) => BinaryPrimitives.WriteInt16BigEndian(AllocateSpan(2), value);
 
 		/// <summary>Writes a 16-bit unsigned integer, using big-endian encoding</summary>
 		/// <remarks>Advances the cursor by 2 bytes</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("Use WriteUInt16BE instead")]
 		public void WriteFixed16BE(ushort value) => BinaryPrimitives.WriteUInt16BigEndian(AllocateSpan(2), value);
+
+		/// <summary>Writes a 16-bit unsigned integer, using big-endian encoding</summary>
+		/// <remarks>Advances the cursor by 2 bytes</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteUInt16BE(ushort value) => BinaryPrimitives.WriteUInt16BigEndian(AllocateSpan(2), value);
+		#endregion
+
+		#region 24-bits
 
 		/// <summary>Writes a 24-bit signed integer, using big-endian encoding</summary>
 		/// <remarks>Advances the cursor by 2 bytes</remarks>
+		[Obsolete("Use WriteInt24BE instead")]
 		public void WriteFixed24BE(int value)
+		{
+			unsafe
+			{
+				fixed (byte* ptr = AllocateSpan(3))
+				{
+					UnsafeHelpers.StoreInt24BE(ptr, value);
+				}
+			}
+		}
+
+		/// <summary>Writes a 24-bit signed integer, using big-endian encoding</summary>
+		/// <remarks>Advances the cursor by 2 bytes</remarks>
+		public void WriteInt24BE(int value)
 		{
 			unsafe
 			{
@@ -1016,6 +1147,7 @@ namespace Doxense.Memory
 
 		/// <summary>Writes a 24-bit unsigned integer, using big-endian encoding</summary>
 		/// <remarks>Advances the cursor by 3 bytes</remarks>
+		[Obsolete("Use WriteUInt24BE instead")]
 		public void WriteFixed24BE(uint value)
 		{
 			unsafe
@@ -1027,50 +1159,117 @@ namespace Doxense.Memory
 			}
 		}
 
+		/// <summary>Writes a 24-bit unsigned integer, using big-endian encoding</summary>
+		/// <remarks>Advances the cursor by 3 bytes</remarks>
+		public void WriteUInt24BE(uint value)
+		{
+			unsafe
+			{
+				fixed (byte* ptr = AllocateSpan(3))
+				{
+					UnsafeHelpers.StoreUInt24BE(ptr, value);
+				}
+			}
+		}
+
+		#endregion
+
+		#region 32-bits
+
 		/// <summary>Writes a 32-bit signed integer, using big-endian encoding</summary>
 		/// <remarks>Advances the cursor by 4 bytes</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("Use WriteInt32BE instead")]
 		public void WriteFixed32BE(int value) => BinaryPrimitives.WriteInt32BigEndian(AllocateSpan(4), value);
+
+		/// <summary>Writes a 32-bit signed integer, using big-endian encoding</summary>
+		/// <remarks>Advances the cursor by 4 bytes</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteInt32BE(int value) => BinaryPrimitives.WriteInt32BigEndian(AllocateSpan(4), value);
 
 		/// <summary>Writes a 32-bit unsigned integer, using big-endian encoding</summary>
 		/// <remarks>Advances the cursor by 4 bytes</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("Use WriteUInt32BE instead")]
 		public void WriteFixed32BE(uint value) => BinaryPrimitives.WriteUInt32BigEndian(AllocateSpan(4), value);
+
+		/// <summary>Writes a 32-bit unsigned integer, using big-endian encoding</summary>
+		/// <remarks>Advances the cursor by 4 bytes</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteUInt32BE(uint value) => BinaryPrimitives.WriteUInt32BigEndian(AllocateSpan(4), value);
+
+		#endregion
+
+		#region 64-bits
 
 		/// <summary>Writes a 64-bit signed integer, using big-endian encoding</summary>
 		/// <remarks>Advances the cursor by 8 bytes</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("Use WriteInt64BE instead")]
 		public void WriteFixed64BE(long value) => BinaryPrimitives.WriteInt64BigEndian(AllocateSpan(8), value);
+
+		/// <summary>Writes a 64-bit signed integer, using big-endian encoding</summary>
+		/// <remarks>Advances the cursor by 8 bytes</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteInt64BE(long value) => BinaryPrimitives.WriteInt64BigEndian(AllocateSpan(8), value);
 
 		/// <summary>Writes a 64-bit unsigned integer, using big-endian encoding</summary>
 		/// <remarks>Advances the cursor by 8 bytes</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("Use WriteUInt64BE instead")]
 		public void WriteFixed64BE(ulong value) => BinaryPrimitives.WriteUInt64BigEndian(AllocateSpan(8), value);
+
+		/// <summary>Writes a 64-bit unsigned integer, using big-endian encoding</summary>
+		/// <remarks>Advances the cursor by 8 bytes</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteUInt64BE(ulong value) => BinaryPrimitives.WriteUInt64BigEndian(AllocateSpan(8), value);
+
+		#endregion
+
+		#region 128-bits
 
 #if NET8_0_OR_GREATER
 
 		/// <summary>Writes a 128-bit signed integer, using big-endian encoding</summary>
 		/// <remarks>Advances the cursor by 16 bytes</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("Use WriteInt128BE instead")]
 		public void WriteFixed128BE(Int128 value) => BinaryPrimitives.WriteInt128BigEndian(AllocateSpan(16), value);
+
+		/// <summary>Writes a 128-bit signed integer, using big-endian encoding</summary>
+		/// <remarks>Advances the cursor by 16 bytes</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteInt128BE(Int128 value) => BinaryPrimitives.WriteInt128BigEndian(AllocateSpan(16), value);
 
 		/// <summary>Writes a 128-bit unsigned integer, using big-endian encoding</summary>
 		/// <remarks>Advances the cursor by 16 bytes</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("Use WriteUInt128BE instead")]
 		public void WriteFixed128BE(UInt128 value) => BinaryPrimitives.WriteUInt128BigEndian(AllocateSpan(16), value);
+
+		/// <summary>Writes a 128-bit unsigned integer, using big-endian encoding</summary>
+		/// <remarks>Advances the cursor by 16 bytes</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteUInt128BE(UInt128 value) => BinaryPrimitives.WriteUInt128BigEndian(AllocateSpan(16), value);
 
 #endif
 
 		#endregion
 
+		#endregion
+
 		#region Decimals...
 
+		/// <summary>Writes a 32-bit IEEE floating point number, using little-endian encoding</summary>
+		/// <remarks>Advances the cursor by 4 bytes</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteSingle(float value)
 		{
 			BinaryPrimitives.WriteSingleLittleEndian(AllocateSpan(4), value);
 		}
 
+		/// <summary>Writes a 32-bit IEEE floating point number, using little-endian encoding, preceded by a single byte</summary>
+		/// <remarks>Advances the cursor by 5 bytes</remarks>
 		public void WriteSingle(byte prefix, float value)
 		{
 			var buffer = AllocateSpan(5);
@@ -1078,17 +1277,55 @@ namespace Doxense.Memory
 			BinaryPrimitives.WriteSingleLittleEndian(buffer.Slice(1), value);
 		}
 
+		/// <summary>Writes a 32-bit IEEE floating point number, using big-endian encoding</summary>
+		/// <remarks>Advances the cursor by 4 bytes</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteSingleBE(float value)
+		{
+			BinaryPrimitives.WriteSingleBigEndian(AllocateSpan(4), value);
+		}
+
+		/// <summary>Writes a 32-bit IEEE floating point number, using big-endian encoding, preceded by a single byte</summary>
+		/// <remarks>Advances the cursor by 5 bytes</remarks>
+		public void WriteSingleBE(byte prefix, float value)
+		{
+			var buffer = AllocateSpan(5);
+			buffer[0] = prefix;
+			BinaryPrimitives.WriteSingleBigEndian(buffer.Slice(1), value);
+		}
+
+		/// <summary>Writes a 64-bit IEEE floating point number, using little-endian encoding</summary>
+		/// <remarks>Advances the cursor by 8 bytes</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteDouble(double value)
 		{
 			BinaryPrimitives.WriteDoubleLittleEndian(AllocateSpan(8), value);
 		}
 
+		/// <summary>Writes a 64-bit IEEE floating point number, using little-endian encoding, preceded by a single byte</summary>
+		/// <remarks>Advances the cursor by 9 bytes</remarks>
 		public void WriteDouble(byte prefix, double value)
 		{
 			var buffer = AllocateSpan(9);
 			buffer[0] = prefix;
 			BinaryPrimitives.WriteDoubleLittleEndian(buffer.Slice(1), value);
+		}
+
+		/// <summary>Writes a 64-bit IEEE floating point number, using big-endian encoding</summary>
+		/// <remarks>Advances the cursor by 8 bytes</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteDoubleBE(double value)
+		{
+			BinaryPrimitives.WriteDoubleBigEndian(AllocateSpan(8), value);
+		}
+
+		/// <summary>Writes a 64-bit IEEE floating point number, using little-endian encoding, preceded by a single byte</summary>
+		/// <remarks>Advances the cursor by 9 bytes</remarks>
+		public void WriteDoubleBE(byte prefix, double value)
+		{
+			var buffer = AllocateSpan(9);
+			buffer[0] = prefix;
+			BinaryPrimitives.WriteDoubleBigEndian(buffer.Slice(1), value);
 		}
 
 		#endregion
@@ -1252,16 +1489,6 @@ namespace Doxense.Memory
 		{
 			Contract.Debug.Requires(bytes != null);
 			WriteVarBytes(bytes.AsSpan());
-		}
-
-		/// <summary>Writes a length-prefixed byte array, and advances the cursor</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete("Use ReadOnlySpan<byte> instead.", error: true)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		public void WriteVarBytes(byte[] bytes, int offset, int count)
-		{
-			Contract.Debug.Requires(count == 0 || bytes != null);
-			WriteVarBytes(bytes.AsSpan(offset, count));
 		}
 
 		/// <summary>Writes a length-prefixed byte array, and advances the cursor</summary>
@@ -1517,25 +1744,25 @@ namespace Doxense.Memory
 
 		#region UUIDs...
 
-		/// <summary>Write a 128-bit UUID, and advances the cursor</summary>
+		/// <summary>Writes a 128-bit UUID, and advances the cursor</summary>
 		public void WriteUuid128(in Uuid128 value)
 		{
 			value.WriteTo(AllocateSpan(Unsafe.SizeOf<Uuid128>()));
 		}
 
-		/// <summary>Write a 96-bit UUID, and advances the cursor</summary>
+		/// <summary>Writes a 96-bit UUID, and advances the cursor</summary>
 		public void WriteUuid96(in Uuid96 value)
 		{
 			value.WriteToUnsafe(AllocateSpan(Unsafe.SizeOf<Uuid96>()));
 		}
 
-		/// <summary>Write a 80-bit UUID, and advances the cursor</summary>
+		/// <summary>Writes an 80-bit UUID, and advances the cursor</summary>
 		public void WriteUuid80(in Uuid80 value)
 		{
 			value.WriteToUnsafe(AllocateSpan(Unsafe.SizeOf<Uuid80>()));
 		}
 
-		/// <summary>Write a 128-bit UUID, and advances the cursor</summary>
+		/// <summary>Writes a 128-bit UUID, and advances the cursor</summary>
 		public void WriteUuid64(Uuid64 value)
 		{
 			value.WriteToUnsafe(AllocateSpan(Unsafe.SizeOf<Uuid64>()));
@@ -1974,131 +2201,151 @@ namespace Doxense.Memory
 		#region 8-bits...
 
 		/// <summary>Overwrite a byte of the buffer that was already written</summary>
-		/// <remarks>You must ensure that replaced byte is before the current position!</remarks>
-		public void PatchByte(int index, byte value)
+		/// <remarks>You must ensure that replaced location is before the current position!</remarks>
+		public void PatchByte(int offset, byte value)
 		{
 			var buffer = this.Buffer;
-			if ((uint) index >= this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
-			buffer[index] = value;
+			if ((uint) offset >= this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
+			buffer[offset] = value;
 		}
 
 		/// <summary>Overwrite a byte of the buffer that was already written</summary>
-		/// <remarks>You must ensure that replaced byte is before the current position!</remarks>
-		public void PatchByte(int index, sbyte value)
+		/// <param name="offset">Offset, from the start of the buffer, of the location to patch.</param>
+		/// <param name="value">Value to insert at this location.</param>
+		/// <remarks>You must ensure that replaced location is before the current position!</remarks>
+		public void PatchByte(int offset, sbyte value)
 		{
 			var buffer = this.Buffer;
-			if ((uint) index >= this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
-			buffer[index] = (byte) value;
+			if ((uint) offset >= this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
+			buffer[offset] = (byte) value;
 		}
 
 		/// <summary>Overwrite a byte of the buffer that was already written</summary>
-		/// <remarks>You must ensure that replaced byte is before the current position!</remarks>
-		public void PatchByte(int index, int value)
+		/// <param name="offset">Offset, from the start of the buffer, of the location to patch</param>
+		/// <param name="value">Value that contains the byte to replace. The upper 24-bits are ignored.</param>
+		/// <remarks>You must ensure that replaced location is before the current position!</remarks>
+		public void PatchByte(int offset, int value)
 		{
 			//note: convenience method, because C# compiler likes to produce 'int' when combining bits together
 			var buffer = this.Buffer;
-			if ((uint) index >= this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
-			buffer[index] = (byte) value;
+			if ((uint) offset >= this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
+			buffer[offset] = (byte) value;
 		}
 
 		#endregion
 
 		#region 16-bits...
 
-		/// <summary>Overwrite a word of the buffer that was already written</summary>
-		/// <remarks>You must ensure that replaced word is before the current position!</remarks>
-		public void PatchInt16(int index, short value)
+		/// <summary>Overwrites a 16-bit location in the buffer, using little-endian encoding</summary>
+		/// <param name="offset">Offset, from the start of the buffer, of the location to patch</param>
+		/// <param name="value">Value that contains the byte to replace. The upper 24-bits are ignored.</param>
+		/// <remarks>You must ensure that replaced location is before the current position!</remarks>
+		public void PatchInt16(int offset, short value)
 		{
 			var buffer = this.Buffer;
-			if (index + 2 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
-			BinaryPrimitives.WriteInt16LittleEndian(buffer.AsSpan(index, 2), value);
+			if (offset + 2 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
+			BinaryPrimitives.WriteInt16LittleEndian(buffer.AsSpan(offset, 2), value);
 		}
 
-		/// <summary>Overwrite a word of the buffer that was already written</summary>
-		/// <remarks>You must ensure that replaced word is before the current position!</remarks>
-		public void PatchUInt16(int index, ushort value)
+		/// <summary>Overwrites a 16-bit location in the buffer, using little-endian encoding</summary>
+		/// <param name="offset">Offset, from the start of the buffer, of the location to patch.</param>
+		/// <param name="value">Value to insert at this location.</param>
+		/// <remarks>You must ensure that replaced location is before the current position!</remarks>
+		public void PatchUInt16(int offset, ushort value)
 		{
 			var buffer = this.Buffer;
-			if (index + 2 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
-			BinaryPrimitives.WriteUInt16LittleEndian(buffer.AsSpan(index, 2), value);
+			if (offset + 2 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
+			BinaryPrimitives.WriteUInt16LittleEndian(buffer.AsSpan(offset, 2), value);
 		}
 
-		/// <summary>Overwrite a word of the buffer that was already written</summary>
-		/// <remarks>You must ensure that replaced word is before the current position!</remarks>
-		public void PatchInt16BE(int index, short value)
+		/// <summary>Overwrites a 16-bit location in the buffer, using big-endian encoding</summary>
+		/// <param name="offset">Offset, from the start of the buffer, of the location to patch.</param>
+		/// <param name="value">Value to insert at this location.</param>
+		/// <remarks>You must ensure that replaced location is before the current position!</remarks>
+		public void PatchInt16BE(int offset, short value)
 		{
 			var buffer = this.Buffer;
-			if (index + 2 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
-			BinaryPrimitives.WriteInt16BigEndian(buffer.AsSpan(index, 2), value);
+			if (offset + 2 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
+			BinaryPrimitives.WriteInt16BigEndian(buffer.AsSpan(offset, 2), value);
 		}
 
-		/// <summary>Overwrite a word of the buffer that was already written</summary>
-		/// <remarks>You must ensure that replaced word is before the current position!</remarks>
-		public void PatchUInt16BE(int index, ushort value)
+		/// <summary>Overwrites a 16-bit location in the buffer, using big-endian encoding</summary>
+		/// <param name="offset">Offset, from the start of the buffer, of the location to patch.</param>
+		/// <param name="value">Value to insert at this location.</param>
+		/// <remarks>You must ensure that replaced location is before the current position!</remarks>
+		public void PatchUInt16BE(int offset, ushort value)
 		{
 			var buffer = this.Buffer;
-			if (index + 2 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
-			BinaryPrimitives.WriteUInt16BigEndian(buffer.AsSpan(index, 2), value);
+			if (offset + 2 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
+			BinaryPrimitives.WriteUInt16BigEndian(buffer.AsSpan(offset, 2), value);
 		}
 
 		#endregion
 
 		#region 24-bits...
 
-		/// <summary>Overwrite a word of the buffer that was already written</summary>
-		/// <remarks>You must ensure that replaced word is before the current position!</remarks>
-		public void PatchInt24(int index, int value)
+		/// <summary>Overwrites a 24-bit location in the buffer, using little-endian encoding</summary>
+		/// <param name="offset">Offset, from the start of the buffer, of the location to patch.</param>
+		/// <param name="value">Value to insert at this location. The upper 8-bits are ignored.</param>
+		/// <remarks>You must ensure that replaced location is before the current position!</remarks>
+		public void PatchInt24(int offset, int value)
 		{
 			var buffer = this.Buffer;
-			if (index + 3 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
+			if (offset + 3 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
-				fixed (byte* ptr = &buffer[index])
+				fixed (byte* ptr = &buffer[offset])
 				{
 					UnsafeHelpers.StoreInt24LE(ptr, value);
 				}
 			}
 		}
 
-		/// <summary>Overwrite a word of the buffer that was already written</summary>
-		/// <remarks>You must ensure that replaced word is before the current position!</remarks>
-		public void PatchUInt24(int index, uint value)
+		/// <summary>Overwrites a 24-bit location in the buffer, using little-endian encoding</summary>
+		/// <param name="offset">Offset, from the start of the buffer, of the location to patch.</param>
+		/// <param name="value">Value to insert at this location. The upper 8-bits are ignored.</param>
+		/// <remarks>You must ensure that replaced location is before the current position!</remarks>
+		public void PatchUInt24(int offset, uint value)
 		{
 			var buffer = this.Buffer;
-			if (index + 3 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
+			if (offset + 3 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
-				fixed (byte* ptr = &buffer[index])
+				fixed (byte* ptr = &buffer[offset])
 				{
 					UnsafeHelpers.StoreUInt24LE(ptr, value);
 				}
 			}
 		}
 
-		/// <summary>Overwrite a word of the buffer that was already written</summary>
-		/// <remarks>You must ensure that replaced word is before the current position!</remarks>
-		public void PatchInt24BE(int index, int value)
+		/// <summary>Overwrites a 24-bit location in the buffer, using big-endian encoding</summary>
+		/// <param name="offset">Offset, from the start of the buffer, of the location to patch.</param>
+		/// <param name="value">Value to insert at this location. The upper 8-bits are ignored.</param>
+		/// <remarks>You must ensure that replaced location is before the current position!</remarks>
+		public void PatchInt24BE(int offset, int value)
 		{
 			var buffer = this.Buffer;
-			if (index + 3 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
+			if (offset + 3 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
-				fixed (byte* ptr = &buffer[index])
+				fixed (byte* ptr = &buffer[offset])
 				{
 					UnsafeHelpers.StoreInt24BE(ptr, value);
 				}
 			}
 		}
 
-		/// <summary>Overwrite a word of the buffer that was already written</summary>
-		/// <remarks>You must ensure that replaced word is before the current position!</remarks>
-		public void PatchUInt24BE(int index, uint value)
+		/// <summary>Overwrites a 24-bit location in the buffer, using big-endian encoding</summary>
+		/// <param name="offset">Offset, from the start of the buffer, of the location to patch.</param>
+		/// <param name="value">Value to insert at this location. The upper 8-bits are ignored.</param>
+		/// <remarks>You must ensure that replaced location is before the current position!</remarks>
+		public void PatchUInt24BE(int offset, uint value)
 		{
 			var buffer = this.Buffer;
-			if (index + 3 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
+			if (offset + 3 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
-				fixed (byte* ptr = &buffer[index])
+				fixed (byte* ptr = &buffer[offset])
 				{
 					UnsafeHelpers.StoreUInt24BE(ptr, value);
 				}
@@ -2109,81 +2356,197 @@ namespace Doxense.Memory
 
 		#region 32-bits...
 
-		/// <summary>Overwrite a dword of the buffer that was already written</summary>
-		/// <remarks>You must ensure that replaced dword is before the current position!</remarks>
-		public void PatchInt32(int index, int value)
+		/// <summary>Overwrites a 32-bit location in the buffer, using little-endian encoding</summary>
+		/// <param name="offset">Offset, from the start of the buffer, of the location to patch.</param>
+		/// <param name="value">Value to insert at this location.</param>
+		/// <remarks>You must ensure that replaced location is before the current position!</remarks>
+		public void PatchInt32(int offset, int value)
 		{
 			var buffer = this.Buffer;
-			if (index + 4 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
-			BinaryPrimitives.WriteInt32LittleEndian(buffer.AsSpan(index, 4), value);
+			if (offset + 4 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
+			BinaryPrimitives.WriteInt32LittleEndian(buffer.AsSpan(offset, 4), value);
 		}
 
-		/// <summary>Overwrite a dword of the buffer that was already written</summary>
-		/// <remarks>You must ensure that replaced dword is before the current position!</remarks>
-		public void PatchUInt32(int index, uint value)
+		/// <summary>Overwrites a 32-bit location in the buffer, using little-endian encoding</summary>
+		/// <param name="offset">Offset, from the start of the buffer, of the location to patch.</param>
+		/// <param name="value">Value to insert at this location.</param>
+		/// <remarks>You must ensure that replaced location is before the current position!</remarks>
+		public void PatchUInt32(int offset, uint value)
 		{
 			var buffer = this.Buffer;
-			if (index + 4 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
-			BinaryPrimitives.WriteUInt32LittleEndian(buffer.AsSpan(index, 4), value);
+			if (offset + 4 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
+			BinaryPrimitives.WriteUInt32LittleEndian(buffer.AsSpan(offset, 4), value);
 		}
 
-		/// <summary>Overwrite a dword of the buffer that was already written</summary>
-		/// <remarks>You must ensure that replaced dword is before the current position!</remarks>
-		public void PatchInt32BE(int index, int value)
+		/// <summary>Overwrites a 32-bit location in the buffer, using big-endian encoding</summary>
+		/// <param name="offset">Offset, from the start of the buffer, of the location to patch.</param>
+		/// <param name="value">Value to insert at this location.</param>
+		/// <remarks>You must ensure that replaced location is before the current position!</remarks>
+		public void PatchInt32BE(int offset, int value)
 		{
 			var buffer = this.Buffer;
-			if (index + 4 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
-			BinaryPrimitives.WriteInt32BigEndian(buffer.AsSpan(index, 4), value);
+			if (offset + 4 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
+			BinaryPrimitives.WriteInt32BigEndian(buffer.AsSpan(offset, 4), value);
 		}
 
-		/// <summary>Overwrite a dword of the buffer that was already written</summary>
-		/// <remarks>You must ensure that replaced dword is before the current position!</remarks>
-		public void PatchUInt32BE(int index, uint value)
+		/// <summary>Overwrites a 32-bit location in the buffer, using big-endian encoding</summary>
+		/// <param name="offset">Offset, from the start of the buffer, of the location to patch.</param>
+		/// <param name="value">Value to insert at this location.</param>
+		/// <remarks>You must ensure that replaced location is before the current position!</remarks>
+		public void PatchUInt32BE(int offset, uint value)
 		{
 			var buffer = this.Buffer;
-			if (index + 4 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
-			BinaryPrimitives.WriteUInt32BigEndian(buffer.AsSpan(index, 4), value);
+			if (offset + 4 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
+			BinaryPrimitives.WriteUInt32BigEndian(buffer.AsSpan(offset, 4), value);
 		}
 
 		#endregion
 
 		#region 64-bits...
 
-		/// <summary>Overwrite a qword of the buffer that was already written</summary>
-		/// <remarks>You must ensure that replaced qword is before the current position!</remarks>
-		public void PatchInt64(int index, long value)
+		/// <summary>Overwrites a 64-bit location in the buffer, using little-endian encoding</summary>
+		/// <param name="offset">Offset, from the start of the buffer, of the location to patch.</param>
+		/// <param name="value">Value to insert at this location.</param>
+		/// <remarks>You must ensure that replaced location is before the current position!</remarks>
+		public void PatchInt64(int offset, long value)
 		{
 			var buffer = this.Buffer;
-			if (index + 8 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
-			BinaryPrimitives.WriteInt64LittleEndian(buffer.AsSpan(index, 8), value);
+			if (offset + 8 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
+			BinaryPrimitives.WriteInt64LittleEndian(buffer.AsSpan(offset, 8), value);
 		}
 
-		/// <summary>Overwrite a qword of the buffer that was already written</summary>
-		/// <remarks>You must ensure that replaced qword is before the current position!</remarks>
-		public void PatchUInt64(int index, ulong value)
+		/// <summary>Overwrites a 64-bit location in the buffer, using little-endian encoding</summary>
+		/// <param name="offset">Offset, from the start of the buffer, of the location to patch.</param>
+		/// <param name="value">Value to insert at this location.</param>
+		/// <remarks>You must ensure that replaced location is before the current position!</remarks>
+		public void PatchUInt64(int offset, ulong value)
 		{
 			var buffer = this.Buffer;
-			if (index + 8 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
-			BinaryPrimitives.WriteUInt64LittleEndian(buffer.AsSpan(index, 8), value);
+			if (offset + 8 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
+			BinaryPrimitives.WriteUInt64LittleEndian(buffer.AsSpan(offset, 8), value);
 		}
 
-		/// <summary>Overwrite a qword of the buffer that was already written</summary>
-		/// <remarks>You must ensure that replaced qword is before the current position!</remarks>
-		public void PatchInt64BE(int index, long value)
+		/// <summary>Overwrites a 64-bit location in the buffer, using big-endian encoding</summary>
+		/// <param name="offset">Offset, from the start of the buffer, of the location to patch.</param>
+		/// <param name="value">Value to insert at this location.</param>
+		/// <remarks>You must ensure that replaced location is before the current position!</remarks>
+		public void PatchInt64BE(int offset, long value)
 		{
 			var buffer = this.Buffer;
-			if (index + 8 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
-			BinaryPrimitives.WriteInt64BigEndian(buffer.AsSpan(index, 8), value);
+			if (offset + 8 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
+			BinaryPrimitives.WriteInt64BigEndian(buffer.AsSpan(offset, 8), value);
 		}
 
-		/// <summary>Overwrite a qword of the buffer that was already written</summary>
-		/// <remarks>You must ensure that replaced qword is before the current position!</remarks>
-		public void PatchUInt64BE(int index, ulong value)
+		/// <summary>Overwrites a 64-bit location in the buffer, using big-endian encoding</summary>
+		/// <param name="offset">Offset, from the start of the buffer, of the location to patch.</param>
+		/// <param name="value">Value to insert at this location.</param>
+		/// <remarks>You must ensure that replaced location is before the current position!</remarks>
+		public void PatchUInt64BE(int offset, ulong value)
 		{
 			var buffer = this.Buffer;
-			if (index + 8 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
-			BinaryPrimitives.WriteUInt64BigEndian(buffer.AsSpan(index, 8), value);
+			if (offset + 8 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
+			BinaryPrimitives.WriteUInt64BigEndian(buffer.AsSpan(offset, 8), value);
 		}
+
+		#endregion
+
+		#region 128-bits...
+
+#if NET8_0_OR_GREATER
+
+		/// <summary>Overwrites a 128-bit location in the buffer, using little-endian encoding</summary>
+		/// <param name="offset">Offset, from the start of the buffer, of the location to patch.</param>
+		/// <param name="value">Value to insert at this location.</param>
+		/// <remarks>You must ensure that replaced location is before the current position!</remarks>
+		public void PatchInt128(int offset, Int128 value)
+		{
+			var buffer = this.Buffer;
+			if ((long) offset + Unsafe.SizeOf<Int128>() > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
+			BinaryPrimitives.WriteInt128LittleEndian(buffer.AsSpan(offset, Unsafe.SizeOf<Int128>()), value);
+		}
+
+		/// <summary>Overwrites a 128-bit location in the buffer, using little-endian encoding</summary>
+		/// <param name="offset">Offset, from the start of the buffer, of the location to patch.</param>
+		/// <param name="value">Value to insert at this location.</param>
+		/// <remarks>You must ensure that replaced location is before the current position!</remarks>
+		public void PatchUInt128(int offset, UInt128 value)
+		{
+			var buffer = this.Buffer;
+			if ((long) offset + Unsafe.SizeOf<UInt128>() > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
+			BinaryPrimitives.WriteUInt128LittleEndian(buffer.AsSpan(offset, Unsafe.SizeOf<UInt128>()), value);
+		}
+
+		/// <summary>Overwrites a 128-bit location in the buffer, using big-endian encoding</summary>
+		/// <param name="offset">Offset, from the start of the buffer, of the location to patch.</param>
+		/// <param name="value">Value to insert at this location.</param>
+		/// <remarks>You must ensure that replaced location is before the current position!</remarks>
+		public void PatchInt128BE(int offset, Int128 value)
+		{
+			var buffer = this.Buffer;
+			if ((long) offset + Unsafe.SizeOf<Int128>() > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
+			BinaryPrimitives.WriteInt128BigEndian(buffer.AsSpan(offset, Unsafe.SizeOf<Int128>()), value);
+		}
+
+		/// <summary>Overwrites a 128-bit location in the buffer, using big-endian encoding</summary>
+		/// <param name="offset">Offset, from the start of the buffer, of the location to patch.</param>
+		/// <param name="value">Value to insert at this location.</param>
+		/// <remarks>You must ensure that replaced location is before the current position!</remarks>
+		public void PatchUInt128BE(int offset, UInt128 value)
+		{
+			var buffer = this.Buffer;
+			if ((long) offset + Unsafe.SizeOf<UInt128>() > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
+			BinaryPrimitives.WriteUInt128BigEndian(buffer.AsSpan(offset, Unsafe.SizeOf<UInt128>()), value);
+		}
+
+#endif
+
+		#region UUIDs
+
+		/// <summary>Overwrites a 128-bit location in the buffer</summary>
+		/// <param name="offset">Offset, from the start of the buffer, of the location to patch.</param>
+		/// <param name="value">Value to insert at this location.</param>
+		/// <remarks>You must ensure that replaced location is before the current position!</remarks>
+		public void PatchUuid128(int offset, Uuid128 value)
+		{
+			var buffer = this.Buffer;
+			if ((long) offset + Unsafe.SizeOf<Uuid128>() > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
+			value.WriteTo(buffer.AsSpan(offset, Unsafe.SizeOf<Uuid128>()));
+		}
+
+		/// <summary>Overwrites a 96-bit location in the buffer</summary>
+		/// <param name="offset">Offset, from the start of the buffer, of the location to patch.</param>
+		/// <param name="value">Value to insert at this location.</param>
+		/// <remarks>You must ensure that replaced location is before the current position!</remarks>
+		public void PatchUuid96(int offset, Uuid96 value)
+		{
+			var buffer = this.Buffer;
+			if ((long) offset + Unsafe.SizeOf<Uuid96>() > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
+			value.WriteTo(buffer.AsSpan(offset, Unsafe.SizeOf<Uuid96>()));
+		}
+
+		/// <summary>Overwrites a 96-bit location in the buffer</summary>
+		/// <param name="offset">Offset, from the start of the buffer, of the location to patch.</param>
+		/// <param name="value">Value to insert at this location.</param>
+		/// <remarks>You must ensure that replaced location is before the current position!</remarks>
+		public void PatchUuid80(int offset, Uuid80 value)
+		{
+			var buffer = this.Buffer;
+			if ((long) offset + Unsafe.SizeOf<Uuid80>() > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
+			value.WriteTo(buffer.AsSpan(offset, Unsafe.SizeOf<Uuid80>()));
+		}
+
+		/// <summary>Overwrites a 96-bit location in the buffer</summary>
+		/// <param name="offset">Offset, from the start of the buffer, of the location to patch.</param>
+		/// <param name="value">Value to insert at this location.</param>
+		/// <remarks>You must ensure that replaced location is before the current position!</remarks>
+		public void PatchUuid64(int offset, Uuid64 value)
+		{
+			var buffer = this.Buffer;
+			if ((long) offset + Unsafe.SizeOf<Uuid64>() > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
+			value.WriteTo(buffer.AsSpan(offset, Unsafe.SizeOf<Uuid64>()));
+		}
+
+		#endregion
 
 		#endregion
 
