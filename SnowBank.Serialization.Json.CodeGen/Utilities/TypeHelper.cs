@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS
+#region Copyright (c) 2023-2025 SnowBank SAS
 //
 // All rights are reserved. Reproduction or transmission in whole or in part, in
 // any form or by any means, electronic, mechanical or otherwise, is prohibited
