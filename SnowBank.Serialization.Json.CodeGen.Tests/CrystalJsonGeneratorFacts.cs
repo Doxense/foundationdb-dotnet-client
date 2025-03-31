@@ -191,12 +191,12 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 		public void Test_Generates_Code_For_Person()
 		{
 			// check the serializer singleton
-			var serializer = GeneratedConverters.Person;
+			var serializer = GeneratedConverters.Person.Default;
 			Assert.That(serializer, Is.Not.Null);
 			
 			// check the property names (should be camelCased)
-			Assert.That(GeneratedConverters.PersonJsonConverter.PropertyNames.FamilyName, Is.EqualTo("familyName"));
-			Assert.That(GeneratedConverters.PersonJsonConverter.PropertyNames.FirstName, Is.EqualTo("firstName"));
+			Assert.That(GeneratedConverters.Person.PropertyNames.FamilyName, Is.EqualTo("familyName"));
+			Assert.That(GeneratedConverters.Person.PropertyNames.FirstName, Is.EqualTo("firstName"));
 			//Assert.That(GeneratedConverters.PersonJsonConverter.PropertyNames.GetAllNames(), Is.EquivalentTo(new [] { "familyName", "firstName" }));
 			
 			var person = new Person()
@@ -316,11 +316,11 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 				Log();
 
 				Log("# Actual output:");
-				var json = CrystalJson.Serialize(person, GeneratedConverters.Person);
+				var json = CrystalJson.Serialize(person, GeneratedConverters.Person.Default);
 				Log(json);
 				Assert.That(json, Is.EqualTo("""{ "firstName": "\ud83d\udc4d", "familyName": "\ud83d\udc36" }"""));
 
-				var parsed = CrystalJson.Deserialize<Person>(json, GeneratedConverters.Person);
+				var parsed = CrystalJson.Deserialize<Person>(json, GeneratedConverters.Person.Default);
 				Assert.That(parsed, Is.Not.Null);
 				Assert.That(parsed.FirstName, Is.EqualTo("👍"));
 				Assert.That(parsed.FamilyName, Is.EqualTo("🐶"));
@@ -330,11 +330,11 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 
 			Assert.Multiple(() =>
 			{
-				Assert.That(CrystalJson.Serialize(new(), GeneratedConverters.Person), Is.EqualTo("""{ }"""));
-				Assert.That(CrystalJson.Serialize(new() { FirstName = null, FamilyName = null }, GeneratedConverters.Person), Is.EqualTo("""{ }"""));
-				Assert.That(CrystalJson.Serialize(new() { FirstName = "", FamilyName = "" }, GeneratedConverters.Person), Is.EqualTo("""{ "firstName": "", "familyName": "" }"""));
-				Assert.That(CrystalJson.Serialize(new() { FirstName = "James" }, GeneratedConverters.Person), Is.EqualTo("""{ "firstName": "James" }"""));
-				Assert.That(CrystalJson.Serialize(new() { FamilyName = "Bond" }, GeneratedConverters.Person), Is.EqualTo("""{ "familyName": "Bond" }"""));
+				Assert.That(CrystalJson.Serialize(new(), GeneratedConverters.Person.Default), Is.EqualTo("""{ }"""));
+				Assert.That(CrystalJson.Serialize(new() { FirstName = null, FamilyName = null }, GeneratedConverters.Person.Default), Is.EqualTo("""{ }"""));
+				Assert.That(CrystalJson.Serialize(new() { FirstName = "", FamilyName = "" }, GeneratedConverters.Person.Default), Is.EqualTo("""{ "firstName": "", "familyName": "" }"""));
+				Assert.That(CrystalJson.Serialize(new() { FirstName = "James" }, GeneratedConverters.Person.Default), Is.EqualTo("""{ "firstName": "James" }"""));
+				Assert.That(CrystalJson.Serialize(new() { FamilyName = "Bond" }, GeneratedConverters.Person.Default), Is.EqualTo("""{ "familyName": "Bond" }"""));
 			});
 		}
 
@@ -349,7 +349,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 
 			Log();
 			Log("Actual Json:");
-			var json = CrystalJson.Serialize(user, GeneratedConverters.MyAwesomeUser);
+			var json = CrystalJson.Serialize(user, GeneratedConverters.MyAwesomeUser.Default);
 			Log(json);
 			Assert.That(json, Is.EqualTo(expectedJson));
 
@@ -362,11 +362,11 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			// ToSlice
 
 			// non-pooled (return a copy)
-			var bytes = CrystalJson.ToSlice(user, GeneratedConverters.MyAwesomeUser);
+			var bytes = CrystalJson.ToSlice(user, GeneratedConverters.MyAwesomeUser.Default);
 			Assert.That(bytes.ToStringUtf8(), Is.EqualTo(json));
 
 			{ // pooled (rented buffer)
-				using (var res = CrystalJson.ToSlice(user, GeneratedConverters.MyAwesomeUser, ArrayPool<byte>.Shared))
+				using (var res = CrystalJson.ToSlice(user, GeneratedConverters.MyAwesomeUser.Default, ArrayPool<byte>.Shared))
 				{
 					Assert.That(res.IsValid, Is.True);
 					Assert.That(res.Count, Is.EqualTo(bytes.Count));
@@ -673,7 +673,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			]);
 			Dump(obj);
 
-			var proxy = GeneratedConverters.PersonReadOnlyProxy.Create(obj);
+			var proxy = GeneratedConverters.Person.ToReadOnly(obj);
 			Log(proxy.ToString());
 			Assert.That(proxy.FamilyName, Is.EqualTo("Bond"));
 			Assert.That(proxy.FirstName, Is.EqualTo("James"));
@@ -957,13 +957,13 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 
 			var stjOps = new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web);
 
-			var json = CrystalJson.Serialize(user, GeneratedConverters.MyAwesomeUser);
+			var json = CrystalJson.Serialize(user, GeneratedConverters.MyAwesomeUser.Default);
 			var parsed = JsonObject.Parse(json);
 
 			// warmup
 			{
 				_ = JsonValue.Parse(CrystalJson.Serialize(user)).As<MyAwesomeUser>();
-				_ = GeneratedConverters.MyAwesomeUser.Unpack(JsonValue.Parse(CrystalJson.Serialize(user, GeneratedConverters.MyAwesomeUser)));
+				_ = GeneratedConverters.MyAwesomeUser.Unpack(JsonValue.Parse(CrystalJson.Serialize(user, GeneratedConverters.MyAwesomeUser.Default)));
 				_ = CrystalJson.Deserialize<MyAwesomeUser>(json);
 				_ = System.Text.Json.JsonSerializer.Deserialize<MyAwesomeUser>(json, stjOps);
 				_ = System.Text.Json.JsonSerializer.Deserialize<MyAwesomeUser>(json, SystemTextJsonGeneratedSerializers.Default.MyAwesomeUser);
@@ -997,7 +997,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 				Report("SERIALIZE TEXT CRY_DYN", report);
 			}
 			{
-				var report = RobustBenchmark.Run(() => CrystalJson.Serialize(user, GeneratedConverters.MyAwesomeUser), RUNS, ITERATIONS);
+				var report = RobustBenchmark.Run(() => CrystalJson.Serialize(user, GeneratedConverters.MyAwesomeUser.Default), RUNS, ITERATIONS);
 				Report("SERIALIZE TEXT CRY_GEN", report);
 			}
 			{
@@ -1005,13 +1005,13 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 				Report("SERIALIZE UTF8 CRY_DYN", report);
 			}
 			{
-				var report = RobustBenchmark.Run(() => CrystalJson.ToSlice(user, GeneratedConverters.MyAwesomeUser), RUNS, ITERATIONS);
+				var report = RobustBenchmark.Run(() => CrystalJson.ToSlice(user, GeneratedConverters.MyAwesomeUser.Default), RUNS, ITERATIONS);
 				Report("SERIALIZE UTF8 CRY_GEN", report);
 			}
 			{
 				var report = RobustBenchmark.Run(() =>
 				{
-					using var res = CrystalJson.ToSlice(user, GeneratedConverters.MyAwesomeUser, ArrayPool<byte>.Shared);
+					using var res = CrystalJson.ToSlice(user, GeneratedConverters.MyAwesomeUser.Default, ArrayPool<byte>.Shared);
 					// use the JSON here to do something!
 				}, RUNS, ITERATIONS);
 				Report("SERIALIZE UTF8 POOLED", report);

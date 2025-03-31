@@ -49,6 +49,8 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 			private const string DisallowNullAttributeFullName = "System.Diagnostics.CodeAnalysis.DisallowNullAttribute";
 
+			private const string DoesNotReturnAttributeFullName = "System.Diagnostics.CodeAnalysis.DoesNotReturnAttribute";
+
 			private SourceProductionContext Context { get; }
 
 			private CrystalJsonContainerMetadata Metadata { get; }
@@ -200,21 +202,21 @@ namespace SnowBank.Serialization.Json.CodeGen
 			}
 
 			private string GetSerializerName(TypeMetadata type) => type.Name;
-			private string GetLocalSerializerRef(CrystalJsonTypeMetadata metadata) => $"{this.Metadata.Type.Name}.{GetSerializerName(metadata.Type)}";
+			private string GetLocalSerializerRef(CrystalJsonTypeMetadata metadata) => $"{this.Metadata.Type.Name}.{GetSerializerName(metadata.Type)}.Default";
 
-			private string GetConverterName(CrystalJsonTypeMetadata metadata) => metadata.Name + "JsonConverter";
+			private string GetConverterName(CrystalJsonTypeMetadata metadata) => GetSerializerName(metadata.Type) + ".JsonConverter";
 
-			private string GetReadOnlyProxyName(TypeMetadata type) => $"{type.Name}ReadOnlyProxy";
+			private string GetReadOnlyProxyName(TypeMetadata type) => $"{type.Name}.ReadOnly";
 			private string GetLocalReadOnlyProxyRef(CrystalJsonTypeMetadata metadata) => $"{this.Metadata.Name}.{GetReadOnlyProxyName(metadata.Type)}";
 
-			private string GetWritableProxyName(TypeMetadata type) => $"{type.Name}Proxy";
+			private string GetWritableProxyName(TypeMetadata type) => $"{type.Name}.Writable";
 			private string GetLocalWritableProxyRef(CrystalJsonTypeMetadata metadata) => $"{this.Metadata.Name}.{GetWritableProxyName(metadata.Type)}";
 
 			/// <summary>Returns the name of the generated const string with the serialized name of this member, from within the converter itself</summary>
 			private string GetLocalPropertyNameRef(CrystalJsonMemberMetadata member) => "PropertyNames." + member.MemberName;
 
 			/// <summary>Returns the name of the generated const string with the serialized name of this member, from another part of the generated code</summary>
-			private string GetTargetPropertyNameRef(CrystalJsonTypeMetadata type, CrystalJsonMemberMetadata member) => GetConverterName(type) + ".PropertyNames." + member.MemberName;
+			private string GetTargetPropertyNameRef(CrystalJsonTypeMetadata type, CrystalJsonMemberMetadata member) => this.Metadata.Name + "." + type.Name + ".PropertyNames." + member.MemberName;
 
 			/// <summary>Returns the name of the generated static singleton with the definition of this member</summary>
 			private string GetPropertyEncodedNameRef(CrystalJsonMemberMetadata member) => "PropertyEncodedNames." + member.MemberName;
@@ -246,16 +248,24 @@ namespace SnowBank.Serialization.Json.CodeGen
 				sb.NewLine();
 #endif
 
+				sb.AppendLine($"/// <summary>Set of JSON converters and other various helpers for type <see cref=\"{typeFullName}\">{typeName}</see></summary>");
+				sb.AppendLine("public static class " + typeName);
+				sb.EnterBlock();
+				sb.NewLine();
+
 				sb.AppendLine($"/// <summary>JSON converter for type <see cref=\"{typeFullName}\">{typeName}</see></summary>");
-				sb.AppendLine($"public static {serializerTypeName} {serializerName} => m_cached{serializerName} ??= new();");
+				sb.AppendLine($"public static {serializerTypeName} Default => m_cachedSerializer ??= new();");
 				sb.NewLine();
-				sb.AppendLine($"private static {serializerTypeName}? m_cached{serializerName};");
+				sb.AppendLine($"private static {serializerTypeName}? m_cachedSerializer;");
 				sb.NewLine();
 
-				#region JsonConverter class...
+				sb.AppendLine("#region Proxy Helpers...");
+				sb.NewLine();
 
-				sb.AppendLine($"public sealed class {serializerTypeName} : {KnownTypeSymbols.IJsonConverterInterfaceFullName}<{typeFullName}, {readOnlyProxyTypeName}, {writableProxyTypeName}>"); //TODO: implements!
-				sb.EnterBlock("JsonConverter:" + typeDef.Name);
+				WriteStaticProxyHelpers(sb, typeDef, typeFullName);
+
+				sb.AppendLine("#endregion");
+				sb.NewLine();
 
 				#region Metadata...
 
@@ -268,7 +278,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 				sb.NewLine();
 				foreach (var member in typeDef.Members)
 				{
-					sb.AppendLine($"/// <summary>Serialized name of the <see cref=\"{typeName}.{member.MemberName}\"/> {(member.IsField ? "field" : "property")} of the <see cref=\"{typeName}\"/> {(member.Type.IsValueType() ? "struct" : member.Type.IsRecord ? "record" : "class")}</summary>");
+					sb.AppendLine($"/// <summary>Serialized name of the <see cref=\"{typeFullName}.{member.MemberName}\"/> {(member.IsField ? "field" : "property")} of the <see cref=\"{typeFullName}\"/> {(member.Type.IsValueType() ? "struct" : member.Type.IsRecord ? "record" : "class")}</summary>");
 					sb.AppendLine($"public const string {member.MemberName} = {CSharpCodeBuilder.Constant(member.Name)};");
 					sb.NewLine();
 				}
@@ -285,12 +295,29 @@ namespace SnowBank.Serialization.Json.CodeGen
 				sb.NewLine();
 				foreach (var member in typeDef.Members)
 				{
-					sb.AppendLine($"/// <summary>Encoded name of the <see cref=\"{typeName}.{member.MemberName}\"/> {(member.IsField ? "field" : "property")} of the <see cref=\"{typeName}\"/> {(member.Type.IsValueType() ? "struct" : member.Type.IsRecord ? "record" : "class")}</summary>");
+					sb.AppendLine($"/// <summary>Encoded name of the <see cref=\"{typeFullName}.{member.MemberName}\"/> {(member.IsField ? "field" : "property")} of the <see cref=\"{typeFullName}\"/> {(member.Type.IsValueType() ? "struct" : member.Type.IsRecord ? "record" : "class")}</summary>");
 					sb.AppendLine($"public static readonly {KnownTypeSymbols.JsonEncodedPropertyNameFullName} {member.MemberName} = new({GetLocalPropertyNameRef(member)});");
 					sb.NewLine();
 				}
 				sb.LeaveBlock("properties");
 				sb.NewLine();
+
+				sb.AppendLine("#endregion");
+				sb.NewLine();
+
+				#endregion
+
+				#region JsonConverter class...
+
+				sb.AppendLine($"public sealed class JsonConverter : {KnownTypeSymbols.IJsonConverterInterfaceFullName}<{typeFullName}, {readOnlyProxyTypeName}, {writableProxyTypeName}>"); //TODO: implements!
+				sb.EnterBlock("JsonConverter:" + typeDef.Name);
+
+				#region Helpers...
+
+				sb.AppendLine("#region Conversion Helpers...");
+				sb.NewLine();
+
+				WriteProxyHelpers(sb, typeDef, typeFullName);
 
 				sb.AppendLine("#endregion");
 				sb.NewLine();
@@ -333,31 +360,17 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 				#endregion
 
-				#region Proxy...
-
-				sb.AppendLine("#region Proxy Helpers...");
-				sb.NewLine();
-
-				WriteProxyHelpers(sb, typeDef, typeName);
-
-				sb.AppendLine("#endregion");
-				sb.NewLine();
-
-				#endregion
-
 				sb.LeaveBlock("JsonConverter:" + typeDef.Name);
 				sb.NewLine();
-
-				#endregion
 
 				#region Read-Only Proxy...
 
 				// IJsonReadOnlyProxy<T>
-				sb.AppendLine($"/// <summary>Wraps a <see cref=\"{KnownTypeSymbols.JsonObjectFullName}\"/> into a read-only type-safe view that emulates the type <see cref=\"{typeName}\"/></summary>");
+				sb.AppendLine($"/// <summary>Wraps a <see cref=\"{KnownTypeSymbols.JsonObjectFullName}\"/> into a read-only type-safe view that emulates the type <see cref=\"{typeFullName}\"/></summary>");
 				sb.AppendLine($"/// <seealso cref=\"{KnownTypeSymbols.IJsonReadOnlyProxyFullName}{{T}}\"/>");
 				sb.Struct(
 					"public readonly",
-					readOnlyProxyTypeName,
+					"ReadOnly",
 					[ readOnlyProxyInterfaceName ],
 					[],
 					() =>
@@ -368,7 +381,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 						sb.NewLine();
 
 						// ctor()
-						sb.AppendLine($"public {readOnlyProxyTypeName}({KnownTypeSymbols.ObservableJsonValueFullName} value)");
+						sb.AppendLine($"public ReadOnly({KnownTypeSymbols.ObservableJsonValueFullName} value)");
 						sb.EnterBlock();
 						sb.AppendLine("m_value = value;");
 						sb.LeaveBlock();
@@ -640,11 +653,11 @@ namespace SnowBank.Serialization.Json.CodeGen
 				//	obj.Bar.Bar = 123; // this fails to compile because "obj.Bar" is not a valid 'this' for the Baz setter
 
 				// IJsonWritableProxy<T>
-				sb.AppendLine($"/// <summary>Wraps a <see cref=\"{KnownTypeSymbols.JsonObjectFullName}\"/> into a writable type-safe view that emulates the type <see cref=\"{typeName}\"/></summary>");
+				sb.AppendLine($"/// <summary>Wraps a <see cref=\"{KnownTypeSymbols.JsonObjectFullName}\"/> into a writable type-safe view that emulates the type <see cref=\"{typeFullName}\"/></summary>");
 				sb.AppendLine($"/// <seealso cref=\"{KnownTypeSymbols.IJsonWritableProxyFullName}{{T}}\"/>");
 				sb.Record(
 					"public sealed",
-					writableProxyTypeName,
+					"Writable",
 					[
 						KnownTypeSymbols.JsonWritableProxyObjectBaseFullName,
 						writableProxyInterfaceName
@@ -653,7 +666,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 					() =>
 					{
 						// ctor()
-						sb.AppendLine($"public {writableProxyTypeName}({KnownTypeSymbols.MutableJsonValueFullName} value) : base(value)");
+						sb.AppendLine($"public Writable({KnownTypeSymbols.MutableJsonValueFullName} value) : base(value)");
 						sb.EnterBlock();
 						sb.LeaveBlock();
 						sb.NewLine();
@@ -727,22 +740,30 @@ namespace SnowBank.Serialization.Json.CodeGen
 						sb.AppendLine($"public {readOnlyProxyTypeName} ToReadOnly() => new({KnownTypeSymbols.ObservableJsonValueFullName}.Untracked(m_value.ToJson().ToReadOnly()));");
 						sb.NewLine();
 
-						// Set
+						// Set(TReadOnly)
 						sb.AppendLine($"public void Set({readOnlyProxyTypeName} value) => m_value.Set(value.ToJson());");
 						sb.NewLine();
 
-						// Set
+						// Set(TWritable)
 						sb.AppendLine($"public void Set({writableProxyTypeName} value) => m_value.Set(value.ToJson());");
 						sb.NewLine();
 
-						// Set
+						// Set(T)
 						sb.AppendLine($"public void Set({typeDef.Type.FullyQualifiedName} instance) => m_value.Set({GetLocalSerializerRef(typeDef)}.Pack(instance, {KnownTypeSymbols.CrystalJsonSettingsFullName}.Json));");
 						sb.NewLine();
 
+						// GetHashCode()
 						sb.AppendLine("/// <inheritdoc />");
-						sb.AppendLine($"public bool Equals({writableProxyTypeName} value) => m_value.Equals(value.m_value);");
+						sb.AppendLine($"[{DoesNotReturnAttributeFullName}]");
+						sb.AppendLine("public override int GetHashCode() => throw new NotSupportedException();");
 						sb.NewLine();
 
+						// Equals(TWritable)
+						sb.AppendLine("/// <inheritdoc />");
+						sb.AppendLine($"public bool Equals({writableProxyTypeName}? value) => m_value.Equals(value?.m_value);");
+						sb.NewLine();
+
+						// ToString()
 						sb.AppendLine("/// <inheritdoc />");
 						sb.AppendLine($"public override string ToString() => \"({typeName}) \" + m_value.ToString();");
 						sb.NewLine();
@@ -956,74 +977,98 @@ namespace SnowBank.Serialization.Json.CodeGen
 				);
 
 				#endregion
+
+				#endregion
+
+				sb.LeaveBlock();
+				sb.NewLine();
+
 			}
 
-			private void WriteProxyHelpers(CSharpCodeBuilder sb, CrystalJsonTypeMetadata typeDef, string typeName)
+			private void WriteStaticProxyHelpers(CSharpCodeBuilder sb, CrystalJsonTypeMetadata typeDef, string typeFullName)
 			{
+
+				sb.AppendLine($"public static void Serialize({KnownTypeSymbols.CrystalJsonWriterFullName} writer, {typeDef.Type.FullyQualifiedName}{(typeDef.Type.IsValueType() ? "" : "?")} instance) => Default.Serialize(writer, instance);");
+				sb.NewLine();
+
+				sb.AppendLine($"public static string ToJson({typeDef.Type.FullyQualifiedNameAnnotated} instance, {KnownTypeSymbols.CrystalJsonSettingsFullName}? settings = default, {KnownTypeSymbols.ICrystalJsonTypeResolverFullName}? resolver = default) => Default.ToJson(instance, settings, resolver);");
+				sb.NewLine();
+
+				sb.AppendLine($"public static {typeDef.Type.FullyQualifiedName} Deserialize(string jsonText, {KnownTypeSymbols.CrystalJsonSettingsFullName}? settings = default, {KnownTypeSymbols.ICrystalJsonTypeResolverFullName}? resolver = default) => Default.Deserialize(jsonText, settings, resolver);");
+				sb.NewLine();
+
+				sb.AppendLine($"/// <summary>Converts an instance of this type into the equivalent <see cref=\"{KnownTypeSymbols.JsonValueFullName}\"/></summary>");
+				sb.AppendLine($"public static {KnownTypeSymbols.JsonValueFullName} Pack({typeDef.Type.FullyQualifiedNameAnnotated} instance, {KnownTypeSymbols.CrystalJsonSettingsFullName}? settings = default, {KnownTypeSymbols.ICrystalJsonTypeResolverFullName}? resolver = default) => Default.Pack(instance, settings, resolver);");
+				sb.NewLine();
+
+				sb.AppendLine($"/// <summary>Deserializes a JSON value into an instance of type <see cref=\"{typeFullName}\" /></summary>");
+				sb.AppendLine($"public static {typeDef.Type.FullyQualifiedNameAnnotated} Unpack({KnownTypeSymbols.JsonValueFullName} value, {KnownTypeSymbols.ICrystalJsonTypeResolverFullName}? resolver = default) => Default.Unpack(value, resolver);");
+				sb.NewLine();
+
 				// ToReadOnly(JsonValue)
-				sb.AppendLine($"/// <summary>Returns a read-only JSON Proxy that wraps a <see cref=\"{KnownTypeSymbols.JsonValueFullName}\"/> into a type-safe emulation of type <see cref=\"{typeName}\"/></summary>");
-				sb.AppendLine($"/// <returns>An instance of <see cref=\"{GetLocalReadOnlyProxyRef(typeDef)}\"/> that wraps <paramref name=\"value\"/> and exposes all the original members of <see cref=\"{typeName}\"/> as getter-only properties.</returns>");
+				sb.AppendLine($"/// <summary>Returns a read-only JSON Proxy that wraps a <see cref=\"{KnownTypeSymbols.JsonValueFullName}\"/> into a type-safe emulation of type <see cref=\"{typeFullName}\"/></summary>");
+				sb.AppendLine($"/// <returns>An instance of <see cref=\"{GetLocalReadOnlyProxyRef(typeDef)}\"/> that wraps <paramref name=\"value\"/> and exposes all the original members of <see cref=\"{typeFullName}\"/> as getter-only properties.</returns>");
 				sb.AppendLine("/// <remarks>");
 				sb.AppendLine("/// <para>The read-only view cannot modify the original JSON value but, unless <paramref name=\"value\"/> is itself read-only, any changes to the original will be reflected in the view.</para>");
 				sb.AppendLine("/// <para>How to use:<code>");
 				sb.AppendLine($"/// JsonValue json = {KnownTypeSymbols.JsonValueFullName}.Parse(/* JSON text */);");
-				sb.AppendLine($"/// var proxy = {GetSerializerName(typeDef.Type)}.AsReadOnly();");
+				sb.AppendLine($"/// var proxy = {GetSerializerName(typeDef.Type)}.ToReadOnly();");
 				sb.AppendLine($"/// var value = proxy.{typeDef.Members[0].MemberName}; // returns the value of the {CSharpCodeBuilder.Constant(typeDef.Members[0].Name)} field exposed as <see cref=\"{typeDef.Members[0].Type.FullyQualifiedName}\"/>");
 				sb.AppendLine($"/// proxy.{typeDef.Members[0].MemberName} = newValue; // ERROR: will not compile (there is no setter defined for this member)");
 				sb.AppendLine("/// </code></para>");
 				sb.AppendLine("/// </remarks>");
 				sb.AppendLine($"/// <seealso cref=\"ToMutable({KnownTypeSymbols.JsonValueFullName})\">If you need a writable view</seealso>");
-				sb.AppendLine($"public {GetLocalReadOnlyProxyRef(typeDef)} ToReadOnly({KnownTypeSymbols.JsonValueFullName} value) => {GetLocalReadOnlyProxyRef(typeDef)}.Create({KnownTypeSymbols.ObservableJsonValueFullName}.Untracked(value), this);");
+				sb.AppendLine($"public static {GetLocalReadOnlyProxyRef(typeDef)} ToReadOnly({KnownTypeSymbols.JsonValueFullName} value) => {GetLocalReadOnlyProxyRef(typeDef)}.Create({KnownTypeSymbols.ObservableJsonValueFullName}.Untracked(value), Default);");
 				sb.NewLine();
 
 				// ToReadOnly(IObservableJsonContext, JsonValue)
-				sb.AppendLine($"/// <summary>Returns a read-only JSON Proxy that wraps a <see cref=\"{KnownTypeSymbols.JsonValueFullName}\"/> into a type-safe emulation of type <see cref=\"{typeName}\"/></summary>");
-				sb.AppendLine($"/// <returns>An instance of <see cref=\"{GetLocalReadOnlyProxyRef(typeDef)}\"/> that wraps <paramref name=\"value\"/> and exposes all the original members of <see cref=\"{typeName}\"/> as getter-only properties.</returns>");
+				sb.AppendLine($"/// <summary>Returns a read-only JSON Proxy that wraps a <see cref=\"{KnownTypeSymbols.JsonValueFullName}\"/> into a type-safe emulation of type <see cref=\"{typeFullName}\"/></summary>");
+				sb.AppendLine($"/// <returns>An instance of <see cref=\"{GetLocalReadOnlyProxyRef(typeDef)}\"/> that wraps <paramref name=\"value\"/> and exposes all the original members of <see cref=\"{typeFullName}\"/> as getter-only properties.</returns>");
 				sb.AppendLine("/// <remarks>");
 				sb.AppendLine("/// <para>The read-only view cannot modify the original JSON value but, unless <paramref name=\"value\"/> is itself read-only, any changes to the original will be reflected in the view.</para>");
 				sb.AppendLine("/// <para>How to use:<code>");
 				sb.AppendLine($"/// JsonValue json = {KnownTypeSymbols.JsonValueFullName}.Parse(/* JSON text */);");
-				sb.AppendLine($"/// var proxy = {GetSerializerName(typeDef.Type)}.AsReadOnly();");
+				sb.AppendLine($"/// var proxy = {GetSerializerName(typeDef.Type)}.ToReadOnly();");
 				sb.AppendLine($"/// var value = proxy.{typeDef.Members[0].MemberName}; // returns the value of the {CSharpCodeBuilder.Constant(typeDef.Members[0].Name)} field exposed as <see cref=\"{typeDef.Members[0].Type.FullyQualifiedName}\"/>");
 				sb.AppendLine($"/// proxy.{typeDef.Members[0].MemberName} = newValue; // ERROR: will not compile (there is no setter defined for this member)");
 				sb.AppendLine("/// </code></para>");
 				sb.AppendLine("/// </remarks>");
 				sb.AppendLine($"/// <seealso cref=\"ToMutable({KnownTypeSymbols.JsonValueFullName})\">If you need a writable view</seealso>");
-				sb.AppendLine($"public {GetLocalReadOnlyProxyRef(typeDef)} ToReadOnly({KnownTypeSymbols.IObservableJsonContextFullName} ctx, {KnownTypeSymbols.JsonValueFullName} value) => {GetLocalReadOnlyProxyRef(typeDef)}.Create({KnownTypeSymbols.ObservableJsonValueFullName}.Tracked(ctx, value), this);");
+				sb.AppendLine($"public static {GetLocalReadOnlyProxyRef(typeDef)} ToReadOnly({KnownTypeSymbols.IObservableJsonContextFullName} ctx, {KnownTypeSymbols.JsonValueFullName} value) => {GetLocalReadOnlyProxyRef(typeDef)}.Create({KnownTypeSymbols.ObservableJsonValueFullName}.Tracked(ctx, value), Default);");
 				sb.NewLine();
 
 				// ToReadOnly(TValue)
-				sb.AppendLine($"/// <summary>Converts an instance of type <see cref=\"{typeName}\"/> into a read-only type-safe JSON Proxy.</summary>");
-				sb.AppendLine($"/// <returns>An instance of <see cref=\"{GetLocalReadOnlyProxyRef(typeDef)}\"/> that exposes all the original members of <see cref=\"{typeName}\"/> as getter-only properties.</returns>");
+				sb.AppendLine($"/// <summary>Converts an instance of type <see cref=\"{typeFullName}\"/> into a read-only type-safe JSON Proxy.</summary>");
+				sb.AppendLine($"/// <returns>An instance of <see cref=\"{GetLocalReadOnlyProxyRef(typeDef)}\"/> that exposes all the original members of <see cref=\"{typeFullName}\"/> as getter-only properties.</returns>");
 				sb.AppendLine("/// <remarks>");
 				sb.AppendLine("/// <para>How to use:<code>");
 				sb.AppendLine($"/// var instance = new {typeDef.Name}() {{ {typeDef.Members[0].MemberName} = ..., ... }};");
 				sb.AppendLine("/// // ...");
-				sb.AppendLine($"/// var proxy = {GetSerializerName(typeDef.Type)}.AsReadOnly(instance);");
+				sb.AppendLine($"/// var proxy = {GetSerializerName(typeDef.Type)}.ToReadOnly(instance);");
 				sb.AppendLine($"/// var value = proxy.{typeDef.Members[0].MemberName};");
 				sb.AppendLine($"/// proxy.{typeDef.Members[0].MemberName} = /* ... */; // ERROR: will not compile (there is no setter defined for this member)");
 				sb.AppendLine("/// </code></para>");
 				sb.AppendLine("/// </remarks>");
-				sb.AppendLine($"public {GetLocalReadOnlyProxyRef(typeDef)} ToReadOnly({typeDef.Type.FullyQualifiedNameAnnotated} instance) => {GetLocalReadOnlyProxyRef(typeDef)}.Create(instance);");
+				sb.AppendLine($"public static {GetLocalReadOnlyProxyRef(typeDef)} ToReadOnly({typeDef.Type.FullyQualifiedNameAnnotated} instance) => {GetLocalReadOnlyProxyRef(typeDef)}.Create(instance);");
 				sb.NewLine();
 
 				// ToReadOnly(IObservableJsonContext, TValue)
-				sb.AppendLine($"/// <summary>Converts an instance of type <see cref=\"{typeName}\"/> into a read-only type-safe JSON Proxy.</summary>");
-				sb.AppendLine($"/// <returns>An instance of <see cref=\"{GetLocalReadOnlyProxyRef(typeDef)}\"/> that exposes all the original members of <see cref=\"{typeName}\"/> as getter-only properties.</returns>");
+				sb.AppendLine($"/// <summary>Converts an instance of type <see cref=\"{typeFullName}\"/> into a read-only type-safe JSON Proxy.</summary>");
+				sb.AppendLine($"/// <returns>An instance of <see cref=\"{GetLocalReadOnlyProxyRef(typeDef)}\"/> that exposes all the original members of <see cref=\"{typeFullName}\"/> as getter-only properties.</returns>");
 				sb.AppendLine("/// <remarks>");
 				sb.AppendLine("/// <para>How to use:<code>");
 				sb.AppendLine($"/// var instance = new {typeDef.Name}() {{ {typeDef.Members[0].MemberName} = ..., ... }};");
 				sb.AppendLine("/// // ...");
-				sb.AppendLine($"/// var proxy = {GetSerializerName(typeDef.Type)}.AsReadOnly(instance);");
+				sb.AppendLine($"/// var proxy = {GetSerializerName(typeDef.Type)}.ToReadOnly(instance);");
 				sb.AppendLine($"/// var value = proxy.{typeDef.Members[0].MemberName};");
 				sb.AppendLine($"/// proxy.{typeDef.Members[0].MemberName} = /* ... */; // ERROR: will not compile (there is no setter defined for this member)");
 				sb.AppendLine("/// </code></para>");
 				sb.AppendLine("/// </remarks>");
-				sb.AppendLine($"public {GetLocalReadOnlyProxyRef(typeDef)} ToReadOnly({KnownTypeSymbols.IObservableJsonContextFullName} ctx, {typeDef.Type.FullyQualifiedNameAnnotated} instance) => {GetLocalReadOnlyProxyRef(typeDef)}.Create(ctx, instance);");
+				sb.AppendLine($"public static {GetLocalReadOnlyProxyRef(typeDef)} ToReadOnly({KnownTypeSymbols.IObservableJsonContextFullName} ctx, {typeDef.Type.FullyQualifiedNameAnnotated} instance) => {GetLocalReadOnlyProxyRef(typeDef)}.Create(ctx, instance);");
 				sb.NewLine();
 
-				sb.AppendLine($"/// <summary>Returns a writable JSON Proxy that wraps a <see cref=\"{KnownTypeSymbols.JsonValueFullName}\"/> into a type-safe emulation of type <see cref=\"{typeName}\"/></summary>");
-				sb.AppendLine($"/// <returns>An instance of <see cref=\"{GetLocalWritableProxyRef(typeDef)}\"/> that wraps <paramref name=\"value\"/> and exposes all the original members of <see cref=\"{typeName}\"/> as writable properties.</returns>");
+				sb.AppendLine($"/// <summary>Returns a writable JSON Proxy that wraps a <see cref=\"{KnownTypeSymbols.JsonValueFullName}\"/> into a type-safe emulation of type <see cref=\"{typeFullName}\"/></summary>");
+				sb.AppendLine($"/// <returns>An instance of <see cref=\"{GetLocalWritableProxyRef(typeDef)}\"/> that wraps <paramref name=\"value\"/> and exposes all the original members of <see cref=\"{typeFullName}\"/> as writable properties.</returns>");
 				sb.AppendLine("/// <remarks>");
 				sb.AppendLine("/// <para>If <paramref name=\"value\"/> is read-only, a mutable copy will be created and used instead.</para>");
 				sb.AppendLine($"/// <para>If <paramref name=\"value\"/> is mutable, then it will be modified in-place. You can call <see cref=\"{KnownTypeSymbols.JsonValueFullName}.ToMutable\"/> if you need to make a copy in all cases.</para>");
@@ -1034,12 +1079,12 @@ namespace SnowBank.Serialization.Json.CodeGen
 				sb.AppendLine($"/// proxy.{typeDef.Members[0].MemberName} = newValue; // change the value of the {CSharpCodeBuilder.Constant(typeDef.Members[0].Name)} field");
 				sb.AppendLine("/// </code></para>");
 				sb.AppendLine("/// </remarks>");
-				sb.AppendLine($"/// <seealso cref=\"AsReadOnly({KnownTypeSymbols.JsonValueFullName})\">If you need a read-only view</seealso>");
-				sb.AppendLine($"public {GetLocalWritableProxyRef(typeDef)} ToMutable({KnownTypeSymbols.MutableJsonValueFullName} value) => {GetLocalWritableProxyRef(typeDef)}.Create(value, converter: this);");
+				sb.AppendLine($"/// <seealso cref=\"ToReadOnly({KnownTypeSymbols.JsonValueFullName})\">If you need a read-only view</seealso>");
+				sb.AppendLine($"public static {GetLocalWritableProxyRef(typeDef)} ToMutable({KnownTypeSymbols.MutableJsonValueFullName} value) => {GetLocalWritableProxyRef(typeDef)}.Create(value, converter: Default);");
 				sb.NewLine();
 
-				sb.AppendLine($"/// <summary>Returns a writable JSON Proxy that wraps a <see cref=\"{KnownTypeSymbols.JsonValueFullName}\"/> into a type-safe emulation of type <see cref=\"{typeName}\"/></summary>");
-				sb.AppendLine($"/// <returns>An instance of <see cref=\"{GetLocalWritableProxyRef(typeDef)}\"/> that wraps <paramref name=\"value\"/> and exposes all the original members of <see cref=\"{typeName}\"/> as writable properties.</returns>");
+				sb.AppendLine($"/// <summary>Returns a writable JSON Proxy that wraps a <see cref=\"{KnownTypeSymbols.JsonValueFullName}\"/> into a type-safe emulation of type <see cref=\"{typeFullName}\"/></summary>");
+				sb.AppendLine($"/// <returns>An instance of <see cref=\"{GetLocalWritableProxyRef(typeDef)}\"/> that wraps <paramref name=\"value\"/> and exposes all the original members of <see cref=\"{typeFullName}\"/> as writable properties.</returns>");
 				sb.AppendLine("/// <remarks>");
 				sb.AppendLine("/// <para>If <paramref name=\"value\"/> is read-only, a mutable copy will be created and used instead.</para>");
 				sb.AppendLine($"/// <para>If <paramref name=\"value\"/> is mutable, then it will be modified in-place. You can call <see cref=\"{KnownTypeSymbols.JsonValueFullName}.ToMutable\"/> if you need to make a copy in all cases.</para>");
@@ -1050,12 +1095,12 @@ namespace SnowBank.Serialization.Json.CodeGen
 				sb.AppendLine($"/// proxy.{typeDef.Members[0].MemberName} = newValue; // change the value of the {CSharpCodeBuilder.Constant(typeDef.Members[0].Name)} field");
 				sb.AppendLine("/// </code></para>");
 				sb.AppendLine("/// </remarks>");
-				sb.AppendLine($"/// <seealso cref=\"AsReadOnly({KnownTypeSymbols.JsonValueFullName})\">If you need a read-only view</seealso>");
-				sb.AppendLine($"public {GetLocalWritableProxyRef(typeDef)} ToMutable({KnownTypeSymbols.JsonValueFullName} value) => {GetLocalWritableProxyRef(typeDef)}.Create({KnownTypeSymbols.MutableJsonValueFullName}.Untracked(value), converter: this);");
+				sb.AppendLine($"/// <seealso cref=\"ToReadOnly({KnownTypeSymbols.JsonValueFullName})\">If you need a read-only view</seealso>");
+				sb.AppendLine($"public static {GetLocalWritableProxyRef(typeDef)} ToMutable({KnownTypeSymbols.JsonValueFullName} value) => {GetLocalWritableProxyRef(typeDef)}.Create({KnownTypeSymbols.MutableJsonValueFullName}.Untracked(value), converter: Default);");
 				sb.NewLine();
 
-				sb.AppendLine($"/// <summary>Returns a writable JSON Proxy that wraps a <see cref=\"{KnownTypeSymbols.JsonValueFullName}\"/> into a type-safe emulation of type <see cref=\"{typeName}\"/></summary>");
-				sb.AppendLine($"/// <returns>An instance of <see cref=\"{GetLocalWritableProxyRef(typeDef)}\"/> that wraps <paramref name=\"value\"/> and exposes all the original members of <see cref=\"{typeName}\"/> as writable properties.</returns>");
+				sb.AppendLine($"/// <summary>Returns a writable JSON Proxy that wraps a <see cref=\"{KnownTypeSymbols.JsonValueFullName}\"/> into a type-safe emulation of type <see cref=\"{typeFullName}\"/></summary>");
+				sb.AppendLine($"/// <returns>An instance of <see cref=\"{GetLocalWritableProxyRef(typeDef)}\"/> that wraps <paramref name=\"value\"/> and exposes all the original members of <see cref=\"{typeFullName}\"/> as writable properties.</returns>");
 				sb.AppendLine("/// <remarks>");
 				sb.AppendLine("/// <para>If <paramref name=\"value\"/> is read-only, a mutable copy will be created and used instead.</para>");
 				sb.AppendLine($"/// <para>If <paramref name=\"value\"/> is mutable, then it will be modified in-place. You can call <see cref=\"{KnownTypeSymbols.JsonValueFullName}.ToMutable\"/> if you need to make a copy in all cases.</para>");
@@ -1066,12 +1111,12 @@ namespace SnowBank.Serialization.Json.CodeGen
 				sb.AppendLine($"/// proxy.{typeDef.Members[0].MemberName} = newValue; // change the value of the {CSharpCodeBuilder.Constant(typeDef.Members[0].Name)} field");
 				sb.AppendLine("/// </code></para>");
 				sb.AppendLine("/// </remarks>");
-				sb.AppendLine($"/// <seealso cref=\"AsReadOnly({KnownTypeSymbols.JsonValueFullName})\">If you need a read-only view</seealso>");
-				sb.AppendLine($"public {GetLocalWritableProxyRef(typeDef)} ToMutable({KnownTypeSymbols.IMutableJsonContextFullName} ctx, {KnownTypeSymbols.JsonValueFullName} value) => {GetLocalWritableProxyRef(typeDef)}.Create({KnownTypeSymbols.MutableJsonValueFullName}.Tracked(ctx, value), converter: this);");
+				sb.AppendLine($"/// <seealso cref=\"ToReadOnly({KnownTypeSymbols.JsonValueFullName})\">If you need a read-only view</seealso>");
+				sb.AppendLine($"public static {GetLocalWritableProxyRef(typeDef)} ToMutable({KnownTypeSymbols.IMutableJsonContextFullName} ctx, {KnownTypeSymbols.JsonValueFullName} value) => {GetLocalWritableProxyRef(typeDef)}.Create({KnownTypeSymbols.MutableJsonValueFullName}.Tracked(ctx, value), converter: Default);");
 				sb.NewLine();
 
-				sb.AppendLine($"/// <summary>Converts an instance of type <see cref=\"{typeName}\"/> into a read-only type-safe JSON Proxy.</summary>");
-				sb.AppendLine($"/// <returns>An instance of <see cref=\"{GetLocalReadOnlyProxyRef(typeDef)}\"/> that exposes all the original members of <see cref=\"{typeName}\"/> as writable properties.</returns>\r\n");
+				sb.AppendLine($"/// <summary>Converts an instance of type <see cref=\"{typeFullName}\"/> into a read-only type-safe JSON Proxy.</summary>");
+				sb.AppendLine($"/// <returns>An instance of <see cref=\"{GetLocalReadOnlyProxyRef(typeDef)}\"/> that exposes all the original members of <see cref=\"{typeFullName}\"/> as writable properties.</returns>\r\n");
 				sb.AppendLine("/// <remarks>");
 				sb.AppendLine("/// <para>How to use:<code>");
 				sb.AppendLine($"/// var instance = new {typeDef.Name}() {{ {typeDef.Members[0].MemberName} = ..., ... }};");
@@ -1081,11 +1126,11 @@ namespace SnowBank.Serialization.Json.CodeGen
 				sb.AppendLine($"/// proxy.{typeDef.Members[0].MemberName} = newValue;");
 				sb.AppendLine("/// </code></para>");
 				sb.AppendLine("/// </remarks>");
-				sb.AppendLine($"public {GetLocalWritableProxyRef(typeDef)} ToMutable({typeDef.Type.FullyQualifiedNameAnnotated} instance) => {GetLocalWritableProxyRef(typeDef)}.Create(instance);");
+				sb.AppendLine($"public static {GetLocalWritableProxyRef(typeDef)} ToMutable({typeDef.Type.FullyQualifiedNameAnnotated} instance) => {GetLocalWritableProxyRef(typeDef)}.Create(instance);");
 				sb.NewLine();
 
-				sb.AppendLine($"/// <summary>Converts an instance of type <see cref=\"{typeName}\"/> into a read-only type-safe JSON Proxy.</summary>");
-				sb.AppendLine($"/// <returns>An instance of <see cref=\"{GetLocalReadOnlyProxyRef(typeDef)}\"/> that exposes all the original members of <see cref=\"{typeName}\"/> as writable properties.</returns>\r\n");
+				sb.AppendLine($"/// <summary>Converts an instance of type <see cref=\"{typeFullName}\"/> into a read-only type-safe JSON Proxy.</summary>");
+				sb.AppendLine($"/// <returns>An instance of <see cref=\"{GetLocalReadOnlyProxyRef(typeDef)}\"/> that exposes all the original members of <see cref=\"{typeFullName}\"/> as writable properties.</returns>\r\n");
 				sb.AppendLine("/// <remarks>");
 				sb.AppendLine("/// <para>How to use:<code>");
 				sb.AppendLine($"/// var instance = new {typeDef.Name}() {{ {typeDef.Members[0].MemberName} = ..., ... }};");
@@ -1095,13 +1140,157 @@ namespace SnowBank.Serialization.Json.CodeGen
 				sb.AppendLine($"/// proxy.{typeDef.Members[0].MemberName} = newValue;");
 				sb.AppendLine("/// </code></para>");
 				sb.AppendLine("/// </remarks>");
-				sb.AppendLine($"public {GetLocalWritableProxyRef(typeDef)} ToMutable({KnownTypeSymbols.IMutableJsonContextFullName} ctx, {typeDef.Type.FullyQualifiedNameAnnotated} instance) => {GetLocalWritableProxyRef(typeDef)}.Create(ctx, instance);");
+				sb.AppendLine($"public static {GetLocalWritableProxyRef(typeDef)} ToMutable({KnownTypeSymbols.IMutableJsonContextFullName} ctx, {typeDef.Type.FullyQualifiedNameAnnotated} instance) => {GetLocalWritableProxyRef(typeDef)}.Create(ctx, instance);");
+				sb.NewLine();
+
+			}
+
+			private void WriteProxyHelpers(CSharpCodeBuilder sb, CrystalJsonTypeMetadata typeDef, string typeCref)
+			{
+
+				// ToReadOnly(JsonValue)
+				sb.AppendLine($"/// <summary>Returns a read-only JSON Proxy that wraps a <see cref=\"{KnownTypeSymbols.JsonValueFullName}\"/> into a type-safe emulation of type <see cref=\"{typeCref}\"/></summary>");
+				sb.AppendLine($"/// <returns>An instance of <see cref=\"{GetLocalReadOnlyProxyRef(typeDef)}\"/> that wraps <paramref name=\"value\"/> and exposes all the original members of <see cref=\"{typeCref}\"/> as getter-only properties.</returns>");
+				sb.AppendLine("/// <remarks>");
+				sb.AppendLine("/// <para>The read-only view cannot modify the original JSON value but, unless <paramref name=\"value\"/> is itself read-only, any changes to the original will be reflected in the view.</para>");
+				sb.AppendLine("/// <para>How to use:<code>");
+				sb.AppendLine($"/// JsonValue json = {KnownTypeSymbols.JsonValueFullName}.Parse(/* JSON text */);");
+				sb.AppendLine($"/// var proxy = {GetSerializerName(typeDef.Type)}.ToReadOnly();");
+				sb.AppendLine($"/// var value = proxy.{typeDef.Members[0].MemberName}; // returns the value of the {CSharpCodeBuilder.Constant(typeDef.Members[0].Name)} field exposed as <see cref=\"{typeDef.Members[0].Type.FullyQualifiedName}\"/>");
+				sb.AppendLine($"/// proxy.{typeDef.Members[0].MemberName} = newValue; // ERROR: will not compile (there is no setter defined for this member)");
+				sb.AppendLine("/// </code></para>");
+				sb.AppendLine("/// </remarks>");
+				sb.AppendLine($"/// <seealso cref=\"ToMutable({KnownTypeSymbols.JsonValueFullName})\">If you need a writable view</seealso>");
+				sb.AppendLine($"public {GetLocalReadOnlyProxyRef(typeDef)} ToReadOnly({KnownTypeSymbols.JsonValueFullName} value) => Default.ToReadOnly(value);");
+				sb.NewLine();
+
+				// ToReadOnly(IObservableJsonContext, JsonValue)
+				sb.AppendLine($"/// <summary>Returns a read-only JSON Proxy that wraps a <see cref=\"{KnownTypeSymbols.JsonValueFullName}\"/> into a type-safe emulation of type <see cref=\"{typeCref}\"/></summary>");
+				sb.AppendLine($"/// <returns>An instance of <see cref=\"{GetLocalReadOnlyProxyRef(typeDef)}\"/> that wraps <paramref name=\"value\"/> and exposes all the original members of <see cref=\"{typeCref}\"/> as getter-only properties.</returns>");
+				sb.AppendLine("/// <remarks>");
+				sb.AppendLine("/// <para>The read-only view cannot modify the original JSON value but, unless <paramref name=\"value\"/> is itself read-only, any changes to the original will be reflected in the view.</para>");
+				sb.AppendLine("/// <para>How to use:<code>");
+				sb.AppendLine($"/// JsonValue json = {KnownTypeSymbols.JsonValueFullName}.Parse(/* JSON text */);");
+				sb.AppendLine($"/// var proxy = {GetSerializerName(typeDef.Type)}.ToReadOnly();");
+				sb.AppendLine($"/// var value = proxy.{typeDef.Members[0].MemberName}; // returns the value of the {CSharpCodeBuilder.Constant(typeDef.Members[0].Name)} field exposed as <see cref=\"{typeDef.Members[0].Type.FullyQualifiedName}\"/>");
+				sb.AppendLine($"/// proxy.{typeDef.Members[0].MemberName} = newValue; // ERROR: will not compile (there is no setter defined for this member)");
+				sb.AppendLine("/// </code></para>");
+				sb.AppendLine("/// </remarks>");
+				sb.AppendLine($"/// <seealso cref=\"ToMutable({KnownTypeSymbols.JsonValueFullName})\">If you need a writable view</seealso>");
+				sb.AppendLine($"public {GetLocalReadOnlyProxyRef(typeDef)} ToReadOnly({KnownTypeSymbols.IObservableJsonContextFullName} ctx, {KnownTypeSymbols.JsonValueFullName} value) => Default.ToReadOnly(ctx, value);");
+				sb.NewLine();
+
+				// ToReadOnly(TValue)
+				sb.AppendLine($"/// <summary>Converts an instance of type <see cref=\"{typeCref}\"/> into a read-only type-safe JSON Proxy.</summary>");
+				sb.AppendLine($"/// <returns>An instance of <see cref=\"{GetLocalReadOnlyProxyRef(typeDef)}\"/> that exposes all the original members of <see cref=\"{typeCref}\"/> as getter-only properties.</returns>");
+				sb.AppendLine("/// <remarks>");
+				sb.AppendLine("/// <para>How to use:<code>");
+				sb.AppendLine($"/// var instance = new {typeDef.Name}() {{ {typeDef.Members[0].MemberName} = ..., ... }};");
+				sb.AppendLine("/// // ...");
+				sb.AppendLine($"/// var proxy = {GetSerializerName(typeDef.Type)}.ToReadOnly(instance);");
+				sb.AppendLine($"/// var value = proxy.{typeDef.Members[0].MemberName};");
+				sb.AppendLine($"/// proxy.{typeDef.Members[0].MemberName} = /* ... */; // ERROR: will not compile (there is no setter defined for this member)");
+				sb.AppendLine("/// </code></para>");
+				sb.AppendLine("/// </remarks>");
+				sb.AppendLine($"public {GetLocalReadOnlyProxyRef(typeDef)} ToReadOnly({typeDef.Type.FullyQualifiedNameAnnotated} instance) => Default.ToReadOnly(instance);");
+				sb.NewLine();
+
+				// ToReadOnly(IObservableJsonContext, TValue)
+				sb.AppendLine($"/// <summary>Converts an instance of type <see cref=\"{typeCref}\"/> into a read-only type-safe JSON Proxy.</summary>");
+				sb.AppendLine($"/// <returns>An instance of <see cref=\"{GetLocalReadOnlyProxyRef(typeDef)}\"/> that exposes all the original members of <see cref=\"{typeCref}\"/> as getter-only properties.</returns>");
+				sb.AppendLine("/// <remarks>");
+				sb.AppendLine("/// <para>How to use:<code>");
+				sb.AppendLine($"/// var instance = new {typeDef.Name}() {{ {typeDef.Members[0].MemberName} = ..., ... }};");
+				sb.AppendLine("/// // ...");
+				sb.AppendLine($"/// var proxy = {GetSerializerName(typeDef.Type)}.ToReadOnly(instance);");
+				sb.AppendLine($"/// var value = proxy.{typeDef.Members[0].MemberName};");
+				sb.AppendLine($"/// proxy.{typeDef.Members[0].MemberName} = /* ... */; // ERROR: will not compile (there is no setter defined for this member)");
+				sb.AppendLine("/// </code></para>");
+				sb.AppendLine("/// </remarks>");
+				sb.AppendLine($"public {GetLocalReadOnlyProxyRef(typeDef)} ToReadOnly({KnownTypeSymbols.IObservableJsonContextFullName} ctx, {typeDef.Type.FullyQualifiedNameAnnotated} instance) => Default.ToReadOnly(ctx, instance);");
+				sb.NewLine();
+
+				sb.AppendLine($"/// <summary>Returns a writable JSON Proxy that wraps a <see cref=\"{KnownTypeSymbols.JsonValueFullName}\"/> into a type-safe emulation of type <see cref=\"{typeCref}\"/></summary>");
+				sb.AppendLine($"/// <returns>An instance of <see cref=\"{GetLocalWritableProxyRef(typeDef)}\"/> that wraps <paramref name=\"value\"/> and exposes all the original members of <see cref=\"{typeCref}\"/> as writable properties.</returns>");
+				sb.AppendLine("/// <remarks>");
+				sb.AppendLine("/// <para>If <paramref name=\"value\"/> is read-only, a mutable copy will be created and used instead.</para>");
+				sb.AppendLine($"/// <para>If <paramref name=\"value\"/> is mutable, then it will be modified in-place. You can call <see cref=\"{KnownTypeSymbols.JsonValueFullName}.ToMutable\"/> if you need to make a copy in all cases.</para>");
+				sb.AppendLine("/// <para>How to use:<code>");
+				sb.AppendLine($"/// JsonValue json = {KnownTypeSymbols.JsonValueFullName}.Parse(/* JSON text */);");
+				sb.AppendLine($"/// var proxy = {GetSerializerName(typeDef.Type)}.AsMutable();");
+				sb.AppendLine($"/// var value = proxy.{typeDef.Members[0].MemberName}; // returns the value of the {CSharpCodeBuilder.Constant(typeDef.Members[0].Name)} field exposed as <see cref=\"{typeDef.Members[0].Type.FullyQualifiedName}\"/>");
+				sb.AppendLine($"/// proxy.{typeDef.Members[0].MemberName} = newValue; // change the value of the {CSharpCodeBuilder.Constant(typeDef.Members[0].Name)} field");
+				sb.AppendLine("/// </code></para>");
+				sb.AppendLine("/// </remarks>");
+				sb.AppendLine($"/// <seealso cref=\"ToReadOnly({KnownTypeSymbols.JsonValueFullName})\">If you need a read-only view</seealso>");
+				sb.AppendLine($"public {GetLocalWritableProxyRef(typeDef)} ToMutable({KnownTypeSymbols.MutableJsonValueFullName} value) => Default.ToMutable(value);");
+				sb.NewLine();
+
+				sb.AppendLine($"/// <summary>Returns a writable JSON Proxy that wraps a <see cref=\"{KnownTypeSymbols.JsonValueFullName}\"/> into a type-safe emulation of type <see cref=\"{typeCref}\"/></summary>");
+				sb.AppendLine($"/// <returns>An instance of <see cref=\"{GetLocalWritableProxyRef(typeDef)}\"/> that wraps <paramref name=\"value\"/> and exposes all the original members of <see cref=\"{typeCref}\"/> as writable properties.</returns>");
+				sb.AppendLine("/// <remarks>");
+				sb.AppendLine("/// <para>If <paramref name=\"value\"/> is read-only, a mutable copy will be created and used instead.</para>");
+				sb.AppendLine($"/// <para>If <paramref name=\"value\"/> is mutable, then it will be modified in-place. You can call <see cref=\"{KnownTypeSymbols.JsonValueFullName}.ToMutable\"/> if you need to make a copy in all cases.</para>");
+				sb.AppendLine("/// <para>How to use:<code>");
+				sb.AppendLine($"/// JsonValue json = {KnownTypeSymbols.JsonValueFullName}.Parse(/* JSON text */);");
+				sb.AppendLine($"/// var proxy = {GetSerializerName(typeDef.Type)}.AsMutable();");
+				sb.AppendLine($"/// var value = proxy.{typeDef.Members[0].MemberName}; // returns the value of the {CSharpCodeBuilder.Constant(typeDef.Members[0].Name)} field exposed as <see cref=\"{typeDef.Members[0].Type.FullyQualifiedName}\"/>");
+				sb.AppendLine($"/// proxy.{typeDef.Members[0].MemberName} = newValue; // change the value of the {CSharpCodeBuilder.Constant(typeDef.Members[0].Name)} field");
+				sb.AppendLine("/// </code></para>");
+				sb.AppendLine("/// </remarks>");
+				sb.AppendLine($"/// <seealso cref=\"ToReadOnly({KnownTypeSymbols.JsonValueFullName})\">If you need a read-only view</seealso>");
+				sb.AppendLine($"public {GetLocalWritableProxyRef(typeDef)} ToMutable({KnownTypeSymbols.JsonValueFullName} value) => Default.ToMutable(value);");
+				sb.NewLine();
+
+				sb.AppendLine($"/// <summary>Returns a writable JSON Proxy that wraps a <see cref=\"{KnownTypeSymbols.JsonValueFullName}\"/> into a type-safe emulation of type <see cref=\"{typeCref}\"/></summary>");
+				sb.AppendLine($"/// <returns>An instance of <see cref=\"{GetLocalWritableProxyRef(typeDef)}\"/> that wraps <paramref name=\"value\"/> and exposes all the original members of <see cref=\"{typeCref}\"/> as writable properties.</returns>");
+				sb.AppendLine("/// <remarks>");
+				sb.AppendLine("/// <para>If <paramref name=\"value\"/> is read-only, a mutable copy will be created and used instead.</para>");
+				sb.AppendLine($"/// <para>If <paramref name=\"value\"/> is mutable, then it will be modified in-place. You can call <see cref=\"{KnownTypeSymbols.JsonValueFullName}.ToMutable\"/> if you need to make a copy in all cases.</para>");
+				sb.AppendLine("/// <para>How to use:<code>");
+				sb.AppendLine($"/// JsonValue json = {KnownTypeSymbols.JsonValueFullName}.Parse(/* JSON text */);");
+				sb.AppendLine($"/// var proxy = {GetSerializerName(typeDef.Type)}.AsMutable();");
+				sb.AppendLine($"/// var value = proxy.{typeDef.Members[0].MemberName}; // returns the value of the {CSharpCodeBuilder.Constant(typeDef.Members[0].Name)} field exposed as <see cref=\"{typeDef.Members[0].Type.FullyQualifiedName}\"/>");
+				sb.AppendLine($"/// proxy.{typeDef.Members[0].MemberName} = newValue; // change the value of the {CSharpCodeBuilder.Constant(typeDef.Members[0].Name)} field");
+				sb.AppendLine("/// </code></para>");
+				sb.AppendLine("/// </remarks>");
+				sb.AppendLine($"/// <seealso cref=\"ToReadOnly({KnownTypeSymbols.JsonValueFullName})\">If you need a read-only view</seealso>");
+				sb.AppendLine($"public {GetLocalWritableProxyRef(typeDef)} ToMutable({KnownTypeSymbols.IMutableJsonContextFullName} ctx, {KnownTypeSymbols.JsonValueFullName} value) => Default.ToMutable(ctx, value);");
+				sb.NewLine();
+
+				sb.AppendLine($"/// <summary>Converts an instance of type <see cref=\"{typeCref}\"/> into a read-only type-safe JSON Proxy.</summary>");
+				sb.AppendLine($"/// <returns>An instance of <see cref=\"{GetLocalReadOnlyProxyRef(typeDef)}\"/> that exposes all the original members of <see cref=\"{typeCref}\"/> as writable properties.</returns>\r\n");
+				sb.AppendLine("/// <remarks>");
+				sb.AppendLine("/// <para>How to use:<code>");
+				sb.AppendLine($"/// var instance = new {typeDef.Name}() {{ {typeDef.Members[0].MemberName} = ..., ... }};");
+				sb.AppendLine("/// // ...");
+				sb.AppendLine($"/// var proxy = {GetSerializerName(typeDef.Type)}.ToMutable(instance);");
+				sb.AppendLine($"/// var value = proxy.{typeDef.Members[0].MemberName};");
+				sb.AppendLine($"/// proxy.{typeDef.Members[0].MemberName} = newValue;");
+				sb.AppendLine("/// </code></para>");
+				sb.AppendLine("/// </remarks>");
+				sb.AppendLine($"public {GetLocalWritableProxyRef(typeDef)} ToMutable({typeDef.Type.FullyQualifiedNameAnnotated} instance) => Default.ToMutable(instance);");
+				sb.NewLine();
+
+				sb.AppendLine($"/// <summary>Converts an instance of type <see cref=\"{typeCref}\"/> into a read-only type-safe JSON Proxy.</summary>");
+				sb.AppendLine($"/// <returns>An instance of <see cref=\"{GetLocalReadOnlyProxyRef(typeDef)}\"/> that exposes all the original members of <see cref=\"{typeCref}\"/> as writable properties.</returns>\r\n");
+				sb.AppendLine("/// <remarks>");
+				sb.AppendLine("/// <para>How to use:<code>");
+				sb.AppendLine($"/// var instance = new {typeDef.Name}() {{ {typeDef.Members[0].MemberName} = ..., ... }};");
+				sb.AppendLine("/// // ...");
+				sb.AppendLine($"/// var proxy = {GetSerializerName(typeDef.Type)}.ToMutable(instance);");
+				sb.AppendLine($"/// var value = proxy.{typeDef.Members[0].MemberName};");
+				sb.AppendLine($"/// proxy.{typeDef.Members[0].MemberName} = newValue;");
+				sb.AppendLine("/// </code></para>");
+				sb.AppendLine("/// </remarks>");
+				sb.AppendLine($"public {GetLocalWritableProxyRef(typeDef)} ToMutable({KnownTypeSymbols.IMutableJsonContextFullName} ctx, {typeDef.Type.FullyQualifiedNameAnnotated} instance) => Default.ToMutable(ctx, instance);");
 				sb.NewLine();
 
 			}
 
 			private void WriteUnpackMethod(CSharpCodeBuilder sb, CrystalJsonTypeMetadata typeDef, string typeFullName)
 			{
+				sb.AppendLine($"/// <summary>Deserializes a JSON value into an instance of type <see cref=\"{typeFullName}\" /></summary>");
 				sb.AppendLine($"public {typeFullName} Unpack({KnownTypeSymbols.JsonValueFullName} value, {KnownTypeSymbols.ICrystalJsonTypeResolverFullName}? resolver = default)");
 				sb.EnterBlock();
 				sb.AppendLine("var obj = value.AsObject();");
@@ -1129,6 +1318,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 			private void WritePackMethod(CSharpCodeBuilder sb, CrystalJsonTypeMetadata typeDef)
 			{
+				sb.AppendLine("/// <inheritdoc />");
 				sb.AppendLine($"public {KnownTypeSymbols.JsonValueFullName} Pack({typeDef.Type.FullyQualifiedNameAnnotated} instance, {KnownTypeSymbols.CrystalJsonSettingsFullName}? settings = default, {KnownTypeSymbols.ICrystalJsonTypeResolverFullName}? resolver = default)");
 				sb.EnterBlock();
 
