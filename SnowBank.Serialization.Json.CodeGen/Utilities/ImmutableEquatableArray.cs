@@ -1,4 +1,4 @@
-﻿
+
 namespace SnowBank.Serialization.Json.CodeGen
 {
 	using System.Collections;
@@ -6,26 +6,26 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 	public static class ImmutableEquatableArray
 	{
-		public static ImmutableEquatableArray<T> ToImmutableEquatableArray<T>(this IEnumerable<T> values) where T : IEquatable<T>
-			=> new(values);
+		public static ImmutableEquatableArray<T> ToImmutableEquatableArray<T>(this IEnumerable<T>? values) where T : IEquatable<T>
+			=> values != null ? new(values) : ImmutableEquatableArray<T>.Empty;
 	}
 	
 	/// <summary>Provides an immutable list implementation which implements sequence equality.</summary>
 	public sealed class ImmutableEquatableArray<T> : IEquatable<ImmutableEquatableArray<T>>, IReadOnlyList<T>
 		where T : IEquatable<T>
 	{
-		public static ImmutableEquatableArray<T> Empty { get; } = new([]);
+		public static ImmutableEquatableArray<T> Empty { get; } = new([ ]);
 
 		private readonly T[] Values;
 		
 		public T this[int index] => this.Values[index];
 		public int Count => this.Values.Length;
 
-		public ImmutableEquatableArray(T[] values)
-			=> this.Values = values;
+		public ImmutableEquatableArray(T[]? values)
+			=> this.Values = values ?? [ ];
 
-		public ImmutableEquatableArray(IEnumerable<T> values)
-			=> this.Values = values.ToArray();
+		public ImmutableEquatableArray(IEnumerable<T>? values)
+			=> this.Values = values?.ToArray() ?? [ ];
 
 		public bool Equals(ImmutableEquatableArray<T>? other)
 			=> other is not null && ((ReadOnlySpan<T>) this.Values).SequenceEqual(other.Values);

@@ -49,6 +49,10 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 			public const string JsonPropertyNameAttributeFullName = "System.Text.Json.Serialization.JsonPropertyNameAttribute";
 
+			public const string JsonPolymorphicAttributeFullName = "System.Text.Json.Serialization.JsonPolymorphicAttribute";
+
+			public const string JsonDerivedTypeAttributeFullName = "System.Text.Json.Serialization.JsonDerivedTypeAttribute";
+
 			/// <summary>Table of known symbols from this compilation</summary>
 			private KnownTypeSymbols KnownSymbols { get; }
 
@@ -163,6 +167,15 @@ namespace SnowBank.Serialization.Json.CodeGen
 						if (typeDef != null)
 						{
 							includedTypes.Add(typeDef);
+
+							foreach (var (derivedSymbol, _, _) in typeDef.DerivedTypes)
+							{
+								if (mappedTypes.Add(derivedSymbol))
+								{
+									work.Enqueue(derivedSymbol);
+								}
+							}
+
 						}
 
 						// are there any nested types?
@@ -233,23 +246,81 @@ namespace SnowBank.Serialization.Json.CodeGen
 				
 				var members = new List<CrystalJsonMemberMetadata>();
 
-				foreach (var member in type.GetMembers())
+				bool isPolymorphic = false;
+				string? typeDiscriminatorPropertyName = null;
+				List<(INamedTypeSymbol, TypeMetadata, object?)>? derivedTypes = null;
+
+				foreach (var attribute in type.GetAttributes())
 				{
-					if (member.Kind is SymbolKind.Property or SymbolKind.Field or SymbolKind.Method)
+					var attributeType = attribute.AttributeClass;
+					if (attributeType is null) continue;
+
+					switch (attributeType.ToDisplayString())
 					{
-						var (memberDef, memberType) = ParseMemberMetadata(member, mappedTypes, work);
-						if (memberDef != null)
+						case JsonDerivedTypeAttributeFullName:
 						{
-							Kenobi($"Inspect member {member.Name} with type {memberDef.Type.FullName}, N={memberDef.Type.NullableOfType?.Name}, E={memberDef.Type.ElementType?.Name}, K={memberDef.Type.KeyType?.Name}, V={memberDef.Type.ValueType?.Name}");
-							members.Add(memberDef);
+							if (attribute.ConstructorArguments.Length > 0)
+							{
+								// first is the derived type
+								var derivedType = (INamedTypeSymbol) attribute.ConstructorArguments[0].Value!;
+
+								object? typeDiscriminator = null;
+								if (attribute.ConstructorArguments.Length > 1)
+								{ // either a string or a number
+									typeDiscriminator = attribute.ConstructorArguments[1].Value!;
+								}
+
+								var derivedTypeMetadata = TypeMetadata.Create(derivedType);
+
+								(derivedTypes ??= [ ]).Add((derivedType, derivedTypeMetadata, typeDiscriminator));
+								isPolymorphic = true;
+							}
+							break;
+						}
+						case JsonPolymorphicAttributeFullName:
+						{
+							// it is either the first ctor arg, or a named argument
+							foreach (var arg in attribute.NamedArguments)
+							{
+								if (arg.Key == "TypeDiscriminatorPropertyName" && arg.Value.Value is string s)
+								{
+									typeDiscriminatorPropertyName = s;
+								}
+							}
+							break;
 						}
 					}
 				}
-				
+
+				// if this is a derived type, we need to enumerate the symbols starting from the top (interface or base class)
+				foreach (var current in GetSortedTypeHierarchy(type))
+				{
+					foreach (var member in current.GetMembers())
+					{
+						if (member.Kind is SymbolKind.Property or SymbolKind.Field or SymbolKind.Method)
+						{
+							var (memberDef, memberType) = ParseMemberMetadata(member, mappedTypes, work);
+							if (memberDef != null)
+							{
+								Kenobi($"Inspect member {member.Name} with type {memberDef.Type.FullName}, N={memberDef.Type.NullableOfType?.Name}, E={memberDef.Type.ElementType?.Name}, K={memberDef.Type.KeyType?.Name}, V={memberDef.Type.ValueType?.Name}");
+								members.Add(memberDef);
+							}
+						}
+					}
+				}
+
+				if (typeDiscriminatorPropertyName == null && isPolymorphic)
+				{
+					typeDiscriminatorPropertyName = "$type";
+				}
+
 				return new()
 				{
 					Type = TypeMetadata.Create(type),
 					Members = members.ToImmutableEquatableArray(),
+					IsPolymorphic = isPolymorphic,
+					TypeDiscriminatorPropertyName = typeDiscriminatorPropertyName,
+					DerivedTypes = derivedTypes.ToImmutableEquatableArray(),
 				};
 			}
 
@@ -344,7 +415,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 				ITypeSymbol typeSymbol;
 				bool isReadOnly;
 				bool isInitOnly;
-				bool isRequired = false;
+				bool isRequired;
 
 				switch (member)
 				{
@@ -519,6 +590,34 @@ namespace SnowBank.Serialization.Json.CodeGen
 				SpecialType.System_Enum => "0",
 				_ => type.IsValueType() ? "default" : "null"
 			};
+
+			private static INamedTypeSymbol[] GetSortedTypeHierarchy(ITypeSymbol type)
+			{
+				if (type is not INamedTypeSymbol namedType)
+				{
+					return [ ];
+				}
+
+				if (type.TypeKind != TypeKind.Interface)
+				{
+					var list = new List<INamedTypeSymbol>();
+					for (INamedTypeSymbol? current = namedType; current != null; current = current.BaseType)
+					{
+						list.Add(current);
+					}
+
+					return list.ToArray();
+				}
+				else
+				{
+					// Interface hierarchies support multiple inheritance.
+					// For consistency with class hierarchy resolution order,
+					// sort topologically from most derived to least derived.
+					//return JsonHelpers.TraverseGraphWithTopologicalSort<INamedTypeSymbol>(namedType, static t => t.AllInterfaces, SymbolEqualityComparer.Default);
+					//TODO !!
+					return [ namedType ];
+				}
+			}
 		}
 
 	}

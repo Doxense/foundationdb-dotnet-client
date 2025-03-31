@@ -148,10 +148,41 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 		public System.Net.IPAddress? LastAddress { get; init; }
 
 	}
-	
+
+	[JsonPolymorphic(TypeDiscriminatorPropertyName = "$type")]
+	[JsonDerivedType(typeof(Dog), "dog")]
+	[JsonDerivedType(typeof(Cat), "cat")]
+	public abstract record Animal
+	{
+
+		[JsonPropertyName("id")]
+		public required Guid Id { get; init; }
+
+		[JsonPropertyName("name")]
+		public required string Name { get; init; }
+
+	}
+
+	public sealed record Dog : Animal
+	{
+
+		[JsonPropertyName("isGoodDog")]
+		public bool IsGoodDog { get; init; }
+
+	}
+
+	public sealed record Cat : Animal
+	{
+
+		[JsonPropertyName("remainingLives")]
+		public int RemainingLives { get; init; }
+
+	}
+
 	[CrystalJsonConverter]
 	[CrystalJsonSerializable(typeof(Person))]
 	[CrystalJsonSerializable(typeof(MyAwesomeUser))]
+	[CrystalJsonSerializable(typeof(Animal))]
 	public static partial class GeneratedConverters
 	{
 		// generated code goes here!
@@ -160,6 +191,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 	[System.Text.Json.Serialization.JsonSourceGenerationOptions(System.Text.Json.JsonSerializerDefaults.Web)]
 	[System.Text.Json.Serialization.JsonSerializable(typeof(MyAwesomeUser))]
 	[System.Text.Json.Serialization.JsonSerializable(typeof(Person))]
+	[System.Text.Json.Serialization.JsonSerializable(typeof(Animal))]
 	public partial class SystemTextJsonGeneratedSerializers : System.Text.Json.Serialization.JsonSerializerContext;
 
 	[TestFixture]
@@ -167,6 +199,30 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 	[Category("Core-JSON")]
 	public class CrystalJsonGeneratorFacts : SimpleTest
 	{
+
+		[Test]
+		public void Sandbox()
+		{
+			var dog = new Dog() { Id = Guid.Parse("f512fdd2-c306-4158-9a0a-31d4c0c70f40"), Name = "Fido", IsGoodDog = true, };
+			var cat = new Cat() { Id = Guid.Parse("781b6235-f401-41a8-8d18-7a5b51e0465f"), Name = "Felix", RemainingLives = 7, };
+			
+			var x = SystemTextJsonGeneratedSerializers.Default.Animal;
+			var y = SystemTextJsonGeneratedSerializers.Default.Dog;
+			var z = SystemTextJsonGeneratedSerializers.Default.Cat;
+
+			Log(System.Text.Json.JsonSerializer.Serialize(dog, SystemTextJsonGeneratedSerializers.Default.Animal));
+			Log(System.Text.Json.JsonSerializer.Serialize(dog, SystemTextJsonGeneratedSerializers.Default.Dog));
+			Log(System.Text.Json.JsonSerializer.Serialize(cat, SystemTextJsonGeneratedSerializers.Default.Animal));
+			Log(System.Text.Json.JsonSerializer.Serialize(cat, SystemTextJsonGeneratedSerializers.Default.Cat));
+			//
+			Log(GeneratedConverters.Animal.ToJson(dog));
+			Log(GeneratedConverters.Animal.ToJson(cat));
+
+			var dog2 = GeneratedConverters.Animal.Deserialize("{ \"$type\": \"dog\", \"isGoodDog\": true, \"id\": \"f512fdd2-c306-4158-9a0a-31d4c0c70f40\", \"name\": \"Fido\" }");
+			Assert.That(dog2, Is.InstanceOf<Dog>().And.EqualTo(dog));
+			var cat2 = GeneratedConverters.Animal.Deserialize("{ \"$type\": \"cat\", \"remainingLives\": 7, \"id\": \"781b6235-f401-41a8-8d18-7a5b51e0465f\", \"name\": \"Felix\" }");
+			Assert.That(cat2, Is.InstanceOf<Cat>().And.EqualTo(cat));
+		}
 
 		[Test]
 		public void Test_Get_Converter_From_Type()

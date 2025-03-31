@@ -27,6 +27,7 @@
 namespace SnowBank.Serialization.Json.CodeGen
 {
 	using System.Text;
+	using Microsoft.CodeAnalysis;
 
 	/// <summary>Metadata about the container type that will host the generated code for one or more types</summary>
 	public sealed record CrystalJsonContainerMetadata
@@ -58,14 +59,39 @@ namespace SnowBank.Serialization.Json.CodeGen
 		/// <summary>For objects, list of included members in this type</summary>
 		public required ImmutableEquatableArray<CrystalJsonMemberMetadata> Members { get; init; }
 
+		/// <summary>Indicates if this is the base type for a set of derived types</summary>
+		public required bool IsPolymorphic { get; init; }
+
+		public required string? TypeDiscriminatorPropertyName { get; init; }
+
+		public required ImmutableEquatableArray<(INamedTypeSymbol Symbol, TypeMetadata Type, object? Discriminator)> DerivedTypes { get; init; }
+
 		public void Explain(StringBuilder sb, string? indent = null)
 		{
+			var subIndent = indent is null ? "- " : ("  " + indent);
+			var subIndent2 = ("  " + subIndent);
+
 			sb.Append(indent).Append("Name = ").AppendLine(this.Name);
 			sb.Append(indent).Append("Type = ").AppendLine(this.Type.Ref.ToString());
 			this.Type.Explain(sb, indent is null ? "- " : ("  " + indent));
+			if (this.IsPolymorphic)
+			{
+				sb.Append(indent).AppendLine("IsPolymorphic = true");
+			}
+
+			if (!string.IsNullOrEmpty(this.TypeDiscriminatorPropertyName))
+			{
+				sb.Append(indent).Append("TypeDiscriminatorPropertyName = ").AppendLine(this.TypeDiscriminatorPropertyName);
+			}
+			if (this.DerivedTypes.Count > 0)
+			{
+				sb.Append(indent).Append("DerivedTypes = [").Append(this.DerivedTypes.Count).AppendLine("]");
+				foreach (var derivedType in this.DerivedTypes)
+				{
+					sb.Append(subIndent).AppendLine($"`{derivedType.Discriminator}` => {derivedType.Type.Name}");
+				}
+			}
 			sb.Append(indent).Append("Members = [").Append(this.Members.Count).AppendLine("]");
-			var subIndent = indent is null ? "- " : ("  " + indent);
-			var subIndent2 = ("  " + subIndent);
 			foreach (var member in this.Members)
 			{
 				sb.Append(subIndent).AppendLine(member.Name);
