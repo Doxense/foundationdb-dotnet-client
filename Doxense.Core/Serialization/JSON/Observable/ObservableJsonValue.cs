@@ -760,6 +760,21 @@ namespace Doxense.Serialization.Json
 		public JsonValue GetValue(JsonPath path) => Get(path).ToJson();
 
 		[Pure, MustUseReturnValue]
+		public TValue Get<TValue>(JsonPath path) where TValue : notnull
+		{
+			var value = this.Json.GetPathValueOrDefault(path);
+			if (value.IsNullOrMissing())
+			{
+				throw CrystalJson.Errors.Parsing_DescendantIsNullOrMissing(this, path, null);
+			}
+			return value.As<TValue>()!;
+		}
+
+		[Pure, MustUseReturnValue]
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		public TValue? Get<TValue>(JsonPath path, TValue defaultValue) => this.Json.GetPathValueOrDefault(path).As<TValue>(defaultValue);
+
+		[Pure, MustUseReturnValue]
 		public ObservableJsonValue Get(JsonPathSegment segment)
 			=> segment.TryGetName(out var name) ? Get(name)
 			 : segment.TryGetIndex(out var index) ? Get(index)
@@ -768,6 +783,21 @@ namespace Doxense.Serialization.Json
 		[Pure, MustUseReturnValue]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonValue GetValue(JsonPathSegment segment) => Get(segment).ToJson();
+
+		[Pure, MustUseReturnValue]
+		public TValue Get<TValue>(JsonPathSegment segment) where TValue : notnull
+		{
+			var value = GetValue(segment);
+			if (value.IsNullOrMissing())
+			{
+				throw CrystalJson.Errors.Parsing_ChildIsNullOrMissing(this, segment, null);
+			}
+			return value.As<TValue>()!;
+		}
+
+		[Pure, MustUseReturnValue]
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		public TValue? Get<TValue>(JsonPathSegment segment, TValue defaultValue) => GetValue(segment).As<TValue>(defaultValue);
 
 		/// <summary>Returns a new instance with the same path, but with the different value </summary>
 		/// <param name="newValue">New value of this instance</param>
