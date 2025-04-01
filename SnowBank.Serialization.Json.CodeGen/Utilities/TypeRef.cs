@@ -184,6 +184,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 			this.Ref = TypeRef.Create(type);
 			this.Name = type.Name;
+			this.IsAbstract = type.IsAbstract;
 			this.IsSealed = type.IsSealed;
 			this.TypeKind = type.TypeKind;
 			this.IsPrimitive = primitive;
@@ -366,6 +367,8 @@ namespace SnowBank.Serialization.Json.CodeGen
 		/// <summary>Fully qualified assembly name, including optional nullability annotations</summary>
 		/// <remarks>Returns the <see cref="FullyQualifiedName"/> with an extra <c>?</c> marker if this is a reference type.</remarks>
 		public string FullyQualifiedNameAnnotated { get; }
+
+		public bool IsAbstract { get; }
 
 		public bool IsSealed { get; }
 

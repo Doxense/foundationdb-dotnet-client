@@ -28,7 +28,6 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 {
 	using System.Buffers;
 	using System.ComponentModel.DataAnnotations;
-	using System.Diagnostics.CodeAnalysis;
 	using System.Net;
 	using System.Text.Json.Serialization;
 	using Doxense.Mathematics.Statistics;
@@ -149,9 +148,12 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 
 	}
 
-	[JsonPolymorphic(TypeDiscriminatorPropertyName = "$type")]
+	[JsonPolymorphic(TypeDiscriminatorPropertyName = "$type", UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FallBackToNearestAncestor)]
+	[JsonDerivedType(typeof(Mammal))]
 	[JsonDerivedType(typeof(Dog), "dog")]
 	[JsonDerivedType(typeof(Cat), "cat")]
+	[JsonDerivedType(typeof(Reptilian))]
+	[JsonDerivedType(typeof(TRex), "trex")]
 	public abstract record Animal
 	{
 
@@ -163,7 +165,15 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 
 	}
 
-	public sealed record Dog : Animal
+	public abstract record Mammal : Animal
+	{
+
+		[JsonPropertyName("legCount")]
+		public int LegCount { get; init; }
+
+	}
+
+	public sealed record Dog : Mammal
 	{
 
 		[JsonPropertyName("isGoodDog")]
@@ -171,11 +181,21 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 
 	}
 
-	public sealed record Cat : Animal
+	public sealed record Cat : Mammal
 	{
 
 		[JsonPropertyName("remainingLives")]
 		public int RemainingLives { get; init; }
+
+	}
+
+	public abstract record Reptilian : Animal
+	{
+
+	}
+
+	public sealed record TRex : Reptilian
+	{
 
 	}
 
@@ -203,25 +223,38 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 		[Test]
 		public void Sandbox()
 		{
-			var dog = new Dog() { Id = Guid.Parse("f512fdd2-c306-4158-9a0a-31d4c0c70f40"), Name = "Fido", IsGoodDog = true, };
-			var cat = new Cat() { Id = Guid.Parse("781b6235-f401-41a8-8d18-7a5b51e0465f"), Name = "Felix", RemainingLives = 7, };
+			var dog = new Dog() { Id = Guid.Parse("f512fdd2-c306-4158-9a0a-31d4c0c70f40"), Name = "Fido", LegCount = 4, IsGoodDog = true, };
+			var cat = new Cat() { Id = Guid.Parse("781b6235-f401-41a8-8d18-7a5b51e0465f"), Name = "Felix", LegCount = 4, RemainingLives = 7, };
+			var trex = new TRex() { Id = Guid.Parse("5697637d-cf3a-45a2-b052-a45ce7915e8c"), Name = "Marty", };
 			
-			var x = SystemTextJsonGeneratedSerializers.Default.Animal;
-			var y = SystemTextJsonGeneratedSerializers.Default.Dog;
-			var z = SystemTextJsonGeneratedSerializers.Default.Cat;
-
+			Log("STJ:");
 			Log(System.Text.Json.JsonSerializer.Serialize(dog, SystemTextJsonGeneratedSerializers.Default.Animal));
+			Log(System.Text.Json.JsonSerializer.Serialize(dog, SystemTextJsonGeneratedSerializers.Default.Mammal));
 			Log(System.Text.Json.JsonSerializer.Serialize(dog, SystemTextJsonGeneratedSerializers.Default.Dog));
 			Log(System.Text.Json.JsonSerializer.Serialize(cat, SystemTextJsonGeneratedSerializers.Default.Animal));
+			Log(System.Text.Json.JsonSerializer.Serialize(cat, SystemTextJsonGeneratedSerializers.Default.Mammal));
 			Log(System.Text.Json.JsonSerializer.Serialize(cat, SystemTextJsonGeneratedSerializers.Default.Cat));
+			Log(System.Text.Json.JsonSerializer.Serialize(trex, SystemTextJsonGeneratedSerializers.Default.Animal));
+			Log(System.Text.Json.JsonSerializer.Serialize(trex, SystemTextJsonGeneratedSerializers.Default.Reptilian));
+			Log(System.Text.Json.JsonSerializer.Serialize(trex, SystemTextJsonGeneratedSerializers.Default.TRex));
 			//
+			Log("CodeGen:");
 			Log(GeneratedConverters.Animal.ToJson(dog));
+			Log(GeneratedConverters.Mammal.ToJson(dog));
+			Log(GeneratedConverters.Dog.ToJson(dog));
 			Log(GeneratedConverters.Animal.ToJson(cat));
+			Log(GeneratedConverters.Mammal.ToJson(cat));
+			Log(GeneratedConverters.Cat.ToJson(cat));
+			Log(GeneratedConverters.Animal.ToJson(trex));
+			Log(GeneratedConverters.Reptilian.ToJson(trex));
+			Log(GeneratedConverters.TRex.ToJson(trex));
 
-			var dog2 = GeneratedConverters.Animal.Deserialize("{ \"$type\": \"dog\", \"isGoodDog\": true, \"id\": \"f512fdd2-c306-4158-9a0a-31d4c0c70f40\", \"name\": \"Fido\" }");
+			var dog2 = GeneratedConverters.Animal.Deserialize("{ \"$type\": \"dog\", \"id\": \"f512fdd2-c306-4158-9a0a-31d4c0c70f40\", \"name\": \"Fido\", \"legCount\": 4, \"isGoodDog\": true }");
 			Assert.That(dog2, Is.InstanceOf<Dog>().And.EqualTo(dog));
-			var cat2 = GeneratedConverters.Animal.Deserialize("{ \"$type\": \"cat\", \"remainingLives\": 7, \"id\": \"781b6235-f401-41a8-8d18-7a5b51e0465f\", \"name\": \"Felix\" }");
+			var cat2 = GeneratedConverters.Animal.Deserialize("{ \"$type\": \"cat\", \"id\": \"781b6235-f401-41a8-8d18-7a5b51e0465f\", \"name\": \"Felix\", \"legCount\": 4, \"remainingLives\": 7 }");
 			Assert.That(cat2, Is.InstanceOf<Cat>().And.EqualTo(cat));
+			var trex2 = GeneratedConverters.Animal.Deserialize("{ \"$type\": \"trex\", \"id\": \"5697637d-cf3a-45a2-b052-a45ce7915e8c\", \"name\": \"Marty\", }");
+			Assert.That(trex2, Is.InstanceOf<TRex>().And.EqualTo(trex));
 		}
 
 		[Test]
@@ -240,6 +273,10 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			{
 				var converter = GeneratedConverters.GetConverterFor<MyAwesomeMetadata>();
 				Assert.That(converter, Is.InstanceOf<IJsonConverter<MyAwesomeMetadata>>());
+			}
+			{
+				var converter = GeneratedConverters.GetConverterFor<Dog>();
+				Assert.That(converter, Is.InstanceOf<IJsonConverter<Dog>>());
 			}
 		}
 
@@ -325,7 +362,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 		};
 
 		[Test]
-		public void Test_Custom_Serializer_Simple_Type()
+		public void Test_Generated_Converter_Simple_Type()
 		{
 			{
 				var person = new Person()
@@ -395,7 +432,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 		}
 
 		[Test]
-		public void Test_Custom_Serializer_Complex_Type()
+		public void Test_Generated_Converter_Complex_Type()
 		{
 			var user = MakeSampleUser();
 
@@ -512,6 +549,111 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 		}
 
 		[Test]
+		public void Test_Generated_Converter_Derived_Type()
+		{
+			var dog = new Dog()
+			{
+				Id = Guid.Parse("f512fdd2-c306-4158-9a0a-31d4c0c70f40"),
+				Name = "Fido",
+				LegCount = 4,
+				IsGoodDog = true, 
+			};
+
+			Log("Serialized JSON:");
+			var json = CrystalJson.Serialize(dog, GeneratedConverters.Dog.Default);
+			Log(json);
+
+			{ // Compare with System.Text.Json:
+				Log();
+				Log("System.Text.Json reference:");
+				Log(System.Text.Json.JsonSerializer.Serialize(dog));
+			}
+
+			// ToSlice
+
+			// non-pooled (return a copy)
+			var bytes = CrystalJson.ToSlice(dog, GeneratedConverters.Dog.Default);
+			Assert.That(bytes.ToStringUtf8(), Is.EqualTo(json));
+
+			{ // pooled (rented buffer)
+				using (var res = CrystalJson.ToSlice(dog, GeneratedConverters.Dog.Default, ArrayPool<byte>.Shared))
+				{
+					Assert.That(res.IsValid, Is.True);
+					Assert.That(res.Count, Is.EqualTo(bytes.Count));
+					if (!res.Data.Equals(bytes))
+					{
+						Assert.That(res.Data, Is.EqualTo(bytes));
+					}
+					if (!res.Span.SequenceEqual(bytes.Span))
+					{
+						Assert.That(res.Data, Is.EqualTo(bytes));
+					}
+				}
+			}
+
+			Log();
+			Log("Parse...");
+			var parsed = JsonValue.Parse(json);
+			DumpCompact(parsed);
+			Assert.That(parsed, IsJson.Object);
+			Assert.Multiple(() =>
+			{
+				Assert.That(parsed["id"], IsJson.EqualTo(dog.Id));
+				Assert.That(parsed["name"], IsJson.EqualTo(dog.Name));
+				Assert.That(parsed["legCount"], IsJson.EqualTo(dog.LegCount));
+				Assert.That(parsed["isGoodDog"], IsJson.EqualTo(dog.IsGoodDog)); //REVIEW: TODO: enum default as numbers or string ?
+				Assert.That(parsed["$type"], IsJson.EqualTo("dog"));
+			});
+
+			Log();
+			Log("Deserialize as Dog...");
+			{
+				var decodedDog = GeneratedConverters.Dog.Unpack(parsed);
+				Assert.That(decodedDog, Is.Not.Null);
+				Assert.That(decodedDog.Id, Is.EqualTo(dog.Id));
+				Assert.That(decodedDog.Name, Is.EqualTo(dog.Name));
+				Assert.That(decodedDog.LegCount, Is.EqualTo(dog.LegCount));
+				Assert.That(decodedDog.IsGoodDog, Is.EqualTo(dog.IsGoodDog));
+			}
+
+			Log();
+			Log("Deserialize as Animal...");
+			{
+				var decodedAnimal = GeneratedConverters.Animal.Unpack(parsed);
+				Assert.That(decodedAnimal, Is.Not.Null.And.InstanceOf<Dog>());
+				Assert.That(decodedAnimal.Id, Is.EqualTo(dog.Id));
+				Assert.That(decodedAnimal.Name, Is.EqualTo(dog.Name));
+				Assert.That(((Mammal) decodedAnimal).LegCount, Is.EqualTo(dog.LegCount));
+				Assert.That(((Dog) decodedAnimal).IsGoodDog, Is.EqualTo(dog.IsGoodDog));
+			}
+
+			Log();
+			Log("Deserialize as Mammal...");
+			{
+				var decodedMammal = GeneratedConverters.Mammal.Unpack(parsed);
+				Assert.That(decodedMammal, Is.Not.Null.And.InstanceOf<Dog>());
+				Assert.That(decodedMammal.Id, Is.EqualTo(dog.Id));
+				Assert.That(decodedMammal.Name, Is.EqualTo(dog.Name));
+				Assert.That(decodedMammal.LegCount, Is.EqualTo(dog.LegCount));
+				Assert.That(((Dog) decodedMammal).IsGoodDog, Is.EqualTo(dog.IsGoodDog));
+			}
+
+			Log();
+			Log("Pack...");
+			var packed = GeneratedConverters.Dog.Pack(dog);
+			Dump(packed);
+			Assert.That(packed, IsJson.Object);
+			Assert.Multiple(() =>
+			{
+				Assert.That(packed["id"], IsJson.EqualTo(dog.Id));
+				Assert.That(packed["name"], IsJson.EqualTo(dog.Name));
+				Assert.That(packed["legCount"], IsJson.EqualTo(dog.LegCount));
+				Assert.That(packed["isGoodDog"], IsJson.EqualTo(dog.IsGoodDog));
+				Assert.That(packed["$type"], IsJson.EqualTo("dog"));
+			});
+		}
+
+		[Test]
 		public void Test_JsonReadOnlyProxy_FromValue_SimpleType()
 		{
 			// Test that FromValue(TValue) returns a read-only proxy that match the original instance
@@ -549,6 +691,56 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			Assert.That(decoded, Is.InstanceOf<Person>().And.Not.SameAs(person));
 			Assert.That(decoded.FamilyName, Is.EqualTo(person.FamilyName));
 			Assert.That(decoded.FirstName, Is.EqualTo(person.FirstName));
+		}
+
+		[Test]
+		public void Test_JsonReadOnlyProxy_FromValue_DerivedType()
+		{
+			// Test that FromValue(TValue) returns a read-only proxy that match the original instance
+
+			var cat = new Cat()
+			{
+				Id = Guid.NewGuid(),
+				Name = "Felix",
+				LegCount = 4,
+				RemainingLives = 7,
+			};
+
+			Log("Cat:");
+			Log(cat.ToString());
+
+			// Convert the Person into a proxy that wraps a read-only JsonObject
+			Log("FromValue(Cat)");
+			var proxy = GeneratedConverters.Cat.ToReadOnly(cat);
+			Log(proxy.ToString());
+			Assert.That(proxy.Id, Is.EqualTo(cat.Id));
+			Assert.That(proxy.Name, Is.EqualTo("Felix"));
+			Assert.That(proxy.LegCount, Is.EqualTo(4));
+			Assert.That(proxy.RemainingLives, Is.EqualTo(7));
+			Assert.That(proxy["$type"].ToJson(), IsJson.EqualTo("cat"));
+
+			// inspect the wrapped JsonObject
+			Log("ToJson()");
+			var json = proxy.ToJson();
+			Dump(json);
+			Assert.That(json, IsJson.Object.And.ReadOnly);
+			Assert.That(json["id"], IsJson.EqualTo(cat.Id));
+			Assert.That(json["name"], IsJson.EqualTo("Felix"));
+			Assert.That(json["legCount"], IsJson.EqualTo(4));
+			Assert.That(json["remainingLives"], IsJson.EqualTo(7));
+			Assert.That(json["$type"], IsJson.EqualTo("cat"));
+			Assert.That(json, IsJson.OfSize(5));
+
+			// serialize back into a Person
+			Log("ToValue()");
+			var decoded = proxy.ToValue();
+			Assert.That(decoded, Is.Not.Null);
+			Log(decoded.ToString());
+			Assert.That(decoded, Is.InstanceOf<Cat>().And.Not.SameAs(cat));
+			Assert.That(decoded.Id, Is.EqualTo(cat.Id));
+			Assert.That(decoded.Name, Is.EqualTo(cat.Name));
+			Assert.That(decoded.LegCount, Is.EqualTo(cat.LegCount));
+			Assert.That(decoded.RemainingLives, Is.EqualTo(cat.RemainingLives));
 		}
 
 		[Test]
@@ -715,6 +907,65 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			Assert.That(decoded, Is.InstanceOf<Person>().And.Not.SameAs(person));
 			Assert.That(decoded.FamilyName, Is.EqualTo(person.FamilyName));
 			Assert.That(decoded.FirstName, Is.EqualTo("Jim"));
+		}
+
+		[Test]
+		public void Test_JsonWritableProxy_FromValue_DerivedType()
+		{
+			// Test that FromValue(TValue) returns a read-only proxy that match the original instance
+
+			var cat = new Cat()
+			{
+				Id = Guid.NewGuid(),
+				Name = "Felix",
+				LegCount = 4,
+				RemainingLives = 7,
+			};
+
+
+			Log("Cat:");
+			Log(cat.ToString());
+
+			// Convert the Person into a proxy that wraps a read-only JsonObject
+			Log("FromValue(Cat)");
+			var proxy = GeneratedConverters.Cat.ToMutable(cat);
+			Log(proxy.ToString());
+			Assert.That(proxy.Id, Is.EqualTo(cat.Id));
+			Assert.That(proxy.Name, Is.EqualTo("Felix"));
+			Assert.That(proxy.LegCount, Is.EqualTo(4));
+			Assert.That(proxy.RemainingLives, Is.EqualTo(7));
+			Assert.That(proxy["$type"].ToJson(), IsJson.EqualTo("cat"));
+
+			// inspect the wrapped JsonObject
+			Log("ToJson()");
+			var json = proxy.ToJson();
+			Dump(json);
+			Assert.That(json, IsJson.Object.And.Mutable);
+			Assert.That(json["id"], IsJson.EqualTo(cat.Id));
+			Assert.That(json["name"], IsJson.EqualTo("Felix"));
+			Assert.That(json["legCount"], IsJson.EqualTo(4));
+			Assert.That(json["remainingLives"], IsJson.EqualTo(7));
+			Assert.That(json["$type"], IsJson.EqualTo("cat"));
+			Assert.That(json, IsJson.OfSize(5));
+
+			// mutate the object
+			proxy.Name = "Jellie";
+
+			Assert.That(proxy.Name, Is.EqualTo("Jellie"));
+			Assert.That(json["name"], IsJson.EqualTo("Jellie"));
+			// the original should not be changed
+			Assert.That(cat.Name, Is.EqualTo("Felix"));
+
+			// serialize back into a Person
+			Log("ToValue()");
+			var decoded = proxy.ToValue();
+			Assert.That(decoded, Is.Not.Null);
+			Log(decoded.ToString());
+			Assert.That(decoded, Is.InstanceOf<Cat>().And.Not.SameAs(cat));
+			Assert.That(decoded.Id, Is.EqualTo(cat.Id));
+			Assert.That(decoded.Name, Is.EqualTo("Jellie"));
+			Assert.That(decoded.LegCount, Is.EqualTo(cat.LegCount));
+			Assert.That(decoded.RemainingLives, Is.EqualTo(cat.RemainingLives));
 		}
 
 		[Test]

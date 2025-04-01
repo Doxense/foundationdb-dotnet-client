@@ -39,17 +39,23 @@ namespace SnowBank.Serialization.Json.CodeGen
 		internal sealed class Emitter
 		{
 
-			private const string GeneratedCodeAttributeFullName = "System.CodeDom.Compiler.GeneratedCodeAttribute";
+			#region Attributes Names ...
 
 			private const string DebuggerNonUserCodeAttributeFullName = "System.Diagnostics.DebuggerNonUserCodeAttribute";
+
+			private const string DisallowNullAttributeFullName = "System.Diagnostics.CodeAnalysis.DisallowNullAttribute";
+
+			private const string DoesNotReturnAttributeFullName = "System.Diagnostics.CodeAnalysis.DoesNotReturnAttribute";
 
 			private const string DynamicallyAccessedMembersAttributeFullName = "System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembersAttribute";
 
 			private const string DynamicallyAccessedMemberTypesFullName = "System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes";
 
-			private const string DisallowNullAttributeFullName = "System.Diagnostics.CodeAnalysis.DisallowNullAttribute";
+			private const string GeneratedCodeAttributeFullName = "System.CodeDom.Compiler.GeneratedCodeAttribute";
 
-			private const string DoesNotReturnAttributeFullName = "System.Diagnostics.CodeAnalysis.DoesNotReturnAttribute";
+			private const string NotNullIfNotNullAttributeFullName = "System.Diagnostics.CodeAnalysis.NotNullIfNotNullAttribute";
+
+			#endregion
 
 			private SourceProductionContext Context { get; }
 
@@ -1320,8 +1326,17 @@ namespace SnowBank.Serialization.Json.CodeGen
 					sb.AppendLine($"var discriminator = value[{CSharpCodeBuilder.Constant(typeDef.TypeDiscriminatorPropertyName ?? "$type")}];");
 					foreach (var (_, derivedType, discriminator) in typeDef.DerivedTypes)
 					{
+						if (derivedType.IsAbstract)
+						{ // don't include intermediary abstract types, we will only process the concrete types (the ones that we can actually create a runtime)
+							continue;
+						}
 						switch (discriminator)
 						{
+							case null:
+							{
+								//REVIEW: how do we handle this case?
+								break;
+							}
 							case string s:
 							{
 								sb.AppendLine($"if (discriminator.ValueEquals({CSharpCodeBuilder.Constant(s)})) return {GetLocalSerializerRef(derivedType)}.Unpack(value, resolver);");
@@ -1341,29 +1356,43 @@ namespace SnowBank.Serialization.Json.CodeGen
 					}
 
 					sb.AppendLine("throw new NotSupportedException();");
+					sb.LeaveBlock();
+					sb.NewLine();
+					return;
 				}
-				else
-				{
-					sb.AppendLine("var obj = value.AsObject();");
-					sb.AppendLine("return new ()");
-					sb.EnterBlock();
-					foreach (var member in typeDef.Members)
-					{
-						if (member.IsNullableRefType())
-						{
-							sb.AppendLine($"{member.MemberName} = /* ref-nullable */ obj.Get<{member.Type.FullyQualifiedNameAnnotated}>({GetLocalPropertyNameRef(member)}, {member.DefaultLiteral}),");
-						}
-						else if (member.IsRequired)
-						{
-							sb.AppendLine($"{member.MemberName} = /* required */ obj.Get<{member.Type.FullyQualifiedName}>({GetLocalPropertyNameRef(member)}),");
-						}
-						else
-						{
-							sb.AppendLine($"{member.MemberName} = /* else */ obj.Get<{member.Type.FullyQualifiedNameAnnotated}>({GetLocalPropertyNameRef(member)}, {member.DefaultLiteral}!),");
-						}
+
+				bool hasPolymorphicDefinition = this.PolymorphicMap.TryGetValue(typeDef.Type.Ref, out var polymorphicMetadata);
+				if (typeDef.Type.IsAbstract)
+				{ // do we have a parent ?
+					if (hasPolymorphicDefinition)
+					{ // defer to the parent type which should have all the derived types under this one
+						//REVIEW: TODO: we _could_ optimize by having a smaller switch with only de types under us?
+						sb.AppendLine($"return ({typeFullName}) {GetLocalSerializerRef(polymorphicMetadata.Parent)}.Unpack(value, resolver);");
+						sb.LeaveBlock();
+						sb.NewLine();
+						return;
 					}
-					sb.LeaveBlock(semicolon: true);
 				}
+
+				sb.AppendLine("var obj = value.AsObject();");
+				sb.AppendLine("return new ()");
+				sb.EnterBlock();
+				foreach (var member in typeDef.Members)
+				{
+					if (member.IsNullableRefType())
+					{
+						sb.AppendLine($"{member.MemberName} = /* ref-nullable */ obj.Get<{member.Type.FullyQualifiedNameAnnotated}>({GetLocalPropertyNameRef(member)}, {member.DefaultLiteral}),");
+					}
+					else if (member.IsRequired)
+					{
+						sb.AppendLine($"{member.MemberName} = /* required */ obj.Get<{member.Type.FullyQualifiedName}>({GetLocalPropertyNameRef(member)}),");
+					}
+					else
+					{
+						sb.AppendLine($"{member.MemberName} = /* else */ obj.Get<{member.Type.FullyQualifiedNameAnnotated}>({GetLocalPropertyNameRef(member)}, {member.DefaultLiteral}!),");
+					}
+				}
+				sb.LeaveBlock(semicolon: true);
 				sb.LeaveBlock();
 				sb.NewLine();
 			}
@@ -1372,7 +1401,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 			{
 				sb.AppendLine("/// <inheritdoc />");
 				sb.AppendLine($"public {KnownTypeSymbols.JsonValueFullName} Pack({typeDef.Type.FullyQualifiedNameAnnotated} instance, {KnownTypeSymbols.CrystalJsonSettingsFullName}? settings = default, {KnownTypeSymbols.ICrystalJsonTypeResolverFullName}? resolver = default)");
-				sb.EnterBlock();
+				sb.EnterBlock("Pack");
 
 				if (!typeDef.Type.IsValueType())
 				{ // ref types can be null, we will return JsonNull.Null in this case
@@ -1390,14 +1419,29 @@ namespace SnowBank.Serialization.Json.CodeGen
 					sb.EnterBlock();
 					foreach (var (_, derivedType, x) in typeDef.DerivedTypes)
 					{
+						if (derivedType.IsAbstract) continue; // skip abstract types
 						sb.AppendLine($"case {derivedType.FullyQualifiedName} x: return {GetLocalSerializerRef(derivedType)}.Pack(x, settings, resolver);");
 					}
 					sb.AppendLine($"default: throw new NotSupportedException(\"Does not know how to serialize derived type\");");
 					sb.LeaveBlock();
 
-					sb.LeaveBlock("Serialize()");
+					sb.LeaveBlock("Pack");
 					sb.NewLine();
 					return;
+				}
+
+				bool hasPolymorphicDefinition = this.PolymorphicMap.TryGetValue(typeDef.Type.Ref, out var polymorphicMetadata);
+
+				if (typeDef.Type.IsAbstract)
+				{ // do we have a parent ?
+					if (hasPolymorphicDefinition)
+					{ // defer to the parent type which should have all the derived types under this one
+						//REVIEW: TODO: we _could_ optimize by having a smaller switch with only de types under us?
+						sb.AppendLine($"return {GetLocalSerializerRef(polymorphicMetadata.Parent)}.Pack(instance, settings, resolver);");
+						sb.LeaveBlock("Pack");
+						sb.NewLine();
+						return;
+					}
 				}
 
 				// if the type is not sealed, we may have a derived type, we must defer serialization to this type!
@@ -1407,14 +1451,14 @@ namespace SnowBank.Serialization.Json.CodeGen
 					sb.AppendLine($"if (instance.GetType() != typeof({typeDef.Type.FullyQualifiedName}))");
 					sb.EnterBlock();
 					sb.AppendLine("throw new NotSupportedException(\"Cannot pack a polymorphic type. You must add at least one [JsonDerivedType] to the base class or interface.\");");
-					sb.LeaveBlock();
+					sb.LeaveBlock("Pack");
 					sb.NewLine();
 				}
 
 				sb.AppendLine($"var obj = new {KnownTypeSymbols.JsonObjectFullName}({typeDef.Members.Count});");
 				sb.NewLine();
 
-				if (this.PolymorphicMap.TryGetValue(typeDef.Type.Ref, out var polymorphicMetadata))
+				if (hasPolymorphicDefinition)
 				{
 					sb.Comment("Add the discriminator property for this derived type");
 					var typeDiscriminatorPropertyName = polymorphicMetadata.Parent.TypeDiscriminatorPropertyName ?? "$type";
@@ -1455,7 +1499,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 					sb.NewLine();
 				}
 				sb.AppendLine($"return settings.IsReadOnly() ? {KnownTypeSymbols.CrystalJsonMarshallFullName}.FreezeTopLevel(obj) : obj;");
-				sb.LeaveBlock();
+				sb.LeaveBlock("Pack");
 				sb.NewLine();
 			}
 
@@ -1483,6 +1527,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 					sb.EnterBlock();
 					foreach (var (_, derivedType, x) in typeDef.DerivedTypes)
 					{
+						if (derivedType.IsAbstract) continue;
 						sb.AppendLine($"case {derivedType.FullyQualifiedName} x: {GetLocalSerializerRef(derivedType)}.Serialize(writer, x); break;");
 					}
 					sb.AppendLine($"default: throw new NotSupportedException(\"Does not know how to serialize derived type\");");
@@ -1491,6 +1536,20 @@ namespace SnowBank.Serialization.Json.CodeGen
 					sb.LeaveBlock("Serialize()");
 					sb.NewLine();
 					return;
+				}
+
+				bool hasPolymorphicDefinition = this.PolymorphicMap.TryGetValue(typeDef.Type.Ref, out var polymorphicMetadata);
+
+				if (typeDef.Type.IsAbstract)
+				{ // do we have a parent ?
+					if (hasPolymorphicDefinition)
+					{ // defer to the parent type which should have all the derived types under this one
+						//REVIEW: TODO: we _could_ optimize by having a smaller switch with only de types under us?
+						sb.AppendLine($"{GetLocalSerializerRef(polymorphicMetadata.Parent)}.Serialize(writer, instance);");
+						sb.LeaveBlock("Serialize()");
+						sb.NewLine();
+						return;
+					}
 				}
 
 				// if the type is not sealed, we may have a derived type, we must defer serialization to this type!
@@ -1508,7 +1567,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 				sb.AppendLine("var state = writer.BeginObject();");
 
-				if (this.PolymorphicMap.TryGetValue(typeDef.Type.Ref, out var polymorphicMetadata))
+				if (hasPolymorphicDefinition)
 				{
 					sb.Comment("Add the discriminator property for this derived type");
 					var typeDiscriminatorPropertyName = polymorphicMetadata.Parent.TypeDiscriminatorPropertyName ?? "$type";
