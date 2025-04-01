@@ -594,25 +594,13 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static JsonObject ToJsonObject([InstantHandle] this IEnumerable<KeyValuePair<string, JsonValue>> items, IEqualityComparer<string>? comparer = null)
 		{
-			return JsonObject.Create(items, comparer);
+			return JsonObject.Create(comparer ?? StringComparer.Ordinal, items);
 		}
 
 		[Pure]
 		public static JsonObject ToJsonObject<TValue>([InstantHandle] this IEnumerable<KeyValuePair<string, TValue>> items, IEqualityComparer<string>? comparer = null)
 		{
-			Contract.NotNull(items);
-
-			//TODO: move this as JsonObject.FromValues(...)
-
-			comparer ??= JsonObject.ExtractKeyComparer(items) ?? StringComparer.Ordinal;
-
-			var map = new Dictionary<string, JsonValue>(items.TryGetNonEnumeratedCount(out var count) ? count : 0, comparer);
-			var context = new CrystalJsonDomWriter.VisitingContext();
-			foreach (var item in items)
-			{
-				map.Add(item.Key, JsonValue.FromValue(CrystalJsonDomWriter.Default, ref context, item.Value));
-			}
-			return new JsonObject(map, readOnly: false);
+			return JsonObject.FromValues(comparer ?? JsonObject.ExtractKeyComparer(items) ?? StringComparer.Ordinal, items);
 		}
 
 		[Pure]
@@ -637,42 +625,13 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static JsonObject ToJsonObject<TElement>([InstantHandle] this IEnumerable<TElement> source, [InstantHandle] Func<TElement, string> keySelector, [InstantHandle] Func<TElement, JsonValue?> valueSelector, IEqualityComparer<string>? comparer = null)
 		{
-			Contract.NotNull(source);
-			Contract.NotNull(keySelector);
-			Contract.NotNull(valueSelector);
-
-			//TODO: move this as JsonObject.FromValues(...)
-
-			var map = new Dictionary<string, JsonValue>(source.TryGetNonEnumeratedCount(out var count) ? count : 0, comparer ?? StringComparer.Ordinal);
-			foreach (var item in source)
-			{
-				var key = keySelector(item);
-				Contract.Debug.Assert(key is not null, "key selector should not return null");
-				var child = valueSelector(item) ?? JsonNull.Null;
-				map.Add(key, child);
-			}
-			return new JsonObject(map, readOnly: false);
+			return JsonObject.FromValues(comparer ?? StringComparer.Ordinal, source, keySelector, valueSelector);
 		}
 
 		[Pure]
 		public static JsonObject ToJsonObject<TElement, TValue>([InstantHandle] this IEnumerable<TElement> source, [InstantHandle] Func<TElement, string> keySelector, [InstantHandle] Func<TElement, TValue> valueSelector, IEqualityComparer<string>? comparer = null)
 		{
-			Contract.NotNull(source);
-			Contract.NotNull(keySelector);
-			Contract.NotNull(valueSelector);
-
-			//TODO: move this as JsonObject.FromValues(...)
-
-			var map = new Dictionary<string, JsonValue>(source.TryGetNonEnumeratedCount(out var count) ? count : 0, comparer ?? StringComparer.Ordinal);
-			var context = new CrystalJsonDomWriter.VisitingContext();
-			foreach (var item in source)
-			{
-				var key = keySelector(item);
-				Contract.Debug.Assert(key is not null, "key selector should not return null");
-				var child = valueSelector(item);
-				map.Add(key, JsonValue.FromValue(CrystalJsonDomWriter.Default, ref context, child));
-			}
-			return new JsonObject(map, readOnly: false);
+			return JsonObject.FromValues(comparer ?? StringComparer.Ordinal, source, keySelector, valueSelector);
 		}
 
 		/// <summary>Returns either the object itself, or an empty read-only object if it was missing</summary>

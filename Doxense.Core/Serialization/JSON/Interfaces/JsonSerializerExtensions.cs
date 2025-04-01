@@ -947,21 +947,21 @@ namespace Doxense.Serialization.Json
 		public static JsonObject? PackDictionary<TValue>(Dictionary<string, TValue>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (items == null) return null;
-			return JsonObject.FromValues<TValue>(items, null, settings, resolver);
+			return JsonObject.FromValues<TValue>(items, settings, resolver);
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
 		public static JsonObject? PackDictionary<TValue>(IDictionary<string, TValue>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (items == null) return null;
-			return JsonObject.FromValues<TValue>(items, null, settings, resolver);
+			return JsonObject.FromValues<TValue>(items, settings, resolver);
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
 		public static JsonObject? PackDictionary<TValue>(IEnumerable<KeyValuePair<string, TValue>>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (items == null) return null;
-			return JsonObject.FromValues<TValue>(items, null, settings, resolver);
+			return JsonObject.FromValues<TValue>(items, settings, resolver);
 		}
 
 		public static T? Unpack<T>(JsonValue? value, ICrystalJsonTypeResolver? resolver)

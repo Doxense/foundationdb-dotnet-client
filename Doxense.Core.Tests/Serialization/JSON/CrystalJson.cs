@@ -6438,11 +6438,11 @@ namespace Doxense.Serialization.Json.Tests
 		{
 			var arr = new JsonArray()
 			{
-				JsonObject.FromObjectReadOnly(new { Id = 1, Name = "Walter White", Pseudo = "Einsenberg", Job = "Cook", Sickness = "Lung Cancer" }),
-				JsonObject.FromObjectReadOnly(new { Id = 2, Name = "Jesse Pinkman", Job = "Drug Dealer" }),
-				JsonObject.FromObjectReadOnly(new { Id = 3, Name = "Walter White, Jr", Pseudo = "Flynn", Sickness = "Cerebral Palsy" }),
-				JsonObject.FromObjectReadOnly(new { Foo = "bar", Version = 1 }), // completely unrelated object (probably a bug)
-				JsonObject.EmptyReadOnly, // empty object
+				JsonObject.ReadOnly.FromObject(new { Id = 1, Name = "Walter White", Pseudo = "Einsenberg", Job = "Cook", Sickness = "Lung Cancer" }),
+				JsonObject.ReadOnly.FromObject(new { Id = 2, Name = "Jesse Pinkman", Job = "Drug Dealer" }),
+				JsonObject.ReadOnly.FromObject(new { Id = 3, Name = "Walter White, Jr", Pseudo = "Flynn", Sickness = "Cerebral Palsy" }),
+				JsonObject.ReadOnly.FromObject(new { Foo = "bar", Version = 1 }), // completely unrelated object (probably a bug)
+				JsonObject.ReadOnly.Empty, // empty object
 				JsonNull.Null, // Null should not be changed
 				JsonNull.Missing, // Missing should be converted to Null
 				null, // null should be changed to Null
