@@ -293,7 +293,9 @@ namespace SnowBank.Serialization.Json.CodeGen
 				}
 
 				// if this is a derived type, we need to enumerate the symbols starting from the top (interface or base class)
-				foreach (var current in GetSortedTypeHierarchy(type))
+				// we also want to have "id" as the first member
+				int indexOfId = -1;
+				foreach (var current in GetTypeHierarchy(type))
 				{
 					foreach (var member in current.GetMembers())
 					{
@@ -303,10 +305,21 @@ namespace SnowBank.Serialization.Json.CodeGen
 							if (memberDef != null)
 							{
 								Kenobi($"Inspect member {member.Name} with type {memberDef.Type.FullName}, N={memberDef.Type.NullableOfType?.Name}, E={memberDef.Type.ElementType?.Name}, K={memberDef.Type.KeyType?.Name}, V={memberDef.Type.ValueType?.Name}");
+								if (member.Name == "Id")
+								{
+									indexOfId = members.Count;
+								}
 								members.Add(memberDef);
 							}
 						}
 					}
+				}
+
+				if (indexOfId > 0)
+				{ // move "Id" to the first position
+					var memberId = members[indexOfId];
+					members.RemoveAt(indexOfId);
+					members.Insert(0, memberId);
 				}
 
 				if (typeDiscriminatorPropertyName == null && isPolymorphic)
@@ -591,7 +604,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 				_ => type.IsValueType() ? "default" : "null"
 			};
 
-			private static INamedTypeSymbol[] GetSortedTypeHierarchy(ITypeSymbol type)
+			private static INamedTypeSymbol[] GetTypeHierarchy(ITypeSymbol type)
 			{
 				if (type is not INamedTypeSymbol namedType)
 				{
@@ -605,16 +618,11 @@ namespace SnowBank.Serialization.Json.CodeGen
 					{
 						list.Add(current);
 					}
-
+					list.Reverse();
 					return list.ToArray();
 				}
 				else
 				{
-					// Interface hierarchies support multiple inheritance.
-					// For consistency with class hierarchy resolution order,
-					// sort topologically from most derived to least derived.
-					//return JsonHelpers.TraverseGraphWithTopologicalSort<INamedTypeSymbol>(namedType, static t => t.AllInterfaces, SymbolEqualityComparer.Default);
-					//TODO !!
 					return [ namedType ];
 				}
 			}
