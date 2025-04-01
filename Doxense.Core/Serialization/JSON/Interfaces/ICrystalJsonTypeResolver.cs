@@ -54,32 +54,28 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Binds a JSON value into the corresponding CLR type</summary>
 		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		object? BindJsonValue(
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
 			Type? type,
 			JsonValue? value);
 
 		/// <summary>Binds a JSON value into the corresponding CLR type</summary>
 		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		T? BindJson<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>
 			(JsonValue? value, T? defaultValue = default);
 
 		/// <summary>Binds a JSON object into the corresponding CLR type</summary>
 		/// <exception cref="JsonBindingException">If the object cannot be bound to the specified type.</exception>
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		object? BindJsonObject(
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]Type? type,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]Type? type,
 			JsonObject? value);
 
 		/// <summary>Binds a JSON array into the corresponding CLR type</summary>
 		/// <exception cref="JsonBindingException">If the array cannot be bound to the specified type.</exception>
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		object? BindJsonArray(
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
 			Type? type,
 			JsonArray? array);
 
