@@ -501,9 +501,30 @@ namespace SnowBank.Serialization.Json.CodeGen
 						sb.AppendLine($"public {writableProxyTypeName} ToMutable() => new({KnownTypeSymbols.MutableJsonValueFullName}.Untracked(m_value.GetJsonUnsafe().Copy()));");
 						sb.NewLine();
 
+						// this[string]
+						sb.AppendLine("/// <inheritdoc />");
+						sb.AppendLine($"public {KnownTypeSymbols.ObservableJsonValueFullName} this[string key] => m_value.Get(key);");
+						sb.NewLine();
+
 						// Get(string)
 						sb.AppendLine("/// <inheritdoc />");
 						sb.AppendLine($"public {KnownTypeSymbols.ObservableJsonValueFullName} Get(string key) => m_value.Get(key);");
+						sb.NewLine();
+
+						// Get<T>(string)
+						sb.AppendLine("/// <inheritdoc />");
+						sb.AppendLine($"public T Get<T>(string key) where T : notnull => m_value.Get<T>(key);");
+						sb.NewLine();
+
+						// Get<T>(string, T)
+						sb.AppendLine("/// <inheritdoc />");
+						sb.AppendLine($"[return: {NotNullIfNotNullAttributeFullName}(nameof(defaultValue))]");
+						sb.AppendLine($"public T? Get<T>(string key, T defaultValue) => m_value.Get<T>(key, defaultValue);");
+						sb.NewLine();
+
+						// this[ReadOnlyMemory<char>]
+						sb.AppendLine("/// <inheritdoc />");
+						sb.AppendLine($"public {KnownTypeSymbols.ObservableJsonValueFullName} this[ReadOnlyMemory<char> key] => m_value.Get(key);");
 						sb.NewLine();
 
 						// Get(ReadOnlyMemory<char>)
@@ -511,14 +532,41 @@ namespace SnowBank.Serialization.Json.CodeGen
 						sb.AppendLine($"public {KnownTypeSymbols.ObservableJsonValueFullName} Get(ReadOnlyMemory<char> key) => m_value.Get(key);");
 						sb.NewLine();
 
+						// Get<T>(ReadOnlyMemory<char>)
+						sb.AppendLine("/// <inheritdoc />");
+						sb.AppendLine($"public T Get<T>(ReadOnlyMemory<char> key) where T : notnull => m_value.Get<T>(key);");
+						sb.NewLine();
+
+						// Get<T>(ReadOnlyMemory<char>, T)
+						sb.AppendLine("/// <inheritdoc />");
+						sb.AppendLine($"[return: {NotNullIfNotNullAttributeFullName}(nameof(defaultValue))]");
+						sb.AppendLine($"public T? Get<T>(ReadOnlyMemory<char> key, T defaultValue) => m_value.Get<T>(key, defaultValue);");
+						sb.NewLine();
+
+						// Get(JsonPath)
+						sb.AppendLine("/// <inheritdoc />");
+						sb.AppendLine($"public {KnownTypeSymbols.ObservableJsonValueFullName} Get({KnownTypeSymbols.JsonPathFullName} path) => m_value.Get(path);");
+						sb.NewLine();
+
+						// Get<T>(JsonPath)
+						sb.AppendLine("/// <inheritdoc />");
+						sb.AppendLine($"public T Get<T>({KnownTypeSymbols.JsonPathFullName} path) where T : notnull => m_value.Get<T>(path);");
+						sb.NewLine();
+
+						// Get<T>(JsonPath, T)
+						sb.AppendLine("/// <inheritdoc />");
+						sb.AppendLine($"[return: {NotNullIfNotNullAttributeFullName}(nameof(defaultValue))]");
+						sb.AppendLine($"public T? Get<T>({KnownTypeSymbols.JsonPathFullName} path, T defaultValue) => m_value.Get<T>(path, defaultValue);");
+						sb.NewLine();
+
 						// Get(int)
 						sb.AppendLine("/// <inheritdoc />");
-						sb.AppendLine($"{KnownTypeSymbols.ObservableJsonValueFullName} {KnownTypeSymbols.IJsonReadOnlyProxyFullName}.Get(int index) => m_value.Get(index);");
+						sb.AppendLine($"public {KnownTypeSymbols.ObservableJsonValueFullName} Get(int index) => m_value.Get(index);");
 						sb.NewLine();
 
 						// Get(Index)
 						sb.AppendLine("/// <inheritdoc />");
-						sb.AppendLine($"{KnownTypeSymbols.ObservableJsonValueFullName} {KnownTypeSymbols.IJsonReadOnlyProxyFullName}.Get(Index index) => m_value.Get(index);");
+						sb.AppendLine($"public {KnownTypeSymbols.ObservableJsonValueFullName} Get(Index index) => m_value.Get(index);");
 						sb.NewLine();
 
 						// TReadOnly With(Action<TMutable>)
