@@ -207,6 +207,8 @@ namespace Doxense.Serialization.Json
 
 		public bool ContainsKey(string key) => this.Json is JsonObject obj && obj.ContainsKey(key);
 
+		public bool ContainsKey(ReadOnlyMemory<char> key) => this.Json is JsonObject obj && obj.ContainsKey(key);
+
 		public bool ContainsValue(JsonValue value) => this.Json switch
 		{
 			JsonObject obj => obj.Contains(value),
@@ -287,6 +289,59 @@ namespace Doxense.Serialization.Json
 		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
 		/// <remarks><para>This can be used to perform a different operation if the value exists or not (initialize a counter or increment its value, throw a specialized exception, ....)</para></remarks>
 		/// <example><code>
+		/// if (!foo.TryGetValue&lt;Bar>("bar", out var bar))
+		/// { // first time
+		///		bar = new Bar { /* ... */ }
+		///     foo.Set("bar", bar);
+		/// }
+		/// </code></example>
+		[Pure]
+		public bool TryGetValue<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(string key, [MaybeNullWhen(false)] out TValue value)
+		{
+			var items = this.Json;
+			if (!items.TryGetValue(key, out var child) || child.IsNullOrMissing())
+			{
+				value = default;
+				return false;
+			}
+
+			value = child.As<TValue>()!;
+			return true;
+		}
+
+		/// <summary>Returns the value of the given field, if it is not null or missing</summary>
+		/// <param name="key">Name of the field in this object</param>
+		/// <param name="converter">Converter used to unpack the JSON value into a <typeparamref name="TValue"/> instance</param>
+		/// <param name="value">Value that represents this field in the current object.</param>
+		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
+		/// <remarks><para>This can be used to perform a different operation if the value exists or not (initialize a counter or increment its value, throw a specialized exception, ....)</para></remarks>
+		/// <example><code>
+		/// if (!foo.TryGetValue&lt;Bar>("bar", GeneratedConverters.Bar.Default, out var bar))
+		/// { // first time
+		///		bar = new Bar { /* ... */ }
+		///     foo.Set("bar", bar, GeneratedConverters.Bar.Default);
+		/// }
+		/// </code></example>
+		[Pure]
+		public bool TryGetValue<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(string key, IJsonDeserializer<TValue> converter, [MaybeNullWhen(false)] out TValue value)
+		{
+			var items = this.Json;
+			if (!items.TryGetValue(key, out var child) || child.IsNullOrMissing())
+			{
+				value = default;
+				return false;
+			}
+
+			value = converter.Unpack(child);
+			return true;
+		}
+
+		/// <summary>Returns the value of the given field, if it is not null or missing</summary>
+		/// <param name="key">Name of the field in this object</param>
+		/// <param name="value">Value that represents this field in the current object.</param>
+		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
+		/// <remarks><para>This can be used to perform a different operation if the value exists or not (initialize a counter or increment its value, throw a specialized exception, ....)</para></remarks>
+		/// <example><code>
 		/// if (!root.TryGetValue("Error", out var error))
 		/// { // this is the first error, will automatically create a new 'Error' object
 		///		error["Attempts"] = 1;
@@ -320,14 +375,14 @@ namespace Doxense.Serialization.Json
 		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
 		/// <remarks><para>This can be used to perform a different operation if the value exists or not (initialize a counter or increment its value, throw a specialized exception, ....)</para></remarks>
 		/// <example><code>
-		/// if (!root.TryGetValue&lt;Foo>("foo", out var foo))
+		/// if (!foo.TryGetValue&lt;Bar>("bar".AsMemory(), out var bar))
 		/// { // first time
-		///		foo = new Foo { /* ... */ }
-		///     root.Set("foo", foo);
+		///		bar = new Bar { /* ... */ }
+		///     foo.Set("bar", bar);
 		/// }
 		/// </code></example>
 		[Pure]
-		public bool TryGetValue<TValue>(string key, [MaybeNullWhen(false)] out TValue value)
+		public bool TryGetValue<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlyMemory<char> key, [MaybeNullWhen(false)] out TValue value)
 		{
 			var items = this.Json;
 			if (!items.TryGetValue(key, out var child) || child.IsNullOrMissing())
@@ -342,18 +397,19 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns the value of the given field, if it is not null or missing</summary>
 		/// <param name="key">Name of the field in this object</param>
+		/// <param name="converter">Converter used to unpack the JSON value into a <typeparamref name="TValue"/> instance</param>
 		/// <param name="value">Value that represents this field in the current object.</param>
 		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
 		/// <remarks><para>This can be used to perform a different operation if the value exists or not (initialize a counter or increment its value, throw a specialized exception, ....)</para></remarks>
 		/// <example><code>
-		/// if (!root.TryGetValue&lt;Foo>("foo", out var foo))
+		/// if (!foo.TryGetValue&lt;Bar>("bar".AsMemory(), GeneratedConverters.Bar.Default, out var bar))
 		/// { // first time
-		///		foo = new Foo { /* ... */ }
-		///     root.Set("foo", foo);
+		///		bar = new Bar { /* ... */ }
+		///     foo.Set("bar", bar, GeneratedConverters.Bar.Default);
 		/// }
 		/// </code></example>
 		[Pure]
-		public bool TryGetValue<TValue>(ReadOnlyMemory<char> key, [MaybeNullWhen(false)] out TValue value)
+		public bool TryGetValue<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlyMemory<char> key, IJsonDeserializer<TValue> converter, [MaybeNullWhen(false)] out TValue value)
 		{
 			var items = this.Json;
 			if (!items.TryGetValue(key, out var child) || child.IsNullOrMissing())
@@ -362,7 +418,7 @@ namespace Doxense.Serialization.Json
 				return false;
 			}
 
-			value = child.As<TValue>()!;
+			value = converter.Unpack(child);
 			return true;
 		}
 
@@ -400,6 +456,61 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns the value at the given location, if it was non-null and inside the bounds of the array</summary>
 		/// <param name="index">Index of the element in this array</param>
+		/// <param name="value">Value that represents this index in the current array, converted into <typeparamref name="TValue"/>.</param>
+		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
+		/// <remarks><para>This can be used to perform a different operation if the value exists or not (initialize a counter or increment its value, throw a specialized exception, ....)</para></remarks>
+		/// <example><code>
+		/// if (root["Foos"].TryGetValue(1, out var foo))
+		/// {
+		///     ProcessFoo(foo);
+		/// }
+		/// // ...
+		/// static void ProcessFoo(Foo instance) { /* ... */ }
+		/// </code></example>
+		[Pure]
+		public bool TryGetValue<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(int index, [MaybeNullWhen(false)] out TValue value)
+		{
+			var items = this.Json;
+			if (!items.TryGetValue(index, out var child) || child.IsNullOrMissing())
+			{
+				value = default;
+				return false;
+			}
+
+			value = child.As<TValue>()!;
+			return true;
+		}
+
+		/// <summary>Returns the value at the given location, if it was non-null and inside the bounds of the array</summary>
+		/// <param name="index">Index of the element in this array</param>
+		/// <param name="converter">Converter used to unpack the JSON value into a <typeparamref name="TValue"/> instance</param>
+		/// <param name="value">Value that represents this index in the current array, converted into <typeparamref name="TValue"/>.</param>
+		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
+		/// <remarks><para>This can be used to perform a different operation if the value exists or not (initialize a counter or increment its value, throw a specialized exception, ....)</para></remarks>
+		/// <example><code>
+		/// if (root["Foos"].TryGetValue(1, GeneratedConverters.Foo.Default, out var foo))
+		/// {
+		///     ProcessFoo(foo);
+		/// }
+		/// // ...
+		/// static void ProcessFoo(Foo instance) { /* ... */ }
+		/// </code></example>
+		[Pure]
+		public bool TryGetValue<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(int index, IJsonDeserializer<TValue> converter, [MaybeNullWhen(false)] out TValue value)
+		{
+			var items = this.Json;
+			if (!items.TryGetValue(index, out var child) || child.IsNullOrMissing())
+			{
+				value = default;
+				return false;
+			}
+
+			value = converter.Unpack(child);
+			return true;
+		}
+
+		/// <summary>Returns the value at the given location, if it was non-null and inside the bounds of the array</summary>
+		/// <param name="index">Index of the element in this array</param>
 		/// <param name="value">Value that represents this index in the current array.</param>
 		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
 		/// <remarks><para>This can be used to perform a different operation if the value exists or not (initialize a counter or increment its value, throw a specialized exception, ....)</para></remarks>
@@ -427,6 +538,61 @@ namespace Doxense.Serialization.Json
 			}
 
 			value = new(this.Context, this, new(index), child);
+			return true;
+		}
+
+		/// <summary>Returns the value at the given location, if it was non-null and inside the bounds of the array</summary>
+		/// <param name="index">Index of the element in this array</param>
+		/// <param name="value">Value that represents this index in the current array, converted into <typeparamref name="TValue"/>.</param>
+		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
+		/// <remarks><para>This can be used to perform a different operation if the value exists or not (initialize a counter or increment its value, throw a specialized exception, ....)</para></remarks>
+		/// <example><code>
+		/// if (root["Foos"].TryGetValue(1, out var foo))
+		/// {
+		///     ProcessFoo(foo);
+		/// }
+		/// // ...
+		/// static void ProcessFoo(Foo instance) { /* ... */ }
+		/// </code></example>
+		[Pure]
+		public bool TryGetValue<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(Index index, [MaybeNullWhen(false)] out TValue value)
+		{
+			var items = this.Json;
+			if (!items.TryGetValue(index, out var child) || child.IsNullOrMissing())
+			{
+				value = default;
+				return false;
+			}
+
+			value = child.As<TValue>()!;
+			return true;
+		}
+
+		/// <summary>Returns the value at the given location, if it was non-null and inside the bounds of the array</summary>
+		/// <param name="index">Index of the element in this array</param>
+		/// <param name="converter">Converter used to unpack the JSON value into a <typeparamref name="TValue"/> instance</param>
+		/// <param name="value">Value that represents this index in the current array, converted into <typeparamref name="TValue"/>.</param>
+		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
+		/// <remarks><para>This can be used to perform a different operation if the value exists or not (initialize a counter or increment its value, throw a specialized exception, ....)</para></remarks>
+		/// <example><code>
+		/// if (root["Foos"].TryGetValue(1, GeneratedConverters.Foo.Default, out var foo))
+		/// {
+		///     ProcessFoo(foo);
+		/// }
+		/// // ...
+		/// static void ProcessFoo(Foo instance) { /* ... */ }
+		/// </code></example>
+		[Pure]
+		public bool TryGetValue<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(Index index, IJsonDeserializer<TValue> converter, [MaybeNullWhen(false)] out TValue value)
+		{
+			var items = this.Json;
+			if (!items.TryGetValue(index, out var child) || child.IsNullOrMissing())
+			{
+				value = default;
+				return false;
+			}
+
+			value = converter.Unpack(child);
 			return true;
 		}
 
@@ -938,7 +1104,7 @@ namespace Doxense.Serialization.Json
 						patch = before.ComputePatch(after);
 						break;
 					}
-					case (JsonNull before, JsonNull after):
+					case (JsonNull, JsonNull):
 					{
 						return true;
 					}
@@ -1083,6 +1249,8 @@ namespace Doxense.Serialization.Json
 
 		private JsonValue Convert<T>(T? value) => JsonValue.ReadOnly.FromValue(value); //TODO: pass the parent settings?
 
+		private JsonValue Convert<T>(T? value, IJsonPacker<T> converter) => value is not null ? converter.Pack(value, CrystalJsonSettings.JsonReadOnly) : JsonNull.Null;
+
 		#endregion
 
 		#region Set(value)
@@ -1095,16 +1263,27 @@ namespace Doxense.Serialization.Json
 		/// </remarks>
 		public void Set(JsonValue? value) => InsertOrUpdate(value);
 
+		/// <summary>Changes the value of the current instance in its parent</summary>
+		/// <param name="value">New value for this element</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Set(JsonObject? value) => InsertOrUpdate(value);
 
 		/// <summary>Changes the value of the current instance in its parent</summary>
+		/// <param name="value">New value for this element</param>
 		public void Set(JsonArray? value) => InsertOrUpdate(value);
 
 		/// <summary>Changes the value of the current instance in its parent</summary>
+		/// <param name="value">New value for this element</param>
 		public void Set(MutableJsonValue? value) => InsertOrUpdate(value?.Json);
 
+		/// <summary>Changes the value of the current instance in its parent</summary>
+		/// <param name="value">New value for this element</param>
 		public void Set<TValue>(TValue? value) => InsertOrUpdate(Convert<TValue>(value));
+
+		/// <summary>Changes the value of the current instance in its parent</summary>
+		/// <param name="value">New value for this element</param>
+		/// <param name="converter">Converter used to unpack the JSON value into a <typeparamref name="TValue"/> instance</param>
+		public void Set<TValue>(TValue? value, IJsonPacker<TValue> converter) => InsertOrUpdate(Convert<TValue>(value, converter));
 
 		#region Primitive Types...
 
@@ -1185,6 +1364,8 @@ namespace Doxense.Serialization.Json
 
 		public void Set<TValue>(string name, TValue? value) => InsertOrUpdate(name.AsMemory(), Convert<TValue>(value));
 
+		public void Set<TValue>(string name, TValue? value, IJsonPacker<TValue> converter) => InsertOrUpdate(name.AsMemory(), Convert<TValue>(value, converter));
+
 		#region Primitive Types...
 
 		public void Set(string name, bool value) => InsertOrUpdate(name.AsMemory(), value ? JsonBoolean.True : JsonBoolean.False);
@@ -1244,6 +1425,8 @@ namespace Doxense.Serialization.Json
 		public void Set(ReadOnlyMemory<char> name, MutableJsonValue? value) => InsertOrUpdate(name, value?.Json);
 
 		public void Set<TValue>(ReadOnlyMemory<char> name, TValue? value) => InsertOrUpdate(name, Convert<TValue>(value));
+
+		public void Set<TValue>(ReadOnlyMemory<char> name, TValue? value, IJsonPacker<TValue> converter) => InsertOrUpdate(name, Convert<TValue>(value, converter));
 
 		#region Primitive Types...
 
@@ -1323,6 +1506,9 @@ namespace Doxense.Serialization.Json
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Set<TValue>(JsonPath path, TValue? value) => Set(path, Convert<TValue>(value)); //TODO: pass the parent settings?
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set<TValue>(JsonPath path, TValue? value, IJsonPacker<TValue> converter) => Set(path, Convert<TValue>(value, converter)); //TODO: pass the parent settings?
 
 		#endregion
 
@@ -1427,6 +1613,9 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Set<TValue>(int index, TValue? value) => Set(index, Convert<TValue>(value)); //TODO: pass the parent settings?
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set<TValue>(int index, TValue? value, IJsonPacker<TValue> converter) => Set(index, Convert<TValue>(value, converter)); //TODO: pass the parent settings?
+
 		public void Set(Index index, JsonValue? value) => SetOrAdd(index, value);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1455,6 +1644,9 @@ namespace Doxense.Serialization.Json
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Set<TValue>(Index index, TValue? value) => Set(index, Convert<TValue>(value)); //TODO: pass the parent settings?
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set<TValue>(Index index, TValue? value, IJsonPacker<TValue> converter) => Set(index, Convert<TValue>(value, converter)); //TODO: pass the parent settings?
 
 		#endregion
 
@@ -1534,16 +1726,128 @@ namespace Doxense.Serialization.Json
 		#region TryAdd...
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool TryAdd(string name, JsonValue? value) => Get(name).InsertOrUpdate(value, InsertionBehavior.None);
+		public bool TryAdd(string name, JsonValue? value)
+		{
+			if (ContainsKey(name))
+			{
+				return false;
+			}
+			InsertOrUpdate(name.AsMemory(), value);
+			return true;
+		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool TryAdd(string name, MutableJsonValue? value) => Get(name).InsertOrUpdate(value?.Json, InsertionBehavior.None);
+		public bool TryAdd(string name, MutableJsonValue? value)
+		{
+			if (ContainsKey(name))
+			{
+				return false;
+			}
+			InsertOrUpdate(name.AsMemory(), value?.Json);
+			return true;
+		}
+
+		public bool TryAdd<TValue>(string name, TValue? value)
+		{
+			// check before packing
+			if (ContainsKey(name))
+			{
+				return false;
+			}
+
+			InsertOrUpdate(name.AsMemory(), Convert<TValue>(value));
+			return true;
+		}
+
+		public bool TryAdd<TValue>(string name, TValue? value, IJsonPacker<TValue> converter)
+		{
+			// check before packing
+			if (ContainsKey(name))
+			{
+				return false;
+			}
+
+			InsertOrUpdate(name.AsMemory(), Convert<TValue>(value, converter));
+			return true;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryAdd(ReadOnlyMemory<char> name, JsonValue? value)
+		{
+			if (ContainsKey(name))
+			{
+				return false;
+			}
+			InsertOrUpdate(name, value);
+			return true;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryAdd(ReadOnlyMemory<char> name, MutableJsonValue? value)
+		{
+			if (ContainsKey(name))
+			{
+				return false;
+			}
+			InsertOrUpdate(name, value?.Json);
+			return true;
+		}
+
+		public bool TryAdd<TValue>(ReadOnlyMemory<char> name, TValue? value)
+		{
+			// check before packing
+			if (ContainsKey(name))
+			{
+				return false;
+			}
+
+			InsertOrUpdate(name, Convert<TValue>(value));
+			return true;
+		}
+
+		public bool TryAdd<TValue>(ReadOnlyMemory<char> name, TValue? value, IJsonPacker<TValue> converter)
+		{
+			// check before packing
+			if (ContainsKey(name))
+			{
+				return false;
+			}
+
+			InsertOrUpdate(name, Convert<TValue>(value, converter));
+			return true;
+		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryAdd(JsonPath path, JsonValue? value) => Get(path).InsertOrUpdate(value, InsertionBehavior.None);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryAdd(JsonPath path, MutableJsonValue? value) => Get(path).InsertOrUpdate(value?.Json, InsertionBehavior.None);
+
+		public bool TryAdd<TValue>(JsonPath path, TValue? value)
+		{
+			var child = Get(path);
+			// check before packing
+			if (child.Exists())
+			{
+				return false;
+			}
+
+			child.Set(value);
+			return true;
+		}
+
+		public bool TryAdd<TValue>(JsonPath path, TValue? value, IJsonPacker<TValue> converter)
+		{
+			var child = Get(path);
+			// check before packing
+			if (child.Exists())
+			{
+				return false;
+			}
+
+			child.Set(value, converter);
+			return true;
+		}
 
 		#endregion
 
@@ -1611,6 +1915,9 @@ namespace Doxense.Serialization.Json
 		public void Insert<TValue>(int index, TValue value) => InsertOrAdd(index, Convert<TValue>(value)); //TODO: pass the parent settings?
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Insert<TValue>(int index, TValue value, IJsonPacker<TValue> converter) => InsertOrAdd(index, Convert<TValue>(value, converter)); //TODO: pass the parent settings?
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(Index index, JsonValue value) => InsertOrAdd(index, value);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1639,6 +1946,9 @@ namespace Doxense.Serialization.Json
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert<TValue>(Index index, TValue value) => InsertOrAdd(index, Convert<TValue>(value)); //TODO: pass the parent settings?
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Insert<TValue>(Index index, TValue value, IJsonPacker<TValue> converter) => InsertOrAdd(index, Convert<TValue>(value, converter)); //TODO: pass the parent settings?
 
 		#endregion
 
