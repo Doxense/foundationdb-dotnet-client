@@ -101,34 +101,34 @@ namespace Doxense.Serialization.Json
 		}
 
 		[MustUseReturnValue, Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		internal static JsonBindingException CouldNotResolveClassId(string classId) => new($"Could not find any Type named '{classId}' during deserialization.");
+		public static JsonBindingException CouldNotResolveClassId(string classId) => new($"Could not find any Type named '{classId}' during deserialization.");
 
 		[MustUseReturnValue, Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		internal static JsonBindingException CannotDeserializeCustomTypeNoBinderOrGenerator(JsonValue value, Type type) => new($"Cannot deserialize custom type '{type.GetFriendlyName()}' because it has no default generator and no custom binder.", value);
+		public static JsonBindingException CannotDeserializeCustomTypeNoBinderOrGenerator(JsonValue value, Type type) => new($"Cannot deserialize custom type '{type.GetFriendlyName()}' because it has no default generator and no custom binder.", value);
 
 		[MustUseReturnValue, Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		internal static JsonBindingException CannotDeserializeCustomTypeNoTypeDefinition(JsonValue value, Type type) => new($"Could not find any Type Definition while deserializing custom type '{type.GetFriendlyName()}'.", value);
+		public static JsonBindingException CannotDeserializeCustomTypeNoTypeDefinition(JsonValue value, Type type) => new($"Could not find any Type Definition while deserializing custom type '{type.GetFriendlyName()}'.", value);
 
 		[MustUseReturnValue, Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		internal static JsonBindingException CannotDeserializeCustomTypeNoConcreteClassFound(JsonValue value, Type type, string customClass) => new($"Could not find a concrete type to deserialize object of type '{type.GetFriendlyName()}' with custom class name '{customClass}'.", value);
+		public static JsonBindingException CannotDeserializeCustomTypeNoConcreteClassFound(JsonValue value, Type type, string customClass) => new($"Could not find a concrete type to deserialize object of type '{type.GetFriendlyName()}' with custom class name '{customClass}'.", value);
 
 		[MustUseReturnValue, Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		internal static JsonBindingException CannotDeserializeCustomTypeBadType(JsonValue value, string customClass) => new($"Cannot bind custom class name '{customClass}' because it is not a safe type in this context.", value);
+		public static JsonBindingException CannotDeserializeCustomTypeBadType(JsonValue value, string customClass) => new($"Cannot bind custom class name '{customClass}' because it is not a safe type in this context.", value);
 
 		[MustUseReturnValue, Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		internal static JsonBindingException CannotDeserializeCustomTypeIncompatibleType(JsonValue value, Type type, string customClass) => new($"Cannot bind custom class name '{customClass}' into object of type '{type.GetFriendlyName()}' because there are no known valid cast between them.", value);
+		public static JsonBindingException CannotDeserializeCustomTypeIncompatibleType(JsonValue value, Type type, string customClass) => new($"Cannot bind custom class name '{customClass}' into object of type '{type.GetFriendlyName()}' because there are no known valid cast between them.", value);
 
 		[MustUseReturnValue, Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		internal static JsonBindingException FailedToConstructTypeInstanceErrorOccurred(JsonValue value, Type type, Exception e) => new($"Failed to construct a new instance of type '{type.GetFriendlyName()}' while deserializing a {nameof(JsonObject)}.", value, e);
+		public static JsonBindingException FailedToConstructTypeInstanceErrorOccurred(JsonValue value, Type type, Exception e) => new($"Failed to construct a new instance of type '{type.GetFriendlyName()}' while deserializing a {nameof(JsonObject)}.", value, e);
 
 		[MustUseReturnValue, Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		internal static JsonBindingException FailedToConstructTypeInstanceReturnedNull(JsonValue value, Type type) => new($"Cannot deserialize custom type '{type.GetFriendlyName()}' because the generator returned a null instance.", value);
+		public static JsonBindingException FailedToConstructTypeInstanceReturnedNull(JsonValue value, Type type) => new($"Cannot deserialize custom type '{type.GetFriendlyName()}' because the generator returned a null instance.", value);
 
 		[MustUseReturnValue, Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		internal static JsonBindingException CannotDeserializeCustomTypeNoReaderForMember(JsonValue value, CrystalJsonMemberDefinition member, Type type) => new($"No reader found for member {member.Name} of type '{type.GetFriendlyName()}'.", value);
+		public static JsonBindingException CannotDeserializeCustomTypeNoReaderForMember(JsonValue value, CrystalJsonMemberDefinition member, Type type) => new($"No reader found for member {member.Name} of type '{type.GetFriendlyName()}'.", value);
 
 		[MustUseReturnValue, Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		internal static JsonBindingException CannotDeserializeCustomTypeNoBinderForMember(JsonValue value, CrystalJsonMemberDefinition member, Type type) => new($"No 'set' operation found for member {member.Name} of type '{type.GetFriendlyName()}'.", value);
+		public static JsonBindingException CannotDeserializeCustomTypeNoBinderForMember(JsonValue value, CrystalJsonMemberDefinition member, Type type) => new($"No 'set' operation found for member {member.Name} of type '{type.GetFriendlyName()}'.", value);
 
 		[MustUseReturnValue, Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static JsonBindingException CannotBindJsonValueToThisType(JsonValue value, Type type, Exception? innerException = null) => new($"Cannot convert JSON {value.Type} to type '{type.GetFriendlyName()}'.", value, innerException);
