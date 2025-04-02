@@ -403,7 +403,7 @@ namespace Doxense.Serialization.Json
 
 			if (typeof(string) == type)
 			{ // We cannot convert an array into a string
-				return CreateDefaultJsonArrayBinder_Invalid(type); //note: pour éviter que ca matche le cas IEnumerable plus bas!
+				return CreateDefaultJsonArrayBinder_Invalid(type); //note: prevents from falling through to the IEnumerable check below
 			}
 
 			if (type.IsArray)
@@ -562,25 +562,7 @@ namespace Doxense.Serialization.Json
 				return CreateDefaultJsonArrayBinder_Binder(type, binder);
 			}
 
-			//TODO: ducktyping! aka ctor(JsonValue)
-
-#pragma warning disable CS0618 // Type or member is obsolete
-#pragma warning disable CS0612 // Type or member is obsolete
-			if (type.IsAssignableTo<IJsonBindable>())
-			{
-				var generator = type.CompileGenerator();
-				if (generator != null)
-				{
-					var binder = CreateBinderForIJsonBindable(type, generator);
-					Contract.Debug.Assert(binder != null);
-					return CreateDefaultJsonArrayBinder_Binder(type, binder);
-				}
-			}
-#pragma warning restore CS0612 // Type or member is obsolete
-#pragma warning restore CS0618 // Type or member is obsolete
-
 			// look for a method with a same name (before the introduction of static methods in interfaces)
-
 			if (type.IsGenericInstanceOf(typeof(IJsonDeserializable<>)))
 			{ // use the method defined in the interface
 				var binder = CreateStaticJsonDeserializerBinder(type);
@@ -1351,20 +1333,7 @@ namespace Doxense.Serialization.Json
 				return binder;
 			}
 
-			// IJsonBindable...
-#pragma warning disable CS0618 // Type or member is obsolete
-#pragma warning disable CS0612 // Type or member is obsolete
-			if (type.IsAssignableTo<IJsonBindable>())
-			{
-				generator = RequireGeneratorForType(type);
-				binder = CreateBinderForIJsonBindable(type, generator);
-				Contract.Debug.Assert(binder != null);
-				return binder;
-			}
-#pragma warning restore CS0612 // Type or member is obsolete
-#pragma warning restore CS0618 // Type or member is obsolete
-
-			// constructeur qui prend un JsonValue en entrée?
+			// ctor that takes a JsonValue as the first parameter
 			var ctor = FindJsonConstructor(type);
 			if (ctor != null)
 			{
@@ -1660,7 +1629,7 @@ namespace Doxense.Serialization.Json
 
 		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		private static CrystalJsonTypeBinder? CreateBinderForImmutableDictionary(
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)]
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
 			Type type
 		)
 		{
@@ -1673,6 +1642,7 @@ namespace Doxense.Serialization.Json
 			var keyType = typeArgs[0];
 			var valueType = typeArgs[1];
 
+#pragma warning disable IL2062 // The parameter of method has a DynamicallyAccessedMembersAttribute, but the value passed to it can not be statically analyzed.
 			if (keyType == typeof(string))
 			{
 				return CreateBinderForImmutableDictionary_StringKey(valueType);
@@ -1681,6 +1651,7 @@ namespace Doxense.Serialization.Json
 			{
 				return CreateBinderForImmutableDictionary_Int32Key(valueType);
 			}
+#pragma warning restore IL2062 // The parameter of method has a DynamicallyAccessedMembersAttribute, but the value passed to it can not be statically analyzed.
 
 			// unsupported key type
 			//REVIEW: throw an exception instead?
@@ -1688,13 +1659,11 @@ namespace Doxense.Serialization.Json
 		}
 
 		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
-		private static CrystalJsonTypeBinder CreateBinderForImmutableDictionary_StringKey(Type valueType)
+		private static CrystalJsonTypeBinder CreateBinderForImmutableDictionary_StringKey([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type valueType)
 		{
-#pragma warning disable IL2071
 			var m = typeof(CrystalJsonTypeResolver)
 				.GetMethod(nameof(BindImmutableDictionary_StringKey), BindingFlags.Static | BindingFlags.NonPublic)!
 				.MakeGenericMethod(valueType);
-#pragma warning restore IL2071
 
 			return m.CreateDelegate<CrystalJsonTypeBinder>();
 		}
@@ -1717,11 +1686,9 @@ namespace Doxense.Serialization.Json
 		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		private static CrystalJsonTypeBinder CreateBinderForImmutableDictionary_Int32Key([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type valueType)
 		{
-#pragma warning disable IL2070
 			var m = typeof(CrystalJsonTypeResolver)
 			        .GetMethod(nameof(BindImmutableDictionary_Int32Key), BindingFlags.Static | BindingFlags.NonPublic)!
 			        .MakeGenericMethod(valueType);
-#pragma warning restore IL2070
 
 			return m.CreateDelegate<CrystalJsonTypeBinder>();
 		}
@@ -1756,11 +1723,12 @@ namespace Doxense.Serialization.Json
 			var keyType = typeArgs[0];
 			var valueType = typeArgs[1];
 
+#pragma warning disable IL2062 // The parameter of method has a DynamicallyAccessedMembersAttribute, but the value passed to it can not be statically analyzed.
+
 			if (keyType == typeof(string))
 			{ // fastest path when keys are strings
 				return CreateBinderForDictionary_StringKey(generator, valueType);
 			}
-
 			if (keyType == typeof(int))
 			{ // fastest path when keys are ints
 				return CreateBinderForDictionary_Int32Key(generator, valueType);
@@ -1774,7 +1742,7 @@ namespace Doxense.Serialization.Json
 			 || keyType == typeof(Uuid96)
 			 || keyType == typeof(Uuid80)
 			 || keyType == typeof(Uuid128)
-			//TODO: rajouter d'autres types ?
+			//TODO: more?
 			)
 			{ // fast path for basic types
 				var convert = TypeConverters.CreateBoxedConverter<string>(keyType);
@@ -1782,11 +1750,14 @@ namespace Doxense.Serialization.Json
 				return CreateBinderForDictionary_BoxedKey(generator, valueType, convert!);
 			}
 
+#pragma warning restore IL2062 // The parameter of method has a DynamicallyAccessedMembersAttribute, but the value passed to it can not be statically analyzed.
+
 			// unsupported key type
 			//REVIEW: throw an exception instead?
 			return null;
 		}
 
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		private static CrystalJsonTypeBinder CreateBinderForDictionary_StringKey(
 			Func<object> generator,
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type valueType
@@ -1807,6 +1778,7 @@ namespace Doxense.Serialization.Json
 			};
 		}
 
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		private static CrystalJsonTypeBinder CreateBinderForDictionary_Int32Key(
 			Func<object> generator,
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type valueType

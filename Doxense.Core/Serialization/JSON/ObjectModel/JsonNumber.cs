@@ -1956,15 +1956,6 @@ namespace Doxense.Serialization.Json
 
 			resolver ??= CrystalJson.DefaultResolver;
 
-#pragma warning disable CS0618 // Type or member is obsolete
-			if (typeof(IJsonBindable).IsAssignableFrom(type))
-			{
-				var obj = (IJsonBindable) Activator.CreateInstance(type)!;
-				obj.JsonUnpack(this, resolver);
-				return obj;
-			}
-#pragma warning restore CS0618 // Type or member is obsolete
-
 			// maybe we have a custom binder?
 			var def = resolver.ResolveJsonType(type);
 			if (def?.CustomBinder is not null)

@@ -904,18 +904,6 @@ namespace Doxense.Serialization.Json
 				throw JsonBindingException.CannotBindJsonStringToThisType(this, type, e);
 			}
 
-			// check if implements IJsonBindable
-#pragma warning disable CS0618 // Type or member is obsolete
-			if (typeof(IJsonBindable).IsAssignableFrom(type))
-			{ // HACKHACK: pour les type qui se sérialisent en string (par ex: Oid)
-				var typeDef = resolver.ResolveJsonType(type);
-				if (typeDef?.CustomBinder is not null)
-				{
-					return typeDef.CustomBinder(this, type, resolver);
-				}
-			}
-#pragma warning restore CS0618 // Type or member is obsolete
-
 			// does it use a custom binder?
 			// => for classes with a ducktyped ctor, or static factory methods
 			var def = resolver.ResolveJsonType(type);

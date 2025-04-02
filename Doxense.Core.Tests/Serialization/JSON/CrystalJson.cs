@@ -57,6 +57,7 @@
 // ReSharper disable VariableLengthStringHexEscapeSequence
 // ReSharper disable StringLiteralTypo
 // ReSharper disable IdentifierTypo
+// ReSharper disable PreferConcreteValueOverDefault
 
 #pragma warning disable JSON001
 #pragma warning disable IDE0044
@@ -64,8 +65,9 @@
 #pragma warning disable CS8714 // The type cannot be used as type parameter in the generic type or method. Nullability of type argument doesn't match 'notnull' constraint.
 #pragma warning disable CA1861 // Avoid constant arrays as arguments
 #pragma warning disable 618
-#pragma warning disable NUnit2021
 #pragma warning disable NUnit2009
+#pragma warning disable NUnit2021
+#pragma warning disable NUnit2050
 
 namespace Doxense.Serialization.Json.Tests
 {
@@ -664,8 +666,6 @@ namespace Doxense.Serialization.Json.Tests
 
 			var expectedSlice = Slice.FromStringUtf8(expected);
 
-#pragma warning disable NUnit2050
-
 			{ // CrystalJson.Serialize<T>
 				string actual = CrystalJson.Serialize<T>(value, settings);
 				Log($"> {actual}");
@@ -726,7 +726,6 @@ namespace Doxense.Serialization.Json.Tests
 				}
 			}
 
-#pragma warning restore NUnit2050
 		}
 
 		[Test]
@@ -3745,7 +3744,7 @@ namespace Doxense.Serialization.Json.Tests
 			{
 				Assert.That(value, Is.Not.EqualTo((object) 0));
 				Assert.That(value, Is.Not.EqualTo((object) false));
-				Assert.That(value, Is.Not.EqualTo(default(string)));
+				Assert.That(value, Is.Not.EqualTo((object?) null));
 				Assert.That(value, Is.Not.EqualTo((object) ""));
 
 				Assert.That(value.ValueEquals<int>(0), Is.False);
@@ -3823,7 +3822,7 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(() => jmissing.Required<JsonValue>(), Throws.InstanceOf<JsonBindingException>());
 				Assert.That(jmissing.As<JsonValue>(), Is.SameAs(JsonNull.Missing));
 				Assert.That(jmissing.As<JsonValue>(null, resolver: CrystalJson.DefaultResolver), Is.SameAs(JsonNull.Missing));
-				Assert.That(jmissing.As<JsonValue>(123), Is.EqualTo(123));
+				Assert.That(jmissing.As<JsonValue>(123), Is.EqualTo(JsonNumber.Return(123)));
 
 				Assert.That(jmissing.Bind(typeof(JsonNull)), Is.SameAs(JsonNull.Missing));
 				Assert.That(jmissing.Bind<JsonNull>(), Is.SameAs(JsonNull.Missing));
@@ -3838,7 +3837,7 @@ namespace Doxense.Serialization.Json.Tests
 			{
 				Assert.That(value, Is.Not.EqualTo((object) 0));
 				Assert.That(value, Is.Not.EqualTo((object) false));
-				Assert.That(value, Is.Not.EqualTo(default(string)));
+				Assert.That(value, Is.Not.EqualTo((object?) null));
 				Assert.That(value, Is.Not.EqualTo((object) ""));
 
 				Assert.That(value.ValueEquals<int>(0), Is.False);
@@ -3912,7 +3911,7 @@ namespace Doxense.Serialization.Json.Tests
 			{
 				Assert.That(value, Is.Not.EqualTo((object) 0));
 				Assert.That(value, Is.Not.EqualTo((object) false));
-				Assert.That(value, Is.Not.EqualTo(default(string)));
+				Assert.That(value, Is.Not.EqualTo((object?) null));
 				Assert.That(value, Is.Not.EqualTo((object) ""));
 
 				Assert.That(value.ValueEquals<int>(0), Is.False);
@@ -7029,9 +7028,7 @@ namespace Doxense.Serialization.Json.Tests
 				string constraintExpression = "")
 			{
 				Dump(actualExpression, actual);
-#pragma warning disable NUnit2050
 				Assert.That(actual, expression, message, actualExpression, constraintExpression);
-#pragma warning restore NUnit2050
 			}
 
 			Check(JsonArray.EmptyReadOnly.CopyAndAdd("hello"), IsJson.ReadOnly.And.EqualTo([ "hello" ]));
@@ -11094,7 +11091,7 @@ namespace Doxense.Serialization.Json.Tests
 		public string? DoubleAgentName { get => m_doubleAgentName; set => m_doubleAgentName = value; }
 	}
 
-	public sealed class DummyJsonCustomClass : IJsonSerializable, IJsonBindable
+	public sealed class DummyJsonCustomClass : IJsonSerializable, IJsonPackable, IJsonDeserializable<DummyJsonCustomClass>
 	{
 		public string DontCallThis => "ShouldNotSeeThat";
 
@@ -11132,7 +11129,7 @@ namespace Doxense.Serialization.Json.Tests
 			return JsonObject.Create("custom", m_secret);
 		}
 
-		void IJsonBindable.JsonUnpack(JsonValue value, ICrystalJsonTypeResolver resolver)
+		static DummyJsonCustomClass IJsonDeserializable<DummyJsonCustomClass>.JsonDeserialize(JsonValue value, ICrystalJsonTypeResolver? resolver)
 		{
 			Assert.That(value, Is.Not.Null, "value");
 			Assert.That(resolver, Is.Not.Null, "resolver");
@@ -11140,7 +11137,8 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(value.Type, Is.EqualTo(JsonType.Object));
 			var obj = (JsonObject)value;
 
-			m_secret = obj.Get<string>("custom", message: "Missing 'custom' value for DummyCustomJson");
+			var secret = obj.Get<string>("custom", message: "Missing 'custom' value for DummyCustomJson");
+			return new DummyJsonCustomClass(secret);
 		}
 
 		#endregion
