@@ -39,6 +39,10 @@ namespace Doxense.Serialization.Json
 		public new static class ReadOnly
 		{
 
+			/// <summary>Returns an empty, read-only, <see cref="JsonArray">JSON Array</see> singleton</summary>
+			/// <remarks>This instance cannot be modified, and should be used to reduce memory allocations when working with read-only JSON</remarks>
+			public static readonly JsonArray Empty = new([], 0, readOnly: true);
+
 			#region Create...
 
 			/// <summary>Returns a <b>read-only</b> empty array, that cannot be modified</summary>

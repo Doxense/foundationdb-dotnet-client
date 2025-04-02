@@ -122,7 +122,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns an empty, read-only, <see cref="JsonArray">JSON Array</see> singleton</summary>
 		/// <remarks>This instance cannot be modified, and should be used to reduce memory allocations when working with read-only JSON</remarks>
-		public static readonly JsonArray EmptyReadOnly = new([], 0, readOnly: true);
+		public static JsonArray EmptyReadOnly => JsonArray.ReadOnly.Empty;
 
 		/// <summary>Creates a new empty JSON Array</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
