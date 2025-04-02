@@ -181,9 +181,7 @@ namespace Doxense.Serialization.Json.Encoders
 			}
 
 			// we always return read-only arrays
-			arr.FreezeUnsafe();
-
-			return arr;
+			return arr.FreezeUnsafe();
 		}
 
 		/// <summary>Decodes the first element of a tuple, back into a JSON value</summary>

@@ -420,7 +420,7 @@ namespace Doxense.Serialization.Json
 			arr.AddValues<TValue>(values, settings, resolver);
 			if (settings?.ReadOnly ?? false)
 			{
-				arr.FreezeUnsafe();
+				arr = arr.FreezeUnsafe();
 			}
 			return arr;
 		}
@@ -442,7 +442,7 @@ namespace Doxense.Serialization.Json
 			arr.AddValues<TValue>(new ReadOnlySpan<TValue>(values), settings, resolver);
 			if (settings?.ReadOnly ?? false)
 			{
-				arr.FreezeUnsafe();
+				arr = arr.FreezeUnsafe();
 			}
 			return arr;
 		}
@@ -464,7 +464,7 @@ namespace Doxense.Serialization.Json
 			arr.AddValues<TValue>(values, settings, resolver);
 			if (settings?.ReadOnly ?? false)
 			{
-				arr.FreezeUnsafe();
+				arr = arr.FreezeUnsafe();
 			}
 			return arr;
 		}
@@ -487,7 +487,7 @@ namespace Doxense.Serialization.Json
 
 			if (settings?.ReadOnly ?? false)
 			{
-				arr.FreezeUnsafe();
+				arr = arr.FreezeUnsafe();
 			}
 			return arr;
 		}
@@ -511,7 +511,7 @@ namespace Doxense.Serialization.Json
 
 			if (settings?.ReadOnly ?? false)
 			{
-				arr.FreezeUnsafe();
+				arr = arr.FreezeUnsafe();
 			}
 			return arr;
 		}
@@ -535,7 +535,7 @@ namespace Doxense.Serialization.Json
 
 			if (settings?.ReadOnly ?? false)
 			{
-				arr.FreezeUnsafe();
+				arr = arr.FreezeUnsafe();
 			}
 			return arr;
 

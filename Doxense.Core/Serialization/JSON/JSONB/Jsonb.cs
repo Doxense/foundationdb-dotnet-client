@@ -362,8 +362,7 @@ namespace Doxense.Serialization.Json.Binary
 				}
 				//note: by default we will create immutable objects!
 				//REVIEW: if we need to make this configurable, we would need to add a way to pass settings to this method!
-				map.FreezeUnsafe();
-				return map;
+				return map.FreezeUnsafe();
 			}
 
 			public JsonValue ToJsonValue(StringTable? table = null)

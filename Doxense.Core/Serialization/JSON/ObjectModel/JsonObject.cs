@@ -3498,7 +3498,7 @@ namespace Doxense.Serialization.Json
 			// keep the "readonly-ness" of the original, unless specified otherwise
 			if (item.IsReadOnly && !keepMutable)
 			{
-				obj.FreezeUnsafe();
+				obj = obj.FreezeUnsafe();
 			}
 
 			return obj;
@@ -3529,7 +3529,7 @@ namespace Doxense.Serialization.Json
 			// keep the "readonly-ness" of the original, unless specified otherwise
 			if (item.IsReadOnly && !keepMutable)
 			{
-				obj.FreezeUnsafe();
+				obj = obj.FreezeUnsafe();
 			}
 
 			return obj;
