@@ -779,7 +779,7 @@ namespace Doxense.Serialization.Json
 			var child = this.Get(path);
 			if (child.IsNullOrMissing())
 			{
-				child.Set(JsonObject.EmptyReadOnly);
+				child.Set(JsonObject.ReadOnly.Empty);
 			}
 			return child;
 		}
@@ -790,7 +790,7 @@ namespace Doxense.Serialization.Json
 			var child = this.Get(path);
 			if (child.IsNullOrMissing())
 			{
-				child.Set(JsonArray.EmptyReadOnly);
+				child.Set(JsonArray.ReadOnly.Empty);
 			}
 			return child;
 		}
@@ -2264,7 +2264,7 @@ namespace Doxense.Serialization.Json
 				case JsonArray arr:
 				{
 					if (arr.Count == 0) return; // already empty!
-					newJson = JsonArray.EmptyReadOnly;
+					newJson = JsonArray.ReadOnly.Empty;
 					break;
 				}
 				default:

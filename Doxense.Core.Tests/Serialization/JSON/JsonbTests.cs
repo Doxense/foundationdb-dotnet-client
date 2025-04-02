@@ -334,7 +334,7 @@ namespace Doxense.Serialization.Json.Binary.Tests
 			//	[]
 			VerifyReferenceEncoding(
 				"08 00 00 00 00 00 00 40",
-				JsonArray.EmptyReadOnly
+				JsonArray.ReadOnly.Empty
 			);
 
 		}

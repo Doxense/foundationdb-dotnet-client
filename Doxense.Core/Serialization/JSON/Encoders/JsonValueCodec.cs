@@ -171,7 +171,7 @@ namespace Doxense.Serialization.Json.Encoders
 		{
 			if (tuple is null || tuple.Count == 0)
 			{
-				return JsonArray.EmptyReadOnly;
+				return JsonArray.ReadOnly.Empty;
 			}
 
 			var arr = new JsonArray(tuple.Count);

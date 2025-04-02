@@ -48,11 +48,11 @@ namespace Doxense.Serialization.Json
 
 			/// <summary>Returns a <b>read-only</b> empty object, that cannot be modified</summary>
 			/// <remarks>
-			/// <para>This method will always return <see cref="JsonObject.EmptyReadOnly"/> singleton.</para>
+			/// <para>This method will always return the same <see cref="JsonObject.ReadOnly.Empty"/> singleton.</para>
 			/// <para>For a mutable object, see <see cref="JsonObject.Create()"/></para>
 			/// </remarks>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static JsonObject Create() => EmptyReadOnly;
+			public static JsonObject Create() => JsonObject.ReadOnly.Empty;
 
 			/// <summary>Creates a new empty read-only JSON object</summary>
 			/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
@@ -61,7 +61,7 @@ namespace Doxense.Serialization.Json
 			public static JsonObject Create(IEqualityComparer<string>? comparer)
 			{
 				comparer ??= StringComparer.Ordinal;
-				return ReferenceEquals(comparer, StringComparer.Ordinal) ? EmptyReadOnly : new(new(0, comparer), readOnly: true);
+				return ReferenceEquals(comparer, StringComparer.Ordinal) ? JsonObject.ReadOnly.Empty : new(new(0, comparer), readOnly: true);
 			}
 
 			/// <summary>Creates a new immutable JSON object with a single field</summary>
@@ -993,7 +993,7 @@ namespace Doxense.Serialization.Json
 
 			if (items.Count == 1)
 			{ // we already now key is contained in the object, so if it's the only one, the object will become empty.
-				return EmptyReadOnly;
+				return JsonObject.ReadOnly.Empty;
 			}
 
 			// copy and remove
@@ -1030,7 +1030,7 @@ namespace Doxense.Serialization.Json
 
 			if (items.Count == 1)
 			{ // we already now key is contained in the object, so if it's the only one, the object will become empty.
-				return EmptyReadOnly;
+				return JsonObject.ReadOnly.Empty;
 			}
 
 			// copy and remove
@@ -1094,7 +1094,7 @@ namespace Doxense.Serialization.Json
 
 			if (items.Count == 1)
 			{ // we already now key is contained in the object, so if it's the only one, the object will become empty.
-				return EmptyReadOnly;
+				return JsonObject.ReadOnly.Empty;
 			}
 
 			// copy and remove
@@ -1132,7 +1132,7 @@ namespace Doxense.Serialization.Json
 
 			if (items.Count == 1)
 			{ // we already now key is contained in the object, so if it's the only one, the object will become empty.
-				return EmptyReadOnly;
+				return JsonObject.ReadOnly.Empty;
 			}
 
 			// copy and remove

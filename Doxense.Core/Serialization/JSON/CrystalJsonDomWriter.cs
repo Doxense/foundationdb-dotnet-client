@@ -661,7 +661,7 @@ namespace Doxense.Serialization.Json
 
 			if (value.Count == 0)
 			{
-				result = m_readOnly ? JsonObject.EmptyReadOnly : new JsonObject();
+				result = m_readOnly ? JsonObject.ReadOnly.Empty : new JsonObject();
 				return true;
 			}
 
@@ -699,7 +699,7 @@ namespace Doxense.Serialization.Json
 
 			if (value.Count == 0)
 			{
-				result = m_readOnly ? JsonObject.EmptyReadOnly : new JsonObject();
+				result = m_readOnly ? JsonObject.ReadOnly.Empty : new JsonObject();
 				return true;
 			}
 
@@ -760,7 +760,7 @@ namespace Doxense.Serialization.Json
 
 			if (values.Count == 0)
 			{
-				result = m_readOnly ? JsonArray.EmptyReadOnly : new JsonArray();
+				result = m_readOnly ? JsonArray.ReadOnly.Empty : new JsonArray();
 				return true;
 			}
 
@@ -788,7 +788,7 @@ namespace Doxense.Serialization.Json
 			int? l = values is ICollection coll ? coll.Count : null;
 			if (l == 0)
 			{ // this is empty!
-				result = m_readOnly ? JsonArray.EmptyReadOnly : new JsonArray();
+				result = m_readOnly ? JsonArray.ReadOnly.Empty : new JsonArray();
 				return true;
 			}
 

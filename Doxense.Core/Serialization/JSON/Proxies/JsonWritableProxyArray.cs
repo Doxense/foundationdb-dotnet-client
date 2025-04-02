@@ -635,7 +635,7 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonWritableProxyArray<TValue> Create<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlySpan<TValue> values)
 		{
-			return new(MutableJsonValue.Untracked(values.Length == 0 ? JsonArray.EmptyReadOnly : JsonArray.FromValues(values)));
+			return new(MutableJsonValue.Untracked(values.Length == 0 ? JsonArray.ReadOnly.Empty : JsonArray.FromValues(values)));
 		}
 
 	}

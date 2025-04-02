@@ -85,7 +85,7 @@ namespace Doxense.Serialization.Json.Binary.Tests
 			{
 				["foo"] = obj.Copy(),
 				["bar"] = JsonArray.Create(obj.Copy()),
-				["empty"] = JsonObject.EmptyReadOnly,
+				["empty"] = JsonObject.ReadOnly.Empty,
 				["null"] = null, // explicit null
 			};
 
@@ -191,14 +191,14 @@ namespace Doxense.Serialization.Json.Binary.Tests
 				Assert.That(JsonNumber.Return(42), IsJson.ReadOnly);
 				Assert.That(JsonBoolean.True, IsJson.ReadOnly);
 				Assert.That(JsonNull.Null, IsJson.ReadOnly);
-				Assert.That(JsonObject.EmptyReadOnly, IsJson.ReadOnly);
+				Assert.That(JsonObject.ReadOnly.Empty, IsJson.ReadOnly);
 				Assert.That(new JsonObject(), IsJson.Not.ReadOnly);
 				Assert.That(new JsonObject().ToReadOnly(), IsJson.ReadOnly);
-				Assert.That(JsonArray.EmptyReadOnly, IsJson.ReadOnly);
+				Assert.That(JsonArray.ReadOnly.Empty, IsJson.ReadOnly);
 				Assert.That(new JsonArray(), IsJson.Not.ReadOnly);
 				Assert.That(new JsonArray().ToReadOnly(), IsJson.ReadOnly);
 				Assert.That(() => Assert.That(new JsonArray(), IsJson.ReadOnly), Throws.InstanceOf<AssertionException>());
-				Assert.That(() => Assert.That(JsonArray.EmptyReadOnly, IsJson.Not.ReadOnly), Throws.InstanceOf<AssertionException>());
+				Assert.That(() => Assert.That(JsonArray.ReadOnly.Empty, IsJson.Not.ReadOnly), Throws.InstanceOf<AssertionException>());
 			});
 		}
 

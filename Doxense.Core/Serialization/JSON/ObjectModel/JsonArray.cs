@@ -111,17 +111,10 @@ namespace Doxense.Serialization.Json
 
 		#region Constructors...
 
-		/// <summary>Returns a new empty JSON Array</summary>
-		[Obsolete("Use JsonArray.Create() for a mutable array, or JsonArray.EmptyReadOnly for an immutable empty singleton", error: true)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static JsonArray Empty
-		{
-			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => new([], 0, readOnly: false);
-		}
-
 		/// <summary>Returns an empty, read-only, <see cref="JsonArray">JSON Array</see> singleton</summary>
 		/// <remarks>This instance cannot be modified, and should be used to reduce memory allocations when working with read-only JSON</remarks>
+		[Obsolete("Use JsonArray.ReadOnly.Empty instead.")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static JsonArray EmptyReadOnly => JsonArray.ReadOnly.Empty;
 
 		/// <summary>Creates a new empty JSON Array</summary>
@@ -137,7 +130,7 @@ namespace Doxense.Serialization.Json
 		{
 			Contract.Positive(capacity);
 
-			m_items = capacity == 0 ? [] : new JsonValue[capacity];
+			m_items = capacity == 0 ? [ ] : new JsonValue[capacity];
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -186,7 +179,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (m_readOnly && m_size == 0)
 			{ // ensure that we always return the empty singleton !
-				return JsonArray.EmptyReadOnly;
+				return JsonArray.ReadOnly.Empty;
 			}
 			m_readOnly = true;
 			return this;
@@ -1955,7 +1948,7 @@ namespace Doxense.Serialization.Json
 			}
 			else
 			{ // drop the buffer
-				m_items = [];
+				m_items = [ ];
 			}
 			m_size = 0;
 		}
@@ -2546,7 +2539,7 @@ namespace Doxense.Serialization.Json
 			var tmp = this.AsSpan()[index..];
 			if (tmp.Length == 0)
 			{ // empty
-				return m_readOnly ? JsonArray.EmptyReadOnly : new();
+				return m_readOnly ? JsonArray.ReadOnly.Empty : new();
 			}
 
 			// return a new array wrapping these items
@@ -2573,7 +2566,7 @@ namespace Doxense.Serialization.Json
 			var tmp = this.AsSpan().Slice(index, count);
 			if (tmp.Length == 0)
 			{ // empty
-				return m_readOnly ? JsonArray.EmptyReadOnly : new JsonArray();
+				return m_readOnly ? JsonArray.ReadOnly.Empty : new JsonArray();
 			}
 
 			// return a new array wrapping these items
@@ -2720,7 +2713,7 @@ namespace Doxense.Serialization.Json
 		/// <para>If the array contains any item that is not null and not an object, and exception will be thrown when iterating!</para>
 		/// <para>If null entries are not allowed, use <see cref="AsObjects"/> instead</para>
 		/// </remarks>
-		public JsonArrayOrDefault<JsonObject> AsObjectsOrEmpty() => new(this, JsonObject.EmptyReadOnly);
+		public JsonArrayOrDefault<JsonObject> AsObjectsOrEmpty() => new(this, JsonObject.ReadOnly.Empty);
 
 		/// <summary>Returns a typed view of this <see cref="JsonArray">array</see> that is expected to only contain <see cref="JsonObject">JSON arrays</see></summary>
 		/// <remarks>
@@ -2744,7 +2737,7 @@ namespace Doxense.Serialization.Json
 		/// <para>If null entries are allowed, use <see cref="AsArraysOrDefault"/> instead</para>
 		/// </remarks>
 		[Pure]
-		public JsonArrayOrDefault<JsonArray> AsArraysOrEmpty() => new(this, JsonArray.EmptyReadOnly);
+		public JsonArrayOrDefault<JsonArray> AsArraysOrEmpty() => new(this, JsonArray.ReadOnly.Empty);
 
 		/// <summary>Returns a wrapper that will convert all the elements of this <see cref="JsonArray"/> as values of type <typeparamref name="TValue"/> when enumerated.</summary>
 		/// <remarks><para>This method can be used to remove the need of allocating a temporary array or list of items that would only be called inside a <see langword="foreach"/> loop, or used with LINQ.</para></remarks>
@@ -3886,7 +3879,7 @@ namespace Doxense.Serialization.Json
 			}
 			if (after.Count == 0)
 			{ // all items removed
-				return EmptyReadOnly;
+				return JsonArray.ReadOnly.Empty;
 			}
 
 			var patch = new JsonObject()

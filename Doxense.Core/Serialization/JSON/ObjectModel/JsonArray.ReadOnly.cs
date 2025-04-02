@@ -47,12 +47,12 @@ namespace Doxense.Serialization.Json
 
 			/// <summary>Returns a <b>read-only</b> empty array, that cannot be modified</summary>
 			/// <remarks>
-			/// <para>This method will always return <see cref="JsonArray.EmptyReadOnly"/> singleton.</para>
+			/// <para>This method will always return <see cref="JsonArray.ReadOnly.Empty"/> singleton.</para>
 			/// <para>For a mutable array, see <see cref="JsonArray.Create()"/></para>
 			/// </remarks>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			[OverloadResolutionPriority(1)]
-			public static JsonArray Create() => JsonArray.EmptyReadOnly;
+			public static JsonArray Create() => JsonArray.ReadOnly.Empty;
 
 			/// <summary>Creates a new <b>read-only</b> <see cref="JsonArray">JSON Array</see> with a single element</summary>
 			/// <remarks>For a mutable array, see <see cref="JsonArray.Create(JsonValue?)"/></remarks>
@@ -120,7 +120,7 @@ namespace Doxense.Serialization.Json
 				{
 					case 0:
 					{
-						return JsonArray.EmptyReadOnly;
+						return JsonArray.ReadOnly.Empty;
 					}
 					case 1:
 					{
@@ -168,7 +168,7 @@ namespace Doxense.Serialization.Json
 				Contract.NotNull(values);
 
 				return values.TryGetNonEnumeratedCount(out var count) && count == 0
-					? JsonArray.EmptyReadOnly
+					? JsonArray.ReadOnly.Empty
 					: new JsonArray().AddRangeReadOnly(values).FreezeUnsafe();
 			}
 
@@ -224,7 +224,7 @@ namespace Doxense.Serialization.Json
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static JsonArray FromValues<TValue>(ReadOnlySpan<TValue> values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 			{
-				return values.Length == 0 ? JsonArray.EmptyReadOnly : new JsonArray().AddValuesReadOnly<TValue>(values, settings.AsReadOnly(), resolver).FreezeUnsafe();
+				return values.Length == 0 ? JsonArray.ReadOnly.Empty : new JsonArray().AddValuesReadOnly<TValue>(values, settings.AsReadOnly(), resolver).FreezeUnsafe();
 			}
 
 			/// <summary>Creates a new <b>read-only</b> JSON Array from an array of raw values.</summary>
@@ -239,7 +239,7 @@ namespace Doxense.Serialization.Json
 			public static JsonArray? FromValues<TValue>(TValue[]? values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 			{
 				if (values is null) return null;
-				return values.Length == 0 ? JsonArray.EmptyReadOnly : new JsonArray().AddValuesReadOnly<TValue>(new ReadOnlySpan<TValue>(values), settings.AsReadOnly(), resolver).FreezeUnsafe();
+				return values.Length == 0 ? JsonArray.ReadOnly.Empty : new JsonArray().AddValuesReadOnly<TValue>(new ReadOnlySpan<TValue>(values), settings.AsReadOnly(), resolver).FreezeUnsafe();
 			}
 
 			/// <summary>Creates a new <b>read-only</b> JSON Array from a sequence of raw values.</summary>
@@ -255,7 +255,7 @@ namespace Doxense.Serialization.Json
 			{
 				if (values is null) return null;
 				return values.TryGetNonEnumeratedCount(out var count) && count == 0
-					? JsonArray.EmptyReadOnly
+					? JsonArray.ReadOnly.Empty
 					: new JsonArray().AddValuesReadOnly<TValue>(values, settings.AsReadOnly(), resolver).FreezeUnsafe();
 			}
 
@@ -272,7 +272,7 @@ namespace Doxense.Serialization.Json
 			public static JsonArray FromValues<TItem, TValue>(ReadOnlySpan<TItem> values, Func<TItem, TValue> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 			{
 				Contract.NotNull(selector);
-				return values.Length == 0 ? JsonArray.EmptyReadOnly : new JsonArray().AddValuesReadOnly(values, selector, settings.AsReadOnly(), resolver).FreezeUnsafe();
+				return values.Length == 0 ? JsonArray.ReadOnly.Empty : new JsonArray().AddValuesReadOnly(values, selector, settings.AsReadOnly(), resolver).FreezeUnsafe();
 			}
 
 			/// <summary>Creates a new <b>read-only</b> JSON Array with values extracted from an array of source items.</summary>
@@ -288,7 +288,7 @@ namespace Doxense.Serialization.Json
 			public static JsonArray FromValues<TItem, TValue>(TItem[] values, Func<TItem, TValue> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 			{
 				Contract.NotNull(values);
-				return values.Length == 0 ? JsonArray.EmptyReadOnly : new JsonArray().AddValuesReadOnly(new ReadOnlySpan<TItem>(values), selector, settings.AsReadOnly(), resolver).FreezeUnsafe();
+				return values.Length == 0 ? JsonArray.ReadOnly.Empty : new JsonArray().AddValuesReadOnly(new ReadOnlySpan<TItem>(values), selector, settings.AsReadOnly(), resolver).FreezeUnsafe();
 			}
 
 			/// <summary>Creates a new <b>read-only</b> JSON Array with values extracted from a sequence of source items.</summary>
@@ -305,7 +305,7 @@ namespace Doxense.Serialization.Json
 			{
 				Contract.NotNull(values);
 				return values.TryGetNonEnumeratedCount(out var count) && count == 0
-					? JsonArray.EmptyReadOnly
+					? JsonArray.ReadOnly.Empty
 					: new JsonArray().AddValuesReadOnly(values, selector, settings.AsReadOnly(), resolver).FreezeUnsafe();
 			}
 
@@ -760,7 +760,7 @@ namespace Doxense.Serialization.Json
 			{ // removing the last item
 				Contract.Debug.Assert(index == 0);
 				previous = prev[0];
-				return JsonArray.EmptyReadOnly;
+				return JsonArray.ReadOnly.Empty;
 			}
 
 			// copy and remove

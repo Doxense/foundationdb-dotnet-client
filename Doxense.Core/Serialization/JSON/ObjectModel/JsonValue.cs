@@ -1295,14 +1295,14 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Gets the <i>optional</i> JSON Object that corresponds to the field with the specified name, or an empty (read-only) object if it was null or missing.</summary>
 		/// <param name="key">Name of the field that is expected to be an object.</param>
-		/// <returns>Value of the field <paramref name="key"/> as a <see cref="JsonObject"/>, the <see cref="JsonObject.EmptyReadOnly"/> if it is null or missing, or an exception if it is not a JSON Object.</returns>
+		/// <returns>Value of the field <paramref name="key"/> as a <see cref="JsonObject"/>, the <see cref="JsonObject.ReadOnly.Empty"/> if it is null or missing, or an exception if it is not a JSON Object.</returns>
 		/// <exception cref="ArgumentException">If the value is not a JSON Object.</exception>
 		[Pure]
 		public JsonObject GetObjectOrEmpty(string key) => GetValueOrDefault(key).AsObjectOrEmpty();
 
 		/// <summary>Gets the <i>optional</i> JSON Object that corresponds to the field with the specified name, or an empty (read-only) object if it was null or missing.</summary>
 		/// <param name="key">Name of the field that is expected to be an object.</param>
-		/// <returns>Value of the field <paramref name="key"/> as a <see cref="JsonObject"/>, the <see cref="JsonObject.EmptyReadOnly"/> if it is null or missing, or an exception if it is not a JSON Object.</returns>
+		/// <returns>Value of the field <paramref name="key"/> as a <see cref="JsonObject"/>, the <see cref="JsonObject.ReadOnly.Empty"/> if it is null or missing, or an exception if it is not a JSON Object.</returns>
 		/// <exception cref="ArgumentException">If the value is not a JSON Object.</exception>
 		[Pure]
 #if !NET9_0_OR_GREATER
@@ -1312,7 +1312,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Gets the <i>optional</i> JSON Object that corresponds to the field with the specified name, or an empty (read-only) object if it was null or missing.</summary>
 		/// <param name="key">Name of the field that is expected to be an object.</param>
-		/// <returns>Value of the field <paramref name="key"/> as a <see cref="JsonObject"/>, the <see cref="JsonObject.EmptyReadOnly"/> if it is null or missing, or an exception if it is not a JSON Object.</returns>
+		/// <returns>Value of the field <paramref name="key"/> as a <see cref="JsonObject"/>, the <see cref="JsonObject.ReadOnly.Empty"/> if it is null or missing, or an exception if it is not a JSON Object.</returns>
 		/// <exception cref="ArgumentException">If the value is not a JSON Object.</exception>
 		[Pure]
 #if !NET9_0_OR_GREATER
@@ -1339,7 +1339,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Gets the <i>optional</i> JSON Object that corresponds to the field with the specified name, or an empty (read-only) object if it was null or missing.</summary>
 		/// <param name="index">Name of the field that is expected to be an object.</param>
-		/// <returns>Value of the field <paramref name="index"/> as a <see cref="JsonObject"/>, the <see cref="JsonObject.EmptyReadOnly"/> if it is null or missing, or an exception if it is not a JSON Object.</returns>
+		/// <returns>Value of the field <paramref name="index"/> as a <see cref="JsonObject"/>, the <see cref="JsonObject.ReadOnly.Empty"/> if it is null or missing, or an exception if it is not a JSON Object.</returns>
 		/// <exception cref="ArgumentException">If the value is not a JSON Object.</exception>
 		[Pure]
 		public JsonObject GetObjectOrEmpty(int index) => GetValueOrDefault(index).AsObjectOrEmpty();
@@ -1363,7 +1363,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Gets the <i>optional</i> JSON Object that corresponds to the field with the specified name, or an empty (read-only) object if it was null or missing.</summary>
 		/// <param name="index">Name of the field that is expected to be an object.</param>
-		/// <returns>Value of the field <paramref name="index"/> as a <see cref="JsonObject"/>, the <see cref="JsonObject.EmptyReadOnly"/> if it is null or missing, or an exception if it is not a JSON Object.</returns>
+		/// <returns>Value of the field <paramref name="index"/> as a <see cref="JsonObject"/>, the <see cref="JsonObject.ReadOnly.Empty"/> if it is null or missing, or an exception if it is not a JSON Object.</returns>
 		/// <exception cref="ArgumentException">If the value is not a JSON Object.</exception>
 		[Pure]
 		public JsonObject GetObjectOrEmpty(Index index) => GetValueOrDefault(index).AsObjectOrEmpty();
@@ -1706,7 +1706,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Gets the <i>optional</i> JSON Array that corresponds to the field with the specified name, or and empty (read-only) array if it is null or missing.</summary>
 		/// <param name="key">Name of the field that is expected to be an array.</param>
-		/// <returns>the value of the field <paramref name="key"/> as a <see cref="JsonArray"/>, the <see cref="JsonArray.EmptyReadOnly"/> if it is null or missing, or an exception if it is not a JSON Array.</returns>
+		/// <returns>the value of the field <paramref name="key"/> as a <see cref="JsonArray"/>, the <see cref="JsonArray.ReadOnly.Empty"/> if it is null or missing, or an exception if it is not a JSON Array.</returns>
 		/// <exception cref="JsonBindingException">If the value is not a JSON Array.</exception>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1714,7 +1714,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Gets the <i>optional</i> JSON Array that corresponds to the field with the specified name, or and empty (read-only) array if it is null or missing.</summary>
 		/// <param name="key">Name of the field that is expected to be an array.</param>
-		/// <returns>the value of the field <paramref name="key"/> as a <see cref="JsonArray"/>, the <see cref="JsonArray.EmptyReadOnly"/> if it is null or missing, or an exception if it is not a JSON Array.</returns>
+		/// <returns>the value of the field <paramref name="key"/> as a <see cref="JsonArray"/>, the <see cref="JsonArray.ReadOnly.Empty"/> if it is null or missing, or an exception if it is not a JSON Array.</returns>
 		/// <exception cref="JsonBindingException">If the value is not a JSON Array.</exception>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1725,7 +1725,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Gets the <i>optional</i> JSON Array that corresponds to the field with the specified name, or and empty (read-only) array if it is null or missing.</summary>
 		/// <param name="key">Name of the field that is expected to be an array.</param>
-		/// <returns>the value of the field <paramref name="key"/> as a <see cref="JsonArray"/>, the <see cref="JsonArray.EmptyReadOnly"/> if it is null or missing, or an exception if it is not a JSON Array.</returns>
+		/// <returns>the value of the field <paramref name="key"/> as a <see cref="JsonArray"/>, the <see cref="JsonArray.ReadOnly.Empty"/> if it is null or missing, or an exception if it is not a JSON Array.</returns>
 		/// <exception cref="JsonBindingException">If the value is not a JSON Array.</exception>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1752,7 +1752,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Gets the <i>optional</i> JSON Array that corresponds to the field with the specified name, or and empty (read-only) array if it is null or missing.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
-		/// <returns>the value of the field <paramref name="index"/> as a <see cref="JsonArray"/>, the <see cref="JsonArray.EmptyReadOnly"/> if it is null or missing, or an exception if it is not a JSON Array.</returns>
+		/// <returns>the value of the field <paramref name="index"/> as a <see cref="JsonArray"/>, the <see cref="JsonArray.ReadOnly.Empty"/> if it is null or missing, or an exception if it is not a JSON Array.</returns>
 		/// <exception cref="JsonBindingException">If the value is not a JSON Array.</exception>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1776,7 +1776,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Gets the <i>optional</i> JSON Array that corresponds to the field with the specified name, or and empty (read-only) array if it is null or missing.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
-		/// <returns>the value of the field <paramref name="index"/> as a <see cref="JsonArray"/>, the <see cref="JsonArray.EmptyReadOnly"/> if it is null or missing, or an exception if it is not a JSON Array.</returns>
+		/// <returns>the value of the field <paramref name="index"/> as a <see cref="JsonArray"/>, the <see cref="JsonArray.ReadOnly.Empty"/> if it is null or missing, or an exception if it is not a JSON Array.</returns>
 		/// <exception cref="JsonBindingException">If the value is not a JSON Array.</exception>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1931,19 +1931,19 @@ namespace Doxense.Serialization.Json
 		public JsonObject? GetPathObjectOrDefault(JsonPath path, JsonObject? defaultValue = null) => GetPathCore(path, null, required: false).AsObjectOrDefault() ?? defaultValue;
 
 		/// <summary>Returns the object at the specified <see cref="JsonPath">path</see> within this instance</summary>
-		/// <returns>The matching object, or <see cref="JsonObject.EmptyReadOnly"/> if it was not found</returns>
+		/// <returns>The matching object, or <see cref="JsonObject.ReadOnly.Empty"/> if it was not found</returns>
 		/// <exception cref="JsonBindingException">If there is a matching value that is not null or missing, and is not a JSON object.</exception>
 		[Pure]
 		public JsonObject GetPathObjectOrEmpty(string path) => GetPathCore(JsonPath.Create(path), null, required: false).AsObjectOrEmpty();
 
 		/// <summary>Returns the object at the specified <see cref="JsonPath">path</see> within this instance</summary>
-		/// <returns>The matching object, or <see cref="JsonObject.EmptyReadOnly"/> if it was not found</returns>
+		/// <returns>The matching object, or <see cref="JsonObject.ReadOnly.Empty"/> if it was not found</returns>
 		/// <exception cref="JsonBindingException">If there is a matching value that is not null or missing, and is not a JSON object.</exception>
 		[Pure]
 		public JsonObject GetPathObjectOrEmpty(ReadOnlyMemory<char> path) => GetPathCore(JsonPath.Create(path), null, required: false).AsObjectOrEmpty();
 
 		/// <summary>Returns the object at the specified <see cref="JsonPath">path</see> within this instance</summary>
-		/// <returns>The matching object, or <see cref="JsonObject.EmptyReadOnly"/> if it was not found</returns>
+		/// <returns>The matching object, or <see cref="JsonObject.ReadOnly.Empty"/> if it was not found</returns>
 		/// <exception cref="JsonBindingException">If there is a matching value that is not null or missing, and is not a JSON object.</exception>
 		[Pure]
 		public JsonObject GetPathObjectOrEmpty(JsonPath path) => GetPathCore(path, null, required: false).AsObjectOrEmpty();
@@ -1982,19 +1982,19 @@ namespace Doxense.Serialization.Json
 		public JsonArray? GetPathArrayOrDefault(JsonPath path, JsonArray? defaultValue = null) => GetPathCore(path, null, required: false).AsArrayOrDefault() ?? defaultValue;
 
 		/// <summary>Returns the JSON Array at the specified <see cref="JsonPath">path</see> within this instance</summary>
-		/// <returns>The matching object, or <see cref="JsonArray.EmptyReadOnly"/> if it was not found</returns>
+		/// <returns>The matching object, or <see cref="JsonArray.ReadOnly.Empty"/> if it was not found</returns>
 		/// <exception cref="JsonBindingException">If there is a matching value that is not null or missing, and is not a JSON Array.</exception>
 		[Pure]
 		public JsonArray GetPathArrayOrEmpty(string path) => GetPathCore(JsonPath.Create(path), null, required: false).AsArrayOrEmpty();
 
 		/// <summary>Returns the JSON Array at the specified <see cref="JsonPath">path</see> within this instance</summary>
-		/// <returns>The matching object, or <see cref="JsonArray.EmptyReadOnly"/> if it was not found</returns>
+		/// <returns>The matching object, or <see cref="JsonArray.ReadOnly.Empty"/> if it was not found</returns>
 		/// <exception cref="JsonBindingException">If there is a matching value that is not null or missing, and is not a JSON Array.</exception>
 		[Pure]
 		public JsonArray GetPathArrayOrEmpty(ReadOnlyMemory<char> path) => GetPathCore(JsonPath.Create(path), null, required: false).AsArrayOrEmpty();
 
 		/// <summary>Returns the JSON Array at the specified <see cref="JsonPath">path</see> within this instance</summary>
-		/// <returns>The matching object, or <see cref="JsonArray.EmptyReadOnly"/> if it was not found</returns>
+		/// <returns>The matching object, or <see cref="JsonArray.ReadOnly.Empty"/> if it was not found</returns>
 		/// <exception cref="JsonBindingException">If there is a matching value that is not null or missing, and is not a JSON Array.</exception>
 		[Pure]
 		public JsonArray GetPathArrayOrEmpty(JsonPath path) => GetPathCore(path, null, required: false).AsArrayOrEmpty();

@@ -325,7 +325,7 @@ namespace Doxense.Serialization.Json.Binary.Tests
 		public void Test_Encode_Arrays()
 		{
 			// empty array
-			VerifyRoundtrip(JsonArray.EmptyReadOnly);
+			VerifyRoundtrip(JsonArray.ReadOnly.Empty);
 
 			// simple arrays
 
@@ -373,13 +373,13 @@ namespace Doxense.Serialization.Json.Binary.Tests
 			//	[]
 			VerifyReferenceEncoding(
 				"85",
-				JsonArray.EmptyReadOnly
+				JsonArray.ReadOnly.Empty
 			);
 
 			//	[[]]
 			VerifyReferenceEncoding(
 				"83 85 84",
-				JsonArray.Create(JsonArray.EmptyReadOnly)
+				JsonArray.Create(JsonArray.ReadOnly.Empty)
 			);
 
 		}
@@ -388,7 +388,7 @@ namespace Doxense.Serialization.Json.Binary.Tests
 		public void Test_Encode_Objects()
 		{
 			// { }
-			VerifyRoundtrip(JsonObject.EmptyReadOnly);
+			VerifyRoundtrip(JsonObject.ReadOnly.Empty);
 
 			// { "hello": "world" }
 			VerifyRoundtrip(JsonObject.Create("hello", "world"));
@@ -435,7 +435,7 @@ namespace Doxense.Serialization.Json.Binary.Tests
 			//	[]
 			VerifyReferenceEncoding(
 				"88",
-				JsonObject.EmptyReadOnly
+				JsonObject.ReadOnly.Empty
 			);
 
 		}

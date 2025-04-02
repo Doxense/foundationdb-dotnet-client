@@ -1053,7 +1053,7 @@ namespace Doxense.Serialization.Json
 
 						if (props.Count == 0)
 						{ // empty object
-							return createReadOnly ? JsonObject.EmptyReadOnly : JsonObject.Create();
+							return createReadOnly ? JsonObject.ReadOnly.Empty : JsonObject.Create();
 						}
 
 						// convert into the dictionary
@@ -1265,7 +1265,7 @@ namespace Doxense.Serialization.Json
 #endif
 					if (buffer.Count == 0)
 					{ // empty object
-						return readOnly ? JsonArray.EmptyReadOnly : new JsonArray();
+						return readOnly ? JsonArray.ReadOnly.Empty : new JsonArray();
 					}
 
 					var tmp = buffer.ToArray();

@@ -61,13 +61,10 @@ namespace Doxense.Serialization.Json
 		/// <remarks>Mutability can change from Immutable to any of the ReadOnlyXYZ variants, but not the over way around!</remarks>
 		private bool m_readOnly;
 
-		/// <summary>Returns a new empty JSON object</summary>
-		[Obsolete("Use JsonObject.Create() for a mutable empty object, or JsonObject.EmptyReadOnly for an immutable empty singleton")]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static JsonObject Empty => new(new(0, StringComparer.Ordinal), readOnly: false);
-
 		/// <summary>Returns an empty, read-only, <see cref="JsonObject">JSON Object</see> singleton</summary>
 		/// <remarks>This instance cannot be modified, and should be used to reduce memory allocations when working with read-only JSON</remarks>
+		[Obsolete("Use JsonObject.ReadOnly.Empty instead.")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static JsonObject EmptyReadOnly => JsonObject.ReadOnly.Empty;
 
 		#region Debug View...
@@ -224,7 +221,7 @@ namespace Doxense.Serialization.Json
 
 		internal JsonObject FreezeUnsafe()
 		{
-			if (m_items.Count == 0) return EmptyReadOnly;
+			if (m_items.Count == 0) return JsonObject.ReadOnly.Empty;
 
 			m_readOnly = true;
 			CheckInvariants();

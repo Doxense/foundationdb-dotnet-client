@@ -1144,13 +1144,13 @@ namespace Doxense.Serialization.Json.Tests
 				JsonValue? value = null;
 				Assert.That(() => value.AsObject(), Throws.InstanceOf<JsonBindingException>());
 				Assert.That(value.AsObjectOrDefault(), Is.Null);
-				Assert.That(value.AsObjectOrEmpty(), Is.SameAs(JsonObject.EmptyReadOnly));
+				Assert.That(value.AsObjectOrEmpty(), Is.SameAs(JsonObject.ReadOnly.Empty));
 			}
 			{ // JsonNull
 				JsonValue value = JsonNull.Null;
 				Assert.That(() => value.AsObject(), Throws.InstanceOf<JsonBindingException>());
 				Assert.That(value.AsObjectOrDefault(), Is.Null);
-				Assert.That(value.AsObjectOrEmpty(), Is.SameAs(JsonObject.EmptyReadOnly));
+				Assert.That(value.AsObjectOrEmpty(), Is.SameAs(JsonObject.ReadOnly.Empty));
 			}
 			{ // empty object
 				JsonValue value = JsonObject.Create();
@@ -1212,8 +1212,8 @@ namespace Doxense.Serialization.Json.Tests
 				{ // GetObjectOrEmpty()
 					Assert.That(obj.GetObjectOrEmpty("foo"), Is.SameAs(foo));
 					Assert.That(obj.GetObjectOrEmpty("bar"), Is.SameAs(bar));
-					Assert.That(() => obj.GetObjectOrEmpty("baz"), Is.SameAs(JsonObject.EmptyReadOnly));
-					Assert.That(() => obj.GetObjectOrEmpty("not_found"), Is.SameAs(JsonObject.EmptyReadOnly));
+					Assert.That(() => obj.GetObjectOrEmpty("baz"), Is.SameAs(JsonObject.ReadOnly.Empty));
+					Assert.That(() => obj.GetObjectOrEmpty("not_found"), Is.SameAs(JsonObject.ReadOnly.Empty));
 					Assert.That(() => obj.GetObjectOrEmpty("other"), Throws.InstanceOf<JsonBindingException>());
 					Assert.That(() => obj.GetObjectOrEmpty("text"), Throws.InstanceOf<JsonBindingException>());
 					Assert.That(() => obj.GetObjectOrEmpty("number"), Throws.InstanceOf<JsonBindingException>());
@@ -1253,7 +1253,7 @@ namespace Doxense.Serialization.Json.Tests
 				{ // GetArrayOrEmpty()
 					Assert.That(arr.GetObjectOrEmpty(0), Is.SameAs(foo));
 					Assert.That(arr.GetObjectOrEmpty(1), Is.SameAs(bar));
-					Assert.That(() => arr.GetObjectOrEmpty(2), Is.SameAs(JsonObject.EmptyReadOnly));
+					Assert.That(() => arr.GetObjectOrEmpty(2), Is.SameAs(JsonObject.ReadOnly.Empty));
 					Assert.That(() => arr.GetObjectOrEmpty(3), Throws.InstanceOf<JsonBindingException>());
 					Assert.That(() => arr.GetObjectOrEmpty(4), Throws.InstanceOf<JsonBindingException>());
 					Assert.That(() => arr.GetObjectOrEmpty(5), Throws.InstanceOf<JsonBindingException>());
@@ -1269,13 +1269,13 @@ namespace Doxense.Serialization.Json.Tests
 				JsonValue? value = null;
 				Assert.That(() => value.AsArray(), Throws.InstanceOf<JsonBindingException>());
 				Assert.That(value.AsArrayOrDefault(), Is.Null);
-				Assert.That(value.AsArrayOrEmpty(), Is.SameAs(JsonArray.EmptyReadOnly));
+				Assert.That(value.AsArrayOrEmpty(), Is.SameAs(JsonArray.ReadOnly.Empty));
 			}
 			{ // JsonNull
 				JsonValue value = JsonNull.Null;
 				Assert.That(() => value.AsArray(), Throws.InstanceOf<JsonBindingException>());
 				Assert.That(value.AsArrayOrDefault(), Is.Null);
-				Assert.That(value.AsArrayOrEmpty(), Is.SameAs(JsonArray.EmptyReadOnly));
+				Assert.That(value.AsArrayOrEmpty(), Is.SameAs(JsonArray.ReadOnly.Empty));
 			}
 			{ // empty array
 				JsonValue value = JsonArray.Create();
@@ -1337,8 +1337,8 @@ namespace Doxense.Serialization.Json.Tests
 				{ // GetArrayOrEmpty()
 					Assert.That(obj.GetArrayOrEmpty("foo"), Is.SameAs(foo));
 					Assert.That(obj.GetArrayOrEmpty("bar"), Is.SameAs(bar));
-					Assert.That(obj.GetArrayOrEmpty("baz"), Is.SameAs(JsonArray.EmptyReadOnly));
-					Assert.That(obj.GetArrayOrEmpty("not_found"), Is.SameAs(JsonArray.EmptyReadOnly));
+					Assert.That(obj.GetArrayOrEmpty("baz"), Is.SameAs(JsonArray.ReadOnly.Empty));
+					Assert.That(obj.GetArrayOrEmpty("not_found"), Is.SameAs(JsonArray.ReadOnly.Empty));
 					Assert.That(() => obj.GetArrayOrEmpty("other"), Throws.InstanceOf<JsonBindingException>());
 					Assert.That(() => obj.GetArrayOrEmpty("text"), Throws.InstanceOf<JsonBindingException>());
 					Assert.That(() => obj.GetArrayOrEmpty("number"), Throws.InstanceOf<JsonBindingException>());
@@ -1380,7 +1380,7 @@ namespace Doxense.Serialization.Json.Tests
 				{ // GetArrayOrEmpty()
 					Assert.That(arr.GetArrayOrEmpty(0), Is.SameAs(foo));
 					Assert.That(arr.GetArrayOrEmpty(1), Is.SameAs(bar));
-					Assert.That(arr.GetArrayOrEmpty(2), Is.SameAs(JsonArray.EmptyReadOnly));
+					Assert.That(arr.GetArrayOrEmpty(2), Is.SameAs(JsonArray.ReadOnly.Empty));
 					Assert.That(() => arr.GetArrayOrEmpty(3), Throws.InstanceOf<JsonBindingException>());
 					Assert.That(() => arr.GetArrayOrEmpty(4), Throws.InstanceOf<JsonBindingException>());
 					Assert.That(() => arr.GetArrayOrEmpty(5), Throws.InstanceOf<JsonBindingException>());
@@ -1412,14 +1412,14 @@ namespace Doxense.Serialization.Json.Tests
 					Assert.That(missing.GetArrayOrDefault(42), Is.Null);
 				}
 				{ // GetArrayOrEmpty()
-					Assert.That(missing.GetArrayOrEmpty(0), Is.SameAs(JsonArray.EmptyReadOnly));
-					Assert.That(missing.GetArrayOrEmpty(1), Is.SameAs(JsonArray.EmptyReadOnly));
-					Assert.That(missing.GetArrayOrEmpty(2), Is.SameAs(JsonArray.EmptyReadOnly));
-					Assert.That(missing.GetArrayOrEmpty(3), Is.SameAs(JsonArray.EmptyReadOnly));
-					Assert.That(missing.GetArrayOrEmpty(4), Is.SameAs(JsonArray.EmptyReadOnly));
-					Assert.That(missing.GetArrayOrEmpty(5), Is.SameAs(JsonArray.EmptyReadOnly));
-					Assert.That(missing.GetArrayOrEmpty(6), Is.SameAs(JsonArray.EmptyReadOnly));
-					Assert.That(missing.GetArrayOrEmpty(42), Is.SameAs(JsonArray.EmptyReadOnly));
+					Assert.That(missing.GetArrayOrEmpty(0), Is.SameAs(JsonArray.ReadOnly.Empty));
+					Assert.That(missing.GetArrayOrEmpty(1), Is.SameAs(JsonArray.ReadOnly.Empty));
+					Assert.That(missing.GetArrayOrEmpty(2), Is.SameAs(JsonArray.ReadOnly.Empty));
+					Assert.That(missing.GetArrayOrEmpty(3), Is.SameAs(JsonArray.ReadOnly.Empty));
+					Assert.That(missing.GetArrayOrEmpty(4), Is.SameAs(JsonArray.ReadOnly.Empty));
+					Assert.That(missing.GetArrayOrEmpty(5), Is.SameAs(JsonArray.ReadOnly.Empty));
+					Assert.That(missing.GetArrayOrEmpty(6), Is.SameAs(JsonArray.ReadOnly.Empty));
+					Assert.That(missing.GetArrayOrEmpty(42), Is.SameAs(JsonArray.ReadOnly.Empty));
 				}
 			}
 		}
@@ -4064,7 +4064,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(JsonBoolean.False.StrictEquals(0), Is.False);
 			Assert.That(JsonBoolean.False.StrictEquals(""), Is.False);
 			Assert.That(JsonBoolean.False.StrictEquals("false"), Is.False);
-			Assert.That(JsonBoolean.True.StrictEquals(JsonArray.EmptyReadOnly), Is.False);
+			Assert.That(JsonBoolean.True.StrictEquals(JsonArray.ReadOnly.Empty), Is.False);
 			Assert.That(JsonBoolean.True.StrictEquals(1), Is.False);
 			Assert.That(JsonBoolean.True.StrictEquals(""), Is.False);
 			Assert.That(JsonBoolean.True.StrictEquals("true"), Is.False);
@@ -6131,14 +6131,14 @@ namespace Doxense.Serialization.Json.Tests
 					Assert.That(it.MoveNext(), Is.True, "#1");
 					Assert.That(it.Current, Is.SameAs(a), "#1");
 					Assert.That(it.MoveNext(), Is.True, "#2");
-					Assert.That(it.Current, Is.SameAs(JsonObject.EmptyReadOnly), "#2 should be empty singleton!");
+					Assert.That(it.Current, Is.SameAs(JsonObject.ReadOnly.Empty), "#2 should be empty singleton!");
 					Assert.That(it.MoveNext(), Is.True, "#3");
 					Assert.That(it.Current, Is.SameAs(c), "#3");
 					Assert.That(it.MoveNext(), Is.False, "Capacity = 4, mais Count = 3 !");
 					Assert.That(it.Current, Is.Null, "After last MoveNext");
 				}
-				Assert.That(cast.ToArray(), Is.EqualTo(new JsonObject?[] { a, JsonObject.EmptyReadOnly, c }));
-				Assert.That(cast.ToList(), Is.EqualTo(new List<JsonObject?> { a, JsonObject.EmptyReadOnly, c }));
+				Assert.That(cast.ToArray(), Is.EqualTo(new JsonObject?[] { a, JsonObject.ReadOnly.Empty, c }));
+				Assert.That(cast.ToList(), Is.EqualTo(new List<JsonObject?> { a, JsonObject.ReadOnly.Empty, c }));
 			}
 
 			{ // the second elements is null, but they are all required
@@ -6233,14 +6233,14 @@ namespace Doxense.Serialization.Json.Tests
 					Assert.That(it.MoveNext(), Is.True, "#1");
 					Assert.That(it.Current, Is.SameAs(a), "#1");
 					Assert.That(it.MoveNext(), Is.True, "#2");
-					Assert.That(it.Current, Is.SameAs(JsonArray.EmptyReadOnly), "#2 should be empty singleton!");
+					Assert.That(it.Current, Is.SameAs(JsonArray.ReadOnly.Empty), "#2 should be empty singleton!");
 					Assert.That(it.MoveNext(), Is.True, "#3");
 					Assert.That(it.Current, Is.SameAs(c), "#3");
 					Assert.That(it.MoveNext(), Is.False, "Capacity = 4, mais Count = 3 !");
 					Assert.That(it.Current, Is.Null, "After last MoveNext");
 				}
-				Assert.That(cast.ToArray(), Is.EqualTo(new JsonArray?[] { a, JsonArray.EmptyReadOnly, c }));
-				Assert.That(cast.ToList(), Is.EqualTo(new List<JsonArray?> { a, JsonArray.EmptyReadOnly, c }));
+				Assert.That(cast.ToArray(), Is.EqualTo(new JsonArray?[] { a, JsonArray.ReadOnly.Empty, c }));
+				Assert.That(cast.ToList(), Is.EqualTo(new List<JsonArray?> { a, JsonArray.ReadOnly.Empty, c }));
 			}
 
 			{ // second element is null, and all are required
@@ -6743,7 +6743,7 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonArray_ReadOnly_Empty()
 		{
-			Assert.That(JsonArray.EmptyReadOnly.IsReadOnly, Is.True);
+			Assert.That(JsonArray.ReadOnly.Empty.IsReadOnly, Is.True);
 			//note: we don't want to attempt to modify the empty readonly singleton, because if the test fails, it will completely break ALL the reamining tests!
 
 			static void CheckEmptyReadOnly(JsonArray arr, [CallerArgumentExpression(nameof(arr))] string? expression = null)
@@ -6950,7 +6950,7 @@ namespace Doxense.Serialization.Json.Tests
 			// All methods will create return a new copy of the original, with the mutation applied, leaving the original untouched.
 			// The new read-only copy should reuse the same JsonValue instances as the original, to reduce memory copies.
 
-			var arr = JsonArray.EmptyReadOnly;
+			var arr = JsonArray.ReadOnly.Empty;
 			Assume.That(arr, IsJson.Empty);
 			Assume.That(arr, IsJson.ReadOnly);
 			Assume.That(arr[0], IsJson.Error);
@@ -7009,7 +7009,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(arr6, IsJson.ReadOnly);
 			Assert.That(arr6[0], IsJson.Error);
 			Assert.That(arr6[1], IsJson.Error);
-			Assert.That(arr6, Is.SameAs(JsonArray.EmptyReadOnly));
+			Assert.That(arr6, Is.SameAs(JsonArray.ReadOnly.Empty));
 			Assert.That(prev, Is.SameAs(arr5[0]));
 			Assert.That(arr5, IsJson.EqualTo([ "baz" ]));
 			Assert.That(arr4, IsJson.EqualTo([ "world", "baz" ]));
@@ -7031,11 +7031,11 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(actual, expression, message, actualExpression, constraintExpression);
 			}
 
-			Check(JsonArray.EmptyReadOnly.CopyAndAdd("hello"), IsJson.ReadOnly.And.EqualTo([ "hello" ]));
+			Check(JsonArray.ReadOnly.Empty.CopyAndAdd("hello"), IsJson.ReadOnly.And.EqualTo([ "hello" ]));
 			Check(JsonArray.Create(["hello"]).CopyAndAdd("world"), IsJson.ReadOnly.And.EqualTo([ "hello", "world" ]));
 
-			Check(JsonArray.EmptyReadOnly.CopyAndSet(0, "hello"), IsJson.ReadOnly.And.EqualTo([ "hello" ]));
-			Check(JsonArray.EmptyReadOnly.CopyAndSet(1, "hello"), IsJson.ReadOnly.And.EqualTo([ null, "hello" ]));
+			Check(JsonArray.ReadOnly.Empty.CopyAndSet(0, "hello"), IsJson.ReadOnly.And.EqualTo([ "hello" ]));
+			Check(JsonArray.ReadOnly.Empty.CopyAndSet(1, "hello"), IsJson.ReadOnly.And.EqualTo([ null, "hello" ]));
 
 			Check(JsonArray.Create(["hello", "world"]).CopyAndSet(0, "bonjour"), IsJson.ReadOnly.And.EqualTo([ "bonjour", "world" ]));
 			Check(JsonArray.Create(["hello", "world"]).CopyAndSet(1, "le monde"), IsJson.ReadOnly.And.EqualTo([ "hello", "le monde" ]));
@@ -7050,8 +7050,8 @@ namespace Doxense.Serialization.Json.Tests
 			Check(JsonArray.Create(["hello", "world"]).CopyAndInsert(2, "!"), IsJson.ReadOnly.And.EqualTo([ "hello", "world", "!" ]));
 			Check(JsonArray.Create(["hello", "world"]).CopyAndInsert(3, "!"), IsJson.ReadOnly.And.EqualTo([ "hello", "world", null, "!" ]));
 
-			Check(JsonArray.EmptyReadOnly.CopyAndRemove(0), Is.SameAs(JsonArray.EmptyReadOnly));
-			Check(JsonArray.EmptyReadOnly.CopyAndRemove(1), Is.SameAs(JsonArray.EmptyReadOnly));
+			Check(JsonArray.ReadOnly.Empty.CopyAndRemove(0), Is.SameAs(JsonArray.ReadOnly.Empty));
+			Check(JsonArray.ReadOnly.Empty.CopyAndRemove(1), Is.SameAs(JsonArray.ReadOnly.Empty));
 			Check(JsonArray.Create(["hello", "world"]).CopyAndRemove(0), IsJson.ReadOnly.And.EqualTo([ "world" ]));
 			Check(JsonArray.Create(["hello", "world"]).CopyAndRemove(1), IsJson.ReadOnly.And.EqualTo([ "hello" ]));
 			Check(JsonArray.Create(["hello", "world"]).CopyAndRemove(2), IsJson.ReadOnly.And.EqualTo([ "hello", "world" ]));
@@ -7111,7 +7111,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			Assert.Multiple(() =>
 			{
-				var arr = JsonArray.EmptyReadOnly;
+				var arr = JsonArray.ReadOnly.Empty;
 
 				Assert.That(arr.ValueEquals<string[]>([ ]), Is.True);
 				Assert.That(arr.ValueEquals<List<string>>([ ]), Is.True);
@@ -7211,9 +7211,9 @@ namespace Doxense.Serialization.Json.Tests
 		{
 			Assert.Multiple(() =>
 			{
-				var arr = JsonArray.EmptyReadOnly;
+				var arr = JsonArray.ReadOnly.Empty;
 
-				Assert.That(arr.StrictEquals(JsonArray.EmptyReadOnly), Is.True);
+				Assert.That(arr.StrictEquals(JsonArray.ReadOnly.Empty), Is.True);
 				Assert.That(arr.StrictEquals(new JsonArray()), Is.True);
 				Assert.That(arr.StrictEquals(JsonArray.Create([])), Is.True);
 
@@ -7223,7 +7223,7 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(arr.StrictEquals(JsonBoolean.False), Is.False);
 				Assert.That(arr.StrictEquals(JsonBoolean.True), Is.False);
 				Assert.That(arr.StrictEquals(JsonArray.Create("")), Is.False);
-				Assert.That(arr.StrictEquals(JsonObject.EmptyReadOnly), Is.False);
+				Assert.That(arr.StrictEquals(JsonObject.ReadOnly.Empty), Is.False);
 				Assert.That(arr.StrictEquals(JsonString.Return("")), Is.False);
 
 				Assert.That(arr.StrictEquals(default(ReadOnlySpan<JsonValue>)), Is.True);
@@ -7246,7 +7246,7 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(arr.StrictEquals(JsonNull.Error), Is.False);
 				Assert.That(arr.StrictEquals(JsonBoolean.False), Is.False);
 				Assert.That(arr.StrictEquals(JsonBoolean.True), Is.False);
-				Assert.That(arr.StrictEquals(JsonArray.EmptyReadOnly), Is.False);
+				Assert.That(arr.StrictEquals(JsonArray.ReadOnly.Empty), Is.False);
 				Assert.That(arr.StrictEquals(JsonArray.Create("world", 123, true)), Is.False);
 				Assert.That(arr.StrictEquals(JsonArray.Create("hello", 456, true)), Is.False);
 				Assert.That(arr.StrictEquals(JsonArray.Create("hello", 123, false)), Is.False);
@@ -8214,7 +8214,7 @@ namespace Doxense.Serialization.Json.Tests
 					new JsonObject() { ["x"] = 0, ["y"] = 1, ["z"] = 0 },
 				])};
 				var obj = new JsonObject { ["Foos"] = JsonArray.Create([
-					JsonObject.EmptyReadOnly, // do no change
+					JsonObject.ReadOnly.Empty, // do no change
 					new JsonObject() { ["y"] = -1, ["z"] = 1 }, // set y to -1, add z
 					new JsonObject() { ["x"] = 0, ["y"] = 1, ["z"] = 0 }, // add new point
 				]) };
@@ -8266,7 +8266,7 @@ namespace Doxense.Serialization.Json.Tests
 					["Foo"] = 123,
 					["Bar"] = 456
 				};
-				Verify(a, b, JsonObject.EmptyReadOnly);
+				Verify(a, b, JsonObject.ReadOnly.Empty);
 			}
 			{ // field added
 				var a = new JsonObject()
@@ -8343,7 +8343,7 @@ namespace Doxense.Serialization.Json.Tests
 			{ // child arrays added (was empty before)
 				var a = JsonObject.Create(
 				[
-					("Foo", JsonArray.EmptyReadOnly)
+					("Foo", JsonArray.ReadOnly.Empty)
 				]);
 				var b = JsonObject.Create(
 				[
@@ -8361,11 +8361,11 @@ namespace Doxense.Serialization.Json.Tests
 				};
 				var b = new JsonObject
 				{
-					["Foo"] = JsonArray.EmptyReadOnly
+					["Foo"] = JsonArray.ReadOnly.Empty
 				};
 				Verify(a, b, new JsonObject
 				{
-					["Foo"] = JsonArray.EmptyReadOnly
+					["Foo"] = JsonArray.ReadOnly.Empty
 				});
 			}
 			{ // child arrays changed (only literals, with items added)
@@ -8660,7 +8660,7 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonObject_ReadOnly_Empty()
 		{
-			Assert.That(JsonObject.EmptyReadOnly.IsReadOnly, Is.True);
+			Assert.That(JsonObject.ReadOnly.Empty.IsReadOnly, Is.True);
 			//note: we don't want to attempt to modify the empty readonly singleton, because if the test fails, it will completely break ALL the reamining tests!
 
 			static void CheckEmptyReadOnly(JsonObject obj, [CallerArgumentExpression(nameof(obj))] string? expression = null)
@@ -8840,7 +8840,7 @@ namespace Doxense.Serialization.Json.Tests
 			// All methods will create return a new copy of the original, with the mutation applied, leaving the original untouched.
 			// The new read-only copy should reuse the same JsonValue instances as the original, to reduce memory copies.
 
-			var obj = JsonObject.EmptyReadOnly;
+			var obj = JsonObject.ReadOnly.Empty;
 			Assume.That(obj, IsJson.Empty);
 			Assume.That(obj, IsJson.ReadOnly);
 			Assume.That(obj["hello"], IsJson.Missing);
@@ -8919,7 +8919,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(obj6, IsJson.ReadOnly);
 			Assert.That(obj6["hello"], IsJson.Missing);
 			Assert.That(obj6["foo"], IsJson.Missing);
-			Assert.That(obj6, Is.SameAs(JsonObject.EmptyReadOnly));
+			Assert.That(obj6, Is.SameAs(JsonObject.ReadOnly.Empty));
 			Assert.That(prev, Is.SameAs(obj5["foo"]));
 			Assert.That(obj5, Has.Count.EqualTo(1));
 			Assert.That(obj5["hello"], IsJson.Missing);
@@ -8941,7 +8941,7 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public async Task Test_JsonObject_CopyAndPublish()
 		{
-			var prev = JsonObject.EmptyReadOnly;
+			var prev = JsonObject.ReadOnly.Empty;
 
 			JsonObject published = prev;
 
@@ -8962,7 +8962,7 @@ namespace Doxense.Serialization.Json.Tests
 
 			// attempts to verify the thread safety by spinnig N threads that will all add M fields, and checking that the result is an object with N x M unique fields
 
-			published = JsonObject.EmptyReadOnly;
+			published = JsonObject.ReadOnly.Empty;
 
 			var go = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 			const int N = 10;
@@ -9004,12 +9004,12 @@ namespace Doxense.Serialization.Json.Tests
 		{
 			Assert.Multiple(() =>
 			{
-				Assert.That(JsonObject.EmptyReadOnly.StrictEquals(JsonObject.EmptyReadOnly), Is.True);
-				Assert.That(JsonObject.EmptyReadOnly.StrictEquals(new JsonObject()), Is.True);
-				Assert.That(new JsonObject().StrictEquals(JsonObject.EmptyReadOnly), Is.True);
+				Assert.That(JsonObject.ReadOnly.Empty.StrictEquals(JsonObject.ReadOnly.Empty), Is.True);
+				Assert.That(JsonObject.ReadOnly.Empty.StrictEquals(new JsonObject()), Is.True);
+				Assert.That(new JsonObject().StrictEquals(JsonObject.ReadOnly.Empty), Is.True);
 
-				Assert.That(JsonObject.EmptyReadOnly.StrictEquals(JsonObject.Create("hello", "world")), Is.False);
-				Assert.That(JsonObject.EmptyReadOnly.StrictEquals(JsonObject.Create("hello", null)), Is.True);
+				Assert.That(JsonObject.ReadOnly.Empty.StrictEquals(JsonObject.Create("hello", "world")), Is.False);
+				Assert.That(JsonObject.ReadOnly.Empty.StrictEquals(JsonObject.Create("hello", null)), Is.True);
 			});
 			Assert.Multiple(() =>
 			{
@@ -9022,7 +9022,7 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(obj.StrictEquals(JsonObject.Create([ ("hello", "world"), ("foo", 123m), ("bar", true) ])), Is.True);
 				Assert.That(obj.StrictEquals(JsonObject.Create([ ("bar", true), ("foo", 123), ("hello", "world") ])), Is.True);
 
-				Assert.That(obj.StrictEquals(JsonObject.EmptyReadOnly), Is.False);
+				Assert.That(obj.StrictEquals(JsonObject.ReadOnly.Empty), Is.False);
 				Assert.That(obj.StrictEquals(new JsonObject()), Is.False);
 				Assert.That(obj.StrictEquals(JsonObject.Create([ ("hello", "world"), ("foo", 123) ])), Is.False);
 				Assert.That(obj.StrictEquals(JsonObject.Create([ ("hello", "world"), ("foo", 123), ("bar", true), ("baz", 456) ])), Is.False);

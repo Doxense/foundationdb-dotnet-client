@@ -1030,7 +1030,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			Assert.That(proxy.Equals(json), Is.True);
 			Assert.That(proxy.Equals(proxy), Is.True);
 			Assert.That(proxy.Equals(proxy.Get()), Is.True);
-			Assert.That(proxy.Equals(JsonObject.EmptyReadOnly), Is.False);
+			Assert.That(proxy.Equals(JsonObject.ReadOnly.Empty), Is.False);
 			Assert.That(proxy.Equals((object?) json), Is.True);
 			Assert.That(proxy.Equals((object?) proxy), Is.True);
 			Assert.That(proxy.Equals((object?) proxy.Get()), Is.True);
@@ -1048,7 +1048,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 		[Test]
 		public void Test_JsonReadOnlyProxy_With_Empty_Object()
 		{
-			var proxy = GeneratedConverters.MyAwesomeUser.ToReadOnly(JsonObject.EmptyReadOnly);
+			var proxy = GeneratedConverters.MyAwesomeUser.ToReadOnly(JsonObject.ReadOnly.Empty);
 
 			// all "required" members should throw
 			Assert.That(proxy.HasId(), Is.False);
@@ -1087,10 +1087,10 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 
 			// ToString() and equality methods
 			Assert.That(proxy.ToString(), Is.EqualTo("(MyAwesomeUser) { }"));
-			Assert.That(proxy.Equals(JsonObject.EmptyReadOnly), Is.True);
+			Assert.That(proxy.Equals(JsonObject.ReadOnly.Empty), Is.True);
 			Assert.That(proxy.Equals(JsonObject.Create()), Is.True);
-			Assert.That(proxy.Equals(ObservableJsonValue.Untracked(JsonObject.EmptyReadOnly)), Is.True);
-			Assert.That(proxy.GetHashCode(), Is.EqualTo(JsonObject.EmptyReadOnly.GetHashCode()));
+			Assert.That(proxy.Equals(ObservableJsonValue.Untracked(JsonObject.ReadOnly.Empty)), Is.True);
+			Assert.That(proxy.GetHashCode(), Is.EqualTo(JsonObject.ReadOnly.Empty.GetHashCode()));
 		}
 
 		[Test]
@@ -1191,7 +1191,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 		[Test]
 		public void Test_JsonWritableProxy_With_Empty_Object()
 		{
-			var proxy = GeneratedConverters.MyAwesomeUser.ToMutable(JsonObject.EmptyReadOnly);
+			var proxy = GeneratedConverters.MyAwesomeUser.ToMutable(JsonObject.ReadOnly.Empty);
 
 			// all members return their default value (even required member)
 			Assert.That(proxy.Id, Is.Null);
@@ -1226,9 +1226,9 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 
 			// misc
 			Assert.That(proxy.ToString(), Is.EqualTo("(MyAwesomeUser) { }"));
-			Assert.That(proxy.Equals(JsonObject.EmptyReadOnly), Is.True);
+			Assert.That(proxy.Equals(JsonObject.ReadOnly.Empty), Is.True);
 			Assert.That(proxy.Equals(JsonObject.Create()), Is.True);
-			Assert.That(proxy.Equals(MutableJsonValue.Untracked(JsonObject.EmptyReadOnly)), Is.True);
+			Assert.That(proxy.Equals(MutableJsonValue.Untracked(JsonObject.ReadOnly.Empty)), Is.True);
 			// it is not allowed to get the hashcode of a mutable value!
 			Assert.That(() => proxy.GetHashCode(), Throws.InstanceOf<NotSupportedException>());
 		}

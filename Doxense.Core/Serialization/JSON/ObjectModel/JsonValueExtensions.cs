@@ -572,14 +572,14 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns this value as a JSON Object, or an empty (read-only) object it is null or missing.</summary>
 		/// <param name="value">Value that can either be a JSON Object or null or missing.</param>
-		/// <returns>The same instance cast as <see cref="JsonObject"/>, or the <see cref="JsonObject.EmptyReadOnly"/> singleton if it was null or missing. Throws an exception if the value is any other type.</returns>
+		/// <returns>The same instance cast as <see cref="JsonObject"/>, or the <see cref="JsonObject.ReadOnly.Empty"/> singleton if it was null or missing. Throws an exception if the value is any other type.</returns>
 		/// <exception cref="JsonBindingException">If <paramref name="value"/> is not a JSON Object.</exception>
 		[Pure, ContractAnnotation("null => null"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public static JsonObject AsObjectOrEmpty(this JsonValue? value) => value switch
 		{
 			JsonObject obj => obj,
-			null or JsonNull => (ReferenceEquals(value, JsonNull.Error) ? FailObjectIsOutOfBounds() : JsonObject.EmptyReadOnly),
+			null or JsonNull => (ReferenceEquals(value, JsonNull.Error) ? FailObjectIsOutOfBounds() : JsonObject.ReadOnly.Empty),
 			_ => FailValueIsNotAnObject(value)
 		};
 
@@ -636,7 +636,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns either the object itself, or an empty read-only object if it was missing</summary>
 		[Pure]
-		public static JsonObject OrEmpty(this JsonObject? self) => self ?? JsonObject.EmptyReadOnly;
+		public static JsonObject OrEmpty(this JsonObject? self) => self ?? JsonObject.ReadOnly.Empty;
 
 		#endregion
 
@@ -660,15 +660,15 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns this value as a JSON Array, or an empty (read-only) object it is null or missing.</summary>
 		/// <param name="value">Value that can either be a JSON Array or null or missing.</param>
-		/// <returns>The same instance cast as <see cref="JsonArray"/>, or the <see cref="JsonArray.EmptyReadOnly"/> singleton if it was null or missing. Throws an exception if the value is any other type.</returns>
+		/// <returns>The same instance cast as <see cref="JsonArray"/>, or the <see cref="JsonArray.ReadOnly.Empty"/> singleton if it was null or missing. Throws an exception if the value is any other type.</returns>
 		/// <exception cref="JsonBindingException">If <paramref name="value"/> is not a JSON Array.</exception>
 		[Pure, ContractAnnotation("null => null"), MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
-		public static JsonArray AsArrayOrEmpty(this JsonValue? value) => value.IsNullOrMissing() ? (ReferenceEquals(value, JsonNull.Error) ? FailArrayIsOutOfBounds() : JsonArray.EmptyReadOnly) : value as JsonArray ?? FailValueIsNotAnArray(value);
+		public static JsonArray AsArrayOrEmpty(this JsonValue? value) => value.IsNullOrMissing() ? (ReferenceEquals(value, JsonNull.Error) ? FailArrayIsOutOfBounds() : JsonArray.ReadOnly.Empty) : value as JsonArray ?? FailValueIsNotAnArray(value);
 
 		/// <summary>Returns either the array itself, or an empty read-only array if it was missing</summary>
 		[Pure]
-		public static JsonArray OrEmpty(this JsonArray? self) => self ?? JsonArray.EmptyReadOnly;
+		public static JsonArray OrEmpty(this JsonArray? self) => self ?? JsonArray.ReadOnly.Empty;
 
 		#endregion
 

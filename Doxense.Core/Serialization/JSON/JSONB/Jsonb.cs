@@ -314,7 +314,7 @@ namespace Doxense.Serialization.Json.Binary
 
 				var data = this.Data;
 				int numElems = this.Count;
-				if (numElems == 0) return JsonArray.EmptyReadOnly;
+				if (numElems == 0) return JsonArray.ReadOnly.Empty;
 				if (data.Length < checked(4 + numElems * 4)) throw ThrowHelper.FormatException($"Json container is too small for an array of size {numElems}.");
 
 				// decodes the items one by one

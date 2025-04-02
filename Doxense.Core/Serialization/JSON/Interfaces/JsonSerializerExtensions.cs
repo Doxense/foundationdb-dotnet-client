@@ -411,7 +411,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (items.Length == 0)
 			{
-				return (settings.IsReadOnly()) ? JsonArray.EmptyReadOnly : new ();
+				return (settings.IsReadOnly()) ? JsonArray.ReadOnly.Empty : new ();
 			}
 
 			var arr = new JsonArray();
@@ -433,7 +433,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (items.Length == 0)
 			{
-				return (settings.IsReadOnly()) ? JsonArray.EmptyReadOnly : new();
+				return (settings.IsReadOnly()) ? JsonArray.ReadOnly.Empty : new();
 			}
 
 			var arr = new JsonArray();
@@ -455,7 +455,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (items.Length == 0)
 			{
-				return (settings.IsReadOnly()) ? JsonArray.EmptyReadOnly : new();
+				return (settings.IsReadOnly()) ? JsonArray.ReadOnly.Empty : new();
 			}
 
 			var arr = new JsonArray();
@@ -477,7 +477,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (items.Length == 0)
 			{
-				return (settings.IsReadOnly()) ? JsonArray.EmptyReadOnly : new();
+				return (settings.IsReadOnly()) ? JsonArray.ReadOnly.Empty : new();
 			}
 
 			var arr = new JsonArray();
@@ -499,7 +499,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (items.Length == 0)
 			{
-				return (settings.IsReadOnly()) ? JsonArray.EmptyReadOnly : new();
+				return (settings.IsReadOnly()) ? JsonArray.ReadOnly.Empty : new();
 			}
 
 			var arr = new JsonArray();
@@ -521,7 +521,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (items.Length == 0)
 			{
-				return (settings.IsReadOnly()) ? JsonArray.EmptyReadOnly : new();
+				return (settings.IsReadOnly()) ? JsonArray.ReadOnly.Empty : new();
 			}
 
 			var arr = new JsonArray();
@@ -543,7 +543,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (items.Length == 0)
 			{
-				return (settings.IsReadOnly()) ? JsonArray.EmptyReadOnly : new();
+				return (settings.IsReadOnly()) ? JsonArray.ReadOnly.Empty : new();
 			}
 
 			var arr = new JsonArray();
@@ -565,7 +565,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (items.Length == 0)
 			{
-				return (settings.IsReadOnly()) ? JsonArray.EmptyReadOnly : new();
+				return (settings.IsReadOnly()) ? JsonArray.ReadOnly.Empty : new();
 			}
 
 			var arr = new JsonArray();
@@ -587,7 +587,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (items.Length == 0)
 			{
-				return (settings.IsReadOnly()) ? JsonArray.EmptyReadOnly : new();
+				return (settings.IsReadOnly()) ? JsonArray.ReadOnly.Empty : new();
 			}
 
 			var arr = new JsonArray();
