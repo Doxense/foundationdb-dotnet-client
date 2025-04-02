@@ -119,6 +119,9 @@ namespace Doxense.Serialization.Json
 		public static JsonBindingException CannotDeserializeCustomTypeIncompatibleType(JsonValue value, Type type, string customClass) => new($"Cannot bind custom class name '{customClass}' into object of type '{type.GetFriendlyName()}' because there are no known valid cast between them.", value);
 
 		[MustUseReturnValue, Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static JsonBindingException CannotDeserializeCustomTypeWithUnknownTypeDiscriminator(JsonValue value, Type type, JsonValue discriminator) => new($"Could not find a concrete type to deserialize object of base type '{type.GetFriendlyName()}' with discriminator '{discriminator}'.", value);
+
+		[MustUseReturnValue, Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static JsonBindingException FailedToConstructTypeInstanceErrorOccurred(JsonValue value, Type type, Exception e) => new($"Failed to construct a new instance of type '{type.GetFriendlyName()}' while deserializing a {nameof(JsonObject)}.", value, e);
 
 		[MustUseReturnValue, Pure, MethodImpl(MethodImplOptions.NoInlining)]

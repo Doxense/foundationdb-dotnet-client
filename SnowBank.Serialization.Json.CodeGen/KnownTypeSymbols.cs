@@ -76,6 +76,9 @@ namespace SnowBank.Serialization.Json.CodeGen
 		public const string JsonStringFullName = CrystalJsonNamespace + "." + JsonStringName;
 		public const string JsonDateTimeFullName = CrystalJsonNamespace + "." + JsonDateTimeName;
 
+		public const string JsonSerializationExceptionFullName = CrystalJsonNamespace + ".JsonSerializationException";
+		public const string JsonBindingExceptionFullName = CrystalJsonNamespace + ".JsonBindingException";
+
 		// JSON writable proxies are mutable typed wrappers other a JsonValue
 		public const string IJsonWritableProxyFullName = CrystalJsonNamespace + ".IJsonWritableProxy";
 		public const string JsonWritableProxyObjectBaseFullName = CrystalJsonNamespace + ".JsonWritableProxyObjectBase";

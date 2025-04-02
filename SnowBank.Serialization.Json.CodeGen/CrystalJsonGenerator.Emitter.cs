@@ -249,9 +249,6 @@ namespace SnowBank.Serialization.Json.CodeGen
 				var typeName = typeDef.Type.Name;
 				var typeFullName = typeDef.Type.FullyQualifiedName;
 
-				// if we are a derived type, get our base type
-				this.PolymorphicMap.TryGetValue(typeDef.Type.Ref, out var polymorphicMetadata);
-
 				// we need to get back the type symbol from the compilation (which we do not store in the metadata, since it changes everytime)
 
 				var serializerName = typeName;
@@ -308,7 +305,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 					sb.NewLine();
 				}
 
-				sb.AppendLine($"public static string[] GetAllNames() => new [] {{ {string.Join(", ", typeDef.Members.Select(m => this.GetLocalPropertyNameRef(m)))} }};"); //TODO: PERF!
+				sb.AppendLine($"public static string[] GetAllNames() => new [] {{ {string.Join(", ", typeDef.Members.Select(this.GetLocalPropertyNameRef))} }};"); //TODO: PERF!
 				sb.NewLine();
 
 				sb.LeaveBlock("properties");
@@ -513,13 +510,13 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 						// Get<T>(string)
 						sb.AppendLine("/// <inheritdoc />");
-						sb.AppendLine($"public T Get<T>(string key) where T : notnull => m_value.Get<T>(key);");
+						sb.AppendLine("public T Get<T>(string key) where T : notnull => m_value.Get<T>(key);");
 						sb.NewLine();
 
 						// Get<T>(string, T)
 						sb.AppendLine("/// <inheritdoc />");
 						sb.AppendLine($"[return: {NotNullIfNotNullAttributeFullName}(nameof(defaultValue))]");
-						sb.AppendLine($"public T? Get<T>(string key, T defaultValue) => m_value.Get<T>(key, defaultValue);");
+						sb.AppendLine("public T? Get<T>(string key, T defaultValue) => m_value.Get<T>(key, defaultValue);");
 						sb.NewLine();
 
 						// this[ReadOnlyMemory<char>]
@@ -534,13 +531,13 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 						// Get<T>(ReadOnlyMemory<char>)
 						sb.AppendLine("/// <inheritdoc />");
-						sb.AppendLine($"public T Get<T>(ReadOnlyMemory<char> key) where T : notnull => m_value.Get<T>(key);");
+						sb.AppendLine("public T Get<T>(ReadOnlyMemory<char> key) where T : notnull => m_value.Get<T>(key);");
 						sb.NewLine();
 
 						// Get<T>(ReadOnlyMemory<char>, T)
 						sb.AppendLine("/// <inheritdoc />");
 						sb.AppendLine($"[return: {NotNullIfNotNullAttributeFullName}(nameof(defaultValue))]");
-						sb.AppendLine($"public T? Get<T>(ReadOnlyMemory<char> key, T defaultValue) => m_value.Get<T>(key, defaultValue);");
+						sb.AppendLine("public T? Get<T>(ReadOnlyMemory<char> key, T defaultValue) => m_value.Get<T>(key, defaultValue);");
 						sb.NewLine();
 
 						// Get(JsonPath)
@@ -785,7 +782,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 						sb.EnterBlock();
 						if (!typeDef.Type.IsValueType())
 						{
-							sb.AppendLine("if (value is null) throw new ArgumentNullException(nameof(value));");
+							sb.AppendLine("ArgumentNullException.ThrowIfNull(value);");
 						}
 						sb.AppendLine($"return new({KnownTypeSymbols.MutableJsonValueFullName}.Untracked({GetLocalSerializerRef(typeDef)}.Pack(value, {KnownTypeSymbols.CrystalJsonSettingsFullName}.Json)));");
 						sb.LeaveBlock();
@@ -797,7 +794,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 						sb.EnterBlock();
 						if (!typeDef.Type.IsValueType())
 						{
-							sb.AppendLine("if (value is null) throw new ArgumentNullException(nameof(value));");
+							sb.AppendLine("ArgumentNullException.ThrowIfNull(value);");
 						}
 						sb.AppendLine($"return new({KnownTypeSymbols.MutableJsonValueFullName}.Tracked(ctx, {GetLocalSerializerRef(typeDef)}.Pack(value, {KnownTypeSymbols.CrystalJsonSettingsFullName}.Json)));");
 						sb.LeaveBlock();
@@ -1397,13 +1394,13 @@ namespace SnowBank.Serialization.Json.CodeGen
 							}
 							default:
 							{
-								sb.AppendLine($"#error unsupported type for discriminator of derived type {discriminator}");
+								sb.AppendLine($"#error Invalid discriminator value type for derived type {derivedType.Name} of parent type {typeDef.Name}");
 								break;
 							}
 						}
 					}
 
-					sb.AppendLine("throw new NotSupportedException();");
+					sb.AppendLine($"throw {KnownTypeSymbols.JsonBindingExceptionFullName}.CannotDeserializeCustomTypeWithUnknownTypeDiscriminator(value, typeof({typeFullName}), discriminator);");
 					sb.LeaveBlock();
 					sb.NewLine();
 					return;
@@ -1465,12 +1462,14 @@ namespace SnowBank.Serialization.Json.CodeGen
 				{
 					sb.AppendLine("switch(instance)");
 					sb.EnterBlock();
-					foreach (var (_, derivedType, x) in typeDef.DerivedTypes)
+					foreach (var (_, derivedType, _) in typeDef.DerivedTypes)
 					{
 						if (derivedType.IsAbstract) continue; // skip abstract types
+						//BUGBUG: TODO: we may need to sort the types from most specific to less specific, ex: "case Greyhound" then "case Dog", otherwise "case Dog" would match all Greyhound instances if evaluated first!
+						//note: if we compute the "depth" of each type (from the top most abstract class or interface), we could simply sort them from highest to lowest!
 						sb.AppendLine($"case {derivedType.FullyQualifiedName} x: return {GetLocalSerializerRef(derivedType)}.Pack(x, settings, resolver);");
 					}
-					sb.AppendLine($"default: throw new NotSupportedException(\"Does not know how to serialize derived type\");");
+					sb.AppendLine($"default: throw {KnownTypeSymbols.JsonSerializationExceptionFullName}.CannotPackDerivedTypeWithUnknownTypeDiscriminator(instance.GetType(), typeof({typeDef.Type.FullyQualifiedName}));");
 					sb.LeaveBlock();
 
 					sb.LeaveBlock("Pack");
@@ -1495,10 +1494,10 @@ namespace SnowBank.Serialization.Json.CodeGen
 				// if the type is not sealed, we may have a derived type, we must defer serialization to this type!
 				if (!typeDef.Type.IsSealed)
 				{
-					//TODO: we should have a local method that can dispatch known types!
+					//BUGBUG: TODO: detect if we have a generated serialize for this derived type?
 					sb.AppendLine($"if (instance.GetType() != typeof({typeDef.Type.FullyQualifiedName}))");
 					sb.EnterBlock();
-					sb.AppendLine("throw new NotSupportedException(\"Cannot pack a polymorphic type. You must add at least one [JsonDerivedType] to the base class or interface.\");");
+					sb.AppendLine($"throw {KnownTypeSymbols.JsonSerializationExceptionFullName}.CannotPackDerivedTypeWithUnknownTypeDiscriminator(instance.GetType(), typeof({typeDef.Type.FullyQualifiedName}));");
 					sb.LeaveBlock("Pack");
 					sb.NewLine();
 				}
@@ -1518,9 +1517,13 @@ namespace SnowBank.Serialization.Json.CodeGen
 					{
 						sb.AppendLine($"obj[{typeDiscriminatorPropertyName}] = {CSharpCodeBuilder.Constant(n)};"); //TODO: create a static readonly for the JsonNumber!
 					}
+					else if (polymorphicMetadata.Discriminator is null)
+					{
+						sb.AppendLine($"#error You must specify a valid type discriminator for derived type {typeDef.Name} of parent type {polymorphicMetadata.Parent.Name}");
+					}
 					else
 					{
-						sb.AppendLine("#error Invalid discriminator value type");
+						sb.AppendLine($"#error Invalid discriminator value type for derived type {typeDef.Name} of parent type {polymorphicMetadata.Parent.Name}");
 					}
 					sb.NewLine();
 				}
@@ -1573,12 +1576,12 @@ namespace SnowBank.Serialization.Json.CodeGen
 				{
 					sb.AppendLine("switch(instance)");
 					sb.EnterBlock();
-					foreach (var (_, derivedType, x) in typeDef.DerivedTypes)
+					foreach (var (_, derivedType, _) in typeDef.DerivedTypes)
 					{
 						if (derivedType.IsAbstract) continue;
 						sb.AppendLine($"case {derivedType.FullyQualifiedName} x: {GetLocalSerializerRef(derivedType)}.Serialize(writer, x); break;");
 					}
-					sb.AppendLine($"default: throw new NotSupportedException(\"Does not know how to serialize derived type\");");
+					sb.AppendLine($"default: throw {KnownTypeSymbols.JsonSerializationExceptionFullName}.CannotSerializeDerivedTypeWithoutTypeDiscriminator(instance.GetType(), typeof({typeFullName}));");
 					sb.LeaveBlock();
 
 					sb.LeaveBlock("Serialize()");
