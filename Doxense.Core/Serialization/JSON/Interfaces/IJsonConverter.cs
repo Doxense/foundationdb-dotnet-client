@@ -26,28 +26,33 @@
 
 namespace Doxense.Serialization.Json
 {
+	using System.Diagnostics.CodeAnalysis;
 
 	/// <summary>Bundle interface that is implemented by source-generated encoders</summary>
 	/// <remarks>
 	/// <para>This interfaces bundles <see cref="IJsonSerializer{T}"/>, <see cref="IJsonDeserializer{T}"/> and <see cref="IJsonPacker{T}"/>,
 	/// so that it is easier to provide APIs that take a single instance, that is able to both encode and decode JSON without needing two or three different parameters.</para>
 	/// </remarks>
+	[PublicAPI]
 	public interface IJsonConverter<T> : IJsonSerializer<T>, IJsonDeserializer<T>, IJsonPacker<T>
 	{
-
+		// this is just a marker interface
 	}
 
+	/// <summary>Bundle interface that is implemented by source-generated encoders for read-only proxies.</summary>
+	/// <typeparam name="TValue">Beacon type for the exposed proxy</typeparam>
+	/// <typeparam name="TReadOnlyProxy">Type of the generated read-only proxy that mimics the properties on type <typeparamref name="TValue"/></typeparam>
+	[PublicAPI]
 	public interface IJsonReadOnlyConverter<TValue, out TReadOnlyProxy> : IJsonConverter<TValue>
 		where TReadOnlyProxy : IJsonReadOnlyProxy<TValue, TReadOnlyProxy>
 	{
-		//REVIEW: rename ToReadOnly?
-
 		/// <summary>Wraps the specified JSON value into a read-only proxy</summary>
 		/// <param name="value">Underlying JSON value</param>
 		/// <returns>Proxy that exposes the value using typed properties.</returns>
 		TReadOnlyProxy ToReadOnly(JsonValue value);
 
 		/// <summary>Wraps the specified JSON value into a read-only proxy</summary>
+		/// <param name="context">Context that will record all access to the read-only proxy</param>
 		/// <param name="value">Underlying JSON value</param>
 		/// <returns>Proxy that exposes the value using typed properties.</returns>
 		TReadOnlyProxy ToReadOnly(IObservableJsonContext context, JsonValue value);
@@ -58,35 +63,57 @@ namespace Doxense.Serialization.Json
 		TReadOnlyProxy ToReadOnly(TValue instance);
 
 		/// <summary>Wraps a <typeparamref name="TValue"/> instance with a read-only proxy</summary>
+		/// <param name="context">Context that will record all access to the read-only proxy</param>
 		/// <param name="instance">Instance that will be converted to JSON</param>
 		/// <returns>Proxy that exposes the equivalent JSON value, using typed properties.</returns>
 		TReadOnlyProxy ToReadOnly(IObservableJsonContext context, TValue instance);
 
 	}
 
+	/// <summary>Bundle interface that is implemented by source-generated encoders for writable proxies.</summary>
+	/// <typeparam name="TValue">Beacon type for the exposed proxy</typeparam>
+	/// <typeparam name="TWritableProxy">Type of the generated writable proxy that mimics the properties on type <typeparamref name="TValue"/></typeparam>
+	[PublicAPI]
 	public interface IJsonWritableConverter<TValue, out TWritableProxy> : IJsonConverter<TValue>
 		where TWritableProxy : IJsonWritableProxy<TValue, TWritableProxy>
 	{
-		//REVIEW: rename to ToWritable?
+		//REVIEW: rename ToMutable() to ToWritable() ?
 
+		/// <summary>Wraps the specified JSON value into a writable proxy</summary>
+		/// <param name="value">Underlying JSON value</param>
+		/// <returns>Proxy that exposes the value using typed properties.</returns>
 		TWritableProxy ToMutable(JsonValue value);
 
+		/// <summary>Wraps the specified JSON value into a writable proxy</summary>
+		/// <param name="context">Context that will record all access to the writable proxy</param>
+		/// <param name="value">Underlying JSON value</param>
+		/// <returns>Proxy that exposes the value using typed properties.</returns>
+		TWritableProxy ToMutable(IMutableJsonContext context, JsonValue value);
+
+		/// <summary>Wraps a <typeparamref name="TValue"/> instance with a writable proxy</summary>
+		/// <param name="instance">Instance that will be converted to JSON</param>
+		/// <returns>Proxy that exposes the equivalent JSON value, using typed properties.</returns>
 		TWritableProxy ToMutable(TValue instance);
 
-		TWritableProxy ToMutable(IMutableJsonContext ctx, JsonValue value);
-
-		TWritableProxy ToMutable(IMutableJsonContext ctx, TValue instance);
+		/// <summary>Wraps a <typeparamref name="TValue"/> instance with a writable proxy</summary>
+		/// <param name="context">Context that will record all access to the writable proxy</param>
+		/// <param name="instance">Instance that will be converted to JSON</param>
+		/// <returns>Proxy that exposes the equivalent JSON value, using typed properties.</returns>
+		TWritableProxy ToMutable(IMutableJsonContext context, TValue instance);
 
 	}
 
-	/// <summary>Bundle interface that is implemented by source-generated encoders</summary>
+	/// <summary>Bundle interface that is implemented by source-generated encoders, with support for read-only and writable proxies.</summary>
+	/// <typeparam name="TValue">Beacon type for the exposed proxy</typeparam>
+	/// <typeparam name="TReadOnlyProxy">Type of the generated read-only proxy that mimics the properties on type <typeparamref name="TValue"/></typeparam>
+	/// <typeparam name="TWritableProxy">Type of the generated writable proxy that mimics the properties on type <typeparamref name="TValue"/></typeparam>
 	public interface IJsonConverter<TValue, out TReadOnlyProxy, out TWritableProxy> :
-		IJsonConverter<TValue>,
 		IJsonReadOnlyConverter<TValue, TReadOnlyProxy>,
 		IJsonWritableConverter<TValue, TWritableProxy>
 		where TReadOnlyProxy : IJsonReadOnlyProxy<TValue, TReadOnlyProxy>
 		where TWritableProxy : IJsonWritableProxy<TValue, TWritableProxy>
 	{
+		// this is just a marker interface
 	}
 
 	internal sealed class DefaultJsonConverter<T> : IJsonConverter<T>
@@ -105,7 +132,7 @@ namespace Doxense.Serialization.Json
 		)
 		{
 			this.SerializeHandler = serializeHandler ?? (static (_, _) => throw new NotSupportedException("Operation not supported"));
-			this.DeserializeHandler = deserializeHandler ?? (static (_, _) => throw new NotSupportedException("Operation not supported")); ;
+			this.DeserializeHandler = deserializeHandler ?? (static (_, _) => throw new NotSupportedException("Operation not supported"));
 			this.PackHandler = packHandler ?? (static (_, _, _) => throw new NotSupportedException("Operation not supported"));
 		}
 
@@ -125,7 +152,7 @@ namespace Doxense.Serialization.Json
 		}
 	}
 
-	internal sealed class RuntimeJsonConverter<T> : IJsonConverter<T>
+	internal sealed class RuntimeJsonConverter<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T> : IJsonConverter<T>
 	{
 
 		/// <summary>Default converter for instances of type <typeparamref name="T"/></summary>
