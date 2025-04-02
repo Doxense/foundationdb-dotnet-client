@@ -314,6 +314,7 @@ namespace Doxense.Serialization.Json.Binary
 
 				var data = this.Data;
 				int numElems = this.Count;
+				if (numElems == 0) return JsonArray.EmptyReadOnly;
 				if (data.Length < checked(4 + numElems * 4)) throw ThrowHelper.FormatException($"Json container is too small for an array of size {numElems}.");
 
 				// decodes the items one by one
@@ -343,6 +344,10 @@ namespace Doxense.Serialization.Json.Binary
 				if (!this.IsObject) throw ThrowHelper.InvalidOperationException("Specified jsonb container is not an object.");
 
 				int numPairs = this.Count;
+				if (numPairs == 0)
+				{
+					return JsonObject.ReadOnly.Empty;
+				}
 				if (this.Data.Length  < checked(4 + numPairs * 2 * 4)) throw ThrowHelper.FormatException($"Json container is too small for an object of size {numPairs}.");
 
 				//TODO: scan the entries, instead of calling GetArrayEntry(..) for each of them

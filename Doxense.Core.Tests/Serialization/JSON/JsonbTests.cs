@@ -291,7 +291,9 @@ namespace Doxense.Serialization.Json.Binary.Tests
 		public void Test_Encode_Arrays()
 		{
 			// empty array
-			VerifyRoundtrip(JsonArray.EmptyReadOnly);
+			VerifyRoundtrip(JsonArray.Create());
+			VerifyRoundtrip(JsonArray.ReadOnly.Empty);
+			VerifyRoundtrip(JsonArray.ReadOnly.Create());
 
 			// simple arrays
 			VerifyRoundtrip(JsonArray.FromValues([ "hello", "world" ]));
@@ -341,8 +343,8 @@ namespace Doxense.Serialization.Json.Binary.Tests
 		public void Test_Encode_Objects()
 		{
 			// { }
-			VerifyRoundtrip(JsonObject.Empty);
 			VerifyRoundtrip(JsonObject.Create());
+			VerifyRoundtrip(JsonObject.ReadOnly.Empty);
 			VerifyRoundtrip(JsonObject.ReadOnly.Create());
 			VerifyRoundtrip(new JsonObject());
 			VerifyRoundtrip(new JsonObject(0));
