@@ -43,6 +43,8 @@ namespace Doxense.Serialization.Json
 
 		ObservableJsonValue Get(Index index);
 
+		ObservableJsonValue Get(JsonPath path);
+
 		/// <summary>Returns the proxied JSON Value</summary>
 		/// <remarks>
 		/// <para>The returned value is read-only and cannot be changed.</para>

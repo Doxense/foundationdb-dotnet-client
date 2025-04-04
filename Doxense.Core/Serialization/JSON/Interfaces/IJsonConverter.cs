@@ -44,7 +44,7 @@ namespace Doxense.Serialization.Json
 	/// <typeparam name="TReadOnlyProxy">Type of the generated read-only proxy that mimics the properties on type <typeparamref name="TValue"/></typeparam>
 	[PublicAPI]
 	public interface IJsonReadOnlyConverter<TValue, out TReadOnlyProxy> : IJsonConverter<TValue>
-		where TReadOnlyProxy : IJsonReadOnlyProxy<TValue, TReadOnlyProxy>
+		where TReadOnlyProxy : IJsonReadOnlyProxy<TValue>
 	{
 		/// <summary>Wraps the specified JSON value into a read-only proxy</summary>
 		/// <param name="value">Underlying JSON value</param>
@@ -75,7 +75,7 @@ namespace Doxense.Serialization.Json
 	/// <typeparam name="TWritableProxy">Type of the generated writable proxy that mimics the properties on type <typeparamref name="TValue"/></typeparam>
 	[PublicAPI]
 	public interface IJsonWritableConverter<TValue, out TWritableProxy> : IJsonConverter<TValue>
-		where TWritableProxy : IJsonWritableProxy<TValue, TWritableProxy>
+		where TWritableProxy : IJsonWritableProxy<TValue>
 	{
 		//REVIEW: rename ToMutable() to ToWritable() ?
 
@@ -110,8 +110,8 @@ namespace Doxense.Serialization.Json
 	public interface IJsonConverter<TValue, out TReadOnlyProxy, out TWritableProxy> :
 		IJsonReadOnlyConverter<TValue, TReadOnlyProxy>,
 		IJsonWritableConverter<TValue, TWritableProxy>
-		where TReadOnlyProxy : IJsonReadOnlyProxy<TValue, TReadOnlyProxy>
-		where TWritableProxy : IJsonWritableProxy<TValue, TWritableProxy>
+		where TReadOnlyProxy : IJsonReadOnlyProxy<TValue>
+		where TWritableProxy : IJsonWritableProxy<TValue>
 	{
 		// this is just a marker interface
 	}
