@@ -14,7 +14,7 @@ namespace Doxense.Serialization.Json
 	/// <summary>Observable JSON Object that will capture all reads</summary>
 	[DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
-	public sealed class ObservableJsonValue : IJsonProxyNode, IJsonSerializable, IJsonPackable, IEquatable<ObservableJsonValue>, IEquatable<JsonValue>, IEnumerable<ObservableJsonValue>
+	public sealed class ObservableJsonValue : IJsonProxyNode, IJsonSerializable, IJsonPackable, IEquatable<ObservableJsonValue>, IEquatable<JsonValue>, IComparable<ObservableJsonValue>, IComparable<JsonValue>, IEnumerable<ObservableJsonValue>
 	{
 
 		public ObservableJsonValue(IObservableJsonContext? ctx, IJsonProxyNode? parent, JsonPathSegment segment, JsonValue json)
@@ -1097,8 +1097,16 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		public bool Equals(JsonValue? other) => other == null ? IsNullOrMissing() : this.ToJson().StrictEquals(other);
 
+		/// <inheritdoc />
+		public int CompareTo(ObservableJsonValue? other) => other != null ? this.ToJson().CompareTo(other.ToJson()) : Exists() ? +1 : 0;
+
+		/// <inheritdoc />
+		public int CompareTo(JsonValue? other) => other != null ? this.ToJson().CompareTo(other) : Exists() ? +1 : 0;
+
+		/// <inheritdoc />
 		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => this.ToJson().JsonSerialize(writer);
 
+		/// <inheritdoc />
 		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => this.ToJson();
 
 		public JsonArray AsArray() => this.ToJson().AsArray();
