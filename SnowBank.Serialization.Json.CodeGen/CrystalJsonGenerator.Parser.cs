@@ -102,9 +102,9 @@ namespace SnowBank.Serialization.Json.CodeGen
 					// Unsupported lang version should be the first (and only) diagnostic emitted by the generator.
 					ReportDiagnostic(
 						new(
-							"CJSON0003",
-							"You must include at least one type in {0} by adding one ore more [CrystalJsonSerializable] attributes",
-							"The project target C# language version {0} which is lower than the minimum supported version {1}.",
+							"SYSLIB1221", //note: we use the same ID as System.Text.Json, since this is the same error
+							"C# language version not supported by the source generator.",
+							"The JSON source generator is not available in C# {0}. Please use language version {1} or greater.",
 							"SnowBank.Serialization.Json.CodeGen",
 							DiagnosticSeverity.Error,
 							isEnabledByDefault: true
@@ -195,7 +195,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 					{
 						Kenobi($"CRASH for {type}: {ex.ToString()}");
 						ReportDiagnostic(
-							new DiagnosticDescriptor(
+							new(
 								"CJSON0001",
 								"Failed to parse JSON metadata",
 								"Failed to extract the JSON serialization metadata for type {0}: {1}",
@@ -204,8 +204,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 								isEnabledByDefault: true
 							),
 							this.ContextClassLocation,
-							type.ToDisplayString(),
-							ex.ToString()
+							[ type.ToDisplayString(), ex.ToString() ]
 						);
 					}
 				}
@@ -222,7 +221,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 							isEnabledByDefault: true
 						),
 						this.ContextClassLocation,
-						symbol.ToDisplayString()
+						[ symbol.ToDisplayString() ]
 					);
 				}
 
