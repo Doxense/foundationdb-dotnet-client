@@ -184,31 +184,37 @@ namespace SnowBank.Serialization.Json.CodeGen
 					}
 					catch (Exception ex)
 					{
-						//TODO: inject a diagnostic!
 						Kenobi("CRASH: failed to generate " + typeDef.Name + ": " + ex.ToString());
 
-						this.Context.AddSource($"{this.Metadata.Type.Name}.{typeDef.Name}.g.cs", sb.ToString());
+						var generated = sb.ToString();
+						// to help with diagnosing the crash, we will include the code generated so far inside #if ... #endif
 
 						sb.Clear();
 						sb.NewLine();
 						sb.Comment("ERROR: generator failed!");
 						sb.Comment(ex.ToString());
 						sb.NewLine();
-						// note: we need to write _something_ to the file, otherwise we may get errors like "Only one compilation unit can have top-level statements."
-						sb.AppendLine($"namespace {symbol.NameSpace}");
-						sb.EnterBlock("namespace");
-
-						// we don't want to have to specify the namespace everytime
-						sb.AppendLine($"using {KnownTypeSymbols.CrystalJsonNamespace};");
-						// we also use a lot of helper static methods from this type
-						sb.AppendLine($"using static {KnownTypeSymbols.JsonSerializerExtensionsFullName};");
+						sb.Comment("Code generated until the crash:");
+						sb.AppendLine("#if false");
+						sb.NewLine();
+						sb.Output.Append(generated.Replace("#region", "_#region").Replace("#endregion", "_#endregion").Replace("#if", "_#if").Replace("#endif", "_#endif").Replace("#else", "_#else").Replace("#elif", "_#elif"));
+						sb.Comment(ex.ToString());
+						sb.NewLine();
+						sb.AppendLine("#endif");
 						sb.NewLine();
 
-						sb.AppendLine($"public static partial class {symbol.Name}");
-						sb.EnterBlock("Container");
+						this.Context.AddSource($"{this.Metadata.Type.Name}.{typeDef.Name}.g.cs", sb.ToString());
 
-						sb.AppendLine($"#error Generation failed for {symbol.Name}: {ex.ToString().Replace("\r\n", "  ")}");
-						sb.NewLine();
+						this.Context.ReportDiagnostic(
+							Diagnostic.Create(new(
+								"CJSON0003",
+								"Failed to emit JSON code",
+								"Failed to emit the generate source-code for for type {0} in {1}: [{2}] {3}.",
+								"SnowBank.Serialization.Json.CodeGen",
+								DiagnosticSeverity.Error,
+								isEnabledByDefault: true
+							), null, [ typeDef.Name, this.Metadata.Name, ex.GetType().Name, ex.Message ])
+						);
 					}
 
 					sb.LeaveBlock("Container");
