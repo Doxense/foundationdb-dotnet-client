@@ -508,44 +508,44 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 						// this[string]
 						sb.AppendLine("/// <inheritdoc />");
-						sb.AppendLine($"public {KnownTypeSymbols.ObservableJsonValueFullName} this[string key] => m_value.Get(key);");
+						sb.AppendLine($"public {KnownTypeSymbols.ObservableJsonValueFullName} this[string name] => m_value.Get(name);");
 						sb.NewLine();
 
 						// Get(string)
 						sb.AppendLine("/// <inheritdoc />");
-						sb.AppendLine($"public {KnownTypeSymbols.ObservableJsonValueFullName} Get(string key) => m_value.Get(key);");
+						sb.AppendLine($"public {KnownTypeSymbols.ObservableJsonValueFullName} Get(string name) => m_value.Get(name);");
 						sb.NewLine();
 
 						// Get<T>(string)
 						sb.AppendLine("/// <inheritdoc />");
-						sb.AppendLine("public T Get<T>(string key) where T : notnull => m_value.Get<T>(key);");
+						sb.AppendLine("public T Get<T>(string name) where T : notnull => m_value.Get<T>(name);");
 						sb.NewLine();
 
 						// Get<T>(string, T)
 						sb.AppendLine("/// <inheritdoc />");
 						sb.AppendLine($"[return: {NotNullIfNotNullAttributeFullName}(nameof(defaultValue))]");
-						sb.AppendLine("public T? Get<T>(string key, T defaultValue) => m_value.Get<T>(key, defaultValue);");
+						sb.AppendLine("public T? Get<T>(string name, T defaultValue) => m_value.Get<T>(name, defaultValue);");
 						sb.NewLine();
 
 						// this[ReadOnlyMemory<char>]
 						sb.AppendLine("/// <inheritdoc />");
-						sb.AppendLine($"public {KnownTypeSymbols.ObservableJsonValueFullName} this[ReadOnlyMemory<char> key] => m_value.Get(key);");
+						sb.AppendLine($"public {KnownTypeSymbols.ObservableJsonValueFullName} this[ReadOnlyMemory<char> name] => m_value.Get(name);");
 						sb.NewLine();
 
 						// Get(ReadOnlyMemory<char>)
 						sb.AppendLine("/// <inheritdoc />");
-						sb.AppendLine($"public {KnownTypeSymbols.ObservableJsonValueFullName} Get(ReadOnlyMemory<char> key) => m_value.Get(key);");
+						sb.AppendLine($"public {KnownTypeSymbols.ObservableJsonValueFullName} Get(ReadOnlyMemory<char> name) => m_value.Get(name);");
 						sb.NewLine();
 
 						// Get<T>(ReadOnlyMemory<char>)
 						sb.AppendLine("/// <inheritdoc />");
-						sb.AppendLine("public T Get<T>(ReadOnlyMemory<char> key) where T : notnull => m_value.Get<T>(key);");
+						sb.AppendLine("public T Get<T>(ReadOnlyMemory<char> name) where T : notnull => m_value.Get<T>(name);");
 						sb.NewLine();
 
 						// Get<T>(ReadOnlyMemory<char>, T)
 						sb.AppendLine("/// <inheritdoc />");
 						sb.AppendLine($"[return: {NotNullIfNotNullAttributeFullName}(nameof(defaultValue))]");
-						sb.AppendLine("public T? Get<T>(ReadOnlyMemory<char> key, T defaultValue) => m_value.Get<T>(key, defaultValue);");
+						sb.AppendLine("public T? Get<T>(ReadOnlyMemory<char> name, T defaultValue) => m_value.Get<T>(name, defaultValue);");
 						sb.NewLine();
 
 						// Get(JsonPath)

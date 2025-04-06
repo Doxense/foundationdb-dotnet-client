@@ -94,14 +94,16 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Returns the path to a field of this object, from the root</summary>
-		/// <param name="key">Name of a field in this object</param>
-		public static JsonPath ComputePath(IJsonProxyNode? parent, in JsonPathSegment segment, ReadOnlyMemory<char> key)
+		/// <param name="parent">Parent of this node (or <c>null</c> if this is the top level)</param>
+		/// <param name="segment">Name or index of this node in its parent</param>
+		/// <param name="name">Name of a field in this object</param>
+		public static JsonPath ComputePath(IJsonProxyNode? parent, in JsonPathSegment segment, ReadOnlyMemory<char> name)
 		{
-			Contract.Debug.Requires(key.Length > 0);
+			Contract.Debug.Requires(name.Length > 0);
 
 			if (segment.IsEmpty())
 			{
-				return JsonPath.Create(new JsonPathSegment(key));
+				return JsonPath.Create(new JsonPathSegment(name));
 			}
 
 			Span<char> scratch = stackalloc char[32];
@@ -110,7 +112,7 @@ namespace Doxense.Serialization.Json
 			{
 				parent?.WritePath(ref writer);
 				writer.Append(in segment);
-				writer.Append(key);
+				writer.Append(name);
 				return writer.ToPath();
 			}
 			finally
@@ -120,7 +122,8 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Returns the path to an item of this array, from the root</summary>
-		/// <param name="node"></param>
+		/// <param name="parent">Parent of this node (or <c>null</c> if this is the top level)</param>
+		/// <param name="segment">Name or index of this node in its parent</param>
 		/// <param name="index">Index of the item in this array</param>
 		public static JsonPath ComputePath(IJsonProxyNode? parent, in JsonPathSegment segment, Index index)
 		{

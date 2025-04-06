@@ -35,14 +35,24 @@ namespace Doxense.Serialization.Json
 		/// <remarks>This value can be used to "escape" the type safety of the proxy, while still allowing for tracking of read access.</remarks>
 		ObservableJsonValue Get();
 
-		ObservableJsonValue Get(string key);
+		/// <summary>Returns the value of the field with the specified name</summary>
+		/// <remarks>This value can be used to "escape" the type safety of the proxy, while still allowing for tracking of read access.</remarks>
+		ObservableJsonValue Get(string name);
 
-		ObservableJsonValue Get(ReadOnlyMemory<char> key);
+		/// <summary>Returns the value of the field with the specified name</summary>
+		/// <remarks>This value can be used to "escape" the type safety of the proxy, while still allowing for tracking of read access.</remarks>
+		ObservableJsonValue Get(ReadOnlyMemory<char> name);
 
+		/// <summary>Returns the value of the element at the specified location</summary>
+		/// <remarks>This value can be used to "escape" the type safety of the proxy, while still allowing for tracking of read access.</remarks>
 		ObservableJsonValue Get(int index);
 
+		/// <summary>Returns the value of the element at the specified location</summary>
+		/// <remarks>This value can be used to "escape" the type safety of the proxy, while still allowing for tracking of read access.</remarks>
 		ObservableJsonValue Get(Index index);
 
+		/// <summary>Returns the value of the child at the specified path</summary>
+		/// <remarks>This value can be used to "escape" the type safety of the proxy, while still allowing for tracking of read access.</remarks>
 		ObservableJsonValue Get(JsonPath path);
 
 		/// <summary>Returns the proxied JSON Value</summary>

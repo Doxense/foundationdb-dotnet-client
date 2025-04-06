@@ -62,11 +62,11 @@ namespace Doxense.Serialization.Json
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public MutableJsonValue Get(string key) => m_value.Get(key);
+		public MutableJsonValue Get(string name) => m_value.Get(name);
 		
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public MutableJsonValue Get(ReadOnlyMemory<char> key) => m_value.Get(key);
+		public MutableJsonValue Get(ReadOnlyMemory<char> name) => m_value.Get(name);
 
 		/// <inheritdoc />
 		MutableJsonValue IJsonWritableProxy.Get(int index) => m_value.Get(index);
@@ -121,13 +121,25 @@ namespace Doxense.Serialization.Json
 		/// <param name="value">New value that replaces the content of this object</param>
 		public void Set(JsonValue value) => m_value.Set(value);
 
-		public void Set(string key, JsonValue value) => m_value.Set(key, value);
+		/// <summary>Sets or changes the value of the field with the given name</summary>
+		/// <param name="name">Name of the field</param>
+		/// <param name="value">New value that replaces the content of this object</param>
+		public void Set(string name, JsonValue value) => m_value.Set(name, value);
 
-		public void Set(ReadOnlyMemory<char> key, JsonValue value) => m_value.Set(key, value);
+		/// <summary>Sets or changes the value of the field with the given name</summary>
+		/// <param name="name">Name of the field</param>
+		/// <param name="value">New value that replaces the content of this object</param>
+		public void Set(ReadOnlyMemory<char> name, JsonValue value) => m_value.Set(name, value);
 
-		public void Set(string key, MutableJsonValue value) => m_value.Set(key, value);
+		/// <summary>Sets or changes the value of the field with the given name</summary>
+		/// <param name="name">Name of the field</param>
+		/// <param name="value">New value that replaces the content of this object</param>
+		public void Set(string name, MutableJsonValue value) => m_value.Set(name, value);
 
-		public void Set(ReadOnlyMemory<char> key, MutableJsonValue value) => m_value.Set(key, value);
+		/// <summary>Sets or changes the value of the field with the given name</summary>
+		/// <param name="name">Name of the field</param>
+		/// <param name="value">New value that replaces the content of this object</param>
+		public void Set(ReadOnlyMemory<char> name, MutableJsonValue value) => m_value.Set(name, value);
 
 		/// <inheritdoc />
 		public void JsonSerialize(CrystalJsonWriter writer) => m_value.Json.JsonSerialize(writer);

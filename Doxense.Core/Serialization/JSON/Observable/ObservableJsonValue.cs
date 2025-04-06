@@ -769,8 +769,8 @@ namespace Doxense.Serialization.Json
 		public ObservableJsonValue Get(ReadOnlyMemory<char> name)
 		{
 #if NET9_0_OR_GREATER
-			var value = this.Json.GetValueOrDefault(name, JsonNull.Missing, out var actualKey);
-			name = actualKey?.AsMemory() ?? name;
+			var value = this.Json.GetValueOrDefault(name, JsonNull.Missing, out var actualName);
+			name = actualName?.AsMemory() ?? name;
 #else
 			var value = this.Json.GetValueOrDefault(name, JsonNull.Missing);
 #endif
@@ -785,8 +785,8 @@ namespace Doxense.Serialization.Json
 		public JsonValue GetValue(ReadOnlyMemory<char> name)
 		{
 #if NET9_0_OR_GREATER
-			var value = this.Json.GetValueOrDefault(name, JsonNull.Missing, out var actualKey);
-			name = actualKey?.AsMemory() ?? name;
+			var value = this.Json.GetValueOrDefault(name, JsonNull.Missing, out var actualName);
+			name = actualName?.AsMemory() ?? name;
 #else
 			var value = this.Json.GetValueOrDefault(name, JsonNull.Missing);
 #endif
@@ -798,8 +798,8 @@ namespace Doxense.Serialization.Json
 		public TValue Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlyMemory<char> name) where TValue : notnull
 		{
 #if NET9_0_OR_GREATER
-			var value = this.Json.GetValue(name, out var actualKey);
-			name = actualKey?.AsMemory() ?? name;
+			var value = this.Json.GetValue(name, out var actualName);
+			name = actualName?.AsMemory() ?? name;
 #else
 			var value = this.Json.GetValue(name);
 #endif
@@ -812,8 +812,8 @@ namespace Doxense.Serialization.Json
 		public TValue? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlyMemory<char> name, TValue? defaultValue)
 		{
 #if NET9_0_OR_GREATER
-			var value = this.Json.GetValueOrDefault(name, JsonNull.Missing, out var actualKey);
-			name = actualKey?.AsMemory() ?? name;
+			var value = this.Json.GetValueOrDefault(name, JsonNull.Missing, out var actualName);
+			name = actualName?.AsMemory() ?? name;
 #else
 			var value = this.Json.GetValueOrDefault(name, JsonNull.Missing);
 #endif

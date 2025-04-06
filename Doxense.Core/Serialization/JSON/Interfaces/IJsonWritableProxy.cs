@@ -36,14 +36,29 @@ namespace Doxense.Serialization.Json
 		/// <remarks>This value can be used to "escape" the type safety of the proxy, while still allowing for tracking of mutations.</remarks>
 		MutableJsonValue Get();
 
-		MutableJsonValue Get(string key);
+		/// <summary>Returns the value of the field with the specified name</summary>
+		/// <param name="name">Name of the field</param>
+		/// <remarks>This value can be used to "escape" the type safety of the proxy, while still allowing for tracking of mutations.</remarks>
+		MutableJsonValue Get(string name);
 
-		MutableJsonValue Get(ReadOnlyMemory<char> key);
+		/// <summary>Returns the value of the field with the specified name</summary>
+		/// <param name="name">Name of the field</param>
+		/// <remarks>This value can be used to "escape" the type safety of the proxy, while still allowing for tracking of mutations.</remarks>
+		MutableJsonValue Get(ReadOnlyMemory<char> name);
 
+		/// <summary>Returns the value of the element at the specified location</summary>
+		/// <param name="index">Index of the item</param>
+		/// <remarks>This value can be used to "escape" the type safety of the proxy, while still allowing for tracking of mutations.</remarks>
 		MutableJsonValue Get(int index);
 
+		/// <summary>Returns the value of the element at the specified location</summary>
+		/// <param name="index">Index of the item</param>
+		/// <remarks>This value can be used to "escape" the type safety of the proxy, while still allowing for tracking of mutations.</remarks>
 		MutableJsonValue Get(Index index);
 
+		/// <summary>Returns the value of the child at the specified path</summary>
+		/// <param name="path">Path to the child</param>
+		/// <remarks>This value can be used to "escape" the type safety of the proxy, while still allowing for tracking of mutations.</remarks>
 		MutableJsonValue Get(JsonPath path);
 
 		/// <summary>Returns the proxied JSON Value</summary>

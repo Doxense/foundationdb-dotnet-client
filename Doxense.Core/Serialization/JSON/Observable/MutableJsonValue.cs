@@ -205,9 +205,9 @@ namespace Doxense.Serialization.Json
 			return this.Json.As<TValue>()!;
 		}
 
-		public bool ContainsKey(string key) => this.Json is JsonObject obj && obj.ContainsKey(key);
+		public bool ContainsKey(string name) => this.Json is JsonObject obj && obj.ContainsKey(name);
 
-		public bool ContainsKey(ReadOnlyMemory<char> key) => this.Json is JsonObject obj && obj.ContainsKey(key);
+		public bool ContainsKey(ReadOnlyMemory<char> name) => this.Json is JsonObject obj && obj.ContainsKey(name);
 
 		public bool ContainsValue(JsonValue value) => this.Json switch
 		{
@@ -216,41 +216,44 @@ namespace Doxense.Serialization.Json
 			_              => false
 		};
 
-		public MutableJsonValue this[string key]
+		/// <summary>Returns the value of the field with the specified name</summary>
+		public MutableJsonValue this[string name]
 		{
 			[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => Get(key);
+			get => Get(name);
 		}
 
+		/// <summary>Returns the value of the field with the specified name</summary>
+		public MutableJsonValue this[ReadOnlyMemory<char> name]
+		{
+			[MustUseReturnValue]
+			get => Get(name);
+		}
+
+		/// <summary>Returns the value of the element at the specified location</summary>
+		public MutableJsonValue this[int index]
+		{
+			[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => Get(index);
+		}
+
+		/// <summary>Returns the value of the element at the specified location</summary>
+		public MutableJsonValue this[Index index]
+		{
+			[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => Get(index);
+		}
+
+		/// <summary>Returns the value of the child at the specified path</summary>
 		public MutableJsonValue this[JsonPath path]
 		{
 			[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => Get(path);
 		}
 
-		public MutableJsonValue this[ReadOnlyMemory<char> key]
-		{
-			[MustUseReturnValue]
-			get => Get(key);
-		}
-
-		public MutableJsonValue this[int index]
-		{
-			[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => Get(index);
-			//set => Set(index, value.Json);
-		}
-
-		public MutableJsonValue this[Index index]
-		{
-			[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => Get(index);
-			//set => Set(index, value.Json);
-		}
-
 		#region TryGetValue...
 
-		/// <summary>Returns the value of the given field, if it is not null or missing</summary>
+		/// <summary>Returns the value of the field with the given name, if it is not null or missing</summary>
 		/// <param name="key">Name of the field in this object</param>
 		/// <param name="value">Value that represents this field in the current object.</param>
 		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
@@ -266,7 +269,7 @@ namespace Doxense.Serialization.Json
 		/// { // there was already an 'Error' object, record the new attempt
 		///		error["Attempts"].Increment();
 		///		error["LastAttempt"] = DateTimeOffset.UtcNow;
-		///		// root will now have { ..., "Error": { "Attempts": (+1), "FirstAttempt": "...", "LastAttempt": "..." } }
+		///		// root will now have { ..., "Error": { "Attempts": (+1), "FirstAttempt": "...", "LastAttempt": "...", ... } }
 		/// }
 		/// </code></example>
 		[Pure]
@@ -283,7 +286,7 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
-		/// <summary>Returns the value of the given field, if it is not null or missing</summary>
+		/// <summary>Returns the value of the field with the given name, if it is not null or missing</summary>
 		/// <param name="key">Name of the field in this object</param>
 		/// <param name="value">Value that represents this field in the current object.</param>
 		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
@@ -309,7 +312,7 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
-		/// <summary>Returns the value of the given field, if it is not null or missing</summary>
+		/// <summary>Returns the value of the field with the given name, if it is not null or missing</summary>
 		/// <param name="key">Name of the field in this object</param>
 		/// <param name="converter">Converter used to unpack the JSON value into a <typeparamref name="TValue"/> instance</param>
 		/// <param name="value">Value that represents this field in the current object.</param>
@@ -336,7 +339,7 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
-		/// <summary>Returns the value of the given field, if it is not null or missing</summary>
+		/// <summary>Returns the value of the field with the given name, if it is not null or missing</summary>
 		/// <param name="key">Name of the field in this object</param>
 		/// <param name="value">Value that represents this field in the current object.</param>
 		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
@@ -346,13 +349,13 @@ namespace Doxense.Serialization.Json
 		/// { // this is the first error, will automatically create a new 'Error' object
 		///		error["Attempts"] = 1;
 		///		error["FirstAttempt"] = DateTimeOffset.UtcNow;
-		///		// root will now have { ..., "Error": { "Attempts": 1, "FirstAttempt": "..." } }
+		///		// root will now have { ..., "Error": { "Attempts": 1, "FirstAttempt": "...", ... } }
 		/// }
 		/// else
 		/// { // there was already an 'Error' object, record the new attempt
 		///		error["Attempts"].Increment();
 		///		error["LastAttempt"] = DateTimeOffset.UtcNow;
-		///		// root will now have { ..., "Error": { "Attempts": (+1), "FirstAttempt": "...", "LastAttempt": "..." } }
+		///		// root will now have { ..., "Error": { "Attempts": (+1), "FirstAttempt": "...", "LastAttempt": "...", ... } }
 		/// }
 		/// </code></example>
 		[Pure]
@@ -369,7 +372,7 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
-		/// <summary>Returns the value of the given field, if it is not null or missing</summary>
+		/// <summary>Returns the value of the field with the given name, if it is not null or missing</summary>
 		/// <param name="key">Name of the field in this object</param>
 		/// <param name="value">Value that represents this field in the current object.</param>
 		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
@@ -395,7 +398,7 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
-		/// <summary>Returns the value of the given field, if it is not null or missing</summary>
+		/// <summary>Returns the value of the field with the given name, if it is not null or missing</summary>
 		/// <param name="key">Name of the field in this object</param>
 		/// <param name="converter">Converter used to unpack the JSON value into a <typeparamref name="TValue"/> instance</param>
 		/// <param name="value">Value that represents this field in the current object.</param>
@@ -422,7 +425,7 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
-		/// <summary>Returns the value at the given location, if it was non-null and inside the bounds of the array</summary>
+		/// <summary>Returns the value of the item at the given location, if it was non-null and inside the bounds of the array</summary>
 		/// <param name="index">Index of the element in this array</param>
 		/// <param name="value">Value that represents this index in the current array.</param>
 		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
@@ -432,13 +435,13 @@ namespace Doxense.Serialization.Json
 		/// { // either Foos[] has size less than 3, or Foos[2] is null.
 		///		item["Version"] = 0;
 		///		item["Created"] = DateTimeOffset.UtcNow;
-		///		// Foos[2] will now be equal to { "Version": 0, "Created": "..." }
+		///		// Foos[2] will now be equal to: { "Version": 0, "Created": "..." }
 		/// }
 		/// else
 		/// { // Foos[2] already had a non-null value
 		///		item["Version"].Increment();
 		///		item["LastModified"] = DateTimeOffset.UtcNow;
-		///		// Foos[2] will now be equal to { "Version": (+ 1), "Created": "...", "LastModified": "..." }
+		///		// Foos[2] will now be equal to: { "Version": (+ 1), "Created": "...", "LastModified": "...", ... }
 		/// }
 		/// </code></example>
 		[Pure]
@@ -454,7 +457,7 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
-		/// <summary>Returns the value at the given location, if it was non-null and inside the bounds of the array</summary>
+		/// <summary>Returns the value of the item at the given location, if it was non-null and inside the bounds of the array</summary>
 		/// <param name="index">Index of the element in this array</param>
 		/// <param name="value">Value that represents this index in the current array, converted into <typeparamref name="TValue"/>.</param>
 		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
@@ -509,7 +512,7 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
-		/// <summary>Returns the value at the given location, if it was non-null and inside the bounds of the array</summary>
+		/// <summary>Returns the value of the item at the given location, if it was non-null and inside the bounds of the array</summary>
 		/// <param name="index">Index of the element in this array</param>
 		/// <param name="value">Value that represents this index in the current array.</param>
 		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
@@ -519,13 +522,13 @@ namespace Doxense.Serialization.Json
 		/// { // either Foos[] has size less than 3, or Foos[2] is null.
 		///		item["Version"] = 0;
 		///		item["Created"] = DateTimeOffset.UtcNow;
-		///		// Foos[2] will now be equal to { "Version": 0, "Created": "..." }
+		///		// Foos[2] will now be equal to: { "Version": 0, "Created": "..." }
 		/// }
 		/// else
 		/// { // Foos[2] already had a non-null value
 		///		item["Version"].Increment();
 		///		item["LastModified"] = DateTimeOffset.UtcNow;
-		///		// Foos[2] will now be equal to { "Version": (+ 1), "Created": "...", "LastModified": "..." }
+		///		// Foos[2] will now be equal to: { "Version": (+ 1), "Created": "...", "LastModified": "...", ... }
 		/// }
 		/// </code></example>
 		[Pure]
@@ -541,7 +544,7 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
-		/// <summary>Returns the value at the given location, if it was non-null and inside the bounds of the array</summary>
+		/// <summary>Returns the value of the item at the given location, if it was non-null and inside the bounds of the array</summary>
 		/// <param name="index">Index of the element in this array</param>
 		/// <param name="value">Value that represents this index in the current array, converted into <typeparamref name="TValue"/>.</param>
 		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
@@ -568,7 +571,7 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
-		/// <summary>Returns the value at the given location, if it was non-null and inside the bounds of the array</summary>
+		/// <summary>Returns the value of the item at the given location, if it was non-null and inside the bounds of the array</summary>
 		/// <param name="index">Index of the element in this array</param>
 		/// <param name="converter">Converter used to unpack the JSON value into a <typeparamref name="TValue"/> instance</param>
 		/// <param name="value">Value that represents this index in the current array, converted into <typeparamref name="TValue"/>.</param>
@@ -602,12 +605,15 @@ namespace Doxense.Serialization.Json
 
 		#region Get(string)...
 
+		/// <summary>Returns the value of the field with the specified name</summary>
 		[Pure, MustUseReturnValue]
 		public MutableJsonValue Get(string name) => new(this.Context, this, new(name), this.Json.GetValueOrDefault(name));
 
+		/// <summary>Returns the underlying JSON value of the field with the specified name</summary>
 		[Pure, MustUseReturnValue]
-		public JsonValue GetValue(string key) => this.Json.GetValueOrDefault(key);
+		public JsonValue GetValue(string name) => this.Json.GetValueOrDefault(name);
 
+		/// <summary>Returns the value of the field with the specified name</summary>
 		[Pure, MustUseReturnValue]
 		public TValue Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(string name) where TValue : notnull
 		{
@@ -619,6 +625,7 @@ namespace Doxense.Serialization.Json
 			return value.As<TValue>()!;
 		}
 
+		/// <summary>Returns the value of the field with the specified name</summary>
 		[Pure, MustUseReturnValue]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public TValue? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(string name, TValue defaultValue) => this.Json.GetValueOrDefault(name).As<TValue>(defaultValue);
@@ -627,6 +634,7 @@ namespace Doxense.Serialization.Json
 
 		#region Get(ReadOnlyMemory<char>)...
 
+		/// <summary>Returns the value of the field with the specified name</summary>
 		[Pure, MustUseReturnValue]
 		public MutableJsonValue Get(ReadOnlyMemory<char> name)
 		{
@@ -639,9 +647,11 @@ namespace Doxense.Serialization.Json
 #endif
 		}
 
+		/// <summary>Returns the underlying JSON value of the field with the specified name</summary>
 		[Pure, MustUseReturnValue]
 		public JsonValue GetValue(ReadOnlyMemory<char> name) => this.Json.GetValueOrDefault(name);
 
+		/// <summary>Returns the value of the field with the specified name</summary>
 		[Pure, MustUseReturnValue]
 		public TValue Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlyMemory<char> name) where TValue : notnull
 		{
@@ -653,6 +663,7 @@ namespace Doxense.Serialization.Json
 			return value.As<TValue>()!;
 		}
 
+		/// <summary>Returns the value of the field with the specified name</summary>
 		[Pure, MustUseReturnValue]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public TValue? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlyMemory<char> name, TValue defaultValue) => this.Json.GetValueOrDefault(name).As<TValue>(defaultValue);
@@ -661,12 +672,15 @@ namespace Doxense.Serialization.Json
 
 		#region Get(int)...
 
+		/// <summary>Returns the value of the element at the specified location</summary>
 		[Pure, MustUseReturnValue]
 		public MutableJsonValue Get(int index) => new(this.Context, this, new(index), this.Json.GetValueOrDefault(index));
 
+		/// <summary>Returns the underlying JSON value of the element at the specified location</summary>
 		[Pure, MustUseReturnValue]
 		public JsonValue GetValue(int index) => this.Json.GetValueOrDefault(index);
 
+		/// <summary>Returns the value of the element at the specified location</summary>
 		[Pure, MustUseReturnValue]
 		public TValue Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(int index) where TValue : notnull
 		{
@@ -678,6 +692,7 @@ namespace Doxense.Serialization.Json
 			return value.As<TValue>()!;
 		}
 
+		/// <summary>Returns the value of the element at the specified location</summary>
 		[Pure, MustUseReturnValue]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public TValue? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(int index, TValue defaultValue) => this.Json.GetValueOrDefault(index).As<TValue>(defaultValue);
@@ -686,12 +701,15 @@ namespace Doxense.Serialization.Json
 
 		#region Get(Index)...
 
+		/// <summary>Returns the value of the element at the specified location</summary>
 		[Pure, MustUseReturnValue]
 		public MutableJsonValue Get(Index index) => new(this.Context, this, new(index), this.Json.GetValueOrDefault(index));
 
+		/// <summary>Returns the underlying JSON value of the element at the specified location</summary>
 		[Pure, MustUseReturnValue]
 		public JsonValue GetValue(Index index) => this.Json.GetValueOrDefault(index);
 
+		/// <summary>Returns the value of the element at the specified location</summary>
 		[Pure, MustUseReturnValue]
 		public TValue Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(Index index) where TValue : notnull
 		{
@@ -703,6 +721,7 @@ namespace Doxense.Serialization.Json
 			return value.As<TValue>()!;
 		}
 
+		/// <summary>Returns the value of the element at the specified location</summary>
 		[Pure, MustUseReturnValue]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public TValue? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(Index index, TValue defaultValue) => this.Json.Get<TValue>(index, defaultValue);
@@ -711,6 +730,7 @@ namespace Doxense.Serialization.Json
 
 		#region Get(JsonPath)...
 
+		/// <summary>Returns the value of the child at the specified path</summary>
 		[Pure, MustUseReturnValue]
 		public MutableJsonValue Get(JsonPath path)
 		{
@@ -722,9 +742,11 @@ namespace Doxense.Serialization.Json
 			return current;
 		}
 
+		/// <summary>Returns the underlying JSON value of the child at the specified path</summary>
 		[Pure, MustUseReturnValue]
 		public JsonValue GetValue(JsonPath path) => this.Json.GetPathValueOrDefault(path);
 
+		/// <summary>Returns the value of the child at the specified path</summary>
 		[Pure, MustUseReturnValue]
 		public TValue Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(JsonPath path) where TValue : notnull
 		{
@@ -736,6 +758,7 @@ namespace Doxense.Serialization.Json
 			return value.As<TValue>()!;
 		}
 
+		/// <summary>Returns the value of the child at the specified path</summary>
 		[Pure, MustUseReturnValue]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public TValue? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(JsonPath path, TValue defaultValue) => this.Json.GetPathValueOrDefault(path).As<TValue>(defaultValue);
@@ -744,18 +767,21 @@ namespace Doxense.Serialization.Json
 
 		#region Get(JsonPathSegment)...
 
+		/// <summary>Returns the value of the child with the given name or index</summary>
 		[Pure, MustUseReturnValue]
 		public MutableJsonValue Get(JsonPathSegment segment)
 			=> segment.TryGetName(out var name) ? Get(name)
 			 : segment.TryGetIndex(out var idx) ? Get(idx)
 			 : this;
 
+		/// <summary>Returns the value of the child with the given name or index</summary>
 		[Pure, MustUseReturnValue]
 		public JsonValue GetValue(JsonPathSegment segment)
 			=> segment.TryGetName(out var name) ? GetValue(name)
 			 : segment.TryGetIndex(out var idx) ? GetValue(idx)
 			 : this.Json;
 
+		/// <summary>Returns the value of the child with the given name or index</summary>
 		[Pure, MustUseReturnValue]
 		public TValue Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(JsonPathSegment segment) where TValue : notnull
 		{
@@ -767,6 +793,7 @@ namespace Doxense.Serialization.Json
 			return value.As<TValue>()!;
 		}
 
+		/// <summary>Returns the value of the child with the given name or index</summary>
 		[Pure, MustUseReturnValue]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public TValue? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(JsonPathSegment segment, TValue defaultValue) => GetValue(segment).As<TValue>(defaultValue);
@@ -799,29 +826,80 @@ namespace Doxense.Serialization.Json
 
 		#region ValueEquals...
 
+		/// <summary>Tests if the current node is equal to the specified value, using the strict JSON comparison semantics</summary>
+		/// <typeparam name="TValue">Type of the value</typeparam>
+		/// <param name="value">Expected value</param>
+		/// <param name="comparer">Custom equality comparer if specified; otherwise, uses the default comparer for this type</param>
+		/// <returns><see langword="true"/> if both arguments are considered equal; otherwise, <see langword="false"/></returns>
+		/// <remarks>This method tries to perform an optimized comparison, and should perform less memory allocations than calling </remarks>
 		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public bool ValueEquals<TValue>(TValue value, IEqualityComparer<TValue>? comparer = null) => this.Json.ValueEquals(value, comparer);
 
+		/// <summary>Tests if the field with the specified name is equal to the specified value, using the strict JSON comparison semantics</summary>
+		/// <typeparam name="TValue">Type of the value</typeparam>
+		/// <param name="name">Name of the field</param>
+		/// <param name="value">Expected value</param>
+		/// <param name="comparer">Custom equality comparer if specified; otherwise, uses the default comparer for this type</param>
+		/// <returns><see langword="true"/> if both arguments are considered equal; otherwise, <see langword="false"/></returns>
+		/// <remarks>This method tries to perform an optimized comparison, and should perform less memory allocations than calling </remarks>
 		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public bool ValueEquals<TValue>(string name, TValue value, IEqualityComparer<TValue>? comparer = null) => this.GetValue(name).ValueEquals(value, comparer);
 
+		/// <summary>Tests if the field with the specified name is equal to the specified value, using the strict JSON comparison semantics</summary>
+		/// <typeparam name="TValue">Type of the value</typeparam>
+		/// <param name="name">Name of the field</param>
+		/// <param name="value">Expected value</param>
+		/// <param name="comparer">Custom equality comparer if specified; otherwise, uses the default comparer for this type</param>
+		/// <returns><see langword="true"/> if both arguments are considered equal; otherwise, <see langword="false"/></returns>
+		/// <remarks>This method tries to perform an optimized comparison, and should perform less memory allocations than calling </remarks>
 		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public bool ValueEquals<TValue>(ReadOnlyMemory<char> name, TValue value, IEqualityComparer<TValue>? comparer = null) => this.GetValue(name).ValueEquals(value, comparer);
 
+		/// <summary>Tests if the item at the specified location is equal to the specified value, using the strict JSON comparison semantics</summary>
+		/// <typeparam name="TValue">Type of the value</typeparam>
+		/// <param name="index">Index of the item</param>
+		/// <param name="value">Expected value</param>
+		/// <param name="comparer">Custom equality comparer if specified; otherwise, uses the default comparer for this type</param>
+		/// <returns><see langword="true"/> if both arguments are considered equal; otherwise, <see langword="false"/></returns>
+		/// <remarks>This method tries to perform an optimized comparison, and should perform less memory allocations than calling </remarks>
 		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public bool ValueEquals<TValue>(int index, TValue value, IEqualityComparer<TValue>? comparer = null) => this.GetValue(index).ValueEquals(value, comparer);
 
+		/// <summary>Tests if the item at the specified location is equal to the specified value, using the strict JSON comparison semantics</summary>
+		/// <typeparam name="TValue">Type of the value</typeparam>
+		/// <param name="index">Index of the item</param>
+		/// <param name="value">Expected value</param>
+		/// <param name="comparer">Custom equality comparer if specified; otherwise, uses the default comparer for this type</param>
+		/// <returns><see langword="true"/> if both arguments are considered equal; otherwise, <see langword="false"/></returns>
+		/// <remarks>This method tries to perform an optimized comparison, and should perform less memory allocations than calling </remarks>
 		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public bool ValueEquals<TValue>(Index index, TValue value, IEqualityComparer<TValue>? comparer = null) => this.GetValue(index).ValueEquals(value, comparer);
 
+		/// <summary>Tests if the child with the specified name or index is equal to the specified value, using the strict JSON comparison semantics</summary>
+		/// <typeparam name="TValue">Type of the value</typeparam>
+		/// <param name="segment">Name or index of the child</param>
+		/// <param name="value">Expected value</param>
+		/// <param name="comparer">Custom equality comparer if specified; otherwise, uses the default comparer for this type</param>
+		/// <returns><see langword="true"/> if both arguments are considered equal; otherwise, <see langword="false"/></returns>
+		/// <remarks>This method tries to perform an optimized comparison, and should perform less memory allocations than calling </remarks>
 		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public bool ValueEquals<TValue>(JsonPathSegment segment, TValue value, IEqualityComparer<TValue>? comparer = null) => this.GetValue(segment).ValueEquals(value, comparer);
 
+		/// <summary>Tests if the child at the specified path is equal to the specified value, using the strict JSON comparison semantics</summary>
+		/// <typeparam name="TValue">Type of the value</typeparam>
+		/// <param name="path">Path to the  child</param>
+		/// <param name="value">Expected value</param>
+		/// <param name="comparer">Custom equality comparer if specified; otherwise, uses the default comparer for this type</param>
+		/// <returns><see langword="true"/> if both arguments are considered equal; otherwise, <see langword="false"/></returns>
+		/// <remarks>This method tries to perform an optimized comparison, and should perform less memory allocations than calling </remarks>
 		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public bool ValueEquals<TValue>(JsonPath path, TValue value, IEqualityComparer<TValue>? comparer = null) => this.GetValue(path).ValueEquals(value, comparer);
 
 		#endregion
 
+		/// <summary>Applies a patch to the current instance</summary>
+		/// <param name="patch">Patch that describes how this node should be modified.</param>
+		/// <param name="deepCopy">If <c>false</c> (default) the content of <paramref name="patch"/> are added by reference. If <c>true</c>, a copy is made before being added to the current node.</param>
 		public void ApplyPatch(JsonObject patch, bool deepCopy = false)
 		{
 			Contract.NotNull(patch);
@@ -836,6 +914,7 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		/// <summary>Applies a patch to the current node which is known to be an Object</summary>
 		private void ApplyPatchToObject(JsonObject patch, bool deepCopy)
 		{
 			RealizeObjectIfRequired();
@@ -863,6 +942,7 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		/// <summary>Applies a patch to the current node which is known to be an Array</summary>
 		private void ApplyPatchToArray(JsonObject patch, bool deepCopy)
 		{
 			int newSize = patch.Get<int?>("__patch", null) ?? throw new ArgumentException("Object is not a valid patch for an array: required '__patch' field is missing");
@@ -1354,60 +1434,96 @@ namespace Doxense.Serialization.Json
 
 		#region Set(string, ...)
 
+		/// <summary>Sets or changes the value of the field with the given name</summary>
+		/// <param name="name">Name of the field</param>
+		/// <param name="value">New value for this field</param>
+		/// <remarks>
+		/// <para>If the current element is null or missing in its parent, it will automatically be created as a new object.</para>
+		/// </remarks>
 		public void Set(string name, JsonValue? value) => InsertOrUpdate(name.AsMemory(), value);
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(string name, JsonObject? value) => InsertOrUpdate(name.AsMemory(), value);
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(string name, JsonArray? value) => InsertOrUpdate(name.AsMemory(), value);
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(string name, MutableJsonValue? value) => InsertOrUpdate(name.AsMemory(), value?.Json);
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set<TValue>(string name, TValue? value) => InsertOrUpdate(name.AsMemory(), Convert<TValue>(value));
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set<TValue>(string name, TValue? value, IJsonPacker<TValue> converter) => InsertOrUpdate(name.AsMemory(), Convert<TValue>(value, converter));
 
 		#region Primitive Types...
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(string name, bool value) => InsertOrUpdate(name.AsMemory(), value ? JsonBoolean.True : JsonBoolean.False);
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(string name, int value) => InsertOrUpdate(name.AsMemory(), JsonNumber.Return(value));
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(string name, uint value) => InsertOrUpdate(name.AsMemory(), JsonNumber.Return(value));
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(string name, long value) => InsertOrUpdate(name.AsMemory(), JsonNumber.Return(value));
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(string name, ulong value) => InsertOrUpdate(name.AsMemory(), JsonNumber.Return(value));
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(string name, float value) => InsertOrUpdate(name.AsMemory(), JsonNumber.Return(value));
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(string name, double value) => InsertOrUpdate(name.AsMemory(), JsonNumber.Return(value));
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(string name, decimal value) => InsertOrUpdate(name.AsMemory(), JsonNumber.Return(value));
 
 #if NET8_0_OR_GREATER
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(string name, Half value) => InsertOrUpdate(name.AsMemory(), JsonNumber.Return(value));
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(string name, Int128 value) => InsertOrUpdate(name.AsMemory(), JsonNumber.Return(value));
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(string name, UInt128 value) => InsertOrUpdate(name.AsMemory(), JsonNumber.Return(value));
 
 #endif
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(string name, string? value) => InsertOrUpdate(name.AsMemory(), JsonString.Return(value));
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
+		public void Set(string name, Guid value) => InsertOrUpdate(name.AsMemory(), JsonString.Return(value));
+
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
+		public void Set(string name, Uuid128 value) => InsertOrUpdate(name.AsMemory(), JsonString.Return(value));
+
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(string name, DateTime value) => InsertOrUpdate(name.AsMemory(), JsonDateTime.Return(value));
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(string name, DateTimeOffset value) => InsertOrUpdate(name.AsMemory(), JsonDateTime.Return(value));
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(string name, NodaTime.Instant value) => InsertOrUpdate(name.AsMemory(), JsonDateTime.Return(value));
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(string name, DateOnly value) => InsertOrUpdate(name.AsMemory(), JsonDateTime.Return(value));
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(string name, TimeSpan value) => InsertOrUpdate(name.AsMemory(), JsonNumber.Return(value));
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(string name, NodaTime.Duration value) => InsertOrUpdate(name.AsMemory(), JsonNumber.Return(value));
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(string name, TimeOnly value) => InsertOrUpdate(name.AsMemory(), JsonNumber.Return(value));
 
 		#endregion
@@ -1416,60 +1532,91 @@ namespace Doxense.Serialization.Json
 
 		#region Set(ReadOnlyMemory<char>, ...)
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(ReadOnlyMemory<char> name, JsonValue? value) => InsertOrUpdate(name, value);
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(ReadOnlyMemory<char> name, JsonObject? value) => InsertOrUpdate(name, value);
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(ReadOnlyMemory<char> name, JsonArray? value) => InsertOrUpdate(name, value);
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(ReadOnlyMemory<char> name, MutableJsonValue? value) => InsertOrUpdate(name, value?.Json);
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set<TValue>(ReadOnlyMemory<char> name, TValue? value) => InsertOrUpdate(name, Convert<TValue>(value));
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set<TValue>(ReadOnlyMemory<char> name, TValue? value, IJsonPacker<TValue> converter) => InsertOrUpdate(name, Convert<TValue>(value, converter));
 
 		#region Primitive Types...
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(ReadOnlyMemory<char> name, bool value) => InsertOrUpdate(name, value ? JsonBoolean.True : JsonBoolean.False);
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(ReadOnlyMemory<char> name, int value) => InsertOrUpdate(name, JsonNumber.Return(value));
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(ReadOnlyMemory<char> name, uint value) => InsertOrUpdate(name, JsonNumber.Return(value));
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(ReadOnlyMemory<char> name, long value) => InsertOrUpdate(name, JsonNumber.Return(value));
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(ReadOnlyMemory<char> name, ulong value) => InsertOrUpdate(name, JsonNumber.Return(value));
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(ReadOnlyMemory<char> name, float value) => InsertOrUpdate(name, JsonNumber.Return(value));
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(ReadOnlyMemory<char> name, double value) => InsertOrUpdate(name, JsonNumber.Return(value));
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(ReadOnlyMemory<char> name, decimal value) => InsertOrUpdate(name, JsonNumber.Return(value));
 
 #if NET8_0_OR_GREATER
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(ReadOnlyMemory<char> name, Half value) => InsertOrUpdate(name, JsonNumber.Return(value));
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(ReadOnlyMemory<char> name, Int128 value) => InsertOrUpdate(name, JsonNumber.Return(value));
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(ReadOnlyMemory<char> name, UInt128 value) => InsertOrUpdate(name, JsonNumber.Return(value));
 
 #endif
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(ReadOnlyMemory<char> name, string? value) => InsertOrUpdate(name, JsonString.Return(value));
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
+		public void Set(ReadOnlyMemory<char> name, Guid value) => InsertOrUpdate(name, JsonString.Return(value));
+
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
+		public void Set(ReadOnlyMemory<char> name, Uuid128 value) => InsertOrUpdate(name, JsonString.Return(value));
+
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(ReadOnlyMemory<char> name, DateTime value) => InsertOrUpdate(name, JsonDateTime.Return(value));
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(ReadOnlyMemory<char> name, DateTimeOffset value) => InsertOrUpdate(name, JsonDateTime.Return(value));
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(ReadOnlyMemory<char> name, NodaTime.Instant value) => InsertOrUpdate(name, JsonDateTime.Return(value));
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(ReadOnlyMemory<char> name, DateOnly value) => InsertOrUpdate(name, JsonDateTime.Return(value));
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(ReadOnlyMemory<char> name, TimeSpan value) => InsertOrUpdate(name, JsonNumber.Return(value));
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(ReadOnlyMemory<char> name, NodaTime.Duration value) => InsertOrUpdate(name, JsonNumber.Return(value));
 
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(ReadOnlyMemory<char> name, TimeOnly value) => InsertOrUpdate(name, JsonNumber.Return(value));
 
 		#endregion
@@ -1478,37 +1625,53 @@ namespace Doxense.Serialization.Json
 
 		#region Set(path, value)
 
+		/// <summary>Sets or changes the value of the child at the given path</summary>
+		/// <param name="path">Path to the child</param>
+		/// <param name="value">New value for this child</param>
+		/// <remarks>
+		/// <para>If any descendant between the current node and the child is either null or missing, it will automatically be created as either a new object or array, as determined by the path.</para>
+		/// </remarks>
 		public void Set(JsonPath path, JsonValue? value) => Get(path).Set(value);
 
+		/// <inheritdoc cref="Set(JsonPath,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Set(JsonPath path, JsonNull? value) => Set(path, (JsonValue?) value);
 
+		/// <inheritdoc cref="Set(JsonPath,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Set(JsonPath path, JsonBoolean? value) => Set(path, (JsonValue?) value);
 
+		/// <inheritdoc cref="Set(JsonPath,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Set(JsonPath path, JsonNumber? value) => Set(path, (JsonValue?) value);
 
+		/// <inheritdoc cref="Set(JsonPath,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Set(JsonPath path, JsonString? value) => Set(path, (JsonValue?) value);
 
+		/// <inheritdoc cref="Set(JsonPath,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Set(JsonPath path, JsonDateTime? value) => Set(path, (JsonValue?) value);
 
+		/// <inheritdoc cref="Set(JsonPath,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Set(JsonPath path, JsonObject? value) => Set(path, (JsonValue?) value);
 
+		/// <inheritdoc cref="Set(JsonPath,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Set(JsonPath path, JsonArray? value) => Set(path, (JsonValue?) value);
 
+		/// <inheritdoc cref="Set(JsonPath,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Set(JsonPath path, MutableJsonValue? value) => Set(path, value?.Json);
 
+		/// <inheritdoc cref="Set(JsonPath,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set<TValue>(JsonPath path, TValue? value) => Set(path, Convert<TValue>(value)); //TODO: pass the parent settings?
+		public void Set<TValue>(JsonPath path, TValue? value) => Set(path, Convert<TValue>(value));
 
+		/// <inheritdoc cref="Set(JsonPath,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set<TValue>(JsonPath path, TValue? value, IJsonPacker<TValue> converter) => Set(path, Convert<TValue>(value, converter)); //TODO: pass the parent settings?
+		public void Set<TValue>(JsonPath path, TValue? value, IJsonPacker<TValue> converter) => Set(path, Convert<TValue>(value, converter));
 
 		#endregion
 
@@ -1584,6 +1747,12 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
+		/// <summary>Sets or changes the value of the item at the given location</summary>
+		/// <param name="index">Index of the item</param>
+		/// <param name="value">New value for this item</param>
+		/// <remarks>
+		/// <para>If the current element is null or missing in its parent, it will automatically be created as a new array.</para>
+		/// </remarks>
 		public void Set(int index, JsonValue? value) => SetOrAdd(index, value);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1945,10 +2114,10 @@ namespace Doxense.Serialization.Json
 		public void Insert(Index index, MutableJsonValue? value) => InsertOrAdd(index, value?.Json);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Insert<TValue>(Index index, TValue value) => InsertOrAdd(index, Convert<TValue>(value)); //TODO: pass the parent settings?
+		public void Insert<TValue>(Index index, TValue value) => InsertOrAdd(index, Convert<TValue>(value));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Insert<TValue>(Index index, TValue value, IJsonPacker<TValue> converter) => InsertOrAdd(index, Convert<TValue>(value, converter)); //TODO: pass the parent settings?
+		public void Insert<TValue>(Index index, TValue value, IJsonPacker<TValue> converter) => InsertOrAdd(index, Convert<TValue>(value, converter));
 
 		#endregion
 
@@ -2312,8 +2481,10 @@ namespace Doxense.Serialization.Json
 
 		#region JSON Serialization...
 
+		/// <inheritdoc />
 		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => this.Json.JsonSerialize(writer);
 
+		/// <inheritdoc />
 		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => this.Json;
 
 		#endregion
