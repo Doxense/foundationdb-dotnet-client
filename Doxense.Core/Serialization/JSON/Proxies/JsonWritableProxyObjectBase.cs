@@ -74,6 +74,9 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		MutableJsonValue IJsonWritableProxy.Get(Index index) => m_value.Get(index);
 
+		/// <inheritdoc />
+		MutableJsonValue IJsonWritableProxy.Get(JsonPath path) => m_value.Get(path);
+
 		public MutableJsonValue this[string key]
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]

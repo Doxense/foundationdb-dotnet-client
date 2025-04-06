@@ -44,6 +44,8 @@ namespace Doxense.Serialization.Json
 
 		MutableJsonValue Get(Index index);
 
+		MutableJsonValue Get(JsonPath path);
+
 		/// <summary>Returns the proxied JSON Value</summary>
 		/// <remarks>
 		/// <para>The returned value may not be mutable and should only not be changed directly.</para>
