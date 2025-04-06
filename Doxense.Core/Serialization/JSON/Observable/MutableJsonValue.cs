@@ -800,27 +800,167 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
+		#region GetOrCreateObject...
+
+		private static InvalidOperationException ErrorFieldDoesNotMatchExpectedType(JsonPath path, JsonType expectedType, JsonType actualType) => new($"Field '{path}' is of type {actualType} instead of {expectedType} as expected.");
+
+		/// <summary>Returns the object in the field with the given name</summary>
+		/// <param name="name">Name of the field</param>
+		/// <returns>Existing object, or a newly created object if the field was null or missing</returns>
+		/// <exception cref="InvalidOperationException">If the field exists, but its value is not an object.</exception>
 		[MustUseReturnValue]
-		public MutableJsonValue GetOrCreateObject(string path)
+		public MutableJsonValue GetOrCreateObject(string name)
 		{
-			var child = this.Get(path);
+			var child = this.Get(name);
 			if (child.IsNullOrMissing())
 			{
 				child.Set(JsonObject.ReadOnly.Empty);
 			}
+			else if (child.Type != JsonType.Object)
+			{
+				throw ErrorFieldDoesNotMatchExpectedType(GetPath(name), JsonType.Object, child.Type);
+			}
 			return child;
 		}
 
+		/// <summary>Returns the object in the field with the given name</summary>
+		/// <param name="name">Name of the field</param>
+		/// <returns>Existing object, or a newly created object if the field was null or missing</returns>
+		/// <exception cref="InvalidOperationException">If the field exists, but its value is not an object.</exception>
 		[MustUseReturnValue]
-		public MutableJsonValue GetOrCreateArray(string path)
+		public MutableJsonValue GetOrCreateObject(ReadOnlyMemory<char> name)
 		{
-			var child = this.Get(path);
+			var child = this.Get(name);
+			if (child.IsNullOrMissing())
+			{
+				child.Set(JsonObject.ReadOnly.Empty);
+			}
+			else if (child.Type != JsonType.Object)
+			{
+				throw ErrorFieldDoesNotMatchExpectedType(GetPath(name), JsonType.Object, child.Type);
+			}
+			return child;
+		}
+
+		/// <summary>Returns the object in the item at the given location</summary>
+		/// <param name="index">Index of the item</param>
+		/// <returns>Existing object, or a newly created object if the field was null or missing</returns>
+		/// <exception cref="InvalidOperationException">If the item exists, but its value is not an object.</exception>
+		[MustUseReturnValue]
+		public MutableJsonValue GetOrCreateObject(int index)
+		{
+			var child = this.Get(index);
+			if (child.IsNullOrMissing())
+			{
+				child.Set(JsonObject.ReadOnly.Empty);
+			}
+			else if (child.Type != JsonType.Object)
+			{
+				throw ErrorFieldDoesNotMatchExpectedType(GetPath(index), JsonType.Object, child.Type);
+			}
+			return child;
+		}
+
+		/// <summary>Returns the object in the item at the given location</summary>
+		/// <param name="index">Index of the item</param>
+		/// <returns>Existing object, or a newly created object if the field was null or missing</returns>
+		/// <exception cref="InvalidOperationException">If the item exists, but its value is not an object.</exception>
+		[MustUseReturnValue]
+		public MutableJsonValue GetOrCreateObject(Index index)
+		{
+			var child = this.Get(index);
 			if (child.IsNullOrMissing())
 			{
 				child.Set(JsonArray.ReadOnly.Empty);
 			}
+			else if (child.Type != JsonType.Object)
+			{
+				throw ErrorFieldDoesNotMatchExpectedType(GetPath(index), JsonType.Object, child.Type);
+			}
 			return child;
 		}
+
+		#endregion
+
+		#region GetOrCreateArray...
+
+		/// <summary>Returns the array in the field with the given name</summary>
+		/// <param name="name">Name of the field</param>
+		/// <returns>Existing array, or a newly created array if the field was null or missing</returns>
+		/// <exception cref="InvalidOperationException">If the field exists, but its value is not an array.</exception>
+		[MustUseReturnValue]
+		public MutableJsonValue GetOrCreateArray(string name)
+		{
+			var child = this.Get(name);
+			if (child.IsNullOrMissing())
+			{
+				child.Set(JsonArray.ReadOnly.Empty);
+			}
+			else if (child.Type != JsonType.Array)
+			{
+				throw ErrorFieldDoesNotMatchExpectedType(GetPath(name), JsonType.Array, child.Type);
+			}
+			return child;
+		}
+
+		/// <summary>Returns the array in the field with the given name</summary>
+		/// <param name="name">Name of the field</param>
+		/// <returns>Existing array, or a newly created array if the field was null or missing</returns>
+		/// <exception cref="InvalidOperationException">If the field exists, but its value is not an array.</exception>
+		[MustUseReturnValue]
+		public MutableJsonValue GetOrCreateArray(ReadOnlyMemory<char> name)
+		{
+			var child = this.Get(name);
+			if (child.IsNullOrMissing())
+			{
+				child.Set(JsonArray.ReadOnly.Empty);
+			}
+			else if (child.Type != JsonType.Array)
+			{
+				throw ErrorFieldDoesNotMatchExpectedType(GetPath(name), JsonType.Array, child.Type);
+			}
+			return child;
+		}
+
+		/// <summary>Returns the array in the item at the given location</summary>
+		/// <param name="index">Index of the item</param>
+		/// <returns>Existing array, or a newly created array if the field was null or missing</returns>
+		/// <exception cref="InvalidOperationException">If the item exists, but its value is not an array.</exception>
+		[MustUseReturnValue]
+		public MutableJsonValue GetOrCreateArray(int index)
+		{
+			var child = this.Get(index);
+			if (child.IsNullOrMissing())
+			{
+				child.Set(JsonArray.ReadOnly.Empty);
+			}
+			else if (child.Type != JsonType.Array)
+			{
+				throw ErrorFieldDoesNotMatchExpectedType(GetPath(index), JsonType.Array, child.Type);
+			}
+			return child;
+		}
+
+		/// <summary>Returns the array in the item at the given location</summary>
+		/// <param name="index">Index of the item</param>
+		/// <returns>Existing array, or a newly created array if the field was null or missing</returns>
+		/// <exception cref="InvalidOperationException">If the item exists, but its value is not an array.</exception>
+		[MustUseReturnValue]
+		public MutableJsonValue GetOrCreateArray(Index index)
+		{
+			var child = this.Get(index);
+			if (child.IsNullOrMissing())
+			{
+				child.Set(JsonArray.ReadOnly.Empty);
+			}
+			else if (child.Type != JsonType.Array)
+			{
+				throw ErrorFieldDoesNotMatchExpectedType(GetPath(index), JsonType.Array, child.Type);
+			}
+			return child;
+		}
+
+		#endregion
 
 		#endregion
 
@@ -1121,7 +1261,6 @@ namespace Doxense.Serialization.Json
 		/// <summary>Changes the value of the current instance in its parent</summary>
 		internal bool InsertOrUpdate(JsonValue? value, InsertionBehavior behavior = InsertionBehavior.OverwriteExisting)
 		{
-			// validate the value
 			value ??= JsonNull.Missing;
 
 			if (this.Parent == null) throw new InvalidOperationException("Cannot replace the top level value");
@@ -1169,67 +1308,66 @@ namespace Doxense.Serialization.Json
 				this.NotifyParent(this);
 				return true;
 			}
-			else
+
+			JsonValue? patch;
+			switch (prevJson, value)
 			{
-				JsonValue? patch;
-				switch (prevJson, value)
-				{
-					case (JsonObject before, JsonObject after):
-					{ // Object patch
-						patch = before.ComputePatch(after);
-						break;
-					}
-					case (JsonArray before, JsonArray after):
-					{ // Array patch
-						patch = before.ComputePatch(after);
-						break;
-					}
-					case (JsonNull, JsonNull):
-					{
-						return true;
-					}
-					default:
-					{ // overwrite
-						patch = null;
-						break;
-					}
+				case (JsonObject before, JsonObject after):
+				{ // Object patch
+					patch = before.ComputePatch(after);
+					break;
 				}
-
-				this.Json = value;
-				this.NotifyParent(this);
-
-				if (this.Segment.TryGetName(out var name))
-				{
-					if (patch == null)
-					{
-						this.Context.RecordUpdate(this.Parent, name, value);
-					}
-					else
-					{
-						this.Context.RecordPatch(this.Parent, name, patch);
-					}
+				case (JsonArray before, JsonArray after):
+				{ // Array patch
+					patch = before.ComputePatch(after);
+					break;
 				}
-				else if (this.Segment.TryGetIndex(out var idx))
+				case (JsonNull, JsonNull):
 				{
-					// the pattern "[^0]" is used to append a new item to an array
-					// -> since the parent now contains the appended item, its Count is already incremented, so we have to replace it with "^1" instead!
-					if (idx.Equals(^0))
-					{
-						idx = ^1;
-					}
-
-					var index = idx.GetOffset(this.Parent.Count);
-					if (patch == null)
-					{
-						this.Context.RecordUpdate(this.Parent, index, value);
-					}
-					else
-					{
-						this.Context.RecordPatch(this.Parent, index, patch);
-					}
+					return true;
 				}
-				return true;
+				default:
+				{ // overwrite
+					patch = null;
+					break;
+				}
 			}
+
+			this.Json = value;
+			this.NotifyParent(this);
+
+			if (this.Segment.TryGetName(out var name))
+			{
+				if (patch == null)
+				{
+					this.Context.RecordUpdate(this.Parent, name, value);
+				}
+				else
+				{
+					this.Context.RecordPatch(this.Parent, name, patch);
+				}
+			}
+			else if (this.Segment.TryGetIndex(out var idx))
+			{
+				// the pattern "[^0]" is used to append a new item to an array
+				// -> since the parent now contains the appended item, its Count is already incremented, so we have to replace it with "^1" instead!
+				if (idx.Equals(^0))
+				{
+					idx = ^1;
+				}
+
+				var index = idx.GetOffset(this.Parent.Count);
+				if (patch == null)
+				{
+					this.Context.RecordUpdate(this.Parent, index, value);
+				}
+				else
+				{
+					this.Context.RecordPatch(this.Parent, index, patch);
+				}
+			}
+
+			return true;
 		}
 
 		internal bool InsertOrUpdate(ReadOnlyMemory<char> name, JsonValue? value, InsertionBehavior behavior = InsertionBehavior.OverwriteExisting)
@@ -1327,9 +1465,11 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
-		private JsonValue Convert<T>(T? value) => JsonValue.ReadOnly.FromValue(value); //TODO: pass the parent settings?
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private static JsonValue Convert<T>(T? value) => JsonValue.ReadOnly.FromValue(value);
 
-		private JsonValue Convert<T>(T? value, IJsonPacker<T> converter) => value is not null ? converter.Pack(value, CrystalJsonSettings.JsonReadOnly) : JsonNull.Null;
+		[Pure]
+		private static JsonValue Convert<T>(T? value, IJsonPacker<T> converter) => value is not null ? converter.Pack(value, CrystalJsonSettings.JsonReadOnly) : JsonNull.Null;
 
 		#endregion
 
@@ -1755,67 +1895,177 @@ namespace Doxense.Serialization.Json
 		/// </remarks>
 		public void Set(int index, JsonValue? value) => SetOrAdd(index, value);
 
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(int index, JsonNull? value) => Set(index, (JsonValue?) value);
+		public void Set(int index, JsonNull? value) => SetOrAdd(index, value);
 
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(int index, JsonBoolean? value) => Set(index, (JsonValue?) value);
+		public void Set(int index, bool value) => SetOrAdd(index, value ? JsonBoolean.True : JsonBoolean.False);
 
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(int index, JsonNumber? value) => Set(index, (JsonValue?) value);
+		public void Set(int index, int value) => SetOrAdd(index, JsonNumber.Return(value));
 
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(int index, JsonString? value) => Set(index, (JsonValue?) value);
+		public void Set(int index, long value) => SetOrAdd(index, JsonNumber.Return(value));
 
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(int index, JsonDateTime? value) => Set(index, (JsonValue?) value);
+		public void Set(int index, float value) => SetOrAdd(index, JsonNumber.Return(value));
 
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(int index, JsonObject? value) => Set(index, (JsonValue?) value);
+		public void Set(int index, double value) => SetOrAdd(index, JsonNumber.Return(value));
 
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(int index, JsonArray? value) => Set(index, (JsonValue?) value);
+		public void Set(int index, string? value) => SetOrAdd(index, JsonString.Return(value));
 
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(int index, MutableJsonValue? value) => Set(index, value?.Json);
+		public void Set(int index, Guid value) => SetOrAdd(index, JsonString.Return(value));
 
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set<TValue>(int index, TValue? value) => Set(index, Convert<TValue>(value)); //TODO: pass the parent settings?
+		public void Set(int index, Uuid128 value) => SetOrAdd(index, JsonString.Return(value));
 
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set<TValue>(int index, TValue? value, IJsonPacker<TValue> converter) => Set(index, Convert<TValue>(value, converter)); //TODO: pass the parent settings?
+		public void Set(int index, DateTime value) => SetOrAdd(index, JsonDateTime.Return(value));
 
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(int index, DateTimeOffset value) => SetOrAdd(index, JsonDateTime.Return(value));
+
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(int index, NodaTime.Instant value) => SetOrAdd(index, JsonDateTime.Return(value));
+
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(int index, DateOnly value) => SetOrAdd(index, JsonDateTime.Return(value));
+
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(int index, TimeSpan value) => SetOrAdd(index, JsonNumber.Return(value));
+
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(int index, NodaTime.Duration value) => SetOrAdd(index, JsonNumber.Return(value));
+
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(int index, TimeOnly value) => SetOrAdd(index, JsonNumber.Return(value));
+
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(int index, JsonObject? value) => SetOrAdd(index, value);
+
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(int index, JsonArray? value) => SetOrAdd(index, value);
+
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(int index, MutableJsonValue? value) => SetOrAdd(index, value?.Json);
+
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set<TValue>(int index, TValue? value) => SetOrAdd(index, Convert<TValue>(value));
+
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set<TValue>(int index, TValue? value, IJsonPacker<TValue> converter) => SetOrAdd(index, Convert<TValue>(value, converter));
+
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Set(Index index, JsonValue? value) => SetOrAdd(index, value);
 
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(Index index, JsonNull? value) => Set(index, (JsonValue?) value);
+		public void Set(Index index, JsonNull? value) => SetOrAdd(index, value);
 
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(Index index, JsonBoolean? value) => Set(index, (JsonValue?) value);
+		public void Set(Index index, bool value) => SetOrAdd(index, value ? JsonBoolean.True : JsonBoolean.False);
 
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(Index index, JsonNumber? value) => Set(index, (JsonValue?) value);
+		public void Set(Index index, int value) => SetOrAdd(index, JsonNumber.Return(value));
 
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(Index index, JsonString? value) => Set(index, (JsonValue?) value);
+		public void Set(Index index, long value) => SetOrAdd(index, JsonNumber.Return(value));
 
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(Index index, JsonDateTime? value) => Set(index, (JsonValue?) value);
+		public void Set(Index index, float value) => SetOrAdd(index, JsonNumber.Return(value));
 
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(Index index, JsonObject? value) => Set(index, (JsonValue?) value);
+		public void Set(Index index, double value) => SetOrAdd(index, JsonNumber.Return(value));
 
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(Index index, JsonArray? value) => Set(index, (JsonValue?) value);
+		public void Set(Index index, string? value) => SetOrAdd(index, JsonString.Return(value));
 
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set(Index index, MutableJsonValue? value) => Set(index, value?.Json);
+		public void Set(Index index, Guid value) => SetOrAdd(index, JsonString.Return(value));
 
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set<TValue>(Index index, TValue? value) => Set(index, Convert<TValue>(value)); //TODO: pass the parent settings?
+		public void Set(Index index, Uuid128 value) => SetOrAdd(index, JsonString.Return(value));
 
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Set<TValue>(Index index, TValue? value, IJsonPacker<TValue> converter) => Set(index, Convert<TValue>(value, converter)); //TODO: pass the parent settings?
+		public void Set(Index index, DateTime value) => SetOrAdd(index, JsonDateTime.Return(value));
+
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(Index index, DateTimeOffset value) => SetOrAdd(index, JsonDateTime.Return(value));
+
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(Index index, NodaTime.Instant value) => SetOrAdd(index, JsonDateTime.Return(value));
+
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(Index index, DateOnly value) => SetOrAdd(index, JsonDateTime.Return(value));
+
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(Index index, TimeSpan value) => SetOrAdd(index, JsonNumber.Return(value));
+
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(Index index, NodaTime.Duration value) => SetOrAdd(index, JsonNumber.Return(value));
+
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(Index index, TimeOnly value) => SetOrAdd(index, JsonNumber.Return(value));
+
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(Index index, JsonObject? value) => SetOrAdd(index, value);
+
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(Index index, JsonArray? value) => SetOrAdd(index, value);
+
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(Index index, MutableJsonValue? value) => SetOrAdd(index, value?.Json);
+
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set<TValue>(Index index, TValue? value) => SetOrAdd(index, Convert<TValue>(value));
+
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set<TValue>(Index index, TValue? value, IJsonPacker<TValue> converter) => SetOrAdd(index, Convert<TValue>(value, converter));
 
 		#endregion
 
@@ -1831,56 +2081,89 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="ArgumentException">If the current element already exists.</exception>
 		public void Add(JsonValue? value) => InsertOrAdd(^0, value);
 
+		/// <inheritdoc cref="Add(JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Add(JsonNull? value) => Add((JsonValue?) value);
 
+		/// <inheritdoc cref="Add(JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Add(JsonBoolean? value) => Add((JsonValue?) value);
+		public void Add(bool value) => InsertOrAdd(^0, value ? JsonBoolean.True : JsonBoolean.False);
 
+		/// <inheritdoc cref="Add(JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Add(JsonNumber? value) => Add((JsonValue?) value);
+		public void Add(int value) => InsertOrAdd(^0, JsonNumber.Return(value));
 
+		/// <inheritdoc cref="Add(JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Add(JsonString? value) => Add((JsonValue?) value);
+		public void Add(long value) => InsertOrAdd(^0, JsonNumber.Return(value));
 
+		/// <inheritdoc cref="Add(JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Add(JsonDateTime? value) => Add((JsonValue?) value);
+		public void Add(float value) => InsertOrAdd(^0, JsonNumber.Return(value));
 
+		/// <inheritdoc cref="Add(JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Add(double value) => InsertOrAdd(^0, JsonNumber.Return(value));
+
+		/// <inheritdoc cref="Add(JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Add(string? value) => InsertOrAdd(^0, JsonString.Return(value));
+
+		/// <inheritdoc cref="Add(JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Add(Guid value) => InsertOrAdd(^0, JsonString.Return(value));
+
+		/// <inheritdoc cref="Add(JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Add(Uuid128 value) => InsertOrAdd(^0, JsonString.Return(value));
+
+		/// <inheritdoc cref="Add(JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Add(DateTime value) => InsertOrAdd(^0, JsonDateTime.Return(value));
+
+		/// <inheritdoc cref="Add(JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Add(DateTimeOffset value) => InsertOrAdd(^0, JsonDateTime.Return(value));
+
+		/// <inheritdoc cref="Add(JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Add(NodaTime.Instant value) => InsertOrAdd(^0, JsonDateTime.Return(value));
+
+		/// <inheritdoc cref="Add(JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Add(DateOnly value) => InsertOrAdd(^0, JsonDateTime.Return(value));
+
+		/// <inheritdoc cref="Add(JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Add(TimeSpan value) => InsertOrAdd(^0, JsonNumber.Return(value));
+
+		/// <inheritdoc cref="Add(JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Add(NodaTime.Duration value) => InsertOrAdd(^0, JsonNumber.Return(value));
+
+		/// <inheritdoc cref="Add(JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Add(TimeOnly value) => InsertOrAdd(^0, JsonString.Return(value));
+
+		/// <inheritdoc cref="Add(JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Add(JsonObject? value) => Add((JsonValue?) value);
 
+		/// <inheritdoc cref="Add(JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Add(JsonArray? value) => Add((JsonValue?) value);
 
-		/// <summary>Adds a new field to the object</summary>
-		/// <param name="value">Value of the field</param>
-		/// <remarks>If the current value is null or missing, it will automatically be promoted to an empty object.</remarks>
-		/// <exception cref="NotSupportedException">If the current value is not an Object.</exception>
+		/// <inheritdoc cref="Add(JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Add(MutableJsonValue? value) => Add(value?.Json);
 
-		/// <summary>Adds a new field to the object</summary>
-		/// <param name="value">Value of the field</param>
-		/// <remarks>If the current value is null or missing, it will automatically be promoted to an empty object.</remarks>
-		/// <exception cref="NotSupportedException">If the current value is not an Object.</exception>
+		/// <inheritdoc cref="Add(JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Add<TValue>(TValue value) => Add(Convert<TValue>(value));
 
-		/// <summary>Adds a new field to the object</summary>
-		/// <param name="name">Name of the field</param>
-		/// <param name="value">Value of the field</param>
-		/// <remarks>If the current value is null or missing, it will automatically be promoted to an empty object.</remarks>
-		/// <exception cref="NotSupportedException">If the current value is not an Object.</exception>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Add(string name, JsonValue value) => Get(name).Add(value);
+		#endregion
 
-		/// <summary>Adds a new field to the object</summary>
-		/// <param name="path">Name of the field</param>
-		/// <param name="value">Value of the field</param>
-		/// <remarks>If the current value is null or missing, it will automatically be promoted to an empty object.</remarks>
-		/// <exception cref="NotSupportedException">If the current value is not an Object.</exception>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Add(JsonPath path, JsonValue value) => Get(path).Add(value);
+		#region Add(name, ...)
 
 		/// <summary>Adds a new field to the object</summary>
 		/// <param name="name">Name of the field</param>
@@ -1888,7 +2171,59 @@ namespace Doxense.Serialization.Json
 		/// <remarks>If the current value is null or missing, it will automatically be promoted to an empty object.</remarks>
 		/// <exception cref="NotSupportedException">If the current value is not an Object.</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Add(string name, MutableJsonValue? value) => Get(name).Add(value?.Json);
+		public void Add(string name, JsonValue? value) => InsertOrUpdate(name.AsMemory(), value, InsertionBehavior.ThrowOnExisting);
+
+		/// <inheritdoc cref="Add(string,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Add(string name, JsonNull? value) => InsertOrUpdate(name.AsMemory(), value, InsertionBehavior.ThrowOnExisting);
+
+		/// <inheritdoc cref="Add(string,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Add(string name, JsonObject? value) => InsertOrUpdate(name.AsMemory(), value, InsertionBehavior.ThrowOnExisting);
+
+		/// <inheritdoc cref="Add(string,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Add(string name, JsonArray? value) => InsertOrUpdate(name.AsMemory(), value, InsertionBehavior.ThrowOnExisting);
+
+		/// <inheritdoc cref="Add(string,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Add(string name, MutableJsonValue? value) => InsertOrUpdate(name.AsMemory(), value?.ToJson(), InsertionBehavior.ThrowOnExisting);
+
+		/// <inheritdoc cref="Add(string,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Add(string name, ObservableJsonValue? value) => InsertOrUpdate(name.AsMemory(), value?.ToJson(), InsertionBehavior.ThrowOnExisting);
+
+		/// <inheritdoc cref="Add(string,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Add<TValue>(string name, TValue value) => Add(name, Convert(value));
+
+		/// <inheritdoc cref="Add(string,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Add(ReadOnlyMemory<char> name, JsonValue? value) => InsertOrUpdate(name, value, InsertionBehavior.ThrowOnExisting);
+
+		/// <inheritdoc cref="Add(string,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Add(ReadOnlyMemory<char> name, JsonNull? value) => InsertOrUpdate(name, value, InsertionBehavior.ThrowOnExisting);
+
+		/// <inheritdoc cref="Add(string,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Add(ReadOnlyMemory<char> name, JsonObject? value) => InsertOrUpdate(name, value, InsertionBehavior.ThrowOnExisting);
+
+		/// <inheritdoc cref="Add(string,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Add(ReadOnlyMemory<char> name, JsonArray? value) => InsertOrUpdate(name, value, InsertionBehavior.ThrowOnExisting);
+
+		/// <inheritdoc cref="Add(string,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Add(ReadOnlyMemory<char> name, MutableJsonValue? value) => InsertOrUpdate(name, value?.ToJson(), InsertionBehavior.ThrowOnExisting);
+
+		/// <inheritdoc cref="Add(string,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Add(ReadOnlyMemory<char> name, ObservableJsonValue? value) => InsertOrUpdate(name, value?.ToJson(), InsertionBehavior.ThrowOnExisting);
+
+		/// <inheritdoc cref="Add(string,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Add<TValue>(ReadOnlyMemory<char> name, TValue value) => Add(name, Convert(value));
 
 		#endregion
 
@@ -2060,16 +2395,49 @@ namespace Doxense.Serialization.Json
 		public void Insert(int index, JsonNull? value) => InsertOrAdd(index, value);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Insert(int index, JsonBoolean? value) => InsertOrAdd(index, value);
+		public void Insert(int index, bool value) => InsertOrAdd(index, value ? JsonBoolean.True : JsonBoolean.False);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Insert(int index, JsonNumber? value) => InsertOrAdd(index, value);
+		public void Insert(int index, int value) => InsertOrAdd(index, JsonNumber.Return(value));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Insert(int index, JsonString? value) => InsertOrAdd(index, value);
+		public void Insert(int index, long value) => InsertOrAdd(index, JsonNumber.Return(value));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Insert(int index, JsonDateTime? value) => InsertOrAdd(index, value);
+		public void Insert(int index, float value) => InsertOrAdd(index, JsonNumber.Return(value));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Insert(int index, double value) => InsertOrAdd(index, JsonNumber.Return(value));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Insert(int index, string? value) => InsertOrAdd(index, JsonString.Return(value));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Insert(int index, Guid value) => InsertOrAdd(index, JsonString.Return(value));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Insert(int index, Uuid128 value) => InsertOrAdd(index, JsonString.Return(value));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Insert(int index, DateTime value) => InsertOrAdd(index, JsonDateTime.Return(value));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Insert(int index, DateTimeOffset value) => InsertOrAdd(index, JsonDateTime.Return(value));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Insert(int index, NodaTime.Instant value) => InsertOrAdd(index, JsonDateTime.Return(value));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Insert(int index, DateOnly value) => InsertOrAdd(index, JsonDateTime.Return(value));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Insert(int index, TimeSpan value) => InsertOrAdd(index, JsonNumber.Return(value));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Insert(int index, NodaTime.Duration value) => InsertOrAdd(index, JsonNumber.Return(value));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Insert(int index, TimeOnly value) => InsertOrAdd(index, JsonNumber.Return(value));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(int index, JsonObject? value) => InsertOrAdd(index, value);
@@ -2081,10 +2449,10 @@ namespace Doxense.Serialization.Json
 		public void Insert(int index, MutableJsonValue? value) => InsertOrAdd(index, value?.Json);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Insert<TValue>(int index, TValue value) => InsertOrAdd(index, Convert<TValue>(value)); //TODO: pass the parent settings?
+		public void Insert<TValue>(int index, TValue value) => InsertOrAdd(index, Convert<TValue>(value));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Insert<TValue>(int index, TValue value, IJsonPacker<TValue> converter) => InsertOrAdd(index, Convert<TValue>(value, converter)); //TODO: pass the parent settings?
+		public void Insert<TValue>(int index, TValue value, IJsonPacker<TValue> converter) => InsertOrAdd(index, Convert<TValue>(value, converter));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(Index index, JsonValue value) => InsertOrAdd(index, value);
@@ -2093,16 +2461,49 @@ namespace Doxense.Serialization.Json
 		public void Insert(Index index, JsonNull? value) => InsertOrAdd(index, value);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Insert(Index index, JsonBoolean? value) => InsertOrAdd(index, value);
+		public void Insert(Index index, bool value) => InsertOrAdd(index, value ? JsonBoolean.True : JsonBoolean.False);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Insert(Index index, JsonNumber? value) => InsertOrAdd(index, value);
+		public void Insert(Index index, int value) => InsertOrAdd(index, JsonNumber.Return(value));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Insert(Index index, JsonString? value) => InsertOrAdd(index, value);
+		public void Insert(Index index, long value) => InsertOrAdd(index, JsonNumber.Return(value));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Insert(Index index, JsonDateTime? value) => InsertOrAdd(index, value);
+		public void Insert(Index index, float value) => InsertOrAdd(index, JsonNumber.Return(value));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Insert(Index index, double value) => InsertOrAdd(index, JsonNumber.Return(value));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Insert(Index index, string? value) => InsertOrAdd(index, JsonString.Return(value));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Insert(Index index, Guid value) => InsertOrAdd(index, JsonString.Return(value));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Insert(Index index, Uuid128 value) => InsertOrAdd(index, JsonString.Return(value));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Insert(Index index, DateTime value) => InsertOrAdd(index, JsonDateTime.Return(value));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Insert(Index index, DateTimeOffset value) => InsertOrAdd(index, JsonDateTime.Return(value));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Insert(Index index, NodaTime.Instant value) => InsertOrAdd(index, JsonDateTime.Return(value));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Insert(Index index, DateOnly value) => InsertOrAdd(index, JsonDateTime.Return(value));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Insert(Index index, TimeSpan value) => InsertOrAdd(index, JsonNumber.Return(value));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Insert(Index index, NodaTime.Duration value) => InsertOrAdd(index, JsonNumber.Return(value));
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Insert(Index index, TimeOnly value) => InsertOrAdd(index, JsonNumber.Return(value));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(Index index, JsonObject? value) => InsertOrAdd(index, value);
