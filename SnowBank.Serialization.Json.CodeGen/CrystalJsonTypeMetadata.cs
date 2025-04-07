@@ -42,6 +42,10 @@ namespace SnowBank.Serialization.Json.CodeGen
 		/// <summary>List of all application types that will be part of the generated source code</summary>
 		public required ImmutableEquatableArray<CrystalJsonTypeMetadata> IncludedTypes { get; init; }
 
+		public bool PropertyNameCaseInsensitive { get; init; }
+
+		public string? PropertyNamingPolicy { get; init; }
+
 		//TODO: settings!
 
 	}

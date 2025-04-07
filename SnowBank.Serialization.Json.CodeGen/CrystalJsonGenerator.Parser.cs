@@ -117,6 +117,9 @@ namespace SnowBank.Serialization.Json.CodeGen
 				var converterAttribute = attributes[0];
 				//TODO: extract some settings from this?
 
+				bool caseInsensitiveNames = false;
+				string? propertyNamingPolicy = null;
+
 				// key: fullyQualifiedName
 				var includedTypes = new List<CrystalJsonTypeMetadata>();
 				var mappedTypes = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
@@ -131,27 +134,82 @@ namespace SnowBank.Serialization.Json.CodeGen
 					var ac = typeAttribute.AttributeClass;
 					if (ac == null) continue;
 
-					if (ac.ToDisplayString() != CrystalJsonSerializableAttributeFullName)
+					switch (ac.ToDisplayString())
 					{
-						continue;
-					}
+						case CrystalJsonSerializableAttributeFullName:
+						{
+							if (typeAttribute.ConstructorArguments.Length < 1)
+							{
+								continue;
+							}
 
-					if (typeAttribute.ConstructorArguments.Length < 1)
-					{
-						continue;
-					}
+							if (typeAttribute.ConstructorArguments[0].Value is not INamedTypeSymbol type)
+							{
+								continue;
+							}
 
-					if (typeAttribute.ConstructorArguments[0].Value is not INamedTypeSymbol type)
-					{
-						continue;
-					}
+							if (!mappedTypes.Add(type))
+							{
+								//TODO: report a diagnostic about a duplicated type?
+								continue;
+							}
 
-					if (!mappedTypes.Add(type))
-					{
-						//TODO: report a diagnostic about a duplicated type?
-						continue;
+							work.Enqueue(type);
+							break;
+						}
+						case CrystalJsonConverterAttributeFullName:
+						{
+							// we want to extract the generation defaults (like property naming policy, etc...)
+							// => they can be specified by the CrystalJsonSerializerDefaults (General or Web), or by overriding specific named properties
+
+							if (typeAttribute.ConstructorArguments.Length > 0)
+							{
+								var defaults = (int) typeAttribute.ConstructorArguments[0].Value!;
+								Kenobi($"Found defaults for container {symbol.Name}: {typeAttribute.ConstructorArguments[0].Value} => {defaults}");
+
+								// 0 == General
+								// 1 == Web
+								switch (defaults)
+								{
+									case 1: // CrystalJsonSerializerDefaults.Web
+									{
+										caseInsensitiveNames = true;
+										propertyNamingPolicy = "camel";
+										break;
+									}
+								}
+							}
+
+							foreach (var kv in typeAttribute.NamedArguments)
+							{
+								if (kv.Key == "PropertyNameCaseInsensitive")
+								{
+									caseInsensitiveNames = (bool) kv.Value.Value!;
+								}
+								else if (kv.Key == "PropertyNamingPolicy")
+								{
+									switch (kv.Value.Value)
+									{
+										case 0: // CrystalJsonKnownNamingPolicy.Unspecified
+										{
+											propertyNamingPolicy = null;
+											break;
+										}
+										case 1: // CrystalJsonKnownNamingPolicy.CamelCase
+										{
+											propertyNamingPolicy = "camel";
+											break;
+										}
+										// others?
+									}
+								}
+							}
+
+							Kenobi($"Using defaults for container {symbol.Name}: caseInsensitive={caseInsensitiveNames}; namingPolicy={propertyNamingPolicy}");
+
+							break;
+						}
 					}
-					work.Enqueue(type);
 				}
 
 				Kenobi($"Found {work.Count} root types to include");
@@ -163,7 +221,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 					Kenobi($"Inspect type {type}");
 					try
 					{
-						var typeDef = ParseTypeMetadata(type, mappedTypes, work);
+						var typeDef = ParseTypeMetadata(type, mappedTypes, work, propertyNamingPolicy);
 						if (typeDef != null)
 						{
 							includedTypes.Add(typeDef);
@@ -236,10 +294,13 @@ namespace SnowBank.Serialization.Json.CodeGen
 					Name = containerName,
 					Type = TypeMetadata.Create(symbol),
 					IncludedTypes = includedTypes.ToImmutableEquatableArray(),
+					PropertyNameCaseInsensitive = caseInsensitiveNames,
+					PropertyNamingPolicy = propertyNamingPolicy,
+
 				};
 			}
 
-			public CrystalJsonTypeMetadata? ParseTypeMetadata(INamedTypeSymbol type, HashSet<INamedTypeSymbol> mappedTypes, Queue<INamedTypeSymbol> work)
+			public CrystalJsonTypeMetadata? ParseTypeMetadata(INamedTypeSymbol type, HashSet<INamedTypeSymbol> mappedTypes, Queue<INamedTypeSymbol> work, string? namingPolicy)
 			{
 				// we have to extract all the properties that will be required later during the code generation phase
 				
@@ -300,7 +361,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 					{
 						if (member.Kind is SymbolKind.Property or SymbolKind.Field or SymbolKind.Method)
 						{
-							var (memberDef, memberType) = ParseMemberMetadata(member, mappedTypes, work);
+							var (memberDef, memberType) = ParseMemberMetadata(member, mappedTypes, work, namingPolicy);
 							if (memberDef != null)
 							{
 								Kenobi($"Inspect member {member.Name} with type {memberDef.Type.FullName}, N={memberDef.Type.NullableOfType?.Name}, E={memberDef.Type.ElementType?.Name}, K={memberDef.Type.KeyType?.Name}, V={memberDef.Type.ValueType?.Name}");
@@ -420,7 +481,21 @@ namespace SnowBank.Serialization.Json.CodeGen
 				return true;
 			}
 
-			public (CrystalJsonMemberMetadata? Metadata, ITypeSymbol Type) ParseMemberMetadata(ISymbol member, HashSet<INamedTypeSymbol> mappedTypes, Queue<INamedTypeSymbol> work)
+			private static string FormatName(string name, string? policy)
+			{
+				switch (policy)
+				{
+					case null: return name;
+					case "camel": return char.IsLower(name[0]) ? name : (char.ToLowerInvariant(name[0]) + name.Substring(1));
+					default:
+					{
+						Kenobi("### Invalid JSON Naming Policy: " + policy);
+						return name;
+					}
+				}
+			}
+
+			public (CrystalJsonMemberMetadata? Metadata, ITypeSymbol Type) ParseMemberMetadata(ISymbol member, HashSet<INamedTypeSymbol> mappedTypes, Queue<INamedTypeSymbol> work, string? namingPolicy)
 			{
 				var memberName = member.Name;
 				bool isField;
@@ -508,7 +583,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 				}
 
 				// parameters that can be modified via attributes or keywords on the member
-				var name = memberName;
+				string? name = null;
 				bool isKey = false;
 
 				string defaultLiteral = GetDefaultLiteral(type);
@@ -560,12 +635,17 @@ namespace SnowBank.Serialization.Json.CodeGen
 						//TODO: any other argument for setting a default value?
 					}
 				}
+
+				if (string.IsNullOrEmpty(name))
+				{
+					name = FormatName(memberName, namingPolicy);
+				}
 				
 				return (
 					new()
 					{
 						Type = type,
-						Name = name,
+						Name = name!,
 						MemberName = memberName,
 						Attributes = attributes,
 						IsField = isField,

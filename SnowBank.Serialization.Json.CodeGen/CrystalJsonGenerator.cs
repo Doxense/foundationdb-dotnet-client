@@ -39,9 +39,9 @@ namespace SnowBank.Serialization.Json.CodeGen
 	public partial class CrystalJsonSourceGenerator : IIncrementalGenerator
 	{
 
-		internal const string CrystalJsonConverterAttributeFullName = KnownTypeSymbols.CrystalJsonNamespace + ".CrystalJsonConverterAttribute";
+		private const string CrystalJsonConverterAttributeFullName = KnownTypeSymbols.CrystalJsonNamespace + ".CrystalJsonConverterAttribute";
 
-		internal const string CrystalJsonSerializableAttributeFullName = KnownTypeSymbols.CrystalJsonNamespace + ".CrystalJsonSerializableAttribute";
+		private const string CrystalJsonSerializableAttributeFullName = KnownTypeSymbols.CrystalJsonNamespace + ".CrystalJsonSerializableAttribute";
 
 #if FULL_DEBUG
 #pragma warning disable RS1035
@@ -80,7 +80,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 				.ForAttributeWithMetadataName(
 					CrystalJsonConverterAttributeFullName,
 					(node, _) => node is ClassDeclarationSyntax,
-					(context, _) => (ContextClass: (ClassDeclarationSyntax) context.TargetNode, context.SemanticModel, context.Attributes)
+					(ctx, _) => (ContextClass: (ClassDeclarationSyntax) ctx.TargetNode, ctx.SemanticModel, ctx.Attributes)
 				)
 				.Combine(knownTypeSymbols)
 				.Select(static (tuple, ct) =>

@@ -199,7 +199,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 
 	}
 
-	[CrystalJsonConverter]
+	[CrystalJsonConverter(CrystalJsonSerializerDefaults.Web)]
 	[CrystalJsonSerializable(typeof(Person))]
 	[CrystalJsonSerializable(typeof(MyAwesomeUser))]
 	[CrystalJsonSerializable(typeof(Animal))]
@@ -208,11 +208,11 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 		// generated code goes here!
 	}
 
-	[System.Text.Json.Serialization.JsonSourceGenerationOptions(System.Text.Json.JsonSerializerDefaults.Web)]
-	[System.Text.Json.Serialization.JsonSerializable(typeof(MyAwesomeUser))]
-	[System.Text.Json.Serialization.JsonSerializable(typeof(Person))]
-	[System.Text.Json.Serialization.JsonSerializable(typeof(Animal))]
-	public partial class SystemTextJsonGeneratedSerializers : System.Text.Json.Serialization.JsonSerializerContext;
+	[JsonSourceGenerationOptions(System.Text.Json.JsonSerializerDefaults.Web)]
+	[JsonSerializable(typeof(MyAwesomeUser))]
+	[JsonSerializable(typeof(Person))]
+	[JsonSerializable(typeof(Animal))]
+	public partial class SystemTextJsonGeneratedSerializers : JsonSerializerContext;
 
 	[TestFixture]
 	[Category("Core-SDK")]

@@ -46,8 +46,57 @@ namespace Doxense.Serialization.Json
 	public sealed class CrystalJsonConverterAttribute : Attribute
 	{
 
-		//TODO: default settings!
+		public CrystalJsonConverterAttribute() { }
 
+		public CrystalJsonConverterAttribute(CrystalJsonSerializerDefaults defaults)
+		{
+			if (defaults == CrystalJsonSerializerDefaults.Web)
+			{
+				this.PropertyNameCaseInsensitive = true;
+				this.PropertyNamingPolicy = CrystalJsonKnownNamingPolicy.CamelCase;
+				//this.NumberHandling = JsonNumberHandling.AllowReadingFromString;
+			}
+			else if (defaults != CrystalJsonSerializerDefaults.General)
+			{
+				throw new ArgumentOutOfRangeException(nameof(defaults));
+			}
+		}
+
+		/// <summary>Gets or sets the default value of <see cref="CrystalJsonSettings.IgnoreCaseForNames" />.</summary>
+		public bool PropertyNameCaseInsensitive { get; set; }
+
+		/// <summary>Gets or sets a built-in naming policy to convert JSON property names with.</summary>
+		public CrystalJsonKnownNamingPolicy PropertyNamingPolicy { get; set; }
+
+	}
+
+	/// <summary>The <see cref="T:System.Text.Json.JsonNamingPolicy" /> to be used at run time.</summary>
+	public enum CrystalJsonKnownNamingPolicy
+	{
+		/// <summary>Specifies that JSON property names should not be converted.</summary>
+		Unspecified,
+
+		/// <summary>Specifies that the built-in <see cref="P:System.Text.Json.JsonNamingPolicy.CamelCase" /> be used to convert JSON property names.</summary>
+		CamelCase,
+
+		//TODO: more! (use the same values as STJ!)
+	}
+
+	public enum CrystalJsonSerializerDefaults
+	{
+		/// <summary>
+		///   <para>General-purpose option values. These are the same settings that are applied if a <see cref="T:System.Text.Json.JsonSerializerDefaults" /> member isn't specified.</para>
+		///   <para>For information about the default property values that are applied, see JsonSerializerOptions properties.</para>
+		/// </summary>
+		General,
+		/// <summary>
+		///   <para>Option values appropriate to Web-based scenarios.</para>
+		///   <para>This member implies that:</para>
+		///   <para>- Property names are treated as case-insensitive.</para>
+		///   <para>- "camelCase" name formatting should be employed.</para>
+		///   <para>- Quoted numbers (JSON strings for number properties) are allowed.</para>
+		/// </summary>
+		Web,
 	}
 
 	/// <summary>Attribute that will generate a converter for the specified type</summary>
