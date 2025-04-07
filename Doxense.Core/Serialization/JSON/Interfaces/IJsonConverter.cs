@@ -28,13 +28,38 @@ namespace Doxense.Serialization.Json
 {
 	using System.Diagnostics.CodeAnalysis;
 
+	/// <summary>Base non-generic interface for <see cref="IJsonConverter{T}"/> implementations</summary>
+	[PublicAPI]
+	public interface IJsonConverter
+	{
+
+		/// <summary>Type of the instances that are compatible with this converter</summary>
+		Type GetTargetType();
+
+		/// <summary>Returns the type parent collection that handles this converter</summary>
+		IJsonTypeCollection? GetTypeCollection();
+
+		/// <summary>Returns the JSON property name for the corresponding member of the target type of this converter</summary>
+		/// <param name="memberName">Name of the member of the target type of this converter, as in the ".NET" name for the property of field.</param>
+		/// <param name="propertyName">Receives the corresponding name of the property, as found in the JSON serialized form.</param>
+		/// <returns><c>true</c> if a member with this name exists in the target type of this converter; otherwise, <c>false</c></returns>
+		bool TryMapMemberToPropertyName(string memberName, [MaybeNullWhen(false)] out string propertyName);
+
+		/// <summary>Returns the member name in the target type of this converter for the corresponding JSON property</summary>
+		/// <param name="propertyName">Name of the property, as found in the JSON serialized form.</param>
+		/// <param name="memberName">Name of the corresponding member of the target type of this converter, as in the ".NET" name for the property of field.</param>
+		/// <returns><c>true</c> if the property name matches a member in the target type of this converter; otherwise, <c>false</c></returns>
+		bool TryMapPropertyToMemberName(string propertyName, [MaybeNullWhen(false)] out string memberName);
+
+	}
+
 	/// <summary>Bundle interface that is implemented by source-generated encoders</summary>
 	/// <remarks>
 	/// <para>This interfaces bundles <see cref="IJsonSerializer{T}"/>, <see cref="IJsonDeserializer{T}"/> and <see cref="IJsonPacker{T}"/>,
 	/// so that it is easier to provide APIs that take a single instance, that is able to both encode and decode JSON without needing two or three different parameters.</para>
 	/// </remarks>
 	[PublicAPI]
-	public interface IJsonConverter<T> : IJsonSerializer<T>, IJsonDeserializer<T>, IJsonPacker<T>
+	public interface IJsonConverter<T> : IJsonConverter, IJsonSerializer<T>, IJsonDeserializer<T>, IJsonPacker<T>
 	{
 		// this is just a marker interface
 	}
@@ -114,75 +139,6 @@ namespace Doxense.Serialization.Json
 		where TWritableProxy : IJsonWritableProxy<TValue>
 	{
 		// this is just a marker interface
-	}
-
-	internal sealed class DefaultJsonConverter<T> : IJsonConverter<T>
-	{
-
-		public Action<CrystalJsonWriter, T?> SerializeHandler { get; }
-
-		public Func<JsonValue, ICrystalJsonTypeResolver, T> DeserializeHandler { get; }
-
-		public Func<T, CrystalJsonSettings, ICrystalJsonTypeResolver, JsonValue> PackHandler { get; }
-
-		public DefaultJsonConverter(
-			Action<CrystalJsonWriter, T?>? serializeHandler,
-			Func<JsonValue, ICrystalJsonTypeResolver, T>? deserializeHandler,
-			Func<T, CrystalJsonSettings, ICrystalJsonTypeResolver, JsonValue>? packHandler
-		)
-		{
-			this.SerializeHandler = serializeHandler ?? (static (_, _) => throw new NotSupportedException("Operation not supported"));
-			this.DeserializeHandler = deserializeHandler ?? (static (_, _) => throw new NotSupportedException("Operation not supported"));
-			this.PackHandler = packHandler ?? (static (_, _, _) => throw new NotSupportedException("Operation not supported"));
-		}
-
-		/// <inheritdoc />
-		public void Serialize(CrystalJsonWriter writer, T? instance) => this.SerializeHandler(writer, instance);
-
-		/// <inheritdoc />
-		public T Unpack(JsonValue value, ICrystalJsonTypeResolver? resolver = null)
-		{
-			return this.DeserializeHandler(value, resolver ?? CrystalJson.DefaultResolver);
-		}
-
-		/// <inheritdoc />
-		public JsonValue Pack(T instance, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			return this.PackHandler(instance, settings ?? CrystalJsonSettings.Json, resolver ?? CrystalJson.DefaultResolver);
-		}
-	}
-
-	internal sealed class RuntimeJsonConverter<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T> : IJsonConverter<T>
-	{
-
-		/// <summary>Default converter for instances of type <typeparamref name="T"/></summary>
-		public static readonly IJsonConverter<T> Default = new RuntimeJsonConverter<T>();
-
-		/// <inheritdoc />
-		public void Serialize(CrystalJsonWriter writer, T? instance)
-		{
-			if (instance is null)
-			{
-				writer.WriteNull();
-			}
-			else
-			{
-				CrystalJsonVisitor.VisitValue<T>(instance, writer);
-			}
-		}
-
-		/// <inheritdoc />
-		public T Unpack(JsonValue value, ICrystalJsonTypeResolver? resolver = null)
-		{
-			return value.As<T>(default, resolver)!;
-		}
-
-		/// <inheritdoc />
-		public JsonValue Pack(T instance, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			return JsonValue.FromValue<T>(instance, settings, resolver);
-		}
-
 	}
 
 }

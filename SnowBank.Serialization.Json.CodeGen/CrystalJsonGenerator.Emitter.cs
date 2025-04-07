@@ -53,6 +53,8 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 			private const string GeneratedCodeAttributeFullName = "System.CodeDom.Compiler.GeneratedCodeAttribute";
 
+			private const string MaybeNullWhenAttributeFullName = "System.Diagnostics.CodeAnalysis.MaybeNullWhenAttribute";
+
 			private const string NotNullIfNotNullAttributeFullName = "System.Diagnostics.CodeAnalysis.NotNullIfNotNullAttribute";
 
 			#endregion
@@ -129,16 +131,73 @@ namespace SnowBank.Serialization.Json.CodeGen
 					sb.EnterBlock("container");
 					sb.NewLine();
 
-					//TODO: static code?
-
-					sb.AppendLine($"public static {KnownTypeSymbols.IJsonConverterInterfaceFullName}<T> GetConverterFor<T>()");
-					sb.EnterBlock("TryGetConverter");
-					foreach (var type in includedTypes)
+					// TypeMapper
+					sb.Comment("Mapper that bundles all the types that are managed by this custom serializer context");
+					sb.AppendLine($"public sealed class TypeMapper : {KnownTypeSymbols.IJsonTypeCollectionFullName}");
+					sb.EnterBlock("TypeMapper");
 					{
-						sb.AppendLine($"if (typeof(T) == typeof({type.Type.FullyQualifiedName})) return System.Runtime.CompilerServices.Unsafe.As<{KnownTypeSymbols.IJsonConverterInterfaceFullName}<T>>({GetLocalSerializerRef(type)});");
+						sb.NewLine();
+
+						sb.Comment("Default mapper for all types in this container");
+						sb.AppendLine("public static readonly TypeMapper Default = new();");
+						sb.NewLine();
+
+						sb.AppendLine($"private Dictionary<Type, {KnownTypeSymbols.IJsonConverterInterfaceFullName}> ConvertersByType {{ get; }}");
+						sb.NewLine();
+
+						// ctor()
+						sb.Comment("<inheritdoc />");
+						sb.AppendLine("private TypeMapper()");
+						sb.EnterBlock("ctor");
+						sb.AppendLine($"var map = new Dictionary<Type, {KnownTypeSymbols.IJsonConverterInterfaceFullName}>();");
+						foreach (var type in includedTypes)
+						{
+							sb.AppendLine($"map[typeof({type.Type.FullyQualifiedName})] = {GetLocalSerializerRef(type)};");
+						}
+						sb.AppendLine("this.ConvertersByType = map;");
+						sb.LeaveBlock("ctor");
+						sb.NewLine();
+
+						// TryGetConverterFor(Type)
+						sb.Comment("<inheritdoc />");
+						sb.AppendLine($"public bool TryGetConverterFor(Type type, [{MaybeNullWhenAttributeFullName}(false)] out {KnownTypeSymbols.IJsonConverterInterfaceFullName} converter)");
+						sb.EnterBlock();
+						{
+							sb.AppendLine("return this.ConvertersByType.TryGetValue(type, out converter);");
+						}
+						sb.LeaveBlock();
+						sb.NewLine();
+
+						// TryGetConverterFor<T>()
+						sb.Comment("<inheritdoc />");
+						sb.AppendLine($"public bool TryGetConverterFor<T>([{MaybeNullWhenAttributeFullName}(false)] out {KnownTypeSymbols.IJsonConverterInterfaceFullName}<T> converter)");
+						sb.EnterBlock();
+						{
+							sb.AppendLine("if (!this.ConvertersByType.TryGetValue(typeof(T), out var instance))");
+							sb.EnterBlock();
+							sb.AppendLine("converter = null;");
+							sb.AppendLine("return false;");
+							sb.LeaveBlock();
+							sb.AppendLine($"converter = System.Runtime.CompilerServices.Unsafe.As<{KnownTypeSymbols.IJsonConverterInterfaceFullName}<T>>(instance);");
+							sb.AppendLine("return true;");
+						}
+						sb.LeaveBlock();
+						sb.NewLine();
+
+						// GetConverterFor<T>
+						sb.AppendLine($"public {KnownTypeSymbols.IJsonConverterInterfaceFullName}<T>? GetConverterFor<T>()");
+						sb.EnterBlock();
+						{
+							sb.AppendLine("if (!this.ConvertersByType.TryGetValue(typeof(T), out var instance))");
+							sb.EnterBlock();
+							sb.AppendLine("return null;");
+							sb.LeaveBlock();
+							sb.AppendLine($"return System.Runtime.CompilerServices.Unsafe.As<{KnownTypeSymbols.IJsonConverterInterfaceFullName}<T>>(instance);");
+						}
+						sb.LeaveBlock();
+						sb.NewLine();
 					}
-					sb.AppendLine($"return {KnownTypeSymbols.CrystalJsonFullName}.DefaultResolver.GetDefaultConverter<T>();");
-					sb.LeaveBlock("TryGetConverter");
+					sb.LeaveBlock("TypeMapper");
 					sb.NewLine();
 
 					sb.LeaveBlock("container");
@@ -343,6 +402,14 @@ namespace SnowBank.Serialization.Json.CodeGen
 				#region Helpers...
 
 				sb.AppendLine("#region Conversion Helpers...");
+				sb.NewLine();
+
+				sb.Comment("<inheritdoc />");
+				sb.AppendLine($"public Type GetTargetType() => typeof({typeDef.Type.FullyQualifiedName});");
+				sb.NewLine();
+
+				sb.Comment("<inheritdoc />");
+				sb.AppendLine($"public {KnownTypeSymbols.IJsonTypeCollectionFullName}? GetTypeCollection() => {this.Metadata.Name}.TypeMapper.Default;");
 				sb.NewLine();
 
 				WriteProxyHelpers(sb, typeDef, typeFullName);
@@ -1233,6 +1300,36 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 			private void WriteProxyHelpers(CSharpCodeBuilder sb, CrystalJsonTypeMetadata typeDef, string typeCref)
 			{
+
+				// TryMapMemberToPropertyName()
+				sb.AppendLine($"public bool TryMapMemberToPropertyName(string memberName, [{MaybeNullWhenAttributeFullName}(false)] out string propertyName)");
+				sb.EnterBlock();
+				sb.AppendLine("propertyName = memberName switch");
+				sb.EnterBlock();
+				foreach (var member in typeDef.Members)
+				{
+					sb.AppendLine($"nameof({typeDef.Type.FullyQualifiedName}.{member.MemberName}) => {GetLocalPropertyNameRef(member)},");
+				}
+				sb.AppendLine("_ => null,");
+				sb.LeaveBlock(semicolon: true);
+				sb.AppendLine("return propertyName != null;");
+				sb.LeaveBlock();
+				sb.NewLine();
+
+				// TryMapMemberToPropertyName()
+				sb.AppendLine($"public bool TryMapPropertyToMemberName(string propertyName, [{MaybeNullWhenAttributeFullName}(false)] out string memberName)");
+				sb.EnterBlock();
+				sb.AppendLine("memberName = propertyName switch");
+				sb.EnterBlock();
+				foreach (var member in typeDef.Members)
+				{
+					sb.AppendLine($"{GetLocalPropertyNameRef(member)} => nameof({typeDef.Type.FullyQualifiedName}.{member.MemberName}),");
+				}
+				sb.AppendLine("_ => null,");
+				sb.LeaveBlock(semicolon: true);
+				sb.AppendLine("return memberName != null;");
+				sb.LeaveBlock();
+				sb.NewLine();
 
 				// ToReadOnly(JsonValue)
 				sb.AppendLine($"/// <summary>Returns a read-only JSON Proxy that wraps a <see cref=\"{KnownTypeSymbols.JsonValueFullName}\"/> into a type-safe emulation of type <see cref=\"{typeCref}\"/></summary>");

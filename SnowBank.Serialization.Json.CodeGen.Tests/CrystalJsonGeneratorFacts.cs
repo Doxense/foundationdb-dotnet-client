@@ -263,19 +263,19 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			// the source generate makes a static generic GetConverterFor<T> method,
 			// that returns the converter singleton for each generated type
 			{
-				var converter = GeneratedConverters.GetConverterFor<Person>();
+				var converter = GeneratedConverters.TypeMapper.Default.GetConverterFor<Person>();
 				Assert.That(converter, Is.InstanceOf<IJsonConverter<Person>>());
 			}
 			{
-				var converter = GeneratedConverters.GetConverterFor<MyAwesomeUser>();
+				var converter = GeneratedConverters.TypeMapper.Default.GetConverterFor<MyAwesomeUser>();
 				Assert.That(converter, Is.InstanceOf<IJsonConverter<MyAwesomeUser>>());
 			}
 			{
-				var converter = GeneratedConverters.GetConverterFor<MyAwesomeMetadata>();
+				var converter = GeneratedConverters.TypeMapper.Default.GetConverterFor<MyAwesomeMetadata>();
 				Assert.That(converter, Is.InstanceOf<IJsonConverter<MyAwesomeMetadata>>());
 			}
 			{
-				var converter = GeneratedConverters.GetConverterFor<Dog>();
+				var converter = GeneratedConverters.TypeMapper.Default.GetConverterFor<Dog>();
 				Assert.That(converter, Is.InstanceOf<IJsonConverter<Dog>>());
 			}
 		}
