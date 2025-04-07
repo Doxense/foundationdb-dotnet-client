@@ -1054,11 +1054,6 @@ namespace FoundationDB.Client
 
 		#region Where...
 
-		IAsyncLinqQuery<TResult> IAsyncLinqQuery<TResult>.Where(Func<TResult, bool> predicate) => Where(predicate);
-		IAsyncLinqQuery<TResult> IAsyncLinqQuery<TResult>.Where(Func<TResult, int, bool> predicate) => Where(predicate);
-		IAsyncLinqQuery<TResult> IAsyncLinqQuery<TResult>.Where(Func<TResult, CancellationToken, Task<bool>> predicate) => Where(predicate);
-		IAsyncLinqQuery<TResult> IAsyncLinqQuery<TResult>.Where(Func<TResult, int, CancellationToken, Task<bool>> predicate) => Where(predicate);
-
 		/// <inheritdoc />
 		[Pure, LinqTunnel]
 		public IAsyncLinqQuery<TResult> Where(Func<TResult, bool> predicate)

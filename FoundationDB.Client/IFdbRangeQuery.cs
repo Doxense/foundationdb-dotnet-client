@@ -113,18 +113,6 @@ namespace FoundationDB.Client
 
 		// we override some of these to return the same interface
 
-		/// <summary>Filters the range results based on a predicate.</summary>
-		/// <remarks>Caution: filtering occurs on the client side !</remarks>
-		/// <example><c>query.Where((kv) => kv.Key.StartsWith(prefix))</c> or <c>query.Where((kv) => !kv.Value.IsNull)</c></example>
-		[MustUseReturnValue, LinqTunnel]
-		new IAsyncLinqQuery<TResult> Where(Func<TResult, bool> predicate);
-
-		new IAsyncLinqQuery<TResult> Where(Func<TResult, int, bool> predicate);
-
-		new IAsyncLinqQuery<TResult> Where(Func<TResult, CancellationToken, Task<bool>> predicate);
-
-		new IAsyncLinqQuery<TResult> Where(Func<TResult, int, CancellationToken, Task<bool>> predicate);
-
 		/// <summary>Projects each element of the range results into a new form.</summary>
 		/// <param name="selector">Function that is invoked for each source element, and will return the corresponding transformed element.</param>
 		/// <returns>New range query that outputs the sequence of transformed elements</returns>
