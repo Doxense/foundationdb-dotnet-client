@@ -43,11 +43,11 @@ namespace Doxense.Serialization.Json
 
 		public bool RequiresClassAttribute { get; init; }
 
-		/// <summary>Specifies if this is a anonymous type that does not have a valid name</summary>
+		/// <summary>Specifies if this is an anonymous type that does not have a valid name</summary>
 		/// <remarks>ex: <c>CrystalJson.Serialize(new { "Hello": "World" })</c></remarks>
 		public bool IsAnonymousType { get; init; }
 
-		/// <summary>Specifies if the type cannot possibily be derived (sealed class, or value type)</summary>
+		/// <summary>Specifies if the type cannot possibly be derived (sealed class, or value type)</summary>
 		/// <remarks>If <see langword="false"/>, a type-check will have to be performed during serialization, which add some overhead</remarks>
 		public bool IsSealed { get; init; }
 
