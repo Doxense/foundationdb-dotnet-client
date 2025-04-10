@@ -144,17 +144,28 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 						sb.AppendLine($"private Dictionary<Type, {KnownTypeSymbols.IJsonConverterInterfaceFullName}> ConvertersByType {{ get; }}");
 						sb.NewLine();
+						sb.AppendLine($"private Dictionary<Type, {KnownTypeSymbols.IJsonConverterInterfaceFullName}> ConvertersByTypeExtended {{ get; }}");
+						sb.NewLine();
 
 						// ctor()
 						sb.Comment("<inheritdoc />");
 						sb.AppendLine("private TypeMapper()");
 						sb.EnterBlock("ctor");
+						// map of all application types
 						sb.AppendLine($"var map = new Dictionary<Type, {KnownTypeSymbols.IJsonConverterInterfaceFullName}>();");
 						foreach (var type in includedTypes)
 						{
 							sb.AppendLine($"map[typeof({type.Type.FullyQualifiedName})] = {GetLocalSerializerRef(type)};");
 						}
 						sb.AppendLine("this.ConvertersByType = map;");
+						// extended maps that also includes the generated proxies
+						sb.AppendLine($"map = new Dictionary<Type, {KnownTypeSymbols.IJsonConverterInterfaceFullName}>(map);");
+						foreach (var type in includedTypes)
+						{
+							sb.AppendLine($"map[typeof({GetReadOnlyProxyName(type.Type)})] = {GetLocalSerializerRef(type)};");
+							sb.AppendLine($"map[typeof({GetWritableProxyName(type.Type)})] = {GetLocalSerializerRef(type)};");
+						}
+						sb.AppendLine("this.ConvertersByTypeExtended = map;");
 						sb.LeaveBlock("ctor");
 						sb.NewLine();
 
@@ -163,7 +174,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 						sb.AppendLine($"public bool TryGetConverterFor(Type type, [{MaybeNullWhenAttributeFullName}(false)] out {KnownTypeSymbols.IJsonConverterInterfaceFullName} converter)");
 						sb.EnterBlock();
 						{
-							sb.AppendLine("return this.ConvertersByType.TryGetValue(type, out converter);");
+							sb.AppendLine("return this.ConvertersByTypeExtended.TryGetValue(type, out converter);");
 						}
 						sb.LeaveBlock();
 						sb.NewLine();
