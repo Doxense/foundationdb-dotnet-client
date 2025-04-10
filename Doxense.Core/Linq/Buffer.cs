@@ -1210,21 +1210,26 @@ namespace Doxense.Linq
 				: this.Chunks[^1].AsSpan()[^1];
 		}
 
-		public static bool TryGetSpan([NoEnumeration] IEnumerable<T> items, out ReadOnlySpan<T> span)
+		public static bool TryGetSpan([NoEnumeration] IEnumerable<T>? items, out ReadOnlySpan<T> span)
 		{
-			if (items is T[] arr)
+			switch (items)
 			{
-				span = new ReadOnlySpan<T>(arr);
-				return true;
+				case T[] arr:
+				{
+					span = new ReadOnlySpan<T>(arr);
+					return true;
+				}
+				case List<T> list:
+				{
+					span = CollectionsMarshal.AsSpan(list);
+					return true;
+				}
+				default:
+				{
+					span = default;
+					return false;
+				}
 			}
-			if (items is List<T> list)
-			{
-				span = CollectionsMarshal.AsSpan(list);
-				return true;
-			}
-
-			span = default;
-			return false;
 		}
 
 		#endregion

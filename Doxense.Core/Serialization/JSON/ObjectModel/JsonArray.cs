@@ -471,13 +471,14 @@ namespace Doxense.Serialization.Json
 		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
 		/// <returns>Mutable array with all the values extracted from the source, and converted into <see cref="JsonValue"/> instances</returns>
 		/// <remarks>For a <b>read-only</b> array, see <see cref="JsonArray.ReadOnly.FromValues{TItem,TValue}(ReadOnlySpan{TItem},Func{TItem,TValue},CrystalJsonSettings?,ICrystalJsonTypeResolver?)"/></remarks>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure]
 		public static JsonArray FromValues<TItem, TValue>(ReadOnlySpan<TItem> values, Func<TItem, TValue> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			Contract.NotNull(selector);
 
-			var arr = new JsonArray().AddValues(values, selector, settings, resolver);
+			if (values.Length == 0) return settings.IsReadOnly() ? JsonArray.ReadOnly.Empty : [ ];
 
+			var arr = new JsonArray().AddValues(values, selector, settings, resolver);
 			if (settings?.ReadOnly ?? false)
 			{
 				arr = arr.FreezeUnsafe();
@@ -498,15 +499,7 @@ namespace Doxense.Serialization.Json
 		[return: NotNullIfNotNull(nameof(values))]
 		public static JsonArray? FromValues<TItem, TValue>(TItem[]? values, Func<TItem, TValue> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			if (values is null) return null;
-
-			var arr = new JsonArray().AddValues(new ReadOnlySpan<TItem>(values), selector, settings, resolver);
-
-			if (settings?.ReadOnly ?? false)
-			{
-				arr = arr.FreezeUnsafe();
-			}
-			return arr;
+			return values is null ? null : FromValues(new ReadOnlySpan<TItem>(values), selector, settings, resolver);
 		}
 
 		/// <summary>Creates a new mutable JSON Array with values extracted from a sequence of source items.</summary>
@@ -523,14 +516,27 @@ namespace Doxense.Serialization.Json
 		public static JsonArray? FromValues<TItem, TValue>(IEnumerable<TItem>? values, Func<TItem, TValue> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (values is null) return null;
-
-			var arr = new JsonArray().AddValues(values, selector, settings, resolver);
-
-			if (settings?.ReadOnly ?? false)
+			if (Buffer<TItem>.TryGetSpan(values, out var span))
 			{
-				arr = arr.FreezeUnsafe();
+				return FromValues(span, selector, settings, resolver);
 			}
-			return arr;
+
+			return FromValuesEnumerable(values, selector, settings, resolver);
+
+			static JsonArray FromValuesEnumerable(IEnumerable<TItem> values, Func<TItem, TValue> selector, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+			{
+				if (values.TryGetNonEnumeratedCount(out int count) && count == 0)
+				{
+					return settings.IsReadOnly() ? JsonArray.ReadOnly.Empty : [ ];
+				}
+
+				var arr = new JsonArray().AddValues(values, selector, settings, resolver);
+				if (settings?.ReadOnly ?? false)
+				{
+					arr = arr.FreezeUnsafe();
+				}
+				return arr;
+			}
 
 		}
 

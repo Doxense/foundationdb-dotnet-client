@@ -320,7 +320,7 @@ namespace SnowBank.Testing
 		public static JsonConstraint EqualTo(string? expected, IEqualityComparer<string>? comparer) => new JsonEqualConstraint<string>(expected, comparer ?? StringComparer.Ordinal);
 
 		/// <summary>Assert that the value is a JSON Array with the expected content</summary>
-		public static JsonConstraint EqualTo(ReadOnlySpan<string> expected) => new JsonEqualConstraint(JsonComparisonOperator.Equal, JsonArray.FromValues(expected));
+		public static JsonConstraint EqualTo(ReadOnlySpan<string?> expected) => new JsonEqualConstraint(JsonComparisonOperator.Equal, JsonArray.FromValues(expected));
 
 		/// <summary>Assert that the value is strictly greater than the expected value</summary>
 		public static JsonConstraint GreaterThan(string? expected) => new JsonEqualConstraint(JsonComparisonOperator.GreaterThan, JsonString.Return(expected));
