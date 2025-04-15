@@ -209,6 +209,8 @@ namespace Doxense.Serialization.Json
 
 		public bool ContainsKey(ReadOnlyMemory<char> name) => this.Json is JsonObject obj && obj.ContainsKey(name);
 
+		public bool ContainsKey(ReadOnlySpan<char> name) => this.Json is JsonObject obj && obj.ContainsKey(name);
+
 		public bool ContainsValue(JsonValue value) => this.Json switch
 		{
 			JsonObject obj => obj.Contains(value),
@@ -335,7 +337,7 @@ namespace Doxense.Serialization.Json
 				return false;
 			}
 
-			value = converter.Unpack(child);
+			value = converter.Unpack(child, null);
 			return true;
 		}
 
@@ -421,7 +423,7 @@ namespace Doxense.Serialization.Json
 				return false;
 			}
 
-			value = converter.Unpack(child);
+			value = converter.Unpack(child, null);
 			return true;
 		}
 
@@ -508,7 +510,7 @@ namespace Doxense.Serialization.Json
 				return false;
 			}
 
-			value = converter.Unpack(child);
+			value = converter.Unpack(child, null);
 			return true;
 		}
 
@@ -595,7 +597,7 @@ namespace Doxense.Serialization.Json
 				return false;
 			}
 
-			value = converter.Unpack(child);
+			value = converter.Unpack(child, null);
 			return true;
 		}
 

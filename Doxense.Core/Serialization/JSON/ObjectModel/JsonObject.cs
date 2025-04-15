@@ -3026,51 +3026,6 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
-		/// <summary>Adds the "_class" attribute with the resolved type id</summary>
-		/// <typeparam name="TContainer">Type that must be resolved</typeparam>
-		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
-		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
-		public JsonObject SetClassId<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TContainer>
-			(ICrystalJsonTypeResolver? resolver = null)
-		{
-			return SetClassId(typeof(TContainer), resolver);
-		}
-
-		/// <summary>Adds the "_class" attribute with the resolved type id</summary>
-		/// <param name="type">Type that must be resolved</param>
-		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
-		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
-		public JsonObject SetClassId(
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type type,
-			ICrystalJsonTypeResolver? resolver = null
-		)
-		{
-			Contract.NotNull(type);
-			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
-
-			var typeDef = (resolver ?? CrystalJson.DefaultResolver).ResolveJsonType(type) ?? throw CrystalJson.Errors.Serialization_CouldNotResolveTypeDefinition(type);
-			this.ClassId = typeDef.ClassId;
-			return this;
-		}
-
-		public string? ClassId
-		{
-			get => this[JsonTokens.CustomClassAttribute].ToStringOrDefault();
-			set
-			{
-				if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
-				if (string.IsNullOrEmpty(value))
-				{
-					Remove(JsonTokens.CustomClassAttribute);
-				}
-				else
-				{
-					this[JsonTokens.CustomClassAttribute] = value;
-				}
-			}
-		}
-
 		#endregion
 
 		#region Merging...
@@ -3869,7 +3824,20 @@ namespace Doxense.Serialization.Json
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>
 			(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null) where TValue : default
 		{
-			var res = (resolver ?? CrystalJson.DefaultResolver).BindJsonObject(typeof(TValue), this);
+			TValue? res;
+			if (resolver is not null && !ReferenceEquals(resolver, CrystalJson.DefaultResolver))
+			{
+				if (!resolver.TryGetConverterFor<TValue>(out var converter))
+				{
+					throw new NotSupportedException(); //TODO: error message!
+				}
+				res = converter.Unpack(this, resolver);
+			}
+			else
+			{
+				res = (TValue?) CrystalJson.DefaultResolver.BindJsonObject(typeof(TValue), this);
+			}
+
 			if (res is null)
 			{
 				return default(TValue) is null && (typeof(TValue) == typeof(JsonValue) || typeof(TValue) == typeof(JsonNull))
@@ -3885,7 +3853,16 @@ namespace Doxense.Serialization.Json
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type? type,
 			ICrystalJsonTypeResolver? resolver = null)
 		{
-			return (resolver ?? CrystalJson.DefaultResolver).BindJsonObject(type, this);
+			if (resolver is not null && !ReferenceEquals(resolver, CrystalJson.DefaultResolver))
+			{
+				if (!resolver.TryGetConverterFor(type ?? typeof(object), out var converter))
+				{
+					throw new NotSupportedException(); //TODO: error message!
+				}
+
+				return converter.BindJsonValue(this, resolver);
+			}
+			return CrystalJson.DefaultResolver.BindJsonObject(type, this);
 		}
 
 		#endregion
@@ -4099,7 +4076,7 @@ namespace Doxense.Serialization.Json
 		public Dictionary<TKey, TValue> ToDictionary<TKey, TValue>(ICrystalJsonTypeResolver? resolver = null)
 			where TKey : notnull
 		{
-			return (Dictionary<TKey, TValue>) (resolver ?? CrystalJson.DefaultResolver).BindJsonObject(typeof(Dictionary<TKey, TValue>), this)!;
+			return Bind<Dictionary<TKey, TValue>>(null, resolver)!;
 		}
 
 		public void CopyTo(KeyValuePair<string, JsonValue>[] array)

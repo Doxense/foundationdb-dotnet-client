@@ -205,7 +205,7 @@ namespace Doxense.Serialization.Json
 				m_markVisited = !settings.DoNotTrackVisitedObjects;
 			}
 
-			m_buffer = new ValueStringWriter(initialCapacity != 0 ? initialCapacity : (settings.OptimizeForLargeData ? 64 * 1024 : 1024));
+			m_buffer = new(initialCapacity != 0 ? initialCapacity : (settings.OptimizeForLargeData ? 64 * 1024 : 1024));
 			m_settings = settings;
 			m_resolver = resolver;
 			m_output = null;
@@ -498,21 +498,6 @@ namespace Doxense.Serialization.Json
 				name.CopyTo(chars);
 				chars[0] = char.ToLowerInvariant(name[0]);
 			});
-		}
-
-		/// <summary>Write the "_class" attribute with the resolved type id</summary>
-		public void WriteClassId(Type type)
-		{
-			var typeDef = this.Resolver.ResolveJsonType(type);
-			if (typeDef == null) throw CrystalJson.Errors.Serialization_CouldNotResolveTypeDefinition(type);
-			WriteField(JsonTokens.CustomClassAttribute, typeDef.ClassId);
-		}
-
-		/// <summary>Write the "_class" attribute with the specified type id</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void WriteClassId(string classId)
-		{
-			WriteField(JsonTokens.CustomClassAttribute, classId);
 		}
 
 		/// <summary>Write a comment</summary>
@@ -4212,7 +4197,7 @@ namespace Doxense.Serialization.Json
 			if (items is not null)
 			{
 				WriteName(name);
-				VisitJsonSerializableArray(new ReadOnlySpan<TSerializable>(items)!);
+				VisitJsonSerializableArray(new ReadOnlySpan<TSerializable>(items));
 			}
 			else if (!m_discardNulls)
 			{
@@ -4227,7 +4212,7 @@ namespace Doxense.Serialization.Json
 			if (items is not null)
 			{
 				WriteName(name);
-				VisitJsonSerializableArray<TSerializable>(CollectionsMarshal.AsSpan(items)!);
+				VisitJsonSerializableArray<TSerializable>(CollectionsMarshal.AsSpan(items));
 			}
 			else if (!m_discardNulls)
 			{

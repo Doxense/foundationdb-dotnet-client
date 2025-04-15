@@ -39,7 +39,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="value">JSON value that will be bound to the new instance</param>
 		/// <param name="resolver">Custom resolver used to bind the value into a managed type.</param>
 		/// <returns>A new instance of <typeparamref name="TSelf"/> that has been initialized from the contents of <paramref name="value"/>.</returns>
-		static abstract TSelf JsonDeserialize(JsonValue value, ICrystalJsonTypeResolver? resolver = null);
+		static abstract TSelf JsonDeserialize(JsonValue value, ICrystalJsonTypeResolver? resolver);
 
 	}
 

@@ -427,58 +427,9 @@ namespace Doxense.Serialization.Json
 		public static object? DeserializeCustomClassOrStruct(JsonObject data, Type type, ICrystalJsonTypeResolver resolver)
 		{
 			if (type == typeof(object) || type.IsInterface || type.IsClass)
-			{ // we need to inspect the "__class" property to infer the original .NET type
-
-				string? customClass = data.CustomClassName;
-				if (customClass != null)
-				{
-					#region Mitigation pour DOX-430
-					// block known bad types from being deserialized
-					// => the goal is to block the most common payloads that could be used to quickly scan for known vulnerabilities, and hope that the scanner moves along...
-
-					// list of dangerous types (that are currently known) that have would never need to be serialized in the first place
-					if (customClass.StartsWith("System.", StringComparison.OrdinalIgnoreCase) &&
-						(  customClass.StartsWith("System.Windows.Data.ObjectDataProvider", StringComparison.OrdinalIgnoreCase) // Can call any method of any type!
-						|| customClass.StartsWith("System.Management.Automation.", StringComparison.OrdinalIgnoreCase) // specifically all the PSObjectXYZ, but let's ban the whole namespace
-						|| customClass.StartsWith("System.Security.Principal.WindowsIdentity", StringComparison.OrdinalIgnoreCase) // this type can be abused to impersonate an account
-						|| customClass.StartsWith("System.IdentityModel.Tokens.", StringComparison.OrdinalIgnoreCase) // known vulnerability in secure session tokens
-						|| customClass.StartsWith("System.Windows.ResourceDictionary", StringComparison.OrdinalIgnoreCase) // could contain a cold payload that would get activated
-						|| customClass.StartsWith("System.Configuration.Install.", StringComparison.OrdinalIgnoreCase) // Assembly loaders could load any custom payload already on disk
-						|| customClass.StartsWith("System.Workflow.ComponentModel.Serialization.", StringComparison.OrdinalIgnoreCase) // ActivitySurrogate* can compile any .cs file and execute any method from it
-						|| customClass.StartsWith("System.Activities.Presentation.WorkflowDesigner.", StringComparison.OrdinalIgnoreCase) // note: I don't remember ?
-						|| customClass.StartsWith("System.Resources.ResXResource", StringComparison.OrdinalIgnoreCase)) // could contain a cold payload that would get activated
-					)
-					{
-						throw JsonBindingException.CannotDeserializeCustomTypeBadType(data, customClass);
-					}
-
-					#endregion
-
-#if DEBUG_JSON_BINDER
-					Debug.WriteLine("DeserializeCustomClassOrStruct(..., " + type+") : object has custom class " + customClass);
-#endif
-					// is this something we know about?
-					var customType = resolver.ResolveClassId(customClass) ?? throw JsonBindingException.CannotDeserializeCustomTypeNoConcreteClassFound(data, type, customClass);
-					if (type.IsSealed)
-					{
-						// if the type is sealed, it must match EXACTLY with the expected type!
-						if (type != customType)
-						{
-							throw JsonBindingException.CannotDeserializeCustomTypeIncompatibleType(data, type, customClass);
-						}
-					}
-					
-					if (type != typeof(object))
-					{ 
-						// ensure the type mentioned in the JSON object is compatible with the type we found
-						if (!type.IsAssignableFrom(customType))
-						{ // either a mistake, or something fishy... bail!
-							throw JsonBindingException.CannotDeserializeCustomTypeIncompatibleType(data, type, customClass);
-						}
-					}
-					type = customType;
-				}
-
+			{
+				//note: even if there is a "$type" property, we don't know in which polymorphic chain it belongs, so we would be unable to map it to a valid derived type
+				// => the best we can to here is to create an expando object
 				if (type == typeof(object))
 				{
 					return data.ToExpando();
@@ -486,8 +437,44 @@ namespace Doxense.Serialization.Json
 			}
 
 			// look up the type's definition
-			var typeDef = resolver.ResolveJsonType(type) ?? throw JsonBindingException.CannotDeserializeCustomTypeNoTypeDefinition(data, type);
-			
+			if (!resolver.TryResolveTypeDefinition(type, out var typeDef))
+			{
+				throw JsonBindingException.CannotDeserializeCustomTypeNoTypeDefinition(data, type);
+			}
+
+			if (typeDef.IsPolymorphic())
+			{
+				var discriminator = data[typeDef.TypeDiscriminatorProperty?.Value ?? "$type"];
+
+				// we have to decide if we are the correct "concrete" type that matches the data, or if we have to defer to another type
+				if (typeDef.TypeDiscriminatorValue is null || !typeDef.TypeDiscriminatorValue.Equals(discriminator))
+				{ // this is not "us"!
+
+					if (typeDef.DerivedTypeMap is not null)
+					{ // we found the correct type
+						if (typeDef.DerivedTypeMap.TryGetValue(discriminator, out var derivedType))
+						{
+							Contract.Debug.Assert(derivedType != type); // infinite loop?
+							return DeserializeCustomClassOrStruct(data, derivedType, resolver);
+						}
+					}
+					else if (typeDef.BaseType is not null)
+					{ // try our luck with the top type
+						if (!discriminator.IsNullOrMissing())
+						{ // we can't try our luck by going through the top of the chain!
+							return DeserializeCustomClassOrStruct(data, typeDef.BaseType, resolver);
+						}
+					}
+
+					if (typeDef.CustomBinder == null && typeDef.Generator == null)
+					{ // we don't know its $type, and we have no way to generate an instance => error !
+						throw JsonBindingException.CannotDeserializeCustomTypeWithUnknownTypeDiscriminator(data, type, discriminator);
+					}
+				}
+
+				// we are the correct candidate!
+			}
+
 			if (typeDef.CustomBinder != null)
 			{ // the custom binder will handle deserializing the object
 				return typeDef.CustomBinder(data, type, resolver);
@@ -1136,22 +1123,24 @@ namespace Doxense.Serialization.Json
 						{
 							throw reader.FailUnexpectedEndOfStream("Incomplete object definition");
 						}
-						else if (state == EXPECT_NEXT)
+						if (state == EXPECT_NEXT)
 						{
 							throw reader.FailInvalidSyntax($"Missing comma after field #{props.Count + 1}");
 						}
-						else if (state == EXPECT_VALUE)
+						if (state == EXPECT_VALUE)
 						{
 							throw reader.FailInvalidSyntax($"Missing semicolon after field '{name!}' value");
 						}
-						else if (c == ']')
+						if (c == ']')
 						{
 							throw reader.FailInvalidSyntax("Unexpected ']' encountered inside an object. Did you forget to close the object?");
 						}
-						else
+
+						if (char.IsLetterOrDigit(c))
 						{
-							throw reader.FailInvalidSyntax($"Invalid character '{c}' after field #{props.Count + 1}");
+							throw reader.FailInvalidSyntax($"Missing required '\"' before property name starting with '{c}' encountered inside an object.");
 						}
+						throw reader.FailInvalidSyntax($"Invalid character '{c}' after field #{props.Count + 1}");
 					}
 				}
 			}

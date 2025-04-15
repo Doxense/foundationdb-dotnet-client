@@ -33,8 +33,6 @@ namespace Doxense.Serialization.Json
 	public sealed partial class JsonArray
 	{
 
-		#region Parse aliasing...
-
 		#region Parse -> ParseArray
 
 		/// <inheritdoc cref="JsonValue.ParseArray(string?,CrystalJsonSettings?)"/>
@@ -120,8 +118,6 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public new static JsonObject ParseObject(Slice jsonBytes, CrystalJsonSettings? settings = null) => JsonValue.ParseObject(jsonBytes, settings);
-
-		#endregion
 
 		#endregion
 

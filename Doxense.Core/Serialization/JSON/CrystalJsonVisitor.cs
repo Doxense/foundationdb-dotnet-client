@@ -2126,8 +2126,7 @@ namespace Doxense.Serialization.Json
 
 			// what type is it?
 			runtimeType ??= value.GetType();
-			var typeDef = writer.Resolver.ResolveJsonType(runtimeType);
-			if (typeDef == null)
+			if (!writer.Resolver.TryResolveTypeDefinition(runtimeType, out var typeDef))
 			{ // uhoh, this should not happen!
 				throw CrystalJson.Errors.Serialization_CouldNotResolveTypeDefinition(runtimeType);
 			}
@@ -2138,13 +2137,10 @@ namespace Doxense.Serialization.Json
 
 			if (!writer.DiscardClass)
 			{
-				// we need to output the class attributes if the runtime type is not the same as the declared type.
-				// Ex: class A { IFoo Foo; } / class B : IFoo { } / new A() { Foo = new B() }
-
-				if (typeDef.RequiresClassAttribute || (declaringType != null && runtimeType != declaringType && !typeDef.IsAnonymousType && !declaringType.IsNullableType() && typeDef.BaseType == null))
-				{ // we must specify the class !
-					//TODO: auto-aliasing
-					writer.WriteField(JsonTokens.CustomClassAttribute, typeDef.ClassId);
+				// we may output a "$type" property if the type is a derived type that belongs in a "polymorphic chain", in order to be able to deserialize it back to that specific type
+				if (typeDef.TypeDiscriminatorProperty != null && typeDef.TypeDiscriminatorValue != null)
+				{
+					writer.WriteField(typeDef.TypeDiscriminatorProperty, typeDef.TypeDiscriminatorValue);
 				}
 			}
 

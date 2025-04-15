@@ -1957,8 +1957,7 @@ namespace Doxense.Serialization.Json
 			resolver ??= CrystalJson.DefaultResolver;
 
 			// maybe we have a custom binder?
-			var def = resolver.ResolveJsonType(type);
-			if (def?.CustomBinder is not null)
+			if (resolver.TryResolveTypeDefinition(type, out var def) && def.CustomBinder is not null)
 			{
 				return def.CustomBinder(this, type, resolver);
 			}

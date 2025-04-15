@@ -113,7 +113,7 @@ namespace Doxense.Serialization.Json
 
 			foreach (var item in arr)
 			{
-				yield return m_converter.Unpack(item);
+				yield return Unpack(item);
 			}
 		}
 
@@ -151,7 +151,7 @@ namespace Doxense.Serialization.Json
 
 			foreach (var item in arr)
 			{
-				array[arrayIndex++] = m_converter.Unpack(item);
+				array[arrayIndex++] = Unpack(item);
 			}
 		}
 
@@ -191,17 +191,19 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		bool ICollection<TValue>.IsReadOnly => false;
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private TValue Unpack(JsonValue value) => m_converter.Unpack(value, null);
 
 		/// <inheritdoc />
 		public TValue this[int index]
 		{
-			get => m_converter.Unpack(m_value.Json[index]);
+			get => Unpack(m_value.Json[index]);
 			set => m_value.Set(index, m_converter.Pack(value));
 		}
 
 		public TValue this[Index index]
 		{
-			get => m_converter.Unpack(m_value.Json[index]);
+			get => Unpack(m_value.Json[index]);
 			set => m_value.Set(index, m_converter.Pack(value));
 		}
 
@@ -287,7 +289,7 @@ namespace Doxense.Serialization.Json
 
 			foreach (var item in arr.GetSpan())
 			{
-				var value = m_converter.Unpack(item);
+				var value = Unpack(item);
 				if (match(value))
 				{
 					return value;
@@ -315,7 +317,7 @@ namespace Doxense.Serialization.Json
 			var matches = new List<TValue>();
 			foreach (var item in arr.GetSpan())
 			{
-				var value = m_converter.Unpack(item);
+				var value = Unpack(item);
 				if (match(value))
 				{
 					matches.Add(value);
@@ -372,7 +374,7 @@ namespace Doxense.Serialization.Json
 			var accumulator = seed;
 			foreach (var item in arr.GetSpan())
 			{
-				accumulator = handler(accumulator, m_converter.Unpack(item));
+				accumulator = handler(accumulator, Unpack(item));
 			}
 
 			return accumulator;
@@ -400,7 +402,7 @@ namespace Doxense.Serialization.Json
 			var accumulator = seed;
 			foreach (var item in arr.GetSpan())
 			{
-				accumulator = handler(accumulator, m_converter.Unpack(item));
+				accumulator = handler(accumulator, Unpack(item));
 			}
 
 			return resultSelector(accumulator);
@@ -422,7 +424,7 @@ namespace Doxense.Serialization.Json
 
 			foreach (var item in arr.GetSpan())
 			{
-				handler(m_converter.Unpack(item));
+				handler(Unpack(item));
 			}
 		}
 
@@ -443,7 +445,7 @@ namespace Doxense.Serialization.Json
 			var span = arr.GetSpan();
 			for(int i = 0; i < span.Length; i++)
 			{
-				handler(m_converter.Unpack(span[i]), i);
+				handler(Unpack(span[i]), i);
 			}
 		}
 

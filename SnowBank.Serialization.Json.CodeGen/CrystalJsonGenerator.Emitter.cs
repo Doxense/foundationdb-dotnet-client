@@ -131,9 +131,13 @@ namespace SnowBank.Serialization.Json.CodeGen
 					sb.EnterBlock("container");
 					sb.NewLine();
 
+					sb.AppendLine($"/// <summary>Returns a <see cref=\"{KnownTypeSymbols.ICrystalJsonTypeResolverFullName}\">resolver</see> that exposes all the generated converters in this container</summary>");
+					sb.AppendLine($"public static {KnownTypeSymbols.ICrystalJsonTypeResolverFullName} GetResolver() => TypeMapper.Default;");
+					sb.NewLine();
+
 					// TypeMapper
 					sb.Comment("Mapper that bundles all the types that are managed by this custom serializer context");
-					sb.AppendLine($"public sealed class TypeMapper : {KnownTypeSymbols.IJsonTypeCollectionFullName}");
+					sb.AppendLine($"internal sealed class TypeMapper : {KnownTypeSymbols.ICrystalJsonTypeResolverFullName}");
 					sb.EnterBlock("TypeMapper");
 					{
 						sb.NewLine();
@@ -205,6 +209,20 @@ namespace SnowBank.Serialization.Json.CodeGen
 							sb.LeaveBlock();
 							sb.AppendLine($"return System.Runtime.CompilerServices.Unsafe.As<{KnownTypeSymbols.IJsonConverterInterfaceFullName}<T>>(instance);");
 						}
+						sb.LeaveBlock();
+						sb.NewLine();
+
+						// TryResolveTypeDefinition()
+						sb.AppendLine($"public bool TryResolveTypeDefinition(Type type, [{Emitter.MaybeNullWhenAttributeFullName}(false)] out {KnownTypeSymbols.CrystalJsonTypeDefinitionFullName} definition)");
+						sb.EnterBlock();
+						sb.AppendLine("throw new NotImplementedException();");
+						sb.LeaveBlock();
+						sb.NewLine();
+
+						// TryResolveTypeDefinition<T>()
+						sb.AppendLine($"public bool TryResolveTypeDefinition<T>([{Emitter.MaybeNullWhenAttributeFullName}(false)] out {KnownTypeSymbols.CrystalJsonTypeDefinitionFullName} definition)");
+						sb.EnterBlock();
+						sb.AppendLine("throw new NotImplementedException();");
 						sb.LeaveBlock();
 						sb.NewLine();
 					}
@@ -360,7 +378,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 				sb.AppendLine("#region Proxy Helpers...");
 				sb.NewLine();
 
-				WriteStaticProxyHelpers(sb, typeDef, typeFullName);
+				WriteProxyStaticHelpers(sb, typeDef, typeFullName);
 
 				sb.AppendLine("#endregion");
 				sb.NewLine();
@@ -420,10 +438,10 @@ namespace SnowBank.Serialization.Json.CodeGen
 				sb.NewLine();
 
 				sb.Comment("<inheritdoc />");
-				sb.AppendLine($"public {KnownTypeSymbols.IJsonTypeCollectionFullName}? GetTypeCollection() => {this.Metadata.Name}.TypeMapper.Default;");
+				sb.AppendLine($"public {KnownTypeSymbols.ICrystalJsonTypeResolverFullName}? GetResolver() => {this.Metadata.Name}.TypeMapper.Default;");
 				sb.NewLine();
 
-				WriteProxyHelpers(sb, typeDef, typeFullName);
+				WriteProxyInstanceHelpers(sb, typeDef, typeFullName);
 
 				sb.AppendLine("#endregion");
 				sb.NewLine();
@@ -465,6 +483,17 @@ namespace SnowBank.Serialization.Json.CodeGen
 				sb.NewLine();
 
 				#endregion
+
+				// public static CrystalJsonTypeDefinition Definition => s_typeDefinition ??= CreateTypeDefinition();
+				// private static CrystalJsonTypeDefinition? s_typeDefinition;
+				//
+				// private static CrystalJsonTypeDefinition CreateTypeDefinition()
+				// {
+				//    return new(typeof({TYPE}, {BASETYPE}, "classId", customerBinder, generator, members)
+				//    {
+				//    };
+				// }
+
 
 				sb.LeaveBlock("JsonConverter");
 				sb.NewLine();
@@ -1139,7 +1168,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 			}
 
-			private void WriteStaticProxyHelpers(CSharpCodeBuilder sb, CrystalJsonTypeMetadata typeDef, string typeFullName)
+			private void WriteProxyStaticHelpers(CSharpCodeBuilder sb, CrystalJsonTypeMetadata typeDef, string typeFullName)
 			{
 
 				// Serialize(...)
@@ -1309,7 +1338,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 			}
 
-			private void WriteProxyHelpers(CSharpCodeBuilder sb, CrystalJsonTypeMetadata typeDef, string typeCref)
+			private void WriteProxyInstanceHelpers(CSharpCodeBuilder sb, CrystalJsonTypeMetadata typeDef, string typeCref)
 			{
 
 				// TryMapMemberToPropertyName()
@@ -1489,6 +1518,11 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 			private void WriteUnpackMethod(CSharpCodeBuilder sb, CrystalJsonTypeMetadata typeDef, string typeFullName)
 			{
+
+				sb.AppendLine($"/// <inheritdoc />");
+				sb.AppendLine($"object? {KnownTypeSymbols.IJsonConverterInterfaceFullName}.BindJsonValue({KnownTypeSymbols.JsonValueFullName} value, {KnownTypeSymbols.ICrystalJsonTypeResolverFullName}? resolver) => Unpack(value, default);");
+				sb.NewLine();
+
 				sb.AppendLine($"/// <summary>Deserializes a JSON value into an instance of type <see cref=\"{typeFullName}\" /></summary>");
 				sb.AppendLine($"public {typeFullName} Unpack({KnownTypeSymbols.JsonValueFullName} value, {KnownTypeSymbols.ICrystalJsonTypeResolverFullName}? resolver = default)");
 				sb.EnterBlock();

@@ -85,7 +85,7 @@ namespace System
 			this.Flags = flags;
 		}
 
-		/// <summary>Convert a 80-bits UUID into a 80-bits VersionStamp</summary>
+		/// <summary>Converts an 80-bits UUID into an 80-bits VersionStamp</summary>
 		public static VersionStamp FromUuid80(Uuid80 value)
 		{
 			unsafe
@@ -97,7 +97,7 @@ namespace System
 			}
 		}
 
-		/// <summary>Convert a 96-bits UUID into a 96-bits VersionStamp</summary>
+		/// <summary>Converts a 96-bits UUID into a 96-bits VersionStamp</summary>
 		public static VersionStamp FromUuid96(Uuid96 value)
 		{
 			unsafe
@@ -145,7 +145,7 @@ namespace System
 			return new VersionStamp(PLACEHOLDER_VERSION, PLACEHOLDER_ORDER, userVersion, FLAGS_IS_INCOMPLETE | FLAGS_HAS_VERSION);
 		}
 
-		/// <summary>Creates a 80-bit <see cref="VersionStamp"/>.</summary>
+		/// <summary>Creates an 80-bit <see cref="VersionStamp"/>.</summary>
 		/// <returns>Complete stamp, with a user version.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static VersionStamp Custom(ulong version, ushort order, bool incomplete)
@@ -153,7 +153,7 @@ namespace System
 			return new VersionStamp(version, order, NO_USER_VERSION, incomplete ? FLAGS_IS_INCOMPLETE : FLAGS_NONE);
 		}
 
-		/// <summary>Creates a 80-bit <see cref="VersionStamp"/>.</summary>
+		/// <summary>Creates an 80-bit <see cref="VersionStamp"/>.</summary>
 		/// <returns>Complete stamp, with a user version.</returns>
 		public static VersionStamp Custom(Uuid80 uuid, bool incomplete)
 		{
@@ -205,7 +205,7 @@ namespace System
 			}
 		}
 
-		/// <summary>Creates a 80-bit <see cref="VersionStamp"/>, obtained from the database.</summary>
+		/// <summary>Creates an 80-bit <see cref="VersionStamp"/>, obtained from the database.</summary>
 		/// <returns>Complete stamp, without user version.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static VersionStamp Complete(ulong version, ushort order)
@@ -274,7 +274,7 @@ namespace System
 			return new Slice(tmp);
 		}
 
-		/// <summary>Convert this 80-bits VersionStamp into a 80-bits UUID</summary>
+		/// <summary>Convert this 80-bits VersionStamp into an 80-bits UUID</summary>
 		public Uuid80 ToUuid80()
 		{
 			if (this.HasUserVersion) throw new InvalidOperationException("Cannot convert 96-bit VersionStamp into a 80-bit UUID.");
@@ -646,7 +646,7 @@ namespace System
 		public sealed class Comparer : IEqualityComparer<VersionStamp>, IComparer<VersionStamp>
 		{
 			/// <summary>Default comparer for <see cref="VersionStamp"/>s</summary>
-			public static Comparer Default { get; } = new Comparer();
+			public static Comparer Default { get; } = new();
 
 			private Comparer()
 			{ }

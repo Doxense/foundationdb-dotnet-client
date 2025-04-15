@@ -38,26 +38,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="resolver">Optional custom resolver</param>
 		/// <returns>Deserialized value</returns>
 		/// <exception cref="JsonBindingException">If an error occurred during the deserialization</exception>
-		T Unpack(JsonValue value, ICrystalJsonTypeResolver? resolver = null);
-		//REVIEW: should we also pass some settings?
-
-	}
-
-	internal sealed class DefaultJsonDeserializer<T> : IJsonDeserializer<T>
-	{
-
-		public Func<JsonValue, ICrystalJsonTypeResolver, T> Handler { get; }
-
-		public DefaultJsonDeserializer(Func<JsonValue, ICrystalJsonTypeResolver, T>? handler)
-		{
-			this.Handler = handler ?? (static (_, _) => throw new NotSupportedException("Operation not supported"));
-		}
-
-		/// <inheritdoc />
-		public T Unpack(JsonValue value, ICrystalJsonTypeResolver? resolver = null)
-		{
-			return this.Handler(value, resolver ?? CrystalJson.DefaultResolver);
-		}
+		T Unpack(JsonValue value, ICrystalJsonTypeResolver? resolver);
 
 	}
 

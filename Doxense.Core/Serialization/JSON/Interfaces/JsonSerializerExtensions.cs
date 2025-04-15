@@ -916,8 +916,7 @@ namespace Doxense.Serialization.Json
 			return arr;
 		}
 
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackSpan<TValue>(ReadOnlySpan<TValue> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray JsonPackSpan<TValue>(ReadOnlySpan<TValue> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			return JsonArray.FromValues<TValue>(items, settings, resolver);
 		}

@@ -29,7 +29,9 @@
 
 namespace Doxense.Serialization.Json
 {
+	using System;
 	using System.Collections;
+	using System.Collections.Frozen;
 	using System.Collections.Immutable;
 	using System.Collections.ObjectModel;
 	using System.Linq.Expressions;
@@ -49,15 +51,94 @@ namespace Doxense.Serialization.Json
 
 		#region Private Members...
 
-		private readonly QuasiImmutableCache<Type, CrystalJsonTypeDefinition?> m_typeDefinitionCache = new (TypeEqualityComparer.Default);
-
-		/// <summary>Classe contenant les mappings ID => Type déjà résolvés</summary>
-		private readonly QuasiImmutableCache<string, Type> m_typesByClassId = new(StringComparer.Ordinal);
+		private readonly QuasiImmutableCache<Type, CrystalJsonTypeDefinition?> TypeDefinitionCache = new (TypeEqualityComparer.Default);
 
 		#endregion
 
-		/// <summary>Returns a <see cref="IJsonConverter{T}"/> that will use serialization at runtime</summary>
-		public IJsonConverter<T> GetDefaultConverter<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>() => RuntimeJsonConverter<T>.Default;
+		/// <inheritdoc />
+		public bool TryGetConverterFor<T>(out IJsonConverter<T> converter)
+		{
+			converter = RuntimeJsonConverter<T>.Default;
+			return true;
+		}
+
+		private static Dictionary<Type, IJsonConverter> ConverterCache { get; } = new();
+
+		/// <inheritdoc />
+		public bool TryGetConverterFor(Type type, out IJsonConverter converter)
+		{
+			converter = GetConverterFor(type);
+			return true;
+		}
+
+		/// <inheritdoc />
+		public bool TryResolveTypeDefinition<T>([MaybeNullWhen(false)] out CrystalJsonTypeDefinition definition)
+		{
+			definition = ResolveJsonType(typeof(T));
+			return definition != null;
+		}
+
+		/// <inheritdoc />
+		public bool TryResolveTypeDefinition(Type type, [MaybeNullWhen(false)] out CrystalJsonTypeDefinition definition)
+		{
+			definition = ResolveJsonType(type);
+			return definition != null;
+		}
+
+		/// <summary>Returns the definition for the specified member of a type</summary>
+		public bool TryResolveMember(Type type, string memberName, [MaybeNullWhen(false)] out CrystalJsonMemberDefinition definition)
+		{
+			definition = ResolveMemberOfType(type, memberName);
+			return definition != null;
+		}
+
+		/// <summary>Returns the definition for the specified member of a type</summary>
+		public bool TryResolveMember<T>(string memberName, [MaybeNullWhen(false)] out CrystalJsonMemberDefinition definition)
+		{
+			definition = ResolveMemberOfType(typeof(T), memberName);
+			return definition != null;
+		}
+
+		[Pure, MethodImpl]
+		public static IJsonConverter<T> GetConverterFor<T>() => RuntimeJsonConverter<T>.Default;
+
+		public static IJsonConverter<T> GetConverterFor<T>(ICrystalJsonTypeResolver? resolver)
+		{
+			return (resolver is null || ReferenceEquals(resolver, CrystalJson.DefaultResolver)) ? RuntimeJsonConverter<T>.Default
+				: resolver.TryGetConverterFor<T>(out var converter) ? converter
+				: throw new InvalidOperationException($"Does not know how to handle type {typeof(T).GetFriendlyName()}");
+		}
+
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
+		public static IJsonConverter GetConverterFor(Type type)
+		{
+			lock (ConverterCache)
+			{
+				if (!ConverterCache.TryGetValue(type, out var converter))
+				{
+					converter = GetGenericConverter(type);
+					ConverterCache[type] = converter;
+				}
+				return converter;
+			}
+
+			[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
+			static IJsonConverter GetGenericConverter(Type type)
+			{
+				var m = typeof(RuntimeJsonConverter<>).MakeGenericType(type).GetMethod(nameof(RuntimeJsonConverter<>.GetInstance), BindingFlags.Static | BindingFlags.Public);
+				Contract.Debug.Assert(m != null);
+				return (IJsonConverter) m!.Invoke(null, null)!;
+			}
+		}
+
+		public static IJsonConverter GetConverterFor(Type type, ICrystalJsonTypeResolver? resolver)
+		{
+			if (!(resolver ?? CrystalJson.DefaultResolver).TryGetConverterFor(type, out var converter))
+			{
+				throw new InvalidOperationException($"Does not know how to handle type {type.GetFriendlyName()}");
+			}
+			return converter;
+		}
 
 		/// <summary>Inspects a type to retrieve the definitions of its members</summary>
 		/// <param name="type">Type to inspect</param>
@@ -71,7 +152,7 @@ namespace Doxense.Serialization.Json
 			Contract.NotNull(type);
 
 			// ReSharper disable once ConvertClosureToMethodGroup
-			return m_typeDefinitionCache.GetOrAdd(type, ResolveNewTypeHandler, this);
+			return this.TypeDefinitionCache.GetOrAdd(type, ResolveNewTypeHandler, this);
 		}
 
 		/// <inheritdoc />
@@ -105,25 +186,6 @@ namespace Doxense.Serialization.Json
 		{
 			Contract.Debug.Requires(type != null);
 			return GetTypeDefinition(type);
-		}
-
-		public Type ResolveClassId(string classId)
-		{
-#if DEBUG_JSON_RESOLVER
-			Debug.WriteLine(this.GetType().Name + ".ResolveClassId(" + classId + ")");
-#endif
-			Contract.NotNullOrEmpty(classId);
-
-			return m_typesByClassId.GetOrAdd(
-				classId,
-				(id, self) =>
-				{
-					var type = self.GetTypeByClassId(id);
-					if (type == null) throw JsonBindingException.CouldNotResolveClassId(id);
-					return type;
-				},
-				this
-			);
 		}
 
 		private CrystalJsonTypeDefinition? GetTypeDefinition([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type type)
@@ -244,51 +306,7 @@ namespace Doxense.Serialization.Json
 				}
 			};
 
-			return new CrystalJsonTypeDefinition(type, null, null, binder, null, members);
-		}
-
-		private string? GetClassIdByType(Type type)
-		{
-			return null;
-		}
-
-		private Type? GetTypeByClassId(string classId)
-		{
-#if DEBUG_JSON_RESOLVER
-			Debug.WriteLine(this.GetType().Name + ".GetTypeByClassId(" + classId + ") => Type.GetType(...)");
-#endif
-			return Type.GetType(classId);
-		}
-
-		/// <inheritdoc />
-		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public T? BindJson<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(JsonValue? value, T? defaultValue = default)
-		{
-			switch (value)
-			{
-				case null:
-				{
-					return defaultValue;
-				}
-				case JsonNull:
-				{
-					return defaultValue;
-				}
-				case JsonArray arr:
-				{
-					var res = BindJsonArray(typeof(T), arr);
-					return default(T) == null || res != null ? (T?) res : default;
-				}
-				case JsonObject obj:
-				{
-					var res = BindJsonObject(typeof(T), obj);
-					return default(T) == null || res != null ? (T?) res : default;
-				}
-				default:
-				{
-					return value.Bind<T>(defaultValue, this);
-				}
-			}
+			return new(type, binder, null, members, null, null, null, null);
 		}
 
 		/// <inheritdoc />
@@ -916,18 +934,6 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
-		private static JsonTypeAttribute? FindTypeAttribute(TypeInfo type)
-		{
-			foreach (var attr in type.GetCustomAttributes(true))
-			{
-				if (attr is JsonTypeAttribute jt)
-				{
-					return jt;
-				}
-			}
-			return null;
-		}
-
 		private static JsonPropertyAttribute? FindPropertyAttribute(MemberInfo member)
 		{
 			System.Text.Json.Serialization.JsonPropertyNameAttribute? fallbackSystemTextJson = null;
@@ -1119,25 +1125,29 @@ namespace Doxense.Serialization.Json
 		/// <summary>Tests if a member is a readonly field, or an init-only property</summary>
 		public static bool IsInitOnlyMember(MemberInfo member)
 		{
-			if (member is FieldInfo field)
+			switch (member)
 			{
-				return field.IsInitOnly;
-			}
-
-			if (member is PropertyInfo property)
-			{
-				var setter = property.GetSetMethod();
-				if (setter != null)
+				case FieldInfo field:
 				{
-					foreach (var mod in setter.ReturnParameter.GetRequiredCustomModifiers())
-					{
-						if (mod == typeof(IsExternalInit)) return true;
-					}
+					return field.IsInitOnly;
 				}
-				return false;
+				case PropertyInfo property:
+				{
+					var setter = property.GetSetMethod();
+					if (setter != null)
+					{
+						foreach (var mod in setter.ReturnParameter.GetRequiredCustomModifiers())
+						{
+							if (mod == typeof(IsExternalInit)) return true;
+						}
+					}
+					return false;
+				}
+				default:
+				{
+					return false;
+				}
 			}
-
-			return false;
 		}
 
 		/// <summary>Tests if a member of a type is decorated with the <see langword="required"/> keyword</summary>
@@ -1234,13 +1244,93 @@ namespace Doxense.Serialization.Json
 		private static readonly CrystalJsonTypeBinder GenericJsonValueBinder = (v, t, r) => (v ?? JsonNull.Missing).Bind(t, r);
 #pragma warning restore IL2067
 
+		private static bool TryFindJsonPolymorphicAttribute(Type type, [MaybeNullWhen(false)] out System.Text.Json.Serialization.JsonPolymorphicAttribute attr, [MaybeNullWhen(false)] out Type parent)
+		{
+			attr = type.GetCustomAttribute<System.Text.Json.Serialization.JsonPolymorphicAttribute>(inherit: false);
+			if (attr != null)
+			{ // we are the "top"
+				parent = type;
+				return true;
+			}
+
+			// is it on our base type?
+			if (type.BaseType is not null && type.BaseType != typeof(object))
+			{
+				if (TryFindJsonPolymorphicAttribute(type.BaseType, out attr, out parent))
+				{ // we found it
+					return true;
+				}
+			}
+
+			// is it on one of our interfaces?
+			foreach(var iface in type.GetInterfaces())
+			{
+				// there is zero chances that it is under the System namespace
+				if (iface.Namespace is "System" || iface.Namespace!.StartsWith("System.")) continue;
+
+				if (TryFindJsonPolymorphicAttribute(iface, out attr, out parent))
+				{
+					return true;
+				}
+			}
+
+			parent = null;
+			return false;
+		}
+
 		/// <summary>Extracts the type definition via reflection, and generate a list of compiled binders</summary>
 		/// <param name="type">Class, struct, interface. Primitive type are not supported</param>
 		private CrystalJsonTypeDefinition CreateFromReflection([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type type)
 		{
 			Contract.Debug.Requires(type != null && !type.IsPrimitive);
 
-			var jt = FindTypeAttribute(type.GetTypeInfo());
+			JsonEncodedPropertyName? typeDiscriminatorProperty = null;
+			JsonValue? typeDiscriminatorValue = null;
+			FrozenDictionary<JsonValue, Type>? derivedTypeMap = null;
+			Type? baseType = null; // if we are not a "leaf"
+
+			// look for polymorphic types (either on the type itself or one of its parent)
+			if (TryFindJsonPolymorphicAttribute(type, out var polymorphic, out var parent))
+			{
+				typeDiscriminatorProperty = new(polymorphic.TypeDiscriminatorPropertyName ?? "$type");
+
+				var derivedTypes = parent.GetCustomAttributes<System.Text.Json.Serialization.JsonDerivedTypeAttribute>(inherit: false);
+
+				if (type == parent)
+				{ // we are the top
+
+					// generate the type map
+					var map = new Dictionary<JsonValue, Type>(derivedTypes.TryGetNonEnumeratedCount(out var count) ? count : 0, JsonValueComparer.Default);
+					foreach (var t in derivedTypes)
+					{
+						if (t.TypeDiscriminator == null) continue;
+						map[JsonValue.FromValue(t.TypeDiscriminator)] = t.DerivedType;
+					}
+					derivedTypeMap = map.ToFrozenDictionary();
+				}
+				else
+				{ // we are a derived type
+
+					// find our entry to extract the discriminator value
+					bool found = false;
+					foreach (var t in derivedTypes)
+					{
+						if (t.DerivedType == type)
+						{
+							if (t.TypeDiscriminator is not null)
+							{
+								Contract.Debug.Assert(t.TypeDiscriminator is string or int);
+								typeDiscriminatorValue = JsonValue.FromValue(t.TypeDiscriminator);
+							}
+							found = true;
+							break;
+						}
+					}
+
+					if (!found) throw new InvalidOperationException("Cannot resolve intermediate type {} in polymorphic chain under {} because there is not JsonDerivedType attribute for this specific type.");
+					baseType = parent;
+				}
+			}
 
 			// enumerate the members
 			var members = GetMembersFromReflection(type);
@@ -1250,10 +1340,18 @@ namespace Doxense.Serialization.Json
 
 			if (binder == null)
 			{ // we need to generate one ourselves for this type
-				generator ??= RequireGeneratorForType(type);
+				 
+				if (polymorphic != null && type.IsInterface || type.IsAbstract)
+				{ // we are part of a polymorphic chain but cannot be constructed
+					//generator = null;
+				}
+				else
+				{
+					generator ??= RequireGeneratorForType(type);
+				}
 			}
 
-			return new CrystalJsonTypeDefinition(type, jt?.BaseType, jt?.ClassId ?? GetClassIdByType(type), binder, generator, members);
+			return new CrystalJsonTypeDefinition(type, binder, generator, members, baseType, typeDiscriminatorProperty, typeDiscriminatorValue, derivedTypeMap);
 		}
 
 		/// <summary>Extracts the type definition for the Nullable&lt;T&gt; version of a struct</summary>
@@ -1265,14 +1363,16 @@ namespace Doxense.Serialization.Json
 			Contract.NotNull(nullableType);
 			Contract.NotNull(definition);
 
-			return new(definition.Type, definition.BaseType, definition.ClassId, NullableBinder, null, definition.Members);
+			_ = TryGetConverterFor(definition.Type, out var converter); // may be null, will throw in the generated binder!
+			return new(definition.Type, NullableBinder, null, definition.Members, definition.BaseType, definition.TypeDiscriminatorProperty, definition.TypeDiscriminatorValue, definition.DerivedTypeMap);
 
 			object? NullableBinder(JsonValue? value, Type bindingType, ICrystalJsonTypeResolver resolver)
 			{
 				// it can be either null, or an instance of T
-				return !value.IsNullOrMissing()
-					? resolver.BindJsonValue(definition.Type, value)
-					: null;
+				if (value.IsNullOrMissing()) return null;
+				return converter != null
+					? converter.BindJsonValue(value, resolver)
+					: throw new NotSupportedException($"Does not know how to unpack type {bindingType.GetFriendlyName()}");
 			}
 		}
 
@@ -1446,7 +1546,7 @@ namespace Doxense.Serialization.Json
 			}
 			if (prms[1].ParameterType != typeof(ICrystalJsonTypeResolver))
 			{
-				throw new InvalidOperationException($"Second parameter of static method '{type.GetFriendlyName()}.{staticMethod.Name}' must be of type ICrystalJsonTypeResolver (it was {prmJsonType.GetFriendlyName()})");
+				throw new InvalidOperationException($"Second parameter of static method '{type.GetFriendlyName()}.{staticMethod.Name}' must be of type {nameof(ICrystalJsonTypeResolver)} (it was {prmJsonType.GetFriendlyName()})");
 			}
 
 			if (!type.IsAssignableFrom(staticMethod.ReturnType))
@@ -1502,7 +1602,7 @@ namespace Doxense.Serialization.Json
 			}
 			if (prms[1].ParameterType != typeof(ICrystalJsonTypeResolver))
 			{
-				throw new InvalidOperationException($"Second parameter of static method '{type.GetFriendlyName()}.{staticMethod.Name}' must be a ICrystalJsonTypeResolver (it was {prmJsonType.GetFriendlyName()})");
+				throw new InvalidOperationException($"Second parameter of static method '{type.GetFriendlyName()}.{staticMethod.Name}' must be a {nameof(ICrystalJsonTypeResolver)} (it was {prmJsonType.GetFriendlyName()})");
 			}
 			if (!type.IsAssignableFrom(staticMethod.ReturnType))
 			{
@@ -1626,10 +1726,12 @@ namespace Doxense.Serialization.Json
 			if (value.IsNullOrMissing()) return null;
 			if (value is not JsonObject obj) throw FailCannotDeserializeNotJsonObject(type);
 
+			var converter = GetConverterFor<TValue>(resolver);
+
 			var instance = ImmutableDictionary.CreateBuilder<string, TValue?>(obj.Comparer);
 			foreach (var item in obj)
 			{
-				instance.Add(item.Key, resolver.BindJson<TValue>(item.Value));
+				instance.Add(item.Key, converter.Unpack(item.Value, resolver));
 			}
 			return instance.ToImmutable();
 		}
@@ -1650,10 +1752,12 @@ namespace Doxense.Serialization.Json
 			if (value.IsNullOrMissing()) return null;
 			if (value is not JsonObject obj) throw FailCannotDeserializeNotJsonObject(type);
 
+			var converter = GetConverterFor<TValue>(resolver);
+
 			var instance = ImmutableDictionary.CreateBuilder<int, TValue?>();
 			foreach (var item in obj)
 			{
-				instance.Add(StringConverters.ToInt32(item.Key, 0), resolver.BindJson<TValue>(item.Value));
+				instance.Add(StringConverters.ToInt32(item.Key, 0), converter.Unpack(item.Value, resolver));
 			}
 			return instance.ToImmutable();
 		}
@@ -1716,10 +1820,12 @@ namespace Doxense.Serialization.Json
 				if (v == null || v.IsNull) return null;
 				if (v is not JsonObject obj) throw FailCannotDeserializeNotJsonObject(t);
 
+				var converter = GetConverterFor(valueType, r);
+
 				var instance = (IDictionary) generator();
 				foreach (var item in obj)
 				{
-					instance.Add(item.Key, r.BindJsonValue(valueType, item.Value));
+					instance.Add(item.Key, converter.BindJsonValue(item.Value, r));
 				}
 
 				return instance;
@@ -1736,10 +1842,12 @@ namespace Doxense.Serialization.Json
 				if (v == null || v.IsNull) return null;
 				if (v is not JsonObject obj) throw FailCannotDeserializeNotJsonObject(t);
 
+				var converter = GetConverterFor(valueType, r);
+
 				var instance = (IDictionary) generator();
 				foreach (var item in obj)
 				{
-					instance.Add(StringConverters.ToInt32(item.Key, 0), r.BindJsonValue(valueType, item.Value));
+					instance.Add(StringConverters.ToInt32(item.Key, 0), converter.BindJsonValue(item.Value, r));
 				}
 
 				return instance;
@@ -1759,10 +1867,12 @@ namespace Doxense.Serialization.Json
 					return v == null || v.IsNull ? null : throw FailCannotDeserializeNotJsonObject(t);
 				}
 
+				var converter = GetConverterFor(valueType, r);
+
 				var instance = (IDictionary) generator();
 				foreach (var item in obj)
 				{
-					instance.Add(convert(item.Key), r.BindJsonValue(valueType, item.Value));
+					instance.Add(convert(item.Key), converter.BindJsonValue(item.Value, r));
 				}
 
 				return instance;
@@ -1806,6 +1916,9 @@ namespace Doxense.Serialization.Json
 			Func<object?, object?, object> converter
 		)
 		{
+			var keyConverter = GetConverterFor(keyType);
+			var valueConverter = GetConverterFor(valueType);
+
 			return (v, t, r) =>
 			{
 				if (v is null or JsonNull) return empty;
@@ -1816,8 +1929,8 @@ namespace Doxense.Serialization.Json
 				if (arr.Count != 2) throw FailCannotDeserializeNotJsonArrayPair(t);
 
 				return converter(
-					r.BindJsonValue(keyType, arr[0]),
-					r.BindJsonValue(valueType, arr[1])
+					keyConverter.BindJsonValue(arr[0], r),
+					valueConverter.BindJsonValue(arr[1], r)
 				);
 			};
 		}

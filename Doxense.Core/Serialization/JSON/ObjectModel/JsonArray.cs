@@ -972,7 +972,7 @@ namespace Doxense.Serialization.Json
 			// JsonArray
 			if (values is JsonArray jArr)
 			{ // optimized
-				return AddRange(jArr.GetSpan()!);
+				return AddRange(jArr.GetSpan());
 			}
 
 			// Regular Array
@@ -1085,7 +1085,7 @@ namespace Doxense.Serialization.Json
 			// JsonArray
 			if (values is JsonArray jArr)
 			{ // optimized
-				return AddRangeReadOnly(jArr.GetSpan()!);
+				return AddRangeReadOnly(jArr.GetSpan());
 			}
 
 			if (Buffer<JsonValue?>.TryGetSpan(values, out var span))
@@ -2856,7 +2856,15 @@ namespace Doxense.Serialization.Json
 		)
 		{
 			//note: we cannot use JIT optimization here, because the type will usually be an array or list of value types, which itself is not a value type.
-			return (resolver ?? CrystalJson.DefaultResolver).BindJsonArray(type, this);
+			if (resolver is not null && !ReferenceEquals(resolver, CrystalJson.DefaultResolver))
+			{
+				if (!resolver.TryGetConverterFor(type ?? typeof(object), out var converter))
+				{
+					throw new NotSupportedException(); //TODO: error message!
+				}
+				return converter.BindJsonValue(this, resolver);
+			}
+			return CrystalJson.DefaultResolver.BindJsonArray(type, this);
 		}
 
 		/// <summary>Returns an array of <see cref="JsonValue"/> with the same items as this <see cref="JsonArray"/></summary>
@@ -4723,14 +4731,14 @@ namespace Doxense.Serialization.Json
 		/// <returns>A <see cref="JsonArray" /> that contains elements from the input span.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray ToJsonArray([InstantHandle] this ReadOnlySpan<JsonValue> source)
-			=> new JsonArray().AddRange(source!);
+			=> new JsonArray().AddRange(source);
 
 		/// <summary>Creates a <see cref="JsonArray"/> from a span.</summary>
 		/// <param name="source">The <see cref="T:System.ReadOnlySpan`1" /> to create a <see cref="JsonArray" /> from.</param>
 		/// <returns>A <see cref="JsonArray" /> that contains elements from the input span.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray ToJsonArray([InstantHandle] this Span<JsonValue> source)
-			=> new JsonArray().AddRange(source!);
+			=> new JsonArray().AddRange(source);
 
 		/// <summary>Creates a <see cref="JsonArray"/> from an array.</summary>
 		/// <param name="source">The array to create a <see cref="JsonArray" /> from.</param>
@@ -4828,14 +4836,14 @@ namespace Doxense.Serialization.Json
 		/// <returns>A read-only <see cref="JsonArray" /> that contains elements from the input span.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray ToJsonArrayReadOnly(this ReadOnlySpan<JsonValue> source)
-			=> new JsonArray().AddRangeReadOnly(source!).FreezeUnsafe();
+			=> new JsonArray().AddRangeReadOnly(source).FreezeUnsafe();
 
 		/// <summary>Creates a read-only <see cref="JsonArray"/> from a span.</summary>
 		/// <param name="source">The <see cref="T:System.ReadOnlySpan`1" /> to create a <see cref="JsonArray" /> from.</param>
 		/// <returns>A read-only <see cref="JsonArray" /> that contains elements from the input span.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray ToJsonArrayReadOnly(this Span<JsonValue> source)
-			=> new JsonArray().AddRangeReadOnly(source!).FreezeUnsafe();
+			=> new JsonArray().AddRangeReadOnly(source).FreezeUnsafe();
 
 		/// <summary>Creates a read-only <see cref="JsonArray"/> from an array.</summary>
 		/// <param name="source">The array to create a <see cref="JsonArray" /> from.</param>
@@ -5017,6 +5025,7 @@ namespace Doxense.Serialization.Json
 	}
 
 	/// <summary>Wrapper for a <see cref="JsonArray"/> that casts each element into a required <typeparamref name="TValue"/>.</summary>
+	[PublicAPI]
 	public readonly struct JsonArray<TValue> : IReadOnlyList<TValue>
 		where TValue : notnull
 	{
@@ -5155,6 +5164,7 @@ namespace Doxense.Serialization.Json
 	}
 
 	/// <summary>Wrapper for a <see cref="JsonArray"/> that casts each element into an optional <typeparamref name="TValue"/>.</summary>
+	[PublicAPI]
 	public readonly struct JsonArrayOrDefault<TValue> : IReadOnlyList<TValue?>
 	{
 		//note: this is to convert JsonValue into JsonArray, JsonObject, JsonType, ...

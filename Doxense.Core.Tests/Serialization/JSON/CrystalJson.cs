@@ -2123,7 +2123,7 @@ namespace Doxense.Serialization.Json.Tests
 			);
 
 			// filled with values
-			var agent = new DummyJsonClass()
+			var agent = new DummyJsonBaseClass()
 			{
 				Name = "James Bond",
 				Index = 7,
@@ -2136,17 +2136,14 @@ namespace Doxense.Serialization.Json.Tests
 			};
 
 			// Serialize the instance directly (known type)
-			// since the instance is top-level, and the type is known, it should not include the _class property.
 			CheckSerialize(
 				agent,
 				default,
-				"""{ "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00Z", "Modified": "2010-10-28T15:39:00Z", "State": 42, "RatioOfStuff": 8641975.23 }""",
+				"""{ "$type": "agent", "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00Z", "Modified": "2010-10-28T15:39:00Z", "State": 42, "RatioOfStuff": 8641975.23 }""",
 				"Serialize(INNER, JSON)"
 			);
 
 			// Serialize the container type that references this instance via the interface
-			// since the instance is not top-level, and the type is not known, it should include the _class property!
-
 			var x = new DummyOuterClass()
 			{
 				Id = 7,
@@ -2156,7 +2153,7 @@ namespace Doxense.Serialization.Json.Tests
 			CheckSerialize(
 				x,
 				default,
-				"""{ "Id": 7, "Agent": { "_class": "Doxense.Serialization.Json.Tests.DummyJsonClass, Doxense.Core.Tests", "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00Z", "Modified": "2010-10-28T15:39:00Z", "State": 42, "RatioOfStuff": 8641975.23 } }""",
+				"""{ "Id": 7, "Agent": { "$type": "agent", "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00Z", "Modified": "2010-10-28T15:39:00Z", "State": 42, "RatioOfStuff": 8641975.23 } }""",
 				"Serialize(OUTER, JSON)"
 			);
 
@@ -2167,7 +2164,7 @@ namespace Doxense.Serialization.Json.Tests
 			{
 				Assert.That(y.Id, Is.EqualTo(7));
 				Assert.That(y.Agent, Is.Not.Null);
-				Assert.That(y.Agent, Is.InstanceOf<DummyJsonClass>(), "Should have used the _class property to find the original type!");
+				Assert.That(y.Agent, Is.InstanceOf<DummyJsonBaseClass>(), "Should have used the _class property to find the original type!");
 				Assert.That(y.Agent.Name, Is.EqualTo("James Bond"));
 				Assert.That(y.Agent.Index, Is.EqualTo(7));
 				Assert.That(y.Agent.Size, Is.EqualTo(123456789));
@@ -2183,11 +2180,11 @@ namespace Doxense.Serialization.Json.Tests
 		public void Test_JsonSerialize_UnsealedClassMember()
 		{
 			// We have a container type that points to a non-sealed class, but with an instance of the expected type (i.e.: not of a derived type)
-			// => Dans In this case, there should not be any "_class" property because there is no ambiguity
+			// => there should not be any $type property present, since there are not polymorphic annotations on this type
 			var x = new DummyOuterDerivedClass()
 			{
 				Id = 7,
-				Agent = new DummyJsonClass()
+				Agent = new DummyJsonBaseClass()
 				{
 					Name = "James Bond",
 					Index = 7,
@@ -2203,14 +2200,14 @@ namespace Doxense.Serialization.Json.Tests
 			CheckSerialize(
 				x.Agent,
 				default,
-				"""{ "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00Z", "Modified": "2010-10-28T15:39:00Z", "State": 42, "RatioOfStuff": 8641975.23 }""",
+				"""{ "$type": "agent", "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00Z", "Modified": "2010-10-28T15:39:00Z", "State": 42, "RatioOfStuff": 8641975.23 }""",
 				"Serialize(INNER, JSON)"
 			);
 
 			CheckSerialize(
 				x,
 				default,
-				"""{ "Id": 7, "Agent": { "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00Z", "Modified": "2010-10-28T15:39:00Z", "State": 42, "RatioOfStuff": 8641975.23 } }""",
+				"""{ "Id": 7, "Agent": { "$type": "agent", "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00Z", "Modified": "2010-10-28T15:39:00Z", "State": 42, "RatioOfStuff": 8641975.23 } }""",
 				"Serialize(OUTER, JSON)"
 			);
 
@@ -2222,6 +2219,7 @@ namespace Doxense.Serialization.Json.Tests
 				{
 					"Id": 7,
 					"Agent": {
+						"$type": "agent",
 						"Valid": true,
 						"Name": "James Bond",
 						"Index": 7,
@@ -2245,7 +2243,7 @@ namespace Doxense.Serialization.Json.Tests
 			{
 				Assert.That(y.Id, Is.EqualTo(7));
 				Assert.That(y.Agent, Is.Not.Null);
-				Assert.That(y.Agent, Is.InstanceOf<DummyJsonClass>());
+				Assert.That(y.Agent, Is.InstanceOf<DummyJsonBaseClass>());
 				Assert.That(y.Agent.Name, Is.EqualTo("James Bond"));
 				Assert.That(y.Agent.Index, Is.EqualTo(7));
 				Assert.That(y.Agent.Size, Is.EqualTo(123456789));
@@ -2261,7 +2259,8 @@ namespace Doxense.Serialization.Json.Tests
 		public void Test_JsonSerialize_DerivedClassMember()
 		{
 			// We have a container type with a member of type "FooBase", but at runtime it contains a "FooDerived" instance (class that derives from "FooBase")
-			// => in this case, all members of FooDerived must be serialized, and the _class attribute must be included with the FooDerived class id, so that deserializing will know which type to instantiate
+			// => $type should always be present, since there are polymorphic annotations on the types
+			// => this "$type" property will also be used to instantiate the correct derived type
 
 			CheckSerialize(
 				new DummyOuterDerivedClass(),
@@ -2289,20 +2288,20 @@ namespace Doxense.Serialization.Json.Tests
 			};
 
 			// serialize the derived type explicitly (known type)
-			// as it is top-level, the _class property should not be included
+			// => $type should always be present
 			CheckSerialize(
 				agent,
 				default,
-				"""{ "IsDoubleAgent": true, "DoubleAgentName": "Janov Bondovicz", "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00Z", "Modified": "2010-10-28T15:39:00Z", "State": 42, "RatioOfStuff": 8641975.23 }""",
+				"""{ "$type": "spy", "DoubleAgentName": "Janov Bondovicz", "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00Z", "Modified": "2010-10-28T15:39:00Z", "State": 42, "RatioOfStuff": 8641975.23 }""",
 				"Serialize(INNER, JSON)"
 			);
 
 			// serialize the container, which references this instance via the base type
-			// as it is not top-level, the _class property should be included!
+			// => $type should always be present
 			CheckSerialize(
 				x,
 				default,
-				"""{ "Id": 7, "Agent": { "_class": "Doxense.Serialization.Json.Tests.DummyDerivedJsonClass, Doxense.Core.Tests", "IsDoubleAgent": true, "DoubleAgentName": "Janov Bondovicz", "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00Z", "Modified": "2010-10-28T15:39:00Z", "State": 42, "RatioOfStuff": 8641975.23 } }""",
+				"""{ "Id": 7, "Agent": { "$type": "spy", "DoubleAgentName": "Janov Bondovicz", "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00Z", "Modified": "2010-10-28T15:39:00Z", "State": 42, "RatioOfStuff": 8641975.23 } }""",
 				"Serialize(OUTER, JSON)"
 			);
 
@@ -2326,7 +2325,6 @@ namespace Doxense.Serialization.Json.Tests
 
 			var z = (DummyDerivedJsonClass) y.Agent;
 			Assert.That(z.DoubleAgentName, Is.EqualTo("Janov Bondovicz"), "Should have deserialized the members specific to the derived class");
-			Assert.That(z.IsDoubleAgent, Is.True, "Should have deserialized the members specific to the derived class");
 		}
 
 		[Test]
@@ -2400,141 +2398,6 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(arr2, Has.Length.EqualTo(2));
 			Assert.That(arr2[0].GetSecret(), Is.EqualTo("foo"));
 			Assert.That(arr2[1].GetSecret(), Is.EqualTo("bar"));
-		}
-
-		[Test]
-		public void Test_Json_DuckTyping_Serializable_Class()
-		{
-			// instance.JsonSerialize(...) + ctor(JsonObject)
-			var original = new DummyCtorBasedJsonSerializableClass(123, "Bob", System.Drawing.Color.Red, 5, 7);
-			var json = CrystalJson.Serialize(original);
-			Log(json);
-			Assert.That(
-				json,
-				Is.EqualTo("""{ "Id": 123, "Name": "Bob", "Color": "Red", "XY": "5:7" }"""),
-				"Via instance JsonSerialize() method"
-			);
-
-			{ // Deserialize<T> should invoke the ctor(JsonObject,...)
-				var x = CrystalJson.Deserialize<DummyCtorBasedJsonSerializableClass>("""{ "Id":123,"Name":"Bob","Color":"Red","XY":"5:7" }""");
-				Assert.That(x, Is.Not.Null);
-				Assert.That(x.Id, Is.EqualTo(123));
-				Assert.That(x.Name, Is.EqualTo("Bob"));
-				Assert.That(x.Color, Is.EqualTo(System.Drawing.Color.Red));
-				Assert.That(x.X, Is.EqualTo(5));
-				Assert.That(x.Y, Is.EqualTo(7));
-			}
-
-			{ // As<...> should also use the ctor(JsonObject)
-				var x = JsonObject.Parse(json).Required<DummyCtorBasedJsonSerializableClass>();
-				Assert.That(x, Is.Not.Null);
-				Assert.That(x.Id, Is.EqualTo(123));
-				Assert.That(x.Name, Is.EqualTo("Bob"));
-				Assert.That(x.Color, Is.EqualTo(System.Drawing.Color.Red));
-				Assert.That(x.X, Is.EqualTo(5));
-				Assert.That(x.Y, Is.EqualTo(7));
-			}
-
-			{ // FromValue(...) should find the JsonPack(..) instance method
-				var obj = JsonObject.FromObject(original);
-				Log(obj);
-				Assert.That(obj, Is.Not.Null);
-				Assert.That(obj.Type, Is.EqualTo(JsonType.Object));
-				Assert.That(obj.Get<int>("Id"), Is.EqualTo(123));
-				Assert.That(obj.Get<string>("Name"), Is.EqualTo("Bob"));
-				Assert.That(obj.Get<string>("Color"), Is.EqualTo("Red"));
-				Assert.That(obj.Get<string>("XY"), Is.EqualTo("5:7"));
-				Assert.That(obj, Has.Count.EqualTo(4));
-			}
-		}
-
-		[Test]
-		public void Test_Json_DuckTyping_Serializable_Struct()
-		{
-			// instance.JsonSerialize(...) + ctor(JsonObject)
-			var original = new DummyCtorBasedJsonSerializableStruct(123, "Bob", 5, 7);
-			var json = CrystalJson.Serialize(original);
-			Log(json);
-			Assert.That(
-				json,
-				Is.EqualTo("""{ "Id": 123, "Name": "Bob", "XY": "5:7" }"""),
-				"Via instance JsonSerialize() method"
-			);
-
-			{ // Deserialize<T> should invoke the ctor(JsonObject,...)
-				var x = CrystalJson.Deserialize<DummyCtorBasedJsonSerializableStruct>("""{ "Id":123,"Name":"Bob","XY":"5:7" }""");
-				Assert.That(x.Id, Is.EqualTo(123));
-				Assert.That(x.Name, Is.EqualTo("Bob"));
-				Assert.That(x.X, Is.EqualTo(5));
-				Assert.That(x.Y, Is.EqualTo(7));
-			}
-
-			{ // As<...> should also use the ctor(JsonObject)
-				var x = JsonObject.Parse(json).Required<DummyCtorBasedJsonSerializableStruct>();
-				Assert.That(x.Id, Is.EqualTo(123));
-				Assert.That(x.Name, Is.EqualTo("Bob"));
-				Assert.That(x.X, Is.EqualTo(5));
-				Assert.That(x.Y, Is.EqualTo(7));
-			}
-
-			{ // FromValue(...) should find the JsonPack(..) instance method
-				var obj = JsonObject.FromObject(original);
-				Log(obj);
-				Assert.That(obj, Is.Not.Null);
-				Assert.That(obj.Type, Is.EqualTo(JsonType.Object));
-				Assert.That(obj.Get<int>("Id"), Is.EqualTo(123));
-				Assert.That(obj.Get<string>("Name"), Is.EqualTo("Bob"));
-				Assert.That(obj.Get<string>("XY"), Is.EqualTo("5:7"));
-				Assert.That(obj, Has.Count.EqualTo(3));
-			}
-		}
-
-		[Test]
-		public void Test_Json_DuckTyping_Packable_Only()
-		{
-			// instance.JsonPack(...) + ctor(JsonObject)
-			// note: this class does NOT implement JsonSerialize, so serializating should go through JsonPack(..) before
-
-			var original = new DummyCtorBasedJsonBindableClass(123, "Bob", System.Drawing.Color.Red, 5, 7);
-			var json = CrystalJson.Serialize(original);
-			Log(json);
-			Assert.That(
-				json,
-				Is.EqualTo("""{ "Id": 123, "Name": "Bob", "Color": "Red", "XY": "5:7" }"""),
-				"Via instance JsonPack() method"
-			);
-
-			{ // Deserialize<T> should invoke the ctor(JsonObject,...)
-				var x = CrystalJson.Deserialize<DummyCtorBasedJsonBindableClass>("""{ "Id":123,"Name":"Bob","Color":"Red","XY":"5:7" }""");
-				Assert.That(x, Is.Not.Null);
-				Assert.That(x.Id, Is.EqualTo(123));
-				Assert.That(x.Name, Is.EqualTo("Bob"));
-				Assert.That(x.Color, Is.EqualTo(System.Drawing.Color.Red));
-				Assert.That(x.X, Is.EqualTo(5));
-				Assert.That(x.Y, Is.EqualTo(7));
-			}
-
-			{ // As<...> should also use the ctor(JsonObject)
-				var x = JsonObject.Parse(json).Required<DummyCtorBasedJsonBindableClass>();
-				Assert.That(x, Is.Not.Null);
-				Assert.That(x.Id, Is.EqualTo(123));
-				Assert.That(x.Name, Is.EqualTo("Bob"));
-				Assert.That(x.Color, Is.EqualTo(System.Drawing.Color.Red));
-				Assert.That(x.X, Is.EqualTo(5));
-				Assert.That(x.Y, Is.EqualTo(7));
-			}
-
-			{ // FromValue(...) should find the JsonPack(..) instance method
-				var obj = JsonObject.FromObject(original);
-				Log(obj);
-				Assert.That(obj, Is.Not.Null);
-				Assert.That(obj.Type, Is.EqualTo(JsonType.Object));
-				Assert.That(obj.Get<int>("Id"), Is.EqualTo(123));
-				Assert.That(obj.Get<string>("Name"), Is.EqualTo("Bob"));
-				Assert.That(obj.Get<string>("Color"), Is.EqualTo("Red"));
-				Assert.That(obj.Get<string>("XY"), Is.EqualTo("5:7"));
-				Assert.That(obj, Has.Count.EqualTo(4));
-			}
 		}
 
 		[Test]
@@ -9397,9 +9260,9 @@ namespace Doxense.Serialization.Json.Tests
 			Log(j.ToJsonIndented());
 			Assert.That(j.Type, Is.EqualTo(JsonType.Object), "FromObject((TClass)obj) should return a JsonObject");
 			var obj = (JsonObject)j;
-			Assert.That(obj.Get<string?>("_class", null), Is.Null, "Not on top level");
+			Assert.That(obj.Get<string?>("$type", null), Is.Null, "Not on top level");
 			Assert.That(obj.ContainsKey("Agent"));
-			Assert.That(obj.GetPathValue("Agent._class").ToString(), Is.EqualTo(typeof(DummyDerivedJsonClass).FullName + ", " + typeof(DummyDerivedJsonClass).Assembly.GetName().Name), "On sub-object");
+			Assert.That(obj.GetPathValue("Agent.$type").ToString(), Is.EqualTo("spy"), "On sub-object");
 			var y = obj.Required<DummyOuterDerivedClass>();
 			Assert.That(y.Agent, Is.Not.Null.And.InstanceOf<DummyDerivedJsonClass>());
 			Assert.That(y.Agent.Name, Is.EqualTo("James Bond"));
@@ -9409,18 +9272,18 @@ namespace Doxense.Serialization.Json.Tests
 			Log(j.ToJsonIndented());
 			Assert.That(j.Type, Is.EqualTo(JsonType.Object), "FromObject((TDerived)obj) should return a JsonObject");
 			obj = (JsonObject)j;
-			Assert.That(obj.Get<string?>("_class", null), Is.Null, "FromObject(foo) assumes that the runtime type is known, and does not need to be output");
+			Assert.That(obj.Get<string?>("$type", null), Is.EqualTo("spy"), "FromObject(foo) should output the $type if one is required");
 			var z = obj.Required<DummyDerivedJsonClass>();
 			Assert.That(z, Is.Not.Null.And.InstanceOf<DummyDerivedJsonClass>());
 			Assert.That(z.Name, Is.EqualTo("James Bond"));
 
-			j = JsonValue.FromValue<DummyJsonClass>(x.Agent);
+			j = JsonValue.FromValue<DummyJsonBaseClass>(x.Agent);
 			Assert.That(j, Is.Not.Null);
 			Log(j.ToJsonIndented());
 			Assert.That(j.Type, Is.EqualTo(JsonType.Object), "FromValue<TClass>() should return a JsonObject");
 			obj = (JsonObject)j;
-			Assert.That(obj.Get<string?>("_class", null), Is.EqualTo(typeof(DummyDerivedJsonClass).FullName + ", " + typeof(DummyDerivedJsonClass).Assembly.GetName().Name), "FromValue<TBase>((TDerived)foo) should output the class id");
-			var w = obj.Required<DummyJsonClass>();
+			Assert.That(obj.Get<string?>("$type", null), Is.EqualTo("spy"), "FromValue<TBase>((TDerived)foo) should output the $type");
+			var w = obj.Required<DummyJsonBaseClass>();
 			Assert.That(w, Is.Not.Null.And.InstanceOf<DummyDerivedJsonClass>());
 			Assert.That(w.Name, Is.EqualTo("James Bond"));
 
@@ -10061,16 +9924,28 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonDeserialize_Null()
 		{
-			Assert.That(CrystalJson.DeserializeBoxed("null"), Is.Null);
-			Assert.That(CrystalJson.DeserializeBoxed(""), Is.Null);
-
 			Assert.That(CrystalJson.Deserialize<string?>("null", null), Is.Null);
 			Assert.That(CrystalJson.Deserialize<string?>("", null), Is.Null);
 			Assert.That(CrystalJson.Deserialize<string?>("  ", null), Is.Null);
 
-			Assert.That(CrystalJson.Deserialize<string?>("null", "not_found"), Is.EqualTo("not_found"));
-			Assert.That(CrystalJson.Deserialize<string?>("", "not_found"), Is.EqualTo("not_found"));
-			Assert.That(CrystalJson.Deserialize<string?>("  ", "not_found"), Is.EqualTo("not_found"));
+			Assert.That(CrystalJson.Deserialize<int?>("null", null), Is.Null);
+			Assert.That(CrystalJson.Deserialize<int?>("", null), Is.Null);
+			Assert.That(CrystalJson.Deserialize<int?>("  ", null), Is.Null);
+
+			Assert.That(CrystalJson.Deserialize<string>("null", "not_found"), Is.EqualTo("not_found"));
+			Assert.That(CrystalJson.Deserialize<string>("", "not_found"), Is.EqualTo("not_found"));
+			Assert.That(CrystalJson.Deserialize<string>("  ", "not_found"), Is.EqualTo("not_found"));
+
+			Assert.That(CrystalJson.Deserialize<int>("null", 123), Is.EqualTo(123));
+			Assert.That(CrystalJson.Deserialize<int>("", 123), Is.EqualTo(123));
+			Assert.That(CrystalJson.Deserialize<int>("  ", 123), Is.EqualTo(123));
+
+			Assert.That(() => CrystalJson.Deserialize<string>("null"), Throws.InstanceOf<JsonBindingException>());
+			Assert.That(() => CrystalJson.Deserialize<string>(""), Throws.InstanceOf<JsonBindingException>());
+			Assert.That(() => CrystalJson.Deserialize<int?>("null"), Throws.InstanceOf<JsonBindingException>());
+			Assert.That(() => CrystalJson.Deserialize<int?>(""), Throws.InstanceOf<JsonBindingException>());
+			Assert.That(() => CrystalJson.Deserialize<int>("null"), Throws.InstanceOf<JsonBindingException>());
+			Assert.That(() => CrystalJson.Deserialize<int>(""), Throws.InstanceOf<JsonBindingException>());
 
 		}
 
@@ -10079,8 +9954,10 @@ namespace Doxense.Serialization.Json.Tests
 		{
 			// generic
 
+#if DEPRECATED
 			Assert.That(CrystalJson.DeserializeBoxed("true"), Is.True, "Deseralize('true')");
 			Assert.That(CrystalJson.DeserializeBoxed("false"), Is.False, "Deseralize('false')");
+#endif
 
 			// direct
 
@@ -10108,6 +9985,7 @@ namespace Doxense.Serialization.Json.Tests
 		{
 			// generic deserialization
 
+#if DEPRECATED
 			Assert.That(CrystalJson.DeserializeBoxed(@""""""), Is.EqualTo(String.Empty), "Deseralize('\"\"')");
 			Assert.That(CrystalJson.DeserializeBoxed(@"""Hello World"""), Is.EqualTo("Hello World"), "Deseralize('\"Hello World\"')");
 			Assert.That(CrystalJson.DeserializeBoxed(@"""Foo\""Bar"""), Is.EqualTo("Foo\"Bar"), "Deseralize('\"Foo\\\"Bar\"')");
@@ -10119,6 +9997,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(CrystalJson.DeserializeBoxed(@"""\n"""), Is.EqualTo("\n"), "Deseralize('\"\\n\"')");
 			Assert.That(CrystalJson.DeserializeBoxed(@"""\r"""), Is.EqualTo("\r"), "Deseralize('\"\\r\"')");
 			Assert.That(CrystalJson.DeserializeBoxed(@"""\t"""), Is.EqualTo("\t"), "Deseralize('\"\\t\"')");
+#endif
 
 			// directed deserialization
 
@@ -10143,68 +10022,66 @@ namespace Doxense.Serialization.Json.Tests
 		public void Test_JsonDeserialize_Number()
 		{
 			// integers
-			Assert.That(CrystalJson.DeserializeBoxed("0"), Is.EqualTo(0), "Deserialize('0')");
-			Assert.That(CrystalJson.DeserializeBoxed("1"), Is.EqualTo(1), "Deserialize('1')");
-			Assert.That(CrystalJson.DeserializeBoxed("123"), Is.EqualTo(123), "Deserialize('123')");
-			Assert.That(CrystalJson.DeserializeBoxed("-1"), Is.EqualTo(-1), "Deserialize('-1')");
-			Assert.That(CrystalJson.DeserializeBoxed("-123"), Is.EqualTo(-123), "Deserialize('-123')");
+			Assert.That(CrystalJson.Deserialize<int>("0"), Is.EqualTo(0));
+			Assert.That(CrystalJson.Deserialize<int>("1"), Is.EqualTo(1));
+			Assert.That(CrystalJson.Deserialize<int>("123"), Is.EqualTo(123));
+			Assert.That(CrystalJson.Deserialize<int>("-1"), Is.EqualTo(-1));
+			Assert.That(CrystalJson.Deserialize<int>("-123"), Is.EqualTo(-123));
+			Assert.That(CrystalJson.Deserialize<int>("1E1"), Is.EqualTo(10));
+			Assert.That(CrystalJson.Deserialize<int>("1E2"), Is.EqualTo(100));
+			Assert.That(CrystalJson.Deserialize<int>("1.23E2"), Is.EqualTo(123));
 
-			// decimals
-			Assert.That(CrystalJson.DeserializeBoxed("0.1"), Is.EqualTo(0.1), "Deserialize('0.1')");
-			Assert.That(CrystalJson.DeserializeBoxed("1.23"), Is.EqualTo(1.23), "Deserialize('1.23')");
-			Assert.That(CrystalJson.DeserializeBoxed("-0.1"), Is.EqualTo(-0.1), "Deserialize('-0.1')");
-			Assert.That(CrystalJson.DeserializeBoxed("-1.23"), Is.EqualTo(-1.23), "Deserialize('-1.23')");
-
-			// decimals (but only integers)
-			Assert.That(CrystalJson.DeserializeBoxed("0"), Is.EqualTo(0), "Deserialize('0.0')");
-			Assert.That(CrystalJson.DeserializeBoxed("1"), Is.EqualTo(1), "Deserialize('1.0')");
-			Assert.That(CrystalJson.DeserializeBoxed("123"), Is.EqualTo(123), "Deserialize('123.0')");
-			Assert.That(CrystalJson.DeserializeBoxed("-1"), Is.EqualTo(-1), "Deserialize('-1.0')");
-			Assert.That(CrystalJson.DeserializeBoxed("-123"), Is.EqualTo(-123), "Deserialize('-123.0')");
-
-			// with exponent
-			Assert.That(CrystalJson.DeserializeBoxed("1E1"), Is.EqualTo(10), "Deserialize('1E1')");
-			Assert.That(CrystalJson.DeserializeBoxed("1E2"), Is.EqualTo(100), "Deserialize('1E2')");
-			Assert.That(CrystalJson.DeserializeBoxed("1.23E2"), Is.EqualTo(123), "Deserialize('1.23E2')");
-			Assert.That(CrystalJson.DeserializeBoxed("1E1"), Is.EqualTo(10), "Deserialize('1E+1')");
-			Assert.That(CrystalJson.DeserializeBoxed("1E-1"), Is.EqualTo(0.1), "Deserialize('1E-1')");
-			Assert.That(CrystalJson.DeserializeBoxed("1E-2"), Is.EqualTo(0.01), "Deserialize('1E-2')");
+			// double
+			Assert.That(CrystalJson.Deserialize<double>("0"), Is.EqualTo(0));
+			Assert.That(CrystalJson.Deserialize<double>("1"), Is.EqualTo(1));
+			Assert.That(CrystalJson.Deserialize<double>("123"), Is.EqualTo(123));
+			Assert.That(CrystalJson.Deserialize<double>("-1"), Is.EqualTo(-1));
+			Assert.That(CrystalJson.Deserialize<double>("-123"), Is.EqualTo(-123));
+			Assert.That(CrystalJson.Deserialize<double>("0.1"), Is.EqualTo(0.1));
+			Assert.That(CrystalJson.Deserialize<double>("1.23"), Is.EqualTo(1.23));
+			Assert.That(CrystalJson.Deserialize<double>("-0.1"), Is.EqualTo(-0.1));
+			Assert.That(CrystalJson.Deserialize<double>("-1.23"), Is.EqualTo(-1.23));
+			Assert.That(CrystalJson.Deserialize<double>("1E1"), Is.EqualTo(10));
+			Assert.That(CrystalJson.Deserialize<double>("1E2"), Is.EqualTo(100));
+			Assert.That(CrystalJson.Deserialize<double>("1.23E2"), Is.EqualTo(123));
+			Assert.That(CrystalJson.Deserialize<double>("1E1"), Is.EqualTo(10));
+			Assert.That(CrystalJson.Deserialize<double>("1E-1"), Is.EqualTo(0.1));
+			Assert.That(CrystalJson.Deserialize<double>("1E-2"), Is.EqualTo(0.01));
 
 			// special
-			Assert.That(CrystalJson.DeserializeBoxed("NaN"), Is.EqualTo(double.NaN), "Deserialize('NaN')");
-			Assert.That(CrystalJson.DeserializeBoxed("Infinity"), Is.EqualTo(double.PositiveInfinity), "Deserialize('Infinity')");
-			Assert.That(CrystalJson.DeserializeBoxed("-Infinity"), Is.EqualTo(double.NegativeInfinity), "Deserialize('-Infinity')");
-			Assert.That(CrystalJson.DeserializeBoxed("\"NaN\""), Is.EqualTo("NaN"), "Deserialize('\"NaN\"') ne doit pas être reconnu automatiquement comme un nombre car on n'a pas précisé de type!");
+			Assert.That(CrystalJson.Deserialize<int>("2147483647"), Is.EqualTo(int.MaxValue));
+			Assert.That(CrystalJson.Deserialize<int>("-2147483648"), Is.EqualTo(int.MinValue));
+			Assert.That(CrystalJson.Deserialize<long>("9223372036854775807"), Is.EqualTo(long.MaxValue));
+			Assert.That(CrystalJson.Deserialize<long>("-9223372036854775808"), Is.EqualTo(long.MinValue));
+			Assert.That(CrystalJson.Deserialize<float>("NaN"), Is.EqualTo(float.NaN));
+			Assert.That(CrystalJson.Deserialize<float>("Infinity"), Is.EqualTo(float.PositiveInfinity));
+			Assert.That(CrystalJson.Deserialize<float>("-Infinity"), Is.EqualTo(float.NegativeInfinity));
+			Assert.That(CrystalJson.Deserialize<double>("NaN"), Is.EqualTo(double.NaN));
+			Assert.That(CrystalJson.Deserialize<double>("Infinity"), Is.EqualTo(double.PositiveInfinity));
+			Assert.That(CrystalJson.Deserialize<double>("-Infinity"), Is.EqualTo(double.NegativeInfinity));
 
-			// direct deserialization
-			Assert.That(CrystalJson.Deserialize<decimal>("123"), Is.EqualTo(123), "Deserialize<decimal>('123')");
-			Assert.That(CrystalJson.Deserialize<int>("123"), Is.EqualTo(123), "Deserialize<int>('123')");
-			Assert.That(CrystalJson.Deserialize<long>("123"), Is.EqualTo(123L), "Deserialize<long>('123')");
-			Assert.That(CrystalJson.Deserialize<float>("1.23"), Is.EqualTo(1.23f), "Deserialize<float>('123')");
-			Assert.That(CrystalJson.Deserialize<double>("1.23"), Is.EqualTo(1.23d), "Deserialize<double>('123')");
-			Assert.That(CrystalJson.Deserialize<float>("NaN"), Is.EqualTo(float.NaN), "Deserialize<float>('NaN')");
-			Assert.That(CrystalJson.Deserialize<double>("NaN"), Is.EqualTo(double.NaN), "Deserialize<double>('NaN')");
-			Assert.That(CrystalJson.Deserialize<float>("Infinity"), Is.EqualTo(float.PositiveInfinity), "Deserialize<float>('Infinity')");
-			Assert.That(CrystalJson.Deserialize<double>("Infinity"), Is.EqualTo(double.PositiveInfinity), "Deserialize<double>('Infinity')");
-			Assert.That(CrystalJson.Deserialize<float>("-Infinity"), Is.EqualTo(float.NegativeInfinity), "Deserialize<float>('-Infinity')");
-			Assert.That(CrystalJson.Deserialize<double>("-Infinity"), Is.EqualTo(double.NegativeInfinity), "Deserialize<double>('-Infinity')");
+			// decimal
+			Assert.That(CrystalJson.Deserialize<decimal>("0"), Is.EqualTo(0m));
+			Assert.That(CrystalJson.Deserialize<decimal>("1"), Is.EqualTo(1m));
+			Assert.That(CrystalJson.Deserialize<decimal>("123"), Is.EqualTo(123m));
+			Assert.That(CrystalJson.Deserialize<decimal>("1.23"), Is.EqualTo(1.23m));
 
-			// implicit conversion
-			Assert.That(CrystalJson.Deserialize<decimal>("\"123\""), Is.EqualTo(123), "Deserialize<decimal>('\"123\"')");
-			Assert.That(CrystalJson.Deserialize<int>("\"123\""), Is.EqualTo(123), "Deserialize<int>('\"123\"')");
-			Assert.That(CrystalJson.Deserialize<long>("\"123\""), Is.EqualTo(123L), "Deserialize<long>('\"123\"')");
-			Assert.That(CrystalJson.Deserialize<float>("\"1.23\""), Is.EqualTo(1.23f), "Deserialize<float>('\"1.23\"')");
-			Assert.That(CrystalJson.Deserialize<double>("\"1.23\""), Is.EqualTo(1.23d), "Deserialize<double>('\"1.23\"')");
-			Assert.That(CrystalJson.Deserialize<float>("\"NaN\""), Is.EqualTo(float.NaN), "Deserialize<float>('\"NaN\"')");
-			Assert.That(CrystalJson.Deserialize<double>("\"NaN\""), Is.EqualTo(double.NaN), "Deserialize<double>('\"NaN\"')");
-			Assert.That(CrystalJson.Deserialize<float>("\"Infinity\""), Is.EqualTo(float.PositiveInfinity), "Deserialize<float>('\"Infinity\"')");
-			Assert.That(CrystalJson.Deserialize<double>("\"Infinity\""), Is.EqualTo(double.PositiveInfinity), "Deserialize<double>('\"Infinity\"')");
-			Assert.That(CrystalJson.Deserialize<float>("\"-Infinity\""), Is.EqualTo(float.NegativeInfinity), "Deserialize<float>('\"-Infinity\"')");
-			Assert.That(CrystalJson.Deserialize<double>("\"-Infinity\""), Is.EqualTo(double.NegativeInfinity), "Deserialize<double>('\"-Infinity\"')");
+			// implicit string conversion
+			Assert.That(CrystalJson.Deserialize<decimal>("\"123\""), Is.EqualTo(123));
+			Assert.That(CrystalJson.Deserialize<int>("\"123\""), Is.EqualTo(123));
+			Assert.That(CrystalJson.Deserialize<long>("\"123\""), Is.EqualTo(123L));
+			Assert.That(CrystalJson.Deserialize<float>("\"1.23\""), Is.EqualTo(1.23f));
+			Assert.That(CrystalJson.Deserialize<double>("\"1.23\""), Is.EqualTo(1.23d));
+			Assert.That(CrystalJson.Deserialize<float>("\"NaN\""), Is.EqualTo(float.NaN));
+			Assert.That(CrystalJson.Deserialize<double>("\"NaN\""), Is.EqualTo(double.NaN));
+			Assert.That(CrystalJson.Deserialize<float>("\"Infinity\""), Is.EqualTo(float.PositiveInfinity));
+			Assert.That(CrystalJson.Deserialize<double>("\"Infinity\""), Is.EqualTo(double.PositiveInfinity));
+			Assert.That(CrystalJson.Deserialize<float>("\"-Infinity\""), Is.EqualTo(float.NegativeInfinity));
+			Assert.That(CrystalJson.Deserialize<double>("\"-Infinity\""), Is.EqualTo(double.NegativeInfinity));
 
 			// must reject other types
-			Assert.Throws<JsonBindingException>(() => { CrystalJson.Deserialize<int>("{ }"); }, "Deserialize<int>('{ }')");
-			Assert.Throws<JsonBindingException>(() => { CrystalJson.Deserialize<int>("[ ]"); }, "Deserialize<int>('[ ]')");
+			Assert.That(() => CrystalJson.Deserialize<int>("{ }"), Throws.InstanceOf<JsonBindingException>());
+			Assert.That(() => CrystalJson.Deserialize<int>("[ ]"), Throws.InstanceOf<JsonBindingException>());
 
 		}
 
@@ -10382,36 +10259,33 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonDeserialize_Array()
 		{
-			// empty
-			string jsonText = "[]";
-			object? obj = CrystalJson.DeserializeBoxed(jsonText);
-			Assert.That(obj, Is.Not.Null, jsonText);
-			Assert.That(obj, Is.InstanceOf<IList<object>>(), jsonText);
-			var res = (IList<object>) obj!;
-			Assert.That(res, Has.Count.EqualTo(0), jsonText + ".Count");
-
-			jsonText = "[ ]";
-			obj = CrystalJson.DeserializeBoxed(jsonText);
-			Assert.That(obj, Is.InstanceOf<IList<object>>(), jsonText);
-			res = (IList<object>) obj!;
-			Assert.That(res, Has.Count.EqualTo(0), jsonText + ".Count");
+			{ // empty
+				var res = CrystalJson.Deserialize<int[]>("[]");
+				Assert.That(res, Has.Length.EqualTo(0));
+				//Assert.That(res, Is.SameAs(Array.Empty<int[]>()));
+			}
+			{ // empty, with extra spaces
+				var res = CrystalJson.Deserialize<int[]>("[\t\t \t]");
+				Assert.That(res, Has.Length.EqualTo(0));
+				//Assert.That(res, Is.SameAs(Array.Empty<int[]>()));
+			}
 
 			// single value
-			Assert.That(CrystalJson.DeserializeBoxed("[1]"), Is.EqualTo(new[] { 1 }));
-			Assert.That(CrystalJson.DeserializeBoxed("[ 1 ]"), Is.EqualTo(new[] { 1 }));
+			Assert.That(CrystalJson.Deserialize<int[]>("[1]"), Is.EqualTo(new[] { 1 }));
+			Assert.That(CrystalJson.Deserialize<int[]>("[ 1 ]"), Is.EqualTo(new[] { 1 }));
 
 			// multiple value
-			Assert.That(CrystalJson.DeserializeBoxed("[1,2,3]"), Is.EqualTo(new[] { 1, 2, 3 }));
-			Assert.That(CrystalJson.DeserializeBoxed("[ 1, 2, 3 ]"), Is.EqualTo(new[] { 1, 2, 3 }));
+			Assert.That(CrystalJson.Deserialize<int[]>("[1,2,3]"), Is.EqualTo(new[] { 1, 2, 3 }));
+			Assert.That(CrystalJson.Deserialize<int[]>("[ 1, 2, 3 ]"), Is.EqualTo(new[] { 1, 2, 3 }));
 
 			// strings
-			Assert.That(CrystalJson.DeserializeBoxed(@"[""foo"",""bar""]"), Is.EqualTo(new[] { "foo", "bar" }));
+			Assert.That(CrystalJson.Deserialize<string[]>(@"[""foo"",""bar""]"), Is.EqualTo(new[] { "foo", "bar" }));
 
 			// mixed array
-			Assert.That(CrystalJson.DeserializeBoxed(@"[123,true,""foo""]"), Is.EqualTo(new object[] { 123, true, "foo" }));
+			Assert.That(CrystalJson.Deserialize<object[]>(@"[123,true,""foo""]"), Is.EqualTo(new object[] { 123, true, "foo" }));
 
 			// jagged arrays
-			Assert.That(CrystalJson.DeserializeBoxed(@"[ [1,2,3], [true,false], [""foo"",""bar""] ]"), Is.EqualTo(new object[] {
+			Assert.That(CrystalJson.Deserialize<object[]>(@"[ [1,2,3], [true,false], [""foo"",""bar""] ]"), Is.EqualTo(new object[] {
 				new[] { 1, 2, 3 },
 				new[] { true, false },
 				new[] { "foo", "bar" }
@@ -10491,60 +10365,48 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonDeserialize_SimpleObject()
 		{
-			string jsonText = "{}";
-			object obj = CrystalJson.DeserializeBoxed(jsonText)!;
-			Assert.That(obj, Is.Not.Null, jsonText);
-			Assert.That(obj, Is.InstanceOf<IDictionary<string, object>>(), jsonText);
-			var res = (IDictionary<string, object>) obj;
-			Assert.That(res, Has.Count.EqualTo(0), jsonText + ".Count");
-
-			jsonText = "{ }";
-			obj = CrystalJson.DeserializeBoxed(jsonText)!;
-			Assert.That(obj, Is.Not.Null, jsonText);
-			Assert.That(obj, Is.InstanceOf<IDictionary<string, object>>(), jsonText);
-			res = (IDictionary<string, object>) obj;
-			Assert.That(res, Has.Count.EqualTo(0), jsonText + ".Count");
-
-			jsonText = """{ "Name":"James Bond" }""";
-			obj = CrystalJson.DeserializeBoxed(jsonText)!;
-			Assert.That(obj, Is.Not.Null, jsonText);
-			Assert.That(obj, Is.InstanceOf<IDictionary<string, object>>(), jsonText);
-			res = (IDictionary<string, object>) obj;
-			Assert.That(res, Has.Count.EqualTo(1), jsonText + ".Count");
-			Assert.That(res.ContainsKey("Name"), Is.True, jsonText + ".Name?");
-			Assert.That(res["Name"], Is.EqualTo("James Bond"), jsonText + ".Name");
-
-			jsonText = """{ "Id":7, "Name":"James Bond", "IsDeadly":true }""";
-			obj = CrystalJson.DeserializeBoxed(jsonText)!;
-			Assert.That(obj, Is.InstanceOf<IDictionary<string, object>>(), jsonText);
-			res = (IDictionary<string, object>) obj;
-			Assert.That(res, Has.Count.EqualTo(3), jsonText + ".Count");
-			Assert.That(res["Name"], Is.EqualTo("James Bond"), jsonText + ".Name");
-			Assert.That(res["Id"], Is.EqualTo(7), jsonText + ".Id");
-			Assert.That(res["IsDeadly"], Is.True, jsonText + ".IsDeadly");
-
-			jsonText = """{ "Id":7, "Name":"James Bond", "IsDeadly":true, "Created":"\/Date(-52106400000+0200)\/", "Weapons":[{"Name":"Walter PPK"}] }""";
-			obj = CrystalJson.DeserializeBoxed(jsonText)!;
-			Assert.That(obj, Is.InstanceOf<IDictionary<string, object>>(), jsonText);
-			res = (IDictionary<string, object>) obj;
-			Assert.That(res, Has.Count.EqualTo(5), jsonText + ".Count");
-			Assert.That(res["Name"], Is.EqualTo("James Bond"), jsonText + ".Name");
-			Assert.That(res["Id"], Is.EqualTo(7), jsonText + ".Id");
-			Assert.That(res["IsDeadly"], Is.True, jsonText + ".IsDeadly");
-			//Assert.That(res["Created"], Is.EqualTo(new DateTime(1968, 5, 8)), jsonText + ".Created");
-			Assert.That(res["Created"], Is.EqualTo("/Date(-52106400000+0200)/"), jsonText + ".Created"); //BUGBUG: handle the auto-detection of dates when converting from string to object ?
-			var weapons = (IList<object>) res["Weapons"];
-			Assert.That(weapons, Is.Not.Null, jsonText + ".Weapons");
-			Assert.That(weapons, Has.Count.EqualTo(1), jsonText + ".Weapons.Count");
-			var weapon = (IDictionary<string, object>) weapons[0];
-			Assert.That(weapon, Is.Not.Null, jsonText + ".Weapons[0]");
-			Assert.That(weapon["Name"], Is.EqualTo("Walter PPK"), jsonText + ".Weapons[0].Name");
+			{
+				var res = CrystalJson.Deserialize<IDictionary<string, object>>("{}");
+				Assert.That(res, Has.Count.EqualTo(0));
+			}
+			{
+				var res = CrystalJson.Deserialize<IDictionary<string, object>>("{\r\n\t\t \r\n}");
+				Assert.That(res, Has.Count.EqualTo(0));
+			}
+			{
+				var res = CrystalJson.Deserialize<IDictionary<string, object>>("""{ "Name":"James Bond" }""");
+				Assert.That(res, Has.Count.EqualTo(1));
+				Assert.That(res.ContainsKey("Name"), Is.True);
+				Assert.That(res["Name"], Is.EqualTo("James Bond"));
+			}
+			{
+				var res = CrystalJson.Deserialize<IDictionary<string, object>>("""{ "Id":7, "Name":"James Bond", "IsDeadly":true }""");
+				Assert.That(res, Has.Count.EqualTo(3));
+				Assert.That(res["Name"], Is.EqualTo("James Bond"));
+				Assert.That(res["Id"], Is.EqualTo(7));
+				Assert.That(res["IsDeadly"], Is.True);
+			}
+			{
+				var res = CrystalJson.Deserialize<IDictionary<string, object>>("""{ "Id":7, "Name":"James Bond", "IsDeadly":true, "Created":"\/Date(-52106400000+0200)\/", "Weapons":[{"Name":"Walter PPK"}] }""");
+				Assert.That(res, Has.Count.EqualTo(5));
+				Assert.That(res["Name"], Is.EqualTo("James Bond"));
+				Assert.That(res["Id"], Is.EqualTo(7));
+				Assert.That(res["IsDeadly"], Is.True);
+				//Assert.That(res["Created"], Is.EqualTo(new DateTime(1968, 5, 8)));
+				Assert.That(res["Created"], Is.EqualTo("/Date(-52106400000+0200)/")); //BUGBUG: handle the auto-detection of dates when converting from string to object ?
+				var weapons = (IList<object>) res["Weapons"];
+				Assert.That(weapons, Is.Not.Null);
+				Assert.That(weapons, Has.Count.EqualTo(1));
+				var weapon = (IDictionary<string, object>) weapons[0];
+				Assert.That(weapon, Is.Not.Null);
+				Assert.That(weapon["Name"], Is.EqualTo("Walter PPK"));
+			}
 		}
 
 		[Test]
 		public void Test_JsonDeserialize_CustomClass()
 		{
-			string jsonText = "{ \"Valid\": true, \"Name\": \"James Bond\", \"Index\": 7, \"Size\": 123456789, \"Height\": 1.8, \"Amount\": 0.07, \"Created\": \"1968-05-08T00:00:00Z\", \"Modified\": \"2010-10-28T15:39:00Z\", \"DateOfBirth\": \"1920-11-11\", \"State\": 42, \"RatioOfStuff\": 8641975.23 }";
+			string jsonText = """{ "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00Z", "Modified": "2010-10-28T15:39:00Z", "DateOfBirth": "1920-11-11", "State": 42, "RatioOfStuff": 8641975.23 }""";
 			var x = CrystalJson.Deserialize<DummyJsonClass>(jsonText);
 			Assert.That(x, Is.Not.Null, jsonText);
 			Assert.That(x, Is.InstanceOf<DummyJsonClass>());
@@ -10561,11 +10423,86 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(x.State, Is.EqualTo(DummyJsonEnum.Bar), "x.State");
 			Assert.That(x.RatioOfStuff, Is.EqualTo(0.07d * 123456789), "x.RatioOfStuff");
 
-			// round trip !
+			// it should round trip!
 			string roundtripText = CrystalJson.Serialize(x);
 			Assert.That(roundtripText, Is.EqualTo(jsonText), "LOOP 2!");
 			var hibachi = CrystalJson.Deserialize<DummyJsonClass>(roundtripText);
 			Assert.That(hibachi, Is.EqualTo(x), "TRUE LAST BOSS !!!");
+		}
+
+		[Test]
+		public void Test_JsonDeserialize_CustomClass_Polymorphic()
+		{
+			{ // without any "$type" field, we will bind using the type specified in the parent container, if it is constructible (not abstract, not an interface)
+				string jsonText = """{ "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00Z", "Modified": "2010-10-28T15:39:00Z", "DateOfBirth": "1920-11-11", "State": 42, "RatioOfStuff": 8641975.23 }""";
+				var x = CrystalJson.Deserialize<DummyJsonBaseClass>(jsonText);
+				Assert.That(x, Is.Not.Null, jsonText);
+				Assert.That(x, Is.InstanceOf<DummyJsonBaseClass>());
+
+				Assert.That(x.Valid, Is.True, "x.Valid");
+				Assert.That(x.Name, Is.EqualTo("James Bond"), "x.Name");
+				Assert.That(x.Index, Is.EqualTo(7), "x.Index");
+				Assert.That(x.Size, Is.EqualTo(123456789), "x.Size");
+				Assert.That(x.Height, Is.EqualTo(1.8f), "x.Height");
+				Assert.That(x.Amount, Is.EqualTo(0.07d), "x.Amount");
+				Assert.That(x.Created, Is.EqualTo(new DateTime(1968, 5, 8)), "x.Created");
+				Assert.That(x.Modified, Is.EqualTo(new DateTime(2010, 10, 28, 15, 39, 0)), "x.Modified");
+				Assert.That(x.DateOfBirth, Is.EqualTo(new DateOnly(1920, 11, 11)), "x.DateOfBirth");
+				Assert.That(x.State, Is.EqualTo(DummyJsonEnum.Bar), "x.State");
+				Assert.That(x.RatioOfStuff, Is.EqualTo(0.07d * 123456789), "x.RatioOfStuff");
+			}
+
+			{ // with a "$type" field, we should construct the exact type
+				string jsonText = """{ "$type": "agent", "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00Z", "Modified": "2010-10-28T15:39:00Z", "DateOfBirth": "1920-11-11", "State": 42, "RatioOfStuff": 8641975.23 }""";
+				var x = CrystalJson.Deserialize<DummyJsonBaseClass>(jsonText);
+				Assert.That(x, Is.Not.Null, jsonText);
+				Assert.That(x, Is.InstanceOf<DummyJsonBaseClass>());
+
+				Assert.That(x.Valid, Is.True, "x.Valid");
+				Assert.That(x.Name, Is.EqualTo("James Bond"), "x.Name");
+				Assert.That(x.Index, Is.EqualTo(7), "x.Index");
+				Assert.That(x.Size, Is.EqualTo(123456789), "x.Size");
+				Assert.That(x.Height, Is.EqualTo(1.8f), "x.Height");
+				Assert.That(x.Amount, Is.EqualTo(0.07d), "x.Amount");
+				Assert.That(x.Created, Is.EqualTo(new DateTime(1968, 5, 8)), "x.Created");
+				Assert.That(x.Modified, Is.EqualTo(new DateTime(2010, 10, 28, 15, 39, 0)), "x.Modified");
+				Assert.That(x.DateOfBirth, Is.EqualTo(new DateOnly(1920, 11, 11)), "x.DateOfBirth");
+				Assert.That(x.State, Is.EqualTo(DummyJsonEnum.Bar), "x.State");
+				Assert.That(x.RatioOfStuff, Is.EqualTo(0.07d * 123456789), "x.RatioOfStuff");
+
+				// it should round trip!
+				string roundtripText = CrystalJson.Serialize(x);
+				Assert.That(roundtripText, Is.EqualTo(jsonText), "LOOP 2!");
+				var hibachi = CrystalJson.Deserialize<DummyJsonBaseClass>(roundtripText);
+				Assert.That(hibachi, Is.EqualTo(x), "TRUE LAST BOSS !!!");
+			}
+
+			{ // with a "$type" field, we should construct the exact type (again, with a more derived type)
+				string jsonText = """{ "$type": "spy", "DoubleAgentName": "Janov Bondovicz", "Valid": true, "Name": "James Bond", "Index": 7, "Size": 123456789, "Height": 1.8, "Amount": 0.07, "Created": "1968-05-08T00:00:00Z", "Modified": "2010-10-28T15:39:00Z", "DateOfBirth": "1920-11-11", "State": 42, "RatioOfStuff": 8641975.23 }""";
+				var x = CrystalJson.Deserialize<DummyDerivedJsonClass>(jsonText);
+				Assert.That(x, Is.Not.Null, jsonText);
+				Assert.That(x, Is.InstanceOf<DummyJsonBaseClass>());
+
+				Assert.That(x.Valid, Is.True, "x.Valid");
+				Assert.That(x.Name, Is.EqualTo("James Bond"), "x.Name");
+				Assert.That(x.Index, Is.EqualTo(7), "x.Index");
+				Assert.That(x.Size, Is.EqualTo(123456789), "x.Size");
+				Assert.That(x.Height, Is.EqualTo(1.8f), "x.Height");
+				Assert.That(x.Amount, Is.EqualTo(0.07d), "x.Amount");
+				Assert.That(x.Created, Is.EqualTo(new DateTime(1968, 5, 8)), "x.Created");
+				Assert.That(x.Modified, Is.EqualTo(new DateTime(2010, 10, 28, 15, 39, 0)), "x.Modified");
+				Assert.That(x.DateOfBirth, Is.EqualTo(new DateOnly(1920, 11, 11)), "x.DateOfBirth");
+				Assert.That(x.State, Is.EqualTo(DummyJsonEnum.Bar), "x.State");
+				Assert.That(x.RatioOfStuff, Is.EqualTo(0.07d * 123456789), "x.RatioOfStuff");
+				Assert.That(x.DoubleAgentName, Is.EqualTo("Janov Bondovicz"));
+
+				// it should round trip!
+				string roundtripText = CrystalJson.Serialize(x);
+				Assert.That(roundtripText, Is.EqualTo(jsonText), "LOOP 2!");
+				var hibachi = CrystalJson.Deserialize<DummyJsonBaseClass>(roundtripText);
+				Assert.That(hibachi, Is.EqualTo(x), "TRUE LAST BOSS !!!");
+			}
+
 		}
 
 		[Test]
@@ -10593,6 +10530,8 @@ namespace Doxense.Serialization.Json.Tests
 			var hibachi = CrystalJson.Deserialize<DummyJsonStruct>(roundtripText);
 			Assert.That(hibachi, Is.EqualTo(x), "TRUE LAST BOSS !!!");
 		}
+
+#if DEPRECATED
 
 		[Test]
 		public void Test_JsonDeserialize_EvilGadgetObject()
@@ -10680,6 +10619,8 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(CrystalJson.Deserialize<object>(json), Is.Not.Null);
 			//note: another hint that "ToObject" serialization should be banned?
 		}
+
+#endif
 
 		#endregion
 
@@ -10926,7 +10867,7 @@ namespace Doxense.Serialization.Json.Tests
 
 	#region Helper Classes
 
-	enum DummyJsonEnum
+	public enum DummyJsonEnum
 	{
 		None,
 		Foo = 1,
@@ -10934,7 +10875,7 @@ namespace Doxense.Serialization.Json.Tests
 	}
 
 	[Flags]
-	enum DummyJsonEnumFlags
+	public enum DummyJsonEnumFlags
 	{
 		None,
 		Foo = 1,
@@ -10942,7 +10883,7 @@ namespace Doxense.Serialization.Json.Tests
 		Narf = 4
 	}
 
-	enum DummyJsonEnumInt32
+	public enum DummyJsonEnumInt32
 	{
 		None,
 		One = 1,
@@ -10950,7 +10891,7 @@ namespace Doxense.Serialization.Json.Tests
 		MaxValue = 65535
 	}
 
-	enum DummyJsonEnumShort : ushort
+	public enum DummyJsonEnumShort : ushort
 	{
 		None,
 		One = 1,
@@ -10958,7 +10899,7 @@ namespace Doxense.Serialization.Json.Tests
 		MaxValue = 65535
 	}
 
-	enum DummyJsonEnumInt64 : long
+	public enum DummyJsonEnumInt64 : long
 	{
 		None,
 		One = 1,
@@ -10966,7 +10907,7 @@ namespace Doxense.Serialization.Json.Tests
 		MaxValue = long.MaxValue
 	}
 
-	enum DummyJsonEnumTypo
+	public enum DummyJsonEnumTypo
 	{
 		None,
 		Foo,
@@ -10976,7 +10917,7 @@ namespace Doxense.Serialization.Json.Tests
 	}
 
 #pragma warning disable 169, 649
-	struct DummyJsonStruct
+	public struct DummyJsonStruct
 	{
 		public bool Valid;
 		public string Name;
@@ -10995,7 +10936,7 @@ namespace Doxense.Serialization.Json.Tests
 	}
 #pragma warning restore 169, 649
 
-	struct DummyNullableStruct
+	public struct DummyNullableStruct
 	{
 		public bool? Bool;
 		public int? Int32;
@@ -11009,31 +10950,7 @@ namespace Doxense.Serialization.Json.Tests
 		public DummyJsonStruct? Struct;
 	}
 
-	interface IDummyCustomInterface
-	{
-		string? Name { get; }
-		int Index { get; }
-		long Size { get; }
-		float Height { get; }
-		double Amount { get; }
-		DateTime Created { get; }
-		DateTime? Modified { get; }
-		DummyJsonEnum State { get; }
-	}
-
-	class DummyOuterClass
-	{
-		public int Id { get; set; }
-		public IDummyCustomInterface Agent { get; set; }
-	}
-
-	class DummyOuterDerivedClass
-	{
-		public int Id { get; set; }
-		public DummyJsonClass Agent { get; set; }
-	}
-
-	class DummyJsonClass : IDummyCustomInterface
+	public class DummyJsonClass
 	{
 		private string m_invisible = "ShoudNotBeVisible";
 		private string? m_name;
@@ -11075,8 +10992,80 @@ namespace Doxense.Serialization.Json.Tests
 		}
 	}
 
-	class DummyDerivedJsonClass : DummyJsonClass
+	[STJ.Serialization.JsonPolymorphic()]
+	[STJ.Serialization.JsonDerivedType(typeof(DummyJsonBaseClass), "agent")]
+	[STJ.Serialization.JsonDerivedType(typeof(DummyDerivedJsonClass), "spy")]
+	public interface IDummyCustomInterface
 	{
+		string? Name { get; }
+		int Index { get; }
+		long Size { get; }
+		float Height { get; }
+		double Amount { get; }
+		DateTime Created { get; }
+		DateTime? Modified { get; }
+		DummyJsonEnum State { get; }
+	}
+
+	public class DummyOuterClass
+	{
+		public int Id { get; set; }
+		public IDummyCustomInterface Agent { get; set; }
+	}
+
+	public class DummyOuterDerivedClass
+	{
+		public int Id { get; set; }
+		public DummyJsonBaseClass Agent { get; set; }
+	}
+
+	public class DummyJsonBaseClass : IDummyCustomInterface
+	{
+		// same as "DummyJsonClass", but part of a polymorphic chain
+
+		private string m_invisible = "ShoudNotBeVisible";
+		private string? m_name;
+		public bool Valid => m_name is not null;
+		public string? Name { get => m_name; set => m_name = value; }
+		public int Index { get; set; }
+		public long Size { get; set; }
+		public float Height { get; set; }
+		public double Amount { get; set; }
+		public DateTime Created { get; set; }
+		public DateTime? Modified { get; set; }
+		public DateOnly? DateOfBirth { get; set; }
+		public DummyJsonEnum State { get; set; }
+
+		public double RatioOfStuff => this.Amount * this.Size;
+
+		// ReSharper disable once UnusedMember.Local
+		private string Invisible => m_invisible;
+
+		public string MustNotBeCalled() { return "ShouldNotBeCalled"; }
+
+		public override bool Equals(object? obj)
+		{
+			if (obj is not DummyJsonBaseClass other) return false;
+			return this.Index == other.Index
+			       && m_name == other.m_name
+			       && this.Size == other.Size
+			       && this.Height == other.Height
+			       && this.Amount == other.Amount
+			       && this.Created == other.Created
+			       && this.Modified == other.Modified
+			       && this.State == other.State;
+		}
+
+		public override int GetHashCode()
+		{
+			// ReSharper disable once NonReadonlyMemberInGetHashCode
+			return this.Index;
+		}
+	}
+
+	public class DummyDerivedJsonClass : DummyJsonBaseClass
+	{
+
 		private string? m_doubleAgentName;
 
 		public DummyDerivedJsonClass() { }
@@ -11085,8 +11074,6 @@ namespace Doxense.Serialization.Json.Tests
 		{
 			m_doubleAgentName = doubleAgentName;
 		}
-
-		public bool IsDoubleAgent => m_doubleAgentName is not null;
 
 		public string? DoubleAgentName { get => m_doubleAgentName; set => m_doubleAgentName = value; }
 	}
@@ -11221,257 +11208,6 @@ namespace Doxense.Serialization.Json.Tests
 		}
 
 		#endregion
-	}
-
-	/// <summary>Pure POCO class with all fields readonly, that uses Duck Typeing for serialization/deserialization</summary>
-	internal sealed class DummyCtorBasedJsonSerializableClass // uses Duck Typing instead of IJsonSerializable or IJsonBindable
-	{
-
-		public int Id { get; }
-
-		public string Name { get; }
-
-		public System.Drawing.Color Color { get; }
-		// Serialized as the name of the color
-
-		public int X { get; }
-		public int Y { get; }
-		// X & Y are serialized into a combined string field "XY" = "{X}:{Y}"
-
-		/// <summary>Cached value that must not be serialized, and must be recomputed on deserialization</summary>
-		private int CacheHashCode { get; }
-
-		/// <summary>Constructeur public, utilisé par l'application pour créé les objets</summary>
-		public DummyCtorBasedJsonSerializableClass(int id, string name, System.Drawing.Color color, int x, int y)
-		{
-			this.Id = id;
-			this.Name = name;
-			this.Color = color;
-			this.X = x;
-			this.Y = y;
-			this.CacheHashCode = this.X ^ this.Y ^ this.Id ^ this.Name.GetHashCode();
-		}
-
-		/// <summary>Constructeur privé, utilisé lors de la désérialisation JSON</summary>
-		private DummyCtorBasedJsonSerializableClass(JsonObject json, ICrystalJsonTypeResolver _)
-		{
-			this.Id = json.Get<int>("Id");
-			this.Name = json.Get<string>("Name");
-			this.Color = System.Drawing.Color.FromName(json.Get<string>("Color", "Black"));
-			string xy = json.Get<string>("XY");
-			if (!string.IsNullOrEmpty(xy))
-			{
-				// Don't try this at home!
-				int p = xy.IndexOf(':', StringComparison.Ordinal);
-#if NET8_0_OR_GREATER
-				this.X = int.Parse(xy.AsSpan(0, p), CultureInfo.InvariantCulture);
-				this.Y = int.Parse(xy.AsSpan(p + 1), CultureInfo.InvariantCulture);
-#else
-				this.X = int.Parse(xy.Substring(0, p), CultureInfo.InvariantCulture);
-				this.Y = int.Parse(xy.Substring(p + 1), CultureInfo.InvariantCulture);
-#endif
-			}
-			this.CacheHashCode = this.X ^ this.Y ^ this.Id ^ this.Name.GetHashCode();
-		}
-
-		public void JsonSerialize(CrystalJsonWriter writer)
-		{
-			var state = writer.BeginObject();
-			{
-				writer.WriteField("Id", this.Id);
-				writer.WriteField("Name", this.Name);
-				writer.WriteField("Color", this.Color.Name);
-				// Don't try this at home!
-				writer.WriteField("XY", string.Format(CultureInfo.InvariantCulture, "{0}:{1}", this.X, this.Y));
-			}
-			writer.EndObject(state);
-		}
-
-		public JsonValue JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver)
-		{
-			// Don't try this at home!
-			return JsonObject.Create([
-				("Id", this.Id),
-				("Name", this.Name),
-				("Color", this.Color.Name),
-				("XY", string.Format(CultureInfo.InvariantCulture, "{0}:{1}", this.X, this.Y))
-			]);
-		}
-
-		public override bool Equals(object? obj)
-		{
-			if (obj is not DummyCtorBasedJsonBindableClass other) return false;
-			return other.Id == this.Id && other.Name == this.Name && other.X == this.X && other.Y == this.Y && other.Color == this.Color;
-		}
-
-		public override int GetHashCode()
-		{
-			return this.CacheHashCode;
-		}
-	}
-
-	/// <summary>Pure POCO class with all fields readonly, that uses Duck Typeing for serialization/deserialization</summary>
-	internal sealed class DummyCtorBasedJsonBindableClass
-	{
-		//note: the ONLY difference between this and DummyCtorBasedJsonSerializable, is that it does NOT implement JsonSerialize
-		// => this is to test the code path that will first call JsonPack(..) then serialize the returned JsonValue (less efficient, but at least will serialize the correct output)
-
-		public int Id { get; }
-
-		public string Name { get; }
-
-		 public System.Drawing.Color Color { get; }
-		 // Serialized as the name of the color
-
-		public int X { get; }
-		public int Y { get; }
-		 // X & Y are serialized into a combined string field "XY" = "{X}:{Y}"
-
-		/// <summary>Cached value that must not be serialized, and must be recomputed on deserialization</summary>
-		private int CacheHashCode { get; }
-
-		/// <summary>Constructeur public, utilisé par l'application pour créé les objets</summary>
-		public DummyCtorBasedJsonBindableClass(int id, string name, System.Drawing.Color color, int x, int y)
-		{
-			this.Id = id;
-			this.Name = name;
-			this.Color = color;
-			this.X = x;
-			this.Y = y;
-			 this.CacheHashCode = this.X ^ this.Y ^ this.Id ^ this.Name.GetHashCode();
-		}
-
-		/// <summary>Constructeur privé, utilisé lors de la désérialisation JSON</summary>
-		private DummyCtorBasedJsonBindableClass(JsonObject json, ICrystalJsonTypeResolver _)
-		{
-			this.Id = json.Get<int>("Id");
-			this.Name = json.Get<string>("Name");
-			this.Color = System.Drawing.Color.FromName(json.Get<string>("Color", "Black"));
-			string xy = json.Get<string>("XY");
-			if (!string.IsNullOrEmpty(xy))
-			{
-				// Don't try this at home!
-				int p = xy.IndexOf(':', StringComparison.Ordinal);
-#if NET8_0_OR_GREATER
-				this.X = int.Parse(xy.AsSpan(0, p), CultureInfo.InvariantCulture);
-				this.Y = int.Parse(xy.AsSpan(p + 1), CultureInfo.InvariantCulture);
-#else
-				this.X = int.Parse(xy.Substring(0, p), CultureInfo.InvariantCulture);
-				this.Y = int.Parse(xy.Substring(p + 1), CultureInfo.InvariantCulture);
-#endif
-			}
-			this.CacheHashCode = this.X ^ this.Y ^ this.Id ^ this.Name.GetHashCode();
-		}
-
-		//note: does NOT implement JsonSerialize !
-
-		public JsonValue JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver)
-		{
-			// Don't try this at home!
-			return JsonObject.Create([
-				("Id", this.Id),
-				("Name", this.Name),
-				("Color", this.Color.Name),
-				("XY", string.Format(CultureInfo.InvariantCulture, "{0}:{1}", this.X, this.Y)),
-			]);
-		}
-
-		public override bool Equals(object? obj)
-		{
-			if (obj is not DummyCtorBasedJsonBindableClass other) return false;
-			return other.Id == this.Id && other.Name == this.Name && other.X == this.X && other.Y == this.Y && other.Color == this.Color;
-		}
-
-		public override int GetHashCode()
-		{
-			return this.CacheHashCode;
-		}
-	}
-
-	/// <summary>Pure POCO class with all fields readonly, that uses Duck Typeing for serialization/deserialization</summary>
-	internal readonly struct DummyCtorBasedJsonSerializableStruct // uses Duck Typing instead of IJsonSerializable or IJsonBindable
-	{
-
-		public readonly int Id;
-
-		public readonly string Name;
-
-		public readonly int X;
-
-		public readonly int Y;
-		// X & Y are serialized into a combined string field "XY" = "{X}:{Y}"
-
-		/// <summary>Cached value that must not be serialized, and must be recomputed on deserialization</summary>
-		private readonly int CacheHashCode;
-
-		/// <summary>Constructeur public, utilisé par l'application pour créé les objets</summary>
-		public DummyCtorBasedJsonSerializableStruct(int id, string name, int x, int y)
-		{
-			this.Id = id;
-			this.Name = name;
-			this.X = x;
-			this.Y = y;
-			this.CacheHashCode = this.X ^ this.Y ^ this.Id ^ this.Name.GetHashCode();
-		}
-
-		/// <summary>Constructeur privé, utilisé lors de la désérialisation JSON</summary>
-		private DummyCtorBasedJsonSerializableStruct(JsonObject json, ICrystalJsonTypeResolver _)
-		{
-			this.Id = json.Get<int>("Id");
-			this.Name = json.Get<string>("Name");
-			string xy = json.Get<string>("XY");
-			if (!string.IsNullOrEmpty(xy))
-			{
-				// Don't try this at home!
-				int p = xy.IndexOf(':', StringComparison.Ordinal);
-#if NET8_0_OR_GREATER
-				this.X = int.Parse(xy.AsSpan(0, p), CultureInfo.InvariantCulture);
-				this.Y = int.Parse(xy.AsSpan(p + 1), CultureInfo.InvariantCulture);
-#else
-				this.X = int.Parse(xy.Substring(0, p), CultureInfo.InvariantCulture);
-				this.Y = int.Parse(xy.Substring(p + 1), CultureInfo.InvariantCulture);
-#endif
-			}
-			else
-			{
-				this.X = 0;
-				this.Y = 0;
-			}
-			this.CacheHashCode = this.X ^ this.Y ^ this.Id ^ this.Name.GetHashCode();
-		}
-
-		public void JsonSerialize(CrystalJsonWriter writer)
-		{
-			var state = writer.BeginObject();
-			{
-				writer.WriteField("Id", this.Id);
-				writer.WriteField("Name", this.Name);
-				// Don't try this at home!
-				writer.WriteField("XY", string.Format(CultureInfo.InvariantCulture, "{0}:{1}", this.X, this.Y));
-			}
-			writer.EndObject(state);
-		}
-
-		public JsonValue JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver)
-		{
-			// Don't try this at home!
-			return JsonObject.Create([
-				("Id", this.Id),
-				("Name", this.Name),
-				("XY", string.Format(CultureInfo.InvariantCulture, "{0}:{1}", this.X, this.Y))
-			]);
-		}
-
-		public override bool Equals(object? obj)
-		{
-			if (obj is not DummyCtorBasedJsonBindableClass other) return false;
-			return other.Id == this.Id && other.Name == this.Name && other.X == this.X && other.Y == this.Y;
-		}
-
-		public override int GetHashCode()
-		{
-			return this.CacheHashCode;
-		}
 	}
 
 	[DataContract]

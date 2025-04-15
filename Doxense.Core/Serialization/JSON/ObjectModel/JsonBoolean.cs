@@ -251,9 +251,9 @@ namespace Doxense.Serialization.Json
 
 #endif
 
-		public override float ToSingle(float _ = default) => m_value ? 1f : 0f;
+		public override float ToSingle(float _ = 0f) => m_value ? 1f : 0f;
 
-		public override double ToDouble(double _ = default) => m_value ? 1d : 0d;
+		public override double ToDouble(double _ = 0d) => m_value ? 1d : 0d;
 
 
 #if NET8_0_OR_GREATER
@@ -264,7 +264,7 @@ namespace Doxense.Serialization.Json
 		public override Half ToHalf(Half _ = default) => m_value ? HalfOne : HalfZero;
 #endif
 
-		public override decimal ToDecimal(decimal _ = default) => m_value ? 1m : 0m;
+		public override decimal ToDecimal(decimal _ = 0m) => m_value ? 1m : 0m;
 
 		private static readonly Guid AllF = new(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 });
 

@@ -430,7 +430,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns the value of field with the specified name, if the current is an object and the field was found.</summary>
 		/// <param name="key">Name of the field to retrieve</param>
-		/// <param name="actualKey">Receives the original allocated key, if the field was found</param>
+		/// <param name="actualKey">If the field is present, receives the previously allocated key; otherwise, <c>null</c>.</param>
 		/// <param name="value">Value of the field, if it was found</param>
 		/// <returns><see langword="true"/> if the field was found, or <see langword="false"/> if the field was not found, or the current value is not an object</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
@@ -447,7 +447,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns the value of field with the specified name, if the current is an object and the field was found.</summary>
 		/// <param name="key">Name of the field to retrieve</param>
-		/// <param name="actualKey">Receives the original allocated key, if the field was found</param>
+		/// <param name="actualKey">If the field is present, receives the previously allocated key; otherwise, <c>null</c>.</param>
 		/// <param name="value">Value of the field, if it was found</param>
 		/// <returns><see langword="true"/> if the field was found, or <see langword="false"/> if the field was not found, or the current value is not an object</returns>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
@@ -524,19 +524,19 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns the value of the <b>required</b> field with the specified name.</summary>
 		/// <param name="key">Name of the field to retrieve</param>
-		/// <param name="actualKey">Receives the previously allocated key.</param>
+		/// <param name="actualKey">If the field is present, receives the previously allocated key; otherwise, <c>null</c>.</param>
 		/// <returns>The value of the specified field, or an exception if it is null or missing.</returns>
 		/// <exception cref="InvalidOperationException">If the field is null or missing</exception>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public virtual JsonValue GetValue(ReadOnlySpan<char> key, out string actualKey) => GetValueOrDefault(key, JsonNull.Missing, out actualKey!).RequiredField(key);
+		public virtual JsonValue GetValue(ReadOnlySpan<char> key, out string? actualKey) => GetValueOrDefault(key, JsonNull.Missing, out actualKey).RequiredField(key);
 
 		/// <summary>Returns the value of the <b>required</b> field with the specified name.</summary>
 		/// <param name="key">Name of the field to retrieve</param>
-		/// <param name="actualKey">Receives the previously allocated key.</param>
+		/// <param name="actualKey">If the field is present, receives the previously allocated key; otherwise, <c>null</c>.</param>
 		/// <returns>The value of the specified field, or an exception if it is null or missing.</returns>
 		/// <exception cref="InvalidOperationException">If the field is null or missing</exception>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		public virtual JsonValue GetValue(ReadOnlyMemory<char> key, out string actualKey) => GetValueOrDefault(key, JsonNull.Missing, out actualKey!).RequiredField(key);
+		public virtual JsonValue GetValue(ReadOnlyMemory<char> key, out string? actualKey) => GetValueOrDefault(key, JsonNull.Missing, out actualKey).RequiredField(key);
 
 #endif
 

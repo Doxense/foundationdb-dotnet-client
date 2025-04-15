@@ -904,10 +904,8 @@ namespace Doxense.Serialization.Json
 				throw JsonBindingException.CannotBindJsonStringToThisType(this, type, e);
 			}
 
-			// does it use a custom binder?
-			// => for classes with a ducktyped ctor, or static factory methods
-			var def = resolver.ResolveJsonType(type);
-			if (def?.CustomBinder is not null)
+			// maybe we have a custom binder?
+			if (resolver.TryResolveTypeDefinition(type, out var def) && def.CustomBinder is not null)
 			{
 				return def.CustomBinder(this, type, resolver);
 			}

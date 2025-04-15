@@ -36,7 +36,7 @@ namespace Doxense.Serialization.Encoders
 
 		public static JsonValueEncoding Instance { get; } = new(null, null);
 
-		public JsonValueEncoding(CrystalJsonSettings? settings, CrystalJsonTypeResolver? resolver)
+		public JsonValueEncoding(CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			this.Settings = settings ?? CrystalJsonSettings.JsonCompact.WithEnumAsStrings().WithIso8601Dates();
 			this.Resolver = resolver ?? CrystalJson.DefaultResolver;
@@ -44,7 +44,7 @@ namespace Doxense.Serialization.Encoders
 
 		public CrystalJsonSettings Settings { get; }
 
-		public CrystalJsonTypeResolver Resolver { get; }
+		public ICrystalJsonTypeResolver Resolver { get; }
 
 		#region IKeyEncoding...
 
@@ -227,9 +227,9 @@ namespace Doxense.Serialization.Encoders
 
 		public CrystalJsonSettings Settings { get; }
 
-		public CrystalJsonTypeResolver Resolver { get; }
+		public ICrystalJsonTypeResolver Resolver { get; }
 
-		public JsonValueEncoder(CrystalJsonSettings? settings, CrystalJsonTypeResolver? resolver)
+		public JsonValueEncoder(CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			this.Settings = settings ?? CrystalJsonSettings.JsonCompact;
 			this.Resolver = resolver ?? CrystalJson.DefaultResolver;
@@ -282,7 +282,7 @@ namespace Doxense.Serialization.Encoders
 
 		public CrystalJsonSettings Settings => this.Encoding.Settings;
 
-		public CrystalJsonTypeResolver Resolver => this.Encoding.Resolver;
+		public ICrystalJsonTypeResolver Resolver => this.Encoding.Resolver;
 
 		public JsonKeyEncoder(JsonValueEncoding encoding)
 		{

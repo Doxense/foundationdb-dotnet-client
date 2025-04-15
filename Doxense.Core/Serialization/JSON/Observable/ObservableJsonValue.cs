@@ -455,7 +455,7 @@ namespace Doxense.Serialization.Json
 			}
 
 			RecordChildAccess(name.AsMemory(), child, ObservableJsonAccess.Value);
-			value = converter.Unpack(child);
+			value = converter.Unpack(child, null);
 			return true;
 		}
 
@@ -475,7 +475,7 @@ namespace Doxense.Serialization.Json
 			}
 
 			RecordChildAccess(name, child, ObservableJsonAccess.Value);
-			value = converter.Unpack(child);
+			value = converter.Unpack(child, null);
 			return true;
 		}
 
@@ -531,7 +531,7 @@ namespace Doxense.Serialization.Json
 			}
 
 			RecordChildAccess(index, child, ObservableJsonAccess.Value);
-			value = converter.Unpack(child);
+			value = converter.Unpack(child, null);
 			return true;
 		}
 
@@ -589,7 +589,7 @@ namespace Doxense.Serialization.Json
 			}
 
 			RecordChildAccess(index, child, ObservableJsonAccess.Value);
-			value = converter.Unpack(child);
+			value = converter.Unpack(child, null);
 			return true;
 		}
 
@@ -664,7 +664,7 @@ namespace Doxense.Serialization.Json
 				return false;
 			}
 
-			value = converter.Unpack(json);
+			value = converter.Unpack(json, null);
 			return true;
 		}
 
@@ -714,7 +714,7 @@ namespace Doxense.Serialization.Json
 				return false;
 			}
 
-			value = converter.Unpack(child);
+			value = converter.Unpack(child, null);
 			return true;
 		}
 

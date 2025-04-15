@@ -26,6 +26,8 @@
 
 namespace Doxense.Serialization.Json
 {
+	using System.Collections.Frozen;
+
 	[DebuggerDisplay("Type={Type.Name}, ReqClass={RequiresClassAttribute}, IsAnonymousType={IsAnonymousType}, ClassId={ClassId}")]
 	[PublicAPI]
 	public sealed record CrystalJsonTypeDefinition
@@ -34,14 +36,15 @@ namespace Doxense.Serialization.Json
 		/// <summary>Type of the object</summary>
 		public Type Type { get; init; }
 
-		/// <summary>Base type for derived types; otherwise, <see langword="null"/>)</summary>
-		/// <remarks>This should be the top-level class in the type hierarchy, not simply the immediate parent.</remarks>
 		public Type? BaseType { get; init; }
 
-		/// <summary>Custom ClassId for this type</summary>
-		public string? ClassId { get; init; }
+		public JsonEncodedPropertyName? TypeDiscriminatorProperty { get; init; }
 
-		public bool RequiresClassAttribute { get; init; }
+		/// <summary>Custom ClassId for this type</summary>
+		public JsonValue? TypeDiscriminatorValue { get; init; }
+
+		/// <summary>Custom ClassId for this type</summary>
+		public FrozenDictionary<JsonValue, Type>? DerivedTypeMap { get; init; }
 
 		/// <summary>Specifies if this is an anonymous type that does not have a valid name</summary>
 		/// <remarks>ex: <c>CrystalJson.Serialize(new { "Hello": "World" })</c></remarks>
@@ -67,26 +70,30 @@ namespace Doxense.Serialization.Json
 		/// <summary>Definitions of the fields and properties of this type</summary>
 		public CrystalJsonMemberDefinition[] Members { get; init; }
 
-		public CrystalJsonTypeDefinition(Type type, Type? baseType, string? classId, CrystalJsonTypeBinder? customBinder, Func<object>? generator, CrystalJsonMemberDefinition[] members)
+		public CrystalJsonTypeDefinition(Type type, CrystalJsonTypeBinder? customBinder, Func<object>? generator, CrystalJsonMemberDefinition[] members, Type? baseType, JsonEncodedPropertyName? typeDiscriminatorProperty, JsonValue? typeDiscriminatorValue, FrozenDictionary<JsonValue, Type>? derivedTypeMap)
 		{
 			Contract.NotNull(type);
 			Contract.NotNull(members);
 
-			// If not provided, generate a type name that looks like "Namespace.ClassName, AssemblyName", which is the format expected by Type.GetType(..)
-			classId ??= type.GetAssemblyName();
+			//// If not provided, generate a type name that looks like "Namespace.ClassName, AssemblyName", which is the format expected by Type.GetType(..)
+			//classId ??= type.GetAssemblyName();
 
 			this.Type = type;
 			this.BaseType = baseType;
-			this.ClassId = classId;
+			this.TypeDiscriminatorProperty = typeDiscriminatorProperty;
+			this.TypeDiscriminatorValue = typeDiscriminatorValue;
+			this.DerivedTypeMap = derivedTypeMap;
 			this.IsAnonymousType = type.IsAnonymousType();
 			this.IsSealed = CrystalJsonTypeResolver.IsSealedType(type);
 			this.NullableOfType = CrystalJsonTypeResolver.GetNullableType(type);
 			this.DefaultIsNull = !type.IsValueType || this.NullableOfType != null;
-			this.RequiresClassAttribute = (type.IsInterface || type.IsAbstract) && !this.IsAnonymousType && baseType == null;
+			//this.RequiresClassAttribute = (type.IsInterface || type.IsAbstract) && !this.IsAnonymousType;
 			this.CustomBinder = customBinder;
 			this.Generator = generator;
 			this.Members = members;
 		}
+
+		public bool IsPolymorphic() => this.TypeDiscriminatorProperty != null;
 
 	}
 
