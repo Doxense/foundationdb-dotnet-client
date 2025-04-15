@@ -155,7 +155,7 @@ namespace Doxense.Serialization.Json
 
 	}
 
-	internal sealed class RuntimeJsonConverter<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.PublicProperties)] T> : IJsonConverter<T>
+	internal sealed class RuntimeJsonConverter<T> : IJsonConverter<T>
 	{
 
 		/// <summary>Default converter for instances of type <typeparamref name="T"/></summary>

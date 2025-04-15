@@ -26,13 +26,16 @@
 
 // ReSharper disable RedundantTypeArgumentsOfMethod
 
+#pragma warning disable IL2087 // Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The generic parameter of the source method or type does not have matching annotations.
+
 namespace Doxense.Serialization.Json
 {
+	using System.Buffers;
 	using System.Collections;
 	using System.Collections.Generic;
 	using System.Collections.Immutable;
 	using System.ComponentModel;
-	using System.Buffers;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Reflection;
 	using System.Runtime.InteropServices;
 	using System.Text;
@@ -2833,7 +2836,6 @@ namespace Doxense.Serialization.Json
 		/// <summary>Converts this <see cref="JsonArray">JSON Array</see> with a <see cref="List{T}">List&lt;object?></see>.</summary>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public override object ToObject()
 		{
 			//TODO: detect when all items have the same type T,
@@ -2848,12 +2850,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
-		public override object? Bind(
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
-			Type? type,
-			ICrystalJsonTypeResolver? resolver = null
-		)
+		public override object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null)
 		{
 			//note: we cannot use JIT optimization here, because the type will usually be an array or list of value types, which itself is not a value type.
 			if (resolver is not null && !ReferenceEquals(resolver, CrystalJson.DefaultResolver))
@@ -4338,11 +4335,8 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public override bool ValueEquals<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TCollection>
-			(TCollection? value, IEqualityComparer<TCollection>? comparer = null)
+		public override bool ValueEquals<TCollection>(TCollection? value, IEqualityComparer<TCollection>? comparer = null)
 			where TCollection : default
 		{
 			// we will attempt to optimize for some of the most common array and list types,
@@ -4393,7 +4387,7 @@ namespace Doxense.Serialization.Json
 				return ValueEqualsSlow(this, value!, comparer);
 			}
 
-			static bool ValueEqualsSlow([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.NonPublicMethods)] JsonArray self, TCollection value, IEqualityComparer<TCollection>? comparer)
+			static bool ValueEqualsSlow(JsonArray self, TCollection value, IEqualityComparer<TCollection>? comparer)
 			{
 				var type = typeof(TCollection);
 				if (type.IsEnumerableType(out var itemType))
@@ -4536,11 +4530,8 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Tests if the elements of this array are equal to the elements of the specified span, using the strict JSON comparison semantics</summary>
 		[Pure]
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		[OverloadResolutionPriority(1)]
-		public bool ValuesEqual<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TValue>
-			(ReadOnlySpan<TValue> items)
+		public bool ValuesEqual<TValue>(ReadOnlySpan<TValue> items)
 		{
 			var span = AsSpan();
 			if (span.Length != items.Length) return false;
@@ -4561,7 +4552,6 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Tests if the elements of this array are equal to the elements of the specified sequence, using the strict JSON comparison semantics</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public bool ValuesEqual<TValue>(IEnumerable<TValue>? items)
 		{
 			if (items is null) return false;
@@ -4569,7 +4559,6 @@ namespace Doxense.Serialization.Json
 			if (Buffer<TValue>.TryGetSpan(items, out var xs)) return ValuesEqual<TValue>(xs);
 			return ValueEqualsEnumerable(AsSpan(), items);
 
-			[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 			static bool ValueEqualsEnumerable(ReadOnlySpan<JsonValue> values, IEnumerable<TValue> items)
 			{
 				int p = 0;

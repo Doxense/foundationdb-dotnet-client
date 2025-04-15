@@ -55,7 +55,6 @@ namespace Doxense.Serialization.Json
 		/// <remarks>Prefer casting to a specific type, using <see cref="JsonValueExtensions.As{TValue}">As&lt;TValue&gt;()</see> or any equivalent method.</remarks>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public abstract object? ToObject();
 
 		/// <summary>Bind this value into an instance of the specified <paramref name="type"/></summary>
@@ -67,7 +66,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>If the target type is a Value Type, the instance will be boxed, which may cause extra memory allocations. Consider calling <see cref="Bind{TValue}"/> instance, or use any of the convenience methods like <see cref="JsonValueExtensions.Required{TValue}"/>, <see cref="JsonValueExtensions.As{TValue}"/>, ...</remarks>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public abstract object? Bind([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type? type, ICrystalJsonTypeResolver? resolver = null);
+		public abstract object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null);
 
 		/// <summary>Bind this value into an instance of type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Target managed type</typeparam>
@@ -78,7 +77,7 @@ namespace Doxense.Serialization.Json
 		/// <example><c>JsonNumber.Return(123).Bind&lt;long>()</c> will return the value <c>123</c>.</example>
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public virtual TValue? Bind<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null)
+		public virtual TValue? Bind<TValue>(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null)
 		{
 			var res = Bind(typeof(TValue), resolver);
 			return res is not null ? (TValue?) res : defaultValue;
@@ -295,9 +294,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="comparer">Custom equality comparer if specified; otherwise, uses the default comparer for this type</param>
 		/// <returns><see langword="true"/> if both arguments are considered equal; otherwise, <see langword="false"/></returns>
 		/// <remarks>This method tries to perform an optimized comparison, and should perform less memory allocations than calling </remarks>
-		public virtual bool ValueEquals<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>
-			(TValue? value, IEqualityComparer<TValue>? comparer = null)
+		public virtual bool ValueEquals<TValue>(TValue? value, IEqualityComparer<TValue>? comparer = null)
 			=> (comparer ?? EqualityComparer<TValue>.Default).Equals(Bind<TValue>(), value);
 
 		/// <summary>Tests if these two JSON values are considered equal, using the strict JSON comparison semantics</summary>
@@ -844,7 +841,7 @@ namespace Doxense.Serialization.Json
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public bool TryGet<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(string key, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
+		public bool TryGet<TValue>(string key, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
 		{
 			if (TryGetValue(key, out var child) && child is not (null or JsonNull))
 			{
@@ -872,7 +869,7 @@ namespace Doxense.Serialization.Json
 #if !NET9_0_OR_GREATER
 		[EditorBrowsable(EditorBrowsableState.Never)]
 #endif
-		public bool TryGet<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlySpan<char> key, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
+		public bool TryGet<TValue>(ReadOnlySpan<char> key, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
 		{
 			if (TryGetValue(key, out var child) && child is not (null or JsonNull))
 			{
@@ -900,7 +897,7 @@ namespace Doxense.Serialization.Json
 #if !NET9_0_OR_GREATER
 		[EditorBrowsable(EditorBrowsableState.Never)]
 #endif
-		public bool TryGet<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlyMemory<char> key, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
+		public bool TryGet<TValue>(ReadOnlyMemory<char> key, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
 		{
 			if (TryGetValue(key, out var child) && child is not (null or JsonNull))
 			{
@@ -926,7 +923,7 @@ namespace Doxense.Serialization.Json
 		/// </example>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public bool TryGet<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(string key, ICrystalJsonTypeResolver? resolver, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
+		public bool TryGet<TValue>(string key, ICrystalJsonTypeResolver? resolver, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
 		{
 			if (TryGetValue(key, out var child) && child is not (null or JsonNull))
 			{
@@ -954,7 +951,7 @@ namespace Doxense.Serialization.Json
 #if !NET9_0_OR_GREATER
 		[EditorBrowsable(EditorBrowsableState.Never)]
 #endif
-		public bool TryGet<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlySpan<char> key, ICrystalJsonTypeResolver? resolver, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
+		public bool TryGet<TValue>(ReadOnlySpan<char> key, ICrystalJsonTypeResolver? resolver, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
 		{
 			if (TryGetValue(key, out var child) && child is not (null or JsonNull))
 			{
@@ -982,7 +979,7 @@ namespace Doxense.Serialization.Json
 #if !NET9_0_OR_GREATER
 		[EditorBrowsable(EditorBrowsableState.Never)]
 #endif
-		public bool TryGet<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlyMemory<char> key, ICrystalJsonTypeResolver? resolver, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
+		public bool TryGet<TValue>(ReadOnlyMemory<char> key, ICrystalJsonTypeResolver? resolver, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
 		{
 			if (TryGetValue(key, out var child) && child is not (null or JsonNull))
 			{
@@ -1013,7 +1010,7 @@ namespace Doxense.Serialization.Json
 		/// </example>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public TValue Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(string key) where TValue : notnull => GetValue(key).Required<TValue>();
+		public TValue Get<TValue>(string key) where TValue : notnull => GetValue(key).Required<TValue>();
 
 		/// <summary>Gets the value of the <b>required</b> field with the specified name, converted into type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Type of the value</typeparam>
@@ -1038,7 +1035,7 @@ namespace Doxense.Serialization.Json
 #if !NET9_0_OR_GREATER
 		[EditorBrowsable(EditorBrowsableState.Never)]
 #endif
-		public TValue Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlySpan<char> key) where TValue : notnull => GetValue(key).Required<TValue>();
+		public TValue Get<TValue>(ReadOnlySpan<char> key) where TValue : notnull => GetValue(key).Required<TValue>();
 
 		/// <summary>Gets the value of the <b>required</b> field with the specified name, converted into type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Type of the value</typeparam>
@@ -1063,7 +1060,7 @@ namespace Doxense.Serialization.Json
 #if !NET9_0_OR_GREATER
 		[EditorBrowsable(EditorBrowsableState.Never)]
 #endif
-		public TValue Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlyMemory<char> key) where TValue : notnull => GetValue(key).Required<TValue>();
+		public TValue Get<TValue>(ReadOnlyMemory<char> key) where TValue : notnull => GetValue(key).Required<TValue>();
 
 		/// <summary>Gets the value of the <b>required</b> field with the specified name, converted into type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Type of the value</typeparam>
@@ -1078,25 +1075,7 @@ namespace Doxense.Serialization.Json
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		// ReSharper disable once MethodOverloadWithOptionalParameter
-		public TValue Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(string key, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TValue : notnull => GetValueOrDefault(key).RequiredField(key, message).Required<TValue>(resolver);
-
-		/// <summary>Gets the value of the <b>required</b> field with the specified name, converted into type <typeparamref name="TValue"/></summary>
-		/// <typeparam name="TValue">Type of the value</typeparam>
-		/// <param name="key">Name of the field</param>
-		/// <param name="resolver">Optional custom type resolver</param>
-		/// <param name="message">Optional error message if the field is null or missing</param>
-		/// <returns>Value converted into an instance of type <typeparamref name="TValue"/>, or an exception if the value is null or missing</returns>
-		/// <remarks>
-		/// <para>This method can never return <see langword="null"/>, which means that there is no point in using a <see cref="Nullable{T}">nullable value type</see> for <typeparamref name="TValue"/>.</para>
-		/// </remarks>
-		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
-		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if !NET9_0_OR_GREATER
-		[EditorBrowsable(EditorBrowsableState.Never)]
-#endif
-		// ReSharper disable once MethodOverloadWithOptionalParameter
-		public TValue Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlySpan<char> key, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TValue : notnull => GetValueOrDefault(key).RequiredField(key, message).Required<TValue>(resolver);
+		public TValue Get<TValue>(string key, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TValue : notnull => GetValueOrDefault(key).RequiredField(key, message).Required<TValue>(resolver);
 
 		/// <summary>Gets the value of the <b>required</b> field with the specified name, converted into type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Type of the value</typeparam>
@@ -1114,7 +1093,25 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Never)]
 #endif
 		// ReSharper disable once MethodOverloadWithOptionalParameter
-		public TValue Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlyMemory<char> key, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TValue : notnull => GetValueOrDefault(key).RequiredField(key, message).Required<TValue>(resolver);
+		public TValue Get<TValue>(ReadOnlySpan<char> key, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TValue : notnull => GetValueOrDefault(key).RequiredField(key, message).Required<TValue>(resolver);
+
+		/// <summary>Gets the value of the <b>required</b> field with the specified name, converted into type <typeparamref name="TValue"/></summary>
+		/// <typeparam name="TValue">Type of the value</typeparam>
+		/// <param name="key">Name of the field</param>
+		/// <param name="resolver">Optional custom type resolver</param>
+		/// <param name="message">Optional error message if the field is null or missing</param>
+		/// <returns>Value converted into an instance of type <typeparamref name="TValue"/>, or an exception if the value is null or missing</returns>
+		/// <remarks>
+		/// <para>This method can never return <see langword="null"/>, which means that there is no point in using a <see cref="Nullable{T}">nullable value type</see> for <typeparamref name="TValue"/>.</para>
+		/// </remarks>
+		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if !NET9_0_OR_GREATER
+		[EditorBrowsable(EditorBrowsableState.Never)]
+#endif
+		// ReSharper disable once MethodOverloadWithOptionalParameter
+		public TValue Get<TValue>(ReadOnlyMemory<char> key, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TValue : notnull => GetValueOrDefault(key).RequiredField(key, message).Required<TValue>(resolver);
 
 		/// <summary>Gets the value of the <i>optional</i> field with the specified name, converted into type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Type of the value</typeparam>
@@ -1136,32 +1133,7 @@ namespace Doxense.Serialization.Json
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(string key, TValue defaultValue) => GetValueOrDefault(key).As(defaultValue);
-
-		/// <summary>Gets the value of the <i>optional</i> field with the specified name, converted into type <typeparamref name="TValue"/></summary>
-		/// <typeparam name="TValue">Type of the value</typeparam>
-		/// <param name="key">Name of the field</param>
-		/// <param name="defaultValue">Value returned if the value is null or missing</param>
-		/// <returns>Value converted into an instance of type <typeparamref name="TValue"/>, or <paramref name="defaultValue"/> if the value is null or missing</returns>
-		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
-		/// <example>
-		/// ({ "Hello": "World"}).Get&lt;string&gt;("Hello", "not_found") // => <c>"World"</c>
-		/// ({ "Hello": "123"}).Get&lt;int&gt;("Hello", -1) // => <c>123</c>
-		/// ({ }).Get&lt;string&gt;("Hello", null) // => <see langword="null"/>
-		/// ({ }).Get&lt;string&gt;("Hello", "not_found") // => <c>"not_found"</c>
-		/// ({ }).Get&lt;int&gt;("Hello", -1) // => <c>-1</c>
-		/// ({ }).Get&lt;int?&gt;("Hello", null) // => <see langword="null"/>
-		/// ({ "Hello": null }).Get&lt;string&gt;("Hello", "not_found") // => <c>"not_found"</c>
-		/// ({ "Hello": null }).Get&lt;int&gt;("Hello") // => Exception
-		/// ({ "Hello": null }).Get&lt;int?&gt;("Hello") // => Exception
-		/// </example>
-		[Pure, CollectionAccess(CollectionAccessType.Read)]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if !NET9_0_OR_GREATER
-		[EditorBrowsable(EditorBrowsableState.Never)]
-#endif
-		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlySpan<char> key, TValue defaultValue) => GetValueOrDefault(key).As(defaultValue);
+		public TValue? Get<TValue>(string key, TValue defaultValue) => GetValueOrDefault(key).As(defaultValue);
 
 		/// <summary>Gets the value of the <i>optional</i> field with the specified name, converted into type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Type of the value</typeparam>
@@ -1186,7 +1158,32 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Never)]
 #endif
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlyMemory<char> key, TValue defaultValue) => GetValueOrDefault(key).As(defaultValue);
+		public TValue? Get<TValue>(ReadOnlySpan<char> key, TValue defaultValue) => GetValueOrDefault(key).As(defaultValue);
+
+		/// <summary>Gets the value of the <i>optional</i> field with the specified name, converted into type <typeparamref name="TValue"/></summary>
+		/// <typeparam name="TValue">Type of the value</typeparam>
+		/// <param name="key">Name of the field</param>
+		/// <param name="defaultValue">Value returned if the value is null or missing</param>
+		/// <returns>Value converted into an instance of type <typeparamref name="TValue"/>, or <paramref name="defaultValue"/> if the value is null or missing</returns>
+		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
+		/// <example>
+		/// ({ "Hello": "World"}).Get&lt;string&gt;("Hello", "not_found") // => <c>"World"</c>
+		/// ({ "Hello": "123"}).Get&lt;int&gt;("Hello", -1) // => <c>123</c>
+		/// ({ }).Get&lt;string&gt;("Hello", null) // => <see langword="null"/>
+		/// ({ }).Get&lt;string&gt;("Hello", "not_found") // => <c>"not_found"</c>
+		/// ({ }).Get&lt;int&gt;("Hello", -1) // => <c>-1</c>
+		/// ({ }).Get&lt;int?&gt;("Hello", null) // => <see langword="null"/>
+		/// ({ "Hello": null }).Get&lt;string&gt;("Hello", "not_found") // => <c>"not_found"</c>
+		/// ({ "Hello": null }).Get&lt;int&gt;("Hello") // => Exception
+		/// ({ "Hello": null }).Get&lt;int?&gt;("Hello") // => Exception
+		/// </example>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if !NET9_0_OR_GREATER
+		[EditorBrowsable(EditorBrowsableState.Never)]
+#endif
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		public TValue? Get<TValue>(ReadOnlyMemory<char> key, TValue defaultValue) => GetValueOrDefault(key).As(defaultValue);
 
 		/// <summary>Gets the value of the <i>optional</i> field with the specified name, converted into type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Type of the value</typeparam>
@@ -1198,7 +1195,7 @@ namespace Doxense.Serialization.Json
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(string key, TValue defaultValue, ICrystalJsonTypeResolver? resolver) => GetValueOrDefault(key).As(defaultValue, resolver);
+		public TValue? Get<TValue>(string key, TValue defaultValue, ICrystalJsonTypeResolver? resolver) => GetValueOrDefault(key).As(defaultValue, resolver);
 
 		/// <summary>Gets the value of the <i>optional</i> field with the specified name, converted into type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Type of the value</typeparam>
@@ -1213,7 +1210,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Never)]
 #endif
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlySpan<char> key, TValue defaultValue, ICrystalJsonTypeResolver? resolver) => GetValueOrDefault(key).As(defaultValue, resolver);
+		public TValue? Get<TValue>(ReadOnlySpan<char> key, TValue defaultValue, ICrystalJsonTypeResolver? resolver) => GetValueOrDefault(key).As(defaultValue, resolver);
 
 		/// <summary>Gets the value of the <i>optional</i> field with the specified name, converted into type <typeparamref name="TValue"/></summary>
 		/// <typeparam name="TValue">Type of the value</typeparam>
@@ -1228,7 +1225,7 @@ namespace Doxense.Serialization.Json
 		[EditorBrowsable(EditorBrowsableState.Never)]
 #endif
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlyMemory<char> key, TValue defaultValue, ICrystalJsonTypeResolver? resolver) => GetValueOrDefault(key).As(defaultValue, resolver);
+		public TValue? Get<TValue>(ReadOnlyMemory<char> key, TValue defaultValue, ICrystalJsonTypeResolver? resolver) => GetValueOrDefault(key).As(defaultValue, resolver);
 
 		/// <summary>Gets the <b>required</b> JSON Object that corresponds to the field with the specified name.</summary>
 		/// <param name="key">Name of the field that is expected to be an object.</param>
@@ -1475,7 +1472,7 @@ namespace Doxense.Serialization.Json
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public bool TryGet<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(int index, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
+		public bool TryGet<TValue>(int index, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
 		{
 			if (TryGetValue(index, out var child) && child is not (null or JsonNull))
 			{
@@ -1501,7 +1498,7 @@ namespace Doxense.Serialization.Json
 		/// </example>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public bool TryGet<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(int index, ICrystalJsonTypeResolver? resolver, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
+		public bool TryGet<TValue>(int index, ICrystalJsonTypeResolver? resolver, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
 		{
 			if (TryGetValue(index, out var child) && child is not (null or JsonNull))
 			{
@@ -1527,7 +1524,7 @@ namespace Doxense.Serialization.Json
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public bool TryGet<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(Index index, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
+		public bool TryGet<TValue>(Index index, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
 		{
 			if (TryGetValue(index, out var child) && child is not (null or JsonNull))
 			{
@@ -1553,7 +1550,7 @@ namespace Doxense.Serialization.Json
 		/// </example>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public bool TryGet<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(Index index, ICrystalJsonTypeResolver? resolver, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
+		public bool TryGet<TValue>(Index index, ICrystalJsonTypeResolver? resolver, [MaybeNullWhen(false)] out TValue value) where TValue : notnull
 		{
 			if (TryGetValue(index, out var child) && child is not (null or JsonNull))
 			{
@@ -1570,7 +1567,7 @@ namespace Doxense.Serialization.Json
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public TValue Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(int index) where TValue : notnull => GetValue(index).Required<TValue>();
+		public TValue Get<TValue>(int index) where TValue : notnull => GetValue(index).Required<TValue>();
 
 		/// <summary>Gets the converted value of the <b>required</b> item at the specified index, if it is contained inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
@@ -1581,7 +1578,7 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		// ReSharper disable once MethodOverloadWithOptionalParameter
-		public TValue Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(int index, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TValue : notnull => GetValueOrDefault(index).RequiredIndex(index, message).Required<TValue>(resolver);
+		public TValue Get<TValue>(int index, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TValue : notnull => GetValueOrDefault(index).RequiredIndex(index, message).Required<TValue>(resolver);
 
 		/// <summary>Gets the converted value of the <b>required</b> item at the specified index, if it is contained inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
@@ -1600,7 +1597,7 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		// ReSharper disable once MethodOverloadWithOptionalParameter
-		public TValue Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(Index index, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TValue : notnull => GetValue(index).Required<TValue>(resolver);
+		public TValue Get<TValue>(Index index, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TValue : notnull => GetValue(index).Required<TValue>(resolver);
 
 		/// <summary>Gets the converted value at the specified index, if it is contained inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
@@ -1610,7 +1607,7 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(int index, TValue defaultValue) => GetValueOrDefault(index).As(defaultValue);
+		public TValue? Get<TValue>(int index, TValue defaultValue) => GetValueOrDefault(index).As(defaultValue);
 
 		/// <summary>Gets the converted value at the specified index, if it is contained inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
@@ -1621,7 +1618,7 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(int index, TValue defaultValue, ICrystalJsonTypeResolver? resolver) => GetValueOrDefault(index).As(defaultValue, resolver);
+		public TValue? Get<TValue>(int index, TValue defaultValue, ICrystalJsonTypeResolver? resolver) => GetValueOrDefault(index).As(defaultValue, resolver);
 
 		/// <summary>Gets the converted value at the specified index, if it is contained inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
@@ -1631,7 +1628,7 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(Index index, TValue defaultValue) => GetValueOrDefault(index).As(defaultValue);
+		public TValue? Get<TValue>(Index index, TValue defaultValue) => GetValueOrDefault(index).As(defaultValue);
 
 		/// <summary>Gets the converted value at the specified index, if it is contained inside the array's bound.</summary>
 		/// <param name="index">Index of the value to retrieve</param>
@@ -1642,7 +1639,7 @@ namespace Doxense.Serialization.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(Index index, TValue defaultValue, ICrystalJsonTypeResolver? resolver) => GetValueOrDefault(index).As(defaultValue, resolver);
+		public TValue? Get<TValue>(Index index, TValue defaultValue, ICrystalJsonTypeResolver? resolver) => GetValueOrDefault(index).As(defaultValue, resolver);
 
 		/// <summary>Gets the <b>required</b> JSON Array that corresponds to the field with the specified name.</summary>
 		/// <param name="key">Name of the field that is expected to be an array.</param>
@@ -2004,7 +2001,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>the value found at this location, converted into an instance of type <typeparamref name="TValue"/>, or and exception if there was no match, or the matched value is null.</returns>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Always)]
-		public TValue GetPath<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(string path) where TValue : notnull
+		public TValue GetPath<TValue>(string path) where TValue : notnull
 		{
 			return GetPathCore(JsonPath.Create(path), null, required: true).Required<TValue>();
 		}
@@ -2014,7 +2011,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>the value found at this location, converted into an instance of type <typeparamref name="TValue"/>, or and exception if there was no match, or the matched value is null.</returns>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Always)]
-		public TValue GetPath<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlyMemory<char> path) where TValue : notnull
+		public TValue GetPath<TValue>(ReadOnlyMemory<char> path) where TValue : notnull
 		{
 			return GetPathCore(JsonPath.Create(path), null, required: true).Required<TValue>();
 		}
@@ -2026,7 +2023,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? GetPath<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(string path, TValue defaultValue)
+		public TValue? GetPath<TValue>(string path, TValue defaultValue)
 		{
 			return GetPathCore(JsonPath.Create(path), JsonNull.Missing, required: false).As(defaultValue);
 		}
@@ -2038,7 +2035,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? GetPath<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlyMemory<char> path, TValue defaultValue)
+		public TValue? GetPath<TValue>(ReadOnlyMemory<char> path, TValue defaultValue)
 		{
 			return GetPathCore(JsonPath.Create(path), JsonNull.Missing, required: false).As(defaultValue);
 		}
@@ -2048,7 +2045,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>the value found at this location, converted into an instance of type <typeparamref name="TValue"/>, or and exception if there was no match, or the matched value is null.</returns>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Always)]
-		public TValue GetPath<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(JsonPath path) where TValue : notnull
+		public TValue GetPath<TValue>(JsonPath path) where TValue : notnull
 		{
 			return GetPathCore(path, null, required: true).Required<TValue>();
 		}
@@ -2060,7 +2057,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? GetPath<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(JsonPath path, TValue defaultValue)
+		public TValue? GetPath<TValue>(JsonPath path, TValue defaultValue)
 		{
 			return GetPathCore(path, JsonNull.Missing, required: false).As(defaultValue);
 		}
@@ -2083,98 +2080,98 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns the equivalent <see cref="System.Boolean"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
-		public virtual bool? ToBooleanOrDefault(bool? defaultValue = default) => ToBoolean();
+		public virtual bool? ToBooleanOrDefault(bool? defaultValue = null) => ToBoolean();
 
 		/// <summary>Returns the equivalent <see cref="System.Byte"/>, if there exists a valid conversion</summary>
-		public virtual byte ToByte(byte defaultValue = default) => throw Errors.JsonConversionNotSupported(this, typeof(byte));
+		public virtual byte ToByte(byte defaultValue = 0) => throw Errors.JsonConversionNotSupported(this, typeof(byte));
 
 		/// <summary>Returns the equivalent <see cref="System.Byte"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
-		public virtual byte? ToByteOrDefault(byte? defaultValue = default) => ToByte();
+		public virtual byte? ToByteOrDefault(byte? defaultValue = null) => ToByte();
 
 		/// <summary>Returns the equivalent <see cref="System.SByte"/>, if there exists a valid conversion</summary>
-		public virtual sbyte ToSByte(sbyte defaultValue = default) => throw Errors.JsonConversionNotSupported(this, typeof(sbyte));
+		public virtual sbyte ToSByte(sbyte defaultValue = 0) => throw Errors.JsonConversionNotSupported(this, typeof(sbyte));
 
 		/// <summary>Returns the equivalent <see cref="System.SByte"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
-		public virtual sbyte? ToSByteOrDefault(sbyte? defaultValue = default) => ToSByte();
+		public virtual sbyte? ToSByteOrDefault(sbyte? defaultValue = null) => ToSByte();
 
 		/// <summary>Returns the equivalent <see cref="System.Char"/>, if there exists a valid conversion</summary>
-		public virtual char ToChar(char defaultValue = default) => throw Errors.JsonConversionNotSupported(this, typeof(char));
+		public virtual char ToChar(char defaultValue = '\0') => throw Errors.JsonConversionNotSupported(this, typeof(char));
 
 		/// <summary>Returns the equivalent <see cref="System.Char"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
-		public virtual char? ToCharOrDefault(char? defaultValue = default) => ToChar();
+		public virtual char? ToCharOrDefault(char? defaultValue = null) => ToChar();
 
 		/// <summary>Returns the equivalent <see cref="System.Int16"/>, if there exists a valid conversion</summary>
-		public virtual short ToInt16(short defaultValue = default) => throw Errors.JsonConversionNotSupported(this, typeof(short));
+		public virtual short ToInt16(short defaultValue = 0) => throw Errors.JsonConversionNotSupported(this, typeof(short));
 
 		/// <summary>Returns the equivalent <see cref="System.Int16"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
-		public virtual short? ToInt16OrDefault(short? defaultValue = default) => ToInt16();
+		public virtual short? ToInt16OrDefault(short? defaultValue = null) => ToInt16();
 
 		/// <summary>Returns the equivalent <see cref="System.UInt16"/>, if there exists a valid conversion</summary>
-		public virtual ushort ToUInt16(ushort defaultValue = default) => throw Errors.JsonConversionNotSupported(this, typeof(ushort));
+		public virtual ushort ToUInt16(ushort defaultValue = 0) => throw Errors.JsonConversionNotSupported(this, typeof(ushort));
 
 		/// <summary>Returns the equivalent <see cref="System.UInt16"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
-		public virtual ushort? ToUInt16OrDefault(ushort? defaultValue = default) => ToUInt16();
+		public virtual ushort? ToUInt16OrDefault(ushort? defaultValue = null) => ToUInt16();
 
 		/// <summary>Returns the equivalent <see cref="System.Int32"/>, if there exists a valid conversion</summary>
 		public virtual int ToInt32(int defaultValue = 0) => throw Errors.JsonConversionNotSupported(this, typeof(int));
 
 		/// <summary>Returns the equivalent <see cref="System.Int32"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
-		public virtual int? ToInt32OrDefault(int? defaultValue = default) => ToInt32();
+		public virtual int? ToInt32OrDefault(int? defaultValue = null) => ToInt32();
 
 		/// <summary>Returns the equivalent <see cref="System.UInt32"/>, if there exists a valid conversion</summary>
-		public virtual uint ToUInt32(uint defaultValue = default) => throw Errors.JsonConversionNotSupported(this, typeof(uint));
+		public virtual uint ToUInt32(uint defaultValue = 0U) => throw Errors.JsonConversionNotSupported(this, typeof(uint));
 
 		/// <summary>Returns the equivalent <see cref="System.UInt32"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
-		public virtual uint? ToUInt32OrDefault(uint? defaultValue = default) => ToUInt32();
+		public virtual uint? ToUInt32OrDefault(uint? defaultValue = null) => ToUInt32();
 
 		/// <summary>Returns the equivalent <see cref="System.Int64"/>, if there exists a valid conversion</summary>
-		public virtual long ToInt64(long defaultValue = default) => throw Errors.JsonConversionNotSupported(this, typeof(long));
+		public virtual long ToInt64(long defaultValue = 0L) => throw Errors.JsonConversionNotSupported(this, typeof(long));
 
 		/// <summary>Returns the equivalent <see cref="System.Int64"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
-		public virtual long? ToInt64OrDefault(long? defaultValue = default) => ToInt64();
+		public virtual long? ToInt64OrDefault(long? defaultValue = null) => ToInt64();
 
 		/// <summary>Returns the equivalent <see cref="System.UInt64"/>, if there exists a valid conversion</summary>
-		public virtual ulong ToUInt64(ulong defaultValue = default) => throw Errors.JsonConversionNotSupported(this, typeof(ulong));
+		public virtual ulong ToUInt64(ulong defaultValue = 0UL) => throw Errors.JsonConversionNotSupported(this, typeof(ulong));
 
 		/// <summary>Returns the equivalent <see cref="System.UInt64"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
-		public virtual ulong? ToUInt64OrDefault(ulong? defaultValue = default) => ToUInt64();
+		public virtual ulong? ToUInt64OrDefault(ulong? defaultValue = null) => ToUInt64();
 
 		/// <summary>Returns the equivalent <see cref="System.Single"/>, if there exists a valid conversion</summary>
-		public virtual float ToSingle(float defaultValue = default) => throw Errors.JsonConversionNotSupported(this, typeof(float));
+		public virtual float ToSingle(float defaultValue = 0f) => throw Errors.JsonConversionNotSupported(this, typeof(float));
 
 		/// <summary>Returns the equivalent <see cref="System.Single"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
-		public virtual float? ToSingleOrDefault(float? defaultValue = default) => ToSingle();
+		public virtual float? ToSingleOrDefault(float? defaultValue = null) => ToSingle();
 
 		/// <summary>Returns the equivalent <see cref="System.Double"/>, if there exists a valid conversion</summary>
-		public virtual double ToDouble(double defaultValue = default) => throw Errors.JsonConversionNotSupported(this, typeof(double));
+		public virtual double ToDouble(double defaultValue = 0d) => throw Errors.JsonConversionNotSupported(this, typeof(double));
 
 		/// <summary>Returns the equivalent <see cref="System.Double"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
-		public virtual double? ToDoubleOrDefault(double? defaultValue = default) => ToDouble();
+		public virtual double? ToDoubleOrDefault(double? defaultValue = null) => ToDouble();
 
 		/// <summary>Returns the equivalent <see cref="System.Half"/>, if there exists a valid conversion</summary>
 		public virtual Half ToHalf(Half defaultValue = default) => throw Errors.JsonConversionNotSupported(this, typeof(Half));
 
 		/// <summary>Returns the equivalent <see cref="System.Half"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
-		public virtual Half? ToHalfOrDefault(Half? defaultValue = default) => ToHalf();
+		public virtual Half? ToHalfOrDefault(Half? defaultValue = null) => ToHalf();
 
 		/// <summary>Returns the equivalent <see cref="Decimal"/>, if there exists a valid conversion</summary>
-		public virtual decimal ToDecimal(decimal defaultValue = default) => throw Errors.JsonConversionNotSupported(this, typeof(decimal));
+		public virtual decimal ToDecimal(decimal defaultValue = 0m) => throw Errors.JsonConversionNotSupported(this, typeof(decimal));
 
 		/// <summary>Returns the equivalent <see cref="Decimal"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
-		public virtual decimal? ToDecimalOrDefault(decimal? defaultValue = default) => ToDecimal();
+		public virtual decimal? ToDecimalOrDefault(decimal? defaultValue = null) => ToDecimal();
 
 #if NET8_0_OR_GREATER
 
@@ -2183,14 +2180,14 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns the equivalent <see cref="System.Int128"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
-		public virtual Int128? ToInt128OrDefault(Int128? defaultValue = default) => ToInt128();
+		public virtual Int128? ToInt128OrDefault(Int128? defaultValue = null) => ToInt128();
 
 		/// <summary>Returns the equivalent <see cref="System.UInt128"/>, if there exists a valid conversion</summary>
 		public virtual UInt128 ToUInt128(UInt128 defaultValue = default) => throw Errors.JsonConversionNotSupported(this, typeof(double));
 
 		/// <summary>Returns the equivalent <see cref="System.UInt128"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
-		public virtual UInt128? ToUInt128OrDefault(UInt128? defaultValue = default) => ToUInt128();
+		public virtual UInt128? ToUInt128OrDefault(UInt128? defaultValue = null) => ToUInt128();
 
 #endif
 
@@ -2199,70 +2196,70 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns the equivalent <see cref="Guid"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
-		public virtual Guid? ToGuidOrDefault(Guid? defaultValue = default) => ToGuid();
+		public virtual Guid? ToGuidOrDefault(Guid? defaultValue = null) => ToGuid();
 
 		/// <summary>Returns the equivalent <see cref="Uuid128"/>, if there exists a valid conversion</summary>
 		public virtual Uuid128 ToUuid128(Uuid128 defaultValue = default) => throw Errors.JsonConversionNotSupported(this, typeof(Uuid128));
 
 		/// <summary>Returns the equivalent <see cref="Uuid128"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
-		public virtual Uuid128? ToUuid128OrDefault(Uuid128? defaultValue = default) => ToUuid128();
+		public virtual Uuid128? ToUuid128OrDefault(Uuid128? defaultValue = null) => ToUuid128();
 
 		/// <summary>Returns the equivalent <see cref="Uuid96"/>, if there exists a valid conversion</summary>
 		public virtual Uuid96 ToUuid96(Uuid96 defaultValue = default) => throw Errors.JsonConversionNotSupported(this, typeof(Uuid96));
 
 		/// <summary>Returns the equivalent <see cref="Uuid96"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
-		public virtual Uuid96? ToUuid96OrDefault(Uuid96? defaultValue = default) => ToUuid96();
+		public virtual Uuid96? ToUuid96OrDefault(Uuid96? defaultValue = null) => ToUuid96();
 
 		/// <summary>Returns the equivalent <see cref="Uuid80"/>, if there exists a valid conversion</summary>
 		public virtual Uuid80 ToUuid80(Uuid80 defaultValue = default) => throw Errors.JsonConversionNotSupported(this, typeof(Uuid80));
 
 		/// <summary>Returns the equivalent <see cref="Uuid80"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
-		public virtual Uuid80? ToUuid80OrDefault(Uuid80? defaultValue = default) => ToUuid80();
+		public virtual Uuid80? ToUuid80OrDefault(Uuid80? defaultValue = null) => ToUuid80();
 
 		/// <summary>Returns the equivalent <see cref="Uuid64"/>, if there exists a valid conversion</summary>
 		public virtual Uuid64 ToUuid64(Uuid64 defaultValue = default) => throw Errors.JsonConversionNotSupported(this, typeof(Uuid64));
 
 		/// <summary>Returns the equivalent <see cref="Uuid64"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
-		public virtual Uuid64? ToUuid64OrDefault(Uuid64? defaultValue = default) => ToUuid64();
+		public virtual Uuid64? ToUuid64OrDefault(Uuid64? defaultValue = null) => ToUuid64();
 
 		/// <summary>Returns the equivalent <see cref="DateTime"/>, if there exists a valid conversion</summary>
 		public virtual DateTime ToDateTime(DateTime defaultValue = default) => throw Errors.JsonConversionNotSupported(this, typeof(DateTime));
 
 		/// <summary>Returns the equivalent <see cref="DateTime"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
-		public virtual DateTime? ToDateTimeOrDefault(DateTime? defaultValue = default) => ToDateTime();
+		public virtual DateTime? ToDateTimeOrDefault(DateTime? defaultValue = null) => ToDateTime();
 
 		/// <summary>Returns the equivalent <see cref="DateTimeOffset"/>, if there exists a valid conversion</summary>
 		public virtual DateTimeOffset ToDateTimeOffset(DateTimeOffset defaultValue = default) => throw Errors.JsonConversionNotSupported(this, typeof(DateTimeOffset));
 
 		/// <summary>Returns the equivalent <see cref="DateTimeOffset"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
-		public virtual DateTimeOffset? ToDateTimeOffsetOrDefault(DateTimeOffset? defaultValue = default) => ToDateTimeOffset();
+		public virtual DateTimeOffset? ToDateTimeOffsetOrDefault(DateTimeOffset? defaultValue = null) => ToDateTimeOffset();
 
 		/// <summary>Returns the equivalent <see cref="DateOnly"/>, if there exists a valid conversion</summary>
 		public virtual DateOnly ToDateOnly(DateOnly defaultValue = default) => throw Errors.JsonConversionNotSupported(this, typeof(DateOnly));
 
 		/// <summary>Returns the equivalent <see cref="DateOnly"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
-		public virtual DateOnly? ToDateOnlyOrDefault(DateOnly? defaultValue = default) => ToDateOnly();
+		public virtual DateOnly? ToDateOnlyOrDefault(DateOnly? defaultValue = null) => ToDateOnly();
 
 		/// <summary>Returns the equivalent <see cref="TimeOnly"/>, if there exists a valid conversion</summary>
 		public virtual TimeOnly ToTimeOnly(TimeOnly defaultValue = default) => throw Errors.JsonConversionNotSupported(this, typeof(TimeOnly));
 
 		/// <summary>Returns the equivalent <see cref="TimeOnly"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
-		public virtual TimeOnly? ToTimeOnlyOrDefault(TimeOnly? defaultValue = default) => ToTimeOnly();
+		public virtual TimeOnly? ToTimeOnlyOrDefault(TimeOnly? defaultValue = null) => ToTimeOnly();
 
 		/// <summary>Returns the equivalent <see cref="TimeSpan"/>, if there exists a valid conversion</summary>
 		public virtual TimeSpan ToTimeSpan(TimeSpan defaultValue = default) => throw Errors.JsonConversionNotSupported(this, typeof(TimeSpan));
 
 		/// <summary>Returns the equivalent <see cref="TimeSpan"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
-		public virtual TimeSpan? ToTimeSpanOrDefault(TimeSpan? defaultValue = default) => ToTimeSpan();
+		public virtual TimeSpan? ToTimeSpanOrDefault(TimeSpan? defaultValue = null) => ToTimeSpan();
 
 		/// <summary>Returns the equivalent <see cref="Enum"/>, if there exists a valid conversion</summary>
 		public virtual TEnum ToEnum<TEnum>(TEnum defaultValue = default)
@@ -2271,7 +2268,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns the equivalent <see cref="Enum"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
-		public virtual TEnum? ToEnumOrDefault<TEnum>(TEnum? defaultValue = default)
+		public virtual TEnum? ToEnumOrDefault<TEnum>(TEnum? defaultValue = null)
 			where TEnum : struct, Enum
 			=> ToEnum<TEnum>();
 
@@ -2280,14 +2277,14 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Returns the equivalent <see cref="NodaTime.Instant"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
-		public virtual NodaTime.Instant? ToInstantOrDefault(NodaTime.Instant? defaultValue = default) => ToInstant();
+		public virtual NodaTime.Instant? ToInstantOrDefault(NodaTime.Instant? defaultValue = null) => ToInstant();
 
 		/// <summary>Returns the equivalent <see cref="NodaTime.Duration"/>, if there exists a valid conversion</summary>
 		public virtual NodaTime.Duration ToDuration(NodaTime.Duration defaultValue = default) => throw Errors.JsonConversionNotSupported(this, typeof(NodaTime.Duration));
 
 		/// <summary>Returns the equivalent <see cref="NodaTime.Duration"/>, if there exists a valid conversion</summary>
 		[Pure][return: NotNullIfNotNull(nameof(defaultValue))]
-		public virtual NodaTime.Duration? ToDurationOrDefault(NodaTime.Duration? defaultValue = default) => ToDuration();
+		public virtual NodaTime.Duration? ToDurationOrDefault(NodaTime.Duration? defaultValue = null) => ToDuration();
 
 		//TODO: ToZonedDateTime, ToLocalDateTime ?
 

@@ -3813,16 +3813,14 @@ namespace Doxense.Serialization.Json
 		/// <summary>Converts this JSON Object into a <see cref="Dictionary{TKey,TValue}">Dictionary&lt;string, object?&gt;</see>.</summary>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public override object? ToObject()
 		{
 			return CrystalJsonParser.DeserializeCustomClassOrStruct(this, typeof(object), CrystalJson.DefaultResolver);
 		}
 
 		/// <inheritdoc />
-		public override TValue? Bind<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>
-			(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null) where TValue : default
+		public override TValue? Bind<TValue>(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null)
+			where TValue : default
 		{
 			TValue? res;
 			if (resolver is not null && !ReferenceEquals(resolver, CrystalJson.DefaultResolver))
@@ -3848,10 +3846,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
-		public override object? Bind(
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type? type,
-			ICrystalJsonTypeResolver? resolver = null)
+		public override object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (resolver is not null && !ReferenceEquals(resolver, CrystalJson.DefaultResolver))
 			{
@@ -4053,7 +4048,6 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public ExpandoObject ToExpando()
 		{
 			var expando = new ExpandoObject();
@@ -4072,7 +4066,6 @@ namespace Doxense.Serialization.Json
 			return res;
 		}
 
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public Dictionary<TKey, TValue> ToDictionary<TKey, TValue>(ICrystalJsonTypeResolver? resolver = null)
 			where TKey : notnull
 		{

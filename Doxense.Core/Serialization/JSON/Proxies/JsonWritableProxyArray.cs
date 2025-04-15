@@ -27,13 +27,12 @@
 namespace Doxense.Serialization.Json
 {
 	using System.Collections;
-	using System.Diagnostics.CodeAnalysis;
 
 	/// <summary>Wraps a <see cref="JsonArray"/> into a typed mutable proxy that emulates an array of elements of type <typeparamref name="TValue"/></summary>
 	/// <typeparam name="TValue">Emulated element type</typeparam>
 	[PublicAPI]
 	[CollectionBuilder(typeof(JsonWritableProxyArrayBuilder), nameof(JsonWritableProxyArrayBuilder.Create))]
-	public readonly struct JsonWritableProxyArray<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue> : IList<TValue>, IJsonProxyNode, IJsonSerializable, IJsonPackable
+	public readonly struct JsonWritableProxyArray<TValue> : IList<TValue>, IJsonProxyNode, IJsonSerializable, IJsonPackable
 	{
 
 		private readonly MutableJsonValue m_value;
@@ -635,7 +634,7 @@ namespace Doxense.Serialization.Json
 	{
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonWritableProxyArray<TValue> Create<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlySpan<TValue> values)
+		public static JsonWritableProxyArray<TValue> Create<TValue>(ReadOnlySpan<TValue> values)
 		{
 			return new(MutableJsonValue.Untracked(values.Length == 0 ? JsonArray.ReadOnly.Empty : JsonArray.FromValues(values)));
 		}

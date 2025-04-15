@@ -27,6 +27,15 @@
 //#define DEBUG_JSON_RESOLVER
 //#define DEBUG_JSON_BINDER
 
+#pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
+#pragma warning disable IL2060 // Call to 'System.Reflection.MethodInfo.MakeGenericMethod' can not be statically analyzed. It's not possible to guarantee the availability of requirements of the generic method.
+#pragma warning disable IL2062 // The parameter of method has a DynamicallyAccessedMembersAttribute, but the value passed to it can not be statically analyzed.
+#pragma warning disable IL2067 // Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The parameter of method does not have matching annotations.
+#pragma warning disable IL2070
+#pragma warning disable IL2072 // Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.
+#pragma warning disable IL2112 // 'DynamicallyAccessedMembersAttribute' on a type or one of its base types references a member which requires unreferenced code.
+#pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
+
 namespace Doxense.Serialization.Json
 {
 	using System;
@@ -43,8 +52,6 @@ namespace Doxense.Serialization.Json
 	using Doxense.Runtime.Converters;
 
 	/// <summary>Default JSON resolver that uses reflection to serialize and deserialize managed types</summary>
-	[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
-	[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 	[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
 	public sealed class CrystalJsonTypeResolver : ICrystalJsonTypeResolver
 	{
@@ -144,7 +151,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="type">Type to inspect</param>
 		/// <returns>List of compiled member definitions, or <see langword="null"/> if the type is not compatible</returns>
 		/// <remarks>The list is cached for later calls</remarks>
-		public CrystalJsonTypeDefinition? ResolveJsonType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type type)
+		public CrystalJsonTypeDefinition? ResolveJsonType(Type type)
 		{
 #if DEBUG_JSON_RESOLVER
 			Debug.WriteLine(this.GetType().Name + ".ResolveType(" + type + ")");
@@ -155,13 +162,7 @@ namespace Doxense.Serialization.Json
 			return this.TypeDefinitionCache.GetOrAdd(type, ResolveNewTypeHandler, this);
 		}
 
-		/// <inheritdoc />
-		public CrystalJsonMemberDefinition? ResolveMemberOfType(
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
-			Type type,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)]
-			string memberName
-		)
+		public CrystalJsonMemberDefinition? ResolveMemberOfType(Type type, string memberName)
 		{
 			var typeDef = ResolveJsonType(type);
 			if (typeDef != null)
@@ -180,15 +181,19 @@ namespace Doxense.Serialization.Json
 		}
 
 		private static readonly Func<Type, CrystalJsonTypeResolver, CrystalJsonTypeDefinition?> ResolveNewTypeHandler =
-			static ([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] t, self) => self.ResolveJsonTypeNoCache(t);
+			static (t, self) => self.ResolveJsonTypeNoCache(t);
 
-		private CrystalJsonTypeDefinition? ResolveJsonTypeNoCache([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type type)
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
+		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
+		private CrystalJsonTypeDefinition? ResolveJsonTypeNoCache(Type type)
 		{
 			Contract.Debug.Requires(type != null);
 			return GetTypeDefinition(type);
 		}
 
-		private CrystalJsonTypeDefinition? GetTypeDefinition([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type type)
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
+		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
+		private CrystalJsonTypeDefinition? GetTypeDefinition(Type type)
 		{
 #if DEBUG_JSON_RESOLVER
 			Debug.WriteLine(this.GetType().Name + ".ResolveNewTypeWriter(" + type + ") => from reflection");
@@ -221,7 +226,9 @@ namespace Doxense.Serialization.Json
 			return CreateFromReflection(type);
 		}
 
-		private CrystalJsonTypeDefinition CreateFromKeyValuePair([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type type)
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
+		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
+		private CrystalJsonTypeDefinition CreateFromKeyValuePair(Type type)
 		{
 			// We have an input that looks like "{ Key: ..., Value: ... }", and we want to convert it into the corresponding KeyValuePair<TKey, TValue>
 
@@ -309,11 +316,7 @@ namespace Doxense.Serialization.Json
 			return new(type, binder, null, members, null, null, null, null);
 		}
 
-		/// <inheritdoc />
-		public object? BindJsonValue(
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
-			Type? type,
-			JsonValue? value)
+		public object? BindJsonValue(Type? type, JsonValue? value)
 		{
 #if DEBUG_JSON_BINDER
 			Debug.WriteLine(this.GetType().Name + ".BindValue(" + type + ", " + value + ")");
@@ -342,8 +345,7 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		/// <inheritdoc />
-		public object? BindJsonObject([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type? type, JsonObject? value)
+		public object? BindJsonObject(Type? type, JsonObject? value)
 		{
 #if DEBUG_JSON_BINDER
 			Debug.WriteLine(this.GetType().Name + ".BindObject(" + type + ", " + value + ")");
@@ -374,14 +376,10 @@ namespace Doxense.Serialization.Json
 
 		private static readonly Func<Type, Func<CrystalJsonTypeResolver, JsonArray?, object?>> JsonArrayBinderCallback = CreateDefaultJsonArrayBinder;
 
-		/// <inheritdoc />
-		public object? BindJsonArray([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type? type, JsonArray? array)
+		public object? BindJsonArray(Type? type, JsonArray? array)
 			=> DefaultArrayBinders.GetOrAdd(type ?? typeof(object), JsonArrayBinderCallback)(this, array);
 
-		private static Func<CrystalJsonTypeResolver, JsonArray?, object?> CreateDefaultJsonArrayBinder(
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces | DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods | DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
-			Type? type
-		)
+		private static Func<CrystalJsonTypeResolver, JsonArray?, object?> CreateDefaultJsonArrayBinder(Type? type)
 		{
 #if DEBUG_JSON_BINDER
 			Debug.WriteLine(this.GetType().Name + ".BindArray(" + type + ", " + array + ")");
@@ -617,11 +615,7 @@ namespace Doxense.Serialization.Json
 			return (resolver, array) => filler(array, type, resolver);
 		}
 
-		private static Func<CrystalJsonTypeResolver, JsonArray?, object?> CreateDefaultJsonArrayBinder_Filler(
-			string filler,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)]
-			Type elementType
-		)
+		private static Func<CrystalJsonTypeResolver, JsonArray?, object?> CreateDefaultJsonArrayBinder_Filler(string filler, Type elementType)
 		{
 			return (resolver, array) => resolver.InvokeFiller(filler, elementType, array);
 		}
@@ -672,7 +666,6 @@ namespace Doxense.Serialization.Json
 
 		private object? InvokeFiller(
 			string name,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)]
 			Type type,
 			JsonArray? array
 		)
@@ -685,8 +678,9 @@ namespace Doxense.Serialization.Json
 		private static readonly QuasiImmutableCache<string, MethodInfo> s_fillers = new(null, StringComparer.Ordinal, null);
 
 		[Pure]
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		private static MethodInfo GetFillerMethod(
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] Type resolverType,
+			Type resolverType,
 			string name,
 			Type resultType
 		)
@@ -696,8 +690,9 @@ namespace Doxense.Serialization.Json
 		}
 
 		[MethodImpl(MethodImplOptions.NoInlining)]
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		private static MethodInfo MakeFillerMethod(
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] Type resolverType,
+			Type resolverType,
 			string name,
 			Type resultType,
 			string key
@@ -975,7 +970,7 @@ namespace Doxense.Serialization.Json
 			return null;
 		}
 
-		private static CrystalJsonMemberDefinition[] GetMembersFromReflection([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type type)
+		private static CrystalJsonMemberDefinition[] GetMembersFromReflection(Type type)
 		{
 			Contract.NotNull(type);
 
@@ -1240,9 +1235,7 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-#pragma warning disable IL2067
 		private static readonly CrystalJsonTypeBinder GenericJsonValueBinder = (v, t, r) => (v ?? JsonNull.Missing).Bind(t, r);
-#pragma warning restore IL2067
 
 		private static bool TryFindJsonPolymorphicAttribute(Type type, [MaybeNullWhen(false)] out System.Text.Json.Serialization.JsonPolymorphicAttribute attr, [MaybeNullWhen(false)] out Type parent)
 		{
@@ -1280,7 +1273,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Extracts the type definition via reflection, and generate a list of compiled binders</summary>
 		/// <param name="type">Class, struct, interface. Primitive type are not supported</param>
-		private CrystalJsonTypeDefinition CreateFromReflection([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type type)
+		private CrystalJsonTypeDefinition CreateFromReflection(Type type)
 		{
 			Contract.Debug.Requires(type != null && !type.IsPrimitive);
 
@@ -1376,16 +1369,13 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		private static Func<object> RequireGeneratorForType(
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces | DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] 
-			Type type
-		)
+		private static Func<object> RequireGeneratorForType(Type type)
 		{
 			return type.CompileGenerator() ?? throw new InvalidOperationException($"Could not find any parameterless constructor required to deserialize instances of type '{type.GetFriendlyName()}'");
 		}
 
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
 		private static CrystalJsonTypeBinder? FindCustomBinder(
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces | DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods | DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
 			Type type,
 			out Func<object>? generator,
 			CrystalJsonMemberDefinition[] members
@@ -1449,7 +1439,7 @@ namespace Doxense.Serialization.Json
 			return null;
 		}
 
-		private static ConstructorInfo? FindJsonConstructor([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)] Type type)
+		private static ConstructorInfo? FindJsonConstructor(Type type)
 		{
 			foreach (var ctor in type.GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
 			{
@@ -1483,7 +1473,7 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
-		private static CrystalJsonTypeBinder? CreateBinderForAnonymousType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type type, CrystalJsonMemberDefinition[] members)
+		private static CrystalJsonTypeBinder? CreateBinderForAnonymousType(Type type, CrystalJsonMemberDefinition[] members)
 		{
 			// enumerate the properties
 			var props = type.GetProperties(BindingFlags.Public | BindingFlags.Instance).Where(prop => prop.CanRead && !prop.CanWrite).ToArray();
@@ -1680,10 +1670,8 @@ namespace Doxense.Serialization.Json
 			return Expression.Lambda<CrystalJsonTypeBinder>(body, "<>_" + type.Name + "_JsonSerialize", true, [ prmValue, prmBindingType, prmResolver ]).Compile();
 		}
 
-		private static CrystalJsonTypeBinder? CreateBinderForImmutableDictionary(
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
-			Type type
-		)
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
+		private static CrystalJsonTypeBinder? CreateBinderForImmutableDictionary(Type type)
 		{
 			var dicType = type.FindGenericType(typeof(ImmutableDictionary<,>));
 
@@ -1694,7 +1682,6 @@ namespace Doxense.Serialization.Json
 			var keyType = typeArgs[0];
 			var valueType = typeArgs[1];
 
-#pragma warning disable IL2062 // The parameter of method has a DynamicallyAccessedMembersAttribute, but the value passed to it can not be statically analyzed.
 			if (keyType == typeof(string))
 			{
 				return CreateBinderForImmutableDictionary_StringKey(valueType);
@@ -1703,14 +1690,14 @@ namespace Doxense.Serialization.Json
 			{
 				return CreateBinderForImmutableDictionary_Int32Key(valueType);
 			}
-#pragma warning restore IL2062 // The parameter of method has a DynamicallyAccessedMembersAttribute, but the value passed to it can not be statically analyzed.
 
 			// unsupported key type
 			//REVIEW: throw an exception instead?
 			return null;
 		}
 
-		private static CrystalJsonTypeBinder CreateBinderForImmutableDictionary_StringKey([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type valueType)
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
+		private static CrystalJsonTypeBinder CreateBinderForImmutableDictionary_StringKey(Type valueType)
 		{
 			var m = typeof(CrystalJsonTypeResolver)
 				.GetMethod(nameof(BindImmutableDictionary_StringKey), BindingFlags.Static | BindingFlags.NonPublic)!
@@ -1719,9 +1706,7 @@ namespace Doxense.Serialization.Json
 			return m.CreateDelegate<CrystalJsonTypeBinder>();
 		}
 
-		private static object? BindImmutableDictionary_StringKey<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>
-			(JsonValue? value, Type type, ICrystalJsonTypeResolver resolver)
+		private static object? BindImmutableDictionary_StringKey<TValue>(JsonValue? value, Type type, ICrystalJsonTypeResolver resolver)
 		{
 			if (value.IsNullOrMissing()) return null;
 			if (value is not JsonObject obj) throw FailCannotDeserializeNotJsonObject(type);
@@ -1736,7 +1721,8 @@ namespace Doxense.Serialization.Json
 			return instance.ToImmutable();
 		}
 
-		private static CrystalJsonTypeBinder CreateBinderForImmutableDictionary_Int32Key([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type valueType)
+		[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]
+		private static CrystalJsonTypeBinder CreateBinderForImmutableDictionary_Int32Key(Type valueType)
 		{
 			var m = typeof(CrystalJsonTypeResolver)
 			        .GetMethod(nameof(BindImmutableDictionary_Int32Key), BindingFlags.Static | BindingFlags.NonPublic)!
@@ -1745,9 +1731,7 @@ namespace Doxense.Serialization.Json
 			return m.CreateDelegate<CrystalJsonTypeBinder>();
 		}
 
-		private static object? BindImmutableDictionary_Int32Key<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>
-			(JsonValue? value, Type type, ICrystalJsonTypeResolver resolver)
+		private static object? BindImmutableDictionary_Int32Key<TValue>(JsonValue? value, Type type, ICrystalJsonTypeResolver resolver)
 		{
 			if (value.IsNullOrMissing()) return null;
 			if (value is not JsonObject obj) throw FailCannotDeserializeNotJsonObject(type);
@@ -1762,11 +1746,7 @@ namespace Doxense.Serialization.Json
 			return instance.ToImmutable();
 		}
 
-		private static CrystalJsonTypeBinder? CreateBinderForDictionary(
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
-			Type type,
-			Func<object> generator
-		)
+		private static CrystalJsonTypeBinder? CreateBinderForDictionary(Type type, Func<object> generator)
 		{
 			// get the type of keys and values
 			var dicType = type.FindGenericType(typeof(IDictionary<,>));
@@ -1775,8 +1755,6 @@ namespace Doxense.Serialization.Json
 			var typeArgs = dicType.GetGenericArguments();
 			var keyType = typeArgs[0];
 			var valueType = typeArgs[1];
-
-#pragma warning disable IL2062 // The parameter of method has a DynamicallyAccessedMembersAttribute, but the value passed to it can not be statically analyzed.
 
 			if (keyType == typeof(string))
 			{ // fastest path when keys are strings
@@ -1803,17 +1781,12 @@ namespace Doxense.Serialization.Json
 				return CreateBinderForDictionary_BoxedKey(generator, valueType, convert!);
 			}
 
-#pragma warning restore IL2062 // The parameter of method has a DynamicallyAccessedMembersAttribute, but the value passed to it can not be statically analyzed.
-
 			// unsupported key type
 			//REVIEW: throw an exception instead?
 			return null;
 		}
 
-		private static CrystalJsonTypeBinder CreateBinderForDictionary_StringKey(
-			Func<object> generator,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type valueType
-		)
+		private static CrystalJsonTypeBinder CreateBinderForDictionary_StringKey(Func<object> generator, Type valueType)
 		{
 			return (v, t, r) =>
 			{
@@ -1832,10 +1805,7 @@ namespace Doxense.Serialization.Json
 			};
 		}
 
-		private static CrystalJsonTypeBinder CreateBinderForDictionary_Int32Key(
-			Func<object> generator,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type valueType
-		)
+		private static CrystalJsonTypeBinder CreateBinderForDictionary_Int32Key(Func<object> generator, Type valueType)
 		{
 			return (v, t, r) =>
 			{
@@ -1854,11 +1824,7 @@ namespace Doxense.Serialization.Json
 			};
 		}
 
-		private static CrystalJsonTypeBinder CreateBinderForDictionary_BoxedKey(
-			Func<object> generator,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type valueType,
-			Func<string, object> convert
-		)
+		private static CrystalJsonTypeBinder CreateBinderForDictionary_BoxedKey(Func<object> generator, Type valueType, Func<string, object> convert)
 		{
 			return (v, t, r) =>
 			{
@@ -1882,7 +1848,7 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static InvalidOperationException FailCannotDeserializeNotJsonObject(Type t) => new($"Cannot deserialize {t.GetFriendlyName()} type because input value is not a JsonObject");
 
-		private static CrystalJsonTypeBinder? CreateBinderForKeyValuePair([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type type)
+		private static CrystalJsonTypeBinder? CreateBinderForKeyValuePair(Type type)
 		{
 			var args = type.GetGenericArguments();
 			if (args.Length != 2)
@@ -1910,8 +1876,8 @@ namespace Doxense.Serialization.Json
 		}
 
 		private static CrystalJsonTypeBinder CreateBinderForKeyValuePair_NoScope(
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type keyType,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type valueType,
+			Type keyType,
+			Type valueType,
 			object? empty,
 			Func<object?, object?, object> converter
 		)
@@ -1938,7 +1904,7 @@ namespace Doxense.Serialization.Json
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static InvalidOperationException FailCannotDeserializeNotJsonArrayPair(Type t) => new($"Cannot deserialize {t.GetFriendlyName()} type because input value is not a JsonArray with 2 elements");
 
-		private static CrystalJsonTypeBinder CreateBinderForValueTuple([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type type)
+		private static CrystalJsonTypeBinder CreateBinderForValueTuple(Type type)
 		{
 			// we want to generate: (value, ..., resolver) => (object) ValueTuple.Create(..., array[i].As<Ti>(resolver), ...)
 
