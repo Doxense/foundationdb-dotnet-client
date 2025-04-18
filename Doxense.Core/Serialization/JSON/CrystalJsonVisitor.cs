@@ -26,6 +26,9 @@
 
 // ReSharper disable UnusedParameter.Local
 #pragma warning disable IDE0060
+#pragma warning disable IL2067 // Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The parameter of method does not have matching annotations.
+#pragma warning disable IL2072 // Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.
+#pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
 
 namespace Doxense.Serialization.Json
 {
@@ -1438,6 +1441,41 @@ namespace Doxense.Serialization.Json
 			writer.Leave(dictionary);
 		}
 
+		/// <summary>Visit a <c>Dictionary&lt;string, string&gt;</c></summary>
+		public static void VisitStringDictionary(Dictionary<string, string>? dictionary, CrystalJsonWriter writer)
+		{
+			if (dictionary == null)
+			{ // "null" or "{}"
+				writer.WriteNull(); // "null"
+				return;
+			}
+
+			if (dictionary.Count == 0)
+			{ // empty => "{}"
+				writer.WriteEmptyObject(); // "{}"
+				return;
+			}
+
+			writer.MarkVisited(dictionary);
+			var state = writer.BeginObject();
+
+			int n = 0;
+			foreach (var kvp in dictionary)
+			{
+				if (n == 10)
+				{
+					writer.MaybeFlush();
+					n = 0;
+				}
+
+				writer.WriteField(kvp.Key, kvp.Value);
+				++n;
+			}
+
+			writer.EndObject(state); // "}"
+			writer.Leave(dictionary);
+		}
+
 		/// <summary>Visit a <c>Dictionary&lt;string, object&gt;</c></summary>
 		public static void VisitGenericDictionary<TValue>(Dictionary<string, TValue>? dictionary, CrystalJsonWriter writer)
 		{
@@ -2126,8 +2164,7 @@ namespace Doxense.Serialization.Json
 
 			// what type is it?
 			runtimeType ??= value.GetType();
-			var typeDef = writer.Resolver.ResolveJsonType(runtimeType);
-			if (typeDef == null)
+			if (!writer.Resolver.TryResolveTypeDefinition(runtimeType, out var typeDef))
 			{ // uhoh, this should not happen!
 				throw CrystalJson.Errors.Serialization_CouldNotResolveTypeDefinition(runtimeType);
 			}
@@ -2138,13 +2175,10 @@ namespace Doxense.Serialization.Json
 
 			if (!writer.DiscardClass)
 			{
-				// we need to output the class attributes if the runtime type is not the same as the declared type.
-				// Ex: class A { IFoo Foo; } / class B : IFoo { } / new A() { Foo = new B() }
-
-				if (typeDef.RequiresClassAttribute || (declaringType != null && runtimeType != declaringType && !typeDef.IsAnonymousType && !declaringType.IsNullableType() && typeDef.BaseType == null))
-				{ // we must specify the class !
-					//TODO: auto-aliasing
-					writer.WriteField(JsonTokens.CustomClassAttribute, typeDef.ClassId);
+				// we may output a "$type" property if the type is a derived type that belongs in a "polymorphic chain", in order to be able to deserialize it back to that specific type
+				if (typeDef.TypeDiscriminatorProperty != null && typeDef.TypeDiscriminatorValue != null)
+				{
+					writer.WriteField(typeDef.TypeDiscriminatorProperty, typeDef.TypeDiscriminatorValue);
 				}
 			}
 

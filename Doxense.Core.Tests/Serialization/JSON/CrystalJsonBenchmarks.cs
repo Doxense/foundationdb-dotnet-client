@@ -150,7 +150,7 @@ namespace Doxense.Serialization.Json.Tests
 			_ = CrystalJson.Serialize(data, sb, settings);
 			string jsonText = sb.ToString();
 			Log("CJS # [" + jsonText.Length + "] " + jsonText);
-			object? jsonValue = CrystalJson.Deserialize<T?>(jsonText, default(T));
+			var jsonValue = CrystalJson.Deserialize<T?>(jsonText, default(T));
 			Log("CJS > " + jsonValue);
 
 #if ENABLE_NEWTONSOFT

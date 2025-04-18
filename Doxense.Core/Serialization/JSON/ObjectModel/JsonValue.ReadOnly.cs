@@ -358,7 +358,17 @@ namespace Doxense.Serialization.Json
 			[Pure]
 			public static JsonValue FromValue<T>(T? value, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver = null)
 			{
-				return value is not null ? CrystalJsonDomWriter.CreateReadOnly(settings, resolver).ParseObject(value, typeof(T)) : JsonNull.Null;
+				if (value is null) return JsonNull.Null;
+				settings ??= CrystalJsonSettings.JsonReadOnly;
+
+				if (resolver is not null && !ReferenceEquals(resolver, CrystalJson.DefaultResolver))
+				{
+					if (resolver.TryGetConverterFor<T>(out var converter))
+					{
+						return converter.Pack(value, settings, resolver);
+					}
+				}
+				return CrystalJsonDomWriter.CreateReadOnly(settings, resolver).ParseObject<T>(value);
 			}
 
 			#endregion

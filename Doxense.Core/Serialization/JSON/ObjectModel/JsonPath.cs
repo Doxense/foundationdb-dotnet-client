@@ -28,6 +28,7 @@ namespace Doxense.Serialization.Json
 {
 	using System.Buffers;
 	using System.Collections;
+	using System.ComponentModel;
 	using System.Globalization;
 	using System.Text;
 	using Doxense.Linq;
@@ -36,6 +37,7 @@ namespace Doxense.Serialization.Json
 	[PublicAPI]
 	[DebuggerDisplay("{ToString(),nq}")]
 	[DebuggerNonUserCode]
+	[System.Text.Json.Serialization.JsonConverter(typeof(JsonPath.CustomConverter))]
 	public readonly struct JsonPath : IEnumerable<JsonPathSegment>, IJsonSerializable, IJsonPackable, IJsonDeserializable<JsonPath>, IEquatable<JsonPath>, IEquatable<string>, ISpanFormattable
 #if NET9_0_OR_GREATER
 		, IEquatable<ReadOnlySpan<char>>, IEquatable<ReadOnlyMemory<char>>
@@ -1881,6 +1883,24 @@ namespace Doxense.Serialization.Json
 			public int Compare(JsonPath x, JsonPath y)
 			{
 				return x.Value.Span.SequenceCompareTo(y.Value.Span);
+			}
+
+		}
+
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public sealed class CustomConverter : System.Text.Json.Serialization.JsonConverter<JsonPath>
+		{
+
+			/// <inheritdoc />
+			public override JsonPath Read(ref System.Text.Json.Utf8JsonReader reader, Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
+			{
+				return new JsonPath(reader.GetString());
+			}
+
+			/// <inheritdoc />
+			public override void Write(System.Text.Json.Utf8JsonWriter writer, JsonPath value, System.Text.Json.JsonSerializerOptions options)
+			{
+				writer.WriteStringValue(value.Value.Span);
 			}
 
 		}

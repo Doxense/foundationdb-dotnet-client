@@ -34,6 +34,7 @@ namespace Doxense.Serialization.Json
 	[DebuggerDisplay("JSON DateTime({m_value}, {m_value}+{m_offset})")]
 	[DebuggerNonUserCode]
 	[PublicAPI]
+	[System.Text.Json.Serialization.JsonConverter(typeof(CrystalJsonCustomJsonConverter))]
 	public class JsonDateTime : JsonValue, IEquatable<JsonDateTime>, IEquatable<DateTime>, IEquatable<DateTimeOffset>, IEquatable<NodaTime.LocalDateTime>, IEquatable<NodaTime.LocalDate>
 	{
 		private const long UNIX_EPOCH_TICKS = 621355968000000000L;
@@ -367,15 +368,13 @@ namespace Doxense.Serialization.Json
 		public override bool IsReadOnly => true; //note: dates are immutable
 
 		/// <inheritdoc />
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public override object ToObject() => m_value;
 
 		/// <inheritdoc />
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public override TValue? Bind<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>
-			(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null) where TValue : default
+		public override TValue? Bind<TValue>(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null)
+			where TValue : default
 		{
 			#region <JIT_HACK>
 			// pattern recognized and optimized by the JIT, only in Release build
@@ -402,9 +401,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		public override object? Bind(
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type? type,
-			ICrystalJsonTypeResolver? resolver = null)
+		public override object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (type == typeof(DateTimeOffset)) return this.DateWithOffset;
 			if (type == typeof(DateTime)) return this.Date;

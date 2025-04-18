@@ -205,7 +205,7 @@ namespace Doxense.Serialization.Json
 				m_markVisited = !settings.DoNotTrackVisitedObjects;
 			}
 
-			m_buffer = new ValueStringWriter(initialCapacity != 0 ? initialCapacity : (settings.OptimizeForLargeData ? 64 * 1024 : 1024));
+			m_buffer = new(initialCapacity != 0 ? initialCapacity : (settings.OptimizeForLargeData ? 64 * 1024 : 1024));
 			m_settings = settings;
 			m_resolver = resolver;
 			m_output = null;
@@ -500,21 +500,6 @@ namespace Doxense.Serialization.Json
 			});
 		}
 
-		/// <summary>Write the "_class" attribute with the resolved type id</summary>
-		public void WriteClassId(Type type)
-		{
-			var typeDef = this.Resolver.ResolveJsonType(type);
-			if (typeDef == null) throw CrystalJson.Errors.Serialization_CouldNotResolveTypeDefinition(type);
-			WriteField(JsonTokens.CustomClassAttribute, typeDef.ClassId);
-		}
-
-		/// <summary>Write the "_class" attribute with the specified type id</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void WriteClassId(string classId)
-		{
-			WriteField(JsonTokens.CustomClassAttribute, classId);
-		}
-
 		/// <summary>Write a comment</summary>
 		/// <remarks>Not all JSON parser will accept comments! Only use when you know that all parsers that will consume this understand and allow comments!</remarks>
 		public void WriteComment(string comment)
@@ -522,41 +507,80 @@ namespace Doxense.Serialization.Json
 			m_buffer.Write("/* ", comment.Replace("*/", "* /"), " */");
 		}
 
-		/// <summary>Write the "null" literal</summary>
+		/// <summary>Write the null literal (<c>null</c>)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteNull()
 		{
 			m_buffer.Write("null");
 		}
 
-		/// <summary>Write the empty object "{}" literal</summary>
+		/// <summary>Write the empty object literal (<c>{}</c> or <c>{ }</c>)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteEmptyObject()
 		{
-			m_buffer.Write(m_formatted ? "{ }" : "{}");
+			if (m_formatted)
+			{
+				m_buffer.Write("{ }");
+			}
+			else
+			{
+				m_buffer.Write('{', '}');
+			}
 		}
 
-		/// <summary>Write the empty array "[]" literal</summary>
+		/// <summary>Write the empty array literal (<c>[]</c> or <c>[ ]</c>)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteEmptyArray()
 		{
-			m_buffer.Write(m_formatted ? "[ ]" : "[]");
+			if (m_formatted)
+			{
+				m_buffer.Write("[ ]");
+			}
+			else
+			{
+				m_buffer.Write('[', ']');
+			}
 		}
 
-		/// <summary>Write a coma separator (",") between two fields, unless this is the first element of an array</summary>
+		/// <summary>Write the empty string literal (<c>""</c>)</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteEmptyString()
+		{
+			if (!m_javascript)
+			{
+				m_buffer.Write('"', '"');
+			}
+			else
+			{
+				m_buffer.Write('\'', '\'');
+			}
+		}
+
+		/// <summary>Write a coma separator (<c>,</c>) between two fields, unless this is the first element of an array</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteFieldSeparator()
 		{
 			if (m_indented)
 			{
-				m_buffer.Write(
-					m_state.Tail ? ",\r\n" : "\r\n",
-					m_state.Indentation
-				);
+				if (m_state.Tail)
+				{
+					m_buffer.Write(",\r\n", m_state.Indentation);
+				}
+				else
+				{
+					m_buffer.Write("\r\n", m_state.Indentation);
+				}
 			}
 			else if (m_formatted)
 			{
-				m_buffer.Write(m_state.Tail ? ", " : " ");
+				if (m_state.Tail)
+				{
+					m_buffer.Write(',', ' ');
+				}
+				else
+				{
+					m_buffer.Write(' ');
+				}
 			}
 			else if (m_state.Tail)
 			{
@@ -707,6 +731,26 @@ namespace Doxense.Serialization.Json
 			return tail;
 		}
 
+		private static string GetNextIndentLevel(string? current)
+		{
+			if (current == null) return "\t";
+			return current.Length switch
+			{
+				0 => "\t",
+				1 => "\t\t",
+				2 => "\t\t\t",
+				3 => "\t\t\t\t",
+				4 => "\t\t\t\t\t",
+				5 => "\t\t\t\t\t\t",
+				6 => "\t\t\t\t\t\t\t",
+				7 => "\t\t\t\t\t\t\t\t",
+				8 => "\t\t\t\t\t\t\t\t\t",
+				9 => "\t\t\t\t\t\t\t\t\t\t",
+				10 => "\t\t\t\t\t\t\t\t\t\t\t",
+				_ => new string('\t', current.Length + 1)
+			};
+		}
+
 		/// <summary>Start a new JSON object</summary>
 		/// <returns>Previous state, that should be passed to the corresponding <see cref="EndObject"/></returns>
 		public State BeginObject()
@@ -715,7 +759,10 @@ namespace Doxense.Serialization.Json
 			m_buffer.Write('{');
 			m_state.Tail = false;
 			m_state.Node = NodeType.Object;
-			if (m_indented) m_state.Indentation += '\t';
+			if (m_indented)
+			{
+				m_state.Indentation = GetNextIndentLevel(m_state.Indentation);
+			}
 			return state;
 		}
 
@@ -754,7 +801,10 @@ namespace Doxense.Serialization.Json
 			m_buffer.Write('[');
 			m_state.Tail = false;
 			m_state.Node = NodeType.Array;
-			if (m_indented) m_state.Indentation += '\t';
+			if (m_indented)
+			{
+				m_state.Indentation = GetNextIndentLevel(m_state.Indentation);
+			}
 			return state;
 		}
 
@@ -1559,7 +1609,20 @@ namespace Doxense.Serialization.Json
 
 		public void WriteValue(StringBuilder? value)
 		{
-			WriteValue(value?.ToString());
+			if (value is null)
+			{
+				WriteNull();
+			}
+			else if (!m_javascript)
+			{
+				//TODO: could we use GetChunks()? (at least if there is a single chunk?)
+				JsonEncoding.EncodeTo(ref m_buffer, value.ToString());
+			}
+			else
+			{
+				//TODO: could we use GetChunks()? (at least if there is a single chunk?)
+				CrystalJsonFormatter.WriteJavaScriptString(ref m_buffer, value.ToString());
+			}
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2733,16 +2796,13 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		public void WriteField(string name, StringBuilder? value)
+		public void WriteField(string name, ReadOnlySpan<char> value)
 		{
-			if (value != null || !m_discardNulls)
-			{
-				WriteName(name);
-				WriteValue(value);
-			}
+			WriteName(name);
+			WriteValue(value);
 		}
 
-		public void WriteField(string name, ReadOnlySpan<char> value)
+		public void WriteField(JsonEncodedPropertyName name, ReadOnlySpan<char> value)
 		{
 			WriteName(name);
 			WriteValue(value);
@@ -2752,6 +2812,30 @@ namespace Doxense.Serialization.Json
 		{
 			WriteName(name);
 			WriteValue(value.Span);
+		}
+
+		public void WriteField(JsonEncodedPropertyName name, ReadOnlyMemory<char> value)
+		{
+			WriteName(name);
+			WriteValue(value.Span);
+		}
+
+		public void WriteField(string name, StringBuilder? value)
+		{
+			if (value != null || !m_discardNulls)
+			{
+				WriteName(name);
+				WriteValue(value);
+			}
+		}
+
+		public void WriteField(JsonEncodedPropertyName name, StringBuilder? value)
+		{
+			if (value != null || !m_discardNulls)
+			{
+				WriteName(name);
+				WriteValue(value);
+			}
 		}
 
 		#endregion
@@ -2912,6 +2996,16 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		public void WriteField(JsonEncodedPropertyName name, float value)
+		{
+			// ReSharper disable once CompareOfFloatsByEqualityOperator
+			if (value != 0f || !m_discardDefaults)
+			{
+				WriteName(name);
+				WriteValue(value);
+			}
+		}
+
 		public void WriteField(string name, float? value)
 		{
 			if (value.HasValue)
@@ -2943,6 +3037,16 @@ namespace Doxense.Serialization.Json
 		#region WriteField(..., double)
 
 		public void WriteField(string name, double value)
+		{
+			// ReSharper disable once CompareOfFloatsByEqualityOperator
+			if (value != 0d || !m_discardDefaults)
+			{
+				WriteName(name);
+				WriteValue(value);
+			}
+		}
+
+		public void WriteField(JsonEncodedPropertyName name, double value)
 		{
 			// ReSharper disable once CompareOfFloatsByEqualityOperator
 			if (value != 0d || !m_discardDefaults)
@@ -2994,7 +3098,30 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		public void WriteField(JsonEncodedPropertyName name, Half value)
+		{
+			// ReSharper disable once CompareOfFloatsByEqualityOperator
+			if (value != default || !m_discardDefaults)
+			{
+				WriteName(name);
+				WriteValue(value);
+			}
+		}
+
 		public void WriteField(string name, Half? value)
+		{
+			if (value.HasValue)
+			{
+				WriteName(name);
+				WriteValue(value.Value);
+			}
+			else
+			{
+				WriteFieldNull(name);
+			}
+		}
+
+		public void WriteField(JsonEncodedPropertyName name, Half? value)
 		{
 			if (value.HasValue)
 			{
@@ -3189,6 +3316,54 @@ namespace Doxense.Serialization.Json
 		}
 
 		public void WriteField(JsonEncodedPropertyName name, TimeOnly? value)
+		{
+			if (value.HasValue)
+			{
+				WriteName(name);
+				WriteValue(value.Value);
+			}
+			else
+			{
+				WriteFieldNull(name);
+			}
+		}
+
+		#endregion
+
+		#region WriteField(..., TimeSpan)
+
+		public void WriteField(string name, TimeSpan value)
+		{
+			if (value != TimeSpan.Zero || !m_discardDefaults)
+			{
+				WriteName(name);
+				WriteValue(value);
+			}
+		}
+
+		public void WriteField(JsonEncodedPropertyName name, TimeSpan value)
+		{
+			if (value != TimeSpan.Zero || !m_discardDefaults)
+			{
+				WriteName(name);
+				WriteValue(value);
+			}
+		}
+
+		public void WriteField(string name, TimeSpan? value)
+		{
+			if (value.HasValue)
+			{
+				WriteName(name);
+				WriteValue(value.Value);
+			}
+			else
+			{
+				WriteFieldNull(name);
+			}
+		}
+
+		public void WriteField(JsonEncodedPropertyName name, TimeSpan? value)
 		{
 			if (value.HasValue)
 			{
@@ -3969,12 +4144,14 @@ namespace Doxense.Serialization.Json
 
 		#region WriteFieldArray...
 
-		public void WriteFieldArray(string name, string?[]? items)
+		#region String[]...
+
+		public void WriteFieldArray(string name, string?[]? values)
 		{
-			if (items is not null)
+			if (values is not null)
 			{
 				WriteName(name);
-				WriteArray(items);
+				WriteArray(values);
 			}
 			else if (!m_discardNulls)
 			{
@@ -3983,12 +4160,12 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		public void WriteFieldArray(JsonEncodedPropertyName name, string?[]? items)
+		public void WriteFieldArray(JsonEncodedPropertyName name, string?[]? values)
 		{
-			if (items is not null)
+			if (values is not null)
 			{
 				WriteName(name);
-				WriteArray(items);
+				WriteArray(values);
 			}
 			else if (!m_discardNulls)
 			{
@@ -3997,31 +4174,45 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		public void WriteFieldArray(string name, ReadOnlySpan<string> items)
+		public void WriteFieldArray(string name, ReadOnlySpan<string> values)
 		{
 			WriteName(name);
-			WriteArray(items);
+			WriteArray(values);
 		}
 
-		public void WriteFieldArray(JsonEncodedPropertyName name, ReadOnlySpan<string> items)
+		public void WriteFieldArray(JsonEncodedPropertyName name, ReadOnlySpan<string> values)
 		{
 			WriteName(name);
-			WriteArray(items);
+			WriteArray(values);
 		}
 
-		public void WriteFieldArray(string name, IEnumerable<string>? items)
+		public void WriteFieldArray(string name, List<string>? values)
 		{
-			if (items is not null)
+			if (values is not null)
 			{
 				WriteName(name);
-				if (Doxense.Linq.Buffer<string>.TryGetSpan(items, out var span))
+				WriteArray(CollectionsMarshal.AsSpan(values));
+			}
+			else if (!m_discardNulls)
+			{
+				WriteName(name);
+				WriteNull();
+			}
+		}
+
+		public void WriteFieldArray(string name, IEnumerable<string>? values)
+		{
+			if (values is not null)
+			{
+				WriteName(name);
+				if (Doxense.Linq.Buffer<string>.TryGetSpan(values, out var span))
 				{
 					WriteArray(span);
 				}
 				else
 				{
 					var state = BeginArray();
-					foreach (var item in items)
+					foreach (var item in values)
 					{
 						WriteFieldSeparator();
 						VisitValue(item);
@@ -4036,19 +4227,33 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		public void WriteFieldArray(JsonEncodedPropertyName name, IEnumerable<string>? items)
+		public void WriteFieldArray(JsonEncodedPropertyName name, List<string>? values)
 		{
-			if (items is not null)
+			if (values is not null)
 			{
 				WriteName(name);
-				if (Doxense.Linq.Buffer<string>.TryGetSpan(items, out var span))
+				WriteArray(CollectionsMarshal.AsSpan(values));
+			}
+			else if (!m_discardNulls)
+			{
+				WriteName(name);
+				WriteNull();
+			}
+		}
+
+		public void WriteFieldArray(JsonEncodedPropertyName name, IEnumerable<string>? values)
+		{
+			if (values is not null)
+			{
+				WriteName(name);
+				if (Doxense.Linq.Buffer<string>.TryGetSpan(values, out var span))
 				{
 					WriteArray(span);
 				}
 				else
 				{
 					var state = BeginArray();
-					foreach (var item in items)
+					foreach (var item in values)
 					{
 						WriteFieldSeparator();
 						VisitValue(item);
@@ -4062,6 +4267,272 @@ namespace Doxense.Serialization.Json
 				WriteNull();
 			}
 		}
+
+		#endregion
+
+		#region Int32[]...
+
+		public void WriteFieldArray(string name, int[]? values)
+		{
+			if (values is not null)
+			{
+				WriteName(name);
+				WriteArray(values);
+			}
+			else if (!m_discardNulls)
+			{
+				WriteName(name);
+				WriteNull();
+			}
+		}
+
+		public void WriteFieldArray(JsonEncodedPropertyName name, int[]? values)
+		{
+			if (values is not null)
+			{
+				WriteName(name);
+				WriteArray(values);
+			}
+			else if (!m_discardNulls)
+			{
+				WriteName(name);
+				WriteNull();
+			}
+		}
+
+		public void WriteFieldArray(string name, ReadOnlySpan<int> values)
+		{
+			WriteName(name);
+			WriteArray(values);
+		}
+
+		public void WriteFieldArray(JsonEncodedPropertyName name, ReadOnlySpan<int> values)
+		{
+			WriteName(name);
+			WriteArray(values);
+		}
+
+		#endregion
+
+		#region Int64[]...
+		
+		public void WriteFieldArray(string name, long[]? values)
+		{
+			if (values is not null)
+			{
+				WriteName(name);
+				WriteArray(values);
+			}
+			else if (!m_discardNulls)
+			{
+				WriteName(name);
+				WriteNull();
+			}
+		}
+
+		public void WriteFieldArray(JsonEncodedPropertyName name, long[]? values)
+		{
+			if (values is not null)
+			{
+				WriteName(name);
+				WriteArray(values);
+			}
+			else if (!m_discardNulls)
+			{
+				WriteName(name);
+				WriteNull();
+			}
+		}
+
+		public void WriteFieldArray(string name, ReadOnlySpan<long> values)
+		{
+			WriteName(name);
+			WriteArray(values);
+		}
+
+		public void WriteFieldArray(JsonEncodedPropertyName name, ReadOnlySpan<long> values)
+		{
+			WriteName(name);
+			WriteArray(values);
+		}
+
+		#endregion
+
+		#region Single[]...
+
+		public void WriteFieldArray(string name, float[]? values)
+		{
+			if (values is not null)
+			{
+				WriteName(name);
+				WriteArray(values);
+			}
+			else if (!m_discardNulls)
+			{
+				WriteName(name);
+				WriteNull();
+			}
+		}
+
+		public void WriteFieldArray(JsonEncodedPropertyName name, float[]? values)
+		{
+			if (values is not null)
+			{
+				WriteName(name);
+				WriteArray(values);
+			}
+			else if (!m_discardNulls)
+			{
+				WriteName(name);
+				WriteNull();
+			}
+		}
+
+		public void WriteFieldArray(string name, ReadOnlySpan<float> values)
+		{
+			WriteName(name);
+			WriteArray(values);
+		}
+
+		public void WriteFieldArray(JsonEncodedPropertyName name, ReadOnlySpan<float> values)
+		{
+			WriteName(name);
+			WriteArray(values);
+		}
+
+		#endregion
+
+		#region Double[]...
+
+		public void WriteFieldArray(string name, double[]? values)
+		{
+			if (values is not null)
+			{
+				WriteName(name);
+				WriteArray(values);
+			}
+			else if (!m_discardNulls)
+			{
+				WriteName(name);
+				WriteNull();
+			}
+		}
+
+		public void WriteFieldArray(JsonEncodedPropertyName name, double[]? values)
+		{
+			if (values is not null)
+			{
+				WriteName(name);
+				WriteArray(values);
+			}
+			else if (!m_discardNulls)
+			{
+				WriteName(name);
+				WriteNull();
+			}
+		}
+
+		public void WriteFieldArray(string name, ReadOnlySpan<double> values)
+		{
+			WriteName(name);
+			WriteArray(values);
+		}
+
+		public void WriteFieldArray(JsonEncodedPropertyName name, ReadOnlySpan<double> values)
+		{
+			WriteName(name);
+			WriteArray(values);
+		}
+
+		#endregion
+
+		#region Guid[]...
+
+		public void WriteFieldArray(string name, Guid[]? values)
+		{
+			if (values is not null)
+			{
+				WriteName(name);
+				WriteArray(values);
+			}
+			else if (!m_discardNulls)
+			{
+				WriteName(name);
+				WriteNull();
+			}
+		}
+
+		public void WriteFieldArray(JsonEncodedPropertyName name, Guid[]? values)
+		{
+			if (values is not null)
+			{
+				WriteName(name);
+				WriteArray(values);
+			}
+			else if (!m_discardNulls)
+			{
+				WriteName(name);
+				WriteNull();
+			}
+		}
+
+		public void WriteFieldArray(string name, ReadOnlySpan<Guid> values)
+		{
+			WriteName(name);
+			WriteArray(values);
+		}
+
+		public void WriteFieldArray(JsonEncodedPropertyName name, ReadOnlySpan<Guid> values)
+		{
+			WriteName(name);
+			WriteArray(values);
+		}
+
+		#endregion
+
+		#region Uuid128[]...
+
+		public void WriteFieldArray(string name, Uuid128[]? values)
+		{
+			if (values is not null)
+			{
+				WriteName(name);
+				WriteArray(values);
+			}
+			else if (!m_discardNulls)
+			{
+				WriteName(name);
+				WriteNull();
+			}
+		}
+
+		public void WriteFieldArray(JsonEncodedPropertyName name, Uuid128[]? values)
+		{
+			if (values is not null)
+			{
+				WriteName(name);
+				WriteArray(values);
+			}
+			else if (!m_discardNulls)
+			{
+				WriteName(name);
+				WriteNull();
+			}
+		}
+
+		public void WriteFieldArray(string name, ReadOnlySpan<Uuid128> values)
+		{
+			WriteName(name);
+			WriteArray(values);
+		}
+
+		public void WriteFieldArray(JsonEncodedPropertyName name, ReadOnlySpan<Uuid128> values)
+		{
+			WriteName(name);
+			WriteArray(values);
+		}
+
+		#endregion
 
 		public void WriteFieldArray<T>(string name, T[]? items)
 		{
@@ -4198,6 +4669,57 @@ namespace Doxense.Serialization.Json
 
 		#region WriteFieldArray + IJsonSerializable ...
 
+		public void WriteFieldJsonSerializableArray<TSerializable>(string name, ReadOnlySpan<TSerializable?> array)
+			where TSerializable : IJsonSerializable
+		{
+			WriteName(name);
+			VisitJsonSerializableArray(array);
+		}
+
+		public void WriteFieldJsonSerializableArray<TSerializable>(string name, TSerializable[]? items)
+			where TSerializable : IJsonSerializable
+		{
+			if (items is not null)
+			{
+				WriteName(name);
+				VisitJsonSerializableArray(new ReadOnlySpan<TSerializable>(items));
+			}
+			else if (!m_discardNulls)
+			{
+				WriteName(name);
+				WriteNull();
+			}
+		}
+
+		public void WriteFieldJsonSerializableArray<TSerializable>(string name, List<TSerializable>? items)
+			where TSerializable : IJsonSerializable
+		{
+			if (items is not null)
+			{
+				WriteName(name);
+				VisitJsonSerializableArray<TSerializable>(CollectionsMarshal.AsSpan(items));
+			}
+			else if (!m_discardNulls)
+			{
+				WriteName(name);
+				WriteNull();
+			}
+		}
+
+		public void WriteFieldJsonSerializableArray<TSerializable>(string name, IEnumerable<TSerializable?>? items)
+			where TSerializable : IJsonSerializable
+		{
+			if (items is not null)
+			{
+				WriteName(name);
+				VisitJsonSerializableArray(items);
+			}
+			else if (!m_discardNulls)
+			{
+				WriteName(name);
+				WriteNull();
+			}
+		}
 
 		public void WriteFieldJsonSerializableArray<TSerializable>(JsonEncodedPropertyName name, ReadOnlySpan<TSerializable?> array)
 			where TSerializable : IJsonSerializable
@@ -4212,7 +4734,7 @@ namespace Doxense.Serialization.Json
 			if (items is not null)
 			{
 				WriteName(name);
-				VisitJsonSerializableArray(new ReadOnlySpan<TSerializable>(items)!);
+				VisitJsonSerializableArray(new ReadOnlySpan<TSerializable>(items));
 			}
 			else if (!m_discardNulls)
 			{
@@ -4227,7 +4749,7 @@ namespace Doxense.Serialization.Json
 			if (items is not null)
 			{
 				WriteName(name);
-				VisitJsonSerializableArray<TSerializable>(CollectionsMarshal.AsSpan(items)!);
+				VisitJsonSerializableArray<TSerializable>(CollectionsMarshal.AsSpan(items));
 			}
 			else if (!m_discardNulls)
 			{
@@ -4257,12 +4779,138 @@ namespace Doxense.Serialization.Json
 
 		#region WriteFieldDictionary...
 
-		public void WriteFieldDictionary<T>(JsonEncodedPropertyName name, IDictionary<string, T>? items, IJsonSerializer<T> serializer)
+		/// <summary>Writes a field that contains a dictionary expressed as a JSON Object</summary>
+		/// <param name="name">Name of the field</param>
+		/// <param name="map">Dictionary to write</param>
+		public void WriteFieldDictionary(string name, IDictionary<string, string>? map)
 		{
-			if (items is not null)
+			if (map is not null)
 			{
 				WriteName(name);
-				VisitDictionary(items, serializer);
+				WriteDictionary(map);
+			}
+			else if (!m_discardNulls)
+			{
+				WriteName(name);
+				WriteNull();
+			}
+		}
+
+		/// <summary>Writes a field that contains a dictionary expressed as a JSON Object</summary>
+		/// <param name="name">Name of the field</param>
+		/// <param name="map">Dictionary to write</param>
+		public void WriteFieldDictionary(JsonEncodedPropertyName name, IDictionary<string, string>? map)
+		{
+			if (map is not null)
+			{
+				WriteName(name);
+				WriteDictionary(map);
+			}
+			else if (!m_discardNulls)
+			{
+				WriteName(name);
+				WriteNull();
+			}
+		}
+
+		/// <summary>Writes a field that contains a dictionary expressed as a JSON Object</summary>
+		/// <param name="name">Name of the field</param>
+		/// <param name="map">Dictionary to write</param>
+		public void WriteFieldDictionary(string name, Dictionary<string, string>? map)
+		{
+			if (map is not null)
+			{
+				WriteName(name);
+				WriteDictionary(map);
+			}
+			else if (!m_discardNulls)
+			{
+				WriteName(name);
+				WriteNull();
+			}
+		}
+
+		/// <summary>Writes a field that contains a dictionary expressed as a JSON Object</summary>
+		/// <param name="name">Name of the field</param>
+		/// <param name="map">Dictionary to write</param>
+		public void WriteFieldDictionary(JsonEncodedPropertyName name, Dictionary<string, string>? map)
+		{
+			if (map is not null)
+			{
+				WriteName(name);
+				WriteDictionary(map);
+			}
+			else if (!m_discardNulls)
+			{
+				WriteName(name);
+				WriteNull();
+			}
+		}
+
+		/// <summary>Writes a field that contains a dictionary expressed as a JSON Object, using a custom serializer</summary>
+		/// <param name="name">Name of the field</param>
+		/// <param name="map">Dictionary to write</param>
+		/// <param name="serializer">Custom value serializer</param>
+		public void WriteFieldDictionary<T>(string name, IDictionary<string, T>? map, IJsonSerializer<T> serializer)
+		{
+			if (map is not null)
+			{
+				WriteName(name);
+				VisitDictionary(map, serializer);
+			}
+			else if (!m_discardNulls)
+			{
+				WriteName(name);
+				WriteNull();
+			}
+		}
+
+		/// <summary>Writes a field that contains a dictionary expressed as a JSON Object, using a custom serializer</summary>
+		/// <param name="name">Name of the field</param>
+		/// <param name="map">Dictionary to write</param>
+		/// <param name="serializer">Custom value serializer</param>
+		public void WriteFieldDictionary<T>(JsonEncodedPropertyName name, IDictionary<string, T>? map, IJsonSerializer<T> serializer)
+		{
+			if (map is not null)
+			{
+				WriteName(name);
+				VisitDictionary(map, serializer);
+			}
+			else if (!m_discardNulls)
+			{
+				WriteName(name);
+				WriteNull();
+			}
+		}
+
+		/// <summary>Writes a field that contains a dictionary expressed as a JSON Object, using a custom serializer</summary>
+		/// <param name="name">Name of the field</param>
+		/// <param name="map">Dictionary to write</param>
+		/// <param name="serializer">Custom value serializer</param>
+		public void WriteFieldDictionary<T>(string name, Dictionary<string, T>? map, IJsonSerializer<T> serializer)
+		{
+			if (map is not null)
+			{
+				WriteName(name);
+				VisitDictionary(map, serializer);
+			}
+			else if (!m_discardNulls)
+			{
+				WriteName(name);
+				WriteNull();
+			}
+		}
+
+		/// <summary>Writes a field that contains a dictionary expressed as a JSON Object, using a custom serializer</summary>
+		/// <param name="name">Name of the field</param>
+		/// <param name="map">Dictionary to write</param>
+		/// <param name="serializer">Custom value serializer</param>
+		public void WriteFieldDictionary<T>(JsonEncodedPropertyName name, Dictionary<string, T>? map, IJsonSerializer<T> serializer)
+		{
+			if (map is not null)
+			{
+				WriteName(name);
+				VisitDictionary(map, serializer);
 			}
 			else if (!m_discardNulls)
 			{
@@ -4488,7 +5136,67 @@ namespace Doxense.Serialization.Json
 			EndArray(state);
 		}
 
-		public void WriteArray(ReadOnlySpan<string> array)
+		public void WriteArray(string?[]? array)
+		{
+			if (array is null)
+			{
+				WriteNull();
+			}
+			else
+			{
+				WriteArray(new ReadOnlySpan<string?>(array));
+			}
+		}
+
+		public void WriteArray(ReadOnlySpan<string?> array)
+		{
+			if (array.Length == 0)
+			{
+				WriteEmptyArray();
+				return;
+			}
+
+			var state = BeginArray();
+
+			if (!m_javascript)
+			{
+				WriteHeadSeparator();
+				JsonEncoding.EncodeTo(ref m_buffer, array[0]);
+
+				for(int i = 1; i < array.Length; i++)
+				{
+					WriteTailSeparator();
+					JsonEncoding.EncodeTo(ref m_buffer, array[0]);
+				}
+			}
+			else
+			{
+				WriteHeadSeparator();
+				CrystalJsonFormatter.WriteJavaScriptString(ref m_buffer, array[0]);
+
+				for(int i = 1; i < array.Length; i++)
+				{
+					WriteTailSeparator();
+					CrystalJsonFormatter.WriteJavaScriptString(ref m_buffer, array[0]);
+				}
+			}
+
+			EndArray(state);
+		}
+
+		public void WriteArray(int[]? array)
+		{
+			if (array is null)
+			{
+				WriteNull();
+			}
+			else
+			{
+				WriteArray(new ReadOnlySpan<int>(array));
+			}
+		}
+
+		public void WriteArray(ReadOnlySpan<int> array)
 		{
 			if (array.Length == 0)
 			{
@@ -4499,12 +5207,182 @@ namespace Doxense.Serialization.Json
 			var state = BeginArray();
 
 			WriteHeadSeparator();
-			WriteValue(array[0]);
+			m_buffer.Write(array[0]);
 
 			for(int i = 1; i < array.Length; i++)
 			{
 				WriteTailSeparator();
-				WriteValue(array[0]);
+				m_buffer.Write(array[i]);
+			}
+
+			EndArray(state);
+		}
+
+		public void WriteArray(long[]? array)
+		{
+			if (array is null)
+			{
+				WriteNull();
+			}
+			else
+			{
+				WriteArray(new ReadOnlySpan<long>(array));
+			}
+		}
+
+		public void WriteArray(ReadOnlySpan<long> array)
+		{
+			if (array.Length == 0)
+			{
+				WriteEmptyArray();
+				return;
+			}
+
+			var state = BeginArray();
+
+			WriteHeadSeparator();
+			m_buffer.Write(array[0]);
+
+			for(int i = 1; i < array.Length; i++)
+			{
+				WriteTailSeparator();
+				m_buffer.Write(array[i]);
+			}
+
+			EndArray(state);
+		}
+
+		public void WriteArray(float[]? array)
+		{
+			if (array is null)
+			{
+				WriteNull();
+			}
+			else
+			{
+				WriteArray(new ReadOnlySpan<float>(array));
+			}
+		}
+
+		public void WriteArray(ReadOnlySpan<float> array)
+		{
+			if (array.Length == 0)
+			{
+				WriteEmptyArray();
+				return;
+			}
+
+			var state = BeginArray();
+
+			WriteHeadSeparator();
+			m_buffer.Write(array[0]);
+
+			for(int i = 1; i < array.Length; i++)
+			{
+				WriteTailSeparator();
+				m_buffer.Write(array[i]);
+			}
+
+			EndArray(state);
+		}
+
+		public void WriteArray(double[]? array)
+		{
+			if (array is null)
+			{
+				WriteNull();
+			}
+			else
+			{
+				WriteArray(new ReadOnlySpan<double>(array));
+			}
+		}
+
+		public void WriteArray(ReadOnlySpan<double> array)
+		{
+			if (array.Length == 0)
+			{
+				WriteEmptyArray();
+				return;
+			}
+
+			var state = BeginArray();
+
+			WriteHeadSeparator();
+			m_buffer.Write(array[0]);
+
+			for(int i = 1; i < array.Length; i++)
+			{
+				WriteTailSeparator();
+				m_buffer.Write(array[i]);
+			}
+
+			EndArray(state);
+		}
+
+		public void WriteArray(Guid[]? array)
+		{
+			if (array is null)
+			{
+				WriteNull();
+			}
+			else
+			{
+				WriteArray(new ReadOnlySpan<Guid>(array));
+			}
+		}
+
+		public void WriteArray(ReadOnlySpan<Guid> array)
+		{
+			if (array.Length == 0)
+			{
+				WriteEmptyArray();
+				return;
+			}
+
+			var state = BeginArray();
+
+			WriteHeadSeparator();
+			m_buffer.Write(array[0]);
+
+			for(int i = 1; i < array.Length; i++)
+			{
+				WriteTailSeparator();
+				m_buffer.Write(array[i]);
+			}
+
+			EndArray(state);
+		}
+
+		public void WriteArray(Uuid128[]? array)
+		{
+			if (array is null)
+			{
+				WriteNull();
+			}
+			else
+			{
+				WriteArray(new ReadOnlySpan<Uuid128>(array));
+			}
+		}
+
+		public void WriteArray(ReadOnlySpan<Uuid128> array)
+		{
+			if (array.Length == 0)
+			{
+				WriteEmptyArray();
+				return;
+			}
+
+			var state = BeginArray();
+
+			WriteHeadSeparator();
+			m_buffer.Write(array[0]);
+
+			for(int i = 1; i < array.Length; i++)
+			{
+				WriteTailSeparator();
+				m_buffer.Write(array[i]);
 			}
 
 			EndArray(state);
@@ -4575,12 +5453,40 @@ namespace Doxense.Serialization.Json
 			EndObject(state); // "}"
 		}
 
+		public void VisitDictionary<TValue>(Dictionary<string, TValue>? map, IJsonSerializer<TValue> serializer)
+		{
+			if (map is null)
+			{
+				WriteNull();
+				return;
+			}
+
+			if (map.Count == 0)
+			{ // empty => "{}"
+				WriteEmptyObject(); // "{}"
+				return;
+			}
+
+			var state = BeginObject();
+			foreach (var kvp in map)
+			{
+				WriteNameEscaped(kvp.Key);
+				serializer.Serialize(this, kvp.Value);
+			}
+			EndObject(state);
+		}
+
 		public void WriteDictionary(IDictionary<string, object>? map)
 		{
 			CrystalJsonVisitor.VisitGenericObjectDictionary(map, this);
 		}
 
 		public void WriteDictionary(IDictionary<string, string>? map)
+		{
+			CrystalJsonVisitor.VisitStringDictionary(map, this);
+		}
+
+		public void WriteDictionary(Dictionary<string, string>? map)
 		{
 			CrystalJsonVisitor.VisitStringDictionary(map, this);
 		}

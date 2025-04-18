@@ -75,9 +75,9 @@ namespace Doxense.Serialization.Json
 		public int Count => m_value.TryGetCount(out int count) ? count : m_value.IsNullOrMissing() ? 0 : throw OperationRequiresObjectOrNull();
 
 		/// <inheritdoc />
-		public TValue this[string key] => m_value.TryGetValue(key, m_converter, out var value) ? value : m_converter.Unpack(JsonNull.Missing);
+		public TValue this[string key] => m_value.TryGetValue(key, m_converter, out var value) ? value : m_converter.Unpack(JsonNull.Missing, null);
 
-		public TValue this[ReadOnlyMemory<char> key] => m_value.TryGetValue(key, m_converter, out var value) ? value : m_converter.Unpack(JsonNull.Missing);
+		public TValue this[ReadOnlyMemory<char> key] => m_value.TryGetValue(key, m_converter, out var value) ? value : m_converter.Unpack(JsonNull.Missing, null);
 
 		/// <inheritdoc />
 		public IEnumerable<string> Keys
@@ -120,7 +120,7 @@ namespace Doxense.Serialization.Json
 			}
 			foreach (var kv in obj)
 			{
-				yield return new(kv.Key, m_converter.Unpack(kv.Value));
+				yield return new(kv.Key, m_converter.Unpack(kv.Value, null));
 			}
 		}
 

@@ -31,7 +31,6 @@
 namespace Doxense.Serialization.Json
 {
 	using System.Buffers;
-	using System.ComponentModel;
 	using System.IO;
 	using System.Reflection;
 	using System.Text;
@@ -1394,30 +1393,6 @@ namespace Doxense.Serialization.Json
 
 		#region Deserialization...
 
-		#region Désérialisation directe...
-
-		/// <summary><b>DO NOT USE!</b></summary>
-		[Pure]
-		[Obsolete("Please avoid doing untyped deserialization!")]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static object? DeserializeBoxed(string jsonText, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			return BindBoxed(Parse(jsonText, settings), null, resolver);
-		}
-
-		/// <summary><b>DO NOT USE!</b></summary>
-		[Pure]
-		[Obsolete("Please avoid doing untyped deserialization!")]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static object? BindBoxed(JsonValue? value, Type? type, ICrystalJsonTypeResolver? resolver = null)
-		{
-			return value == null ? null : (resolver ?? CrystalJson.DefaultResolver).BindJsonValue(type, value);
-		}
-
-		#endregion
-
-		#region Désérialisation vers un type défini
-
 		/// <summary>De-serializes a JSON text literal into a value of type <typeparamref name="TValue"/></summary>
 		/// <param name="jsonText">JSON text document to parse</param>
 		/// <returns>Deserialized instance</returns>
@@ -1473,15 +1448,11 @@ namespace Doxense.Serialization.Json
 			ICrystalJsonTypeResolver? resolver = null
 		) where TValue : notnull
 		{
+			resolver ??= CrystalJson.DefaultResolver;
 			var parsed = Parse(jsonText, settings);
-			if (serializer != null)
-			{
-				return serializer.Unpack(parsed, resolver);
-			}
-			else
-			{
-				return parsed.Required<TValue>(resolver);
-			}
+			return serializer != null
+				? serializer.Unpack(parsed, resolver)
+				: parsed.Required<TValue>(resolver);
 		}
 
 		/// <summary>De-serializes a JSON text literal into a value of type <typeparamref name="TValue"/></summary>
@@ -1745,8 +1716,6 @@ namespace Doxense.Serialization.Json
 		{
 			return LoadAndParseInternal(path, settings ?? CrystalJsonSettings.Json, options).As<TValue?>(default, resolver);
 		}
-
-		#endregion
 
 		#endregion
 

@@ -169,13 +169,6 @@ namespace Doxense.Linq
 			span[^1] = suffix;
 		}
 
-		public void Write(string prefix, string value)
-		{
-			var span = Allocate(checked(prefix.Length + value.Length));
-			prefix.CopyTo(span);
-			value.CopyTo(span[prefix.Length..]);
-		}
-
 		public void Write(scoped ReadOnlySpan<char> prefix, scoped ReadOnlySpan<char> value)
 		{
 			var span = Allocate(checked(prefix.Length + value.Length));
@@ -191,7 +184,7 @@ namespace Doxense.Linq
 			suffix.CopyTo(span[(1 + value.Length)..]);
 		}
 
-		public void Write(string prefix, string value, string suffix)
+		public void Write(scoped ReadOnlySpan<char> prefix, scoped ReadOnlySpan<char> value, scoped ReadOnlySpan<char> suffix)
 		{
 			var span = Allocate(checked(prefix.Length + value.Length + suffix.Length));
 			prefix.CopyTo(span);
@@ -199,7 +192,7 @@ namespace Doxense.Linq
 			suffix.CopyTo(span[(prefix.Length + value.Length)..]);
 		}
 
-		public void Write(string prefix, string value, char suffix)
+		public void Write(scoped ReadOnlySpan<char> prefix, scoped ReadOnlySpan<Char> value, char suffix)
 		{
 			var span = Allocate(checked(prefix.Length + value.Length + 1));
 			prefix.CopyTo(span);

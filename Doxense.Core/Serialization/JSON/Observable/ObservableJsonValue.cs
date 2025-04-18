@@ -6,6 +6,8 @@
 //
 #endregion
 
+#pragma warning disable IL2091
+
 namespace Doxense.Serialization.Json
 {
 	using System;
@@ -269,7 +271,7 @@ namespace Doxense.Serialization.Json
 		/// </remarks>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? As<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(TValue? defaultValue = default)
+		public TValue? As<TValue>(TValue? defaultValue = default)
 		{
 			RecordSelfAccess(ObservableJsonAccess.Value);
 			return this.Json.As<TValue>(defaultValue);
@@ -286,7 +288,7 @@ namespace Doxense.Serialization.Json
 		/// ({ /* ... */ })["hello"].Required&lt;string>() => throws
 		/// </code></para>
 		/// </remarks>
-		public TValue Required<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>() where TValue : notnull
+		public TValue Required<TValue>() where TValue : notnull
 		{
 			RecordSelfAccess(ObservableJsonAccess.Value);
 			return this.Json.Required<TValue>();
@@ -406,7 +408,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="value">Value that represents this field in the current object.</param>
 		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
 		[Pure]
-		public bool TryGetValue<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(string name, [MaybeNullWhen(false)] out TValue value)
+		public bool TryGetValue<TValue>(string name, [MaybeNullWhen(false)] out TValue value)
 		{
 			if (!this.Json.TryGetValue(name, out var child) || child.IsNullOrMissing())
 			{
@@ -425,7 +427,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="value">Value that represents this field in the current object.</param>
 		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
 		[Pure]
-		public bool TryGetValue<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlyMemory<char> name, [MaybeNullWhen(false)] out TValue value)
+		public bool TryGetValue<TValue>(ReadOnlyMemory<char> name, [MaybeNullWhen(false)] out TValue value)
 		{
 			if (!this.Json.TryGetValue(name, out var child) || child.IsNullOrMissing())
 			{
@@ -445,7 +447,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="value">Receives the unpacked value that represents this field in the current object.</param>
 		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
 		[Pure]
-		public bool TryGetValue<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(string name, IJsonDeserializer<TValue> converter, [MaybeNullWhen(false)] out TValue value)
+		public bool TryGetValue<TValue>(string name, IJsonDeserializer<TValue> converter, [MaybeNullWhen(false)] out TValue value)
 		{
 			if (!this.Json.TryGetValue(name, out var child) || child.IsNullOrMissing())
 			{
@@ -455,7 +457,7 @@ namespace Doxense.Serialization.Json
 			}
 
 			RecordChildAccess(name.AsMemory(), child, ObservableJsonAccess.Value);
-			value = converter.Unpack(child);
+			value = converter.Unpack(child, null);
 			return true;
 		}
 
@@ -465,7 +467,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="value">Receives the unpacked value that represents this field in the current object.</param>
 		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
 		[Pure]
-		public bool TryGetValue<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlyMemory<char> name, IJsonDeserializer<TValue> converter, [MaybeNullWhen(false)] out TValue value)
+		public bool TryGetValue<TValue>(ReadOnlyMemory<char> name, IJsonDeserializer<TValue> converter, [MaybeNullWhen(false)] out TValue value)
 		{
 			if (!this.Json.TryGetValue(name, out var child) || child.IsNullOrMissing())
 			{
@@ -475,7 +477,7 @@ namespace Doxense.Serialization.Json
 			}
 
 			RecordChildAccess(name, child, ObservableJsonAccess.Value);
-			value = converter.Unpack(child);
+			value = converter.Unpack(child, null);
 			return true;
 		}
 
@@ -501,7 +503,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="value">Value that represents this index in the current array.</param>
 		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
 		[Pure]
-		public bool TryGetValue<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(int index, [MaybeNullWhen(false)] out TValue value)
+		public bool TryGetValue<TValue>(int index, [MaybeNullWhen(false)] out TValue value)
 		{
 			if (!this.Json.TryGetValue(index, out var child) || child.IsNullOrMissing())
 			{
@@ -521,7 +523,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="value">Value that represents this index in the current array.</param>
 		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
 		[Pure]
-		public bool TryGetValue<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(int index, IJsonDeserializer<TValue> converter, [MaybeNullWhen(false)] out TValue value)
+		public bool TryGetValue<TValue>(int index, IJsonDeserializer<TValue> converter, [MaybeNullWhen(false)] out TValue value)
 		{
 			if (!this.Json.TryGetValue(index, out var child) || child.IsNullOrMissing())
 			{
@@ -531,7 +533,7 @@ namespace Doxense.Serialization.Json
 			}
 
 			RecordChildAccess(index, child, ObservableJsonAccess.Value);
-			value = converter.Unpack(child);
+			value = converter.Unpack(child, null);
 			return true;
 		}
 
@@ -558,7 +560,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="value">Value that represents this index in the current array.</param>
 		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
 		[Pure]
-		public bool TryGetValue<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(Index index, [MaybeNullWhen(false)] out TValue value)
+		public bool TryGetValue<TValue>(Index index, [MaybeNullWhen(false)] out TValue value)
 		{
 			if (!this.Json.TryGetValue(index, out var child) || child.IsNullOrMissing())
 			{
@@ -579,7 +581,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="value">Value that represents this index in the current array.</param>
 		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
 		[Pure]
-		public bool TryGetValue<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(Index index, IJsonDeserializer<TValue> converter, [MaybeNullWhen(false)] out TValue value)
+		public bool TryGetValue<TValue>(Index index, IJsonDeserializer<TValue> converter, [MaybeNullWhen(false)] out TValue value)
 		{
 			if (!this.Json.TryGetValue(index, out var child) || child.IsNullOrMissing())
 			{
@@ -589,7 +591,7 @@ namespace Doxense.Serialization.Json
 			}
 
 			RecordChildAccess(index, child, ObservableJsonAccess.Value);
-			value = converter.Unpack(child);
+			value = converter.Unpack(child, null);
 			return true;
 		}
 
@@ -618,7 +620,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="value">Value that represents this child.</param>
 		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
 		[Pure]
-		public bool TryGetValue<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(JsonPathSegment segment, [MaybeNullWhen(false)] out TValue value)
+		public bool TryGetValue<TValue>(JsonPathSegment segment, [MaybeNullWhen(false)] out TValue value)
 		{
 			if (segment.TryGetName(out var name))
 			{
@@ -646,7 +648,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="value">Value that represents this child.</param>
 		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
 		[Pure]
-		public bool TryGetValue<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(JsonPathSegment segment, IJsonDeserializer<TValue> converter, [MaybeNullWhen(false)] out TValue value)
+		public bool TryGetValue<TValue>(JsonPathSegment segment, IJsonDeserializer<TValue> converter, [MaybeNullWhen(false)] out TValue value)
 		{
 			if (segment.TryGetName(out var name))
 			{
@@ -664,7 +666,7 @@ namespace Doxense.Serialization.Json
 				return false;
 			}
 
-			value = converter.Unpack(json);
+			value = converter.Unpack(json, null);
 			return true;
 		}
 
@@ -684,7 +686,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="value">Value that represents this element, converted into <typeparamref name="TValue"/>.</param>
 		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
 		[Pure]
-		public bool TryGetValue<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(JsonPath path, [MaybeNullWhen(false)] out TValue value)
+		public bool TryGetValue<TValue>(JsonPath path, [MaybeNullWhen(false)] out TValue value)
 		{
 			var child = GetValue(path);
 			
@@ -704,7 +706,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="value">Value that represents this element, converted into <typeparamref name="TValue"/> using <paramref name="converter"/>.</param>
 		/// <returns><see langword="true"/> if the element exists and has a non-null value; otherwise, <see langword="false"/>.</returns>
 		[Pure]
-		public bool TryGetValue<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(JsonPath path, IJsonDeserializer<TValue> converter, [MaybeNullWhen(false)] out TValue value)
+		public bool TryGetValue<TValue>(JsonPath path, IJsonDeserializer<TValue> converter, [MaybeNullWhen(false)] out TValue value)
 		{
 			var child = GetValue(path);
 			
@@ -714,7 +716,7 @@ namespace Doxense.Serialization.Json
 				return false;
 			}
 
-			value = converter.Unpack(child);
+			value = converter.Unpack(child, null);
 			return true;
 		}
 
@@ -740,7 +742,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, MustUseReturnValue]
-		public TValue Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(string name) where TValue : notnull
+		public TValue Get<TValue>(string name) where TValue : notnull
 		{
 			var child = this.Json.GetValueOrDefault(name);
 			RecordChildAccess(name.AsMemory(), child, ObservableJsonAccess.Value);
@@ -754,7 +756,7 @@ namespace Doxense.Serialization.Json
 
 		[Pure, MustUseReturnValue]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(string name, TValue defaultValue)
+		public TValue? Get<TValue>(string name, TValue defaultValue)
 		{
 			var child = this.Json.GetValueOrDefault(name);
 			RecordChildAccess(name.AsMemory(), child, ObservableJsonAccess.Value);
@@ -795,7 +797,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, MustUseReturnValue]
-		public TValue Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlyMemory<char> name) where TValue : notnull
+		public TValue Get<TValue>(ReadOnlyMemory<char> name) where TValue : notnull
 		{
 #if NET9_0_OR_GREATER
 			var value = this.Json.GetValue(name, out var actualName);
@@ -809,7 +811,7 @@ namespace Doxense.Serialization.Json
 
 		[Pure, MustUseReturnValue]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(ReadOnlyMemory<char> name, TValue? defaultValue)
+		public TValue? Get<TValue>(ReadOnlyMemory<char> name, TValue? defaultValue)
 		{
 #if NET9_0_OR_GREATER
 			var value = this.Json.GetValueOrDefault(name, JsonNull.Missing, out var actualName);
@@ -846,7 +848,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, MustUseReturnValue]
-		public TValue Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(int index) where TValue : notnull
+		public TValue Get<TValue>(int index) where TValue : notnull
 		{
 			//note: this fails is not JsonArray or JsonObject!
 			var child = this.Json.GetValue(index);
@@ -856,7 +858,7 @@ namespace Doxense.Serialization.Json
 
 		[Pure, MustUseReturnValue]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(int index, TValue? defaultValue)
+		public TValue? Get<TValue>(int index, TValue? defaultValue)
 		{
 			//note: this fails is not JsonArray or JsonObject!
 			var child = this.Json.GetValueOrDefault(index);
@@ -889,7 +891,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[Pure, MustUseReturnValue]
-		public TValue? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(Index index) where TValue : notnull
+		public TValue? Get<TValue>(Index index) where TValue : notnull
 		{
 			//note: this fails is not JsonArray or JsonObject!
 			var child = this.Json.GetValueOrDefault(index);
@@ -899,7 +901,7 @@ namespace Doxense.Serialization.Json
 
 		[Pure, MustUseReturnValue]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(Index index, TValue defaultValue)
+		public TValue? Get<TValue>(Index index, TValue defaultValue)
 		{
 			//note: this fails is not JsonArray or JsonObject!
 			var child = this.Json.GetValueOrDefault(index);
@@ -923,7 +925,7 @@ namespace Doxense.Serialization.Json
 		public JsonValue GetValue(JsonPath path) => Get(path).ToJson();
 
 		[Pure, MustUseReturnValue]
-		public TValue Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(JsonPath path) where TValue : notnull
+		public TValue Get<TValue>(JsonPath path) where TValue : notnull
 		{
 			var value = this.Json.GetPathValueOrDefault(path);
 			if (value.IsNullOrMissing())
@@ -935,7 +937,7 @@ namespace Doxense.Serialization.Json
 
 		[Pure, MustUseReturnValue]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(JsonPath path, TValue defaultValue) => this.Json.GetPathValueOrDefault(path).As<TValue>(defaultValue);
+		public TValue? Get<TValue>(JsonPath path, TValue defaultValue) => this.Json.GetPathValueOrDefault(path).As<TValue>(defaultValue);
 
 		[Pure, MustUseReturnValue]
 		public ObservableJsonValue Get(JsonPathSegment segment)
@@ -948,7 +950,7 @@ namespace Doxense.Serialization.Json
 		public JsonValue GetValue(JsonPathSegment segment) => Get(segment).ToJson();
 
 		[Pure, MustUseReturnValue]
-		public TValue Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(JsonPathSegment segment) where TValue : notnull
+		public TValue Get<TValue>(JsonPathSegment segment) where TValue : notnull
 		{
 			var value = GetValue(segment);
 			if (value.IsNullOrMissing())
@@ -960,7 +962,7 @@ namespace Doxense.Serialization.Json
 
 		[Pure, MustUseReturnValue]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public TValue? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(JsonPathSegment segment, TValue defaultValue) => GetValue(segment).As<TValue>(defaultValue);
+		public TValue? Get<TValue>(JsonPathSegment segment, TValue defaultValue) => GetValue(segment).As<TValue>(defaultValue);
 
 		/// <summary>Returns a new instance with the same path, but with the different value </summary>
 		/// <param name="newValue">New value of this instance</param>

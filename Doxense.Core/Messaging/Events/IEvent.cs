@@ -26,10 +26,8 @@
 
 namespace Doxense.Messaging.Events
 {
-	using Doxense.Serialization.Json;
 	using NodaTime;
 
-	[JsonType(TypePropertyName = nameof(IEvent.Type))]
 	public interface IEvent
 	{
 		/// <summary>Type of event</summary>

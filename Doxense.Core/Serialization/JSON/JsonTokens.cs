@@ -54,7 +54,7 @@ namespace Doxense.Serialization.Json
 		public const string JavaScriptDateTimeMaxValue = "new Date(253402300799999)";
 		public const string Iso8601DateTimeMaxValue = "\"9999-12-31T23:59:59.9999999\"";
 		public const string Iso8601DateOnlyMaxValue = "\"9999-12-31T00:00:00\"";
-		public const string CustomClassAttribute = "_class";
+		public const string CustomClassAttribute = "$type";
 
 	}
 

@@ -36,8 +36,8 @@ namespace Doxense.Serialization.Json
 		/// <summary>Type of the instances that are compatible with this converter</summary>
 		Type GetTargetType();
 
-		/// <summary>Returns the type parent collection that handles this converter</summary>
-		IJsonTypeCollection? GetTypeCollection();
+		/// <summary>Returns the definition metadata for the type handled by this converter</summary>
+		CrystalJsonTypeDefinition? GetDefinition();
 
 		/// <summary>Returns the JSON property name for the corresponding member of the target type of this converter</summary>
 		/// <param name="memberName">Name of the member of the target type of this converter, as in the ".NET" name for the property of field.</param>
@@ -50,6 +50,11 @@ namespace Doxense.Serialization.Json
 		/// <param name="memberName">Name of the corresponding member of the target type of this converter, as in the ".NET" name for the property of field.</param>
 		/// <returns><c>true</c> if the property name matches a member in the target type of this converter; otherwise, <c>false</c></returns>
 		bool TryMapPropertyToMemberName(string propertyName, [MaybeNullWhen(false)] out string memberName);
+
+		/// <summary>Binds a JSON value into the corresponding CLR type</summary>
+		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
+		/// <remarks><para>For best performance, prefer using the <see cref="IJsonDeserializer{T}.Unpack"/> method on the generic <see cref="IJsonConverter{T}"/> interface, if this converter implements it!</para></remarks>
+		object? BindJsonValue(JsonValue value, ICrystalJsonTypeResolver? resolver);
 
 	}
 

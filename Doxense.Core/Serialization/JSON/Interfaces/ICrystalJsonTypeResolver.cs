@@ -26,58 +26,35 @@
 
 namespace Doxense.Serialization.Json
 {
+
 	/// <summary>Type that is able to extra type metadata used during JSON serialization</summary>
 	[PublicAPI]
 	public interface ICrystalJsonTypeResolver
 	{
 
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
-		Type? ResolveClassId(string classId);
+		/// <summary>Returns the converter for the given type in this collection</summary>
+		/// <param name="type">Type of values that needs to be converted</param>
+		/// <param name="converter">Receives the converter for this type, if it is managed by this collection</param>
+		/// <returns><c>true</c> if this collection handles this type; otherwise, <c>false</c></returns>
+		bool TryGetConverterFor(Type type, [MaybeNullWhen(false)] out IJsonConverter converter);
 
-		/// <summary>Inspects a type, and generate a list of all its members</summary>
-		/// <param name="type">Type to introspect</param>
-		/// <returns>List of compiled members, or <see langword="null"/> if the type is not compatible (primitive, delegate, ...)</returns>
-		/// <remarks>The list is computed on the first call for each type, and then cached in memory for subsequent calls</remarks>
-		CrystalJsonTypeDefinition? ResolveJsonType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type type);
+		/// <summary>Returns the converter for the given type in this collection</summary>
+		/// <typeparam name="T">Type of values that needs to be converted</typeparam>
+		/// <param name="converter">Receives the converter for this type, if it is managed by this collection</param>
+		/// <returns><c>true</c> if this collection handles this type; otherwise, <c>false</c></returns>
+		bool TryGetConverterFor<T>([MaybeNullWhen(false)] out IJsonConverter<T> converter);
 
-		/// <summary>Returns the definition of a member of a type</summary>
-		/// <param name="type">Type that contains the member</param>
-		/// <param name="memberName">Name of the member</param>
-		/// <returns>If known, the definition for this member.</returns>
-		/// <remarks>This is useful to inspect the custom serialization settings for a particular member of a type, that can be overriden, for example, by <see cref="JsonPropertyAttribute"/></remarks>
-		CrystalJsonMemberDefinition? ResolveMemberOfType(
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
-			Type type,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)]
-			string memberName
-		);
+		/// <summary>Returns the type definition for the specified type</summary>
+		/// <param name="type">Type to inspect</param>
+		/// <param name="definition">Receives the definition for this type, if it is known by this resolver</param>
+		/// <returns><c>true</c> if the resolver can handle this type; otherwise, <c>false</c></returns>
+		bool TryResolveTypeDefinition(Type type, [MaybeNullWhen(false)] out CrystalJsonTypeDefinition definition);
 
-		/// <summary>Binds a JSON value into the corresponding CLR type</summary>
-		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
-		object? BindJsonValue(
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
-			Type? type,
-			JsonValue? value);
-
-		/// <summary>Binds a JSON value into the corresponding CLR type</summary>
-		/// <exception cref="JsonBindingException">If the value cannot be bound to the specified type.</exception>
-		[return: NotNullIfNotNull(nameof(defaultValue))]
-		T? BindJson<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>
-			(JsonValue? value, T? defaultValue = default);
-
-		/// <summary>Binds a JSON object into the corresponding CLR type</summary>
-		/// <exception cref="JsonBindingException">If the object cannot be bound to the specified type.</exception>
-		object? BindJsonObject(
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]Type? type,
-			JsonObject? value);
-
-		/// <summary>Binds a JSON array into the corresponding CLR type</summary>
-		/// <exception cref="JsonBindingException">If the array cannot be bound to the specified type.</exception>
-		object? BindJsonArray(
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
-			Type? type,
-			JsonArray? array);
+		/// <summary>Returns the type definition for the specified type</summary>
+		/// <typeparam name="T">Type to inspect</typeparam>
+		/// <param name="definition">Receives the definition for this type, if it is known by this resolver</param>
+		/// <returns><c>true</c> if the resolver can handle this type; otherwise, <c>false</c></returns>
+		bool TryResolveTypeDefinition<T>([MaybeNullWhen(false)] out CrystalJsonTypeDefinition definition);
 
 	}
 

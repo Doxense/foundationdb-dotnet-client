@@ -32,6 +32,7 @@ namespace Doxense.Serialization.Json
 	[DebuggerDisplay("JSON Boolean({m_value})")]
 	[DebuggerNonUserCode]
 	[PublicAPI]
+	[System.Text.Json.Serialization.JsonConverter(typeof(CrystalJsonCustomJsonConverter))]
 	public sealed class JsonBoolean : JsonValue, IEquatable<bool>, IEquatable<JsonBoolean>, IComparable<JsonBoolean>
 	{
 
@@ -70,14 +71,11 @@ namespace Doxense.Serialization.Json
 		public override bool IsReadOnly => true; //note: booleans are immutable
 
 		/// <inheritdoc />
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public override object ToObject() => m_value;
 
 		/// <inheritdoc />
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
-		public override TValue? Bind<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TValue>
-			(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null) where TValue : default
+		public override TValue? Bind<TValue>(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null)
+			where TValue : default
 		{
 			#region <JIT_HACK>
 			// pattern recognized and optimized by the JIT, only in Release build
@@ -114,10 +112,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
-		public override object? Bind(
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type? type,
-			ICrystalJsonTypeResolver? resolver = null)
+		public override object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null)
 			=> BindNative(this, m_value, type, resolver);
 
 		/// <inheritdoc />
@@ -141,10 +136,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
-		public override bool ValueEquals<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TValue>
-			(TValue? value, IEqualityComparer<TValue>? comparer = null) where TValue : default
+		public override bool ValueEquals<TValue>(TValue? value, IEqualityComparer<TValue>? comparer = null) where TValue : default
 		{
 			if (default(TValue) is null)
 			{
@@ -251,9 +243,9 @@ namespace Doxense.Serialization.Json
 
 #endif
 
-		public override float ToSingle(float _ = default) => m_value ? 1f : 0f;
+		public override float ToSingle(float _ = 0f) => m_value ? 1f : 0f;
 
-		public override double ToDouble(double _ = default) => m_value ? 1d : 0d;
+		public override double ToDouble(double _ = 0d) => m_value ? 1d : 0d;
 
 
 #if NET8_0_OR_GREATER
@@ -264,7 +256,7 @@ namespace Doxense.Serialization.Json
 		public override Half ToHalf(Half _ = default) => m_value ? HalfOne : HalfZero;
 #endif
 
-		public override decimal ToDecimal(decimal _ = default) => m_value ? 1m : 0m;
+		public override decimal ToDecimal(decimal _ = 0m) => m_value ? 1m : 0m;
 
 		private static readonly Guid AllF = new(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 });
 

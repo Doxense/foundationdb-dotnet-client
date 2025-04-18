@@ -32,6 +32,7 @@ namespace Doxense.Serialization.Json
 	using System.Runtime.InteropServices;
 	using Doxense.Linq;
 
+	[PublicAPI]
 	public static class JsonSerializerExtensions
 	{
 
@@ -411,7 +412,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (items.Length == 0)
 			{
-				return (settings.IsReadOnly()) ? JsonArray.ReadOnly.Empty : new ();
+				return (settings.IsReadOnly()) ? JsonArray.ReadOnly.Empty : new();
 			}
 
 			var arr = new JsonArray();
@@ -916,24 +917,53 @@ namespace Doxense.Serialization.Json
 			return arr;
 		}
 
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackSpan<TValue>(ReadOnlySpan<TValue> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray JsonPackSpan<TValue>(ReadOnlySpan<TValue> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			return JsonArray.FromValues<TValue>(items, settings, resolver);
+		}
+
+		/// <summary>Pack a span of items that implements <see cref="IJsonPackable"/></summary>
+		public static JsonArray JsonPackSpanPackable<TValue>(ReadOnlySpan<TValue> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+			where TValue : IJsonPackable
+		{
+			settings ??= CrystalJsonSettings.Json;
+			resolver ??= CrystalJson.DefaultResolver;
+			if (items.Length == 0) return settings.ReadOnly ? JsonArray.ReadOnly.Empty : [ ];
+
+			var buffer = new JsonValue[items.Length];
+			for (int i = 0; i < items.Length; i++)
+			{
+				buffer[i] = items[i]?.JsonPack(settings, resolver) ?? JsonNull.Null;
+			}
+			return new(buffer, items.Length, settings.ReadOnly);
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
 		public static JsonArray? JsonPackArray<TValue>(TValue[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
-			if (items == null) return null;
-			return JsonArray.FromValues<TValue>(new ReadOnlySpan<TValue>(items), settings, resolver);
+			return items is not null ? JsonArray.FromValues<TValue>(new ReadOnlySpan<TValue>(items), settings, resolver) : null;
+		}
+
+		/// <summary>Pack an array of items that implements <see cref="IJsonPackable"/></summary>
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? JsonPackArrayPackable<TValue>(TValue[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+			where TValue : IJsonPackable
+		{
+			return items is not null ? JsonPackSpanPackable<TValue>(new ReadOnlySpan<TValue>(items), settings, resolver) : null;
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
 		public static JsonArray? JsonPackList<TValue>(List<TValue>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
-			if (items == null) return null;
-			return JsonArray.FromValues<TValue>(CollectionsMarshal.AsSpan(items), settings, resolver);
+			return items is not null ? JsonArray.FromValues<TValue>(CollectionsMarshal.AsSpan(items), settings, resolver) : null;
+		}
+
+		/// <summary>Pack a list of items that implements <see cref="IJsonPackable"/></summary>
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? JsonPackListPackable<TValue>(List<TValue>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+			where TValue : IJsonPackable
+		{
+			return items is not null ? JsonPackSpanPackable<TValue>(CollectionsMarshal.AsSpan(items), settings, resolver) : null;
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
@@ -941,6 +971,32 @@ namespace Doxense.Serialization.Json
 		{
 			if (items == null) return null;
 			return JsonArray.FromValues(items, settings, resolver);
+		}
+
+		/// <summary>Pack a sequence of items that implements <see cref="IJsonPackable"/></summary>
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? JsonPackEnumerablePackable<TValue>(IEnumerable<TValue>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+			where TValue : IJsonPackable
+		{
+			if (items == null) return null;
+			if (Buffer<TValue>.TryGetSpan(items, out var span))
+			{
+				return JsonPackSpanPackable(span, settings, resolver);
+			}
+
+			return PackEnumerable(items, settings, resolver);
+
+			static JsonArray PackEnumerable(IEnumerable<TValue> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+			{
+				settings ??= CrystalJsonSettings.Json;
+				resolver ??= CrystalJson.DefaultResolver;
+				var arr = new JsonArray(items.TryGetNonEnumeratedCount(out var count) ? count : 0);
+				foreach (var item in items)
+				{
+					arr.Add(item?.JsonPack(settings, resolver) ?? JsonNull.Null);
+				}
+				return settings.ReadOnly ? arr.FreezeUnsafe() : arr;
+			}
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]

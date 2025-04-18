@@ -26,13 +26,16 @@
 
 // ReSharper disable RedundantTypeArgumentsOfMethod
 
+#pragma warning disable IL2087 // Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The generic parameter of the source method or type does not have matching annotations.
+
 namespace Doxense.Serialization.Json
 {
+	using System.Buffers;
 	using System.Collections;
 	using System.Collections.Generic;
 	using System.Collections.Immutable;
 	using System.ComponentModel;
-	using System.Buffers;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Reflection;
 	using System.Runtime.InteropServices;
 	using System.Text;
@@ -46,6 +49,7 @@ namespace Doxense.Serialization.Json
 	[DebuggerTypeProxy(typeof(DebugView))]
 	[DebuggerNonUserCode]
 	[PublicAPI]
+	[System.Text.Json.Serialization.JsonConverter(typeof(CrystalJsonCustomJsonConverter))]
 #if NET9_0_OR_GREATER
 	[CollectionBuilder(typeof(JsonArray), nameof(JsonArray.Create))]
 #endif
@@ -972,7 +976,7 @@ namespace Doxense.Serialization.Json
 			// JsonArray
 			if (values is JsonArray jArr)
 			{ // optimized
-				return AddRange(jArr.GetSpan()!);
+				return AddRange(jArr.GetSpan());
 			}
 
 			// Regular Array
@@ -1085,7 +1089,7 @@ namespace Doxense.Serialization.Json
 			// JsonArray
 			if (values is JsonArray jArr)
 			{ // optimized
-				return AddRangeReadOnly(jArr.GetSpan()!);
+				return AddRangeReadOnly(jArr.GetSpan());
 			}
 
 			if (Buffer<JsonValue?>.TryGetSpan(values, out var span))
@@ -2833,7 +2837,6 @@ namespace Doxense.Serialization.Json
 		/// <summary>Converts this <see cref="JsonArray">JSON Array</see> with a <see cref="List{T}">List&lt;object?></see>.</summary>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public override object ToObject()
 		{
 			//TODO: detect when all items have the same type T,
@@ -2848,15 +2851,18 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
-		public override object? Bind(
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
-			Type? type,
-			ICrystalJsonTypeResolver? resolver = null
-		)
+		public override object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null)
 		{
 			//note: we cannot use JIT optimization here, because the type will usually be an array or list of value types, which itself is not a value type.
-			return (resolver ?? CrystalJson.DefaultResolver).BindJsonArray(type, this);
+			if (resolver is not null && !ReferenceEquals(resolver, CrystalJson.DefaultResolver))
+			{
+				if (!resolver.TryGetConverterFor(type ?? typeof(object), out var converter))
+				{
+					throw new NotSupportedException(); //TODO: error message!
+				}
+				return converter.BindJsonValue(this, resolver);
+			}
+			return CrystalJson.DefaultResolver.BindJsonArray(type, this);
 		}
 
 		/// <summary>Returns an array of <see cref="JsonValue"/> with the same items as this <see cref="JsonArray"/></summary>
@@ -2941,6 +2947,40 @@ namespace Doxense.Serialization.Json
 			for (int i = 0; i < result.Length; i++)
 			{
 				result[i] = items[i].As(defaultValue, resolver);
+			}
+			return result;
+		}
+
+		/// <summary>Deserializes this array into an array of <typeparamref name="TValue"/>, using a custom decoder</summary>
+		/// <typeparam name="TValue">Type of the deserialized items</typeparam>
+		/// <param name="decoder">Func that is called do decode each element of this array</param>
+		/// <returns>Array of deserialized items</returns>
+		public TValue[] ToArray<TValue>(Func<JsonValue, TValue> decoder)
+		{
+			var items = this.AsSpan();
+			if (items.Length == 0) return [ ];
+			var result = new TValue[items.Length];
+			for (int i = 0; i < result.Length; i++)
+			{
+				result[i] = decoder(items[i]);
+			}
+			return result;
+		}
+
+		/// <summary>Deserializes this array into an array of <typeparamref name="TValue"/></summary>
+		/// <typeparam name="TValue">Type of the deserialized items, which implements <see cref="IJsonDeserializable{TSelf}"/></typeparam>
+		/// <returns>Array of deserialized items</returns>
+		public TValue[] ToArrayDeserializable<TValue>(ICrystalJsonTypeResolver? resolver = null)
+			where TValue : IJsonDeserializable<TValue>
+		{
+			var items = this.AsSpan();
+			if (items.Length == 0) return [ ];
+
+			resolver ??= CrystalJson.DefaultResolver;
+			var result = new TValue[items.Length];
+			for (int i = 0; i < result.Length; i++)
+			{
+				result[i] = TValue.JsonDeserialize(items[i], resolver);
 			}
 			return result;
 		}
@@ -3308,29 +3348,56 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Returns a <see cref="List{T}"/> with the transformed elements of this array</summary>
-		/// <param name="transform">Transformation that is applied on each element of the array</param>
-		/// <returns>A list of all elements that have been converted <paramref name="transform"/></returns>
+		/// <param name="decoder">Func that is called do decode each element of this array</param>
+		/// <returns>A list of all elements that have been converted <paramref name="decoder"/></returns>
 		[Pure]
-		public List<TValue> ToList<TValue>([InstantHandle] Func<JsonValue, TValue> transform)
+		public List<TValue> ToList<TValue>([InstantHandle] Func<JsonValue, TValue> decoder)
 		{
-			Contract.NotNull(transform);
+			Contract.NotNull(decoder);
 			var items = this.AsSpan();
-			var list = new List<TValue>(items.Length);
+			var result = new List<TValue>(items.Length);
 #if NET8_0_OR_GREATER
 			// update the list in-place
-			CollectionsMarshal.SetCount(list, m_size);
-			var tmp = CollectionsMarshal.AsSpan(list);
+			CollectionsMarshal.SetCount(result, m_size);
+			var tmp = CollectionsMarshal.AsSpan(result);
 			for (int i = 0; i < items.Length; i++)
 			{
-				tmp[i] = transform(items[i]);
+				tmp[i] = decoder(items[i]);
 			}
 #else
 			foreach(var item in items)
 			{
-				list.Add(transform(item));
+				result.Add(decoder(item));
 			}
 #endif
-			return list;
+			return result;
+		}
+
+		/// <summary>Deserializes this array into an array of <typeparamref name="TValue"/></summary>
+		/// <typeparam name="TValue">Type of the deserialized items, which implements <see cref="IJsonDeserializable{TSelf}"/></typeparam>
+		/// <returns>Array of deserialized items</returns>
+		public List<TValue> ToListDeserializable<TValue>(ICrystalJsonTypeResolver? resolver = null)
+			where TValue : IJsonDeserializable<TValue>
+		{
+			var items = this.AsSpan();
+			if (items.Length == 0) return [ ];
+
+			var result = new List<TValue>(items.Length);
+#if NET8_0_OR_GREATER
+			// update the list in-place
+			CollectionsMarshal.SetCount(result, m_size);
+			var tmp = CollectionsMarshal.AsSpan(result);
+			for (int i = 0; i < items.Length; i++)
+			{
+				tmp[i] = TValue.JsonDeserialize(items[i], resolver);
+			}
+#else
+			foreach(var item in items)
+			{
+				result.Add(TValue.JsonDeserialize(items[i], resolver));
+			}
+#endif
+			return result;
 		}
 
 		/// <summary>Converts this <see cref="JsonArray">JSON Array</see> so that it, or any of its children that were previously read-only, can be mutated.</summary>
@@ -3662,13 +3729,85 @@ namespace Doxense.Serialization.Json
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public ImmutableList<TValue?> ToImmutableList<TValue>(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null)
 		{
+			var items = this.AsSpan();
+			if (items.Length == 0) return [ ];
+
 			resolver ??= CrystalJson.DefaultResolver;
-			var list = ImmutableList.CreateBuilder<TValue?>();
-			foreach (var item in this.AsSpan())
+			var result = ImmutableList.CreateBuilder<TValue?>();
+			foreach (var item in items)
 			{
-				list.Add(item.As<TValue?>(default, resolver));
+				result.Add(item.As<TValue?>(default, resolver));
 			}
-			return list.ToImmutable();
+			return result.ToImmutable();
+		}
+
+		/// <summary>Deserializes this array into an immutable array of <typeparamref name="TValue"/>, using a custom decoder</summary>
+		/// <typeparam name="TValue">Type of the deserialized items</typeparam>
+		/// <param name="decoder">Func that is called do decode each element of this array</param>
+		/// <returns>Immutable array of deserialized items</returns>
+		public ImmutableList<TValue> ToImmutableList<TValue>(Func<JsonValue, TValue> decoder)
+		{
+			var items = this.AsSpan();
+			if (items.Length == 0) return [ ];
+
+			var result = ImmutableList.CreateBuilder<TValue>();
+			foreach (var item in items)
+			{
+				result.Add(decoder(item));
+			}
+			return result.ToImmutableList();
+		}
+
+		/// <summary>Deserializes this <see cref="JsonArray">JSON Array</see> into an <see cref="ImmutableList{TValue}"/></summary>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		public ImmutableArray<TValue?> ToImmutableArray<TValue>(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null)
+		{
+			resolver ??= CrystalJson.DefaultResolver;
+			var items = AsSpan();
+			switch (items.Length)
+			{
+				case 0: return [ ];
+				case 1: return ImmutableArray.Create<TValue?>(items[0].As<TValue?>(defaultValue, resolver));
+				case 2: return ImmutableArray.Create<TValue?>(items[0].As<TValue?>(defaultValue, resolver), items[1].As<TValue?>(defaultValue, resolver));
+				case 3: return ImmutableArray.Create<TValue?>(items[0].As<TValue?>(defaultValue, resolver), items[1].As<TValue?>(defaultValue, resolver), items[2].As<TValue?>(defaultValue, resolver));
+				case 4: return ImmutableArray.Create<TValue?>(items[0].As<TValue?>(defaultValue, resolver), items[1].As<TValue?>(defaultValue, resolver), items[2].As<TValue?>(defaultValue, resolver), items[3].As<TValue?>(defaultValue, resolver));
+				default:
+				{
+					var list = ImmutableArray.CreateBuilder<TValue?>(items.Length);
+					foreach (var item in items)
+					{
+						list.Add(item.As<TValue?>(defaultValue, resolver));
+					}
+					return list.ToImmutable();
+				}
+			}
+
+		}
+
+		/// <summary>Deserializes this array into an immutable array of <typeparamref name="TValue"/>, using a custom decoder</summary>
+		/// <typeparam name="TValue">Type of the deserialized items</typeparam>
+		/// <param name="decoder">Func that is called do decode each element of this array</param>
+		/// <returns>Immutable array of deserialized items</returns>
+		public ImmutableArray<TValue> ToImmutableArray<TValue>(Func<JsonValue, TValue> decoder)
+		{
+			var items = this.AsSpan();
+			switch (items.Length)
+			{
+				case 0: return [ ];
+				case 1: return ImmutableArray.Create<TValue>(decoder(items[0]));
+				case 2: return ImmutableArray.Create<TValue>(decoder(items[0]), decoder(items[1]));
+				case 3: return ImmutableArray.Create<TValue>(decoder(items[0]), decoder(items[1]), decoder(items[2]));
+				case 4: return ImmutableArray.Create<TValue>(decoder(items[0]), decoder(items[1]), decoder(items[2]), decoder(items[3]));
+				default:
+				{
+					var result = ImmutableArray.CreateBuilder<TValue>(items.Length);
+					foreach (var item in items)
+					{
+						result.Add(decoder(item));
+					}
+					return result.ToImmutableArray();
+				}
+			}
 		}
 
 		/// <summary>Tests if there is at least one element in the array</summary>
@@ -3875,13 +4014,15 @@ namespace Doxense.Serialization.Json
 		/// <summary>Compute the delta between this array and a different version, in order to produce a patch that contains the instruction to go from this instance to the new version</summary>
 		/// <param name="after">New version of the array</param>
 		/// <param name="deepCopy">If <see langword="true"/>, create a copy of all mutable elements before adding them to the resulting patch.</param>
+		/// <param name="readOnly">If <see langword="true"/>, the resulting patch will be read-only</param>
 		/// <returns>Value that can be passed to <see cref="ApplyPatch"/> in order to transform this array into <paramref name="after"/>.</returns>
 		/// <remarks>The patch produced is not marked as immutable. The caller should call <see cref="Freeze"/> on the result if immutability is required.</remarks>
-		public JsonValue ComputePatch(JsonArray after, bool deepCopy = false)
+		public JsonValue ComputePatch(JsonArray after, bool deepCopy = false, bool readOnly = false)
 		{
 			if (this.Count == 0)
 			{ // all items added
-				return deepCopy ? after.Copy() : after;
+				var value = deepCopy ? after.Copy() : after;
+				return readOnly ? value.ToReadOnly() : value;
 			}
 			if (after.Count == 0)
 			{ // all items removed
@@ -3908,13 +4049,13 @@ namespace Doxense.Serialization.Json
 				{
 					case (JsonObject a, JsonObject b):
 					{ // compute object patch
-						var diff = a.ComputePatch(b, deepCopy);
+						var diff = a.ComputePatch(b, deepCopy, readOnly);
 						patch[StringConverters.ToString(i)] = diff;
 						break;
 					}
 					case (JsonArray a, JsonArray b):
 					{ // compute array patch
-						var diff = a.ComputePatch(b, deepCopy);
+						var diff = a.ComputePatch(b, deepCopy, readOnly);
 						patch[StringConverters.ToString(i)] = diff;
 						break;
 					}
@@ -3929,10 +4070,20 @@ namespace Doxense.Serialization.Json
 					}
 					default:
 					{ // overwrite with new value
-						patch[StringConverters.ToString(i)] = deepCopy ? right.Copy() : right;
+						var value = deepCopy ? right.Copy() : right;
+						if (readOnly)
+						{
+							value = value.ToReadOnly();
+						}
+						patch[StringConverters.ToString(i)] = value;
 						break;
 					}
 				}
+			}
+
+			if (readOnly)
+			{
+				patch.FreezeUnsafe();
 			}
 
 			return patch;
@@ -4330,11 +4481,8 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public override bool ValueEquals<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TCollection>
-			(TCollection? value, IEqualityComparer<TCollection>? comparer = null)
+		public override bool ValueEquals<TCollection>(TCollection? value, IEqualityComparer<TCollection>? comparer = null)
 			where TCollection : default
 		{
 			// we will attempt to optimize for some of the most common array and list types,
@@ -4385,7 +4533,7 @@ namespace Doxense.Serialization.Json
 				return ValueEqualsSlow(this, value!, comparer);
 			}
 
-			static bool ValueEqualsSlow([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.NonPublicMethods)] JsonArray self, TCollection value, IEqualityComparer<TCollection>? comparer)
+			static bool ValueEqualsSlow(JsonArray self, TCollection value, IEqualityComparer<TCollection>? comparer)
 			{
 				var type = typeof(TCollection);
 				if (type.IsEnumerableType(out var itemType))
@@ -4528,11 +4676,8 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Tests if the elements of this array are equal to the elements of the specified span, using the strict JSON comparison semantics</summary>
 		[Pure]
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		[OverloadResolutionPriority(1)]
-		public bool ValuesEqual<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TValue>
-			(ReadOnlySpan<TValue> items)
+		public bool ValuesEqual<TValue>(ReadOnlySpan<TValue> items)
 		{
 			var span = AsSpan();
 			if (span.Length != items.Length) return false;
@@ -4553,7 +4698,6 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Tests if the elements of this array are equal to the elements of the specified sequence, using the strict JSON comparison semantics</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public bool ValuesEqual<TValue>(IEnumerable<TValue>? items)
 		{
 			if (items is null) return false;
@@ -4561,7 +4705,6 @@ namespace Doxense.Serialization.Json
 			if (Buffer<TValue>.TryGetSpan(items, out var xs)) return ValuesEqual<TValue>(xs);
 			return ValueEqualsEnumerable(AsSpan(), items);
 
-			[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 			static bool ValueEqualsEnumerable(ReadOnlySpan<JsonValue> values, IEnumerable<TValue> items)
 			{
 				int p = 0;
@@ -4723,14 +4866,14 @@ namespace Doxense.Serialization.Json
 		/// <returns>A <see cref="JsonArray" /> that contains elements from the input span.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray ToJsonArray([InstantHandle] this ReadOnlySpan<JsonValue> source)
-			=> new JsonArray().AddRange(source!);
+			=> new JsonArray().AddRange(source);
 
 		/// <summary>Creates a <see cref="JsonArray"/> from a span.</summary>
 		/// <param name="source">The <see cref="T:System.ReadOnlySpan`1" /> to create a <see cref="JsonArray" /> from.</param>
 		/// <returns>A <see cref="JsonArray" /> that contains elements from the input span.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray ToJsonArray([InstantHandle] this Span<JsonValue> source)
-			=> new JsonArray().AddRange(source!);
+			=> new JsonArray().AddRange(source);
 
 		/// <summary>Creates a <see cref="JsonArray"/> from an array.</summary>
 		/// <param name="source">The array to create a <see cref="JsonArray" /> from.</param>
@@ -4828,14 +4971,14 @@ namespace Doxense.Serialization.Json
 		/// <returns>A read-only <see cref="JsonArray" /> that contains elements from the input span.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray ToJsonArrayReadOnly(this ReadOnlySpan<JsonValue> source)
-			=> new JsonArray().AddRangeReadOnly(source!).FreezeUnsafe();
+			=> new JsonArray().AddRangeReadOnly(source).FreezeUnsafe();
 
 		/// <summary>Creates a read-only <see cref="JsonArray"/> from a span.</summary>
 		/// <param name="source">The <see cref="T:System.ReadOnlySpan`1" /> to create a <see cref="JsonArray" /> from.</param>
 		/// <returns>A read-only <see cref="JsonArray" /> that contains elements from the input span.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonArray ToJsonArrayReadOnly(this Span<JsonValue> source)
-			=> new JsonArray().AddRangeReadOnly(source!).FreezeUnsafe();
+			=> new JsonArray().AddRangeReadOnly(source).FreezeUnsafe();
 
 		/// <summary>Creates a read-only <see cref="JsonArray"/> from an array.</summary>
 		/// <param name="source">The array to create a <see cref="JsonArray" /> from.</param>
@@ -5017,6 +5160,7 @@ namespace Doxense.Serialization.Json
 	}
 
 	/// <summary>Wrapper for a <see cref="JsonArray"/> that casts each element into a required <typeparamref name="TValue"/>.</summary>
+	[PublicAPI]
 	public readonly struct JsonArray<TValue> : IReadOnlyList<TValue>
 		where TValue : notnull
 	{
@@ -5155,6 +5299,7 @@ namespace Doxense.Serialization.Json
 	}
 
 	/// <summary>Wrapper for a <see cref="JsonArray"/> that casts each element into an optional <typeparamref name="TValue"/>.</summary>
+	[PublicAPI]
 	public readonly struct JsonArrayOrDefault<TValue> : IReadOnlyList<TValue?>
 	{
 		//note: this is to convert JsonValue into JsonArray, JsonObject, JsonType, ...

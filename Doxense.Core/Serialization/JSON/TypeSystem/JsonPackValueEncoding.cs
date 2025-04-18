@@ -34,7 +34,7 @@ namespace Doxense.Serialization.Encoders
 
 		public static JsonPackValueEncoding Instance { get; } = new(null, null);
 
-		public JsonPackValueEncoding(CrystalJsonSettings? settings, CrystalJsonTypeResolver? resolver)
+		public JsonPackValueEncoding(CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			this.Settings = settings ?? CrystalJsonSettings.JsonCompact;
 			this.Resolver = resolver ?? CrystalJson.DefaultResolver;
@@ -42,7 +42,7 @@ namespace Doxense.Serialization.Encoders
 
 		public CrystalJsonSettings Settings { get; }
 
-		public CrystalJsonTypeResolver Resolver { get; }
+		public ICrystalJsonTypeResolver Resolver { get; }
 
 		IValueEncoder<TValue, TStorage> IValueEncoding.GetValueEncoder<TValue, TStorage>()
 		{
@@ -74,9 +74,9 @@ namespace Doxense.Serialization.Encoders
 
 		public CrystalJsonSettings Settings { get; }
 
-		public CrystalJsonTypeResolver Resolver { get; }
+		public ICrystalJsonTypeResolver Resolver { get; }
 
-		public JsonPackValueEncoder(CrystalJsonSettings? settings, CrystalJsonTypeResolver? resolver)
+		public JsonPackValueEncoder(CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			this.Settings = settings ?? CrystalJsonSettings.JsonCompact;
 			this.Resolver = resolver ?? CrystalJson.DefaultResolver;

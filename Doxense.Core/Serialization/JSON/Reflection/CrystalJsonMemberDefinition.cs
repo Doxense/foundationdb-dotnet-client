@@ -26,7 +26,18 @@
 
 namespace Doxense.Serialization.Json
 {
-	using System.Reflection;
+	[Flags]
+	public enum CrystalJsonMemberFlags
+	{
+		None = 0,
+		SourceGenerated = 1 << 0,
+		NotNull = 1 << 1,
+		NonZeroDefault = 1 << 2,
+		ReadOnly = 1 << 3,
+		InitOnly = 1 << 4,
+		Required = 1 << 5,
+		Key = 1 << 6,
+	}
 
 	/// <summary>Structure that holds the cached serialization metadata for a field or property of a class or struct</summary>
 	[DebuggerDisplay("Name={Name}, Type={Type}")]
@@ -35,7 +46,6 @@ namespace Doxense.Serialization.Json
 	{
 
 		/// <summary>Declared type of the member</summary>
-		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
 		public required Type Type { get; init; }
 
 		/// <summary>Name of the member</summary>
@@ -45,21 +55,21 @@ namespace Doxense.Serialization.Json
 		/// <remarks>Represent the original name in the c# code, while <see cref="Name"/> is the name in the JSON object</remarks>
 		public required string OriginalName { get; init; }
 
+		/// <summary>Flags for this member</summary>
+		/// <returns>The flags are used by the various helper properties like <see cref="IsReadOnly"/>, <see cref="IsReadOnly"/> and so on</returns>
+		public required CrystalJsonMemberFlags Flags { get; init; }
+
 		/// <summary>Optional <see cref="JsonPropertyAttribute"/> attribute that was applied to this member</summary>
 		public JsonPropertyAttribute? Attributes { get; init; }
-
-		/// <summary>Original <see cref="PropertyInfo"/> or <see cref="FieldInfo"/> of the member in its declaring type</summary>
-		public required MemberInfo Member { get; init; }
+		//REVIEW: this is only used by the writer to "remember" how to format enums inside a Dictionary (attribute set on the property that holds the dictionary)
+		//TODO: get rid of this, and expose the settings directly on this type?
 
 		/// <summary>If <see langword="true"/>, the field has a <see cref="DefaultValue"/> that is not the default for this type.</summary>
 		/// <remarks>This is <see langword="false"/> if the default is <see langword="null"/>, <see langword="false"/>, <see langword="0"/>, etc...</remarks>
-		public bool HasDefaultValue { get; init; }
+		public bool HasDefaultValue => this.Flags.HasFlag(CrystalJsonMemberFlags.NonZeroDefault);
 
 		/// <summary>Default value for this member (when it is missing)</summary>
 		public object? DefaultValue { get; init; }
-
-		/// <summary>Flag set to <see langword="true"/> when the member is read-only or init-only</summary>
-		public bool ReadOnly { get; init; }
 
 		/// <summary>Func that can return the value of this member in an instance of the containing type</summary>
 		public required Func<object, object?> Getter { get; init; }
@@ -87,6 +97,40 @@ namespace Doxense.Serialization.Json
 		/// </code></remarks>
 		public Type? NullableOfType { get; init; }
 
+		/// <summary>Flag set to <see langword="true"/> when the member is read-only or init-only</summary>
+		public bool IsReadOnly  => this.Flags.HasFlag(CrystalJsonMemberFlags.ReadOnly);
+
+		/// <summary>The member has the required keyword and cannot be null</summary>
+		/// <remarks>Examples: <code>
+		/// int Foo { get; ... }              // IsRequired == false
+		/// string Foo { get; ... }           // IsRequired == false
+		/// required string? Foo { get; ... } // IsRequired == false
+		/// 
+		/// required int Foo { get; ... }     // IsRequired == true
+		/// required string Foo { get; ... }  // IsRequired == true
+		/// </code></remarks>
+		public bool IsRequired => this.Flags.HasFlag(CrystalJsonMemberFlags.Required);
+
+		/// <summary>The member has the <see cref="System.ComponentModel.DataAnnotations.KeyAttribute"/> attribute</summary>
+		/// <remarks>Examples: <code>
+		/// int Id { get; ... } // IsKey == false
+		/// 
+		/// [Key]
+		/// int Id { get; ... } // IsKey == true
+		/// </code></remarks>
+		public bool IsKey => this.Flags.HasFlag(CrystalJsonMemberFlags.Key);
+
+		/// <summary>The member is a read-only field, or a property with an init-only setter</summary>
+		/// <remarks>Examples: <code>
+		/// int Id;               // IsInitOnly == false
+		/// int Id { get; set; }  // IsInitOnly == false
+		/// int Id { get; }       // IsInitOnly == false
+		/// 
+		/// readonly int Id;      // IsInitOnly == true
+		/// int Id { get; init; } // IsInitOnly == true
+		/// </code></remarks>
+		public bool IsInitOnly => this.Flags.HasFlag(CrystalJsonMemberFlags.InitOnly);
+
 		/// <summary>The member cannot be null, or is annotated with <see cref="System.Diagnostics.CodeAnalysis.NotNullAttribute"/></summary>
 		/// <remarks>Examples: <code>
 		/// int Foo { get; ... }     // IsNotNull == true
@@ -94,7 +138,7 @@ namespace Doxense.Serialization.Json
 		/// string Foo { get; ... }  // IsNotNull == true
 		/// string? Foo { get; ... } // IsNotNull == false
 		/// </code></remarks>
-		public bool IsNotNull { get; init; }
+		public bool IsNotNull  => this.Flags.HasFlag(CrystalJsonMemberFlags.NotNull);
 
 		/// <summary>The member if a reference type that is declared as nullable in its parent type</summary>
 		/// <remarks>Examples: <code>
@@ -115,37 +159,6 @@ namespace Doxense.Serialization.Json
 		public bool IsNullableValueType => this.NullableOfType != null;
 
 		public bool IsNonNullableValueType => this.NullableOfType == null && this.Type.IsValueType;
-
-		/// <summary>The member has the required keyword and cannot be null</summary>
-		/// <remarks>Examples: <code>
-		/// int Foo { get; ... }              // IsRequired == false
-		/// string Foo { get; ... }           // IsRequired == false
-		/// required string? Foo { get; ... } // IsRequired == false
-		/// 
-		/// required int Foo { get; ... }     // IsRequired == true
-		/// required string Foo { get; ... }  // IsRequired == true
-		/// </code></remarks>
-		public bool IsRequired { get; init; }
-
-		/// <summary>The member has the <see cref="System.ComponentModel.DataAnnotations.KeyAttribute"/> attribute</summary>
-		/// <remarks>Examples: <code>
-		/// int Id { get; ... } // IsKey == false
-		/// 
-		/// [Key]
-		/// int Id { get; ... } // IsKey == true
-		/// </code></remarks>
-		public bool IsKey { get; init; }
-
-		/// <summary>The member is a read-only field, or a property with an init-only setter</summary>
-		/// <remarks>Examples: <code>
-		/// int Id;               // IsInitOnly == false
-		/// int Id { get; set; }  // IsInitOnly == false
-		/// int Id { get; }       // IsInitOnly == false
-		/// 
-		/// readonly int Id;      // IsInitOnly == true
-		/// int Id { get; init; } // IsInitOnly == true
-		/// </code></remarks>
-		public bool IsInitOnly { get; init; }
 
 	}
 

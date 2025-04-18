@@ -33,6 +33,7 @@ namespace Doxense.Serialization.Json
 	[DebuggerDisplay("JSON Null({m_kind})")]
 	[DebuggerNonUserCode]
 	[PublicAPI]
+	[System.Text.Json.Serialization.JsonConverter(typeof(CrystalJsonCustomJsonConverter))]
 	public sealed class JsonNull : JsonValue, IEquatable<JsonNull>
 	{
 		internal enum NullKind
@@ -73,7 +74,7 @@ namespace Doxense.Serialization.Json
 		public override string? ToStringOrDefault(string? defaultValue = null) => defaultValue;
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		internal static object? ValueTypeDefault([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type type)
+		internal static object? ValueTypeDefault(Type type)
 		{
 			// we can only return singletons for immutable "struct" values
 			if (type == typeof(int)) return BoxedZeroInt32;
@@ -92,14 +93,11 @@ namespace Doxense.Serialization.Json
 		public override JsonType Type => JsonType.Null;
 
 		/// <inheritdoc />
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public override object? ToObject() => null;
 
 		/// <inheritdoc />
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
-		public override TValue? Bind<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TValue>
-			(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null) where TValue : default
+		public override TValue? Bind<TValue>(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null)
+			where TValue : default
 		{
 			if (default(TValue) is null && (typeof(TValue) == typeof(JsonValue) || typeof(TValue) == typeof(JsonNull)))
 			{
@@ -109,10 +107,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
-		public override object? Bind(
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type? type,
-			ICrystalJsonTypeResolver? resolver = null)
+		public override object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null)
 		{
 			// If we bind to JsonValue (or JsonNull), we must keep the same singleton (JsonNull.Null, JsonNull.Missing, ...)
 			if (type == typeof(JsonValue) || type == typeof(JsonNull))
@@ -354,10 +349,8 @@ namespace Doxense.Serialization.Json
 		public bool StrictEquals(JsonNull? other) => other is not null && other.m_kind == m_kind;
 
 		/// <inheritdoc />
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
-		public override bool ValueEquals<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TValue>
-			(TValue? value, IEqualityComparer<TValue>? comparer = null) where TValue : default
+		public override bool ValueEquals<TValue>(TValue? value, IEqualityComparer<TValue>? comparer = null)
+			where TValue : default
 		{
 			if (default(TValue) is null)
 			{

@@ -43,7 +43,7 @@ namespace Doxense.Serialization.Json
 		public JsonWritableProxyDictionary(MutableJsonValue value, IJsonConverter<TValue>? converter = null, IJsonProxyNode? parent = null, JsonPathSegment segment = default)
 		{
 			m_value = value;
-			m_converter = converter ?? RuntimeJsonConverter<TValue>.Default;
+			m_converter = converter ?? CrystalJsonTypeResolver.GetConverterFor<TValue>();
 		}
 
 		/// <inheritdoc />
@@ -97,7 +97,7 @@ namespace Doxense.Serialization.Json
 			}
 			foreach (var kv in obj)
 			{
-				array[arrayIndex++] = new(kv.Key, m_converter.Unpack(kv.Value));
+				array[arrayIndex++] = new(kv.Key, m_converter.Unpack(kv.Value, null));
 			}
 		}
 
@@ -136,10 +136,22 @@ namespace Doxense.Serialization.Json
 		public void Add(string key, TValue value) => m_value.Add(key, m_converter.Pack(value));
 
 		/// <inheritdoc />
+		public void Add(ReadOnlyMemory<char> key, TValue value) => m_value.Add(key, m_converter.Pack(value, CrystalJsonSettings.JsonReadOnly));
+
+		/// <inheritdoc />
 		public bool ContainsKey(string key) => m_value.ContainsKey(key);
 
 		/// <inheritdoc />
+		public bool ContainsKey(ReadOnlyMemory<char> key) => m_value.ContainsKey(key);
+
+		/// <inheritdoc />
+		public bool ContainsKey(ReadOnlySpan<char> key) => m_value.ContainsKey(key);
+
+		/// <inheritdoc />
 		public bool Remove(string key) => m_value.Remove(key);
+
+		/// <inheritdoc />
+		public bool Remove(ReadOnlyMemory<char> key) => m_value.Remove(key);
 
 		/// <inheritdoc />
 		public bool TryGetValue(string key, [MaybeNullWhen(false)] out TValue value)
@@ -150,15 +162,54 @@ namespace Doxense.Serialization.Json
 				return false;
 			}
 
-			value = m_converter.Unpack(json);
+			value = m_converter.Unpack(json, null);
+			return true;
+		}
+
+		/// <inheritdoc />
+		public bool TryGetValue(ReadOnlyMemory<char> key, [MaybeNullWhen(false)] out TValue value)
+		{
+			if (!m_value.Json.TryGetValue(key, out var json))
+			{
+				value = default;
+				return false;
+			}
+
+			value = m_converter.Unpack(json, null);
+			return true;
+		}
+
+		/// <inheritdoc />
+		public bool TryGetValue(ReadOnlySpan<char> key, [MaybeNullWhen(false)] out TValue value)
+		{
+			if (!m_value.Json.TryGetValue(key, out var json))
+			{
+				value = default;
+				return false;
+			}
+
+			value = m_converter.Unpack(json, null);
 			return true;
 		}
 
 		/// <inheritdoc />
 		public TValue this[string key]
 		{
-			get => m_converter.Unpack(m_value.Json[key]);
-			set => m_value.Set(key, m_converter.Pack(value));
+			get => m_converter.Unpack(m_value.Json[key], null);
+			set => m_value.Set(key, m_converter.Pack(value, CrystalJsonSettings.JsonReadOnly));
+		}
+
+		/// <inheritdoc />
+		public TValue this[ReadOnlyMemory<char> key]
+		{
+			get => m_converter.Unpack(m_value.Json[key], null);
+			set => m_value.Set(key, m_converter.Pack(value, CrystalJsonSettings.JsonReadOnly));
+		}
+
+		/// <inheritdoc />
+		public TValue this[ReadOnlySpan<char> key]
+		{
+			get => m_converter.Unpack(m_value.Json[key], null);
 		}
 
 		/// <inheritdoc />
@@ -178,9 +229,9 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_value.Json;
 
-		public Dictionary<string, TValue> ToDictionary() => m_value.Json switch
+		public Dictionary<string, TValue> ToDictionary(IEqualityComparer<string>? keyComparer = null) => m_value.Json switch
 		{
-			JsonObject obj => m_converter.JsonDeserializeDictionary(obj),
+			JsonObject obj => m_converter.JsonDeserializeDictionary(obj, keyComparer),
 			JsonNull => [ ],
 			_ => throw OperationRequiresObjectOrNull(),
 		};
@@ -202,7 +253,7 @@ namespace Doxense.Serialization.Json
 
 			foreach (var kv in obj)
 			{
-				yield return new(kv.Key, m_converter.Unpack(kv.Value));
+				yield return new(kv.Key, m_converter.Unpack(kv.Value, null));
 			}
 		}
 

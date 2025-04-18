@@ -26,7 +26,21 @@
 
 namespace Doxense.Serialization.Json
 {
-	[DebuggerDisplay("Type={Type.Name}, ReqClass={RequiresClassAttribute}, IsAnonymousType={IsAnonymousType}, ClassId={ClassId}")]
+	using System.Collections.Frozen;
+
+	[Flags]
+	public enum CrystalJsonTypeFlags
+	{
+		None = 0,
+		SourceGenerated = 1 << 0,
+		DefaultIsNull = 1 << 1,
+		Polymorphic = 1 << 2,
+		NonConstructible = 1 << 3,
+		Sealed = 1 << 4,
+		Anonymous = 1 << 5,
+	}
+
+	[DebuggerDisplay("Type={Type.FullName}")]
 	[PublicAPI]
 	public sealed record CrystalJsonTypeDefinition
 	{
@@ -34,26 +48,17 @@ namespace Doxense.Serialization.Json
 		/// <summary>Type of the object</summary>
 		public Type Type { get; init; }
 
-		/// <summary>Base type for derived types; otherwise, <see langword="null"/>)</summary>
-		/// <remarks>This should be the top-level class in the type hierarchy, not simply the immediate parent.</remarks>
+		public CrystalJsonTypeFlags Flags { get; init; }
+
 		public Type? BaseType { get; init; }
 
+		public JsonEncodedPropertyName? TypeDiscriminatorProperty { get; init; }
+
 		/// <summary>Custom ClassId for this type</summary>
-		public string? ClassId { get; init; }
+		public JsonValue? TypeDiscriminatorValue { get; init; }
 
-		public bool RequiresClassAttribute { get; init; }
-
-		/// <summary>Specifies if this is an anonymous type that does not have a valid name</summary>
-		/// <remarks>ex: <c>CrystalJson.Serialize(new { "Hello": "World" })</c></remarks>
-		public bool IsAnonymousType { get; init; }
-
-		/// <summary>Specifies if the type cannot possibly be derived (sealed class, or value type)</summary>
-		/// <remarks>If <see langword="false"/>, a type-check will have to be performed during serialization, which add some overhead</remarks>
-		public bool IsSealed { get; init; }
-
-		/// <summary>Types with a default value that is <see langword="null"/></summary>
-		/// <remarks><see langword="true"/> for Reference Types, or for <see cref="Nullable{T}"/>.</remarks>
-		public bool DefaultIsNull { get; init; }
+		/// <summary>Custom ClassId for this type</summary>
+		public FrozenDictionary<JsonValue, Type>? DerivedTypeMap { get; init; }
 
 		/// <summary>Specifies if the type can have a value of <see langword="null"/> (ref types, or <see cref="Nullable{T}"/>)</summary>
 		public Type? NullableOfType { get; init; }
@@ -67,26 +72,48 @@ namespace Doxense.Serialization.Json
 		/// <summary>Definitions of the fields and properties of this type</summary>
 		public CrystalJsonMemberDefinition[] Members { get; init; }
 
-		public CrystalJsonTypeDefinition(Type type, Type? baseType, string? classId, CrystalJsonTypeBinder? customBinder, Func<object>? generator, CrystalJsonMemberDefinition[] members)
+		public CrystalJsonTypeDefinition(Type type, CrystalJsonTypeFlags flags, CrystalJsonTypeBinder? customBinder, Func<object>? generator, CrystalJsonMemberDefinition[] members, Type? baseType, JsonEncodedPropertyName? typeDiscriminatorProperty, JsonValue? typeDiscriminatorValue, IReadOnlyDictionary<JsonValue, Type>? derivedTypeMap)
 		{
 			Contract.NotNull(type);
 			Contract.NotNull(members);
 
-			// If not provided, generate a type name that looks like "Namespace.ClassName, AssemblyName", which is the format expected by Type.GetType(..)
-			classId ??= type.GetAssemblyName();
+			var nullableOfType = CrystalJsonTypeResolver.GetNullableType(type);
+
+			if (type.IsAnonymousType()) flags |= CrystalJsonTypeFlags.Anonymous;
+			if (type.IsSealed) flags |= CrystalJsonTypeFlags.Sealed;
+			if (!type.IsValueType || nullableOfType != null) flags |= CrystalJsonTypeFlags.Sealed;
+			if (type.IsInterface || type.IsAbstract) flags |= CrystalJsonTypeFlags.NonConstructible;
+			if (typeDiscriminatorProperty != null) flags |= CrystalJsonTypeFlags.Polymorphic;
 
 			this.Type = type;
+			this.Flags = flags;
 			this.BaseType = baseType;
-			this.ClassId = classId;
-			this.IsAnonymousType = type.IsAnonymousType();
-			this.IsSealed = CrystalJsonTypeResolver.IsSealedType(type);
-			this.NullableOfType = CrystalJsonTypeResolver.GetNullableType(type);
-			this.DefaultIsNull = !type.IsValueType || this.NullableOfType != null;
-			this.RequiresClassAttribute = (type.IsInterface || type.IsAbstract) && !this.IsAnonymousType && baseType == null;
+			this.TypeDiscriminatorProperty = typeDiscriminatorProperty;
+			this.TypeDiscriminatorValue = typeDiscriminatorValue;
+			this.DerivedTypeMap = derivedTypeMap?.ToFrozenDictionary();
+			this.NullableOfType = nullableOfType;
 			this.CustomBinder = customBinder;
 			this.Generator = generator;
 			this.Members = members;
 		}
+
+		public bool IsPolymorphic => this.Flags.HasFlag(CrystalJsonTypeFlags.Polymorphic);
+
+		/// <summary>Specifies if this is an anonymous type that does not have a valid name</summary>
+		/// <remarks>ex: <c>CrystalJson.Serialize(new { "Hello": "World" })</c></remarks>
+		public bool IsAnonymousType => this.Flags.HasFlag(CrystalJsonTypeFlags.Anonymous);
+
+		/// <summary>Specifies if the type cannot possibly be derived (sealed class, or value type)</summary>
+		/// <remarks>If <see langword="false"/>, a type-check will have to be performed during serialization, which add some overhead</remarks>
+		public bool IsSealed => this.Flags.HasFlag(CrystalJsonTypeFlags.Sealed);
+
+		/// <summary>Types with a default value that is <see langword="null"/></summary>
+		/// <remarks><see langword="true"/> for Reference Types, or for <see cref="Nullable{T}"/>.</remarks>
+		public bool DefaultIsNull => this.Flags.HasFlag(CrystalJsonTypeFlags.DefaultIsNull);
+
+		/// <summary>Specifies if the type cannot be constructed directly (interface, abstract class, no public ctor, ...)</summary>
+		/// <remarks><see langword="true"/> for interfaces or abstract types</remarks>
+		public bool IsNonConstructible => this.Flags.HasFlag(CrystalJsonTypeFlags.NonConstructible);
 
 	}
 

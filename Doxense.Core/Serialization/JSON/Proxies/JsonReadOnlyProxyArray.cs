@@ -53,9 +53,10 @@ namespace Doxense.Serialization.Json
 				}
 				throw new InvalidOperationException("Cannot iterate a non-array");
 			}
+
 			foreach(var item in array)
 			{
-				yield return m_converter.Unpack(item);
+				yield return m_converter.Unpack(item, null);
 			}
 		}
 

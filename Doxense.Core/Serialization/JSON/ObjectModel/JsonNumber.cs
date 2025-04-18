@@ -38,6 +38,7 @@ namespace Doxense.Serialization.Json
 	[DebuggerDisplay("JSON Number({" + nameof(m_literal) + ",nq})")]
 	[DebuggerNonUserCode]
 	[PublicAPI]
+	[System.Text.Json.Serialization.JsonConverter(typeof(CrystalJsonCustomJsonConverter))]
 	public sealed class JsonNumber : JsonValue, IEquatable<JsonNumber>, IComparable<JsonNumber>
 		, IEquatable<JsonString>
 		, IEquatable<JsonBoolean>
@@ -1772,14 +1773,11 @@ namespace Doxense.Serialization.Json
 		/// <summary>Converts this number into a type that closely matches the value (integer or decimal)</summary>
 		/// <returns>Return either an int/long for integers, or a double/decimal for floating point numbers</returns>
 		/// <remarks>For integers: If the value is between int.MinValue and int.MaxValue, it will be cast to <see cref="Int32"/>; otherwise, it will be cast to <see cref="Int64"/>.</remarks>
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public override object? ToObject() => m_value.ToObject(m_kind);
 
 		/// <inheritdoc />
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
-		public override TValue? Bind<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TValue>
-			(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null) where TValue : default
+		public override TValue? Bind<TValue>(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null)
+			where TValue : default
 		{
 			#region <JIT_HACK>
 			// pattern recognized and optimized by the JIT, only in Release build
@@ -1847,10 +1845,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
-		public override object? Bind(
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type? type,
-			ICrystalJsonTypeResolver? resolver = null)
+		public override object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (type is null || type == typeof(object))
 			{
@@ -1957,8 +1952,7 @@ namespace Doxense.Serialization.Json
 			resolver ??= CrystalJson.DefaultResolver;
 
 			// maybe we have a custom binder?
-			var def = resolver.ResolveJsonType(type);
-			if (def?.CustomBinder is not null)
+			if (resolver.TryResolveTypeDefinition(type, out var def) && def.CustomBinder is not null)
 			{
 				return def.CustomBinder(this, type, resolver);
 			}
@@ -2333,10 +2327,7 @@ namespace Doxense.Serialization.Json
 		public bool StrictEquals(JsonNumber? other) => other is not null && Equals(other);
 
 		/// <inheritdoc />
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
-		public override bool ValueEquals<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TValue>
-			(TValue? value, IEqualityComparer<TValue>? comparer = null) where TValue : default
+		public override bool ValueEquals<TValue>(TValue? value, IEqualityComparer<TValue>? comparer = null) where TValue : default
 		{
 			if (default(TValue) is null)
 			{

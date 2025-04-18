@@ -45,6 +45,7 @@ namespace Doxense.Serialization.Json
 	[DebuggerTypeProxy(typeof(DebugView))]
 	[DebuggerNonUserCode]
 	[PublicAPI]
+	[System.Text.Json.Serialization.JsonConverter(typeof(CrystalJsonCustomJsonConverter))]
 	public sealed partial class JsonObject : JsonValue, IDictionary<string, JsonValue>, IReadOnlyDictionary<string, JsonValue>, IEquatable<JsonObject>
 	{
 		// A JSON object can be writable (mutable), or read-only (immutable)
@@ -951,87 +952,6 @@ namespace Doxense.Serialization.Json
 				map.Add(kvp.Key, FromValue(kvp.Value));
 			}
 			return new JsonObject(map, readOnly: false);
-		}
-
-#if NET8_0_OR_GREATER
-		[Obsolete]
-#endif
-		private static System.Runtime.Serialization.FormatterConverter? CachedFormatterConverter;
-
-		/// <summary>Serializes an <see cref="Exception"/> into a JSON object</summary>
-		/// <returns></returns>
-		/// <remarks>
-		/// The exception must implement <see cref="System.Runtime.Serialization.ISerializable"/>, and CANNOT contain cycles or self-references!
-		/// The JSON object produced MAY NOT be deserializable back into the original exception type!
-		/// </remarks>
-		[Pure]
-#if NET8_0_OR_GREATER
-		[Obsolete("Formatter-based serialization is obsolete and should not be used.")]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-#endif
-		public static JsonObject FromException(Exception ex, bool includeTypes = true)
-		{
-			Contract.NotNull(ex);
-			if (ex is not System.Runtime.Serialization.ISerializable ser)
-			{
-				throw new JsonSerializationException($"Cannot serialize exception of type '{ex.GetType().FullName}' because it is not marked as Serializable.");
-			}
-
-			return FromISerializable(ser, includeTypes);
-		}
-
-		/// <summary>Serializes a type that implements <see cref="System.Runtime.Serialization.ISerializable"/> into a JSON object representation</summary>
-		/// <remarks>
-		/// The JSON object produced MAY NOT be deserializable back into the original exception type!
-		/// </remarks>
-		[Pure]
-#if NET8_0_OR_GREATER
-		[Obsolete("This API supports obsolete formatter-based serialization. It should not be called or extended by application code.", DiagnosticId = "SYSLIB0051", UrlFormat = "https://aka.ms/dotnet-warnings/{0}")]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-#endif
-		public static JsonObject FromISerializable(System.Runtime.Serialization.ISerializable value, bool includeTypes = true, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-		{
-			Contract.NotNull(value);
-
-			settings ??= CrystalJsonSettings.Json;
-			resolver ??= CrystalJson.DefaultResolver;
-
-			var formatter = CachedFormatterConverter ??= new System.Runtime.Serialization.FormatterConverter();
-			var info = new System.Runtime.Serialization.SerializationInfo(value.GetType(), formatter);
-			var ctx = new System.Runtime.Serialization.StreamingContext(System.Runtime.Serialization.StreamingContextStates.Persistence);
-
-			value.GetObjectData(info, ctx);
-
-			var obj = new JsonObject();
-			var it = info.GetEnumerator();
-			{
-				while (it.MoveNext())
-				{
-					object? x = it.Value;
-					if (includeTypes)
-					{ // round-trip mode: "NAME: [ TYPE, VALUE ]"
-						var v = x is System.Runtime.Serialization.ISerializable ser
-							? FromISerializable(ser, includeTypes: true, settings: settings, resolver: resolver)
-							: FromValue(x, it.ObjectType, settings, resolver);
-						// even if the value is null, we still have to provide the type!
-						obj[it.Name] = JsonArray.Create(JsonString.Return(it.ObjectType), v);
-					}
-					else
-					{ // compact mode: "NAME: VALUE"
-
-						// since we don't care to be deserializable, we can omit 'null' items
-						if (x is null) continue;
-
-						var v = x is System.Runtime.Serialization.ISerializable ser
-							? FromISerializable(ser, includeTypes: false, settings: settings, resolver: resolver)
-							: FromValue(x, settings, resolver);
-
-						obj[it.Name] = v;
-					}
-				}
-			}
-
-			return obj;
 		}
 
 		#endregion
@@ -3026,51 +2946,6 @@ namespace Doxense.Serialization.Json
 			return this;
 		}
 
-		/// <summary>Adds the "_class" attribute with the resolved type id</summary>
-		/// <typeparam name="TContainer">Type that must be resolved</typeparam>
-		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
-		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
-		public JsonObject SetClassId<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TContainer>
-			(ICrystalJsonTypeResolver? resolver = null)
-		{
-			return SetClassId(typeof(TContainer), resolver);
-		}
-
-		/// <summary>Adds the "_class" attribute with the resolved type id</summary>
-		/// <param name="type">Type that must be resolved</param>
-		/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
-		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
-		public JsonObject SetClassId(
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type type,
-			ICrystalJsonTypeResolver? resolver = null
-		)
-		{
-			Contract.NotNull(type);
-			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
-
-			var typeDef = (resolver ?? CrystalJson.DefaultResolver).ResolveJsonType(type) ?? throw CrystalJson.Errors.Serialization_CouldNotResolveTypeDefinition(type);
-			this.ClassId = typeDef.ClassId;
-			return this;
-		}
-
-		public string? ClassId
-		{
-			get => this[JsonTokens.CustomClassAttribute].ToStringOrDefault();
-			set
-			{
-				if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
-				if (string.IsNullOrEmpty(value))
-				{
-					Remove(JsonTokens.CustomClassAttribute);
-				}
-				else
-				{
-					this[JsonTokens.CustomClassAttribute] = value;
-				}
-			}
-		}
-
 		#endregion
 
 		#region Merging...
@@ -3148,7 +3023,7 @@ namespace Doxense.Serialization.Json
 			return parent;
 		}
 
-		public JsonObject ComputePatch(JsonObject after, bool deepCopy = false)
+		public JsonObject ComputePatch(JsonObject after, bool deepCopy = false, bool readOnly = false)
 		{
 			//note: we already know that there is a difference
 			var patch = new JsonObject();
@@ -3171,7 +3046,12 @@ namespace Doxense.Serialization.Json
 				{ // add new key
 					if (!kv.Value.IsNullOrMissing())
 					{
-						patch[kv.Key] = deepCopy ? kv.Value.Copy() : kv.Value;
+						var value = deepCopy ? kv.Value.Copy() : kv.Value;
+						if (readOnly)
+						{
+							value = value.ToReadOnly();
+						}
+						patch[kv.Key] = value;
 					}
 				}
 				else if (!p.Equals(kv.Value))
@@ -3180,12 +3060,12 @@ namespace Doxense.Serialization.Json
 					{
 						case (JsonObject a, JsonObject b):
 						{
-							patch[kv.Key] = a.ComputePatch(b, deepCopy);
+							patch[kv.Key] = a.ComputePatch(b, deepCopy, readOnly);
 							break;
 						}
 						case (JsonArray a, JsonArray b):
 						{
-							patch[kv.Key] = a.ComputePatch(b, deepCopy);
+							patch[kv.Key] = a.ComputePatch(b, deepCopy, readOnly);
 							break;
 						}
 						case (_, JsonNull):
@@ -3195,11 +3075,21 @@ namespace Doxense.Serialization.Json
 						}
 						default:
 						{
-							patch[kv.Key] = deepCopy ? kv.Value.Copy() : kv.Value;
+							var value = deepCopy ? kv.Value.Copy() : kv.Value;
+							if (readOnly)
+							{
+								value = value.ToReadOnly();
+							}
+							patch[kv.Key] = value;
 							break;
 						}
 					}
 				}
+			}
+
+			if (readOnly)
+			{
+				patch.FreezeUnsafe();
 			}
 
 			return patch;
@@ -3858,18 +3748,29 @@ namespace Doxense.Serialization.Json
 		/// <summary>Converts this JSON Object into a <see cref="Dictionary{TKey,TValue}">Dictionary&lt;string, object?&gt;</see>.</summary>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public override object? ToObject()
 		{
 			return CrystalJsonParser.DeserializeCustomClassOrStruct(this, typeof(object), CrystalJson.DefaultResolver);
 		}
 
 		/// <inheritdoc />
-		public override TValue? Bind<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>
-			(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null) where TValue : default
+		public override TValue? Bind<TValue>(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null)
+			where TValue : default
 		{
-			var res = (resolver ?? CrystalJson.DefaultResolver).BindJsonObject(typeof(TValue), this);
+			TValue? res;
+			if (resolver is not null && !ReferenceEquals(resolver, CrystalJson.DefaultResolver))
+			{
+				if (!resolver.TryGetConverterFor<TValue>(out var converter))
+				{
+					throw new NotSupportedException(); //TODO: error message!
+				}
+				res = converter.Unpack(this, resolver);
+			}
+			else
+			{
+				res = (TValue?) CrystalJson.DefaultResolver.BindJsonObject(typeof(TValue), this);
+			}
+
 			if (res is null)
 			{
 				return default(TValue) is null && (typeof(TValue) == typeof(JsonValue) || typeof(TValue) == typeof(JsonNull))
@@ -3880,12 +3781,18 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
-		public override object? Bind(
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type? type,
-			ICrystalJsonTypeResolver? resolver = null)
+		public override object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return (resolver ?? CrystalJson.DefaultResolver).BindJsonObject(type, this);
+			if (resolver is not null && !ReferenceEquals(resolver, CrystalJson.DefaultResolver))
+			{
+				if (!resolver.TryGetConverterFor(type ?? typeof(object), out var converter))
+				{
+					throw new NotSupportedException(); //TODO: error message!
+				}
+
+				return converter.BindJsonValue(this, resolver);
+			}
+			return CrystalJson.DefaultResolver.BindJsonObject(type, this);
 		}
 
 		#endregion
@@ -4076,7 +3983,6 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public ExpandoObject ToExpando()
 		{
 			var expando = new ExpandoObject();
@@ -4095,11 +4001,10 @@ namespace Doxense.Serialization.Json
 			return res;
 		}
 
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public Dictionary<TKey, TValue> ToDictionary<TKey, TValue>(ICrystalJsonTypeResolver? resolver = null)
 			where TKey : notnull
 		{
-			return (Dictionary<TKey, TValue>) (resolver ?? CrystalJson.DefaultResolver).BindJsonObject(typeof(Dictionary<TKey, TValue>), this)!;
+			return Bind<Dictionary<TKey, TValue>>(null, resolver)!;
 		}
 
 		public void CopyTo(KeyValuePair<string, JsonValue>[] array)

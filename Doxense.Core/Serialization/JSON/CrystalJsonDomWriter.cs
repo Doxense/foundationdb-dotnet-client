@@ -165,6 +165,11 @@ namespace Doxense.Serialization.Json
 
 		#region Public Methods...
 
+		public JsonValue ParseObject<T>(T value)
+		{
+			return ParseObject(value, typeof(T));
+		}
+
 		/// <summary>Transforme un objet CLR quelconque en une JsonValue correspondante</summary>
 		/// <param name="value">Valeur à convertir (primitive, value type ou reference type) </param>
 		/// <param name="declaredType">Type déclaré de la valeur au niveau de son parent (ex: Property/Field dans la classe parente, type d'élement dans une collection, ...), qui peut être différent de <paramref name="runtimeType"/> (interface, classe abstraite, ...). Passer typeof(object) pour un objet dont le contexte n'est pas connu, ou passer la même valeur que <paramref name="runtimeType"/> si le contexte est connu exactement.</param>
@@ -311,10 +316,12 @@ namespace Doxense.Serialization.Json
 				return result;
 			}
 
+#if DEPRECATED
 			if (TryPackViaDuckTyping(value, declaredType, runtimeType, out result))
 			{
 				return result;
 			}
+#endif
 
 #if DEBUG
 			// si vous arrivez ici, c'est que votre type n'implémente pas IJsonBindable!
@@ -818,28 +825,22 @@ namespace Doxense.Serialization.Json
 		{
 			Contract.Debug.Requires(value != null && declaredType != null && runtimeType != null);
 
-			var typeDef = m_resolver.ResolveJsonType(runtimeType);
-			if (typeDef == null || (typeDef.CustomBinder != null && !typeDef.IsAnonymousType))
+			if (!m_resolver.TryResolveTypeDefinition(runtimeType, out var typeDef) || (typeDef.CustomBinder != null && !typeDef.IsAnonymousType))
 			{
 				result = null!;
 				return false;
 			}
 
 			MarkVisited(ref context, value, runtimeType);
-			//note: il y aura en général moins de fields (élimination des null/default), mais de toutes manières le Dictionary<> arrondi au nombre premier supérieur, donc on ne perds pas grand chose.
 			var obj = BeginObject(typeDef.Members.Length);
 
-			//COPY/PASTA (a peu près identique à CrystalJsonVisitor.VisitCustomClassOrStruct)
+			//COPY/PASTA (should be very similar to CrystalJsonVisitor.VisitCustomClassOrStruct)
 			if (!m_discardClass)
 			{
-				// il faut ajouter l'attribut class si 
-				// => le type au runtime n'est pas le même que le type déclaré. Ex: class A { IFoo Foo; } / class B : IFoo { } / new A() { Foo = new B() }
-
-				//note: dans le cas d'un DOM, on a toujours le runtime type, qui ne peut pas être abstract, MAIS qui n'est pas obligatoirement sealed
-				if (typeDef.RequiresClassAttribute || (declaredType != runtimeType && !typeDef.IsAnonymousType && !declaredType.IsNullableType() && typeDef.BaseType == null))
-				{ // il faut préciser la class !
-					//TODO: auto-aliasing
-					obj[JsonTokens.CustomClassAttribute] = JsonString.Return(typeDef.ClassId);
+				// we may need to add a "$type" property if the type is a derived type that belongs in a "polymorphic chain", in order to be able to deserialize it back to that specific type
+				if (typeDef.TypeDiscriminatorProperty != null && typeDef.TypeDiscriminatorValue != null)
+				{ // add the "$type" property
+					obj[typeDef.TypeDiscriminatorProperty.Value] = typeDef.TypeDiscriminatorValue;
 				}
 			}
 			//END
@@ -919,6 +920,7 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
+#if DEPRECATED
 		/// <summary>Utilise une méthode d'instance compatible avec la signature de JsonPack</summary>
 		public bool TryPackViaDuckTyping(object? value, Type declaredType, Type? runtimeType, [MaybeNullWhen(false)] out JsonValue result)
 		{
@@ -940,14 +942,17 @@ namespace Doxense.Serialization.Json
 			//}
 			return true;
 		}
+#endif
 
 		internal delegate JsonValue CrystalJsonTypePacker(object? instance, CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver);
 
+#if DEPRECATED
+
 		private static QuasiImmutableCache<Type, Maybe<CrystalJsonTypePacker>> DuckTypedJsonPackMethods { get; } = new(GetInstanceJsonPackHandler, TypeEqualityComparer.Default);
 
-		private static Maybe<CrystalJsonTypePacker> GetInstanceJsonPackHandler([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] Type type)
+		private static Maybe<CrystalJsonTypePacker> GetInstanceJsonPackHandler(Type type)
 		{
-			// recherche une méthode d'instance "JsonPack"
+			// look for a "JsonPack" instance method
 			var m = type.GetMethod(nameof(IJsonPackable.JsonPack), BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
 			if (m != null)
 			{
@@ -955,9 +960,6 @@ namespace Doxense.Serialization.Json
 				return new Maybe<CrystalJsonTypePacker>(packer);
 			}
 
-			//TODO: autre approche?
-
-			// aucun trouvé
 			return Maybe.Nothing<CrystalJsonTypePacker>();
 		}
 
@@ -983,6 +985,8 @@ namespace Doxense.Serialization.Json
 
 			return Expression.Lambda<CrystalJsonTypePacker>(body, "<>_" + type.Name + "_JsonUnpack", true, [ prmValue, prmSettings, prmResolver ]).Compile();
 		}
+
+#endif
 
 	}
 

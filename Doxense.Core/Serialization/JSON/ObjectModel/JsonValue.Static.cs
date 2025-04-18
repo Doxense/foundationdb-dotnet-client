@@ -148,58 +148,6 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		/// <summary>Attempts to determine the category of a JSON value, given a CLR type</summary>
-		/// <param name="type">CLR Type(ex: int)</param>
-		/// <returns>Corresponding JSON categoriy (ex: JsonType.Number)</returns>
-		internal static JsonType GetJsonTypeFromClrType(
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)]
-			Type type
-		)
-		{
-			if (type is null) throw ThrowHelper.ArgumentNullException(nameof(type));
-
-			switch(System.Type.GetTypeCode(type))
-			{
-				case TypeCode.Boolean:
-					return JsonType.Boolean;
-
-				case TypeCode.String:
-				case TypeCode.Char:
-					return JsonType.String;
-
-				case TypeCode.SByte:
-				case TypeCode.Byte:
-				case TypeCode.Int16:
-				case TypeCode.UInt16:
-				case TypeCode.Int32:
-				case TypeCode.UInt32:
-				case TypeCode.Int64:
-				case TypeCode.UInt64:
-				case TypeCode.Single:
-				case TypeCode.Double:
-				case TypeCode.Decimal:
-					return JsonType.Number;
-
-				case TypeCode.DateTime:
-					return JsonType.DateTime;
-
-				default:
-				{
-					if (type == typeof(TimeSpan)) return JsonType.Number;
-					if (type == typeof(DateTimeOffset)) return JsonType.Number;
-					if (type == typeof(Guid)) return JsonType.String;
-					if (type == typeof(IntPtr)) return JsonType.Number;
-
-					if (type.IsArray || type.IsGenericInstanceOf(typeof(IList<>)))
-					{
-						return JsonType.Array;
-					}
-
-					return JsonType.Object;
-				}
-			}
-		}
-
 		#region ParseXYZ(...)
 
 		// Text/Binary => JsonValue
@@ -897,7 +845,16 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static JsonValue FromValue<T>(T? value, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return value is not null ? CrystalJsonDomWriter.Create(settings, resolver).ParseObject(value, typeof(T)) : JsonNull.Null;
+			if (value is null) return JsonNull.Null;
+			settings ??= CrystalJsonSettings.Json;
+			if (resolver != null && !ReferenceEquals(resolver, CrystalJson.DefaultResolver))
+			{
+				if (resolver.TryGetConverterFor<T>(out var converter))
+				{
+					return converter.Pack(value, settings);
+				}
+			}
+			return CrystalJsonDomWriter.Create(settings, resolver).ParseObject<T>(value);
 		}
 
 		[Obsolete("Please call JsonValue.ReadOnly.FromValue(...) instead")]

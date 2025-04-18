@@ -511,6 +511,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 		/// <summary>Tests if this is a generic type</summary>
 		public bool IsGeneric() => this.TypeArguments.Count > 0;
 
+		/// <summary>Tests if this is the <see cref="string"/> type</summary>
 		public bool IsString() => this.SpecialType is SpecialType.System_String;
 
 		/// <summary>Tests if this is an array (ex: <c>int[]</c>, <c>string?[]</c>)</summary>
@@ -544,6 +545,16 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 			return false;
 		}
+
+
+		/// <summary>Tests if this is the <see cref="Guid"/> type</summary>
+		public bool IsGuid() => this.NameSpace is "System" && this.Name is "Guid";
+
+		/// <summary>Tests if this is the <see cref="DateTime"/> type</summary>
+		public bool IsDateTime() => this.SpecialType == SpecialType.System_DateTime;
+
+		/// <summary>Tests if this is the <see cref="DateTimeOffset"/> type</summary>
+		public bool IsDateTimeOffset() => this.NameSpace is "System" && this.Name is "DateTimeOffset";
 
 		/// <summary>Tests if instances of this type will be packed into a <c>JsonBoolean</c> value</summary>
 		public bool IsBooleanLike(bool allowNullables = true)

@@ -24,6 +24,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+#if DEPRECATED
+
 namespace Doxense.Serialization.Json
 {
 
@@ -85,3 +87,5 @@ namespace Doxense.Serialization.Json
 	}
 
 }
+
+#endif

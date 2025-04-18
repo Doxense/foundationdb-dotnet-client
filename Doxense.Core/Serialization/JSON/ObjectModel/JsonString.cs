@@ -26,6 +26,7 @@
 
 namespace Doxense.Serialization.Json
 {
+	using System.Collections.Frozen;
 	using System.Globalization;
 	using System.Net;
 	using Doxense.Collections.Caching;
@@ -36,6 +37,7 @@ namespace Doxense.Serialization.Json
 	[DebuggerDisplay("JSON String({" + nameof(m_value) + "})")]
 	[DebuggerNonUserCode]
 	[PublicAPI]
+	[System.Text.Json.Serialization.JsonConverter(typeof(CrystalJsonCustomJsonConverter))]
 	public sealed class JsonString : JsonValue,
 		IEquatable<JsonString>,
 		IComparable<JsonString>,
@@ -344,7 +346,7 @@ namespace Doxense.Serialization.Json
 					[typeof(Exception)] = new(typeof(Exception).FullName!),
 					//
 				};
-				return new(map);
+				return new(map.ToFrozenDictionary());
 			}
 
 			[Pure]
@@ -657,15 +659,13 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public override object ToObject()
 		{
 			return m_value;
 		}
 
 		/// <inheritdoc />
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
-		public override T? Bind<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>(T? defaultValue = default, ICrystalJsonTypeResolver? resolver = null) where T : default
+		public override T? Bind<T>(T? defaultValue = default, ICrystalJsonTypeResolver? resolver = null) where T : default
 		{
 			#region <JIT_HACK>
 			// pattern recognized and optimized by the JIT, only in Release build
@@ -753,8 +753,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <inheritdoc />
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
-		public override object? Bind([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type? type, ICrystalJsonTypeResolver? resolver = null)
+		public override object? Bind(Type? type, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (type is null || typeof(string) == type || typeof(object) == type)
 			{
@@ -904,10 +903,8 @@ namespace Doxense.Serialization.Json
 				throw JsonBindingException.CannotBindJsonStringToThisType(this, type, e);
 			}
 
-			// does it use a custom binder?
-			// => for classes with a ducktyped ctor, or static factory methods
-			var def = resolver.ResolveJsonType(type);
-			if (def?.CustomBinder is not null)
+			// maybe we have a custom binder?
+			if (resolver.TryResolveTypeDefinition(type, out var def) && def.CustomBinder is not null)
 			{
 				return def.CustomBinder(this, type, resolver);
 			}
@@ -1020,10 +1017,8 @@ namespace Doxense.Serialization.Json
 		public bool StrictEquals(JsonString? other) => other is not null && other.Value == this.Value;
 
 		/// <inheritdoc />
-		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
-		public override bool ValueEquals<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TValue>
-			(TValue? value, IEqualityComparer<TValue>? comparer = null) where TValue : default
+		public override bool ValueEquals<TValue>(TValue? value, IEqualityComparer<TValue>? comparer = null)
+			where TValue : default
 		{
 			if (default(TValue) is null)
 			{

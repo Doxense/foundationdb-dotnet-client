@@ -255,7 +255,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 			++this.Depth;
 		}
 
-		public void LeaveBlock(string? type = null, bool semicolon = false)
+		public void LeaveBlock(string? type = null, char suffix = '\0')
 		{
 			var expected = this.Structure.Count > 0 ? this.Structure.Peek() : null;
 			if (expected != null && expected != type)
@@ -265,7 +265,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 			--this.Depth;
 			this.Structure.Pop();
-			this.Output.Append('\t', this.Depth).AppendLine(semicolon ? "};" : "}");
+			this.Output.Append('\t', this.Depth).AppendLine(suffix != '\0' ? ("}" + suffix) : "}");
 		}
 
 		public void Block(Action statement)
@@ -273,6 +273,26 @@ namespace SnowBank.Serialization.Json.CodeGen
 			this.EnterBlock("block");
 			statement();
 			this.LeaveBlock("block");
+		}
+
+		public void EnterCollection(string? type = null, string? comment = null)
+		{
+			this.Output.Append('\t', this.Depth).AppendLine(comment == null ? "[" : "[ // " + comment);
+			this.Structure.Push(type);
+			++this.Depth;
+		}
+
+		public void LeaveCollection(string? type = null, char suffix = '\0')
+		{
+			var expected = this.Structure.Count > 0 ? this.Structure.Peek() : null;
+			if (expected != null && expected != type)
+			{
+				throw new InvalidOperationException($"Code structure mismatch: cannot leave '{type}' while inside a '{expected}'");
+			}
+
+			--this.Depth;
+			this.Structure.Pop();
+			this.Output.Append('\t', this.Depth).AppendLine(suffix != '\0' ? ("]" + suffix) : "]");
 		}
 
 		public void Call(string method, params string[] args)
@@ -400,7 +420,24 @@ namespace SnowBank.Serialization.Json.CodeGen
 		}
 
 		private static readonly char[] LineBreakChars = "\r\n".ToCharArray();
-		
+
+		public void BeginRegion(string name)
+		{
+			this.AppendLine($"#region {name}");
+		}
+
+		public void EndRegion(string? name = null)
+		{
+			if (name == null)
+			{
+				this.AppendLine("#endregion");
+			}
+			else
+			{
+				this.AppendLine($"#endregion {name}");
+			}
+		}
+
 		public void Comment(string comment)
 		{
 			if (comment.Contains("\n"))
@@ -413,6 +450,33 @@ namespace SnowBank.Serialization.Json.CodeGen
 			else
 			{
 				this.Output.Append('\t', this.Depth).Append("// ").AppendLine(comment.TrimEnd());
+			}
+		}
+
+		public void XmlComment(string comment)
+		{
+			if (comment.Contains("\n"))
+			{
+				foreach (var line in comment.Split(CSharpCodeBuilder.LineBreakChars, StringSplitOptions.RemoveEmptyEntries))
+				{
+					this.Output.Append('\t', this.Depth).Append("/// ").AppendLine(line.TrimEnd());
+				}
+			}
+			else
+			{
+				this.Output.Append('\t', this.Depth).Append("/// ").AppendLine(comment.TrimEnd());
+			}
+		}
+
+		public void InheritDoc(string? cref = null)
+		{
+			if (cref == null)
+			{
+				AppendLine("/// <inheritdoc />");
+			}
+			else
+			{
+				AppendLine($"/// <inheritdoc cref=\"{cref}\" />");
 			}
 		}
 
