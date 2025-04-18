@@ -36,6 +36,7 @@ namespace Doxense.Serialization.Json
 	[Serializable]
 	[DebuggerNonUserCode]
 	[PublicAPI]
+	[System.Text.Json.Serialization.JsonConverter(typeof(CrystalJsonCustomJsonConverter))]
 	[JetBrains.Annotations.CannotApplyEqualityOperator]
 	public abstract partial class JsonValue : IEquatable<JsonValue>, IComparable<JsonValue>, IJsonSerializable, IFormattable, ISliceSerializable, IConvertible
 #if NET8_0_OR_GREATER
@@ -2407,5 +2408,194 @@ namespace Doxense.Serialization.Json
 		#endregion
 
 	}
+
+	#region System.Text.Json Adapter...
+
+	/// <summary>Converter that adds support for <see cref="JsonValue"/> (and derived types) to <c>System.Text.Json</c>'s <see cref="System.Text.Json.Serialization.JsonConverter"/></summary>
+	[EditorBrowsable(EditorBrowsableState.Never)]
+	public sealed class CrystalJsonCustomJsonConverter: System.Text.Json.Serialization.JsonConverter<JsonValue>
+	{
+
+		/// <summary>Singleton that can be added to <see cref="System.Text.Json.JsonSerializerOptions"/> if support for <see cref="JsonValue"/> is required</summary>
+		public static readonly CrystalJsonCustomJsonConverter Instance = new();
+
+		/// <inheritdoc />
+		public override bool CanConvert(Type typeToConvert) => typeof(JsonValue).IsAssignableFrom(typeToConvert);
+
+		/// <inheritdoc />
+		public override JsonValue Read(ref System.Text.Json.Utf8JsonReader reader, Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
+		{
+			// skip comments
+			while(reader.TokenType is System.Text.Json.JsonTokenType.Comment && reader.Read())
+			{ }
+
+			switch (reader.TokenType)
+			{
+				case System.Text.Json.JsonTokenType.Null:
+				{
+					reader.Read();
+					return JsonNull.Null;
+				}
+				case System.Text.Json.JsonTokenType.False:
+				{
+					reader.Read();
+					return JsonBoolean.False;
+				}
+				case System.Text.Json.JsonTokenType.True:
+				{
+					reader.Read();
+					return JsonBoolean.True;
+				}
+				case System.Text.Json.JsonTokenType.String:
+				{
+					return JsonString.Return(reader.GetString());
+				}
+				case System.Text.Json.JsonTokenType.Number:
+				{
+					// is it an int? a decimal?
+					if (reader.TryGetInt64(out var l))
+					{
+						return JsonNumber.Return(l);
+					}
+					if (reader.TryGetUInt64(out var ul))
+					{
+						return JsonNumber.Return(ul);
+					}
+					if (reader.TryGetDouble(out var d))
+					{
+						return JsonNumber.Return(d);
+					}
+					if (reader.TryGetDecimal(out var m))
+					{
+						return JsonNumber.Return(m);
+					}
+					throw new System.Text.Json.JsonException();
+				}
+				case System.Text.Json.JsonTokenType.StartObject:
+				{
+					var obj = new JsonObject();
+					while (reader.Read())
+					{
+						if (reader.TokenType == System.Text.Json.JsonTokenType.EndObject)
+						{
+							break;
+						}
+
+						if (reader.TokenType == System.Text.Json.JsonTokenType.PropertyName)
+						{
+							var name = reader.GetString()!;
+							reader.Read();
+							var value = Read(ref reader, typeof(object), options);
+							obj.Add(name, value);
+						}
+					}
+					reader.Read();
+					return obj;
+				}
+				case System.Text.Json.JsonTokenType.StartArray:
+				{
+					var arr = new JsonArray();
+					reader.Read();
+					while (true)
+					{
+						if (reader.TokenType == System.Text.Json.JsonTokenType.EndArray)
+						{
+							break;
+						}
+						if (reader.TokenType is System.Text.Json.JsonTokenType.Comment)
+						{
+							continue;
+						}
+						arr.Add(Read(ref reader, typeof(object), options));
+					}
+					reader.Read();
+					return arr;
+				}
+				default:
+				{
+					throw new System.Text.Json.JsonException();
+				}
+			}
+		}
+
+		/// <inheritdoc />
+		public override void Write(System.Text.Json.Utf8JsonWriter writer, JsonValue value, System.Text.Json.JsonSerializerOptions options)
+		{
+			switch (value)
+			{
+				case JsonNull:
+				{
+					writer.WriteNullValue();
+					break;
+				}
+				case JsonBoolean b:
+				{
+					writer.WriteBooleanValue(b.Value);
+					break;
+				}
+				case JsonNumber n:
+				{
+					if (n.IsDecimal)
+					{
+						//TODO: handle "decimal" ?
+						writer.WriteNumberValue(n.ToDouble());
+					}
+					else if (n.IsUnsigned)
+					{
+						writer.WriteNumberValue(n.ToUInt64());
+					}
+					else
+					{
+						writer.WriteNumberValue(n.ToInt64());
+					}
+					break;
+				}
+				case JsonString str:
+				{
+					writer.WriteStringValue(str.Value);
+					break;
+				}
+				case JsonDateTime dt:
+				{
+					if (dt.HasOffset)
+					{
+						writer.WriteStringValue(dt.DateWithOffset);
+					}
+					else
+					{
+						writer.WriteStringValue(dt.Date);
+					}
+					break;
+				}
+				case JsonObject obj:
+				{
+					writer.WriteStartObject();
+					foreach (var kv in obj)
+					{
+						writer.WritePropertyName(kv.Key);
+						Write(writer, kv.Value, options);
+					}
+					writer.WriteEndObject();
+					break;
+				}
+				case JsonArray arr:
+				{
+					writer.WriteStartArray();
+					foreach (var v in arr)
+					{
+						Write(writer, v, options);
+					}
+					writer.WriteEndArray();
+					break;
+				}
+				default:
+				{
+					throw new NotSupportedException();
+				}
+			}
+		}
+	}
+
+	#endregion
 
 }

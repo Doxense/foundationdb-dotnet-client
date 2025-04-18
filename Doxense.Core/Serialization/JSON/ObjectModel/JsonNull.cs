@@ -33,6 +33,7 @@ namespace Doxense.Serialization.Json
 	[DebuggerDisplay("JSON Null({m_kind})")]
 	[DebuggerNonUserCode]
 	[PublicAPI]
+	[System.Text.Json.Serialization.JsonConverter(typeof(CrystalJsonCustomJsonConverter))]
 	public sealed class JsonNull : JsonValue, IEquatable<JsonNull>
 	{
 		internal enum NullKind

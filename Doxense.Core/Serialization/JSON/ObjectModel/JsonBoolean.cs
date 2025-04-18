@@ -32,6 +32,7 @@ namespace Doxense.Serialization.Json
 	[DebuggerDisplay("JSON Boolean({m_value})")]
 	[DebuggerNonUserCode]
 	[PublicAPI]
+	[System.Text.Json.Serialization.JsonConverter(typeof(CrystalJsonCustomJsonConverter))]
 	public sealed class JsonBoolean : JsonValue, IEquatable<bool>, IEquatable<JsonBoolean>, IComparable<JsonBoolean>
 	{
 

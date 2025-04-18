@@ -34,6 +34,7 @@ namespace Doxense.Serialization.Json
 	[DebuggerDisplay("JSON DateTime({m_value}, {m_value}+{m_offset})")]
 	[DebuggerNonUserCode]
 	[PublicAPI]
+	[System.Text.Json.Serialization.JsonConverter(typeof(CrystalJsonCustomJsonConverter))]
 	public class JsonDateTime : JsonValue, IEquatable<JsonDateTime>, IEquatable<DateTime>, IEquatable<DateTimeOffset>, IEquatable<NodaTime.LocalDateTime>, IEquatable<NodaTime.LocalDate>
 	{
 		private const long UNIX_EPOCH_TICKS = 621355968000000000L;

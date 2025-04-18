@@ -37,6 +37,7 @@ namespace Doxense.Serialization.Json
 	[DebuggerDisplay("JSON String({" + nameof(m_value) + "})")]
 	[DebuggerNonUserCode]
 	[PublicAPI]
+	[System.Text.Json.Serialization.JsonConverter(typeof(CrystalJsonCustomJsonConverter))]
 	public sealed class JsonString : JsonValue,
 		IEquatable<JsonString>,
 		IComparable<JsonString>,
