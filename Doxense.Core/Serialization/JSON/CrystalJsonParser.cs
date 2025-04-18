@@ -442,7 +442,7 @@ namespace Doxense.Serialization.Json
 				throw JsonBindingException.CannotDeserializeCustomTypeNoTypeDefinition(data, type);
 			}
 
-			if (typeDef.IsPolymorphic())
+			if (typeDef.IsPolymorphic)
 			{
 				var discriminator = data[typeDef.TypeDiscriminatorProperty?.Value ?? "$type"];
 
@@ -506,7 +506,7 @@ namespace Doxense.Serialization.Json
 			foreach (var member in typeDef.Members)
 			{
 				// skip readonly members
-				if (member.ReadOnly) continue;
+				if (member.IsReadOnly) continue;
 
 				// do we have a value for this field?
 				if (!data.TryGetValue(member.Name, out var child) 

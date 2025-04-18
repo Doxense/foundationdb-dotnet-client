@@ -26,6 +26,7 @@
 
 namespace Doxense.Serialization.Json
 {
+	using System.Collections.Frozen;
 	using System.Text;
 	using Doxense.Collections.Caching;
 
@@ -740,7 +741,7 @@ namespace Doxense.Serialization.Json
 				var s2 = new CrystalJsonSettings(s.Flags | OptionFlags.EnumsAsString);
 				defaults[(int) s2.Flags] = s2;
 			}
-			Cached = new(defaults, valueFactory: (v) => new((OptionFlags) v));
+			Cached = new(defaults.ToFrozenDictionary(), valueFactory: (v) => new((OptionFlags) v));
 		}
 
 		internal static CrystalJsonSettings Create(OptionFlags flags) => Cached.GetOrAdd((int) flags);

@@ -138,8 +138,11 @@ namespace SnowBank.Serialization.Json.CodeGen
 		/// <example><c>public required string Id { ... }</c> is required</example>
 		public required bool IsRequired { get; init; } 
 
-		/// <summary>If not-null, this is the expression that represents the default value for this member, when it is missing</summary>
-		/// <remarks>This should be a valid C# constant expression, like <c>123</c>, <c>"hello"</c>, <c>true</c>, ...</remarks>
+		/// <summary><c>true</c> if <see cref="DefaultLiteral"/> is not the default for this type</summary>
+		public required bool HasNonZeroDefault { get; init; }
+
+		/// <summary>C# literal for the expression that represents the default value for this member, when it is missing</summary>
+		/// <remarks>This should be a valid C# constant expression, like <c>123</c>, <c>"hello"</c>, <c>true</c>, <c>global::System.Guid.Empty</c>, ...</remarks>
 		public required string DefaultLiteral { get; init; }
 
 		/// <summary>The member has the <see cref="T:System.ComponentModel.DataAnnotations.KeyAttribute"/> attribute</summary>

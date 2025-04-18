@@ -282,13 +282,12 @@ namespace Doxense.Serialization.Json
 				new CrystalJsonMemberDefinition()
 				{
 					Type = keyType,
-					Member = keyProperty,
 					Name = "Key",
 					OriginalName = "Key",
 					EncodedName = new("Key"),
+					Flags = CrystalJsonMemberFlags.ReadOnly | CrystalJsonMemberFlags.Key,
 					NullableOfType = GetNullableType(keyType),
 					DefaultValue = keyType.GetDefaultValue(),
-					ReadOnly = true,
 					Getter = keyProperty.CompileGetter(),
 					Setter = null, //TODO: private setter?
 					//TODO: visitor? binder?
@@ -298,13 +297,12 @@ namespace Doxense.Serialization.Json
 				new CrystalJsonMemberDefinition()
 				{
 					Type = valueType,
-					Member = valueProperty,
 					Name = "Value",
 					OriginalName = "Value",
 					EncodedName = new("Value"),
 					NullableOfType = GetNullableType(valueType),
 					DefaultValue = valueType.GetDefaultValue(),
-					ReadOnly = true,
+					Flags = CrystalJsonMemberFlags.ReadOnly,
 					Getter = valueProperty.CompileGetter(),
 					Setter = null, //TODO: private setter?
 					//TODO: visitor? binder?
@@ -313,7 +311,7 @@ namespace Doxense.Serialization.Json
 				}
 			};
 
-			return new(type, binder, null, members, null, null, null, null);
+			return new(type, CrystalJsonTypeFlags.None, binder, null, members, null, null, null, null);
 		}
 
 		public object? BindJsonValue(Type? type, JsonValue? value)
@@ -1011,22 +1009,23 @@ namespace Doxense.Serialization.Json
 				var visitor = CrystalJsonVisitor.GetVisitorForType(fieldType, atRuntime: false);
 				if (visitor == null) throw new ArgumentException($"Doesn't know how to serialize field {field.Name} of type {fieldType.GetFriendlyName()}", nameof(type));
 
+				var flags = CrystalJsonMemberFlags.None;
+				if (IsInitOnlyMember(field)) flags |= CrystalJsonMemberFlags.InitOnly;
+				if (IsRequiredMember(field)) flags |= CrystalJsonMemberFlags.Required;
+				if (IsKeyMember(field)) flags |= CrystalJsonMemberFlags.Key;
+				if (IsNotNullMemberType(field, fieldType)) flags |= CrystalJsonMemberFlags.NotNull;
+				if (defaultValue is not null && !defaultValue.Equals(fieldType.GetDefaultValue())) flags |= CrystalJsonMemberFlags.NonZeroDefault;
+
 				var definition = new CrystalJsonMemberDefinition()
 				{
 					Type = fieldType,
-					Member = field,
+					Flags = flags,
 					Name = name,
 					OriginalName = field.Name,
 					EncodedName = new(name),
 					NullableOfType = GetNullableType(fieldType),
-					IsNotNull = IsNotNullMemberType(field, fieldType),
-					IsRequired = IsRequiredMember(field),
-					IsKey = IsKeyMember(field),
-					IsInitOnly = IsInitOnlyMember(field),
 					Attributes = jp,
-					HasDefaultValue = defaultValue is not null && !defaultValue.Equals(fieldType.GetDefaultValue()),
 					DefaultValue = defaultValue,
-					ReadOnly = false,
 					Getter = field.CompileGetter(),
 					Setter = field.CompileSetter(),
 					Visitor = visitor,
@@ -1084,22 +1083,24 @@ namespace Doxense.Serialization.Json
 					setter = TryCompileAdderForReadOnlyCollection(property);
 				}
 
+				var flags = CrystalJsonMemberFlags.None;
+				if (setter == null) flags |= CrystalJsonMemberFlags.ReadOnly;
+				if (IsInitOnlyMember(property)) flags |= CrystalJsonMemberFlags.InitOnly;
+				if (IsRequiredMember(property)) flags |= CrystalJsonMemberFlags.Required;
+				if (IsKeyMember(property)) flags |= CrystalJsonMemberFlags.Key;
+				if (IsNotNullMemberType(property, propertyType)) flags |= CrystalJsonMemberFlags.NotNull;
+				if (defaultValue is not null && !defaultValue.Equals(propertyType.GetDefaultValue())) flags |= CrystalJsonMemberFlags.NonZeroDefault;
+
 				var definition = new CrystalJsonMemberDefinition()
 				{
 					Type = propertyType,
-					Member = property,
+					Flags = flags,
 					Name = name,
 					OriginalName = property.Name,
 					EncodedName = new(name),
 					NullableOfType = GetNullableType(propertyType),
-					IsNotNull = IsNotNullMemberType(property, propertyType),
-					IsRequired = IsRequiredMember(property),
-					IsKey = IsKeyMember(property),
-					IsInitOnly = IsInitOnlyMember(property),
 					Attributes = jp,
-					HasDefaultValue = defaultValue is not null && !defaultValue.Equals(propertyType.GetDefaultValue()),
 					DefaultValue = defaultValue,
-					ReadOnly = setter == null,
 					Getter = getter,
 					Setter = setter,
 					Visitor = visitor,
@@ -1279,7 +1280,7 @@ namespace Doxense.Serialization.Json
 
 			JsonEncodedPropertyName? typeDiscriminatorProperty = null;
 			JsonValue? typeDiscriminatorValue = null;
-			FrozenDictionary<JsonValue, Type>? derivedTypeMap = null;
+			Dictionary<JsonValue, Type>? derivedTypeMap = null;
 			Type? baseType = null; // if we are not a "leaf"
 
 			// look for polymorphic types (either on the type itself or one of its parent)
@@ -1293,13 +1294,12 @@ namespace Doxense.Serialization.Json
 				{ // we are the top
 
 					// generate the type map
-					var map = new Dictionary<JsonValue, Type>(derivedTypes.TryGetNonEnumeratedCount(out var count) ? count : 0, JsonValueComparer.Default);
+					derivedTypeMap = new(derivedTypes.TryGetNonEnumeratedCount(out var count) ? count : 0, JsonValueComparer.Default);
 					foreach (var t in derivedTypes)
 					{
 						if (t.TypeDiscriminator == null) continue;
-						map[JsonValue.FromValue(t.TypeDiscriminator)] = t.DerivedType;
+						derivedTypeMap[JsonValue.FromValue(t.TypeDiscriminator)] = t.DerivedType;
 					}
-					derivedTypeMap = map.ToFrozenDictionary();
 				}
 				else
 				{ // we are a derived type
@@ -1344,7 +1344,7 @@ namespace Doxense.Serialization.Json
 				}
 			}
 
-			return new CrystalJsonTypeDefinition(type, binder, generator, members, baseType, typeDiscriminatorProperty, typeDiscriminatorValue, derivedTypeMap);
+			return new CrystalJsonTypeDefinition(type, CrystalJsonTypeFlags.None, binder, generator, members, baseType, typeDiscriminatorProperty, typeDiscriminatorValue, derivedTypeMap);
 		}
 
 		/// <summary>Extracts the type definition for the Nullable&lt;T&gt; version of a struct</summary>
@@ -1357,7 +1357,7 @@ namespace Doxense.Serialization.Json
 			Contract.NotNull(definition);
 
 			_ = TryGetConverterFor(definition.Type, out var converter); // may be null, will throw in the generated binder!
-			return new(definition.Type, NullableBinder, null, definition.Members, definition.BaseType, definition.TypeDiscriminatorProperty, definition.TypeDiscriminatorValue, definition.DerivedTypeMap);
+			return new(definition.Type, definition.Flags, NullableBinder, null, definition.Members, definition.BaseType, definition.TypeDiscriminatorProperty, definition.TypeDiscriminatorValue, definition.DerivedTypeMap);
 
 			object? NullableBinder(JsonValue? value, Type bindingType, ICrystalJsonTypeResolver resolver)
 			{
