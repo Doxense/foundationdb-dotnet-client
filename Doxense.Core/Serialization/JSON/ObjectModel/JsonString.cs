@@ -344,7 +344,7 @@ namespace Doxense.Serialization.Json
 					[typeof(Exception)] = new(typeof(Exception).FullName!),
 					//
 				};
-				return new(map);
+				return new(map.ToFrozenDictionary());
 			}
 
 			[Pure]

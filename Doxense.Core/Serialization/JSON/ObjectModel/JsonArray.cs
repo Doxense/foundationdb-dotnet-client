@@ -4013,13 +4013,15 @@ namespace Doxense.Serialization.Json
 		/// <summary>Compute the delta between this array and a different version, in order to produce a patch that contains the instruction to go from this instance to the new version</summary>
 		/// <param name="after">New version of the array</param>
 		/// <param name="deepCopy">If <see langword="true"/>, create a copy of all mutable elements before adding them to the resulting patch.</param>
+		/// <param name="readOnly">If <see langword="true"/>, the resulting patch will be read-only</param>
 		/// <returns>Value that can be passed to <see cref="ApplyPatch"/> in order to transform this array into <paramref name="after"/>.</returns>
 		/// <remarks>The patch produced is not marked as immutable. The caller should call <see cref="Freeze"/> on the result if immutability is required.</remarks>
-		public JsonValue ComputePatch(JsonArray after, bool deepCopy = false)
+		public JsonValue ComputePatch(JsonArray after, bool deepCopy = false, bool readOnly = false)
 		{
 			if (this.Count == 0)
 			{ // all items added
-				return deepCopy ? after.Copy() : after;
+				var value = deepCopy ? after.Copy() : after;
+				return readOnly ? value.ToReadOnly() : value;
 			}
 			if (after.Count == 0)
 			{ // all items removed
@@ -4046,13 +4048,13 @@ namespace Doxense.Serialization.Json
 				{
 					case (JsonObject a, JsonObject b):
 					{ // compute object patch
-						var diff = a.ComputePatch(b, deepCopy);
+						var diff = a.ComputePatch(b, deepCopy, readOnly);
 						patch[StringConverters.ToString(i)] = diff;
 						break;
 					}
 					case (JsonArray a, JsonArray b):
 					{ // compute array patch
-						var diff = a.ComputePatch(b, deepCopy);
+						var diff = a.ComputePatch(b, deepCopy, readOnly);
 						patch[StringConverters.ToString(i)] = diff;
 						break;
 					}
@@ -4067,10 +4069,20 @@ namespace Doxense.Serialization.Json
 					}
 					default:
 					{ // overwrite with new value
-						patch[StringConverters.ToString(i)] = deepCopy ? right.Copy() : right;
+						var value = deepCopy ? right.Copy() : right;
+						if (readOnly)
+						{
+							value = value.ToReadOnly();
+						}
+						patch[StringConverters.ToString(i)] = value;
 						break;
 					}
 				}
+			}
+
+			if (readOnly)
+			{
+				patch.FreezeUnsafe();
 			}
 
 			return patch;

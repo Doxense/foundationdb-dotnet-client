@@ -3022,7 +3022,7 @@ namespace Doxense.Serialization.Json
 			return parent;
 		}
 
-		public JsonObject ComputePatch(JsonObject after, bool deepCopy = false)
+		public JsonObject ComputePatch(JsonObject after, bool deepCopy = false, bool readOnly = false)
 		{
 			//note: we already know that there is a difference
 			var patch = new JsonObject();
@@ -3045,7 +3045,12 @@ namespace Doxense.Serialization.Json
 				{ // add new key
 					if (!kv.Value.IsNullOrMissing())
 					{
-						patch[kv.Key] = deepCopy ? kv.Value.Copy() : kv.Value;
+						var value = deepCopy ? kv.Value.Copy() : kv.Value;
+						if (readOnly)
+						{
+							value = value.ToReadOnly();
+						}
+						patch[kv.Key] = value;
 					}
 				}
 				else if (!p.Equals(kv.Value))
@@ -3054,12 +3059,12 @@ namespace Doxense.Serialization.Json
 					{
 						case (JsonObject a, JsonObject b):
 						{
-							patch[kv.Key] = a.ComputePatch(b, deepCopy);
+							patch[kv.Key] = a.ComputePatch(b, deepCopy, readOnly);
 							break;
 						}
 						case (JsonArray a, JsonArray b):
 						{
-							patch[kv.Key] = a.ComputePatch(b, deepCopy);
+							patch[kv.Key] = a.ComputePatch(b, deepCopy, readOnly);
 							break;
 						}
 						case (_, JsonNull):
@@ -3069,11 +3074,21 @@ namespace Doxense.Serialization.Json
 						}
 						default:
 						{
-							patch[kv.Key] = deepCopy ? kv.Value.Copy() : kv.Value;
+							var value = deepCopy ? kv.Value.Copy() : kv.Value;
+							if (readOnly)
+							{
+								value = value.ToReadOnly();
+							}
+							patch[kv.Key] = value;
 							break;
 						}
 					}
 				}
+			}
+
+			if (readOnly)
+			{
+				patch.FreezeUnsafe();
 			}
 
 			return patch;

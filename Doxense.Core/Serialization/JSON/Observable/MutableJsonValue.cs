@@ -1316,12 +1316,12 @@ namespace Doxense.Serialization.Json
 			{
 				case (JsonObject before, JsonObject after):
 				{ // Object patch
-					patch = before.ComputePatch(after);
+					patch = before.ComputePatch(after, readOnly: true);
 					break;
 				}
 				case (JsonArray before, JsonArray after):
 				{ // Array patch
-					patch = before.ComputePatch(after);
+					patch = before.ComputePatch(after, readOnly: true);
 					break;
 				}
 				case (JsonNull, JsonNull):
@@ -1415,12 +1415,12 @@ namespace Doxense.Serialization.Json
 			{
 				case (JsonObject before, JsonObject after):
 				{ // Object patch
-					patch = this.Context != null ? before.ComputePatch(after) : null;
+					patch = this.Context != null ? before.ComputePatch(after, readOnly: true) : null;
 					break;
 				}
 				case (JsonArray before, JsonArray after):
 				{ // Array patch
-					patch = this.Context != null ? before.ComputePatch(after) : null;
+					patch = this.Context != null ? before.ComputePatch(after, readOnly: true) : null;
 					break;
 				}
 				case (_, JsonNull):
@@ -1840,12 +1840,12 @@ namespace Doxense.Serialization.Json
 			{
 				case (JsonObject before, JsonObject after):
 				{ // Object patch
-					patch = this.Context != null ? before.ComputePatch(after) : null;
+					patch = this.Context != null ? before.ComputePatch(after, readOnly: true) : null;
 					break;
 				}
 				case (JsonArray before, JsonArray after):
 				{ // Array patch
-					patch = this.Context != null ? before.ComputePatch(after) : null;
+					patch = this.Context != null ? before.ComputePatch(after, readOnly: true) : null;
 					break;
 				}
 				default:
