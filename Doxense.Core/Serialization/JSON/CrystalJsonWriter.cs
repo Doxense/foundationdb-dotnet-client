@@ -507,41 +507,80 @@ namespace Doxense.Serialization.Json
 			m_buffer.Write("/* ", comment.Replace("*/", "* /"), " */");
 		}
 
-		/// <summary>Write the "null" literal</summary>
+		/// <summary>Write the null literal (<c>null</c>)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteNull()
 		{
 			m_buffer.Write("null");
 		}
 
-		/// <summary>Write the empty object "{}" literal</summary>
+		/// <summary>Write the empty object literal (<c>{}</c> or <c>{ }</c>)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteEmptyObject()
 		{
-			m_buffer.Write(m_formatted ? "{ }" : "{}");
+			if (m_formatted)
+			{
+				m_buffer.Write("{ }");
+			}
+			else
+			{
+				m_buffer.Write('{', '}');
+			}
 		}
 
-		/// <summary>Write the empty array "[]" literal</summary>
+		/// <summary>Write the empty array literal (<c>[]</c> or <c>[ ]</c>)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteEmptyArray()
 		{
-			m_buffer.Write(m_formatted ? "[ ]" : "[]");
+			if (m_formatted)
+			{
+				m_buffer.Write("[ ]");
+			}
+			else
+			{
+				m_buffer.Write('[', ']');
+			}
 		}
 
-		/// <summary>Write a coma separator (",") between two fields, unless this is the first element of an array</summary>
+		/// <summary>Write the empty string literal (<c>""</c>)</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteEmptyString()
+		{
+			if (!m_javascript)
+			{
+				m_buffer.Write('"', '"');
+			}
+			else
+			{
+				m_buffer.Write('\'', '\'');
+			}
+		}
+
+		/// <summary>Write a coma separator (<c>,</c>) between two fields, unless this is the first element of an array</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteFieldSeparator()
 		{
 			if (m_indented)
 			{
-				m_buffer.Write(
-					m_state.Tail ? ",\r\n" : "\r\n",
-					m_state.Indentation
-				);
+				if (m_state.Tail)
+				{
+					m_buffer.Write(",\r\n", m_state.Indentation);
+				}
+				else
+				{
+					m_buffer.Write("\r\n", m_state.Indentation);
+				}
 			}
 			else if (m_formatted)
 			{
-				m_buffer.Write(m_state.Tail ? ", " : " ");
+				if (m_state.Tail)
+				{
+					m_buffer.Write(',', ' ');
+				}
+				else
+				{
+					m_buffer.Write(' ');
+				}
 			}
 			else if (m_state.Tail)
 			{
@@ -692,6 +731,26 @@ namespace Doxense.Serialization.Json
 			return tail;
 		}
 
+		private static string GetNextIndentLevel(string? current)
+		{
+			if (current == null) return "\t";
+			return current.Length switch
+			{
+				0 => "\t",
+				1 => "\t\t",
+				2 => "\t\t\t",
+				3 => "\t\t\t\t",
+				4 => "\t\t\t\t\t",
+				5 => "\t\t\t\t\t\t",
+				6 => "\t\t\t\t\t\t\t",
+				7 => "\t\t\t\t\t\t\t\t",
+				8 => "\t\t\t\t\t\t\t\t\t",
+				9 => "\t\t\t\t\t\t\t\t\t\t",
+				10 => "\t\t\t\t\t\t\t\t\t\t\t",
+				_ => new string('\t', current.Length + 1)
+			};
+		}
+
 		/// <summary>Start a new JSON object</summary>
 		/// <returns>Previous state, that should be passed to the corresponding <see cref="EndObject"/></returns>
 		public State BeginObject()
@@ -700,7 +759,10 @@ namespace Doxense.Serialization.Json
 			m_buffer.Write('{');
 			m_state.Tail = false;
 			m_state.Node = NodeType.Object;
-			if (m_indented) m_state.Indentation += '\t';
+			if (m_indented)
+			{
+				m_state.Indentation = GetNextIndentLevel(m_state.Indentation);
+			}
 			return state;
 		}
 
@@ -739,7 +801,10 @@ namespace Doxense.Serialization.Json
 			m_buffer.Write('[');
 			m_state.Tail = false;
 			m_state.Node = NodeType.Array;
-			if (m_indented) m_state.Indentation += '\t';
+			if (m_indented)
+			{
+				m_state.Indentation = GetNextIndentLevel(m_state.Indentation);
+			}
 			return state;
 		}
 
@@ -1544,7 +1609,20 @@ namespace Doxense.Serialization.Json
 
 		public void WriteValue(StringBuilder? value)
 		{
-			WriteValue(value?.ToString());
+			if (value is null)
+			{
+				WriteNull();
+			}
+			else if (!m_javascript)
+			{
+				//TODO: could we use GetChunks()? (at least if there is a single chunk?)
+				JsonEncoding.EncodeTo(ref m_buffer, value.ToString());
+			}
+			else
+			{
+				//TODO: could we use GetChunks()? (at least if there is a single chunk?)
+				CrystalJsonFormatter.WriteJavaScriptString(ref m_buffer, value.ToString());
+			}
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
