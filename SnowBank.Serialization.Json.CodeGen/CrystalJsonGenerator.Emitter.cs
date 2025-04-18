@@ -1992,33 +1992,64 @@ namespace SnowBank.Serialization.Json.CodeGen
 				sb.Comment($"{member.Type.Name} {member.MemberName} => \"{member.Name}\"");
 
 				var propertyName = GetPropertyEncodedNameRef(member);
+				var getterExpr = "instance." + member.MemberName;
 
 				if (IsFastPathSerializable(member.Type))
 				{
 					// there is a dedicated method for this type
-					sb.AppendLine($"writer.WriteField({propertyName}, instance.{member.MemberName}); // fast-path");
+					sb.AppendLine($"writer.WriteField({propertyName}, {getterExpr}); // fast-path");
 					return;
 				}
 
 				if (IsLocallyGeneratedType(member.Type, out var subDef))
 				{ // we have a local generated serializer for this!
-					sb.AppendLine($"writer.WriteField({propertyName}, instance.{member.MemberName}, {this.GetLocalSerializerRef(subDef)}); // local-serializer");
+					sb.AppendLine($"writer.WriteField({propertyName}, {getterExpr}, {this.GetLocalSerializerRef(subDef)}); // local-serializer");
 					return;
 				}
 
 				if (member.Type.SpecialType == SpecialType.System_Nullable_T)
 				{
 					sb.AppendLine("// nullable!");
+					//TODO?
 				}
 
 				//TODO: test if implements IJsonSerializable
 
-				//TODO: test if this is a dictionary type
+				if (member.Type.JsonType is not JsonPrimitiveType.None)
+				{ // this is a JsonValue
+					sb.AppendLine($"writer.WriteField({propertyName}, {getterExpr}); // fast-json");
+					return;
+				}
 
-				//TODO: test if this is an enumerable type
+				if (member.Type.IsDictionary(out var keyType, out var valueType))
+				{
+					if (keyType.IsString())
+					{
+						if (IsLocallyGeneratedType(valueType, out subDef))
+						{
+							sb.AppendLine($"writer.WriteFieldDictionary({propertyName}, {getterExpr}, {GetLocalSerializerRef(subDef)}); // dict-local-serializer");
+						}
+						else
+						{
+							sb.AppendLine($"writer.WriteFieldDictionary({propertyName}, {getterExpr}); // dict-fallback");
+						}
+						return;
+					}
+				}
+				else if (member.Type.IsEnumerable(out var elemType))
+				{
+					if (IsLocallyGeneratedType(elemType, out subDef))
+					{ // we have a local generated serializer for this!
+						sb.AppendLine($"writer.WriteFieldArray({propertyName}, {getterExpr}, {this.GetLocalSerializerRef(subDef)}); // enumerable-local-serializer");
+						return;
+					}
+
+					sb.AppendLine($"writer.WriteFieldArray({propertyName}, {getterExpr}); // enumerable-fallback");
+					return;
+				}
 
 				// fallback to invoking the generic WriteField<T>(...) method
-				sb.AppendLine($"writer.WriteField({propertyName}, instance.{member.MemberName}); // fallback");
+				sb.AppendLine($"writer.WriteField({propertyName}, {getterExpr}); // fallback");
 			}
 
 		}

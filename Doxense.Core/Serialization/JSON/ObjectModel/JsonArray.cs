@@ -2950,6 +2950,40 @@ namespace Doxense.Serialization.Json
 			return result;
 		}
 
+		/// <summary>Deserializes this array into an array of <typeparamref name="TValue"/>, using a custom decoder</summary>
+		/// <typeparam name="TValue">Type of the deserialized items</typeparam>
+		/// <param name="decoder">Func that is called do decode each element of this array</param>
+		/// <returns>Array of deserialized items</returns>
+		public TValue[] ToArray<TValue>(Func<JsonValue, TValue> decoder)
+		{
+			var items = this.AsSpan();
+			if (items.Length == 0) return [ ];
+			var result = new TValue[items.Length];
+			for (int i = 0; i < result.Length; i++)
+			{
+				result[i] = decoder(items[i]);
+			}
+			return result;
+		}
+
+		/// <summary>Deserializes this array into an array of <typeparamref name="TValue"/></summary>
+		/// <typeparam name="TValue">Type of the deserialized items, which implements <see cref="IJsonDeserializable{TSelf}"/></typeparam>
+		/// <returns>Array of deserialized items</returns>
+		public TValue[] ToArrayDeserializable<TValue>(ICrystalJsonTypeResolver? resolver = null)
+			where TValue : IJsonDeserializable<TValue>
+		{
+			var items = this.AsSpan();
+			if (items.Length == 0) return [ ];
+
+			resolver ??= CrystalJson.DefaultResolver;
+			var result = new TValue[items.Length];
+			for (int i = 0; i < result.Length; i++)
+			{
+				result[i] = TValue.JsonDeserialize(items[i], resolver);
+			}
+			return result;
+		}
+
 #if !DEBUG // <JIT_HACK>
 
 		[Pure, CollectionAccess(CollectionAccessType.Read), UsedImplicitly]
@@ -3313,29 +3347,56 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Returns a <see cref="List{T}"/> with the transformed elements of this array</summary>
-		/// <param name="transform">Transformation that is applied on each element of the array</param>
-		/// <returns>A list of all elements that have been converted <paramref name="transform"/></returns>
+		/// <param name="decoder">Func that is called do decode each element of this array</param>
+		/// <returns>A list of all elements that have been converted <paramref name="decoder"/></returns>
 		[Pure]
-		public List<TValue> ToList<TValue>([InstantHandle] Func<JsonValue, TValue> transform)
+		public List<TValue> ToList<TValue>([InstantHandle] Func<JsonValue, TValue> decoder)
 		{
-			Contract.NotNull(transform);
+			Contract.NotNull(decoder);
 			var items = this.AsSpan();
-			var list = new List<TValue>(items.Length);
+			var result = new List<TValue>(items.Length);
 #if NET8_0_OR_GREATER
 			// update the list in-place
-			CollectionsMarshal.SetCount(list, m_size);
-			var tmp = CollectionsMarshal.AsSpan(list);
+			CollectionsMarshal.SetCount(result, m_size);
+			var tmp = CollectionsMarshal.AsSpan(result);
 			for (int i = 0; i < items.Length; i++)
 			{
-				tmp[i] = transform(items[i]);
+				tmp[i] = decoder(items[i]);
 			}
 #else
 			foreach(var item in items)
 			{
-				list.Add(transform(item));
+				result.Add(decoder(item));
 			}
 #endif
-			return list;
+			return result;
+		}
+
+		/// <summary>Deserializes this array into an array of <typeparamref name="TValue"/></summary>
+		/// <typeparam name="TValue">Type of the deserialized items, which implements <see cref="IJsonDeserializable{TSelf}"/></typeparam>
+		/// <returns>Array of deserialized items</returns>
+		public List<TValue> ToListDeserializable<TValue>(ICrystalJsonTypeResolver? resolver = null)
+			where TValue : IJsonDeserializable<TValue>
+		{
+			var items = this.AsSpan();
+			if (items.Length == 0) return [ ];
+
+			var result = new List<TValue>(items.Length);
+#if NET8_0_OR_GREATER
+			// update the list in-place
+			CollectionsMarshal.SetCount(result, m_size);
+			var tmp = CollectionsMarshal.AsSpan(result);
+			for (int i = 0; i < items.Length; i++)
+			{
+				tmp[i] = TValue.JsonDeserialize(items[i], resolver);
+			}
+#else
+			foreach(var item in items)
+			{
+				result.Add(TValue.JsonDeserialize(items[i], resolver));
+			}
+#endif
+			return result;
 		}
 
 		/// <summary>Converts this <see cref="JsonArray">JSON Array</see> so that it, or any of its children that were previously read-only, can be mutated.</summary>
@@ -3667,13 +3728,85 @@ namespace Doxense.Serialization.Json
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public ImmutableList<TValue?> ToImmutableList<TValue>(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null)
 		{
+			var items = this.AsSpan();
+			if (items.Length == 0) return [ ];
+
 			resolver ??= CrystalJson.DefaultResolver;
-			var list = ImmutableList.CreateBuilder<TValue?>();
-			foreach (var item in this.AsSpan())
+			var result = ImmutableList.CreateBuilder<TValue?>();
+			foreach (var item in items)
 			{
-				list.Add(item.As<TValue?>(default, resolver));
+				result.Add(item.As<TValue?>(default, resolver));
 			}
-			return list.ToImmutable();
+			return result.ToImmutable();
+		}
+
+		/// <summary>Deserializes this array into an immutable array of <typeparamref name="TValue"/>, using a custom decoder</summary>
+		/// <typeparam name="TValue">Type of the deserialized items</typeparam>
+		/// <param name="decoder">Func that is called do decode each element of this array</param>
+		/// <returns>Immutable array of deserialized items</returns>
+		public ImmutableList<TValue> ToImmutableList<TValue>(Func<JsonValue, TValue> decoder)
+		{
+			var items = this.AsSpan();
+			if (items.Length == 0) return [ ];
+
+			var result = ImmutableList.CreateBuilder<TValue>();
+			foreach (var item in items)
+			{
+				result.Add(decoder(item));
+			}
+			return result.ToImmutableList();
+		}
+
+		/// <summary>Deserializes this <see cref="JsonArray">JSON Array</see> into an <see cref="ImmutableList{TValue}"/></summary>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		public ImmutableArray<TValue?> ToImmutableArray<TValue>(TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null)
+		{
+			resolver ??= CrystalJson.DefaultResolver;
+			var items = AsSpan();
+			switch (items.Length)
+			{
+				case 0: return [ ];
+				case 1: return ImmutableArray.Create<TValue?>(items[0].As<TValue?>(defaultValue, resolver));
+				case 2: return ImmutableArray.Create<TValue?>(items[0].As<TValue?>(defaultValue, resolver), items[1].As<TValue?>(defaultValue, resolver));
+				case 3: return ImmutableArray.Create<TValue?>(items[0].As<TValue?>(defaultValue, resolver), items[1].As<TValue?>(defaultValue, resolver), items[2].As<TValue?>(defaultValue, resolver));
+				case 4: return ImmutableArray.Create<TValue?>(items[0].As<TValue?>(defaultValue, resolver), items[1].As<TValue?>(defaultValue, resolver), items[2].As<TValue?>(defaultValue, resolver), items[3].As<TValue?>(defaultValue, resolver));
+				default:
+				{
+					var list = ImmutableArray.CreateBuilder<TValue?>(items.Length);
+					foreach (var item in items)
+					{
+						list.Add(item.As<TValue?>(defaultValue, resolver));
+					}
+					return list.ToImmutable();
+				}
+			}
+
+		}
+
+		/// <summary>Deserializes this array into an immutable array of <typeparamref name="TValue"/>, using a custom decoder</summary>
+		/// <typeparam name="TValue">Type of the deserialized items</typeparam>
+		/// <param name="decoder">Func that is called do decode each element of this array</param>
+		/// <returns>Immutable array of deserialized items</returns>
+		public ImmutableArray<TValue> ToImmutableArray<TValue>(Func<JsonValue, TValue> decoder)
+		{
+			var items = this.AsSpan();
+			switch (items.Length)
+			{
+				case 0: return [ ];
+				case 1: return ImmutableArray.Create<TValue>(decoder(items[0]));
+				case 2: return ImmutableArray.Create<TValue>(decoder(items[0]), decoder(items[1]));
+				case 3: return ImmutableArray.Create<TValue>(decoder(items[0]), decoder(items[1]), decoder(items[2]));
+				case 4: return ImmutableArray.Create<TValue>(decoder(items[0]), decoder(items[1]), decoder(items[2]), decoder(items[3]));
+				default:
+				{
+					var result = ImmutableArray.CreateBuilder<TValue>(items.Length);
+					foreach (var item in items)
+					{
+						result.Add(decoder(item));
+					}
+					return result.ToImmutableArray();
+				}
+			}
 		}
 
 		/// <summary>Tests if there is at least one element in the array</summary>

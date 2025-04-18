@@ -991,7 +991,6 @@ namespace Doxense.Serialization.Json
 		/// <para>This is only intended to be used when the caller is <b>ABSOLUTELY SURE</b> that all the children in the object are already read-only.</para>
 		/// <para>If any children is still mutable, this will break the invariant contract of read-only objects.</para>
 		/// </remarks>
-		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static JsonObject FreezeTopLevel(JsonObject obj)
 		{
 			Contract.Debug.Requires(obj != null);
@@ -1003,11 +1002,44 @@ namespace Doxense.Serialization.Json
 		/// <para>This is only intended to be used when the caller is <b>ABSOLUTELY SURE</b> that all the items in the array are already read-only.</para>
 		/// <para>If any item is still mutable, this will break the invariant contract of read-only objects.</para>
 		/// </remarks>
-		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static JsonArray FreezeTopLevel(JsonArray array)
 		{
 			Contract.Debug.Requires(array != null);
 			return array.FreezeUnsafe();
+		}
+
+		/// <summary>Returns a JSON Array that wraps an existing array of values, without copying any content.</summary>
+		/// <param name="items">Buffer that contains a set of JSON values, which should be used by the new JSON Array.</param>
+		/// <param name="size">Number of items from the start of <paramref name="items"/> that will make up the array</param>
+		/// <param name="readOnly">If <c>true</c>, mark the array as read-only, in which case all elements in <paramref name="items"/> <b>MUST</b> also be read-only!</param>
+		/// <returns>JSON Array that reuse the existing buffer</returns>
+		/// <remarks>
+		/// <para>This is only intended to be used when the caller is <b>ABSOLUTELY SURE</b> that <b>no</b> item in the buffer is <c>null</c></para>
+		/// <para>If <paramref name="readOnly"/> is <c>true</c>, but some items are mutable, this would violate the invariants of <see cref="JsonArray"/> and break your application!</para>
+		/// </remarks>
+		public static JsonArray CreateArrayFromValues(JsonValue[]? items, int size, bool readOnly)
+		{
+			if (size == 0) return readOnly ? JsonArray.ReadOnly.Empty : new();
+
+			ArgumentNullException.ThrowIfNull(items);
+			ArgumentOutOfRangeException.ThrowIfGreaterThan((ulong) (uint) size, (ulong) (uint) items.Length);
+			items.AsSpan(0, size);
+			return new(items, size, readOnly);
+		}
+
+		/// <summary>Returns a JSON Object that wraps an existing dictionary of key/value pairs, </summary>
+		/// <param name="items">Dictionary that contains a set of key/value pairs</param>
+		/// <param name="readOnly">If <c>true</c>, mark the object as read-only, in which case all elements in <paramref name="items"/> <b>MUST</b> also be read-only!</param>
+		/// <returns>JSON Array that reuse the existing buffer</returns>
+		/// <remarks>
+		/// <para>This is only intended to be used when the caller is <b>ABSOLUTELY SURE</b> that <b>NO</b> item in the dictionary is <c>null</c>.</para>
+		/// <para>If <paramref name="readOnly"/> is <c>true</c>, but some items are mutable, this would violate the invariants of <see cref="JsonObject"/> and break your application!</para>
+		/// </remarks>
+		public static JsonObject CreateObjectFromDictionary(Dictionary<string, JsonValue>? items, bool readOnly)
+		{
+			if (items is null || items.Count == 0) return readOnly ? JsonObject.ReadOnly.Empty : new();
+
+			return new(items, readOnly);
 		}
 
 	}

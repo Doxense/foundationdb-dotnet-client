@@ -1441,6 +1441,41 @@ namespace Doxense.Serialization.Json
 			writer.Leave(dictionary);
 		}
 
+		/// <summary>Visit a <c>Dictionary&lt;string, string&gt;</c></summary>
+		public static void VisitStringDictionary(Dictionary<string, string>? dictionary, CrystalJsonWriter writer)
+		{
+			if (dictionary == null)
+			{ // "null" or "{}"
+				writer.WriteNull(); // "null"
+				return;
+			}
+
+			if (dictionary.Count == 0)
+			{ // empty => "{}"
+				writer.WriteEmptyObject(); // "{}"
+				return;
+			}
+
+			writer.MarkVisited(dictionary);
+			var state = writer.BeginObject();
+
+			int n = 0;
+			foreach (var kvp in dictionary)
+			{
+				if (n == 10)
+				{
+					writer.MaybeFlush();
+					n = 0;
+				}
+
+				writer.WriteField(kvp.Key, kvp.Value);
+				++n;
+			}
+
+			writer.EndObject(state); // "}"
+			writer.Leave(dictionary);
+		}
+
 		/// <summary>Visit a <c>Dictionary&lt;string, object&gt;</c></summary>
 		public static void VisitGenericDictionary<TValue>(Dictionary<string, TValue>? dictionary, CrystalJsonWriter writer)
 		{
