@@ -587,6 +587,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 				bool isKey = false;
 
 				string defaultLiteral = GetDefaultLiteral(type);
+				bool hasNonZeroDefault = false;
 
 				foreach (var attribute in memberAttributes)
 				{
@@ -606,6 +607,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 							{
 								if (kv.Key == "DefaultValue")
 								{
+									hasNonZeroDefault = true; // BUGBUG: detect if value is still the default for this type??
 									if (type.IsPrimitive)
 									{
 										defaultLiteral = kv.Value.ToCSharpString();
@@ -654,6 +656,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 						IsRequired = isRequired,
 						IsNotNull = isNotNull,
 						IsKey = isKey,
+						HasNonZeroDefault = hasNonZeroDefault,
 						DefaultLiteral = defaultLiteral,
 					},
 					typeSymbol

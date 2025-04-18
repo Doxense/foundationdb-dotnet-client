@@ -36,6 +36,15 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		public static CrystalJsonTypeResolverChain Create() => new();
 
+		public static CrystalJsonTypeResolverChain Create(ICrystalJsonTypeResolver root)
+		{
+			Contract.NotNull(root);
+
+			var chain = new CrystalJsonTypeResolverChain();
+			chain.Append(root);
+			return chain;
+		}
+
 		/// <summary>Creates a new chain with the specified type collections</summary>
 		/// <param name="collections">List of collections, in the same order as they would be appended to the chain using <see cref="Append"/></param>
 		[Pure]
@@ -71,18 +80,51 @@ namespace Doxense.Serialization.Json
 		private object Lock { get; } = new();
 #endif
 
+		/// <summary>Remove all resolvers in this chain</summary>
+		public void Clear()
+		{
+			lock (this.Lock)
+			{
+				this.Head = null;
+			}
+		}
+
 		/// <summary>Adds a new type collection to this chain</summary>
 		/// <param name="resolver">Collection of types</param>
 		/// <returns>The same chain instance</returns>
 		/// <remarks>The order of appends is important for conflict resolution in case the same type is present in multiple collections. Collections are evaluated to last to first, <paramref name="resolver"/> will have priority against any previously added collection.</remarks>
 		public CrystalJsonTypeResolverChain Append(ICrystalJsonTypeResolver resolver)
 		{
-			//TODO: check that this is not already added?
+			Contract.NotNull(resolver);
+
 			lock (this.Lock)
 			{
+				// check that the chain does not already contain this resolver
+				var current = this.Head;
+				while (current != null)
+				{
+					if (current.Resolver == resolver) throw new InvalidOperationException("The given resolver is already present in this chain");
+					current = current.Next;
+				}
+
 				this.Head = new() { Resolver = resolver, Next = this.Head };
 			}
 			return this;
+		}
+
+		/// <summary>Tests if this chain already contains the given resolver</summary>
+		public bool Contains(ICrystalJsonTypeResolver resolver)
+		{
+			lock (this.Lock)
+			{
+				var current = this.Head;
+				while (current != null)
+				{
+					if (current.Resolver == resolver) return true;
+					current = current.Next;
+				}
+				return false;
+			}
 		}
 
 		/// <inheritdoc />
@@ -161,17 +203,9 @@ namespace Doxense.Serialization.Json
 		/// <summary>Default converter for instances of type <typeparamref name="T"/></summary>
 		public static readonly IJsonConverter<T> Default = new RuntimeJsonConverter<T>();
 
-		public static IJsonConverter<T> GetInstance() => RuntimeJsonConverter<T>.Default; // used via reflection!
+		public static IJsonConverter<T> GetInstance() => RuntimeJsonConverter<T>.Default;
 
-		public RuntimeJsonConverter(ICrystalJsonTypeResolver? resolver = null)
-		{
-			this.Resolver = resolver ?? CrystalJson.DefaultResolver;
-		}
-
-		public ICrystalJsonTypeResolver Resolver { get; }
-
-		/// <inheritdoc />
-		ICrystalJsonTypeResolver IJsonConverter.GetResolver() => this.Resolver;
+		public CrystalJsonTypeDefinition? GetDefinition() => CrystalJson.DefaultResolver.ResolveJsonType(typeof(T));
 
 		/// <inheritdoc />
 		public Type GetTargetType() => typeof(T);
@@ -222,7 +256,7 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		public bool TryMapPropertyToMemberName(string propertyName, [MaybeNullWhen(false)] out string memberName)
 		{
-			if (this.Resolver.TryResolveTypeDefinition<T>(out var def))
+			if (CrystalJson.DefaultResolver.TryResolveTypeDefinition<T>(out var def))
 			{
 				foreach (var member in def.Members)
 				{

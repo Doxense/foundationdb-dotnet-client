@@ -49,6 +49,11 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 		public const string ICrystalJsonTypeResolverFullName = CrystalJsonNamespace + ".ICrystalJsonTypeResolver";
 		public const string CrystalJsonTypeDefinitionFullName = CrystalJsonNamespace + ".CrystalJsonTypeDefinition";
+		public const string CrystalJsonTypeFlagsFullName = CrystalJsonNamespace + ".CrystalJsonTypeFlags";
+		public const string CrystalJsonMemberDefinitionFullName = CrystalJsonNamespace + ".CrystalJsonMemberDefinition";
+		public const string CrystalJsonMemberFlagsFullName = CrystalJsonNamespace + ".CrystalJsonMemberFlags";
+		public const string CrystalJsonTypeBinderFullName = CrystalJsonNamespace + ".CrystalJsonTypeBinder";
+		public const string JsonValueComparerFullName = CrystalJsonNamespace + ".JsonValueComparer";
 
 		public const string IJsonSerializableFullName = CrystalJsonNamespace + ".IJsonSerializable";
 		public const string IJsonPackableFullName = CrystalJsonNamespace + ".IJsonPackable";

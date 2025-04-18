@@ -36,8 +36,8 @@ namespace Doxense.Serialization.Json
 		/// <summary>Type of the instances that are compatible with this converter</summary>
 		Type GetTargetType();
 
-		/// <summary>Returns the type resolver that handles this converter</summary>
-		ICrystalJsonTypeResolver? GetResolver();
+		/// <summary>Returns the definition metadata for the type handled by this converter</summary>
+		CrystalJsonTypeDefinition? GetDefinition();
 
 		/// <summary>Returns the JSON property name for the corresponding member of the target type of this converter</summary>
 		/// <param name="memberName">Name of the member of the target type of this converter, as in the ".NET" name for the property of field.</param>

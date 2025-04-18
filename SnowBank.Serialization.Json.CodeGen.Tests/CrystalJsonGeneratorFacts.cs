@@ -35,10 +35,8 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 	public record Person
 	{
 
-		[JsonProperty("firstName")]
 		public string? FirstName { get; set; }
 
-		[JsonProperty("familyName")]
 		public string? FamilyName { get; set; }
 
 	}
@@ -56,36 +54,28 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 	{
 
 		/// <summary>User ID.</summary>
-		[Key, JsonPropertyName("id")]
+		[Key]
 		public required string Id { get; init; }
 
 		/// <summary>Full name, for display purpose</summary>
-		[JsonPropertyName("displayName")]
 		public required string DisplayName { get; init; }
 
 		/// <summary>Primary email for this account</summary>
-		[JsonPropertyName("email")]
 		public required string Email { get; init; }
 
 		[JsonProperty("type", DefaultValue = 7)]
 		public MyAwesomeEnumType Type { get; init; }
 
-		[JsonPropertyName("desc")]
 		public string? Description { get; init; }
 
-		[JsonPropertyName("roles")]
 		public string[]? Roles { get; init; }
 
-		[JsonPropertyName("metadata")]
 		public required MyAwesomeMetadata Metadata { get; init; }
 
-		[JsonPropertyName("items")]
 		public List<MyAwesomeStruct>? Items { get; init; }
 
-		[JsonPropertyName("devices")]
 		public Dictionary<string, MyAwesomeDevice>? Devices { get; init; }
 
-		[JsonPropertyName("extras")]
 		public JsonObject? Extras { get; init; }
 
 	}
@@ -93,15 +83,12 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 	public sealed record MyAwesomeMetadata
 	{
 		/// <summary>Date at which this account was created</summary>
-		[JsonProperty("accountCreated")]
 		public required DateTimeOffset AccountCreated { get; init; }
 
 		/// <summary>Date at which this account was last modified</summary>
-		[JsonProperty("accountModified")]
 		public required DateTimeOffset AccountModified { get; init; }
 
 		/// <summary>Date at which this account was deleted, or <see langword="null"/> if it is still active</summary>
-		[JsonProperty("accountDisabled")]
 		public DateTimeOffset? AccountDisabled { get; init; }
 	}
 
@@ -109,25 +96,20 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 	{
 
 		/// <summary>Some fancy ID</summary>
-		[Key, JsonProperty("id")]
+		[Key]
 		public required string Id { get; init; }
 
 		/// <summary>Is it over 8000?</summary>
-		[JsonProperty("level")]
 		public required int Level { get; init; }
 
 		/// <summary>Path to enlightenment</summary>
-		[JsonProperty("path")]
 		public required JsonPath Path { get; init; }
 
-		[JsonProperty("paths")]
 		public JsonPath[]? Paths { get; init; }
 
-		[JsonProperty("maybePath")]
 		public JsonPath? MaybePath { get; init; }
 
 		/// <summary>End of the road</summary>
-		[JsonProperty("disabled")]
 		public bool? Disabled { get; init; }
 
 	}
@@ -157,10 +139,8 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 	public abstract record Animal
 	{
 
-		[JsonPropertyName("id")]
 		public required Guid Id { get; init; }
 
-		[JsonPropertyName("name")]
 		public required string Name { get; init; }
 
 	}
@@ -168,7 +148,6 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 	public abstract record Mammal : Animal
 	{
 
-		[JsonPropertyName("legCount")]
 		public int LegCount { get; init; }
 
 	}
@@ -176,7 +155,6 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 	public sealed record Dog : Mammal
 	{
 
-		[JsonPropertyName("isGoodDog")]
 		public bool IsGoodDog { get; init; }
 
 	}
@@ -184,7 +162,6 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 	public sealed record Cat : Mammal
 	{
 
-		[JsonPropertyName("remainingLives")]
 		public int RemainingLives { get; init; }
 
 	}
@@ -277,6 +254,25 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			{
 				var converter = GeneratedConverters.TypeMapper.Default.GetConverterFor<Dog>();
 				Assert.That(converter, Is.InstanceOf<IJsonConverter<Dog>>());
+			}
+		}
+
+		[Test]
+		public void Test_Get_Definition_From_Type()
+		{
+			{ // using the strongly-typed generated converter
+				var typeDef = GeneratedConverters.Person.Default.GetDefinition();
+				Assert.That(typeDef, Is.Not.Null);
+				Assert.That(typeDef.Type, Is.EqualTo(typeof(Person)));
+				Assert.That(typeDef.BaseType, Is.Null);
+				Assert.That(typeDef.IsSealed, Is.False);
+				Assert.That(typeDef.DefaultIsNull, Is.True);
+				Assert.That(typeDef.IsAnonymousType, Is.False);
+				Assert.That(typeDef.NullableOfType, Is.Null);
+			}
+			{ // using the generated type mapper
+				Assert.That(GeneratedConverters.GetResolver().TryResolveTypeDefinition<Person>(out var typeDef), Is.True);
+				Assert.That(typeDef.Type, Is.EqualTo(typeof(Person)));
 			}
 		}
 

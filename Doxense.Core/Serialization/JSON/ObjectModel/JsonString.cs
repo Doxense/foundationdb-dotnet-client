@@ -26,6 +26,7 @@
 
 namespace Doxense.Serialization.Json
 {
+	using System.Collections.Frozen;
 	using System.Globalization;
 	using System.Net;
 	using Doxense.Collections.Caching;
