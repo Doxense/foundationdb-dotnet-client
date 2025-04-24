@@ -231,7 +231,7 @@ namespace Doxense.Serialization.Json
 
 		public Dictionary<string, TValue> ToDictionary(IEqualityComparer<string>? keyComparer = null) => m_value.Json switch
 		{
-			JsonObject obj => m_converter.JsonDeserializeDictionary(obj, keyComparer),
+			JsonObject obj => m_converter.UnpackDictionary(obj, keyComparer),
 			JsonNull => [ ],
 			_ => throw OperationRequiresObjectOrNull(),
 		};
@@ -415,7 +415,7 @@ namespace Doxense.Serialization.Json
 
 		public Dictionary<string, TValue> ToDictionary() => m_value.Json switch
 		{
-			JsonObject obj => TProxy.Converter.JsonDeserializeDictionary(obj),
+			JsonObject obj => TProxy.Converter.UnpackDictionary(obj),
 			JsonNull => [ ],
 			_ => throw OperationRequiresObjectOrNull(),
 		};

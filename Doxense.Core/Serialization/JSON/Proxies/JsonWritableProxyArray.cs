@@ -78,14 +78,14 @@ namespace Doxense.Serialization.Json
 
 		public TValue[] ToArray() => m_value.Json switch
 		{
-			JsonArray arr => m_converter.JsonDeserializeArray(arr),
+			JsonArray arr => m_converter.UnpackArray(arr),
 			JsonNull => [ ],
 			_ => throw OperationRequiresArray(),
 		};
 
 		public List<TValue> ToList() => m_value.Json switch
 		{
-			JsonArray arr => m_converter.JsonDeserializeList(arr),
+			JsonArray arr => m_converter.UnpackList(arr),
 			JsonNull => [ ],
 			_ => throw OperationRequiresArray(),
 		};
@@ -495,14 +495,14 @@ namespace Doxense.Serialization.Json
 
 		public TValue[] ToArray() => m_value.Json switch
 		{
-			JsonArray arr => TProxy.Converter.JsonDeserializeArray(arr),
+			JsonArray arr => TProxy.Converter.UnpackArray(arr),
 			JsonNull => [ ],
 			_ => throw OperationRequiresArrayOrNull(),
 		};
 
 		public List<TValue> ToList() => m_value.Json switch
 		{
-			JsonArray arr => TProxy.Converter.JsonDeserializeList(arr),
+			JsonArray arr => TProxy.Converter.UnpackList(arr),
 			JsonNull => [ ],
 			_ => throw OperationRequiresArrayOrNull(),
 		};

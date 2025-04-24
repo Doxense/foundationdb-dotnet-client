@@ -224,7 +224,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 						sb.AppendLine("return false;");
 						sb.LeaveBlock();
 						sb.AppendLine("definition = converter.GetDefinition();");
-						sb.AppendLine("return false;");
+						sb.AppendLine("return definition != null;");
 						sb.LeaveBlock();
 						sb.NewLine();
 
@@ -237,7 +237,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 						sb.AppendLine("return false;");
 						sb.LeaveBlock();
 						sb.AppendLine("definition = converter.GetDefinition();");
-						sb.AppendLine("return false;");
+						sb.AppendLine("return definition != null;");
 						sb.LeaveBlock();
 						sb.NewLine();
 					}
@@ -760,9 +760,9 @@ namespace SnowBank.Serialization.Json.CodeGen
 							string? getterExpr = null;
 							string proxyType = member.Type.FullyQualifiedNameAnnotated;
 
-							if (IsLocallyGeneratedType(member.Type, out var target))
+							if (IsLocallyGeneratedType(member.Type, out var target, out _))
 							{
-								getterExpr = $"new(m_value[{GetTargetPropertyNameRef(typeDef, member)}])";
+								getterExpr = $"/* local-deserializer */ new(m_value[{GetTargetPropertyNameRef(typeDef, member)}])";
 								proxyType = GetLocalReadOnlyProxyRef(target);
 							}
 							else if (member.Type.IsStringLike() || member.Type.IsBooleanLike() || member.Type.IsNumberLike() || member.Type.IsDateLike())
@@ -780,26 +780,42 @@ namespace SnowBank.Serialization.Json.CodeGen
 									_ => $"/* direct-json-value */ m_value[{this.GetTargetPropertyNameRef(typeDef, member)}].ToJson()"
 								};
 							}
-							else if (member.Type.IsJsonSerializable)
+							else if (member.Type.IsJsonDeserializable)
 							{
-								getterExpr = null; //TODO?
+								getterExpr = $"/* json-deserializable */ {KnownTypeSymbols.JsonSerializerExtensionsFullName}.UnpackJsonDeserializable<{member.Type.FullyQualifiedName}>(m_value[{GetTargetPropertyNameRef(typeDef, member)}].ToJson(), {member.DefaultLiteral}, null)"; //TODO: default value!
+							}
+							else if (member.Type.IsNullableOfT(out var underlyingType) && underlyingType.IsJsonDeserializable)
+							{
+								getterExpr = $"/* nullable-json-deserializable */ {KnownTypeSymbols.JsonSerializerExtensionsFullName}.UnpackNullableJsonDeserializable<{underlyingType.FullyQualifiedName}>(m_value[{GetTargetPropertyNameRef(typeDef, member)}].ToJson(), {member.DefaultLiteral}, null)"; //TODO: default value!
 							}
 							else if (member.Type.IsDictionary(out var keyType, out var valueType))
 							{
 								if (keyType.IsString())
 								{
-									getterExpr = $"new(m_value[{GetTargetPropertyNameRef(typeDef, member)}])";
-									proxyType = IsLocallyGeneratedType(valueType, out target)
-										? $"{KnownTypeSymbols.JsonReadOnlyProxyDictionaryFullName}<{valueType.FullyQualifiedName}, {GetLocalReadOnlyProxyRef(target)}>"
-										: $"{KnownTypeSymbols.JsonReadOnlyProxyDictionaryFullName}<{valueType.FullyQualifiedName}>";
+									if (IsLocallyGeneratedType(valueType, out target, out _))
+									{
+										getterExpr = $"/* dict-local */ new(m_value[{GetTargetPropertyNameRef(typeDef, member)}])";
+										proxyType = $"{KnownTypeSymbols.JsonReadOnlyProxyDictionaryFullName}<{valueType.FullyQualifiedName}, {GetLocalReadOnlyProxyRef(target)}>";
+									}
+									else
+									{
+										getterExpr = $"/* dict-fallback */ new(m_value[{GetTargetPropertyNameRef(typeDef, member)}])";
+										proxyType = $"{KnownTypeSymbols.JsonReadOnlyProxyDictionaryFullName}<{valueType.FullyQualifiedName}>";
+									}
 								}
 							}
 							else if (member.Type.IsEnumerable(out var elemType))
 							{
-								getterExpr = $"new(m_value[{GetTargetPropertyNameRef(typeDef, member)}])";
-								proxyType = IsLocallyGeneratedType(elemType, out target)
-									? $"{KnownTypeSymbols.JsonReadOnlyProxyArrayFullName}<{elemType.FullyQualifiedName}, {GetLocalReadOnlyProxyRef(target)}>"
-									: $"{KnownTypeSymbols.JsonReadOnlyProxyArrayFullName}<{elemType.FullyQualifiedName}>";
+								if (IsLocallyGeneratedType(elemType, out target, out _))
+								{
+									getterExpr = $"/* enumerable-local */ new(m_value[{GetTargetPropertyNameRef(typeDef, member)}])";
+									proxyType = $"{KnownTypeSymbols.JsonReadOnlyProxyArrayFullName}<{elemType.FullyQualifiedName}, {GetLocalReadOnlyProxyRef(target)}>";
+								}
+								else
+								{
+									getterExpr = $"/* enumerable-fallback */ new(m_value[{GetTargetPropertyNameRef(typeDef, member)}])";
+									proxyType = $"{KnownTypeSymbols.JsonReadOnlyProxyArrayFullName}<{elemType.FullyQualifiedName}>";
+								}
 							}
 
 							if (getterExpr == null)
@@ -984,7 +1000,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 							string? getterExpr = null;
 							string? attributeExpr = null;
 
-							if (IsLocallyGeneratedType(member.Type, out var target))
+							if (IsLocallyGeneratedType(member.Type, out var target, out _))
 							{
 								proxyType = GetLocalWritableProxyRef(target);
 								getterExpr = $"/* proxy */ new(m_value[{GetTargetPropertyNameRef(typeDef, member)}])";
@@ -1096,7 +1112,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 							{
 								if (keyType.IsString())
 								{
-									if (IsLocallyGeneratedType(valueType, out target))
+									if (IsLocallyGeneratedType(valueType, out target, out _))
 									{
 										proxyType = $"{KnownTypeSymbols.JsonWritableProxyDictionaryFullName}<{valueType.FullyQualifiedName}, {this.GetLocalWritableProxyRef(target)}>";
 										getterExpr = $"/* dict-proxy */ new(m_value[{GetTargetPropertyNameRef(typeDef, member)}])";
@@ -1113,7 +1129,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 							}
 							else if (member.Type.IsEnumerable(out var elemType))
 							{
-								if (IsLocallyGeneratedType(elemType, out target))
+								if (IsLocallyGeneratedType(elemType, out target, out _))
 								{
 									proxyType = $"{KnownTypeSymbols.JsonWritableProxyArrayFullName}<{elemType.FullyQualifiedName}, {this.GetLocalWritableProxyRef(target)}>";
 									getterExpr = $"/* array-proxy */ new(m_value[{GetTargetPropertyNameRef(typeDef, member)}])";
@@ -1581,7 +1597,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 						sb.AppendLine($"Setter = (instance, value) => (({typeDef.Type.FullyQualifiedName}) instance).{member.MemberName} = ({member.Type.FullyQualifiedNameAnnotated}) value,");
 					}
 					sb.AppendLine($"Visitor = (instance, declaredType, runtimeType, writer) => Default.Serialize(writer, ({typeDef.Type.FullyQualifiedNameAnnotated}) instance),");
-					if (IsLocallyGeneratedType(member.Type, out var target))
+					if (IsLocallyGeneratedType(member.Type, out var target, out _))
 					{
 						sb.AppendLine($"Binder = (instance, type, resolver) => instance is not null ? {GetLocalSerializerRef(target)}.Unpack(instance, resolver) : {KnownTypeSymbols.JsonNullFullName}.Null,");
 					}
@@ -1622,6 +1638,8 @@ namespace SnowBank.Serialization.Json.CodeGen
 				sb.LeaveCollection(suffix: ';');
 				sb.EndRegion();
 
+				sb.AppendLine($"{KnownTypeSymbols.CrystalJsonTypeVisitorFullName} visitor = (({KnownTypeSymbols.IJsonConverterInterfaceFullName}) {GetLocalSerializerRef(typeDef)}).Serialize;");
+
 				sb.AppendLine($"{KnownTypeSymbols.CrystalJsonTypeBinderFullName} binder = (instance, type, resolver) => instance is not null ? Default.Unpack(instance, resolver) : {KnownTypeSymbols.JsonNullFullName}.Null;");
 				if (typeDef.IsPolymorphic)
 				{
@@ -1634,17 +1652,17 @@ namespace SnowBank.Serialization.Json.CodeGen
 						}
 					}
 					var discriminatorPropertyName = $"new({CSharpCodeBuilder.Constant(typeDef.TypeDiscriminatorPropertyName ?? "$type")})";
-					sb.AppendLine($"return new(typeof({typeDef.Type.FullyQualifiedName}), {KnownTypeSymbols.CrystalJsonTypeFlagsFullName}.SourceGenerated, binder, null, members, null, {discriminatorPropertyName}, null, map);");
+					sb.AppendLine($"return new(typeof({typeDef.Type.FullyQualifiedName}), {KnownTypeSymbols.CrystalJsonTypeFlagsFullName}.SourceGenerated, binder, null, members, visitor, null, {discriminatorPropertyName}, null, map);");
 				}
 				else if (this.PolymorphicMap.TryGetValue(typeDef.Type.Ref, out var polymorphicMetadata))
 				{
 					var discriminatorPropertyName = $"new({CSharpCodeBuilder.Constant(polymorphicMetadata.Parent.TypeDiscriminatorPropertyName ?? "$type")})";
 					var discriminatorValue = ConvertDiscriminatorValueToJsonLiteral(polymorphicMetadata.Discriminator);
-					sb.AppendLine($"return new(typeof({typeDef.Type.FullyQualifiedName}), {KnownTypeSymbols.CrystalJsonTypeFlagsFullName}.SourceGenerated, binder, null, members, null, {discriminatorPropertyName}, {discriminatorValue}, null);");
+					sb.AppendLine($"return new(typeof({typeDef.Type.FullyQualifiedName}), {KnownTypeSymbols.CrystalJsonTypeFlagsFullName}.SourceGenerated, binder, null, members, visitor, null, {discriminatorPropertyName}, {discriminatorValue}, null);");
 				}
 				else
 				{
-					sb.AppendLine($"return new(typeof({typeDef.Type.FullyQualifiedName}), {KnownTypeSymbols.CrystalJsonTypeFlagsFullName}.SourceGenerated, binder, null, members, null, null, null, null);");
+					sb.AppendLine($"return new(typeof({typeDef.Type.FullyQualifiedName}), {KnownTypeSymbols.CrystalJsonTypeFlagsFullName}.SourceGenerated, binder, null, members, visitor, null, null, null, null);");
 				}
 				sb.LeaveBlock();
 				sb.NewLine();
@@ -1725,18 +1743,150 @@ namespace SnowBank.Serialization.Json.CodeGen
 				sb.EnterBlock();
 				foreach (var member in typeDef.Members)
 				{
-					if (member.IsNullableRefType())
+					bool isNullableOfType = member.Type.IsNullableOfT(out var underlyingType);
+
+					if (IsLocallyGeneratedType(member.Type, out var target, out var isNullableOfT))
 					{
-						sb.AppendLine($"{member.MemberName} = /* ref-nullable */ obj.Get<{member.Type.FullyQualifiedNameAnnotated}>({GetLocalPropertyNameRef(member)}, {member.DefaultLiteral}),");
+						if (member.IsRequired)
+						{
+							// REVIEW: what if isNullableOfT is true ? this is a bit weird to have nullable value type that is also required??
+							sb.AppendLine($"{member.MemberName} = /* local-required */ {KnownTypeSymbols.JsonSerializerExtensionsFullName}.UnpackRequired<{member.Type.FullyQualifiedName}>({GetLocalSerializerRef(target)}, obj[{GetLocalPropertyNameRef(member)}], resolver, obj, {CSharpCodeBuilder.Constant(member.MemberName)}),");
+						}
+						else if (isNullableOfT)
+						{
+							sb.AppendLine($"{member.MemberName} = /* local-optional-nullable */ {GetLocalSerializerRef(target)}.UnpackNullable(obj[{GetLocalPropertyNameRef(member)}], resolver),");
+						}
+						else
+						{
+							sb.AppendLine($"{member.MemberName} = /* local-optional */ {GetLocalSerializerRef(target)}.Unpack(obj[{GetLocalPropertyNameRef(member)}], resolver),");
+						}
+						continue;
+					}
+
+					if (member.Type.IsJsonDeserializable)
+					{
+						if (member.IsRequired)
+						{
+							sb.AppendLine($"{member.MemberName} = /* deserializable-required */ {KnownTypeSymbols.JsonSerializerExtensionsFullName}.UnpackRequiredJsonDeserializable<{member.Type.FullyQualifiedName}>(obj[{GetLocalPropertyNameRef(member)}], resolver, obj, {CSharpCodeBuilder.Constant(member.MemberName)}),");
+						}
+						else
+						{
+							sb.AppendLine($"{member.MemberName} = /* deserializable-optional */ {KnownTypeSymbols.JsonSerializerExtensionsFullName}.UnpackJsonDeserializable<{member.Type.FullyQualifiedNameAnnotated}>.Unpack(obj[{GetLocalPropertyNameRef(member)}], resolver),");
+						}
+						continue;
+					}
+
+					if (member.Type.IsPrimitive)
+					{
+						if (member.IsRequired)
+						{
+							sb.AppendLine($"{member.MemberName} = /* fast-required */ obj.Get<{member.Type.FullyQualifiedName}>({GetLocalPropertyNameRef(member)}),");
+						}
+						else
+						{
+							sb.AppendLine($"{member.MemberName} = /* fast-optional */ obj.Get<{member.Type.FullyQualifiedNameAnnotated}>({GetLocalPropertyNameRef(member)}, {member.DefaultLiteral}),");
+						}
+						continue;
+					}
+
+					if (member.Type.IsEnumerable(out var elemType))
+					{
+						// note: we have to also know the target enumerable type: array? list? other?
+
+						string sequenceShape = member.Type.IsArray() ? "Array" : member.Type.IsList() ? "List" : member.Type.IsEnumerableInterface(out _) ? "Enumerable" : "Unknown"; //TODO: support more ?
+						if (sequenceShape != "Unknown")
+						{
+							if (IsLocallyGeneratedType(elemType, out target, out isNullableOfT))
+							{
+								if (member.IsRequired)
+								{
+									// REVIEW: what if isNullableOfT is true ? this is a bit weird to have nullable value type that is also required??
+									sb.AppendLine($"{member.MemberName} = /* local-required-{sequenceShape} */ {KnownTypeSymbols.JsonSerializerExtensionsFullName}.UnpackRequired{sequenceShape}({GetLocalSerializerRef(target)}, obj[{GetLocalPropertyNameRef(member)}], resolver, obj, {CSharpCodeBuilder.Constant(member.MemberName)})!,");
+								}
+								else if (isNullableOfT)
+								{
+									sb.AppendLine($"{member.MemberName} = /* local-optional-nullable-{sequenceShape} */ {KnownTypeSymbols.JsonSerializerExtensionsFullName}.UnpackNullable{sequenceShape}({GetLocalSerializerRef(target)}, obj[{GetLocalPropertyNameRef(member)}], {member.DefaultLiteral}, resolver)!,");
+								}
+								else
+								{
+									sb.AppendLine($"{member.MemberName} = /* local-optional-{sequenceShape} */ {KnownTypeSymbols.JsonSerializerExtensionsFullName}.Unpack{sequenceShape}({GetLocalSerializerRef(target)}, obj[{GetLocalPropertyNameRef(member)}], {member.DefaultLiteral}, resolver)!,");
+								}
+								continue;
+							}
+
+							string elemShape = elemType.SpecialType switch
+							{
+								SpecialType.System_String => "String",
+								SpecialType.System_Int32 => "Int32",
+								SpecialType.System_Int64 => "Int64",
+								SpecialType.System_Double => "Double",
+								_ => "Unknown"
+							};
+							if (elemShape != "Unknown")
+							{
+								if (member.IsRequired)
+								{
+									sb.AppendLine($"{member.MemberName} = /* string-required-{sequenceShape} */ {KnownTypeSymbols.JsonSerializerExtensionsFullName}.UnpackRequired{elemShape}{sequenceShape}(obj[{GetLocalPropertyNameRef(member)}], obj, {CSharpCodeBuilder.Constant(member.MemberName)})!,");
+								}
+								else
+								{
+									sb.AppendLine($"{member.MemberName} = /* string-optional-{sequenceShape} */ {KnownTypeSymbols.JsonSerializerExtensionsFullName}.Unpack{elemShape}{sequenceShape}(obj[{GetLocalPropertyNameRef(member)}], {member.DefaultLiteral})!,");
+								}
+								continue;
+							}
+
+							//TODO: support for Int32, Int64, Guid, etc...? (including their nullable variants)
+
+							if (member.IsRequired)
+							{
+								sb.AppendLine($"{member.MemberName} = /* fallback-required-{sequenceShape} */ {KnownTypeSymbols.JsonSerializerExtensionsFullName}.UnpackRequired{sequenceShape}<{elemType.FullyQualifiedName}>(obj[{GetLocalPropertyNameRef(member)}], resolver, obj, {CSharpCodeBuilder.Constant(member.MemberName)})!,");
+							}
+							else
+							{
+								sb.AppendLine($"{member.MemberName} = /* fallback-optional-{sequenceShape} */ {KnownTypeSymbols.JsonSerializerExtensionsFullName}.Unpack{sequenceShape}<{elemType.FullyQualifiedName}>(obj[{GetLocalPropertyNameRef(member)}], {member.DefaultLiteral}, resolver)!,");
+							}
+							continue;
+						}
+					}
+
+					string jsonExpr;
+					if (member.Type.JsonType is JsonPrimitiveType.Object)
+					{
+						jsonExpr = $"/* json-object */ obj.{(member.IsRequired ? "GetObject" : "GetObjectOrDefault")}({GetLocalPropertyNameRef(member)})";
+					}
+					else if (member.Type.JsonType is JsonPrimitiveType.Array)
+					{
+						jsonExpr = $"/* json-array */ obj.{(member.IsRequired ? "GetArray" : "GetArrayOrDefault")}({GetLocalPropertyNameRef(member)})";
 					}
 					else if (member.IsRequired)
 					{
-						sb.AppendLine($"{member.MemberName} = /* required */ obj.Get<{member.Type.FullyQualifiedName}>({GetLocalPropertyNameRef(member)}),");
+						jsonExpr = $"/* required */ obj.GetValue({GetLocalPropertyNameRef(member)})";
 					}
 					else
 					{
-						sb.AppendLine($"{member.MemberName} = /* else */ obj.Get<{member.Type.FullyQualifiedNameAnnotated}>({GetLocalPropertyNameRef(member)}, {member.DefaultLiteral}!),");
+						jsonExpr = $"/* ref-nullable */ obj.GetValueOrDefault({GetLocalPropertyNameRef(member)})";
 					}
+
+					string getterExpr;
+					if (member.Type.JsonType is not JsonPrimitiveType.None)
+					{
+						getterExpr = member.Type.JsonType switch
+						{
+							JsonPrimitiveType.Value or JsonPrimitiveType.Object or JsonPrimitiveType.Array => jsonExpr,
+							_ => $"((Json{member.Type.JsonType}) {jsonExpr})" //TODO: we don't have specialized "As" methods for them!
+						};
+					}
+					else if (member.IsRequired)
+					{
+						getterExpr = $"{jsonExpr}.As<{member.Type.FullyQualifiedName}>({member.DefaultLiteral})!";
+					}
+					else
+					{
+						getterExpr = $"{jsonExpr}.As<{member.Type.FullyQualifiedNameAnnotated}>({member.DefaultLiteral})";
+					}
+
+					sb.AppendLine($"{member.MemberName} = {getterExpr},");
+
 				}
 				sb.LeaveBlock(suffix: ';');
 				sb.LeaveBlock();
@@ -1858,6 +2008,25 @@ namespace SnowBank.Serialization.Json.CodeGen
 			private void WriteSerializeMethod(CSharpCodeBuilder sb, CrystalJsonTypeMetadata typeDef, string typeFullName)
 			{
 
+				sb.AppendLine($"void IJsonConverter.Serialize(object? instance, Type declaringType, Type? runtimeType, {KnownTypeSymbols.CrystalJsonWriterFullName} writer)");
+				sb.EnterBlock();
+				if (typeDef.Type.IsValueType())
+				{ // null cannot be cast into a value type, handle this specifically here
+					sb.AppendLine("if (instance is null)");
+					sb.EnterBlock();
+					sb.AppendLine("writer.WriteNull();");
+					sb.AppendLine("return;");
+					sb.LeaveBlock();
+				}
+				// check that we have a compatible type
+				sb.AppendLine($"if (instance is not {typeDef.Type.FullyQualifiedName} value)");
+				sb.EnterBlock();
+				sb.AppendLine("throw CrystalJson.Errors.Serialization_DoesNotKnowHowToSerializeType(runtimeType ?? declaringType);");
+				sb.LeaveBlock();
+				sb.AppendLine("Serialize(writer, value);");
+				sb.LeaveBlock();
+				sb.NewLine();
+
 				sb.AppendLine($"public void Serialize({KnownTypeSymbols.CrystalJsonWriterFullName} writer, {typeDef.Type.FullyQualifiedName}{(typeDef.Type.IsValueType() ? "" : "?")} instance)");
 				sb.EnterBlock("Serialize()");
 
@@ -1949,7 +2118,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 			private string GetMemberPackerExpression(CrystalJsonMemberMetadata member, string getterExpr)
 			{
-				if (IsLocallyGeneratedType(member.Type, out var target))
+				if (IsLocallyGeneratedType(member.Type, out var target, out _))
 				{
 					return $"/* local-serializer */ {GetLocalSerializerRef(target)}.Pack({getterExpr}, settings, resolver)";
 				}
@@ -1993,13 +2162,13 @@ namespace SnowBank.Serialization.Json.CodeGen
 				{
 					if (keyType.IsString())
 					{
-						if (IsLocallyGeneratedType(valueType, out target))
+						if (IsLocallyGeneratedType(valueType, out target, out _))
 						{
-							return $"/* local-dict */ {GetLocalSerializerRef(target)}.JsonPackObject({getterExpr}, settings, resolver)";
+							return $"/* local-dict */ {GetLocalSerializerRef(target)}.PackObject({getterExpr}, settings, resolver)";
 						}
 						if (!valueType.IsValueType())
 						{
-							return $"/* fallback-dict */ {KnownTypeSymbols.JsonSerializerExtensionsFullName}.JsonPackEnumerable({getterExpr}, settings, resolver)";
+							return $"/* fallback-dict */ {KnownTypeSymbols.JsonSerializerExtensionsFullName}.PackEnumerable({getterExpr}, settings, resolver)";
 						}
 					}
 					//else: int? other well known type?
@@ -2007,49 +2176,49 @@ namespace SnowBank.Serialization.Json.CodeGen
 				else if (concreteType.IsEnumerable(out var elemType))
 				{
 					// if the elem type is a local type, we will use the generated serializer
-					if (IsLocallyGeneratedType(elemType, out target))
+					if (IsLocallyGeneratedType(elemType, out target, out _))
 					{
 						if (concreteType.IsArray())
 						{
-							return $"/* local-pack-array */ {GetLocalSerializerRef(target)}.JsonPackArray({getterExpr}, settings, resolver)";
+							return $"/* local-pack-array */ {GetLocalSerializerRef(target)}.PackArray({getterExpr}, settings, resolver)";
 						}
 						if (concreteType.IsList())
 						{
-							return $"/* local-pack-list */ {GetLocalSerializerRef(target)}.JsonPackList({getterExpr}, settings, resolver)";
+							return $"/* local-pack-list */ {GetLocalSerializerRef(target)}.PackList({getterExpr}, settings, resolver)";
 						}
 						if (!elemType.IsValueType())
 						{
-							return $"/* local-pack-enumerable */ {GetLocalSerializerRef(target)}.JsonPackEnumerable({getterExpr}, settings, resolver)";
+							return $"/* local-pack-enumerable */ {GetLocalSerializerRef(target)}.PackEnumerable({getterExpr}, settings, resolver)";
 						}
 					}
 					else if (elemType.IsPrimitive)
 					{ // for primitive types, we should have a fast direct implementation
 						if (concreteType.IsArray())
 						{
-							return $"/* fast-pack-array */ {KnownTypeSymbols.JsonSerializerExtensionsFullName}.JsonPackArray({getterExpr}, settings, resolver)";
+							return $"/* fast-pack-array */ {KnownTypeSymbols.JsonSerializerExtensionsFullName}.PackArray({getterExpr}, settings, resolver)";
 						}
 						if (concreteType.IsList())
 						{
-							return $"/* fast-pack-list */ {KnownTypeSymbols.JsonSerializerExtensionsFullName}.JsonPackList({getterExpr}, settings, resolver)";
+							return $"/* fast-pack-list */ {KnownTypeSymbols.JsonSerializerExtensionsFullName}.PackList({getterExpr}, settings, resolver)";
 						}
 						if (!concreteType.IsValueType())
 						{
-							return $"/* fast-pack-enumerable */ {KnownTypeSymbols.JsonSerializerExtensionsFullName}.JsonPackEnumerable({getterExpr}, settings, resolver)";
+							return $"/* fast-pack-enumerable */ {KnownTypeSymbols.JsonSerializerExtensionsFullName}.PackEnumerable({getterExpr}, settings, resolver)";
 						}
 					}
 					else
 					{ // otherwise, use runtime serialization
 						if (concreteType.IsArray())
 						{
-							return $"/* fallback-pack-array */ {KnownTypeSymbols.JsonSerializerExtensionsFullName}.JsonPackArray({getterExpr}, settings, resolver)";
+							return $"/* fallback-pack-array */ {KnownTypeSymbols.JsonSerializerExtensionsFullName}.PackArray({getterExpr}, settings, resolver)";
 						}
 						if (concreteType.IsList())
 						{
-							return $"/* fallback-pack-list */ {KnownTypeSymbols.JsonSerializerExtensionsFullName}.JsonPackList({getterExpr}, settings, resolver)";
+							return $"/* fallback-pack-list */ {KnownTypeSymbols.JsonSerializerExtensionsFullName}.PackList({getterExpr}, settings, resolver)";
 						}
 						if (!concreteType.IsValueType())
 						{
-							return $"/* fallback-pack-enumerable */ {KnownTypeSymbols.JsonSerializerExtensionsFullName}.JsonPackEnumerable({getterExpr}, settings, resolver)";
+							return $"/* fallback-pack-enumerable */ {KnownTypeSymbols.JsonSerializerExtensionsFullName}.PackEnumerable({getterExpr}, settings, resolver)";
 						}
 					}
 				}
@@ -2125,12 +2294,18 @@ namespace SnowBank.Serialization.Json.CodeGen
 			}
 
 			/// <summary>Test if a type has some locally generated serialization methods</summary>
-			private bool IsLocallyGeneratedType(TypeRef type, out CrystalJsonTypeMetadata metadata)
-				=> this.TypeMap.TryGetValue(type, out metadata);
+			private bool IsLocallyGeneratedType(TypeRef type, [MaybeNullWhen(false)] out CrystalJsonTypeMetadata metadata)
+			{
+				return this.TypeMap.TryGetValue(type, out metadata);
+			}
 
 			/// <summary>Test if a type has some locally generated serialization methods</summary>
-			private bool IsLocallyGeneratedType(TypeMetadata type, out CrystalJsonTypeMetadata metadata)
-				=> this.IsLocallyGeneratedType(type.Ref, out metadata);
+			private bool IsLocallyGeneratedType(TypeMetadata type, [MaybeNullWhen(false)] out CrystalJsonTypeMetadata metadata, out bool nullableOfT)
+			{
+				nullableOfT = type.IsNullableOfT(out var underlyingType);
+
+				return this.IsLocallyGeneratedType((underlyingType ?? type).Ref, out metadata);
+			}
 
 			private void WriteMemberSerializer(CSharpCodeBuilder sb, CrystalJsonMemberMetadata member)
 			{
@@ -2147,7 +2322,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 					return;
 				}
 
-				if (IsLocallyGeneratedType(member.Type, out var subDef))
+				if (IsLocallyGeneratedType(member.Type, out var subDef, out _))
 				{ // we have a local generated serializer for this!
 					sb.AppendLine($"writer.WriteField({propertyName}, {getterExpr}, {this.GetLocalSerializerRef(subDef)}); // local-serializer");
 					return;
@@ -2167,11 +2342,17 @@ namespace SnowBank.Serialization.Json.CodeGen
 					return;
 				}
 
+				if (member.Type.IsJsonSerializable)
+				{ // the type has its own JsonSerialize method that we will call directly
+					sb.AppendLine($"writer.WriteFieldJsonSerializable({propertyName}, {getterExpr}); // json-serializable");
+					return;
+				}
+
 				if (member.Type.IsDictionary(out var keyType, out var valueType))
 				{
 					if (keyType.IsString())
 					{
-						if (IsLocallyGeneratedType(valueType, out subDef))
+						if (IsLocallyGeneratedType(valueType, out subDef, out _))
 						{
 							sb.AppendLine($"writer.WriteFieldDictionary({propertyName}, {getterExpr}, {GetLocalSerializerRef(subDef)}); // dict-local-serializer");
 						}
@@ -2184,7 +2365,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 				}
 				else if (member.Type.IsEnumerable(out var elemType))
 				{
-					if (IsLocallyGeneratedType(elemType, out subDef))
+					if (IsLocallyGeneratedType(elemType, out subDef, out _))
 					{ // we have a local generated serializer for this!
 						sb.AppendLine($"writer.WriteFieldArray({propertyName}, {getterExpr}, {this.GetLocalSerializerRef(subDef)}); // enumerable-local-serializer");
 						return;
@@ -2201,5 +2382,29 @@ namespace SnowBank.Serialization.Json.CodeGen
 		}
 
 	}
+
+}
+
+
+namespace System.Diagnostics.CodeAnalysis
+{
+
+#if !NETSTANDARD2_1
+
+	/// <summary>Specifies that when a method returns <see cref="ReturnValue"/>, the parameter may be null even if the corresponding type disallows it.</summary>
+	[AttributeUsage(AttributeTargets.Parameter, Inherited = false)]
+	internal sealed class MaybeNullWhenAttribute : Attribute
+	{
+		/// <summary>Initializes the attribute with the specified return value condition.</summary>
+		/// <param name="returnValue">
+		/// The return value condition. If the method returns this value, the associated parameter may be null.
+		/// </param>
+		public MaybeNullWhenAttribute(bool returnValue) => ReturnValue = returnValue;
+
+		/// <summary>Gets the return value condition.</summary>
+		public bool ReturnValue { get; }
+	}
+
+#endif
 
 }

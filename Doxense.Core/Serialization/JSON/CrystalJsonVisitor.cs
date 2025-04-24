@@ -927,7 +927,7 @@ namespace Doxense.Serialization.Json
 		public static void VisitValue<T>(T value, CrystalJsonWriter writer)
 		{
 			#region <JIT_HACK>
-#if !DEBUG || true
+#if !DEBUG
 			if (default(T) is not null)
 			{
 				if (typeof(T) == typeof(bool)) { writer.WriteValue((bool) (object) value!); return; }
@@ -988,7 +988,34 @@ namespace Doxense.Serialization.Json
 #endif
 			#endregion </JIT_HACK>
 
-			VisitValue(value, typeof(T), writer);
+			if (value == null)
+			{ // "null"
+				writer.WriteNull(); // "null"
+				return;
+			}
+
+			if (value is string s)
+			{
+				writer.WriteValue(s);
+				return;
+			}
+
+			if (value is JsonValue j)
+			{
+				j.JsonSerialize(writer);
+				return;
+			}
+
+			Type type = value.GetType();
+			if (writer.Resolver is not CrystalJsonTypeResolver && writer.Resolver.TryGetConverterFor<T>(out var converter))
+			{
+				converter.Serialize(writer, value);
+				return;
+			}
+
+			var visitor = GetVisitorForType(type);
+			if (visitor == null) throw CrystalJson.Errors.Serialization_DoesNotKnowHowToSerializeType(type);
+			visitor(value, typeof(T), type, writer);
 		}
 
 		/// <summary>Visit a boxed value (Primitive, ValueType, Class, Struct, ...)</summary>
@@ -1016,6 +1043,12 @@ namespace Doxense.Serialization.Json
 			}
 
 			Type type = value.GetType();
+			if (writer.Resolver is not CrystalJsonTypeResolver && writer.Resolver.TryGetConverterFor(type, out var converter))
+			{
+				converter.Serialize(value, declaredType, null, writer);
+				return;
+			}
+
 			var visitor = GetVisitorForType(type);
 			if (visitor == null) throw CrystalJson.Errors.Serialization_DoesNotKnowHowToSerializeType(type);
 			visitor(value, declaredType, type, writer);

@@ -103,7 +103,7 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_value.ToJson();
 
-		public Dictionary<string, TValue> ToDictionary() => m_converter.JsonDeserializeDictionary(m_value.ToJson())!;
+		public Dictionary<string, TValue> ToDictionary() => m_converter.UnpackDictionary(m_value.ToJson())!;
 
 		public JsonValue ToJson() => m_value.ToJson();
 
@@ -213,7 +213,7 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_value.ToJson();
 
-		public Dictionary<string, TValue> ToDictionary() => TProxy.Converter.JsonDeserializeDictionary(m_value.ToJson().AsObject());
+		public Dictionary<string, TValue> ToDictionary() => TProxy.Converter.UnpackDictionary(m_value.ToJson().AsObject());
 
 		public JsonValue ToJson() => m_value.ToJson();
 

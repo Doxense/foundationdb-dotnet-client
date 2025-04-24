@@ -311,7 +311,7 @@ namespace Doxense.Serialization.Json
 				}
 			};
 
-			return new(type, CrystalJsonTypeFlags.None, binder, null, members, null, null, null, null);
+			return new(type, CrystalJsonTypeFlags.None, binder, null, members, null, null, null, null, null);
 		}
 
 		public object? BindJsonValue(Type? type, JsonValue? value)
@@ -1344,7 +1344,7 @@ namespace Doxense.Serialization.Json
 				}
 			}
 
-			return new CrystalJsonTypeDefinition(type, CrystalJsonTypeFlags.None, binder, generator, members, baseType, typeDiscriminatorProperty, typeDiscriminatorValue, derivedTypeMap);
+			return new CrystalJsonTypeDefinition(type, CrystalJsonTypeFlags.None, binder, generator, members, null, baseType, typeDiscriminatorProperty, typeDiscriminatorValue, derivedTypeMap);
 		}
 
 		/// <summary>Extracts the type definition for the Nullable&lt;T&gt; version of a struct</summary>
@@ -1357,7 +1357,7 @@ namespace Doxense.Serialization.Json
 			Contract.NotNull(definition);
 
 			_ = TryGetConverterFor(definition.Type, out var converter); // may be null, will throw in the generated binder!
-			return new(definition.Type, definition.Flags, NullableBinder, null, definition.Members, definition.BaseType, definition.TypeDiscriminatorProperty, definition.TypeDiscriminatorValue, definition.DerivedTypeMap);
+			return new(definition.Type, definition.Flags, NullableBinder, null, definition.Members, definition.Visitor, definition.BaseType, definition.TypeDiscriminatorProperty, definition.TypeDiscriminatorValue, definition.DerivedTypeMap);
 
 			object? NullableBinder(JsonValue? value, Type bindingType, ICrystalJsonTypeResolver resolver)
 			{

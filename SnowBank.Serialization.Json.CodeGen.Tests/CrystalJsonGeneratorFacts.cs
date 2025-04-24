@@ -433,7 +433,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			var user = MakeSampleUser();
 
 			Log("Expected Json:");
-			var expectedJson = CrystalJson.Serialize(user);
+			var expectedJson = CrystalJson.Serialize(user, CrystalJsonSettings.Json.CamelCased());
 			Log(expectedJson);
 
 			Log();

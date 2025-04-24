@@ -72,7 +72,10 @@ namespace Doxense.Serialization.Json
 		/// <summary>Definitions of the fields and properties of this type</summary>
 		public CrystalJsonMemberDefinition[] Members { get; init; }
 
-		public CrystalJsonTypeDefinition(Type type, CrystalJsonTypeFlags flags, CrystalJsonTypeBinder? customBinder, Func<object>? generator, CrystalJsonMemberDefinition[] members, Type? baseType, JsonEncodedPropertyName? typeDiscriminatorProperty, JsonValue? typeDiscriminatorValue, IReadOnlyDictionary<JsonValue, Type>? derivedTypeMap)
+		/// <summary>Custom visitor for serializing instances of this type</summary>
+		public CrystalJsonTypeVisitor? Visitor { get; init; }
+
+		public CrystalJsonTypeDefinition(Type type, CrystalJsonTypeFlags flags, CrystalJsonTypeBinder? customBinder, Func<object>? generator, CrystalJsonMemberDefinition[] members, CrystalJsonTypeVisitor? visitor, Type? baseType, JsonEncodedPropertyName? typeDiscriminatorProperty, JsonValue? typeDiscriminatorValue, IReadOnlyDictionary<JsonValue, Type>? derivedTypeMap)
 		{
 			Contract.NotNull(type);
 			Contract.NotNull(members);
@@ -81,12 +84,13 @@ namespace Doxense.Serialization.Json
 
 			if (type.IsAnonymousType()) flags |= CrystalJsonTypeFlags.Anonymous;
 			if (type.IsSealed) flags |= CrystalJsonTypeFlags.Sealed;
-			if (!type.IsValueType || nullableOfType != null) flags |= CrystalJsonTypeFlags.Sealed;
+			if (!type.IsValueType || nullableOfType != null) flags |= CrystalJsonTypeFlags.DefaultIsNull;
 			if (type.IsInterface || type.IsAbstract) flags |= CrystalJsonTypeFlags.NonConstructible;
 			if (typeDiscriminatorProperty != null) flags |= CrystalJsonTypeFlags.Polymorphic;
 
 			this.Type = type;
 			this.Flags = flags;
+			this.Visitor = visitor;
 			this.BaseType = baseType;
 			this.TypeDiscriminatorProperty = typeDiscriminatorProperty;
 			this.TypeDiscriminatorValue = typeDiscriminatorValue;

@@ -210,6 +210,18 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		public Type GetTargetType() => typeof(T);
 
+		void IJsonConverter.Serialize(object? instance, Type declaringType, Type? runtimeType, CrystalJsonWriter writer)
+		{
+			if (instance is null)
+			{
+				writer.WriteNull();
+			}
+			else
+			{
+				CrystalJsonVisitor.VisitValue(instance, declaringType, writer);
+			}
+		}
+
 		/// <inheritdoc />
 		public void Serialize(CrystalJsonWriter writer, T? instance)
 		{

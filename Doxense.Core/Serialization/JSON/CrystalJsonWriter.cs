@@ -4113,12 +4113,41 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		public void WriteField<TValue>(JsonEncodedPropertyName name, TValue? value, IJsonSerializer<TValue> serializer)
+		public void WriteField<T>(string name, T? value, IJsonSerializer<T> serializer)
 		{
 			if (value is not null)
 			{
 				WriteName(name);
 				serializer.Serialize(this, value);
+			}
+			else if (!m_discardNulls)
+			{
+				WriteName(name);
+				WriteNull();
+			}
+		}
+
+		public void WriteField<T>(JsonEncodedPropertyName name, T? value, IJsonSerializer<T> serializer)
+		{
+			if (value is not null)
+			{
+				WriteName(name);
+				serializer.Serialize(this, value);
+			}
+			else if (!m_discardNulls)
+			{
+				WriteName(name);
+				WriteNull();
+			}
+		}
+
+		public void WriteFieldJsonSerializable<TSerializable>(string name, TSerializable? value)
+			where TSerializable : IJsonSerializable
+		{
+			if (value is not null)
+			{
+				WriteName(name);
+				value.JsonSerialize(this);
 			}
 			else if (!m_discardNulls)
 			{
@@ -4931,6 +4960,24 @@ namespace Doxense.Serialization.Json
 		public void VisitValue<T>(T value)
 		{
 			CrystalJsonVisitor.VisitValue<T>(value, this);
+		}
+
+		public void VisitValue<T>(T? value, IJsonSerializer<T> serializer)
+		{
+			serializer.Serialize(this, value);
+		}
+
+		public void VisitValueJsonSerializable<TSerializable>(TSerializable? value)
+			where TSerializable : IJsonSerializable
+		{
+			if (value is null)
+			{
+				WriteNull();
+			}
+			else
+			{
+				value.JsonSerialize(this);
+			}
 		}
 
 		public void VisitArray<T>(T[]? array, IJsonSerializer<T> serializer)

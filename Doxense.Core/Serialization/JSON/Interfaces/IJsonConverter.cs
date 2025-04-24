@@ -56,6 +56,13 @@ namespace Doxense.Serialization.Json
 		/// <remarks><para>For best performance, prefer using the <see cref="IJsonDeserializer{T}.Unpack"/> method on the generic <see cref="IJsonConverter{T}"/> interface, if this converter implements it!</para></remarks>
 		object? BindJsonValue(JsonValue value, ICrystalJsonTypeResolver? resolver);
 
+		/// <summary>Untyped visitor that can serialize instances of the supported type</summary>
+		/// <param name="value">Value to serialize</param>
+		/// <param name="declaringType">Type has declared in the parent type (ex: type of the member that contains this value, which could be abstract)</param>
+		/// <param name="runtimeType">Actual type of the value at runtime</param>
+		/// <param name="writer">Output where the instances will be written to</param>
+		void Serialize(object? value, Type declaringType, Type? runtimeType, CrystalJsonWriter writer);
+
 	}
 
 	/// <summary>Bundle interface that is implemented by source-generated encoders</summary>

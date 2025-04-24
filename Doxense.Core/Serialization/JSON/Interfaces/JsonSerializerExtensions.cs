@@ -112,7 +112,7 @@ namespace Doxense.Serialization.Json
 			return serializer.Unpack(CrystalJson.Parse(jsonBytes, settings), resolver);
 		}
 
-		public static bool TryJsonDeserializeArray<T>(this IJsonDeserializer<T> serializer, Span<T> destination, out int written, JsonValue value, ICrystalJsonTypeResolver? resolver = null)
+		public static bool TryUnpackArray<T>(this IJsonDeserializer<T> serializer, Span<T> destination, out int written, JsonValue value, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (value.IsNullOrMissing())
 			{
@@ -138,26 +138,46 @@ namespace Doxense.Serialization.Json
 
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static T[]? JsonDeserializeArray<T>(this IJsonDeserializer<T> serializer, JsonValue? value, T[]? defaultValue = null, ICrystalJsonTypeResolver? resolver = null, string? fieldName = null)
+		public static T[]? UnpackArray<T>(this IJsonDeserializer<T> serializer, JsonValue? value, T[]? defaultValue = null, ICrystalJsonTypeResolver? resolver = null, string? fieldName = null)
 			=> value switch
 			{
-				JsonArray arr => JsonDeserializeArray(serializer, arr, resolver),
+				JsonArray arr => UnpackArray(serializer, arr, resolver),
+				null or JsonNull => defaultValue,
+				_ => throw (fieldName != null ? CrystalJson.Errors.Parsing_CannotCastFieldToJsonArray(value, fieldName) : CrystalJson.Errors.Parsing_CannotCastToJsonArray(value))
+			};
+
+		[Pure]
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		public static T?[]? UnpackArray<T>(JsonValue? value, T[]? defaultValue = null, ICrystalJsonTypeResolver? resolver = null, string? fieldName = null)
+			=> value switch
+			{
+				JsonArray arr => arr.ToArray<T>(resolver: resolver),
 				null or JsonNull => defaultValue,
 				_ => throw (fieldName != null ? CrystalJson.Errors.Parsing_CannotCastFieldToJsonArray(value, fieldName) : CrystalJson.Errors.Parsing_CannotCastToJsonArray(value))
 			};
 
 		/// <summary>Deserializes a <see cref="JsonArray"/> into a <see cref="List{T}"/>, stored into a <b>required</b> field of a parent object</summary>
 		[Pure]
-		public static T[] JsonDeserializeArrayRequired<T>(this IJsonDeserializer<T> serializer, JsonValue? value, ICrystalJsonTypeResolver? resolver = null, string? fieldName = null)
+		public static T[] UnpackRequiredArray<T>(this IJsonDeserializer<T> serializer, JsonValue? value, ICrystalJsonTypeResolver? resolver = null, JsonValue? parent = null, string? fieldName = null)
 			=> value switch
 			{
-				JsonArray arr => JsonDeserializeArray(serializer, arr, resolver),
-				null or JsonNull => throw (fieldName != null ? CrystalJson.Errors.Parsing_FieldIsNullOrMissing(null, fieldName, null) : CrystalJson.Errors.Parsing_ValueIsNullOrMissing()),
+				JsonArray arr => UnpackArray(serializer, arr, resolver),
+				null or JsonNull => throw (fieldName != null ? CrystalJson.Errors.Parsing_FieldIsNullOrMissing(parent, fieldName, null) : CrystalJson.Errors.Parsing_ValueIsNullOrMissing()),
+				_ => throw (fieldName != null ? CrystalJson.Errors.Parsing_CannotCastFieldToJsonArray(value, fieldName) : CrystalJson.Errors.Parsing_CannotCastToJsonArray(value))
+			};
+
+		/// <summary>Deserializes a <see cref="JsonArray"/> into a <see cref="List{T}"/>, stored into a <b>required</b> field of a parent object</summary>
+		[Pure]
+		public static T[] UnpackRequiredArray<T>(JsonValue? value, ICrystalJsonTypeResolver? resolver = null, JsonValue? parent = null, string? fieldName = null)
+			=> value switch
+			{
+				JsonArray arr => (T[]) arr.ToArray<T>(resolver: resolver)!,
+				null or JsonNull => throw (fieldName != null ? CrystalJson.Errors.Parsing_FieldIsNullOrMissing(parent, fieldName, null) : CrystalJson.Errors.Parsing_ValueIsNullOrMissing()),
 				_ => throw (fieldName != null ? CrystalJson.Errors.Parsing_CannotCastFieldToJsonArray(value, fieldName) : CrystalJson.Errors.Parsing_CannotCastToJsonArray(value))
 			};
 
 		[Pure]
-		public static T[] JsonDeserializeArray<T>(this IJsonDeserializer<T> serializer, JsonArray array, ICrystalJsonTypeResolver? resolver = null)
+		public static T[] UnpackArray<T>(this IJsonDeserializer<T> serializer, JsonArray array, ICrystalJsonTypeResolver? resolver = null)
 		{
 			var input = array.GetSpan();
 			var result = new T[input.Length];
@@ -170,30 +190,208 @@ namespace Doxense.Serialization.Json
 			return result;
 		}
 
+		/// <summary>Deserializes a <see cref="JsonArray"/> into a <see cref="List{T}"/>, stored into a <b>required</b> field of a parent object</summary>
+		[Pure]
+		public static string[] UnpackRequiredStringArray(JsonValue? value, JsonValue? parent = null, string? fieldName = null)
+			=> value switch
+			{
+				JsonArray arr => (string[]) arr.ToStringArray()!,
+				null or JsonNull => throw (fieldName != null ? CrystalJson.Errors.Parsing_FieldIsNullOrMissing(parent, fieldName, null) : CrystalJson.Errors.Parsing_ValueIsNullOrMissing()),
+				_ => throw (fieldName != null ? CrystalJson.Errors.Parsing_CannotCastFieldToJsonArray(value, fieldName) : CrystalJson.Errors.Parsing_CannotCastToJsonArray(value))
+			};
+
+		[Pure]
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		public static string?[]? UnpackStringArray(JsonValue? value, string[]? defaultValue = null, string? fieldName = null)
+			=> value switch
+			{
+				JsonArray arr => arr.ToStringArray(),
+				null or JsonNull => defaultValue,
+				_ => throw (fieldName != null ? CrystalJson.Errors.Parsing_CannotCastFieldToJsonArray(value, fieldName) : CrystalJson.Errors.Parsing_CannotCastToJsonArray(value))
+			};
+
+		[Pure]
+		public static int[] UnpackRequiredInt32Array(JsonValue? value, JsonValue? parent = null, string? fieldName = null)
+			=> value switch
+			{
+				JsonArray arr => arr.ToInt32Array(),
+				null or JsonNull => throw (fieldName != null ? CrystalJson.Errors.Parsing_FieldIsNullOrMissing(parent, fieldName, null) : CrystalJson.Errors.Parsing_ValueIsNullOrMissing()),
+				_ => throw (fieldName != null ? CrystalJson.Errors.Parsing_CannotCastFieldToJsonArray(value, fieldName) : CrystalJson.Errors.Parsing_CannotCastToJsonArray(value))
+			};
+
+		[Pure]
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		public static int[]? UnpackInt32Array(JsonValue? value, int[]? defaultValue = null, string? fieldName = null)
+			=> value switch
+			{
+				JsonArray arr => arr.ToInt32Array(),
+				null or JsonNull => defaultValue,
+				_ => throw (fieldName != null ? CrystalJson.Errors.Parsing_CannotCastFieldToJsonArray(value, fieldName) : CrystalJson.Errors.Parsing_CannotCastToJsonArray(value))
+			};
+
+		[Pure]
+		public static long[] UnpackRequiredInt64Array(JsonValue? value, JsonValue? parent = null, string? fieldName = null)
+			=> value switch
+			{
+				JsonArray arr => arr.ToInt64Array(),
+				null or JsonNull => throw (fieldName != null ? CrystalJson.Errors.Parsing_FieldIsNullOrMissing(parent, fieldName, null) : CrystalJson.Errors.Parsing_ValueIsNullOrMissing()),
+				_ => throw (fieldName != null ? CrystalJson.Errors.Parsing_CannotCastFieldToJsonArray(value, fieldName) : CrystalJson.Errors.Parsing_CannotCastToJsonArray(value))
+			};
+
+		[Pure]
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		public static long[]? UnpackInt64Array(JsonValue? value, long[]? defaultValue = null, string? fieldName = null)
+			=> value switch
+			{
+				JsonArray arr => arr.ToInt64Array(),
+				null or JsonNull => defaultValue,
+				_ => throw (fieldName != null ? CrystalJson.Errors.Parsing_CannotCastFieldToJsonArray(value, fieldName) : CrystalJson.Errors.Parsing_CannotCastToJsonArray(value))
+			};
+
+		[Pure]
+		public static double[] UnpackRequiredDoubleArray(JsonValue? value, JsonValue? parent = null, string? fieldName = null)
+			=> value switch
+			{
+				JsonArray arr => arr.ToDoubleArray(),
+				null or JsonNull => throw (fieldName != null ? CrystalJson.Errors.Parsing_FieldIsNullOrMissing(parent, fieldName, null) : CrystalJson.Errors.Parsing_ValueIsNullOrMissing()),
+				_ => throw (fieldName != null ? CrystalJson.Errors.Parsing_CannotCastFieldToJsonArray(value, fieldName) : CrystalJson.Errors.Parsing_CannotCastToJsonArray(value))
+			};
+
+		[Pure]
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		public static double[]? UnpackDoubleArray(JsonValue? value, double[]? defaultValue = null, string? fieldName = null)
+			=> value switch
+			{
+				JsonArray arr => arr.ToDoubleArray(),
+				null or JsonNull => defaultValue,
+				_ => throw (fieldName != null ? CrystalJson.Errors.Parsing_CannotCastFieldToJsonArray(value, fieldName) : CrystalJson.Errors.Parsing_CannotCastToJsonArray(value))
+			};
+
 		/// <summary>Deserializes a <see cref="JsonArray"/> into a <see cref="List{T}"/>, stored into an optional field of a parent object</summary>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static List<T>? JsonDeserializeList<T>(this IJsonDeserializer<T> serializer, JsonValue? value, List<T>? defaultValue = null, ICrystalJsonTypeResolver? resolver = null, string? fieldName = null)
+		public static List<T>? UnpackList<T>(this IJsonDeserializer<T> serializer, JsonValue? value, List<T>? defaultValue = null, ICrystalJsonTypeResolver? resolver = null, string? fieldName = null)
 			=> value switch
 			{
-				JsonArray arr => JsonDeserializeList(serializer, arr, resolver),
+				JsonArray arr => UnpackList(serializer, arr, resolver),
+				null or JsonNull => defaultValue,
+				_ => throw (fieldName != null ? CrystalJson.Errors.Parsing_CannotCastFieldToJsonArray(value, fieldName) : CrystalJson.Errors.Parsing_CannotCastToJsonArray(value))
+			};
+
+		/// <summary>Deserializes a <see cref="JsonArray"/> into a <see cref="List{T}"/>, stored into an optional field of a parent object</summary>
+		[Pure]
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		public static List<T?>? UnpackList<T>(JsonValue? value, List<T?>? defaultValue = null, ICrystalJsonTypeResolver? resolver = null, string? fieldName = null)
+			=> value switch
+			{
+				JsonArray arr => arr.ToList<T>(resolver: resolver),
 				null or JsonNull => defaultValue,
 				_ => throw (fieldName != null ? CrystalJson.Errors.Parsing_CannotCastFieldToJsonArray(value, fieldName) : CrystalJson.Errors.Parsing_CannotCastToJsonArray(value))
 			};
 
 		/// <summary>Deserializes a <see cref="JsonArray"/> into a <see cref="List{T}"/>, stored into a <b>required</b> field of a parent object</summary>
 		[Pure]
-		public static List<T> JsonDeserializeListRequired<T>(this IJsonDeserializer<T> serializer, JsonValue? value, ICrystalJsonTypeResolver? resolver = null, string? fieldName = null)
+		public static List<T> UnpackRequiredList<T>(this IJsonDeserializer<T> serializer, JsonValue? value, ICrystalJsonTypeResolver? resolver = null, JsonValue? parent = null, string? fieldName = null)
 			=> value switch
 			{
-				JsonArray arr => JsonDeserializeList(serializer, arr, resolver),
-				null or JsonNull => throw (fieldName != null ? CrystalJson.Errors.Parsing_FieldIsNullOrMissing(null, fieldName, null) : CrystalJson.Errors.Parsing_ValueIsNullOrMissing()),
+				JsonArray arr => UnpackList(serializer, arr, resolver),
+				null or JsonNull => throw (fieldName != null ? CrystalJson.Errors.Parsing_FieldIsNullOrMissing(parent, fieldName, null) : CrystalJson.Errors.Parsing_ValueIsNullOrMissing()),
+				_ => throw (fieldName != null ? CrystalJson.Errors.Parsing_CannotCastFieldToJsonArray(value, fieldName) : CrystalJson.Errors.Parsing_CannotCastToJsonArray(value))
+			};
+
+		/// <summary>Deserializes a <see cref="JsonArray"/> into a <see cref="List{T}"/>, stored into a <b>required</b> field of a parent object</summary>
+		[Pure]
+		public static List<T> UnpackRequiredList<T>(JsonValue? value, ICrystalJsonTypeResolver? resolver = null, JsonValue? parent = null, string? fieldName = null)
+			=> value switch
+			{
+				JsonArray arr => (List<T>) arr.ToList<T>(resolver: resolver)!,
+				null or JsonNull => throw (fieldName != null ? CrystalJson.Errors.Parsing_FieldIsNullOrMissing(parent, fieldName, null) : CrystalJson.Errors.Parsing_ValueIsNullOrMissing()),
+				_ => throw (fieldName != null ? CrystalJson.Errors.Parsing_CannotCastFieldToJsonArray(value, fieldName) : CrystalJson.Errors.Parsing_CannotCastToJsonArray(value))
+			};
+
+		/// <summary>Deserializes a <see cref="JsonArray"/> into a <see cref="List{T}"/>, stored into a <b>required</b> field of a parent object</summary>
+		[Pure]
+		public static List<string> UnpackRequiredStringList(JsonValue? value, JsonValue? parent = null, string? fieldName = null)
+			=> value switch
+			{
+				JsonArray arr => (List<string>) arr.ToStringList()!,
+				null or JsonNull => throw (fieldName != null ? CrystalJson.Errors.Parsing_FieldIsNullOrMissing(parent, fieldName, null) : CrystalJson.Errors.Parsing_ValueIsNullOrMissing()),
+				_ => throw (fieldName != null ? CrystalJson.Errors.Parsing_CannotCastFieldToJsonArray(value, fieldName) : CrystalJson.Errors.Parsing_CannotCastToJsonArray(value))
+			};
+
+		[Pure]
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		public static List<string?>? UnpackStringList(JsonValue? value, List<string?>? defaultValue = null, string? fieldName = null)
+			=> value switch
+			{
+				JsonArray arr => arr.ToStringList(),
+				null or JsonNull => defaultValue,
+				_ => throw (fieldName != null ? CrystalJson.Errors.Parsing_CannotCastFieldToJsonArray(value, fieldName) : CrystalJson.Errors.Parsing_CannotCastToJsonArray(value))
+			};
+
+		/// <summary>Deserializes a <see cref="JsonArray"/> into a <see cref="List{T}"/>, stored into a <b>required</b> field of a parent object</summary>
+		[Pure]
+		public static List<int> UnpackRequiredInt32List(JsonValue? value, JsonValue? parent = null, string? fieldName = null)
+			=> value switch
+			{
+				JsonArray arr => arr.ToInt32List(),
+				null or JsonNull => throw (fieldName != null ? CrystalJson.Errors.Parsing_FieldIsNullOrMissing(parent, fieldName, null) : CrystalJson.Errors.Parsing_ValueIsNullOrMissing()),
+				_ => throw (fieldName != null ? CrystalJson.Errors.Parsing_CannotCastFieldToJsonArray(value, fieldName) : CrystalJson.Errors.Parsing_CannotCastToJsonArray(value))
+			};
+
+		[Pure]
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		public static List<int>? UnpackInt32List(JsonValue? value, List<int>? defaultValue = null, string? fieldName = null)
+			=> value switch
+			{
+				JsonArray arr => arr.ToInt32List(),
+				null or JsonNull => defaultValue,
+				_ => throw (fieldName != null ? CrystalJson.Errors.Parsing_CannotCastFieldToJsonArray(value, fieldName) : CrystalJson.Errors.Parsing_CannotCastToJsonArray(value))
+			};
+
+		/// <summary>Deserializes a <see cref="JsonArray"/> into a <see cref="List{T}"/>, stored into a <b>required</b> field of a parent object</summary>
+		[Pure]
+		public static List<long> UnpackRequiredInt64List(JsonValue? value, JsonValue? parent = null, string? fieldName = null)
+			=> value switch
+			{
+				JsonArray arr => arr.ToInt64List(),
+				null or JsonNull => throw (fieldName != null ? CrystalJson.Errors.Parsing_FieldIsNullOrMissing(parent, fieldName, null) : CrystalJson.Errors.Parsing_ValueIsNullOrMissing()),
+				_ => throw (fieldName != null ? CrystalJson.Errors.Parsing_CannotCastFieldToJsonArray(value, fieldName) : CrystalJson.Errors.Parsing_CannotCastToJsonArray(value))
+			};
+
+		[Pure]
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		public static List<long>? UnpackInt64List(JsonValue? value, List<long>? defaultValue = null, string? fieldName = null)
+			=> value switch
+			{
+				JsonArray arr => arr.ToInt64List(),
+				null or JsonNull => defaultValue,
+				_ => throw (fieldName != null ? CrystalJson.Errors.Parsing_CannotCastFieldToJsonArray(value, fieldName) : CrystalJson.Errors.Parsing_CannotCastToJsonArray(value))
+			};
+
+		/// <summary>Deserializes a <see cref="JsonArray"/> into a <see cref="List{T}"/>, stored into a <b>required</b> field of a parent object</summary>
+		[Pure]
+		public static List<double> UnpackRequiredDoubleList(JsonValue? value, JsonValue? parent = null, string? fieldName = null)
+			=> value switch
+			{
+				JsonArray arr => arr.ToDoubleList(),
+				null or JsonNull => throw (fieldName != null ? CrystalJson.Errors.Parsing_FieldIsNullOrMissing(parent, fieldName, null) : CrystalJson.Errors.Parsing_ValueIsNullOrMissing()),
+				_ => throw (fieldName != null ? CrystalJson.Errors.Parsing_CannotCastFieldToJsonArray(value, fieldName) : CrystalJson.Errors.Parsing_CannotCastToJsonArray(value))
+			};
+
+		[Pure]
+		[return: NotNullIfNotNull(nameof(defaultValue))]
+		public static List<double>? UnpackDoubleList(JsonValue? value, List<double>? defaultValue = null, string? fieldName = null)
+			=> value switch
+			{
+				JsonArray arr => arr.ToDoubleList(),
+				null or JsonNull => defaultValue,
 				_ => throw (fieldName != null ? CrystalJson.Errors.Parsing_CannotCastFieldToJsonArray(value, fieldName) : CrystalJson.Errors.Parsing_CannotCastToJsonArray(value))
 			};
 
 		/// <summary>Deserializes a <see cref="JsonArray"/> into a <see cref="List{T}"/></summary>
 		[Pure]
-		public static List<T> JsonDeserializeList<T>(this IJsonDeserializer<T> serializer, JsonArray array, ICrystalJsonTypeResolver? resolver = null)
+		public static List<T> UnpackList<T>(this IJsonDeserializer<T> serializer, JsonArray array, ICrystalJsonTypeResolver? resolver = null)
 		{
 			var input = array.GetSpan();
 
@@ -220,50 +418,50 @@ namespace Doxense.Serialization.Json
 
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static ImmutableArray<T>? JsonDeserializeImmutableArray<T>(this IJsonDeserializer<T> serializer, JsonValue? value, ImmutableArray<T>? defaultValue = null, ICrystalJsonTypeResolver? resolver = null, string? fieldName = null)
+		public static ImmutableArray<T>? UnpackImmutableArray<T>(this IJsonDeserializer<T> serializer, JsonValue? value, ImmutableArray<T>? defaultValue = null, ICrystalJsonTypeResolver? resolver = null, string? fieldName = null)
 			=> value switch
 			{
 				null or JsonNull => defaultValue,
-				JsonArray arr => JsonDeserializeImmutableArray(serializer, arr, resolver),
+				JsonArray arr => UnpackImmutableArray(serializer, arr, resolver),
 				_ => throw (fieldName != null ? CrystalJson.Errors.Parsing_CannotCastFieldToJsonArray(value, fieldName) : CrystalJson.Errors.Parsing_CannotCastToJsonArray(value))
 			};
 
 		[Pure]
-		public static ImmutableArray<T> JsonDeserializeImmutableArray<T>(this IJsonDeserializer<T> serializer, JsonArray array, ICrystalJsonTypeResolver? resolver = null)
+		public static ImmutableArray<T> UnpackImmutableArray<T>(this IJsonDeserializer<T> serializer, JsonArray array, ICrystalJsonTypeResolver? resolver = null)
 		{
 			// will wrap the array, without any copy
-			return ImmutableCollectionsMarshal.AsImmutableArray<T>(JsonDeserializeArray(serializer, array, resolver));
+			return ImmutableCollectionsMarshal.AsImmutableArray<T>(UnpackArray(serializer, array, resolver));
 		}
 
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static ImmutableList<T>? JsonDeserializeImmutableList<T>(this IJsonDeserializer<T> serializer, JsonValue? value, ImmutableList<T>? defaultValue = null, ICrystalJsonTypeResolver? resolver = null, string? fieldName = null)
+		public static ImmutableList<T>? UnpackImmutableList<T>(this IJsonDeserializer<T> serializer, JsonValue? value, ImmutableList<T>? defaultValue = null, ICrystalJsonTypeResolver? resolver = null, string? fieldName = null)
 			=> value switch
 			{
 				null or JsonNull => defaultValue,
-				JsonArray arr => JsonDeserializeImmutableList(serializer, arr, resolver),
+				JsonArray arr => UnpackImmutableList(serializer, arr, resolver),
 				_ => throw (fieldName != null ? CrystalJson.Errors.Parsing_CannotCastFieldToJsonArray(value, fieldName) : CrystalJson.Errors.Parsing_CannotCastToJsonArray(value))
 			};
 
 		[Pure]
-		public static ImmutableList<T> JsonDeserializeImmutableList<T>(this IJsonDeserializer<T> serializer, JsonArray array, ICrystalJsonTypeResolver? resolver = null)
+		public static ImmutableList<T> UnpackImmutableList<T>(this IJsonDeserializer<T> serializer, JsonArray array, ICrystalJsonTypeResolver? resolver = null)
 		{
 			// not sure if there is a way to fill the immutable list "in place"?
-			return ImmutableList.Create<T>(JsonDeserializeArray(serializer, array, resolver));
+			return ImmutableList.Create<T>(UnpackArray(serializer, array, resolver));
 		}
 
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
-		public static Dictionary<string, TValue>? JsonDeserializeDictionary<TValue>(this IJsonDeserializer<TValue> serializer, JsonValue? value, Dictionary<string, TValue>? defaultValue = null, IEqualityComparer<string>? keyComparer = null, ICrystalJsonTypeResolver? resolver = null, string? fieldName = null)
+		public static Dictionary<string, TValue>? UnpackDictionary<TValue>(this IJsonDeserializer<TValue> serializer, JsonValue? value, Dictionary<string, TValue>? defaultValue = null, IEqualityComparer<string>? keyComparer = null, ICrystalJsonTypeResolver? resolver = null, string? fieldName = null)
 			=> value switch
 			{
 				null or JsonNull => defaultValue,
-				JsonObject obj => JsonDeserializeDictionary(serializer, obj, keyComparer, resolver),
+				JsonObject obj => UnpackDictionary(serializer, obj, keyComparer, resolver),
 				_ => throw (fieldName != null ? CrystalJson.Errors.Parsing_CannotCastFieldToJsonObject(value, fieldName) : CrystalJson.Errors.Parsing_CannotCastToJsonObject(value))
 			};
 
 		[Pure]
-		public static Dictionary<string, TValue> JsonDeserializeDictionary<TValue>(this IJsonDeserializer<TValue> serializer, JsonObject obj, IEqualityComparer<string>? keyComparer = null, ICrystalJsonTypeResolver? resolver = null)
+		public static Dictionary<string, TValue> UnpackDictionary<TValue>(this IJsonDeserializer<TValue> serializer, JsonObject obj, IEqualityComparer<string>? keyComparer = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			var res = new Dictionary<string, TValue>(obj.Count, keyComparer);
 
@@ -279,7 +477,7 @@ namespace Doxense.Serialization.Json
 
 		#region IJsonPackerFor<T>...
 
-		public static JsonArray JsonPackSpan<TValue>(this IJsonPacker<TValue> serializer, ReadOnlySpan<TValue> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public static JsonArray PackSpan<TValue>(this IJsonPacker<TValue> serializer, ReadOnlySpan<TValue> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			var result = new JsonArray();
 			var span = result.GetSpanAndSetCount(items.Length);
@@ -298,29 +496,29 @@ namespace Doxense.Serialization.Json
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackArray<TValue>(this IJsonPacker<TValue> serializer, TValue[]? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public static JsonArray? PackArray<TValue>(this IJsonPacker<TValue> serializer, TValue[]? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (items == null)
 			{
 				return null;
 			}
 
-			return JsonPackSpan<TValue>(serializer, new ReadOnlySpan<TValue>(items), settings, resolver);
+			return PackSpan<TValue>(serializer, new ReadOnlySpan<TValue>(items), settings, resolver);
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackList<TValue>(this IJsonPacker<TValue> serializer, List<TValue>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public static JsonArray? PackList<TValue>(this IJsonPacker<TValue> serializer, List<TValue>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (items == null)
 			{
 				return null;
 			}
 
-			return JsonPackSpan<TValue>(serializer, CollectionsMarshal.AsSpan(items), settings, resolver);
+			return PackSpan<TValue>(serializer, CollectionsMarshal.AsSpan(items), settings, resolver);
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackEnumerable<TValue>(this IJsonPacker<TValue> serializer, IEnumerable<TValue>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public static JsonArray? PackEnumerable<TValue>(this IJsonPacker<TValue> serializer, IEnumerable<TValue>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (items == null)
 			{
@@ -329,7 +527,7 @@ namespace Doxense.Serialization.Json
 
 			if (Buffer<TValue>.TryGetSpan(items, out var span))
 			{
-				return JsonPackSpan<TValue>(serializer, span, settings, resolver);
+				return PackSpan<TValue>(serializer, span, settings, resolver);
 			}
 
 			_ = items.TryGetNonEnumeratedCount(out var count);
@@ -348,7 +546,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonObject? JsonPackObject<TValue>(this IJsonPacker<TValue> serializer, Dictionary<string, TValue>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public static JsonObject? PackObject<TValue>(this IJsonPacker<TValue> serializer, Dictionary<string, TValue>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (items == null)
 			{
@@ -370,7 +568,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonObject? JsonPackObject<TValue>(this IJsonPacker<TValue> serializer, IDictionary<string, TValue>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public static JsonObject? PackObject<TValue>(this IJsonPacker<TValue> serializer, IDictionary<string, TValue>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (items == null)
 			{
@@ -408,7 +606,7 @@ namespace Doxense.Serialization.Json
 
 		// these methods are called by generated source code
 
-		public static JsonArray JsonPackSpan(ReadOnlySpan<string> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray PackSpan(ReadOnlySpan<string> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (items.Length == 0)
 			{
@@ -430,7 +628,7 @@ namespace Doxense.Serialization.Json
 			return arr;
 		}
 
-		public static JsonArray JsonPackSpan(ReadOnlySpan<bool> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray PackSpan(ReadOnlySpan<bool> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (items.Length == 0)
 			{
@@ -452,7 +650,7 @@ namespace Doxense.Serialization.Json
 			return arr;
 		}
 
-		public static JsonArray JsonPackSpan(ReadOnlySpan<int> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray PackSpan(ReadOnlySpan<int> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (items.Length == 0)
 			{
@@ -474,7 +672,7 @@ namespace Doxense.Serialization.Json
 			return arr;
 		}
 
-		public static JsonArray JsonPackSpan(ReadOnlySpan<long> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray PackSpan(ReadOnlySpan<long> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (items.Length == 0)
 			{
@@ -496,7 +694,7 @@ namespace Doxense.Serialization.Json
 			return arr;
 		}
 
-		public static JsonArray JsonPackSpan(ReadOnlySpan<float> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray PackSpan(ReadOnlySpan<float> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (items.Length == 0)
 			{
@@ -518,7 +716,7 @@ namespace Doxense.Serialization.Json
 			return arr;
 		}
 
-		public static JsonArray JsonPackSpan(ReadOnlySpan<double> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray PackSpan(ReadOnlySpan<double> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (items.Length == 0)
 			{
@@ -540,7 +738,7 @@ namespace Doxense.Serialization.Json
 			return arr;
 		}
 
-		public static JsonArray JsonPackSpan(ReadOnlySpan<Guid> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray PackSpan(ReadOnlySpan<Guid> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (items.Length == 0)
 			{
@@ -562,7 +760,7 @@ namespace Doxense.Serialization.Json
 			return arr;
 		}
 
-		public static JsonArray JsonPackSpan(ReadOnlySpan<Uuid128> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray PackSpan(ReadOnlySpan<Uuid128> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (items.Length == 0)
 			{
@@ -584,7 +782,7 @@ namespace Doxense.Serialization.Json
 			return arr;
 		}
 
-		public static JsonArray JsonPackSpan(ReadOnlySpan<Uuid64> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray PackSpan(ReadOnlySpan<Uuid64> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (items.Length == 0)
 			{
@@ -607,13 +805,13 @@ namespace Doxense.Serialization.Json
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackEnumerable(IEnumerable<bool>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray? PackEnumerable(IEnumerable<bool>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (items == null) return null;
 
 			if (Buffer<bool>.TryGetSpan(items, out var span))
 			{
-				return JsonPackSpan(span, settings, resolver);
+				return PackSpan(span, settings, resolver);
 			}
 
 			JsonArray arr = items.TryGetNonEnumeratedCount(out var count) ? new(count) : new();
@@ -631,13 +829,13 @@ namespace Doxense.Serialization.Json
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackEnumerable(IEnumerable<int>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray? PackEnumerable(IEnumerable<int>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (items == null) return null;
 
 			if (Buffer<int>.TryGetSpan(items, out var span))
 			{
-				return JsonPackSpan(span, settings, resolver);
+				return PackSpan(span, settings, resolver);
 			}
 
 			JsonArray arr = items.TryGetNonEnumeratedCount(out var count) ? new(count) : new();
@@ -655,13 +853,13 @@ namespace Doxense.Serialization.Json
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackEnumerable(IEnumerable<long>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray? PackEnumerable(IEnumerable<long>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (items == null) return null;
 
 			if (Buffer<long>.TryGetSpan(items, out var span))
 			{
-				return JsonPackSpan(span, settings, resolver);
+				return PackSpan(span, settings, resolver);
 			}
 
 			JsonArray arr = items.TryGetNonEnumeratedCount(out var count) ? new(count) : new();
@@ -679,13 +877,13 @@ namespace Doxense.Serialization.Json
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackEnumerable(IEnumerable<float>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray? PackEnumerable(IEnumerable<float>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (items == null) return null;
 
 			if (Buffer<float>.TryGetSpan(items, out var span))
 			{
-				return JsonPackSpan(span, settings, resolver);
+				return PackSpan(span, settings, resolver);
 			}
 
 			JsonArray arr = items.TryGetNonEnumeratedCount(out var count) ? new(count) : new();
@@ -703,13 +901,13 @@ namespace Doxense.Serialization.Json
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackEnumerable(IEnumerable<double>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray? PackEnumerable(IEnumerable<double>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (items == null) return null;
 
 			if (Buffer<double>.TryGetSpan(items, out var span))
 			{
-				return JsonPackSpan(span, settings, resolver);
+				return PackSpan(span, settings, resolver);
 			}
 
 			JsonArray arr = items.TryGetNonEnumeratedCount(out var count) ? new(count) : new();
@@ -727,132 +925,132 @@ namespace Doxense.Serialization.Json
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackArray(bool[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray? PackArray(bool[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (items == null) return null;
-			return JsonPackSpan(new ReadOnlySpan<bool>(items), settings, resolver);
+			return PackSpan(new ReadOnlySpan<bool>(items), settings, resolver);
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackArray(int[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray? PackArray(int[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (items == null) return null;
-			return JsonPackSpan(new ReadOnlySpan<int>(items), settings, resolver);
+			return PackSpan(new ReadOnlySpan<int>(items), settings, resolver);
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackArray(long[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray? PackArray(long[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (items == null) return null;
-			return JsonPackSpan(new ReadOnlySpan<long>(items), settings, resolver);
+			return PackSpan(new ReadOnlySpan<long>(items), settings, resolver);
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackArray(float[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray? PackArray(float[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (items == null) return null;
-			return JsonPackSpan(new ReadOnlySpan<float>(items), settings, resolver);
+			return PackSpan(new ReadOnlySpan<float>(items), settings, resolver);
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackArray(double[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray? PackArray(double[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (items == null) return null;
-			return JsonPackSpan(new ReadOnlySpan<double>(items), settings, resolver);
+			return PackSpan(new ReadOnlySpan<double>(items), settings, resolver);
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackArray(string[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray? PackArray(string[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (items == null) return null;
-			return JsonPackSpan(new ReadOnlySpan<string>(items), settings, resolver);
+			return PackSpan(new ReadOnlySpan<string>(items), settings, resolver);
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackArray(Guid[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray? PackArray(Guid[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (items == null) return null;
-			return JsonPackSpan(new ReadOnlySpan<Guid>(items), settings, resolver);
+			return PackSpan(new ReadOnlySpan<Guid>(items), settings, resolver);
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackArray(Uuid128[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray? PackArray(Uuid128[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (items == null) return null;
-			return JsonPackSpan(new ReadOnlySpan<Uuid128>(items), settings, resolver);
+			return PackSpan(new ReadOnlySpan<Uuid128>(items), settings, resolver);
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackArray(Uuid64[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray? PackArray(Uuid64[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (items == null) return null;
-			return JsonPackSpan(new ReadOnlySpan<Uuid64>(items), settings, resolver);
+			return PackSpan(new ReadOnlySpan<Uuid64>(items), settings, resolver);
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackList(List<bool>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray? PackList(List<bool>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (items == null) return null;
-			return JsonPackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
+			return PackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackList(List<int>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray? PackList(List<int>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (items == null) return null;
-			return JsonPackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
+			return PackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackList(List<long>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray? PackList(List<long>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (items == null) return null;
-			return JsonPackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
+			return PackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackList(List<float>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray? PackList(List<float>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (items == null) return null;
-			return JsonPackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
+			return PackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackList(List<double>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray? PackList(List<double>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (items == null) return null;
-			return JsonPackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
+			return PackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackList(List<string>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray? PackList(List<string>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (items == null) return null;
-			return JsonPackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
+			return PackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackList(List<Guid>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray? PackList(List<Guid>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (items == null) return null;
-			return JsonPackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
+			return PackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackList(List<Uuid64>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray? PackList(List<Uuid64>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (items == null) return null;
-			return JsonPackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
+			return PackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackEnumerable(IEnumerable<string>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray? PackEnumerable(IEnumerable<string>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (items == null) return null;
 
 			if (Buffer<string>.TryGetSpan(items, out var span))
 			{
-				return JsonPackSpan(span, settings, resolver);
+				return PackSpan(span, settings, resolver);
 			}
 
 			JsonArray arr = items.TryGetNonEnumeratedCount(out var count) ? new(count) : new();
@@ -870,13 +1068,13 @@ namespace Doxense.Serialization.Json
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackEnumerable(IEnumerable<Guid>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray? PackEnumerable(IEnumerable<Guid>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (items == null) return null;
 
 			if (Buffer<Guid>.TryGetSpan(items, out var span))
 			{
-				return JsonPackSpan(span, settings, resolver);
+				return PackSpan(span, settings, resolver);
 			}
 
 			JsonArray arr = items.TryGetNonEnumeratedCount(out var count) ? new(count) : new();
@@ -894,13 +1092,13 @@ namespace Doxense.Serialization.Json
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackEnumerable(IEnumerable<Uuid128>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray? PackEnumerable(IEnumerable<Uuid128>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (items == null) return null;
 
 			if (Buffer<Uuid128>.TryGetSpan(items, out var span))
 			{
-				return JsonPackSpan(span, settings, resolver);
+				return PackSpan(span, settings, resolver);
 			}
 
 			JsonArray arr = items.TryGetNonEnumeratedCount(out var count) ? new(count) : new();
@@ -917,14 +1115,14 @@ namespace Doxense.Serialization.Json
 			return arr;
 		}
 
-		public static JsonArray JsonPackSpan<TValue>(ReadOnlySpan<TValue> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray PackSpan<TValue>(ReadOnlySpan<TValue> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			return JsonArray.FromValues<TValue>(items, settings, resolver);
 		}
 
 		/// <summary>Pack a span of items that implements <see cref="IJsonPackable"/></summary>
-		public static JsonArray JsonPackSpanPackable<TValue>(ReadOnlySpan<TValue> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
-			where TValue : IJsonPackable
+		public static JsonArray PackSpanPackable<TPackable>(ReadOnlySpan<TPackable> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+			where TPackable : IJsonPackable
 		{
 			settings ??= CrystalJsonSettings.Json;
 			resolver ??= CrystalJson.DefaultResolver;
@@ -939,35 +1137,35 @@ namespace Doxense.Serialization.Json
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackArray<TValue>(TValue[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray? PackArray<TValue>(TValue[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			return items is not null ? JsonArray.FromValues<TValue>(new ReadOnlySpan<TValue>(items), settings, resolver) : null;
 		}
 
 		/// <summary>Pack an array of items that implements <see cref="IJsonPackable"/></summary>
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackArrayPackable<TValue>(TValue[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
-			where TValue : IJsonPackable
+		public static JsonArray? PackArrayPackable<TPackable>(TPackable[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+			where TPackable : IJsonPackable
 		{
-			return items is not null ? JsonPackSpanPackable<TValue>(new ReadOnlySpan<TValue>(items), settings, resolver) : null;
+			return items is not null ? PackSpanPackable<TPackable>(new ReadOnlySpan<TPackable>(items), settings, resolver) : null;
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackList<TValue>(List<TValue>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray? PackList<TValue>(List<TValue>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			return items is not null ? JsonArray.FromValues<TValue>(CollectionsMarshal.AsSpan(items), settings, resolver) : null;
 		}
 
 		/// <summary>Pack a list of items that implements <see cref="IJsonPackable"/></summary>
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackListPackable<TValue>(List<TValue>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
-			where TValue : IJsonPackable
+		public static JsonArray? PackListPackable<TPackable>(List<TPackable>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+			where TPackable : IJsonPackable
 		{
-			return items is not null ? JsonPackSpanPackable<TValue>(CollectionsMarshal.AsSpan(items), settings, resolver) : null;
+			return items is not null ? PackSpanPackable<TPackable>(CollectionsMarshal.AsSpan(items), settings, resolver) : null;
 		}
 
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackEnumerable<TValue>(IEnumerable<TValue>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		public static JsonArray? PackEnumerable<TValue>(IEnumerable<TValue>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
 			if (items == null) return null;
 			return JsonArray.FromValues(items, settings, resolver);
@@ -975,18 +1173,18 @@ namespace Doxense.Serialization.Json
 
 		/// <summary>Pack a sequence of items that implements <see cref="IJsonPackable"/></summary>
 		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? JsonPackEnumerablePackable<TValue>(IEnumerable<TValue>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
-			where TValue : IJsonPackable
+		public static JsonArray? PackEnumerablePackable<TPackable>(IEnumerable<TPackable>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+			where TPackable : IJsonPackable
 		{
 			if (items == null) return null;
-			if (Buffer<TValue>.TryGetSpan(items, out var span))
+			if (Buffer<TPackable>.TryGetSpan(items, out var span))
 			{
-				return JsonPackSpanPackable(span, settings, resolver);
+				return PackSpanPackable(span, settings, resolver);
 			}
 
-			return PackEnumerable(items, settings, resolver);
+			return PackEnumerableSlow(items, settings, resolver);
 
-			static JsonArray PackEnumerable(IEnumerable<TValue> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+			static JsonArray PackEnumerableSlow(IEnumerable<TPackable> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 			{
 				settings ??= CrystalJsonSettings.Json;
 				resolver ??= CrystalJson.DefaultResolver;
@@ -1020,7 +1218,7 @@ namespace Doxense.Serialization.Json
 			return JsonObject.FromValues<TValue>(items, settings, resolver);
 		}
 
-		public static T? Unpack<T>(JsonValue? value, ICrystalJsonTypeResolver? resolver)
+		public static T? UnpackJsonDeserializable<T>(JsonValue? value, ICrystalJsonTypeResolver? resolver)
 			where T : IJsonDeserializable<T>
 		{
 			if (value is null or JsonNull)
@@ -1031,7 +1229,7 @@ namespace Doxense.Serialization.Json
 		}
 
 		[return: NotNullIfNotNull(nameof(missingValue))]
-		public static T? Unpack<T>(JsonValue? value, T? missingValue, ICrystalJsonTypeResolver? resolver)
+		public static T? UnpackJsonDeserializable<T>(JsonValue? value, T? missingValue, ICrystalJsonTypeResolver? resolver)
 			where T : IJsonDeserializable<T>
 		{
 			if (value is null or JsonNull)
@@ -1041,7 +1239,13 @@ namespace Doxense.Serialization.Json
 			return T.JsonDeserialize(value, resolver);
 		}
 
-		public static T? UnpackNullable<T>(JsonValue? value, ICrystalJsonTypeResolver? resolver)
+		[return: NotNullIfNotNull(nameof(missingValue))]
+		public static T? Unpack<T>(JsonValue? value, T? missingValue, ICrystalJsonTypeResolver? resolver)
+		{
+			return value.As<T>(missingValue, resolver);
+		}
+
+		public static T? UnpackNullableJsonDeserializable<T>(JsonValue? value, ICrystalJsonTypeResolver? resolver)
 			where T : struct, IJsonDeserializable<T>
 		{
 			if (value is null or JsonNull)
@@ -1051,7 +1255,17 @@ namespace Doxense.Serialization.Json
 			return T.JsonDeserialize(value, resolver);
 		}
 
-		public static T UnpackRequired<T>(JsonValue? value, ICrystalJsonTypeResolver? resolver, JsonValue? parent = null, string? fieldName = null)
+		public static T? UnpackNullableJsonDeserializable<T>(JsonValue? value, T? missingValue, ICrystalJsonTypeResolver? resolver)
+			where T : struct, IJsonDeserializable<T>
+		{
+			if (value is null or JsonNull)
+			{
+				return missingValue;
+			}
+			return T.JsonDeserialize(value, resolver);
+		}
+
+		public static T UnpackRequiredJsonDeserializable<T>(JsonValue? value, ICrystalJsonTypeResolver? resolver, JsonValue? parent = null, string? fieldName = null)
 			where T : IJsonDeserializable<T>
 		{
 			if (value is null or JsonNull)
@@ -1068,6 +1282,16 @@ namespace Doxense.Serialization.Json
 				throw (fieldName != null ? CrystalJson.Errors.Parsing_FieldIsNullOrMissing(parent, fieldName, null) : CrystalJson.Errors.Parsing_ValueIsNullOrMissing());
 			}
 			return converter.Unpack(value, resolver);
+		}
+
+		public static T UnpackRequired<T>(JsonValue? value, ICrystalJsonTypeResolver? resolver, JsonValue? parent = null, string? fieldName = null)
+			where T : notnull
+		{
+			if (value is null or JsonNull)
+			{
+				throw (fieldName != null ? CrystalJson.Errors.Parsing_FieldIsNullOrMissing(parent, fieldName, null) : CrystalJson.Errors.Parsing_ValueIsNullOrMissing());
+			}
+			return value.Required<T>(resolver);
 		}
 
 		#endregion

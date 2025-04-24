@@ -33,9 +33,9 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_value.ToJson();
 
-		public TValue[] ToArray() => m_converter.JsonDeserializeArray(m_value.ToJson().AsArrayOrEmpty());
+		public TValue[] ToArray() => m_converter.UnpackArray(m_value.ToJson().AsArrayOrEmpty());
 
-		public List<TValue> ToList() => m_converter.JsonDeserializeList(m_value.ToJson().AsArrayOrEmpty());
+		public List<TValue> ToList() => m_converter.UnpackList(m_value.ToJson().AsArrayOrEmpty());
 
 		public JsonValue ToJson() => m_value.ToJson();
 

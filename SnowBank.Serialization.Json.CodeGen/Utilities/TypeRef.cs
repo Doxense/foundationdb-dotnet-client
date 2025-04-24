@@ -518,9 +518,35 @@ namespace SnowBank.Serialization.Json.CodeGen
 		/// <remarks>If <c>true</c>, <see cref="ElementType"/> holds the type of the elements of this array</remarks>
 		public bool IsArray() => this.TypeKind is TypeKind.Array;
 
+		/// <summary>Tests if this is an array (ex: <c>int[]</c>, <c>string?[]</c>)</summary>
+		/// <remarks>If <c>true</c>, <see cref="ElementType"/> holds the type of the elements of this array</remarks>
+		public bool IsArray([MaybeNullWhen(false)] out TypeMetadata elementType)
+		{
+			if (this.TypeKind is not TypeKind.Array)
+			{
+				elementType = null!;
+				return false;
+			}
+
+			elementType = this.ElementType!;
+			return true;
+		}
+
 		/// <summary>Tests if this type is <see cref="List{T}"/> (ex: <c>List&lt;int&gt;</c>, <c>List&lt;string?&gt;</c>)</summary>
 		/// <remarks>If <c>true</c>, <see cref="ElementType"/> holds the type of the elements of this list</remarks>
 		public bool IsList() => this.Name is "List" && this.NameSpace is "System.Collections.Generic";
+
+		public bool IsList([MaybeNullWhen(false)] out TypeMetadata elementType)
+		{
+			if (!IsList())
+			{
+				elementType = null;
+				return false;
+			}
+
+			elementType = this.ElementType!;
+			return true;
+		}
 
 		/// <summary>Tests if instances of this type will be packed into a <c>JsonString</c> value</summary>
 		public bool IsStringLike(bool allowNullables = true)
@@ -625,8 +651,37 @@ namespace SnowBank.Serialization.Json.CodeGen
 			return false;
 		}
 
-		/// <summary>Tests if this type is an array or an enumerable</summary>
-		/// <param name="elemType">Receives the element type</param>
+		/// <summary>Tests if the type is exactly the <see cref="IEnumerable{T}"/> interface (and not any derived type)</summary>
+		/// <remarks>
+		/// <list type="table">
+		///   <listheader><term>type</term><description>result</description></listheader>
+		///   <item><term>DateTime</term><description>false</description></item>
+		///   <item><term>MyCustomType</term><description>false</description></item>
+		///   <item><term>IEnumerable&lt;char&gt;</term><description>true</description></item>
+		///   <item><term>char[]</term><description>false</description></item>
+		///   <item><term>List&lt;char&gt;</term><description>true</description></item>
+		///   <item><term>string</term><description>false</description></item>
+		/// </list>
+		/// </remarks>
+		public bool IsEnumerableInterface([MaybeNullWhen(false)] out TypeMetadata elemType)
+		{
+			elemType = this.ElementType;
+			return elemType is not null && this.NameSpace == "System.Collections.Generic" && this.Name == "Enumerable`1";
+		}
+
+		/// <summary>Tests if this type implements <see cref="IEnumerable{T}"/></summary>
+		/// <param name="elemType">Receives the type of the element</param>
+		/// <remarks>
+		/// <list type="table">
+		///   <listheader><term>type</term><description>result</description></listheader>
+		///   <item><term>DateTime</term><description>false</description></item>
+		///   <item><term>MyCustomType</term><description>false</description></item>
+		///   <item><term>IEnumerable&lt;char&gt;</term><description>true</description></item>
+		///   <item><term>char[]</term><description>true</description></item>
+		///   <item><term>List&lt;char&gt;</term><description>true</description></item>
+		///   <item><term>string</term><description>true</description></item>
+		/// </list>
+		/// </remarks>
 		public bool IsEnumerable(out TypeMetadata elemType)
 		{
 			if (this.ElementType is null)
