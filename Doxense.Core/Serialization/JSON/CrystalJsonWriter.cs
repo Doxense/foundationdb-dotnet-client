@@ -5166,7 +5166,7 @@ namespace Doxense.Serialization.Json
 				for(int i = 1; i < array.Length; i++)
 				{
 					WriteTailSeparator();
-					JsonEncoding.EncodeTo(ref m_buffer, array[0]);
+					JsonEncoding.EncodeTo(ref m_buffer, array[i]);
 				}
 			}
 			else
@@ -5177,7 +5177,7 @@ namespace Doxense.Serialization.Json
 				for(int i = 1; i < array.Length; i++)
 				{
 					WriteTailSeparator();
-					CrystalJsonFormatter.WriteJavaScriptString(ref m_buffer, array[0]);
+					CrystalJsonFormatter.WriteJavaScriptString(ref m_buffer, array[i]);
 				}
 			}
 
