@@ -1744,37 +1744,39 @@ namespace Doxense.Serialization.Json
 
 		#region Error Handling...
 
-		internal static class Errors
+		[PublicAPI]
+		public static class Errors
 		{
+			// note: this type is used by source-generated converters
 
 			#region Serialization Errors...
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonSerializationException Serialization_FailTooDeep(int depth, object? current) => new($"Reached maximum depth of {depth} while serializing child object of type '{current?.GetType().GetFriendlyName() ?? "<null>"}'. Top object is too complex to be serialized this way!");
+			public static JsonSerializationException Serialization_FailTooDeep(int depth, object? current) => new($"Reached maximum depth of {depth} while serializing child object of type '{current?.GetType().GetFriendlyName() ?? "<null>"}'. Top object is too complex to be serialized this way!");
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static InvalidOperationException Serialization_ObjectRecursionIsNotAllowed(IEnumerable<object?> visited, object? value, int depth) => new JsonSerializationException($"Object of type '{value?.GetType().FullName}' at depth {depth} already serialized before! Recursive object graphs not supported. Visited path: {string.Join(" <- ", visited.Select(v => v?.GetType().FullName ?? "<null>"))}");
+			public static InvalidOperationException Serialization_ObjectRecursionIsNotAllowed(IEnumerable<object?> visited, object? value, int depth) => new JsonSerializationException($"Object of type '{value?.GetType().FullName}' at depth {depth} already serialized before! Recursive object graphs not supported. Visited path: {string.Join(" <- ", visited.Select(v => v?.GetType().FullName ?? "<null>"))}");
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonSerializationException Serialization_InternalDepthInconsistent() => new("Internal depth is inconsistent.");
+			public static JsonSerializationException Serialization_InternalDepthInconsistent() => new("public depth is inconsistent.");
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonSerializationException Serialization_LeaveNotSameThanMark(int depth, object? current) => new($"De-synchronization of the visited object stack: Leave() was called with a different value of type '{current?.GetType().GetFriendlyName() ?? "<null>"}' than MarkVisited() at depth {depth}.");
+			public static JsonSerializationException Serialization_LeaveNotSameThanMark(int depth, object? current) => new($"De-synchronization of the visited object stack: Leave() was called with a different value of type '{current?.GetType().GetFriendlyName() ?? "<null>"}' than MarkVisited() at depth {depth}.");
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonSerializationException Serialization_DoesNotKnowHowToSerializeType(Type type) => new($"Doesn't know how to serialize values of type '{type.GetFriendlyName()}'.");
+			public static JsonSerializationException Serialization_DoesNotKnowHowToSerializeType(Type type) => new($"Doesn't know how to serialize values of type '{type.GetFriendlyName()}'.");
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonSerializationException Serialization_DoesNotKnowHowToSerializeNullableType(Type type) => new($"Doesn't know how to serialize Nullable type '{type.GetFriendlyName()}'.");
+			public static JsonSerializationException Serialization_DoesNotKnowHowToSerializeNullableType(Type type) => new($"Doesn't know how to serialize Nullable type '{type.GetFriendlyName()}'.");
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonSerializationException Serialization_CouldNotResolveTypeDefinition(Type type) => new($"Could not get the members list for type '{type.GetFriendlyName()}'.");
+			public static JsonSerializationException Serialization_CouldNotResolveTypeDefinition(Type type) => new($"Could not get the members list for type '{type.GetFriendlyName()}'.");
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonSerializationException Serialization_StaticJsonSerializeMethodInvalidSignature(Type type, MethodInfo method) => new($"Static serialization method '{type.GetFriendlyName()}.{method.Name}' must take two parameters.");
+			public static JsonSerializationException Serialization_StaticJsonSerializeMethodInvalidSignature(Type type, MethodInfo method) => new($"Static serialization method '{type.GetFriendlyName()}.{method.Name}' must take two parameters.");
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonSerializationException Serialization_StaticJsonSerializeMethodInvalidFirstParam(Type type, MethodInfo method, Type prmType)
+			public static JsonSerializationException Serialization_StaticJsonSerializeMethodInvalidFirstParam(Type type, MethodInfo method, Type prmType)
 			{
 #if DEBUG
 				if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
@@ -1783,7 +1785,7 @@ namespace Doxense.Serialization.Json
 			}
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonSerializationException Serialization_StaticJsonSerializeMethodInvalidSecondParam(Type type, MethodInfo method, Type prmType)
+			public static JsonSerializationException Serialization_StaticJsonSerializeMethodInvalidSecondParam(Type type, MethodInfo method, Type prmType)
 			{
 #if DEBUG
 				if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
@@ -1792,7 +1794,7 @@ namespace Doxense.Serialization.Json
 			}
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonSerializationException Serialization_InstanceJsonPackMethodInvalidSignature(Type type, MethodInfo method)
+			public static JsonSerializationException Serialization_InstanceJsonPackMethodInvalidSignature(Type type, MethodInfo method)
 			{
 #if DEBUG
 				if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
@@ -1801,7 +1803,7 @@ namespace Doxense.Serialization.Json
 			}
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonSerializationException Serialization_CouldNotGetDefaultValueForMember(Type type, MemberInfo info, Exception? error)
+			public static JsonSerializationException Serialization_CouldNotGetDefaultValueForMember(Type type, MemberInfo info, Exception? error)
 			{
 				var memberType = info is PropertyInfo pi ? pi.PropertyType : info is FieldInfo fi ? fi.FieldType : typeof(object);
 				return memberType.IsByRefLike
@@ -1815,25 +1817,25 @@ namespace Doxense.Serialization.Json
 			#region Parsing Errors...
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonBindingException Parsing_ValueIsNullOrMissing() => new("Required JSON value was null or missing.");
+			public static JsonBindingException Parsing_ValueIsNullOrMissing() => new("Required JSON value was null or missing.");
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonBindingException Parsing_FieldIsNullOrMissing(JsonValue? parent, string field, string? message) => new(message ?? $"Required JSON field '{field}' was null or missing.", JsonPath.Create(field), parent, null);
+			public static JsonBindingException Parsing_FieldIsNullOrMissing(JsonValue? parent, string field, string? message) => new(message ?? $"Required JSON field '{field}' was null or missing.", JsonPath.Create(field), parent, null);
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonBindingException Parsing_FieldIsNullOrMissing(JsonValue? parent, ReadOnlyMemory<char> field, string? message) => new(message ?? $"Required JSON field '{field}' was null or missing.", JsonPath.Create(field), parent, null);
+			public static JsonBindingException Parsing_FieldIsNullOrMissing(JsonValue? parent, ReadOnlyMemory<char> field, string? message) => new(message ?? $"Required JSON field '{field}' was null or missing.", JsonPath.Create(field), parent, null);
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonBindingException Parsing_ItemIsNullOrMissing(JsonValue? parent, Index index, string? message) => new(message ?? $"Required JSON item at index {index} was null or missing.", JsonPath.Create(index), parent, null);
+			public static JsonBindingException Parsing_ItemIsNullOrMissing(JsonValue? parent, Index index, string? message) => new(message ?? $"Required JSON item at index {index} was null or missing.", JsonPath.Create(index), parent, null);
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonBindingException Parsing_ChildIsNullOrMissing(JsonValue? parent, JsonPathSegment segment, string? message)
+			public static JsonBindingException Parsing_ChildIsNullOrMissing(JsonValue? parent, JsonPathSegment segment, string? message)
 				=> segment.TryGetName(out var name) ? Parsing_FieldIsNullOrMissing(parent, name, message)
 					: segment.TryGetIndex(out var index) ? Parsing_ItemIsNullOrMissing(parent, index, message)
 					: Parsing_ValueIsNullOrMissing();
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonBindingException Parsing_ChildIsNullOrMissing(IJsonProxyNode node, in JsonPathSegment child, string? message)
+			public static JsonBindingException Parsing_ChildIsNullOrMissing(IJsonProxyNode node, in JsonPathSegment child, string? message)
 			{
 				var path = node.GetPath(child);
 				return child.IsName() ? new(message ?? $"Required JSON field '{path}' was null or missing.", path, null, null)
@@ -1843,7 +1845,7 @@ namespace Doxense.Serialization.Json
 			}
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonBindingException Parsing_DescendantIsNullOrMissing(IJsonProxyNode node, JsonPath path, string? message)
+			public static JsonBindingException Parsing_DescendantIsNullOrMissing(IJsonProxyNode node, JsonPath path, string? message)
 			{
 				return path.TryGetLastKey(out _) ? new(message ?? $"Required JSON field '{path}' was null or missing.", path, null, null)
 					: path.TryGetLastIndex(out _) ? new(message ?? $"Required JSON item '{path}' was null or missing.", path, null, null)
@@ -1852,25 +1854,25 @@ namespace Doxense.Serialization.Json
 			}
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonBindingException Parsing_CannotCastToJsonObject(JsonValue? value) => new($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} as an Object.", value);
+			public static JsonBindingException Parsing_CannotCastToJsonObject(JsonValue? value) => new($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} as an Object.", value);
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonBindingException Parsing_CannotCastToJsonArray(JsonValue? value) => new($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} as an Array.", value);
+			public static JsonBindingException Parsing_CannotCastToJsonArray(JsonValue? value) => new($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} as an Array.", value);
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonBindingException Parsing_CannotCastToJsonNumber(JsonValue? value) => new($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} as a Number.", value);
+			public static JsonBindingException Parsing_CannotCastToJsonNumber(JsonValue? value) => new($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} as a Number.", value);
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonBindingException Parsing_CannotCastToJsonString(JsonValue? value) => new($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} as a String.", value);
+			public static JsonBindingException Parsing_CannotCastToJsonString(JsonValue? value) => new($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} as a String.", value);
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonBindingException Parsing_CannotCastToJsonBoolean(JsonValue? value) => new($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} as a Boolean.", value);
+			public static JsonBindingException Parsing_CannotCastToJsonBoolean(JsonValue? value) => new($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} as a Boolean.", value);
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonBindingException Parsing_CannotCastFieldToJsonObject(JsonValue? value, string fieldName) => new($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} in field '{fieldName}' as an Object.", value);
+			public static JsonBindingException Parsing_CannotCastFieldToJsonObject(JsonValue? value, string fieldName) => new($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} in field '{fieldName}' as an Object.", value);
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-			internal static JsonBindingException Parsing_CannotCastFieldToJsonArray(JsonValue? value, string fieldName) => new($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} in field '{fieldName}' as an Array.", value);
+			public static JsonBindingException Parsing_CannotCastFieldToJsonArray(JsonValue? value, string fieldName) => new($"Cannot parse JSON {(value ?? JsonNull.Missing).Type} in field '{fieldName}' as an Array.", value);
 
 			#endregion
 
