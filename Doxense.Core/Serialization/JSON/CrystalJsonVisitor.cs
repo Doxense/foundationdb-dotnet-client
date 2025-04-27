@@ -1007,7 +1007,7 @@ namespace Doxense.Serialization.Json
 			}
 
 			Type type = value.GetType();
-			if (writer.Resolver is not CrystalJsonTypeResolver && writer.Resolver.TryGetConverterFor<T>(out var converter))
+			if (writer.Resolver.TryGetConverterFor<T>(out var converter))
 			{
 				converter.Serialize(writer, value);
 				return;
@@ -1043,7 +1043,7 @@ namespace Doxense.Serialization.Json
 			}
 
 			Type type = value.GetType();
-			if (writer.Resolver is not CrystalJsonTypeResolver && writer.Resolver.TryGetConverterFor(type, out var converter))
+			if (writer.Resolver.TryGetConverterFor(type, out var converter))
 			{
 				converter.Serialize(value, declaredType, null, writer);
 				return;

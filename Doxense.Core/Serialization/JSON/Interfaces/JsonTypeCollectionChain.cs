@@ -210,16 +210,19 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		public Type GetTargetType() => typeof(T);
 
+		private CrystalJsonTypeVisitor? CachedVisitor;
+
 		void IJsonConverter.Serialize(object? instance, Type declaringType, Type? runtimeType, CrystalJsonWriter writer)
 		{
 			if (instance is null)
 			{
 				writer.WriteNull();
+				return;
 			}
-			else
-			{
-				CrystalJsonVisitor.VisitValue(instance, declaringType, writer);
-			}
+
+			var visitor = this.CachedVisitor ??= CrystalJsonVisitor.GetVisitorForType(typeof(T));
+			if (visitor == null) throw CrystalJson.Errors.Serialization_DoesNotKnowHowToSerializeType(typeof(T));
+			visitor(instance, typeof(T), instance.GetType(), writer);
 		}
 
 		/// <inheritdoc />
@@ -228,11 +231,12 @@ namespace Doxense.Serialization.Json
 			if (instance is null)
 			{
 				writer.WriteNull();
+				return;
 			}
-			else
-			{
-				CrystalJsonVisitor.VisitValue<T>(instance, writer);
-			}
+
+			var visitor = this.CachedVisitor ??= CrystalJsonVisitor.GetVisitorForType(typeof(T));
+			if (visitor == null) throw CrystalJson.Errors.Serialization_DoesNotKnowHowToSerializeType(typeof(T));
+			visitor(instance, typeof(T), instance.GetType(), writer);
 		}
 
 		/// <inheritdoc />
@@ -244,13 +248,14 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		public T Unpack(JsonValue value, ICrystalJsonTypeResolver? resolver)
 		{
-			return value.As<T>(default, resolver)!;
+			if (value.IsNullOrMissing()) return default(T)!;
+			return (T?) CrystalJson.DefaultResolver.BindJsonValue(typeof(T), value)!;
 		}
 
 		/// <inheritdoc />
 		public JsonValue Pack(T instance, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			return JsonValue.FromValue<T>(instance, settings, resolver);
+			return CrystalJsonDomWriter.Create(settings, resolver).ParseObject<T>(instance);
 		}
 
 		/// <inheritdoc />
