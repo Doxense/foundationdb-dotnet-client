@@ -4432,7 +4432,7 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc cref="StrictEquals(JsonValue?)" />
 		public bool StrictEquals(ReadOnlySpan<JsonValue> other)
 		{
-			var items = m_items;
+			var items = AsSpan();
 			if (other.Length != items.Length)
 			{
 				return false;
