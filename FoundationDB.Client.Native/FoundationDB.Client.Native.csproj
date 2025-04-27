@@ -46,7 +46,7 @@
 	
 	<ItemGroup Condition="'$(IsPackingSelf)' == 'true'">
 		<!-- Reference FoundationDB.Client via NuGet -->
-		<PackageReference Include="FoundationDB.Client" VersionOverride="[7.3.0-0,)" />
+		<PackageReference Include="FoundationDB.Client" VersionOverride="[7.3.0-preview.1,7.4)" />
 		<!-- Exclude the other dependencies to prevent them from appearing in the .nuspec -->
 		
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" ExcludeAssets="All" />
@@ -81,7 +81,7 @@
 		<None Include="runtimes\linux-arm64\native\libfdb_c.so" Pack="true" PackagePath="runtimes/linux-arm64/native/" />
 
 		<!-- macOS arm64 -->
-		<None Include="runtimes\linux-arm64\native\libfdb_c.dylib" Pack="true" PackagePath="runtimes/macos-arm64/native/" />
+		<None Include="runtimes\osx-arm64\native\libfdb_c.dylib" Pack="true" PackagePath="runtimes/macos-arm64/native/" />
 
 	</ItemGroup>
 
