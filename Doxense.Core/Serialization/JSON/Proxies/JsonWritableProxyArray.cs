@@ -493,6 +493,41 @@ namespace Doxense.Serialization.Json
 
 		#endregion
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private static JsonValue Pack(TValue item) => TProxy.Converter.Pack(item, CrystalJsonSettings.JsonReadOnly);
+
+		/// <summary>Replaces all the elements of this array</summary>
+		/// <param name="items">New elements</param>
+		public void Set(ReadOnlySpan<TValue> items)
+		{
+			m_value.Set(TProxy.Converter.PackSpan(items, CrystalJsonSettings.JsonReadOnly));
+		}
+
+		/// <summary>Replaces all the elements of this array</summary>
+		/// <param name="items">New elements</param>
+		public void Set(TValue[] items)
+		{
+			m_value.Set(TProxy.Converter.PackArray(items, CrystalJsonSettings.JsonReadOnly));
+		}
+
+		/// <summary>Replaces all the elements of this array</summary>
+		/// <param name="items">New elements</param>
+		public void Set(List<TValue> items)
+		{
+			m_value.Set(TProxy.Converter.PackList(items, CrystalJsonSettings.JsonReadOnly));
+		}
+
+		/// <summary>Replaces all the elements of this array</summary>
+		/// <param name="items">New elements</param>
+		public void Set(IEnumerable<TValue> items)
+		{
+			m_value.Set(TProxy.Converter.PackEnumerable(items, CrystalJsonSettings.JsonReadOnly));
+		}
+
+		/// <summary>Returns the deserialized elements as a <see cref="TValue"/> array.</summary>
+		/// <remarks>
+		/// <para>If the contents are only meant to be enumerated once (via <c>foreach</c> or LINQ), you may want to call <see cref="ToEnumerable"/> instead</para>
+		/// </remarks>
 		public TValue[] ToArray() => m_value.Json switch
 		{
 			JsonArray arr => TProxy.Converter.UnpackArray(arr),
@@ -500,12 +535,86 @@ namespace Doxense.Serialization.Json
 			_ => throw OperationRequiresArrayOrNull(),
 		};
 
+		/// <summary>Returns the deserialized elements as a <see cref="List{TValue}"/></summary>
 		public List<TValue> ToList() => m_value.Json switch
 		{
 			JsonArray arr => TProxy.Converter.UnpackList(arr),
 			JsonNull => [ ],
 			_ => throw OperationRequiresArrayOrNull(),
 		};
+
+		/// <summary>Returns a sequence that enumerates the deserialized <typeparamref name="TValue"/> elements in this array</summary>
+		public Enumerable ToEnumerable() => this.m_value.Json switch
+		{
+			JsonArray array => new(array),
+			JsonNull        => new(JsonArray.ReadOnly.Empty),
+			_               => throw OperationRequiresArrayOrNull()
+		};
+
+		/// <summary>Optimized implementation used to enumerate the deserialized elements of a proxy array</summary>
+		public readonly struct Enumerable : IEnumerable<TValue>
+		{
+			private readonly JsonArray Items;
+
+			public Enumerable(JsonArray items)
+			{
+				this.Items = items;
+			}
+
+			IEnumerator IEnumerable.GetEnumerator() => new Enumerator(this.Items);
+
+			IEnumerator<TValue> IEnumerable<TValue>.GetEnumerator() => new Enumerator(this.Items);
+
+			public Enumerator GetEnumerator() => new(this.Items);
+
+		}
+
+		/// <summary>Optimized implementation used to enumerate the deserialized elements of a proxy array</summary>
+		public struct Enumerator : IEnumerator<TValue>
+		{
+			private JsonArray Items;
+			private int Index;
+			private TValue? Item;
+
+			public Enumerator(JsonArray items)
+			{
+				this.Items = items;
+				this.Index = -1;
+				this.Item = default!;
+			}
+
+			public bool MoveNext()
+			{
+				int index = this.Index + 1;
+				if (index >= this.Items.Count)
+				{
+					this.Item = default!;
+					return false;
+				}
+
+				this.Item = TProxy.Converter.Unpack(this.Items[index], null);
+				this.Index = index;
+				return true;
+			}
+
+			object? IEnumerator.Current => this.Item;
+
+			public readonly TValue Current => this.Item!;
+
+			public void Reset()
+			{
+				this.Index = -1;
+				this.Item = default!;
+			}
+
+			public void Dispose()
+			{
+				this.Items = JsonArray.ReadOnly.Empty;
+				this.Index = 0;
+				this.Item = default!;
+			}
+
+		}
 
 		/// <inheritdoc />
 		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => m_value.Json.JsonSerialize(writer);
@@ -542,7 +651,7 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		public void Add(TProxy value) => m_value.Add(value.ToJson());
 
-		public void Add(TValue value) => m_value.Add(TProxy.Converter.Pack(value));
+		public void Add(TValue value) => m_value.Add(Pack(value));
 
 		/// <inheritdoc />
 		public void Clear() => m_value.Clear();
@@ -608,10 +717,29 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		bool ICollection<TProxy>.IsReadOnly => false;
 
-		/// <inheritdoc />
+		/// <summary>Inserts an item to the array at the specified index.</summary>
+		/// <param name="index">The zero-based index at which <paramref name="item" /> should be inserted.</param>
+		/// <param name="item">The instance to insert into the array.</param>
+		/// <exception cref="T:System.ArgumentOutOfRangeException"> <paramref name="index" /> is not a valid index in the <see cref="T:System.Collections.Generic.IList`1" />.</exception>
 		public void Insert(int index, TProxy item) => m_value.Insert(index, item.ToJson());
 
+		/// <summary>Inserts an item to the array at the specified index.</summary>
+		/// <param name="index">The zero-based index at which <paramref name="item" /> should be inserted.</param>
+		/// <param name="item">The instance to insert into the array.</param>
+		/// <exception cref="T:System.ArgumentOutOfRangeException"> <paramref name="index" /> is not a valid index in the <see cref="T:System.Collections.Generic.IList`1" />.</exception>
+		public void Insert(int index, TValue item) => m_value.Insert(index, Pack(item));
+
+		/// <summary>Inserts an item to the array at the specified index.</summary>
+		/// <param name="index">The zero-based index at which <paramref name="item" /> should be inserted.</param>
+		/// <param name="item">The instance to insert into the array.</param>
+		/// <exception cref="T:System.ArgumentOutOfRangeException"> <paramref name="index" /> is not a valid index in the <see cref="T:System.Collections.Generic.IList`1" />.</exception>
 		public void Insert(Index index, TProxy item) => m_value.Insert(index, item.ToJson());
+
+		/// <summary>Inserts an item to the array at the specified index.</summary>
+		/// <param name="index">The zero-based index at which <paramref name="item" /> should be inserted.</param>
+		/// <param name="item">The instance to insert into the array.</param>
+		/// <exception cref="T:System.ArgumentOutOfRangeException"> <paramref name="index" /> is not a valid index in the <see cref="T:System.Collections.Generic.IList`1" />.</exception>
+		public void Insert(Index index, TValue item) => m_value.Insert(index, Pack(item));
 
 		/// <inheritdoc />
 		public void RemoveAt(int index) => m_value.RemoveAt(index);
