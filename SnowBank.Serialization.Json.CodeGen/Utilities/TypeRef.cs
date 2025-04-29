@@ -487,6 +487,9 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 		public bool CanBeNull() => this.TypeKind is not (TypeKind.Struct or TypeKind.Enum) || this.SpecialType is SpecialType.System_Nullable_T;
 
+		/// <summary>Tests if this is a generic type</summary>
+		public bool IsGenericType() => this.TypeArguments.Count > 0;
+
 		public bool IsValueType() => this.TypeKind is TypeKind.Struct or TypeKind.Enum;
 
 		public bool IsEnum() => this.TypeKind is TypeKind.Enum;
@@ -507,9 +510,6 @@ namespace SnowBank.Serialization.Json.CodeGen
 			underlyingType = null!;
 			return false;
 		}
-
-		/// <summary>Tests if this is a generic type</summary>
-		public bool IsGeneric() => this.TypeArguments.Count > 0;
 
 		/// <summary>Tests if this is the <see cref="string"/> type</summary>
 		public bool IsString() => this.SpecialType is SpecialType.System_String;

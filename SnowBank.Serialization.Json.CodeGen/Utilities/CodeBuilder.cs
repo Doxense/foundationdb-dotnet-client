@@ -248,6 +248,10 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 		public static string Singleton<T>(string name) => TypeName<T>() + "." + name;
 
+		public static string EscapeCref(string typeName) => typeName.Replace("global::", "T:").Replace('<', '{').Replace('>', '}');
+
+		public static string EscapeCref(string typeName, string memberName) => typeName.Replace("<global::", "{T:").Replace("global::", "").Replace('<', '{').Replace('>', '}') + "." + memberName;
+
 		public void EnterBlock(string? type = null, string? comment = null)
 		{
 			this.Output.Append('\t', this.Depth).AppendLine(comment == null ? "{" : "{ // " + comment);

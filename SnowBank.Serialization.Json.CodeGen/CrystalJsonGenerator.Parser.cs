@@ -296,20 +296,18 @@ namespace SnowBank.Serialization.Json.CodeGen
 					IncludedTypes = includedTypes.ToImmutableEquatableArray(),
 					PropertyNameCaseInsensitive = caseInsensitiveNames,
 					PropertyNamingPolicy = propertyNamingPolicy,
-
 				};
 			}
 
 			public CrystalJsonTypeMetadata? ParseTypeMetadata(INamedTypeSymbol type, HashSet<INamedTypeSymbol> mappedTypes, Queue<INamedTypeSymbol> work, string? namingPolicy)
 			{
 				// we have to extract all the properties that will be required later during the code generation phase
-				
-				var members = new List<CrystalJsonMemberMetadata>();
 
 				bool isPolymorphic = false;
 				string? typeDiscriminatorPropertyName = null;
 				List<(INamedTypeSymbol, TypeMetadata, object?)>? derivedTypes = null;
 
+				var members = new List<CrystalJsonMemberMetadata>();
 				foreach (var attribute in type.GetAttributes())
 				{
 					var attributeType = attribute.AttributeClass;
