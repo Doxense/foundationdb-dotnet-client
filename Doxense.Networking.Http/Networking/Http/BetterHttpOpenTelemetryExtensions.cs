@@ -33,12 +33,11 @@ namespace OpenTelemetry.Trace
 	{
 
 		/// <summary>Enable instrumentation for all "core" features of the SDK</summary>
-		public static TracerProviderBuilder AddBetterHttpIntrumentation(this TracerProviderBuilder builder)
+		public static TracerProviderBuilder AddBetterHttpInstrumentation(this TracerProviderBuilder builder)
 		{
 			builder.AddSource([
 				BetterHttpInstrumentation.ActivityName,
 				"SnowBank.Sdk.Serialization.Json",
-				"Doxense.Serialization.Json", //LEGACY: will be removed at some point
 			]);
 			return builder;
 		}
