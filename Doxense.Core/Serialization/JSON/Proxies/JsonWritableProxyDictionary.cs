@@ -132,25 +132,28 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		bool ICollection<KeyValuePair<string, TValue>>.IsReadOnly => false;
 
-		/// <inheritdoc />
-		public void Add(string key, TValue value) => m_value.Add(key, m_converter.Pack(value));
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private JsonValue Pack(TValue value) => m_converter.Pack(value, CrystalJsonSettings.JsonReadOnly);
 
 		/// <inheritdoc />
-		public void Add(ReadOnlyMemory<char> key, TValue value) => m_value.Add(key, m_converter.Pack(value, CrystalJsonSettings.JsonReadOnly));
+		public void Add(string key, TValue value) => m_value.Add(key, Pack(value));
+
+		public void Add(ReadOnlyMemory<char> key, TValue value) => m_value.Add(key, Pack(value));
+
+		public void Set(string key, TValue value) => m_value.Set(key, Pack(value));
+
+		public void Set(ReadOnlyMemory<char> key, TValue value) => m_value.Set(key, Pack(value));
 
 		/// <inheritdoc />
 		public bool ContainsKey(string key) => m_value.ContainsKey(key);
 
-		/// <inheritdoc />
 		public bool ContainsKey(ReadOnlyMemory<char> key) => m_value.ContainsKey(key);
 
-		/// <inheritdoc />
 		public bool ContainsKey(ReadOnlySpan<char> key) => m_value.ContainsKey(key);
 
 		/// <inheritdoc />
 		public bool Remove(string key) => m_value.Remove(key);
 
-		/// <inheritdoc />
 		public bool Remove(ReadOnlyMemory<char> key) => m_value.Remove(key);
 
 		/// <inheritdoc />
@@ -166,7 +169,6 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
-		/// <inheritdoc />
 		public bool TryGetValue(ReadOnlyMemory<char> key, [MaybeNullWhen(false)] out TValue value)
 		{
 			if (!m_value.Json.TryGetValue(key, out var json))
@@ -179,7 +181,6 @@ namespace Doxense.Serialization.Json
 			return true;
 		}
 
-		/// <inheritdoc />
 		public bool TryGetValue(ReadOnlySpan<char> key, [MaybeNullWhen(false)] out TValue value)
 		{
 			if (!m_value.Json.TryGetValue(key, out var json))
@@ -199,14 +200,12 @@ namespace Doxense.Serialization.Json
 			set => m_value.Set(key, m_converter.Pack(value, CrystalJsonSettings.JsonReadOnly));
 		}
 
-		/// <inheritdoc />
 		public TValue this[ReadOnlyMemory<char> key]
 		{
 			get => m_converter.Unpack(m_value.Json[key], null);
 			set => m_value.Set(key, m_converter.Pack(value, CrystalJsonSettings.JsonReadOnly));
 		}
 
-		/// <inheritdoc />
 		public TValue this[ReadOnlySpan<char> key]
 		{
 			get => m_converter.Unpack(m_value.Json[key], null);
@@ -361,17 +360,50 @@ namespace Doxense.Serialization.Json
 		/// <remarks>This can be used to protect against malformed JSON document that would have a different type (array, string literal, ...).</remarks>
 		public bool IsObjectOrMissing() => m_value.Json is (JsonObject or JsonNull);
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private static JsonValue Pack(TValue value) => TProxy.Converter.Pack(value, CrystalJsonSettings.JsonReadOnly);
+
 		/// <inheritdoc />
 		public void Add(string key, TProxy value) => m_value.Add(key, value.ToJson());
+
+		public void Add(ReadOnlyMemory<char> key, TProxy value) => m_value.Add(key, value.ToJson());
+
+		public void Add(string key, TValue value) => m_value.Add(key, Pack(value));
+
+		public void Add(ReadOnlyMemory<char> key, TValue value) => m_value.Add(key, Pack(value));
+
+		public void Set(string key, TProxy value) => m_value.Set(key, value.ToJson());
+
+		public void Set(ReadOnlyMemory<char> key, TProxy value) => m_value.Set(key, value.ToJson());
+
+		public void Set(string key, TValue value) => m_value.Set(key, Pack(value));
+
+		public void Set(ReadOnlyMemory<char> key, TValue value) => m_value.Set(key, Pack(value));
 
 		/// <inheritdoc />
 		public bool ContainsKey(string key) => m_value.ContainsKey(key);
 
+		public bool ContainsKey(ReadOnlyMemory<char> key) => m_value.ContainsKey(key);
+
 		/// <inheritdoc />
 		public bool Remove(string key) => m_value.Remove(key);
 
+		public bool Remove(ReadOnlyMemory<char> key) => m_value.Remove(key);
+
 		/// <inheritdoc />
 		public bool TryGetValue(string key, [MaybeNullWhen(false)] out TProxy value)
+		{
+			if (m_value.TryGetValue(key, out var json))
+			{
+				value = TProxy.Create(json); //BUGBUG
+				return true;
+			}
+
+			value = default;
+			return false;
+		}
+
+		public bool TryGetValue(ReadOnlyMemory<char> key, [MaybeNullWhen(false)] out TProxy value)
 		{
 			if (m_value.TryGetValue(key, out var json))
 			{
