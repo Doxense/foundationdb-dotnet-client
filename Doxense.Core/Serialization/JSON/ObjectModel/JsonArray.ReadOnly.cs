@@ -350,7 +350,7 @@ namespace Doxense.Serialization.Json
 			var items = new JsonValue[newSize];
 
 			// copy the original array
-			var chunk = items[..m_size];
+			var chunk = items.AsSpan(..m_size);
 			this.AsSpan().CopyTo(chunk);
 			if (!m_readOnly)
 			{
@@ -358,7 +358,7 @@ namespace Doxense.Serialization.Json
 			}
 
 			// copy the tail
-			chunk = items[m_size..];
+			chunk = items.AsSpan(m_size..);
 			tail.AsSpan().CopyTo(chunk);
 			if (!tail.m_readOnly)
 			{
