@@ -649,7 +649,7 @@ namespace Doxense.Serialization.Json
 		/// <para>If the array was not-readonly, existing non-readonly items will also be converted to read-only.</para>
 		/// <para>For best performance, this should only be used on already read-only arrays, and with read-only values.</para>
 		/// </remarks>
-		public JsonArray CopyAndInsert(Index index, JsonValue? value) => CopyAndSet(index.GetOffset(m_size), value);
+		public JsonArray CopyAndInsert(Index index, JsonValue? value) => CopyAndInsert(index.GetOffset(m_size), value);
 
 		/// <summary>Replaces a published <see cref="JsonArray">JSON Array</see> with a new version with an item inserted at the specified location, in a thread-safe manner, using a <see cref="SpinWait"/> if necessary.</summary>
 		/// <param name="original">Reference to the currently published <see cref="JsonArray">JSON Array</see></param>

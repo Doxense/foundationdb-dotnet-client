@@ -6908,10 +6908,19 @@ namespace Doxense.Serialization.Json.Tests
 			Check(JsonArray.Create(["hello", "world"]).CopyAndSet(^2, "bonjour"), IsJson.ReadOnly.And.EqualTo([ "bonjour", "world" ]));
 			Check(JsonArray.Create(["hello", "world"]).CopyAndSet(^1, "le monde"), IsJson.ReadOnly.And.EqualTo([ "hello", "le monde" ]));
 
+			Check(JsonArray.ReadOnly.Empty.CopyAndInsert(0, "hello"), IsJson.ReadOnly.And.EqualTo([ "hello" ]));
+			Check(JsonArray.ReadOnly.Empty.CopyAndInsert(1, "hello"), IsJson.ReadOnly.And.EqualTo([ null, "hello" ]));
 			Check(JsonArray.Create(["hello", "world"]).CopyAndInsert(0, "say"), IsJson.ReadOnly.And.EqualTo([ "say", "hello", "world" ]));
 			Check(JsonArray.Create(["hello", "world"]).CopyAndInsert(1, ", "), IsJson.ReadOnly.And.EqualTo([ "hello", ", ", "world" ]));
 			Check(JsonArray.Create(["hello", "world"]).CopyAndInsert(2, "!"), IsJson.ReadOnly.And.EqualTo([ "hello", "world", "!" ]));
 			Check(JsonArray.Create(["hello", "world"]).CopyAndInsert(3, "!"), IsJson.ReadOnly.And.EqualTo([ "hello", "world", null, "!" ]));
+
+			Check(JsonArray.ReadOnly.Empty.CopyAndInsert(new Index(0), "hello"), IsJson.ReadOnly.And.EqualTo([ "hello" ]));
+			Check(JsonArray.ReadOnly.Empty.CopyAndInsert(new Index(1), "hello"), IsJson.ReadOnly.And.EqualTo([ null, "hello" ]));
+			Check(JsonArray.Create(["hello", "world"]).CopyAndInsert(^2, "say"), IsJson.ReadOnly.And.EqualTo([ "say", "hello", "world" ]));
+			Check(JsonArray.Create(["hello", "world"]).CopyAndInsert(^1, ", "), IsJson.ReadOnly.And.EqualTo([ "hello", ", ", "world" ]));
+			Check(JsonArray.Create(["hello", "world"]).CopyAndInsert(^0, "!"), IsJson.ReadOnly.And.EqualTo([ "hello", "world", "!" ]));
+			Check(JsonArray.Create(["hello", "world"]).CopyAndInsert(new Index(3), "!"), IsJson.ReadOnly.And.EqualTo([ "hello", "world", null, "!" ]));
 
 			Check(JsonArray.ReadOnly.Empty.CopyAndRemove(0), Is.SameAs(JsonArray.ReadOnly.Empty));
 			Check(JsonArray.ReadOnly.Empty.CopyAndRemove(1), Is.SameAs(JsonArray.ReadOnly.Empty));
