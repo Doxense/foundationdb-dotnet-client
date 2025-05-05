@@ -784,7 +784,9 @@ namespace Doxense.Serialization.Json
 		[AllowNull]
 		public override JsonValue this[JsonPathSegment segment]
 		{
-			get => segment.TryGetIndex(out var index) && TryGetValue(index, out var value) ? value : JsonNull.Error;
+			[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => segment.TryGetName(out var name) ? GetValueOrDefault(name) : segment.TryGetIndex(out var index) ? GetValueOrDefault(index) : this;
+			[CollectionAccess(CollectionAccessType.ModifyExistingContent)]
 			set
 			{
 				if (segment.TryGetIndex(out var index))
@@ -793,7 +795,7 @@ namespace Doxense.Serialization.Json
 				}
 				else
 				{
-					throw (m_readOnly ? FailCannotMutateReadOnlyValue(this) : ThrowHelper.InvalidOperationException($"Cannot set value at index {index} on a JSON {this.Type}"));
+					throw (m_readOnly ? FailCannotMutateReadOnlyValue(this) : ThrowHelper.InvalidOperationException($"Cannot set value of a field on a JSON {this.Type}"));
 				}
 			}
 		}

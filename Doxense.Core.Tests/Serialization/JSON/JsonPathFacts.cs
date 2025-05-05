@@ -904,6 +904,64 @@ namespace Doxense.Serialization.Json.Tests
 			}
 		}
 
+		[Test]
+		public void Test_JsonObject_PathSegment_Indexer()
+		{
+			var obj = JsonObject.Create([ ("hello", "world"), ("foo", 123), ("bar", true), ("baz", JsonArray.Create([ "a", "bb", "ccc" ])) ]);
+
+			Assert.That(obj[JsonPathSegment.Create("hello")], IsJson.EqualTo("world"));
+			Assert.That(obj[JsonPathSegment.Create("foo".AsMemory())], IsJson.EqualTo(123));
+			Assert.That(obj[JsonPathSegment.Create("notbar".AsMemory(3))], IsJson.True);
+			Assert.That(obj[JsonPathSegment.Create("baz")], IsJson.Array.And.EqualTo(["a", "bb", "ccc" ]));
+			Assert.That(obj[JsonPathSegment.Create("baz")][JsonPathSegment.Create(1)], IsJson.EqualTo("bb"));
+
+			Assert.That(obj[JsonPathSegment.Empty], Is.SameAs(obj));
+			Assert.That(obj[JsonPathSegment.Create("NotFound")], IsJson.Missing);
+			Assert.That(() => obj[JsonPathSegment.Create(1)], Throws.InvalidOperationException);
+
+			obj[JsonPathSegment.Create("hello")] = "world!";
+			Assert.That(obj["hello"], IsJson.EqualTo("world!"));
+
+			obj[JsonPathSegment.Create("bonjour")] = "le monde!";
+			Assert.That(obj["bonjour"], IsJson.EqualTo("le monde!"));
+
+			Assert.That(() => JsonObject.ReadOnly.Empty[JsonPathSegment.Create("hello")] = "world", Throws.InvalidOperationException);
+			Assert.That(() => JsonObject.ReadOnly.Empty[JsonPathSegment.Create(0)] = "hello", Throws.InvalidOperationException);
+		}
+
+		[Test]
+		public void Test_JsonArray_PathSegment_Indexer()
+		{
+			var arr = JsonArray.Create("hello", "world", 123, true);
+
+			Assert.That(arr[JsonPathSegment.Create(0)], IsJson.EqualTo("hello"));
+			Assert.That(arr[JsonPathSegment.Create(1)], IsJson.EqualTo("world"));
+			Assert.That(arr[JsonPathSegment.Create(2)], IsJson.EqualTo(123));
+			Assert.That(arr[JsonPathSegment.Create(3)], IsJson.True);
+			Assert.That(arr[JsonPathSegment.Create(4)], IsJson.Error);
+
+			Assert.That(arr[JsonPathSegment.Create(new Index(0))], IsJson.EqualTo("hello"));
+			Assert.That(arr[JsonPathSegment.Create(^3)], IsJson.EqualTo("world"));
+			Assert.That(arr[JsonPathSegment.Create(new Index(2))], IsJson.EqualTo(123));
+			Assert.That(arr[JsonPathSegment.Create(^1)], IsJson.True);
+			Assert.That(arr[JsonPathSegment.Create(^0)], IsJson.Error);
+			Assert.That(arr[JsonPathSegment.Create(^5)], IsJson.Error);
+
+			Assert.That(() => arr[JsonPathSegment.Create("hello")], Throws.InvalidOperationException);
+
+			arr[JsonPathSegment.Create(1)] = "le monde";
+			Assert.That(arr, IsJson.EqualTo([ "hello", "le monde", 123, true ]));
+
+			arr[JsonPathSegment.Create(^2)] = 456;
+			Assert.That(arr, IsJson.EqualTo([ "hello", "le monde", 456, true ]));
+
+			arr[JsonPathSegment.Create(^0)] = Math.PI;
+			Assert.That(arr, IsJson.EqualTo([ "hello", "le monde", 456, true, Math.PI ]));
+
+			Assert.That(() => JsonArray.ReadOnly.Empty[JsonPathSegment.Create(0)] = "hello", Throws.InvalidOperationException);
+			Assert.That(() => JsonArray.ReadOnly.Empty[JsonPathSegment.Create("hello")] = "world", Throws.InvalidOperationException);
+		}
+
 	}
 
 }

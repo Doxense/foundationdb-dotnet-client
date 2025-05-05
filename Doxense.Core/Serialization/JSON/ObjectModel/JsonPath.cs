@@ -1933,6 +1933,9 @@ namespace Doxense.Serialization.Json
 			this.Index = null;
 		}
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonPathSegment Create(string? name) => new(name);
+
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonPathSegment(ReadOnlyMemory<char> name)
 		{
@@ -1940,6 +1943,9 @@ namespace Doxense.Serialization.Json
 			this.Name = name;
 			this.Index = null;
 		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonPathSegment Create(ReadOnlyMemory<char> name) => new(name);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonPathSegment(int index)
@@ -1949,12 +1955,18 @@ namespace Doxense.Serialization.Json
 			this.Index = index;
 		}
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonPathSegment Create(int index) => new(index);
+
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonPathSegment(Index index)
 		{
 			this.Name = default;
 			this.Index = index;
 		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonPathSegment Create(Index index) => new(index);
 
 		/// <summary>Tests if this path segment is empty (ie: no path)</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]

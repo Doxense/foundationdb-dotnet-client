@@ -1025,6 +1025,27 @@ namespace Doxense.Serialization.Json
 			set => Set(key, value);
 		}
 
+
+		/// <inheritdoc cref="JsonValue.this[JsonPathSegment]"/>
+		[AllowNull]
+		public override JsonValue this[JsonPathSegment segment]
+		{
+			[Pure, CollectionAccess(CollectionAccessType.Read), MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => segment.TryGetName(out var name) ? GetValueOrDefault(name) : segment.TryGetIndex(out var index) ? GetValueOrDefault(index) : this;
+			[CollectionAccess(CollectionAccessType.ModifyExistingContent)]
+			set
+			{
+				if (segment.TryGetName(out var name))
+				{
+					Set(name, value);
+				}
+				else
+				{
+					throw (m_readOnly ? FailCannotMutateReadOnlyValue(this) : ThrowHelper.InvalidOperationException($"Cannot set value at an index on a JSON {this.Type}"));
+				}
+			}
+		}
+
 		/// <inheritdoc cref="JsonValue.TryGetPathValue(string,out JsonValue)" />
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		[ContractAnnotation("halt<=key:null; =>true,value:notnull; =>false,value:null")]
