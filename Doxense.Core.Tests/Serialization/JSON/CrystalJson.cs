@@ -5372,6 +5372,30 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(JsonArray.FromValues([ 1, 2, 3, 4 ]).ToList<string>(), Is.EqualTo((string[]) [ "1", "2", "3", "4" ]));
 			Assert.That(JsonArray.FromValues([ "1", "2", "3", "4" ]).ToArray<int>(), Is.EqualTo((int[]) [ 1, 2, 3, 4 ]));
 			Assert.That(JsonArray.FromValues([ "1", "2", "3", "4" ]).ToList<int>(), Is.EqualTo((int[]) [ 1, 2, 3, 4 ]));
+
+			Assert.That(JsonArray.FromValues((string[]) [ "A", "B", "C", "D" ]), IsJson.EqualTo([ "A", "B", "C", "D" ]));
+			Assert.That(JsonArray.FromValues((int[]) [ 1, 2, 3, 4 ]), IsJson.EqualTo((int[]) [ 1, 2, 3, 4 ]));
+			Assert.That(JsonArray.FromValues((ReadOnlySpan<string>) [ "A", "B", "C", "D" ]), IsJson.EqualTo([ "A", "B", "C", "D" ]));
+			Assert.That(JsonArray.FromValues((ReadOnlySpan<int>) [ 1, 2, 3, 4 ]), IsJson.EqualTo((int[]) [ 1, 2, 3, 4 ]));
+			Assert.That(JsonArray.ReadOnly.FromValues((string[]) [ "A", "B", "C", "D" ]), IsJson.ReadOnly.And.EqualTo([ "A", "B", "C", "D" ]));
+			Assert.That(JsonArray.ReadOnly.FromValues((int[]) [ 1, 2, 3, 4 ]), IsJson.ReadOnly.And.EqualTo((int[]) [ 1, 2, 3, 4 ]));
+			Assert.That(JsonArray.ReadOnly.FromValues((ReadOnlySpan<string>) [ "A", "B", "C", "D" ]), IsJson.ReadOnly.And.EqualTo([ "A", "B", "C", "D" ]));
+			Assert.That(JsonArray.ReadOnly.FromValues((ReadOnlySpan<int>) [ 1, 2, 3, 4 ]), IsJson.ReadOnly.And.EqualTo((int[]) [ 1, 2, 3, 4 ]));
+
+			Assert.That(JsonArray.FromValues((char[]) [ 'a', 'b', 'c', 'd' ], s => new string(char.ToUpperInvariant(s), 3)), IsJson.EqualTo([ "AAA", "BBB", "CCC", "DDD" ]));
+			Assert.That(JsonArray.FromValues((int[]) [ 1, 2, 3, 4 ], x => new string((char) (64 + x), x)), IsJson.EqualTo([ "A", "BB", "CCC", "DDDD" ]));
+			Assert.That(JsonArray.FromValues((ReadOnlySpan<char>) [ 'a', 'b', 'c', 'd' ], s => new string(char.ToUpperInvariant(s), 3)), IsJson.EqualTo([ "AAA", "BBB", "CCC", "DDD" ]));
+			Assert.That(JsonArray.FromValues((ReadOnlySpan<int>) [ 1, 2, 3, 4 ], x => new string((char) (64 + x), x)), IsJson.EqualTo([ "A", "BB", "CCC", "DDDD" ]));
+			Assert.That(JsonArray.FromValues((IEnumerable<char>) [ 'a', 'b', 'c', 'd' ], s => new string(char.ToUpperInvariant(s), 3)), IsJson.EqualTo([ "AAA", "BBB", "CCC", "DDD" ]));
+			Assert.That(JsonArray.FromValues((IEnumerable<char>) ((List<char>) [ 'a', 'b', 'c', 'd' ]), s => new string(char.ToUpperInvariant(s), 3)), IsJson.EqualTo([ "AAA", "BBB", "CCC", "DDD" ]));
+			Assert.That(JsonArray.FromValues(((char[]) [ 'a', 'b', 'c', 'd' ]).Select(x => x), s => new string(char.ToUpperInvariant(s), 3)), IsJson.EqualTo([ "AAA", "BBB", "CCC", "DDD" ]));
+			Assert.That(JsonArray.ReadOnly.FromValues((char[]) [ 'a', 'b', 'c', 'd' ], s => new string(char.ToUpperInvariant(s), 3)), IsJson.ReadOnly.And.EqualTo([ "AAA", "BBB", "CCC", "DDD" ]));
+			Assert.That(JsonArray.ReadOnly.FromValues((int[]) [ 1, 2, 3, 4 ], x => new string((char) (64 + x), x)), IsJson.ReadOnly.And.EqualTo([ "A", "BB", "CCC", "DDDD" ]));
+			Assert.That(JsonArray.ReadOnly.FromValues((ReadOnlySpan<char>) [ 'a', 'b', 'c', 'd' ], s => new string(char.ToUpperInvariant(s), 3)), IsJson.ReadOnly.And.EqualTo([ "AAA", "BBB", "CCC", "DDD" ]));
+			Assert.That(JsonArray.ReadOnly.FromValues((ReadOnlySpan<int>) [ 1, 2, 3, 4 ], x => new string((char) (64 + x), x)), IsJson.ReadOnly.And.EqualTo([ "A", "BB", "CCC", "DDDD" ]));
+			Assert.That(JsonArray.ReadOnly.FromValues((IEnumerable<int>) [ 1, 2, 3, 4 ], x => new string((char) (64 + x), x)), IsJson.ReadOnly.And.EqualTo([ "A", "BB", "CCC", "DDDD" ]));
+			Assert.That(JsonArray.ReadOnly.FromValues((IEnumerable<int>) ((List<int>) [ 1, 2, 3, 4 ]), x => new string((char) (64 + x), x)), IsJson.ReadOnly.And.EqualTo([ "A", "BB", "CCC", "DDDD" ]));
+			Assert.That(JsonArray.ReadOnly.FromValues(((int[]) [ 1, 2, 3, 4 ]).Select(x => x), x => new string((char) (64 + x), x)), IsJson.ReadOnly.And.EqualTo([ "A", "BB", "CCC", "DDDD" ]));
 		}
 
 		[Test]
@@ -5733,6 +5757,22 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(JsonArray.Create([ 1, 2, 3 ]).Truncate(5), IsJson.EqualTo(JsonArray.Create([ 1, 2, 3, null, null ])));
 			Assert.That(JsonArray.Create([ 1, 2, 3, 4, 5 ]).Truncate(3), IsJson.EqualTo(JsonArray.Create([ 1, 2, 3 ])));
 			Assert.That(JsonArray.Create([ 1, 2, 3 ]).Truncate(0), IsJson.Empty);
+		}
+
+		[Test]
+		public void Test_JsonArray_Combine()
+		{
+			Assert.That(JsonArray.Combine(JsonArray.ReadOnly.Empty, JsonArray.ReadOnly.Empty), Is.Not.SameAs(JsonArray.ReadOnly.Empty).And.Empty);
+			Assert.That(JsonArray.Combine(JsonArray.Create("hello", "world"), JsonArray.ReadOnly.Empty), IsJson.EqualTo([ "hello", "world" ]));
+			Assert.That(JsonArray.Combine(JsonArray.ReadOnly.Empty, JsonArray.Create("hello", "world")), IsJson.EqualTo([ "hello", "world" ]));
+			Assert.That(JsonArray.Combine(JsonArray.Create("hello"), JsonArray.Create("world")), IsJson.EqualTo([ "hello", "world" ]));
+
+			Assert.That(JsonArray.Combine(JsonArray.ReadOnly.Empty, JsonArray.ReadOnly.Empty, JsonArray.ReadOnly.Empty), Is.Not.SameAs(JsonArray.ReadOnly.Empty).And.Empty);
+			Assert.That(JsonArray.Combine(JsonArray.Create("hello", "world"), JsonArray.ReadOnly.Empty, JsonArray.ReadOnly.Empty), IsJson.EqualTo([ "hello", "world" ]));
+			Assert.That(JsonArray.Combine(JsonArray.ReadOnly.Empty, JsonArray.Create("hello", "world"), JsonArray.ReadOnly.Empty), IsJson.EqualTo([ "hello", "world" ]));
+			Assert.That(JsonArray.Combine(JsonArray.ReadOnly.Empty, JsonArray.ReadOnly.Empty, JsonArray.Create("hello", "world")), IsJson.EqualTo([ "hello", "world" ]));
+			Assert.That(JsonArray.Combine(JsonArray.Create("hello"), JsonArray.Create("world"), JsonArray.Create("!")), IsJson.EqualTo([ "hello", "world", "!" ]));
+			Assert.That(JsonArray.Combine(JsonArray.Create(1), JsonArray.Create(2, 3), JsonArray.Create(4, 5, 6)), IsJson.EqualTo([ 1, 2, 3, 4, 5, 6 ]));
 		}
 
 		[Test]
@@ -6899,7 +6939,6 @@ namespace Doxense.Serialization.Json.Tests
 
 			Check(JsonArray.ReadOnly.Empty.CopyAndSet(0, "hello"), IsJson.ReadOnly.And.EqualTo([ "hello" ]));
 			Check(JsonArray.ReadOnly.Empty.CopyAndSet(1, "hello"), IsJson.ReadOnly.And.EqualTo([ null, "hello" ]));
-
 			Check(JsonArray.Create(["hello", "world"]).CopyAndSet(0, "bonjour"), IsJson.ReadOnly.And.EqualTo([ "bonjour", "world" ]));
 			Check(JsonArray.Create(["hello", "world"]).CopyAndSet(1, "le monde"), IsJson.ReadOnly.And.EqualTo([ "hello", "le monde" ]));
 			Check(JsonArray.Create(["hello", "world"]).CopyAndSet(2, "!"), IsJson.ReadOnly.And.EqualTo([ "hello", "world", "!" ]));
@@ -8990,62 +9029,69 @@ namespace Doxense.Serialization.Json.Tests
 		[Test]
 		public void Test_JsonValue_FromObject_Lists()
 		{
-			// array of primitive type
-			var j = JsonValue.FromValue(new[] { 1, 42, 77 });
-			Assert.That(j, Is.Not.Null.And.InstanceOf<JsonArray>());
-			Log(j); // => [ 1, 42, 77 ]
-			var arr = j.AsArray();
-			Assert.That(arr, Has.Count.EqualTo(3));
-			Assert.That(arr[0], IsJson.EqualTo(1));
-			Assert.That(arr[1], IsJson.EqualTo(42));
-			Assert.That(arr[2], IsJson.EqualTo(77));
+			{ // array of primitive type
+				var j = JsonValue.FromValue(new[] { 1, 42, 77 });
+				Assert.That(j, Is.Not.Null.And.InstanceOf<JsonArray>());
+				Log(j); // => [ 1, 42, 77 ]
+				var arr = j.AsArray();
+				Assert.That(arr, Has.Count.EqualTo(3));
+				Assert.That(arr[0], IsJson.EqualTo(1));
+				Assert.That(arr[1], IsJson.EqualTo(42));
+				Assert.That(arr[2], IsJson.EqualTo(77));
+			}
 
-			// list of primitive type
-			j = JsonValue.FromValue(new List<int> { 1, 42, 77 });
-			Assert.That(j, Is.Not.Null.And.InstanceOf<JsonArray>());
-			Log(j); // => [ 1, 42, 77 ]
-			arr = j.AsArray();
-			Assert.That(arr, Has.Count.EqualTo(3));
-			Assert.That(arr[0], IsJson.EqualTo(1));
-			Assert.That(arr[1], IsJson.EqualTo(42));
-			Assert.That(arr[2], IsJson.EqualTo(77));
+			{ // list of primitive type
+				var j = JsonValue.FromValue(new List<int> { 1, 42, 77 });
+				Assert.That(j, Is.Not.Null.And.InstanceOf<JsonArray>());
+				Log(j); // => [ 1, 42, 77 ]
+				var arr = j.AsArray();
+				Assert.That(arr, Has.Count.EqualTo(3));
+				Assert.That(arr[0], IsJson.EqualTo(1));
+				Assert.That(arr[1], IsJson.EqualTo(42));
+				Assert.That(arr[2], IsJson.EqualTo(77));
+			}
 
-			// array of ref type
-			j = JsonValue.FromValue(new[] { "foo", "bar", "baz" });
-			Assert.That(j, Is.Not.Null.And.InstanceOf<JsonArray>());
-			Log(j); // [ "foo", "bar", "baz" ]
-			arr = j.AsArray();
-			Assert.That(arr, Has.Count.EqualTo(3));
-			Assert.That(arr[0], IsJson.EqualTo("foo"));
-			Assert.That(arr[1], IsJson.EqualTo("bar"));
-			Assert.That(arr[2], IsJson.EqualTo("baz"));
+			{ // array of ref type
+				var j = JsonValue.FromValue(new[] { "foo", "bar", "baz" });
+				Assert.That(j, Is.Not.Null.And.InstanceOf<JsonArray>());
+				Log(j); // [ "foo", "bar", "baz" ]
+				var arr = j.AsArray();
+				Assert.That(arr, Has.Count.EqualTo(3));
+				Assert.That(arr[0], IsJson.EqualTo("foo"));
+				Assert.That(arr[1], IsJson.EqualTo("bar"));
+				Assert.That(arr[2], IsJson.EqualTo("baz"));
+			}
 
-			// special collection (read only)
-			j = JsonValue.FromValue(new ReadOnlyCollection<string>(new List<string> { "foo", "bar", "baz" }));
-			Assert.That(j, Is.Not.Null.And.InstanceOf<JsonArray>());
-			Log(j); // [ "foo", "bar", "baz" ]
-			arr = j.AsArray();
-			Assert.That(arr, Has.Count.EqualTo(3));
-			Assert.That(arr, IsJson.EqualTo([ "foo", "bar", "baz" ]));
-			Assert.That(arr, IsJson.EqualTo(arr));
-			Assert.That(arr[0], IsJson.EqualTo("foo"));
-			Assert.That(arr[1], IsJson.EqualTo("bar"));
-			Assert.That(arr[2], IsJson.EqualTo("baz"));
+			{ // special collection (read only)
+				var j = JsonValue.FromValue(new ReadOnlyCollection<string>(new List<string> { "foo", "bar", "baz" }));
+				Assert.That(j, Is.Not.Null.And.InstanceOf<JsonArray>());
+				Log(j); // [ "foo", "bar", "baz" ]
+				var arr = j.AsArray();
+				Assert.That(arr, Has.Count.EqualTo(3));
+				Assert.That(arr, IsJson.EqualTo([ "foo", "bar", "baz" ]));
+				Assert.That(arr, IsJson.EqualTo(arr));
+				Assert.That(arr[0], IsJson.EqualTo("foo"));
+				Assert.That(arr[1], IsJson.EqualTo("bar"));
+				Assert.That(arr[2], IsJson.EqualTo("baz"));
+			}
 
-			// LINQ query
-			j = JsonValue.FromValue(Enumerable.Range(1, 10));
-			Assert.That(j, Is.Not.Null.And.InstanceOf<JsonArray>());
-			Log(j); // => [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ]
-			arr = j.AsArray();
-			Assert.That(arr, Has.Count.EqualTo(10));
-			Assert.That(arr, IsJson.EqualTo(Enumerable.Range(1, 10)));
+			{ // LINQ query
+				var j = JsonValue.FromValue(Enumerable.Range(1, 10));
+				Assert.That(j, Is.Not.Null.And.InstanceOf<JsonArray>());
+				Log(j); // => [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ]
+				var arr = j.AsArray();
+				Assert.That(arr, Has.Count.EqualTo(10));
+				Assert.That(arr, IsJson.EqualTo(Enumerable.Range(1, 10)));
+			}
 
-			j = JsonValue.FromValue(Enumerable.Range(1, 3).Select(x => new KeyValuePair<int, char>(x, (char)(64 + x))).ToList());
-			Assert.That(j, Is.Not.Null.And.InstanceOf<JsonArray>());
-			Log(j);
-			arr = j.AsArray();
-			Assert.That(arr, Has.Count.EqualTo(3));
-			//TODO: BUGBUG: for now, will return [ { Key: .., Value: .. }, .. ] instead of [ [ .., .. ], .. ]
+			{ // LINQ query
+				var j = JsonValue.FromValue(Enumerable.Range(1, 3).Select(x => new KeyValuePair<int, char>(x, (char)(64 + x))).ToList());
+				Assert.That(j, Is.Not.Null.And.InstanceOf<JsonArray>());
+				Log(j);
+				var arr = j.AsArray();
+				Assert.That(arr, Has.Count.EqualTo(3));
+				//TODO: BUGBUG: for now, will return [ { Key: .., Value: .. }, .. ] instead of [ [ .., .. ], .. ]
+			}
 		}
 
 		[Test]
@@ -9714,6 +9760,72 @@ namespace Doxense.Serialization.Json.Tests
 				Assert.That(arr[4], Is.SameAs(JsonNumber.Return(255)));
 				Assert.That(arr[5], Is.SameAs(JsonNumber.Return(-128)));
 			}
+
+			static void ParseAreEqual(JsonValue expected, string jsonText, string? message = null)
+			{
+				{ // JsonValue, string
+					var parsed = JsonValue.Parse(jsonText);
+					Assert.That(parsed, Is.EqualTo(expected), $"JsonValue.Parse('{jsonText}') into {expected.Type}{(message is null ? string.Empty : (": " + message))}");
+					Assert.That(parsed, IsJson.Not.ReadOnly);
+				}
+				{ // JsonValue, RoS<char>
+					var parsed = JsonValue.Parse(("$$$" + jsonText + "%%%").AsSpan()[3..^3]);
+					Assert.That(parsed, Is.EqualTo(expected), $"JsonValue.Parse('{jsonText}') into {expected.Type}{(message is null ? string.Empty : (": " + message))}");
+					Assert.That(parsed, IsJson.Not.ReadOnly);
+				}
+				{ // JsonValue, RoS<byte>
+					var parsed = JsonValue.Parse(Encoding.UTF8.GetBytes("$$$" + jsonText + "%%%").AsSpan()[3..^3]);
+					Assert.That(parsed, Is.EqualTo(expected), $"JsonValue.Parse('{jsonText}') into {expected.Type}{(message is null ? string.Empty : (": " + message))}");
+					Assert.That(parsed, IsJson.Not.ReadOnly);
+				}
+				{ // JsonArray, string
+					var parsed = JsonArray.Parse(jsonText);
+					Assert.That(parsed, Is.EqualTo(expected), $"JsonValue.Parse('{jsonText}') into {expected.Type}{(message is null ? string.Empty : (": " + message))}");
+					Assert.That(parsed, IsJson.Not.ReadOnly);
+				}
+				{ // JsonArray, RoS<char>
+					var parsed = JsonArray.Parse(("$$$" + jsonText + "%%%").AsSpan()[3..^3]);
+					Assert.That(parsed, Is.EqualTo(expected), $"JsonValue.Parse('{jsonText}') into {expected.Type}{(message is null ? string.Empty : (": " + message))}");
+					Assert.That(parsed, IsJson.Not.ReadOnly);
+				}
+				{ // JsonArray, RoS<char>
+					var parsed = JsonArray.Parse(Encoding.UTF8.GetBytes("$$$" + jsonText + "%%%").AsSpan()[3..^3]);
+					Assert.That(parsed, Is.EqualTo(expected), $"JsonValue.Parse('{jsonText}') into {expected.Type}{(message is null ? string.Empty : (": " + message))}");
+					Assert.That(parsed, IsJson.Not.ReadOnly);
+				}
+
+				{ // JsonValue, string, readonly
+					var parsed = JsonValue.ParseReadOnly(jsonText);
+					Assert.That(parsed, Is.EqualTo(expected), $"JsonValue.Parse('{jsonText}') into {expected.Type}{(message is null ? string.Empty : (": " + message))}");
+					Assert.That(parsed, IsJson.ReadOnly);
+				}
+				{ // JsonValue, RoS<char>, readonly
+					var parsed = JsonValue.ParseReadOnly(("$$$" + jsonText + "%%%").AsSpan()[3..^3]);
+					Assert.That(parsed, Is.EqualTo(expected), $"JsonValue.Parse('{jsonText}') into {expected.Type}{(message is null ? string.Empty : (": " + message))}");
+					Assert.That(parsed, IsJson.ReadOnly);
+				}
+				{ // JsonValue, RoS<byte>, readonly
+					var parsed = JsonValue.ParseReadOnly(Encoding.UTF8.GetBytes("$$$" + jsonText + "%%%").AsSpan()[3..^3]);
+					Assert.That(parsed, Is.EqualTo(expected), $"JsonValue.Parse('{jsonText}') into {expected.Type}{(message is null ? string.Empty : (": " + message))}");
+					Assert.That(parsed, IsJson.ReadOnly);
+				}
+				{ // JsonArray, string, readonly
+					var parsed = JsonArray.ReadOnly.Parse(jsonText);
+					Assert.That(parsed, Is.EqualTo(expected), $"JsonValue.Parse('{jsonText}') into {expected.Type}{(message is null ? string.Empty : (": " + message))}");
+					Assert.That(parsed, IsJson.ReadOnly);
+				}
+				{ // JsonArray, RoS<char>, readonly
+					var parsed = JsonArray.ReadOnly.Parse(("$$$" + jsonText + "%%%").AsSpan()[3..^3]);
+					Assert.That(parsed, Is.EqualTo(expected), $"JsonValue.Parse('{jsonText}') into {expected.Type}{(message is null ? string.Empty : (": " + message))}");
+					Assert.That(parsed, IsJson.ReadOnly);
+				}
+				{ // JsonArray, RoS<byte>, readonly
+					var parsed = JsonArray.ReadOnly.Parse(Encoding.UTF8.GetBytes("$$$" + jsonText + "%%%").AsSpan()[3..^3]);
+					Assert.That(parsed, Is.EqualTo(expected), $"JsonValue.Parse('{jsonText}') into {expected.Type}{(message is null ? string.Empty : (": " + message))}");
+					Assert.That(parsed, IsJson.ReadOnly);
+				}
+			}
+
 		}
 
 		[Test]
@@ -10830,12 +10942,6 @@ namespace Doxense.Serialization.Json.Tests
 		}
 
 #endregion
-
-		private static void ParseAreEqual(JsonValue expected, string jsonText, string? message = null)
-		{
-			var parsed = JsonValue.Parse(jsonText);
-			Assert.That(parsed, Is.EqualTo(expected), $"JsonValue.Parse('{jsonText}') into {expected.Type}{(message is null ? string.Empty : (": " + message))}");
-		}
 
 	}
 
