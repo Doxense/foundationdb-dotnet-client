@@ -368,6 +368,40 @@ namespace Doxense.Serialization.Json
 			return new(items, newSize, readOnly: true);
 		}
 
+
+		/// <summary>Replaces a published <see cref="JsonArray">JSON Array</see> with a new version with extra items appended to the end, in a thread-safe manner, using a <see cref="SpinWait"/> if necessary.</summary>
+		/// <param name="original">Reference to the currently published <see cref="JsonArray">JSON Array</see></param>
+		/// <param name="tail">Array that will be appended to the end of the new copy</param>
+		/// <returns>New published <see cref="JsonArray">JSON Array</see>, that includes the new items.</returns>
+		/// <remarks>
+		/// <para>This method will attempt to atomically replace the original <see cref="JsonArray">JSON Array</see> with a new version, unless another thread was able to update it faster, in which case it will simply retry with the newest version, until it is able to successfully update the reference.</para>
+		/// <para>Caution: the order of operation between threads is not guaranteed, and this method _may_ loop infinitely if it is perpetually blocked by another, faster, thread !</para>
+		/// </remarks>
+		public static JsonArray CopyAndConcat(ref JsonArray original, JsonArray tail)
+		{
+			var snapshot = Volatile.Read(ref original);
+			var copy = snapshot.CopyAndConcat(tail);
+
+			return ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot))
+				? copy
+				: CopyAndConcatSpin(ref original, tail);
+
+			static JsonArray CopyAndConcatSpin(ref JsonArray original, JsonArray tail)
+			{
+				var spinner = new SpinWait();
+				while (true)
+				{
+					spinner.SpinOnce();
+					var snapshot = Volatile.Read(ref original);
+					var copy = snapshot.CopyAndConcat(tail);
+					if (ReferenceEquals(snapshot, Interlocked.CompareExchange(ref original, copy, snapshot)))
+					{
+						return copy;
+					}
+				}
+			}
+		}
+
 		/// <summary>Returns a new <b>read-only</b> copy of this array with an additional item</summary>
 		/// <param name="value">Item that will be appended to the end of the new copy</param>
 		/// <returns>A new instance with the same content of the original array, plus the additional item</returns>
