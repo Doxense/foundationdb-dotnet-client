@@ -23,13 +23,14 @@
 		<AssemblyTitle>SnowBank Core SDK</AssemblyTitle>
 		<Description>Core SDK for writing distributed .NET applications</Description>
 		<PackageTags>snowbank sdk json slice tuples foundationdb fdb nosql</PackageTags>
-		<!--<PackageReadmeFile>README.md</PackageReadmeFile>-->
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageIcon>snowbank.png</PackageIcon>
 		<GenerateDocumentationFile Condition="'$(Configuration)' != 'Debug'">true</GenerateDocumentationFile>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<None Include="../Common/snowbank.png" Pack="true" Visible="false" PackagePath="\" />
+		<None Include="./README.md" Pack="true" Visible="false" PackagePath="\" />
 	</ItemGroup>
 
 	<ItemGroup>

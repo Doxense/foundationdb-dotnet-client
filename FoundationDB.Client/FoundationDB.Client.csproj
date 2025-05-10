@@ -45,10 +45,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<None Include="../README.md" Pack="true" Visible="false" PackagePath="/" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<PackageReference Include="System.Memory" />
 	</ItemGroup>
 

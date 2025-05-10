@@ -21,13 +21,14 @@
 		<AssemblyTitle>SnowBank JSON Code Generator</AssemblyTitle>
 		<Description>Generated optimize code for custom JSON serializers and proxies</Description>
 		<PackageTags>snowbank sdk json codegen</PackageTags>
-		<!--<PackageReadmeFile>README.md</PackageReadmeFile>-->
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageIcon>snowbank.png</PackageIcon>
 		<GenerateDocumentationFile Condition="'$(Configuration)' != 'Debug'">true</GenerateDocumentationFile>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<None Include="../Common/snowbank.png" Pack="true" Visible="false" PackagePath="\" />
+		<None Include="./README.md" Pack="true" Visible="false" PackagePath="\" />
 	</ItemGroup>
 
 	<ItemGroup>
