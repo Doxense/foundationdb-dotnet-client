@@ -1244,6 +1244,14 @@ namespace SnowBank.Serialization.Json.CodeGen
 				sb.AppendLine($"public static string ToJson({typeDef.Type.FullyQualifiedNameAnnotated} instance, {KnownTypeSymbols.CrystalJsonSettingsFullName}? settings = default, {KnownTypeSymbols.ICrystalJsonTypeResolverFullName}? resolver = default) => Default.ToJson(instance, settings, resolver);");
 				sb.NewLine();
 
+				// ToJsonBytes(...)
+				sb.AppendLine($"public static byte[] ToJsonBytes({typeDef.Type.FullyQualifiedNameAnnotated} instance, {KnownTypeSymbols.CrystalJsonSettingsFullName}? settings = default, {KnownTypeSymbols.ICrystalJsonTypeResolverFullName}? resolver = default) => {KnownTypeSymbols.CrystalJsonFullName}.ToBytes(instance, Default, settings ?? {KnownTypeSymbols.CrystalJsonSettingsFullName}.JsonCompact, resolver);");
+				sb.NewLine();
+
+				// ToJsonSlice(...)
+				sb.AppendLine($"public static Slice ToJsonSlice({typeDef.Type.FullyQualifiedNameAnnotated} instance, {KnownTypeSymbols.CrystalJsonSettingsFullName}? settings = default, {KnownTypeSymbols.ICrystalJsonTypeResolverFullName}? resolver = default) => {KnownTypeSymbols.CrystalJsonFullName}.ToSlice(instance, Default, settings ?? {KnownTypeSymbols.CrystalJsonSettingsFullName}.JsonCompact, resolver);");
+				sb.NewLine();
+
 				// Deserialize(...)
 				sb.AppendLine($"public static {typeDef.Type.FullyQualifiedName} Deserialize(string jsonText, {KnownTypeSymbols.CrystalJsonSettingsFullName}? settings = default, {KnownTypeSymbols.ICrystalJsonTypeResolverFullName}? resolver = default) => Default.Deserialize(jsonText, settings, resolver);");
 				sb.NewLine();

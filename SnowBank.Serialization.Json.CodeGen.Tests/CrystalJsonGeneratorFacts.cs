@@ -32,6 +32,8 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 	using System.Text.Json.Serialization;
 	using Doxense.Mathematics.Statistics;
 
+	#region Types...
+
 	public record Person
 	{
 
@@ -191,6 +193,8 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 	[JsonSerializable(typeof(Animal))]
 	public partial class SystemTextJsonGeneratedSerializers : JsonSerializerContext;
 
+	#endregion
+
 	[TestFixture]
 	[Category("Core-SDK")]
 	[Category("Core-JSON")]
@@ -255,6 +259,29 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 				var converter = GeneratedConverters.TypeMapper.Default.GetConverterFor<Dog>();
 				Assert.That(converter, Is.InstanceOf<IJsonConverter<Dog>>());
 			}
+		}
+
+		[Test]
+		public void Test_Get_Resolver_For_Container()
+		{
+			var resolver = GeneratedConverters.GetResolver();
+			Assert.That(resolver, Is.Not.Null.And.Not.InstanceOf<CrystalJsonTypeResolver>());
+
+			Assert.That(resolver.TryGetConverterFor<Person>(out var personResolver), Is.True);
+			Assert.That(personResolver, Is.SameAs(GeneratedConverters.Person.Default));
+
+			Assert.That(resolver.TryGetConverterFor(typeof(Person), out var untypedResolver), Is.True);
+			Assert.That(untypedResolver, Is.SameAs(GeneratedConverters.Person.Default));
+
+			Assert.That(resolver.TryResolveTypeDefinition<Person>(out var typeDef), Is.True);
+			Assert.That(typeDef, Is.Not.Null);
+			Assert.That(typeDef.Type, Is.EqualTo(typeof(Person)));
+			Assert.That(typeDef.Members, Is.Not.Empty.And.Length.EqualTo(2));
+			Assert.That(typeDef.Members[0].Name, Is.EqualTo("firstName"));
+			Assert.That(typeDef.Members[1].Name, Is.EqualTo("familyName"));
+
+			Assert.That(resolver.TryResolveTypeDefinition(typeof(Person), out var typeDef2), Is.True);
+			Assert.That(typeDef2, Is.SameAs(typeDef));
 		}
 
 		[Test]
@@ -373,12 +400,14 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 				Log(System.Text.Json.JsonSerializer.Serialize(person));
 				Log();
 
+				// Person => string
 				Log("# Actual output:");
 				var json = GeneratedConverters.Person.ToJson(person);
 				Log(json);
 				Assert.That(json, Is.EqualTo("""{ "firstName": "James", "familyName": "Bond" }"""));
 				Log();
 
+				// string => Person
 				Log("# Parsing:");
 				var parsed = GeneratedConverters.Person.Deserialize(json);
 				Assert.That(parsed, Is.Not.Null);
@@ -387,12 +416,31 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 				Assert.That(parsed.FamilyName, Is.EqualTo("Bond"));
 				Log();
 
+				// Person => JsonValue
 				Log("# Packing:");
 				var packed = GeneratedConverters.Person.Pack(person);
 				Dump(packed);
 				Assert.That(packed, IsJson.Object);
 				Assert.That(packed["firstName"], IsJson.EqualTo("James"));
 				Assert.That(packed["familyName"], IsJson.EqualTo("Bond"));
+				Log();
+
+				// Slice
+				Log("# ToJsonSlice:");
+				var slice = GeneratedConverters.Person.ToJsonSlice(person);
+				DumpHexa(slice);
+				Assert.That(slice.StartsWith('{'), Is.True);
+				Assert.That(slice.EndsWith('}'), Is.True);
+				Assert.That(JsonObject.Parse(slice), IsJson.EqualTo(packed));
+				Log();
+
+				// byte[]
+				Log("# ToJsonBytes:");
+				var bytes = GeneratedConverters.Person.ToJsonSlice(person);
+				DumpHexa(bytes);
+				Assert.That(bytes[0], Is.EqualTo('{'));
+				Assert.That(slice[^1], Is.EqualTo('}'));
+				Assert.That(JsonObject.Parse(slice), IsJson.EqualTo(packed));
 				Log();
 			}
 
@@ -413,8 +461,34 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 				Assert.That(parsed, Is.Not.Null);
 				Assert.That(parsed.FirstName, Is.EqualTo("👍"));
 				Assert.That(parsed.FamilyName, Is.EqualTo("🐶"));
-
 				Log();
+
+				Log("# Packing:");
+				var packed = GeneratedConverters.Person.Pack(person);
+				Dump(packed);
+				Assert.That(packed, IsJson.Object);
+				Assert.That(packed["firstName"], IsJson.EqualTo("👍"));
+				Assert.That(packed["familyName"], IsJson.EqualTo("🐶"));
+				Log();
+
+				// Slice
+				Log("# ToJsonSlice:");
+				var slice = GeneratedConverters.Person.ToJsonSlice(person);
+				DumpHexa(slice);
+				Assert.That(slice.StartsWith('{'), Is.True);
+				Assert.That(slice.EndsWith('}'), Is.True);
+				Assert.That(JsonObject.Parse(slice), IsJson.EqualTo(packed));
+				Log();
+
+				// byte[]
+				Log("# ToJsonBytes:");
+				var bytes = GeneratedConverters.Person.ToJsonSlice(person);
+				DumpHexa(bytes);
+				Assert.That(bytes[0], Is.EqualTo('{'));
+				Assert.That(slice[^1], Is.EqualTo('}'));
+				Assert.That(JsonObject.Parse(slice), IsJson.EqualTo(packed));
+				Log();
+
 			}
 
 			Assert.Multiple(() =>
