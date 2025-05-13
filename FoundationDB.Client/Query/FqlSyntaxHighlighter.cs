@@ -32,7 +32,6 @@ namespace FoundationDB.Client
 	using System.Numerics;
 	using System.Runtime.InteropServices;
 	using System.Text;
-	using Microsoft.Extensions.Primitives;
 
 	public static class FqlSyntaxHighlighter
 	{

@@ -299,6 +299,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			}
 			{ // using the generated type mapper
 				Assert.That(GeneratedConverters.GetResolver().TryResolveTypeDefinition<Person>(out var typeDef), Is.True);
+				Assert.That(typeDef, Is.Not.Null);
 				Assert.That(typeDef.Type, Is.EqualTo(typeof(Person)));
 			}
 		}
@@ -349,6 +350,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 				]);
 				var unpacked = GeneratedConverters.Person.Unpack(packed);
 				Dump(unpacked);
+				Assert.That(unpacked, Is.Not.Null);
 				Assert.That(unpacked.FamilyName, Is.EqualTo("Bond"));
 				Assert.That(unpacked.FirstName, Is.EqualTo("James"));
 			}
