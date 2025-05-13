@@ -38,25 +38,25 @@
   </ItemGroup>
   <!-- Packages for .NET 10 Preview -->
   <ItemGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net10.0'))">
-    <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.0-preview.3.25171.5" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0-preview.3.25171.5" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0-preview.3.25171.5" />
-    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.0-preview.3.25172.1" />
-    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions" Version="10.0.0-preview.3.25172.1" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.0-preview.3.25171.5" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.0-preview.3.25171.5" />
-    <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.0-preview.3.25171.5" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0-preview.3.25171.5" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Configuration" Version="10.0.0-preview.3.25171.5" />
-    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.0-preview.3.25171.5" />
-    <PackageVersion Include="Microsoft.Net.Http.Headers" Version="10.0.0-preview.3.25172.1" />
-    <PackageVersion Include="System.Collections.Immutable" Version="10.0.0-preview.3.25171.5" />
-    <PackageVersion Include="System.Diagnostics.PerformanceCounter" Version="10.0.0-preview.3.25171.5" />
-    <PackageVersion Include="System.IO.Pipelines" Version="10.0.0-preview.3.25171.5" />
-    <PackageVersion Include="System.Reflection.Metadata" Version="10.0.0-preview.3.25171.5" />
-    <PackageVersion Include="System.Text.Encoding.CodePages" Version="10.0.0-preview.3.25171.5" />
-    <PackageVersion Include="System.Text.Json" Version="10.0.0-preview.3.25171.5" />
-    <PackageVersion Include="System.Threading.Channels" Version="10.0.0-preview.3.25171.5" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.0-preview.4.25258.110" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0-preview.4.25258.110" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0-preview.4.25258.110" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.0-preview.4.25258.110" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions" Version="10.0.0-preview.4.25258.110" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.0-preview.4.25258.110" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.0-preview.4.25258.110" />
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.0-preview.4.25258.110" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0-preview.4.25258.110" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Configuration" Version="10.0.0-preview.4.25258.110" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.0-preview.4.25258.110" />
+    <PackageVersion Include="Microsoft.Net.Http.Headers" Version="10.0.0-preview.4.25258.110" />
+    <PackageVersion Include="System.Collections.Immutable" Version="10.0.0-preview.4.25258.110" />
+    <PackageVersion Include="System.Diagnostics.PerformanceCounter" Version="10.0.0-preview.4.25258.110" />
+    <PackageVersion Include="System.IO.Pipelines" Version="10.0.0-preview.4.25258.110" />
+    <PackageVersion Include="System.Reflection.Metadata" Version="10.0.0-preview.4.25258.110" />
+    <PackageVersion Include="System.Text.Encoding.CodePages" Version="10.0.0-preview.4.25258.110" />
+    <PackageVersion Include="System.Text.Json" Version="10.0.0-preview.4.25258.110" />
+    <PackageVersion Include="System.Threading.Channels" Version="10.0.0-preview.4.25258.110" />
   </ItemGroup>
   <!-- Packages for .NET 9 -->
   <ItemGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net9.0')) and !$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net10.0'))">
