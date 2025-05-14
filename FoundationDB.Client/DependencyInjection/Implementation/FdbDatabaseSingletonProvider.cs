@@ -60,8 +60,6 @@ namespace FoundationDB.DependencyInjection
 
 		private CancellationTokenSource Lifetime { get; }
 
-		private int m_disposed;
-
 		public void Dispose()
 		{
 			if (Interlocked.Exchange(ref this.InternalState, null) != null)
@@ -74,7 +72,7 @@ namespace FoundationDB.DependencyInjection
 		public IFdbDatabaseScopeProvider? Parent => null;
 
 		/// <inheritdoc />
-		public bool IsAvailable => Volatile.Read(ref m_disposed) == 0;
+		public bool IsAvailable => Volatile.Read(ref this.InternalState) != null;
 
 		/// <inheritdoc />
 		public CancellationToken Cancellation => this.Lifetime.Token;
