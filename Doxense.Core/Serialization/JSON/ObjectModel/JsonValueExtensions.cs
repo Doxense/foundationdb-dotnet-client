@@ -763,6 +763,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="JsonBindingException">The field is null, missing or cannot be bound to the specified type.</exception>
 		[Pure]
 		[Obsolete("Use Get<TValue[]>() instead.")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static TValue[] GetArray<TValue>(this JsonValue self, string key, TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null, string? message = null)
 		{
 			var value = self.GetValueOrDefault(key).RequiredField(key, message);
@@ -783,6 +784,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		[Obsolete("Use Get<TValue[]>() instead.")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static TValue[]? GetArray<TValue>(this JsonValue? self, string key, TValue[]? defaultValue) => GetArray(self, key, defaultValue, null);
 
 		/// <summary>Return the value of the <i>optional</i> field with the specified name, converted into an array with elements of type <typeparamref name="TValue"/></summary>
@@ -796,6 +798,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		[Obsolete("Use Get<TValue[]>() instead.")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static TValue[]? GetArray<TValue>(this JsonValue? self, string key, TValue[]? defaultValue, ICrystalJsonTypeResolver? resolver)
 		{
 			var value = self?.GetValueOrDefault(key);
@@ -825,6 +828,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="JsonBindingException">The field is null, missing or cannot be bound to the specified type.</exception>
 		[Pure]
 		[Obsolete("Use Get<TValue[]>() instead.")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static TValue[] GetArray<TValue>(this JsonValue? self, string key, ReadOnlySpan<TValue> defaultValue) => GetArray(self, key, defaultValue, null);
 
 		/// <summary>Return the value of the <i>optional</i> field with the specified name, converted into an array with elements of type <typeparamref name="TValue"/></summary>
@@ -837,6 +841,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="JsonBindingException">The field is null, missing or cannot be bound to the specified type.</exception>
 		[Pure]
 		[Obsolete("Use Get<TValue[]>() instead.")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static TValue[] GetArray<TValue>(this JsonValue? self, string key, ReadOnlySpan<TValue> defaultValue, ICrystalJsonTypeResolver? resolver)
 		{
 			var value = self?.GetValueOrDefault(key);
@@ -868,6 +873,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="JsonBindingException">The field is null, missing or cannot be bound to the specified type.</exception>
 		[Pure]
 		[Obsolete("Use Get<List<TValue>>() instead.")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static List<TValue> GetList<TValue>(this JsonValue self, string key, TValue? defaultValue = default, ICrystalJsonTypeResolver? resolver = null, string? message = null)
 		{
 			Contract.NotNull(self);
@@ -886,6 +892,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		[Obsolete("Use Get<List<TValue>>() instead.")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static List<TValue>? GetList<TValue>(this JsonValue? self, string key, List<TValue>? defaultValue) => GetList(self, key, defaultValue, null);
 
 		/// <summary>Return the value of the <i>optional</i> field with the specified name, converted into a list with elements of type <typeparamref name="TValue"/></summary>
@@ -899,6 +906,7 @@ namespace Doxense.Serialization.Json
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		[Obsolete("Use Get<List<TValue>>() instead.")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static List<TValue>? GetList<TValue>(this JsonValue? self, string key, List<TValue>? defaultValue, ICrystalJsonTypeResolver? resolver)
 		{
 			var value = self?.GetValueOrDefault(key);
@@ -929,6 +937,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>Dictionary of keys and values converted into instances of type <typeparamref name="TKey"/> and <typeparamref name="TValue"/> respectively.</returns>
 		/// <exception cref="JsonBindingException">The field is null or missing, or cannot be bound to the specified type.</exception>
 		[Obsolete("Use Get<Dictionary<TKey, TValue>>() instead.")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public static Dictionary<TKey, TValue> GetDictionary<TKey, TValue>(this JsonValue self, string key, ICrystalJsonTypeResolver? resolver = null, string? message = null) where TKey : notnull
 		{
@@ -949,6 +958,7 @@ namespace Doxense.Serialization.Json
 		/// <exception cref="JsonBindingException">The field is null, missing or cannot be bound to the specified type.</exception>
 		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		[Obsolete("Use Get<Dictionary<TKey, TValue>>() instead.")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public static Dictionary<TKey, TValue>? GetDictionary<TKey, TValue>(this JsonValue? self, string key, Dictionary<TKey, TValue>? defaultValue, ICrystalJsonTypeResolver? resolver) where TKey : notnull
 		{
@@ -970,8 +980,9 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
-		[Obsolete("Use Get<Dictionary<TKey, TValue>>() instead.")]
 		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
+		[Obsolete("Use Get<Dictionary<TKey, TValue>>() instead.")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Dictionary<TKey, TValue>? GetDictionary<TKey, TValue>(this JsonValue? self, string key, Dictionary<TKey, TValue>? defaultValue) where TKey : notnull
 			=> GetDictionary(self, key, defaultValue, null);
 

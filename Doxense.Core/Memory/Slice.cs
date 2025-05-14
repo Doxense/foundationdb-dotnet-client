@@ -115,48 +115,6 @@ namespace System
 			return count != 0 ? new Slice(new byte[count]) : Empty;
 		}
 
-		/// <summary>Creates a slice mapping a section of a buffer, without any sanity checks or buffer optimization</summary>
-		/// <param name="buffer">Original buffer</param>
-		/// <param name="offset">Offset into buffer</param>
-		/// <param name="count">Number of bytes</param>
-		/// <returns>Slice that maps this segment of buffer.</returns>
-		/// <example>
-		/// Slice.CreateUnsafe(buffer, 1, 5) => Slice { Array = buffer, Offset = 1, Count = 5 }
-		/// </example>
-		/// <remarks>
-		/// Use this method ONLY if you are 100% sure that the slice will be valid. Failure to do so may introduce memory corruption!
-		/// Also, please note that this method will NOT optimize the case where count == 0, and will keep a reference to the original buffer!
-		/// The caller is responsible for handle that scenario if it is important!
-		/// </remarks>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete("This method will be removed soon", error: true)]
-		public static Slice CreateUnsafe(byte[] buffer, [Positive] int offset, [Positive] int count)
-		{
-			Contract.Debug.Requires(buffer is not null && (uint) offset <= (uint) buffer.Length && (uint) count <= (uint) (buffer.Length - offset));
-			return new Slice(buffer, offset, count);
-		}
-
-		/// <summary>Creates a slice mapping a section of a buffer, without any sanity checks or buffer optimization</summary>
-		/// <param name="buffer">Original buffer</param>
-		/// <param name="offset">Offset into buffer</param>
-		/// <param name="count">Number of bytes</param>
-		/// <returns>Slice that maps this segment of buffer.</returns>
-		/// <example>
-		/// Slice.CreateUnsafe(buffer, 1, 5) => Slice { Array = buffer, Offset = 1, Count = 5 }
-		/// </example>
-		/// <remarks>
-		/// Use this method ONLY if you are 100% sure that the slice will be valid. Failure to do so may introduce memory corruption!
-		/// Also, please note that this method will NOT optimize the case where count == 0, and will keep a reference to the original buffer!
-		/// The caller is responsible for handle that scenario if it is important!
-		/// </remarks>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete("This method will be removed soon", error: true)]
-		public static Slice CreateUnsafe(byte[] buffer, uint offset, uint count)
-		{
-			Contract.Debug.Requires(buffer is not null && offset <= (uint) buffer.Length && count <= ((uint) buffer.Length - offset));
-			return new Slice(buffer, checked((int) offset), checked((int) count));
-		}
-
 		/// <summary>Creates a new Slice with a specific length and initializes it after creation by using the specified callback.</summary>
 		/// <param name="length">The length of the slice to create.</param>
 		/// <param name="state">The element to pass to <paramref name="action" />.</param>
@@ -347,7 +305,7 @@ namespace System
 		/// <summary>Return a byte array containing all the bytes of the slice, or and empty array if the slice is null or empty</summary>
 		/// <returns>Byte array with a copy of the slice</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete("Use Slice.ToArray() instead")]
+		[Obsolete("Use Slice.ToArray() instead", error: true)]
 		public byte[] GetBytesOrEmpty() => ToArray();
 
 		/// <summary>Return a byte array containing a subset of the bytes of the slice, or null if the slice is null</summary>
@@ -369,7 +327,7 @@ namespace System
 		/// <summary>Returns a new slice that contains an isolated copy of the buffer</summary>
 		/// <returns>Slice that is equivalent, but is isolated from any changes to the buffer</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete("Use Slice.Copy() instead!")]
+		[Obsolete("Use Slice.Copy() instead!", error: true)]
 		public Slice Memoize() => Copy();
 
 		/// <summary>Returns a new slice that contains an isolated copy of the buffer</summary>

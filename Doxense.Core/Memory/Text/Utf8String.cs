@@ -2,6 +2,7 @@
 
 namespace Doxense.Memory.Text
 {
+	using System.ComponentModel;
 	using System.Globalization;
 	using System.Text;
 	using Doxense.Text;
@@ -41,8 +42,8 @@ namespace Doxense.Memory.Text
 			return FromString(text.AsSpan(), includeBom, noHashCode);
 		}
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete("Use FromString(ReadOnlySpan<char>, ...) instead")]
+		[Pure]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Utf8String FromString(string? text, int offset, int count, bool includeBom = false, bool noHashCode = false)
 		{
 			if (text == null) return count == 0 ? default : throw new ArgumentNullException(nameof(text));
@@ -57,8 +58,8 @@ namespace Doxense.Memory.Text
 			return new Utf8String(bytes, text.Length, !noHashCode ? default(int?) : ComputeHashCode(bytes, text.Length, asciiOnly: text.Length == bytes.Count));
 		}
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete("Use FromString(ReadOnlySpan<char>, ...) instead", error: true)]
+		[Pure]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Utf8String FromString(string? text, int offset, int count, ref byte[]? buffer, bool noHashCode = false)
 		{
 			if (text == null) return count == 0 ? default : throw new ArgumentNullException(nameof(text));
@@ -294,28 +295,6 @@ namespace Doxense.Memory.Text
 		public bool Equals(ArraySegment<char> other)
 		{
 			return Equals(other.AsSpan());
-		}
-
-		[Obsolete("Use Equals(ReadOnlySpan<char>) instead.")]
-		public bool Equals(string other, int offset, int count)
-		{
-			if (count == 0) return this.Length == 0;
-			Contract.DoesNotOverflow(other, offset, count);
-
-			using (var it = this.GetEnumerator())
-			{
-				fixed (char* chars = other)
-				{
-					char* inp = chars + offset;
-					char* stop = inp + count;
-					while (inp < stop)
-					{
-						if (!it.MoveNext()) throw new InvalidOperationException(); // something's wrong, captain!
-						if (*inp++ != (char) it.Current) return false;
-					}
-				}
-				return true;
-			}
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]

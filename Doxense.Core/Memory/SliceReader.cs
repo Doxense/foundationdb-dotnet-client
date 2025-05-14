@@ -27,6 +27,7 @@
 namespace Doxense.Memory
 {
 	using System.Buffers.Binary;
+	using System.ComponentModel;
 	using System.Runtime.InteropServices;
 	using System.Text;
 
@@ -573,6 +574,7 @@ namespace Doxense.Memory
 		/// <summary>Reads the next 2 bytes as an unsigned 16-bit integer, encoded in little-endian</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[Obsolete("Use ReadUInt16 instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public ushort ReadFixed16() => BinaryPrimitives.ReadUInt16LittleEndian(ReadTwoBytesSpan());
 
 		/// <summary>Reads the next 2 bytes as a signed 16-bit integer, encoded in little-endian</summary>
@@ -585,6 +587,7 @@ namespace Doxense.Memory
 
 		/// <summary>Reads the next 2 bytes as an unsigned 16-bit integer, encoded in little-endian, unless we already reached the end.</summary>
 		[Obsolete("Use TryReadUInt16 instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public bool TryReadFixed16(out ushort value)
 		{
 			if (!TryReadTwoBytesSpan(out var span))
@@ -648,6 +651,7 @@ namespace Doxense.Memory
 		/// <remarks>Bits 24 to 31 will always be zero</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[Obsolete("Use ReadUInt24 instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public uint ReadFixed24()
 		{
 			unsafe
@@ -734,6 +738,7 @@ namespace Doxense.Memory
 		/// <summary>Reads the next 4 bytes as an unsigned 32-bit integer, encoded in little-endian</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[Obsolete("Use ReadUInt32 instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public uint ReadFixed32() => BinaryPrimitives.ReadUInt32LittleEndian(ReadFourBytesSpan());
 
 		/// <summary>Reads the next 4 bytes as a signed 32-bit integer, encoded in little-endian</summary>
@@ -746,6 +751,7 @@ namespace Doxense.Memory
 
 		/// <summary>Reads the next 4 bytes as an unsigned 32-bit integer, encoded in little-endian, unless we already reached the end.</summary>
 		[Obsolete("Use TryReadUInt32 instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public bool TryReadFixed32(out uint value)
 		{
 			if (!TryReadFourBytesSpan(out var span))
@@ -804,6 +810,7 @@ namespace Doxense.Memory
 		/// <summary>Reads the next 8 bytes as an unsigned 64-bit integer, encoded in little-endian</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[Obsolete("Use ReadUInt64 instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public ulong ReadFixed64() => BinaryPrimitives.ReadUInt64LittleEndian(ReadEightBytesSpan());
 
 		/// <summary>Reads the next 8 bytes as a signed 64-bit integer, encoded in little-endian</summary>
@@ -816,6 +823,7 @@ namespace Doxense.Memory
 
 		/// <summary>Reads the next 8 bytes as an unsigned 64-bit integer, encoded in little-endian, unless we already reached the end.</summary>
 		[Obsolete("Use TryReadUInt64 instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public bool TryReadFixed64(out ulong value)
 		{
 			if (!TryReadEightBytesSpan(out var span))
@@ -876,6 +884,7 @@ namespace Doxense.Memory
 		/// <summary>Read the next 16 bytes as an unsigned 128-bit integer, encoded in little-endian</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[Obsolete("Use ReadUInt128 instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public UInt128 ReadFixed128() => BinaryPrimitives.ReadUInt128LittleEndian(ReadSixteenBytesSpan());
 
 		/// <summary>Read the next 16 bytes as a signed 128-bit integer, encoded in little-endian</summary>
@@ -888,6 +897,7 @@ namespace Doxense.Memory
 
 		/// <summary>Reads the next 16 bytes as an unsigned 128-bit integer, encoded in little-endian, unless we already reached the end.</summary>
 		[Obsolete("Use TryReadUInt128 instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public bool TryReadFixed128(out UInt128 value)
 		{
 			if (!TryReadSixteenBytesSpan(out var span))
@@ -936,6 +946,7 @@ namespace Doxense.Memory
 		/// <summary>Reads the next 2 bytes as an unsigned 16-bit integer, encoded in big-endian</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[Obsolete("Use ReadUInt16BE instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public ushort ReadFixed16BE() => BinaryPrimitives.ReadUInt16BigEndian(ReadTwoBytesSpan());
 
 		/// <summary>Reads the next 2 bytes as a signed 16-bit integer, encoded in big-endian</summary>
@@ -948,6 +959,7 @@ namespace Doxense.Memory
 
 		/// <summary>Reads the next 2 bytes as an unsigned 16-bit integer, encoded in big-endian, unless we already reached the end.</summary>
 		[Obsolete("Use TryReadUInt16BE instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public bool TryReadFixed16BE(out ushort value)
 		{
 			if (!TryReadTwoBytesSpan(out var span))
@@ -1011,6 +1023,7 @@ namespace Doxense.Memory
 		/// <summary>Reads the next 3 bytes as an unsigned 24-bit integer, encoded in big-endian</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[Obsolete("Use ReadUInt24BE instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public uint ReadFixed24BE()
 		{
 			unsafe
@@ -1096,6 +1109,7 @@ namespace Doxense.Memory
 		/// <summary>Reads the next 4 bytes as an unsigned 32-bit integer, encoded in big-endian</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[Obsolete("Use ReadUInt32BE instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public uint ReadFixed32BE() => BinaryPrimitives.ReadUInt32BigEndian(ReadFourBytesSpan());
 
 		/// <summary>Reads the next 4 bytes as a signed 32-bit integer, encoded in big-endian</summary>
@@ -1108,6 +1122,7 @@ namespace Doxense.Memory
 
 		/// <summary>Reads the next 4 bytes as an unsigned 32-bit integer, encoded in big-endian, unless we already reached the end.</summary>
 		[Obsolete("Use TryReadUInt32BE instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public bool TryReadFixed32BE(out uint value)
 		{
 			if (!TryReadFourBytesSpan(out var span))
@@ -1166,6 +1181,7 @@ namespace Doxense.Memory
 		/// <summary>Reads the next 8 bytes as an unsigned 64-bit integer, encoded in big-endian</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[Obsolete("Use ReadUInt64BE instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public ulong ReadFixed64BE() => BinaryPrimitives.ReadUInt64BigEndian(ReadEightBytesSpan());
 
 		/// <summary>Reads the next 8 bytes as a signed 64-bit integer, encoded in big-endian</summary>
@@ -1178,6 +1194,7 @@ namespace Doxense.Memory
 
 		/// <summary>Reads the next 8 bytes as an unsigned 64-bit integer, encoded in big-endian, unless we already reached the end.</summary>
 		[Obsolete("Use TryReadUInt64BE instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public bool TryReadFixed64BE(out ulong value)
 		{
 			if (!TryReadEightBytesSpan(out var span))
@@ -1238,6 +1255,7 @@ namespace Doxense.Memory
 		/// <summary>Reads the next 16 bytes as an unsigned 128-bit integer, encoded in big-endian</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[Obsolete("Use ReadUInt128BE instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public UInt128 ReadFixed128BE() => BinaryPrimitives.ReadUInt128BigEndian(ReadSixteenBytesSpan());
 
 		/// <summary>Reads the next 16 bytes as a signed 128-bit integer, encoded in big-endian</summary>
@@ -1250,6 +1268,7 @@ namespace Doxense.Memory
 
 		/// <summary>Reads the next 16 bytes as an unsigned 128-bit integer, encoded in big-endian, unless we already reached the end.</summary>
 		[Obsolete("Use TryReadUInt128BE instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public bool TryReadFixed128BE(out UInt128 value)
 		{
 			if (!TryReadSixteenBytesSpan(out var span))

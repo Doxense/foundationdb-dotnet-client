@@ -44,14 +44,6 @@ namespace Doxense.Collections.Tuples
 			return tuple == null || tuple.Count == 0;
 		}
 
-		/// <summary>Returns true if the tuple is not null, and contains only one item</summary>
-		[ContractAnnotation("null => false")]
-		[Obsolete] //TODO: remove this!
-		public static bool IsSingleton(this IVarTuple? tuple)
-		{
-			return tuple != null && tuple.Count == 1;
-		}
-
 		/// <summary>Returns an array containing all the objects of a tuple</summary>
 		public static object?[] ToArray(this IVarTuple tuple)
 		{

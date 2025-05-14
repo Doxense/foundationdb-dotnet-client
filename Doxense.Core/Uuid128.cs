@@ -705,7 +705,8 @@ namespace System
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete("Renamed to WriteTo(..)")]
+		[Obsolete("Renamed to WriteTo(..)")] //TODO: remove me next time!
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public void WriteToUnsafe(Span<byte> buffer) => Write(in m_packed, buffer);
 
 		/// <summary>Write the bytes of this instance to the specified <paramref name="buffer"/></summary>

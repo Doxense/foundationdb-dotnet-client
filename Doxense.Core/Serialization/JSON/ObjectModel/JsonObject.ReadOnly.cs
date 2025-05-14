@@ -96,6 +96,7 @@ namespace Doxense.Serialization.Json
 			/// </remarks>
 			[Pure]
 			[Obsolete("Please use the JsonObject.Create([ (k, v), ... ]) instead.")]
+			[EditorBrowsable(EditorBrowsableState.Never)]
 			public static JsonObject Create((string Key, JsonValue? Value) item1, (string Key, JsonValue? Value) item2) => new(new(2, StringComparer.Ordinal)
 			{
 				[item1.Key] = (item1.Value ?? JsonNull.Null).ToReadOnly(),
@@ -112,6 +113,7 @@ namespace Doxense.Serialization.Json
 			/// </remarks>
 			[Pure]
 			[Obsolete("Please use the JsonObject.ReadOnly.Create([ (k, v), ... ]) instead.")]
+			[EditorBrowsable(EditorBrowsableState.Never)]
 			public static JsonObject Create(
 				(string Key, JsonValue? Value) item1,
 				(string Key, JsonValue? Value) item2,
@@ -134,6 +136,7 @@ namespace Doxense.Serialization.Json
 			/// </remarks>
 			[Pure]
 			[Obsolete("Please use the JsonObject.ReadOnly.Create([ (k, v), ... ]) instead.")]
+			[EditorBrowsable(EditorBrowsableState.Never)]
 			public static JsonObject Create(
 				(string Key, JsonValue? Value) item1,
 				(string Key, JsonValue? Value) item2,

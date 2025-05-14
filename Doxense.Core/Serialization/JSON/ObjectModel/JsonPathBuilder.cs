@@ -27,6 +27,7 @@
 namespace Doxense.Serialization.Json
 {
 	using System.Buffers;
+	using System.ComponentModel;
 
 	[PublicAPI]
 	public ref struct JsonPathBuilder
@@ -86,6 +87,7 @@ namespace Doxense.Serialization.Json
 
 		/// <summary><c>YOU MUST PROVIDE AN INITIAL CAPACITY OR SCRATCH SPACE!</c></summary>
 		[Obsolete("You must specify an initial capacity or scratch buffer", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public JsonPathBuilder() { }
 
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.

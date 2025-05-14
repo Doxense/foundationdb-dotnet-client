@@ -147,6 +147,7 @@ namespace Doxense.Serialization.Json
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[Obsolete("Use obj.Copy() to clone an object")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public JsonObject(JsonObject copy)
 		{
 			Contract.NotNull(copy);
@@ -381,6 +382,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>JSON object of size 2, that can be modified.</returns>
 		[Pure]
 		[Obsolete("Please use the JsonObject.Create([ (k, v), ... ]) instead.")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static JsonObject Create(string key0, JsonValue? value0, string key1, JsonValue? value1) => new(new Dictionary<string, JsonValue>(2, StringComparer.Ordinal)
 		{
 			[key0] = value0 ?? JsonNull.Null,
@@ -393,6 +395,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>JSON object of size 2, that can be modified.</returns>
 		[Pure]
 		[Obsolete("Please use the JsonObject.Create([ (k, v), ... ]) instead.")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static JsonObject Create(
 			(string Key, JsonValue? Value) item1,
 			(string Key, JsonValue? Value) item2
@@ -412,6 +415,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>JSON object of size 3, that can be modified.</returns>
 		[Pure]
 		[Obsolete("Please use the JsonObject.Create([ (k, v), ... ]) instead.")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static JsonObject Create(string key0, JsonValue? value0, string key1, JsonValue? value1, string key2, JsonValue? value2) => new(new Dictionary<string, JsonValue>(3, StringComparer.Ordinal)
 		{
 			{ key0, value0 ?? JsonNull.Null },
@@ -426,6 +430,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>JSON object of size 3, that can be modified.</returns>
 		[Pure]
 		[Obsolete("Please use the JsonObject.Create([ (k, v), ... ]) instead.")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static JsonObject Create(
 			(string Key, JsonValue? Value) item1,
 			(string Key, JsonValue? Value) item2,
@@ -449,6 +454,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>JSON object of size 4, that can be modified.</returns>
 		[Pure]
 		[Obsolete("Please use the JsonObject.Create([ (k, v), ... ]) instead.")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static JsonObject Create(string key0, JsonValue? value0, string key1, JsonValue? value1, string key2, JsonValue? value2, string key3, JsonValue? value3) => new(new Dictionary<string, JsonValue>(4, StringComparer.Ordinal)
 		{
 			{ key0, value0 ?? JsonNull.Null },
@@ -465,6 +471,7 @@ namespace Doxense.Serialization.Json
 		/// <returns>JSON object of size 4, that can be modified.</returns>
 		[Pure]
 		[Obsolete("Please use the JsonObject.Create([ (k, v), ... ]) instead.")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static JsonObject Create(
 			(string Key, JsonValue? Value) item1,
 			(string Key, JsonValue? Value) item2,

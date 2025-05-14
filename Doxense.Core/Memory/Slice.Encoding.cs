@@ -985,28 +985,6 @@ namespace System
 		/// The slice will NOT include the UTF-8 BOM.
 		/// This method will not try to identify ASCII-only strings:
 		/// - If the string provided can ONLY contain ASCII, you should use <see cref="FromStringAscii(string)"/>.
-		/// - If it is more frequent for the string to be ASCII-only than having UNICODE characters, consider using <see cref="FromString(string)"/>.
-		/// DO NOT call this method to encode special strings that contain binary prefixes, like "\xFF/some/system/path" or "\xFE\x01\x02\x03", because they do not map to UTF-8 directly.
-		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(string)"/>.
-		/// </remarks>
-		[Pure]
-		[Obsolete("Use FromStringUtf8(ReadOnlySpan<char>, ...) instead", error: true)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static Slice FromStringUtf8(string value, [Positive] int offset, [Positive] int count, ref byte[]? buffer, out bool asciiOnly)
-		{
-			if (count == 0)
-			{
-				asciiOnly = true;
-				return Empty;
-			}
-			return FromStringUtf8(value.AsSpan(offset, count), ref buffer, out asciiOnly);
-		}
-
-		/// <summary>Create a slice containing the UTF-8 bytes of subsection of the string <paramref name="value"/>.</summary>
-		/// <remarks>
-		/// The slice will NOT include the UTF-8 BOM.
-		/// This method will not try to identify ASCII-only strings:
-		/// - If the string provided can ONLY contain ASCII, you should use <see cref="FromStringAscii(string)"/>.
 		/// - If it is more frequent for the string to be ASCII-only than having UNICODE characters, consider using <see cref="FromString(ReadOnlySpan{char})"/>.
 		/// DO NOT call this method to encode special strings that contain binary prefixes, like "\xFF/some/system/path" or "\xFE\x01\x02\x03", because they do not map to UTF-8 directly.
 		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.
@@ -1474,12 +1452,12 @@ namespace System
 
 		/// <summary>[OBSOLETE] Please replace with a either <see cref="ToHexString()"/> or <see cref="ToHexStringLower()"/></summary>
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		[Obsolete("Please replace with a either ToHexString() or ToHexStringLower()")]
+		[Obsolete("Please replace with a either ToHexString() or ToHexStringLower()", error: true)]
 		public string ToHexaString(bool lower = false) => lower ? ToHexStringLower() : ToHexString();
 
 		/// <summary>[OBSOLETE] Please replace with a either <see cref="ToHexString(char)"/> or <see cref="ToHexStringLower(char)"/></summary>
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		[Obsolete("Please replace with a either ToHexString(char) or ToHexStringLower(char)")]
+		[Obsolete("Please replace with a either ToHexString(char) or ToHexStringLower(char)", error: true)]
 		public string ToHexaString(char sep, bool lower = false) => lower ? ToHexStringLower(sep) : ToHexString(sep);
 
 		/// <summary>Converts a slice into a string with each byte encoded into uppercase hexadecimal, separated by a character</summary>
