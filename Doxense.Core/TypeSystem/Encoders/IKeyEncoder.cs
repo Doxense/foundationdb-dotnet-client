@@ -29,14 +29,18 @@ namespace Doxense.Serialization.Encoders
 	using Doxense.Memory;
 
 	/// <summary>Base interface for all key encoders</summary>
+	[PublicAPI]
 	public interface IKeyEncoder
 	{
+
 		/// <summary>Parent encoding</summary>
 		IKeyEncoding Encoding { get; }
+
 	}
 
 	/// <summary>Encoder that can serialize and deserialize keys using a binary encoding</summary>
 	/// <typeparam name="TKey">Type of the key</typeparam>
+	[PublicAPI]
 	public interface IKeyEncoder<TKey> : IKeyEncoder
 	{
 
@@ -53,6 +57,7 @@ namespace Doxense.Serialization.Encoders
 
 	/// <summary>Encoder for a key composed of a single part</summary>
 	/// <typeparam name="TKey">Type of the key</typeparam>
+	[PublicAPI]
 	public sealed class KeyEncoder<TKey> : IKeyEncoder<TKey>, IKeyEncoding
 	{
 

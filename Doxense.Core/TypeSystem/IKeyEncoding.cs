@@ -31,6 +31,7 @@ namespace Doxense.Serialization.Encoders
 	/// An implementation of this interface knows to create different types of Key Encoders that will all use the same "binary format" to encode and decode keys of various shapes.
 	/// A good analogy for values would be a 'JSON' encoding, or 'XML' encoding.
 	/// </remarks>
+	[PublicAPI]
 	public interface IKeyEncoding
 	{
 
@@ -72,8 +73,10 @@ namespace Doxense.Serialization.Encoders
 	}
 
 	/// <summary>Type system that only handles encoding and decoding of dynamically typed of keys</summary>
+	[PublicAPI]
 	public interface IDynamicKeyEncoding : IKeyEncoding
 	{
 
 	}
+
 }

@@ -26,6 +26,7 @@
 
 namespace Doxense.Serialization.Encoders
 {
+	[PublicAPI]
 	public interface IValueEncoding
 	{
 		/// <summary>Returns an encoder which can process values of a fixed type</summary>

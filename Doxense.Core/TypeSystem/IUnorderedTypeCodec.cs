@@ -29,6 +29,7 @@ namespace Doxense.Serialization.Encoders
 	using Doxense.Memory;
 
 	/// <summary>Represents a codec that can produce keys or values without any ordering guarantees</summary>
+	[PublicAPI]
 	public interface IUnorderedTypeCodec<T>
 	{
 		void EncodeUnorderedSelfTerm(ref SliceWriter output, T? value);

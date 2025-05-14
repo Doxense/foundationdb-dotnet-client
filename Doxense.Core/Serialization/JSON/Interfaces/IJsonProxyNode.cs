@@ -29,6 +29,7 @@ namespace Doxense.Serialization.Json
 	using Doxense.Linq;
 
 	/// <summary>Node in the hierarchy of a document proxy</summary>
+	[PublicAPI]
 	public interface IJsonProxyNode
 	{
 

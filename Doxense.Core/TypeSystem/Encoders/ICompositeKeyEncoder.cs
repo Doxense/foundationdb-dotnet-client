@@ -28,6 +28,7 @@ namespace Doxense.Serialization.Encoders
 {
 	using Doxense.Memory;
 	
+	[PublicAPI]
 	public interface ICompositeKeyEncoder<T1, T2> : IKeyEncoder<(T1?, T2?)>
 	{
 		/// <summary>Write some or all parts of a composite key</summary>
@@ -40,6 +41,7 @@ namespace Doxense.Serialization.Encoders
 		bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?) items);
 	}
 
+	[PublicAPI]
 	public interface ICompositeKeyEncoder<T1, T2, T3> : IKeyEncoder<(T1?, T2?, T3?)>
 	{
 		/// <summary>Write some or all parts of a composite key</summary>
@@ -52,6 +54,7 @@ namespace Doxense.Serialization.Encoders
 		bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?) items);
 	}
 
+	[PublicAPI]
 	public interface ICompositeKeyEncoder<T1, T2, T3, T4> : IKeyEncoder<(T1?, T2?, T3?, T4?)>
 	{
 		/// <summary>Write some or all parts of a composite key</summary>
@@ -65,6 +68,7 @@ namespace Doxense.Serialization.Encoders
 
 	}
 
+	[PublicAPI]
 	public interface ICompositeKeyEncoder<T1, T2, T3, T4, T5> : IKeyEncoder<(T1?, T2?, T3?, T4?, T5?)>
 	{
 		/// <summary>Write some or all parts of a composite key</summary>
@@ -77,6 +81,7 @@ namespace Doxense.Serialization.Encoders
 		bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?, T4?, T5?) items);
 	}
 
+	[PublicAPI]
 	public interface ICompositeKeyEncoder<T1, T2, T3, T4, T5, T6> : IKeyEncoder<(T1?, T2?, T3?, T4?, T5?, T6?)>
 	{
 		/// <summary>Write some or all parts of a composite key</summary>
@@ -90,6 +95,7 @@ namespace Doxense.Serialization.Encoders
 	}
 
 	/// <summary>Wrapper for encoding and decoding a pair with lambda functions</summary>
+	[PublicAPI]
 	public abstract class CompositeKeyEncoder<T1, T2> : ICompositeKeyEncoder<T1, T2>
 	{
 
@@ -127,6 +133,7 @@ namespace Doxense.Serialization.Encoders
 	}
 
 	/// <summary>Wrapper for encoding and decoding a triplet with lambda functions</summary>
+	[PublicAPI]
 	public abstract class CompositeKeyEncoder<T1, T2, T3> : ICompositeKeyEncoder<T1, T2, T3>
 	{
 
@@ -163,6 +170,7 @@ namespace Doxense.Serialization.Encoders
 	}
 
 	/// <summary>Wrapper for encoding and decoding a quad with lambda functions</summary>
+	[PublicAPI]
 	public abstract class CompositeKeyEncoder<T1, T2, T3, T4> : ICompositeKeyEncoder<T1, T2, T3, T4>
 	{
 
@@ -198,6 +206,7 @@ namespace Doxense.Serialization.Encoders
 	}
 
 	/// <summary>Wrapper for encoding and decoding five items with lambda functions</summary>
+	[PublicAPI]
 	public abstract class CompositeKeyEncoder<T1, T2, T3, T4, T5> : ICompositeKeyEncoder<T1, T2, T3, T4, T5>
 	{
 
@@ -234,6 +243,7 @@ namespace Doxense.Serialization.Encoders
 	}
 
 	/// <summary>Wrapper for encoding and decoding six items with lambda functions</summary>
+	[PublicAPI]
 	public abstract class CompositeKeyEncoder<T1, T2, T3, T4, T5, T6> : ICompositeKeyEncoder<T1, T2, T3, T4, T5, T6>
 	{
 

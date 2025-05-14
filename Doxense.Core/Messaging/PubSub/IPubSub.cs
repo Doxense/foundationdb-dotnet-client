@@ -28,6 +28,7 @@ namespace Doxense.Messaging.PubSub
 {
 	using Doxense.Serialization.Json;
 
+	[PublicAPI]
 	public interface IPubSub : IDisposable
 	{
 

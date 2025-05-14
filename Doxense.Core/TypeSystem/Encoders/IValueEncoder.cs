@@ -31,6 +31,7 @@ namespace Doxense.Serialization.Encoders
 	/// <summary>Class that know how to encode and decode values of a fixed type into a lower format</summary>
 	/// <typeparam name="TValue">Type of the values</typeparam>
 	/// <typeparam name="TStorage">Type of the encoded form of the values (Slice, string, ...)</typeparam>
+	[PublicAPI]
 	public interface IValueEncoder<TValue, TStorage>
 	{
 
@@ -45,6 +46,7 @@ namespace Doxense.Serialization.Encoders
 
 	/// <summary>Class that know how to encode and decode values of a fixed type</summary>
 	/// <typeparam name="TValue">Type of the values</typeparam>
+	[PublicAPI]
 	public interface IValueEncoder<TValue> : IValueEncoder<TValue, Slice>
 	{
 		// no methods
