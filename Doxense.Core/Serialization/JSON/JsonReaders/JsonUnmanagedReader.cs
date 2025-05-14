@@ -76,13 +76,15 @@ namespace Doxense.Serialization.Json
 			//TODO: PERF: we already know the first byte is >= 0x80, so maybe we can optimize the decoding ?
 			if (!Utf8Encoder.TryDecodeCodePoint(cursor, this.End, out UnicodeCodePoint cp, out int len))
 			{
-				throw new InvalidDataException("Buffer contains malformed UTF-8 character");
+				throw ErrorBufferContainsMalformedUtf8Character();
 			}
 			this.Cursor = cursor + len;
 			return (int) cp;
 
 		}
 
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		private static InvalidDataException ErrorBufferContainsMalformedUtf8Character() => new("Buffer contains malformed UTF-8 character");
 		public bool? HasMore => this.Cursor < this.End;
 
 		public int? Remaining => this.Cursor < this.End ? checked((int) (this.End - this.Cursor)) : 0;

@@ -62,7 +62,7 @@ namespace Doxense.Serialization.Json.Tests
 			public MutableJsonValue FromJson(JsonValue value) => new(this, null, default, value);
 
 			/// <inheritdoc />
-			public MutableJsonValue FromJson(MutableJsonValue parent, JsonPathSegment segment, JsonValue value) => new(this, parent, segment, value);
+			public MutableJsonValue FromJson(MutableJsonValue parent, JsonPathSegment segment, JsonValue? value) => new(this, parent, segment, value ?? JsonNull.Null);
 
 			private void RecordMutation((string Op, JsonPath Path, JsonValue? Arg) record)
 			{

@@ -614,18 +614,22 @@ namespace System
 		{
 			if (source.Length < 16)
 			{
-				result = default;
+				result = Guid.Empty;
 				return false;
 			}
 			result = Read(source);
 			return true;
 		}
 
+		// ReSharper disable once NotResolvedInText
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		private static ArgumentException ErrorInputBufferTooSmall() => new("The source buffer is too small", "source");
+
 		[Pure]
 		public static unsafe Guid Read(ReadOnlySpan<byte> source)
 		{
-			Contract.Debug.Requires(source.Length >= 16);
-			if (source.Length < 16) throw new ArgumentException("The source buffer is too small", nameof(source));
+			if (source.Length < 16) throw ErrorInputBufferTooSmall();
+
 			Guid tmp;
 			fixed (byte* src = &MemoryMarshal.GetReference(source))
 			{
@@ -830,10 +834,7 @@ namespace System
 		#region Conversion...
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Guid ToGuid()
-		{
-			return m_packed;
-		}
+		public Guid ToGuid() => m_packed;
 
 		[Pure]
 		public byte[] ToByteArray()
