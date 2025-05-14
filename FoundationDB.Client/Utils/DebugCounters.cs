@@ -32,12 +32,6 @@ namespace FoundationDB.Client.Utils
 	public static class DebugCounters
 	{
 
-		/// <summary>Total number of <see cref="FoundationDB.Client.Native.ClusterHandle"/> instance created, since the start of the application</summary>
-		public static long ClusterHandlesTotal = 0;
-
-		/// <summary>Number of currently active <see cref="FoundationDB.Client.Native.ClusterHandle"/> instances</summary>
-		public static long ClusterHandles = 0;
-
 		/// <summary>Total number of <see cref="FoundationDB.Client.Native.DatabaseHandle"/> instance created, since the start of the application</summary>
 		public static long DatabaseHandlesTotal = 0;
 
