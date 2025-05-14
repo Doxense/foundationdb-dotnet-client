@@ -26,11 +26,13 @@
 
 namespace Doxense.Serialization.Json.JPath
 {
+
+	/// <summary>Represents a query in a JSON Document</summary>
 	[DebuggerDisplay("{Text,nq}")]
 	public sealed class JPathQuery
 	{
 
-		/// <summary>Parse expression that respresents this query</summary>
+		/// <summary>Parse expression that represents this query</summary>
 		public JPathExpression Expression { get; }
 
 		/// <summary>Original text of this query</summary>
@@ -45,8 +47,10 @@ namespace Doxense.Serialization.Json.JPath
 			this.Text = text;
 		}
 
+		/// <inheritdoc />
 		public override string ToString() => this.Text;
 
+		/// <inheritdoc />
 		public override int GetHashCode() => this.Text.GetHashCode();
 
 		/// <summary>Return the first value that match this query, or <see cref="JsonNull.Missing"/> if no match was found</summary>

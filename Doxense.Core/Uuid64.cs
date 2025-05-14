@@ -72,7 +72,7 @@ namespace System
 			m_value = ((ulong) a << 32) | b;
 		}
 
-		/// <summary>Creates a new <see cref="Uuid64"/> from fourt 16-bits components</summary>
+		/// <summary>Creates a new <see cref="Uuid64"/> from four 16-bits components</summary>
 		/// <param name="a">Upper 16 bits of the first part  (<c>XXXX....-........</c>)</param>
 		/// <param name="b">Upper 16 bits of the first part  (<c>....XXXX-........</c>)</param>
 		/// <param name="c">Upper 16 bits of the second part (<c>........-XXXX....</c>)</param>
@@ -401,6 +401,7 @@ namespace System
 			}
 		}
 
+		/// <summary>Tries to parse a base-62 encoded literal into a <see cref="Uuid64"/></summary>
 		public static bool TryParseBase62(string? input, out Uuid64 result)
 		{
 			if (input == null)
@@ -411,6 +412,7 @@ namespace System
 			return TryParseBase62(input.AsSpan(), out result);
 		}
 
+		/// <summary>Tries to parse a base-62 encoded literal into a <see cref="Uuid64"/></summary>
 		public static bool TryParseBase62(ReadOnlySpan<char> input, out Uuid64 result)
 		{
 			if (input.Length == 0)
@@ -589,6 +591,8 @@ namespace System
 			}
 		}
 
+		/// <summary>Encodes this value into a base-62 encoded text literal</summary>
+		/// <remarks>This literal can be parsed back into a <see cref="Uuid64"/> by calling <see cref="FromBase62(string)"/> or <see cref="TryParseBase62(string?,out System.Uuid64)"/></remarks>
 		public string ToBase62(bool padded = false)
 		{
 			return Base62Encoding.Encode(m_value, padded ? Base62FormattingOptions.Lexicographic | Base62FormattingOptions.Padded : Base62FormattingOptions.Lexicographic);
@@ -1030,6 +1034,9 @@ namespace System
 			BinaryPrimitives.WriteUInt64BigEndian(buffer, m_value);
 		}
 
+		/// <summary>Writes the bytes of this instance to the specified <paramref name="destination"/></summary>
+		/// <param name="destination">Buffer where the bytes will be written to, with a capacity of at least 8 bytes</param>
+		/// <exception cref="ArgumentException">If <paramref name="destination"/> is smaller than 8 bytes</exception>
 		public void WriteTo(Span<byte> destination)
 		{
 			if (!BinaryPrimitives.TryWriteUInt64BigEndian(destination, m_value))
@@ -1038,6 +1045,9 @@ namespace System
 			}
 		}
 
+		/// <summary>Writes the bytes of this instance to the specified <paramref name="destination"/>, if it is large enough.</summary>
+		/// <param name="destination">Buffer where the bytes will be written to, with a capacity of at least 8 bytes</param>
+		/// <returns><c>true</c> if the destination is large enough; otherwise, <c>false</c></returns>
 		public bool TryWriteTo(Span<byte> destination)
 		{
 			return BinaryPrimitives.TryWriteUInt64BigEndian(destination, m_value);
@@ -1141,11 +1151,12 @@ namespace System
 
 		#endregion
 
-		/// <summary>Instance of this times can be used to test Uuid64 for equality and ordering</summary>
+		/// <summary>Compares <see cref="Uuid64"/> instances for equality and ordering</summary>
 		public sealed class Comparer : IEqualityComparer<Uuid64>, IComparer<Uuid64>
 		{
 
-			public static readonly Comparer Default = new Comparer();
+			/// <summary>Default comparer for <see cref="Uuid64"/>s</summary>
+			public static readonly Comparer Default = new();
 
 			private Comparer()
 			{ }

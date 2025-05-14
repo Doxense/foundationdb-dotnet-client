@@ -26,6 +26,14 @@
 
 namespace Doxense.Serialization.Encoders
 {
+
+	/// <summary>Type system that handles encoding and decoding of different types of values</summary>
+	/// <remarks>
+	/// An implementation of this interface knows to create different types of Value Encoders that will all use the same "binary format" to encode and decode values of various shapes.
+	/// A good analogy for values would be a 'JSON' encoding, or 'XML' encoding.
+	/// </remarks>
+	/// <seealso cref="IValueEncoder{TValue,TStorage}"/>
+	/// <seealso cref="IKeyEncoding">For keys</seealso>
 	[PublicAPI]
 	public interface IValueEncoding
 	{

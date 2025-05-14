@@ -37,6 +37,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Position in the source</summary>
 		public int Pos;
 
+		/// <summary>Constructs an instance that will read from the specified string</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonStringReader(string? text)
 		{

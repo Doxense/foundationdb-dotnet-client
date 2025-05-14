@@ -27,11 +27,13 @@
 namespace Doxense.Serialization.Encoders
 {
 
+	/// <summary>Extension methods for working with value encoders</summary>
 	public static class ValueEncoderExtensions
 	{
+
 		#region Encoding...
 
-		/// <summary>Encode a array of <typeparamref name="TValue"/> into an array of <typeparamref name="TStorage"/></summary>
+		/// <summary>Encodes an array of <typeparamref name="TValue"/> into an array of <typeparamref name="TStorage"/></summary>
 		public static TStorage[] EncodeValues<TValue, TStorage>(this IValueEncoder<TValue, TStorage> encoder, params TValue[] values)
 		{
 			Contract.NotNull(encoder);
@@ -46,7 +48,7 @@ namespace Doxense.Serialization.Encoders
 			return slices;
 		}
 
-		/// <summary>Encode a span of <typeparamref name="TValue"/> into an array of <typeparamref name="TStorage"/></summary>
+		/// <summary>Encodes a span of <typeparamref name="TValue"/> into an array of <typeparamref name="TStorage"/></summary>
 		public static TStorage[] EncodeValues<TValue, TStorage>(this IValueEncoder<TValue, TStorage> encoder, params ReadOnlySpan<TValue> values)
 		{
 			Contract.NotNull(encoder);
@@ -60,7 +62,7 @@ namespace Doxense.Serialization.Encoders
 			return slices;
 		}
 
-		/// <summary>Encode the values of a sequence of Key/Value pairs into a list of <typeparamref name="TStorage"/>, discarding the keys in the process</summary>
+		/// <summary>Encodes the values of a sequence of Key/Value pairs into a list of <typeparamref name="TStorage"/>, discarding the keys in the process</summary>
 		[LinqTunnel]
 		public static List<TStorage> EncodeValues<TValue, TStorage>(this IValueEncoder<TValue, TStorage> encoder, [InstantHandle] IEnumerable<TValue> values)
 		{
@@ -80,7 +82,7 @@ namespace Doxense.Serialization.Encoders
 			return values.Select(encoder.EncodeValue).ToList();
 		}
 
-		/// <summary>Encode a sequence of <paramref name="items"/> into a list of <typeparamref name="TStorage"/> by extracting one field using the specified <paramref name="selector"/></summary>
+		/// <summary>Encodes a sequence of <paramref name="items"/> into a list of <typeparamref name="TStorage"/> by extracting one field using the specified <paramref name="selector"/></summary>
 		public static List<TStorage> EncodeValues<TValue, TStorage, TElement>(this IValueEncoder<TValue, TStorage> encoder, [InstantHandle] IEnumerable<TElement> items, [InstantHandle] Func<TElement, TValue> selector)
 		{
 			Contract.NotNull(encoder);
@@ -100,7 +102,7 @@ namespace Doxense.Serialization.Encoders
 			return items.Select(item => encoder.EncodeValue(selector(item))).ToList();
 		}
 
-		/// <summary>Transform a sequence of <typeparamref name="TValue"/> into a sequence of <typeparamref name="TStorage"/></summary>
+		/// <summary>Transforms a sequence of <typeparamref name="TValue"/> into a sequence of <typeparamref name="TStorage"/></summary>
 		[LinqTunnel]
 		public static IEnumerable<TStorage> SelectValues<TValue, TStorage>(this IValueEncoder<TValue, TStorage> encoder, IEnumerable<TValue> values)
 		{
@@ -110,7 +112,7 @@ namespace Doxense.Serialization.Encoders
 			return values.Select(encoder.EncodeValue);
 		}
 
-		/// <summary>Transform the values a sequence of Key/Value pairs into a sequence of <typeparamref name="TStorage"/>, discarding the keys in the process</summary>
+		/// <summary>Transforms the values a sequence of Key/Value pairs into a sequence of <typeparamref name="TStorage"/>, discarding the keys in the process</summary>
 		[LinqTunnel]
 		public static IEnumerable<TStorage> SelectValues<TValue, TStorage, TAny>(this IValueEncoder<TValue, TStorage> encoder, IEnumerable<KeyValuePair<TAny, TValue>> items)
 		{
@@ -120,7 +122,7 @@ namespace Doxense.Serialization.Encoders
 			return items.Select(item => encoder.EncodeValue(item.Value));
 		}
 
-		/// <summary>Transform a sequence of <paramref name="items"/> into a sequence of <typeparamref name="TStorage"/> by extracting one field using the specified <paramref name="selector"/></summary>
+		/// <summary>Transforms a sequence of <paramref name="items"/> into a sequence of <typeparamref name="TStorage"/> by extracting one field using the specified <paramref name="selector"/></summary>
 		[LinqTunnel]
 		public static IEnumerable<TStorage> SelectValues<TValue, TStorage, TElement>(this IValueEncoder<TValue, TStorage> encoder, IEnumerable<TElement> items, Func<TElement, TValue> selector)
 		{
@@ -135,7 +137,7 @@ namespace Doxense.Serialization.Encoders
 
 		#region Decoding...
 
-		/// <summary>Decode a span of <typeparamref name="TStorage"/> into an array of <typeparamref name="TValue"/></summary>
+		/// <summary>Decodes a span of <typeparamref name="TStorage"/> into an array of <typeparamref name="TValue"/></summary>
 		public static TValue[] DecodeValues<TValue, TStorage>(this IValueEncoder<TValue, TStorage> encoder, params TStorage[] values)
 		{
 			Contract.NotNull(encoder);
@@ -149,7 +151,7 @@ namespace Doxense.Serialization.Encoders
 			return res;
 		}
 
-		/// <summary>Decode an array of <typeparamref name="TStorage"/> into an array of <typeparamref name="TValue"/></summary>
+		/// <summary>Decodes an array of <typeparamref name="TStorage"/> into an array of <typeparamref name="TValue"/></summary>
 		public static TValue[] DecodeValues<TValue, TStorage>(this IValueEncoder<TValue, TStorage> encoder, params ReadOnlySpan<TStorage> values)
 		{
 			Contract.NotNull(encoder);
@@ -162,7 +164,7 @@ namespace Doxense.Serialization.Encoders
 			return res;
 		}
 
-		/// <summary>Decode the values from a sequence of Key/Value pairs into a list of <typeparamref name="TValue"/>, discarding the keys in the process.</summary>
+		/// <summary>Decodes the values from a sequence of Key/Value pairs into a list of <typeparamref name="TValue"/>, discarding the keys in the process.</summary>
 		public static TValue[] DecodeValues<TValue, TStorage, TAny>(this IValueEncoder<TValue, TStorage> encoder, IEnumerable<KeyValuePair<TAny, TStorage>> items)
 		{
 			Contract.NotNull(encoder);
@@ -202,7 +204,7 @@ namespace Doxense.Serialization.Encoders
 			}
 		}
 
-		/// <summary>Decode a sequence of <typeparamref name="TStorage"/> into a list of <typeparamref name="TValue"/></summary>
+		/// <summary>Decodes a sequence of <typeparamref name="TStorage"/> into a list of <typeparamref name="TValue"/></summary>
 		public static TValue[] DecodeValues<TValue, TStorage>(this IValueEncoder<TValue, TStorage> encoder, [InstantHandle] IEnumerable<TStorage> values)
 		{
 			Contract.NotNull(encoder);
@@ -242,7 +244,7 @@ namespace Doxense.Serialization.Encoders
 			}
 		}
 
-		/// <summary>Decode a sequence of <paramref name="items"/> into a list of <typeparamref name="TValue"/> by extracting one field using the specified <paramref name="selector"/></summary>
+		/// <summary>Decodes a sequence of <paramref name="items"/> into a list of <typeparamref name="TValue"/> by extracting one field using the specified <paramref name="selector"/></summary>
 		public static TValue[] DecodeValues<TValue, TStorage, TElement>(this IValueEncoder<TValue, TStorage> encoder, [InstantHandle] IEnumerable<TElement> items, [InstantHandle] Func<TElement, TStorage> selector)
 		{
 			Contract.NotNull(encoder);
@@ -282,7 +284,7 @@ namespace Doxense.Serialization.Encoders
 			}
 		}
 
-		/// <summary>Transform a sequence of slices back into a sequence of <typeparamref name="TValue"/>s, using a serializer (or the default serializer if none is provided)</summary>
+		/// <summary>Transforms a sequence of slices back into a sequence of <typeparamref name="TValue"/>s, using a serializer (or the default serializer if none is provided)</summary>
 		[LinqTunnel]
 		public static IEnumerable<TValue?> SelectValues<TValue, TStorage>(this IValueEncoder<TValue, TStorage> encoder, IEnumerable<TStorage> values)
 		{
@@ -292,7 +294,7 @@ namespace Doxense.Serialization.Encoders
 			return values.Select(encoder.DecodeValue);
 		}
 
-		/// <summary>Transform the values from a sequence of Key/Value pairs, into another sequence of <typeparamref name="TValue"/>, discarding the keys in the process.</summary>
+		/// <summary>Transforms the values from a sequence of Key/Value pairs, into another sequence of <typeparamref name="TValue"/>, discarding the keys in the process.</summary>
 		[LinqTunnel]
 		public static IEnumerable<TValue> SelectValues<TValue, TStorage, TAny>(this IValueEncoder<TValue, TStorage> encoder, IEnumerable<KeyValuePair<TAny, TStorage>> items)
 		{

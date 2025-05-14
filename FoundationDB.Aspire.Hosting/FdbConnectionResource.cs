@@ -32,6 +32,8 @@ namespace Aspire.Hosting.ApplicationModel
 	public class FdbConnectionResource : Resource, IFdbResource
 	{
 
+		/// <summary>Creates a resource for an externally hosted FoundationDB Cluster</summary>
+		/// <param name="name">The name of the resource.</param>
 		public FdbConnectionResource(string name) : base(name) { }
 
 		/// <summary>The minimum API version that must be supported by the cluster</summary>
@@ -45,14 +47,14 @@ namespace Aspire.Hosting.ApplicationModel
 		/// <summary>Full path to a specific 'fdb.cluster' file</summary>
 		/// <remarks>
 		/// <para>See <see cref="FdbConnectionOptions.ClusterFile"/> for more information.</para>
-		/// <para>This property and <see cref="ClusterContents"/> are mutally exclusive.</para>
+		/// <para>This property and <see cref="ClusterContents"/> are mutually exclusive.</para>
 		/// </remarks>
 		public string? ClusterFile { get; set; }
 
 		/// <summary>Connection string to the cluster</summary>
 		/// <remarks>
 		/// <para>See <see cref="FdbConnectionOptions.ConnectionString"/> for more information.</para>
-		/// <para>This property and <see cref="ClusterFile"/> are mutally exclusive.</para>
+		/// <para>This property and <see cref="ClusterFile"/> are mutually exclusive.</para>
 		/// </remarks>
 		public string? ClusterContents { get; set; }
 
@@ -67,15 +69,16 @@ namespace Aspire.Hosting.ApplicationModel
 		/// </remarks>
 		public string? NativeLibraryPath { get; set; }
 
-		/// <summary>Specifies if native pre-loading should be enabled or disabled</summary>
+		/// <summary>Specifies if native preloading should be enabled or disabled</summary>
 		/// <remarks>
 		/// <para>If <see langword="true"/>, the value of <see cref="NativeLibraryPath"/> will be ignored.</para>
-		/// <para>See <see cref="Fdb.Options.DisableNativeLibraryPreloading"/> for more informations.</para>
+		/// <para>See <see cref="Fdb.Options.DisableNativeLibraryPreloading"/> for more information.</para>
 		/// </remarks>
 		public bool DisableNativePreloading { get; set; }
 
 		//TODO: more options? Debug? TraceId? Timeout? ....
 
+		/// <inheritdoc />
 		public ReferenceExpression ConnectionStringExpression => ReferenceExpression.Create($"{GetConnectionString()}");
 
 		/// <summary>Returns the corresponding connection string for this resource</summary>

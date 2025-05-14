@@ -80,8 +80,10 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Number of items in this tuple</summary>
 		public int Count => 6;
 
+		/// <inheritdoc />
 		object? IReadOnlyList<object?>.this[int index] => ((IVarTuple) this)[index];
 
+		/// <inheritdoc />
 		object? IVarTuple.this[int index]
 		{
 			get
@@ -105,12 +107,14 @@ namespace Doxense.Collections.Tuples
 		/// <inheritdoc />
 		object? ITuple.this[int index] => ((IVarTuple) this)[index];
 
+		/// <inheritdoc />
 		public IVarTuple this[int? fromIncluded, int? toExcluded]
 		{
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => TupleHelpers.Splice(this, fromIncluded, toExcluded);
 		}
 
+		/// <inheritdoc />
 		object? IVarTuple.this[Index index] => index.GetOffset(6) switch
 		{
 			0 => this.Item1,
@@ -122,6 +126,7 @@ namespace Doxense.Collections.Tuples
 			_ => TupleHelpers.FailIndexOutOfRange<object>(index.Value, 6)
 		};
 
+		/// <inheritdoc />
 		public IVarTuple this[Range range]
 		{
 			get
@@ -188,13 +193,15 @@ namespace Doxense.Collections.Tuples
 			}
 		}
 
+		/// <inheritdoc />
 		TItem? IVarTuple.GetFirst<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>()
 			where TItem : default => TypeConverters.Convert<T1, TItem?>(this.Item1);
 
+		/// <inheritdoc />
 		TItem? IVarTuple.GetLast<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>()
 			where TItem : default => TypeConverters.Convert<T6, TItem?>(this.Item6);
 
-		/// <summary>Return the value of the last item in the tuple</summary>
+		/// <summary>Value of the last item in the tuple</summary>
 		public T6 Last
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -202,7 +209,7 @@ namespace Doxense.Collections.Tuples
 			get => this.Item6;
 		}
 
-		/// <summary>Return a tuple without the first item</summary>
+		/// <summary>Tuple without the first item</summary>
 		public STuple<T2, T3, T4, T5, T6> Tail
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -241,6 +248,7 @@ namespace Doxense.Collections.Tuples
 			array[offset + 5] = this.Item6;
 		}
 
+		/// <summary>Deconstructs this tuple into its individual elements</summary>
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Deconstruct(out T1 item1, out T2 item2, out T3 item3, out T4 item4, out T5 item5, out T6 item6)
@@ -253,7 +261,7 @@ namespace Doxense.Collections.Tuples
 			item6 = this.Item6;
 		}
 
-		/// <summary>Execute a lambda Action with the content of this tuple</summary>
+		/// <summary>Executes a lambda Action with the content of this tuple</summary>
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void With(Action<T1, T2, T3, T4, T5, T6> lambda)
@@ -261,7 +269,7 @@ namespace Doxense.Collections.Tuples
 			lambda(this.Item1, this.Item2, this.Item3, this.Item4, this.Item5, this.Item6);
 		}
 
-		/// <summary>Execute a lambda Function with the content of this tuple</summary>
+		/// <summary>Executes a lambda Function with the content of this tuple</summary>
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
 		/// <returns>Result of calling <paramref name="lambda"/> with the items of this tuple</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -270,6 +278,7 @@ namespace Doxense.Collections.Tuples
 			return lambda(this.Item1, this.Item2, this.Item3, this.Item4, this.Item5, this.Item6);
 		}
 
+		/// <inheritdoc />
 		void ITupleSerializable.PackTo(ref TupleWriter writer)
 		{
 			TuplePackers.SerializeTo<T1>(ref writer, this.Item1);
@@ -280,6 +289,7 @@ namespace Doxense.Collections.Tuples
 			TuplePackers.SerializeTo<T6>(ref writer, this.Item6);
 		}
 
+		/// <inheritdoc />
 		public IEnumerator<object?> GetEnumerator()
 		{
 			yield return this.Item1;
@@ -290,11 +300,13 @@ namespace Doxense.Collections.Tuples
 			yield return this.Item6;
 		}
 
+		/// <inheritdoc />
 		IEnumerator IEnumerable.GetEnumerator()
 		{
 			return GetEnumerator();
 		}
 
+		/// <inheritdoc />
 		public override string ToString()
 		{
 			return string.Concat(
@@ -309,16 +321,19 @@ namespace Doxense.Collections.Tuples
 			);
 		}
 
+		/// <inheritdoc />
 		public override bool Equals(object? obj)
 		{
 			return obj != null && ((IStructuralEquatable)this).Equals(obj, SimilarValueComparer.Default);
 		}
 
+		/// <inheritdoc />
 		public bool Equals(IVarTuple? other)
 		{
 			return other != null && ((IStructuralEquatable)this).Equals(other, SimilarValueComparer.Default);
 		}
 
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(STuple<T1, T2, T3, T4, T5, T6> other)
 		{
@@ -331,6 +346,7 @@ namespace Doxense.Collections.Tuples
 				&& comparer.Equals(this.Item6, other.Item6);
 		}
 
+		/// <inheritdoc />
 		public override int GetHashCode()
 		{
 			return ((IStructuralEquatable)this).GetHashCode(SimilarValueComparer.Default);
@@ -358,6 +374,7 @@ namespace Doxense.Collections.Tuples
 				|| !comparer.Equals(left.Item6, right.Item6);
 		}
 
+		/// <inheritdoc />
 		bool IStructuralEquatable.Equals(object? other, IEqualityComparer comparer)
 		{
 			return other switch
@@ -369,6 +386,7 @@ namespace Doxense.Collections.Tuples
 			};
 		}
 
+		/// <inheritdoc />
 		int IStructuralEquatable.GetHashCode(IEqualityComparer comparer)
 		{
 			return TupleHelpers.CombineHashCodes(
@@ -379,6 +397,7 @@ namespace Doxense.Collections.Tuples
 			);
 		}
 
+		/// <inheritdoc />
 		int IVarTuple.GetItemHashCode(int index, IEqualityComparer comparer)
 		{
 			switch (index)
@@ -406,6 +425,7 @@ namespace Doxense.Collections.Tuples
 			return new Tuple<T1, T2, T3, T4, T5, T6>(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6);
 		}
 
+		/// <summary>Copies the content of this tuple into the tuple at the specified location</summary>
 		public void Fill(ref (T1, T2, T3, T4, T5, T6) t)
 		{
 			t.Item1 = this.Item1;
@@ -416,6 +436,7 @@ namespace Doxense.Collections.Tuples
 			t.Item6 = this.Item6;
 		}
 
+		/// <summary>Returns the equivalent <see cref="ValueTuple{T1,T2,T3,T4,T5,T6}"/></summary>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (T1, T2, T3, T4, T5, T6) ToValueTuple()
@@ -437,6 +458,7 @@ namespace Doxense.Collections.Tuples
 			return (t.Item1, t.Item2, t.Item3, t.Item4, t.Item5, t.Item6);
 		}
 
+		/// <inheritdoc />
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		bool IEquatable<(T1, T2, T3, T4, T5, T6)>.Equals((T1, T2, T3, T4, T5, T6) other)
@@ -508,6 +530,7 @@ namespace Doxense.Collections.Tuples
 
 			private Comparer() { }
 
+			/// <inheritdoc />
 			public int Compare(STuple<T1, T2, T3, T4, T5, T6> x, STuple<T1, T2, T3, T4, T5, T6> y)
 			{
 				int cmp = Comparer1.Compare(x.Item1, y.Item1);
@@ -535,6 +558,7 @@ namespace Doxense.Collections.Tuples
 
 			private EqualityComparer() { }
 
+			/// <inheritdoc />
 			public bool Equals(STuple<T1, T2, T3, T4, T5, T6> x, STuple<T1, T2, T3, T4, T5, T6> y)
 			{
 				return Comparer1.Equals(x.Item1, y.Item1)
@@ -545,6 +569,7 @@ namespace Doxense.Collections.Tuples
 					&& Comparer6.Equals(x.Item6, y.Item6);
 			}
 
+			/// <inheritdoc />
 			public int GetHashCode(STuple<T1, T2, T3, T4, T5, T6> obj)
 			{
 				return TupleHelpers.CombineHashCodes(
@@ -554,6 +579,7 @@ namespace Doxense.Collections.Tuples
 					obj.Item6 is not null ? Comparer6.GetHashCode(obj.Item6) : -1
 				);
 			}
+
 		}
 
 	}

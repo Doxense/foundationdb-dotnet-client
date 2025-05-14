@@ -722,16 +722,19 @@ namespace System
 			private Comparer()
 			{ }
 
+			/// <inheritdoc />
 			public bool Equals(Uuid96 x, Uuid96 y)
 			{
 				return x.Hi == y.Hi & x.Lo == y.Lo;
 			}
 
+			/// <inheritdoc />
 			public int GetHashCode(Uuid96 obj)
 			{
 				return obj.GetHashCode();
 			}
 
+			/// <inheritdoc />
 			public int Compare(Uuid96 x, Uuid96 y)
 			{
 				return x.CompareTo(y);
@@ -766,7 +769,7 @@ namespace System
 			/// <summary>Return a new random 96-bit UUID</summary>
 			/// <returns>Uuid96 that contains 96 bits worth of randomness.</returns>
 			/// <remarks>
-			/// <p>This methods needs to acquire a lock. If multiple threads needs to generate ids concurrently, you may need to create an instance of this class for each threads.</p>
+			/// <p>This method needs to acquire a lock. If multiple threads needs to generate ids concurrently, you may need to create an instance of this class for each thread.</p>
 			/// <p>The uniqueness of the generated uuids depends on the quality of the random number generator. If you cannot tolerate collisions, you either have to check if a newly generated uid already exists, or use a different kind of generator.</p>
 			/// </remarks>
 			[Pure]
@@ -779,7 +782,7 @@ namespace System
 				{
 					// get 10 bytes of randomness (0 allowed)
 					this.Rng.GetBytes(this.Scratch);
-					//note: do *NOT* call GetBytes(byte[], int, int) because it creates creates a temp buffer, calls GetBytes(byte[]) and copy the result back! (as of .NET 4.7.1)
+					//note: do *NOT* call GetBytes(byte[], int, int) because it creates a temp buffer, calls GetBytes(byte[]) and copy the result back! (as of .NET 4.7.1)
 					//TODO: PERF: use Span<byte> APIs once (if?) they become available!
 					return Uuid96.Read(this.Scratch);
 				}

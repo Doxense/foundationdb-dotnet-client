@@ -26,11 +26,15 @@
 
 namespace Doxense.Serialization.Encoders
 {
+
 	/// <summary>Type system that handles encoding and decoding of different types of keys</summary>
 	/// <remarks>
 	/// An implementation of this interface knows to create different types of Key Encoders that will all use the same "binary format" to encode and decode keys of various shapes.
 	/// A good analogy for values would be a 'JSON' encoding, or 'XML' encoding.
 	/// </remarks>
+	/// <seealso cref="IKeyEncoder"/>
+	/// <seealso cref="IKeyEncoder{TKey}"/>
+	/// <seealso cref="IValueEncoding">For values</seealso>
 	[PublicAPI]
 	public interface IKeyEncoding
 	{
@@ -46,14 +50,14 @@ namespace Doxense.Serialization.Encoders
 		/// <exception cref="NotSupportedException">If this encoding does not support static keys</exception>
 		IKeyEncoder<T1> GetKeyEncoder<T1>();
 
-		/// <summary>Returns an encoder which can process keys composed of a two elements of fixed types</summary>
+		/// <summary>Returns an encoder which can process keys composed of two elements of fixed types</summary>
 		/// <typeparam name="T1">Type of the first element to encode</typeparam>
 		/// <typeparam name="T2">Type of the second element to encode</typeparam>
 		/// <returns>Composite key encoder</returns>
 		/// <exception cref="NotSupportedException">If this encoding does not support static keys of size 2</exception>
 		ICompositeKeyEncoder<T1, T2> GetKeyEncoder<T1, T2>();
 
-		/// <summary>Returns an encoder which can process keys composed of a three elements of fixed types</summary>
+		/// <summary>Returns an encoder which can process keys composed of three elements of fixed types</summary>
 		/// <typeparam name="T1">Type of the first element to encode</typeparam>
 		/// <typeparam name="T2">Type of the second element to encode</typeparam>
 		/// <typeparam name="T3">Type of the third element to encode</typeparam>
@@ -61,7 +65,7 @@ namespace Doxense.Serialization.Encoders
 		/// <exception cref="NotSupportedException">If this encoding does not support static keys of size 3</exception>
 		ICompositeKeyEncoder<T1, T2, T3> GetKeyEncoder<T1, T2, T3>();
 
-		/// <summary>Returns an encoder which can process keys composed of a four elements of fixed types</summary>
+		/// <summary>Returns an encoder which can process keys composed of four elements of fixed types</summary>
 		/// <typeparam name="T1">Type of the first element to encode</typeparam>
 		/// <typeparam name="T2">Type of the second element to encode</typeparam>
 		/// <typeparam name="T3">Type of the third element to encode</typeparam>

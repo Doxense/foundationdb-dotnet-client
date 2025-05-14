@@ -58,6 +58,7 @@ namespace Doxense.Serialization.Json
 
 	}
 
+	/// <summary>Extension methods for working with <seealso cref="IJsonProxyNode"/></summary>
 	public static class JsonProxyNodeExtensions
 	{
 
@@ -149,6 +150,7 @@ namespace Doxense.Serialization.Json
 			}
 		}
 
+		/// <summary>Computes the path segments to a node, including an optional child.</summary>
 		public static JsonPathSegment[] GetPathSegments(this IJsonProxyNode node, JsonPathSegment child = default)
 		{
 			var hasChild = !child.IsEmpty();
@@ -177,6 +179,7 @@ namespace Doxense.Serialization.Json
 			return buffer;
 		}
 
+		/// <summary>Computes the path segments to a child of a node.</summary>
 		public static bool TryGetPathSegments(this IJsonProxyNode node, JsonPathSegment child, Span<JsonPathSegment> buffer, out int written)
 		{
 			bool hasChild = !child.IsEmpty();

@@ -35,6 +35,8 @@ namespace Doxense.Serialization.Json
 		, IEquatable<ReadOnlySpan<char>>, IEquatable<ReadOnlyMemory<char>>
 #endif
 	{
+
+		/// <summary>Constructs an instance from the specified property name</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonEncodedPropertyName(string value)
 		{
@@ -87,10 +89,18 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		public bool Equals(string? other) => other == this.Value;
 
-		/// <inheritdoc cref="IEquatable{T}.Equals(T?)" />
+#if NET9_0_OR_GREATER
+		/// <inheritdoc />
+#else
+		/// <inheritdoc cref="Equals(string?)"/>
+#endif
 		public bool Equals(ReadOnlySpan<char> other) => other.SequenceEqual(this.Value.AsSpan());
 
-		/// <inheritdoc cref="IEquatable{T}.Equals(T?)" />
+#if NET9_0_OR_GREATER
+		/// <inheritdoc />
+#else
+		/// <inheritdoc cref="Equals(string?)"/>
+#endif
 		public bool Equals(ReadOnlyMemory<char> other) => other.Span.SequenceEqual(this.Value.AsSpan());
 
 	}

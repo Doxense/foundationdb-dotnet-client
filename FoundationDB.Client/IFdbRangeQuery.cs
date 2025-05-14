@@ -81,7 +81,7 @@ namespace FoundationDB.Client
 		/// <returns>A new query object that will return the results in reverse order when executed</returns>
 		/// <remarks>
 		/// <para>Calling <see cref="Reverse"/> on an already reversed query will cancel the effect, and the results will be returned in their natural order.</para>
-		/// <para>Note: Combining the effects of <see cref="Take"/>/<see cref="Skip"/> and <see cref="Reverse"/> may have an impact on performance, especially if the <see cref="FdbTransactionOption.ReadYourWritesDisable"/> option set.</para>
+		/// <para>Note: Combining the effects of <see cref="Take(int)"/>/<see cref="Skip"/> and <see cref="Reverse"/> may have an impact on performance, especially if the <see cref="FdbTransactionOption.ReadYourWritesDisable"/> option set.</para>
 		/// </remarks>
 		[MustUseReturnValue, LinqTunnel]
 		IFdbRangeQuery<TResult> Reverse();

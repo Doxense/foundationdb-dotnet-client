@@ -101,41 +101,52 @@ namespace System
 
 		#region Constructors...
 
+		/// <summary>Constructs a <see cref="Uuid128"/> from a <see cref="Guid"/> value</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid128(Guid guid) : this() => m_packed = guid;
 
+		/// <summary>Constructs a <see cref="Uuid128"/> from a string literal</summary>
 		public Uuid128(string value) : this(new Guid(value)) { }
 
+		/// <summary>Constructs a <see cref="Uuid128"/> from a <see cref="Slice"/></summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid128(Slice slice) : this() => m_packed = Convert(slice.Span);
 
+		/// <summary>Constructs a <see cref="Uuid128"/> from a byte array</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid128(byte[] bytes) : this() => m_packed = Convert(bytes.AsSpan());
 
+		/// <summary>Constructs a <see cref="Uuid128"/> from a span of bytes</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid128(ReadOnlySpan<byte> bytes) : this() => m_packed = Convert(bytes);
 
+		/// <summary>Constructs a <see cref="Uuid128"/> from its constituent parts</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid128(int a, short b, short c, byte[] d)
 			: this(new Guid(a, b, c, d))
 		{ }
 
+		/// <summary>Constructs a <see cref="Uuid128"/> from its constituent parts</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid128(int a, short b, short c, byte d, byte e, byte f, byte g, byte h, byte i, byte j, byte k)
 			: this(new Guid(a, b, c, d, e, f, g, h, i, j, k))
 		{ }
 
+		/// <summary>Constructs a <see cref="Uuid128"/> from its constituent parts</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid128(uint a, ushort b, ushort c, byte d, byte e, byte f, byte g, byte h, byte i, byte j, byte k)
 			: this(new Guid(a, b, c, d, e, f, g, h, i, j, k))
 		{ }
 
+		/// <summary>Constructs a <see cref="Uuid128"/> from its constituent parts</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid128(Uuid64 a, Uuid64 b) : this() => m_packed = Convert(a, b);
 
+		/// <summary>Constructs a <see cref="Uuid128"/> from its constituent parts</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid128(Uuid64 a, uint b, uint c) : this() => m_packed = Convert(a, b, c);
 
+		/// <summary>Constructs a <see cref="Uuid128"/> from its constituent parts</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid128(ulong a, ulong b) : this() => m_packed = Convert(a, b);
 
@@ -145,20 +156,27 @@ namespace System
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static explicit operator Uuid128(Guid guid) => new(guid);
 
+		/// <summary>Constructs a <see cref="Uuid128"/> from a smaller 32-bit value</summary>
+		/// <remarks>The 96 upper bits will be set to 0.</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid128 FromUInt32(uint low) => new(0, low);
 
+		/// <summary>Constructs a <see cref="Uuid128"/> from a smaller 64-bit value</summary>
+		/// <remarks>The 64 upper bits will be set to 0.</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid128 FromUInt64(ulong low) => new(0, low);
 
+		/// <summary>Constructs a <see cref="Uuid128"/> from two smaller 64-bit values</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid128 FromUInt64(ulong high, ulong low) => new(high, low);
 
 #if NET8_0_OR_GREATER
 
+		/// <summary>Constructs a <see cref="Uuid128"/> from an <see cref="Int128"/> value</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid128(Int128 a) : this() => m_packed = Convert((UInt128) a);
 
+		/// <summary>Constructs a <see cref="Uuid128"/> from a <see cref="UInt128"/> value</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid128(UInt128 a) : this() => m_packed = Convert(a);
 
@@ -168,24 +186,25 @@ namespace System
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static explicit operator Uuid128(UInt128 a) => new(a);
 
+		/// <summary>Constructs a <see cref="Uuid128"/> from a <see cref="UInt128"/> value</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid128 FromUInt128(UInt128 value) => new(value);
 
 #endif
 
-		/// <summary>Uuid128 with all bits set to zero: <c>"00000000-0000-0000-0000-000000000000"</c></summary>
+		/// <summary><see cref="Uuid128"/> with all bits set to zero: <c>"00000000-0000-0000-0000-000000000000"</c></summary>
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public static readonly Uuid128 Empty;
 
-		/// <summary>Uuid128 with all bits set to one: <c>"FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF"</c></summary>
+		/// <summary><see cref="Uuid128"/> with all bits set to one: <c>"FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF"</c></summary>
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public static readonly Uuid128 AllBitsSet = new(new Guid(-1, -1, -1, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue));
 
-		/// <summary>Uuid128 with all bits set to one: <c>"FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF"</c></summary>
+		/// <summary><see cref="Uuid128"/> with all bits set to one: <c>"FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF"</c></summary>
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static readonly Uuid128 MinValue;
 
-		/// <summary>Uuid128 with all bits set to one: <c>"FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF"</c></summary>
+		/// <summary><see cref="Uuid128"/> with all bits set to one: <c>"FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF"</c></summary>
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static readonly Uuid128 MaxValue = new(new Guid(-1, -1, -1, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue));
 
@@ -217,6 +236,7 @@ namespace System
 			return Read(input);
 		}
 
+		/// <summary>Returns a <see cref="Guid"/> created from two smaller <see cref="Uuid64"/></summary>
 		public static Guid Convert(Uuid64 a, Uuid64 b)
 		{
 			unsafe
@@ -228,6 +248,7 @@ namespace System
 			}
 		}
 
+		/// <summary>Returns a <see cref="Guid"/> created from two smaller 64-bit integers</summary>
 		public static Guid Convert(ulong a, ulong b)
 		{
 			unsafe
@@ -239,6 +260,7 @@ namespace System
 			}
 		}
 
+		/// <summary>Returns a <see cref="Guid"/> created from an <see cref="Uuid64"/> and two 32-bit integers</summary>
 		public static Guid Convert(Uuid64 a, uint b, uint c)
 		{
 			unsafe
@@ -262,6 +284,7 @@ namespace System
 
 #if NET8_0_OR_GREATER
 
+		/// <summary>Returns a <see cref="Guid"/> created from an <see cref="Uuid128"/></summary>
 		public static Guid Convert(UInt128 a)
 		{
 			Span<byte> tmp = stackalloc byte[16];
@@ -562,6 +585,7 @@ namespace System
 
 #endregion
 
+		/// <summary>Returns the timestamp field of this uuid.</summary>
 		public long Timestamp
 		{
 			[Pure]
@@ -574,12 +598,14 @@ namespace System
 			}
 		}
 
+		/// <summary>Returns the version field of this uuid.</summary>
 		public int Version
 		{
 			[Pure]
 			get => m_timeHiAndVersion >> 12;
 		}
 
+		/// <summary>Returns the clock sequence field of this uuid.</summary>
 		public int ClockSequence
 		{
 			[Pure]
@@ -591,6 +617,7 @@ namespace System
 			}
 		}
 
+		/// <summary>Returns the node field of this uuid.</summary>
 		public long Node
 		{
 			[Pure]
@@ -609,6 +636,10 @@ namespace System
 
 		#region Unsafe I/O...
 
+		/// <summary>Reads a 128-bit <see cref="Guid"/> from a byte buffer, if it is large enough.</summary>
+		/// <param name="source">Source buffer, that should have at least 16 bytes.</param>
+		/// <param name="result">Value stored in the buffer</param>
+		/// <returns><c>true</c> if the buffer was large enough; otherwise, <c>false</c></returns>
 		[Pure]
 		public static bool TryRead(ReadOnlySpan<byte> source, out Guid result)
 		{
@@ -625,6 +656,10 @@ namespace System
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static ArgumentException ErrorInputBufferTooSmall() => new("The source buffer is too small", "source");
 
+		/// <summary>Reads a 128-bit <see cref="Guid"/> from a byte buffer.</summary>
+		/// <param name="source">Source buffer, that should have at least 16 bytes.</param>
+		/// <returns>Value stored in the buffer</returns>
+		/// <exception cref="ArgumentException"> if the buffer is too small.</exception>
 		[Pure]
 		public static unsafe Guid Read(ReadOnlySpan<byte> source)
 		{
@@ -661,6 +696,10 @@ namespace System
 			return tmp;
 		}
 
+		/// <summary>Writes a <see cref="Guid"/> into a buffer, if it is large enough.</summary>
+		/// <param name="value">Value to write</param>
+		/// <param name="buffer">Destination buffer, that must have a length of at least 16 bytes.</param>
+		/// <returns><c>true</c> if the buffer was large enough; otherwise, <c>false</c></returns>
 		public static bool TryWrite(in Guid value, Span<byte> buffer)
 		{
 			if (buffer.Length < 16)
@@ -672,8 +711,13 @@ namespace System
 		}
 
 		// ReSharper disable once NotResolvedInText
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static ArgumentException ErrorDestinationBufferTooSmall() => new("The destination buffer is too small", "buffer");
 
+		/// <summary>Writes a <see cref="Guid"/> into a buffer.</summary>
+		/// <param name="value">Value to write</param>
+		/// <param name="buffer">Destination buffer, that must have a length of at least 16 bytes.</param>
+		/// <exception cref="ArgumentException"> if the buffer was too small</exception>
 		public static unsafe void Write(in Guid value, Span<byte> buffer)
 		{
 			if (buffer.Length < 16) throw ErrorDestinationBufferTooSmall();
@@ -708,18 +752,19 @@ namespace System
 			}
 		}
 
+		/// <summary>[OBSOLETE] => WriteTo()</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[Obsolete("Renamed to WriteTo(..)")] //TODO: remove me next time!
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public void WriteToUnsafe(Span<byte> buffer) => Write(in m_packed, buffer);
 
-		/// <summary>Write the bytes of this instance to the specified <paramref name="buffer"/></summary>
+		/// <summary>Writes the bytes of this instance to the specified <paramref name="buffer"/></summary>
 		/// <param name="buffer">Buffer where the bytes will be written to, with a capacity of at least 16 bytes</param>
 		/// <exception cref="ArgumentException">If <paramref name="buffer"/> is smaller than 16 bytes</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteTo(Span<byte> buffer) => Write(in m_packed, buffer);
 
-		/// <summary>Write the bytes of this instance to the specified <paramref name="buffer"/>, if it is large enough</summary>
+		/// <summary>Writes the bytes of this instance to the specified <paramref name="buffer"/>, if it is large enough</summary>
 		/// <param name="buffer">Buffer where the bytes will be written to, with a capacity of at least 16 bytes</param>
 		/// <returns><see langword="true"/> if <paramref name="buffer"/> was large enough; otherwise, <see langword="false"/>.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -759,7 +804,7 @@ namespace System
 
 		#region Decomposition...
 
-		/// <summary>Split this 128-bit UUID into two 64-bit UUIDs</summary>
+		/// <summary>Splits this 128-bit UUID into two 64-bit UUIDs</summary>
 		/// <param name="high">Receives the first 8 bytes (in network order) of this UUID</param>
 		/// <param name="low">Receives the last 8 bytes (in network order) of this UUID</param>
 		public void Split(out Uuid64 high, out Uuid64 low)
@@ -767,9 +812,9 @@ namespace System
 			Deconstruct(out high, out low);
 		}
 
-		/// <summary>Split this 128-bit UUID into two 64-bit numbers</summary>
-		/// <param name="a">xxxxxxxx-xxxx-xxxx-....-............</param>
-		/// <param name="b">........-....-....-xxxx-xxxxxxxxxxxx</param>
+		/// <summary>Splits this 128-bit UUID into two 64-bit numbers</summary>
+		/// <param name="a"><c>xxxxxxxx-xxxx-xxxx-....-............</c></param>
+		/// <param name="b"><c>........-....-....-xxxx-xxxxxxxxxxxx</c></param>
 		public void Split(out ulong a, out ulong b)
 		{
 			unsafe
@@ -781,7 +826,7 @@ namespace System
 			}
 		}
 
-		/// <summary>Split this 128-bit UUID into two 64-bit UUIDs</summary>
+		/// <summary>Splits this 128-bit UUID into two 64-bit UUIDs</summary>
 		/// <param name="high">Receives the first 8 bytes (in network order) of this UUID</param>
 		/// <param name="low">Receives the last 8 bytes (in network order) of this UUID</param>
 		public void Deconstruct(out Uuid64 high, out Uuid64 low)
@@ -796,9 +841,9 @@ namespace System
 		}
 
 		/// <summary>Split this 128-bit UUID into two 64-bit numbers</summary>
-		/// <param name="a">xxxxxxxx-xxxx-xxxx-....-............</param>
-		/// <param name="b">........-....-....-xxxx-xxxx........</param>
-		/// <param name="c">........-....-....-....-....xxxxxxxx</param>
+		/// <param name="a"><c>xxxxxxxx-xxxx-xxxx-....-............</c></param>
+		/// <param name="b"><c>........-....-....-xxxx-xxxx........</c></param>
+		/// <param name="c"><c>........-....-....-....-....xxxxxxxx</c></param>
 		public void Deconstruct(out ulong a, out uint b, out uint c)
 		{
 			unsafe
@@ -812,10 +857,10 @@ namespace System
 		}
 
 		/// <summary>Split this 128-bit UUID into two 64-bit numbers</summary>
-		/// <param name="a">xxxxxxxx-....-....-....-............</param>
-		/// <param name="b">........-xxxx-xxxx-....-............</param>
-		/// <param name="c">........-....-....-xxxx-xxxx........</param>
-		/// <param name="d">........-....-....-....-....xxxxxxxx</param>
+		/// <param name="a"><c>xxxxxxxx-....-....-....-............</c></param>
+		/// <param name="b"><c>........-xxxx-xxxx-....-............</c></param>
+		/// <param name="c"><c>........-....-....-xxxx-xxxx........</c></param>
+		/// <param name="d"><c>........-....-....-....-....xxxxxxxx</c></param>
 		public void Deconstruct(out uint a, out uint b, out uint c, out uint d)
 		{
 			unsafe
@@ -833,9 +878,11 @@ namespace System
 
 		#region Conversion...
 
+		/// <summary>Returns the equivalent <see cref="Guid"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Guid ToGuid() => m_packed;
 
+		/// <summary>Returns newly allocated array of bytes that represents this UUID</summary>
 		[Pure]
 		public byte[] ToByteArray()
 		{
@@ -845,10 +892,12 @@ namespace System
 			return res;
 		}
 
+		/// <summary>Returns a newly allocated <see cref="Slice"/> that represents this UUID</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Slice ToSlice()
 			=> new(ToByteArray()); //TODO: OPTIMIZE: optimize this ?
 
+		/// <summary>Writes this UUID to the specified writer</summary>
 		public void WriteTo(ref SliceWriter writer)
 		{
 			WriteTo(writer.AllocateSpan(SizeOf));

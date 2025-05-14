@@ -29,16 +29,21 @@ namespace Doxense.Serialization.Encoders
 	using Doxense.Memory;
 
 	/// <summary>Represents a codec that can produce keys or values that keep the original ordering</summary>
+	/// <remarks>This type of codec usually produces a less compact representation than <seealso cref="IUnorderedTypeCodec{T}"/>.</remarks>
 	[PublicAPI]
 	public interface IOrderedTypeCodec<T>
 	{
 
+		/// <summary>Encodes a value so that ordering the output bytes will yield the same order as ordering the original values</summary>
 		void EncodeOrderedTo(ref SliceWriter output, T? value);
 
+		/// <summary>Decodes a value that was previously encoded by this codec</summary>
 		T? DecodeOrderedFrom(ref SliceReader input);
 
+		/// <summary>Encodes a value so that ordering the output bytes will yield the same order as ordering the original values</summary>
 		Slice EncodeOrdered(T? value);
 
+		/// <summary>Decodes a value that was previously encoded by this codec</summary>
 		T? DecodeOrdered(Slice input);
 
 	}

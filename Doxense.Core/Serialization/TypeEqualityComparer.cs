@@ -26,25 +26,22 @@
 
 namespace Doxense.Serialization
 {
-	/// <summary>Equality comparer spécialisé dans la comparaison de types</summary>
+
+	/// <summary>Equality comparer for <see cref="Type">types</see></summary>
 	public sealed class TypeEqualityComparer : IEqualityComparer<Type>
 	{
-		// La class 'Type' à une méthode Equals(Type), mais n'implémente pas IEquatable<Type> donc elle n'est pas vue par EqualityComparer<Type>.Default  :(
 
+		/// <summary>Default instance that calls <see cref="Type.Equals(System.Type?)"/> when comparing two types</summary>
 		public static readonly IEqualityComparer<Type> Default = new TypeEqualityComparer();
 
 		private TypeEqualityComparer()
 		{ }
 
-		public bool Equals(Type? x, Type? y)
-		{
-			return ReferenceEquals(x, y);
-		}
+		/// <inheritdoc />
+		public bool Equals(Type? x, Type? y) => ReferenceEquals(x, y);
 
-		public int GetHashCode(Type? obj)
-		{
-			return obj?.GetHashCode() ?? -1;
-		}
+		/// <inheritdoc />
+		public int GetHashCode(Type? obj) => obj?.GetHashCode() ?? -1;
 
 	}
 

@@ -27,6 +27,8 @@
 namespace Doxense.Serialization.Encoders
 {
 
+	/// <summary>Encoder that uses a compact binary representation for values</summary>
+	/// <remarks>This type mostly defers to the corresponding methods in <see cref="Slice"/></remarks>
 	[PublicAPI]
 	public sealed class BinaryEncoding : IValueEncoding, IKeyEncoding,
 		IValueEncoder<Slice>,
@@ -41,6 +43,7 @@ namespace Doxense.Serialization.Encoders
 		IValueEncoder<VersionStamp>
 	{
 
+		/// <summary>Default instance</summary>
 		public static readonly BinaryEncoding Instance = new BinaryEncoding();
 
 		/// <summary>Identity encoder</summary>
@@ -73,6 +76,11 @@ namespace Doxense.Serialization.Encoders
 		/// <summary>Encodes 80-bit or 85-bits VersionStamp as 16 bytes</summary>
 		public static IValueEncoder<VersionStamp> VersionStampEncoder => BinaryEncoding.Instance;
 
+		/// <summary>Returns the encoder for the specified type</summary>
+		/// <typeparam name="TValue">Type of value to encode</typeparam>
+		/// <typeparam name="TStorage">Intermediate type</typeparam>
+		/// <returns>Encoder for this type</returns>
+		/// <exception cref="NotSupportedException"> if this type is not supported</exception>
 		public IValueEncoder<TValue, TStorage> GetValueEncoder<TValue, TStorage>() where TValue : notnull
 		{
 			if (typeof(TStorage) != typeof(Slice))
@@ -82,6 +90,10 @@ namespace Doxense.Serialization.Encoders
 			return (IValueEncoder<TValue, TStorage>) GetValueEncoder<TValue>();
 		}
 
+		/// <summary>Returns the encoder for the specified type</summary>
+		/// <typeparam name="TValue">Type of value to encode</typeparam>
+		/// <returns>Encoder for this type</returns>
+		/// <exception cref="NotSupportedException"> if this type is not supported</exception>
 		public IValueEncoder<TValue> GetValueEncoder<TValue>() where TValue : notnull
 		{
 			if (typeof(TValue) == typeof(Slice)) return (IValueEncoder<TValue>) (object) this;
@@ -97,45 +109,79 @@ namespace Doxense.Serialization.Encoders
 			throw new NotSupportedException($"BinaryEncoding does not know how to encode values of type {typeof(TValue).Name}.");
 		}
 
+		/// <inheritdoc />
 		public Slice EncodeValue(Slice value) => value;
+
+		/// <inheritdoc />
 		Slice IValueEncoder<Slice, Slice>.DecodeValue(Slice encoded) => encoded;
 
+		/// <inheritdoc />
 		public Slice EncodeValue(string? value) => Slice.FromString(value);
+
+		/// <inheritdoc />
 		string? IValueEncoder<string?, Slice>.DecodeValue(Slice encoded) => encoded.ToUnicode();
 
+		/// <inheritdoc />
 		public Slice EncodeValue(int value) => Slice.FromInt32(value);
+
 		int IValueEncoder<int, Slice>.DecodeValue(Slice encoded) => encoded.ToInt32();
 
+		/// <inheritdoc />
 		public Slice EncodeValue(uint value) => Slice.FromUInt32(value);
+
 		uint IValueEncoder<uint, Slice>.DecodeValue(Slice encoded) => encoded.ToUInt32();
 
+		/// <inheritdoc />
 		public Slice EncodeValue(long value) => Slice.FromInt64(value);
+
+		/// <inheritdoc />
 		long IValueEncoder<long, Slice>.DecodeValue(Slice encoded) => encoded.ToInt64();
 
+		/// <inheritdoc />
 		public Slice EncodeValue(ulong value) => Slice.FromUInt64(value);
+
+		/// <inheritdoc />
 		ulong IValueEncoder<ulong, Slice>.DecodeValue(Slice encoded) => encoded.ToUInt64();
 
+		/// <inheritdoc />
 		public Slice EncodeValue(Guid value) => Slice.FromGuid(value);
+
+		/// <inheritdoc />
 		Guid IValueEncoder<Guid, Slice>.DecodeValue(Slice encoded) => encoded.ToGuid();
 
+		/// <inheritdoc />
 		public Slice EncodeValue(Uuid128 value) => Slice.FromUuid128(value);
+
+		/// <inheritdoc />
 		Uuid128 IValueEncoder<Uuid128, Slice>.DecodeValue(Slice encoded) => encoded.ToUuid128();
 
+		/// <inheritdoc />
 		public Slice EncodeValue(Uuid64 value) => Slice.FromUuid64(value);
+		
+		/// <inheritdoc />
 		Uuid64 IValueEncoder<Uuid64, Slice>.DecodeValue(Slice encoded) => encoded.ToUuid64();
 
+		/// <inheritdoc />
 		public Slice EncodeValue(VersionStamp value) => value.ToSlice();
+		
+		/// <inheritdoc />
 		VersionStamp IValueEncoder<VersionStamp, Slice>.DecodeValue(Slice encoded) => VersionStamp.Parse(encoded);
 
+		/// <inheritdoc />
 		IDynamicKeyEncoder IKeyEncoding.GetDynamicKeyEncoder() => throw new NotSupportedException();
 
+		/// <inheritdoc />
 		IKeyEncoder<T1> IKeyEncoding.GetKeyEncoder<T1>() => throw new NotSupportedException();
 
+		/// <inheritdoc />
 		ICompositeKeyEncoder<T1, T2> IKeyEncoding.GetKeyEncoder<T1, T2>() => throw new NotSupportedException();
 
+		/// <inheritdoc />
 		ICompositeKeyEncoder<T1, T2, T3> IKeyEncoding.GetKeyEncoder<T1, T2, T3>() => throw new NotSupportedException();
 
+		/// <inheritdoc />
 		ICompositeKeyEncoder<T1, T2, T3, T4> IKeyEncoding.GetKeyEncoder<T1, T2, T3, T4>() => throw new NotSupportedException();
+
 	}
 
 }

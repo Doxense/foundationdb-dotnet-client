@@ -775,7 +775,7 @@ namespace Doxense.Threading.Operations
 
 		/// <summary>Returns <c>true</c> if the operation attached to this context has completed successfully</summary>
 		/// <remarks>
-		/// <para>This flag is required because <see cref="TResult"/> can be nullable, and a <c>null</c> <see cref="Result"/> does not necessary mean that the operation failed.</para>
+		/// <para>This flag is required because <typeparamref name="TResult"/> can be nullable, and a <c>null</c> <see cref="Result"/> does not necessary mean that the operation failed.</para>
 		/// </remarks>
 		public bool HasResult { get; private set; }
 

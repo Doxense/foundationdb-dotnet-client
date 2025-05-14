@@ -40,19 +40,19 @@ namespace Doxense.Serialization.Encoders
 
 		#region Encoding...
 
-		/// <summary>Pack a tuple of arbitrary length into a binary slice</summary>
+		/// <summary>Packs a tuple of arbitrary length into a binary slice</summary>
 		/// <param name="writer">Buffer where to append the binary representation</param>
 		/// <param name="items">Tuple of any size (0 to N)</param>
 		/// <exception cref="System.FormatException">If some elements in <paramref name="items"/> are not supported by this type system</exception>
 		void PackKey<TTuple>(ref SliceWriter writer, TTuple items) where TTuple : IVarTuple;
 
-		/// <summary>Encode a key composed of a single element into a binary slice</summary>
+		/// <summary>Encodes a key composed of a single element into a binary slice</summary>
 		/// <typeparam name="T">Type of the element</typeparam>
 		/// <param name="writer">Buffer where to append the binary representation</param>
 		/// <param name="item1">Element to encode</param>
 		void EncodeKey<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(ref SliceWriter writer, T? item1);
 
-		/// <summary>Encode a key composed of 2 elements into a binary slice</summary>
+		/// <summary>Encodes a key composed of 2 elements into a binary slice</summary>
 		/// <typeparam name="T1">Type of the first element</typeparam>
 		/// <typeparam name="T2">Type of the second element</typeparam>
 		/// <param name="writer">Buffer where to append the binary representation</param>
@@ -64,7 +64,7 @@ namespace Doxense.Serialization.Encoders
 		>
 			(ref SliceWriter writer, T1? item1, T2? item2);
 
-		/// <summary>Encode a key composed of 3 elements into a binary slice</summary>
+		/// <summary>Encodes a key composed of 3 elements into a binary slice</summary>
 		/// <typeparam name="T1">Type of the first element</typeparam>
 		/// <typeparam name="T2">Type of the second element</typeparam>
 		/// <typeparam name="T3">Type of the third element</typeparam>
@@ -79,7 +79,7 @@ namespace Doxense.Serialization.Encoders
 		>
 			(ref SliceWriter writer, T1? item1, T2? item2, T3? item3);
 
-		/// <summary>Encode a key composed of 4 elements into a binary slice</summary>
+		/// <summary>Encodes a key composed of 4 elements into a binary slice</summary>
 		/// <typeparam name="T1">Type of the first element</typeparam>
 		/// <typeparam name="T2">Type of the second element</typeparam>
 		/// <typeparam name="T3">Type of the third element</typeparam>
@@ -97,7 +97,7 @@ namespace Doxense.Serialization.Encoders
 		>
 			(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4);
 
-		/// <summary>Encode a key composed of 5 elements into a binary slice</summary>
+		/// <summary>Encodes a key composed of 5 elements into a binary slice</summary>
 		/// <typeparam name="T1">Type of the first element</typeparam>
 		/// <typeparam name="T2">Type of the second element</typeparam>
 		/// <typeparam name="T3">Type of the third element</typeparam>
@@ -118,7 +118,7 @@ namespace Doxense.Serialization.Encoders
 		>
 			(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5);
 
-		/// <summary>Encode a key composed of 6 elements into a binary slice</summary>
+		/// <summary>Encodes a key composed of 6 elements into a binary slice</summary>
 		/// <typeparam name="T1">Type of the first element</typeparam>
 		/// <typeparam name="T2">Type of the second element</typeparam>
 		/// <typeparam name="T3">Type of the third element</typeparam>
@@ -142,7 +142,7 @@ namespace Doxense.Serialization.Encoders
 		>
 			(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6);
 
-		/// <summary>Encode a key composed of 7 elements into a binary slice</summary>
+		/// <summary>Encodes a key composed of 7 elements into a binary slice</summary>
 		/// <typeparam name="T1">Type of the first element</typeparam>
 		/// <typeparam name="T2">Type of the second element</typeparam>
 		/// <typeparam name="T3">Type of the third element</typeparam>
@@ -169,7 +169,7 @@ namespace Doxense.Serialization.Encoders
 		>
 			(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7);
 
-		/// <summary>Encode a key composed of 8 elements into a binary slice</summary>
+		/// <summary>Encodes a key composed of 8 elements into a binary slice</summary>
 		/// <typeparam name="T1">Type of the first element</typeparam>
 		/// <typeparam name="T2">Type of the second element</typeparam>
 		/// <typeparam name="T3">Type of the third element</typeparam>

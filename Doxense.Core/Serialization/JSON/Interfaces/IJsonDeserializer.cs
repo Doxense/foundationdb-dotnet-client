@@ -33,7 +33,7 @@ namespace Doxense.Serialization.Json
 	public interface IJsonDeserializer<out T>
 	{
 
-		/// <summary>Deserializes a JSON value into an instance of type <typeparam name="T"></typeparam></summary>
+		/// <summary>Deserializes a JSON value into an instance of type <typeparamref name="T"></typeparamref></summary>
 		/// <param name="value">JSON value to deserialize.</param>
 		/// <param name="resolver">Optional custom resolver</param>
 		/// <returns>Deserialized value</returns>

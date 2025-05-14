@@ -29,15 +29,18 @@ namespace OpenTelemetry.Trace
 	using FoundationDB.Client;
 	using OpenTelemetry.Metrics;
 
+	/// <summary>Helper methods for configuring OpenTelemetry with FoundationDB</summary>
 	public static class FdbClientOpenTelemetryExtensions
 	{
 
+		/// <summary>Adds the FoundationDB source to the list of subscribed sources.</summary>
 		public static TracerProviderBuilder AddFoundationDbInstrumentation(this TracerProviderBuilder provider)
 		{
 			provider.AddSource(FdbClientInstrumentation.ActivityName);
 			return provider;
 		}
 
+		/// <summary>Adds the FoundationDB source to the list of subscribed meters.</summary>
 		public static MeterProviderBuilder AddFoundationDbInstrumentation(this MeterProviderBuilder provider)
 		{
 			provider.AddMeter(FdbClientInstrumentation.MeterName)

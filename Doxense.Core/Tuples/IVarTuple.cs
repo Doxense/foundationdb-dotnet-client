@@ -72,15 +72,15 @@ namespace Doxense.Collections.Tuples
 		//TODO: REVIEW: consider marking this overload as obsolete or even removing it, since we now have Range for this use case?
 		IVarTuple this[int? fromIncluded, int? toExcluded] { [Pure] get; }
 
-		/// <summary>Return the element at the specified index</summary>
+		/// <summary>Returns the element at the specified index</summary>
 		object? this[Index index] { get; }
 
-		/// <summary>Return a section of the tuple</summary>
+		/// <summary>Returns a section of the tuple</summary>
 		/// <param name="range">Range of sub-tuple to return</param>
 		/// <returns>Tuple that include all items in the current tuple whose index are in the specified <paramref name="range"/>. If the range does not intersect with the tuple, the Empty tuple will be returned.</returns>
 		IVarTuple this[Range range] { get;}
 
-		/// <summary>Return the typed value of an item of the tuple, given its position</summary>
+		/// <summary>Returns the typed value of an item of the tuple, given its position</summary>
 		/// <typeparam name="TItem">Expected type of the item</typeparam>
 		/// <param name="index">Position of the item (if negative, means relative from the end)</param>
 		/// <returns>Value of the item at position <paramref name="index"/>, adapted into type <typeparamref name="TItem"/>.</returns>
@@ -94,11 +94,13 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		TItem? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(int index);
 
+		/// <summary>Returns the type value of the first item of the tuple</summary>
 		TItem? GetFirst<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>();
 
+		/// <summary>Returns the type value of the last item of the tuple</summary>
 		TItem? GetLast<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>();
 
-		/// <summary>Create a new Tuple by appending a single new value at the end of this tuple</summary>
+		/// <summary>Creates a new Tuple by appending a single new value at the end of this tuple</summary>
 		/// <typeparam name="TItem">Type of the new value</typeparam>
 		/// <param name="value">Value that will be appended at the end</param>
 		/// <returns>New tuple with the new value</returns>
@@ -107,7 +109,7 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		IVarTuple Append<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(TItem value);
 
-		/// <summary>Create a new Tuple by appending the items of another tuple at the end of this tuple</summary>
+		/// <summary>Creates a new Tuple by appending the items of another tuple at the end of this tuple</summary>
 		/// <param name="tuple">Tuple whose items must be appended at the end of the current tuple</param>
 		/// <returns>New tuple with the new values, or the same instance if <paramref name="tuple"/> is empty.</returns>
 		[Pure]

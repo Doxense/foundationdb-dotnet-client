@@ -28,6 +28,7 @@ namespace Doxense.Serialization.Encoders
 {
 	using Doxense.Memory;
 	
+	/// <summary>Encoder that can serialize and deserialize composite keys using a binary encoding</summary>
 	[PublicAPI]
 	public interface ICompositeKeyEncoder<T1, T2> : IKeyEncoder<(T1?, T2?)>
 	{
@@ -41,6 +42,7 @@ namespace Doxense.Serialization.Encoders
 		bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?) items);
 	}
 
+	/// <summary>Encoder that can serialize and deserialize composite keys using a binary encoding</summary>
 	[PublicAPI]
 	public interface ICompositeKeyEncoder<T1, T2, T3> : IKeyEncoder<(T1?, T2?, T3?)>
 	{
@@ -54,6 +56,7 @@ namespace Doxense.Serialization.Encoders
 		bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?) items);
 	}
 
+	/// <summary>Encoder that can serialize and deserialize composite keys using a binary encoding</summary>
 	[PublicAPI]
 	public interface ICompositeKeyEncoder<T1, T2, T3, T4> : IKeyEncoder<(T1?, T2?, T3?, T4?)>
 	{
@@ -68,6 +71,7 @@ namespace Doxense.Serialization.Encoders
 
 	}
 
+	/// <summary>Encoder that can serialize and deserialize composite keys using a binary encoding</summary>
 	[PublicAPI]
 	public interface ICompositeKeyEncoder<T1, T2, T3, T4, T5> : IKeyEncoder<(T1?, T2?, T3?, T4?, T5?)>
 	{
@@ -81,6 +85,7 @@ namespace Doxense.Serialization.Encoders
 		bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?, T4?, T5?) items);
 	}
 
+	/// <summary>Encoder that can serialize and deserialize composite keys using a binary encoding</summary>
 	[PublicAPI]
 	public interface ICompositeKeyEncoder<T1, T2, T3, T4, T5, T6> : IKeyEncoder<(T1?, T2?, T3?, T4?, T5?, T6?)>
 	{
@@ -183,6 +188,7 @@ namespace Doxense.Serialization.Encoders
 		/// <inheritdoc />
 		public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?, T4?) items);
 
+		/// <inheritdoc />
 		public abstract bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?, T4?) items);
 
 		/// <inheritdoc />

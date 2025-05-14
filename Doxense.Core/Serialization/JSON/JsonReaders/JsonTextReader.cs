@@ -28,12 +28,14 @@ namespace Doxense.Serialization.Json
 {
 	using System.IO;
 
-	/// <summary>JSON text reader that wraps an underlying TextReader instance</summary>
+	/// <summary>JSON text reader that wraps an underlying <see cref="TextReader"/> instance</summary>
 	public readonly struct JsonTextReader : IJsonReader
 	{
 
 		internal readonly TextReader Reader;
 
+		/// <summary>Constructs an instance that will read from the specified <see cref="TextReader"/></summary>
+		/// <param name="reader"></param>
 		public JsonTextReader(TextReader reader)
 		{
 			Contract.NotNull(reader);

@@ -205,6 +205,7 @@ namespace Doxense.Serialization.Json
 
 #if NET9_0_OR_GREATER
 
+		/// <inheritdoc />
 		public override JsonValue GetValueOrDefault(ReadOnlyMemory<char> key, JsonValue? defaultValue, out string? actualKey)
 		{
 			actualKey = null;
@@ -346,6 +347,7 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		public override bool StrictEquals(JsonValue? other) => other is JsonNull n && n.m_kind == m_kind;
 
+		/// <inheritdoc cref="StrictEquals(Doxense.Serialization.Json.JsonValue?)"/>
 		public bool StrictEquals(JsonNull? other) => other is not null && other.m_kind == m_kind;
 
 		/// <inheritdoc />

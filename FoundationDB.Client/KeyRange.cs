@@ -147,7 +147,7 @@ namespace FoundationDB.Client
 		/// <returns>Range that will read any keys with the specified prefix, up to the specified cursor (included or excluded)</returns>
 		/// <remarks>
 		/// <para>This is a common usage pattern when clearing the consumed portion of a stream or log or records that are indexed by a <see cref="VersionStamp"/> (or any other monotonic counter).</para>
-		/// <para>For example in a <c>CLEAR_RANGE</c> operation, <paramref name="cursor"/> may represent the oldest entry to keep, in which case <see cref="included"/> should be <see langword="false"/>; or it could represent the last entry to delete, in which case <see cref="included"/> should be <see langword="true"/>.</para>
+		/// <para>For example in a <c>CLEAR_RANGE</c> operation, <paramref name="cursor"/> may represent the oldest entry to keep, in which case <paramref name="included"/> should be <see langword="false"/>; or it could represent the last entry to delete, in which case <paramref name="included"/> should be <see langword="true"/>.</para>
 		/// </remarks>
 		/// <example>
 		/// <para><c>KeyRange.Head(Slice.FromString("ABC"), Slice.FromString("def"))</c> => <c>(`ABC\0`, `ABCdef`)</c></para>

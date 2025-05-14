@@ -26,16 +26,16 @@
 
 namespace Doxense.Threading
 {
+
+	/// <summary>Extensions methods for working with <seealso cref="ReaderWriterLockSlim"/></summary>
 	public static class ReaderWriterLockSlimExtensions
 	{
 
-		#region ReaderWriterLockSlim ExtensionMethods...
-
-		/// <summary>Retourne un token Disposable correspond à un lock de type Read</summary>
-		/// <param name="self">Lock sur lequel prendre le Read (ou null)</param>
-		/// <returns>Token disposable</returns>
-		/// <remarks>Si le lock est null, un token "vide" sera retourné (permet d'activer ou non le lock sur un composant en allouant ou non le ReaderWriterLockSlim !)</remarks>
-		/// <example>using (lock.GetReadLock() { ... DO STUFF .. }</example>
+		/// <summary>Takes a disposable read lock</summary>
+		/// <param name="self">Lock that should be used, or <c>null</c></param>
+		/// <returns>Disposable token that will release the lock when <see cref="ReadLockDisposable.Dispose"/> is called</returns>
+		/// <remarks>If <paramref name="self"/> is <c>null</c>, and empty "no-op" token will be returned instead</remarks>
+		/// <example><code>using(lock.GetReadLock()) { /* ... read internal state ... */ }</code></example>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ReadLockDisposable GetReadLock(this ReaderWriterLockSlim? self)
@@ -44,11 +44,11 @@ namespace Doxense.Threading
 			return new ReadLockDisposable(self);
 		}
 
-		/// <summary>Retourne un token Disposable correspond à un lock de type UpgradableRead</summary>
-		/// <param name="self">Lock sur lequel prendre le Upgradable (ou null)</param>
-		/// <returns>Token disposable</returns>
-		/// <remarks>Si le lock est null, un token "vide" sera retourné (permet d'activer ou non le lock sur un composant en allouant ou non le ReaderWriterLockSlim !)</remarks>
-		/// <example>using (lock.GetUpgradableReadLock() { ... DO STUFF .. }</example>
+		/// <summary>Takes a disposable upgradable read lock</summary>
+		/// <param name="self">Lock that should be used, or <c>null</c></param>
+		/// <returns>Disposable token that will release the lock when <see cref="ReadLockDisposable.Dispose"/> is called</returns>
+		/// <remarks>If <paramref name="self"/> is <c>null</c>, and empty "no-op" token will be returned instead</remarks>
+		/// <example><code>using(lock.GetUpgradableReadLock()) { /* ... read internal state ... */ }</code></example>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static UpgradeableReadLockDisposable GetUpgradableReadLock(this ReaderWriterLockSlim? self)
@@ -57,11 +57,11 @@ namespace Doxense.Threading
 			return new UpgradeableReadLockDisposable(self);
 		}
 
-		/// <summary>Retourne un token Disposable correspond à un lock de type Write</summary>
-		/// <param name="self">Lock sur lequel prendre le Write (ou null)</param>
-		/// <returns>Token disposable</returns>
-		/// <remarks>Si le lock est null, un token "vide" sera retourné (permet d'activer ou non le lock sur un composant en allouant ou non le ReaderWriterLockSlim !)</remarks>
-		/// <example>using (lock.GetWriteLock() { ... DO STUFF .. }</example>
+		/// <summary>Takes a disposable write lock</summary>
+		/// <param name="self">Lock that should be used, or <c>null</c></param>
+		/// <returns>Disposable token that will release the lock when <see cref="ReadLockDisposable.Dispose"/> is called</returns>
+		/// <remarks>If <paramref name="self"/> is <c>null</c>, and empty "no-op" token will be returned instead</remarks>
+		/// <example><code>using(lock.GetWriteLock()) { /* ... modify internal state ... */ }</code></example>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static WriteLockDisposable GetWriteLock(this ReaderWriterLockSlim? self)
@@ -70,16 +70,21 @@ namespace Doxense.Threading
 			return new WriteLockDisposable(self);
 		}
 
+		/// <summary>Token that represents a read lock on a <see cref="ReaderWriterLockSlim"/></summary>
+		/// <remarks>Disposing this instance will automatically release the lock.</remarks>
 		public readonly struct ReadLockDisposable : IDisposable
 		{
 			private readonly ReaderWriterLockSlim? m_lock;
 
+			/// <summary>Wraps a read-lock taken on a <seealso cref="ReaderWriterLockSlim"/></summary>
+			/// <param name="rwLock"></param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public ReadLockDisposable(ReaderWriterLockSlim? rwLock)
 			{
 				m_lock = rwLock;
 			}
 
+			/// <summary>Releases the lock</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public void Dispose()
 			{
@@ -87,16 +92,20 @@ namespace Doxense.Threading
 			}
 		}
 
+		/// <summary>Token that represents an upgradable read lock on a <see cref="ReaderWriterLockSlim"/></summary>
+		/// <remarks>Disposing this instance will automatically release the lock.</remarks>
 		public readonly struct UpgradeableReadLockDisposable : IDisposable
 		{
 			private readonly ReaderWriterLockSlim? m_lock;
 
+			/// <summary>Wraps an upgradable read-lock taken on a <seealso cref="ReaderWriterLockSlim"/></summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public UpgradeableReadLockDisposable(ReaderWriterLockSlim? rwLock)
 			{
 				m_lock = rwLock;
 			}
 
+			/// <summary>Releases the lock</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public void Dispose()
 			{
@@ -104,24 +113,26 @@ namespace Doxense.Threading
 			}
 		}
 
+		/// <summary>Token that represents a write lock on a <see cref="ReaderWriterLockSlim"/></summary>
+		/// <remarks>Disposing this instance will automatically release the lock.</remarks>
 		public readonly struct WriteLockDisposable : IDisposable
 		{
 			private readonly ReaderWriterLockSlim? m_lock;
 
+			/// <summary>Wraps a write-lock taken on a <seealso cref="ReaderWriterLockSlim"/></summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public WriteLockDisposable(ReaderWriterLockSlim? rwLock)
 			{
 				m_lock = rwLock;
 			}
 
+			/// <summary>Releases the lock</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public void Dispose()
 			{
 				m_lock?.ExitWriteLock();
 			}
 		}
-
-		#endregion
 
 	}
 

@@ -28,6 +28,7 @@ namespace Doxense.Serialization.Json
 {
 	using Doxense.Serialization.Json.JPath;
 
+	/// <summary>Extensions methods for working with <seealso cref="JPathQuery"/></summary>
 	public static class JPathExtensions
 	{
 

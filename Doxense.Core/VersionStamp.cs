@@ -266,6 +266,8 @@ namespace System
 			}
 		}
 
+		/// <summary>Returns a newly allocated <see cref="Slice"/> that represents this VersionStamp</summary>
+		/// <remarks>The slice with have a length of either 10 or 12 bytes.</remarks>
 		public Slice ToSlice()
 		{
 			int len = GetLength(); // 10 or 12
@@ -274,7 +276,7 @@ namespace System
 			return new Slice(tmp);
 		}
 
-		/// <summary>Convert this 80-bits VersionStamp into an 80-bits UUID</summary>
+		/// <summary>Converts this 80-bits VersionStamp into an 80-bits UUID</summary>
 		public Uuid80 ToUuid80()
 		{
 			if (this.HasUserVersion) throw new InvalidOperationException("Cannot convert 96-bit VersionStamp into a 80-bit UUID.");
@@ -287,7 +289,7 @@ namespace System
 			}
 		}
 
-		/// <summary>Convert this 96-bits VersionStamp into a 96-bits UUID</summary>
+		/// <summary>Converts this 96-bits VersionStamp into a 96-bits UUID</summary>
 		public Uuid96 ToUuid96()
 		{
 			if (!this.HasUserVersion) throw new InvalidOperationException("Cannot convert 80-bit VersionStamp into a 96-bit UUID.");
@@ -300,6 +302,9 @@ namespace System
 			}
 		}
 
+		/// <summary>Writes this VersionStamp to the specified buffer, if it is large enough.</summary>
+		/// <param name="buffer">Destination buffer, that must have a length of at least 10 or 12 bytes</param>
+		/// <exception cref="ArgumentException"> if the buffer is not large enough.</exception>
 		public void WriteTo(Span<byte> buffer)
 		{
 			int len = GetLength(); // 10 or 12
@@ -307,6 +312,9 @@ namespace System
 			WriteUnsafe(buffer.Slice(0, len), in this);
 		}
 
+		/// <summary>Writes this VersionStamp to the specified buffer, if it is large enough.</summary>
+		/// <param name="buffer">Destination buffer, that must have a length of at least 10 or 12 bytes</param>
+		/// <returns><c>true</c> if the buffer was large enough; otherwise, <c>false</c></returns>
 		public bool TryWriteTo(Span<byte> buffer)
 		{
 			int len = GetLength(); // 10 or 12
@@ -315,6 +323,7 @@ namespace System
 			return true;
 		}
 
+		/// <summary>Writes this VersionStamp to the specified destination</summary>
 		public void WriteTo(ref SliceWriter writer)
 		{
 			WriteUnsafe(writer.AllocateSpan(GetLength()), in this);
@@ -385,6 +394,8 @@ namespace System
 			return true;
 		}
 
+		/// <summary>[DANGEROUS] Reads a VersionStamp from a source buffer, that must be large enough.</summary>
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static unsafe void ReadUnsafe(ReadOnlySpan<byte> buf, out VersionStamp vs)
 		{
 			// reads a complete 10 or 12 bytes VersionStamp
@@ -643,26 +654,31 @@ namespace System
 		// VersionStamp + 123 == ???
 		// VersionStamp * 2 == ???
 
+		/// <summary>Compares <see cref="VersionStamp"/> instances for equality and ordering</summary>
 		public sealed class Comparer : IEqualityComparer<VersionStamp>, IComparer<VersionStamp>
 		{
+
 			/// <summary>Default comparer for <see cref="VersionStamp"/>s</summary>
 			public static Comparer Default { get; } = new();
 
 			private Comparer()
 			{ }
 
+			/// <inheritdoc />
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public bool Equals(VersionStamp x, VersionStamp y)
 			{
 				return x.Equals(y);
 			}
 
+			/// <inheritdoc />
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public int GetHashCode(VersionStamp obj)
 			{
 				return obj.GetHashCode();
 			}
 
+			/// <inheritdoc />
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public int Compare(VersionStamp x, VersionStamp y)
 			{

@@ -35,10 +35,11 @@ namespace Doxense.Serialization.Encoders
 	public interface IValueEncoder<TValue, TStorage>
 	{
 
-		/// <summary>Encode a single value into a compact binary representation</summary>
+		/// <summary>Encodes a single value into a compact binary representation</summary>
+		/// <param name="value">Value to encode</param>
 		TStorage EncodeValue(TValue? value);
 
-		/// <summary>Decode a single value from a compact binary representation</summary>
+		/// <summary>Decodes a single value from a compact binary representation</summary>
 		/// <param name="encoded">Packed value</param>
 		TValue? DecodeValue(TStorage encoded);
 
@@ -49,11 +50,11 @@ namespace Doxense.Serialization.Encoders
 	[PublicAPI]
 	public interface IValueEncoder<TValue> : IValueEncoder<TValue, Slice>
 	{
-		// no methods
-
 		//TODO: add custom "EncodeValueTo(ref SliceWriter)" and "DecodeValueFrom(ref SliceReader)" ?
 
+		/// <summary>Writes a value to the specified buffer</summary>
 		void WriteValueTo(ref SliceWriter writer, TValue? value)
+		//REVIEW: TODO: rename to "EncodeValueTo" ??
 		{
 			writer.WriteBytes(EncodeValue(value));
 		}

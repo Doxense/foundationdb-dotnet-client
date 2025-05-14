@@ -36,8 +36,10 @@ namespace Doxense.Runtime.Converters
 		/// <summary>Type of the result of the conversion</summary>
 		Type Destination { get; }
 
+		/// <summary>Converts an untyped object</summary>
 		[Pure]
 		object? ConvertBoxed(object? value);
+
 	}
 
 	/// <summary>Class that can convert values of type <typeparamref name="TSource"/> into values of type <typeparamref name="TDestination"/></summary>
@@ -45,11 +47,13 @@ namespace Doxense.Runtime.Converters
 	/// <typeparam name="TDestination">Destination type</typeparam>
 	public interface ITypeConverter<in TSource, out TDestination> : ITypeConverter
 	{
+
 		/// <summary>Converts a <typeparamref name="TSource"/> into a <typeparamref name="TDestination"/></summary>
 		/// <param name="value">Value to convert</param>
 		/// <returns>Converted value</returns>
 		[Pure]
 		TDestination Convert(TSource value);
+
 	}
 
 }

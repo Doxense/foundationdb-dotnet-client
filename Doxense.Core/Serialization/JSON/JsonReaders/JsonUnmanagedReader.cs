@@ -85,8 +85,11 @@ namespace Doxense.Serialization.Json
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static InvalidDataException ErrorBufferContainsMalformedUtf8Character() => new("Buffer contains malformed UTF-8 character");
+
+		/// <inheritdoc />
 		public bool? HasMore => this.Cursor < this.End;
 
+		/// <inheritdoc />
 		public int? Remaining => this.Cursor < this.End ? checked((int) (this.End - this.Cursor)) : 0;
 
 	}

@@ -33,9 +33,11 @@ namespace Doxense.Serialization.Json
 	public sealed class JsonPropertyAttribute : Attribute
 	{
 
+		/// <summary>Configure how this field or property is serialized into JSON</summary>
 		public JsonPropertyAttribute()
 		{ }
 
+		/// <summary>Configure how this field or property is serialized into JSON</summary>
 		public JsonPropertyAttribute(string propertyName)
 		{
 			this.PropertyName = propertyName;
@@ -54,10 +56,17 @@ namespace Doxense.Serialization.Json
 
 	}
 
+	/// <summary>Specifies how enums are serialized into JSON</summary>
 	public enum JsonEnumFormat
 	{
+
+		/// <summary>Inherits the settings from the parent context</summary>
 		Inherits = 0,
+
+		/// <summary>Serialize enums as numbers</summary>
 		Number,
+
+		/// <summary>Serialize enums as string literals</summary>
 		String
 	}
 

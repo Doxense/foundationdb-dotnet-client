@@ -61,6 +61,7 @@ namespace Doxense.Serialization.Encoders
 	public sealed class KeyEncoder<TKey> : IKeyEncoder<TKey>, IKeyEncoding
 	{
 
+		/// <summary>Creates an encoded that will invoke the specified <paramref name="pack"/> and <paramref name="unpack"/> lamba functions</summary>
 		public KeyEncoder(Func<TKey?, Slice> pack, Func<Slice, TKey?> unpack)
 		{
 			this.Pack = pack;
@@ -73,6 +74,7 @@ namespace Doxense.Serialization.Encoders
 
 		#region KeyEncoding...
 
+		/// <inheritdoc />
 		IKeyEncoder<TOther> IKeyEncoding.GetKeyEncoder<TOther>()
 		{
 			var type = typeof(TOther);
@@ -89,30 +91,38 @@ namespace Doxense.Serialization.Encoders
 			return new NotSupportedException($"This custom encoding is intended for type {typeof(TKey).GetFriendlyName()} and cannot process keys of type {type.GetFriendlyName()}.");
 		}
 
+		/// <inheritdoc />
 		ICompositeKeyEncoder<T1, T2> IKeyEncoding.GetKeyEncoder<T1, T2>() => throw new NotSupportedException();
 
+		/// <inheritdoc />
 		ICompositeKeyEncoder<T1, T2, T3> IKeyEncoding.GetKeyEncoder<T1, T2, T3>() => throw new NotSupportedException();
 
+		/// <inheritdoc />
 		ICompositeKeyEncoder<T1, T2, T3, T4> IKeyEncoding.GetKeyEncoder<T1, T2, T3, T4>() => throw new NotSupportedException();
 
+		/// <inheritdoc />
 		IDynamicKeyEncoder IKeyEncoding.GetDynamicKeyEncoder() => throw new NotSupportedException();
 
 		#endregion
 
 		#region KeyEncoder...
 
+		/// <inheritdoc />
 		public IKeyEncoding Encoding => this;
 
+		/// <inheritdoc />
 		public void WriteKeyTo(ref SliceWriter writer, TKey? value)
 		{
 			writer.WriteBytes(this.Pack(value));
 		}
 
+		/// <inheritdoc />
 		public void ReadKeyFrom(ref SliceReader reader, out TKey? value)
 		{
 			value = this.Unpack(reader.ReadToEnd());
 		}
 
+		/// <inheritdoc />
 		public bool TryReadKeyFrom(ref SliceReader reader, out TKey? value)
 		{
 			try

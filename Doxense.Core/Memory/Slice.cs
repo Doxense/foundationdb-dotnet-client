@@ -610,6 +610,14 @@ namespace System
 			return Split(this, separator, options);
 		}
 
+		/// <summary>Returns a slice array that contains the sub-slices in instance by cutting fixed-length chunks or size <paramref name="stride"/>.</summary>
+		/// <param name="stride">Size of each chunk that will be cut from this instance. Must be greater or equal to 1.</param>
+		/// <returns>
+		/// An array whose elements contain the sub-slices, each of size <paramref name="stride"/>, except the last slice that may be smaller if the length of this instance is not a multiple of <paramref name="stride"/>.
+		/// If this instance is <see cref="Slice.Nil"/> then the array will be empty.
+		/// If it is <see cref="Slice.Empty"/> then the array will we of length 1 and contain the empty slice.
+		/// </returns>
+		/// <remarks>To reduce memory usage, the sub-slices returned in the array will all share the same underlying buffer of the input slice.</remarks>
 		[Pure]
 		public Slice[] Split(int stride)
 		{
@@ -2936,6 +2944,7 @@ namespace System
 
 			internal object? Owner;
 
+			/// <summary>Creates a pinned handle for a slice</summary>
 			public Pinned(object owner, byte[] buffer, List<Slice>? extra)
 			{
 				Contract.Debug.Requires(owner is not null && buffer is not null);
@@ -3392,16 +3401,15 @@ namespace System
 			}
 		}
 
+		/// <summary>Returns a <see cref="PipeReader"/> that will consume the content of this slice</summary>
 		[DebuggerNonUserCode]
 		public static PipeReader AsPipeReader(this Slice slice)
 		{
-			//TODO: A TESTER!!! Je n'ai pas eu le temps de valider cette implémentation!
 			return new SlicePipeReader(slice);
 		}
 
 		private sealed class SlicePipeReader : PipeReader
 		{
-			//TODO: A TESTER!!! Je n'ai pas eu le temps de valider cette implémentation!
 
 			public SlicePipeReader(Slice slice)
 			{

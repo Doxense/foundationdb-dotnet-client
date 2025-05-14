@@ -27,36 +27,36 @@
 namespace Doxense.Tools
 {
 
+	/// <summary>Helper methods for working with exceptions</summary>
 	public static class ExceptionExtensions
 	{
 
-		/// <summary>Détermine s'il s'agit d'une erreur fatale (qu'il faudrait bouncer)</summary>
-		/// <param name="self">Exception à tester</param>
-		/// <returns>True s'il s'agit d'une ThreadAbortException, OutOfMemoryException ou StackOverflowException, ou une AggregateException qui contient une de ces erreurs</returns>
+		/// <summary>Tests if this is considered to be a "fatal" error that cannot be handled by a local catch block</summary>
+		/// <returns><c>true</c> if <paramref name="self"/> is of type <see cref="ThreadAbortException"/>, <see cref="OutOfMemoryException "/>, <see cref="StackOverflowException"/>, or an <see cref="AggregateException"/> that contains either one of these types</returns>
 		[Pure]
 		public static bool IsFatalError([System.Diagnostics.CodeAnalysis.NotNullWhen(true)] this Exception? self)
 		{
 			return self is ThreadAbortException || self is OutOfMemoryException || self is StackOverflowException || (self is AggregateException && IsFatalError(self.InnerException));
 		}
 
-		/// <summary>Détermine s'il s'agit d'une erreur "interessante" pour le diagnostique de crash, et qui mérite d'écrire une stack-trace entière dans les logs</summary>
-		/// <returns>Si true, il s'agit d'une erreur de type <see cref="NullReferenceException"/>, <see cref="ArgumentNullException"/>, <see cref="ArgumentOutOfRangeException"/>, <see cref="IndexOutOfRangeException"/> (ou similaire) qui justifie de tracer l'exception entière dans les logs.</returns>
-		/// <remarks>Les erreurs "plus grave" (ex: <see cref="OutOfMemoryException"/>, <see cref="StackOverflowException"/>, ...) sont gérées par <see cref="IsFatalError"/>!)</remarks>
+		/// <summary>Tests if this type of exception is likely to be caused by a bug, and should be handled with more scrutiny (addintional logging, intentional debugger break, ...)</summary>
+		/// <returns><c>true</c> if <paramref name="self"/> is of type <see cref="NullReferenceException"/>, <see cref="ArgumentNullException"/>, <see cref="ArgumentOutOfRangeException"/>, <see cref="IndexOutOfRangeException"/> or any suspicious type.</returns>
+		/// <remarks>Errors that are considered "critical" (ex: <see cref="OutOfMemoryException"/>, <see cref="StackOverflowException"/>, ...) are matched by <see cref="IsFatalError"/></remarks>
 		public static bool IsLikelyBug([System.Diagnostics.CodeAnalysis.NotNullWhen(true)] this Exception? self)
 		{
 			return self is NullReferenceException or ArgumentException or IndexOutOfRangeException or KeyNotFoundException || (self is AggregateException && IsLikelyBug(self.InnerException));
 		}
 
-		/// <summary>Retourne la première exeception non-aggregate trouvée dans l'arbre des InnerExceptions</summary>
-		/// <param name="self">AggregateException racine</param>
-		/// <returns>Première exception dans l'arbre des InnerExceptions qui ne soit pas de type AggregateException</returns>
+		/// <summary>Returns the first non-aggregate exception in the tree of inner-exceptions of an <see cref="AggregateException"/></summary>
+		/// <param name="self">AggregateException to unfold</param>
+		/// <returns>First exception found by walking the tree of <see cref="AggregateException.InnerExceptions"/> that is not itself an <see cref="AggregateException"/></returns>
 		public static Exception GetFirstConcreteException(this AggregateException self)
 		{
-			// dans la majorité des cas, on a une branche avec potentiellement plusieurs couches de AggEx mais une seule InnerException
+			// in the vast majority of the cases, we will have a single concrete exception inside the AggEx
 			var e = self.GetBaseException();
 			if (e is not AggregateException) return e;
 
-			// Sinon c'est qu'on a un arbre a plusieurs branches, qu'on va devoir parcourir...
+			// If not, this could be a tree with multiple branches that we will have to walk through...
 			var list = new Queue<AggregateException>();
 			list.Enqueue(self);
 			while (list.Count > 0)
@@ -64,7 +64,7 @@ namespace Doxense.Tools
 				foreach (var e2 in list.Dequeue().InnerExceptions)
 				{
 					if (e2 is null) continue;
-					if (e2 is not AggregateException x) return e2; // on a trouvé une exception concrète !
+					if (e2 is not AggregateException x) return e2; // first concrete exception!
 					list.Enqueue(x);
 				}
 			}
@@ -72,12 +72,11 @@ namespace Doxense.Tools
 			return self;
 		}
 
-		/// <summary>Rethrow la première exception non-aggregate trouvée, en jetant les autres s'il y en a</summary>
-		/// <param name="self">AggregateException racine</param>
+		/// <summary>Rethrows the first non-aggregate exception in the tree of inner-exceptions of an <see cref="AggregateException"/></summary>
+		/// <param name="self">AggregateException to unfold</param>
 		[ContractAnnotation("self:null => null")]
 		[return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull("self")]
-		public static Exception? Unwrap(
-			this AggregateException? self)
+		public static Exception? Unwrap(this AggregateException? self)
 		{
 			return self != null ? GetFirstConcreteException(self) : null;
 		}

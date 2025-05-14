@@ -42,8 +42,10 @@ namespace System
 	public struct SliceOwner : IDisposable
 	{
 
+		/// <summary>Rented buffer that is equivalent to the <see cref="Slice.Nil"/> slice</summary>
 		public static SliceOwner Nil => new(Slice.Nil);
 
+		/// <summary>Rented buffer that is equivalent to the <see cref="Slice.Empty"/> slice</summary>
 		public static SliceOwner Empty => new(Slice.Empty);
 
 		/// <summary>The rented slice</summary>
@@ -198,6 +200,7 @@ namespace System
 			return new (tmp.AsSlice(0, data.Count), pool);
 		}
 
+		/// <summary><see cref="ArrayPool{T}">Pool</see> used to allocate the buffer.</summary>
 		public ArrayPool<byte>? Pool => m_pool;
 
 		/// <summary>Returns the content as a <see cref="Slice"/></summary>

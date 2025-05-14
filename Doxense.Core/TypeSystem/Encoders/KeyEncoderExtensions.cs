@@ -29,12 +29,13 @@ namespace Doxense.Serialization.Encoders
 	using Doxense.Collections.Tuples;
 	using Doxense.Memory;
 
+	/// <summary>Extension methods for working with key encoders</summary>
 	public static class KeyEncoderExtensions
 	{
 
 		#region Dynamic...
 
-		/// <summary>Pack a tuple into a key, using the specified encoder</summary>
+		/// <summary>Packs a tuple into a key, using the specified encoder</summary>
 		public static Slice Pack<TTuple>(this IDynamicKeyEncoder encoder, TTuple tuple)
 			where TTuple : IVarTuple
 		{
@@ -43,7 +44,7 @@ namespace Doxense.Serialization.Encoders
 			return writer.ToSlice();
 		}
 
-		/// <summary>Pack a tuple into a key, with an additional prefix, using the specified encoder</summary>
+		/// <summary>Packs a tuple into a key, with an additional prefix, using the specified encoder</summary>
 		public static Slice Pack<TTuple>(this IDynamicKeyEncoder encoder, Slice prefix, TTuple tuple)
 			where TTuple : IVarTuple
 		{
@@ -57,7 +58,7 @@ namespace Doxense.Serialization.Encoders
 
 		#region <T1>
 
-		/// <summary>Encode a value into a key, using the specified encoder</summary>
+		/// <summary>Encodes a value into a key, using the specified encoder</summary>
 		public static Slice EncodeKey<T1>(this IKeyEncoder<T1> encoder, T1? value)
 		{
 			var writer = default(SliceWriter);
@@ -65,7 +66,7 @@ namespace Doxense.Serialization.Encoders
 			return writer.ToSlice();
 		}
 
-		/// <summary>Encode a value into a key, with an additional prefix, using the specified encoder</summary>
+		/// <summary>Encodes a value into a key, with an additional prefix, using the specified encoder</summary>
 		public static Slice EncodeKey<T1>(this IKeyEncoder<T1> encoder, Slice prefix, T1? value)
 		{
 			var writer = new SliceWriter(checked(prefix.Count + 16)); // ~16 bytes si T1 = Guid
@@ -74,7 +75,7 @@ namespace Doxense.Serialization.Encoders
 			return writer.ToSlice();
 		}
 
-		/// <summary>Encode a value into a key, with an additional prefix, using the specified encoder</summary>
+		/// <summary>Encodes a value into a key, with an additional prefix, using the specified encoder</summary>
 		public static Slice EncodeKey<T1>(this IKeyEncoder<T1> encoder, ReadOnlySpan<byte> prefix, T1? value)
 		{
 			var writer = new SliceWriter(checked(prefix.Length + 16)); // ~16 bytes si T1 = Guid
@@ -83,7 +84,7 @@ namespace Doxense.Serialization.Encoders
 			return writer.ToSlice();
 		}
 
-		/// <summary>Decode a key into its original value, using the specified encoder</summary>
+		/// <summary>Decodes a key into its original value, using the specified encoder</summary>
 		public static T1? DecodeKey<T1>(this IKeyEncoder<T1> decoder, Slice encoded)
 		{
 			var reader = new SliceReader(encoded);
@@ -92,6 +93,7 @@ namespace Doxense.Serialization.Encoders
 			return item;
 		}
 
+		/// <summary>Decodes a key into its original value, using the specified encoder</summary>
 		public static bool TryDecodeKey<T1>(this IKeyEncoder<T1> decoder, Slice encoded, out T1? item)
 		{
 			var reader = new SliceReader(encoded);
@@ -103,14 +105,14 @@ namespace Doxense.Serialization.Encoders
 
 		#region <T1, T2>
 
-		/// <summary>Append a pair of values onto a buffer, using the specified key encoder</summary>
+		/// <summary>Appends a pair of values onto a buffer, using the specified key encoder</summary>
 		public static void WriteKeyTo<T1, T2>(this ICompositeKeyEncoder<T1, T2> encoder, ref SliceWriter writer, T1? value1, T2? value2)
 		{
 			var tuple = (value1, value2);
 			encoder.WriteKeyPartsTo(ref writer, 2, in tuple);
 		}
 
-		/// <summary>Encode a pair of values into a key, using the specified encoder</summary>
+		/// <summary>Encodes a pair of values into a key, using the specified encoder</summary>
 		public static Slice EncodeKey<T1, T2>(this ICompositeKeyEncoder<T1, T2> encoder, T1? item1, T2? item2)
 		{
 			var writer = default(SliceWriter);
@@ -119,7 +121,7 @@ namespace Doxense.Serialization.Encoders
 			return writer.ToSlice();
 		}
 
-		/// <summary>Encode a pair of values into a key, with an additional prefix, using the specified encoder</summary>
+		/// <summary>Encodes a pair of values into a key, with an additional prefix, using the specified encoder</summary>
 		public static Slice EncodeKey<T1, T2>(this ICompositeKeyEncoder<T1, T2> encoder, Slice prefix, T1? item1, T2? item2)
 		{
 			var writer = new SliceWriter(prefix.Count + 24);
@@ -128,7 +130,7 @@ namespace Doxense.Serialization.Encoders
 			return writer.ToSlice();
 		}
 
-		/// <summary>Encode only the first part of a key, using the specified encoder</summary>
+		/// <summary>Encodes only the first part of a key, using the specified encoder</summary>
 		public static Slice EncodePartialKey<T1, T2>(this ICompositeKeyEncoder<T1, T2> encoder, T1? item1)
 		{
 			var writer = default(SliceWriter);
@@ -137,7 +139,7 @@ namespace Doxense.Serialization.Encoders
 			return writer.ToSlice();
 		}
 
-		/// <summary>Encode only the first part of a key, with an additional prefix, using the specified encoder</summary>
+		/// <summary>Encodes only the first part of a key, with an additional prefix, using the specified encoder</summary>
 		public static Slice EncodePartialKey<T1, T2>(this ICompositeKeyEncoder<T1, T2> encoder, Slice prefix, T1? item1)
 		{
 			var writer = new SliceWriter(prefix.Count + 16);
@@ -147,7 +149,7 @@ namespace Doxense.Serialization.Encoders
 			return writer.ToSlice();
 		}
 
-		/// <summary>Encode the first few elements of a key, using the specified encoder</summary>
+		/// <summary>Encodes the first few elements of a key, using the specified encoder</summary>
 		public static Slice EncodeKeyParts<T1, T2>(this ICompositeKeyEncoder<T1, T2> encoder, int count, (T1?, T2?) items)
 		{
 			var writer = default(SliceWriter);
@@ -155,7 +157,7 @@ namespace Doxense.Serialization.Encoders
 			return writer.ToSlice();
 		}
 
-		/// <summary>Decode a key into the original pair of values, using the specified encoder</summary>
+		/// <summary>Decodes a key into the original pair of values, using the specified encoder</summary>
 		public static (T1?, T2?) DecodeKey<T1, T2>(this ICompositeKeyEncoder<T1, T2> decoder, Slice encoded)
 		{
 			var reader = new SliceReader(encoded);
@@ -164,6 +166,7 @@ namespace Doxense.Serialization.Encoders
 			return items;
 		}
 
+		/// <summary>Decodes a key into the original pair of values, using the specified encoder</summary>
 		public static bool TryDecodeKey<T1, T2>(this ICompositeKeyEncoder<T1, T2> decoder, Slice encoded, out (T1?, T2?) items)
 		{
 			var reader = new SliceReader(encoded);
@@ -171,7 +174,7 @@ namespace Doxense.Serialization.Encoders
 			return decoder.TryReadKeyFrom(ref reader, out items);
 		}
 
-		/// <summary>Decode part of a key, using the specified encoder</summary>
+		/// <summary>Decodes part of a key, using the specified encoder</summary>
 		public static (T1?, T2?) DecodeKeyParts<T1, T2>(this ICompositeKeyEncoder<T1, T2> encoder, int count, Slice encoded)
 		{
 			var reader = new SliceReader(encoded);
@@ -183,14 +186,14 @@ namespace Doxense.Serialization.Encoders
 
 		#region <T1, T2, T3>
 
-		/// <summary>Append a set of values onto a buffer, using the specified key encoder</summary>
+		/// <summary>Appends a set of values onto a buffer, using the specified key encoder</summary>
 		public static void WriteKeyTo<T1, T2, T3>(this ICompositeKeyEncoder<T1, T2, T3> encoder, ref SliceWriter writer, T1? value1, T2? value2, T3? value3)
 		{
 			var tuple = (value1, value2, value3);
 			encoder.WriteKeyPartsTo(ref writer, 3, in tuple);
 		}
 
-		/// <summary>Encode a set of values into a key, using the specified encoder</summary>
+		/// <summary>Encodes a set of values into a key, using the specified encoder</summary>
 		public static Slice EncodeKey<T1, T2, T3>(this ICompositeKeyEncoder<T1, T2, T3> encoder, T1? item1, T2? item2, T3? item3)
 		{
 			var writer = default(SliceWriter);
@@ -199,7 +202,7 @@ namespace Doxense.Serialization.Encoders
 			return writer.ToSlice();
 		}
 
-		/// <summary>Encode a set of values into a key, with an additional prefix, using the specified encoder</summary>
+		/// <summary>Encodes a set of values into a key, with an additional prefix, using the specified encoder</summary>
 		public static Slice EncodeKey<T1, T2, T3>(this ICompositeKeyEncoder<T1, T2, T3> encoder, Slice prefix, T1? item1, T2? item2, T3? item3)
 		{
 			var writer = new SliceWriter(prefix.Count + 32);
@@ -208,7 +211,7 @@ namespace Doxense.Serialization.Encoders
 			return writer.ToSlice();
 		}
 
-		/// <summary>Encode the first few elements of a key, using the specified encoder</summary>
+		/// <summary>Encodes the first few elements of a key, using the specified encoder</summary>
 		public static Slice EncodeKeyParts<T1, T2, T3>(this ICompositeKeyEncoder<T1, T2, T3> encoder, int count, (T1?, T2?, T3?) items)
 		{
 			var writer = default(SliceWriter);
@@ -216,7 +219,7 @@ namespace Doxense.Serialization.Encoders
 			return writer.ToSlice();
 		}
 
-		/// <summary>Decode a key into the original set of values, using the specified encoder</summary>
+		/// <summary>Decodes a key into the original set of values, using the specified encoder</summary>
 		public static (T1?, T2?, T3?) DecodeKey<T1, T2, T3>(this ICompositeKeyEncoder<T1, T2, T3> decoder, Slice encoded)
 		{
 			var reader = new SliceReader(encoded);
@@ -225,6 +228,7 @@ namespace Doxense.Serialization.Encoders
 			return items;
 		}
 
+		/// <summary>Decodes a key into the original set of values, using the specified encoder</summary>
 		public static bool TryDecodeKey<T1, T2, T3>(this ICompositeKeyEncoder<T1, T2, T3> decoder, Slice encoded, out (T1?, T2?, T3?) items)
 		{
 			var reader = new SliceReader(encoded);
@@ -244,14 +248,14 @@ namespace Doxense.Serialization.Encoders
 
 		#region <T1, T2, T3, T4>
 
-		/// <summary>Append a set of values onto a buffer, using the specified key encoder</summary>
+		/// <summary>Appends a set of values onto a buffer, using the specified key encoder</summary>
 		public static void WriteKeyTo<T1, T2, T3, T4>(this ICompositeKeyEncoder<T1, T2, T3, T4> encoder, ref SliceWriter writer, T1 value1, T2 value2, T3 value3, T4 value4)
 		{
 			var tuple = (value1, value2, value3, value4);
 			encoder.WriteKeyPartsTo(ref writer, 4, in tuple);
 		}
 
-		/// <summary>Encode a set of values into a key, using the specified encoder</summary>
+		/// <summary>Encodes a set of values into a key, using the specified encoder</summary>
 		public static Slice EncodeKey<T1, T2, T3, T4>(this ICompositeKeyEncoder<T1, T2, T3, T4> encoder, T1 item1, T2 item2, T3 item3, T4 item4)
 		{
 			var writer = default(SliceWriter);
@@ -260,7 +264,7 @@ namespace Doxense.Serialization.Encoders
 			return writer.ToSlice();
 		}
 
-		/// <summary>Encode a set of values into a key, with an additional prefix, using the specified encoder</summary>
+		/// <summary>Encodes a set of values into a key, with an additional prefix, using the specified encoder</summary>
 		public static Slice EncodeKey<T1, T2, T3, T4>(this ICompositeKeyEncoder<T1, T2, T3, T4> encoder, Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4)
 		{
 			var writer = new SliceWriter(prefix.Count + 48);
@@ -269,7 +273,7 @@ namespace Doxense.Serialization.Encoders
 			return writer.ToSlice();
 		}
 
-		/// <summary>Encode the first few elements of a key, using the specified encoder</summary>
+		/// <summary>Encodes the first few elements of a key, using the specified encoder</summary>
 		public static Slice EncodeKeyParts<T1, T2, T3, T4>(this ICompositeKeyEncoder<T1, T2, T3, T4> encoder, int count, (T1, T2, T3, T4) items)
 		{
 			var writer = default(SliceWriter);
@@ -277,7 +281,7 @@ namespace Doxense.Serialization.Encoders
 			return writer.ToSlice();
 		}
 
-		/// <summary>Decode a key into the original set of values, using the specified encoder</summary>
+		/// <summary>Decodes a key into the original set of values, using the specified encoder</summary>
 		public static (T1?, T2?, T3?, T4?) DecodeKey<T1, T2, T3, T4>(this ICompositeKeyEncoder<T1, T2, T3, T4> decoder, Slice encoded)
 		{
 			var reader = new SliceReader(encoded);
@@ -286,6 +290,7 @@ namespace Doxense.Serialization.Encoders
 			return items;
 		}
 
+		/// <summary>Decodes a key into the original set of values, using the specified encoder</summary>
 		public static bool TryDecodeKey<T1, T2, T3, T4>(this ICompositeKeyEncoder<T1, T2, T3, T4> decoder, Slice encoded, out (T1?, T2?, T3?, T4?) items)
 		{
 			var reader = new SliceReader(encoded);
@@ -293,7 +298,7 @@ namespace Doxense.Serialization.Encoders
 			return decoder.TryReadKeyFrom(ref reader, out items);
 		}
 
-		/// <summary>Decode part of a key, using the specified encoder</summary>
+		/// <summary>Decodes part of a key, using the specified encoder</summary>
 		public static (T1?, T2?, T3?, T4?) DecodeKeyParts<T1, T2, T3, T4>(this ICompositeKeyEncoder<T1, T2, T3, T4> encoder, int count, Slice encoded)
 		{
 			var reader = new SliceReader(encoded);
@@ -305,14 +310,14 @@ namespace Doxense.Serialization.Encoders
 
 		#region <T1, T2, T3, T4, T5>
 
-		/// <summary>Append a set of values onto a buffer, using the specified key encoder</summary>
+		/// <summary>Appends a set of values onto a buffer, using the specified key encoder</summary>
 		public static void WriteKeyTo<T1, T2, T3, T4, T5>(this ICompositeKeyEncoder<T1, T2, T3, T4, T5> encoder, ref SliceWriter writer, T1? value1, T2? value2, T3? value3, T4? value4, T5? value5)
 		{
 			var tuple = (value1, value2, value3, value4, value5);
 			encoder.WriteKeyPartsTo(ref writer, 5, in tuple);
 		}
 		
-		/// <summary>Encode a set of values into a key, using the specified encoder</summary>
+		/// <summary>Encodes a set of values into a key, using the specified encoder</summary>
 		public static Slice EncodeKey<T1, T2, T3, T4, T5>(this ICompositeKeyEncoder<T1, T2, T3, T4, T5> encoder, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5)
 		{
 			var writer = default(SliceWriter);
@@ -321,7 +326,7 @@ namespace Doxense.Serialization.Encoders
 			return writer.ToSlice();
 		}
 
-		/// <summary>Encode a set of values into a key, with an additional prefix, using the specified encoder</summary>
+		/// <summary>Encodes a set of values into a key, with an additional prefix, using the specified encoder</summary>
 		public static Slice EncodeKey<T1, T2, T3, T4, T5>(this ICompositeKeyEncoder<T1, T2, T3, T4, T5> encoder, Slice prefix, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5)
 		{
 			var writer = new SliceWriter(prefix.Count + 56);
@@ -330,7 +335,7 @@ namespace Doxense.Serialization.Encoders
 			return writer.ToSlice();
 		}
 
-		/// <summary>Encode the first few elements of a key, using the specified encoder</summary>
+		/// <summary>Encodes the first few elements of a key, using the specified encoder</summary>
 		public static Slice EncodeKeyParts<T1, T2, T3, T4, T5>(this ICompositeKeyEncoder<T1, T2, T3, T4, T5> encoder, int count, (T1?, T2?, T3?, T4?, T5?) items)
 		{
 			var writer = default(SliceWriter);
@@ -338,7 +343,7 @@ namespace Doxense.Serialization.Encoders
 			return writer.ToSlice();
 		}
 
-		/// <summary>Decode a key into the original set of values, using the specified encoder</summary>
+		/// <summary>Decodes a key into the original set of values, using the specified encoder</summary>
 		public static (T1?, T2?, T3?, T4?, T5?) DecodeKey<T1, T2, T3, T4, T5>(this ICompositeKeyEncoder<T1, T2, T3, T4, T5> decoder, Slice encoded)
 		{
 			var reader = new SliceReader(encoded);
@@ -347,6 +352,7 @@ namespace Doxense.Serialization.Encoders
 			return items;
 		}
 
+		/// <summary>Decodes a key into the original set of values, using the specified encoder</summary>
 		public static bool TryDecodeKey<T1, T2, T3, T4, T5>(this ICompositeKeyEncoder<T1, T2, T3, T4, T5> decoder, Slice encoded, out (T1?, T2?, T3?, T4?, T5?) items)
 		{
 			var reader = new SliceReader(encoded);
@@ -354,7 +360,7 @@ namespace Doxense.Serialization.Encoders
 			return decoder.TryReadKeyFrom(ref reader, out items);
 		}
 
-		/// <summary>Decode part of a key, using the specified encoder</summary>
+		/// <summary>Decodes part of a key, using the specified encoder</summary>
 		public static (T1?, T2?, T3?, T4?, T5?) DecodeKeyParts<T1, T2, T3, T4, T5>(this ICompositeKeyEncoder<T1, T2, T3, T4, T5> encoder, int count, Slice encoded)
 		{
 			var reader = new SliceReader(encoded);
@@ -366,7 +372,7 @@ namespace Doxense.Serialization.Encoders
 
 		#region Batched...
 
-		/// <summary>Convert an array of <typeparamref name="T"/>s into an array of slices, using the specified serializer</summary>
+		/// <summary>Converts an array of <typeparamref name="T"/>s into an array of slices, using the specified serializer</summary>
 		public static Slice[] EncodeKeys<T>(this IKeyEncoder<T> encoder, params ReadOnlySpan<T> values)
 		{
 			Contract.NotNull(encoder);
@@ -379,7 +385,7 @@ namespace Doxense.Serialization.Encoders
 			return slices;
 		}
 
-		/// <summary>Convert an array of <typeparamref name="T"/>s into an array of slices, using the specified serializer</summary>
+		/// <summary>Converts an array of <typeparamref name="T"/>s into an array of slices, using the specified serializer</summary>
 		public static Slice[] EncodeKeys<T>(this IKeyEncoder<T> encoder, params T[] values)
 		{
 			Contract.NotNull(encoder);
@@ -393,11 +399,11 @@ namespace Doxense.Serialization.Encoders
 			return slices;
 		}
 
-		/// <summary>Convert an array of <typeparamref name="T"/>s into an array of prefixed slices, using the specified serializer</summary>
+		/// <summary>Converts an array of <typeparamref name="T"/>s into an array of prefixed slices, using the specified serializer</summary>
 		public static Slice[] EncodeKeys<T>(this IKeyEncoder<T> encoder, Slice prefix, params ReadOnlySpan<T> values)
 			=> EncodeKeys<T>(encoder, prefix.Span, values);
 
-		/// <summary>Convert an array of <typeparamref name="T"/>s into an array of prefixed slices, using the specified serializer</summary>
+		/// <summary>Converts an array of <typeparamref name="T"/>s into an array of prefixed slices, using the specified serializer</summary>
 		public static Slice[] EncodeKeys<T>(this IKeyEncoder<T> encoder, ReadOnlySpan<byte> prefix, params ReadOnlySpan<T> values)
 		{
 			Contract.NotNull(encoder);
@@ -414,11 +420,11 @@ namespace Doxense.Serialization.Encoders
 			return slices;
 		}
 
-		/// <summary>Convert an array of <typeparamref name="T"/>s into an array of prefixed slices, using the specified serializer</summary>
+		/// <summary>Converts an array of <typeparamref name="T"/>s into an array of prefixed slices, using the specified serializer</summary>
 		public static Slice[] EncodeKeys<T>(this IKeyEncoder<T> encoder, Slice prefix, params T?[] values)
 			=> EncodeKeys<T>(encoder, prefix.Span, values);
 
-		/// <summary>Convert an array of <typeparamref name="T"/>s into an array of prefixed slices, using the specified serializer</summary>
+		/// <summary>Converts an array of <typeparamref name="T"/>s into an array of prefixed slices, using the specified serializer</summary>
 		public static Slice[] EncodeKeys<T>(this IKeyEncoder<T> encoder, ReadOnlySpan<byte> prefix, params T?[] values)
 		{
 			Contract.NotNull(encoder);
@@ -436,7 +442,7 @@ namespace Doxense.Serialization.Encoders
 			return slices;
 		}
 
-		/// <summary>Convert an array of <typeparamref name="TElement"/>s into an array of slices, using a serializer (or the default serializer if none is provided)</summary>
+		/// <summary>Converts an array of <typeparamref name="TElement"/>s into an array of slices, using a serializer (or the default serializer if none is provided)</summary>
 		public static Slice[] EncodeKeys<TKey, TElement>(this IKeyEncoder<TKey> encoder, IEnumerable<TElement> elements, Func<TElement, TKey> selector)
 		{
 			Contract.NotNull(encoder);
@@ -461,7 +467,7 @@ namespace Doxense.Serialization.Encoders
 			return elements.Select((item) => encoder.EncodeKey(selector(item))).ToArray();
 		}
 
-		/// <summary>Convert an array of <typeparamref name="TElement"/>s into an array of slices, using a serializer (or the default serializer if none is provided)</summary>
+		/// <summary>Converts an array of <typeparamref name="TElement"/>s into an array of slices, using a serializer (or the default serializer if none is provided)</summary>
 		public static Slice[] EncodeKeys<TKey, TElement>(this IKeyEncoder<TKey> encoder, TElement[] elements, Func<TElement, TKey> selector)
 		{
 			Contract.NotNull(encoder);
@@ -476,7 +482,7 @@ namespace Doxense.Serialization.Encoders
 			return slices;
 		}
 
-		/// <summary>Transform a sequence of <typeparamref name="T"/>s into a sequence of slices, using a serializer (or the default serializer if none is provided)</summary>
+		/// <summary>Transforms a sequence of <typeparamref name="T"/>s into a sequence of slices, using a serializer (or the default serializer if none is provided)</summary>
 		public static IEnumerable<Slice> EncodeKeys<T>(this IKeyEncoder<T> encoder, IEnumerable<T?> values)
 		{
 			Contract.NotNull(encoder);
@@ -506,7 +512,7 @@ namespace Doxense.Serialization.Encoders
 			return values.Select(value => encoder.EncodeKey(value));
 		}
 
-		/// <summary>Convert a sequence of <typeparamref name="T"/>s into an array of prefixed slices, using the specified serializer</summary>
+		/// <summary>Converts a sequence of <typeparamref name="T"/>s into an array of prefixed slices, using the specified serializer</summary>
 		public static IEnumerable<Slice> EncodeKeys<T>(this IKeyEncoder<T> encoder, Slice prefix, IEnumerable<T?> values)
 		{
 			Contract.NotNull(encoder);
@@ -542,7 +548,7 @@ namespace Doxense.Serialization.Encoders
 		}
 
 
-		/// <summary>Convert an array of slices back into an array of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
+		/// <summary>Converts an array of slices back into an array of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
 		public static T[] DecodeKeys<T>(this IKeyEncoder<T> encoder, params Slice[] slices)
 		{
 			Contract.NotNull(encoder);
@@ -556,7 +562,7 @@ namespace Doxense.Serialization.Encoders
 			return values;
 		}
 
-		/// <summary>Convert an array of slices back into an array of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
+		/// <summary>Converts an array of slices back into an array of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
 		public static T[] DecodeKeys<T>(this IKeyEncoder<T> encoder, params ReadOnlySpan<Slice> slices)
 		{
 			Contract.NotNull(encoder);
@@ -569,7 +575,7 @@ namespace Doxense.Serialization.Encoders
 			return values;
 		}
 
-		/// <summary>Convert the keys of an array of key value pairs of slices back into an array of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
+		/// <summary>Converts the keys of an array of key value pairs of slices back into an array of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
 		public static T[] DecodeKeys<T>(this IKeyEncoder<T> encoder, KeyValuePair<Slice, Slice>[] items)
 		{
 			Contract.NotNull(encoder);
@@ -583,7 +589,7 @@ namespace Doxense.Serialization.Encoders
 			return values;
 		}
 
-		/// <summary>Transform a sequence of slices back into a sequence of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
+		/// <summary>Transforms a sequence of slices back into a sequence of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
 		public static IEnumerable<T> DecodeKeys<T>(this IKeyEncoder<T> encoder, IEnumerable<Slice> slices)
 		{
 			Contract.NotNull(encoder);
@@ -597,4 +603,5 @@ namespace Doxense.Serialization.Encoders
 		#endregion
 
 	}
+
 }

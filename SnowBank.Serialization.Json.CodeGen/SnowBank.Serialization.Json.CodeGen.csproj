@@ -23,7 +23,6 @@
 		<PackageTags>snowbank sdk json codegen</PackageTags>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageIcon>snowbank.png</PackageIcon>
-		<GenerateDocumentationFile Condition="'$(Configuration)' != 'Debug'">true</GenerateDocumentationFile>
 	</PropertyGroup>
 
 	<ItemGroup>
