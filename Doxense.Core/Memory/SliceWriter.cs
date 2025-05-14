@@ -743,8 +743,6 @@ namespace Doxense.Memory
 		}
 
 		/// <summary>Write a chunk of a byte array to the end of the buffer</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete("Use WriteBytes(ReadOnlySpan<byte>) instead.", error: true)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public void WriteBytes(byte[] data, int offset, int count)
 		{
@@ -774,7 +772,6 @@ namespace Doxense.Memory
 		}
 
 		/// <summary>Write a chunk of a byte array to the end of the buffer, with a prefix</summary>
-		[Obsolete("Use WriteBytes(byte, ReadOnlySpan<byte>) instead.", error: true)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public void WriteBytes(byte prefix, byte[] data, int offset, int count)
 		{
@@ -861,8 +858,7 @@ namespace Doxense.Memory
 		}
 
 		/// <summary>Append a chunk of a byte array to the end of the buffer</summary>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete("Use ReadOnlySpan<byte> instead.", error: true)]
+		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public Slice AppendBytes(byte[] data, int offset, int count)
 		{
@@ -1859,7 +1855,6 @@ namespace Doxense.Memory
 
 		/// <summary>Write a string using UTF-8</summary>
 		/// <returns>Number of bytes written</returns>
-		[Obsolete("Use ReadOnlySpan<char> instead.", error: true)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public int WriteStringUtf8(char[] chars, int offset, int count)
 		{
@@ -2188,7 +2183,6 @@ namespace Doxense.Memory
 
 		/// <summary>Overwrite a section of the buffer that was already written, with the specified data</summary>
 		/// <remarks>You must ensure that replaced section does not overlap with the current position!</remarks>
-		[Obsolete("Use ReadOnlySpan<byte> instead.", error: true)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public void PatchBytes(int index, byte[] buffer, int offset, int count)
 		{
