@@ -45,9 +45,6 @@ namespace Doxense.Serialization.Json
 		, ISpanFormattable
 		, IUtf8SpanFormattable
 #endif
-#pragma warning disable CS0618 // Type or member is obsolete
-		, IJsonDynamic
-#pragma warning restore CS0618 // Type or member is obsolete
 	{
 		/// <summary>Type of JSON value (<see cref="JsonType.Boolean">Boolean</see>, <see cref="JsonType.String">String</see>, <see cref="JsonType.Number">Number</see>, <see cref="JsonType.Object">Object</see>, <see cref="JsonType.Array">Array</see>, ...)</summary>
 		public abstract JsonType Type { [Pure] get; }
@@ -249,11 +246,6 @@ namespace Doxense.Serialization.Json
 					throw new NotSupportedException($"Invalid JSON format '{format}' specification");
 				}
 			}
-		}
-
-		JsonValue IJsonDynamic.GetJsonValue()
-		{
-			return this;
 		}
 
 		/// <summary>Creates a deep copy of this value (and all of its children)</summary>
