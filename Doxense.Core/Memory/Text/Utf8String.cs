@@ -38,16 +38,16 @@ namespace Doxense.Memory.Text
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Utf8String FromString(string? text, bool includeBom = false, bool noHashCode = false)
 		{
-			if (text == null) return default;
-			return FromString(text.AsSpan(), includeBom, noHashCode);
+			return text == null ? default : FromString(text.AsSpan(), includeBom, noHashCode);
 		}
 
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Utf8String FromString(string? text, int offset, int count, bool includeBom = false, bool noHashCode = false)
 		{
-			if (text == null) return count == 0 ? default : throw new ArgumentNullException(nameof(text));
-			return FromString(text.AsSpan(offset, count), includeBom, noHashCode);
+			return text is not null ? FromString(text.AsSpan(offset, count), includeBom, noHashCode)
+				: count == 0 ? default
+				: throw new ArgumentNullException(nameof(text));
 		}
 
 		public static Utf8String FromString(ReadOnlySpan<char> text, bool includeBom = false, bool noHashCode = false)
@@ -55,15 +55,16 @@ namespace Doxense.Memory.Text
 			if (text.Length == 0) return Utf8String.Empty;
 			var bytes = includeBom ? Slice.FromStringUtf8WithBom(text) : Slice.FromStringUtf8(text);
 			// we already know the length of the string, so we only need to compute the hashcode if required
-			return new Utf8String(bytes, text.Length, !noHashCode ? default(int?) : ComputeHashCode(bytes, text.Length, asciiOnly: text.Length == bytes.Count));
+			return new Utf8String(bytes, text.Length, !noHashCode ? null : ComputeHashCode(bytes, text.Length, asciiOnly: text.Length == bytes.Count));
 		}
 
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Utf8String FromString(string? text, int offset, int count, ref byte[]? buffer, bool noHashCode = false)
 		{
-			if (text == null) return count == 0 ? default : throw new ArgumentNullException(nameof(text));
-			return FromString(text.AsSpan(offset, count), ref buffer, noHashCode);
+			return text != null ? FromString(text.AsSpan(offset, count), ref buffer, noHashCode)
+				: count == 0 ? default
+				: throw new ArgumentNullException(nameof(text));
 		}
 
 		[Pure]
@@ -72,7 +73,7 @@ namespace Doxense.Memory.Text
 			if (text.Length == 0) return Utf8String.Empty;
 			var bytes = Slice.FromStringUtf8(text, ref buffer, out var asciiOnly);
 			// we already know the length of the string, so we only need to compute the hashcode if required
-			return new Utf8String(bytes, text.Length, !noHashCode ? default(int?) : ComputeHashCode(bytes, text.Length, asciiOnly));
+			return new Utf8String(bytes, text.Length, !noHashCode ? null : ComputeHashCode(bytes, text.Length, asciiOnly));
 		}
 
 		/// <summary>Return a string view of a native buffer that contains UTF-8 bytes</summary>

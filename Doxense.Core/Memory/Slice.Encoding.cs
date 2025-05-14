@@ -2416,7 +2416,7 @@ namespace System
 			{
 				case 0:
 				{
-					return default;
+					return Guid.Empty;
 				}
 				case 16:
 				{ // direct byte array

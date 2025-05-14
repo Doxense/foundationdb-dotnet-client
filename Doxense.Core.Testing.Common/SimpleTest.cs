@@ -215,7 +215,7 @@ namespace SnowBank.Testing
 		public CancellationToken Cancellation
 		{
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => m_cts?.Token ?? default;
+			get => m_cts?.Token ?? CancellationToken.None;
 		}
 
 		/// <summary>Fait en sorte que le token <see cref="Cancellation"/> se déclenche dans le délai indiqué, quoi qu'il se produise pendant l'exécution du test</summary>
@@ -959,6 +959,9 @@ namespace SnowBank.Testing
 		[DebuggerNonUserCode]
 		protected void LogElapsed(string? text) => Log($"{this.TestElapsed} {text}");
 
+		[DebuggerNonUserCode]
+		protected void LogElapsed(ref DefaultInterpolatedStringHandler handler) => LogElapsed(handler.ToStringAndClear());
+
 		/// <summary>Writes a message to the output log</summary>
 		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Log(string? text) => WriteToLog(text);
@@ -1077,7 +1080,7 @@ namespace SnowBank.Testing
 
 			// drop the bottom of the stack (System and NUnit stuff...
 			int last = stack.Length - 1;
-			while(last > skip && (stack[last].IndexOf("   at System.", StringComparison.Ordinal) >= 0 || stack[last].IndexOf("   at NUnit.Framework.", StringComparison.Ordinal) >= 0))
+			while(last > skip && (stack[last].Contains("   at System.", StringComparison.Ordinal) || stack[last].Contains("   at NUnit.Framework.", StringComparison.Ordinal)))
 			{
 				--last;
 			}
@@ -1107,7 +1110,7 @@ namespace SnowBank.Testing
 				case uint ui: return StringConverters.ToString(ui) + "U";
 				case ulong ul: return StringConverters.ToString(ul) + "UL";
 				case double d: return StringConverters.ToString(d);
-				case float f: return StringConverters.ToString((double) item) + "f";
+				case float f: return StringConverters.ToString(f) + "f";
 				case DateTime dt: return "(DateTime) " + StringConverters.ToString(dt);
 				case DateTimeOffset dto: return "(DateTimeOffset) " + StringConverters.ToString(dto);
 				case Guid g: return "(Guid) " + g.ToString("B");
