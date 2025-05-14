@@ -29,14 +29,19 @@ jobs:
         dotnet-quality: 'preview'
 
     # build the solution (Release)
+    - name: Restore
+      run: dotnet restore
+
+
+    # build the solution (Release)
     - name: Build (Release)
-      run: dotnet build -c Release
+      run: dotnet build -c Release --no-restore -nowarn:CS1591
 
     # Pack the libraries and tools
     - name: NuGet Pack
       env:
         DISABLE_NATIVE_PACKAGE: true
-      run: dotnet pack -c Release --output Redist
+      run: dotnet pack -c Release --no-restore --no-build --output Redist
 
     # Capture the build packages
     - name: Upload artifacts
