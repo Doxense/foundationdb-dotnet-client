@@ -79,7 +79,7 @@ namespace Doxense.Memory.Text
 		/// <summary>Return a string view of a native buffer that contains UTF-8 bytes</summary>
 		/// <param name="buffer">Bytes that contain UTF-8 encoded characters</param>
 		/// <param name="discardBom">If true, discard any UTF-8 BOM if present</param>
-		/// <param name="noHashCode">If false, pre-compute the hashcode of the string. If you will not use this string for comparisons or as a key in a dictionary, you can skip this step by passing true.</param>
+		/// <param name="noHashCode">If false, pre-compute the hashcode of the string. If you do not use this string for comparisons or as a key in a dictionary, you can skip this step by passing true.</param>
 		/// <returns><see cref="Utf8String"/> that maps to the corresponding <paramref name="buffer"/></returns>
 		/// <remarks>This method needs to compute the length (and hashcode) of the string. You should cache the result if you need it more than once.</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -95,7 +95,7 @@ namespace Doxense.Memory.Text
 		/// <param name="offset">Offset (in bytes) of the start of the string in <paramref name="buffer"/></param>
 		/// <param name="count">Size (in bytes) of the string in <paramref name="buffer"/></param>
 		/// <param name="discardBom">If true, discard any UTF-8 BOM if present</param>
-		/// <param name="noHashCode">If false, pre-compute the hashcode of the string. If you will not use this string for comparisons or as a key in a dictionary, you can skip this step by passing true.</param>
+		/// <param name="noHashCode">If false, pre-compute the hashcode of the string. If you do not use this string for comparisons or as a key in a dictionary, you can skip this step by passing true.</param>
 		/// <returns><see cref="Utf8String"/> that maps to the corresponding <paramref name="buffer"/></returns>
 		/// <remarks>This method needs to compute the length (and hashcode) of the string. You should cache the result if you need it more than once.</remarks>
 		[Pure]
@@ -146,7 +146,7 @@ namespace Doxense.Memory.Text
 			return new Utf8String(buffer, length, hashCode);
 		}
 
-		/// <summary>Truncate the UTF-8 BOM prefix from a buffer, it is exists</summary>
+		/// <summary>Truncate the UTF-8 BOM prefix from a buffer, if it exists</summary>
 		[Pure]
 		public static Slice RemoveBom(Slice buffer)
 		{
@@ -158,7 +158,7 @@ namespace Doxense.Memory.Text
 			return buffer;
 		}
 
-		/// <summary>Truncate the UTF-8 BOM prefix from a buffer, it is exists</summary>
+		/// <summary>Truncate the UTF-8 BOM prefix from a buffer, if it exists</summary>
 		[Pure]
 		public static ReadOnlySpan<byte> RemoveBom(ReadOnlySpan<byte> buffer)
 		{
@@ -280,6 +280,7 @@ namespace Doxense.Memory.Text
 		{
 			if (other.Length == 0) return this.Length == 0;
 			if (other.Length != this.Length) return false;
+
 			using (var it = GetEnumerator())
 			{
 				foreach (var ch in other)

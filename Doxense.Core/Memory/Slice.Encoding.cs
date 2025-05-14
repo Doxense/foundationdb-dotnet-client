@@ -264,7 +264,7 @@ namespace System
 			_ => unchecked(new Slice([ (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40), (byte) (value >> 48) ], 0, 7)),
 		};
 
-		/// <summary>Encode a signed 64-bit integer into a 8-byte slice in little-endian</summary>
+		/// <summary>Encode a signed 64-bit integer into an 8-byte slice in little-endian</summary>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice FromFixed64(long value)
@@ -286,7 +286,7 @@ namespace System
 			_ => unchecked(new Slice([ (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value ], 0, 7)),
 		};
 
-		/// <summary>Encode a signed 64-bit integer into a 8-byte slice in big-endian</summary>
+		/// <summary>Encode a signed 64-bit integer into an 8-byte slice in big-endian</summary>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice FromFixed64BE(long value)
@@ -305,7 +305,7 @@ namespace System
 			_ => FromFixedU64(value)
 		};
 
-		/// <summary>Encode an unsigned 64-bit integer into a 8-byte slice in little-endian</summary>
+		/// <summary>Encode an unsigned 64-bit integer into an 8-byte slice in little-endian</summary>
 		/// <remarks>0x1122334455667788 => 11 22 33 44 55 66 77 88</remarks>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -337,7 +337,7 @@ namespace System
 			return FromFixedU64BE(value);
 		}
 
-		/// <summary>Encode an unsigned 64-bit integer into a 8-byte slice in big-endian</summary>
+		/// <summary>Encode an unsigned 64-bit integer into an 8-byte slice in big-endian</summary>
 		/// <remarks>0x1122334455667788 => 88 77 66 55 44 33 22 11</remarks>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -387,7 +387,7 @@ namespace System
 			lower = (ulong) value;
 		}
 
-		/// <summary>Encode a signed 64-bit integer into a 8-byte slice in little-endian</summary>
+		/// <summary>Encode a signed 64-bit integer into an 8-byte slice in little-endian</summary>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice FromInt128(Int128 value)
@@ -437,7 +437,7 @@ namespace System
 
 		}
 
-		/// <summary>Encode a signed 64-bit integer into a 8-byte slice in little-endian</summary>
+		/// <summary>Encode a signed 64-bit integer into an 8-byte slice in little-endian</summary>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice FromUInt128(UInt128 value)
@@ -490,7 +490,7 @@ namespace System
 			return new Slice(tmp);
 		}
 
-		/// <summary>Encode a unsigned 128-bit integer into a 16-byte slice in little-endian</summary>
+		/// <summary>Encode an unsigned 128-bit integer into a 16-byte slice in little-endian</summary>
 		public static Slice FromFixedU128(UInt128 value)
 		{
 			var tmp = new byte[16];
@@ -506,7 +506,7 @@ namespace System
 			return new Slice(tmp);
 		}
 
-		/// <summary>Encode a unsigned 128-bit integer into a 16-byte slice in big-endian</summary>
+		/// <summary>Encode an unsigned 128-bit integer into a 16-byte slice in big-endian</summary>
 		public static Slice FromFixedU128BE(UInt128 value)
 		{
 			var tmp = new byte[16];
@@ -722,7 +722,7 @@ namespace System
 			return value.ToSlice();
 		}
 
-		/// <summary>Create a 10-byte slice containing a 80-bit UUID</summary>
+		/// <summary>Create a 10-byte slice containing an 80-bit UUID</summary>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice FromUuid80(Uuid80 value)
@@ -887,12 +887,12 @@ namespace System
 		/// <remarks>
 		/// This method is optimized for strings that usually contain only ASCII characters.
 		/// DO NOT call this method to encode special strings that contain binary prefixes, like "\xFF/some/system/path" or "\xFE\x01\x02\x03", because they do not map to UTF-8 directly.
-		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(string)"/>.
+		/// For these case, or when you know that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(string)"/>.
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice FromString(string? value)
 		{
-			//REVIEW: what if people call FromString"\xFF/some/system/path") by mistake?
+			//REVIEW: what if people call FromString("\xFF/some/system/path") by mistake?
 			// Should be special case when the string starts with \xFF (or \xFF\xFF)? What about \xFE ?
 			if (value == null) return default;
 			byte[]? _ = null;
@@ -903,7 +903,7 @@ namespace System
 		/// <remarks>
 		/// This method is optimized for strings that usually contain only ASCII characters.
 		/// DO NOT call this method to encode special strings that contain binary prefixes, like "\xFF/some/system/path" or "\xFE\x01\x02\x03", because they do not map to UTF-8 directly.
-		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.
+		/// For these case, or when you know that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice FromString(ReadOnlySpan<char> value)
@@ -916,7 +916,7 @@ namespace System
 		/// <remarks>
 		/// This method is optimized for strings that usually contain only ASCII characters.
 		/// DO NOT call this method to encode special strings that contain binary prefixes, like "\xFF/some/system/path" or "\xFE\x01\x02\x03", because they do not map to UTF-8 directly.
-		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.
+		/// For these case, or when you know that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.
 		/// </remarks>
 		[Pure]
 		public static Slice FromString(ReadOnlySpan<char> value, ref byte[]? buffer)
@@ -950,7 +950,7 @@ namespace System
 						if (Utf8NoBomEncoding.GetBytes(chars, value.Length, ptr, capa) != capa)
 						{
 #if DEBUG
-							// uhoh, on a une désynchro entre GetByteCount() et ce que l'encoding a réellement généré??
+							// there is a mismatch between GetByteCount() and what GetBytes() produced!
 							if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
 #endif
 							throw new InvalidOperationException("UTF-8 byte capacity estimation failed.");
@@ -968,12 +968,12 @@ namespace System
 		/// - If the string provided can ONLY contain ASCII, you should use <see cref="FromStringAscii(string)"/>.
 		/// - If it is more frequent for the string to be ASCII-only than having UNICODE characters, consider using <see cref="FromString(string)"/>.
 		/// DO NOT call this method to encode special strings that contain binary prefixes, like "\xFF/some/system/path" or "\xFE\x01\x02\x03", because they do not map to UTF-8 directly.
-		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(string)"/>.
+		/// For these case, or when you know that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(string)"/>.
 		/// </remarks>
 		[Pure]
 		public static Slice FromStringUtf8(string? value)
 		{
-			//REVIEW: what if people call FromString"\xFF/some/system/path") by mistake?
+			//REVIEW: what if people call FromString("\xFF/some/system/path") by mistake?
 			// Should be special case when the string starts with \xFF (or \xFF\xFF)? What about \xFE ?
 			return value == null ? default
 			     : value.Length == 0 ? Empty
@@ -987,7 +987,7 @@ namespace System
 		/// - If the string provided can ONLY contain ASCII, you should use <see cref="FromStringAscii(string)"/>.
 		/// - If it is more frequent for the string to be ASCII-only than having UNICODE characters, consider using <see cref="FromString(ReadOnlySpan{char})"/>.
 		/// DO NOT call this method to encode special strings that contain binary prefixes, like "\xFF/some/system/path" or "\xFE\x01\x02\x03", because they do not map to UTF-8 directly.
-		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.
+		/// For these case, or when you know that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.
 		/// </remarks>
 		public static Slice FromStringUtf8(ReadOnlySpan<char> value)
 		{
@@ -1003,7 +1003,7 @@ namespace System
 		/// - If the string provided can ONLY contain ASCII, you should use <see cref="FromStringAscii(ReadOnlySpan{char})"/>.
 		/// - If it is more frequent for the string to be ASCII-only than having UNICODE characters, consider using <see cref="FromString(ReadOnlySpan{char})"/>.
 		/// DO NOT call this method to encode special strings that contain binary prefixes, like "\xFF/some/system/path" or "\xFE\x01\x02\x03", because they do not map to UTF-8 directly.
-		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.
+		/// For these case, or when you know that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.
 		/// </remarks>
 		public static Slice FromStringUtf8(ReadOnlySpan<char> value, ref byte[]? buffer, out bool asciiOnly)
 		{
@@ -1032,7 +1032,7 @@ namespace System
 						if (len != Utf8NoBomEncoding.GetBytes(inp, value.Length, outp, len))
 						{
 #if DEBUG
-							// uhoh, y a mismatch entre GetByteCount() et l'encoding UTF-8!
+							// there is a mismatch between GetByteCount() and what GetBytes() produced!
 							if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
 #endif
 							throw new InvalidOperationException("UTF-8 string size estimation failed.");
@@ -1048,12 +1048,12 @@ namespace System
 		/// If the string is null, an empty slice is returned.
 		/// If the string is empty, the UTF-8 BOM is returned.
 		/// DO NOT call this method to encode special strings that contain binary prefixes, like "\xFF/some/system/path" or "\xFE\x01\x02\x03", because they do not map to UTF-8 directly.
-		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(string)"/>.
+		/// For these case, or when you know that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(string)"/>.
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice FromStringUtf8WithBom(string? value)
 		{
-			//REVIEW: what if people call FromString"\xFF/some/system/path") by mistake?
+			//REVIEW: what if people call FromString("\xFF/some/system/path") by mistake?
 			// Should be special case when the string starts with \xFF (or \xFF\xFF)? What about \xFE ?
 			if (value == null) return default;
 			byte[]? _ = null;
@@ -1065,7 +1065,7 @@ namespace System
 		/// If the string is null, an empty slice is returned.
 		/// If the string is empty, the UTF-8 BOM is returned.
 		/// DO NOT call this method to encode special strings that contain binary prefixes, like "\xFF/some/system/path" or "\xFE\x01\x02\x03", because they do not map to UTF-8 directly.
-		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(string)"/>.
+		/// For these case, or when you know that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(string)"/>.
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice FromStringUtf8WithBom(ReadOnlySpan<char> value)
@@ -1079,7 +1079,7 @@ namespace System
 		/// If the string is null, an empty slice is returned.
 		/// If the string is empty, the UTF-8 BOM is returned.
 		/// DO NOT call this method to encode special strings that contain binary prefixes, like "\xFF/some/system/path" or "\xFE\x01\x02\x03", because they do not map to UTF-8 directly.
-		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.
+		/// For these case, or when you know that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.
 		/// </remarks>
 		[Pure]
 		public static Slice FromStringUtf8WithBom(ReadOnlySpan<char> value, [NotNull] ref byte[]? buffer)
@@ -1450,12 +1450,12 @@ namespace System
 			=> this.Span.ToHexaString('\0', lowerCase: true);
 #endif
 
-		/// <summary>[OBSOLETE] Please replace with a either <see cref="ToHexString()"/> or <see cref="ToHexStringLower()"/></summary>
+		/// <summary>[OBSOLETE] Please replace with either <see cref="ToHexString()"/> or <see cref="ToHexStringLower()"/></summary>
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[Obsolete("Please replace with a either ToHexString() or ToHexStringLower()", error: true)]
 		public string ToHexaString(bool lower = false) => lower ? ToHexStringLower() : ToHexString();
 
-		/// <summary>[OBSOLETE] Please replace with a either <see cref="ToHexString(char)"/> or <see cref="ToHexStringLower(char)"/></summary>
+		/// <summary>[OBSOLETE] Please replace with either <see cref="ToHexString(char)"/> or <see cref="ToHexStringLower(char)"/></summary>
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[Obsolete("Please replace with a either ToHexString(char) or ToHexStringLower(char)", error: true)]
 		public string ToHexaString(char sep, bool lower = false) => lower ? ToHexStringLower(sep) : ToHexString(sep);
@@ -1574,10 +1574,10 @@ namespace System
 			//   - regular UTF-8 encoded text "Héllo Wôrld!"
 			//   - text with control codes like \r, \n, \t or '\' that must be escaped nicely(ex: '\n' => "\\n")
 			//   - text in simple binary encodings with some prefix/suffix (ex: "<02>Hello World!<00>" for tuples)
-			// - Binary: any fixed or viariable size integer, GUID, Date, ...
+			// - Binary: any fixed or variable size integer, GUID, Date, ...
 			//   - for small 32/64 bits values, it would be nice to also see the converted decimal value
 			//   - keys will probably be high-endian (ordered)
-			//   - values will prorbably be little-endian (unordered)
+			//   - values will probably be little-endian (unordered)
 			//   - compressed or random values that have absolutely no discernable features
 			// - Any mixture of the two (ex: a GUID followed by an utf-8 string
 
@@ -1588,7 +1588,7 @@ namespace System
 			{
 				// look for UTF-8 BOM
 				if (count >= 3 && buffer[0] == 0xEF && buffer[1] == 0xBB && buffer[2] == 0xBF)
-				{ // this is supposed to be an UTF-8 string
+				{ // this is supposed to be a UTF-8 string
 					return EscapeString(new StringBuilder(count).Append('\''), count > maxLen ? buffer[..maxLen] : buffer, Slice.Utf8NoBomEncoding).Append('\'').ToString();
 				}
 
@@ -1672,7 +1672,7 @@ namespace System
 			}
 		}
 
-		/// <summary>Converts a slice into a signed byte (-128..+127)</summary>
+		/// <summary>Converts a slice into a signed byte (-128...+127)</summary>
 		/// <returns>Value of the first and only byte of the slice, or 0 if the slice is null or empty.</returns>
 		/// <exception cref="System.FormatException">If the slice has more than one byte</exception>
 		[Pure]
@@ -1694,7 +1694,7 @@ namespace System
 		public bool ToBool()
 		{
 			EnsureSliceIsValid();
-			// Anything appart from nil/empty, or the byte 0 itself is considered truthy.
+			// Anything apart from nil/empty, or the byte 0 itself is considered truthy.
 			return this.Count > 1 || (this.Count == 1 && this.Array[this.Offset] != 0);
 			//TODO: consider checking if the slice consist of only zeroes ? (ex: Slice.FromFixed32(0) could be considered falsy ...)
 		}
@@ -2456,7 +2456,7 @@ namespace System
 			};
 		}
 
-#if NET8_0_OR_GREATER // System.Int128 and System.UInt128 are only usable starting from .NET 8.0 (technically 7.0 but we don't support it)
+#if NET8_0_OR_GREATER // System.Int128 and System.UInt128 are only usable starting from .NET 8.0 (technically 7.0, but we don't support it)
 
 		/// <summary>Converts a slice into a little-endian encoded, signed 128-bit integer.</summary>
 		/// <returns>0 of the slice is null or empty, a signed integer, or an error if the slice has more than 8 bytes</returns>
