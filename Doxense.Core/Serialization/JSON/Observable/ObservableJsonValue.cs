@@ -14,7 +14,7 @@ namespace Doxense.Serialization.Json
 	using System.ComponentModel;
 
 	/// <summary>Observable JSON Object that will capture all reads</summary>
-	[DebuggerDisplay("{ToString(),nq}")]
+	[DebuggerDisplay("{ToStringUntracked(),nq}")]
 	[PublicAPI]
 	public sealed class ObservableJsonValue : IJsonProxyNode, IJsonSerializable, IJsonPackable, IEquatable<ObservableJsonValue>, IEquatable<JsonValue>, IComparable<ObservableJsonValue>, IComparable<JsonValue>, IEnumerable<ObservableJsonValue>
 	{
@@ -1048,7 +1048,20 @@ namespace Doxense.Serialization.Json
 		#endregion
 
 		/// <inheritdoc />
-		public override string ToString() => this.Segment.IsEmpty() ? this.Json.ToString("Q") : $"{this.GetPath()}: {this.Json.ToString("Q")}";
+		public override string ToString()
+		{
+			// note: there is an issue with the debugger calling ToString() when inspecting variables on the stack,
+			// which will could automatically track the read, even though the calling code never intended for this.
+			// There seems to be no 100% reliable way to prevent the debugger from invoking ToString().
+			// We already have added [DebuggerDisplay(...)] which should remove most of the unwanted calls.
+			// One solution would be to inspect the callstack to look for signs of the .NET debugger, but this seems too costly
+
+			RecordSelfAccess(ObservableJsonAccess.Value, this.Json);
+			return this.Json.ToString();
+		}
+
+		/// <summary>Generate a string representation of this object for debugging purpose</summary>
+		private string ToStringUntracked() => this.Segment.IsEmpty() ? this.Json.ToString("Q") : $"{this.GetPath()}: {this.Json.ToString("Q")}";
 
 		/// <inheritdoc />
 		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
