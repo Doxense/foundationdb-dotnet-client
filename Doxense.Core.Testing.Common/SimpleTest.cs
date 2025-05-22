@@ -2103,6 +2103,242 @@ namespace SnowBank.Testing
 
 		#endregion
 
+		#region Call Tracking...
+
+		/// <summary>Instance for tracking and awaiting calls to asynchronous callbacks, from the main thread of the test method</summary>
+		/// <typeparam name="T">Type of the metadata linked to each calls</typeparam>
+		[DebuggerDisplay("Label={Label}, WasCalled={WasCalled}, Sample={Sample}")]
+		protected class CallTracker<T>
+		{
+
+			internal CallTracker(string label, CancellationToken lifetime)
+			{
+				this.Label = label;
+				this.StartedAt = Stopwatch.GetTimestamp();
+				this.Token = Guid.NewGuid();
+				this.Cancellation = lifetime;
+			}
+
+			public string Label { get; }
+
+			/// <summary>Token for the current run</summary>
+			/// <remarks>This token is changed after each call to <see cref="Reset"/>, and is used to track "late calls" from callbacks from a previous step.</remarks>
+			public Guid Token { get; private set; }
+
+			/// <summary>Cancellation token of the running test</summary>
+			private CancellationToken Cancellation { get; }
+
+			/// <summary>Flag that is set to <c>true</c> whenever <see cref="NotifySuccess"/> is called.</summary>
+			/// <remarks>This flag is reset to <c>false</c> whenever <see cref="Reset"/> is called.</remarks>
+			public bool WasCalled { get; private set; }
+
+			/// <summary>Timestamp of the start of the current run</summary>
+			/// <remarks>This is updated everytime <see cref="Reset"/> is called</remarks>
+			private long StartedAt { get; set; }
+
+			/// <summary>Timestamp of the end of the current run</summary>
+			/// <remarks>This is updated everytime <see cref="NotifySuccess"/> or <see cref="NotifyError"/> are called, and reset to <c>null</c> when <see cref="Reset"/> is called.</remarks>
+			private long? CompletedAt { get; set; }
+
+			/// <summary>Metadata forwarded by the callback</summary>
+			/// <remarks>This is the value of the argument that was passed to <see cref="NotifySuccess"/>.</remarks>
+			public T? Sample { get; private set; }
+
+			/// <summary>Signal used to wake up the main test thread when either <see cref="NotifySuccess"/> or <see cref="NotifyError"/> is called.</summary>
+			private TaskCompletionSource<T?> Signal { get; set; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+#if NET9_0_OR_GREATER
+			private System.Threading.Lock Lock { get; } = new();
+#else
+			private object Lock { get; } = new();
+#endif
+
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			private bool IsValidToken(Guid? token)
+			{
+				return token is null || this.Token == token.Value;
+			}
+
+			/// <summary>Notify that the asynchronous callback has fired</summary>
+			/// <param name="value">Value that the callback wants to forward to the main test thread.</param>
+			/// <param name="token">Token that should either be <c>null</c>, or match the current value of <see cref="Token"/>. Any other value will be ignored.</param>
+			/// <remarks>
+			/// <para>This should be called from inside the async callback.</para>
+			/// </remarks>
+			public void NotifySuccess(T? value = default, Guid? token = null)
+			{
+				// capture the timestamp early, we don't want to include too much framework overhead.
+				var now = Stopwatch.GetTimestamp();
+
+				if (this.Cancellation.IsCancellationRequested)
+				{ // too late!
+					return;
+				}
+
+				lock (this.Lock)
+				{
+					if (this.Cancellation.IsCancellationRequested || !IsValidToken(token))
+					{ // this is a lagging call from a previous run
+						return;
+					}
+
+					this.Sample = value;
+					this.WasCalled = true;
+
+					if (this.Signal.TrySetResult(value))
+					{
+						this.CompletedAt = now;
+					}
+				}
+			}
+
+			/// <summary>Notify that the asynchronous callback has failed, or when it is known that the callback will never fire.</summary>
+			/// <param name="error">Exception that was captured</param>
+			/// <param name="token">Token that should either be <c>null</c>, or match the current value of <see cref="Token"/>. Any other value will be ignored.</param>
+			/// <remarks>
+			/// <para>This should be called from inside the async callback if it wants to propagate an exception to the main test thread, or by some other thread that wants to cancel the operation.</para>
+			/// <para>If the system under test has an <c>OnError</c> (or similar) event, it is a good place to call to this method from there, in order to immediately fail the test.</para>
+			/// </remarks>
+			public void NotifyError(Exception? error, Guid? token = null)
+			{
+				// capture the timestamp early, we don't want to include too much framework overhead.
+				var now = Stopwatch.GetTimestamp();
+
+				if (this.Cancellation.IsCancellationRequested)
+				{ // too late!
+					return;
+				}
+
+				error ??= new InvalidOperationException("The asynchronous callback failed without providing an explicit exception.");
+
+				lock (this.Lock)
+				{
+					if (this.Cancellation.IsCancellationRequested || !IsValidToken(token))
+					{ // this is a lagging call from a previous run
+						return;
+					}
+
+					if (this.Signal.TrySetException(error))
+					{
+						this.CompletedAt = now;
+					}
+				}
+			}
+
+			/// <summary>Time elapsed from the start of the current and the first call to <see cref="NotifySuccess"/> or <see cref="NotifyError"/>, or the current instant if the tracker has still not been triggered.</summary>
+			public TimeSpan Elapsed => Stopwatch.GetElapsedTime(this.StartedAt, this.CompletedAt ?? Stopwatch.GetTimestamp());
+
+			/// <summary>Waits until the tracker is triggered, a timeout expires, of the test is cancelled</summary>
+			/// <param name="timeout">Maximum delay allowed for the tracker to be called</param>
+			/// <returns>Task that completes successfully if the tracker is called before the specified <see cref="timeout"/>; or fails if the timeout expires, or the tests is cancelled</returns>
+			public Task<T?> WaitAsync(TimeSpan timeout)
+			{
+				if (timeout <= TimeSpan.Zero)
+				{
+					throw new ArgumentException("Timeout must be greater than zero, and cannot be infinite.", nameof(timeout));
+				}
+				Contract.Debug.Requires(timeout > TimeSpan.Zero);
+
+				if (this.Cancellation.IsCancellationRequested)
+				{ // test was already canceled
+					return HandleCancellation();
+				}
+
+				Task<T?> t;
+				lock (this.Lock)
+				{
+					if (this.Cancellation.IsCancellationRequested)
+					{ // test was just canceled
+						return HandleCancellation();
+					}
+
+					t = this.Signal.Task;
+				}
+
+				return t.IsCompleted ? t : t.WaitAsync(timeout, this.Cancellation);
+
+				Task<T?> HandleCancellation()
+				{
+					if (this.Signal.TrySetCanceled(this.Cancellation))
+					{
+						this.CompletedAt = Stopwatch.GetTimestamp();
+					}
+					return Task.FromCanceled<T?>(this.Cancellation);
+				}
+
+			}
+
+			public Guid Reset()
+			{
+				var token = Guid.NewGuid();
+				lock (this.Lock)
+				{
+					this.Signal.TrySetCanceled();
+					this.Signal = new(TaskCreationOptions.RunContinuationsAsynchronously);
+					this.Token = token;
+					this.CompletedAt = null;
+					this.WasCalled = false;
+					this.Sample = default;
+					this.StartedAt = Stopwatch.GetTimestamp();
+					return token;
+				}
+			}
+
+		}
+
+		private int TrackerCounter;
+
+		/// <summary>Returns a tracker that will capture asynchronous callback invocations and notify the main thread when they happen.</summary>
+		/// <typeparam name="T">Type of value that can be used to distinguish multiple calls, or capture some interesting state that must be checked.</typeparam>
+		/// <param name="label">Name for this tracker (optional)</param>
+		/// <returns>Tuple with the tracker, and the initial token value.</returns>
+		/// <remarks>
+		/// <para>A tracker can be used to safely "await" some asynchronous event, from the main test thread, within the safety of a timeout.</para>
+		/// <para>The asynchronous callback should call either <see cref="CallTracker{T}.NotifySuccess"/> or <see cref="CallTracker{T}.NotifyError"/> to wake up the main test thread.</para>
+		/// <para>A tracker can be used multiple times by calling <see cref="CallTracker{T}.Reset"/> between each step, and capturing the corresponding token.</para>
+		/// <para>The callback can forward a <typeparamref name="T"/> value to the main test thread.</para>
+		/// </remarks>
+		/// <example>
+		/// <code>
+		/// // create a	tracker
+		/// var (tracker, token) = CreateTracker&lt;string&gt;("onChangedCallback");
+		/// // configure the SuT
+		/// var foo = ....;
+		/// foo.OnChanged = (id, ...) =>
+		/// {
+		///    // your test logic
+		/// 
+		///    tracker.NotifySuccess(id, token); // capture "id", will be exposed via the tracker.Sample property
+		/// };
+		/// 
+		/// // perform the first test
+		/// foo.DoSomething(...); // => should trigger the OnChanged callback under the hood
+		///
+		/// // wait for at most 1 second for the callback to fire
+		/// var capturedId = await tracker.WaitAsync(TimeSpan.FromSeconds(1));
+		/// // => succeeds if the "OnChanged" callback is invoked
+		/// // => fails if nothing happens within 1 second
+		///
+		/// // test the value captured in the callback is as expected
+		/// Assert.That(capturedId, Is.EqualTo("foo123"));
+		/// // note: tracker.Sample will also hold the captured value
+		/// </code>
+		/// </example>
+		protected (CallTracker<T> Tracker, Guid Token) CreateTracker<T>(string? label = null)
+		{
+			// generate a label, if none is provided
+			if (string.IsNullOrWhiteSpace(label))
+			{
+				var counter = Interlocked.Increment(ref this.TrackerCounter);
+				label = $"Tracker #{counter}";
+			}
+
+			var tracker = new CallTracker<T>(label, this.Cancellation);
+			return (tracker, tracker.Token);
+		}
+
+		#endregion
+
 		#region Obsolete Stuff...
 
 		// this will be removed soon !
