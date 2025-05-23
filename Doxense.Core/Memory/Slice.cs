@@ -3671,7 +3671,9 @@ namespace System
 			=> ref TryGetReferenceAt(buffer, index.GetOffset(buffer.Count), out valid);
 
 		/// <summary>Tests if a reference points inside the corresponding slice</summary>
-		/// <returns><see langword="true"/> if <param name="ptr"> points to a byte inside the slice, or <see langword="false"/> if it is outside the slice</param></returns>
+		/// <param name="buffer">Buffer that is being tested</param>
+		/// <param name="ptr">Pointer that may or may not point inside <paramref name="buffer"/></param>
+		/// <returns><see langword="true"/> if <paramref name="ptr"/> points to a byte inside the slice, or <see langword="false"/> if it is outside the slice</returns>
 		[Pure]
 		public static bool IsAddressInside(Slice buffer, ref readonly byte ptr)
 		{

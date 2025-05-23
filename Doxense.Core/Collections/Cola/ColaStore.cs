@@ -532,7 +532,7 @@ namespace SnowBank.Collections.Generic
 		/// <param name="comparer"></param>
 		/// <param name="offset">Receive the offset within the level of the next element, or 0 if not found</param>
 		/// <param name="result">Receive the value of the next element, or default(T) if not found</param>
-		/// <returns>Level of the next element, or -1 if <param name="result"/> was already the largest</returns>
+		/// <returns>Level of the next element, or -1 if <paramref name="result"/> was already the largest</returns>
 		public static int FindNext<T>(ColaStore<T> store, int count, T value, bool orEqual, IComparer<T> comparer, out int offset, out T result)
 		{
 			int level = NOT_FOUND;
@@ -589,7 +589,7 @@ namespace SnowBank.Collections.Generic
 		/// <param name="comparer"></param>
 		/// <param name="offset">Receive the offset within the level of the previous element, or 0 if not found</param>
 		/// <param name="result">Receive the value of the previous element, or default(T) if not found</param>
-		/// <returns>Level of the previous element, or -1 if <param name="result"/> was already the smallest</returns>
+		/// <returns>Level of the previous element, or -1 if <paramref name="result"/> was already the smallest</returns>
 		public static int FindPrevious<T>(ColaStore<T> store, int count, T value, bool orEqual, IComparer<T> comparer, out int offset, out T result)
 		{
 			int level = NOT_FOUND;

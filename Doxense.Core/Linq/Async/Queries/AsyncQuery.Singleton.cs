@@ -40,6 +40,7 @@ namespace SnowBank.Linq
 
 		/// <summary>Returns an async sequence which will produce a single element, using the specified lambda</summary>
 		/// <param name="selector">Lambda that will be called once per iteration, to produce the single element of this sequence</param>
+		/// <param name="ct">Token used to cancel the execution of this query</param>
 		/// <remarks>If the sequence is iterated multiple times, then <paramref name="selector"/> will be called once for each iteration.</remarks>
 		[Pure, LinqTunnel]
 		[OverloadResolutionPriority(1)]
@@ -51,6 +52,7 @@ namespace SnowBank.Linq
 
 		/// <summary>Returns an async sequence which will produce a single element, using the specified lambda</summary>
 		/// <param name="selector">Lambda that will be called once per iteration, to produce the single element of this sequence</param>
+		/// <param name="ct">Token used to cancel the execution of this query</param>
 		/// <remarks>If the sequence is iterated multiple times, then <paramref name="selector"/> will be called once for each iteration.</remarks>
 		[Pure, LinqTunnel]
 		[OverloadResolutionPriority(1)]
@@ -62,6 +64,7 @@ namespace SnowBank.Linq
 
 		/// <summary>Returns an async sequence which will produce a single element, using the specified lambda</summary>
 		/// <param name="selector">Lambda that will be called once per iteration, to produce the single element of this sequence</param>
+		/// <param name="ct">Token used to cancel the execution of this query</param>
 		/// <remarks>If the sequence is iterated multiple times, then <paramref name="selector"/> will be called once for each iteration.</remarks>
 		[Pure, LinqTunnel]
 		[OverloadResolutionPriority(2)]

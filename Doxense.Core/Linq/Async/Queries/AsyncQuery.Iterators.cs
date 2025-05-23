@@ -294,9 +294,11 @@ namespace SnowBank.Linq
 		}
 
 		/// <summary>Immediately execute an action on each element of an async query</summary>
+		/// <typeparam name="TState">Type of the state</typeparam>
 		/// <typeparam name="TSource">Type of elements of the async query</typeparam>
 		/// <param name="source">Source async query</param>
 		/// <param name="mode">If different from default, can be used to optimise the way the source will produce the items</param>
+		/// <param name="state">Value that will be passed as the first parameter to <paramref name="action"/></param>
 		/// <param name="action">Action to perform on each element as it arrives</param>
 		/// <returns>Number of items that have been processed</returns>
 		internal static async Task Run<TState, TSource>(
@@ -400,9 +402,11 @@ namespace SnowBank.Linq
 		}
 
 		/// <summary>Immediately execute an async action on each element of an async query</summary>
+		/// <typeparam name="TState">Type of the state</typeparam>
 		/// <typeparam name="TSource">Type of elements of the async query</typeparam>
 		/// <param name="source">Source async query</param>
 		/// <param name="mode">Expected execution mode of the query</param>
+		/// <param name="state">Value that will be passed as the first parameter to <paramref name="action"/></param>
 		/// <param name="action">Asynchronous action to perform on each element as it arrives</param>
 		/// <returns>Number of items that have been processed</returns>
 		internal static async Task Run<TState, TSource>(
@@ -428,6 +432,7 @@ namespace SnowBank.Linq
 		/// <param name="source">Source async query</param>
 		/// <param name="single">If true, the sequence must contain at most one element</param>
 		/// <param name="orDefault">When the sequence is empty: If true then returns the default value for the type. Otherwise, throws an exception</param>
+		/// <param name="defaultValue">Value that is returned when <see cref="orDefault"/> if <c>true</c> and the query does not return any results.</param>
 		/// <returns>Value of the first element of the <param ref="source"/> sequence, or the default value, or an exception (depending on <paramref name="single"/> and <paramref name="orDefault"/></returns>
 		public static async Task<TSource> Head<TSource>(
 			IAsyncQuery<TSource> source,

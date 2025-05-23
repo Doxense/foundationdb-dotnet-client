@@ -1225,10 +1225,7 @@ namespace FdbShell
 			var root = db.Root;
 			var current = root[path];
 			
-			var res = await db.QueryAsync(async tr =>
-			{
-				return query.FindDirectories(tr, db.Root[path]);
-			}, ct);
+			var res = await db.QueryAsync(tr => query.FindDirectories(tr, db.Root[path]), ct);
 
 			terminal.StdOut(res.Count switch
 			{

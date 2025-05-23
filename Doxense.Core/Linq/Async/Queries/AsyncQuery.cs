@@ -76,6 +76,7 @@ namespace SnowBank.Linq
 		/// <summary>Always prefetch the next item from the inner sequence.</summary>
 		/// <typeparam name="TSource">Type of the items in the source sequence</typeparam>
 		/// <param name="source">Source sequence that has a high latency, and from which we want to prefetch a set number of items.</param>
+		/// <param name="ct">Cancellation token for this query</param>
 		/// <returns>Sequence that prefetch the next item, when outputting the current item.</returns>
 		/// <remarks>
 		/// This iterator can help smooth out the query pipeline when every call to the inner sequence has a somewhat high latency (ex: reading the next page of results from the database).

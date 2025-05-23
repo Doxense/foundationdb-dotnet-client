@@ -328,6 +328,8 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Writes a top-level array, and flushes the stream</summary>
+		/// <typeparam name="TState">Type of the state</typeparam>
+		/// <param name="state">Value that will be passed as the first parameter to <paramref name="handler"/></param>
 		/// <param name="handler">Handler that is responsible for writing the array content into the stream</param>
 		/// <param name="cancellationToken">Token used to cancel the operation</param>
 		/// <remarks>

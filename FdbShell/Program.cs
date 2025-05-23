@@ -770,7 +770,7 @@ namespace FdbShell
 				string? statusPrompt;
 				string? prompt;
 
-				const string COLOR_FDB_BLUE_LIGHT = "#9BCFFF";
+				//const string COLOR_FDB_BLUE_LIGHT = "#9BCFFF";
 				const string COLOR_FDB_BLUE_MEDIUM = "#379CF6";
 				const string COLOR_FDB_BLUE_DARK = "#0073E6";
 

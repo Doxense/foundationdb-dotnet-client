@@ -34,7 +34,7 @@ namespace SnowBank.Linq
 		/// <param name="hint">Hint passed to the source provider.</param>
 		/// <returns>Sequence that will asynchronously return the results of this query.</returns>
 		/// <remarks>
-		/// <para>For best performance, the caller should take care to provide a <see cref="hint"/> that matches how this query will be consumed downstream.</para>
+		/// <para>For best performance, the caller should take care to provide a <paramref name="hint"/> that matches how this query will be consumed downstream.</para>
 		/// <para>If the hint does not match, performance may be degraded.
 		/// For example, if the caller will consumer this query using <c>await foreach</c> or <c>ToListAsync</c>, but uses <see cref="AsyncIterationHint.Iterator"/>, the provider may fetch small pages initially, before ramping up.
 		/// The opposite is also true if the caller uses <see cref="AsyncIterationHint.All"/> but consumes the query using <c>AnyAsync()</c> or <c>FirstOrDefaultAsync</c>, the provider may fetch large pages and waste most of it except the first few elements.
