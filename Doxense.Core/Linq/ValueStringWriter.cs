@@ -291,7 +291,7 @@ namespace SnowBank.Linq
 		public readonly override string ToString() => this.Span.ToString();
 
 		/// <summary>Returns a <see cref="string"/> with a copy of the content in this instance, and clears the buffer so that it can be reused immediately</summary>
-		/// <remarks>This is the equivalent to calling <see cref="ToString"/>, followed by <see cref="Clear"/></remarks>
+		/// <remarks>This is the equivalent to calling <see cref="ToString"/>, followed by <see cref="Clear()"/></remarks>
 		public string ToStringAndClear()
 		{
 			var s = ToString();
@@ -325,7 +325,7 @@ namespace SnowBank.Linq
 		/// <summary>Returns a <see cref="Slice"/> with a copy of the content in this instance, and clears the buffer so that it can be reused immediately</summary>
 		/// <param name="pool">If non-null, pool used to allocate the b</param>
 		/// <remarks>
-		/// <para>This is the equivalent to calling <see cref="ToUtf8SliceOwner"/>, followed by <see cref="Clear"/></para>
+		/// <para>This is the equivalent to calling <see cref="ToUtf8SliceOwner"/>, followed by <see cref="Clear()"/></para>
 		/// </remarks>
 		public Slice ToUtf8SliceAndClear(ArrayPool<byte>? pool = null)
 		{
@@ -369,7 +369,7 @@ namespace SnowBank.Linq
 		/// <returns>
 		/// <para><see cref="SliceOwner"/> instance with a copy of the content allocated using <paramref name="pool"/>. The value <b>MUST</b> be disposed at a later point; otherwise, the buffer will not be returned to the pool.</para>
 		/// <para>Calling this method will not release the buffer allocated by this instance.</para>
-		/// <para>This is the equivalent to calling <see cref="ToUtf8SliceOwner"/>, followed by <see cref="Clear"/></para>
+		/// <para>This is the equivalent to calling <see cref="ToUtf8SliceOwner"/>, followed by <see cref="Clear()"/></para>
 		/// </returns>
 		public SliceOwner ToUtf8SliceOwnerAndClear(ArrayPool<byte>? pool = null)
 		{

@@ -66,7 +66,7 @@ namespace SnowBank.Collections.Caching
 		/// <summary>Retourne la valeur d'une entrée dans le cache, en la créant si nécessaire</summary>
 		/// <param name="key">Clé de l'entrée recherchée</param>
 		/// <param name="factory">Lambda qui sera appelée pour générée la valeur à ajouter, si elle n'existait pas</param>
-		/// <param name="state">Valeur passée en second paramètre à <param name="factory"/></param>
+		/// <param name="state">Valeur passée en second paramètre à <paramref name="factory"/></param>
 		/// <returns>Valeur de l'entrée si elle existait, ou le résultat de <paramref name="factory"/> si elle n'existait pas</returns>
 		/// <reremarks>Attention: certains caches n'offrent aucune garantie sur le fait que valueFactory ne soit pas appelé plusieurs fois!</reremarks>
 		TElement GetOrAdd<TState>(TKey key, [InstantHandle] Func<TKey, TState, TElement> factory, TState state);

@@ -82,7 +82,7 @@ namespace SnowBank.Messaging.PubSub
 		/// <param name="autoCompleteOnClose">If <see langword="true"/>, the method <see cref="ChannelWriter{T}.TryComplete"/> will be called on the writer when the subscription is disposed.</param>
 		/// <param name="ct">Token used to forcefully abort the subscription.</param>
 		/// <returns>Subscription token that must be disposed when the caller wants to cancel the subscription.</returns>
-		/// <remarks>Any new message will be pumped into the channel <param name="writer"></param>, until either <paramref name="ct"/> is triggered, or the caller invokes <see cref="IAsyncDisposable.DisposeAsync"/> on the returned token.</remarks>
+		/// <remarks>Any new message will be pumped into the channel <paramref name="writer"/>, until either <paramref name="ct"/> is triggered, or the caller invokes <see cref="IAsyncDisposable.DisposeAsync"/> on the returned token.</remarks>
 		/// 
 		public static async Task<IAsyncDisposable> SubscribeAsync(this IPubSub pubsub, string channel, ChannelWriter<JsonValue> writer, bool autoCompleteOnClose, CancellationToken ct)
 		{

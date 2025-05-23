@@ -37,8 +37,8 @@ namespace SnowBank.Linq
 		/// <param name="beginInclusive">The value of the first integer in the sequence.</param>
 		/// <param name="endExclusive">The value at which the sequence stops iterating.</param>
 		/// <param name="ct">Token used to cancel the execution of this query</param>
-		/// <returns>An <see cref="IAsyncLinqQuery{T}"/> that contains a range of sequential integral numbers from <see cref="beginInclusive"/> (included) to <see cref="endExclusive"/> (excluded).</returns>
-		/// <remarks>The sequence is empty if <see cref="beginInclusive"/> is greater than or equal to <see cref="endExclusive"/></remarks>
+		/// <returns>An <see cref="IAsyncLinqQuery{T}"/> that contains a range of sequential integral numbers from <paramref name="beginInclusive"/> (included) to <paramref name="endExclusive"/> (excluded).</returns>
+		/// <remarks>The sequence is empty if <paramref name="beginInclusive"/> is greater than or equal to <paramref name="endExclusive"/></remarks>
 		public static IAsyncLinqQuery<int> Between(int beginInclusive, int endExclusive, CancellationToken ct = default)
 		{
 			return endExclusive <= beginInclusive
@@ -50,8 +50,8 @@ namespace SnowBank.Linq
 		/// <param name="beginInclusive">The value of the first integer in the sequence.</param>
 		/// <param name="endExclusive">The value at which the sequence stops iterating.</param>
 		/// <param name="ct">Token used to cancel the execution of this query</param>
-		/// <returns>An <see cref="IAsyncLinqQuery{T}"/> that contains a range of sequential integral numbers from <see cref="beginInclusive"/> (included) to <see cref="endExclusive"/> (excluded).</returns>
-		/// <remarks>The sequence is empty if <see cref="beginInclusive"/> is greater than or equal to <see cref="endExclusive"/></remarks>
+		/// <returns>An <see cref="IAsyncLinqQuery{T}"/> that contains a range of sequential integral numbers from <paramref name="beginInclusive"/> (included) to <paramref name="endExclusive"/> (excluded).</returns>
+		/// <remarks>The sequence is empty if <paramref name="beginInclusive"/> is greater than or equal to <paramref name="endExclusive"/></remarks>
 		public static IAsyncLinqQuery<long> Between(long beginInclusive, long endExclusive, CancellationToken ct = default)
 		{
 			if (endExclusive <= beginInclusive) return Empty<long>();
@@ -66,8 +66,8 @@ namespace SnowBank.Linq
 		/// <param name="beginInclusive">The value of the first integer in the sequence.</param>
 		/// <param name="endExclusive">The value at which the sequence stops iterating.</param>
 		/// <param name="ct">Token used to cancel the execution of this query</param>
-		/// <returns>An <see cref="IAsyncLinqQuery{T}"/> that contains a range of sequential integral numbers from <see cref="beginInclusive"/> (included) to <see cref="endExclusive"/> (excluded).</returns>
-		/// <remarks>The sequence is empty if <see cref="beginInclusive"/> is greater than or equal to <see cref="endExclusive"/></remarks>
+		/// <returns>An <see cref="IAsyncLinqQuery{T}"/> that contains a range of sequential integral numbers from <paramref name="beginInclusive"/> (included) to <paramref name="endExclusive"/> (excluded).</returns>
+		/// <remarks>The sequence is empty if <paramref name="beginInclusive"/> is greater than or equal to <paramref name="endExclusive"/></remarks>
 		public static IAsyncLinqQuery<TNumber> Between<TNumber>(TNumber beginInclusive, TNumber endExclusive, CancellationToken ct = default) where TNumber : IIncrementOperators<TNumber>
 			=> new BetweenIterator<TNumber>(beginInclusive, endExclusive, (x) => ++x, Comparer<TNumber>.Default, ct);
 
@@ -76,8 +76,8 @@ namespace SnowBank.Linq
 		/// <param name="endExclusive">The value at which the sequence stops iterating.</param>
 		/// <param name="successor">Function which is called to produce the next element in the sequence of result. It <b>MUST</b> always return an element that is strictly greater than its input, otherwise the sequence will never terminate.</param>
 		/// <param name="ct">Token used to cancel the execution of this query</param>
-		/// <returns>An <see cref="IAsyncLinqQuery{T}"/> that contains a range of sequential integral numbers from <see cref="beginInclusive"/> (included) to <see cref="endExclusive"/> (excluded).</returns>
-		/// <remarks>The sequence is empty if <see cref="beginInclusive"/> is greater than or equal to <see cref="endExclusive"/></remarks>
+		/// <returns>An <see cref="IAsyncLinqQuery{T}"/> that contains a range of sequential integral numbers from <paramref name="beginInclusive"/> (included) to <paramref name="endExclusive"/> (excluded).</returns>
+		/// <remarks>The sequence is empty if <paramref name="beginInclusive"/> is greater than or equal to <paramref name="endExclusive"/></remarks>
 		public static IAsyncLinqQuery<TValue> Between<TValue>(TValue beginInclusive, TValue endExclusive, Func<TValue, TValue> successor, CancellationToken ct = default)
 			=> new BetweenIterator<TValue>(beginInclusive, endExclusive, successor, Comparer<TValue>.Default, ct);
 
@@ -85,10 +85,10 @@ namespace SnowBank.Linq
 		/// <param name="beginInclusive">The value of the first integer in the sequence.</param>
 		/// <param name="endExclusive">The value at which the sequence stops iterating.</param>
 		/// <param name="successor">Function which is called to produce the next element in the sequence of result. It <b>MUST</b> always return an element that is strictly greater than its input, otherwise the sequence will never terminate.</param>
-		/// <param name="comparer">Instance use to compare values in the sequence. The sequence will continue enumerating as long as this comparing the current cursor with <see cref="endExclusive"/> returns a negative value.</param>
+		/// <param name="comparer">Instance use to compare values in the sequence. The sequence will continue enumerating as long as this comparing the current cursor with <paramref name="endExclusive"/> returns a negative value.</param>
 		/// <param name="ct">Token used to cancel the execution of this query</param>
-		/// <returns>An <see cref="IAsyncLinqQuery{T}"/> that contains a range of sequential integral numbers from <see cref="beginInclusive"/> (included) to <see cref="endExclusive"/> (excluded).</returns>
-		/// <remarks>The sequence is empty if <see cref="beginInclusive"/> is greater than or equal to <see cref="endExclusive"/>, according to <see cref="comparer"/>.</remarks>
+		/// <returns>An <see cref="IAsyncLinqQuery{T}"/> that contains a range of sequential integral numbers from <paramref name="beginInclusive"/> (included) to <paramref name="endExclusive"/> (excluded).</returns>
+		/// <remarks>The sequence is empty if <paramref name="beginInclusive"/> is greater than or equal to <paramref name="endExclusive"/>, according to <paramref name="comparer"/>.</remarks>
 		public static IAsyncLinqQuery<TValue> Between<TValue>(TValue beginInclusive, TValue endExclusive, Func<TValue, TValue> successor, IComparer<TValue>? comparer, CancellationToken ct = default)
 			=> new BetweenIterator<TValue>(beginInclusive, endExclusive, successor, comparer ?? Comparer<TValue>.Default, ct);
 

@@ -970,7 +970,7 @@ namespace System
 
 		/// <summary>Tries to format the value of this instance of the <see cref="Uuid128"/> structure in Base62 format to the specified destination.</summary>
 		/// <param name="destination">Destination buffer</param>
-		/// <param name="charsWritten">Receives the number of characters written to <see cref="destination"/></param>
+		/// <param name="charsWritten">Receives the number of characters written to <paramref name="destination"/>></param>
 		/// <param name="padded">If <see langword="false"/> (default), the shortest possible literal is returned. If <see langword="true"/>, the literal is padded with <c>0</c> so that the resulting string can be sorted lexicographically</param>
 		/// <returns><see langword="true"/> if the buffer was large enough; otherwise, <see langword="false"/></returns>
 		private bool TryFormatToBase62(Span<char> destination, out int charsWritten, bool padded = false)

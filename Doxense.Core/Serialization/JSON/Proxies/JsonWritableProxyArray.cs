@@ -524,7 +524,7 @@ namespace Doxense.Serialization.Json
 			m_value.Set(TProxy.Converter.PackEnumerable(items, CrystalJsonSettings.JsonReadOnly));
 		}
 
-		/// <summary>Returns the deserialized elements as a <see cref="TValue"/> array.</summary>
+		/// <summary>Returns the deserialized elements as a <typeparamref name="TValue"/> array.</summary>
 		/// <remarks>
 		/// <para>If the contents are only meant to be enumerated once (via <c>foreach</c> or LINQ), you may want to call <see cref="ToEnumerable"/> instead</para>
 		/// </remarks>

@@ -33,7 +33,7 @@ namespace SnowBank.Linq
 	/// <typeparam name="T">Type of the results returned by this query</typeparam>
 	/// <remarks>
 	/// <para>This type is very similar to <see cref="IAsyncEnumerable{T}"/>, but with a few key differences in regard to the flow of some arguments</para>
-	/// <para>The <see cref="CancellationToken"/> comes from the <b>source</b> of the query (usually a transaction or some other transient scope, like an HTTP request), instead of being passed by the last step in the chain (the call to <see cref="GetAsyncEnumerator(Doxense.Linq.AsyncIterationHint)"/>.</para>
+	/// <para>The <see cref="CancellationToken"/> comes from the <b>source</b> of the query (usually a transaction or some other transient scope, like an HTTP request), instead of being passed by the last step in the chain (the call to <see cref="GetAsyncEnumerator(AsyncIterationHint)"/>.</para>
 	/// <para>The iterator code can pass a "hint", up the chain of operators, to the source of the query, to specify if the intent is to fetch either all the elements (using <see cref="AsyncQuery.ToListAsync{T}"/>, <see cref="AsyncQuery.ToArrayAsync{T}"/>, ...), only the first page of results (<see cref="AsyncQuery.Take{TSource}"/>, <see cref="AsyncQuery.Skip{TSource}"/>, ...), or a single element (<see cref="AsyncQuery.FirstOrDefaultAsync{T}(Doxense.Linq.IAsyncQuery{T})"/>, ...).</para>
 	/// </remarks>
 	/// <seealso cref="IAsyncLinqQuery{T}">This interface can be used by queries that can provide optimized implementation for LINQ methods</seealso>
@@ -101,12 +101,13 @@ namespace SnowBank.Linq
 
 		#region CountAsync...
 
-		/// <summary>Returns the number of elements in the range, by reading them</summary>
-		/// <remarks>This method has to read all the keys and values, which may exceed the lifetime of a transaction. Please consider using <see cref="Fdb.System.EstimateCountAsync(FoundationDB.Client.IFdbDatabase,FoundationDB.Client.KeyRange,System.Threading.CancellationToken)"/> when reading potentially large ranges.</remarks>
+		/// <summary>Returns the number of elements returned by this query.</summary>
 		Task<int> CountAsync();
 
+		/// <summary>Returns the number of elements returned by this query that match the given predicate.</summary>
 		Task<int> CountAsync(Func<T, bool> predicate);
 
+		/// <summary>Returns the number of elements returned by this query that match the given predicate.</summary>
 		Task<int> CountAsync(Func<T, CancellationToken, Task<bool>> predicate);
 
 		#endregion

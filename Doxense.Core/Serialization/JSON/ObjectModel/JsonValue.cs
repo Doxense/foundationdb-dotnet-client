@@ -101,7 +101,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Returns <see langword="true"/> if this value is read-only, and cannot be modified, or <see langword="false"/> if it allows mutations.</summary>
 		/// <remarks>
 		/// <para>Only JSON Objects and Arrays can return <see langword="false"/>. All other "value types" (string, boolean, numbers, ...) are always immutable, and will always be read-only.</para>
-		/// <para>If you need to modify a JSON Object or Array that is read-only, you should first create a copy, by calling either <see cref="Copy"/> or <see cref="ToMutable"/>, perform any changes required, and then either <see cref="Freeze"/> the copy, or call <see cref="ToReadOnly"/> again.</para>
+		/// <para>If you need to modify a JSON Object or Array that is read-only, you should first create a copy, by calling either <see cref="Copy()"/> or <see cref="ToMutable"/>, perform any changes required, and then either <see cref="Freeze"/> the copy, or call <see cref="ToReadOnly"/> again.</para>
 		/// </remarks>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public abstract bool IsReadOnly { [Pure] get; }
@@ -112,7 +112,7 @@ namespace Doxense.Serialization.Json
 		/// <para>Any future attempt to modify this object, or any of its children that was previously mutable, will fail.</para>
 		/// <para>If this instance is already read-only, this will be a no-op.</para>
 		/// <para>This should only be used with care, and only on objects that are entirely owned by the called, or that have not been published yet. Freezing a shared mutable object may cause issues for other threads that still were expecting a mutable instance.</para>
-		/// <para>If you need to modify a JSON Object or Array that is read-only, you should first create a copy, by calling either <see cref="Copy"/> or <see cref="ToMutable"/>, perform any changes required, and then either <see cref="Freeze"/> the copy, or call <see cref="ToReadOnly"/> again.</para>
+		/// <para>If you need to modify a JSON Object or Array that is read-only, you should first create a copy, by calling either <see cref="Copy()"/> or <see cref="ToMutable"/>, perform any changes required, and then either <see cref="Freeze"/> the copy, or call <see cref="ToReadOnly"/> again.</para>
 		/// </remarks>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public virtual JsonValue Freeze() => this;
@@ -122,7 +122,7 @@ namespace Doxense.Serialization.Json
 		/// <remarks>
 		/// <para>The value returned is guaranteed to be immutable, and is safe to cache, share, or use as a singleton.</para>
 		/// <para>Only JSON Objects and Arrays are impacted. All other "value types" (string, boolean, number, ...) are always immutable, and will not be copied.</para>
-		/// <para>If you need to modify a JSON Object or Array that is read-only, you should first create a copy, by calling either <see cref="Copy"/> or <see cref="ToMutable"/>, perform any changes required, and then either <see cref="Freeze"/> the copy, or call <see cref="ToReadOnly"/> again.</para>
+		/// <para>If you need to modify a JSON Object or Array that is read-only, you should first create a copy, by calling either <see cref="Copy()"/> or <see cref="ToMutable"/>, perform any changes required, and then either <see cref="Freeze"/> the copy, or call <see cref="ToReadOnly"/> again.</para>
 		/// </remarks>
 		[Pure]
 		public virtual JsonValue ToReadOnly() => this;

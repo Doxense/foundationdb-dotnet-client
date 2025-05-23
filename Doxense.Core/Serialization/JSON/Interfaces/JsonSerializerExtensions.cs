@@ -101,8 +101,10 @@ namespace Doxense.Serialization.Json
 		}
 
 		/// <summary>Deserializes an instance of type <typeparamref name="T"/> from a JSON string literal</summary>
+		/// <param name="serializer">Serializer used for the operation</param>
 		/// <param name="jsonBytes">UTF-8 encoded JSON document to parse</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>Deserialized instance.</returns>
 		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 		/// <exception cref="JsonBindingException">If the parsed JSON document cannot be bound to an instance of <typeparamref name="T"/>.</exception>

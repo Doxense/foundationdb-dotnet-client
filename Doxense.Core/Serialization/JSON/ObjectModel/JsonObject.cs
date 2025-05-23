@@ -699,7 +699,7 @@ namespace Doxense.Serialization.Json
 		/// <typeparam name="TValue">Type of the values, that must support conversion to JSON values</typeparam>
 		/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
 		/// <param name="items">Sequence of key/value pairs that will become the fields of the new JSON Object. There must not be any duplicate key, or an exception will be thrown.</param>
-		/// <param name="packer">Helper that can pack instances of <typeparam name="TValue"> into JSON values</typeparam></param>
+		/// <param name="packer">Helper that can pack instances of <typeparamref name="TValue"> into JSON values</typeparamref></param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>Corresponding JSON object, that can be modified.</returns>
@@ -835,7 +835,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="source">Sequence of elements to convert</param>
 		/// <param name="keySelector">Handler that is called for each element of the sequence, and should return the corresponding unique key.</param>
 		/// <param name="valueSelector">Handler that is called for each element of the sequence, and should return the corresponding value, that will in turn be converted into JSON.</param>
-		/// <param name="packer">Helper that can pack instances of <typeparam name="TValue"> into JSON values</typeparam></param>
+		/// <param name="packer">Helper that can pack instances of <typeparamref name="TValue"> into JSON values</typeparamref></param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>Corresponding JSON object, that can be modified</returns>
@@ -889,7 +889,7 @@ namespace Doxense.Serialization.Json
 		/// <param name="source">Sequence of elements to convert</param>
 		/// <param name="keySelector">Handler that is called for each element of the sequence, and should return the corresponding unique key.</param>
 		/// <param name="valueSelector">Handler that is called for each element of the sequence, and should return the corresponding value, that will in turn be converted into JSON.</param>
-		/// <param name="packer">Helper that can pack instances of <typeparam name="TValue"> into JSON values</typeparam></param>
+		/// <param name="packer">Helper that can pack instances of <typeparamref name="TValue"> into JSON values</typeparamref></param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>Corresponding JSON object, that can be modified</returns>

@@ -187,7 +187,7 @@ namespace Doxense.Serialization.Json.Encoders
 		/// <summary>Decodes the first element of a tuple, back into a JSON value</summary>
 		/// <param name="tuple">Tuple with a JSON value encoded in the first element</param>
 		/// <param name="remaining">Receives the rest of the tuple, or <c>null</c> if this was the last element</param>
-		/// <returns>Decoded JSON Value, or <see cref="JsonNull.Missing"/> if <see cref="tuple"/> was already empty</returns>
+		/// <returns>Decoded JSON Value, or <see cref="JsonNull.Missing"/> if <paramref name="tuple"/> was already empty</returns>
 		/// <remarks>This is intended to decode tuples that where previously encoded by <see cref="ToTuple"/> or <see cref="Append"/></remarks>
 		public static JsonValue DecodeNext(IVarTuple? tuple, out IVarTuple? remaining)
 		{
@@ -205,7 +205,7 @@ namespace Doxense.Serialization.Json.Encoders
 		/// <summary>Decodes the element at the given location in a tuple, back into a JSON value</summary>
 		/// <param name="tuple">Tuple with a JSON value encoded at some position</param>
 		/// <param name="offset">Position, in the tuple, where the encoded value is located.</param>
-		/// <returns>Decoded JSON Value, or <see cref="JsonNull.Missing"/> if <see cref="offset"/> falls outside of the tuple.</returns>
+		/// <returns>Decoded JSON Value, or <see cref="JsonNull.Missing"/> if <paramref name="offset"/> falls outside of the tuple.</returns>
 		/// <remarks>This is intended to decode tuples that where previously encoded by <see cref="ToTuple"/> or <see cref="Append"/></remarks>
 		public static JsonValue DecodeNext(IVarTuple tuple, int offset)
 		{

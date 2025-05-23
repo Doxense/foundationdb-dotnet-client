@@ -474,7 +474,7 @@ namespace SnowBank.Collections.Generic
 		/// <param name="orEqual">If true, return the position of the value itself if it is found. If false, return the position of the closest value that is smaller.</param>
 		/// <param name="offset">Receive the offset within the level of the next element, or 0 if not found</param>
 		/// <param name="result">Receive the value of the next element, or default(T) if not found</param>
-		/// <returns>Level of the next element, or -1 if <param name="result"/> was already the largest</returns>
+		/// <returns>Level of the next element, or -1 if <paramref name="result"/> was already the largest</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int FindNext(T value, bool orEqual, out int offset, out T result)
 		{
@@ -487,7 +487,7 @@ namespace SnowBank.Collections.Generic
 		/// <param name="comparer"></param>
 		/// <param name="offset">Receive the offset within the level of the next element, or 0 if not found</param>
 		/// <param name="result">Receive the value of the next element, or default(T) if not found</param>
-		/// <returns>Level of the next element, or -1 if <param name="result"/> was already the largest</returns>
+		/// <returns>Level of the next element, or -1 if <paramref name="result"/> was already the largest</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int FindNext(T value, bool orEqual, IComparer<T>? comparer, out int offset, out T result)
 		{
@@ -499,7 +499,7 @@ namespace SnowBank.Collections.Generic
 		/// <param name="orEqual">If true, return the position of the value itself if it is found. If false, return the position of the closest value that is smaller.</param>
 		/// <param name="offset">Receive the offset within the level of the previous element, or 0 if not found</param>
 		/// <param name="result">Receive the value of the previous element, or default(T) if not found</param>
-		/// <returns>Level of the previous element, or -1 if <param name="result"/> was already the smallest</returns>
+		/// <returns>Level of the previous element, or -1 if <paramref name="result"/> was already the smallest</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int FindPrevious(T value, bool orEqual, out int offset, out T result)
 		{
@@ -512,7 +512,7 @@ namespace SnowBank.Collections.Generic
 		/// <param name="comparer"></param>
 		/// <param name="offset">Receive the offset within the level of the previous element, or 0 if not found</param>
 		/// <param name="result">Receive the value of the previous element, or default(T) if not found</param>
-		/// <returns>Level of the previous element, or -1 if <param name="result"/> was already the smallest</returns>
+		/// <returns>Level of the previous element, or -1 if <paramref name="result"/> was already the smallest</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int FindPrevious(T value, bool orEqual, IComparer<T>? comparer, out int offset, out T result)
 		{

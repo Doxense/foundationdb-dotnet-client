@@ -313,9 +313,8 @@ namespace Doxense.Web
 
 		#region Uri...
 
-		/// <summary>Encode correctement une URI</summary>
+		/// <summary>Properly encodes a URI that may be malformed</summary>
 		/// <param name="value">Uri à encoder correctement</param>
-		/// <param name="encoding">Encoding optionnel (UTF-8 par défaut)</param>
 		/// <returns>Uri encodée correctement</returns>
 		/// <remarks>Ne touche pas à la query string s'il y en a une !</remarks>
 		/// <example>EncodeUri("http://server/path to the/file.ext?blah=xxxx") => "http://server/path%20to%20the/file.ext?blah=xxx"</example>
@@ -344,7 +343,6 @@ namespace Doxense.Web
 
 		/// <summary>Encode une valeur qui sera utilisée comme segment du chemin d'une URI</summary>
 		/// <param name="value">Valeur à encoder correctement (' ' => '%20')</param>
-		/// <param name="encoding">Encoding optionnel (UTF-8 par défaut)</param>
 		/// <returns>Texte pouvant être intégré dans le chemin d'une URI</returns>
 		/// <example>EncodePath("foo bar/baz") => "foo%20bar%2fbaz"</example>
 		[Pure]

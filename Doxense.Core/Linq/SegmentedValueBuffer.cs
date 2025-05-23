@@ -31,7 +31,6 @@ namespace SnowBank.Linq
 	using System;
 	using System.Buffers;
 	using System.Runtime.InteropServices;
-	using SnowBank.Linq;
 
 	/// <summary>Buffer that will accumulate data in a contiguous span, starting from a stack allocated buffer, and switching to pooled buffers if required</summary>
 	/// <typeparam name="T">Type of elements stored in the buffer</typeparam>
@@ -611,7 +610,7 @@ namespace SnowBank.Linq
 				this.Last = last;
 			}
 
-			/// <inheritdoc cref="IEnumerator{T}.MoveNext"/>
+			/// <inheritdoc />
 			public bool MoveNext()
 			{
 				var offset = this.Offset + 1;
@@ -649,7 +648,7 @@ namespace SnowBank.Linq
 				return false;
 			}
 
-			/// <inheritdoc cref="IEnumerator{T}.Reset"/>
+			/// <inheritdoc />
 			public void Reset()
 			{
 				this.Index = -1;
@@ -657,7 +656,7 @@ namespace SnowBank.Linq
 				this.Segment = this.First;
 			}
 
-			/// <inheritdoc cref="IEnumerator{T}.Current"/>
+			/// <inheritdoc />
 			public T Current => this.Segment[this.Offset];
 
 #if NET9_0_OR_GREATER
@@ -667,7 +666,7 @@ namespace SnowBank.Linq
 
 #endif
 
-			/// <inheritdoc cref="IEnumerator{T}.Dispose"/>
+			/// <inheritdoc />
 			public void Dispose()
 			{
 				this = default;
