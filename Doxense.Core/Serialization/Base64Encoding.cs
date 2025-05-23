@@ -28,19 +28,15 @@
 
 namespace Doxense.Serialization
 {
-	using System.Buffers;
 	using System.Buffers.Text;
 	using System.IO;
 	using System.Runtime.InteropServices;
-	using Doxense.Linq;
 	using Doxense.Memory;
+	using SnowBank.Linq;
 
 	[PublicAPI]
 	public static class Base64Encoding
 	{
-		// Encodage similaire à Base64, mais qui remplace '+' et '/' par '-' et '_', avec padding optionnel où '=' est remplacé par '*'
-		// => peut être inséré dans une URL sans nécessiter d'encodage spécifique
-
 		private const int CHARMAP_PAGE_SIZE = 256;
 
 		#region Encoding Maps...

@@ -28,8 +28,8 @@ global using System;
 global using System.Collections.Generic;
 global using System.Diagnostics;
 global using System.Linq;
-global using Doxense.Linq;
 global using Doxense.Runtime;
+global using SnowBank.Linq;
 
 global using MustUseReturnValueAttribute = JetBrains.Annotations.MustUseReturnValueAttribute;
 global using PublicAPIAttribute = JetBrains.Annotations.PublicAPIAttribute;

@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Linq.Tests
+namespace SnowBank.Linq.Tests
 {
 	using System.Collections.Generic;
 	using System.Collections.Immutable;

@@ -28,7 +28,6 @@ namespace SnowBank.Shell.Prompt
 {
 	using System.Collections.Immutable;
 	using System.Diagnostics;
-	using Doxense.Linq;
 	using Doxense.Runtime;
 	using Doxense.Serialization;
 	using JetBrains.Annotations;

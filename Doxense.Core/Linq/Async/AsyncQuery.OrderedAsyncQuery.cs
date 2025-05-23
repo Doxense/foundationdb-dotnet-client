@@ -27,7 +27,6 @@
 namespace SnowBank.Linq
 {
 	using System.ComponentModel;
-	using Doxense.Linq;
 	using SnowBank.Linq.Async.Iterators;
 
 	public static partial class AsyncQuery

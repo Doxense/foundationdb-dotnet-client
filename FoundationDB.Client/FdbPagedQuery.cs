@@ -29,7 +29,6 @@ namespace FoundationDB.Client
 	using System.Buffers;
 	using System.ComponentModel;
 	using System.Diagnostics;
-	using Doxense.Linq;
 	using SnowBank.Linq;
 
 	/// <summary>Query describing an ongoing GetRange operation</summary>

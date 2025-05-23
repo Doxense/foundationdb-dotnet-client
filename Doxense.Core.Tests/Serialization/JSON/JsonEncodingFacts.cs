@@ -27,12 +27,11 @@
 // ReSharper disable StringLiteralTypo
 // ReSharper disable VariableLengthStringHexEscapeSequence
 
-using System.Text;
-using Doxense.Linq;
-using Doxense.Memory;
-
 namespace Doxense.Serialization.Json.Tests
 {
+	using System.Text;
+	using Doxense.Memory;
+	using SnowBank.Linq;
 
 	[TestFixture]
 	[Category("Core-SDK")]

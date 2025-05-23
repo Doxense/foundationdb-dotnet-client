@@ -29,7 +29,6 @@ namespace SnowBank.Linq.Async.Iterators
 	using System;
 	using System.Buffers;
 	using System.Collections.Immutable;
-	using Doxense.Linq;
 	using SnowBank.Linq.Async.Expressions;
 
 	/// <summary>Iterates over an async sequence of items</summary>

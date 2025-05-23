@@ -31,7 +31,6 @@ namespace SnowBank.Linq
 	using System.Collections.Immutable;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Linq;
 	using SnowBank.Linq.Async.Iterators;
 	using Doxense.Threading.Tasks;
 

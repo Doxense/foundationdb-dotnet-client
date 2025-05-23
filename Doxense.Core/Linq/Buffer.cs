@@ -24,13 +24,11 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Linq
+namespace SnowBank.Linq
 {
 	using System;
 	using System.Buffers;
 	using System.Collections.Immutable;
-	using System.Runtime.InteropServices;
-	using SnowBank.Linq;
 
 	/// <summary>Small buffer that keeps a list of chunks that are larger and larger</summary>
 	/// <typeparam name="T">Type of elements stored in the buffer</typeparam>

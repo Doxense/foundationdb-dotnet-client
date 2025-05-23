@@ -28,7 +28,6 @@ namespace SnowBank.Linq
 {
 	using System.Collections.Immutable;
 	using System.Runtime.InteropServices;
-	using Doxense.Linq;
 	using SnowBank.Linq.Iterators;
 
 	/// <summary>Provides a set of static methods for querying objects that implement <see cref="IEnumerable{T}"/>.</summary>

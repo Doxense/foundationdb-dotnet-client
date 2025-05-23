@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Linq
+namespace SnowBank.Linq
 {
 	using System;
 	using System.Buffers;

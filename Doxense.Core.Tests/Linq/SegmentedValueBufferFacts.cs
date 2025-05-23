@@ -26,7 +26,7 @@
 
 #if NET8_0_OR_GREATER
 
-namespace Doxense.Linq.Tests
+namespace SnowBank.Linq.Tests
 {
 	using System.Buffers;
 	using System.Collections.Generic;

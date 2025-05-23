@@ -28,9 +28,8 @@ namespace SnowBank.Shell.Prompt
 {
 	using System.Collections.Immutable;
 	using System.Runtime.CompilerServices;
-	using System.Text;
 	using Doxense.Diagnostics.Contracts;
-	using Doxense.Linq;
+	using SnowBank.Linq;
 
 	/// <summary>Represents a single token in a prompt.</summary>
 	/// <remarks>

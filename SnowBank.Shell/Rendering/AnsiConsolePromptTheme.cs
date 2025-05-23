@@ -28,7 +28,6 @@ namespace SnowBank.Shell.Prompt
 {
 	using System.Collections.Immutable;
 	using System.Runtime.CompilerServices;
-	using Doxense.Linq;
 	using Spectre.Console;
 
 	public class AnsiConsolePromptTheme : IPromptTheme

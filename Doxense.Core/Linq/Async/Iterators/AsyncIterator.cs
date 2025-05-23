@@ -29,13 +29,7 @@ namespace SnowBank.Linq.Async.Iterators
 	using System;
 	using System.Buffers;
 	using System.Collections.Immutable;
-	using System.ComponentModel;
-	using System.Diagnostics.CodeAnalysis;
-	using System.Numerics;
-	using System.Reflection;
-	using Doxense.Linq;
 	using SnowBank.Linq.Async.Expressions;
-	using Doxense.Serialization;
 
 	/// <summary>Base class for all async iterators</summary>
 	/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>

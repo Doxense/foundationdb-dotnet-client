@@ -27,7 +27,6 @@
 namespace SnowBank.Linq.Tests
 {
 	using System.Runtime.CompilerServices;
-	using Doxense.Linq;
 
 	[TestFixture]
 	[Category("Core-SDK")]

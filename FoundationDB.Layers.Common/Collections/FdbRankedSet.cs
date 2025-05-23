@@ -27,7 +27,6 @@
 namespace FoundationDB.Layers.Collections
 {
 	using System.Linq;
-	using Doxense.Linq;
 
 	/// <summary>
 	/// Provides a high-contention Queue class

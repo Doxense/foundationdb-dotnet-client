@@ -700,7 +700,7 @@ namespace SnowBank.Shell.Prompt.Tests
 						};
 					}
 
-					var options = this.Options ?? JsonObject.EmptyReadOnly;
+					var options = this.Options ?? JsonObject.ReadOnly.Empty;
 					bool invalid = false;
 
 					var res = ParseOptionToken(state.RawToken, options, this.LastOption);
@@ -814,7 +814,7 @@ namespace SnowBank.Shell.Prompt.Tests
 					return new(descriptor, state.RawText)
 					{
 						Query = this.Query,
-						Options = this.Options ?? JsonObject.EmptyReadOnly,
+						Options = this.Options ?? JsonObject.ReadOnly.Empty,
 					};
 				}
 

@@ -26,7 +26,7 @@
 
 namespace SnowBank.Shell.Prompt
 {
-	using Doxense.Linq;
+	using SnowBank.Linq;
 
 	[PublicAPI]
 	public interface IPromptRenderer

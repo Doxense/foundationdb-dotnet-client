@@ -37,7 +37,6 @@ namespace Doxense.Serialization.Json
 	using System.Text;
 	using System.Threading;
 	using Doxense.IO;
-	using Doxense.Linq;
 	using NodaTime;
 	using NodaTime.Text;
 	using SnowBank.Linq;

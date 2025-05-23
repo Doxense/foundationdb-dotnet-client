@@ -26,7 +26,7 @@
 
 #if NET8_0_OR_GREATER
 
-namespace Doxense.Linq
+namespace SnowBank.Linq
 {
 	using System;
 	using System.Buffers;

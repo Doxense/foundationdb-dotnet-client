@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -132,7 +132,7 @@ namespace SnowBank.Shell.Prompt.Tests
 		[MustUseReturnValue]
 		public PromptStateExpression<TCommand> Candidates(IEnumerable<string> candidates, string? exactMatch = null, string? commonPrefix = null)
 		{
-			if (Buffer<string>.TryGetSpan(candidates, out var span))
+			if (candidates.TryGetSpan(out var span))
 			{
 				return this.Candidates(span, exactMatch, commonPrefix);
 			}
