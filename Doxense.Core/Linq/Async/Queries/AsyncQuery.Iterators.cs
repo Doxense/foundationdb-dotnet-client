@@ -432,7 +432,7 @@ namespace SnowBank.Linq
 		/// <param name="source">Source async query</param>
 		/// <param name="single">If true, the sequence must contain at most one element</param>
 		/// <param name="orDefault">When the sequence is empty: If true then returns the default value for the type. Otherwise, throws an exception</param>
-		/// <param name="defaultValue">Value that is returned when <see cref="orDefault"/> if <c>true</c> and the query does not return any results.</param>
+		/// <param name="defaultValue">Value that is returned when <paramref name="orDefault"/> if <c>true</c> and the query does not return any results.</param>
 		/// <returns>Value of the first element of the <param ref="source"/> sequence, or the default value, or an exception (depending on <paramref name="single"/> and <paramref name="orDefault"/></returns>
 		public static async Task<TSource> Head<TSource>(
 			IAsyncQuery<TSource> source,

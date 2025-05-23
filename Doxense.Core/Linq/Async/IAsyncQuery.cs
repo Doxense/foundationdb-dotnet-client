@@ -34,7 +34,7 @@ namespace SnowBank.Linq
 	/// <remarks>
 	/// <para>This type is very similar to <see cref="IAsyncEnumerable{T}"/>, but with a few key differences in regard to the flow of some arguments</para>
 	/// <para>The <see cref="CancellationToken"/> comes from the <b>source</b> of the query (usually a transaction or some other transient scope, like an HTTP request), instead of being passed by the last step in the chain (the call to <see cref="GetAsyncEnumerator(AsyncIterationHint)"/>.</para>
-	/// <para>The iterator code can pass a "hint", up the chain of operators, to the source of the query, to specify if the intent is to fetch either all the elements (using <see cref="AsyncQuery.ToListAsync{T}"/>, <see cref="AsyncQuery.ToArrayAsync{T}"/>, ...), only the first page of results (<see cref="AsyncQuery.Take{TSource}"/>, <see cref="AsyncQuery.Skip{TSource}"/>, ...), or a single element (<see cref="AsyncQuery.FirstOrDefaultAsync{T}(SnowBank.Linq.IAsyncQuery{T})"/>, ...).</para>
+	/// <para>The iterator code can pass a "hint", up the chain of operators, to the source of the query, to specify if the intent is to fetch either all the elements (using <see cref="AsyncQuery.ToListAsync{T}"/>, <see cref="AsyncQuery.ToArrayAsync{T}"/>, ...), only the first page of results (<see cref="AsyncQuery.Take{TSource}(SnowBank.Linq.IAsyncQuery{TSource},int)"/>, <see cref="AsyncQuery.Skip{TSource}"/>, ...), or a single element (<see cref="AsyncQuery.FirstOrDefaultAsync{T}(SnowBank.Linq.IAsyncQuery{T})"/>, ...).</para>
 	/// </remarks>
 	/// <seealso cref="IAsyncLinqQuery{T}">This interface can be used by queries that can provide optimized implementation for LINQ methods</seealso>
 	public interface IAsyncQuery<out T>
