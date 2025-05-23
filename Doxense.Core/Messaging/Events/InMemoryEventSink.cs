@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Messaging.Events
+namespace SnowBank.Messaging.Events
 {
 
 	/// <summary>Implementation of a Job Event Log that keeps all events in memory, mostly intended for unit testing</summary>

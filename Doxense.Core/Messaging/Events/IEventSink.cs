@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Messaging.Events
+namespace SnowBank.Messaging.Events
 {
 	public interface IEventSink
 	{

@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Messaging
+namespace SnowBank.Messaging
 {
 	using System.Threading.Channels;
 

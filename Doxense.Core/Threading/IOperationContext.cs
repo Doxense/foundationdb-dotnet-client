@@ -27,7 +27,7 @@
 namespace Doxense.Threading.Operations
 {
 	using System.Runtime.ExceptionServices;
-	using Doxense.Messaging.Events;
+	using SnowBank.Messaging.Events;
 	using Doxense.Reactive.Disposables;
 	using Doxense.Serialization;
 	using Microsoft.Extensions.DependencyInjection;
