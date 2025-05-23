@@ -28,7 +28,7 @@ namespace Doxense.Runtime
 {
 	using System.IO;
 	using System.Runtime.CompilerServices;
-	using Doxense.Linq;
+	using SnowBank.Linq;
 
 	//TODO: maybe move this to a more global namespace?
 
@@ -120,7 +120,7 @@ namespace Doxense.Runtime
 		public void ExplainChildren<TExplainable>(IEnumerable<TExplainable?> children)
 			where TExplainable : ICanExplain
 		{
-			if (Buffer<TExplainable?>.TryGetSpan(children, out var span))
+			if (children.TryGetSpan(out var span))
 			{
 				ExplainChildren(span);
 				return;

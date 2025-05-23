@@ -39,9 +39,9 @@ namespace Doxense.Serialization.Json
 	using System.Reflection;
 	using System.Runtime.InteropServices;
 	using System.Text;
-	using Doxense.Linq;
 	using Doxense.Memory;
 	using NodaTime;
+	using SnowBank.Linq;
 
 	/// <summary>Array of JSON values</summary>
 	[Serializable]
@@ -520,7 +520,7 @@ namespace Doxense.Serialization.Json
 		public static JsonArray? FromValues<TItem, TValue>(IEnumerable<TItem>? values, Func<TItem, TValue> selector, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (values is null) return null;
-			if (Buffer<TItem>.TryGetSpan(values, out var span))
+			if (values.TryGetSpan(out var span))
 			{
 				return FromValues(span, selector, settings, resolver);
 			}
@@ -982,7 +982,7 @@ namespace Doxense.Serialization.Json
 			}
 
 			// Regular Array
-			if (Buffer<JsonValue?>.TryGetSpan(values, out var span))
+			if (values.TryGetSpan(out var span))
 			{ // optimized
 				return AddRange(span);
 			}
@@ -1022,7 +1022,7 @@ namespace Doxense.Serialization.Json
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 			Contract.NotNull(values);
 
-			if (Buffer<TSource>.TryGetSpan(values, out var span))
+			if (values.TryGetSpan(out var span))
 			{ // optimized
 				return AddRange(span, selector);
 			}
@@ -1094,7 +1094,7 @@ namespace Doxense.Serialization.Json
 				return AddRangeReadOnly(jArr.GetSpan());
 			}
 
-			if (Buffer<JsonValue?>.TryGetSpan(values, out var span))
+			if (values.TryGetSpan(out var span))
 			{ // optimized
 				return AddRangeReadOnly(span);
 			}
@@ -1232,7 +1232,7 @@ namespace Doxense.Serialization.Json
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 			Contract.NotNull(items);
 
-			if (Buffer<TValue>.TryGetSpan(items, out var span))
+			if (items.TryGetSpan(out var span))
 			{ // fast path for arrays
 				return AddValues<TValue>(span, settings, resolver);
 			}
@@ -1425,7 +1425,7 @@ namespace Doxense.Serialization.Json
 			Contract.NotNull(items);
 			Contract.NotNull(transform);
 
-			if (Buffer<TSource>.TryGetSpan(items, out var span))
+			if (items.TryGetSpan(out var span))
 			{
 				return AddValues(span, transform, settings, resolver);
 			}
@@ -1605,7 +1605,7 @@ namespace Doxense.Serialization.Json
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 			Contract.NotNull(items);
 
-			if (Buffer<TValue>.TryGetSpan(items, out var span))
+			if (items.TryGetSpan(out var span))
 			{ // fast path for arrays, lists, ...
 				return AddValuesReadOnly<TValue>(span, settings, resolver);
 			}
@@ -1796,7 +1796,7 @@ namespace Doxense.Serialization.Json
 			Contract.NotNull(items);
 			Contract.NotNull(transform);
 
-			if (Buffer<TSource>.TryGetSpan(items, out var span))
+			if (items.TryGetSpan(out var span))
 			{
 				return AddValuesReadOnly(span, transform, settings, resolver);
 			}
@@ -4468,7 +4468,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (other is null) return false;
 			if (other is JsonArray arr) return StrictEquals(arr.AsSpan());
-			if (Buffer<JsonValue>.TryGetSpan(other, out var span)) return StrictEquals(span);
+			if (other.TryGetSpan(out var span)) return StrictEquals(span);
 
 			span = AsSpan();
 			int p = 0;
@@ -4704,7 +4704,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (items is null) return false;
 			if (items is JsonArray arr) return StrictEquals(arr);
-			if (Buffer<TValue>.TryGetSpan(items, out var xs)) return ValuesEqual<TValue>(xs);
+			if (items.TryGetSpan(out var xs)) return ValuesEqual<TValue>(xs);
 			return ValueEqualsEnumerable(AsSpan(), items);
 
 			static bool ValueEqualsEnumerable(ReadOnlySpan<JsonValue> values, IEnumerable<TValue> items)

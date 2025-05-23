@@ -26,7 +26,6 @@
 
 namespace SnowBank.Linq.Async.Iterators
 {
-	using Doxense.Linq;
 
 	/// <summary>Performs a Merge Sort on several concurrent range queries</summary>
 	/// <typeparam name="TSource">Type of the elements in the source queries</typeparam>
@@ -84,7 +83,7 @@ namespace SnowBank.Linq.Async.Iterators
 			var mode = m_mode;
 			if (mode == AsyncIterationHint.Head) mode = AsyncIterationHint.Iterator;
 
-			if (!Buffer<IAsyncQuery<TSource>>.TryGetSpan(m_sources, out var sources))
+			if (!m_sources.TryGetSpan(out var sources))
 			{
 				sources = m_sources.ToArray();
 			}

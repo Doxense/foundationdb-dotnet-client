@@ -40,6 +40,7 @@ namespace Doxense.Serialization.Json
 	using Doxense.Linq;
 	using NodaTime;
 	using NodaTime.Text;
+	using SnowBank.Linq;
 
 	/// <summary>Serialize values into JSON</summary>
 	[DebuggerDisplay("Json={!m_javascript}, Formatted={m_formatted}, Depth={m_objectGraphDepth}")]
@@ -4234,7 +4235,7 @@ namespace Doxense.Serialization.Json
 			if (values is not null)
 			{
 				WriteName(name);
-				if (Doxense.Linq.Buffer<string>.TryGetSpan(values, out var span))
+				if (values.TryGetSpan(out var span))
 				{
 					WriteArray(span);
 				}
@@ -4275,7 +4276,7 @@ namespace Doxense.Serialization.Json
 			if (values is not null)
 			{
 				WriteName(name);
-				if (Doxense.Linq.Buffer<string>.TryGetSpan(values, out var span))
+				if (values.TryGetSpan(out var span))
 				{
 					WriteArray(span);
 				}
@@ -4608,7 +4609,7 @@ namespace Doxense.Serialization.Json
 			if (items is not null)
 			{
 				WriteName(name);
-				if (Doxense.Linq.Buffer<T>.TryGetSpan(items, out var span))
+				if (items.TryGetSpan(out var span))
 				{
 					WriteArray<T>(span);
 				}
@@ -5022,7 +5023,7 @@ namespace Doxense.Serialization.Json
 				return;
 			}
 
-			if (Doxense.Linq.Buffer<T>.TryGetSpan(array, out var span))
+			if (array.TryGetSpan(out var span))
 			{
 				VisitArray(span, serializer);
 			}
@@ -5094,7 +5095,7 @@ namespace Doxense.Serialization.Json
 				return;
 			}
 
-			if (Doxense.Linq.Buffer<TSerializable?>.TryGetSpan(array, out var span))
+			if (array.TryGetSpan(out var span))
 			{
 				VisitJsonSerializableArray(span);
 			}
@@ -5125,7 +5126,7 @@ namespace Doxense.Serialization.Json
 				return;
 			}
 
-			if (Doxense.Linq.Buffer<T>.TryGetSpan(items, out var span))
+			if (items.TryGetSpan(out var span))
 			{
 				WriteArray<T>(span);
 			}

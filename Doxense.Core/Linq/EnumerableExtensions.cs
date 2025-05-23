@@ -26,6 +26,7 @@
 
 namespace SnowBank.Linq
 {
+	using System.Collections.Immutable;
 	using System.Runtime.InteropServices;
 	using Doxense.Linq;
 	using SnowBank.Linq.Iterators;
@@ -79,7 +80,7 @@ namespace SnowBank.Linq
 			Contract.NotNull(source);
 			Contract.GreaterThan(batchSize, 0, "Batch size must be greater than zero.");
 
-			if (Buffer<T>.TryGetSpan(source, out var span) && span.Length <= batchSize)
+			if (source.TryGetSpan(out var span) && span.Length <= batchSize)
 			{
 				return BufferedSpan(span);
 			}
@@ -206,6 +207,56 @@ namespace SnowBank.Linq
 			Contract.NotNull(handler);
 
 			return new ObserverIterator<TSource>(source, handler);
+		}
+
+		#endregion
+
+		#region TryGetSpan...
+
+		/// <summary>Attempts to extract the contents of this sequence as a <see cref="ReadOnlySpan{T}"/></summary>
+		/// <typeparamref name="T">Type of the elements of the sequence</typeparamref>
+		/// <param name="items">Source sequence.</param>
+		/// <param name="span">Receives a view of the content of the sequence if it is supported; otherwise, the default value.</param>
+		/// <returns><see langword="true"/> it was possible to extract the content of the buffer and expose it as a read-only span; otherwise, <see langword="false"/>.</returns>
+		/// <remarks>
+		/// <para>The following types are currently recognized: <b>T[]</b>, <see cref="List{T}"/>, <see cref="ImmutableArray{T}"/></para>
+		/// <para>If <paramref name="items"/> is <c>null</c>, the empty span will be returned.</para>
+		/// <para>This method does NOT guarantee that the content of the returned span will be stable in time (for example <see cref="List{T}"/> if the internal buffer is expanded),
+		/// so the caller should consume the result immediately, or have a way to guarantee that the source will not be modified.</para>
+		/// </remarks>
+		public static bool TryGetSpan<T>([NoEnumeration] this IEnumerable<T>? items, out ReadOnlySpan<T> span)
+		{
+			//note: this has a high probability to collide with a future version of this in the BCL...
+			// => hopefully it will have the same name and behavior, so we will simply #if it out of existence if/when this happens...
+
+			switch (items)
+			{
+				case T[] arr:
+				{
+					span = new ReadOnlySpan<T>(arr);
+					return true;
+				}
+				case List<T> list:
+				{
+					span = CollectionsMarshal.AsSpan(list);
+					return true;
+				}
+				case ImmutableArray<T> arr:
+				{
+					span = arr.AsSpan();
+					return true;
+				}
+				case null:
+				{
+					span = default;
+					return true;
+				}
+				default:
+				{
+					span = default;
+					return false;
+				}
+			}
 		}
 
 		#endregion

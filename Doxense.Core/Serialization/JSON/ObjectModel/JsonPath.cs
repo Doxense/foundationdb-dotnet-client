@@ -31,7 +31,7 @@ namespace Doxense.Serialization.Json
 	using System.ComponentModel;
 	using System.Globalization;
 	using System.Text;
-	using Doxense.Linq;
+	using SnowBank.Linq;
 
 	/// <summary>Represents a path inside a JSON document to a nested child (ex: <c>"id"</c>, <c>"user.id"</c> <c>"tags[2].id"</c></summary>
 	[PublicAPI]
@@ -147,7 +147,7 @@ namespace Doxense.Serialization.Json
 
 		public static JsonPath FromSegments(IEnumerable<JsonPathSegment>? segments, bool reversed = false)
 			=> segments == null ? default
-			 : Buffer<JsonPathSegment>.TryGetSpan(segments, out var span) ? FromSegments(span, reversed)
+			 : segments.TryGetSpan(out var span) ? FromSegments(span, reversed)
 			 : FromSegmentsEnumerable(segments, reversed);
 
 		private static JsonPath FromSegmentsMultiple(ReadOnlySpan<JsonPathSegment> segments, bool reversed)

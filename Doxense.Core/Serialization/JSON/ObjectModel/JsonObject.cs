@@ -36,8 +36,8 @@ namespace Doxense.Serialization.Json
 	using System.Dynamic;
 	using System.Runtime.InteropServices;
 	using System.Text;
-	using Doxense.Linq;
 	using Doxense.Memory;
+	using SnowBank.Linq;
 
 	/// <summary>JSON Object with fields</summary>
 	[Serializable]
@@ -1972,7 +1972,7 @@ namespace Doxense.Serialization.Json
 				return AddValues<TValue>(dict, settings, resolver);
 			}
 
-			if (Buffer<KeyValuePair<string, TValue>>.TryGetSpan(items, out var span))
+			if (items.TryGetSpan(out var span))
 			{
 				return AddValues<TValue>(span, settings, resolver);
 			}
@@ -2010,7 +2010,7 @@ namespace Doxense.Serialization.Json
 				return AddValues<TValue>(dict, packer, settings, resolver);
 			}
 
-			if (Buffer<KeyValuePair<string, TValue>>.TryGetSpan(items, out var span))
+			if (items.TryGetSpan(out var span))
 			{
 				return AddValues<TValue>(span, packer, settings, resolver);
 			}
@@ -2044,7 +2044,7 @@ namespace Doxense.Serialization.Json
 				return AddValues<TValue>(dict, valueSelector);
 			}
 
-			if (Buffer<KeyValuePair<string, TValue>>.TryGetSpan(items, out var span))
+			if (items.TryGetSpan(out var span))
 			{
 				return AddValues<TValue>(span, valueSelector);
 			}

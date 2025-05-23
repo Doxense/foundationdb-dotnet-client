@@ -30,7 +30,7 @@ namespace Doxense.Serialization.Json
 	using System.Buffers;
 	using System.Collections.Immutable;
 	using System.Runtime.InteropServices;
-	using Doxense.Linq;
+	using SnowBank.Linq;
 
 	[PublicAPI]
 	public static class JsonSerializerExtensions
@@ -525,7 +525,7 @@ namespace Doxense.Serialization.Json
 				return null;
 			}
 
-			if (Buffer<TValue>.TryGetSpan(items, out var span))
+			if (items.TryGetSpan(out var span))
 			{
 				return PackSpan<TValue>(serializer, span, settings, resolver);
 			}
@@ -809,7 +809,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (items == null) return null;
 
-			if (Buffer<bool>.TryGetSpan(items, out var span))
+			if (items.TryGetSpan(out var span))
 			{
 				return PackSpan(span, settings, resolver);
 			}
@@ -833,7 +833,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (items == null) return null;
 
-			if (Buffer<int>.TryGetSpan(items, out var span))
+			if (items.TryGetSpan(out var span))
 			{
 				return PackSpan(span, settings, resolver);
 			}
@@ -857,7 +857,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (items == null) return null;
 
-			if (Buffer<long>.TryGetSpan(items, out var span))
+			if (items.TryGetSpan(out var span))
 			{
 				return PackSpan(span, settings, resolver);
 			}
@@ -881,7 +881,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (items == null) return null;
 
-			if (Buffer<float>.TryGetSpan(items, out var span))
+			if (items.TryGetSpan(out var span))
 			{
 				return PackSpan(span, settings, resolver);
 			}
@@ -905,7 +905,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (items == null) return null;
 
-			if (Buffer<double>.TryGetSpan(items, out var span))
+			if (items.TryGetSpan(out var span))
 			{
 				return PackSpan(span, settings, resolver);
 			}
@@ -1048,7 +1048,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (items == null) return null;
 
-			if (Buffer<string>.TryGetSpan(items, out var span))
+			if (items.TryGetSpan(out var span))
 			{
 				return PackSpan(span, settings, resolver);
 			}
@@ -1072,7 +1072,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (items == null) return null;
 
-			if (Buffer<Guid>.TryGetSpan(items, out var span))
+			if (items.TryGetSpan(out var span))
 			{
 				return PackSpan(span, settings, resolver);
 			}
@@ -1096,7 +1096,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (items == null) return null;
 
-			if (Buffer<Uuid128>.TryGetSpan(items, out var span))
+			if (items.TryGetSpan(out var span))
 			{
 				return PackSpan(span, settings, resolver);
 			}
@@ -1177,7 +1177,7 @@ namespace Doxense.Serialization.Json
 			where TPackable : IJsonPackable
 		{
 			if (items == null) return null;
-			if (Buffer<TPackable>.TryGetSpan(items, out var span))
+			if (items.TryGetSpan(out var span))
 			{
 				return PackSpanPackable(span, settings, resolver);
 			}

@@ -30,6 +30,7 @@ namespace Doxense.Linq
 	using System.Buffers;
 	using System.Collections.Immutable;
 	using System.Runtime.InteropServices;
+	using SnowBank.Linq;
 
 #if NET8_0_OR_GREATER
 	/// <summary>Buffer that will accumulate data in a contiguous span, starting from a stack allocated buffer, and switching to pooled buffers if required</summary>
@@ -160,7 +161,7 @@ namespace Doxense.Linq
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public void AddRange(IEnumerable<T> items)
 		{
-			if (Buffer<T>.TryGetSpan(items, out var span))
+			if (items.TryGetSpan(out var span))
 			{
 				AddRange(span);
 			}

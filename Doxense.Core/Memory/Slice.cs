@@ -33,9 +33,9 @@ namespace System
 	using System.Runtime.InteropServices;
 	using System.Security.Cryptography;
 	using System.Text;
-	using Doxense.Linq;
 	using Doxense.Memory;
 	using Doxense.Serialization;
+	using SnowBank.Linq;
 
 	/// <summary>Delimits a read-only section of a byte array</summary>
 	/// <remarks>
@@ -1335,7 +1335,7 @@ namespace System
 		/// <summary>Concatenate a sequence of slices into a single slice</summary>
 		public static Slice Concat(IEnumerable<Slice> args)
 		{
-			if (Doxense.Linq.Buffer<Slice>.TryGetSpan(args, out var span))
+			if (args.TryGetSpan(out var span))
 			{
 				return Concat(span);
 			}
@@ -1377,7 +1377,7 @@ namespace System
 		{
 			if (args == null) return SliceOwner.Nil;
 
-			if (Buffer<Slice>.TryGetSpan(args, out var span))
+			if (args.TryGetSpan(out var span))
 			{
 				return Concat(pool, span);
 			}
@@ -1482,7 +1482,7 @@ namespace System
 		{
 			if (slices == null) return 0;
 
-			if (Buffer<Slice>.TryGetSpan(slices, out var span))
+			if (slices.TryGetSpan(out var span))
 			{
 				return ComputeSize(span);
 			}
@@ -1533,7 +1533,7 @@ namespace System
 		{
 			if (slices == null) return 0;
 
-			if (Buffer<KeyValuePair<Slice, Slice>>.TryGetSpan(slices, out var span))
+			if (slices.TryGetSpan(out var span))
 			{
 				return ComputeSize(span);
 			}

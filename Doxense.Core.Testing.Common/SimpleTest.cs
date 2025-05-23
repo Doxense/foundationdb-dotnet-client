@@ -41,7 +41,6 @@ namespace SnowBank.Testing
 	using System.Xml;
 	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics;
-	using Doxense.Linq;
 	using Doxense.Mathematics.Statistics;
 	using Doxense.Reactive.Disposables;
 	using Doxense.Runtime;
@@ -51,6 +50,7 @@ namespace SnowBank.Testing
 	using Microsoft.Extensions.DependencyInjection;
 	using Microsoft.Extensions.Logging;
 	using NodaTime;
+	using SnowBank.Linq;
 	using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 	/// <summary>Base class for simple unit tests. Provides a set of useful services (logging, cancellation, async helpers, ...)</summary>
@@ -1635,7 +1635,7 @@ namespace SnowBank.Testing
 		/// <summary>Pick a random element in a set</summary>
 		protected TItem Choose<TItem>(ICollection<TItem> items)
 		{
-			if (Buffer<TItem>.TryGetSpan(items, out var span))
+			if (items.TryGetSpan(out var span))
 			{
 				return Choose(span);
 			}

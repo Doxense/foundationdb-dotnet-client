@@ -32,6 +32,7 @@ namespace SnowBank.Shell.Prompt
 	using Doxense.Runtime;
 	using Doxense.Serialization;
 	using JetBrains.Annotations;
+	using SnowBank.Linq;
 
 	/// <summary>Snapshot of a prompt at a point in time</summary>
 	/// <remarks>Any keystroke transforms a current prompt state into a new prompt state (which could be the same)</remarks>
@@ -148,7 +149,7 @@ namespace SnowBank.Shell.Prompt
 
 		public static PromptTokenStack Create(IEnumerable<PromptToken> tokens)
 		{
-			return Create(Buffer<PromptToken>.TryGetSpan(tokens, out var span) ? span : new ReadOnlySpan<PromptToken>(tokens.ToArray()));
+			return Create(tokens.TryGetSpan(out var span) ? span : new ReadOnlySpan<PromptToken>(tokens.ToArray()));
 		}
 
 		public PromptTokenStack(ImmutableArray<PromptToken> head, PromptToken last)

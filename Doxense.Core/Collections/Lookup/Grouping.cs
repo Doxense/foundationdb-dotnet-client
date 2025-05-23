@@ -28,8 +28,8 @@ namespace Doxense.Collections.Lookup
 {
 	using System.Runtime;
 	using System.Runtime.InteropServices;
-	using Doxense.Linq;
 	using Doxense.Memory;
+	using SnowBank.Linq;
 
 	/// <summary>Container for a set of elements that share the same key</summary>
 	/// <typeparam name="TKey">Type of the key</typeparam>
@@ -158,7 +158,7 @@ namespace Doxense.Collections.Lookup
 		/// <param name="elements">Sequence of elements (can be empty)</param>
 		public void AddRange(IEnumerable<TElement> elements)
 		{
-			if (Buffer<TElement>.TryGetSpan(elements, out var span))
+			if (elements.TryGetSpan(out var span))
 			{ // we know the length, we can resize the buffer to be large enough in one step.
 				AddRange(span);
 			}

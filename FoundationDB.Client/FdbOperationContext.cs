@@ -34,6 +34,7 @@ namespace FoundationDB.Client
 	using System.Runtime.CompilerServices;
 	using Doxense.Serialization;
 	using FoundationDB.Client.Core;
+	using SnowBank.Linq;
 
 	/// <summary>
 	/// Represents the context of a retry-able transactional function which accepts a read-only or read-write transaction.
@@ -537,8 +538,7 @@ namespace FoundationDB.Client
 
 			lock (this.PadLock)
 			{
-				(this.ValueChecks ??= new List<(Slice, Slice, string, Task<(FdbValueCheckResult, Slice)>)>())
-					.Add((key, expectedValue, tag, task));
+				(this.ValueChecks ??= [ ]).Add((key, expectedValue, tag, task));
 			}
 		}
 
@@ -553,7 +553,7 @@ namespace FoundationDB.Client
 		public void AddValueChecks(string tag, IEnumerable<KeyValuePair<Slice, Slice>> items)
 		{
 			Contract.NotNull(items);
-			if (Doxense.Linq.Buffer<KeyValuePair<Slice, Slice>>.TryGetSpan(items, out var span))
+			if (items.TryGetSpan(out var span))
 			{
 				AddValueChecks(tag, span);
 			}

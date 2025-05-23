@@ -31,6 +31,7 @@ namespace Doxense.Linq
 	using System;
 	using System.Buffers;
 	using System.Runtime.InteropServices;
+	using SnowBank.Linq;
 
 	/// <summary>Buffer that will accumulate data in a contiguous span, starting from a stack allocated buffer, and switching to pooled buffers if required</summary>
 	/// <typeparam name="T">Type of elements stored in the buffer</typeparam>
@@ -213,7 +214,7 @@ namespace Doxense.Linq
 				return;
 			}
 
-			if (Buffer<T>.TryGetSpan(items, out var span))
+			if (items.TryGetSpan(out var span))
 			{
 				AddRange(span);
 				return;

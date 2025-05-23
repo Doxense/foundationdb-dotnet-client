@@ -30,7 +30,7 @@ namespace Doxense.Collections.Caching
 	using System.Collections.Frozen;
 	using System.Collections.Immutable;
 	using System.Runtime.InteropServices;
-	using Doxense.Linq;
+	using SnowBank.Linq;
 
 	/// <summary>Implements a cache with values that do not frequently change</summary>
 	/// <typeparam name="TKey">Type of the keys</typeparam>
@@ -393,7 +393,7 @@ namespace Doxense.Collections.Caching
 		public void SetItems(IEnumerable<KeyValuePair<TKey, TValue>> items)
 		{
 			Contract.NotNull(items);
-			if (Buffer<KeyValuePair<TKey, TValue>>.TryGetSpan(items, out var span))
+			if (items.TryGetSpan(out var span))
 			{
 				TryAddRangeInternal(span, true);
 			}
@@ -415,7 +415,7 @@ namespace Doxense.Collections.Caching
 		public void AddRange(IEnumerable<KeyValuePair<TKey, TValue>> items)
 		{
 			Contract.NotNull(items);
-			if (Buffer<KeyValuePair<TKey, TValue>>.TryGetSpan(items, out var span))
+			if (items.TryGetSpan(out var span))
 			{
 				TryAddRangeInternal(span, false);
 			}

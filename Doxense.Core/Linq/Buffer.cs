@@ -30,6 +30,7 @@ namespace Doxense.Linq
 	using System.Buffers;
 	using System.Collections.Immutable;
 	using System.Runtime.InteropServices;
+	using SnowBank.Linq;
 
 	/// <summary>Small buffer that keeps a list of chunks that are larger and larger</summary>
 	/// <typeparam name="T">Type of elements stored in the buffer</typeparam>
@@ -178,7 +179,7 @@ namespace Doxense.Linq
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public void AddRange(IEnumerable<T> items)
 		{
-			if (TryGetSpan(items, out var span))
+			if (items.TryGetSpan(out var span))
 			{
 				AddRange(span);
 			}
@@ -1210,26 +1211,10 @@ namespace Doxense.Linq
 				: this.Chunks[^1].AsSpan()[^1];
 		}
 
+		[Obsolete("Use the 'TryGetSpan() extension method instead, which has moved to the 'SnowBank.Linq' namespace.", error: true)]
 		public static bool TryGetSpan([NoEnumeration] IEnumerable<T>? items, out ReadOnlySpan<T> span)
 		{
-			switch (items)
-			{
-				case T[] arr:
-				{
-					span = new ReadOnlySpan<T>(arr);
-					return true;
-				}
-				case List<T> list:
-				{
-					span = CollectionsMarshal.AsSpan(list);
-					return true;
-				}
-				default:
-				{
-					span = default;
-					return false;
-				}
-			}
+			return EnumerableExtensions.TryGetSpan(items, out span);
 		}
 
 		#endregion
