@@ -5,7 +5,7 @@ namespace FoundationDB.Layers.Messaging
 	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Threading.Tasks;
+	using SnowBank.Linq.Async;
 
 	public class WorkerPoolTest
 	{

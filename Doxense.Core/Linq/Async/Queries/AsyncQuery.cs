@@ -32,7 +32,6 @@ namespace SnowBank.Linq
 	using System.Threading;
 	using System.Threading.Tasks;
 	using SnowBank.Linq.Async.Iterators;
-	using Doxense.Threading.Tasks;
 
 	/// <summary>Provides a set of static methods for querying objects that implement <see cref="IAsyncEnumerable{T}"/>.</summary>
 	[PublicAPI]
@@ -234,8 +233,16 @@ namespace SnowBank.Linq
 
 			return source switch
 			{
-				AsyncLinqIterator<TElement> iterator => iterator.ExecuteAsync(TaskHelpers.WithCancellation(asyncAction)),
-				_ => ForEachAsync(source, TaskHelpers.WithCancellation(asyncAction))
+				AsyncLinqIterator<TElement> iterator => iterator.ExecuteAsync((value, ct) =>
+				{
+					if (ct.IsCancellationRequested) return Task.FromCanceled(ct);
+					return asyncAction(value);
+				}),
+				_ => ForEachAsync(source, (value, ct) =>
+				{
+					if (ct.IsCancellationRequested) return Task.FromCanceled(ct);
+					return asyncAction(value);
+				})
 			};
 		}
 

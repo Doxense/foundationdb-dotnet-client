@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Threading.Tasks
+namespace SnowBank.Linq.Async
 {
 
 	/// <summary>Implements a async mutex that supports cancellation</summary>

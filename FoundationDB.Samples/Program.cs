@@ -26,9 +26,9 @@
 
 namespace FoundationDB.Samples
 {
-	using Doxense.Threading.Tasks;
 	using FoundationDB.Samples.Benchmarks;
 	using FoundationDB.Samples.Tutorials;
+	using SnowBank.Linq.Async;
 
 	public interface IAsyncTest
 	{

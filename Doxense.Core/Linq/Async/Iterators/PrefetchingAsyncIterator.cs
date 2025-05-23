@@ -26,7 +26,6 @@
 
 namespace SnowBank.Linq.Async.Iterators
 {
-	using Doxense.Threading.Tasks;
 
 	/// <summary>Prefetches items from the inner sequence, before outputting them down the line.</summary>
 	/// <typeparam name="TInput">Type of the items from the source sequence</typeparam>
@@ -142,7 +141,44 @@ namespace SnowBank.Linq.Async.Iterators
 			m_buffer = null;
 
 			// defuse the task, which should fail once we dispose the inner iterator below...
-			Interlocked.Exchange(ref m_nextTask, null)?.Observed();
+			var t = Interlocked.Exchange(ref m_nextTask, null);
+			if (t != null)
+			{
+				ObserveTask(t);
+			}
+
+			static void ObserveTask(Task task)
+			{
+				switch (task.Status)
+				{
+					case TaskStatus.Faulted:
+					case TaskStatus.Canceled:
+						TouchFaultedTask(task);
+						return;
+
+					case TaskStatus.RanToCompletion:
+						return;
+
+					default:
+						task.ContinueWith(TouchFaultedTask, TaskContinuationOptions.OnlyOnFaulted);
+						return;
+				}
+
+			}
+
+			static void TouchFaultedTask(Task t)
+			{
+#if DEBUG
+				var error = t.Exception;
+				if (t.IsFaulted)
+				{
+					System.Diagnostics.Debug.WriteLine($"### muted unobserved failed Task[{t.Id}]: [{error?.InnerException?.GetType().Name}] {error?.InnerException?.Message}");
+				}
+#else
+				_ = t.Exception;
+#endif
+			}
+
 		}
 
 	}

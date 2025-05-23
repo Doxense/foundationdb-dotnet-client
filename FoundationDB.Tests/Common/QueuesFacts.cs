@@ -28,7 +28,7 @@
 
 namespace FoundationDB.Layers.Collections.Tests
 {
-	using Doxense.Threading.Tasks;
+	using SnowBank.Linq.Async;
 
 	[TestFixture]
 	public class QueuesFacts : FdbTest
