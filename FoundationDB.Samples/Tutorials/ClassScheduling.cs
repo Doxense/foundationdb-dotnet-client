@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -28,15 +28,8 @@
 
 namespace FoundationDB.Samples.Tutorials
 {
-	using System;
 	using System.Collections.Generic;
-	using System.IO;
-	using System.Linq;
-	using System.Threading;
-	using System.Threading.Tasks;
 	using Doxense.Collections.Tuples;
-	using Doxense.Linq;
-	using FoundationDB.Client;
 
 	public class ClassScheduling : IAsyncTest
 	{
