@@ -24,11 +24,10 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-using System.Buffers;
-
-namespace Doxense.Collections.Generic.Test
+namespace SnowBank.Collections.Generic.Test
 {
 	using System;
+	using System.Buffers;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.IO;

@@ -29,9 +29,9 @@ namespace Doxense.Serialization.Json
 	using System.Collections.Frozen;
 	using System.Globalization;
 	using System.Net;
-	using Doxense.Collections.Caching;
 	using Doxense.Memory;
 	using Doxense.Tools;
+	using SnowBank.Collections.Caching;
 
 	/// <summary>JSON string literal</summary>
 	[DebuggerDisplay("JSON String({" + nameof(m_value) + "})")]

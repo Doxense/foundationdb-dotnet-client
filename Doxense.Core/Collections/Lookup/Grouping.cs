@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Collections.Lookup
+namespace SnowBank.Collections.Generic
 {
 	using System.Runtime;
 	using System.Runtime.InteropServices;
@@ -64,14 +64,14 @@ namespace Doxense.Collections.Lookup
 
 		#region Public Properties...
 
-		/// <summary>Get the key of the Doxense.Collections.Lookup.Grouping&lt;TKey, TElement&gt;</summary>
+		/// <summary>Get the key of the <see cref="Grouping{TKey,TElement}"/></summary>
 		public TKey Key
 		{
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => m_key;
 		}
 
-		/// <summary>Get the number of elements contained in the Doxense.Collections.Lookup.Grouping&lt;TKey, TElement&gt;</summary>
+		/// <summary>Get the number of elements contained in the <see cref="Grouping{TKey,TElement}"/></summary>
 		public int Count
 		{
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]

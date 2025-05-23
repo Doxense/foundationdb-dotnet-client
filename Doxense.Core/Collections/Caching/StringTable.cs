@@ -30,8 +30,8 @@ namespace Doxense.Text
 {
 	using System.Runtime.InteropServices;
 	using System.Text;
-	using Doxense.Collections.Caching;
 	using Doxense.Memory.Text;
+	using SnowBank.Collections.Caching;
 
 	// Adaptation de Roslyn.Utilities.StringTable, cf http://source.roslyn.codeplex.com/#Microsoft.CodeAnalysis/InternalUtilities/StringTable.cs
 

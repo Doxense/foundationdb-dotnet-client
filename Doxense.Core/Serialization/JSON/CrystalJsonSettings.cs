@@ -28,7 +28,7 @@ namespace Doxense.Serialization.Json
 {
 	using System.Collections.Frozen;
 	using System.Text;
-	using Doxense.Collections.Caching;
+	using SnowBank.Collections.Caching;
 
 	/// <summary>JSON serialization settings</summary>
 	/// <remarks>Instances of this type are immutable and can be cached</remarks>

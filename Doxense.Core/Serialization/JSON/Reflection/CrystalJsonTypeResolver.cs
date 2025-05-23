@@ -40,16 +40,15 @@ namespace Doxense.Serialization.Json
 {
 	using System;
 	using System.Collections;
-	using System.Collections.Frozen;
 	using System.Collections.Immutable;
 	using System.Collections.ObjectModel;
 	using System.Linq.Expressions;
 	using System.Reflection;
 	using System.Runtime.Serialization;
-	using Doxense.Collections.Caching;
 	using Doxense.Collections.Tuples;
 	using Doxense.Runtime;
 	using Doxense.Runtime.Converters;
+	using SnowBank.Collections.Caching;
 
 	/// <summary>Default JSON resolver that uses reflection to serialize and deserialize managed types</summary>
 	[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]

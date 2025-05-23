@@ -29,9 +29,8 @@ namespace Doxense.Serialization.Json
 	using System.Collections;
 	using System.Linq.Expressions;
 	using System.Reflection;
-	using Doxense.Collections.Caching;
+	using SnowBank.Collections.Caching;
 	using Doxense.Collections.Tuples;
-	using Doxense.Runtime;
 	using Doxense.Serialization;
 
 	public sealed class CrystalJsonDomWriter

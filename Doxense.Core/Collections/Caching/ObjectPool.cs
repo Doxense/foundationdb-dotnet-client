@@ -26,7 +26,7 @@
 
 //NOTE: Adaptation de Roslyn.Utilities.ObjectPool<T>, cf http://source.roslyn.codeplex.com/#Microsoft.CodeAnalysis/InternalUtilities/ObjectPool%601.cs
 
-namespace Doxense.Collections.Caching
+namespace SnowBank.Collections.Caching
 {
 
 	/// <summary>

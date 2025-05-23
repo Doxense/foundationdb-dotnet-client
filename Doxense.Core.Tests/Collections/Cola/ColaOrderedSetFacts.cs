@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Collections.Generic.Test
+namespace SnowBank.Collections.Generic.Test
 {
 	using System;
 	using System.Collections.Generic;

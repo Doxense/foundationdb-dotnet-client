@@ -38,10 +38,10 @@ namespace Doxense.Serialization.Json
 	using System.Reflection;
 	using System.Runtime.InteropServices;
 	using System.Xml;
-	using Doxense.Collections.Caching;
 	using Doxense.Collections.Tuples;
 	using Doxense.Runtime;
 	using Doxense.Serialization;
+	using SnowBank.Collections.Caching;
 
 	/// <summary>Internal helper to convert values into JSON strings</summary>
 	[PublicAPI]

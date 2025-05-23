@@ -27,7 +27,7 @@
 // enables consitency checks after each operation to the set
 //#define ENFORCE_INVARIANTS
 
-namespace Doxense.Collections.Generic
+namespace SnowBank.Collections.Generic
 {
 	using System.Buffers;
 	using System.Globalization;

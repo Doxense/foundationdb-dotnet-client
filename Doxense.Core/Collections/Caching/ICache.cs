@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Collections.Caching
+namespace SnowBank.Collections.Caching
 {
 
 	public interface ICache<TKey, TElement> : ICollection<KeyValuePair<TKey, TElement>>

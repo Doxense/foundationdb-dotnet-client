@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Collections.Generic
+namespace SnowBank.Collections.Generic
 {
 	using System.Buffers;
 	using System.Runtime.InteropServices;

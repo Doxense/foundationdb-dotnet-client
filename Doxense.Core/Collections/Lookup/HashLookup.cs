@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Collections.Lookup
+namespace SnowBank.Collections.Generic
 {
 	/// <summary>Lookup table that groups elements by a common key</summary>
 	/// <typeparam name="TKey">Type of the key used to group elements</typeparam>
