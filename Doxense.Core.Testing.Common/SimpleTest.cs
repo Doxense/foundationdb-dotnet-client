@@ -35,6 +35,7 @@ namespace SnowBank.Testing
 	using System.Reflection;
 	using System.Runtime;
 	using System.Runtime.CompilerServices;
+	using System.Runtime.ExceptionServices;
 	using System.Runtime.InteropServices;
 	using System.Text;
 	using System.Xml;
@@ -2132,6 +2133,10 @@ namespace SnowBank.Testing
 			/// <remarks>This flag is reset to <c>false</c> whenever <see cref="Reset"/> is called.</remarks>
 			public bool WasCalled { get; private set; }
 
+			/// <summary>Exception that was passed to <see cref="NotifyError"/>.</summary>
+			/// <remarks>This value is reset to <c>null</c> whenever <see cref="Reset"/> is called.</remarks>
+			public ExceptionDispatchInfo? Error { get; private set; }
+
 			/// <summary>Timestamp of the start of the current run</summary>
 			/// <remarks>This is updated everytime <see cref="Reset"/> is called</remarks>
 			private long StartedAt { get; set; }
@@ -2140,8 +2145,8 @@ namespace SnowBank.Testing
 			/// <remarks>This is updated everytime <see cref="NotifySuccess"/> or <see cref="NotifyError"/> are called, and reset to <c>null</c> when <see cref="Reset"/> is called.</remarks>
 			private long? CompletedAt { get; set; }
 
-			/// <summary>Metadata forwarded by the callback</summary>
-			/// <remarks>This is the value of the argument that was passed to <see cref="NotifySuccess"/>.</remarks>
+			/// <summary>Value that was passed by the callback to either <see cref="NotifySuccess"/> or <see cref="NotifyError"/></summary>
+			/// <remarks>This value is reset to <c>null</c> whenever <see cref="Reset"/> is called.</remarks>
 			public T? Sample { get; private set; }
 
 			/// <summary>Signal used to wake up the main test thread when either <see cref="NotifySuccess"/> or <see cref="NotifyError"/> is called.</summary>
@@ -2193,13 +2198,14 @@ namespace SnowBank.Testing
 			}
 
 			/// <summary>Notify that the asynchronous callback has failed, or when it is known that the callback will never fire.</summary>
+			/// <param name="value">Value that the callback wants to forward to the main test thread.</param>
 			/// <param name="error">Exception that was captured</param>
 			/// <param name="token">Token that should either be <c>null</c>, or match the current value of <see cref="Token"/>. Any other value will be ignored.</param>
 			/// <remarks>
 			/// <para>This should be called from inside the async callback if it wants to propagate an exception to the main test thread, or by some other thread that wants to cancel the operation.</para>
 			/// <para>If the system under test has an <c>OnError</c> (or similar) event, it is a good place to call to this method from there, in order to immediately fail the test.</para>
 			/// </remarks>
-			public void NotifyError(Exception? error, Guid? token = null)
+			public void NotifyError(T? value = default, Exception? error = null, Guid? token = null)
 			{
 				// capture the timestamp early, we don't want to include too much framework overhead.
 				var now = Stopwatch.GetTimestamp();
