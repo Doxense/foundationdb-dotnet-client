@@ -24,9 +24,10 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Async
+namespace SnowBank.Linq.Async.Iterators
 {
 	using System.Runtime.ExceptionServices;
+	using Doxense.Threading.Tasks;
 
 	/// <summary>Implements an async queue that asynchronously transform items, outputting them in arrival order, while throttling the producer</summary>
 	/// <typeparam name="TInput">Type of the input elements (from the inner async iterator)</typeparam>

@@ -38,7 +38,6 @@ namespace SnowBank.Linq.Async.Tests
 	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Async;
 	using Doxense.Serialization.Json;
 	using SnowBank.Linq;
 	using SnowBank.Linq.Async.Iterators;

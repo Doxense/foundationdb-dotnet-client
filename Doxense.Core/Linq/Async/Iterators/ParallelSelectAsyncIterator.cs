@@ -28,7 +28,6 @@
 
 namespace SnowBank.Linq.Async.Iterators
 {
-	using Doxense.Async;
 
 	/// <summary>[EXPERIMENTAL] Iterates over an async sequence of items, kick off an async task in parallel, and returning the results in order</summary>
 	/// <typeparam name="TSource">Type of elements of the inner async sequence</typeparam>

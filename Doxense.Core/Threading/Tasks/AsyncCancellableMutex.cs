@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Async
+namespace Doxense.Threading.Tasks
 {
 
 	/// <summary>Implements a async mutex that supports cancellation</summary>

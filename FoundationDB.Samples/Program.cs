@@ -26,7 +26,7 @@
 
 namespace FoundationDB.Samples
 {
-	using Doxense.Async;
+	using Doxense.Threading.Tasks;
 	using FoundationDB.Samples.Benchmarks;
 	using FoundationDB.Samples.Tutorials;
 

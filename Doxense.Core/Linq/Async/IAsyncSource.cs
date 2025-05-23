@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Async
+namespace SnowBank.Linq.Async
 {
 
 	/// <summary>Defines a source that can produce items</summary>

@@ -29,7 +29,6 @@
 namespace SnowBank.Linq.Async.Iterators
 {
 	using System.Runtime.ExceptionServices;
-	using Doxense.Async;
 
 	/// <summary>Pump that repeatedly calls MoveNext on an iterator and tries to publish the values in a Producer/Consumer queue</summary>
 	/// <typeparam name="TInput"></typeparam>

@@ -1,11 +1,11 @@
-﻿
+
 namespace FoundationDB.Layers.Messaging
 {
 	using System.Linq;
 	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Async;
+	using Doxense.Threading.Tasks;
 
 	public class WorkerPoolTest
 	{

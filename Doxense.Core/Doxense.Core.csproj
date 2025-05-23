@@ -39,7 +39,7 @@
 		<PackageReference Include="Microsoft.Extensions.Options" />
 		<PackageReference Include="NodaTime" />
 		<PackageReference Include="OpenTelemetry.Api" />
-		<PackageReference Include="System.IO.Pipelines" Condition="!$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net9.0'))"/>
+		<PackageReference Include="System.IO.Pipelines" Condition="!$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net9.0'))" />
 	</ItemGroup>
 
 </Project>
