@@ -30,6 +30,7 @@ namespace SnowBank.Linq.Async.Expressions
 	/// <summary>Expression that applies a transformation on each item</summary>
 	/// <typeparam name="TSource">Type of the source items</typeparam>
 	/// <typeparam name="TResult">Type of the transformed items</typeparam>
+	[PublicAPI]
 	public sealed class AsyncTransformExpression<TSource, TResult>
 	{
 

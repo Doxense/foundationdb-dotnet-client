@@ -35,12 +35,11 @@ namespace SnowBank.Linq
 		{
 			Contract.NotNull(source);
 
-			if (source is IAsyncLinqQuery<T> query)
+			return source switch
 			{
-				return query.FirstAsync();
-			}
-
-			return AsyncIterators.FirstAsync<T>(source);
+				IAsyncLinqQuery<T> query => query.FirstAsync(),
+				_ => AsyncIterators.FirstAsync<T>(source)
+			};
 		}
 
 		/// <summary>Returns the first element of an async sequence, or an exception if it is empty</summary>
@@ -49,12 +48,11 @@ namespace SnowBank.Linq
 			Contract.NotNull(source);
 			Contract.NotNull(predicate);
 
-			if (source is IAsyncLinqQuery<T> query)
+			return source switch
 			{
-				return query.FirstAsync(predicate);
-			}
-
-			return AsyncIterators.FirstAsync<T>(source, predicate);
+				IAsyncLinqQuery<T> query => query.FirstAsync(predicate),
+				_ => AsyncIterators.FirstAsync<T>(source, predicate)
+			};
 		}
 
 		/// <summary>Returns the first element of an async sequence, or an exception if it is empty</summary>
@@ -63,12 +61,11 @@ namespace SnowBank.Linq
 			Contract.NotNull(source);
 			Contract.NotNull(predicate);
 
-			if (source is IAsyncLinqQuery<T> query)
+			return source switch
 			{
-				return query.FirstAsync(predicate);
-			}
-
-			return AsyncIterators.FirstAsync<T>(source, predicate);
+				IAsyncLinqQuery<T> query => query.FirstAsync(predicate),
+				_ => AsyncIterators.FirstAsync<T>(source, predicate)
+			};
 		}
 
 	}
@@ -76,6 +73,7 @@ namespace SnowBank.Linq
 	public static partial class AsyncIterators
 	{
 
+		/// <summary>Returns the first element of an async sequence, or an exception if it is empty</summary>
 		public static async Task<T> FirstAsync<T>(IAsyncQuery<T> source)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Head);
@@ -88,6 +86,7 @@ namespace SnowBank.Linq
 			throw AsyncQuery.ErrorNoElements();
 		}
 
+		/// <summary>Returns the first element of an async sequence, or an exception if it is empty</summary>
 		public static async Task<T> FirstAsync<T>(IAsyncQuery<T> source, Func<T, bool> predicate)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Iterator);
@@ -103,6 +102,7 @@ namespace SnowBank.Linq
 			throw AsyncQuery.ErrorNoElements();
 		}
 
+		/// <summary>Returns the first element of an async sequence, or an exception if it is empty</summary>
 		public static async Task<T> FirstAsync<T>(IAsyncQuery<T> source, Func<T, CancellationToken, Task<bool>> predicate)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Iterator);

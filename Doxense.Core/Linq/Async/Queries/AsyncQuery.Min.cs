@@ -35,12 +35,11 @@ namespace SnowBank.Linq
 		{
 			Contract.NotNull(source);
 
-			if (source is IAsyncLinqQuery<T> query)
+			return source switch
 			{
-				return query.MinAsync(comparer);
-			}
-
-			return AsyncIterators.MinAsync(source, comparer);
+				IAsyncLinqQuery<T> query => query.MinAsync(comparer),
+				_ => AsyncIterators.MinAsync(source, comparer)
+			};
 		}
 
 	}
@@ -48,6 +47,7 @@ namespace SnowBank.Linq
 	public static partial class AsyncIterators
 	{
 
+		/// <summary>Returns the smallest value in the specified async sequence</summary>
 		public static async Task<int> MinAsync(IAsyncQuery<int> source)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
@@ -68,6 +68,7 @@ namespace SnowBank.Linq
 			return min;
 		}
 
+		/// <summary>Returns the smallest value in the specified async sequence</summary>
 		public static async Task<long> MinAsync(IAsyncQuery<long> source)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
@@ -88,6 +89,7 @@ namespace SnowBank.Linq
 			return min;
 		}
 
+		/// <summary>Returns the smallest value in the specified async sequence</summary>
 		public static async Task<float> MinAsync(IAsyncQuery<float> source)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
@@ -108,6 +110,7 @@ namespace SnowBank.Linq
 			return min;
 		}
 
+		/// <summary>Returns the smallest value in the specified async sequence</summary>
 		public static async Task<double> MinAsync(IAsyncQuery<double> source)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
@@ -128,6 +131,7 @@ namespace SnowBank.Linq
 			return min;
 		}
 
+		/// <summary>Returns the smallest value in the specified async sequence</summary>
 		public static async Task<decimal> MinAsync(IAsyncQuery<decimal> source)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
@@ -148,6 +152,7 @@ namespace SnowBank.Linq
 			return min;
 		}
 
+		/// <summary>Returns the smallest value in the specified async sequence</summary>
 		public static Task<T?> MinAsync<T>(IAsyncQuery<T> source, IComparer<T>? comparer)
 		{
 			comparer ??= Comparer<T>.Default;

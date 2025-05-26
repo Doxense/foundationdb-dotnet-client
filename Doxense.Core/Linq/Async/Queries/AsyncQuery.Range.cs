@@ -41,6 +41,7 @@ namespace SnowBank.Linq
 		/// <returns>An <see cref="IAsyncLinqQuery{T}"/> that contains a range of sequential integral numbers.</returns>
 		/// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is less than 0</exception>
 		/// <exception cref="ArgumentOutOfRangeException"><paramref name="start"/> + <paramref name="count"/> -1 is larger than <see cref="int.MaxValue"/>.</exception>
+		[Pure, LinqTunnel]
 		public static IAsyncLinqQuery<int> Range(int start, int count, CancellationToken ct = default)
 		{
 			if (count < 0 || (((long)start) + count - 1) > int.MaxValue)
@@ -59,6 +60,7 @@ namespace SnowBank.Linq
 		/// <returns>An <see cref="IAsyncQuery{T}"/> that contains a range of sequential numbers.</returns>
 		/// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is less than 0</exception>
 		/// <exception cref="ArgumentOutOfRangeException"><paramref name="start"/> + <paramref name="count"/> -1 is larger than <see cref="int.MaxValue"/>.</exception>
+		[Pure, LinqTunnel]
 		public static IAsyncLinqQuery<TNumber> Range<TNumber>(TNumber start, TNumber delta, int count, CancellationToken ct = default)
 			where TNumber : INumberBase<TNumber>
 		{

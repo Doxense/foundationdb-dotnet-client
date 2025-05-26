@@ -27,10 +27,6 @@
 namespace SnowBank.Linq
 {
 	using System.Collections.Generic;
-	using System.Diagnostics.Metrics;
-
-	using NodaTime;
-
 	using SnowBank.Linq.Async.Iterators;
 
 	public static partial class AsyncQuery
@@ -43,12 +39,11 @@ namespace SnowBank.Linq
 			Contract.NotNull(source);
 			if (count < 0) throw new ArgumentOutOfRangeException(nameof(count), count, "Count cannot be less than zero");
 
-			if (source is IAsyncLinqQuery<TSource> iterator)
+			return source switch
 			{
-				return iterator.Skip(count);
-			}
-
-			return AsyncIterators.Skip(source, count);
+				IAsyncLinqQuery<TSource> iterator => iterator.Skip(count),
+				_ => AsyncIterators.Skip(source, count)
+			};
 		}
 
 		/// <summary>Returns a specified number of contiguous elements from the start of an async sequence.</summary>
@@ -58,12 +53,11 @@ namespace SnowBank.Linq
 			Contract.NotNull(source);
 			Contract.Positive(count, "Count cannot be less than zero");
 
-			if (source is IAsyncLinqQuery<TSource> iterator)
+			return source switch
 			{
-				return iterator.Take(count);
-			}
-
-			return AsyncIterators.Take(source, count);
+				IAsyncLinqQuery<TSource> iterator => iterator.Take(count),
+				_ => AsyncIterators.Take(source, count)
+			};
 		}
 
 		/// <summary>Returns a specified number of contiguous elements from the start of an async sequence.</summary>
@@ -72,12 +66,7 @@ namespace SnowBank.Linq
 		{
 			Contract.NotNull(source);
 
-			if (source is IAsyncLinqQuery<TSource> iterator)
-			{
-				return iterator.Take(range);
-			}
-
-			return AsyncIterators.Take(source, range);
+			return source is IAsyncLinqQuery<TSource> iterator ? iterator.Take(range) : AsyncIterators.Take(source, range);
 		}
 
 		/// <summary>Returns elements from an async sequence as long as a specified condition is true, and then skips the remaining elements.</summary>
@@ -87,14 +76,10 @@ namespace SnowBank.Linq
 			Contract.NotNull(source);
 			Contract.NotNull(condition);
 
-			if (source is IAsyncLinqQuery<TSource> iterator)
-			{
-				return iterator.TakeWhile(condition);
-			}
-
-			return AsyncIterators.TakeWhile(source, condition);
+			return source is IAsyncLinqQuery<TSource> iterator ? iterator.TakeWhile(condition) : AsyncIterators.TakeWhile(source, condition);
 		}
 
+		/// <summary>Returns elements from an async sequence as long as a specified condition is true, and then skips the remaining elements.</summary>
 		[Pure, LinqTunnel]
 		public static IAsyncLinqQuery<TSource> TakeWhile<TSource>(this IAsyncQuery<TSource> source, Func<TSource, bool> condition, out QueryStatistics<bool> stopped)
 		{
@@ -120,6 +105,8 @@ namespace SnowBank.Linq
 	public static partial class AsyncIterators
 	{
 
+		/// <summary>Skips the first elements of an async sequence.</summary>
+		[Pure, LinqTunnel]
 		public static IAsyncLinqQuery<TResult> Skip<TResult>(IAsyncQuery<TResult> source, int offset)
 		{
 			Contract.Debug.Requires(source != null && offset >= 0);
@@ -127,6 +114,8 @@ namespace SnowBank.Linq
 			return new PaginatedAsyncIterator<TResult>(source, offset, null);
 		}
 
+		/// <summary>Returns a specified number of contiguous elements from the start of an async sequence.</summary>
+		[Pure, LinqTunnel]
 		public static IAsyncLinqQuery<TResult> Take<TResult>(IAsyncQuery<TResult> source, int limit)
 		{
 			Contract.Debug.Requires(source != null && limit >= 0);
@@ -134,6 +123,8 @@ namespace SnowBank.Linq
 			return new PaginatedAsyncIterator<TResult>(source, null, limit);
 		}
 
+		/// <summary>Returns a specified number of contiguous elements from the start of an async sequence.</summary>
+		[Pure, LinqTunnel]
 		public static IAsyncLinqQuery<TResult> Take<TResult>(IAsyncQuery<TResult> source, Range range)
 		{
 			var start = range.Start;
@@ -158,6 +149,8 @@ namespace SnowBank.Linq
 #endif
 		}
 
+		/// <summary>Returns elements from an async sequence as long as a specified condition is true, and then skips the remaining elements.</summary>
+		[Pure, LinqTunnel]
 		public static IAsyncLinqQuery<TResult> TakeWhile<TResult>(IAsyncQuery<TResult> source, Func<TResult, bool> condition)
 		{
 			Contract.Debug.Requires(source != null && condition != null);
@@ -310,6 +303,7 @@ namespace SnowBank.Linq
 
 			}
 		}
+
 	}
 
 }

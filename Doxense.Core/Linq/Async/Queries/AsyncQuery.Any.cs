@@ -36,12 +36,11 @@ namespace SnowBank.Linq
 		{
 			Contract.NotNull(source);
 
-			if (source is IAsyncLinqQuery<T> query)
+			return source switch
 			{
-				return query.AnyAsync();
-			}
-
-			return AsyncIterators.AnyAsync<T>(source);
+				IAsyncLinqQuery<T> query => query.AnyAsync(),
+				_ => AsyncIterators.AnyAsync<T>(source)
+			};
 		}
 
 		/// <summary>Determines whether any element of an async sequence satisfies a condition.</summary>
@@ -50,12 +49,11 @@ namespace SnowBank.Linq
 			Contract.NotNull(source);
 			Contract.NotNull(predicate);
 
-			if (source is IAsyncLinqQuery<T> query)
+			return source switch
 			{
-				return query.AnyAsync(predicate);
-			}
-
-			return AsyncIterators.AnyAsync<T>(source, predicate);
+				IAsyncLinqQuery<T> query => query.AnyAsync(predicate),
+				_ => AsyncIterators.AnyAsync<T>(source, predicate)
+			};
 		}
 
 		/// <summary>Determines whether any element of an async sequence satisfies a condition.</summary>
@@ -64,18 +62,19 @@ namespace SnowBank.Linq
 			Contract.NotNull(source);
 			Contract.NotNull(predicate);
 
-			if (source is IAsyncLinqQuery<T> query)
+			return source switch
 			{
-				return query.AnyAsync(predicate);
-			}
-
-			return AsyncIterators.AnyAsync<T>(source, predicate);
+				IAsyncLinqQuery<T> query => query.AnyAsync(predicate),
+				_ => AsyncIterators.AnyAsync<T>(source, predicate)
+			};
 		}
+
 	}
 
 	public static partial class AsyncIterators
 	{
 
+		/// <summary>Determines whether an async sequence contains any elements.</summary>
 		public static async Task<bool> AnyAsync<T>(IAsyncQuery<T> source)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Head);
@@ -83,6 +82,7 @@ namespace SnowBank.Linq
 			return await iterator.MoveNextAsync().ConfigureAwait(false);
 		}
 
+		/// <summary>Determines whether any element of an async sequence satisfies a condition.</summary>
 		public static async Task<bool> AnyAsync<T>(IAsyncQuery<T> source, Func<T, bool> predicate)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Iterator);
@@ -95,6 +95,7 @@ namespace SnowBank.Linq
 			return false;
 		}
 
+		/// <summary>Determines whether any element of an async sequence satisfies a condition.</summary>
 		public static async Task<bool> AnyAsync<T>(IAsyncQuery<T> source, Func<T, CancellationToken, Task<bool>> predicate)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Iterator);
@@ -107,5 +108,7 @@ namespace SnowBank.Linq
 
 			return false;
 		}
+
 	}
+
 }

@@ -15,7 +15,16 @@ namespace SnowBank.Linq
 
 		#region IEnumerable<T>...
 
-		/// <summary>Apply an async lambda to a sequence of elements to transform it into an async sequence</summary>
+		/// <summary>Wraps an <see cref="IEnumerable{T}"/> into an <see cref="IAsyncLinqQuery{T}"/> that will return the same elements.</summary>
+		/// <example><code>
+		/// // starts with a "regular" IEnumerable&lt;T&gt;
+		/// var items = Enumerable.Range(0, 10).Select(...).Where(...);
+		/// // switch to an IAsyncQuery&lt;T>
+		/// var query = await enumerable
+		///		.ToAsyncQuery(stoppingToken) // inject the cancellation token here
+		///		.Select(((x, ct) => SomeAsyncMethod(x, ct)) // call an async method
+		///		.ToListAsync(); // return a list with the results
+		/// </code></example>
 		[Pure, LinqTunnel]
 		public static IAsyncLinqQuery<T> ToAsyncQuery<T>(this IEnumerable<T> source, CancellationToken ct)
 		{
@@ -168,6 +177,11 @@ namespace SnowBank.Linq
 		}
 
 		/// <summary>Wraps an async lambda into an async sequence that will return the result of the lambda</summary>
+		/// <example><code>
+		/// async Task&lt;R> ProcessQuery&lt;T, R>(IAsyncQuery&lt;T> query) { ... }
+		/// // creates a "singleton" query from the result of an async method, and pass this to a method that requires an IAsyncQuery&lt;T>
+		/// var result = ProcessQuery(AsyncQuery.FromTask(SomeAsyncComputation(...), stoppingToken);
+		/// </code></example>
 		[Pure, LinqTunnel]
 		public static IAsyncLinqQuery<T> FromTask<T>(Func<CancellationToken, Task<T>> asyncLambda, CancellationToken ct)
 		{
@@ -179,6 +193,26 @@ namespace SnowBank.Linq
 
 		#region IAsyncEnumerable<T>...
 
+		/// <summary>Wraps an <see cref="IAsyncEnumerable{T}"/> into an <see cref="IAsyncLinqQuery{T}"/> that will return the same elements.</summary>
+		/// <example><code>
+		/// // we have an existing async enumerator that we want to use as a source
+		/// async IAsyncEnumerable&lt;T> ComputeRange&lt;T>(int start, int count, Func&lt;int, Task&lt;T>> callback)
+		/// {
+		///		while(count-- > 0)
+		///		{
+		/// 
+		///			yield return await callback(start++);
+		///		}
+		/// }
+		/// 
+		/// // but we need pass this to a method that wants an async query:
+		/// Task&lt;T> PostProcess(IAsyncQuery&lt;T> query) { ... }
+		/// 
+		/// // we just need to wrap one type of async enumerable into another
+		/// var query = ComputeRange(42, 25, (x) => /*...*/).ToAsyncQuery(stoppingToken);
+		/// // and pass the resulting query to the post-processing step
+		/// var result = await PostProcess(query);
+		/// </code></example>
 		public static IAsyncLinqQuery<T> ToAsyncQuery<T>(this IAsyncEnumerable<T> source, CancellationToken ct = default)
 		{
 			if (source is IAsyncLinqQuery<T> query)

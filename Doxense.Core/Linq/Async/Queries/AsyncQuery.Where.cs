@@ -38,12 +38,11 @@ namespace SnowBank.Linq
 			Contract.NotNull(source);
 			Contract.NotNull(predicate);
 
-			if (source is IAsyncLinqQuery<TResult> iterator)
+			return source switch
 			{
-				return iterator.Where(predicate);
-			}
-
-			return AsyncIterators.WhereImpl(source, predicate);
+				IAsyncLinqQuery<TResult> iterator => iterator.Where(predicate),
+				_ => AsyncIterators.Where(source, predicate)
+			};
 		}
 
 		/// <summary>Filters an async sequence of values based on a predicate.</summary>
@@ -53,12 +52,11 @@ namespace SnowBank.Linq
 			Contract.NotNull(source);
 			Contract.NotNull(predicate);
 
-			if (source is IAsyncLinqQuery<TResult> iterator)
+			return source switch
 			{
-				return iterator.Where(predicate);
-			}
-
-			return AsyncIterators.WhereImpl(source, predicate);
+				IAsyncLinqQuery<TResult> iterator => iterator.Where(predicate),
+				_ => AsyncIterators.Where(source, predicate)
+			};
 		}
 
 		/// <summary>Filters an async sequence of values based on a predicate.</summary>
@@ -68,12 +66,11 @@ namespace SnowBank.Linq
 			Contract.NotNull(source);
 			Contract.NotNull(predicate);
 
-			if (source is IAsyncLinqQuery<TResult> iterator)
+			return source switch
 			{
-				return iterator.Where(predicate);
-			}
-
-			return AsyncIterators.WhereImpl(source, predicate);
+				IAsyncLinqQuery<TResult> iterator => iterator.Where(predicate),
+				_ => AsyncIterators.Where(source, predicate)
+			};
 		}
 
 		/// <summary>Filters an async sequence of values based on a predicate.</summary>
@@ -83,12 +80,11 @@ namespace SnowBank.Linq
 			Contract.NotNull(source);
 			Contract.NotNull(predicate);
 
-			if (source is IAsyncLinqQuery<TResult> iterator)
+			return source switch
 			{
-				return iterator.Where(predicate);
-			}
-
-			return AsyncIterators.WhereImpl(source, predicate);
+				IAsyncLinqQuery<TResult> iterator => iterator.Where(predicate),
+				_ => AsyncIterators.Where(source, predicate)
+			};
 		}
 
 	}
@@ -96,14 +92,18 @@ namespace SnowBank.Linq
 	public static partial class AsyncIterators
 	{
 
-		public static IAsyncLinqQuery<TResult> WhereImpl<TResult>(IAsyncQuery<TResult> source, Func<TResult, bool> predicate)
+		/// <summary>Filters an async sequence of values based on a predicate.</summary>
+		[Pure, LinqTunnel]
+		public static IAsyncLinqQuery<TResult> Where<TResult>(IAsyncQuery<TResult> source, Func<TResult, bool> predicate)
 		{
 			Contract.Debug.Requires(source != null && predicate != null);
 
 			return new WhereAsyncIterator<TResult>(source, predicate);
 		}
 
-		public static IAsyncLinqQuery<TResult> WhereImpl<TResult>(IAsyncQuery<TResult> source, Func<TResult, int, bool> predicate)
+		/// <summary>Filters an async sequence of values based on a predicate.</summary>
+		[Pure, LinqTunnel]
+		public static IAsyncLinqQuery<TResult> Where<TResult>(IAsyncQuery<TResult> source, Func<TResult, int, bool> predicate)
 		{
 			Contract.Debug.Requires(source != null && predicate != null);
 
@@ -117,14 +117,18 @@ namespace SnowBank.Linq
 			}, source.Cancellation);
 		}
 
-		public static IAsyncLinqQuery<TResult> WhereImpl<TResult>(IAsyncQuery<TResult> source, Func<TResult, CancellationToken, Task<bool>> predicate)
+		/// <summary>Filters an async sequence of values based on a predicate.</summary>
+		[Pure, LinqTunnel]
+		public static IAsyncLinqQuery<TResult> Where<TResult>(IAsyncQuery<TResult> source, Func<TResult, CancellationToken, Task<bool>> predicate)
 		{
 			Contract.Debug.Requires(source != null && predicate != null);
 
 			return new WhereExpressionAsyncIterator<TResult>(source, new(predicate));
 		}
 
-		public static IAsyncLinqQuery<TResult> WhereImpl<TResult>(IAsyncQuery<TResult> source, Func<TResult, int, CancellationToken, Task<bool>> predicate)
+		/// <summary>Filters an async sequence of values based on a predicate.</summary>
+		[Pure, LinqTunnel]
+		public static IAsyncLinqQuery<TResult> Where<TResult>(IAsyncQuery<TResult> source, Func<TResult, int, CancellationToken, Task<bool>> predicate)
 		{
 			Contract.Debug.Requires(source != null && predicate != null);
 

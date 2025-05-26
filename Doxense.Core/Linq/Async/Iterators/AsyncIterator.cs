@@ -501,7 +501,7 @@ namespace SnowBank.Linq.Async.Iterators
 		{
 			Contract.NotNull(predicate);
 
-			return AsyncIterators.WhereImpl(this, predicate);
+			return AsyncIterators.Where(this, predicate);
 		}
 
 		/// <inheritdoc />
@@ -509,7 +509,7 @@ namespace SnowBank.Linq.Async.Iterators
 		{
 			Contract.NotNull(predicate);
 
-			return AsyncIterators.WhereImpl(this, predicate);
+			return AsyncIterators.Where(this, predicate);
 		}
 
 		/// <inheritdoc />
@@ -517,7 +517,7 @@ namespace SnowBank.Linq.Async.Iterators
 		{
 			Contract.NotNull(predicate);
 
-			return AsyncIterators.WhereImpl(this, predicate);
+			return AsyncIterators.Where(this, predicate);
 		}
 
 		/// <inheritdoc />
@@ -525,7 +525,7 @@ namespace SnowBank.Linq.Async.Iterators
 		{
 			Contract.NotNull(predicate);
 
-			return AsyncIterators.WhereImpl(this, predicate);
+			return AsyncIterators.Where(this, predicate);
 		}
 
 		#endregion

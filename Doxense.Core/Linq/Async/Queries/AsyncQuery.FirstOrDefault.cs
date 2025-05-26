@@ -39,12 +39,11 @@ namespace SnowBank.Linq
 		{
 			Contract.NotNull(source);
 
-			if (source is IAsyncLinqQuery<T> query)
+			return source switch
 			{
-				return query.FirstOrDefaultAsync(defaultValue);
-			}
-
-			return AsyncIterators.FirstOrDefaultAsync<T>(source, defaultValue);
+				IAsyncLinqQuery<T> query => query.FirstOrDefaultAsync(defaultValue),
+				_ => AsyncIterators.FirstOrDefaultAsync<T>(source, defaultValue)
+			};
 		}
 
 		/// <summary>Returns the first element of an async sequence, or the default value for the type if it is empty</summary>
@@ -57,12 +56,11 @@ namespace SnowBank.Linq
 			Contract.NotNull(source);
 			Contract.NotNull(predicate);
 
-			if (source is IAsyncLinqQuery<T> query)
+			return source switch
 			{
-				return query.FirstOrDefaultAsync(predicate, defaultValue);
-			}
-
-			return AsyncIterators.FirstOrDefaultAsync<T>(source, predicate, defaultValue);
+				IAsyncLinqQuery<T> query => query.FirstOrDefaultAsync(predicate, defaultValue),
+				_ => AsyncIterators.FirstOrDefaultAsync<T>(source, predicate, defaultValue)
+			};
 		}
 
 		/// <summary>Returns the first element of an async sequence, or the default value for the type if it is empty</summary>
@@ -75,18 +73,18 @@ namespace SnowBank.Linq
 			Contract.NotNull(source);
 			Contract.NotNull(predicate);
 
-			if (source is IAsyncLinqQuery<T> query)
+			return source switch
 			{
-				return query.FirstOrDefaultAsync(predicate, defaultValue);
-			}
-
-			return AsyncIterators.FirstOrDefaultAsync<T>(source, predicate, defaultValue);
+				IAsyncLinqQuery<T> query => query.FirstOrDefaultAsync(predicate, defaultValue),
+				_ => AsyncIterators.FirstOrDefaultAsync<T>(source, predicate, defaultValue)
+			};
 		}
 
 	}
 
 	public static partial class AsyncIterators
 	{
+		/// <summary>Returns the first element of an async sequence, or the default value for the type if it is empty</summary>
 		public static async Task<T> FirstOrDefaultAsync<T>(IAsyncQuery<T> source, T defaultValue)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Head);
@@ -99,6 +97,7 @@ namespace SnowBank.Linq
 			return defaultValue;
 		}
 
+		/// <summary>Returns the first element of an async sequence, or the default value for the type if it is empty</summary>
 		public static async Task<T> FirstOrDefaultAsync<T>(IAsyncQuery<T> source, Func<T, bool> predicate, T defaultValue)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Iterator);
@@ -114,6 +113,7 @@ namespace SnowBank.Linq
 			return defaultValue;
 		}
 
+		/// <summary>Returns the first element of an async sequence, or the default value for the type if it is empty</summary>
 		public static async Task<T> FirstOrDefaultAsync<T>(IAsyncQuery<T> source, Func<T, CancellationToken, Task<bool>> predicate, T defaultValue)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Iterator);

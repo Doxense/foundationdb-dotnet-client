@@ -35,12 +35,11 @@ namespace SnowBank.Linq
 		{
 			Contract.NotNull(source);
 
-			if (source is IAsyncLinqQuery<T> query)
+			return source switch
 			{
-				return query.CountAsync();
-			}
-
-			return AsyncIterators.CountAsync<T>(source);
+				IAsyncLinqQuery<T> query => query.CountAsync(),
+				_ => AsyncIterators.CountAsync<T>(source)
+			};
 		}
 
 		/// <summary>Returns a number that represents how many elements in the specified async sequence satisfy a condition.</summary>
@@ -49,12 +48,11 @@ namespace SnowBank.Linq
 			Contract.NotNull(source);
 			Contract.NotNull(predicate);
 
-			if (source is IAsyncLinqQuery<T> query)
+			return source switch
 			{
-				return query.CountAsync(predicate);
-			}
-
-			return AsyncIterators.CountAsync<T>(source, predicate);
+				IAsyncLinqQuery<T> query => query.CountAsync(predicate),
+				_ => AsyncIterators.CountAsync<T>(source, predicate)
+			};
 		}
 
 		/// <summary>Returns a number that represents how many elements in the specified async sequence satisfy a condition.</summary>
@@ -63,18 +61,19 @@ namespace SnowBank.Linq
 			Contract.NotNull(source);
 			Contract.NotNull(predicate);
 
-			if (source is IAsyncLinqQuery<T> query)
+			return source switch
 			{
-				return query.CountAsync(predicate);
-			}
-
-			return AsyncIterators.CountAsync<T>(source, predicate);
+				IAsyncLinqQuery<T> query => query.CountAsync(predicate),
+				_ => AsyncIterators.CountAsync<T>(source, predicate)
+			};
 		}
 
 	}
 
 	public static partial class AsyncIterators
 	{
+
+		/// <summary>Returns the number of elements in an async sequence.</summary>
 		public static async Task<int> CountAsync<T>(IAsyncQuery<T> source)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
@@ -91,6 +90,7 @@ namespace SnowBank.Linq
 			return count;
 		}
 
+		/// <summary>Returns a number that represents how many elements in the specified async sequence satisfy a condition.</summary>
 		public static async Task<int> CountAsync<T>(IAsyncQuery<T> source, Func<T, bool> predicate)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
@@ -106,6 +106,7 @@ namespace SnowBank.Linq
 			return count;
 		}
 
+		/// <summary>Returns a number that represents how many elements in the specified async sequence satisfy a condition.</summary>
 		public static async Task<int> CountAsync<T>(IAsyncQuery<T> source, Func<T, CancellationToken, Task<bool>> predicate)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);

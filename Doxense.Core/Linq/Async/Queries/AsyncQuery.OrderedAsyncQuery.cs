@@ -69,6 +69,7 @@ namespace SnowBank.Linq
 				return m_parent == null ? sorter : m_parent.GetEnumerableSorter(sorter);
 			}
 
+			/// <inheritdoc />
 			public CancellationToken Cancellation => m_source.Cancellation;
 
 			[MustDisposeResource]
@@ -76,6 +77,7 @@ namespace SnowBank.Linq
 			public IAsyncEnumerator<TSource> GetAsyncEnumerator(CancellationToken ct)
 				=> GetCancellableAsyncEnumerator(this, AsyncIterationHint.All, ct);
 
+			/// <inheritdoc />
 			[MustDisposeResource]
 			public IAsyncEnumerator<TSource> GetAsyncEnumerator(AsyncIterationHint mode)
 			{
@@ -96,6 +98,7 @@ namespace SnowBank.Linq
 				}
 			}
 
+			/// <inheritdoc />
 			public IOrderedAsyncQuery<TSource> CreateOrderedEnumerable<TKey>(Func<TSource, TKey> keySelector, IComparer<TKey>? comparer, bool descending)
 			{
 				Contract.NotNull(keySelector);
@@ -121,6 +124,7 @@ namespace SnowBank.Linq
 				m_keyComparer = comparer ?? Comparer<TKey>.Default;
 			}
 
+			/// <inheritdoc />
 			internal override SequenceSorter<TSource> GetEnumerableSorter(SequenceSorter<TSource>? next)
 			{
 				var sorter = new SequenceByKeySorter<TSource, TKey>(m_keySelector, m_keyComparer, m_descending, next);
@@ -188,6 +192,7 @@ namespace SnowBank.Linq
 				return true;
 			}
 
+			/// <inheritdoc />
 			public ValueTask<bool> MoveNextAsync()
 			{
 				// First call will be slow (and async), but the rest of the calls will use the results already sorted in memory, and should be as fast as possible!
@@ -226,13 +231,16 @@ namespace SnowBank.Linq
 
 			}
 
+			/// <inheritdoc />
 			public TSource Current => m_current!;
 
+			/// <inheritdoc />
 			public ValueTask DisposeAsync()
 			{
 				Completed();
 				return default;
 			}
+
 		}
 
 	}

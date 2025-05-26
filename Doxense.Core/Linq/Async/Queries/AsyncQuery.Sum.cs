@@ -316,6 +316,9 @@ namespace SnowBank.Linq
 			return sum;
 		}
 
+		/// <summary>Sums the results of a query</summary>
+		/// <param name="source">Query to sum</param>
+		/// <returns>Sum of all the results, or zero if the query is empty.</returns>
 		public static async Task<int> SumInt32Async(IAsyncQuery<int> source)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
@@ -329,6 +332,9 @@ namespace SnowBank.Linq
 			return sum;
 		}
 
+		/// <summary>Sums the results of a query that are not null.</summary>
+		/// <param name="source">Query to sum</param>
+		/// <returns>Sum of all the results, or zero if the query is empty.</returns>
 		public static async Task<int?> SumInt32Async(IAsyncQuery<int?> source)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
@@ -346,6 +352,9 @@ namespace SnowBank.Linq
 			return sum;
 		}
 
+		/// <summary>Sums the results of a query</summary>
+		/// <param name="source">Query to sum</param>
+		/// <returns>Sum of all the results, or zero if the query is empty.</returns>
 		public static async Task<long> SumInt64Async(IAsyncQuery<long> source)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
@@ -359,6 +368,9 @@ namespace SnowBank.Linq
 			return sum;
 		}
 
+		/// <summary>Sums the results of a query that are not null.</summary>
+		/// <param name="source">Query to sum</param>
+		/// <returns>Sum of all the results, or zero if the query is empty.</returns>
 		public static async Task<long?> SumInt64Async(IAsyncQuery<long?> source)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
@@ -376,6 +388,9 @@ namespace SnowBank.Linq
 			return sum;
 		}
 
+		/// <summary>Sums the results of a query</summary>
+		/// <param name="source">Query to sum</param>
+		/// <returns>Sum of all the results, or zero if the query is empty.</returns>
 		public static async Task<float> SumFloatAsync(IAsyncQuery<float> source)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
@@ -391,6 +406,9 @@ namespace SnowBank.Linq
 			return (float) sum;
 		}
 
+		/// <summary>Sums the results of a query that are not null.</summary>
+		/// <param name="source">Query to sum</param>
+		/// <returns>Sum of all the results, or zero if the query is empty.</returns>
 		public static async Task<float?> SumFloatAsync(IAsyncQuery<float?> source)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
@@ -409,6 +427,9 @@ namespace SnowBank.Linq
 			return (float) sum;
 		}
 
+		/// <summary>Sums the results of a query</summary>
+		/// <param name="source">Query to sum</param>
+		/// <returns>Sum of all the results, or zero if the query is empty.</returns>
 		public static async Task<double> SumDoubleAsync(IAsyncQuery<double> source)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
@@ -422,6 +443,9 @@ namespace SnowBank.Linq
 			return sum;
 		}
 
+		/// <summary>Sums the results of a query that are not null.</summary>
+		/// <param name="source">Query to sum</param>
+		/// <returns>Sum of all the results, or zero if the query is empty.</returns>
 		public static async Task<double?> SumDoubleAsync(IAsyncQuery<double?> source)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
@@ -439,6 +463,9 @@ namespace SnowBank.Linq
 			return sum;
 		}
 
+		/// <summary>Sums the results of a query</summary>
+		/// <param name="source">Query to sum</param>
+		/// <returns>Sum of all the results, or zero if the query is empty.</returns>
 		public static async Task<decimal> SumDecimalAsync(IAsyncQuery<decimal> source)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
@@ -452,6 +479,9 @@ namespace SnowBank.Linq
 			return sum;
 		}
 
+		/// <summary>Sums the results of a query that are not null.</summary>
+		/// <param name="source">Query to sum</param>
+		/// <returns>Sum of all the results, or zero if the query is empty.</returns>
 		public static async Task<decimal?> SumDecimalAsync(IAsyncQuery<decimal?> source)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
@@ -468,5 +498,7 @@ namespace SnowBank.Linq
 
 			return sum;
 		}
+
 	}
+
 }

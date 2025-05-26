@@ -40,6 +40,10 @@ namespace SnowBank.Linq
 			/// <summary>Fill the array with all the keys extracted from the source</summary>
 			internal abstract void ComputeKeys(ReadOnlyMemory<TSource> items, int count);
 
+			/// <summary>Compare the keys at the specified indexes</summary>
+			/// <param name="index1">Index of the first key</param>
+			/// <param name="index2">Index of the second key</param>
+			/// <returns>0 if they are equal, negative if key[index1] is smaller than key[index2], positive if greater than.</returns>
 			internal abstract int CompareKeys(int index1, int index2);
 
 			internal void Sort(ReadOnlyMemory<TSource> items, Span<int> map)
@@ -90,6 +94,7 @@ namespace SnowBank.Linq
 					}
 				} while (left < right);
 			}
+
 		}
 
 		/// <summary>Helper class for sorting a sequence of <typeparamref name="TSource"/></summary>
@@ -111,11 +116,13 @@ namespace SnowBank.Linq
 				m_next = next;
 			}
 
+			/// <inheritdoc />
 			internal override void ComputeKeys(ReadOnlyMemory<TSource> items, int count)
 			{
 				m_items = items;
 			}
 
+			/// <inheritdoc />
 			internal override int CompareKeys(int index1, int index2)
 			{
 				var items = m_items;
@@ -152,6 +159,7 @@ namespace SnowBank.Linq
 				m_next = next;
 			}
 
+			/// <inheritdoc />
 			internal override void ComputeKeys(ReadOnlyMemory<TSource> items, int count)
 			{
 				var selector = m_keySelector;
@@ -167,6 +175,7 @@ namespace SnowBank.Linq
 				m_next?.ComputeKeys(items, count);
 			}
 
+			/// <inheritdoc />
 			internal override int CompareKeys(int index1, int index2)
 			{
 				Contract.Debug.Requires(m_comparer != null && m_keys != null);

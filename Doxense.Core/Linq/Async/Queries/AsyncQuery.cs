@@ -113,7 +113,7 @@ namespace SnowBank.Linq
 		/// <returns>Sequence of batches, where all the items of a single batch arrived at the same time. A batch is closed once the next call to MoveNext() on the inner sequence does not complete immediately. Batches can be smaller than <paramref name="maxWindowSize"/>.</returns>
 		/// <remarks>
 		/// This should only be called on bursty asynchronous sequences, and when you want to process items in batches, without incurring the cost of latency between two pages of results.
-		/// You should avoid using this operator on sequences where each call to MoveNext() is asynchronous, since it would only produce batchs with only a single item.
+		/// You should avoid using this operator on sequences where each call to MoveNext() is asynchronous, since it would only produce batches with only a single item.
 		/// </remarks>
 		[Pure, LinqTunnel]
 		public static IAsyncLinqQuery<TSource[]> Window<TSource>(this IAsyncQuery<TSource> source, int maxWindowSize)
@@ -127,8 +127,8 @@ namespace SnowBank.Linq
 		/// <summary>Buffers the items of a source sequence, and outputs a sequence of fixed-sized arrays.</summary>
 		/// <typeparam name="TSource">Type of the items in the source sequence</typeparam>
 		/// <param name="source">Source sequence that will be cut into chunks containing at most <paramref name="batchSize"/> items.</param>
-		/// <param name="batchSize">Number of items per batch. The last batch may contain less items, but should never be empty.</param>
-		/// <returns>Sequence of arrays of size <paramref name="batchSize"/>, except the last batch which can have less items.</returns>
+		/// <param name="batchSize">Number of items per batch. The last batch may contain fewer items, but should never be empty.</param>
+		/// <returns>Sequence of arrays of size <paramref name="batchSize"/>, except the last batch which can have fewer items.</returns>
 		/// <remarks>
 		/// This operator does not care about the latency of each item, and will always try to fill each batch completely, before outputting a result.
 		/// If you are working on an inner sequence that is bursty in nature, where items arrives in waves, you should use <see cref="Window{TSource}"/> which attempts to minimize the latency by outputting incomplete batches if needed.
@@ -557,6 +557,14 @@ namespace SnowBank.Linq
 		internal static InvalidOperationException ErrorMoreThanOneMatch() => new("Sequence contains more than one matching element");
 
 		#endregion
+
+	}
+
+	/// <summary>Contains generic fallback implementations for custom async iterators</summary>
+	public static partial class AsyncIterators
+	{
+
+		// each LINQ operator can provide a typical implementation in this type
 
 	}
 

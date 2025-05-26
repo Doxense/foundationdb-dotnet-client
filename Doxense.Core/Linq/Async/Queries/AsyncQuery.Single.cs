@@ -79,6 +79,8 @@ namespace SnowBank.Linq
 	public static partial class AsyncIterators
 	{
 
+		/// <summary>Returns the first and only element of an async sequence, or an exception if it is empty or have two or more elements</summary>
+		/// <remarks>Will need to call MoveNext at least twice to ensure that there is no second element.</remarks>
 		public static async Task<T> SingleAsync<T>(IAsyncQuery<T> source)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Head);
@@ -98,6 +100,8 @@ namespace SnowBank.Linq
 			return item;
 		}
 
+		/// <summary>Returns the first and only element of an async sequence, or an exception if it is empty or have two or more elements</summary>
+		/// <remarks>Will need to call MoveNext at least twice to ensure that there is no second element.</remarks>
 		public static async Task<T> SingleAsync<T>(IAsyncQuery<T> source, Func<T, bool> predicate)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Iterator);
@@ -127,6 +131,8 @@ namespace SnowBank.Linq
 			return single!;
 		}
 
+		/// <summary>Returns the first and only element of an async sequence, or an exception if it is empty or have two or more elements</summary>
+		/// <remarks>Will need to call MoveNext at least twice to ensure that there is no second element.</remarks>
 		public static async Task<T> SingleAsync<T>(IAsyncQuery<T> source, Func<T, CancellationToken, Task<bool>> predicate)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Iterator);

@@ -38,12 +38,11 @@ namespace SnowBank.Linq
 			Contract.NotNull(source);
 			Contract.NotNull(selector);
 
-			if (source is IAsyncLinqQuery<TSource> iterator)
+			return source switch
 			{
-				return iterator.Select(selector);
-			}
-
-			return AsyncIterators.Select(source, selector);
+				IAsyncLinqQuery<TSource> iterator => iterator.Select(selector),
+				_ => AsyncIterators.Select(source, selector)
+			};
 		}
 
 		/// <summary>Projects each element of an async sequence into a new form.</summary>
@@ -53,12 +52,11 @@ namespace SnowBank.Linq
 			Contract.NotNull(source);
 			Contract.NotNull(selector);
 
-			if (source is IAsyncLinqQuery<TSource> iterator)
+			return source switch
 			{
-				return iterator.Select(selector);
-			}
-
-			return AsyncIterators.Select(source, selector);
+				IAsyncLinqQuery<TSource> iterator => iterator.Select(selector),
+				_ => AsyncIterators.Select(source, selector)
+			};
 		}
 
 		/// <summary>Projects each element of an async sequence into a new form.</summary>
@@ -69,12 +67,11 @@ namespace SnowBank.Linq
 			Contract.NotNull(source);
 			Contract.NotNull(selector);
 
-			if (source is IAsyncLinqQuery<TSource> iterator)
+			return source switch
 			{
-				return iterator.Select(selector);
-			}
-
-			return AsyncIterators.Select(source, selector);
+				IAsyncLinqQuery<TSource> iterator => iterator.Select(selector),
+				_ => AsyncIterators.Select(source, selector)
+			};
 		}
 
 		/// <summary>Projects each element of an async sequence into a new form.</summary>
@@ -84,12 +81,11 @@ namespace SnowBank.Linq
 			Contract.NotNull(source);
 			Contract.NotNull(selector);
 
-			if (source is IAsyncLinqQuery<TSource> iterator)
+			return source switch
 			{
-				return iterator.Select(selector);
-			}
-
-			return AsyncIterators.Select(source, selector);
+				IAsyncLinqQuery<TSource> iterator => iterator.Select(selector),
+				_ => AsyncIterators.Select(source, selector)
+			};
 		}
 
 	}
@@ -97,6 +93,8 @@ namespace SnowBank.Linq
 	public static partial class AsyncIterators
 	{
 
+		/// <summary>Projects each element of an async sequence into a new form.</summary>
+		[Pure, LinqTunnel]
 		public static IAsyncLinqQuery<TResult> Select<TSource, TResult>(IAsyncQuery<TSource> source, Func<TSource, TResult> selector)
 		{
 			Contract.Debug.Requires(source != null && selector != null);
@@ -104,6 +102,8 @@ namespace SnowBank.Linq
 			return new SelectAsyncIterator<TSource,TResult>(source, selector);
 		}
 
+		/// <summary>Projects each element of an async sequence into a new form.</summary>
+		[Pure, LinqTunnel]
 		public static IAsyncLinqQuery<TResult> Select<TResult, TSource>(IAsyncQuery<TSource> source, Func<TSource, int, TResult> selector)
 		{
 			Contract.Debug.Requires(source != null && selector != null);
@@ -118,6 +118,8 @@ namespace SnowBank.Linq
 			}, source.Cancellation);
 		}
 
+		/// <summary>Projects each element of an async sequence into a new form.</summary>
+		[Pure, LinqTunnel]
 		public static IAsyncLinqQuery<TResult> Select<TSource, TResult>(IAsyncQuery<TSource> source, Func<TSource, CancellationToken, Task<TResult>> selector)
 		{
 			Contract.Debug.Requires(source != null && selector != null);
@@ -125,6 +127,8 @@ namespace SnowBank.Linq
 			return new SelectTaskAsyncIterator<TSource,TResult>(source, selector);
 		}
 
+		/// <summary>Projects each element of an async sequence into a new form.</summary>
+		[Pure, LinqTunnel]
 		public static IAsyncLinqQuery<TResult> Select<TResult, TSource>(IAsyncQuery<TSource> source, Func<TSource, int, CancellationToken, Task<TResult>> selector)
 		{
 			Contract.Debug.Requires(source != null && selector != null);

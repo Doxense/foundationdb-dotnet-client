@@ -35,12 +35,11 @@ namespace SnowBank.Linq
 		{
 			Contract.NotNull(source);
 
-			if (source is IAsyncLinqQuery<T> query)
+			return source switch
 			{
-				return query.LastAsync();
-			}
-
-			return AsyncIterators.LastAsync<T>(source);
+				IAsyncLinqQuery<T> query => query.LastAsync(),
+				_ => AsyncIterators.LastAsync<T>(source)
+			};
 		}
 
 		/// <summary>Returns the last element of an async sequence, or an exception if it is empty</summary>
@@ -49,12 +48,11 @@ namespace SnowBank.Linq
 			Contract.NotNull(source);
 			Contract.NotNull(predicate);
 
-			if (source is IAsyncLinqQuery<T> query)
+			return source switch
 			{
-				return query.LastAsync(predicate);
-			}
-
-			return AsyncIterators.LastAsync<T>(source, predicate);
+				IAsyncLinqQuery<T> query => query.LastAsync(predicate),
+				_ => AsyncIterators.LastAsync<T>(source, predicate)
+			};
 		}
 
 		/// <summary>Returns the last element of an async sequence, or an exception if it is empty</summary>
@@ -63,12 +61,11 @@ namespace SnowBank.Linq
 			Contract.NotNull(source);
 			Contract.NotNull(predicate);
 
-			if (source is IAsyncLinqQuery<T> query)
+			return source switch
 			{
-				return query.LastAsync(predicate);
-			}
-
-			return AsyncIterators.LastAsync<T>(source, predicate);
+				IAsyncLinqQuery<T> query => query.LastAsync(predicate),
+				_ => AsyncIterators.LastAsync<T>(source, predicate)
+			};
 		}
 
 	}
@@ -76,6 +73,7 @@ namespace SnowBank.Linq
 	public static partial class AsyncIterators
 	{
 
+		/// <summary>Returns the last element of an async sequence, or an exception if it is empty</summary>
 		public static async Task<T> LastAsync<T>(IAsyncQuery<T> source)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Head);
@@ -95,6 +93,7 @@ namespace SnowBank.Linq
 			return item;
 		}
 
+		/// <summary>Returns the last element of an async sequence, or an exception if it is empty</summary>
 		public static async Task<T> LastAsync<T>(IAsyncQuery<T> source, Func<T, bool> predicate)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Head);
@@ -120,6 +119,7 @@ namespace SnowBank.Linq
 			return found ? result : throw AsyncQuery.ErrorNoMatch();
 		}
 
+		/// <summary>Returns the last element of an async sequence, or an exception if it is empty</summary>
 		public static async Task<T> LastAsync<T>(IAsyncQuery<T> source, Func<T, CancellationToken, Task<bool>> predicate)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Head);

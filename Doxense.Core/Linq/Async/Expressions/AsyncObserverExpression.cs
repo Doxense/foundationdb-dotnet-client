@@ -27,8 +27,9 @@
 namespace SnowBank.Linq.Async.Expressions
 {
 
-	/// <summary>Expression that execute an action on each item, but does not change the source expression in anyway</summary>
+	/// <summary>Expression that execute an action on each item, but does not change the source expression in any way</summary>
 	/// <typeparam name="TSource">Type of observed items</typeparam>
+	[PublicAPI]
 	public sealed class AsyncObserverExpression<TSource>
 	{
 

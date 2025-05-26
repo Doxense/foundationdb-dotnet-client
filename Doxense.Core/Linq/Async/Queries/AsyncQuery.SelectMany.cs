@@ -39,12 +39,11 @@ namespace SnowBank.Linq
 			Contract.NotNull(source);
 			Contract.NotNull(selector);
 
-			if (source is IAsyncLinqQuery<TSource> iterator)
+			return source switch
 			{
-				return iterator.SelectMany(selector);
-			}
-
-			return AsyncIterators.SelectManyImpl(source, selector);
+				IAsyncLinqQuery<TSource> iterator => iterator.SelectMany(selector),
+				_ => AsyncIterators.SelectManyImpl(source, selector)
+			};
 		}
 
 		/// <summary>Projects each element of an async sequence to an <see cref="IAsyncEnumerable{T}"/> and flattens the resulting sequences into one async sequence.</summary>
@@ -54,12 +53,11 @@ namespace SnowBank.Linq
 			Contract.NotNull(source);
 			Contract.NotNull(selector);
 
-			if (source is IAsyncLinqQuery<TSource> iterator)
+			return source switch
 			{
-				return iterator.SelectMany(selector);
-			}
-
-			return Flatten(source, new AsyncTransformExpression<TSource, IAsyncEnumerable<TResult>>(selector));
+				IAsyncLinqQuery<TSource> iterator => iterator.SelectMany(selector),
+				_ => Flatten(source, new AsyncTransformExpression<TSource, IAsyncEnumerable<TResult>>(selector))
+			};
 		}
 
 		/// <summary>Projects each element of an async sequence to an <see cref="IAsyncQuery{T}"/> and flattens the resulting sequences into one async sequence.</summary>
@@ -69,12 +67,11 @@ namespace SnowBank.Linq
 			Contract.NotNull(source);
 			Contract.NotNull(selector);
 
-			if (source is IAsyncLinqQuery<TSource> iterator)
+			return source switch
 			{
-				return iterator.SelectMany(selector);
-			}
-
-			return Flatten(source, new AsyncTransformExpression<TSource, IAsyncQuery<TResult>>(selector));
+				IAsyncLinqQuery<TSource> iterator => iterator.SelectMany(selector),
+				_ => Flatten(source, new AsyncTransformExpression<TSource, IAsyncQuery<TResult>>(selector))
+			};
 		}
 
 		/// <summary>Projects each element of an async sequence to an <see cref="IEnumerable{T}"/> and flattens the resulting sequences into one async sequence.</summary>
@@ -84,12 +81,11 @@ namespace SnowBank.Linq
 			Contract.NotNull(source);
 			Contract.NotNull(selector);
 
-			if (source is IAsyncLinqQuery<TSource> iterator)
+			return source switch
 			{
-				return iterator.SelectMany(selector);
-			}
-
-			return AsyncIterators.SelectManyImpl(source, selector);
+				IAsyncLinqQuery<TSource> iterator => iterator.SelectMany(selector),
+				_ => AsyncIterators.SelectManyImpl(source, selector)
+			};
 		}
 
 		/// <summary>Projects each element of an async sequence to an <see cref="IEnumerable{T}"/> flattens the resulting sequences into one async sequence, and invokes a result selector function on each element therein.</summary>
@@ -100,12 +96,11 @@ namespace SnowBank.Linq
 			Contract.NotNull(collectionSelector);
 			Contract.NotNull(resultSelector);
 
-			if (source is IAsyncLinqQuery<TSource> iterator)
+			return source switch
 			{
-				return iterator.SelectMany(collectionSelector, resultSelector);
-			}
-
-			return AsyncIterators.SelectManyImpl(source, collectionSelector, resultSelector);
+				IAsyncLinqQuery<TSource> iterator => iterator.SelectMany(collectionSelector, resultSelector),
+				_ => AsyncIterators.SelectManyImpl(source, collectionSelector, resultSelector)
+			};
 		}
 
 		/// <summary>Projects each element of an async sequence to an <see cref="IEnumerable{T}"/> flattens the resulting sequences into one async sequence, and invokes a result selector function on each element therein.</summary>
@@ -116,12 +111,11 @@ namespace SnowBank.Linq
 			Contract.NotNull(collectionSelector);
 			Contract.NotNull(resultSelector);
 
-			if (source is IAsyncLinqQuery<TSource> iterator)
+			return source switch
 			{
-				return iterator.SelectMany(collectionSelector, resultSelector);
-			}
-
-			return AsyncIterators.SelectManyImpl(source, collectionSelector, resultSelector);
+				IAsyncLinqQuery<TSource> iterator => iterator.SelectMany(collectionSelector, resultSelector),
+				_ => AsyncIterators.SelectManyImpl(source, collectionSelector, resultSelector)
+			};
 		}
 
 	}
@@ -129,21 +123,29 @@ namespace SnowBank.Linq
 	public static partial class AsyncIterators
 	{
 
+		/// <summary>Projects each element of an async sequence to an <see cref="IEnumerable{T}"/> and flattens the resulting sequences into one async sequence.</summary>
+		[Pure, LinqTunnel]
 		public static IAsyncLinqQuery<TResult> SelectManyImpl<TSource, TResult>(IAsyncQuery<TSource> source, Func<TSource, IEnumerable<TResult>> selector)
 		{
 			return new SelectManyAsyncIterator<TSource, TResult>(source, selector);
 		}
 
+		/// <summary>Projects each element of an async sequence to an <see cref="IAsyncEnumerable{T}"/> and flattens the resulting sequences into one async sequence.</summary>
+		[Pure, LinqTunnel]
 		public static IAsyncLinqQuery<TResult> SelectManyImpl<TSource, TResult>(IAsyncQuery<TSource> source, Func<TSource, CancellationToken, Task<IEnumerable<TResult>>> selector)
 		{
 			return AsyncQuery.Flatten(source, new AsyncTransformExpression<TSource, IEnumerable<TResult>>(selector));
 		}
 
+		/// <summary>Projects each element of an async sequence to an <see cref="IEnumerable{T}"/> flattens the resulting sequences into one async sequence, and invokes a result selector function on each element therein.</summary>
+		[Pure, LinqTunnel]
 		public static IAsyncLinqQuery<TResult> SelectManyImpl<TSource, TCollection, TResult>(IAsyncQuery<TSource> source, Func<TSource, IEnumerable<TCollection>> collectionSelector, Func<TSource, TCollection, TResult> resultSelector)
 		{
 			return AsyncQuery.Flatten(source, new(collectionSelector), resultSelector);
 		}
 
+		/// <summary>Projects each element of an async sequence to an <see cref="IEnumerable{T}"/> flattens the resulting sequences into one async sequence, and invokes a result selector function on each element therein.</summary>
+		[Pure, LinqTunnel]
 		public static IAsyncLinqQuery<TResult> SelectManyImpl<TSource, TCollection, TResult>(IAsyncQuery<TSource> source, Func<TSource, CancellationToken, Task<IEnumerable<TCollection>>> collectionSelector, Func<TSource, TCollection, TResult> resultSelector)
 		{
 			return AsyncQuery.Flatten(source, new(collectionSelector), resultSelector);

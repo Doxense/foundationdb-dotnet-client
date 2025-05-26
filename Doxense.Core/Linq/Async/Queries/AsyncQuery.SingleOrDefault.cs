@@ -90,6 +90,8 @@ namespace SnowBank.Linq
 
 	public static partial class AsyncIterators
 	{
+		/// <summary>Returns the first and only element of an async sequence, the default value for the type if it is empty, or an exception if it has two or more elements</summary>
+		/// <remarks>Will need to call MoveNext at least twice to ensure that there is no second element.</remarks>
 		public static async Task<T> SingleOrDefaultAsync<T>(IAsyncQuery<T> source, T defaultValue)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Head);
@@ -106,6 +108,8 @@ namespace SnowBank.Linq
 			return defaultValue;
 		}
 
+		/// <summary>Returns the first and only element of an async sequence, the default value for the type if it is empty, or an exception if it has two or more elements</summary>
+		/// <remarks>Will need to call MoveNext at least twice to ensure that there is no second element.</remarks>
 		public static async Task<T> SingleOrDefaultAsync<T>(IAsyncQuery<T> source, [InstantHandle] Func<T, bool> predicate, T defaultValue)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Iterator);
@@ -125,6 +129,8 @@ namespace SnowBank.Linq
 			return result;
 		}
 
+		/// <summary>Returns the first and only element of an async sequence, the default value for the type if it is empty, or an exception if it has two or more elements</summary>
+		/// <remarks>Will need to call MoveNext at least twice to ensure that there is no second element.</remarks>
 		public static async Task<T> SingleOrDefaultAsync<T>(IAsyncQuery<T> source, [InstantHandle] Func<T, CancellationToken, Task<bool>> predicate, T defaultValue)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.Iterator);

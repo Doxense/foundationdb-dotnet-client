@@ -38,12 +38,11 @@ namespace SnowBank.Linq
 		{
 			Contract.NotNull(source);
 
-			if (source is IAsyncLinqQuery<T> query)
+			return source switch
 			{
-				return query.LastOrDefaultAsync(defaultValue);
-			}
-
-			return AsyncIterators.LastOrDefaultAsync<T>(source, defaultValue);
+				IAsyncLinqQuery<T> query => query.LastOrDefaultAsync(defaultValue),
+				_ => AsyncIterators.LastOrDefaultAsync<T>(source, defaultValue)
+			};
 		}
 
 		/// <summary>Returns the last element of an async sequence, or the default value for the type if it is empty</summary>
@@ -54,12 +53,11 @@ namespace SnowBank.Linq
 		{
 			Contract.NotNull(source);
 
-			if (source is IAsyncLinqQuery<T> query)
+			return source switch
 			{
-				return query.LastOrDefaultAsync(predicate, defaultValue);
-			}
-
-			return AsyncIterators.LastOrDefaultAsync<T>(source, predicate, defaultValue);
+				IAsyncLinqQuery<T> query => query.LastOrDefaultAsync(predicate, defaultValue),
+				_ => AsyncIterators.LastOrDefaultAsync<T>(source, predicate, defaultValue)
+			};
 		}
 
 		/// <summary>Returns the last element of an async sequence, or the default value for the type if it is empty</summary>
@@ -70,12 +68,11 @@ namespace SnowBank.Linq
 		{
 			Contract.NotNull(source);
 
-			if (source is IAsyncLinqQuery<T> query)
+			return source switch
 			{
-				return query.LastOrDefaultAsync(predicate, defaultValue);
-			}
-
-			return AsyncIterators.LastOrDefaultAsync<T>(source, predicate, defaultValue);
+				IAsyncLinqQuery<T> query => query.LastOrDefaultAsync(predicate, defaultValue),
+				_ => AsyncIterators.LastOrDefaultAsync<T>(source, predicate, defaultValue)
+			};
 		}
 
 	}
@@ -83,6 +80,7 @@ namespace SnowBank.Linq
 	public static partial class AsyncIterators
 	{
 
+		/// <summary>Returns the last element of an async sequence, or the default value for the type if it is empty</summary>
 		public static async Task<T> LastOrDefaultAsync<T>(IAsyncQuery<T> source, T defaultValue)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
@@ -102,6 +100,7 @@ namespace SnowBank.Linq
 			return result;
 		}
 
+		/// <summary>Returns the last element of an async sequence, or the default value for the type if it is empty</summary>
 		public static async Task<T> LastOrDefaultAsync<T>(IAsyncQuery<T> source, Func<T, bool> predicate, T defaultValue)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
@@ -118,6 +117,7 @@ namespace SnowBank.Linq
 			return result;
 		}
 
+		/// <summary>Returns the last element of an async sequence, or the default value for the type if it is empty</summary>
 		public static async Task<T> LastOrDefaultAsync<T>(IAsyncQuery<T> source, Func<T, CancellationToken, Task<bool>> predicate, T defaultValue)
 		{
 			await using var iterator = source.GetAsyncEnumerator(AsyncIterationHint.All);
