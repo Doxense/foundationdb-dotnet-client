@@ -28,7 +28,7 @@
 
 namespace Doxense.Serialization.Json
 {
-	using Doxense.Text;
+	using SnowBank.Text;
 
 	/// <summary>Tokenizer for JSON text documents</summary>
 	/// <remarks>Must always be passed "by ref" !</remarks>
@@ -58,7 +58,7 @@ namespace Doxense.Serialization.Json
 		/// <summary>Default comparator for JSON Object key names</summary>
 		public readonly IEqualityComparer<string> FieldComparer;
 
-		private StringTable? StringTable;
+		private StringTable? Cache;
 
 		public CrystalJsonTokenizer(TReader source, CrystalJsonSettings? settings)
 			: this()
@@ -73,10 +73,10 @@ namespace Doxense.Serialization.Json
 		public void Dispose()
 		{
 			this.Source = default;
-			if (this.StringTable != null)
+			if (this.Cache != null)
 			{
-				this.StringTable.Dispose();
-				this.StringTable = null;
+				this.Cache.Dispose();
+				this.Cache = null;
 			}
 		}
 
@@ -279,7 +279,7 @@ namespace Doxense.Serialization.Json
 				}
 			}
 			
-			return this.StringTable ??= StringTable.GetInstance();
+			return this.Cache ??= StringTable.GetInstance();
 		}
 
 	}

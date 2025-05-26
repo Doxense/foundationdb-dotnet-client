@@ -24,27 +24,34 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Serialization
+namespace SnowBank.Text
 {
 	using System.Text;
 
+	/// <summary>Helper type for using the <b>Base32</b> encoding</summary>
+	/// <remarks>
+	/// <para>This encoding only uses alphanumeric characters, with uppercase letters <c>A</c> to <c>Z</c> and digits 2 to 7. The digits <c>0</c> and <c>1</c> are omitted since they could be confused with the letters <c>O</c>, <c>I</c> or <c>l</c></para>
+	/// </remarks>
+	[PublicAPI]
 	public static class Base32Encoding
 	{
-		//note: c'est une copie de la classe hellper Base32 qui est internal dans la BCL ! :(
 
 		private static readonly string Base32Chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
+		/// <summary>Encodes a byte array into a Base32 string literal</summary>
 		public static string ToBase32(byte[] input)
 		{
 			Contract.NotNull(input);
 			return ToBase32(input.AsSpan());
 		}
 
+		/// <summary>Encodes a byte buffer into a Base32 string literal</summary>
 		public static string ToBase32(Slice input)
 		{
 			return ToBase32(input.Span);
 		}
 
+		/// <summary>Encodes a byte buffer into a Base32 string literal</summary>
 		public static string ToBase32(ReadOnlySpan<byte> input)
 		{
 			var sb = new StringBuilder();
@@ -66,12 +73,14 @@ namespace Doxense.Serialization
 			return sb.ToString();
 		}
 
+		/// <summary>Decodes a Base32 string literal into a byte array</summary>
 		public static byte[] FromBase32(string input)
 		{
 			Contract.NotNull(input);
 			return FromBase32(input.AsSpan());
 		}
 
+		/// <summary>Decodes a Base32 string literal into a byte array</summary>
 		public static byte[] FromBase32(ReadOnlySpan<char> input)
 		{
 			input = input.TrimEnd('=');
@@ -120,15 +129,14 @@ namespace Doxense.Serialization
 		{
 			uint b1, b2, b3, b4, b5;
 
-			int retVal;
-			switch (offset - input.Length)
+			int retVal = (offset - input.Length) switch
 			{
-				case 1:  retVal = 2; break;
-				case 2:  retVal = 4; break;
-				case 3:  retVal = 5; break;
-				case 4:  retVal = 7; break;
-				default: retVal = 8; break;
-			}
+				1 => 2,
+				2 => 4,
+				3 => 5,
+				4 => 7,
+				_ => 8
+			};
 
 			b1 = (offset < input.Length) ? input[offset++] : 0U;
 			b2 = (offset < input.Length) ? input[offset++] : 0U;

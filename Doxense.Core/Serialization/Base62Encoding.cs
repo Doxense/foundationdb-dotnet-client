@@ -24,10 +24,11 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Serialization
+namespace SnowBank.Text
 {
 	using System.Runtime.InteropServices;
 
+	/// <summary>Options used to configure the behavior or <see cref="Base62Encoding"/> encoding and decoding methods.</summary>
 	[Flags]
 	public enum Base62FormattingOptions
 	{
@@ -37,6 +38,11 @@ namespace Doxense.Serialization
 		Lexicographic = 0x4,
 	}
 
+	/// <summary>Helper type for using the <b>Base62</b> encoding</summary>
+	/// <remarks>
+	/// <para>This encoding only uses alphanumeric characters, including lowercase and uppercase letters.</para>
+	/// <para>There are two versions. The <b>regular</b> version (a-Z, 0-9, A-Z) is the most commonly used, and the <b>lexicographic</b> version (0-9, A-Z, a-z) which guarantees the same ordering between the string literal, and the corresponding bytes.</para>
+	/// </remarks>
 	public static class Base62Encoding
 	{
 

@@ -24,12 +24,13 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Serialization
+namespace SnowBank.Text
 {
 	using System.Globalization;
 	using System.Text;
 
 	/// <summary>Very simple writer to dump query expressions into a statement useful for logging/debugging</summary>
+	[PublicAPI]
 	public sealed class DebugStatementWriter
 	{
 

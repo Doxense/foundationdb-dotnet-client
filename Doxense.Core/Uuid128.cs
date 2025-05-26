@@ -31,6 +31,7 @@ namespace System
 	using System.Runtime.InteropServices;
 	using Doxense.Memory;
 	using Doxense.Serialization;
+	using SnowBank.Text;
 #if NET8_0_OR_GREATER
 	using System.Buffers.Text;
 #endif

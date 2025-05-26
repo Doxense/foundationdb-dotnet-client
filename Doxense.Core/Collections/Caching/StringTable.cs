@@ -26,7 +26,7 @@
 
 //#define DEBUG_STRINGTABLE_PERFS
 
-namespace Doxense.Text
+namespace SnowBank.Text
 {
 	using System.Runtime.InteropServices;
 	using System.Text;

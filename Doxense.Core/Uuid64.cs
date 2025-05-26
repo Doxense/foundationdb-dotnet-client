@@ -30,7 +30,7 @@ namespace System
 	using System.ComponentModel;
 	using System.Globalization;
 	using System.Security.Cryptography;
-	using Doxense.Serialization;
+	using SnowBank.Text;
 
 	/// <summary>Represents a 64-bit UUID that is stored in high-endian format on the wire</summary>
 	[DebuggerDisplay("[{ToString(),nq}]")]

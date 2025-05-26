@@ -37,6 +37,7 @@ namespace Doxense.Serialization.Json
 	using Doxense.Text;
 	using Doxense.Tools;
 	using SnowBank.Linq;
+	using SnowBank.Text;
 
 	internal enum JsonLiteralKind
 	{

@@ -26,7 +26,7 @@
 
 #define USE_FAST_STRING_ALLOCATOR
 
-namespace Doxense.Serialization
+namespace SnowBank.Text
 {
 	using System.Buffers.Text;
 	using System.IO;
@@ -34,15 +34,18 @@ namespace Doxense.Serialization
 	using Doxense.Memory;
 	using SnowBank.Linq;
 
+	/// <summary>Helper type for using the <b>Base62</b> encoding</summary>
 	[PublicAPI]
 	public static class Base64Encoding
 	{
+
 		private const int CHARMAP_PAGE_SIZE = 256;
 
 		#region Encoding Maps...
 
 		private const char Base64PadChar = '=';
 
+		/// <summary>Regular Base64 character map</summary>
 		private static readonly char[] Base64CharMap =
 		[
 			// HI
@@ -103,6 +106,7 @@ namespace Doxense.Serialization
 
 		private const char Base64UrlPadChar = '*';
 
+		/// <summary>Web Safe Base64 character map</summary>
 		private static readonly char[] Base64UrlCharMap =
 		[
 			// HI
@@ -248,34 +252,32 @@ namespace Doxense.Serialization
 
 		#region Common...
 
-		/// <summary>Calcule le nombre exacte de caractères nécessaire pour encoder un buffer en Base64</summary>
-		/// <param name="length">Nombre d'octets source à encoder</param>
-		/// <param name="padded">True s'il y a du padding (résultat multiple de 4).</param>
-		/// <returns>Nombre de caractères nécessaire pour encoder un buffer de taille <paramref name="length"/>, avec ou sans padding</returns>
+		/// <summary>Computes the number of characters required to encode byte buffer into Base64</summary>
+		/// <param name="length">Number of bytes in the source</param>
+		/// <param name="padded">Set to <c>true</c> if padding is required.</param>
+		/// <returns>Minimum capacity required for the output character buffer, in order to encode a byte buffer of size <paramref name="length"/>, including the optional padding.</returns>
 		[Pure]
 		public static int GetCharsCount(int length, bool padded)
 		{
 			if (length < 0) throw new ArgumentOutOfRangeException(nameof(length), "Buffer length cannot be negative.");
 			if (padded)
-			{ // 3 octets source sont encodés en 4 chars, arrondi au supérieur
+			{ // 3 source bytes are encoded as 4 output characters
 				return checked((length + 2) / 3 * 4);
 			}
-			else
+
+			int chunks = checked((length / 3) * 4);
+			return (length % 3) switch
 			{
-				int chunks = checked((length / 3) * 4);
-				switch (length % 3)
-				{
-					case 0: return chunks;
-					case 1: return checked(chunks + 2);
-					default: return checked(chunks + 3);
-				}
-			}
+				0 => chunks,
+				1 => checked(chunks + 2),
+				_ => checked(chunks + 3)
+			};
 		}
 
 		[Pure]
 		public static int EstimateBytesCount(int length)
 		{
-			// 4 chars décodés en 3 bytes, arrondi à l'inférieur
+			// 4 input characters are decoded as 3 output bytes
 			return checked(length / 4 * 3 + 2);
 		}
 
@@ -283,10 +285,6 @@ namespace Doxense.Serialization
 		public static string EncodeBuffer(ReadOnlySpan<byte> buffer, bool padded = true, bool urlSafe = false)
 		{
 			if (buffer.Length == 0) return string.Empty;
-
-			// note: cette version est 20-25% plus rapide que Convert.ToBase64String() sur ma machine.
-			// La version de la BCL "triche" en pré-allouant la string, et en écrivant directement dedans.
-			// => j'ai essayé d'appeler FastAllocateString() directement, et je passe a 35% plus rapide...
 
 			if (padded && !urlSafe)
 			{
@@ -299,8 +297,10 @@ namespace Doxense.Serialization
 			}
 #endif
 
-			// détermine la taille exacte du résultat (incluant le padding si présent)
+			// compute the minimum buffer capacity (including optional padding)
 			int size = GetCharsCount(buffer.Length, padded);
+
+			// decode into the buffer
 			return EncodeBufferUnsafe(buffer, size, padded, urlSafe);
 		}
 
@@ -309,17 +309,18 @@ namespace Doxense.Serialization
 		{
 			if (source.Length == 0) return string.Empty;
 
-			// détermine la taille exacte du résultat (incluant le padding si présent)
+			// compute the minimum buffer capacity (including optional padding)
 			int size = GetCharsCount(source.Length, padded);
 
+			// encode into the buffer
 			return EncodeBufferUnsafe(source, size, padded, urlSafe);
 		}
 
-		/// <summary>Encode un buffer en base64</summary>
-		/// <param name="source">Buffer source</param>
-		/// <param name="charCount">Taille du résultat (précalculée via <see cref="GetCharsCount"/>)</param>
-		/// <param name="padded">Si true, pad la fin si pas multiple de 3</param>
-		/// <param name="urlSafe">Si true, utilise le charset web safe</param>
+		/// <summary>Encodes a byte buffer into a Base64 string literal</summary>
+		/// <param name="source">Source buffer with the bytes to encode</param>
+		/// <param name="charCount">Pre-computed number of expected characters (via <see cref="GetCharsCount"/>)</param>
+		/// <param name="padded">If <c>true</c>, pad the input buffer to have the length be a multiple of 3 bytes</param>
+		/// <param name="urlSafe">If <c>true</c>, use the "web safe" character map (replaces '+' and '/' with '-' and '_')</param>
 		/// <returns></returns>
 		[Pure]
 		private static string EncodeBufferUnsafe(ReadOnlySpan<byte> source, int charCount, bool padded, bool urlSafe)
@@ -329,16 +330,18 @@ namespace Doxense.Serialization
 			char padChar = padded ? (urlSafe ? Base64UrlPadChar : Base64PadChar) : '\0';
 			var charMap = urlSafe ? Base64UrlCharMap : Base64CharMap;
 
+			//TODO: use String.Create(...) if available!
+
 #if USE_FAST_STRING_ALLOCATOR
-			// alloue directement la string, avec la bonne taille
+			// pre-allocate a string with the correct size
 
 			var s = new string('\0', charCount);
 			var b = MemoryMarshal.CreateSpan(ref MemoryMarshal.GetReference(s.AsSpan()), charCount);
-			// on va écrire directement dans la string (!!)
+			// encode directly into this string (!!)
 			EncodeBufferUnsafe(b, source, charMap, padChar);
 			return s;
 #else
-			// arrondi a 8 supérieur, pour garder un alignement correct sur la stack
+			// round to arrondi a 8 supérieur, pour garder un alignement correct sur la stack
 			var size = (source.Length + 7) & (~0x7);
 			char[] output = new char[size];
 
@@ -347,23 +350,21 @@ namespace Doxense.Serialization
 #endif
 		}
 
-		/// <summary>Ecrit un buffer de taille quelconque dans un TextWriter, encodé en Base64</summary>
-		/// <param name="output">Writer où écrire le texte encodé en Base64</param>
-		/// <param name="buffer">Buffer source contenant les données à encoder</param>
-		/// <param name="padded">Ajoute des caractères de padding (true) ou non (false). Le caractère de padding utilisé dépend de la valeur de <paramref name="urlSafe"/>.</param>
-		/// <param name="urlSafe">Si true, remplace les caractères 63 et 63 par des versions Url Safe ('-' et '_'). Sinon, utilise les caractères classiques ('+' et '/')</param>
-		/// <remarks>Si <paramref name="padded"/> est true, le nombre de caractères écrit sera toujours un multiple de 4.</remarks>
-		public static void EncodeTo(TextWriter output, Slice buffer, bool padded = true, bool urlSafe = false)
+		/// <summary>Encodes a byte buffer into Base64 and writes the output into a <see cref="TextWriter"/></summary>
+		/// <param name="output">Destination where to write the encoded Base64 text</param>
+		/// <param name="source">Source buffer with the bytes to encode</param>
+		/// <param name="padded">If <c>true</c>, pad the input buffer to have the length be a multiple of 3 bytes</param>
+		/// <param name="urlSafe">If <c>true</c>, use the "web safe" character map (replaces '+' and '/' with '-' and '_')</param>
+		public static void EncodeTo(TextWriter output, Slice source, bool padded = true, bool urlSafe = false)
 		{
-			EncodeTo(output, buffer.Span, padded, urlSafe);
+			EncodeTo(output, source.Span, padded, urlSafe);
 		}
 
-		/// <summary>Ecrit un buffer de taille quelconque dans un TextWriter, encodé en Base64</summary>
-		/// <param name="output">Writer où écrire le texte encodé en Base64</param>
-		/// <param name="source">Buffer source contenant les données à encoder</param>
-		/// <param name="padded">Ajoute des caractères de padding (true) ou non (false). Le caractère de padding utilisé dépend de la valeur de <paramref name="urlSafe"/>.</param>
-		/// <param name="urlSafe">Si true, remplace les caractères 63 et 63 par des versions Url Safe ('-' et '_'). Sinon, utilise les caractères classiques ('+' et '/')</param>
-		/// <remarks>Si <paramref name="padded"/> est true, le nombre de caractères écrit sera toujours un multiple de 4.</remarks>
+		/// <summary>Encodes a byte buffer into Base64 and writes the output into a <see cref="TextWriter"/></summary>
+		/// <param name="output">Destination where to write the encoded Base64 text</param>
+		/// <param name="source">Source buffer with the bytes to encode</param>
+		/// <param name="padded">If <c>true</c>, pad the input buffer to have the length be a multiple of 3 bytes</param>
+		/// <param name="urlSafe">If <c>true</c>, use the "web safe" character map (replaces '+' and '/' with '-' and '_')</param>
 		public static void EncodeTo(TextWriter output, ReadOnlySpan<byte> source, bool padded = true, bool urlSafe = false)
 		{
 			Contract.NotNull(output);
@@ -407,12 +408,11 @@ namespace Doxense.Serialization
 			}
 		}
 
-		/// <summary>Ecrit un buffer de taille quelconque dans un TextWriter, encodé en Base64</summary>
-		/// <param name="output">Writer où écrire le texte encodé en Base64</param>
-		/// <param name="source">Buffer source contenant les données à encoder</param>
-		/// <param name="padded">Ajoute des caractères de padding (true) ou non (false). Le caractère de padding utilisé dépend de la valeur de <paramref name="urlSafe"/>.</param>
-		/// <param name="urlSafe">Si true, remplace les caractères 63 et 63 par des versions Url Safe ('-' et '_'). Sinon, utilise les caractères classiques ('+' et '/')</param>
-		/// <remarks>Si <paramref name="padded"/> est true, le nombre de caractères écrit sera toujours un multiple de 4.</remarks>
+		/// <summary>Encodes a byte buffer into Base64 and appends the output into a <see cref="ValueStringWriter"/></summary>
+		/// <param name="output">Destination where to write the encoded Base64 text</param>
+		/// <param name="source">Source buffer with the bytes to encode</param>
+		/// <param name="padded">If <c>true</c>, pad the input buffer to have the length be a multiple of 3 bytes</param>
+		/// <param name="urlSafe">If <c>true</c>, use the "web safe" character map (replaces '+' and '/' with '-' and '_')</param>
 		public static void EncodeTo(ref ValueStringWriter output, ReadOnlySpan<byte> source, bool padded = true, bool urlSafe = false)
 		{
 			if (source.Length == 0) return;
@@ -435,12 +435,7 @@ namespace Doxense.Serialization
 
 		#region Internal Helpers...
 
-		/// <summary>Encode un segment de données vers un buffer</summary>
-		/// <param name="output">Buffer où écrire le texte encodée. La capacité doit être suffisante!</param>
-		/// <param name="source">Pointeur vers le début octets à encoder.</param>
-		/// <param name="charMap">Pointeur vers la map de conversion Base64 à utiliser (2 x 256 chars)</param>
-		/// <param name="padChar">Caractère de padding utilisé, ou '\0' si pas de padding</param>
-		/// <returns>Nombre de caractères écrits dans <paramref name="output"/>.</returns>
+		/// <summary>Encodes a byte buffer into Base64 into memory</summary>
 		internal static int EncodeBufferUnsafe(Span<char> output, ReadOnlySpan<byte> source, ReadOnlySpan<char> charMap, char padChar)
 		{
 			// portage en C# de modp_b64.c: https://code.google.com/p/stringencoders/source/browse/trunk/src/modp_b64.c
@@ -557,30 +552,6 @@ namespace Doxense.Serialization
 			throw new InvalidOperationException("The output buffer is too small");
 		}
 
-#if USE_FAST_STRING_ALLOCATOR
-
-		private static readonly Func<int, string> s_fastStringAllocator = GetFastStringAllocator();
-
-		private static Func<int, string> GetFastStringAllocator()
-		{
-			var method = typeof(string).GetMethod("FastAllocateString", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
-			if (method != null)
-			{
-				return (Func<int, string>) method.CreateDelegate(typeof(Func<int, string>));
-			}
-			else
-			{
-#if DEBUG
-				// Si vous arrivez ici, c'est que la méthode String.FastAllocateString() n'existe plus (nouvelle version de .NET Framework?)
-				// => essayez de trouver une solution alternative pour pré-allouer une string à la bonne taille
-				if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
-#endif
-				return (count) => new string('\0', count);
-			}
-		}
-
-#endif
-
 		/// <summary>Computes the size of a buffer required to decode a Base64 string into bytes</summary>
 		/// <param name="src">Base64 string literal to decode</param>
 		/// <param name="padChar">Padding character (optional)</param>
@@ -629,6 +600,11 @@ namespace Doxense.Serialization
 			return (len / 4) * 3 + padding;
 		}
 
+		/// <summary>Decodes a Base64 text literal into a byte array</summary>
+		/// <param name="encoded">Base64 text to decode</param>
+		/// <param name="padded">Set to <c>true</c> if the encoding used padding</param>
+		/// <param name="urlSafe">Set to <c>true</c> if the original used the "web safe" character map (used '-' and '_' instead of '+' and '/')</param>
+		/// <returns>Decoded byte array</returns>
 		[Pure]
 		public static byte[] DecodeBuffer(ReadOnlySpan<char> encoded, bool padded = true, bool urlSafe = false)
 		{
@@ -644,6 +620,12 @@ namespace Doxense.Serialization
 			return dest;
 		}
 
+		/// <summary>Decodes a Base64 text literal into a byte buffer</summary>
+		/// <param name="encoded">Base64 text to decode</param>
+		/// <param name="buffer">Destination buffer. If <c>null</c> or two small, will be replaced with another buffer with sufficient capacity</param>
+		/// <param name="padded">Set to <c>true</c> if the encoding used padding</param>
+		/// <param name="urlSafe">Set to <c>true</c> if the original used the "web safe" character map (used '-' and '_' instead of '+' and '/')</param>
+		/// <returns>Decoded byte buffer, which uses <paramref name="buffer"/> as the backing store</returns>
 		[Pure]
 		public static Slice DecodeBuffer(ReadOnlySpan<char> encoded, ref byte[]? buffer, bool padded = true, bool urlSafe = false)
 		{
@@ -660,6 +642,7 @@ namespace Doxense.Serialization
 			return new Slice(tmp, 0, p);
 		}
 
+		/// <summary>Decodes a Base64 text literal into a byte buffer</summary>
 		internal static int DecodeBufferUnsafe(Span<byte> dest, ReadOnlySpan<char> src, char padChar)
 		{
 			int len = src.Length;
@@ -861,7 +844,6 @@ namespace Doxense.Serialization
 			0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff
 		];
 
-
 		private static readonly uint[] DecodeMap2 =
 		[
 			0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
@@ -955,6 +937,7 @@ namespace Doxense.Serialization
 			0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
 			0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff
 		];
+		
 		#endregion
 
 	}

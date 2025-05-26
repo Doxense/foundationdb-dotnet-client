@@ -30,7 +30,7 @@ namespace System
 	using System.Runtime.InteropServices;
 	using System.Text;
 	using Doxense.Memory;
-	using Doxense.Serialization;
+	using SnowBank.Text;
 
 	/// <summary>Helper methods to help decode the content of spans</summary>
 	[PublicAPI]

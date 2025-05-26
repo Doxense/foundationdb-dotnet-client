@@ -35,6 +35,7 @@ namespace Doxense.Serialization.Json.Binary
 	using System.Text.Unicode;
 	using Doxense.Memory;
 	using Doxense.Text;
+	using SnowBank.Text;
 
 	// Adapted from: http://git.postgresql.org/gitweb/?p=postgresql.git;a=blob_plain;f=src/include/utils/jsonb.h;hb=def4c28cf9147472ba4cfc5b68a098d7a29fb0fb
 	// This is NOT binary compatible with the original spec!

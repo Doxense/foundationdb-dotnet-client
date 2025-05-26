@@ -28,6 +28,7 @@ namespace Doxense.Serialization.Json.Binary
 {
 	using Doxense.Memory;
 	using Doxense.Text;
+	using SnowBank.Text;
 
 	/// <summary>Fast and compact binary JSON encoder</summary>
 	/// <remarks>

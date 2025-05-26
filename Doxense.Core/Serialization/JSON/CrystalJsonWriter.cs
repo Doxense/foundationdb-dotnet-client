@@ -40,6 +40,7 @@ namespace Doxense.Serialization.Json
 	using NodaTime;
 	using NodaTime.Text;
 	using SnowBank.Linq;
+	using SnowBank.Text;
 
 	/// <summary>Serialize values into JSON</summary>
 	[DebuggerDisplay("Json={!m_javascript}, Formatted={m_formatted}, Depth={m_objectGraphDepth}")]
