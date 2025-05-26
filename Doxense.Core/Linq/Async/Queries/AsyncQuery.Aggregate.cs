@@ -42,7 +42,7 @@ namespace SnowBank.Linq
 		/// The second argument will be the current element.
 		/// The returned value will be passed to the next call, or will be the return value of the aggregation.
 		/// </param>
-		/// <returns>Last value returned by <see cref="aggregator"/> if the query returns two or more elements. The element itself if the query returns only one element.</returns>
+		/// <returns>Last value returned by <paramref name="aggregator"/> if the query returns two or more elements. The element itself if the query returns only one element.</returns>
 		/// <exception cref="InvalidOperationException">If the query returns no elements.</exception>
 		public static async Task<TSource> AggregateAsync<TSource>(this IAsyncQuery<TSource> source, [InstantHandle] Func<TSource, TSource, TSource> aggregator)
 		{
