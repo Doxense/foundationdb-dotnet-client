@@ -32,6 +32,7 @@ namespace Doxense.Serialization.Json
 	using SnowBank.Collections.Caching;
 	using Doxense.Collections.Tuples;
 	using Doxense.Serialization;
+	using System.Diagnostics.CodeAnalysis;
 
 	public sealed class CrystalJsonDomWriter
 	{
@@ -500,9 +501,7 @@ namespace Doxense.Serialization.Json
 
 			if (type.IsEnum)
 			{ // on convertit les énumérations en keyword
-#pragma warning disable CS0618 // Type or member is obsolete
-				result = EnumStringTable.GetName(type, (Enum) value);
-#pragma warning restore CS0618 // Type or member is obsolete
+				result = CrystalJsonEnumCache.GetName(type, (Enum) value);
 				//BUGBUG: vérifier m_enumAsString et m_enumCamelCased
 				return true;
 			}
