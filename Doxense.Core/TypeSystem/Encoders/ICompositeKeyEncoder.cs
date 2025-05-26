@@ -26,7 +26,7 @@
 
 namespace Doxense.Serialization.Encoders
 {
-	using Doxense.Memory;
+	using SnowBank.Buffers;
 	
 	/// <summary>Encoder that can serialize and deserialize composite keys using a binary encoding</summary>
 	[PublicAPI]

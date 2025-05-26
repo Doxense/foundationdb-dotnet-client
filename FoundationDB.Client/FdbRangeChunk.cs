@@ -29,7 +29,7 @@ namespace FoundationDB.Client
 	using System.Collections;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
-	using Doxense.Memory;
+	using SnowBank.Buffers;
 	using Doxense.Serialization.Encoders;
 
 	/// <summary>Metadata about the result of a range read operation</summary>

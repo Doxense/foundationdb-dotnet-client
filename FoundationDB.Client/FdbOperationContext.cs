@@ -34,7 +34,7 @@ namespace FoundationDB.Client
 	using System.Runtime.CompilerServices;
 	using Doxense.Serialization;
 	using FoundationDB.Client.Core;
-	using SnowBank.Linq;
+	using SnowBank.Buffers;
 
 	/// <summary>
 	/// Represents the context of a retry-able transactional function which accepts a read-only or read-write transaction.

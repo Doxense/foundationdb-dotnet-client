@@ -27,7 +27,7 @@
 namespace FoundationDB
 {
 	using System.Runtime.InteropServices;
-	using Doxense.Memory;
+	using SnowBank.Buffers;
 
 	internal static class Batched<TValue, TState>
 	{

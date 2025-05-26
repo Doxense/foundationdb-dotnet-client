@@ -29,7 +29,8 @@ namespace System
 	using System.ComponentModel;
 	using System.Runtime.InteropServices;
 	using System.Security.Cryptography;
-	using Doxense.Memory;
+	using SnowBank.Buffers;
+	using SnowBank.Buffers.Binary;
 
 	/// <summary>Represents a 80-bit UUID that is stored in high-endian format on the wire</summary>
 	[DebuggerDisplay("[{ToString(),nq}]")]

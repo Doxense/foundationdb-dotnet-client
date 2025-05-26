@@ -31,8 +31,9 @@ namespace FoundationDB.Layers.Experimental.Indexing
 	using System.Diagnostics.CodeAnalysis;
 	using System.Numerics;
 	using System.Runtime.CompilerServices;
-	using Doxense.Memory;
 	using System.Runtime.InteropServices;
+	using SnowBank.Buffers;
+	using SnowBank.Buffers.Binary;
 
 	/// <summary>Builder of compressed bitmaps that can set or clear bits in a random order, in memory</summary>
 	[DebuggerDisplay("Size={m_size}, Bounds={m_lowest}..{m_highest}")]

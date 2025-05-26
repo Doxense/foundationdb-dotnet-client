@@ -29,7 +29,7 @@ namespace Doxense.Serialization.Json
 	using System;
 	using System.ComponentModel;
 	using System.Globalization;
-	using Doxense.Memory;
+	using SnowBank.Buffers;
 
 	/// <summary>Represents a value in a JSON Document</summary>
 	/// <remarks>The value can be null or missing (<see cref="JsonNull"/>), a literal (<see cref="JsonString"/>, <see cref="JsonBoolean"/>, <see cref="JsonNumber"/>), an object (<see cref="JsonObject"/>) or an array (<see cref="JsonArray"/>)</remarks>

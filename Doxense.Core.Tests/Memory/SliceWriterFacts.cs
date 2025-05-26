@@ -26,10 +26,9 @@
 
 using System.Buffers;
 
-namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all perf history on TeamCity!
+namespace SnowBank.Buffers.Tests //IMPORTANT: don't rename or else we loose all perf history on TeamCity!
 {
 	using System.Text;
-	using Doxense.Memory;
 
 	[TestFixture]
 	[Category("Core-SDK")]

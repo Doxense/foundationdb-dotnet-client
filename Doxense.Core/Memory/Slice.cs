@@ -33,8 +33,9 @@ namespace System
 	using System.Runtime.InteropServices;
 	using System.Security.Cryptography;
 	using System.Text;
-	using Doxense.Memory;
 	using Doxense.Serialization;
+	using SnowBank.Buffers;
+	using SnowBank.Buffers.Binary;
 	using SnowBank.Linq;
 
 	/// <summary>Delimits a read-only section of a byte array</summary>

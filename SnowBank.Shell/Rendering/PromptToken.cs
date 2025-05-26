@@ -29,7 +29,7 @@ namespace SnowBank.Shell.Prompt
 	using System.Collections.Immutable;
 	using System.Runtime.CompilerServices;
 	using Doxense.Diagnostics.Contracts;
-	using SnowBank.Linq;
+	using SnowBank.Buffers.Text;
 
 	/// <summary>Represents a single token in a prompt.</summary>
 	/// <remarks>

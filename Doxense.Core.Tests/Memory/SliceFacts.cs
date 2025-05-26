@@ -34,7 +34,7 @@
 // ReSharper disable RedundantCast
 // ReSharper disable UseArrayEmptyMethod
 
-namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all perf history on TeamCity!
+namespace SnowBank.Buffers.Tests
 {
 
 	//README:IMPORTANT! This source file is expected to be stored as UTF-8! If the encoding is changed, some tests below may fail because they rely on specific code points!
@@ -47,7 +47,6 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 	using System.Runtime.InteropServices;
 	using System.Text;
 	using System.Threading.Tasks;
-	using Doxense.Memory;
 	using static Doxense.Testing.TestVariables;
 
 	[TestFixture]

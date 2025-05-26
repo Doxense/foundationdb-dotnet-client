@@ -24,11 +24,11 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Web
+namespace SnowBank.Text
 {
 	using System.Globalization;
 	using System.Text;
-	using SnowBank.Linq;
+	using SnowBank.Buffers.Text;
 #if NET8_0_OR_GREATER
 	using System.Buffers;
 #endif

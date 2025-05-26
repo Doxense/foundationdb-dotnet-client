@@ -64,7 +64,7 @@ namespace Doxense.Serialization.Json.Binary.Tests
 			_ = CrystalJson.Parse(jbytes); // warmup
 
 			const int N = 1000;
-			var writer = new Doxense.Memory.SliceWriter(128);
+			var writer = new SwowBank.Buffers.SliceWriter(128);
 			var sw = System.Diagnostics.Stopwatch.StartNew();
 			for (int i = 0; i < N; i++)
 			{

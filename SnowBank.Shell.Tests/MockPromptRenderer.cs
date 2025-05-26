@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
+#region Copyright (c) 2023-2024 SnowBank SAS, (c) 2005-2023 Doxense SAS
 // All rights reserved.
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -26,6 +26,7 @@
 
 namespace SnowBank.Shell.Prompt.Tests
 {
+	using SnowBank.Buffers.Text;
 
 	/// <summary>Mock renderer that simply captures all the render calls into a list</summary>
 	public class MockPromptRenderer : IPromptRenderer

@@ -1,6 +1,6 @@
 // adapted from https://github.com/dotnet/corefxlab/tree/master/src/System.Text.Utf8
 
-namespace Doxense.Text
+namespace SnowBank.Text
 {
 	public static class UnicodeConstants
 	{

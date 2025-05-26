@@ -1,11 +1,11 @@
 // adapted from https://github.com/dotnet/corefxlab/tree/master/src/System.Text.Utf8
 
-namespace Doxense.Memory.Text
+namespace SnowBank.Buffers.Text
 {
 	using System.ComponentModel;
 	using System.Globalization;
 	using System.Text;
-	using Doxense.Text;
+	using SnowBank.Text;
 
 	/// <summary>Represents a string that is stored as UTF-8 bytes in managed memory</summary>
 	/// <remarks>This type can be used as a replacement for <see cref="string"/> in parsers that wants to reduce memory allocations</remarks>

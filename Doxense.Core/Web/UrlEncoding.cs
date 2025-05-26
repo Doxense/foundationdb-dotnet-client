@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Web
+namespace SnowBank.Text
 {
 	using System.Collections.Specialized;
 	using System.Globalization;

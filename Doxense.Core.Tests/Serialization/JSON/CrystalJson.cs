@@ -88,10 +88,10 @@ namespace Doxense.Serialization.Json.Tests
 	using System.Threading.Tasks;
 	using System.Xml.Serialization;
 	using Doxense.Collections.Tuples;
-	using Doxense.Memory;
 	using Doxense.Runtime.Converters;
 	using NodaTime;
 	using NUnit.Framework.Constraints;
+	using SnowBank.Buffers;
 
 	using STJ = System.Text.Json;
 	using NJ = Newtonsoft.Json;

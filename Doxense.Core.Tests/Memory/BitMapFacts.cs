@@ -26,11 +26,10 @@
 
 // ReSharper disable AccessToModifiedClosure
 // ReSharper disable UseObjectOrCollectionInitializer
-namespace Doxense.IO.Tests
+namespace SnowBank.Buffers.Tests
 {
 	using System.Collections.Generic;
 	using System.Linq;
-	using Doxense.Memory;
 
 	/// <summary>Actor that pushes messages around until a counter reaches 0</summary>
 	[TestFixture]

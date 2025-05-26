@@ -27,7 +27,7 @@
 namespace FoundationDB.Layers.Experimental.Indexing
 {
 	using System.Text;
-	using Doxense.Memory;
+	using SnowBank.Buffers;
 
 	public static class WordAlignHybridEncoder
 	{

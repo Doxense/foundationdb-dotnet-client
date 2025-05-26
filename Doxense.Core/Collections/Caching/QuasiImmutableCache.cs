@@ -30,7 +30,7 @@ namespace SnowBank.Collections.Caching
 	using System.Collections.Frozen;
 	using System.Collections.Immutable;
 	using System.Runtime.InteropServices;
-	using SnowBank.Linq;
+	using SnowBank.Buffers;
 
 	/// <summary>Implements a cache with values that do not frequently change</summary>
 	/// <typeparam name="TKey">Type of the keys</typeparam>

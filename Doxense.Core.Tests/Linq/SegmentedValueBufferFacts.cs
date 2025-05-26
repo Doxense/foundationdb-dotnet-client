@@ -26,7 +26,7 @@
 
 #if NET8_0_OR_GREATER
 
-namespace SnowBank.Linq.Tests
+namespace SnowBank.Buffers.Tests
 {
 	using System.Buffers;
 	using System.Collections.Generic;

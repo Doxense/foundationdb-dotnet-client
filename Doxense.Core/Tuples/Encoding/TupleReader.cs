@@ -26,7 +26,7 @@
 
 namespace Doxense.Collections.Tuples.Encoding
 {
-	using Doxense.Memory;
+	using SnowBank.Buffers;
 
 	/// <summary>Reads bytes from a contiguous region of arbitrary memory</summary>
 	[DebuggerDisplay("{Cursor}/{Input.Length} @ {Depth}")]

@@ -27,7 +27,7 @@
 namespace Doxense.Serialization.Json
 {
 	using System.ComponentModel;
-	using Doxense.Memory;
+	using SnowBank.Buffers;
 
 	/// <summary>JSON null</summary>
 	[DebuggerDisplay("JSON Null({m_kind})")]

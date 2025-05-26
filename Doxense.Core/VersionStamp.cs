@@ -28,9 +28,10 @@ namespace System
 {
 	using System.ComponentModel;
 	using System.Runtime.InteropServices;
-	using Doxense.Memory;
 	using Doxense.Serialization.Json;
 	using Globalization;
+	using SnowBank.Buffers;
+	using SnowBank.Buffers.Binary;
 
 	/// <summary>VersionStamp</summary>
 	/// <remarks>A VersionStamp is unique, monotonically (but not sequentially) increasing value for each committed transaction.

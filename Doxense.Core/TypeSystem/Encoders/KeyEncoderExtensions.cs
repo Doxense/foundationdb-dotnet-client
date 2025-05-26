@@ -27,7 +27,7 @@
 namespace Doxense.Serialization.Encoders
 {
 	using Doxense.Collections.Tuples;
-	using Doxense.Memory;
+	using SnowBank.Buffers;
 
 	/// <summary>Extension methods for working with key encoders</summary>
 	public static class KeyEncoderExtensions

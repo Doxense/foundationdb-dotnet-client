@@ -26,7 +26,7 @@
 
 namespace FoundationDB.Layers.Experimental.Indexing
 {
-	using Doxense.Memory;
+	using SnowBank.Buffers;
 
 	/// <summary>Iterator that reads 32-bit compressed words from a compressed bitmap</summary>
 	public struct CompressedBitmapWordIterator : IEnumerator<CompressedWord>

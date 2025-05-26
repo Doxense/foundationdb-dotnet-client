@@ -26,9 +26,9 @@
 
 namespace Doxense.Networking
 {
+	using System.Buffers.Binary;
 	using System.Net;
 	using System.Net.Sockets;
-	using Doxense.Memory;
 
 	// ReSharper disable once InconsistentNaming
 	public sealed class IPAddressComparer : IComparer<IPAddress>, IEqualityComparer<IPAddress>
@@ -55,23 +55,21 @@ namespace Doxense.Networking
 			if (f == AddressFamily.InterNetwork)
 			{
 #pragma warning disable 618
-				return UnsafeHelpers.ByteSwap32((uint) x.Address).CompareTo(UnsafeHelpers.ByteSwap32((uint) y.Address));
+				return BinaryPrimitives.ReverseEndianness((uint) x.Address).CompareTo(BinaryPrimitives.ReverseEndianness((uint) y.Address));
 #pragma warning restore 618
 			}
 
-			if (f == AddressFamily.InterNetworkV6)
-			{ // je n'ai pas trouvé de moyen d'accéder a "_numbers[]" directement,
-			  // le seul compromis que j'ai trouvé c'est utiliser TryWriteBytes(..) dans des buffers stackalloced
+			// we need to compare the bytes, we will attempt to use the stack first
+			// => we assume that it will be an IPv6. If this is something bigger, we will fallback to heap allocations
 
-				Span<byte> xBytes = stackalloc byte[16];
-				Span<byte> yBytes = stackalloc byte[16];
-				if (x.TryWriteBytes(xBytes, out _) && y.TryWriteBytes(yBytes, out _))
-				{
-					return xBytes.SequenceCompareTo(yBytes);
-				}
+			Span<byte> left = stackalloc byte[16];
+			Span<byte> right = stackalloc byte[16];
+			if (x.TryWriteBytes(left, out int nLeft) && y.TryWriteBytes(right, out int nRight))
+			{
+				return left[..nLeft].SequenceCompareTo(right[..nRight]);
 			}
 
-			// very slow fallback: we will been to allocate memory for the comparison :(
+			// very slow fallback: we will need to allocate memory for the comparison :(
 			return x.GetAddressBytes().AsSpan().SequenceCompareTo(y.GetAddressBytes());
 		}
 

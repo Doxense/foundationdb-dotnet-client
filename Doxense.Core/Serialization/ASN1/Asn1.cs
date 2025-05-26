@@ -31,7 +31,7 @@
 namespace Doxense.Serialization.Asn1
 {
 	using System.Text;
-	using Doxense.Memory;
+	using SnowBank.Buffers;
 
 	//TODO: cette classe était normalement utilisée par SNMP, mais est utilisée par d'autres pour gérer l'encodage ASN.1
 	// => elle devrait être "déspécialisée" pour devenir le plus générique possible!

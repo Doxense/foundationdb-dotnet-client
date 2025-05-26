@@ -24,12 +24,12 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Memory.Text
+namespace SnowBank.Buffers.Text
 {
 	using System.Globalization;
 	using System.IO;
 	using System.Text;
-	using Doxense.Text;
+	using SnowBank.Text;
 
 	[PublicAPI]
 	public sealed class Utf8StringWriter : TextWriter

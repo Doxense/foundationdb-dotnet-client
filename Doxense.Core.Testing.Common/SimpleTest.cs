@@ -50,6 +50,7 @@ namespace SnowBank.Testing
 	using Microsoft.Extensions.DependencyInjection;
 	using Microsoft.Extensions.Logging;
 	using NodaTime;
+	using SnowBank.Buffers;
 	using SnowBank.Linq;
 	using ILogger = Microsoft.Extensions.Logging.ILogger;
 

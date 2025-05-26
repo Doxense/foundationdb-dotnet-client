@@ -32,7 +32,7 @@ namespace Doxense.Collections.Tuples
 	using System.Text;
 	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Serialization;
-	using Doxense.Text;
+	using SnowBank.Text;
 
 	/// <summary>Factory class for Tuples</summary>
 	[PublicAPI]

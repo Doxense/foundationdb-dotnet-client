@@ -26,7 +26,7 @@
 
 namespace Doxense.Serialization.Encoders
 {
-	using Doxense.Memory;
+	using SnowBank.Buffers;
 
 	/// <summary>Represents a codec that can produce keys or values without any ordering guarantees</summary>
 	/// <remarks>This type of codec usually produces a more compact representation than <seealso cref="IOrderedTypeCodec{T}"/></remarks>

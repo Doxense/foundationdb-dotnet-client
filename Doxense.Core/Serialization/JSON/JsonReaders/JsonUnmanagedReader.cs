@@ -27,7 +27,7 @@
 namespace Doxense.Serialization.Json
 {
 	using System.IO;
-	using Doxense.Text;
+	using SnowBank.Text;
 
 	/// <summary>JSON text reader that reads from UTF-8 encoded bytes in native memory</summary>
 	[DebuggerDisplay("Remaining={Remaining}")]

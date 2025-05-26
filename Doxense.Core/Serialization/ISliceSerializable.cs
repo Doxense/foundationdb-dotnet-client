@@ -26,7 +26,7 @@
 
 namespace Doxense.Serialization
 {
-	using Doxense.Memory;
+	using SnowBank.Buffers;
 
 	/// <summary>Supports direct binary serialization</summary>
 	[PublicAPI]

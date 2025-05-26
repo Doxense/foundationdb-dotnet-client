@@ -29,6 +29,7 @@ namespace SnowBank.Linq.Async.Iterators
 	using System;
 	using System.Buffers;
 	using System.Collections.Immutable;
+	using SnowBank.Buffers;
 	using SnowBank.Linq.Async.Expressions;
 
 	/// <summary>Base class for all async iterators</summary>

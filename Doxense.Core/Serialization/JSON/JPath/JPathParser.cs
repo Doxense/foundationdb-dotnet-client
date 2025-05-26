@@ -27,7 +27,7 @@
 namespace Doxense.Serialization.Json.JPath
 {
 	using System.Linq.Expressions;
-	using Doxense.Text;
+	using SnowBank.Text;
 
 	/// <summary>Parser for JPath expressions</summary>
 	[DebuggerDisplay("Cursor={Cursor}, Start={Start}, SubStart={SubStart}")]

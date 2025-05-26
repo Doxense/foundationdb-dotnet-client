@@ -28,7 +28,7 @@ namespace Doxense.Serialization.Encoders
 {
 	using Doxense.Collections.Tuples;
 	using Doxense.Collections.Tuples.Encoding;
-	using Doxense.Memory;
+	using SnowBank.Buffers;
 
 	/// <summary>Encoder that can process keys of variable size and types</summary>
 	[PublicAPI]

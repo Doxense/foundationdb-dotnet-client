@@ -24,10 +24,11 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Memory
+namespace SnowBank.Buffers
 {
 	using System.Collections;
 	using System.Numerics;
+	using SnowBank.Buffers.Binary;
 
 	/// <summary>Represents a fixed-size bit map, backed by an array of 64-bit words</summary>
 	[DebuggerDisplay("Capacity={Capacity}, Words={Words.Length")]

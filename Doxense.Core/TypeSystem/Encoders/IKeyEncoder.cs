@@ -26,7 +26,7 @@
 
 namespace Doxense.Serialization.Encoders
 {
-	using Doxense.Memory;
+	using SnowBank.Buffers;
 
 	/// <summary>Base interface for all key encoders</summary>
 	[PublicAPI]

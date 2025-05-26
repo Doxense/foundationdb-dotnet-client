@@ -1,8 +1,8 @@
 // adapted from https://github.com/dotnet/corefxlab/tree/master/src/System.Text.Utf8
 
-namespace Doxense.Memory.Text
+namespace SnowBank.Buffers.Text
 {
-	using Doxense.Text;
+	using SnowBank.Text;
 
 	public partial struct Utf8String
 	{
@@ -57,4 +57,5 @@ namespace Doxense.Memory.Text
 		}
 
 	}
+
 }

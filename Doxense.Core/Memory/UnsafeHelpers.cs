@@ -36,7 +36,7 @@
 
 // ReSharper disable HeuristicUnreachableCode
 
-namespace Doxense.Memory
+namespace SnowBank.Buffers.Binary
 {
 	using System.Buffers.Binary;
 	using System.IO;

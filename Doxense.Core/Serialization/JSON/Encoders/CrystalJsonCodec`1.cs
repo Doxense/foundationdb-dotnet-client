@@ -27,10 +27,11 @@
 namespace Doxense.Serialization.Json.Encoders
 {
 	using System.Buffers;
-	using Doxense.Memory;
 	using Doxense.Serialization.Encoders;
+	using SnowBank.Buffers;
 
 	/// <summary>Codecs that encodes CLR types into either database keys (ordered) or values (unordered)</summary>
+	[PublicAPI]
 	public static class CrystalJsonCodec
 	{
 
@@ -43,6 +44,7 @@ namespace Doxense.Serialization.Json.Encoders
 	}
 
 	/// <summary>Codec that encodes <typeparamref name="T"/> instances into either database keys (ordered) or values (unordered)</summary>
+	[PublicAPI]
 	public class CrystalJsonCodec<T> : TypeCodec<T>, IValueEncoder<T>
 	{
 

@@ -24,10 +24,11 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Memory
+namespace SnowBank.Buffers
 {
 	using System;
 	using System.Text;
+	using SnowBank.Buffers.Binary;
 
 	[PublicAPI]
 	public ref struct SpanWriter

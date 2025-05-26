@@ -31,6 +31,7 @@ namespace SnowBank.Linq
 	using System.Collections.Immutable;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using SnowBank.Buffers;
 	using SnowBank.Linq.Async.Iterators;
 
 	/// <summary>Provides a set of static methods for querying objects that implement <see cref="IAsyncEnumerable{T}"/>.</summary>

@@ -28,10 +28,8 @@
 
 namespace Doxense.Diagnostics
 {
-	using System.Globalization;
-	using System.Text;
 	using Doxense.IO.Hashing;
-	using Doxense.Memory;
+	using SnowBank.Buffers;
 
 	/// <summary>Helper class for formatting binary blobs into hexadecimal for logging or troubleshooting</summary>
 	[PublicAPI]

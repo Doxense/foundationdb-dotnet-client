@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Memory
+namespace SnowBank.Buffers
 {
 	using System.Buffers;
 	using System.Buffers.Binary;
@@ -32,9 +32,10 @@ namespace Doxense.Memory
 	using System.Globalization;
 	using System.Runtime.InteropServices;
 	using System.Text;
-	using Doxense.Memory.Text;
 	using Doxense.Serialization;
-	using Doxense.Text;
+	using SnowBank.Buffers.Binary;
+	using SnowBank.Text;
+	using SnowBank.Buffers.Text;
 
 	/// <summary>Slice buffer that emulates a pseudo-stream using a byte array that will automatically grow in size, if necessary</summary>
 	/// <remarks>This struct MUST be passed by reference!</remarks>

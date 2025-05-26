@@ -28,7 +28,7 @@ namespace Doxense.Serialization.Json
 {
 	using System.ComponentModel;
 	using System.Globalization;
-	using Doxense.Memory;
+	using SnowBank.Buffers;
 
 	/// <summary>JSON DateTime</summary>
 	[DebuggerDisplay("JSON DateTime({m_value}, {m_value}+{m_offset})")]

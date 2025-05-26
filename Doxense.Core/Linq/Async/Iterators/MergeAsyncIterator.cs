@@ -26,6 +26,7 @@
 
 namespace SnowBank.Linq.Async.Iterators
 {
+	using SnowBank.Buffers;
 
 	/// <summary>Performs a Merge Sort on several concurrent range queries</summary>
 	/// <typeparam name="TSource">Type of the elements in the source queries</typeparam>

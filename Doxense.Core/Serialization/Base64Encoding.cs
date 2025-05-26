@@ -31,8 +31,8 @@ namespace SnowBank.Text
 	using System.Buffers.Text;
 	using System.IO;
 	using System.Runtime.InteropServices;
-	using Doxense.Memory;
-	using SnowBank.Linq;
+	using SnowBank.Buffers.Binary;
+	using SnowBank.Buffers.Text;
 
 	/// <summary>Helper type for using the <b>Base62</b> encoding</summary>
 	[PublicAPI]

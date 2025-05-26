@@ -29,9 +29,9 @@ namespace Doxense.Serialization.Json
 	using System.Globalization;
 	using System.Runtime.InteropServices;
 	using System.Text;
-	using Doxense.Memory;
-	using Doxense.Text;
-	using SnowBank.Linq;
+	using SnowBank.Buffers;
+	using SnowBank.Buffers.Text;
+	using SnowBank.Text;
 
 	/// <summary>Provides methods for encoding and escaping JSON strings.</summary>
 	public static partial class JsonEncoding

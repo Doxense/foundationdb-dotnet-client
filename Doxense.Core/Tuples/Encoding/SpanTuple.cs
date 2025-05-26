@@ -28,9 +28,9 @@ namespace Doxense.Collections.Tuples.Encoding
 {
 	using System.Collections;
 	using System.ComponentModel;
-	using Doxense.Memory;
 	using Doxense.Runtime.Converters;
 	using Doxense.Serialization;
+	using SnowBank.Buffers;
 
 	/// <summary>Lazily-evaluated tuple that was unpacked from a key</summary>
 	public readonly ref struct SpanTuple

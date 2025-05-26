@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace SnowBank.Linq.Tests
+namespace SnowBank.Buffers.Tests
 {
 	using System.Runtime.CompilerServices;
 

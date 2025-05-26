@@ -24,12 +24,13 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Memory
+namespace SnowBank.Buffers
 {
 	using System.Buffers.Binary;
 	using System.ComponentModel;
 	using System.Runtime.InteropServices;
 	using System.Text;
+	using SnowBank.Buffers.Binary;
 
 	/// <summary>Helper class that holds the internal state used to parse tuples from slices</summary>
 	/// <remarks>This struct MUST be passed by reference!</remarks>

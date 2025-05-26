@@ -26,7 +26,7 @@
 
 namespace Doxense.Serialization.Json
 {
-	using SnowBank.Linq;
+	using SnowBank.Buffers;
 
 	/// <summary>Node in the hierarchy of a document proxy</summary>
 	[PublicAPI]

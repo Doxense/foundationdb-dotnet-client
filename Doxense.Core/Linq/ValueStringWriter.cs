@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace SnowBank.Linq
+namespace SnowBank.Buffers.Text
 {
 	using System;
 	using System.Buffers;

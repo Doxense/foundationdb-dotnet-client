@@ -29,8 +29,8 @@
 namespace Doxense.Serialization.Json
 {
 	using System.Text;
-	using Doxense.Web;
-	using SnowBank.Linq;
+	using SnowBank.Buffers.Text;
+	using SnowBank.Text;
 
 	[PublicAPI]
 	public static class CrystalJsonFormatter

@@ -26,7 +26,7 @@
 
 namespace Doxense.Serialization
 {
-	using Doxense.Memory;
+	using SnowBank.Buffers;
 
 	public readonly struct Utf8StringValue : ISliceSerializable
 	{

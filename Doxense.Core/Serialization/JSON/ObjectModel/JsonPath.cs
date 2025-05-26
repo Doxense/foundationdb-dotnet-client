@@ -31,7 +31,7 @@ namespace Doxense.Serialization.Json
 	using System.ComponentModel;
 	using System.Globalization;
 	using System.Text;
-	using SnowBank.Linq;
+	using SnowBank.Buffers;
 
 	/// <summary>Represents a path inside a JSON document to a nested child (ex: <c>"id"</c>, <c>"user.id"</c> <c>"tags[2].id"</c></summary>
 	[PublicAPI]

@@ -39,7 +39,8 @@ namespace Doxense.Serialization.Json
 	using Doxense.IO;
 	using NodaTime;
 	using NodaTime.Text;
-	using SnowBank.Linq;
+	using SnowBank.Buffers;
+	using SnowBank.Buffers.Text;
 	using SnowBank.Text;
 
 	/// <summary>Serialize values into JSON</summary>
@@ -120,7 +121,7 @@ namespace Doxense.Serialization.Json
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
 		/// <summary>Constructor only intended for use with an object pool</summary>
-		/// <remarks>The <see cref="M:Initialize"/> method <b>MUST</b> be called immediately after, otherwise the objet will not be usable</remarks>
+		/// <remarks>The <see cref="Initialize(int,CrystalJsonSettings?,ICrystalJsonTypeResolver?)"/> method (any overload) <b>MUST</b> be called immediately after, otherwise the objet will not be usable</remarks>
 		internal CrystalJsonWriter()
 		{
 		}
@@ -1392,7 +1393,7 @@ namespace Doxense.Serialization.Json
 		internal void WriteJavaScriptName(string name)
 		{
 			m_buffer.Write(
-				Doxense.Web.JavaScriptEncoding.EncodePropertyName(FormatName(name)),
+				JavaScriptEncoding.EncodePropertyName(FormatName(name)),
 				m_formatted ? ": " : ":"
 			);
 		}
@@ -1432,7 +1433,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (!m_camelCase || (name[0] is '_' or (>= 'a' and <= 'z')))
 			{
-				Doxense.Web.JavaScriptEncoding.EncodePropertyNameTo(ref m_buffer, name);
+				JavaScriptEncoding.EncodePropertyNameTo(ref m_buffer, name);
 			}
 			else
 			{
@@ -1440,7 +1441,7 @@ namespace Doxense.Serialization.Json
 				Span<char> tmp = stackalloc char[name.Length];
 				tmp[0] = char.ToLowerInvariant(name[0]);
 				name[1..].CopyTo(tmp[1..]);
-				Doxense.Web.JavaScriptEncoding.EncodePropertyNameTo(ref m_buffer, name);
+				JavaScriptEncoding.EncodePropertyNameTo(ref m_buffer, name);
 			}
 			m_buffer.Write(m_formatted ? ": " : ":");
 		}

@@ -36,6 +36,7 @@ namespace SnowBank.Shell.Prompt.Tests
 	using FoundationDB.Client;
 	using FoundationDB.Client.Tests;
 	using NUnit.Framework;
+	using SnowBank.Buffers.Text;
 	using SnowBank.Testing;
 
 	[TestFixture]

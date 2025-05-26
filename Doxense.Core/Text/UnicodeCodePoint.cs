@@ -1,9 +1,9 @@
 // adapted from https://github.com/dotnet/corefxlab/tree/master/src/System.Text.Primitives/System/Text/Encoding/Utf8
 
-namespace Doxense.Text
+namespace SnowBank.Text
 {
 	using System.Globalization;
-	using Doxense.Memory.Text;
+	using SnowBank.Buffers.Text;
 
 	[DebuggerDisplay("{ToChar()}")]
 	[PublicAPI]

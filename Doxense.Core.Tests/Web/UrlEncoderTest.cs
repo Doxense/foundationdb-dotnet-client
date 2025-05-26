@@ -26,7 +26,7 @@
 
 // ReSharper disable StringLiteralTypo
 // ReSharper disable CommentTypo
-namespace Doxense.Web.Tests
+namespace SnowBank.Text.Tests
 {
 	using System.Linq;
 	using System.Text;
@@ -47,8 +47,8 @@ namespace Doxense.Web.Tests
 
 			Assert.Multiple(() =>
 			{
-				Assert.That(UrlEncoding.EncodeData(null), Is.EqualTo(String.Empty));
-				Assert.That(UrlEncoding.EncodeData(string.Empty), Is.EqualTo(String.Empty));
+				Assert.That(UrlEncoding.EncodeData(null), Is.EqualTo(string.Empty));
+				Assert.That(UrlEncoding.EncodeData(string.Empty), Is.EqualTo(string.Empty));
 				Assert.That(UrlEncoding.EncodeData(" "), Is.EqualTo("+"), "' ' -> '+'");
 				Assert.That(UrlEncoding.EncodeData("+"), Is.EqualTo("%2b"), "'+' -> '%2b'");
 				Assert.That(UrlEncoding.EncodeData("%"), Is.EqualTo("%25"), "'%' -> '%25'");
@@ -141,7 +141,7 @@ namespace Doxense.Web.Tests
 			Assert.That(UrlEncoding.EncodeDataObject(TimeSpan.FromDays(1)), Is.EqualTo("86400"));
 			Assert.That(UrlEncoding.EncodeDataObject(TimeSpan.FromMilliseconds(1)), Is.EqualTo("0.001"));
 			Assert.That(UrlEncoding.EncodeDataObject(TimeSpan.FromTicks(1)), Is.EqualTo("1E-07"));
-			// les dates doivent être en format le plus court possible
+			// Dates must use the shortest format possible
 			Assert.That(UrlEncoding.EncodeDataObject(new DateTime(2013, 2, 28)), Is.EqualTo("20130228"));
 			Assert.That(UrlEncoding.EncodeDataObject(new DateTime(2013, 2, 28, 14, 58, 32)), Is.EqualTo("20130228145832"));
 			Assert.That(UrlEncoding.EncodeDataObject(new DateTime(2013, 2, 28, 14, 58, 32, 678)), Is.EqualTo("20130228145832678"));

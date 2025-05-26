@@ -26,7 +26,7 @@
 
 namespace SnowBank.Shell.Prompt
 {
-	using SnowBank.Linq;
+	using SnowBank.Buffers.Text;
 
 	[PublicAPI]
 	public interface IPromptRenderer

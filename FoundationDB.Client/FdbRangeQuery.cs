@@ -33,7 +33,7 @@ namespace FoundationDB.Client
 	using System.Runtime.CompilerServices;
 	using SnowBank.Linq;
 #if NET10_0_OR_GREATER
-	using System.Linq;
+	using SnowBank.Buffers;
 #endif
 
 	/// <summary>Query describing an ongoing GetRange operation</summary>

@@ -28,8 +28,8 @@ namespace Doxense.Collections.Tuples
 {
 	using System.ComponentModel;
 	using Doxense.Collections.Tuples.Encoding;
-	using Doxense.Memory;
 	using Doxense.Serialization.Encoders;
+	using SnowBank.Buffers;
 
 	/// <summary>Tuple Binary Encoding</summary>
 	[PublicAPI]

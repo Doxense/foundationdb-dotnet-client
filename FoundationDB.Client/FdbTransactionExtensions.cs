@@ -34,8 +34,8 @@ namespace FoundationDB.Client
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 	using System.Text;
-	using Doxense.Memory;
 	using Doxense.Serialization.Encoders;
+	using SnowBank.Buffers;
 	using SnowBank.Linq;
 
 	/// <summary>Provides a set of extensions methods shared by all FoundationDB transaction implementations.</summary>

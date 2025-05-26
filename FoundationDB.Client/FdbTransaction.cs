@@ -27,8 +27,6 @@
 // enable this to help debug Transactions
 //#define DEBUG_TRANSACTIONS
 
-using System.Buffers;
-
 namespace FoundationDB.Client
 {
 	using System.Buffers.Binary;
@@ -37,10 +35,10 @@ namespace FoundationDB.Client
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
 	using System.Threading.Tasks;
-	using Doxense.Memory;
 	using FoundationDB.Client.Core;
 	using FoundationDB.Client.Native;
 	using FoundationDB.Filters.Logging;
+	using SnowBank.Buffers;
 
 	/// <summary>FoundationDB transaction handle.</summary>
 	/// <remarks>An instance of this class can be used to read from and/or write to a snapshot of a FoundationDB database.</remarks>

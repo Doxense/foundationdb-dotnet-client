@@ -27,6 +27,7 @@
 namespace Doxense.Networking.Http
 {
 	using System.Net.Http.Headers;
+	using SnowBank.Buffers;
 	using SnowBank.Linq;
 
 	/// <summary>Helper to configure default headers for <see cref="BetterHttpClient">HTTP clients</see></summary>

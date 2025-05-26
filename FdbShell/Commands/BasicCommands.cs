@@ -38,8 +38,8 @@ namespace FdbShell
 	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Memory;
 	using FoundationDB.Client.Status;
+	using SnowBank.Buffers.Binary;
 	using Spectre.Console;
 	using SnowBank.Linq;
 

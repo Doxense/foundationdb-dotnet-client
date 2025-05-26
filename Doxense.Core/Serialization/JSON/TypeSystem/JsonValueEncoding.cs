@@ -28,8 +28,8 @@ namespace Doxense.Serialization.Encoders
 {
 	using Doxense.Collections.Tuples;
 	using Doxense.Collections.Tuples.Encoding;
-	using Doxense.Memory;
 	using Doxense.Serialization.Json;
+	using SnowBank.Buffers;
 
 	public sealed class JsonValueEncoding : IValueEncoding, IDynamicKeyEncoding
 	{

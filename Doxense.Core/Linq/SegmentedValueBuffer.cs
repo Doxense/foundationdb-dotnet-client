@@ -26,7 +26,7 @@
 
 #if NET8_0_OR_GREATER
 
-namespace SnowBank.Linq
+namespace SnowBank.Buffers
 {
 	using System;
 	using System.Buffers;

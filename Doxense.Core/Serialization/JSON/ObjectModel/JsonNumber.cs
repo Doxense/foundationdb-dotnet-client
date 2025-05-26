@@ -31,8 +31,8 @@ namespace Doxense.Serialization.Json
 {
 	using System.Globalization;
 	using System.Runtime.InteropServices;
-	using Doxense.Memory;
 	using NodaTime;
+	using SnowBank.Buffers;
 
 	/// <summary>JSON number</summary>
 	[DebuggerDisplay("JSON Number({" + nameof(m_literal) + ",nq})")]

@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Memory
+namespace SnowBank.Buffers
 {
 	/// <summary>Buffer writer that writes all data into a single consecutive buffer allocated from the heap</summary>
 	/// <remarks>

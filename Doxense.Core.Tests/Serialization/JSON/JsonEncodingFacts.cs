@@ -30,8 +30,8 @@
 namespace Doxense.Serialization.Json.Tests
 {
 	using System.Text;
-	using Doxense.Memory;
-	using SnowBank.Linq;
+	using SnowBank.Buffers;
+	using SnowBank.Buffers.Text;
 
 	[TestFixture]
 	[Category("Core-SDK")]

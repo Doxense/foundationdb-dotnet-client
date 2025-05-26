@@ -39,8 +39,8 @@ namespace Doxense.Serialization.Json
 	using System.Reflection;
 	using System.Runtime.InteropServices;
 	using System.Text;
-	using Doxense.Memory;
 	using NodaTime;
+	using SnowBank.Buffers;
 	using SnowBank.Linq;
 
 	/// <summary>Array of JSON values</summary>

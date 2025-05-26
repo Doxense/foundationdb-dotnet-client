@@ -26,7 +26,7 @@
 
 //#define FULL_DEBUG // enable to diagnose allocations of this type
 
-namespace Doxense.Memory
+namespace SnowBank.Buffers
 {
 	using System;
 	using System.Buffers;

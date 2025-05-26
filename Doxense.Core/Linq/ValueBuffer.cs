@@ -24,13 +24,12 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace SnowBank.Linq
+namespace SnowBank.Buffers
 {
 	using System;
 	using System.Buffers;
 	using System.Collections.Immutable;
 	using System.Runtime.InteropServices;
-	using SnowBank.Linq;
 
 #if NET8_0_OR_GREATER
 	/// <summary>Buffer that will accumulate data in a contiguous span, starting from a stack allocated buffer, and switching to pooled buffers if required</summary>

@@ -28,7 +28,7 @@ namespace Doxense.Runtime
 {
 	using System.IO;
 	using System.Runtime.CompilerServices;
-	using SnowBank.Linq;
+	using SnowBank.Buffers;
 
 	//TODO: maybe move this to a more global namespace?
 

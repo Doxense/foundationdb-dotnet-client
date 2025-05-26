@@ -26,8 +26,8 @@
 
 namespace Doxense.Collections.Tuples.Encoding
 {
-	using Doxense.Memory;
 	using Doxense.Serialization.Encoders;
+	using SnowBank.Buffers;
 
 	/// <summary>Type codec that uses the Tuple Encoding format</summary>
 	/// <typeparam name="T">Type of the values encoded by this codec</typeparam>

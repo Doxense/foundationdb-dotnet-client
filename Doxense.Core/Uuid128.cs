@@ -29,8 +29,9 @@ namespace System
 	using System.Buffers.Binary;
 	using System.ComponentModel;
 	using System.Runtime.InteropServices;
-	using Doxense.Memory;
+	using SnowBank.Buffers;
 	using Doxense.Serialization;
+	using SnowBank.Buffers.Binary;
 	using SnowBank.Text;
 #if NET8_0_OR_GREATER
 	using System.Buffers.Text;

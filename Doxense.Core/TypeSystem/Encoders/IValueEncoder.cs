@@ -26,7 +26,7 @@
 
 namespace Doxense.Serialization.Encoders
 {
-	using Doxense.Memory;
+	using SnowBank.Buffers;
 
 	/// <summary>Class that know how to encode and decode values of a fixed type into a lower format</summary>
 	/// <typeparam name="TValue">Type of the values</typeparam>

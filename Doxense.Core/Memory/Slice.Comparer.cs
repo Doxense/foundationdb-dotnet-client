@@ -26,7 +26,7 @@
 
 namespace System
 {
-	using Doxense.Memory;
+	using SnowBank.Buffers.Binary;
 
 	public partial struct Slice
 	{

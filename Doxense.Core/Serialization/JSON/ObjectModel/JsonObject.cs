@@ -36,7 +36,7 @@ namespace Doxense.Serialization.Json
 	using System.Dynamic;
 	using System.Runtime.InteropServices;
 	using System.Text;
-	using Doxense.Memory;
+	using SnowBank.Buffers;
 	using SnowBank.Linq;
 
 	/// <summary>JSON Object with fields</summary>

@@ -27,8 +27,8 @@
 namespace Doxense.Serialization.Json.Encoders
 {
 	using Doxense.Collections.Tuples;
-	using Doxense.Memory;
 	using Doxense.Serialization.Encoders;
+	using SnowBank.Buffers;
 
 	/// <summary>Codec that encodes <see cref="JsonValue"/> instances into either database keys (ordered) or values (unordered)</summary>
 	[PublicAPI]

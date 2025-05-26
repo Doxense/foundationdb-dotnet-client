@@ -28,11 +28,11 @@
 // ReSharper disable AccessToModifiedClosure
 // ReSharper disable ImplicitlyCapturedClosure
 #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
-namespace Doxense.Text.Utf8.Tests
+namespace SnowBank.Buffers.Text.Tests
 {
 	using System.Linq;
 	using System.Text;
-	using Doxense.Memory.Text;
+	using SnowBank.Text;
 
 	[TestFixture]
 	[Category("Core-SDK")]

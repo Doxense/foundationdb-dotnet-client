@@ -27,7 +27,7 @@
 namespace Doxense.Collections.Tuples.Encoding
 {
 	using Doxense.Collections.Tuples;
-	using Doxense.Memory;
+	using SnowBank.Buffers;
 	using Doxense.Serialization.Encoders;
 
 	/// <summary>Encoder for variable-length elements, that uses the Tuple Binary Encoding format</summary>

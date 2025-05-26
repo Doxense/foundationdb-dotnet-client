@@ -33,8 +33,8 @@ namespace Doxense.Serialization.Json.Binary
 	using System.Runtime.InteropServices;
 	using System.Text;
 	using System.Text.Unicode;
-	using Doxense.Memory;
-	using Doxense.Text;
+	using SnowBank.Buffers;
+	using SnowBank.Buffers.Binary;
 	using SnowBank.Text;
 
 	// Adapted from: http://git.postgresql.org/gitweb/?p=postgresql.git;a=blob_plain;f=src/include/utils/jsonb.h;hb=def4c28cf9147472ba4cfc5b68a098d7a29fb0fb

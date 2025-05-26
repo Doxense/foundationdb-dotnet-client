@@ -26,7 +26,7 @@
 
 namespace Doxense.Collections.Tuples.Encoding
 {
-	using Doxense.Memory;
+	using SnowBank.Buffers;
 
 	[DebuggerDisplay("{Output.Position}/{Output.Buffer.Length} @ {Depth}")]
 	public ref struct TupleWriter

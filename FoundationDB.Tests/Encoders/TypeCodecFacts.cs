@@ -27,7 +27,7 @@
 namespace Doxense.Collections.Tuples.Tests
 {
 	using Doxense.Collections.Tuples.Encoding;
-	using Doxense.Memory;
+	using SnowBank.Buffers;
 
 	[TestFixture]
 	public class TupleTypeCodecFacts : FdbTest

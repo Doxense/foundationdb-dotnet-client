@@ -26,7 +26,7 @@
 
 namespace Doxense.Serialization.Json
 {
-	using Doxense.Web;
+	using SnowBank.Text;
 
 	/// <summary>Cache for the various encoded forms of a JSON property name</summary>
 	[DebuggerDisplay("{Value}")]

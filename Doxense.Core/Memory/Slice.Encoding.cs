@@ -32,7 +32,8 @@ namespace System
 	using System.Globalization;
 	using System.Runtime.InteropServices;
 	using System.Text;
-	using Doxense.Memory;
+	using SnowBank.Buffers;
+	using SnowBank.Buffers.Binary;
 
 	public partial struct Slice
 	{
@@ -2704,6 +2705,7 @@ namespace System
 		#endregion
 
 		#endregion
+
 	}
 
 }

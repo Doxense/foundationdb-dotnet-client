@@ -26,7 +26,7 @@
 
 namespace Doxense.Serialization.Json
 {
-	using Doxense.Memory;
+	using SnowBank.Buffers;
 
 	/// <summary>JSON Boolean (<see langword="true"/> or <see langword="false"/>)</summary>
 	[DebuggerDisplay("JSON Boolean({m_value})")]

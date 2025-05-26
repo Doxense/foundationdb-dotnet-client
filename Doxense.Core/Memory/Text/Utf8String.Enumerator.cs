@@ -1,9 +1,9 @@
 // adapted from https://github.com/dotnet/corefxlab/tree/master/src/System.Text.Utf8/System/Text/Utf8
 
-namespace Doxense.Memory.Text
+namespace SnowBank.Buffers.Text
 {
 	using System.Collections;
-	using Doxense.Text;
+	using SnowBank.Text;
 
 	[DebuggerDisplay("Length={Length}, Size={Buffer.Count}, HashCode=0x{HashCode,h}")]
 	public partial struct Utf8String

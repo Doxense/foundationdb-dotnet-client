@@ -31,7 +31,8 @@ namespace SnowBank.Shell.Prompt
 	using Doxense.Runtime;
 	using Doxense.Serialization;
 	using JetBrains.Annotations;
-	using SnowBank.Linq;
+	using SnowBank.Buffers;
+	using SnowBank.Buffers.Text;
 
 	/// <summary>Snapshot of a prompt at a point in time</summary>
 	/// <remarks>Any keystroke transforms a current prompt state into a new prompt state (which could be the same)</remarks>

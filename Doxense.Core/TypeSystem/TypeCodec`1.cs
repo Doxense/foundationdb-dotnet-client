@@ -26,7 +26,7 @@
 
 namespace Doxense.Serialization.Encoders
 {
-	using Doxense.Memory;
+	using SnowBank.Buffers;
 
 	/// <summary>Base implementation for type codecs that support both <see cref="IOrderedTypeCodec{T}">ordered</see> and <see cref="IUnorderedTypeCodec{T}">unordered</see> encoding</summary>
 	/// <typeparam name="T">Type of encoded values</typeparam>

@@ -26,10 +26,10 @@
 
 namespace SnowBank.Collections.Generic
 {
+	using System.Numerics;
 	using System.Runtime;
 	using System.Runtime.InteropServices;
-	using Doxense.Memory;
-	using SnowBank.Linq;
+	using SnowBank.Buffers;
 
 	/// <summary>Container for a set of elements that share the same key</summary>
 	/// <typeparam name="TKey">Type of the key</typeparam>
@@ -126,7 +126,7 @@ namespace SnowBank.Collections.Generic
 			Contract.Positive(capacity);
 			if (m_elements.Length < capacity)
 			{ // too small, must resize
-				capacity = BitHelpers.NextPowerOfTwo(capacity);
+				capacity = unchecked((uint) capacity) <= (1U << 30) ? unchecked((int) BitOperations.RoundUpToPowerOf2((uint) capacity)) : capacity;
 				Array.Resize(ref m_elements, capacity);
 			}
 		}

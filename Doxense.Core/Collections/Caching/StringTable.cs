@@ -30,8 +30,8 @@ namespace SnowBank.Text
 {
 	using System.Runtime.InteropServices;
 	using System.Text;
-	using Doxense.Memory.Text;
 	using SnowBank.Collections.Caching;
+	using SnowBank.Buffers.Text;
 
 	// Adaptation de Roslyn.Utilities.StringTable, cf http://source.roslyn.codeplex.com/#Microsoft.CodeAnalysis/InternalUtilities/StringTable.cs
 

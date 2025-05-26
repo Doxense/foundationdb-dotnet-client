@@ -1,9 +1,9 @@
 // adapted from https://github.com/dotnet/corefxlab/tree/master/src/System.Text.Utf8
 
-namespace Doxense.Text
+namespace SnowBank.Text
 {
 	using System.Text;
-	using Doxense.Memory;
+	using SnowBank.Buffers;
 
 	[PublicAPI]
 	public static unsafe class Utf8Encoder
@@ -38,12 +38,12 @@ namespace Doxense.Text
 				return true;
 			}
 
-			numberOfBytes = default(int);
+			numberOfBytes = 0;
 			return false;
 		}
 
 
-		/// <summary>Compute the length an UTF-8 encoded buffer</summary>
+		/// <summary>Computes the length a UTF-8 encoded buffer</summary>
 		/// <param name="buffer">Bytes of the UTF-8 encoded string</param>
 		/// <param name="length">Receives the length (in codepoints) of the string</param>
 		/// <returns>True if the buffer contains a valid UTF-8 encoded string.</returns>
@@ -60,7 +60,7 @@ namespace Doxense.Text
 			}
 		}
 
-		/// <summary>Compute the length an UTF-8 encoded buffer</summary>
+		/// <summary>Computes the length a UTF-8 encoded buffer</summary>
 		/// <param name="buffer">Pointer to the start of the buffer</param>
 		/// <param name="stop">Pointer to the next byte after the end of the buffer</param>
 		/// <param name="length">Receives the length (in codepoints) of the string</param>
@@ -84,7 +84,7 @@ namespace Doxense.Text
 			return true;
 		}
 
-		/// <summary>Compute the length and hashcode of an UTF-8 encoded buffer</summary>
+		/// <summary>Computes the length and hashcode of a UTF-8 encoded buffer</summary>
 		/// <param name="buffer">Pointer to the start of the buffer</param>
 		/// <param name="stop">Pointer to the next byte after the end of the buffer</param>
 		/// <param name="length">Receives the length (in codepoints) of the string</param>
@@ -197,7 +197,7 @@ namespace Doxense.Text
 			while (ptr < stop)
 			{
 				char c = *ptr++;
-				//TODO: optimze this to scan multiple chars at once!
+				//TODO: optimize this to scan multiple chars at once!
 				if (c >= 0x80)
 				{ // the string contains UNICODE
 					--ptr;
@@ -207,7 +207,7 @@ namespace Doxense.Text
 			// all ascii, size is same as length
 			return length;
 		non_ascii:
-			// resume couting from the first non-ASCII character
+			// resume counting from the first non-ASCII character
 			long count = ptr - chars;
 			while (ptr < stop)
 			{

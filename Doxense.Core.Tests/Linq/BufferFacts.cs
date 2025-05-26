@@ -24,13 +24,12 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace SnowBank.Linq.Tests
+namespace SnowBank.Buffers.Tests
 {
 	using System.Collections.Generic;
 	using System.Collections.Immutable;
 	using System.Linq;
 	using System.Runtime.InteropServices;
-	using Doxense.Memory;
 
 	[TestFixture]
 	[Category("Core-SDK")]

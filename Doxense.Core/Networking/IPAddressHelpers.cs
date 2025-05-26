@@ -29,13 +29,14 @@
 
 namespace Doxense.Networking
 {
+	using System.Buffers.Binary;
 	using System.Globalization;
 	using System.Net;
 	using System.Net.NetworkInformation;
 	using System.Net.Sockets;
 	using System.Text;
 	using Doxense.Serialization;
-	using Doxense.Memory;
+	using SnowBank.Buffers.Binary;
 
 	/// <summary>Helpers permettant de travailler sur des adresses IP (ou MAC address)</summary>
 	[PublicAPI]
@@ -467,8 +468,8 @@ namespace Doxense.Networking
 					--end; // 255->254
 				}
 
-				start = UnsafeHelpers.ByteSwap32((uint) start);
-				end = UnsafeHelpers.ByteSwap32((uint) end);
+				start = BinaryPrimitives.ReverseEndianness((uint) start);
+				end = BinaryPrimitives.ReverseEndianness((uint) end);
 
 				first = new IPAddress(start);
 				last = new IPAddress(end);

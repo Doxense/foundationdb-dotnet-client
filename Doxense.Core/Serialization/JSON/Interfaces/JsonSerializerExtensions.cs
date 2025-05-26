@@ -30,7 +30,7 @@ namespace Doxense.Serialization.Json
 	using System.Buffers;
 	using System.Collections.Immutable;
 	using System.Runtime.InteropServices;
-	using SnowBank.Linq;
+	using SnowBank.Buffers;
 
 	[PublicAPI]
 	public static class JsonSerializerExtensions

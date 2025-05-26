@@ -26,7 +26,7 @@
 
 namespace Doxense.Collections.Tuples.Encoding
 {
-	using Doxense.Memory;
+	using SnowBank.Buffers;
 
 	/// <summary>Helper class for serializing and deserializing values of type <typeparamref name="T"/> using the tuple binary format</summary>
 	/// <typeparam name="T">Type of values to be serialized</typeparam>
