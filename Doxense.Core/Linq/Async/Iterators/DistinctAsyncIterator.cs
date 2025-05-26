@@ -175,6 +175,36 @@ namespace SnowBank.Linq.Async.Iterators
 			return seed;
 		}
 
+		public override async Task<TAggregate> ExecuteAsync<TState, TAggregate>(TState state, TAggregate seed, Func<TState, TAggregate, TSource, TAggregate> handler)
+		{
+			Contract.NotNull(handler);
+			var ct = this.Cancellation;
+			ct.ThrowIfCancellationRequested();
+
+			var mode = m_mode;
+			if (mode == AsyncIterationHint.Head)
+			{
+				mode = AsyncIterationHint.Iterator;
+			}
+
+			await using (var iter = m_source.GetAsyncEnumerator(mode))
+			{
+				var set = new HashSet<TSource>(m_comparer);
+
+				while (!ct.IsCancellationRequested && (await iter.MoveNextAsync().ConfigureAwait(false)))
+				{
+					var current = iter.Current;
+					if (set.Add(current))
+					{ // first occurrence of this item
+						seed = handler(state, seed, current);
+					}
+				}
+			}
+
+			ct.ThrowIfCancellationRequested();
+			return seed;
+		}
+
 		public override async Task ExecuteAsync(Func<TSource, CancellationToken, Task> handler)
 		{
 			Contract.NotNull(handler);

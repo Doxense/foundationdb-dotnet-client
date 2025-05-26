@@ -246,6 +246,24 @@ namespace SnowBank.Linq
 				return Task.FromResult(accumulator);
 			}
 
+			/// <inheritdoc />
+			public override Task<TAggregate> ExecuteAsync<TState, TAggregate>(TState state, TAggregate seed, Func<TState, TAggregate, TValue, TAggregate> handler)
+			{
+				var accumulator = seed;
+				var cursor = this.BeginInclusive;
+				var end = this.EndExclusive;
+				var successor = this.Successor;
+				var comparer= this.Comparer;
+
+				while (comparer.Compare(cursor, end) < 0)
+				{
+					accumulator = handler(state, accumulator, cursor);
+					cursor = successor(cursor);
+				}
+
+				return Task.FromResult(accumulator);
+			}
+
 			internal List<TValue> ToListInternal()
 			{
 				var cursor = this.BeginInclusive;

@@ -666,6 +666,12 @@ namespace SnowBank.Linq.Async.Iterators
 			return AsyncQuery.Run(this, AsyncIterationHint.All, seed, handler);
 		}
 
+		/// <summary>Execute an action on the result of this async sequence</summary>
+		public virtual Task<TAggregate> ExecuteAsync<TState, TAggregate>(TState state, TAggregate seed, Func<TState, TAggregate, TResult, TAggregate> handler)
+		{
+			return AsyncQuery.Run(this, AsyncIterationHint.All, state, seed, handler);
+		}
+
 		public virtual Task ExecuteAsync(Func<TResult, CancellationToken, Task> handler)
 		{
 			return AsyncQuery.Run(this, AsyncIterationHint.All, handler);

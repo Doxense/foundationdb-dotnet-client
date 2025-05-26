@@ -1925,6 +1925,101 @@ namespace SnowBank.Linq.Async.Tests
 		}
 
 		[Test]
+		public async Task Test_Can_Aggregate()
+		{
+			var rnd = new Random(1234);
+
+			{ // Func<TAgg, TSource, TAgg>
+
+				// empty
+				Assert.That(await AsyncQuery.Empty<int>().AggregateAsync(0L, (agg, x) => -1), Is.EqualTo(0));
+
+				// single
+				Assert.That(await FakeAsyncLinqIterator(Enumerable.Range(42, 1)).AggregateAsync(0L, (agg, x) => agg + x), Is.EqualTo(42));
+				Assert.That(await FakeAsyncQuery(Enumerable.Range(42, 1)).AggregateAsync(0L, (agg, x) => agg + x), Is.EqualTo(42));
+
+				// many
+				Assert.That(await FakeAsyncLinqIterator(Enumerable.Range(0, 10)).AggregateAsync(0L, (agg, x) => agg + x), Is.EqualTo(45));
+				Assert.That(await FakeAsyncQuery(Enumerable.Range(0, 10)).AggregateAsync(0L, (agg, x) => agg + x), Is.EqualTo(45));
+			}
+
+			{ // Action<TAcc, TSource>
+				var buffer = new List<int>();
+				await AsyncQuery.Empty<int>().AggregateAsync(buffer, (xs, x) => xs.Add(x));
+				Assert.That(buffer, Is.Empty);
+
+				var items = Enumerable.Range(0, 10).ToArray();
+
+				buffer.Clear();
+				await FakeAsyncLinqIterator(items).AggregateAsync(buffer, (xs, x) => xs.Add(x));
+				Assert.That(buffer, Is.EqualTo(items));
+
+				buffer.Clear();
+				await FakeAsyncQuery(items).AggregateAsync(buffer, (xs, x) => xs.Add(x));
+				Assert.That(buffer, Is.EqualTo(items));
+			}
+
+			{ // Func<TAgg, TSource, TAgg> + Func<TAgg, TResult>
+
+				// empty
+				Assert.That(
+					await AsyncQuery.Empty<int>().AggregateAsync(0L, (acc, x) => acc + x, (acc) => acc + 100),
+					Is.EqualTo(100)
+				);
+
+				// single
+				Assert.That(
+					await FakeAsyncLinqIterator(Enumerable.Range(42, 1)).AggregateAsync((Sum: 0L, Count: 0), (agg, x) => (agg.Sum + x, agg.Count + 1), (agg) => (double) agg.Sum / agg.Count),
+					Is.EqualTo(42.0)
+				);
+				Assert.That(
+					await FakeAsyncQuery(Enumerable.Range(42, 1)).AggregateAsync((Sum: 0L, Count: 0), (agg, x) => (agg.Sum + x, agg.Count + 1), (agg) => (double) agg.Sum / agg.Count),
+					Is.EqualTo(42.0)
+				);
+
+				// many
+				Assert.That(
+					await FakeAsyncLinqIterator(Enumerable.Range(0, 10)).AggregateAsync((Sum: 0L, Count: 0), (agg, x) => (agg.Sum + x, agg.Count + 1), (agg) => (double) agg.Sum / agg.Count),
+					Is.EqualTo(4.5)
+				);
+				Assert.That(
+					await FakeAsyncQuery(Enumerable.Range(0, 10)).AggregateAsync((Sum: 0L, Count: 0), (agg, x) => (agg.Sum + x, agg.Count + 1), (agg) => (double) agg.Sum / agg.Count),
+					Is.EqualTo(4.5)
+				);
+			}
+
+			{ // Action<TAcc, TSource> + Func<TAcc, TResult>
+
+				// empty
+				Assert.That(
+					await AsyncQuery.Empty<int>().AggregateAsync(new List<int>(), (xs, x) => xs.Add(x), (xs) => xs.Count),
+					Is.EqualTo(0)
+				);
+
+				// single
+				Assert.That(
+					await FakeAsyncLinqIterator(Enumerable.Range(42, 1)).AggregateAsync(new List<int>(), (xs, x) => xs.Add(x), (xs) => xs.Sum()),
+					Is.EqualTo(42)
+				);
+				Assert.That(
+					await FakeAsyncQuery(Enumerable.Range(42, 1)).AggregateAsync(new List<int>(), (xs, x) => xs.Add(x), (xs) => xs.Sum()),
+					Is.EqualTo(42)
+				);
+
+				// many
+				Assert.That(
+					await FakeAsyncLinqIterator(Enumerable.Range(0, 10)).AggregateAsync(new List<int>(), (xs, x) => xs.Add(x), (xs) => xs.Sum()),
+					Is.EqualTo(45)
+				);
+				Assert.That(
+					await FakeAsyncQuery(Enumerable.Range(0, 10)).AggregateAsync(new List<int>(), (xs, x) => xs.Add(x), (xs) => xs.Sum()),
+					Is.EqualTo(45)
+				);
+			}
+
+		}
+
+		[Test]
 		public async Task Test_Can_OrderBy()
 		{
 			var rnd = new Random(1234);

@@ -209,6 +209,22 @@ namespace SnowBank.Linq
 				return Task.FromResult(accumulator);
 			}
 
+			/// <inheritdoc />
+			public override Task<TAggregate> ExecuteAsync<TState, TAggregate>(TState state, TAggregate seed, Func<TState, TAggregate, TNumber, TAggregate> handler)
+			{
+				var cursor = this.Start;
+				var delta = this.Delta;
+				var count = this.Count;
+				var accumulator = seed;
+				for(int i = 0; i < count; i++)
+				{
+					accumulator = handler(state, accumulator, cursor);
+					checked { cursor += delta; }
+				}
+
+				return Task.FromResult(accumulator);
+			}
+
 			/// <summary>Fill a span with all the results of this query</summary>
 			private static void FillSpan(Span<TNumber> buffer, TNumber start, TNumber delta, int count)
 			{

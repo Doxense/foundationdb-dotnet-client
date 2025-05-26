@@ -185,7 +185,7 @@ namespace SnowBank.Linq
 			var channel = Channel.CreateUnbounded<TResult>(new() { SingleReader = true, SingleWriter = true });
 			try
 			{
-				using var ctr = ct.Register((c) => ((Channel<TResult>) c!).Writer.TryComplete(new OperationCanceledException(ct)), channel);
+				await using var ctr = ct.Register((c) => ((Channel<TResult>) c!).Writer.TryComplete(new OperationCanceledException(ct)), channel);
 
 				var t = Task.Run(async () =>
 				{
@@ -210,7 +210,7 @@ namespace SnowBank.Linq
 			}
 			finally
 			{
-				channel.Writer.TryComplete(null);
+				channel.Writer.TryComplete();
 			}
 
 		}
@@ -268,7 +268,7 @@ namespace SnowBank.Linq
 
 		#region Run...
 
-		/// <summary>Immediately execute an action on each element of an async query</summary>
+		/// <summary>Immediately executes an action on each element of an async query</summary>
 		/// <typeparam name="TSource">Type of elements of the async query</typeparam>
 		/// <param name="source">Source async query</param>
 		/// <param name="mode">If different from default, can be used to optimise the way the source will produce the items</param>
@@ -293,7 +293,7 @@ namespace SnowBank.Linq
 			}
 		}
 
-		/// <summary>Immediately execute an action on each element of an async query</summary>
+		/// <summary>Immediately executes an action on each element of an async query</summary>
 		/// <typeparam name="TState">Type of the state</typeparam>
 		/// <typeparam name="TSource">Type of elements of the async query</typeparam>
 		/// <param name="source">Source async query</param>
@@ -321,14 +321,14 @@ namespace SnowBank.Linq
 			}
 		}
 
-		/// <summary>Immediately execute an action on each element of an async query</summary>
+		/// <summary>Immediately computes an aggregate on each element returned by an async query</summary>
 		/// <typeparam name="TSource">Type of elements of the async query</typeparam>
-		/// <typeparam name="TAggregate"></typeparam>
+		/// <typeparam name="TAggregate">Type of the aggregate that is computed</typeparam>
 		/// <param name="source">Source async query</param>
 		/// <param name="mode">If different from default, can be used to optimise the way the source will produce the items</param>
-		/// <param name="seed"></param>
-		/// <param name="action">Action to perform on each element as it arrives</param>
-		/// <returns>Number of items that have been processed</returns>
+		/// <param name="seed">Initial value for the aggregate that is passed as the first argument to <paramref name="action"/></param>
+		/// <param name="action">Function that is called for each element as it arrives. The result will be passed back to the next function call for the following element.</param>
+		/// <returns>Value returned by the last call of <paramref name="action"/>, or <paramref name="seed"/> if the query returned no elements.</returns>
 		internal static async Task<TAggregate> Run<TAggregate, TSource>(
 			IAsyncQuery<TSource> source,
 			AsyncIterationHint mode,
@@ -350,7 +350,40 @@ namespace SnowBank.Linq
 			return seed;
 		}
 
-		/// <summary>Immediately execute an action on each element of an async query, with the possibility of stopping before the end</summary>
+		/// <summary>Immediately computes an aggregate on each element returned by an async query</summary>
+		/// <typeparam name="TState">Type of the state passed to the handler</typeparam>
+		/// <typeparam name="TAggregate">Type of the aggregate that is computed</typeparam>
+		/// <typeparam name="TSource">Type of elements of the async query</typeparam>
+		/// <param name="source">Source async query</param>
+		/// <param name="mode">If different from default, can be used to optimise the way the source will produce the items</param>
+		/// <param name="state">State that is passed as the first argument to <paramref name="action"/></param>
+		/// <param name="seed">Initial value for the aggregate that is passed as the second argument to <paramref name="action"/></param>
+		/// <param name="action">Function that is called for each element as it arrives. The result will be passed back to the next function call for the following element.</param>
+		/// <returns>Value returned by the last call of <paramref name="action"/>, or <paramref name="seed"/> if the query returned no elements.</returns>
+		internal static async Task<TAggregate> Run<TState, TAggregate, TSource>(
+			IAsyncQuery<TSource> source,
+			AsyncIterationHint mode,
+			TState state,
+			TAggregate seed,
+			[InstantHandle] Func<TState, TAggregate, TSource, TAggregate> action)
+		{
+			Contract.NotNull(source);
+			Contract.NotNull(action);
+
+			await using (var iterator = source.GetAsyncEnumerator(mode))
+			{
+				Contract.Debug.Assert(iterator != null, "The underlying sequence returned a null async iterator");
+
+				while (await iterator.MoveNextAsync().ConfigureAwait(false))
+				{
+					seed = action(state, seed, iterator.Current);
+				}
+			}
+			return seed;
+		}
+
+
+		/// <summary>Immediately executes an action on each element of an async query, with the possibility of stopping before the end</summary>
 		/// <typeparam name="TSource">Type of elements of the async query</typeparam>
 		/// <param name="source">Source async query</param>
 		/// <param name="mode">If different from default, can be used to optimise the way the source will produce the items</param>

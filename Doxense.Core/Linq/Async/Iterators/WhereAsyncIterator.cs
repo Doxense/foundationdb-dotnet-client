@@ -253,6 +253,45 @@ namespace SnowBank.Linq.Async.Iterators
 			return seed;
 		}
 
+		public override async Task<TAggregate> ExecuteAsync<TState, TAggregate>(TState state, TAggregate seed, Func<TState, TAggregate, TSource, TAggregate> handler)
+		{
+			Contract.NotNull(handler);
+
+			var ct = this.Cancellation;
+			ct.ThrowIfCancellationRequested();
+
+			var filter = m_filter;
+			await using (var iter = StartInner())
+			{
+				if (!filter.Async)
+				{
+					while (!ct.IsCancellationRequested && (await iter.MoveNextAsync().ConfigureAwait(false)))
+					{
+						var current = iter.Current;
+						// ReSharper disable once MethodHasAsyncOverloadWithCancellation
+						if (filter.Invoke(current))
+						{
+							seed = handler(state, seed, current);
+						}
+					}
+				}
+				else
+				{
+					while (!ct.IsCancellationRequested && (await iter.MoveNextAsync().ConfigureAwait(false)))
+					{
+						var current = iter.Current;
+						if (await filter.InvokeAsync(current, ct).ConfigureAwait(false))
+						{
+							seed = handler(state, seed, current);
+						}
+					}
+				}
+			}
+
+			ct.ThrowIfCancellationRequested();
+			return seed;
+		}
+
 		public override async Task ExecuteAsync(Func<TSource, CancellationToken, Task> handler)
 		{
 			Contract.NotNull(handler);
@@ -488,7 +527,7 @@ namespace SnowBank.Linq.Async.Iterators
 
 		}
 
-		public override async Task<TAggregate> ExecuteAsync<TAggregate>(TAggregate seed, Func<TAggregate, TSource, TAggregate> handler)
+		public override async Task<TAggregate> ExecuteAsync<TState, TAggregate>(TState state, TAggregate seed, Func<TState, TAggregate, TSource, TAggregate> handler)
 		{
 			Contract.NotNull(handler);
 
@@ -505,7 +544,7 @@ namespace SnowBank.Linq.Async.Iterators
 				var current = iterator.Current;
 				if (filter(current))
 				{
-					seed = handler(seed, current);
+					seed = handler(state, seed, current);
 				}
 			}
 
