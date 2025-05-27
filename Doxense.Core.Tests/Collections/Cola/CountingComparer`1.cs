@@ -26,9 +26,6 @@
 
 namespace SnowBank.Collections.Generic.Test
 {
-	using System.Collections.Generic;
-	using System.Threading;
-
 	/// <summary>Wrapper for an <see cref="IComparer{T}"/> that counts the number of calls to the <see cref="Compare"/> method</summary>
 	public class CountingComparer<T> : IComparer<T>
 	{

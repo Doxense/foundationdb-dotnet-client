@@ -24,9 +24,6 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-
 [assembly: ComVisible(false)]
 
 [assembly: Guid("0fce138d-cb61-49fd-bb0a-a0ecb37abe78")]

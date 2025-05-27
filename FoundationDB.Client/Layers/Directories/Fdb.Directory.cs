@@ -26,9 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System.Linq;
-	using SnowBank.Linq;
-
 	public static partial class Fdb
 	{
 

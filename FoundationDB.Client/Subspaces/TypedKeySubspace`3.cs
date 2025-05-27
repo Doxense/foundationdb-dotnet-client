@@ -26,10 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System.Runtime.CompilerServices;
-	using Doxense.Collections.Tuples;
-	using Doxense.Serialization.Encoders;
-
 	/// <summary>Represents a key subspace than can encoded pairs of statically typed values to and from their binary representation</summary>
 	/// <typeparam name="T1">Type of the first element of the key</typeparam>
 	/// <typeparam name="T2">Type of the second element of the key</typeparam>

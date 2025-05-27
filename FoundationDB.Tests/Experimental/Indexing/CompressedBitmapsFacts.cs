@@ -31,7 +31,6 @@
 namespace FoundationDB.Layers.Experimental.Indexing.Tests
 {
 	using System.Buffers;
-	using System.IO;
 	using System.Numerics;
 	using MathNet.Numerics.Distributions;
 

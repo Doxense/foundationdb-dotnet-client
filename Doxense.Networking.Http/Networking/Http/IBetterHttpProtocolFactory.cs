@@ -26,8 +26,6 @@
 
 namespace Doxense.Networking.Http
 {
-	using System.Net.Http;
-
 	public interface IBetterHttpProtocolFactory<out TProtocol, out TOptions>
 		where TProtocol : IBetterHttpProtocol
 		where TOptions : BetterHttpClientOptions

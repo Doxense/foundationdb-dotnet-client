@@ -33,8 +33,6 @@
 
 namespace Doxense.Collections.Tuples.Tests
 {
-	using System;
-	using System.Linq;
 	using System.Net;
 	using Doxense.Collections.Tuples.Encoding;
 	using SnowBank.Runtime.Converters;

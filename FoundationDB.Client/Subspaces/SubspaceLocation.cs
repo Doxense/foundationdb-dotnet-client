@@ -26,11 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System.Diagnostics;
-	using System.Diagnostics.CodeAnalysis;
-	using Doxense.Collections.Tuples;
-	using Doxense.Serialization.Encoders;
-
 	/// <summary>Represents the path to a specific subspace in the database</summary>
 	/// <remarks>A path can be <see cref="ISubspaceLocation{TSubspace}.Resolve">resolved</see> into the actual <see cref="IKeySubspace"/> implementation that will be valid within the context of a transaction.</remarks>
 	[PublicAPI]

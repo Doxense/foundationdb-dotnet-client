@@ -30,8 +30,6 @@
 namespace FoundationDB.Client.Native
 {
 	using System.Collections.Concurrent;
-	using System.Diagnostics;
-	using System.Runtime.CompilerServices;
 	using FoundationDB.Client.Utils;
 
 	/// <summary>Helper class to create FDBFutures</summary>

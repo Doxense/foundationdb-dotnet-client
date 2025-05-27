@@ -26,7 +26,6 @@
 
 namespace Doxense.Serialization.Json.Tests
 {
-	using System.Collections.Generic;
 	using System.Drawing;
 	using System.Reflection.Emit;
 

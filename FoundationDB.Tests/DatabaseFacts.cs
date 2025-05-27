@@ -30,7 +30,6 @@
 
 namespace FoundationDB.Client.Tests
 {
-	using System.IO;
 	using System.Net;
 
 	[TestFixture]

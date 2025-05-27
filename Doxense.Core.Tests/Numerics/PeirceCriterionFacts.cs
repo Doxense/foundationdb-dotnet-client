@@ -26,8 +26,6 @@
 
 namespace SnowBank.Numerics.Tests
 {
-	using System.Linq;
-
 	[TestFixture]
 	[Category("Core-SDK")]
 	[Parallelizable(ParallelScope.All)]

@@ -30,10 +30,7 @@
 
 namespace Doxense.Serialization.Json.Binary.Tests
 {
-	using System.Collections.Generic;
-	using System.Diagnostics;
 	using System.IO.Compression;
-	using System.Linq;
 	using SnowBank.Numerics;
 	using SnowBank.Runtime;
 

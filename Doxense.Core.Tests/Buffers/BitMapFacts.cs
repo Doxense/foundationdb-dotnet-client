@@ -28,9 +28,6 @@
 // ReSharper disable UseObjectOrCollectionInitializer
 namespace SnowBank.Buffers.Tests
 {
-	using System.Collections.Generic;
-	using System.Linq;
-
 	/// <summary>Actor that pushes messages around until a counter reaches 0</summary>
 	[TestFixture]
 	[Category("Core-SDK")]

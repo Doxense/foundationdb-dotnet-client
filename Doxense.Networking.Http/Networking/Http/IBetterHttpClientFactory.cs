@@ -26,8 +26,6 @@
 
 namespace Doxense.Networking.Http
 {
-	using System.Net.Http;
-
 	public interface IBetterHttpClientFactory
 	{
 

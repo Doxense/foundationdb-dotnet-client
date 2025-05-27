@@ -32,7 +32,6 @@
 namespace FoundationDB.Client.Tests
 {
 	using System.Globalization;
-	using SnowBank.Testing;
 
 	[TestFixture]
 	public class KeyFacts : FdbTest

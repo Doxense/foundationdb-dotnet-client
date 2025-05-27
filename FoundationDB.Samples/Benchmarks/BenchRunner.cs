@@ -28,10 +28,6 @@
 
 namespace FoundationDB.Samples.Benchmarks
 {
-	using System.Globalization;
-	using Doxense.Collections.Tuples;
-	using SnowBank.Numerics;
-
 	public class BenchRunner : IAsyncTest
 	{
 

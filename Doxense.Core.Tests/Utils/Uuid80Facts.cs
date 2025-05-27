@@ -28,9 +28,6 @@
 // ReSharper disable StringLiteralTypo
 namespace Doxense.Core.Tests
 {
-	using System.Collections.Generic;
-	using System.Linq;
-
 	[TestFixture]
 	[Category("Core-SDK")]
 	[Parallelizable(ParallelScope.All)]

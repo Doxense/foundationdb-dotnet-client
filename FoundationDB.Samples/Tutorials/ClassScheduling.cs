@@ -28,9 +28,6 @@
 
 namespace FoundationDB.Samples.Tutorials
 {
-	using System.Collections.Generic;
-	using Doxense.Collections.Tuples;
-
 	public class ClassScheduling : IAsyncTest
 	{
 

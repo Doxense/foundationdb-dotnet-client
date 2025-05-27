@@ -26,8 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System.Diagnostics;
-	using System.Diagnostics.CodeAnalysis;
 	using System.Net;
 
 	/// <summary>Represents a FoundationDB network endpoint as an IP address, port number and TLS mode.</summary>

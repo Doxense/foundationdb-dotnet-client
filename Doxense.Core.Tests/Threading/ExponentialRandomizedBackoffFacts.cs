@@ -26,9 +26,6 @@
 
 namespace Doxense.Threading.Tests
 {
-	using System.Collections.Generic;
-	using System.Linq;
-
 	[TestFixture]
 	[Category("Core-SDK")]
 	[Parallelizable(ParallelScope.All)]

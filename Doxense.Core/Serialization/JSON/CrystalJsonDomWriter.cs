@@ -31,7 +31,6 @@ namespace Doxense.Serialization.Json
 	using System.Reflection;
 	using SnowBank.Collections.Caching;
 	using Doxense.Collections.Tuples;
-	using Doxense.Serialization;
 	using System.Diagnostics.CodeAnalysis;
 	using SnowBank.Runtime;
 

@@ -26,8 +26,6 @@
 
 namespace FoundationDB.Client.Tests
 {
-	using SnowBank.Testing;
-
 	internal static class TestHelpers
 	{
 		public const string? TestClusterFile = null;

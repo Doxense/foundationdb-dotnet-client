@@ -32,7 +32,6 @@
 namespace FoundationDB.Layers.Collections.Tests
 {
 	using System.Net;
-	using Doxense.Serialization.Encoders;
 
 	[TestFixture]
 	public class MapFacts : FdbTest

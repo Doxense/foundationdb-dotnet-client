@@ -26,8 +26,6 @@
 
 namespace Doxense.Networking.Http
 {
-	using System.Net;
-	using System.Net.Http;
 	using Microsoft.Net.Http.Headers;
 
 	public class CookieContainerMessageHandler : DelegatingHandler

@@ -26,8 +26,6 @@
 
 namespace SnowBank.Buffers.Tests
 {
-	using System.Runtime.CompilerServices;
-
 	[TestFixture]
 	[Category("Core-SDK")]
 	[Parallelizable(ParallelScope.All)]

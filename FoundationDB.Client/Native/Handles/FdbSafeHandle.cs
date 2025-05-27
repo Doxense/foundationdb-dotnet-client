@@ -28,9 +28,6 @@
 
 namespace FoundationDB.Client.Native
 {
-	using System.Diagnostics;
-	using System.Runtime.InteropServices;
-
 	/// <summary>Base class for all wrappers on FDBxxxx* opaque pointers</summary>
 	[DebuggerDisplay("Handle={handle,h}, Invalid={IsInvalid}")]
 	public abstract class FdbSafeHandle : SafeHandle

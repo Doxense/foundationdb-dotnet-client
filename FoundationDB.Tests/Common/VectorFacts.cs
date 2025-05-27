@@ -26,9 +26,6 @@
 
 namespace FoundationDB.Layers.Collections.Tests
 {
-	using System.Text;
-	using Doxense.Serialization.Encoders;
-
 	[TestFixture]
 	[Obsolete]
 	public class VectorFacts : FdbTest

@@ -26,8 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System.Diagnostics;
-	using System.Runtime.CompilerServices;
 	using FoundationDB.Client.Native;
 
 	/// <summary>Watch that triggers when a watched key has changed in the database</summary>

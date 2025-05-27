@@ -27,8 +27,6 @@
 namespace FoundationDB.Client
 {
 	using System.ComponentModel;
-	using System.Diagnostics;
-	using System.Runtime.CompilerServices;
 
 	/// <summary>Represents a pair of keys defining the range 'Begin &lt;= key &gt; End'</summary>
 	[DebuggerDisplay("Begin={Begin}, End={End}")]

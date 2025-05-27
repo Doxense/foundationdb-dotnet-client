@@ -39,14 +39,8 @@ namespace SnowBank.Buffers.Tests
 
 	//README:IMPORTANT! This source file is expected to be stored as UTF-8! If the encoding is changed, some tests below may fail because they rely on specific code points!
 
-	using System.Collections.Generic;
 	using System.Diagnostics.CodeAnalysis;
-	using System.IO;
-	using System.Linq;
-	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
-	using System.Text;
-	using System.Threading.Tasks;
 	using static Doxense.Testing.TestVariables;
 
 	[TestFixture]

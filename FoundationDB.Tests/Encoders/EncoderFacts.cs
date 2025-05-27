@@ -26,8 +26,6 @@
 
 namespace Doxense.Collections.Tuples.Tests
 {
-	using Doxense.Serialization.Encoders;
-
 	[TestFixture]
 	public class TupleEncoderFacts : FdbTest
 	{

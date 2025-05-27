@@ -1,4 +1,4 @@
-﻿// copy/paste de System.Net.Http.HttpClientHandler, hackée pour être accessible publiquement
+// copy/paste de System.Net.Http.HttpClientHandler, hackée pour être accessible publiquement
 
 //#define FULL_DEBUG
 
@@ -6,8 +6,6 @@ namespace Doxense.Networking.Http
 {
 	using System.IO;
 	using System.Linq.Expressions;
-	using System.Net;
-	using System.Net.Http;
 	using System.Net.Security;
 	using System.Net.Sockets;
 	using System.Reflection;

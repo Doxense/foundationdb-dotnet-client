@@ -29,7 +29,6 @@
 
 namespace FoundationDB.Client.Native
 {
-	using System.Diagnostics;
 	using FoundationDB.Client.Core;
 
 	/// <summary>Wraps a native FDBDatabase* handle</summary>

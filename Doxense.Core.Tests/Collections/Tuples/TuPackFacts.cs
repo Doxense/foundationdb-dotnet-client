@@ -33,9 +33,6 @@
 
 namespace Doxense.Collections.Tuples.Tests
 {
-	using System.Collections.Generic;
-	using System.Diagnostics;
-	using System.Linq;
 	using System.Net;
 	using System.Numerics;
 	using Doxense.Collections.Tuples.Encoding;

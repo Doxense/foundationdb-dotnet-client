@@ -27,8 +27,6 @@
 namespace FoundationDB.Client
 {
 	using System.ComponentModel;
-	using System.Diagnostics;
-	using Doxense.Collections.Tuples;
 
 	/// <summary>Represents a pair of key selectors that range 'GetKey(Begin) &lt;= key &lt; GetKey(End)'</summary>
 	[DebuggerDisplay("[ToString()]")]

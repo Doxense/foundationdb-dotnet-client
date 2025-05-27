@@ -26,8 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System.Runtime.CompilerServices;
-
 	/// <summary>Transactional context that can execute, inside a retry loop, idempotent actions using read-only transactions.</summary>
 	[PublicAPI]
 	public interface IFdbReadOnlyRetryable

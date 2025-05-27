@@ -26,8 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System.Diagnostics.CodeAnalysis;
-
 	[PublicAPI]
 	public interface IFdbDatabaseScopeProvider : IDisposable
 	{

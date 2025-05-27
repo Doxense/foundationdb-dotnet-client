@@ -26,7 +26,6 @@
 
 namespace FoundationDB.Samples
 {
-	using FoundationDB.Samples.Benchmarks;
 	using FoundationDB.Samples.Tutorials;
 	using SnowBank.Linq.Async;
 

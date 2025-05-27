@@ -29,7 +29,6 @@
 
 namespace SnowBank.Text.Tests
 {
-	using System.Text;
 	using SnowBank.Buffers;
 	using SnowBank.Buffers.Text;
 

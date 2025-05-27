@@ -30,10 +30,6 @@
 // ReSharper disable RedundantCast
 namespace Doxense.Core.Tests
 {
-	using System.Collections.Generic;
-	using System.Globalization;
-	using System.Linq;
-
 	[TestFixture]
 	[Category("Core-SDK")]
 	[Parallelizable(ParallelScope.All)]

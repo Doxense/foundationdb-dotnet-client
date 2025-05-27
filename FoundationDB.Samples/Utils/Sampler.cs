@@ -26,9 +26,6 @@
 
 namespace FoundationDB.Samples.Benchmarks
 {
-	using System.Collections.Generic;
-	using SnowBank.Numerics;
-
 	public class SamplerTest : IAsyncTest
 	{
 

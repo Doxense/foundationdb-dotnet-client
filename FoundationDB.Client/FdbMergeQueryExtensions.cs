@@ -26,8 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System.Linq;
-	using SnowBank.Linq;
 	using SnowBank.Linq.Async.Iterators;
 
 	[PublicAPI]

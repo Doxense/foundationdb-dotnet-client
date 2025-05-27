@@ -26,12 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System.Diagnostics;
-	using System.Diagnostics.CodeAnalysis;
-	using System.Runtime.CompilerServices;
-	using System.Runtime.InteropServices;
-	using Doxense.Collections.Tuples;
-
 	/// <summary>Represents the name of a <see cref="IFdbTenant">Tenant</see> in the database</summary>
 	/// <remarks>A tenant is represented by a binary name, that is mapped into a common key prefix by the database cluster</remarks>
 	/// <example><code>

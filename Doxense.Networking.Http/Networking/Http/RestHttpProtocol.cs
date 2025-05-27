@@ -26,7 +26,6 @@
 
 namespace Doxense.Networking.Http
 {
-	using System.Net.Http;
 	using System.Text;
 
 	/// <summary>Generic HTTP protocol that exposes all HTTP verbes without any custom processing</summary>

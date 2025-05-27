@@ -28,9 +28,6 @@
 
 namespace Doxense.Testing
 {
-	using System.Diagnostics;
-	using System.Globalization;
-	using System.Runtime.CompilerServices;
 	using JetBrains.Annotations;
 
 	/// <summary>Various keys and values frequently used in unit tests.</summary>

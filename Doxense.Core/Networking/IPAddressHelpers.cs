@@ -35,7 +35,6 @@ namespace Doxense.Networking
 	using System.Net.NetworkInformation;
 	using System.Net.Sockets;
 	using System.Text;
-	using Doxense.Serialization;
 	using SnowBank.Buffers.Binary;
 	using SnowBank.Runtime.Converters;
 

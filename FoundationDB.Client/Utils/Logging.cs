@@ -26,9 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System.Diagnostics;
-	using System.Globalization;
-	using System.Runtime.CompilerServices;
 	using System.Security;
 
 	internal static class Logging

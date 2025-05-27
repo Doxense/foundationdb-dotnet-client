@@ -26,10 +26,8 @@
 
 namespace FoundationDB.Client
 {
-	using System.Runtime.CompilerServices;
 	using System.Threading.Tasks;
 	using FoundationDB.DependencyInjection;
-	using SnowBank.Linq;
 
 	[PublicAPI]
 	public static class FdbDatabaseProviderExtensions

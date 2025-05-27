@@ -27,9 +27,6 @@
 #pragma warning disable CS0618 // Type or member is obsolete
 namespace Doxense.IO.Hashing.Tests
 {
-	using System.Collections.Generic;
-	using System.Linq;
-
 	[TestFixture]
 	[Category("Core-SDK")]
 	[Parallelizable(ParallelScope.All)]

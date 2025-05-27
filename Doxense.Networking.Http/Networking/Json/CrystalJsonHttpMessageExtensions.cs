@@ -26,8 +26,6 @@
 
 namespace Doxense.AspNetCore.Common.Json
 {
-	using System.Net.Http;
-
 	[PublicAPI]
 	public static class CrystalJsonHttpMessageExtensions
 	{

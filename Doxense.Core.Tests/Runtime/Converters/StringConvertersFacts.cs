@@ -28,8 +28,6 @@
 // ReSharper disable StringLiteralTypo
 namespace SnowBank.Runtime.Converters.Tests
 {
-	using System.Globalization;
-
 	[TestFixture]
 	[Category("Core-SDK")]
 	[Parallelizable(ParallelScope.All)]

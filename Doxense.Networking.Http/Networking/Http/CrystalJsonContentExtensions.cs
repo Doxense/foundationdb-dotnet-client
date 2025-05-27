@@ -26,7 +26,6 @@
 
 namespace Doxense.Networking.Http
 {
-	using System.Net.Http;
 	using System.Text;
 
 	public static class CrystalJsonContentExtensions

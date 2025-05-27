@@ -29,9 +29,6 @@
 
 namespace FoundationDB.Client
 {
-	using System.Diagnostics;
-	using System.Linq;
-
 	public static partial class Fdb
 	{
 		/// <summary>Helper class for bulk operations</summary>

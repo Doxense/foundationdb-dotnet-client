@@ -28,15 +28,7 @@ namespace FoundationDB.Client
 {
 	using System.Buffers;
 	using System.Buffers.Binary;
-	using System.Diagnostics;
-	using System.Linq;
 	using System.Numerics;
-	using System.Runtime.CompilerServices;
-	using System.Runtime.InteropServices;
-	using System.Text;
-	using Doxense.Serialization.Encoders;
-	using SnowBank.Buffers;
-	using SnowBank.Linq;
 
 	/// <summary>Provides a set of extensions methods shared by all FoundationDB transaction implementations.</summary>
 	[PublicAPI]

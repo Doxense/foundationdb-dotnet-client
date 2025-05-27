@@ -27,7 +27,6 @@
 namespace FoundationDB.Layers.Experimental.Indexing.Tests
 {
 	using System.Runtime.CompilerServices;
-	using System.Text;
 
 	/// <summary>Super Naive and Slow reference implementation of a 'Compressed' Bitmap</summary>
 	/// <remarks>This is basically a bool[] that is used to verify other implementations</remarks>

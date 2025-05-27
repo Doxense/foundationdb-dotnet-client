@@ -27,9 +27,6 @@
 namespace FoundationDB.Client
 {
 	using System.ComponentModel;
-	using System.Runtime.CompilerServices;
-
-	using Doxense.Collections.Tuples;
 
 	/// <summary>Provides a set of extensions methods shared by all FoundationDB database implementations.</summary>
 	[PublicAPI]

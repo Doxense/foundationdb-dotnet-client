@@ -26,8 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using Doxense.Serialization.Encoders;
-
 	public class FdbDirectoryPartition : FdbDirectorySubspace
 	{
 

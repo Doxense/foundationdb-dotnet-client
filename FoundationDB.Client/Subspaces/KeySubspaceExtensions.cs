@@ -27,8 +27,6 @@
 namespace FoundationDB.Client
 {
 	using System;
-	using Doxense.Collections.Tuples;
-	using Doxense.Serialization.Encoders;
 
 	/// <summary>Extensions methods and helpers to work with Key Subspaces</summary>
 	[PublicAPI]

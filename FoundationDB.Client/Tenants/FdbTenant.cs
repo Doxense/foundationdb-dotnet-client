@@ -27,7 +27,6 @@
 namespace FoundationDB.Client
 {
 	using System.Collections.Concurrent;
-	using System.Diagnostics;
 	using FoundationDB.Client.Core;
 	using FoundationDB.Client.Native;
 

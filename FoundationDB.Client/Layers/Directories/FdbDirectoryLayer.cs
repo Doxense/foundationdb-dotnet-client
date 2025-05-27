@@ -27,14 +27,8 @@
 namespace FoundationDB.Client
 {
 	using System;
-	using System.Diagnostics;
-	using System.Diagnostics.CodeAnalysis;
-	using System.Linq;
-	using System.Runtime.CompilerServices;
-	using Doxense.Collections.Tuples;
 	using Doxense.Threading;
 	using FoundationDB.Layers.Allocators;
-	using SnowBank.Buffers;
 
 	/// <summary>Provides a FdbDirectoryLayer class for managing directories in FoundationDB.
 	/// Directories are a recommended approach for administering layers and applications. Directories work in conjunction with subspaces. Each layer or application should create or open at least one directory with which to manage its subspace(s).

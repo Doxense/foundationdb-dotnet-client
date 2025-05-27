@@ -26,7 +26,6 @@
 
 namespace FoundationDB.Layers.Allocators
 {
-	using System.Diagnostics;
 	using FoundationDB.Client;
 	using FoundationDB.Filters.Logging;
 

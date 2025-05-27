@@ -30,7 +30,6 @@ namespace Doxense.Collections.Tuples.Encoding
 	using System.ComponentModel;
 	using Doxense.Collections.Tuples;
 	using SnowBank.Runtime.Converters;
-	using Doxense.Serialization;
 	using SnowBank.Buffers;
 
 	/// <summary>Lazily-evaluated tuple that was unpacked from a key</summary>

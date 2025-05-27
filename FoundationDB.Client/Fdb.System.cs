@@ -29,7 +29,6 @@
 // ReSharper disable VariableLengthStringHexEscapeSequence
 namespace FoundationDB.Client
 {
-	using System.Diagnostics.CodeAnalysis;
 	using System.Net;
 	using System.Threading.Tasks;
 	using Doxense.Serialization.Json;

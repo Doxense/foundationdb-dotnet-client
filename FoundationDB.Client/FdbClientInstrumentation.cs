@@ -26,7 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System.Diagnostics;
 	using System.Diagnostics.Metrics;
 
 	public static class FdbClientInstrumentation

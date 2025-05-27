@@ -32,7 +32,6 @@
 namespace FoundationDB.Client.Native
 {
 	using System.Buffers;
-	using System.Diagnostics;
 	using FoundationDB.Client.Core;
 
 	/// <summary>Wraps a native FDB_TRANSACTION handle</summary>

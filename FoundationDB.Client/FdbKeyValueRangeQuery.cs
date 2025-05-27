@@ -26,8 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using SnowBank.Buffers;
-
 	/// <summary>Query describing an ongoing GetRange operation</summary>
 	internal sealed class FdbKeyValueRangeQuery : FdbRangeQuery<SliceBuffer, KeyValuePair<Slice, Slice>>, IFdbKeyValueRangeQuery
 	{

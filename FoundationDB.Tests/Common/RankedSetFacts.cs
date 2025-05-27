@@ -26,8 +26,6 @@
 
 namespace FoundationDB.Layers.Collections.Tests
 {
-	using System.Text;
-
 	[TestFixture]
 	[Obsolete]
 	public class RankedTestFacts : FdbTest

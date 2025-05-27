@@ -30,15 +30,10 @@
 namespace FoundationDB.Client
 {
 	using System.Buffers.Binary;
-	using System.Diagnostics;
-	using System.Diagnostics.CodeAnalysis;
-	using System.Globalization;
-	using System.Runtime.CompilerServices;
 	using System.Threading.Tasks;
 	using FoundationDB.Client.Core;
 	using FoundationDB.Client.Native;
 	using FoundationDB.Filters.Logging;
-	using SnowBank.Buffers;
 
 	/// <summary>FoundationDB transaction handle.</summary>
 	/// <remarks>An instance of this class can be used to read from and/or write to a snapshot of a FoundationDB database.</remarks>

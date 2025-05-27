@@ -28,9 +28,6 @@
 
 namespace FoundationDB.Client
 {
-	using System.Diagnostics;
-	using System.Diagnostics.CodeAnalysis;
-	using System.Runtime.CompilerServices;
 	using SystemIO = System.IO;
 	using FoundationDB.Client.Native;
 	using FoundationDB.DependencyInjection;

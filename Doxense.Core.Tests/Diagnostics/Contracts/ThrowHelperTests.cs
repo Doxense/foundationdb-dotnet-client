@@ -29,9 +29,6 @@
 
 namespace Doxense.Diagnostics.Contracts.Tests
 {
-	using System.IO;
-	using System.Runtime.CompilerServices;
-
 	/// <summary>Tests sur la classe statique ThrowHelper</summary>
 	[TestFixture]
 	[Category("Core-SDK")]

@@ -26,7 +26,6 @@
 
 namespace FoundationDB.DependencyInjection
 {
-	using System.Diagnostics.CodeAnalysis;
 	using FoundationDB.Client;
 	using Microsoft.Extensions.Options;
 

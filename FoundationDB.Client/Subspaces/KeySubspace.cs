@@ -26,11 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System.Diagnostics;
-	using System.Runtime.CompilerServices;
-	using Doxense.Collections.Tuples;
-	using Doxense.Serialization.Encoders;
-
 	/// <summary>Adds a prefix on every key, to group them inside a common subspace</summary>
 	[PublicAPI]
 	[DebuggerDisplay("{ToString(),nq}")]

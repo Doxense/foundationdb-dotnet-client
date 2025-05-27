@@ -26,9 +26,7 @@
 
 namespace FoundationDB.Client
 {
-	using System.Runtime.CompilerServices;
 	using FoundationDB.Filters.Logging;
-	using SnowBank.Buffers;
 
 	/// <summary>Wraps an FDB_TRANSACTION handle</summary>
 	public partial class FdbTransaction

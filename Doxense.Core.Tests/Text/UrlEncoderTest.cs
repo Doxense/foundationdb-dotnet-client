@@ -28,8 +28,6 @@
 // ReSharper disable CommentTypo
 namespace SnowBank.Text.Tests
 {
-	using System.Linq;
-	using System.Text;
 	using System.Web;
 
 	/// <summary>Tests sur la classe statique KTL</summary>

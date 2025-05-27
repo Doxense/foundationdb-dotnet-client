@@ -26,10 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System.Diagnostics;
-	using System.Globalization;
-	using System.Text;
-
 	/// <summary>Settings used when establishing the connection with a FoundationDB cluster</summary>
 	[DebuggerDisplay("{" + nameof(ToString) + "(),nq}")]
 	public sealed record FdbConnectionOptions

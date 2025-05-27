@@ -28,8 +28,6 @@
 // ReSharper disable MemberHidesStaticFromOuterClass
 namespace SnowBank.Runtime.Tests
 {
-	using System.Collections.Generic;
-
 	[TestFixture]
 	[Category("Core-SDK")]
 	[Parallelizable(ParallelScope.All)]

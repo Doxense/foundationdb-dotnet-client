@@ -26,10 +26,6 @@
 
 namespace FoundationDB.Filters.Logging
 {
-	using System.Diagnostics;
-	using System.Globalization;
-	using System.Text;
-	using Doxense.Collections.Tuples;
 	using FoundationDB.Client;
 
 	[PublicAPI]

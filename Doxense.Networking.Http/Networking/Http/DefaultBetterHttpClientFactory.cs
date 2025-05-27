@@ -26,7 +26,6 @@
 
 namespace Doxense.Networking.Http
 {
-	using System.Net.Http;
 	using Microsoft.Extensions.Logging;
 	using Microsoft.Extensions.Logging.Abstractions;
 	using Microsoft.Extensions.Options;

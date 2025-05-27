@@ -28,7 +28,6 @@ namespace SnowBank.DataAnnotations
 {
 	using System.Linq.Expressions;
 	using System.Reflection;
-	using Doxense.Serialization;
 	using SnowBank.Runtime;
 
 	/// <summary>Defines a property of a model class that is "important"</summary>

@@ -28,10 +28,6 @@
 // ReSharper disable InconsistentNaming
 namespace FoundationDB.Client.Status
 {
-	using System.Diagnostics;
-	using System.Diagnostics.CodeAnalysis;
-	using System.Globalization;
-	using System.Linq;
 	using Doxense.Serialization.Json;
 
 	/// <summary>Snapshot of the state of a FoundationDB cluster</summary>

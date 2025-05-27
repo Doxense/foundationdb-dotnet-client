@@ -27,11 +27,7 @@
 namespace FoundationDB.Filters.Logging
 {
 	using System.Collections.Concurrent;
-	using System.Diagnostics;
-	using System.Globalization;
 	using System.Reflection;
-	using System.Runtime.CompilerServices;
-	using System.Text;
 	using FoundationDB.Client;
 
 	[Flags]

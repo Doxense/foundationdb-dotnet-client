@@ -26,18 +26,15 @@
 
 namespace FoundationDB.Client.Tests
 {
-	using System.Runtime.CompilerServices;
 	using DotNet.Testcontainers.Builders;
 	using DotNet.Testcontainers.Configurations;
 	using DotNet.Testcontainers.Containers;
 	using Doxense.Diagnostics.Contracts;
-	using Doxense.Serialization;
 	using FoundationDB.DependencyInjection;
 	using Microsoft.Extensions.DependencyInjection;
 	using Microsoft.Extensions.DependencyInjection.Extensions;
 	using NodaTime;
 	using SnowBank.Linq;
-	using SnowBank.Testing;
 
 	public sealed class FdbServerTestContainer : IAsyncDisposable
 	{

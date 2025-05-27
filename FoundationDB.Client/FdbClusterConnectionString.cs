@@ -26,10 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System.Diagnostics;
-	using System.Globalization;
-	using System.Linq;
-
 	/// <summary>Class that exposes the content of a FoundationDB .cluster file</summary>
 	[DebuggerDisplay("{RawValue,nq}")]
 	[PublicAPI]

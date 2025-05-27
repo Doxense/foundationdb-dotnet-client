@@ -26,12 +26,7 @@
 
 namespace FoundationDB.Client
 {
-	using System.Diagnostics;
-	using System.Linq;
-	using System.Runtime.CompilerServices;
-	using Doxense.Collections.Tuples;
 	using Doxense.Collections.Tuples.Encoding;
-	using SnowBank.Buffers;
 
 	/// <summary>Factory class for keys</summary>
 	[PublicAPI]

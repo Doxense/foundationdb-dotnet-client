@@ -26,11 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System.Diagnostics;
-	using System.Linq;
-	using Doxense.Collections.Tuples;
-	using Doxense.Serialization.Encoders;
-
 	[DebuggerDisplay("Path={Path}, Layer={Layer}")]
 	public sealed class FdbDirectorySubspaceLocation : ISubspaceLocation<FdbDirectorySubspace>, IFdbDirectory
 	{

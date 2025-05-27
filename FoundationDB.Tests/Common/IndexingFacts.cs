@@ -27,7 +27,6 @@
 namespace FoundationDB.Layers.Tables.Tests
 {
 	using FoundationDB.Layers.Indexing;
-	using SnowBank.Linq;
 
 	[TestFixture]
 	public class IndexingFacts : FdbTest

@@ -32,8 +32,6 @@
 namespace FoundationDB.Client.Tests
 {
 	using System.Collections.Generic;
-	using System.IO;
-	using SnowBank.Linq;
 	using SnowBank.Linq.Async.Iterators;
 
 	[TestFixture]

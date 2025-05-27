@@ -29,10 +29,6 @@ namespace FoundationDB.Client
 	using System.Buffers;
 	using System.Collections.Immutable;
 	using System.ComponentModel;
-	using System.Diagnostics;
-	using System.Runtime.CompilerServices;
-	using SnowBank.Linq;
-	using SnowBank.Buffers;
 
 	/// <summary>Query describing an ongoing GetRange operation</summary>
 	[DebuggerDisplay("Begin={Begin}, End={End}, Limit={Limit}, Mode={Streaming}, Reverse={Reverse}, Snapshot={IsSnapshot}")]

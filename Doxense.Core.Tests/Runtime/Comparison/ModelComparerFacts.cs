@@ -27,7 +27,6 @@
 // ReSharper disable UnusedMember.Global
 namespace SnowBank.DataAnnotations.Tests
 {
-	using System.Collections.Generic;
 	using SnowBank.DataAnnotations;
 
 	[TestFixture]

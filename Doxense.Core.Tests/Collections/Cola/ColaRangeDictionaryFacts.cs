@@ -26,12 +26,7 @@
 
 namespace SnowBank.Collections.Generic.Test
 {
-	using System;
 	using System.Buffers;
-	using System.Collections.Generic;
-	using System.Diagnostics;
-	using System.IO;
-	using System.Linq;
 	using Doxense.Collections.Tuples;
 	using NUnit.Framework;
 

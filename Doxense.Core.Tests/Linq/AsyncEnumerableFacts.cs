@@ -32,12 +32,8 @@
 
 namespace SnowBank.Linq.Async.Tests
 {
-	using System.Collections.Generic;
 	using System.Collections.Immutable;
-	using System.Diagnostics;
 	using System.Linq;
-	using System.Threading;
-	using System.Threading.Tasks;
 	using Doxense.Serialization.Json;
 	using SnowBank.Linq;
 	using SnowBank.Linq.Async.Iterators;

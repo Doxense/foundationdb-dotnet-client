@@ -37,8 +37,6 @@
 
 namespace FoundationDB.Client.Tests
 {
-	using System.Text;
-
 	[TestFixture]
 	public class TransactionFacts : FdbTest
 	{

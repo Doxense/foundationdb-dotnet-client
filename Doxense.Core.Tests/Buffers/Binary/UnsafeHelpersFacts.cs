@@ -26,9 +26,6 @@
 
 namespace SnowBank.Buffers.Binary.Tests
 {
-	using System.Linq;
-	using System.Text;
-
 	[TestFixture]
 	[Category("Core-SDK")]
 	[Parallelizable(ParallelScope.All)]

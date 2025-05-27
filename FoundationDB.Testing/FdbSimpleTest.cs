@@ -26,8 +26,6 @@
 
 namespace FoundationDB.Client.Tests
 {
-	using SnowBank.Testing;
-
 	/// <summary>Base class for all FoundationDB tests that do not require a live FoundationDB cluster</summary>
 	[Category("Fdb-Client")]
 	public abstract class FdbSimpleTest : SimpleTest

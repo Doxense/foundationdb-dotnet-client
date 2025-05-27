@@ -32,7 +32,6 @@ namespace SnowBank.Buffers
 	using System.Globalization;
 	using System.Runtime.InteropServices;
 	using System.Text;
-	using Doxense.Serialization;
 	using SnowBank.Buffers.Binary;
 	using SnowBank.Buffers.Text;
 	using SnowBank.Text;

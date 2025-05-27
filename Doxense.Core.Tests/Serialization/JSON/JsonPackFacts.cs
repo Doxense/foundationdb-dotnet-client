@@ -31,9 +31,7 @@
 
 namespace Doxense.Serialization.Json.Binary.Tests
 {
-	using System.Collections.Generic;
 	using System.IO.Compression;
-	using System.Linq;
 
 	[TestFixture]
 	[Category("Core-SDK")]

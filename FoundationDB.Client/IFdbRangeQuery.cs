@@ -27,8 +27,6 @@
 
 namespace FoundationDB.Client
 {
-	using SnowBank.Linq;
-
 	/// <summary>Base interface for queries that will read ranges of results from the database</summary>
 	public interface IFdbRangeQuery
 	{

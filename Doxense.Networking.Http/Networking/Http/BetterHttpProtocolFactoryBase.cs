@@ -26,7 +26,6 @@
 
 namespace Doxense.Networking.Http
 {
-	using System.Net.Http;
 	using Microsoft.Extensions.DependencyInjection;
 	using Microsoft.Extensions.Options;
 

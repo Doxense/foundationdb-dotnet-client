@@ -30,9 +30,7 @@ namespace FoundationDB.Client
 {
 	using System;
 	using System.Buffers;
-	using System.Globalization;
 	using System.Numerics;
-	using System.Text;
 
 	/// <summary>Options for configuration the parsing of FQL expressions</summary>
 	public enum FqlParsingOptions

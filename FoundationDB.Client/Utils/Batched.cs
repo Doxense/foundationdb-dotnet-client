@@ -26,9 +26,6 @@
 
 namespace FoundationDB
 {
-	using System.Runtime.InteropServices;
-	using SnowBank.Buffers;
-
 	internal static class Batched<TValue, TState>
 	{
 

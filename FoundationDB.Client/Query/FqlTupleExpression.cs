@@ -28,14 +28,7 @@
 
 namespace FoundationDB.Client
 {
-	using System.Diagnostics;
-	using System.Diagnostics.CodeAnalysis;
-	using System.Globalization;
-	using System.Linq;
 	using System.Numerics;
-	using System.Runtime.InteropServices;
-	using System.Text;
-	using Doxense.Collections.Tuples;
 
 	[PublicAPI]
 	public enum FqlItemType

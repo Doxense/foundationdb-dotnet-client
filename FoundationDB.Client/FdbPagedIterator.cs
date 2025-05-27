@@ -29,8 +29,6 @@
 
 namespace FoundationDB.Client
 {
-	using System.Diagnostics;
-	using SnowBank.Linq;
 	using SnowBank.Linq.Async.Iterators;
 
 	/// <summary>Async iterator that fetches the results by batch, but return them one by one</summary>

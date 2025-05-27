@@ -29,9 +29,6 @@
 // ReSharper disable AccessToDisposedClosure
 namespace SnowBank.Linq.Tests
 {
-	using System.Collections.Generic;
-	using System.Linq;
-
 	[TestFixture]
 	[Category("Core-SDK")]
 	[Parallelizable(ParallelScope.All)]

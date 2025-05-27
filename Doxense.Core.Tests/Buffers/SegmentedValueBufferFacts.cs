@@ -29,9 +29,6 @@
 namespace SnowBank.Buffers.Tests
 {
 	using System.Buffers;
-	using System.Collections.Generic;
-	using System.Linq;
-	using System.Runtime.CompilerServices;
 
 	[TestFixture]
 	[Category("Core-SDK")]

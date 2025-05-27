@@ -30,9 +30,6 @@
 
 namespace FoundationDB.Client
 {
-	using System.Diagnostics;
-	using System.Linq;
-	using SnowBank.Linq;
 	using Doxense.Serialization.Json;
 
 	[DebuggerDisplay("{this.Text,nq}")]

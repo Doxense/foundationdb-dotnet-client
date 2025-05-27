@@ -26,9 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System.Runtime.CompilerServices;
-	using System.Text;
-
 	/// <summary>Represent a segment in a <see cref="FdbPath">path</see> to a <see cref="IFdbDirectory">Directory</see>.</summary>
 	/// <remark>A path segment is composed of a <see cref="Name"/> and optional <see cref="LayerId"/> field.</remark>
 	public readonly struct FdbPathSegment : IEquatable<FdbPathSegment>

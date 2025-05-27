@@ -26,10 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System.Diagnostics;
-	using Doxense.Collections.Tuples;
-	using Doxense.Serialization.Encoders;
-
 	[DebuggerDisplay("Name={Name}, Id={Id}, Prefix={Prefix}")]
 	public sealed record FdbTenantMetadata
 	{

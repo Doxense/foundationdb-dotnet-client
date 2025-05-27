@@ -27,7 +27,6 @@
 namespace FoundationDB.Client.Native
 {
 	using System.Runtime.ConstrainedExecution;
-	using System.Runtime.InteropServices;
 	using System.Security;
 	using Microsoft.Win32.SafeHandles;
 

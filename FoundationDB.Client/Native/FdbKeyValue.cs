@@ -27,7 +27,6 @@
 namespace FoundationDB.Client.Native
 {
 	using System.Diagnostics.Contracts;
-	using System.Runtime.InteropServices;
 
 	[StructLayout(LayoutKind.Sequential, Pack = 4)]
 	internal readonly unsafe struct FdbKeyValue

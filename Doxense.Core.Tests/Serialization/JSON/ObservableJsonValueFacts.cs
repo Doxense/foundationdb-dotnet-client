@@ -26,9 +26,6 @@
 
 namespace Doxense.Serialization.Json.Tests
 {
-	using System.Collections.Generic;
-	using System.Runtime.CompilerServices;
-
 	[TestFixture]
 	[Category("Core-SDK")]
 	[Category("Core-JSON")]

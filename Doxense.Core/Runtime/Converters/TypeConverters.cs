@@ -24,12 +24,13 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+#pragma warning disable IL3050
+
 namespace SnowBank.Runtime.Converters
 {
 	using System.Globalization;
 	using System.Linq.Expressions;
 	using System.Reflection;
-	using Doxense.Serialization;
 
 	/// <summary>Helper class to convert object from one type to another</summary>
 	[PublicAPI]
@@ -51,7 +52,7 @@ namespace SnowBank.Runtime.Converters
 
 			public static readonly ITypeConverter<T, T> Default = new Identity<T>();
 
-			public static readonly Func<object?, T> FromObject = (Func<object?, T>) TypeConverters.CreateCaster(typeof(T));
+			public static readonly Func<object?, T> FromObject = (Func<object?, T>) CreateCaster(typeof(T));
 
 			public Type Source => typeof(T);
 

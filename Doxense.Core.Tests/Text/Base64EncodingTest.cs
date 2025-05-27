@@ -27,9 +27,6 @@
 namespace SnowBank.Text.Tests
 {
 	using System.Buffers.Text;
-	using System.Diagnostics;
-	using System.IO;
-	using System.Text;
 
 	[TestFixture]
 	[Category("Core-SDK")]

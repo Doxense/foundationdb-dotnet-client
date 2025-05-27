@@ -28,7 +28,6 @@ namespace Doxense.Networking.Http
 {
 	using System.Diagnostics.CodeAnalysis;
 	using System.IO;
-	using System.Net.Http;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.ExceptionServices;
 	using System.Xml.Linq;

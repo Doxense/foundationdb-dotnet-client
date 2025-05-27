@@ -26,7 +26,6 @@
 
 namespace SnowBank.Testing
 {
-	using System.IO;
 	using System.IO.Compression;
 
 	public static class CompressionExtensions

@@ -26,15 +26,12 @@
 
 namespace Doxense.Networking
 {
-	using System;
 	using System.ComponentModel;
-	using System.Net;
-	using System.Net.Http;
 	using System.Net.NetworkInformation;
 	using System.Net.Sockets;
 	using Doxense.Networking.Http;
 
-	/// <summary>Provides services to interract with the real (or simulated) network</summary>
+	/// <summary>Provides services to interact with the real (or simulated) network</summary>
 	/// <remarks>
 	/// <para>This types is a wrapper that allows injecting virtual networks and hosts when the code under test and running inside a "virtual sandbox"</para>
 	/// </remarks>

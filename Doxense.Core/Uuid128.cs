@@ -30,7 +30,6 @@ namespace System
 	using System.ComponentModel;
 	using System.Runtime.InteropServices;
 	using SnowBank.Buffers;
-	using Doxense.Serialization;
 	using SnowBank.Buffers.Binary;
 	using SnowBank.Text;
 #if NET8_0_OR_GREATER

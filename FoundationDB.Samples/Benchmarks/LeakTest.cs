@@ -28,7 +28,6 @@
 
 namespace FoundationDB.Samples.Benchmarks
 {
-	using System.Text;
 	using FoundationDB.Client.Utils;
 
 	public class LeakTest : IAsyncTest
