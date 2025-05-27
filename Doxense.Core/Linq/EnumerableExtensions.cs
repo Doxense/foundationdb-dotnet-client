@@ -26,7 +26,6 @@
 
 namespace SnowBank.Linq
 {
-	using System.Collections.Immutable;
 	using System.Runtime.InteropServices;
 	using SnowBank.Buffers;
 	using SnowBank.Linq.Iterators;

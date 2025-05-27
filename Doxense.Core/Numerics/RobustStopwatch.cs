@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Mathematics.Statistics // REVIEW: SnowBank.Benchmarking ?
+namespace SnowBank.Numerics
 {
 	[DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]

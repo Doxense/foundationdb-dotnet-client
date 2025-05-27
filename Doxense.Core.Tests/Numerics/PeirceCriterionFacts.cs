@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Mathematics.Statistics.Test
+namespace SnowBank.Numerics.Tests
 {
 	using System.Linq;
 

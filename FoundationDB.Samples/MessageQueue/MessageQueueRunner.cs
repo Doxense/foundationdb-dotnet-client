@@ -31,7 +31,7 @@ namespace FoundationDB.Samples.Tutorials
 	using System.Collections.Generic;
 	using System.Globalization;
 	using Doxense.Collections.Tuples;
-	using Doxense.Mathematics.Statistics;
+	using SnowBank.Numerics;
 	using FoundationDB.Layers.Messaging;
 
 	public class MessageQueueRunner : IAsyncTest

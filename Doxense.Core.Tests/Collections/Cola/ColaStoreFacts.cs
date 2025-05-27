@@ -32,7 +32,7 @@ namespace SnowBank.Collections.Generic.Test
 	using System.IO;
 	using System.Linq;
 	using System.Text;
-	using Doxense.Mathematics.Statistics;
+	using SnowBank.Numerics;
 
 	[TestFixture]
 	[Category("Core-SDK")]

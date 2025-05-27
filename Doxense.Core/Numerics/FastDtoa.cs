@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Mathematics
+namespace SnowBank.Numerics
 {
 	using System.Runtime.InteropServices;
 

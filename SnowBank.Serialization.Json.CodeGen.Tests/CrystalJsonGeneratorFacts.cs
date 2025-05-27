@@ -30,7 +30,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 	using System.ComponentModel.DataAnnotations;
 	using System.Net;
 	using System.Text.Json.Serialization;
-	using Doxense.Mathematics.Statistics;
+	using SnowBank.Numerics;
 
 	#region Types...
 

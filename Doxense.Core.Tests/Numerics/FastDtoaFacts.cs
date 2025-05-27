@@ -26,7 +26,7 @@
 
 // ReSharper disable CompareOfFloatsByEqualityOperator
 
-namespace Doxense.Mathematics.Test
+namespace SnowBank.Numerics.Test
 {
 
 	[TestFixture]
