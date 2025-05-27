@@ -34,8 +34,8 @@ namespace SnowBank.Buffers
 	using System.Text;
 	using Doxense.Serialization;
 	using SnowBank.Buffers.Binary;
-	using SnowBank.Text;
 	using SnowBank.Buffers.Text;
+	using SnowBank.Text;
 
 	/// <summary>Slice buffer that emulates a pseudo-stream using a byte array that will automatically grow in size, if necessary</summary>
 	/// <remarks>This struct MUST be passed by reference!</remarks>

@@ -7,7 +7,7 @@ namespace SnowBank.Text
 
 	[DebuggerDisplay("{ToChar()}")]
 	[PublicAPI]
-	public readonly struct UnicodeCodePoint
+	public readonly struct UnicodeCodePoint : IEquatable<UnicodeCodePoint>
 	{
 
 		public readonly uint Value;
@@ -86,7 +86,10 @@ namespace SnowBank.Text
 		[Pure]
 		public static bool IsSurrogate(UnicodeCodePoint codePoint)
 		{
-			return codePoint.Value >= UnicodeConstants.Utf16SurrogateRangeStart && codePoint.Value <= UnicodeConstants.Utf16SurrogateRangeEnd;
+			const uint UTF16_SURROGATE_RANGE_START = 0xD800;
+			const uint UTF16_SURROGATE_RANGE_END = 0xDFFF;
+
+			return codePoint.Value is >= UTF16_SURROGATE_RANGE_START and <= UTF16_SURROGATE_RANGE_END;
 		}
 
 		//TODO: REVIEW: decide on a real hash function to compute string hash codes!
