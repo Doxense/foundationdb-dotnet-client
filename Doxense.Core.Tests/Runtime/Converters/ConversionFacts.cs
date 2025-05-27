@@ -26,6 +26,7 @@
 
 namespace SnowBank.Runtime.Converters.Tests
 {
+
 	[TestFixture]
 	[Category("Core-SDK")]
 	[Parallelizable(ParallelScope.All)]

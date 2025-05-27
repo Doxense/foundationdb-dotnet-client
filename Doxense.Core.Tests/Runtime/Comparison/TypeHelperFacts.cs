@@ -29,7 +29,6 @@
 namespace SnowBank.Runtime.Tests
 {
 	using System.Collections.Generic;
-	using Doxense.Serialization;
 
 	[TestFixture]
 	[Category("Core-SDK")]

@@ -34,7 +34,6 @@ namespace SnowBank.Buffers
 
 		/// <summary>Serializes the current instance to the specified output buffer</summary>
 		void WriteTo(ref SliceWriter writer);
-
 	}
 
 	/// <summary>Can serialize instances of type <typeparamref name="T"/> to and from binary form</summary>

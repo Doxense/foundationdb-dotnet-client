@@ -29,7 +29,6 @@
 namespace SnowBank.Runtime.Converters.Tests
 {
 	using System.Globalization;
-	using Doxense.Serialization;
 
 	[TestFixture]
 	[Category("Core-SDK")]
