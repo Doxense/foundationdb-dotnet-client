@@ -30,6 +30,7 @@ namespace Doxense.Serialization.Json
 {
 	using System.Text;
 	using SnowBank.Buffers.Text;
+	using SnowBank.Runtime.Converters;
 	using SnowBank.Text;
 
 	[PublicAPI]

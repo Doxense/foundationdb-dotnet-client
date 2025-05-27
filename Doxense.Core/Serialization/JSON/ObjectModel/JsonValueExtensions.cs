@@ -29,6 +29,7 @@ namespace Doxense.Serialization.Json
 	using System;
 	using System.Buffers;
 	using System.ComponentModel;
+	using SnowBank.Runtime;
 
 	/// <summary>Extension methods for <see cref="JsonValue"/> and other derived types</summary>
 	[PublicAPI]

@@ -32,6 +32,8 @@ namespace Doxense.Serialization.Json
 	using Doxense.Diagnostics;
 	using SnowBank.Buffers;
 	using SnowBank.Collections.Caching;
+	using SnowBank.Runtime;
+	using SnowBank.Runtime.Converters;
 	using SnowBank.Text;
 
 	/// <summary>JSON string literal</summary>

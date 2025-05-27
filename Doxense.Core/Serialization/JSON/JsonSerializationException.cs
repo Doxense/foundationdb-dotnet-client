@@ -28,6 +28,7 @@ namespace Doxense.Serialization.Json
 {
 	using System.ComponentModel;
 	using System.Runtime.Serialization;
+	using SnowBank.Runtime;
 
 	/// <summary>Error that occurred while serializing a value or object into a JSON document</summary>
 	[Serializable]

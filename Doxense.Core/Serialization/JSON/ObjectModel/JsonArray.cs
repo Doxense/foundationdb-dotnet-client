@@ -41,7 +41,8 @@ namespace Doxense.Serialization.Json
 	using System.Text;
 	using NodaTime;
 	using SnowBank.Buffers;
-	using SnowBank.Linq;
+	using SnowBank.Runtime;
+	using SnowBank.Runtime.Converters;
 
 	/// <summary>Array of JSON values</summary>
 	[Serializable]

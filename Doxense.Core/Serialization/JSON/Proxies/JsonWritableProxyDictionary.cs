@@ -28,6 +28,7 @@ namespace Doxense.Serialization.Json
 {
 	using System;
 	using System.Collections;
+	using SnowBank.Runtime;
 
 	/// <summary>Wraps a <see cref="JsonObject"/> into a typed mutable proxy that emulates a dictionary of elements of type <typeparamref name="TValue"/></summary>
 	/// <typeparam name="TValue">Emulated element type</typeparam>

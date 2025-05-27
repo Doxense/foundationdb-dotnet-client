@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Serialization
+namespace SnowBank.Runtime
 {
 
 	/// <summary>Equality comparer for <see cref="Type">types</see></summary>

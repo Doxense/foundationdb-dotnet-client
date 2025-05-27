@@ -34,8 +34,8 @@ namespace SnowBank.Testing
 	using System.Numerics;
 	using System.Runtime.CompilerServices;
 	using System.Text;
-	using Doxense.Serialization;
 	using SnowBank.Buffers;
+	using SnowBank.Runtime;
 
 	/// <summary>Extension methods for <see cref="HistoryRecordingArrayPool{T}"/></summary>
 	[PublicAPI]

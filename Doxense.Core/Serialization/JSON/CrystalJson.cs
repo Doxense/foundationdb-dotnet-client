@@ -35,6 +35,7 @@ namespace Doxense.Serialization.Json
 	using System.Reflection;
 	using System.Text;
 	using SnowBank.Collections.Caching;
+	using SnowBank.Runtime;
 
 	/// <summary>Helper class to serialize, parse or deserialize JSON documents</summary>
 	[PublicAPI]

@@ -26,7 +26,7 @@
 
 //#define PROTOTYPE_REFLECTION_EMIT
 
-namespace Doxense.Serialization
+namespace SnowBank.Runtime
 {
 	using System.Collections.ObjectModel;
 	using System.Globalization;

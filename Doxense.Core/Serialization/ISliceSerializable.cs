@@ -24,9 +24,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Serialization
+namespace SnowBank.Buffers
 {
-	using SnowBank.Buffers;
 
 	/// <summary>Supports direct binary serialization</summary>
 	[PublicAPI]

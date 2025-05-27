@@ -32,8 +32,7 @@ namespace Doxense.Serialization.Json
 	using System.Net.Http;
 	using System.Net.Http.Headers;
 	using System.Text;
-	using Doxense.Serialization;
-	using OpenTelemetry.Trace;
+	using SnowBank.Runtime;
 
 	/// <summary><see cref="HttpContent"/> that uses <see cref="CrystalJson"/> to serialize JSON payloads</summary>
 	[PublicAPI]

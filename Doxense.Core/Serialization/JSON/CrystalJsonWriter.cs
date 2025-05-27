@@ -36,11 +36,11 @@ namespace Doxense.Serialization.Json
 	using System.Runtime.InteropServices;
 	using System.Text;
 	using System.Threading;
-	using Doxense.IO;
 	using NodaTime;
 	using NodaTime.Text;
 	using SnowBank.Buffers;
 	using SnowBank.Buffers.Text;
+	using SnowBank.IO;
 	using SnowBank.Text;
 
 	/// <summary>Serialize values into JSON</summary>

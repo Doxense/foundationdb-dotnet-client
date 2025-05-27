@@ -30,10 +30,10 @@ namespace SnowBank.Testing
 {
 	using System.Linq.Expressions;
 	using Doxense.Collections.Tuples;
-	using Doxense.Serialization;
 	using JetBrains.Annotations;
 	using NUnit.Framework.Constraints;
 	using NUnit.Framework.Internal;
+	using SnowBank.Runtime;
 
 	/// <summary>JSON Assertions</summary>
 	[PublicAPI]

@@ -30,8 +30,7 @@ namespace SnowBank.Buffers.Text
 	using System.Buffers;
 	using System.Globalization;
 	using System.Text;
-	using Doxense.Serialization;
-	using Doxense.Serialization.Json;
+	using SnowBank.Runtime.Converters;
 	using SnowBank.Text;
 
 	/// <summary>Small buffer that keeps a list of chunks that are larger and larger</summary>

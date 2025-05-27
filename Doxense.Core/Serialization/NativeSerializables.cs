@@ -24,9 +24,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Serialization
+namespace SnowBank.Buffers.Binary
 {
-	using SnowBank.Buffers;
 
 	public readonly struct Utf8StringValue : ISliceSerializable
 	{

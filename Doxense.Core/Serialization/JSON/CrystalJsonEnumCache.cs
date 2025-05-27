@@ -8,6 +8,7 @@
 
 namespace Doxense.Serialization.Json
 {
+	using SnowBank.Runtime;
 
 	/// <remarks>Cache pre-allocated <see cref="JsonString"/> for each values of an enum type</remarks>
 	internal static class CrystalJsonEnumCache

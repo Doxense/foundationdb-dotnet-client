@@ -31,7 +31,7 @@ namespace SnowBank.Text
 	using System.Text;
 	using System.Text.Encodings.Web;
 	using System.Web;
-	using Doxense.Serialization;
+	using SnowBank.Runtime.Converters;
 
 	/// <summary>Helper for encoding/decoding URIs</summary>
 	/// <remarks>This method is intended to be used when System.Web.HttpUtility.dll is not available</remarks>

@@ -37,6 +37,7 @@ namespace Doxense.Networking
 	using System.Text;
 	using Doxense.Serialization;
 	using SnowBank.Buffers.Binary;
+	using SnowBank.Runtime.Converters;
 
 	/// <summary>Helpers permettant de travailler sur des adresses IP (ou MAC address)</summary>
 	[PublicAPI]

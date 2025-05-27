@@ -27,11 +27,10 @@
 // ReSharper disable AccessToDisposedClosure
 // ReSharper disable ReplaceAsyncWithTaskReturn
 
-namespace Doxense.IO.Tests
+namespace SnowBank.IO.Tests
 {
 	using System.IO;
 	using System.Threading.Tasks;
-	using Doxense.IO;
 
 	[TestFixture]
 	[Category("Core-SDK")]

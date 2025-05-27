@@ -29,10 +29,10 @@ namespace Doxense.Threading.Operations
 	using System.Runtime.ExceptionServices;
 	using SnowBank.Messaging.Events;
 	using Doxense.Reactive.Disposables;
-	using Doxense.Serialization;
 	using Microsoft.Extensions.DependencyInjection;
 	using Microsoft.Extensions.DependencyInjection.Extensions;
 	using Microsoft.Extensions.Logging;
+	using SnowBank.Runtime;
 
 	/// <summary>Represents the execution context for an asynchronous operation that can be observed from the outside</summary>
 	[PublicAPI]

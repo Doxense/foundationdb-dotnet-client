@@ -28,6 +28,7 @@ namespace Doxense.Serialization.Json
 {
 	using System.Buffers;
 	using System.ComponentModel;
+	using SnowBank.Runtime.Converters;
 
 	[PublicAPI]
 	public ref struct JsonPathBuilder

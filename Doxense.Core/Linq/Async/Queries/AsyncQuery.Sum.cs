@@ -28,8 +28,7 @@ namespace SnowBank.Linq
 {
 	using System.Numerics;
 	using System.Reflection;
-
-	using Doxense.Serialization;
+	using SnowBank.Runtime;
 
 	public static partial class AsyncQuery
 	{

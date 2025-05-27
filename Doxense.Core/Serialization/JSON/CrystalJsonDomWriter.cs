@@ -33,6 +33,7 @@ namespace Doxense.Serialization.Json
 	using Doxense.Collections.Tuples;
 	using Doxense.Serialization;
 	using System.Diagnostics.CodeAnalysis;
+	using SnowBank.Runtime;
 
 	public sealed class CrystalJsonDomWriter
 	{

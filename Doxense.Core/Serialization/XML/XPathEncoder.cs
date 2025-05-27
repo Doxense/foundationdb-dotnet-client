@@ -27,6 +27,7 @@
 namespace Doxense.Serialization.Xml
 {
 	using System.Text;
+	using SnowBank.Runtime.Converters;
 	using SnowBank.Text;
 
 	/// <summary>XPATH Codec</summary>

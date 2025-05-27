@@ -24,13 +24,13 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.IO
+namespace SnowBank.IO
 {
 	using System.Globalization;
 	using System.IO;
 	using System.Runtime;
 	using System.Text;
-	using Doxense.Serialization;
+	using SnowBank.Runtime.Converters;
 
 	/// <summary>"Fast" version of StringWriter, that performs fewer checks, but is a good fit for specific use cases (serialization, ...)</summary>
 	/// <remarks>This type is "unsafe" and should only be used internally, and not exposed to the caller.</remarks>

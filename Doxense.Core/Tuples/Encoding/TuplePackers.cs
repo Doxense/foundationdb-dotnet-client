@@ -34,7 +34,7 @@ namespace Doxense.Collections.Tuples.Encoding
 	using System.Reflection;
 	using Doxense.Collections.Tuples;
 	using SnowBank.Runtime.Converters;
-	using Doxense.Serialization;
+	using SnowBank.Runtime;
 
 	/// <summary>Helper methods used during serialization of values to the tuple binary format</summary>
 	[PublicAPI]

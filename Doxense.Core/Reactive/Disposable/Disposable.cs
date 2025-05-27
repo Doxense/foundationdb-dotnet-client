@@ -27,7 +27,7 @@
 namespace Doxense.Reactive.Disposables
 {
 	using System.Runtime;
-	using Doxense.Serialization;
+	using SnowBank.Runtime;
 
 	/// <summary>Classe qui encapsule un objet, en interceptant éventuellement le Dispose()</summary>
 	/// <typeparam name="T">Type de l'objet encapsulé</typeparam>

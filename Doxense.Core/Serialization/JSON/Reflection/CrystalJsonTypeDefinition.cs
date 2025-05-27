@@ -27,6 +27,7 @@
 namespace Doxense.Serialization.Json
 {
 	using System.Collections.Frozen;
+	using SnowBank.Runtime;
 
 	[Flags]
 	public enum CrystalJsonTypeFlags

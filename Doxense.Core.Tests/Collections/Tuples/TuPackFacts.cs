@@ -40,7 +40,7 @@ namespace Doxense.Collections.Tuples.Tests
 	using System.Numerics;
 	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Diagnostics;
-	using Doxense.Serialization;
+	using SnowBank.Runtime;
 
 	[TestFixture]
 	[Category("Core-SDK")]

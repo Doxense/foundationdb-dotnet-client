@@ -28,6 +28,7 @@ namespace Doxense.Serialization.Json
 {
 	using System.ComponentModel;
 	using System.Runtime.Serialization;
+	using SnowBank.Runtime;
 
 	/// <summary>Error that occurred while deserializing a JSON value back into a CLR type</summary>
 	[Serializable]

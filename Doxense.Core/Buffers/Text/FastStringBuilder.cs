@@ -31,7 +31,7 @@ namespace SnowBank.Buffers.Text
 	using System.Globalization;
 	using System.Runtime.InteropServices;
 	using System.Text;
-	using Doxense.Serialization;
+	using SnowBank.Runtime.Converters;
 
 	/// <summary>Span-based implementation of a <see cref="StringBuilder"/>, with reduced safety checks</summary>
 	/// <remarks>All formatting uses the invariant culture.</remarks>

@@ -91,6 +91,7 @@ namespace Doxense.Serialization.Json.Tests
 	using NodaTime;
 	using NUnit.Framework.Constraints;
 	using SnowBank.Buffers;
+	using SnowBank.Runtime;
 	using SnowBank.Runtime.Converters;
 	using SnowBank.Text;
 

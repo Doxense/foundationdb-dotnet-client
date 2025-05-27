@@ -28,6 +28,7 @@ namespace Doxense.Serialization.Json
 {
 	using System.ComponentModel;
 	using System.Globalization;
+	using SnowBank.Runtime;
 
 	public abstract partial class JsonValue
 	{
