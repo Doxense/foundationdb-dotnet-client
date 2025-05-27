@@ -46,6 +46,7 @@ namespace Doxense.Serialization.Json.Tests
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Mathematics.Statistics;
+	using SnowBank.Text;
 #if ENABLE_NEWTONSOFT
 	using NJ = Newtonsoft.Json;
 #endif

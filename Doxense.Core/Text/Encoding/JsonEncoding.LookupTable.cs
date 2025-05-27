@@ -30,7 +30,7 @@
 
 //#define RECOMPUTE_LOOKUP_TABLE	// => DO NOT FORGET TO UNCOMMENT THIS BEFORE COMMITTING !!!!
 
-namespace Doxense.Serialization.Json
+namespace SnowBank.Text
 {
 
 	public static partial class JsonEncoding

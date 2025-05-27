@@ -36,8 +36,6 @@ namespace Doxense.Serialization.Json
 	public static class CrystalJsonFormatter
 	{
 
-		internal static readonly UTF8Encoding Utf8NoBom = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
-
 		#region Formatting
 
 		public static void WriteJavaScriptString(ref ValueStringWriter writer, string? text)

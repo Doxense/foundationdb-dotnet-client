@@ -92,6 +92,7 @@ namespace Doxense.Serialization.Json.Tests
 	using NodaTime;
 	using NUnit.Framework.Constraints;
 	using SnowBank.Buffers;
+	using SnowBank.Text;
 
 	using STJ = System.Text.Json;
 	using NJ = Newtonsoft.Json;

@@ -1084,7 +1084,7 @@ namespace Doxense.Serialization.Json.Binary
 				// the keys are encoded as UTF-8 in the document, so we will have to pre-encode the path into utf-8 bytes, and compare these bytes with the names in the document
 				// => pre-allocate a buffer with the proper capacity
 				// note: if the path is composed of smaller segments, we will allocate too much, but we expect most paths to be single segment anyway!
-				var enc = CrystalJsonFormatter.Utf8NoBom;
+				var enc = JsonEncoding.Utf8NoBom;
 				Span<byte> keyBytes = stackalloc byte[enc.GetMaxByteCount(path.Value.Length)];
 
 				var current = GetRoot();
@@ -1848,7 +1848,7 @@ namespace Doxense.Serialization.Json.Binary
 					}
 
 					//note: the source is any JsonObject arbitraire, which can contain UTF-8
-					uint meta = (uint) m_output.WriteString(normalizedKey, CrystalJsonFormatter.Utf8NoBom);
+					uint meta = (uint) m_output.WriteString(normalizedKey, JsonEncoding.Utf8NoBom);
 					totalLen += (int) meta;
 					if ((uint) totalLen > JENTRY_OFFLENMASK) throw FailContainerSizeTooBig();
 
@@ -2037,7 +2037,7 @@ namespace Doxense.Serialization.Json.Binary
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			private int AppendUtf8String(string value)
 			{
-				return m_output.WriteString(value, CrystalJsonFormatter.Utf8NoBom);
+				return m_output.WriteString(value, JsonEncoding.Utf8NoBom);
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2124,7 +2124,7 @@ namespace Doxense.Serialization.Json.Binary
 				{
 					fixed (byte* ptr = data)
 					{
-						return new string((sbyte*) ptr, 0, data.Length, CrystalJsonFormatter.Utf8NoBom);
+						return new string((sbyte*) ptr, 0, data.Length, JsonEncoding.Utf8NoBom);
 					}
 				}
 				return table.Add(data);

@@ -32,6 +32,7 @@ namespace SnowBank.Buffers.Text
 	using System.Text;
 	using Doxense.Serialization;
 	using Doxense.Serialization.Json;
+	using SnowBank.Text;
 
 	/// <summary>Small buffer that keeps a list of chunks that are larger and larger</summary>
 	[DebuggerDisplay("Count={Count}, Capacity{Buffer.Length}")]
@@ -314,7 +315,7 @@ namespace SnowBank.Buffers.Text
 		/// <para>Use <see cref="ToUtf8SliceAndDispose"/> to dispose the buffer as well, or <see cref="ToUtf8SliceAndClear"/> if you intend to reuse the buffer for the next operation.</para>
 		public readonly Slice ToUtf8Slice(ArrayPool<byte>? pool = null)
 		{
-			var enc = CrystalJsonFormatter.Utf8NoBom;
+			var enc = JsonEncoding.Utf8NoBom;
 			var span = this.Span;
 			int size = enc.GetByteCount(span);
 			var tmp = pool?.Rent(size) ?? new byte[size];
@@ -356,7 +357,7 @@ namespace SnowBank.Buffers.Text
 		public readonly SliceOwner ToUtf8SliceOwner(ArrayPool<byte>? pool = null)
 		{
 			pool ??= ArrayPool<byte>.Shared;
-			var enc = CrystalJsonFormatter.Utf8NoBom;
+			var enc = JsonEncoding.Utf8NoBom;
 			var span = this.Span;
 			int size = enc.GetByteCount(span);
 			var tmp = pool.Rent(size);
@@ -424,25 +425,25 @@ namespace SnowBank.Buffers.Text
 
 		public readonly int CopyToUtf8(Span<byte> destination)
 		{
-			return CrystalJsonFormatter.Utf8NoBom.GetBytes(this.Span, destination);
+			return JsonEncoding.Utf8NoBom.GetBytes(this.Span, destination);
 		}
 
 		public readonly bool TryCopyToUtf8(Span<byte> destination, out int written)
 		{
 #if NET8_0_OR_GREATER
-			if (!CrystalJsonFormatter.Utf8NoBom.TryGetBytes(this.Span, destination, out written))
+			if (!JsonEncoding.Utf8NoBom.TryGetBytes(this.Span, destination, out written))
 			{
 				return false;
 			}
 #else
-			int required = CrystalJsonFormatter.Utf8NoBom.GetByteCount(this.Span);
+			int required = JsonEncoding.Utf8NoBom.GetByteCount(this.Span);
 			if (destination.Length < required)
 			{
 				written = 0;
 				return false;
 			}
 
-			written = CrystalJsonFormatter.Utf8NoBom.GetBytes(this.Span, destination);
+			written = JsonEncoding.Utf8NoBom.GetBytes(this.Span, destination);
 #endif
 			return true;
 		}
@@ -458,7 +459,7 @@ namespace SnowBank.Buffers.Text
 
 		public readonly void CopyTo(IBufferWriter<byte> destination)
 		{
-			CrystalJsonFormatter.Utf8NoBom.GetBytes(this.Span, destination);
+			JsonEncoding.Utf8NoBom.GetBytes(this.Span, destination);
 		}
 
 		public readonly void CopyTo(Stream destination)

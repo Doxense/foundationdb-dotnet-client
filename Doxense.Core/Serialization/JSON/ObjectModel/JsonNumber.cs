@@ -31,8 +31,11 @@ namespace Doxense.Serialization.Json
 {
 	using System.Globalization;
 	using System.Runtime.InteropServices;
+
 	using NodaTime;
+
 	using SnowBank.Buffers;
+	using SnowBank.Text;
 
 	/// <summary>JSON number</summary>
 	[DebuggerDisplay("JSON Number({" + nameof(m_literal) + ",nq})")]
@@ -2062,7 +2065,7 @@ namespace Doxense.Serialization.Json
 			if (literal is not null)
 			{ // we will output the original literal unless we need to do some special formatting...
 
-				return CrystalJsonFormatter.Utf8NoBom.TryGetBytes(literal, destination, out bytesWritten);
+				return JsonEncoding.Utf8NoBom.TryGetBytes(literal, destination, out bytesWritten);
 			}
 
 			switch (m_kind)

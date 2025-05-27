@@ -27,7 +27,7 @@
 // ReSharper disable StringLiteralTypo
 // ReSharper disable VariableLengthStringHexEscapeSequence
 
-namespace Doxense.Serialization.Json.Tests
+namespace SnowBank.Text.Tests
 {
 	using System.Text;
 	using SnowBank.Buffers;

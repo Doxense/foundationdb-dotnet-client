@@ -28,7 +28,9 @@ namespace Doxense.Serialization.Json
 {
 	using System.ComponentModel;
 	using System.Globalization;
+
 	using SnowBank.Buffers;
+	using SnowBank.Text;
 
 	/// <summary>JSON DateTime</summary>
 	[DebuggerDisplay("JSON DateTime({m_value}, {m_value}+{m_offset})")]
@@ -544,7 +546,7 @@ namespace Doxense.Serialization.Json
 
 			Span<char> chars = stackalloc char[48]; // "xxxx-xx-xxTxx:xx:xx.xxxxxxx+xx:xx"
 			if (!TryFormat(chars, out int charsWritten, format, provider) 
-			 || !CrystalJsonFormatter.Utf8NoBom.TryGetBytes(chars[..charsWritten], destination, out bytesWritten))
+			 || !JsonEncoding.Utf8NoBom.TryGetBytes(chars[..charsWritten], destination, out bytesWritten))
 			{
 				bytesWritten = 0;
 				return false;

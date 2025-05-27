@@ -24,20 +24,22 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Serialization.Json
+namespace SnowBank.Text
 {
 	using System.Globalization;
 	using System.Runtime.InteropServices;
 	using System.Text;
+	using Doxense.Serialization.Json;
 	using SnowBank.Buffers;
 	using SnowBank.Buffers.Text;
-	using SnowBank.Text;
 
 	/// <summary>Provides methods for encoding and escaping JSON strings.</summary>
 	public static partial class JsonEncoding
 	{
 
 		//note: the lookup table is in JsonEncoding.LookupTable.cs
+
+		internal static readonly UTF8Encoding Utf8NoBom = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 
 		/// <summary>Checks if a character requires escaping before being written to a JSON document</summary>
 		/// <param name="c">Character to inspect</param>
@@ -590,7 +592,7 @@ namespace Doxense.Serialization.Json
 			// So, if we computed en UTF-8 encoded size of the original string, and the escaped string length minus the original string length,
 			// we should always have an upper bound for the required size
 
-			var nonEscapedByteCount = CrystalJsonFormatter.Utf8NoBom.GetByteCount(text);
+			var nonEscapedByteCount = Utf8NoBom.GetByteCount(text);
 			var escapedCharsCount = ComputeEscapedSize(text, withQuotes);
 			var escapedByteUpperBound = checked(nonEscapedByteCount + (escapedCharsCount - text.Length));
 
@@ -661,7 +663,7 @@ namespace Doxense.Serialization.Json
 			if (first < 0)
 			{ // the string is clean, no need for escaping
 
-				int bytesNeeded = CrystalJsonFormatter.Utf8NoBom.GetByteCount(text);
+				int bytesNeeded = Utf8NoBom.GetByteCount(text);
 				if (withQuotes)
 				{
 					if (destination.Length < checked(bytesNeeded + 2))
@@ -669,7 +671,7 @@ namespace Doxense.Serialization.Json
 						goto too_small;
 					}
 					destination[0] = (byte) '"';
-					bytesNeeded = CrystalJsonFormatter.Utf8NoBom.GetBytes(text, destination[1..]);
+					bytesNeeded = Utf8NoBom.GetBytes(text, destination[1..]);
 					destination[bytesNeeded + 1] = (byte) '"';
 					bytesWritten = bytesNeeded + 2;
 					return true;
@@ -679,7 +681,7 @@ namespace Doxense.Serialization.Json
 				{
 					goto too_small;
 				}
-				bytesNeeded = CrystalJsonFormatter.Utf8NoBom.GetBytes(text, destination);
+				bytesNeeded = Utf8NoBom.GetBytes(text, destination);
 				bytesWritten = bytesNeeded;
 				return true;
 			}
@@ -694,13 +696,13 @@ namespace Doxense.Serialization.Json
 			if (first > 0)
 			{ // copy the first clean portion of the string
 
-				int bytesNeeded = CrystalJsonFormatter.Utf8NoBom.GetByteCount(text[..first]);
+				int bytesNeeded = Utf8NoBom.GetByteCount(text[..first]);
 				if (destination.Length < bytesNeeded)
 				{
 					goto too_small;
 				}
 
-				bytesNeeded = CrystalJsonFormatter.Utf8NoBom.GetBytes(text[..first], destination);
+				bytesNeeded = Utf8NoBom.GetBytes(text[..first], destination);
 				text = text[first..];
 				destination = destination[bytesNeeded..];
 			}
