@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all perf history on TeamCity!
+namespace SnowBank.Buffers.Tests
 {
 	using System.Text;
 
@@ -112,4 +112,5 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		#endregion
 
 	}
+
 }

@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Slices.Tests
+namespace SnowBank.Buffers.Tests
 {
 
 	[TestFixture]

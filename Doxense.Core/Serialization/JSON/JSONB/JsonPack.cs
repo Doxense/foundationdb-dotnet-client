@@ -31,7 +31,7 @@ namespace Doxense.Serialization.Json.Binary
 
 	/// <summary>Fast and compact binary JSON encoder</summary>
 	/// <remarks>
-	/// <para>Generates the smalles payload possible and intended for cases where the entire document must be decoded</para>
+	/// <para>Generates the smallest payload possible and intended for cases where the entire document must be decoded</para>
 	/// <para>For cases where only part of the document needs to be read (indexing, filtering), please consider using <see cref="Jsonb"/> instead.</para>
 	/// </remarks>
 	public static class JsonPack

@@ -24,9 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-using System.Buffers;
-
-namespace SnowBank.Buffers.Tests //IMPORTANT: don't rename or else we loose all perf history on TeamCity!
+namespace SnowBank.Buffers.Tests
 {
 	using System.Text;
 

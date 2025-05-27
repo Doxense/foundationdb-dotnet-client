@@ -27,12 +27,11 @@
 // ReSharper disable AccessToDisposedClosure
 // ReSharper disable ImplicitlyCapturedClosure
 
-namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all perf history on TeamCity!
+namespace SnowBank.Buffers.Tests
 {
+	using System.Text;
 
 	//README:IMPORTANT! This source file is expected to be stored as UTF-8! If the encoding is changed, some tests below may fail because they rely on specific code points!
-
-	using System.Text;
 
 	[TestFixture]
 	[Category("Core-SDK")]
