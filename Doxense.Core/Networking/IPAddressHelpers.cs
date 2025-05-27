@@ -420,7 +420,7 @@ namespace Doxense.Networking
 			int p = range.IndexOf("/", StringComparison.Ordinal);
 			if (p >= 0)
 			{ // format "w.x.y.z/S" (ex: "192.168.1.0/24")
-				int subnet = StringConverters.ToInt32(range.Substring(p + 1), -1);
+				int subnet = StringConverters.ToInt32(range.AsSpan(p + 1), -1);
 				if (subnet == -1) throw new FormatException($"Invalid IP range '{range}' : subnet is invalid");
 				if (subnet < 1 || subnet > 32) throw new FormatException($"Invalid IP rage '{range}' : subnet (/{subnet}) is out of range");
 

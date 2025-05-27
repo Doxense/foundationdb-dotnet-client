@@ -590,19 +590,19 @@ namespace SnowBank.Runtime.Converters
 		#region Parsing...
 
 		/// <summary>Converts a string literal into a boolean, using relaxed rules</summary>
-		/// <param name="value">String literal containing either a "truthy" or "falsy" boolean (ex: "true", "on", "1" vs "false", "off", "0", ...)</param>
-		/// <param name="dflt">Default value, if the string is empty or not recognized</param>
-		/// <returns>Corresponding boolean value if it matches the set of recognized tokens; otherwise, <paramref name="dflt"/>.</returns>
+		/// <param name="value">Literal containing either a "truthy" or "falsy" boolean (ex: "true", "on", "1" vs "false", "off", "0", ...)</param>
+		/// <param name="defaultValue">Default value, if the string is empty or not recognized</param>
+		/// <returns>Corresponding boolean value if it matches the set of recognized tokens; otherwise, <paramref name="defaultValue"/>.</returns>
 		/// <remarks>
 		/// <para>The recognized "truthy" literals are: <c>"true"</c>, <c>"yes"</c>, <c>"on"</c>, <c>"1"</c>.</para>
 		/// <para>The recognized "falsy" literals are: <c>"false"</c>, <c>"no"</c>, <c>"off"</c>, <c>"0"</c>, the null or empty string.</para>
 		/// </remarks>
 		[Pure]
-		public static bool ToBoolean(string? value, bool dflt)
+		public static bool ToBoolean(string? value, bool defaultValue)
 		{
 			if (string.IsNullOrEmpty(value))
 			{
-				return dflt;
+				return defaultValue;
 			}
 
 			return char.ToLowerInvariant(value[0]) switch
@@ -613,18 +613,18 @@ namespace SnowBank.Runtime.Converters
 				'n' => false, // "no"
 				'o' => value.Length switch
 				{
-					2 => (char.ToLowerInvariant(value[1]) == 'n' || dflt), // "on"
-					3 => ((char.ToLowerInvariant(value[1]) != 'f' || char.ToLowerInvariant(value[2]) != 'f') && dflt), // "off"
-					_ => dflt
+					2 => (char.ToLowerInvariant(value[1]) == 'n' || defaultValue), // "on"
+					3 => ((char.ToLowerInvariant(value[1]) != 'f' || char.ToLowerInvariant(value[2]) != 'f') && defaultValue), // "off"
+					_ => defaultValue
 				},
 				'1' => true, // "1"
 				'0' => false, // "0"
-				_ => dflt
+				_ => defaultValue
 			};
 		}
 
 		/// <summary>Converts a string literal into its boolean equivalent, using relaxed rules</summary>
-		/// <param name="value">String literal containing either a "truthy" or "falsy" boolean (ex: "true", "on", "1" vs "false", "off", "0", ...)</param>
+		/// <param name="value">Literal containing either a "truthy" or "falsy" boolean (ex: "true", "on", "1" vs "false", "off", "0", ...)</param>
 		/// <returns>Corresponding boolean value if it matches the set of recognized tokens; otherwise, <see langword="null"/>.</returns>
 		/// <remarks>
 		/// <para>The recognized "truthy" literals are: <c>"true"</c>, <c>"yes"</c>, <c>"on"</c>, <c>"1"</c>.</para>
@@ -660,7 +660,7 @@ namespace SnowBank.Runtime.Converters
 		}
 
 		/// <summary>Converts a string literal into its 32-bit signed integer equivalent, using invariant-culture format</summary>
-		/// <param name="value">string literal to convert (ex: "1234" or "-5")</param>
+		/// <param name="value">Literal to convert (ex: "1234" or "-5")</param>
 		/// <param name="defaultValue">Fallback value returned if the string literal is empty or not a valid integer</param>
 		/// <returns>Corresponding integer value, or <paramref name="defaultValue"/> if could not be decoded</returns>
 		/// <example>
@@ -691,6 +691,36 @@ namespace SnowBank.Runtime.Converters
 
 		/// <summary>Converts a string literal into its 32-bit signed integer equivalent, using invariant-culture format</summary>
 		/// <param name="value">string literal to convert (ex: "1234" or "-5")</param>
+		/// <param name="defaultValue">Fallback value returned if the string literal is empty or not a valid integer</param>
+		/// <returns>Corresponding integer value, or <paramref name="defaultValue"/> if could not be decoded</returns>
+		/// <example>
+		/// <code>StringConverters.ToInt32("1234", 0) == 1234</code>
+		/// <code>StringConverters.ToInt32("hello", 0) == 0</code>
+		/// </example>
+		[Pure]
+		public static int ToInt32(ReadOnlySpan<char> value, int defaultValue)
+		{
+			if (value.Length == 0)
+			{
+				return defaultValue;
+			}
+
+			char c = value[0];
+			if (value.Length == 1)
+			{
+				return char.IsDigit(c) ? c - 48 : defaultValue;
+			}
+
+			if (!char.IsDigit(c) && c != '-' && c != '+' && c != ' ')
+			{
+				return defaultValue;
+			}
+			
+			return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int res) ? res : defaultValue;
+		}
+
+		/// <summary>Converts a string literal into its 32-bit signed integer equivalent, using invariant-culture format</summary>
+		/// <param name="value">Literal to convert (ex: "1234" or "-5")</param>
 		/// <returns>Corresponding integer value, or <see langword="null"/> if could not be decoded</returns>
 		/// <example>
 		/// <code>StringConverters.ToInt32("1234") == 1234</code>
@@ -699,16 +729,56 @@ namespace SnowBank.Runtime.Converters
 		[Pure]
 		public static int? ToInt32(string? value)
 		{
-			if (string.IsNullOrEmpty(value)) return default;
-			// optimisation: si premier caractère pas chiffre, exit
+			if (string.IsNullOrEmpty(value))
+			{
+				return null;
+			}
+
 			char c = value[0];
-			if (value.Length == 1) return char.IsDigit(c) ? (c - 48) : default(int?);
-			if (!char.IsDigit(c) && c != '-' && c != '+' && c != ' ') return default(int?);
-			return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int res) ? res : default(int?);
+			if (value.Length == 1)
+			{
+				return char.IsDigit(c) ? (c - 48) : null;
+			}
+
+			if (!char.IsDigit(c) && c != '-' && c != '+' && c != ' ')
+			{
+				return null;
+			}
+
+			return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int res) ? res : null;
+		}
+
+		/// <summary>Converts a string literal into its 32-bit signed integer equivalent, using invariant-culture format</summary>
+		/// <param name="value">Literal to convert (ex: "1234" or "-5")</param>
+		/// <returns>Corresponding integer value, or <see langword="null"/> if could not be decoded</returns>
+		/// <example>
+		/// <code>StringConverters.ToInt32("1234") == 1234</code>
+		/// <code>StringConverters.ToInt32("hello") == null</code>
+		/// </example>
+		[Pure]
+		public static int? ToInt32(ReadOnlySpan<char> value)
+		{
+			if (value.Length == 0)
+			{
+				return null;
+			}
+
+			char c = value[0];
+			if (value.Length == 1)
+			{
+				return char.IsDigit(c) ? (c - 48) : null;
+			}
+
+			if (!char.IsDigit(c) && c != '-' && c != '+' && c != ' ')
+			{
+				return null;
+			}
+
+			return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int res) ? res : null;
 		}
 
 		/// <summary>Converts a string literal into its 64-bit signed integer equivalent, using invariant-culture format</summary>
-		/// <param name="value">string literal to convert (ex: "1234" or "-5")</param>
+		/// <param name="value">Literal to convert (ex: "1234" or "-5")</param>
 		/// <param name="defaultValue">Fallback value returned if the string literal is empty or not a valid integer</param>
 		/// <returns>Corresponding integer value, or <paramref name="defaultValue"/> if could not be decoded</returns>
 		/// <example>
@@ -718,16 +788,57 @@ namespace SnowBank.Runtime.Converters
 		[Pure]
 		public static long ToInt64(string? value, long defaultValue)
 		{
-			if (string.IsNullOrEmpty(value)) return defaultValue;
-			// optimisation: si premier caractère pas chiffre, exit
+			if (string.IsNullOrEmpty(value))
+			{
+				return defaultValue;
+			}
+
 			char c = value[0];
-			if (value.Length == 1) return char.IsDigit(c) ? ((long) c - 48) : defaultValue;
-			if (!char.IsDigit(c) && c != '-' && c != '+' && c != ' ') return defaultValue;
+			if (value.Length == 1)
+			{
+				return char.IsDigit(c) ? ((long) c - 48) : defaultValue;
+			}
+
+			if (!char.IsDigit(c) && c != '-' && c != '+' && c != ' ')
+			{
+				return defaultValue;
+			}
+
 			return long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out long res) ? res : defaultValue;
 		}
 
 		/// <summary>Converts a string literal into its 64-bit signed integer equivalent, using invariant-culture format</summary>
-		/// <param name="value">string literal to convert (ex: "1234" or "-5")</param>
+		/// <param name="value">Literal to convert (ex: "1234" or "-5")</param>
+		/// <param name="defaultValue">Fallback value returned if the string literal is empty or not a valid integer</param>
+		/// <returns>Corresponding integer value, or <paramref name="defaultValue"/> if could not be decoded</returns>
+		/// <example>
+		/// <code>StringConverters.ToInt64("1234", 0) == 1234</code>
+		/// <code>StringConverters.ToInt64("hello", 0) == 0</code>
+		/// </example>
+		[Pure]
+		public static long ToInt64(ReadOnlySpan<char> value, long defaultValue)
+		{
+			if (value.Length == 0)
+			{
+				return defaultValue;
+			}
+
+			char c = value[0];
+			if (value.Length == 1)
+			{
+				return char.IsDigit(c) ? ((long) c - 48) : defaultValue;
+			}
+
+			if (!char.IsDigit(c) && c != '-' && c != '+' && c != ' ')
+			{
+				return defaultValue;
+			}
+
+			return long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out long res) ? res : defaultValue;
+		}
+
+		/// <summary>Converts a string literal into its 64-bit signed integer equivalent, using invariant-culture format</summary>
+		/// <param name="value">Literal to convert (ex: "1234" or "-5")</param>
 		/// <returns>Corresponding integer value, or <see langword="null"/> if could not be decoded</returns>
 		/// <example>
 		/// <code>StringConverters.ToInt64("1234") == 1234</code>
@@ -738,34 +849,63 @@ namespace SnowBank.Runtime.Converters
 		{
 			if (string.IsNullOrEmpty(value))
 			{
-				return default;
+				return null;
 			}
 
 			char c = value[0];
 			if (value.Length == 1)
 			{
-				return char.IsDigit(c) ? ((long) c - 48) : default(long?);
+				return char.IsDigit(c) ? ((long) c - 48) : null;
 			}
 
 			if (!char.IsDigit(c) && c != '-' && c != '+' && c != ' ')
 			{
-				return default;
+				return null;
 			}
 
-			return long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out long res) ? res : default(long?);
+			return long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out long res) ? res : null;
+		}
+
+		/// <summary>Converts a string literal into its 64-bit signed integer equivalent, using invariant-culture format</summary>
+		/// <param name="value">Literal to convert (ex: "1234" or "-5")</param>
+		/// <returns>Corresponding integer value, or <see langword="null"/> if could not be decoded</returns>
+		/// <example>
+		/// <code>StringConverters.ToInt64("1234") == 1234</code>
+		/// <code>StringConverters.ToInt64("hello") == null</code>
+		/// </example>
+		[Pure]
+		public static long? ToInt64(ReadOnlySpan<char> value)
+		{
+			if (value.Length == 0)
+			{
+				return null;
+			}
+
+			char c = value[0];
+			if (value.Length == 1)
+			{
+				return char.IsDigit(c) ? ((long) c - 48) : null;
+			}
+
+			if (!char.IsDigit(c) && c != '-' && c != '+' && c != ' ')
+			{
+				return null;
+			}
+
+			return long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out long res) ? res : null;
 		}
 
 		/// <summary>Converts a string literal into its 64-bit floating-point number equivalent, using invariant-culture format</summary>
-		/// <param name="value">string literal to convert (ex: "1.0" or "123" or "123.456e7")</param>
+		/// <param name="value">Literal to convert (ex: "1.0" or "123" or "123.456e7")</param>
 		/// <param name="defaultValue">Fallback value returned if the string literal is empty or not a valid decimal number</param>
 		/// <param name="provider">Optional Format provider</param>
 		/// <returns>Corresponding double value, or <paramref name="defaultValue"/> if could not be decoded</returns>
 		/// <example>
 		/// <code>StringConverters.ToDouble("1.23", 0) => 1.23d</code>
 		/// <code>StringConverters.ToDouble("hello", 0) => 0</code>
-		/// <code>StringConverters.ToDouble("NaN", 0)) => double.NaN</code>
-		/// <code>StringConverters.ToDouble("∞", 0)) => double.PositiveInfinity</code>
-		/// <code>StringConverters.ToDouble("-∞", 0)) => double.NegativeInfinity</code>
+		/// <code>StringConverters.ToDouble("NaN", 0) => double.NaN</code>
+		/// <code>StringConverters.ToDouble("∞", 0) => double.PositiveInfinity</code>
+		/// <code>StringConverters.ToDouble("-∞", 0) => double.NegativeInfinity</code>
 		/// </example>
 		[Pure]
 		public static double ToDouble(string? value, double defaultValue, IFormatProvider? provider = null)
@@ -789,14 +929,47 @@ namespace SnowBank.Runtime.Converters
 		}
 
 		/// <summary>Converts a string literal into its 64-bit floating-point number equivalent, using invariant-culture format</summary>
-		/// <param name="value">string literal to convert (ex: "1.0" or "123" or "123.456e7")</param>
+		/// <param name="value">Literal to convert (ex: "1.0" or "123" or "123.456e7")</param>
+		/// <param name="defaultValue">Fallback value returned if the string literal is empty or not a valid decimal number</param>
+		/// <param name="provider">Optional Format provider</param>
+		/// <returns>Corresponding double value, or <paramref name="defaultValue"/> if could not be decoded</returns>
+		/// <example>
+		/// <code>StringConverters.ToDouble("1.23", 0) => 1.23d</code>
+		/// <code>StringConverters.ToDouble("hello", 0) => 0</code>
+		/// <code>StringConverters.ToDouble("NaN", 0) => double.NaN</code>
+		/// <code>StringConverters.ToDouble("∞", 0) => double.PositiveInfinity</code>
+		/// <code>StringConverters.ToDouble("-∞", 0) => double.NegativeInfinity</code>
+		/// </example>
+		[Pure]
+		public static double ToDouble(ReadOnlySpan<char> value, double defaultValue, IFormatProvider? provider = null)
+		{
+			if (value.Length == 0)
+			{ // empty
+				return defaultValue;
+			}
+
+			char c = value[0];
+			if (value.Length == 1)
+			{ // single-digit number
+				return char.IsDigit(c) ? c - '0' : c == '∞' ? double.PositiveInfinity : defaultValue;
+			}
+
+			// note: TryParse with InvariantCulture will handle "NaN" but not "∞", "+∞", "-∞"
+			return double.TryParse(value, NumberStyles.Float, provider ?? CultureInfo.InvariantCulture, out double result)
+				? result
+				: value is "-∞" ? double.NegativeInfinity
+					: defaultValue;
+		}
+
+		/// <summary>Converts a string literal into its 64-bit floating-point number equivalent, using invariant-culture format</summary>
+		/// <param name="value">Literal to convert (ex: "1.0" or "123" or "123.456e7")</param>
 		/// <returns>Corresponding double value, or <see langword="null"/> if could not be decoded</returns>
 		/// <example>
 		/// <code>StringConverters.ToDouble("1.23") => 1.23d</code>
 		/// <code>StringConverters.ToDouble("hello") => null</code>
-		/// <code>StringConverters.ToDouble("NaN")) => double.NaN</code>
-		/// <code>StringConverters.ToDouble("∞")) => double.PositiveInfinity</code>
-		/// <code>StringConverters.ToDouble("-∞")) => double.NegativeInfinity</code>
+		/// <code>StringConverters.ToDouble("NaN") => double.NaN</code>
+		/// <code>StringConverters.ToDouble("∞") => double.PositiveInfinity</code>
+		/// <code>StringConverters.ToDouble("-∞") => double.NegativeInfinity</code>
 		/// </example>
 		[Pure]
 		public static double? ToDouble(string? value)
@@ -813,23 +986,52 @@ namespace SnowBank.Runtime.Converters
 			}
 
 			// note: TryParse with InvariantCulture will handle "NaN" but not "∞", "+∞", "-∞"
-			return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double result)
-				? result
+			return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double result) ? result
 				: value == "-∞" ? double.NegativeInfinity
 				: null;
 		}
 
+		/// <summary>Converts a string literal into its 64-bit floating-point number equivalent, using invariant-culture format</summary>
+		/// <param name="value">Literal to convert (ex: "1.0" or "123" or "123.456e7")</param>
+		/// <returns>Corresponding double value, or <see langword="null"/> if could not be decoded</returns>
+		/// <example>
+		/// <code>StringConverters.ToDouble("1.23") => 1.23d</code>
+		/// <code>StringConverters.ToDouble("hello") => null</code>
+		/// <code>StringConverters.ToDouble("NaN") => double.NaN</code>
+		/// <code>StringConverters.ToDouble("∞") => double.PositiveInfinity</code>
+		/// <code>StringConverters.ToDouble("-∞") => double.NegativeInfinity</code>
+		/// </example>
+		[Pure]
+		public static double? ToDouble(ReadOnlySpan<char> value)
+		{
+			if (value.Length == 0)
+			{ // empty
+				return null;
+			}
+
+			char c = value[0];
+			if (value.Length == 1)
+			{ // single-digit number
+				return char.IsDigit(c) ? c - '0' : c == '∞' ? double.PositiveInfinity : null;
+			}
+
+			// note: TryParse with InvariantCulture will handle "NaN" but not "∞", "+∞", "-∞"
+			return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double result) ? result
+				: value is "-∞" ? double.NegativeInfinity
+				: null;
+		}
+
 		/// <summary>Converts a string literal into its 32-bit floating-point number equivalent, using invariant-culture format</summary>
-		/// <param name="value">string literal to convert (ex: "1.0" or "123" or "123.456e7")</param>
+		/// <param name="value">Literal to convert (ex: "1.0" or "123" or "123.456e7")</param>
 		/// <param name="defaultValue">Fallback value returned if the string literal is empty or not a valid decimal number</param>
 		/// <param name="provider">Optional Format provider</param>
 		/// <returns>Corresponding single value, or <paramref name="defaultValue"/> if could not be decoded</returns>
 		/// <example>
 		/// <code>StringConverters.ToSingle("1.23", 0) => 1.23d</code>
 		/// <code>StringConverters.ToSingle("hello", 0) => 0</code>
-		/// <code>StringConverters.ToSingle("NaN", 0)) => float.NaN</code>
-		/// <code>StringConverters.ToSingle("∞", 0)) => float.PositiveInfinity</code>
-		/// <code>StringConverters.ToSingle("-∞", 0)) => float.NegativeInfinity</code>
+		/// <code>StringConverters.ToSingle("NaN", 0) => float.NaN</code>
+		/// <code>StringConverters.ToSingle("∞", 0) => float.PositiveInfinity</code>
+		/// <code>StringConverters.ToSingle("-∞", 0) => float.NegativeInfinity</code>
 		/// </example>
 		[Pure]
 		public static float ToSingle(string? value, float defaultValue, IFormatProvider? provider = null)
@@ -846,21 +1048,52 @@ namespace SnowBank.Runtime.Converters
 			}
 
 			// note: TryParse with InvariantCulture will handle "NaN" but not "∞", "+∞", "-∞"
-			return float.TryParse(value, NumberStyles.Float, provider ?? CultureInfo.InvariantCulture, out float result)
-				? result
+			return float.TryParse(value, NumberStyles.Float, provider ?? CultureInfo.InvariantCulture, out float result) ? result
 				: value == "-∞" ? float.NegativeInfinity
 				: defaultValue;
 		}
 
 		/// <summary>Converts a string literal into its 32-bit floating-point number equivalent, using invariant-culture format</summary>
-		/// <param name="value">string literal to convert (ex: "1.0" or "123" or "123.456e7")</param>
+		/// <param name="value">Literal to convert (ex: "1.0" or "123" or "123.456e7")</param>
+		/// <param name="defaultValue">Fallback value returned if the string literal is empty or not a valid decimal number</param>
+		/// <param name="provider">Optional Format provider</param>
+		/// <returns>Corresponding single value, or <paramref name="defaultValue"/> if could not be decoded</returns>
+		/// <example>
+		/// <code>StringConverters.ToSingle("1.23", 0) => 1.23d</code>
+		/// <code>StringConverters.ToSingle("hello", 0) => 0</code>
+		/// <code>StringConverters.ToSingle("NaN", 0) => float.NaN</code>
+		/// <code>StringConverters.ToSingle("∞", 0) => float.PositiveInfinity</code>
+		/// <code>StringConverters.ToSingle("-∞", 0) => float.NegativeInfinity</code>
+		/// </example>
+		[Pure]
+		public static float ToSingle(ReadOnlySpan<char> value, float defaultValue, IFormatProvider? provider = null)
+		{
+			if (value.Length == 0)
+			{ // empty
+				return defaultValue;
+			}
+
+			char c = value[0];
+			if (value.Length == 1)
+			{ // single-digit number
+				return char.IsDigit(c) ? c - '0' : c == '∞' ? float.PositiveInfinity : defaultValue;
+			}
+
+			// note: TryParse with InvariantCulture will handle "NaN" but not "∞", "+∞", "-∞"
+			return float.TryParse(value, NumberStyles.Float, provider ?? CultureInfo.InvariantCulture, out float result) ? result
+				: value is "-∞" ? float.NegativeInfinity
+				: defaultValue;
+		}
+
+		/// <summary>Converts a string literal into its 32-bit floating-point number equivalent, using invariant-culture format</summary>
+		/// <param name="value">Literal to convert (ex: "1.0" or "123" or "123.456e7")</param>
 		/// <returns>Corresponding single value, or <see langword="null"/> if could not be decoded</returns>
 		/// <example>
 		/// <code>StringConverters.ToSingle("1.23") => 1.23d</code>
 		/// <code>StringConverters.ToSingle("hello") => null</code>
-		/// <code>StringConverters.ToSingle("NaN")) => float.NaN</code>
-		/// <code>StringConverters.ToSingle("∞")) => float.PositiveInfinity</code>
-		/// <code>StringConverters.ToSingle("-∞")) => float.NegativeInfinity</code>
+		/// <code>StringConverters.ToSingle("NaN") => float.NaN</code>
+		/// <code>StringConverters.ToSingle("∞") => float.PositiveInfinity</code>
+		/// <code>StringConverters.ToSingle("-∞") => float.NegativeInfinity</code>
 		/// </example>
 		[Pure]
 		public static float? ToSingle(string? value)
@@ -877,75 +1110,140 @@ namespace SnowBank.Runtime.Converters
 			}
 
 			// note: TryParse with InvariantCulture will handle "NaN" but not "∞", "+∞", "-∞"
-			return float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out float result)
-				? result
+			return float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out float result) ? result
 				: value == "-∞" ? float.NegativeInfinity
 				: null;
 		}
 
-		/// <summary>Convertit une chaîne de caractère en double, quelque soit la langue locale (utilise le '.' comme séparateur décimal)</summary>
-		/// <param name="value">Chaîne (ex: "1.0", "123.456e7")</param>
-		/// <param name="defaultValue">Valeur par défaut si problème de conversion ou null</param>
-		/// <param name="culture">Culture (par défaut InvariantCulture)</param>
-		/// <returns>Décimal correspondant</returns>
+		/// <summary>Converts a string literal into its 32-bit floating-point number equivalent, using invariant-culture format</summary>
+		/// <param name="value">Literal to convert (ex: "1.0" or "123" or "123.456e7")</param>
+		/// <returns>Corresponding single value, or <see langword="null"/> if could not be decoded</returns>
+		/// <example>
+		/// <code>StringConverters.ToSingle("1.23") => 1.23d</code>
+		/// <code>StringConverters.ToSingle("hello") => null</code>
+		/// <code>StringConverters.ToSingle("NaN") => float.NaN</code>
+		/// <code>StringConverters.ToSingle("∞") => float.PositiveInfinity</code>
+		/// <code>StringConverters.ToSingle("-∞") => float.NegativeInfinity</code>
+		/// </example>
 		[Pure]
-		public static decimal ToDecimal(string? value, decimal defaultValue, IFormatProvider? culture = null)
+		public static float? ToSingle(ReadOnlySpan<char> value)
 		{
-			if (string.IsNullOrEmpty(value)) return defaultValue;
+			if (value.Length == 0)
+			{ // empty
+				return null;
+			}
+
 			char c = value[0];
-			if (!char.IsDigit(c) && c != '+' && c != '-' && c != '.' && c != ' ') return defaultValue;
-			culture ??= CultureInfo.InvariantCulture;
-			if (culture.Equals(CultureInfo.InvariantCulture) && value.IndexOf(',') >= 0) value = value.Replace(',', '.');
-			return decimal.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, culture, out decimal result) ? result : defaultValue;
+			if (value.Length == 1)
+			{ // single-digit number
+				return char.IsDigit(c) ? c - '0' : c == '∞' ? float.PositiveInfinity : null;
+			}
+
+			// note: TryParse with InvariantCulture will handle "NaN" but not "∞", "+∞", "-∞"
+			return float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out float result) ? result
+				: value is "-∞" ? float.NegativeInfinity
+				: null;
 		}
 
+		/// <summary>Converts a string literal into its 128-bit floating-point number equivalent, using invariant-culture format</summary>
+		/// <param name="value">Literal to convert (ex: "1.0", "123.456e7")</param>
+		/// <param name="defaultValue">Fallback value returned if the string literal is empty or not a valid decimal number</param>
+		/// <param name="provider">Optional Format provider</param>
+		/// <returns>Corresponding decimal value, or <paramref name="defaultValue"/> if could not be decoded</returns>
 		[Pure]
-		public static decimal? ToDecimal(string? value, IFormatProvider? culture = null)
+		public static decimal ToDecimal(string? value, decimal defaultValue, IFormatProvider? provider = null)
 		{
-			if (string.IsNullOrEmpty(value)) return default;
+			if (string.IsNullOrEmpty(value))
+			{
+				return defaultValue;
+			}
+
 			char c = value[0];
-			if (!char.IsDigit(c) && c != '+' && c != '-' && c != '.' && c != ' ') return default(decimal?);
-			culture ??= CultureInfo.InvariantCulture;
-			if (culture.Equals(CultureInfo.InvariantCulture) && value.IndexOf(',') >= 0) value = value.Replace(',', '.');
-			return decimal.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, culture, out decimal result) ? result : default(decimal?);
+			if (!char.IsDigit(c) && c != '+' && c != '-' && c != '.' && c != ' ')
+			{
+				return defaultValue;
+			}
+
+			provider ??= CultureInfo.InvariantCulture;
+			if (provider.Equals(CultureInfo.InvariantCulture) && value.IndexOf(',') >= 0)
+			{
+				value = value.Replace(',', '.');
+			}
+
+			return decimal.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, provider, out decimal result) ? result : defaultValue;
 		}
 
-		/// <summary>Convertit une chaîne en DateTime</summary>
-		/// <param name="value">Date à convertir</param>
-		/// <param name="defaultValue">Valeur par défaut</param>
-		/// <param name="culture"></param>
-		/// <returns>Voir StringConverters.ParseDateTime()</returns>
+		/// <summary>Converts a string literal into its 128-bit floating-point number equivalent, using invariant-culture format</summary>
+		/// <param name="value">Literal to convert (ex: "1.0", "123.456e7")</param>
+		/// <param name="provider">Optional Format provider</param>
+		/// <returns>Corresponding single value, or <see langword="null"/> if could not be decoded</returns>
 		[Pure]
-		public static DateTime ToDateTime(string value, DateTime defaultValue, CultureInfo? culture = null)
+		public static decimal? ToDecimal(string? value, IFormatProvider? provider = null)
 		{
-			return ParseDateTime(value, defaultValue, culture);
+			if (string.IsNullOrEmpty(value))
+			{
+				return null;
+			}
+
+			char c = value[0];
+			if (!char.IsDigit(c) && c != '+' && c != '-' && c != '.' && c != ' ')
+			{
+				return null;
+			}
+
+			provider ??= CultureInfo.InvariantCulture;
+			if (provider.Equals(CultureInfo.InvariantCulture) && value.IndexOf(',') >= 0)
+			{
+				value = value.Replace(',', '.');
+			}
+
+			return decimal.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, provider, out decimal result) ? result : null;
 		}
 
-		/// <summary>Convertit une chaîne en DateTime</summary>
-		/// <param name="value">Date à convertir</param>
-		/// <param name="culture"></param>
-		/// <returns>Voir StringConverters.ParseDateTime()</returns>
+		/// <summary>Converts a string literal into its <see cref="DateTime"/> equivalent</summary>
+		/// <param name="value">Literal to convert (ex: "2025-05-27T16:17:89.456")</param>
+		/// <param name="defaultValue">Fallback value returned if the string literal is empty or not a valid date</param>
+		/// <param name="provider">Optional Format provider</param>
 		[Pure]
-		public static DateTime? ToDateTime(string? value, CultureInfo? culture = null)
+		public static DateTime ToDateTime(string value, DateTime defaultValue, CultureInfo? provider = null)
 		{
-			if (string.IsNullOrEmpty(value)) return default;
-			DateTime result = ParseDateTime(value, DateTime.MaxValue, culture);
-			return result == DateTime.MaxValue ? default(DateTime?) : result;
+			return ParseDateTime(value, defaultValue, provider);
 		}
 
+		/// <summary>Converts a string literal into its <see cref="DateTime"/> equivalent</summary>
+		/// <param name="value">Literal to convert (ex: "2025-05-27T16:17:89.456")</param>
+		/// <param name="provider">Optional Format provider</param>
+		/// <returns>Corresponding <see cref="DateTime"/>, or <see langword="null"/> if could not be decoded</returns>
 		[Pure]
-		public static Instant? ToInstant(string? date, CultureInfo? culture = null)
+		public static DateTime? ToDateTime(string? value, CultureInfo? provider = null)
 		{
-			if (string.IsNullOrEmpty(date)) return default;
-			if (!TryParseInstant(date, culture, out Instant res, false)) return default(Instant?);
+			if (string.IsNullOrEmpty(value)) return null;
+			DateTime result = ParseDateTime(value, DateTime.MaxValue, provider);
+			return result == DateTime.MaxValue ? null : result;
+		}
+
+		/// <summary>Converts a string literal into its <see cref="NodaTime.Instant"/> equivalent</summary>
+		/// <param name="value">Literal to convert (ex: "2025-05-27T16:17:89.456")</param>
+		/// <param name="provider">Optional Format provider</param>
+		/// <returns>Corresponding <see cref="NodaTime.Instant"/>, or <see langword="null"/> if could not be decoded</returns>
+		[Pure]
+		public static Instant? ToInstant(string? value, CultureInfo? provider = null)
+		{
+			if (string.IsNullOrEmpty(value)) return null;
+			if (!TryParseInstant(value, provider, out Instant res, false)) return null;
 			return res;
 		}
 
+		/// <summary>Converts a string literal into its <see cref="NodaTime.Instant"/> equivalent</summary>
+		/// <param name="value">Literal to convert (ex: "2025-05-27T16:17:89.456")</param>
+		/// <param name="defaultValue">Fallback value returned if the string literal is empty or not a valid date</param>
+		/// <param name="provider">Optional Format provider</param>
+		/// <returns>Corresponding <see cref="NodaTime.Instant"/>, or <paramref name="defaultValue"/> if could not be decoded</returns>
 		[Pure]
-		public static Instant ToInstant(string? date, Instant dflt, CultureInfo? culture = null)
+		public static Instant ToInstant(string? value, Instant defaultValue, CultureInfo? provider = null)
 		{
-			if (string.IsNullOrEmpty(date)) return dflt;
-			if (!TryParseInstant(date, culture, out Instant res, false)) return dflt;
+			if (string.IsNullOrEmpty(value)) return defaultValue;
+			if (!TryParseInstant(value, provider, out Instant res, false)) return defaultValue;
 			return res;
 		}
 
@@ -963,8 +1261,8 @@ namespace SnowBank.Runtime.Converters
 		[Pure]
 		public static Guid? ToGuid(string? value)
 		{
-			if (string.IsNullOrEmpty(value)) return default;
-			return Guid.TryParse(value, out Guid result) ? result : default(Guid?);
+			if (string.IsNullOrEmpty(value)) return null;
+			return Guid.TryParse(value, out Guid result) ? result : null;
 		}
 
 		/// <summary>Convertit une chaîne de caractères en Enum</summary>
@@ -985,8 +1283,8 @@ namespace SnowBank.Runtime.Converters
 		public static TEnum? ToEnum<TEnum>(string? value)
 			where TEnum : struct, Enum
 		{
-			if (string.IsNullOrEmpty(value)) return default(TEnum?);
-			return Enum.TryParse(value, true, out TEnum result) ? result : default(TEnum?);
+			if (string.IsNullOrEmpty(value)) return null;
+			return Enum.TryParse(value, true, out TEnum result) ? result : null;
 		}
 
 		/// <summary>Maximum number of characters required to safely format any signed 8-bit integer in base 10</summary>
@@ -1023,19 +1321,19 @@ namespace SnowBank.Runtime.Converters
 		public const int Base10MaxCapacityUInt64 = 20;
 
 		/// <summary>Maximum number of characters required to safely format any 32-bit IEEE floating point number in base 10</summary>
-		/// <remarks>This the value used by the runtime in Number.TryFormatDouble.</remarks>
+		/// <remarks>This the value used by the runtime in <c>Number.TryFormatDouble(...)</c></remarks>
 		public const int Base10MaxCapacitySingle = 32;
 
 		/// <summary>Maximum number of characters required to safely format any 64-bit IEEE floating point number in base 10</summary>
-		/// <remarks>This the value used by the runtime in Number.TryFormatDouble.</remarks>
+		/// <remarks>This the value used by the runtime in <c>Number.TryFormatDouble(...)</c></remarks>
 		public const int Base10MaxCapacityDouble = 32;
 
 		/// <summary>Maximum number of characters required to safely format any 128-bit decimal floating point number in base 10</summary>
-		/// <remarks>This the value used by the runtime in Number.TryFormatDouble.</remarks>
+		/// <remarks>This the value used by the runtime in <c>Number.TryFormatDouble(...)</c></remarks>
 		public const int Base10MaxCapacityDecimal = 32;
 
 		/// <summary>Maximum number of characters required to safely format any 16-bit IEEE floating point number in base 10</summary>
-		/// <remarks>This the value used by the runtime in Number.TryFormatDouble.</remarks>
+		/// <remarks>This the value used by the runtime in <c>Number.TryFormatDouble(...)</c></remarks>
 		public const int Base10MaxCapacityHalf = 32;
 
 		/// <summary>Maximum number of characters required to safely format any 128-bit using the standard format</summary>
