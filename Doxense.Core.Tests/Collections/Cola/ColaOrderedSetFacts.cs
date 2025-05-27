@@ -24,9 +24,9 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace SnowBank.Collections.Generic.Test
+namespace SnowBank.Collections.CacheOblivious.Test
 {
-	using Doxense.Collections.Tuples;
+	using SnowBank.Data.Tuples;
 	using NUnit.Framework;
 
 	[TestFixture]

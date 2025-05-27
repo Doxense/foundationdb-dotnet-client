@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace SnowBank.Collections.Generic.Test
+namespace SnowBank.Collections.CacheOblivious.Test
 {
 	/// <summary>Wrapper for an <see cref="IComparer{T}"/> that counts the number of calls to the <see cref="Compare"/> method</summary>
 	public class CountingComparer<T> : IComparer<T>

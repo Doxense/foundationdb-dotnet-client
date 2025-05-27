@@ -27,7 +27,7 @@
 // enables consistency checks after each operation to the set
 //#define ENFORCE_INVARIANTS
 
-namespace SnowBank.Collections.Generic
+namespace SnowBank.Collections.CacheOblivious
 {
 	using System.Buffers;
 	using System.Runtime.InteropServices;

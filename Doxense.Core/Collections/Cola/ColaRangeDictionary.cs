@@ -27,11 +27,10 @@
 // enables consitency checks after each operation to the set
 //#define ENFORCE_INVARIANTS
 
-namespace SnowBank.Collections.Generic
+namespace SnowBank.Collections.CacheOblivious
 {
 	using System.Buffers;
 	using System.Globalization;
-	using JetBrains.Annotations;
 
 	/// <summary>Represent an ordered list of ranges, each associated with a specific value, stored in a Cache Oblivious Lookup Array</summary>
 	/// <typeparam name="TKey">Type of the keys stored in the set</typeparam>

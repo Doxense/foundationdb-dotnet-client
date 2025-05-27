@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace SnowBank.Collections.Generic.Test
+namespace SnowBank.Collections.CacheOblivious.Test
 {
 	using NUnit.Framework;
 	using SnowBank.Numerics;

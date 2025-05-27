@@ -24,9 +24,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace SnowBank.Collections.Generic
+namespace SnowBank.Collections.CacheOblivious
 {
-	using System;
 	using System.Buffers;
 	using System.Globalization;
 
