@@ -25,9 +25,10 @@
 #endregion
 
 // ReSharper disable UnusedMember.Global
-namespace Doxense.Runtime.Comparison.Tests
+namespace SnowBank.DataAnnotations.Tests
 {
 	using System.Collections.Generic;
+	using SnowBank.DataAnnotations;
 
 	[TestFixture]
 	[Category("Core-SDK")]

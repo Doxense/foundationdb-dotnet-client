@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Runtime.Converters
+namespace SnowBank.Runtime.Converters
 {
 	using System.Collections.Concurrent;
 	using System.Globalization;

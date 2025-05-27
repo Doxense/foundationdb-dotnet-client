@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Runtime.Converters.Tests
+namespace SnowBank.Runtime.Converters.Tests
 {
 	[TestFixture]
 	[Category("Core-SDK")]

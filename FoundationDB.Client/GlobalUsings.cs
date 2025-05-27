@@ -30,7 +30,7 @@ global using System.Threading;
 global using System.Threading.Tasks;
 global using Doxense.Collections.Tuples;
 global using Doxense.Diagnostics.Contracts;
-global using Doxense.Runtime;
+global using SnowBank.Runtime;
 
 // JetBrains Annotations
 global using ContractAnnotationAttribute = JetBrains.Annotations.ContractAnnotationAttribute;

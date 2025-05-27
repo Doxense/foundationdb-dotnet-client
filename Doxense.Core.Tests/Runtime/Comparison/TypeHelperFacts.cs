@@ -26,7 +26,7 @@
 
 // ReSharper disable UnusedTypeParameter
 // ReSharper disable MemberHidesStaticFromOuterClass
-namespace Doxense.Runtime.Tests
+namespace SnowBank.Runtime.Tests
 {
 	using System.Collections.Generic;
 	using Doxense.Serialization;

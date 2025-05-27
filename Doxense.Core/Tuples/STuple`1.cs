@@ -29,7 +29,7 @@ namespace Doxense.Collections.Tuples
 	using System.Collections;
 	using System.ComponentModel;
 	using Doxense.Collections.Tuples.Encoding;
-	using Doxense.Runtime.Converters;
+	using SnowBank.Runtime.Converters;
 
 	/// <summary>Tuple that holds only one item</summary>
 	/// <typeparam name="T1">Type of the item</typeparam>

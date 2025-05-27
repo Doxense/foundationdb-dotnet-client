@@ -29,7 +29,7 @@
 namespace Doxense.Collections.Tuples
 {
 	using System.Collections;
-	using Doxense.Runtime.Converters;
+	using SnowBank.Runtime.Converters;
 
 	/// <summary>Helper class for tuple comparisons</summary>
 	[PublicAPI]

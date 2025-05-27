@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Runtime
+namespace SnowBank.Runtime
 {
 	using System.IO;
 	using System.Runtime.CompilerServices;

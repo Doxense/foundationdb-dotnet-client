@@ -28,7 +28,7 @@ namespace SnowBank.Numerics
 {
 	using System;
 	using System.Linq;
-	using Doxense.Runtime;
+	using SnowBank.Runtime;
 
 	[PublicAPI]
 	public static class RobustBenchmark

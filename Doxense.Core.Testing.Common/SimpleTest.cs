@@ -42,14 +42,14 @@ namespace SnowBank.Testing
 	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics;
 	using Doxense.Reactive.Disposables;
-	using Doxense.Runtime;
-	using Doxense.Runtime.Comparison;
 	using Doxense.Serialization;
 	using Microsoft.Extensions.DependencyInjection;
 	using Microsoft.Extensions.Logging;
 	using NodaTime;
 	using SnowBank.Buffers;
+	using SnowBank.DataAnnotations;
 	using SnowBank.Numerics;
+	using SnowBank.Runtime;
 	using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 	/// <summary>Base class for simple unit tests. Provides a set of useful services (logging, cancellation, async helpers, ...)</summary>

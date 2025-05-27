@@ -27,7 +27,7 @@
 namespace Doxense.Collections.Tuples
 {
 	using System.Collections;
-	using Doxense.Runtime.Converters;
+	using SnowBank.Runtime.Converters;
 
 	/// <summary>Tuple that adds a value at the end of an already existing tuple</summary>
 	/// <typeparam name="T">Type of the last value of the tuple</typeparam>

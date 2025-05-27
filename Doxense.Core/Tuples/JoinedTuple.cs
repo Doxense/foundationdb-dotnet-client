@@ -27,7 +27,7 @@
 namespace Doxense.Collections.Tuples
 {
 	using System.Collections;
-	using Doxense.Runtime.Converters;
+	using SnowBank.Runtime.Converters;
 
 	/// <summary>Tuple that represents the concatenation of two tuples</summary>
 	[DebuggerDisplay("{ToString(),nq}")]

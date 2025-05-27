@@ -28,7 +28,7 @@ namespace Doxense.Collections.Tuples.Encoding
 {
 	using System.Collections;
 	using System.ComponentModel;
-	using Doxense.Runtime.Converters;
+	using SnowBank.Runtime.Converters;
 	using Doxense.Serialization;
 	using SnowBank.Buffers;
 

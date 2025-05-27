@@ -33,7 +33,7 @@ namespace Doxense.Collections.Tuples.Encoding
 	using System.Numerics;
 	using System.Reflection;
 	using Doxense.Collections.Tuples;
-	using Doxense.Runtime.Converters;
+	using SnowBank.Runtime.Converters;
 	using Doxense.Serialization;
 
 	/// <summary>Helper methods used during serialization of values to the tuple binary format</summary>

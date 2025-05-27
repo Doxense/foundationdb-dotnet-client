@@ -32,7 +32,7 @@ namespace Doxense.Serialization
 	using System.Globalization;
 	using System.Linq.Expressions;
 	using System.Reflection;
-	using Doxense.Runtime;
+	using SnowBank.Runtime;
 
 	/// <summary>Extensions methods that add advanced features on <see cref="Type"/></summary>
 	[PublicAPI]

@@ -29,7 +29,7 @@ namespace SnowBank.Numerics
 	using System.Collections.Generic;
 	using System.Globalization;
 	using System.Text;
-	using Doxense.Runtime;
+	using SnowBank.Runtime;
 
 	/// <summary>Helper that will aggregate individual measurements, and output detailed distribution reports and charts.</summary>
 	[PublicAPI]

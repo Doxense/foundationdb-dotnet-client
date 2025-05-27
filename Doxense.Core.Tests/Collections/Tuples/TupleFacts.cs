@@ -37,7 +37,7 @@ namespace Doxense.Collections.Tuples.Tests
 	using System.Linq;
 	using System.Net;
 	using Doxense.Collections.Tuples.Encoding;
-	using Doxense.Runtime.Converters;
+	using SnowBank.Runtime.Converters;
 
 	[TestFixture]
 	[Category("Core-SDK")]

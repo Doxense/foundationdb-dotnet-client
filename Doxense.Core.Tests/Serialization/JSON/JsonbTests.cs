@@ -32,11 +32,10 @@ namespace Doxense.Serialization.Json.Binary.Tests
 {
 	using System.Collections.Generic;
 	using System.Diagnostics;
-	using System.Diagnostics.CodeAnalysis;
 	using System.IO.Compression;
 	using System.Linq;
-	using Doxense.Runtime;
 	using SnowBank.Numerics;
+	using SnowBank.Runtime;
 
 	[TestFixture]
 	[Category("Core-SDK")]

@@ -27,7 +27,7 @@
 namespace Doxense.Collections.Tuples
 {
 	using System.Collections;
-	using Doxense.Runtime.Converters;
+	using SnowBank.Runtime.Converters;
 
 	/// <summary>Tuple that can hold any number of untyped items</summary>
 	[PublicAPI]

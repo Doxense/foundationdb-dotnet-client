@@ -39,9 +39,9 @@ namespace Doxense.Serialization.Json
 	using System.Runtime.InteropServices;
 	using System.Xml;
 	using Doxense.Collections.Tuples;
-	using Doxense.Runtime;
 	using Doxense.Serialization;
 	using SnowBank.Collections.Caching;
+	using SnowBank.Runtime;
 
 	/// <summary>Internal helper to convert values into JSON strings</summary>
 	[PublicAPI]

@@ -24,11 +24,12 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Runtime.Comparison
+namespace SnowBank.DataAnnotations
 {
 	using System.Linq.Expressions;
 	using System.Reflection;
 	using Doxense.Serialization;
+	using SnowBank.Runtime;
 
 	/// <summary>Defines a property of a model class that is "important"</summary>
 	/// <remarks>Primary properties are always compared first, and are also used to compute the HashCode of the instance</remarks>

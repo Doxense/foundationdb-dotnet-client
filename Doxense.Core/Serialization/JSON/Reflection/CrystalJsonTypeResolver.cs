@@ -46,9 +46,9 @@ namespace Doxense.Serialization.Json
 	using System.Reflection;
 	using System.Runtime.Serialization;
 	using Doxense.Collections.Tuples;
-	using Doxense.Runtime;
-	using Doxense.Runtime.Converters;
 	using SnowBank.Collections.Caching;
+	using SnowBank.Runtime;
+	using SnowBank.Runtime.Converters;
 
 	/// <summary>Default JSON resolver that uses reflection to serialize and deserialize managed types</summary>
 	[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
