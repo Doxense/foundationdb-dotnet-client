@@ -45,7 +45,6 @@ namespace SnowBank.Testing
 	using Doxense.Runtime;
 	using Doxense.Runtime.Comparison;
 	using Doxense.Serialization;
-	using Doxense.Tools;
 	using Microsoft.Extensions.DependencyInjection;
 	using Microsoft.Extensions.Logging;
 	using NodaTime;

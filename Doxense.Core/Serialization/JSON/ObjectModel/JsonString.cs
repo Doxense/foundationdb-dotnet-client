@@ -29,7 +29,7 @@ namespace Doxense.Serialization.Json
 	using System.Collections.Frozen;
 	using System.Globalization;
 	using System.Net;
-	using Doxense.Tools;
+	using Doxense.Diagnostics;
 	using SnowBank.Buffers;
 	using SnowBank.Collections.Caching;
 	using SnowBank.Text;

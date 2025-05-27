@@ -26,16 +26,16 @@
 
 // ReSharper disable CompareOfFloatsByEqualityOperator
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
-namespace Doxense.Monads.Tests
+
+namespace Doxense.Core.Tests
 {
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	/// <summary>Tests sur l'objet DynamicCache</summary>
 	[TestFixture]
 	[Category("Core-SDK")]
 	[Parallelizable(ParallelScope.All)]
-	public class MaybeTest
+	public class MaybeFacts
 	{
 
 		[Test]

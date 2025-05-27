@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Tools
+namespace Doxense.Diagnostics
 {
 
 	/// <summary>Helper methods for working with exceptions</summary>

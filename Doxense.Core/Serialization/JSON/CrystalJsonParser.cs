@@ -34,7 +34,7 @@ namespace Doxense.Serialization.Json
 #endif
 	using System.Globalization;
 	using System.Reflection;
-	using Doxense.Tools;
+	using Doxense.Diagnostics;
 	using SnowBank.Buffers;
 	using SnowBank.Text;
 

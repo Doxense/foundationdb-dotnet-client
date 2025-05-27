@@ -27,7 +27,7 @@
 // ReSharper disable HeapView.BoxingAllocation
 // ReSharper disable HeapView.ObjectAllocation
 #pragma warning disable CS0618 // Type or member is obsolete
-namespace Doxense.Tools.Tests
+namespace Doxense.IO.Hashing.Tests
 {
 	using System.Buffers.Binary;
 	using System.Collections.Generic;
@@ -36,7 +36,6 @@ namespace Doxense.Tools.Tests
 	using System.Text;
 	using Doxense.IO.Hashing;
 
-	/// <summary>Tests sur la classe statique KTL</summary>
 	[TestFixture]
 	[Category("Core-SDK")]
 	[Parallelizable(ParallelScope.All)]

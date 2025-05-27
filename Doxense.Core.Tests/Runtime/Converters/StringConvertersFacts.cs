@@ -26,7 +26,7 @@
 
 // ReSharper disable CommentTypo
 // ReSharper disable StringLiteralTypo
-namespace Doxense.Tools.Tests
+namespace Doxense.Runtime.Converters
 {
 	using System.Globalization;
 	using Doxense.Serialization;
