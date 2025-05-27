@@ -26,9 +26,6 @@
 
 namespace FoundationDB.Layers.Collections
 {
-	using System.Linq;
-	using Doxense.Collections.Tuples;
-	using Doxense.Serialization.Encoders;
 
 	/// <summary>Represents a potentially sparse array in FoundationDB.</summary>
 	[DebuggerDisplay("Location={Location}, Default={DefaultValue}")]

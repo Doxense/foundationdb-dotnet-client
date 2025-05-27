@@ -26,7 +26,7 @@
 
 namespace FoundationDB.Client.Tests
 {
-	using Doxense.Collections.Tuples.Encoding;
+	using SnowBank.Data.Tuples.Binary;
 
 	[TestFixture]
 	public class TenantFacts : FdbTest

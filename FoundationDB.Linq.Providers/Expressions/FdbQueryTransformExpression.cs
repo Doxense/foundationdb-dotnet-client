@@ -26,8 +26,6 @@
 
 namespace FoundationDB.Linq.Expressions
 {
-	using System.Diagnostics.CodeAnalysis;
-	using SnowBank.Linq;
 
 	/// <summary>Expression that represent a projection from one type into another</summary>
 	/// <typeparam name="TSource">Type of elements in the inner sequence</typeparam>

@@ -26,8 +26,6 @@
 
 namespace FoundationDB.Linq.Expressions
 {
-	using SnowBank.Linq;
-	using System.Diagnostics.CodeAnalysis;
 
 	/// <summary>Expression that uses an async sequence as the source of elements</summary>
 	[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]

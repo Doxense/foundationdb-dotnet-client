@@ -34,7 +34,7 @@ namespace FoundationDB.Tests.Sandbox
 	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Collections.Tuples;
+	using SnowBank.Data.Tuples;
 	using FoundationDB.Client;
 
 	class Program

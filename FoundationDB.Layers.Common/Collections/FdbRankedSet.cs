@@ -26,7 +26,6 @@
 
 namespace FoundationDB.Layers.Collections
 {
-	using System.Linq;
 
 	/// <summary>
 	/// Provides a high-contention Queue class

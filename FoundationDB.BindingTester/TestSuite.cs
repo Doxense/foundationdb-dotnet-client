@@ -26,10 +26,8 @@
 
 namespace FoundationDB.Client.Testing
 {
-	using System;
 	using System.Collections.Generic;
 	using System.IO;
-	using Doxense.Collections.Tuples;
 	using SnowBank.Buffers;
 
 	public sealed record TestSuite

@@ -30,7 +30,7 @@ namespace FoundationDB.Client.Tests
 	[TestFixture]
 	[Category("Fdb-Client-InProc")]
 	[Parallelizable(ParallelScope.All)]
-	public class VersionStampFacts : FdbSimpleTest
+	public class VersionStampFacts : SimpleTest
 	{
 
 		[Test]

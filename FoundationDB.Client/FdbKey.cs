@@ -26,7 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using Doxense.Collections.Tuples.Encoding;
 
 	/// <summary>Factory class for keys</summary>
 	[PublicAPI]

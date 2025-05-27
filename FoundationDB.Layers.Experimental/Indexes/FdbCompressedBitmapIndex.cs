@@ -28,8 +28,6 @@ namespace FoundationDB.Layers.Experimental.Indexing
 {
 	using System.Buffers;
 	using System.Globalization;
-	using System.Linq;
-	using System.Threading.Tasks;
 
 	/// <summary>Simple index that maps values of type <typeparamref name="TValue"/> into lists of numerical ids</summary>
 	/// <typeparam name="TValue">Type of the value being indexed</typeparam>

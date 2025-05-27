@@ -32,7 +32,7 @@ global using System.Linq;
 global using System.Runtime.CompilerServices;
 global using System.Threading;
 global using System.Threading.Tasks;
-global using Doxense.Collections.Tuples;
+global using SnowBank.Data.Tuples;
 global using FoundationDB.Client;
 global using FoundationDB.Client.Tests;
 global using NUnit.Framework;

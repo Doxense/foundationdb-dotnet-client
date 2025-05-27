@@ -45,7 +45,7 @@ namespace Doxense.Serialization.Json
 	using System.Linq.Expressions;
 	using System.Reflection;
 	using System.Runtime.Serialization;
-	using Doxense.Collections.Tuples;
+	using SnowBank.Data.Tuples;
 	using SnowBank.Collections.Caching;
 	using SnowBank.Runtime;
 	using SnowBank.Runtime.Converters;

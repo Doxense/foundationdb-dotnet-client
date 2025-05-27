@@ -27,7 +27,7 @@
 namespace Doxense.Serialization.Json.Encoders
 {
 	using System.Buffers;
-	using Doxense.Serialization.Encoders;
+	using SnowBank.Data.Binary;
 	using SnowBank.Buffers;
 
 	/// <summary>Codecs that encodes CLR types into either database keys (ordered) or values (unordered)</summary>

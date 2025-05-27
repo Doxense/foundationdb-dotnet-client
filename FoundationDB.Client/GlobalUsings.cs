@@ -35,10 +35,11 @@ global using System.Runtime.InteropServices;
 global using System.Text;
 global using System.Threading;
 global using System.Threading.Tasks;
-global using Doxense.Collections.Tuples;
+global using SnowBank.Data.Tuples;
 global using Doxense.Diagnostics.Contracts;
-global using Doxense.Serialization.Encoders;
+global using SnowBank.Data.Binary;
 global using SnowBank.Buffers;
+global using SnowBank.Data.Tuples.Binary;
 global using SnowBank.Linq;
 global using SnowBank.Runtime;
 

@@ -24,10 +24,10 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Serialization.Encoders
+namespace SnowBank.Data.Binary
 {
-	using Doxense.Collections.Tuples;
-	using Doxense.Collections.Tuples.Encoding;
+	using SnowBank.Data.Tuples;
+	using SnowBank.Data.Tuples.Binary;
 	using Doxense.Serialization.Json;
 	using SnowBank.Buffers;
 

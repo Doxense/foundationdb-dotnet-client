@@ -26,7 +26,6 @@
 
 namespace FoundationDB.Layers.Collections
 {
-	using SnowBank.Linq;
 
 	/// <summary>Multimap that tracks the number of times a specific key/value pair has been inserted or removed.</summary>
 	/// <typeparam name="TKey">Type of the keys of the map</typeparam>

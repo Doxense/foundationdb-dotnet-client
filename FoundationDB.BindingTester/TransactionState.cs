@@ -26,8 +26,6 @@
 
 namespace FoundationDB.Client.Testing
 {
-	using System;
-
 	public sealed record TransactionState : IDisposable
 	{
 

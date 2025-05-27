@@ -26,8 +26,6 @@
 
 namespace FoundationDB.Linq.Expressions
 {
-	using System.Diagnostics.CodeAnalysis;
-	using SnowBank.Linq;
 
 	/// <summary>Mode of execution of a merge operation</summary>
 	public enum FdbQueryMergeType

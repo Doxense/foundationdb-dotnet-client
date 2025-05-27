@@ -26,10 +26,8 @@
 
 namespace FoundationDB.Linq
 {
-	using System.Diagnostics.CodeAnalysis;
 	using FoundationDB.Layers.Indexing;
 	using FoundationDB.Linq.Providers;
-	using SnowBank.Linq;
 
 	/// <summary>Extensions methods that help create a query expression tree</summary>
 	[PublicAPI]

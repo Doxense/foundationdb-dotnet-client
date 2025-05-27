@@ -30,7 +30,7 @@ namespace Doxense.Serialization.Json
 	using System.Linq.Expressions;
 	using System.Reflection;
 	using SnowBank.Collections.Caching;
-	using Doxense.Collections.Tuples;
+	using SnowBank.Data.Tuples;
 	using System.Diagnostics.CodeAnalysis;
 	using SnowBank.Runtime;
 

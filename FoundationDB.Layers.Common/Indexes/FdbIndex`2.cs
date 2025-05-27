@@ -26,7 +26,6 @@
 
 namespace FoundationDB.Layers.Indexing
 {
-	using SnowBank.Linq;
 
 	/// <summary>Simple index that maps values of type <typeparamref name="TValue"/> into lists of ids of type <typeparamref name="TId"/></summary>
 	/// <typeparam name="TId">Type of the unique id of each document or entity</typeparam>

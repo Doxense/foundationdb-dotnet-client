@@ -26,8 +26,6 @@
 
 namespace FoundationDB.Layers.Documents
 {
-	using System.Linq;
-	using Doxense.Collections.Tuples;
 
 	/// <summary>Interface that defines a class that knows of to chop instances of <typeparamref name="TDocument"/> into slices</summary>
 	/// <typeparam name="TDocument">Type of documents</typeparam>

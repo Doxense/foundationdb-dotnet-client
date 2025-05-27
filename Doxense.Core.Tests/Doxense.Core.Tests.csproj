@@ -48,8 +48,4 @@
 		<ProjectReference Include="..\Doxense.Core\Doxense.Core.csproj" />
 	</ItemGroup>
 
-	<ItemGroup>
-	  <Folder Include="Monads\" />
-	</ItemGroup>
-
 </Project>

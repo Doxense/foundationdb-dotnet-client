@@ -26,8 +26,6 @@
 
 namespace FoundationDB.Linq.Expressions
 {
-	using System.Diagnostics.CodeAnalysis;
-	using SnowBank.Linq;
 
 	/// <summary>Helper class for working with extension expressions</summary>
 	public static class FdbExpressionHelpers

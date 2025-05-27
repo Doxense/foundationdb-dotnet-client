@@ -15,7 +15,7 @@ global using System.Linq;
 global using System.Text;
 global using System.Threading;
 global using System.Threading.Tasks;
-global using Doxense.Collections.Tuples;
+global using SnowBank.Data.Tuples;
 global using FoundationDB.Client;
 global using FoundationDB.Samples.Benchmarks;
 global using SnowBank.Numerics;

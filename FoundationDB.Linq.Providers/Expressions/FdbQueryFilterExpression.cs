@@ -26,8 +26,6 @@
 
 namespace FoundationDB.Linq.Expressions
 {
-	using SnowBank.Linq;
-	using System.Diagnostics.CodeAnalysis;
 
 	/// <summary>Expression that represent a filter on a source sequence</summary>
 	/// <typeparam name="T">Type of elements in the source sequence</typeparam>

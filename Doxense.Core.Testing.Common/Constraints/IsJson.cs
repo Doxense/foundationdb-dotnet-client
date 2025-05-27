@@ -29,8 +29,7 @@
 namespace SnowBank.Testing
 {
 	using System.Linq.Expressions;
-	using Doxense.Collections.Tuples;
-	using JetBrains.Annotations;
+	using SnowBank.Data.Tuples;
 	using NUnit.Framework.Constraints;
 	using NUnit.Framework.Internal;
 	using SnowBank.Runtime;

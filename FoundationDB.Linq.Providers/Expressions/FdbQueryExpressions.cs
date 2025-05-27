@@ -26,9 +26,6 @@
 
 namespace FoundationDB.Linq.Expressions
 {
-	using System.Diagnostics.CodeAnalysis;
-	using Doxense.Collections.Tuples;
-	using SnowBank.Linq;
 
 	/// <summary>Helper class to construct Query Expressions</summary>
 	[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]

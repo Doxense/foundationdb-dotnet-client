@@ -32,7 +32,6 @@ namespace FoundationDB.Layers.Experimental.Indexing
 	using System.Numerics;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
-	using SnowBank.Buffers;
 	using SnowBank.Buffers.Binary;
 
 	/// <summary>Builder of compressed bitmaps that can set or clear bits in a random order, in memory</summary>

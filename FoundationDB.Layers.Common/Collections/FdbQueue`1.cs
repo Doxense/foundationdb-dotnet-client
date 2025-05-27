@@ -26,9 +26,6 @@
 
 namespace FoundationDB.Layers.Collections
 {
-	using System.Threading;
-	using Doxense.Collections.Tuples;
-	using Doxense.Serialization.Encoders;
 
 	/// <summary>Provides a high-contention Queue class</summary>
 	[DebuggerDisplay("Location={Location}")]

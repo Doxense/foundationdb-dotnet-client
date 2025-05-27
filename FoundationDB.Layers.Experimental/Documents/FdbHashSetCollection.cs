@@ -26,9 +26,6 @@
 
 namespace FoundationDB.Layers.Blobs
 {
-	using System.Threading.Tasks;
-	using Doxense.Collections.Tuples;
-
 	// THIS IS NOT AN OFFICIAL LAYER, JUST A PROTOTYPE TO TEST A FEW THINGS !
 
 	/// <summary>Represents a collection of dictionaries of fields.</summary>

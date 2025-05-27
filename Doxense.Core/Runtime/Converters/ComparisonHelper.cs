@@ -28,7 +28,7 @@ namespace SnowBank.Runtime.Converters
 {
 	using System.Collections.Concurrent;
 	using System.Globalization;
-	using Doxense.Collections.Tuples;
+	using SnowBank.Data.Tuples;
 
 	/// <summary>Helper class used to compare object of "compatible" types</summary>
 	[PublicAPI]

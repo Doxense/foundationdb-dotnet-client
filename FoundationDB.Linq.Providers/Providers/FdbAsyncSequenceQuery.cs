@@ -26,7 +26,6 @@
 
 namespace FoundationDB.Linq.Providers
 {
-	using SnowBank.Linq;
 
 	/// <summary>Async LINQ query that returns an async sequence of items</summary>
 	/// <typeparam name="T">Type of the items in the sequence</typeparam>

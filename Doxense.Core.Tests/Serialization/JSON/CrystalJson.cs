@@ -77,7 +77,7 @@ namespace Doxense.Serialization.Json.Tests
 	using System.Net;
 	using System.Runtime.Serialization;
 	using System.Xml.Serialization;
-	using Doxense.Collections.Tuples;
+	using SnowBank.Data.Tuples;
 	using NodaTime;
 	using NUnit.Framework.Constraints;
 	using SnowBank.Buffers;

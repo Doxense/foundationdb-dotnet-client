@@ -28,7 +28,6 @@ namespace FoundationDB.Layers.Messaging
 {
 	using System.Security.Cryptography;
 	using System.Threading;
-	using System.Threading.Tasks;
 	using FoundationDB.Layers.Counters;
 
 	public class FdbWorkerMessage

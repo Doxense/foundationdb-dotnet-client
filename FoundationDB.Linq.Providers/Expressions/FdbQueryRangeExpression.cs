@@ -26,8 +26,6 @@
 
 namespace FoundationDB.Linq.Expressions
 {
-	using System.Diagnostics.CodeAnalysis;
-	using SnowBank.Linq;
 
 	/// <summary>Expression that represents a GetRange query using a pair of key selectors</summary>
 	[RequiresDynamicCode(AotMessages.RequiresDynamicCode)]

@@ -26,9 +26,7 @@
 
 namespace FoundationDB.Linq.Expressions
 {
-	using System.Diagnostics.CodeAnalysis;
 	using FoundationDB.Layers.Indexing;
-	using SnowBank.Linq;
 
 	/// <summary>Expression that represents a lookup on an FdbIndex</summary>
 	/// <typeparam name="TKey">Type of the Id of the entities being indexed</typeparam>

@@ -26,9 +26,6 @@
 
 namespace FoundationDB.Layers.Documents
 {
-	using System.Linq;
-	using System.Threading.Tasks;
-	using Doxense.Serialization.Encoders;
 
 	/// <summary>Represents a collection of dictionaries of fields.</summary>
 	public class FdbDocumentCollection<TDocument, TId>

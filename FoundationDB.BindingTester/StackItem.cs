@@ -26,11 +26,9 @@
 
 namespace FoundationDB.Client.Testing
 {
-	using System;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Threading.Tasks;
-	using Doxense.Collections.Tuples;
 
 	[DebuggerDisplay("{ToString(),nq}")]
 	public sealed record StackItem

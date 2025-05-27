@@ -26,8 +26,6 @@
 
 namespace FoundationDB.Client.Testing
 {
-	using System;
-
 	public enum InstructionCode
 	{
 		Invalid = 0,

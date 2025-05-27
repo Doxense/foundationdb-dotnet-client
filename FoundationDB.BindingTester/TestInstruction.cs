@@ -26,10 +26,8 @@
 
 namespace FoundationDB.Client.Testing
 {
-	using System;
 	using System.Runtime.CompilerServices;
-	using Doxense.Collections.Tuples;
-	using Doxense.Collections.Tuples.Encoding;
+	using SnowBank.Data.Tuples.Binary;
 	using Doxense.Diagnostics.Contracts;
 
 	public sealed record TestInstruction
