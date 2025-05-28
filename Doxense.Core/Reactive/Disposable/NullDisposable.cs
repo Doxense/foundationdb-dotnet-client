@@ -24,11 +24,17 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Reactive.Disposables
+namespace SnowBank.Reactive.Disposables
 {
 
+	/// <summary>Singleton that performs no operation when it is disposed.</summary>
 	internal sealed class NullDisposable : IDisposable
 	{
+
+		public static readonly NullDisposable Instance = new();
+
+		private NullDisposable() { }
+
 		public void Dispose()
 		{
 			// NO OP

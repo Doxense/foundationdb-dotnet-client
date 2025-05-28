@@ -24,16 +24,15 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Reactive.Disposables
+namespace SnowBank.Reactive.Disposables
 {
 
-	/// <summary>Retourne un objet exécutant une Action lorsqu'il est Dispose()</summary>
-	/// <remarks>Version simplifiée de System.Disposables.AnonymousDisposable de Rx</remarks>
+	/// <summary>Token that will invoke a wrapped <see cref="Action"/> whenever it is disposed</summary>
+	/// <remarks>The callback is guaranteed to only be invoked on the first call to Dispose.</remarks>
 	internal sealed class AnonymousDisposable : IDisposable
 	{
 
-		/// <summary>Action effectuée lors du Dispose() s'il n'a pas déjà été fait</summary>
-		/// <remarks>Est mit à null par le premier Dispose pour éviter de garder une référence vers l'objet</remarks>
+		/// <summary>Action that must be called when this instance is disposed</summary>
 		private Action? m_onDispose;
 
 		public AnonymousDisposable(Action onDispose)
@@ -42,6 +41,7 @@ namespace Doxense.Reactive.Disposables
 			m_onDispose = onDispose;
 		}
 
+		/// <inheritdoc />
 		public void Dispose()
 		{
 			var onDispose = Interlocked.Exchange(ref m_onDispose, null);

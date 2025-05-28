@@ -24,11 +24,11 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Reactive.Disposables
+namespace SnowBank.Reactive.Disposables
 {
 
-	/// <summary>Classe qui encapsule un objet, en interceptant éventuellement le Dispose()</summary>
-	/// <typeparam name="T">Type de l'objet encapsulé</typeparam>
+	/// <summary>Type that encapsulates a value of type <typeparamref name="T"/>, and that implements <see cref="IDisposable"/> with a customizable behavior when it is disposed.</summary>
+	/// <typeparam name="T">Type of the encapsulated value</typeparam>
 	public interface IDisposable<out T> : IDisposable
 	{
 
@@ -36,7 +36,7 @@ namespace Doxense.Reactive.Disposables
 		/// <exception cref="ObjectDisposedException">If this property is called after this instance has been disposed</exception>
 		T Value { get; }
 
-		/// <summary>Hint that indicates wether the container has been disposed or not.</summary>
+		/// <summary>Hint that indicates whether the container has been disposed or not.</summary>
 		/// <remarks>It is NOT safe to check the value of this flag before reading <see cref="Value"/> due to race conditions between threads!</remarks>
 		bool Disposed { get; }
 

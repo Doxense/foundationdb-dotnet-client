@@ -28,7 +28,7 @@ namespace SnowBank.Threading.Operations
 {
 	using System.Runtime.ExceptionServices;
 	using SnowBank.Messaging.Events;
-	using Doxense.Reactive.Disposables;
+	using SnowBank.Reactive.Disposables;
 	using Microsoft.Extensions.DependencyInjection;
 	using Microsoft.Extensions.DependencyInjection.Extensions;
 	using Microsoft.Extensions.Logging;
