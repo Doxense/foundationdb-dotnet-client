@@ -45,7 +45,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Doxense.Core.Tests", "Doxen
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SnowBank.Testing.Common", "SnowBank.Testing.Common\SnowBank.Testing.Common.csproj", "{FC13DCD2-2CF3-4B15-A09D-C48B6E46B160}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Doxense.Networking.Http", "Doxense.Networking.Http\Doxense.Networking.Http.csproj", "{C01CFE72-B2D8-475D-9161-841F07BAA0DE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SnowBank.Networking.Http", "SnowBank.Networking.Http\SnowBank.Networking.Http.csproj", "{C01CFE72-B2D8-475D-9161-841F07BAA0DE}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Client", "Client", "{E899F094-1A78-4652-862C-9FF6356AC738}"
 EndProject
