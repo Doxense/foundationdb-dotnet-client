@@ -26,8 +26,9 @@
 
 // ReSharper disable AssignNullToNotNullAttribute
 // ReSharper disable StringLiteralTypo
-namespace Doxense.Core.Tests
+namespace SnowBank.Core.Tests
 {
+
 	[TestFixture]
 	[Category("Core-SDK")]
 	[Parallelizable(ParallelScope.All)]

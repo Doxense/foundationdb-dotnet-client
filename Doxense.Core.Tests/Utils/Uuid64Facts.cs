@@ -28,8 +28,9 @@
 // ReSharper disable StringLiteralTypo
 // ReSharper disable SuspiciousTypeConversion.Global
 // ReSharper disable RedundantCast
-namespace Doxense.Core.Tests
+namespace SnowBank.Core.Tests
 {
+
 	[TestFixture]
 	[Category("Core-SDK")]
 	[Parallelizable(ParallelScope.All)]

@@ -29,7 +29,7 @@ namespace FoundationDB.Client
 
 	/// <summary>Represents a <see cref="IKeySubspace">Key Subspace</see> which can encode and decode keys of arbitrary size and types.</summary>
 	/// <remarks>This is useful when dealing with subspaces that store keys of different types and shapes.</remarks>
-	/// <example>In pseudocode, we obtain a dynamic subspace that wraps a prefix, and uses the <see cref="Doxense.Collections.Tuples.TuPack">Tuple Encoder Format</see> to encode variable-size tuples into binary:
+	/// <example>In pseudocode, we obtain a dynamic subspace that wraps a prefix, and uses the <see cref="SnowBank.Data.Tuples.TuPack">Tuple Encoder Format</see> to encode variable-size tuples into binary:
 	/// <code>
 	/// subspace = {...}.OpenOrCreate(..., "/some/path/to/data", TypeSystem.Tuples)
 	/// subspace.GetPrefix() => {prefix}
@@ -89,7 +89,7 @@ namespace FoundationDB.Client
 
 	/// <summary>Represents a <see cref="IDynamicKeySubspace">Dynamic Key Subspace</see> which can encode and decode keys of arbitrary size and types.</summary>
 	/// <remarks>This is useful when dealing with subspaces that store keys of different types and shapes.</remarks>
-	/// <example>In pseudocode, we obtain a dynamic subspace that wraps a prefix, and uses the <see cref="Doxense.Collections.Tuples.TuPack">Tuple Encoder Format</see> to encode variable-size tuples into binary:
+	/// <example>In pseudocode, we obtain a dynamic subspace that wraps a prefix, and uses the <see cref="SnowBank.Data.Tuples.TuPack">Tuple Encoder Format</see> to encode variable-size tuples into binary:
 	/// <code>
 	/// subspace = {...}.OpenOrCreate(..., "/some/path/to/data", TypeSystem.Tuples)
 	/// subspace.GetPrefix() => {prefix}

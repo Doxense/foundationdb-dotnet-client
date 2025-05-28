@@ -27,7 +27,7 @@
 namespace FdbTop
 {
 
-	public class RingBuffer<T> : IReadOnlyCollection<T>
+	internal sealed class RingBuffer<T> : IReadOnlyCollection<T>
 	{
 		private readonly Queue<T> m_store;
 		private int m_size;

@@ -28,8 +28,9 @@
 // ReSharper disable SuspiciousTypeConversion.Global
 #pragma warning disable NUnit2010 // Use EqualConstraint for better assertion messages in case of failure
 
-namespace Doxense.Core.Tests
+namespace SnowBank.Core.Tests
 {
+
 	[TestFixture]
 	[Category("Core-SDK")]
 	[Parallelizable(ParallelScope.All)]

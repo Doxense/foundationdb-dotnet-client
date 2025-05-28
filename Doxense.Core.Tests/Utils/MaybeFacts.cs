@@ -27,8 +27,9 @@
 // ReSharper disable CompareOfFloatsByEqualityOperator
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
 
-namespace Doxense.Core.Tests
+namespace SnowBank.Core.Tests
 {
+
 	[TestFixture]
 	[Category("Core-SDK")]
 	[Parallelizable(ParallelScope.All)]
