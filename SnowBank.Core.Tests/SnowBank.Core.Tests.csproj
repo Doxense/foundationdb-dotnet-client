@@ -22,7 +22,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<Compile Include="..\Doxense.Core\NetFxShim.cs" Link="NetFxShim.cs" />
+		<Compile Include="..\SnowBank.Core\NetFxShim.cs" Link="NetFxShim.cs" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -45,7 +45,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\SnowBank.Testing.Common\SnowBank.Testing.Common.csproj" />
-		<ProjectReference Include="..\Doxense.Core\Doxense.Core.csproj" />
+		<ProjectReference Include="..\SnowBank.Core\SnowBank.Core.csproj" />
 	</ItemGroup>
 
 </Project>

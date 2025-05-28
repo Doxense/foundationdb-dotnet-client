@@ -284,14 +284,14 @@ namespace SnowBank.Data.Json.Tests
 					Log("CrystalJson:");
 					var b = CrystalJson.Serialize(media, CrystalJsonSettings.JsonCompact);
 					var c = CrystalJson.Deserialize<MediaContent>(b);
-					Log($"json/doxense-runtime: size   = {b.Length:N0} chars");
+					Log($"json/snowbank-runtime: size   = {b.Length:N0} chars");
 					Log(b);
 					Assert.That(media, Is.EqualTo(c), "clone != media ??");
 
 					using var w = new CrystalJsonWriter(0, CrystalJsonSettings.JsonCompact, CrystalJson.DefaultResolver);
 					media.Manual(w);
 					b = w.GetString();
-					Log($"json/doxense-manual : size   = {b.Length:N0} chars");
+					Log($"json/snowbank-manual : size   = {b.Length:N0} chars");
 					Log(b);
 
 					for (int i = 0; i < 100; i++)
@@ -321,12 +321,12 @@ namespace SnowBank.Data.Json.Tests
 
 			#endregion
 
-			RunBenchOnMethod("json/doxense-runtime: total", media, static (m) =>
+			RunBenchOnMethod("json/snowbank-runtime: total", media, static (m) =>
 			{
 				_ = CrystalJson.Deserialize<MediaContent>(CrystalJson.Serialize(m, CrystalJsonSettings.JsonCompact));
 			});
 
-			RunBenchOnMethod("json/doxense-pooled : total", media, static (m) =>
+			RunBenchOnMethod("json/snowbank-pooled : total", media, static (m) =>
 			{
 				var bytes = CrystalJson.ToSlice(m, ArrayPool<byte>.Shared, CrystalJsonSettings.JsonCompact);
 				_ = CrystalJson.Deserialize<MediaContent>(bytes.Data);
@@ -356,11 +356,11 @@ namespace SnowBank.Data.Json.Tests
 
 			#endregion
 
-			RunBenchOnMethod("json/doxense-text   : ser  ", media, static (m) => CrystalJson.Serialize(m, CrystalJsonSettings.JsonCompact));
+			RunBenchOnMethod("json/snowbank-text  : ser  ", media, static (m) => CrystalJson.Serialize(m, CrystalJsonSettings.JsonCompact));
 
-			RunBenchOnMethod("json/doxense-buffer : ser  ", media, static (m) => CrystalJson.ToSlice(m, CrystalJsonSettings.JsonCompact));
+			RunBenchOnMethod("json/snowbank-buffer: ser  ", media, static (m) => CrystalJson.ToSlice(m, CrystalJsonSettings.JsonCompact));
 
-			RunBenchOnMethod("json/doxense-manual : ser  ", media, static (m) => CrystalJson.Convert(m, static (writer, media) => media.Manual(writer), CrystalJsonSettings.JsonCompact, CrystalJson.DefaultResolver));
+			RunBenchOnMethod("json/snowbank-manual: ser  ", media, static (m) => CrystalJson.Convert(m, static (writer, media) => media.Manual(writer), CrystalJsonSettings.JsonCompact, CrystalJson.DefaultResolver));
 
 			RunBenchOnMethod("json/s.t.json-text  : ser  ", media, static (m) => System.Text.Json.JsonSerializer.Serialize(m));
 			
@@ -382,7 +382,7 @@ namespace SnowBank.Data.Json.Tests
 			}
 			#endregion
 
-			RunBenchOnMethod("json/doxense-text   : dom  ", media, static (m) => JsonObject.FromObject(m));
+			RunBenchOnMethod("json/snowbank-text  : dom  ", media, static (m) => JsonObject.FromObject(m));
 		}
 
 		[Test]
@@ -398,7 +398,7 @@ namespace SnowBank.Data.Json.Tests
 			}
 			#endregion
 
-			RunBenchOnMethod("json/doxense-text   : dom  ", json, static (j) => j.Bind<MediaContent>());
+			RunBenchOnMethod("json/snowbank-text  : dom  ", json, static (j) => j.Bind<MediaContent>());
 		}
 
 		[Test]
@@ -420,7 +420,7 @@ namespace SnowBank.Data.Json.Tests
 
 			// JSON => STATIC
 			
-			RunBenchOnMethod("json/doxense-poco   : deser", jsonText, static (txt) => CrystalJson.Deserialize<MediaContent>(txt, CrystalJsonSettings.Json));
+			RunBenchOnMethod("json/snowbank-poco  : deser", jsonText, static (txt) => CrystalJson.Deserialize<MediaContent>(txt, CrystalJsonSettings.Json));
 
 			RunBenchOnMethod("json/s.t.json-poco  : deser", jsonText, static (txt) => System.Text.Json.JsonSerializer.Deserialize<MediaContent>(txt));
 
@@ -447,7 +447,7 @@ namespace SnowBank.Data.Json.Tests
 			#endregion
 
 			// JSON => DOM
-			RunBenchOnMethod("json/doxense-token: parse", jsonText, static (txt) => CrystalJson.Parse(txt));
+			RunBenchOnMethod("json/snowbank-token: parse", jsonText, static (txt) => CrystalJson.Parse(txt));
 
 #if ENABLE_NEWTONSOFT
 			RunBenchOnMethod("json/json.net-token: parse", jsonText, static (txt) => NJ.Linq.JObject.Parse(txt));

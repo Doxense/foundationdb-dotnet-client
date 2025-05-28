@@ -39,7 +39,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FdbTop", "FdbTop\FdbTop.csp
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FdbBurner", "FdbBurner\FdbBurner.csproj", "{60049BA1-A95F-4127-BAC5-74AF023D3082}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Doxense.Core", "Doxense.Core\Doxense.Core.csproj", "{07555D0D-0D18-45F9-B5C1-288286A1F2E3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SnowBank.Core", "SnowBank.Core\SnowBank.Core.csproj", "{07555D0D-0D18-45F9-B5C1-288286A1F2E3}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SnowBank.Core.Tests", "SnowBank.Core.Tests\SnowBank.Core.Tests.csproj", "{D7753519-8222-4BC9-8A67-4A9A65A42DB2}"
 EndProject

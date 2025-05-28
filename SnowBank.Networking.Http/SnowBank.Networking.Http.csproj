@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<OutputType>Library</OutputType>
@@ -38,7 +38,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Doxense.Core\Doxense.Core.csproj" />
+		<ProjectReference Include="..\SnowBank.Core\SnowBank.Core.csproj" />
 	</ItemGroup>
 
 </Project>

@@ -28,7 +28,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Doxense.Core\Doxense.Core.csproj" />
+		<ProjectReference Include="..\SnowBank.Core\SnowBank.Core.csproj" />
 	</ItemGroup>
 	
 	<ItemGroup Condition="'$(TargetFramework)'!='net6.0'">

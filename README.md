@@ -401,7 +401,7 @@ An example of a parent `Directory.Build.props` that multi-targets `net9.0` and `
 <Project>
 	<PropertyGroup>
 
-		<!-- If you are using FoundationDB.Client, Doxense.Core, etc... -->
+		<!-- If you are using FoundationDB.Client, SnowBank.Core, etc... -->
 		<CoreSdkRuntimeVersions>net9.0;net10.0</CoreSdkRuntimeVersions>
 
 		<!-- If you are using the FoundationDB .NET Aspire Integration -->
