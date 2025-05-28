@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Diagnostics
+namespace SnowBank.Runtime
 {
 
 	/// <summary>Helper methods for working with exceptions</summary>
@@ -34,7 +34,7 @@ namespace Doxense.Diagnostics
 		/// <summary>Tests if this is considered to be a "fatal" error that cannot be handled by a local catch block</summary>
 		/// <returns><c>true</c> if <paramref name="self"/> is of type <see cref="ThreadAbortException"/>, <see cref="OutOfMemoryException "/>, <see cref="StackOverflowException"/>, or an <see cref="AggregateException"/> that contains either one of these types</returns>
 		[Pure]
-		public static bool IsFatalError([System.Diagnostics.CodeAnalysis.NotNullWhen(true)] this Exception? self)
+		public static bool IsFatalError([NotNullWhen(true)] this Exception? self)
 		{
 			return self is ThreadAbortException || self is OutOfMemoryException || self is StackOverflowException || (self is AggregateException && IsFatalError(self.InnerException));
 		}
@@ -42,7 +42,7 @@ namespace Doxense.Diagnostics
 		/// <summary>Tests if this type of exception is likely to be caused by a bug, and should be handled with more scrutiny (addintional logging, intentional debugger break, ...)</summary>
 		/// <returns><c>true</c> if <paramref name="self"/> is of type <see cref="NullReferenceException"/>, <see cref="ArgumentNullException"/>, <see cref="ArgumentOutOfRangeException"/>, <see cref="IndexOutOfRangeException"/> or any suspicious type.</returns>
 		/// <remarks>Errors that are considered "critical" (ex: <see cref="OutOfMemoryException"/>, <see cref="StackOverflowException"/>, ...) are matched by <see cref="IsFatalError"/></remarks>
-		public static bool IsLikelyBug([System.Diagnostics.CodeAnalysis.NotNullWhen(true)] this Exception? self)
+		public static bool IsLikelyBug([NotNullWhen(true)] this Exception? self)
 		{
 			return self is NullReferenceException or ArgumentException or IndexOutOfRangeException or KeyNotFoundException || (self is AggregateException && IsLikelyBug(self.InnerException));
 		}
@@ -75,7 +75,7 @@ namespace Doxense.Diagnostics
 		/// <summary>Rethrows the first non-aggregate exception in the tree of inner-exceptions of an <see cref="AggregateException"/></summary>
 		/// <param name="self">AggregateException to unfold</param>
 		[ContractAnnotation("self:null => null")]
-		[return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull("self")]
+		[return: NotNullIfNotNull("self")]
 		public static Exception? Unwrap(this AggregateException? self)
 		{
 			return self != null ? GetFirstConcreteException(self) : null;
