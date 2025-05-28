@@ -26,7 +26,7 @@
 
 #if NET8_0_OR_GREATER
 
-namespace Doxense.Networking
+namespace SnowBank.Networking
 {
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;

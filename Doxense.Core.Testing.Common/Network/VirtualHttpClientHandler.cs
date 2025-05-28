@@ -26,11 +26,11 @@
 
 #if NET8_0_OR_GREATER
 
-namespace Doxense.Networking
+namespace SnowBank.Networking
 {
 	using System.Net;
 	using System.Net.Http;
-	using Doxense.Networking.Http;
+	using SnowBank.Networking.Http;
 
 	/// <summary>HTTP handler that emulates requests to <see cref="IVirtualNetworkHost">virtual hosts</see> through a <see cref="IVirtualNetworkMap">virtual network</see></summary>
 	internal class VirtualHttpClientHandler : DelegatingHandler

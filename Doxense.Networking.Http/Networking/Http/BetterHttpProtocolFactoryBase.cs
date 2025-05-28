@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Networking.Http
+namespace SnowBank.Networking.Http
 {
 	using Microsoft.Extensions.DependencyInjection;
 	using Microsoft.Extensions.Options;

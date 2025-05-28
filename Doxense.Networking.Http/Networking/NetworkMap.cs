@@ -24,11 +24,11 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Networking
+namespace SnowBank.Networking
 {
 	using System.Net.NetworkInformation;
 	using System.Net.Sockets;
-	using Doxense.Networking.Http;
+	using SnowBank.Networking.Http;
 
 	/// <summary>Implementation of an <see cref="INetworkMap"/> that interacts a real network</summary>
 	/// <remarks>This method will passthough all requests to the actual network stack of the host.</remarks>

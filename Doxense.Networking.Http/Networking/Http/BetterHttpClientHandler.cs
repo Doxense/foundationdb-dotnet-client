@@ -2,7 +2,7 @@
 
 //#define FULL_DEBUG
 
-namespace Doxense.Networking.Http
+namespace SnowBank.Networking.Http
 {
 	using System.IO;
 	using System.Linq.Expressions;

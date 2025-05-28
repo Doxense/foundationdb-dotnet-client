@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Networking.Tests
+namespace SnowBank.Networking.Tests
 {
 	using System.Net;
 	using System.Net.NetworkInformation;

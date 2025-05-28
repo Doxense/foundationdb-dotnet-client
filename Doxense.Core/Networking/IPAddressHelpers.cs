@@ -27,7 +27,7 @@
 // ReSharper disable AccessToDisposedClosure
 // ReSharper disable InconsistentNaming
 
-namespace Doxense.Networking
+namespace SnowBank.Networking
 {
 	using System.Buffers.Binary;
 	using System.Globalization;

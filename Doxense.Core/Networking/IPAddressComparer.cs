@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Networking
+namespace SnowBank.Networking
 {
 	using System.Buffers.Binary;
 	using System.Net;

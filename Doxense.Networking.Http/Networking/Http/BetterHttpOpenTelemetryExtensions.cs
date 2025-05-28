@@ -26,7 +26,7 @@
 
 namespace OpenTelemetry.Trace
 {
-	using Doxense.Networking.Http;
+	using SnowBank.Networking.Http;
 	using OpenTelemetry.Metrics;
 
 	public static class BetterHttpOpenTelemetryExtensions

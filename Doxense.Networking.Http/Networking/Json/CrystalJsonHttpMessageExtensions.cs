@@ -24,8 +24,9 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.AspNetCore.Common.Json
+namespace SnowBank.SDK.AspNetCore.Common.Json
 {
+
 	[PublicAPI]
 	public static class CrystalJsonHttpMessageExtensions
 	{

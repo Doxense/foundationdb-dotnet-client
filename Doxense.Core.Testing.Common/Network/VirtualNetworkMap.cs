@@ -26,13 +26,13 @@
 
 #if NET8_0_OR_GREATER
 
-namespace Doxense.Networking
+namespace SnowBank.Networking
 {
 	using System.Net;
 	using System.Net.Http;
 	using System.Net.NetworkInformation;
 	using System.Net.Sockets;
-	using Doxense.Networking.Http;
+	using SnowBank.Networking.Http;
 
 	/// <summary>Default implementation of a <see cref="IVirtualNetworkMap">virtual network map</see>, as seen from a <see cref="IVirtualNetworkHost">virtual host</see></summary>
 	/// <remarks>There should be one instance of this map per virtual host.</remarks>

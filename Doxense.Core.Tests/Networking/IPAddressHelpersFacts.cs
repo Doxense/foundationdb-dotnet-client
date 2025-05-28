@@ -26,11 +26,11 @@
 
 // ReSharper disable InconsistentNaming
 
-namespace Doxense.Networking.Tests
+namespace SnowBank.Networking.Tests
 {
 	using System.Net;
 	using System.Net.Sockets;
-	using Doxense.Networking;
+	using SnowBank.Networking;
 
 	[TestFixture]
 	[Category("Core-SDK")]

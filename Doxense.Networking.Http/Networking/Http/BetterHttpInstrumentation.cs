@@ -24,12 +24,12 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Networking.Http
+namespace SnowBank.Networking.Http
 {
 	internal static class BetterHttpInstrumentation
 	{
 
-		public const string ActivityName = "Doxense.Networking.Http";
+		public const string ActivityName = "SnowBank.Networking.Http";
 		public const string ActivityVersion = "0.1.0"; //TODO: what version should we use?
 
 		public static readonly ActivitySource ActivitySource = new(ActivityName, ActivityVersion);

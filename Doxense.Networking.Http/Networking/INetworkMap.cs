@@ -24,12 +24,12 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Networking
+namespace SnowBank.Networking
 {
 	using System.ComponentModel;
 	using System.Net.NetworkInformation;
 	using System.Net.Sockets;
-	using Doxense.Networking.Http;
+	using SnowBank.Networking.Http;
 
 	/// <summary>Provides services to interact with the real (or simulated) network</summary>
 	/// <remarks>
