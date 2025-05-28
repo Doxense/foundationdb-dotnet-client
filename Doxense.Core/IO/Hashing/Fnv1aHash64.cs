@@ -29,14 +29,11 @@ namespace Doxense.IO.Hashing
 	using System.Runtime.InteropServices;
 	using System.Text;
 
-	/// <summary>Calcul de hash FNV-1a sur 64 bits (FowlerNollVo "Alternatif")</summary>
-	/// <remarks>IMPORTANT: Ce hash n'est PAS cryptographique ! Il peut leaker des informations sur les données hashées, et ne doit donc pas être utilisé publiquement dans un scenario de protection de données! (il faut plutot utiliser SHA ou HMAC pour ce genre de choses)</remarks>
+	/// <summary>Helper for computing 64-bits FNV-1a hashes (aka "Alternative" FowlerNollVo)</summary>
 	[PublicAPI]
-	// ReSharper disable once InconsistentNaming
 	public static class Fnv1aHash64
 	{
-
-		// La différence entre FNV-1a et FNV-1 c'est que l'ordre des opérations (MUL et XOR) est inversé !
+		// The difference with "regular" FNV-1 is the order of operations (MUL and XOR) is reversed.
 
 		/* 
 			hash = FNV_offset_basis
@@ -49,11 +46,11 @@ namespace Doxense.IO.Hashing
 		public const ulong FNV1_64_OFFSET_BASIS = 14695981039346656037;
 		public const ulong FNV1_64_PRIME = 1099511628211;
 
-		/// <summary>Calcul le FNV-1a ("Alternative") Hash 64-bit d'un chaîne</summary>
-		/// <param name="text">Chaîne de texte à convertir</param>
-		/// <param name="ignoreCase">Si true, la chaîne est convertie en minuscule avant le calcul</param>
-		/// <param name="encoding">Encoding (optionel, sinon utilise UTF-8 par défaut)</param>
-		/// <returns>Code FNV-1a 64 bit calculé sur la représentation binaire de la chaîne. Attention: N'est pas garantit unique!</returns>
+		/// <summary>Computes the 64-bits FNV-1a hash of the utf-8 representation of a string</summary>
+		/// <param name="text">String to process</param>
+		/// <param name="ignoreCase">If <c>true</c>, the string is converted to lowercase (invariant) before conversion to utf-8</param>
+		/// <param name="encoding">Encoding used to convert the string into bytes (utf-8 by default)</param>
+		/// <returns>Corresponding FNV-1a 64-bit hash</returns>
 		public static ulong FromString(string text, bool ignoreCase, Encoding? encoding = null)
 		{
 			if (string.IsNullOrEmpty(text)) return 0;
@@ -82,55 +79,51 @@ namespace Doxense.IO.Hashing
 			}
 		}
 
-		/// <summary>Calcul le Hash FNV-1a ("Alternative") sur 64 bit d'un bloc de données</summary>
-		/// <param name="bytes">Bloc de données</param>
-		/// <returns>Hash 64 bit calculé sur l'intégralité du tableau</returns>
+		/// <summary>Computes the 64-bits FNV-1a hash of a byte array</summary>
+		/// <param name="bytes">Bytes to process</param>
+		/// <returns>Corresponding FNV-1a 64-bit hash</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ulong FromBytes(byte[] bytes)
 		{
 			return Continue(FNV1_64_OFFSET_BASIS, bytes);
 		}
 
-		/// <summary>Calcul le Hash FNV-1a ("Alternative") sur 64 bit d'un bloc de données</summary>
-		/// <param name="bytes">Bloc de données</param>
-		/// <returns>Hash 64 bit calculé sur l'intégralité du tableau</returns>
+		/// <summary>Computes the 64-bits FNV-1a hash of a span of bytes</summary>
+		/// <param name="bytes">Bytes to process</param>
+		/// <returns>Corresponding FNV-1a 64-bit hash</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ulong FromBytes(ReadOnlySpan<byte> bytes)
 		{
 			return Continue(FNV1_64_OFFSET_BASIS, bytes);
 		}
 
-		/// <summary>Calcul le Hash FNV-1a ("Alternative") sur 64 bit d'un bloc de données</summary>
-		/// <param name="bytes">Bloc de données</param>
-		/// <returns>Hash 64 bit calculé sur l'intégralité du tableau</returns>
+		/// <summary>Computes the 64-bits FNV-1a hash of a <see cref="Slice"/></summary>
+		/// <param name="bytes">Bytes to process</param>
+		/// <returns>Corresponding FNV-1a 64-bit hash</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ulong FromBytes(Slice bytes)
 		{
 			return Continue(FNV1_64_OFFSET_BASIS, bytes);
 		}
 
-		/// <summary>Calcul le Hash FNV-1a sur 64 bit sur un segment de données</summary>
-		/// <param name="buffer">Pointeur vers des données en mémoire</param>
-		/// <param name="count">Nombre de données du buffer à hasher</param>
-		/// <returns>Hash de la section du buffer</returns>
+		/// <summary>Computes the 64-bits FNV-1a hash of a span of bytes</summary>
+		/// <param name="buffer">Pointer to the start of the data in memory</param>
+		/// <param name="count">Size (in bytes) of the buffer</param>
+		/// <returns>Corresponding FNV-1a 64-bit hash</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static unsafe ulong FromBytesUnsafe(byte* buffer, int count)
 		{
 			return ContinueUnsafe(FNV1_64_OFFSET_BASIS, buffer, count);
 		}
 
-		/// <summary>Continue le calcul du Hash FNV-1a ("Alternative") sur 64 bit avec un nouveau bloc de données</summary>
-		/// <param name="hash">Valeur précédente du hash calculé jusqu'a présent</param>
-		/// <param name="bytes">Nouveau bloc de données</param>
-		/// <returns>Nouvelle valeur du hash incluant le dernier bloc</returns>
-		/// <remarks>Le premier bloc doit être calculé avec Fnv1Hash64.FromBytesAlternative (pour démarrer la chaine)</remarks>
+		/// <summary>Continues computing the 64-bits FNV-1a hash on an additional chunk of data</summary>
+		/// <param name="hash">Hash computed for all previous chunks, or the initial seed (<see cref="FNV1_64_OFFSET_BASIS"/>) if this is the first chunk.</param>
+		/// <param name="bytes">New chunk of bytes to process</param>
+		/// <returns>Updated FNV-1a 64-bit hash that will include the additional data</returns>
 		[Pure]
 		public static ulong Continue(ulong hash, byte[]? bytes)
 		{
 			if (bytes == null || bytes.Length == 0) return hash;
-
-			// après pas mal de bench, le bon vieux foreach(...) est presque aussi rapide qu'unroller des boucles en mode unsafe, car il est optimisé par le JIT (qui semble unroller lui meme)
-			// sur mon Core i7 @ 3.4 Ghz, je suis a une moyenne de 3.1-3.4 cycles/byte en unrolled, versus 3.7-3.9 cycles/byte avec le foreach...
 
 			foreach (var b in bytes)
 			{
@@ -139,10 +132,10 @@ namespace Doxense.IO.Hashing
 			return hash;
 		}
 
-		/// <summary>Continue le calcul d'un FNV-1 Hash 64-bit sur un nouveau segment de données</summary>
-		/// <param name="hash">Valeur précédénte du hash</param>
-		/// <param name="bytes">Segment de données en mémoire</param>
-		/// <returns>Nouvelle valeur du hash</returns>
+		/// <summary>Continues computing the 64-bits FNV-1a hash on an additional chunk of data</summary>
+		/// <param name="hash">Hash computed for all previous chunks, or the initial seed (<see cref="FNV1_64_OFFSET_BASIS"/>) if this is the first chunk.</param>
+		/// <param name="bytes">New chunk of bytes to process</param>
+		/// <returns>Updated FNV-1a 64-bit hash that will include the additional data</returns>
 		[Pure]
 		public static ulong Continue(ulong hash, ReadOnlySpan<byte> bytes)
 		{
@@ -155,10 +148,10 @@ namespace Doxense.IO.Hashing
 			}
 		}
 
-		/// <summary>Continue le calcul d'un FNV-1 Hash 64-bit sur un nouveau segment de données</summary>
-		/// <param name="hash">Valeur précédénte du hash</param>
-		/// <param name="bytes">Segment de données en mémoire</param>
-		/// <returns>Nouvelle valeur du hash</returns>
+		/// <summary>Continues computing the 64-bits FNV-1a hash on an additional chunk of data</summary>
+		/// <param name="hash">Hash computed for all previous chunks, or the initial seed (<see cref="FNV1_64_OFFSET_BASIS"/>) if this is the first chunk.</param>
+		/// <param name="bytes">New chunk of bytes to process</param>
+		/// <returns>Updated FNV-1a 64-bit hash that will include the additional data</returns>
 		[Pure]
 		public static ulong Continue(ulong hash, Slice bytes)
 		{
@@ -171,11 +164,11 @@ namespace Doxense.IO.Hashing
 			}
 		}
 
-		/// <summary>Continue le calcul d'un FNV-1 Hash 64-bit sur un nouveau segment de données</summary>
-		/// <param name="hash">Valeur précédénte du hash</param>
-		/// <param name="bytes">Pointeur vers des données en mémoire</param>
-		/// <param name="count">Nombre de données du buffer à hasher</param>
-		/// <returns>Nouvelle valeur du hash</returns>
+		/// <summary>Continues computing the 64-bits FNV-1a hash on an additional chunk of data</summary>
+		/// <param name="hash">Hash computed for all previous chunks, or the initial seed (<see cref="FNV1_64_OFFSET_BASIS"/>) if this is the first chunk.</param>
+		/// <param name="bytes">Point to the start of the new chunk to process</param>
+		/// <param name="count">Size (in bytes) of the chunk</param>
+		/// <returns>Updated FNV-1a 64-bit hash that will include the additional data</returns>
 		[Pure]
 		public static unsafe ulong ContinueUnsafe(ulong hash, byte* bytes, int count)
 		{
