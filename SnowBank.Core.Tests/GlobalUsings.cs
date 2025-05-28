@@ -37,6 +37,7 @@ global using System.Threading;
 global using System.Threading.Tasks;
 global using NUnit.Framework;
 global using SnowBank.Testing;
+global using SnowBank.Text;
 
 global using PublicAPIAttribute = JetBrains.Annotations.PublicAPIAttribute;
 global using PureAttribute = System.Diagnostics.Contracts.PureAttribute;
