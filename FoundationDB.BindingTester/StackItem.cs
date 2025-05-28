@@ -26,9 +26,6 @@
 
 namespace FoundationDB.Client.Testing
 {
-	using System.Diagnostics;
-	using System.Diagnostics.CodeAnalysis;
-	using System.Threading.Tasks;
 
 	[DebuggerDisplay("{ToString(),nq}")]
 	public sealed record StackItem

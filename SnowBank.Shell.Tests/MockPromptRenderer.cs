@@ -26,7 +26,6 @@
 
 namespace SnowBank.Shell.Prompt.Tests
 {
-	using SnowBank.Buffers.Text;
 
 	/// <summary>Mock renderer that simply captures all the render calls into a list</summary>
 	public class MockPromptRenderer : IPromptRenderer

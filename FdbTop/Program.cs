@@ -29,17 +29,6 @@
 // ReSharper disable CompareOfFloatsByEqualityOperator
 namespace FdbTop
 {
-	using System;
-	using System.Diagnostics;
-	using System.Globalization;
-	using System.Linq;
-	using System.Runtime.CompilerServices;
-	using System.Runtime.InteropServices;
-	using System.Text;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using FoundationDB.Client;
-	using FoundationDB.Client.Status;
 
 	public static class Program
 	{

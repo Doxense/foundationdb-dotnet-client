@@ -28,9 +28,7 @@ namespace SnowBank.Shell.Prompt
 {
 	using System.Collections.Immutable;
 	using System.Diagnostics;
-	using JetBrains.Annotations;
 	using SnowBank.Buffers;
-	using SnowBank.Buffers.Text;
 
 	/// <summary>Snapshot of a prompt at a point in time</summary>
 	/// <remarks>Any keystroke transforms a current prompt state into a new prompt state (which could be the same)</remarks>

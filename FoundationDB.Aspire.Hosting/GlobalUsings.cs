@@ -1,5 +1,5 @@
 global using System;
-global using Doxense.Diagnostics.Contracts;
+global using SnowBank.Diagnostics.Contracts;
 global using FoundationDB.Client;
 
 // JetBrains Annotations

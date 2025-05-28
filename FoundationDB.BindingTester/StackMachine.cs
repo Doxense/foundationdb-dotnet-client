@@ -27,12 +27,6 @@
 // ReSharper disable MethodHasAsyncOverload
 namespace FoundationDB.Client.Testing
 {
-	using System.Collections.Generic;
-	using System.Linq;
-	using System.Text;
-	using System.Threading.Tasks;
-	using System.Threading;
-	using Doxense.Diagnostics.Contracts;
 	using Microsoft.Extensions.Logging;
 	using Microsoft.Extensions.Logging.Abstractions;
 

@@ -26,8 +26,6 @@
 
 namespace SnowBank.Shell.Prompt
 {
-	using SnowBank.Buffers.Text;
-
 	[PublicAPI]
 	public interface IPromptRenderer
 	{

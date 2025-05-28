@@ -27,7 +27,6 @@
 namespace SnowBank.Shell.Prompt
 {
 	using System.Diagnostics.CodeAnalysis;
-	using Doxense.Diagnostics.Contracts;
 
 	public class RootPromptCommand : IPromptCommandDescriptor
 	{

@@ -24,10 +24,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace FoundationDB.Client.Tests
+namespace SnowBank.Shell.Prompt.Tests
 {
-	using System.Threading;
-	using SnowBank.Shell.Prompt;
 
 	/// <summary>Mock input that simulates keystrokes from an initial list</summary>
 	public class MockPromptInput : IPromptInput

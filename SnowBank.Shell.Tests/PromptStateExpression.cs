@@ -26,7 +26,6 @@
 
 namespace SnowBank.Shell.Prompt.Tests
 {
-	using SnowBank.Buffers;
 
 	[UsedImplicitly]
 	public abstract class PromptStateExpression

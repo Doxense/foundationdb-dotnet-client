@@ -26,8 +26,6 @@
 
 namespace SnowBank.Shell.Prompt
 {
-	using System;
-	using Doxense.Diagnostics.Contracts;
 
 	public interface IPromptInput
 	{

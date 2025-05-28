@@ -26,8 +26,6 @@
 
 namespace FoundationDB.Client.Testing
 {
-	using System.Diagnostics;
-	using System.Diagnostics.CodeAnalysis;
 
 	[DebuggerDisplay("Count={Count}")]
 	[DebuggerTypeProxy(typeof(ContextStack<>.DebugView))]

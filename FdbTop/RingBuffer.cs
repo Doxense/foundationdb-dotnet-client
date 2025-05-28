@@ -26,10 +26,6 @@
 
 namespace FdbTop
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Diagnostics.CodeAnalysis;
-	using Doxense.Diagnostics.Contracts;
 
 	public class RingBuffer<T> : IReadOnlyCollection<T>
 	{

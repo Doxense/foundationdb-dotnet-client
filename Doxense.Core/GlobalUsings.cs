@@ -1,7 +1,7 @@
 global using System.Diagnostics;
 global using System.Diagnostics.CodeAnalysis;
 global using System.Runtime.CompilerServices;
-global using Doxense.Diagnostics.Contracts;
+global using SnowBank.Diagnostics.Contracts;
 
 // JetBrains Annotations
 global using CollectionAccessAttribute = JetBrains.Annotations.CollectionAccessAttribute;

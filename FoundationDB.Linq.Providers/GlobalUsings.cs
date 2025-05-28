@@ -5,7 +5,7 @@ global using System.Globalization;
 global using System.Linq.Expressions;
 global using System.Threading;
 global using System.Threading.Tasks;
-global using Doxense.Diagnostics.Contracts;
+global using SnowBank.Diagnostics.Contracts;
 global using FoundationDB.Client;
 global using FoundationDB.Linq.Expressions;
 global using System.Linq;

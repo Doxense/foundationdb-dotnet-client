@@ -30,7 +30,7 @@ global using System.Diagnostics;
 global using System.Linq;
 global using System.Threading;
 global using System.Threading.Tasks;
-global using Doxense.Diagnostics.Contracts;
+global using SnowBank.Diagnostics.Contracts;
 global using FoundationDB.Client;
 global using SnowBank.Data.Binary;
 global using SnowBank.Data.Tuples;

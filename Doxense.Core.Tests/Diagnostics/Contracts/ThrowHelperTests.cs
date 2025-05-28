@@ -27,7 +27,7 @@
 // ReSharper disable NotResolvedInText
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
 
-namespace Doxense.Diagnostics.Contracts.Tests
+namespace SnowBank.Diagnostics.Contracts.Tests
 {
 	/// <summary>Tests sur la classe statique ThrowHelper</summary>
 	[TestFixture]

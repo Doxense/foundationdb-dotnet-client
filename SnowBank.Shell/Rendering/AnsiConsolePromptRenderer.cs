@@ -27,8 +27,6 @@
 namespace SnowBank.Shell.Prompt
 {
 	using System.Runtime.CompilerServices;
-	using Doxense.Diagnostics.Contracts;
-	using SnowBank.Buffers.Text;
 	using Spectre.Console;
 	using Console = System.Console;
 

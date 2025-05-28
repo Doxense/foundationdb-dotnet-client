@@ -31,8 +31,6 @@ namespace SnowBank.Shell.Prompt
 	using System.Collections;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
-	using Doxense.Diagnostics.Contracts;
-	using Doxense.Linq;
 
 	/// <summary>Represents a complete prompt, made up of one or more <see cref="PromptToken"/> (or "words"), composed of one or more <see cref="PromptMarkupFragment"/> of different colors.</summary>
 	/// <remarks>Each command will appends one or more several tokens, with optional internal subdivisions for syntax color highlighting.</remarks>

@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Diagnostics.Contracts
+namespace SnowBank.Diagnostics.Contracts
 {
 	using System.Runtime.Serialization;
 	using System.Security;

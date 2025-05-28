@@ -27,9 +27,6 @@
 namespace FoundationDB.Client.Testing
 {
 	using System.IO;
-	using System.Runtime.CompilerServices;
-	using System.Threading;
-	using System.Threading.Tasks;
 	using FoundationDB.DependencyInjection;
 	using Microsoft.Extensions.DependencyInjection;
 	using Microsoft.Extensions.Hosting;
