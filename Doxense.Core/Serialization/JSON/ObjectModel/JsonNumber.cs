@@ -27,7 +27,7 @@
 // ReSharper disable CompareOfFloatsByEqualityOperator
 // ReSharper disable RedundantNameQualifier
 
-namespace Doxense.Serialization.Json
+namespace SnowBank.Data.Json
 {
 	using System.Globalization;
 	using System.Runtime.InteropServices;

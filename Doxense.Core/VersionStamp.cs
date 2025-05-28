@@ -28,7 +28,7 @@ namespace System
 {
 	using System.ComponentModel;
 	using System.Runtime.InteropServices;
-	using Doxense.Serialization.Json;
+	using SnowBank.Data.Json;
 	using Globalization;
 	using SnowBank.Buffers;
 	using SnowBank.Buffers.Binary;

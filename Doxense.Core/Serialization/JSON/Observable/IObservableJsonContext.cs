@@ -6,7 +6,7 @@
 //
 #endregion
 
-namespace Doxense.Serialization.Json
+namespace SnowBank.Data.Json
 {
 	using System.Buffers;
 	using System.Runtime.InteropServices;

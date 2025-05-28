@@ -30,7 +30,7 @@
 #pragma warning disable IL2072 // Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.
 #pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
 
-namespace Doxense.Serialization.Json
+namespace SnowBank.Data.Json
 {
 	using System.Collections;
 	using System.Globalization;

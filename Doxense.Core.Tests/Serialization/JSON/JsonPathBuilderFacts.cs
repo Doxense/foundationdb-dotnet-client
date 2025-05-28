@@ -26,7 +26,7 @@
 
 // ReSharper disable GrammarMistakeInComment
 
-namespace Doxense.Serialization.Json.Tests
+namespace SnowBank.Data.Json.Tests
 {
 
 	[TestFixture]

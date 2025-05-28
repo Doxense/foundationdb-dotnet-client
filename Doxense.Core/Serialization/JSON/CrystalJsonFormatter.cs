@@ -26,7 +26,7 @@
 
 // ReSharper disable CompareOfFloatsByEqualityOperator
 
-namespace Doxense.Serialization.Json
+namespace SnowBank.Data.Json
 {
 	using System.Text;
 	using SnowBank.Buffers.Text;

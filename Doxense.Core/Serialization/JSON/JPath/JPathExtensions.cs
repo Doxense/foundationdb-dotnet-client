@@ -24,9 +24,9 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Serialization.Json
+namespace SnowBank.Data.Json
 {
-	using Doxense.Serialization.Json.JPath;
+	using SnowBank.Data.Json.JPath;
 
 	/// <summary>Extensions methods for working with <seealso cref="JPathQuery"/></summary>
 	public static class JPathExtensions

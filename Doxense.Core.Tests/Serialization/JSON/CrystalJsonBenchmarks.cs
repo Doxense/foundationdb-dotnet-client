@@ -31,7 +31,7 @@
 
 #define ENABLE_NEWTONSOFT
 
-namespace Doxense.Serialization.Json.Tests
+namespace SnowBank.Data.Json.Tests
 {
 	using System.Buffers;
 	using System.Collections;

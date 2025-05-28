@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Serialization.Json
+namespace SnowBank.Data.Json
 {
 	/// <summary>Source of JSON text that can be parsed</summary>
 	public interface IJsonReader

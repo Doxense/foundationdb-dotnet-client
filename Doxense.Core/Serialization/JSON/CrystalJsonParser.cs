@@ -27,14 +27,13 @@
 //#define DEBUG_JSON_PARSER
 //#define DEBUG_JSON_BINDER
 
-namespace Doxense.Serialization.Json
+namespace SnowBank.Data.Json
 {
 #if NET8_0_OR_GREATER
 	using System.Buffers;
 #endif
 	using System.Globalization;
 	using System.Reflection;
-	using Doxense.Diagnostics;
 	using SnowBank.Buffers;
 	using SnowBank.Runtime;
 	using SnowBank.Text;

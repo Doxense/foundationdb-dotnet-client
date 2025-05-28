@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Serialization.Json
+namespace SnowBank.Data.Json
 {
 
 	/// <summary>Types that implement this interface support packing directly into a <see cref="JsonValue"/></summary>

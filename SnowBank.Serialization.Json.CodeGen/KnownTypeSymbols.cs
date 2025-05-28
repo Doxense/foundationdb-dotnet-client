@@ -34,7 +34,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 		#region FullNames constants...
 
-		public const string CrystalJsonNamespace = "Doxense.Serialization.Json";
+		public const string CrystalJsonNamespace = "SnowBank.Data.Json";
 
 		public const string CrystalJsonFullName = CrystalJsonNamespace + ".CrystalJson";
 		public const string CrystalJsonConverterAttributeFullName = CrystalJsonNamespace + ".CrystalJsonConverterAttribute";

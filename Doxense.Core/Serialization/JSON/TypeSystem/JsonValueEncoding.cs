@@ -28,7 +28,7 @@ namespace SnowBank.Data.Binary
 {
 	using SnowBank.Data.Tuples;
 	using SnowBank.Data.Tuples.Binary;
-	using Doxense.Serialization.Json;
+	using SnowBank.Data.Json;
 	using SnowBank.Buffers;
 
 	public sealed class JsonValueEncoding : IValueEncoding, IDynamicKeyEncoding

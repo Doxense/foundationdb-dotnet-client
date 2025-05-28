@@ -24,10 +24,10 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Serialization.Json.Tests
+namespace SnowBank.Data.Json.Tests
 {
 	using System.Linq.Expressions;
-	using Doxense.Serialization.Json.JPath;
+	using SnowBank.Data.Json.JPath;
 
 	[TestFixture]
 	[Category("Core-SDK")]

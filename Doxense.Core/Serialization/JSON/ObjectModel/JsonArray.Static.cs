@@ -26,7 +26,7 @@
 
 // ReSharper disable RedundantTypeArgumentsOfMethod
 
-namespace Doxense.Serialization.Json
+namespace SnowBank.Data.Json
 {
 	using System.ComponentModel;
 

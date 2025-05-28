@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Serialization.Json
+namespace SnowBank.Data.Json
 {
 	using System.Buffers;
 	using System.IO;
@@ -37,7 +37,7 @@ namespace Doxense.Serialization.Json
 	public class CrystalJsonContent : HttpContent
 	{
 
-		private static readonly ActivitySource ActivitySource = new("SnowBank.Sdk.Serialization.Json");
+		private static readonly ActivitySource ActivitySource = new("SnowBank.Data.Json");
 
 		private static readonly MediaTypeHeaderValue DefaultMediaType = new("application/json") { CharSet = "utf-8" };
 		//REVIEW: c'est un peu dangereux d'utiliser un singleton: le type est mutable, et est exposé via le "content.Headers.ContentType"...

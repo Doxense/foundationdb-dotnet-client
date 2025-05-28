@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Serialization.Json
+namespace SnowBank.Data.Json
 {
 
 	public partial class JsonValue
@@ -43,8 +43,8 @@ namespace Doxense.Serialization.Json
 			/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 			/// <returns>Corresponding JSON value. If <paramref name="jsonText"/> is empty, will return <see cref="JsonNull.Missing"/></returns>
 			/// <remarks>
-			/// <para>The value will be immutable and cannot be modified. If you require a mutable value, please use <see cref="Parse(string?,Doxense.Serialization.Json.CrystalJsonSettings?)"/> instead.</para>
-			/// <para>If the result is always expected to be an Array or an Object, please call either <see cref="ParseArray(string?,Doxense.Serialization.Json.CrystalJsonSettings?)"/> or <see cref="ParseObject(string?,Doxense.Serialization.Json.CrystalJsonSettings?)"/>.</para>
+			/// <para>The value will be immutable and cannot be modified. If you require a mutable value, please use <see cref="Parse(string?,SnowBank.Data.Json.CrystalJsonSettings?)"/> instead.</para>
+			/// <para>If the result is always expected to be an Array or an Object, please call either <see cref="ParseArray(string?,SnowBank.Data.Json.CrystalJsonSettings?)"/> or <see cref="ParseObject(string?,SnowBank.Data.Json.CrystalJsonSettings?)"/>.</para>
 			/// </remarks>
 			/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 			[Pure]
@@ -64,8 +64,8 @@ namespace Doxense.Serialization.Json
 			/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 			/// <returns>Corresponding JSON value. If <paramref name="jsonText"/> is empty, will return <see cref="JsonNull.Missing"/></returns>
 			/// <remarks>
-			/// <para>The value will be immutable and cannot be modified. If you require a mutable value, please use <see cref="Parse(string?,Doxense.Serialization.Json.CrystalJsonSettings?)"/> instead.</para>
-			/// <para>If the result is always expected to be an Array or an Object, please call either <see cref="JsonValue.ReadOnly.ParseArray(string?,Doxense.Serialization.Json.CrystalJsonSettings?)"/> or <see cref="JsonValue.ReadOnly.ParseObject(string?,Doxense.Serialization.Json.CrystalJsonSettings?)"/>.</para>
+			/// <para>The value will be immutable and cannot be modified. If you require a mutable value, please use <see cref="Parse(string?,SnowBank.Data.Json.CrystalJsonSettings?)"/> instead.</para>
+			/// <para>If the result is always expected to be an Array or an Object, please call either <see cref="JsonValue.ReadOnly.ParseArray(string?,SnowBank.Data.Json.CrystalJsonSettings?)"/> or <see cref="JsonValue.ReadOnly.ParseObject(string?,SnowBank.Data.Json.CrystalJsonSettings?)"/>.</para>
 			/// </remarks>
 			/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 			[Pure]
@@ -85,8 +85,8 @@ namespace Doxense.Serialization.Json
 			/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 			/// <returns>Corresponding immutable JSON Array. If <paramref name="jsonText"/> is empty or not an Array, an exception will be thrown instead.</returns>
 			/// <remarks>
-			/// <para>The JSON Array is immutable and cannot be modified. If you require a mutable array, please use <see cref="ParseArray(string?,Doxense.Serialization.Json.CrystalJsonSettings?)"/> instead.</para>
-			/// <para>If the JSON document can sometimes be empty of the '<c>null</c>' token, you should call <see cref="Parse(string?,Doxense.Serialization.Json.CrystalJsonSettings?)"/> and then use <see cref="JsonValueExtensions.AsArrayOrDefault"/> on the result.</para>
+			/// <para>The JSON Array is immutable and cannot be modified. If you require a mutable array, please use <see cref="ParseArray(string?,SnowBank.Data.Json.CrystalJsonSettings?)"/> instead.</para>
+			/// <para>If the JSON document can sometimes be empty of the '<c>null</c>' token, you should call <see cref="Parse(string?,SnowBank.Data.Json.CrystalJsonSettings?)"/> and then use <see cref="JsonValueExtensions.AsArrayOrDefault"/> on the result.</para>
 			/// </remarks>
 			/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 			/// <exception cref="InvalidOperationException">If the JSON document was empty, or the '<c>null</c>' token, or not an Array.</exception>
@@ -107,8 +107,8 @@ namespace Doxense.Serialization.Json
 			/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 			/// <returns>Corresponding immutable JSON Array. If <paramref name="jsonText"/> is empty or not an Array, an exception will be thrown instead.</returns>
 			/// <remarks>
-			/// <para>The JSON Array is immutable and cannot be modified. If you require a mutable array, please use <see cref="ParseArray(string?,Doxense.Serialization.Json.CrystalJsonSettings?)"/> instead.</para>
-			/// <para>If the JSON document can sometimes be empty of the '<c>null</c>' token, you should call <see cref="Parse(string?,Doxense.Serialization.Json.CrystalJsonSettings?)"/> and then use <see cref="JsonValueExtensions.AsArrayOrDefault"/> on the result.</para>
+			/// <para>The JSON Array is immutable and cannot be modified. If you require a mutable array, please use <see cref="ParseArray(string?,SnowBank.Data.Json.CrystalJsonSettings?)"/> instead.</para>
+			/// <para>If the JSON document can sometimes be empty of the '<c>null</c>' token, you should call <see cref="Parse(string?,SnowBank.Data.Json.CrystalJsonSettings?)"/> and then use <see cref="JsonValueExtensions.AsArrayOrDefault"/> on the result.</para>
 			/// </remarks>
 			/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
 			/// <exception cref="InvalidOperationException">If the JSON document was empty, or the '<c>null</c>' token, or not an Array.</exception>
@@ -128,7 +128,7 @@ namespace Doxense.Serialization.Json
 			/// <param name="jsonText">Input text to parse</param>
 			/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 			/// <returns>Corresponding JSON Object. If <paramref name="jsonText"/> is empty or not an object, an exception will be thrown instead.</returns>
-			/// <remarks>The JSON object that is returned is immutable, and is safe for use as a singleton, a cached document, or for multithreaded operations. If you require a mutable version, please call <see cref="ParseObject(string?,Doxense.Serialization.Json.CrystalJsonSettings?)"/></remarks>
+			/// <remarks>The JSON object that is returned is immutable, and is safe for use as a singleton, a cached document, or for multithreaded operations. If you require a mutable version, please call <see cref="ParseObject(string?,SnowBank.Data.Json.CrystalJsonSettings?)"/></remarks>
 			/// <exception cref="FormatException">If there is a syntax error while parsing the JSON document</exception>
 			/// <exception cref="InvalidOperationException">If the text is empty or equal to <c>"null"</c>.</exception>
 			[Pure]
@@ -147,7 +147,7 @@ namespace Doxense.Serialization.Json
 			/// <param name="jsonText">Input text to parse</param>
 			/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 			/// <returns>Corresponding JSON Object. If <paramref name="jsonText"/> is empty or not an object, an exception will be thrown instead.</returns>
-			/// <remarks>The JSON object that is returned is immutable, and is safe for use as a singleton, a cached document, or for multithreaded operations. If you require a mutable version, please call <see cref="ParseObject(string?,Doxense.Serialization.Json.CrystalJsonSettings?)"/></remarks>
+			/// <remarks>The JSON object that is returned is immutable, and is safe for use as a singleton, a cached document, or for multithreaded operations. If you require a mutable version, please call <see cref="ParseObject(string?,SnowBank.Data.Json.CrystalJsonSettings?)"/></remarks>
 			/// <exception cref="FormatException">If there is a syntax error while parsing the JSON document</exception>
 			/// <exception cref="InvalidOperationException">If the text is empty or equal to <c>"null"</c>.</exception>
 			[Pure]
@@ -177,8 +177,8 @@ namespace Doxense.Serialization.Json
 			/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 			/// <returns>Corresponding JSON Array. If <paramref name="jsonBytes"/> is empty or not an Array, an exception will be thrown</returns>
 			/// <remarks>
-			/// <para>The resulting Array is immutable and cannot be modified. If you require a mutable array, please use <see cref="ParseArray(string?,Doxense.Serialization.Json.CrystalJsonSettings?)"/> instead.</para>
-			/// <para>If the JSON document can sometimes be empty of the 'null' token, you should call <see cref="Parse(string?,Doxense.Serialization.Json.CrystalJsonSettings?)"/> and then use <see cref="JsonValueExtensions.AsArrayOrDefault"/> on the result.</para>
+			/// <para>The resulting Array is immutable and cannot be modified. If you require a mutable array, please use <see cref="ParseArray(string?,SnowBank.Data.Json.CrystalJsonSettings?)"/> instead.</para>
+			/// <para>If the JSON document can sometimes be empty of the 'null' token, you should call <see cref="Parse(string?,SnowBank.Data.Json.CrystalJsonSettings?)"/> and then use <see cref="JsonValueExtensions.AsArrayOrDefault"/> on the result.</para>
 			/// </remarks>
 			/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
 			/// <exception cref="InvalidOperationException">If the JSON document was empty, or the 'null' token, or not an Array.</exception>
@@ -193,7 +193,7 @@ namespace Doxense.Serialization.Json
 			/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 			/// <returns>Corresponding immutable JSON Object. If <paramref name="jsonBytes"/> is empty or not an Array, an exception will be thrown</returns>
 			/// <remarks>
-			/// <para>The resulting object is immutable and cannot be modified. If you require a mutable array, please use <see cref="ParseObject(System.ReadOnlySpan{byte},Doxense.Serialization.Json.CrystalJsonSettings?)"/> instead.</para>
+			/// <para>The resulting object is immutable and cannot be modified. If you require a mutable array, please use <see cref="ParseObject(System.ReadOnlySpan{byte},SnowBank.Data.Json.CrystalJsonSettings?)"/> instead.</para>
 			/// </remarks>
 			/// <exception cref="FormatException">If the JSON document is not syntaxically correct.</exception>
 			/// <exception cref="InvalidOperationException">If the JSON document was empty, or the 'null' token, or not an Object.</exception>

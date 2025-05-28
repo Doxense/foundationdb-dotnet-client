@@ -27,7 +27,7 @@
 namespace SnowBank.Messaging.PubSub
 {
 	using System.Collections.Concurrent;
-	using Doxense.Serialization.Json;
+	using SnowBank.Data.Json;
 	using Microsoft.Extensions.DependencyInjection;
 
 	public class MemoryPubSub : IPubSub

@@ -26,7 +26,7 @@
 
 #if DEPRECATED
 
-namespace Doxense.Serialization.Json
+namespace SnowBank.Data.Json
 {
 
 	/// <summary>Attribute that controls how a type is serialized into JSON</summary>

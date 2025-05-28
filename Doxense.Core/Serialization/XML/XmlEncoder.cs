@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Serialization.Xml
+namespace SnowBank.Text.Xml
 {
 	using System.IO;
 	using System.Text;

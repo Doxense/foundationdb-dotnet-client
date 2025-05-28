@@ -37,7 +37,6 @@ namespace SnowBank.Testing
 	using System.Runtime.InteropServices;
 	using System.Xml;
 	using SnowBank.Data.Tuples;
-	using Doxense.Diagnostics;
 	using SnowBank.Reactive.Disposables;
 	using Microsoft.Extensions.DependencyInjection;
 	using Microsoft.Extensions.Logging;

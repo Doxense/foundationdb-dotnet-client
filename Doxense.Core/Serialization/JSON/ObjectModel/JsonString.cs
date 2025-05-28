@@ -24,12 +24,11 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Serialization.Json
+namespace SnowBank.Data.Json
 {
 	using System.Collections.Frozen;
 	using System.Globalization;
 	using System.Net;
-	using Doxense.Diagnostics;
 	using SnowBank.Buffers;
 	using SnowBank.Collections.Caching;
 	using SnowBank.Runtime;

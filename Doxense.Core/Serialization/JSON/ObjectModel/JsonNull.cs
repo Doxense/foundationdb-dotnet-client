@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Serialization.Json
+namespace SnowBank.Data.Json
 {
 	using System.ComponentModel;
 	using SnowBank.Buffers;
@@ -347,7 +347,7 @@ namespace Doxense.Serialization.Json
 		/// <inheritdoc />
 		public override bool StrictEquals(JsonValue? other) => other is JsonNull n && n.m_kind == m_kind;
 
-		/// <inheritdoc cref="StrictEquals(Doxense.Serialization.Json.JsonValue?)"/>
+		/// <inheritdoc cref="StrictEquals(SnowBank.Data.Json.JsonValue?)"/>
 		public bool StrictEquals(JsonNull? other) => other is not null && other.m_kind == m_kind;
 
 		/// <inheritdoc />

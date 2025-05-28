@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Serialization.Json.Tests
+namespace SnowBank.Data.Json.Tests
 {
 	[TestFixture]
 	[Category("Core-SDK")]

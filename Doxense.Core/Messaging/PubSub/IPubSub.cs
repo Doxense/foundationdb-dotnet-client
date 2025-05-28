@@ -26,7 +26,7 @@
 
 namespace SnowBank.Messaging.PubSub
 {
-	using Doxense.Serialization.Json;
+	using SnowBank.Data.Json;
 
 	/// <summary>Base interface for PubSub implementations</summary>
 	[PublicAPI]

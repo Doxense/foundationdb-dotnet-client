@@ -26,8 +26,8 @@
 
 namespace FoundationDB.Layers.Documents.Tests
 {
-	using Doxense.Serialization.Json.Encoders;
 	using FoundationDB.Types.ProtocolBuffers;
+	using SnowBank.Data.Json.Binary;
 
 	[TestFixture]
 	public class DocumentCollectionFacts : FdbTest

@@ -7,7 +7,7 @@ global using System.Net.Http;
 global using System.Threading;
 global using System.Threading.Tasks;
 global using Doxense.Diagnostics.Contracts;
-global using Doxense.Serialization.Json;
+global using SnowBank.Data.Json;
 global using NodaTime;
 
 // JetBrains Annotations

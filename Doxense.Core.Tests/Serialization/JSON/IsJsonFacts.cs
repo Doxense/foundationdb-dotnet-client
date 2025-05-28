@@ -27,7 +27,7 @@
 // ReSharper disable CompareOfFloatsByEqualityOperator
 // ReSharper disable StringLiteralTypo
 
-namespace Doxense.Serialization.Json.Binary.Tests
+namespace SnowBank.Data.Json.Binary.Tests
 {
 	[TestFixture]
 	[Category("Core-SDK")]

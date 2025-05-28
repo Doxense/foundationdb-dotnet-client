@@ -24,8 +24,9 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Serialization.Json.Encoders
+namespace SnowBank.Data.Json.Binary
 {
+	using SnowBank.Data.Json;
 	using SnowBank.Data.Tuples;
 	using SnowBank.Data.Binary;
 	using SnowBank.Buffers;

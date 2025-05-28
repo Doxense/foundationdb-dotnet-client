@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Serialization.Json
+namespace SnowBank.Data.Json
 {
 	/// <summary>[LEGACY] Types that implement this interface support deserialization directly from a <see cref="JsonValue"/></summary>
 	[Obsolete("Implement both IJsonPackable and IJsonDeserializable<T> instead", error: true)]

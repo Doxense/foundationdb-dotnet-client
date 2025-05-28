@@ -26,7 +26,7 @@
 
 //#define ENABLE_SOURCE_POSITION
 
-namespace Doxense.Serialization.Json
+namespace SnowBank.Data.Json
 {
 	using SnowBank.Text;
 

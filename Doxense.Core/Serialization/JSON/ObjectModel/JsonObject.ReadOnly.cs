@@ -26,7 +26,7 @@
 
 #define CHECK_INVARIANTS
 
-namespace Doxense.Serialization.Json
+namespace SnowBank.Data.Json
 {
 	using System.Collections.Generic;
 	using System.ComponentModel;

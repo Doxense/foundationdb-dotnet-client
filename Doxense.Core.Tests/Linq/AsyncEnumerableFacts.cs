@@ -34,7 +34,7 @@ namespace SnowBank.Linq.Async.Tests
 {
 	using System.Collections.Immutable;
 	using System.Linq;
-	using Doxense.Serialization.Json;
+	using SnowBank.Data.Json;
 	using SnowBank.Linq;
 	using SnowBank.Linq.Async.Iterators;
 

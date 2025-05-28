@@ -8,7 +8,7 @@
 
 #pragma warning disable IL2091
 
-namespace Doxense.Serialization.Json
+namespace SnowBank.Data.Json
 {
 	using System;
 	using System.ComponentModel;

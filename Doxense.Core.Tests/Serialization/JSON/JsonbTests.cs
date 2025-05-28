@@ -28,7 +28,7 @@
 // ReSharper disable StringLiteralTypo
 // ReSharper disable CommentTypo
 
-namespace Doxense.Serialization.Json.Binary.Tests
+namespace SnowBank.Data.Json.Binary.Tests
 {
 	using System.IO.Compression;
 	using SnowBank.Numerics;

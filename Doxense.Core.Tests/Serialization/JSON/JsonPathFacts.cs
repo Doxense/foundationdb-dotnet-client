@@ -30,7 +30,7 @@
 #pragma warning disable NUnit2010 // Use EqualConstraint for better assertion messages in case of failure
 #pragma warning disable CS1718
 
-namespace Doxense.Serialization.Json.Tests
+namespace SnowBank.Data.Json.Tests
 {
 	[TestFixture]
 	[Category("Core-SDK")]

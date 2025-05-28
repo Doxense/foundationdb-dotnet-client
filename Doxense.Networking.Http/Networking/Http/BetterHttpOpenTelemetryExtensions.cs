@@ -37,7 +37,7 @@ namespace OpenTelemetry.Trace
 		{
 			builder.AddSource([
 				BetterHttpInstrumentation.ActivityName,
-				"SnowBank.Sdk.Serialization.Json",
+				"SnowBank.Data.Json",
 			]);
 			return builder;
 		}

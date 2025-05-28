@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Serialization.Json
+namespace SnowBank.Data.Json
 {
 	/// <summary>JSON Text reader that wraps a string</summary>
 	[DebuggerDisplay("Pos={Pos}, Length={Text.Length}")]

@@ -6,7 +6,7 @@
 //
 #endregion
 
-namespace Doxense.Serialization.Json
+namespace SnowBank.Data.Json
 {
 
 	/// <summary>Context that will record all the changes made to a <see cref="MutableJsonValue"/></summary>

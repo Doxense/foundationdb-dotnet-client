@@ -27,7 +27,7 @@
 namespace SnowBank.Messaging.PubSub
 {
 	using System.Threading.Channels;
-	using Doxense.Serialization.Json;
+	using SnowBank.Data.Json;
 
 	/// <summary>Extensions methods for the <see cref="IPubSub"/> abstraction</summary>
 	[PublicAPI]

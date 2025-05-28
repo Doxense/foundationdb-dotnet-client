@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Serialization.Json.JPath
+namespace SnowBank.Data.Json.JPath
 {
 
 	/// <summary>Represents a query in a JSON Document</summary>

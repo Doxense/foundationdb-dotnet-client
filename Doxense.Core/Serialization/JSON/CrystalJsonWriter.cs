@@ -26,7 +26,7 @@
 
 //#define DEBUG_JSON_SERIALIZER
 
-namespace Doxense.Serialization.Json
+namespace SnowBank.Data.Json
 {
 	using System;
 	using System.Buffers;

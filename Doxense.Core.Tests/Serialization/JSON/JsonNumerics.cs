@@ -29,7 +29,7 @@
 // ReSharper disable StringLiteralTypo
 // ReSharper disable CommentTypo
 
-namespace Doxense.Serialization.Json.Tests
+namespace SnowBank.Data.Json.Tests
 {
 #if NET8_0_OR_GREATER
 	using System.Numerics;

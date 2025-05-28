@@ -34,7 +34,7 @@ global using System.Linq;
 global using System.Text;
 global using System.Threading;
 global using System.Threading.Tasks;
-global using Doxense.Serialization.Json;
+global using SnowBank.Data.Json;
 global using SnowBank.Data.Tuples;
 global using SnowBank.Data.Binary;
 global using FoundationDB.Client;

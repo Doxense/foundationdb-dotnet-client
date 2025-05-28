@@ -210,12 +210,10 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 		public static string DefaultOf<T>() => DefaultOf(typeof(T));
 
-		private const string DefaultJsonNamespace = "Doxense.Serialization.Json";
-
 		/// <summary>Tests if this type can be written without the namespace</summary>
 		public static bool CanUseShortName(Type t)
 		{
-			if (t.Namespace == DefaultJsonNamespace) return true;
+			if (t.Namespace == KnownTypeSymbols.CrystalJsonNamespace) return true;
 			return false;
 		}
 

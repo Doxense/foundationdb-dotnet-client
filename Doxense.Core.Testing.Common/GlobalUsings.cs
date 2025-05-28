@@ -2,7 +2,7 @@ global using System.Diagnostics;
 global using System.Globalization;
 global using System.Text;
 global using Doxense.Diagnostics.Contracts;
-global using Doxense.Serialization.Json;
+global using SnowBank.Data.Json;
 global using NUnit.Framework;
 global using SnowBank.Buffers;
 global using SnowBank.Runtime;

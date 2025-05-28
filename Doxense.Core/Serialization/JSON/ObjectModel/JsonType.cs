@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Serialization.Json
+namespace SnowBank.Data.Json
 {
 	/// <summary>Type of JSON value (String, Number, Boolean, Object, Array, Null, ...)</summary>
 	public enum JsonType

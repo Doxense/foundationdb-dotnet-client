@@ -28,7 +28,7 @@
 
 #pragma warning disable IL2087 // Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The generic parameter of the source method or type does not have matching annotations.
 
-namespace Doxense.Serialization.Json
+namespace SnowBank.Data.Json
 {
 	using System.Buffers;
 	using System.Collections;

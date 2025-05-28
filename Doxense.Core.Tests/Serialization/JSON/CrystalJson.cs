@@ -69,7 +69,7 @@
 #pragma warning disable NUnit2021
 #pragma warning disable NUnit2050
 
-namespace Doxense.Serialization.Json.Tests
+namespace SnowBank.Data.Json.Tests
 {
 	using System.Collections.ObjectModel;
 	using System.IO.Compression;

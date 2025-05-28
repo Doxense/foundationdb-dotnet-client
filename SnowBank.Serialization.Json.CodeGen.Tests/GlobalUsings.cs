@@ -7,6 +7,6 @@
 // #endregion
 
 global using System.Collections.Generic;
-global using Doxense.Serialization.Json;
+global using SnowBank.Data.Json;
 global using NUnit.Framework;
 global using SnowBank.Testing;

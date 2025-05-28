@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Serialization.Xml
+namespace SnowBank.Text.Xml
 {
 	using System.Text;
 	using SnowBank.Runtime.Converters;
@@ -36,16 +36,13 @@ namespace Doxense.Serialization.Xml
 	{
 		/// <summary>Return the empty string corresponding to the specified quote character</summary>
 		[Pure]
-		private static string EmptyString(char quote)
+		private static string EmptyString(char quote) => quote switch
 		{
-			switch (quote)
-			{
-				case '"':  return "\"\"";
-				case '\'': return "''";
-				case '\0': return string.Empty;
-				default:   return new string(quote, 2);
-			}
-		}
+			'"' => "\"\"",
+			'\'' => "''",
+			'\0' => string.Empty,
+			_ => new string(quote, 2)
+		};
 
 		/// <summary>Return the number of characters required to fully encode the specified string into an XPATH string literal (including escaping characters, and the surrounding quotes)</summary>
 		/// <returns>Can be used to pre-allocate the buffer capacity required to fully encode a string, before calling one of the encode helpers</returns>

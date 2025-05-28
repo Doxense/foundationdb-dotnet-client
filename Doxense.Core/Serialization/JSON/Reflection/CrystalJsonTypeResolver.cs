@@ -36,7 +36,7 @@
 #pragma warning disable IL2112 // 'DynamicallyAccessedMembersAttribute' on a type or one of its base types references a member which requires unreferenced code.
 #pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
 
-namespace Doxense.Serialization.Json
+namespace SnowBank.Data.Json
 {
 	using System;
 	using System.Collections;

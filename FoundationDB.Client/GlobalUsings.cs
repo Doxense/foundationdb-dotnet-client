@@ -38,7 +38,7 @@ global using System.Threading;
 global using System.Threading.Tasks;
 global using SnowBank.Data.Tuples;
 global using Doxense.Diagnostics.Contracts;
-global using Doxense.Serialization.Json;
+global using SnowBank.Data.Json;
 global using SnowBank.Data.Binary;
 global using SnowBank.Buffers;
 global using SnowBank.Data.Tuples.Binary;
