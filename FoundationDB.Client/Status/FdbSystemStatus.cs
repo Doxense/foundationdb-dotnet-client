@@ -28,7 +28,6 @@
 // ReSharper disable InconsistentNaming
 namespace FoundationDB.Client.Status
 {
-	using Doxense.Serialization.Json;
 
 	/// <summary>Snapshot of the state of a FoundationDB cluster</summary>
 	[PublicAPI]

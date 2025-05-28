@@ -28,6 +28,8 @@ global using System;
 global using System.Collections.Generic;
 global using System.Diagnostics;
 global using System.Linq;
+global using System.Threading.Tasks;
+global using Doxense.Serialization.Json;
 global using SnowBank.Linq;
 global using SnowBank.Runtime;
 

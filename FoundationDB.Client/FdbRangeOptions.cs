@@ -26,7 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System.Buffers;
 
 	/// <summary>Container class for options in a Range query</summary>
 	[DebuggerDisplay("Limit={Limit}, Reverse={IsReversed}, TargetBytes={TargetBytes}, Mode={Streaming}, Read={Fetch}")]

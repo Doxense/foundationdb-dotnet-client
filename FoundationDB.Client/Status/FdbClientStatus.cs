@@ -28,7 +28,6 @@
 
 namespace FoundationDB.Client.Status
 {
-	using Doxense.Serialization.Json;
 
 	public sealed record FdbClientStatus : MetricsBase
 	{

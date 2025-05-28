@@ -26,7 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System;
 	using FoundationDB.Layers.Allocators;
 
 	/// <summary>Provides a FdbDirectoryLayer class for managing directories in FoundationDB.

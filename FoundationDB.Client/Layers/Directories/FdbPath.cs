@@ -26,9 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System;
-	using System.Collections;
-	using Doxense.Serialization.Json;
 
 	/// <summary>Represents a path in a Directory Layer</summary>
 	[DebuggerDisplay("{ToString(),nq}")]
@@ -524,7 +521,7 @@ namespace FoundationDB.Client
 			return MemoryMarshal.ToEnumerable(this.Segments).GetEnumerator();
 		}
 
-		IEnumerator IEnumerable.GetEnumerator()
+		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
 		{
 			return GetEnumerator();
 		}

@@ -31,7 +31,6 @@ namespace FoundationDB.Client
 {
 	using System.Net;
 	using System.Threading.Tasks;
-	using Doxense.Serialization.Json;
 	using FoundationDB.Client.Status;
 
 	public static partial class Fdb

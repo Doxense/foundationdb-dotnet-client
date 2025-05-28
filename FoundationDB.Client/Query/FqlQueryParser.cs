@@ -28,8 +28,6 @@
 
 namespace FoundationDB.Client
 {
-	using System;
-	using System.Buffers;
 	using System.Numerics;
 
 	/// <summary>Options for configuration the parsing of FQL expressions</summary>

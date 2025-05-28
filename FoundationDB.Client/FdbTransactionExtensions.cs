@@ -26,7 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System.Buffers;
 	using System.Buffers.Binary;
 	using System.Numerics;
 

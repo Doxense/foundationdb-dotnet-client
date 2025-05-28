@@ -25,6 +25,7 @@
 #endregion
 
 global using System;
+global using System.Buffers;
 global using System.Collections.Generic;
 global using System.Diagnostics;
 global using System.Diagnostics.CodeAnalysis;
@@ -37,6 +38,7 @@ global using System.Threading;
 global using System.Threading.Tasks;
 global using SnowBank.Data.Tuples;
 global using Doxense.Diagnostics.Contracts;
+global using Doxense.Serialization.Json;
 global using SnowBank.Data.Binary;
 global using SnowBank.Buffers;
 global using SnowBank.Data.Tuples.Binary;

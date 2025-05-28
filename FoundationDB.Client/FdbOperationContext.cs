@@ -26,7 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System.Buffers;
 	using System.Linq;
 	using FoundationDB.Client.Core;
 

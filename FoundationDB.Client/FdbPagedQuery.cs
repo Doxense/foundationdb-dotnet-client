@@ -26,7 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System.Buffers;
 	using System.ComponentModel;
 
 	/// <summary>Query describing an ongoing GetRange operation</summary>

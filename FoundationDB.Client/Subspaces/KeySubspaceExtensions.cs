@@ -26,7 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System;
 
 	/// <summary>Extensions methods and helpers to work with Key Subspaces</summary>
 	[PublicAPI]

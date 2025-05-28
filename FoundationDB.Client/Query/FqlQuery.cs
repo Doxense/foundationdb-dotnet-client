@@ -30,7 +30,6 @@
 
 namespace FoundationDB.Client
 {
-	using Doxense.Serialization.Json;
 
 	[DebuggerDisplay("{this.Text,nq}")]
 	public sealed class FqlQuery : IFqlQuery, IFormattable, IJsonSerializable, IJsonPackable, IJsonDeserializable<FqlQuery>

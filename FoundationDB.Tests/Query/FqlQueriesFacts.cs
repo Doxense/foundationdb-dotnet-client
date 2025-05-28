@@ -28,10 +28,7 @@
 
 namespace FoundationDB.Client.Tests
 {
-	using System.Buffers;
 	using Bogus;
-	using Doxense.Serialization.Json;
-
 
 	public sealed record Album
 	{

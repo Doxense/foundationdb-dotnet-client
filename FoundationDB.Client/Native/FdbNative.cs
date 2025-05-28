@@ -29,7 +29,6 @@
 
 namespace FoundationDB.Client.Native
 {
-	using System.Buffers;
 	using System.IO;
 	using System.Runtime.ExceptionServices;
 

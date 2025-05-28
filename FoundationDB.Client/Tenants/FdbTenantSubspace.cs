@@ -26,7 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System;
 
 	[DebuggerDisplay("Tenant={Metadata.Name}, Prefix={Metadata.Prefix}")]
 	public sealed class FdbTenantSubspace : DynamicKeySubspace

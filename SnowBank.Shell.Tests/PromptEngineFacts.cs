@@ -27,11 +27,8 @@
 // ReSharper disable StringLiteralTypo
 namespace SnowBank.Shell.Prompt.Tests
 {
-	using System;
 	using System.Collections.Generic;
-	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
-	using Doxense.Serialization.Json;
 	using FoundationDB.Client;
 	using FoundationDB.Client.Tests;
 	using NUnit.Framework;

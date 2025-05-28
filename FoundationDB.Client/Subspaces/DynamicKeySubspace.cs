@@ -26,7 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System;
 
 	/// <summary>Represents a <see cref="IKeySubspace">Key Subspace</see> which can encode and decode keys of arbitrary size and types.</summary>
 	/// <remarks>This is useful when dealing with subspaces that store keys of different types and shapes.</remarks>

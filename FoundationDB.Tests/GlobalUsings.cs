@@ -25,6 +25,7 @@
 #endregion
 
 global using System;
+global using System.Buffers;
 global using System.Collections.Generic;
 global using System.Diagnostics;
 global using System.Globalization;
@@ -33,6 +34,7 @@ global using System.Linq;
 global using System.Text;
 global using System.Threading;
 global using System.Threading.Tasks;
+global using Doxense.Serialization.Json;
 global using SnowBank.Data.Tuples;
 global using SnowBank.Data.Binary;
 global using FoundationDB.Client;
