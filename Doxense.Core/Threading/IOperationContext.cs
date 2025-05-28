@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Threading.Operations
+namespace SnowBank.Threading.Operations
 {
 	using System.Runtime.ExceptionServices;
 	using SnowBank.Messaging.Events;
@@ -33,6 +33,7 @@ namespace Doxense.Threading.Operations
 	using Microsoft.Extensions.DependencyInjection.Extensions;
 	using Microsoft.Extensions.Logging;
 	using SnowBank.Runtime;
+	using System.Diagnostics.CodeAnalysis;
 
 	/// <summary>Represents the execution context for an asynchronous operation that can be observed from the outside</summary>
 	[PublicAPI]
@@ -376,7 +377,7 @@ namespace Doxense.Threading.Operations
 	/// <typeparam name="TArguments">Type of the arguments that this workflow will process</typeparam>
 	/// <typeparam name="TResult">Type of the result that this workflow returns upon successful execution of the request</typeparam>
 	[PublicAPI]
-	public abstract class OperationWorkflowBase<TWorkflow, TArguments, TResult> : IOperationWorkflow<TWorkflow, TArguments, TResult>
+	public abstract class OperationWorkflowBase<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TWorkflow, TArguments, TResult> : IOperationWorkflow<TWorkflow, TArguments, TResult>
 		where TWorkflow: OperationWorkflowBase<TWorkflow, TArguments, TResult>
 	{
 
@@ -1022,7 +1023,7 @@ namespace Doxense.Threading.Operations
 	public class OperationScheduler : IOperationScheduler, IOperationOverlord
 	{
 
-		private static readonly ActivitySource ActivitySource = new("Doxense.Threading.Operations");
+		private static readonly ActivitySource ActivitySource = new("SnowBank.Threading.Operations");
 
 		private ILogger<OperationScheduler> Logger { get; }
 
