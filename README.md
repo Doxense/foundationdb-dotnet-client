@@ -314,7 +314,7 @@ public class FooBarModel : PageModel
 
 ## Docker containers
 
-The easiest way to deploy is to use one of the [ASP.NET Core Runtime docker images](https://hub.docker.com/r/microsoft/dotnet-aspnet/) provided my microsoft, such as `mcr.microsoft.com/dotnet/aspnet:8.0` or newer.
+The easiest way to deploy is to use one of the [ASP.NET Core Runtime docker images](https://hub.docker.com/r/microsoft/dotnet-aspnet/) provided by Microsoft, such as `mcr.microsoft.com/dotnet/aspnet:8.0` or newer.
 
 In order to function, the FoundationDB Native client library (`fdb_c.dll` on Windows, `libfdb_c.so`) needs to be present in the container image. The easiest way is to simply copy them from the [FoundationDB Docker image](https://hub.docker.com/r/foundationdb/foundationdb) that contains these files.
 
@@ -420,7 +420,7 @@ The test projects are using NUnit 4, and the test running must run as a 64-bit p
 
 > In order to run the tests, you will also need to obtain the 'fdb_c.dll'/`libfdb_c.so` native library.
 
-You can either run the tests from Visual Studio or Visual Studio Code, using any extension (like Resharper), or from the command line via `dotnet test`.
+You can either run the tests from Visual Studio or Visual Studio Code, using any extension (like ReSharper), or from the command line via `dotnet test`.
 
 > WARNING: All the tests try to run in a dedicated subspace, but there is a possibility of data corruption if they are running against a test or staging cluster! You should run the test against a local cluster where all the data is considered expandable!
 
@@ -432,19 +432,19 @@ This .NET binding has been modeled to be as close as possible to the other bindi
 
 There were a few design goals, that you may agree with or not:
 * Reducing the need to allocate `byte[]` as much as possible. To achieve that, I'm using a `Slice` struct that is the logical equivalent of `ReadOnlyMemory<byte>`, but more versatile.
-* Mapping FoundationDB's Future into `Task<T>` to be able to use async/await. 
+* Mapping FoundationDB's Future into `Task<T>` to be able to use `async`/`await`. 
 * Reducing the risks of memory leaks in long running server processes by wrapping all FDB_xxx handles with .NET `SafeHandle`. This adds a little overhead when P/Invoking into native code, but will guarantee that all handles get released at some time (during the next GC).
-* The Tuple layer has also been optimized to reduce the number of allocations required, and cache the packed bytes of oftenly used tuples (in subspaces, for example).
+* The Tuple layer has also been optimized to reduce the number of allocations required, and cache the packed bytes of often used tuples (in subspaces, for example).
 
 However, there are some key differences between Python and .NET that may cause problems:
-* Python's dynamic types and auto casting of Tuples values, are difficult to model in .NET (without relying on the DLR). The Tuple implementation try to be as dynamic as possible, but if you want to be safe, please try to only use strings, longs, booleans and byte[] to be 100% compatible with other bindings. You should refrain from using the untyped `tuple[index]` indexer (that returns an object), and instead use the generic `tuple.Get<T>(index)` that will try to adapt the underlying type into a T.
+* Python's dynamic types and auto casting of Tuples values, are difficult to model in .NET (without relying on the DLR). The Tuple implementation try to be as dynamic as possible, but if you want to be safe, please try to only use strings, longs, bools and byte[] to be 100% compatible with other bindings. You should refrain from using the untyped `tuple[index]` indexer (that returns an object), and instead use the generic `tuple.Get<T>(index)` that will try to adapt the underlying type into a T.
 * The Tuple layer uses ASCII and Unicode strings, while .NET only have Unicode strings. That means that all strings in .NET will be packed with prefix type 0x02 and byte arrays with prefix type 0x01. An ASCII string packed in Python will be seen as a byte[] unless you use `ITuple.Get<string>()` that will automatically convert it to Unicode.
-* There is no dedicated 'UUID' type prefix, so that means that System.Guid would be serialized as byte arrays, and all instances of byte 0 would need to be escaped. Since `System.Guid` are frequently used as primary keys, I added a new custom type prefix (0x30) for 128-bits UUIDs and (0x31) for 64-bits UUIDs. This simplifies packing/unpacking and speeds up writing/reading/comparing Guid keys.
+* There is no dedicated 'UUID' type prefix, so that means that `System.Guid` would be serialized as byte arrays, and all instances of byte 0 would need to be escaped. Since `System.Guid` are frequently used as primary keys, I added a new custom type prefix (0x30) for 128-bits UUIDs and (0x31) for 64-bits UUIDs. This simplifies packing/unpacking and speeds up writing/reading/comparing Guid keys.
 
 The following files will be required by your application
 * `FoundationDB.Client.dll` : Contains the core types (FdbDatabase, FdbTransaction, ...) and infrastructure to connect to a FoundationDB cluster and execute basic queries, as well as the Tuple and Subspace layers.
 * `FoundationDB.Layers.Commmon.dll` : Contains common Layers that emulates Tables, Indexes, Document Collections, Blobs, ...
-* `fdb_c.dll`/`libfdb_c.so` : The native C client that you will need to obtain from the official FoundationDB windows setup or linux client packages.
+* `fdb_c.dll`/`libfdb_c.so` : The native C client that you will need to obtain from the official FoundationDB Windows setup or Linux client packages.
 
 # Known Limitations
 
