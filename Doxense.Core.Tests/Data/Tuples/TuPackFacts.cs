@@ -36,8 +36,8 @@ namespace SnowBank.Data.Tuples.Tests
 	using System.Net;
 	using System.Numerics;
 	using SnowBank.Data.Tuples.Binary;
-	using Doxense.Diagnostics;
 	using SnowBank.Runtime;
+	using SnowBank.Text;
 
 	[TestFixture]
 	[Category("Core-SDK")]
@@ -58,7 +58,7 @@ namespace SnowBank.Data.Tuples.Tests
 			else
 			{
 				Log($"{label}: [{slice.Count}] {slice.PrettyPrint(128)}");
-				Log(HexaDump.Format(slice, HexaDump.Options.NoFooter | HexaDump.Options.NoHeader | HexaDump.Options.OmmitLastNewLine, indent: 1));
+				Log(HexaDump.Format(slice, HexaDump.Options.NoFooter | HexaDump.Options.NoHeader | HexaDump.Options.OmitLastNewLine, indent: 1));
 			}
 		}
 

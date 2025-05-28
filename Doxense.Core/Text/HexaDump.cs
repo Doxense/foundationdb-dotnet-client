@@ -26,7 +26,7 @@
 
 #pragma warning disable CS0618 // Type or member is obsolete
 
-namespace Doxense.Diagnostics
+namespace SnowBank.Text
 {
 	using SnowBank.IO.Hashing;
 	using SnowBank.Buffers.Text;
@@ -41,19 +41,25 @@ namespace Doxense.Diagnostics
 		{
 			/// <summary>Standard display</summary>
 			Default = 0,
+
 			/// <summary>Do not display the ASCII preview</summary>
 			NoPreview = 1,
+
 			/// <summary>Do not add any headers</summary>
 			NoHeader = 2,
+
 			/// <summary>Do not add any footers</summary>
 			NoFooter = 4,
+
 			/// <summary>Display the byte distribution graph</summary>
 			ShowBytesDistribution = 8,
+
 			/// <summary>The content is most probably text</summary>
 			Text = 16,
+
 			/// <summary>Do not include the last <c>\r\n</c> for the last line</summary>
-			/// <remarks>Allow to WriteLine(HexaDump.Format(...)) the dump without adding an extra new line in the log</remarks>
-			OmmitLastNewLine = 32,
+			/// <remarks>Allows <c>WriteLine(HexaDump.Format(...))</c> to dump to the console or log, without adding an extra new line</remarks>
+			OmitLastNewLine = 32,
 		}
 
 		private static void DumpHexaLine(ref FastStringBuilder sb, ReadOnlySpan<byte> bytes)
@@ -120,7 +126,7 @@ namespace Doxense.Diagnostics
 			if (bytes.Length < 16) sb.Append(' ', (16 - bytes.Length));
 		}
 
-		/// <summary>Dump a byte array into hexadecimal, formatted as 16 bytes per lines</summary>
+		/// <summary>Dumps a byte array into hexadecimal, formatted as 16 bytes per lines</summary>
 		public static string Format(byte[] bytes, Options options = Options.Default, int indent = 0)
 		{
 			Contract.NotNull(bytes);
@@ -128,13 +134,13 @@ namespace Doxense.Diagnostics
 			return Format(bytes.AsSlice(), options, indent);
 		}
 
-		/// <summary>Dump a byte slice into hexadecimal, formatted as 16 bytes per lines</summary>
+		/// <summary>Dumps a byte slice into hexadecimal, formatted as 16 bytes per lines</summary>
 		public static string Format(Slice bytes, Options options = Options.Default, int indent = 0)
 		{
 			return Format(bytes.Span, options, indent);
 		}
 
-		/// <summary>Dump a byte span into hexadecimal, formatted as 16 bytes per lines</summary>
+		/// <summary>Dumps a byte span into hexadecimal, formatted as 16 bytes per lines</summary>
 		public static string Format(ReadOnlySpan<byte> bytes, Options options = Options.Default, int indent = 0)
 		{
 			var sb = new FastStringBuilder();
@@ -193,7 +199,7 @@ namespace Doxense.Diagnostics
 				sb.AppendLine();
 			}
 
-			if ((options & Options.OmmitLastNewLine) != 0)
+			if ((options & Options.OmitLastNewLine) != 0)
 			{
 				switch (Environment.NewLine)
 				{

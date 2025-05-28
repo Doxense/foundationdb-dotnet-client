@@ -6,6 +6,7 @@ global using Doxense.Serialization.Json;
 global using NUnit.Framework;
 global using SnowBank.Buffers;
 global using SnowBank.Runtime;
+global using SnowBank.Text;
 global using SnowBank.Threading;
 
 // JetBrains Annotations
