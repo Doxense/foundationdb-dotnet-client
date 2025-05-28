@@ -28,15 +28,12 @@
 
 namespace SnowBank.Networking
 {
-	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Net;
 	using System.Net.Http;
 	using System.Net.NetworkInformation;
 	using System.Net.Sockets;
-	using System.Text;
 	using SnowBank.IO.Hashing;
-	using Doxense.Threading;
 
 	public class VirtualNetworkTopology : IVirtualNetworkTopology
 	{

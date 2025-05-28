@@ -29,9 +29,7 @@ namespace SnowBank.Testing
 	using System.Net;
 	using System.Net.Http;
 	using System.Net.Sockets;
-	using System.Text;
 	using NUnit.Framework.Constraints;
-	using SnowBank.Runtime;
 
 	public sealed class Pokeball<TException> where TException : Exception
 	{

@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Threading.Tests
+namespace SnowBank.Threading.Tests
 {
 	[TestFixture]
 	[Category("Core-SDK")]
@@ -35,7 +35,7 @@ namespace Doxense.Threading.Tests
 		[Test]
 		public void Test_Basics()
 		{
-			// Test that the delay will ramp-up until the maximum value
+			// Test that the delay will ramp up until the maximum value
 
 			var backoff = new ExponentialRandomizedBackoff(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(10));
 
@@ -67,7 +67,7 @@ namespace Doxense.Threading.Tests
 
 			// sample the delay, and compute some statistics (avg, stdev, ..)
 
-			TimeSpan prev = default;
+			var prev = TimeSpan.Zero;
 			var samples = new List<double>(ITERATIONS);
 			for(int i = 0; i < ITERATIONS; i++)
 			{
@@ -98,7 +98,7 @@ namespace Doxense.Threading.Tests
 			Log($"> Avg = {avg:N3} s");
 			Log($"> Std = {std:N3} s");
 
-			Assert.That(min, Is.GreaterThanOrEqualTo(1).And.LessThan(1.25), "Mininimum (>= 1)");
+			Assert.That(min, Is.GreaterThanOrEqualTo(1).And.LessThan(1.25), "Minimum (>= 1)");
 			Assert.That(max, Is.LessThanOrEqualTo(1.5).And.GreaterThan(1.25), "Maximum (<= 1.5)");
 			Assert.That(avg, Is.EqualTo(1.25).Within(0.02), "Average (should be ~ 1.25)");
 			Assert.That(std, Is.EqualTo(0.144).Within(0.02), "Standard Deviation (should be ~ 0.144)");
@@ -107,7 +107,7 @@ namespace Doxense.Threading.Tests
 		[Test]
 		public void Test_Does_Not_Exceed_Maximum()
 		{
-			// Test that the delay will ramp-up until the maximum value
+			// Test that the delay will ramp up until the maximum value
 
 			var rnd = new Random(5234687);
 

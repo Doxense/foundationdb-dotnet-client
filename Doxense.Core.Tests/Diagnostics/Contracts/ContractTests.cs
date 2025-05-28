@@ -26,13 +26,11 @@
 
 #pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
+
 namespace Doxense.Diagnostics.Contracts.Tests
 {
 	using System.Diagnostics.CodeAnalysis;
-	using System.Diagnostics.Contracts;
-	using Contract = Doxense.Diagnostics.Contracts.Contract;
 
-	/// <summary>Tests sur la classe statique Doxense.Diagnostics.Contracts.Contract</summary>
 	[TestFixture]
 	[Category("Core-SDK")]
 	[SetInvariantCulture]
@@ -415,7 +413,7 @@ namespace Doxense.Diagnostics.Contracts.Tests
 			Assert.That(cex.Message, Is.EqualTo("Precondition failed: x == 42  le message"));
 			Assert.That(cex.UserMessage, Is.EqualTo("le message"), ".UserMessage");
 			Assert.That(cex.Condition, Is.EqualTo("x == 42"), ".Condition");
-			Assert.That(cex.Kind, Is.EqualTo(ContractFailureKind.Precondition));
+			Assert.That(cex.Kind, Is.EqualTo(System.Diagnostics.Contracts.ContractFailureKind.Precondition));
 		}
 
 		[Test]
@@ -434,7 +432,7 @@ namespace Doxense.Diagnostics.Contracts.Tests
 			Assert.That(cex.Message, Is.EqualTo("Assertion failed: x == 42  le message"));
 			Assert.That(cex.UserMessage, Is.EqualTo("le message"), ".UserMessage");
 			Assert.That(cex.Condition, Is.EqualTo("x == 42"), ".Condition");
-			Assert.That(cex.Kind, Is.EqualTo(ContractFailureKind.Assert));
+			Assert.That(cex.Kind, Is.EqualTo(System.Diagnostics.Contracts.ContractFailureKind.Assert));
 		}
 
 		[Test]
@@ -450,7 +448,7 @@ namespace Doxense.Diagnostics.Contracts.Tests
 			Assert.That(cex.Message, Is.EqualTo("Postcondition failed: x == 42  le message"));
 			Assert.That(cex.UserMessage, Is.EqualTo("le message"), ".UserMessage");
 			Assert.That(cex.Condition, Is.EqualTo("x == 42"), ".Condition");
-			Assert.That(cex.Kind, Is.EqualTo(ContractFailureKind.Postcondition));
+			Assert.That(cex.Kind, Is.EqualTo(System.Diagnostics.Contracts.ContractFailureKind.Postcondition));
 		}
 
 		[Test]
@@ -466,7 +464,7 @@ namespace Doxense.Diagnostics.Contracts.Tests
 			Assert.That(cex.Message, Is.EqualTo("Invariant failed: x == 42  le message"));
 			Assert.That(cex.UserMessage, Is.EqualTo("le message"), ".UserMessage");
 			Assert.That(cex.Condition, Is.EqualTo("x == 42"), ".Condition");
-			Assert.That(cex.Kind, Is.EqualTo(ContractFailureKind.Invariant));
+			Assert.That(cex.Kind, Is.EqualTo(System.Diagnostics.Contracts.ContractFailureKind.Invariant));
 		}
 
 		[Test]
@@ -506,7 +504,7 @@ namespace Doxense.Diagnostics.Contracts.Tests
 			Assert.That(cex.Message, Is.EqualTo("Precondition failed: x == 42  le message"));
 			Assert.That(cex.UserMessage, Is.EqualTo("le message"), ".UserMessage");
 			Assert.That(cex.Condition, Is.EqualTo("x == 42"), ".Condition");
-			Assert.That(cex.Kind, Is.EqualTo(ContractFailureKind.Precondition));
+			Assert.That(cex.Kind, Is.EqualTo(System.Diagnostics.Contracts.ContractFailureKind.Precondition));
 		}
 
 		[Test]
@@ -529,7 +527,7 @@ namespace Doxense.Diagnostics.Contracts.Tests
 			Assert.That(cex.Message, Is.EqualTo("Assertion failed: x == 42  le message"));
 			Assert.That(cex.UserMessage, Is.EqualTo("le message"), ".UserMessage");
 			Assert.That(cex.Condition, Is.EqualTo("x == 42"), ".Condition");
-			Assert.That(cex.Kind, Is.EqualTo(ContractFailureKind.Assert));
+			Assert.That(cex.Kind, Is.EqualTo(System.Diagnostics.Contracts.ContractFailureKind.Assert));
 		}
 
 		[Test]
@@ -549,7 +547,7 @@ namespace Doxense.Diagnostics.Contracts.Tests
 			Assert.That(cex.Message, Is.EqualTo("Postcondition failed: x == 42  le message"));
 			Assert.That(cex.UserMessage, Is.EqualTo("le message"), ".UserMessage");
 			Assert.That(cex.Condition, Is.EqualTo("x == 42"), ".Condition");
-			Assert.That(cex.Kind, Is.EqualTo(ContractFailureKind.Postcondition));
+			Assert.That(cex.Kind, Is.EqualTo(System.Diagnostics.Contracts.ContractFailureKind.Postcondition));
 		}
 
 		[Test]
@@ -569,7 +567,7 @@ namespace Doxense.Diagnostics.Contracts.Tests
 			Assert.That(cex.Message, Is.EqualTo("Invariant failed: x == 42  le message"));
 			Assert.That(cex.UserMessage, Is.EqualTo("le message"), ".UserMessage");
 			Assert.That(cex.Condition, Is.EqualTo("x == 42"), ".Condition");
-			Assert.That(cex.Kind, Is.EqualTo(ContractFailureKind.Invariant));
+			Assert.That(cex.Kind, Is.EqualTo(System.Diagnostics.Contracts.ContractFailureKind.Invariant));
 		}
 
 	}

@@ -29,13 +29,9 @@ namespace SnowBank.Testing
 {
 	using System.Buffers;
 	using System.Collections.Generic;
-	using System.Diagnostics;
 	using System.Linq;
 	using System.Numerics;
 	using System.Runtime.CompilerServices;
-	using System.Text;
-	using SnowBank.Buffers;
-	using SnowBank.Runtime;
 
 	/// <summary>Extension methods for <see cref="HistoryRecordingArrayPool{T}"/></summary>
 	[PublicAPI]

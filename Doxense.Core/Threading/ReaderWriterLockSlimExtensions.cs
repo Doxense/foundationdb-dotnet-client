@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.Threading
+namespace SnowBank.Threading
 {
 
 	/// <summary>Extensions methods for working with <seealso cref="ReaderWriterLockSlim"/></summary>

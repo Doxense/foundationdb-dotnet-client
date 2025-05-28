@@ -19,4 +19,4 @@ global using PublicAPIAttribute = JetBrains.Annotations.PublicAPIAttribute;
 global using PureAttribute = System.Diagnostics.Contracts.PureAttribute;
 global using StringFormatMethodAttribute = JetBrains.Annotations.StringFormatMethodAttribute;
 global using UsedImplicitlyAttribute = JetBrains.Annotations.UsedImplicitlyAttribute;
-global using UsedImplUsedImplicitlyAttributeicitly = JetBrains.Annotations.UsedImplicitlyAttribute;
+global using UsedImplUsedImplicitlyAttribute = JetBrains.Annotations.UsedImplicitlyAttribute;

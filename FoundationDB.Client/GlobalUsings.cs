@@ -42,6 +42,7 @@ global using SnowBank.Buffers;
 global using SnowBank.Data.Tuples.Binary;
 global using SnowBank.Linq;
 global using SnowBank.Runtime;
+global using SnowBank.Threading;
 
 // JetBrains Annotations
 global using ContractAnnotationAttribute = JetBrains.Annotations.ContractAnnotationAttribute;

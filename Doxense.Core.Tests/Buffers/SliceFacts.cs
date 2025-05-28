@@ -41,7 +41,7 @@ namespace SnowBank.Buffers.Tests
 
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.InteropServices;
-	using static Doxense.Testing.TestVariables;
+	using static SnowBank.Testing.TestVariables;
 
 	[TestFixture]
 	[Category("Core-SDK")]

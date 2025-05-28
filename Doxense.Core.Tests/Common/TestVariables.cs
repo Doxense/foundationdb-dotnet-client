@@ -26,7 +26,7 @@
 
 // ReSharper disable InconsistentNaming
 
-namespace Doxense.Testing
+namespace SnowBank.Testing
 {
 	using JetBrains.Annotations;
 

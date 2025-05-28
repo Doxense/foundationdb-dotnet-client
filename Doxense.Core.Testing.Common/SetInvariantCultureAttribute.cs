@@ -26,7 +26,6 @@
 
 namespace SnowBank.Testing
 {
-	using System.Globalization;
 	using NUnit.Framework.Interfaces;
 	using NUnit.Framework.Internal;
 
