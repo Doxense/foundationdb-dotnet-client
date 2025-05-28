@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.IO.Hashing
+namespace SnowBank.IO.Hashing
 {
 	using System.Text;
 
@@ -219,7 +219,7 @@ namespace Doxense.IO.Hashing
 		/// <summary>Computes the 64-bits FNV-1 hash of a <see cref="int"/></summary>
 		/// <returns>Corresponding FNV-1 64-bit hash</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ulong FromInt64(int x)
+		public static ulong FromInt32(int x)
 		{
 			return Continue(FNV1_64_OFFSET_BASIS, x);
 		}
@@ -243,7 +243,7 @@ namespace Doxense.IO.Hashing
 		/// <summary>Computes the 64-bits FNV-1 hash of a <see cref="uint"/></summary>
 		/// <returns>Corresponding FNV-1 64-bit hash</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ulong FromUInt64(uint x)
+		public static ulong FromUInt32(uint x)
 		{
 			return Continue(FNV1_64_OFFSET_BASIS, x);
 		}

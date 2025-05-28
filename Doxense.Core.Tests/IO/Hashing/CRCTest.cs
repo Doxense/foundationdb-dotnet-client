@@ -27,15 +27,15 @@
 // ReSharper disable HeapView.BoxingAllocation
 // ReSharper disable HeapView.ObjectAllocation
 #pragma warning disable CS0618 // Type or member is obsolete
-namespace Doxense.IO.Hashing.Tests
+namespace SnowBank.IO.Hashing.Tests
 {
 	using System.Diagnostics.CodeAnalysis;
-	using Doxense.IO.Hashing;
+	using SnowBank.IO.Hashing;
 
 	[TestFixture]
 	[Category("Core-SDK")]
 	[Parallelizable(ParallelScope.All)]
-	public class CRCTest : SimpleTest
+	public class ChecksumFacts : SimpleTest
 	{
 
 		#region FNV1
@@ -246,7 +246,7 @@ namespace Doxense.IO.Hashing.Tests
 			if (label != null)
 			{
 				double nanos = (t.Elapsed.Ticks * NANOS_PER_TICK) / iter;
-				Log($"{label,6} = {h:x8} > {nanos,8:F1} ns => {(nanos / sample.Length) * CRCTest.CPU_GHZ,5:F1} cycles/byte  @ {CRCTest.CPU_GHZ} GHz, {(1.0 * sample.Length * iter) / (1024 * 1024 * t.Elapsed.TotalSeconds),7:F1} MB/sec");
+				Log($"{label,6} = {h:x8} > {nanos,8:F1} ns => {(nanos / sample.Length) * ChecksumFacts.CPU_GHZ,5:F1} cycles/byte  @ {ChecksumFacts.CPU_GHZ} GHz, {(1.0 * sample.Length * iter) / (1024 * 1024 * t.Elapsed.TotalSeconds),7:F1} MB/sec");
 			}
 		}
 
@@ -259,7 +259,7 @@ namespace Doxense.IO.Hashing.Tests
 			if (label != null)
 			{
 				double nanos = (t.Elapsed.TotalSeconds / iter) * NANOS_PER_SEC;
-				Log($"{label,6} = {h:x16} > {nanos,8:F1} ns => {(nanos / sample.Length) * CRCTest.CPU_GHZ,5:F1} cycles/byte @ {CRCTest.CPU_GHZ} GHz, {(1.0 * sample.Length * iter) / (1024 * 1024 * t.Elapsed.TotalSeconds),7:F1} MB/sec");
+				Log($"{label,6} = {h:x16} > {nanos,8:F1} ns => {(nanos / sample.Length) * ChecksumFacts.CPU_GHZ,5:F1} cycles/byte @ {ChecksumFacts.CPU_GHZ} GHz, {(1.0 * sample.Length * iter) / (1024 * 1024 * t.Elapsed.TotalSeconds),7:F1} MB/sec");
 			}
 		}
 
@@ -273,7 +273,7 @@ namespace Doxense.IO.Hashing.Tests
 			if (label != null)
 			{
 				double nanos = (t.Elapsed.TotalSeconds / iter) * NANOS_PER_SEC;
-				Log($"{label,6} = {h:n} > {nanos,8:F1} ns => {(nanos / sample.Length) * CRCTest.CPU_GHZ,5:F1} cycles/byte @ {CRCTest.CPU_GHZ} GHz, {(1.0 * sample.Length * iter) / (1024 * 1024 * t.Elapsed.TotalSeconds),7:F1} MB/sec");
+				Log($"{label,6} = {h:n} > {nanos,8:F1} ns => {(nanos / sample.Length) * ChecksumFacts.CPU_GHZ,5:F1} cycles/byte @ {ChecksumFacts.CPU_GHZ} GHz, {(1.0 * sample.Length * iter) / (1024 * 1024 * t.Elapsed.TotalSeconds),7:F1} MB/sec");
 			}
 		}
 
@@ -282,7 +282,7 @@ namespace Doxense.IO.Hashing.Tests
 		{
 			byte[] TINY = [ 42 ];
 			byte[] SMALL = [ 1, 2, 3, 4, 5 ];
-			byte[] GUID = Guid.NewGuid().ToByteArray(); // Encoding.ASCII.GetBytes("Hello!");
+			byte[] GUID = Guid.NewGuid().ToByteArray();
 			byte[] MEDIUM = "連邦政府軍のご協力により、君達の基地は、全てCATSがいただいた。"u8.ToArray();
 			byte[] LARGE = new byte[4096];
 			new Random().NextBytes(LARGE);

@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.IO.Hashing
+namespace SnowBank.IO.Hashing
 {
 	using System.Runtime.InteropServices;
 

@@ -35,7 +35,7 @@ namespace SnowBank.Networking
 	using System.Net.NetworkInformation;
 	using System.Net.Sockets;
 	using System.Text;
-	using Doxense.IO.Hashing;
+	using SnowBank.IO.Hashing;
 	using Doxense.Threading;
 
 	public class VirtualNetworkTopology : IVirtualNetworkTopology

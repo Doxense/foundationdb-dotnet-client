@@ -24,7 +24,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.IO.Hashing
+namespace SnowBank.IO.Hashing
 {
 	/// <summary>Uses the the <strong>Highest Random Weight Hashing</strong> strategy (<em>HRW</em>, also called <em>Rendezvous Hashing</em>) to deterministically choose a <typeparamref name="TBucket">bucket</typeparamref> for any <typeparamref name="TKey">key</typeparamref></summary>
 	/// <typeparam name="TKey">Type of the keys that must be assigned to a bucket</typeparam>

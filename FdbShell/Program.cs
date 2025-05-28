@@ -57,7 +57,7 @@ namespace FdbShell
 			if (args.Contains("--spawn"))
 			{
 				// compute a hash of the arguments, to detect if the child process is already started
-				var hash = Doxense.IO.Hashing.Fnv1aHash64.FromString(string.Join("¤", args), ignoreCase: false);
+				var hash = SnowBank.IO.Hashing.Fnv1aHash64.FromString(string.Join("¤", args), ignoreCase: false);
 
 				// respawn this process in a new terminal window, with the same arguments (minus the --spawn)
 				// -> this is a workaround to an issue in Aspire that, when FdbShell is started in the AppHost, it will not have a valid console (stdin/stdout)

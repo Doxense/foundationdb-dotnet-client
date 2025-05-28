@@ -24,7 +24,9 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace Doxense.IO.Hashing
+// ReSharper disable InconsistentNaming
+
+namespace SnowBank.IO.Hashing
 {
 	using System.Text;
 	using System.Runtime.InteropServices;

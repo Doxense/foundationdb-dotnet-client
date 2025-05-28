@@ -28,7 +28,7 @@
 
 namespace Doxense.Diagnostics
 {
-	using Doxense.IO.Hashing;
+	using SnowBank.IO.Hashing;
 	using SnowBank.Buffers.Text;
 
 	/// <summary>Helper class for formatting binary blobs into hexadecimal for logging or troubleshooting</summary>

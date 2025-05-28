@@ -25,7 +25,7 @@
 #endregion
 
 #pragma warning disable CS0618 // Type or member is obsolete
-namespace Doxense.IO.Hashing.Tests
+namespace SnowBank.IO.Hashing.Tests
 {
 	[TestFixture]
 	[Category("Core-SDK")]
