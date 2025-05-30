@@ -111,6 +111,11 @@ namespace SnowBank.Serialization.Json.CodeGen
 		public const string ObservableJsonDictionaryFullName = CrystalJsonNamespace + ".ObservableJsonDictionary";
 		public const string ObservableJsonArrayFullName = CrystalJsonNamespace + ".ObservableJsonArray";
 
+		// buffer types
+		public const string SliceFullName = "System.Slice";
+		public const string SliceOwnerFullName = "System.SliceOwner";
+		public const string ArrayPoolFullName = "System.Buffers.ArrayPool";
+
 		#endregion
 		
 		public Compilation Compilation { get; }

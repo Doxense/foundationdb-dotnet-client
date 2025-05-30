@@ -1261,6 +1261,11 @@ namespace SnowBank.Serialization.Json.CodeGen
 				sb.AppendLine($"public static {KnownTypeSymbols.SliceFullName} ToJsonSlice({typeDef.Type.FullyQualifiedNameAnnotated} instance, {KnownTypeSymbols.CrystalJsonSettingsFullName}? settings = default, {KnownTypeSymbols.ICrystalJsonTypeResolverFullName}? resolver = default) => {KnownTypeSymbols.CrystalJsonFullName}.ToSlice(instance, Default, settings ?? {KnownTypeSymbols.CrystalJsonSettingsFullName}.JsonCompact, resolver);");
 				sb.NewLine();
 
+				// ToJsonSlice(...)
+				sb.XmlComment($"<summary>Serializes a value of type <see cref=\"{typeCref}\" /> into a <see cref=\"{KnownTypeSymbols.SliceFullName}\"/>, using the specified <see cref=\"{KnownTypeSymbols.ArrayPoolFullName}{{T}}\"/></summary>");
+				sb.AppendLine($"public static {KnownTypeSymbols.SliceOwnerFullName} ToJsonSlice({typeDef.Type.FullyQualifiedNameAnnotated} instance, {KnownTypeSymbols.ArrayPoolFullName}<byte>? pool, {KnownTypeSymbols.CrystalJsonSettingsFullName}? settings = default, {KnownTypeSymbols.ICrystalJsonTypeResolverFullName}? resolver = default) => {KnownTypeSymbols.CrystalJsonFullName}.ToSlice(instance, Default, pool, settings ?? {KnownTypeSymbols.CrystalJsonSettingsFullName}.JsonCompact, resolver);");
+				sb.NewLine();
+
 				// Deserialize(...)
 				sb.AppendLine($"public static {typeDef.Type.FullyQualifiedName} Deserialize(string jsonText, {KnownTypeSymbols.CrystalJsonSettingsFullName}? settings = default, {KnownTypeSymbols.ICrystalJsonTypeResolverFullName}? resolver = default) => Default.Deserialize(jsonText, settings, resolver);");
 				sb.NewLine();
