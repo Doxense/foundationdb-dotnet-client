@@ -1,6 +1,11 @@
-SnowBank SDK - Better HTTP Library
-==================================
+SnowBank SDK - Core Library
+===========================
 
-> Wrapper for `System.Net.Http.HttpClient` with a better API, and better testability
+> Core library for the FoundationDB .NET Client and SnowBank SDK
 
-This package contains a wrapper that attempts to "fix" some usability issues with `HttpClient`, and allows for better control when running unit tests in a "virtual" network.
+This package contains the low-level components that are used by other packages.
+
+- Slice: better version of `ReadOnlyMemory<byte>`, that allows easier usage of binary keys and values.
+- Tuples: implementation of tuples that is closer to Python, and makes it easier to work with composite keys.
+- JSON: Supercharged implementation of a JSON parser, binder, DOM and code generator.
+- Various interfaces that can be shared between all the other packages, while the implementation is in other packages.
