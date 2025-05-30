@@ -11,7 +11,6 @@
 		<RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
 		<SignAssembly>true</SignAssembly>
 		<AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
-		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<Deterministic>true</Deterministic>
 		<ProduceReferenceAssembly>true</ProduceReferenceAssembly>
 	</PropertyGroup>
@@ -29,7 +28,7 @@
 
 	<ItemGroup>
 		<None Include="../Common/foundationdb.png" Pack="true" Visible="false" PackagePath="\" />
-		<None Include="../README.md" Pack="true" Visible="false" PackagePath="\" />
+		<None Include="./README.md" Pack="true" Visible="false" PackagePath="\" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -46,10 +45,6 @@
 
 	<ItemGroup>
 		<JsonSchemaSegment Include=".\ConfigurationSchema.json" FilePathPattern="appsettings\..*json" />
-	</ItemGroup>
-	
-	<ItemGroup>
-		<None Include="../README.md" Pack="true" Visible="false" PackagePath="/" />
 	</ItemGroup>
 
 </Project>

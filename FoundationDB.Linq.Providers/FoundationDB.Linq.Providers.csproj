@@ -19,13 +19,14 @@
 	<PropertyGroup>
 		<AssemblyTitle>FoundationDB LINQ Providers</AssemblyTitle>
 		<Description>Experimental LINQ providers for the FoundationDB .NET Binding</Description>
-		<PackageTags>foundationdb fdb nosql</PackageTags>
-		<!--<PackageReadmeFile>README.md</PackageReadmeFile>-->
+		<PackageTags>foundationdb fdb nosql database linq</PackageTags>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageIcon>foundationdb.png</PackageIcon>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<None Include="../Common/foundationdb.png" Pack="true" Visible="false" PackagePath="\" />
+		<None Include="../README.md" Pack="true" Visible="false" PackagePath="\" />
 	</ItemGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

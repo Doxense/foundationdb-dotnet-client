@@ -1,10 +1,4 @@
-*** Since .NET Aspire is still in preview, this may change at any time! ***
-
 #### Using Aspire
-
-***Note: Aspire is currently in preview, so things may change at any time!***
-
-_At the time of this writing, you need at least Preview 4 (8.0.0-preview.4.24156.9) of the Aspire SDK !_
 
 It is possible to add a FoundationDB cluster resource to your Aspire application model, and pass a reference to this cluster to the projects that need it.
 

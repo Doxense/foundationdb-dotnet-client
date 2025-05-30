@@ -19,7 +19,7 @@
 	<PropertyGroup>
 		<AssemblyTitle>.NET Binding for FoundationDB</AssemblyTitle>
 		<Description>This is the FoundationDB client library for developing .NET applications or layers.</Description>
-		<PackageTags>foundationdb fdb nosql</PackageTags>
+		<PackageTags>foundationdb fdb nosql database</PackageTags>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageIcon>foundationdb.png</PackageIcon>
 		<GenerateDocumentationFile Condition="'$(Configuration)' != 'Debug'">true</GenerateDocumentationFile>

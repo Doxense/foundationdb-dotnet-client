@@ -21,12 +21,13 @@
 		<AssemblyTitle>SnowBank Console Prompt</AssemblyTitle>
 		<Description>Prettify your shells!</Description>
 		<PackageTags>snowbank sdk cli prompt shell</PackageTags>
-		<!--<PackageReadmeFile>README.md</PackageReadmeFile>-->
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageIcon>snowbank.png</PackageIcon>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<None Include="../Common/snowbank.png" Pack="true" Visible="false" PackagePath="\" />
+		<None Include="./README.md" Pack="true" Visible="false" PackagePath="\" />
 	</ItemGroup>
 
 	<ItemGroup>
