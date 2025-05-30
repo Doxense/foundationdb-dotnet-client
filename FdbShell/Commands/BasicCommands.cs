@@ -29,19 +29,8 @@
 
 namespace FdbShell
 {
-	using System.Collections.Generic;
-	using System.Diagnostics;
-	using System.Globalization;
-	using System.IO;
-	using System.Linq;
-	using System.Net;
-	using System.Text;
-	using System.Threading;
-	using System.Threading.Tasks;
 	using FoundationDB.Client.Status;
 	using SnowBank.Buffers.Binary;
-	using Spectre.Console;
-	using SnowBank.Linq;
 
 	public static class BasicCommands
 	{
@@ -195,7 +184,7 @@ namespace FdbShell
 		/// <summary>Remove a directory and all its data</summary>
 		public static async Task RemoveDirectory(FdbPath path, IVarTuple extras, IFdbDatabase db, IFdbShellTerminal terminal, CancellationToken ct)
 		{
-			// "-r|--recursive" is used to allow removing an entire sub-tree
+			// "-r|--recursive" is used to allow removing an entire subtree
 			string[] args = extras.ToArray<string>();
 			bool recursive = args.Contains("-r", StringComparer.Ordinal) || args.Contains("--recursive", StringComparer.Ordinal);
 			bool force = args.Contains("-f", StringComparer.Ordinal) || args.Contains("--force", StringComparer.Ordinal);
@@ -454,7 +443,7 @@ namespace FdbShell
 				if (folder.Layer == FdbDirectoryPartition.LayerId)
 				{
 					terminal.Error("Cannot clear the content of a Directory Partition!");
-					return default(bool?);
+					return null;
 				}
 
 				var k = MakeKey(folder, key);
@@ -511,13 +500,13 @@ namespace FdbShell
 				if (folder.Layer == FdbDirectoryPartition.LayerId)
 				{
 					terminal.Error("Cannot clear the content of a Directory Partition!");
-					return default(bool?);
+					return null;
 				}
 
 				if (extras.Count == 0)
 				{
 					terminal.Error("You must specify a key of range of keys!");
-					return default(bool?);
+					return null;
 				}
 
 				KeyRange range;
@@ -791,7 +780,7 @@ namespace FdbShell
 			{
 				for (int i = 1; i <= p.Count; i++)
 				{
-					var s = FdbPath.Absolute(p.Segments.Slice(0, i)).ToString();
+					var s = FdbPath.Absolute(p.Segments[..i]).ToString();
 					map[s] = map.TryGetValue(s, out int x) ? (x + c) : c;
 				}
 			}
@@ -1257,10 +1246,9 @@ namespace FdbShell
 			
 			//terminal.Comment(query.Explain());
 
-			var root = db.Root;
-			var current = root[path];
+			var current = db.Root[path];
 			
-			var res = await db.QueryAsync(tr => query.Scan(tr, db.Root[path]), ct);
+			var res = await db.QueryAsync(tr => query.Scan(tr, current), ct);
 
 			terminal.StdOut(res.Count switch
 			{

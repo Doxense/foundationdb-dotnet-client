@@ -30,16 +30,8 @@
 
 namespace FdbShell
 {
-	using System.Collections.Generic;
 	using System.CommandLine;
 	using System.CommandLine.Invocation;
-	using System.Diagnostics;
-	using System.Globalization;
-	using System.Linq;
-	using System.Runtime.CompilerServices;
-	using System.Text;
-	using System.Threading;
-	using System.Threading.Tasks;
 	using FoundationDB.DependencyInjection;
 	using Spectre.Console;
 	using Microsoft.Extensions.DependencyInjection;
@@ -88,7 +80,7 @@ namespace FdbShell
 				}
 				catch (Exception e)
 				{
-					Console.Error.WriteLine("CRASHED: " + e.ToString());
+					Console.Error.WriteLine($"CRASHED: {e}");
 					Environment.ExitCode = -1;
 				}
 				return;
@@ -261,7 +253,7 @@ namespace FdbShell
 					{
 						Console.WriteLine($"Parent process {parent.Id} has exited!");
 						Environment.Exit(-1);
-					}, Cancellation);
+					}, this.Cancellation);
 				}
 
 				var builder = new ServiceCollection();
@@ -294,14 +286,14 @@ namespace FdbShell
 				{ // the most probably reason is that the native library could not be found
 					
 					terminal.StdErr("FoundationDB Client failed to initialize!", ConsoleColor.Red);
-					terminal.StdErr("> " + e.Message);
+					terminal.StdErr($"> {e.Message}");
 					Environment.ExitCode = -2;
 					return;
 				}
 				catch (Exception e)
 				{
 					terminal.StdErr("FoundationDB Client failed to start!", ConsoleColor.Red);
-					terminal.StdErr("> " + e.ToString());
+					terminal.StdErr($"> {e}");
 					Environment.ExitCode = -1;
 					return;
 				}
@@ -583,15 +575,15 @@ namespace FdbShell
 
 		private CancellationTokenSource Lifecycle { get; set; } = new();
 
-		public async Task RunAsync(FdbShellRunnerArguments args, CancellationToken ct)
+		public async Task RunAsync(FdbShellRunnerArguments args, CancellationToken stoppingToken)
 		{
-			this.Lifecycle = CancellationTokenSource.CreateLinkedTokenSource(ct);
+			this.Lifecycle = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
 			var cancel = this.Lifecycle.Token;
 
 			this.CurrentDirectoryPath = args.InitialPath;
 
 			// handle CTRL-C gracefully
-			Console.CancelKeyPress += new(OnCancelKeyPress);
+			Console.CancelKeyPress += OnCancelKeyPress;
 
 			// enable UTF-8 in order to use custom fonts and emojis (requires NF-compatible font)
 			try { Console.OutputEncoding = Encoding.UTF8; }
@@ -647,7 +639,7 @@ namespace FdbShell
 											{
 												case ConsoleKey.Escape:
 												{
-													StdOut(" Abort!", ConsoleColor.DarkGray);
+													StdOut(" Abort!");
 													StdErr("Could not connect to cluster.", ConsoleColor.Red);
 													throw new OperationCanceledException();
 												}
@@ -668,7 +660,7 @@ namespace FdbShell
 
 										if (cf.Coordinators.Length == 1)
 										{
-											this.Description = cf.Coordinators[0].Address.ToString() + ":" + cf.Coordinators[0].Port;
+											this.Description = cf.Coordinators[0].Address + ":" + cf.Coordinators[0].Port.ToString(CultureInfo.InvariantCulture);
 										}
 										else
 										{
@@ -835,7 +827,7 @@ namespace FdbShell
 						path = path[1..];
 					}
 
-					bool skiped = false;
+					bool skipped = false;
 					bool first = true;
 					if (path.Count > 0)
 					{
@@ -844,7 +836,7 @@ namespace FdbShell
 							var seg = path[i];
 							if (compact && (i < path.Count - 2) && seg.LayerId.Length == 0)
 							{
-								if (!skiped)
+								if (!skipped)
 								{
 									if (first)
 									{
@@ -855,10 +847,10 @@ namespace FdbShell
 										statusPrompt += $" [/][black on {COLOR_FDB_BLUE_DARK}]{ICON_CHEVRON}[/][white on {COLOR_FDB_BLUE_DARK}] \uea7c";
 									}
 								}
-								skiped = true;
+								skipped = true;
 								continue;
 							}
-							skiped = false;
+							skipped = false;
 
 							if (first && i == 0)
 							{
@@ -1198,7 +1190,7 @@ namespace FdbShell
 
 							case "coordinators":
 							{
-								await RunAsyncCommand((db, log, ct) => CoordinatorsCommand(db, ct), cancel);
+								await RunAsyncCommand((db, log, ct) => CoordinatorsCommand(db, log, ct), cancel);
 								break;
 							}
 
@@ -1314,7 +1306,7 @@ namespace FdbShell
 								if (result.Failed) break;
 								if (result.GetValueOrDefault()?.ExitCode != 0)
 								{
-									StdErr($"# fdbcli exited with code {result.Value?.ExitCode}", ConsoleColor.DarkRed);
+									StdErr($"# fdbcli exited with code {result.Value?.ExitCode}");
 									StdOut("> StdErr:");
 									StdOut(result.Value?.StdErr ?? "");
 									StdOut("> StdOut:");
@@ -1390,7 +1382,7 @@ namespace FdbShell
 			using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancel);
 			try
 			{
-				var db = await this.Db.GetDatabase(cancel);
+				var db = await this.Db.GetDatabase(cts.Token);
 
 				await command(db, this.Terminal, cts.Token).ConfigureAwait(false);
 			}
@@ -1405,7 +1397,7 @@ namespace FdbShell
 			using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancel);
 			try
 			{
-				var db = await this.Db.GetDatabase(cancel);
+				var db = await this.Db.GetDatabase(cts.Token);
 
 				return Maybe.Return<T>(await command(db, this.Terminal, cts.Token).ConfigureAwait(false));
 			}
@@ -1500,15 +1492,15 @@ namespace FdbShell
 
 		#endregion
 
-		private async Task CoordinatorsCommand(IFdbDatabase db, CancellationToken ct)
+		private async Task CoordinatorsCommand(IFdbDatabase db, IFdbShellTerminal terminal, CancellationToken ct)
 		{
 			var cf = await Fdb.System.GetCoordinatorsAsync(db, ct);
 			this.Description = cf.Description;
-			StdOut($"Connected to: {cf.Description} ({cf.Id})", ConsoleColor.Gray);
-			StdOut($"Found {cf.Coordinators.Length} coordinator(s):");
+			terminal.StdOut($"Connected to: {cf.Description} ({cf.Id})", ConsoleColor.Gray);
+			terminal.StdOut($"Found {cf.Coordinators.Length} coordinator(s):");
 			foreach (var coordinator in cf.Coordinators)
 			{
-				StdOut($"  {coordinator.Address}:{coordinator.Port}", ConsoleColor.White);
+				terminal.StdOut($"  {coordinator.Address}:{coordinator.Port}", ConsoleColor.White);
 			}
 		}
 

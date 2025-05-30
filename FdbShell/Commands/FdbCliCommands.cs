@@ -26,10 +26,6 @@
 
 namespace FdbShell
 {
-	using System.Diagnostics;
-	using System.Text;
-	using System.Threading;
-	using System.Threading.Tasks;
 
 	public static class FdbCliCommands
 	{
@@ -73,7 +69,7 @@ namespace FdbShell
 			var stdOut = new StringBuilder();
 			var stdErr = new StringBuilder();
 
-			// récupère le StdOutput
+			// Capture StdOut
 			proc.OutputDataReceived += (_, e) =>
 			{
 				if (e.Data != null)
@@ -81,8 +77,8 @@ namespace FdbShell
 					stdOut.AppendLine(e.Data);
 				}
 			};
-			// récupère le StdError
 			startInfo.StandardOutputEncoding = Encoding.Default;
+			// Capture StdErr
 			proc.ErrorDataReceived += (_, e) =>
 			{
 				if (e.Data != null)
@@ -93,14 +89,14 @@ namespace FdbShell
 
 			var cts = new TaskCompletionSource<FdbCliResult>(proc);
 
-			// Termine la Task lorsque le process se termine
+			// Bind task to process completion
 			proc.EnableRaisingEvents = true;
 			proc.Exited += (_, e) =>
 			{
 				var p = (cts.Task.AsyncState as Process)!;
-				// on doit appeler WaitForExit() pour etre certain que les stdout et stderr soient bien lus en entier
+				// We need to call WaitForExit() in order to be sure that StdOut and StdErr have been drained completely
 				p.WaitForExit();
-				cts.TrySetResult(new FdbCliResult
+				cts.TrySetResult(new()
 				{
 					ExitCode = p.ExitCode,
 					StdOut = stdOut.ToString(),
