@@ -260,9 +260,9 @@ namespace SnowBank.Serialization.Json.CodeGen
 					Kenobi($"Generating code for {typeDef.Type.FullyQualifiedName}");
 					var sb = new CSharpCodeBuilder();
 					AddFileHeaders(sb);
-#if true || FULL_DEBUG
+#if DEBUG
 					{
-						sb.BeginRegion("Type Definition");
+						sb.BeginRegion("Type Definition (DEBUG)");
 						sb.Comment(typeDef.Name + ":");
 						var buf = new System.Text.StringBuilder();
 						typeDef.Explain(buf, "- ");
