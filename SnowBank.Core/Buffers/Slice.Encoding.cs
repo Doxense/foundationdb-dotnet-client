@@ -1057,8 +1057,8 @@ namespace System
 			//REVIEW: what if people call FromString("\xFF/some/system/path") by mistake?
 			// Should be special case when the string starts with \xFF (or \xFF\xFF)? What about \xFE ?
 			if (value == null) return default;
-			byte[]? _ = null;
-			return FromStringUtf8WithBom(value.AsSpan(), ref _);
+			byte[]? __ = null;
+			return FromStringUtf8WithBom(value.AsSpan(), ref __, out _);
 		}
 
 		/// <summary>Create a slice containing the UTF-8 bytes of the string <paramref name="value"/>, prefixed by the UTF-8 BOM.</summary>
@@ -1071,8 +1071,8 @@ namespace System
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice FromStringUtf8WithBom(ReadOnlySpan<char> value)
 		{
-			byte[]? _ = null;
-			return FromStringUtf8WithBom(value, ref _);
+			byte[]? __ = null;
+			return FromStringUtf8WithBom(value, ref __, out _);
 		}
 
 		/// <summary>Create a slice containing the UTF-8 bytes of the string <paramref name="value"/>, prefixed by the UTF-8 BOM.</summary>
@@ -1083,7 +1083,7 @@ namespace System
 		/// For these case, or when you know that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.
 		/// </remarks>
 		[Pure]
-		public static Slice FromStringUtf8WithBom(ReadOnlySpan<char> value, [NotNull] ref byte[]? buffer)
+		public static Slice FromStringUtf8WithBom(ReadOnlySpan<char> value, [NotNull] ref byte[]? buffer, out bool asciiOnly)
 		{
 			if (value.Length == 0)
 			{
@@ -1092,14 +1092,23 @@ namespace System
 				tmp[0] = 0xEF;
 				tmp[1] = 0xBB;
 				tmp[2] = 0xBF;
+				asciiOnly = true;
 				return new Slice(tmp, 0, 3);
 			}
 			unsafe
 			{
 				fixed (char* pchars = &MemoryMarshal.GetReference(value))
 				{
-					int capa = checked(3 + Utf8NoBomEncoding.GetByteCount(pchars, value.Length));
-					var tmp = UnsafeHelpers.EnsureCapacity(ref buffer, capa);
+					int len = Utf8NoBomEncoding.GetByteCount(pchars, value.Length);
+
+					//TODO: we could optimize conversion if we know it is only ascii!
+					asciiOnly = len == value.Length;
+
+					// account for the BOM!
+					len = checked(3 + len);
+
+					// write UTF-8 bytes to buffer
+					var tmp = UnsafeHelpers.EnsureCapacity(ref buffer, len);
 					fixed (byte* outp = &tmp[0])
 					{
 						outp[0] = 0xEF;
@@ -1107,7 +1116,7 @@ namespace System
 						outp[2] = 0xBF;
 						Utf8NoBomEncoding.GetBytes(pchars, value.Length, outp + 3, tmp.Length - 3);
 					}
-					return new Slice(tmp, 0, capa);
+					return new Slice(tmp, 0, len);
 				}
 			}
 		}

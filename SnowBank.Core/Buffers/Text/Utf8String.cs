@@ -10,7 +10,11 @@ namespace SnowBank.Buffers.Text
 	/// <summary>Represents a string that is stored as UTF-8 bytes in managed memory</summary>
 	/// <remarks>This type can be used as a replacement for <see cref="string"/> in parsers that wants to reduce memory allocations</remarks>
 	[DebuggerDisplay("[{Length}] {ToString()}")] //REVIEW: ToString() may be dangerous for long string or corrupted data?
-	public readonly unsafe partial struct Utf8String : IFormattable, IEnumerable<UnicodeCodePoint>, IEquatable<Utf8String>, IEquatable<string>, IEquatable<Slice> //TODO: IComparable<Utf8String> !
+	public readonly unsafe partial struct Utf8String : IFormattable, IEnumerable<UnicodeCodePoint>, IEquatable<Utf8String>, IEquatable<string>, IEquatable<Slice>, IEquatable<ArraySegment<char>>
+	#if NET9_0_OR_GREATER
+		, IEquatable<ReadOnlySpan<byte>>
+		, IEquatable<ReadOnlySpan<char>>
+	#endif
 	{
 		/// <summary>Buffer that points to the UTF-8 bytes of the string in memory</summary>
 		public readonly Slice Buffer;
@@ -60,18 +64,18 @@ namespace SnowBank.Buffers.Text
 
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static Utf8String FromString(string? text, int offset, int count, ref byte[]? buffer, bool noHashCode = false)
+		public static Utf8String FromString(string? text, int offset, int count, ref byte[]? buffer, bool includeBom = false, bool noHashCode = false)
 		{
-			return text != null ? FromString(text.AsSpan(offset, count), ref buffer, noHashCode)
+			return text != null ? FromString(text.AsSpan(offset, count), ref buffer, includeBom, noHashCode)
 				: count == 0 ? default
 				: throw new ArgumentNullException(nameof(text));
 		}
 
 		[Pure]
-		public static Utf8String FromString(ReadOnlySpan<char> text, ref byte[]? buffer, bool noHashCode = false)
+		public static Utf8String FromString(ReadOnlySpan<char> text, ref byte[]? buffer, bool includeBom = false, bool noHashCode = false)
 		{
 			if (text.Length == 0) return Utf8String.Empty;
-			var bytes = Slice.FromStringUtf8(text, ref buffer, out var asciiOnly);
+			var bytes = includeBom ? Slice.FromStringUtf8WithBom(text, ref buffer, out var asciiOnly) : Slice.FromStringUtf8(text, ref buffer, out asciiOnly);
 			// we already know the length of the string, so we only need to compute the hashcode if required
 			return new Utf8String(bytes, text.Length, !noHashCode ? null : ComputeHashCode(bytes, text.Length, asciiOnly));
 		}
