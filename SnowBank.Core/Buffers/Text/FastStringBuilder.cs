@@ -35,7 +35,7 @@ namespace SnowBank.Buffers.Text
 	/// <summary>Span-based implementation of a <see cref="StringBuilder"/>, with reduced safety checks</summary>
 	/// <remarks>All formatting uses the invariant culture.</remarks>
 	[PublicAPI]
-	public ref struct FastStringBuilder
+	public ref struct FastStringBuilder : ISpanBufferWriter<char>
 	{
 
 		/// <summary>Buffer that must be returned to the shared array pool</summary>
@@ -191,12 +191,17 @@ namespace SnowBank.Buffers.Text
 		/// <summary>Inserts a string at the specified location</summary>
 		public void Insert(int index, string? s)
 		{
-			if (s == null)
+			if (s != null)
 			{
-				return;
+				Insert(index, s.AsSpan());
 			}
+		}
 
+		/// <summary>Inserts a string at the specified location</summary>
+		public void Insert(int index, ReadOnlySpan<char> s)
+		{
 			int count = s.Length;
+			if (count == 0) return;
 
 			if (this.Position > (this.Chars.Length - count))
 			{
@@ -237,24 +242,13 @@ namespace SnowBank.Buffers.Text
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Append(string? s)
 		{
-			if (s == null)
+			if (s != null)
 			{
-				return;
-			}
-
-			int pos = this.Position;
-			if (s.Length == 1 && (uint) pos < (uint) this.Chars.Length)
-			{ // very common case, e.g. appending strings from NumberFormatInfo like separators, percent symbols, etc.
-				this.Chars[pos] = s[0];
-				this.Position = pos + 1;
-			}
-			else
-			{
-				AppendSlow(s);
+				Append(s.AsSpan());
 			}
 		}
 
-		private void AppendSlow(string s)
+		private void AppendSlow(ReadOnlySpan<char> s)
 		{
 			int pos = this.Position;
 			if (pos > this.Chars.Length - s.Length)
@@ -379,8 +373,12 @@ namespace SnowBank.Buffers.Text
 			this.Position += value.Length;
 		}
 
+		/// <summary>Allocates a new chunk of characters at the end of the buffer</summary>
+		/// <param name="length">Number of characters to allocate</param>
+		/// <returns>Span that points to the newly allocated chunk</returns>
+		/// <remarks>This method may resize the buffer, but will not advance the cursor. You must call <see cref="Advance"/> after filling the buffer, to effectively "commit" the new content.</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Span<char> AppendSpan(int length)
+		public Span<char> GetSpan(int length)
 		{
 			int origPos = this.Position;
 			if (origPos > this.Chars.Length - length)
@@ -388,8 +386,19 @@ namespace SnowBank.Buffers.Text
 				Grow(length);
 			}
 
-			this.Position = origPos + length;
 			return this.Chars.Slice(origPos, length);
+		}
+
+		/// <summary>Advances the cursor by the specified number of characters, after a call to <see cref="GetSpan"/></summary>
+		/// <param name="count">Number of characters effectively written to the buffer</param>
+		public void Advance(int count)
+		{
+			int origPos = this.Position;
+			if (origPos > this.Chars.Length - count)
+			{
+				Grow(count);
+			}
+			this.Position = origPos + count;
 		}
 
 		/// <summary>Appends a boolean literal (<c>"true"</c> or <c>"false"</c>) to the end of the buffer</summary>
