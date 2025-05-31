@@ -26,7 +26,6 @@
 
 namespace SnowBank.Data.Tuples.Binary
 {
-	using System;
 	using System.Collections.Frozen;
 	using System.Globalization;
 	using System.Linq.Expressions;

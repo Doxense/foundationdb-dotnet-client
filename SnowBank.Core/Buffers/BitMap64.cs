@@ -24,6 +24,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+// ReSharper disable GrammarMistakeInComment
+
 namespace SnowBank.Buffers
 {
 	using System.Collections;
@@ -39,7 +41,7 @@ namespace SnowBank.Buffers
 		// Each word contains bits in order from LSB to MSB
 		// Word at offset 0 contains bits 0 to 63, offset 1 contains bits 64 to 127, and so on
 		// Attempts to manipulate bits outside the map will throw
-		// This struct is NOT sponsored by a certain Japanese game console vendor..
+		// This struct is NOT sponsored by a certain Japanese game console vendor...
 
 		/// <summary>Shift to get index of word from bit index</summary>
 		public const int IndexShift = 6;
@@ -116,19 +118,15 @@ namespace SnowBank.Buffers
 			set => Toggle(this.Words.Span, bit, value);
 		}
 
+		/// <inheritdoc />
 		public override string ToString()
 		{
-			return ToString(null, null);
+			return ToString(null);
 		}
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public string ToString(string format)
-		{
-			return ToString(format, null);
-		}
-
+		/// <inheritdoc />
 		[Pure]
-		public string ToString(string? format, IFormatProvider? provider)
+		public string ToString(string? format, IFormatProvider? provider = null)
 		{
 			switch (format ?? "D")
 			{
@@ -280,7 +278,7 @@ namespace SnowBank.Buffers
 				ulong* inp = map;
 				ulong* end = inp + (capacity / WordSize);
 				while (inp < end)
-				{ // unroll to the maxx!
+				{ // unroll to the max!
 					ulong w = *inp++;
 					outp[0x0] = UnsafeHelpers.Nibble((byte) (w >> 60));
 					outp[0x1] = UnsafeHelpers.Nibble((byte) (w >> 56));
@@ -304,7 +302,7 @@ namespace SnowBank.Buffers
 			return new string(chars);
 		}
 
-		/// <summary>Return the index of the lowest bit set, or a negative value if all bits are cleared</summary>
+		/// <summary>Returns the index of the lowest bit set, or a negative value if all bits are cleared</summary>
 		/// <remarks>This is O(N)</remarks>
 		[Pure]
 		public long GetLowestBit()
@@ -320,7 +318,7 @@ namespace SnowBank.Buffers
 			}
 		}
 
-		/// <summary>Return the index of the lowest bit set, or a negative value if all bits are cleared</summary>
+		/// <summary>Returns the index of the lowest bit set, or a negative value if all bits are cleared</summary>
 		/// <remarks>This is O(N)</remarks>
 		[Pure]
 		public static unsafe long GetLowestBit(ulong* words, [Positive] long capacity)
@@ -339,7 +337,7 @@ namespace SnowBank.Buffers
 			return -1L;
 		}
 
-		/// <summary>Return the index of the highest bit set, or a negative value if all bits are cleared</summary>
+		/// <summary>Returns the index of the highest bit set, or a negative value if all bits are cleared</summary>
 		/// <remarks>This is O(N)</remarks>
 		[Pure]
 		public long GetHighestBit()
@@ -355,7 +353,7 @@ namespace SnowBank.Buffers
 			}
 		}
 
-		/// <summary>Return the index of the highest bit set, or a negative value if all bits are cleared</summary>
+		/// <summary>Returns the index of the highest bit set, or a negative value if all bits are cleared</summary>
 		/// <remarks>This is O(N)</remarks>
 		[Pure]
 		public static unsafe long GetHighestBit(ulong* words, [Positive] long capacity)
@@ -373,7 +371,7 @@ namespace SnowBank.Buffers
 			return -1L;
 		}
 
-		/// <summary>Count the number of bits that are set</summary>
+		/// <summary>Counts the number of bits that are set</summary>
 		/// <returns>Number of bits set, or 0 if all bits are cleared</returns>
 		/// <remarks>This is O(N)</remarks>
 		[Pure]
@@ -388,31 +386,31 @@ namespace SnowBank.Buffers
 			return count;
 		}
 
-		/// <summary>Clear all bits of a map</summary>
+		/// <summary>Clears all bits of a map</summary>
 		public void ClearAll()
 		{
 			ClearAll(this.Words.Span);
 		}
 
-		/// <summary>Clear all bits of a map</summary>
+		/// <summary>Clears all bits of a map</summary>
 		public static void ClearAll(Span<ulong> map)
 		{
 			map.Clear();
 		}
 
-		/// <summary>Clear all bits of a map</summary>
+		/// <summary>Clears all bits of a map</summary>
 		public void SetAll()
 		{
 			SetAll(this.Words.Span);
 		}
 
-		/// <summary>Clear all bits of a map</summary>
+		/// <summary>Clears all bits of a map</summary>
 		public static void SetAll(Span<ulong> map)
 		{
 			map.Fill(ulong.MaxValue);
 		}
 
-		/// <summary>Return the number of 64-bit words required to store a bitmap of the specified capacity</summary>
+		/// <summary>Returns the number of 64-bit words required to store a bitmap of the specified capacity</summary>
 		/// <param name="capacity">Capacity (in bits) of the bitmap</param>
 		/// <returns>Size (in 64-bit words) of the buffer</returns>
 		/// <remarks>This returns the minimum length for an ulong[] array large enough to fit all the bits.</remarks>
@@ -421,7 +419,7 @@ namespace SnowBank.Buffers
 			return checked((int) ((capacity + (WordSize - 1)) / WordSize));
 		}
 
-		/// <summary>Return the number of bytes required to store a bitmap of the specified capacity</summary>
+		/// <summary>Returns the number of bytes required to store a bitmap of the specified capacity</summary>
 		/// <param name="capacity">Capacity (in bits) of the bitmap</param>
 		/// <returns>Size (in bytes) of the buffer</returns>
 		public static uint BytesForCapacity(long capacity)
@@ -429,7 +427,7 @@ namespace SnowBank.Buffers
 			return checked((uint) (WordsForCapacity(capacity) * sizeof(ulong)));
 		}
 
-		/// <summary>Test if a specific bit is set</summary>
+		/// <summary>Tests if a specific bit is set</summary>
 		/// <returns>If true, the bit is set (1). If false, the bit is not set (0).</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Test([Positive] long bitIndex)
@@ -437,7 +435,7 @@ namespace SnowBank.Buffers
 			return Test(this.Words.Span, bitIndex);
 		}
 
-		/// <summary>Test if a specific bit is set</summary>
+		/// <summary>Tests if a specific bit is set</summary>
 		/// <returns>If true, the bit is set (1). If false, the bit is not set (0).</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool Test(ReadOnlySpan<ulong> map, [Positive] long bitIndex)
@@ -445,7 +443,7 @@ namespace SnowBank.Buffers
 			return (map[checked((int) (bitIndex >> IndexShift))] & (1UL << (int) (bitIndex & WordMask))) != 0;
 		}
 
-		/// <summary>Test if all the bits in a range are set</summary>
+		/// <summary>Tests if all the bits in a range are set</summary>
 		/// <returns>If true, the bit is set (1). If false, the bit is not set (0).</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TestAll([Positive] long bitIndex, long count)
@@ -454,7 +452,7 @@ namespace SnowBank.Buffers
 			return TestAll(this.Words.Span, bitIndex, count);
 		}
 
-		/// <summary>Test if all the bits in a range are set</summary>
+		/// <summary>Tests if all the bits in a range are set</summary>
 		/// <returns>If true, all the bits are set (1). If false, at least on bit is cleared (0).</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TestAll(ReadOnlySpan<ulong> map, [Positive] long bitIndex, long count)
@@ -472,7 +470,7 @@ namespace SnowBank.Buffers
 			return true;
 		}
 
-		/// <summary>Test if at least one bit in a range is set</summary>
+		/// <summary>Tests if at least one bit in a range is set</summary>
 		/// <returns>If true, at least one bit is set (1). If false, all the bits are cleared (0).</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TestAny([Positive] long bitIndex, long count)
@@ -481,12 +479,12 @@ namespace SnowBank.Buffers
 			return TestAny(this.Words.Span, bitIndex, count);
 		}
 
-		/// <summary>Test if at least one bit in a range is set</summary>
+		/// <summary>Tests if at least one bit in a range is set</summary>
 		/// <returns>If true, at least one bit is set (1). If false, all the bits are cleared (0).</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TestAny(ReadOnlySpan<ulong> map, [Positive] long bitIndex, long count)
 		{
-			Contract.Debug.Requires(map != null && bitIndex >= 0 && count >= 0);
+			Contract.Debug.Requires(bitIndex >= 0 && count >= 0);
 			long end = checked(bitIndex + count);
 			//TODO: optimize me!
 			for (long idx = bitIndex; idx < end; idx++)
@@ -499,22 +497,22 @@ namespace SnowBank.Buffers
 			return false;
 		}
 
-		/// <summary>Set a specific bit</summary>
+		/// <summary>Sets a specific bit</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Set([Positive] long bitIndex)
 		{
 			Set(this.Words.Span, bitIndex);
 		}
 
-		/// <summary>Set a specific bit</summary>
+		/// <summary>Sets a specific bit</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Set(Span<ulong> map, [Positive] long bitIndex)
 		{
-			//note: null check and index boundcheck will be done by the BCL for us
+			//note: null check and index bound check will be done by the BCL for us
 			map[checked((int) (bitIndex >> IndexShift))] |= 1UL << (int) (bitIndex & WordMask);
 		}
 
-		/// <summary>Set a specific bit</summary>
+		/// <summary>Sets a specific bit</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Set([Positive] long bitIndex, long count)
 		{
@@ -522,11 +520,11 @@ namespace SnowBank.Buffers
 			Set(this.Words.Span, bitIndex, count);
 		}
 
-		/// <summary>Set a specific bit</summary>
+		/// <summary>Sets a specific bit</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Set(Span<ulong> map, [Positive] long bitIndex, [Positive] long count)
 		{
-			Contract.Debug.Requires(map != null && bitIndex >= 0 && count >= 0);
+			Contract.Debug.Requires(bitIndex >= 0 && count >= 0);
 			long end = checked(bitIndex + count);
 			for (long idx = bitIndex; idx < end; idx++)
 			{
@@ -535,14 +533,14 @@ namespace SnowBank.Buffers
 			}
 		}
 
-		/// <summary>Set a specific bit, while maintaining a population count</summary>
+		/// <summary>Sets a specific bit, while maintaining a population count</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void SetAndCount([Positive] long bitIndex, ref long count)
 		{
 			SetAndCount(this.Words.Span, bitIndex, ref count);
 		}
 
-		/// <summary>Set a specific bit, while maintaining a population count</summary>
+		/// <summary>Sets a specific bit, while maintaining a population count</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SetAndCount(Span<ulong> map, [Positive] long bitIndex, ref long count)
 		{
@@ -550,16 +548,16 @@ namespace SnowBank.Buffers
 			if (!TestAndSet(map, bitIndex)) ++count;
 		}
 
-		/// <summary>Set a specific bit and return its previous state</summary>
+		/// <summary>Sets a specific bit and return its previous state</summary>
 		public bool TestAndSet([Positive] long bitIndex)
 		{
 			return TestAndSet(this.Words.Span, bitIndex);
 		}
 
-		/// <summary>Set a specific bit and return its previous state</summary>
+		/// <summary>Sets a specific bit and return its previous state</summary>
 		public static bool TestAndSet(Span<ulong> map, [Positive] long bitIndex)
 		{
-			//note: null check and index boundcheck will be done by the BCL for us
+			//note: null check and index bound check will be done by the BCL for us
 			int idx = checked((int) (bitIndex >> IndexShift));
 			ulong val = map[idx];
 			ulong m = 1UL << (int) (bitIndex & WordMask);
@@ -567,7 +565,7 @@ namespace SnowBank.Buffers
 			return (val & m) != 0;
 		}
 
-		/// <summary>Clear a specific bit</summary>
+		/// <summary>Clears a specific bit</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Clear([Positive] long bitIndex)
 		{
@@ -575,7 +573,7 @@ namespace SnowBank.Buffers
 			Clear(this.Words.Span, bitIndex);
 		}
 
-		/// <summary>Clear a specific bit</summary>
+		/// <summary>Clears a specific bit</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Clear(Span<ulong> map, [Positive] long bitIndex)
 		{
@@ -583,15 +581,17 @@ namespace SnowBank.Buffers
 			map[checked((int) (bitIndex >> IndexShift))] &= ~(1UL << (int) (bitIndex & WordMask));
 		}
 
+		/// <summary>Clears a range of bits</summary>
 		public void Clear([Positive] long bitIndex, long count)
 		{
 			Contract.DoesNotOverflow(this.Capacity, bitIndex, count);
 			Clear(this.Words.Span, bitIndex, count);
 		}
 
+		/// <summary>Clears a range of bits</summary>
 		public static void Clear(Span<ulong> map, [Positive] long bitIndex, [Positive] long count)
 		{
-			Contract.Debug.Requires(map != null && bitIndex >= 0 && count >= 0);
+			Contract.Debug.Requires(bitIndex >= 0 && count >= 0);
 			long end = checked(bitIndex + count);
 			for (long idx = bitIndex; idx < end; idx++)
 			{
@@ -600,31 +600,31 @@ namespace SnowBank.Buffers
 			}
 		}
 
-		/// <summary>Clear a specific bit, while maintaining a population count</summary>
+		/// <summary>Clears a specific bit, while maintaining a population count</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void ClearAndCount([Positive] long bitIndex, ref long count)
 		{
 			ClearAndCount(this.Words.Span, bitIndex, ref count);
 		}
 
-		/// <summary>Clear a specific bit, while maintaining a population count</summary>
+		/// <summary>Clears a specific bit, while maintaining a population count</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void ClearAndCount(Span<ulong> map, [Positive] long bitIndex, ref long count)
 		{
 			if (TestAndClear(map, bitIndex)) --count;
 		}
 
-		/// <summary>Change the state of a specific bit</summary>
+		/// <summary>Changes the state of a specific bit</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Toggle([Positive] long bitIndex, bool on)
 		{
 			Toggle(this.Words.Span, bitIndex, on);
 		}
 
-		/// <summary>Change the state of a specific bit</summary>
+		/// <summary>Changes the state of a specific bit</summary>
 		public static void Toggle(Span<ulong> map, [Positive] long bitIndex, bool on)
 		{
-			//note: null check and index boundcheck will be done by the BCL for us
+			//note: null check and index bound check will be done by the BCL for us
 			if (on)
 			{
 				map[checked((int) (bitIndex >> IndexShift))] |= 1UL << (int) (bitIndex & WordMask);
@@ -635,14 +635,14 @@ namespace SnowBank.Buffers
 			}
 		}
 
-		/// <summary>Change the state of a specific bit, while maintaining a population count</summary>
+		/// <summary>Changes the state of a specific bit, while maintaining a population count</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void ToggleAndCount([Positive] long bitIndex, bool on, ref long count)
 		{
 			ToggleAndCount(this.Words.Span, bitIndex, on, ref count);
 		}
 
-		/// <summary>Change the state of a specific bit, while maintaining a population count</summary>
+		/// <summary>Changes the state of a specific bit, while maintaining a population count</summary>
 		public static void ToggleAndCount(Span<ulong> map, [Positive] long bitIndex, bool on, ref long count)
 		{
 			if (on)
@@ -655,18 +655,18 @@ namespace SnowBank.Buffers
 			}
 		}
 
-		/// <summary>Invert the state of a specific bit, and return its previous state</summary>
+		/// <summary>Inverts the state of a specific bit, and return its previous state</summary>
 		/// <returns>If true, the bit has transitioned from set (1) to cleared (0). If false, the bit has transitioned from cleared (0) to set (1).</returns>
 		public bool Flip([Positive] long bitIndex)
 		{
 			return Flip(this.Words.Span, bitIndex);
 		}
 
-		/// <summary>Invert the state of a specific bit, and return its previous state</summary>
+		/// <summary>Inverts the state of a specific bit, and return its previous state</summary>
 		/// <returns>If true, the bit has transitioned from set (1) to cleared (0). If false, the bit has transitioned from cleared (0) to set (1).</returns>
 		public static bool Flip(Span<ulong> map, [Positive] long bitIndex)
 		{
-			//note: null check and index boundcheck will be done by the BCL for us
+			//note: null check and index bound check will be done by the BCL for us
 			int idx = checked((int) (bitIndex >> IndexShift));
 			ulong val = map[idx];
 			ulong m = 1UL << (int)(bitIndex & WordMask);
@@ -683,7 +683,7 @@ namespace SnowBank.Buffers
 			return wasSet;
 		}
 
-		/// <summary>Clear a specific bit and return its previous state</summary>
+		/// <summary>Clears a specific bit and return its previous state</summary>
 		/// <returns>If true, the bit was set (1). If false, the bit was already cleared (0).</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TestAndClear([Positive] long bitIndex)
@@ -691,7 +691,7 @@ namespace SnowBank.Buffers
 			return TestAndClear(this.Words.Span, bitIndex);
 		}
 
-		/// <summary>Clear a specific bit and return its previous state</summary>
+		/// <summary>Clears a specific bit and return its previous state</summary>
 		/// <returns>If true, the bit was set (1). If false, the bit was already cleared (0).</returns>
 		public static bool TestAndClear(Span<ulong> map, [Positive] long bitIndex)
 		{
@@ -703,7 +703,7 @@ namespace SnowBank.Buffers
 			return (val & m) != 0;
 		}
 
-		/// <summary>Find the index of the first set bit starting at a specific position in the map, or a negative value if the range contains all 0 until the end</summary>
+		/// <summary>Finds the index of the first set bit starting at a specific position in the map, or a negative value if the range contains all 0 until the end</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public long FindNext(long start)
 		{
@@ -783,12 +783,14 @@ namespace SnowBank.Buffers
 		/// <summary>Capacity of this bitmap</summary>
 		int IReadOnlyCollection<bool>.Count => checked((int)this.Capacity);
 
+		/// <summary>Returns an array of <see cref="bool"/> for each bit in this map</summary>
 		[Pure]
 		public bool[] ToArray()
 		{
 			return ToArray(this.Words);
 		}
 
+		/// <summary>Returns an array of <see cref="bool"/> for each bit in a buffer</summary>
 		[Pure]
 		public static bool[] ToArray(ReadOnlyMemory<ulong> map)
 		{
@@ -808,19 +810,22 @@ namespace SnowBank.Buffers
 			}
 		}
 
+		/// <summary>Enumerates the indexes of all the set bits in this map</summary>
 		[Pure]
 		public BitIndexEnumerable GetSetBits()
 		{
 			return new BitIndexEnumerable(this.Words, this.Capacity);
 		}
 
+		/// <summary>Enumerates all the bits in this map</summary>
 		[Pure]
-		public BitEnumerator GetEnumerator() => new BitEnumerator(this.Words);
+		public BitEnumerator GetEnumerator() => new(this.Words);
 
 		IEnumerator<bool>  IEnumerable<bool>.GetEnumerator() => new BitEnumerator(this.Words);
 
 		IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
 
+		/// <summary>Enumerator for the content of a <see cref="BitMap64"/></summary>
 		public struct BitEnumerator : IEnumerator<bool>
 		{
 			private long Index;
@@ -835,11 +840,13 @@ namespace SnowBank.Buffers
 				this.Current = false;
 			}
 
+			/// <inheritdoc />
 			public void Dispose()
 			{
 				this.Map = default;
 			}
 
+			/// <inheritdoc />
 			public bool MoveNext()
 			{
 				var idx = this.Index + 1;
@@ -868,6 +875,7 @@ namespace SnowBank.Buffers
 				return true;
 			}
 
+			/// <inheritdoc />
 			public void Reset()
 			{
 				this.Index = -1;
@@ -875,11 +883,13 @@ namespace SnowBank.Buffers
 				this.Current = false;
 			}
 
+			/// <inheritdoc />
 			public bool Current { get; private set; }
 
 			object IEnumerator.Current => this.Current;
 		}
 
+		/// <summary>List of the indexes of all the set bits in a <see cref="BitMap64"/></summary>
 		public struct BitIndexEnumerable : IEnumerator<long>, IEnumerable<long>
 		{
 			private long Index;
@@ -893,6 +903,7 @@ namespace SnowBank.Buffers
 				this.Capacity = capacity;
 			}
 
+			/// <summary>Returns an enumerator for this list</summary>
 			public BitIndexEnumerable GetEnumerator()
 			{
 				return new BitIndexEnumerable(this.Map, this.Capacity);
@@ -907,12 +918,14 @@ namespace SnowBank.Buffers
 				return GetEnumerator();
 			}
 
+			/// <inheritdoc />
 			public void Dispose()
 			{
 				this.Index = -2;
 				this.Capacity = 0;
 			}
 
+			/// <inheritdoc />
 			public bool MoveNext()
 			{
 				var idx = this.Index + 1;
@@ -925,11 +938,13 @@ namespace SnowBank.Buffers
 				return true;
 			}
 
+			/// <inheritdoc />
 			public void Reset()
 			{
 				this.Index = -1;
 			}
 
+			/// <inheritdoc />
 			public long Current => this.Index;
 
 			object IEnumerator.Current => this.Current;

@@ -32,7 +32,9 @@
 //note: we would like to use Vector<byte> from System.Numerics.Vectors (which is converted to SIMD by the JIT), but this is not really practical just yet:
 // - v4.0 of the assembly does NOT have Vector<T>, which was removed between beta, and only came back in 4.1-beta
 // - the ctor Vector<byte>(byte* ptr, int offset) is currently private, which means that we cannot use it with unsafe pointers yet
-// - there does not seem to be any SIMD way to implement memcmp with the current Vector<T> API, unless doing some trickery with substracting and looking for 0s
+// - there does not seem to be any SIMD way to implement <c>memcmp</c> with the current Vector<T> API, unless doing some trickery with subtracting and looking for 0s
+
+#pragma warning disable IDE0047
 
 // ReSharper disable HeuristicUnreachableCode
 
@@ -136,17 +138,20 @@ namespace SnowBank.Buffers.Binary
 			return p;
 		}
 
-		/// <summary>Convert an hexadecimal digit (0-9A-Fa-f) into the corresponding decimal value</summary>
+		/// <summary>Converts a hexadecimal digit (0-9A-Fa-f) into the corresponding decimal value</summary>
 		/// <param name="c">Hexadecimal digit (case insensitive)</param>
 		/// <returns>Decimal value between 0 and 15, or an exception</returns>
 		[Pure]
 		private static int NibbleToDecimal(char c)
 		{
 			int x = c - 48;
-			if (x < 10) return x;
-			if (x >= 17 && x <= 42) return x - 7;
-			if (x >= 49 && x <= 74) return x - 39;
-			return ThrowInputNotValidHexadecimalDigit();
+			return x switch
+			{
+				< 10 => x,
+				>= 17 and <= 42 => x - 7,
+				>= 49 and <= 74 => x - 39,
+				_ => ThrowInputNotValidHexadecimalDigit()
+			};
 		}
 
 		private static int ThrowInputNotValidHexadecimalDigit()
@@ -160,14 +165,15 @@ namespace SnowBank.Buffers.Binary
 			return ThrowHelper.FormatException("Input is not a valid hexadecimal digit");
 		}
 
+		/// <summary>Computes the hashcode of a byte buffer</summary>
 		public static unsafe int ComputeHashCode(byte* bytes, uint count)
 		{
 			if (count != 0 && bytes == null) throw new ArgumentNullException(nameof(bytes));
 
 			//TODO: use a better hash algorithm? (xxHash, CityHash, SipHash, ...?)
-			// => will be called a lot when Slices are used as keys in an hash-based dictionary (like Dictionary<Slice, ...>)
-			// => won't matter much for *ordered* dictionary that will probably use IComparer<T>.Compare(..) instead of the IEqalityComparer<T>.GetHashCode()/Equals() combo
-			// => we don't need a cryptographic hash, just something fast and suitable for use with hashtables...
+			// => will be called a lot when Slices are used as keys in a hash-based dictionary (like Dictionary<Slice, ...>)
+			// => won't matter much for *ordered* dictionary that will probably use IComparer<T>.Compare(..) instead of the IEqualityComparer<T>.GetHashCode()/Equals() combo
+			// => we don't need a cryptographic hash, just something fast and suitable for use with hash tables...
 			// => probably best to select an algorithm that works on 32-bit or 64-bit chunks
 
 			// <HACKHACK>: unoptimized 32 bits FNV-1a implementation
@@ -199,7 +205,7 @@ namespace SnowBank.Buffers.Binary
 		#region VarInt Encoding...
 
 		// VarInt encoding uses 7-bit per byte for the value, and uses the 8th bit as a "continue" (1) or "stop" (0) bit.
-		// The values is stored in Little Endian, ie: first the 7 lowest bits, then the next 7 lowest bits, until the 7 highest bits.
+		// The values are stored in Little Endian, ie: first the 7 lowest bits, then the next 7 lowest bits, until the 7 highest bits.
 		//
 		// ex: 0xxxxxxx = 1 byte (<= 127)
 		//     1xxxxxxx 0xxxxxxx = 2 bytes (<= 16383)
@@ -233,18 +239,22 @@ namespace SnowBank.Buffers.Binary
 		{
 			return value < (1UL << 7) ? 1 : SizeOfVarIntSlow(value);
 
+			[MethodImpl(MethodImplOptions.NoInlining)]
 			static uint SizeOfVarIntSlow(ulong value)
 			{
 				// value is already known to be >= 128
-				if (value < (1UL << 14)) return 2;
-				if (value < (1UL << 21)) return 3;
-				if (value < (1UL << 28)) return 4;
-				if (value < (1UL << 35)) return 5;
-				if (value < (1UL << 42)) return 6;
-				if (value < (1UL << 49)) return 7;
-				if (value < (1UL << 56)) return 8;
-				if (value < (1UL << 63)) return 9;
-				return 10;
+				return value switch
+				{
+					< 1UL << 14 => 2,
+					< 1UL << 21 => 3,
+					< 1UL << 28 => 4,
+					< 1UL << 35 => 5,
+					< 1UL << 42 => 6,
+					< 1UL << 49 => 7,
+					< 1UL << 56 => 8,
+					< 1UL << 63 => 9,
+					_ => 10
+				};
 			}
 		}
 
@@ -271,7 +281,7 @@ namespace SnowBank.Buffers.Binary
 
 		/// <summary>Return the size (in bytes) that a variable-size array of bytes would need when encoded as a VarBytes</summary>
 		/// <param name="size">Size (in bytes) of the array</param>
-		/// <returns>Number of bytes needed to encoded the size of the array, and the array itself (1 + N &lt;= size &lt;= 5 + N)</returns>
+		/// <returns>Number of bytes needed to encode the size of the array, and the array itself (1 + N &lt;= size &lt;= 5 + N)</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static uint SizeOfVarBytes(uint size)
 		{
@@ -279,7 +289,7 @@ namespace SnowBank.Buffers.Binary
 		}
 		/// <summary>Return the size (in bytes) that a variable-size array of bytes would need when encoded as a VarBytes</summary>
 		/// <param name="size">Size (in bytes) of the array</param>
-		/// <returns>Number of bytes needed to encoded the size of the array, and the array itself (1 + N &lt;= size &lt;= 5 + N)</returns>
+		/// <returns>Number of bytes needed to encode the size of the array, and the array itself (1 + N &lt;= size &lt;= 5 + N)</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int SizeOfVarBytes(int size)
 		{
@@ -547,7 +557,7 @@ namespace SnowBank.Buffers.Binary
 			}
 
 			int cursor = WriteVarInt32(destination, (uint) data.Length);
-			data.CopyTo(destination.Slice(cursor));
+			data.CopyTo(destination[cursor..]);
 			return cursor + data.Length;
 		}
 
@@ -563,7 +573,7 @@ namespace SnowBank.Buffers.Binary
 			}
 
 			int cursor = WriteVarInt32(destination, 1U + (uint) data.Length);
-			data.CopyTo(destination.Slice(cursor));
+			data.CopyTo(destination[cursor..]);
 			destination[cursor + data.Length] = 0;
 			return cursor + data.Length + 1;
 		}
@@ -1474,21 +1484,29 @@ namespace SnowBank.Buffers.Binary
 		public static uint SizeOfCompact64(ulong value)
 		{
 			return value <= 0xFF ? 1U : SizeOfCompact64Slow(value);
+
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			static uint SizeOfCompact64Slow(ulong value)
+			{
+				// value is already known to be >= 256
+				return value switch
+				{
+					< 1UL << 16 => 2,
+					< 1UL << 24 => 3,
+					< 1UL << 32 => 4,
+					< 1UL << 40 => 5,
+					< 1UL << 48 => 6,
+					< 1UL << 56 => 7,
+					_ => 8
+				};
+			}
 		}
 
-		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		private static uint SizeOfCompact64Slow(ulong value)
-		{
-			// value is already known to be >= 256
-			if (value < (1UL << 16)) return 2;
-			if (value < (1UL << 24)) return 3;
-			if (value < (1UL << 32)) return 4;
-			if (value < (1UL << 40)) return 5;
-			if (value < (1UL << 48)) return 6;
-			if (value < (1UL << 56)) return 7;
-			return 8;
-		}
-
+		/// <summary>Writes a little-endian 16 bits by using the minimum number of bytes</summary>
+		/// <param name="ptr">Pointer where to write the value</param>
+		/// <param name="value">Value to write</param>
+		/// <returns>Pointer advanced to the next position</returns>
+		/// <remarks>Advances the pointer by 1 byte if <paramref name="value"/> is 0xFF or less; otherwise, advances the pointer by 2 bytes.</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static unsafe byte* WriteCompact16Unsafe(byte* ptr, ushort value)
 		{
@@ -1503,6 +1521,11 @@ namespace SnowBank.Buffers.Binary
 			return ptr + 2;
 		}
 
+		/// <summary>Writes a big-endian 16 bits by using the minimum number of bytes</summary>
+		/// <param name="ptr">Pointer where to write the value</param>
+		/// <param name="value">Value to write</param>
+		/// <returns>Pointer advanced to the next position</returns>
+		/// <remarks>Advances the pointer by 1 byte if <paramref name="value"/> is 0xFF or less; otherwise, advances the pointer by 2 bytes.</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static unsafe byte* WriteCompact16BEUnsafe(byte* ptr, ushort value)
 		{
@@ -1517,6 +1540,11 @@ namespace SnowBank.Buffers.Binary
 			return ptr + 2;
 		}
 
+		/// <summary>Writes a little-endian 32 bits by using the minimum number of bytes</summary>
+		/// <param name="ptr">Pointer where to write the value</param>
+		/// <param name="value">Value to write</param>
+		/// <returns>Pointer advanced to the next position</returns>
+		/// <remarks>Advances the pointer by 1 to 4 bytes.</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static unsafe byte* WriteCompact32Unsafe(byte* ptr, uint value)
 		{
@@ -1526,28 +1554,34 @@ namespace SnowBank.Buffers.Binary
 				ptr[0] = (byte) value;
 				return ptr + 1;
 			}
-			return WriteCompact32UnsafeSlow(ptr, value);
+
+			return WriteSlow(ptr, value);
+
+			static byte* WriteSlow(byte* ptr, uint value)
+			{
+				if (value <= 0xFFFF)
+				{
+					StoreUInt16LE((ushort*) ptr, (ushort) value);
+					return ptr + 2;
+				}
+
+				if (value <= 0xFFFFFF)
+				{
+					StoreUInt16LE((ushort*) ptr, unchecked((ushort) value));
+					ptr[2] = (byte) (value >> 16);
+					return ptr + 3;
+				}
+
+				StoreUInt32LE((uint*) ptr, value);
+				return ptr + 4;
+			}
 		}
 
-		private static unsafe byte* WriteCompact32UnsafeSlow(byte* ptr, uint value)
-		{
-			if (value <= 0xFFFF)
-			{
-				StoreUInt16LE((ushort*) ptr, (ushort) value);
-				return ptr + 2;
-			}
-
-			if (value <= 0xFFFFFF)
-			{
-				StoreUInt16LE((ushort*) ptr, unchecked((ushort) value));
-				ptr[2] = (byte) (value >> 16);
-				return ptr + 3;
-			}
-
-			StoreUInt32LE((uint*) ptr, value);
-			return ptr + 4;
-		}
-
+		/// <summary>Writes a big-endian 32 bits by using the minimum number of bytes</summary>
+		/// <param name="ptr">Pointer where to write the value</param>
+		/// <param name="value">Value to write</param>
+		/// <returns>Pointer advanced to the next position</returns>
+		/// <remarks>Advances the pointer by 1 to 4 bytes.</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static unsafe byte* WriteCompact32BEUnsafe(byte* ptr, uint value)
 		{
@@ -1579,6 +1613,11 @@ namespace SnowBank.Buffers.Binary
 			}
 		}
 
+		/// <summary>Writes a little-endian 64 bits by using the minimum number of bytes</summary>
+		/// <param name="ptr">Pointer where to write the value</param>
+		/// <param name="value">Value to write</param>
+		/// <returns>Pointer advanced to the next position</returns>
+		/// <remarks>Advances the pointer by 1 to 8 bytes.</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static unsafe byte* WriteCompact64Unsafe(byte* ptr, ulong value)
 		{
@@ -1600,7 +1639,7 @@ namespace SnowBank.Buffers.Binary
 			static byte* WriteSlow(byte* ptr, ulong value)
 			{
 				if (value <= 0xFFFFFFFF)
-				{ // 2 .. 4 bytes
+				{ // 2 ... 4 bytes
 
 					if (value >= 0x1000000)
 					{
@@ -1621,7 +1660,7 @@ namespace SnowBank.Buffers.Binary
 					return ptr + 3;
 				}
 				else
-				{ // 5 .. 7 bytes
+				{ // 5 ... 7 bytes
 					StoreUInt32LE((uint*) ptr, unchecked((uint) value));
 
 					if (value <= 0xFFFFFFFFFF)
@@ -1646,6 +1685,11 @@ namespace SnowBank.Buffers.Binary
 
 		}
 
+		/// <summary>Writes a big-endian 64 bits by using the minimum number of bytes</summary>
+		/// <param name="ptr">Pointer where to write the value</param>
+		/// <param name="value">Value to write</param>
+		/// <returns>Pointer advanced to the next position</returns>
+		/// <remarks>Advances the pointer by 1 to 8 bytes.</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static unsafe byte* WriteCompact64BEUnsafe(byte* ptr, ulong value)
 		{
@@ -1667,7 +1711,7 @@ namespace SnowBank.Buffers.Binary
 			static byte* WriteSlow(byte* ptr, ulong value)
 			{
 				if (value <= 0xFFFFFFFF)
-				{ // 2 .. 4 bytes
+				{ // 2 ... 4 bytes
 
 					if (value >= 0x1000000)
 					{
@@ -1689,7 +1733,7 @@ namespace SnowBank.Buffers.Binary
 					return ptr + 3;
 				}
 				else
-				{ // 5 .. 7 bytes
+				{ // 5 ... 7 bytes
 
 					if (value <= 0xFFFFFFFFFF)
 					{ // 5 bytes
@@ -1721,7 +1765,7 @@ namespace SnowBank.Buffers.Binary
 
 		// Specialized encoding to store counters (integers) using as few bytes as possible, but with the ordering preserved when using lexicographical order, i.e: Encoded(-1) < Encoded(0) < Encoded(42) < Encoded(12345678)
 		//
-		// There are two variantes: Unsigned and Signed which encodes either positive values (ie: sizes, count, ...) or negatives/values (integers, deltas, coordinates, ...)
+		// There are two variants: Unsigned and Signed which encodes either positive values (ie: sizes, count, ...) or negatives/values (integers, deltas, coordinates, ...)
 
 		#region Unsigned
 
@@ -1768,7 +1812,7 @@ namespace SnowBank.Buffers.Binary
 		private const int OCU_LEN5 = 5 << 5;
 		private const int OCU_LEN6 = 6 << 5;
 		private const int OCU_LEN7 = 7 << 5;
-		private const int OCU_BITMAK = (1 << 5) - 1;
+		private const int OCU_BITMASK = (1 << 5) - 1;
 		private const uint OCU_MAX0 = (1U << 5) - 1;
 		private const uint OCU_MAX1 = (1U << (5 + 8)) - 1;
 		private const uint OCU_MAX2 = (1U << (5 + 8 * 2)) - 1;
@@ -1816,45 +1860,46 @@ namespace SnowBank.Buffers.Binary
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static unsafe byte* WriteOrderedUInt32Unsafe(byte* cursor, uint value)
 		{
-			if (value <= OCU_MAX0)
-			{ // < 32
-				*cursor = (byte) (OCU_LEN0 | value);
-				return cursor + 1;
+			switch (value)
+			{
+				case <= OCU_MAX0: // < 32 bytes
+					*cursor = (byte) (OCU_LEN0 | value);
+					return cursor + 1;
+				case <= OCU_MAX1: // < 8 KB
+					cursor[0] = (byte) (OCU_LEN1 | (value >> 8));
+					cursor[1] = (byte) (value);
+					return cursor + 2;
+				default:
+					return WriteSlow(cursor, value);
 			}
-			if (value <= OCU_MAX1)
-			{ // < 8 KB
-				cursor[0] = (byte) (OCU_LEN1 | (value >> 8));
-				cursor[1] = (byte) (value);
-				return cursor + 2;
+
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			static byte* WriteSlow(byte* cursor, uint value)
+			{
+				if (value <= OCU_MAX2)
+				{ // < 2 MB
+					cursor[0] = (byte) (OCU_LEN2 | (value >> 16));
+					cursor[1] = (byte) (value >> 8);
+					cursor[2] = (byte) (value);
+					return cursor + 3;
+				}
+				if (value <= OCU_MAX3)
+				{ // < 512 MB
+					cursor[0] = (byte) (OCU_LEN3 | (value >> 24));
+					cursor[1] = (byte) (value >> 16);
+					cursor[2] = (byte) (value >> 8);
+					cursor[3] = (byte) (value);
+					return cursor + 4;
+				}
+				cursor[0] = OCU_LEN4; // we waste a byte for values >= 512MB, which is unfortunate...
+				cursor[1] = (byte) (value >> 24);
+				cursor[2] = (byte) (value >> 16);
+				cursor[3] = (byte) (value >> 8);
+				cursor[4] = (byte) (value);
+				return cursor + 5;
 			}
-			return WriteOrderedUInt32UnsafeSlow(cursor, value);
 		}
 
-		[MethodImpl(MethodImplOptions.NoInlining)]
-		private static unsafe byte* WriteOrderedUInt32UnsafeSlow(byte* cursor, uint value)
-		{
-			if (value <= OCU_MAX2)
-			{ // < 2 MB
-				cursor[0] = (byte) (OCU_LEN2 | (value >> 16));
-				cursor[1] = (byte) (value >> 8);
-				cursor[2] = (byte) (value);
-				return cursor + 3;
-			}
-			if (value <= OCU_MAX3)
-			{ // < 512 MB
-				cursor[0] = (byte) (OCU_LEN3 | (value >> 24));
-				cursor[1] = (byte) (value >> 16);
-				cursor[2] = (byte) (value >> 8);
-				cursor[3] = (byte) (value);
-				return cursor + 4;
-			}
-			cursor[0] = OCU_LEN4; // we waste a byte for values >= 512MB, which is unfortunate...
-			cursor[1] = (byte) (value >> 24);
-			cursor[2] = (byte) (value >> 16);
-			cursor[3] = (byte) (value >> 8);
-			cursor[4] = (byte) (value);
-			return cursor + 5;
-		}
 
 		/// <summary>Append an unsigned 64-bit counter value (up to 2^61-1) using the Compact Ordered Unsigned encoding</summary>
 		/// <param name="cursor">Pointer to the next free byte in the buffer</param>
@@ -1870,51 +1915,55 @@ namespace SnowBank.Buffers.Binary
 		[MethodImpl(MethodImplOptions.NoInlining)]
 		private static unsafe byte* WriteOrderedUInt64UnsafeSlow(byte* cursor, ulong value)
 		{
-			if (value <= OCU_MAX4)
+			switch (value)
 			{
-				cursor[0] = (byte)(OCU_LEN4 | (value >> 32));
-				cursor[1] = (byte)(value >> 24);
-				cursor[2] = (byte)(value >> 16);
-				cursor[3] = (byte)(value >> 8);
-				cursor[4] = (byte)(value);
-				return cursor + 5;
+				case <= OCU_MAX4:
+				{
+					cursor[0] = (byte) (OCU_LEN4 | (value >> 32));
+					cursor[1] = (byte) (value >> 24);
+					cursor[2] = (byte) (value >> 16);
+					cursor[3] = (byte) (value >> 8);
+					cursor[4] = (byte) (value);
+					return cursor + 5;
+				}
+				case <= OCU_MAX5:
+				{
+					cursor[0] = (byte) (OCU_LEN5 | (value >> 40));
+					cursor[1] = (byte) (value >> 32);
+					cursor[2] = (byte) (value >> 24);
+					cursor[3] = (byte) (value >> 16);
+					cursor[4] = (byte) (value >> 8);
+					cursor[5] = (byte) (value);
+					return cursor + 6;
+				}
+				case <= OCU_MAX6:
+				{
+					cursor[0] = (byte) (OCU_LEN6 | (value >> 48));
+					cursor[1] = (byte) (value >> 40);
+					cursor[2] = (byte) (value >> 32);
+					cursor[3] = (byte) (value >> 24);
+					cursor[4] = (byte) (value >> 16);
+					cursor[5] = (byte) (value >> 8);
+					cursor[6] = (byte) (value);
+					return cursor + 7;
+				}
+				case <= OCU_MAX7:
+				{
+					cursor[0] = (byte) (OCU_LEN7 | (value >> 56));
+					cursor[1] = (byte) (value >> 48);
+					cursor[2] = (byte) (value >> 40);
+					cursor[3] = (byte) (value >> 32);
+					cursor[4] = (byte) (value >> 24);
+					cursor[5] = (byte) (value >> 16);
+					cursor[6] = (byte) (value >> 8);
+					cursor[7] = (byte) (value);
+					return cursor + 8;
+				}
+				default:
+				{
+					throw new ArgumentOutOfRangeException(nameof(value), value, "Value must be less then 2^60");
+				}
 			}
-			if (value <= OCU_MAX5)
-			{
-				cursor[0] = (byte)(OCU_LEN5 | (value >> 40));
-				cursor[1] = (byte)(value >> 32);
-				cursor[2] = (byte)(value >> 24);
-				cursor[3] = (byte)(value >> 16);
-				cursor[4] = (byte)(value >> 8);
-				cursor[5] = (byte)(value);
-				return cursor + 6;
-			}
-			if (value <= OCU_MAX6)
-			{
-				cursor[0] = (byte)(OCU_LEN6 | (value >> 48));
-				cursor[1] = (byte)(value >> 40);
-				cursor[2] = (byte)(value >> 32);
-				cursor[3] = (byte)(value >> 24);
-				cursor[4] = (byte)(value >> 16);
-				cursor[5] = (byte)(value >> 8);
-				cursor[6] = (byte)(value);
-				return cursor + 7;
-			}
-
-			if (value <= OCU_MAX7)
-			{
-				cursor[0] = (byte) (OCU_LEN7 | (value >> 56));
-				cursor[1] = (byte) (value >> 48);
-				cursor[2] = (byte) (value >> 40);
-				cursor[3] = (byte) (value >> 32);
-				cursor[4] = (byte) (value >> 24);
-				cursor[5] = (byte) (value >> 16);
-				cursor[6] = (byte) (value >> 8);
-				cursor[7] = (byte) (value);
-				return cursor + 8;
-			}
-
-			throw new ArgumentOutOfRangeException(nameof(value), value, "Value must be less then 2^60");
 		}
 
 		/// <summary>Read an unsigned 32-bit counter value encoded using the Compact Ordered Unsigned encoding</summary>
@@ -1924,21 +1973,21 @@ namespace SnowBank.Buffers.Binary
 			switch (start >> 5)
 			{
 				case 0:
-					value = (start & OCU_BITMAK);
+					value = (start & OCU_BITMASK);
 					return cursor + 1;
 				case 1:
-					value = ((start & OCU_BITMAK) << 8) | ((uint) cursor[1]);
+					value = ((start & OCU_BITMASK) << 8) | ((uint) cursor[1]);
 					return cursor + 2;
 				case 2:
-					value = ((start & OCU_BITMAK) << 16) | ((uint) cursor[1] << 8) | ((uint) cursor[2]);
+					value = ((start & OCU_BITMASK) << 16) | ((uint) cursor[1] << 8) | ((uint) cursor[2]);
 					return cursor + 3;
 				case 3:
-					value = ((start & OCU_BITMAK) << 24) | ((uint)cursor[1] << 16) | ((uint)cursor[2] << 8) | (uint)cursor[3];
+					value = ((start & OCU_BITMASK) << 24) | ((uint) cursor[1] << 16) | ((uint) cursor[2] << 8) | (uint) cursor[3];
 					return cursor + 4;
 				case 4:
 					// start bits MUST be 0 (else, there is an overflow)
-					if ((start & OCU_BITMAK) != 0) throw new InvalidDataException(); //TODO: message?
-					value = ((uint)cursor[1] << 24) | ((uint)cursor[2] << 16) | ((uint)cursor[3] << 8) | (uint)cursor[4];
+					if ((start & OCU_BITMASK) != 0) throw new InvalidDataException(); //TODO: message?
+					value = ((uint) cursor[1] << 24) | ((uint) cursor[2] << 16) | ((uint) cursor[3] << 8) | (uint) cursor[4];
 					return cursor + 5;
 				default:
 					// overflow?
@@ -1956,28 +2005,28 @@ namespace SnowBank.Buffers.Binary
 			switch (start >> 5)
 			{
 				case 0:
-					value = (start & OCU_BITMAK);
+					value = (start & OCU_BITMASK);
 					return cursor + 1;
 				case 1:
-					value = ((start & OCU_BITMAK) << 8) | ((ulong)cursor[1]);
+					value = ((start & OCU_BITMASK) << 8) | ((ulong) cursor[1]);
 					return cursor + 2;
 				case 2:
-					value = ((start & OCU_BITMAK) << 16) | ((ulong)cursor[1] << 8) | ((ulong)cursor[2]);
+					value = ((start & OCU_BITMASK) << 16) | ((ulong) cursor[1] << 8) | ((ulong) cursor[2]);
 					return cursor + 3;
 				case 3:
-					value = ((start & OCU_BITMAK) << 24) | ((ulong)cursor[1] << 16) | ((ulong)cursor[2] << 8) | ((ulong)cursor[3]);
+					value = ((start & OCU_BITMASK) << 24) | ((ulong) cursor[1] << 16) | ((ulong) cursor[2] << 8) | ((ulong) cursor[3]);
 					return cursor + 4;
 				case 4:
-					value = ((start & OCU_BITMAK) << 32) | ((ulong)cursor[1] << 24) | ((ulong)cursor[2] << 16) | ((ulong)cursor[3] << 8) | ((ulong)cursor[4]);
+					value = ((start & OCU_BITMASK) << 32) | ((ulong) cursor[1] << 24) | ((ulong) cursor[2] << 16) | ((ulong) cursor[3] << 8) | ((ulong) cursor[4]);
 					return cursor + 5;
 				case 5:
-					value = ((start & OCU_BITMAK) << 40) | ((ulong)cursor[1] << 32) | ((ulong)cursor[2] << 24) | ((ulong)cursor[3] << 16) | ((ulong)cursor[4] << 8) | ((ulong)cursor[5]);
+					value = ((start & OCU_BITMASK) << 40) | ((ulong) cursor[1] << 32) | ((ulong) cursor[2] << 24) | ((ulong) cursor[3] << 16) | ((ulong) cursor[4] << 8) | ((ulong) cursor[5]);
 					return cursor + 6;
 				case 6:
-					value = ((start & OCU_BITMAK) << 48) | ((ulong)cursor[1] << 40) | ((ulong)cursor[2] << 32) | ((ulong)cursor[3] << 24) | ((ulong)cursor[4] << 16) | ((ulong)cursor[5] << 8) | ((ulong)cursor[6]);
+					value = ((start & OCU_BITMASK) << 48) | ((ulong) cursor[1] << 40) | ((ulong) cursor[2] << 32) | ((ulong) cursor[3] << 24) | ((ulong) cursor[4] << 16) | ((ulong) cursor[5] << 8) | ((ulong) cursor[6]);
 					return cursor + 7;
 				default: // 7
-					value = ((start & OCU_BITMAK) << 56) | ((ulong)cursor[1] << 48) | ((ulong)cursor[2] << 40) | ((ulong)cursor[3] << 32) | ((ulong)cursor[4] << 24) | ((ulong)cursor[5] << 16) | ((ulong)cursor[6] << 8) | ((ulong)cursor[7]);
+					value = ((start & OCU_BITMASK) << 56) | ((ulong) cursor[1] << 48) | ((ulong) cursor[2] << 40) | ((ulong) cursor[3] << 32) | ((ulong) cursor[4] << 24) | ((ulong) cursor[5] << 16) | ((ulong) cursor[6] << 8) | ((ulong) cursor[7]);
 					return cursor + 8;
 			}
 		}
@@ -1987,17 +2036,17 @@ namespace SnowBank.Buffers.Binary
 		#region Signed
 
 		// The signed variant is very similar, except that the start byte uses an additional "Sign" bit (inverted)
-		// - The hight bit (bit 7) of the start byte is 0 for negative numbers, and 1 for positive numbers
+		// - The high bit (bit 7) of the start byte is 0 for negative numbers, and 1 for positive numbers
 		// - The next 3 bits (bits 6-4) of the start byte encode the number of extra bytes following
 		// - The last 4 bits (bit 3-0) contain the 4 highest bits of the encoded value
 		// - Each additional byte stores the next 8 bits until the last byte that stores the lowest 8 bits.
 		// - For negative values, the number of bytes required is computed by using Abs(X)-1, but the original negative value is used (after masking)
-		//   i.e.: -1 becomes -(-1)-1 = 0 (which fits in 4 bits), and will be encoded as (-1) & 0xF = b_0_000_1111 = '0F', and 0 will be encoded as b_1_000_0000 = '10' (which is indeeded sorted after '0F')
+		//   i.e.: -1 becomes -(-1)-1 = 0 (which fits in 4 bits), and will be encoded as (-1) & 0xF = b_0_000_1111 = '0F', and 0 will be encoded as b_1_000_0000 = '10' (which is indeed sorted after '0F')
 		// - Only values between -2^60 and 2^60-1 can be encoded that way! (values < -2^60 or >= 2^60 are NOT SUPPORTED)
 
 		// WIRE FORMAT: SBBBNNNN (NNNNNNNN ...)
-		// - if S = 0, X is negative: BBB = 7 - exta bytes, NNN...N = 2's complement of X
-		// - if S = 1, X is positive: BBB = exta bytes, NNN...N = X
+		// - if S = 0, X is negative: BBB = 7 - extra bytes, NNN...N = 2's complement of X
+		// - if S = 1, X is positive: BBB = extra bytes, NNN...N = X
 		//
 		//    MIN       MAX           SIZE       WIRE FORMAT                                                    = VALUE
 		//  -(1<<60)  -(1<<52)-1    8 bytes      1111AAAA BBBBBBBB CCCCCCCC DDDDDDDD EEEEEEEE FFFFFFFF GGGGGGGG = b_AAAA_BBBBBBBB_CCCCCCCC_DDDDDDDD_EEEEEEEE_FFFFFFFF_GGGGGGGG (60 bits)

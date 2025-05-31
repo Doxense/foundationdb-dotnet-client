@@ -26,7 +26,6 @@
 
 namespace SnowBank.Buffers.Text
 {
-	using System;
 	using System.Buffers;
 	using System.Globalization;
 	using System.Runtime.InteropServices;
@@ -48,6 +47,8 @@ namespace SnowBank.Buffers.Text
 		/// <summary>Current position in the buffer</summary>
 		private int Position;
 
+		/// <summary>Constructs a builder using a pre-allocated buffer</summary>
+		/// <param name="initialBuffer">Pre-allocated buffer (usually on the stack)</param>
 		public FastStringBuilder(Span<char> initialBuffer)
 		{
 			this.PooledBuffer = null;
@@ -55,6 +56,8 @@ namespace SnowBank.Buffers.Text
 			this.Position = 0;
 		}
 
+		/// <summary>Constructs a builder that will rent a buffer with the specified initial capacity</summary>
+		/// <param name="initialCapacity">Initial minimum capacity for the buffer</param>
 		public FastStringBuilder(int initialCapacity)
 		{
 			this.PooledBuffer = ArrayPool<char>.Shared.Rent(initialCapacity);
@@ -92,9 +95,10 @@ namespace SnowBank.Buffers.Text
 			}
 		}
 
+		/// <summary>Gets a pinnable reference to the first character in the buffer.</summary>
 		public ref char GetPinnableReference() => ref MemoryMarshal.GetReference(this.Chars);
 
-		/// <summary>Gets a pinnable reference to the builder.</summary>
+		/// <summary>Gets a pinnable reference to the first character in the buffer.</summary>
 		/// <param name="terminate">Ensures that the builder has a null char after <see cref="Length"/></param>
 		public ref char GetPinnableReference(bool terminate)
 		{
@@ -107,6 +111,10 @@ namespace SnowBank.Buffers.Text
 		}
 
 
+		/// <summary>Returns a reference to the character at the specified index</summary>
+		/// <param name="index">Index of the character</param>
+		/// <returns>Reference to this character</returns>
+		/// <exception cref="IndexOutOfRangeException"> when <paramref name="index"/> is outside the bounds of the currently allocated buffer</exception>
 		public ref char this[int index]
 		{
 			get
@@ -116,9 +124,11 @@ namespace SnowBank.Buffers.Text
 			}
 		}
 
+		/// <summary>Returns a string with all the characters that have been written to this builder</summary>
+		/// <remarks>The buffer is reset after this call, meaning that any rented buffer will be returned to the pool.</remarks>
 		public override string ToString()
 		{
-			string s = this.Chars.Slice(0, this.Position).ToString();
+			string s = this.Chars[..this.Position].ToString();
 			Dispose();
 			return s;
 		}
@@ -138,10 +148,16 @@ namespace SnowBank.Buffers.Text
 			return this.Chars[..this.Position];
 		}
 
+		/// <summary>Returns a span around the contents of the builder.</summary>
 		public ReadOnlySpan<char> AsSpan() => this.Chars[..this.Position];
+
+		/// <summary>Returns a span around the contents of the builder, starting at the specified offset.</summary>
 		public ReadOnlySpan<char> AsSpan(int start) => this.Chars.Slice(start, this.Position - start);
+
+		/// <summary>Returns a span around parts of the contents of the builder.</summary>
 		public ReadOnlySpan<char> AsSpan(int start, int length) => this.Chars.Slice(start, length);
 
+		/// <summary>Copies the content of this builder, if the destination is large enough</summary>
 		public bool TryCopyTo(Span<char> destination, out int charsWritten)
 		{
 			if (this.Chars[..this.Position].TryCopyTo(destination))
@@ -158,6 +174,7 @@ namespace SnowBank.Buffers.Text
 			}
 		}
 
+		/// <summary>Inserts a character at the specified location</summary>
 		public void Insert(int index, char value, int count)
 		{
 			if (this.Position > this.Chars.Length - count)
@@ -171,6 +188,7 @@ namespace SnowBank.Buffers.Text
 			this.Position += count;
 		}
 
+		/// <summary>Inserts a string at the specified location</summary>
 		public void Insert(int index, string? s)
 		{
 			if (s == null)
@@ -191,6 +209,7 @@ namespace SnowBank.Buffers.Text
 			this.Position += count;
 		}
 
+		/// <summary>Appends a character at the end of the buffer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Append(char c)
 		{
@@ -207,6 +226,14 @@ namespace SnowBank.Buffers.Text
 			}
 		}
 
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		private void GrowAndAppend(char c)
+		{
+			Grow(1);
+			Append(c);
+		}
+
+		/// <summary>Appends a string at the end of the buffer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Append(string? s)
 		{
@@ -241,32 +268,37 @@ namespace SnowBank.Buffers.Text
 
 #if NET9_0_OR_GREATER
 
+		/// <summary>Appends a formatting string at the end of the buffer</summary>
 		[StringFormatMethod(nameof(format))]
-		public void AppendFormat([StringSyntax("CompositeFormat")] string format, params scoped ReadOnlySpan<object?> args)
+		public void AppendFormat([StringSyntax("CompositeFormat")] string format, params ReadOnlySpan<object?> args)
 		{
 			AppendSlow(string.Format(CultureInfo.InvariantCulture, format, args));
 		}
 
 #elif NET8_0_OR_GREATER
 
+		/// <summary>Appends a formatting string at the end of the buffer</summary>
 		[StringFormatMethod(nameof(format))]
 		public void AppendFormat([StringSyntax("CompositeFormat")] string format, object? arg0)
 		{
 			AppendSlow(string.Format(CultureInfo.InvariantCulture, format, arg0));
 		}
 
+		/// <summary>Appends a formatting string at the end of the buffer</summary>
 		[StringFormatMethod(nameof(format))]
 		public void AppendFormat([StringSyntax("CompositeFormat")] string format, object? arg0, object? arg1)
 		{
 			AppendSlow(string.Format(CultureInfo.InvariantCulture, format, arg0, arg1));
 		}
 
+		/// <summary>Appends a formatting string at the end of the buffer</summary>
 		[StringFormatMethod(nameof(format))]
 		public void AppendFormat([StringSyntax("CompositeFormat")] string format, object? arg0, object? arg1, object? arg2)
 		{
 			AppendSlow(string.Format(CultureInfo.InvariantCulture, format, arg0, arg1, arg2));
 		}
 
+		/// <summary>Appends a formatting string at the end of the buffer</summary>
 		[StringFormatMethod(nameof(format))]
 		public void AppendFormat([StringSyntax("CompositeFormat")] string format, params object?[] args)
 		{
@@ -301,6 +333,7 @@ namespace SnowBank.Buffers.Text
 
 #endif
 
+		/// <summary>Appends a repeated character at the end of the buffer</summary>
 		public void Append(char c, int count)
 		{
 			if (this.Position > this.Chars.Length - count)
@@ -316,6 +349,7 @@ namespace SnowBank.Buffers.Text
 			this.Position += count;
 		}
 
+		/// <summary>Appends the contents of an unmanaged string at the end of the buffer</summary>
 		public unsafe void Append(char* value, int length)
 		{
 			int pos = this.Position;
@@ -332,6 +366,7 @@ namespace SnowBank.Buffers.Text
 			this.Position += length;
 		}
 
+		/// <summary>Appends a span of characters at the end of the buffer</summary>
 		public void Append(scoped ReadOnlySpan<char> value)
 		{
 			int pos = this.Position;
@@ -357,11 +392,13 @@ namespace SnowBank.Buffers.Text
 			return this.Chars.Slice(origPos, length);
 		}
 
+		/// <summary>Appends a boolean literal (<c>"true"</c> or <c>"false"</c>) to the end of the buffer</summary>
 		public void Append(bool value)
 		{
 			AppendSlow(value ? "true" : "false");
 		}
 
+		/// <summary>Appends a base 10 integer to the end of the buffer</summary>
 		public void Append(int value)
 		{
 			if (value.TryFormat(this.Chars[this.Position..], out int charsWritten, null, CultureInfo.InvariantCulture))
@@ -373,6 +410,7 @@ namespace SnowBank.Buffers.Text
 			AppendSpanFormattable(value, StringConverters.CountDigits(value));
 		}
 
+		/// <summary>Appends a base 10 integer to the end of the buffer</summary>
 		public void Append(uint value)
 		{
 			//note: uint.TryFormat will call Number.TryUInt32ToDecStr that does not use 'provider', when 'format' is null
@@ -386,6 +424,7 @@ namespace SnowBank.Buffers.Text
 			AppendSpanFormattable(value, StringConverters.CountDigits(value));
 		}
 
+		/// <summary>Appends a base 10 integer to the end of the buffer</summary>
 		public void Append(long value)
 		{
 			if (value.TryFormat(this.Chars[this.Position..], out int charsWritten, null, CultureInfo.InvariantCulture))
@@ -397,6 +436,7 @@ namespace SnowBank.Buffers.Text
 			AppendSpanFormattable(value, StringConverters.CountDigits(value));
 		}
 
+		/// <summary>Appends a base 10 integer to the end of the buffer</summary>
 		public void Append(ulong value)
 		{
 			//note: ulong.TryFormat will call Number.TryUInt64ToDecStr that does not use 'provider', when 'format' is null
@@ -410,6 +450,7 @@ namespace SnowBank.Buffers.Text
 			AppendSpanFormattable(value, StringConverters.CountDigits(value));
 		}
 
+		/// <summary>Appends a base 10 integer to the end of the buffer</summary>
 		public void Append(double value)
 		{
 			if (value.TryFormat(this.Chars[this.Position..], out int charsWritten, "R", CultureInfo.InvariantCulture))
@@ -423,6 +464,7 @@ namespace SnowBank.Buffers.Text
 			AppendSpanFormattable(value, 18); // "3.141592653589793" + NUL
 		}
 
+		/// <summary>Appends a base 10 integer to the end of the buffer</summary>
 		public void Append(float value)
 		{
 			if (value.TryFormat(this.Chars[this.Position..], out int charsWritten, "R", CultureInfo.InvariantCulture))
@@ -453,6 +495,7 @@ namespace SnowBank.Buffers.Text
 			}
 		}
 
+		/// <summary>Appends a base 10 integer to the end of the buffer</summary>
 		public void Append<T>(T value) where T : ISpanFormattable
 		{
 			if (value.TryFormat(this.Chars[this.Position..], out int charsWritten, null, CultureInfo.InvariantCulture))
@@ -465,6 +508,7 @@ namespace SnowBank.Buffers.Text
 			}
 		}
 
+		/// <summary>Appends a base 10 integer to the end of the buffer</summary>
 		public void Append(int value, string? format, IFormatProvider? provider = null)
 		{
 			if (value.TryFormat(this.Chars[this.Position..], out int charsWritten, format, provider ?? CultureInfo.InvariantCulture))
@@ -476,6 +520,7 @@ namespace SnowBank.Buffers.Text
 			AppendSpanFormattable(value, StringConverters.CountDigits(value), format, provider);
 		}
 
+		/// <summary>Appends a base 10 integer to the end of the buffer</summary>
 		public void Append(uint value, string? format, IFormatProvider? provider = null)
 		{
 			//note: uint.TryFormat will call Number.TryUInt32ToDecStr that does not use 'provider', when 'format' is null
@@ -489,6 +534,7 @@ namespace SnowBank.Buffers.Text
 			AppendSpanFormattable(value, StringConverters.CountDigits(value), format, provider);
 		}
 
+		/// <summary>Appends a base 10 integer to the end of the buffer</summary>
 		public void Append(long value, string? format, IFormatProvider? provider = null)
 		{
 			if (value.TryFormat(this.Chars[this.Position..], out int charsWritten, format, provider ?? CultureInfo.InvariantCulture))
@@ -500,6 +546,7 @@ namespace SnowBank.Buffers.Text
 			AppendSpanFormattable(value, StringConverters.CountDigits(value), format, provider);
 		}
 
+		/// <summary>Appends a base 10 integer to the end of the buffer</summary>
 		public void Append(ulong value, string? format, IFormatProvider? provider = null)
 		{
 			//note: ulong.TryFormat will call Number.TryUInt64ToDecStr that does not use 'provider', when 'format' is null
@@ -513,6 +560,7 @@ namespace SnowBank.Buffers.Text
 			AppendSpanFormattable(value, StringConverters.CountDigits(value), format, provider);
 		}
 
+		/// <summary>Appends a base 10 decimal number to the end of the buffer</summary>
 		public void Append(double value, string? format, IFormatProvider? provider = null)
 		{
 			format ??= "R";
@@ -529,6 +577,7 @@ namespace SnowBank.Buffers.Text
 			AppendSpanFormattable(value, 18, format, provider); // "3.141592653589793" + NUL
 		}
 
+		/// <summary>Appends a base 10 decimal number to the end of the buffer</summary>
 		public void Append(float value, string? format, IFormatProvider? provider = null)
 		{
 			format ??= "R";
@@ -563,6 +612,8 @@ namespace SnowBank.Buffers.Text
 			}
 		}
 
+		/// <summary>Appends a formattable value to the end of the buffer</summary>
+		/// <typeparam name="T">Type of the value, which must implement <see cref="ISpanFormattable"/></typeparam>
 		public void Append<T>(T value, string? format, IFormatProvider? provider = null) where T : ISpanFormattable
 		{
 			provider ??= CultureInfo.InvariantCulture;
@@ -576,23 +627,36 @@ namespace SnowBank.Buffers.Text
 			}
 		}
 
+		/// <summary>Appends an empty line at the end of the buffer</summary>
+		/// <remarks>This method uses CRLF (<c>\r\n</c>) as the new line, independent of the current operating system.</remarks>
 		public void AppendLine()
 		{
 			AppendSlow("\r\n");
 		}
 
+		/// <summary>Appends a string, followed by a line return, at the end of the buffer</summary>
+		/// <remarks>This method uses CRLF (<c>\r\n</c>) as the new line, independent of the current operating system.</remarks>
 		public void AppendLine(string? s)
 		{
 			Append(s);
 			AppendSlow("\r\n");
 		}
 
+		/// <summary>Appends a string, followed by a line return, at the end of the buffer</summary>
+		/// <remarks>This method uses CRLF (<c>\r\n</c>) as the new line, independent of the current operating system.</remarks>
 		public void AppendLine(ReadOnlySpan<char> s)
 		{
 			Append(s);
 			AppendSlow("\r\n");
 		}
 
+		/// <summary>Appends a base 16 integer, using a fixed number of digits, at the end of the buffer</summary>
+		/// <param name="value">Value to encode (in hexadecimal)</param>
+		/// <param name="digits">Number of digits to use.</param>
+		/// <param name="lowerCase">Set to <c>true</c> if you want to use lowercase digits.</param>
+		/// <remarks>
+		/// <para>If <paramref name="digits"/> is less than 8, then the number may only be partially written to the buffer! Ex: <c>AppendHex(0x1234, 2)</c> will only write "34" to the buffer.</para>
+		/// </remarks>
 		public void AppendHex(int value, int digits, bool lowerCase = false)
 		{
 			Contract.Positive(digits);
@@ -617,6 +681,13 @@ namespace SnowBank.Buffers.Text
 			this.Position = pos + digits;
 		}
 
+		/// <summary>Appends a base 16 integer, using a fixed number of digits, at the end of the buffer</summary>
+		/// <param name="value">Value to encode (in hexadecimal)</param>
+		/// <param name="digits">Number of digits to use.</param>
+		/// <param name="lowerCase">Set to <c>true</c> if you want to use lowercase digits.</param>
+		/// <remarks>
+		/// <para>If <paramref name="digits"/> is less than 16, then the number may only be partially written to the buffer! Ex: <c>AppendHex(0x1234, 2)</c> will only write "34" to the buffer.</para>
+		/// </remarks>
 		public void AppendHex(long value, int digits, bool lowerCase = false)
 		{
 			Contract.Positive(digits);
@@ -639,13 +710,6 @@ namespace SnowBank.Buffers.Text
 			}
 
 			this.Position = pos + digits;
-		}
-
-		[MethodImpl(MethodImplOptions.NoInlining)]
-		private void GrowAndAppend(char c)
-		{
-			Grow(1);
-			Append(c);
 		}
 
 		/// <summary>
@@ -675,7 +739,7 @@ namespace SnowBank.Buffers.Text
 			// This could also go negative if the actual required length wraps around.
 			char[] poolArray = ArrayPool<char>.Shared.Rent(newCapacity);
 
-			this.Chars.Slice(0, this.Position).CopyTo(poolArray);
+			this.Chars[..this.Position].CopyTo(poolArray);
 
 			char[]? toReturn = this.PooledBuffer;
 			this.Chars = this.PooledBuffer = poolArray;
@@ -685,6 +749,7 @@ namespace SnowBank.Buffers.Text
 			}
 		}
 
+		/// <summary>Releases any rented buffer to the pool</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Dispose()
 		{

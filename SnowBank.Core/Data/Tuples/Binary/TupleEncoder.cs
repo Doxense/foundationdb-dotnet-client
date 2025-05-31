@@ -26,7 +26,6 @@
 
 namespace SnowBank.Data.Tuples.Binary
 {
-	using System;
 	using System.Runtime.InteropServices;
 	using SnowBank.Data.Tuples;
 	using SnowBank.Data.Binary;

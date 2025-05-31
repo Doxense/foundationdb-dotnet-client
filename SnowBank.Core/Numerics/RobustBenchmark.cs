@@ -26,7 +26,6 @@
 
 namespace SnowBank.Numerics
 {
-	using System;
 	using System.Linq;
 	using SnowBank.Runtime;
 

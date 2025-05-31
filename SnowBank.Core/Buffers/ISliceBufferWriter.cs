@@ -28,6 +28,7 @@ namespace SnowBank.Buffers
 {
 	using System.Buffers;
 
+	/// <summary>Allocator that slices of bytes</summary>
 	public interface ISliceAllocator : IDisposable
 	{
 		/// <summary>Returns a <see cref="ArraySegment{T}" /> to write to that is exactly the requested size (specified by <paramref name="size" />) and advance the cursor.</summary>
@@ -35,11 +36,14 @@ namespace SnowBank.Buffers
 		/// <exception cref="T:System.OutOfMemoryException">The requested buffer size is not available.</exception>
 		/// <returns>A <see cref="ArraySegment{T}" /> of at exactly the <paramref name="size" /> requested...</returns>
 		ArraySegment<byte> Allocate(int size);
+		//TODO: REVIEW: change this to return a Slice instead?
 
 		/// <summary>Returns the total amount of bytes that were allocated by this instance</summary>
 		long TotalAllocated { get; }
+
 	}
 
+	/// <summary><see cref="IBufferWriter{T}"/> that can also allocate <see cref="Slice"/> chunks</summary>
 	public interface ISliceBufferWriter : IBufferWriter<byte>
 	{
 		/// <summary>Returns a <see cref="Span{T}" /> to write to that is at least the requested size (specified by <paramref name="sizeHint" />).</summary>
@@ -47,9 +51,10 @@ namespace SnowBank.Buffers
 		/// <exception cref="T:System.OutOfMemoryException">The requested buffer size is not available.</exception>
 		/// <returns>A <see cref="Span{T}" /> of at least the size <paramref name="sizeHint" />. If <paramref name="sizeHint" /> is 0, returns a non-empty buffer.</returns>
 		ArraySegment<byte> GetSlice(int sizeHint = 0);
-		
+
 	}
 
+	/// <summary>Helper methods for working with slice allocators and writers</summary>
 	public static class SliceBufferWriterExtensions
 	{
 

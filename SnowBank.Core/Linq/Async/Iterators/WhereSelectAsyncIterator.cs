@@ -26,7 +26,6 @@
 
 namespace SnowBank.Linq.Async.Iterators
 {
-	using System;
 	using System.Buffers;
 	using System.Collections.Immutable;
 	using SnowBank.Buffers;

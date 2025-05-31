@@ -211,6 +211,7 @@ namespace SnowBank.Buffers
 			return buffer;
 		}
 
+		/// <summary>Copies the content of the buffer into the specified destination</summary>
 		public void CopyTo(Span<byte> output)
 		{
 			if (!TryCopyTo(output))
@@ -219,6 +220,7 @@ namespace SnowBank.Buffers
 			}
 		}
 
+		/// <summary>Copies the content of the buffer into the specified destination</summary>
 		public void CopyTo(Span<byte> output, out int written)
 		{
 			if (!TryCopyTo(output, out written))
@@ -227,12 +229,14 @@ namespace SnowBank.Buffers
 			}
 		}
 
+		/// <summary>Copies the content of the buffer into the specified destination, if it is large enough</summary>
 		public bool TryCopyTo(Span<byte> output)
 		{
 			var buffer = m_buffer ?? ThrowObjectDisposedException();
 			return buffer.AsSpan(m_index).TryCopyTo(output);
 		}
 
+		/// <summary>Copies the content of the buffer into the specified destination, if it is large enough</summary>
 		public bool TryCopyTo(Span<byte> output, out int written)
 		{
 			var buffer = m_buffer ?? ThrowObjectDisposedException();
@@ -252,9 +256,10 @@ namespace SnowBank.Buffers
 			throw new ObjectDisposedException("Buffer writer has already been disposed, or the buffer has already been acquired by someone else.");
 		}
 
+		/// <summary>Releases the memory allocated by this instance</summary>
 		public void Dispose()
 		{
-			m_buffer = default;
+			m_buffer = null;
 			m_index = 0;
 		}
 

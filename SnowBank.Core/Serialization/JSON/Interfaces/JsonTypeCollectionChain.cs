@@ -26,8 +26,6 @@
 
 namespace SnowBank.Data.Json
 {
-	using System;
-
 	/// <summary>Collection that aggregates multiple smaller collections into a single chain</summary>
 	public sealed class CrystalJsonTypeResolverChain : ICrystalJsonTypeResolver
 	{

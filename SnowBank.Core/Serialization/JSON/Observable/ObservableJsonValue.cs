@@ -10,7 +10,6 @@
 
 namespace SnowBank.Data.Json
 {
-	using System;
 	using System.ComponentModel;
 
 	/// <summary>Observable JSON Object that will capture all reads</summary>

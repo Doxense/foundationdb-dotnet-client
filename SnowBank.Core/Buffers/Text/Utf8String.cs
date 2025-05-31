@@ -39,12 +39,24 @@ namespace SnowBank.Buffers.Text
 			this.HashCode = hashCode;
 		}
 
+		/// <summary>Converts a string into a UTF-8 byte buffer</summary>
+		/// <param name="text">String to encode</param>
+		/// <param name="includeBom">If <c>true</c>, includes the UTF8 BOM at the start of the buffer</param>
+		/// <param name="noHashCode">If <c>true</c>, skip the computation of the hashcode of the resulting string.</param>
+		/// <returns>Buffer that contains the utf-8 binary representation of <see cref="text"/>, with an optional BOM.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Utf8String FromString(string? text, bool includeBom = false, bool noHashCode = false)
 		{
 			return text == null ? default : FromString(text.AsSpan(), includeBom, noHashCode);
 		}
 
+		/// <summary>Converts part of a string into a UTF-8 byte buffer</summary>
+		/// <param name="text">String to encode</param>
+		/// <param name="offset">Offset (in characters) of the part of <paramref name="text"/> to encode</param>
+		/// <param name="count">Size (in characters) of the part of <paramref name="text"/> to encode</param>
+		/// <param name="includeBom">If <c>true</c>, includes the UTF8 BOM at the start of the buffer</param>
+		/// <param name="noHashCode">If <c>true</c>, skip the computation of the hashcode of the resulting string.</param>
+		/// <returns>Buffer that contains the utf-8 binary representation of <see cref="text"/>, with an optional BOM.</returns>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Utf8String FromString(string? text, int offset, int count, bool includeBom = false, bool noHashCode = false)
@@ -54,6 +66,11 @@ namespace SnowBank.Buffers.Text
 				: throw new ArgumentNullException(nameof(text));
 		}
 
+		/// <summary>Converts part of a string into a UTF-8 byte buffer</summary>
+		/// <param name="text">Span of characters to encode</param>
+		/// <param name="includeBom">If <c>true</c>, includes the UTF8 BOM at the start of the buffer</param>
+		/// <param name="noHashCode">If <c>true</c>, skip the computation of the hashcode of the resulting string.</param>
+		/// <returns>Buffer that contains the utf-8 binary representation of <see cref="text"/>, with an optional BOM.</returns>
 		public static Utf8String FromString(ReadOnlySpan<char> text, bool includeBom = false, bool noHashCode = false)
 		{
 			if (text.Length == 0) return Utf8String.Empty;
@@ -62,6 +79,14 @@ namespace SnowBank.Buffers.Text
 			return new Utf8String(bytes, text.Length, !noHashCode ? null : ComputeHashCode(bytes, text.Length, asciiOnly: text.Length == bytes.Count));
 		}
 
+		/// <summary>Converts part of a string into a UTF-8 byte buffer</summary>
+		/// <param name="text">String to encode</param>
+		/// <param name="offset">Offset (in characters) of the part of <paramref name="text"/> to encode</param>
+		/// <param name="count">Size (in characters) of the part of <paramref name="text"/> to encode</param>
+		/// <param name="buffer">Buffer that should be used to store the converted string. If <c>null</c> or not large enough, will be replaced by a newly allocated buffer.</param>
+		/// <param name="includeBom">If <c>true</c>, includes the UTF8 BOM at the start of the buffer</param>
+		/// <param name="noHashCode">If <c>true</c>, skip the computation of the hashcode of the resulting string.</param>
+		/// <returns>Buffer that contains the utf-8 binary representation of <see cref="text"/>, with an optional BOM.</returns>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Utf8String FromString(string? text, int offset, int count, ref byte[]? buffer, bool includeBom = false, bool noHashCode = false)
@@ -71,6 +96,12 @@ namespace SnowBank.Buffers.Text
 				: throw new ArgumentNullException(nameof(text));
 		}
 
+		/// <summary>Converts part of a string into a UTF-8 byte buffer</summary>
+		/// <param name="text">String to encode</param>
+		/// <param name="buffer">Buffer that should be used to store the converted string. If <c>null</c> or not large enough, will be replaced by a newly allocated buffer.</param>
+		/// <param name="includeBom">If <c>true</c>, includes the UTF8 BOM at the start of the buffer</param>
+		/// <param name="noHashCode">If <c>true</c>, skip the computation of the hashcode of the resulting string.</param>
+		/// <returns>Buffer that contains the utf-8 binary representation of <see cref="text"/>, with an optional BOM.</returns>
 		[Pure]
 		public static Utf8String FromString(ReadOnlySpan<char> text, ref byte[]? buffer, bool includeBom = false, bool noHashCode = false)
 		{
@@ -80,7 +111,7 @@ namespace SnowBank.Buffers.Text
 			return new Utf8String(bytes, text.Length, !noHashCode ? null : ComputeHashCode(bytes, text.Length, asciiOnly));
 		}
 
-		/// <summary>Return a string view of a native buffer that contains UTF-8 bytes</summary>
+		/// <summary>Returns a string view of a native buffer that contains UTF-8 bytes</summary>
 		/// <param name="buffer">Bytes that contain UTF-8 encoded characters</param>
 		/// <param name="discardBom">If true, discard any UTF-8 BOM if present</param>
 		/// <param name="noHashCode">If false, pre-compute the hashcode of the string. If you do not use this string for comparisons or as a key in a dictionary, you can skip this step by passing true.</param>
@@ -94,7 +125,7 @@ namespace SnowBank.Buffers.Text
 			     : FromBuffer(buffer.Array, buffer.Offset, buffer.Count, discardBom, noHashCode);
 		}
 
-		/// <summary>Return a string view of a native buffer that contains UTF-8 bytes</summary>
+		/// <summary>Returns a string view of a native buffer that contains UTF-8 bytes</summary>
 		/// <param name="buffer">Buffer that contains UTF-8 encoded characters</param>
 		/// <param name="offset">Offset (in bytes) of the start of the string in <paramref name="buffer"/></param>
 		/// <param name="count">Size (in bytes) of the string in <paramref name="buffer"/></param>
@@ -143,6 +174,10 @@ namespace SnowBank.Buffers.Text
 			return new Utf8String(new Slice(buffer, offset, count), length, hashCode);
 		}
 
+		/// <summary>Wraps a <see cref="Slice"/> that is expected to contain a UTF-8 encoded string</summary>
+		/// <param name="buffer">Buffer that contains the UTF-8 bytes</param>
+		/// <param name="length">Length of the string (in characters)</param>
+		/// <param name="hashCode">Hashcode of the string (or <c>null</c> if unknown)</param>
 		[Pure]
 		public static Utf8String CreateUnsafe(Slice buffer, int length, int? hashCode)
 		{
@@ -150,7 +185,7 @@ namespace SnowBank.Buffers.Text
 			return new Utf8String(buffer, length, hashCode);
 		}
 
-		/// <summary>Truncate the UTF-8 BOM prefix from a buffer, if it exists</summary>
+		/// <summary>Truncates the UTF-8 BOM prefix from a buffer, if it is present</summary>
 		[Pure]
 		public static Slice RemoveBom(Slice buffer)
 		{
@@ -162,54 +197,57 @@ namespace SnowBank.Buffers.Text
 			return buffer;
 		}
 
-		/// <summary>Truncate the UTF-8 BOM prefix from a buffer, if it exists</summary>
+		/// <summary>Truncates the UTF-8 BOM prefix from a buffer, if it is present</summary>
 		[Pure]
 		public static ReadOnlySpan<byte> RemoveBom(ReadOnlySpan<byte> buffer)
 		{
 			// If the buffer starts with EF BB BF, then discard it
 			if (buffer.Length >= 3 && buffer[0] == 0xEF && buffer[1] == 0xBB && buffer[2] == 0xBF)
 			{
-				return buffer.Slice(3);
+				return buffer[3..];
 			}
 			return buffer;
 		}
 
-		/// <summary>
-		/// Returns a reference to the first byte in the encoded string.
+		/// <summary>Returns a reference to the first byte in the encoded string.</summary>
+		/// <remarks>
 		/// If the string is empty, returns a reference to the location where the first byte would have been stored.
 		/// Such a reference can be used for pinning but must never be dereferenced.
-		/// </summary>
+		/// </remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public ref readonly byte DangerousGetPinnableReference()
 		{
 			return ref this.Buffer.DangerousGetPinnableReference();
 		}
 
-		/// <summary>
-		/// Returns a reference to the first character in the string. If the string is empty, returns null reference.
-		/// </summary>
+		/// <summary>Returns a reference to the first character in the string. If the string is empty, returns null reference.</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public ref readonly byte GetPinnableReference()
 		{
 			return ref this.Buffer.GetPinnableReference();
 		}
 
+		/// <summary>Logical equivalent to the <c>null</c> string.</summary>
 		public static readonly Utf8String Nil = default;
 
+		/// <summary>Logical equivalent to the <c>empty</c> string.</summary>
 		public static readonly Utf8String Empty = new(Slice.Empty, 0, 0);
 
+		/// <summary>Converts a <see cref="UTF8Encoding"/> to the equivalent <see cref="string"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static explicit operator string(Utf8String s)
 		{
 			return s.ToString();
 		}
 
+		/// <summary>Unwraps the underlying buffer of a <see cref="UTF8Encoding"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static explicit operator Slice(Utf8String s)
 		{
 			return s.Buffer;
 		}
 
+		/// <summary>Unwraps the underlying buffer of a <see cref="UTF8Encoding"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static explicit operator ReadOnlySpan<byte>(Utf8String s)
 		{
@@ -225,42 +263,40 @@ namespace SnowBank.Buffers.Text
 		/// <summary>Test if this string only contains ASCII characters</summary>
 		public bool IsAscii => this.Buffer.Count == this.Length;
 
-		public override bool Equals(object? obj)
+		/// <inheritdoc />
+		public override bool Equals(object? obj) => obj switch
 		{
-			switch (obj)
-			{
-				case string s:
-					return Equals(s);
-				case Utf8String utf8:
-					return Equals(utf8);
-				case Slice sl:
-					return Equals(sl);
-			}
-			return false;
-		}
+			string s => Equals(s),
+			Utf8String utf8 => Equals(utf8),
+			Slice sl => Equals(sl),
+			_ => false
+		};
 
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(Utf8String other)
 		{
 			return this.Length == other.Length
-			    && SameOrMissingHashcode(this.HashCode, other.HashCode)
-			    && this.Buffer.Equals(other.Buffer);
+			       && SameOrMissingHashcode(this.HashCode, other.HashCode)
+			       && this.Buffer.Equals(other.Buffer);
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			static bool SameOrMissingHashcode(int? h1, int? h2)
+			{
+				// Tests that both hash codes, if present, have the same value</summary>
+				// returns False IIF h1 != nul &amp;&amp; h2 != null &amp;&amp; h1 != h2; otherwise, True</returns>
+				return !h1.HasValue || !h2.HasValue || h1.Value == h2.Value;
+			}
 		}
 
-		/// <summary>Test that both hash codes, if present, have the same value</summary>
-		/// <returns>False IIF h1 != nul &amp;&amp; h2 != null &amp;&amp; h1 != h2; otherwise, True</returns>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private static bool SameOrMissingHashcode(int? h1, int? h2)
-		{
-			return !h1.HasValue || !h2.HasValue || h1.Value == h2.Value;
-		}
-
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(ReadOnlySpan<byte> other)
 		{
 			return this.Span.SequenceEqual(other);
 		}
 
+		/// <inheritdoc />
 		[Pure]
 		public bool Equals(string? other)
 		{
@@ -279,6 +315,7 @@ namespace SnowBank.Buffers.Text
 			throw new InvalidOperationException();
 		}
 
+		/// <inheritdoc />
 		[Pure]
 		public bool Equals(ReadOnlySpan<char> other)
 		{
@@ -298,17 +335,21 @@ namespace SnowBank.Buffers.Text
 			throw new InvalidOperationException();
 		}
 
+		/// <inheritdoc />
+		[Pure]
 		public bool Equals(ArraySegment<char> other)
 		{
 			return Equals(other.AsSpan());
 		}
 
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(Slice other)
 		{
 			return other.Equals(this.Buffer);
 		}
 
+		/// <summary>Tests if a UTF-8 encoded string is equal to a UTF-16 encoded string</summary>
 		public static bool Equals(ReadOnlySpan<byte> left, string right)
 		{
 			fixed (byte* start = left)
@@ -328,37 +369,26 @@ namespace SnowBank.Buffers.Text
 			}
 		}
 
+		/// <summary>Tests if two <see cref="UTF8Encoding"/> are equal</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static bool operator ==(Utf8String a, Utf8String b)
-		{
-			return a.Equals(b);
-		}
+		public static bool operator ==(Utf8String a, Utf8String b) => a.Equals(b);
 
+		/// <summary>Tests if two <see cref="UTF8Encoding"/> are different</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static bool operator !=(Utf8String a, Utf8String b)
-		{
-			return !a.Equals(b);
-		}
+		public static bool operator !=(Utf8String a, Utf8String b) => !a.Equals(b);
 
+		/// <summary>Tests if a <see cref="UTF8Encoding"/> and a <see cref="string"/> are equal</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static bool operator ==(Utf8String a, string b)
-		{
-			return a.Equals(b);
-		}
+		public static bool operator ==(Utf8String a, string b) => a.Equals(b);
 
+		/// <summary>Tests if a <see cref="UTF8Encoding"/> and a <see cref="string"/> are different</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static bool operator !=(Utf8String a, string b)
-		{
-			return !a.Equals(b);
-		}
+		public static bool operator !=(Utf8String a, string b) => !a.Equals(b);
 
 		/// <summary>Returns the hashcode of the string only if it has been pre-computed; otherwise, returns 0.</summary>
 		/// <remarks>Only use this method if the cost of computing the hashcode would be too high</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int GetCachedHashCode()
-		{
-			return this.HashCode ?? 0;
-		}
+		public int GetCachedHashCode() => this.HashCode ?? 0;
 
 		/// <summary>Returns the hashcode of the string</summary>
 		public override int GetHashCode()
@@ -379,6 +409,7 @@ namespace SnowBank.Buffers.Text
 			return UnicodeCodePoint.CompleteHashCode(h, length);
 		}
 
+		/// <summary>Returns the equivalent <see cref="string"/></summary>
 		public override string ToString()
 		{
 			return ToString(this.Buffer, this.Length, this.IsAscii);
@@ -387,7 +418,7 @@ namespace SnowBank.Buffers.Text
 		[Pure]
 		internal static string ToString(Slice buffer, [Positive] int length, bool asciiOnly = false)
 		{
-			if (length == 0) return String.Empty;
+			if (length == 0) return string.Empty;
 
 			if (asciiOnly)
 			{ // ASCII only, direct conversion
@@ -436,7 +467,7 @@ namespace SnowBank.Buffers.Text
 				{
 					sb.Append('\\').Append(c);
 				}
-				else if ((c >= ' ' && c <= '~') || (c >= 880 && c <= 2047) || (c >= 12352 && c <= 12591))
+				else if (c is >= ' ' and <= '~' || (c >= 880 && c <= 2047) || (c >= 12352 && c <= 12591))
 				{
 					sb.Append(c);
 				}
@@ -465,32 +496,21 @@ namespace SnowBank.Buffers.Text
 			return sb.ToString();
 		}
 
+		/// <summary>Returns the equivalent <see cref="string"/>, in the given format.</summary>
 		public string ToString(string? fmt)
 		{
 			return ToString(fmt, null);
 		}
 
-		public string ToString(string? fmt, IFormatProvider? provider)
+		/// <summary>Returns the equivalent <see cref="string"/>, in the given format.</summary>
+		public string ToString(string? fmt, IFormatProvider? provider) => (fmt ?? "D") switch
 		{
-			switch (fmt ?? "D")
-			{
-				case "D":
-				case "d":
-				{
-					return ToString(this.Buffer, this.Length, this.IsAscii);
-				}
-				case "P":
-				{
-					return ToStringPrintable(this.Buffer, this.Length, quotes: '"');
-				}
-				default:
-				{
-					throw new FormatException("Format is invalid or not supported");
-				}
-			}
-		}
+			"D" or "d" => ToString(this.Buffer, this.Length, this.IsAscii),
+			"P" => ToStringPrintable(this.Buffer, this.Length, quotes: '"'),
+			_ => throw new FormatException("Format is invalid or not supported")
+		};
 
-		/// <summary>Return an array with the decoded characters of this string</summary>
+		/// <summary>Returns an array with the decoded characters of this string</summary>
 		[Pure]
 		public char[] ToCharArray()
 		{
@@ -509,7 +529,7 @@ namespace SnowBank.Buffers.Text
 			return res;
 		}
 
-		/// <summary>Return an <see cref="Slice"/> that points to the UTF-8 encoded bytes of this string</summary>
+		/// <summary>Returns an <see cref="Slice"/> that points to the UTF-8 encoded bytes of this string</summary>
 		/// <remarks>CAUTION: you should NOT mutate the content of the buffer. Doing so will invalidate the pre-computed <see cref="Length"/> and <see cref="HashCode"/> and potentially generate corrupted data.</remarks>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -518,7 +538,7 @@ namespace SnowBank.Buffers.Text
 			return this.Buffer;
 		}
 
-		/// <summary>Return an array with a copy of the UTF-8 encoded bytes of this string</summary>
+		/// <summary>Returns an array with a copy of the UTF-8 encoded bytes of this string</summary>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public byte[] GetBytes()
@@ -526,7 +546,7 @@ namespace SnowBank.Buffers.Text
 			return this.Buffer.ToArray();
 		}
 
-		/// <summary>Return a span over the UTF-8 encoded bytes of this string</summary>
+		/// <summary>Returns a span over the UTF-8 encoded bytes of this string</summary>
 		/// <remarks>The length of the span may be greater than the <see cref="Length"/> of this string, but nether smaller.</remarks>
 		public ReadOnlySpan<byte> Span
 		{
@@ -534,7 +554,7 @@ namespace SnowBank.Buffers.Text
 			get => this.Buffer.Span;
 		}
 
-		/// <summary>Return a substring that shares the same buffer as this one</summary>
+		/// <summary>Returns a substring that shares the same buffer as this one</summary>
 		[Pure]
 		public Utf8String Substring(int startIndex, bool noHashCode = false)
 		{
@@ -567,7 +587,7 @@ namespace SnowBank.Buffers.Text
 			return new Utf8String(buf, count, hashCode);
 		}
 
-		/// <summary>Return a substring that shares the same buffer as this one</summary>
+		/// <summary>Returns a substring that shares the same buffer as this one</summary>
 		[Pure]
 		public Utf8String Substring(int startIndex, int count, bool noHashCode = false)
 		{
@@ -623,7 +643,7 @@ namespace SnowBank.Buffers.Text
 			return new Utf8String(segment, count, hashCode);
 		}
 
-		/// <summary>Test if this string starts with the given character</summary>
+		/// <summary>Tests if this string starts with the given character</summary>
 		public bool StartsWith(char value)
 		{
 			if (this.Length == 0) return false;
@@ -639,7 +659,7 @@ namespace SnowBank.Buffers.Text
 			}
 		}
 
-		/// <summary>Test if this string starts with the given prefix</summary>
+		/// <summary>Tests if this string starts with the given prefix</summary>
 		/// <remarks>
 		/// This method is O(<paramref name="prefix"/>.Length).
 		/// Convention is that all strings start with the null or empty prefix.
@@ -670,7 +690,7 @@ namespace SnowBank.Buffers.Text
 			return true;
 		}
 
-		/// <summary>Test if this string starts with the given prefix</summary>
+		/// <summary>Tests if this string starts with the given prefix</summary>
 		/// <remarks>
 		/// This method is O(<paramref name="prefix"/>.Length).
 		/// Convention is that all strings start with the null or empty prefix.
@@ -701,7 +721,7 @@ namespace SnowBank.Buffers.Text
 			return true;
 		}
 
-		/// <summary>Test if this string starts with the given prefix</summary>
+		/// <summary>Tests if this string starts with the given prefix</summary>
 		/// <remarks>
 		/// This method is O(<paramref name="count"/>).
 		/// Convention is that all strings start with the empty prefix.
@@ -712,7 +732,7 @@ namespace SnowBank.Buffers.Text
 			return StartsWith(prefix.AsSpan(offset, count));
 		}
 
-		/// <summary>Test if this string starts with the given prefix</summary>
+		/// <summary>Tests if this string starts with the given prefix</summary>
 		/// <remarks>
 		/// This method is O(<paramref name="prefix"/>.Length).
 		/// Convention is that all strings start with the null or empty prefix.
@@ -739,7 +759,7 @@ namespace SnowBank.Buffers.Text
 			return true;
 		}
 
-		/// <summary>Test if this string ends with the given suffix</summary>
+		/// <summary>Tests if this string ends with the given suffix</summary>
 		/// <remarks>
 		/// Warning: This method is O(this.Length), which can be a lot larger than the length of the suffix!
 		/// Convention is that all strings end with the null or empty suffix.
@@ -753,7 +773,7 @@ namespace SnowBank.Buffers.Text
 			return Substring(this.Length - suffix.Length).Equals(suffix);
 		}
 
-		/// <summary>Test if this string ends with the given suffix</summary>
+		/// <summary>Tests if this string ends with the given suffix</summary>
 		/// <remarks>
 		/// Warning: This method is O(this.Length), which can be a lot larger than the length of the suffix!
 		/// Convention is that all strings end with the null or empty suffix.
@@ -767,7 +787,7 @@ namespace SnowBank.Buffers.Text
 			return Substring(this.Length - suffix.Length).Equals(suffix);
 		}
 
-		/// <summary>Test if this string ends with the given segment of a suffix</summary>
+		/// <summary>Tests if this string ends with the given segment of a suffix</summary>
 		/// <param name="suffix">String that contains the suffix</param>
 		/// <param name="offset">Offset in <paramref name="suffix"/> of the first character of the suffix</param>
 		/// <param name="count">Size of the suffix</param>
@@ -781,7 +801,7 @@ namespace SnowBank.Buffers.Text
 			return EndsWith(suffix.AsSpan(offset, count));
 		}
 
-		/// <summary>Test if this string ends with the given suffix</summary>
+		/// <summary>Tests if this string ends with the given suffix</summary>
 		/// <remarks>
 		/// Warning: This method is O(this.Length), which can be a lot larger than the length of the suffix!
 		/// Convention is that all strings end with the null or empty suffix.
@@ -795,12 +815,14 @@ namespace SnowBank.Buffers.Text
 			return Substring(this.Length - suffix.Length).Equals(suffix);
 		}
 
+		/// <summary>Tests if this string contains a specific character</summary>
 		[Pure]
 		public bool Contains(char ch)
 		{
 			return IndexOf(ch) >= 0;
 		}
 
+		/// <summary>Tests if this string contains a specific character, at or after the specified index</summary>
 		[Pure]
 		public bool Contains(char ch, [Positive] int startIndex)
 		{
@@ -810,6 +832,8 @@ namespace SnowBank.Buffers.Text
 		//TODO: Contains(string) + offset,count
 		//TODO: Contains(Utf8String)
 
+		/// <summary>Returns the index of the first occurrence of a specific character in this string</summary>
+		/// <returns>Index of the character if found; otherwise, <c>-1</c></returns>
 		[Pure]
 		public int IndexOf(char ch)
 		{
@@ -838,6 +862,8 @@ namespace SnowBank.Buffers.Text
 			return NOT_FOUND;
 		}
 
+		/// <summary>Returns the index of the first occurrence of a specific character in this string, at or after the specified index</summary>
+		/// <returns>Index of the character if found; otherwise, <c>-1</c></returns>
 		[Pure]
 		public int IndexOf(char ch, [Positive] int startIndex)
 		{
@@ -871,18 +897,22 @@ namespace SnowBank.Buffers.Text
 			return NOT_FOUND;
 		}
 
+		/// <summary>Concatenates two <see cref="Utf8String"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Utf8String Concat(Utf8String b)
 		{
+			//TODO: BUGBUG: what if b has a BOM?
 			return new Utf8String(this.Buffer.Concat(b.Buffer), this.Length + b.Length, null);
 		}
 
+		/// <summary>Concatenates two <see cref="Utf8String"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Utf8String operator +(Utf8String a, Utf8String b)
 		{
 			return a.Concat(b);
 		}
 
+		/// <summary>Concatenates a <see cref="Utf8String"/> with a <see cref="string"/></summary>
 		[Pure]
 		public Utf8String Concat(string b)
 		{
@@ -898,6 +928,7 @@ namespace SnowBank.Buffers.Text
 			return new Utf8String(new Slice(tmp, 0, tmp.Length), this.Length + b.Length, null);
 		}
 
+		/// <summary>Concatenates a <see cref="Utf8String"/> with a <see cref="string"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Utf8String operator +(Utf8String a, string b)
 		{

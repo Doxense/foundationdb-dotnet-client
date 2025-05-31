@@ -56,6 +56,8 @@ namespace SnowBank.Buffers
 		/// <summary>Position in the buffer ( == number of already written bytes)</summary>
 		public int Position;
 
+		/// <summary>Optional pool used to allocate the buffers used by this writer</summary>
+		/// <remarks>If <c>null</c>, will allocate on the heap</remarks>
 		public readonly ArrayPool<byte>? Pool;
 
 		#endregion
@@ -290,7 +292,7 @@ namespace SnowBank.Buffers
 		/// <example><code>
 		/// ({HELLO WORLD}).Head(5) => {HELLO}
 		/// ({HELLO WORLD}).Head(1) => {H}
-		/// {{HELLO WORLD}).Head(0) => {}
+		/// ({HELLO WORLD}).Head(0) => {}
 		/// </code></example>
 		/// <exception cref="ArgumentException">If <paramref name="count"/> is less than zero, or larger than the current buffer size</exception>
 		[Pure]
@@ -308,7 +310,7 @@ namespace SnowBank.Buffers
 		/// <example>
 		/// ({HELLO WORLD}).Head(5) => {HELLO}
 		/// ({HELLO WORLD}).Head(1) => {H}
-		/// {{HELLO WORLD}).Head(0) => {}
+		/// ({HELLO WORLD}).Head(0) => {}
 		/// </example>
 		/// <exception cref="ArgumentException">If <paramref name="count"/> is less than zero, or larger than the current buffer size</exception>
 		[Pure]
@@ -326,7 +328,7 @@ namespace SnowBank.Buffers
 		/// <example>
 		/// ({HELLO WORLD}).Tail(5) => {WORLD}
 		/// ({HELLO WORLD}).Tail(1) => {D}
-		/// {{HELLO WORLD}).Tail(0) => {}
+		/// ({HELLO WORLD}).Tail(0) => {}
 		/// </example>
 		/// <exception cref="ArgumentException">If <paramref name="count"/> is less than zero, or larger than the current buffer size</exception>
 		public readonly Slice Tail(int count)
@@ -344,7 +346,7 @@ namespace SnowBank.Buffers
 		/// <example><code>
 		/// ({HELLO WORLD}).Tail(5) => {WORLD}
 		/// ({HELLO WORLD}).Tail(1) => {D}
-		/// {{HELLO WORLD}).Tail(0) => {}
+		/// ({HELLO WORLD}).Tail(0) => {}
 		/// </code></example>
 		/// <exception cref="ArgumentException">If <paramref name="count"/> is less than zero, or larger than the current buffer size</exception>
 		public readonly Slice Tail(uint count)
@@ -358,7 +360,7 @@ namespace SnowBank.Buffers
 		/// <summary>Returns a slice pointing to a segment inside the buffer</summary>
 		/// <param name="offset">Offset of the segment from the start of the buffer</param>
 		/// <remarks>Any change to the slice will change the buffer !</remarks>
-		/// <exception cref="ArgumentException">If <paramref name="offset"/> is less then zero, or after the current position</exception>
+		/// <exception cref="ArgumentException">If <paramref name="offset"/> is less than zero, or after the current position</exception>
 		[Pure]
 		public readonly Slice Substring(int offset)
 		{
@@ -372,7 +374,7 @@ namespace SnowBank.Buffers
 		/// <param name="offset">Offset of the segment from the start of the buffer</param>
 		/// <param name="count">Size of the segment</param>
 		/// <remarks>Any change to the slice will change the buffer !</remarks>
-		/// <exception cref="ArgumentException">If either <paramref name="offset"/> or <paramref name="count"/> are less then zero, or do not fit inside the current buffer</exception>
+		/// <exception cref="ArgumentException">If either <paramref name="offset"/> or <paramref name="count"/> are less than zero, or do not fit inside the current buffer</exception>
 		[Pure]
 		public readonly Slice Substring(int offset, int count)
 		{
@@ -472,6 +474,7 @@ namespace SnowBank.Buffers
 			}
 		}
 
+		/// <summary>Releases the resources allocated by this instance</summary>
 		public void Dispose()
 		{
 			Release(clear: false);
@@ -544,7 +547,7 @@ namespace SnowBank.Buffers
 
 		#region Bytes...
 
-		/// <summary>Add a byte to the end of the buffer, and advance the cursor</summary>
+		/// <summary>Adds a byte to the end of the buffer, and advance the cursor</summary>
 		/// <param name="value">Byte, 8 bits</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteByte(byte value)
@@ -555,7 +558,7 @@ namespace SnowBank.Buffers
 			this.Position = p + 1;
 		}
 
-		/// <summary>Add a byte to the end of the buffer, and advance the cursor</summary>
+		/// <summary>Adds a byte to the end of the buffer, and advance the cursor</summary>
 		/// <param name="value">Byte, 8 bits</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteByte(char value)
@@ -567,7 +570,7 @@ namespace SnowBank.Buffers
 			this.Position = p + 1;
 		}
 
-		/// <summary>Add a byte to the end of the buffer, and advance the cursor</summary>
+		/// <summary>Adds a byte to the end of the buffer, and advance the cursor</summary>
 		/// <param name="value">Byte, 8 bits</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteByte(int value)
@@ -578,7 +581,7 @@ namespace SnowBank.Buffers
 			this.Position = p + 1;
 		}
 
-		/// <summary>Add a byte to the end of the buffer, and advance the cursor</summary>
+		/// <summary>Adds a byte to the end of the buffer, and advance the cursor</summary>
 		/// <param name="value">Byte, 8 bits</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteByte(sbyte value)
@@ -589,7 +592,7 @@ namespace SnowBank.Buffers
 			this.Position = p + 1;
 		}
 
-		/// <summary>Add a 1-byte boolean to the end of the buffer, and advance the cursor</summary>
+		/// <summary>Adds a 1-byte boolean to the end of the buffer, and advance the cursor</summary>
 		/// <param name="value">Boolean, encoded as either 0 or 1.</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteByte(bool value)
@@ -600,7 +603,7 @@ namespace SnowBank.Buffers
 			this.Position = p + 1;
 		}
 
-		/// <summary>Dangerously write a single byte at the end of the buffer, without any capacity checks!</summary>
+		/// <summary>Dangerously writes a single byte at the end of the buffer, without any capacity checks!</summary>
 		/// <remarks>
 		/// This method DOES NOT check the buffer capacity before writing, and caller MUST have resized the buffer beforehand!
 		/// Failure to do so may introduce memory correction (buffer overflow!).
@@ -613,6 +616,7 @@ namespace SnowBank.Buffers
 			this.Buffer[this.Position++] = value;
 		}
 
+		/// <summary>Writes two bytes at the end of the buffer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteBytes(byte value1, byte value2)
 		{
@@ -623,7 +627,7 @@ namespace SnowBank.Buffers
 			this.Position = p + 2;
 		}
 
-		/// <summary>Dangerously write two bytes at the end of the buffer, without any capacity checks!</summary>
+		/// <summary>Dangerously writes two bytes at the end of the buffer, without any capacity checks!</summary>
 		/// <remarks>
 		/// This method DOES NOT check the buffer capacity before writing, and caller MUST have resized the buffer beforehand!
 		/// Failure to do so may introduce memory correction (buffer overflow!).
@@ -639,6 +643,7 @@ namespace SnowBank.Buffers
 			this.Position = p + 2;
 		}
 
+		/// <summary>Writes three bytes at the end of the buffer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteBytes(byte value1, byte value2, byte value3)
 		{
@@ -650,7 +655,7 @@ namespace SnowBank.Buffers
 			this.Position = p + 3;
 		}
 
-		/// <summary>Dangerously write three bytes at the end of the buffer, without any capacity checks!</summary>
+		/// <summary>Dangerously writes three bytes at the end of the buffer, without any capacity checks!</summary>
 		/// <remarks>
 		/// This method DOES NOT check the buffer capacity before writing, and caller MUST have resized the buffer beforehand!
 		/// Failure to do so may introduce memory correction (buffer overflow!).
@@ -668,6 +673,7 @@ namespace SnowBank.Buffers
 			this.Position = p + 3;
 		}
 
+		/// <summary>Write four bytes at the end of the buffer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteBytes(byte value1, byte value2, byte value3, byte value4)
 		{
@@ -699,12 +705,7 @@ namespace SnowBank.Buffers
 			this.Position = p + 4;
 		}
 
-		/// <summary>Dangerously write five bytes at the end of the buffer, without any capacity checks!</summary>
-		/// <remarks>
-		/// This method DOES NOT check the buffer capacity before writing, and caller MUST have resized the buffer beforehand!
-		/// Failure to do so may introduce memory correction (buffer overflow!).
-		/// This should ONLY be used in performance-sensitive code paths that have been audited thoroughly!
-		/// </remarks>
+		/// <summary>Writes five bytes at the end of the buffer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteBytes(byte value1, byte value2, byte value3, byte value4, byte value5)
 		{
@@ -718,6 +719,12 @@ namespace SnowBank.Buffers
 			this.Position = p + 5;
 		}
 
+		/// <summary>Dangerously write five bytes at the end of the buffer, without any capacity checks!</summary>
+		/// <remarks>
+		/// This method DOES NOT check the buffer capacity before writing, and caller MUST have resized the buffer beforehand!
+		/// Failure to do so may introduce memory correction (buffer overflow!).
+		/// This should ONLY be used in performance-sensitive code paths that have been audited thoroughly!
+		/// </remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void UnsafeWriteBytes(byte value1, byte value2, byte value3, byte value4, byte value5)
 		{
@@ -1785,7 +1792,7 @@ namespace SnowBank.Buffers
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int WriteString(ReadOnlySpan<byte> value)
 		{
-			//note: this is the same as WriteBytes, but people may looks for "WriteString" if they are writing a keyword of magic signature...
+			//note: this is the same as WriteBytes, but people may look for "WriteString" if they are writing a keyword of magic signature...
 			WriteBytes(value);
 			return value.Length;
 		}
@@ -1861,7 +1868,7 @@ namespace SnowBank.Buffers
 			return WriteStringUtf8(new ReadOnlySpan<char>(chars, offset, count));
 		}
 
-		/// <summary>Write a string using UTF-8</summary>
+		/// <summary>Writes a string using UTF-8</summary>
 		/// <returns>Number of bytes written</returns>
 		public int WriteStringUtf8(ReadOnlySpan<char> chars)
 		{
@@ -1872,8 +1879,7 @@ namespace SnowBank.Buffers
 			{
 				fixed (char* inp = &MemoryMarshal.GetReference(chars))
 				{
-					// pour estimer la capacité, on fait une estimation a la louche pour des petites strings, mais on va calculer la bonne valeur pour des string plus grandes,
-					// afin d'éviter de gaspiller trop de mémoire (potentiellement jusqu'à 6 fois la taille)
+					// For short strings, assume 6 bytes per character, and only do real work for "long" strings.
 					var buffer = EnsureBytes(count > 128
 						? Encoding.UTF8.GetByteCount(inp, count)
 						: Encoding.UTF8.GetMaxByteCount(count));
@@ -1889,6 +1895,8 @@ namespace SnowBank.Buffers
 			}
 		}
 
+		/// <summary>Writes a character using UTF-8</summary>
+		/// <returns>Number of bytes written</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int WriteStringUtf8(char value)
 		{
@@ -1934,6 +1942,7 @@ namespace SnowBank.Buffers
 			return value.Length;
 		}
 
+		/// <summary>Writes a base 10 integer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteBase10(int value)
 		{
@@ -1947,6 +1956,7 @@ namespace SnowBank.Buffers
 			}
 		}
 
+		/// <summary>Writes a base 10 integer</summary>
 		public void WriteBase10(long value)
 		{
 			switch ((ulong) value)
@@ -1969,6 +1979,7 @@ namespace SnowBank.Buffers
 			}
 		}
 
+		/// <summary>Writes a base 10 integer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteBase10(uint value)
 		{
@@ -1982,6 +1993,7 @@ namespace SnowBank.Buffers
 			}
 		}
 
+		/// <summary>Writes a base 10 integer</summary>
 		public void WriteBase10(ulong value)
 		{
 			if (value <= 9)
@@ -2140,7 +2152,6 @@ namespace SnowBank.Buffers
 			value.TryFormat(buffer, out int n, provider: CultureInfo.InvariantCulture);
 			this.Position += n;
 #else
-			//TODO: OPTIMIZE: sans allocations?
 			WriteStringAscii(value.ToString(CultureInfo.InvariantCulture));
 #endif
 		}
@@ -2576,6 +2587,7 @@ namespace SnowBank.Buffers
 			return buffer;
 		}
 
+		/// <inheritdoc />
 		public void Advance(int count)
 		{
 			int newPos = checked(this.Position + count);
@@ -2584,9 +2596,9 @@ namespace SnowBank.Buffers
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		private static Exception ErrorCannotAdvancePastEndOfBuffer()
+		private static InvalidOperationException ErrorCannotAdvancePastEndOfBuffer()
 		{
-			return new InvalidOperationException("Cannot advance past the end of the allocated buffer.");
+			return new("Cannot advance past the end of the allocated buffer.");
 		}
 
 		/// <summary>Allocates a buffer at the current cursor location, but do not advance the cursor</summary>
@@ -2784,6 +2796,7 @@ namespace SnowBank.Buffers
 
 		#region ISliceSerializable
 
+		/// <summary>Appends the content of this writer to end of another writer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteTo(ref SliceWriter writer)
 		{

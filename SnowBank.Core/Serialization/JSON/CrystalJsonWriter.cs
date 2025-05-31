@@ -28,7 +28,6 @@
 
 namespace SnowBank.Data.Json
 {
-	using System;
 	using System.Buffers;
 	using System.Collections.Generic;
 	using System.Globalization;

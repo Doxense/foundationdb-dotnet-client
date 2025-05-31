@@ -31,25 +31,30 @@ namespace SnowBank.Buffers.Text
 	using System.Text;
 	using SnowBank.Text;
 
+	/// <summary><see cref="TextWriter"/> that writes UTF-8 bytes into an in-memory buffer.</summary>
 	[PublicAPI]
 	public sealed class Utf8StringWriter : TextWriter
 	{
 
+		/// <inheritdoc />
 		public override Encoding Encoding => Encoding.UTF8;
 
 		private SliceWriter Writer;
 
+		/// <summary>Constructs a new writer using an existing destination buffer.</summary>
 		public Utf8StringWriter(SliceWriter writer)
 			: base(CultureInfo.InvariantCulture)
 		{
 			this.Writer = writer;
 		}
 
+		/// <summary>Constructs a new writer with a minimum initial capacity</summary>
 		public Utf8StringWriter(int capacity)
 		{
 			this.Writer = new SliceWriter(capacity);
 		}
 
+		/// <inheritdoc />
 		public override void Write(char value)
 		{
 			if (value < 0x80)
@@ -62,6 +67,7 @@ namespace SnowBank.Buffers.Text
 			}
 		}
 
+		/// <inheritdoc />
 		public override void Write(char[]? buffer)
 		{
 			if (buffer != null)
@@ -70,6 +76,7 @@ namespace SnowBank.Buffers.Text
 			}
 		}
 
+		/// <inheritdoc />
 		public override void Write(string? value)
 		{
 			if (value != null)
@@ -78,17 +85,23 @@ namespace SnowBank.Buffers.Text
 			}
 		}
 
+		/// <inheritdoc />
 		public override void Write(int value) => this.Writer.WriteBase10(value);
 
+		/// <inheritdoc />
 		public override void Write(long value) => this.Writer.WriteBase10(value);
 
+		/// <inheritdoc />
 		public override void Write(uint value) => this.Writer.WriteBase10(value);
 
+		/// <inheritdoc />
 		public override void Write(ulong value) => this.Writer.WriteBase10(value);
 
+		/// <summary>Returns a new byte array with the contents of the buffer</summary>
 		[Pure]
 		public byte[] ToArray() => this.Writer.GetBytes();
 
+		/// <summary>Returns a <see cref="Slice"/> of the buffer</summary>
 		[Pure]
 		public Slice GetBuffer() => this.Writer.ToSlice();
 

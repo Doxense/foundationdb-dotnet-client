@@ -45,7 +45,7 @@ namespace SnowBank.Buffers
 		/// <summary>Current position inside the buffer</summary>
 		public int Position;
 
-		/// <summary>Creates a new reader over a slice</summary>
+		/// <summary>Constructs a new reader that will consume the contents of a <see cref="Slice"/></summary>
 		/// <param name="buffer">Slice that will be used as the underlying buffer</param>
 		public SliceReader(Slice buffer)
 		{
@@ -54,14 +54,8 @@ namespace SnowBank.Buffers
 			this.Position = 0;
 		}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public SliceReader(Slice buffer, int offset)
-		{
-			buffer.EnsureSliceIsValid();
-			this.Buffer = buffer.Substring(offset);
-			this.Position = 0;
-		}
-
+		/// <summary>Constructs a new reader that will consume the contents of a byte array</summary>
+		/// <param name="buffer">Array that will be used as the underlying buffer</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public SliceReader(byte[] buffer)
 		{
@@ -69,6 +63,10 @@ namespace SnowBank.Buffers
 			this.Position = 0;
 		}
 
+		/// <summary>Constructs a new reader that will consume the part of a byte array</summary>
+		/// <param name="buffer">Array that will be used as the underlying buffer</param>
+		/// <param name="offset">Start offset in the buffer</param>
+		/// <param name="count">Number of bytes exposed</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public SliceReader(byte[] buffer, int offset, int count)
 		{
@@ -99,7 +97,7 @@ namespace SnowBank.Buffers
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		[DebuggerNonUserCode]
-		public static Exception NotEnoughBytes(int count)
+		internal static Exception NotEnoughBytes(int count)
 		{
 			return ThrowHelper.FormatException($"The buffer does not have enough data to satisfy a read of {count} byte(s)");
 		}

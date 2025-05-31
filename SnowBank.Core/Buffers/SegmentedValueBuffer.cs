@@ -28,7 +28,6 @@
 
 namespace SnowBank.Buffers
 {
-	using System;
 	using System.Buffers;
 	using System.Runtime.InteropServices;
 
@@ -114,6 +113,7 @@ namespace SnowBank.Buffers
 #pragma warning disable IDE0051 // Remove unused private members
 #pragma warning disable IDE0044 // Add readonly modifier
 
+		//TODO: replace with InlineArray8<T> ?
 		[InlineArray(SegmentedValueBuffer<T>.DefaultScratchSize)]
 		public struct Scratch
 		{
@@ -573,11 +573,11 @@ namespace SnowBank.Buffers
 			{
 				case 0:
 				{
-					return new(this.Initial.Slice(0, this.CountInCurrent), default, default);
+					return new(this.Initial[..this.CountInCurrent], default, default);
 				}
 				case 1:
 				{
-					return new(this.Initial, default, this.Current.Slice(0, this.CountInCurrent));
+					return new(this.Initial, default, this.Current[..this.CountInCurrent]);
 				}
 				default:
 				{

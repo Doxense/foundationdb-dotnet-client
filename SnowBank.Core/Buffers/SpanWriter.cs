@@ -26,7 +26,6 @@
 
 namespace SnowBank.Buffers
 {
-	using System;
 	using System.Text;
 	using SnowBank.Buffers.Binary;
 

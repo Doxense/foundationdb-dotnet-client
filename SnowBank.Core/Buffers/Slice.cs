@@ -24,6 +24,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+#pragma warning disable IDE0004
+
 namespace System
 {
 	using System.Buffers;
@@ -413,7 +415,7 @@ namespace System
 				if (start >= end) return Empty;
 				if (start == 0 && end == this.Count) return this;
 
-				checked { return new Slice(this.Array, this.Offset + start, end - start); }
+				checked { return new(this.Array, this.Offset + start, end - start); }
 			}
 		}
 
@@ -426,7 +428,7 @@ namespace System
 		}
 
 		/// <summary>Returns a substring of the current slice that fits within the specified index range</summary>
-		/// <param name="range">The Begin and End position of the substring.</param>
+		/// <param name="range">The <c>begin</c> and <c>end</c> position of the substring.</param>
 		/// <returns>Slice that only contain the specified range, but shares the same underlying buffer.</returns>
 		public Slice this[Range range]
 		{
@@ -516,9 +518,9 @@ namespace System
 		/// <returns>A slice that is equivalent to the substring that begins at <paramref name="offset"/> (from the start or the end depending on the sign) in this instance, or <see cref="Slice.Empty"/> if <paramref name="offset"/> is equal to the length of the slice.</returns>
 		/// <remarks>The substring does not copy the original data, and refers to the same buffer as the original slice. Any change to the parent slice's buffer will be seen by the substring. You must call Memoize() on the resulting substring if you want a copy</remarks>
 		/// <example>{"ABCDE"}.Substring(0) => {"ABC"}
-		/// {"ABCDE"}.Substring(1} => {"BCDE"}
-		/// {"ABCDE"}.Substring(-2} => {"DE"}
-		/// {"ABCDE"}.Substring(5} => Slice.Empty
+		/// {"ABCDE"}.Substring(1) => {"BCDE"}
+		/// {"ABCDE"}.Substring(-2) => {"DE"}
+		/// {"ABCDE"}.Substring(5) => Slice.Empty
 		/// Slice.Empty.Substring(0) => Slice.Empty
 		/// Slice.Nil.Substring(0) => Slice.Empty
 		/// </example>
@@ -545,8 +547,8 @@ namespace System
 		/// <returns>A slice that is equivalent to the substring of length <paramref name="count"/> that begins at <paramref name="offset"/> (from the start or the end depending on the sign) in this instance, or Slice.Empty if count is zero.</returns>
 		/// <remarks>The substring does not copy the original data, and refers to the same buffer as the original slice. Any change to the parent slice's buffer will be seen by the substring. You must call Memoize() on the resulting substring if you want a copy</remarks>
 		/// <example>{"ABCDE"}.Substring(0, 3) => {"ABC"}
-		/// {"ABCDE"}.Substring(1, 3} => {"BCD"}
-		/// {"ABCDE"}.Substring(-2, 2} => {"DE"}
+		/// {"ABCDE"}.Substring(1, 3) => {"BCD"}
+		/// {"ABCDE"}.Substring(-2, 2) => {"DE"}
 		/// Slice.Empty.Substring(0, 0) => Slice.Empty
 		/// Slice.Nil.Substring(0, 0) => Slice.Empty
 		/// </example>
@@ -568,8 +570,8 @@ namespace System
 		/// <returns>A slice that is equivalent to the substring that starts from <paramref name="range"/>.Start and ends before <paramref name="range"/>.End in this instance, or Slice.Empty if range is empty.</returns>
 		/// <remarks>The substring does not copy the original data, and refers to the same buffer as the original slice. Any change to the parent slice's buffer will be seen by the substring. You must call Memoize() on the resulting substring if you want a copy</remarks>
 		/// <example>{"ABCDE"}.Substring(0, 3) => {"ABC"}
-		/// {"ABCDE"}.Substring(1..4} => {"BCD"}
-		/// {"ABCDE"}.Substring(^2..} => {"DE"}
+		/// {"ABCDE"}.Substring(1..4) => {"BCD"}
+		/// {"ABCDE"}.Substring(^2..) => {"DE"}
 		/// Slice.Empty.Substring(0..0) => Slice.Empty
 		/// Slice.Nil.Substring(0..0) => Slice.Empty
 		/// </example>
@@ -683,24 +685,24 @@ namespace System
 			return idx >= 0 ? checked(startIndex + idx) : -1;
 		}
 
-		/// <summary>Searches for the first index of any of the specified values similar to calling IndexOf several times with the logical OR operator.</summary>
-		/// <returns>The first index of the occurrence of any of the values in the span. If not found, returns -1.</returns>
+		/// <summary>Searches for the first index of any one of the specified values similar to calling IndexOf several times with the logical OR operator.</summary>
+		/// <returns>The first index of the occurrence of any one of the values in the span. If not found, returns -1.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int IndexOfAny(byte value0, byte value1)
 		{
 			return this.Span.IndexOfAny(value0, value1);
 		}
 
-		/// <summary>Searches for the first index of any of the specified values similar to calling IndexOf several times with the logical OR operator.</summary>
-		/// <returns>The first index of the occurrence of any of the values in the span. If not found, returns -1.</returns>
+		/// <summary>Searches for the first index of any one of the specified values similar to calling IndexOf several times with the logical OR operator.</summary>
+		/// <returns>The first index of the occurrence of any one of the values in the span. If not found, returns -1.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int IndexOfAny(byte value0, byte value1, byte value2)
 		{
 			return this.Span.IndexOfAny(value0, value1, value2);
 		}
 
-		/// <summary>Searches for the first index of any of the specified values similar to calling IndexOf several times with the logical OR operator.</summary>
-		/// <returns>The first index of the occurrence of any of the values in the span. If not found, returns -1.</returns>
+		/// <summary>Searches for the first index of any one of the specified values similar to calling IndexOf several times with the logical OR operator.</summary>
+		/// <returns>The first index of the occurrence of any one of the values in the span. If not found, returns -1.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int IndexOfAny(ReadOnlySpan<byte> values)
 		{
@@ -711,15 +713,15 @@ namespace System
 
 		/// <summary>Searches for the first index of any byte other than the specified <paramref name="values" />.</summary>
 		/// <param name="values">The values to avoid.</param>
-		/// <returns>The index in the slice of the first occurrence of any byte other than those in <paramref name="values" />. If all of the byte are in <paramref name="values" />, returns -1.</returns>
+		/// <returns>The index in the slice of the first occurrence of any byte other than those in <paramref name="values" />. If all the bytes are in <paramref name="values" />, returns -1.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int IndexOfAnyExcept(ReadOnlySpan<byte> values)
 		{
 			return this.Span.IndexOfAnyExcept(values);
 		}
 
-		/// <summary>Searches for the first index of any of the specified values similar to calling IndexOf several times with the logical OR operator.</summary>
-		/// <returns>The first index of the occurrence of any of the values in the span. If not found, returns -1.</returns>
+		/// <summary>Searches for the first index of any one of the specified values similar to calling IndexOf several times with the logical OR operator.</summary>
+		/// <returns>The first index of the occurrence of any one of the values in the span. If not found, returns -1.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int IndexOfAny(SearchValues<byte> values)
 		{
@@ -728,15 +730,15 @@ namespace System
 
 		/// <summary>Searches for the first index of any byte other than the specified <paramref name="values" />.</summary>
 		/// <param name="values">The values to avoid.</param>
-		/// <returns>The index in the slice of the first occurrence of any byte other than those in <paramref name="values" />. If all of the byte are in <paramref name="values" />, returns -1.</returns>
+		/// <returns>The index in the slice of the first occurrence of any byte other than those in <paramref name="values" />. If all the bytes are in <paramref name="values" />, returns -1.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int IndexOfAnyExcept(SearchValues<byte> values)
 		{
 			return this.Span.IndexOfAnyExcept(values);
 		}
 
-		/// <summary>Searches for the first index of any of the specified values similar to calling IndexOf several times with the logical OR operator.</summary>
-		/// <returns>The first index of the occurrence of any of the values in the span. If not found, returns -1.</returns>
+		/// <summary>Searches for the first index of any one of the specified values similar to calling IndexOf several times with the logical OR operator.</summary>
+		/// <returns>The first index of the occurrence of one any of the values in the span. If not found, returns -1.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool ContainsAny(SearchValues<byte> values)
 		{
@@ -745,7 +747,7 @@ namespace System
 
 		/// <summary>Searches for the first index of any byte other than the specified <paramref name="values" />.</summary>
 		/// <param name="values">The values to avoid.</param>
-		/// <returns>The index in the slice of the first occurrence of any byte other than those in <paramref name="values" />. If all of the byte are in <paramref name="values" />, returns -1.</returns>
+		/// <returns>The index in the slice of the first occurrence of any byte other than those in <paramref name="values" />. If all the bytes are in <paramref name="values" />, returns -1.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool ContainsAnyExcept(SearchValues<byte> values)
 		{
@@ -1093,7 +1095,7 @@ namespace System
 			int p = start;
 			foreach (var end in endOffsets)
 			{
-				result[i++] = new Slice(buffer, p, end - p);
+				result[i++] = new(buffer, p, end - p);
 				p = end;
 			}
 
@@ -1125,7 +1127,7 @@ namespace System
 				b.CopyTo(buf.Slice(a.Length));
 			}
 
-			return new Slice(tmp, 0, count);
+			return new(tmp, 0, count);
 		}
 
 		/// <summary>Concatenate three slices together</summary>
@@ -1151,7 +1153,7 @@ namespace System
 			{
 				c.Span.CopyTo(buf);
 			}
-			return new Slice(tmp, 0, count);
+			return new(tmp, 0, count);
 		}
 
 		/// <summary>Concatenate three spans together</summary>
@@ -1177,7 +1179,7 @@ namespace System
 			{
 				c.CopyTo(buf);
 			}
-			return new Slice(tmp, 0, count);
+			return new(tmp, 0, count);
 		}
 
 		/// <summary>Concatenate four slices together</summary>
@@ -1208,7 +1210,7 @@ namespace System
 			{
 				d.Span.CopyTo(buf);
 			}
-			return new Slice(tmp, 0, count);
+			return new(tmp, 0, count);
 		}
 
 		/// <summary>Concatenate four spans together</summary>
@@ -2429,7 +2431,7 @@ namespace System
 			bool truncated = value.Length > maxSize;
 			if (truncated)
 			{
-				value = value.Slice(0, maxSize);
+				value = value[..maxSize];
 			}
 
 			var sb = new StringBuilder(value.Length + 16);
@@ -2463,7 +2465,7 @@ namespace System
 			bool truncated = value.Length > maxSize;
 			if (truncated)
 			{
-				value = value.Slice(0, maxSize);
+				value = value[..maxSize];
 			}
 
 			var sb = new StringBuilder(value.Length + 16);
@@ -3423,7 +3425,7 @@ namespace System
 			{
 				if (this.Offset < this.Buffer.Count)
 				{
-					result = new ReadResult(new ReadOnlySequence<byte>(this.Buffer.Memory.Slice(this.Offset)), false, true);
+					result = new(new(this.Buffer.Memory[this.Offset..]), false, true);
 					return true;
 				}
 
@@ -3434,7 +3436,7 @@ namespace System
 			public override ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
 			{
 				TryRead(out var result);
-				return new ValueTask<ReadResult>(result);
+				return new(result);
 			}
 
 			public override void AdvanceTo(SequencePosition consumed) => AdvanceTo(consumed, consumed);
@@ -3540,7 +3542,7 @@ namespace System
 
 		/// <summary>Try to convert a <see cref="ReadOnlyMemory{T}"/> into a Slice if it is backed by a managed byte array.</summary>
 		/// <param name="buffer">Buffer that maps a region of memory</param>
-		/// <param name="slice">If the methods returns <c>true</c>, a slice that maps the same region of managed memory.</param>
+		/// <param name="slice">If the method returns <c>true</c>, a slice that maps the same region of managed memory.</param>
 		/// <returns>True if the memory was backed by a managed array; otherwise, false.</returns>
 		[Pure]
 		public static bool TryGetSlice(ReadOnlyMemory<byte> buffer, out Slice slice)
@@ -3593,7 +3595,7 @@ namespace System
 		/// <summary>Returns a valid reference to the first byte in the slice</summary>
 		/// <param name="buffer">Slice</param>
 		/// <returns>Reference to the first byte, or where it would be if the slice is empty</returns>
-		/// <exception cref="ArgumentException">If the slice if empty.</exception>
+		/// <exception cref="ArgumentException">If the slice is empty.</exception>
 		public static ref readonly byte GetReference(Slice buffer)
 		{
 			if (buffer.Count <= 0)
@@ -3607,7 +3609,7 @@ namespace System
 		/// <param name="buffer">Slice</param>
 		/// <param name="index">Index in the slice.</param>
 		/// <returns>Reference to the corresponding byte</returns>
-		/// <exception cref="IndexOutOfRangeException">If the slice if empty, of <paramref name="index"/> is outside of the slice.</exception>
+		/// <exception cref="IndexOutOfRangeException">If the slice is empty, of <paramref name="index"/> is outside of the slice.</exception>
 		public static ref readonly byte GetReferenceAt(Slice buffer, int index)
 		{
 			if (buffer.Count <= 0)
@@ -3625,14 +3627,14 @@ namespace System
 		/// <param name="buffer">Slice</param>
 		/// <param name="index">Index in the slice.</param>
 		/// <returns>Reference to the corresponding byte</returns>
-		/// <exception cref="IndexOutOfRangeException">If the slice if empty, of <paramref name="index"/> is outside of the slice.</exception>
+		/// <exception cref="IndexOutOfRangeException">If the slice is empty, of <paramref name="index"/> is outside of the slice.</exception>
 		public static ref readonly byte GetReferenceAt(Slice buffer, Index index)
 			=> ref GetReferenceAt(buffer, index.GetOffset(buffer.Count));
 
 		/// <summary>Returns a valid reference to the last byte in the slice</summary>
 		/// <param name="buffer">Slice</param>
 		/// <returns>Reference to the corresponding byte</returns>
-		/// <exception cref="ArgumentException">If the slice if empty.</exception>
+		/// <exception cref="ArgumentException">If the slice is empty.</exception>
 		public static ref readonly byte GetReferenceToLast(Slice buffer)
 		{
 			if (buffer.Count <= 0)
@@ -3647,7 +3649,7 @@ namespace System
 		/// <param name="index">Index in the slice.</param>
 		/// <param name="valid">Receives <see langword="true"/> if <paramref name="index"/> is inside the slice; otherwise, <see langword="false"/>.</param>
 		/// <returns>Reference to the corresponding byte, or <see langword="null"/> if <paramref name="index"/> is outside the bounds of the slice.</returns>
-		/// <exception cref="IndexOutOfRangeException">If the slice if empty, of <paramref name="index"/> is outside of the slice.</exception>
+		/// <exception cref="IndexOutOfRangeException">If the slice is empty, of <paramref name="index"/> is outside of the slice.</exception>
 		public static ref readonly byte TryGetReferenceAt(Slice buffer, int index, out bool valid)
 		{
 			if ((uint) index >= buffer.Count)
@@ -3665,7 +3667,7 @@ namespace System
 		/// <param name="index">Index in the slice.</param>
 		/// <param name="valid">Receives <see langword="true"/> if <paramref name="index"/> is inside the slice; otherwise, <see langword="false"/>.</param>
 		/// <returns>Reference to the corresponding byte, or <see langword="null"/> if <paramref name="index"/> is outside the bounds of the slice.</returns>
-		/// <exception cref="IndexOutOfRangeException">If the slice if empty, of <paramref name="index"/> is outside of the slice.</exception>
+		/// <exception cref="IndexOutOfRangeException">If the slice is empty, of <paramref name="index"/> is outside of the slice.</exception>
 		public static ref readonly byte TryGetReferenceAt(Slice buffer, Index index, out bool valid)
 			=> ref TryGetReferenceAt(buffer, index.GetOffset(buffer.Count), out valid);
 
@@ -3771,7 +3773,7 @@ namespace System
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static T ReadAt<T>(Slice source, int index) where T : struct
 		{
-			return MemoryMarshal.Read<T>(source.Span.Slice(index));
+			return MemoryMarshal.Read<T>(source.Span[index..]);
 		}
 
 		/// <summary>Reads a structure of type <typeparamref name="T" /> out of a <see cref="Slice"/>.</summary>
@@ -3784,7 +3786,7 @@ namespace System
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static T ReadAt<T>(Slice source, Index index) where T : struct
 		{
-			return MemoryMarshal.Read<T>(source.Span.Slice(index.GetOffset(source.Count)));
+			return MemoryMarshal.Read<T>(source.Span[index.GetOffset(source.Count)..]);
 		}
 
 		/// <summary>Tries to read a structure of type <typeparamref name="T" /> from a <see cref="Slice"/>.</summary>

@@ -39,6 +39,7 @@ namespace System
 	/// <para>Users of this type <b>MUST NOT</b> use any data from this instance after calling <see cref="Dispose"/></para>
 	/// <para>This type mirrors <see cref="IMemoryOwner{T}"/> but without allocations and with further optimizations.</para>
 	/// </remarks>
+	[PublicAPI]
 	public struct SliceOwner : IDisposable
 	{
 

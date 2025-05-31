@@ -26,7 +26,6 @@
 
 namespace SnowBank.Buffers.Text
 {
-	using System;
 	using System.Buffers;
 	using System.Globalization;
 	using System.Text;
@@ -52,8 +51,9 @@ namespace SnowBank.Buffers.Text
 		/// <summary>Number of items in the buffer</summary>
 		public int Count;
 
+		/// <summary>Constructs a writer with a minimum initial capacity</summary>
 		public ValueStringWriter(int capacity)
-		{
+ 		{
 			Contract.Positive(capacity);
 			this.Count = 0;
 			this.Buffer = capacity > 0 ? ArrayPool<char>.Shared.Rent(capacity) : [ ];
@@ -71,6 +71,7 @@ namespace SnowBank.Buffers.Text
 		/// <summary>Returns the current capacity of the buffer</summary>
 		public readonly int Capacity => this.Buffer?.Length ?? 0;
 
+		/// <summary>Appends a character at the end of the buffer</summary>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public void Write(char item)
 		{
@@ -96,12 +97,14 @@ namespace SnowBank.Buffers.Text
 			this.Count = pos + 1;
 		}
 
+		/// <summary>Appends a string at the end of the buffer</summary>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public void Write(string items)
 		{
 			Write(items.AsSpan());
 		}
 
+		/// <summary>Appends a span of characters at the end of the buffer</summary>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		[OverloadResolutionPriority(1)]
 		public void Write(scoped ReadOnlySpan<char> items)
@@ -119,11 +122,13 @@ namespace SnowBank.Buffers.Text
 			}
 		}
 
+		/// <summary>Appends a span of characters at the end of the buffer</summary>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Write(ReadOnlyMemory<char> items)
 			=> Write(items.Span);
 
+		/// <summary>Appends two characters at the end of the buffer</summary>
 		public void Write(char prefix, char value)
 		{
 			var span = Allocate(2);
@@ -131,20 +136,23 @@ namespace SnowBank.Buffers.Text
 			span[1] = value;
 		}
 
+		/// <summary>Appends a prefix character and a string at the end of the buffer</summary>
 		public void Write(char prefix, string value)
 		{
 			var span = Allocate(checked(value.Length + 1));
 			span[0] = prefix;
-			value.CopyTo(span.Slice(1));
+			value.CopyTo(span[1..]);
 		}
 
+		/// <summary>Appends a prefix character and a span of characters at the end of the buffer</summary>
 		public void Write(char prefix, scoped ReadOnlySpan<char> value)
 		{
 			var span = Allocate(checked(value.Length + 1));
 			span[0] = prefix;
-			value.CopyTo(span.Slice(1));
+			value.CopyTo(span[1..]);
 		}
 
+		/// <summary>Appends three characters at the end of the buffer</summary>
 		public void Write(char prefix, char value, char suffix)
 		{
 			var span = Allocate(3);
@@ -153,6 +161,7 @@ namespace SnowBank.Buffers.Text
 			span[2] = suffix;
 		}
 
+		/// <summary>Appends a string surrounded with a prefix and suffix at the end of the buffer</summary>
 		public void Write(char prefix, string value, char suffix)
 		{
 			var span = Allocate(checked(value.Length + 2));
@@ -161,6 +170,7 @@ namespace SnowBank.Buffers.Text
 			span[^1] = suffix;
 		}
 
+		/// <summary>Appends a string surrounded with a prefix and suffix at the end of the buffer</summary>
 		public void Write(char prefix, scoped ReadOnlySpan<char> value, char suffix)
 		{
 			var span = Allocate(checked(value.Length + 2));
@@ -169,6 +179,7 @@ namespace SnowBank.Buffers.Text
 			span[^1] = suffix;
 		}
 
+		/// <summary>Appends two strings at the end of the buffer</summary>
 		public void Write(scoped ReadOnlySpan<char> prefix, scoped ReadOnlySpan<char> value)
 		{
 			var span = Allocate(checked(prefix.Length + value.Length));
@@ -176,6 +187,7 @@ namespace SnowBank.Buffers.Text
 			value.CopyTo(span[prefix.Length..]);
 		}
 
+		/// <summary>Appends a character and two strings at the end of the buffer</summary>
 		public void Write(char prefix, string value, string suffix)
 		{
 			var span = Allocate(checked(1 + value.Length + suffix.Length));
@@ -184,6 +196,7 @@ namespace SnowBank.Buffers.Text
 			suffix.CopyTo(span[(1 + value.Length)..]);
 		}
 
+		/// <summary>Appends three strings at the end of the buffer</summary>
 		public void Write(scoped ReadOnlySpan<char> prefix, scoped ReadOnlySpan<char> value, scoped ReadOnlySpan<char> suffix)
 		{
 			var span = Allocate(checked(prefix.Length + value.Length + suffix.Length));
@@ -192,7 +205,8 @@ namespace SnowBank.Buffers.Text
 			suffix.CopyTo(span[(prefix.Length + value.Length)..]);
 		}
 
-		public void Write(scoped ReadOnlySpan<char> prefix, scoped ReadOnlySpan<Char> value, char suffix)
+		/// <summary>Appends two strings and a suffix character at the end of the buffer</summary>
+		public void Write(scoped ReadOnlySpan<char> prefix, scoped ReadOnlySpan<char> value, char suffix)
 		{
 			var span = Allocate(checked(prefix.Length + value.Length + 1));
 			prefix.CopyTo(span);
@@ -200,6 +214,7 @@ namespace SnowBank.Buffers.Text
 			span[^1] = suffix;
 		}
 
+		/// <summary>Writes a repeated character at the end of the buffer</summary>
 		public void Write(char c, int count)
 		{
 			var span = Allocate(count)[..count];
@@ -422,11 +437,13 @@ namespace SnowBank.Buffers.Text
 			return true;
 		}
 
+		/// <summary>Copies the content of the buffer as UTF-8 bytes into a destination buffer</summary>
 		public readonly int CopyToUtf8(Span<byte> destination)
 		{
 			return JsonEncoding.Utf8NoBom.GetBytes(this.Span, destination);
 		}
 
+		/// <summary>Copies the content of the buffer as UTF-8 bytes into a destination buffer, if it is large enough</summary>
 		public readonly bool TryCopyToUtf8(Span<byte> destination, out int written)
 		{
 #if NET8_0_OR_GREATER
@@ -456,11 +473,13 @@ namespace SnowBank.Buffers.Text
 			return count;
 		}
 
+		/// <summary>Copies the content of the buffer into a destination writer</summary>
 		public readonly void CopyTo(IBufferWriter<byte> destination)
 		{
 			JsonEncoding.Utf8NoBom.GetBytes(this.Span, destination);
 		}
 
+		/// <summary>Copies the content of the buffer into a destination stream</summary>
 		public readonly void CopyTo(Stream destination)
 		{
 			Contract.NotNull(destination);
@@ -470,6 +489,7 @@ namespace SnowBank.Buffers.Text
 			destination.Write(data.Span);
 		}
 
+		/// <summary>Copies the content of the buffer into a destination stream</summary>
 		public readonly async Task CopyToAsync(Stream destination, CancellationToken ct)
 		{
 			Contract.NotNull(destination);
@@ -491,6 +511,7 @@ namespace SnowBank.Buffers.Text
 
 		#region IReadOnlyList<T>...
 
+		/// <summary>Returns a reference to the character at the specified location in the buffer</summary>
 		[Pure, CollectionAccess(CollectionAccessType.ModifyExistingContent)]
 		public readonly ref char this[int index]
 		{
@@ -499,6 +520,7 @@ namespace SnowBank.Buffers.Text
 			//note: the span will perform the bound-checking for us
 		}
 
+		/// <summary>Returns an enumerator that will return all the characters written so far</summary>
 		public readonly Span<char>.Enumerator GetEnumerator()
 		{
 			return this.Span.GetEnumerator();
@@ -559,6 +581,7 @@ namespace SnowBank.Buffers.Text
 			return ref buffer[count];
 		}
 
+		/// <inheritdoc />
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public void Advance(int count)
 		{
@@ -614,6 +637,7 @@ namespace SnowBank.Buffers.Text
 
 		#region Formatting...
 
+		/// <summary>Writes a text representation of a boolean (<c>"true"</c> or <c>"false"</c>)</summary>
 		public void Write(bool value)
 		{
 			//TODO: PERF: OPTIMIZE: according to https://devblogs.microsoft.com/dotnet/performance-improvements-in-net-9/#vectorization

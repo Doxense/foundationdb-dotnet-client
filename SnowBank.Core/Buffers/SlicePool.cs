@@ -31,7 +31,7 @@ namespace SnowBank.Buffers
 	/// <summary>Slice generator that use one or more underlying buffers to store the produced bytes, in order to reduce memory allocations.</summary>
 	/// <remarks>
 	/// This is faster than a SliceWriter when writing a lot of keys that will not survive the lifetime of the pool itself.
-	/// Warning: Since the pool can reuse its internal buffer between sessions, this breaks the immutability contract for long lived Slices, and may introduce corruption if not used properly.
+	/// Warning: Since the pool can reuse its internal buffer between sessions, this breaks the immutability contract for long-lived Slices, and may introduce corruption if not used properly.
 	/// Warning: instances of this type are NOT thread-safe. In multithreaded contexts, each thread should either use locking, or have its own pool instance.
 	/// </remarks>
 	[Obsolete("Use ISliceBufferWriter or ISliceAllocator instead")]
@@ -130,7 +130,7 @@ namespace SnowBank.Buffers
 
 		//note: single byte slices are created from the static ByteSprite in Slice, and not from the pool's buffer
 
-		/// <summary>Return a 1-byte slice from a 8-bit integer</summary>
+		/// <summary>Return a 1-byte slice from an 8-bit integer</summary>
 		/// <remarks>Slices produced by this method ARE ordered lexicographically</remarks>
 		/// <example>Fixed8(0x12) => { 0x12 }</example>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -139,7 +139,7 @@ namespace SnowBank.Buffers
 			return Slice.FromByte(value);
 		}
 
-		/// <summary>Return a 1-byte slice from a 8-bit signed integer</summary>
+		/// <summary>Return a 1-byte slice from an 8-bit signed integer</summary>
 		/// <remarks>Slices produced by this method ARE ordered lexicographically</remarks>
 		/// <example>Fixed8(0x12) => { 0x12 }</example>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -672,7 +672,7 @@ namespace SnowBank.Buffers
 			return Ascii(value.ToString(format, CultureInfo.InvariantCulture));
 		}
 
-		/// <summary>Format a decinumber into a slice</summary>
+		/// <summary>Format a decimal number into a slice</summary>
 		/// <param name="value">Number to format</param>
 		/// <param name="format">Format as would be used with <see cref="System.Int32.ToString(string)"/></param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -681,7 +681,7 @@ namespace SnowBank.Buffers
 			return Ascii(value.ToString(format, CultureInfo.InvariantCulture));
 		}
 
-		/// <summary>Format a number into a slice</summary>
+		/// <summary>Format a decimal number into a slice</summary>
 		/// <param name="value">Number to format</param>
 		/// <param name="format">Format as would be used with <see cref="System.Int32.ToString(string)"/></param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -708,12 +708,14 @@ namespace SnowBank.Buffers
 			return new Slice(buffer, p, ks);
 		}
 
+		/// <summary>Copies an array of bytes</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Slice Bytes(byte[] bytes)
 		{
 			return Bytes(bytes, 0, bytes.Length);
 		}
 
+		/// <summary>Copies a section of an array of bytes</summary>
 		[Pure]
 		public Slice Bytes(byte[] bytes, int offset, int count)
 		{
@@ -725,6 +727,7 @@ namespace SnowBank.Buffers
 			return new Slice(buffer, p, count);
 		}
 
+		/// <summary>Copies a slice of bytes</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Slice Bytes(Slice bytes)
 		{

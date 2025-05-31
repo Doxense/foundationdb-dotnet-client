@@ -9,6 +9,7 @@ namespace SnowBank.Buffers.Text
 	public partial struct Utf8String
 	{
 
+		/// <summary>Returns an enumerator that will list all the <see cref="UnicodeCodePoint"/> in this string</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Enumerator GetEnumerator()
 		{
@@ -25,17 +26,18 @@ namespace SnowBank.Buffers.Text
 			return this.GetEnumerator();
 		}
 
+		/// <summary>Enumerator that lists all the <see cref="UnicodeCodePoint"/> in a <see cref="Utf8String"/></summary>
 		public struct Enumerator : IEnumerator<UnicodeCodePoint>
 		{
 			private const int INIT = -1;
 			private const int EOF = -2;
 
 			private readonly Slice Buffer;
-			public readonly bool AsciiOnly;
+			private readonly bool AsciiOnly;
 			private int Index;
 			private int Offset;
 
-			public Enumerator(Slice buffer, bool asciiOnly = false)
+			internal Enumerator(Slice buffer, bool asciiOnly = false)
 			{
 				Contract.Debug.Requires(buffer.Count == 0 || buffer.Array != null);
 				this.Buffer = buffer;
@@ -49,6 +51,7 @@ namespace SnowBank.Buffers.Text
 			{
 			}
 
+			/// <inheritdoc />
 			public bool MoveNext()
 			{
 				int index = this.Index + 1;
@@ -82,6 +85,7 @@ namespace SnowBank.Buffers.Text
 				return false;
 			}
 
+			/// <inheritdoc />
 			public void Reset()
 			{
 				this.Index = INIT;
@@ -89,28 +93,38 @@ namespace SnowBank.Buffers.Text
 				this.Current = default(UnicodeCodePoint);
 			}
 
+			/// <summary>UTF-8 buffer of the string</summary>
 			public Slice GetBuffer() => this.Buffer;
 
+			/// <summary>Current offset in the UTF-8 buffer</summary>
 			public int ByteOffset => this.Offset;
 
+			/// <summary>Number of bytes remaining in the UTF-8 buffer</summary>
 			public int ByteRemaining => this.Buffer.Count - this.Offset;
 
+			/// <summary>Current code point</summary>
 			public UnicodeCodePoint Current { get; private set; }
 
+			/// <inheritdoc />
 			object IEnumerator.Current => this.Current;
+
 		}
 
+		/// <summary>Enumerator that lists all the <see cref="UnicodeCodePoint"/> in a <see cref="Utf8String"/></summary>
 		public ref struct SpanEnumerator
+#if NET9_0_OR_GREATER
+			: IEnumerator<UnicodeCodePoint>
+#endif
 		{
 			private const int INIT = -1;
 			private const int EOF = -2;
 
 			private readonly ReadOnlySpan<byte> Buffer;
-			public readonly bool AsciiOnly;
+			private readonly bool AsciiOnly;
 			private int Index;
 			private int Offset;
 
-			public SpanEnumerator(ReadOnlySpan<byte> buffer, bool asciiOnly = false)
+			internal SpanEnumerator(ReadOnlySpan<byte> buffer, bool asciiOnly = false)
 			{
 				this.Buffer = buffer;
 				this.AsciiOnly = asciiOnly;
@@ -119,6 +133,7 @@ namespace SnowBank.Buffers.Text
 				this.Offset = 0;
 			}
 
+			/// <inheritdoc />
 			public bool MoveNext()
 			{
 				int index = this.Index + 1;
@@ -134,7 +149,7 @@ namespace SnowBank.Buffers.Text
 				}
 				else
 				{
-					if (!Utf8Encoder.TryDecodeCodePoint(this.Buffer.Slice(index), out var current, out len))
+					if (!Utf8Encoder.TryDecodeCodePoint(this.Buffer[index..], out var current, out len))
 					{
 						return MoveNextRare();
 					}
@@ -152,6 +167,7 @@ namespace SnowBank.Buffers.Text
 				return false;
 			}
 
+			/// <inheritdoc />
 			public void Reset()
 			{
 				this.Index = INIT;
@@ -159,14 +175,31 @@ namespace SnowBank.Buffers.Text
 				this.Current = default;
 			}
 
+			/// <summary>UTF-8 buffer of the string</summary>
 			public ReadOnlySpan<byte> GetBuffer() => this.Buffer;
 
+			/// <summary>Current offset in the UTF-8 buffer</summary>
 			public int ByteOffset => this.Offset;
 
+			/// <summary>Number of bytes remaining in the UTF-8 buffer</summary>
 			public int ByteRemaining => this.Buffer.Length - this.Offset;
 
+			/// <inheritdoc />
 			public UnicodeCodePoint Current { get; private set; }
 
+#if NET9_0_OR_GREATER
+
+			void IDisposable.Dispose()
+			{
+			}
+
+			/// <inheritdoc />
+			object IEnumerator.Current => this.Current;
+
+#endif
+
 		}
+
 	}
+
 }

@@ -26,7 +26,6 @@
 
 namespace SnowBank.Data.Tuples
 {
-	using System;
 	using System.Collections;
 	using System.Globalization;
 	using System.Text;

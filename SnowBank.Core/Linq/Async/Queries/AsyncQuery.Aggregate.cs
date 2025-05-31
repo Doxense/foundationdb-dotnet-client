@@ -26,7 +26,6 @@
 
 namespace SnowBank.Linq
 {
-	using System;
 	using SnowBank.Linq.Async.Iterators;
 
 	public static partial class AsyncQuery

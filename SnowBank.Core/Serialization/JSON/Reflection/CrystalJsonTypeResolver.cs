@@ -38,7 +38,6 @@
 
 namespace SnowBank.Data.Json
 {
-	using System;
 	using System.Collections;
 	using System.Collections.Immutable;
 	using System.Collections.ObjectModel;

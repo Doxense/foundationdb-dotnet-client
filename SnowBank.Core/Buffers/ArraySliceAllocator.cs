@@ -30,7 +30,7 @@ namespace SnowBank.Buffers
 	/// <remarks>
 	/// <para>This buffer will allocate new slabs of memory as needed.</para>
 	/// <para>Slices allocated from this writer <b>CAN</b> be used after this instance has been disposed or cleared.</para>
-	/// <para>If you can guarantee that no slice allocated will survice this instance, you can also use <see cref="PooledSliceAllocator"/> which can rent memory from a pool.</para>
+	/// <para>If you can guarantee that no slice allocated will survive this instance, you can also use <see cref="PooledSliceAllocator"/> which can rent memory from a pool.</para>
 	/// </remarks>
 	[PublicAPI]
 	public sealed class ArraySliceAllocator : ISliceAllocator
@@ -54,9 +54,12 @@ namespace SnowBank.Buffers
 		/// <summary>Default spill size before allocating to the heap (when using a pool)</summary>
 		private const int DefaultSpillSize = 1024 * 1024;
 
+		/// <summary>Constructs a new slice allocator using the default slab and spill sizes</summary>
 		public ArraySliceAllocator() : this(DefaultSlabSize, DefaultSpillSize)
 		{ }
 
+		/// <summary>Constructs a new slice allocator using custom slab and spill sizes</summary>
+		/// <param name="initialSize"></param>
 		public ArraySliceAllocator(int initialSize) : this(initialSize, Math.Max(initialSize, DefaultSpillSize))
 		{ }
 
@@ -107,7 +110,7 @@ namespace SnowBank.Buffers
 			// keep the current buffer unless it has been written to
 			if (m_index > 0)
 			{
-				m_current = new byte[m_current.Length];
+				m_current = new byte[buffer.Length];
 				m_index = 0;
 			}
 			m_slabWritten = 0;

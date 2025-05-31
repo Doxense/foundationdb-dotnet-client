@@ -8,7 +8,6 @@
 
 namespace SnowBank.Data.Json
 {
-	using System;
 	using System.Collections;
 
 	/// <summary>Wraps a <see cref="JsonArray"/> into a typed read-only proxy that emulates an array of elements of type <typeparamref name="TValue"/></summary>

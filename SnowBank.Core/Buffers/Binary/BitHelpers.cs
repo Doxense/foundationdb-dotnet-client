@@ -169,8 +169,9 @@ namespace SnowBank.Buffers.Binary
 
 		/// <summary>Test if a number is a power of 2</summary>
 		/// <returns>True if <paramref name="x"/> is expressible as 2^i (i>=0)</returns>
-		/// <remarks>0 is NOT considered to be a power of 2
-		/// This methods guarantees that IsPowerOfTwo(x) == (NextPowerOfTwo(x) == x)
+		/// <remarks>
+		/// <para>0 is NOT considered to be a power of 2.</para>
+		/// <para>This method guarantees that IsPowerOfTwo(x) == (NextPowerOfTwo(x) == x)</para>
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool IsPowerOfTwo(uint x)
@@ -718,7 +719,7 @@ namespace SnowBank.Buffers.Binary
 		public static int LeastSignificantBitNonZero64(ulong nonZero)
 		{
 #if NET6_0_OR_GREATER
-			return BitOperations.TrailingZeroCount(unchecked((ulong) nonZero));
+			return BitOperations.TrailingZeroCount(nonZero);
 #else
 			return LeastSignificantBitNonZero64(unchecked((long) nonZero));
 #endif

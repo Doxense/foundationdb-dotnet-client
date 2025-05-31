@@ -1229,6 +1229,10 @@ namespace System
 		}
 
 
+		/// <summary>Convert a hexadecimal encoded string ("1234AA7F") into a slice</summary>
+		/// <param name="hexString">String contains a sequence of pairs of hexadecimal digits with no separating spaces.</param>
+		/// <param name="separator">Allowed separator character between hex pairs, or <c>'\0'</c> for no separator allowed. Note strings with no separators are always allowed</param>
+		/// <returns>Slice containing the decoded byte array, or an exception if the string is empty or has an odd length</returns>
 #if NET8_0_OR_GREATER
 		public static Slice FromHexString(string? hexString, [ConstantExpected] char separator)
 #else

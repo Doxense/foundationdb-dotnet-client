@@ -35,7 +35,7 @@ namespace System
 		public sealed class Comparer : IComparer<Slice>, IEqualityComparer<Slice>, IComparer<KeyValuePair<Slice, Slice>>
 		{
 			/// <summary>Default instance of the slice comparator</summary>
-			public static readonly Comparer Default = new Comparer();
+			public static readonly Comparer Default = new();
 
 			private Comparer()
 			{ }

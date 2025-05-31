@@ -28,7 +28,6 @@
 
 namespace SnowBank.Buffers
 {
-	using System;
 	using System.Buffers;
 
 	/// <summary>Allocator that stores all data into slabs allocated from a pool (or the heap for large allocations)</summary>
