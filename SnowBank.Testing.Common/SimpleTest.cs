@@ -1091,14 +1091,6 @@ namespace SnowBank.Testing
 
 		/// <summary>Writes a value to the output log</summary>
 		[DebuggerNonUserCode]
-		public static void Log(IJsonSerializable? obj) => WriteToLog(obj != null ? $"({obj.GetType().GetFriendlyName()}) {CrystalJson.SerializeJson(obj)}" : "<null>");
-
-		/// <summary>Writes a value to the output log</summary>
-		[DebuggerNonUserCode]
-		public static void Log(IFormattable? obj) => WriteToLog(obj != null ? obj.ToString(null, CultureInfo.InvariantCulture) : "<null>");
-
-		/// <summary>Writes a value to the output log</summary>
-		[DebuggerNonUserCode]
 		public static void Log(object? item) => WriteToLog(Stringify(item));
 
 		/// <summary>Writes a message to the output log, without appending a line-break</summary>
