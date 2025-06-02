@@ -27,6 +27,7 @@
 namespace SnowBank.Testing
 {
 	using NUnit.Framework.Constraints;
+	using NUnit.Framework.Internal;
 
 	internal class WithOutputConstraint : Constraint
 	{
@@ -41,13 +42,42 @@ namespace SnowBank.Testing
 
 		public WithOutputConstraint(object? actual, string literal, IConstraint left, IConstraint right)
 		{
+			Contract.NotNull(left);
+			Contract.NotNull(right);
+
 			this.Actual = actual;
 			this.Literal = literal;
 			this.Left = left;
 			this.Right = right;
 		}
 
-		public override string Description => $"{this.Literal} = {this.Actual}";
+		public override string Description => $"{this.Left.Description}, then with {this.Literal} as {FormatValue(this.Actual)}";
+
+		private static string FormatValue(object? value)
+		{
+			// mimic the behavior of NUnit.Framework.Constraints.MsgUtils.FormatValue(...) which, unfortunately, is internal
+
+			var context = TestExecutionContext.CurrentContext;
+			// ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+			if (context is not null)
+			{
+#pragma warning disable CS8604 // Possible null reference argument.
+				return context.CurrentValueFormatter(value);
+#pragma warning restore CS8604 // Possible null reference argument.
+			}
+
+			string? asString;
+			try
+			{
+				asString = value?.ToString();
+			}
+			catch (Exception ex)
+			{
+				return $"<! {ex.GetType().Name} was thrown by {value!.GetType().Name}.ToString() !>";
+			}
+
+			return $"<{asString}>";
+		}
 
 		public override ConstraintResult ApplyTo<TActual>(TActual actual)
 		{
@@ -144,6 +174,7 @@ namespace SnowBank.Testing
 		{
 			return new WithOutputConstraint(this.Actual, this.Literal, left, right);
 		}
+
 	}
 
 }
