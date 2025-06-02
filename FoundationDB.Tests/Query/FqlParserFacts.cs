@@ -190,13 +190,13 @@ namespace FoundationDB.Client.Tests
 				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().Var(FqlVariableTypes.Int).String("Goodwin").MaybeMore()));
 			}
 
-			// `./user(<int>,"Goodwin",...)`
+			// `./records(0,<vstamp>,1,<int>,...)`
 			{
-				var q = FqlQueryParser.Parse("./user(<int>,\"Goodwin\",...)");
+				var q = FqlQueryParser.Parse("./records(0,<vstamp>,1,<int>,...)");
 				Assert.That(q, Is.Not.Null);
 				Explain(q);
-				Assert.That(q.Directory, Is.EqualTo(FqlDirectoryExpression.Create().Name("user")));
-				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().Var(FqlVariableTypes.Int).String("Goodwin").MaybeMore()));
+				Assert.That(q.Directory, Is.EqualTo(FqlDirectoryExpression.Create().Name("records")));
+				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().Integer(0).Var(FqlVariableTypes.VStamp).Integer(1).Var(FqlVariableTypes.Int).MaybeMore()));
 			}
 		}
 
@@ -293,9 +293,9 @@ namespace FoundationDB.Client.Tests
 				Assert.That(q.Tuple!.ToString(), Is.EqualTo("(<str>)"));
 			}
 
-			// `(<>, <nil>, <bool>, <int>, <num>, <str>, <bytes>, <uuid>, <tup>)`
+			// `(<>, <nil>, <bool>, <int>, <num>, <str>, <bytes>, <uuid>, <tup>, <vstamp>)`
 			{
-				var q = FqlQueryParser.Parse("(<>, <nil>, <bool>, <int>, <num>, <str>, <bytes>, <uuid>, <tup>)");
+				var q = FqlQueryParser.Parse("(<>, <nil>, <bool>, <int>, <num>, <str>, <bytes>, <uuid>, <tup>, <vstamp>)");
 				Assert.That(q, Is.Not.Null);
 				Explain(q);
 				Assert.That(q.Directory, Is.Null);
@@ -309,8 +309,9 @@ namespace FoundationDB.Client.Tests
 					.VarBytes()
 					.VarUuid()
 					.VarTuple()
+					.VarVStamp()
 				));
-				Assert.That(q.Tuple!.ToString(), Is.EqualTo("(<>,<nil>,<bool>,<int>,<num>,<str>,<bytes>,<uuid>,<tup>)"));
+				Assert.That(q.Tuple!.ToString(), Is.EqualTo("(<>,<nil>,<bool>,<int>,<num>,<str>,<bytes>,<uuid>,<tup>,<vstamp>)"));
 			}
 		}
 
@@ -685,6 +686,27 @@ namespace FoundationDB.Client.Tests
 					Assert.That(tuple.Match(STuple.Create("1.23")), Is.False);
 				});
 			}
+			{ // (@13464654573299691533-4660)
+				var vs = VersionStamp.Complete(0xbadc0ffee0ddf00dUL, 0x1234);
+
+				var q = FqlQueryParser.Parse("(@badc0ffee0ddf00d-1234)");
+				Explain(q);
+				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().VStamp(vs)));
+				Assert.That(q.Directory, Is.Null);
+				Assert.That(q.IsPattern, Is.False);
+
+				Assert.Multiple(() =>
+				{
+					var tuple = q.Tuple!;
+					Assert.That(tuple.Match(STuple.Create(vs)), Is.True);
+
+					Assert.That(tuple.Match(STuple.Create()), Is.False);
+					Assert.That(tuple.Match(STuple.Create(VersionStamp.Complete(0xbadc0ffee0ddf00dUL, 0))), Is.False);
+					Assert.That(tuple.Match(STuple.Create(VersionStamp.Complete(0xbadc0ffee0ddf00dUL, 0x5678))), Is.False);
+					Assert.That(tuple.Match(STuple.Create(VersionStamp.Complete(0x0123456789abcdefUL, 0x1234))), Is.False);
+					Assert.That(tuple.Match(STuple.Create(STuple.Create(vs))), Is.False);
+				});
+			}
 			{ // ("hello", 123)
 				var q = FqlQueryParser.Parse("(\"hello\", 123)");
 				Explain(q);
@@ -717,7 +739,7 @@ namespace FoundationDB.Client.Tests
 			{
 				var q = FqlQueryParser.Parse("(<str>)");
 				Explain(q);
-				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().Var(FqlVariableTypes.String)));
+				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().VarString()));
 				Assert.That(q.Directory, Is.Null);
 				Assert.That(q.IsPattern, Is.True);
 
@@ -745,7 +767,7 @@ namespace FoundationDB.Client.Tests
 			{
 				var q = FqlQueryParser.Parse("(<bool>)");
 				Explain(q);
-				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().Var(FqlVariableTypes.Bool)));
+				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().VarBoolean()));
 				Assert.That(q.Directory, Is.Null);
 				Assert.That(q.IsPattern, Is.True);
 
@@ -771,7 +793,7 @@ namespace FoundationDB.Client.Tests
 			{
 				var q = FqlQueryParser.Parse("(<int>)");
 				Explain(q);
-				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().Var(FqlVariableTypes.Int)));
+				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().VarInteger()));
 				Assert.That(q.Directory, Is.Null);
 				Assert.That(q.IsPattern, Is.True);
 
@@ -803,7 +825,7 @@ namespace FoundationDB.Client.Tests
 			{
 				var q = FqlQueryParser.Parse("(<num>)");
 				Explain(q);
-				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().Var(FqlVariableTypes.Num)));
+				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().VarNumber()));
 				Assert.That(q.Directory, Is.Null);
 				Assert.That(q.IsPattern, Is.True);
 
@@ -840,7 +862,7 @@ namespace FoundationDB.Client.Tests
 			{
 				var q = FqlQueryParser.Parse("(<uuid>)");
 				Explain(q);
-				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().Var(FqlVariableTypes.Uuid)));
+				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().VarUuid()));
 				Assert.That(q.Directory, Is.Null);
 				Assert.That(q.IsPattern, Is.True);
 
@@ -869,7 +891,7 @@ namespace FoundationDB.Client.Tests
 			{
 				var q = FqlQueryParser.Parse("(<bytes>)");
 				Explain(q);
-				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().Var(FqlVariableTypes.Bytes)));
+				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().VarBytes()));
 				Assert.That(q.Directory, Is.Null);
 				Assert.That(q.IsPattern, Is.True);
 
@@ -891,11 +913,11 @@ namespace FoundationDB.Client.Tests
 				});
 			}
 
-			// (<typ>)
+			// (<tup>)
 			{
 				var q = FqlQueryParser.Parse("(<tup>)");
 				Explain(q);
-				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().Var(FqlVariableTypes.Tuple)));
+				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().VarTuple()));
 				Assert.That(q.Directory, Is.Null);
 				Assert.That(q.IsPattern, Is.True);
 
@@ -916,6 +938,35 @@ namespace FoundationDB.Client.Tests
 					Assert.That(tuple.Match(STuple.Create(Slice.Copy("hello"u8))), Is.False);
 				});
 			}
+
+			// (<vstamp>)
+			{
+				var q = FqlQueryParser.Parse("(<vstamp>)");
+				Explain(q);
+				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().VarVStamp()));
+				Assert.That(q.Directory, Is.Null);
+				Assert.That(q.IsPattern, Is.True);
+
+				Assert.Multiple(() =>
+				{
+					var vs = VersionStamp.Complete(0xbadc0ffee0ddf00dUL, 0x1234);
+
+					var tuple = q.Tuple!;
+					Assert.That(tuple.Match(STuple.Create(vs)), Is.True);
+					Assert.That(tuple.Match(STuple.Create(VersionStamp.Incomplete())), Is.True);
+					Assert.That(tuple.Match(STuple.Create(VersionStamp.Incomplete(0x1234))), Is.True);
+
+					Assert.That(tuple.Match(STuple.Create()), Is.False);
+					Assert.That(tuple.Match(STuple.Create(default(object))), Is.False);
+					Assert.That(tuple.Match(STuple.Create(false)), Is.False);
+					Assert.That(tuple.Match(STuple.Create(true)), Is.False);
+					Assert.That(tuple.Match(STuple.Create(123)), Is.False);
+					Assert.That(tuple.Match(STuple.Create("hello")), Is.False);
+					Assert.That(tuple.Match(STuple.Create(STuple.Create())), Is.False);
+					Assert.That(tuple.Match(STuple.Create(STuple.Create(vs))), Is.False);
+				});
+			}
+
 		}
 
 		[Test]
@@ -925,7 +976,7 @@ namespace FoundationDB.Client.Tests
 			{
 				var q = FqlQueryParser.Parse("(\"hello\", <int>)");
 				Explain(q);
-				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().String("hello").Var(FqlVariableTypes.Int)));
+				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().String("hello").VarInteger()));
 				Assert.That(q.Directory, Is.Null);
 				Assert.That(q.IsPattern, Is.True);
 
@@ -960,7 +1011,7 @@ namespace FoundationDB.Client.Tests
 			{
 				var q = FqlQueryParser.Parse("(<str>, 123)");
 				Explain(q);
-				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().Var(FqlVariableTypes.String).Integer(123)));
+				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().VarString().Integer(123)));
 				Assert.That(q.Directory, Is.Null);
 				Assert.That(q.IsPattern, Is.True);
 
@@ -983,7 +1034,7 @@ namespace FoundationDB.Client.Tests
 			{
 				var q = FqlQueryParser.Parse("(\"hello\", <int>, \"world\")");
 				Explain(q);
-				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().String("hello").Var(FqlVariableTypes.Int).String("world")));
+				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().String("hello").VarInteger().String("world")));
 				Assert.That(q.Directory, Is.Null);
 				Assert.That(q.IsPattern, Is.True);
 
@@ -1002,6 +1053,33 @@ namespace FoundationDB.Client.Tests
 					Assert.That(tuple.Match(STuple.Create("hello", "world", 123)), Is.False);
 				});
 			}
+
+			// ("hello", <vstamp>, <int>)
+			{
+				var q = FqlQueryParser.Parse("(\"hello\", <vstamp>, <int>)");
+				Explain(q);
+				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().String("hello").VarVStamp().VarInteger()));
+				Assert.That(q.Directory, Is.Null);
+				Assert.That(q.IsPattern, Is.True);
+
+				Assert.Multiple(() =>
+				{
+					var vs = VersionStamp.Complete(0xbadc0ffee0ddf00dUL, 0x1234);
+
+					var tuple = q.Tuple!;
+					Assert.That(tuple.Match(STuple.Create("hello", vs, 123)), Is.True);
+
+					Assert.That(tuple.Match(STuple.Create()), Is.False);
+					Assert.That(tuple.Match(STuple.Create("hello")), Is.False);
+					Assert.That(tuple.Match(STuple.Create("hello", vs)), Is.False);
+					Assert.That(tuple.Match(STuple.Create("hello", default(object), 123)), Is.False);
+					Assert.That(tuple.Match(STuple.Create("hello", vs, default(object))), Is.False);
+					Assert.That(tuple.Match(STuple.Create("hello", vs, "123")), Is.False);
+					Assert.That(tuple.Match(STuple.Create("hello", vs, 123, "!!!")), Is.False);
+					Assert.That(tuple.Match(STuple.Create("hello", "world", 123)), Is.False);
+				});
+			}
+
 		}
 
 		[Test]
@@ -1043,7 +1121,7 @@ namespace FoundationDB.Client.Tests
 			{
 				var q = FqlQueryParser.Parse("(1, <int>, ...)");
 				Explain(q);
-				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().Integer(1).Var(FqlVariableTypes.Int).MaybeMore()));
+				Assert.That(q.Tuple, Is.EqualTo(FqlTupleExpression.Create().Integer(1).VarInteger().MaybeMore()));
 				Assert.That(q.Directory, Is.Null);
 				Assert.That(q.IsPattern, Is.True);
 

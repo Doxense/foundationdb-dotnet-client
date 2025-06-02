@@ -47,6 +47,7 @@ namespace FoundationDB.Client
 		Bytes,
 		Uuid,
 		Tuple,
+		VStamp,
 	}
 
 	[Flags]
@@ -66,11 +67,12 @@ namespace FoundationDB.Client
 		Uuid = 1 << 5,
 		Bytes = 1 << 6,
 		Tuple = 1 << 7,
+		VStamp = 1 << 8,
 
 		/// <summary>Combines the chunks of a large value that was split into several keys</summary>
-		Append = 1 << 8,
-		Sum = 1 << 9,
-		Count = 1 << 10,
+		Append = 1 << 9,
+		Sum = 1 << 10,
+		Count = 1 << 11,
 	}
 
 	[DebuggerDisplay("{ToString(),nq}")]
@@ -99,6 +101,7 @@ namespace FoundationDB.Client
 		IEquatable<Guid>,
 		IEquatable<Uuid128>,
 		IEquatable<IVarTuple>,
+		IEquatable<VersionStamp>,
 		IEquatable<FqlVariableTypes>,
 		// Formatting
 		IFormattable
@@ -160,6 +163,7 @@ namespace FoundationDB.Client
 			FqlItemType.Bytes => HashCode.Combine(FqlItemType.Bytes, (Slice) this.Value!),
 			FqlItemType.Uuid => HashCode.Combine(FqlItemType.Uuid, (Uuid128) this.Value!),
 			FqlItemType.Tuple => HashCode.Combine(FqlItemType.Tuple, (FqlTupleExpression) this.Value!),
+			FqlItemType.VStamp => HashCode.Combine(FqlItemType.VStamp, (VersionStamp) this.Value!),
 			_ => HashCode.Combine(this.Type),
 		};
 
@@ -200,6 +204,12 @@ namespace FoundationDB.Client
 			{
 				FqlTupleExpression tup => Equals(tup),
 				IVarTuple tup => Equals(tup),
+				_ => false,
+			},
+			FqlItemType.VStamp => value switch
+			{
+				VersionStamp vs => Equals(vs),
+				//TODO: Slice? byte[]?
 				_ => false,
 			},
 			_ => throw new NotImplementedException(this.Type.ToString())
@@ -260,6 +270,12 @@ namespace FoundationDB.Client
 				FqlItemType.Tuple => other.Value switch
 				{
 					FqlTupleExpression tup => this.Equals(tup),
+					_ => false,
+				},
+				FqlItemType.VStamp => other.Value switch
+				{
+					VersionStamp vs => this.Equals(vs),
+					//TODO: Slice? byte[]?
 					_ => false,
 				},
 				_ => false
@@ -430,6 +446,11 @@ namespace FoundationDB.Client
 			return this.Type == FqlItemType.Tuple && ((FqlTupleExpression) this.Value!).Match(value);
 		}
 
+		public bool Equals(VersionStamp value)
+		{
+			return this.Type == FqlItemType.VStamp && ((VersionStamp) this.Value!).Equals(value);
+		}
+
 		public bool Equals(FqlVariableTypes types)
 		{
 			return this.Type == FqlItemType.Variable && ((FqlVariableTypes) this.Value!).Equals(types);
@@ -461,6 +482,7 @@ namespace FoundationDB.Client
 				Guid => types.HasFlag(FqlVariableTypes.Uuid),
 				Uuid128 => types.HasFlag(FqlVariableTypes.Uuid),
 				IVarTuple => types.HasFlag(FqlVariableTypes.Tuple),
+				VersionStamp => types.HasFlag(FqlVariableTypes.VStamp),
 				_ => false,
 			};
 		}
@@ -496,6 +518,7 @@ namespace FoundationDB.Client
 			FqlItemType.Uuid => ((Uuid128) this.Value!).ToString("D"),
 			FqlItemType.Bytes => "0x" + ((Slice) this.Value!).ToString("x"),
 			FqlItemType.Tuple => ((FqlTupleExpression) this.Value!).ToString(),
+			FqlItemType.VStamp => ((VersionStamp) this.Value!).ToString(), //TODO: what format should be used for version stamps??
 			_ => $"<?{this.Type}?>",
 		};
 
@@ -526,6 +549,7 @@ namespace FoundationDB.Client
 			[FqlVariableTypes.Uuid]   = "uuid",
 			[FqlVariableTypes.Bytes]  = "bytes",
 			[FqlVariableTypes.Tuple]  = "tup",
+			[FqlVariableTypes.VStamp] = "vstamp", //TODO: not defined in the spec yet!
 			[FqlVariableTypes.Append] = "append",
 			[FqlVariableTypes.Sum]    = "sum",
 			[FqlVariableTypes.Count]  = "count",
@@ -542,6 +566,7 @@ namespace FoundationDB.Client
 			"uuid"   => FqlVariableTypes.Uuid,
 			"bytes"  => FqlVariableTypes.Bytes,
 			"tup"    => FqlVariableTypes.Tuple,
+			"vstamp" => FqlVariableTypes.VStamp, //TODO: not defined in the spec yet!
 			"append" => FqlVariableTypes.Append,
 			"count"  => FqlVariableTypes.Sum,
 			"sum"    => FqlVariableTypes.Count,
@@ -620,6 +645,8 @@ namespace FoundationDB.Client
 		public static FqlTupleItem Uuid(Uuid128 value) => new(FqlItemType.Uuid, value);
 
 		public static FqlTupleItem Tuple(FqlTupleExpression value) => new(FqlItemType.Tuple, value);
+
+		public static FqlTupleItem VStamp(VersionStamp value) => new(FqlItemType.VStamp, value);
 
 	}
 
@@ -740,6 +767,9 @@ namespace FoundationDB.Client
 		/// <summary>Adds a variable of type <see cref="FqlVariableTypes.Tuple"/>, and with optional name</summary>
 		public FqlTupleExpression VarTuple(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.Tuple, name));
 
+		/// <summary>Adds a variable of type <see cref="FqlVariableTypes.VStamp"/>, and with optional name</summary>
+		public FqlTupleExpression VarVStamp(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.VStamp, name));
+
 		/// <summary>Adds a variable of type <see cref="FqlVariableTypes.Append"/>, and with optional name</summary>
 		/// <remarks>This variable is only allowed in values</remarks>
 		public FqlTupleExpression VarAppend(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.Append, name));
@@ -805,6 +835,9 @@ namespace FoundationDB.Client
 
 		/// <summary>Adds an embedded <see cref="FqlItemType.Tuple"/></summary>
 		public FqlTupleExpression Tuple(FqlTupleExpression value) => Add(FqlTupleItem.Tuple(value));
+
+		/// <summary>Adds a constant <see cref="FqlItemType.VStamp"/> literal</summary>
+		public FqlTupleExpression VStamp(VersionStamp value) => Add(FqlTupleItem.VStamp(value));
 
 		#endregion
 

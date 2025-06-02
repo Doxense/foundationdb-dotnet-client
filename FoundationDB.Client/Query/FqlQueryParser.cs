@@ -224,6 +224,7 @@ namespace FoundationDB.Client
 		private static readonly SearchValues<char> CategoryInteger = SearchValues.Create("0123456789+-");
 		private static readonly SearchValues<char> CategoryName = SearchValues.Create("-.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz");
 		private static readonly SearchValues<char> CategoryText = SearchValues.Create(" !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~");
+		private static readonly SearchValues<char> CategoryVersionStamp = SearchValues.Create("?-#0123456789ABCDEFabcdef");
 		// ReSharper restore StringLiteralTypo
 
 		/// <summary>Reads the next path segment in a directory expression</summary>
@@ -318,7 +319,7 @@ namespace FoundationDB.Client
 
 				if (text[p] != '"')
 				{
-					throw new FormatException("Invalid escape sequence in string");
+					return new FormatException("Invalid escape sequence in string");
 				}
 
 				// it is escaped if the previous character is a '\'
@@ -345,7 +346,41 @@ namespace FoundationDB.Client
 				return name;
 			}
 
-			throw new FormatException("TODO: truncated string");
+			return new FormatException("TODO: truncated string");
+		}
+
+		/// <summary>Reads a Versionstamp literal</summary>
+		private static Maybe<VersionStamp> ReadVStamp(ref ReadOnlySpan<char> text)
+		{
+			// possible literals (for now!)
+			// - `@?`: incomplete, no user version
+			// - `@?#dddd`: incomplete, no user version
+			// - `@ddddddddd-dddd`: complete, no user version
+			// - `@ddddddddd-dddd#dddd`: complete, with user version
+
+			// Find the next character that is not any of 0-9, '-' or '#'
+			// note: we skip the first char since we know it is '@'
+			int p = text[1..].IndexOfAnyExcept(CategoryVersionStamp);
+
+			if (p < 0)
+			{ // maybe a constant at the end of the line?
+				if (VersionStamp.TryParse(text, null, out var res))
+				{
+					text = default;
+					return res;
+				}
+			}
+			else
+			{
+				++p; // add 1 since we skipped the '@', but it must still be included when parsing!
+				if (VersionStamp.TryParse(text[..p], null, out var res))
+				{
+					text = text[p..];
+					return res;
+				}
+			}
+
+			return new FormatException("Invalid versionstamp literal");
 		}
 
 		/// <summary>Reads an unescaped directory name</summary>
@@ -443,7 +478,7 @@ namespace FoundationDB.Client
 					{ // could be '...'
 						if (text.StartsWith("..."))
 						{
-							tuple.MaybeMore();
+							tuple = tuple.MaybeMore();
 							text = text[3..];
 							continue;
 						}
@@ -455,7 +490,7 @@ namespace FoundationDB.Client
 						// could be 'nil'
 						if (text.StartsWith("nil"))
 						{
-							tuple.Nil();
+							tuple = tuple.Nil();
 							text = text[3..];
 							continue;
 						}
@@ -466,7 +501,7 @@ namespace FoundationDB.Client
 					{
 						if (text.StartsWith("false"))
 						{
-							tuple.Boolean(false);
+							tuple = tuple.Boolean(false);
 							text = text[5..];
 							continue;
 						}
@@ -478,7 +513,7 @@ namespace FoundationDB.Client
 						// could be 'true'
 						if (text.StartsWith("true"))
 						{
-							tuple.Boolean(true);
+							tuple = tuple.Boolean(true);
 							text = text[4..];
 							continue;
 						}
@@ -497,7 +532,7 @@ namespace FoundationDB.Client
 							var slice = Slice.FromHexString(text[..p]);
 							text = text[p..];
 
-							tuple.Bytes(slice);
+							tuple = tuple.Bytes(slice);
 							continue;
 						}
 
@@ -508,7 +543,7 @@ namespace FoundationDB.Client
 							if (Guid.TryParseExact(text[..36], "D", out var uuid))
 							{
 								text = text[36..];
-								tuple.Uuid(uuid);
+								tuple = tuple.Uuid(uuid);
 								continue;
 							}
 
@@ -532,11 +567,11 @@ namespace FoundationDB.Client
 							var d64 = (double) d128;
 							if ((decimal) d64 == d128)
 							{ // no precision loss, we prefer using double
-								tuple.Number(d64);
+								tuple = tuple.Number(d64);
 							}
 							else
 							{ // requires the full precision of decimal
-								tuple.Number(d128);
+								tuple = tuple.Number(d128);
 							}
 						}
 						else
@@ -545,15 +580,15 @@ namespace FoundationDB.Client
 							{ // negative
 								if (long.TryParse(chunk, CultureInfo.InvariantCulture, out var l64))
 								{ // fits in 64 bits
-									tuple.Integer(l64);
+									tuple = tuple.Integer(l64);
 								}
 								else if (Int128.TryParse(chunk, CultureInfo.InvariantCulture, out var l128))
 								{ // bit integer
-									tuple.Integer(l128);
+									tuple = tuple.Integer(l128);
 								}
 								else if (BigInteger.TryParse(chunk, CultureInfo.InvariantCulture, out var big))
 								{ // big integer
-									tuple.Integer(big);
+									tuple = tuple.Integer(big);
 								}
 								else
 								{
@@ -565,15 +600,15 @@ namespace FoundationDB.Client
 							{ // positive
 								if (ulong.TryParse(chunk, CultureInfo.InvariantCulture, out var l64))
 								{ // fits in 64 bits
-									tuple.Integer(l64);
+									tuple = tuple.Integer(l64);
 								}
 								else if (UInt128.TryParse(chunk, CultureInfo.InvariantCulture, out var l128))
 								{ // bit integer
-									tuple.Integer(l128);
+									tuple = tuple.Integer(l128);
 								}
 								else if (BigInteger.TryParse(chunk, CultureInfo.InvariantCulture, out var big))
 								{ // big integer
-									tuple.Integer(big);
+									tuple = tuple.Integer(big);
 								}
 								else
 								{
@@ -592,7 +627,7 @@ namespace FoundationDB.Client
 						if (CouldBeUuid(text) && Guid.TryParseExact(text[..36], "D", out var uuid))
 						{
 							text = text[36..];
-							tuple.Uuid(uuid);
+							tuple = tuple.Uuid(uuid);
 							continue;
 						}
 						break;
@@ -605,7 +640,7 @@ namespace FoundationDB.Client
 						{
 							return error;
 						}
-						tuple.String(x);
+						tuple = tuple.String(x);
 						continue;
 					}
 					case '<':
@@ -616,7 +651,7 @@ namespace FoundationDB.Client
 						{
 							return error;
 						}
-						tuple.Var(res.Types, res.Name);
+						tuple = tuple.Var(res.Types, res.Name);
 						continue;
 					}
 					case ',':
@@ -624,7 +659,16 @@ namespace FoundationDB.Client
 						text = text[1..];
 						continue;
 					}
-
+					case '@':
+					{ // vstamp
+						//TODO: this is not defined in the spec yet!
+						if (!ReadVStamp(ref text).Check(out var x, out var error))
+						{
+							return error;
+						}
+						tuple = tuple.VStamp(x);
+						continue;
+					}
 					case '(':
 					{ // sub-tuple!
 
@@ -633,7 +677,7 @@ namespace FoundationDB.Client
 						{
 							return error;
 						}
-						tuple.Tuple(sub);
+						tuple = tuple.Tuple(sub);
 						continue;
 					}
 
