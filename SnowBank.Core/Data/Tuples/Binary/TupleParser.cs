@@ -1705,7 +1705,7 @@ namespace SnowBank.Data.Tuples.Binary
 				throw new FormatException("Slice has invalid size for a VersionStamp");
 			}
 
-			return VersionStamp.Parse(slice.Substring(1));
+			return VersionStamp.ReadFrom(slice.Substring(1));
 		}
 
 		/// <summary>Parse a tuple segment containing an 80-bit or 96-bit VersionStamp</summary>
@@ -1719,7 +1719,7 @@ namespace SnowBank.Data.Tuples.Binary
 				throw new FormatException("Slice has invalid size for a VersionStamp");
 			}
 
-			return VersionStamp.Parse(slice.Slice(1));
+			return VersionStamp.ReadFrom(slice[1..]);
 		}
 
 		#endregion

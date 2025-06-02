@@ -165,7 +165,7 @@ namespace SnowBank.Data.Binary
 		public Slice EncodeValue(VersionStamp value) => value.ToSlice();
 		
 		/// <inheritdoc />
-		VersionStamp IValueEncoder<VersionStamp, Slice>.DecodeValue(Slice encoded) => VersionStamp.Parse(encoded);
+		VersionStamp IValueEncoder<VersionStamp, Slice>.DecodeValue(Slice encoded) => VersionStamp.ReadFrom(encoded);
 
 		/// <inheritdoc />
 		IDynamicKeyEncoder IKeyEncoding.GetDynamicKeyEncoder() => throw new NotSupportedException();

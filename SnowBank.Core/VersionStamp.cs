@@ -351,40 +351,34 @@ namespace System
 			}
 		}
 
-		/// <summary>Parse a VersionStamp from a sequence of 10 bytes</summary>
-		/// <exception cref="FormatException">If the buffer length is not exactly 12 bytes</exception>
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		private static FormatException InvalidVersionStampSize() => new("A VersionStamp is either 10 or 12 bytes.");
+
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		private static FormatException InvalidVersionStampFormat() => new("Unrecognized VersionStamp format.");
+
+		/// <summary>Reads a <see cref="VersionStamp"/> from a sequence of bytes</summary>
+		/// <exception cref="FormatException">If the buffer length is not exactly 10 or 12 bytes</exception>
 		[Pure]
-		public static VersionStamp Parse(Slice data)
-		{
-			return TryParse(data, out var vs) ? vs : throw new FormatException("A VersionStamp is either 10 or 12 bytes.");
-		}
+		public static VersionStamp ReadFrom(Slice data)
+			=> TryReadFrom(data.Span, out var vs) ? vs : throw InvalidVersionStampSize();
 
-		/// <summary>Try parsing a VersionStamp from a sequence of bytes</summary>
-		public static bool TryParse(Slice data, out VersionStamp vs)
-		{
-			if (data.Count != 10 && data.Count != 12)
-			{
-				vs = default;
-				return false;
-			}
-			ReadUnsafe(data.Span, out vs);
-			return true;
-		}
+		/// <summary>Try reading a <see cref="VersionStamp"/> from a sequence of bytes</summary>
+		public static bool TryReadFrom(Slice data, out VersionStamp vs)
+			=> TryReadFrom(data.Span, out vs);
 
-		/// <summary>Parse a VersionStamp from a sequence of 10 bytes</summary>
-		/// <exception cref="FormatException">If the buffer length is not exactly 12 bytes</exception>
+		/// <summary>Reads a <see cref="VersionStamp"/> from a span of bytes</summary>
+		/// <exception cref="FormatException">If the buffer length is not exactly 10 or 12 bytes</exception>
 		[Pure]
-		public static VersionStamp Parse(ReadOnlySpan<byte> data)
-		{
-			return TryParse(data, out var vs) ? vs : throw new FormatException("A VersionStamp is either 10 or 12 bytes.");
-		}
+		public static VersionStamp ReadFrom(ReadOnlySpan<byte> data)
+			=> TryReadFrom(data, out var vs) ? vs : throw InvalidVersionStampSize();
 
-		/// <summary>Attempts to parse a <see cref="VersionStamp"/> from a sequence of bytes.</summary>
+		/// <summary>Attempts to read a <see cref="VersionStamp"/> from a span of bytes.</summary>
 		/// <param name="data">The byte sequence to parse.</param>
 		/// <param name="vs">When this method returns, contains the parsed <see cref="VersionStamp"/> if the parsing succeeded, or the default value if it failed.</param>
 		/// <returns><see langword="true"/> if the parsing was successful; otherwise, <see langword="false"/>.</returns>
 		/// <remarks>A valid <see cref="VersionStamp"/> is either 10 or 12 bytes long.</remarks>
-		public static bool TryParse(ReadOnlySpan<byte> data, out VersionStamp vs)
+		public static bool TryReadFrom(ReadOnlySpan<byte> data, out VersionStamp vs)
 		{
 			if (data.Length != 10 && data.Length != 12)
 			{

@@ -104,7 +104,7 @@ namespace FoundationDB.Client.Tests
 
 				var reader = new SliceReader(writer.ToSlice());
 				reader.Skip(3);
-				var vs = VersionStamp.Parse(reader.ReadBytes(12));
+				var vs = VersionStamp.ReadFrom(reader.ReadBytes(12));
 				Assert.That(reader.Remaining, Is.EqualTo(3));
 
 				Assert.That(vs.TransactionVersion, Is.EqualTo(ulong.MaxValue));
@@ -187,7 +187,7 @@ namespace FoundationDB.Client.Tests
 
 				var reader = new SliceReader(writer.ToSlice());
 				reader.Skip(3);
-				var vs = VersionStamp.Parse(reader.ReadBytes(12));
+				var vs = VersionStamp.ReadFrom(reader.ReadBytes(12));
 				Assert.That(reader.Remaining, Is.EqualTo(3));
 
 				Assert.That(vs.TransactionVersion, Is.EqualTo(0x0123456789ABCDEFUL));

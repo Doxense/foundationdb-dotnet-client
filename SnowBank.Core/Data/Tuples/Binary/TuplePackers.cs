@@ -2901,7 +2901,7 @@ namespace SnowBank.Data.Tuples.Binary
 			return type switch
 			{
 				TupleTypes.Nil => default,
-				TupleTypes.VersionStamp80 or TupleTypes.VersionStamp96 => VersionStamp.TryParse(slice.Slice(1), out var stamp) ? stamp : throw new FormatException("Cannot convert malformed tuple segment into a VersionStamp"),
+				TupleTypes.VersionStamp80 or TupleTypes.VersionStamp96 => VersionStamp.TryReadFrom(slice.Slice(1), out var stamp) ? stamp : throw new FormatException("Cannot convert malformed tuple segment into a VersionStamp"),
 				_ => throw new FormatException($"Cannot convert tuple segment of type 0x{type:X} into a VersionStamp")
 			};
 		}

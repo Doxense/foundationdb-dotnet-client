@@ -500,7 +500,7 @@ namespace FoundationDB.Client
 			}
 
 			// if the db is new, it is possible that the version is not yet present, we will return the empty stamp
-			return value.IsNullOrEmpty ? VersionStamp.Complete(0, 0) : VersionStamp.Parse(value);
+			return value.IsNullOrEmpty ? VersionStamp.Complete(0, 0) : VersionStamp.ReadFrom(value);
 		}
 
 		internal void SetMetadataVersionKey(Slice key)
