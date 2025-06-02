@@ -26,8 +26,10 @@
 
 namespace System
 {
+	using System.Buffers.Binary;
 	using System.ComponentModel;
 	using System.Runtime.InteropServices;
+	using System.Text;
 	using SnowBank.Data.Json;
 	using Globalization;
 	using SnowBank.Buffers;
@@ -43,7 +45,10 @@ namespace System
 	[ImmutableObject(true), PublicAPI, Serializable]
 	public readonly struct VersionStamp : IEquatable<VersionStamp>, IComparable<VersionStamp>, IJsonSerializable, IJsonPackable, IJsonDeserializable<VersionStamp>
 #if NET8_0_OR_GREATER
+		, ISpanFormattable
 		, ISpanParsable<VersionStamp>
+		, IUtf8SpanFormattable
+		, IUtf8SpanParsable<VersionStamp>
 #endif
 	{
 		//note: they are called "Versionstamp" in the doc, but "VersionStamp" seems more .NETy (like 'TimeSpan').
@@ -256,15 +261,319 @@ namespace System
 			if (this.HasUserVersion)
 			{
 				return this.IsIncomplete
-					? $"@?#{this.UserVersion}"
-					: $"@{this.TransactionVersion}-{this.TransactionOrder}#{this.UserVersion}";
+					? string.Create(CultureInfo.InvariantCulture, $"@?#{this.UserVersion:x}")
+					: string.Create(CultureInfo.InvariantCulture, $"@{this.TransactionVersion:x}-{this.TransactionOrder:x}#{this.UserVersion:x}");
 			}
 			else
 			{
 				return this.IsIncomplete
 					? "@?"
-					: $"@{this.TransactionVersion}-{this.TransactionOrder}";
+					: string.Create(CultureInfo.InvariantCulture, $"@{this.TransactionVersion:x}-{this.TransactionOrder:x}");
 			}
+		}
+
+		public string ToString(string? format, IFormatProvider? provider = null)
+		{
+			switch (format)
+			{
+				case null:
+				case "D":
+				case "d":
+				{
+					return ToString();
+				}
+				case "J":
+				case "j":
+				{ // "Java-like"
+					return this.IsIncomplete ? ToJavaStringIncomplete(this.UserVersion) : ToJavaStringComplete(this.TransactionVersion, this.TransactionOrder, this.HasUserVersion ? this.UserVersion : default);
+				}
+				default:
+				{
+					throw new FormatException("Bad format specifier");
+				}
+			}
+
+			static string ToJavaStringIncomplete(uint user)
+			{
+				return string.Create(CultureInfo.InvariantCulture, $"Versionstamp(<incomplete> {user})");
+			}
+
+			static string ToJavaStringComplete(ulong version, ushort order, ushort user)
+			{
+				// we need the byte representation of the stamp (excluding the user version)
+				Span<byte> scratch = stackalloc byte[10];
+				BinaryPrimitives.WriteUInt64BigEndian(scratch, version);
+				BinaryPrimitives.WriteUInt16BigEndian(scratch[8..], order);
+
+				var sb = new StringBuilder("Versionstamp(");
+				// convert the bytes into "printable" characters, use the same encoding as found in ByteArrayUtil.printable(...) from the Java binding
+				for (int i = 0; i < 10; i++)
+				{
+					byte b = scratch[i];
+					if (b is >= 32 and < 127 && b != '\\')
+					{
+						sb.Append((char) b);
+					}
+					else if (b == '\\')
+					{
+						sb.Append(@"\\");
+					}
+					else
+					{
+						//use a lookup table here to avoid doing an expensive String.format() call
+						sb.Append("\\x");
+						int nib = (b & 0xF0) >> 4;
+						sb.Append((char) (48 + nib + (((9 - nib) >> 31) & 39)));
+						nib = b & 0x0F;
+						sb.Append((char) (48 + nib + (((9 - nib) >> 31) & 39)));
+					}
+				}
+				// append the user version (even if it is missing)
+				sb.Append(' ');
+				sb.Append(CultureInfo.InvariantCulture, $"{user}");
+				sb.Append(')');
+				return sb.ToString();
+			}
+		}
+
+		/// <summary>Tries to format the value of the current instance into the provided span of characters.</summary>
+		/// <param name="destination">The span in which to write this instance's value formatted as a span of characters.</param>
+		/// <param name="bytesWritten">When this method returns, contains the number of characters that were written in <paramref name="destination" />.</param>
+		/// <param name="format">A span containing the characters that represent a standard or custom format string that defines the acceptable format for <paramref name="destination" />.</param>
+		/// <param name="provider">This parameter is ignored.</param>
+		/// <returns>
+		/// <see langword="true" /> if the formatting was successful; otherwise, <see langword="false" />.</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryFormat(
+			Span<char> destination,
+			out int bytesWritten,
+			ReadOnlySpan<char> format = default,
+			IFormatProvider? provider = null
+		)
+		{
+			if (format.Length != 0 && format is not ("D" or "d"))
+			{
+				//TODO: support "J" has well?
+				throw new FormatException("Bad format specified");
+			}
+
+			// must have _at least_ 2 characters with no user-version (to fit the incomplete stamp "@?"), and 4 characters with a user-version (to fit "@?#0")
+			if (destination.Length < 2)
+			{
+				goto too_small;
+			}
+
+			destination[0] = '@';
+			bytesWritten = 1;
+			int len;
+
+			if (this.IsIncomplete)
+			{ // "@?" or "@?#123"
+				destination[1] = '?';
+				bytesWritten++;
+
+				if (!this.HasUserVersion)
+				{
+					return true;
+				}
+
+				if (destination.Length < 4)
+				{
+					goto too_small;
+				}
+				destination[2] = '#';
+				bytesWritten++;
+
+				if (!this.UserVersion.TryFormat(destination[3..], out len, "x", provider))
+				{
+					goto too_small;
+				}
+				bytesWritten += len;
+				return true;
+			}
+
+			// "@00000-0000" or "@00000-0000#0000"
+
+			// transaction version
+			destination = destination[1..];
+			if (!this.TransactionVersion.TryFormat(destination, out len, "x", provider))
+			{
+				goto too_small;
+			}
+			bytesWritten += len;
+			destination = destination[len..];
+
+			// '-' separator
+			if (destination.Length < 2)
+			{
+				goto too_small;
+			}
+			destination[0] = '-';
+			bytesWritten += 1;
+			destination = destination[1..];
+
+			// transaction order
+			if (TransactionOrder == 0)
+			{
+				destination[0] = '0';
+				len = 1;
+			}
+			else if (!this.TransactionOrder.TryFormat(destination, out len, "x", provider))
+			{
+				goto too_small;
+			}
+			bytesWritten += len;
+
+			if (this.HasUserVersion)
+			{
+				destination = destination[len..];
+
+				// '#' separator
+				if (destination.Length < 2)
+				{
+					goto too_small;
+				}
+				destination[0] = '#';
+				bytesWritten += 1;
+				destination = destination[1..];
+
+				// transaction order
+				if (!this.UserVersion.TryFormat(destination, out len, "x", provider))
+				{
+					goto too_small;
+				}
+				bytesWritten += len;
+			}
+
+			return true;
+
+		too_small:
+			bytesWritten = 0;
+			return false;
+
+		}
+
+
+		/// <summary>Tries to format the value of the current instance UTF-8 into the provided span of bytes.</summary>
+		/// <param name="utf8Destination">The span in which to write this instance's value formatted as a span of bytes.</param>
+		/// <param name="bytesWritten">When this method returns, contains the number of bytes that were written in <paramref name="utf8Destination" />.</param>
+		/// <param name="format">A span containing the characters that represent a standard or custom format string that defines the acceptable format for <paramref name="utf8Destination" />.</param>
+		/// <param name="provider">This parameter is ignored.</param>
+		/// <returns>
+		/// <see langword="true" /> if the formatting was successful; otherwise, <see langword="false" />.</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryFormat(
+			Span<byte> utf8Destination,
+			out int bytesWritten,
+#if NET8_0_OR_GREATER
+			[StringSyntax("GuidFormat")]
+#endif
+			ReadOnlySpan<char> format = default,
+			IFormatProvider? provider = null
+		)
+		{
+			if (format.Length != 0 && format is not ("D" or "d"))
+			{
+				//TODO: support "J" has well?
+				throw new FormatException("Bad format specified");
+			}
+
+			// this is "easy mode" since all the characters are ASCII !
+			// the maximum possible size for a VersionStamp is X characters:
+
+			// must have _at least_ 2 characters with no user-version (to fit the incomplete stamp "@?"), and 4 characters with a user-version (to fit "@?#0")
+			if (utf8Destination.Length < 2)
+			{
+				goto too_small;
+			}
+
+			utf8Destination[0] = (byte) '@';
+			bytesWritten = 1;
+			int len;
+
+			if (this.IsIncomplete)
+			{ // "@?" or "@?#123"
+				utf8Destination[1] = (byte) '?';
+				bytesWritten++;
+
+				if (!this.HasUserVersion)
+				{
+					return true;
+				}
+
+				if (utf8Destination.Length < 4)
+				{
+					goto too_small;
+				}
+				utf8Destination[2] = (byte) '#';
+				bytesWritten++;
+
+				if (!this.UserVersion.TryFormat(utf8Destination[3..], out len, "x", provider))
+				{
+					goto too_small;
+				}
+				bytesWritten += len;
+				return true;
+			}
+
+			// "@00000-0000" or "@00000-0000#0000"
+
+			// transaction version
+			utf8Destination = utf8Destination[1..];
+			if (!this.TransactionVersion.TryFormat(utf8Destination, out len, "x", provider))
+			{
+				goto too_small;
+			}
+			bytesWritten += len;
+			utf8Destination = utf8Destination[len..];
+
+			// '-' separator
+			if (utf8Destination.Length < 2)
+			{
+				goto too_small;
+			}
+			utf8Destination[0] = (byte) '-';
+			bytesWritten += 1;
+			utf8Destination = utf8Destination[1..];
+
+			// transaction order
+			if (TransactionOrder == 0)
+			{
+				utf8Destination[0] = (byte) '0';
+				len = 1;
+			}
+			else if (!this.TransactionOrder.TryFormat(utf8Destination, out len, "x", provider))
+			{
+				goto too_small;
+			}
+			bytesWritten += len;
+
+			if (this.HasUserVersion)
+			{
+				utf8Destination = utf8Destination[len..];
+
+				// '#' separator
+				if (utf8Destination.Length < 2)
+				{
+					goto too_small;
+				}
+				utf8Destination[0] = (byte) '#';
+				bytesWritten += 1;
+				utf8Destination = utf8Destination[1..];
+
+				// transaction order
+				if (!this.UserVersion.TryFormat(utf8Destination, out len, "x", provider))
+				{
+					goto too_small;
+				}
+				bytesWritten += len;
+			}
+
+			return true;
+
+		too_small:
+			bytesWritten = 0;
+			return false;
 		}
 
 		/// <summary>Returns a newly allocated <see cref="Slice"/> that represents this VersionStamp</summary>
@@ -309,8 +618,11 @@ namespace System
 		public void WriteTo(Span<byte> buffer)
 		{
 			int len = GetLength(); // 10 or 12
-			if (buffer.Length < len) throw new ArgumentException($"The target buffer must be at least {len} bytes long.");
-			WriteUnsafe(buffer.Slice(0, len), in this);
+			if (buffer.Length < len) throw DestinationBufferTooSmall(len);
+			WriteUnsafe(buffer[..len], in this);
+
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+			static ArgumentException DestinationBufferTooSmall(int len) => new($"The target buffer must be at least {len} bytes long.");
 		}
 
 		/// <summary>Writes this VersionStamp to the specified buffer, if it is large enough.</summary>
@@ -320,7 +632,24 @@ namespace System
 		{
 			int len = GetLength(); // 10 or 12
 			if (buffer.Length < len) return false;
-			WriteUnsafe(buffer.Slice(0, len), in this);
+			WriteUnsafe(buffer[..len], in this);
+			return true;
+		}
+
+		/// <summary>Writes this VersionStamp to the specified buffer, if it is large enough.</summary>
+		/// <param name="buffer">Destination buffer, that must have a length of at least 10 or 12 bytes</param>
+		/// <param name="bytesWritten">Receives the number of bytes written to <paramref name="buffer"/> (either 10 or 12), if the operation is successful</param>
+		/// <returns><c>true</c> if the buffer was large enough; otherwise, <c>false</c></returns>
+		public bool TryWriteTo(Span<byte> buffer, out int bytesWritten)
+		{
+			int len = GetLength(); // 10 or 12
+			if (buffer.Length < len)
+			{
+				bytesWritten = 0;
+				return false;
+			}
+			WriteUnsafe(buffer[..len], in this);
+			bytesWritten = len;
 			return true;
 		}
 
@@ -328,12 +657,6 @@ namespace System
 		public void WriteTo(ref SliceWriter writer)
 		{
 			WriteUnsafe(writer.AllocateSpan(GetLength()), in this);
-		}
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal void WriteToUnsafe(Span<byte> buffer)
-		{
-			WriteUnsafe(buffer, in this);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -435,28 +758,28 @@ namespace System
 			return true;
 		}
 
-		/// <summary>Parses the specified <see cref="ReadOnlySpan{T}"/> of characters into a <see cref="VersionStamp"/>.</summary>
+		/// <summary>Parses a span of characters into a <see cref="VersionStamp"/>.</summary>
 		/// <param name="s">The span of characters to parse.</param>
 		/// <param name="provider">This parameter is ignored.</param>
 		/// <returns><see cref="VersionStamp"/> value equivalent to the characters contained in <paramref name="s"/>.</returns>
 		/// <exception cref="FormatException">If the format is not valid.</exception>
-		/// <remarks>This method can parse the result of calling <see cref="ToString()"/></remarks>
+		/// <remarks>This method can parse the result of calling <see cref="ToString()"/> or <see cref="TryFormat(System.Span{char},out int,System.ReadOnlySpan{char},System.IFormatProvider?)"/></remarks>
 		public static VersionStamp Parse(ReadOnlySpan<char> s, IFormatProvider? provider = null)
 		{
 			if (!TryParse(s, provider, out var result))
 			{
-				throw new FormatException("Unrecognized VersionStamp format.");
+				throw InvalidVersionStampFormat();
 			}
 
 			return result;
 		}
 
-		/// <summary>Attempts to parse the specified <see cref="ReadOnlySpan{T}"/> of characters into a <see cref="VersionStamp"/>.</summary>
+		/// <summary>Attempts to parse the span characters into a <see cref="VersionStamp"/>.</summary>
 		/// <param name="s">The span of characters to parse.</param>
 		/// <param name="provider">This parameter is ignored.</param>
 		/// <param name="result">When this method returns, contains the <see cref="VersionStamp"/> value equivalent to the characters contained in <paramref name="s"/>, if the conversion succeeded, or the default value if the conversion failed.</param>
 		/// <returns><see langword="true"/> if the <paramref name="s"/> was successfully parsed; otherwise, <see langword="true"/>.</returns>
-		/// <remarks>This method can parse the result of calling <see cref="ToString()"/></remarks>
+		/// <remarks>This method can parse the result of calling <see cref="ToString()"/> or <see cref="TryFormat(System.Span{char},out int,System.ReadOnlySpan{char},System.IFormatProvider?)"/></remarks>
 		public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, out VersionStamp result)
 		{
 			if (s.Length < 2) goto invalid;
@@ -475,11 +798,7 @@ namespace System
 				
 				if (s.Length < 3 || s[1] != '#') goto invalid;
 				
-#if NET8_0_OR_GREATER
-				if (!ushort.TryParse(s[2..], CultureInfo.InvariantCulture, out var x))
-#else
-				if (!ushort.TryParse(s[2..], out var x))
-#endif
+				if (!ushort.TryParse(s[2..], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var x))
 				{
 					goto invalid;
 				}
@@ -490,13 +809,9 @@ namespace System
 
 			// complete: "@VERSION-ORDER" or "@VERSION-ORDER#USER"
 			int p = s.IndexOf('-');
-			if (p <= 0) goto invalid;
+			if (p <= 0 || p > 16) goto invalid;
 
-#if NET8_0_OR_GREATER
-			if (!ulong.TryParse(s[..p], CultureInfo.InvariantCulture, out var version))
-#else
-			if (!ulong.TryParse(s[..p], out var version))
-#endif
+			if (!ulong.TryParse(s[..p], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var version))
 			{
 				goto invalid;
 			}
@@ -504,16 +819,14 @@ namespace System
 			s = s[(p + 1)..];
 
 			p = s.IndexOf('#');
-			if (p == 0) goto invalid;
+			if (p == 0 || p > 4) goto invalid;
 			ushort user, flags;
 			
 			if (p > 0)
 			{
-#if NET8_0_OR_GREATER
-				if (!ushort.TryParse(s[(p + 1)..], CultureInfo.InvariantCulture, out user))
-#else
-				if (!ushort.TryParse(s[(p + 1)..], out user))
-#endif
+				var tail = s[(p + 1)..];
+				if (tail.Length == 0 || tail.Length > 4) goto invalid;
+				if (!ushort.TryParse(tail, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out user))
 				{
 					goto invalid;
 				}
@@ -526,11 +839,7 @@ namespace System
 				flags = NO_USER_VERSION;
 			}
 
-#if NET8_0_OR_GREATER
-			if (!ushort.TryParse(s, CultureInfo.InvariantCulture, out var order))
-#else
-			if (!ushort.TryParse(s, out var order))
-#endif
+			if (!ushort.TryParse(s, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var order))
 			{
 				goto invalid;
 			}
@@ -542,7 +851,101 @@ namespace System
 			result = default;
 			return false;
 		}
-		
+
+		/// <summary>Parses a span of UTF-8 characters into a <see cref="VersionStamp"/>.</summary>
+		/// <param name="s">The span of characters to parse.</param>
+		/// <param name="provider">This parameter is ignored.</param>
+		/// <returns><see cref="VersionStamp"/> value equivalent to the characters contained in <paramref name="s"/>.</returns>
+		/// <exception cref="FormatException">If the format is not valid.</exception>
+		/// <remarks>This method can parse the result of calling <see cref="ToString()"/> or <see cref="TryFormat(System.Span{byte},out int,System.ReadOnlySpan{char},System.IFormatProvider?)"/></remarks>
+		public static VersionStamp Parse(ReadOnlySpan<byte> s, IFormatProvider? provider = null)
+		{
+			if (!TryParse(s, provider, out var result))
+			{
+				throw InvalidVersionStampFormat();
+			}
+
+			return result;
+		}
+
+		/// <summary>Attempts to parse a span of UTF-8 characters into a <see cref="VersionStamp"/>.</summary>
+		/// <param name="s">The span of characters to parse.</param>
+		/// <param name="provider">This parameter is ignored.</param>
+		/// <param name="result">When this method returns, contains the <see cref="VersionStamp"/> value equivalent to the characters contained in <paramref name="s"/>, if the conversion succeeded, or the default value if the conversion failed.</param>
+		/// <returns><see langword="true"/> if the <paramref name="s"/> was successfully parsed; otherwise, <see langword="true"/>.</returns>
+		/// <remarks>This method can parse the result of calling <see cref="ToString()"/> or <see cref="TryFormat(System.Span{byte},out int,System.ReadOnlySpan{char},System.IFormatProvider?)"/></remarks>
+		public static bool TryParse(ReadOnlySpan<byte> s, IFormatProvider? provider, out VersionStamp result)
+		{
+			if (s.Length < 2) goto invalid;
+			if (s[0] != '@') goto invalid;
+
+			s = s[1..];
+
+			if (s[0] == '?')
+			{ // incomplete: "@?" or "@?#USER"
+
+				if (s.Length == 1)
+				{
+					result = Incomplete();
+					return true;
+				}
+				
+				if (s.Length < 3 || s[1] != '#') goto invalid;
+				
+				if (!ushort.TryParse(s[2..], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var x))
+				{
+					goto invalid;
+				}
+
+				result = Incomplete(x);
+				return true;
+			}
+
+			// complete: "@VERSION-ORDER" or "@VERSION-ORDER#USER"
+			int p = s.IndexOf((byte) '-');
+			if (p <= 0 || p > 16) goto invalid;
+
+			if (!ulong.TryParse(s[..p], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var version))
+			{
+				goto invalid;
+			}
+
+			s = s[(p + 1)..];
+
+			p = s.IndexOf((byte) '#');
+			if (p == 0 || p > 4) goto invalid;
+			ushort user, flags;
+			
+			if (p > 0)
+			{
+				var tail = s[(p + 1)..];
+				if (tail.Length == 0 || tail.Length > 4) goto invalid;
+				if (!ushort.TryParse(tail, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out user))
+				{
+					goto invalid;
+				}
+				s = s[..p];
+				flags = FLAGS_HAS_VERSION;
+			}
+			else
+			{
+				user = 0;
+				flags = NO_USER_VERSION;
+			}
+
+			if (!ushort.TryParse(s, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var order))
+			{
+				goto invalid;
+			}
+
+			result = new(version, order, user, flags);
+			return true;
+			
+		invalid:
+			result = default;
+			return false;
+		}
+
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator VersionStamp(Uuid80 value) => FromUuid80(value);
 
