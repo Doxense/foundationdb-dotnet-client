@@ -25,6 +25,7 @@
 		<!--<PackageReadmeFile>README.md</PackageReadmeFile>-->
 		<PackageIcon>snowbank.png</PackageIcon>
 		<GenerateDocumentationFile Condition="'$(Configuration)' != 'Debug'">true</GenerateDocumentationFile>
+		<IsPackable>true</IsPackable> <!-- must be forced to true, otherwise 'dotnet pack' does nothing on this project, for some reason... ? -->
 	</PropertyGroup>
 
 	<ItemGroup>
