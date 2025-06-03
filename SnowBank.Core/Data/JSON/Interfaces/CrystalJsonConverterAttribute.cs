@@ -46,8 +46,11 @@ namespace SnowBank.Data.Json
 	public sealed class CrystalJsonConverterAttribute : Attribute
 	{
 
+		/// <summary>Use this class as a container for source-generated JSON converters</summary>
 		public CrystalJsonConverterAttribute() { }
 
+		/// <summary>Use this class as a container for source-generated JSON converters</summary>
+		/// <param name="defaults">Defaults settings used for the generated converters</param>
 		public CrystalJsonConverterAttribute(CrystalJsonSerializerDefaults defaults)
 		{
 			if (defaults == CrystalJsonSerializerDefaults.Web)
@@ -82,6 +85,7 @@ namespace SnowBank.Data.Json
 		//TODO: more! (use the same values as STJ!)
 	}
 
+	/// <summary>List of default configurations for source-generated converters</summary>
 	public enum CrystalJsonSerializerDefaults
 	{
 		/// <summary>
@@ -89,6 +93,7 @@ namespace SnowBank.Data.Json
 		///   <para>For information about the default property values that are applied, see JsonSerializerOptions properties.</para>
 		/// </summary>
 		General,
+
 		/// <summary>
 		///   <para>Option values appropriate to Web-based scenarios.</para>
 		///   <para>This member implies that:</para>
@@ -99,22 +104,27 @@ namespace SnowBank.Data.Json
 		Web,
 	}
 
-	/// <summary>Attribute that will generate a converter for the specified type</summary>
-	/// <remarks>Any nested type, or types referenced by the members will also be included in the source code generation</remarks>
+	/// <summary>Attribute that adds a custom JSON converter for one or more types</summary>
+	/// <remarks>Any derived type, nested type, or types referenced by the members of these types will also be included in the source code generation.</remarks>
 	[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
 	public sealed class CrystalJsonSerializableAttribute : Attribute
 	{
 
+		/// <summary>Generate a custom converters for instances of this type</summary>
+		/// <param name="type">Type that will have a source-generated converter added to this container.</param>
 		public CrystalJsonSerializableAttribute(Type type)
 		{
 			this.Types = [ type ];
 		}
 
+		/// <summary>Generate a custom converters for instances of for the following types</summary>
+		/// <param name="types">List of types that will have a source-generated converter added to this container.</param>
 		public CrystalJsonSerializableAttribute(params Type[] types)
 		{
 			this.Types = types;
 		}
 
+		/// <summary>List of types to include in this container</summary>
 		public Type[] Types { get; set; }
 
 	}

@@ -29,17 +29,19 @@ namespace SnowBank.Buffers
 	using System.Buffers.Binary;
 	using System.Text;
 
+	/// <summary>Helper type for ready binary data from a <see cref="Span{T}"/> of bytes</summary>
 	[DebuggerDisplay("Pos={Position}/{Buffer.Length}, Remaining={Remaining}")]
 	[PublicAPI]
 	public ref struct SpanReader
 	{
 
+		/// <summary>Buffer containing the bytes to read</summary>
 		public readonly ReadOnlySpan<byte> Buffer;
 
 		/// <summary>Current position inside the buffer</summary>
 		public int Position;
 
-		/// <summary>Creates a new reader over a slice</summary>
+		/// <summary>Constructs a <see cref="SpanReader"/> that will read from a place in memory</summary>
 		/// <param name="buffer">Slice that will be used as the underlying buffer</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public SpanReader(in ReadOnlyMemory<byte> buffer)
@@ -48,6 +50,8 @@ namespace SnowBank.Buffers
 			this.Position = 0;
 		}
 
+		/// <summary>Constructs a <see cref="SpanReader"/> that will read from a span of bytes in memory</summary>
+		/// <param name="buffer">Span of bytes that will be used as the underlying buffer</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public SpanReader(ReadOnlySpan<byte> buffer)
 		{
@@ -62,10 +66,10 @@ namespace SnowBank.Buffers
 		public readonly int Remaining => Math.Max(0, this.Buffer.Length - this.Position);
 
 		/// <summary>Returns a slice with all the bytes read so far in the buffer</summary>
-		public readonly ReadOnlySpan<byte> Head => this.Buffer.Slice(0, this.Position);
+		public readonly ReadOnlySpan<byte> Head => this.Buffer[..this.Position];
 
 		/// <summary>Returns a slice with all the remaining bytes in the buffer</summary>
-		public readonly ReadOnlySpan<byte> Tail => this.Buffer.Slice(this.Position);
+		public readonly ReadOnlySpan<byte> Tail => this.Buffer[this.Position..];
 
 		/// <summary>Ensure that there are at least <paramref name="count"/> bytes remaining in the buffer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -82,20 +86,24 @@ namespace SnowBank.Buffers
 			return ThrowHelper.FormatException($"The buffer does not have enough data to satisfy a read of {count} byte(s)");
 		}
 
-		/// <summary>Return the value of the next byte in the buffer, or -1 if we reached the end</summary>
+		/// <summary>Returns the value of the next byte in the buffer, or -1 if we reached the end</summary>
 		public readonly int PeekByte()
 		{
 			int p = this.Position;
 			return (uint) p < this.Buffer.Length ? this.Buffer[p] : -1;
 		}
 
-		/// <summary>Return the value of the byte at a specified offset from the current position, or -1 if this is after the end, or before the start</summary>
+		/// <summary>Returns the value of the byte at a specified offset from the current position, or -1 if this is after the end, or before the start</summary>
 		public readonly int PeekByteAt(int offset)
 		{
 			int p = this.Position + offset;
 			return (uint) p < this.Buffer.Length && p >= 0 ? this.Buffer[p] : -1;
 		}
 
+		/// <summary>Returns the value of the next bytes from the current pointer in the buffer</summary>
+		/// <param name="count">Number of bytes to peek</param>
+		/// <returns>Span of the next bytes</returns>
+		/// <exception cref="ArgumentException">If there is not enough bytes remaining in the buffer</exception>
 		public readonly ReadOnlySpan<byte> PeekBytes(int count)
 		{
 			return this.Buffer.Slice(this.Position, count);
@@ -244,6 +252,8 @@ namespace SnowBank.Buffers
 			}
 		}
 
+		/// <summary>Reads all the remaining bytes in the buffer</summary>
+		/// <returns>Rest of the buffer</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public ReadOnlySpan<byte> ReadToEnd() => ReadBytes(this.Remaining);
 
@@ -305,7 +315,7 @@ namespace SnowBank.Buffers
 		public ushort ReadUInt16BE()
 			=> BinaryPrimitives.ReadUInt16BigEndian(ReadTwoBytes());
 
-		/// <summary>Read the next 3 bytes as an signed 24-bit integer, encoded in big-endian</summary>
+		/// <summary>Read the next 3 bytes as a signed 24-bit integer, encoded in big-endian</summary>
 		/// <remarks>Bits 24 to 31 will sign expanded</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int ReadInt24BE()

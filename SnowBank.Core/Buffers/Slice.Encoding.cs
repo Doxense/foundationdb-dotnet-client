@@ -1465,7 +1465,7 @@ namespace System
 #endif
 
 		/// <summary>Converts a slice into a string with each byte encoded into uppercase hexadecimal, separated by a character</summary>
-		/// <param name="sep">Character used to separate the hexadecimal pairs (ex: ' ')</param>
+		/// <param name="sep">Character used to separate the hexadecimal pairs (ex: <c>' '</c>)</param>
 		/// <returns>"01 23 45 67 89 AB CD EF"</returns>
 		[Pure]
 		public string ToHexString(char sep)
@@ -1474,7 +1474,7 @@ namespace System
 		}
 
 		/// <summary>Converts a slice into a string with each byte encoded into lowercase hexadecimal, separated by a character</summary>
-		/// <param name="sep">Character used to separate the hexadecimal pairs (ex: ' ')</param>
+		/// <param name="sep">Character used to separate the hexadecimal pairs (ex: <c>' '</c>)</param>
 		/// <returns>"01 23 45 67 89 ab cd ef"</returns>
 		[Pure]
 		public string ToHexStringLower(char sep)

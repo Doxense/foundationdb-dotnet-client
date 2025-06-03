@@ -59,17 +59,16 @@ namespace SnowBank.Buffers
 		/// <summary>Default spill size before allocating to the heap (when using a pool)</summary>
 		private const int DefaultSpillSize = 1024 * 1024;
 
+		/// <summary>Constructs a <see cref="SlabSliceWriter"/> using the default slab and spill sizes</summary>
 		public SlabSliceWriter() : this(DefaultSlabSize, DefaultSpillSize)
 		{ }
 
 
+		/// <summary>Constructs a <see cref="SlabSliceWriter"/> using a custom initial slab and spill sizes</summary>
 		public SlabSliceWriter(int initialSize) : this(initialSize, Math.Max(initialSize, DefaultSpillSize))
 		{ }
 
-		/// <summary>
-		/// Creates an instance of an <see cref="ArraySliceWriter"/>, in which data can be written to,
-		/// with an initial capacity specified.
-		/// </summary>
+		/// <summary>Constructs a <see cref="SlabSliceWriter"/>, in which data can be written to, with an initial capacity specified.</summary>
 		/// <param name="initialSize">The initial capacity with which to initialize the underlying buffer.</param>
 		/// <param name="spillSize">The maximum required size that will be served from the pool. Larger buffer size will be allocated from the heap</param>
 		/// <exception cref="ArgumentException">
@@ -85,27 +84,17 @@ namespace SnowBank.Buffers
 			m_maxSlabSize = spillSize;
 		}
 
-		/// <summary>
-		/// Returns the amount of data written to the underlying buffer so far.
-		/// </summary>
+		/// <summary>Returns the amount of data written to the underlying buffer so far.</summary>
 		public long WrittenCount => m_slabWritten + m_index;
 
-		/// <summary>
-		/// Returns the amount of space available that can still be written into without forcing the underlying buffer to grow.
-		/// </summary>
+		/// <summary>Returns the amount of space available that can still be written into without forcing the underlying buffer to grow.</summary>
 		public int FreeCapacity => (m_current?.Length - m_index) ?? 0;
 
-		/// <summary>
-		/// Maximum size of slabs allocated from the pool. Slabs with a size greater than this value will be allocated on the heap instead.
-		/// </summary>
+		/// <summary>Maximum size of slabs allocated from the pool. Slabs with a size greater than this value will be allocated on the heap instead.</summary>
 		public int MaxSlabSize => m_maxSlabSize;
 
-		/// <summary>
-		/// Clears the data written to the underlying buffers.
-		/// </summary>
-		/// <remarks>
-		/// You must clear the <see cref="ArraySliceWriter"/> before trying to re-use it.
-		/// </remarks>
+		/// <summary>Clears the data written to the underlying buffers.</summary>
+		/// <remarks>You must clear the <see cref="SlabSliceWriter"/> before trying to re-use it.</remarks>
 		public void Clear()
 		{
 			if (m_current is null)
@@ -160,7 +149,7 @@ namespace SnowBank.Buffers
 		/// <summary>Returns a <see cref="ArraySegment{T}" /> to write to that is exactly the requested size (specified by <paramref name="size" />) and advance the cursor.</summary>
 		/// <param name="size">The exact length of the returned <see cref="Slice" />. If 0, a non-empty buffer is returned.</param>
 		/// <exception cref="T:System.OutOfMemoryException">The requested buffer size is not available.</exception>
-		/// <returns>A <see cref="ArraySegment{T}" /> of at exactly the <paramref name="size" /> requested..</returns>
+		/// <returns>A <see cref="ArraySegment{T}" /> of at exactly the <paramref name="size" /> requested.</returns>
 		public ArraySegment<byte> Allocate(int size)
 		{
 			Contract.GreaterOrEqual(size, 0);

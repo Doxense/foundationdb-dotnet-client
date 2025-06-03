@@ -47,7 +47,7 @@ namespace SnowBank.Buffers
 		private const int DefaultInitialBufferSize = 256;
 
 		/// <summary>
-		/// Creates an instance of an <see cref="ArraySliceWriter"/>, in which data can be written to,
+		/// Creates an instance of an <see cref="PooledSliceWriter"/>, in which data can be written to,
 		/// with the default initial capacity.
 		/// </summary>
 		public PooledSliceWriter()
@@ -55,7 +55,7 @@ namespace SnowBank.Buffers
 		{ }
 
 		/// <summary>
-		/// Creates an instance of an <see cref="ArraySliceWriter"/>, in which data can be written to,
+		/// Creates an instance of an <see cref="PooledSliceWriter"/>, in which data can be written to,
 		/// with the default initial capacity.
 		/// </summary>
 		public PooledSliceWriter(ArrayPool<byte> pool)
@@ -63,7 +63,7 @@ namespace SnowBank.Buffers
 		{ }
 
 		/// <summary>
-		/// Creates an instance of an <see cref="ArraySliceWriter"/>, in which data can be written to,
+		/// Creates an instance of an <see cref="PooledSliceWriter"/>, in which data can be written to,
 		/// with an initial capacity specified.
 		/// </summary>
 		/// <param name="initialCapacity">The minimum capacity with which to initialize the underlying buffer.</param>
@@ -244,6 +244,8 @@ namespace SnowBank.Buffers
 			return buffer;
 		}
 
+		/// <summary>Copies the contents of this buffer to the specified destination</summary>
+		/// <exception cref="ArgumentException">If the destination is too small</exception>
 		public void CopyTo(Span<byte> output)
 		{
 			if (!TryCopyTo(output))
@@ -252,6 +254,8 @@ namespace SnowBank.Buffers
 			}
 		}
 
+		/// <summary>Copies the contents of this buffer to the specified destination</summary>
+		/// <exception cref="ArgumentException">If the destination is too small</exception>
 		public void CopyTo(Span<byte> output, out int written)
 		{
 			if (!TryCopyTo(output, out written))
@@ -260,12 +264,14 @@ namespace SnowBank.Buffers
 			}
 		}
 
+		/// <summary>Copies the contents of this buffer to the specified destination, if it is large enough</summary>
 		public bool TryCopyTo(Span<byte> output)
 		{
 			var buffer = m_buffer ?? ThrowObjectDisposedException();
 			return buffer.AsSpan(m_index).TryCopyTo(output);
 		}
 
+		/// <summary>Copies the contents of this buffer to the specified destination, if it is large enough</summary>
 		public bool TryCopyTo(Span<byte> output, out int written)
 		{
 			var buffer = m_buffer ?? ThrowObjectDisposedException();
@@ -285,12 +291,13 @@ namespace SnowBank.Buffers
 			throw new ObjectDisposedException("Buffer writer has already been disposed, or the buffer has already been acquired by someone else.");
 		}
 
+		/// <summary>Clears the writer, and returns the buffer to the pool</summary>
 		public void Dispose()
 		{
 			if (m_buffer != null)
 			{
 				m_pool.Return(m_buffer);
-				m_buffer = default;
+				m_buffer = null;
 			}
 			m_index = 0;
 

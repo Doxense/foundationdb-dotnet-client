@@ -28,21 +28,6 @@ namespace SnowBank.Buffers
 {
 	using System.Buffers;
 
-	/// <summary>Allocator that slices of bytes</summary>
-	public interface ISliceAllocator : IDisposable
-	{
-		/// <summary>Returns a <see cref="ArraySegment{T}" /> to write to that is exactly the requested size (specified by <paramref name="size" />) and advance the cursor.</summary>
-		/// <param name="size">The exact length of the returned <see cref="Slice" />. If 0, a non-empty buffer is returned.</param>
-		/// <exception cref="T:System.OutOfMemoryException">The requested buffer size is not available.</exception>
-		/// <returns>A <see cref="ArraySegment{T}" /> of at exactly the <paramref name="size" /> requested...</returns>
-		ArraySegment<byte> Allocate(int size);
-		//TODO: REVIEW: change this to return a Slice instead?
-
-		/// <summary>Returns the total amount of bytes that were allocated by this instance</summary>
-		long TotalAllocated { get; }
-
-	}
-
 	/// <summary><see cref="IBufferWriter{T}"/> that can also allocate <see cref="Slice"/> chunks</summary>
 	public interface ISliceBufferWriter : IBufferWriter<byte>
 	{
@@ -58,6 +43,10 @@ namespace SnowBank.Buffers
 	public static class SliceBufferWriterExtensions
 	{
 
+		/// <summary>Returns a copy of a span of bytes using this allocator to allocate memory.</summary>
+		/// <param name="writer">Allocator that will store the bytes</param>
+		/// <param name="data">Bytes to copy</param>
+		/// <returns>New slice, with identical content.</returns>
 		public static Slice Intern(this ISliceAllocator writer, ReadOnlySpan<byte> data)
 		{
 			Contract.NotNull(writer);
@@ -67,6 +56,11 @@ namespace SnowBank.Buffers
 			return tmp.AsSlice();
 		}
 
+		/// <summary>Returns a copy of a span of bytes using this allocator to allocate memory.</summary>
+		/// <param name="writer">Allocator that will store the bytes</param>
+		/// <param name="data">Bytes to copy</param>
+		/// <param name="suffix">Extra bytes that will be copied after <paramref name="data"/></param>
+		/// <returns>New slice, with identical content plus the extra suffix.</returns>
 		public static Slice Intern(this ISliceAllocator writer, ReadOnlySpan<byte> data, Slice suffix)
 		{
 			Contract.NotNull(writer);
@@ -81,6 +75,11 @@ namespace SnowBank.Buffers
 			return tmp.AsSlice();
 		}
 
+		/// <summary>Returns a copy of a span of bytes using this allocator to allocate memory.</summary>
+		/// <param name="writer">Allocator that will store the bytes</param>
+		/// <param name="data">Bytes to copy</param>
+		/// <param name="suffix">Extra byte that will be copied after <paramref name="data"/></param>
+		/// <returns>New slice, with identical content plus the extra suffix.</returns>
 		public static Slice Intern(this ISliceAllocator writer, ReadOnlySpan<byte> data, byte suffix)
 		{
 			Contract.NotNull(writer);
@@ -95,6 +94,10 @@ namespace SnowBank.Buffers
 			return tmp.AsSlice();
 		}
 
+		/// <summary>Returns a copy of a span of bytes using this allocator to allocate memory.</summary>
+		/// <param name="writer">Allocator that will store the bytes</param>
+		/// <param name="data">Bytes to copy</param>
+		/// <returns>New slice, with identical content.</returns>
 		public static Slice Intern(this ISliceAllocator writer, ReadOnlyMemory<byte> data)
 		{
 			Contract.NotNull(writer);
@@ -104,6 +107,11 @@ namespace SnowBank.Buffers
 			return tmp.AsSlice();
 		}
 
+		/// <summary>Returns a copy of a span of bytes using this allocator to allocate memory.</summary>
+		/// <param name="writer">Allocator that will store the bytes</param>
+		/// <param name="data">Bytes to copy</param>
+		/// <param name="suffix">Extra bytes that will be copied after <paramref name="data"/></param>
+		/// <returns>New slice, with identical content plus the extra suffix.</returns>
 		public static Slice Intern(this ISliceAllocator writer, ReadOnlyMemory<byte> data, Slice suffix)
 		{
 			Contract.NotNull(writer);
@@ -118,6 +126,11 @@ namespace SnowBank.Buffers
 			return tmp.AsSlice();
 		}
 
+		/// <summary>Returns a copy of a span of bytes using this allocator to allocate memory.</summary>
+		/// <param name="writer">Allocator that will store the bytes</param>
+		/// <param name="data">Bytes to copy</param>
+		/// <param name="suffix">Extra byte that will be copied after <paramref name="data"/></param>
+		/// <returns>New slice, with identical content plus the extra suffix.</returns>
 		public static Slice Intern(this ISliceAllocator writer, ReadOnlyMemory<byte> data, byte suffix)
 		{
 			Contract.NotNull(writer);
@@ -132,6 +145,10 @@ namespace SnowBank.Buffers
 			return tmp.AsSlice();
 		}
 
+		/// <summary>Returns a copy of a Slice, using this allocator to allocate memory.</summary>
+		/// <param name="writer">Allocator that will store the bytes</param>
+		/// <param name="data">Bytes to copy</param>
+		/// <returns>New slice, with identical content.</returns>
 		public static Slice Intern(this ISliceAllocator writer, Slice data)
 		{
 			Contract.NotNull(writer);
@@ -141,6 +158,11 @@ namespace SnowBank.Buffers
 			return tmp.AsSlice();
 		}
 
+		/// <summary>Returns a copy of a Slice, using this allocator to allocate memory.</summary>
+		/// <param name="writer">Allocator that will store the bytes</param>
+		/// <param name="data">Bytes to copy</param>
+		/// <param name="suffix">Extra bytes that will be copied after <paramref name="data"/></param>
+		/// <returns>New slice, with identical content plus the extra suffix.</returns>
 		public static Slice Intern(this ISliceAllocator writer, Slice data, Slice suffix)
 		{
 			Contract.NotNull(writer);
@@ -155,6 +177,11 @@ namespace SnowBank.Buffers
 			return tmp.AsSlice();
 		}
 
+		/// <summary>Returns a copy of a Slice, using this allocator to allocate memory.</summary>
+		/// <param name="writer">Allocator that will store the bytes</param>
+		/// <param name="data">Bytes to copy</param>
+		/// <param name="suffix">Extra byte that will be copied after <paramref name="data"/></param>
+		/// <returns>New slice, with identical content plus the extra suffix.</returns>
 		public static Slice Intern(this ISliceAllocator writer, Slice data, byte suffix)
 		{
 			Contract.NotNull(writer);

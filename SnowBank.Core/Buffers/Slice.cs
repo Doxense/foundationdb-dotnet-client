@@ -49,7 +49,7 @@ namespace System
 #if NET8_0_OR_GREATER
 	[CollectionBuilder(typeof(Slice), nameof(Slice.Copy))]
 #endif
-	public readonly partial struct Slice : IEquatable<Slice>, IEquatable<ArraySegment<byte>>, IEquatable<byte[]>, IComparable<Slice>, IFormattable, ISliceSerializable, ISpanFormattable
+	public readonly partial struct Slice : IEquatable<Slice>, IEquatable<ArraySegment<byte>>, IEquatable<byte[]>, IComparable<Slice>, ISliceSerializable, ISpanFormattable
 #if NET9_0_OR_GREATER
 		, IEquatable<ReadOnlySpan<byte>>, IEquatable<Span<byte>>, IEquatable<ReadOnlyMemory<byte>>
 		, IEquatable<ReadOnlySpan<char>>, IEquatable<ReadOnlyMemory<char>>
@@ -2990,11 +2990,18 @@ namespace System
 				m_slice = slice;
 			}
 
+			// ReSharper disable InconsistentNaming
+
+			/// <summary>Size of the slice</summary>
 			public int _Count => m_slice.Count;
 
+			/// <summary>Offset of the start of slice in the buffer</summary>
 			public int _Offset => m_slice.Offset;
 
+			/// <summary>Buffer</summary>
 			public byte[] _Array => m_slice.Array;
+
+			// ReSharper restore InconsistentNaming
 
 			public ReadOnlySpan<byte> Data => m_slice.Span;
 

@@ -1213,6 +1213,7 @@ namespace SnowBank.Buffers
 
 	}
 
+	/// <summary>Helper methods for working with buffers</summary>
 	public static class BufferExtensions
 	{
 

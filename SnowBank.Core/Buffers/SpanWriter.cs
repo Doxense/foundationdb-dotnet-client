@@ -29,16 +29,19 @@ namespace SnowBank.Buffers
 	using System.Text;
 	using SnowBank.Buffers.Binary;
 
+	/// <summary>Helper type for writing binary data into a <see cref="Span{T}"/> of bytes</summary>
 	[PublicAPI]
 	public ref struct SpanWriter
 	{
 
-		/// <summary>Buffer where to write</summary>
+		/// <summary>Buffer where to write bytes</summary>
 		public readonly Span<byte> Buffer;
 
 		/// <summary>Current position in the buffer</summary>
 		public int Position;
 
+		/// <summary>Constructs a <see cref="SpanWriter"/> with an initial capacity</summary>
+		/// <param name="capacity">Capacity of the initial buffer</param>
 		public SpanWriter(int capacity)
 		{
 			Contract.Positive(capacity);
@@ -46,6 +49,8 @@ namespace SnowBank.Buffers
 			this.Position = 0;
 		}
 
+		/// <summary>Constructs a <see cref="SpanWriter"/> with an already allocated initial buffer</summary>
+		/// <param name="buffer">Buffer that should be used by this writer</param>
 		public SpanWriter(Span<byte> buffer)
 		{
 			this.Buffer = buffer;
@@ -78,6 +83,12 @@ namespace SnowBank.Buffers
 			return this.Buffer[..this.Position].TryCopyTo(destination);
 		}
 
+		/// <summary>Ensures that the buffer can store <paramref name="count"/> additional bytes</summary>
+		/// <param name="count">Number of bytes expected to be written soon.</param>
+		/// <returns>Span that maps the corresponding free space in the buffer. The length of the span will be equal to <paramref name="count"/>, even if there are more space available in the buffer.</returns>
+		/// <remarks>This does not advance the cursor.</remarks>
+		/// <exception cref="ArgumentException">If the buffer is too small to fit <paramref name="count"/> additional bytes.</exception>
+		/// <seealso cref="Allocate"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Span<byte> EnsureBytes(int count)
 		{
@@ -85,6 +96,9 @@ namespace SnowBank.Buffers
 			return this.Buffer.Length - pos >= count ? this.Buffer.Slice(pos, count) : ThrowBufferTooSmall(nameof(count));
 		}
 
+		/// <summary>Allocate a span of bytes </summary>
+		/// <param name="count">Size of the span (in bytes) to allocate.</param>
+		/// <returns>Span that maps the corresponding free space in the buffer. The length of the span will be equal to <paramref name="count"/>, even if there are more space available in the buffer.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Span<byte> Allocate(int count)
 		{
@@ -100,6 +114,7 @@ namespace SnowBank.Buffers
 			throw new ArgumentException("Buffer is too small", paramName);
 		}
 
+		/// <summary>Adds a byte at the end of the buffer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteByte(byte value)
 		{
@@ -107,6 +122,7 @@ namespace SnowBank.Buffers
 			this.Position++;
 		}
 
+		/// <summary>Adds a byte at the end of the buffer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteByte(sbyte value)
 		{
@@ -114,6 +130,8 @@ namespace SnowBank.Buffers
 			this.Position++;
 		}
 
+		/// <summary>Adds a byte at the end of the buffer</summary>
+		/// <remarks>Only the lowest 8 bits will be used.</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteByte(int value)
 		{
@@ -121,6 +139,8 @@ namespace SnowBank.Buffers
 			this.Position++;
 		}
 
+		/// <summary>Adds a byte at the end of the buffer</summary>
+		/// <remarks>Only the lowest 8 bits will be used.</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteByte(char value)
 		{
@@ -130,6 +150,7 @@ namespace SnowBank.Buffers
 
 		#region 16-bits
 
+		/// <summary>Writes a 16-bit little-endian integer at the end of buffer, and advance the cursor by 2.</summary>
 		public void WriteInt16(short value)
 		{
 			var chunk = EnsureBytes(2);
@@ -138,6 +159,7 @@ namespace SnowBank.Buffers
 			this.Position += 2;
 		}
 
+		/// <summary>Writes a 16-bit little-endian integer at the start of a span of bytes.</summary>
 		public static void WriteInt16(in Span<byte> span, short value)
 		{
 			if (span.Length < 2) throw new ArgumentException();
@@ -145,6 +167,7 @@ namespace SnowBank.Buffers
 			span[1] = (byte) (value >> 8);
 		}
 
+		/// <summary>Writes a 16-bit little-endian integer at the end of buffer, and advance the cursor by 2.</summary>
 		public void WriteUInt16(ushort value)
 		{
 			var chunk = EnsureBytes(2);
@@ -153,6 +176,7 @@ namespace SnowBank.Buffers
 			this.Position += 2;
 		}
 
+		/// <summary>Writes a 16-bit little-endian integer at the start of a span of bytes.</summary>
 		public static void WriteUInt16(in Span<byte> span, ushort value)
 		{
 			if (span.Length < 2) throw new ArgumentException();
@@ -160,6 +184,7 @@ namespace SnowBank.Buffers
 			span[1] = (byte) (value >> 8);
 		}
 
+		/// <summary>Writes a 16-bit big-endian integer at the end of buffer, and advance the cursor by 2.</summary>
 		public void WriteInt16BE(short value)
 		{
 			var chunk = EnsureBytes(2);
@@ -168,6 +193,7 @@ namespace SnowBank.Buffers
 			this.Position += 2;
 		}
 
+		/// <summary>Writes a 16-bit big-endian integer at the start of a span of bytes.</summary>
 		public static void WriteInt16BE(in Span<byte> span, short value)
 		{
 			if (span.Length < 2) throw new ArgumentException();
@@ -175,6 +201,7 @@ namespace SnowBank.Buffers
 			span[1] = (byte) value;
 		}
 
+		/// <summary>Writes a 16-bit big-endian integer at the end of buffer, and advance the cursor by 2.</summary>
 		public void WriteUInt16BE(ushort value)
 		{
 			var chunk = EnsureBytes(2);
@@ -183,6 +210,7 @@ namespace SnowBank.Buffers
 			this.Position += 2;
 		}
 
+		/// <summary>Writes a 16-bit big-endian integer at the start of a span of bytes.</summary>
 		public static void WriteUInt16BE(in Span<byte> span, ushort value)
 		{
 			if (span.Length < 2) throw new ArgumentException();
@@ -194,6 +222,7 @@ namespace SnowBank.Buffers
 
 		#region 32-bits...
 
+		/// <summary>Writes a 32-bit little-endian integer at the end of buffer, and advance the cursor by 4.</summary>
 		public void WriteInt32(int value)
 		{
 			var chunk = EnsureBytes(4);
@@ -204,6 +233,7 @@ namespace SnowBank.Buffers
 			this.Position += 4;
 		}
 
+		/// <summary>Writes a 32-bit little-endian integer at the end of buffer, and advance the cursor by 4.</summary>
 		public void WriteUInt32(uint value)
 		{
 			var chunk = EnsureBytes(4);
@@ -214,6 +244,7 @@ namespace SnowBank.Buffers
 			this.Position += 4;
 		}
 
+		/// <summary>Writes a 32-bit little-endian integer at the start of a span of bytes.</summary>
 		public static void WriteInt32(in Span<byte> span, int value)
 		{
 			if (span.Length < 4) throw new ArgumentException();
@@ -223,6 +254,7 @@ namespace SnowBank.Buffers
 			span[3] = (byte) (value >> 24);
 		}
 
+		/// <summary>Writes a 32-bit little-endian integer at the start of a span of bytes.</summary>
 		public static void WriteUInt32(in Span<byte> span, uint value)
 		{
 			if (span.Length < 4) throw new ArgumentException();
@@ -232,6 +264,7 @@ namespace SnowBank.Buffers
 			span[3] = (byte) (value >> 24);
 		}
 
+		/// <summary>Writes a 32-bit big-endian integer at the end of buffer, and advance the cursor by 4.</summary>
 		public void WriteInt32BE(int value)
 		{
 			var chunk = EnsureBytes(4);
@@ -242,6 +275,7 @@ namespace SnowBank.Buffers
 			this.Position += 4;
 		}
 
+		/// <summary>Writes a 32-bit big-endian integer at the end of buffer, and advance the cursor by 4.</summary>
 		public void WriteUInt32BE(uint value)
 		{
 			var chunk = EnsureBytes(4);
@@ -252,6 +286,7 @@ namespace SnowBank.Buffers
 			this.Position += 4;
 		}
 
+		/// <summary>Writes a 32-bit big-endian integer at the start of a span of bytes.</summary>
 		public static void WriteInt32BE(in Span<byte> span, int value)
 		{
 			if (span.Length < 4) throw new ArgumentException();
@@ -261,6 +296,7 @@ namespace SnowBank.Buffers
 			span[3] = (byte) value;
 		}
 
+		/// <summary>Writes a 32-bit big-endian integer at the start of a span of bytes.</summary>
 		public static void WriteUInt32BE(in Span<byte> span, uint value)
 		{
 			if (span.Length < 4) throw new ArgumentException();
@@ -274,6 +310,7 @@ namespace SnowBank.Buffers
 
 		#region 64-bits...
 
+		/// <summary>Writes a 64-bit little-endian integer at the end of buffer, and advance the cursor by 8.</summary>
 		public void WriteInt64(long value)
 		{
 			var chunk = EnsureBytes(8);
@@ -288,6 +325,7 @@ namespace SnowBank.Buffers
 			this.Position += 8;
 		}
 
+		/// <summary>Writes a 64-bit little-endian integer at the end of buffer, and advance the cursor by 8.</summary>
 		public void WriteUInt64(ulong value)
 		{
 			var chunk = EnsureBytes(8);
@@ -302,6 +340,7 @@ namespace SnowBank.Buffers
 			this.Position += 8;
 		}
 
+		/// <summary>Writes a 64-bit little-endian integer at the start of a span of bytes.</summary>
 		public static void WriteInt64(in Span<byte> span, long value)
 		{
 			if (span.Length < 8) throw new ArgumentException();
@@ -315,6 +354,7 @@ namespace SnowBank.Buffers
 			span[7] = (byte) (value >> 56);
 		}
 
+		/// <summary>Writes a 64-bit little-endian integer at the start of a span of bytes.</summary>
 		public static void WriteUInt64(in Span<byte> span, ulong value)
 		{
 			if (span.Length < 8) throw new ArgumentException();
@@ -328,6 +368,7 @@ namespace SnowBank.Buffers
 			span[7] = (byte) (value >> 56);
 		}
 
+		/// <summary>Writes a 64-bit big-endian integer at the end of buffer, and advance the cursor by 8.</summary>
 		public void WriteInt64BE(long value)
 		{
 			var chunk = EnsureBytes(8);
@@ -342,6 +383,7 @@ namespace SnowBank.Buffers
 			this.Position += 8;
 		}
 
+		/// <summary>Writes a 64-bit big-endian integer at the end of buffer, and advance the cursor by 8.</summary>
 		public void WriteUInt64BE(ulong value)
 		{
 			var chunk = EnsureBytes(8);
@@ -356,6 +398,7 @@ namespace SnowBank.Buffers
 			this.Position += 8;
 		}
 
+		/// <summary>Writes a 64-bit big-endian integer at the start of a span of bytes.</summary>
 		public static void WriteInt64BE(in Span<byte> span, long value)
 		{
 			if (span.Length < 8) throw new ArgumentException();
@@ -369,6 +412,7 @@ namespace SnowBank.Buffers
 			span[7] = (byte) value;
 		}
 
+		/// <summary>Writes a 64-bit big-endian integer at the start of a span of bytes.</summary>
 		public static void WriteUInt64BE(in Span<byte> span, ulong value)
 		{
 			if (span.Length < 8) throw new ArgumentException();
@@ -480,7 +524,7 @@ namespace SnowBank.Buffers
 		/// <summary>Writes a 7-bit encoded unsigned long (aka 'Varint64') at the end, and advances the cursor</summary>
 		public void WriteVarInt64(ulong value)
 		{
-			//note: if the size if 64-bits, we probably expect values to always be way above 128 so no need to optimize for this case here
+			//note: if the size is 64-bits, we probably expect values to always be way above 128 so no need to optimize for this case here
 
 			const uint MASK = 128;
 			// max encoded size is 10 bytes
@@ -567,6 +611,7 @@ namespace SnowBank.Buffers
 
 		#endregion
 
+		/// <summary>Adds a span of bytes at the end of the buffer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteBytes(in ReadOnlySpan<byte> bytes)
 		{
@@ -574,6 +619,7 @@ namespace SnowBank.Buffers
 			this.Position += bytes.Length;
 		}
 
+		/// <summary>Adds a span of bytes at the end of the buffer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteBytes(in ReadOnlyMemory<byte> bytes)
 		{
@@ -581,6 +627,7 @@ namespace SnowBank.Buffers
 			this.Position += bytes.Length;
 		}
 
+		/// <summary>Adds two bytes at the end of the buffer</summary>
 		public void WriteBytes(byte value1, byte value2)
 		{
 			var chunk = EnsureBytes(2);
@@ -589,6 +636,7 @@ namespace SnowBank.Buffers
 			this.Position += 2;
 		}
 
+		/// <summary>Adds three bytes at the end of the buffer</summary>
 		public void WriteBytes(byte value1, byte value2, byte value3)
 		{
 			var chunk = EnsureBytes(3);
@@ -598,6 +646,7 @@ namespace SnowBank.Buffers
 			this.Position += 3;
 		}
 
+		/// <summary>Adds four bytes at the end of the buffer</summary>
 		public void WriteBytes(byte value1, byte value2, byte value3, byte value4)
 		{
 			var chunk = EnsureBytes(4);
@@ -608,6 +657,7 @@ namespace SnowBank.Buffers
 			this.Position += 4;
 		}
 
+		/// <summary>Adds five bytes at the end of the buffer</summary>
 		public void WriteBytes(byte value1, byte value2, byte value3, byte value4, byte value5)
 		{
 			var chunk = EnsureBytes(5);
@@ -619,6 +669,8 @@ namespace SnowBank.Buffers
 			this.Position += 5;
 		}
 
+		/// <summary>Adds a variable-length string encoded as UTF-8, and preceded by its length encoded as a VarInt32</summary>
+		/// <seealso cref="WriteVarInt32"/>
 		public void WriteVarStringUtf8(ReadOnlySpan<char> text)
 		{
 			if (text.Length == 0)

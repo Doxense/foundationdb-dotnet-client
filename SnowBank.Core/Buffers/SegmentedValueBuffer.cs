@@ -115,14 +115,15 @@ namespace SnowBank.Buffers
 #pragma warning disable IDE0051 // Remove unused private members
 #pragma warning disable IDE0044 // Add readonly modifier
 
+		/// <summary>Helper type for quickly allocating space on the heap</summary>
 		//TODO: replace with InlineArray8<T> ?
-		[InlineArray(SegmentedValueBuffer<T>.DefaultScratchSize)]
+		[InlineArray(DefaultScratchSize)]
 		public struct Scratch
 		{
 			private T Item;
 		}
 
-		[InlineArray(SegmentedValueBuffer<T>.MaxSegments)]
+		[InlineArray(MaxSegments)]
 		private struct SegmentStack
 		{
 
@@ -568,6 +569,7 @@ namespace SnowBank.Buffers
 			}
 		}
 
+		/// <summary>Enumerates the values inserted into to a <see cref="SegmentedValueBuffer{T}"/></summary>
 		[UnscopedRef]
 		public Enumerator GetEnumerator()
 		{
@@ -681,7 +683,7 @@ namespace SnowBank.Buffers
 		/// <inheritdoc />
 		public override string ToString()
 		{
-			return $"{nameof(SegmentedValueBuffer<T>)}<{typeof(T).Name}>[{this.Count}]";
+			return $"{nameof(SegmentedValueBuffer<>)}<{typeof(T).Name}>[{this.Count}]";
 		}
 
 		/// <summary>Release any rented buffer used by this instance</summary>

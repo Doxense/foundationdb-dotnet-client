@@ -69,6 +69,8 @@ namespace SnowBank.Buffers
 		/// <summary>Optional array coming from a pool</summary>
 		private T[]? Array;
 
+		/// <summary>Constructs a <see cref="ValueBuffer{T}"/> using an already allocated scratch buffer</summary>
+		/// <param name="initialBuffer">Buffer used initially.</param>
 		public ValueBuffer(Span<T> initialBuffer)
 		{
 			this.Count = 0;
@@ -76,6 +78,8 @@ namespace SnowBank.Buffers
 			this.Buffer = initialBuffer;
 		}
 
+		/// <summary>Constructs a <see cref="ValueBuffer{T}"/> with an initial capacity</summary>
+		/// <param name="capacity">Capacity of the initial buffer (allocated on a pool)</param>
 		public ValueBuffer(int capacity)
 		{
 			Contract.Positive(capacity);
@@ -94,11 +98,13 @@ namespace SnowBank.Buffers
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
 		/// <summary>Returns a span with all the items already written to this buffer</summary>
-		public Span<T> Span => this.Count > 0 ? this.Buffer.Slice(0, this.Count) : default;
+		public Span<T> Span => this.Count > 0 ? this.Buffer[..this.Count] : default;
 
 		/// <summary>Returns the current capacity of the buffer</summary>
 		public int Capacity => this.Buffer.Length;
 
+		/// <summary>Add an item to the end of the buffer</summary>
+		/// <param name="item">Item to add</param>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public void Add(T item)
 		{
@@ -124,6 +130,8 @@ namespace SnowBank.Buffers
 			this.Count = pos + 1;
 		}
 
+		/// <summary>Add a span of items at the end of the buffer</summary>
+		/// <param name="items">Items to add</param>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 #if NET9_0_OR_GREATER
 		public void AddRange(params ReadOnlySpan<T> items)
@@ -140,7 +148,7 @@ namespace SnowBank.Buffers
 			}
 			else if ((uint) (items.Length + this.Count) <= (uint) buf.Length)
 			{
-				items.CopyTo(buf.Slice(pos));
+				items.CopyTo(buf[pos..]);
 				this.Count = pos + items.Length;
 			}
 			else
@@ -154,10 +162,12 @@ namespace SnowBank.Buffers
 		{
 			Grow(items.Length);
 			int pos = this.Count;
-			items.CopyTo(this.Buffer.Slice(pos));
+			items.CopyTo(this.Buffer[pos..]);
 			this.Count = pos + items.Length;
 		}
 
+		/// <summary>Add a sequence of items at the end of the buffer</summary>
+		/// <param name="items">Items to add</param>
 		[CollectionAccess(CollectionAccessType.UpdatedContent)]
 		public void AddRange(IEnumerable<T> items)
 		{
@@ -273,9 +283,13 @@ namespace SnowBank.Buffers
 
 		/// <summary>Returns the content of the buffer as an array</summary>
 		/// <returns>Array of size <see cref="Count"/> containing all the items in this buffer</returns>
+		/// <seealso cref="ToArrayAndClear"/>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public T[] ToArray() => this.Span.ToArray();
 
+		/// <summary>Returns the content of the buffer as an array, and clears the buffer for reuse</summary>
+		/// <returns>Array of size <see cref="Count"/> containing all the items in this buffer</returns>
+		/// <remarks>The buffer is cleared and any allocated buffer returned to the pool.</remarks>
 		[Pure, CollectionAccess(CollectionAccessType.ModifyExistingContent)]
 		public T[] ToArrayAndClear()
 		{
@@ -291,6 +305,7 @@ namespace SnowBank.Buffers
 
 		/// <summary>Returns the content of the buffer as a list</summary>
 		/// <returns>List of size <see cref="Count"/> containing all the items in this buffer</returns>
+		/// <seealso cref="ToListAndClear"/>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public List<T> ToList()
 		{
@@ -308,6 +323,9 @@ namespace SnowBank.Buffers
 			return res;
 		}
 
+		/// <summary>Returns the content of the buffer as a list, and clears the buffer for reuse</summary>
+		/// <returns>List of size <see cref="Count"/> containing all the items in this buffer</returns>
+		/// <remarks>The buffer is cleared and any allocated buffer returned to the pool.</remarks>
 		[Pure, CollectionAccess(CollectionAccessType.ModifyExistingContent)]
 		public List<T> ToListAndClear()
 		{
@@ -317,7 +335,8 @@ namespace SnowBank.Buffers
 		}
 
 		/// <summary>Returns the content of the buffer as a set</summary>
-		/// <returns>List of size <see cref="Count"/> containing all the items in this buffer</returns>
+		/// <returns>Set containing all the items in this buffer</returns>
+		/// <seealso cref="ToHashSetAndClear"/>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public HashSet<T> ToHashSet(IEqualityComparer<T>? comparer = null)
 		{
@@ -331,6 +350,9 @@ namespace SnowBank.Buffers
 			return res;
 		}
 
+		/// <summary>Returns the content of the buffer as a set, and clears the buffer for reuse</summary>
+		/// <returns>Set containing all the items in this buffer</returns>
+		/// <remarks>The buffer is cleared and any allocated buffer returned to the pool.</remarks>
 		[Pure, CollectionAccess(CollectionAccessType.ModifyExistingContent)]
 		public HashSet<T> ToHashSetAndClear(IEqualityComparer<T>? comparer = null)
 		{
@@ -340,7 +362,11 @@ namespace SnowBank.Buffers
 		}
 
 		/// <summary>Returns the content of the buffer as a dictionary</summary>
-		/// <returns>List of size <see cref="Count"/> containing all the items in this buffer</returns>
+		/// <param name="keySelector">Selector used to extract the keys for each item in the buffer.</param>
+		/// <param name="comparer">Key comparer used by the dictionary.</param>
+		/// <returns>Dictionary containing all the items in this buffer, using <paramref name="keySelector"/> to generate the keys.</returns>
+		/// <exception cref="ArgumentException"> if two values in the buffer used the same key</exception>
+		/// <seealso cref="ToDictionaryAndClear{TKey}"/>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public Dictionary<TKey, T> ToDictionary<TKey>(Func<T, TKey> keySelector, IEqualityComparer<TKey>? comparer = null)
 			where TKey : notnull
@@ -355,6 +381,12 @@ namespace SnowBank.Buffers
 			return res;
 		}
 
+		/// <summary>Returns the content of the buffer as a dictionary, and clears the buffer for reuse</summary>
+		/// <param name="keySelector">Selector used to extract the keys for each item in the buffer.</param>
+		/// <param name="comparer">Key comparer used by the dictionary.</param>
+		/// <returns>Dictionary containing all the items in this buffer, using <paramref name="keySelector"/> to generate the keys.</returns>
+		/// <remarks>The buffer is cleared and any allocated buffer returned to the pool.</remarks>
+		/// <exception cref="ArgumentException"> if two values in the buffer used the same key</exception>
 		[Pure, CollectionAccess(CollectionAccessType.ModifyExistingContent)]
 		public Dictionary<TKey, T> ToDictionaryAndClear<TKey>(Func<T, TKey> keySelector, IEqualityComparer<TKey>? comparer = null)
 			where TKey : notnull
@@ -365,7 +397,12 @@ namespace SnowBank.Buffers
 		}
 
 		/// <summary>Returns the content of the buffer as a dictionary</summary>
-		/// <returns>List of size <see cref="Count"/> containing all the items in this buffer</returns>
+		/// <param name="keySelector">Selector used to extract the keys for each item in the buffer.</param>
+		/// <param name="valueSelector">Selector used to extract the values for each item in the buffer.</param>
+		/// <param name="comparer">Key comparer used by the dictionary.</param>
+		/// <returns>Dictionary containing all the mapped items in this buffer, using <paramref name="keySelector"/> for the keys, and <paramref name="valueSelector"/> for the values.</returns>
+		/// <exception cref="ArgumentException"> if two values in the buffer used the same key</exception>
+		/// <seealso cref="ToDictionaryAndClear{TKey,TValue}"/>
 		[Pure, CollectionAccess(CollectionAccessType.Read)]
 		public Dictionary<TKey, TValue> ToDictionary<TKey, TValue>(Func<T, TKey> keySelector, Func<T, TValue> valueSelector, IEqualityComparer<TKey>? comparer = null)
 			where TKey : notnull
@@ -381,6 +418,13 @@ namespace SnowBank.Buffers
 			return res;
 		}
 
+		/// <summary>Returns the content of the buffer as a dictionary, and clears the buffer for reuse</summary>
+		/// <param name="keySelector">Selector used to extract the keys for each item in the buffer.</param>
+		/// <param name="valueSelector">Selector used to extract the values for each item in the buffer.</param>
+		/// <param name="comparer">Key comparer used by the dictionary.</param>
+		/// <returns>Dictionary containing all the mapped items in this buffer, using <paramref name="keySelector"/> for the keys, and <paramref name="valueSelector"/> for the values.</returns>
+		/// <remarks>The buffer is cleared and any allocated buffer returned to the pool.</remarks>
+		/// <exception cref="ArgumentException"> if two values in the buffer used the same key</exception>
 		[Pure, CollectionAccess(CollectionAccessType.ModifyExistingContent)]
 		public Dictionary<TKey, TValue> ToDictionaryAndClear<TKey, TValue>(Func<T, TKey> keySelector, Func<T, TValue> valueSelector, IEqualityComparer<TKey>? comparer = null)
 			where TKey : notnull
@@ -420,14 +464,20 @@ namespace SnowBank.Buffers
 
 		#region IReadOnlyList<T>...
 
+		/// <summary>Returns a reference to the item at the specified index</summary>
+		/// <param name="index">Index of the item (must be valid)</param>
+		/// <returns>Reference to this item</returns>
+		/// <remarks>This allows modifying the content of items "in place".</remarks>
+		/// <exception cref="IndexOutOfRangeException">If <paramref name="index"/> is outside the bounds of the buffer. The number of items currently in the buffer is available via the <see cref="Count"/> property.</exception>
 		[Pure, CollectionAccess(CollectionAccessType.ModifyExistingContent)]
 		public ref T this[int index]
 		{
 			[Pure, CollectionAccess(CollectionAccessType.Read)]
-			get => ref this.Buffer.Slice(0, this.Count)[index];
+			get => ref this.Buffer[..this.Count][index];
 			//note: the span will perform the bound-checking for us
 		}
 
+		/// <summary>Returns an enumerator that will list all the items added to the buffer so far.</summary>
 		public Span<T>.Enumerator GetEnumerator()
 		{
 			return this.Span.GetEnumerator();
@@ -466,7 +516,7 @@ namespace SnowBank.Buffers
 			}
 
 			// we have enough remaining data to accomodate the requested size
-			return this.Buffer.Slice(this.Count);
+			return this.Buffer[this.Count..];
 		}
 
 		/// <summary>Executes an action on each element in the buffer</summary>
@@ -502,6 +552,10 @@ namespace SnowBank.Buffers
 
 #if NET9_0_OR_GREATER
 
+		/// <summary>Delegate that can update an aggregate by reference</summary>
+		/// <typeparam name="TAggregate">Type of the aggregate</typeparam>
+		/// <param name="agg">Reference to the current aggregate, which can be updated to include the new value</param>
+		/// <param name="item">New value that should be added to aggregate</param>
 		public delegate void Aggregator<TAggregate>(ref TAggregate agg, T item) where TAggregate: allows ref struct;
 
 		/// <summary>Aggregates a value over all the elements in the buffer</summary>
@@ -588,7 +642,6 @@ namespace SnowBank.Buffers
 			int length = this.Count;
 			if (destination.Length < length) throw ThrowHelper.ArgumentException(nameof(destination), "Destination buffer is too small");
 
-			var buf = this.Buffer;
 			int p = 0;
 			foreach(var item in this.Span)
 			{
@@ -607,7 +660,6 @@ namespace SnowBank.Buffers
 			int length = this.Count;
 			if (destination.Length < length) throw ThrowHelper.ArgumentException(nameof(destination), "Destination buffer is too small");
 
-			var buf = this.Buffer;
 			int p = 0, i = 0;
 			foreach(var item in this.Span)
 			{
@@ -658,6 +710,7 @@ namespace SnowBank.Buffers
 
 		#endregion
 
+		/// <inheritdoc />
 		public override string ToString()
 		{
 			if (typeof(T) == typeof(char))
@@ -674,7 +727,7 @@ namespace SnowBank.Buffers
 				return Convert.ToBase64String(bytes);
 			}
 
-			return $"{nameof(ValueBuffer<T>)}<{typeof(T).Name}>[{this.Count}]";
+			return $"{nameof(ValueBuffer<>)}<{typeof(T).Name}>[{this.Count}]";
 		}
 
 		/// <inheritdoc />
@@ -685,10 +738,12 @@ namespace SnowBank.Buffers
 
 	}
 
+	/// <summary>Helper methods for working with <see cref="ValueBuffer{T}"/></summary>
 	[PublicAPI]
 	public static class ValueBufferExtensions
 	{
 
+		/// <summary>Adds a string to a <see cref="ValueBuffer{T}"/></summary>
 		public static void Add(this ValueBuffer<char> buffer, string text)
 		{
 			buffer.AddRange(text.AsSpan());

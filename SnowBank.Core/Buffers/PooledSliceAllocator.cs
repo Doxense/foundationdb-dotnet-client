@@ -62,12 +62,21 @@ namespace SnowBank.Buffers
 		/// <summary>Default slab size (if not provided in the constructor)</summary>
 		private const int DefaultSlabSize = 4 * 1024;
 
+		/// <summary>
+		/// Creates an instance of a <see cref="PooledSliceAllocator"/>, in which data can be written to, with an initial capacity specified.
+		/// </summary>
 		public PooledSliceAllocator() : this(DefaultSlabSize, null)
 		{ }
 
+		/// <summary>
+		/// Creates an instance of a <see cref="PooledSliceAllocator"/>, in which data can be written to, with an initial capacity specified.
+		/// </summary>
 		public PooledSliceAllocator(int slabSize) : this(slabSize, null)
 		{ }
 
+		/// <summary>
+		/// Creates an instance of a <see cref="PooledSliceAllocator"/>, in which data can be written to, with an initial capacity specified.
+		/// </summary>
 		public PooledSliceAllocator(ArrayPool<byte>? pool) : this(DefaultSlabSize, pool)
 		{ }
 
@@ -81,7 +90,7 @@ namespace SnowBank.Buffers
 		/// </exception>
 		public PooledSliceAllocator(int slabSize, ArrayPool<byte>? pool)
 		{
-			Contract.GreaterThan(slabSize, 0, "Slab size must be greather than zero");
+			Contract.GreaterThan(slabSize, 0, "Slab size must be greater than zero");
 
 			m_pool = pool ?? ArrayPool<byte>.Shared;
 			m_current = m_pool.Rent(slabSize);
@@ -150,7 +159,7 @@ namespace SnowBank.Buffers
 		/// <summary>Returns a <see cref="ArraySegment{T}" /> to write to that is exactly the requested size (specified by <paramref name="size" />) and advance the cursor.</summary>
 		/// <param name="size">The exact length of the returned <see cref="Slice" />. If 0, a non-empty buffer is returned.</param>
 		/// <exception cref="T:System.OutOfMemoryException">The requested buffer size is not available.</exception>
-		/// <returns>A <see cref="ArraySegment{T}" /> of at exactly the <paramref name="size" /> requested..</returns>
+		/// <returns>A <see cref="ArraySegment{T}" /> of at exactly the <paramref name="size" /> requested.</returns>
 		public ArraySegment<byte> Allocate(int size)
 		{
 			Contract.GreaterOrEqual(size, 0);
@@ -198,7 +207,7 @@ namespace SnowBank.Buffers
 			}
 
 			// try allocating larger slabs, until we reach the max spill size.
-			// by default we will double the size until we either reach the max slab size, or enough to satisfy the request
+			// by default, we will double the size until we either reach the max slab size, or enough to satisfy the request
 			long newSize = Math.Min(current.Length, 2048);
 			do { newSize *= 2; } while (newSize < sizeHint);
 
@@ -224,6 +233,7 @@ namespace SnowBank.Buffers
 			return new ObjectDisposedException("Buffer writer has already been disposed, or the buffer has already been acquired by someone else.");
 		}
 
+		/// <summary>Clears the writer, and returns all the slabs to the pool</summary>
 		public void Dispose()
 		{
 			var pool = m_pool;

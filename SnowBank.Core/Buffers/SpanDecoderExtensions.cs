@@ -38,7 +38,7 @@ namespace System
 	public static class SpanDecoderExtensions
 	{
 
-		/// <summary>Stringify a span containing characters in the operating system's current ANSI codepage</summary>
+		/// <summary>Stringifies a span containing characters in the operating system's current ANSI codepage</summary>
 		/// <returns>Decoded string, or string.Empty if the span is empty</returns>
 		/// <remarks>
 		/// Calling this method on a span that is not ANSI, or was generated with different codepage than the current process, will return a corrupted string!
@@ -56,10 +56,20 @@ namespace System
 			return Encoding.Default.GetString(span);
 		}
 
+		/// <summary>Stringifies a span containing characters in the operating system's current ANSI codepage</summary>
+		/// <returns>Decoded string, or string.Empty if the span is empty</returns>
+		/// <remarks>
+		/// Calling this method on a span that is not ANSI, or was generated with different codepage than the current process, will return a corrupted string!
+		/// This method should ONLY be used to interop with the Win32 API or unmanaged libraries that require the ANSI codepage!
+		/// You SHOULD *NOT* use this to expose data to other systems or locale (via sockets, files, ...)
+		/// If you are decoding natural text, you should probably change the encoding at the source to be UTF-8!
+		/// If you are decoding identifiers or keywords that are known to be ASCII only, you should use <see cref="ToStringAscii(System.ReadOnlySpan{byte})"/> instead (safe).
+		/// If these identifiers can contain 'special' bytes (like \xFF or \xFE), you should use <see cref="ToByteString(System.ReadOnlySpan{byte})"/> instead (unsafe).
+		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static string ToStringAnsi(this Span<byte> span) => ToStringAnsi((ReadOnlySpan<byte>) span);
 
-		/// <summary>Stringify a span containing 7-bit ASCII characters only</summary>
+		/// <summary>Stringifies a span containing 7-bit ASCII characters only</summary>
 		/// <returns>Decoded string, or string.Empty if the span is empty</returns>
 		/// <remarks>
 		/// This method should ONLY be used to decoded data that is GUARANTEED to be in the range 0..127.
@@ -88,10 +98,19 @@ namespace System
 			throw new DecoderFallbackException("The span contains at least one non-ASCII character");
 		}
 
+		/// <summary>Stringifies a span containing 7-bit ASCII characters only</summary>
+		/// <returns>Decoded string, or string.Empty if the span is empty</returns>
+		/// <remarks>
+		/// This method should ONLY be used to decoded data that is GUARANTEED to be in the range 0..127.
+		/// This method will THROW if any byte in the span has bit 7 set to 1 (ie: >= 0x80)
+		/// If you are decoding identifiers or keywords with 'special' bytes (like \xFF or \xFE), you should use <see cref="ToByteString(System.ReadOnlySpan{byte})"/> instead.
+		/// If you are decoding natural text, or text from unknown origin, you should use <see cref="ToStringUtf8(System.ReadOnlySpan{byte})"/> or <see cref="ToStringUnicode(System.ReadOnlySpan{byte})"/> instead.
+		/// If you are attempting to decode a string obtain from a Win32 or unmanaged library call, you should use <see cref="ToStringAnsi(System.ReadOnlySpan{byte})"/> instead.
+		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static string ToStringAscii(this Span<byte> span) => ToStringAscii((ReadOnlySpan<byte>) span);
 
-		/// <summary>Stringify a span containing only ASCII chars</summary>
+		/// <summary>Stringifies a span containing only ASCII chars</summary>
 		/// <returns>ASCII string, or string.Empty if the span is empty</returns>
 		[Pure]
 		public static string ToByteString(this ReadOnlySpan<byte> span) //REVIEW: rename to ToStringSOMETHING(): ToStringByte()? ToStringRaw()?
@@ -101,10 +120,12 @@ namespace System
 				: UnsafeHelpers.ConvertToByteString(span);
 		}
 
+		/// <summary>Stringifies a span containing only ASCII chars</summary>
+		/// <returns>ASCII string, or string.Empty if the span is empty</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static string ToByteString(this Span<byte> span) => ToByteString((ReadOnlySpan<byte>) span);
 
-		/// <summary>Stringify a span containing either 7-bit ASCII, or UTF-8 characters</summary>
+		/// <summary>Stringifies a span containing either 7-bit ASCII, or UTF-8 characters</summary>
 		/// <returns>Decoded string, or string.Empty if the span is empty. The encoding will be automatically detected</returns>
 		/// <remarks>
 		/// This should only be used for spans encoded using UTF8 or ASCII.
@@ -131,6 +152,13 @@ namespace System
 			return Slice.Utf8NoBomEncoding.GetString(span);
 		}
 
+		/// <summary>Stringifies a span containing either 7-bit ASCII, or UTF-8 characters</summary>
+		/// <returns>Decoded string, or string.Empty if the span is empty. The encoding will be automatically detected</returns>
+		/// <remarks>
+		/// This should only be used for spans encoded using UTF8 or ASCII.
+		/// This is NOT compatible with spans encoded using ANSI (<see cref="Encoding.Default"/> encoding) or with a specific encoding or code page.
+		/// This method will NOT automatically remove the UTF-8 BOM if present (use <see cref="ToStringUtf8(System.ReadOnlySpan{byte})"/> if you need this)
+		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static string ToStringUnicode(this Span<byte> span) => ToStringUnicode((ReadOnlySpan<byte>) span);
 
@@ -143,7 +171,7 @@ namespace System
 				&& span[2] == 0xBF;
 		}
 
-		/// <summary>Decode a span that is known to contain an UTF-8 encoded string with an optional UTF-8 BOM</summary>
+		/// <summary>Decodes a span that is known to contain UTF-8 characters, with an optional UTF-8 BOM</summary>
 		/// <returns>Decoded string, or string.Empty if the span is empty</returns>
 		/// <exception cref="DecoderFallbackException">If the span contains one or more invalid UTF-8 sequences</exception>
 		/// <remarks>
@@ -159,12 +187,19 @@ namespace System
 			if (HasUtf8Bom(span))
 			{ // skip it!
 				if (span.Length == 3) return string.Empty;
-				span = span.Slice(3);
+				span = span[3..];
 			}
 
 			return Slice.Utf8NoBomEncoding.GetString(span);
 		}
 
+		/// <summary>Decodes a span that is known to contain UTF-8 characters, with an optional UTF-8 BOM</summary>
+		/// <returns>Decoded string, or string.Empty if the span is empty</returns>
+		/// <exception cref="DecoderFallbackException">If the span contains one or more invalid UTF-8 sequences</exception>
+		/// <remarks>
+		/// This method will THROW if the span does not contain valid UTF-8 sequences.
+		/// This method will remove any UTF-8 BOM if present. If you need to keep the BOM as the first character of the string, use <see cref="ToStringUnicode(System.ReadOnlySpan{byte})"/>
+		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static string ToStringUtf8(this Span<byte> span) => ToStringUtf8((ReadOnlySpan<byte>) span);
 
@@ -172,6 +207,7 @@ namespace System
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static string ToBase64(this ReadOnlySpan<byte> span) => Base64Encoding.ToBase64String(span);
 
+		/// <summary>Converts a span using Base64 encoding</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static string ToBase64(this Span<byte> span) => ToBase64((ReadOnlySpan<byte>) span);
 
@@ -182,12 +218,16 @@ namespace System
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static string ToHexaString(this ReadOnlySpan<byte> span, bool lowerCase = false) => FormatHexaString(span, '\0', lowerCase);
 
+		/// <summary>Converts a span into a string with each byte encoded into hexadecimal (lowercase)</summary>
+		/// <param name="span">Span to encode</param>
+		/// <param name="lowerCase">If <c>true</c>, produces lowercase hexadecimal (a-f); otherwise, produces uppercase hexadecimal (A-F)</param>
+		/// <returns>"0123456789abcdef"</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static string ToHexaString(this Span<byte> span, bool lowerCase = false) => FormatHexaString(span, '\0', lowerCase);
 
 		/// <summary>Converts a span into a string with each byte encoded into hexadecimal (uppercase) separated by a char</summary>
 		/// <param name="span">Span to encode</param>
-		/// <param name="sep">Character used to separate the hexadecimal pairs (ex: ' ')</param>
+		/// <param name="sep">Character used to separate the hexadecimal pairs (ex: <c>' '</c>)</param>
 		/// <param name="lowerCase">If <c>true</c>, produces lowercase hexadecimal (a-f); otherwise, produces uppercase hexadecimal (A-F)</param>
 		/// <returns>"01 23 45 67 89 ab cd ef"</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -195,7 +235,7 @@ namespace System
 
 		/// <summary>Converts a span into a string with each byte encoded into hexadecimal (uppercase) separated by a char</summary>
 		/// <param name="span">Span to encode</param>
-		/// <param name="sep">Character used to separate the hexadecimal pairs (ex: ' ')</param>
+		/// <param name="sep">Character used to separate the hexadecimal pairs (ex: <c>' '</c>)</param>
 		/// <param name="lowerCase">If <c>true</c>, produces lowercase hexadecimal (a-f); otherwise, produces uppercase hexadecimal (A-F)</param>
 		/// <returns>"01 23 45 67 89 ab cd ef"</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -292,11 +332,13 @@ namespace System
 			return sb;
 		}
 
+		/// <summary>Converts a span of bytes into a string, using the specified format</summary>
 		public static string ToString(this ReadOnlySpan<byte> span, string? format)
 		{
 			return ToString(span, format, null);
 		}
 
+		/// <summary>Converts a span of bytes into a string, using the specified format</summary>
 		public static string ToString(this ReadOnlySpan<byte> span, string? format, IFormatProvider? provider)
 		{
 			switch (format ?? "D")
@@ -357,7 +399,7 @@ namespace System
 			return false;
 		}
 
-		/// <summary>Helper method that dumps the span as a string (if it contains only printable ascii chars) or an hex array if it contains non printable chars. It should only be used for logging and troubleshooting !</summary>
+		/// <summary>Helper method that dumps the span as a string (if it contains only printable ascii chars) or a hex array if it contains non-printable chars. It should only be used for logging and troubleshooting !</summary>
 		/// <returns>Returns either "'abc'", "&lt;00 42 7F&gt;", or "{ ...JSON... }". Returns "''" for the empty span</returns>
 		[Pure]
 		public static string PrettyPrint(this ReadOnlySpan<byte> span)
@@ -365,17 +407,19 @@ namespace System
 			return PrettyPrintInternal(span, 1024); //REVIEW: constant for max size!
 		}
 
+		/// <summary>Helper method that dumps the span as a string (if it contains only printable ascii chars) or a hex array if it contains non-printable chars. It should only be used for logging and troubleshooting !</summary>
+		/// <returns>Returns either "'abc'", "&lt;00 42 7F&gt;", or "{ ...JSON... }". Returns "''" for the empty span</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static string PrettyPrint(this Span<byte> span) => PrettyPrintInternal(span, 1024);
 
-		/// <summary>Formats the span as a human-friendly string (if it contains only printable ascii chars) or an hex array if it contains non printable chars. It should only be used for logging and troubleshooting !</summary>
+		/// <summary>Formats the span as a human-friendly string (if it contains only printable ascii chars) or a hex array if it contains non-printable chars. It should only be used for logging and troubleshooting !</summary>
 		/// <param name="span">Span to format</param>
 		/// <param name="maxLen">Truncate the span if it exceeds this size</param>
 		/// <returns>Returns either "'abc'", "&lt;00 42 7F&gt;", or "{ ...JSON... }". Returns "''" for the empty span</returns>
 		[Pure]
 		public static string PrettyPrint(this ReadOnlySpan<byte> span, int maxLen) => PrettyPrintInternal(span, maxLen);
 
-		/// <summary>Formats the span as a human-friendly string (if it contains only printable ascii chars) or an hex array if it contains non printable chars. It should only be used for logging and troubleshooting !</summary>
+		/// <summary>Formats the span as a human-friendly string (if it contains only printable ascii chars) or a hex array if it contains non-printable chars. It should only be used for logging and troubleshooting !</summary>
 		/// <param name="span">Span to format</param>
 		/// <param name="maxLen">Truncate the span if it exceeds this size</param>
 		/// <returns>Returns either "'abc'", "&lt;00 42 7F&gt;", or "{ ...JSON... }". Returns "''" for the empty span</returns>
@@ -389,7 +433,7 @@ namespace System
 
 			// look for UTF-8 BOM
 			if (HasUtf8Bom(buffer))
-			{ // this is supposed to be an UTF-8 string
+			{ // this is supposed to be a UTF-8 string
 				return EscapeString(new StringBuilder(buffer.Length).Append('\''), buffer[3..], Slice.Utf8NoBomEncoding).Append('\'').ToString();
 			}
 
@@ -472,11 +516,13 @@ namespace System
 		[Pure]
 		public static bool ToBool(this ReadOnlySpan<byte> span)
 		{
-			// Anything appart from nil/empty, or the byte 0 itself is considered truthy.
+			// Anything apart from nil/empty, or the byte 0 itself is considered "truthy".
 			return span.Length > 1 || (span.Length == 1 && span[0] != 0);
 			//TODO: consider checking if the span consist of only zeroes ? (ex: Slice.FromFixed32(0) could be considered falsy ...)
 		}
 
+		/// <summary>Converts a span into a boolean.</summary>
+		/// <returns>False if the span is empty, or is equal to the byte 0; otherwise, true.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool ToBool(this Span<byte> span) => ToBool((ReadOnlySpan<byte>) span);
 
@@ -500,10 +546,13 @@ namespace System
 			}
 		}
 
+		/// <summary>Converts a span into a byte</summary>
+		/// <returns>Value of the first and only byte of the span, or 0 if the span is empty.</returns>
+		/// <exception cref="System.FormatException">If the span has more than one byte</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte ToByte(this Span<byte> span) => ToByte((ReadOnlySpan<byte>) span);
 
-		/// <summary>Converts a span into a signed byte (-128..+127)</summary>
+		/// <summary>Converts a span into a signed byte (-128...+127)</summary>
 		/// <returns>Value of the first and only byte of the span, or 0 if the span is empty.</returns>
 		/// <exception cref="System.FormatException">If the span has more than one byte</exception>
 		[Pure]
@@ -519,6 +568,9 @@ namespace System
 			}
 		}
 
+		/// <summary>Converts a span into a signed byte (-128...+127)</summary>
+		/// <returns>Value of the first and only byte of the span, or 0 if the span is empty.</returns>
+		/// <exception cref="System.FormatException">If the span has more than one byte</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static sbyte ToSByte(this Span<byte> span) => ToSByte((ReadOnlySpan<byte>) span);
 
@@ -543,6 +595,9 @@ namespace System
 			}
 		}
 
+		/// <summary>Converts a span into a little-endian encoded, signed 16-bit integer.</summary>
+		/// <returns>0 of the span is empty, a signed integer, or an error if the span has more than 2 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 2 bytes in the span</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static short ToInt16(this Span<byte> span) => ToInt16((ReadOnlySpan<byte>) span);
 
@@ -564,6 +619,9 @@ namespace System
 			}
 		}
 
+		/// <summary>Converts a span into a big-endian encoded, signed 16-bit integer.</summary>
+		/// <returns>0 of the span is empty, a signed integer, or an error if the span has more than 2 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 2 bytes in the span</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static short ToInt16BE(this Span<byte> span) => ToInt16BE((ReadOnlySpan<byte>) span);
 
@@ -579,6 +637,9 @@ namespace System
 			_ => throw (span.Length < 0 ? UnsafeHelpers.Errors.SliceCountNotNeg() : UnsafeHelpers.Errors.SliceTooLargeForConversion<ushort>(2))
 		};
 
+		/// <summary>Converts a span into a little-endian encoded, unsigned 16-bit integer.</summary>
+		/// <returns>0 of the span is empty, an unsigned integer, or an error if the span has more than 2 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 2 bytes in the span</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ushort ToUInt16(this Span<byte> span) => ToUInt16((ReadOnlySpan<byte>) span);
 
@@ -594,6 +655,9 @@ namespace System
 			_ => throw (span.Length < 0 ? UnsafeHelpers.Errors.SliceCountNotNeg() : UnsafeHelpers.Errors.SliceTooLargeForConversion<ushort>(2))
 		};
 
+		/// <summary>Converts a span into a little-endian encoded, unsigned 16-bit integer.</summary>
+		/// <returns>0 of the span is empty, an unsigned integer, or an error if the span has more than 2 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 2 bytes in the span</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ushort ToUInt16BE(this Span<byte> span) => ToUInt16BE((ReadOnlySpan<byte>) span);
 
@@ -628,6 +692,9 @@ namespace System
 			return UnsafeHelpers.Errors.ThrowSliceTooLargeForConversion<int>(3);
 		}
 
+		/// <summary>Converts a span into a little-endian encoded, signed 24-bit integer.</summary>
+		/// <returns>0 of the span is empty, a signed integer, or an error if the span has more than 3 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 3 bytes in the span</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int ToInt24(this Span<byte> span) => ToInt24((ReadOnlySpan<byte>) span);
 
@@ -655,6 +722,9 @@ namespace System
 			return UnsafeHelpers.Errors.ThrowSliceTooLargeForConversion<int>(3);
 		}
 
+		/// <summary>Converts a span into a big-endian encoded, signed 24-bit integer.</summary>
+		/// <returns>0 of the span is empty, a signed integer, or an error if the span has more than 3 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 3 bytes in the span</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int ToInt24BE(this Span<byte> span) => ToInt24BE((ReadOnlySpan<byte>) span);
 
@@ -682,6 +752,9 @@ namespace System
 			return UnsafeHelpers.Errors.ThrowSliceTooLargeForConversion<uint>(3);
 		}
 
+		/// <summary>Converts a span into a little-endian encoded, unsigned 24-bit integer.</summary>
+		/// <returns>0 of the span is empty, an unsigned integer, or an error if the span has more than 3 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 3 bytes in the span</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static uint ToUInt24(this Span<byte> span) => ToUInt24((ReadOnlySpan<byte>) span);
 
@@ -709,6 +782,9 @@ namespace System
 			return UnsafeHelpers.Errors.ThrowSliceTooLargeForConversion<uint>(3);
 		}
 
+		/// <summary>Converts a span into a little-endian encoded, unsigned 24-bit integer.</summary>
+		/// <returns>0 of the span is empty, an unsigned integer, or an error if the span has more than 3 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 3 bytes in the span</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static uint ToUInt24BE(this Span<byte> span) => ToUInt24BE((ReadOnlySpan<byte>) span);
 
@@ -737,6 +813,9 @@ namespace System
 			}
 		}
 
+		/// <summary>Converts a span into a little-endian encoded, signed 32-bit integer.</summary>
+		/// <returns>0 of the span is empty, a signed integer, or an error if the span has more than 4 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 4 bytes in the span</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int ToInt32(this Span<byte> span) => ToInt32((ReadOnlySpan<byte>) span);
 
@@ -761,6 +840,9 @@ namespace System
 			}
 		}
 
+		/// <summary>Converts a span into a big-endian encoded, signed 32-bit integer.</summary>
+		/// <returns>0 of the span is empty, a signed integer, or an error if the span has more than 4 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 4 bytes in the span</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int ToInt32BE(this Span<byte> span) => ToInt32BE((ReadOnlySpan<byte>) span);
 
@@ -785,6 +867,9 @@ namespace System
 			}
 		}
 
+		/// <summary>Converts a span into a little-endian encoded, unsigned 32-bit integer.</summary>
+		/// <returns>0 of the span is empty, an unsigned integer, or an error if the span has more than 4 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 4 bytes in the span</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static uint ToUInt32(this Span<byte> span) => ToUInt32((ReadOnlySpan<byte>) span);
 
@@ -809,6 +894,9 @@ namespace System
 			}
 		}
 
+		/// <summary>Converts a span into a big-endian encoded, unsigned 32-bit integer.</summary>
+		/// <returns>0 of the span is empty, an unsigned integer, or an error if the span has more than 4 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 4 bytes in the span</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static uint ToUInt32BE(this Span<byte> span) => ToUInt32BE((ReadOnlySpan<byte>) span);
 
@@ -834,6 +922,9 @@ namespace System
 			}
 		}
 
+		/// <summary>Converts a span into a little-endian encoded, signed 64-bit integer.</summary>
+		/// <returns>0 of the span is empty, a signed integer, or an error if the span has more than 8 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 8 bytes in the span</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static long ToInt64(this Span<byte> span) => ToInt64((ReadOnlySpan<byte>) span);
 
@@ -861,6 +952,9 @@ namespace System
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static long ToInt64BE(this ReadOnlySpan<byte> span) => span.Length <= 4 ? ToInt32BE(span) : ToInt64BESlow(span);
 
+		/// <summary>Converts a span into a big-endian encoded, signed 64-bit integer.</summary>
+		/// <returns>0 of the span is empty, a signed integer, or an error if the span has more than 8 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 8 bytes in the span</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static long ToInt64BE(this Span<byte> span) => ToInt64BE((ReadOnlySpan<byte>) span);
 
@@ -900,6 +994,9 @@ namespace System
 			}
 		}
 
+		/// <summary>Converts a span into a little-endian encoded, unsigned 64-bit integer.</summary>
+		/// <returns>0 of the span is empty, an unsigned integer, or an error if the span has more than 8 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 8 bytes in the span</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ulong ToUInt64(this Span<byte> span) => ToUInt64((ReadOnlySpan<byte>) span);
 
@@ -926,6 +1023,9 @@ namespace System
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ulong ToUInt64BE(this ReadOnlySpan<byte> span) => span.Length <= 4 ? ToUInt32BE(span) : ToUInt64BESlow(span);
 
+		/// <summary>Converts a span into a little-endian encoded, unsigned 64-bit integer.</summary>
+		/// <returns>0 of the span is empty, an unsigned integer, or an error if the span has more than 8 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 8 bytes in the span</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ulong ToUInt64BE(this Span<byte> span) => ToUInt64BE((ReadOnlySpan<byte>) span);
 
@@ -973,6 +1073,9 @@ namespace System
 			throw new FormatException("Cannot convert span into an Uuid64 because it has an incorrect size.");
 		}
 
+		/// <summary>Converts a span into a 64-bit UUID.</summary>
+		/// <returns>Uuid decoded from the span.</returns>
+		/// <remarks>The span can either be an 8-byte array, or an ASCII string of 16, 17 or 19 chars</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid64 ToUuid64(this Span<byte> span) => ToUuid64((ReadOnlySpan<byte>) span);
 
@@ -1113,6 +1216,9 @@ namespace System
 			}
 		}
 
+		/// <summary>Converts a span into a Guid.</summary>
+		/// <returns>Native Guid decoded from the span.</returns>
+		/// <remarks>The span can either be a 16-byte RFC4122 GUID, or an ASCII string of 36 chars</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Guid ToGuid(this Span<byte> span) => ToGuid((ReadOnlySpan<byte>) span);
 
@@ -1131,6 +1237,9 @@ namespace System
 			};
 		}
 
+		/// <summary>Converts a span into a 128-bit UUID.</summary>
+		/// <returns>Uuid decoded from the span.</returns>
+		/// <remarks>The span can either be a 16-byte RFC4122 GUID, or an ASCII string of 36 chars</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid128 ToUuid128(this Span<byte> span) => ToUuid128((ReadOnlySpan<byte>) span);
 
@@ -1155,6 +1264,9 @@ namespace System
 			}
 		}
 
+		/// <summary>Converts a span into a little-endian encoded, signed 128-bit integer.</summary>
+		/// <returns>0 of the span is empty, a signed integer, or an error if the span has more than 16 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 16 bytes in the span</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Int128 ToInt128(this Span<byte> span) => ToInt128((ReadOnlySpan<byte>) span);
 
@@ -1182,6 +1294,9 @@ namespace System
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Int128 ToInt128BE(this ReadOnlySpan<byte> span) => span.Length <= 4 ? ToInt32BE(span) : ToInt128BESlow(span);
 
+		/// <summary>Converts a span into a big-endian encoded, signed 128-bit integer.</summary>
+		/// <returns>0 of the span is empty, a signed integer, or an error if the span has more than 16 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 16 bytes in the span</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Int128 ToInt128BE(this Span<byte> span) => ToInt128BE((ReadOnlySpan<byte>) span);
 
@@ -1222,6 +1337,9 @@ namespace System
 			}
 		}
 
+		/// <summary>Converts a span into a little-endian encoded, unsigned 128-bit integer.</summary>
+		/// <returns>0 of the span is empty, an unsigned integer, or an error if the span has more than 16 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 16 bytes in the span</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static UInt128 ToUInt128(this Span<byte> span) => ToUInt128((ReadOnlySpan<byte>) span);
 
@@ -1248,6 +1366,9 @@ namespace System
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static UInt128 ToUInt128BE(this ReadOnlySpan<byte> span) => span.Length <= 4 ? ToUInt32BE(span) : ToUInt128BESlow(span);
 
+		/// <summary>Converts a span into a little-endian encoded, unsigned 128-bit integer.</summary>
+		/// <returns>0 of the span is empty, an unsigned integer, or an error if the span has more than 16 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 16 bytes in the span</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static UInt128 ToUInt128BE(this Span<byte> span) => ToUInt128BE((ReadOnlySpan<byte>) span);
 
@@ -1297,6 +1418,9 @@ namespace System
 			};
 		}
 
+		/// <summary>Converts a span into a 64-bit UUID.</summary>
+		/// <returns>Uuid decoded from the span.</returns>
+		/// <remarks>The span can either be an 10-byte array, or an ASCII string of 20, 22 or 24 chars</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid80 ToUuid80(this Span<byte> span) => ToUuid80((ReadOnlySpan<byte>) span);
 
@@ -1331,6 +1455,9 @@ namespace System
 			throw new FormatException("Cannot convert span into an Uuid96 because it has an incorrect size.");
 		}
 
+		/// <summary>Converts a span into a 64-bit UUID.</summary>
+		/// <returns>Uuid decoded from the span.</returns>
+		/// <remarks>The span can either be an 12-byte array, or an ASCII string of 24, 26 or 28 chars</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid96 ToUuid96(this Span<byte> span) => ToUuid96((ReadOnlySpan<byte>) span);
 

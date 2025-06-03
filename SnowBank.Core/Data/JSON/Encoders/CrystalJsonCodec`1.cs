@@ -38,8 +38,15 @@ namespace SnowBank.Data.Json.Binary
 
 		internal static readonly CrystalJsonSettings DefaultJsonSettings = CrystalJsonSettings.JsonCompact.WithEnumAsStrings().WithIso8601Dates();
 
+		/// <summary>Returns a codec that will encode instances of type <typeparamref name="T"/> into JSON</summary>
+		/// <param name="settings">Custom JSON serialization settings</param>
+		/// <param name="resolver">Custom JSON resolver</param>
 		public static CrystalJsonCodec<T> GetEncoder<T>(CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) => new(settings, resolver);
 
+		/// <summary>Returns a codec that will encode instances of type <typeparamref name="T"/> into JSON</summary>
+		/// <param name="converter">Custom JSON converter for type <typeparamref name="T"/></param>
+		/// <param name="settings">Custom JSON serialization settings</param>
+		/// <param name="resolver">Custom JSON resolver</param>
 		public static CrystalJsonCodec<T> GetEncoder<T>(IJsonConverter<T> converter, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) => new(settings, resolver);
 
 	}
@@ -53,16 +60,19 @@ namespace SnowBank.Data.Json.Binary
 		private readonly ICrystalJsonTypeResolver m_resolver;
 		private readonly IJsonConverter<T>? m_converter;
 
+		/// <summary>Constructs a <see cref="CrystalJsonCodec"/> using the default behavior</summary>
 		public CrystalJsonCodec()
 			: this(null, null)
 		{ }
 
+		/// <summary>Constructs a <see cref="CrystalJsonCodec"/> using custom settings and resolver</summary>
 		public CrystalJsonCodec(CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			m_settings = settings ?? CrystalJsonCodec.DefaultJsonSettings;
 			m_resolver = resolver ?? CrystalJson.DefaultResolver;
 		}
 
+		/// <summary>Constructs a <see cref="CrystalJsonCodec"/> using a custom converter</summary>
 		public CrystalJsonCodec(IJsonConverter<T> converter, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			m_converter = converter;
@@ -70,10 +80,13 @@ namespace SnowBank.Data.Json.Binary
 			m_resolver = CrystalJson.DefaultResolver;
 		}
 
+		/// <summary>Default JSON serialization settings used by this codec</summary>
 		public CrystalJsonSettings Settings => m_settings;
 
+		/// <summary>Default JSON type resolver used by this codec</summary>
 		public ICrystalJsonTypeResolver Resolver => m_resolver;
 
+		/// <summary>Serializes a value of type <typeparamref name="T"/> into its binary representation</summary>
 		protected virtual void EncodeInternal(ref SliceWriter writer, T? document, bool selfTerm)
 		{
 			using var buffer = document != null
@@ -92,6 +105,7 @@ namespace SnowBank.Data.Json.Binary
 			}
 		}
 
+		/// <summary>Deserializes binary representation a value of type <typeparamref name="T"/> into its original value</summary>
 		protected virtual T? DecodeInternal(ref SliceReader reader, bool selfTerm)
 		{
 			int count = selfTerm ? (int) reader.ReadVarInt32() : reader.Remaining;
@@ -113,21 +127,25 @@ namespace SnowBank.Data.Json.Binary
 
 		#region Ordered...
 
+		/// <inheritdoc />
 		public override Slice EncodeOrdered(T? value)
 		{
 			return EncodeUnordered(value);
 		}
 
+		/// <inheritdoc />
 		public override T? DecodeOrdered(Slice input)
 		{
 			return DecodeUnordered(input);
 		}
 
+		/// <inheritdoc />
 		public override void EncodeOrderedTo(ref SliceWriter output, T? value)
 		{
 			EncodeInternal(ref output, value, selfTerm: true);
 		}
 
+		/// <inheritdoc />
 		public override T? DecodeOrderedFrom(ref SliceReader input)
 		{
 			return DecodeInternal(ref input, selfTerm: true);
@@ -137,6 +155,7 @@ namespace SnowBank.Data.Json.Binary
 
 		#region Unordered...
 
+		/// <inheritdoc />
 		public override Slice EncodeUnordered(T? value)
 		{
 			var writer = default(SliceWriter);
@@ -144,6 +163,7 @@ namespace SnowBank.Data.Json.Binary
 			return writer.ToSlice();
 		}
 
+		/// <inheritdoc />
 		public override T? DecodeUnordered(Slice encoded)
 		{
 			if (encoded.IsNullOrEmpty) return default!;
@@ -151,11 +171,13 @@ namespace SnowBank.Data.Json.Binary
 			return DecodeInternal(ref reader, selfTerm: false);
 		}
 
+		/// <inheritdoc />
 		public override void EncodeUnorderedSelfTerm(ref SliceWriter output, T? value)
 		{
 			EncodeInternal(ref output, value, selfTerm: true);
 		}
 
+		/// <inheritdoc />
 		public override T? DecodeUnorderedSelfTerm(ref SliceReader input)
 		{
 			return DecodeInternal(ref input, selfTerm: true);
@@ -165,11 +187,13 @@ namespace SnowBank.Data.Json.Binary
 
 		#region Value...
 
+		/// <inheritdoc />
 		public Slice EncodeValue(T? value)
 		{
 			return EncodeUnordered(value);
 		}
 
+		/// <inheritdoc />
 		public T? DecodeValue(Slice encoded)
 		{
 			return DecodeUnordered(encoded);
