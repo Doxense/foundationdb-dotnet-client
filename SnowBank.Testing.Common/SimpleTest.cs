@@ -2330,59 +2330,6 @@ namespace SnowBank.Testing
 
 		#endregion
 
-		#region Obsolete Stuff...
-
-		// this will be removed soon !
-
-		[StringFormatMethod(nameof(format))]
-		[Obsolete("Use string interpolation instead", error: true)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static void Log(string format, object? arg0) => SimpleTest.Log(string.Format(CultureInfo.InvariantCulture, format, arg0));
-
-		[StringFormatMethod(nameof(format))]
-		[Obsolete("Use string interpolation instead", error: true)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static void Log(string format, object? arg0, object? arg1) => SimpleTest.Log(string.Format(CultureInfo.InvariantCulture, format, arg0, arg1));
-
-		[StringFormatMethod(nameof(format))]
-		[Obsolete("Use string interpolation instead", error: true)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static void Log(string format, params object?[] args) => SimpleTest.Log(string.Format(CultureInfo.InvariantCulture, format, args));
-
-		[Obsolete("Renamed to Await(...)", error: true)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		protected Task WaitFor(Task task, int timeoutMs, [CallerArgumentExpression(nameof(task))] string? taskExpression = null) => Await(task, timeoutMs, taskExpression);
-
-		[Obsolete("Renamed to Await(...)", error: true)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		public Task WaitFor(ValueTask task, int timeoutMs, [CallerArgumentExpression(nameof(task))] string? taskExpression = null) => Await(task, timeoutMs, taskExpression);
-
-		[Obsolete("Renamed to Await(...)", error: true)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		protected Task WaitFor(Task task, TimeSpan timeout, [CallerArgumentExpression(nameof(task))] string? taskExpression = null) => Await(task, timeout, taskExpression);
-
-		[Obsolete("Renamed to Await(...)", error: true)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		protected Task WaitFor(ValueTask task, TimeSpan timeout, [CallerArgumentExpression(nameof(task))] string? taskExpression = null) => Await(task, timeout, taskExpression);
-
-		[Obsolete("Renamed to Await(...)", error: true)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		protected Task<TResult> WaitFor<TResult>(Task<TResult> task, int timeoutMs, [CallerArgumentExpression(nameof(task))] string? taskExpression = null) => Await(task, timeoutMs, taskExpression);
-
-		[Obsolete("Renamed to Await(...)", error: true)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		protected Task<TResult> WaitFor<TResult>(ValueTask<TResult> task, int timeoutMs, [CallerArgumentExpression(nameof(task))] string? taskExpression = null) => Await(task, timeoutMs, taskExpression);
-
-		[Obsolete("Renamed to Await(...)", error: true)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		protected Task<TResult> WaitFor<TResult>(Task<TResult> task, TimeSpan timeout, [CallerArgumentExpression(nameof(task))] string? taskExpression = null) => Await(task, timeout, taskExpression);
-
-		[Obsolete("Renamed to Await(...)", error: true)]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		protected Task<TResult> WaitFor<TResult>(ValueTask<TResult> task, TimeSpan timeout, [CallerArgumentExpression(nameof(task))] string? taskExpression = null) => Await(task, timeout, taskExpression);
-
-		#endregion
-
 	}
 
 }
