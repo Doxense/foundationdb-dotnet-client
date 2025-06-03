@@ -2170,7 +2170,7 @@ namespace SnowBank.Data.Json
 				((IJsonSerializable)value).JsonSerialize(writer);
 		}
 
-		/// <summary>Visit a type that implements <see cref="IJsonBindable"/></summary>
+		/// <summary>Visit a type that implements <see cref="IJsonPackable"/></summary>
 		public static void VisitJsonPackable(object? value, Type declaringType, Type? runtimeType, CrystalJsonWriter writer)
 		{
 			if (value == null)
