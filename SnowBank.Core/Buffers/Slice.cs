@@ -303,12 +303,6 @@ namespace System
 			return this.Count != 0 ? this.Span.ToArray() : this.Array is not null ? [ ] : null;
 		}
 
-		/// <summary>Return a byte array containing all the bytes of the slice, or and empty array if the slice is null or empty</summary>
-		/// <returns>Byte array with a copy of the slice</returns>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete("Use Slice.ToArray() instead", error: true)]
-		public byte[] GetBytesOrEmpty() => ToArray();
-
 		/// <summary>Return a byte array containing a subset of the bytes of the slice, or null if the slice is null</summary>
 		/// <returns>Byte array with a copy of a subset of the slice, or null</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -324,12 +318,6 @@ namespace System
 		{
 			return new SliceReader(this);
 		}
-
-		/// <summary>Returns a new slice that contains an isolated copy of the buffer</summary>
-		/// <returns>Slice that is equivalent, but is isolated from any changes to the buffer</returns>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete("Use Slice.Copy() instead!", error: true)]
-		public Slice Memoize() => Copy();
 
 		/// <summary>Returns a new slice that contains an isolated copy of the buffer</summary>
 		/// <returns>Slice that is equivalent, but is isolated from any changes to the buffer</returns>

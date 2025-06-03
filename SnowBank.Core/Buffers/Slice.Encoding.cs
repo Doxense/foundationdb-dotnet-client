@@ -1464,16 +1464,6 @@ namespace System
 			=> this.Span.ToHexaString('\0', lowerCase: true);
 #endif
 
-		/// <summary>[OBSOLETE] Please replace with either <see cref="ToHexString()"/> or <see cref="ToHexStringLower()"/></summary>
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		[Obsolete("Please replace with a either ToHexString() or ToHexStringLower()", error: true)]
-		public string ToHexaString(bool lower = false) => lower ? ToHexStringLower() : ToHexString();
-
-		/// <summary>[OBSOLETE] Please replace with either <see cref="ToHexString(char)"/> or <see cref="ToHexStringLower(char)"/></summary>
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		[Obsolete("Please replace with a either ToHexString(char) or ToHexStringLower(char)", error: true)]
-		public string ToHexaString(char sep, bool lower = false) => lower ? ToHexStringLower(sep) : ToHexString(sep);
-
 		/// <summary>Converts a slice into a string with each byte encoded into uppercase hexadecimal, separated by a character</summary>
 		/// <param name="sep">Character used to separate the hexadecimal pairs (ex: ' ')</param>
 		/// <returns>"01 23 45 67 89 AB CD EF"</returns>

@@ -1209,12 +1209,6 @@ namespace SnowBank.Buffers
 				: this.Chunks[^1].AsSpan()[^1];
 		}
 
-		[Obsolete("Use the 'TryGetSpan() extension method instead, which has moved to the 'SnowBank.Linq' namespace.", error: true)]
-		public static bool TryGetSpan([NoEnumeration] IEnumerable<T>? items, out ReadOnlySpan<T> span)
-		{
-			return BufferExtensions.TryGetSpan(items, out span);
-		}
-
 		#endregion
 
 	}
