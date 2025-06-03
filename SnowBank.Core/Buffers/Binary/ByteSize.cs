@@ -28,7 +28,8 @@ namespace SnowBank.Buffers.Binary
 {
 	using System.Globalization;
 
-	/// <summary>Units for size of buffers or arrays of bytes (Kilo = 1_000 bytes, Kibi = 1_024 bytes, ...)</summary>
+	/// <summary>Units for size of buffers or arrays of bytes (<see cref="SizeUnit.KB"/> = 1_000 bytes, <see cref="SizeUnit.KiB"/> = 1_024 bytes, ...)</summary>
+	[PublicAPI]
 	public enum SizeUnit
 	{
 		// first range is base 10
@@ -37,42 +38,44 @@ namespace SnowBank.Buffers.Binary
 		Byte = 0,
 
 		/// <summary>Kilobyte, <c>kB</c>, 1E3 bytes: 1 kB = 1_000 bytes</summary>
-		Kilo = 1,
+		KB = 1,
 		/// <summary>Megabyte, <c>MB</c>, 1E6 bytes: 1 MB = 10^6 = 1_000_000 bytes</summary>
-		Mega = 2,
+		MB = 2,
 		/// <summary>Gigabyte, <c>GB</c>, 1E9 bytes: 1 GB = 10^9 = 1_000_000_000 bytes</summary>
-		Giga = 3,
+		GB = 3,
 		/// <summary>Terabyte, <c>TB</c>, 1E12 bytes: 1 TB = 10^12 = 1_000_000_000_000 bytes</summary>
-		Tera = 4,
+		TB = 4,
 		/// <summary>Petabyte, <c>PB</c>, 1E15 bytes: 1 PB = 10^15 = 1_000_000_000_000_000 bytes</summary>
-		Peta = 5,
+		PB = 5,
 		/// <summary>Exabyte, <c>EB</c>, 1E18 bytes: 1 EB = 10^18 = 1_000_000_000_000_000_000 bytes</summary>
-		Exa = 6,
+		EB = 6,
 		//...
 
 		// second range is base 2
 
 		/// <summary>Kibibyte, <c>KiB</c>, 2^10 bytes: 1 KiB = 1_024 bytes</summary>
-		Kibi = 129,
+		KiB = 129,
 		/// <summary>Mebibyte, <c>MiB</c>, 2^20 bytes: 1 MiB = 1_048_576 bytes</summary>
-		Mebi = 130,
+		MiB = 130,
 		/// <summary>Gibibyte, <c>GiB</c>, 2^30 bytes: 1 GiB = 1_073_741_824 bytes</summary>
-		Gibi = 131,
+		GiB = 131,
 		/// <summary>Tebibyte, <c>TiB</c>, 2^40 bytes: 1 TiB = 1_099_511_627_776 bytes</summary>
-		Tebi = 132,
+		TiB = 132,
 		/// <summary>Pebibyte, <c>PiB</c>, 2^50 bytes: 1 PiB =  1_125_899_906_842_624 bytes</summary>
-		Pebi = 133,
+		PiB = 133,
 		/// <summary>Exibyte, <c>EiB</c>, 2^60 bytes: 1 EiB =  1_152_921_504_606_846_976 bytes</summary>
-		Exi = 134,
+		EiB = 134,
 		//...
 
 	}
 
 	/// <summary>Represents the size (in bytes) of a buffer or range of data, with its associated "natural" unit (KB, KiB, GiB, ...)</summary>
 	/// <example>A size of 8 GiB can be expressed as (8589934592, GiB) so that the value can be nicely formated as "8 GiB".</example>
+	[PublicAPI]
 	public readonly struct ByteSize : IEquatable<ByteSize>, IEquatable<long>, IEquatable<int>, IEquatable<ulong>, IEquatable<uint>
 	{
 
+		/// <summary>Zero size (0 bytes)</summary>
 		public static readonly ByteSize Zero = default;
 
 		private ByteSize(ulong value, SizeUnit unit)
@@ -84,7 +87,7 @@ namespace SnowBank.Buffers.Binary
 		/// <summary>The size (in bytes)</summary>
 		public readonly ulong Value;
 
-		/// <summary>The natural unit that was used to construct this size (GiB, KB, ..)</summary>
+		/// <summary>The natural unit that was used to construct this size (GiB, KB, ...)</summary>
 		public readonly SizeUnit Unit;
 
 		/// <summary>Test if the size is an exact multiple of its base unit</summary>
@@ -99,24 +102,67 @@ namespace SnowBank.Buffers.Binary
 			return s == 1 || (this.Value % s) == 0;
 		}
 
+		/// <summary>Returns the size in its unit</summary>
+		/// <returns>Corresponding value, expressed in the size unit. For example, if the size unit is <see cref="SizeUnit.KB"/> then the result will be the size (in bytes) divided by 1024.</returns>
+		/// <example><code>ByteSize.Create(1536, SizeUnit.KB).ScaleToUnitDouble() == 1.5d</code></example>
 		public double ScaleToUnitDouble() => this.Value * GetUnitRatio(this.Unit);
 
+		/// <summary>Returns the size, mapped to a specific unit</summary>
+		/// <param name="unit">Target unit</param>
+		/// <returns>Corresponding value, expressed in the new unit. For example, if the unit is <see cref="SizeUnit.KB"/> then the result will be the size (in bytes) divided by 1024.</returns>
+		/// <example><code>ByteSize.Bytes(1536).ScaleToUnitDouble(SizeUnit.KB) == 1.5d</code></example>
 		public double ScaleToUnitDouble(SizeUnit unit) => this.Value * GetUnitRatio(unit);
 
+		/// <summary>Returns the size in its unit, rounded to an integer</summary>
+		/// <param name="rounding">Rounding mode (defaults to <see cref="MidpointRounding.AwayFromZero"/>)</param>
+		/// <returns>Corresponding value, expressed in the size unit. For example, if the size unit is <see cref="SizeUnit.KB"/> then the result will be the size (in bytes) divided by 1024.</returns>
+		/// <example><code>ByteSize.Bytes(1536).ScaleToUnitInt32(SizeUnit.KB) == 2</code></example>
 		public int ScaleToUnitInt32(MidpointRounding rounding = MidpointRounding.AwayFromZero) => checked((int) Math.Round(this.Value * GetUnitRatio(this.Unit), rounding));
 
+		/// <summary>Returns the size, mapped to a specific unit, rounded to an integer</summary>
+		/// <param name="unit">Target unit</param>
+		/// <param name="rounding">Rounding mode (defaults to <see cref="MidpointRounding.AwayFromZero"/>)</param>
+		/// <returns>Corresponding value, expressed in the new unit. For example, if the unit is <see cref="SizeUnit.KB"/> then the result will be the size (in bytes) divided by 1024.</returns>
+		/// <example><code>ByteSize.Bytes(1536).ScaleToUnitInt32(SizeUnit.KB) == 2</code></example>
 		public int ScaleToUnitInt32(SizeUnit unit, MidpointRounding rounding = MidpointRounding.AwayFromZero) => checked((int) Math.Round(this.Value * GetUnitRatio(unit), rounding));
 
+		/// <summary>Returns the size in its unit, rounded to an integer</summary>
+		/// <param name="rounding">Rounding mode (defaults to <see cref="MidpointRounding.AwayFromZero"/>)</param>
+		/// <returns>Corresponding value, expressed in the size unit. For example, if the size unit is <see cref="SizeUnit.KB"/> then the result will be the size (in bytes) divided by 1024.</returns>
+		/// <example><code>ByteSize.Bytes(1536).ScaleToUnitUInt32(SizeUnit.KB) == 2</code></example>
 		public uint ScaleToUnitUInt32(MidpointRounding rounding = MidpointRounding.AwayFromZero) => checked((uint) Math.Round(this.Value * GetUnitRatio(this.Unit), rounding));
 
+		/// <summary>Returns the size, mapped to a specific unit, rounded to an integer</summary>
+		/// <param name="unit">Target unit</param>
+		/// <param name="rounding">Rounding mode (defaults to <see cref="MidpointRounding.AwayFromZero"/>)</param>
+		/// <returns>Corresponding value, expressed in the new unit. For example, if the unit is <see cref="SizeUnit.KB"/> then the result will be the size (in bytes) divided by 1024.</returns>
+		/// <example><code>ByteSize.Bytes(1536).ScaleToUnitUInt32(SizeUnit.KB) == 2</code></example>
 		public uint ScaleToUnitUInt32(SizeUnit unit, MidpointRounding rounding = MidpointRounding.AwayFromZero) => checked((uint) Math.Round(this.Value * GetUnitRatio(unit), rounding));
 
+		/// <summary>Returns the size in its unit, rounded to an integer</summary>
+		/// <param name="rounding">Rounding mode (defaults to <see cref="MidpointRounding.AwayFromZero"/>)</param>
+		/// <returns>Corresponding value, expressed in the size unit. For example, if the size unit is <see cref="SizeUnit.KB"/> then the result will be the size (in bytes) divided by 1024.</returns>
+		/// <example><code>ByteSize.Bytes(1536).ScaleToUnitInt64(SizeUnit.KB) == 2</code></example>
 		public long ScaleToUnitInt64(MidpointRounding rounding = MidpointRounding.AwayFromZero) => checked((long) Math.Round(this.Value * GetUnitRatio(this.Unit), rounding));
 
+		/// <summary>Returns the size, mapped to a specific unit, rounded to an integer</summary>
+		/// <param name="unit">Target unit</param>
+		/// <param name="rounding">Rounding mode (defaults to <see cref="MidpointRounding.AwayFromZero"/>)</param>
+		/// <returns>Corresponding value, expressed in the new unit. For example, if the unit is <see cref="SizeUnit.KB"/> then the result will be the size (in bytes) divided by 1024.</returns>
+		/// <example><code>ByteSize.Bytes(1536).ScaleToUnitInt64(SizeUnit.KB) == 2</code></example>
 		public long ScaleToUnitInt64(SizeUnit unit, MidpointRounding rounding = MidpointRounding.AwayFromZero) => checked((long) Math.Round(this.Value * GetUnitRatio(unit), rounding));
 
+		/// <summary>Returns the size in its unit, rounded to an integer</summary>
+		/// <param name="rounding">Rounding mode (defaults to <see cref="MidpointRounding.AwayFromZero"/>)</param>
+		/// <returns>Corresponding value, expressed in the size unit. For example, if the size unit is <see cref="SizeUnit.KB"/> then the result will be the size (in bytes) divided by 1024.</returns>
+		/// <example><code>ByteSize.Bytes(1536).ScaleToUnitUInt64(SizeUnit.KB) == 2</code></example>
 		public ulong ScaleToUnitUInt64(MidpointRounding rounding = MidpointRounding.AwayFromZero) => checked((ulong) Math.Round(this.Value * GetUnitRatio(this.Unit), rounding));
 
+		/// <summary>Returns the size, mapped to a specific unit, rounded to an integer</summary>
+		/// <param name="unit">Target unit</param>
+		/// <param name="rounding">Rounding mode (defaults to <see cref="MidpointRounding.AwayFromZero"/>)</param>
+		/// <returns>Corresponding value, expressed in the new unit. For example, if the unit is <see cref="SizeUnit.KB"/> then the result will be the size (in bytes) divided by 1024.</returns>
+		/// <example><code>ByteSize.Bytes(1536).ScaleToUnitUInt64(SizeUnit.KB) == 2</code></example>
 		public ulong ScaleToUnitUInt64(SizeUnit unit, MidpointRounding rounding = MidpointRounding.AwayFromZero) => checked((ulong) Math.Round(this.Value * GetUnitRatio(unit), rounding));
 
 		/// <summary>Test if the size is an exact multiple of the specified unit</summary>
@@ -125,7 +171,7 @@ namespace SnowBank.Buffers.Binary
 		///	<para><c>new ByteSize(16777216, SizeUnit.MiB).IsMultipleOfUnit(SizeOfUnit.MiB) == true</c> (because 16777216 mod 1048576 = 0)</para>
 		///	<para><c>new ByteSize(16777216, SizeUnit.MiB).IsMultipleOfUnit(SizeOfUnit.KiB) == true</c> (because 16777216 mod 1024 = 0)</para>
 		///	<para><c>new ByteSize(16777216, SizeUnit.MiB).IsMultipleOfUnit(SizeOfUnit.MB) == false</c> (because 16777216 mod 1000000 = 777216 != 0)</para>
-		///	<para><c>new ByteSize(16000000, SizeUnit.MB).IsMultipleOfUnit(SizeOfUnit.KB) == true</c> (because 16000000 mod 1000 = 0)</para>
+		///	<para><c>new ByteSize(16000000, SizeUnit.KB).IsMultipleOfUnit(SizeOfUnit.KB) == true</c> (because 16000000 mod 1000 = 0)</para>
 		/// </example>
 		public bool IsMultipleOfUnit(SizeUnit unit)
 		{
@@ -153,7 +199,7 @@ namespace SnowBank.Buffers.Binary
 		/// <summary>Exabyte (10^19 = 1,000,000,000,000,000,000 bytes)</summary>
 		public const long EB = 1_000_000_000_000_000_000L;
 
-		//note: 1 zettabyte is larger than 2^64 so could not be represented by this type anyway!
+		//note: 1 ZettaByte is larger than 2^64 so could not be represented by this type anyway!
 
 		#endregion
 
@@ -177,11 +223,11 @@ namespace SnowBank.Buffers.Binary
 		/// <summary>Exibyte (2^60 = 1,152,921,504,606,846,976 bytes)</summary>
 		public const long EiB = 1L << 60;
 
-		//note: 1 zebibyte is larger than 2^64 so could not be represented by this type anyway!
+		//note: 1 ZebiByte is larger than 2^64 so could not be represented by this type anyway!
 
 		#endregion
 
-
+		/// <inheritdoc />
 		public override string ToString() => this.ToString(null, null);
 
 		public string ToString(string? format, IFormatProvider? provider)
@@ -202,36 +248,36 @@ namespace SnowBank.Buffers.Binary
 		public static ulong GetUnitSize(SizeUnit unit) => unit switch
 		{
 			SizeUnit.Byte => 1,
-			SizeUnit.Kilo => KB,
-			SizeUnit.Mega => MB,
-			SizeUnit.Giga => GB,
-			SizeUnit.Tera => TB,
-			SizeUnit.Peta => PB,
-			SizeUnit.Exa => EB,
-			SizeUnit.Kibi => KiB,
-			SizeUnit.Mebi => MiB,
-			SizeUnit.Gibi => GiB,
-			SizeUnit.Tebi => TiB,
-			SizeUnit.Pebi => PiB,
-			SizeUnit.Exi => EiB,
+			SizeUnit.KB => KB,
+			SizeUnit.MB => MB,
+			SizeUnit.GB => GB,
+			SizeUnit.TB => TB,
+			SizeUnit.PB => PB,
+			SizeUnit.EB => EB,
+			SizeUnit.KiB => KiB,
+			SizeUnit.MiB => MiB,
+			SizeUnit.GiB => GiB,
+			SizeUnit.TiB => TiB,
+			SizeUnit.PiB => PiB,
+			SizeUnit.EiB => EiB,
 			_ => throw new ArgumentOutOfRangeException(nameof(unit), "Invalid size unit")
 		};
 
 		public static double GetUnitRatio(SizeUnit unit) => unit switch
 		{
 			SizeUnit.Byte => 1.0,
-			SizeUnit.Kilo => 1.0 / KB,
-			SizeUnit.Mega => 1.0 / MB,
-			SizeUnit.Giga => 1.0 / GB,
-			SizeUnit.Tera => 1.0 / TB,
-			SizeUnit.Peta => 1.0 / PB,
-			SizeUnit.Exa => 1.0 / EB,
-			SizeUnit.Kibi => 1.0 / KiB,
-			SizeUnit.Mebi => 1.0 / MiB,
-			SizeUnit.Gibi => 1.0 / GiB,
-			SizeUnit.Tebi => 1.0 / TiB,
-			SizeUnit.Pebi => 1.0 / PiB,
-			SizeUnit.Exi => 1.0 / EiB,
+			SizeUnit.KB => 1.0 / KB,
+			SizeUnit.MB => 1.0 / MB,
+			SizeUnit.GB => 1.0 / GB,
+			SizeUnit.TB => 1.0 / TB,
+			SizeUnit.PB => 1.0 / PB,
+			SizeUnit.EB => 1.0 / EB,
+			SizeUnit.KiB => 1.0 / KiB,
+			SizeUnit.MiB => 1.0 / MiB,
+			SizeUnit.GiB => 1.0 / GiB,
+			SizeUnit.TiB => 1.0 / TiB,
+			SizeUnit.PiB => 1.0 / PiB,
+			SizeUnit.EiB => 1.0 / EiB,
 			_ => throw new ArgumentOutOfRangeException(nameof(unit), "Invalid size unit")
 		};
 
@@ -241,23 +287,23 @@ namespace SnowBank.Buffers.Binary
 
 			if ((value & (KiB - 1)) == 0)
 			{ // could be base 2
-				if ((value & (MiB - 1)) != 0) return SizeUnit.Kibi;
-				if ((value & (GiB - 1)) != 0) return SizeUnit.Mebi;
-				if ((value & (TiB - 1)) != 0) return SizeUnit.Gibi;
-				if ((value & (PiB - 1)) != 0) return SizeUnit.Tebi;
-				if ((value & (EiB - 1)) != 0) return SizeUnit.Pebi;
-				return SizeUnit.Exi;
+				if ((value & (MiB - 1)) != 0) return SizeUnit.KiB;
+				if ((value & (GiB - 1)) != 0) return SizeUnit.MiB;
+				if ((value & (TiB - 1)) != 0) return SizeUnit.GiB;
+				if ((value & (PiB - 1)) != 0) return SizeUnit.TiB;
+				if ((value & (EiB - 1)) != 0) return SizeUnit.PiB;
+				return SizeUnit.EiB;
 			}
 
 			if (value % KB == 0)
 			{ // could be base 10
 
-				if ((value % MB) != 0) return SizeUnit.Kilo;
-				if ((value % GB) != 0) return SizeUnit.Mega;
-				if ((value % TB) != 0) return SizeUnit.Giga;
-				if ((value % PB) != 0) return SizeUnit.Tera;
-				if ((value % EB) != 0) return SizeUnit.Peta;
-				return SizeUnit.Exa;
+				if ((value % MB) != 0) return SizeUnit.KB;
+				if ((value % GB) != 0) return SizeUnit.MB;
+				if ((value % TB) != 0) return SizeUnit.GB;
+				if ((value % PB) != 0) return SizeUnit.TB;
+				if ((value % EB) != 0) return SizeUnit.PB;
+				return SizeUnit.EB;
 			}
 
 			return SizeUnit.Byte;
@@ -327,19 +373,45 @@ namespace SnowBank.Buffers.Binary
 
 		#region Conversion...
 
-		public static implicit operator ByteSize(int bytes) => new ByteSize(checked((ulong) bytes), SizeUnit.Byte);
+		/// <summary>Size with a specific unit</summary>
+		[Pure]
+		public static ByteSize Create(int bytes, SizeUnit unit) => new(checked((ulong) bytes), unit);
 
-		public static implicit operator ByteSize(uint bytes) => new ByteSize(bytes, SizeUnit.Byte);
+		/// <summary>Size with a specific unit</summary>
+		[Pure]
+		public static ByteSize Create(long bytes, SizeUnit unit) => new(checked((ulong) bytes), unit);
 
-		public static implicit operator ByteSize(long bytes) => new ByteSize(checked((ulong) bytes), SizeUnit.Byte);
+		/// <summary>Size with a specific unit</summary>
+		[Pure]
+		public static ByteSize Create(uint bytes, SizeUnit unit) => new(bytes, unit);
 
-		public static implicit operator ByteSize(ulong bytes) => new ByteSize(bytes, SizeUnit.Byte);
+		/// <summary>Size with a specific unit</summary>
+		[Pure]
+		public static ByteSize Create(ulong bytes, SizeUnit unit) => new(bytes, unit);
+
+		public static implicit operator ByteSize(int bytes) => new(checked((ulong) bytes), SizeUnit.Byte);
+
+		public static implicit operator ByteSize(uint bytes) => new(bytes, SizeUnit.Byte);
+
+		public static implicit operator ByteSize(long bytes) => new(checked((ulong) bytes), SizeUnit.Byte);
+
+		public static implicit operator ByteSize(ulong bytes) => new(bytes, SizeUnit.Byte);
 
 		/// <summary>Size expressed in bytes</summary>
-		public static ByteSize Bytes(ulong bytes) => new ByteSize(bytes, SizeUnit.Byte);
+		[Pure]
+		public static ByteSize Bytes(int bytes) => new(checked((ulong) bytes), SizeUnit.Byte);
 
 		/// <summary>Size expressed in bytes</summary>
-		public static ByteSize Bytes(long bytes) => new ByteSize(checked((ulong) bytes), SizeUnit.Byte);
+		[Pure]
+		public static ByteSize Bytes(long bytes) => new(checked((ulong) bytes), SizeUnit.Byte);
+
+		/// <summary>Size expressed in bytes</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ByteSize Bytes(uint bytes) => new(bytes, SizeUnit.Byte);
+
+		/// <summary>Size expressed in bytes</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ByteSize Bytes(ulong bytes) => new(bytes, SizeUnit.Byte);
 
 		#region Base 10...
 
@@ -349,16 +421,20 @@ namespace SnowBank.Buffers.Binary
 		public double ToKiloBytes() => this.Value / (double) KB;
 
 		/// <summary>Size expressed in Kilobytes (10^3 bytes)</summary>
-		public static ByteSize KiloBytes(int kb) => new ByteSize(checked((ulong) kb * KB), SizeUnit.Kilo);
+		[Pure]
+		public static ByteSize KiloBytes(int kb) => new(checked((ulong) kb * KB), SizeUnit.KB);
 
 		/// <summary>Size expressed in Kilobytes (10^3 bytes)</summary>
-		public static ByteSize KiloBytes(uint kb) => new ByteSize(checked((ulong) kb * KB), SizeUnit.Kilo);
+		[Pure]
+		public static ByteSize KiloBytes(uint kb) => new(checked((ulong) kb * KB), SizeUnit.KB);
 
 		/// <summary>Size expressed in Kilobytes (10^3 bytes)</summary>
-		public static ByteSize KiloBytes(long kb) => new ByteSize(checked((ulong) kb * KB), SizeUnit.Kilo);
+		[Pure]
+		public static ByteSize KiloBytes(long kb) => new(checked((ulong) kb * KB), SizeUnit.KB);
 
 		/// <summary>Size expressed in Kilobytes (10^3 bytes)</summary>
-		public static ByteSize KiloBytes(ulong kb) => new ByteSize(checked(kb * KB), SizeUnit.Kilo);
+		[Pure]
+		public static ByteSize KiloBytes(ulong kb) => new(checked(kb * KB), SizeUnit.KB);
 
 		#endregion
 
@@ -368,16 +444,20 @@ namespace SnowBank.Buffers.Binary
 		public double ToMegaBytes() => this.Value / (double) MB;
 
 		/// <summary>Size expressed in Megabytes (10^6 bytes)</summary>
-		public static ByteSize MegaBytes(int mb) => new ByteSize(checked((ulong) mb * MB), SizeUnit.Mega);
+		[Pure]
+		public static ByteSize MegaBytes(int mb) => new(checked((ulong) mb * MB), SizeUnit.MB);
 
 		/// <summary>Size expressed in Megabytes (10^6 bytes)</summary>
-		public static ByteSize MegaBytes(uint mb) => new ByteSize(checked((ulong) mb * MB), SizeUnit.Mega);
+		[Pure]
+		public static ByteSize MegaBytes(uint mb) => new(checked((ulong) mb * MB), SizeUnit.MB);
 
 		/// <summary>Size expressed in Megabytes (10^6 bytes)</summary>
-		public static ByteSize MegaBytes(long mb) => new ByteSize(checked((ulong) mb * MB), SizeUnit.Mega);
+		[Pure]
+		public static ByteSize MegaBytes(long mb) => new(checked((ulong) mb * MB), SizeUnit.MB);
 
 		/// <summary>Size expressed in Megabytes (10^6 bytes)</summary>
-		public static ByteSize MegaBytes(ulong mb) => new ByteSize(checked(mb * MB), SizeUnit.Mega);
+		[Pure]
+		public static ByteSize MegaBytes(ulong mb) => new(checked(mb * MB), SizeUnit.MB);
 
 		#endregion
 
@@ -387,16 +467,20 @@ namespace SnowBank.Buffers.Binary
 		public double ToGigaBytes() => this.Value / (double) GB;
 
 		/// <summary>Size expressed in Gigabytes (10^9 bytes)</summary>
-		public static ByteSize GigaBytes(int gb) => new ByteSize(checked((ulong) gb * GB), SizeUnit.Giga);
+		[Pure]
+		public static ByteSize GigaBytes(int gb) => new(checked((ulong) gb * GB), SizeUnit.GB);
 
 		/// <summary>Size expressed in Gigabytes (10^9 bytes)</summary>
-		public static ByteSize GigaBytes(uint gb) => new ByteSize(checked((ulong) gb * GB), SizeUnit.Giga);
+		[Pure]
+		public static ByteSize GigaBytes(uint gb) => new(checked((ulong) gb * GB), SizeUnit.GB);
 
 		/// <summary>Size expressed in Gigabytes (10^9 bytes)</summary>
-		public static ByteSize GigaBytes(long gb) => new ByteSize(checked((ulong) gb * GB), SizeUnit.Giga);
+		[Pure]
+		public static ByteSize GigaBytes(long gb) => new(checked((ulong) gb * GB), SizeUnit.GB);
 
 		/// <summary>Size expressed in Gigabytes (10^9 bytes)</summary>
-		public static ByteSize GigaBytes(ulong gb) => new ByteSize(checked(gb * GB), SizeUnit.Giga);
+		[Pure]
+		public static ByteSize GigaBytes(ulong gb) => new(checked(gb * GB), SizeUnit.GB);
 
 		#endregion
 
@@ -406,10 +490,12 @@ namespace SnowBank.Buffers.Binary
 		public double ToTeraBytes() => this.Value / (double) TB;
 
 		/// <summary>Size expressed in Terabytes (10^12 bytes)</summary>
-		public static ByteSize TeraBytes(int tb) => new ByteSize(checked((ulong) tb * TB), SizeUnit.Tera);
+		[Pure]
+		public static ByteSize TeraBytes(int tb) => new(checked((ulong) tb * TB), SizeUnit.TB);
 
 		/// <summary>Size expressed in Terabytes (10^12 bytes)</summary>
-		public static ByteSize TeraBytes(uint tb) => new ByteSize(checked((ulong) tb * TB), SizeUnit.Tera);
+		[Pure]
+		public static ByteSize TeraBytes(uint tb) => new(checked((ulong) tb * TB), SizeUnit.TB);
 
 		#endregion
 
@@ -419,10 +505,10 @@ namespace SnowBank.Buffers.Binary
 		public double ToPetaBytes() => this.Value / (double) PB;
 
 		/// <summary>Size expressed in Petabytes (10^15 bytes)</summary>
-		public static ByteSize PetaBytes(int pb) => new ByteSize(checked((ulong) pb * PB), SizeUnit.Peta);
+		public static ByteSize PetaBytes(int pb) => new(checked((ulong) pb * PB), SizeUnit.PB);
 
 		/// <summary>Size expressed in Petabytes (10^15 bytes)</summary>
-		public static ByteSize PetaBytes(uint pb) => new ByteSize(checked((ulong) pb * PB), SizeUnit.Peta);
+		public static ByteSize PetaBytes(uint pb) => new(checked((ulong) pb * PB), SizeUnit.PB);
 
 		#endregion
 
@@ -432,10 +518,12 @@ namespace SnowBank.Buffers.Binary
 		public double ToExaBytes() => this.Value / (double) EB;
 
 		/// <summary>Size expressed in Petabytes (10^15 bytes)</summary>
-		public static ByteSize ExaBytes(int eb) => new ByteSize(checked((ulong) eb * EB), SizeUnit.Exa);
+		[Pure]
+		public static ByteSize ExaBytes(int eb) => new(checked((ulong) eb * EB), SizeUnit.EB);
 
 		/// <summary>Size expressed in Petabytes (10^15 bytes)</summary>
-		public static ByteSize ExaBytes(uint eb) => new ByteSize(checked((ulong) eb * EB), SizeUnit.Exa);
+		[Pure]
+		public static ByteSize ExaBytes(uint eb) => new(checked((ulong) eb * EB), SizeUnit.EB);
 
 		#endregion
 
@@ -449,16 +537,16 @@ namespace SnowBank.Buffers.Binary
 		public double ToKibiBytes() => this.Value / (double) KiB;
 
 		/// <summary>Size expressed in <b>Kibibytes</b> (2^10 or 1,024 bytes)</summary>
-		public static ByteSize KibiBytes(int kib) => new ByteSize(checked((ulong) kib * KiB), SizeUnit.Kibi);
+		public static ByteSize KibiBytes(int kib) => new(checked((ulong) kib * KiB), SizeUnit.KiB);
 
 		/// <summary>Size expressed in <b>Kibibytes</b> (2^10 or 1,024 bytes)</summary>
-		public static ByteSize KibiBytes(uint kib) => new ByteSize(checked((ulong) kib * KiB), SizeUnit.Kibi);
+		public static ByteSize KibiBytes(uint kib) => new(checked((ulong) kib * KiB), SizeUnit.KiB);
 
 		/// <summary>Size expressed in <b>Kibibytes</b> (2^10 or 1,024 bytes)</summary>
-		public static ByteSize KibiBytes(long kib) => new ByteSize(checked((ulong) kib * KiB), SizeUnit.Kibi);
+		public static ByteSize KibiBytes(long kib) => new(checked((ulong) kib * KiB), SizeUnit.KiB);
 
 		/// <summary>Size expressed in <b>Kibibytes</b> (2^10 or 1,024 bytes)</summary>
-		public static ByteSize KibiBytes(ulong kib) => new ByteSize(checked(kib * KiB), SizeUnit.Kibi);
+		public static ByteSize KibiBytes(ulong kib) => new(checked(kib * KiB), SizeUnit.KiB);
 
 		#endregion
 
@@ -468,16 +556,16 @@ namespace SnowBank.Buffers.Binary
 		public double ToMebiBytes() => this.Value / (double) MiB;
 
 		/// <summary>Size expressed in <b>Mebibytes</b> (2^20 or 1,048,576 bytes)</summary>
-		public static ByteSize MebiBytes(int mib) => new ByteSize(checked((ulong) mib * MiB), SizeUnit.Mebi);
+		public static ByteSize MebiBytes(int mib) => new(checked((ulong) mib * MiB), SizeUnit.MiB);
 
 		/// <summary>Size expressed in <b>Mebibytes</b> (2^20 or 1,048,576 bytes)</summary>
-		public static ByteSize MebiBytes(uint mib) => new ByteSize(checked((ulong) mib * MiB), SizeUnit.Mebi);
+		public static ByteSize MebiBytes(uint mib) => new(checked((ulong) mib * MiB), SizeUnit.MiB);
 
 		/// <summary>Size expressed in <b>Mebibytes</b> (2^20 or 1,048,576 bytes)</summary>
-		public static ByteSize MebiBytes(long mib) => new ByteSize(checked((ulong) mib * MiB), SizeUnit.Mebi);
+		public static ByteSize MebiBytes(long mib) => new(checked((ulong) mib * MiB), SizeUnit.MiB);
 
 		/// <summary>Size expressed in <b>Mebibytes</b> (2^20 or 1,048,576 bytes)</summary>
-		public static ByteSize MebiBytes(ulong mib) => new ByteSize(checked(mib * MiB), SizeUnit.Mebi);
+		public static ByteSize MebiBytes(ulong mib) => new(checked(mib * MiB), SizeUnit.MiB);
 
 		#endregion
 
@@ -486,17 +574,17 @@ namespace SnowBank.Buffers.Binary
 		/// <summary>Return the size, downscaled to Gibibytes (<c>GiB</c>, 2^30 bytes)</summary>
 		public double ToGibiBytes() => this.Value / (double) GiB;
 
-		/// <summary>Size expressed in <b>Gibibytes</b> (2^30 or 1,073,741,824 bytes bytes)</summary>
-		public static ByteSize GibiBytes(int gib) => new ByteSize(checked((ulong) gib * GiB), SizeUnit.Gibi);
+		/// <summary>Size expressed in <b>Gibibytes</b> (2^30 or 1,073,741,824 bytes)</summary>
+		public static ByteSize GibiBytes(int gib) => new(checked((ulong) gib * GiB), SizeUnit.GiB);
 
-		/// <summary>Size expressed in <b>Gibibytes</b> (2^30 or 1,073,741,824 bytes bytes)</summary>
-		public static ByteSize GibiBytes(uint gib) => new ByteSize(checked((ulong) gib * GiB), SizeUnit.Gibi);
+		/// <summary>Size expressed in <b>Gibibytes</b> (2^30 or 1,073,741,824 bytes)</summary>
+		public static ByteSize GibiBytes(uint gib) => new(checked((ulong) gib * GiB), SizeUnit.GiB);
 
-		/// <summary>Size expressed in <b>Gibibytes</b> (2^30 or 1,073,741,824 bytes bytes)</summary>
-		public static ByteSize GibiBytes(long gib) => new ByteSize(checked((ulong) gib * GiB), SizeUnit.Gibi);
+		/// <summary>Size expressed in <b>Gibibytes</b> (2^30 or 1,073,741,824 bytes)</summary>
+		public static ByteSize GibiBytes(long gib) => new(checked((ulong) gib * GiB), SizeUnit.GiB);
 
-		/// <summary>Size expressed in <b>Gibibytes</b> (2^30 or 1,073,741,824 bytes bytes)</summary>
-		public static ByteSize GibiBytes(ulong gib) => new ByteSize(checked(gib * GiB), SizeUnit.Gibi);
+		/// <summary>Size expressed in <b>Gibibytes</b> (2^30 or 1,073,741,824 bytes)</summary>
+		public static ByteSize GibiBytes(ulong gib) => new(checked(gib * GiB), SizeUnit.GiB);
 
 		#endregion
 
@@ -506,10 +594,10 @@ namespace SnowBank.Buffers.Binary
 		public double ToTebiBytes() => this.Value / (double) TiB;
 
 		/// <summary>Size expressed in <b>Tebibytes</b> (2^40 or 1,099,511,627,776 bytes)</summary>
-		public static ByteSize TebiBytes(int tib) => new ByteSize(checked((ulong) tib * TiB), SizeUnit.Tebi);
+		public static ByteSize TebiBytes(int tib) => new(checked((ulong) tib * TiB), SizeUnit.TiB);
 
 		/// <summary>Size expressed in <b>Tebibytes</b> (2^40 or 1,099,511,627,776 bytes)</summary>
-		public static ByteSize TebiBytes(uint tib) => new ByteSize(checked((ulong) tib * TiB), SizeUnit.Tebi);
+		public static ByteSize TebiBytes(uint tib) => new(checked((ulong) tib * TiB), SizeUnit.TiB);
 
 		#endregion
 
@@ -519,10 +607,10 @@ namespace SnowBank.Buffers.Binary
 		public double ToPebiBytes() => this.Value / (double) PiB;
 
 		/// <summary>Size expressed in <b>Pebibytes</b> (2^50 or 1,125,899,906,842,624 bytes)</summary>
-		public static ByteSize PebiBytes(int pib) => new ByteSize(checked((ulong) pib * PiB), SizeUnit.Pebi);
+		public static ByteSize PebiBytes(int pib) => new(checked((ulong) pib * PiB), SizeUnit.PiB);
 
 		/// <summary>Size expressed in <b>Pebibytes</b> (2^50 or 1,125,899,906,842,624 bytes)</summary>
-		public static ByteSize PebiBytes(uint pib) => new ByteSize(checked((ulong) pib * PiB), SizeUnit.Pebi);
+		public static ByteSize PebiBytes(uint pib) => new(checked((ulong) pib * PiB), SizeUnit.PiB);
 
 		#endregion
 
@@ -532,26 +620,28 @@ namespace SnowBank.Buffers.Binary
 		public double ToExiBytes() => this.Value / (double) EiB;
 
 		/// <summary>Size expressed in <b>Exibytes</b> (2^60 or 1,152,921,504,606,846,976 bytes)</summary>
-		public static ByteSize ExiBytes(int eib) => new ByteSize(checked((ulong) eib * EiB), SizeUnit.Exi);
+		public static ByteSize ExiBytes(int eib) => new(checked((ulong) eib * EiB), SizeUnit.EiB);
 
 		/// <summary>Size expressed in <b>Exibytes</b> (2^60 or 1,152,921,504,606,846,976 bytes)</summary>
-		public static ByteSize ExiBytes(uint eib) => new ByteSize(checked((ulong) eib * EiB), SizeUnit.Exi);
+		public static ByteSize ExiBytes(uint eib) => new(checked((ulong) eib * EiB), SizeUnit.EiB);
 
 		#endregion
 
 		#endregion
 
-		/// <summary>Return the value in a signed 32-bit integer</summary>
+		/// <summary>Returns the value as a signed 32-bit integer</summary>
 		/// <exception cref="OverflowException">If the value is larger than <c>int.MaxValue</c> (~2 GiB)</exception>
 		public int ToInt32() => checked((int) this.Value);
 
-		/// <summary>Return the value in a signed 32-bit integer</summary>
+		/// <summary>Returns the value as an unsigned 32-bit integer</summary>
 		/// <exception cref="OverflowException">If the value is larger than <c>uint.MaxValue</c> (~4 GiB)</exception>
 		public uint ToUInt32() => checked((uint) this.Value);
 
+		/// <summary>Returns the value as a signed 64-bit integer</summary>
 		/// <exception cref="OverflowException">If the value is larger than <c>long.MaxValue</c> (~4 GiB)</exception>
 		public long ToInt64() => checked((long) this.Value);
 
+		/// <summary>Returns the value as an unsigned 64-bit integer</summary>
 		public ulong ToUInt64() => this.Value;
 
 		public static implicit operator int(ByteSize size) => checked((int) size.Value);
@@ -562,6 +652,7 @@ namespace SnowBank.Buffers.Binary
 
 		public static implicit operator ulong(ByteSize size) => size.Value;
 
+		/// <summary>Returns a string representation of this instance, using the best unit (without rounding errors).</summary>
 		public string ToNaturalString(IFormatProvider? provider = null)
 		{
 			if (this.Unit == SizeUnit.Byte)
@@ -577,6 +668,7 @@ namespace SnowBank.Buffers.Binary
 			return this.ToString(null, provider);
 		}
 
+		/// <summary>Returns a string representation of this instance, using its natural unit (with rounding if necessary).</summary>
 		public string ToApproximateString(bool base2 = false, IFormatProvider? provider = null)
 		{
 			provider ??= CultureInfo.InvariantCulture;
@@ -587,10 +679,10 @@ namespace SnowBank.Buffers.Binary
 				unit = this.Value switch
 				{
 					< ByteSize.KiB => SizeUnit.Byte,
-					< ByteSize.MiB => SizeUnit.Kibi,
-					< ByteSize.GiB => SizeUnit.Mebi,
-					< ByteSize.TiB => SizeUnit.Gibi,
-					_ => SizeUnit.Tebi,
+					< ByteSize.MiB => SizeUnit.KiB,
+					< ByteSize.GiB => SizeUnit.MiB,
+					< ByteSize.TiB => SizeUnit.GiB,
+					_ => SizeUnit.TiB,
 				};
 			}
 			else
@@ -598,10 +690,10 @@ namespace SnowBank.Buffers.Binary
 				unit = this.Value switch
 				{
 					< ByteSize.KB => SizeUnit.Byte,
-					< ByteSize.MB => SizeUnit.Kilo,
-					< ByteSize.GB => SizeUnit.Mega,
-					< ByteSize.TB => SizeUnit.Giga,
-					_ => SizeUnit.Tera,
+					< ByteSize.MB => SizeUnit.KB,
+					< ByteSize.GB => SizeUnit.MB,
+					< ByteSize.TB => SizeUnit.GB,
+					_ => SizeUnit.TB,
 				};
 			}
 
@@ -612,7 +704,7 @@ namespace SnowBank.Buffers.Binary
 
 			var ratio = GetUnitRatio(unit);
 
-			string fmt = unit is SizeUnit.Kibi or SizeUnit.Kilo ? "N2" : "N1";
+			string fmt = unit is SizeUnit.KiB or SizeUnit.KB ? "N2" : "N1";
 
 			return (this.Value * ratio).ToString(fmt, provider) + " " + GetUnitLiteral(unit);
 
@@ -622,6 +714,7 @@ namespace SnowBank.Buffers.Binary
 
 		#region Parsing...
 
+		/// <summary>Tries parsing a string representation of a size ("1 KB", "2 MiB", ...)</summary>
 		public static bool TryParse(ReadOnlySpan<char> literal, out ByteSize value)
 		{
 			if (literal.Length == 0) goto invalid;
@@ -647,27 +740,27 @@ namespace SnowBank.Buffers.Binary
 
 					if (u == 'K')
 					{ // "KiB" means 2^10 bytes
-						unit = SizeUnit.Kibi;
+						unit = SizeUnit.KiB;
 					}
 					else if (u == 'M')
 					{ // "MiB" means 2^20 bytes
-						unit = SizeUnit.Mebi;
+						unit = SizeUnit.MiB;
 					}
 					else if (u == 'G')
 					{ // "GiB" means 2^30 bytes
-						unit = SizeUnit.Gibi;
+						unit = SizeUnit.GiB;
 					}
 					else if (u == 'T')
 					{ // "TiB" means 2^40 bytes
-						unit = SizeUnit.Tebi;
+						unit = SizeUnit.TiB;
 					}
 					else if (u == 'P')
 					{ // "PiB" means 2^50 bytes
-						unit = SizeUnit.Pebi;
+						unit = SizeUnit.PiB;
 					}
 					else if (u == 'E')
 					{ // "EiB" means 2^60 bytes
-						unit = SizeUnit.Exi;
+						unit = SizeUnit.EiB;
 					}
 					else
 					{
@@ -681,32 +774,32 @@ namespace SnowBank.Buffers.Binary
 					if (u == 'K')
 					{ // "KB" means 10^3 bytes
 						offset = 2;
-						unit = SizeUnit.Kilo;
+						unit = SizeUnit.KB;
 					}
 					else if (u == 'M')
 					{ // "MB" means 10^6 bytes
 						offset = 2;
-						unit = SizeUnit.Mega;
+						unit = SizeUnit.MB;
 					}
 					else if (u == 'G')
 					{ // "GB" means 10^9 bytes
 						offset = 2;
-						unit = SizeUnit.Giga;
+						unit = SizeUnit.GB;
 					}
 					else if (u == 'T')
 					{ // "TB" means 10^12 bytes
 						offset = 2;
-						unit = SizeUnit.Tera;
+						unit = SizeUnit.TB;
 					}
 					else if (u == 'P')
 					{ // "PB" means 10^15 bytes
 						offset = 2;
-						unit = SizeUnit.Peta;
+						unit = SizeUnit.PB;
 					}
 					else if (u == 'E')
 					{ // "EB" means 10^19 bytes
 						offset = 2;
-						unit = SizeUnit.Exa;
+						unit = SizeUnit.EB;
 					}
 					else
 					{ // probably bytes
@@ -724,32 +817,32 @@ namespace SnowBank.Buffers.Binary
 				if (last == 'K')
 				{ // "K" means "KiB" or 2^10 bytes
 					offset = 1;
-					unit = SizeUnit.Kibi;
+					unit = SizeUnit.KiB;
 				}
 				else if (last == 'M')
 				{ // "M" means "MiB" or 2^20 bytes
 					offset = 1;
-					unit = SizeUnit.Mebi;
+					unit = SizeUnit.MiB;
 				}
 				else if (last == 'G')
 				{ // "G" means "GiB" or 2^30 bytes
 					offset = 1;
-					unit = SizeUnit.Gibi;
+					unit = SizeUnit.GiB;
 				}
 				else if (last == 'T')
 				{ // "T" means "TiB" or 2^40 bytes
 					offset = 1;
-					unit = SizeUnit.Tebi;
+					unit = SizeUnit.TiB;
 				}
 				else if (last == 'P')
 				{ // "P" means "PiB" or 2^50 bytes
 					offset = 1;
-					unit = SizeUnit.Tebi;
+					unit = SizeUnit.TiB;
 				}
 				else if (last == 'E')
 				{ // "P" means "EiB" or 2^60 bytes
 					offset = 1;
-					unit = SizeUnit.Exi;
+					unit = SizeUnit.EiB;
 				}
 				else
 				{
@@ -769,7 +862,7 @@ namespace SnowBank.Buffers.Binary
 
 			try
 			{
-				value = new ByteSize(checked((ulong) num * GetUnitSize(unit)), unit);
+				value = new(checked((ulong) num * GetUnitSize(unit)), unit);
 				return true;
 			}
 			catch (OverflowException)
@@ -782,48 +875,62 @@ namespace SnowBank.Buffers.Binary
 			return false;
 		}
 
-		public static string GetUnitLiteral(SizeUnit unit)
+		/// <summary>Gets the string literal for a specific <see cref="SizeUnit"/> (ex: <c>"MB"</c> for <see cref="SizeUnit.MB"/>, <c>"GiB"</c> for <see cref="SizeUnit.GB"/></summary>
+		public static string GetUnitLiteral(SizeUnit unit) => unit switch
 		{
-			switch (unit)
-			{
-				case SizeUnit.Byte: return "b";
-				case SizeUnit.Kilo: return "KB";
-				case SizeUnit.Mega: return "MB";
-				case SizeUnit.Giga: return "GB";
-				case SizeUnit.Tera: return "TB";
-				case SizeUnit.Peta: return "PB";
-				case SizeUnit.Exa: return "EB";
-				case SizeUnit.Kibi: return "KiB";
-				case SizeUnit.Mebi: return "MiB";
-				case SizeUnit.Gibi: return "GiB";
-				case SizeUnit.Tebi: return "TiB";
-				case SizeUnit.Pebi: return "PiB";
-				case SizeUnit.Exi: return "EiB";
-				default: throw new ArgumentOutOfRangeException(nameof(unit), "Unknown size unit");
-			}
-		}
+			SizeUnit.Byte => "b",
+			SizeUnit.KB => "KB",
+			SizeUnit.MB => "MB",
+			SizeUnit.GB => "GB",
+			SizeUnit.TB => "TB",
+			SizeUnit.PB => "PB",
+			SizeUnit.EB => "EB",
+			SizeUnit.KiB => "KiB",
+			SizeUnit.MiB => "MiB",
+			SizeUnit.GiB => "GiB",
+			SizeUnit.TiB => "TiB",
+			SizeUnit.PiB => "PiB",
+			SizeUnit.EiB => "EiB",
+			_ => throw new ArgumentOutOfRangeException(nameof(unit), "Unknown size unit")
+		};
 
-		public static SizeUnit FromUnitLiteral(string literal)
+		/// <summary>Gets the size unit that corresponds to a string literal (ex: <see cref="SizeUnit.MB"/> for <c>"MB"</c>, <see cref="SizeUnit.GB"/> for <c>"GiB"</c></summary>
+		public static SizeUnit FromUnitLiteral(string literal) => literal switch
 		{
-			switch (literal)
-			{
-				case "b": return SizeUnit.Byte;
-				case "KB": return SizeUnit.Kilo;
-				case "MB": return SizeUnit.Mega;
-				case "GB": return SizeUnit.Giga;
-				case "TB": return SizeUnit.Tera;
-				case "PB": return SizeUnit.Peta;
-				case "EB": return SizeUnit.Exa;
-				case "KiB": return SizeUnit.Kibi;
-				case "MiB": return SizeUnit.Mebi;
-				case "GiB": return SizeUnit.Gibi;
-				case "TiB": return SizeUnit.Tebi;
-				case "PiB": return SizeUnit.Pebi;
-				case "EiB": return SizeUnit.Exi;
-				default: throw new ArgumentOutOfRangeException(nameof(literal), "Unknown size unit");
-			}
-		}
+			"b" or "B" => SizeUnit.Byte,
+			"kb" or "KB" => SizeUnit.KB,
+			"mb" or "MB" => SizeUnit.MB,
+			"gb" or "GB" => SizeUnit.GB,
+			"tb" or "TB" => SizeUnit.TB,
+			"pb" or "PB" => SizeUnit.PB,
+			"eb" or "EB" => SizeUnit.EB,
+			"kib" or "KiB" => SizeUnit.KiB,
+			"mib" or "MiB" => SizeUnit.MiB,
+			"gib" or "GiB" => SizeUnit.GiB,
+			"tib" or "TiB" => SizeUnit.TiB,
+			"pib" or "PiB" => SizeUnit.PiB,
+			"eib" or "EiB" => SizeUnit.EiB,
+			_ => throw new ArgumentOutOfRangeException(nameof(literal), "Unknown size unit")
+		};
 
+		/// <summary>Gets the size unit that corresponds to a string literal (ex: <see cref="SizeUnit.MB"/> for <c>"MB"</c>, <see cref="SizeUnit.GB"/> for <c>"GiB"</c></summary>
+		public static SizeUnit FromUnitLiteral(ReadOnlySpan<char> literal) => literal switch
+		{
+			"b" or "B" => SizeUnit.Byte,
+			"kb" or "KB" => SizeUnit.KB,
+			"mb" or "MB" => SizeUnit.MB,
+			"gb" or "GB" => SizeUnit.GB,
+			"tb" or "TB" => SizeUnit.TB,
+			"pb" or "PB" => SizeUnit.PB,
+			"eb" or "EB" => SizeUnit.EB,
+			"kib" or "KiB" => SizeUnit.KiB,
+			"mib" or "MiB" => SizeUnit.MiB,
+			"gib" or "GiB" => SizeUnit.GiB,
+			"tib" or "TiB" => SizeUnit.TiB,
+			"pib" or "PiB" => SizeUnit.PiB,
+			"eib" or "EiB" => SizeUnit.EiB,
+			_ => throw new ArgumentOutOfRangeException(nameof(literal), "Unknown size unit")
+		};
 
 		#endregion
 
