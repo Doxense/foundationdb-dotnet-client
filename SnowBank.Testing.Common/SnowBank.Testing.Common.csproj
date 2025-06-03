@@ -13,9 +13,24 @@
 		<SignAssembly>true</SignAssembly>
 		<AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
 		<Deterministic>true</Deterministic>
+		<ProduceReferenceAssembly>true</ProduceReferenceAssembly>
 	</PropertyGroup>
 
 	<Import Project="..\Common\VersionInfo.props" />
+
+	<PropertyGroup>
+		<AssemblyTitle>SnowBank Testing SDK</AssemblyTitle>
+		<Description>Library for writing NUnit tests with the SnowBank SDK</Description>
+		<PackageTags>snowbank sdk nunit test testing tdd</PackageTags>
+		<!--<PackageReadmeFile>README.md</PackageReadmeFile>-->
+		<PackageIcon>snowbank.png</PackageIcon>
+		<GenerateDocumentationFile Condition="'$(Configuration)' != 'Debug'">true</GenerateDocumentationFile>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="../Common/snowbank.png" Pack="true" Visible="false" PackagePath="\" />
+		<!--<None Include="./README.md" Pack="true" Visible="false" PackagePath="\" />-->
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Extensions.Logging" />
