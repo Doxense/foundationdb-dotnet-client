@@ -29,6 +29,7 @@
 namespace SnowBank.Buffers
 {
 	using System.Buffers;
+	using System.ComponentModel;
 	using System.Runtime.InteropServices;
 
 	/// <summary>Buffer that will accumulate data in a contiguous span, starting from a stack allocated buffer, and switching to pooled buffers if required</summary>
@@ -71,6 +72,7 @@ namespace SnowBank.Buffers
 
 		/// <summary><c>YOU MUST PROVIDE AN INITIAL SCRATCH SPACE!</c></summary>
 		[Obsolete("You must specify an initial scratch buffer", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public SegmentedValueBuffer() { }
 
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.

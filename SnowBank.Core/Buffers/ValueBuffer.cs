@@ -28,6 +28,7 @@ namespace SnowBank.Buffers
 {
 	using System.Buffers;
 	using System.Collections.Immutable;
+	using System.ComponentModel;
 	using System.Runtime.InteropServices;
 
 #if NET8_0_OR_GREATER
@@ -87,6 +88,7 @@ namespace SnowBank.Buffers
 
 		/// <summary><c>YOU MUST PROVIDE AN INITIAL CAPACITY OR SCRATCH SPACE!</c></summary>
 		[Obsolete("You must specify an initial capacity or scratch buffer", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public ValueBuffer() { }
 
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
