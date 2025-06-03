@@ -1,66 +1,6 @@
-﻿namespace JetBrains.Annotations
+namespace JetBrains.Annotations
 {
 	//README: these should all be marked as 'internal', so as not to conflict with the same attributes that would exist in the parent application !
-
-	/// <summary>
-	/// Indicates that the value of the marked element could be <c>null</c> sometimes,
-	/// so the check for <c>null</c> is necessary before its usage.
-	/// </summary>
-	/// <example><code>
-	/// [CanBeNull] object Test() => null;
-	///
-	/// void UseTest() {
-	///   var p = Test();
-	///   var s = p.ToString(); // Warning: Possible 'System.NullReferenceException'
-	/// }
-	/// </code></example>
-	[AttributeUsage(
-	  AttributeTargets.Method | AttributeTargets.Parameter | AttributeTargets.Property |
-	  AttributeTargets.Delegate | AttributeTargets.Field | AttributeTargets.Event |
-	  AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.GenericParameter)]
-	[Conditional("JETBRAINS_ANNOTATIONS")]
-	[Obsolete("Use C# 8.0 nullable annotations instead", error: true)]
-	public sealed class CanBeNullAttribute : Attribute { }
-
-	/// <summary>
-	/// Indicates that the value of the marked element could never be <c>null</c>.
-	/// </summary>
-	/// <example><code>
-	/// [NotNull] object Foo() {
-	///   return null; // Warning: Possible 'null' assignment
-	/// }
-	/// </code></example>
-	[AttributeUsage(
-	  AttributeTargets.Method | AttributeTargets.Parameter | AttributeTargets.Property |
-	  AttributeTargets.Delegate | AttributeTargets.Field | AttributeTargets.Event |
-	  AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.GenericParameter)]
-	[Conditional("JETBRAINS_ANNOTATIONS")]
-	[Obsolete("Use C# 8.0 nullable annotations instead", error: true)]
-	public sealed class NotNullAttribute : Attribute { }
-
-	/// <summary>
-	/// Can be applied to symbols of types derived from IEnumerable as well as to symbols of Task
-	/// and Lazy classes to indicate that the value of a collection item, of the Task.Result property
-	/// or of the Lazy.Value property can never be null.
-	/// </summary>
-	[AttributeUsage(
-	  AttributeTargets.Method | AttributeTargets.Parameter | AttributeTargets.Property |
-	  AttributeTargets.Delegate | AttributeTargets.Field)]
-	[Conditional("JETBRAINS_ANNOTATIONS")]
-	[Obsolete("Use C# 8.0 nullable annotations instead", error: true)]
-	public sealed class ItemNotNullAttribute : Attribute { }
-
-	/// <summary>
-	/// Can be applied to symbols of types derived from IEnumerable as well as to symbols of Task
-	/// and Lazy classes to indicate that the value of a collection item, of the Task.Result property
-	/// or of the Lazy.Value property can be null.
-	/// </summary>
-	[AttributeUsage(
-	  AttributeTargets.Method | AttributeTargets.Parameter | AttributeTargets.Property |
-	  AttributeTargets.Delegate | AttributeTargets.Field)]
-	[Conditional("JETBRAINS_ANNOTATIONS")]
-	[Obsolete("Use C# 8.0 nullable annotations instead", error: true)]
-	public sealed class ItemCanBeNullAttribute : Attribute { }
 
 	/// <summary>
 	/// Implicitly apply [NotNull]/[ItemNotNull] annotation to all the of type members and parameters
