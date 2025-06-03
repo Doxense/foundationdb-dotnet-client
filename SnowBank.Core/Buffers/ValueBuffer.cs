@@ -332,7 +332,7 @@ namespace SnowBank.Buffers
 		}
 
 		[Pure, CollectionAccess(CollectionAccessType.ModifyExistingContent)]
-		public HashSet<T> ToHashSetClear(IEqualityComparer<T>? comparer = null)
+		public HashSet<T> ToHashSetAndClear(IEqualityComparer<T>? comparer = null)
 		{
 			var items = ToHashSet(comparer);
 			Clear(release: true);
