@@ -144,6 +144,7 @@ namespace SnowBank.Data.Json
 	/// <typeparam name="TValue">Beacon type for the exposed proxy</typeparam>
 	/// <typeparam name="TReadOnlyProxy">Type of the generated read-only proxy that mimics the properties on type <typeparamref name="TValue"/></typeparam>
 	/// <typeparam name="TWritableProxy">Type of the generated writable proxy that mimics the properties on type <typeparamref name="TValue"/></typeparam>
+	[PublicAPI]
 	public interface IJsonConverter<TValue, out TReadOnlyProxy, out TWritableProxy> :
 		IJsonReadOnlyConverter<TValue, TReadOnlyProxy>,
 		IJsonWritableConverter<TValue, TWritableProxy>

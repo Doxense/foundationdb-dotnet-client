@@ -28,6 +28,7 @@ namespace SnowBank.Data.Json
 {
 
 	/// <summary>Wraps a <see cref="JsonValue"/> into a typed read-only proxy</summary>
+	[PublicAPI]
 	public interface IJsonReadOnlyProxy : IJsonSerializable, IJsonPackable, IEquatable<JsonValue>, IEquatable<ObservableJsonValue>
 	{
 

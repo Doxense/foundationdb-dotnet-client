@@ -30,6 +30,7 @@ namespace SnowBank.Data.Json
 	/// <summary>Type that can deserialize instances of <typeparamref name="T"/> from JSON</summary>
 	/// <typeparam name="T">Type of the values to deserialize</typeparam>
 	/// <remarks>Types can serialize themselves, but this interface can also be used on "helper types" that are separate (manually written, or via source code generation)</remarks>
+	[PublicAPI]
 	public interface IJsonDeserializer<out T>
 	{
 

@@ -27,6 +27,7 @@
 namespace SnowBank.Data.Json
 {
 	/// <summary>Collection that aggregates multiple smaller collections into a single chain</summary>
+	[PublicAPI]
 	public sealed class CrystalJsonTypeResolverChain : ICrystalJsonTypeResolver
 	{
 
@@ -34,22 +35,24 @@ namespace SnowBank.Data.Json
 		[Pure]
 		public static CrystalJsonTypeResolverChain Create() => new();
 
-		public static CrystalJsonTypeResolverChain Create(ICrystalJsonTypeResolver root)
+		/// <summary>Creates a new chain with the specified resolver as the root</summary>
+		/// <param name="resolver">First resolver in the chain</param>
+		public static CrystalJsonTypeResolverChain Create(ICrystalJsonTypeResolver resolver)
 		{
-			Contract.NotNull(root);
+			Contract.NotNull(resolver);
 
 			var chain = new CrystalJsonTypeResolverChain();
-			chain.Append(root);
+			chain.Append(resolver);
 			return chain;
 		}
 
 		/// <summary>Creates a new chain with the specified type collections</summary>
-		/// <param name="collections">List of collections, in the same order as they would be appended to the chain using <see cref="Append"/></param>
+		/// <param name="resolvers">List of resolvers, in the same order as they would be appended to the chain using <see cref="Append"/></param>
 		[Pure]
-		public static CrystalJsonTypeResolverChain Create(ReadOnlySpan<ICrystalJsonTypeResolver> collections)
+		public static CrystalJsonTypeResolverChain Create(ReadOnlySpan<ICrystalJsonTypeResolver> resolvers)
 		{
 			var chain = new CrystalJsonTypeResolverChain();
-			foreach (var collection in collections)
+			foreach (var collection in resolvers)
 			{
 				chain = chain.Append(collection);
 			}

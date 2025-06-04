@@ -32,6 +32,7 @@ namespace SnowBank.Data.Json
 	/// <para>Types that handle their own custom serialization should typically implement this interface, as well as <see cref="IJsonSerializable"/> and <see cref="IJsonDeserializable{TSelf}"/>.</para>
 	/// <para>If the original type cannot be modified, see <see cref="IJsonSerializer{T}"/>.</para>
 	/// </remarks>
+	[PublicAPI]
 	public interface IJsonSerializable
 	{
 

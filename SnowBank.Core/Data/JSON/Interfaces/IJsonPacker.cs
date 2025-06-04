@@ -29,6 +29,7 @@ namespace SnowBank.Data.Json
 
 	/// <summary>Types that implement this interface support packing directly into a <see cref="JsonValue"/></summary>
 	/// <remarks>Types that also support packing to a <see cref="JsonValue"/> should implement <see cref="IJsonDeserializable{T}"/> as well.</remarks>
+	[PublicAPI]
 	public interface IJsonPacker<in T>
 	{
 

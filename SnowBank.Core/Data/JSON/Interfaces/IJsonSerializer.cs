@@ -30,6 +30,7 @@ namespace SnowBank.Data.Json
 	/// <summary>Type that can serialize instances of <typeparamref name="T"/> into JSON</summary>
 	/// <typeparam name="T">Type of the values to serialize</typeparam>
 	/// <remarks>Types can serialize themselves, but this interface can also be used on "helper types" that are separate (manually written, or via source code generation)</remarks>
+	[PublicAPI]
 	public interface IJsonSerializer<in T>
 	{
 
