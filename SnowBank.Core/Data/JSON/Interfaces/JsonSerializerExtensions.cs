@@ -564,6 +564,11 @@ namespace SnowBank.Data.Json
 				return null;
 			}
 
+			if (items.Count == 0)
+			{
+				return settings.IsReadOnly() ? JsonObject.ReadOnly.Empty : new();
+			}
+
 			var result = new JsonObject(items.Count);
 			foreach (var kv in items)
 			{
@@ -586,6 +591,11 @@ namespace SnowBank.Data.Json
 				return null;
 			}
 
+			if (items.Count == 0)
+			{
+				return settings.IsReadOnly() ? JsonObject.ReadOnly.Empty : new();
+			}
+
 			var result = new JsonObject(items.Count);
 			if (items is Dictionary<string, TValue> dict)
 			{
@@ -601,6 +611,68 @@ namespace SnowBank.Data.Json
 				{
 					result[kv.Key] = kv.Value is not null ? serializer.Pack(kv.Value, settings, resolver) : JsonNull.Null;
 				}
+			}
+
+			if (settings.IsReadOnly())
+			{
+				result = result.FreezeUnsafe();
+			}
+
+			return result;
+		}
+
+		public static JsonObject PackObject<TValue>(this IJsonPacker<TValue> serializer, ReadOnlySpan<KeyValuePair<string, TValue>> items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			if (items.Length == 0)
+			{
+				return settings.IsReadOnly() ? JsonObject.ReadOnly.Empty : new();
+			}
+
+			var result = new JsonObject(items.Length);
+
+			foreach (var kv in items)
+			{
+				result[kv.Key] = kv.Value is not null ? serializer.Pack(kv.Value, settings, resolver) : JsonNull.Null;
+			}
+
+			if (settings.IsReadOnly())
+			{
+				result = result.FreezeUnsafe();
+			}
+
+			return result;
+		}
+
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonObject? PackObject<TValue>(this IJsonPacker<TValue> serializer, IEnumerable<KeyValuePair<string, TValue>>? items, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			if (items is null)
+			{
+				return null;
+			}
+
+			if (items.TryGetSpan(out var span))
+			{
+				return PackObject(serializer, span, settings, resolver);
+			}
+
+			JsonObject result;
+			if (items.TryGetNonEnumeratedCount(out var count))
+			{
+				if (count == 0)
+				{
+					return settings.IsReadOnly() ? JsonObject.ReadOnly.Empty : new();
+				}
+				result = new(count);
+			}
+			else
+			{
+				result = new();
+			}
+
+			foreach (var kv in items)
+			{
+				result[kv.Key] = kv.Value is not null ? serializer.Pack(kv.Value, settings, resolver) : JsonNull.Null;
 			}
 
 			if (settings.IsReadOnly())
