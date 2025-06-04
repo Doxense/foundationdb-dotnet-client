@@ -43,7 +43,7 @@ namespace SnowBank.Buffers.Text
 		/// <param name="text">String to encode</param>
 		/// <param name="includeBom">If <c>true</c>, includes the UTF8 BOM at the start of the buffer</param>
 		/// <param name="noHashCode">If <c>true</c>, skip the computation of the hashcode of the resulting string.</param>
-		/// <returns>Buffer that contains the utf-8 binary representation of <see cref="text"/>, with an optional BOM.</returns>
+		/// <returns>Buffer that contains the utf-8 binary representation of <paramref name="text"/>, with an optional BOM.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Utf8String FromString(string? text, bool includeBom = false, bool noHashCode = false)
 		{
@@ -56,7 +56,7 @@ namespace SnowBank.Buffers.Text
 		/// <param name="count">Size (in characters) of the part of <paramref name="text"/> to encode</param>
 		/// <param name="includeBom">If <c>true</c>, includes the UTF8 BOM at the start of the buffer</param>
 		/// <param name="noHashCode">If <c>true</c>, skip the computation of the hashcode of the resulting string.</param>
-		/// <returns>Buffer that contains the utf-8 binary representation of <see cref="text"/>, with an optional BOM.</returns>
+		/// <returns>Buffer that contains the utf-8 binary representation of <paramref name="text"/>, with an optional BOM.</returns>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Utf8String FromString(string? text, int offset, int count, bool includeBom = false, bool noHashCode = false)
@@ -70,7 +70,7 @@ namespace SnowBank.Buffers.Text
 		/// <param name="text">Span of characters to encode</param>
 		/// <param name="includeBom">If <c>true</c>, includes the UTF8 BOM at the start of the buffer</param>
 		/// <param name="noHashCode">If <c>true</c>, skip the computation of the hashcode of the resulting string.</param>
-		/// <returns>Buffer that contains the utf-8 binary representation of <see cref="text"/>, with an optional BOM.</returns>
+		/// <returns>Buffer that contains the utf-8 binary representation of <paramref name="text"/>, with an optional BOM.</returns>
 		public static Utf8String FromString(ReadOnlySpan<char> text, bool includeBom = false, bool noHashCode = false)
 		{
 			if (text.Length == 0) return Utf8String.Empty;
@@ -86,7 +86,7 @@ namespace SnowBank.Buffers.Text
 		/// <param name="buffer">Buffer that should be used to store the converted string. If <c>null</c> or not large enough, will be replaced by a newly allocated buffer.</param>
 		/// <param name="includeBom">If <c>true</c>, includes the UTF8 BOM at the start of the buffer</param>
 		/// <param name="noHashCode">If <c>true</c>, skip the computation of the hashcode of the resulting string.</param>
-		/// <returns>Buffer that contains the utf-8 binary representation of <see cref="text"/>, with an optional BOM.</returns>
+		/// <returns>Buffer that contains the utf-8 binary representation of <paramref name="text"/>, with an optional BOM.</returns>
 		[Pure]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Utf8String FromString(string? text, int offset, int count, ref byte[]? buffer, bool includeBom = false, bool noHashCode = false)
@@ -101,7 +101,7 @@ namespace SnowBank.Buffers.Text
 		/// <param name="buffer">Buffer that should be used to store the converted string. If <c>null</c> or not large enough, will be replaced by a newly allocated buffer.</param>
 		/// <param name="includeBom">If <c>true</c>, includes the UTF8 BOM at the start of the buffer</param>
 		/// <param name="noHashCode">If <c>true</c>, skip the computation of the hashcode of the resulting string.</param>
-		/// <returns>Buffer that contains the utf-8 binary representation of <see cref="text"/>, with an optional BOM.</returns>
+		/// <returns>Buffer that contains the utf-8 binary representation of <paramref name="text"/>, with an optional BOM.</returns>
 		[Pure]
 		public static Utf8String FromString(ReadOnlySpan<char> text, ref byte[]? buffer, bool includeBom = false, bool noHashCode = false)
 		{

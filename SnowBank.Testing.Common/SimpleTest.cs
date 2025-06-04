@@ -2221,7 +2221,7 @@ namespace SnowBank.Testing
 
 			/// <summary>Waits until the tracker is triggered, a timeout expires, of the test is cancelled</summary>
 			/// <param name="timeout">Maximum delay allowed for the tracker to be called</param>
-			/// <returns>Task that completes successfully if the tracker is called before the specified <see cref="timeout"/>; or fails if the timeout expires, or the tests is cancelled</returns>
+			/// <returns>Task that completes successfully if the tracker is called before the specified <paramref name="timeout"/>; or fails if the timeout expires, or the tests is cancelled</returns>
 			public Task<T?> WaitAsync(TimeSpan timeout)
 			{
 				if (timeout <= TimeSpan.Zero)

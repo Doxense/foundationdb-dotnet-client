@@ -68,11 +68,11 @@ namespace SnowBank.Networking
 			return new HttpRequestException($"An error occurred while sending the request. [{debugReason}]", webEx);
 		}
 
-		/// <summary>Create an exception that replicates a tcp conenction to a remote host that is alive, but with no remote service bound to the specified port</summary>
+		/// <summary>Create an exception that replicates a tcp connection to a remote host that is alive, but with no remote service bound to the specified port</summary>
 		/// <param name="hostName">Name of the remote host (part of the exception message)</param>
 		/// <param name="port">Port of the service (part of the exception message)</param>
 		/// <param name="debugReason">Text description of the cause of this error (for troubleshooting)</param>
-		/// <returns>Returns an <see cref="HttpRequestException"/> with message <c>"An error occurred while sending the request."</c>, with an inner <see cref="WebException"/> with status <see cref="WebExceptionStatus.ConnectFailure"/> and message <c>"No connection could be made because the target machine actively refused it <paramref name="hostName"/>:<param name="port"></param>"</c></returns>
+		/// <returns>Returns an <see cref="HttpRequestException"/> with message <c>"An error occurred while sending the request."</c>, with an inner <see cref="WebException"/> with status <see cref="WebExceptionStatus.ConnectFailure"/> and message <c>"No connection could be made because the target machine actively refused it <paramref name="hostName"/>:<paramref name="port"/>"</c></returns>
 		public static Exception SimulatePortNotBoundFailure(string hostName, int port, string debugReason)
 		{
 			var webEx = new WebException($"No connection could be made because the target machine actively refused it {hostName}:{port}", WebExceptionStatus.ConnectFailure);
