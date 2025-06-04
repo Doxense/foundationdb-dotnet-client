@@ -859,28 +859,6 @@ namespace SnowBank.Data.Json
 
 		// these methods are called by generated source code
 
-		public static JsonArray PackSpan(ReadOnlySpan<string> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
-		{
-			if (items.Length == 0)
-			{
-				return (settings.IsReadOnly()) ? JsonArray.ReadOnly.Empty : new();
-			}
-
-			var arr = new JsonArray();
-			var buf = arr.GetSpanAndSetCount(items.Length);
-
-			for (int i = 0; i < items.Length; i++)
-			{
-				buf[i] = JsonString.Return(items[i]);
-			}
-
-			if (settings.IsReadOnly())
-			{
-				arr = arr.FreezeUnsafe();
-			}
-			return arr;
-		}
-
 		/// <summary>Converts a span of <see cref="bool"/> into the equivalent <see cref="JsonArray"/></summary>
 		/// <param name="items">Span of items to convert</param>
 		/// <param name="settings">Serialization settings</param>
@@ -1002,6 +980,32 @@ namespace SnowBank.Data.Json
 			for (int i = 0; i < items.Length; i++)
 			{
 				buf[i] = JsonNumber.Return(items[i]);
+			}
+
+			if (settings.IsReadOnly())
+			{
+				arr = arr.FreezeUnsafe();
+			}
+			return arr;
+		}
+
+		/// <summary>Converts a span of <see cref="string"/> into the equivalent <see cref="JsonArray"/></summary>
+		/// <param name="items">Span of items to convert</param>
+		/// <param name="settings">Serialization settings</param>
+		/// <param name="resolver">Custom resolver used to bind the value into a managed type.</param>
+		public static JsonArray PackSpan(ReadOnlySpan<string> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items.Length == 0)
+			{
+				return settings.IsReadOnly() ? JsonArray.ReadOnly.Empty : new();
+			}
+
+			var arr = new JsonArray();
+			var buf = arr.GetSpanAndSetCount(items.Length);
+
+			for (int i = 0; i < items.Length; i++)
+			{
+				buf[i] = JsonString.Return(items[i]);
 			}
 
 			if (settings.IsReadOnly())
@@ -1229,125 +1233,6 @@ namespace SnowBank.Data.Json
 			return arr;
 		}
 
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? PackArray(bool[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
-		{
-			if (items == null) return null;
-			return PackSpan(new ReadOnlySpan<bool>(items), settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? PackArray(int[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
-		{
-			if (items == null) return null;
-			return PackSpan(new ReadOnlySpan<int>(items), settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? PackArray(long[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
-		{
-			if (items == null) return null;
-			return PackSpan(new ReadOnlySpan<long>(items), settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? PackArray(float[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
-		{
-			if (items == null) return null;
-			return PackSpan(new ReadOnlySpan<float>(items), settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? PackArray(double[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
-		{
-			if (items == null) return null;
-			return PackSpan(new ReadOnlySpan<double>(items), settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? PackArray(string[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
-		{
-			if (items == null) return null;
-			return PackSpan(new ReadOnlySpan<string>(items), settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? PackArray(Guid[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
-		{
-			if (items == null) return null;
-			return PackSpan(new ReadOnlySpan<Guid>(items), settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? PackArray(Uuid128[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
-		{
-			if (items == null) return null;
-			return PackSpan(new ReadOnlySpan<Uuid128>(items), settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? PackArray(Uuid64[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
-		{
-			if (items == null) return null;
-			return PackSpan(new ReadOnlySpan<Uuid64>(items), settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? PackList(List<bool>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
-		{
-			if (items == null) return null;
-			return PackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? PackList(List<int>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
-		{
-			if (items == null) return null;
-			return PackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? PackList(List<long>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
-		{
-			if (items == null) return null;
-			return PackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? PackList(List<float>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
-		{
-			if (items == null) return null;
-			return PackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? PackList(List<double>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
-		{
-			if (items == null) return null;
-			return PackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? PackList(List<string>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
-		{
-			if (items == null) return null;
-			return PackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? PackList(List<Guid>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
-		{
-			if (items == null) return null;
-			return PackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
-		}
-
-		[return: NotNullIfNotNull(nameof(items))]
-		public static JsonArray? PackList(List<Uuid64>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
-		{
-			if (items == null) return null;
-			return PackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
-		}
-
 		/// <summary>Converts a sequence of <see cref="string"/> into the equivalent <see cref="JsonArray"/></summary>
 		/// <param name="items">Sequence to convert</param>
 		/// <param name="settings">Serialization settings</param>
@@ -1432,13 +1317,207 @@ namespace SnowBank.Data.Json
 			return arr;
 		}
 
-		public static JsonArray PackSpan<TValue>(ReadOnlySpan<TValue> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		/// <summary>Converts an array of <see cref="bool"/> into the equivalent <see cref="JsonArray"/></summary>
+		/// <param name="items">Array to convert</param>
+		/// <param name="settings">Serialization settings</param>
+		/// <param name="resolver">Custom resolver used to bind the value into a managed type.</param>
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? PackArray(bool[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 		{
-			return JsonArray.FromValues<TValue>(items, settings, resolver);
+			if (items == null) return null;
+			return PackSpan(new ReadOnlySpan<bool>(items), settings, resolver);
 		}
 
-		/// <summary>Pack a span of items that implements <see cref="IJsonPackable"/></summary>
-		public static JsonArray PackSpanPackable<TPackable>(ReadOnlySpan<TPackable> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		/// <summary>Converts an array of <see cref="int"/> into the equivalent <see cref="JsonArray"/></summary>
+		/// <param name="items">Array to convert</param>
+		/// <param name="settings">Serialization settings</param>
+		/// <param name="resolver">Custom resolver used to bind the value into a managed type.</param>
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? PackArray(int[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return PackSpan(new ReadOnlySpan<int>(items), settings, resolver);
+		}
+
+		/// <summary>Converts an array of <see cref="long"/> into the equivalent <see cref="JsonArray"/></summary>
+		/// <param name="items">Array to convert</param>
+		/// <param name="settings">Serialization settings</param>
+		/// <param name="resolver">Custom resolver used to bind the value into a managed type.</param>
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? PackArray(long[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return PackSpan(new ReadOnlySpan<long>(items), settings, resolver);
+		}
+
+		/// <summary>Converts an array of <see cref="float"/> into the equivalent <see cref="JsonArray"/></summary>
+		/// <param name="items">Array to convert</param>
+		/// <param name="settings">Serialization settings</param>
+		/// <param name="resolver">Custom resolver used to bind the value into a managed type.</param>
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? PackArray(float[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return PackSpan(new ReadOnlySpan<float>(items), settings, resolver);
+		}
+
+		/// <summary>Converts an array of <see cref="double"/> into the equivalent <see cref="JsonArray"/></summary>
+		/// <param name="items">Array to convert</param>
+		/// <param name="settings">Serialization settings</param>
+		/// <param name="resolver">Custom resolver used to bind the value into a managed type.</param>
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? PackArray(double[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return PackSpan(new ReadOnlySpan<double>(items), settings, resolver);
+		}
+
+		/// <summary>Converts an array of <see cref="string"/> into the equivalent <see cref="JsonArray"/></summary>
+		/// <param name="items">Array to convert</param>
+		/// <param name="settings">Serialization settings</param>
+		/// <param name="resolver">Custom resolver used to bind the value into a managed type.</param>
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? PackArray(string[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return PackSpan(new ReadOnlySpan<string>(items), settings, resolver);
+		}
+
+		/// <summary>Converts an array of <see cref="Guid"/> into the equivalent <see cref="JsonArray"/></summary>
+		/// <param name="items">Array to convert</param>
+		/// <param name="settings">Serialization settings</param>
+		/// <param name="resolver">Custom resolver used to bind the value into a managed type.</param>
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? PackArray(Guid[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return PackSpan(new ReadOnlySpan<Guid>(items), settings, resolver);
+		}
+
+		/// <summary>Converts an array of <see cref="Uuid128"/> into the equivalent <see cref="JsonArray"/></summary>
+		/// <param name="items">Array to convert</param>
+		/// <param name="settings">Serialization settings</param>
+		/// <param name="resolver">Custom resolver used to bind the value into a managed type.</param>
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? PackArray(Uuid128[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return PackSpan(new ReadOnlySpan<Uuid128>(items), settings, resolver);
+		}
+
+		/// <summary>Converts an array of <see cref="Uuid64"/> into the equivalent <see cref="JsonArray"/></summary>
+		/// <param name="items">Array to convert</param>
+		/// <param name="settings">Serialization settings</param>
+		/// <param name="resolver">Custom resolver used to bind the value into a managed type.</param>
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? PackArray(Uuid64[]? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return PackSpan(new ReadOnlySpan<Uuid64>(items), settings, resolver);
+		}
+
+		/// <summary>Converts a list of <see cref="string"/> into the equivalent <see cref="JsonArray"/></summary>
+		/// <param name="items">List to convert</param>
+		/// <param name="settings">Serialization settings</param>
+		/// <param name="resolver">Custom resolver used to bind the value into a managed type.</param>
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? PackList(List<string>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return PackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
+		}
+
+		/// <summary>Converts a list of <see cref="bool"/> into the equivalent <see cref="JsonArray"/></summary>
+		/// <param name="items">List to convert</param>
+		/// <param name="settings">Serialization settings</param>
+		/// <param name="resolver">Custom resolver used to bind the value into a managed type.</param>
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? PackList(List<bool>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return PackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
+		}
+
+		/// <summary>Converts a list of <see cref="int"/> into the equivalent <see cref="JsonArray"/></summary>
+		/// <param name="items">List to convert</param>
+		/// <param name="settings">Serialization settings</param>
+		/// <param name="resolver">Custom resolver used to bind the value into a managed type.</param>
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? PackList(List<int>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return PackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
+		}
+
+		/// <summary>Converts a list of <see cref="long"/> into the equivalent <see cref="JsonArray"/></summary>
+		/// <param name="items">List to convert</param>
+		/// <param name="settings">Serialization settings</param>
+		/// <param name="resolver">Custom resolver used to bind the value into a managed type.</param>
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? PackList(List<long>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return PackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
+		}
+
+		/// <summary>Converts a list of <see cref="float"/> into the equivalent <see cref="JsonArray"/></summary>
+		/// <param name="items">List to convert</param>
+		/// <param name="settings">Serialization settings</param>
+		/// <param name="resolver">Custom resolver used to bind the value into a managed type.</param>
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? PackList(List<float>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return PackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
+		}
+
+		/// <summary>Converts a list of <see cref="double"/> into the equivalent <see cref="JsonArray"/></summary>
+		/// <param name="items">List to convert</param>
+		/// <param name="settings">Serialization settings</param>
+		/// <param name="resolver">Custom resolver used to bind the value into a managed type.</param>
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? PackList(List<double>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return PackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
+		}
+
+		/// <summary>Converts a list of <see cref="Guid"/> into the equivalent <see cref="JsonArray"/></summary>
+		/// <param name="items">List to convert</param>
+		/// <param name="settings">Serialization settings</param>
+		/// <param name="resolver">Custom resolver used to bind the value into a managed type.</param>
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? PackList(List<Guid>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return PackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
+		}
+
+		/// <summary>Converts a list of <see cref="Uuid64"/> into the equivalent <see cref="JsonArray"/></summary>
+		/// <param name="items">List to convert</param>
+		/// <param name="settings">Serialization settings</param>
+		/// <param name="resolver">Custom resolver used to bind the value into a managed type.</param>
+		[return: NotNullIfNotNull(nameof(items))]
+		public static JsonArray? PackList(List<Uuid64>? items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			if (items == null) return null;
+			return PackSpan(CollectionsMarshal.AsSpan(items), settings, resolver);
+		}
+
+		/// <summary>Converts a span of <typeparamref name="TValue"/> into the equivalent <see cref="JsonArray"/></summary>
+		/// <param name="items">Span of items to convert</param>
+		/// <param name="settings">Serialization settings</param>
+		/// <param name="resolver">Custom resolver used to bind the value into a managed type.</param>
+		public static JsonArray PackSpan<TValue>(ReadOnlySpan<TValue?> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+		{
+			return JsonArray.FromValues(items, settings, resolver);
+		}
+
+		/// <summary>Converts a span of items that implements <see cref="IJsonPackable"/> into the equivalent <see cref="JsonArray"/></summary>
+		/// <param name="items">Span of items to convert</param>
+		/// <param name="settings">Serialization settings</param>
+		/// <param name="resolver">Custom resolver used to bind the value into a managed type.</param>
+		public static JsonArray PackSpanPackable<TPackable>(ReadOnlySpan<TPackable?> items, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
 			where TPackable : IJsonPackable
 		{
 			settings ??= CrystalJsonSettings.Json;
