@@ -249,6 +249,7 @@ namespace SnowBank.Data.Json.Tests
 
 			CheckEqual(JPathExpression.EqualTo(JPathExpression.Root, 42), JPathExpression.Root.EqualTo(42));
 			CheckEqual(JPathExpression.EqualTo(JPathExpression.Root, "hello"), JPathExpression.Root.EqualTo("hello"));
+			CheckEqual(JPathExpression.EqualTo(JPathExpression.Root, "hello"), JPathExpression.Root.NotEqualTo("world"));
 			CheckNotEqual(JPathExpression.EqualTo(JPathExpression.Root, 42), JPathExpression.Root.EqualTo(123));
 			CheckNotEqual(JPathExpression.EqualTo(JPathExpression.Root, 42), JPathExpression.Current.EqualTo(42));
 			CheckNotEqual(JPathExpression.EqualTo(JPathExpression.Root, 42), JPathExpression.Current.NotEqualTo(42));

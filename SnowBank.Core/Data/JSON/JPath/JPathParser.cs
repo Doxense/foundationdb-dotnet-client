@@ -70,7 +70,7 @@ namespace SnowBank.Data.Json.JPath
 			DotDot,
 			/// <summary>'[' starts an array indexing or filter sub-expression</summary>
 			OpenBracket,
-			/// <summary>']' ends an, array indexing or filter sub-expresion</summary>
+			/// <summary>']' ends an array indexing or filter sub-expression</summary>
 			CloseBracket,
 			/// <summary>'(' is used to start a sub-expression</summary>
 			OpenParens,
@@ -559,7 +559,6 @@ namespace SnowBank.Data.Json.JPath
 								break;
 							}
 							this.Start = prevStart;
-							state = State.Expression;
 							throw SyntaxError($"Unsupported function '{name.ToString()}'");
 						}
 
@@ -570,7 +569,7 @@ namespace SnowBank.Data.Json.JPath
 
 					case Token.OpenBracket:
 					{
-						// possibile cases:
+						// possible cases:
 						// - arr index: '...[1]', '...[123]', '...[-1]', '...[^1]'
 						// - half range: '...[:123]'
 						// - subexpression: '...[(anything else)]'
