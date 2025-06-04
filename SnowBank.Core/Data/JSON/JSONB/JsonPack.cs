@@ -831,18 +831,32 @@ namespace SnowBank.Data.Json.Binary
 			}
 
 			//note: OBJECT_START has already been parsed
-			int next;
 			Dictionary<string, JsonValue>? items = null;
-			while ((next = reader.ReadByte()) != (int) TypeTokens.ObjectStop)
+
+			// read until OBJECT_STOP
+			while (true)
 			{
-				if (next < 0) throw new FormatException("Unexpected end of JSONPack Object: missing key.");
+				if (!reader.TryReadByte(out byte next))
+				{ // end of the document ??
+					throw new FormatException("Unexpected end of JSONPack Object: missing key.");
+				}
+
+				if (next == (int) TypeTokens.ObjectStop)
+				{ // end of the object
+					break;
+				}
 
 				// next must be an identifier: either SMALL_STRING or VAR_STRING
 				string? key = ParseSmallString(ref reader, next);
-				if (key is null) throw new FormatException("Object key cannot be null.");
+				if (key is null)
+				{
+					throw new FormatException("Object key cannot be null.");
+				}
 
-				next = reader.ReadByte();
-				if (next < 0) throw new FormatException("Unexpected end of JSONPack Object: missing value.");
+				if (!reader.TryReadByte(out next))
+				{
+					throw new FormatException("Unexpected end of JSONPack Object: missing value.");
+				}
 
 				// next is the value for this key
 				var val = ReadValue(ref reader, next, settings) ?? JsonNull.Null;
