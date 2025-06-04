@@ -41,7 +41,7 @@ jobs:
     - name: NuGet Pack
       env:
         DISABLE_NATIVE_PACKAGE: true
-      run: dotnet pack -c Release --no-restore --no-build --output Redist
+      run: dotnet pack -c Release --no-restore --no-build --output Redist -p:ContinuousIntegrationBuild=true
 
     # Capture the build packages
     - name: Upload artifacts
