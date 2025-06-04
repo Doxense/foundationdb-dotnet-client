@@ -125,12 +125,22 @@ namespace SnowBank.Data.Json
 			var input = arr.GetSpan();
 			if (destination.Length < input.Length)
 			{
-				throw ThrowHelper.ArgumentException(nameof(destination), "Destination buffer is too small");
+				written = 0;
+				return false;
 			}
 
-			for (int i = 0; i < input.Length; i++)
+			try
 			{
-				destination[i] = serializer.Unpack(input[i], resolver);
+				for (int i = 0; i < input.Length; i++)
+				{
+					destination[i] = serializer.Unpack(input[i], resolver);
+				}
+			}
+			catch (JsonBindingException)
+			{
+				destination[..input.Length].Clear();
+				written = 0;
+				return false;
 			}
 
 			written = input.Length;
