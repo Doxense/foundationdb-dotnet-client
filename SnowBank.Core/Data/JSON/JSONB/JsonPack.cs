@@ -24,6 +24,9 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+// ReSharper disable IdentifierTypo
+// ReSharper disable UnusedMember.Local
+
 namespace SnowBank.Data.Json.Binary
 {
 	using SnowBank.Buffers;
@@ -84,7 +87,7 @@ namespace SnowBank.Data.Json.Binary
 		// - 0x8D (reserved)
 		// - 0x8E UUID 128 (16 bytes)
 		// - 0x8F VAR_BINARY (followed by VarInt Size, then bytes)
-		// - 0xA0 - 0xDC : SMALL_STRING (inlined size 0 .. 60)
+		// - 0xA0 - 0xDC : SMALL_STRING (inlined size 0 ... 60)
 		// - 0xDD STRING_SZ1
 		// - 0xDE STRING_SZ2
 		// - 0xDF STRING_SZ4
@@ -116,7 +119,7 @@ namespace SnowBank.Data.Json.Binary
 			IntPos13 = 0x0D,
 			IntPos14 = 0x0E,
 			IntPos15 = 0x0F,
-			//TODO: all reamining ints!
+			//TODO: all remaining ints!
 			IntPos127 = 0x7F,
 
 			#endregion
@@ -136,11 +139,11 @@ namespace SnowBank.Data.Json.Binary
 
 			#region Fixed Size Numbers (0x90..0x9F)
 			// FixedInt uses expansion of the MSB: ie: '-1' => FF, -65536 => FFFF
-			FixedInt1 = 0x90, // -128 .. +127
-			FixedInt2 = 0x91, // -32_768 .. +32_767
-			FixedInt3 = 0x92, // -8_388_608 .. +8_388_607
-			FixedInt4 = 0x93, //  int.MinValue .. int.MaxValue
-			FixedInt8 = 0x94, //  long.MinValue .. long.MaxValue
+			FixedInt1 = 0x90, // -128 ... +127
+			FixedInt2 = 0x91, // -32_768 ... +32_767
+			FixedInt3 = 0x92, // -8_388_608 ... +8_388_607
+			FixedInt4 = 0x93, //  int.MinValue ... int.MaxValue
+			FixedInt8 = 0x94, //  long.MinValue ... long.MaxValue
 			FixedUInt4 = 0x95, //  0 .. uint.MaxValue
 			FixedUInt8 = 0x96, //  0 .. ulong.MaxValue
 			FixedSingle = 0x97, // 32-bits single
@@ -381,6 +384,7 @@ namespace SnowBank.Data.Json.Binary
 
 		#region Writing JsonPack...
 
+		/// <summary>Outputs a JSON value encoded as JsonPack into the specified buffer</summary>
 		public static void WriteValue(ref SliceWriter writer, JsonValue value, CrystalJsonSettings settings)
 		{
 			Contract.Debug.Requires(value is not null);
@@ -514,21 +518,21 @@ namespace SnowBank.Data.Json.Binary
 			else
 			{
 				if (value >= -JENTRY_SMALL_NEG_INT_MAX)
-				{ // -1 .. -32 : small negative integer, inlined with type
+				{ // -1 ... -32 : small negative integer, inlined with type
 					writer.WriteByte(JENTRY_SMALL_NEG_INT_BASE + (byte) (value & 0x1F));
 				}
 				else if (value >= -128)
-				{ // -33 .. -128: stored as single byte
+				{ // -33 ... -128: stored as single byte
 					writer.WriteByte((byte) TypeTokens.FixedInt1);
 					writer.WriteByte(unchecked((byte) value));
 				}
 				else if (value >= -32_768)
-				{ // -129 .. -32768: stored as two bytes
+				{ // -129 ... -32768: stored as two bytes
 					writer.WriteByte((byte) TypeTokens.FixedInt2);
 					writer.WriteUInt16(unchecked((ushort) value));
 				}
 				else if (value >= -8_388_608)
-				{ // -129 .. -32768: stored as two bytes
+				{ // -129 ... -32768: stored as two bytes
 					writer.WriteByte((byte) TypeTokens.FixedInt3);
 					writer.WriteUInt24(unchecked((uint) (value & 0xFFFFFF)));
 				}
@@ -670,7 +674,7 @@ namespace SnowBank.Data.Json.Binary
 		private static ParseTokenDelegate MakeError(string? text = null)
 		{
 			text ??= "Unexpected {0} token (0x{1:X02}) at offset {2} in JSONPack value.";
-			return (ref SliceReader reader, int token, CrystalJsonSettings settings) => throw new FormatException(string.Format(text, (TypeTokens) token, token, reader.Position));
+			return (ref reader, token, _) => throw new FormatException(string.Format(text, (TypeTokens) token, token, reader.Position));
 		}
 
 		private static JsonValue? ReadValue(ref SliceReader reader, int token, CrystalJsonSettings settings)
@@ -802,7 +806,7 @@ namespace SnowBank.Data.Json.Binary
 
 		private static string? ParseSmallString(ref SliceReader reader, int token)
 		{
-			if (token >= JENTRY_SMALL_STRING_BASE && token <= JENTRY_SMALL_STRING_BASE + JENTRY_SMALL_STRING_MAX)
+			if (token is >= JsonPack.JENTRY_SMALL_STRING_BASE and <= (JsonPack.JENTRY_SMALL_STRING_BASE + JsonPack.JENTRY_SMALL_STRING_MAX))
 			{
 				return reader.ReadBytes(token - JENTRY_SMALL_STRING_BASE).ToStringUtf8();
 			}
@@ -823,6 +827,8 @@ namespace SnowBank.Data.Json.Binary
 			return reader.ReadBytes(count).ToStringUtf8();
 		}
 
+		/// <summary>Parses a JSON Object encoded as JsonPack from the specified reader</summary>
+		/// <exception cref="FormatException"></exception>
 		public static JsonObject ParseObject(ref SliceReader reader, int token, CrystalJsonSettings settings)
 		{
 			if (token == (int) TypeTokens.ObjectEmpty)
@@ -863,6 +869,7 @@ namespace SnowBank.Data.Json.Binary
 				items ??= new Dictionary<string, JsonValue>(StringComparer.Ordinal);
 				items.Add(key, val);
 			}
+
 			// skip the OBJECT_STOP token
 			return items is not null ? new(items, readOnly: true) : JsonObject.ReadOnly.Empty;
 		}

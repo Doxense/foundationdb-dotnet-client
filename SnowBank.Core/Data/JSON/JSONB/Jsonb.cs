@@ -24,6 +24,9 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+// ReSharper disable CompareOfFloatsByEqualityOperator
+// ReSharper disable IdentifierTypo
+
 namespace SnowBank.Data.Json.Binary
 {
 	using System.Buffers;
@@ -220,8 +223,8 @@ namespace SnowBank.Data.Json.Binary
 			/// <param name="result">Decoded value</param>
 			private void GetEntryAt(int index, uint entry, int dataOffset, int dataLen, out JValue result)
 			{
-				int baseAddr = this.BaseAddress;
-				if (!Fits(this.Data, baseAddr + dataOffset, dataLen))
+				int baseAddress = this.BaseAddress;
+				if (!Fits(this.Data, baseAddress + dataOffset, dataLen))
 				{
 					throw ThrowHelper.FormatException($"Malformed jsonb entry: data for entry {index} would be outside of the bounds of the container");
 				}
@@ -233,7 +236,7 @@ namespace SnowBank.Data.Json.Binary
 					case JType.Integer:	// binary integers are unaligned
 					case JType.Numeric:	// floating point numbers are encoded as a base 10 literal
 					{
-						result = new JValue(type, this.Data.Slice(baseAddr + dataOffset, dataLen));
+						result = new JValue(type, this.Data.Slice(baseAddress + dataOffset, dataLen));
 						break;
 					}
 					case JType.True:
@@ -246,9 +249,9 @@ namespace SnowBank.Data.Json.Binary
 					case JType.Container:
 					{
 						// containers are aligned to 32-bits boundaries
-						int padLen = ComputePadding(baseAddr + dataOffset);
+						int padLen = ComputePadding(baseAddress + dataOffset);
 						if (padLen > dataLen) throw ThrowHelper.FormatException($"Invalid jsonb entry: padding is larger than reported value size at array index {index}.");
-						result = new JValue(JType.Container, this.Data.Slice(baseAddr + dataOffset + padLen, dataLen - padLen));
+						result = new JValue(JType.Container, this.Data.Slice(baseAddress + dataOffset + padLen, dataLen - padLen));
 						break;
 					}
 					default:
@@ -574,8 +577,6 @@ namespace SnowBank.Data.Json.Binary
 
 			public JsonValue ToJsonValue(StringTable? table)
 			{
-				//TODO: on a besoin d'une StringTable pour le parsing des strings et numerics
-
 				switch (this.Type)
 				{
 					case JType.String:
@@ -629,7 +630,7 @@ namespace SnowBank.Data.Json.Binary
 						return container.ToJsonValue(table);
 					}
 					case JType.Integer:
-					{ // entier signé jusqu'à 64 bits
+					{ // signed integer, up to 64 bits
 						long x = DecodeVarInt64(this.Value);
 						return JsonNumber.Return(x);
 					}
@@ -642,8 +643,6 @@ namespace SnowBank.Data.Json.Binary
 
 			public bool TryReadAsBoolean(out bool value)
 			{
-				//TODO: on a besoin d'une StringTable pour le parsing des strings et numerics
-
 				switch (this.Type)
 				{
 					case JType.True:
@@ -664,8 +663,6 @@ namespace SnowBank.Data.Json.Binary
 
 			public bool TryReadAsString(StringTable? table, out string? result)
 			{
-				//TODO: on a besoin d'une StringTable pour le parsing des strings et numerics
-
 				switch (this.Type)
 				{
 					case JType.String:
@@ -686,8 +683,6 @@ namespace SnowBank.Data.Json.Binary
 
 			public bool TryReadAsUuid128(out Uuid128 result)
 			{
-				//TODO: on a besoin d'une StringTable pour le parsing des strings et numerics
-
 				switch (this.Type)
 				{
 					case JType.String:
@@ -706,8 +701,6 @@ namespace SnowBank.Data.Json.Binary
 
 			public bool TryReadAsInteger(out long result)
 			{
-				//TODO: on a besoin d'une StringTable pour le parsing des strings et numerics
-
 				switch (this.Type)
 				{
 					case JType.Numeric:
@@ -723,20 +716,18 @@ namespace SnowBank.Data.Json.Binary
 						return Utf8Parser.TryParse(value, out result, out int n) && n == value.Length;
 					}
 					case JType.Integer:
-					{ // entier signé jusqu'à 64 bits
+					{ // signed integer, up to 64 bits
 						result = DecodeVarInt64(this.Value);
 						return true;
 					}
 				}
 
-				result = default;
+				result = 0;
 				return false;
 			}
 
 			public bool TryReadAsDecimal(out double result)
 			{
-				//TODO: on a besoin d'une StringTable pour le parsing des strings et numerics
-
 				switch (this.Type)
 				{
 					case JType.Numeric:
@@ -752,13 +743,13 @@ namespace SnowBank.Data.Json.Binary
 						return Utf8Parser.TryParse(value, out result, out int n) && n == value.Length;
 					}
 					case JType.Integer:
-					{ // entier signé jusqu'à 64 bits
+					{ // signed integer, up to 64 bits
 						result = DecodeVarInt64(this.Value);
 						return true;
 					}
 				}
 
-				result = default;
+				result = 0;
 				return false;
 			}
 
@@ -772,7 +763,7 @@ namespace SnowBank.Data.Json.Binary
 					}
 					case JType.Numeric:
 					{
-						//TODO: cache pour les petits entiers?
+						//TODO: cache for small integers?
 						return DecodeAsciiString(this.Value, table);
 					}
 					case JType.Integer:
@@ -830,14 +821,14 @@ namespace SnowBank.Data.Json.Binary
 			public TValue? As<TValue>(TValue? missing = default)
 			{
 				if (default(TValue) is null)
-				{ // ref type or Nulable<T> !
+				{ // ref type or Nullable<T> !
 
 					if (typeof(TValue) == typeof(bool?)) return TryReadAsBoolean(out var x) ? (TValue?) (object?) x : missing;
 					if (typeof(TValue) == typeof(int?)) return TryReadAsInteger(out var x) ? (TValue?) (object?) checked((int) x) : missing;
 					if (typeof(TValue) == typeof(long?)) return TryReadAsInteger(out var x) ? (TValue?) (object?) x : missing;
 					if (typeof(TValue) == typeof(float?)) return TryReadAsDecimal(out var x) ? (TValue?) (object?) (float) x : missing;
 					if (typeof(TValue) == typeof(double?)) return TryReadAsDecimal(out var x) ? (TValue?) (object?) x : missing;
-					if (typeof(TValue) == typeof(Guid?)) return TryReadAsUuid128(out var x) ? (TValue?) (object?) x : missing;
+					if (typeof(TValue) == typeof(Guid?)) return TryReadAsUuid128(out var x) ? (TValue?) (object?) x.ToGuid() : missing;
 					if (typeof(TValue) == typeof(Uuid128?)) return TryReadAsUuid128(out var x) ? (TValue?) (object?) x : missing;
 
 					if (typeof(TValue) == typeof(string))
@@ -872,7 +863,7 @@ namespace SnowBank.Data.Json.Binary
 			public bool ValueEquals<TValue>(TValue? value)
 			{
 				if (default(TValue) is null)
-				{ // ref type or Nulable<T> !
+				{ // ref type or Nullable<T> !
 
 					if (value is null) return this.Type == JType.Null;
 
@@ -894,9 +885,9 @@ namespace SnowBank.Data.Json.Binary
 						return j switch
 						{
 							JsonNull => this.Type == JType.Null,
-							JsonString js => TextEquals(Unsafe.As<string>(js.Value)),
-							JsonBoolean jb => TryReadAsBoolean(out var b) && b == jb.Value,
-							JsonNumber jnum => jnum.IsDecimal ? TryReadAsDecimal(out var d) && jnum.Equals(d) : TryReadAsInteger(out var i) && jnum.Equals(i),
+							JsonString str => TextEquals(Unsafe.As<string>(str.Value)),
+							JsonBoolean b => TryReadAsBoolean(out var x) && x == b.Value,
+							JsonNumber num => num.IsDecimal ? TryReadAsDecimal(out var d) && num.Equals(d) : TryReadAsInteger(out var i) && num.Equals(i),
 							_ => ToJsonValue(null).Equals(j)
 						};
 					}
@@ -922,15 +913,17 @@ namespace SnowBank.Data.Json.Binary
 
 		}
 
+		/// <summary>Creates a selector for the value at the specified path</summary>
 		public static JLookupSelector CreateSelector(string path)
 			=> CreateSelector(JsonPath.Create(path));
 
+		/// <summary>Creates a selector for the value at the specified path</summary>
 		public static JLookupSelector CreateSelector(ReadOnlyMemory<char> path)
 			=> CreateSelector(JsonPath.Create(path));
 
+		/// <summary>Creates a selector for the value at the specified path</summary>
 		public static JLookupSelector CreateSelector(JsonPath path)
 		{
-
 			// we assume that the sum of encoded path segments will never be more than the encoded complete path,
 			// we may allocate a little bit more than necessary, but it should only be one or two bytes per segments
 
@@ -963,6 +956,7 @@ namespace SnowBank.Data.Json.Binary
 			return new JLookupSelector(path, tmp, xs);
 		}
 
+		/// <summary>Selector that will always return the value of the element at the given path of a Jsonb document</summary>
 		public readonly struct JLookupSelector
 		{
 
@@ -975,8 +969,7 @@ namespace SnowBank.Data.Json.Binary
 			/// <summary>List of the segments in this selector</summary>
 			internal readonly (int KeyStart, int KeyLength, Index Index)[] Segments;
 
-			public int Count => this.Segments.Length;
-
+			/// <summary>Constructs a selector</summary>
 			public JLookupSelector(JsonPath path, byte[] encoded, (int KeyStart, int KeyLength, Index Index)[] segments)
 			{
 				this.Path = path;
@@ -1034,7 +1027,7 @@ namespace SnowBank.Data.Json.Binary
 
 				uint extraFlags = 0;
 				if ((header & HEADER_FLAGS_EXTRA) != 0)
-				{ // the header is immediatly followed by 32 extra flags
+				{ // the header is immediately followed by 32 extra flags
 					extraFlags = BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(pos));
 					pos += 4;
 				}
@@ -1507,6 +1500,7 @@ namespace SnowBank.Data.Json.Binary
 
 		#region Writing Jsonb...
 
+		/// <summary>Instance that outputs Jsonb values into a binary buffer</summary>
 		public sealed class Writer : IDisposable
 		{
 			const int HEADER_SIZE = 4;
@@ -1521,8 +1515,9 @@ namespace SnowBank.Data.Json.Binary
 			/// <remarks>Internal alignment is computed relative to this offset, and not the start of the buffer!</remarks>
 			private int m_fragmentOffset;
 
-			//TODO: OPTIMZE: use a buffer pool?
+			//TODO: OPTIMIZE: use a buffer pool?
 
+			/// <summary>Constructs a <see cref="Writer"/> using an optional initial buffer</summary>
 			public Writer(JsonbWriterOptions options, byte[]? buffer = null)
 			{
 				int capacity = options.Capacity ?? 0;
@@ -1533,12 +1528,14 @@ namespace SnowBank.Data.Json.Binary
 				m_hashingThreshold = options.HashingThreshold ?? JsonbWriterOptions.DefaultHashingThreshold;
 			}
 
+			/// <summary>Constructs a <see cref="Writer"/> using an already prepared <see cref="SliceWriter"/></summary>
 			public Writer(SliceWriter buffer)
 			{
 				m_output = buffer;
 				m_hashingThreshold = JsonbWriterOptions.DefaultHashingThreshold;
 			}
 
+			/// <inheritdoc />
 			public void Dispose()
 			{
 				//TODO?
@@ -1548,12 +1545,16 @@ namespace SnowBank.Data.Json.Binary
 			[EditorBrowsable(EditorBrowsableState.Never)]
 			public ref SliceWriter GetWriterUnsafe() => ref m_output;
 
+			/// <summary>Returns a byte array filled with the contents of the buffer</summary>
+			/// <remarks>The buffer is copied in the byte array. And change to one will not impact the other</remarks>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public byte[] GetBytes()
 			{
 				return m_output.GetBytes();
 			}
 
+			/// <summary>Returns a <see cref="Slice"/> pointing to the content of the buffer</summary>
+			/// <remarks>Any change to the slice will change the buffer !</remarks>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public Slice GetBuffer()
 			{
@@ -1567,13 +1568,15 @@ namespace SnowBank.Data.Json.Binary
 				return output;
 			}
 
+			/// <summary>Clears the buffer, and reset the cursor its initial position</summary>
+			/// <remarks>After this call, the writer can be reused to process another document.</remarks>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public void Clear()
 			{
 				m_output.Position = 0;
 			}
 
-			/// <summary>Align an offset to the next 32-bit boundary</summary>
+			/// <summary>Aligns an offset to the next 32-bit boundary</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			private static int Aligned(int offset)
 			{
@@ -1774,8 +1777,8 @@ namespace SnowBank.Data.Json.Binary
 
 				// The maximum number of elements in an object is 2^24 - 1.
 				// Objects containing a lot of keys already have a mini-hashtable appended at the end, which can speed up lookups for a single key.
-				// The hashtable is composed of the ordered list of the hashcodes for each keys (allows binary search), as well as their corresponding index in the key and value arrays).
-				// - Hashcodes are 16 bits
+				// The hashtable is composed of the ordered list of the HashCodes for each key (allows binary search), as well as their corresponding index in the key and value arrays).
+				// - HashCodes are 16 bits
 				// - The list of indexes is stored in either 1, 2 or 3 bytes, depending on the number of k/v pairs (<= 256 uses 1 byte per entry, <= 65536 uses 2 bytes, > 65536 uses 3 bytes).
 
 				// containers are always aligned to 32-bit boundaries
@@ -2201,11 +2204,14 @@ namespace SnowBank.Data.Json.Binary
 
 	}
 
+	/// <summary>Options to configure the behavior of the <see cref="Jsonb"/> parser</summary>
 	public struct JsonbWriterOptions
 	{
 
+		/// <summary>Default initial buffer capacity</summary>
 		public const int DefaultCapacity = 4096;
 
+		/// <summary>Default threshold for hashing large objects</summary>
 		public const int DefaultHashingThreshold = 20;
 
 		/// <summary>Initial capacity (in bytes) allocated for the output buffer</summary>
@@ -2217,7 +2223,7 @@ namespace SnowBank.Data.Json.Binary
 		/// <remarks>
 		/// <para>Object with an embedded hash table are faster when performing random key lookups, but will take more space (about 5 to 6 bytes per entry)</para>
 		/// <para>Since computing the hashcode as some overhead, this can be slower for small object. Empirical testing shows that the cross-over point for performance is around 20 items.</para>
-		/// <para>To completly disable hashing, set this value to <see cref="int.MaxValue"/>. To force hashing for all objects, set this value to <see langword="0"/></para>
+		/// <para>To completely disable hashing, set this value to <see cref="int.MaxValue"/>. To force hashing for all objects, set this value to <see langword="0"/></para>
 		/// </remarks>
 		public int? HashingThreshold { get; set; }
 
