@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFramework>netstandard2.0</TargetFramework>
@@ -12,14 +12,13 @@
 		<AnalyzerRoslynVersion>4.4</AnalyzerRoslynVersion>
 		<RoslynApiVersion>$(MicrosoftCodeAnalysisVersion_4_4)</RoslynApiVersion>
 		<DefineConstants>$(DefineConstants);ROSLYN4_0_OR_GREATER;ROSLYN4_4_OR_GREATER</DefineConstants>
-
 	</PropertyGroup>
 
 	<Import Project="..\Common\VersionInfo.props" />
 
 	<PropertyGroup>
 		<AssemblyTitle>SnowBank JSON Code Generator</AssemblyTitle>
-		<Description>Generated optimize code for custom JSON serializers and proxies</Description>
+		<Description>Generates optimized code for custom JSON serializers and proxies</Description>
 		<PackageTags>snowbank sdk json codegen</PackageTags>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageIcon>snowbank.png</PackageIcon>
@@ -33,6 +32,24 @@
 	<ItemGroup>
 		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" PrivateAssets="all" />
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.13.0" PrivateAssets="all" />
+	</ItemGroup>
+
+	<!-- For redistributing a source generator/analyzer as a nuget package, we need to manually change a few things: -->
+	<!-- 1) We need to make sure the dll is place in the 'analyzers/dotnet/cs' folder inside the package, or it won't be recognized as an Analyzer by the IDE-->
+	<!-- 2) We need to set IncludeBuildOutput to false, otherwise it will also copy the dll in the 'lib/' folder, even though it is not supposed to be published alongside the consuming application.-->
+	<!-- 3) Chant a dark magic spell to work around NU5017 and NU5128 -->
+	<PropertyGroup>
+		<!-- Do not include the dll in the 'lib/' folder -->
+		<IncludeBuildOutput>false</IncludeBuildOutput>
+		<!-- Do not include the Roslyn dependencies either -->
+		<SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+		<!-- These two help work around NU5017 when it attempts to generate a .snupkg -->
+		<DebugType>embedded</DebugType>
+		<IncludeSymbols>false</IncludeSymbols>
+	</PropertyGroup>
+	<ItemGroup>
+		<!-- Manually place the assembly in the 'analyzers/dotnet/cs' folder, so that it is recognized as a valid Analyzer -->
+		<None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" />
 	</ItemGroup>
 
 </Project>
