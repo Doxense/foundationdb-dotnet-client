@@ -7,13 +7,18 @@
 	        Condition="Exists('$(MSBuildThisFileDirectory)../Directory.Build.props') AND ($([System.IO.File]::Exists('$(MSBuildThisFileDirectory)/.git')) OR '$(FDB_BUILD_PROPS_OVERRIDE)' != '')" />
 
 	<PropertyGroup>
+		<!-- All projects will build/pack/publish under "artifacts/*" -->
 		<ArtifactsPath>$(MSBuildThisFileDirectory)artifacts</ArtifactsPath>
+		<!-- Enable GlobalUsings.cs for all projects -->
+		<ImplicitUsings>enable</ImplicitUsings>
+		<!-- Embed symbols in the assembly -->
+		<DebugType>embedded</DebugType>
 	</PropertyGroup>
 
 	<!--
 		These settings are used by all other projects to define the build target.
 		When this repository is included as a submodule, the parent folder can override these values
-	    in its own Directory.Build.props file, in order to not have to build extra targets that are not used.
+		in its own Directory.Build.props file, in order to not have to build extra targets that are not used.
 	-->
 	<PropertyGroup>
 		
@@ -36,4 +41,25 @@
 		<CloudSdkRuntimeVersions Condition="'$(CloudSdkRuntimeVersions)' == ''">net10.0;net9.0;net8.0</CloudSdkRuntimeVersions>
 	</PropertyGroup>
 
+	<!-- Enable Source Link for projects that produce a NuGet package -->
+	
+	<PropertyGroup Condition="'$(IsPackable)' == 'true'">
+		<!-- Enable Source Link -->
+		<EnableSourceLink>true</EnableSourceLink>
+		<!-- We need to inclute the repo url -->
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+		<!-- DO NOT embed untracked files, this is too dangerous! (will ignore .g.cs that can be added back manually, if required) -->
+		<EmbedUntrackedSources>false</EmbedUntrackedSources>
+		<!-- Create a list of all the "*.AssemblyAttributes.g.cs" files that must be embedded-->
+		<TargetFrameworkMonikerAssemblyAttributesPath>$([System.IO.Path]::Combine('$(IntermediateOutputPath)','$(TargetFrameworkMoniker).AssemblyAttributes$(DefaultLanguageSourceExtension)'))</TargetFrameworkMonikerAssemblyAttributesPath>
+	</PropertyGroup>
+	<ItemGroup Condition="'$(IsPackable)' == 'true'">
+		<!-- Include the GitHub source link provider for all packable projects -->
+		<PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
+		<!-- embed the various generated source files in the pdb (otherwise sourcelink test will complain)-->
+		<EmbeddedFiles Include="$(GeneratedAssemblyInfoFile)"/>
+		<EmbeddedFiles Include="$(GeneratedGlobalUsingsFile)"/>
+		<EmbeddedFiles Include="$(TargetFrameworkMonikerAssemblyAttributesPath)"/>
+	</ItemGroup>
+	
 </Project>
