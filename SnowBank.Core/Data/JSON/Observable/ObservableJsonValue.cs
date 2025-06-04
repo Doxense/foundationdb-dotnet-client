@@ -18,6 +18,11 @@ namespace SnowBank.Data.Json
 	public sealed class ObservableJsonValue : IJsonProxyNode, IJsonSerializable, IJsonPackable, IEquatable<ObservableJsonValue>, IEquatable<JsonValue>, IComparable<ObservableJsonValue>, IComparable<JsonValue>, IEnumerable<ObservableJsonValue>
 	{
 
+		/// <summary>Constructs a <see cref="ObservableJsonValue"/></summary>
+		/// <param name="ctx">Tracking context (optional)</param>
+		/// <param name="parent">Parent of this value (or <c>null</c> if root)</param>
+		/// <param name="segment">Path from the parent to this node (or <see cref="JsonPathSegment.Empty"/> if root)</param>
+		/// <param name="json">Value of this node</param>
 		public ObservableJsonValue(IObservableJsonContext? ctx, IJsonProxyNode? parent, JsonPathSegment segment, JsonValue json)
 		{
 			Contract.Debug.Requires(json != null);
@@ -58,6 +63,7 @@ namespace SnowBank.Data.Json
 
 		internal IObservableJsonContext? Context { get; }
 
+		/// <summary>Returns the tracking context that is attached to this node</summary>
 		public IObservableJsonContext? GetContext() => this.Context;
 
 		#region IJsonProxyNode...
@@ -80,6 +86,8 @@ namespace SnowBank.Data.Json
 
 		internal IJsonProxyNode? Parent { get; }
 
+		/// <summary>Returns the parent of this node</summary>
+		/// <returns>Parent node, or <c>null</c> if root</returns>
 		public IJsonProxyNode? GetParent() => this.Parent;
 
 		/// <summary>Segment of path to this node from its parent</summary>
@@ -102,6 +110,7 @@ namespace SnowBank.Data.Json
 		/// <inheritdoc />
 		public JsonPath GetPath(JsonPathSegment child) => JsonProxyNodeExtensions.ComputePath(this.Parent, in this.Segment, child);
 
+		/// <summary>Writes the path from the root to this node into the output buffer</summary>
 		public void WritePath(ref JsonPathBuilder sb)
 		{
 			this.Parent?.WritePath(ref sb);
@@ -336,30 +345,50 @@ namespace SnowBank.Data.Json
 			};
 		}
 
+		/// <summary>Returns a wrapper for the field with the specified name</summary>
+		/// <param name="name">Name of the field to return</param>
+		/// <returns>Corresponding field, or a null-or-missing placeholder.</returns>
+		/// <remarks>This operation in itself will not be recorded as a use of the object</remarks>
 		public ObservableJsonValue this[string name]
 		{
 			[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => Get(name);
 		}
 
+		/// <summary>Returns a wrapper for the node at the specified path</summary>
+		/// <param name="path">Path of the node to return</param>
+		/// <returns>Corresponding node, or a null-or-missing placeholder.</returns>
+		/// <remarks>This operation in itself will not be recorded as a use of the object</remarks>
 		public ObservableJsonValue this[JsonPath path]
 		{
 			[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => Get(path);
 		}
 
+		/// <summary>Returns a wrapper for the field with the specified name</summary>
+		/// <param name="name">Name of the field to return</param>
+		/// <returns>Corresponding field, or a null-or-missing placeholder.</returns>
+		/// <remarks>This operation in itself will not be recorded as a use of the object</remarks>
 		public ObservableJsonValue this[ReadOnlyMemory<char> name]
 		{
 			[MustUseReturnValue]
 			get => Get(name);
 		}
 
+		/// <summary>Returns a wrapper for the field with the specified name</summary>
+		/// <param name="index">Index of the item to return</param>
+		/// <returns>Corresponding item, or an error placeholder.</returns>
+		/// <remarks>This operation in itself will not be recorded as a use of the array</remarks>
 		public ObservableJsonValue this[int index]
 		{
 			[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => Get(index);
 		}
 
+		/// <summary>Returns a wrapper for the field with the specified name</summary>
+		/// <param name="index">Index of the item to return</param>
+		/// <returns>Corresponding item, or an error placeholder.</returns>
+		/// <remarks>This operation in itself will not be recorded as a use of the array</remarks>
 		public ObservableJsonValue this[Index index]
 		{
 			[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -740,6 +769,11 @@ namespace SnowBank.Data.Json
 			return value;
 		}
 
+		/// <summary>Reads the value of the <b>required</b> field with the specified name</summary>
+		/// <param name="name">Name of the field</param>
+		/// <returns>Corresponding value.</returns>
+		/// <exception cref="JsonBindingException"> if the field is null or missing, or if its value could not be bound to type <typeparamref name="TValue"/>.</exception>
+		/// <remarks>This operation will be record as a <see cref="ObservableJsonAccess.Value"/> access.</remarks>
 		[Pure, MustUseReturnValue]
 		public TValue Get<TValue>(string name) where TValue : notnull
 		{
@@ -753,6 +787,11 @@ namespace SnowBank.Data.Json
 			return child.As<TValue>()!;
 		}
 
+		/// <summary>Reads the value of the optional field with the specified name</summary>
+		/// <param name="name">Name of the field</param>
+		/// <param name="defaultValue">Value returned if the field is null or missing</param>
+		/// <returns>Corresponding value</returns>
+		/// <remarks>This operation will be record as a <see cref="ObservableJsonAccess.Value"/> access.</remarks>
 		[Pure, MustUseReturnValue]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public TValue? Get<TValue>(string name, TValue defaultValue)
@@ -795,6 +834,11 @@ namespace SnowBank.Data.Json
 			return value;
 		}
 
+		/// <summary>Reads the value of the <b>required</b> field with the specified name</summary>
+		/// <param name="name">Name of the field</param>
+		/// <returns>Corresponding value.</returns>
+		/// <exception cref="JsonBindingException"> if the field is null or missing, or if its value could not be bound to type <typeparamref name="TValue"/>.</exception>
+		/// <remarks>This operation will be record as a <see cref="ObservableJsonAccess.Value"/> access.</remarks>
 		[Pure, MustUseReturnValue]
 		public TValue Get<TValue>(ReadOnlyMemory<char> name) where TValue : notnull
 		{
@@ -808,6 +852,11 @@ namespace SnowBank.Data.Json
 			return value.As<TValue>()!;
 		}
 
+		/// <summary>Reads the value of the optional field with the specified name</summary>
+		/// <param name="name">Name of the field</param>
+		/// <param name="defaultValue">Value returned if the field is null or missing</param>
+		/// <returns>Corresponding value</returns>
+		/// <remarks>This operation will be record as a <see cref="ObservableJsonAccess.Value"/> access.</remarks>
 		[Pure, MustUseReturnValue]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public TValue? Get<TValue>(ReadOnlyMemory<char> name, TValue? defaultValue)
@@ -846,6 +895,10 @@ namespace SnowBank.Data.Json
 			return child;
 		}
 
+		/// <summary>Reads the value of the <b>required</b> item at the specified index</summary>
+		/// <param name="index">Index of the item</param>
+		/// <returns>Corresponding value</returns>
+		/// <remarks>This operation will be record as a <see cref="ObservableJsonAccess.Value"/> access.</remarks>
 		[Pure, MustUseReturnValue]
 		public TValue Get<TValue>(int index) where TValue : notnull
 		{
@@ -855,6 +908,12 @@ namespace SnowBank.Data.Json
 			return child.As<TValue>()!;
 		}
 
+		/// <summary>Reads the value of the optional item at the specified index</summary>
+		/// <param name="index">Index of the item</param>
+		/// <param name="defaultValue">Value returned if the item is null or missing</param>
+		/// <returns>Corresponding value</returns>
+		/// <exception cref="JsonBindingException"> if the value of this item could not be bound to type <typeparamref name="TValue"/>.</exception>
+		/// <remarks>This operation will be record as a <see cref="ObservableJsonAccess.Value"/> access.</remarks>
 		[Pure, MustUseReturnValue]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public TValue? Get<TValue>(int index, TValue? defaultValue)
@@ -889,6 +948,10 @@ namespace SnowBank.Data.Json
 			return child;
 		}
 
+		/// <summary>Reads the value of the <b>required</b> item at the specified index</summary>
+		/// <param name="index">Index of the item</param>
+		/// <returns>Corresponding value</returns>
+		/// <remarks>This operation will be record as a <see cref="ObservableJsonAccess.Value"/> access.</remarks>
 		[Pure, MustUseReturnValue]
 		public TValue? Get<TValue>(Index index) where TValue : notnull
 		{
@@ -898,6 +961,12 @@ namespace SnowBank.Data.Json
 			return child.As<TValue>();
 		}
 
+		/// <summary>Reads the value of the optional item at the specified index</summary>
+		/// <param name="index">Index of the item</param>
+		/// <param name="defaultValue">Value returned if the item is null or missing</param>
+		/// <returns>Corresponding value</returns>
+		/// <exception cref="JsonBindingException"> if the value of this item could not be bound to type <typeparamref name="TValue"/>.</exception>
+		/// <remarks>This operation will be record as a <see cref="ObservableJsonAccess.Value"/> access.</remarks>
 		[Pure, MustUseReturnValue]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public TValue? Get<TValue>(Index index, TValue defaultValue)
@@ -908,6 +977,10 @@ namespace SnowBank.Data.Json
 			return child.As(defaultValue);
 		}
 
+		/// <summary>Returns a wrapper for the descendant of this node at the specified location</summary>
+		/// <param name="path">Path of the node to return</param>
+		/// <returns>Corresponding node, or a null-or-missing placeholder.</returns>
+		/// <remarks>This operation in itself will not be recorded as a use of the object</remarks>
 		[Pure, MustUseReturnValue]
 		public ObservableJsonValue Get(JsonPath path)
 		{
@@ -919,10 +992,19 @@ namespace SnowBank.Data.Json
 			return current;
 		}
 
+		/// <summary>Returns the underlying <see cref="JsonValue"/> of the node at the specified location</summary>
+		/// <param name="path">Path to the node to read</param>
+		/// <returns>Corresponding value</returns>
+		/// <remarks>This operation will be record as a <see cref="ObservableJsonAccess.Value"/> access.</remarks>
 		[Pure, MustUseReturnValue]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonValue GetValue(JsonPath path) => Get(path).ToJson();
 
+		/// <summary>Reads the value of the <b>required</b> node at the specified location</summary>
+		/// <param name="path">Path to the node to read</param>
+		/// <returns>Corresponding value.</returns>
+		/// <exception cref="JsonBindingException"> if the node is null or missing, or if its value could not be bound to type <typeparamref name="TValue"/>.</exception>
+		/// <remarks>This operation will be record as a <see cref="ObservableJsonAccess.Value"/> access.</remarks>
 		[Pure, MustUseReturnValue]
 		public TValue Get<TValue>(JsonPath path) where TValue : notnull
 		{
@@ -934,20 +1016,39 @@ namespace SnowBank.Data.Json
 			return value.As<TValue>()!;
 		}
 
+		/// <summary>Reads the value of the optional node at the specified location</summary>
+		/// <param name="path">Path to the node to read</param>
+		/// <param name="defaultValue">Value returned if the node is null or missing</param>
+		/// <returns>Corresponding value</returns>
+		/// <exception cref="JsonBindingException"> if the value of this node could not be bound to type <typeparamref name="TValue"/>.</exception>
+		/// <remarks>This operation will be record as a <see cref="ObservableJsonAccess.Value"/> access.</remarks>
 		[Pure, MustUseReturnValue]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public TValue? Get<TValue>(JsonPath path, TValue defaultValue) => this.Json.GetPathValueOrDefault(path).As<TValue>(defaultValue);
 
+		/// <summary>Returns a wrapper for the child of this node at the specified location</summary>
+		/// <param name="segment">Path of the node to return</param>
+		/// <returns>Corresponding node, or a null-or-missing placeholder.</returns>
+		/// <remarks>This operation in itself will not be recorded as a use of the object</remarks>
 		[Pure, MustUseReturnValue]
 		public ObservableJsonValue Get(JsonPathSegment segment)
 			=> segment.TryGetName(out var name) ? Get(name)
 			 : segment.TryGetIndex(out var index) ? Get(index)
 			 : this;
 
+		/// <summary>Reads the value of the <b>required</b> node at the specified location</summary>
+		/// <param name="segment">Path to the node to read</param>
+		/// <returns>Corresponding value.</returns>
+		/// <remarks>This operation will be record as a <see cref="ObservableJsonAccess.Value"/> access.</remarks>
 		[Pure, MustUseReturnValue]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonValue GetValue(JsonPathSegment segment) => Get(segment).ToJson();
 
+		/// <summary>Reads the value of the <b>required</b> node at the specified location</summary>
+		/// <param name="segment">Path to the node to read</param>
+		/// <returns>Corresponding value.</returns>
+		/// <exception cref="JsonBindingException"> if the node is null or missing, or if its value could not be bound to type <typeparamref name="TValue"/>.</exception>
+		/// <remarks>This operation will be record as a <see cref="ObservableJsonAccess.Value"/> access.</remarks>
 		[Pure, MustUseReturnValue]
 		public TValue Get<TValue>(JsonPathSegment segment) where TValue : notnull
 		{
@@ -959,6 +1060,12 @@ namespace SnowBank.Data.Json
 			return value.As<TValue>()!;
 		}
 
+		/// <summary>Reads the value of the optional node at the specified location</summary>
+		/// <param name="segment">Path to the node to read</param>
+		/// <param name="defaultValue">Value returned if the node is null or missing</param>
+		/// <returns>Corresponding value.</returns>
+		/// <exception cref="JsonBindingException"> if the value of this node could not be bound to type <typeparamref name="TValue"/>.</exception>
+		/// <remarks>This operation will be record as a <see cref="ObservableJsonAccess.Value"/> access.</remarks>
 		[Pure, MustUseReturnValue]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public TValue? Get<TValue>(JsonPathSegment segment, TValue defaultValue) => GetValue(segment).As<TValue>(defaultValue);
@@ -980,9 +1087,18 @@ namespace SnowBank.Data.Json
 
 		#region ValueEquals...
 
+		/// <summary>Tests if the value of this node is equal to a given value</summary>
+		/// <typeparam name="TValue">Type of the value</typeparam>
+		/// <param name="value">Expected value</param>
+		/// <param name="comparer">Equality comparer to use (optional)</param>
 		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public bool ValueEquals<TValue>(TValue value, IEqualityComparer<TValue>? comparer = null) => this.ToJson().ValueEquals(value, comparer);
 
+		/// <summary>Tests if the value of a field of this document is equal to a given value</summary>
+		/// <typeparam name="TValue">Type of the value</typeparam>
+		/// <param name="name">Name of the field</param>
+		/// <param name="value">Expected value</param>
+		/// <param name="comparer">Equality comparer to use (optional)</param>
 		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public bool ValueEquals<TValue>(string name, TValue value, IEqualityComparer<TValue>? comparer = null)
 		{
@@ -991,6 +1107,11 @@ namespace SnowBank.Data.Json
 			return child.ValueEquals(value, comparer);
 		}
 
+		/// <summary>Tests if the value of a field of this document is equal to a given value</summary>
+		/// <typeparam name="TValue">Type of the value</typeparam>
+		/// <param name="name">Name of the field</param>
+		/// <param name="value">Expected value</param>
+		/// <param name="comparer">Equality comparer to use (optional)</param>
 		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public bool ValueEquals<TValue>(ReadOnlyMemory<char> name, TValue value, IEqualityComparer<TValue>? comparer = null)
 		{
@@ -999,6 +1120,11 @@ namespace SnowBank.Data.Json
 			return child.ValueEquals(value, comparer);
 		}
 
+		/// <summary>Tests if the value of an item of this array is equal to a given value</summary>
+		/// <typeparam name="TValue">Type of the value</typeparam>
+		/// <param name="index">Index of this item</param>
+		/// <param name="value">Expected value</param>
+		/// <param name="comparer">Equality comparer to use (optional)</param>
 		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public bool ValueEquals<TValue>(int index, TValue value, IEqualityComparer<TValue>? comparer = null)
 		{
@@ -1007,6 +1133,11 @@ namespace SnowBank.Data.Json
 			return child.ValueEquals(value, comparer);
 		}
 
+		/// <summary>Tests if the value of an item of this array is equal to a given value</summary>
+		/// <typeparam name="TValue">Type of the value</typeparam>
+		/// <param name="index">Index of this item</param>
+		/// <param name="value">Expected value</param>
+		/// <param name="comparer">Equality comparer to use (optional)</param>
 		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public bool ValueEquals<TValue>(Index index, TValue value, IEqualityComparer<TValue>? comparer = null)
 		{
@@ -1015,6 +1146,11 @@ namespace SnowBank.Data.Json
 			return child.ValueEquals(value, comparer);
 		}
 
+		/// <summary>Tests if the value of a child of this node is equal to a given value</summary>
+		/// <typeparam name="TValue">Type of the value</typeparam>
+		/// <param name="segment">Path of this child</param>
+		/// <param name="value">Expected value</param>
+		/// <param name="comparer">Equality comparer to use (optional)</param>
 		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public bool ValueEquals<TValue>(JsonPathSegment segment, TValue value, IEqualityComparer<TValue>? comparer = null)
 		{
@@ -1037,11 +1173,16 @@ namespace SnowBank.Data.Json
 			return item.ValueEquals(value, comparer);
 		}
 
+		/// <summary>Tests if the value of a descendant of this node is equal to a given value</summary>
+		/// <typeparam name="TValue">Type of the value</typeparam>
+		/// <param name="path">Path to the node</param>
+		/// <param name="value">Expected value</param>
+		/// <param name="comparer">Equality comparer to use (optional)</param>
 		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public bool ValueEquals<TValue>(JsonPath path, TValue value, IEqualityComparer<TValue>? comparer = null)
 		{
 			//TODO: REVIEW: how can we optimize this?
-			return this[path].ValueEquals(value, comparer);
+			return Get(path).ValueEquals(value, comparer);
 		}
 
 		#endregion
@@ -1123,12 +1264,24 @@ namespace SnowBank.Data.Json
 		/// <inheritdoc />
 		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => this.ToJson();
 
+		/// <summary>Expose the underlying <see cref="JsonArray"/> of this node</summary>
+		/// <remarks>This will we recorded as a full use of the value</remarks>
+		/// <exception cref="JsonBindingException">If this node is null, missing, or not a JSON Array.</exception>
 		public JsonArray AsArray() => this.ToJson().AsArray();
 
+		/// <summary>Expose the underlying <see cref="JsonArray"/> of this node</summary>
+		/// <remarks>This will we recorded as a full use of the value</remarks>
+		/// <exception cref="JsonBindingException">If this node is not a JSON Array.</exception>
 		public JsonArray? AsArrayOrDefault() => this.ToJson().AsArrayOrDefault();
 
+		/// <summary>Expose the underlying <see cref="JsonObject"/> of this node</summary>
+		/// <remarks>This will we recorded as a full use of the value</remarks>
+		/// <exception cref="JsonBindingException">If this node is null, missing, or not a JSON Object.</exception>
 		public JsonObject AsObject() => this.ToJson().AsObject();
 
+		/// <summary>Expose the underlying <see cref="JsonObject"/> of this node</summary>
+		/// <remarks>This will we recorded as a full use of the value</remarks>
+		/// <exception cref="JsonBindingException">If this node is not a JSON Object.</exception>
 		public JsonObject? AsObjectOrDefault() => this.ToJson().AsObjectOrDefault();
 
 	}

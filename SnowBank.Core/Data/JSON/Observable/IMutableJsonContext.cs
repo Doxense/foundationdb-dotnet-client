@@ -10,6 +10,7 @@ namespace SnowBank.Data.Json
 {
 
 	/// <summary>Context that will record all the changes made to a <see cref="MutableJsonValue"/></summary>
+	[PublicAPI]
 	public interface IMutableJsonContext
 	{
 
@@ -24,8 +25,16 @@ namespace SnowBank.Data.Json
 		/// <remarks>This method can be used to reuse the current transaction instance</remarks>
 		void Reset();
 
+		/// <summary>Wraps a top-level <see cref="JsonValue"/> into a <see cref="MutableJsonValue"/> that will be monitored by this context</summary>
+		/// <param name="value">JSON value that represents the top-most object or array of the document</param>
+		/// <remarks>Mutable value that will notify this context whenever it (or any of its descendant) is mutated</remarks>
 		MutableJsonValue FromJson(JsonValue value);
 
+		/// <summary>Wraps a <see cref="JsonValue"/> into a <see cref="MutableJsonValue"/> that will be monitored by this context</summary>
+		/// <param name="parent">Parent that contains this value</param>
+		/// <param name="path">Name or index of this value in its parent</param>
+		/// <param name="value">JSON value that must be wrapped</param>
+		/// <remarks>Mutable value that will notify this context whenever it (or any of its descendant) is mutated</remarks>
 		MutableJsonValue FromJson(MutableJsonValue parent, JsonPathSegment path, JsonValue? value);
 
 		/// <summary>Creates a new empty object, using the transactions default settings</summary>

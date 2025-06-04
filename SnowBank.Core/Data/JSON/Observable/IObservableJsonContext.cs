@@ -105,8 +105,16 @@ namespace SnowBank.Data.Json
 		/// <summary>Trace that recorded all reads to the observed document</summary>
 		public ObservableJsonTrace Trace { get; } = new();
 
+		/// <summary>Wraps a top-level <see cref="JsonValue"/> into a <see cref="ObservableJsonValue"/> that will be monitored by this context</summary>
+		/// <param name="value">JSON value that represents the top-most object or array of the document</param>
+		/// <remarks>Mutable value that will notify this context whenever it (or any of its descendant) is accessed</remarks>
 		public ObservableJsonValue FromJson(JsonValue value) => new(this, null, JsonPathSegment.Empty, value);
 
+		/// <summary>Wraps a <see cref="JsonValue"/> into a <see cref="ObservableJsonValue"/> that will be monitored by this context</summary>
+		/// <param name="parent">Parent that contains this value</param>
+		/// <param name="path">Name or index of this value in its parent</param>
+		/// <param name="value">JSON value that must be wrapped</param>
+		/// <remarks>Mutable value that will notify this context whenever it (or any of its descendant) is accessed</remarks>
 		public ObservableJsonValue FromJson(IJsonProxyNode? parent, JsonPathSegment path, JsonValue value) => new(this, parent, path, value);
 
 		/// <inheritdoc />
@@ -149,6 +157,7 @@ namespace SnowBank.Data.Json
 	public sealed class ObservableJsonTrace
 	{
 
+		/// <summary>Represents a node in the subtree of a monitored JSON document</summary>
 		[DebuggerDisplay("Access={Access}, Value={Value}, Children={Children != null ? Children.Count : 0}")]
 		public struct Node
 		{
@@ -167,7 +176,7 @@ namespace SnowBank.Data.Json
 
 		/// <summary>Update the trace to record access to a leaf</summary>
 		/// <remarks>Will automatically handle merging any previous access to the same leaf (or any of its children)</remarks>
-		private void UpdateLeafAccess(ref Node leaf, ObservableJsonAccess access, JsonValue? value)
+		private static void UpdateLeafAccess(ref Node leaf, ObservableJsonAccess access, JsonValue? value)
 		{
 			switch (access)
 			{
@@ -217,6 +226,10 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		/// <summary>Records the access to a direct child of top-level document</summary>
+		/// <param name="segment">Name or index of the child that was accessed</param>
+		/// <param name="access">Type of access</param>
+		/// <param name="value">Captured value of the child</param>
 		public void Add(JsonPathSegment segment, ObservableJsonAccess access, JsonValue? value)
 		{
 			ref Node current = ref this.Root;
@@ -239,10 +252,13 @@ namespace SnowBank.Data.Json
 			UpdateLeafAccess(ref current, access, value);
 		}
 
+		/// <summary>Records the access to a node of the document</summary>
+		/// <param name="path">Path to the node that was accessed</param>
+		/// <param name="access">Type of access</param>
+		/// <param name="value">Captured value of the node</param>
 		public void Add(ReadOnlySpan<JsonPathSegment> path, ObservableJsonAccess access, JsonValue? value)
 		{
 			ref Node current = ref this.Root;
-
 
 			foreach (var segment in path)
 			{
@@ -263,6 +279,8 @@ namespace SnowBank.Data.Json
 			UpdateLeafAccess(ref current, access, value);
 		}
 
+		/// <summary>Clears all records from this trace</summary>
+		/// <remarks>After this call, this instance can be reused for a new capture session</remarks>
 		public void Clear()
 		{
 			this.Root = default;
@@ -313,8 +331,7 @@ namespace SnowBank.Data.Json
 			}
 		}
 
-
-
+		/// <summary>Returns all the access records captured by this trace</summary>
 		public List<(JsonPath Path, ObservableJsonAccess Access, JsonValue? Value)> GetRecords()
 		{
 			var res = new List<(JsonPath Path, ObservableJsonAccess Access, JsonValue? Value)>();

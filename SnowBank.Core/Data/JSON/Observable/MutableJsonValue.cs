@@ -19,6 +19,11 @@ namespace SnowBank.Data.Json
 	public sealed class MutableJsonValue : IJsonProxyNode, IJsonSerializable, IJsonPackable, IEquatable<JsonValue>, IEquatable<MutableJsonValue>, IEnumerable<MutableJsonValue>
 	{
 
+		/// <summary>Constructs a <see cref="MutableJsonValue"/></summary>
+		/// <param name="ctx">Tracking context (optional)</param>
+		/// <param name="parent">Parent of this value (or <c>null</c> if root)</param>
+		/// <param name="segment">Path from the parent to this node (or <see cref="JsonPathSegment.Empty"/> if root)</param>
+		/// <param name="json">Value of this node</param>
 		public MutableJsonValue(IMutableJsonContext? ctx, MutableJsonValue? parent, JsonPathSegment segment, JsonValue json)
 		{
 			Contract.Debug.Requires(json != null);
@@ -61,11 +66,13 @@ namespace SnowBank.Data.Json
 		/// <summary>Contains the read-only version of this JSON object</summary>
 		internal JsonValue Json { get; private set; }
 
+		/// <summary>Returns the <see cref="JsonValue"/> tracked by this node</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonValue ToJson() => this.Json;
 
 		internal IMutableJsonContext? Context { get; }
 
+		/// <summary>Returns the tracking context that is attached to this node</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public IMutableJsonContext? GetContext() => this.Context;
 
@@ -74,15 +81,20 @@ namespace SnowBank.Data.Json
 		/// <summary>Parent of this value, or <see langword="null"/> if this is the root of the document</summary>
 		internal readonly MutableJsonValue? Parent;
 
+		/// <inheritdoc />
 		IJsonProxyNode? IJsonProxyNode.Parent => this.Parent;
 
+		/// <summary>Returns the parent of this node</summary>
+		/// <returns>Parent node, or <c>null</c> if root</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public MutableJsonValue? GetParent() => Parent;
 
+		/// <summary>Number of nodes between the root and this node</summary>
 		internal int Depth { get; }
 
 		int IJsonProxyNode.Depth => this.Depth;
 
+		/// <summary>Returns the number of nodes between the root and this node</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int GetDepth() => this.Depth;
 
@@ -186,15 +198,26 @@ namespace SnowBank.Data.Json
 			return value is not null;
 		}
 
+		/// <summary>Tests if the node has no value (null or missing)</summary>
+		/// <returns></returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)] 
 		public bool IsNullOrMissing() => this.Json is JsonNull;
 
+		/// <summary>Tests if the value of this node is not null or missing</summary>
 		public bool Exists() => this.Json is not JsonNull;
 
+		/// <summary>Converts the optional value of this node into an instance of type <typeparamref name="TValue"/></summary>
+		/// <typeparam name="TValue">Target conversion type</typeparam>
+		/// <param name="defaultValue">Value returned if this node is either null or missing</param>
+		/// <returns>Converted value, or <paramref name="defaultValue"/> if the node is null or missing</returns>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public TValue? As<TValue>(TValue? defaultValue = default) => this.Json.As<TValue>(defaultValue);
 
+		/// <summary>Converts the <b>required</b> value of this node into an instance of type <typeparamref name="TValue"/></summary>
+		/// <typeparam name="TValue">Target conversion type</typeparam>
+		/// <returns>Converter value</returns>
+		/// <exception cref="JsonBindingException">if the node is null or missing, or could not be bound to type <typeparamref name="TValue"/></exception>
 		public TValue Required<TValue>() where TValue : notnull
 		{
 			if (this.Json is null or JsonNull)
@@ -204,12 +227,24 @@ namespace SnowBank.Data.Json
 			return this.Json.As<TValue>()!;
 		}
 
+		/// <summary>Tests if this document contains a field with the given name</summary>
+		/// <param name="name">Name of the field</param>
+		/// <returns><c>true</c> if the field is present; otherwise, <c>false</c></returns>
 		public bool ContainsKey(string name) => this.Json is JsonObject obj && obj.ContainsKey(name);
 
+		/// <summary>Tests if this document contains a field with the given name</summary>
+		/// <param name="name">Name of the field</param>
+		/// <returns><c>true</c> if the field is present; otherwise, <c>false</c></returns>
 		public bool ContainsKey(ReadOnlyMemory<char> name) => this.Json is JsonObject obj && obj.ContainsKey(name);
 
+		/// <summary>Tests if this document contains a field with the given name</summary>
+		/// <param name="name">Name of the field</param>
+		/// <returns><c>true</c> if the field is present; otherwise, <c>false</c></returns>
 		public bool ContainsKey(ReadOnlySpan<char> name) => this.Json is JsonObject obj && obj.ContainsKey(name);
 
+		/// <summary>Tests if this document contains the given value</summary>
+		/// <param name="value">Value to search</param>
+		/// <returns><c>true</c> if the document is an object with a field that has this value, or an array with an item equal to this value; otherwise, <c>false</c>.</returns>
 		public bool ContainsValue(JsonValue value) => this.Json switch
 		{
 			JsonObject obj => obj.Contains(value),
@@ -1264,7 +1299,7 @@ namespace SnowBank.Data.Json
 		{
 			value ??= JsonNull.Missing;
 
-			if (this.Parent == null) throw new InvalidOperationException("Cannot replace the top level value");
+			if (this.Parent == null) throw new InvalidOperationException("Cannot replace the root value");
 
 			var prevJson = this.Json;
 			if (!prevJson.IsNullOrMissing())
@@ -2230,6 +2265,10 @@ namespace SnowBank.Data.Json
 
 		#region TryAdd...
 
+		/// <summary>Adds a new field to this object, if it does not already exist</summary>
+		/// <param name="name">Name of the field</param>
+		/// <param name="value">Value to add</param>
+		/// <returns><c>true</c> if the field was added, or <c>false</c> if there was already a field with this name (the object will not be modified)</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryAdd(string name, JsonValue? value)
 		{
@@ -2241,9 +2280,14 @@ namespace SnowBank.Data.Json
 			return true;
 		}
 
+		/// <summary>Adds a new field to this object, if it does not already exist</summary>
+		/// <param name="name">Name of the field</param>
+		/// <param name="value">Value to add.</param>
+		/// <returns><c>true</c> if the field was added, or <c>false</c> if there was already a field with this name (the object will not be modified)</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryAdd(string name, MutableJsonValue? value)
 		{
+			//REVIEW: TODO: should we _copy_ the wrapped value? what if the original is mutated after ?
 			if (ContainsKey(name))
 			{
 				return false;
@@ -2252,6 +2296,10 @@ namespace SnowBank.Data.Json
 			return true;
 		}
 
+		/// <summary>Adds a new field to this object, if it does not already exist</summary>
+		/// <param name="name">Name of the field</param>
+		/// <param name="value">Value to add.</param>
+		/// <returns><c>true</c> if the field was added, or <c>false</c> if there was already a field with this name (the object will not be modified)</returns>
 		public bool TryAdd<TValue>(string name, TValue? value)
 		{
 			// check before packing
@@ -2264,6 +2312,11 @@ namespace SnowBank.Data.Json
 			return true;
 		}
 
+		/// <summary>Adds a new field to this object, if it does not already exist</summary>
+		/// <param name="name">Name of the field</param>
+		/// <param name="value">Value to add.</param>
+		/// <param name="converter">Custom JSON converter</param>
+		/// <returns><c>true</c> if the field was added, or <c>false</c> if there was already a field with this name (the object will not be modified)</returns>
 		public bool TryAdd<TValue>(string name, TValue? value, IJsonPacker<TValue> converter)
 		{
 			// check before packing
@@ -2276,6 +2329,10 @@ namespace SnowBank.Data.Json
 			return true;
 		}
 
+		/// <summary>Adds a new field to this object, if it does not already exist</summary>
+		/// <param name="name">Name of the field</param>
+		/// <param name="value">Value to add.</param>
+		/// <returns><c>true</c> if the field was added, or <c>false</c> if there was already a field with this name (the object will not be modified)</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryAdd(ReadOnlyMemory<char> name, JsonValue? value)
 		{
@@ -2287,9 +2344,14 @@ namespace SnowBank.Data.Json
 			return true;
 		}
 
+		/// <summary>Adds a new field to this object, if it does not already exist</summary>
+		/// <param name="name">Name of the field</param>
+		/// <param name="value">Value to add.</param>
+		/// <returns><c>true</c> if the field was added, or <c>false</c> if there was already a field with this name (the object will not be modified)</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryAdd(ReadOnlyMemory<char> name, MutableJsonValue? value)
 		{
+			//REVIEW: TODO: should we _copy_ the wrapped value? what if the original is mutated after ?
 			if (ContainsKey(name))
 			{
 				return false;
@@ -2298,6 +2360,10 @@ namespace SnowBank.Data.Json
 			return true;
 		}
 
+		/// <summary>Adds a new field to this object, if it does not already exist</summary>
+		/// <param name="name">Name of the field</param>
+		/// <param name="value">Value to add.</param>
+		/// <returns><c>true</c> if the field was added, or <c>false</c> if there was already a field with this name (the object will not be modified)</returns>
 		public bool TryAdd<TValue>(ReadOnlyMemory<char> name, TValue? value)
 		{
 			// check before packing
@@ -2310,6 +2376,11 @@ namespace SnowBank.Data.Json
 			return true;
 		}
 
+		/// <summary>Adds a new field to this object, if it does not already exist</summary>
+		/// <param name="name">Name of the field</param>
+		/// <param name="value">Value to add.</param>
+		/// <param name="converter">Custom JSON converter</param>
+		/// <returns><c>true</c> if the field was added, or <c>false</c> if there was already a field with this name (the object will not be modified)</returns>
 		public bool TryAdd<TValue>(ReadOnlyMemory<char> name, TValue? value, IJsonPacker<TValue> converter)
 		{
 			// check before packing
@@ -2322,12 +2393,24 @@ namespace SnowBank.Data.Json
 			return true;
 		}
 
+		/// <summary>Adds a new node to this document, if it does not already exist</summary>
+		/// <param name="path">Path to the node</param>
+		/// <param name="value">Value to add.</param>
+		/// <returns><c>true</c> if the node was added, or <c>false</c> if there was already a node at this location (the document will not be modified)</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryAdd(JsonPath path, JsonValue? value) => Get(path).InsertOrUpdate(value, InsertionBehavior.None);
 
+		/// <summary>Adds a new node to this document, if it does not already exist</summary>
+		/// <param name="path">Path to the node</param>
+		/// <param name="value">Value to add.</param>
+		/// <returns><c>true</c> if the node was added, or <c>false</c> if there was already a node at this location (the document will not be modified)</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryAdd(JsonPath path, MutableJsonValue? value) => Get(path).InsertOrUpdate(value?.Json, InsertionBehavior.None);
 
+		/// <summary>Adds a new node to this document, if it does not already exist</summary>
+		/// <param name="path">Path to the node</param>
+		/// <param name="value">Value to add.</param>
+		/// <returns><c>true</c> if the node was added, or <c>false</c> if there was already a node at this location (the document will not be modified)</returns>
 		public bool TryAdd<TValue>(JsonPath path, TValue? value)
 		{
 			var child = Get(path);
@@ -2341,6 +2424,11 @@ namespace SnowBank.Data.Json
 			return true;
 		}
 
+		/// <summary>Adds a new node to this document, if it does not already exist</summary>
+		/// <param name="path">Path to the node</param>
+		/// <param name="value">Value to add.</param>
+		/// <param name="converter">Custom JSON packer</param>
+		/// <returns><c>true</c> if the node was added, or <c>false</c> if there was already a node at this location (the document will not be modified)</returns>
 		public bool TryAdd<TValue>(JsonPath path, TValue? value, IJsonPacker<TValue> converter)
 		{
 			var child = Get(path);
@@ -2389,135 +2477,269 @@ namespace SnowBank.Data.Json
 			return true;
 		}
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(int index, JsonValue value) => InsertOrAdd(index, value);
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(int index, JsonNull? value) => InsertOrAdd(index, value);
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(int index, bool value) => InsertOrAdd(index, value ? JsonBoolean.True : JsonBoolean.False);
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(int index, int value) => InsertOrAdd(index, JsonNumber.Return(value));
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(int index, long value) => InsertOrAdd(index, JsonNumber.Return(value));
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(int index, float value) => InsertOrAdd(index, JsonNumber.Return(value));
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(int index, double value) => InsertOrAdd(index, JsonNumber.Return(value));
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(int index, string? value) => InsertOrAdd(index, JsonString.Return(value));
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(int index, Guid value) => InsertOrAdd(index, JsonString.Return(value));
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(int index, Uuid128 value) => InsertOrAdd(index, JsonString.Return(value));
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(int index, DateTime value) => InsertOrAdd(index, JsonDateTime.Return(value));
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(int index, DateTimeOffset value) => InsertOrAdd(index, JsonDateTime.Return(value));
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(int index, NodaTime.Instant value) => InsertOrAdd(index, JsonDateTime.Return(value));
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(int index, DateOnly value) => InsertOrAdd(index, JsonDateTime.Return(value));
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(int index, TimeSpan value) => InsertOrAdd(index, JsonNumber.Return(value));
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(int index, NodaTime.Duration value) => InsertOrAdd(index, JsonNumber.Return(value));
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(int index, TimeOnly value) => InsertOrAdd(index, JsonNumber.Return(value));
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(int index, JsonObject? value) => InsertOrAdd(index, value);
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(int index, JsonArray? value) => InsertOrAdd(index, value);
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(int index, MutableJsonValue? value) => InsertOrAdd(index, value?.Json);
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert<TValue>(int index, TValue value) => InsertOrAdd(index, Convert<TValue>(value));
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
+		/// <param name="converter">Converter used to unpack the JSON value into a <typeparamref name="TValue"/> instance</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert<TValue>(int index, TValue value, IJsonPacker<TValue> converter) => InsertOrAdd(index, Convert<TValue>(value, converter));
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(Index index, JsonValue value) => InsertOrAdd(index, value);
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(Index index, JsonNull? value) => InsertOrAdd(index, value);
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(Index index, bool value) => InsertOrAdd(index, value ? JsonBoolean.True : JsonBoolean.False);
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(Index index, int value) => InsertOrAdd(index, JsonNumber.Return(value));
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(Index index, long value) => InsertOrAdd(index, JsonNumber.Return(value));
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(Index index, float value) => InsertOrAdd(index, JsonNumber.Return(value));
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(Index index, double value) => InsertOrAdd(index, JsonNumber.Return(value));
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(Index index, string? value) => InsertOrAdd(index, JsonString.Return(value));
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(Index index, Guid value) => InsertOrAdd(index, JsonString.Return(value));
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(Index index, Uuid128 value) => InsertOrAdd(index, JsonString.Return(value));
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(Index index, DateTime value) => InsertOrAdd(index, JsonDateTime.Return(value));
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(Index index, DateTimeOffset value) => InsertOrAdd(index, JsonDateTime.Return(value));
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(Index index, NodaTime.Instant value) => InsertOrAdd(index, JsonDateTime.Return(value));
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(Index index, DateOnly value) => InsertOrAdd(index, JsonDateTime.Return(value));
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(Index index, TimeSpan value) => InsertOrAdd(index, JsonNumber.Return(value));
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(Index index, NodaTime.Duration value) => InsertOrAdd(index, JsonNumber.Return(value));
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(Index index, TimeOnly value) => InsertOrAdd(index, JsonNumber.Return(value));
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(Index index, JsonObject? value) => InsertOrAdd(index, value);
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(Index index, JsonArray? value) => InsertOrAdd(index, value);
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(Index index, MutableJsonValue? value) => InsertOrAdd(index, value?.Json);
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert<TValue>(Index index, TValue value) => InsertOrAdd(index, Convert<TValue>(value));
 
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
+		/// <param name="converter">Converter used to unpack the JSON value into a <typeparamref name="TValue"/> instance</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert<TValue>(Index index, TValue value, IJsonPacker<TValue> converter) => InsertOrAdd(index, Convert<TValue>(value, converter));
 
@@ -2702,19 +2924,19 @@ namespace SnowBank.Data.Json
 
 		#region Increment...
 
-		private static void Increment(MutableJsonValue value)
+		private static MutableJsonValue Increment(MutableJsonValue value)
 		{
 			switch (value.Json)
 			{
 				case JsonNumber num:
 				{
 					value.Set((JsonValue) (num + 1));
-					break;
+					return value;
 				}
 				case JsonNull:
 				{
 					value.Set((JsonValue) JsonNumber.One);
-					break;
+					return value;
 				}
 				default:
 				{
@@ -2723,33 +2945,47 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		/// <summary>Increments the value of this node</summary>
+		/// <remarks>If the node is null or missing, it will be set to <c>1</c></remarks>
+		/// <exception cref="InvalidOperationException">if this node is not a number</exception>
 		public void Increment() => Increment(this);
 
+		/// <summary>Increments the value of a field of this object</summary>
+		/// <remarks>If the field is null or missing, it will be set to <c>1</c></remarks>
+		/// <exception cref="InvalidOperationException">if this field is not a number</exception>
 		public MutableJsonValue Increment(string name)
 		{
-			var prev = Get(name);
-			Increment(prev);
-			return prev;
+			return Increment(Get(name));
 		}
 
+		/// <summary>Increments the value of an item of this object</summary>
+		/// <remarks>If the item is null or missing, it will be set to <c>1</c></remarks>
+		/// <exception cref="InvalidOperationException">if this item is not a number</exception>
 		public MutableJsonValue Increment(int index)
 		{
-			var prev = Get(index);
-			Increment(prev);
-			return prev;
+			return Increment(Get(index));
 		}
 
+		/// <summary>Increments the value of an item of this object</summary>
+		/// <remarks>If the item is null or missing, it will be set to <c>1</c></remarks>
+		/// <exception cref="InvalidOperationException">if this item is not a number</exception>
 		public MutableJsonValue Increment(Index index)
 		{
-			var prev = Get(index);
-			Increment(prev);
-			return prev;
+			return Increment(Get(index));
 		}
 
 		#endregion
 
 		#region Exchange...
 
+		/// <summary>Replaces the value of this node, it is equal to an expected value</summary>
+		/// <param name="value">New value for this node if the comparison succeeds</param>
+		/// <param name="comparand">Expected current value of this node</param>
+		/// <returns>Previous value of this node</returns>
+		/// <remarks>
+		/// <para>If the previous value of this node is equal to <paramref name="comparand"/>, then it will be replaced with <paramref name="value"/>; otherwise, it will not be modified.</para>
+		/// <para>To test if the object was changed, test if the returned value is equal to <paramref name="comparand"/> (no change) or not (changed)</para>
+		/// </remarks>
 		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
 		public bool CompareExchange<TValue>(TValue? value, TValue? comparand)
 		{
@@ -2761,6 +2997,10 @@ namespace SnowBank.Data.Json
 			return true;
 		}
 
+		/// <summary>Replaces the value of this node</summary>
+		/// <param name="value">New value for this node</param>
+		/// <returns>Previous value of this node</returns>
+		/// <remarks>If the object is already equal to <paramref name="value"/>, it will not be changed.</remarks>
 		public JsonValue Exchange(JsonValue? value)
 		{
 			var prev = this.Json;
@@ -2768,6 +3008,10 @@ namespace SnowBank.Data.Json
 			return prev;
 		}
 
+		/// <summary>Replaces the value of this node</summary>
+		/// <param name="value">New value for this node</param>
+		/// <returns>Previous value of this node</returns>
+		/// <remarks>If the object is already equal to <paramref name="value"/>, it will not be changed.</remarks>
 		public TValue? Exchange<TValue>(TValue? value)
 		{
 			var prev = this.As<TValue>();
@@ -2775,6 +3019,11 @@ namespace SnowBank.Data.Json
 			return prev;
 		}
 
+		/// <summary>Replaces the value of field of this object</summary>
+		/// <param name="name">Name of the field to update</param>
+		/// <param name="value">New value for this node</param>
+		/// <returns>Previous value of this field</returns>
+		/// <remarks>If the field is already equal to <paramref name="value"/>, the object will not be changed.</remarks>
 		public JsonValue Exchange(string name, JsonValue? value)
 		{
 			var prev = this.Json[name];
@@ -2782,6 +3031,11 @@ namespace SnowBank.Data.Json
 			return prev;
 		}
 
+		/// <summary>Replaces the value of an item of this array</summary>
+		/// <param name="index">Index of the item to update</param>
+		/// <param name="value">New value for this item</param>
+		/// <returns>Previous value of this item</returns>
+		/// <remarks>If the item is already equal to <paramref name="value"/>, the array will not be changed.</remarks>
 		public JsonValue Exchange(int index, JsonValue? value)
 		{
 			var prev = this.Json[index];
@@ -2789,6 +3043,11 @@ namespace SnowBank.Data.Json
 			return prev;
 		}
 
+		/// <summary>Replaces the value of an item of this array</summary>
+		/// <param name="index">Index of the item to update</param>
+		/// <param name="value">New value for this item</param>
+		/// <returns>Previous value of this item</returns>
+		/// <remarks>If the item is already equal to <paramref name="value"/>, the array will not be changed.</remarks>
 		public JsonValue Exchange(Index index, JsonValue? value)
 		{
 			var prev = this.Json[index];
@@ -2796,6 +3055,11 @@ namespace SnowBank.Data.Json
 			return prev;
 		}
 
+		/// <summary>Replaces the value of field of this object</summary>
+		/// <param name="name">Name of the field to update</param>
+		/// <param name="value">New value for this node</param>
+		/// <returns>Previous value of this field</returns>
+		/// <remarks>If the field is already equal to <paramref name="value"/>, the object will not be changed.</remarks>
 		public TValue? Exchange<TValue>(string name, TValue? value)
 		{
 			var prev = Get<TValue?>(name, default);
@@ -2803,6 +3067,11 @@ namespace SnowBank.Data.Json
 			return prev;
 		}
 
+		/// <summary>Replaces the value of an item of this array</summary>
+		/// <param name="index">Index of the item to update</param>
+		/// <param name="value">New value for this item</param>
+		/// <returns>Previous value of this item</returns>
+		/// <remarks>If the item is already equal to <paramref name="value"/>, the array will not be changed.</remarks>
 		public TValue? Exchange<TValue>(int index, TValue? value)
 		{
 			var prev = Get<TValue?>(index, default);
@@ -2810,6 +3079,11 @@ namespace SnowBank.Data.Json
 			return prev;
 		}
 
+		/// <summary>Replaces the value of an item of this array</summary>
+		/// <param name="index">Index of the item to update</param>
+		/// <param name="value">New value for this item</param>
+		/// <returns>Previous value of this item</returns>
+		/// <remarks>If the item is already equal to <paramref name="value"/>, the array will not be changed.</remarks>
 		public TValue? Exchange<TValue>(Index index, TValue? value)
 		{
 			var prev = Get<TValue?>(index, default);
@@ -2821,6 +3095,8 @@ namespace SnowBank.Data.Json
 
 		#region Clear...
 
+		/// <summary>Clears the contents of this object or array</summary>
+		/// <exception cref="NotSupportedException">If the current node is not an object or an array or null</exception>
 		public void Clear()
 		{
 			JsonValue newJson;
@@ -2837,6 +3113,11 @@ namespace SnowBank.Data.Json
 					if (arr.Count == 0) return; // already empty!
 					newJson = JsonArray.ReadOnly.Empty;
 					break;
+				}
+				case JsonNull:
+				{
+					// already "empty"
+					return;
 				}
 				default:
 				{
