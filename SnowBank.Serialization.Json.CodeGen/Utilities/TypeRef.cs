@@ -345,7 +345,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 			this.TypeArguments ??= ImmutableEquatableArray<TypeRef>.Empty;
 
 			this.FullyQualifiedNameAnnotated =
-				(this.Nullability == NullableAnnotation.Annotated ? this.NullableOfType is null : !IsValueType())
+				(this.Nullability == NullableAnnotation.Annotated && this.NullableOfType is null)
 					? (this.FullyQualifiedName + "?")
 					: this.FullyQualifiedName;
 		}

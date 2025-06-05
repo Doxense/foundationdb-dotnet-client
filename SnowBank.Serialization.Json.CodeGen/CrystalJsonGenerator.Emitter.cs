@@ -1242,6 +1242,12 @@ namespace SnowBank.Serialization.Json.CodeGen
 			private void WriteProxyStaticHelpers(CSharpCodeBuilder sb, CrystalJsonTypeMetadata typeDef, string typeFullName, string typeCref)
 			{
 				// Serialize(...)
+				if (typeDef.Type.IsValueType())
+				{
+					sb.XmlComment($"<summary>Writes a JSON representation of a value of type <see cref=\"{typeCref}\" /> to the specified output</summary>");
+					sb.AppendLine($"public static void Serialize({KnownTypeSymbols.CrystalJsonWriterFullName} writer, {typeDef.Type.FullyQualifiedName}? instance) => Default.Serialize(writer, instance);");
+					sb.NewLine();
+				}
 				sb.XmlComment($"<summary>Writes a JSON representation of a value of type <see cref=\"{typeCref}\" /> to the specified output</summary>");
 				sb.AppendLine($"public static void Serialize({KnownTypeSymbols.CrystalJsonWriterFullName} writer, {typeDef.Type.FullyQualifiedName}{(typeDef.Type.IsValueType() ? "" : "?")} instance) => Default.Serialize(writer, instance);");
 				sb.NewLine();
@@ -1271,8 +1277,15 @@ namespace SnowBank.Serialization.Json.CodeGen
 				sb.NewLine();
 
 				// Pack(...)
+				if (typeDef.Type.IsValueType())
+				{
+					sb.XmlComment($"<summary>Converts an instance of this type into the equivalent <see cref=\"{KnownTypeSymbols.JsonValueFullName}\"/></summary>");
+					sb.AppendLine($"public static {KnownTypeSymbols.JsonValueFullName} Pack({typeDef.Type.FullyQualifiedName}? instance, {KnownTypeSymbols.CrystalJsonSettingsFullName}? settings = default, {KnownTypeSymbols.ICrystalJsonTypeResolverFullName}? resolver = default) => Default.Pack(instance, settings, resolver);");
+					sb.NewLine();
+				}
+
 				sb.XmlComment($"<summary>Converts an instance of this type into the equivalent <see cref=\"{KnownTypeSymbols.JsonValueFullName}\"/></summary>");
-				sb.AppendLine($"public static {KnownTypeSymbols.JsonValueFullName} Pack({typeDef.Type.FullyQualifiedNameAnnotated} instance, {KnownTypeSymbols.CrystalJsonSettingsFullName}? settings = default, {KnownTypeSymbols.ICrystalJsonTypeResolverFullName}? resolver = default) => Default.Pack(instance, settings, resolver);");
+				sb.AppendLine($"public static {KnownTypeSymbols.JsonValueFullName} Pack({typeDef.Type.FullyQualifiedName}{(typeDef.Type.IsValueType() ? "" : "?")} instance, {KnownTypeSymbols.CrystalJsonSettingsFullName}? settings = default, {KnownTypeSymbols.ICrystalJsonTypeResolverFullName}? resolver = default) => Default.Pack(instance, settings, resolver);");
 				sb.NewLine();
 
 				// Unpack(...)
@@ -1664,9 +1677,28 @@ namespace SnowBank.Serialization.Json.CodeGen
 					sb.AppendLine($"Getter = (instance) => (({typeDef.Type.FullyQualifiedName}) instance).{member.MemberName},");
 					if (!member.IsReadOnly && !member.IsInitOnly)
 					{
-						sb.AppendLine($"Setter = (instance, value) => (({typeDef.Type.FullyQualifiedName}) instance).{member.MemberName} = ({member.Type.FullyQualifiedNameAnnotated}) value,");
+						if (member.Type.IsValueType())
+						{ // struct that _could_ be null
+							sb.AppendLine($"Setter = (instance, value) => (({typeDef.Type.FullyQualifiedName}) instance).{member.MemberName} = value is not null ? ({member.Type.FullyQualifiedName}) value : {member.DefaultLiteral} /* value-type */,");
+						}
+						else if (member.HasNonZeroDefault)
+						{ // a ref type _could_ be null, but the setter does not allow it...
+							sb.AppendLine($"Setter = (instance, value) => (({typeDef.Type.FullyQualifiedName}) instance).{member.MemberName} = value is not null ? ({member.Type.FullyQualifiedName}) value : {member.DefaultLiteral} /* has-default-value */,");
+						}
+						else if (member.IsNotNull && member.Type.IsEnumerable(out _))
+						{ // not-null collection type without a default value, we will inject a default empty collection expression
+							sb.AppendLine($"Setter = (instance, value) => (({typeDef.Type.FullyQualifiedName}) instance).{member.MemberName} = value is not null ? ({member.Type.FullyQualifiedName}) value : [ ] /* not-null-collection */,");
+						}
+						else
+						{
+							sb.AppendLine($"Setter = (instance, value) => (({typeDef.Type.FullyQualifiedName}) instance).{member.MemberName} = ({member.Type.FullyQualifiedNameAnnotated}) value /* fallback */,");
+						}
 					}
-					sb.AppendLine($"Visitor = (instance, declaredType, runtimeType, writer) => Default.Serialize(writer, ({typeDef.Type.FullyQualifiedNameAnnotated}) instance),");
+
+					// if we are deserializing a (non-nullable) ValueType, the "instance" arg could still be null!
+					// => it will call the Nullable<T> variant of Default.Serialize(...) which should be generated automatically
+					sb.AppendLine($"Visitor = (instance, declaredType, runtimeType, writer) => Default.Serialize(writer, ({typeDef.Type.FullyQualifiedName}?) instance),");
+
 					if (IsLocallyGeneratedType(member.Type, out var target, out _))
 					{
 						sb.AppendLine($"Binder = (instance, type, resolver) => instance is not null ? {GetLocalSerializerRef(target)}.Unpack(instance, resolver) : {KnownTypeSymbols.JsonNullFullName}.Null,");
@@ -1964,8 +1996,22 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 			private void WritePackMethod(CSharpCodeBuilder sb, CrystalJsonTypeMetadata typeDef)
 			{
+				if (typeDef.Type.IsValueType())
+				{
+					sb.XmlComment($"<summary>Converts an instance of this type into the equivalent <see cref=\"{KnownTypeSymbols.JsonValueFullName}\"/></summary>");
+					sb.AppendLine($"public {KnownTypeSymbols.JsonValueFullName} Pack({typeDef.Type.FullyQualifiedName}? instance, {KnownTypeSymbols.CrystalJsonSettingsFullName}? settings = default, {KnownTypeSymbols.ICrystalJsonTypeResolverFullName}? resolver = default)");
+					sb.EnterBlock();
+					sb.AppendLine("if (instance is null)");
+					sb.EnterBlock();
+					sb.AppendLine($"return {KnownTypeSymbols.JsonNullFullName}.Null;");
+					sb.LeaveBlock();
+					sb.AppendLine("return Pack(instance.Value, settings, resolver);");
+					sb.LeaveBlock();
+					sb.NewLine();
+				}
+
 				sb.InheritDoc();
-				sb.AppendLine($"public {KnownTypeSymbols.JsonValueFullName} Pack({typeDef.Type.FullyQualifiedNameAnnotated} instance, {KnownTypeSymbols.CrystalJsonSettingsFullName}? settings = default, {KnownTypeSymbols.ICrystalJsonTypeResolverFullName}? resolver = default)");
+				sb.AppendLine($"public {KnownTypeSymbols.JsonValueFullName} Pack({typeDef.Type.FullyQualifiedName}{(!typeDef.Type.IsValueType() ? "?" : "")} instance, {KnownTypeSymbols.CrystalJsonSettingsFullName}? settings = default, {KnownTypeSymbols.ICrystalJsonTypeResolverFullName}? resolver = default)");
 				sb.EnterBlock("Pack");
 
 				if (!typeDef.Type.IsValueType())
@@ -2095,6 +2141,21 @@ namespace SnowBank.Serialization.Json.CodeGen
 				sb.AppendLine("Serialize(writer, value);");
 				sb.LeaveBlock();
 				sb.NewLine();
+
+				if (typeDef.Type.IsValueType())
+				{
+					sb.XmlComment("/// <summary>Writes a JSON representation of a nullable value to the specified output</summary>");
+					sb.AppendLine($"public void Serialize({KnownTypeSymbols.CrystalJsonWriterFullName} writer, {typeDef.Type.FullyQualifiedName}? instance)");
+					sb.EnterBlock();
+					sb.AppendLine("if (instance is null)");
+					sb.EnterBlock();
+					sb.AppendLine("writer.WriteNull();");
+					sb.AppendLine("return;");
+					sb.LeaveBlock();
+					sb.AppendLine("Serialize(writer, instance.Value);");
+					sb.LeaveBlock();
+					sb.NewLine();
+				}
 
 				sb.InheritDoc();
 				sb.AppendLine($"public void Serialize({KnownTypeSymbols.CrystalJsonWriterFullName} writer, {typeDef.Type.FullyQualifiedName}{(typeDef.Type.IsValueType() ? "" : "?")} instance)");
