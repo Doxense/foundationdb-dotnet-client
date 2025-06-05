@@ -14,4 +14,25 @@
 		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
 	</PropertyGroup>
 
+	<!-- Enable Source Link for projects that produce a NuGet package -->
+	
+	<PropertyGroup Condition="'$(IsPackable)' == 'true'">
+		<!-- Enable Source Link -->
+		<EnableSourceLink>true</EnableSourceLink>
+		<!-- We need to inclute the repo url -->
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+		<!-- DO NOT embed untracked files, this is too dangerous! (will ignore .g.cs that can be added back manually, if required) -->
+		<EmbedUntrackedSources>false</EmbedUntrackedSources>
+		<!-- Create a list of all the "*.AssemblyAttributes.g.cs" files that must be embedded-->
+		<TargetFrameworkMonikerAssemblyAttributesPath>$([System.IO.Path]::Combine('$(IntermediateOutputPath)','$(TargetFrameworkMoniker).AssemblyAttributes$(DefaultLanguageSourceExtension)'))</TargetFrameworkMonikerAssemblyAttributesPath>
+	</PropertyGroup>
+	<ItemGroup Condition="'$(IsPackable)' == 'true'">
+		<!-- Include the GitHub source link provider for all packable projects -->
+		<PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
+		<!-- embed the various generated source files in the pdb (otherwise sourcelink test will complain)-->
+		<EmbeddedFiles Include="$(GeneratedAssemblyInfoFile)"/>
+		<EmbeddedFiles Include="$(GeneratedGlobalUsingsFile)"/>
+		<EmbeddedFiles Include="$(TargetFrameworkMonikerAssemblyAttributesPath)"/>
+	</ItemGroup>
+
 </Project>
