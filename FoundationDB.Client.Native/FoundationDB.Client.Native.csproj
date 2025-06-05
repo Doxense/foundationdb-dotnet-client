@@ -48,17 +48,12 @@
 		<!-- Reference FoundationDB.Client via NuGet -->
 		<PackageReference Include="FoundationDB.Client" VersionOverride="[7.3.0-preview.1,7.4)" />
 		<!-- Exclude the other dependencies to prevent them from appearing in the .nuspec -->
-		
+		<!-- How to update: comment all of them, rebuild the package, inspect the .nuspec, and re-add the deps that have appeared (only keep FoundationDB.Client) -->
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" ExcludeAssets="All" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" ExcludeAssets="All" />
 		<PackageReference Include="Microsoft.Extensions.Options" ExcludeAssets="All" />
 		<PackageReference Include="NodaTime" ExcludeAssets="All" />
 		<PackageReference Include="OpenTelemetry.Api" ExcludeAssets="All" />
-		<PackageReference Include="System.Collections.Immutable" ExcludeAssets="All" />
-		<PackageReference Include="System.IO.Pipelines" ExcludeAssets="All" />
-		<PackageReference Include="System.Memory" ExcludeAssets="All" />
-		<PackageReference Include="System.Reflection.Metadata" ExcludeAssets="All" />
-		<PackageReference Include="System.Threading.Channels" ExcludeAssets="All" />
 	</ItemGroup>
 
 	<!-- Include all the native libraries and tools -->
