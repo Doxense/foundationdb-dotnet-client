@@ -37,71 +37,73 @@ Write-Host "Downloading $($files.Count) files for ${version}:" -ForegroundColor 
 $httpClient = [System.Net.Http.HttpClient]::new()
 
 function DownloadFile {
-    param (
-        [string]$uri,
-        [string]$output,
-        [string]$name
-    )
+	param (
+		[string]$uri,
+		[string]$output,
+		[string]$name
+	)
 
-    try {
+	try {
 		# Get the absolute path, otherwise File::Create(...) will not resolve '.' correctly!
 		$output = (Join-Path -Path $PWD.Path -ChildPath $output)
 
 		# GET ...
-        $request = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::Get, $uri)
-        $response = $httpClient.SendAsync($request, [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead).Result
-        $stream = $response.Content.ReadAsStreamAsync().Result
+		$request = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::Get, $uri)
+		$response = $httpClient.SendAsync($request, [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead).Result
+		$stream = $response.Content.ReadAsStreamAsync().Result
 
 		# create file
-        $fileStream = [System.IO.File]::Create($output)
+		$fileStream = [System.IO.File]::Create($output)
 
-        $buffer = New-Object byte[] 1048576
-        $totalBytes = $response.Content.Headers.ContentLength
-        $downloadedBytes = 0
-        $lastUpdateTime = Get-Date
+		$buffer = New-Object byte[] 1048576
+		$totalBytes = $response.Content.Headers.ContentLength
+		$downloadedBytes = 0
+		$lastUpdateTime = Get-Date
 
-        while (($read = $stream.Read($buffer, 0, $buffer.Length)) -gt 0) {
-            $fileStream.Write($buffer, 0, $read)
-            $downloadedBytes += $read
+		while (($read = $stream.Read($buffer, 0, $buffer.Length)) -gt 0) {
+			$fileStream.Write($buffer, 0, $read)
+			$downloadedBytes += $read
 
-            # Calculate progress percentage
-            $progressPercent = [math]::Round(($downloadedBytes / $totalBytes) * 100)
+			# Calculate progress percentage
+			$progressPercent = [math]::Round(($downloadedBytes / $totalBytes) * 100)
 
-            # Check if we should update progress (either time-based or percentage-based)
-            $currentTime = Get-Date
-            $timeSinceLastUpdate = ($currentTime - $lastUpdateTime).TotalSeconds
+			# Check if we should update progress (either time-based or percentage-based)
+			$currentTime = Get-Date
+			$timeSinceLastUpdate = ($currentTime - $lastUpdateTime).TotalSeconds
 
-            if ($progress -ge 100 -or $timeSinceLastUpdate -ge 0.2) {
+			if ($progress -ge 100) {
+				$formattedTotalBytes = $totalBytes.ToString("N0", [System.Globalization.CultureInfo]::CurrentCulture)
+				Write-Progress -Activity "Downloading: $name" -PercentComplete $progressPercent -Status "$formattedTotalBytes bytes" -Completed
+			} else if ($timeSinceLastUpdate -ge 0.2) {
 				$formattedBytes = $downloadedBytes.ToString("N0", [System.Globalization.CultureInfo]::CurrentCulture)
 				$formattedTotalBytes = $totalBytes.ToString("N0", [System.Globalization.CultureInfo]::CurrentCulture)
-                Write-Progress -Activity "Downloading: $name" -PercentComplete $progressPercent -Status "$formattedBytes / $formattedTotalBytes bytes"
-                # Update last values
-                $lastUpdateTime = $currentTime
-            }
-        }
+				Write-Progress -Activity "Downloading: $name" -PercentComplete $progressPercent -Status "$formattedBytes / $formattedTotalBytes bytes"
+				$lastUpdateTime = $currentTime
+			}
+		}
 	}
-    catch {
-        Write-Host "`nDownload interrupted! Cleaning up..." -ForegroundColor Red
+	catch {
+		Write-Host "`nDownload interrupted! Cleaning up..." -ForegroundColor Red
 
-        # Show detailed error message for debugging
-        Write-Host "ERROR: $($_.Exception.Message)" -ForegroundColor Red
-        Write-Host "Error Type: $($_.Exception.GetType().Name)" -ForegroundColor Yellow
-        Write-Host "Stack Trace:" -ForegroundColor DarkGray
-        Write-Host $_.ScriptStackTrace
+		# Show detailed error message for debugging
+		Write-Host "ERROR: $($_.Exception.Message)" -ForegroundColor Red
+		Write-Host "Error Type: $($_.Exception.GetType().Name)" -ForegroundColor Yellow
+		Write-Host "Stack Trace:" -ForegroundColor DarkGray
+		Write-Host $_.ScriptStackTrace
 
-        # Ensure partial file is deleted if canceled
-        if (Test-Path -Path $output) {
-            Remove-Item -Path $output -Force
-            Write-Host "Partial file removed: $output" -ForegroundColor Yellow
-        }
-        
-        Write-Host "Process terminated." -ForegroundColor Red
-        exit 1
-    }
+		# Ensure partial file is deleted if canceled
+		if (Test-Path -Path $output) {
+			Remove-Item -Path $output -Force
+			Write-Host "Partial file removed: $output" -ForegroundColor Yellow
+		}
+		
+		Write-Host "Process terminated." -ForegroundColor Red
+		exit 1
+	}
 	finally
 	{
-        if ($stream) { $stream.Close() }
-        if ($fileStream) { $fileStream.Close() }
+		if ($stream) { $stream.Close() }
+		if ($fileStream) { $fileStream.Close() }
 	}
 }
 
