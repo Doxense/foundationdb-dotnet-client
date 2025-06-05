@@ -381,9 +381,6 @@ namespace SnowBank.Collections.CacheOblivious
 		/// <summary>Gets the index of the last currently allocated level</summary>
 		public int MaxLevel => ColaStore.HighestBit(m_count);
 
-		///// <summary>Gets the list of all levels</summary>
-		//public T[][] Levels => m_levels;
-
 		/// <summary>Returns the content of a level</summary>
 		/// <param name="level">Index of the level (0-based)</param>
 		/// <returns>Segment that contains all the elements of that level</returns>
