@@ -27,7 +27,7 @@
 namespace FoundationDB.Client
 {
 	[DebuggerDisplay("Path={Path}, Layer={Layer}")]
-	public sealed class FdbDirectorySubspaceLocation : ISubspaceLocation<FdbDirectorySubspace>, IFdbDirectory
+	public sealed class FdbDirectorySubspaceLocation : ISubspaceLocation<FdbDirectorySubspace>, IFdbDirectory, IFdbLayer<FdbDirectorySubspace, FdbDirectoryLayer?>
 	{
 
 		/// <inheritdoc cref="ISubspaceLocation.Path" />
@@ -61,7 +61,7 @@ namespace FoundationDB.Client
 			return await TryResolve(tr, directory).ConfigureAwait(false);
 		}
 
-		/// <inheritdoc />
+		/// <inheritdoc cref="ISubspaceLocation{T}.TryResolve" />
 		public ValueTask<FdbDirectorySubspace?> TryResolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null)
 		{
 			Contract.NotNull(tr);
@@ -75,7 +75,7 @@ namespace FoundationDB.Client
 			return await Resolve(tr, directory).ConfigureAwait(false);
 		}
 
-		/// <inheritdoc />
+		/// <inheritdoc cref="ISubspaceLocation{T}.Resolve"/>
 		public async ValueTask<FdbDirectorySubspace> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null)
 		{
 			Contract.NotNull(tr);
@@ -87,6 +87,9 @@ namespace FoundationDB.Client
 			}
 			return subspace;
 		}
+
+		/// <inheritdoc />
+		string IFdbLayer.Name => nameof(FdbDirectorySubspaceLocation);
 
 		/// <summary>Returns the actual subspace that corresponds to this location, or create it if it does not exist.</summary>
 		/// <remarks>

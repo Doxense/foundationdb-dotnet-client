@@ -327,6 +327,9 @@ namespace FoundationDB.Layers.Collections
 			return new State(subspace, this.DefaultValue, this.Encoder);
 		}
 
+		/// <inheritdoc />
+		string IFdbLayer.Name => nameof(FdbVector<>);
+
 	}
 
 }

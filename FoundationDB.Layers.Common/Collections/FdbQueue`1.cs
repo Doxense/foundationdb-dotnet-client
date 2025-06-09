@@ -62,6 +62,9 @@ namespace FoundationDB.Layers.Collections
 			return new State(subspace, this.Encoder);
 		}
 
+		/// <inheritdoc />
+		string IFdbLayer.Name => nameof(FdbQueue<>);
+
 		[PublicAPI]
 		public sealed class State
 		{

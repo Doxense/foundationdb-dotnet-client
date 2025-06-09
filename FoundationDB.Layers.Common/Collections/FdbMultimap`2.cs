@@ -205,11 +205,15 @@ namespace FoundationDB.Layers.Collections
 
 		}
 
+		/// <inheritdoc />
 		public async ValueTask<State> Resolve(IFdbReadOnlyTransaction tr)
 		{
 			var subspace = await this.Location.Resolve(tr);
 			return new State(subspace, this.AllowNegativeValues);
 		}
+
+		/// <inheritdoc />
+		string IFdbLayer.Name => nameof(FdbMultiMap<,>);
 
 	}
 

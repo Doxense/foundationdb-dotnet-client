@@ -56,6 +56,9 @@ namespace FoundationDB.Layers.Allocators
 			return new State(subspace, m_rnd);
 		}
 
+		/// <inheritdoc />
+		string IFdbLayer.Name => nameof(FdbHighContentionAllocator);
+
 		[DebuggerDisplay("Subspace={" + nameof(Subspace) + "}")]
 		public sealed class State
 		{

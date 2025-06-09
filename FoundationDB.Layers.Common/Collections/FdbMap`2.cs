@@ -264,6 +264,9 @@ namespace FoundationDB.Layers.Collections
 			return new State(subspace, this.ValueEncoder);
 		}
 
+		/// <inheritdoc />
+		string IFdbLayer.Name => nameof(FdbMap<,>);
+
 		#region Export...
 
 		/// <summary>Exports the content of this map out of the database, by using as many transactions as necessary.</summary>

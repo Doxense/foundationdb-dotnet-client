@@ -98,6 +98,9 @@ namespace FoundationDB.Layers.Interning
 			return new State(this, subspace);
 		}
 
+		/// <inheritdoc />
+		string IFdbLayer.Name => nameof(FdbStringIntern);
+
 		public sealed class State
 		{
 

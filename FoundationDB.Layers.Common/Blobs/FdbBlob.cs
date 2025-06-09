@@ -74,10 +74,14 @@ namespace FoundationDB.Layers.Blobs
 
 		}
 
+		/// <inheritdoc />
 		public async ValueTask<State> Resolve(IFdbReadOnlyTransaction tr)
 		{
-			return new State(await this.Location.Resolve(tr).ConfigureAwait(false));
+			return new(await this.Location.Resolve(tr).ConfigureAwait(false));
 		}
+
+		/// <inheritdoc />
+		string IFdbLayer.Name => nameof(FdbBlob);
 
 		[PublicAPI]
 		[DebuggerDisplay("Subspace={Subspace}")]

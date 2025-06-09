@@ -309,6 +309,9 @@ namespace FoundationDB.Layers.Collections
 			return new State(subspace);
 		}
 
+		/// <inheritdoc />
+		string IFdbLayer.Name => nameof(FdbRankedSet);
+
 	}
 
 }

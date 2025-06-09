@@ -65,6 +65,7 @@ namespace FoundationDB.Client
 		/// <exception cref="InvalidOperationException">If this location does not exist in the database.</exception>
 		/// <remarks>The subspace may be cached, and be obsolete. The cache will add deferred value checks to the transaction, that will cause it to conflict and retry, if the directory has been deleted or has moved.</remarks>
 		ValueTask<IKeySubspace> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null);
+
 	}
 
 	/// <summary>Represents the path to a typed subspace in the database</summary>
@@ -73,12 +74,13 @@ namespace FoundationDB.Client
 	public interface ISubspaceLocation<TSubspace> : ISubspaceLocation
 		where TSubspace : class, IKeySubspace
 	{
+
 		/// <summary>Returns the actual subspace that corresponds to this location, if it exists.</summary>
 		/// <param name="tr">Current transaction</param>
 		/// <param name="directory"><see cref="FdbDirectoryLayer">DirectoryLayer</see> instance to use for the resolve. If null, uses the default database directory layer.</param>
 		/// <returns>Key subspace using the resolved key prefix of this location in the context of the current transaction, or <c>null</c> if the directory does not exist</returns>
 		/// <remarks>
-		/// The instance resolved for this transaction SHOULD NOT be used in the context of a different transaction, because its location in the Directory Layer may have been changed concurrently!
+		/// <para>The instance resolved for this transaction <b>SHOULD NOT</b> be used in the context of a different transaction, because its location in the Directory Layer may have been changed concurrently!</para>
 		/// <para>Re-using cached subspace instances <b>MAY</b> lead to <b>DATA CORRUPTION</b> if not used carefully! The best practice is to call <see cref="TryResolve"/>() every time it is needed by a new transaction.</para>
 		/// </remarks>
 		/// <seealso cref="Resolve"/>
@@ -102,7 +104,7 @@ namespace FoundationDB.Client
 	/// <typeparam name="TSubspace">Type of the concrete <see cref="IKeySubspace"/> implementation that this location will resolve to</typeparam>
 	[DebuggerDisplay("Path={Path}, Prefix={Prefix}, Encoding={Encoding}")]
 	[PublicAPI]
-	public abstract class SubspaceLocation<TSubspace> : ISubspaceLocation<TSubspace>
+	public abstract class SubspaceLocation<TSubspace> : ISubspaceLocation<TSubspace>, IFdbLayer<TSubspace, FdbDirectoryLayer?>
 		where TSubspace : class, IKeySubspace
 	{
 
@@ -142,7 +144,7 @@ namespace FoundationDB.Client
 			return await TryResolve(tr, directory).ConfigureAwait(false);
 		}
 
-		/// <inheritdoc />
+		/// <inheritdoc cref="ISubspaceLocation{T}.TryResolve"/>
 		public abstract ValueTask<TSubspace?> TryResolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null);
 
 		async ValueTask<IKeySubspace> ISubspaceLocation.Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory)
@@ -150,7 +152,7 @@ namespace FoundationDB.Client
 			return await Resolve(tr, directory).ConfigureAwait(false);
 		}
 
-		/// <inheritdoc />
+		/// <inheritdoc cref="ISubspaceLocation{T}.Resolve"/>
 		public virtual async ValueTask<TSubspace> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null)
 		{
 			var subspace = await TryResolve(tr, directory).ConfigureAwait(false);
@@ -160,6 +162,9 @@ namespace FoundationDB.Client
 			}
 			return subspace;
 		}
+
+		/// <inheritdoc />
+		string IFdbLayer.Name => nameof(SubspaceLocation<>);
 
 		/// <inheritdoc />
 		public override bool Equals(object? obj) => obj is ISubspaceLocation path && Equals(path);

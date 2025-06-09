@@ -163,6 +163,9 @@ namespace FoundationDB.Layers.Indexing
 			return new State(this, subspace);
 		}
 
+		/// <inheritdoc />
+		string IFdbLayer.Name => nameof(FdbIndex<,>);
+
 		/// <summary>Insert a newly created entity to the index</summary>
 		/// <param name="trans">Transaction to use</param>
 		/// <param name="id">Id of the new entity (that was never indexed before)</param>
