@@ -74,7 +74,7 @@ function DownloadFile {
 			if ($progress -ge 100) {
 				$formattedTotalBytes = $totalBytes.ToString("N0", [System.Globalization.CultureInfo]::CurrentCulture)
 				Write-Progress -Activity "Downloading: $name" -PercentComplete $progressPercent -Status "$formattedTotalBytes bytes" -Completed
-			} else if ($timeSinceLastUpdate -ge 0.2) {
+			} elseif ($timeSinceLastUpdate -ge 0.2) {
 				$formattedBytes = $downloadedBytes.ToString("N0", [System.Globalization.CultureInfo]::CurrentCulture)
 				$formattedTotalBytes = $totalBytes.ToString("N0", [System.Globalization.CultureInfo]::CurrentCulture)
 				Write-Progress -Activity "Downloading: $name" -PercentComplete $progressPercent -Status "$formattedBytes / $formattedTotalBytes bytes"
