@@ -68,8 +68,11 @@ namespace SnowBank.Data.Json
 		IEquatable<Version>
 	{
 		
+		/// <summary>Empty string singleton</summary>
+		internal static readonly JsonString EmptyString = new JsonString(string.Empty);
+
 		/// <summary>Returns the empty string</summary>
-		public static readonly JsonValue Empty = new JsonString(string.Empty);
+		public static readonly JsonValue Empty = EmptyString;
 
 		private readonly string m_value;
 
@@ -81,43 +84,157 @@ namespace SnowBank.Data.Json
 
 		#region Factory...
 
+		#region Create(...)...
+
 		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
+		/// <param name="value">String literal</param>
+		/// <returns>Equivalent <see cref="JsonString"/>, or the <see cref="JsonString.Empty"/> singleton if <paramref name="value"/> is empty</returns>
+		/// <exception cref="ArgumentNullException"> if <paramref name="value"/> is <c>null</c></exception>
+		/// <remarks>If <paramref name="value"/> could be null, call <see cref="Return(string)"/> instead, which returns <see cref="JsonNull.Null"/> instead of an exception</remarks>
+		/// <seealso cref="Return(string)"/>
+		public static JsonString Create(string value)
+		{
+			Contract.NotNull(value);
+			return value.Length == 0 ? EmptyString : new JsonString(value);
+		}
+
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
+		/// <param name="value">String literal</param>
+		/// <returns>Equivalent <see cref="JsonString"/>, or the <see cref="JsonString.Empty"/> singleton if <paramref name="value"/> is empty</returns>
+		/// <exception cref="ArgumentNullException"> if <paramref name="value"/> is <c>null</c></exception>
+		/// <seealso cref="Return(System.ReadOnlySpan{char})"/>
+		public static JsonString Create(ReadOnlySpan<char> value)
+		{
+			return value.Length == 0 ? EmptyString : new JsonString(value.ToString());
+		}
+
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
+		/// <param name="value">String literal</param>
+		/// <returns>Equivalent <see cref="JsonString"/>, or the <see cref="JsonString.Empty"/> singleton if <paramref name="value"/> is empty</returns>
+		/// <exception cref="ArgumentNullException"> if <paramref name="value"/> is <c>null</c></exception>
+		/// <seealso cref="Return(System.ReadOnlyMemory{char})"/>
+		public static JsonString Create(ReadOnlyMemory<char> value)
+		{
+			return value.Length == 0 ? EmptyString : new JsonString(value.Span.ToString());
+		}
+
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
+		/// <remarks><para>The <see cref="Guid.Empty"/> guid is equivalent to the <see cref="Empty"/> string, which is a different behavior compared to <see cref="Return(Guid)"/>.</para></remarks>
+		/// <seealso cref="Return(Guid)"/>
+		public static JsonString Create(Guid value)
+		{
+			return value != Guid.Empty ? new JsonString(value.ToString()) : EmptyString;
+		}
+
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
+		/// <remarks><para>The <see cref="Uuid128.Empty"/> guid is equivalent to the <see cref="Empty"/> string, which is a different behavior compared to <see cref="Return(Uuid128)"/>.</para></remarks>
+		/// <seealso cref="Return(Uuid128)"/>
+		public static JsonString Create(Uuid128 value)
+		{
+			Guid x = value.ToGuid();
+			return x != Guid.Empty ? new JsonString(x.ToString()) : EmptyString;
+		}
+
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
+		/// <seealso cref="Return(DateTime)"/>
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static JsonString Create(DateTime value)
+		{
+			return value == DateTime.MinValue ? EmptyString : new JsonString(value.ToString("O"));
+		}
+
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
+		/// <seealso cref="Return(DateTimeOffset)"/>
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static JsonString Create(DateTimeOffset value)
+		{
+			return value == DateTime.MinValue ? EmptyString : new JsonString(value.ToString("O"));
+		}
+
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
+		/// <seealso cref="Return(DateOnly)"/>
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static JsonString Create(DateOnly value)
+		{
+			return value == DateOnly.MinValue ? EmptyString : new JsonString(value.ToString("O"));
+		}
+
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
+		/// <seealso cref="Return(TimeOnly)"/>
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static JsonString Create(TimeOnly value)
+		{
+			return value == TimeOnly.MinValue ? EmptyString : new JsonString(value.ToString("O"));
+		}
+
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
+		/// <seealso cref="Return(NodaTime.Instant)"/>
+		public static JsonString Create(NodaTime.Instant value)
+		{
+			return value.ToUnixTimeTicks() == 0 ? EmptyString : new JsonString(CrystalJsonNodaPatterns.Instants.Format(value));
+		}
+
+		//TODO: more to have parity with all non-nullable Return(...) overloads
+
+		#endregion
+
+		/// <summary>Returns a <see cref="JsonValue"/> that is equivalent to the specified string literal</summary>
+		/// <param name="value">String literal, or <c>null</c></param>
+		/// <returns>Equivalent <see cref="JsonString"/>, the <see cref="JsonString.Empty"/> singleton if <paramref name="value"/> is empty, or the <see cref="JsonNull.Null"/> singleton if <paramref name="value"/> is <c>null</c></returns>
+		/// <seealso cref="Create(string)"/>
 		public static JsonValue Return(string? value)
 		{
 			return value is null ? JsonNull.Null : value.Length == 0 ? JsonString.Empty : new JsonString(value);
 		}
 
-		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
+		/// <summary>Returns a <see cref="JsonValue"/> that is equivalent to the span of characters</summary>
+		/// <param name="value">String literal</param>
+		/// <returns>Equivalent <see cref="JsonString"/>, or the <see cref="JsonString.Empty"/> singleton if <paramref name="value"/> is empty</returns>
+		/// <seealso cref="Create(System.ReadOnlySpan{char})"/>
 		public static JsonValue Return(ReadOnlySpan<char> value)
 		{
 			return value.Length == 0 ? JsonString.Empty : new JsonString(value.ToString());
 		}
 
-		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
+		/// <summary>Returns a <see cref="JsonValue"/> that is equivalent to the span of characters</summary>
+		/// <param name="value">String literal</param>
+		/// <returns>Equivalent <see cref="JsonString"/>, or the <see cref="JsonString.Empty"/> singleton if <paramref name="value"/> is empty</returns>
 		public static JsonValue Return(ReadOnlyMemory<char> value)
 		{
 			return value.Length == 0 ? JsonString.Empty : new JsonString(value.GetStringOrCopy());
 		}
 
-		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
+		/// <summary>Returns a <see cref="JsonValue"/> that is equivalent to the content of the specified <see cref="System.Text.StringBuilder"/></summary>
+		/// <param name="value">String literal</param>
+		/// <returns>Equivalent <see cref="JsonString"/>, or the <see cref="JsonString.Empty"/> singleton if <paramref name="value"/> is empty</returns>
 		public static JsonValue Return(System.Text.StringBuilder? value)
 		{
 			return value is null ? JsonNull.Null : value.Length == 0 ? JsonString.Empty : new JsonString(value.ToString());
 		}
 
-		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
-		public static JsonString Return(char value)
+		/// <summary>Returns a <see cref="JsonValue"/> that is equivalent to the specified character</summary>
+		/// <param name="value">Character literal</param>
+		/// <returns>Equivalent <see cref="JsonString"/></returns>
+		/// <remarks>Please note that if <paramref name="value"/> is equal to <c>0</c>, this method will return the <c>"\x00"</c> string</remarks>
+		public static JsonValue Return(char value)
 		{
 			return new JsonString(new string(value, 1));
 		}
 
-		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
+		/// <summary>Returns a <see cref="JsonValue"/> that is equivalent to the specified character</summary>
+		/// <param name="value">Character literal, or <c>null</c></param>
+		/// <returns>Equivalent <see cref="JsonString"/>, or the <see cref="JsonNull.Null"/> singleton if <paramref name="value"/> is <c>null</c></returns>
+		/// <remarks>Please note that if <paramref name="value"/> is equal to <c>0</c>, this method will return the <c>"\x00"</c> string</remarks>
 		public static JsonValue Return(char? value)
 		{
 			return value is null ? JsonNull.Null : Return(value.Value);
 		}
 
-		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
+		/// <summary>Returns a <see cref="JsonValue"/> that is equivalent to the span of characters</summary>
+		/// <param name="value">Buffer that contains the string literal</param>
+		/// <param name="offset">Offset to the start of the string literal in <paramref name="value"/></param>
+		/// <param name="count">Size (in characters) of the string literal</param>
+		/// <returns>Equivalent <see cref="JsonString"/>, or the <see cref="JsonString.Empty"/> singleton if <paramref name="count"/> is <c>0</c></returns>
 		public static JsonValue Return(char[]? value, int offset, int count)
 		{
 			return count == 0 ? (value is null ? JsonNull.Null : JsonString.Empty) : new JsonString(new string(value!, offset, count));
@@ -164,6 +281,7 @@ namespace SnowBank.Data.Json
 
 		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		/// <remarks><para>The <see cref="Guid.Empty"/> guid is equivalent to a <see cref="JsonNull.Null"/> entry</para></remarks>
+		/// <seealso cref="Create(Guid)"/>
 		public static JsonValue Return(Guid value)
 		{
 			return value != Guid.Empty
@@ -183,6 +301,7 @@ namespace SnowBank.Data.Json
 
 		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		/// <remarks><para>The <see cref="Uuid128.Empty"/> uuid is equivalent to a <see cref="JsonNull.Null"/> entry</para></remarks>
+		/// <seealso cref="Create(Uuid128)"/>
 		public static JsonValue Return(Uuid128 value)
 		{
 			Guid x = value.ToGuid();
@@ -445,7 +564,7 @@ namespace SnowBank.Data.Json
 		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		public static JsonValue Return(NodaTime.Instant value)
 		{
-			if (value.ToUnixTimeTicks() == 0) return JsonString.Empty; //REVIEW: retourner "" ou null ?
+			if (value.ToUnixTimeTicks() == 0) return JsonString.Empty;
 			return new JsonString(CrystalJsonNodaPatterns.Instants.Format(value));
 		}
 
@@ -453,7 +572,7 @@ namespace SnowBank.Data.Json
 		public static JsonValue Return(NodaTime.Instant? value)
 		{
 			if (!value.HasValue) return JsonNull.Null;
-			if (value.Value.ToUnixTimeTicks() == 0) return JsonString.Empty; //REVIEW: retourner "" ou null ?
+			if (value.Value.ToUnixTimeTicks() == 0) return JsonString.Empty;
 			return new JsonString(CrystalJsonNodaPatterns.Instants.Format(value.Value));
 		}
 

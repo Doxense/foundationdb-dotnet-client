@@ -552,7 +552,7 @@ namespace SnowBank.Data.Json.Tests
 		[Test]
 		public void Test_JsonString()
 		{
-			{ // empty
+			{ // empty singleton
 				JsonValue value = JsonString.Empty;
 				Assert.That(value, Is.Not.Null);
 				Assert.That(value.Type, Is.EqualTo(JsonType.String));
@@ -570,7 +570,19 @@ namespace SnowBank.Data.Json.Tests
 				Assert.That(SerializeToSlice(str), Is.EqualTo(Slice.FromString("\"\"")));
 			}
 
-			{ // from string
+			{ // return null
+				var value = JsonString.Return((string) null!);
+				Assert.That(value, Is.Not.Null);
+				Assert.That(value, Is.SameAs(JsonNull.Null));
+			}
+
+			{ // return empty string
+				var value = JsonString.Return("");
+				Assert.That(value, Is.Not.Null);
+				Assert.That(value, Is.SameAs(JsonString.Empty));
+			}
+
+			{ // return string
 				var value = JsonString.Return("Hello, World!");
 				Assert.That(value, Is.Not.Null);
 				Assert.That(value.Type, Is.EqualTo(JsonType.String));
@@ -587,6 +599,63 @@ namespace SnowBank.Data.Json.Tests
 				Assert.That(SerializeToSlice(str), Is.EqualTo(Slice.FromString("\"Hello, World!\"")));
 			}
 
+			{ // create null
+				Assert.That(() => JsonString.Create((string) null!), Throws.InstanceOf<ArgumentNullException>());
+			}
+
+			{ // create empty string
+				JsonString value = JsonString.Create("");
+				Assert.That(value, Is.Not.Null);
+				Assert.That(value, Is.SameAs(JsonString.Empty));
+			}
+
+			{ // create string
+				JsonString str = JsonString.Create("Hello, World!");
+				Assert.That(str, Is.Not.Null);
+				Assert.That(str.Type, Is.EqualTo(JsonType.String));
+				Assert.That(str.IsNull, Is.False);
+				Assert.That(str.IsDefault, Is.False);
+				Assert.That(str.ToObject(), Is.EqualTo("Hello, World!"));
+				Assert.That(str.ToString(), Is.EqualTo("Hello, World!"));
+				Assert.That(str.Equals("Hello, World!"), Is.True);
+				Assert.That(str.Equals(JsonString.Return("Hello, World!")), Is.True);
+				Assert.That(str.IsNullOrEmpty, Is.False);
+				Assert.That(str.Length, Is.EqualTo(13));
+				Assert.That(SerializeToSlice(str), Is.EqualTo(Slice.FromString("\"Hello, World!\"")));
+			}
+
+			{ // return RoS<char>
+				var value = JsonString.Return("***Hello, World!***".AsSpan(3, 13));
+				Assert.That(value, Is.Not.Null);
+				Assert.That(value.Type, Is.EqualTo(JsonType.String));
+				Assert.That(value, Is.InstanceOf<JsonString>());
+				Assert.That(value.IsNull, Is.False);
+				Assert.That(value.IsDefault, Is.False);
+				Assert.That(value.ToObject(), Is.EqualTo("Hello, World!"));
+				Assert.That(value.ToString(), Is.EqualTo("Hello, World!"));
+				Assert.That(value.Equals("Hello, World!"), Is.True);
+				Assert.That(value.Equals(JsonString.Return("Hello, World!")), Is.True);
+				var str = (JsonString) value;
+				Assert.That(str.IsNullOrEmpty, Is.False);
+				Assert.That(str.Length, Is.EqualTo(13));
+				Assert.That(SerializeToSlice(str), Is.EqualTo(Slice.FromString("\"Hello, World!\"")));
+			}
+
+			{ // create RoS<char>
+				JsonString str = JsonString.Create("***Hello, World!***".AsSpan(3, 13));
+				Assert.That(str, Is.Not.Null);
+				Assert.That(str.Type, Is.EqualTo(JsonType.String));
+				Assert.That(str.IsNull, Is.False);
+				Assert.That(str.IsDefault, Is.False);
+				Assert.That(str.ToObject(), Is.EqualTo("Hello, World!"));
+				Assert.That(str.ToString(), Is.EqualTo("Hello, World!"));
+				Assert.That(str.Equals("Hello, World!"), Is.True);
+				Assert.That(str.Equals(JsonString.Return("Hello, World!")), Is.True);
+				Assert.That(str.IsNullOrEmpty, Is.False);
+				Assert.That(str.Length, Is.EqualTo(13));
+				Assert.That(SerializeToSlice(str), Is.EqualTo(Slice.FromString("\"Hello, World!\"")));
+			}
+
 			{ // from StringBuilder
 				var sb = new StringBuilder("Hello").Append(", World!");
 				var value = JsonString.Return(sb);
@@ -598,7 +667,7 @@ namespace SnowBank.Data.Json.Tests
 				Assert.That(value.ToStringOrDefault(), Is.EqualTo("Hello, World!"), "Mutating the original StringBuilder should not have any impact on the string");
 			}
 
-			{ // from Guid
+			{ // return Guid
 				var value = JsonString.Return(Guid.Parse("016f3491-9416-47e2-b627-f84c507056d8"));
 				Assert.That(value, Is.Not.Null);
 				Assert.That(value.Type, Is.EqualTo(JsonType.String));
@@ -615,6 +684,23 @@ namespace SnowBank.Data.Json.Tests
 				Assert.That(str.IsNullOrEmpty, Is.False);
 				Assert.That(str.Length, Is.EqualTo(36));
 				Assert.That(SerializeToSlice(value), Is.EqualTo(Slice.FromString("\"016f3491-9416-47e2-b627-f84c507056d8\"")));
+			}
+
+			{ // create Guid
+				JsonString str = JsonString.Create(Guid.Parse("016f3491-9416-47e2-b627-f84c507056d8"));
+				Assert.That(str, Is.Not.Null);
+				Assert.That(str.Type, Is.EqualTo(JsonType.String));
+				Assert.That(str.IsNull, Is.False);
+				Assert.That(str.IsDefault, Is.False);
+				Assert.That(str.ToObject(), Is.EqualTo("016f3491-9416-47e2-b627-f84c507056d8"));
+				Assert.That(str.ToString(), Is.EqualTo("016f3491-9416-47e2-b627-f84c507056d8"));
+				Assert.That(str.ToGuid(), Is.EqualTo(Guid.Parse("016f3491-9416-47e2-b627-f84c507056d8")));
+				Assert.That(str.Equals("016f3491-9416-47e2-b627-f84c507056d8"), Is.True);
+				Assert.That(str.Equals(Guid.Parse("016f3491-9416-47e2-b627-f84c507056d8")), Is.True);
+				Assert.That(str.Equals(JsonString.Return("016f3491-9416-47e2-b627-f84c507056d8")), Is.True);
+				Assert.That(str.IsNullOrEmpty, Is.False);
+				Assert.That(str.Length, Is.EqualTo(36));
+				Assert.That(SerializeToSlice(str), Is.EqualTo(Slice.FromString("\"016f3491-9416-47e2-b627-f84c507056d8\"")));
 			}
 
 			{ // from IP Address
