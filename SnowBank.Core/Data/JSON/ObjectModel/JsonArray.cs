@@ -609,7 +609,7 @@ namespace SnowBank.Data.Json
 		/// <returns>Mutable array with all values converted into <see cref="JsonValue"/> instances</returns>
 		/// <remarks>For a <b>read-only</b> array, see <see cref="JsonArray.ReadOnly.FromValues{TValue}(ReadOnlySpan{TValue},CrystalJsonSettings?,ICrystalJsonTypeResolver?)"/></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray FromValues(ReadOnlySpan<string> values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		public static JsonArray FromValues(ReadOnlySpan<string?> values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			var arr = new JsonArray();
 			arr.AddValues(values, settings, resolver);
