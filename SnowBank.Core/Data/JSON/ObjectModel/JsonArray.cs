@@ -329,8 +329,7 @@ namespace SnowBank.Data.Json
 
 		/// <summary>Creates a new <b>mutable</b> <see cref="JsonArray">JSON Array</see> from a span of elements</summary>
 		/// <remarks>For a <b>read-only</b> array, see <see cref="JsonArray.ReadOnly.Create(ReadOnlySpan{JsonValue?})"/></remarks>
-		[Pure]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 #if NET9_0_OR_GREATER
 		public static JsonArray Create(params ReadOnlySpan<JsonValue?> values)
 #else
@@ -381,6 +380,29 @@ namespace SnowBank.Data.Json
 				buf[i] ??= JsonNull.Null;
 			}
 			return new JsonArray(buf!, buf.Length, readOnly: false);
+		}
+
+		
+		/// <summary>Creates a new <see cref="JsonArray"/> from the specified items, that will be either read-only or mutable.</summary>
+		/// <param name="readOnly">If <c>true</c>, creates a read-only <see cref="JsonArray"/> that cannot be modified.</param>
+		/// <param name="items">Items to copy</param>
+		/// <returns>New <see cref="JsonArray"/> with the same elements as in <paramref name="items"/>.</returns>
+		/// <remarks>
+		/// <para>If <paramref name="readOnly"/> is <c>true</c>, any <see cref="JsonValue"/> in <paramref name="items"/> will replaced by a read-only equivalent, if they are mutable.</para>
+		/// <para>This overload is intended for creating a read-only <see cref="JsonArray"/> using collection expressions via the following syntax:
+		/// <code>
+		/// // create a new read-only array
+		/// JsonArray immutable = [ with(readOnly: true), "hello", "world", 123, /*...*/ ];
+		/// // array cannot be modified
+		/// immutable.Add("there"); // => throws InvalidOperationException
+		/// </code>
+		/// </para>
+		/// </remarks>
+		/// <seealso cref="JsonObject.ReadOnly.Create(System.ReadOnlySpan{System.Collections.Generic.KeyValuePair{string,SnowBank.Data.Json.JsonValue}})"/>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonArray Create(bool readOnly, ReadOnlySpan<JsonValue?> items)
+		{
+			return readOnly ? JsonArray.ReadOnly.Create(items) : Create(items);
 		}
 
 #if NET9_0_OR_GREATER

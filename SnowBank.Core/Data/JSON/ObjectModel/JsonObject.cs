@@ -46,6 +46,9 @@ namespace SnowBank.Data.Json
 	[DebuggerNonUserCode]
 	[PublicAPI]
 	[System.Text.Json.Serialization.JsonConverter(typeof(CrystalJsonCustomJsonConverter))]
+#if NET9_0_OR_GREATER
+	[CollectionBuilder(typeof(JsonObject), nameof(Create))]
+#endif
 	public sealed partial class JsonObject : JsonValue, IDictionary<string, JsonValue>, IReadOnlyDictionary<string, JsonValue>, IEquatable<JsonObject>
 	{
 		// A JSON object can be writable (mutable), or read-only (immutable)
@@ -504,17 +507,46 @@ namespace SnowBank.Data.Json
 			return CreateEmptyWithComparer(null).AddRange(items);
 		}
 
-		/// <summary>Create a new JSON object with the specified items</summary>
+		/// <summary>Creates a new JSON object with the specified items</summary>
 		/// <param name="items">Map of key/values to copy</param>
 		/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
 		/// <returns>New JSON object with the same elements in <paramref name="items"/></returns>
-		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
+		/// <remarks>
+		/// <para>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</para>
+		/// <para>This overload is intended for creating a <seealso cref="JsonObject"/> with case-insensitive keys via collection expressions using the following syntax:
+		/// <code>
+		/// var obj = (JsonObject) [ with(StringComparer.OrdinalIgnoreCase), "hElLo": 123, "WorLd": 456, /*...*/ ];
+		/// Console.WriteLine(obj["hello"]); // => 123
+		/// Console.WriteLine(obj["WORLD"]); // => 456
+		/// </code>
+		/// </para>
+		/// </remarks>
 		public static JsonObject Create(IEqualityComparer<string> comparer, ReadOnlySpan<KeyValuePair<string, JsonValue>> items)
 		{
 			return CreateEmptyWithComparer(comparer).AddRange(items);
 		}
 
-		/// <summary>Create a new JSON object with the specified items</summary>
+		/// <summary>Creates a new JSON object from the specified items, that will be either read-only or mutable.</summary>
+		/// <param name="readOnly">If <c>true</c>, creates a read-only <see cref="JsonObject"/> that cannot be modified.</param>
+		/// <param name="items">Map of key/values to copy</param>
+		/// <returns>New JSON object with the same elements in <paramref name="items"/>.</returns>
+		/// <remarks>
+		/// <para>If <paramref name="readOnly"/> is <c>true</c>, any <see cref="JsonValue"/> in <paramref name="items"/> will replaced by a read-only equivalent, if they are mutable.</para>
+		/// <para>This overload is intended for creating a read-only <see cref="JsonObject"/> using collection expressions via the following syntax:
+		/// <code>
+		/// // create a new read-only object
+		/// JsonObject immutable = [ with(readOnly: true), "hello": 123, "world": 456, /*...*/ ];
+		/// // object cannot be modified
+		/// immutable["hello"] = "there"; // => throws InvalidOperationException
+		/// </code>
+		/// </para>
+		/// </remarks>
+		/// <seealso cref="JsonObject.ReadOnly.Create(System.ReadOnlySpan{System.Collections.Generic.KeyValuePair{string,SnowBank.Data.Json.JsonValue}})"/>
+		public static JsonObject Create(bool readOnly, ReadOnlySpan<KeyValuePair<string, JsonValue>> items)
+		{
+			return readOnly ? JsonObject.ReadOnly.Create(items) : CreateEmptyWithComparer(null).AddRange(items);
+		}
+
 		/// <param name="items">Map of key/values to copy</param>
 		/// <returns>New JSON object with the same elements in <paramref name="items"/></returns>
 		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
