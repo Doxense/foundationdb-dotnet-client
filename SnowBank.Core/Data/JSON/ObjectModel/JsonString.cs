@@ -99,6 +99,15 @@ namespace SnowBank.Data.Json
 		}
 
 		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
+		/// <param name="value">Character literal</param>
+		/// <returns>Equivalent <see cref="JsonString"/></returns>
+		/// <seealso cref="Return(char)"/>
+		public static JsonString Create(char value)
+		{
+			return new JsonString(new string(value, 1));
+		}
+
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
 		/// <param name="value">String literal</param>
 		/// <returns>Equivalent <see cref="JsonString"/>, or the <see cref="JsonString.Empty"/> singleton if <paramref name="value"/> is empty</returns>
 		/// <exception cref="ArgumentNullException"> if <paramref name="value"/> is <c>null</c></exception>
@@ -116,6 +125,24 @@ namespace SnowBank.Data.Json
 		public static JsonString Create(ReadOnlyMemory<char> value)
 		{
 			return value.Length == 0 ? EmptyString : new JsonString(value.Span.ToString());
+		}
+
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
+		/// <param name="value">Byte slice literal</param>
+		/// <returns>Equivalent <see cref="JsonString"/> with <paramref name="value"/> encoded as Base64, or the <see cref="JsonString.Empty"/> singleton if <paramref name="value"/> is empty</returns>
+		/// <seealso cref="Return(Slice)"/>
+		public static JsonString Create(Slice value)
+		{
+			return value.Count == 0 ? EmptyString : new JsonString(value.ToBase64()!);
+		}
+
+		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
+		/// <param name="value">Byte slice literal</param>
+		/// <returns>Equivalent <see cref="JsonString"/> with <paramref name="value"/> encoded as Base64, or the <see cref="JsonString.Empty"/> singleton if <paramref name="value"/> is empty</returns>
+		/// <seealso cref="Return(ReadOnlySpan{byte})"/>
+		public static JsonString Create(ReadOnlySpan<byte> value)
+		{
+			return value.Length == 0 ? EmptyString : new JsonString(Base64Encoding.ToBase64String(value));
 		}
 
 		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
@@ -199,6 +226,7 @@ namespace SnowBank.Data.Json
 		/// <summary>Returns a <see cref="JsonValue"/> that is equivalent to the span of characters</summary>
 		/// <param name="value">String literal</param>
 		/// <returns>Equivalent <see cref="JsonString"/>, or the <see cref="JsonString.Empty"/> singleton if <paramref name="value"/> is empty</returns>
+		/// <seealso cref="Create(System.ReadOnlyMemory{char})"/>
 		public static JsonValue Return(ReadOnlyMemory<char> value)
 		{
 			return value.Length == 0 ? JsonString.Empty : new JsonString(value.GetStringOrCopy());
@@ -216,6 +244,7 @@ namespace SnowBank.Data.Json
 		/// <param name="value">Character literal</param>
 		/// <returns>Equivalent <see cref="JsonString"/></returns>
 		/// <remarks>Please note that if <paramref name="value"/> is equal to <c>0</c>, this method will return the <c>"\x00"</c> string</remarks>
+		/// <seealso cref="Create(char)"/>
 		public static JsonValue Return(char value)
 		{
 			return new JsonString(new string(value, 1));
@@ -247,6 +276,7 @@ namespace SnowBank.Data.Json
 		}
 
 		/// <summary>Returns the equivalent <see cref="JsonString"/></summary>
+		/// <seealso cref="Create(Slice)"/>
 		public static JsonValue Return(Slice value)
 		{
 			return value.Count == 0

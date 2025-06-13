@@ -51,7 +51,11 @@ namespace SnowBank.Data.Json
 
 		/// <summary>Returns either <see cref="JsonBoolean.True"/> or <see cref="JsonBoolean.False"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonBoolean Return(bool value) => value ? True : False;
+		public static JsonBoolean Create(bool value) => value ? True : False;
+
+		/// <summary>Returns either <see cref="JsonBoolean.True"/> or <see cref="JsonBoolean.False"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(bool value) => value ? True : False;
 
 		/// <summary>Returns either <see cref="JsonBoolean.True"/>, <see cref="JsonBoolean.False"/> or <see cref="JsonNull.Null"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
