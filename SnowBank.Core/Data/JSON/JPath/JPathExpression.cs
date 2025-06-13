@@ -241,7 +241,7 @@ namespace SnowBank.Data.Json.JPath
 
 		/// <summary>Returns a <see cref="JPathExpression"/> that tests if an expression is not equal to a string constant</summary>
 		[Pure]
-		public static JPathExpression NotEqual(JPathExpression node, string literal)
+		public static JPathExpression NotEqualTo(JPathExpression node, string literal)
 		{
 			Contract.NotNull(node);
 			Contract.NotNull(literal);
@@ -250,7 +250,7 @@ namespace SnowBank.Data.Json.JPath
 
 		/// <summary>Returns a <see cref="JPathExpression"/> that tests if an expression is not equal to a constant</summary>
 		[Pure]
-		public static JPathExpression NotEqual(JPathExpression node, JsonValue literal)
+		public static JPathExpression NotEqualTo(JPathExpression node, JsonValue literal)
 		{
 			Contract.NotNull(node);
 			Contract.NotNull(literal);
@@ -259,11 +259,11 @@ namespace SnowBank.Data.Json.JPath
 
 		/// <summary>Returns a <see cref="JPathExpression"/> that tests if this expression is not equal to a string constant</summary>
 		[Pure]
-		public JPathExpression NotEqualTo(string literal) => NotEqual(this, literal);
+		public JPathExpression NotEqualTo(string literal) => NotEqualTo(this, literal);
 
 		/// <summary>Returns a <see cref="JPathExpression"/> that tests if this expression is not equal to a constant</summary>
 		[Pure]
-		public JPathExpression NotEqualTo(JsonValue literal) => NotEqual(this, literal);
+		public JPathExpression NotEqualTo(JsonValue literal) => NotEqualTo(this, literal);
 
 		/// <summary>Returns a <see cref="JPathExpression"/> that tests if an expression is greater than a constant</summary>
 		[Pure]
