@@ -2220,6 +2220,18 @@ namespace SnowBank.Data.Json.Tests
 				Assert.That(arr[2], IsJson.Number.And.EqualTo(3));
 			}
 
+			{ // create read-only arrays with collection expression arguments
+
+				//TODO: convert this into actual expressions once support for them drops!
+				JsonArray immutable = JsonArray.Create(readOnly: true, [ 1, 2, 3 ]);
+				Assert.That(immutable, IsJson.ReadOnly.And.EqualTo([ 1, 2, 3]));
+				Assert.That(() => immutable.Add(4), Throws.InvalidOperationException);
+
+				JsonArray mutable = JsonArray.Create(readOnly: false, [ 1, 2, 3 ]);
+				Assert.That(mutable, IsJson.Mutable.And.EqualTo([ 1, 2, 3 ]));
+				Assert.That(() => mutable.Add(4), Throws.Nothing);
+				Assert.That(mutable, IsJson.Mutable.And.EqualTo([ 1, 2, 3, 4 ]));
+			}
 		}
 
 		[Test]
@@ -4242,6 +4254,101 @@ namespace SnowBank.Data.Json.Tests
 			]);
 			Assert.That(obj.ToJson(), Is.EqualTo("{ \"Foo\": null }"));
 			Assert.That(SerializeToSlice(obj), Is.EqualTo(Slice.FromString("{\"Foo\":null}")));
+		}
+
+		[Test]
+		public void Test_JsonObject_Create()
+		{
+			{ // Create()
+				var value = JsonObject.Create();
+				Assert.That(value.Type, Is.EqualTo(JsonType.Object));
+				Assert.That(value.IsNull, Is.False);
+				Assert.That(value.IsDefault, Is.True);
+				Assert.That(value.IsReadOnly, Is.False);
+				Assert.That(value, Has.Count.EqualTo(0));
+				Assert.That(SerializeToSlice(value), Is.EqualTo(Slice.FromString("{}")));
+			}
+
+			{ // Create([ ])
+				var value = JsonObject.Create([ ]);
+				Assert.That(value.Type, Is.EqualTo(JsonType.Object));
+				Assert.That(value.IsNull, Is.False);
+				Assert.That(value.IsDefault, Is.True);
+				Assert.That(value.IsReadOnly, Is.False);
+				Assert.That(value, Has.Count.EqualTo(0));
+				Assert.That(SerializeToSlice(value), Is.EqualTo(Slice.FromString("{}")));
+			}
+
+			{ // Create(("hello", 123))
+				var value = JsonObject.Create(("hello", 123));
+				Assert.That(value.Type, Is.EqualTo(JsonType.Object));
+				Assert.That(value.IsNull, Is.False);
+				Assert.That(value.IsDefault, Is.False);
+				Assert.That(value.IsReadOnly, Is.False);
+				Assert.That(value, Has.Count.EqualTo(1));
+				Assert.That(value["hello"], IsJson.EqualTo(123));
+				Assert.That(SerializeToSlice(value), Is.EqualTo(Slice.FromString("""{"hello":123}""")));
+			}
+
+			{ // Create([ ("hello", 123), ("world", 456) ])
+				var value = JsonObject.Create([ ("hello", 123), ("world", 456) ]);
+				Assert.That(value.Type, Is.EqualTo(JsonType.Object));
+				Assert.That(value.IsNull, Is.False);
+				Assert.That(value.IsDefault, Is.False);
+				Assert.That(value.IsReadOnly, Is.False);
+				Assert.That(value, Has.Count.EqualTo(2));
+				Assert.That(value["hello"], IsJson.EqualTo(123));
+				Assert.That(value["world"], IsJson.EqualTo(456));
+				Assert.That(SerializeToSlice(value), Is.EqualTo(Slice.FromString("""{"hello":123,"world":456}""")));
+			}
+
+			{ // Create([ "hello": 123, "world": 456 ])
+				//TODO: convert this into actual dictionary collection expressions once support for them drops!
+				// => var value = (JsonObject) [ "hello": 123, "world": 456 ]
+				var value = JsonObject.Create([ KeyValuePair.Create("hello", JsonNumber.Return(123)), KeyValuePair.Create("world", JsonNumber.Return(456)) ]);
+				Assert.That(value.Type, Is.EqualTo(JsonType.Object));
+				Assert.That(value.IsNull, Is.False);
+				Assert.That(value.IsDefault, Is.False);
+				Assert.That(value.IsReadOnly, Is.False);
+				Assert.That(value, Has.Count.EqualTo(2));
+				Assert.That(value["hello"], IsJson.EqualTo(123));
+				Assert.That(value["world"], IsJson.EqualTo(456));
+				Assert.That(SerializeToSlice(value), Is.EqualTo(Slice.FromString("""{"hello":123,"world":456}""")));
+			}
+
+			{ // duplicate keys should keep last
+
+				var value = JsonObject.Create([ KeyValuePair.Create("hello", JsonNumber.Return(123)), KeyValuePair.Create("world", JsonNumber.Return(456)), KeyValuePair.Create("hello", JsonNumber.Return(789)) ]);
+				Assert.That(value.Type, Is.EqualTo(JsonType.Object));
+				Assert.That(value.IsNull, Is.False);
+				Assert.That(value.IsDefault, Is.False);
+				Assert.That(value.IsReadOnly, Is.False);
+				Assert.That(value, Has.Count.EqualTo(2));
+				Assert.That(value["hello"], IsJson.EqualTo(789));
+				Assert.That(value["world"], IsJson.EqualTo(456));
+				Assert.That(SerializeToSlice(value), Is.EqualTo(Slice.FromString("""{"hello":789,"world":456}""")));
+			}
+
+			{ // create read-only objects with collection expression arguments
+
+				//TODO: convert this into actual dictionary collection expressions once support for them drops!
+				// => var value = (JsonObject) [ with(readOnly: true), "hello": 123, "world": 456 ]
+				JsonObject immutable = JsonObject.Create(readOnly: true, [ KeyValuePair.Create("hello", JsonNumber.Return(123)), KeyValuePair.Create("world", JsonNumber.Return(456)) ]);
+				Assert.That(immutable, IsJson.ReadOnly);
+				Assert.That(immutable["hello"], IsJson.EqualTo(123));
+				Assert.That(immutable["world"], IsJson.EqualTo(456));
+				Assert.That(immutable.Count, Is.EqualTo(2));
+				Assert.That(() => { immutable["hello"] = 42; }, Throws.InvalidOperationException);
+
+				// => var value = (JsonObject) [ with(readOnly: false), "hello": 123, "world": 456 ]
+				JsonObject mutable = JsonObject.Create(readOnly: false, [ KeyValuePair.Create("hello", JsonNumber.Return(123)), KeyValuePair.Create("world", JsonNumber.Return(456)) ]);
+				Assert.That(mutable, IsJson.Mutable);
+				Assert.That(mutable["hello"], IsJson.EqualTo(123));
+				Assert.That(mutable["world"], IsJson.EqualTo(456));
+				Assert.That(mutable.Count, Is.EqualTo(2));
+				Assert.That(() => { mutable["hello"] = 42; }, Throws.Nothing);
+				Assert.That(mutable["hello"], IsJson.EqualTo(42));
+			}
 		}
 
 		[Test]

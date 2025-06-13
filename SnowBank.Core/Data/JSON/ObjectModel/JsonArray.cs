@@ -322,18 +322,37 @@ namespace SnowBank.Data.Json
 		/// <summary>Creates a new <b>mutable</b> <see cref="JsonArray">JSON Array</see> from an array of elements</summary>
 		/// <remarks>For a <b>read-only</b> array, see <see cref="JsonArray.ReadOnly.Create(JsonValue?[])"/></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if NET9_0_OR_GREATER
+		public static JsonArray Create(JsonValue?[] values)
+#else
 		public static JsonArray Create(params JsonValue?[] values)
+#endif
 		{
-			return Create(new ReadOnlySpan<JsonValue?>(Contract.ValueNotNull(values))); 
+			return Create(new ReadOnlySpan<JsonValue?>(Contract.ValueNotNull(values)));
+		}
+
+		/// <summary>Creates a new <see cref="JsonArray"/> from the specified items, that will be either read-only or mutable.</summary>
+		/// <param name="readOnly">If <c>true</c>, creates a read-only <see cref="JsonArray"/> that cannot be modified.</param>
+		/// <param name="items">Items to copy</param>
+		/// <returns>New <see cref="JsonArray"/> with the same elements as in <paramref name="items"/>.</returns>
+		/// <remarks>
+		/// <para>If <paramref name="readOnly"/> is <c>true</c>, any <see cref="JsonValue"/> in <paramref name="items"/> will replaced by a read-only equivalent, if they are mutable.</para>
+		/// </remarks>
+		/// <seealso cref="JsonObject.ReadOnly.Create(System.Collections.Generic.IEnumerable{System.Collections.Generic.KeyValuePair{string,SnowBank.Data.Json.JsonValue}})"/>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		public static JsonArray Create(bool readOnly, JsonValue?[] items)
+		{
+			return readOnly ? JsonArray.ReadOnly.Create(items) : Create(items);
 		}
 
 		/// <summary>Creates a new <b>mutable</b> <see cref="JsonArray">JSON Array</see> from a span of elements</summary>
 		/// <remarks>For a <b>read-only</b> array, see <see cref="JsonArray.ReadOnly.Create(ReadOnlySpan{JsonValue?})"/></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 #if NET9_0_OR_GREATER
-		public static JsonArray Create(params ReadOnlySpan<JsonValue?> values)
+		public static JsonArray Create(params ReadOnlySpan<JsonValue?> items)
 #else
-		public static JsonArray Create(ReadOnlySpan<JsonValue?> values)
+		public static JsonArray Create(ReadOnlySpan<JsonValue?> items)
 #endif
 		{
 			// <JIT_HACK>
@@ -343,7 +362,7 @@ namespace SnowBank.Data.Json
 
 			// note: currently (.NET 9 preview), the JIT will not elide the null-check on the values, even if they are known to be not-null.
 
-			switch (values.Length)
+			switch (items.Length)
 			{
 				case 0:
 				{
@@ -352,29 +371,29 @@ namespace SnowBank.Data.Json
 				case 1:
 				{
 					return new([
-						values[0] ?? JsonNull.Null
+						items[0] ?? JsonNull.Null
 					], 1, readOnly: false);
 				}
 				case 2:
 				{
 					return new([
-						values[0] ?? JsonNull.Null,
-						values[1] ?? JsonNull.Null
+						items[0] ?? JsonNull.Null,
+						items[1] ?? JsonNull.Null
 					], 2, readOnly: false);
 				}
 				case 3:
 				{
 					return new([
-						values[0] ?? JsonNull.Null,
-						values[1] ?? JsonNull.Null,
-						values[2] ?? JsonNull.Null
+						items[0] ?? JsonNull.Null,
+						items[1] ?? JsonNull.Null,
+						items[2] ?? JsonNull.Null
 					], 3, readOnly: false);
 				}
 			}
 
 			// </JIT_HACK>
 
-			var buf = values.ToArray();
+			var buf = items.ToArray();
 			for (int i = 0; i < buf.Length; i++)
 			{
 				buf[i] ??= JsonNull.Null;
@@ -400,6 +419,7 @@ namespace SnowBank.Data.Json
 		/// </remarks>
 		/// <seealso cref="JsonObject.ReadOnly.Create(System.ReadOnlySpan{System.Collections.Generic.KeyValuePair{string,SnowBank.Data.Json.JsonValue}})"/>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public static JsonArray Create(bool readOnly, ReadOnlySpan<JsonValue?> items)
 		{
 			return readOnly ? JsonArray.ReadOnly.Create(items) : Create(items);
@@ -410,14 +430,29 @@ namespace SnowBank.Data.Json
 		//note: we only add this for .NET9+ because we require overload resolution priority to be able to fix ambiguous calls between IEnumerable<> en ReadOnlySpan<>
 
 		/// <summary>Creates a new <b>mutable</b> <see cref="JsonArray">JSON Array</see> from a sequence of elements</summary>
-		/// <param name="values">Elements of the new array</param>
+		/// <param name="items">Elements of the new array</param>
 		/// <remarks>For a <b>read-only</b> array, see <see cref="JsonArray.ReadOnly.Create(IEnumerable{JsonValue?})"/></remarks>
 		[Pure]
 		[OverloadResolutionPriority(-1)]
-		public static JsonArray Create(IEnumerable<JsonValue?> values)
+		public static JsonArray Create(IEnumerable<JsonValue?> items)
 		{
-			Contract.NotNull(values);
-			return new JsonArray().AddRange(values);
+			Contract.NotNull(items);
+			return new JsonArray().AddRange(items);
+		}
+
+		/// <summary>Creates a new <see cref="JsonArray"/> from the specified items, that will be either read-only or mutable.</summary>
+		/// <param name="readOnly">If <c>true</c>, creates a read-only <see cref="JsonArray"/> that cannot be modified.</param>
+		/// <param name="items">Items to copy</param>
+		/// <returns>New <see cref="JsonArray"/> with the same elements as in <paramref name="items"/>.</returns>
+		/// <remarks>
+		/// <para>If <paramref name="readOnly"/> is <c>true</c>, any <see cref="JsonValue"/> in <paramref name="items"/> will replaced by a read-only equivalent, if they are mutable.</para>
+		/// </remarks>
+		/// <seealso cref="JsonObject.ReadOnly.Create(System.Collections.Generic.IEnumerable{System.Collections.Generic.KeyValuePair{string,SnowBank.Data.Json.JsonValue}})"/>
+		[Pure]
+		[OverloadResolutionPriority(-1)]
+		public static JsonArray Create(bool readOnly, IEnumerable<JsonValue?> items)
+		{
+			return readOnly ? JsonArray.ReadOnly.Create(items) : Create(items);
 		}
 
 #endif

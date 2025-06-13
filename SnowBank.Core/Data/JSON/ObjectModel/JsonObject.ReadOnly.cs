@@ -170,9 +170,10 @@ namespace SnowBank.Data.Json
 			/// <para>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</para>
 			/// <para>For a mutable object, see <see cref="JsonObject.Create(ReadOnlySpan{KeyValuePair{string,JsonValue}})"/></para>
 			/// </remarks>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static JsonObject Create(ReadOnlySpan<KeyValuePair<string, JsonValue>> items)
 			{
-				return CreateEmptyWithComparer(null).AddRangeReadOnly(items).FreezeUnsafe();
+				return items.Length == 0 ? Empty : CreateEmptyWithComparer(null).SetRangeReadOnly(items).FreezeUnsafe();
 			}
 
 			/// <summary>Creates a new JSON object with the specified items</summary>
@@ -185,7 +186,7 @@ namespace SnowBank.Data.Json
 			/// </remarks>
 			public static JsonObject Create(IEqualityComparer<string> comparer, ReadOnlySpan<KeyValuePair<string, JsonValue>> items)
 			{
-				return CreateEmptyWithComparer(comparer).AddRangeReadOnly(items).FreezeUnsafe();
+				return CreateEmptyWithComparer(comparer).SetRangeReadOnly(items).FreezeUnsafe();
 			}
 
 			/// <summary>Creates a new JSON object with the specified items</summary>
@@ -197,7 +198,7 @@ namespace SnowBank.Data.Json
 			/// </remarks>
 			public static JsonObject Create(ReadOnlySpan<(string Key, JsonValue? Value)> items)
 			{
-				return CreateEmptyWithComparer(null).AddRangeReadOnly(items).FreezeUnsafe();
+				return items.Length == 0 ? Empty : CreateEmptyWithComparer(null).SetRangeReadOnly(items).FreezeUnsafe();
 			}
 
 			/// <summary>Creates a new JSON object with the specified items</summary>
@@ -210,7 +211,7 @@ namespace SnowBank.Data.Json
 			/// </remarks>
 			public static JsonObject Create(IEqualityComparer<string> comparer, ReadOnlySpan<(string Key, JsonValue? Value)> items)
 			{
-				return CreateEmptyWithComparer(comparer).AddRangeReadOnly(items).FreezeUnsafe();
+				return CreateEmptyWithComparer(comparer).SetRangeReadOnly(items).FreezeUnsafe();
 			}
 
 			/// <summary>Creates a new JSON object with the specified items</summary>
@@ -223,7 +224,7 @@ namespace SnowBank.Data.Json
 			public static JsonObject Create(KeyValuePair<string, JsonValue>[] items)
 			{
 				Contract.NotNull(items);
-				return CreateEmptyWithComparer(null).AddRangeReadOnly(items.AsSpan()).FreezeUnsafe();
+				return CreateEmptyWithComparer(null).SetRangeReadOnly(items.AsSpan()).FreezeUnsafe();
 			}
 
 			/// <summary>Creates a new JSON object with the specified items</summary>
@@ -237,7 +238,7 @@ namespace SnowBank.Data.Json
 			public static JsonObject Create(IEqualityComparer<string> comparer, KeyValuePair<string, JsonValue>[] items)
 			{
 				Contract.NotNull(items);
-				return CreateEmptyWithComparer(comparer).AddRangeReadOnly(items.AsSpan()).FreezeUnsafe();
+				return CreateEmptyWithComparer(comparer).SetRangeReadOnly(items.AsSpan()).FreezeUnsafe();
 			}
 
 			/// <summary>Creates a new JSON object with the specified items</summary>
@@ -250,7 +251,7 @@ namespace SnowBank.Data.Json
 			public static JsonObject Create((string Key, JsonValue?)[] items)
 			{
 				Contract.NotNull(items);
-				return CreateEmptyWithComparer(null).AddRangeReadOnly(items.AsSpan()).FreezeUnsafe();
+				return CreateEmptyWithComparer(null).SetRangeReadOnly(items.AsSpan()).FreezeUnsafe();
 			}
 
 			/// <summary>Creates a new JSON object with the specified items</summary>
@@ -264,7 +265,7 @@ namespace SnowBank.Data.Json
 			public static JsonObject Create(IEqualityComparer<string> comparer, (string Key, JsonValue?)[] items)
 			{
 				Contract.NotNull(items);
-				return CreateEmptyWithComparer(comparer).AddRangeReadOnly(items.AsSpan()).FreezeUnsafe();
+				return CreateEmptyWithComparer(comparer).SetRangeReadOnly(items.AsSpan()).FreezeUnsafe();
 			}
 
 			/// <summary>Creates a new JSON object with the specified items</summary>
@@ -277,7 +278,7 @@ namespace SnowBank.Data.Json
 			public static JsonObject Create(IEnumerable<KeyValuePair<string, JsonValue>> items)
 			{
 				Contract.NotNull(items);
-				return CreateEmptyWithComparer(null, items).AddRangeReadOnly(items).FreezeUnsafe();
+				return CreateEmptyWithComparer(null, items).SetRangeReadOnly(items).FreezeUnsafe();
 			}
 
 			/// <summary>Creates a new JSON object with the specified items</summary>
@@ -291,7 +292,7 @@ namespace SnowBank.Data.Json
 			public static JsonObject Create(IEqualityComparer<string> comparer, IEnumerable<KeyValuePair<string, JsonValue>> items)
 			{
 				Contract.NotNull(items);
-				return CreateEmptyWithComparer(comparer, items).AddRangeReadOnly(items).FreezeUnsafe();
+				return CreateEmptyWithComparer(comparer, items).SetRangeReadOnly(items).FreezeUnsafe();
 			}
 
 			/// <summary>Creates a new JSON object with the specified items</summary>
@@ -304,7 +305,7 @@ namespace SnowBank.Data.Json
 			public static JsonObject Create(IEnumerable<(string Key, JsonValue Value)> items)
 			{
 				Contract.NotNull(items);
-				return CreateEmptyWithComparer(null).AddRangeReadOnly(items).FreezeUnsafe();
+				return CreateEmptyWithComparer(null).SetRangeReadOnly(items).FreezeUnsafe();
 			}
 
 			/// <summary>Creates a new JSON object with the specified items</summary>
@@ -318,7 +319,7 @@ namespace SnowBank.Data.Json
 			public static JsonObject Create(IEqualityComparer<string> comparer, IEnumerable<(string Key, JsonValue Value)> items)
 			{
 				Contract.NotNull(items);
-				return CreateEmptyWithComparer(comparer).AddRangeReadOnly(items).FreezeUnsafe();
+				return CreateEmptyWithComparer(comparer).SetRangeReadOnly(items).FreezeUnsafe();
 			}
 
 			#endregion

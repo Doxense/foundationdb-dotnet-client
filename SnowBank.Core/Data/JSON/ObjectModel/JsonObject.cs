@@ -363,6 +363,7 @@ namespace SnowBank.Data.Json
 		/// <param name="value0">Value of the field</param>
 		/// <returns>JSON object of size 1, that can be modified.</returns>
 		[Pure]
+		[EditorBrowsable(EditorBrowsableState.Never)] //TODO: consider removing these when dictionary collection expressions are generally available?
 		public static JsonObject Create(string key0, JsonValue? value0) => new(new Dictionary<string, JsonValue>(1, StringComparer.Ordinal)
 		{
 			[key0] = value0 ?? JsonNull.Null
@@ -385,7 +386,7 @@ namespace SnowBank.Data.Json
 		/// <returns>JSON object of size 2, that can be modified.</returns>
 		[Pure]
 		[Obsolete("Please use the JsonObject.Create([ (k, v), ... ]) instead.")]
-		[EditorBrowsable(EditorBrowsableState.Never)]
+		[EditorBrowsable(EditorBrowsableState.Never)] //TODO: consider removing these when dictionary collection expressions are generally available?
 		public static JsonObject Create(string key0, JsonValue? value0, string key1, JsonValue? value1) => new(new Dictionary<string, JsonValue>(2, StringComparer.Ordinal)
 		{
 			[key0] = value0 ?? JsonNull.Null,
@@ -418,7 +419,7 @@ namespace SnowBank.Data.Json
 		/// <returns>JSON object of size 3, that can be modified.</returns>
 		[Pure]
 		[Obsolete("Please use the JsonObject.Create([ (k, v), ... ]) instead.")]
-		[EditorBrowsable(EditorBrowsableState.Never)]
+		[EditorBrowsable(EditorBrowsableState.Never)] //TODO: consider removing these when dictionary collection expressions are generally available?
 		public static JsonObject Create(string key0, JsonValue? value0, string key1, JsonValue? value1, string key2, JsonValue? value2) => new(new Dictionary<string, JsonValue>(3, StringComparer.Ordinal)
 		{
 			{ key0, value0 ?? JsonNull.Null },
@@ -457,7 +458,7 @@ namespace SnowBank.Data.Json
 		/// <returns>JSON object of size 4, that can be modified.</returns>
 		[Pure]
 		[Obsolete("Please use the JsonObject.Create([ (k, v), ... ]) instead.")]
-		[EditorBrowsable(EditorBrowsableState.Never)]
+		[EditorBrowsable(EditorBrowsableState.Never)] //TODO: consider removing these when dictionary collection expressions are generally available?
 		public static JsonObject Create(string key0, JsonValue? value0, string key1, JsonValue? value1, string key2, JsonValue? value2, string key3, JsonValue? value3) => new(new Dictionary<string, JsonValue>(4, StringComparer.Ordinal)
 		{
 			{ key0, value0 ?? JsonNull.Null },
@@ -495,16 +496,17 @@ namespace SnowBank.Data.Json
 		public static JsonObject Create(IDictionary<string, JsonValue> items)
 		{
 			Contract.NotNull(items);
-			return CreateEmptyWithComparer(null, items).AddRange(items);
+			return CreateEmptyWithComparer(null, items).SetRange(items);
 		}
 
 		/// <summary>Creates a new JSON object with the specified items</summary>
 		/// <param name="items">Map of key/values to copy</param>
 		/// <returns>New JSON object with the same elements in <paramref name="items"/></returns>
 		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
+		[OverloadResolutionPriority(1)]
 		public static JsonObject Create(ReadOnlySpan<KeyValuePair<string, JsonValue>> items)
 		{
-			return CreateEmptyWithComparer(null).AddRange(items);
+			return items.Length == 0 ? new() : CreateEmptyWithComparer(null).SetRange(items);
 		}
 
 		/// <summary>Creates a new JSON object with the specified items</summary>
@@ -523,7 +525,7 @@ namespace SnowBank.Data.Json
 		/// </remarks>
 		public static JsonObject Create(IEqualityComparer<string> comparer, ReadOnlySpan<KeyValuePair<string, JsonValue>> items)
 		{
-			return CreateEmptyWithComparer(comparer).AddRange(items);
+			return CreateEmptyWithComparer(comparer).SetRange(items);
 		}
 
 		/// <summary>Creates a new JSON object from the specified items, that will be either read-only or mutable.</summary>
@@ -542,9 +544,10 @@ namespace SnowBank.Data.Json
 		/// </para>
 		/// </remarks>
 		/// <seealso cref="JsonObject.ReadOnly.Create(System.ReadOnlySpan{System.Collections.Generic.KeyValuePair{string,SnowBank.Data.Json.JsonValue}})"/>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonObject Create(bool readOnly, ReadOnlySpan<KeyValuePair<string, JsonValue>> items)
 		{
-			return readOnly ? JsonObject.ReadOnly.Create(items) : CreateEmptyWithComparer(null).AddRange(items);
+			return readOnly ? JsonObject.ReadOnly.Create(items) : Create(items);
 		}
 
 		/// <summary>Creates a new JSON object with the specified items</summary>
@@ -556,7 +559,7 @@ namespace SnowBank.Data.Json
 			//note: this overload without optional IEqualityComparer is required to resolve an overload ambiguity with the Create(ReadOnlySpan<KeyValuePair<string, JsonValue>>) variant when calling JsonObject.Create([])
 			// => it seems that if one of the two has an optional argument, it will have a lower priority.
 
-			return Create().AddRange(items);
+			return Create().SetRange(items);
 		}
 
 		/// <summary>Creates a new JSON object with the specified items</summary>
@@ -566,7 +569,7 @@ namespace SnowBank.Data.Json
 		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
 		public static JsonObject Create(IEqualityComparer<string> comparer, ReadOnlySpan<(string Key, JsonValue? Value)> items)
 		{
-			return CreateEmptyWithComparer(comparer).AddRange(items);
+			return CreateEmptyWithComparer(comparer).SetRange(items);
 		}
 
 		/// <summary>Creates a new JSON object with the specified items</summary>
@@ -595,7 +598,7 @@ namespace SnowBank.Data.Json
 		public static JsonObject Create(KeyValuePair<string, JsonValue>[] items)
 		{
 			Contract.NotNull(items);
-			return CreateEmptyWithComparer(null).AddRange(items.AsSpan());
+			return CreateEmptyWithComparer(null).SetRange(items.AsSpan());
 		}
 
 		/// <summary>Creates a new JSON object with the specified items</summary>
@@ -606,17 +609,33 @@ namespace SnowBank.Data.Json
 		public static JsonObject Create(IEqualityComparer<string> comparer, KeyValuePair<string, JsonValue>[] items)
 		{
 			Contract.NotNull(items);
-			return CreateEmptyWithComparer(comparer).AddRange(items.AsSpan());
+			return Create(comparer, items.AsSpan());
+		}
+
+		/// <summary>Creates a new JSON object from the specified items, that will be either read-only or mutable.</summary>
+		/// <param name="readOnly">If <c>true</c>, creates a read-only <see cref="JsonObject"/> that cannot be modified.</param>
+		/// <param name="items">Map of key/values to copy</param>
+		/// <returns>New JSON object with the same elements in <paramref name="items"/>.</returns>
+		/// <remarks>
+		/// <para>If <paramref name="readOnly"/> is <c>true</c>, any <see cref="JsonValue"/> in <paramref name="items"/> will replaced by a read-only equivalent, if they are mutable.</para>
+		/// </remarks>
+		/// <seealso cref="JsonObject.ReadOnly.Create(System.Collections.Generic.KeyValuePair{string,SnowBank.Data.Json.JsonValue}[])"/>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonObject Create(bool readOnly, KeyValuePair<string, JsonValue>[] items)
+		{
+			Contract.NotNull(items);
+			return Create(readOnly, items.AsSpan());
 		}
 
 		/// <summary>Creates a new JSON object with the specified items</summary>
 		/// <param name="items">Map of key/values to copy</param>
 		/// <returns>New JSON object with the same elements in <paramref name="items"/></returns>
 		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
+		[Pure]
 		public static JsonObject Create((string Key, JsonValue? Value)[] items)
 		{
 			Contract.NotNull(items);
-			return CreateEmptyWithComparer(null).AddRange(items.AsSpan());
+			return CreateEmptyWithComparer(null).SetRange(items.AsSpan());
 		}
 
 		/// <summary>Creates a new JSON object with the specified items</summary>
@@ -624,20 +643,37 @@ namespace SnowBank.Data.Json
 		/// <param name="items">Map of key/values to copy</param>
 		/// <returns>New JSON object with the same elements in <paramref name="items"/></returns>
 		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
+		[Pure]
 		public static JsonObject Create(IEqualityComparer<string> comparer, (string Key, JsonValue? Value)[] items)
 		{
 			Contract.NotNull(items);
-			return CreateEmptyWithComparer(comparer).AddRange(items.AsSpan());
+			return CreateEmptyWithComparer(comparer).SetRange(items.AsSpan());
 		}
 
 		/// <summary>Creates a new JSON object with the specified items</summary>
 		/// <param name="items">Map of key/values to copy</param>
 		/// <returns>New JSON object with the same elements in <paramref name="items"/></returns>
 		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
+		[Pure]
+		[OverloadResolutionPriority(-1)]
 		public static JsonObject Create(IEnumerable<KeyValuePair<string, JsonValue>> items)
 		{
 			Contract.NotNull(items);
-			return CreateEmptyWithComparer(null, items).AddRange(items);
+			return CreateEmptyWithComparer(null, items).SetRange(items);
+		}
+
+		/// <summary>Creates a new JSON object from the specified items, that will be either read-only or mutable.</summary>
+		/// <param name="readOnly">If <c>true</c>, creates a read-only <see cref="JsonObject"/> that cannot be modified.</param>
+		/// <param name="items">Map of key/values to copy</param>
+		/// <returns>New JSON object with the same elements in <paramref name="items"/>.</returns>
+		/// <remarks>
+		/// <para>If <paramref name="readOnly"/> is <c>true</c>, any <see cref="JsonValue"/> in <paramref name="items"/> will replaced by a read-only equivalent, if they are mutable.</para>
+		/// </remarks>
+		/// <seealso cref="JsonObject.ReadOnly.Create(System.Collections.Generic.IEnumerable{System.Collections.Generic.KeyValuePair{string,SnowBank.Data.Json.JsonValue}})"/>
+		[OverloadResolutionPriority(-1)]
+		public static JsonObject Create(bool readOnly, IEnumerable<KeyValuePair<string, JsonValue>> items)
+		{
+			return readOnly ? JsonObject.ReadOnly.Create(items) : Create(items);
 		}
 
 		/// <summary>Creates a new JSON object with the specified items</summary>
@@ -648,7 +684,7 @@ namespace SnowBank.Data.Json
 		public static JsonObject Create(IEqualityComparer<string> comparer, IEnumerable<KeyValuePair<string, JsonValue>> items)
 		{
 			Contract.NotNull(items);
-			return CreateEmptyWithComparer(comparer, items).AddRange(items);
+			return CreateEmptyWithComparer(comparer, items).SetRange(items);
 		}
 
 		/// <summary>Creates a new JSON object with the specified items</summary>
@@ -658,7 +694,7 @@ namespace SnowBank.Data.Json
 		public static JsonObject Create(IEnumerable<(string Key, JsonValue Value)> items)
 		{
 			Contract.NotNull(items);
-			return CreateEmptyWithComparer(null).AddRange(items);
+			return CreateEmptyWithComparer(null).SetRange(items);
 		}
 
 		/// <summary>Creates a new JSON object with the specified items</summary>
@@ -669,7 +705,7 @@ namespace SnowBank.Data.Json
 		public static JsonObject Create(IEqualityComparer<string> comparer, IEnumerable<(string Key, JsonValue Value)> items)
 		{
 			Contract.NotNull(items);
-			return CreateEmptyWithComparer(comparer).AddRange(items);
+			return CreateEmptyWithComparer(comparer).SetRange(items);
 		}
 
 		#endregion
@@ -1314,12 +1350,149 @@ namespace SnowBank.Data.Json
 			m_items.Add(item.Key, item.Value ?? JsonNull.Null);
 		}
 
-		#region AddRange...
+		#region SetRange/AddRange...
 
 		#region Mutable...
 
+		/// <summary>Sets several elements to this <see cref="JsonObject"/></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
+		/// <remarks>If there are duplicate keys in <paramref name="items"/>, the last one wins.</remarks>
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		public JsonObject SetRange(ReadOnlySpan<KeyValuePair<string, JsonValue>> items)
+		{
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+			if (items.Length == 0) return this;
+
+			var self = m_items;
+			self.EnsureCapacity(unchecked(self.Count + items.Length));
+
+			foreach (var item in items)
+			{
+				Contract.Debug.Requires(item.Key is not null && !ReferenceEquals(this, item.Value));
+				// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
+				self[item.Key] = item.Value ?? JsonNull.Null;
+			}
+
+			return this;
+		}
+
 		/// <summary>Adds several elements to this <see cref="JsonObject"/></summary>
 		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
+		/// <remarks>If there are duplicate keys in <paramref name="items"/>, the last one wins.</remarks>
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		public JsonObject SetRange(ReadOnlySpan<(string Key, JsonValue? Value)> items)
+		{
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+			if (items.Length == 0) return this;
+
+			var self = m_items;
+			self.EnsureCapacity(unchecked(self.Count + items.Length));
+
+			foreach (var item in items)
+			{
+				Contract.Debug.Requires(item.Key is not null && !ReferenceEquals(this, item.Value));
+				self[item.Key] = item.Value ?? JsonNull.Null;
+			}
+
+			return this;
+		}
+
+		/// <summary>Adds several elements to this <see cref="JsonObject"/></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		[OverloadResolutionPriority(-1)]
+		public JsonObject SetRange(IEnumerable<KeyValuePair<string, JsonValue>> items)
+		{
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+
+			switch (items)
+			{
+				case IDictionary<string, JsonValue> dict:
+				{
+					return SetRange(dict);
+				}
+				case KeyValuePair<string, JsonValue>[] arr:
+				{
+					return SetRange(arr.AsSpan());
+				}
+				case List<KeyValuePair<string, JsonValue>> list:
+				{
+					return SetRange(CollectionsMarshal.AsSpan(list));
+				}
+				default:
+				{
+					return SetRangeSlow(this, items);
+				}
+			}
+
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			static JsonObject SetRangeSlow(JsonObject obj, IEnumerable<KeyValuePair<string, JsonValue>> items)
+			{
+				var self = obj.m_items;
+				if (items.TryGetNonEnumeratedCount(out var count))
+				{
+					if (count == 0) return obj;
+					self.EnsureCapacity(unchecked(self.Count + count));
+				}
+
+				foreach (var item in items)
+				{
+					Contract.Debug.Requires(item.Key is not null && !ReferenceEquals(obj, item.Value));
+					// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
+					self[item.Key] = item.Value ?? JsonNull.Null;
+				}
+
+				return obj;
+			}
+		}
+
+		/// <summary>Adds several elements to this <see cref="JsonObject"/></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		public JsonObject SetRange(IEnumerable<(string Key, JsonValue Value)> items)
+		{
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+
+			switch (items)
+			{
+				case (string, JsonValue?)[] arr:
+				{
+					return SetRange(arr.AsSpan());
+				}
+				case List<(string, JsonValue?)> list:
+				{
+					return SetRange(CollectionsMarshal.AsSpan(list));
+				}
+				default:
+				{
+					return SetRangeSlow(this, items);
+				}
+			}
+
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			static JsonObject SetRangeSlow(JsonObject obj, IEnumerable<(string Key, JsonValue Value)> items)
+			{
+				var self = obj.m_items;
+				if (items.TryGetNonEnumeratedCount(out var count))
+				{
+					if (count == 0) return obj;
+					self.EnsureCapacity(unchecked(self.Count + count));
+				}
+
+				foreach (var item in items)
+				{
+					Contract.Debug.Requires(item.Key is not null && !ReferenceEquals(obj, item.Value));
+					// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
+					self[item.Key] = item.Value ?? JsonNull.Null;
+				}
+
+				return obj;
+			}
+		}
+
+		/// <summary>Adds several elements to this <see cref="JsonObject"/></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
+		/// <exception cref="T:System.ArgumentException">if there are duplicate keys in <paramref name="items"/>, or if one the keys already exists in this instance.</exception>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRange(ReadOnlySpan<KeyValuePair<string, JsonValue>> items)
 		{
@@ -1341,6 +1514,7 @@ namespace SnowBank.Data.Json
 
 		/// <summary>Adds several elements to this <see cref="JsonObject"/></summary>
 		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
+		/// <exception cref="T:System.ArgumentException">if there are duplicate keys in <paramref name="items"/>, or if one the keys already exists in this instance.</exception>
 		[EditorBrowsable(EditorBrowsableState.Advanced)]
 		public JsonObject AddRange(ReadOnlySpan<(string Key, JsonValue? Value)> items)
 		{
@@ -1568,6 +1742,128 @@ namespace SnowBank.Data.Json
 		#endregion
 
 		#region Immutable...
+
+		/// <summary>Adds several read-only elements to this <see cref="JsonObject"/></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		public JsonObject SetRangeReadOnly(ReadOnlySpan<KeyValuePair<string, JsonValue>> items)
+		{
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+			if (items.Length == 0) return this;
+
+			var self = m_items;
+			self.EnsureCapacity(unchecked(self.Count + items.Length));
+
+			foreach (var item in items)
+			{
+				Contract.Debug.Requires(item.Key is not null && !ReferenceEquals(this, item.Value));
+				// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
+				self[item.Key] = (item.Value ?? JsonNull.Null).ToReadOnly();
+			}
+
+			return this;
+		}
+
+		/// <summary>Adds several read-only elements to this <see cref="JsonObject"/></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		public JsonObject SetRangeReadOnly(ReadOnlySpan<(string Key, JsonValue? Value)> items)
+		{
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+			if (items.Length == 0) return this;
+
+			var self = m_items;
+			self.EnsureCapacity(unchecked(self.Count + items.Length));
+
+			foreach (var item in items)
+			{
+				Contract.Debug.Requires(item.Key is not null && !ReferenceEquals(this, item.Value));
+				// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
+				self[item.Key] = (item.Value ?? JsonNull.Null).ToReadOnly();
+			}
+
+			return this;
+		}
+
+		/// <summary>Adds several read-only elements to this <see cref="JsonObject"/></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		public JsonObject SetRangeReadOnly(IEnumerable<KeyValuePair<string, JsonValue>> items)
+		{
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+
+			switch (items)
+			{
+				case IDictionary<string, JsonValue> dict:
+				{
+					return SetRangeReadOnly(dict);
+				}
+				case KeyValuePair<string, JsonValue>[] arr:
+				{
+					return SetRangeReadOnly(arr.AsSpan());
+				}
+				case List<KeyValuePair<string, JsonValue>> list:
+				{
+					return SetRangeReadOnly(CollectionsMarshal.AsSpan(list));
+				}
+				default:
+				{
+					var self = m_items;
+					if (items.TryGetNonEnumeratedCount(out var count))
+					{
+						if (count == 0) return this;
+						self.EnsureCapacity(unchecked(self.Count + count));
+					}
+
+					foreach (var item in items)
+					{
+						Contract.Debug.Requires(item.Key is not null && !ReferenceEquals(this, item.Value));
+						// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
+						self[item.Key] = (item.Value ?? JsonNull.Null).ToReadOnly();
+					}
+
+					return this;
+				}
+			}
+		}
+
+		/// <summary>Adds several read-only elements to this <see cref="JsonObject"/></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		public JsonObject SetRangeReadOnly(IEnumerable<(string Key, JsonValue Value)> items)
+		{
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+
+			switch (items)
+			{
+				case (string, JsonValue?)[] arr:
+				{
+					return SetRangeReadOnly(arr.AsSpan());
+				}
+				case List<(string, JsonValue?)> list:
+				{
+					return SetRangeReadOnly(CollectionsMarshal.AsSpan(list));
+				}
+				default:
+				{
+					var self = m_items;
+					if (items.TryGetNonEnumeratedCount(out var count))
+					{
+						if (count == 0) return this;
+						self.EnsureCapacity(unchecked(self.Count + count));
+					}
+
+					foreach (var item in items)
+					{
+						Contract.Debug.Requires(item.Key is not null && !ReferenceEquals(this, item.Value));
+						// ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
+						self[item.Key] = (item.Value ?? JsonNull.Null).ToReadOnly();
+					}
+
+					return this;
+				}
+			}
+		}
 
 		/// <summary>Adds several read-only elements to this <see cref="JsonObject"/></summary>
 		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
