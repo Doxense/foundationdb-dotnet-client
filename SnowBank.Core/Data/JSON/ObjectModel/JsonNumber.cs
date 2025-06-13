@@ -1239,48 +1239,65 @@ namespace SnowBank.Data.Json
 			m_literal = literal;
 		}
 
-		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
+		#region Factories...
+
+		/// <summary>Returns a singleton from the small numbers cache</summary>
+		/// <param name="value">Value that must be in the range [-128, +255]</param>
+		/// <returns>Cached JsonNumber for this value</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonNumber Return(string value) => CrystalJsonParser.ParseJsonNumber(value) ?? Zero;
+		internal static JsonNumber GetCachedSmallNumber(int value)
+		{
+			Contract.Debug.Requires(value is >= CACHED_SIGNED_MIN and <= CACHED_SIGNED_MAX);
+			return SmallNumbers[value - CACHED_SIGNED_MIN];
+		}
+
+		#region Create(...)
+
+		/// <summary>Special helper to create a number from its constituents</summary>
+		[Pure]
+		private static JsonNumber Create(in Number value, Kind kind) => kind switch
+		{
+			Kind.Signed   => Create(value.Signed),
+			Kind.Unsigned => Create(value.Unsigned),
+			Kind.Double   => Create(value.Double),
+			Kind.Decimal  => Create(value.Decimal),
+			_ => throw new NotSupportedException()
+		};
 
 		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonNumber Return(byte value) => SmallNumbers[value + CACHED_OFFSET_ZERO];
+		public static JsonValue Create(string value)
+		{
+			Contract.NotNull(value);
+			return CrystalJsonParser.ParseJsonNumber(value) ?? Zero;
+		}
 
 		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Return(byte? value) => value.HasValue ? SmallNumbers[value.Value + CACHED_OFFSET_ZERO] : JsonNull.Null;
+		public static JsonValue Create(ReadOnlySpan<char> value) => CrystalJsonParser.ParseJsonNumber(value) ?? Zero;
 
 		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonNumber Return(sbyte value) => SmallNumbers[value + CACHED_OFFSET_ZERO];
+		public static JsonNumber Create(byte value) => SmallNumbers[value + CACHED_OFFSET_ZERO];
 
 		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Return(sbyte? value) => value.HasValue ? SmallNumbers[value.Value + CACHED_OFFSET_ZERO] : JsonNull.Null;
+		public static JsonNumber Create(sbyte value) => SmallNumbers[value + CACHED_OFFSET_ZERO];
 
 		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonNumber Return(short value) => Return((int) value);
+		public static JsonNumber Create(short value) => Create((int) value);
 
 		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Return(short? value) => value.HasValue ? Return((int) value.Value) : JsonNull.Null;
-
-		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonNumber Return(ushort value) => Return((uint) value);
-
-		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Return(ushort? value) => value.HasValue ? Return((uint) value.Value) : JsonNull.Null;
+		public static JsonNumber Create(ushort value) => Create((uint) value);
 
 		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		/// <param name="value">Integer value</param>
 		/// <returns>JSON value that will be serialized as an integer.</returns>
 		/// <remarks>For small values a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonNumber Return(int value)
+		[Pure]
+		public static JsonNumber Create(int value)
 		{
 			//note: this method has been optimized looking at the JIT disassembly, to maximize inlining (as of .NET 9)
 
@@ -1297,29 +1314,12 @@ namespace SnowBank.Data.Json
 			return new JsonNumber(new Number(value), Kind.Signed, value < 0 ? value.ToString(NumberFormatInfo.InvariantInfo) : value.ToString(default(IFormatProvider)));
 		}
 
-		/// <summary>Returns a singleton from the small numbers cache</summary>
-		/// <param name="value">Value that must be in the range [-128, +255]</param>
-		/// <returns>Cached JsonNumber for this value</returns>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static JsonNumber GetCachedSmallNumber(int value)
-		{
-			Contract.Debug.Requires(value is >= CACHED_SIGNED_MIN and <= CACHED_SIGNED_MAX);
-			return SmallNumbers[value - CACHED_SIGNED_MIN];
-		}
-
-		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
-		/// <param name="value">Integer value, that can be null.</param>
-		/// <returns>JSON value that will be serialized as an integer, or <see cref="JsonNull.Null"/>.</returns>
-		/// <remarks>For small values a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Return(int? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
-
 		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		/// <param name="value">Integer value</param>
 		/// <returns>JSON value that will be serialized as an integer.</returns>
 		/// <remarks>For small values a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonNumber Return(uint value)
+		[Pure]
+		public static JsonNumber Create(uint value)
 		{
 			//note: this method has been optimized looking at the JIT disassembly, to maximize inlining (as of .NET 9)
 
@@ -1336,18 +1336,11 @@ namespace SnowBank.Data.Json
 		}
 
 		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
-		/// <param name="value">Integer value, that can be null.</param>
-		/// <returns>JSON value that will be serialized as an integer, or <see cref="JsonNull.Null"/>.</returns>
-		/// <remarks>For small values a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Return(uint? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
-
-		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		/// <param name="value">Integer value</param>
 		/// <returns>JSON value that will be serialized as an integer.</returns>
 		/// <remarks>For small values (between -128 and 255) a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
-		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static JsonNumber Return(long value)
+		[Pure]
+		public static JsonNumber Create(long value)
 		{
 			//note: this method has been optimized looking at the JIT disassembly, to maximize inlining (as of .NET 9)
 
@@ -1365,19 +1358,11 @@ namespace SnowBank.Data.Json
 		}
 
 		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
-		[Pure]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Return(long? value) =>
-			value.HasValue
-				? Return(value.Value)
-				: JsonNull.Null;
-
-		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		/// <param name="value">Integer value</param>
 		/// <returns>JSON value that will be serialized as an integer.</returns>
 		/// <remarks>For small values (between 0 and 255) a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
 		[Pure]
-		public static JsonNumber Return(ulong value)
+		public static JsonNumber Create(ulong value)
 		{
 			//note: this method has been optimized looking at the JIT disassembly, to maximize inlining (as of .NET 9)
 
@@ -1394,43 +1379,26 @@ namespace SnowBank.Data.Json
 		}
 
 		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
-		[Pure]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Return(ulong? value) =>
-			value.HasValue
-				? Return(value.Value)
-				: JsonNull.Null;
-
-		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		/// <param name="value">Decimal value</param>
 		/// <returns>JSON value that will be serialized as a decimal value.</returns>
 		/// <remarks>For <see langword="0"/>, <see langword="1"/> and <c>NaN</c> a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
 		[Pure]
-		public static JsonNumber Return(double value) =>
-			  value == 0d ? DecimalZero
+		public static JsonNumber Create(double value) =>
+			value == 0d ? DecimalZero
 			: value == 1d ? DecimalOne
 			: double.IsNaN(value) ? NaN
 			: new JsonNumber(new Number(value), Kind.Double, StringConverters.ToString(value));
 
 		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
-		[Pure]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Return(double? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
-
-		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		/// <param name="value">Decimal value</param>
 		/// <returns>JSON value that will be serialized as a decimal value.</returns>
 		/// <remarks>For <see langword="0"/>, <see langword="1"/> and <c>NaN</c> a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonNumber Return(float value) =>
-			  value == 0f ? DecimalZero
+		[Pure]
+		public static JsonNumber Create(float value) =>
+			value == 0f ? DecimalZero
 			: value == 1f ? DecimalOne
 			: float.IsNaN(value) ? NaN
 			: new JsonNumber(new Number(value), Kind.Double, StringConverters.ToString(value));
-
-		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Return(Half? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
 
 #if NET8_0_OR_GREATER
 		
@@ -1439,51 +1407,39 @@ namespace SnowBank.Data.Json
 		/// <returns>JSON value that will be serialized as a decimal value.</returns>
 		/// <remarks>For <see langword="0"/>, <see langword="1"/> and <c>NaN</c> a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonNumber Return(Half value) =>
-			  value == Half.Zero ? DecimalZero
+		public static JsonNumber Create(Half value) =>
+			value == Half.Zero ? DecimalZero
 			: value == Half.One ? DecimalOne
 			: Half.IsNaN(value) ? NaN
 			: new JsonNumber(new Number((double) value), Kind.Double, StringConverters.ToString(value));
+
 #else
+
 		private static readonly Half HalfZero = (Half) 0;
 		private static readonly Half HalfOne = (Half) 1;
+
 		[Pure]
-		public static JsonNumber Return(Half value) =>
+		public static JsonNumber Create(Half value) =>
 			  value == HalfZero ? DecimalZero
 			: value == HalfOne ? DecimalOne
 			: Half.IsNaN(value) ? NaN
 			: new JsonNumber(new Number((double) value), Kind.Double, StringConverters.ToString(value));
+
 #endif
 
 		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Return(float? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
-
-		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure]
-		public static JsonNumber Return(decimal value) => new(new Number(value), Kind.Decimal, StringConverters.ToString(value));
-
-		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Return(decimal? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
+		public static JsonNumber Create(decimal value) => new(new Number(value), Kind.Decimal, StringConverters.ToString(value));
 
 #if NET8_0_OR_GREATER
 
 		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure]
-		public static JsonNumber Return(Int128 value) => new(new Number(value), Kind.Signed, StringConverters.ToString(value));
-
-		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Return(Int128? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
+		public static JsonNumber Create(Int128 value) => new(new Number(value), Kind.Signed, StringConverters.ToString(value));
 
 		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure]
-		public static JsonNumber Return(UInt128 value) => new(new Number(value), Kind.Unsigned, StringConverters.ToString(value));
-
-		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Return(UInt128? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
+		public static JsonNumber Create(UInt128 value) => new(new Number(value), Kind.Unsigned, StringConverters.ToString(value));
 
 #endif
 
@@ -1495,17 +1451,7 @@ namespace SnowBank.Data.Json
 		/// <para>If an exact representation is required, please serialize the number of <see cref="TimeSpan.Ticks"/> instead.</para>
 		/// </remarks>
 		[Pure]
-		public static JsonNumber Return(TimeSpan value) => value == TimeSpan.Zero ? DecimalZero : Return(value.TotalSeconds);
-
-		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds in the interval</summary>
-		/// <param name="value">Interval to convert, or <see langword="null"/></param>
-		/// <returns>JSON value that will be serialized as a decimal value, or <see cref="JsonNull.Null"/>.</returns>
-		/// <remarks>
-		/// <para>This method can introduce rounding errors, so <paramref name="value"/> may not round-trip in all cases.</para>
-		/// <para>If an exact representation is required, please serialize the number of <see cref="TimeSpan.Ticks"/> instead.</para>
-		/// </remarks>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Return(TimeSpan? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
+		public static JsonNumber Create(TimeSpan value) => value == TimeSpan.Zero ? DecimalZero : Create(value.TotalSeconds);
 
 		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds elapsed since UNIX Epoch</summary>
 		/// <param name="value">DateTime to convert</param>
@@ -1516,27 +1462,15 @@ namespace SnowBank.Data.Json
 		/// <para>If an exact representation is required, please serialize the date <see cref="JsonDateTime.Return(DateTime)">as a string</see> instead.</para>
 		/// </remarks>
 		[Pure]
-		public static JsonNumber Return(DateTime value)
+		public static JsonNumber Create(DateTime value)
 		{
 			// Converted as the number of seconds elapsed since 1970-01-01Z
 			// By convention, DateTime.MinValue is 0 (since it is equal to default(DateTime)), and DateTime.MaxValue is "NaN"
 			const long UNIX_EPOCH_TICKS = 621355968000000000L;
 			return value == DateTime.MinValue ? DecimalZero
-			     : value == DateTime.MaxValue ? NaN
-			     : Return((double) (value.ToUniversalTime().Ticks - UNIX_EPOCH_TICKS) / TimeSpan.TicksPerSecond);
+				: value == DateTime.MaxValue ? NaN
+				: Create((double) (value.ToUniversalTime().Ticks - UNIX_EPOCH_TICKS) / TimeSpan.TicksPerSecond);
 		}
-
-		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds elapsed since UNIX Epoch</summary>
-		/// <param name="value">DateTime to convert, or <see langword="null"/></param>
-		/// <returns>JSON value that will be serialized as a decimal value, or <see cref="JsonNull.Null"/>.</returns>
-		/// <remarks>
-		/// <para>By convention, <see cref="DateTime.MinValue"/> is equivalent to <see langword="0"/>, and <see cref="DateTime.MaxValue"/> is equivalent to <c>NaN</c>.</para>
-		/// <para>This method can introduce rounding errors, so <paramref name="value"/> may not round-trip in all cases.</para>
-		/// <para>If an exact representation is required, please serialize the date <see cref="JsonDateTime.Return(DateTime)">as a string</see> instead.</para>
-		/// </remarks>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Return(DateTime? value)
-			=> value is not null ? Return(value.Value) : JsonNull.Null;
 
 		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds elapsed since UNIX Epoch</summary>
 		/// <param name="value">DateTimeOffset to convert</param>
@@ -1547,15 +1481,250 @@ namespace SnowBank.Data.Json
 		/// <para>If an exact representation is required, please serialize the date <see cref="JsonDateTime.Return(DateTime)">as a string</see> instead.</para>
 		/// </remarks>
 		[Pure]
-		public static JsonNumber Return(DateTimeOffset value)
+		public static JsonNumber Create(DateTimeOffset value)
 		{
 			// Converted as the number of seconds elapsed since 1970-01-01Z
 			// By convention, DateTime.MinValue is 0 (since it is equal to default(DateTime)), and DateTime.MaxValue is "NaN"
 			const long UNIX_EPOCH_TICKS = 621355968000000000L;
 			return value == DateTimeOffset.MinValue ? DecimalZero
-			     : value == DateTimeOffset.MaxValue ? NaN
-			     : Return((double) (value.ToUniversalTime().Ticks - UNIX_EPOCH_TICKS) / TimeSpan.TicksPerSecond);
+				: value == DateTimeOffset.MaxValue ? NaN
+				: Create((double) (value.ToUniversalTime().Ticks - UNIX_EPOCH_TICKS) / TimeSpan.TicksPerSecond);
 		}
+
+		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of days elapsed since the UNIX Epoch</summary>
+		[Pure]
+		public static JsonNumber Create(DateOnly value)
+			=> value == DateOnly.MinValue ? DecimalZero
+				: value == DateOnly.MaxValue ? NaN
+				: Create((value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc) - DateTime.UnixEpoch).TotalDays);
+
+		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds elapsed since midnight</summary>
+		/// <param name="value">Time to convert</param>
+		/// <returns>JSON value that will be serialized as a decimal value.</returns>
+		/// <remarks>
+		/// <para>This method can introduce rounding errors, so <paramref name="value"/> may not round-trip in all cases.</para>
+		/// <para>If an exact representation is required, please serialize the date <see cref="JsonString.Return(Instant)">as a string</see> instead.</para>
+		/// </remarks>
+		[Pure]
+		public static JsonNumber Create(TimeOnly value) => Create(value.ToTimeSpan());
+
+		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds elapsed since UNIX Epoch</summary>
+		/// <param name="value">Instant to convert</param>
+		/// <returns>JSON value that will be serialized as a decimal value.</returns>
+		/// <remarks>
+		/// <para>This method can introduce rounding errors, so <paramref name="value"/> may not round-trip in all cases.</para>
+		/// <para>If an exact representation is required, please serialize the date <see cref="JsonString.Return(Instant)">as a string</see> instead.</para>
+		/// </remarks>
+		[Pure]
+		public static JsonNumber Create(NodaTime.Instant value) => value != default ? Create((value - default(NodaTime.Instant)).TotalSeconds) : DecimalZero;
+
+		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds elapsed</summary>
+		[Pure]
+		public static JsonNumber Create(NodaTime.Duration value) => value == NodaTime.Duration.Zero ? DecimalZero : Create((double)value.BclCompatibleTicks / NodaTime.NodaConstants.TicksPerSecond);
+
+		#endregion
+
+		#region Return(...)
+
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(string value) => CrystalJsonParser.ParseJsonNumber(value) ?? Zero;
+
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(byte value) => Create(value);
+
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(byte? value) => value.HasValue ? Create(value.Value) : JsonNull.Null;
+
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(sbyte value) => Create(value);
+
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(sbyte? value) => value.HasValue ? Create(value.Value) : JsonNull.Null;
+
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(short value) => Create((int) value);
+
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(short? value) => value.HasValue ? Create((int) value.Value) : JsonNull.Null;
+
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(ushort value) => Create((uint) value);
+
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(ushort? value) => value.HasValue ? Create((uint) value.Value) : JsonNull.Null;
+
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
+		/// <param name="value">Integer value</param>
+		/// <returns>JSON value that will be serialized as an integer.</returns>
+		/// <remarks>For small values a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(int value) => Create(value);
+
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
+		/// <param name="value">Integer value, that can be null.</param>
+		/// <returns>JSON value that will be serialized as an integer, or <see cref="JsonNull.Null"/>.</returns>
+		/// <remarks>For small values a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(int? value) => value.HasValue ? Create(value.Value) : JsonNull.Null;
+
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
+		/// <param name="value">Integer value</param>
+		/// <returns>JSON value that will be serialized as an integer.</returns>
+		/// <remarks>For small values a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(uint value) => Create(value);
+
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
+		/// <param name="value">Integer value, that can be null.</param>
+		/// <returns>JSON value that will be serialized as an integer, or <see cref="JsonNull.Null"/>.</returns>
+		/// <remarks>For small values a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(uint? value) => value.HasValue ? Create(value.Value) : JsonNull.Null;
+
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
+		/// <param name="value">Integer value</param>
+		/// <returns>JSON value that will be serialized as an integer.</returns>
+		/// <remarks>For small values (between -128 and 255) a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static JsonValue Return(long value) => Create(value);
+
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(long? value) => value.HasValue ? Create(value.Value) : JsonNull.Null;
+
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
+		/// <param name="value">Integer value</param>
+		/// <returns>JSON value that will be serialized as an integer.</returns>
+		/// <remarks>For small values (between 0 and 255) a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(ulong value) => Create(value);
+
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(ulong? value) => value.HasValue ? Create(value.Value) : JsonNull.Null;
+
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
+		/// <param name="value">Decimal value</param>
+		/// <returns>JSON value that will be serialized as a decimal value.</returns>
+		/// <remarks>For <see langword="0"/>, <see langword="1"/> and <c>NaN</c> a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(double value) => Create(value);
+
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(double? value) => value.HasValue ? Create(value.Value) : JsonNull.Null;
+
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
+		/// <param name="value">Decimal value</param>
+		/// <returns>JSON value that will be serialized as a decimal value.</returns>
+		/// <remarks>For <see langword="0"/>, <see langword="1"/> and <c>NaN</c> a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(float value) => Create(value);
+
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(float? value) => value.HasValue ? Create(value.Value) : JsonNull.Null;
+
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
+		/// <param name="value">Decimal value</param>
+		/// <returns>JSON value that will be serialized as a decimal value.</returns>
+		/// <remarks>For <see langword="0"/>, <see langword="1"/> and <c>NaN</c> a cached singleton is returned. For others values, a new instance will be allocated.</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(Half value) => Create(value);
+
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(Half? value) => value.HasValue ? Create(value.Value) : JsonNull.Null;
+
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(decimal value) => Create(value);
+
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(decimal? value) => value.HasValue ? Create(value.Value) : JsonNull.Null;
+
+#if NET8_0_OR_GREATER
+
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(Int128 value) => Create(value);
+
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(Int128? value) => value.HasValue ? Create(value.Value) : JsonNull.Null;
+
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(UInt128 value) => Create(value);
+
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(UInt128? value) => value.HasValue ? Create(value.Value) : JsonNull.Null;
+
+#endif
+
+		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds in the interval</summary>
+		/// <param name="value">Interval (in seconds)</param>
+		/// <returns>JSON value that will be serialized as a decimal value.</returns>
+		/// <remarks>
+		/// <para>Since <see cref="TimeSpan.TotalSeconds"/> can introduce rounding errors, this value may not round-trip in all cases.</para>
+		/// <para>If an exact representation is required, please serialize the number of <see cref="TimeSpan.Ticks"/> instead.</para>
+		/// </remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(TimeSpan value) => Create(value);
+
+		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds in the interval</summary>
+		/// <param name="value">Interval to convert, or <see langword="null"/></param>
+		/// <returns>JSON value that will be serialized as a decimal value, or <see cref="JsonNull.Null"/>.</returns>
+		/// <remarks>
+		/// <para>This method can introduce rounding errors, so <paramref name="value"/> may not round-trip in all cases.</para>
+		/// <para>If an exact representation is required, please serialize the number of <see cref="TimeSpan.Ticks"/> instead.</para>
+		/// </remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(TimeSpan? value) => value.HasValue ? Create(value.Value) : JsonNull.Null;
+
+		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds elapsed since UNIX Epoch</summary>
+		/// <param name="value">DateTime to convert</param>
+		/// <returns>JSON value that will be serialized as a decimal value.</returns>
+		/// <remarks>
+		/// <para>By convention, <see cref="DateTime.MinValue"/> is equivalent to <see langword="0"/>, and <see cref="DateTime.MaxValue"/> is equivalent to <c>NaN</c>.</para>
+		/// <para>This method can introduce rounding errors, so <paramref name="value"/> may not round-trip in all cases.</para>
+		/// <para>If an exact representation is required, please serialize the date <see cref="JsonDateTime.Return(DateTime)">as a string</see> instead.</para>
+		/// </remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(DateTime value) => Create(value);
+
+		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds elapsed since UNIX Epoch</summary>
+		/// <param name="value">DateTime to convert, or <see langword="null"/></param>
+		/// <returns>JSON value that will be serialized as a decimal value, or <see cref="JsonNull.Null"/>.</returns>
+		/// <remarks>
+		/// <para>By convention, <see cref="DateTime.MinValue"/> is equivalent to <see langword="0"/>, and <see cref="DateTime.MaxValue"/> is equivalent to <c>NaN</c>.</para>
+		/// <para>This method can introduce rounding errors, so <paramref name="value"/> may not round-trip in all cases.</para>
+		/// <para>If an exact representation is required, please serialize the date <see cref="JsonDateTime.Return(DateTime)">as a string</see> instead.</para>
+		/// </remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(DateTime? value) => value is not null ? Create(value.Value) : JsonNull.Null;
+
+		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds elapsed since UNIX Epoch</summary>
+		/// <param name="value">DateTimeOffset to convert</param>
+		/// <returns>JSON value that will be serialized as a decimal value.</returns>
+		/// <remarks>
+		/// <para>By convention, <see cref="DateTime.MinValue"/> is equivalent to <see langword="0"/>, and <see cref="DateTime.MaxValue"/> is equivalent to <c>NaN</c>.</para>
+		/// <para>This method can introduce rounding errors, so <paramref name="value"/> may not round-trip in all cases.</para>
+		/// <para>If an exact representation is required, please serialize the date <see cref="JsonDateTime.Return(DateTime)">as a string</see> instead.</para>
+		/// </remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(DateTimeOffset value) => Create(value);
 
 		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds elapsed since UNIX Epoch</summary>
 		/// <param name="value">DateTimeOffset to convert, or <see langword="null"/></param>
@@ -1566,20 +1735,15 @@ namespace SnowBank.Data.Json
 		/// <para>If an exact representation is required, please serialize the date <see cref="JsonDateTime.Return(DateTime)">as a string</see> instead.</para>
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Return(DateTimeOffset? value)
-			=> value is not null ? Return(value.Value) : JsonNull.Null;
+		public static JsonValue Return(DateTimeOffset? value) => value is not null ? Create(value.Value) : JsonNull.Null;
 
 		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of days elapsed since the UNIX Epoch</summary>
-		[Pure]
-		public static JsonValue Return(DateOnly value)
-			=> value == DateOnly.MinValue ? DecimalZero
-			 : value == DateOnly.MaxValue ? NaN
-			 : Return((value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc) - DateTime.UnixEpoch).TotalDays);
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(DateOnly value) => Create(value);
 
 		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of days elapsed since the UNIX Epoch</summary>
-		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static JsonValue Return(DateOnly? value)
-			=> value is not null ? Return(value.Value) : JsonNull.Null;
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(DateOnly? value) => value is not null ? Create(value.Value) : JsonNull.Null;
 
 		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds elapsed since midnight</summary>
 		/// <param name="value">Time to convert</param>
@@ -1588,9 +1752,8 @@ namespace SnowBank.Data.Json
 		/// <para>This method can introduce rounding errors, so <paramref name="value"/> may not round-trip in all cases.</para>
 		/// <para>If an exact representation is required, please serialize the date <see cref="JsonString.Return(Instant)">as a string</see> instead.</para>
 		/// </remarks>
-		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static JsonValue Return(TimeOnly value)
-			=> Return(value.ToTimeSpan());
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(TimeOnly value) => Create(value);
 
 		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds elapsed since midnight</summary>
 		/// <param name="value">Time to convert, or <see langword="null"/></param>
@@ -1599,9 +1762,8 @@ namespace SnowBank.Data.Json
 		/// <para>This method can introduce rounding errors, so <paramref name="value"/> may not round-trip in all cases.</para>
 		/// <para>If an exact representation is required, please serialize the date <see cref="JsonString.Return(Instant)">as a string</see> instead.</para>
 		/// </remarks>
-		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static JsonValue Return(TimeOnly? value)
-			=> value is null ? JsonNull.Null : Return(value.Value.ToTimeSpan());
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(TimeOnly? value) => value is null ? JsonNull.Null : Create(value.Value);
 
 		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds elapsed since UNIX Epoch</summary>
 		/// <param name="value">Instant to convert</param>
@@ -1610,21 +1772,24 @@ namespace SnowBank.Data.Json
 		/// <para>This method can introduce rounding errors, so <paramref name="value"/> may not round-trip in all cases.</para>
 		/// <para>If an exact representation is required, please serialize the date <see cref="JsonString.Return(Instant)">as a string</see> instead.</para>
 		/// </remarks>
-		[Pure]
-		public static JsonNumber Return(NodaTime.Instant value) => value != default ? Return((value - default(NodaTime.Instant)).TotalSeconds) : DecimalZero;
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(NodaTime.Instant value) => Create(value);
 
 		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds elapsed since UNIX Epoch</summary>
-		[Pure]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonValue Return(NodaTime.Instant? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(NodaTime.Instant? value) => value.HasValue ? Create(value.Value) : JsonNull.Null;
 
 		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds elapsed</summary>
-		[Pure]
-		public static JsonNumber Return(NodaTime.Duration value) => value == NodaTime.Duration.Zero ? DecimalZero : Return((double)value.BclCompatibleTicks / NodaTime.NodaConstants.TicksPerSecond);
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(NodaTime.Duration value) => Create(value);
 
 		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds elapsed</summary>
-		[Pure]
-		public static JsonValue Return(NodaTime.Duration? value) => value.HasValue ? Return(value.Value) : JsonNull.Null;
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(NodaTime.Duration? value) => value.HasValue ? Create(value.Value) : JsonNull.Null;
+
+		#endregion
+
+		#region Parse(...)
 
 		[Pure]
 		internal static JsonNumber ParseSigned(long value, ReadOnlySpan<char> literal, string? original)
@@ -1687,39 +1852,58 @@ namespace SnowBank.Data.Json
 			return new JsonNumber(new Number(value), Kind.Decimal, original ?? (literal.Length > 0 ? literal.ToString() : null));
 		}
 
-		internal static JsonNumber Parse(ReadOnlySpan<byte> value)
+		[Pure]
+		internal static JsonValue Parse(ReadOnlySpan<byte> value)
 		{
 			if (value.Length <= 0) throw ThrowHelper.ArgumentException(nameof(value), "Size must be at least one");
-			unsafe
+
+			if (value.Length <= 32)
 			{
-				fixed(byte* ptr = value)
+				Span<char> buffer = stackalloc char[value.Length];
+				var s = System.Text.Ascii.ToUtf16(value, buffer, out int written);
+				return Parse(buffer[..written]);
+			}
+			else
+			{
+				unsafe
 				{
-					return Parse(ptr, value.Length);
+					fixed(byte* ptr = value)
+					{
+						return Parse(ptr, value.Length);
+					}
 				}
 			}
 		}
 
 		[Pure]
-		internal static unsafe JsonNumber Parse(byte* ptr, int size)
+		internal static unsafe JsonValue Parse(byte* ptr, int size)
 		{
 			Contract.PointerNotNull(ptr);
 			if (size <= 0) throw ThrowHelper.ArgumentOutOfRangeException(nameof(size), size, "Size must be at least one");
 
-			string literal = new string((sbyte*)ptr, 0, size); //ASCII is ok
+			//TODO: optimize!
+			var literal = new string((sbyte*) ptr, 0, size); //ASCII is ok
 
 			return CrystalJsonParser.ParseJsonNumber(literal) ?? throw ThrowHelper.FormatException($"Invalid number literal '{literal}'.");
 		}
 
 		#endregion
 
+		#endregion
+
+		#endregion
+
 		/// <summary>Returns <see langword="true"/> for decimal number (ex: "1.23", "123E-2"), or <see langword="false"/> for integers ("123", "1.23E10", ...)</summary>
 		/// <remarks>It is possible, in some cases, that "2.0" would be considered a decimal number!</remarks>
+		[Pure]
 		public bool IsDecimal => m_kind >= Kind.Double;
 
 		/// <summary>Returns <see langword="true"/> for positive integers (ex: "123"), or <see langword="false"/> for negative integers (ex: "-123") or decimal numbers (ex: "1.23")</summary>
+		[Pure]
 		public bool IsUnsigned => m_kind == Kind.Unsigned;
 
 		/// <summary>Returns <see langword="true"/> for negative numbers (ex: "-123", "-1.23"), or <see langword="false"/> for positive numbers ("0", "123", "1.23")</summary>
+		[Pure]
 		public bool IsNegative => m_value.IsNegative(m_kind);
 
 		/// <summary>Returns the literal representation of the number (as it appeared in the original JSON document)</summary>
@@ -2685,35 +2869,35 @@ namespace SnowBank.Data.Json
 
 		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator JsonNumber(int value) => Return(value);
+		public static implicit operator JsonNumber(int value) => Create(value);
 
 		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator JsonNumber(long value) => Return(value);
+		public static implicit operator JsonNumber(long value) => Create(value);
 
 		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator JsonNumber(uint value) => Return(value);
+		public static implicit operator JsonNumber(uint value) => Create(value);
 
 		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator JsonNumber(ulong value) => Return(value);
+		public static implicit operator JsonNumber(ulong value) => Create(value);
 
 		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator JsonNumber(float value) => Return(value);
+		public static implicit operator JsonNumber(float value) => Create(value);
 
 		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator JsonNumber(double value) => Return(value);
+		public static implicit operator JsonNumber(double value) => Create(value);
 
 		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator JsonNumber(decimal value) => Return(value);
+		public static implicit operator JsonNumber(decimal value) => Create(value);
 
 		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator JsonNumber(System.Half value) => Return(value);
+		public static implicit operator JsonNumber(System.Half value) => Create(value);
 
 		/// <summary>Tests if two <see cref="JsonNumber"/> are considered equal</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2830,7 +3014,7 @@ namespace SnowBank.Data.Json
 			if (m_value.IsZero(m_kind)) return number;
 
 			Number.Add(ref value, ref kind, in number.m_value, number.m_kind);
-			return Return(value, kind);
+			return Create(value, kind);
 		}
 
 		/// <summary>Subtracts a number from this number</summary>
@@ -2844,7 +3028,7 @@ namespace SnowBank.Data.Json
 			var value = m_value;
 
 			Number.Subtract(ref value, ref kind, number.m_value, number.m_kind);
-			return Return(value, kind);
+			return Create(value, kind);
 		}
 
 		/// <summary>Adds two numbers together</summary>
@@ -2859,7 +3043,7 @@ namespace SnowBank.Data.Json
 			var kind = Kind.Signed;
 			var value = new Number(right);
 			Number.Add(ref value, ref kind, left.m_value, left.m_kind);
-			return Return(value, kind);
+			return Create(value, kind);
 		}
 
 		/// <summary>Adds two numbers together</summary>
@@ -2870,7 +3054,7 @@ namespace SnowBank.Data.Json
 			var kind = Kind.Unsigned;
 			var value = new Number(right);
 			Number.Add(ref value, ref kind, left.m_value, left.m_kind);
-			return Return(value, kind);
+			return Create(value, kind);
 		}
 
 		/// <summary>Adds two numbers together</summary>
@@ -2881,7 +3065,7 @@ namespace SnowBank.Data.Json
 			var kind = Kind.Double;
 			var value = new Number(right);
 			Number.Add(ref value, ref kind, left.m_value, left.m_kind);
-			return Return(value, kind);
+			return Create(value, kind);
 		}
 
 		/// <summary>Adds two numbers together</summary>
@@ -2892,7 +3076,7 @@ namespace SnowBank.Data.Json
 			var kind = Kind.Double;
 			var value = new Number(right);
 			Number.Add(ref value, ref kind, left.m_value, left.m_kind);
-			return Return(value, kind);
+			return Create(value, kind);
 		}
 
 		/// <summary>Adds two numbers together</summary>
@@ -2903,7 +3087,7 @@ namespace SnowBank.Data.Json
 			var kind = Kind.Decimal;
 			var value = new Number(right);
 			Number.Add(ref value, ref kind, left.m_value, left.m_kind);
-			return Return(value, kind);
+			return Create(value, kind);
 		}
 
 		/// <summary>Adds one to a number</summary>
@@ -2922,7 +3106,7 @@ namespace SnowBank.Data.Json
 			var kind = Kind.Signed;
 			var value = new Number(right);
 			Number.Subtract(ref value, ref kind, left.m_value, left.m_kind);
-			return Return(value, kind);
+			return Create(value, kind);
 		}
 
 		/// <summary>Subtracts a number from another number</summary>
@@ -2933,7 +3117,7 @@ namespace SnowBank.Data.Json
 			var kind = Kind.Unsigned;
 			var value = new Number(right);
 			Number.Subtract(ref value, ref kind, left.m_value, left.m_kind);
-			return Return(value, kind);
+			return Create(value, kind);
 		}
 
 		/// <summary>Subtracts a number from another number</summary>
@@ -2944,7 +3128,7 @@ namespace SnowBank.Data.Json
 			var kind = Kind.Double;
 			var value = new Number(right);
 			Number.Subtract(ref value, ref kind, left.m_value, left.m_kind);
-			return Return(value, kind);
+			return Create(value, kind);
 		}
 
 		/// <summary>Subtracts a number from another number</summary>
@@ -2955,7 +3139,7 @@ namespace SnowBank.Data.Json
 			var kind = Kind.Double;
 			var value = new Number(right);
 			Number.Subtract(ref value, ref kind, left.m_value, left.m_kind);
-			return Return(value, kind);
+			return Create(value, kind);
 		}
 
 		/// <summary>Subtracts a number from another number</summary>
@@ -2966,7 +3150,7 @@ namespace SnowBank.Data.Json
 			var kind = Kind.Decimal;
 			var value = new Number(right);
 			Number.Subtract(ref value, ref kind, left.m_value, left.m_kind);
-			return Return(value, kind);
+			return Create(value, kind);
 		}
 
 		/// <summary>Subtracts one from a number</summary>
@@ -2984,7 +3168,7 @@ namespace SnowBank.Data.Json
 			var value = m_value;
 
 			Number.Multiply(ref value, ref kind, in number.m_value, number.m_kind);
-			return Return(value, kind);
+			return Create(value, kind);
 		}
 
 		/// <summary>Multiply two numbers together</summary>
@@ -2999,7 +3183,7 @@ namespace SnowBank.Data.Json
 			var kind = Kind.Signed;
 			var value = new Number(right);
 			Number.Multiply(ref value, ref kind, left.m_value, left.m_kind);
-			return Return(value, kind);
+			return Create(value, kind);
 		}
 
 		/// <summary>Multiply two numbers together</summary>
@@ -3010,7 +3194,7 @@ namespace SnowBank.Data.Json
 			var kind = Kind.Unsigned;
 			var value = new Number(right);
 			Number.Multiply(ref value, ref kind, left.m_value, left.m_kind);
-			return Return(value, kind);
+			return Create(value, kind);
 		}
 
 		/// <summary>Multiply two numbers together</summary>
@@ -3021,7 +3205,7 @@ namespace SnowBank.Data.Json
 			var kind = Kind.Double;
 			var value = new Number(right);
 			Number.Multiply(ref value, ref kind, left.m_value, left.m_kind);
-			return Return(value, kind);
+			return Create(value, kind);
 		}
 
 		/// <summary>Multiply two numbers together</summary>
@@ -3032,7 +3216,7 @@ namespace SnowBank.Data.Json
 			var kind = Kind.Double;
 			var value = new Number(right);
 			Number.Multiply(ref value, ref kind, left.m_value, left.m_kind);
-			return Return(value, kind);
+			return Create(value, kind);
 		}
 
 		/// <summary>Multiply two numbers together</summary>
@@ -3043,7 +3227,7 @@ namespace SnowBank.Data.Json
 			var kind = Kind.Decimal;
 			var value = new Number(right);
 			Number.Multiply(ref value, ref kind, left.m_value, left.m_kind);
-			return Return(value, kind);
+			return Create(value, kind);
 		}
 
 		/// <summary>Divides this number by another number</summary>
@@ -3057,7 +3241,7 @@ namespace SnowBank.Data.Json
 			var value = m_value;
 
 			Number.Divide(ref value, ref kind, in number.m_value, number.m_kind);
-			return Return(value, kind);
+			return Create(value, kind);
 		}
 
 		/// <summary>Divides a number by another number</summary>
@@ -3072,7 +3256,7 @@ namespace SnowBank.Data.Json
 			var kind = Kind.Signed;
 			var value = new Number(right);
 			Number.Divide(ref value, ref kind, left.m_value, left.m_kind);
-			return Return(value, kind);
+			return Create(value, kind);
 		}
 
 		/// <summary>Divides a number by another number</summary>
@@ -3083,7 +3267,7 @@ namespace SnowBank.Data.Json
 			var kind = Kind.Unsigned;
 			var value = new Number(right);
 			Number.Divide(ref value, ref kind, left.m_value, left.m_kind);
-			return Return(value, kind);
+			return Create(value, kind);
 		}
 
 		/// <summary>Divides a number by another number</summary>
@@ -3094,7 +3278,7 @@ namespace SnowBank.Data.Json
 			var kind = Kind.Double;
 			var value = new Number(right);
 			Number.Divide(ref value, ref kind, left.m_value, left.m_kind);
-			return Return(value, kind);
+			return Create(value, kind);
 		}
 
 		/// <summary>Divides a number by another number</summary>
@@ -3105,7 +3289,7 @@ namespace SnowBank.Data.Json
 			var kind = Kind.Double;
 			var value = new Number(right);
 			Number.Divide(ref value, ref kind, left.m_value, left.m_kind);
-			return Return(value, kind);
+			return Create(value, kind);
 		}
 
 		/// <summary>Divides a number by another number</summary>
@@ -3116,18 +3300,8 @@ namespace SnowBank.Data.Json
 			var kind = Kind.Decimal;
 			var value = new Number(right);
 			Number.Divide(ref value, ref kind, left.m_value, left.m_kind);
-			return Return(value, kind);
+			return Create(value, kind);
 		}
-		/// <summary>Special helper to create a number from its constituents</summary>
-		[Pure]
-		private static JsonNumber Return(in Number value, Kind kind) => kind switch
-		{
-			Kind.Signed   => Return(value.Signed),
-			Kind.Unsigned => Return(value.Unsigned),
-			Kind.Double   => Return(value.Double),
-			Kind.Decimal  => Return(value.Decimal),
-			_ => throw new NotSupportedException()
-		};
 
 		/// <summary>Returns <see cref="JsonNumber.Zero"/></summary>
 		public static JsonNumber AdditiveIdentity => JsonNumber.Zero;
@@ -3156,7 +3330,7 @@ namespace SnowBank.Data.Json
 #if NET8_0_OR_GREATER
 
 		/// <inheritdoc />
-		public new static JsonNumber Parse(string s, IFormatProvider? provider) => Return(s);
+		public new static JsonNumber Parse(string s, IFormatProvider? provider) => CrystalJsonParser.ParseJsonNumber(s) ?? Zero;
 
 		/// <inheritdoc />
 		public static bool TryParse(string? s, IFormatProvider? provider, [MaybeNullWhen(false)] out JsonNumber result)
@@ -3174,7 +3348,7 @@ namespace SnowBank.Data.Json
 		}
 
 		/// <inheritdoc />
-		public new static JsonNumber Parse(ReadOnlySpan<char> s, IFormatProvider? provider) => Return(s.ToString());
+		public new static JsonNumber Parse(ReadOnlySpan<char> s, IFormatProvider? provider) => CrystalJsonParser.ParseJsonNumber(s) ?? Zero;
 
 		/// <inheritdoc />
 		public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, [MaybeNullWhen(false)] out JsonNumber result)
@@ -3336,64 +3510,64 @@ namespace SnowBank.Data.Json
 			//note: this will be optimized by the JIT in Release builds, but will be VERY slow in DEBUG builds
 			if (typeof(TOther) == typeof(int))
 			{
-				result = Return((int) (object) value);
+				result = Create((int) (object) value);
 				return true;
 			}
 			if (typeof(TOther) == typeof(long))
 			{
-				result = Return((long) (object) value);
+				result = Create((long) (object) value);
 				return true;
 			}
 			if (typeof(TOther) == typeof(double))
 			{
-				result = Return((double) (object) value);
+				result = Create((double) (object) value);
 				return true;
 			}
 			if (typeof(TOther) == typeof(float))
 			{
-				result = Return((float) (object) value);
+				result = Create((float) (object) value);
 				return true;
 			}
 #if NET8_0_OR_GREATER
 			if (typeof(TOther) == typeof(Half))
 			{
-				result = Return((Half) (object) value);
+				result = Create((Half) (object) value);
 				return true;
 			}
 #endif
 			if (typeof(TOther) == typeof(decimal))
 			{
-				result = Return((decimal) (object) value);
+				result = Create((decimal) (object) value);
 				return true;
 			}
 			if (typeof(TOther) == typeof(short))
 			{
-				result = Return((short) (object) value);
+				result = Create((short) (object) value);
 				return true;
 			}
 			if (typeof(TOther) == typeof(sbyte))
 			{
-				result = Return((sbyte) (object) value);
+				result = Create((sbyte) (object) value);
 				return true;
 			}
 			if (typeof(TOther) == typeof(byte))
 			{
-				result = Return((byte) (object) value);
+				result = Create((byte) (object) value);
 				return true;
 			}
 			if (typeof(TOther) == typeof(ulong))
 			{
-				result = Return((ulong) (object) value);
+				result = Create((ulong) (object) value);
 				return true;
 			}
 			if (typeof(TOther) == typeof(uint))
 			{
-				result = Return((uint) (object) value);
+				result = Create((uint) (object) value);
 				return true;
 			}
 			if (typeof(TOther) == typeof(ushort))
 			{
-				result = Return((ushort) (object) value);
+				result = Create((ushort) (object) value);
 				return true;
 			}
 

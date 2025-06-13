@@ -1851,7 +1851,7 @@ namespace SnowBank.Linq.Async.Tests
 				Index = idx,
 				Integer = rnd.Next(0, 1000),
 				Decimal = rnd.NextDouble(),
-				Json = JsonNumber.Return(rnd.Next(0, 1000)),
+				Json = JsonNumber.Create(rnd.Next(0, 1000)),
 			}).ToList();
 
 			// Summing on integers is special cased to return a 'long', instead of overflowing

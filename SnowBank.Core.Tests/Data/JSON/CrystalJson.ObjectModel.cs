@@ -297,7 +297,7 @@ namespace SnowBank.Data.Json.Tests
 				Assert.That(() => missing.Required<JsonValue>(), Throws.InstanceOf<JsonBindingException>());
 				Assert.That(missing.As<JsonValue>(), Is.SameAs(JsonNull.Missing));
 				Assert.That(missing.As<JsonValue>(null, resolver: CrystalJson.DefaultResolver), Is.SameAs(JsonNull.Missing));
-				Assert.That(missing.As<JsonValue>(123), Is.EqualTo(JsonNumber.Return(123)));
+				Assert.That(missing.As<JsonValue>(123), Is.EqualTo(JsonNumber.Create(123)));
 
 				Assert.That(missing.Bind(typeof(JsonNull)), Is.SameAs(JsonNull.Missing));
 				Assert.That(missing.Bind<JsonNull>(), Is.SameAs(JsonNull.Missing));
@@ -1343,7 +1343,7 @@ namespace SnowBank.Data.Json.Tests
 			}
 
 			{ // 123 (cached)
-				var value = JsonNumber.Return(123);
+				var value = JsonNumber.Create(123);
 				Assert.That(value.Type, Is.EqualTo(JsonType.Number));
 				Assert.That(value.IsNull, Is.False);
 				Assert.That(value.IsDefault, Is.False);
@@ -1359,7 +1359,7 @@ namespace SnowBank.Data.Json.Tests
 			}
 
 			{ // -123 (cached)
-				var value = JsonNumber.Return(-123);
+				var value = JsonNumber.Create(-123);
 				Assert.That(value.Type, Is.EqualTo(JsonType.Number));
 				Assert.That(value.IsNull, Is.False);
 				Assert.That(value.IsDefault, Is.False);
@@ -1375,7 +1375,7 @@ namespace SnowBank.Data.Json.Tests
 			}
 
 			{ // 123456 (not cached)
-				var value = JsonNumber.Return(123456);
+				var value = JsonNumber.Create(123456);
 				Assert.That(value.Type, Is.EqualTo(JsonType.Number));
 				Assert.That(value.IsNull, Is.False);
 				Assert.That(value.IsDefault, Is.False);
@@ -1391,7 +1391,7 @@ namespace SnowBank.Data.Json.Tests
 			}
 
 			{ // -123456 (not cached)
-				var value = JsonNumber.Return(-123456);
+				var value = JsonNumber.Create(-123456);
 				Assert.That(value.Type, Is.EqualTo(JsonType.Number));
 				Assert.That(value.IsNull, Is.False);
 				Assert.That(value.IsDefault, Is.False);
@@ -1407,7 +1407,7 @@ namespace SnowBank.Data.Json.Tests
 			}
 
 			{ // int.MaxValue + 1 (long)
-				var value = JsonNumber.Return(1L + int.MaxValue); // outside the range of Int32, so should be stored as an unsigned long
+				var value = JsonNumber.Create(1L + int.MaxValue); // outside the range of Int32, so should be stored as an unsigned long
 				Assert.That(value.Type, Is.EqualTo(JsonType.Number));
 				Assert.That(value.IsNull, Is.False);
 				Assert.That(value.IsDefault, Is.False);
@@ -1421,7 +1421,7 @@ namespace SnowBank.Data.Json.Tests
 			}
 
 			{ // 123UL (cached)
-				var value = JsonNumber.Return(123UL);
+				var value = JsonNumber.Create(123UL);
 				Assert.That(value.Type, Is.EqualTo(JsonType.Number));
 				Assert.That(value.IsNull, Is.False);
 				Assert.That(value.IsDefault, Is.False);
@@ -1437,7 +1437,7 @@ namespace SnowBank.Data.Json.Tests
 			}
 
 			{
-				var value = JsonNumber.Return(1.23f);
+				var value = JsonNumber.Create(1.23f);
 				Assert.That(value.Type, Is.EqualTo(JsonType.Number));
 				Assert.That(value.IsNull, Is.False);
 				Assert.That(value.IsDefault, Is.False);
@@ -1451,7 +1451,7 @@ namespace SnowBank.Data.Json.Tests
 			}
 
 			{
-				var value = JsonNumber.Return(-1.23f);
+				var value = JsonNumber.Create(-1.23f);
 				Assert.That(value.Type, Is.EqualTo(JsonType.Number));
 				Assert.That(value.IsNull, Is.False);
 				Assert.That(value.IsDefault, Is.False);
@@ -1465,7 +1465,7 @@ namespace SnowBank.Data.Json.Tests
 			}
 
 			{
-				var value = JsonNumber.Return(Math.PI);
+				var value = JsonNumber.Create(Math.PI);
 				Assert.That(value.Type, Is.EqualTo(JsonType.Number));
 				Assert.That(value.IsNull, Is.False);
 				Assert.That(value.IsDefault, Is.False);
@@ -1479,7 +1479,7 @@ namespace SnowBank.Data.Json.Tests
 			}
 
 			{
-				var value = JsonNumber.Return(double.NaN);
+				var value = JsonNumber.Create(double.NaN);
 				Assert.That(value.Type, Is.EqualTo(JsonType.Number));
 				Assert.That(value.IsNull, Is.False);
 				Assert.That(value.IsDefault, Is.False);
@@ -1538,36 +1538,36 @@ namespace SnowBank.Data.Json.Tests
 			// Conversions
 
 			// Primitive
-			Assert.That(JsonNumber.Return(123).ToInt32(), Is.EqualTo(123));
-			Assert.That(JsonNumber.Return(-123).ToInt32(), Is.EqualTo(-123));
-			Assert.That(JsonNumber.Return(123L).ToInt64(), Is.EqualTo(123L));
-			Assert.That(JsonNumber.Return(-123L).ToInt64(), Is.EqualTo(-123L));
-			Assert.That(JsonNumber.Return(123f).ToSingle(), Is.EqualTo(123f));
-			Assert.That(JsonNumber.Return(123d).ToDouble(), Is.EqualTo(123d));
-			Assert.That(JsonNumber.Return(Math.PI).ToDouble(), Is.EqualTo(Math.PI));
+			Assert.That(JsonNumber.Create(123).ToInt32(), Is.EqualTo(123));
+			Assert.That(JsonNumber.Create(-123).ToInt32(), Is.EqualTo(-123));
+			Assert.That(JsonNumber.Create(123L).ToInt64(), Is.EqualTo(123L));
+			Assert.That(JsonNumber.Create(-123L).ToInt64(), Is.EqualTo(-123L));
+			Assert.That(JsonNumber.Create(123f).ToSingle(), Is.EqualTo(123f));
+			Assert.That(JsonNumber.Create(123d).ToDouble(), Is.EqualTo(123d));
+			Assert.That(JsonNumber.Create(Math.PI).ToDouble(), Is.EqualTo(Math.PI));
 
-			Assert.That(JsonNumber.Return(123).Required<int>(), Is.EqualTo(123));
-			Assert.That(JsonNumber.Return(-123).Required<int>(), Is.EqualTo(-123));
-			Assert.That(JsonNumber.Return(123L).Required<long>(), Is.EqualTo(123L));
-			Assert.That(JsonNumber.Return(-123L).Required<long>(), Is.EqualTo(-123L));
-			Assert.That(JsonNumber.Return(123f).Required<float>(), Is.EqualTo(123f));
-			Assert.That(JsonNumber.Return(123d).Required<double>(), Is.EqualTo(123d));
-			Assert.That(JsonNumber.Return(Math.PI).Required<double>(), Is.EqualTo(Math.PI));
+			Assert.That(JsonNumber.Create(123).Required<int>(), Is.EqualTo(123));
+			Assert.That(JsonNumber.Create(-123).Required<int>(), Is.EqualTo(-123));
+			Assert.That(JsonNumber.Create(123L).Required<long>(), Is.EqualTo(123L));
+			Assert.That(JsonNumber.Create(-123L).Required<long>(), Is.EqualTo(-123L));
+			Assert.That(JsonNumber.Create(123f).Required<float>(), Is.EqualTo(123f));
+			Assert.That(JsonNumber.Create(123d).Required<double>(), Is.EqualTo(123d));
+			Assert.That(JsonNumber.Create(Math.PI).Required<double>(), Is.EqualTo(Math.PI));
 
 			// Enum
 			// ... that derives from Int32
 			Assert.That(JsonNumber.Zero.Bind(typeof (DummyJsonEnum), null), Is.EqualTo(DummyJsonEnum.None), "{0}.Bind(DummyJsonEnum)");
 			Assert.That(JsonNumber.One.Bind(typeof (DummyJsonEnum), null), Is.EqualTo(DummyJsonEnum.Foo), "{1}.Bind(DummyJsonEnum)");
-			Assert.That(JsonNumber.Return(42).Bind(typeof (DummyJsonEnum), null), Is.EqualTo(DummyJsonEnum.Bar), "{42}.Bind(DummyJsonEnum)");
-			Assert.That(JsonNumber.Return(66).Bind(typeof (DummyJsonEnum), null), Is.EqualTo((DummyJsonEnum) 66), "{66}.Bind(DummyJsonEnum)");
+			Assert.That(JsonNumber.Create(42).Bind(typeof (DummyJsonEnum), null), Is.EqualTo(DummyJsonEnum.Bar), "{42}.Bind(DummyJsonEnum)");
+			Assert.That(JsonNumber.Create(66).Bind(typeof (DummyJsonEnum), null), Is.EqualTo((DummyJsonEnum) 66), "{66}.Bind(DummyJsonEnum)");
 			// ... that does not derive from Int32
 			Assert.That(JsonNumber.Zero.Bind(typeof (DummyJsonEnumShort), null), Is.EqualTo(DummyJsonEnumShort.None), "{0}.Bind(DummyJsonEnumShort)");
 			Assert.That(JsonNumber.One.Bind(typeof (DummyJsonEnumShort), null), Is.EqualTo(DummyJsonEnumShort.One), "{1}.Bind(DummyJsonEnumShort)");
-			Assert.That(JsonNumber.Return(65535).Bind(typeof (DummyJsonEnumShort), null), Is.EqualTo(DummyJsonEnumShort.MaxValue), "{65535}.Bind(DummyJsonEnumShort)");
+			Assert.That(JsonNumber.Create(65535).Bind(typeof (DummyJsonEnumShort), null), Is.EqualTo(DummyJsonEnumShort.MaxValue), "{65535}.Bind(DummyJsonEnumShort)");
 
 			// TimeSpan
-			Assert.That(JsonNumber.Return(0).ToTimeSpan(), Is.EqualTo(TimeSpan.Zero), "{0}.ToTimeSpan()");
-			Assert.That(JsonNumber.Return(3600).ToTimeSpan(), Is.EqualTo(TimeSpan.FromHours(1)), "{3600}.ToTimeSpan()");
+			Assert.That(JsonNumber.Zero.ToTimeSpan(), Is.EqualTo(TimeSpan.Zero), "{0}.ToTimeSpan()");
+			Assert.That(JsonNumber.Create(3600).ToTimeSpan(), Is.EqualTo(TimeSpan.FromHours(1)), "{3600}.ToTimeSpan()");
 			Assert.That(
 				JsonNumber.Return(TimeSpan.MaxValue.TotalSeconds + 1).ToTimeSpan(),
 				Is.EqualTo(TimeSpan.MaxValue),
@@ -1579,10 +1579,10 @@ namespace SnowBank.Data.Json.Tests
 
 			// DateTime
 			//note: dates are converted into the number of days (floating point) since Unix Epoch, using UTC as the reference timezone
-			Assert.That(JsonNumber.Return(0).ToDateTime(), Is.EqualTo(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)), "0.ToDateTime()");
-			Assert.That(JsonNumber.Return(1).ToDateTime(), Is.EqualTo(new DateTime(1970, 1, 1, 0, 0, 1, DateTimeKind.Utc)), "1.ToDateTime()");
-			Assert.That(JsonNumber.Return(86400).ToDateTime(), Is.EqualTo(new DateTime(1970, 1, 2, 0, 0, 0, DateTimeKind.Utc)), "86400.ToDateTime()");
-			Assert.That(JsonNumber.Return(1484830412.854).ToDateTime(), Is.EqualTo(new DateTime(2017, 1, 19, 12, 53, 32, 854, DateTimeKind.Utc)).Within(TimeSpan.FromMilliseconds(1)), "(DAYS).ToDateTime()");
+			Assert.That(JsonNumber.Zero.ToDateTime(), Is.EqualTo(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)), "0.ToDateTime()");
+			Assert.That(JsonNumber.One.ToDateTime(), Is.EqualTo(new DateTime(1970, 1, 1, 0, 0, 1, DateTimeKind.Utc)), "1.ToDateTime()");
+			Assert.That(JsonNumber.Create(86400).ToDateTime(), Is.EqualTo(new DateTime(1970, 1, 2, 0, 0, 0, DateTimeKind.Utc)), "86400.ToDateTime()");
+			Assert.That(JsonNumber.Create(1484830412.854).ToDateTime(), Is.EqualTo(new DateTime(2017, 1, 19, 12, 53, 32, 854, DateTimeKind.Utc)).Within(TimeSpan.FromMilliseconds(1)), "(DAYS).ToDateTime()");
 			Assert.That(JsonNumber.Return(new DateTime(2017, 1, 19, 12, 53, 32, 854, DateTimeKind.Utc)).ToDouble(), Is.EqualTo(1484830412.854), "(UTC).Value");
 			Assert.That(JsonNumber.Return(new DateTime(2017, 1, 19, 13, 53, 32, 854, DateTimeKind.Local)).ToDouble(), Is.EqualTo(1484830412.854), "(LOCAL).Value");
 			Assert.That(JsonNumber.Return(DateTime.MinValue).ToDouble(), Is.EqualTo(0), "MinValue"); // by convention, MinValue == 0 == epoch
@@ -1591,61 +1591,61 @@ namespace SnowBank.Data.Json.Tests
 
 			// DateTimeOffset
 			//note: dates are converted into the number of days (floating point) since Unix Epoch, using UTC as the reference timezone
-			Assert.That(JsonNumber.Return(0).ToDateTimeOffset(), Is.EqualTo(new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero)), "0.ToDateTimeOffset()");
-			Assert.That(JsonNumber.Return(1).ToDateTimeOffset(), Is.EqualTo(new DateTimeOffset(1970, 1, 1, 0, 0, 1, TimeSpan.Zero)), "1.ToDateTimeOffset()");
-			Assert.That(JsonNumber.Return(86400).ToDateTimeOffset(), Is.EqualTo(new DateTimeOffset(1970, 1, 2, 0, 0, 0, TimeSpan.Zero)), "86400.ToDateTimeOffset()");
-			Assert.That(JsonNumber.Return(1484830412.854).ToDateTimeOffset(), Is.EqualTo(new DateTimeOffset(2017, 1, 19, 12, 53, 32, 854, TimeSpan.Zero)).Within(TimeSpan.FromMilliseconds(1)), "(DAYS).ToDateTimeOffset()");
-			Assert.That(JsonNumber.Return(new DateTimeOffset(2017, 1, 19, 12, 53, 32, 854, offset: TimeSpan.Zero)).ToDouble(), Is.EqualTo(1484830412.854), "(UTC).Value");
-			Assert.That(JsonNumber.Return(new DateTimeOffset(2017, 1, 19, 13, 53, 32, 854, offset: TimeSpan.FromHours(1))).ToDouble(), Is.EqualTo(1484830412.854), "(LOCAL).Value");
-			Assert.That(JsonNumber.Return(DateTimeOffset.MinValue).ToDouble(), Is.EqualTo(0), "MinValue"); // by convention, MinValue == 0 == epoch
-			Assert.That(JsonNumber.Return(DateTimeOffset.MaxValue).ToDouble(), Is.EqualTo(double.NaN), "MaxValue"); // by convention, MaxValue == NaN
+			Assert.That(JsonNumber.Zero.ToDateTimeOffset(), Is.EqualTo(new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero)), "0.ToDateTimeOffset()");
+			Assert.That(JsonNumber.One.ToDateTimeOffset(), Is.EqualTo(new DateTimeOffset(1970, 1, 1, 0, 0, 1, TimeSpan.Zero)), "1.ToDateTimeOffset()");
+			Assert.That(JsonNumber.Create(86400).ToDateTimeOffset(), Is.EqualTo(new DateTimeOffset(1970, 1, 2, 0, 0, 0, TimeSpan.Zero)), "86400.ToDateTimeOffset()");
+			Assert.That(JsonNumber.Create(1484830412.854).ToDateTimeOffset(), Is.EqualTo(new DateTimeOffset(2017, 1, 19, 12, 53, 32, 854, TimeSpan.Zero)).Within(TimeSpan.FromMilliseconds(1)), "(DAYS).ToDateTimeOffset()");
+			Assert.That(JsonNumber.Create(new DateTimeOffset(2017, 1, 19, 12, 53, 32, 854, offset: TimeSpan.Zero)).ToDouble(), Is.EqualTo(1484830412.854), "(UTC).Value");
+			Assert.That(JsonNumber.Create(new DateTimeOffset(2017, 1, 19, 13, 53, 32, 854, offset: TimeSpan.FromHours(1))).ToDouble(), Is.EqualTo(1484830412.854), "(LOCAL).Value");
+			Assert.That(JsonNumber.Create(DateTimeOffset.MinValue).ToDouble(), Is.EqualTo(0), "MinValue"); // by convention, MinValue == 0 == epoch
+			Assert.That(JsonNumber.Create(DateTimeOffset.MaxValue).ToDouble(), Is.EqualTo(double.NaN), "MaxValue"); // by convention, MaxValue == NaN
 			Assert.That(JsonNumber.NaN.ToDateTimeOffset(), Is.EqualTo(DateTimeOffset.MaxValue), "MaxValue"); // by convention, NaN == MaxValue
 
 			// DateOnly
 			//note: dates are converted into the number of days (floating point) since Unix Epoch, using UTC as the reference timezone
-			Assert.That(JsonNumber.Return(0).ToDateOnly(), Is.EqualTo(new DateOnly(1970, 1, 1)), "0.ToDateOnly()");
-			Assert.That(JsonNumber.Return(1).ToDateOnly(), Is.EqualTo(new DateOnly(1970, 1, 2)), "1.ToDateOnly()");
-			Assert.That(JsonNumber.Return(31).ToDateOnly(), Is.EqualTo(new DateOnly(1970, 2, 1)), "31.ToDateOnly()");
-			Assert.That(JsonNumber.Return(new DateOnly(2017, 1, 19)).ToDouble(), Is.EqualTo(17185), "(DATE).Value");
-			Assert.That(JsonNumber.Return(17185).ToDateOnly(), Is.EqualTo(new DateOnly(2017, 1, 19)), "(DAYS).ToDateOnly()");
-			Assert.That(JsonNumber.Return(DateOnly.MinValue).ToDouble(), Is.EqualTo(0), "MinValue"); // by convention, MinValue == 0 == epoch
-			Assert.That(JsonNumber.Return(DateOnly.MaxValue).ToDouble(), Is.EqualTo(double.NaN), "MaxValue"); // by convention, MaxValue == NaN
+			Assert.That(JsonNumber.Zero.ToDateOnly(), Is.EqualTo(new DateOnly(1970, 1, 1)), "0.ToDateOnly()");
+			Assert.That(JsonNumber.One.ToDateOnly(), Is.EqualTo(new DateOnly(1970, 1, 2)), "1.ToDateOnly()");
+			Assert.That(JsonNumber.Create(31).ToDateOnly(), Is.EqualTo(new DateOnly(1970, 2, 1)), "31.ToDateOnly()");
+			Assert.That(JsonNumber.Create(new DateOnly(2017, 1, 19)).ToDouble(), Is.EqualTo(17185), "(DATE).Value");
+			Assert.That(JsonNumber.Create(17185).ToDateOnly(), Is.EqualTo(new DateOnly(2017, 1, 19)), "(DAYS).ToDateOnly()");
+			Assert.That(JsonNumber.Create(DateOnly.MinValue).ToDouble(), Is.EqualTo(0), "MinValue"); // by convention, MinValue == 0 == epoch
+			Assert.That(JsonNumber.Create(DateOnly.MaxValue).ToDouble(), Is.EqualTo(double.NaN), "MaxValue"); // by convention, MaxValue == NaN
 			Assert.That(JsonNumber.NaN.ToDateOnly(), Is.EqualTo(DateOnly.MaxValue), "MaxValue"); // by convention, NaN == MaxValue
 
 			// TimeOnly
 			//note: times are encoded as the number of seconds since midnight
-			Assert.That(JsonNumber.Return(0).ToTimeOnly(), Is.EqualTo(new TimeOnly(0, 0, 0)), "0.ToTimeOnly()");
-			Assert.That(JsonNumber.Return(1).ToTimeOnly(), Is.EqualTo(new TimeOnly(0, 0, 1)), "1.ToTimeOnly()");
-			Assert.That(JsonNumber.Return(60).ToTimeOnly(), Is.EqualTo(new TimeOnly(0, 1, 0)), "31.ToTimeOnly()");
-			Assert.That(JsonNumber.Return(3600).ToTimeOnly(), Is.EqualTo(new TimeOnly(1, 0, 0)), "31.ToTimeOnly()");
-			Assert.That(JsonNumber.Return(new TimeOnly(12, 34, 56)).ToDouble(), Is.EqualTo(45296), "(TIME).Value");
-			Assert.That(JsonNumber.Return(45296).ToTimeOnly(), Is.EqualTo(new TimeOnly(12, 34, 56)), "(SECONDS).ToTimeOnly()");
-			Assert.That(JsonNumber.Return(TimeOnly.MinValue).ToDouble(), Is.EqualTo(0d), "MinValue"); // by convention, MinValue == 0 == midnight
-			Assert.That(JsonNumber.Return(TimeOnly.MaxValue).ToDouble(), Is.EqualTo(86399.9999999d), "MaxValue"); // by convention, MaxValue == NaN
+			Assert.That(JsonNumber.Zero.ToTimeOnly(), Is.EqualTo(new TimeOnly(0, 0, 0)), "0.ToTimeOnly()");
+			Assert.That(JsonNumber.One.ToTimeOnly(), Is.EqualTo(new TimeOnly(0, 0, 1)), "1.ToTimeOnly()");
+			Assert.That(JsonNumber.Create(60).ToTimeOnly(), Is.EqualTo(new TimeOnly(0, 1, 0)), "31.ToTimeOnly()");
+			Assert.That(JsonNumber.Create(3600).ToTimeOnly(), Is.EqualTo(new TimeOnly(1, 0, 0)), "31.ToTimeOnly()");
+			Assert.That(JsonNumber.Create(new TimeOnly(12, 34, 56)).ToDouble(), Is.EqualTo(45296), "(TIME).Value");
+			Assert.That(JsonNumber.Create(45296).ToTimeOnly(), Is.EqualTo(new TimeOnly(12, 34, 56)), "(SECONDS).ToTimeOnly()");
+			Assert.That(JsonNumber.Create(TimeOnly.MinValue).ToDouble(), Is.EqualTo(0d), "MinValue"); // by convention, MinValue == 0 == midnight
+			Assert.That(JsonNumber.Create(TimeOnly.MaxValue).ToDouble(), Is.EqualTo(86399.9999999d), "MaxValue"); // by convention, MaxValue == NaN
 			Assert.That(JsonNumber.NaN.ToTimeOnly(), Is.EqualTo(TimeOnly.MaxValue), "MaxValue"); // by convention, NaN == MaxValue
 
 			// Instant
 			//note: instants are converted into the number of days (floating point) since Unix Epoch
-			Assert.That(JsonNumber.Return(0).ToInstant(), Is.EqualTo(NodaTime.Instant.FromUtc(1970, 1, 1, 0, 0, 0)), "0.ToInstant()");
-			Assert.That(JsonNumber.Return(1).ToInstant(), Is.EqualTo(NodaTime.Instant.FromUtc(1970, 1, 1, 0, 0, 1)), "1.ToInstant()");
-			Assert.That(JsonNumber.Return(86400).ToInstant(), Is.EqualTo(NodaTime.Instant.FromUtc(1970, 1, 2, 0, 0, 0)), "86400.ToInstant()");
-			Assert.That(JsonNumber.Return(1484830412.854).ToInstant(), Is.EqualTo(NodaTime.Instant.FromDateTimeUtc(new DateTime(2017, 1, 19, 12, 53, 32, 854, DateTimeKind.Utc)))/*.Within(NodaTime.Duration.FromMilliseconds(1))*/, "(DAYS).ToInstant()");
-			Assert.That(JsonNumber.Return(NodaTime.Instant.FromDateTimeUtc(new DateTime(2017, 1, 19, 12, 53, 32, 854, DateTimeKind.Utc))).ToDouble(), Is.EqualTo(1484830412.854), "(UTC).Value");
-			Assert.That(JsonNumber.Return(NodaTime.Instant.MinValue).ToDouble(), Is.EqualTo(NodaTime.Instant.FromUtc(-9998, 1 , 1, 0, 0, 0).ToUnixTimeSeconds()), "MinValue");
-			Assert.That(JsonNumber.Return(NodaTime.Instant.MaxValue).ToDouble(), Is.EqualTo(NodaTime.Instant.FromUtc(9999, 12, 31, 23, 59, 59).ToUnixTimeSeconds() + 0.999999999d), "MaxValue");
+			Assert.That(JsonNumber.Zero.ToInstant(), Is.EqualTo(NodaTime.Instant.FromUtc(1970, 1, 1, 0, 0, 0)), "0.ToInstant()");
+			Assert.That(JsonNumber.One.ToInstant(), Is.EqualTo(NodaTime.Instant.FromUtc(1970, 1, 1, 0, 0, 1)), "1.ToInstant()");
+			Assert.That(JsonNumber.Create(86400).ToInstant(), Is.EqualTo(NodaTime.Instant.FromUtc(1970, 1, 2, 0, 0, 0)), "86400.ToInstant()");
+			Assert.That(JsonNumber.Create(1484830412.854).ToInstant(), Is.EqualTo(NodaTime.Instant.FromDateTimeUtc(new DateTime(2017, 1, 19, 12, 53, 32, 854, DateTimeKind.Utc)))/*.Within(NodaTime.Duration.FromMilliseconds(1))*/, "(DAYS).ToInstant()");
+			Assert.That(JsonNumber.Create(NodaTime.Instant.FromDateTimeUtc(new DateTime(2017, 1, 19, 12, 53, 32, 854, DateTimeKind.Utc))).ToDouble(), Is.EqualTo(1484830412.854), "(UTC).Value");
+			Assert.That(JsonNumber.Create(NodaTime.Instant.MinValue).ToDouble(), Is.EqualTo(NodaTime.Instant.FromUtc(-9998, 1 , 1, 0, 0, 0).ToUnixTimeSeconds()), "MinValue");
+			Assert.That(JsonNumber.Create(NodaTime.Instant.MaxValue).ToDouble(), Is.EqualTo(NodaTime.Instant.FromUtc(9999, 12, 31, 23, 59, 59).ToUnixTimeSeconds() + 0.999999999d), "MaxValue");
 			Assert.That(JsonNumber.NaN.ToInstant(), Is.EqualTo(NodaTime.Instant.MaxValue), "MaxValue"); //par convention, NaN == MaxValue
 
 			// String
 			Assert.That(JsonNumber.Zero.Bind<string>(), Is.EqualTo("0"));
 			Assert.That(JsonNumber.One.Bind<string>(), Is.EqualTo("1"));
-			Assert.That(JsonNumber.Return(123).Bind<string>(), Is.EqualTo("123"));
-			Assert.That(JsonNumber.Return(-123).Bind<string>(), Is.EqualTo("-123"));
-			Assert.That(JsonNumber.Return(Math.PI).Bind<string>(), Is.EqualTo(Math.PI.ToString("R")));
+			Assert.That(JsonNumber.Create(123).Bind<string>(), Is.EqualTo("123"));
+			Assert.That(JsonNumber.Create(-123).Bind<string>(), Is.EqualTo("-123"));
+			Assert.That(JsonNumber.Create(Math.PI).Bind<string>(), Is.EqualTo(Math.PI.ToString("R")));
 
 			// auto cast
 			JsonNumber v;
 
-			v = JsonNumber.Return(int.MaxValue);
+			v = JsonNumber.Create(int.MaxValue);
 			Assert.That(v, Is.Not.Null);
 			Assert.That(v.IsDecimal, Is.False);
 			Assert.That(v.IsUnsigned, Is.False);
@@ -1653,7 +1653,7 @@ namespace SnowBank.Data.Json.Tests
 			Assert.That(v.Required<int>(), Is.EqualTo(int.MaxValue));
 			Assert.That((int) v, Is.EqualTo(int.MaxValue));
 
-			v = JsonNumber.Return(uint.MaxValue);
+			v = JsonNumber.Create(uint.MaxValue);
 			Assert.That(v.IsUnsigned, Is.False, "uint.MaxValue is small enough to fit in a long");
 			Assert.That(v.IsDecimal, Is.False);
 			Assert.That(v, Is.Not.Null);
@@ -1661,7 +1661,7 @@ namespace SnowBank.Data.Json.Tests
 			Assert.That(v.Required<uint>(), Is.EqualTo(uint.MaxValue));
 			Assert.That((uint) v, Is.EqualTo(uint.MaxValue));
 
-			v = JsonNumber.Return(long.MaxValue);
+			v = JsonNumber.Create(long.MaxValue);
 			Assert.That(v, Is.Not.Null);
 			Assert.That(v.IsDecimal, Is.False);
 			Assert.That(v.IsUnsigned, Is.False);
@@ -1669,7 +1669,7 @@ namespace SnowBank.Data.Json.Tests
 			Assert.That(v.Required<long>(), Is.EqualTo(long.MaxValue));
 			Assert.That((long) v, Is.EqualTo(long.MaxValue));
 
-			v = JsonNumber.Return(ulong.MaxValue);
+			v = JsonNumber.Create(ulong.MaxValue);
 			Assert.That(v, Is.Not.Null);
 			Assert.That(v.IsDecimal, Is.False);
 			Assert.That(v.IsUnsigned, Is.True);
@@ -1677,7 +1677,7 @@ namespace SnowBank.Data.Json.Tests
 			Assert.That(v.Required<ulong>(), Is.EqualTo(ulong.MaxValue));
 			Assert.That((ulong) v, Is.EqualTo(ulong.MaxValue));
 
-			v = JsonNumber.Return(Math.PI);
+			v = JsonNumber.Create(Math.PI);
 			Assert.That(v, Is.Not.Null);
 			Assert.That(v.IsDecimal, Is.True);
 			Assert.That(v.IsUnsigned, Is.False);
@@ -1685,7 +1685,7 @@ namespace SnowBank.Data.Json.Tests
 			Assert.That(v.Required<double>(), Is.EqualTo(Math.PI));
 			Assert.That((double) v, Is.EqualTo(Math.PI));
 
-			v = JsonNumber.Return(1.234f);
+			v = JsonNumber.Create(1.234f);
 			Assert.That(v, Is.Not.Null);
 			Assert.That(v.IsDecimal, Is.True);
 			Assert.That(v.IsUnsigned, Is.False);
@@ -1724,9 +1724,9 @@ namespace SnowBank.Data.Json.Tests
 			Assume.That(numbers, Is.Unique);
 			Array.Sort(numbers);
 
-			JsonNumber x0 = JsonNumber.Return(numbers[0]);
-			JsonNumber x1 = JsonNumber.Return(numbers[1]);
-			JsonNumber x2 = JsonNumber.Return(numbers[2]);
+			JsonNumber x0 = JsonNumber.Create(numbers[0]);
+			JsonNumber x1 = JsonNumber.Create(numbers[1]);
+			JsonNumber x2 = JsonNumber.Create(numbers[2]);
 
 			// JsonNumber vs JsonNumber
 
@@ -2061,15 +2061,44 @@ namespace SnowBank.Data.Json.Tests
 			Assert.That(arr.ToJsonCompact(), Is.EqualTo("""["hello",123]"""));
 
 			Assert.That(JsonArray.FromValues([ "A", "B", "C", "D" ]).ToArray<string>(), Is.EqualTo((string[]) [ "A", "B", "C", "D" ]));
-			Assert.That(JsonArray.FromValues([ "A", "B", "C", "D" ]).ToList<string>(),Is.EqualTo((string[]) [ "A", "B", "C", "D" ]));
+			Assert.That(JsonArray.FromValues([ "A", "B", "C", "D" ]).ToList<string>(),Is.EqualTo((List<string>) [ "A", "B", "C", "D" ]));
 			Assert.That(JsonArray.FromValues([ 1, 2, 3, 4 ]).ToArray<int>(), Is.EqualTo((int[]) [ 1, 2, 3, 4 ]));
-			Assert.That(JsonArray.FromValues([ 1, 2, 3, 4 ]).ToList<int>(), Is.EqualTo((int[]) [ 1, 2, 3, 4 ]));
+			Assert.That(JsonArray.FromValues([ 1, 2, 3, 4 ]).ToList<int>(), Is.EqualTo((List<int>) [ 1, 2, 3, 4 ]));
 			Assert.That(JsonArray.FromValues([ 1, 2, 3, 4 ]).ToArray<double>(), Is.EqualTo((double[]) [ 1, 2, 3, 4 ]));
-			Assert.That(JsonArray.FromValues([ 1, 2, 3, 4 ]).ToList<double>(), Is.EqualTo((double[]) [ 1, 2, 3, 4 ]));
+			Assert.That(JsonArray.FromValues([ 1, 2, 3, 4 ]).ToList<double>(), Is.EqualTo((List<double>) [ 1, 2, 3, 4 ]));
 			Assert.That(JsonArray.FromValues([ 1, 2, 3, 4 ]).ToArray<string>(), Is.EqualTo((string[]) [ "1", "2", "3", "4" ]));
-			Assert.That(JsonArray.FromValues([ 1, 2, 3, 4 ]).ToList<string>(), Is.EqualTo((string[]) [ "1", "2", "3", "4" ]));
+			Assert.That(JsonArray.FromValues([ 1, 2, 3, 4 ]).ToList<string>(), Is.EqualTo((List<string>) [ "1", "2", "3", "4" ]));
+			Assert.That(JsonArray.FromValues([ 1.1, 2.2, 3.3, 4.4 ]).ToArray<double>(), Is.EqualTo((double[]) [ 1.1, 2.2, 3.3, 4.4 ]));
+			Assert.That(JsonArray.FromValues([ 1.1, 2.2, 3.3, 4.4 ]).ToList<double>(), Is.EqualTo((List<double>) [ 1.1, 2.2, 3.3, 4.4 ]));
+			Assert.That(JsonArray.FromValues([ 1.1, 2.2, 3.3, 4.4 ]).ToArray<string>(), Is.EqualTo((string[]) [ "1.1", "2.2", "3.3", "4.4" ]));
+			Assert.That(JsonArray.FromValues([ 1.1, 2.2, 3.3, 4.4 ]).ToList<string>(), Is.EqualTo((List<string>) [ "1.1", "2.2", "3.3", "4.4" ]));
 			Assert.That(JsonArray.FromValues([ "1", "2", "3", "4" ]).ToArray<int>(), Is.EqualTo((int[]) [ 1, 2, 3, 4 ]));
-			Assert.That(JsonArray.FromValues([ "1", "2", "3", "4" ]).ToList<int>(), Is.EqualTo((int[]) [ 1, 2, 3, 4 ]));
+			Assert.That(JsonArray.FromValues([ "1", "2", "3", "4" ]).ToList<int>(), Is.EqualTo((List<int>) [ 1, 2, 3, 4 ]));
+			Assert.That(JsonArray.FromValues([ true, false, true ]).ToArray<bool>(), Is.EqualTo((bool[]) [ true, false, true ]));
+			Assert.That(JsonArray.FromValues([ true, false, true ]).ToList<bool>(), Is.EqualTo((List<bool>) [ true, false, true ]));
+
+			Assert.That(JsonArray.FromValues<string>([ "A", "B", "C", "D" ]).ToArray<string>(), Is.EqualTo((string[]) [ "A", "B", "C", "D" ]));
+			Assert.That(JsonArray.FromValues<int>([ 1, 2, 3, 4 ]).ToArray<int>(), Is.EqualTo((int[]) [ 1, 2, 3, 4 ]));
+			Assert.That(JsonArray.FromValues<long>([ 1, 2, 3, 4 ]).ToArray<long>(), Is.EqualTo((long[]) [ 1, 2, 3, 4 ]));
+			Assert.That(JsonArray.FromValues<double>([ 1.1, 2.2, 3.3, 4.4 ]).ToArray<double>(), Is.EqualTo((double[]) [ 1.1, 2.2, 3.3, 4.4 ]));
+			Assert.That(JsonArray.FromValues<double>([ 1.1, 2.2, 3.3, 4.4 ]).ToArray<int>(), Is.EqualTo((int[]) [ 1, 2, 3, 4 ]));
+			Assert.That(JsonArray.FromValues<bool>([ true, false, true ]).ToArray<bool>(), Is.EqualTo((bool[]) [ true, false, true ]));
+
+			var guids = Enumerable.Range(0, 5).Select(_ => Guid.NewGuid()).ToArray();
+			Assert.That(JsonArray.FromValues(guids.AsSpan()).ToArray<Guid>(), Is.EqualTo(guids));
+			Assert.That(JsonArray.FromValues<Guid>(guids).ToArray<Guid>(), Is.EqualTo(guids));
+			Assert.That(JsonArray.FromValues<Guid>(guids.AsSpan()).ToArray<Guid>(), Is.EqualTo(guids));
+			Assert.That(JsonArray.FromValues<Guid>(guids.ToList()).ToArray<Guid>(), Is.EqualTo(guids));
+			Assert.That(JsonArray.FromValues<Guid>((IEnumerable<Guid>) guids).ToArray<Guid>(), Is.EqualTo(guids));
+			Assert.That(JsonArray.FromValues<Guid>(guids.Select(x => x)).ToArray<Guid>(), Is.EqualTo(guids));
+
+			var uuids = Enumerable.Range(0, 5).Select(_ => Uuid128.NewUuid()).ToArray();
+			Assert.That(JsonArray.FromValues(uuids.AsSpan()).ToArray<Uuid128>(), Is.EqualTo(uuids));
+			Assert.That(JsonArray.FromValues<Uuid128>(uuids).ToArray<Uuid128>(), Is.EqualTo(uuids));
+			Assert.That(JsonArray.FromValues<Uuid128>(uuids.AsSpan()).ToArray<Uuid128>(), Is.EqualTo(uuids));
+			Assert.That(JsonArray.FromValues<Uuid128>(uuids.ToList()).ToArray<Uuid128>(), Is.EqualTo(uuids));
+			Assert.That(JsonArray.FromValues<Uuid128>((IEnumerable<Uuid128>) uuids).ToArray<Uuid128>(), Is.EqualTo(uuids));
+			Assert.That(JsonArray.FromValues<Uuid128>(uuids.Select(x => x)).ToArray<Uuid128>(), Is.EqualTo(uuids));
 
 			Assert.That(JsonArray.FromValues((string[]) [ "A", "B", "C", "D" ]), IsJson.EqualTo([ "A", "B", "C", "D" ]));
 			Assert.That(JsonArray.FromValues((int[]) [ 1, 2, 3, 4 ]), IsJson.EqualTo((int[]) [ 1, 2, 3, 4 ]));

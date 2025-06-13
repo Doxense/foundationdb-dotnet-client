@@ -225,7 +225,7 @@ namespace SnowBank.Data.Json.Tests
 				Assert.That(num1.ToDouble(), Is.EqualTo(1234.0));
 				Assert.That(num1.Literal, Is.EqualTo("0.1234E4"));
 				Assert.That(num1.IsDecimal, Is.False);
-				var num2 = JsonNumber.Return(0.1234E4);
+				var num2 = JsonNumber.Create(0.1234E4);
 				Assert.That(num2.ToDouble(), Is.EqualTo(1234.0));
 				Assert.That(num2.Literal, Is.EqualTo("1234")); //BUGBUG: devrait être "1234.0" ?
 				//Assert.That(num2.IsDecimal, Is.False); //REVIEW: vu qu'on a appelé Return(double), le json est actuellement considéré comme décimal..
@@ -236,7 +236,7 @@ namespace SnowBank.Data.Json.Tests
 				Assert.That(num1.ToDouble(), Is.EqualTo(123.4));
 				Assert.That(num1.Literal, Is.EqualTo("0.1234E3"));
 				Assert.That(num1.IsDecimal, Is.True);
-				var num2 = JsonNumber.Return(0.1234E3);
+				var num2 = JsonNumber.Create(0.1234E3);
 				Assert.That(num2.ToDouble(), Is.EqualTo(123.4));
 				Assert.That(num2.Literal, Is.EqualTo("123.4"));
 				Assert.That(num2.IsDecimal, Is.True);

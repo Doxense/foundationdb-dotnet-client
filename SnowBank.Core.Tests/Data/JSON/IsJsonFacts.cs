@@ -215,8 +215,8 @@ namespace SnowBank.Data.Json.Binary.Tests
 			Assume.That(Add(1.23d, 4.56d), Is.EqualTo(5.79d).Within(1).Ulps);
 
 			// if we multiplu the same values via JsonNumbers
-			var a = JsonNumber.Return(1.23d);
-			var b = JsonNumber.Return(4.56d);
+			var a = JsonNumber.Create(1.23d);
+			var b = JsonNumber.Create(4.56d);
 			var c = a.Plus(b);
 			// we should get the same behavior without custom constraints
 			Assert.That(c.ToDouble(), Is.EqualTo(Add(1.23d, 4.56d)));

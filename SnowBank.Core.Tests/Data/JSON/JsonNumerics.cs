@@ -54,26 +54,26 @@ namespace SnowBank.Data.Json.Tests
 				Assert.That(JsonNumber.One + JsonNumber.Zero, Is.EqualTo(JsonNumber.One));
 				Assert.That(JsonNumber.One + JsonNumber.One, Is.EqualTo(JsonNumber.Return(2)));
 
-				Assert.That(JsonNumber.Return(123) + JsonNumber.Return(456), Is.EqualTo(579));
-				Assert.That(JsonNumber.Return(-123) + JsonNumber.Return(123), Is.EqualTo(JsonNumber.Zero));
-				Assert.That(JsonNumber.Return(+123) + JsonNumber.Return(-123), Is.EqualTo(JsonNumber.Zero));
-				Assert.That(JsonNumber.Return(0) + JsonNumber.Return(long.MaxValue), Is.EqualTo(JsonNumber.Return(long.MaxValue)));
-				Assert.That(JsonNumber.Return(0) + JsonNumber.Return(ulong.MaxValue), Is.EqualTo(JsonNumber.Return(ulong.MaxValue)));
-				Assert.That(JsonNumber.Return(1) + JsonNumber.Return(long.MaxValue), Is.EqualTo(JsonNumber.Return(9223372036854775808UL)));
-				Assert.That(JsonNumber.Return(long.MaxValue) + JsonNumber.Return(0), Is.EqualTo(JsonNumber.Return(long.MaxValue)));
-				Assert.That(JsonNumber.Return(long.MaxValue) + JsonNumber.Return(1), Is.EqualTo(JsonNumber.Return(9223372036854775808UL)));
-				Assert.That(JsonNumber.Return(long.MaxValue) + JsonNumber.Return(long.MaxValue), Is.EqualTo(JsonNumber.Return(2UL * long.MaxValue)));
-				Assert.That(JsonNumber.Return(long.MaxValue) + JsonNumber.Return(-long.MaxValue), Is.EqualTo(JsonNumber.Zero));
-				Assert.That(JsonNumber.Return(ulong.MaxValue) + JsonNumber.Return(0), Is.EqualTo(JsonNumber.Return(ulong.MaxValue)));
-				Assert.That(JsonNumber.Return(ulong.MaxValue) + JsonNumber.Return(-1), Is.EqualTo(JsonNumber.Return(ulong.MaxValue - 1)));
-				Assert.That(JsonNumber.Return(ulong.MaxValue) + JsonNumber.Return(-1), Is.EqualTo(JsonNumber.Return(ulong.MaxValue - 1)));
+				Assert.That(JsonNumber.Create(123) + JsonNumber.Create(456), Is.EqualTo(579));
+				Assert.That(JsonNumber.Create(-123) + JsonNumber.Create(123), Is.EqualTo(JsonNumber.Zero));
+				Assert.That(JsonNumber.Create(+123) + JsonNumber.Create(-123), Is.EqualTo(JsonNumber.Zero));
+				Assert.That(JsonNumber.Create(0) + JsonNumber.Create(long.MaxValue), Is.EqualTo(JsonNumber.Create(long.MaxValue)));
+				Assert.That(JsonNumber.Create(0) + JsonNumber.Create(ulong.MaxValue), Is.EqualTo(JsonNumber.Create(ulong.MaxValue)));
+				Assert.That(JsonNumber.Create(1) + JsonNumber.Create(long.MaxValue), Is.EqualTo(JsonNumber.Create(9223372036854775808UL)));
+				Assert.That(JsonNumber.Create(long.MaxValue) + JsonNumber.Create(0), Is.EqualTo(JsonNumber.Create(long.MaxValue)));
+				Assert.That(JsonNumber.Create(long.MaxValue) + JsonNumber.Create(1), Is.EqualTo(JsonNumber.Create(9223372036854775808UL)));
+				Assert.That(JsonNumber.Create(long.MaxValue) + JsonNumber.Create(long.MaxValue), Is.EqualTo(JsonNumber.Create(2UL * long.MaxValue)));
+				Assert.That(JsonNumber.Create(long.MaxValue) + JsonNumber.Create(-long.MaxValue), Is.EqualTo(JsonNumber.Zero));
+				Assert.That(JsonNumber.Create(ulong.MaxValue) + JsonNumber.Create(0), Is.EqualTo(JsonNumber.Create(ulong.MaxValue)));
+				Assert.That(JsonNumber.Create(ulong.MaxValue) + JsonNumber.Create(-1), Is.EqualTo(JsonNumber.Create(ulong.MaxValue - 1)));
+				Assert.That(JsonNumber.Create(ulong.MaxValue) + JsonNumber.Create(-1), Is.EqualTo(JsonNumber.Create(ulong.MaxValue - 1)));
 
 				Assert.That(JsonNumber.Zero + JsonNumber.NaN, Is.EqualTo(JsonNumber.NaN));
 				Assert.That(JsonNumber.One + JsonNumber.NaN, Is.EqualTo(JsonNumber.NaN));
-				Assert.That(JsonNumber.Return(2) + JsonNumber.NaN, Is.EqualTo(JsonNumber.NaN));
+				Assert.That(JsonNumber.Create(2) + JsonNumber.NaN, Is.EqualTo(JsonNumber.NaN));
 				Assert.That(JsonNumber.NaN + JsonNumber.Zero, Is.EqualTo(JsonNumber.NaN));
 				Assert.That(JsonNumber.NaN + JsonNumber.One, Is.EqualTo(JsonNumber.NaN));
-				Assert.That(JsonNumber.NaN + JsonNumber.Return(2), Is.EqualTo(JsonNumber.NaN));
+				Assert.That(JsonNumber.NaN + JsonNumber.Create(2), Is.EqualTo(JsonNumber.NaN));
 				Assert.That(JsonNumber.NaN + JsonNumber.NaN, Is.EqualTo(JsonNumber.NaN));
 			});
 
@@ -84,26 +84,26 @@ namespace SnowBank.Data.Json.Tests
 				Assert.That(JsonNumber.One + JsonNumber.Zero, IsJson.EqualTo(1));
 				Assert.That(JsonNumber.One + JsonNumber.One, IsJson.EqualTo(2));
 
-				Assert.That(JsonNumber.Return(123) + JsonNumber.Return(456), IsJson.EqualTo(579));
-				Assert.That(JsonNumber.Return(-123) + JsonNumber.Return(123), IsJson.EqualTo(0));
-				Assert.That(JsonNumber.Return(+123) + JsonNumber.Return(-123), IsJson.EqualTo(0));
-				Assert.That(JsonNumber.Return(0) + JsonNumber.Return(long.MaxValue), IsJson.EqualTo(long.MaxValue));
-				Assert.That(JsonNumber.Return(0) + JsonNumber.Return(ulong.MaxValue), IsJson.EqualTo(ulong.MaxValue));
-				Assert.That(JsonNumber.Return(1) + JsonNumber.Return(long.MaxValue), IsJson.EqualTo(9223372036854775808UL));
-				Assert.That(JsonNumber.Return(long.MaxValue) + JsonNumber.Return(0), IsJson.EqualTo(long.MaxValue));
-				Assert.That(JsonNumber.Return(long.MaxValue) + JsonNumber.Return(1), IsJson.EqualTo(9223372036854775808UL));
-				Assert.That(JsonNumber.Return(long.MaxValue) + JsonNumber.Return(long.MaxValue), IsJson.EqualTo(2UL * long.MaxValue));
-				Assert.That(JsonNumber.Return(long.MaxValue) + JsonNumber.Return(-long.MaxValue), IsJson.EqualTo(0));
-				Assert.That(JsonNumber.Return(ulong.MaxValue) + JsonNumber.Return(0), IsJson.EqualTo(ulong.MaxValue));
-				Assert.That(JsonNumber.Return(ulong.MaxValue) + JsonNumber.Return(-1), IsJson.EqualTo(ulong.MaxValue - 1));
-				Assert.That(JsonNumber.Return(ulong.MaxValue) + JsonNumber.Return(-1), IsJson.EqualTo(ulong.MaxValue - 1));
+				Assert.That(JsonNumber.Create(123) + JsonNumber.Create(456), IsJson.EqualTo(579));
+				Assert.That(JsonNumber.Create(-123) + JsonNumber.Create(123), IsJson.EqualTo(0));
+				Assert.That(JsonNumber.Create(+123) + JsonNumber.Create(-123), IsJson.EqualTo(0));
+				Assert.That(JsonNumber.Create(0) + JsonNumber.Create(long.MaxValue), IsJson.EqualTo(long.MaxValue));
+				Assert.That(JsonNumber.Create(0) + JsonNumber.Create(ulong.MaxValue), IsJson.EqualTo(ulong.MaxValue));
+				Assert.That(JsonNumber.Create(1) + JsonNumber.Create(long.MaxValue), IsJson.EqualTo(9223372036854775808UL));
+				Assert.That(JsonNumber.Create(long.MaxValue) + JsonNumber.Create(0), IsJson.EqualTo(long.MaxValue));
+				Assert.That(JsonNumber.Create(long.MaxValue) + JsonNumber.Create(1), IsJson.EqualTo(9223372036854775808UL));
+				Assert.That(JsonNumber.Create(long.MaxValue) + JsonNumber.Create(long.MaxValue), IsJson.EqualTo(2UL * long.MaxValue));
+				Assert.That(JsonNumber.Create(long.MaxValue) + JsonNumber.Create(-long.MaxValue), IsJson.EqualTo(0));
+				Assert.That(JsonNumber.Create(ulong.MaxValue) + JsonNumber.Create(0), IsJson.EqualTo(ulong.MaxValue));
+				Assert.That(JsonNumber.Create(ulong.MaxValue) + JsonNumber.Create(-1), IsJson.EqualTo(ulong.MaxValue - 1));
+				Assert.That(JsonNumber.Create(ulong.MaxValue) + JsonNumber.Create(-1), IsJson.EqualTo(ulong.MaxValue - 1));
 
 				Assert.That(JsonNumber.Zero + JsonNumber.NaN, IsJson.EqualTo(double.NaN));
 				Assert.That(JsonNumber.One + JsonNumber.NaN, IsJson.EqualTo(double.NaN));
-				Assert.That(JsonNumber.Return(2) + JsonNumber.NaN, IsJson.EqualTo(double.NaN));
+				Assert.That(JsonNumber.Create(2) + JsonNumber.NaN, IsJson.EqualTo(double.NaN));
 				Assert.That(JsonNumber.NaN + JsonNumber.Zero, IsJson.EqualTo(double.NaN));
 				Assert.That(JsonNumber.NaN + JsonNumber.One, IsJson.EqualTo(double.NaN));
-				Assert.That(JsonNumber.NaN + JsonNumber.Return(2), IsJson.EqualTo(double.NaN));
+				Assert.That(JsonNumber.NaN + JsonNumber.Create(2), IsJson.EqualTo(double.NaN));
 				Assert.That(JsonNumber.NaN + JsonNumber.NaN, IsJson.EqualTo(double.NaN));
 
 			});
@@ -120,28 +120,28 @@ namespace SnowBank.Data.Json.Tests
 				Assert.That(JsonNumber.Zero - JsonNumber.One, IsJson.EqualTo(-1));
 				Assert.That(JsonNumber.One - JsonNumber.Zero, IsJson.EqualTo(1));
 				Assert.That(JsonNumber.One - JsonNumber.One, IsJson.EqualTo(0));
-				Assert.That(JsonNumber.Return(456) - JsonNumber.Return(123), IsJson.EqualTo(333));
-				Assert.That(JsonNumber.Return(123) - JsonNumber.Return(456), IsJson.EqualTo(-333));
-				Assert.That(JsonNumber.Return(+123) - JsonNumber.Return(+123), IsJson.EqualTo(0));
-				Assert.That(JsonNumber.Return(+123) - JsonNumber.Return(-123), IsJson.EqualTo(246));
-				Assert.That(JsonNumber.Return(-123) - JsonNumber.Return(+123), IsJson.EqualTo(-246));
-				Assert.That(JsonNumber.Return(-123) - JsonNumber.Return(-123), IsJson.EqualTo(0));
-				Assert.That(JsonNumber.Return(0) - JsonNumber.Return(long.MaxValue), IsJson.EqualTo(-9223372036854775807));
-				Assert.That(JsonNumber.Return(-1) - JsonNumber.Return(long.MaxValue), IsJson.EqualTo(long.MinValue));
-				Assert.That(JsonNumber.Return(long.MaxValue) - JsonNumber.Return(0), IsJson.EqualTo(9223372036854775807));
-				Assert.That(JsonNumber.Return(long.MaxValue) - JsonNumber.Return(1), IsJson.EqualTo(9223372036854775806));
-				Assert.That(JsonNumber.Return(long.MaxValue) - JsonNumber.Return(long.MaxValue), IsJson.EqualTo(0));
-				Assert.That(JsonNumber.Return(ulong.MaxValue) - JsonNumber.Return(0), IsJson.EqualTo(ulong.MaxValue));
-				Assert.That(JsonNumber.Return(ulong.MaxValue) - JsonNumber.Return(1), IsJson.EqualTo(ulong.MaxValue - 1));
-				Assert.That(JsonNumber.Return(ulong.MaxValue) - JsonNumber.Return(ulong.MaxValue), IsJson.EqualTo(0));
-				Assert.That(JsonNumber.Return(ulong.MaxValue) - JsonNumber.Return(ulong.MaxValue - 1), IsJson.EqualTo(1));
-				Assert.That(JsonNumber.Return(ulong.MaxValue - 1) - JsonNumber.Return(ulong.MaxValue), IsJson.EqualTo(-1));
+				Assert.That(JsonNumber.Create(456) - JsonNumber.Create(123), IsJson.EqualTo(333));
+				Assert.That(JsonNumber.Create(123) - JsonNumber.Create(456), IsJson.EqualTo(-333));
+				Assert.That(JsonNumber.Create(+123) - JsonNumber.Create(+123), IsJson.EqualTo(0));
+				Assert.That(JsonNumber.Create(+123) - JsonNumber.Create(-123), IsJson.EqualTo(246));
+				Assert.That(JsonNumber.Create(-123) - JsonNumber.Create(+123), IsJson.EqualTo(-246));
+				Assert.That(JsonNumber.Create(-123) - JsonNumber.Create(-123), IsJson.EqualTo(0));
+				Assert.That(JsonNumber.Create(0) - JsonNumber.Create(long.MaxValue), IsJson.EqualTo(-9223372036854775807));
+				Assert.That(JsonNumber.Create(-1) - JsonNumber.Create(long.MaxValue), IsJson.EqualTo(long.MinValue));
+				Assert.That(JsonNumber.Create(long.MaxValue) - JsonNumber.Create(0), IsJson.EqualTo(9223372036854775807));
+				Assert.That(JsonNumber.Create(long.MaxValue) - JsonNumber.Create(1), IsJson.EqualTo(9223372036854775806));
+				Assert.That(JsonNumber.Create(long.MaxValue) - JsonNumber.Create(long.MaxValue), IsJson.EqualTo(0));
+				Assert.That(JsonNumber.Create(ulong.MaxValue) - JsonNumber.Create(0), IsJson.EqualTo(ulong.MaxValue));
+				Assert.That(JsonNumber.Create(ulong.MaxValue) - JsonNumber.Create(1), IsJson.EqualTo(ulong.MaxValue - 1));
+				Assert.That(JsonNumber.Create(ulong.MaxValue) - JsonNumber.Create(ulong.MaxValue), IsJson.EqualTo(0));
+				Assert.That(JsonNumber.Create(ulong.MaxValue) - JsonNumber.Create(ulong.MaxValue - 1), IsJson.EqualTo(1));
+				Assert.That(JsonNumber.Create(ulong.MaxValue - 1) - JsonNumber.Create(ulong.MaxValue), IsJson.EqualTo(-1));
 				Assert.That(JsonNumber.Zero - JsonNumber.NaN, IsJson.EqualTo(double.NaN));
 				Assert.That(JsonNumber.One - JsonNumber.NaN, IsJson.EqualTo(double.NaN));
-				Assert.That(JsonNumber.Return(2) - JsonNumber.NaN, IsJson.EqualTo(double.NaN));
+				Assert.That(JsonNumber.Create(2) - JsonNumber.NaN, IsJson.EqualTo(double.NaN));
 				Assert.That(JsonNumber.NaN - JsonNumber.Zero, IsJson.EqualTo(double.NaN));
 				Assert.That(JsonNumber.NaN - JsonNumber.One, IsJson.EqualTo(double.NaN));
-				Assert.That(JsonNumber.NaN - JsonNumber.Return(2), IsJson.EqualTo(double.NaN));
+				Assert.That(JsonNumber.NaN - JsonNumber.Create(2), IsJson.EqualTo(double.NaN));
 				Assert.That(JsonNumber.NaN - JsonNumber.NaN, IsJson.EqualTo(double.NaN));
 			});
 		}
@@ -158,32 +158,32 @@ namespace SnowBank.Data.Json.Tests
 				Assert.That(JsonNumber.One * JsonNumber.Zero, Is.EqualTo(JsonNumber.Zero));
 				Assert.That(JsonNumber.One * JsonNumber.One, Is.EqualTo(JsonNumber.One));
 
-				Assert.That(JsonNumber.Return(123) * JsonNumber.Return(456), Is.EqualTo(JsonNumber.Return(56088)));
-				Assert.That(JsonNumber.Return(456) * JsonNumber.Return(123), Is.EqualTo(JsonNumber.Return(56088)));
-				Assert.That(JsonNumber.One * JsonNumber.Return(long.MaxValue), Is.EqualTo(JsonNumber.Return(long.MaxValue)));
-				Assert.That(JsonNumber.Return(2) * JsonNumber.Return(long.MaxValue), Is.EqualTo(JsonNumber.Return(2UL * long.MaxValue)));
+				Assert.That(JsonNumber.Create(123) * JsonNumber.Create(456), Is.EqualTo(JsonNumber.Create(56088)));
+				Assert.That(JsonNumber.Create(456) * JsonNumber.Create(123), Is.EqualTo(JsonNumber.Create(56088)));
+				Assert.That(JsonNumber.One * JsonNumber.Create(long.MaxValue), Is.EqualTo(JsonNumber.Create(long.MaxValue)));
+				Assert.That(JsonNumber.Create(2) * JsonNumber.Create(long.MaxValue), Is.EqualTo(JsonNumber.Create(2UL * long.MaxValue)));
 
 				Assert.That(JsonNumber.Zero * JsonNumber.PI, Is.EqualTo(JsonNumber.Zero));
 				Assert.That(JsonNumber.One * JsonNumber.PI, Is.EqualTo(JsonNumber.PI));
-				Assert.That(JsonNumber.Return(2) * JsonNumber.PI, Is.EqualTo(JsonNumber.Tau));
+				Assert.That(JsonNumber.Create(2) * JsonNumber.PI, Is.EqualTo(JsonNumber.Tau));
 				Assert.That(JsonNumber.PI * JsonNumber.Zero, Is.EqualTo(JsonNumber.Zero));
 				Assert.That(JsonNumber.PI * JsonNumber.One, Is.EqualTo(JsonNumber.PI));
-				Assert.That(JsonNumber.PI * JsonNumber.Return(2), Is.EqualTo(JsonNumber.Tau));
+				Assert.That(JsonNumber.PI * JsonNumber.Create(2), Is.EqualTo(JsonNumber.Tau));
 
 				Assert.That(JsonNumber.DecimalZero * JsonNumber.PI, Is.EqualTo(0.0));
 				Assert.That(JsonNumber.DecimalOne * JsonNumber.PI, Is.EqualTo(JsonNumber.PI));
-				Assert.That(JsonNumber.Return(2.0) * JsonNumber.PI, Is.EqualTo(JsonNumber.Tau));
+				Assert.That(JsonNumber.Create(2.0) * JsonNumber.PI, Is.EqualTo(JsonNumber.Tau));
 				Assert.That(JsonNumber.PI * JsonNumber.DecimalZero, Is.EqualTo(0.0));
 				Assert.That(JsonNumber.PI * JsonNumber.DecimalOne, Is.EqualTo(JsonNumber.PI));
-				Assert.That(JsonNumber.PI * JsonNumber.Return(2.0), Is.EqualTo(JsonNumber.Tau));
-				Assert.That(JsonNumber.PI * JsonNumber.PI, Is.EqualTo(JsonNumber.Return(Math.PI * Math.PI)));
+				Assert.That(JsonNumber.PI * JsonNumber.Create(2.0), Is.EqualTo(JsonNumber.Tau));
+				Assert.That(JsonNumber.PI * JsonNumber.PI, Is.EqualTo(JsonNumber.Create(Math.PI * Math.PI)));
 
 				Assert.That(JsonNumber.Zero * JsonNumber.NaN, Is.EqualTo(JsonNumber.NaN));
 				Assert.That(JsonNumber.One * JsonNumber.NaN, Is.EqualTo(JsonNumber.NaN));
-				Assert.That(JsonNumber.Return(2) * JsonNumber.NaN, Is.EqualTo(JsonNumber.NaN));
+				Assert.That(JsonNumber.Create(2) * JsonNumber.NaN, Is.EqualTo(JsonNumber.NaN));
 				Assert.That(JsonNumber.NaN * JsonNumber.Zero, Is.EqualTo(JsonNumber.NaN));
 				Assert.That(JsonNumber.NaN * JsonNumber.One, Is.EqualTo(JsonNumber.NaN));
-				Assert.That(JsonNumber.NaN * JsonNumber.Return(2), Is.EqualTo(JsonNumber.NaN));
+				Assert.That(JsonNumber.NaN * JsonNumber.Create(2), Is.EqualTo(JsonNumber.NaN));
 				Assert.That(JsonNumber.NaN * JsonNumber.NaN, Is.EqualTo(JsonNumber.NaN));
 			});
 
@@ -194,32 +194,32 @@ namespace SnowBank.Data.Json.Tests
 				Assert.That(JsonNumber.One * JsonNumber.Zero, IsJson.EqualTo(0));
 				Assert.That(JsonNumber.One * JsonNumber.One, IsJson.EqualTo(1));
 
-				Assert.That(JsonNumber.Return(123) * JsonNumber.Return(456), IsJson.EqualTo(56088));
-				Assert.That(JsonNumber.Return(456) * JsonNumber.Return(123), IsJson.EqualTo(56088));
-				Assert.That(JsonNumber.One * JsonNumber.Return(long.MaxValue), IsJson.EqualTo(long.MaxValue));
-				Assert.That(JsonNumber.Return(2) * JsonNumber.Return(long.MaxValue), IsJson.EqualTo(2UL * long.MaxValue));
+				Assert.That(JsonNumber.Create(123) * JsonNumber.Create(456), IsJson.EqualTo(56088));
+				Assert.That(JsonNumber.Create(456) * JsonNumber.Create(123), IsJson.EqualTo(56088));
+				Assert.That(JsonNumber.One * JsonNumber.Create(long.MaxValue), IsJson.EqualTo(long.MaxValue));
+				Assert.That(JsonNumber.Create(2) * JsonNumber.Create(long.MaxValue), IsJson.EqualTo(2UL * long.MaxValue));
 
 				Assert.That(JsonNumber.Zero * JsonNumber.PI, IsJson.EqualTo(0.0));
 				Assert.That(JsonNumber.One * JsonNumber.PI, IsJson.EqualTo(Math.PI));
-				Assert.That(JsonNumber.Return(2) * JsonNumber.PI, IsJson.EqualTo(2.0 * Math.PI));
+				Assert.That(JsonNumber.Create(2) * JsonNumber.PI, IsJson.EqualTo(2.0 * Math.PI));
 				Assert.That(JsonNumber.PI * JsonNumber.Zero, IsJson.EqualTo(0.0));
 				Assert.That(JsonNumber.PI * JsonNumber.One, IsJson.EqualTo(Math.PI));
-				Assert.That(JsonNumber.PI * JsonNumber.Return(2), IsJson.EqualTo(Math.PI * 2.0));
+				Assert.That(JsonNumber.PI * JsonNumber.Create(2), IsJson.EqualTo(Math.PI * 2.0));
 
 				Assert.That(JsonNumber.DecimalZero * JsonNumber.PI, IsJson.EqualTo(0.0));
 				Assert.That(JsonNumber.DecimalOne * JsonNumber.PI, IsJson.EqualTo(Math.PI));
-				Assert.That(JsonNumber.Return(2.0) * JsonNumber.PI, IsJson.EqualTo(2.0 * Math.PI));
+				Assert.That(JsonNumber.Create(2.0) * JsonNumber.PI, IsJson.EqualTo(2.0 * Math.PI));
 				Assert.That(JsonNumber.PI * JsonNumber.DecimalZero, IsJson.EqualTo(0.0));
 				Assert.That(JsonNumber.PI * JsonNumber.DecimalOne, IsJson.EqualTo(Math.PI));
-				Assert.That(JsonNumber.PI * JsonNumber.Return(2.0), IsJson.EqualTo(Math.PI * 2.0));
+				Assert.That(JsonNumber.PI * JsonNumber.Create(2.0), IsJson.EqualTo(Math.PI * 2.0));
 				Assert.That(JsonNumber.PI * JsonNumber.PI, IsJson.EqualTo(Math.PI * Math.PI));
 
 				Assert.That(JsonNumber.Zero * JsonNumber.NaN, IsJson.EqualTo(double.NaN));
 				Assert.That(JsonNumber.One * JsonNumber.NaN, IsJson.EqualTo(double.NaN));
-				Assert.That(JsonNumber.Return(2) * JsonNumber.NaN, IsJson.EqualTo(double.NaN));
+				Assert.That(JsonNumber.Create(2) * JsonNumber.NaN, IsJson.EqualTo(double.NaN));
 				Assert.That(JsonNumber.NaN * JsonNumber.Zero, IsJson.EqualTo(double.NaN));
 				Assert.That(JsonNumber.NaN * JsonNumber.One, IsJson.EqualTo(double.NaN));
-				Assert.That(JsonNumber.NaN * JsonNumber.Return(2), IsJson.EqualTo(double.NaN));
+				Assert.That(JsonNumber.NaN * JsonNumber.Create(2), IsJson.EqualTo(double.NaN));
 				Assert.That(JsonNumber.NaN * JsonNumber.NaN, IsJson.EqualTo(double.NaN));
 			});
 			

@@ -145,12 +145,18 @@ namespace SnowBank.Data.Json
 
 #endif
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal static JsonNumber? ParseJsonNumber(string? literal)
+		{
+			return ParseJsonNumber(literal.AsSpan(), literal);
+		}
+
+		internal static JsonNumber? ParseJsonNumber(ReadOnlySpan<char> literal, string? original = null)
 		{
 #if DEBUG_JSON_PARSER
 			Debug.WriteLine("CrystalJsonParser.ParseJsonNumber('{0}')", (object)literal);
 #endif
-			if (string.IsNullOrEmpty(literal)) return null;
+			if (literal.Length == 0) return null;
 
 			const int MAX_NUMBER_CHARS = 64;
 			if (literal.Length > MAX_NUMBER_CHARS) throw new ArgumentException("Buffer is too large for a numeric value");
@@ -215,18 +221,18 @@ namespace SnowBank.Data.Json
 
 				if (c == 'I')
 				{ // +Infinity / -Infinity ?
-					if (string.Equals(literal, "+Infinity", StringComparison.Ordinal))
+					if (literal is "+Infinity")
 					{
 						return JsonNumber.PositiveInfinity;
 					}
-					if (string.Equals(literal, "-Infinity", StringComparison.Ordinal))
+					if (literal is "-Infinity")
 					{
 						return JsonNumber.NegativeInfinity;
 					}
 				}
 				if (c == 'N')
 				{
-					if (string.Equals(literal, "NaN", StringComparison.Ordinal)) return JsonNumber.NaN;
+					if (literal is "NaN") return JsonNumber.NaN;
 				}
 				// character is invalid after a number
 				throw InvalidNumberFormat(literal, $"unexpected character '{c}' found)");
@@ -263,12 +269,12 @@ namespace SnowBank.Data.Json
 				}
 
 				return !negative
-					? JsonNumber.ParseUnsigned(num, literal, literal)
-					: JsonNumber.ParseSigned(-((long) num), literal, literal); // with 16 digits max, there is no risk of overflow when going negative
+					? JsonNumber.ParseUnsigned(num, literal, original)
+					: JsonNumber.ParseSigned(-((long) num), literal, original); // with 16 digits max, there is no risk of overflow when going negative
 			}
 
 			// the number is a decimal number, or has en exponent, we need to parse the string
-			var value = ParseNumberFromLiteral(literal, literal, negative, hasDot, hasExponent);
+			var value = ParseNumberFromLiteral(literal, original, negative, hasDot, hasExponent);
 			return value ?? throw InvalidNumberFormat(literal, "malformed");
 		}
 
@@ -315,7 +321,7 @@ namespace SnowBank.Data.Json
 		}
 
 		[Pure]
-		private static FormatException InvalidNumberFormat(string literal, string reason) => new($"Invalid number '{literal}.' ({reason})");
+		private static FormatException InvalidNumberFormat(ReadOnlySpan<char> literal, string reason) => new($"Invalid number '{literal}.' ({reason})");
 
 		/// <summary>Tests if the string COULD be a date in the ISO 8601 format</summary>
 		[Pure]
