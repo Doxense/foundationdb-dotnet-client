@@ -466,7 +466,7 @@ namespace System
 			Span<byte> utf8Destination,
 			out int bytesWritten,
 #if NET8_0_OR_GREATER
-			[StringSyntax("GuidFormat")]
+			[StringSyntax(StringSyntaxAttribute.GuidFormat)]
 #endif
 			ReadOnlySpan<char> format = default,
 			IFormatProvider? provider = null

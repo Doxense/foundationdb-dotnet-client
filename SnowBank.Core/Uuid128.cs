@@ -940,7 +940,7 @@ namespace System
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public string ToString(
 #if NET8_0_OR_GREATER
-			[StringSyntax("GuidFormat")]
+			[StringSyntax(StringSyntaxAttribute.GuidFormat)]
 #endif
 			string? format,
 			IFormatProvider? provider
@@ -993,7 +993,7 @@ namespace System
 			Span<char> destination,
 			out int charsWritten,
 #if NET8_0_OR_GREATER
-			[StringSyntax("GuidFormat")]
+			[StringSyntax(StringSyntaxAttribute.GuidFormat)]
 #endif
 			ReadOnlySpan<char> format = default,
 			IFormatProvider? provider = null
@@ -1026,7 +1026,7 @@ namespace System
 			Span<byte> utf8Destination,
 			out int bytesWritten,
 #if NET8_0_OR_GREATER
-			[StringSyntax("GuidFormat")]
+			[StringSyntax(StringSyntaxAttribute.GuidFormat)]
 #endif
 			ReadOnlySpan<char> format = default,
 			IFormatProvider? provider = null

@@ -332,7 +332,7 @@ namespace SnowBank.Data.Json
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static JsonObject Parse(
 #if NET8_0_OR_GREATER
-				[StringSyntax("json")]
+				[StringSyntax(StringSyntaxAttribute.Json)]
 #endif
 				string? jsonText,
 				CrystalJsonSettings? settings = null
@@ -342,7 +342,7 @@ namespace SnowBank.Data.Json
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static JsonObject Parse(
 #if NET8_0_OR_GREATER
-				[StringSyntax("json")]
+				[StringSyntax(StringSyntaxAttribute.Json)]
 #endif
 				ReadOnlySpan<char> jsonText,
 				CrystalJsonSettings? settings = null

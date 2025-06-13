@@ -50,7 +50,7 @@ namespace SnowBank.Data.Json
 			[Pure]
 			public static JsonValue Parse(
 #if NET8_0_OR_GREATER
-				[System.Diagnostics.CodeAnalysis.StringSyntax("json")]
+				[System.Diagnostics.CodeAnalysis.StringSyntax(StringSyntaxAttribute.Json)]
 #endif
 				string? jsonText,
 				CrystalJsonSettings? settings = null
@@ -71,7 +71,7 @@ namespace SnowBank.Data.Json
 			[Pure]
 			public static JsonValue Parse(
 #if NET8_0_OR_GREATER
-				[System.Diagnostics.CodeAnalysis.StringSyntax("json")]
+				[System.Diagnostics.CodeAnalysis.StringSyntax(StringSyntaxAttribute.Json)]
 #endif
 				ReadOnlySpan<char> jsonText,
 				CrystalJsonSettings? settings = null
@@ -93,7 +93,7 @@ namespace SnowBank.Data.Json
 			[Pure]
 			public static JsonArray ParseArray(
 #if NET8_0_OR_GREATER
-				[System.Diagnostics.CodeAnalysis.StringSyntax("json")]
+				[System.Diagnostics.CodeAnalysis.StringSyntax(StringSyntaxAttribute.Json)]
 #endif
 				string? jsonText,
 				CrystalJsonSettings? settings = null
@@ -115,7 +115,7 @@ namespace SnowBank.Data.Json
 			[Pure]
 			public static JsonArray ParseArray(
 #if NET8_0_OR_GREATER
-				[System.Diagnostics.CodeAnalysis.StringSyntax("json")]
+				[System.Diagnostics.CodeAnalysis.StringSyntax(StringSyntaxAttribute.Json)]
 #endif
 				ReadOnlySpan<char> jsonText,
 				CrystalJsonSettings? settings = null
@@ -134,7 +134,7 @@ namespace SnowBank.Data.Json
 			[Pure]
 			public static JsonObject ParseObject(
 #if NET8_0_OR_GREATER
-				[System.Diagnostics.CodeAnalysis.StringSyntax("json")]
+				[System.Diagnostics.CodeAnalysis.StringSyntax(StringSyntaxAttribute.Json)]
 #endif
 				string? jsonText,
 				CrystalJsonSettings? settings = null
@@ -153,7 +153,7 @@ namespace SnowBank.Data.Json
 			[Pure]
 			public static JsonObject ParseObject(
 #if NET8_0_OR_GREATER
-				[System.Diagnostics.CodeAnalysis.StringSyntax("json")]
+				[System.Diagnostics.CodeAnalysis.StringSyntax(StringSyntaxAttribute.Json)]
 #endif
 				ReadOnlySpan<char> jsonText,
 				CrystalJsonSettings? settings = null

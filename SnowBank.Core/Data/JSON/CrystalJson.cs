@@ -1041,7 +1041,7 @@ namespace SnowBank.Data.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Parse(
 #if NET8_0_OR_GREATER
-			[StringSyntax("json")]
+			[StringSyntax(StringSyntaxAttribute.Json)]
 #endif
 			string? jsonText,
 			CrystalJsonSettings? settings = null
@@ -1402,7 +1402,7 @@ namespace SnowBank.Data.Json
 		[Pure]
 		public static TValue Deserialize<TValue>(
 #if NET8_0_OR_GREATER
-			[StringSyntax("json")]
+			[StringSyntax(StringSyntaxAttribute.Json)]
 #endif
 			string jsonText
 		) where TValue : notnull
@@ -1420,7 +1420,7 @@ namespace SnowBank.Data.Json
 		[Pure]
 		public static TValue Deserialize<TValue>(
 #if NET8_0_OR_GREATER
-			[StringSyntax("json")]
+			[StringSyntax(StringSyntaxAttribute.Json)]
 #endif
 			string jsonText,
 			CrystalJsonSettings? settings,
@@ -1441,7 +1441,7 @@ namespace SnowBank.Data.Json
 		[Pure]
 		public static TValue Deserialize<TValue>(
 #if NET8_0_OR_GREATER
-			[StringSyntax("json")]
+			[StringSyntax(StringSyntaxAttribute.Json)]
 #endif
 			string jsonText,
 			IJsonDeserializer<TValue>? serializer,
@@ -1466,7 +1466,7 @@ namespace SnowBank.Data.Json
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public static TValue? Deserialize<TValue>(
 #if NET8_0_OR_GREATER
-			[StringSyntax("json")]
+			[StringSyntax(StringSyntaxAttribute.Json)]
 #endif
 			string jsonText,
 			TValue defaultValue)
@@ -1486,7 +1486,7 @@ namespace SnowBank.Data.Json
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public static TValue? Deserialize<TValue>(
 #if NET8_0_OR_GREATER
-			[StringSyntax("json")]
+			[StringSyntax(StringSyntaxAttribute.Json)]
 #endif
 			string jsonText,
 			TValue defaultValue,

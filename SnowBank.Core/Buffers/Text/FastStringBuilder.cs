@@ -264,7 +264,7 @@ namespace SnowBank.Buffers.Text
 
 		/// <summary>Appends a formatting string at the end of the buffer</summary>
 		[StringFormatMethod(nameof(format))]
-		public void AppendFormat([StringSyntax("CompositeFormat")] string format, params ReadOnlySpan<object?> args)
+		public void AppendFormat([StringSyntax(StringSyntaxAttribute.CompositeFormat)] string format, params ReadOnlySpan<object?> args)
 		{
 			AppendSlow(string.Format(CultureInfo.InvariantCulture, format, args));
 		}
@@ -273,28 +273,28 @@ namespace SnowBank.Buffers.Text
 
 		/// <summary>Appends a formatting string at the end of the buffer</summary>
 		[StringFormatMethod(nameof(format))]
-		public void AppendFormat([StringSyntax("CompositeFormat")] string format, object? arg0)
+		public void AppendFormat([StringSyntax(StringSyntaxAttribute.CompositeFormat)] string format, object? arg0)
 		{
 			AppendSlow(string.Format(CultureInfo.InvariantCulture, format, arg0));
 		}
 
 		/// <summary>Appends a formatting string at the end of the buffer</summary>
 		[StringFormatMethod(nameof(format))]
-		public void AppendFormat([StringSyntax("CompositeFormat")] string format, object? arg0, object? arg1)
+		public void AppendFormat([StringSyntax(StringSyntaxAttribute.CompositeFormat)] string format, object? arg0, object? arg1)
 		{
 			AppendSlow(string.Format(CultureInfo.InvariantCulture, format, arg0, arg1));
 		}
 
 		/// <summary>Appends a formatting string at the end of the buffer</summary>
 		[StringFormatMethod(nameof(format))]
-		public void AppendFormat([StringSyntax("CompositeFormat")] string format, object? arg0, object? arg1, object? arg2)
+		public void AppendFormat([StringSyntax(StringSyntaxAttribute.CompositeFormat)] string format, object? arg0, object? arg1, object? arg2)
 		{
 			AppendSlow(string.Format(CultureInfo.InvariantCulture, format, arg0, arg1, arg2));
 		}
 
 		/// <summary>Appends a formatting string at the end of the buffer</summary>
 		[StringFormatMethod(nameof(format))]
-		public void AppendFormat([StringSyntax("CompositeFormat")] string format, params object?[] args)
+		public void AppendFormat([StringSyntax(StringSyntaxAttribute.CompositeFormat)] string format, params object?[] args)
 		{
 			AppendSlow(string.Format(CultureInfo.InvariantCulture, format, args));
 		}
