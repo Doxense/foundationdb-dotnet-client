@@ -36,13 +36,11 @@ namespace SnowBank.Data.Json
 
 	public sealed class CrystalJsonDomWriter
 	{
-		//TODO: renommer en Reader? Ou Converter?
-		// => techniquement on *écrit* dans un DOM
-
 		//SAME AS FROM JSONWRITER
 		private readonly CrystalJsonSettings m_settings;
 		private readonly ICrystalJsonTypeResolver m_resolver;
-		//REVIEW: => convertir tout ces bools en bitflags!
+
+		//REVIEW: => convert these to bit flags?
 		private readonly bool m_readOnly;
 		private readonly bool m_discardDefaults; //REVIEW: implement!
 		private readonly bool m_discardNulls;
@@ -96,7 +94,7 @@ namespace SnowBank.Data.Json
 				// check last item matches the expected value
 				if (!ReferenceEquals(buf![pos], value)) return false;
 
-				buf[pos] = default!;
+				buf[pos] = null!;
 				this.VisitedObjectsCursor = pos;
 				return true;
 			}
@@ -170,10 +168,10 @@ namespace SnowBank.Data.Json
 			return ParseObject(value, typeof(T));
 		}
 
-		/// <summary>Transforme un objet CLR quelconque en une JsonValue correspondante</summary>
-		/// <param name="value">Valeur à convertir (primitive, value type ou reference type) </param>
-		/// <param name="declaredType">Type déclaré de la valeur au niveau de son parent (ex: Property/Field dans la classe parente, type d'élement dans une collection, ...), qui peut être différent de <paramref name="runtimeType"/> (interface, classe abstraite, ...). Passer typeof(object) pour un objet dont le contexte n'est pas connu, ou passer la même valeur que <paramref name="runtimeType"/> si le contexte est connu exactement.</param>
-		/// <param name="runtimeType">Si non null, type actuel de l'instance au runtime. Si null, utilise <paramref name="value"/>.GetType().</param>
+		/// <summary>Converts an CLR instance into the corresponding <seealso cref="JsonValue"/></summary>
+		/// <param name="value">Instance to convert (primitive, value type or reference type) </param>
+		/// <param name="declaredType">Type of the instance, as declared in its parent (ex: Property/Field in a parent class, record or struct. Element type in a collection or array, ...). It can be different from <paramref name="runtimeType"/> (interface, abstract class  ...). If unknown, use <c>typeof(object)</c>, or specify the same value as <paramref name="runtimeType"/> if the value could not be of any other type.</param>
+		/// <param name="runtimeType">If specified, the actual runtime type of the instance. If <c>null</c>, <see cref="object.GetType"/> will be called on <paramref name="value"/>.</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public JsonValue ParseObject(object? value, Type declaredType, Type? runtimeType = null)
 		{
@@ -232,7 +230,7 @@ namespace SnowBank.Data.Json
 			}
 
 			if (value is IDictionary<string, object?> dict)
-			{ // capture Dictionary<string, object> mais aussi les ExpandoObject
+			{ // matches Dictionary<string, object> as well as ExpandoObject
 				if (TryConvertDictionaryObject(ref context, dict, runtimeType, out result))
 				{
 					return result;
@@ -324,10 +322,10 @@ namespace SnowBank.Data.Json
 #endif
 
 #if DEBUG
-			// si vous arrivez ici, c'est que votre type n'implémente pas IJsonBindable!
+			// if you end up here, it means that the type dos not implement IJsonPackable
 			if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
 #endif
-			//TODO: on pourrait détecter la présence de IJsonSerializable, et si c'est le cas, l'appeler et reparser le texte JSON?
+
 			throw CrystalJson.Errors.Serialization_DoesNotKnowHowToSerializeType(runtimeType ?? declaredType);
 		}
 
@@ -361,76 +359,80 @@ namespace SnowBank.Data.Json
 			{
 				case TypeCode.Boolean:
 				{
-					result = JsonBoolean.Return((bool)value);
+					result = (bool) value ? JsonBoolean.True : JsonBoolean.False;
 					return true;
 				}
 				case TypeCode.Char:
 				{
-					result = JsonString.Return(new string((char)value, 1));
+					result = JsonString.Create((char) value);
 					return true;
 				}
 				case TypeCode.SByte:
 				{
-					result = JsonNumber.Return((sbyte)value);
+					result = JsonNumber.Create((sbyte) value);
 					return true;
 				}
 				case TypeCode.Byte:
 				{
-					result = JsonNumber.Return((byte)value);
+					result = JsonNumber.Create((byte) value);
 					return true;
 				}
 				case TypeCode.Int16:
 				{
-					result = JsonNumber.Return((short)value);
+					result = JsonNumber.Create((short) value);
 					return true;
 				}
 				case TypeCode.UInt16:
 				{
-					result = JsonNumber.Return((ushort)value);
+					result = JsonNumber.Create((ushort) value);
 					return true;
 				}
 				case TypeCode.Int32:
 				{
-					result = JsonNumber.Return((int)value);
+					result = JsonNumber.Create((int) value);
 					return true;
 				}
 				case TypeCode.UInt32:
 				{
-					result = JsonNumber.Return((uint)value);
+					result = JsonNumber.Create((uint) value);
 					return true;
 				}
 				case TypeCode.Int64:
 				{
-					result = JsonNumber.Return((long)value);
+					result = JsonNumber.Create((long) value);
 					return true;
 				}
 				case TypeCode.UInt64:
 				{
-					result = JsonNumber.Return((ulong)value);
+					result = JsonNumber.Create((ulong) value);
 					return true;
 				}
 				case TypeCode.Single:
 				{
-					result = JsonNumber.Return((float)value);
+					result = JsonNumber.Create((float) value);
 					return true;
 				}
 				case TypeCode.Double:
 				{
-					result = JsonNumber.Return((double)value);
+					result = JsonNumber.Create((double) value);
 					return true;
 				}
 				case TypeCode.Object:
 				{
-					// A ma connaissance, le seul type IsPrimitive/TypeCode.Object est IntPtr
+					// Unless mistaken, only IntPtr/UIntPtr types are both Primitive and TypeCode.Object
 					if (typeof(IntPtr) == type)
 					{
-						//Note: c'est peut être dangereux de sérialiser des IntPtr qui sont des pointeurs, mais ce n'est pas forcément le cas pour toutes les classes ...
-						result = JsonNumber.Return(((IntPtr)value).ToInt64());
+						result = JsonNumber.Create(((IntPtr) value).ToInt64());
+						return true;
+					}
+					if (typeof(UIntPtr) == type)
+					{
+						result = JsonNumber.Create(((UIntPtr) value).ToUInt64());
 						return true;
 					}
 					break;
 				}
-				// note: Decimal n'est pas Primitive!
+				// note: Decimal is *not* Primitive!
 			}
 			result = null!;
 			return false;
@@ -440,8 +442,6 @@ namespace SnowBank.Data.Json
 		internal bool TryConvertValueTypeObject(ref VisitingContext context, object value, Type type, [MaybeNullWhen(false)] out JsonValue result)
 		{
 			Contract.Debug.Requires(value != null && type != null);
-
-			//TODO: réécrire via une Dictionary<Type, Func<..>> pour éviter le train de if/elseif !
 
 			if (typeof(DateTime) == type)
 			{
@@ -500,9 +500,9 @@ namespace SnowBank.Data.Json
 			}
 
 			if (type.IsEnum)
-			{ // on convertit les énumérations en keyword
+			{ // enums are converted into their string literal representation
 				result = CrystalJsonEnumCache.GetName(type, (Enum) value);
-				//BUGBUG: vérifier m_enumAsString et m_enumCamelCased
+				//BUGBUG: check m_enumAsString / m_enumCamelCased ?
 				return true;
 			}
 
@@ -548,12 +548,11 @@ namespace SnowBank.Data.Json
 				result = JsonString.Return((NodaTime.LocalTime)value);
 				return true;
 			}
-			//note: DateTimeZone est une class!
+			//note: DateTimeZone is a class!
 
 			#endregion
 
-			// Nullable: l'objet boxé en mémoire sera directement le value type,
-			// on a juste besoin de rerouter vers la bonne méthode
+			// Nullable<T>
 			var nullableType = Nullable.GetUnderlyingType(type);
 			if (nullableType != null)
 			{
@@ -561,12 +560,11 @@ namespace SnowBank.Data.Json
 				{
 					return TryConvertPrimitiveObject(value, nullableType, out result);
 				}
-				// forcément un ValueType
-				// => récursif, mais safe car le underlying type n'est pas nullable (du moins en théorie ....)
+				// T can only be a Value Type
+				// => recursive call, but safe since T cannot be Nullable<...> again (Nullable<Nullable<T>> is not allowed, at least for now!)
 				return TryConvertValueTypeObject(ref context, value, nullableType, out result);
 			}
 
-			//TODO en attendant d'avoir la version générique , on gère au moins ce cas la
 			if (type == typeof(KeyValuePair<string, string>))
 			{
 				result = VisitKeyValuePair((KeyValuePair<string, string>) value);
@@ -595,11 +593,9 @@ namespace SnowBank.Data.Json
 			}
 			//TODO: Memory<T>/ReadOnlyMemory<T>?
 
-#if DISABLED // ca rame trop
+#if DISABLED // too slow!
 			if (type.IsGenericInstanceOf(typeof(KeyValuePair<,>)))
 			{ // KeyValuePair<K, V> => [ K, V ]
-				//HACKHACK: supeeeeeer leeeeeent !
-				//TODO: cache!
 				var genTypes = type.GetGenericArguments();
 				var method = typeof(CrystalJsonDomWriter).GetMethod("VisitKeyValuePair", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
 				method = method.MakeGenericMethod(genTypes[0], genTypes[1]);
@@ -608,7 +604,7 @@ namespace SnowBank.Data.Json
 			}
 #endif
 
-			// les custom struct sont gérée ailleurs (via leur type definition)
+			// custom structs will be handled via reflection at runtime
 			result = null!;
 			return false;
 		}
@@ -638,7 +634,7 @@ namespace SnowBank.Data.Json
 		private static JsonValue VisitKeyValuePairGeneric<TKey, TValue>(CrystalJsonDomWriter writer, ref VisitingContext context, KeyValuePair<TKey, TValue> value)
 		{
 			return new JsonArray([
-				JsonValue.FromValue<TKey>(value.Key), //REVIEW: on suppose que le type de clé est simple!
+				JsonValue.FromValue<TKey>(value.Key), //REVIEW: we assume the key as a "simple" type (string, int, ...)
 				JsonValue.FromValue<TValue>(writer, ref context, value.Value)
 			], 2, readOnly: false);
 		}
@@ -719,7 +715,7 @@ namespace SnowBank.Data.Json
 				elementType = argTypes[1];
 			}
 			else
-			{ // on ne connait ni le type des clés, ni des valeurs
+			{ // we don't know the type of the keys and values
 				stringKeys = false;
 				elementType = typeof(object);
 			}
@@ -873,20 +869,19 @@ namespace SnowBank.Data.Json
 
 		#region Copy/Pasta from CrystalJsonWriter
 
-		// code copié tel quel, qui pourrait aller sur une classe abstraite commune aux deux classes...
-
 		private const int MaximumObjectGraphDepth = 16;
 
-		/// <summary>Marque l'objet comme étant déjà traité</summary>
-		/// <exception cref="System.InvalidOperationException">Si cet objet a déjà été marqué</exception>
+		/// <summary>Test if an instance as already been visited before, to protect against cycles in the object graph</summary>
+		/// <exception cref="JsonSerializationException">If this instance has already been visited before, or if the object graph is too deep</exception>
+		/// <remarks>If the same instance is visited against before <seealso cref="Leave"/> is called, then an exception will be thrown.</remarks>
 		internal void MarkVisited(ref VisitingContext context, object? value, Type? type = null)
 		{
 			if (context.ObjectGraphDepth >= MaximumObjectGraphDepth)
-			{ // protection contre les object graph gigantesques
+			{ // protect against object graphs that are too deep
 				throw CrystalJson.Errors.Serialization_FailTooDeep(context.ObjectGraphDepth, value);
 			}
 			if (m_markVisited && value != null)
-			{ // protection contre les chaînes récursives d'objet (=> stack overflow)
+			{ // protect against cycles that would lead to a stack overflow
 				if (!context.Enter(value))
 				{
 					if (!CrystalJsonWriter.TypeSafeForRecursion(type ?? value.GetType()))
@@ -898,6 +893,9 @@ namespace SnowBank.Data.Json
 			++context.ObjectGraphDepth;
 		}
 
+		/// <summary>Mark this instance as visited.</summary>
+		/// <remarks>The call must match a previous call to <seealso cref="MarkVisited"/></remarks>
+		/// <exception cref="JsonSerializationException">If this instance is not on the stack, which would indicate a mismatch between <seealso cref="MarkVisited"/> and <seealso cref="Leave"/> calls</exception>
 		internal void Leave(ref VisitingContext context, object? value)
 		{
 			if (context.ObjectGraphDepth == 0) throw CrystalJson.Errors.Serialization_InternalDepthInconsistent();
@@ -908,83 +906,15 @@ namespace SnowBank.Data.Json
 			--context.ObjectGraphDepth;
 		}
 
-		/// <summary>Retourne le nom formaté d'un champ</summary>
-		/// <param name="name">Nom d'un champ (ex: "FooBar")</param>
-		/// <returns>Nom éventuellement formaté ("fooBar" en Camel Casing)</returns>
+		/// <summary>Format the name of a field, according to the current settings (camelCase, ...)</summary>
+		/// <param name="name">Name of the field (ex: <c>"FooBar"</c>)</param>
+		/// <returns>Formatted name (ex: <c>"fooBar"</c> if Camel Casing is enabled)</returns>
 		internal string FormatName(string name)
 		{
 			return m_camelCase ? CrystalJsonWriter.CamelCase(name) : name;
 		}
 
 		#endregion
-
-#if DEPRECATED
-		/// <summary>Utilise une méthode d'instance compatible avec la signature de JsonPack</summary>
-		public bool TryPackViaDuckTyping(object? value, Type declaredType, Type? runtimeType, [MaybeNullWhen(false)] out JsonValue result)
-		{
-			var t = DuckTypedJsonPackMethods.GetOrAdd(runtimeType ?? declaredType);
-			if (!t.HasValue)
-			{
-				result = null!;
-				return false;
-			}
-			result = t.Value(value, this.Settings, this.Resolver);
-
-			//if (runtimeType != declaredType && declaredType != typeof(object))
-			//{ // il faut peut être rajouter l'attribut '_class' ?
-			//	if (result is JsonObject obj && !this.Settings.HideClassId)
-			//	{
-			//TODO: BUGBUG: classId !
-			//		obj[JsonTokens.CustomClassAttribute] = "....";
-			//	}
-			//}
-			return true;
-		}
-#endif
-
-		internal delegate JsonValue CrystalJsonTypePacker(object? instance, CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver);
-
-#if DEPRECATED
-
-		private static QuasiImmutableCache<Type, Maybe<CrystalJsonTypePacker>> DuckTypedJsonPackMethods { get; } = new(GetInstanceJsonPackHandler, TypeEqualityComparer.Default);
-
-		private static Maybe<CrystalJsonTypePacker> GetInstanceJsonPackHandler(Type type)
-		{
-			// look for a "JsonPack" instance method
-			var m = type.GetMethod(nameof(IJsonPackable.JsonPack), BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-			if (m != null)
-			{
-				var packer = CreatePackerForJsonPackMethod(type, m);
-				return new Maybe<CrystalJsonTypePacker>(packer);
-			}
-
-			return Maybe.Nothing<CrystalJsonTypePacker>();
-		}
-
-		[Pure]
-		private static CrystalJsonTypePacker CreatePackerForJsonPackMethod(Type type, MethodInfo m)
-		{
-			// génère un packer: (value) => ((Type)value).JsonPack(CrystalJsonSettings, ICrystalJsonTypeResolver)
-
-			var prmValue = Expression.Parameter(typeof(object), "value");
-			var prmSettings = Expression.Parameter(typeof(CrystalJsonSettings), "settings");
-			var prmResolver = Expression.Parameter(typeof(ICrystalJsonTypeResolver), "resolver");
-
-			// * Il faut éventuellement caster la valeur de object vers le type attendu par la méthode
-			var castedInstance = prmValue.CastFromObject(type);
-
-			var prms = m.GetParameters();
-
-			// body == "((Type) value).JsonPack([settings, [resolver]])"
-			var body = prms.Length == 0 ? Expression.Call(castedInstance, m)
-				: prms.Length == 1 ? Expression.Call(castedInstance, m, prmSettings)
-				: prms.Length == 2 ? Expression.Call(castedInstance, m, prmSettings, prmResolver)
-				: throw new InvalidOperationException("Invalid signature for JsonPack instance method");
-
-			return Expression.Lambda<CrystalJsonTypePacker>(body, "<>_" + type.Name + "_JsonUnpack", true, [ prmValue, prmSettings, prmResolver ]).Compile();
-		}
-
-#endif
 
 	}
 
