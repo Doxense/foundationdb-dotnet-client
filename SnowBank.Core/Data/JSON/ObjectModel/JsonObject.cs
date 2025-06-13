@@ -154,7 +154,7 @@ namespace SnowBank.Data.Json
 		public JsonObject(JsonObject copy)
 		{
 			Contract.NotNull(copy);
-			
+
 			// we have to create a defensive copy
 			m_items = new Dictionary<string, JsonValue>(copy.m_items, copy.Comparer);
 			CheckInvariants();
@@ -186,9 +186,9 @@ namespace SnowBank.Data.Json
 #endif
 		}
 
-		internal static JsonObject CreateEmptyWithComparer(IEqualityComparer<string>? comparer) => new(new (comparer ?? StringComparer.Ordinal), readOnly: false);
+		internal static JsonObject CreateEmptyWithComparer(IEqualityComparer<string>? comparer) => new(new(comparer ?? StringComparer.Ordinal), readOnly: false);
 
-		internal static JsonObject CreateEmptyWithComparer<TValue>(IEqualityComparer<string>? comparer, [NoEnumeration] IEnumerable<KeyValuePair<string, TValue>>? items) => new(new (comparer ?? items switch
+		internal static JsonObject CreateEmptyWithComparer<TValue>(IEqualityComparer<string>? comparer, [NoEnumeration] IEnumerable<KeyValuePair<string, TValue>>? items) => new(new(comparer ?? items switch
 		{
 			null => StringComparer.Ordinal,
 			JsonObject obj => obj.m_items.Comparer,
@@ -276,7 +276,7 @@ namespace SnowBank.Data.Json
 			{
 				if (kv.Value is (JsonObject or JsonArray) && kv.Value.IsReadOnly)
 				{
-					copy ??= new (m_items.Count, m_items.Comparer);
+					copy ??= new(m_items.Count, m_items.Comparer);
 					copy[kv.Key] = kv.Value.Copy();
 				}
 			}
@@ -336,8 +336,8 @@ namespace SnowBank.Data.Json
 			if (deep)
 			{
 				return obj.Copy();
-			} 
-			
+			}
+
 			// simply create a shallow copy of the top-level
 			var items = obj.m_items;
 			return new JsonObject(new Dictionary<string, JsonValue>(items, items.Comparer), readOnly: false);
@@ -347,18 +347,18 @@ namespace SnowBank.Data.Json
 
 		#region Mutable...
 
-		/// <summary>Create a new empty JSON object</summary>
+		/// <summary>Creates a new empty JSON object</summary>
 		/// <returns>JSON object of size 0, that can be modified.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonObject Create() => new(new Dictionary<string, JsonValue>(0, StringComparer.Ordinal), readOnly: false);
 
-		/// <summary>Create a new empty JSON object</summary>
+		/// <summary>Creates a new empty JSON object</summary>
 		/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
 		/// <returns>JSON object of size 0, that can be modified.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonObject Create(IEqualityComparer<string> comparer) => new(new Dictionary<string, JsonValue>(0, comparer), readOnly: false);
 
-		/// <summary>Create a new JSON object with a single field</summary>
+		/// <summary>Creates a new JSON object with a single field</summary>
 		/// <param name="key0">Name of the field</param>
 		/// <param name="value0">Value of the field</param>
 		/// <returns>JSON object of size 1, that can be modified.</returns>
@@ -368,7 +368,7 @@ namespace SnowBank.Data.Json
 			[key0] = value0 ?? JsonNull.Null
 		}, readOnly: false);
 
-		/// <summary>Create a new JSON object with a single field</summary>
+		/// <summary>Creates a new JSON object with a single field</summary>
 		/// <param name="item">Name and value of the field</param>
 		/// <returns>JSON object of size 1, that can be modified.</returns>
 		[Pure]
@@ -377,7 +377,7 @@ namespace SnowBank.Data.Json
 			[item.Key] = item.Value ?? JsonNull.Null
 		}, readOnly: false);
 
-		/// <summary>Create a new JSON object with 2 fields</summary>
+		/// <summary>Creates a new JSON object with 2 fields</summary>
 		/// <param name="key0">Name of the first field</param>
 		/// <param name="value0">Value of the first field</param>
 		/// <param name="key1">Name of the second field</param>
@@ -392,7 +392,7 @@ namespace SnowBank.Data.Json
 			[key1] = value1 ?? JsonNull.Null,
 		}, readOnly: false);
 
-		/// <summary>Create a new JSON object with 2 fields</summary>
+		/// <summary>Creates a new JSON object with 2 fields</summary>
 		/// <param name="item1">Name and value of the first field</param>
 		/// <param name="item2">Name and value of the second field</param>
 		/// <returns>JSON object of size 2, that can be modified.</returns>
@@ -408,7 +408,7 @@ namespace SnowBank.Data.Json
 			[item2.Key] = item2.Value ?? JsonNull.Null,
 		}, readOnly: false);
 
-		/// <summary>Create a new JSON object with 3 fields</summary>
+		/// <summary>Creates a new JSON object with 3 fields</summary>
 		/// <param name="key0">Name of the first field</param>
 		/// <param name="value0">Value of the first field</param>
 		/// <param name="key1">Name of the second field</param>
@@ -426,7 +426,7 @@ namespace SnowBank.Data.Json
 			{ key2, value2 ?? JsonNull.Null },
 		}, readOnly: false);
 
-		/// <summary>Create a new JSON object with 3 fields</summary>
+		/// <summary>Creates a new JSON object with 3 fields</summary>
 		/// <param name="item1">Name and value of the first field</param>
 		/// <param name="item2">Name and value of the second field</param>
 		/// <param name="item3">Name and value of the third field</param>
@@ -445,7 +445,7 @@ namespace SnowBank.Data.Json
 			[item3.Key] = item3.Value ?? JsonNull.Null,
 		}, readOnly: false);
 
-		/// <summary>Create a new JSON object with 4 fields</summary>
+		/// <summary>Creates a new JSON object with 4 fields</summary>
 		/// <param name="key0">Name of the first field</param>
 		/// <param name="value0">Value of the first field</param>
 		/// <param name="key1">Name of the second field</param>
@@ -466,7 +466,7 @@ namespace SnowBank.Data.Json
 			{ key3, value3 ?? JsonNull.Null },
 		}, readOnly: false);
 
-		/// <summary>Create a new JSON object with 4 fields</summary>
+		/// <summary>Creates a new JSON object with 4 fields</summary>
 		/// <param name="item1">Name and value of the first field</param>
 		/// <param name="item2">Name and value of the second field</param>
 		/// <param name="item3">Name and value of the third field</param>
@@ -488,7 +488,7 @@ namespace SnowBank.Data.Json
 			[item4.Key] = item4.Value ?? JsonNull.Null,
 		}, readOnly: false);
 
-		/// <summary>Create a new JSON object with the specified items</summary>
+		/// <summary>Creates a new JSON object with the specified items</summary>
 		/// <param name="items">Map of key/values to copy</param>
 		/// <returns>New JSON object with the same elements in <paramref name="items"/></returns>
 		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
@@ -498,7 +498,7 @@ namespace SnowBank.Data.Json
 			return CreateEmptyWithComparer(null, items).AddRange(items);
 		}
 
-		/// <summary>Create a new JSON object with the specified items</summary>
+		/// <summary>Creates a new JSON object with the specified items</summary>
 		/// <param name="items">Map of key/values to copy</param>
 		/// <returns>New JSON object with the same elements in <paramref name="items"/></returns>
 		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
@@ -547,6 +547,7 @@ namespace SnowBank.Data.Json
 			return readOnly ? JsonObject.ReadOnly.Create(items) : CreateEmptyWithComparer(null).AddRange(items);
 		}
 
+		/// <summary>Creates a new JSON object with the specified items</summary>
 		/// <param name="items">Map of key/values to copy</param>
 		/// <returns>New JSON object with the same elements in <paramref name="items"/></returns>
 		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
@@ -558,7 +559,7 @@ namespace SnowBank.Data.Json
 			return Create().AddRange(items);
 		}
 
-		/// <summary>Create a new JSON object with the specified items</summary>
+		/// <summary>Creates a new JSON object with the specified items</summary>
 		/// <param name="items">Map of key/values to copy</param>
 		/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
 		/// <returns>New JSON object with the same elements in <paramref name="items"/></returns>
@@ -568,7 +569,7 @@ namespace SnowBank.Data.Json
 			return CreateEmptyWithComparer(comparer).AddRange(items);
 		}
 
-		/// <summary>Create a new JSON object with the specified items</summary>
+		/// <summary>Creates a new JSON object with the specified items</summary>
 		/// <param name="items">Map of key/values to copy</param>
 		/// <returns>New JSON object with the same elements in <paramref name="items"/></returns>
 		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
@@ -577,7 +578,7 @@ namespace SnowBank.Data.Json
 			return Create().AddValues(items);
 		}
 
-		/// <summary>Create a new JSON object with the specified items</summary>
+		/// <summary>Creates a new JSON object with the specified items</summary>
 		/// <param name="items">Map of key/values to copy</param>
 		/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
 		/// <returns>New JSON object with the same elements in <paramref name="items"/></returns>
@@ -587,7 +588,7 @@ namespace SnowBank.Data.Json
 			return Create(comparer).AddValues(items);
 		}
 
-		/// <summary>Create a new JSON object with the specified items</summary>
+		/// <summary>Creates a new JSON object with the specified items</summary>
 		/// <param name="items">Map of key/values to copy</param>
 		/// <returns>New JSON object with the same elements in <paramref name="items"/></returns>
 		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
@@ -597,7 +598,7 @@ namespace SnowBank.Data.Json
 			return CreateEmptyWithComparer(null).AddRange(items.AsSpan());
 		}
 
-		/// <summary>Create a new JSON object with the specified items</summary>
+		/// <summary>Creates a new JSON object with the specified items</summary>
 		/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
 		/// <param name="items">Map of key/values to copy</param>
 		/// <returns>New JSON object with the same elements in <paramref name="items"/></returns>
@@ -608,7 +609,7 @@ namespace SnowBank.Data.Json
 			return CreateEmptyWithComparer(comparer).AddRange(items.AsSpan());
 		}
 
-		/// <summary>Create a new JSON object with the specified items</summary>
+		/// <summary>Creates a new JSON object with the specified items</summary>
 		/// <param name="items">Map of key/values to copy</param>
 		/// <returns>New JSON object with the same elements in <paramref name="items"/></returns>
 		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
@@ -618,7 +619,7 @@ namespace SnowBank.Data.Json
 			return CreateEmptyWithComparer(null).AddRange(items.AsSpan());
 		}
 
-		/// <summary>Create a new JSON object with the specified items</summary>
+		/// <summary>Creates a new JSON object with the specified items</summary>
 		/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
 		/// <param name="items">Map of key/values to copy</param>
 		/// <returns>New JSON object with the same elements in <paramref name="items"/></returns>
@@ -629,7 +630,7 @@ namespace SnowBank.Data.Json
 			return CreateEmptyWithComparer(comparer).AddRange(items.AsSpan());
 		}
 
-		/// <summary>Create a new JSON object with the specified items</summary>
+		/// <summary>Creates a new JSON object with the specified items</summary>
 		/// <param name="items">Map of key/values to copy</param>
 		/// <returns>New JSON object with the same elements in <paramref name="items"/></returns>
 		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
@@ -639,7 +640,7 @@ namespace SnowBank.Data.Json
 			return CreateEmptyWithComparer(null, items).AddRange(items);
 		}
 
-		/// <summary>Create a new JSON object with the specified items</summary>
+		/// <summary>Creates a new JSON object with the specified items</summary>
 		/// <param name="items">Map of key/values to copy</param>
 		/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
 		/// <returns>New JSON object with the same elements in <paramref name="items"/></returns>
@@ -650,7 +651,7 @@ namespace SnowBank.Data.Json
 			return CreateEmptyWithComparer(comparer, items).AddRange(items);
 		}
 
-		/// <summary>Create a new JSON object with the specified items</summary>
+		/// <summary>Creates a new JSON object with the specified items</summary>
 		/// <param name="items">Map of key/values to copy</param>
 		/// <returns>New JSON object with the same elements in <paramref name="items"/></returns>
 		/// <remarks>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</remarks>
@@ -660,7 +661,7 @@ namespace SnowBank.Data.Json
 			return CreateEmptyWithComparer(null).AddRange(items);
 		}
 
-		/// <summary>Create a new JSON object with the specified items</summary>
+		/// <summary>Creates a new JSON object with the specified items</summary>
 		/// <param name="comparer">The <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation to use when comparing keys, or <see langword="null" /> to use the default <see cref="T:System.Collections.Generic.EqualityComparer`1" /> for the type of the key.</param>
 		/// <param name="items">Map of key/values to copy</param>
 		/// <returns>New JSON object with the same elements in <paramref name="items"/></returns>
@@ -2499,7 +2500,7 @@ namespace SnowBank.Data.Json
 #endif
 		}
 
-		bool ICollection<KeyValuePair<string, JsonValue>>.Contains(KeyValuePair<string, JsonValue> keyValuePair) => ((ICollection<KeyValuePair<string, JsonValue>>)m_items).Contains(keyValuePair);
+		bool ICollection<KeyValuePair<string, JsonValue>>.Contains(KeyValuePair<string, JsonValue> keyValuePair) => ((ICollection<KeyValuePair<string, JsonValue>>) m_items).Contains(keyValuePair);
 
 		/// <summary>Determines whether this <see cref="JsonObject"/> contains an element with the given <paramref name="key"/> and with a non-null value</summary>
 		/// <param name="key">Name of the key</param>
@@ -2789,7 +2790,7 @@ namespace SnowBank.Data.Json
 				}
 				else if (segment.TryGetIndex(out var idx))
 				{ // array index
-					
+
 					if (current is not JsonArray arr)
 					{
 						if (!current.IsNullOrMissing())
@@ -3378,7 +3379,7 @@ namespace SnowBank.Data.Json
 			var set = new HashSet<string>();
 			int p = 0;
 
-			foreach(var kvp in defaults)
+			foreach (var kvp in defaults)
 			{
 				if (string.IsNullOrEmpty(kvp.Key))
 				{
@@ -3497,11 +3498,11 @@ namespace SnowBank.Data.Json
 			Contract.Debug.Requires(value is not null && filter is not null);
 
 			var obj = new JsonObject(value.Count, value.Comparer);
-			foreach(var item in value)
+			foreach (var item in value)
 			{
 				if (!filter(item.Key))
 				{
-					obj[item.Key] = deepCopy ? item.Value.Copy() :  item.Value;
+					obj[item.Key] = deepCopy ? item.Value.Copy() : item.Value;
 				}
 			}
 			return obj;
@@ -3753,7 +3754,7 @@ namespace SnowBank.Data.Json
 				return false;
 			}
 
-			foreach(var v in m_items.Values)
+			foreach (var v in m_items.Values)
 			{
 				if (v.IsSmallValue())
 				{
@@ -3779,14 +3780,14 @@ namespace SnowBank.Data.Json
 
 			var sb = new StringBuilder("{ ");
 			int i = 0;
-			foreach(var kv in m_items)
+			foreach (var kv in m_items)
 			{
 				if (i >= MAX_ITEMS) { sb.Append($", /* \u2026 {(m_items.Count - MAX_ITEMS):N0} more */"); break; }
 				if (i > 0) sb.Append(", ");
 
 				sb.Append(kv.Key).Append(": ");
 				if (depth == 0 || kv.Value.IsSmallValue())
-				{ 
+				{
 					sb.Append(kv.Value.GetCompactRepresentation(depth + 1));
 				}
 				else
