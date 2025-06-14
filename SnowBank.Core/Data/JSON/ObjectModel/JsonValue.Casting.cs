@@ -26,6 +26,7 @@
 
 namespace SnowBank.Data.Json
 {
+	using System.Collections.Immutable;
 	using System.Net;
 	using System.Text;
 
@@ -900,190 +901,230 @@ namespace SnowBank.Data.Json
 		#endregion
 
 		#region Common Array Types
+
+		#region string[]...
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonValue(ReadOnlySpan<string?> values)
+		{
+			return JsonArray.FromValues(values);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonValue(string?[]? values)
+		{
+			return JsonArray.FromValues(values) ?? JsonNull.Null;
+		}
 		
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static explicit operator JsonValue(string?[]? values)
+		public static implicit operator JsonValue(List<string>? values)
 		{
-			if (values is null) return JsonNull.Null;
-			var arr = new JsonArray(values.Length);
-			foreach (var item in values)
-			{
-				arr.Add(JsonString.Return(item));
-			}
-			return arr;
+			return JsonArray.FromValues(values) ?? JsonNull.Null;
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static explicit operator JsonValue(ReadOnlySpan<string?> values)
+		public static implicit operator JsonValue(ImmutableArray<string> values)
 		{
-			var arr = new JsonArray(values.Length);
-			foreach (var item in values)
-			{
-				arr.Add(JsonString.Return(item));
-			}
-			return arr;
+			return JsonArray.FromValues(values.AsSpan());
+		}
+
+		#endregion
+
+		#region int[]...
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonValue(ReadOnlySpan<int> values)
+		{
+			return JsonArray.FromValues(values);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static explicit operator JsonValue(int[]? values)
+		public static implicit operator JsonValue(int[]? values)
 		{
-			if (values is null) return JsonNull.Null;
-			var arr = new JsonArray(values.Length);
-			foreach (var item in values)
-			{
-				arr.Add(JsonNumber.Return(item));
-			}
-			return arr;
+			return JsonArray.FromValues(values) ?? JsonNull.Null;
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static explicit operator JsonValue(ReadOnlySpan<int> values)
+		public static implicit operator JsonValue(List<int>? values)
 		{
-			var arr = new JsonArray(values.Length);
-			foreach (var item in values)
-			{
-				arr.Add(JsonNumber.Return(item));
-			}
-			return arr;
+			return JsonArray.FromValues(values) ?? JsonNull.Null;
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static explicit operator JsonValue(long[]? values)
+		public static implicit operator JsonValue(ImmutableArray<int> values)
 		{
-			if (values is null) return JsonNull.Null;
-			var arr = new JsonArray(values.Length);
-			foreach (var item in values)
-			{
-				arr.Add(JsonNumber.Return(item));
-			}
-			return arr;
+			return JsonArray.FromValues(values.AsSpan());
+		}
+
+		#endregion
+
+		#region long[]...
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonValue(ReadOnlySpan<long> values)
+		{
+			return JsonArray.FromValues(values);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static explicit operator JsonValue(ReadOnlySpan<long> values)
+		public static implicit operator JsonValue(long[]? values)
 		{
-			var arr = new JsonArray(values.Length);
-			foreach (var item in values)
-			{
-				arr.Add(JsonNumber.Return(item));
-			}
-			return arr;
+			return JsonArray.FromValues(values) ?? JsonNull.Null;
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static explicit operator JsonValue(float[]? values)
+		public static implicit operator JsonValue(List<long>? values)
 		{
-			if (values is null) return JsonNull.Null;
-			var arr = new JsonArray(values.Length);
-			foreach (var item in values)
-			{
-				arr.Add(JsonNumber.Return(item));
-			}
-			return arr;
+			return JsonArray.FromValues(values) ?? JsonNull.Null;
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static explicit operator JsonValue(ReadOnlySpan<float> values)
+		public static implicit operator JsonValue(ImmutableArray<long> values)
 		{
-			var arr = new JsonArray(values.Length);
-			foreach (var item in values)
-			{
-				arr.Add(JsonNumber.Return(item));
-			}
-			return arr;
+			return JsonArray.FromValues(values.AsSpan());
+		}
+
+		#endregion
+
+		#region long[]...
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonValue(ReadOnlySpan<float> values)
+		{
+			return JsonArray.FromValues(values);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static explicit operator JsonValue(double[]? values)
+		public static implicit operator JsonValue(float[]? values)
 		{
-			if (values is null) return JsonNull.Null;
-			var arr = new JsonArray(values.Length);
-			foreach (var item in values)
-			{
-				arr.Add(JsonNumber.Return(item));
-			}
-			return arr;
+			return JsonArray.FromValues(values) ?? JsonNull.Null;
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static explicit operator JsonValue(ReadOnlySpan<double> values)
+		public static implicit operator JsonValue(List<float>? values)
 		{
-			var arr = new JsonArray(values.Length);
-			foreach (var item in values)
-			{
-				arr.Add(JsonNumber.Return(item));
-			}
-			return arr;
+			return JsonArray.FromValues(values) ?? JsonNull.Null;
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static explicit operator JsonValue(Guid[]? values)
+		public static implicit operator JsonValue(ImmutableArray<float> values)
 		{
-			if (values is null) return JsonNull.Null;
-			var arr = new JsonArray(values.Length);
-			foreach (var item in values)
-			{
-				arr.Add(JsonString.Return(item));
-			}
-			return arr;
+			return JsonArray.FromValues(values.AsSpan());
+		}
+
+		#endregion
+
+		#region long[]...
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonValue(ReadOnlySpan<double> values)
+		{
+			return JsonArray.FromValues(values);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static explicit operator JsonValue(ReadOnlySpan<Guid> values)
+		public static implicit operator JsonValue(double[]? values)
 		{
-			var arr = new JsonArray(values.Length);
-			foreach (var item in values)
-			{
-				arr.Add(JsonString.Return(item));
-			}
-			return arr;
+			return JsonArray.FromValues(values) ?? JsonNull.Null;
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static explicit operator JsonValue(Uuid128[]? values)
+		public static implicit operator JsonValue(List<double>? values)
 		{
-			if (values is null) return JsonNull.Null;
-			var arr = new JsonArray(values.Length);
-			foreach (var item in values)
-			{
-				arr.Add(JsonString.Return(item));
-			}
-			return arr;
+			return JsonArray.FromValues(values) ?? JsonNull.Null;
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static explicit operator JsonValue(ReadOnlySpan<Uuid128> values)
+		public static implicit operator JsonValue(ImmutableArray<double> values)
 		{
-			var arr = new JsonArray(values.Length);
-			foreach (var item in values)
-			{
-				arr.Add(JsonString.Return(item));
-			}
-			return arr;
+			return JsonArray.FromValues(values.AsSpan());
+		}
+
+		#endregion
+
+		#region long[]...
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonValue(ReadOnlySpan<Guid> values)
+		{
+			return JsonArray.FromValues(values);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static explicit operator JsonValue(NodaTime.Instant[]? values)
+		public static implicit operator JsonValue(Guid[]? values)
 		{
-			if (values is null) return JsonNull.Null;
-			var arr = new JsonArray(values.Length);
-			foreach (var item in values)
-			{
-				arr.Add(JsonString.Return(item));
-			}
-			return arr;
+			return JsonArray.FromValues(values) ?? JsonNull.Null;
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static explicit operator JsonValue(ReadOnlySpan<NodaTime.Instant> values)
+		public static implicit operator JsonValue(List<Guid>? values)
 		{
-			var arr = new JsonArray(values.Length);
-			foreach (var item in values)
-			{
-				arr.Add(JsonString.Return(item));
-			}
-			return arr;
+			return JsonArray.FromValues(values) ?? JsonNull.Null;
 		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonValue(ImmutableArray<Guid> values)
+		{
+			return JsonArray.FromValues(values.AsSpan());
+		}
+
+		#endregion
+
+		#region long[]...
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonValue(ReadOnlySpan<Uuid128> values)
+		{
+			return JsonArray.FromValues(values);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonValue(Uuid128[]? values)
+		{
+			return JsonArray.FromValues(values) ?? JsonNull.Null;
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonValue(List<Uuid128>? values)
+		{
+			return JsonArray.FromValues(values) ?? JsonNull.Null;
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonValue(ImmutableArray<Uuid128> values)
+		{
+			return JsonArray.FromValues(values.AsSpan());
+		}
+
+		#endregion
+
+		#region long[]...
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonValue(ReadOnlySpan<NodaTime.Instant> values)
+		{
+			return JsonArray.FromValues(values);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonValue(NodaTime.Instant[]? values)
+		{
+			return JsonArray.FromValues(values) ?? JsonNull.Null;
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonValue(List<NodaTime.Instant>? values)
+		{
+			return JsonArray.FromValues(values) ?? JsonNull.Null;
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator JsonValue(ImmutableArray<NodaTime.Instant> values)
+		{
+			return JsonArray.FromValues(values.AsSpan());
+		}
+
+		#endregion
 
 		#endregion
 
