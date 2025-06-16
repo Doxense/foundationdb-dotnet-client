@@ -32,7 +32,7 @@ namespace System
 	using SnowBank.Buffers;
 	using SnowBank.Buffers.Binary;
 
-	/// <summary>Represents a 80-bit UUID that is stored in high-endian format on the wire</summary>
+	/// <summary>Represents an 80-bit UUID that is stored in high-endian format on the wire</summary>
 	[DebuggerDisplay("[{ToString(),nq}]")]
 	[ImmutableObject(true), PublicAPI, Serializable]
 	public readonly struct Uuid80 : IFormattable, IEquatable<Uuid80>, IComparable<Uuid80>
@@ -56,9 +56,9 @@ namespace System
 
 		#region Constructors...
 
-		/// <summary>Pack components into a 80-bit UUID</summary>
-		/// <param name="a">XXXX-........-........</param>
-		/// <param name="b">....-XXXXXXXX-XXXXXXXX</param>
+		/// <summary>Pack components into an 80-bit UUID</summary>
+		/// <param name="a"><c>XXXX-........-........</c></param>
+		/// <param name="b"><c>....-XXXXXXXX-XXXXXXXX</c></param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid80(ushort a, ulong b)
 		{
@@ -66,7 +66,7 @@ namespace System
 			this.Lo = b;
 		}
 
-		/// <summary>Pack components into a 80-bit UUID</summary>
+		/// <summary>Pack components into an 80-bit UUID</summary>
 		/// <param name="a">XXXX-........-........</param>
 		/// <param name="b">....-XXXXXXXX-XXXXXXXX</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -76,7 +76,7 @@ namespace System
 			this.Lo = (ulong) b;
 		}
 
-		/// <summary>Pack components into a 80-bit UUID</summary>
+		/// <summary>Pack components into an 80-bit UUID</summary>
 		/// <param name="a">XXXX-........-........</param>
 		/// <param name="b">....-XXXXXXXX-XXXXXXXX</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -87,7 +87,7 @@ namespace System
 			this.Lo = (ulong) b;
 		}
 
-		/// <summary>Pack components into a 80-bit UUID</summary>
+		/// <summary>Pack components into an 80-bit UUID</summary>
 		/// <param name="a">XXXX-........-........</param>
 		/// <param name="b">....-XXXXXXXX-........</param>
 		/// <param name="c">....-........-XXXXXXXX</param>
@@ -98,7 +98,7 @@ namespace System
 			this.Lo = ((ulong) b) << 32 | c;
 		}
 
-		/// <summary>Pack components into a 80-bit UUID</summary>
+		/// <summary>Pack components into an 80-bit UUID</summary>
 		/// <param name="a">XXXX-........-........</param>
 		/// <param name="b">....-XXXXXXXX-........</param>
 		/// <param name="c">....-........-XXXXXXXX</param>
@@ -110,7 +110,7 @@ namespace System
 			this.Lo = ((ulong) (uint) b) << 32 | (uint) c;
 		}
 
-		/// <summary>Pack components into a 80-bit UUID</summary>
+		/// <summary>Pack components into an 80-bit UUID</summary>
 		/// <param name="a">XXXX-........-........</param>
 		/// <param name="b">....-XXXX....-........</param>
 		/// <param name="c">....-....XXXX-........</param>
@@ -208,7 +208,7 @@ namespace System
 
 		#region Reading...
 
-		/// <summary>Read a 80-bit UUID from a byte array</summary>
+		/// <summary>Reads an 80-bit UUID from a byte array</summary>
 		/// <param name="value">Array of exactly 0 or 10 bytes</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid80 Read(byte[] value)
@@ -216,7 +216,7 @@ namespace System
 			return Read(value.AsSpan());
 		}
 
-		/// <summary>Read a 80-bit UUID from slice of memory</summary>
+		/// <summary>Reads an 80-bit UUID from slice of memory</summary>
 		/// <param name="value">slice of exactly 0 or 10 bytes</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid80 Read(Slice value)
@@ -224,7 +224,7 @@ namespace System
 			return Read(value.Span);
 		}
 
-		/// <summary>Read a 80-bit UUID from slice of memory</summary>
+		/// <summary>Reads an 80-bit UUID from slice of memory</summary>
 		/// <param name="value">Span of exactly 0 or 10 bytes</param>
 		[Pure]
 		public static Uuid80 Read(ReadOnlySpan<byte> value)
@@ -397,7 +397,7 @@ namespace System
 		/// <param name="formatProvider">An object that supplies culture-specific formatting information. Only used for the "R" format.</param>
 		/// <returns>The value of this <see cref="Uuid80"/>, using the specified format.</returns>
 		/// <example>
-		/// <p>The <b>D</b> format encodes the value as three groups of hexadecimal digits, separated by an hyphen: "aaaa-bbbbbbbb-cccccccc" (22 characters).</p>
+		/// <p>The <b>D</b> format encodes the value as three groups of hexadecimal digits, separated by a hyphen: "aaaa-bbbbbbbb-cccccccc" (22 characters).</p>
 		/// <p>The <b>X</b> and <b>N</b> format encodes the value as a single group of 20 hexadecimal digits: "aaaabbbbbbbbcccccccc" (20 characters).</p>
 		/// <p>The <b>B</b> format is equivalent to the <b>D</b> format, but surrounded with '{' and '}': "{aaaa-bbbbbbbb-cccccccc}" (24 characters).</p>
 		/// </example>
@@ -490,7 +490,7 @@ namespace System
 			return a > 9 ? (char)(a - 10 + 'a') : (char)(a + '0');
 		}
 
-		private static unsafe char* HexsToLowerChars(char* ptr, ushort a)
+		private static unsafe char* HexToLowerChars(char* ptr, ushort a)
 		{
 			Contract.Debug.Requires(ptr != null);
 			ptr[0] = HexToLowerChar((uint) a >> 12);
@@ -500,7 +500,7 @@ namespace System
 			return ptr + 4;
 		}
 
-		private static unsafe char* HexsToLowerChars(char* ptr, uint a)
+		private static unsafe char* HexToLowerChars(char* ptr, uint a)
 		{
 			Contract.Debug.Requires(ptr != null);
 			ptr[0] = HexToLowerChar(a >> 28);
@@ -555,15 +555,15 @@ namespace System
 			if (quotes) *ptr++ = '{';
 			ptr = upper
 				? Hex16ToUpperChars(ptr, hi)
-				: HexsToLowerChars(ptr, hi);
+				: HexToLowerChars(ptr, hi);
 			if (separator) *ptr++ = '-';
 			ptr = upper
 				? Hex32ToUpperChars(ptr, (uint) (lo >> 32))
-				: HexsToLowerChars(ptr, (uint) (lo >> 32));
+				: HexToLowerChars(ptr, (uint) (lo >> 32));
 			if (separator) *ptr++ = '-';
 			ptr = upper
 				? Hex32ToUpperChars(ptr, (uint) lo)
-				: HexsToLowerChars(ptr, (uint) lo);
+				: HexToLowerChars(ptr, (uint) lo);
 			if (quotes) *ptr++ = '}';
 
 			Contract.Debug.Ensures(ptr == buffer + size);
@@ -701,21 +701,21 @@ namespace System
 #if NET8_0_OR_GREATER
 
 		/// <summary>Return the equivalent <see cref="UInt128"/></summary>
-		/// <remarks>The integer correspond to the big-endian version of this instances serialized as a byte array</remarks>
+		/// <remarks>The integer correspond to the big-endian version of this instance, serialized as a byte array</remarks>
 		public UInt128 ToUInt128()
 		{
 			Span<byte> tmp = stackalloc byte[16];
-			tmp.Fill(0);
+			tmp.Clear();
 			WriteUnsafe(this.Hi, this.Lo, tmp);
 			return System.Buffers.Binary.BinaryPrimitives.ReadUInt128BigEndian(tmp);
 		}
 
 		/// <summary>Return the equivalent <see cref="Int128"/></summary>
-		/// <remarks>The integer correspond to the big-endian version of this instances serialized as a byte array</remarks>
+		/// <remarks>The integer correspond to the big-endian version of this instance, serialized as a byte array</remarks>
 		public Int128 ToInt128()
 		{
 			Span<byte> tmp = stackalloc byte[16];
-			tmp.Fill(0);
+			tmp.Clear();
 			WriteUnsafe(this.Hi, this.Lo, tmp);
 			return System.Buffers.Binary.BinaryPrimitives.ReadInt128BigEndian(tmp);
 		}
@@ -891,7 +891,7 @@ namespace System
 			/// <summary>Return a new random 80-bit UUID</summary>
 			/// <returns>Uuid80 that contains 80 bits worth of randomness.</returns>
 			/// <remarks>
-			/// <p>This methods needs to acquire a lock. If multiple threads needs to generate ids concurrently, you may need to create an instance of this class for each threads.</p>
+			/// <p>This method needs to acquire a lock. If multiple threads needs to generate ids concurrently, you may need to create an instance of this class for each thread.</p>
 			/// <p>The uniqueness of the generated uuids depends on the quality of the random number generator. If you cannot tolerate collisions, you either have to check if a newly generated uid already exists, or use a different kind of generator.</p>
 			/// </remarks>
 			[Pure]

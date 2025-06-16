@@ -222,7 +222,7 @@ namespace SnowBank.Data.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte[] ToJsonBytes(this JsonValue? value) => CrystalJson.ToBytes(value);
 
-		/// <summary>Serializes a JSON value into a byte array, using custom settings</summary>
+		/// <summary>Serializes a <see cref="JsonValue"/> into a byte array, using custom settings</summary>
 		/// <param name="value">JSON value to serialize</param>
 		/// <param name="settings">Custom serialization settings</param>
 		/// <returns>Array of the utf-8 encoded text representation of the JSON value</returns>
@@ -230,14 +230,14 @@ namespace SnowBank.Data.Json
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte[] ToJsonBytes(this JsonValue? value, CrystalJsonSettings? settings) => CrystalJson.ToBytes(value, settings);
 
-		/// <summary>Serializes a JSON value into a <see cref="Slice"/>, using custom settings</summary>
+		/// <summary>Serializes a <see cref="JsonValue"/> into a <see cref="Slice"/>, using custom settings</summary>
 		/// <param name="value">JSON value to serialize</param>
 		/// <param name="settings">Custom serialization settings</param>
 		/// <returns><see cref="Slice"/> that contains the utf-8 encoded text representation of the JSON value</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice ToJsonSlice(this JsonValue? value, CrystalJsonSettings? settings = null) => CrystalJson.ToSlice(value, settings);
 
-		/// <summary>Serializes a JSON value into a <see cref="Slice"/>, using custom settings</summary>
+		/// <summary>Serializes a <see cref="JsonValue"/> into a <see cref="Slice"/>, using custom settings</summary>
 		/// <param name="value">JSON value to serialize</param>
 		/// <param name="pool">Pool used to allocate the content of the slice (use <see cref="ArrayPool{T}.Shared"/> if <see langword="null"/>)</param>
 		/// <param name="settings">Custom serialization settings</param>
@@ -252,7 +252,7 @@ namespace SnowBank.Data.Json
 		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
 		internal static T FailRequiredValueIsNullOrMissing<T>() => throw new JsonBindingException($"Required JSON value of type {typeof(T).GetFriendlyName()} was null or missing");
 
-		/// <summary>Converts this required JSON value into an instance of the specified type.</summary>
+		/// <summary>Converts this required <see cref="JsonValue"/> into an instance of the specified type.</summary>
 		/// <typeparam name="TValue">Target managed type</typeparam>
 		/// <param name="value">JSON value to be converted</param>
 		/// <param name="resolver">Optional type resolver used to bind the value into a managed CLR type (<see cref="CrystalJson.DefaultResolver"/> is omitted)</param>

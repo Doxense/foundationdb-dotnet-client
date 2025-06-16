@@ -1321,7 +1321,7 @@ namespace SnowBank.Data.Json
 			WriteRaw(rawJson.ToStringAndClear());
 		}
 
-		/// <summary>Write a property name that is KNOWN to not require any escaping.</summary>
+		/// <summary>Writes a property name that is KNOWN to not require any escaping.</summary>
 		/// <param name="name">Name of the property that MUST NOT REQUIRE ANY ESCAPING!</param>
 		/// <remarks>Calling this with a .NET object property or field name (obtained via reflection or nameof(...)) is OK, but calling with a dictionary key or user-input is NOT safe!</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1331,7 +1331,7 @@ namespace SnowBank.Data.Json
 			WritePropertyName(name, knownSafe: true);
 		}
 
-		/// <summary>Write a property name that is KNOWN to not require any escaping.</summary>
+		/// <summary>Writes a property name that is KNOWN to not require any escaping.</summary>
 		/// <param name="name">Name of the property that MUST NOT REQUIRE ANY ESCAPING!</param>
 		/// <remarks>Calling this with a .NET object property or field name (obtained via reflection or nameof(...)) is OK, but calling with a dictionary key or user-input is NOT safe!</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1341,7 +1341,7 @@ namespace SnowBank.Data.Json
 			WritePropertyName(name);
 		}
 
-		/// <summary>Write a property name that MAY require escaping.</summary>
+		/// <summary>Writes a property name that MAY require escaping.</summary>
 		/// <param name="name">Name of the property that will be escaped if necessary</param>
 		/// <remarks>
 		/// <para>This method should be used whenever the origin of key is not controlled, and may contain any character that would require escaping ('<c>\</c>', '<c>"</c>', ...).</para>
@@ -1352,7 +1352,7 @@ namespace SnowBank.Data.Json
 			WritePropertyName(name, knownSafe: false);
 		}
 
-		/// <summary>Write a property name that MAY require escaping.</summary>
+		/// <summary>Writes a property name that MAY require escaping.</summary>
 		/// <param name="name">Name of the property that will be escaped if necessary</param>
 		/// <remarks>
 		/// <para>This method should be used whenever the origin of key is not controlled, and may contain any character that would require escaping ('<c>\</c>', '<c>"</c>', ...).</para>
@@ -1445,9 +1445,21 @@ namespace SnowBank.Data.Json
 			m_buffer.Write(m_formatted ? ": " : ":");
 		}
 
-		/// <summary>Write a field name that is an integer</summary>
-		/// <param name="name">Integer</param>
-		/// <remarks>This is used for objects with keys that are integers like: <c>{ "0": ..., "1": ...., ....}</c>.</remarks>
+		/// <summary>Writes a numerical property name</summary>
+		/// <param name="name">Name to write</param>
+		/// <remarks>
+		/// <para>This method inserts any required <c>,</c> separator, and appends the <c>:</c></para>
+		/// <para>This is used for objects with keys that are integers like: <c>{ "0": ..., "1": ...., ....}</c>.</para>
+		/// </remarks>
+		/// <example><code>
+		/// // first field
+		/// writer.WriteName(123L); // => `"123": `
+		/// writer.WriteValue(/*...*/);
+		/// 
+		/// // following fields
+		/// writer.WriteName(456L); // => `, "456": `
+		/// writer.WriteValue(/*...*/);
+		/// </code></example>
 		public void WriteName(long name)
 		{
 			WriteFieldSeparator();
@@ -1469,11 +1481,25 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		/// <summary>Writes a numerical property name</summary>
+		/// <param name="name">Name to write</param>
+		/// <remarks>
+		/// <para>This method inserts any required <c>,</c> separator, and appends the <c>:</c></para>
+		/// <para>This is used for objects with keys that are integers like: <c>{ "0": ..., "1": ...., ....}</c>.</para>
+		/// </remarks>
+		/// <example><code>
+		/// // first field
+		/// writer.WriteName(123); // => `"123": `
+		/// writer.WriteValue(/*...*/);
+		/// 
+		/// // following fields
+		/// writer.WriteName(456); // => `, "456": `
+		/// writer.WriteValue(/*...*/);
+		/// </code></example>
 		public void WriteName(int name)
 		{
 			WriteFieldSeparator();
 			WritePropertyName(name);
-
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1512,6 +1538,7 @@ namespace SnowBank.Data.Json
 
 		public void WriteUnsafeName(string name)
 		{
+			//TODO: REVIEW: => internal? (others could use JsonEncodedPropertyName is they need perf!
 			WriteFieldSeparator();
 			if (!m_javascript)
 			{
@@ -1526,10 +1553,13 @@ namespace SnowBank.Data.Json
 
 		#region WriteValue...
 
+		/// <summary>Writes a <see cref="JsonValue"/></summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>writer.WriteValue(JsonString.Return("hello")); // => `"hello"`</code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(JsonValue? value)
 		{
-			if (value != null)
+			if (value is not null)
 			{
 				value.JsonSerialize(this);
 			}
@@ -1539,6 +1569,9 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		/// <summary>Writes a <see cref="string"/></summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>writer.WriteValue("hello"); // => `"hello"`</code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(string? value)
 		{
@@ -1552,6 +1585,9 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		/// <summary>Writes a span of characters</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>writer.WriteValue("hello".AsSpan()); // => `"hello"`</code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(ReadOnlySpan<char> value)
 		{
@@ -1565,6 +1601,9 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		/// <summary>Writes a span of characters</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>writer.WriteValue("hello".AsMemory()); // => `"hello"`</code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(ReadOnlyMemory<char> value)
 		{
@@ -1578,6 +1617,9 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		/// <summary>Writes a character</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>writer.WriteValue('A'); // => `"A"`</code></example>
 		public void WriteValue(char value)
 		{
 			// replace the NUL character (\0) by 'null'
@@ -1595,6 +1637,12 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		/// <summary>Writes a character</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue((char?) 'A'); // => `"A"`
+		/// writer.WriteValue((char?) null); // => `null`
+		/// </code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(char? value)
 		{
@@ -1608,6 +1656,12 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		/// <summary>Writes the content of a <see cref="StringBuilder"/></summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// var sb = new StringBuilder().Append("Hello").Append(", ").Append("World!");
+		/// writer.WriteValue(sb); // => `"Hello, World!"`
+		/// </code></example>
 		public void WriteValue(StringBuilder? value)
 		{
 			if (value is null)
@@ -1626,12 +1680,25 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		/// <summary>Writes a <see cref="bool"/></summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue(false); // => `false`
+		/// writer.WriteValue(true);  // => `true`
+		/// </code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(bool value)
 		{
 			m_buffer.Write(value);
 		}
 
+		/// <summary>Writes a nullable <see cref="bool"/></summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue((bool?) null)); // => `null`
+		/// writer.WriteValue((bool?) false); // => `false`
+		/// writer.WriteValue((bool?) true);  // => `true`
+		/// </code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(bool? value)
 		{
@@ -1645,12 +1712,23 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		/// <summary>Writes a <see cref="byte"/>, as a number literal</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue((byte) 42); // => `42`
+		/// </code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(byte value)
 		{
 			m_buffer.Write(value);
 		}
 
+		/// <summary>Writes a nullable <see cref="byte"/>, as a number literal</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue((byte?) null); // => `null`
+		/// writer.WriteValue((byte?) 42);   // => `42`
+		/// </code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(byte? value)
 		{
@@ -1664,12 +1742,23 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		/// <summary>Writes a <see cref="sbyte"/>, as a number literal</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue((sbyte) 42); // => `42`
+		/// </code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(sbyte value)
 		{
 			m_buffer.Write(value);
 		}
 
+		/// <summary>Writes a nullable <see cref="sbyte"/>, as a number literal</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue((sbyte?) null); // => `null`
+		/// writer.WriteValue((sbyte?) 42);   // => `42`
+		/// </code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(sbyte? value)
 		{
@@ -1683,12 +1772,23 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		/// <summary>Writes a <see cref="short"/>, as a number literal</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue((short) 42); // => `42`
+		/// </code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(short value)
 		{
 			m_buffer.Write(value);
 		}
 
+		/// <summary>Writes a nullable <see cref="short"/>, as a number literal</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue((short?) null); // => `null`
+		/// writer.WriteValue((short?) 42);   // => `42`
+		/// </code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(short? value)
 		{
@@ -1702,12 +1802,23 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		/// <summary>Writes a <see cref="ushort"/>, as a number literal</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue((ushort) 42); // => `42`
+		/// </code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(ushort value)
 		{
 			m_buffer.Write(value);
 		}
 
+		/// <summary>Writes a nullable <see cref="ushort"/>, as a number literal</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue((ushort?) null); // => `null`
+		/// writer.WriteValue((ushort?) 42);   // => `42`
+		/// </code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(ushort? value)
 		{
@@ -1721,12 +1832,23 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		/// <summary>Writes a <see cref="int"/>, as a number literal</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue(42); // => `42`
+		/// </code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(int value)
 		{
 			m_buffer.Write(value);
 		}
 
+		/// <summary>Writes a nullable <see cref="int"/>, as a number literal</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue((int?) null); // => `null`
+		/// writer.WriteValue((int?) 42);   // => `42`
+		/// </code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(int? value)
 		{
@@ -1740,12 +1862,23 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		/// <summary>Writes a <see cref="uint"/>, as a number literal</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue(42u); // => `42`
+		/// </code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(uint value)
 		{
 			m_buffer.Write(value);
 		}
 
+		/// <summary>Writes a nullable <see cref="uint"/>, as a number literal</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue((uint?) null); // => `null`
+		/// writer.WriteValue((uint?) 42);   // => `42`
+		/// </code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(uint? value)
 		{
@@ -1759,12 +1892,23 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		/// <summary>Writes a <see cref="long"/>, as a number literal</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue(42l); // => `42`
+		/// </code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(long value)
 		{
 			m_buffer.Write(value);
 		}
 
+		/// <summary>Writes a nullable <see cref="long"/>, as a number literal</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue((long?) null); // => `null`
+		/// writer.WriteValue((long?) 42l);  // => `42`
+		/// </code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(long? value)
 		{
@@ -1778,12 +1922,23 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		/// <summary>Writes a <see cref="ulong"/>, as a number literal</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue(42ul); // => `42`
+		/// </code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(ulong value)
 		{
 			m_buffer.Write(value);
 		}
 
+		/// <summary>Writes a nullable <see cref="ulong"/>, as a number literal</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue((ulong?) null); // => `null`
+		/// writer.WriteValue((ulong?) 42ul); // => `42`
+		/// </code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(ulong? value)
 		{
@@ -1797,6 +1952,12 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		/// <summary>Writes a <see cref="float"/>, as a number literal</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue(1.23f);   // => `1.23`
+		/// writer.WriteValue(MathF.PI); // => `3.1415927`
+		/// </code></example>
 		public void WriteValue(float value)
 		{
 			// special case for NaN and +/-Infinity that require specific tokens, depending on the configuration
@@ -1814,12 +1975,24 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		/// <summary>Writes a nullable <see cref="float"/>, as a number literal</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue((float?) null);  // => `null`
+		/// writer.WriteValue((float?) 1.23f); // => `1.23`
+		/// </code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(float? value)
 		{
 			if (value.HasValue) WriteValue(value.Value); else WriteNull();
 		}
 
+		/// <summary>Writes a <see cref="double"/>, as a number literal</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue(1.23d);   // => `1.23`
+		/// writer.WriteValue(Math.PI); // => `3.141592653589793`
+		/// </code></example>
 		public void WriteValue(double value)
 		{
 			// special case for NaN and +/-Infinity that require specific tokens, depending on the configuration
@@ -1837,6 +2010,12 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		/// <summary>Writes a nullable <see cref="double"/>, as a number literal</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue((double?) null);  // => `null`
+		/// writer.WriteValue((double?) 1.23d); // => `1.23`
+		/// </code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(double? value)
 		{
@@ -1928,12 +2107,23 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		/// <summary>Writes a <see cref="decimal"/>, as a number literal</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue(1.23m); // => `1.23`
+		/// </code></example>
 		public void WriteValue(decimal value)
 		{
 			// note: we do not add '.0' for integers, since 'decimal' could be used to represent any number (integer or floats) in dynamic or scripted languages (like javascript), and we want to be able to round-trip: "1" => (decimal) 1 => "1"
 			m_buffer.Write(value);
 		}
 
+		/// <summary>Writes a nullable <see cref="decimal"/>, as a number literal</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue((decimal?) null);  // => `null`
+		/// writer.WriteValue((decimal?) 1.23m); // => `1.23`
+		/// </code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(decimal? value)
 		{
@@ -1947,6 +2137,11 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		/// <summary>Writes a <see cref="Half"/>, as a number literal</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue((Half) 1.23); // => `1.23`
+		/// </code></example>
 		public void WriteValue(Half value)
 		{
 			// special case for NaN and +/-Infinity that require specific tokens, depending on the configuration
@@ -1964,6 +2159,12 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		/// <summary>Writes a nullable <see cref="Half"/>, as a number literal</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue((Half?) null);  // => `null`
+		/// writer.WriteValue((Half?) 1.23); // => `1.23`
+		/// </code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(Half? value)
 		{
@@ -1979,12 +2180,23 @@ namespace SnowBank.Data.Json
 
 #if NET8_0_OR_GREATER
 
+		/// <summary>Writes a nullable <see cref="Int128"/>, as a number literal</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue((Int128) 42); // => `42`
+		/// </code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(Int128 value)
 		{
 			m_buffer.Write(value);
 		}
 
+		/// <summary>Writes a nullable <see cref="Int128"/>, as a number literal</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue((Int128?) null); // => `null`
+		/// writer.WriteValue((Int128?) 42);   // => `42`
+		/// </code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(Int128? value)
 		{
@@ -1998,13 +2210,23 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		/// <summary>Writes a nullable <see cref="UInt128"/>, as a number literal</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue((UInt128) 42u);  // => `42`
+		/// </code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(UInt128 value)
 		{
 			m_buffer.Write(value);
 		}
 
-
+		/// <summary>Writes a nullable <see cref="UInt128"/>, as a number literal</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue((UInt128?) null); // => `null`
+		/// writer.WriteValue((UInt128?) 42u);  // => `42`
+		/// </code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(UInt128? value)
 		{
@@ -2020,7 +2242,12 @@ namespace SnowBank.Data.Json
 
 #endif
 
-		/// <summary>Write a <c>DateTime</c>, using the configured formatting</summary>
+		/// <summary>Writes a <see cref="DateTime"/>, as a string literal</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue(DateTime.UnixEpoch); // => `"1970-01-01T00:00:00.000"`
+		/// writer.WriteValue(DateTime.Now);       // => `"2025-06-16T17:46:17.934"`
+		/// </code></example>
 		public void WriteValue(DateTime value)
 		{
 			switch (m_dateFormat)
@@ -2045,7 +2272,12 @@ namespace SnowBank.Data.Json
 			}
 		}
 
-		/// <summary>Write a nullable <c>DateTime</c>, using the configured formatting</summary>
+		/// <summary>Writes a nullable <see cref="DateTime"/>, as a string literal</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue((DateTime?) null); // => `null`
+		/// writer.WriteValue((DateTime?) DateTime.UnixEpoch);  // => `"1970-01-01T00:00:00.000"`
+		/// </code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(DateTime? value)
 		{
@@ -2084,14 +2316,23 @@ namespace SnowBank.Data.Json
 			}
 		}
 
-		/// <summary>Write a nullable <c>DateTimeOffset</c>, using the configured formatting</summary>
+		/// <summary>Writes a nullable <see cref="DateTimeOffset"/>, as a string literal</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue((DateTimeOffset?) null); // => `null`
+		/// writer.WriteValue((DateTimeOffset?) DateTimeOffset.UnixEpoch);  // => `"1970-01-01T00:00:00.000+00:00"`
+		/// </code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(DateTimeOffset? value)
 		{
 			if (value.HasValue) WriteValue(value.Value); else WriteNull();
 		}
 
-		/// <summary>Writes a <see cref="DateOnly"/> value, using the configured formatting</summary>
+		/// <summary>Writes a <see cref="DateOnly"/>, as a string literal</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue(DateOnly.FromDateTime(DateTime.UnixEpoch));  // => `"1970-01-01"`
+		/// </code></example>
 		public void WriteValue(DateOnly value)
 		{
 			switch (m_dateFormat)
@@ -2116,7 +2357,12 @@ namespace SnowBank.Data.Json
 			}
 		}
 
-		/// <summary>Writes a <see cref="TimeOnly"/> value, using the configured formatting</summary>
+		/// <summary>Writes a nullable <see cref="DateOnly"/>, as a string literal</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue((DateOnly?) null); // => `null`
+		/// writer.WriteValue((DateOnly?) DateOnly.FromDateTime(DateTime.UnixEpoch));  // => `"1970-01-01"`
+		/// </code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(DateOnly? value)
 		{
@@ -2130,7 +2376,12 @@ namespace SnowBank.Data.Json
 			}
 		}
 
-		/// <summary>Writes a <see cref="TimeOnly"/> value, using the configured formatting</summary>
+		/// <summary>Writes a <see cref="TimeOnly"/>, as a number of seconds</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue(TimeOnly.MinValue); // => `0`
+		/// writer.WriteValue(new TimeOnly(23, 59, 59));  // => `86399`
+		/// </code></example>
 		public void WriteValue(TimeOnly value)
 		{
 			if (value == TimeOnly.MinValue)
@@ -2143,7 +2394,12 @@ namespace SnowBank.Data.Json
 			}
 		}
 
-		/// <summary>Writes a <see cref="TimeOnly"/> value, using the configured formatting</summary>
+		/// <summary>Writes a nullable <see cref="TimeOnly"/>, as a number of seconds</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue((TimeOnly?) null); // => `null`
+		/// writer.WriteValue((TimeOnly?) new TimeOnly(23, 59, 59));  // => `86399`
+		/// </code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(TimeOnly? value)
 		{
@@ -2157,7 +2413,7 @@ namespace SnowBank.Data.Json
 			}
 		}
 
-		/// <summary>Write a date, using Microsoft's custom encoding <c>"\/Date(....)\/"</c></summary>
+		/// <summary>Writes a date, using Microsoft's custom encoding <c>"\/Date(....)\/"</c></summary>
 		public void WriteDateTimeMicrosoft(DateTime date)
 		{
 			if (date == DateTime.MinValue)
@@ -2185,7 +2441,7 @@ namespace SnowBank.Data.Json
 			}
 		}
 
-		/// <summary>Write a date with offset, using Microsoft's custom encoding <c>"\/Date(....)\/"</c></summary>
+		/// <summary>Writes a date with offset, using Microsoft's custom encoding <c>"\/Date(....)\/"</c></summary>
 		public void WriteDateTimeMicrosoft(DateTimeOffset date)
 		{
 			if (date == DateTimeOffset.MinValue)
@@ -2210,7 +2466,7 @@ namespace SnowBank.Data.Json
 			}
 		}
 
-		/// <summary>Append the "+HHMM"/"-HHMM" suffix that correspond to the UTC offset of a TimeZone</summary>
+		/// <summary>Appends the "+HHMM"/"-HHMM" suffix that correspond to the UTC offset of a TimeZone</summary>
 		internal static void WriteDateTimeMicrosoftTimeZone(StringBuilder sb, TimeSpan offset)
 		{
 			//note: if GMT-xxx, Hours et Minutes are also negative !!!
@@ -2219,7 +2475,7 @@ namespace SnowBank.Data.Json
 			sb.Append(offset < TimeSpan.Zero ? '-' : '+').Append((char)('0' + (h / 10))).Append((char)('0' + (h % 10))).Append((char)('0' + (m / 10))).Append((char)('0' + (m % 10)));
 		}
 
-		/// <summary>Write a date using the ISO 8601 format: <c>"YYYY-MM-DDTHH:mm:ss.ffff+TZ"</c></summary>
+		/// <summary>Writes a date using the ISO 8601 format: <c>"YYYY-MM-DDTHH:mm:ss.ffff+TZ"</c></summary>
 		public void WriteDateTimeIso8601(DateTime date)
 		{
 			if (date == DateTime.MinValue)
@@ -2237,7 +2493,7 @@ namespace SnowBank.Data.Json
 			}
 		}
 
-		/// <summary>Write a date with offset using the ISO 8601 format: <c>"YYYY-MM-DDTHH:mm:ss.ffff+TZ"</c></summary>
+		/// <summary>Writes a date with offset using the ISO 8601 format: <c>"YYYY-MM-DDTHH:mm:ss.ffff+TZ"</c></summary>
 		public void WriteDateTimeIso8601(DateTimeOffset date)
 		{
 			if (date == default)
@@ -2255,11 +2511,11 @@ namespace SnowBank.Data.Json
 			}
 		}
 
-		/// <summary>Write a date using the ISO 8601 format: <c>"YYYY-MM-DD"</c></summary>
+		/// <summary>Writes a date using the ISO 8601 format: <c>"YYYY-MM-DD"</c></summary>
 		public void WriteDateOnlyIso8601(DateOnly date)
 		{
 			if (date == DateOnly.MinValue)
-			{ // MinValue is serialized as the emtpy string
+			{ // MinValue is serialized as the empty string
 				m_buffer.Write("\"\"");
 			}
 			else
@@ -2269,7 +2525,7 @@ namespace SnowBank.Data.Json
 			}
 		}
 
-		/// <summary>Write a date, using the Javascript format: <c>new Date(123456789)</c></summary>
+		/// <summary>Writes a date, using the Javascript format: <c>new Date(123456789)</c></summary>
 		public void WriteDateTimeJavaScript(DateTime date)
 		{
 			if (date == DateTime.MinValue)
@@ -2288,7 +2544,7 @@ namespace SnowBank.Data.Json
 			}
 		}
 
-		/// <summary>Write a date with offset, using the Javascript format: <c>new Date(123456789)</c></summary>
+		/// <summary>Writes a date with offset, using the Javascript format: <c>new Date(123456789)</c></summary>
 		public void WriteDateTimeJavaScript(DateTimeOffset date)
 		{
 			if (date == DateTimeOffset.MinValue)
@@ -2307,6 +2563,12 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		/// <summary>Writes a <see cref="TimeSpan"/>, as a number of seconds</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue(TimeSpan.Zero); // => `0`
+		/// writer.WriteValue(TimeSpan.FromHours(1)); // => `3600`
+		/// </code></example>
 		public void WriteValue(TimeSpan value)
 		{
 			if (value == TimeSpan.Zero)
@@ -2319,6 +2581,12 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		/// <summary>Writes a nullable <see cref="TimeSpan"/>, as a number of seconds</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue((TimeSpan?) null); // => `null`
+		/// writer.WriteValue((TimeSpan?) TimeSpan.FromHours(1)); // => `3600`
+		/// </code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(TimeSpan? value)
 		{
@@ -2332,6 +2600,12 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		/// <summary>Writes a <see cref="Guid"/>, as a string literal</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue(Guid.Empty);  // => `null`
+		/// writer.WriteValue(Guid.NewGuid());  // => `"68c7c18f-4490-455b-80ba-f26792604d56"`
+		/// </code></example>
 		public void WriteValue(Guid value)
 		{
 			if (value == Guid.Empty)
@@ -2352,6 +2626,12 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		/// <summary>Writes a nullable <see cref="Guid"/>, as a number of seconds</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue((Guid?) null); // => `null`
+		/// writer.WriteValue((Guid?) Guid.NewGuid());  // => `"68c7c18f-4490-455b-80ba-f26792604d56"`
+		/// </code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(Guid? value)
 		{
@@ -2365,6 +2645,11 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		/// <summary>Writes a <see cref="Uuid128"/>, as a string literal</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue(Uuid128.NewUuid());  // => `"68c7c18f-4490-455b-80ba-f26792604d56"`
+		/// </code></example>
 		public void WriteValue(Uuid128 value)
 		{
 			if (value == Uuid128.Empty)
@@ -2385,6 +2670,12 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		/// <summary>Writes a nullable <see cref="Uuid128"/>, as a string literal</summary>
+		/// <param name="value">Value to write</param>
+		/// <example><code>
+		/// writer.WriteValue((Guid?) null); // => `null`
+		/// writer.WriteValue((Guid?) Uuid128.NewUuid());  // => `"68c7c18f-4490-455b-80ba-f26792604d56"`
+		/// </code></example>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(Uuid128? value)
 		{

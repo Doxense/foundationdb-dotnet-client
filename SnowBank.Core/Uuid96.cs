@@ -57,8 +57,8 @@ namespace System
 		#region Constructors...
 
 		/// <summary>Pack components into a 96-bit UUID</summary>
-		/// <param name="a">XXXXXXXX-........-........</param>
-		/// <param name="b">........-XXXXXXXX-XXXXXXXX</param>
+		/// <param name="a"><c>XXXXXXXX-........-........</c></param>
+		/// <param name="b"><c>........-XXXXXXXX-XXXXXXXX</c></param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid96(uint a, ulong b)
 		{
@@ -67,8 +67,8 @@ namespace System
 		}
 
 		/// <summary>Pack components into a 96-bit UUID</summary>
-		/// <param name="a">XXXXXXXX-........-........</param>
-		/// <param name="b">........-XXXXXXXX-XXXXXXXX</param>
+		/// <param name="a"><c>XXXXXXXX-........-........</c></param>
+		/// <param name="b"><c>........-XXXXXXXX-XXXXXXXX</c></param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid96(uint a, long b)
 		{
@@ -77,8 +77,8 @@ namespace System
 		}
 
 		/// <summary>Pack components into a 96-bit UUID</summary>
-		/// <param name="a">XXXXXXXX-........-........</param>
-		/// <param name="b">........-XXXXXXXX-XXXXXXXX</param>
+		/// <param name="a"><c>XXXXXXXX-........-........</c></param>
+		/// <param name="b"><c>........-XXXXXXXX-XXXXXXXX</c></param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid96(int a, long b)
 		{
@@ -87,9 +87,9 @@ namespace System
 		}
 
 		/// <summary>Pack components into a 96-bit UUID</summary>
-		/// <param name="a">XXXXXXXX-........-........</param>
-		/// <param name="b">........-XXXXXXXX-........</param>
-		/// <param name="c">........-........-XXXXXXXX</param>
+		/// <param name="a"><c>XXXXXXXX-........-........</c></param>
+		/// <param name="b"><c>........-XXXXXXXX-........</c></param>
+		/// <param name="c"><c>........-........-XXXXXXXX</c></param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid96(uint a, uint b, uint c)
 		{
@@ -98,9 +98,9 @@ namespace System
 		}
 
 		/// <summary>Pack components into a 96-bit UUID</summary>
-		/// <param name="a">XXXXXXXX-........-........</param>
-		/// <param name="b">........-XXXXXXXX-........</param>
-		/// <param name="c">........-........-XXXXXXXX</param>
+		/// <param name="a"><c>XXXXXXXX-........-........</c></param>
+		/// <param name="b"><c>........-XXXXXXXX-........</c></param>
+		/// <param name="c"><c>........-........-XXXXXXXX</c></param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid96(int a, int b, int c)
 		{
