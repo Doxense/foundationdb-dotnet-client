@@ -26,6 +26,7 @@
 
 namespace System
 {
+	using System.Buffers;
 	using System.Buffers.Binary;
 	using System.ComponentModel;
 	using System.Runtime.InteropServices;
@@ -94,25 +95,19 @@ namespace System
 		/// <summary>Converts an 80-bits UUID into an 80-bits VersionStamp</summary>
 		public static VersionStamp FromUuid80(Uuid80 value)
 		{
-			unsafe
-			{
-				Span<byte> buf = stackalloc byte[Uuid80.SizeOf]; // 10 required
-				value.WriteToUnsafe(buf);
-				ReadUnsafe(buf, out var vs);
-				return vs;
-			}
+			Span<byte> buf = stackalloc byte[Uuid80.SizeOf]; // 10 required
+			value.WriteToUnsafe(buf);
+			ReadUnsafe(buf, out var vs);
+			return vs;
 		}
 
 		/// <summary>Converts a 96-bits UUID into a 96-bits VersionStamp</summary>
 		public static VersionStamp FromUuid96(Uuid96 value)
 		{
-			unsafe
-			{
-				Span<byte> buf = stackalloc byte[Uuid96.SizeOf]; // 12 required
-				value.WriteToUnsafe(buf);
-				ReadUnsafe(buf, out var vs);
-				return vs;
-			}
+			Span<byte> buf = stackalloc byte[Uuid96.SizeOf]; // 12 required
+			value.WriteToUnsafe(buf);
+			ReadUnsafe(buf, out var vs);
+			return vs;
 		}
 
 		/// <summary>Creates an incomplete 80-bit <see cref="VersionStamp"/> with no user version.</summary>
@@ -163,14 +158,15 @@ namespace System
 		/// <returns>Complete stamp, with a user version.</returns>
 		public static VersionStamp Custom(Uuid80 uuid, bool incomplete)
 		{
-			unsafe
-			{
-				byte* ptr = stackalloc byte[Uuid80.SizeOf];
-				uuid.WriteToUnsafe(new Span<byte>(ptr, Uuid80.SizeOf));
-				ulong version = UnsafeHelpers.LoadUInt64BE(ptr);
-				ushort order = UnsafeHelpers.LoadUInt16BE(ptr + 8);
-				return new VersionStamp(version, order, NO_USER_VERSION, incomplete ? FLAGS_IS_INCOMPLETE : FLAGS_NONE);
-			}
+			// serialize the uuid
+			Span<byte> ptr = stackalloc byte[Uuid80.SizeOf];
+			uuid.WriteToUnsafe(ptr);
+
+			// read the parts
+			ulong version = BinaryPrimitives.ReadUInt64BigEndian(ptr);
+			ushort order = BinaryPrimitives.ReadUInt16BigEndian(ptr[8..]);
+
+			return new VersionStamp(version, order, NO_USER_VERSION, incomplete ? FLAGS_IS_INCOMPLETE : FLAGS_NONE);
 		}
 
 		/// <summary>Creates a 96-bit <see cref="VersionStamp"/>.</summary>
@@ -186,29 +182,31 @@ namespace System
 		/// <returns>Complete stamp, with a user version.</returns>
 		public static VersionStamp Custom(Uuid80 uuid, ushort userVersion, bool incomplete)
 		{
-			unsafe
-			{
-				byte* ptr = stackalloc byte[Uuid80.SizeOf];
-				uuid.WriteToUnsafe(new Span<byte>(ptr, Uuid80.SizeOf));
-				ulong version = UnsafeHelpers.LoadUInt64BE(ptr);
-				ushort order = UnsafeHelpers.LoadUInt16BE(ptr + 8);
-				return new VersionStamp(version, order, userVersion, incomplete ? (ushort) (FLAGS_IS_INCOMPLETE | FLAGS_HAS_VERSION) : FLAGS_HAS_VERSION);
-			}
+			// serialize the uuid
+			Span<byte> ptr = stackalloc byte[Uuid80.SizeOf];
+			uuid.WriteToUnsafe(ptr);
+
+			// read the parts
+			ulong version = BinaryPrimitives.ReadUInt64BigEndian(ptr);
+			ushort order = BinaryPrimitives.ReadUInt16BigEndian(ptr[8..]);
+
+			return new VersionStamp(version, order, userVersion, incomplete ? (ushort) (FLAGS_IS_INCOMPLETE | FLAGS_HAS_VERSION) : FLAGS_HAS_VERSION);
 		}
 
 		/// <summary>Creates a 96-bit <see cref="VersionStamp"/>.</summary>
 		/// <returns>Complete stamp, with a user version.</returns>
 		public static VersionStamp Custom(Uuid96 uuid, bool incomplete)
 		{
-			unsafe
-			{
-				byte* ptr = stackalloc byte[Uuid96.SizeOf];
-				uuid.WriteToUnsafe(new Span<byte>(ptr, Uuid96.SizeOf));
-				ulong version = UnsafeHelpers.LoadUInt64BE(ptr);
-				ushort order = UnsafeHelpers.LoadUInt16BE(ptr + 8);
-				ushort userVersion = UnsafeHelpers.LoadUInt16BE(ptr + 10);
-				return new VersionStamp(version, order, userVersion, incomplete ? (ushort) (FLAGS_IS_INCOMPLETE | FLAGS_HAS_VERSION) : FLAGS_HAS_VERSION);
-			}
+			// serialize the uuid
+			Span<byte> buffer = stackalloc byte[Uuid96.SizeOf];
+			uuid.WriteToUnsafe(buffer);
+
+			// read the parts
+			ulong version = BinaryPrimitives.ReadUInt64BigEndian(buffer);
+			ushort order = BinaryPrimitives.ReadUInt16BigEndian(buffer[8..]);
+			ushort userVersion = BinaryPrimitives.ReadUInt16BigEndian(buffer[10..]);
+
+			return new VersionStamp(version, order, userVersion, incomplete ? (ushort) (FLAGS_IS_INCOMPLETE | FLAGS_HAS_VERSION) : FLAGS_HAS_VERSION);
 		}
 
 		/// <summary>Creates an 80-bit <see cref="VersionStamp"/>, obtained from the database.</summary>
@@ -590,26 +588,20 @@ namespace System
 		public Uuid80 ToUuid80()
 		{
 			if (this.HasUserVersion) throw new InvalidOperationException("Cannot convert 96-bit VersionStamp into a 80-bit UUID.");
-			unsafe
-			{
-				Span<byte> ptr = stackalloc byte[Uuid80.SizeOf];
-				WriteUnsafe(ptr, in this);
-				Uuid80.ReadUnsafe(ptr, out var res);
-				return res;
-			}
+			Span<byte> ptr = stackalloc byte[Uuid80.SizeOf];
+			WriteUnsafe(ptr, in this);
+			Uuid80.ReadUnsafe(ptr, out var res);
+			return res;
 		}
 
 		/// <summary>Converts this 96-bits VersionStamp into a 96-bits UUID</summary>
 		public Uuid96 ToUuid96()
 		{
 			if (!this.HasUserVersion) throw new InvalidOperationException("Cannot convert 80-bit VersionStamp into a 96-bit UUID.");
-			unsafe
-			{
-				Span<byte> ptr = stackalloc byte[Uuid96.SizeOf];
-				WriteUnsafe(ptr, in this);
-				Uuid96.ReadUnsafe(ptr, out var res);
-				return res;
-			}
+			Span<byte> ptr = stackalloc byte[Uuid96.SizeOf];
+			WriteUnsafe(ptr, in this);
+			Uuid96.ReadUnsafe(ptr, out var res);
+			return res;
 		}
 
 		/// <summary>Writes this VersionStamp to the specified buffer, if it is large enough.</summary>
@@ -660,16 +652,19 @@ namespace System
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static unsafe void WriteUnsafe(Span<byte> buffer, in VersionStamp vs)
+		internal static void WriteUnsafe(Span<byte> buffer, in VersionStamp vs)
 		{
 			Contract.Debug.Assert(buffer.Length == 10 || buffer.Length == 12, "Buffer length must be 10 or 12");
-			fixed (byte* ptr = &MemoryMarshal.GetReference(buffer))
+			unsafe
 			{
-				UnsafeHelpers.StoreUInt64BE(ptr, vs.TransactionVersion);
-				UnsafeHelpers.StoreUInt16BE(ptr + 8, vs.TransactionOrder);
-				if (buffer.Length >= 12)
+				fixed (byte* ptr = &MemoryMarshal.GetReference(buffer))
 				{
-					UnsafeHelpers.StoreUInt16BE(ptr + 10, vs.UserVersion);
+					UnsafeHelpers.StoreUInt64BE(ptr, vs.TransactionVersion);
+					UnsafeHelpers.StoreUInt16BE(ptr + 8, vs.TransactionOrder);
+					if (buffer.Length >= 12)
+					{
+						UnsafeHelpers.StoreUInt16BE(ptr + 10, vs.UserVersion);
+					}
 				}
 			}
 		}
@@ -714,19 +709,22 @@ namespace System
 
 		/// <summary>[DANGEROUS] Reads a VersionStamp from a source buffer, that must be large enough.</summary>
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static unsafe void ReadUnsafe(ReadOnlySpan<byte> buf, out VersionStamp vs)
+		public static void ReadUnsafe(ReadOnlySpan<byte> buf, out VersionStamp vs)
 		{
 			// reads a complete 10 or 12 bytes VersionStamp
 			Contract.Debug.Assert(buf.Length == 10 || buf.Length == 12);
-			fixed (byte* ptr = &MemoryMarshal.GetReference(buf))
+			unsafe
 			{
-				ulong ver = UnsafeHelpers.LoadUInt64BE(ptr);
-				ushort order = UnsafeHelpers.LoadUInt16BE(ptr + 8);
-				ushort idx = buf.Length == 10 ? NO_USER_VERSION : UnsafeHelpers.LoadUInt16BE(ptr + 10);
-				ushort flags = FLAGS_NONE;
-				if (buf.Length == 12) flags |= FLAGS_HAS_VERSION;
-				if ((ver & HSB_VERSION) != 0) flags |= FLAGS_IS_INCOMPLETE;
-				vs = new VersionStamp(ver, order, idx, flags);
+				fixed (byte* ptr = &MemoryMarshal.GetReference(buf))
+				{
+					ulong ver = UnsafeHelpers.LoadUInt64BE(ptr);
+					ushort order = UnsafeHelpers.LoadUInt16BE(ptr + 8);
+					ushort idx = buf.Length == 10 ? NO_USER_VERSION : UnsafeHelpers.LoadUInt16BE(ptr + 10);
+					ushort flags = FLAGS_NONE;
+					if (buf.Length == 12) flags |= FLAGS_HAS_VERSION;
+					if ((ver & HSB_VERSION) != 0) flags |= FLAGS_IS_INCOMPLETE;
+					vs = new VersionStamp(ver, order, idx, flags);
+				}
 			}
 		}
 
