@@ -616,7 +616,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 						// TValue ToValue()
 						sb.InheritDoc();
-						sb.AppendLine($"public {typeDef.Type.FullyQualifiedName} ToValue() => {GetLocalSerializerRef(typeDef)}.Unpack(m_value.ToJson());"); //TODO: resolver?
+						sb.AppendLine($"public {typeDef.Type.FullyQualifiedName} ToValue() => {GetLocalSerializerRef(typeDef)}.Unpack(m_value.ToJsonValue());"); //TODO: resolver?
 						sb.NewLine();
 
 						// GetContext()
@@ -655,7 +655,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 						// ToJson()
 						sb.InheritDoc();
-						sb.AppendLine($"public {KnownTypeSymbols.JsonValueFullName} ToJson() => m_value.ToJson();");
+						sb.AppendLine($"public {KnownTypeSymbols.JsonValueFullName} ToJson() => m_value.ToJsonValue();");
 						sb.NewLine();
 
 						// ToMutable()
@@ -753,7 +753,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 						sb.NewLine();
 
 						sb.InheritDoc();
-						sb.AppendLine("public override int GetHashCode() => m_value.ToJson().GetHashCode();");
+						sb.AppendLine("public override int GetHashCode() => m_value.ToJsonValue().GetHashCode();");
 						sb.NewLine();
 
 						sb.InheritDoc();
@@ -774,12 +774,12 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 						// IJsonSerializable
 						sb.InheritDoc();
-						sb.AppendLine($"void {KnownTypeSymbols.IJsonSerializableFullName}.JsonSerialize({KnownTypeSymbols.CrystalJsonWriterFullName} writer) => m_value.ToJson().JsonSerialize(writer);");
+						sb.AppendLine($"void {KnownTypeSymbols.IJsonSerializableFullName}.JsonSerialize({KnownTypeSymbols.CrystalJsonWriterFullName} writer) => m_value.ToJsonValue().JsonSerialize(writer);");
 						sb.NewLine();
 
 						// IJsonPackable
 						sb.InheritDoc();
-						sb.AppendLine($"{KnownTypeSymbols.JsonValueFullName} {KnownTypeSymbols.IJsonPackableFullName}.JsonPack({KnownTypeSymbols.CrystalJsonSettingsFullName} settings, {KnownTypeSymbols.ICrystalJsonTypeResolverFullName} resolver) => m_value.ToJson();");
+						sb.AppendLine($"{KnownTypeSymbols.JsonValueFullName} {KnownTypeSymbols.IJsonPackableFullName}.JsonPack({KnownTypeSymbols.CrystalJsonSettingsFullName} settings, {KnownTypeSymbols.ICrystalJsonTypeResolverFullName} resolver) => m_value.ToJsonValue();");
 						sb.NewLine();
 
 						sb.EndRegion();
@@ -813,19 +813,19 @@ namespace SnowBank.Serialization.Json.CodeGen
 							{
 								getterExpr = member.Type.JsonType switch
 								{
-									JsonPrimitiveType.Object => $"/* direct-json-object */ m_value[{this.GetTargetPropertyNameRef(typeDef, member)}].ToJson().{(member.IsNullableRefType() ? "AsObjectOrDefault" : member.IsRequired ? "AsObject" : "AsObjectOrEmpty")}()",
-									JsonPrimitiveType.Array => $"/* direct-json-array */ m_value[{this.GetTargetPropertyNameRef(typeDef, member)}].ToJson().{(member.IsNullableRefType() ? "AsArrayOrDefault" : member.IsRequired ? "AsArray" : "AsArrayOrEmpty")}()",
+									JsonPrimitiveType.Object => $"/* direct-json-object */ m_value[{this.GetTargetPropertyNameRef(typeDef, member)}].ToJsonValue().{(member.IsNullableRefType() ? "AsObjectOrDefault" : member.IsRequired ? "AsObject" : "AsObjectOrEmpty")}()",
+									JsonPrimitiveType.Array => $"/* direct-json-array */ m_value[{this.GetTargetPropertyNameRef(typeDef, member)}].ToJsonValue().{(member.IsNullableRefType() ? "AsArrayOrDefault" : member.IsRequired ? "AsArray" : "AsArrayOrEmpty")}()",
 									//TODO: JsonString, JsonNumber, ... (are they really used?)
-									_ => $"/* direct-json-value */ m_value[{this.GetTargetPropertyNameRef(typeDef, member)}].ToJson()"
+									_ => $"/* direct-json-value */ m_value[{this.GetTargetPropertyNameRef(typeDef, member)}].ToJsonValue()"
 								};
 							}
 							else if (member.Type.IsJsonDeserializable)
 							{
-								getterExpr = $"/* json-deserializable */ {KnownTypeSymbols.JsonSerializerExtensionsFullName}.UnpackJsonDeserializable<{member.Type.FullyQualifiedName}>(m_value[{GetTargetPropertyNameRef(typeDef, member)}].ToJson(), {member.DefaultLiteral}, null)"; //TODO: default value!
+								getterExpr = $"/* json-deserializable */ {KnownTypeSymbols.JsonSerializerExtensionsFullName}.UnpackJsonDeserializable<{member.Type.FullyQualifiedName}>(m_value[{GetTargetPropertyNameRef(typeDef, member)}].ToJsonValue(), {member.DefaultLiteral}, null)"; //TODO: default value!
 							}
 							else if (member.Type.IsNullableOfT(out var underlyingType) && underlyingType.IsJsonDeserializable)
 							{
-								getterExpr = $"/* nullable-json-deserializable */ {KnownTypeSymbols.JsonSerializerExtensionsFullName}.UnpackNullableJsonDeserializable<{underlyingType.FullyQualifiedName}>(m_value[{GetTargetPropertyNameRef(typeDef, member)}].ToJson(), {member.DefaultLiteral}, null)"; //TODO: default value!
+								getterExpr = $"/* nullable-json-deserializable */ {KnownTypeSymbols.JsonSerializerExtensionsFullName}.UnpackNullableJsonDeserializable<{underlyingType.FullyQualifiedName}>(m_value[{GetTargetPropertyNameRef(typeDef, member)}].ToJsonValue(), {member.DefaultLiteral}, null)"; //TODO: default value!
 							}
 							else if (member.Type.IsDictionary(out var keyType, out var valueType))
 							{
@@ -985,22 +985,22 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 						// ToValue()
 						sb.InheritDoc();
-						sb.AppendLine($"public {typeDef.Type.FullyQualifiedName} ToValue() => {GetLocalSerializerRef(typeDef)}.Unpack(m_value.ToJson());"); //TODO: resolver?
+						sb.AppendLine($"public {typeDef.Type.FullyQualifiedName} ToValue() => {GetLocalSerializerRef(typeDef)}.Unpack(m_value.ToJsonValue());"); //TODO: resolver?
 						sb.NewLine();
 
 						// TReadOnly ToReadOnly()
 						sb.InheritDoc();
-						sb.AppendLine($"public {readOnlyProxyTypeName} ToReadOnly() => new({KnownTypeSymbols.ObservableJsonValueFullName}.Untracked(m_value.ToJson().ToReadOnly()));");
+						sb.AppendLine($"public {readOnlyProxyTypeName} ToReadOnly() => new({KnownTypeSymbols.ObservableJsonValueFullName}.Untracked(m_value.ToJsonValue().ToReadOnly()));");
 						sb.NewLine();
 
 						// Set(TReadOnly)
 						sb.XmlComment("<summary>Replaces the value of this instance</summary>");
-						sb.AppendLine($"public void Set({readOnlyProxyTypeName} value) => m_value.Set(value.ToJson());");
+						sb.AppendLine($"public void Set({readOnlyProxyTypeName} value) => m_value.Set(value.ToJsonValue());");
 						sb.NewLine();
 
 						// Set(TWritable)
 						sb.XmlComment("<summary>Replaces the value of this instance</summary>");
-						sb.AppendLine($"public void Set({writableProxyTypeName} value) => m_value.Set(value.ToJson());");
+						sb.AppendLine($"public void Set({writableProxyTypeName} value) => m_value.Set(value.ToJsonValue());");
 						sb.NewLine();
 
 						// Set(T)
@@ -1046,7 +1046,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 							{
 								proxyType = GetLocalWritableProxyRef(target);
 								getterExpr = $"/* proxy */ new(m_value[{GetTargetPropertyNameRef(typeDef, member)}])";
-								setterExpr = $"m_value.Set({GetTargetPropertyNameRef(typeDef, member)}, value.ToJson())";
+								setterExpr = $"m_value.Set({GetTargetPropertyNameRef(typeDef, member)}, value.ToJsonValue())";
 							}
 							else if (member.Type.IsStringLike() || member.Type.IsBooleanLike() || member.Type.IsNumberLike() || member.Type.IsDateLike())
 							{
@@ -1146,7 +1146,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 							}
 							else if (member.Type.JsonType is not JsonPrimitiveType.None)
 							{
-								setterExpr = $"m_value.Set({GetTargetPropertyNameRef(typeDef, member)}, value?.ToJson() ?? JsonNull.Null)";
+								setterExpr = $"m_value.Set({GetTargetPropertyNameRef(typeDef, member)}, value?.ToJsonValue() ?? JsonNull.Null)";
 								proxyType = KnownTypeSymbols.MutableJsonValueFullName;
 								getterExpr = $"/* json */ m_value[{GetTargetPropertyNameRef(typeDef, member)}]";
 							}
@@ -1158,13 +1158,13 @@ namespace SnowBank.Serialization.Json.CodeGen
 									{
 										proxyType = $"{KnownTypeSymbols.JsonWritableProxyDictionaryFullName}<{valueType.FullyQualifiedName}, {this.GetLocalWritableProxyRef(target)}>";
 										getterExpr = $"/* dict-proxy */ new(m_value[{GetTargetPropertyNameRef(typeDef, member)}])";
-										setterExpr = $"m_value.Set({GetTargetPropertyNameRef(typeDef, member)}, value.ToJson())";
+										setterExpr = $"m_value.Set({GetTargetPropertyNameRef(typeDef, member)}, value.ToJsonValue())";
 									}
 									else if (valueType.IsStringLike() || valueType.IsBooleanLike() || valueType.IsNumberLike() || valueType.IsDateLike())
 									{
 										proxyType = $"{KnownTypeSymbols.JsonWritableProxyDictionaryFullName}<{valueType.FullyQualifiedNameAnnotated}>";
 										getterExpr = $"/* dict */ new(m_value[{GetTargetPropertyNameRef(typeDef, member)}])";
-										setterExpr = $"m_value.Set({GetTargetPropertyNameRef(typeDef, member)}, value.ToJson())";
+										setterExpr = $"m_value.Set({GetTargetPropertyNameRef(typeDef, member)}, value.ToJsonValue())";
 									}
 									//TODO: other types?
 								}
@@ -1175,13 +1175,13 @@ namespace SnowBank.Serialization.Json.CodeGen
 								{
 									proxyType = $"{KnownTypeSymbols.JsonWritableProxyArrayFullName}<{elemType.FullyQualifiedName}, {this.GetLocalWritableProxyRef(target)}>";
 									getterExpr = $"/* array-proxy */ new(m_value[{GetTargetPropertyNameRef(typeDef, member)}])";
-									setterExpr = $"m_value.Set({GetTargetPropertyNameRef(typeDef, member)}, value.ToJson())";
+									setterExpr = $"m_value.Set({GetTargetPropertyNameRef(typeDef, member)}, value.ToJsonValue())";
 								}
 								else if (elemType.IsStringLike() || elemType.IsBooleanLike() || elemType.IsNumberLike() || elemType.IsDateLike())
 								{
 									proxyType = $"{KnownTypeSymbols.JsonWritableProxyArrayFullName}<{elemType.FullyQualifiedName}>";
 									getterExpr = $"/* array */ new(m_value[{GetTargetPropertyNameRef(typeDef, member)}])";
-									setterExpr = $"m_value.Set({GetTargetPropertyNameRef(typeDef, member)}, value.ToJson())";
+									setterExpr = $"m_value.Set({GetTargetPropertyNameRef(typeDef, member)}, value.ToJsonValue())";
 								}
 								//TODO: other types?
 							}

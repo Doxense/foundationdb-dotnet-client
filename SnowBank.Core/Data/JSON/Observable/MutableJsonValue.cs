@@ -68,7 +68,18 @@ namespace SnowBank.Data.Json
 
 		/// <summary>Returns the <see cref="JsonValue"/> tracked by this node</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("Use ToJsonValue() instead!")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public JsonValue ToJson() => this.Json;
+		//TODO: => remove this after a while, once we are sure that the code-gen has been upgraded
+
+		/// <summary>Returns the <see cref="JsonValue"/> tracked by this node</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public JsonValue ToJsonValue()
+		{
+			// note: this method is used by JSON code-gen
+			return this.Json;
+		}
 
 		internal IMutableJsonContext? Context { get; }
 
@@ -2223,11 +2234,11 @@ namespace SnowBank.Data.Json
 
 		/// <inheritdoc cref="Add(string,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Add(string name, MutableJsonValue? value) => InsertOrUpdate(name.AsMemory(), value?.ToJson(), InsertionBehavior.ThrowOnExisting);
+		public void Add(string name, MutableJsonValue? value) => InsertOrUpdate(name.AsMemory(), value?.Json, InsertionBehavior.ThrowOnExisting);
 
 		/// <inheritdoc cref="Add(string,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Add(string name, ObservableJsonValue? value) => InsertOrUpdate(name.AsMemory(), value?.ToJson(), InsertionBehavior.ThrowOnExisting);
+		public void Add(string name, ObservableJsonValue? value) => InsertOrUpdate(name.AsMemory(), value?.ToJsonValue(), InsertionBehavior.ThrowOnExisting);
 
 		/// <inheritdoc cref="Add(string,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2251,11 +2262,11 @@ namespace SnowBank.Data.Json
 
 		/// <inheritdoc cref="Add(string,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Add(ReadOnlyMemory<char> name, MutableJsonValue? value) => InsertOrUpdate(name, value?.ToJson(), InsertionBehavior.ThrowOnExisting);
+		public void Add(ReadOnlyMemory<char> name, MutableJsonValue? value) => InsertOrUpdate(name, value?.Json, InsertionBehavior.ThrowOnExisting);
 
 		/// <inheritdoc cref="Add(string,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Add(ReadOnlyMemory<char> name, ObservableJsonValue? value) => InsertOrUpdate(name, value?.ToJson(), InsertionBehavior.ThrowOnExisting);
+		public void Add(ReadOnlyMemory<char> name, ObservableJsonValue? value) => InsertOrUpdate(name, value?.ToJsonValue(), InsertionBehavior.ThrowOnExisting);
 
 		/// <inheritdoc cref="Add(string,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]

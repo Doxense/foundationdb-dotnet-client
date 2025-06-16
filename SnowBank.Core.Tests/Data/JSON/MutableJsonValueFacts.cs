@@ -110,7 +110,7 @@ namespace SnowBank.Data.Json.Tests
 			Assert.That(obj.GetContext(), Is.Null);
 
 			{ // the root should reflect the wrapped json
-				Assert.That(obj.ToJson(), Is.SameAs(source));
+				Assert.That(obj.ToJsonValue(), Is.SameAs(source));
 				Assert.That(obj.Type, Is.EqualTo(JsonType.Object));
 
 				Assert.That(obj.IsRoot(), Is.True);
@@ -126,7 +126,7 @@ namespace SnowBank.Data.Json.Tests
 			{ // direct child that contains a string literal
 				var hello = obj["hello"];
 				Assert.That(hello, Is.Not.Null);
-				Assert.That(hello.ToJson(), Is.SameAs(source["hello"]));
+				Assert.That(hello.ToJsonValue(), Is.SameAs(source["hello"]));
 				Assert.That(hello.Type, Is.EqualTo(JsonType.String));
 				Assert.That(hello.Exists(), Is.True);
 				Assert.That(hello.IsNullOrMissing(), Is.False);
@@ -147,7 +147,7 @@ namespace SnowBank.Data.Json.Tests
 			{ // direct child that contains a number literal
 				var level = obj["level"];
 				Assert.That(level, Is.Not.Null);
-				Assert.That(level.ToJson(), Is.SameAs(source["level"]));
+				Assert.That(level.ToJsonValue(), Is.SameAs(source["level"]));
 				Assert.That(level.Type, Is.EqualTo(JsonType.Number));
 				Assert.That(level.Exists(), Is.True);
 				Assert.That(level.IsNullOrMissing(), Is.False);
@@ -168,7 +168,7 @@ namespace SnowBank.Data.Json.Tests
 			{ // nested object
 				var point = obj["point"];
 				Assert.That(point, Is.Not.Null);
-				Assert.That(point.ToJson(), Is.SameAs(source["point"]));
+				Assert.That(point.ToJsonValue(), Is.SameAs(source["point"]));
 				Assert.That(point.Type, Is.EqualTo(JsonType.Object));
 				Assert.That(point.Exists(), Is.True);
 				Assert.That(point.IsNullOrMissing(), Is.False);
@@ -202,7 +202,7 @@ namespace SnowBank.Data.Json.Tests
 			{ // nested array
 				var items = obj["items"];
 				Assert.That(items, Is.Not.Null);
-				Assert.That(items.ToJson(), Is.SameAs(source["items"]));
+				Assert.That(items.ToJsonValue(), Is.SameAs(source["items"]));
 				Assert.That(items.Type, Is.EqualTo(JsonType.Array));
 				Assert.That(items.Exists(), Is.True);
 				Assert.That(items.IsNullOrMissing(), Is.False);
@@ -224,7 +224,7 @@ namespace SnowBank.Data.Json.Tests
 				var item = items[2];
 				Assert.That(item, Is.Not.Null);
 				Assert.That(item.Type, Is.EqualTo(JsonType.String));
-				Assert.That(item.ToJson(), Is.SameAs(source["items"][2]));
+				Assert.That(item.ToJsonValue(), Is.SameAs(source["items"][2]));
 				Assert.That(item.IsRoot(), Is.False);
 				Assert.That(item.GetParent(), Is.SameAs(items));
 				Assert.That(item.GetPath(), Is.EqualTo("items[2]"));
@@ -252,10 +252,10 @@ namespace SnowBank.Data.Json.Tests
 			obj["foo"]["bar"].Set("baz", true);
 			obj["items"][1].Set("two");
 
-			Dump(obj.ToJson());
+			Dump(obj.ToJsonValue());
 
 			Assert.That(
-				obj.ToJson(),
+				obj.ToJsonValue(),
 				IsJson.Object.And.EqualTo(
 					JsonObject.Create(
 						[
@@ -279,8 +279,8 @@ namespace SnowBank.Data.Json.Tests
 			{
 				Log($"- {op}, `{path}`, {arg:Q}");
 			}
-
 		}
+
 	}
 
 }

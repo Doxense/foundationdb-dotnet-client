@@ -46,9 +46,21 @@ namespace SnowBank.Data.Json
 
 		/// <summary>Expose the underlying <see cref="JsonValue"/> of this node</summary>
 		/// <remarks>This will we recorded as a full use of the value</remarks>
+		[Obsolete("Use ToJsonValue() instead")] //TODO: => remove this after a while, once we are sure that the code-gen has been upgraded
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public JsonValue ToJson()
 		{
 			// since we don't know what the caller will do, we have to assume that any content change would trigger a recompute
+			RecordSelfAccess(ObservableJsonAccess.Value);
+			return this.Json;
+		}
+
+		/// <summary>Expose the underlying <see cref="JsonValue"/> of this node</summary>
+		/// <remarks>This will we recorded as a full use of the value</remarks>
+		public JsonValue ToJsonValue()
+		{
+			// since we don't know what the caller will do, we have to assume that any content change would trigger a recompute
+			// note: this method is used by JSON code-gen
 			RecordSelfAccess(ObservableJsonAccess.Value);
 			return this.Json;
 		}
@@ -659,7 +671,7 @@ namespace SnowBank.Data.Json
 				return TryGetValue<TValue>(index, out value);
 			}
 
-			var json = ToJson();
+			var json = ToJsonValue();
 			if (json.IsNullOrMissing())
 			{
 				value = default;
@@ -687,7 +699,7 @@ namespace SnowBank.Data.Json
 				return TryGetValue<TValue>(index, converter, out value);
 			}
 
-			var json = ToJson();
+			var json = ToJsonValue();
 			if (json.IsNullOrMissing())
 			{
 				value = default;
@@ -998,7 +1010,7 @@ namespace SnowBank.Data.Json
 		/// <remarks>This operation will be record as a <see cref="ObservableJsonAccess.Value"/> access.</remarks>
 		[Pure, MustUseReturnValue]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public JsonValue GetValue(JsonPath path) => Get(path).ToJson();
+		public JsonValue GetValue(JsonPath path) => Get(path).ToJsonValue();
 
 		/// <summary>Reads the value of the <b>required</b> node at the specified location</summary>
 		/// <param name="path">Path to the node to read</param>
@@ -1042,7 +1054,7 @@ namespace SnowBank.Data.Json
 		/// <remarks>This operation will be record as a <see cref="ObservableJsonAccess.Value"/> access.</remarks>
 		[Pure, MustUseReturnValue]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public JsonValue GetValue(JsonPathSegment segment) => Get(segment).ToJson();
+		public JsonValue GetValue(JsonPathSegment segment) => Get(segment).ToJsonValue();
 
 		/// <summary>Reads the value of the <b>required</b> node at the specified location</summary>
 		/// <param name="segment">Path to the node to read</param>
@@ -1092,7 +1104,7 @@ namespace SnowBank.Data.Json
 		/// <param name="value">Expected value</param>
 		/// <param name="comparer">Equality comparer to use (optional)</param>
 		[RequiresUnreferencedCode(AotMessages.TypeMightBeRemoved)]
-		public bool ValueEquals<TValue>(TValue value, IEqualityComparer<TValue>? comparer = null) => this.ToJson().ValueEquals(value, comparer);
+		public bool ValueEquals<TValue>(TValue value, IEqualityComparer<TValue>? comparer = null) => this.ToJsonValue().ValueEquals(value, comparer);
 
 		/// <summary>Tests if the value of a field of this document is equal to a given value</summary>
 		/// <typeparam name="TValue">Type of the value</typeparam>
@@ -1247,42 +1259,42 @@ namespace SnowBank.Data.Json
 		//REVIEW: should we register this as a read? this could be bad for perf if used as a key in a dictionary, and we expect Equals(...) to be called right after??
 
 		/// <inheritdoc />
-		public bool Equals(ObservableJsonValue? other) => other == null ? IsNullOrMissing() : this.ToJson().StrictEquals(other.ToJson());
+		public bool Equals(ObservableJsonValue? other) => other == null ? IsNullOrMissing() : this.ToJsonValue().StrictEquals(other.ToJsonValue());
 
 		/// <inheritdoc />
-		public bool Equals(JsonValue? other) => other == null ? IsNullOrMissing() : this.ToJson().StrictEquals(other);
+		public bool Equals(JsonValue? other) => other == null ? IsNullOrMissing() : this.ToJsonValue().StrictEquals(other);
 
 		/// <inheritdoc />
-		public int CompareTo(ObservableJsonValue? other) => other != null ? this.ToJson().CompareTo(other.ToJson()) : Exists() ? +1 : 0;
+		public int CompareTo(ObservableJsonValue? other) => other != null ? this.ToJsonValue().CompareTo(other.ToJsonValue()) : Exists() ? +1 : 0;
 
 		/// <inheritdoc />
-		public int CompareTo(JsonValue? other) => other != null ? this.ToJson().CompareTo(other) : Exists() ? +1 : 0;
+		public int CompareTo(JsonValue? other) => other != null ? this.ToJsonValue().CompareTo(other) : Exists() ? +1 : 0;
 
 		/// <inheritdoc />
-		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => this.ToJson().JsonSerialize(writer);
+		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => this.ToJsonValue().JsonSerialize(writer);
 
 		/// <inheritdoc />
-		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => this.ToJson();
+		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => this.ToJsonValue();
 
 		/// <summary>Expose the underlying <see cref="JsonArray"/> of this node</summary>
 		/// <remarks>This will we recorded as a full use of the value</remarks>
 		/// <exception cref="JsonBindingException">If this node is null, missing, or not a JSON Array.</exception>
-		public JsonArray AsArray() => this.ToJson().AsArray();
+		public JsonArray AsArray() => this.ToJsonValue().AsArray();
 
 		/// <summary>Expose the underlying <see cref="JsonArray"/> of this node</summary>
 		/// <remarks>This will we recorded as a full use of the value</remarks>
 		/// <exception cref="JsonBindingException">If this node is not a JSON Array.</exception>
-		public JsonArray? AsArrayOrDefault() => this.ToJson().AsArrayOrDefault();
+		public JsonArray? AsArrayOrDefault() => this.ToJsonValue().AsArrayOrDefault();
 
 		/// <summary>Expose the underlying <see cref="JsonObject"/> of this node</summary>
 		/// <remarks>This will we recorded as a full use of the value</remarks>
 		/// <exception cref="JsonBindingException">If this node is null, missing, or not a JSON Object.</exception>
-		public JsonObject AsObject() => this.ToJson().AsObject();
+		public JsonObject AsObject() => this.ToJsonValue().AsObject();
 
 		/// <summary>Expose the underlying <see cref="JsonObject"/> of this node</summary>
 		/// <remarks>This will we recorded as a full use of the value</remarks>
 		/// <exception cref="JsonBindingException">If this node is not a JSON Object.</exception>
-		public JsonObject? AsObjectOrDefault() => this.ToJson().AsObjectOrDefault();
+		public JsonObject? AsObjectOrDefault() => this.ToJsonValue().AsObjectOrDefault();
 
 	}
 

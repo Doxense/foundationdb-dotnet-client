@@ -789,7 +789,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			Assert.That(proxy.Name, Is.EqualTo("Felix"));
 			Assert.That(proxy.LegCount, Is.EqualTo(4));
 			Assert.That(proxy.RemainingLives, Is.EqualTo(7));
-			Assert.That(proxy["$type"].ToJson(), IsJson.EqualTo("cat"));
+			Assert.That(proxy["$type"].ToJsonValue(), IsJson.EqualTo("cat"));
 
 			// inspect the wrapped JsonObject
 			Log("ToJson()");
@@ -1006,7 +1006,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			Assert.That(proxy.Name, Is.EqualTo("Felix"));
 			Assert.That(proxy.LegCount, Is.EqualTo(4));
 			Assert.That(proxy.RemainingLives, Is.EqualTo(7));
-			Assert.That(proxy["$type"].ToJson(), IsJson.EqualTo("cat"));
+			Assert.That(proxy["$type"].ToJsonValue(), IsJson.EqualTo("cat"));
 
 			// inspect the wrapped JsonObject
 			Log("ToJson()");
@@ -1193,12 +1193,12 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			Assert.That(proxy.Type, Is.EqualTo(user.Type));
 			Assert.That(proxy.Items[0].Id, Is.EqualTo(user.Items![0].Id));
 			Assert.That(proxy.Devices["Foo"].Id, Is.EqualTo(user.Devices!["Foo"].Id));
-			Assert.That(proxy.Extras.ToJson(), IsJson.EqualTo(user.Extras));
-			Assert.That(proxy.Extras.ToJson(), IsJson.ReadOnly, "Original JSON should be left as-is until it is mutated");
+			Assert.That(proxy.Extras.ToJsonValue(), IsJson.EqualTo(user.Extras));
+			Assert.That(proxy.Extras.ToJsonValue(), IsJson.ReadOnly, "Original JSON should be left as-is until it is mutated");
 			Assert.That(proxy.Extras["foo"].As<int>(), Is.EqualTo(123));
 			Assert.That(proxy.Extras["bar"][^1].As<int>(), Is.EqualTo(3));
-			Assert.That(proxy.Extras["foo"].ToJson(), IsJson.EqualTo(123));
-			Assert.That(proxy.Extras["bar"][^1].ToJson(), IsJson.EqualTo(3));
+			Assert.That(proxy.Extras["foo"].ToJsonValue(), IsJson.EqualTo(123));
+			Assert.That(proxy.Extras["bar"][^1].ToJsonValue(), IsJson.EqualTo(3));
 
 			// it should be able to generate full paths to any item
 			Assert.That(proxy.Metadata.GetPath(), Is.EqualTo("metadata"));
@@ -1286,7 +1286,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			// JsonObject should be wrapped as MutableJsonValue
 			Assert.That(proxy.Extras, Is.Not.Null); // should be wrapped!
 			Assert.That(proxy.Extras.Exists(), Is.False);
-			Assert.That(proxy.Extras.ToJson(), IsJson.Null);
+			Assert.That(proxy.Extras.ToJsonValue(), IsJson.Null);
 
 			// optional inner containers should not throw
 			Assert.That(() => proxy.Items, Throws.Nothing);

@@ -99,14 +99,14 @@ namespace SnowBank.Data.Json
 		}
 
 		/// <inheritdoc />
-		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => m_value.ToJson().JsonSerialize(writer);
+		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => m_value.ToJsonValue().JsonSerialize(writer);
 
 		/// <inheritdoc />
-		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_value.ToJson();
+		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_value.ToJsonValue();
 
-		public Dictionary<string, TValue> ToDictionary() => m_converter.UnpackDictionary(m_value.ToJson())!;
+		public Dictionary<string, TValue> ToDictionary() => m_converter.UnpackDictionary(m_value.ToJsonValue())!;
 
-		public JsonValue ToJson() => m_value.ToJson();
+		public JsonValue ToJson() => m_value.ToJsonValue();
 
 		/// <inheritdoc />
 		public IEnumerator<KeyValuePair<string, TValue>> GetEnumerator()
@@ -209,14 +209,14 @@ namespace SnowBank.Data.Json
 		}
 
 		/// <inheritdoc />
-		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => m_value.ToJson().JsonSerialize(writer);
+		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => m_value.ToJsonValue().JsonSerialize(writer);
 
 		/// <inheritdoc />
-		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_value.ToJson();
+		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_value.ToJsonValue();
 
-		public Dictionary<string, TValue> ToDictionary() => TProxy.Converter.UnpackDictionary(m_value.ToJson().AsObject());
+		public Dictionary<string, TValue> ToDictionary() => TProxy.Converter.UnpackDictionary(m_value.ToJsonValue().AsObject());
 
-		public JsonValue ToJson() => m_value.ToJson();
+		public JsonValue ToJson() => m_value.ToJsonValue();
 
 		/// <inheritdoc />
 		public IEnumerator<KeyValuePair<string, TProxy>> GetEnumerator()

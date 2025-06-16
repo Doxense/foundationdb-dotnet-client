@@ -27,23 +27,23 @@ namespace SnowBank.Data.Json
 		}
 
 		/// <inheritdoc />
-		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => m_value.ToJson().JsonSerialize(writer);
+		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => m_value.ToJsonValue().JsonSerialize(writer);
 
 		/// <inheritdoc />
-		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_value.ToJson();
+		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_value.ToJsonValue();
 
-		public TValue[] ToArray() => m_converter.UnpackArray(m_value.ToJson().AsArrayOrEmpty());
+		public TValue[] ToArray() => m_converter.UnpackArray(m_value.ToJsonValue().AsArrayOrEmpty());
 
-		public List<TValue> ToList() => m_converter.UnpackList(m_value.ToJson().AsArrayOrEmpty());
+		public List<TValue> ToList() => m_converter.UnpackList(m_value.ToJsonValue().AsArrayOrEmpty());
 
-		public JsonValue ToJson() => m_value.ToJson();
+		public JsonValue ToJson() => m_value.ToJsonValue();
 
 		/// <inheritdoc />
 		public IEnumerator<TValue?> GetEnumerator()
 		{
 			// we cannot know how the result will be used, so mark this a full "Value" read.
 
-			var value = m_value.ToJson();
+			var value = m_value.ToJsonValue();
 			if (value is not JsonArray array)
 			{
 				if (value is JsonNull)
@@ -141,12 +141,12 @@ namespace SnowBank.Data.Json
 		}
 
 		/// <inheritdoc />
-		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => m_value.ToJson().JsonSerialize(writer);
+		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => m_value.ToJsonValue().JsonSerialize(writer);
 
 		/// <inheritdoc />
-		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_value.ToJson();
+		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_value.ToJsonValue();
 
-		public JsonValue ToJson() => m_value.ToJson();
+		public JsonValue ToJson() => m_value.ToJsonValue();
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static InvalidOperationException OperationRequiresArrayOrNull() => new("This operation requires a valid JSON Array");
