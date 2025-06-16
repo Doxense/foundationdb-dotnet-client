@@ -871,6 +871,36 @@ namespace SnowBank.Text
 			return StringBuilderCache.GetStringAndRelease(AppendSlow(sb, text, true));
 		}
 
+		/// <summary>Encodes a string literal into a valid JSON string literal</summary>
+		/// <param name="text">Text to encode.</param>
+		/// <returns>String with the correct escaping and surrounded by double-quotes (<c>"..."</c>), or <c>"null"</c> if <paramref name="text"/> is <c>null</c>.</returns>
+		/// <example><code>EncodeJsonString("foo") => "\"foo\""</code></example>
+		public static string Encode(ReadOnlySpan<char> text)
+		{
+			// handle quickly the easy cases
+			if (text.Length == 0)
+			{ // => ""
+				return "\"\"";
+			}
+			
+			// first check if we actually need to encode anything
+			if (NeedsEscaping(text))
+			{ // yes => slow path
+				return EncodeSlow(text);
+			}
+
+			// nothing to do, except add the double quotes
+			return string.Concat("\"", text, "\"");
+		}
+
+		internal static string EncodeSlow(ReadOnlySpan<char> text)
+		{
+			// note: we assume that the typical overhead of escaping characters will be up to 6 characters if there is only one or two "invalid" characters
+			// this assumption totally breaks down for non-latin languages!
+			var sb = StringBuilderCache.Acquire(checked(text.Length + 2 + 6));
+			return StringBuilderCache.GetStringAndRelease(AppendSlow(sb, text, true));
+		}
+
 		/// <summary>Encodes a string literal that must be written to a JSON document (slow path)</summary>
 		internal static StringBuilder AppendSlow(StringBuilder sb, string? text, bool includeQuotes)
 		{

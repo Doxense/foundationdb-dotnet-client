@@ -1553,6 +1553,23 @@ namespace SnowBank.Data.Json
 
 		#region WriteValue...
 
+		/// <summary>Writes a <see cref="IJsonSerializable"/> instance</summary>
+		/// <typeparam name="TJsonSerializable">Type that implements <see cref="IJsonSerializable"/></typeparam>
+		/// <param name="value">Value to write</param>
+		[OverloadResolutionPriority(-1)]
+		public void WriteValue<TJsonSerializable>(TJsonSerializable? value)
+			where TJsonSerializable : IJsonSerializable
+		{
+			if (value is not null)
+			{
+				value.JsonSerialize(this);
+			}
+			else
+			{
+				WriteNull();
+			}
+		}
+
 		/// <summary>Writes a <see cref="JsonValue"/></summary>
 		/// <param name="value">Value to write</param>
 		/// <example><code>writer.WriteValue(JsonString.Return("hello")); // => `"hello"`</code></example>
