@@ -38,60 +38,105 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public void Test_Incomplete_VersionStamp()
 		{
-			{ // 80-bits (no user version)
+			{
+				// 80-bits (no user version)
 				var vs = VersionStamp.Incomplete();
 				Log(vs);
-				Assert.That(vs.TransactionVersion, Is.EqualTo(ulong.MaxValue));
-				Assert.That(vs.TransactionOrder, Is.EqualTo(ushort.MaxValue));
-				Assert.That(vs.IsIncomplete, Is.True);
-				Assert.That(vs.HasUserVersion, Is.False, "80-bits VersionStamps don't have a user version");
-				Assert.That(vs.UserVersion, Is.Zero, "80-bits VersionStamps don't have a user version");
+				Assert.Multiple(() =>
+				{
+					Assert.That(vs.TransactionVersion, Is.EqualTo(ulong.MaxValue));
+					Assert.That(vs.TransactionOrder, Is.EqualTo(ushort.MaxValue));
+					Assert.That(vs.IsIncomplete, Is.True);
+					Assert.That(vs.HasUserVersion, Is.False, "80-bits VersionStamps don't have a user version");
+					Assert.That(vs.UserVersion, Is.Zero, "80-bits VersionStamps don't have a user version");
 
-				Assert.That(vs.GetLength(), Is.EqualTo(10));
-				Assert.That(vs.ToSlice().ToHexString(' '), Is.EqualTo("FF FF FF FF FF FF FF FF FF FF"));
-				Assert.That(vs.ToString(), Is.EqualTo("@?"));
-				Assert.That(VersionStamp.Parse("@?"), Is.EqualTo(vs));
+					Assert.That(vs.GetLength(), Is.EqualTo(10));
+					Assert.That(vs.ToSlice().ToHexString(' '), Is.EqualTo("FF FF FF FF FF FF FF FF FF FF"));
+
+					Assert.That(vs.ToString(), Is.EqualTo("@?"));
+					Assert.That(vs.ToString("X"), Is.EqualTo("FFFFFFFFFFFFFFFFFFFF"));
+					Assert.That(vs.ToString("x"), Is.EqualTo("ffffffffffffffffffff"));
+					Assert.That(vs.ToString("O"), Is.EqualTo("ЯЯЯЯЯЯЯЯ")); // tt0357111
+					Assert.That(vs.ToString("J"), Is.EqualTo("Versionstamp(<incomplete> 0)"));
+
+					Assert.That(VersionStamp.Parse("@?"), Is.EqualTo(vs));
+					Assert.That(VersionStamp.ParseBase1024("ЯЯЯЯЯЯЯЯ"), Is.EqualTo(vs));
+				});
 			}
 
-			{ // 96-bits, default user version
+			{
+				// 96-bits, default user version
 				var vs = VersionStamp.Incomplete(0);
 				Log(vs);
-				Assert.That(vs.TransactionVersion, Is.EqualTo(ulong.MaxValue));
-				Assert.That(vs.TransactionOrder, Is.EqualTo(ushort.MaxValue));
-				Assert.That(vs.IsIncomplete, Is.True);
-				Assert.That(vs.HasUserVersion, Is.True, "96-bits VersionStamps have a user version");
-				Assert.That(vs.UserVersion, Is.EqualTo(0));
+				Assert.Multiple(() =>
+				{
+					Assert.That(vs.TransactionVersion, Is.EqualTo(ulong.MaxValue));
+					Assert.That(vs.TransactionOrder, Is.EqualTo(ushort.MaxValue));
+					Assert.That(vs.IsIncomplete, Is.True);
+					Assert.That(vs.HasUserVersion, Is.True, "96-bits VersionStamps have a user version");
+					Assert.That(vs.UserVersion, Is.EqualTo(0));
 
-				Assert.That(vs.GetLength(), Is.EqualTo(12));
-				Assert.That(vs.ToSlice().ToHexString(' '), Is.EqualTo("FF FF FF FF FF FF FF FF FF FF 00 00"));
-				Assert.That(vs.ToString(), Is.EqualTo("@?#0"));
-				Assert.That(VersionStamp.Parse("@?#0"), Is.EqualTo(vs));
+					Assert.That(vs.GetLength(), Is.EqualTo(12));
+					Assert.That(vs.ToSlice().ToHexString(' '), Is.EqualTo("FF FF FF FF FF FF FF FF FF FF 00 00"));
+
+					Assert.That(vs.ToString(), Is.EqualTo("@?#0"));
+					Assert.That(vs.ToString("X"), Is.EqualTo("FFFFFFFFFFFFFFFFFFFF0000"));
+					Assert.That(vs.ToString("O"), Is.EqualTo("ЯЯЯЯЯЯЯЯ00"));
+					Assert.That(vs.ToString("J"), Is.EqualTo("Versionstamp(<incomplete> 0)"));
+
+					Assert.That(VersionStamp.Parse("@?#0"), Is.EqualTo(vs));
+					Assert.That(VersionStamp.ParseBase1024("ЯЯЯЯЯЯЯЯ00"), Is.EqualTo(vs));
+				});
 			}
 
-			{ // 96 bits, custom user version
+			{
+				// 96 bits, custom user version
 				var vs = VersionStamp.Incomplete(42);
 				Log(vs);
-				Assert.That(vs.TransactionVersion, Is.EqualTo(ulong.MaxValue));
-				Assert.That(vs.TransactionOrder, Is.EqualTo(ushort.MaxValue));
-				Assert.That(vs.HasUserVersion, Is.True);
-				Assert.That(vs.UserVersion, Is.EqualTo(42));
-				Assert.That(vs.IsIncomplete, Is.True);
-				Assert.That(vs.ToSlice().ToHexString(' '), Is.EqualTo("FF FF FF FF FF FF FF FF FF FF 00 2A"));
-				Assert.That(vs.ToString(), Is.EqualTo("@?#2a"));
-				Assert.That(VersionStamp.Parse("@?#2a"), Is.EqualTo(vs));
+				Assert.Multiple(() =>
+				{
+					Assert.That(vs.TransactionVersion, Is.EqualTo(ulong.MaxValue));
+					Assert.That(vs.TransactionOrder, Is.EqualTo(ushort.MaxValue));
+					Assert.That(vs.HasUserVersion, Is.True);
+					Assert.That(vs.UserVersion, Is.EqualTo(42));
+					Assert.That(vs.IsIncomplete, Is.True);
+
+					Assert.That(vs.GetLength(), Is.EqualTo(12));
+					Assert.That(vs.ToSlice().ToHexString(' '), Is.EqualTo("FF FF FF FF FF FF FF FF FF FF 00 2A"));
+
+					Assert.That(vs.ToString(), Is.EqualTo("@?#2a"));
+					Assert.That(vs.ToString("X"), Is.EqualTo("FFFFFFFFFFFFFFFFFFFF002A"));
+					Assert.That(vs.ToString("O"), Is.EqualTo("ЯЯЯЯЯЯЯЯ0ː"));
+					Assert.That(vs.ToString("J"), Is.EqualTo("Versionstamp(<incomplete> 42)"));
+
+					Assert.That(VersionStamp.Parse("@?#2a"), Is.EqualTo(vs));
+					Assert.That(VersionStamp.ParseBase1024("ЯЯЯЯЯЯЯЯ0ː"), Is.EqualTo(vs));
+				});
 			}
 
-			{ // 96 bits, large user version
+			{
+				// 96 bits, large user version
 				var vs = VersionStamp.Incomplete(0x1234);
 				Log(vs);
-				Assert.That(vs.TransactionVersion, Is.EqualTo(ulong.MaxValue));
-				Assert.That(vs.TransactionOrder, Is.EqualTo(ushort.MaxValue));
-				Assert.That(vs.HasUserVersion, Is.True);
-				Assert.That(vs.UserVersion, Is.EqualTo(0x1234));
-				Assert.That(vs.IsIncomplete, Is.True);
-				Assert.That(vs.ToSlice().ToHexString(' '), Is.EqualTo("FF FF FF FF FF FF FF FF FF FF 12 34"));
-				Assert.That(vs.ToString(), Is.EqualTo("@?#1234"));
-				Assert.That(VersionStamp.Parse("@?#1234"), Is.EqualTo(vs));
+				Assert.Multiple(() =>
+				{
+					Assert.That(vs.TransactionVersion, Is.EqualTo(ulong.MaxValue));
+					Assert.That(vs.TransactionOrder, Is.EqualTo(ushort.MaxValue));
+					Assert.That(vs.HasUserVersion, Is.True);
+					Assert.That(vs.UserVersion, Is.EqualTo(0x1234));
+					Assert.That(vs.IsIncomplete, Is.True);
+
+					Assert.That(vs.GetLength(), Is.EqualTo(12));
+					Assert.That(vs.ToSlice().ToHexString(' '), Is.EqualTo("FF FF FF FF FF FF FF FF FF FF 12 34"));
+
+					Assert.That(vs.ToString(), Is.EqualTo("@?#1234"));
+					Assert.That(vs.ToString("X"), Is.EqualTo("FFFFFFFFFFFFFFFFFFFF1234"));
+					Assert.That(vs.ToString("O"), Is.EqualTo("ЯЯЯЯЯЯЯЯxͰ"));
+					Assert.That(vs.ToString("J"), Is.EqualTo("Versionstamp(<incomplete> 4660)"));
+
+					Assert.That(VersionStamp.Parse("@?#1234"), Is.EqualTo(vs));
+					Assert.That(VersionStamp.ParseBase1024("ЯЯЯЯЯЯЯЯxͰ"), Is.EqualTo(vs));
+				});
 			}
 
 			Assert.That(() => VersionStamp.Incomplete(-1), Throws.InstanceOf<ArgumentException>(), "User version cannot be negative");
@@ -149,7 +194,8 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public void Test_Complete_VersionStamp()
 		{
-			{ // 80-bits, no user version
+			{
+				// 80-bits, no user version
 				var vs = VersionStamp.Complete(0x0123456789ABCDEFUL, 0x357A);
 				Log(vs);
 				Assert.Multiple(() =>
@@ -159,13 +205,27 @@ namespace FoundationDB.Client.Tests
 					Assert.That(vs.HasUserVersion, Is.False);
 					Assert.That(vs.UserVersion, Is.Zero);
 					Assert.That(vs.IsIncomplete, Is.False);
+
+					Assert.That(vs.GetLength(), Is.EqualTo(10));
 					Assert.That(vs.ToSlice().ToHexString(' '), Is.EqualTo("01 23 45 67 89 AB CD EF 35 7A"));
+
 					Assert.That(vs.ToString(), Is.EqualTo("@123456789abcdef-357a"));
+					Assert.That(vs.ToString("X"), Is.EqualTo("0123456789ABCDEF357A"));
+					Assert.That(vs.ToString("x"), Is.EqualTo("0123456789abcdef357a"));
+					Assert.That(vs.ToString("O"), Is.EqualTo("4ɤƉι˟ĎϽƪ"));
+					Assert.That(vs.ToString("J"), Is.EqualTo(@"Versionstamp(\x01#Eg\x89\xab\xcd\xef5z 0)"));
+
 					Assert.That(VersionStamp.Parse("@123456789abcdef-357a"), Is.EqualTo(vs));
+					Assert.That(VersionStamp.ParseBase1024("4ɤƉι˟ĎϽƪ"), Is.EqualTo(vs));
+
+					Assert.That(vs.ToJson(), Is.EqualTo("\"@123456789abcdef-357a\""));
+					Assert.That(CrystalJson.Deserialize<VersionStamp>("\"@123456789abcdef-357a\""), Is.EqualTo(vs));
+					Assert.That(VersionStamp.JsonDeserialize((JsonString) "@123456789abcdef-357a"), Is.EqualTo(vs));
 				});
 			}
 
-			{ // 96 bits, default user version
+			{
+				// 96 bits, default user version
 				var vs = VersionStamp.Complete(0x0123456789abcdefUL, 0x357A, 0);
 				Log(vs);
 				Assert.Multiple(() =>
@@ -175,13 +235,23 @@ namespace FoundationDB.Client.Tests
 					Assert.That(vs.HasUserVersion, Is.True);
 					Assert.That(vs.UserVersion, Is.Zero);
 					Assert.That(vs.IsIncomplete, Is.False);
+
+					Assert.That(vs.GetLength(), Is.EqualTo(12));
 					Assert.That(vs.ToSlice().ToHexString(' '), Is.EqualTo("01 23 45 67 89 AB CD EF 35 7A 00 00"));
+
 					Assert.That(vs.ToString(), Is.EqualTo("@123456789abcdef-357a#0"));
+					Assert.That(vs.ToString("X"), Is.EqualTo("0123456789ABCDEF357A0000"));
+					Assert.That(vs.ToString("x"), Is.EqualTo("0123456789abcdef357a0000"));
+					Assert.That(vs.ToString("O"), Is.EqualTo("4ɤƉι˟ĎϽƪ00"));
+					Assert.That(vs.ToString("J"), Is.EqualTo(@"Versionstamp(\x01#Eg\x89\xab\xcd\xef5z 0)"));
+
 					Assert.That(VersionStamp.Parse("@123456789abcdef-357a#0"), Is.EqualTo(vs));
+					Assert.That(VersionStamp.ParseBase1024("4ɤƉι˟ĎϽƪ00"), Is.EqualTo(vs));
 				});
 			}
 
-			{ // custom user version
+			{
+				// custom user version
 				var vs = VersionStamp.Complete(0x0123456789abcdefUL, 0x357A, 42);
 				Log(vs);
 				Assert.Multiple(() =>
@@ -191,13 +261,23 @@ namespace FoundationDB.Client.Tests
 					Assert.That(vs.HasUserVersion, Is.True);
 					Assert.That(vs.UserVersion, Is.EqualTo(42));
 					Assert.That(vs.IsIncomplete, Is.False);
+
+					Assert.That(vs.GetLength(), Is.EqualTo(12));
 					Assert.That(vs.ToSlice().ToHexString(' '), Is.EqualTo("01 23 45 67 89 AB CD EF 35 7A 00 2A"));
+
 					Assert.That(vs.ToString(), Is.EqualTo("@123456789abcdef-357a#2a"));
+					Assert.That(vs.ToString("X"), Is.EqualTo("0123456789ABCDEF357A002A"));
+					Assert.That(vs.ToString("x"), Is.EqualTo("0123456789abcdef357a002a"));
+					Assert.That(vs.ToString("O"), Is.EqualTo("4ɤƉι˟ĎϽƪ0ː"));
+					Assert.That(vs.ToString("J"), Is.EqualTo(@"Versionstamp(\x01#Eg\x89\xab\xcd\xef5z 42)"));
+
 					Assert.That(VersionStamp.Parse("@123456789abcdef-357a#2a"), Is.EqualTo(vs));
+					Assert.That(VersionStamp.ParseBase1024("4ɤƉι˟ĎϽƪ0ː"), Is.EqualTo(vs));
 				});
 			}
 
-			{ // two bytes user version
+			{
+				// two bytes user version
 				var vs = VersionStamp.Complete(0x0123456789abcdefUL, 0x357A, 0x1234);
 				Log(vs);
 				Assert.Multiple(() =>
@@ -206,9 +286,18 @@ namespace FoundationDB.Client.Tests
 					Assert.That(vs.TransactionOrder, Is.EqualTo(0x357A));
 					Assert.That(vs.UserVersion, Is.EqualTo(0x1234));
 					Assert.That(vs.IsIncomplete, Is.False);
+
+					Assert.That(vs.GetLength(), Is.EqualTo(12));
 					Assert.That(vs.ToSlice().ToHexString(' '), Is.EqualTo("01 23 45 67 89 AB CD EF 35 7A 12 34"));
+
 					Assert.That(vs.ToString(), Is.EqualTo("@123456789abcdef-357a#1234"));
+					Assert.That(vs.ToString("X"), Is.EqualTo("0123456789ABCDEF357A1234"));
+					Assert.That(vs.ToString("x"), Is.EqualTo("0123456789abcdef357a1234"));
+					Assert.That(vs.ToString("O"), Is.EqualTo("4ɤƉι˟ĎϽƪxͰ"));
+					Assert.That(vs.ToString("J"), Is.EqualTo(@"Versionstamp(\x01#Eg\x89\xab\xcd\xef5z 4660)"));
+
 					Assert.That(VersionStamp.Parse("@123456789abcdef-357a#1234"), Is.EqualTo(vs));
+					Assert.That(VersionStamp.ParseBase1024("4ɤƉι˟ĎϽƪxͰ"), Is.EqualTo(vs));
 				});
 			}
 
@@ -228,12 +317,13 @@ namespace FoundationDB.Client.Tests
 				Assert.That(reader.Remaining, Is.EqualTo(3));
 
 				Assert.Multiple(() =>
-				{
-					Assert.That(vs.TransactionVersion, Is.EqualTo(0x0123456789ABCDEFUL));
-					Assert.That(vs.TransactionOrder, Is.EqualTo(0x357A));
-					Assert.That(vs.UserVersion, Is.EqualTo(456));
-					Assert.That(vs.IsIncomplete, Is.False);
-				});
+					{
+						Assert.That(vs.TransactionVersion, Is.EqualTo(0x0123456789ABCDEFUL));
+						Assert.That(vs.TransactionOrder, Is.EqualTo(0x357A));
+						Assert.That(vs.UserVersion, Is.EqualTo(456));
+						Assert.That(vs.IsIncomplete, Is.False);
+					}
+				);
 			}
 
 			{
@@ -268,6 +358,156 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
+		public void Test_Custom_VersionStamp()
+		{
+			// "custom" stamps are used by the internal Tuple encoder to inject incomplete stamps into the generated key.
+			// The incomplete stamp is generated with a "random" token, so that it can be found again later, without having to pass the offset to the rest of the call chain.
+
+			Assert.That(VersionStamp.Custom(ulong.MaxValue, ushort.MaxValue, incomplete: true), Is.EqualTo(VersionStamp.Incomplete()));
+			Assert.That(VersionStamp.Custom(0, 0, incomplete: false), Is.EqualTo(default(VersionStamp)));
+
+			{
+				var vs = VersionStamp.Custom(0xfedcba9876543210UL, 0x357A, incomplete: true);
+				Log(vs);
+				Assert.That(vs.TransactionVersion, Is.EqualTo(0xfedcba9876543210UL));
+				Assert.That(vs.TransactionOrder, Is.EqualTo(0x357A));
+				Assert.That(vs.HasUserVersion, Is.False);
+				Assert.That(vs.UserVersion, Is.EqualTo(0));
+				Assert.That(vs.IsIncomplete, Is.True);
+
+				Assert.That(vs.ToString(), Is.EqualTo("@?"), "Incomplete custom tokens should not expose the internal transaction version and order! (this is supposed to be an implementation detail)");
+				Assert.That(vs.ToString("X"), Is.EqualTo("FEDCBA9876543210357A"));
+				Assert.That(vs.ToString("O"), Is.EqualTo("Ыǻ˖¦ƀ͑=ƪ"));
+			}
+
+			{
+				var vs = VersionStamp.Custom(0xfedcba9876543210UL, 0x357A, 0, incomplete: true);
+				Log(vs);
+				Assert.That(vs.TransactionVersion, Is.EqualTo(0xfedcba9876543210UL));
+				Assert.That(vs.TransactionOrder, Is.EqualTo(0x357A));
+				Assert.That(vs.HasUserVersion, Is.True);
+				Assert.That(vs.UserVersion, Is.EqualTo(0));
+				Assert.That(vs.IsIncomplete, Is.True);
+
+				Assert.That(vs.ToString(), Is.EqualTo("@?#0"), "Incomplete custom tokens should not expose the internal transaction version and order! (this is supposed to be an implementation detail)");
+				Assert.That(vs.ToString("X"), Is.EqualTo("FEDCBA9876543210357A0000"));
+				Assert.That(vs.ToString("O"), Is.EqualTo("Ыǻ˖¦ƀ͑=ƪ00"));
+			}
+
+			{
+				var vs = VersionStamp.Custom(0xfedcba9876543210UL, 0x357A, 0x1234, incomplete: true);
+				Log(vs);
+				Assert.That(vs.TransactionVersion, Is.EqualTo(0xfedcba9876543210UL));
+				Assert.That(vs.TransactionOrder, Is.EqualTo(0x357A));
+				Assert.That(vs.HasUserVersion, Is.True);
+				Assert.That(vs.UserVersion, Is.EqualTo(0x1234));
+				Assert.That(vs.IsIncomplete, Is.True);
+
+				Assert.That(vs.ToString(), Is.EqualTo("@?#1234"), "Incomplete custom tokens should not expose the internal transaction version and order! (this is supposed to be an implementation detail)");
+				Assert.That(vs.ToString("X"), Is.EqualTo("FEDCBA9876543210357A1234"));
+				Assert.That(vs.ToString("O"), Is.EqualTo("Ыǻ˖¦ƀ͑=ƪxͰ"));
+			}
+
+			{
+				var vs = VersionStamp.Custom(Uuid80.Parse("fedc-ba987654-3210357A"), 0x1234, incomplete: true);
+				Log(vs);
+				Assert.That(vs.TransactionVersion, Is.EqualTo(0xfedcba9876543210UL));
+				Assert.That(vs.TransactionOrder, Is.EqualTo(0x357A));
+				Assert.That(vs.HasUserVersion, Is.True);
+				Assert.That(vs.UserVersion, Is.EqualTo(0x1234));
+				Assert.That(vs.IsIncomplete, Is.True);
+
+				Assert.That(vs.ToString(), Is.EqualTo("@?#1234"), "Incomplete custom tokens should not expose the internal transaction version and order! (this is supposed to be an implementation detail)");
+				Assert.That(vs.ToString("X"), Is.EqualTo("FEDCBA9876543210357A1234"));
+				Assert.That(vs.ToString("O"), Is.EqualTo("Ыǻ˖¦ƀ͑=ƪxͰ"));
+			}
+
+			{
+				var vs = VersionStamp.Custom(Uuid96.Parse("fedcba98-76543210-357A1234"), incomplete: true);
+				Log(vs);
+				Assert.That(vs.TransactionVersion, Is.EqualTo(0xfedcba9876543210UL));
+				Assert.That(vs.TransactionOrder, Is.EqualTo(0x357A));
+				Assert.That(vs.HasUserVersion, Is.True);
+				Assert.That(vs.UserVersion, Is.EqualTo(0x1234));
+				Assert.That(vs.IsIncomplete, Is.True);
+
+				Assert.That(vs.ToString(), Is.EqualTo("@?#1234"), "Incomplete custom tokens should not expose the internal transaction version and order! (this is supposed to be an implementation detail)");
+				Assert.That(vs.ToString("X"), Is.EqualTo("FEDCBA9876543210357A1234"));
+				Assert.That(vs.ToString("O"), Is.EqualTo("Ыǻ˖¦ƀ͑=ƪxͰ"));
+			}
+
+			{
+				var vs = VersionStamp.Custom(0x0123456789abcdefUL, 0x357A, incomplete: false);
+				Log(vs);
+				Assert.That(vs.TransactionVersion, Is.EqualTo(0x0123456789abcdefUL));
+				Assert.That(vs.TransactionOrder, Is.EqualTo(0x357A));
+				Assert.That(vs.HasUserVersion, Is.False);
+				Assert.That(vs.UserVersion, Is.EqualTo(0));
+				Assert.That(vs.IsIncomplete, Is.False);
+
+				Assert.That(vs.ToString(), Is.EqualTo("@123456789abcdef-357a"));
+				Assert.That(vs.ToString("X"), Is.EqualTo("0123456789ABCDEF357A"));
+				Assert.That(vs.ToString("O"), Is.EqualTo("4ɤƉι˟ĎϽƪ"));
+			}
+
+			{
+				var vs = VersionStamp.Custom(0x0123456789abcdefUL, 0x357A, 0, incomplete: false);
+				Log(vs);
+				Assert.That(vs.TransactionVersion, Is.EqualTo(0x0123456789abcdefUL));
+				Assert.That(vs.TransactionOrder, Is.EqualTo(0x357A));
+				Assert.That(vs.HasUserVersion, Is.True);
+				Assert.That(vs.UserVersion, Is.EqualTo(0));
+				Assert.That(vs.IsIncomplete, Is.False);
+
+				Assert.That(vs.ToString(), Is.EqualTo("@123456789abcdef-357a#0"));
+				Assert.That(vs.ToString("X"), Is.EqualTo("0123456789ABCDEF357A0000"));
+				Assert.That(vs.ToString("O"), Is.EqualTo("4ɤƉι˟ĎϽƪ00"));
+			}
+
+			{
+				var vs = VersionStamp.Custom(0x0123456789abcdefUL, 0x357A, 0x1234, incomplete: false);
+				Log(vs);
+				Assert.That(vs.TransactionVersion, Is.EqualTo(0x0123456789abcdefUL));
+				Assert.That(vs.TransactionOrder, Is.EqualTo(0x357A));
+				Assert.That(vs.HasUserVersion, Is.True);
+				Assert.That(vs.UserVersion, Is.EqualTo(0x1234));
+				Assert.That(vs.IsIncomplete, Is.False);
+
+				Assert.That(vs.ToString(), Is.EqualTo("@123456789abcdef-357a#1234"));
+				Assert.That(vs.ToString("X"), Is.EqualTo("0123456789ABCDEF357A1234"));
+				Assert.That(vs.ToString("O"), Is.EqualTo("4ɤƉι˟ĎϽƪxͰ"));
+			}
+
+			{
+				var vs = VersionStamp.Custom(Uuid80.Parse("0123-456789ab-cdef357A"), 0x1234, incomplete: false);
+				Log(vs);
+				Assert.That(vs.TransactionVersion, Is.EqualTo(0x0123456789abcdefUL));
+				Assert.That(vs.TransactionOrder, Is.EqualTo(0x357A));
+				Assert.That(vs.HasUserVersion, Is.True);
+				Assert.That(vs.UserVersion, Is.EqualTo(0x1234));
+				Assert.That(vs.IsIncomplete, Is.False);
+
+				Assert.That(vs.ToString(), Is.EqualTo("@123456789abcdef-357a#1234"));
+				Assert.That(vs.ToString("X"), Is.EqualTo("0123456789ABCDEF357A1234"));
+				Assert.That(vs.ToString("O"), Is.EqualTo("4ɤƉι˟ĎϽƪxͰ"));
+			}
+
+			{
+				var vs = VersionStamp.Custom(Uuid96.Parse("01234567-89abcdef-357a1234"), incomplete: false);
+				Log(vs);
+				Assert.That(vs.TransactionVersion, Is.EqualTo(0x0123456789abcdefUL));
+				Assert.That(vs.TransactionOrder, Is.EqualTo(0x357A));
+				Assert.That(vs.HasUserVersion, Is.True);
+				Assert.That(vs.UserVersion, Is.EqualTo(0x1234));
+				Assert.That(vs.IsIncomplete, Is.False);
+
+				Assert.That(vs.ToString(), Is.EqualTo("@123456789abcdef-357a#1234"));
+				Assert.That(vs.ToString("X"), Is.EqualTo("0123456789ABCDEF357A1234"));
+				Assert.That(vs.ToString("O"), Is.EqualTo("4ɤƉι˟ĎϽƪxͰ"));
+			}
+		}
+
+		[Test]
 		public void Test_VersionStamp_ToString()
 		{
 			// "default" ("D")
@@ -281,8 +521,51 @@ namespace FoundationDB.Client.Tests
 				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x357A).ToString(), Is.EqualTo("@123456789abcdef-357a"));
 				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x357A, 0).ToString(), Is.EqualTo("@123456789abcdef-357a#0"));
 				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x357A, 0x1234).ToString(), Is.EqualTo("@123456789abcdef-357a#1234"));
+				Assert.That(VersionStamp.Complete(0x5A5A5A5A5A5A5A5AUL, 0x5A5A, 0x5A5A).ToString(), Is.EqualTo("@5a5a5a5a5a5a5a5a-5a5a#5a5a"));
 				Assert.That(VersionStamp.Complete(1, 2).ToString(), Is.EqualTo("@1-2"));
 				Assert.That(VersionStamp.Complete(1, 2, 3).ToString(), Is.EqualTo("@1-2#3"));
+			});
+
+			// "hexa" ("X" or "x")
+			Assert.Multiple(() =>
+			{
+				Assert.That(VersionStamp.Incomplete().ToString("X"), Is.EqualTo("FFFFFFFFFFFFFFFFFFFF"));
+				Assert.That(VersionStamp.Incomplete().ToString("x"), Is.EqualTo("ffffffffffffffffffff"));
+				Assert.That(VersionStamp.Incomplete(0).ToString("X"), Is.EqualTo("FFFFFFFFFFFFFFFFFFFF0000"));
+				Assert.That(VersionStamp.Incomplete(0).ToString("x"), Is.EqualTo("ffffffffffffffffffff0000"));
+				Assert.That(VersionStamp.Incomplete(0x1234).ToString("X"), Is.EqualTo("FFFFFFFFFFFFFFFFFFFF1234"));
+				Assert.That(VersionStamp.Incomplete(0x1234).ToString("x"), Is.EqualTo("ffffffffffffffffffff1234"));
+
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0).ToString("X"), Is.EqualTo("0123456789ABCDEF0000"));
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0).ToString("x"), Is.EqualTo("0123456789abcdef0000"));
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x357A).ToString("X"), Is.EqualTo("0123456789ABCDEF357A"));
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x357A).ToString("x"), Is.EqualTo("0123456789abcdef357a"));
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x357A, 0).ToString("X"), Is.EqualTo("0123456789ABCDEF357A0000"));
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x357A, 0).ToString("x"), Is.EqualTo("0123456789abcdef357a0000"));
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x357A, 0x1234).ToString("X"), Is.EqualTo("0123456789ABCDEF357A1234"));
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x357A, 0x1234).ToString("x"), Is.EqualTo("0123456789abcdef357a1234"));
+				Assert.That(VersionStamp.Complete(0x5A5A5A5A5A5A5A5AUL, 0x5A5A, 0x5A5A).ToString("X"), Is.EqualTo("5A5A5A5A5A5A5A5A5A5A5A5A"));
+				Assert.That(VersionStamp.Complete(0x5A5A5A5A5A5A5A5AUL, 0x5A5A, 0x5A5A).ToString("x"), Is.EqualTo("5a5a5a5a5a5a5a5a5a5a5a5a"));
+				Assert.That(VersionStamp.Complete(1, 2).ToString("X"), Is.EqualTo("00000000000000010002"));
+				Assert.That(VersionStamp.Complete(1, 2).ToString("x"), Is.EqualTo("00000000000000010002"));
+				Assert.That(VersionStamp.Complete(1, 2, 3).ToString("X"), Is.EqualTo("000000000000000100020003"));
+				Assert.That(VersionStamp.Complete(1, 2, 3).ToString("x"), Is.EqualTo("000000000000000100020003"));
+			});
+
+			// "Base-1024" ("O")
+			Assert.Multiple(() =>
+			{
+				Assert.That(VersionStamp.Incomplete().ToString("O"), Is.EqualTo("ЯЯЯЯЯЯЯЯ"));
+				Assert.That(VersionStamp.Incomplete(0).ToString("O"), Is.EqualTo("ЯЯЯЯЯЯЯЯ00"));
+				Assert.That(VersionStamp.Incomplete(0x1234).ToString("O"), Is.EqualTo("ЯЯЯЯЯЯЯЯxͰ"));
+
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0).ToString("O"), Is.EqualTo("4ɤƉι˟Ďϰ0"));
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x357A).ToString("O"), Is.EqualTo("4ɤƉι˟ĎϽƪ"));
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x357A, 0).ToString("O"), Is.EqualTo("4ɤƉι˟ĎϽƪ00"));
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x357A, 0x1234).ToString("O"), Is.EqualTo("4ɤƉι˟ĎϽƪxͰ"));
+				Assert.That(VersionStamp.Complete(0x5A5A5A5A5A5A5A5AUL, 0x5A5A, 0x5A5A).ToString("O"), Is.EqualTo("ƙǕˆʊƙǕˆʊƙǐ"));
+				Assert.That(VersionStamp.Complete(1, 2).ToString("O"), Is.EqualTo("000000p2"));
+				Assert.That(VersionStamp.Complete(1, 2, 3).ToString("O"), Is.EqualTo("000000p20`"));
 			});
 
 			// "Java-like" ("J")
@@ -297,54 +580,99 @@ namespace FoundationDB.Client.Tests
 				Assert.That(VersionStamp.Complete(0x48656c6c6f576f72UL, 0x6c64, 0).ToString("J"), Is.EqualTo("Versionstamp(HelloWorld 0)"));
 				Assert.That(VersionStamp.Complete(0x48656c6c6f576f72UL, 0x6c64, 0x29a).ToString("J"), Is.EqualTo("Versionstamp(HelloWorld 666)"));
 				Assert.That(VersionStamp.Complete(0x0001273041615c7fUL, 0x80ff, 0x29a).ToString("J"), Is.EqualTo(@"Versionstamp(\x00\x01'0Aa\\\x7f\x80\xff 666)"));
+				Assert.That(VersionStamp.Complete(0x5A5A5A5A5A5A5A5AUL, 0x5A5A, 0x5A5A).ToString("J"), Is.EqualTo("Versionstamp(ZZZZZZZZZZ 23130)"));
+				Assert.That(VersionStamp.Complete(1, 2).ToString("J"), Is.EqualTo(@"Versionstamp(\x00\x00\x00\x00\x00\x00\x00\x01\x00\x02 0)"));
+				Assert.That(VersionStamp.Complete(1, 2, 3).ToString("J"), Is.EqualTo(@"Versionstamp(\x00\x00\x00\x00\x00\x00\x00\x01\x00\x02 3)"));
 			});
 		}
 
 		[Test]
 		public void Test_VersionStamp_TryFormat_Chars()
 		{
-			static void VerifyTryFormat(VersionStamp vs, string expected)
+			static void VerifyTryFormat(VersionStamp vs, string format, string expected)
 			{
-				{ // with large enough buffer
+				{
+					// with large enough buffer
 					var arr = new char[expected.Length + 100];
-					arr.AsSpan().Fill('%');
 					Span<char> buffer = arr;
-					Assert.That(vs.TryFormat(buffer, out int charsWritten), Is.True);
+					buffer.Fill('∅');
+					Assert.That(vs.TryFormat(buffer, out int charsWritten, format), Is.True);
 					Assert.That(buffer[..charsWritten].ToString(), Is.EqualTo(expected));
-					Assert.That(arr.AsSpan(charsWritten).ContainsAnyExcept('%'), Is.False);
+					if (buffer[charsWritten..].ContainsAnyExcept('∅'))
+					{
+						Log($"`{buffer[..charsWritten]}`+`{buffer[charsWritten..]}`");
+						Assert.That(buffer[charsWritten..].ContainsAnyExcept('∅'), Is.False);
+					}
 				}
-				{ // with exactly sized buffer
+				{
+					// with exactly sized buffer
 					var arr = new char[expected.Length + 100];
-					arr.AsSpan().Fill('%');
+					arr.AsSpan().Fill('∅');
 					Span<char> buffer = arr.AsSpan(0, expected.Length);
-					Assert.That(vs.TryFormat(buffer, out int charsWritten), Is.True);
+					Assert.That(vs.TryFormat(buffer, out int charsWritten, format), Is.True);
 					Assert.That(buffer[..charsWritten].ToString(), Is.EqualTo(expected));
-					Assert.That(arr.AsSpan(charsWritten).ContainsAnyExcept('%'), Is.False);
+					Assert.That(arr.AsSpan(charsWritten).ContainsAnyExcept('∅'), Is.False);
+					if (arr.AsSpan(charsWritten).ContainsAnyExcept('∅'))
+					{
+						Log($"`{buffer[..charsWritten]}`+`{buffer[charsWritten..]}`");
+						Assert.That(arr.AsSpan(charsWritten).ContainsAnyExcept('∅'), Is.False);
+					}
 				}
-				{ // with empty buffer
-					Assert.That(vs.TryFormat(Span<char>.Empty, out int charsWritten), Is.False);
+				{
+					// with empty buffer
+					Assert.That(vs.TryFormat(Span<char>.Empty, out int charsWritten, format), Is.False);
 					Assert.That(charsWritten, Is.Zero);
 				}
-				{ // with buffer just one short
+				{
+					// with buffer just one short
 					var arr = new char[expected.Length + 100];
-					arr.AsSpan().Fill('%');
+					arr.AsSpan().Fill('∅');
 					Span<char> buffer = arr.AsSpan(0, expected.Length - 1);
-					Assert.That(vs.TryFormat(buffer, out int charsWritten), Is.False);
+					Assert.That(vs.TryFormat(buffer, out int charsWritten, format), Is.False);
 					Assert.That(charsWritten, Is.Zero);
-					Assert.That(arr.AsSpan(expected.Length - 1).ContainsAnyExcept('%'), Is.False);
+					if (arr.AsSpan(expected.Length - 1).ContainsAnyExcept('∅'))
+					{
+						Log($"`{buffer}`");
+						Assert.That(arr.AsSpan(expected.Length - 1).ContainsAnyExcept('∅'), Is.False);
+					}
 				}
 			}
 
-			VerifyTryFormat(VersionStamp.Incomplete(), "@?");
-			VerifyTryFormat(VersionStamp.Incomplete(0), "@?#0");
-			VerifyTryFormat(VersionStamp.Incomplete(0x12), "@?#12");
-			VerifyTryFormat(VersionStamp.Incomplete(0x1234), "@?#1234");
-			VerifyTryFormat(VersionStamp.Complete(0x0123456789ABCDEFUL, 0), "@123456789abcdef-0");
-			VerifyTryFormat(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x357A), "@123456789abcdef-357a");
-			VerifyTryFormat(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x357A, 0), "@123456789abcdef-357a#0");
-			VerifyTryFormat(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x357A, 0x1234), "@123456789abcdef-357a#1234");
-			VerifyTryFormat(VersionStamp.Complete(1, 2), "@1-2");
-			VerifyTryFormat(VersionStamp.Complete(1, 2, 3), "@1-2#3");
+			// Default
+			VerifyTryFormat(VersionStamp.Incomplete(), "", "@?");
+			VerifyTryFormat(VersionStamp.Incomplete(0), "", "@?#0");
+			VerifyTryFormat(VersionStamp.Incomplete(0x12), "", "@?#12");
+			VerifyTryFormat(VersionStamp.Incomplete(0x1234), "", "@?#1234");
+			VerifyTryFormat(VersionStamp.Complete(0x0123456789ABCDEFUL, 0), "", "@123456789abcdef-0");
+			VerifyTryFormat(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x357A), "", "@123456789abcdef-357a");
+			VerifyTryFormat(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x357A, 0), "", "@123456789abcdef-357a#0");
+			VerifyTryFormat(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x357A, 0x1234), "", "@123456789abcdef-357a#1234");
+			VerifyTryFormat(VersionStamp.Complete(1, 2), "", "@1-2");
+			VerifyTryFormat(VersionStamp.Complete(1, 2, 3), "", "@1-2#3");
+
+			// Hexa
+			VerifyTryFormat(VersionStamp.Incomplete(), "x", "ffffffffffffffffffff");
+			VerifyTryFormat(VersionStamp.Incomplete(0), "x", "ffffffffffffffffffff0000");
+			VerifyTryFormat(VersionStamp.Incomplete(0x12), "x", "ffffffffffffffffffff0012");
+			VerifyTryFormat(VersionStamp.Incomplete(0x1234), "x", "ffffffffffffffffffff1234");
+			VerifyTryFormat(VersionStamp.Complete(0x0123456789ABCDEFUL, 0), "x", "0123456789abcdef0000");
+			VerifyTryFormat(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x357A), "x", "0123456789abcdef357a");
+			VerifyTryFormat(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x357A, 0), "x", "0123456789abcdef357a0000");
+			VerifyTryFormat(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x357A, 0x1234), "x", "0123456789abcdef357a1234");
+			VerifyTryFormat(VersionStamp.Complete(1, 2), "x", "00000000000000010002");
+			VerifyTryFormat(VersionStamp.Complete(1, 2, 3), "x", "000000000000000100020003");
+
+			// Base-1024
+			VerifyTryFormat(VersionStamp.Incomplete(), "O", "ЯЯЯЯЯЯЯЯ");
+			VerifyTryFormat(VersionStamp.Incomplete(0), "O", "ЯЯЯЯЯЯЯЯ00");
+			VerifyTryFormat(VersionStamp.Incomplete(0x12), "O", "ЯЯЯЯЯЯЯЯ0Ő");
+			VerifyTryFormat(VersionStamp.Incomplete(0x1234), "O", "ЯЯЯЯЯЯЯЯxͰ");
+			VerifyTryFormat(VersionStamp.Complete(0x0123456789ABCDEFUL, 0), "O", "4ɤƉι˟Ďϰ0");
+			VerifyTryFormat(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x357A), "O", "4ɤƉι˟ĎϽƪ");
+			VerifyTryFormat(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x357A, 0), "O", "4ɤƉι˟ĎϽƪ00");
+			VerifyTryFormat(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x357A, 0x1234), "O", "4ɤƉι˟ĎϽƪxͰ");
+			VerifyTryFormat(VersionStamp.Complete(1, 2), "O", "000000p2");
+			VerifyTryFormat(VersionStamp.Complete(1, 2, 3), "O", "000000p20`");
 		}
 
 		[Test]
@@ -423,47 +751,76 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public void Test_VersionStamp_TryFormat_Utf8_Bytes()
 		{
-			static void VerifyTryFormat(VersionStamp vs, string expected)
+			static void VerifyTryFormat(VersionStamp vs, string format, string expected)
 			{
-				{ // with large enough buffer
-					var arr = new byte[expected.Length + 100];
+				byte[] expectedBytes = Encoding.UTF8.GetBytes(expected);
+
+				{
+					// with large enough buffer
+					var arr = new byte[expectedBytes.Length + 100];
 					arr.AsSpan().Fill(0xAA);
 					Span<byte> buffer = arr;
-					Assert.That(vs.TryFormat(buffer, out int bytesWritten), Is.True); 
-					Assert.That(Encoding.UTF8.GetString(buffer[..bytesWritten]), Is.EqualTo(expected));
-					Assert.That(arr.AsSpan(bytesWritten).ContainsAnyExcept((byte) 0xAA), Is.False);
+					Assert.That(vs.TryFormat(buffer, out int bytesWritten, format), Is.True);
+					if (!buffer[..bytesWritten].SequenceEqual(expectedBytes))
+					{
+						DumpVersus(buffer[..bytesWritten], expectedBytes);
+						Assert.That(Encoding.UTF8.GetString(buffer[..bytesWritten]), Is.EqualTo(expected));
+					}
+
+					Assert.That(arr.AsSpan(bytesWritten).ContainsAnyExcept((byte)0xAA), Is.False);
 				}
-				{ // with exactly sized buffer
-					var arr = new byte[expected.Length + 100];
+				{
+					// with exactly sized buffer
+					var arr = new byte[expectedBytes.Length + 100];
 					arr.AsSpan().Fill(0xAA);
-					Span<byte> buffer = arr.AsSpan(0, expected.Length);
-					Assert.That(vs.TryFormat(buffer, out int bytesWritten), Is.True);
-					Assert.That(Encoding.UTF8.GetString(buffer[..bytesWritten]), Is.EqualTo(expected));
-					Assert.That(arr.AsSpan(bytesWritten).ContainsAnyExcept((byte) 0xAA), Is.False);
+					Span<byte> buffer = arr.AsSpan(0, expectedBytes.Length);
+					Assert.That(vs.TryFormat(buffer, out int bytesWritten, format), Is.True);
+					if (!buffer[..bytesWritten].SequenceEqual(expectedBytes))
+					{
+						DumpVersus(buffer[..bytesWritten], expectedBytes);
+						Assert.That(Encoding.UTF8.GetString(buffer[..bytesWritten]), Is.EqualTo(expected));
+					}
+
+					Assert.That(arr.AsSpan(bytesWritten).ContainsAnyExcept((byte)0xAA), Is.False);
 				}
-				{ // with empty buffer
-					Assert.That(vs.TryFormat(Span<byte>.Empty, out int bytesWritten), Is.False);
+				{
+					// with empty buffer
+					Assert.That(vs.TryFormat(Span<byte>.Empty, out int bytesWritten, format), Is.False);
 					Assert.That(bytesWritten, Is.Zero);
 				}
-				{ // with buffer just one short
-					var arr = new byte[expected.Length + 100];
+				{
+					// with buffer just one short
+					var arr = new byte[expectedBytes.Length + 100];
 					arr.AsSpan().Fill(0xAA);
-					Span<byte> buffer = arr.AsSpan(0, expected.Length - 1);
-					Assert.That(vs.TryFormat(buffer, out int bytesWritten), Is.False);
+					Span<byte> buffer = arr.AsSpan(0, expectedBytes.Length - 1);
+					Assert.That(vs.TryFormat(buffer, out int bytesWritten, format), Is.False);
 					Assert.That(bytesWritten, Is.Zero);
-					Assert.That(arr.AsSpan(expected.Length - 1).ContainsAnyExcept((byte) 0xAA), Is.False);
+					Assert.That(arr.AsSpan(expectedBytes.Length - 1).ContainsAnyExcept((byte)0xAA), Is.False);
 				}
 			}
 
-			VerifyTryFormat(VersionStamp.Incomplete(), "@?");
-			VerifyTryFormat(VersionStamp.Incomplete(0), "@?#0");
-			VerifyTryFormat(VersionStamp.Incomplete(0x1234), "@?#1234");
-			VerifyTryFormat(VersionStamp.Complete(0x0123456789ABCDEFUL, 0), "@123456789abcdef-0");
-			VerifyTryFormat(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x357A), "@123456789abcdef-357a");
-			VerifyTryFormat(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x357A, 0), "@123456789abcdef-357a#0");
-			VerifyTryFormat(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x357A, 0x1234), "@123456789abcdef-357a#1234");
-			VerifyTryFormat(VersionStamp.Complete(1, 2), "@1-2");
-			VerifyTryFormat(VersionStamp.Complete(1, 2, 3), "@1-2#3");
+			// "default" format
+			VerifyTryFormat(VersionStamp.Incomplete(), "", "@?");
+			VerifyTryFormat(VersionStamp.Incomplete(0), "", "@?#0");
+			VerifyTryFormat(VersionStamp.Incomplete(0x1234), "", "@?#1234");
+			VerifyTryFormat(VersionStamp.Complete(0x0123456789ABCDEFUL, 0), "", "@123456789abcdef-0");
+			VerifyTryFormat(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x357A), "", "@123456789abcdef-357a");
+			VerifyTryFormat(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x357A, 0), "", "@123456789abcdef-357a#0");
+			VerifyTryFormat(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x357A, 0x1234), "", "@123456789abcdef-357a#1234");
+			VerifyTryFormat(VersionStamp.Complete(1, 2), "", "@1-2");
+			VerifyTryFormat(VersionStamp.Complete(1, 2, 3), "", "@1-2#3");
+
+			// "Base-1024" format
+			VerifyTryFormat(VersionStamp.Incomplete(), "O", "ЯЯЯЯЯЯЯЯ");
+			VerifyTryFormat(VersionStamp.Incomplete(0), "O", "ЯЯЯЯЯЯЯЯ00");
+			VerifyTryFormat(VersionStamp.Incomplete(0x12), "O", "ЯЯЯЯЯЯЯЯ0Ő");
+			VerifyTryFormat(VersionStamp.Incomplete(0x1234), "O", "ЯЯЯЯЯЯЯЯxͰ");
+			VerifyTryFormat(VersionStamp.Complete(0x0123456789ABCDEFUL, 0), "O", "4ɤƉι˟Ďϰ0");
+			VerifyTryFormat(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x357A), "O", "4ɤƉι˟ĎϽƪ");
+			VerifyTryFormat(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x357A, 0), "O", "4ɤƉι˟ĎϽƪ00");
+			VerifyTryFormat(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x357A, 0x1234), "O", "4ɤƉι˟ĎϽƪxͰ");
+			VerifyTryFormat(VersionStamp.Complete(1, 2), "O", "000000p2");
+			VerifyTryFormat(VersionStamp.Complete(1, 2, 3), "O", "000000p20`");
 		}
 
 		[Test]
@@ -557,7 +914,6 @@ namespace FoundationDB.Client.Tests
 				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA), Is.GreaterThan(VersionStamp.Complete(0x0123456789ABCDEEUL, 0x55AA)));
 				Assert.That(VersionStamp.Complete(0x0123456789ABCDEEUL, 0xFFFF), Is.LessThan(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x0000)));
 				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x0000), Is.GreaterThan(VersionStamp.Complete(0x0123456789ABCDEEUL, 0xFFFF)));
-
 			});
 
 			//TODO: tests with user version !
@@ -577,10 +933,10 @@ namespace FoundationDB.Client.Tests
 			Assert.That(VersionStamp.FromUuid80(new Uuid80(0x0123, 0x456789ABCDEF55AA)), Is.EqualTo(VersionStamp.Complete(0x0123456789ABCDEF, 0x55AA)));
 
 			// casting
-			Assert.That((Uuid80) VersionStamp.Incomplete(), Is.EqualTo(Uuid80.MaxValue));
-			Assert.That((Uuid80) VersionStamp.Complete(0x0123456789ABCDEF, 0x55AA), Is.EqualTo(new Uuid80(0x0123, 0x456789ABCDEF55AA)));
-			Assert.That((VersionStamp) Uuid80.MaxValue, Is.EqualTo(VersionStamp.Incomplete()));
-			Assert.That((VersionStamp) new Uuid80(0x0123, 0x456789ABCDEF55AA), Is.EqualTo(VersionStamp.Complete(0x0123456789ABCDEF, 0x55AA)));
+			Assert.That((Uuid80)VersionStamp.Incomplete(), Is.EqualTo(Uuid80.MaxValue));
+			Assert.That((Uuid80)VersionStamp.Complete(0x0123456789ABCDEF, 0x55AA), Is.EqualTo(new Uuid80(0x0123, 0x456789ABCDEF55AA)));
+			Assert.That((VersionStamp)Uuid80.MaxValue, Is.EqualTo(VersionStamp.Incomplete()));
+			Assert.That((VersionStamp)new Uuid80(0x0123, 0x456789ABCDEF55AA), Is.EqualTo(VersionStamp.Complete(0x0123456789ABCDEF, 0x55AA)));
 
 			// should fail if size does not match
 			Assert.That(() => VersionStamp.Incomplete(0x1234).ToUuid80(), Throws.Exception);
@@ -601,16 +957,95 @@ namespace FoundationDB.Client.Tests
 			Assert.That(VersionStamp.FromUuid96(new Uuid96(0x01234567U, 0x89ABCDEF55AA33CCUL)), Is.EqualTo(VersionStamp.Complete(0x0123456789ABCDEF, 0x55AA, 0x33CC)));
 
 			// cast
-			Assert.That((Uuid96) VersionStamp.Incomplete(0xFFFF), Is.EqualTo(Uuid96.MaxValue));
-			Assert.That((Uuid96) VersionStamp.Incomplete(0x1234), Is.EqualTo(new Uuid96(0xFFFFFFFF, 0xFFFFFFFFFFFF1234UL)));
-			Assert.That((Uuid96) VersionStamp.Complete(0x0123456789ABCDEF, 0x55AA, 0x33CC), Is.EqualTo(new Uuid96(0x01234567U, 0x89ABCDEF55AA33CCUL)));
-			Assert.That((VersionStamp) Uuid96.MaxValue, Is.EqualTo(VersionStamp.Incomplete(0xFFFF)));
-			Assert.That((VersionStamp) new Uuid96(0xFFFFFFFF, 0xFFFFFFFFFFFF1234UL), Is.EqualTo(VersionStamp.Incomplete(0x1234)));
-			Assert.That((VersionStamp) new Uuid96(0x01234567U, 0x89ABCDEF55AA33CCUL), Is.EqualTo(VersionStamp.Complete(0x0123456789ABCDEF, 0x55AA, 0x33CC)));
+			Assert.That((Uuid96)VersionStamp.Incomplete(0xFFFF), Is.EqualTo(Uuid96.MaxValue));
+			Assert.That((Uuid96)VersionStamp.Incomplete(0x1234), Is.EqualTo(new Uuid96(0xFFFFFFFF, 0xFFFFFFFFFFFF1234UL)));
+			Assert.That((Uuid96)VersionStamp.Complete(0x0123456789ABCDEF, 0x55AA, 0x33CC), Is.EqualTo(new Uuid96(0x01234567U, 0x89ABCDEF55AA33CCUL)));
+			Assert.That((VersionStamp)Uuid96.MaxValue, Is.EqualTo(VersionStamp.Incomplete(0xFFFF)));
+			Assert.That((VersionStamp)new Uuid96(0xFFFFFFFF, 0xFFFFFFFFFFFF1234UL), Is.EqualTo(VersionStamp.Incomplete(0x1234)));
+			Assert.That((VersionStamp)new Uuid96(0x01234567U, 0x89ABCDEF55AA33CCUL), Is.EqualTo(VersionStamp.Complete(0x0123456789ABCDEF, 0x55AA, 0x33CC)));
 
 			// should fail if size does not match
 			Assert.That(() => VersionStamp.Incomplete().ToUuid96(), Throws.Exception);
 			Assert.That(() => VersionStamp.Complete(0x0123456789ABCDEF, 0x55AA).ToUuid96(), Throws.Exception);
+		}
+
+		private VersionStamp GetRandomStamp() =>
+			this.Rnd.NextDouble() < 0.25
+				? VersionStamp.Complete((ulong)this.Rnd.NextInt64(), (ushort)this.Rnd.Next(0, 65536), (ushort)this.Rnd.Next(0, 65536))
+				: VersionStamp.Complete((ulong)this.Rnd.NextInt64(), (ushort)this.Rnd.Next(0, 65536));
+
+		[Test]
+		public void Test_VersionStamp_ToBase1024_RoundTrips()
+		{
+			// encode/decode
+			Log("Test encoding does round-trip...");
+			for (int i = 0; i < 1000; i++)
+			{
+				var vs = GetRandomStamp();
+
+				var encoded = vs.ToString("O");
+				Assert.That(encoded, Has.Length.EqualTo(vs.HasUserVersion ? 10 : 8));
+
+				if (!VersionStamp.TryParseBase1024(encoded, out var decoded))
+				{
+					Assert.Fail($"Failed to decode `{encoded}` back into {vs:X}");
+				}
+
+				if (i % 100 == 0)
+				{
+					Log($"{vs:X} => `{encoded}` => {decoded:X}");
+				}
+
+				if (!decoded.Equals(vs))
+				{
+					Log($"Stamp  : {vs:X} => `{encoded}` ({encoded.Length}) => {CrystalJson.Serialize(encoded)}");
+					Log($"Decoded: {decoded:X}");
+					Assert.That(decoded, Is.EqualTo(vs));
+				}
+			}
+		}
+
+		[Test]
+		public void Test_VersionStamp_ToBase1024_Preserves_Ordering()
+		{
+			// preserve ordering
+			Log("Test encoding preserves ordering");
+			for (int i = 0; i < 1000; i++)
+			{
+				var vs1 = GetRandomStamp();
+				var vs2 = GetRandomStamp();
+
+				var val1 = vs1.ToString("O");
+				Assert.That(val1, Has.Length.EqualTo(vs1.HasUserVersion ? 10 : 8));
+
+				var val2 = vs2.ToString("O");
+				Assert.That(val2, Has.Length.EqualTo(vs2.HasUserVersion ? 10 : 8));
+
+				var cmpStamps = vs1.CompareTo(vs2);
+				var cmpValues = val1.CompareTo(val2, StringComparison.Ordinal);
+
+				if (i % 100 == 0)
+				{
+					Log($"{vs1:X} {cmpStamps switch { < 0 => '<', 0 => '=', _ => '>'}} {vs2:X} => `{val1}` {cmpValues switch { < 0 => '<', 0 => '=', _ => '>'}} `{val2}`");
+				}
+
+				// comparing the VersionStamps, and comparing the strings should yield the same sign
+				if (Math.Sign(cmpStamps) != Math.Sign(cmpValues))
+				{
+					Log($"Val-1: {vs1:X} => `{CrystalJson.Serialize(val1)}`");
+					Log($"Val-2: {vs2:X} => `{CrystalJson.Serialize(val2)}`");
+					Log($"Compare: {cmpStamps} vs {cmpValues}");
+
+					if (vs1 <= vs2)
+					{
+						Assert.That(val1, Is.LessThanOrEqualTo(val2).Using<string>(StringComparer.Ordinal));
+					}
+					else
+					{
+						Assert.That(val1, Is.GreaterThan(val2).Using<string>(StringComparer.Ordinal));
+					}
+				}
+			}
 
 		}
 

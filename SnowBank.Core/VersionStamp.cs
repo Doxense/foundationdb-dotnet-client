@@ -35,6 +35,7 @@ namespace System
 	using Globalization;
 	using SnowBank.Buffers;
 	using SnowBank.Buffers.Binary;
+	using SnowBank.Text;
 
 	/// <summary>VersionStamp</summary>
 	/// <remarks>A VersionStamp is unique, monotonically (but not sequentially) increasing value for each committed transaction.
@@ -285,10 +286,40 @@ namespace System
 				{ // "Java-like"
 					return this.IsIncomplete ? ToJavaStringIncomplete(this.UserVersion) : ToJavaStringComplete(this.TransactionVersion, this.TransactionOrder, this.HasUserVersion ? this.UserVersion : default);
 				}
+				case "X":
+				case "x":
+				{
+					return ToBase16String(in this, format == "x");
+				}
+				case "O":
+				case "o":
+				{
+					return ToBase1024String(in this);
+				}
 				default:
 				{
 					throw new FormatException("Bad format specifier");
 				}
+			}
+
+			static string ToBase16String(in VersionStamp stamp, bool lowerCase)
+			{
+				Span<char> buffer = stackalloc char[24];
+				if (!stamp.TryFormatBase16(buffer, out int written, null, lowerCase))
+				{
+					throw new InvalidOperationException(); // not supported to happen?
+				}
+				return buffer[..written].ToString();
+			}
+
+			static string ToBase1024String(in VersionStamp stamp)
+			{
+				// will be either 8 or 10 characters
+				Span<char> buffer = stackalloc char[10]; 
+				// format to Base-1024
+				stamp.TryFormatBase1024(buffer, out var charsWritten);
+				// extract the string
+				return buffer[..charsWritten].ToString();
 			}
 
 			static string ToJavaStringIncomplete(uint user)
@@ -336,7 +367,7 @@ namespace System
 
 		/// <summary>Tries to format the value of the current instance into the provided span of characters.</summary>
 		/// <param name="destination">The span in which to write this instance's value formatted as a span of characters.</param>
-		/// <param name="bytesWritten">When this method returns, contains the number of characters that were written in <paramref name="destination" />.</param>
+		/// <param name="charsWritten">When this method returns, contains the number of characters that were written in <paramref name="destination" />.</param>
 		/// <param name="format">A span containing the characters that represent a standard or custom format string that defines the acceptable format for <paramref name="destination" />.</param>
 		/// <param name="provider">This parameter is ignored.</param>
 		/// <returns>
@@ -344,17 +375,22 @@ namespace System
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryFormat(
 			Span<char> destination,
-			out int bytesWritten,
+			out int charsWritten,
 			ReadOnlySpan<char> format = default,
 			IFormatProvider? provider = null
 		)
 		{
-			if (format.Length != 0 && format is not ("D" or "d"))
+			return format switch
 			{
-				//TODO: support "J" has well?
-				throw new FormatException("Bad format specified");
-			}
+				"" or "D" or "d" => TryFormatDefault(destination, out charsWritten, provider),
+				"X" or "x" => TryFormatBase16(destination, out charsWritten, provider, format is "x"),
+				"O" or "o" => TryFormatBase1024(destination, out charsWritten),
+				_ => throw new FormatException("Bad format specified")
+			};
+		}
 
+		private bool TryFormatDefault(Span<char> destination, out int bytesWritten, IFormatProvider? provider)
+		{
 			// must have _at least_ 2 characters with no user-version (to fit the incomplete stamp "@?"), and 4 characters with a user-version (to fit "@?#0")
 			if (destination.Length < 2)
 			{
@@ -451,6 +487,38 @@ namespace System
 
 		}
 
+		private bool TryFormatBase16(Span<char> destination, out int charsWritten, IFormatProvider? provider, bool lowerCase)
+		{
+			charsWritten = 0;
+			if (!this.TransactionVersion.TryFormat(destination, out var len, lowerCase ? "x016" : "X016", provider))
+			{
+				goto too_small;
+			}
+			charsWritten += len;
+			destination = destination[len..];
+
+			if (!this.TransactionOrder.TryFormat(destination, out len, lowerCase ? "x04" : "X04", provider))
+			{
+				goto too_small;
+			}
+			charsWritten += len;
+
+			if (this.HasUserVersion)
+			{
+				destination = destination[len..];
+				if (!this.UserVersion.TryFormat(destination, out len, lowerCase ? "x04" : "X04", provider))
+				{
+					goto too_small;
+				}
+				charsWritten += len;
+			}
+
+			return true;
+
+		too_small:
+			charsWritten = 0;
+			return false;
+		}
 
 		/// <summary>Tries to format the value of the current instance UTF-8 into the provided span of bytes.</summary>
 		/// <param name="utf8Destination">The span in which to write this instance's value formatted as a span of bytes.</param>
@@ -470,12 +538,19 @@ namespace System
 			IFormatProvider? provider = null
 		)
 		{
-			if (format.Length != 0 && format is not ("D" or "d"))
+			return format switch
 			{
+				"" or "D" or "d" => TryFormatDefault(utf8Destination, out bytesWritten, provider),
+				"O" or "o" => TryFormatBase1024(utf8Destination, out bytesWritten),
+				"X" or "x" => throw new NotImplementedException("TODO: implement formatting VersionStamps to UTF-8 bytes in hexadecimal"),
 				//TODO: support "J" has well?
-				throw new FormatException("Bad format specified");
-			}
+				_ => throw new FormatException("Bad format specified"),
+			};
 
+		}
+
+		private bool TryFormatDefault(Span<byte> utf8Destination, out int bytesWritten, IFormatProvider? provider)
+		{
 			// this is "easy mode" since all the characters are ASCII !
 			// the maximum possible size for a VersionStamp is X characters:
 
@@ -607,11 +682,12 @@ namespace System
 		/// <summary>Writes this VersionStamp to the specified buffer, if it is large enough.</summary>
 		/// <param name="buffer">Destination buffer, that must have a length of at least 10 or 12 bytes</param>
 		/// <exception cref="ArgumentException"> if the buffer is not large enough.</exception>
-		public void WriteTo(Span<byte> buffer)
+		public int WriteTo(Span<byte> buffer)
 		{
 			int len = GetLength(); // 10 or 12
 			if (buffer.Length < len) throw DestinationBufferTooSmall(len);
 			WriteUnsafe(buffer[..len], in this);
+			return len;
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			static ArgumentException DestinationBufferTooSmall(int len) => new($"The target buffer must be at least {len} bytes long.");
@@ -646,9 +722,11 @@ namespace System
 		}
 
 		/// <summary>Writes this VersionStamp to the specified destination</summary>
-		public void WriteTo(ref SliceWriter writer)
+		public int WriteTo(ref SliceWriter writer)
 		{
-			WriteUnsafe(writer.AllocateSpan(GetLength()), in this);
+			int len = GetLength();
+			WriteUnsafe(writer.AllocateSpan(len), in this);
+			return len;
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1102,6 +1180,102 @@ namespace System
 		};
 
 		#endregion
+
+		/// <summary>Try formatting this <seealso cref="VersionStamp"/> into Base-1024 string literal</summary>
+		/// <param name="destination">Buffer that must have a size of at least 8 or 10 characters (depending on the value of <seealso cref="HasUserVersion"/>)</param>
+		/// <param name="charsWritten">Number of bytes written to <paramref name="destination"/>, always equal to <c>10</c></param>
+		/// <exception cref="ArgumentException"><paramref name="destination"/> is not large enough</exception>
+		/// <remarks>
+		/// <para>This will write 16 characters into <paramref name="destination"/> that each represent a 10-bit chunk of the combined prefix and version stamp.</para>
+		/// <para>Each 10-bit chunk is offset by 48, so that 0b0000000000 is mapped to the '0' character.</para>
+		/// <para>The resulting string should preserver the sort order of the 160-bit input.</para>
+		/// </remarks>
+		public bool TryFormatBase1024(Span<char> destination, out int charsWritten)
+		{
+			if (destination.Length < (this.HasUserVersion ? 10 : 8))
+			{ // cannot be smaller than 8
+				charsWritten = 0;
+				return false;
+			}
+
+			// serialize the stamp to the stack, and then encode that buffer to Base-1024
+			Span<byte> input = stackalloc byte[12];
+			BinaryPrimitives.WriteUInt64BigEndian(input, this.TransactionVersion);
+			BinaryPrimitives.WriteUInt16BigEndian(input[8..], this.TransactionOrder);
+			if (!this.HasUserVersion)
+			{
+				return Base1024Encoding.TryEncodeTo(input[..10], destination, out charsWritten);
+			}
+
+			BinaryPrimitives.WriteUInt16BigEndian(input[10..], this.HasUserVersion ? this.UserVersion : default);
+			return Base1024Encoding.TryEncodeTo(input, destination, out charsWritten);
+		}
+
+		public bool TryFormatBase1024(Span<byte> utf8Destination, out int bytesWritten)
+		{
+			// we will first format to a temp chars buffer, then convert this buffer to utf-8
+			Span<char> chars = stackalloc char[10]; // will be either 8 or 10
+			if (TryFormatBase1024(chars, out var charsWritten))
+			{
+				// this is not supposed to happen!
+
+				switch (System.Text.Unicode.Utf8.FromUtf16(chars[..charsWritten], utf8Destination, out _, out bytesWritten))
+				{
+					case OperationStatus.Done:
+					{
+						return true;
+					}
+					case OperationStatus.DestinationTooSmall:
+					{
+						bytesWritten = 0;
+						return false;
+					}
+				}
+			}
+
+			// this error does not depend on the destination buffer size
+			// => we have to throw otherwise the caller will keep calling with a larger and larger buffer
+#if DEBUG
+			// this is not supposed to happen, unless there is a bug on our side in the formatting code
+			if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
+#endif
+			throw new InvalidOperationException();
+		}
+
+		public static VersionStamp ParseBase1024(string source)
+			=> ParseBase1024(source.AsSpan());
+
+		public static VersionStamp ParseBase1024(ReadOnlySpan<char> source)
+		{
+			if (!TryParseBase1024(source, out var result))
+			{
+				throw new FormatException("Failed to parse VersionStamp from Base-1024 string literal");
+			}
+			return result;
+		}
+
+		public static bool TryParseBase1024(string source, out VersionStamp result)
+			=> TryParseBase1024(source.AsSpan(), out result);
+
+		public static bool TryParseBase1024(ReadOnlySpan<char> source, out VersionStamp result)
+		{
+			if (source.Length is not (8 or 10))
+			{
+				result = default;
+				return false;
+			}
+
+			Span<byte> output = stackalloc byte[12];
+
+			if (!Base1024Encoding.TryDecodeTo(source, output, out int bytesWritten) || bytesWritten is not (10 or 12))
+			{
+				result = default;
+				return false;
+			}
+
+			result = ReadFrom(output[..bytesWritten]);
+			return true;
+		}
 
 	}
 
