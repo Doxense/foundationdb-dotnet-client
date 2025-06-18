@@ -75,6 +75,51 @@ namespace SnowBank.Text.Tests
 			}
 		}
 
+		[Test]
+		public void Test_Encode_Integer_Values()
+		{
+			// int
+			Assert.Multiple(() =>
+			{
+				Assert.That(Base1024Encoding.EncodeInt32Value((int) 0), Is.EqualTo("0000!"));
+				Assert.That(Base1024Encoding.EncodeInt32Value((int) 1), Is.EqualTo("000İ!"));
+				Assert.That(Base1024Encoding.EncodeInt32Value((int) 0x12345678), Is.EqualTo("x͵ǎ0!"));
+				Assert.That(Base1024Encoding.EncodeInt32Value(int.MinValue), Is.EqualTo("\u0230\u0030\u0030\u0030\u0021"));
+				Assert.That(Base1024Encoding.EncodeInt32Value(int.MaxValue), Is.EqualTo("\u022f\u042f\u042f\u0330\u0021"));
+			});
+
+			// long
+			Assert.Multiple(() =>
+			{
+				Assert.That(Base1024Encoding.EncodeInt64Value((long) 0), Is.EqualTo("0000000"));
+				Assert.That(Base1024Encoding.EncodeInt64Value((long) 1), Is.EqualTo("000000p"));
+				Assert.That(Base1024Encoding.EncodeInt64Value((long) 0x0123456789abcdef), Is.EqualTo("4ɤƉι˟Ďϰ"));
+				Assert.That(Base1024Encoding.EncodeInt64Value(long.MinValue), Is.EqualTo("Ȱ000000"));
+				Assert.That(Base1024Encoding.EncodeInt64Value(long.MaxValue), Is.EqualTo("ȯЯЯЯЯЯϰ"));
+			});
+
+			// Guid
+			Assert.Multiple(() =>
+			{
+				Assert.That(Base1024Encoding.EncodeGuidValue(Guid.Empty), Is.EqualTo("0000000000000"));
+				Assert.That(Base1024Encoding.EncodeGuidValue(Guid.Parse("8fcccfbd-858e-4583-9534-868f427328fe")), Is.EqualTo("ɯüПƵɩ\u0088ĕŤɊĤÌ͘Ш"));
+				Assert.That(Base1024Encoding.EncodeGuidValue(Guid.Parse("4a0bfdba-f7b2-41b3-a5ba-1e3cfd6b6095")), Is.EqualTo("ŘïΞ̧˹KęǪ¨ϿΊΐʄ"));
+#if NET9_0_OR_GREATER
+				Assert.That(Base1024Encoding.EncodeGuidValue(Guid.AllBitsSet), Is.EqualTo("ЯЯЯЯЯЯЯЯЯЯЯЯЬ"));
+#endif
+			});
+
+			// Uuid128
+			Assert.Multiple(() =>
+			{
+				Assert.That(Base1024Encoding.EncodeUuid128Value(Uuid128.Empty), Is.EqualTo("0000000000000"));
+				Assert.That(Base1024Encoding.EncodeUuid128Value(Uuid128.Parse("8fcccfbd-858e-4583-9534-868f427328fe")), Is.EqualTo("ɯüПƵɩ\u0088ĕŤɊĤÌ͘Ш"));
+				Assert.That(Base1024Encoding.EncodeUuid128Value(Uuid128.Parse("4a0bfdba-f7b2-41b3-a5ba-1e3cfd6b6095")), Is.EqualTo("ŘïΞ̧˹KęǪ¨ϿΊΐʄ"));
+				Assert.That(Base1024Encoding.EncodeUuid128Value(Uuid128.AllBitsSet), Is.EqualTo("ЯЯЯЯЯЯЯЯЯЯЯЯЬ"));
+			});
+
+		}
+
 	}
 
 }
