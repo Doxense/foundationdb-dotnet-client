@@ -947,9 +947,9 @@ namespace FoundationDB.Client.Tests
 		public void Test_VersionStamp_To_Uuid96()
 		{
 			// To
-			Assert.That(VersionStamp.Incomplete(0xFFFF).ToUuid96(), Is.EqualTo(Uuid96.MaxValue));
-			Assert.That(VersionStamp.Incomplete(0x1234).ToUuid96(), Is.EqualTo(new Uuid96(0xFFFFFFFF, 0xFFFFFFFFFFFF1234UL)));
-			Assert.That(VersionStamp.Complete(0x0123456789ABCDEF, 0x55AA, 0x33CC).ToUuid96(), Is.EqualTo(new Uuid96(0x01234567U, 0x89ABCDEF55AA33CCUL)));
+			Assert.That(VersionStamp.Incomplete(0xFFFF).ToUuid96().ToString(), Is.EqualTo("FFFFFFFF-FFFFFFFF-FFFFFFFF"));
+			Assert.That(VersionStamp.Incomplete(0x1234).ToUuid96().ToString(), Is.EqualTo("FFFFFFFF-FFFFFFFF-FFFF1234"));
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEF, 0x55AA, 0x33CC).ToUuid96().ToString(), Is.EqualTo("01234567-89ABCDEF-55AA33CC"));
 
 			// From
 			Assert.That(VersionStamp.FromUuid96(Uuid96.MaxValue), Is.EqualTo(VersionStamp.Incomplete(0xFFFF)));
@@ -957,12 +957,12 @@ namespace FoundationDB.Client.Tests
 			Assert.That(VersionStamp.FromUuid96(new Uuid96(0x01234567U, 0x89ABCDEF55AA33CCUL)), Is.EqualTo(VersionStamp.Complete(0x0123456789ABCDEF, 0x55AA, 0x33CC)));
 
 			// cast
-			Assert.That((Uuid96)VersionStamp.Incomplete(0xFFFF), Is.EqualTo(Uuid96.MaxValue));
-			Assert.That((Uuid96)VersionStamp.Incomplete(0x1234), Is.EqualTo(new Uuid96(0xFFFFFFFF, 0xFFFFFFFFFFFF1234UL)));
-			Assert.That((Uuid96)VersionStamp.Complete(0x0123456789ABCDEF, 0x55AA, 0x33CC), Is.EqualTo(new Uuid96(0x01234567U, 0x89ABCDEF55AA33CCUL)));
-			Assert.That((VersionStamp)Uuid96.MaxValue, Is.EqualTo(VersionStamp.Incomplete(0xFFFF)));
-			Assert.That((VersionStamp)new Uuid96(0xFFFFFFFF, 0xFFFFFFFFFFFF1234UL), Is.EqualTo(VersionStamp.Incomplete(0x1234)));
-			Assert.That((VersionStamp)new Uuid96(0x01234567U, 0x89ABCDEF55AA33CCUL), Is.EqualTo(VersionStamp.Complete(0x0123456789ABCDEF, 0x55AA, 0x33CC)));
+			Assert.That((Uuid96) VersionStamp.Incomplete(0xFFFF), Is.EqualTo(Uuid96.MaxValue));
+			Assert.That((Uuid96) VersionStamp.Incomplete(0x1234), Is.EqualTo(Uuid96.FromUpper80Lower16(Uuid80.MaxValue, 0x1234)));
+			Assert.That((Uuid96) VersionStamp.Complete(0x0123456789ABCDEF, 0x55AA, 0x33CC), Is.EqualTo(new Uuid96(0x01234567U, 0x89ABCDEF55AA33CCUL)));
+			Assert.That((VersionStamp) Uuid96.MaxValue, Is.EqualTo(VersionStamp.Incomplete(0xFFFF)));
+			Assert.That((VersionStamp) new Uuid96(0xFFFFFFFF, 0xFFFFFFFFFFFF1234UL), Is.EqualTo(VersionStamp.Incomplete(0x1234)));
+			Assert.That((VersionStamp) new Uuid96(0x01234567U, 0x89ABCDEF55AA33CCUL), Is.EqualTo(VersionStamp.Complete(0x0123456789ABCDEF, 0x55AA, 0x33CC)));
 
 			// should fail if size does not match
 			Assert.That(() => VersionStamp.Incomplete().ToUuid96(), Throws.Exception);

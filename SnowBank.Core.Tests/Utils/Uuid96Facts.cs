@@ -38,25 +38,71 @@ namespace SnowBank.Core.Tests
 		[Test]
 		public void Test_Uuid96_Empty()
 		{
-			Assert.That(Uuid96.Empty.ToString(), Is.EqualTo("00000000-00000000-00000000"));
-			Assert.That(Uuid96.Empty, Is.EqualTo(default(Uuid96)));
-			Assert.That(Uuid96.Empty, Is.EqualTo(new Uuid96(0, 0UL)));
-			Assert.That(Uuid96.Empty, Is.EqualTo(new Uuid96(0, 0U, 0U)));
-			Assert.That(Uuid96.Empty, Is.EqualTo(new Uuid96(0, 0L)));
-			Assert.That(Uuid96.Empty, Is.EqualTo(new Uuid96(0, 0, 0)));
-			Assert.That(Uuid96.Empty, Is.EqualTo(Uuid96.Read(new byte[12])));
+			Assert.Multiple(() =>
+			{
+				Assert.That(Uuid96.Empty.ToString(), Is.EqualTo("00000000-00000000-00000000"));
+				Assert.That(Uuid96.Empty, Is.EqualTo(default(Uuid96)));
+				Assert.That(Uuid96.Empty, Is.EqualTo(new Uuid96(0, 0UL)));
+				Assert.That(Uuid96.Empty, Is.EqualTo(new Uuid96(0, 0U, 0U)));
+				Assert.That(Uuid96.Empty, Is.EqualTo(new Uuid96(0, 0L)));
+				Assert.That(Uuid96.Empty, Is.EqualTo(new Uuid96(0, 0, 0)));
+				Assert.That(Uuid96.Empty, Is.EqualTo(Uuid96.Read(new byte[12])));
+
+				Assert.That(Uuid96.Empty.Upper16, Is.EqualTo(0));
+				Assert.That(Uuid96.Empty.Upper32, Is.EqualTo(0));
+				Assert.That(Uuid96.Empty.Upper48, Is.EqualTo(0));
+				Assert.That(Uuid96.Empty.Upper64, Is.EqualTo(0));
+				Assert.That(Uuid96.Empty.Upper80, Is.EqualTo(Uuid80.Empty));
+
+				Assert.That(Uuid96.Empty.Lower16, Is.EqualTo(0));
+				Assert.That(Uuid96.Empty.Lower32, Is.EqualTo(0));
+				Assert.That(Uuid96.Empty.Lower48, Is.EqualTo(0));
+				Assert.That(Uuid96.Empty.Lower64, Is.EqualTo(0));
+				Assert.That(Uuid96.Empty.Lower80, Is.EqualTo(Uuid80.Empty));
+			});
 		}
 
 		[Test]
 		public void Test_Uuid96_ToString()
 		{
-			var guid = new Uuid96(0x89ABCDEF, 0xBADC0FFEE0DDF00DUL);
-			Assert.That(guid.ToString(), Is.EqualTo("89ABCDEF-BADC0FFE-E0DDF00D"));
-			Assert.That(guid.ToString("d"), Is.EqualTo("89abcdef-badc0ffe-e0ddf00d"));
-			Assert.That(guid.ToString("X"), Is.EqualTo("89ABCDEFBADC0FFEE0DDF00D"));
-			Assert.That(guid.ToString("x"), Is.EqualTo("89abcdefbadc0ffee0ddf00d"));
-			Assert.That(guid.ToString("B"), Is.EqualTo("{89ABCDEF-BADC0FFE-E0DDF00D}"));
-			Assert.That(guid.ToString("b"), Is.EqualTo("{89abcdef-badc0ffe-e0ddf00d}"));
+			Assert.Multiple(() =>
+			{
+				var guid = new Uuid96(0x89ABCDEF, 0xBADC0FFEE0DDF00DUL);
+
+				Assert.That(guid.ToString(), Is.EqualTo("89ABCDEF-BADC0FFE-E0DDF00D"));
+				Assert.That(guid.ToString("d"), Is.EqualTo("89abcdef-badc0ffe-e0ddf00d"));
+				Assert.That(guid.ToString("X"), Is.EqualTo("89ABCDEFBADC0FFEE0DDF00D"));
+				Assert.That(guid.ToString("x"), Is.EqualTo("89abcdefbadc0ffee0ddf00d"));
+				Assert.That(guid.ToString("B"), Is.EqualTo("{89ABCDEF-BADC0FFE-E0DDF00D}"));
+				Assert.That(guid.ToString("b"), Is.EqualTo("{89abcdef-badc0ffe-e0ddf00d}"));
+
+				Assert.That(guid.Upper16, Is.EqualTo(0x89ABu));
+				Assert.That(guid.Upper32, Is.EqualTo(0x89ABCDEF));
+				Assert.That(guid.Upper48, Is.EqualTo(0x89ABCDEFBADC));
+				Assert.That(guid.Upper64, Is.EqualTo(0x89ABCDEFBADC0FFE));
+				Assert.That(guid.Upper80, Is.EqualTo(new Uuid80((ushort) 0x89AB, (ulong) 0xCDEFBADC0FFEE0DD)));
+
+				Assert.That(guid.Lower16, Is.EqualTo(0xF00D));
+				Assert.That(guid.Lower32, Is.EqualTo(0xE0DDF00D));
+				Assert.That(guid.Lower48, Is.EqualTo(0x0FFEE0DDF00D));
+				Assert.That(guid.Lower64, Is.EqualTo(0xBADC0FFEE0DDF00D));
+				Assert.That(guid.Lower80, Is.EqualTo(new Uuid80((ushort) 0xCDEF, (ulong) 0xBADC0FFEE0DDF00D)));
+			});
+		}
+
+		[Test]
+		public void Test_From_Upper_And_Lower_Parts()
+		{
+			Assert.Multiple(() =>
+			{
+				var guid = new Uuid96(0x89ABCDEF, 0xBADC0FFEE0DDF00DUL);
+
+				Assert.That(Uuid96.FromUpper16Lower80(0x89AB, new(0xCDEF, 0xBADC0FFEE0DDF00D)), Is.EqualTo(guid));
+				Assert.That(Uuid96.FromUpper32Lower64(0x89ABCDEF, 0xBADC0FFEE0DDF00D), Is.EqualTo(guid));
+				Assert.That(Uuid96.FromUpper48Lower48(0x89ABCDEFBADC, 0x0FFEE0DDF00D), Is.EqualTo(guid));
+				Assert.That(Uuid96.FromUpper64Lower32(0x89ABCDEFBADC0FFE, 0xE0DDF00D), Is.EqualTo(guid));
+				Assert.That(Uuid96.FromUpper80Lower16(new (0x89AB, 0xCDEFBADC0FFEE0DD), 0xF00D), Is.EqualTo(guid));
+			});
 		}
 
 		[Test]

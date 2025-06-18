@@ -29,8 +29,11 @@ namespace System
 	using System.ComponentModel;
 	using System.Runtime.InteropServices;
 	using System.Security.Cryptography;
+	using System.Text;
+
 	using SnowBank.Buffers;
 	using SnowBank.Buffers.Binary;
+	using SnowBank.Text;
 
 	/// <summary>Represents a 96-bit UUID that is stored in high-endian format on the wire</summary>
 	[DebuggerDisplay("[{ToString(),nq}]")]
@@ -50,63 +53,149 @@ namespace System
 		/// <summary>Size is 12 bytes</summary>
 		public const int SizeOf = 12;
 
-		private readonly uint Hi;
-		private readonly ulong Lo;
-		//note: this will be in host order (so probably Little-Endian) in order to simplify parsing and ordering
+		//note: these two fields are stored in host order (so probably Little-Endian) in order to simplify parsing and ordering
+
+		/// <summary>The upper 32-bits (<c>XXXXXXXX-........-........</c>)</summary>
+		private readonly uint High;
+
+		/// <summary>The lower 48-bits (<c>........-XXXXXXXX-XXXXXXXX</c>)</summary>
+		private readonly ulong Low;
+
+		private const ulong MASK_48 = (1UL << 48) - 1;
+		private const ulong MASK_32 = (1UL << 32) - 1;
+		private const ulong MASK_16 = (1UL << 16) - 1;
+
+		/// <summary>Returns the 16 upper bits (<c>xxxx....-........-........</c>)</summary>
+		/// <seealso cref="Lower80"/>
+		public ushort Upper16 => (ushort) (this.High >> 16);
+
+		/// <summary>Returns the 32 upper bits (<c>xxxxxxxx-........-........</c>)</summary>
+		/// <seealso cref="Lower64"/>
+		public uint Upper32 => this.High;
+
+		/// <summary>Returns the 48 upper bits (<c>xxxxxxxx-xxxx....-........</c>)</summary>
+		/// <seealso cref="Lower48"/>
+		public ulong Upper48 => ((ulong) this.High << 16) | (this.Low >> 48);
+
+		/// <summary>Returns the 64 upper bits (<c>xxxxxxxx-xxxxxxxx-........</c>)</summary>
+		/// <seealso cref="Lower32"/>
+		public ulong Upper64 => ((ulong) this.High << 32) | (this.Low >> 32);
+
+		/// <summary>Returns the 80 upper bits (<c>xxxxxxxx-xxxxxxxx-xxxx....</c>)</summary>
+		/// <seealso cref="Lower16"/>
+		public Uuid80 Upper80 => new(unchecked((ushort) (this.High >> 16)), unchecked((uint) ((this.High & MASK_16) << 16 | (this.Low >> 48))), unchecked((uint) (this.Low >> 16)));
+
+		/// <summary>Returns the 16 lower bits (<c>........-........-....xxxx</c>)</summary>
+		/// <seealso cref="Upper80"/>
+		public ushort Lower16 => unchecked((ushort) this.Low);
+
+		/// <summary>Returns the 32 lower bits (<c>........-........-xxxxxxxx</c>)</summary>
+		/// <seealso cref="Upper64"/>
+		public uint Lower32 => unchecked((uint) this.Low);
+
+		/// <summary>Returns the 48 lower bits (<c>........-....xxxx-xxxxxxxx</c>)</summary>
+		/// <seealso cref="Upper48"/>
+		public ulong Lower48 => this.Low & MASK_48;
+
+		/// <summary>Returns the 64 lower bits (<c>........-xxxxxxxx-xxxxxxxx</c>)</summary>
+		/// <seealso cref="Upper32"/>
+		public ulong Lower64 => this.Low;
+
+		/// <summary>Returns the 80 lower bits (<c>....xxxx-xxxxxxxx-xxxxxxxx</c>)</summary>
+		/// <seealso cref="Upper16"/>
+		public Uuid80 Lower80 => new(unchecked((ushort) (this.High)), this.Low);
+
+		/// <summary>Returns the 32 middle bits (<c>........-xxxxxxxx-........</c>)</summary>
+		/// <seealso cref="Upper32"/>
+		/// <seealso cref="Lower32"/>
+		public uint Middle32 => unchecked((uint) (this.Low >> 32));
 
 		#region Constructors...
 
 		/// <summary>Pack components into a 96-bit UUID</summary>
-		/// <param name="a"><c>XXXXXXXX-........-........</c></param>
-		/// <param name="b"><c>........-XXXXXXXX-XXXXXXXX</c></param>
+		/// <param name="upper32"><c>XXXXXXXX-........-........</c></param>
+		/// <param name="lower64"><c>........-XXXXXXXX-XXXXXXXX</c></param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Uuid96(uint a, ulong b)
+		public Uuid96(uint upper32, ulong lower64)
 		{
-			this.Hi = a;
-			this.Lo = b;
+			this.High = upper32;
+			this.Low = lower64;
 		}
 
 		/// <summary>Pack components into a 96-bit UUID</summary>
-		/// <param name="a"><c>XXXXXXXX-........-........</c></param>
-		/// <param name="b"><c>........-XXXXXXXX-XXXXXXXX</c></param>
+		/// <param name="upper32"><c>XXXXXXXX-........-........</c></param>
+		/// <param name="lower64"><c>........-XXXXXXXX-XXXXXXXX</c></param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Uuid96(uint a, long b)
+		public Uuid96(uint upper32, long lower64)
 		{
-			this.Hi = a;
-			this.Lo = (ulong) b;
+			this.High = upper32;
+			this.Low = (ulong) lower64;
 		}
 
 		/// <summary>Pack components into a 96-bit UUID</summary>
-		/// <param name="a"><c>XXXXXXXX-........-........</c></param>
-		/// <param name="b"><c>........-XXXXXXXX-XXXXXXXX</c></param>
+		/// <param name="upper32"><c>XXXXXXXX-........-........</c></param>
+		/// <param name="lower64"><c>........-XXXXXXXX-XXXXXXXX</c></param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Uuid96(int a, long b)
+		public Uuid96(int upper32, long lower64)
 		{
-			this.Hi = (uint) a;
-			this.Lo = (ulong) b;
+			this.High = (uint) upper32;
+			this.Low = (ulong) lower64;
 		}
 
 		/// <summary>Pack components into a 96-bit UUID</summary>
-		/// <param name="a"><c>XXXXXXXX-........-........</c></param>
-		/// <param name="b"><c>........-XXXXXXXX-........</c></param>
-		/// <param name="c"><c>........-........-XXXXXXXX</c></param>
+		/// <param name="upper32"><c>XXXXXXXX-........-........</c></param>
+		/// <param name="middle32"><c>........-XXXXXXXX-........</c></param>
+		/// <param name="lower32"><c>........-........-XXXXXXXX</c></param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Uuid96(uint a, uint b, uint c)
+		public Uuid96(uint upper32, uint middle32, uint lower32)
 		{
-			this.Hi = a;
-			this.Lo = ((ulong) b) << 32 | c;
+			this.High = upper32;
+			this.Low = ((ulong) middle32) << 32 | lower32;
 		}
 
 		/// <summary>Pack components into a 96-bit UUID</summary>
-		/// <param name="a"><c>XXXXXXXX-........-........</c></param>
-		/// <param name="b"><c>........-XXXXXXXX-........</c></param>
-		/// <param name="c"><c>........-........-XXXXXXXX</c></param>
+		/// <param name="upper32"><c>XXXXXXXX-........-........</c></param>
+		/// <param name="middle32"><c>........-XXXXXXXX-........</c></param>
+		/// <param name="lower32"><c>........-........-XXXXXXXX</c></param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Uuid96(int a, int b, int c)
+		public Uuid96(int upper32, int middle32, int lower32)
 		{
-			this.Hi = (uint) a;
-			this.Lo = ((ulong) (uint) b) << 32 | (uint) c;
+			this.High = (uint) upper32;
+			this.Low = ((ulong) (uint) middle32) << 32 | (uint) lower32;
 		}
+
+		/// <summary>Creates a <seealso cref="Uuid96"/> from the lower 64 bits, with the upper 32 bits all set to <c>0</c></summary>
+		/// <param name="value">64 lower bits (<c>.........-xxxxxxxx-xxxxxxxx</c>)</param>
+		public static Uuid96 FromUInt64(ulong value) => new(0, value);
+
+		/// <summary>Creates a <seealso cref="Uuid96"/> from the lower 64 bits, with the upper 32 bits all set to <c>0</c></summary>
+		/// <param name="value">64 lower bits (<c>.........-xxxxxxxx-xxxxxxxx</c>)</param>
+		public static Uuid96 FromInt64(long value) => new(0, value);
+
+		/// <summary>Creates a <seealso cref="Uuid96"/> from the lower 32 bits, with the upper 64 bits all set to <c>0</c></summary>
+		/// <param name="value">48 lower bits (<c>.........-....xxxx-xxxxxxxx</c>)</param>
+		public static Uuid96 FromUInt48(ulong value) => value <= MASK_48 ? new(0, value) : throw new ArgumentOutOfRangeException(nameof(value), "Value must be less than 2^48.");
+
+		/// <summary>Creates a <seealso cref="Uuid96"/> from the lower 32 bits, with the upper 64 bits all set to <c>0</c></summary>
+		/// <param name="value">32 lower bits (<c>.........-........-xxxxxxxx</c>)</param>
+		public static Uuid96 FromUInt32(uint value) => new(0, value);
+
+		/// <summary>Creates a <seealso cref="Uuid96"/> from the lower 32 bits, with the upper 64 bits all set to <c>0</c></summary>
+		/// <param name="value">32 lower bits (<c>.........-........-xxxxxxxx</c>)</param>
+		public static Uuid96 FromInt32(int value) => new(0, value);
+
+		/// <summary>Creates a <seealso cref="Uuid96"/> from the lower 16 bits, with the upper 80 bits all set to <c>0</c></summary>
+		/// <param name="value">16 lower bits (<c>.........-........-....xxxx</c>)</param>
+		public static Uuid96 FromUInt16(ushort value) => new(0, value);
+
+		/// <summary>Creates a <seealso cref="Uuid96"/> from the lower 16 bits, with the upper 80 bits all set to <c>0</c></summary>
+		/// <param name="value">16 lower bits (<c>.........-........-....xxxx</c>)</param>
+		public static Uuid96 FromInt16(short value) => new(0, value);
+
+		/// <summary>Creates a <see cref="Uuid80"/> from a string literal encoded in Base-1024</summary>
+		/// <param name="value">Base-1024 string literal</param>
+		/// <seealso cref="Base1024Encoding"/>
+		public static Uuid96 FromBase1024(string value) => Base1024Encoding.DecodeUuid96Value(value);
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static Exception FailInvalidBufferSize([InvokerParameterName] string arg)
@@ -144,8 +233,8 @@ namespace System
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Deconstruct(out uint a, out ulong b)
 		{
-			a = this.Hi;
-			b = this.Lo;
+			a = this.Upper32;
+			b = this.Lower64;
 		}
 		/// <summary>Split into three fragments</summary>
 		/// <param name="a">xxxxxxxx-........-........</param>
@@ -154,9 +243,129 @@ namespace System
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Deconstruct(out uint a, out uint b, out uint c)
 		{
-			a = this.Hi;
-			b = (uint) (this.Lo >> 32);
-			c = (uint) this.Lo;
+			a = this.Upper32;
+			b = this.Middle32;
+			c = this.Lower32;
+		}
+
+		/// <summary>Creates a <seealso cref="Uuid96"/> from the upper 96 bits of a <seealso cref="Uuid128"/></summary>
+		/// <param name="value">Only the 96 upper bits will be used (<c>xxxxxxxx-xxxx-xxxx-xxxx-xxxx........</c>)</param>
+		public static Uuid96 FromUpper96(Uuid128 value)
+		{
+			value.Deconstruct(out _, out uint a, out uint b, out uint c);
+			return new(a, b, c);
+		}
+
+		/// <summary>Creates a <seealso cref="Uuid96"/> from the lower 96 bits of a <seealso cref="Uuid128"/></summary>
+		/// <param name="value">Only the 96 lower bits will be used (<c>........-xxxx-xxxx-xxxx-xxxxxxxxxxxx</c>)</param>
+		public static Uuid96 FromLower96(Uuid128 value)
+		{
+			value.Deconstruct(out _, out uint a, out uint b, out uint c);
+			return new(a, b, c);
+		}
+
+		/// <summary>Creates a <seealso cref="Uuid96"/> from the lower 80 bits, with the upper 16 bits all set to <c>0</c></summary>
+		/// <param name="value">80 lower bits (<c>.....xxxx-xxxxxxxx-xxxxxxxx</c>)</param>
+		public static Uuid96 FromLower80(Uuid80 value) => new(value.Upper16, value.Lower64);
+
+		/// <summary>Creates a <seealso cref="Uuid96"/> from the lower 64 bits, with the upper 32 bits all set to <c>0</c></summary>
+		/// <param name="value">64 lower bits (<c>.........-xxxxxxxx-xxxxxxxx</c>)</param>
+		public static Uuid96 FromLower64(ulong value) => new(0, value);
+
+		/// <summary>Creates a <seealso cref="Uuid96"/> from the lower 32 bits, with the upper 64 bits all set to <c>0</c></summary>
+		/// <param name="value">48 lower bits (<c>.........-....xxxx-xxxxxxxx</c>)</param>
+		public static Uuid96 FromLower48(ulong value) => new(0, value & MASK_48);
+
+		/// <summary>Creates a <seealso cref="Uuid96"/> from the lower 32 bits, with the upper 64 bits all set to <c>0</c></summary>
+		/// <param name="value">32 lower bits (<c>.........-........-xxxxxxxx</c>)</param>
+		public static Uuid96 FromLower32(uint value) => new(0, value);
+
+		/// <summary>Creates a <seealso cref="Uuid96"/> from the lower 16 bits, with the upper 80 bits all set to <c>0</c></summary>
+		/// <param name="value">16 lower bits (<c>.........-........-....xxxx</c>)</param>
+		public static Uuid96 FromLower16(ushort value) => new(0, value);
+
+		/// <summary>Creates a <seealso cref="Uuid96"/> from the upper 16-bit and lower 80-bit parts</summary>
+		/// <param name="hi">16 upper bits (<c>xxxx....-........-........</c>)</param>
+		/// <param name="low">80 lower bits (<c>....xxxx-xxxxxxxx-xxxxxxxx</c>)</param>
+		[Pure]
+		public static Uuid96 FromUpper16Lower80(ushort hi, Uuid80 low)
+		{
+			return new(((uint) hi << 16) | low.Upper16, low.Lower64);
+		}
+
+		/// <summary>Creates a <seealso cref="Uuid96"/> from the upper 32-bit and lower 64-bit parts</summary>
+		/// <param name="hi">32 upper bits (<c>xxxxxxxx-........-........</c>)</param>
+		/// <param name="low">64 lower bits (<c>........-xxxxxxxx-xxxxxxxx</c>)</param>
+		[Pure]
+		public static Uuid96 FromUpper32Lower64(uint hi, ulong low)
+		{
+			return new(hi, low);
+		}
+
+		/// <summary>Creates a <seealso cref="Uuid96"/> from the upper 32-bit and lower 64-bit parts</summary>
+		/// <param name="hi">32 upper bits (<c>xxxxxxxx-........-........</c>)</param>
+		/// <param name="low">64 lower bits (<c>........-xxxxxxxx-xxxxxxxx</c>)</param>
+		[Pure]
+		public static Uuid96 FromUpper32Lower64(uint hi, Uuid64 low)
+		{
+			return new(hi, low.ToUInt64());
+		}
+
+		/// <summary>Creates a <seealso cref="Uuid96"/> from the upper 48-bit and lower 48-bit parts</summary>
+		/// <param name="hi">48 upper bits (<c>xxxxxxxx-xxxx....-........</c>)</param>
+		/// <param name="low">48 lower bits (<c>........-....xxxx-xxxxxxxx</c>)</param>
+		[Pure]
+		public static Uuid96 FromUpper48Lower48(ulong hi, ulong low)
+		{
+			return new(unchecked((uint) (hi >> 16)), (hi & MASK_16) << 48 | (low & MASK_48));
+		}
+
+		/// <summary>Creates a <seealso cref="Uuid96"/> from the upper 64-bit and lower 32-bit parts</summary>
+		/// <param name="hi">64 upper bits (<c>xxxxxxxx-xxxxxxxx-........</c>)</param>
+		/// <param name="low">32 lower bits (<c>........-........-xxxxxxxx</c>)</param>
+		[Pure]
+		public static Uuid96 FromUpper64Lower32(ulong hi, uint low)
+		{
+			return new(unchecked((uint) (hi >> 32)), ((hi & 0xFFFFFFFF) << 32) | low);
+		}
+
+		/// <summary>Creates a <seealso cref="Uuid96"/> from the upper 64-bit and lower 32-bit parts</summary>
+		/// <param name="hi">64 upper bits (<c>xxxxxxxx-xxxxxxxx-........</c>)</param>
+		/// <param name="middle">16 middle bits (<c>........-........-xxxx....</c>)</param>
+		/// <param name="low">16 lower bits (<c>........-........-....xxxx</c>)</param>
+		[Pure]
+		public static Uuid96 FromUpper64Middle16Lower16(ulong hi, ushort middle, ushort low)
+		{
+			return new(unchecked((uint) (hi >> 32)), ((hi & 0xFFFFFFFF) << 32) | ((uint) middle << 16) | low);
+		}
+
+		/// <summary>Creates a <seealso cref="Uuid96"/> from the upper 64-bit and lower 32-bit parts</summary>
+		/// <param name="hi">64 upper bits (<c>xxxxxxxx-xxxxxxxx-........</c>)</param>
+		/// <param name="low">32 lower bits (<c>........-........-xxxxxxxx</c>)</param>
+		[Pure]
+		public static Uuid96 FromUpper64Lower32(Uuid64 hi, uint low)
+		{
+			var hiValue = hi.ToUInt64();
+			return new(unchecked((uint) (hiValue >> 32)), ((hiValue & 0xFFFFFFFF) << 32) | low);
+		}
+
+		/// <summary>Creates a <seealso cref="Uuid96"/> from the upper 80-bit and lower 16-bit parts</summary>
+		/// <param name="hi">80 upper bits (<c>xxxxxxxx-xxxxxxxx-xxxx....</c>)</param>
+		/// <param name="low">16 lower bits (<c>........-........-....xxxx</c>)</param>
+		[Pure]
+		public static Uuid96 FromUpper80Lower16(Uuid80 hi, ushort low)
+		{
+			return new(hi.Upper32, ((ulong) hi.Lower48 << 16) | low);
+		}
+
+		/// <summary>Creates a <seealso cref="Uuid96"/> from the upper 32-bit, middle 32-bit and lower 32-bit parts</summary>
+		/// <param name="hi">32 upper bits (<c>xxxxxxxx-........-........</c>)</param>
+		/// <param name="middle">32 middle bits (<c>........-xxxxxxxx-........</c>)</param>
+		/// <param name="low">32 lower bits (<c>........-........-xxxxxxxx</c>)</param>
+		[Pure]
+		public static Uuid96 FromUpper32Middle32Lower32(uint hi, uint middle, uint low)
+		{
+			return new(hi, (ulong) middle << 32 | low);
 		}
 
 		#endregion
@@ -304,8 +513,8 @@ namespace System
 		public Slice ToSlice()
 		{
 			var writer = new SliceWriter(SizeOf);
-			writer.WriteUInt32BE(this.Hi);
-			writer.WriteUInt64BE(this.Lo);
+			writer.WriteUInt32BE(this.High);
+			writer.WriteUInt64BE(this.Low);
 			return writer.ToSlice();
 		}
 
@@ -317,8 +526,8 @@ namespace System
 			{
 				fixed (byte* ptr = &tmp[0])
 				{
-					UnsafeHelpers.StoreUInt32BE(ptr, this.Hi);
-					UnsafeHelpers.StoreUInt64BE(ptr + 4, this.Lo);
+					UnsafeHelpers.StoreUInt32BE(ptr, this.High);
+					UnsafeHelpers.StoreUInt64BE(ptr + 4, this.Low);
 				}
 			}
 			return tmp;
@@ -359,30 +568,30 @@ namespace System
 			{
 				case "D":
 				{ // Default format is "XXXXXXXX-XXXXXXXX-XXXXXXXX"
-					return Encode16(this.Hi, this.Lo, separator: true, quotes: false, upper: true);
+					return Encode16(this.High, this.Low, separator: true, quotes: false, upper: true);
 				}
 				case "d":
 				{ // Default format is "xxxxxxxx-xxxxxxxx-xxxxxxxx"
-					return Encode16(this.Hi, this.Lo, separator: true, quotes: false, upper: false);
+					return Encode16(this.High, this.Low, separator: true, quotes: false, upper: false);
 				}
 				case "X": //TODO: Guid.ToString("X") returns "{0x.....,0x.....,...}"
 				case "N":
 				{ // "XXXXXXXXXXXXXXXXXXXXXXXX"
-					return Encode16(this.Hi, this.Lo, separator: false, quotes: false, upper: true);
+					return Encode16(this.High, this.Low, separator: false, quotes: false, upper: true);
 				}
 				case "x": //TODO: Guid.ToString("X") returns "{0x.....,0x.....,...}"
 				case "n":
 				{ // "xxxxxxxxxxxxxxxxxxxxxxxx"
-					return Encode16(this.Hi, this.Lo, separator: false, quotes: false, upper: false);
+					return Encode16(this.High, this.Low, separator: false, quotes: false, upper: false);
 				}
 
 				case "B":
 				{ // "{XXXXXXXX-XXXXXXXX-XXXXXXXX}"
-					return Encode16(this.Hi, this.Lo, separator: true, quotes: true, upper: true);
+					return Encode16(this.High, this.Low, separator: true, quotes: true, upper: true);
 				}
 				case "b":
 				{ // "{xxxxxxxx-xxxxxxxx-xxxxxxxx}"
-					return Encode16(this.Hi, this.Lo, separator: true, quotes: true, upper: false);
+					return Encode16(this.High, this.Low, separator: true, quotes: true, upper: false);
 				}
 				default:
 				{
@@ -408,20 +617,20 @@ namespace System
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public override int GetHashCode()
 		{
-			return this.Hi.GetHashCode() ^ this.Lo.GetHashCode();
+			return this.High.GetHashCode() ^ this.Low.GetHashCode();
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(Uuid96 other)
 		{
-			return this.Hi == other.Hi & this.Lo == other.Lo;
+			return this.High == other.High & this.Low == other.Low;
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo(Uuid96 other)
 		{
-			int cmp = this.Hi.CompareTo(other.Hi);
-			if (cmp == 0) cmp = this.Lo.CompareTo(other.Lo);
+			int cmp = this.High.CompareTo(other.High);
+			if (cmp == 0) cmp = this.Low.CompareTo(other.Low);
 			return cmp;
 		}
 
@@ -586,19 +795,19 @@ namespace System
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal void WriteToUnsafe(Span<byte> destination)
 		{
-			WriteUnsafe(this.Hi, this.Lo, destination);
+			WriteUnsafe(this.High, this.Low, destination);
 		}
 
 		public void WriteTo(Span<byte> destination)
 		{
 			if (destination.Length < SizeOf) throw FailInvalidBufferSize(nameof(destination));
-			WriteUnsafe(this.Hi, this.Lo, destination);
+			WriteUnsafe(this.High, this.Low, destination);
 		}
 
 		public bool TryWriteTo(Span<byte> destination)
 		{
 			if (destination.Length < SizeOf) return false;
-			WriteUnsafe(this.Hi, this.Lo, destination);
+			WriteUnsafe(this.High, this.Low, destination);
 			return true;
 		}
 
@@ -608,32 +817,32 @@ namespace System
 
 		public static bool operator ==(Uuid96 left, Uuid96 right)
 		{
-			return left.Hi == right.Hi & left.Lo == right.Lo;
+			return left.High == right.High & left.Low == right.Low;
 		}
 
 		public static bool operator !=(Uuid96 left, Uuid96 right)
 		{
-			return left.Hi != right.Hi | left.Lo != right.Lo;
+			return left.High != right.High | left.Low != right.Low;
 		}
 
 		public static bool operator >(Uuid96 left, Uuid96 right)
 		{
-			return left.Hi > right.Hi || (left.Hi == right.Hi && left.Lo > right.Lo);
+			return left.High > right.High || (left.High == right.High && left.Low > right.Low);
 		}
 
 		public static bool operator >=(Uuid96 left, Uuid96 right)
 		{
-			return left.Hi > right.Hi || (left.Hi == right.Hi && left.Lo >= right.Lo);
+			return left.High > right.High || (left.High == right.High && left.Low >= right.Low);
 		}
 
 		public static bool operator <(Uuid96 left, Uuid96 right)
 		{
-			return left.Hi < right.Hi || (left.Hi == right.Hi && left.Lo < right.Lo);
+			return left.High < right.High || (left.High == right.High && left.Low < right.Low);
 		}
 
 		public static bool operator <=(Uuid96 left, Uuid96 right)
 		{
-			return left.Hi < right.Hi || (left.Hi == right.Hi && left.Lo <= right.Lo);
+			return left.High < right.High || (left.High == right.High && left.Low <= right.Low);
 		}
 
 		/// <summary>Add a value from this instance</summary>
@@ -642,9 +851,9 @@ namespace System
 			//TODO: how to handle overflow ? negative values ?
 			unchecked
 			{
-				uint hi = left.Hi;
-				ulong lo = left.Lo + (ulong) right;
-				if (lo < left.Lo) // overflow!
+				uint hi = left.High;
+				ulong lo = left.Low + (ulong) right;
+				if (lo < left.Low) // overflow!
 				{
 					++hi;
 				}
@@ -658,9 +867,9 @@ namespace System
 			//TODO: how to handle overflow ?
 			unchecked
 			{
-				uint hi = left.Hi;
-				ulong lo = left.Lo + right;
-				if (lo < left.Lo) // overflow!
+				uint hi = left.High;
+				ulong lo = left.Low + right;
+				if (lo < left.Low) // overflow!
 				{
 					++hi;
 				}
@@ -674,9 +883,9 @@ namespace System
 			//TODO: how to handle overflow ? negative values ?
 			unchecked
 			{
-				uint hi = left.Hi;
-				ulong lo = left.Lo - (ulong) right;
-				if (lo > left.Lo) // overflow!
+				uint hi = left.High;
+				ulong lo = left.Low - (ulong) right;
+				if (lo > left.Low) // overflow!
 				{
 					--hi;
 				}
@@ -690,9 +899,9 @@ namespace System
 			//TODO: how to handle overflow ?
 			unchecked
 			{
-				uint hi = left.Hi;
-				ulong lo = left.Lo - right;
-				if (lo > left.Lo) // overflow!
+				uint hi = left.High;
+				ulong lo = left.Low - right;
+				if (lo > left.Low) // overflow!
 				{
 					--hi;
 				}
@@ -726,7 +935,7 @@ namespace System
 			/// <inheritdoc />
 			public bool Equals(Uuid96 x, Uuid96 y)
 			{
-				return x.Hi == y.Hi & x.Lo == y.Lo;
+				return x.High == y.High & x.Low == y.Low;
 			}
 
 			/// <inheritdoc />

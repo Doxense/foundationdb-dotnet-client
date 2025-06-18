@@ -41,13 +41,13 @@ namespace System
 #endif
 	{
 
-		/// <summary>Uuid64 with all bits set to zero: <c>00000000-00000000</c></summary>
+		/// <summary><see cref="Uuid64"/> with all bits set to zero: <c>00000000-00000000</c></summary>
 		public static readonly Uuid64 Empty;
 
-		/// <summary>Uuid164 with all bits set to one: <c>FFFFFFFF-FFFFFFFF</c></summary>
+		/// <summary><see cref="Uuid64"/> with all bits set to one: <c>FFFFFFFF-FFFFFFFF</c></summary>
 		public static readonly Uuid64 MaxValue = new(ulong.MaxValue);
 
-		/// <summary>Size is 8 bytes</summary>
+		/// <summary>Size is <c>8</c> bytes</summary>
 		public const int SizeOf = 8;
 
 		private readonly ulong m_value;

@@ -366,10 +366,10 @@ namespace SnowBank.Data.Tuples.Tests
 			packed = TuPack.EncodeKey(Uuid96.Empty);
 			Assert.That(packed.ToHexString(' '), Is.EqualTo("33 00 00 00 00 00 00 00 00 00 00 00 00"));
 
-			packed = TuPack.EncodeKey(new Uuid96(0x12345678, 0xBADC0FFEE0DDF00DUL));
+			packed = TuPack.EncodeKey(Uuid96.FromUpper32Lower64(0x12345678, 0xBADC0FFEE0DDF00Dul));
 			Assert.That(packed.ToHexString(' '), Is.EqualTo("33 12 34 56 78 BA DC 0F FE E0 DD F0 0D"));
 
-			packed = TuPack.EncodeKey(new Uuid96(0xFFFFFFFF, 0xDEADBEEFL));
+			packed = TuPack.EncodeKey(Uuid96.FromUpper32Lower64(0xFFFFFFFF, 0xDEADBEEFL));
 			Assert.That(packed.ToHexString(' '), Is.EqualTo("33 FF FF FF FF 00 00 00 00 DE AD BE EF"));
 		}
 
