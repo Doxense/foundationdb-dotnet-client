@@ -3245,6 +3245,54 @@ namespace SnowBank.Data.Json
 
 		#endregion
 
+		#region WriteField(..., uint)
+
+		public void WriteField(string name, uint value)
+		{
+			if (value != 0 || !m_discardDefaults)
+			{
+				WriteName(name);
+				WriteValue(value);
+			}
+		}
+
+		public void WriteField(JsonEncodedPropertyName name, uint value)
+		{
+			if (value != 0 || !m_discardDefaults)
+			{
+				WriteName(name);
+				WriteValue(value);
+			}
+		}
+
+		public void WriteField(string name, uint? value)
+		{
+			if (value.HasValue)
+			{
+				WriteName(name);
+				WriteValue(value.Value);
+			}
+			else
+			{
+				WriteFieldNull(name);
+			}
+		}
+
+		public void WriteField(JsonEncodedPropertyName name, uint? value)
+		{
+			if (value.HasValue)
+			{
+				WriteName(name);
+				WriteValue(value.Value);
+			}
+			else
+			{
+				WriteFieldNull(name);
+			}
+		}
+
+		#endregion
+
 		#region WriteField(..., long)
 
 		public void WriteField(string name, long value)
@@ -3279,6 +3327,54 @@ namespace SnowBank.Data.Json
 		}
 
 		public void WriteField(JsonEncodedPropertyName name, long? value)
+		{
+			if (value.HasValue)
+			{
+				WriteName(name);
+				WriteValue(value.Value);
+			}
+			else
+			{
+				WriteFieldNull(name);
+			}
+		}
+
+		#endregion
+
+		#region WriteField(..., ulong)
+
+		public void WriteField(string name, ulong value)
+		{
+			if (value != 0L || !m_discardDefaults)
+			{
+				WriteName(name);
+				WriteValue(value);
+			}
+		}
+
+		public void WriteField(JsonEncodedPropertyName name, ulong value)
+		{
+			if (value != 0L || !m_discardDefaults)
+			{
+				WriteName(name);
+				WriteValue(value);
+			}
+		}
+
+		public void WriteField(string name, ulong? value)
+		{
+			if (value.HasValue)
+			{
+				WriteName(name);
+				WriteValue(value.Value);
+			}
+			else
+			{
+				WriteFieldNull(name);
+			}
+		}
+
+		public void WriteField(JsonEncodedPropertyName name, ulong? value)
 		{
 			if (value.HasValue)
 			{
@@ -3397,6 +3493,7 @@ namespace SnowBank.Data.Json
 
 #if NET8_0_OR_GREATER
 
+		[OverloadResolutionPriority(-1)]
 		public void WriteField(string name, Half value)
 		{
 			// ReSharper disable once CompareOfFloatsByEqualityOperator
@@ -3407,6 +3504,7 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		[OverloadResolutionPriority(-1)]
 		public void WriteField(JsonEncodedPropertyName name, Half value)
 		{
 			// ReSharper disable once CompareOfFloatsByEqualityOperator
@@ -3417,6 +3515,7 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		[OverloadResolutionPriority(-1)]
 		public void WriteField(string name, Half? value)
 		{
 			if (value.HasValue)
@@ -3430,6 +3529,7 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		[OverloadResolutionPriority(-1)]
 		public void WriteField(JsonEncodedPropertyName name, Half? value)
 		{
 			if (value.HasValue)
@@ -4364,6 +4464,7 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		[OverloadResolutionPriority(-1)]
 		public void WriteField<T>(string name, T value)
 		{
 			if (value is not null)
@@ -4378,6 +4479,7 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		[OverloadResolutionPriority(-1)]
 		public void WriteField<T>(JsonEncodedPropertyName name, T value)
 		{
 			if (value is not null)
@@ -4392,6 +4494,7 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		[OverloadResolutionPriority(-1)]
 		public void WriteField<T>(string name, T? value)
 			where T : struct
 		{
@@ -4407,6 +4510,7 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		[OverloadResolutionPriority(-1)]
 		public void WriteField<T>(JsonEncodedPropertyName name, T? value)
 			where T : struct
 		{

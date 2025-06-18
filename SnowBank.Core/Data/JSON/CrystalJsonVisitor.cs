@@ -923,7 +923,7 @@ namespace SnowBank.Data.Json
 
 		/// <summary>Visit a generic value</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void VisitValue<T>(T value, CrystalJsonWriter writer)
+		public static void VisitValue<T>(T? value, CrystalJsonWriter writer)
 		{
 			#region <JIT_HACK>
 #if !DEBUG
@@ -1310,6 +1310,33 @@ namespace SnowBank.Data.Json
 
 				writer.WriteTailSeparator();
 				visitor(items[i], elemType, null, writer);
+			}
+
+			writer.EndArray(state);
+		}
+
+		/// <summary>Visit an array of generic values</summary>
+		public static void VisitSpan<T>(ReadOnlySpan<T?> items, CrystalJsonWriter writer)
+		{
+			if (items.Length == 0)
+			{
+				writer.WriteEmptyArray();
+				return;
+			}
+
+			var state = writer.BeginArray();
+
+			// head
+			writer.WriteHeadSeparator();
+			VisitValue<T>(items[0], writer);
+
+			// tail
+			for (int i = 1; i < items.Length; i++)
+			{
+				if (i % 10 == 0) writer.MaybeFlush();
+
+				writer.WriteTailSeparator();
+				VisitValue<T>(items[i], writer);
 			}
 
 			writer.EndArray(state);

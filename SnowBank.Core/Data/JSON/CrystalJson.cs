@@ -684,6 +684,33 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		/// <summary>Serializes a value of type <typeparamref name="T"/> into a <see cref="SliceOwner"/> using the specified <see cref="ArrayPool{T}">pool</see></summary>
+		/// <param name="values">Instance to serialize (can be null)</param>
+		/// <param name="pool">Pool used to allocate the content of the slice (use <see cref="ArrayPool{T}.Shared"/> if <see langword="null"/>)</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+		/// <returns><c>`123`</c>, <c>`true`</c>, <c>`"ABC"`</c>, <c>`{ "foo":..., "bar": ... }`</c>, <c>`[ ... ]`</c>, ...</returns>
+		/// <exception cref="JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
+		/// <remarks>
+		/// <para>The <see cref="SliceOwner"/> returned <b>MUST</b> be disposed; otherwise, the rented buffer will not be returned to the <paramref name="pool"/>.</para>
+		/// </remarks>
+		public static SliceOwner ToSlice<T>(ReadOnlySpan<T?> values, ArrayPool<byte>? pool, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			var writer = WriterPool.Allocate();
+			try
+			{
+				writer.Initialize(0, settings, resolver);
+
+				CrystalJsonVisitor.VisitSpan(values, writer);
+				return writer.GetUtf8Slice(pool);
+			}
+			finally
+			{
+				writer.Dispose();
+				WriterPool.Free(writer);
+			}
+		}
+
 		/// <summary>Serializes a value of type <typeparamref name="T"/> into a <see cref="SliceOwner"/>, using a customer serializer, and the specified <see cref="ArrayPool{T}">pool</see></summary>
 		/// <param name="value">Instance to serialize (can be null)</param>
 		/// <param name="serializer">Custom serializer</param>
