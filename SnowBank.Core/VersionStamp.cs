@@ -64,6 +64,13 @@ namespace System
 		private const ushort FLAGS_HAS_VERSION = 0x1; // unset: 80-bits, set: 96-bits
 		private const ushort FLAGS_IS_INCOMPLETE = 0x2; // unset: complete, set: incomplete
 
+		/// <summary>The "empty" <seealso cref="VersionStamp"/></summary>
+		/// <remarks>
+		/// <para>This value will never be observed in the database, and can be used to represent the concept of <c>null</c>, <c>none</c> or <c>empty</c></para>
+		/// <para>Please note that this is different from the <seealso cref="Incomplete()"/> stamp, which corresponds to a stamp whose value is not yet known, but will be replaced by concrete value in the near future (usually when the transaction commits).</para>
+		/// </remarks>
+		public static readonly VersionStamp None = default;
+
 		/// <summary>Serialized bytes of the default incomplete stamp (composed of only 0xFF)</summary>
 		public static readonly Slice IncompleteToken = Slice.Repeat(0xFF, 10);
 		//BUGBUG: fdb client only needs 'internal' but with shared framework it must be 'public'... which can be dangerous if the buffer is exposed to anyone!
@@ -1054,9 +1061,9 @@ namespace System
 		{
 			//PERF: could we use Unsafe and compare the next sizeof(VersionStamp) bytes at once?
 			return (this.TransactionVersion == other.TransactionVersion)
-			   & (this.TransactionOrder == other.TransactionOrder)
-			   & (this.UserVersion == other.UserVersion)
-			   & (this.Flags == other.Flags);
+			   && (this.TransactionOrder == other.TransactionOrder)
+			   && (this.UserVersion == other.UserVersion)
+			   && (this.Flags == other.Flags);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1069,6 +1076,35 @@ namespace System
 		public static bool operator !=(VersionStamp left, VersionStamp right)
 		{
 			return !left.Equals(right);
+		}
+
+		/// <summary>Returns the successor of this <see cref="VersionStamp"/></summary>
+		/// <param name="left">Instance to increment</param>
+		/// <returns>Smallest <seealso cref="VersionStamp"/> that is strictly greater than this value.</returns>
+		/// <remarks>The operator will first increment the <see cref="UserVersion"/>, propagating the carry to the <see cref="TransactionOrder"/> and then the <see cref="TransactionVersion"/> in case of overlow</remarks>
+		/// <exception cref="OverflowException">If <paramref name="left"/> is already the maximum possible value</exception>
+		public static VersionStamp operator++(VersionStamp left)
+		{
+			ulong transactionVersion = left.TransactionVersion;
+			int transactionOrder = left.TransactionOrder;
+			int userVersion = left.HasUserVersion ? left.UserVersion : 0;
+
+			// simply increment the UserVersion
+			++userVersion;
+
+			if (userVersion > ushort.MaxValue)
+			{ // overflows into the transaction order
+				transactionOrder++;
+				userVersion = 0;
+
+				if (transactionOrder > ushort.MaxValue)
+				{ // overflows into the transaction version
+					transactionVersion = checked(transactionVersion + 1);
+					transactionOrder = 0;
+				}
+			}
+
+			return new(transactionVersion, (ushort) transactionOrder, (ushort) userVersion, userVersion != 0 ? FLAGS_HAS_VERSION : FLAGS_NONE);
 		}
 
 		/// <inheritdoc />
