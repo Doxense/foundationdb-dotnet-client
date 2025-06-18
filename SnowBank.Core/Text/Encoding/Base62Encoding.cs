@@ -186,7 +186,7 @@ namespace SnowBank.Text
 				: base62AlphaNumMap;
 		}
 
-		private static string Encode64(ulong value, int bits, Base62FormattingOptions options)
+		public static string Encode64(ulong value, int bits, Base62FormattingOptions options)
 		{
 			bool fast = !options.HasFlag(Base62FormattingOptions.Padded);
 
