@@ -1705,7 +1705,7 @@ namespace SnowBank.Data.Json
 		{
 			if (value is null or JsonNull)
 			{
-				return default(T);
+				return null;
 			}
 			return T.JsonDeserialize(value, resolver);
 		}
