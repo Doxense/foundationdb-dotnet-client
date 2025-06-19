@@ -580,11 +580,36 @@ namespace System
 			this.Span.CopyTo(destination);
 		}
 
+		/// <summary>Copy this slice into another buffer</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void CopyTo(Span<byte> destination, out int bytesWritten)
+		{
+			bytesWritten = 0;
+			var span = this.Span;
+			span.CopyTo(destination);
+			bytesWritten = span.Length;
+		}
+
 		/// <summary>Copy this slice into another buffer, if it is large enough.</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryCopyTo(Span<byte> destination)
 		{
 			return this.Span.TryCopyTo(destination);
+		}
+
+		/// <summary>Copy this slice into another buffer, if it is large enough.</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryCopyTo(Span<byte> destination, out int bytesWritten)
+		{
+			var span = this.Span;
+			if (!span.TryCopyTo(destination))
+			{
+				bytesWritten = 0;
+				return false;
+			}
+
+			bytesWritten = span.Length;
+			return true;
 		}
 
 		/// <summary>Copy this slice into another buffer</summary>

@@ -39,6 +39,7 @@ namespace SnowBank.Buffers.Tests
 
 	//README:IMPORTANT! This source file is expected to be stored as UTF-8! If the encoding is changed, some tests below may fail because they rely on specific code points!
 
+	using System.Buffers;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.InteropServices;
 	using static SnowBank.Testing.TestVariables;
@@ -3001,6 +3002,115 @@ namespace SnowBank.Buffers.Tests
 				}
 			}
 
+		}
+
+		[Test]
+		public void Test_Slice_CopyTo()
+		{
+			var array = new byte[100];
+			Span<byte> buffer = array;
+
+			{ // Nil
+				buffer.Fill(0xAA);
+				Slice.Nil.CopyTo(buffer);
+				Assert.That(array, Is.All.EqualTo(0xAA));
+
+				Assert.That(Slice.Nil.TryCopyTo(buffer), Is.True);
+				Assert.That(array, Is.All.EqualTo(0xAA));
+
+				Assert.That(Slice.Nil.TryCopyTo(buffer, out var written), Is.True);
+				Assert.That(written, Is.Zero);
+				Assert.That(array, Is.All.EqualTo(0xAA));
+
+			}
+
+			{ // Empty
+				buffer.Fill(0xAA);
+				Slice.Empty.CopyTo(buffer);
+				Assert.That(array, Is.All.EqualTo(0xAA));
+
+				buffer.Fill(0xAA);
+				Slice.Empty.CopyTo(buffer, out var written);
+				Assert.That(written, Is.Zero);
+				Assert.That(array, Is.All.EqualTo(0xAA));
+
+				Assert.That(Slice.Empty.TryCopyTo(buffer), Is.True);
+				Assert.That(array, Is.All.EqualTo(0xAA));
+
+				Assert.That(Slice.Empty.TryCopyTo(buffer, out written), Is.True);
+				Assert.That(written, Is.Zero);
+				Assert.That(array, Is.All.EqualTo(0xAA));
+			}
+
+			{ // Larger buffer
+				buffer.Fill(0xAA);
+				Slice.FromBytes("Hello, World!"u8).CopyTo(buffer);
+				Assert.That(buffer[..13].ToArray(), Is.EqualTo("Hello, World!"u8.ToArray()));
+				Assert.That(buffer[13..].ToArray(), Is.All.EqualTo(0xAA));
+
+				buffer.Fill(0xAA);
+				Slice.FromBytes("Hello, World!"u8).CopyTo(buffer, out var written);
+				Assert.That(written, Is.EqualTo(13));
+				Assert.That(buffer[..13].ToArray(), Is.EqualTo("Hello, World!"u8.ToArray()));
+				Assert.That(buffer[13..].ToArray(), Is.All.EqualTo(0xAA));
+
+				buffer.Fill(0xAA);
+				Assert.That(Slice.FromBytes("Hello, World!"u8).TryCopyTo(buffer), Is.True);
+				Assert.That(buffer[..13].ToArray(), Is.EqualTo("Hello, World!"u8.ToArray()));
+				Assert.That(buffer[13..].ToArray(), Is.All.EqualTo(0xAA));
+
+				buffer.Fill(0xAA);
+				Assert.That(Slice.FromBytes("Hello, World!"u8).TryCopyTo(buffer, out written), Is.True);
+				Assert.That(written, Is.EqualTo(13));
+				Assert.That(buffer[..13].ToArray(), Is.EqualTo("Hello, World!"u8.ToArray()));
+				Assert.That(buffer[13..].ToArray(), Is.All.EqualTo(0xAA));
+			}
+
+			{ // Exactly sized buffer
+				buffer.Fill(0xAA);
+				Slice.FromBytes("Hello, World!"u8).CopyTo(buffer[..13]);
+				Assert.That(buffer[..13].ToArray(), Is.EqualTo("Hello, World!"u8.ToArray()));
+				Assert.That(buffer[13..].ToArray(), Is.All.EqualTo(0xAA));
+
+				buffer.Fill(0xAA);
+				Slice.FromBytes("Hello, World!"u8).CopyTo(buffer[..13], out var written);
+				Assert.That(written, Is.EqualTo(13));
+				Assert.That(buffer[..13].ToArray(), Is.EqualTo("Hello, World!"u8.ToArray()));
+				Assert.That(buffer[13..].ToArray(), Is.All.EqualTo(0xAA));
+
+				buffer.Fill(0xAA);
+				Assert.That(Slice.FromBytes("Hello, World!"u8).TryCopyTo(buffer[..13]), Is.True);
+				Assert.That(buffer[..13].ToArray(), Is.EqualTo("Hello, World!"u8.ToArray()));
+				Assert.That(buffer[13..].ToArray(), Is.All.EqualTo(0xAA));
+
+				buffer.Fill(0xAA);
+				Assert.That(Slice.FromBytes("Hello, World!"u8).TryCopyTo(buffer[..13], out written), Is.True);
+				Assert.That(written, Is.EqualTo(13));
+				Assert.That(buffer[..13].ToArray(), Is.EqualTo("Hello, World!"u8.ToArray()));
+				Assert.That(buffer[13..].ToArray(), Is.All.EqualTo(0xAA));
+			}
+
+			{ // Smaller buffer
+				buffer.Fill(0xAA);
+				Assert.That(() => Slice.FromBytes("Hello, World!"u8).CopyTo(array.AsSpan(0, 12)), Throws.ArgumentException);
+				Assert.That(array, Is.All.EqualTo(0xAA));
+
+				buffer.Fill(0xAA);
+				int written = -1;
+				Assert.That(() => Slice.FromBytes("Hello, World!"u8).CopyTo(array.AsSpan(0, 12), out written), Throws.ArgumentException);
+				Assert.That(written, Is.Zero);
+				Assert.That(array, Is.All.EqualTo(0xAA));
+
+				buffer.Fill(0xAA);
+				Assert.That(Slice.FromBytes("Hello, World!"u8).TryCopyTo(buffer[..12]), Is.False);
+				Assert.That(array, Is.All.EqualTo(0xAA));
+
+				buffer.Fill(0xAA);
+				written = -1;
+				Assert.That(Slice.FromBytes("Hello, World!"u8).TryCopyTo(buffer[..12], out written), Is.False);
+				Assert.That(written, Is.Zero);
+				Assert.That(array, Is.All.EqualTo(0xAA));
+			}
 		}
 
 #if NET8_0_OR_GREATER
