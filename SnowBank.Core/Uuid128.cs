@@ -100,6 +100,58 @@ namespace System
 		[FieldOffset(0)]
 		private readonly Guid m_packed;
 
+		// xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+
+		/// <summary>Returns the 16 upper bits <c>xxxx....-....-....-....-............</c></summary>
+		public ushort Upper16 => (ushort) (m_timeLow >> 16);
+
+		/// <summary>Returns the 32 upper bits <c>xxxxxxxx-....-....-....-............</c></summary>
+		/// <seealso cref="Lower96"/>
+		public uint Upper32 => m_timeLow;
+
+		/// <summary>Returns the 48 upper bits <c>xxxxxxxx-xxxx-....-....-............</c></summary>
+		/// <seealso cref="Lower80"/>
+		public ulong Upper48 => ((ulong) m_timeLow << 16) | m_timeMid;
+
+		/// <summary>Returns the 64 upper bits <c>xxxxxxxx-xxxx-xxxx-....-............</c></summary>
+		/// <seealso cref="Lower64"/>
+		public ulong Upper64 => ((ulong) m_timeLow << 32) | ((ulong) m_timeMid << 16) | m_timeHiAndVersion;
+
+		/// <summary>Returns the 80 upper bits <c>xxxxxxxx-xxxx-xxxx-xxxx-............</c></summary>
+		/// <seealso cref="Lower48"/>
+		public Uuid80 Upper80 => Uuid80.FromUpper64Lower16(((ulong) m_timeLow << 32) | ((ulong) m_timeMid << 16) | m_timeHiAndVersion, (ushort) (((uint) m_clkSeqHiRes << 8) | m_clkSeqLow));
+
+		/// <summary>Returns the 80 upper bits <c>xxxxxxxx-xxxx-xxxx-xxxx-xxxx........</c></summary>
+		/// <seealso cref="Lower32"/>
+		public Uuid96 Upper96 => Uuid96.FromUpper64Lower32(((ulong) m_timeLow << 32) | ((ulong) m_timeMid << 16) | m_timeHiAndVersion, (((uint) m_clkSeqHiRes << 24) | ((uint) m_clkSeqLow << 16) | ((uint) m_node0 << 8) | m_node1));
+
+		//note: Upper112 if we ever do an Uuid112 ?
+
+		/// <summary>Returns the 16 lower bits <c>........-....-....-....-........xxxx</c></summary>
+		public ushort Lower16 => (ushort) (((uint) m_node4 << 8) | m_node5);
+
+		/// <summary>Returns the 32 lower bits <c>........-....-....-....-....xxxxxxxx</c></summary>
+		/// <seealso cref="Upper96"/>
+		public uint Lower32 => ((uint) m_node2 << 24) | ((uint) m_node3 << 16) | ((uint) m_node4 << 8) | m_node5;
+
+		/// <summary>Returns the 48 lower bits <c>........-....-....-....-xxxxxxxxxxxx</c></summary>
+		/// <seealso cref="Upper80"/>
+		public ulong Lower48 => ((ulong) m_node0 << 40) | ((ulong) m_node1 << 32) | ((ulong) m_node2 << 24) | ((ulong) m_node3 << 16) | ((ulong) m_node4 << 8) | m_node5;
+
+		/// <summary>Returns the 64 lower bits <c>........-....-....-xxxx-xxxxxxxxxxxx</c></summary>
+		/// <seealso cref="Upper64"/>
+		public ulong Lower64 => ((ulong) m_clkSeqHiRes << 56) | ((ulong) m_clkSeqLow << 48) | ((ulong) m_node0 << 40) | ((ulong) m_node1 << 32) | ((ulong) m_node2 << 24) | ((ulong) m_node3 << 16) | ((ulong) m_node4 << 8) | m_node5;
+
+		/// <summary>Returns the 80 lower bits <c>........-....-xxxx-xxxx-xxxxxxxxxxxx</c></summary>
+		/// <seealso cref="Upper48"/>
+		public Uuid80 Lower80 => Uuid80.FromUpper16Lower64(m_timeHiAndVersion, this.Lower64);
+
+		/// <summary>Returns the 96 lower bits <c>........-xxxx-xxxx-xxxx-xxxxxxxxxxxx</c></summary>
+		/// <seealso cref="Upper32"/>
+		public Uuid96 Lower96 => Uuid96.FromUpper32Lower64(((uint) m_timeMid << 16) | m_timeHiAndVersion, this.Lower64);
+
+		//note: Lower112 if we ever do an Uuid112 ?
+
 		#region Constructors...
 
 		/// <summary>Constructs a <see cref="Uuid128"/> from a <see cref="Guid"/> value</summary>

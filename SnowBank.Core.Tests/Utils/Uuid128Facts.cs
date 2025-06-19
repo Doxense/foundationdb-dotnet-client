@@ -50,6 +50,20 @@ namespace SnowBank.Core.Tests
 			Assert.That(hi, Is.EqualTo(Uuid64.Empty));
 			Assert.That(lo, Is.EqualTo(Uuid64.Empty));
 
+			Assert.That(Uuid128.Empty.Lower16, Is.Zero);
+			Assert.That(Uuid128.Empty.Lower32, Is.Zero);
+			Assert.That(Uuid128.Empty.Lower48, Is.Zero);
+			Assert.That(Uuid128.Empty.Lower64, Is.Zero);
+			Assert.That(Uuid128.Empty.Lower80, Is.EqualTo(Uuid80.Empty));
+			Assert.That(Uuid128.Empty.Lower96, Is.EqualTo(Uuid96.Empty));
+
+			Assert.That(Uuid128.Empty.Upper16, Is.Zero);
+			Assert.That(Uuid128.Empty.Upper32, Is.Zero);
+			Assert.That(Uuid128.Empty.Upper48, Is.Zero);
+			Assert.That(Uuid128.Empty.Upper64, Is.Zero);
+			Assert.That(Uuid128.Empty.Upper80, Is.EqualTo(Uuid80.Empty));
+			Assert.That(Uuid128.Empty.Upper96, Is.EqualTo(Uuid96.Empty));
+
 			var tmp = new byte[16];
 			tmp.AsSpan().Fill(0xAA);
 			Assert.That(Uuid128.Empty.TryWriteTo(tmp), Is.True);
@@ -70,10 +84,62 @@ namespace SnowBank.Core.Tests
 			Assert.That(hi, Is.EqualTo(Uuid64.MaxValue));
 			Assert.That(lo, Is.EqualTo(Uuid64.MaxValue));
 
+			Assert.That(Uuid128.MaxValue.Lower16, Is.EqualTo(0xFFFF));
+			Assert.That(Uuid128.MaxValue.Lower32, Is.EqualTo(0xFFFFFFFF));
+			Assert.That(Uuid128.MaxValue.Lower48, Is.EqualTo(0xFFFFFFFFFFFF));
+			Assert.That(Uuid128.MaxValue.Lower64, Is.EqualTo(0xFFFFFFFFFFFFFFFF));
+			Assert.That(Uuid128.MaxValue.Lower80, Is.EqualTo(Uuid80.MaxValue));
+			Assert.That(Uuid128.MaxValue.Lower96, Is.EqualTo(Uuid96.MaxValue));
+
+			Assert.That(Uuid128.MaxValue.Upper16, Is.EqualTo(0xFFFF));
+			Assert.That(Uuid128.MaxValue.Upper32, Is.EqualTo(0xFFFFFFFF));
+			Assert.That(Uuid128.MaxValue.Upper48, Is.EqualTo(0xFFFFFFFFFFFF));
+			Assert.That(Uuid128.MaxValue.Upper64, Is.EqualTo(0xFFFFFFFFFFFFFFFF));
+			Assert.That(Uuid128.MaxValue.Upper80, Is.EqualTo(Uuid80.MaxValue));
+			Assert.That(Uuid128.MaxValue.Upper96, Is.EqualTo(Uuid96.MaxValue));
+
 			var tmp = new byte[16];
 			tmp.AsSpan().Fill(0xAA);
 			Assert.That(Uuid128.MaxValue.TryWriteTo(tmp), Is.True);
 			Assert.That(tmp, Is.EqualTo(new byte[] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }));
+		}
+
+		[Test]
+		public void Test_Uuid_NonZero()
+		{
+			var guid = Uuid128.Parse("00112233-4455-6677-8899-aabbccddeeff");
+			Log(guid);
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(guid.ToString(), Is.EqualTo("00112233-4455-6677-8899-aabbccddeeff"));
+				Assert.That(guid.ToByteArray(), Is.EqualTo(new byte[] { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF }));
+				Assert.That(guid, Is.EqualTo((Uuid128) Guid.Parse("00112233-4455-6677-8899-aabbccddeeff")));
+				Assert.That(guid, Is.EqualTo(Guid.Parse("00112233-4455-6677-8899-aabbccddeeff")));
+
+				guid.Deconstruct(out Uuid64 hi, out Uuid64 lo);
+				Assert.That(hi, Is.EqualTo((Uuid64) 0x0011223344556677));
+				Assert.That(lo, Is.EqualTo((Uuid64) 0x8899aabbccddeeff));
+
+				Assert.That(guid.Upper16, Is.EqualTo(0x0011));
+				Assert.That(guid.Upper32, Is.EqualTo(0x00112233));
+				Assert.That(guid.Upper48, Is.EqualTo(0x001122334455));
+				Assert.That(guid.Upper64, Is.EqualTo(0x0011223344556677));
+				Assert.That(guid.Upper80, Is.EqualTo(Uuid80.FromUpper64Lower16(0x0011223344556677, 0x8899)));
+				Assert.That(guid.Upper96, Is.EqualTo(Uuid96.FromUpper64Lower32(0x0011223344556677, 0x8899aabb)));
+
+				Assert.That(guid.Lower16, Is.EqualTo(0xeeff));
+				Assert.That(guid.Lower32, Is.EqualTo(0xccddeeff));
+				Assert.That(guid.Lower48, Is.EqualTo(0xaabbccddeeff));
+				Assert.That(guid.Lower64, Is.EqualTo(0x8899aabbccddeeff));
+				Assert.That(guid.Lower80, Is.EqualTo(Uuid80.FromUpper16Lower64(0x6677, 0x8899aabbccddeeff)));
+				Assert.That(guid.Lower96, Is.EqualTo(Uuid96.FromUpper32Lower64(0x44556677, 0x8899aabbccddeeff)));
+			});
+
+			var tmp = new byte[16];
+			tmp.AsSpan().Fill(0xAA);
+			Assert.That(guid.TryWriteTo(tmp), Is.True);
+			Assert.That(tmp, Is.EqualTo(new byte[] { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF }));
 		}
 
 		[Test]
