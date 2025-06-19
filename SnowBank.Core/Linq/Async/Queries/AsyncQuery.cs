@@ -47,7 +47,7 @@ namespace SnowBank.Linq
 		/// <para>The maximum number of current tasks can be controlled via <see cref="ParallelAsyncQueryOptions.MaxConcurrency"/>.</para>
 		/// <para>The <see cref="TaskScheduler"/> that is used to process each element can be controller via <see cref="ParallelAsyncQueryOptions.Scheduler"/>.</para>
 		/// </remarks>
-		/// <seealso cref="Select{TSource,TResult}(IAsyncQuery{TSource},Func{TSource,CancellationToken,Task{TResult}})"></seealso>
+		/// <seealso cref="Select{TSource,TResult}(IAsyncQuery{TSource},Func{TSource,CancellationToken,Task{TResult}})" />
 		[Pure, LinqTunnel]
 		public static IAsyncLinqQuery<TResult> SelectParallel<TSource, TResult>(this IAsyncQuery<TSource> source, Func<TSource, CancellationToken, Task<TResult>> asyncSelector, ParallelAsyncQueryOptions? options = null)
 		{

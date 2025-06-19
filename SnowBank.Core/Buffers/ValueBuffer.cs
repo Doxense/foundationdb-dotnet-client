@@ -36,8 +36,9 @@ namespace SnowBank.Buffers
 	/// <typeparam name="T">Type of elements stored in the buffer</typeparam>
 	/// <remarks>
 	/// <para>The final list of items will be available as a single contiguous <see cref="Span{T}"/></para>
+	/// <para>Consider using <see cref="SegmentedValueBuffer{T}"/> if you do not need to consume the items as a single span, <see cref="SegmentedValueBuffer{T}"/> may be faster</para>
 	/// </remarks>
-	/// <seealso cref="SegmentedValueBuffer{T}">If the caller does not need to consume the items as a single span, <see cref="SegmentedValueBuffer{T}"/> may be faster</seealso>
+	/// <seealso cref="SegmentedValueBuffer{T}"/>
 #else
 	/// <summary>Buffer that will accumulate data in a contiguous span, starting from a stack allocated buffer, and switching to pooled buffers if required</summary>
 	/// <typeparam name="T">Type of elements stored in the buffer</typeparam>

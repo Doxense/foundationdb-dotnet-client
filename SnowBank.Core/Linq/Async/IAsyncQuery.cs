@@ -35,8 +35,9 @@ namespace SnowBank.Linq
 	/// <para>This type is very similar to <see cref="IAsyncEnumerable{T}"/>, but with a few key differences in regard to the flow of some arguments</para>
 	/// <para>The <see cref="CancellationToken"/> comes from the <b>source</b> of the query (usually a transaction or some other transient scope, like an HTTP request), instead of being passed by the last step in the chain (the call to <see cref="GetAsyncEnumerator(AsyncIterationHint)"/>.</para>
 	/// <para>The iterator code can pass a "hint", up the chain of operators, to the source of the query, to specify if the intent is to fetch either all the elements (using <see cref="AsyncQuery.ToListAsync{T}"/>, <see cref="AsyncQuery.ToArrayAsync{T}"/>, ...), only the first page of results (<see cref="AsyncQuery.Take{TSource}(SnowBank.Linq.IAsyncQuery{TSource},int)"/>, <see cref="AsyncQuery.Skip{TSource}"/>, ...), or a single element (<see cref="AsyncQuery.FirstOrDefaultAsync{T}(SnowBank.Linq.IAsyncQuery{T})"/>, ...).</para>
+	/// <para>See also <see cref="IAsyncLinqQuery{T}"/> that adds LINQ operator support (Select, Where, OrderBy, ...) on the results of the query.</para>
 	/// </remarks>
-	/// <seealso cref="IAsyncLinqQuery{T}">This interface can be used by queries that can provide optimized implementation for LINQ methods</seealso>
+	/// <seealso cref="IAsyncLinqQuery{T}"/>
 	public interface IAsyncQuery<out T>
 	{
 
@@ -55,8 +56,9 @@ namespace SnowBank.Linq
 		/// <returns>Enumerator for asynchronous enumeration over the sequence.</returns>
 		/// <remarks>
 		/// <para>The source query will be called with the <see cref="AsyncIterationHint.All"/> which should be efficient for use with <c>await foreach</c> pattern, but is less optimized for cases where only the first few results will actually be consumed.</para>
+		/// <para>Consider calling <see cref="AsyncQuery.ToAsyncEnumerable{T}"/> if you need to specify a different iteration hint</para>
 		/// </remarks>
-		/// <seealso cref="AsyncQuery.ToAsyncEnumerable{T}">This method allows you to specify a custom iteration hint</seealso>
+		/// <seealso cref="AsyncQuery.ToAsyncEnumerable{T}" />
 		[Pure, MustDisposeResource]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken ct = default);

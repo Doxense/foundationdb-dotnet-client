@@ -150,7 +150,7 @@ namespace System
 		public Uuid96(uint upper32, uint middle32, uint lower32)
 		{
 			this.High = upper32;
-			this.Low = ((ulong) middle32) << 32 | lower32;
+			this.Low = (((ulong) middle32) << 32) | lower32;
 		}
 
 		/// <summary>Pack components into a 96-bit UUID</summary>
@@ -161,34 +161,34 @@ namespace System
 		public Uuid96(int upper32, int middle32, int lower32)
 		{
 			this.High = (uint) upper32;
-			this.Low = ((ulong) (uint) middle32) << 32 | (uint) lower32;
+			this.Low = (((ulong) ((uint) middle32)) << 32) | ((uint) lower32);
 		}
 
-		/// <summary>Creates a <seealso cref="Uuid96"/> from the lower 64 bits, with the upper 32 bits all set to <c>0</c></summary>
+		/// <summary>Creates a <see cref="Uuid96"/> from the lower 64 bits, with the upper 32 bits all set to <c>0</c></summary>
 		/// <param name="value">64 lower bits (<c>.........-xxxxxxxx-xxxxxxxx</c>)</param>
 		public static Uuid96 FromUInt64(ulong value) => new(0, value);
 
-		/// <summary>Creates a <seealso cref="Uuid96"/> from the lower 64 bits, with the upper 32 bits all set to <c>0</c></summary>
+		/// <summary>Creates a <see cref="Uuid96"/> from the lower 64 bits, with the upper 32 bits all set to <c>0</c></summary>
 		/// <param name="value">64 lower bits (<c>.........-xxxxxxxx-xxxxxxxx</c>)</param>
 		public static Uuid96 FromInt64(long value) => new(0, value);
 
-		/// <summary>Creates a <seealso cref="Uuid96"/> from the lower 32 bits, with the upper 64 bits all set to <c>0</c></summary>
+		/// <summary>Creates a <see cref="Uuid96"/> from the lower 32 bits, with the upper 64 bits all set to <c>0</c></summary>
 		/// <param name="value">48 lower bits (<c>.........-....xxxx-xxxxxxxx</c>)</param>
 		public static Uuid96 FromUInt48(ulong value) => value <= MASK_48 ? new(0, value) : throw new ArgumentOutOfRangeException(nameof(value), "Value must be less than 2^48.");
 
-		/// <summary>Creates a <seealso cref="Uuid96"/> from the lower 32 bits, with the upper 64 bits all set to <c>0</c></summary>
+		/// <summary>Creates a <see cref="Uuid96"/> from the lower 32 bits, with the upper 64 bits all set to <c>0</c></summary>
 		/// <param name="value">32 lower bits (<c>.........-........-xxxxxxxx</c>)</param>
 		public static Uuid96 FromUInt32(uint value) => new(0, value);
 
-		/// <summary>Creates a <seealso cref="Uuid96"/> from the lower 32 bits, with the upper 64 bits all set to <c>0</c></summary>
+		/// <summary>Creates a <see cref="Uuid96"/> from the lower 32 bits, with the upper 64 bits all set to <c>0</c></summary>
 		/// <param name="value">32 lower bits (<c>.........-........-xxxxxxxx</c>)</param>
 		public static Uuid96 FromInt32(int value) => new(0, value);
 
-		/// <summary>Creates a <seealso cref="Uuid96"/> from the lower 16 bits, with the upper 80 bits all set to <c>0</c></summary>
+		/// <summary>Creates a <see cref="Uuid96"/> from the lower 16 bits, with the upper 80 bits all set to <c>0</c></summary>
 		/// <param name="value">16 lower bits (<c>.........-........-....xxxx</c>)</param>
 		public static Uuid96 FromUInt16(ushort value) => new(0, value);
 
-		/// <summary>Creates a <seealso cref="Uuid96"/> from the lower 16 bits, with the upper 80 bits all set to <c>0</c></summary>
+		/// <summary>Creates a <see cref="Uuid96"/> from the lower 16 bits, with the upper 80 bits all set to <c>0</c></summary>
 		/// <param name="value">16 lower bits (<c>.........-........-....xxxx</c>)</param>
 		public static Uuid96 FromInt16(short value) => new(0, value);
 
@@ -248,7 +248,7 @@ namespace System
 			c = this.Lower32;
 		}
 
-		/// <summary>Creates a <seealso cref="Uuid96"/> from the upper 96 bits of a <seealso cref="Uuid128"/></summary>
+		/// <summary>Creates a <see cref="Uuid96"/> from the upper 96 bits of a <see cref="Uuid128"/></summary>
 		/// <param name="value">Only the 96 upper bits will be used (<c>xxxxxxxx-xxxx-xxxx-xxxx-xxxx........</c>)</param>
 		public static Uuid96 FromUpper96(Uuid128 value)
 		{
@@ -256,7 +256,7 @@ namespace System
 			return new(a, b, c);
 		}
 
-		/// <summary>Creates a <seealso cref="Uuid96"/> from the lower 96 bits of a <seealso cref="Uuid128"/></summary>
+		/// <summary>Creates a <see cref="Uuid96"/> from the lower 96 bits of a <see cref="Uuid128"/></summary>
 		/// <param name="value">Only the 96 lower bits will be used (<c>........-xxxx-xxxx-xxxx-xxxxxxxxxxxx</c>)</param>
 		public static Uuid96 FromLower96(Uuid128 value)
 		{
@@ -264,27 +264,27 @@ namespace System
 			return new(a, b, c);
 		}
 
-		/// <summary>Creates a <seealso cref="Uuid96"/> from the lower 80 bits, with the upper 16 bits all set to <c>0</c></summary>
+		/// <summary>Creates a <see cref="Uuid96"/> from the lower 80 bits, with the upper 16 bits all set to <c>0</c></summary>
 		/// <param name="value">80 lower bits (<c>.....xxxx-xxxxxxxx-xxxxxxxx</c>)</param>
 		public static Uuid96 FromLower80(Uuid80 value) => new(value.Upper16, value.Lower64);
 
-		/// <summary>Creates a <seealso cref="Uuid96"/> from the lower 64 bits, with the upper 32 bits all set to <c>0</c></summary>
+		/// <summary>Creates a <see cref="Uuid96"/> from the lower 64 bits, with the upper 32 bits all set to <c>0</c></summary>
 		/// <param name="value">64 lower bits (<c>.........-xxxxxxxx-xxxxxxxx</c>)</param>
 		public static Uuid96 FromLower64(ulong value) => new(0, value);
 
-		/// <summary>Creates a <seealso cref="Uuid96"/> from the lower 32 bits, with the upper 64 bits all set to <c>0</c></summary>
+		/// <summary>Creates a <see cref="Uuid96"/> from the lower 32 bits, with the upper 64 bits all set to <c>0</c></summary>
 		/// <param name="value">48 lower bits (<c>.........-....xxxx-xxxxxxxx</c>)</param>
 		public static Uuid96 FromLower48(ulong value) => new(0, value & MASK_48);
 
-		/// <summary>Creates a <seealso cref="Uuid96"/> from the lower 32 bits, with the upper 64 bits all set to <c>0</c></summary>
+		/// <summary>Creates a <see cref="Uuid96"/> from the lower 32 bits, with the upper 64 bits all set to <c>0</c></summary>
 		/// <param name="value">32 lower bits (<c>.........-........-xxxxxxxx</c>)</param>
 		public static Uuid96 FromLower32(uint value) => new(0, value);
 
-		/// <summary>Creates a <seealso cref="Uuid96"/> from the lower 16 bits, with the upper 80 bits all set to <c>0</c></summary>
+		/// <summary>Creates a <see cref="Uuid96"/> from the lower 16 bits, with the upper 80 bits all set to <c>0</c></summary>
 		/// <param name="value">16 lower bits (<c>.........-........-....xxxx</c>)</param>
 		public static Uuid96 FromLower16(ushort value) => new(0, value);
 
-		/// <summary>Creates a <seealso cref="Uuid96"/> from the upper 16-bit and lower 80-bit parts</summary>
+		/// <summary>Creates a <see cref="Uuid96"/> from the upper 16-bit and lower 80-bit parts</summary>
 		/// <param name="hi">16 upper bits (<c>xxxx....-........-........</c>)</param>
 		/// <param name="low">80 lower bits (<c>....xxxx-xxxxxxxx-xxxxxxxx</c>)</param>
 		[Pure]
@@ -293,7 +293,7 @@ namespace System
 			return new(((uint) hi << 16) | low.Upper16, low.Lower64);
 		}
 
-		/// <summary>Creates a <seealso cref="Uuid96"/> from the upper 32-bit and lower 64-bit parts</summary>
+		/// <summary>Creates a <see cref="Uuid96"/> from the upper 32-bit and lower 64-bit parts</summary>
 		/// <param name="hi">32 upper bits (<c>xxxxxxxx-........-........</c>)</param>
 		/// <param name="low">64 lower bits (<c>........-xxxxxxxx-xxxxxxxx</c>)</param>
 		[Pure]
@@ -302,7 +302,7 @@ namespace System
 			return new(hi, low);
 		}
 
-		/// <summary>Creates a <seealso cref="Uuid96"/> from the upper 32-bit and lower 64-bit parts</summary>
+		/// <summary>Creates a <see cref="Uuid96"/> from the upper 32-bit and lower 64-bit parts</summary>
 		/// <param name="hi">32 upper bits (<c>xxxxxxxx-........-........</c>)</param>
 		/// <param name="low">64 lower bits (<c>........-xxxxxxxx-xxxxxxxx</c>)</param>
 		[Pure]
@@ -311,7 +311,7 @@ namespace System
 			return new(hi, low.ToUInt64());
 		}
 
-		/// <summary>Creates a <seealso cref="Uuid96"/> from the upper 48-bit and lower 48-bit parts</summary>
+		/// <summary>Creates a <see cref="Uuid96"/> from the upper 48-bit and lower 48-bit parts</summary>
 		/// <param name="hi">48 upper bits (<c>xxxxxxxx-xxxx....-........</c>)</param>
 		/// <param name="low">48 lower bits (<c>........-....xxxx-xxxxxxxx</c>)</param>
 		[Pure]
@@ -320,7 +320,7 @@ namespace System
 			return new(unchecked((uint) (hi >> 16)), (hi & MASK_16) << 48 | (low & MASK_48));
 		}
 
-		/// <summary>Creates a <seealso cref="Uuid96"/> from the upper 64-bit and lower 32-bit parts</summary>
+		/// <summary>Creates a <see cref="Uuid96"/> from the upper 64-bit and lower 32-bit parts</summary>
 		/// <param name="hi">64 upper bits (<c>xxxxxxxx-xxxxxxxx-........</c>)</param>
 		/// <param name="low">32 lower bits (<c>........-........-xxxxxxxx</c>)</param>
 		[Pure]
@@ -329,7 +329,7 @@ namespace System
 			return new(unchecked((uint) (hi >> 32)), ((hi & 0xFFFFFFFF) << 32) | low);
 		}
 
-		/// <summary>Creates a <seealso cref="Uuid96"/> from the upper 64-bit and lower 32-bit parts</summary>
+		/// <summary>Creates a <see cref="Uuid96"/> from the upper 64-bit and lower 32-bit parts</summary>
 		/// <param name="hi">64 upper bits (<c>xxxxxxxx-xxxxxxxx-........</c>)</param>
 		/// <param name="middle">16 middle bits (<c>........-........-xxxx....</c>)</param>
 		/// <param name="low">16 lower bits (<c>........-........-....xxxx</c>)</param>
@@ -339,7 +339,7 @@ namespace System
 			return new(unchecked((uint) (hi >> 32)), ((hi & 0xFFFFFFFF) << 32) | ((uint) middle << 16) | low);
 		}
 
-		/// <summary>Creates a <seealso cref="Uuid96"/> from the upper 64-bit and lower 32-bit parts</summary>
+		/// <summary>Creates a <see cref="Uuid96"/> from the upper 64-bit and lower 32-bit parts</summary>
 		/// <param name="hi">64 upper bits (<c>xxxxxxxx-xxxxxxxx-........</c>)</param>
 		/// <param name="low">32 lower bits (<c>........-........-xxxxxxxx</c>)</param>
 		[Pure]
@@ -349,7 +349,7 @@ namespace System
 			return new(unchecked((uint) (hiValue >> 32)), ((hiValue & 0xFFFFFFFF) << 32) | low);
 		}
 
-		/// <summary>Creates a <seealso cref="Uuid96"/> from the upper 80-bit and lower 16-bit parts</summary>
+		/// <summary>Creates a <see cref="Uuid96"/> from the upper 80-bit and lower 16-bit parts</summary>
 		/// <param name="hi">80 upper bits (<c>xxxxxxxx-xxxxxxxx-xxxx....</c>)</param>
 		/// <param name="low">16 lower bits (<c>........-........-....xxxx</c>)</param>
 		[Pure]
@@ -358,7 +358,7 @@ namespace System
 			return new(hi.Upper32, ((ulong) hi.Lower48 << 16) | low);
 		}
 
-		/// <summary>Creates a <seealso cref="Uuid96"/> from the upper 32-bit, middle 32-bit and lower 32-bit parts</summary>
+		/// <summary>Creates a <see cref="Uuid96"/> from the upper 32-bit, middle 32-bit and lower 32-bit parts</summary>
 		/// <param name="hi">32 upper bits (<c>xxxxxxxx-........-........</c>)</param>
 		/// <param name="middle">32 middle bits (<c>........-xxxxxxxx-........</c>)</param>
 		/// <param name="low">32 lower bits (<c>........-........-xxxxxxxx</c>)</param>

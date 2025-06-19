@@ -58,7 +58,7 @@ namespace SnowBank.Data.Json
 
 	}
 
-	/// <summary>Extension methods for working with <seealso cref="IJsonProxyNode"/></summary>
+	/// <summary>Extension methods for working with <see cref="IJsonProxyNode"/></summary>
 	public static class JsonProxyNodeExtensions
 	{
 

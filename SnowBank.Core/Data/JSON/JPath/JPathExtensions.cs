@@ -28,7 +28,7 @@ namespace SnowBank.Data.Json
 {
 	using SnowBank.Data.Json.JPath;
 
-	/// <summary>Extensions methods for working with <seealso cref="JPathQuery"/></summary>
+	/// <summary>Extensions methods for working with <see cref="JPathQuery"/></summary>
 	public static class JPathExtensions
 	{
 

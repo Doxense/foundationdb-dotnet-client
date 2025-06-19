@@ -29,7 +29,7 @@ namespace SnowBank.Data.Binary
 	using SnowBank.Buffers;
 
 	/// <summary>Represents a codec that can produce keys or values without any ordering guarantees</summary>
-	/// <remarks>This type of codec usually produces a more compact representation than <seealso cref="IOrderedTypeCodec{T}"/></remarks>
+	/// <remarks>This type of codec usually produces a more compact representation than <see cref="IOrderedTypeCodec{T}"/></remarks>
 	[PublicAPI]
 	public interface IUnorderedTypeCodec<T>
 	{

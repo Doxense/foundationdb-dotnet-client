@@ -168,7 +168,7 @@ namespace SnowBank.Data.Json
 			return ParseObject(value, typeof(T));
 		}
 
-		/// <summary>Converts an CLR instance into the corresponding <seealso cref="JsonValue"/></summary>
+		/// <summary>Converts an CLR instance into the corresponding <see cref="JsonValue"/></summary>
 		/// <param name="value">Instance to convert (primitive, value type or reference type) </param>
 		/// <param name="declaredType">Type of the instance, as declared in its parent (ex: Property/Field in a parent class, record or struct. Element type in a collection or array, ...). It can be different from <paramref name="runtimeType"/> (interface, abstract class  ...). If unknown, use <c>typeof(object)</c>, or specify the same value as <paramref name="runtimeType"/> if the value could not be of any other type.</param>
 		/// <param name="runtimeType">If specified, the actual runtime type of the instance. If <c>null</c>, <see cref="object.GetType"/> will be called on <paramref name="value"/>.</param>
@@ -873,7 +873,7 @@ namespace SnowBank.Data.Json
 
 		/// <summary>Test if an instance as already been visited before, to protect against cycles in the object graph</summary>
 		/// <exception cref="JsonSerializationException">If this instance has already been visited before, or if the object graph is too deep</exception>
-		/// <remarks>If the same instance is visited against before <seealso cref="Leave"/> is called, then an exception will be thrown.</remarks>
+		/// <remarks>If the same instance is visited against before <see cref="Leave"/> is called, then an exception will be thrown.</remarks>
 		internal void MarkVisited(ref VisitingContext context, object? value, Type? type = null)
 		{
 			if (context.ObjectGraphDepth >= MaximumObjectGraphDepth)
@@ -894,8 +894,8 @@ namespace SnowBank.Data.Json
 		}
 
 		/// <summary>Mark this instance as visited.</summary>
-		/// <remarks>The call must match a previous call to <seealso cref="MarkVisited"/></remarks>
-		/// <exception cref="JsonSerializationException">If this instance is not on the stack, which would indicate a mismatch between <seealso cref="MarkVisited"/> and <seealso cref="Leave"/> calls</exception>
+		/// <remarks>The call must match a previous call to <see cref="MarkVisited"/></remarks>
+		/// <exception cref="JsonSerializationException">If this instance is not on the stack, which would indicate a mismatch between <see cref="MarkVisited"/> and <see cref="Leave"/> calls</exception>
 		internal void Leave(ref VisitingContext context, object? value)
 		{
 			if (context.ObjectGraphDepth == 0) throw CrystalJson.Errors.Serialization_InternalDepthInconsistent();

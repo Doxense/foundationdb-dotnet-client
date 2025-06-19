@@ -64,10 +64,10 @@ namespace System
 		private const ushort FLAGS_HAS_VERSION = 0x1; // unset: 80-bits, set: 96-bits
 		private const ushort FLAGS_IS_INCOMPLETE = 0x2; // unset: complete, set: incomplete
 
-		/// <summary>The "empty" <seealso cref="VersionStamp"/></summary>
+		/// <summary>The "empty" <see cref="VersionStamp"/></summary>
 		/// <remarks>
 		/// <para>This value will never be observed in the database, and can be used to represent the concept of <c>null</c>, <c>none</c> or <c>empty</c></para>
-		/// <para>Please note that this is different from the <seealso cref="Incomplete()"/> stamp, which corresponds to a stamp whose value is not yet known, but will be replaced by concrete value in the near future (usually when the transaction commits).</para>
+		/// <para>Please note that this is different from the <see cref="Incomplete()"/> stamp, which corresponds to a stamp whose value is not yet known, but will be replaced by concrete value in the near future (usually when the transaction commits).</para>
 		/// </remarks>
 		public static readonly VersionStamp None = default;
 
@@ -1080,7 +1080,7 @@ namespace System
 
 		/// <summary>Returns the successor of this <see cref="VersionStamp"/></summary>
 		/// <param name="left">Instance to increment</param>
-		/// <returns>Smallest <seealso cref="VersionStamp"/> that is strictly greater than this value.</returns>
+		/// <returns>Smallest <see cref="VersionStamp"/> that is strictly greater than this value.</returns>
 		/// <remarks>The operator will first increment the <see cref="UserVersion"/>, propagating the carry to the <see cref="TransactionOrder"/> and then the <see cref="TransactionVersion"/> in case of overlow</remarks>
 		/// <exception cref="OverflowException">If <paramref name="left"/> is already the maximum possible value</exception>
 		public static VersionStamp operator++(VersionStamp left)
@@ -1217,8 +1217,8 @@ namespace System
 
 		#endregion
 
-		/// <summary>Try formatting this <seealso cref="VersionStamp"/> into Base-1024 string literal</summary>
-		/// <param name="destination">Buffer that must have a size of at least 8 or 10 characters (depending on the value of <seealso cref="HasUserVersion"/>)</param>
+		/// <summary>Try formatting this <see cref="VersionStamp"/> into Base-1024 string literal</summary>
+		/// <param name="destination">Buffer that must have a size of at least 8 or 10 characters (depending on the value of <see cref="HasUserVersion"/>)</param>
 		/// <param name="charsWritten">Number of bytes written to <paramref name="destination"/>, always equal to <c>10</c></param>
 		/// <exception cref="ArgumentException"><paramref name="destination"/> is not large enough</exception>
 		/// <remarks>

@@ -515,7 +515,7 @@ namespace SnowBank.Data.Json
 		/// <returns>New JSON object with the same elements in <paramref name="items"/></returns>
 		/// <remarks>
 		/// <para>Adding or removing items in this new object will not modify <paramref name="items"/> (and vice versa), but any change to a mutable children will be reflected in both.</para>
-		/// <para>This overload is intended for creating a <seealso cref="JsonObject"/> with case-insensitive keys via collection expressions using the following syntax:
+		/// <para>This overload is intended for creating a <see cref="JsonObject"/> with case-insensitive keys via collection expressions using the following syntax:
 		/// <code>
 		/// var obj = (JsonObject) [ with(StringComparer.OrdinalIgnoreCase), "hElLo": 123, "WorLd": 456, /*...*/ ];
 		/// Console.WriteLine(obj["hello"]); // => 123

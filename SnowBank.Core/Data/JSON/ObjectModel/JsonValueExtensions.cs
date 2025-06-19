@@ -204,7 +204,7 @@ namespace SnowBank.Data.Json
 
 		#region ToStuff(...)
 
-		/// <summary>Packs a <seealso cref="IJsonPackable"/> value into the corresponding mutable <see cref="JsonValue"/></summary>
+		/// <summary>Packs a <see cref="IJsonPackable"/> value into the corresponding mutable <see cref="JsonValue"/></summary>
 		/// <param name="value">Instance to serialize</param>
 		/// <param name="settings">Custom serialization settings</param>
 		/// <param name="resolver">Optional type resolver used to bind the value into a managed CLR type (<see cref="CrystalJson.DefaultResolver"/> is omitted)</param>
@@ -215,7 +215,7 @@ namespace SnowBank.Data.Json
 			return value?.JsonPack(settings ?? CrystalJsonSettings.Json, resolver ?? CrystalJson.DefaultResolver) ?? JsonNull.Null;
 		}
 
-		/// <summary>Packs a <seealso cref="IJsonPackable"/> value into the corresponding read-only <see cref="JsonValue"/></summary>
+		/// <summary>Packs a <see cref="IJsonPackable"/> value into the corresponding read-only <see cref="JsonValue"/></summary>
 		/// <param name="value">Instance to serialize</param>
 		/// <param name="settings">Custom serialization settings</param>
 		/// <param name="resolver">Optional type resolver used to bind the value into a managed CLR type (<see cref="CrystalJson.DefaultResolver"/> is omitted)</param>
@@ -226,7 +226,7 @@ namespace SnowBank.Data.Json
 			return value?.JsonPack(settings.AsReadOnly(), resolver ?? CrystalJson.DefaultResolver) ?? JsonNull.Null;
 		}
 
-		/// <summary>Serializes a <seealso cref="IJsonSerializable"/> value into the most compact text literal possible</summary>
+		/// <summary>Serializes a <see cref="IJsonSerializable"/> value into the most compact text literal possible</summary>
 		/// <param name="value">Instance to serialize</param>
 		/// <remarks>Note: if the JSON has to be sent over HTTP, or stored on disk, prefer <see cref="ToJsonSlice(JsonValue?,CrystalJsonSettings?)"/> or <see cref="ToJsonBytes(JsonValue)"/> that will return the same result but already utf-8 encoded</remarks>
 		[Pure]
@@ -234,7 +234,7 @@ namespace SnowBank.Data.Json
 			where TJsonSerializable : IJsonSerializable
 			=> CrystalJson.Serialize(value);
 
-		/// <summary>Serializes a J<see cref="JsonValue"/> into the most compact text literal possible</summary>
+		/// <summary>Serializes a <see cref="JsonValue"/> into the most compact text literal possible</summary>
 		/// <param name="value">JSON value to serialize</param>
 		/// <remarks>Note: if the JSON has to be sent over HTTP, or stored on disk, prefer <see cref="ToJsonSlice(JsonValue?,CrystalJsonSettings?)"/> or <see cref="ToJsonBytes(JsonValue)"/> that will return the same result but already utf-8 encoded</remarks>
 		[Pure]
@@ -255,7 +255,7 @@ namespace SnowBank.Data.Json
 		[OverloadResolutionPriority(1)]
 		public static string ToJsonIndented(this JsonValue? value) => value?.ToJson(CrystalJsonSettings.JsonIndented) ?? JsonTokens.Null;
 
-		/// <summary>Serializes a <seealso cref="IJsonSerializable"/> value into a human-friendly indented text representation (for logging, console output, etc...)</summary>
+		/// <summary>Serializes a <see cref="IJsonSerializable"/> value into a human-friendly indented text representation (for logging, console output, etc...)</summary>
 		/// <param name="value">Instance to serialize</param>
 		[Pure]
 		public static string ToJsonIndented<TJsonSerializable>(this TJsonSerializable? value)
@@ -296,7 +296,7 @@ namespace SnowBank.Data.Json
 		[OverloadResolutionPriority(1)]
 		public static SliceOwner ToJsonSlice(this JsonValue? value, ArrayPool<byte>? pool, CrystalJsonSettings? settings = null) => CrystalJson.ToSlice(value, pool, settings);
 
-		/// <summary>Serializes a <seealso cref="IJsonSerializable"/> value into a <see cref="Slice"/>, using custom settings</summary>
+		/// <summary>Serializes a <see cref="IJsonSerializable"/> value into a <see cref="Slice"/>, using custom settings</summary>
 		/// <param name="value">Instance to serialize</param>
 		/// <param name="settings">Custom serialization settings</param>
 		/// <returns><see cref="Slice"/> that contains the utf-8 encoded text representation of the JSON value</returns>
@@ -305,7 +305,7 @@ namespace SnowBank.Data.Json
 			where TJsonSerializable : IJsonSerializable
 			=> CrystalJson.ToSlice(value, settings);
 
-		/// <summary>Serializes a <seealso cref="IJsonSerializable"/> value into a <see cref="Slice"/>, using custom settings</summary>
+		/// <summary>Serializes a <see cref="IJsonSerializable"/> value into a <see cref="Slice"/>, using custom settings</summary>
 		/// <param name="value">Instance to serialize</param>
 		/// <param name="pool">Pool used to allocate the content of the slice (use <see cref="ArrayPool{T}.Shared"/> if <see langword="null"/>)</param>
 		/// <param name="settings">Custom serialization settings</param>

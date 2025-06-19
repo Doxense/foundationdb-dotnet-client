@@ -27,7 +27,7 @@
 namespace SnowBank.Threading
 {
 
-	/// <summary>Extensions methods for working with <seealso cref="ReaderWriterLockSlim"/></summary>
+	/// <summary>Extensions methods for working with <see cref="ReaderWriterLockSlim"/></summary>
 	public static class ReaderWriterLockSlimExtensions
 	{
 
@@ -76,7 +76,7 @@ namespace SnowBank.Threading
 		{
 			private readonly ReaderWriterLockSlim? m_lock;
 
-			/// <summary>Wraps a read-lock taken on a <seealso cref="ReaderWriterLockSlim"/></summary>
+			/// <summary>Wraps a read-lock taken on a <see cref="ReaderWriterLockSlim"/></summary>
 			/// <param name="rwLock"></param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public ReadLockDisposable(ReaderWriterLockSlim? rwLock)
@@ -98,7 +98,7 @@ namespace SnowBank.Threading
 		{
 			private readonly ReaderWriterLockSlim? m_lock;
 
-			/// <summary>Wraps an upgradable read-lock taken on a <seealso cref="ReaderWriterLockSlim"/></summary>
+			/// <summary>Wraps an upgradable read-lock taken on a <see cref="ReaderWriterLockSlim"/></summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public UpgradeableReadLockDisposable(ReaderWriterLockSlim? rwLock)
 			{
@@ -119,7 +119,7 @@ namespace SnowBank.Threading
 		{
 			private readonly ReaderWriterLockSlim? m_lock;
 
-			/// <summary>Wraps a write-lock taken on a <seealso cref="ReaderWriterLockSlim"/></summary>
+			/// <summary>Wraps a write-lock taken on a <see cref="ReaderWriterLockSlim"/></summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public WriteLockDisposable(ReaderWriterLockSlim? rwLock)
 			{
