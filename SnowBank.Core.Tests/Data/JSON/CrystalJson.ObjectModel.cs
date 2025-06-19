@@ -507,8 +507,8 @@ namespace SnowBank.Data.Json.Tests
 			Assert.That(JsonBoolean.True.Bind(typeof(Guid)), Is.EqualTo(Guid.Parse("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF")));
 			Assert.That(JsonBoolean.True.Bind(typeof(Guid)), Is.InstanceOf<Guid>());
 
-			Assert.That(SerializeToSlice(JsonBoolean.False), Is.EqualTo(Slice.Copy("false"u8)));
-			Assert.That(SerializeToSlice(JsonBoolean.True), Is.EqualTo(Slice.Copy("true"u8)));
+			Assert.That(SerializeToSlice(JsonBoolean.False), Is.EqualTo(Slice.FromBytes("false"u8)));
+			Assert.That(SerializeToSlice(JsonBoolean.True), Is.EqualTo(Slice.FromBytes("true"u8)));
 		}
 
 		[Test]

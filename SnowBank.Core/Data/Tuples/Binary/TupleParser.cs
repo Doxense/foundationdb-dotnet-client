@@ -1205,7 +1205,7 @@ namespace SnowBank.Data.Tuples.Binary
 			var chunk = slice.Slice(1, slice.Length - 2);
 			if (!ShouldUnescapeByteString(chunk))
 			{
-				return Slice.Copy(chunk);
+				return Slice.FromBytes(chunk);
 			}
 
 			var span = new byte[chunk.Length];

@@ -521,10 +521,10 @@ namespace SnowBank.Buffers
 		}
 
 		// for debugger only
-		private readonly Slice BufferReadable => Slice.Copy(this.Buffer);
+		private readonly Slice BufferReadable => Slice.FromBytes(this.Buffer);
 
 		// for debugger only
-		private readonly Slice TailReadable => Slice.Copy(this.Tail);
+		private readonly Slice TailReadable => Slice.FromBytes(this.Tail);
 
 	}
 

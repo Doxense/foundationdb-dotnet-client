@@ -132,7 +132,7 @@ namespace SnowBank.Data.Tuples.Binary
 		public static Slice Pack<TTuple>(ReadOnlySpan<byte> prefix, TTuple? tuple)
 			where TTuple : IVarTuple?
 		{
-			if (tuple == null || tuple.Count == 0) return Slice.Copy(prefix);
+			if (tuple == null || tuple.Count == 0) return Slice.FromBytes(prefix);
 
 			var writer = new TupleWriter(checked(32 + prefix.Length));
 			writer.Output.WriteBytes(prefix);

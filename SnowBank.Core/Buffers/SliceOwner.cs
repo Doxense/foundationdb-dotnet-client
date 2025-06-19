@@ -91,7 +91,7 @@ namespace System
 		public static SliceOwner Create(Slice data, ArrayPool<byte>? pool = null)
 		{
 			return
-				  pool == null ? new (data)
+				  pool == null ? new(data)
 				: data.Count > 0 ? new(data, pool)
 				: CreateEmpty(data, pool);
 

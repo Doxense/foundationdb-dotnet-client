@@ -266,7 +266,7 @@ namespace SnowBank.Data.Tuples.Binary
 		public Slice GetSlice(int index)
 		{
 			var slices = m_slices;
-			return Slice.Copy(m_buffer[slices[TupleHelpers.MapIndex(index, slices.Length)]]);
+			return Slice.FromBytes(m_buffer[slices[TupleHelpers.MapIndex(index, slices.Length)]]);
 		}
 
 		/// <summary>Test if the element at the specified index is <see cref="TupleSegmentType.Nil"/></summary>
@@ -312,7 +312,7 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Return the encoded binary representation of the element at the specified index</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Slice GetSlice(Index index) => Slice.Copy(m_buffer[m_slices[index]]);
+		public Slice GetSlice(Index index) => Slice.FromBytes(m_buffer[m_slices[index]]);
 
 		/// <summary>Returns the <see cref="TupleSegmentType">encoded type</see> of the element at the specified index</summary>
 		/// <returns>This helps test if a parser element is a string, a number, a boolean, etc...</returns>
@@ -369,7 +369,7 @@ namespace SnowBank.Data.Tuples.Binary
 			var buffer = m_buffer;
 			for (int i = 0; i < slices.Length; i++)
 			{
-				destination[i] = Slice.Copy(buffer[slices[i]]);
+				destination[i] = Slice.FromBytes(buffer[slices[i]]);
 			}
 		}
 
@@ -383,7 +383,7 @@ namespace SnowBank.Data.Tuples.Binary
 			var buffer = m_buffer;
 			for (int i = 0; i < slices.Length; i++)
 			{
-				destination[i] = Slice.Copy(buffer[slices[i]]);
+				destination[i] = Slice.FromBytes(buffer[slices[i]]);
 			}
 			return true;
 		}

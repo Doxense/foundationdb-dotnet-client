@@ -1551,7 +1551,7 @@ namespace SnowBank.Data.Tuples.Tests
 			Assert.That(STuple.Create<Uuid128>(Uuid128.Parse("102cb0aa-2151-4c72-9e9d-61cf2980cbd0")).ToString(), Is.EqualTo("({102cb0aa-2151-4c72-9e9d-61cf2980cbd0},)"));
 			Assert.That(STuple.Create<Uuid64>(Uuid64.Parse("102cb0aa-21514c72")).ToString(), Is.EqualTo("({102CB0AA-21514C72},)"));
 			Assert.That(STuple.Create<byte[]>([ 0x02, 0x41, 0x42, 0x43, 0x00 ]).ToString(), Is.EqualTo("(`<02>ABC<00>`,)"));
-			Assert.That(STuple.Create<Slice>(Slice.Copy([ 0x02, 0x41, 0x42, 0x43, 0x00 ])).ToString(), Is.EqualTo("(`<02>ABC<00>`,)"));
+			Assert.That(STuple.Create<Slice>(Slice.FromBytes([ 0x02, 0x41, 0x42, 0x43, 0x00 ])).ToString(), Is.EqualTo("(`<02>ABC<00>`,)"));
 
 			Assert.That(STuple.Create("Hello", 123, "World", '!', false).ToString(), Is.EqualTo("""("Hello", 123, "World", '!', false)"""));
 		}

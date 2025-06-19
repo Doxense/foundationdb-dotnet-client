@@ -47,7 +47,7 @@ namespace System
 	[PublicAPI, ImmutableObject(true), DebuggerDisplay("{ToDebuggerDisplay(),nq}"), DebuggerTypeProxy(typeof(DebugView))]
 	[DebuggerNonUserCode] //remove this when you need to troubleshoot this class!
 #if NET8_0_OR_GREATER
-	[CollectionBuilder(typeof(Slice), nameof(Slice.Copy))]
+	[CollectionBuilder(typeof(Slice), nameof(Slice.FromBytes))]
 #endif
 	public readonly partial struct Slice : IEquatable<Slice>, IEquatable<ArraySegment<byte>>, IEquatable<byte[]>, IComparable<Slice>, ISliceSerializable, ISpanFormattable
 #if NET9_0_OR_GREATER
@@ -138,33 +138,26 @@ namespace System
 		}
 
 		/// <summary>Creates a new slice with a copy of the array</summary>
-		[Pure]
-		public static Slice Copy(byte[]? source)
-		{
-			return source is not null ? Copy(new ReadOnlySpan<byte>(source)) : Slice.Nil;
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public static Slice Copy(byte[]? source) => FromBytes(source);
 
 		/// <summary>Creates a new slice with a copy of the array segment</summary>
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice Copy(byte[]? source, int offset, int count)
 		{
-			return count == 0  && source is null && offset == 0 ? Slice.Nil : Copy(source.AsSpan(offset, count));
+			return count == 0  && source is null && offset == 0 ? Slice.Nil : FromBytes(source.AsSpan(offset, count));
 		}
 
 		/// <summary>Creates a new slice with a copy of the span</summary>
-		[Pure]
-		public static Slice Copy(ReadOnlySpan<byte> source)
-		{
-			return source.Length switch
-			{
-				0 => Slice.Empty,
-				1 => FromByte(source[0]),
-				_ => new Slice(source.ToArray())
-			};
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public static Slice Copy(ReadOnlySpan<byte> source) => FromBytes(source);
 
 		/// <summary>Creates a new slice with a copy of the span, using a scratch buffer</summary>
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice Copy(ReadOnlySpan<byte> source, ref byte[]? buffer)
 		{
 			if (source.Length == 0) return Empty;
@@ -174,7 +167,8 @@ namespace System
 		}
 
 		/// <summary>Creates a new slice with a copy of the span</summary>
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice Copy(Span<byte> source)
 		{
 			return source.Length switch
@@ -183,6 +177,116 @@ namespace System
 				1 => FromByte(source[0]),
 				_ => new Slice(source.ToArray())
 			};
+		}
+
+		/// <summary>Creates a new slice by copying the contents of an array of bytes</summary>
+		/// <param name="source">Array of bytes to copy</param>
+		/// <returns><see cref="Slice"/> that points to a copy of the bytes in <paramref name="source"/>, or <see cref="Slice.Nil"/> if <paramref name="source"/> is <c>null</c></returns>
+		/// <remarks>Returns the <see cref="Slice.Empty"/> singleton if <paramref name="source"/> is empty</remarks>
+		/// <example><code>
+		/// Slice.FromBytes((byte[]) null)             // => Slice.Nil
+		/// Slice.FromBytes(new byte[0])               // => Slice.Empty
+		/// Slice.FromBytes(new byte[] { 0x12, 0x34 }) // => [ 0x12, 0x34 ]
+		/// Slice.FromBytes("Hello"u8.ToArray())       // => [ 0x48, 0x65, 0x6c, 0x6c, 0x6f ]
+		/// </code></example>
+		[Pure]
+		public static Slice FromBytes(byte[]? source)
+		{
+			if (source is null) return Slice.Nil;
+			return source.Length switch
+			{
+				0 => Slice.Empty,
+				1 => FromByte(source[0]),
+				_ => new Slice(source.ToArray())
+			};
+		}
+
+		/// <summary>Creates a new slice by copying the contents of a span of bytes</summary>
+		/// <param name="source">Span of bytes to copy</param>
+		/// <returns><see cref="Slice"/> that points to a copy of the bytes in <paramref name="source"/></returns>
+		/// <remarks>Returns the <see cref="Slice.Empty"/> singleton if <paramref name="source"/> is empty</remarks>
+		/// <example><code>
+		/// Slice.FromBytes([])             // => Slice.Empty
+		/// Slice.FromBytes([ 0x12, 0x34 ]) // => [ 0x12, 0x34 ]
+		/// Slice.FromBytes("Hello"u8)      // => [ 0x48, 0x65, 0x6c, 0x6c, 0x6f ]
+		/// </code></example>
+		[Pure]
+		public static Slice FromBytes(ReadOnlySpan<byte> source)
+		{
+			return source.Length switch
+			{
+				0 => Slice.Empty,
+				1 => FromByte(source[0]),
+				_ => new Slice(source.ToArray())
+			};
+		}
+
+		/// <summary>Creates a new slice by copying the contents of a span of bytes</summary>
+		/// <param name="source">Span of bytes to copy</param>
+		/// <returns><see cref="Slice"/> that points to a copy of the bytes in <paramref name="source"/></returns>
+		/// <remarks>Returns the <see cref="Slice.Empty"/> singleton if <paramref name="source"/> is empty</remarks>
+		/// <example><code>
+		/// Slice.FromBytes([])             // => Slice.Empty
+		/// Slice.FromBytes([ 0x12, 0x34 ]) // => [ 0x12, 0x34 ]
+		/// Slice.FromBytes("Hello"u8)      // => [ 0x48, 0x65, 0x6c, 0x6c, 0x6f ]
+		/// </code></example>
+		[Pure]
+		public static Slice FromBytes(Span<byte> source)
+		{
+			return source.Length switch
+			{
+				0 => Slice.Empty,
+				1 => FromByte(source[0]),
+				_ => new Slice(source.ToArray())
+			};
+		}
+
+		/// <summary>Creates a new <see cref="Slice"/> by copying the contents of a span of bytes, using a provided scratch buffer</summary>
+		/// <param name="source">Span of bytes to copy</param>
+		/// <param name="buffer">Buffer that should be used to store the bytes. If <c>null</c> or too small, it will be replaced by a newly allocated buffer (with length rounded to the next power of two)</param>
+		/// <returns><see cref="Slice"/> that points to a copy of the bytes in <paramref name="source"/>, and uses the <paramref name="buffer"/> as its backing store</returns>
+		/// <remarks>Returns the <see cref="Slice.Empty"/> singleton if <paramref name="source"/> is empty</remarks>
+		/// <example><code>
+		/// // no initial buffer
+		/// byte[]? buffer = null;
+		/// Slice.FromBytes([ 0x12, 0x34 ], ref buffer) // => allocates a buffer of length 2
+		/// Slice.FromBytes([ 0x56, 0x78 ], ref buffer) // => reuses the same buffer
+		/// Slice.FromBytes("Hello World"u8, ref buffer) // => allocates a new larger buffer of length 16
+		/// // with initial buffer
+		/// byte[] buffer = new byte[8];
+		/// Slice.FromBytes([ 0x12, 0x34 ], ref buffer) // => uses the initial buffer
+		/// Slice.FromBytes([ 0x56, 0x78 ], ref buffer) // => uses the initial buffer
+		/// Slice.FromBytes("Hello World"u8, ref buffer) // => allocates a new larger buffer of length 16
+		/// </code></example>
+		[Pure]
+		[EditorBrowsable(EditorBrowsableState.Advanced)]
+		public static Slice FromBytes(ReadOnlySpan<byte> source, ref byte[]? buffer)
+		{
+			if (source.Length == 0) return Empty;
+			var tmp = UnsafeHelpers.EnsureCapacity(ref buffer, BitHelpers.NextPowerOfTwo(source.Length));
+			source.CopyTo(tmp);
+			return new Slice(tmp, 0, source.Length);
+		}
+
+		/// <summary>Creates a new <see cref="SliceOwner"/> that wraps a copy the contents of a span of bytes, using a provided <see cref="ArrayPool{T}"/></summary>
+		/// <param name="source">Span of bytes to copy</param>
+		/// <param name="pool">Pool used to allocate the backing array</param>
+		/// <returns><see cref="SliceOwner"/> that points to a copy of the bytes in <paramref name="source"/>, using an array rented from the <paramref name="pool"/> as its backing store.</returns>
+		/// <remarks>The return value must be <see cref="SliceOwner.Dispose">disposed</see> for the buffer to return to the pool.</remarks>
+		/// <example><code>
+		/// Span&lt;byte> data = /* .... */;
+		/// using(var buffer = Slice.FromBytes(data, ArrayPool&lt;byte>.Shared))
+		/// {
+		///    // use buffer.Data or buffer.Memory or buffer.Span
+		/// }
+		/// </code></example>
+		[Pure]
+		public static SliceOwner FromBytes(ReadOnlySpan<byte> source, ArrayPool<byte> pool)
+		{
+			if (source.Length == 0) return SliceOwner.Empty;
+			var tmp = pool.Rent(source.Length);
+			source.CopyTo(tmp);
+			return SliceOwner.Create(new Slice(tmp, 0, source.Length), pool);
 		}
 
 		/// <summary>Implicitly converts a <see cref="Slice"/> into an <see cref="ArraySegment{T}">ArraySegment&lt;byte&gt;</see></summary>
@@ -466,7 +570,7 @@ namespace System
 		{
 			if (buffer.Length == 0) return buffer;
 			this.Span.CopyTo(buffer);
-			return buffer.Slice(this.Count);
+			return buffer[this.Count..];
 		}
 
 		/// <summary>Copy this slice into another buffer</summary>
@@ -978,7 +1082,7 @@ namespace System
 		{
 			int count = this.Count;
 			if (tail.Length == 0) return count > 0 ? this : Empty;
-			if (count == 0) return Copy(tail);
+			if (count == 0) return FromBytes(tail);
 
 			this.EnsureSliceIsValid();
 
@@ -3185,24 +3289,83 @@ namespace System
 		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice AsSlice(this ArraySegment<byte> self, int offset, int count) => AsSlice(self).Substring(offset, count);
 
-		/// <summary>Copies the content of this span into a new Slice</summary>
-		/// <param name="span">Span to copy</param>
-		/// <returns>Slice with a copy of the span content</returns>
+		/// <summary>Creates a new slice by copying the contents of this span of bytes</summary>
+		/// <param name="source">Span of bytes to copy</param>
+		/// <returns><see cref="Slice"/> that points to a copy of the bytes in <paramref name="source"/></returns>
+		/// <remarks>Returns the <see cref="Slice.Empty"/> singleton if <paramref name="source"/> is empty</remarks>
 		/// <remarks>Any future change to either span or resulting slice will not impact the other.</remarks>
+		/// <example><code>
+		/// Span&lt;byte> source = [ 0x12, 0x34 ];
+		/// // create a copy in memory
+		/// var slice = source.ToSlice();
+		/// Debug.Assert(slice[0] == source[0]);
+		/// // changing the source does not affect the copy
+		/// source[0] = 0x56;
+		/// Debug.Assert(slice[0] != source[0]);
+		/// </code></example>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice ToSlice(this ReadOnlySpan<byte> span)
+		public static Slice ToSlice(this ReadOnlySpan<byte> source)
 		{
-			return Slice.Copy(span);
+			return Slice.FromBytes(source);
 		}
 
-		/// <summary>Copies the content of this span into a new Slice</summary>
-		/// <param name="span">Span to copy</param>
-		/// <returns>Slice with a copy of the span content</returns>
+		/// <summary>Creates a new slice by copying the contents of this span of bytes</summary>
+		/// <param name="source">Span of bytes to copy</param>
+		/// <returns><see cref="Slice"/> that points to a copy of the bytes in <paramref name="source"/></returns>
+		/// <remarks>Returns the <see cref="Slice.Empty"/> singleton if <paramref name="source"/> is empty</remarks>
 		/// <remarks>Any future change to either span or resulting slice will not impact the other.</remarks>
+		/// <example><code>
+		/// Span&lt;byte> source = [ 0x12, 0x34 ];
+		/// // create a copy in memory
+		/// var slice = source.ToSlice();
+		/// Debug.Assert(slice[0] == source[0]);
+		/// // changing the source does not affect the copy
+		/// source[0] = 0x56;
+		/// Debug.Assert(slice[0] != source[0]);
+		/// </code></example>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice ToSlice(this Span<byte> span)
+		public static Slice ToSlice(this Span<byte> source)
 		{
-			return Slice.Copy(span);
+			return Slice.FromBytes(source);
+		}
+
+		/// <summary>Creates a new <see cref="SliceOwner"/> that wraps a copy the contents of this span of bytes, using a provided <see cref="ArrayPool{T}"/></summary>
+		/// <param name="source">Span of bytes to copy</param>
+		/// <param name="pool">Pool used to allocate the backing array</param>
+		/// <returns><see cref="SliceOwner"/> that points to a copy of the bytes in <paramref name="source"/>, using an array rented from the <paramref name="pool"/> as its backing store.</returns>
+		/// <remarks>The return value must be <see cref="SliceOwner.Dispose">disposed</see> for the buffer to return to the pool.</remarks>
+		/// <example><code>
+		/// // write some arbitrary data to a buffer
+		/// ReadOnlySpan&lt;byte> data = /*....*/;
+		/// // copy the formatted data to a rented buffer
+		/// using(var buffer = data.ToSlice(ArrayPool&lt;byte>.Shared))
+		/// {
+		///    // use buffer.Data or buffer.Memory or buffer.Span
+		/// }
+		/// </code></example>
+		public static SliceOwner ToSliceOwner(this ReadOnlySpan<byte> source, ArrayPool<byte> pool)
+		{
+			return Slice.FromBytes(source, pool);
+		}
+
+		/// <summary>Creates a new <see cref="SliceOwner"/> that wraps a copy the contents of this span of bytes, using a provided <see cref="ArrayPool{T}"/></summary>
+		/// <param name="source">Span of bytes to copy</param>
+		/// <param name="pool">Pool used to allocate the backing array</param>
+		/// <returns><see cref="SliceOwner"/> that points to a copy of the bytes in <paramref name="source"/>, using an array rented from the <paramref name="pool"/> as its backing store.</returns>
+		/// <remarks>The return value must be <see cref="SliceOwner.Dispose">disposed</see> for the buffer to return to the pool.</remarks>
+		/// <example><code>
+		/// // write some arbitrary data to a buffer
+		/// Span&lt;byte> data = stackalloc byte[128];
+		/// Random.Shared.NextInt64().TryFormatTo(data, out int written);
+		/// // copy the formatted data to a rented buffer
+		/// using(var buffer = data[..writen].ToSlice(ArrayPool&lt;byte>.Shared))
+		/// {
+		///    // use buffer.Data or buffer.Memory or buffer.Span
+		/// }
+		/// </code></example>
+		public static SliceOwner ToSliceOwner(this Span<byte> source, ArrayPool<byte> pool)
+		{
+			return Slice.FromBytes(source, pool);
 		}
 
 		/// <summary>Return a <see cref="SliceReader"/> that will expose the content of a buffer</summary>
@@ -3560,7 +3723,7 @@ namespace System
 		public static Slice CopyAsBytes<T>(ReadOnlySpan<T> items)
 			where T : struct
 		{
-			return Slice.Copy(MemoryMarshal.AsBytes(items));
+			return Slice.FromBytes(MemoryMarshal.AsBytes(items));
 		}
 
 		/// <summary>Returns a copy of the memory content of an array of item</summary>
@@ -3568,7 +3731,7 @@ namespace System
 		public static Slice CopyAsBytes<T>(Span<T> items)
 			where T : struct
 		{
-			return Slice.Copy(MemoryMarshal.AsBytes(items));
+			return Slice.FromBytes(MemoryMarshal.AsBytes(items));
 		}
 
 		/// <summary>Returns a copy of the memory content of an array of item</summary>
@@ -3576,7 +3739,7 @@ namespace System
 		public static Slice CopyAsBytes<T>(ReadOnlySpan<T> items, ref byte[]? buffer)
 			where T : struct
 		{
-			return Slice.Copy(MemoryMarshal.AsBytes(items), ref buffer);
+			return Slice.FromBytes(MemoryMarshal.AsBytes(items), ref buffer);
 		}
 
 		/// <summary>Returns a copy of the memory content of an array of item</summary>
@@ -3584,7 +3747,7 @@ namespace System
 		public static Slice CopyAsBytes<T>(Span<T> items, ref byte[]? buffer)
 			where T : struct
 		{
-			return Slice.Copy(MemoryMarshal.AsBytes(items), ref buffer);
+			return Slice.FromBytes(MemoryMarshal.AsBytes(items), ref buffer);
 		}
 
 		/// <summary>Returns a valid reference to the first byte in the slice</summary>
@@ -3804,7 +3967,7 @@ namespace System
 		[Pure]
 		public static unsafe Slice Copy(IntPtr source, int count)
 		{
-			return Slice.Copy(new ReadOnlySpan<byte>(source.ToPointer(), count));
+			return Slice.FromBytes(new ReadOnlySpan<byte>(source.ToPointer(), count));
 		}
 
 		/// <summary>Creates a new slice with a copy of an unmanaged memory buffer</summary>
@@ -3814,7 +3977,7 @@ namespace System
 		[Pure]
 		public static unsafe Slice Copy(void* source, int count)
 		{
-			return Slice.Copy(new ReadOnlySpan<byte>(source, count));
+			return Slice.FromBytes(new ReadOnlySpan<byte>(source, count));
 		}
 
 		/// <summary>Creates a new slice with a copy of an unmanaged memory buffer</summary>
@@ -3824,7 +3987,7 @@ namespace System
 		[Pure]
 		public static unsafe Slice Copy(byte* source, int count)
 		{
-			return Slice.Copy(new ReadOnlySpan<byte>(source, count));
+			return Slice.FromBytes(new ReadOnlySpan<byte>(source, count));
 		}
 
 		/// <summary>Copy this slice into memory and return the advanced cursor</summary>

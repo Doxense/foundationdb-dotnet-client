@@ -258,7 +258,7 @@ namespace FoundationDB.Client
 			var key = GetKeyPrefix();
 			if (!absoluteKey.StartsWith(key.Span))
 			{
-				if (boundCheck) FailKeyOutOfBound(Slice.Copy(absoluteKey));
+				if (boundCheck) FailKeyOutOfBound(Slice.FromBytes(absoluteKey));
 				return default;
 			}
 			return absoluteKey.Slice(key.Count);

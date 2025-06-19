@@ -868,7 +868,7 @@ namespace SnowBank.Buffers.Tests
 				var res = writer.ToSlice();
 				if (!res.Equals(expected))
 				{
-					DumpVersus(res, Slice.Copy(expected));
+					DumpVersus(res.Span, expected);
 					Assert.Fail($"Expected '{expected.PrettyPrint()}' but got '{res.PrettyPrint()}'");
 				}
 			}

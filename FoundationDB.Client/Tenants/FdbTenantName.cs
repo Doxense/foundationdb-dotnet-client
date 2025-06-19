@@ -65,7 +65,7 @@ namespace FoundationDB.Client
 				if (name[0] == 0xFF) throw new ArgumentException("Tenant name cannot start with byte literal 0xFF.", paramName ?? nameof(name));
 				throw new ArgumentException("Tenant nant is invalid", paramName ?? nameof(name));
 			}
-			return Slice.Copy(name);
+			return Slice.FromBytes(name);
 		}
 
 		public static Slice EnsureIsValidName(Slice name, string? paramName = null)

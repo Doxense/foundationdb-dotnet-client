@@ -198,7 +198,7 @@ namespace FoundationDB.Client.Native
 			FdbNative.DieOnError(err);
 
 			readBytes = result.Length;
-			return present ? Slice.Copy(result) : Slice.Nil;
+			return present ? Slice.FromBytes(result) : Slice.Nil;
 		}
 
 		private static TResult GetValueResultBytes<TState, TResult>(FutureHandle h, TState state, FdbValueDecoder<TState, TResult> decoder, out int readBytes)
@@ -523,7 +523,7 @@ namespace FoundationDB.Client.Native
 			FdbNative.DieOnError(err);
 
 			bytesRead = result.Length;
-			return Slice.Copy(result);
+			return Slice.FromBytes(result);
 		}
 
 		public Task<Slice> GetKeyAsync(KeySelector selector, bool snapshot, CancellationToken ct)
@@ -606,7 +606,7 @@ namespace FoundationDB.Client.Native
 					if (TryPeekValueResultBytes(h, out var actual))
 					{ // key exists
 						s.Transaction.AccountReadOperation(1, actual.Length);
-						return !s.Expected.IsNull && s.Expected.Span.SequenceEqual(actual) ? (FdbValueCheckResult.Success, s.Expected) : (FdbValueCheckResult.Failed, Slice.Copy(actual));
+						return !s.Expected.IsNull && s.Expected.Span.SequenceEqual(actual) ? (FdbValueCheckResult.Success, s.Expected) : (FdbValueCheckResult.Failed, Slice.FromBytes(actual));
 					}
 					else
 					{ // key does not exist, pass only if expected is Nil

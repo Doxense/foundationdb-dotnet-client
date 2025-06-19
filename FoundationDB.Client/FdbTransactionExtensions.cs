@@ -144,7 +144,7 @@ namespace FoundationDB.Client
 			return trans.GetAsync(key, encoder, static (state, buffer, found) =>
 			{
 				//HACKHACK: TODO: OPTIMIZE: PERF: IValueEncoder should also accept ReadOnlySpan !
-				return state.DecodeValue(found ? Slice.Copy(buffer) : Slice.Nil);
+				return state.DecodeValue(found ? Slice.FromBytes(buffer) : Slice.Nil);
 			});
 		}
 

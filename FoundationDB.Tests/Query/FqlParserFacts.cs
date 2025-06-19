@@ -899,7 +899,7 @@ namespace FoundationDB.Client.Tests
 				{
 					var tuple = q.Tuple!;
 					Assert.That(tuple.Match(STuple.Create(Slice.Empty)), Is.True);
-					Assert.That(tuple.Match(STuple.Create(Slice.Copy("hello"u8))), Is.True);
+					Assert.That(tuple.Match(STuple.Create(Slice.FromBytes("hello"u8))), Is.True);
 
 					Assert.That(tuple.Match(STuple.Create()), Is.False);
 					Assert.That(tuple.Match(STuple.Create(default(object))), Is.False);
@@ -935,7 +935,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(tuple.Match(STuple.Create(123d)), Is.False);
 					Assert.That(tuple.Match(STuple.Create("hello")), Is.False);
 					Assert.That(tuple.Match(STuple.Create(Slice.Empty)), Is.False);
-					Assert.That(tuple.Match(STuple.Create(Slice.Copy("hello"u8))), Is.False);
+					Assert.That(tuple.Match(STuple.Create(Slice.FromBytes("hello"u8))), Is.False);
 				});
 			}
 

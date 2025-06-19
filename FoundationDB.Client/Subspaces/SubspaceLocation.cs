@@ -816,7 +816,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public static DynamicKeySubspaceLocation FromKey(ReadOnlySpan<byte> key, IDynamicKeyEncoding? encoding = null)
 		{
-			return new DynamicKeySubspaceLocation(Slice.Copy(key), (encoding ?? TuPack.Encoding).GetDynamicKeyEncoder());
+			return new DynamicKeySubspaceLocation(Slice.FromBytes(key), (encoding ?? TuPack.Encoding).GetDynamicKeyEncoder());
 		}
 
 		/// <summary>Creates a location for dynamic keys, that uses a fixed binary prefix</summary>

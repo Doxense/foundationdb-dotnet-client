@@ -1649,17 +1649,17 @@ namespace FoundationDB.Client
 			// keep a copy of the key
 			// > don't keep a reference on a potentially large buffer while the watch is active, preventing it from being garbage collected
 			// > allow the caller to reuse freely the slice underlying buffer, without changing the value that we will return when the task completes
-			var mkey = Slice.Copy(key);
+			var keyCopy = Slice.FromBytes(key);
 
 #if DEBUG
-			if (Logging.On) Logging.Verbose(this, "WatchAsync", $"Watching key '{mkey.ToString()}'");
+			if (Logging.On) Logging.Verbose(this, "WatchAsync", $"Watching key '{keyCopy.ToString()}'");
 #endif
 
 			// Note: the FDBFuture returned by 'fdb_transaction_watch()' outlives the transaction, and can only be cancelled with 'fdb_future_cancel()' or 'fdb_future_destroy()'
 			// Since Task<T> does not expose any cancellation mechanism by itself (and we don't want to force the caller to create a CancellationTokenSource every time),
 			// we will return the FdbWatch that wraps the FdbFuture<Slice> directly, since it knows how to cancel itself.
 
-			return PerformWatchOperation(mkey, ct);
+			return PerformWatchOperation(keyCopy, ct);
 		}
 
 		private FdbWatch PerformWatchOperation(Slice key, CancellationToken ct)

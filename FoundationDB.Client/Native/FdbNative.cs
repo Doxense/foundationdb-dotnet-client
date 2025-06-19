@@ -2014,8 +2014,8 @@ namespace FoundationDB.Client.Native
 			}
 
 			// we also need to grab the first and last key (for pagination)
-			first = Slice.Copy(kvp[0].GetKey());
-			last = kvp.Length > 1 ? Slice.Copy(kvp[^1].GetKey()) : first;
+			first = Slice.FromBytes(kvp[0].GetKey());
+			last = kvp.Length > 1 ? Slice.FromBytes(kvp[^1].GetKey()) : first;
 			totalBytes = checked((int) sum);
 
 			return kvp.Length;
@@ -2055,8 +2055,8 @@ namespace FoundationDB.Client.Native
 			}
 
 			// we also need to grab the first and last key (for pagination)
-			first = Slice.Copy(kvp[0].GetKey());
-			last = kvp.Length > 1 ? Slice.Copy(kvp[^1].GetKey()) : first;
+			first = Slice.FromBytes(kvp[0].GetKey());
+			last = kvp.Length > 1 ? Slice.FromBytes(kvp[^1].GetKey()) : first;
 			totalBytes = checked((int) sum);
 
 			return result;

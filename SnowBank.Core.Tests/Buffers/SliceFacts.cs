@@ -2899,36 +2899,36 @@ namespace SnowBank.Buffers.Tests
 		}
 
 		[Test]
-		public void Test_Slice_Copy()
+		public void Test_Slice_FromBytes()
 		{
 			// byte[]
-			Assert.That(Slice.Copy(null), Is.EqualTo(Slice.Nil));
-			Assert.That(Slice.Copy(Array.Empty<byte>()), Is.EqualTo(Slice.Empty));
-			Assert.That(Slice.Copy("hello world"u8.ToArray()), Is.EqualTo(Slice.FromStringUtf8("hello world")));
+			Assert.That(Slice.FromBytes(null), Is.EqualTo(Slice.Nil));
+			Assert.That(Slice.FromBytes((byte[]) [ ]), Is.EqualTo(Slice.Empty));
+			Assert.That(Slice.FromBytes("hello world"u8.ToArray()), Is.EqualTo(Slice.FromStringUtf8("hello world")));
 
 			// byte[], int, int
 			Assert.That(Slice.Copy(null, 0, 0), Is.EqualTo(Slice.Nil));
-			Assert.That(Slice.Copy(Array.Empty<byte>(), 0, 0), Is.EqualTo(Slice.Empty));
+			Assert.That(Slice.Copy((byte[]) [ ], 0, 0), Is.EqualTo(Slice.Empty));
 			Assert.That(Slice.Copy("xxxhello worldxxx"u8.ToArray(), 3, 11), Is.EqualTo(Slice.FromStringUtf8("hello world")));
 
 			// ReadOnlySpan<byte>
-			Assert.That(Slice.Copy([]), Is.EqualTo(Slice.Empty));
-			Assert.That(Slice.Copy(""u8), Is.EqualTo(Slice.Empty));
-			Assert.That(Slice.Copy("xxxhello worldxxx"u8[3..^3]), Is.EqualTo(Slice.FromStringUtf8("hello world")));
+			Assert.That(Slice.FromBytes((ReadOnlySpan<byte>) []), Is.EqualTo(Slice.Empty));
+			Assert.That(Slice.FromBytes(""u8), Is.EqualTo(Slice.Empty));
+			Assert.That(Slice.FromBytes("xxxhello worldxxx"u8[3..^3]), Is.EqualTo(Slice.FromStringUtf8("hello world")));
 
 			// Span<byte>
-			Assert.That(Slice.Copy(Array.Empty<byte>().AsSpan()), Is.EqualTo(Slice.Empty));
+			Assert.That(Slice.FromBytes((Span<byte>) [ ]), Is.EqualTo(Slice.Empty));
 			{ // stackalloc'ed buffer
 				Span<byte> span = stackalloc byte[11];
 				"hello world"u8.CopyTo(span);
-				Assert.That(Slice.Copy(span), Is.EqualTo(Slice.FromStringUtf8("hello world")));
+				Assert.That(Slice.FromBytes(span), Is.EqualTo(Slice.FromStringUtf8("hello world")));
 			}
 
 			// ReadOnlySpan<byte> with external buffer
 			{
 				// buffer is initially empty
 				byte[]? buffer = null;
-				var slice = Slice.Copy("hello world"u8, ref buffer);
+				var slice = Slice.FromBytes("hello world"u8, ref buffer);
 				Assert.That(slice, Is.EqualTo(Value("hello world")));
 				Assert.That(buffer, Is.Not.Null);
 				Assert.That(slice.Array, Is.SameAs(buffer));
@@ -2936,7 +2936,7 @@ namespace SnowBank.Buffers.Tests
 
 				// reuse the buffer (with a smaller message)
 				var prev = buffer;
-				var slice2 = Slice.Copy("foobar"u8, ref buffer);
+				var slice2 = Slice.FromBytes("foobar"u8, ref buffer);
 				Assert.That(slice2, Is.EqualTo(Value("foobar")));
 				Assert.That(buffer, Is.SameAs(prev), "Should have reused the same buffer");
 				Assert.That(slice2.Array, Is.SameAs(buffer));
@@ -2948,7 +2948,7 @@ namespace SnowBank.Buffers.Tests
 				// replace the buffer if it is too small
 				Span<byte> big = stackalloc byte[256];
 				big.Fill((byte) '!');
-				var slice3 = Slice.Copy(big, ref buffer);
+				var slice3 = Slice.FromBytes(big, ref buffer);
 				Assert.That(slice3, Is.EqualTo(big.ToArray().AsSlice()));
 				Assert.That(buffer, Is.Not.SameAs(prev), "Should have use a bigger buffer");
 				Assert.That(slice3.Array, Is.SameAs(buffer));
@@ -2967,6 +2967,40 @@ namespace SnowBank.Buffers.Tests
 			// (Span<byte>).ToSlice()
 			Assert.That(""u8.ToArray().AsSpan().ToSlice(), Is.EqualTo(Slice.Empty));
 			Assert.That("hello world"u8.ToArray().AsSpan().ToSlice(), Is.EqualTo(Slice.FromStringUtf8("hello world")));
+		}
+
+		[Test]
+		public void Test_SliceOwner_FromBytes()
+		{
+			// just in case, don't pollute the Shared pool
+			var pool = ArrayPool<byte>.Create();
+
+			{ // ReadOnlySpan
+				using (var owner = Slice.FromBytes("Hello, World!"u8, pool))
+				{
+					Assert.That(owner.IsValid, Is.True);
+					Assert.That(owner.IsPooled, Is.True);
+					Assert.That(owner.Pool, Is.SameAs(pool));
+					Assert.That(owner.Count, Is.EqualTo(13));
+					Assert.That(owner.Data.ToArray(), Is.EqualTo("Hello, World!"u8.ToArray()));
+					Assert.That(owner.Span.ToArray(), Is.EqualTo("Hello, World!"u8.ToArray()));
+					Assert.That(owner.Memory.ToArray(), Is.EqualTo("Hello, World!"u8.ToArray()));
+				}
+			}
+
+			{ // byte[]
+				using (var owner = Slice.FromBytes("Hello, World!"u8.ToArray(), pool))
+				{
+					Assert.That(owner.IsValid, Is.True);
+					Assert.That(owner.IsPooled, Is.True);
+					Assert.That(owner.Pool, Is.SameAs(pool));
+					Assert.That(owner.Count, Is.EqualTo(13));
+					Assert.That(owner.Data.ToArray(), Is.EqualTo("Hello, World!"u8.ToArray()));
+					Assert.That(owner.Span.ToArray(), Is.EqualTo("Hello, World!"u8.ToArray()));
+					Assert.That(owner.Memory.ToArray(), Is.EqualTo("Hello, World!"u8.ToArray()));
+				}
+			}
+
 		}
 
 #if NET8_0_OR_GREATER

@@ -235,7 +235,7 @@ namespace FoundationDB.Client.Native
 				{
 					var err = FdbNative.FutureGetKey(h, out var result);
 					FdbNative.DieOnError(err);
-					return Slice.Copy(result);
+					return Slice.FromBytes(result);
 				},
 				ct);
 		}

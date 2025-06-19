@@ -74,7 +74,7 @@ namespace SnowBank.Data.Json.Binary.Tests
 		public void Test_Parse_JsonObject_Then_Update_Then_Serialize_To_Bytes()
 		{
 			// Read from HTTP request body, database, or file...
-			Slice originalBytes = Slice.Copy("""{ "id": 7, "email": "bond@mi6.local", "familyName": "Bond", "displayName": "BOND, James Bond", "metadata": { "stamp": "83b25d8b-ac8c-487e-8188-903fcb3adffc", "createdAt": "2022-09-18T13:23:26.5942626Z", "modifiedAt": "2022-09-18T13:23:26.5942626Z", "confirmed": false, "locked": false }, "roles": [ "spy", "double_agent", "unconfirmed" ] }"""u8);
+			Slice originalBytes = Slice.FromBytes("""{ "id": 7, "email": "bond@mi6.local", "familyName": "Bond", "displayName": "BOND, James Bond", "metadata": { "stamp": "83b25d8b-ac8c-487e-8188-903fcb3adffc", "createdAt": "2022-09-18T13:23:26.5942626Z", "modifiedAt": "2022-09-18T13:23:26.5942626Z", "confirmed": false, "locked": false }, "roles": [ "spy", "double_agent", "unconfirmed" ] }"""u8);
 			DumpHexa(originalBytes);
 
 			// Parse document
