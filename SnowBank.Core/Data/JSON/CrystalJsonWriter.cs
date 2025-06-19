@@ -4410,7 +4410,7 @@ namespace SnowBank.Data.Json
 
 		public void WriteField(string name, JsonValue? value)
 		{
-			value ??= JsonNull.Null;
+			value ??= JsonNull.Missing;
 			if (!WillBeDiscarded(value))
 			{
 				WriteName(name);
@@ -4420,7 +4420,7 @@ namespace SnowBank.Data.Json
 
 		public void WriteField(JsonEncodedPropertyName name, JsonValue? value)
 		{
-			value ??= JsonNull.Null;
+			value ??= JsonNull.Missing;
 			if (!WillBeDiscarded(value))
 			{
 				WriteName(name);
