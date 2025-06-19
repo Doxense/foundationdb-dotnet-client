@@ -2265,7 +2265,7 @@ namespace System
 			return value;
 		}
 
-		/// <summary>Converts a slice into a 64-bit UUID.</summary>
+		/// <summary>Converts this slice into a 64-bit UUID.</summary>
 		/// <returns>Uuid decoded from the Slice.</returns>
 		/// <remarks>The slice can either be an 8-byte array, or an ASCII string of 16, 17 or 19 chars</remarks>
 		[Pure]
@@ -2281,10 +2281,11 @@ namespace System
 					return Uuid64.Read(this);
 				}
 
-				case 16: // hex16
+				case 16: // hex8
 				case 17: // hex8-hex8
 				case 19: // {hex8-hex8}
 				{
+					//PERF: TODO: optimize to remove allocation!
 					return Uuid64.Parse(ToByteString()!);
 				}
 			}
@@ -2444,7 +2445,7 @@ namespace System
 			}
 		}
 
-		/// <summary>Converts a slice into a 128-bit UUID.</summary>
+		/// <summary>Converts this slice into a 128-bit UUID.</summary>
 		/// <returns>Uuid decoded from the Slice.</returns>
 		/// <remarks>The slice can either be a 16-byte RFC4122 GUID, or an ASCII string of 36 chars</remarks>
 		[Pure]
@@ -2643,9 +2644,41 @@ namespace System
 
 		#endregion
 
+		#region 48 bits...
+
+		/// <summary>Converts this slice into a 64-bit UUID.</summary>
+		/// <returns>Uuid decoded from the Slice.</returns>
+		/// <remarks>The slice can either be an 10-byte array, or an ASCII string of 20, 22 or 24 chars</remarks>
+		[Pure]
+		public Uuid48 ToUuid48()
+		{
+			if (this.Count == 0) return default;
+			EnsureSliceIsValid();
+
+			switch (this.Count)
+			{
+				case 6:
+				{ // binary (6 bytes)
+					return Uuid48.Read(this);
+				}
+
+				case 12: // XXXXXXXXXXXX
+				case 13: // XXXX-XXXXXXXX
+				case 15: // {XXXX-XXXXXXXX}
+				{
+					//PERF: TODO: optimize to remove allocation!
+					return Uuid48.Parse(ToByteString()!); 
+				}
+			}
+
+			throw new FormatException("Cannot convert slice into an Uuid80 because it has an incorrect size.");
+		}
+
+		#endregion
+
 		#region 80 bits...
 
-		/// <summary>Converts a slice into a 64-bit UUID.</summary>
+		/// <summary>Converts this slice into a 64-bit UUID.</summary>
 		/// <returns>Uuid decoded from the Slice.</returns>
 		/// <remarks>The slice can either be an 10-byte array, or an ASCII string of 20, 22 or 24 chars</remarks>
 		[Pure]
@@ -2665,7 +2698,7 @@ namespace System
 				case 22: // XXXX-XXXXXXXX-XXXXXXXX
 				case 24: // {XXXX-XXXXXXXX-XXXXXXXX}
 				{
-					// ReSharper disable once AssignNullToNotNullAttribute
+					//PERF: TODO: optimize to remove allocation!
 					return Uuid80.Parse(ToByteString()!);
 				}
 			}
@@ -2677,7 +2710,7 @@ namespace System
 
 		#region 96 bits...
 
-		/// <summary>Converts a slice into a 64-bit UUID.</summary>
+		/// <summary>Converts this slice into a 64-bit UUID.</summary>
 		/// <returns>Uuid decoded from the Slice.</returns>
 		/// <remarks>The slice can either be an 12-byte array, or an ASCII string of 24, 26 or 28 chars</remarks>
 		[Pure]
@@ -2697,7 +2730,7 @@ namespace System
 				case 26: // XXXXXXXX-XXXXXXXX-XXXXXXXX
 				case 28: // {XXXXXXXX-XXXXXXXX-XXXXXXXX}
 				{
-					// ReSharper disable once AssignNullToNotNullAttribute
+					//PERF: TODO: optimize to remove allocation!
 					return Uuid96.Parse(ToByteString()!);
 				}
 			}

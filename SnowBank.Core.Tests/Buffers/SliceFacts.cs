@@ -625,6 +625,28 @@ namespace SnowBank.Buffers.Tests
 			Assert.That(() => new byte[4].AsSlice().ToInt24(), Throws.InstanceOf<FormatException>());
 		}
 
+		[Test]
+		public void Test_Slice_ToUInt24()
+		{
+			Assert.That(new byte[] { 0x12 }.AsSlice().ToUInt24(), Is.EqualTo(0x12));
+			Assert.That(new byte[] { 0x34, 0x12 }.AsSlice().ToUInt24(), Is.EqualTo(0x1234));
+			Assert.That(new byte[] { 0x34, 0x12, 0x00 }.AsSlice().ToUInt24(), Is.EqualTo(0x1234));
+			Assert.That(new byte[] { 0x56, 0x34, 0x12 }.AsSlice().ToUInt24(), Is.EqualTo(0x123456));
+
+			Assert.That(new byte[] { }.AsSlice().ToUInt24(), Is.EqualTo(0));
+			Assert.That(new byte[] { 0 }.AsSlice().ToUInt24(), Is.EqualTo(0));
+			Assert.That(new byte[] { 127 }.AsSlice().ToUInt24(), Is.EqualTo(127));
+			Assert.That(new byte[] { 255 }.AsSlice().ToUInt24(), Is.EqualTo(255));
+			Assert.That(new byte[] { 0, 1 }.AsSlice().ToUInt24(), Is.EqualTo(256));
+			Assert.That(new byte[] { 255, 127 }.AsSlice().ToUInt24(), Is.EqualTo(32767));
+			Assert.That(new byte[] { 255, 255 }.AsSlice().ToUInt24(), Is.EqualTo(65535));
+			Assert.That(new byte[] { 0, 0, 1 }.AsSlice().ToUInt24(), Is.EqualTo(1 << 16));
+			Assert.That(new byte[] { 255, 255, 127 }.AsSlice().ToUInt24(), Is.EqualTo((1 << 23) - 1));
+			Assert.That(new byte[] { 255, 255, 255 }.AsSlice().ToUInt24(), Is.EqualTo((1 << 24) - 1));
+
+			Assert.That(() => new byte[4].AsSlice().ToUInt24(), Throws.InstanceOf<FormatException>());
+		}
+
 		#endregion
 
 		#region Big Endian
@@ -648,6 +670,27 @@ namespace SnowBank.Buffers.Tests
 			Assert.That(new byte[] { 255, 255, 255 }.AsSlice().ToInt24BE(), Is.EqualTo((1 << 24) - 1));
 
 			Assert.That(() => new byte[4].AsSlice().ToInt24BE(), Throws.InstanceOf<FormatException>());
+		}
+
+		[Test]
+		public void Test_Slice_ToUInt24BE()
+		{
+			Assert.That(new byte[] { 0x12 }.AsSlice().ToUInt24BE(), Is.EqualTo(0x12));
+			Assert.That(new byte[] { 0x12, 0x34 }.AsSlice().ToUInt24BE(), Is.EqualTo(0x1234));
+			Assert.That(new byte[] { 0x12, 0x34, 0x56 }.AsSlice().ToUInt24BE(), Is.EqualTo(0x123456));
+
+			Assert.That(new byte[] { }.AsSlice().ToUInt24BE(), Is.EqualTo(0));
+			Assert.That(new byte[] { 0 }.AsSlice().ToUInt24BE(), Is.EqualTo(0));
+			Assert.That(new byte[] { 127 }.AsSlice().ToUInt24BE(), Is.EqualTo(127));
+			Assert.That(new byte[] { 255 }.AsSlice().ToUInt24BE(), Is.EqualTo(255));
+			Assert.That(new byte[] { 1, 0 }.AsSlice().ToUInt24BE(), Is.EqualTo(256));
+			Assert.That(new byte[] { 127, 255 }.AsSlice().ToUInt24BE(), Is.EqualTo(32767));
+			Assert.That(new byte[] { 255, 255 }.AsSlice().ToUInt24BE(), Is.EqualTo(65535));
+			Assert.That(new byte[] { 1, 0, 0 }.AsSlice().ToUInt24BE(), Is.EqualTo(1 << 16));
+			Assert.That(new byte[] { 127, 255, 255 }.AsSlice().ToUInt24BE(), Is.EqualTo((1 << 23) - 1));
+			Assert.That(new byte[] { 255, 255, 255 }.AsSlice().ToUInt24BE(), Is.EqualTo((1 << 24) - 1));
+
+			Assert.That(() => new byte[4].AsSlice().ToUInt24BE(), Throws.InstanceOf<FormatException>());
 		}
 
 		#endregion
@@ -2623,6 +2666,11 @@ namespace SnowBank.Buffers.Tests
 			Assert.That(Slice.Concat(""u8, "foo"u8, "bar"u8), Is.EqualTo(Value("foobar")));
 			Assert.That(Slice.Concat("foo"u8, ""u8, "bar"u8), Is.EqualTo(Value("foobar")));
 			Assert.That(Slice.Concat("foo"u8, "bar"u8, ""u8), Is.EqualTo(Value("foobar")));
+
+			Assert.That(Slice.Concat(Slice.Nil, Slice.Nil, Slice.Nil, Slice.Nil), Is.EqualTo(Slice.Empty));
+			Assert.That(Slice.Concat(Slice.Empty, Slice.Empty, Slice.Empty, Slice.Empty), Is.EqualTo(Slice.Empty));
+			Assert.That(Slice.Concat("foo"u8, "bar"u8, "baz"u8, "jazz"u8), Is.EqualTo(Value("foobarbazjazz")));
+			Assert.That(Slice.Concat(Slice.FromBytes("foo"u8), Slice.FromBytes("bar"u8), Slice.FromBytes("baz"u8), Slice.FromBytes("jazz"u8)), Is.EqualTo(Value("foobarbazjazz")));
 
 			#endregion
 
