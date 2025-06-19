@@ -3489,6 +3489,54 @@ namespace SnowBank.Data.Json
 
 		#endregion
 
+		#region WriteField(..., decimal)
+
+		public void WriteField(string name, decimal value)
+		{
+			if (value != 0m || !m_discardDefaults)
+			{
+				WriteName(name);
+				WriteValue(value);
+			}
+		}
+
+		public void WriteField(JsonEncodedPropertyName name, decimal value)
+		{
+			if (value != 0m || !m_discardDefaults)
+			{
+				WriteName(name);
+				WriteValue(value);
+			}
+		}
+
+		public void WriteField(string name, decimal? value)
+		{
+			if (value.HasValue)
+			{
+				WriteName(name);
+				WriteValue(value.Value);
+			}
+			else
+			{
+				WriteFieldNull(name);
+			}
+		}
+
+		public void WriteField(JsonEncodedPropertyName name, decimal? value)
+		{
+			if (value.HasValue)
+			{
+				WriteName(name);
+				WriteValue(value.Value);
+			}
+			else
+			{
+				WriteFieldNull(name);
+			}
+		}
+
+		#endregion
+
 		#region WriteField(..., Half)
 
 #if NET8_0_OR_GREATER
