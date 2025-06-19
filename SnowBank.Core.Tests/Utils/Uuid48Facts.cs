@@ -40,24 +40,68 @@ namespace SnowBank.Core.Tests
 		[Test]
 		public void Test_Uuid48_Empty()
 		{
-			Assert.That(Uuid48.Empty.ToString(), Is.EqualTo("0000-00000000"));
-			Assert.That(Uuid48.Empty, Is.EqualTo(default(Uuid48)));
-			Assert.That(Uuid48.Empty, Is.EqualTo(new Uuid48(0L)));
-			Assert.That(Uuid48.Empty.ToUInt64(), Is.EqualTo(0));
-			Assert.That(Uuid48.Empty.ToInt64(), Is.EqualTo(0));
-			Assert.That(Uuid48.Empty.ToByteArray(), Is.EqualTo(new byte[6]));
-			Assert.That(Uuid48.Empty.ToSlice(), Is.EqualTo(Slice.Zero(6)));
+			Assert.Multiple(() =>
+			{
+				Assert.That(Uuid48.Empty.ToString(), Is.EqualTo("0000-00000000"));
+				Assert.That(Uuid48.Empty, Is.EqualTo(default(Uuid48)));
+				Assert.That(Uuid48.Empty, Is.EqualTo(new Uuid48(0L)));
+				Assert.That(Uuid48.Empty.ToUInt64(), Is.EqualTo(0));
+				Assert.That(Uuid48.Empty.ToInt64(), Is.EqualTo(0));
+				Assert.That(Uuid48.Empty.ToByteArray(), Is.EqualTo(new byte[6]));
+				Assert.That(Uuid48.Empty.ToSlice(), Is.EqualTo(Slice.Zero(6)));
+
+				Assert.That(Uuid48.Empty.ToUInt64(), Is.EqualTo(0));
+				Assert.That(Uuid48.Empty.ToInt64(), Is.EqualTo(0));
+				Assert.That(Uuid48.Empty.Lower16, Is.EqualTo(0));
+				Assert.That(Uuid48.Empty.Lower32, Is.EqualTo(0));
+				Assert.That(Uuid48.Empty.Upper16, Is.EqualTo(0));
+				Assert.That(Uuid48.Empty.Upper32, Is.EqualTo(0));
+			});
 		}
 
 		[Test]
 		public void Test_Uuid48_MaxValue()
 		{
-			Assert.That(Uuid48.MaxValue.ToString(), Is.EqualTo("FFFF-FFFFFFFF"));
-			Assert.That(Uuid48.MaxValue, Is.EqualTo(new Uuid48((1UL << 48) - 1)));
-			Assert.That(Uuid48.MaxValue.ToUInt64(), Is.EqualTo((1UL << 48) - 1));
-			Assert.That(Uuid48.MaxValue.ToInt64(), Is.EqualTo((1L << 48) - 1));
-			Assert.That(Uuid48.MaxValue.ToByteArray(), Is.EqualTo(new byte[] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }));
-			Assert.That(Uuid48.MaxValue.ToSlice(), Is.EqualTo(Slice.Repeat(0xFF, 6)));
+			Assert.Multiple(() =>
+			{
+				Assert.That(Uuid48.MaxValue.ToString(), Is.EqualTo("FFFF-FFFFFFFF"));
+				Assert.That(Uuid48.MaxValue, Is.EqualTo(new Uuid48((1UL << 48) - 1)));
+				Assert.That(Uuid48.MaxValue.ToUInt64(), Is.EqualTo((1UL << 48) - 1));
+				Assert.That(Uuid48.MaxValue.ToInt64(), Is.EqualTo((1L << 48) - 1));
+				Assert.That(Uuid48.MaxValue.ToByteArray(), Is.EqualTo(new byte[] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }));
+				Assert.That(Uuid48.MaxValue.ToSlice(), Is.EqualTo(Slice.Repeat(0xFF, 6)));
+
+				Assert.That(Uuid48.MaxValue.ToUInt64(), Is.EqualTo(0xFFFF_FFFFFFFF));
+				Assert.That(Uuid48.MaxValue.ToInt64(), Is.EqualTo(0xFFFF_FFFFFFFF));
+				Assert.That(Uuid48.MaxValue.Lower16, Is.EqualTo(0xFFFF));
+				Assert.That(Uuid48.MaxValue.Lower32, Is.EqualTo(0xFFFFFFFF));
+				Assert.That(Uuid48.MaxValue.Upper16, Is.EqualTo(0xFFFF));
+				Assert.That(Uuid48.MaxValue.Upper32, Is.EqualTo(0xFFFFFFFF));
+			});
+		}
+
+		[Test]
+		public void Test_Uuid48_NonZero()
+		{
+			Assert.Multiple(() =>
+			{
+				var guid = new Uuid48(0x123456789ABC);
+
+				Assert.That(guid.ToString(), Is.EqualTo("1234-56789ABC"));
+				Assert.That(guid, Is.EqualTo(new Uuid48(0x1234, 0x56789ABC)));
+				Assert.That(guid.ToUInt64(), Is.EqualTo(0x123456789ABC));
+				Assert.That(guid.ToInt64(), Is.EqualTo(0x123456789ABC));
+				Assert.That(guid.ToByteArray(), Is.EqualTo(new byte[] { 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc }));
+				Assert.That(guid.ToSlice(), Is.EqualTo(Slice.FromBytes([ 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc ])));
+
+				Assert.That(guid.ToUInt64(), Is.EqualTo(0x123456789ABC));
+				Assert.That(guid.ToInt64(), Is.EqualTo(0x123456789ABC));
+				Assert.That(guid.Lower16, Is.EqualTo(0x9ABC));
+				Assert.That(guid.Lower32, Is.EqualTo(0x56789ABC));
+				Assert.That(guid.Upper16, Is.EqualTo(0x1234));
+				Assert.That(guid.Upper32, Is.EqualTo(0x12345678));
+			});
+
 		}
 
 		[Test]

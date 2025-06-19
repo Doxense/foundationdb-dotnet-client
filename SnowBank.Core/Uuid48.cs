@@ -52,18 +52,39 @@ namespace System
 		/// <summary>Size is 6 bytes</summary>
 		public const int SizeOf = 6;
 
-		private readonly ulong m_value;
 		//note: this will be in host order (so probably Little-Endian) in order to simplify parsing and ordering
+
+		private readonly ulong Value;
+
+		/// <summary>Returns the 16 upper bits <c>xxxx-........</c></summary>
+		/// <seealso cref="Lower32"/>
+		[Pure]
+		public ushort Upper16 => unchecked((ushort) (this.Value >> 32));
+
+		/// <summary>Returns the 32 upper bits <c>xxxx-xxxx....</c></summary>
+		/// <seealso cref="Lower16"/>
+		[Pure]
+		public uint Upper32 => unchecked((uint) (this.Value >> 16));
+
+		/// <summary>Returns the 16 lower bits <c>....-....xxxx</c></summary>
+		/// <seealso cref="Upper32"/>
+		[Pure]
+		public ushort Lower16 => unchecked((ushort) this.Value);
+
+		/// <summary>Returns the 32 lower bits <c>....-xxxxxxxx</c></summary>
+		/// <seealso cref="Upper16"/>
+		[Pure]
+		public uint Lower32 => unchecked((uint) this.Value);
 
 		#region Constructors...
 
 		/// <summary>Creates a new <see cref="Uuid48"/> from a 48-bit unsigned integer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Uuid48(ulong value) => m_value = (value & MASK_48);
+		public Uuid48(ulong value) => this.Value = (value & MASK_48);
 
 		/// <summary>Creates a new <see cref="Uuid48"/> from a 48-bit signed integer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Uuid48(long value) => m_value = unchecked((ulong) value) & MASK_48;
+		public Uuid48(long value) => this.Value = unchecked((ulong) value) & MASK_48;
 
 		/// <summary>Creates a new <see cref="Uuid48"/> from two 32-bits components</summary>
 		/// <param name="a">Upper 16 bits (<c>XXXX-........</c>)</param>
@@ -71,7 +92,7 @@ namespace System
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid48(ushort a, uint b)
 		{
-			m_value = ((ulong) a << 32) | b;
+			this.Value = ((ulong) a << 32) | b;
 		}
 
 		/// <summary>Creates a new <see cref="Uuid48"/> from three 16-bits components</summary>
@@ -81,7 +102,7 @@ namespace System
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid48(ushort a, ushort b, ushort c)
 		{
-			m_value = ((ulong) a << 32) | ((ulong) b << 16) | c;
+			this.Value = ((ulong) a << 32) | ((ulong) b << 16) | c;
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
@@ -120,7 +141,7 @@ namespace System
 		/// <param name="minValue">The inclusive lower bound of the random UUID to be generated.</param>
 		/// <param name="maxValue">The exclusive upper bound of the random UUID to be generated.</param>
 		/// <returns>A random <see cref="Uuid48"/> that is greater than or equal to <paramref name="minValue"/> and less than <paramref name="maxValue"/></returns>
-		public static Uuid48 Random(Random rng, Uuid48 minValue, Uuid48 maxValue) => Random(rng, minValue.m_value, maxValue.m_value);
+		public static Uuid48 Random(Random rng, Uuid48 minValue, Uuid48 maxValue) => Random(rng, minValue.Value, maxValue.Value);
 
 		/// <summary>Generates a new random 48-bit UUID, using the specified random number generator</summary>
 		/// <param name="rng">Random number generator</param>
@@ -141,7 +162,7 @@ namespace System
 		/// <param name="rng">Random number generator</param>
 		/// <param name="maxValue">The exclusive upper bound of the random UUID to be generated.</param>
 		/// <returns>A random <see cref="Uuid48"/> that is less than <paramref name="maxValue"/></returns>
-		public static Uuid48 Random(Random rng, Uuid48 maxValue) => Random(rng, maxValue.m_value);
+		public static Uuid48 Random(Random rng, Uuid48 maxValue) => Random(rng, maxValue.Value);
 
 		/// <summary>Generates a new random 48-bit UUID, using the specified random number generator</summary>
 		/// <param name="rng">Random number generator</param>
@@ -162,7 +183,7 @@ namespace System
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Deconstruct(out uint a, out uint b)
 		{
-			ulong value = m_value;
+			ulong value = this.Value;
 			a = (uint) (value >> 32);
 			b = (uint) value;
 		}
@@ -175,7 +196,7 @@ namespace System
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Deconstruct(out ushort a, out ushort b, out ushort c, out ushort d)
 		{
-			ulong value = m_value;
+			ulong value = this.Value;
 			a = (ushort) (value >> 48);
 			b = (ushort) (value >> 32);
 			c = (ushort) (value >> 16);
@@ -431,7 +452,7 @@ namespace System
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static explicit operator ulong(Uuid48 value)
 		{
-			return value.m_value;
+			return value.Value;
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -443,7 +464,7 @@ namespace System
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static explicit operator long(Uuid48 value)
 		{
-			return (long) value.m_value;
+			return (long) value.Value;
 		}
 
 		#endregion
@@ -452,11 +473,11 @@ namespace System
 
 		/// <summary>Returns the equivalent 64-bit signed integer</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public long ToInt64() => unchecked((long) m_value);
+		public long ToInt64() => unchecked((long) this.Value);
 
 		/// <summary>Returns the equivalent 64-bit unsigned integer</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public ulong ToUInt64() => m_value;
+		public ulong ToUInt64() => this.Value;
 
 		/// <summary>Converts this instance into a <see cref="Slice"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -498,11 +519,11 @@ namespace System
 			{
 				case null or "" or "D":
 				{ // Default format is "XXXX-XXXXXXXX"
-					return EncodeTwoParts(m_value, separator: '-', quotes: false, upper: true);
+					return EncodeTwoParts(this.Value, separator: '-', quotes: false, upper: true);
 				}
 				case "d":
 				{ // Default format is "xxxx-xxxxxxxx"
-					return EncodeTwoParts(m_value, separator: '-', quotes: false, upper: false);
+					return EncodeTwoParts(this.Value, separator: '-', quotes: false, upper: false);
 				}
 
 				case "C":
@@ -519,45 +540,45 @@ namespace System
 				case "R":
 				case "r":
 				{ // Integer: "1234567890"
-					return m_value.ToString(null, formatProvider ?? CultureInfo.InvariantCulture);
+					return this.Value.ToString(null, formatProvider ?? CultureInfo.InvariantCulture);
 				}
 
 				case "X": //TODO: Guid.ToString("X") returns "{0x.....,0x.....,...}"
 				case "N":
 				{ // "XXXXXXXXXXXX"
-					return EncodeOnePart(m_value, quotes: false, upper: true);
+					return EncodeOnePart(this.Value, quotes: false, upper: true);
 				}
 				case "x": //TODO: Guid.ToString("X") returns "{0x.....,0x.....,...}"
 				case "n":
 				{ // "xxxxxxxxxxxx"
-					return EncodeOnePart(m_value, quotes: false, upper: false);
+					return EncodeOnePart(this.Value, quotes: false, upper: false);
 				}
 
 				case "B":
 				{ // "{XXXX-XXXXXXXX}"
-					return EncodeTwoParts(m_value, separator: '-', quotes: true, upper: true);
+					return EncodeTwoParts(this.Value, separator: '-', quotes: true, upper: true);
 				}
 				case "b":
 				{ // "{xxxx-xxxxxxxx}"
-					return EncodeTwoParts(m_value, separator: '-', quotes: true, upper: false);
+					return EncodeTwoParts(this.Value, separator: '-', quotes: true, upper: false);
 				}
 
 				case "V":
 				{ // "XX-XX-XX-XX-XX-XX"
-					return EncodeSixParts(m_value, separator: '-', quotes: false, upper: true);
+					return EncodeSixParts(this.Value, separator: '-', quotes: false, upper: true);
 				}
 				case "v":
 				{ // "xx-xx-xx-xx-xx-xx"
-					return EncodeSixParts(m_value, separator: '-', quotes: false, upper: false);
+					return EncodeSixParts(this.Value, separator: '-', quotes: false, upper: false);
 				}
 
 				case "M":
 				{ // "XX:XX:XX:XX:XX:XX"
-					return EncodeSixParts(m_value, separator: ':', quotes: false, upper: true);
+					return EncodeSixParts(this.Value, separator: ':', quotes: false, upper: true);
 				}
 				case "m":
 				{ // "xx:xx:xx:xx:xx:xx"
-					return EncodeSixParts(m_value, separator: ':', quotes: false, upper: false);
+					return EncodeSixParts(this.Value, separator: ':', quotes: false, upper: false);
 				}
 
 				default:
@@ -571,7 +592,7 @@ namespace System
 		/// <remarks>This literal can be parsed back into a <see cref="Uuid48"/> by calling <see cref="FromBase62(string)"/> or <see cref="TryParseBase62(string?,out System.Uuid48)"/></remarks>
 		public string ToBase62(bool padded = false)
 		{
-			return Base62Encoding.Encode64(m_value, 48, padded ? Base62FormattingOptions.Lexicographic | Base62FormattingOptions.Padded : Base62FormattingOptions.Lexicographic);
+			return Base62Encoding.Encode64(this.Value, 48, padded ? Base62FormattingOptions.Lexicographic | Base62FormattingOptions.Padded : Base62FormattingOptions.Lexicographic);
 		}
 
 		/// <summary>Tries to format the value of the current instance into the provided span of characters.</summary>
@@ -596,78 +617,78 @@ namespace System
 			{
 				case "" or "D":
 				{ // Default format is "XXXXXXXX-XXXXXXXX"
-					s = EncodeTwoParts(m_value, separator: '-', quotes: false, upper: true);
+					s = EncodeTwoParts(this.Value, separator: '-', quotes: false, upper: true);
 					break;
 				}
 				case "d":
 				{ // Default format is "xxxxxxxx-xxxxxxxx"
-					s = EncodeTwoParts(m_value, separator: '-', quotes: false, upper: false);
+					s = EncodeTwoParts(this.Value, separator: '-', quotes: false, upper: false);
 					break;
 				}
 
 				case "C":
 				case "c":
 				{ // base 62, compact, no padding
-					s = Base62.Encode(m_value, padded: false);
+					s = Base62.Encode(this.Value, padded: false);
 					break;
 				}
 				case "Z":
 				case "z":
 				{ // base 62, padded with '0' up to 9 chars
-					s = Base62.Encode(m_value, padded: true);
+					s = Base62.Encode(this.Value, padded: true);
 					break;
 				}
 
 				case "R":
 				case "r":
 				{ // Integer: "1234567890"
-					s = m_value.ToString(null, provider ?? CultureInfo.InvariantCulture);
+					s = this.Value.ToString(null, provider ?? CultureInfo.InvariantCulture);
 					break;
 				}
 
 				case "X": //TODO: Guid.ToString("X") returns "{0x.....,0x.....,...}"
 				case "N":
 				{ // "XXXXXXXXXXXXXXXX"
-					s = EncodeOnePart(m_value, quotes: false, upper: true);
+					s = EncodeOnePart(this.Value, quotes: false, upper: true);
 					break;
 				}
 				case "x": //TODO: Guid.ToString("X") returns "{0x.....,0x.....,...}"
 				case "n":
 				{ // "xxxxxxxxxxxxxxxx"
-					s = EncodeOnePart(m_value, quotes: false, upper: false);
+					s = EncodeOnePart(this.Value, quotes: false, upper: false);
 					break;
 				}
 
 				case "B":
 				{ // "{XXXXXXXX-XXXXXXXX}"
-					s = EncodeTwoParts(m_value, separator: '-', quotes: true, upper: true);
+					s = EncodeTwoParts(this.Value, separator: '-', quotes: true, upper: true);
 					break;
 				}
 				case "b":
 				{ // "{xxxxxxxx-xxxxxxxx}"
-					s = EncodeTwoParts(m_value, separator: '-', quotes: true, upper: false);
+					s = EncodeTwoParts(this.Value, separator: '-', quotes: true, upper: false);
 					break;
 				}
 
 				case "V":
 				{ // "XX-XX-XX-XX-XX-XX-XX-XX"
-					s = EncodeSixParts(m_value, separator: '-', quotes: false, upper: true);
+					s = EncodeSixParts(this.Value, separator: '-', quotes: false, upper: true);
 					break;
 				}
 				case "v":
 				{ // "xx-xx-xx-xx-xx-xx-xx-xx"
-					s = EncodeSixParts(m_value, separator: '-', quotes: false, upper: false);
+					s = EncodeSixParts(this.Value, separator: '-', quotes: false, upper: false);
 					break;
 				}
 
 				case "M":
 				{ // "XX:XX:XX:XX:XX:XX:XX:XX"
-					s = EncodeSixParts(m_value, separator: ':', quotes: false, upper: true);
+					s = EncodeSixParts(this.Value, separator: ':', quotes: false, upper: true);
 					break;
 				}
 				case "m":
 				{ // "xx:xx:xx:xx:xx:xx:xx:xx"
-					s = EncodeSixParts(m_value, separator: ':', quotes: false, upper: false);
+					s = EncodeSixParts(this.Value, separator: ':', quotes: false, upper: false);
 					break;
 				}
 				default:
@@ -697,8 +718,8 @@ namespace System
 			switch (obj)
 			{
 				case Uuid48 u48: return Equals(u48);
-				case ulong ul: return m_value == ul;
-				case long l: return m_value == (ulong) l;
+				case ulong ul: return this.Value == ul;
+				case long l: return this.Value == (ulong) l;
 				//TODO: string format ? Slice ?
 			}
 			return false;
@@ -707,19 +728,19 @@ namespace System
 		/// <inheritdoc />
 		public override int GetHashCode()
 		{
-			return ((int) m_value) ^ (int) (m_value >> 32);
+			return ((int) this.Value) ^ (int) (this.Value >> 32);
 		}
 
 		/// <inheritdoc />
 		public bool Equals(Uuid48 other)
 		{
-			return m_value == other.m_value;
+			return this.Value == other.Value;
 		}
 
 		/// <inheritdoc />
 		public int CompareTo(Uuid48 other)
 		{
-			return m_value.CompareTo(other.m_value);
+			return this.Value.CompareTo(other.Value);
 		}
 
 		#endregion
@@ -914,8 +935,8 @@ namespace System
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal void WriteToUnsafe(Span<byte> destination)
 		{
-			BinaryPrimitives.WriteUInt16BigEndian(destination, unchecked((ushort) (m_value >> 32)));
-			BinaryPrimitives.WriteUInt32BigEndian(destination[2..], unchecked((uint) m_value));
+			BinaryPrimitives.WriteUInt16BigEndian(destination, unchecked((ushort) (this.Value >> 32)));
+			BinaryPrimitives.WriteUInt32BigEndian(destination[2..], unchecked((uint) this.Value));
 		}
 
 		/// <summary>Writes the bytes of this instance to the specified <paramref name="destination"/></summary>
@@ -948,52 +969,52 @@ namespace System
 
 		public static bool operator ==(Uuid48 left, Uuid48 right)
 		{
-			return left.m_value == right.m_value;
+			return left.Value == right.Value;
 		}
 
 		public static bool operator !=(Uuid48 left, Uuid48 right)
 		{
-			return left.m_value != right.m_value;
+			return left.Value != right.Value;
 		}
 
 		public static bool operator >(Uuid48 left, Uuid48 right)
 		{
-			return left.m_value > right.m_value;
+			return left.Value > right.Value;
 		}
 
 		public static bool operator >=(Uuid48 left, Uuid48 right)
 		{
-			return left.m_value >= right.m_value;
+			return left.Value >= right.Value;
 		}
 
 		public static bool operator <(Uuid48 left, Uuid48 right)
 		{
-			return left.m_value < right.m_value;
+			return left.Value < right.Value;
 		}
 
 		public static bool operator <=(Uuid48 left, Uuid48 right)
 		{
-			return left.m_value <= right.m_value;
+			return left.Value <= right.Value;
 		}
 
 		public static bool operator ==(Uuid48 left, long right)
 		{
-			return left.m_value == (ulong)right;
+			return left.Value == (ulong)right;
 		}
 
 		public static bool operator ==(Uuid48 left, ulong right)
 		{
-			return left.m_value == right;
+			return left.Value == right;
 		}
 
 		public static bool operator !=(Uuid48 left, long right)
 		{
-			return left.m_value != (ulong)right;
+			return left.Value != (ulong)right;
 		}
 
 		public static bool operator !=(Uuid48 left, ulong right)
 		{
-			return left.m_value != right;
+			return left.Value != right;
 		}
 
 		/// <summary>Add a value from this instance</summary>
@@ -1001,13 +1022,13 @@ namespace System
 		{
 			//TODO: how to handle overflow ? negative values ?
 			ulong v = (ulong)right;
-			return new Uuid48(checked(left.m_value + v));
+			return new Uuid48(checked(left.Value + v));
 		}
 
 		/// <summary>Add a value from this instance</summary>
 		public static Uuid48 operator +(Uuid48 left, ulong right)
 		{
-			return new Uuid48(checked(left.m_value + right));
+			return new Uuid48(checked(left.Value + right));
 		}
 
 		/// <summary>Subtract a value from this instance</summary>
@@ -1015,25 +1036,25 @@ namespace System
 		{
 			//TODO: how to handle overflow ? negative values ?
 			ulong v = (ulong)right;
-			return new Uuid48(checked(left.m_value - v));
+			return new Uuid48(checked(left.Value - v));
 		}
 
 		/// <summary>Subtract a value from this instance</summary>
 		public static Uuid48 operator -(Uuid48 left, ulong right)
 		{
-			return new Uuid48(checked(left.m_value - right));
+			return new Uuid48(checked(left.Value - right));
 		}
 
 		/// <summary>Increments the value of this instance</summary>
 		public static Uuid48 operator ++(Uuid48 value)
 		{
-			return new Uuid48(checked(value.m_value + 1));
+			return new Uuid48(checked(value.Value + 1));
 		}
 
 		/// <summary>Decrements the value of this instance</summary>
 		public static Uuid48 operator --(Uuid48 value)
 		{
-			return new Uuid48(checked(value.m_value - 1));
+			return new Uuid48(checked(value.Value - 1));
 		}
 
 		#endregion
@@ -1051,19 +1072,19 @@ namespace System
 			/// <inheritdoc />
 			public bool Equals(Uuid48 x, Uuid48 y)
 			{
-				return x.m_value == y.m_value;
+				return x.Value == y.Value;
 			}
 
 			/// <inheritdoc />
 			public int GetHashCode(Uuid48 obj)
 			{
-				return obj.m_value.GetHashCode();
+				return obj.Value.GetHashCode();
 			}
 
 			/// <inheritdoc />
 			public int Compare(Uuid48 x, Uuid48 y)
 			{
-				return x.m_value.CompareTo(y.m_value);
+				return x.Value.CompareTo(y.Value);
 			}
 			
 		}
