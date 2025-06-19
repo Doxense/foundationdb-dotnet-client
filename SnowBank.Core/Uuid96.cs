@@ -166,30 +166,38 @@ namespace System
 
 		/// <summary>Creates a <see cref="Uuid96"/> from the lower 64 bits, with the upper 32 bits all set to <c>0</c></summary>
 		/// <param name="value">64 lower bits (<c>.........-xxxxxxxx-xxxxxxxx</c>)</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid96 FromUInt64(ulong value) => new(0, value);
 
 		/// <summary>Creates a <see cref="Uuid96"/> from the lower 64 bits, with the upper 32 bits all set to <c>0</c></summary>
 		/// <param name="value">64 lower bits (<c>.........-xxxxxxxx-xxxxxxxx</c>)</param>
-		public static Uuid96 FromInt64(long value) => new(0, value);
+		/// <exception cref="OverflowException">If <paramref name="value"/> is negative</exception>
+		[Pure]
+		public static Uuid96 FromInt64(long value) => value >= 0 ? new(0, value) : throw new OverflowException();
 
-		/// <summary>Creates a <see cref="Uuid96"/> from the lower 32 bits, with the upper 64 bits all set to <c>0</c></summary>
+		/// <summary>Creates a <see cref="Uuid96"/> from the lower 48 bits, with the upper 64 bits all set to <c>0</c></summary>
 		/// <param name="value">48 lower bits (<c>.........-....xxxx-xxxxxxxx</c>)</param>
-		public static Uuid96 FromUInt48(ulong value) => value <= MASK_48 ? new(0, value) : throw new ArgumentOutOfRangeException(nameof(value), "Value must be less than 2^48.");
+		[Pure]
+		public static Uuid96 FromUInt48(ulong value) => value <= MASK_48 ? new(0, value) : throw new OverflowException();
 
 		/// <summary>Creates a <see cref="Uuid96"/> from the lower 32 bits, with the upper 64 bits all set to <c>0</c></summary>
 		/// <param name="value">32 lower bits (<c>.........-........-xxxxxxxx</c>)</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid96 FromUInt32(uint value) => new(0, value);
 
 		/// <summary>Creates a <see cref="Uuid96"/> from the lower 32 bits, with the upper 64 bits all set to <c>0</c></summary>
 		/// <param name="value">32 lower bits (<c>.........-........-xxxxxxxx</c>)</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid96 FromInt32(int value) => new(0, value);
 
 		/// <summary>Creates a <see cref="Uuid96"/> from the lower 16 bits, with the upper 80 bits all set to <c>0</c></summary>
 		/// <param name="value">16 lower bits (<c>.........-........-....xxxx</c>)</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid96 FromUInt16(ushort value) => new(0, value);
 
 		/// <summary>Creates a <see cref="Uuid96"/> from the lower 16 bits, with the upper 80 bits all set to <c>0</c></summary>
 		/// <param name="value">16 lower bits (<c>.........-........-....xxxx</c>)</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid96 FromInt16(short value) => new(0, value);
 
 		/// <summary>Creates a <see cref="Uuid80"/> from a string literal encoded in Base-1024</summary>
@@ -318,6 +326,15 @@ namespace System
 		public static Uuid96 FromUpper48Lower48(ulong hi, ulong low)
 		{
 			return new(unchecked((uint) (hi >> 16)), (hi & MASK_16) << 48 | (low & MASK_48));
+		}
+
+		/// <summary>Creates a <see cref="Uuid96"/> from the upper 48-bit and lower 48-bit parts</summary>
+		/// <param name="hi">48 upper bits (<c>xxxxxxxx-xxxx....-........</c>)</param>
+		/// <param name="low">48 lower bits (<c>........-....xxxx-xxxxxxxx</c>)</param>
+		[Pure]
+		public static Uuid96 FromUpper48Lower48(Uuid48 hi, Uuid48 low)
+		{
+			return new(hi.Upper32, ((ulong) hi.Lower16 << 48) | low.ToUInt64());
 		}
 
 		/// <summary>Creates a <see cref="Uuid96"/> from the upper 64-bit and lower 32-bit parts</summary>
