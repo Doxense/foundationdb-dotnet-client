@@ -49,6 +49,9 @@ namespace System
 		/// <summary><see cref="Uuid48"/> with all bits set to one: <c>FFFF-FFFFFFFF</c></summary>
 		public static readonly Uuid48 MaxValue = new(MASK_48);
 
+		/// <summary>Maximum integer value that can be represented by a <see cref="Uuid48"/> (2^48 - 1)</summary>
+		public const ulong MaxRawValue = MASK_48;
+
 		/// <summary>Size is 6 bytes</summary>
 		public const int SizeOf = 6;
 
@@ -283,6 +286,67 @@ namespace System
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Uuid48 Parse(ReadOnlySpan<char> input, IFormatProvider? provider) => TryParse(input, out var value) ? value : throw FailInvalidFormat();
 
+		/// <summary>Returns a <see cref="Uuid48"/> from a <see cref="int"/></summary>
+		/// <param name="value">Value that must be positive</param>
+		/// <returns>Equivalent <see cref="Uuid48"/></returns>
+		/// <remarks>The upper 16-bits are set to <c>0</c></remarks>
+		/// <exception cref="OverflowException">If <paramref name="value"/> is negative</exception>
+		[Pure]
+		public static Uuid48 FromInt32(int value) => value >= 0 ? new(value) : throw new OverflowException();
+
+		/// <summary>Returns a <see cref="Uuid48"/> from a <see cref="uint"/></summary>
+		/// <param name="value">Value to convert</param>
+		/// <returns>Equivalent <see cref="Uuid48"/></returns>
+		/// <remarks>The upper 16-bits are set to <c>0</c></remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Uuid48 FromUInt32(uint value) => new(value);
+
+		/// <summary>Returns a <see cref="Uuid48"/> from a <see cref="long"/></summary>
+		/// <param name="value">Value that must be positive and not greater than <see cref="MaxRawValue"/></param>
+		/// <returns>Equivalent <see cref="Uuid48"/></returns>
+		/// <exception cref="OverflowException">If <paramref name="value"/> is negative, or greater than <see cref="MaxRawValue"/></exception>
+		[Pure]
+		public static Uuid48 FromInt64(long value) => (value >= 0 && value <= (long) MaxRawValue) ? new(value) : throw new OverflowException();
+
+		/// <summary>Returns a <see cref="Uuid48"/> from a <see cref="long"/></summary>
+		/// <param name="value">Value that must not be greater than <see cref="MaxRawValue"/></param>
+		/// <returns>Equivalent <see cref="Uuid48"/></returns>
+		/// <exception cref="OverflowException">If <paramref name="value"/> is greater than <see cref="MaxRawValue"/></exception>
+		[Pure]
+		public static Uuid48 FromUInt64(ulong value) => value <= MaxRawValue ? new(value) : throw new OverflowException();
+
+		/// <summary>Returns a <see cref="Uuid48"/> from a <see cref="int"/></summary>
+		/// <param name="value">Value to convert</param>
+		/// <returns>Equivalent <see cref="Uuid48"/></returns>
+		/// <remarks>The upper 16-bits are set to <c>0</c></remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Uuid48 FromLower32(int value) => new(((ulong) value) & MASK_48);
+
+		/// <summary>Returns a <see cref="Uuid48"/> from a <see cref="int"/></summary>
+		/// <param name="value">Value to convert</param>
+		/// <returns>Equivalent <see cref="Uuid48"/></returns>
+		/// <remarks>The upper 16-bits are set to <c>0</c></remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Uuid48 FromLower32(uint value) => new(value);
+
+		/// <summary>Returns a <see cref="Uuid48"/> from the lower 48 bits of a <see cref="long"/></summary>
+		/// <param name="value">Value to convert (upper 16 bits are ignored)</param>
+		/// <returns>Equivalent <see cref="Uuid48"/></returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Uuid48 FromLower48(long value) => new((ulong)value & MASK_48);
+
+		/// <summary>Returns a <see cref="Uuid48"/> from the lower 48 bits of a <see cref="long"/></summary>
+		/// <param name="value">Value to convert (upper 16 bits are ignored)</param>
+		/// <returns>Equivalent <see cref="Uuid48"/></returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Uuid48 FromLower48(ulong value) => new(value & MASK_48);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Uuid48 FromUpper16Lower32(ushort upper16, uint lower32) => new(((ulong) upper16 << 32) | lower32);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Uuid48 FromUpper32Lower16(uint upper32, ushort lower16) => new(((ulong) upper32 << 16) | lower16);
+
 		/// <summary>Parse a Base62 encoded string representation of an Uuid48</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid48 FromBase62(string buffer)
@@ -450,7 +514,7 @@ namespace System
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static explicit operator ulong(Uuid48 value)
+		public static implicit operator ulong(Uuid48 value)
 		{
 			return value.Value;
 		}
@@ -462,9 +526,21 @@ namespace System
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static explicit operator long(Uuid48 value)
+		public static implicit operator long(Uuid48 value)
 		{
-			return (long) value.Value;
+			return unchecked((long) value.Value);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static explicit operator Uuid48(int value)
+		{
+			return value >= 0 ? new Uuid48(value) : throw new OverflowException();
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static explicit operator Uuid48(uint value)
+		{
+			return new Uuid48(value);
 		}
 
 		#endregion
