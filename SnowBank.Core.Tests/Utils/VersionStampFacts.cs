@@ -25,12 +25,15 @@
 #endregion
 
 // ReSharper disable StringLiteralTypo
+#pragma warning disable NUnit2009
 
-namespace FoundationDB.Client.Tests
+namespace SnowBank.Core.Tests
 {
+	using SnowBank.Buffers;
+	using SnowBank.Data.Json;
 
 	[TestFixture]
-	[Category("Fdb-Client-InProc")]
+	[Category("Core-SDK")]
 	[Parallelizable(ParallelScope.All)]
 	public class VersionStampFacts : SimpleTest
 	{
