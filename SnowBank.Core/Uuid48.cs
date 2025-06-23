@@ -35,7 +35,7 @@ namespace System
 	/// <summary>Represents a 48-bit UUID that is stored in high-endian format on the wire</summary>
 	[DebuggerDisplay("[{ToString(),nq}]")]
 	[ImmutableObject(true), PublicAPI, Serializable]
-	public readonly struct Uuid48 : IEquatable<Uuid48>, IComparable<Uuid48>, ISpanFormattable
+	public readonly struct Uuid48 : IEquatable<Uuid48>, IComparable<Uuid48>, IEquatable<ulong>, IComparable<ulong>, IEquatable<long>, IComparable<long>, IEquatable<uint>, IComparable<uint>, IEquatable<int>, IComparable<int>,ISpanFormattable
 #if NET8_0_OR_GREATER
 		, ISpanParsable<Uuid48>
 #endif
@@ -570,11 +570,11 @@ namespace System
 		}
 
 		/// <summary>Returns a string representation of the value of this instance.</summary>
-		/// <returns>String using the format "xxxx-xxxxxxxx", where 'x' is a lower-case hexadecimal digit</returns>
+		/// <returns>String using the format <c>"xxxx-xxxxxxxx"</c>, where <c>x</c> is a lower-case hexadecimal digit</returns>
 		/// <remarks>Strings returned by this method will always to 17 characters long.</remarks>
 		public override string ToString()
 		{
-			return ToString("D", null);
+			return ToString("D");
 		}
 
 		/// <summary>Returns a string representation of the value of this instance of the <see cref="Uuid48"/> class, according to the provided format specifier and culture-specific format information.</summary>
@@ -789,17 +789,15 @@ namespace System
 		#region IEquatable / IComparable...
 
 		/// <inheritdoc />
-		public override bool Equals(object? obj)
+		public override bool Equals(object? obj) => obj switch
 		{
-			switch (obj)
-			{
-				case Uuid48 u48: return Equals(u48);
-				case ulong ul: return this.Value == ul;
-				case long l: return this.Value == (ulong) l;
-				//TODO: string format ? Slice ?
-			}
-			return false;
-		}
+			Uuid48 u48 => Equals(u48),
+			ulong ul => this.Value == ul,
+			long l => l >= 0 && this.Value == (ulong) l,
+			uint ui => this.Value == ui,
+			int i => i >= 0 && this.Value == (ulong) i,
+			_ => false
+		};
 
 		/// <inheritdoc />
 		public override int GetHashCode()
@@ -817,6 +815,54 @@ namespace System
 		public int CompareTo(Uuid48 other)
 		{
 			return this.Value.CompareTo(other.Value);
+		}
+
+		/// <inheritdoc />
+		public bool Equals(ulong other)
+		{
+			return this.Value == other;
+		}
+
+		/// <inheritdoc />
+		public int CompareTo(ulong other)
+		{
+			return this.Value.CompareTo(other);
+		}
+
+		/// <inheritdoc />
+		public bool Equals(long other)
+		{
+			return other >= 0 && this.Value == (ulong) other;
+		}
+
+		/// <inheritdoc />
+		public int CompareTo(long other)
+		{
+			return other >= 0 ? this.Value.CompareTo((ulong) other) : +1;
+		}
+
+		/// <inheritdoc />
+		public bool Equals(uint other)
+		{
+			return this.Value == other;
+		}
+
+		/// <inheritdoc />
+		public int CompareTo(uint other)
+		{
+			return this.Value.CompareTo(other);
+		}
+
+		/// <inheritdoc />
+		public bool Equals(int other)
+		{
+			return other >= 0 && this.Value == (ulong) other;
+		}
+
+		/// <inheritdoc />
+		public int CompareTo(int other)
+		{
+			return other >= 0 ? this.Value.CompareTo((ulong) other) : +1;
 		}
 
 		#endregion
@@ -914,7 +960,7 @@ namespace System
 		}
 
 		[Pure]
-		private static unsafe string EncodeSixParts(ulong value, char separator, bool quotes, bool upper)
+		private static string EncodeSixParts(ulong value, char separator, bool quotes, bool upper)
 		{
 			Contract.Debug.Requires(value <= Uuid48.MASK_48 && separator is (':' or '-'));
 
@@ -945,6 +991,7 @@ namespace System
 		//NOTE: this version of base62 encoding puts the digits BEFORE the letters, to ensure that the string representation of an Uuid48 is in the same order as its byte[] or ulong version.
 		// => This scheme use the "0-9A-Za-z" ordering, while most other base62 encoder use "a-zA-Z0-9"
 
+		[PublicAPI]
 		private static class Base62
 		{
 			//note: nested static class, so that we only allocate the internal buffers if Base62 encoding is actually used
@@ -1075,7 +1122,7 @@ namespace System
 
 		public static bool operator ==(Uuid48 left, long right)
 		{
-			return left.Value == (ulong)right;
+			return right >= 0 && left.Value == (ulong) right;
 		}
 
 		public static bool operator ==(Uuid48 left, ulong right)
@@ -1083,12 +1130,32 @@ namespace System
 			return left.Value == right;
 		}
 
+		public static bool operator ==(Uuid48 left, int right)
+		{
+			return right >= 0 && left.Value == (ulong) right;
+		}
+
+		public static bool operator ==(Uuid48 left, uint right)
+		{
+			return left.Value == right;
+		}
+
 		public static bool operator !=(Uuid48 left, long right)
 		{
-			return left.Value != (ulong)right;
+			return right < 0 || left.Value != (ulong) right;
 		}
 
 		public static bool operator !=(Uuid48 left, ulong right)
+		{
+			return left.Value != right;
+		}
+
+		public static bool operator !=(Uuid48 left, int right)
+		{
+			return right < 0 || left.Value != (ulong) right;
+		}
+
+		public static bool operator !=(Uuid48 left, uint right)
 		{
 			return left.Value != right;
 		}
