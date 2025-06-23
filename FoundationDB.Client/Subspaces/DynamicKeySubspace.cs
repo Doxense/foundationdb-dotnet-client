@@ -496,7 +496,7 @@ namespace FoundationDB.Client
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6>
 			(this IDynamicKeySubspace self, (T1, T2, T3, T4, T5, T6) tuple)
 		{
-			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
+			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6);
 		}
 
 		#endregion
