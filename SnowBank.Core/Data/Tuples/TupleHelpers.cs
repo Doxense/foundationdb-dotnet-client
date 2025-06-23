@@ -227,7 +227,10 @@ namespace SnowBank.Data.Tuples
 
 		public static bool Equals(IVarTuple? left, object? other, IEqualityComparer comparer)
 		{
-			return left == null ? other == null : Equals(left, other as IVarTuple, comparer);
+			return left == null ? other == null
+				: other is IVarTuple vt ? Equals(left, vt, comparer)
+				: other is ITuple tt ? Equals(left, tt, comparer)
+				: false;
 		}
 
 		public static bool Equals(IVarTuple? x, IVarTuple? y, IEqualityComparer comparer)
@@ -252,6 +255,32 @@ namespace SnowBank.Data.Tuples
 			}
 
 			return !ys.MoveNext();
+		}
+
+		public static bool Equals(IVarTuple? x, ITuple? y, IEqualityComparer comparer)
+		{
+			if (object.ReferenceEquals(x, y)) return true;
+			if (x == null || y == null) return false;
+
+			return x.Count == y.Length && DeepEquals(x, y, comparer);
+		}
+
+		public static bool DeepEquals(IVarTuple x, ITuple y, IEqualityComparer comparer)
+		{
+			Contract.Debug.Requires(x != null && y != null && comparer != null);
+
+			using var xs = x.GetEnumerator();
+
+			int i = 0;
+			int len = y.Length;
+
+			while (xs.MoveNext())
+			{
+				if (i >= len) return false;
+				if (!comparer.Equals(xs.Current, y[i++])) return false;
+			}
+
+			return i == len;
 		}
 
 		public static int StructuralGetHashCode(IVarTuple? tuple, IEqualityComparer comparer)
