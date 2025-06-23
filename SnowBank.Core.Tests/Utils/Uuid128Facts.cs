@@ -30,6 +30,7 @@
 
 namespace SnowBank.Core.Tests
 {
+	using System;
 
 	[TestFixture]
 	[Category("Core-SDK")]
@@ -141,6 +142,38 @@ namespace SnowBank.Core.Tests
 			Assert.That(guid.TryWriteTo(tmp), Is.True);
 			Assert.That(tmp, Is.EqualTo(new byte[] { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF }));
 		}
+
+		[Test]
+		public void Test_Uuid_From_Upper_And_Lower_Parts()
+		{
+			Assert.Multiple(() =>
+			{
+				var guid = new Uuid128(0x0123456789ABCDEF, 0xBADC0FFEE0DDF00DUL);
+
+				Assert.That(Uuid128.FromUpper32Lower96(0x01234567, Uuid96.FromUpper32Middle32Lower32(0x89ABCDEF, 0xBADC0FFE, 0xE0DDF00D)), Is.EqualTo(guid));
+				Assert.That(Uuid128.FromUpper48Lower80(Uuid48.FromLower48(0x0123456789AB), Uuid80.FromUpper32Lower48(0xCDEFBADC, 0x0FFEE0DDF00D)), Is.EqualTo(guid));
+				Assert.That(Uuid128.FromUpper64Lower64(0x0123456789ABCDEF, 0xBADC0FFEE0DDF00D), Is.EqualTo(guid));
+				Assert.That(Uuid128.FromUpper80Lower48(Uuid80.FromUpper32Lower48(0x01234567, 0x89ABCDEFBADC), Uuid48.FromLower48(0x0FFEE0DDF00D)), Is.EqualTo(guid));
+				Assert.That(Uuid128.FromUpper96Lower32(Uuid96.FromUpper32Lower64(0x01234567, 0x89ABCDEFBADC0FFE), 0xE0DDF00D), Is.EqualTo(guid));
+
+				Assert.That(Uuid128.FromUpper32Middle32Lower64(0x01234567, 0x89ABCDEF, 0xBADC0FFEE0DDF00D), Is.EqualTo(guid));
+				Assert.That(Uuid128.FromUpper32Middle64Lower32(0x01234567, 0x89ABCDEFBADC0FFE, 0xE0DDF00D), Is.EqualTo(guid));
+				Assert.That(Uuid128.FromUpper64Middle32Lower32(0x0123456789ABCDEF, 0xBADC0FFE, 0xE0DDF00D), Is.EqualTo(guid));
+
+				for (int i = 0; i < 100; i++)
+				{
+					var uuid = Uuid128.NewUuid();
+					
+					Assert.That(Uuid128.FromUpper32Lower96(uuid.Upper32, uuid.Lower96), Is.EqualTo(uuid));
+					Assert.That(Uuid128.FromUpper48Lower80(uuid.Upper48, uuid.Lower80), Is.EqualTo(uuid));
+					Assert.That(Uuid128.FromUpper64Lower64(uuid.Upper64, uuid.Lower64), Is.EqualTo(uuid));
+					Assert.That(Uuid128.FromUpper80Lower48(uuid.Upper80, uuid.Lower48), Is.EqualTo(uuid));
+					Assert.That(Uuid128.FromUpper96Lower32(uuid.Upper96, uuid.Lower32), Is.EqualTo(uuid));
+				}
+
+			});
+		}
+
 
 		[Test]
 		public void Test_Uuid_FromUInt32()

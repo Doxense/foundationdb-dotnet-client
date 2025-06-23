@@ -927,6 +927,111 @@ namespace System
 			}
 		}
 
+		/// <summary>Creates a <see cref="Uuid128"/> from the upper 96-bit and lower 32-bit parts</summary>
+		/// <param name="hi">96 upper bits  (<c>xxxxxxxx-xxxx-xxxx-xxxx-xxxx........</c>)</param>
+		/// <param name="low">32 lower bits (<c>........-....-....-....-....xxxxxxxx</c>)</param>
+		public static Uuid128 FromUpper96Lower32(Uuid96 hi, uint low)
+		{
+			Span<byte> buf = stackalloc byte[SizeOf];
+			hi.WriteToUnsafe(buf);
+			BinaryPrimitives.WriteUInt32BigEndian(buf[12..], low);
+			return new Uuid128(Read(buf));
+		}
+
+		/// <summary>Creates a <see cref="Uuid128"/> from the upper 80-bit and lower 48-bit parts</summary>
+		/// <param name="hi">80 upper bits  (<c>xxxxxxxx-xxxx-xxxx-xxxx-............</c>)</param>
+		/// <param name="low">48 lower bits (<c>........-....-....-....-xxxxxxxxxxxx</c>)</param>
+		public static Uuid128 FromUpper80Lower48(Uuid80 hi, Uuid48 low)
+		{
+			Span<byte> buf = stackalloc byte[SizeOf];
+			hi.WriteToUnsafe(buf);
+			low.WriteToUnsafe(buf[10..]);
+			return new Uuid128(Read(buf));
+		}
+
+		/// <summary>Creates a <see cref="Uuid128"/> from the upper 64-bit and lower 64-bit parts</summary>
+		/// <param name="hi">64 upper bits  (<c>xxxxxxxx-xxxx-xxxx-....-............</c>)</param>
+		/// <param name="low">64 lower bits (<c>........-....-....-xxxx-xxxxxxxxxxxx</c>)</param>
+		public static Uuid128 FromUpper64Lower64(ulong hi, ulong low)
+		{
+			Span<byte> buf = stackalloc byte[SizeOf];
+			BinaryPrimitives.WriteUInt64BigEndian(buf, hi);
+			BinaryPrimitives.WriteUInt64BigEndian(buf[8..], low);
+			return new Uuid128(Read(buf));
+		}
+
+		/// <summary>Creates a <see cref="Uuid128"/> from the upper 64-bit and lower 64-bit parts</summary>
+		/// <param name="hi">64 upper bits  (<c>xxxxxxxx-xxxx-xxxx-....-............</c>)</param>
+		/// <param name="low">64 lower bits (<c>........-....-....-xxxx-xxxxxxxxxxxx</c>)</param>
+		public static Uuid128 FromUpper64Lower64(Uuid64 hi, Uuid64 low)
+		{
+			Span<byte> buf = stackalloc byte[SizeOf];
+			BinaryPrimitives.WriteUInt64BigEndian(buf, hi.ToUInt64());
+			BinaryPrimitives.WriteUInt64BigEndian(buf[8..], low.ToUInt64());
+			return new Uuid128(Read(buf));
+		}
+
+		/// <summary>Creates a <see cref="Uuid128"/> from the upper 48-bit and lower 80-bit parts</summary>
+		/// <param name="hi">48 upper bits  (<c>xxxxxxxx-xxxx-....-....-............</c>)</param>
+		/// <param name="low">80 lower bits (<c>........-....-xxxx-xxxx-xxxxxxxxxxxx</c>)</param>
+		public static Uuid128 FromUpper48Lower80(Uuid48 hi, Uuid80 low)
+		{
+			Span<byte> buf = stackalloc byte[SizeOf];
+			hi.WriteToUnsafe(buf);
+			low.WriteToUnsafe(buf[6..]);
+			return new Uuid128(Read(buf));
+		}
+
+		/// <summary>Creates a <see cref="Uuid128"/> from the upper 32-bit and lower 96-bit parts</summary>
+		/// <param name="hi">32 upper bits  (<c>xxxxxxxx-....-....-....-............</c>)</param>
+		/// <param name="low">96 lower bits (<c>........-xxxx-xxxx-xxxx-xxxxxxxxxxxx</c>)</param>
+		public static Uuid128 FromUpper32Lower96(uint hi, Uuid96 low)
+		{
+			Span<byte> buf = stackalloc byte[SizeOf];
+			BinaryPrimitives.WriteUInt32BigEndian(buf, hi);
+			low.WriteToUnsafe(buf[4..]);
+			return new Uuid128(Read(buf));
+		}
+
+		/// <summary>Creates a <see cref="Uuid128"/> from the upper 32-bit, middle 32-bit and lower 64-bit parts</summary>
+		/// <param name="hi">32 upper bits (<c>xxxxxxxx-....-....-....-............</c>)</param>
+		/// <param name="middle">32 middle bits (<c>........-xxxx-xxxx-....-............</c>)</param>
+		/// <param name="low">64 lower bits (<c>........-....-....-xxxx-xxxxxxxxxxxx</c>)</param>
+		public static Uuid128 FromUpper32Middle32Lower64(uint hi, uint middle, ulong low)
+		{
+			Span<byte> buf = stackalloc byte[SizeOf];
+			BinaryPrimitives.WriteUInt32BigEndian(buf, hi);
+			BinaryPrimitives.WriteUInt32BigEndian(buf[4..], middle);
+			BinaryPrimitives.WriteUInt64BigEndian(buf[8..], low);
+			return new Uuid128(Read(buf));
+		}
+
+		/// <summary>Creates a <see cref="Uuid128"/> from the upper 32-bit, middle 64-bit and lower 32-bit parts</summary>
+		/// <param name="hi">32 upper bits (<c>xxxxxxxx-....-....-....-............</c>)</param>
+		/// <param name="middle">64 middle bits (<c>........-xxxx-xxxx-xxxx-xxxx........</c>)</param>
+		/// <param name="low">32 lower bits (<c>........-....-....-....-....xxxxxxxx</c>)</param>
+		public static Uuid128 FromUpper32Middle64Lower32(uint hi, ulong middle, uint low)
+		{
+			Span<byte> buf = stackalloc byte[SizeOf];
+			BinaryPrimitives.WriteUInt32BigEndian(buf, hi);
+			BinaryPrimitives.WriteUInt64BigEndian(buf[4..], middle);
+			BinaryPrimitives.WriteUInt32BigEndian(buf[12..], low);
+			return new Uuid128(Read(buf));
+		}
+
+		/// <summary>Creates a <see cref="Uuid128"/> from the upper 64-bit, middle 32-bit and lower 32-bit parts</summary>
+		/// <param name="hi">64 upper bits (<c>xxxxxxxx-xxxx-xxxx-....-............</c>)</param>
+		/// <param name="middle">32 middle bits (<c>........-....-....-xxxx-xxxx........</c>)</param>
+		/// <param name="low">32 lower bits (<c>........-....-....-....-....xxxxxxxx</c>)</param>
+		public static Uuid128 FromUpper64Middle32Lower32(ulong hi, uint middle, uint low)
+		{
+			Span<byte> buf = stackalloc byte[SizeOf];
+			BinaryPrimitives.WriteUInt64BigEndian(buf, hi);
+			BinaryPrimitives.WriteUInt32BigEndian(buf[8..], middle);
+			BinaryPrimitives.WriteUInt32BigEndian(buf[12..], low);
+			return new Uuid128(Read(buf));
+		}
+
 		#endregion
 
 		#region Conversion...
