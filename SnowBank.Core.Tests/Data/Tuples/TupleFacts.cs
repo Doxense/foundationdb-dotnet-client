@@ -260,7 +260,7 @@ namespace SnowBank.Data.Tuples.Tests
 			Assert.That((STuple<string, int, bool>) Tuple.Create("hello world", 123, false), Is.EqualTo(t3));
 
 			Assert.That(t3.Append(1234L), Is.InstanceOf<STuple<string, int, bool, long>>().And.EqualTo(STuple.Create("hello world", 123, false, 1234L)));
-			Assert.That(t3.Append(1234L, -1234), Is.InstanceOf<JoinedTuple>().And.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234)));
+			Assert.That(t3.Append(1234L, -1234), Is.InstanceOf<STuple<string, int, bool, long, int>>().And.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234)));
 			Assert.That(t3.Append(1234L, -1234, Math.PI), Is.InstanceOf<JoinedTuple>().And.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234, Math.PI)));
 		}
 
