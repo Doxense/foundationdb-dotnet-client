@@ -1161,16 +1161,16 @@ namespace SnowBank.Testing
 			switch (item)
 			{
 				case string s: return $"\"{s.Replace(@"\", @"\\").Replace("\r", @"\r").Replace("\n", @"\n").Replace("\0", @"\0").Replace(@"""", @"\""")}\"";
-				case int i: return StringConverters.ToString(i);
-				case long l: return StringConverters.ToString(l) + "L";
-				case uint ui: return StringConverters.ToString(ui) + "U";
-				case ulong ul: return StringConverters.ToString(ul) + "UL";
-				case double d: return StringConverters.ToString(d);
-				case float f: return StringConverters.ToString(f) + "f";
-				case DateTime dt: return "(DateTime) " + StringConverters.ToString(dt);
-				case DateTimeOffset dto: return "(DateTimeOffset) " + StringConverters.ToString(dto);
-				case Guid g: return "(Guid) " + g.ToString("B");
-				case Uuid128 uuid: return "(Uuid128) " + uuid.ToString("B");
+				case int i: return i.ToString(NumberFormatInfo.InvariantInfo);
+				case long l: return string.Create(CultureInfo.InvariantCulture, $"{l:R}L");
+				case uint ui: return string.Create(CultureInfo.InvariantCulture, $"{ui:R}U");
+				case ulong ul: return string.Create(CultureInfo.InvariantCulture, $"{ul:R}UL");
+				case double d: return string.Create(CultureInfo.InvariantCulture, $"{d:R}");
+				case float f: return string.Create(CultureInfo.InvariantCulture, $"{f:R}f");
+				case DateTime dt: return string.Create(CultureInfo.InvariantCulture, $"(DateTime) {dt:O}");
+				case DateTimeOffset dto: return string.Create(CultureInfo.InvariantCulture, $"(DateTimeOffset) {dto:O}");
+				case Guid g: return string.Create(CultureInfo.InvariantCulture, $"(Guid) {g:B}");
+				case Uuid128 uuid: return string.Create(CultureInfo.InvariantCulture, $"(Uuid128) {uuid:B}");
 				case Slice s: return "(Slice) " + s.PrettyPrint();
 				case StringBuilder sb: return $"\"{sb.ToString().Replace(@"\", @"\\").Replace("\r", @"\r").Replace("\n", @"\n").Replace("\0", @"\0").Replace(@"""", @"\""")}\"";
 

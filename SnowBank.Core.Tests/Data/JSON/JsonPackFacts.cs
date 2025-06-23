@@ -155,7 +155,7 @@ namespace SnowBank.Data.Json.Binary.Tests
 		public void Test_Encode_Scalars()
 		{
 			VerifyRoundtrip("hello");
-			VerifyRoundtrip(String.Empty);
+			VerifyRoundtrip(string.Empty);
 			VerifyRoundtrip("しのぶ一番");
 			VerifyRoundtrip(true);
 			VerifyRoundtrip(false);

@@ -88,7 +88,7 @@ namespace SnowBank.Threading
 		/// <summary>Computes a randomized delay</summary>
 		/// <param name="baseDelay">Base delay (before randomization)</param>
 		/// <param name="low">Minimum randomized factor applied to the base delay (must be greater than 0, defaults to 1)</param>
-		/// <param name="high">Maximum randomzed factor applied to the base delay (must be greater or eqaul to <paramref name="low"/>, defaults to 1.5)</param>
+		/// <param name="high">Maximum randomized factor applied to the base delay (must be greater or equal to <paramref name="low"/>, defaults to 1.5)</param>
 		/// <param name="rng">Pseudo-random number generator used to compute the delay</param>
 		/// <returns>Randomized delay 'd' that is equal to the base delay, multiplied by a random factor between <paramref name="low"/> and <paramref name="high"/></returns>
 		/// <example><code>await Task.Delay(ExponentialRandomizedBackoff.GetNext(TimeSpan.FromSecondes(30), 0.75, 1.25), ct);</code></example>
@@ -188,13 +188,13 @@ namespace SnowBank.Threading
 		/// <param name="now">Current time</param>
 		/// <param name="baseDelay">Base delay (before randomization)</param>
 		/// <param name="low">Minimum randomized factor applied to the base delay (must be greater than 0, defaults to 1)</param>
-		/// <param name="high">Maximum randomzed factor applied to the base delay (must be greater or eqaul to <paramref name="low"/>, defaults to 1.5)</param>
+		/// <param name="high">Maximum randomized factor applied to the base delay (must be greater or equal to <paramref name="low"/>, defaults to 1.5)</param>
 		/// <param name="rng">Pseudo-random number generator used to compute the delay</param>
 		/// <returns>Instant in the future that is after <paramref name="now"/> by a randomized delay 'd' that is equal to the <paramref name="baseDelay">base delay</paramref>, multiplied by a random factor between <paramref name="low"/> and <paramref name="high"/></returns>
 		public static Instant AdvanceBy(Instant now, TimeSpan baseDelay, double low = 1.0d, double high = 1.5d, Random? rng = null)
 			=> now.Plus(Duration.FromTimeSpan(GetNext(baseDelay, low, high, rng)));
 
-		/// <summary>Reset the delay to the initial value, following a successfull operation.</summary>
+		/// <summary>Reset the delay to the initial value, following a successful operation.</summary>
 		/// <remarks>
 		/// <para>This method should either be called at the start of a new request, or after a successful request, to reset the current state.</para>
 		/// <para>This should not be called between unsuccessful attempts, otherwise the delay will never grow by the specified <see cref="BackoffFactor"/>.</para>

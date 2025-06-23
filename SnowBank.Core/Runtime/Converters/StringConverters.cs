@@ -531,7 +531,7 @@ namespace SnowBank.Runtime.Converters
 
 		#region DateTime...
 
-		/// <summary>Writes the text representation of a <see cref="DateTimeOffset"/> using the ISO 8601 format</summary>
+		/// <summary>Writes the text representation of a <see cref="DateTime"/> using the ISO 8601 format</summary>
 		/// <param name="value">Value to convert</param>
 		/// <returns>Corresponding string literal</returns>
 		[Pure]
@@ -541,7 +541,7 @@ namespace SnowBank.Runtime.Converters
 			return value.ToString(null, NumberFormatInfo.InvariantInfo);
 		}
 
-		/// <summary>Writes the text representation of a <see cref="DateTimeOffset"/> using the ISO 8601 format</summary>
+		/// <summary>Writes the text representation of a <see cref="DateTime"/> using the ISO 8601 format</summary>
 		/// <param name="output">Destination</param>
 		/// <param name="value">Value to write</param>
 		public static void WriteTo(TextWriter output, DateTime value)
