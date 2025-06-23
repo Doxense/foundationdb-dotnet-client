@@ -111,7 +111,7 @@ namespace System
 
 		/// <summary>Returns the 48 upper bits <c>xxxxxxxx-xxxx-....-....-............</c></summary>
 		/// <seealso cref="Lower80"/>
-		public ulong Upper48 => ((ulong) m_timeLow << 16) | m_timeMid;
+		public Uuid48 Upper48 => new Uuid48(((ulong) m_timeLow << 16) | m_timeMid);
 
 		/// <summary>Returns the 64 upper bits <c>xxxxxxxx-xxxx-xxxx-....-............</c></summary>
 		/// <seealso cref="Lower64"/>
@@ -136,7 +136,7 @@ namespace System
 
 		/// <summary>Returns the 48 lower bits <c>........-....-....-....-xxxxxxxxxxxx</c></summary>
 		/// <seealso cref="Upper80"/>
-		public ulong Lower48 => ((ulong) m_node0 << 40) | ((ulong) m_node1 << 32) | ((ulong) m_node2 << 24) | ((ulong) m_node3 << 16) | ((ulong) m_node4 << 8) | m_node5;
+		public Uuid48 Lower48 => new Uuid48(((ulong) m_node0 << 40) | ((ulong) m_node1 << 32) | ((ulong) m_node2 << 24) | ((ulong) m_node3 << 16) | ((ulong) m_node4 << 8) | m_node5);
 
 		/// <summary>Returns the 64 lower bits <c>........-....-....-xxxx-xxxxxxxxxxxx</c></summary>
 		/// <seealso cref="Upper64"/>

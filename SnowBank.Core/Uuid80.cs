@@ -72,7 +72,7 @@ namespace System
 
 		/// <summary>Returns the 48 upper bits <c>xxxx-xxxxxxxx-........</c></summary>
 		/// <seealso cref="Lower32"/>
-		public ulong Upper48 => ((ulong) this.High << 32) | (this.Low >> 32);
+		public Uuid48 Upper48 => new Uuid48(((ulong) this.High << 32) | (this.Low >> 32));
 
 		/// <summary>Returns the 64 upper bits <c>xxxx-xxxxxxxx-xxxx....</c></summary>
 		/// <seealso cref="Lower16"/>
@@ -88,7 +88,7 @@ namespace System
 
 		/// <summary>Returns the 48 lower bits <c>....-....xxxx-xxxxxxxx</c></summary>
 		/// <seealso cref="Upper32"/>
-		public ulong Lower48 => unchecked(this.Low & MASK_48);
+		public Uuid48 Lower48 => new Uuid48(unchecked(this.Low & MASK_48));
 
 		/// <summary>Returns the 64 lower bits <c>....-xxxxxxxx-xxxxxxxx</c></summary>
 		/// <seealso cref="Upper16"/>

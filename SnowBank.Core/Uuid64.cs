@@ -67,7 +67,7 @@ namespace System
 		/// <summary>Returns the 48 upper bits <c>xxxxxxxx-xxxx....</c></summary>
 		/// <seealso cref="Lower16"/>
 		[Pure]
-		public ulong Upper48 => this.Value >> 16;
+		public Uuid48 Upper48 => new Uuid48(this.Value >> 16);
 
 		/// <summary>Returns the 16 lower bits <c>........-....xxxx</c></summary>
 		/// <seealso cref="Upper48"/>
@@ -82,7 +82,7 @@ namespace System
 		/// <summary>Returns the 48 lower bits <c>....xxxx-xxxxxxxx</c></summary>
 		/// <seealso cref="Upper16"/>
 		[Pure]
-		public ulong Lower48 => Value & ((1UL << 48) - 1);
+		public Uuid48 Lower48 => new Uuid48(this.Value & ((1UL << 48) - 1));
 
 		#region Constructors...
 
