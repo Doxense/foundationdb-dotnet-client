@@ -97,7 +97,7 @@ namespace SnowBank.Data.Json
 		/// <inheritdoc />
 		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_value.Json;
 
-		public JsonValue ToJson() => m_value.Json;
+		public JsonValue ToJsonValue() => m_value.Json;
 
 		/// <inheritdoc />
 		public IEnumerator<TValue> GetEnumerator()
@@ -623,7 +623,7 @@ namespace SnowBank.Data.Json
 		/// <inheritdoc />
 		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_value.Json;
 
-		public JsonValue ToJson() => m_value.Json;
+		public JsonValue ToJsonValue() => m_value.Json;
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static InvalidOperationException OperationRequiresArrayOrNull() => new("This operation requires a valid JSON Array");

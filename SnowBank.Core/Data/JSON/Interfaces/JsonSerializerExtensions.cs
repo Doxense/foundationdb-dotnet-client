@@ -28,6 +28,7 @@ namespace SnowBank.Data.Json
 {
 	using System.Buffers;
 	using System.Collections.Immutable;
+	using System.ComponentModel;
 	using System.Runtime.InteropServices;
 	using SnowBank.Buffers;
 
@@ -40,7 +41,7 @@ namespace SnowBank.Data.Json
 
 		/// <summary>Serializes a value (of any type) into a string literal, using a customer serializer</summary>
 		/// <param name="serializer">Custom serializer</param>
-		/// <param name="value">Instance to serialize (can be null)</param>
+		/// <param name="value">Instance to serialize (can be <b>null</b>)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns><c>`123`</c>, <c>`true`</c>, <c>`"ABC"`</c>, <c>`{ "foo":..., "bar": ... }`</c>, <c>`[ ... ]`</c>, ...</returns>
@@ -52,7 +53,7 @@ namespace SnowBank.Data.Json
 
 		/// <summary>Serializes a value of type <typeparamref name="T"/> into a <see cref="Slice"/>, using a customer serializer</summary>
 		/// <param name="serializer">Custom serializer</param>
-		/// <param name="value">Instance to serialize (can be null)</param>
+		/// <param name="value">Instance to serialize (can be <b>null</b>)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns><c>`123`</c>, <c>`true`</c>, <c>`"ABC"`</c>, <c>`{ "foo":..., "bar": ... }`</c>, <c>`[ ... ]`</c>, ...</returns>
@@ -64,7 +65,7 @@ namespace SnowBank.Data.Json
 
 		/// <summary>Serializes a value of type <typeparamref name="T"/> into a <see cref="SliceOwner"/>, using a customer serializer, and the specified <see cref="ArrayPool{T}">pool</see></summary>
 		/// <param name="serializer">Custom serializer</param>
-		/// <param name="value">Instance to serialize (can be null)</param>
+		/// <param name="value">Instance to serialize (can be <b>null</b>)</param>
 		/// <param name="pool">Pool used to allocate the content of the slice.</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
@@ -1649,6 +1650,40 @@ namespace SnowBank.Data.Json
 
 		/// <summary>Deserializes a JSON value into an instance of <typeparamref name="T"/>, that is known to implement <see cref="IJsonDeserializable{T}"/></summary>
 		/// <typeparam name="T">Type that implements <see cref="IJsonDeserializable{T}"/></typeparam>
+		/// <param name="jsonBytes">UTF-8 encoded JSON document to parse</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Custom resolver used to bind the value into a managed type.</param>
+		/// <returns>Deserialized instance</returns>
+		/// <exception cref="JsonBindingException"> if <paramref name="jsonBytes"/> could not be bound to the type <typeparamref name="T"/>.</exception>
+		public static T DeserializeJsonDeserializable<T>(ReadOnlySpan<byte> jsonBytes, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			where T : IJsonDeserializable<T>
+		{
+			var value = CrystalJson.Parse(jsonBytes, settings).Required();
+			return T.JsonDeserialize(value, resolver);
+		}
+
+		/// <summary>Deserializes a JSON value into an instance of <typeparamref name="T"/>, that is known to implement <see cref="IJsonDeserializable{T}"/></summary>
+		/// <typeparam name="T">Type that implements <see cref="IJsonDeserializable{T}"/></typeparam>
+		/// <param name="jsonBytes">UTF-8 encoded JSON document to parse</param>
+		/// <param name="missingValue">Fallback value returned when <paramref name="jsonBytes"/> is empty or <c>"null"</c>.</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <param name="resolver">Custom resolver used to bind the value into a managed type.</param>
+		/// <returns>Deserialized instance, or <paramref name="missingValue"/> if <paramref name="jsonBytes"/> is empty or <c>"null"</c></returns>
+		/// <exception cref="JsonBindingException"> if <paramref name="jsonBytes"/> could not be bound to the type <typeparamref name="T"/>.</exception>
+		[return: NotNullIfNotNull(nameof(missingValue))]
+		public static T? DeserializeJsonDeserializable<T>(ReadOnlySpan<byte> jsonBytes, T? missingValue, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			where T : IJsonDeserializable<T>
+		{
+			var value = CrystalJson.Parse(jsonBytes, settings);
+			if (value is JsonNull)
+			{
+				return missingValue;
+			}
+			return T.JsonDeserialize(value, resolver);
+		}
+
+		/// <summary>Deserializes a JSON value into an instance of <typeparamref name="T"/>, that is known to implement <see cref="IJsonDeserializable{T}"/></summary>
+		/// <typeparam name="T">Type that implements <see cref="IJsonDeserializable{T}"/></typeparam>
 		/// <param name="value">JSON value to deserialize</param>
 		/// <param name="resolver">Custom resolver used to bind the value into a managed type.</param>
 		/// <returns>Deserialized instance, or <c>null</c> if <paramref name="value"/> is null or missing</returns>
@@ -1783,6 +1818,565 @@ namespace SnowBank.Data.Json
 		}
 
 		#endregion
+
+		extension<TJsonPackable>(ReadOnlySpan<TJsonPackable?> self)
+			where TJsonPackable : IJsonPackable
+		{
+
+			/// <summary>Packs a <see cref="IJsonPackable"/> value into the corresponding mutable <see cref="JsonValue"/></summary>
+			/// <param name="settings">Custom serialization settings</param>
+			/// <param name="resolver">Optional type resolver used to bind the value into a managed CLR type (<see cref="CrystalJson.DefaultResolver"/> is omitted)</param>
+			/// <remarks>Note: if the JSON has to be sent over HTTP, or stored on disk, prefer <see cref="JsonValueExtensions.ToJsonSlice(JsonValue?,CrystalJsonSettings?)"/> or <see cref="JsonValueExtensions.ToJsonBytes(JsonValue)"/> that will return the same result but already utf-8 encoded</remarks>
+			public JsonArray ToJsonArray(CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			{
+				return JsonPackArray<TJsonPackable>(self, settings, resolver);
+			}
+
+			/// <summary>Packs a <see cref="IJsonPackable"/> value into the corresponding read-only <see cref="JsonValue"/></summary>
+			/// <param name="settings">Custom serialization settings</param>
+			/// <param name="resolver">Optional type resolver used to bind the value into a managed CLR type (<see cref="CrystalJson.DefaultResolver"/> is omitted)</param>
+			/// <remarks>Note: if the JSON has to be sent over HTTP, or stored on disk, prefer <see cref="JsonValueExtensions.ToJsonSlice(JsonValue?,CrystalJsonSettings?)"/> or <see cref="JsonValueExtensions.ToJsonBytes(JsonValue)"/> that will return the same result but already utf-8 encoded</remarks>
+			public JsonArray ToJsonArrayReadOnly(CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			{
+				return JsonPackArray<TJsonPackable>(self, settings.AsReadOnly(), resolver);
+			}
+
+		}
+
+		extension<TJsonPackable>(TJsonPackable? self)
+			where TJsonPackable : IJsonPackable
+		{
+
+			/// <summary>Packs a <see cref="IJsonPackable"/> value into the corresponding mutable <see cref="JsonValue"/></summary>
+			/// <param name="settings">Custom serialization settings</param>
+			/// <param name="resolver">Optional type resolver used to bind the value into a managed CLR type (<see cref="CrystalJson.DefaultResolver"/> is omitted)</param>
+			/// <remarks>Note: if the JSON has to be sent over HTTP, or stored on disk, prefer <see cref="JsonValueExtensions.ToJsonSlice(JsonValue?,CrystalJsonSettings?)"/> or <see cref="JsonValueExtensions.ToJsonBytes(JsonValue)"/> that will return the same result but already utf-8 encoded</remarks>
+			public JsonValue ToJsonValue(CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			{
+				return self?.JsonPack(settings ?? CrystalJsonSettings.Json, resolver ?? CrystalJson.DefaultResolver) ?? JsonNull.Null;
+			}
+
+			/// <summary>Packs a <see cref="IJsonPackable"/> value into the corresponding read-only <see cref="JsonValue"/></summary>
+			/// <param name="settings">Custom serialization settings</param>
+			/// <param name="resolver">Optional type resolver used to bind the value into a managed CLR type (<see cref="CrystalJson.DefaultResolver"/> is omitted)</param>
+			/// <remarks>Note: if the JSON has to be sent over HTTP, or stored on disk, prefer <see cref="JsonValueExtensions.ToJsonSlice(JsonValue?,CrystalJsonSettings?)"/> or <see cref="JsonValueExtensions.ToJsonBytes(JsonValue)"/> that will return the same result but already utf-8 encoded</remarks>
+			public JsonValue ToJsonValueReadOnly(CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			{
+				return self?.JsonPack(settings.AsReadOnly(), resolver ?? CrystalJson.DefaultResolver) ?? JsonNull.Null;
+			}
+
+			[Pure]
+			public static JsonValue JsonPack(TJsonPackable? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			{
+				return value is not null ? value.JsonPack(settings ?? CrystalJsonSettings.Json, resolver ?? CrystalJson.DefaultResolver) : JsonNull.Null;
+			}
+
+			[Pure]
+			public static JsonValue JsonPack(TJsonPackable? value, JsonValue? missingValue, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			{
+				return value?.JsonPack(settings ?? CrystalJsonSettings.Json, resolver ?? CrystalJson.DefaultResolver) ?? missingValue ?? JsonNull.Null;
+			}
+
+			[Pure]
+			public static JsonValue JsonPackReadOnly(TJsonPackable? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			{
+				return value is not null ? value.JsonPack(settings.AsReadOnly(), resolver ?? CrystalJson.DefaultResolver) : JsonNull.Null;
+			}
+
+			[Pure]
+			public static JsonValue JsonPackReadOnly(TJsonPackable? value, JsonValue? missingValue, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			{
+				return value?.JsonPack(settings.AsReadOnly(), resolver ?? CrystalJson.DefaultResolver) ?? missingValue?.ToReadOnly() ?? JsonNull.Null;
+			}
+
+			[Pure]
+			public static JsonArray? JsonPackArray(IEnumerable<TJsonPackable?>? values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			{
+				if (values is null) return null;
+				if (values.TryGetSpan(out var span))
+				{
+					return JsonPackArray<TJsonPackable>(span, settings, resolver);
+				}
+
+				return JsonPackArrayEnumerable(values, settings, resolver);
+
+				static JsonArray JsonPackArrayEnumerable(IEnumerable<TJsonPackable?> values, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+				{
+					settings ??= CrystalJsonSettings.Json;
+
+					JsonArray array;
+
+					if (values.TryGetNonEnumeratedCount(out var count))
+					{
+						if (count == 0) return settings.IsReadOnly() ? JsonArray.ReadOnly.Empty : [ ];
+						array = new(count);
+					}
+					else
+					{
+						array = [ ];
+					}
+
+					resolver ??= CrystalJson.DefaultResolver;
+					foreach (var value in values)
+					{
+						array.Add(value?.JsonPack(settings, resolver) ?? JsonNull.Null);
+					}
+
+					if (settings.IsReadOnly())
+					{
+						array.FreezeUnsafe();
+					}
+
+					return array;
+				}
+			}
+
+			[Pure]
+			public static JsonArray JsonPackArray(ReadOnlySpan<TJsonPackable?> values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			{
+				settings ??= CrystalJsonSettings.Json;
+				if (values.Length == 0) return settings.IsReadOnly() ? JsonArray.ReadOnly.Empty : [ ];
+
+				var tmp = new JsonValue[values.Length];
+				resolver ??= CrystalJson.DefaultResolver;
+				for (int i = 0; i < values.Length; i ++)
+				{
+					tmp[i] = values[i]?.JsonPack(settings, resolver) ?? JsonNull.Null;
+				}
+
+				return new(tmp, tmp.Length, settings.IsReadOnly());
+			}
+
+			[Pure]
+			public static JsonArray? JsonPackArrayReadOnly(IEnumerable<TJsonPackable?>? values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+				=> JsonPackArray<TJsonPackable>(values, settings.AsReadOnly(), resolver);
+
+			[Pure]
+			public static JsonArray? JsonPackArrayReadOnly(ReadOnlySpan<TJsonPackable?> values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+				=> JsonPackArray<TJsonPackable>(values, settings.AsReadOnly(), resolver);
+
+		}
+
+		extension<TJsonDeserializable>(TJsonDeserializable)
+			where TJsonDeserializable: IJsonDeserializable<TJsonDeserializable>
+		{
+
+			#region static JsonDeserialize...
+
+			[Pure]
+			public static TJsonDeserializable JsonDeserialize(Slice jsonBytes, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+				=> JsonDeserialize<TJsonDeserializable>(jsonBytes.Span, settings, resolver);
+
+			[Pure]
+			public static TJsonDeserializable JsonDeserialize(ReadOnlySpan<byte> jsonBytes, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			{
+				var value = CrystalJson.Parse(jsonBytes, settings).Required();
+				return TJsonDeserializable.JsonDeserialize(value, resolver);
+			}
+
+			[Pure]
+			[return: NotNullIfNotNull(nameof(missingValue))]
+			public static TJsonDeserializable JsonDeserialize(Slice jsonBytes, TJsonDeserializable? missingValue, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+				=> JsonDeserialize<TJsonDeserializable>(jsonBytes.Span, settings, resolver);
+
+			[Pure]
+			[return: NotNullIfNotNull(nameof(missingValue))]
+			public static TJsonDeserializable? JsonDeserialize(ReadOnlySpan<byte> jsonBytes, TJsonDeserializable? missingValue, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			{
+				var value = CrystalJson.Parse(jsonBytes, settings);
+				return value is not JsonNull ? TJsonDeserializable.JsonDeserialize(value, resolver) : missingValue;
+			}
+
+			[Pure]
+			public static TJsonDeserializable?[]? JsonDeserializeArray(Slice jsonBytes, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+				=> JsonDeserializeArray<TJsonDeserializable>(jsonBytes.Span, settings, resolver);
+
+			[Pure]
+			public static TJsonDeserializable?[]? JsonDeserializeArray(ReadOnlySpan<byte> jsonBytes, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			{
+				var values = CrystalJson.Parse(jsonBytes, settings).AsArrayOrDefault();
+				if (values is null) return null;
+
+				return JsonUnpackArray<TJsonDeserializable>(values, resolver);
+			}
+
+			[Pure]
+			public static TJsonDeserializable? JsonUnpack(JsonValue value, ICrystalJsonTypeResolver? resolver = null)
+			{
+				if (value is JsonNull) return default;
+				return TJsonDeserializable.JsonDeserialize(value, resolver ?? CrystalJson.DefaultResolver);
+			}
+
+			[Pure]
+			public static TJsonDeserializable?[] JsonUnpackArray(JsonArray values, ICrystalJsonTypeResolver? resolver = null)
+			{
+				Contract.NotNull(values);
+
+				if (values.Count == 0) return [ ];
+
+				var tmp = new TJsonDeserializable?[values.Count];
+				resolver ??= CrystalJson.DefaultResolver;
+				for (int i = 0; i < tmp.Length; i++)
+				{
+					var value = values[i];
+					tmp[i] = value is not JsonNull ? TJsonDeserializable.JsonDeserialize(value, resolver) : default;
+				}
+				return tmp;
+			}
+
+			#endregion
+
+		}
+
+		extension<TJsonSerializable>(TJsonSerializable? self)
+			where TJsonSerializable : IJsonSerializable
+		{
+
+			/// <summary>Serializes a <see cref="IJsonSerializable"/> value into a text literal</summary>
+			/// <remarks>Note: if the JSON has to be sent over HTTP, or stored on disk, prefer <see cref="JsonValueExtensions.ToJsonSlice(JsonValue?,CrystalJsonSettings?)"/> or <see cref="JsonValueExtensions.ToJsonBytes(JsonValue)"/> that will return the same result but already utf-8 encoded</remarks>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			[EditorBrowsable(EditorBrowsableState.Never)]
+			[Obsolete("Use ToJsonText() instead!")] //TODO: phase out this overload ASAP!
+			public string ToJson(CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+				=> ToJsonText<TJsonSerializable>(self, settings, resolver);
+
+			/// <summary>Serializes a <see cref="IJsonSerializable"/> value into a text literal</summary>
+			/// <remarks>Note: if the JSON has to be sent over HTTP, or stored on disk, prefer <see cref="JsonValueExtensions.ToJsonSlice(JsonValue?,CrystalJsonSettings?)"/> or <see cref="JsonValueExtensions.ToJsonBytes(JsonValue)"/> that will return the same result but already utf-8 encoded</remarks>
+			[Pure]
+			public string ToJsonText(CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			{
+				if (self is null)
+				{ // special case for null instances
+					return JsonTokens.Null;
+				}
+
+				var writer = CrystalJson.WriterPool.Allocate();
+				try
+				{
+					writer.Initialize(0, settings, resolver);
+
+					self.JsonSerialize(writer);
+
+					return writer.GetString();
+				}
+				finally
+				{
+					writer.Dispose();
+					CrystalJson.WriterPool.Free(writer);
+				}
+			}
+
+			/// <summary>Serializes a <see cref="IJsonSerializable"/> into the most compact text literal possible</summary>
+			/// <remarks>Note: if the JSON has to be sent over HTTP, or stored on disk, prefer <see cref="JsonValueExtensions.ToJsonSlice(JsonValue?,CrystalJsonSettings?)"/> or <see cref="JsonValueExtensions.ToJsonBytes(JsonValue)"/> that will return the same result but already utf-8 encoded</remarks>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public string ToJsonTextCompact() => ToJsonText<TJsonSerializable>(self, CrystalJsonSettings.JsonCompact, null);
+
+			/// <summary>Serializes a <see cref="JsonValue"/> into a human-friendly indented text representation (for logging, console output, etc...)</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public string ToJsonTextIndented() => ToJsonText<TJsonSerializable>(self, CrystalJsonSettings.JsonIndented);
+
+			/// <summary>Serializes a <see cref="IJsonSerializable"/> value into a <see cref="Slice"/>, using custom settings</summary>
+			/// <param name="settings">Custom serialization settings</param>
+			/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+			/// <returns><see cref="Slice"/> that contains the utf-8 encoded text representation of the JSON value</returns>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public Slice ToJsonSlice(CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+				=> JsonSerialize(self, settings, resolver);
+
+			/// <summary>Serializes a <see cref="IJsonSerializable"/> value into a <see cref="Slice"/>, using custom settings</summary>
+			/// <param name="pool">Pool used to allocate the content of the slice (use <see cref="ArrayPool{T}.Shared"/> if <see langword="null"/>)</param>
+			/// <param name="settings">Custom serialization settings</param>
+			/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+			/// <returns><see cref="Slice"/> that contains the utf-8 encoded text representation of the JSON value</returns>
+			[Pure, MustDisposeResource, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public SliceOwner ToJsonSlice(ArrayPool<byte>? pool, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+				=> JsonSerialize(self, pool, settings, resolver);
+
+			/// <summary>Serializes this instance as JSON</summary>
+			/// <param name="writer">Writer that will output the content of this instance</param>
+			/// <param name="value">Instance to serialize (can be <b>null</b>)</param>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static void JsonSerialize(CrystalJsonWriter writer, in TJsonSerializable? value)
+			{
+				if (value is not null)
+				{
+					value.JsonSerialize(writer);
+				}
+				else
+				{
+					writer.WriteNull();
+				}
+			}
+
+			/// <summary>Serializes a value of type <typeparamref name="TJsonSerializable"/> into a <see cref="Slice"/></summary>
+			/// <param name="value">Instance to serialize (can be <b>null</b>)</param>
+			/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+			/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+			/// <returns><c>`123`</c>, <c>`true`</c>, <c>`"ABC"`</c>, <c>`{ "foo":..., "bar": ... }`</c>, <c>`[ ... ]`</c>, ...</returns>
+			/// <exception cref="JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
+			[Pure]
+			public static Slice JsonSerialize(in TJsonSerializable? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			{
+				var writer = CrystalJson.WriterPool.Allocate();
+				try
+				{
+					writer.Initialize(0, settings, resolver);
+
+					if (value is not null)
+					{
+						value.JsonSerialize(writer);
+					}
+					else
+					{
+						writer.WriteNull();
+					}
+
+					return writer.GetUtf8Slice();
+				}
+				finally
+				{
+					writer.Dispose();
+					CrystalJson.WriterPool.Free(writer);
+				}
+			}
+
+			/// <summary>Serializes a value of type <typeparamref name="TJsonSerializable"/> into a <see cref="SliceOwner"/> using the specified <see cref="ArrayPool{T}">pool</see></summary>
+			/// <param name="value">Instance to serialize (can be <b>null</b>)</param>
+			/// <param name="pool">Pool used to allocate the content of the slice (use <see cref="ArrayPool{T}.Shared"/> if <see langword="null"/>)</param>
+			/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+			/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+			/// <returns><c>`123`</c>, <c>`true`</c>, <c>`"ABC"`</c>, <c>`{ "foo":..., "bar": ... }`</c>, <c>`[ ... ]`</c>, ...</returns>
+			/// <exception cref="JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
+			/// <remarks>
+			/// <para>The <see cref="SliceOwner"/> returned <b>MUST</b> be disposed; otherwise, the rented buffer will not be returned to the <paramref name="pool"/>.</para>
+			/// </remarks>
+			[Pure, MustDisposeResource]
+			public static SliceOwner JsonSerialize(in TJsonSerializable? value, ArrayPool<byte>? pool, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			{
+				var writer = CrystalJson.WriterPool.Allocate();
+				try
+				{
+					writer.Initialize(0, settings, resolver);
+
+					if (value is not null)
+					{
+						value.JsonSerialize(writer);
+					}
+					else
+					{
+						writer.WriteNull();
+					}
+
+					return writer.GetUtf8Slice(pool);
+				}
+				finally
+				{
+					writer.Dispose();
+					CrystalJson.WriterPool.Free(writer);
+				}
+			}
+
+			/// <summary>Serializes a sequence of values of type <typeparamref name="TJsonSerializable"/> as a JSON Array</summary>
+			/// <param name="values">Span of the instances to serialize (can be null)</param>
+			/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+			/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+			/// <returns><c>`[ 123, 456, 789, ... ]`</c>, <c>`[ true, true, false, ... ]`</c>, <c>`[ "ABC", "DEF", "GHI", ... ]`</c>, <c>`[ { "foo":..., "bar": ... }, { "foo":..., "bar": ... }, ... ]`</c>, <c>`[ [ ... ], [ ... ], ... ]`</c>, ...</returns>
+			/// <exception cref="JsonSerializationException">If any value fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
+			public static Slice JsonSerializeArray(IEnumerable<TJsonSerializable?> values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			{
+				if (values.TryGetSpan(out var span))
+				{
+					return JsonSerializeArray(span, settings, resolver);
+				}
+
+				return JsonSerializeEnumerableArray(values, settings, resolver);
+
+				static Slice JsonSerializeEnumerableArray(IEnumerable<TJsonSerializable?> values, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+				{
+					var writer = CrystalJson.WriterPool.Allocate();
+					try
+					{
+						writer.Initialize(0, settings, resolver);
+
+						var state = writer.BeginArray();
+
+						foreach(var value in values)
+						{
+							writer.WriteFieldSeparator();
+							if (value is not null)
+							{
+								value.JsonSerialize(writer);
+							}
+							else
+							{
+								writer.WriteNull();
+							}
+						}
+
+						writer.EndArray(state);
+
+						return writer.GetUtf8Slice();
+					}
+					finally
+					{
+						writer.Dispose();
+						CrystalJson.WriterPool.Free(writer);
+					}
+				}
+			}
+
+			/// <summary>Serializes a span of values of type <typeparamref name="TJsonSerializable"/> as a JSON Array</summary>
+			/// <param name="values">Span of the instances to serialize (can be null)</param>
+			/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+			/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+			/// <returns><c>`[ 123, 456, 789, ... ]`</c>, <c>`[ true, true, false, ... ]`</c>, <c>`[ "ABC", "DEF", "GHI", ... ]`</c>, <c>`[ { "foo":..., "bar": ... }, { "foo":..., "bar": ... }, ... ]`</c>, <c>`[ [ ... ], [ ... ], ... ]`</c>, ...</returns>
+			/// <exception cref="JsonSerializationException">If any value fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
+			public static Slice JsonSerializeArray(ReadOnlySpan<TJsonSerializable?> values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			{
+				var writer = CrystalJson.WriterPool.Allocate();
+				try
+				{
+					writer.Initialize(0, settings, resolver);
+
+					if (values.Length == 0)
+					{
+						writer.WriteEmptyArray();
+					}
+					else
+					{
+						var state = writer.BeginArray();
+
+						for (int i = 0; i < values.Length; i++)
+						{
+							writer.WriteFieldSeparator();
+							ref readonly TJsonSerializable? value = ref values[i];
+							if (value is not null)
+							{
+								value.JsonSerialize(writer);
+							}
+							else
+							{
+								writer.WriteNull();
+							}
+						}
+
+						writer.EndArray(state);
+					}
+
+					return writer.GetUtf8Slice();
+				}
+				finally
+				{
+					writer.Dispose();
+					CrystalJson.WriterPool.Free(writer);
+				}
+			}
+
+			/// <summary>Serializes a sequence of values of type <typeparamref name="TJsonSerializable"/> as a JSON Array into a <see cref="SliceOwner"/> using the specified <see cref="ArrayPool{T}">pool</see></summary>
+			/// <param name="values">Span of the instances to serialize (can be <c>null</c>)</param>
+			/// <param name="pool">Pool used to allocate the content of the slice (use <see cref="ArrayPool{T}.Shared"/> if <see langword="null"/>)</param>
+			/// <param name="settings">Serialization settings (use default JSON settings if <c>null</c>)</param>
+			/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+			/// <returns><c>`[ 123, 456, 789, ... ]`</c>, <c>`[ true, true, false, ... ]`</c>, <c>`[ "ABC", "DEF", "GHI", ... ]`</c>, <c>`[ { "foo":..., "bar": ... }, { "foo":..., "bar": ... }, ... ]`</c>, <c>`[ [ ... ], [ ... ], ... ]`</c>, ...</returns>
+			/// <exception cref="JsonSerializationException">If any value fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
+			/// <remarks>
+			/// <para>The <see cref="SliceOwner"/> returned <b>MUST</b> be disposed; otherwise, the rented buffer will not be returned to the <paramref name="pool"/>.</para>
+			/// </remarks>
+			public static SliceOwner JsonSerializeArray(IEnumerable<TJsonSerializable?> values, ArrayPool<byte>? pool, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			{
+				if (values.TryGetSpan(out var span))
+				{
+					return JsonSerializeArray(span, pool, settings, resolver);
+				}
+
+				return JsonSerializeEnumerableArray(values, pool, settings, resolver);
+
+				static SliceOwner JsonSerializeEnumerableArray(IEnumerable<TJsonSerializable?> values, ArrayPool<byte>? pool, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver)
+				{
+					var writer = CrystalJson.WriterPool.Allocate();
+					try
+					{
+						writer.Initialize(0, settings, resolver);
+
+						var state = writer.BeginArray();
+
+						foreach(var value in values)
+						{
+							writer.WriteFieldSeparator();
+							if (value is not null)
+							{
+								value.JsonSerialize(writer);
+							}
+							else
+							{
+								writer.WriteNull();
+							}
+						}
+
+						writer.EndArray(state);
+
+						return writer.GetUtf8Slice(pool);
+					}
+					finally
+					{
+						writer.Dispose();
+						CrystalJson.WriterPool.Free(writer);
+					}
+				}
+			}
+
+			/// <summary>Serializes a span of values of type <typeparamref name="TJsonSerializable"/> as a JSON Array into a <see cref="SliceOwner"/> using the specified <see cref="ArrayPool{T}">pool</see></summary>
+			/// <param name="values">Span of the instances to serialize (can be null)</param>
+			/// <param name="pool">Pool used to allocate the content of the slice (use <see cref="ArrayPool{T}.Shared"/> if <see langword="null"/>)</param>
+			/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+			/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+			/// <returns><c>`[ 123, 456, 789, ... ]`</c>, <c>`[ true, true, false, ... ]`</c>, <c>`[ "ABC", "DEF", "GHI", ... ]`</c>, <c>`[ { "foo":..., "bar": ... }, { "foo":..., "bar": ... }, ... ]`</c>, <c>`[ [ ... ], [ ... ], ... ]`</c>, ...</returns>
+			/// <exception cref="JsonSerializationException">If any value fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
+			/// <remarks>
+			/// <para>The <see cref="SliceOwner"/> returned <b>MUST</b> be disposed; otherwise, the rented buffer will not be returned to the <paramref name="pool"/>.</para>
+			/// </remarks>
+			public static SliceOwner JsonSerializeArray(ReadOnlySpan<TJsonSerializable?> values, ArrayPool<byte>? pool, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			{
+				var writer = CrystalJson.WriterPool.Allocate();
+				try
+				{
+					writer.Initialize(0, settings, resolver);
+
+					if (values.Length == 0)
+					{
+						writer.WriteEmptyArray();
+					}
+					else
+					{
+						var state = writer.BeginArray();
+
+						for (int i = 0; i < values.Length; i++)
+						{
+							writer.WriteFieldSeparator();
+							ref readonly TJsonSerializable? value = ref values[i];
+							if (value is not null)
+							{
+								value.JsonSerialize(writer);
+							}
+							else
+							{
+								writer.WriteNull();
+							}
+						}
+
+						writer.EndArray(state);
+					}
+
+					return writer.GetUtf8Slice(pool);
+				}
+				finally
+				{
+					writer.Dispose();
+					CrystalJson.WriterPool.Free(writer);
+				}
+			}
+
+		}
 
 	}
 

@@ -128,7 +128,7 @@ namespace SnowBank.Data.Json.Binary.Tests
 			DumpHexa(bytes);
 #endif
 			var decoded = Jsonb.Decode(bytes);
-			Log($"=> {decoded.ToJson()}");
+			Log($"=> {decoded.ToJsonText()}");
 			Assert.That(decoded, Is.EqualTo(expected));
 		}
 

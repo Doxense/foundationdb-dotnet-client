@@ -204,63 +204,40 @@ namespace SnowBank.Data.Json
 
 		#region ToStuff(...)
 
-		/// <summary>Packs a <see cref="IJsonPackable"/> value into the corresponding mutable <see cref="JsonValue"/></summary>
-		/// <param name="value">Instance to serialize</param>
-		/// <param name="settings">Custom serialization settings</param>
-		/// <param name="resolver">Optional type resolver used to bind the value into a managed CLR type (<see cref="CrystalJson.DefaultResolver"/> is omitted)</param>
-		/// <remarks>Note: if the JSON has to be sent over HTTP, or stored on disk, prefer <see cref="ToJsonSlice(JsonValue?,CrystalJsonSettings?)"/> or <see cref="ToJsonBytes(JsonValue)"/> that will return the same result but already utf-8 encoded</remarks>
-		public static JsonValue ToJsonValue<TJsonPackable>(this TJsonPackable? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-			where TJsonPackable : IJsonPackable
-		{
-			return value?.JsonPack(settings ?? CrystalJsonSettings.Json, resolver ?? CrystalJson.DefaultResolver) ?? JsonNull.Null;
-		}
-
-		/// <summary>Packs a <see cref="IJsonPackable"/> value into the corresponding read-only <see cref="JsonValue"/></summary>
-		/// <param name="value">Instance to serialize</param>
-		/// <param name="settings">Custom serialization settings</param>
-		/// <param name="resolver">Optional type resolver used to bind the value into a managed CLR type (<see cref="CrystalJson.DefaultResolver"/> is omitted)</param>
-		/// <remarks>Note: if the JSON has to be sent over HTTP, or stored on disk, prefer <see cref="ToJsonSlice(JsonValue?,CrystalJsonSettings?)"/> or <see cref="ToJsonBytes(JsonValue)"/> that will return the same result but already utf-8 encoded</remarks>
-		public static JsonValue ToJsonValueReadOnly<TJsonPackable>(this TJsonPackable? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-			where TJsonPackable : IJsonPackable
-		{
-			return value?.JsonPack(settings.AsReadOnly(), resolver ?? CrystalJson.DefaultResolver) ?? JsonNull.Null;
-		}
-
-		/// <summary>Serializes a <see cref="IJsonSerializable"/> value into the most compact text literal possible</summary>
-		/// <param name="value">Instance to serialize</param>
+		/// <summary>Serializes a <see cref="JsonValue"/> into a text literal possible</summary>
+		/// <param name="value">JSON value to serialize</param>
 		/// <remarks>Note: if the JSON has to be sent over HTTP, or stored on disk, prefer <see cref="ToJsonSlice(JsonValue?,CrystalJsonSettings?)"/> or <see cref="ToJsonBytes(JsonValue)"/> that will return the same result but already utf-8 encoded</remarks>
 		[Pure]
-		public static string ToJson<TJsonSerializable>(this TJsonSerializable? value)
-			where TJsonSerializable : IJsonSerializable
-			=> CrystalJson.Serialize(value);
+		[OverloadResolutionPriority(1)]
+		public static string ToJsonText(this JsonValue? value) => value?.ToJsonText(CrystalJsonSettings.Json) ?? JsonTokens.Null;
 
 		/// <summary>Serializes a <see cref="JsonValue"/> into the most compact text literal possible</summary>
 		/// <param name="value">JSON value to serialize</param>
 		/// <remarks>Note: if the JSON has to be sent over HTTP, or stored on disk, prefer <see cref="ToJsonSlice(JsonValue?,CrystalJsonSettings?)"/> or <see cref="ToJsonBytes(JsonValue)"/> that will return the same result but already utf-8 encoded</remarks>
 		[Pure]
 		[OverloadResolutionPriority(1)]
-		public static string ToJsonCompact(this JsonValue? value) => value?.ToJson(CrystalJsonSettings.JsonCompact) ?? JsonTokens.Null;
+		[Obsolete("Use ToJsonTextIndented() instead")]
+		public static string ToJsonCompact(this JsonValue? value) => value?.ToJsonText(CrystalJsonSettings.JsonCompact) ?? JsonTokens.Null;
 
-		/// <summary>Serializes a <see cref="IJsonSerializable"/> into the most compact text literal possible</summary>
-		/// <param name="value">Instance to serialize</param>
+		/// <summary>Serializes a <see cref="JsonValue"/> into the most compact text literal possible</summary>
+		/// <param name="value">JSON value to serialize</param>
 		/// <remarks>Note: if the JSON has to be sent over HTTP, or stored on disk, prefer <see cref="ToJsonSlice(JsonValue?,CrystalJsonSettings?)"/> or <see cref="ToJsonBytes(JsonValue)"/> that will return the same result but already utf-8 encoded</remarks>
 		[Pure]
-		public static string ToJsonCompact<TJsonSerializable>(this TJsonSerializable? value)
-			where TJsonSerializable : IJsonSerializable
-			=> CrystalJson.Serialize(value, CrystalJsonSettings.JsonCompact);
+		[OverloadResolutionPriority(1)]
+		public static string ToJsonTextCompact(this JsonValue? value) => value?.ToJsonText(CrystalJsonSettings.JsonCompact) ?? JsonTokens.Null;
 
 		/// <summary>Serializes a <see cref="JsonValue"/> into a human-friendly indented text representation (for logging, console output, etc...)</summary>
 		/// <param name="value">JSON value to serialize</param>
 		[Pure]
 		[OverloadResolutionPriority(1)]
-		public static string ToJsonIndented(this JsonValue? value) => value?.ToJson(CrystalJsonSettings.JsonIndented) ?? JsonTokens.Null;
+		[Obsolete("Use ToJsonTextIndented() instead")]
+		public static string ToJsonIndented(this JsonValue? value) => value?.ToJsonText(CrystalJsonSettings.JsonIndented) ?? JsonTokens.Null;
 
-		/// <summary>Serializes a <see cref="IJsonSerializable"/> value into a human-friendly indented text representation (for logging, console output, etc...)</summary>
-		/// <param name="value">Instance to serialize</param>
+		/// <summary>Serializes a <see cref="JsonValue"/> into a human-friendly indented text representation (for logging, console output, etc...)</summary>
+		/// <param name="value">JSON value to serialize</param>
 		[Pure]
-		public static string ToJsonIndented<TJsonSerializable>(this TJsonSerializable? value)
-			where TJsonSerializable : IJsonSerializable
-			=> CrystalJson.Serialize(value, CrystalJsonSettings.JsonIndented);
+		[OverloadResolutionPriority(1)]
+		public static string ToJsonTextIndented(this JsonValue? value) => value?.ToJsonText(CrystalJsonSettings.JsonIndented) ?? JsonTokens.Null;
 
 		/// <summary>Serializes a <see cref="JsonValue"/> into a byte array, using the default settings</summary>
 		/// <param name="value">JSON value to serialize</param>

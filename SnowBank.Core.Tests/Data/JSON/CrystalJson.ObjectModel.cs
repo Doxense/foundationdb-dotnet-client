@@ -2011,7 +2011,7 @@ namespace SnowBank.Data.Json.Tests
 			Assert.That(arr.ToArray(), Is.EqualTo(new[] { JsonString.Return("hello") }));
 			Assert.That(arr.ToArray<string>(), Is.EqualTo(new[] { "hello" }));
 			Assert.That(arr.ToList<string>(), Is.EqualTo(new List<string> { "hello" }));
-			Assert.That(arr.ToJsonCompact(), Is.EqualTo("""["hello"]"""));
+			Assert.That(arr.ToJsonTextCompact(), Is.EqualTo("""["hello"]"""));
 			Assert.That(arr.Required<ValueTuple<string>>(), Is.EqualTo(ValueTuple.Create("hello")));
 
 			// [ "hello", "world" ]
@@ -2024,7 +2024,7 @@ namespace SnowBank.Data.Json.Tests
 			Assert.That(arr.ToArray(), Is.EqualTo(new[] { JsonString.Return("hello"), JsonString.Return("world") }));
 			Assert.That(arr.ToArray<string>(), Is.EqualTo(new[] { "hello", "world" }));
 			Assert.That(arr.ToList<string>(), Is.EqualTo(new List<string> { "hello", "world" }));
-			Assert.That(arr.ToJsonCompact(), Is.EqualTo("""["hello","world"]"""));
+			Assert.That(arr.ToJsonTextCompact(), Is.EqualTo("""["hello","world"]"""));
 
 			// [ "hello", "le monde" ]
 			arr[1] = "le monde";
@@ -2036,7 +2036,7 @@ namespace SnowBank.Data.Json.Tests
 			Assert.That(arr.ToArray(), Is.EqualTo(new[] { JsonString.Return("hello"), JsonString.Return("le monde") }));
 			Assert.That(arr.ToArray<string>(), Is.EqualTo(new[] { "hello", "le monde" }));
 			Assert.That(arr.ToList<string>(), Is.EqualTo(new List<string> { "hello", "le monde" }));
-			Assert.That(arr.ToJsonCompact(), Is.EqualTo("""["hello","le monde"]"""));
+			Assert.That(arr.ToJsonTextCompact(), Is.EqualTo("""["hello","le monde"]"""));
 
 			// [ "hello", "le monde", 123 ]
 			arr.Add(123);
@@ -2048,7 +2048,7 @@ namespace SnowBank.Data.Json.Tests
 			Assert.That(arr.Get<string>(1), Is.EqualTo("le monde"));
 			Assert.That(arr.Get<int>(2), Is.EqualTo(123));
 			Assert.That(arr.ToArray(), Is.EqualTo(new[] { JsonString.Return("hello"), JsonString.Return("le monde"), JsonNumber.Return(123) }));
-			Assert.That(arr.ToJsonCompact(), Is.EqualTo("""["hello","le monde",123]"""));
+			Assert.That(arr.ToJsonTextCompact(), Is.EqualTo("""["hello","le monde",123]"""));
 
 			// [ "hello", 123 ]
 			arr.RemoveAt(1);
@@ -2058,7 +2058,7 @@ namespace SnowBank.Data.Json.Tests
 			Assert.That(arr.Get<string>(0), Is.EqualTo("hello"));
 			Assert.That(arr.Get<int>(1), Is.EqualTo(123));
 			Assert.That(arr.ToArray(), Is.EqualTo(new[] { JsonString.Return("hello"), JsonNumber.Return(123) }));
-			Assert.That(arr.ToJsonCompact(), Is.EqualTo("""["hello",123]"""));
+			Assert.That(arr.ToJsonTextCompact(), Is.EqualTo("""["hello",123]"""));
 
 			Assert.That(JsonArray.FromValues([ "A", "B", "C", "D" ]).ToArray<string>(), Is.EqualTo((string[]) [ "A", "B", "C", "D" ]));
 			Assert.That(JsonArray.FromValues([ "A", "B", "C", "D" ]).ToList<string>(),Is.EqualTo((List<string>) [ "A", "B", "C", "D" ]));
@@ -3088,7 +3088,7 @@ namespace SnowBank.Data.Json.Tests
 				JsonNull.Missing, // Missing should be converted to Null
 				null, // null should be changed to Null
 			};
-			Log("arr = " + arr.ToJsonIndented());
+			Log("arr = " + arr.ToJsonTextIndented());
 
 			#region Pick (drop missing)...
 
@@ -3097,7 +3097,7 @@ namespace SnowBank.Data.Json.Tests
 			var proj = arr.Pick([ "Id", "Name", "Pseudo", "Job", "Version" ]);
 
 			Assert.That(proj, Is.Not.Null.And.Not.SameAs(arr));
-			Log("proj = " + proj.ToJsonIndented());
+			Log("proj = " + proj.ToJsonTextIndented());
 			Assert.That(proj, Has.Count.EqualTo(arr.Count));
 
 			JsonObject p;
@@ -3163,7 +3163,7 @@ namespace SnowBank.Data.Json.Tests
 			);
 
 			Assert.That(proj, Is.Not.Null.And.Not.SameAs(arr));
-			Log("proj = " + proj.ToJsonIndented());
+			Log("proj = " + proj.ToJsonTextIndented());
 			Assert.That(proj, Has.Count.EqualTo(arr.Count));
 
 			p = (JsonObject) proj[0];
@@ -3232,7 +3232,7 @@ namespace SnowBank.Data.Json.Tests
 				});
 
 			Assert.That(proj, Is.Not.Null.And.Not.SameAs(arr));
-			Log("proj = " + proj.ToJsonIndented());
+			Log("proj = " + proj.ToJsonTextIndented());
 			Assert.That(proj, Has.Count.EqualTo(arr.Count));
 
 			p = (JsonObject) proj[0];
@@ -3305,7 +3305,7 @@ namespace SnowBank.Data.Json.Tests
 				});
 
 			Assert.That(proj, Is.Not.Null.And.Not.SameAs(arr));
-			Log("proj = " + proj.ToJsonIndented());
+			Log("proj = " + proj.ToJsonTextIndented());
 			Assert.That(proj, Has.Count.EqualTo(arr.Count));
 
 			p = (JsonObject) proj[0];
@@ -3477,7 +3477,7 @@ namespace SnowBank.Data.Json.Tests
 			var innerArray = arr.GetArray(3);
 			Assert.That(arr.IsReadOnly, Is.False);
 
-			Assert.That(arr.ToJsonCompact(), Is.EqualTo("""["hello","world",{"bar":"baz"},[1,2,3]]"""));
+			Assert.That(arr.ToJsonTextCompact(), Is.EqualTo("""["hello","world",{"bar":"baz"},[1,2,3]]"""));
 
 			var arr2 = arr.Freeze();
 			Assert.That(arr2, Is.SameAs(arr), "Freeze() should return the same instance");
@@ -3495,7 +3495,7 @@ namespace SnowBank.Data.Json.Tests
 			Assert.That(innerArray2.IsReadOnly, Is.True);
 			AssertIsImmutable(innerArray2, "(obj.Freeze())[\"bar\"]");
 
-			Assert.That(arr2.ToJsonCompact(), Is.EqualTo("""["hello","world",{"bar":"baz"},[1,2,3]]"""));
+			Assert.That(arr2.ToJsonTextCompact(), Is.EqualTo("""["hello","world",{"bar":"baz"},[1,2,3]]"""));
 
 			// if we want to mutate, we have to create a copy
 			var arr3 = arr2.Copy();
@@ -3531,9 +3531,9 @@ namespace SnowBank.Data.Json.Tests
 			Assert.That(innerArray3, Is.Not.EqualTo(innerArray2), "It should still not be equal after the change");
 
 			// verify the final mutated version
-			Assert.That(arr3.ToJsonCompact(), Is.EqualTo("""["hello","world",{"bar":"baz","baz":"jazz"},[1,2,3,4],"bonjour"]"""));
+			Assert.That(arr3.ToJsonTextCompact(), Is.EqualTo("""["hello","world",{"bar":"baz","baz":"jazz"},[1,2,3,4],"bonjour"]"""));
 			// ensure the original is unmodified
-			Assert.That(arr2.ToJsonCompact(), Is.EqualTo("""["hello","world",{"bar":"baz"},[1,2,3]]"""));
+			Assert.That(arr2.ToJsonTextCompact(), Is.EqualTo("""["hello","world",{"bar":"baz"},[1,2,3]]"""));
 		}
 
 		[Test]
@@ -4181,7 +4181,7 @@ namespace SnowBank.Data.Json.Tests
 			Assert.That(obj, Has.Count.EqualTo(0));
 			Assert.That(obj.IsNull, Is.False);
 			Assert.That(obj.IsDefault, Is.True);
-			Assert.That(obj.ToJson(), Is.EqualTo("{ }"));
+			Assert.That(obj.ToJsonText(), Is.EqualTo("{ }"));
 			Assert.That(SerializeToSlice(obj), Is.EqualTo(Slice.FromString("{}")));
 
 			obj["Hello"] = "World";
@@ -4190,7 +4190,7 @@ namespace SnowBank.Data.Json.Tests
 			Assert.That(obj.ContainsKey("Hello"), Is.True);
 			Assert.That(obj["Hello"], Is.EqualTo(JsonString.Return("World")));
 			Assert.That(obj.GetValue("Hello"), Is.EqualTo(JsonString.Return("World")));
-			Assert.That(obj.ToJson(), Is.EqualTo("{ \"Hello\": \"World\" }"));
+			Assert.That(obj.ToJsonText(), Is.EqualTo("{ \"Hello\": \"World\" }"));
 			Assert.That(SerializeToSlice(obj), Is.EqualTo(Slice.FromString("{\"Hello\":\"World\"}")));
 
 			obj.Add("Foo", 123);
@@ -4198,7 +4198,7 @@ namespace SnowBank.Data.Json.Tests
 			Assert.That(obj.ContainsKey("Foo"), Is.True);
 			Assert.That(obj["Foo"], Is.EqualTo(JsonNumber.Return(123)));
 			Assert.That(obj.GetValue("Foo"), Is.EqualTo(JsonNumber.Return(123)));
-			Assert.That(obj.ToJson(), Is.EqualTo("{ \"Hello\": \"World\", \"Foo\": 123 }"));
+			Assert.That(obj.ToJsonText(), Is.EqualTo("{ \"Hello\": \"World\", \"Foo\": 123 }"));
 			Assert.That(SerializeToSlice(obj), Is.EqualTo(Slice.FromString("{\"Hello\":\"World\",\"Foo\":123}")));
 
 			obj.Set("Foo", 456);
@@ -4206,7 +4206,7 @@ namespace SnowBank.Data.Json.Tests
 			Assert.That(obj.ContainsKey("Foo"), Is.True);
 			Assert.That(obj["Foo"], Is.EqualTo(JsonNumber.Return(456)));
 			Assert.That(obj.GetValue("Foo"), Is.EqualTo(JsonNumber.Return(456)));
-			Assert.That(obj.ToJson(), Is.EqualTo("{ \"Hello\": \"World\", \"Foo\": 456 }"));
+			Assert.That(obj.ToJsonText(), Is.EqualTo("{ \"Hello\": \"World\", \"Foo\": 456 }"));
 			Assert.That(SerializeToSlice(obj), Is.EqualTo(Slice.FromString("{\"Hello\":\"World\",\"Foo\":456}")));
 
 			obj.Add("Bar", true);
@@ -4214,7 +4214,7 @@ namespace SnowBank.Data.Json.Tests
 			Assert.That(obj.ContainsKey("Bar"), Is.True);
 			Assert.That(obj["Bar"], Is.EqualTo(JsonBoolean.True));
 			Assert.That(obj.GetValue("Bar"), Is.EqualTo(JsonBoolean.True));
-			Assert.That(obj.ToJson(), Is.EqualTo("{ \"Hello\": \"World\", \"Foo\": 456, \"Bar\": true }"));
+			Assert.That(obj.ToJsonText(), Is.EqualTo("{ \"Hello\": \"World\", \"Foo\": 456, \"Bar\": true }"));
 			Assert.That(SerializeToSlice(obj), Is.EqualTo(Slice.FromString("{\"Hello\":\"World\",\"Foo\":456,\"Bar\":true}")));
 
 			// case sensitive! ('Bar' != 'BAR')
@@ -4224,7 +4224,7 @@ namespace SnowBank.Data.Json.Tests
 			Assert.That(obj.ContainsKey("BAR"), Is.True);
 			Assert.That(obj["BAR"], Is.SameAs(sub));
 			Assert.That(obj.GetValue("BAR"), Is.SameAs(sub));
-			Assert.That(obj.ToJson(), Is.EqualTo("{ \"Hello\": \"World\", \"Foo\": 456, \"Bar\": true, \"BAR\": { \"Alpha\": 111, \"Omega\": 999 } }"));
+			Assert.That(obj.ToJsonText(), Is.EqualTo("{ \"Hello\": \"World\", \"Foo\": 456, \"Bar\": true, \"BAR\": { \"Alpha\": 111, \"Omega\": 999 } }"));
 			Assert.That(SerializeToSlice(obj), Is.EqualTo(Slice.FromString("{\"Hello\":\"World\",\"Foo\":456,\"Bar\":true,\"BAR\":{\"Alpha\":111,\"Omega\":999}}")));
 
 			// ReadOnlySpan keys
@@ -4243,7 +4243,7 @@ namespace SnowBank.Data.Json.Tests
 			Assert.That(obj.Get<int>("""Hello\World"""), Is.EqualTo(123));
 			Assert.That(obj.Get<int>("""Hello"World"""), Is.EqualTo(456));
 			Assert.That(obj.Get<int>("""\\?\GLOBALROOT\Device\Foo\Bar"""), Is.EqualTo(789));
-			Assert.That(obj.ToJson(), Is.EqualTo("""{ "Hello\\World": 123, "Hello\"World": 456, "\\\\?\\GLOBALROOT\\Device\\Foo\\Bar": 789 }"""));
+			Assert.That(obj.ToJsonText(), Is.EqualTo("""{ "Hello\\World": 123, "Hello\"World": 456, "\\\\?\\GLOBALROOT\\Device\\Foo\\Bar": 789 }"""));
 			Assert.That(SerializeToSlice(obj), Is.EqualTo(Slice.FromString("""{"Hello\\World":123,"Hello\"World":456,"\\\\?\\GLOBALROOT\\Device\\Foo\\Bar":789}""")));
 
 			//note: we do not deserialize JsonNull singletons "Missing"/"Error" by default
@@ -4252,7 +4252,7 @@ namespace SnowBank.Data.Json.Tests
 				("Bar", JsonNull.Missing),
 				("Baz", JsonNull.Error)
 			]);
-			Assert.That(obj.ToJson(), Is.EqualTo("{ \"Foo\": null }"));
+			Assert.That(obj.ToJsonText(), Is.EqualTo("{ \"Foo\": null }"));
 			Assert.That(SerializeToSlice(obj), Is.EqualTo(Slice.FromString("{\"Foo\":null}")));
 		}
 
@@ -4967,7 +4967,7 @@ namespace SnowBank.Data.Json.Tests
 				var root = new JsonObject { ["Foo"] = 123 };
 				var obj = new JsonObject { ["Bar"] = 456 };
 				Merge(root, obj);
-				Assert.That(root.ToJsonCompact(), Is.EqualTo("""{"Foo":123,"Bar":456}"""));
+				Assert.That(root.ToJsonTextCompact(), Is.EqualTo("""{"Foo":123,"Bar":456}"""));
 			}
 
 			{ // Overwrite an existing field
@@ -4975,7 +4975,7 @@ namespace SnowBank.Data.Json.Tests
 				var root = new JsonObject { ["Foo"] = 123 };
 				var obj = new JsonObject { ["Foo"] = 456 };
 				Merge(root, obj);
-				Assert.That(root.ToJsonCompact(), Is.EqualTo("""{"Foo":456}"""));
+				Assert.That(root.ToJsonTextCompact(), Is.EqualTo("""{"Foo":456}"""));
 			}
 
 			{ // Merging a field with Null will remove it, if keepNull == false
@@ -4990,7 +4990,7 @@ namespace SnowBank.Data.Json.Tests
 				var root = new JsonObject { ["Foo"] = new JsonObject { ["Bar"] = 42 } };
 				var obj = new JsonObject { ["Foo"] = JsonNull.Null };
 				root.MergeWith(obj, keepNull: true);
-				Assert.That(root.ToJsonCompact(), Is.EqualTo("""{"Foo":null}"""));
+				Assert.That(root.ToJsonTextCompact(), Is.EqualTo("""{"Foo":null}"""));
 			}
 			{ // Merging a field with Missing will remove it, even if keepNull == true
 				// { Foo: { Bar: 42 } } u { Foo: missing } => { }
@@ -5268,17 +5268,17 @@ namespace SnowBank.Data.Json.Tests
 			var foo = root.GetOrCreateArray("Foo");
 			Assert.That(foo, Is.Not.Null, "Foo");
 			Assert.That(foo, Has.Count.EqualTo(0), "foo.Count");
-			Assert.That(root.ToJson(CrystalJsonSettings.JsonCompact), Is.EqualTo("""{"Foo":[]}"""));
+			Assert.That(root.ToJsonText(CrystalJsonSettings.JsonCompact), Is.EqualTo("""{"Foo":[]}"""));
 
 			foo.AddValue(123);
-			Assert.That(root.ToJson(CrystalJsonSettings.JsonCompact), Is.EqualTo("""{"Foo":[123]}"""));
+			Assert.That(root.ToJsonText(CrystalJsonSettings.JsonCompact), Is.EqualTo("""{"Foo":[123]}"""));
 
 			root.GetOrCreateArray("Foo").AddValue(456);
-			Assert.That(root.ToJson(CrystalJsonSettings.JsonCompact), Is.EqualTo("""{"Foo":[123,456]}"""));
+			Assert.That(root.ToJsonText(CrystalJsonSettings.JsonCompact), Is.EqualTo("""{"Foo":[123,456]}"""));
 
 			root = JsonObject.Create();
 			root.GetOrCreateArray("Narf.Zort.Poit").AddValue(789);
-			Assert.That(root.ToJson(CrystalJsonSettings.JsonCompact), Is.EqualTo("""{"Narf":{"Zort":{"Poit":[789]}}}"""));
+			Assert.That(root.ToJsonText(CrystalJsonSettings.JsonCompact), Is.EqualTo("""{"Narf":{"Zort":{"Poit":[789]}}}"""));
 
 			// on doit pouvoir écraser un null
 			root = JsonObject.Create();
@@ -5287,7 +5287,7 @@ namespace SnowBank.Data.Json.Tests
 			Assert.That(bar, Is.Not.Null, "Bar");
 			bar.AddValue("Hello");
 			bar.AddValue("World");
-			Assert.That(root.ToJson(CrystalJsonSettings.JsonCompact), Is.EqualTo("""{"Bar":["Hello","World"]}"""));
+			Assert.That(root.ToJsonText(CrystalJsonSettings.JsonCompact), Is.EqualTo("""{"Bar":["Hello","World"]}"""));
 
 			// par contre on doit pas pouvoir écraser un non-object
 			root = JsonObject.Create();
@@ -5445,7 +5445,7 @@ namespace SnowBank.Data.Json.Tests
 			var bar = obj.GetArray("bar");
 			Assert.That(obj.IsReadOnly, Is.False);
 
-			Assert.That(obj.ToJsonCompact(), Is.EqualTo("""{"hello":"world","foo":{"bar":"baz"},"bar":[1,2,3]}"""));
+			Assert.That(obj.ToJsonTextCompact(), Is.EqualTo("""{"hello":"world","foo":{"bar":"baz"},"bar":[1,2,3]}"""));
 
 			var obj2 = obj.Freeze();
 			Assert.That(obj2, Is.SameAs(obj), "Freeze() should return the same instance");
@@ -5463,7 +5463,7 @@ namespace SnowBank.Data.Json.Tests
 			Assert.That(bar2.IsReadOnly, Is.True);
 			AssertIsImmutable(bar2, "(obj.Freeze())[\"bar\"]");
 
-			Assert.That(obj2.ToJsonCompact(), Is.EqualTo("""{"hello":"world","foo":{"bar":"baz"},"bar":[1,2,3]}"""));
+			Assert.That(obj2.ToJsonTextCompact(), Is.EqualTo("""{"hello":"world","foo":{"bar":"baz"},"bar":[1,2,3]}"""));
 
 			// if we want to mutate, we have to create a copy
 			var obj3 = obj2.Copy();
@@ -5499,9 +5499,9 @@ namespace SnowBank.Data.Json.Tests
 			Assert.That(bar3, Is.Not.EqualTo(bar2), "It should still not be equal after the change");
 
 			// verify the final mutated version
-			Assert.That(obj3.ToJsonCompact(), Is.EqualTo("""{"hello":"world","foo":{"bar":"baz","baz":"jazz"},"bar":[1,2,3,4],"bonjour":"le monde"}"""));
+			Assert.That(obj3.ToJsonTextCompact(), Is.EqualTo("""{"hello":"world","foo":{"bar":"baz","baz":"jazz"},"bar":[1,2,3,4],"bonjour":"le monde"}"""));
 			// ensure the original is unmodified
-			Assert.That(obj2.ToJsonCompact(), Is.EqualTo("""{"hello":"world","foo":{"bar":"baz"},"bar":[1,2,3]}"""));
+			Assert.That(obj2.ToJsonTextCompact(), Is.EqualTo("""{"hello":"world","foo":{"bar":"baz"},"bar":[1,2,3]}"""));
 		}
 
 		[Test]
@@ -5983,51 +5983,51 @@ namespace SnowBank.Data.Json.Tests
 		public void Test_JsonValue_FromObject_STuples()
 		{
 			// STuple<...>
-			Assert.That(JsonValue.FromValue(STuple.Empty).ToJson(), Is.EqualTo("[ ]"));
-			Assert.That(JsonValue.FromValue(STuple.Create(123)).ToJson(), Is.EqualTo("[ 123 ]"));
-			Assert.That(JsonValue.FromValue(STuple.Create(123, "Hello")).ToJson(), Is.EqualTo("[ 123, \"Hello\" ]"));
-			Assert.That(JsonValue.FromValue(STuple.Create(123, "Hello", true)).ToJson(), Is.EqualTo("[ 123, \"Hello\", true ]"));
-			Assert.That(JsonValue.FromValue(STuple.Create(123, "Hello", true, -1.5)).ToJson(), Is.EqualTo("[ 123, \"Hello\", true, -1.5 ]"));
-			Assert.That(JsonValue.FromValue(STuple.Create(123, "Hello", true, -1.5, 'Z')).ToJson(), Is.EqualTo("[ 123, \"Hello\", true, -1.5, \"Z\" ]"));
-			Assert.That(JsonValue.FromValue(STuple.Create(123, "Hello", true, -1.5, 'Z', new DateTime(2016, 11, 24, 11, 07, 23))).ToJson(), Is.EqualTo("[ 123, \"Hello\", true, -1.5, \"Z\", \"2016-11-24T11:07:23\" ]"));
+			Assert.That(JsonValue.FromValue(STuple.Empty).ToJsonText(), Is.EqualTo("[ ]"));
+			Assert.That(JsonValue.FromValue(STuple.Create(123)).ToJsonText(), Is.EqualTo("[ 123 ]"));
+			Assert.That(JsonValue.FromValue(STuple.Create(123, "Hello")).ToJsonText(), Is.EqualTo("[ 123, \"Hello\" ]"));
+			Assert.That(JsonValue.FromValue(STuple.Create(123, "Hello", true)).ToJsonText(), Is.EqualTo("[ 123, \"Hello\", true ]"));
+			Assert.That(JsonValue.FromValue(STuple.Create(123, "Hello", true, -1.5)).ToJsonText(), Is.EqualTo("[ 123, \"Hello\", true, -1.5 ]"));
+			Assert.That(JsonValue.FromValue(STuple.Create(123, "Hello", true, -1.5, 'Z')).ToJsonText(), Is.EqualTo("[ 123, \"Hello\", true, -1.5, \"Z\" ]"));
+			Assert.That(JsonValue.FromValue(STuple.Create(123, "Hello", true, -1.5, 'Z', new DateTime(2016, 11, 24, 11, 07, 23))).ToJsonText(), Is.EqualTo("[ 123, \"Hello\", true, -1.5, \"Z\", \"2016-11-24T11:07:23\" ]"));
 
 			// (ITuple) STuple<...>
-			Assert.That(JsonValue.FromValue((IVarTuple) STuple.Empty).ToJson(), Is.EqualTo("[ ]"));
-			Assert.That(JsonValue.FromValue((IVarTuple) STuple.Create(123)).ToJson(), Is.EqualTo("[ 123 ]"));
-			Assert.That(JsonValue.FromValue((IVarTuple) STuple.Create(123, "Hello")).ToJson(), Is.EqualTo("[ 123, \"Hello\" ]"));
-			Assert.That(JsonValue.FromValue((IVarTuple) STuple.Create(123, "Hello", true)).ToJson(), Is.EqualTo("[ 123, \"Hello\", true ]"));
-			Assert.That(JsonValue.FromValue((IVarTuple) STuple.Create(123, "Hello", true, -1.5)).ToJson(), Is.EqualTo("[ 123, \"Hello\", true, -1.5 ]"));
-			Assert.That(JsonValue.FromValue((IVarTuple) STuple.Create(123, "Hello", true, -1.5, 'Z')).ToJson(), Is.EqualTo("[ 123, \"Hello\", true, -1.5, \"Z\" ]"));
-			Assert.That(JsonValue.FromValue((IVarTuple) STuple.Create(123, "Hello", true, -1.5, 'Z', new DateTime(2016, 11, 24, 11, 07, 23))).ToJson(), Is.EqualTo("[ 123, \"Hello\", true, -1.5, \"Z\", \"2016-11-24T11:07:23\" ]"));
+			Assert.That(JsonValue.FromValue((IVarTuple) STuple.Empty).ToJsonText(), Is.EqualTo("[ ]"));
+			Assert.That(JsonValue.FromValue((IVarTuple) STuple.Create(123)).ToJsonText(), Is.EqualTo("[ 123 ]"));
+			Assert.That(JsonValue.FromValue((IVarTuple) STuple.Create(123, "Hello")).ToJsonText(), Is.EqualTo("[ 123, \"Hello\" ]"));
+			Assert.That(JsonValue.FromValue((IVarTuple) STuple.Create(123, "Hello", true)).ToJsonText(), Is.EqualTo("[ 123, \"Hello\", true ]"));
+			Assert.That(JsonValue.FromValue((IVarTuple) STuple.Create(123, "Hello", true, -1.5)).ToJsonText(), Is.EqualTo("[ 123, \"Hello\", true, -1.5 ]"));
+			Assert.That(JsonValue.FromValue((IVarTuple) STuple.Create(123, "Hello", true, -1.5, 'Z')).ToJsonText(), Is.EqualTo("[ 123, \"Hello\", true, -1.5, \"Z\" ]"));
+			Assert.That(JsonValue.FromValue((IVarTuple) STuple.Create(123, "Hello", true, -1.5, 'Z', new DateTime(2016, 11, 24, 11, 07, 23))).ToJsonText(), Is.EqualTo("[ 123, \"Hello\", true, -1.5, \"Z\", \"2016-11-24T11:07:23\" ]"));
 
 			// custom tuple types
-			Assert.That(JsonValue.FromValue(new ListTuple<int>([1, 2, 3])).ToJson(), Is.EqualTo("[ 1, 2, 3 ]"));
-			Assert.That(JsonValue.FromValue(new ListTuple<string>(["foo", "bar", "baz"])).ToJson(), Is.EqualTo("[ \"foo\", \"bar\", \"baz\" ]"));
-			Assert.That(JsonValue.FromValue(new ListTuple<object>(["hello world", 123, false])).ToJson(), Is.EqualTo("[ \"hello world\", 123, false ]"));
-			Assert.That(JsonValue.FromValue(new LinkedTuple<int>(STuple.Create(1, 2), 3)).ToJson(), Is.EqualTo("[ 1, 2, 3 ]"));
-			Assert.That(JsonValue.FromValue(new JoinedTuple(STuple.Create(1, 2), STuple.Create(3))).ToJson(), Is.EqualTo("[ 1, 2, 3 ]"));
+			Assert.That(JsonValue.FromValue(new ListTuple<int>([1, 2, 3])).ToJsonText(), Is.EqualTo("[ 1, 2, 3 ]"));
+			Assert.That(JsonValue.FromValue(new ListTuple<string>(["foo", "bar", "baz"])).ToJsonText(), Is.EqualTo("[ \"foo\", \"bar\", \"baz\" ]"));
+			Assert.That(JsonValue.FromValue(new ListTuple<object>(["hello world", 123, false])).ToJsonText(), Is.EqualTo("[ \"hello world\", 123, false ]"));
+			Assert.That(JsonValue.FromValue(new LinkedTuple<int>(STuple.Create(1, 2), 3)).ToJsonText(), Is.EqualTo("[ 1, 2, 3 ]"));
+			Assert.That(JsonValue.FromValue(new JoinedTuple(STuple.Create(1, 2), STuple.Create(3))).ToJsonText(), Is.EqualTo("[ 1, 2, 3 ]"));
 		}
 
 		[Test]
 		public void Test_JsonValue_FromObject_ValueTuples()
 		{
 			// STuple<...>
-			Assert.That(JsonValue.FromValue(ValueTuple.Create()).ToJson(), Is.EqualTo("[ ]"));
-			Assert.That(JsonValue.FromValue(ValueTuple.Create(123)).ToJson(), Is.EqualTo("[ 123 ]"));
-			Assert.That(JsonValue.FromValue(ValueTuple.Create(123, "Hello")).ToJson(), Is.EqualTo("[ 123, \"Hello\" ]"));
-			Assert.That(JsonValue.FromValue(ValueTuple.Create(123, "Hello", true)).ToJson(), Is.EqualTo("[ 123, \"Hello\", true ]"));
-			Assert.That(JsonValue.FromValue(ValueTuple.Create(123, "Hello", true, -1.5)).ToJson(), Is.EqualTo("[ 123, \"Hello\", true, -1.5 ]"));
-			Assert.That(JsonValue.FromValue(ValueTuple.Create(123, "Hello", true, -1.5, 'Z')).ToJson(), Is.EqualTo("[ 123, \"Hello\", true, -1.5, \"Z\" ]"));
-			Assert.That(JsonValue.FromValue(ValueTuple.Create(123, "Hello", true, -1.5, 'Z', new DateTime(2016, 11, 24, 11, 07, 23))).ToJson(), Is.EqualTo("[ 123, \"Hello\", true, -1.5, \"Z\", \"2016-11-24T11:07:23\" ]"));
+			Assert.That(JsonValue.FromValue(ValueTuple.Create()).ToJsonText(), Is.EqualTo("[ ]"));
+			Assert.That(JsonValue.FromValue(ValueTuple.Create(123)).ToJsonText(), Is.EqualTo("[ 123 ]"));
+			Assert.That(JsonValue.FromValue(ValueTuple.Create(123, "Hello")).ToJsonText(), Is.EqualTo("[ 123, \"Hello\" ]"));
+			Assert.That(JsonValue.FromValue(ValueTuple.Create(123, "Hello", true)).ToJsonText(), Is.EqualTo("[ 123, \"Hello\", true ]"));
+			Assert.That(JsonValue.FromValue(ValueTuple.Create(123, "Hello", true, -1.5)).ToJsonText(), Is.EqualTo("[ 123, \"Hello\", true, -1.5 ]"));
+			Assert.That(JsonValue.FromValue(ValueTuple.Create(123, "Hello", true, -1.5, 'Z')).ToJsonText(), Is.EqualTo("[ 123, \"Hello\", true, -1.5, \"Z\" ]"));
+			Assert.That(JsonValue.FromValue(ValueTuple.Create(123, "Hello", true, -1.5, 'Z', new DateTime(2016, 11, 24, 11, 07, 23))).ToJsonText(), Is.EqualTo("[ 123, \"Hello\", true, -1.5, \"Z\", \"2016-11-24T11:07:23\" ]"));
 
 			// (ITuple) STuple<...>
-			Assert.That(JsonValue.FromValue((System.Runtime.CompilerServices.ITuple) ValueTuple.Create()).ToJson(), Is.EqualTo("[ ]"));
-			Assert.That(JsonValue.FromValue((System.Runtime.CompilerServices.ITuple) ValueTuple.Create(123)).ToJson(), Is.EqualTo("[ 123 ]"));
-			Assert.That(JsonValue.FromValue((System.Runtime.CompilerServices.ITuple) ValueTuple.Create(123, "Hello")).ToJson(), Is.EqualTo("[ 123, \"Hello\" ]"));
-			Assert.That(JsonValue.FromValue((System.Runtime.CompilerServices.ITuple) ValueTuple.Create(123, "Hello", true)).ToJson(), Is.EqualTo("[ 123, \"Hello\", true ]"));
-			Assert.That(JsonValue.FromValue((System.Runtime.CompilerServices.ITuple) ValueTuple.Create(123, "Hello", true, -1.5)).ToJson(), Is.EqualTo("[ 123, \"Hello\", true, -1.5 ]"));
-			Assert.That(JsonValue.FromValue((System.Runtime.CompilerServices.ITuple) ValueTuple.Create(123, "Hello", true, -1.5, 'Z')).ToJson(), Is.EqualTo("[ 123, \"Hello\", true, -1.5, \"Z\" ]"));
-			Assert.That(JsonValue.FromValue((System.Runtime.CompilerServices.ITuple) ValueTuple.Create(123, "Hello", true, -1.5, 'Z', new DateTime(2016, 11, 24, 11, 07, 23))).ToJson(), Is.EqualTo("[ 123, \"Hello\", true, -1.5, \"Z\", \"2016-11-24T11:07:23\" ]"));
+			Assert.That(JsonValue.FromValue((System.Runtime.CompilerServices.ITuple) ValueTuple.Create()).ToJsonText(), Is.EqualTo("[ ]"));
+			Assert.That(JsonValue.FromValue((System.Runtime.CompilerServices.ITuple) ValueTuple.Create(123)).ToJsonText(), Is.EqualTo("[ 123 ]"));
+			Assert.That(JsonValue.FromValue((System.Runtime.CompilerServices.ITuple) ValueTuple.Create(123, "Hello")).ToJsonText(), Is.EqualTo("[ 123, \"Hello\" ]"));
+			Assert.That(JsonValue.FromValue((System.Runtime.CompilerServices.ITuple) ValueTuple.Create(123, "Hello", true)).ToJsonText(), Is.EqualTo("[ 123, \"Hello\", true ]"));
+			Assert.That(JsonValue.FromValue((System.Runtime.CompilerServices.ITuple) ValueTuple.Create(123, "Hello", true, -1.5)).ToJsonText(), Is.EqualTo("[ 123, \"Hello\", true, -1.5 ]"));
+			Assert.That(JsonValue.FromValue((System.Runtime.CompilerServices.ITuple) ValueTuple.Create(123, "Hello", true, -1.5, 'Z')).ToJsonText(), Is.EqualTo("[ 123, \"Hello\", true, -1.5, \"Z\" ]"));
+			Assert.That(JsonValue.FromValue((System.Runtime.CompilerServices.ITuple) ValueTuple.Create(123, "Hello", true, -1.5, 'Z', new DateTime(2016, 11, 24, 11, 07, 23))).ToJsonText(), Is.EqualTo("[ 123, \"Hello\", true, -1.5, \"Z\", \"2016-11-24T11:07:23\" ]"));
 		}
 
 		[Test]
@@ -6063,7 +6063,7 @@ namespace SnowBank.Data.Json.Tests
 			var v = JsonValue.FromValue(agent);
 			Assert.That(v, Is.Not.Null.And.Property("Type").EqualTo(JsonType.Object));
 
-			Log(v.ToJsonIndented());
+			Log(v.ToJsonTextIndented());
 
 			var j = (JsonObject)v;
 			Assert.That(j["Name"], Is.Not.Null.And.Property("Type").EqualTo(JsonType.String));
@@ -6111,7 +6111,7 @@ namespace SnowBank.Data.Json.Tests
 
 			var j = JsonValue.FromValue((object)x);
 			Assert.That(j, Is.Not.Null);
-			Log(j.ToJsonIndented());
+			Log(j.ToJsonTextIndented());
 			Assert.That(j.Type, Is.EqualTo(JsonType.Object), "FromObject((TClass)obj) should return a JsonObject");
 			var obj = (JsonObject)j;
 			Assert.That(obj.Get<string?>("$type", null), Is.Null, "Not on top level");
@@ -6123,7 +6123,7 @@ namespace SnowBank.Data.Json.Tests
 
 			j = JsonValue.FromValue((object) x.Agent);
 			Assert.That(j, Is.Not.Null);
-			Log(j.ToJsonIndented());
+			Log(j.ToJsonTextIndented());
 			Assert.That(j.Type, Is.EqualTo(JsonType.Object), "FromObject((TDerived)obj) should return a JsonObject");
 			obj = (JsonObject)j;
 			Assert.That(obj.Get<string?>("$type", null), Is.EqualTo("spy"), "FromObject(foo) should output the $type if one is required");
@@ -6133,7 +6133,7 @@ namespace SnowBank.Data.Json.Tests
 
 			j = JsonValue.FromValue<DummyJsonBaseClass>(x.Agent);
 			Assert.That(j, Is.Not.Null);
-			Log(j.ToJsonIndented());
+			Log(j.ToJsonTextIndented());
 			Assert.That(j.Type, Is.EqualTo(JsonType.Object), "FromValue<TClass>() should return a JsonObject");
 			obj = (JsonObject)j;
 			Assert.That(obj.Get<string?>("$type", null), Is.EqualTo("spy"), "FromValue<TBase>((TDerived)foo) should output the $type");

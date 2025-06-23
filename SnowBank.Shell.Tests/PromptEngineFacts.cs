@@ -600,7 +600,7 @@ namespace SnowBank.Shell.Prompt.Tests
 				public override bool IsValid() => this.Query != null;
 
 				public override string ToString() => this.Query != null
-					? $"Query {{ Expr = {this.Query}, Options = {this.Options?.ToJsonCompact() } }}"
+					? $"Query {{ Expr = {this.Query}, Options = {this.Options?.ToJsonTextCompact() } }}"
 					: $"Query {{ Error = {this.Error?.Message} }}";
 
 				public override PromptState Update(PromptState state)

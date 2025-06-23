@@ -220,15 +220,15 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			Log(System.Text.Json.JsonSerializer.Serialize(trex, SystemTextJsonGeneratedSerializers.Default.TRex));
 			//
 			Log("CodeGen:");
-			Log(GeneratedConverters.Animal.ToJson(dog));
-			Log(GeneratedConverters.Mammal.ToJson(dog));
-			Log(GeneratedConverters.Dog.ToJson(dog));
-			Log(GeneratedConverters.Animal.ToJson(cat));
-			Log(GeneratedConverters.Mammal.ToJson(cat));
-			Log(GeneratedConverters.Cat.ToJson(cat));
-			Log(GeneratedConverters.Animal.ToJson(trex));
-			Log(GeneratedConverters.Reptilian.ToJson(trex));
-			Log(GeneratedConverters.TRex.ToJson(trex));
+			Log(GeneratedConverters.Animal.ToJsonText(dog));
+			Log(GeneratedConverters.Mammal.ToJsonText(dog));
+			Log(GeneratedConverters.Dog.ToJsonText(dog));
+			Log(GeneratedConverters.Animal.ToJsonText(cat));
+			Log(GeneratedConverters.Mammal.ToJsonText(cat));
+			Log(GeneratedConverters.Cat.ToJsonText(cat));
+			Log(GeneratedConverters.Animal.ToJsonText(trex));
+			Log(GeneratedConverters.Reptilian.ToJsonText(trex));
+			Log(GeneratedConverters.TRex.ToJsonText(trex));
 
 			var dog2 = GeneratedConverters.Animal.Deserialize("{ \"$type\": \"dog\", \"id\": \"f512fdd2-c306-4158-9a0a-31d4c0c70f40\", \"name\": \"Fido\", \"legCount\": 4, \"isGoodDog\": true }");
 			Assert.That(dog2, Is.InstanceOf<Dog>().And.EqualTo(dog));
@@ -404,7 +404,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 
 				// Person => string
 				Log("# Actual output:");
-				var json = GeneratedConverters.Person.ToJson(person);
+				var json = GeneratedConverters.Person.ToJsonText(person);
 				Log(json);
 				Assert.That(json, Is.EqualTo("""{ "firstName": "James", "familyName": "Bond" }"""));
 				Log();
@@ -748,7 +748,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 
 			// inspect the wrapped JsonObject
 			Log("ToJson()");
-			var json = proxy.ToJson();
+			var json = proxy.ToJsonValue();
 			Dump(json);
 			Assert.That(json, IsJson.Object.And.ReadOnly);
 			Assert.That(json["familyName"], IsJson.EqualTo("Bond"));
@@ -793,7 +793,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 
 			// inspect the wrapped JsonObject
 			Log("ToJson()");
-			var json = proxy.ToJson();
+			var json = proxy.ToJsonValue();
 			Dump(json);
 			Assert.That(json, IsJson.Object.And.ReadOnly);
 			Assert.That(json["id"], IsJson.EqualTo(cat.Id));
@@ -831,7 +831,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			Log(proxy.ToString());
 			Assert.That(proxy.FamilyName, Is.EqualTo("Bond"));
 			Assert.That(proxy.FirstName, Is.EqualTo("James"));
-			Assert.That(proxy.ToJson(), IsJson.ReadOnly);
+			Assert.That(proxy.ToJsonValue(), IsJson.ReadOnly);
 
 			{ // ReadOnly.With(Mutable => .... }
 				var mutated = proxy.With(
@@ -840,18 +840,18 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 						Assert.That(m.FamilyName, Is.EqualTo("Bond"));
 						Assert.That(m.FirstName, Is.EqualTo("James"));
 						// the JSON should a mutable copy of the original
-						Assert.That(m.ToJson(), IsJson.Object.And.Mutable.And.EqualTo(proxy.ToJson()));
+						Assert.That(m.ToJsonValue(), IsJson.Object.And.Mutable.And.EqualTo(proxy.ToJsonValue()));
 
 						m.FirstName = "Jim";
 						Assert.That(m.FirstName, Is.EqualTo("Jim"));
-						Assert.That(m.ToJson()["firstName"], IsJson.EqualTo("Jim"));
+						Assert.That(m.ToJsonValue()["firstName"], IsJson.EqualTo("Jim"));
 					});
 
 				Log(mutated.ToString());
 				// should return an updated object
 				Assert.That(mutated.FamilyName, Is.EqualTo("Bond"));
 				Assert.That(mutated.FirstName, Is.EqualTo("Jim"));
-				Assert.That(mutated.ToJson(), IsJson.ReadOnly);
+				Assert.That(mutated.ToJsonValue(), IsJson.ReadOnly);
 
 				// should not change the original!
 				Assert.That(proxy.FamilyName, Is.EqualTo("Bond"));
@@ -866,7 +866,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 				// should return an updated object
 				Assert.That(mutated.FamilyName, Is.EqualTo("Bond"));
 				Assert.That(mutated.FirstName, Is.EqualTo("Jim"));
-				Assert.That(mutated.ToJson(), IsJson.Mutable);
+				Assert.That(mutated.ToJsonValue(), IsJson.Mutable);
 
 				// should not change the original!
 				Assert.That(proxy.FamilyName, Is.EqualTo("Bond"));
@@ -888,7 +888,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			Log(proxy.ToString());
 			Assert.That(user.DisplayName, Is.EqualTo("James Bond"));
 			Assert.That(user.Roles, Is.EqualTo((string[]) ["user", "secret_agent"]));
-			Assert.That(proxy.ToJson(), IsJson.ReadOnly);
+			Assert.That(proxy.ToJsonValue(), IsJson.ReadOnly);
 
 			{ // ReadOnly.With(Mutable => .... }
 				var mutated = proxy.With(
@@ -897,22 +897,22 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 						Assert.That(m.DisplayName, Is.EqualTo("James Bond"));
 						Assert.That(m.Roles, Is.EqualTo((string[]) ["user", "secret_agent"]));
 						// the JSON should a mutable copy of the original
-						Assert.That(m.ToJson(), IsJson.Object.And.Mutable.And.EqualTo(proxy.ToJson()));
+						Assert.That(m.ToJsonValue(), IsJson.Object.And.Mutable.And.EqualTo(proxy.ToJsonValue()));
 
 						m.DisplayName = "Jim Bond";
 						Assert.That(m.DisplayName, Is.EqualTo("Jim Bond"));
-						Assert.That(m.ToJson()["displayName"], IsJson.EqualTo("Jim Bond"));
+						Assert.That(m.ToJsonValue()["displayName"], IsJson.EqualTo("Jim Bond"));
 
 						m.Roles = ["user", "secret_agent", "retired"];
 						Assert.That(m.Roles, Is.EqualTo((string[]) ["user", "secret_agent", "retired"]));
-						Assert.That(m.ToJson()["roles"], IsJson.Array.And.EqualTo((string[]) ["user", "secret_agent", "retired"]));
+						Assert.That(m.ToJsonValue()["roles"], IsJson.Array.And.EqualTo((string[]) ["user", "secret_agent", "retired"]));
 					});
 
 				Log(mutated.ToString());
 				// should return an updated object
 				Assert.That(mutated.DisplayName, Is.EqualTo("Jim Bond"));
 				Assert.That(mutated.Roles, Is.EqualTo((string[]) ["user", "secret_agent", "retired"]));
-				Assert.That(mutated.ToJson(), IsJson.ReadOnly);
+				Assert.That(mutated.ToJsonValue(), IsJson.ReadOnly);
 
 				// should not change the original!
 				Assert.That(proxy.DisplayName, Is.EqualTo("James Bond"));
@@ -926,7 +926,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 
 				// should return an updated object
 				Assert.That(mutated.Type, Is.EqualTo(MyAwesomeEnumType.DoubleAgent));
-				Assert.That(mutated.ToJson(), IsJson.Mutable);
+				Assert.That(mutated.ToJsonValue(), IsJson.Mutable);
 
 				// should not change the original!
 				Assert.That(proxy.Type, Is.EqualTo(MyAwesomeEnumType.SecretAgent));
@@ -956,7 +956,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 
 			// inspect the wrapped JsonObject
 			Log("ToJson()");
-			var json = proxy.ToJson();
+			var json = proxy.ToJsonValue();
 			Dump(json);
 			Assert.That(json, IsJson.Object.And.Mutable);
 			Assert.That(json["familyName"], IsJson.EqualTo("Bond"));
@@ -1010,7 +1010,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 
 			// inspect the wrapped JsonObject
 			Log("ToJson()");
-			var json = proxy.ToJson();
+			var json = proxy.ToJsonValue();
 			Dump(json);
 			Assert.That(json, IsJson.Object.And.Mutable);
 			Assert.That(json["id"], IsJson.EqualTo(cat.Id));
@@ -1059,7 +1059,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 
 			var updated = proxy.With(m => m.FirstName = "Jim");
 
-			var export = updated.ToJson();
+			var export = updated.ToJsonValue();
 			Dump(obj);
 			Assert.That(export, IsJson.Object);
 			Assert.That(export["familyName"], IsJson.EqualTo("Bond"));
@@ -1089,7 +1089,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			Assert.That(proxy.HasEmail(), Is.True);
 			Assert.That(proxy.HasMetadata(), Is.True);
 
-			var json = proxy.ToJson();
+			var json = proxy.ToJsonValue();
 			Log("JSON:");
 			Dump(json);
 			Assert.That(json, IsJson.Object.And.ReadOnly);
@@ -1180,8 +1180,8 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			Assert.That(proxy.Get(), Is.Not.Null);
 			Assert.That(proxy.Get().Type, Is.EqualTo(JsonType.Object));
 			// which should wrap a mutable object
-			Assert.That(proxy.ToJson(), Is.Not.Null);
-			Assert.That(proxy.ToJson(), IsJson.Object.And.Mutable);
+			Assert.That(proxy.ToJsonValue(), Is.Not.Null);
+			Assert.That(proxy.ToJsonValue(), IsJson.Object.And.Mutable);
 			// it should be untracked
 			Assert.That(proxy.GetContext(), Is.Null);
 
@@ -1210,7 +1210,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			Assert.That(proxy.Devices["Foo"].GetPath(), Is.EqualTo("devices.Foo"));
 			Assert.That(proxy.Extras["bar"][^1].GetPath(), Is.EqualTo("extras.bar[^1]"));
 
-			var json = proxy.ToJson();
+			var json = proxy.ToJsonValue();
 			Log("JSON:");
 			Dump(json);
 			Assert.That(json, IsJson.Object.And.Mutable);
@@ -1242,7 +1242,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			proxy.Extras.Set("bonus", 456); // the readonly-object should be automatically upgraded to mutable!
 
 			Log("Mutated:");
-			Dump(proxy.ToJson());
+			Dump(proxy.ToJsonValue());
 
 			var decoded = proxy.ToValue();
 			Log("Decoded:");

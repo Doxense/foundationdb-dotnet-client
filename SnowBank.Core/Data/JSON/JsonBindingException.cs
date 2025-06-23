@@ -96,7 +96,7 @@ namespace SnowBank.Data.Json
 		public override void GetObjectData(SerializationInfo info, StreamingContext context)
 		{
 			base.GetObjectData(info, context);
-			info.AddValue("Value", this.Value?.ToJson());
+			info.AddValue("Value", this.Value?.ToJsonText());
 			info.AddValue("Path", this.Path?.Value.ToString());
 			info.AddValue("Reason", this.Reason);
 		}

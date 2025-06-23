@@ -2830,14 +2830,14 @@ namespace SnowBank.Data.Json.Tests
 			// KeyValuePair<K, V> instances, outside a dictionary, will be serialized as the array '[KEY, VALUE]', instead of '{ "Key": KEY, "Value": VALUE }', because it is more compact.
 			// The only exception is for a collection of KV pairs (all with the same type), which are serialized as an object
 
-			Assert.That(JsonValue.FromValue(new KeyValuePair<string, int>("hello", 42)).ToJson(), Is.EqualTo("""[ "hello", 42 ]"""));
-			Assert.That(JsonValue.FromValue(new KeyValuePair<int, bool>(123, true)).ToJson(), Is.EqualTo("[ 123, true ]"));
+			Assert.That(JsonValue.FromValue(new KeyValuePair<string, int>("hello", 42)).ToJsonText(), Is.EqualTo("""[ "hello", 42 ]"""));
+			Assert.That(JsonValue.FromValue(new KeyValuePair<int, bool>(123, true)).ToJsonText(), Is.EqualTo("[ 123, true ]"));
 
-			Assert.That(JsonValue.FromValue(default(KeyValuePair<string, int>)).ToJson(), Is.EqualTo("[ null, 0 ]"));
-			Assert.That(JsonValue.FromValue(default(KeyValuePair<int, bool>)).ToJson(), Is.EqualTo("[ 0, false ]"));
+			Assert.That(JsonValue.FromValue(default(KeyValuePair<string, int>)).ToJsonText(), Is.EqualTo("[ null, 0 ]"));
+			Assert.That(JsonValue.FromValue(default(KeyValuePair<int, bool>)).ToJsonText(), Is.EqualTo("[ 0, false ]"));
 
 			var nested = KeyValuePair.Create(KeyValuePair.Create("hello", KeyValuePair.Create("narf", 42)), KeyValuePair.Create(123, KeyValuePair.Create("zort", TimeSpan.Zero)));
-			Assert.That(JsonValue.FromValue(nested).ToJson(), Is.EqualTo("""[ [ "hello", [ "narf", 42 ] ], [ 123, [ "zort", 0 ] ] ]"""));
+			Assert.That(JsonValue.FromValue(nested).ToJsonText(), Is.EqualTo("""[ [ "hello", [ "narf", 42 ] ], [ 123, [ "zort", 0 ] ] ]"""));
 		}
 
 		[Test]
@@ -2899,7 +2899,7 @@ namespace SnowBank.Data.Json.Tests
 
 		private static void Verify_TryFormat(JsonValue literal)
 		{
-			string expected = literal.ToJson();
+			string expected = literal.ToJsonText();
 			Log($"# `{literal:P}` => `{expected}`");
 
 			{ // with more space than required

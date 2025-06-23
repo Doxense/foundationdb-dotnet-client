@@ -60,7 +60,7 @@ namespace SnowBank.Data.Json.Tests
 			// do some warmup work
 			for (int i = 0; i < 100; i++)
 			{
-				_ = CrystalJson.Serialize(CrystalJson.Parse(JsonValue.FromValue(MediaContent.GetMedia1()).ToJson()).As<MediaContent>());
+				_ = CrystalJson.Serialize(CrystalJson.Parse(JsonValue.FromValue(MediaContent.GetMedia1()).ToJsonText()).As<MediaContent>());
 			}
 		}
 

@@ -61,7 +61,7 @@ namespace SnowBank.Data.Json
 		/// <para>The returned value is read-only and cannot be changed.</para>
 		/// <para>The value will be marked as having been accessed by value.</para>
 		/// </remarks>
-		public JsonValue ToJson();
+		public JsonValue ToJsonValue();
 
 		/// <summary>Returns the (optional) tracking context attached to this instance</summary>
 		/// <remarks>If <c>non-null</c>, this context will record all read access made to this instance, or any of its children</remarks>

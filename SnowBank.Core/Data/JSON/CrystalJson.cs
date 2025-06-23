@@ -31,6 +31,7 @@
 namespace SnowBank.Data.Json
 {
 	using System.Buffers;
+	using System.ComponentModel;
 	using System.IO;
 	using System.Reflection;
 	using System.Text;
@@ -106,48 +107,12 @@ namespace SnowBank.Data.Json
 		/// <returns><c>`123`</c>, <c>`true`</c>, <c>`"ABC"`</c>, <c>`{ "foo":..., "bar": ... }`</c>, <c>`[ ... ]`</c>, ...</returns>
 		/// <exception cref="JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
 		[Pure]
-		public static string SerializeJson(JsonValue value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+		[OverloadResolutionPriority(1)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use value.ToJsonText(...) instead")]
+		public static string SerializeJson(JsonValue? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			switch (value)
-			{
-				case null or JsonNull:
-				{
-					return "null";
-				}
-				case JsonString str:
-				{
-					return str.ToJson(settings);
-				}
-				case JsonBoolean b:
-				{
-					return b.Value ? JsonTokens.True : JsonTokens.False;
-				}
-				case JsonNumber n:
-				{
-					return n.ToJson(settings);
-				}
-				case JsonDateTime dt:
-				{
-					return dt.ToJson(settings);
-				}
-				default:
-				{ // Object or Array
-					var writer = WriterPool.Allocate();
-					try
-					{
-						writer.Initialize(0, settings, resolver);
-
-						value.JsonSerialize(writer);
-
-						return writer.GetString();
-					}
-					finally
-					{
-						writer.Dispose();
-						WriterPool.Free(writer);
-					}
-				}
-			}
+			return value?.ToJsonText(settings, resolver) ?? JsonTokens.Null;
 		}
 
 		/// <summary>Serializes a value that implements <see cref="IJsonSerializable"/></summary>
@@ -156,27 +121,12 @@ namespace SnowBank.Data.Json
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns><c>`123`</c>, <c>`true`</c>, <c>`"ABC"`</c>, <c>`{ "foo":..., "bar": ... }`</c>, <c>`[ ... ]`</c>, ...</returns>
 		/// <exception cref="JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
+		[Pure]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use value.ToJsonText(...) instead")]
 		public static string SerializeJson(IJsonSerializable? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
-			if (value == null)
-			{ // special case for null instances
-				return JsonTokens.Null;
-			}
-
-			var writer = WriterPool.Allocate();
-			try
-			{
-				writer.Initialize(0, settings, resolver);
-
-				value.JsonSerialize(writer);
-
-				return writer.GetString();
-			}
-			finally
-			{
-				writer.Dispose();
-				WriterPool.Free(writer);
-			}
+			return value?.ToJsonText(settings, resolver) ?? JsonTokens.Null;
 		}
 
 		/// <summary>Serializes a value of type <typeparamref name="T"/> into a string literal</summary>
@@ -547,17 +497,14 @@ namespace SnowBank.Data.Json
 		public static Slice ToSlice(object? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 			=> ToSlice(value, typeof(object), settings, resolver);
 
-		private static ObjectPool<CrystalJsonWriter> WriterPool = new(() => new CrystalJsonWriter());
+		internal static ObjectPool<CrystalJsonWriter> WriterPool = new(() => new CrystalJsonWriter());
 
 		/// <summary>Serializes a value into an UTF-8 encoded Slice</summary>
-		/// <typeparam name="T">Advertized type of the instance.</typeparam>
+		/// <typeparam name="T">Advertised type of the instance.</typeparam>
 		/// <param name="value">Instance to serialize (of any type)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>Slice of memory that contains the utf-8 encoded JSON document</returns>
-		/// <remarks>
-		/// <para>If <typeparamref name="T"/> is an interface or abstract class, or if <paramref name="value"/> is a derived type of <typeparamref name="T"/>, the serialized document may include an additional attribute with the original type name, which may not be recognized by other libraries or platforms.</para>
-		/// </remarks>
 		[Pure]
 		public static Slice ToSlice<T>(T? value, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
@@ -666,6 +613,7 @@ namespace SnowBank.Data.Json
 		/// <remarks>
 		/// <para>The <see cref="SliceOwner"/> returned <b>MUST</b> be disposed; otherwise, the rented buffer will not be returned to the <paramref name="pool"/>.</para>
 		/// </remarks>
+		[Pure, MustDisposeResource]
 		public static SliceOwner ToSlice<T>(T? value, ArrayPool<byte>? pool, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			var writer = WriterPool.Allocate();
@@ -684,13 +632,13 @@ namespace SnowBank.Data.Json
 			}
 		}
 
-		/// <summary>Serializes a value of type <typeparamref name="T"/> into a <see cref="SliceOwner"/> using the specified <see cref="ArrayPool{T}">pool</see></summary>
-		/// <param name="values">Instance to serialize (can be null)</param>
+		/// <summary>Serializes a span of values of type <typeparamref name="T"/> as a JSON Array into a <see cref="SliceOwner"/> using the specified <see cref="ArrayPool{T}">pool</see></summary>
+		/// <param name="values">Span of the instances to serialize (can be null)</param>
 		/// <param name="pool">Pool used to allocate the content of the slice (use <see cref="ArrayPool{T}.Shared"/> if <see langword="null"/>)</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
-		/// <returns><c>`123`</c>, <c>`true`</c>, <c>`"ABC"`</c>, <c>`{ "foo":..., "bar": ... }`</c>, <c>`[ ... ]`</c>, ...</returns>
-		/// <exception cref="JsonSerializationException">If the object fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
+		/// <returns><c>`[ 123, 456, 789, ... ]`</c>, <c>`[ true, true, false, ... ]`</c>, <c>`[ "ABC", "DEF", "GHI", ... ]`</c>, <c>`[ { "foo":..., "bar": ... }, { "foo":..., "bar": ... }, ... ]`</c>, <c>`[ [ ... ], [ ... ], ... ]`</c>, ...</returns>
+		/// <exception cref="JsonSerializationException">If any value fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
 		/// <remarks>
 		/// <para>The <see cref="SliceOwner"/> returned <b>MUST</b> be disposed; otherwise, the rented buffer will not be returned to the <paramref name="pool"/>.</para>
 		/// </remarks>
@@ -1118,7 +1066,7 @@ namespace SnowBank.Data.Json
 		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
 		/// <para>If the result is always expected to be an Array or an Object, please call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
 		/// </remarks>
-		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
+		/// <exception cref="JsonSyntaxException">If the JSON document is not syntactically correct.</exception>
 		[Pure]
 		public static JsonValue Parse(ReadOnlySpan<byte> jsonBytes, CrystalJsonSettings? settings = null)
 		{
@@ -1139,7 +1087,7 @@ namespace SnowBank.Data.Json
 		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
 		/// <para>If the result is always expected to be an Array or an Object, please call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
 		/// </remarks>
-		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
+		/// <exception cref="JsonSyntaxException">If the JSON document is not syntactically correct.</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Parse(ReadOnlyMemory<byte> jsonBytes, CrystalJsonSettings? settings = null)
 		{
@@ -1154,7 +1102,7 @@ namespace SnowBank.Data.Json
 		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
 		/// <para>If the result is always expected to be an Array or an Object, please call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
 		/// </remarks>
-		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
+		/// <exception cref="JsonSyntaxException">If the JSON document is not syntactically correct.</exception>
 		[Pure]
 		public static JsonValue Parse(ref ReadOnlySequence<byte> jsonBytes, CrystalJsonSettings? settings = null)
 		{
@@ -1187,7 +1135,7 @@ namespace SnowBank.Data.Json
 		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
 		/// <para>If the result is always expected to be an Array or an Object, please call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
 		/// </remarks>
-		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
+		/// <exception cref="JsonSyntaxException">If the JSON document is not syntactically correct.</exception>
 		[Pure]
 		public static JsonValue Parse(ReadOnlySpan<char> jsonText, CrystalJsonSettings? settings = null)
 		{
@@ -1208,7 +1156,7 @@ namespace SnowBank.Data.Json
 		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
 		/// <para>If the result is always expected to be an Array or an Object, please call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
 		/// </remarks>
-		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
+		/// <exception cref="JsonSyntaxException">If the JSON document is not syntactically correct.</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue Parse(ReadOnlyMemory<char> jsonText, CrystalJsonSettings? settings = null)
 		{
@@ -1223,7 +1171,7 @@ namespace SnowBank.Data.Json
 		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
 		/// <para>If the result is always expected to be an Array or an Object, please call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
 		/// </remarks>
-		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
+		/// <exception cref="JsonSyntaxException">If the JSON document is not syntactically correct.</exception>
 		[Pure]
 		public static JsonValue Parse(ref ReadOnlySequence<char> jsonText, CrystalJsonSettings? settings = null)
 		{
@@ -1256,7 +1204,7 @@ namespace SnowBank.Data.Json
 		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
 		/// <para>If the result is always expected to be an Array or an Object, please call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
 		/// </remarks>
-		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
+		/// <exception cref="JsonSyntaxException">If the JSON document is not syntactically correct.</exception>
 		[Pure]
 		public static JsonValue ParseFrom(TextReader reader, CrystalJsonSettings? settings = null)
 		{
@@ -1272,7 +1220,7 @@ namespace SnowBank.Data.Json
 		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
 		/// <para>If the result is always expected to be an Array or an Object, please call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
 		/// </remarks>
-		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
+		/// <exception cref="JsonSyntaxException">If the JSON document is not syntactically correct.</exception>
 		[Pure]
 		internal static JsonValue ParseFromReader<TReader>(TReader source, CrystalJsonSettings? settings = null)
 			where TReader : struct, IJsonReader
@@ -1300,7 +1248,7 @@ namespace SnowBank.Data.Json
 		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
 		/// <para>If the result is always expected to be an Array or an Object, please call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
 		/// </remarks>
-		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
+		/// <exception cref="JsonSyntaxException">If the JSON document is not syntactically correct.</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static JsonValue ParseFrom(string path, CrystalJsonSettings? settings = null, LoadOptions options = LoadOptions.None)
 		{
@@ -1315,7 +1263,7 @@ namespace SnowBank.Data.Json
 		/// <para>The value may be mutable (for objects and arrays) and can be modified. If you require an immutable thread-safe value, please configure the <paramref name="settings"/> accordingly.</para>
 		/// <para>If the result is always expected to be an Array or an Object, please call <see cref="JsonValueExtensions.AsArray"/> or <see cref="JsonValueExtensions.AsObject"/> on the result.</para>
 		/// </remarks>
-		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
+		/// <exception cref="JsonSyntaxException">If the JSON document is not syntactically correct.</exception>
 		[Pure]
 		public static JsonValue ParseFrom(Stream source, CrystalJsonSettings? settings = null)
 		{
@@ -1424,7 +1372,7 @@ namespace SnowBank.Data.Json
 		/// <summary>De-serializes a JSON text literal into a value of type <typeparamref name="TValue"/></summary>
 		/// <param name="jsonText">JSON text document to parse</param>
 		/// <returns>Deserialized instance</returns>
-		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
+		/// <exception cref="JsonSyntaxException">If the JSON document is not syntactically correct.</exception>
 		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
 		[Pure]
 		public static TValue Deserialize<TValue>(
@@ -1442,7 +1390,7 @@ namespace SnowBank.Data.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>Deserialized instance</returns>
-		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
+		/// <exception cref="JsonSyntaxException">If the JSON document is not syntactically correct.</exception>
 		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
 		[Pure]
 		public static TValue Deserialize<TValue>(
@@ -1463,7 +1411,7 @@ namespace SnowBank.Data.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>Deserialized instance</returns>
-		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
+		/// <exception cref="JsonSyntaxException">If the JSON document is not syntactically correct.</exception>
 		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
 		[Pure]
 		public static TValue Deserialize<TValue>(
@@ -1487,7 +1435,7 @@ namespace SnowBank.Data.Json
 		/// <param name="jsonText">JSON text document to parse</param>
 		/// <param name="defaultValue"></param>
 		/// <returns>Deserialized instance</returns>
-		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
+		/// <exception cref="JsonSyntaxException">If the JSON document is not syntactically correct.</exception>
 		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
@@ -1507,7 +1455,7 @@ namespace SnowBank.Data.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>Deserialized instance</returns>
-		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
+		/// <exception cref="JsonSyntaxException">If the JSON document is not syntactically correct.</exception>
 		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
@@ -1527,7 +1475,7 @@ namespace SnowBank.Data.Json
 		/// <summary>De-serializes a JSON text literal into a value of type <typeparamref name="TValue"/></summary>
 		/// <param name="jsonBytes">UTF-8 encoded JSON document to parse</param>
 		/// <returns>Deserialized instance</returns>
-		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
+		/// <exception cref="JsonSyntaxException">If the JSON document is not syntactically correct.</exception>
 		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
 		[Pure]
 		public static TValue Deserialize<TValue>(byte[] jsonBytes) where TValue : notnull
@@ -1540,7 +1488,7 @@ namespace SnowBank.Data.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>Deserialized instance</returns>
-		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
+		/// <exception cref="JsonSyntaxException">If the JSON document is not syntactically correct.</exception>
 		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
 		[Pure]
 		public static TValue Deserialize<TValue>(byte[] jsonBytes, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver = null) where TValue : notnull
@@ -1552,7 +1500,7 @@ namespace SnowBank.Data.Json
 		/// <param name="jsonBytes">UTF-8 encoded JSON document to parse</param>
 		/// <param name="defaultValue"></param>
 		/// <returns>Deserialized instance</returns>
-		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
+		/// <exception cref="JsonSyntaxException">If the JSON document is not syntactically correct.</exception>
 		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
@@ -1567,7 +1515,7 @@ namespace SnowBank.Data.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>Deserialized instance</returns>
-		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
+		/// <exception cref="JsonSyntaxException">If the JSON document is not syntactically correct.</exception>
 		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
@@ -1579,7 +1527,7 @@ namespace SnowBank.Data.Json
 		/// <summary>De-serializes a JSON text literal into a value of type <typeparamref name="TValue"/></summary>
 		/// <param name="jsonBytes">UTF-8 encoded JSON document to parse</param>
 		/// <returns>Deserialized instance</returns>
-		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
+		/// <exception cref="JsonSyntaxException">If the JSON document is not syntactically correct.</exception>
 		[Pure]
 		public static TValue Deserialize<TValue>(Slice jsonBytes) where TValue : notnull
 		{
@@ -1591,7 +1539,7 @@ namespace SnowBank.Data.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>Deserialized instance</returns>
-		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
+		/// <exception cref="JsonSyntaxException">If the JSON document is not syntactically correct.</exception>
 		[Pure]
 		public static TValue Deserialize<TValue>(Slice jsonBytes, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver = null) where TValue : notnull
 		{
@@ -1602,7 +1550,7 @@ namespace SnowBank.Data.Json
 		/// <param name="jsonBytes">UTF-8 encoded JSON document to parse</param>
 		/// <param name="defaultValue"></param>
 		/// <returns>Deserialized instance</returns>
-		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
+		/// <exception cref="JsonSyntaxException">If the JSON document is not syntactically correct.</exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public static TValue? Deserialize<TValue>(Slice jsonBytes, TValue defaultValue)
@@ -1616,7 +1564,7 @@ namespace SnowBank.Data.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>Deserialized instance</returns>
-		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
+		/// <exception cref="JsonSyntaxException">If the JSON document is not syntactically correct.</exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public static TValue? Deserialize<TValue>(Slice jsonBytes, TValue defaultValue, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver = null)
@@ -1629,7 +1577,7 @@ namespace SnowBank.Data.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>Deserialized instance</returns>
-		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
+		/// <exception cref="JsonSyntaxException">If the JSON document is not syntactically correct.</exception>
 		[Pure]
 		public static TValue Deserialize<TValue>(ReadOnlySpan<byte> jsonBytes, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) where TValue : notnull
 		{
@@ -1640,7 +1588,7 @@ namespace SnowBank.Data.Json
 		/// <param name="jsonBytes">UTF-8 encoded JSON document to parse</param>
 		/// <param name="defaultValue"></param>
 		/// <returns>Deserialized instance</returns>
-		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
+		/// <exception cref="JsonSyntaxException">If the JSON document is not syntactically correct.</exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public static TValue? Deserialize<TValue>(ReadOnlySpan<byte> jsonBytes, TValue defaultValue)
@@ -1654,7 +1602,7 @@ namespace SnowBank.Data.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>Deserialized instance</returns>
-		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
+		/// <exception cref="JsonSyntaxException">If the JSON document is not syntactically correct.</exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public static TValue? Deserialize<TValue>(ReadOnlySpan<byte> jsonBytes, TValue defaultValue, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver = null)
@@ -1667,7 +1615,7 @@ namespace SnowBank.Data.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>Deserialized instance</returns>
-		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
+		/// <exception cref="JsonSyntaxException">If the JSON document is not syntactically correct.</exception>
 		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
 		[Pure]
 		public static TValue Deserialize<TValue>(ReadOnlyMemory<byte> jsonBytes, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) where TValue : notnull
@@ -1679,7 +1627,7 @@ namespace SnowBank.Data.Json
 		/// <param name="jsonBytes">UTF-8 encoded JSON document to parse</param>
 		/// <param name="defaultValue"></param>
 		/// <returns>Deserialized instance</returns>
-		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
+		/// <exception cref="JsonSyntaxException">If the JSON document is not syntactically correct.</exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public static TValue? Deserialize<TValue>(ReadOnlyMemory<byte> jsonBytes, TValue defaultValue)
@@ -1693,7 +1641,7 @@ namespace SnowBank.Data.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>Deserialized instance</returns>
-		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
+		/// <exception cref="JsonSyntaxException">If the JSON document is not syntactically correct.</exception>
 		[Pure]
 		[return: NotNullIfNotNull(nameof(defaultValue))]
 		public static TValue? Deserialize<TValue>(ReadOnlyMemory<byte> jsonBytes, TValue defaultValue, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver = null)
@@ -1706,7 +1654,7 @@ namespace SnowBank.Data.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>Deserialized instance</returns>
-		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
+		/// <exception cref="JsonSyntaxException">If the JSON document is not syntactically correct.</exception>
 		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
 		[Pure]
 		public static TValue? LoadFrom<TValue>(TextReader source, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) where TValue : notnull
@@ -1719,7 +1667,7 @@ namespace SnowBank.Data.Json
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <returns>Deserialized instance</returns>
-		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
+		/// <exception cref="JsonSyntaxException">If the JSON document is not syntactically correct.</exception>
 		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
 		[Pure]
 		public static TValue? LoadFrom<TValue>(Stream source, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) where TValue : notnull
@@ -1737,7 +1685,7 @@ namespace SnowBank.Data.Json
 		/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 		/// <param name="options">Read options</param>
 		/// <returns>Deserialized instance</returns>
-		/// <exception cref="FormatException">If the JSON document is not syntactically correct.</exception>
+		/// <exception cref="JsonSyntaxException">If the JSON document is not syntactically correct.</exception>
 		/// <exception cref="InvalidOperationException">If the JSON document is <c>"null"</c></exception>
 		[Pure]
 		public static TValue? LoadFrom<TValue>(string path, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null, LoadOptions options = LoadOptions.None) where TValue : notnull

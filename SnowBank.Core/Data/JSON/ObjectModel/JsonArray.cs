@@ -4623,14 +4623,27 @@ namespace SnowBank.Data.Json
 		};
 
 		/// <inheritdoc />
-		public override string ToJson(CrystalJsonSettings? settings = null)
+		public override string ToJsonText(CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (m_size == 0)
 			{
 				return settings.IsCompactLayout() ? "[]" : "[ ]";
 			}
 
-			return CrystalJson.SerializeJson(this, settings);
+			var writer = CrystalJson.WriterPool.Allocate();
+			try
+			{
+				writer.Initialize(0, settings, resolver);
+
+				this.JsonSerialize(writer);
+
+				return writer.GetString();
+			}
+			finally
+			{
+				writer.Dispose();
+				CrystalJson.WriterPool.Free(writer);
+			}
 		}
 
 		/// <inheritdoc />
@@ -4678,7 +4691,7 @@ namespace SnowBank.Data.Json
 			//TODO: maybe attempt to do it without allocating?
 			// => for the moment, we will serialize the object into memory, and copy the result
 
-			var literal = ToJson();
+			var literal = this.ToJsonText();
 			if (literal.Length > destination.Length)
 			{
 				charsWritten = 0;

@@ -106,7 +106,7 @@ namespace SnowBank.Data.Json
 
 		public Dictionary<string, TValue> ToDictionary() => m_converter.UnpackDictionary(m_value.ToJsonValue())!;
 
-		public JsonValue ToJson() => m_value.ToJsonValue();
+		public JsonValue ToJsonValue() => m_value.ToJsonValue();
 
 		/// <inheritdoc />
 		public IEnumerator<KeyValuePair<string, TValue>> GetEnumerator()
@@ -216,7 +216,7 @@ namespace SnowBank.Data.Json
 
 		public Dictionary<string, TValue> ToDictionary() => TProxy.Converter.UnpackDictionary(m_value.ToJsonValue().AsObject());
 
-		public JsonValue ToJson() => m_value.ToJsonValue();
+		public JsonValue ToJsonValue() => m_value.ToJsonValue();
 
 		/// <inheritdoc />
 		public IEnumerator<KeyValuePair<string, TProxy>> GetEnumerator()

@@ -36,7 +36,7 @@ namespace SnowBank.Data.Json
 
 		public List<TValue> ToList() => m_converter.UnpackList(m_value.ToJsonValue().AsArrayOrEmpty());
 
-		public JsonValue ToJson() => m_value.ToJsonValue();
+		public JsonValue ToJsonValue() => m_value.ToJsonValue();
 
 		/// <inheritdoc />
 		public IEnumerator<TValue?> GetEnumerator()
@@ -146,7 +146,7 @@ namespace SnowBank.Data.Json
 		/// <inheritdoc />
 		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_value.ToJsonValue();
 
-		public JsonValue ToJson() => m_value.ToJsonValue();
+		public JsonValue ToJsonValue() => m_value.ToJsonValue();
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static InvalidOperationException OperationRequiresArrayOrNull() => new("This operation requires a valid JSON Array");

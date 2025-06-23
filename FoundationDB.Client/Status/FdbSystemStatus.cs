@@ -293,7 +293,7 @@ namespace FoundationDB.Client.Status
 
 		protected FdbEndPoint[] GetEndpoints(string field) => GetArray(field).OrEmpty().Select(value => FdbEndPoint.TryParse(value.ToStringOrDefault(), out var ep) ? ep : FdbEndPoint.Invalid).ToArray();
 
-		public override string ToString() => m_data?.ToJsonIndented() ?? string.Empty;
+		public override string ToString() => m_data?.ToJsonText(CrystalJsonSettings.JsonIndented) ?? string.Empty;
 
 		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => (m_data ?? JsonNull.Null).JsonSerialize(writer);
 

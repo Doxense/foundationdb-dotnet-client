@@ -1323,7 +1323,7 @@ namespace SnowBank.Data.Json
 		#region String
 
 		/// <inheritdoc />
-		public override string ToJson(CrystalJsonSettings? settings = null)
+		public override string ToJsonText(CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			return settings?.TargetLanguage != CrystalJsonSettings.Target.JavaScript
 				? JsonEncoding.Encode(m_value)

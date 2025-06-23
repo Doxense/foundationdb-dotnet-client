@@ -215,44 +215,61 @@ namespace SnowBank.Data.Json
 
 		#region IJsonConvertible...
 
-		public override string ToJson(CrystalJsonSettings? settings = null) => m_value ? JsonTokens.True : JsonTokens.False;
+		/// <inheritdoc />
+		public override string ToJsonText(CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)=> m_value ? JsonTokens.True : JsonTokens.False;
 
+		/// <inheritdoc />
 		public override string ToString() => m_value ? JsonTokens.True : JsonTokens.False;
 
+		/// <inheritdoc />
 		public override bool ToBoolean(bool _ = false) => m_value;
 
+		/// <inheritdoc />
 		public override byte ToByte(byte _ = 0) => m_value ? (byte) 1 : default(byte);
 
+		/// <inheritdoc />
 		public override sbyte ToSByte(sbyte _ = 0) => m_value ? (sbyte)1 : default(sbyte);
 
+		/// <inheritdoc />
 		public override char ToChar(char _ = '\0') => m_value ? 'Y' : 'N';
 
+		/// <inheritdoc />
 		public override short ToInt16(short _ = 0) => m_value ? (short) 1 : default(short);
 
+		/// <inheritdoc />
 		public override ushort ToUInt16(ushort _ = 0) => m_value ? (ushort) 1 : default(ushort);
 
+		/// <inheritdoc />
 		public override int ToInt32(int _ = 0) => m_value ? 1 : 0;
 
+		/// <inheritdoc />
 		public override uint ToUInt32(uint _ = 0) => m_value ? 1U : 0U;
 
+		/// <inheritdoc />
 		public override long ToInt64(long _ = 0) => m_value ? 1L : 0L;
 
+		/// <inheritdoc />
 		public override ulong ToUInt64(ulong _ = 0) => m_value ? 1UL : 0UL;
 
 #if NET8_0_OR_GREATER
 
+		/// <inheritdoc />
 		public override Int128 ToInt128(Int128 _ = default) => m_value ? Int128.One : Int128.Zero;
 
+		/// <inheritdoc />
 		public override UInt128 ToUInt128(UInt128 _ = default) => m_value ? UInt128.One : UInt128.Zero;
 
 #endif
 
+		/// <inheritdoc />
 		public override float ToSingle(float _ = 0f) => m_value ? 1f : 0f;
 
+		/// <inheritdoc />
 		public override double ToDouble(double _ = 0d) => m_value ? 1d : 0d;
 
 
 #if NET8_0_OR_GREATER
+		/// <inheritdoc />
 		public override Half ToHalf(Half _ = default) => m_value ? Half.One : Half.Zero;
 #else
 		private static readonly Half HalfZero = (Half) 0;
@@ -260,12 +277,15 @@ namespace SnowBank.Data.Json
 		public override Half ToHalf(Half _ = default) => m_value ? HalfOne : HalfZero;
 #endif
 
+		/// <inheritdoc />
 		public override decimal ToDecimal(decimal _ = 0m) => m_value ? 1m : 0m;
 
 		private static readonly Guid AllF = new(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 });
 
+		/// <inheritdoc />
 		public override Guid ToGuid(Guid _ = default) => m_value ? AllF : Guid.Empty;
 
+		/// <inheritdoc />
 		public override Uuid64 ToUuid64(Uuid64 _ = default) => m_value ? new Uuid64(-1) : default(Uuid64);
 
 		#endregion

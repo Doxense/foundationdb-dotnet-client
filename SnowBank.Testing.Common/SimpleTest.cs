@@ -1079,15 +1079,15 @@ namespace SnowBank.Testing
 
 		/// <summary>Writes a value to the output log</summary>
 		[DebuggerNonUserCode]
-		public static void Log(JsonObject? obj) => WriteToLog((obj ?? JsonNull.Null).ToJson());
+		public static void Log(JsonObject? obj) => WriteToLog((obj ?? JsonNull.Null).ToJsonText());
 
 		/// <summary>Writes a value to the output log</summary>
 		[DebuggerNonUserCode]
-		public static void Log(JsonArray? obj) => WriteToLog((obj ?? JsonNull.Null).ToJson());
+		public static void Log(JsonArray? obj) => WriteToLog((obj ?? JsonNull.Null).ToJsonText());
 
 		/// <summary>Writes a value to the output log</summary>
 		[DebuggerNonUserCode]
-		public static void Log(JsonValue? obj) => WriteToLog((obj ?? JsonNull.Null).ToJson());
+		public static void Log(JsonValue? obj) => WriteToLog((obj ?? JsonNull.Null).ToJsonText());
 
 		/// <summary>Writes a value to the output log</summary>
 		[DebuggerNonUserCode]
@@ -1175,9 +1175,9 @@ namespace SnowBank.Testing
 				case StringBuilder sb: return $"\"{sb.ToString().Replace(@"\", @"\\").Replace("\r", @"\r").Replace("\n", @"\n").Replace("\0", @"\0").Replace(@"""", @"\""")}\"";
 
 				case byte[] buf: return "(byte[]) " + buf.AsSlice().PrettyPrint();
-				case JsonValue j: return j.ToJson();
+				case JsonValue j: return j.ToJsonText();
 				case ITuple t: return t.ToString()!;
-				case IJsonSerializable j: return $"({j.GetType().GetFriendlyName()}) {CrystalJson.SerializeJson(j)}";
+				case IJsonSerializable j: return $"({j.GetType().GetFriendlyName()}) {j.ToJsonText()}";
 				case IFormattable fmt: return $"({item.GetType().GetFriendlyName()}) {fmt.ToString(null, CultureInfo.InvariantCulture)}";
 				case Task: throw new AssertionException("Cannot stringify a Task! You probably forget to add 'await' somewhere the code!");
 			}
@@ -1324,7 +1324,7 @@ namespace SnowBank.Testing
 		[DebuggerNonUserCode]
 		public static void Dump(JsonValue? value)
 		{
-			WriteToLog(value?.ToJson(CrystalJsonSettings.JsonIndented) ?? "<null>");
+			WriteToLog(value?.ToJsonText(CrystalJsonSettings.JsonIndented) ?? "<null>");
 		}
 
 		/// <summary>Outputs a human-readable representation of a JSON Array</summary>
@@ -1346,17 +1346,17 @@ namespace SnowBank.Testing
 			WriteToLog($"[{value.Count}] ", lineBreak: false);
 			if (value.All(JsonType.Number) || value.All(JsonType.Boolean))
 			{ // vector of numbers
-				WriteToLog(value.ToJson(CrystalJsonSettings.Json));
+				WriteToLog(value.ToJsonText());
 				return;
 			}
-			WriteToLog(value.ToJson(CrystalJsonSettings.JsonIndented));
+			WriteToLog(value.ToJsonText(CrystalJsonSettings.JsonIndented));
 		}
 
 		/// <summary>Outputs a human-readable representation of a JSON Object</summary>
 		[DebuggerNonUserCode]
 		public static void Dump(JsonObject? value)
 		{
-			WriteToLog(value?.ToJson(CrystalJsonSettings.JsonIndented) ?? "<null>");
+			WriteToLog(value?.ToJsonText(CrystalJsonSettings.JsonIndented) ?? "<null>");
 		}
 
 		#endregion

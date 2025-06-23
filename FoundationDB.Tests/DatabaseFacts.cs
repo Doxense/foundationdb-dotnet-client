@@ -453,9 +453,9 @@ namespace FoundationDB.Client.Tests
 
 			Log($"Received status: {status.RawData.Count:N0} bytes");
 #if FULL_DEBUG
-			Log(status.JsonData?.ToJsonIndented());
+			Log(status.JsonData?.ToJsonTextIndented());
 #else
-			Log(status.JsonData?.ToJson());
+			Log(status.JsonData?.ToJsonText());
 #endif
 
 			Assert.That(status.Healthy, Is.True);

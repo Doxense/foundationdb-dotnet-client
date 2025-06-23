@@ -66,7 +66,7 @@ namespace SnowBank.Data.Json
 		/// <para>The returned value may not be mutable and should only not be changed directly.</para>
 		/// <para>Any mutations made to this value will not be captured by the attached context!</para>
 		/// </remarks>
-		JsonValue ToJson();
+		JsonValue ToJsonValue();
 
 		/// <summary>Returns the (optional) tracking context attached to this instance</summary>
 		/// <remarks>If <c>non-null</c>, this context will record all changed made to this instance, or any of its children</remarks>

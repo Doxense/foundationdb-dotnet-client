@@ -148,7 +148,7 @@ namespace SnowBank.Data.Json
 		public JsonValue JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => m_value.Json;
 
 		/// <inheritdoc />
-		public JsonValue ToJson() => m_value.Json;
+		public JsonValue ToJsonValue() => m_value.Json;
 
 		/// <inheritdoc />
 		public IMutableJsonContext? GetContext() => m_value.Context;

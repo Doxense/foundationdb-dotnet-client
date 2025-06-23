@@ -138,7 +138,7 @@ namespace SnowBank.Data.Json
 
 		/// <summary>Returns <see langword="true"/> if this value is considered as "small" and can be safely written to a debug log (without flooding).</summary>
 		/// <remarks>
-		/// <para>For example, any JSON Object or Array must have 5 children or less, all small values, to be considered "small". Likewise, a JSON String literal must have a length or 36 characters or less, to be considered "small".</para>
+		/// <para>For example, any JSON Object or Array must have 5 children or fewer, all small values, to be considered "small". Likewise, a JSON String literal must have a length or 36 characters or fewer, to be considered "small".</para>
 		/// <para>When generating a compact representation of a JSON value, for troubleshooting purpose, an Object or Array that is not "small", may be written as <c>[ 1, 2, 3, 4, 5, ...]</c> with the rest of the value omitted.</para>
 		/// </remarks>
 		[Pure]
@@ -151,16 +151,18 @@ namespace SnowBank.Data.Json
 		internal abstract bool IsInlinable();
 
 		/// <summary>Serializes this JSON value into a JSON string literal</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use ToJsonText() instead!")] //TODO: phase out this overload ASAP!
+		public string ToJson(CrystalJsonSettings? settings = null) => ToJsonText(settings);
+
+		/// <summary>Serializes this JSON value into a JSON string literal</summary>
 		/// <param name="settings">Settings used to change the serialized JSON output (optional)</param>
+		/// <param name="resolver">Optional custom resolver.</param>
 		/// <returns>JSON text literal that can be written to disk, returned as the body of an HTTP request, or </returns>
-		/// <example><c>var jsonText = new JsonObject() { ["hello"] = "world" }.ToJson(); // == "{ \"hello\": \"world\" }"</c></example>
+		/// <example><c>var jsonText = new JsonObject() { ["hello"] = "world" }.ToJsonText(); // == "{ \"hello\": \"world\" }"</c></example>
 		[Pure]
-		[EditorBrowsable(EditorBrowsableState.Always)]
-		public virtual string ToJson(CrystalJsonSettings? settings = null)
-		{
-			return CrystalJson.SerializeJson(this, settings);
-		}
-		//TODO: REVIEW: rename as "ToJsonText()" or something else? "ToXYZ" usually means that XYZ is the final result, but here it is a string, and not a JsonValue
+		public abstract string ToJsonText(CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null);
 
 		/// <summary>Returns a "compact" string representation of this value, that can fit into a troubleshooting log.</summary>
 		/// <remarks>
@@ -168,11 +170,11 @@ namespace SnowBank.Data.Json
 		/// <para>Note: the string that is return is not valid JSON and may not be parseable! This is only intended for quick introspection of a JSON document, by a human, using a log file or console output.</para>
 		/// </remarks>
 		[Pure]
-		internal virtual string GetCompactRepresentation(int depth) => ToJson();
+		internal virtual string GetCompactRepresentation(int depth) => ToJsonText();
 
 		/// <summary>Converts this JSON value into a printable string</summary>
 		/// <remarks>
-		/// <para>Please not that, due to convention in .NET, this will return the empty string for null values, since <see cref="object.ToString"/> must not return a null reference! Please call <see cref="ToStringOrDefault"/> if you need null references for null or missing JSON values.</para>
+		/// <para>Please note that, due to convention in .NET, this will return the empty string for null values, since <see cref="object.ToString"/> must not return a null reference! Please call <see cref="ToStringOrDefault"/> if you need null references for null or missing JSON values.</para>
 		/// <para>See <see cref="ToString(string,IFormatProvider)"/> if you need to specify a different format than the default</para></remarks>
 		public override string ToString() => ToString(null, null);
 
@@ -191,10 +193,10 @@ namespace SnowBank.Data.Json
 		/// <remarks>Supported values for <paramref name="format"/> are:
 		/// <list type="table">
 		///   <listheader><term>format</term><description>foo</description></listheader>
-		///   <item><term>D</term><description>Default, equivalent to calling <see cref="ToJson"/> with <see cref="CrystalJsonSettings.Json"/></description></item>
-		///   <item><term>C</term><description>Compact, equivalent to calling <see cref="ToJson"/> with <see cref="CrystalJsonSettings.JsonCompact"/></description></item>
-		///   <item><term>P</term><description>Pretty, equivalent to calling <see cref="ToJson"/> with <see cref="CrystalJsonSettings.JsonIndented"/></description></item>
-		///   <item><term>J</term><description>JavaScript, equivalent to calling <see cref="ToJson"/> with <see cref="CrystalJsonSettings.JavaScript"/>.</description></item>
+		///   <item><term>D</term><description>Default, equivalent to calling <see cref="ToJsonText"/> with <see cref="CrystalJsonSettings.Json"/></description></item>
+		///   <item><term>C</term><description>Compact, equivalent to calling <see cref="ToJsonText"/> with <see cref="CrystalJsonSettings.JsonCompact"/></description></item>
+		///   <item><term>P</term><description>Pretty, equivalent to calling <see cref="ToJsonText"/> with <see cref="CrystalJsonSettings.JsonIndented"/></description></item>
+		///   <item><term>J</term><description>JavaScript, equivalent to calling <see cref="ToJsonText"/> with <see cref="CrystalJsonSettings.JavaScript"/>.</description></item>
 		///   <item><term>Q</term><description>Quick, equivalent to calling <see cref="GetCompactRepresentation"/>, that will return a simplified/partial version, suitable for logs/traces.</description></item>
 		/// </list>
 		/// </remarks>
@@ -206,17 +208,17 @@ namespace SnowBank.Data.Json
 				case "D":
 				case "d":
 				{ // "D" is for Default!
-					return this.ToJson();
+					return this.ToJsonText();
 				}
 				case "C":
 				case "c":
 				{ // "C" is for Compact!
-					return this.ToJsonCompact();
+					return this.ToJsonText(CrystalJsonSettings.JsonCompact);
 				}
 				case "P":
 				case "p":
 				{ // "P" is for Pretty!
-					return this.ToJsonIndented();
+					return this.ToJsonText(CrystalJsonSettings.JsonIndented);
 				}
 				case "Q":
 				case "q":
@@ -226,12 +228,12 @@ namespace SnowBank.Data.Json
 				case "J":
 				case "j":
 				{ // "J" is for Javascript!
-					return ToJson(CrystalJsonSettings.JavaScript);
+					return this.ToJsonText(CrystalJsonSettings.JavaScript);
 				}
 				case "B":
 				case "b":
 				{ // "B" is for Build!
-					return JsonEncoding.Encode(this.ToJsonCompact());
+					return JsonEncoding.Encode(this.ToJsonText(CrystalJsonSettings.JsonCompact));
 				}
 				default:
 				{

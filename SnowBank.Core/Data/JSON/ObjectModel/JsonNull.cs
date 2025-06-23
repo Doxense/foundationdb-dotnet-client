@@ -67,6 +67,9 @@ namespace SnowBank.Data.Json
 		}
 
 		/// <inheritdoc />
+		public override string ToJsonText(CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null) => JsonTokens.Null;
+
+		/// <inheritdoc />
 		public override string ToString() => string.Empty;
 
 		/// <inheritdoc />

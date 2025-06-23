@@ -235,7 +235,7 @@ namespace SnowBank.Data.Json
 			_ => throw OperationRequiresObjectOrNull(),
 		};
 
-		public JsonValue ToJson() => m_value.Json;
+		public JsonValue ToJsonValue() => m_value.Json;
 
 		/// <inheritdoc />
 		public IEnumerator<KeyValuePair<string, TValue>> GetEnumerator()
@@ -452,7 +452,7 @@ namespace SnowBank.Data.Json
 			_ => throw OperationRequiresObjectOrNull(),
 		};
 
-		public JsonValue ToJson() => m_value.Json;
+		public JsonValue ToJsonValue() => m_value.Json;
 
 		/// <inheritdoc />
 		public IEnumerator<KeyValuePair<string, TProxy>> GetEnumerator()

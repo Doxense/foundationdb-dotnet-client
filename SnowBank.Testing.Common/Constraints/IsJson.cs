@@ -421,7 +421,7 @@ namespace SnowBank.Testing
 			JsonNull when ReferenceEquals(value, JsonNull.Null) => "<null>",
 			JsonNull when ReferenceEquals(value, JsonNull.Missing) => "<missing>",
 			JsonNull when ReferenceEquals(value, JsonNull.Error) => "<error>",
-			_ => value.ToJsonIndented().Replace("\r\n", "\r\n  "),
+			_ => value.ToJsonText(CrystalJsonSettings.JsonIndented).Replace("\r\n", "\r\n  "),
 		};
 
 		private static string Stringify<TValue>(TValue? value) => value switch

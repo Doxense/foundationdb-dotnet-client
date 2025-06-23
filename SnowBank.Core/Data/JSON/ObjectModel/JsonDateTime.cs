@@ -429,7 +429,7 @@ namespace SnowBank.Data.Json
 		#region IJsonSerializable
 
 		/// <inheritdoc />
-		public override string ToJson(CrystalJsonSettings? settings = null)
+		public override string ToJsonText(CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			if (m_offset == NO_TIMEZONE)
 			{ // DateTime
@@ -760,7 +760,7 @@ namespace SnowBank.Data.Json
 		public override void WriteTo(ref SliceWriter writer)
 		{
 			//TODO: optimize!
-			writer.WriteStringUtf8(ToJson());
+			writer.WriteStringUtf8(ToJsonText());
 		}
 		
 	}

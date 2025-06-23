@@ -1591,11 +1591,16 @@ namespace SnowBank.Data.Json
 			get => new(this.Value[range]);
 		}
 
-		public JsonValue ToJson() => JsonString.Return(this.Value.GetStringOrCopy());
+		[Obsolete("Use ToJsonValue() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public JsonValue ToJson() => ToJsonValue();
+
+		[Pure]
+		public JsonValue ToJsonValue() => JsonString.Return(this.Value.GetStringOrCopy());
 
 		void IJsonSerializable.JsonSerialize(CrystalJsonWriter writer) => writer.WriteValue(this.Value.Span);
 
-		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => ToJson();
+		JsonValue IJsonPackable.JsonPack(CrystalJsonSettings settings, ICrystalJsonTypeResolver resolver) => ToJsonValue();
 
 		static JsonPath IJsonDeserializable<JsonPath>.JsonDeserialize(JsonValue value, ICrystalJsonTypeResolver? resolver)
 		{

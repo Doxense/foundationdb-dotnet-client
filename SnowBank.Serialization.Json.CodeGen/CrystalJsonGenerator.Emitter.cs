@@ -653,9 +653,9 @@ namespace SnowBank.Serialization.Json.CodeGen
 						sb.AppendLine($"public {KnownTypeSymbols.ObservableJsonValueFullName} Get() => m_value;");
 						sb.NewLine();
 
-						// ToJson()
+						// ToJsonValue()
 						sb.InheritDoc();
-						sb.AppendLine($"public {KnownTypeSymbols.JsonValueFullName} ToJson() => m_value.ToJsonValue();");
+						sb.AppendLine($"public {KnownTypeSymbols.JsonValueFullName} ToJsonValue() => m_value.ToJsonValue();");
 						sb.NewLine();
 
 						// ToMutable()
@@ -1252,9 +1252,9 @@ namespace SnowBank.Serialization.Json.CodeGen
 				sb.AppendLine($"public static void Serialize({KnownTypeSymbols.CrystalJsonWriterFullName} writer, {typeDef.Type.FullyQualifiedName}{(typeDef.Type.IsValueType() ? "" : "?")} instance) => Default.Serialize(writer, instance);");
 				sb.NewLine();
 
-				// ToJson(...)
+				// ToJsonText(...)
 				sb.XmlComment($"<summary>Serializes a value of type <see cref=\"{typeCref}\" /> into a string literal</summary>");
-				sb.AppendLine($"public static string ToJson({typeDef.Type.FullyQualifiedNameAnnotated} instance, {KnownTypeSymbols.CrystalJsonSettingsFullName}? settings = default, {KnownTypeSymbols.ICrystalJsonTypeResolverFullName}? resolver = default) => Default.ToJson(instance, settings, resolver);");
+				sb.AppendLine($"public static string ToJsonText({typeDef.Type.FullyQualifiedNameAnnotated} instance, {KnownTypeSymbols.CrystalJsonSettingsFullName}? settings = default, {KnownTypeSymbols.ICrystalJsonTypeResolverFullName}? resolver = default) => Default.ToJson(instance, settings, resolver);");
 				sb.NewLine();
 
 				// ToJsonBytes(...)

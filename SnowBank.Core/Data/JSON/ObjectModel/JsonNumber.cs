@@ -3312,7 +3312,7 @@ namespace SnowBank.Data.Json
 		#endregion
 
 		/// <inheritdoc />
-		public override string ToJson(CrystalJsonSettings? settings = null)
+		public override string ToJsonText(CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			//TODO: if javascript we have to special case for thins like NaN, infinities, ... !
 			return this.Literal;
