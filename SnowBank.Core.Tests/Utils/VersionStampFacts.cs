@@ -221,7 +221,7 @@ namespace SnowBank.Core.Tests
 					Assert.That(VersionStamp.Parse("@123456789abcdef-357a"), Is.EqualTo(vs));
 					Assert.That(VersionStamp.ParseBase1024("4ɤƉι˟ĎϽƪ"), Is.EqualTo(vs));
 
-					Assert.That(vs.ToJson(), Is.EqualTo("\"@123456789abcdef-357a\""));
+					Assert.That(vs.ToJsonText(), Is.EqualTo("\"@123456789abcdef-357a\""));
 					Assert.That(CrystalJson.Deserialize<VersionStamp>("\"@123456789abcdef-357a\""), Is.EqualTo(vs));
 					Assert.That(VersionStamp.JsonDeserialize((JsonString) "@123456789abcdef-357a"), Is.EqualTo(vs));
 				});
