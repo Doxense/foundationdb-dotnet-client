@@ -650,7 +650,7 @@ namespace SnowBank.Data.Json
 		IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
 
 		/// <inheritdoc />
-		public void Add(TProxy value) => m_value.Add(value.ToJson());
+		public void Add(TProxy value) => m_value.Add(value.ToJsonValue());
 
 		public void Add(TValue value) => m_value.Add(Pack(value));
 
@@ -722,7 +722,7 @@ namespace SnowBank.Data.Json
 		/// <param name="index">The zero-based index at which <paramref name="item" /> should be inserted.</param>
 		/// <param name="item">The instance to insert into the array.</param>
 		/// <exception cref="T:System.ArgumentOutOfRangeException"> <paramref name="index" /> is not a valid index in the <see cref="T:System.Collections.Generic.IList`1" />.</exception>
-		public void Insert(int index, TProxy item) => m_value.Insert(index, item.ToJson());
+		public void Insert(int index, TProxy item) => m_value.Insert(index, item.ToJsonValue());
 
 		/// <summary>Inserts an item to the array at the specified index.</summary>
 		/// <param name="index">The zero-based index at which <paramref name="item" /> should be inserted.</param>
@@ -734,7 +734,7 @@ namespace SnowBank.Data.Json
 		/// <param name="index">The zero-based index at which <paramref name="item" /> should be inserted.</param>
 		/// <param name="item">The instance to insert into the array.</param>
 		/// <exception cref="T:System.ArgumentOutOfRangeException"> <paramref name="index" /> is not a valid index in the <see cref="T:System.Collections.Generic.IList`1" />.</exception>
-		public void Insert(Index index, TProxy item) => m_value.Insert(index, item.ToJson());
+		public void Insert(Index index, TProxy item) => m_value.Insert(index, item.ToJsonValue());
 
 		/// <summary>Inserts an item to the array at the specified index.</summary>
 		/// <param name="index">The zero-based index at which <paramref name="item" /> should be inserted.</param>
@@ -751,7 +751,7 @@ namespace SnowBank.Data.Json
 		public TProxy this[int index]
 		{
 			get => TProxy.Create(m_value[index]);
-			set => m_value.Set(index, value.ToJson());
+			set => m_value.Set(index, value.ToJsonValue());
 		}
 
 		/// <inheritdoc />

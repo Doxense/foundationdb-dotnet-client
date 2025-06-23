@@ -364,17 +364,17 @@ namespace SnowBank.Data.Json
 		private static JsonValue Pack(TValue value) => TProxy.Converter.Pack(value, CrystalJsonSettings.JsonReadOnly);
 
 		/// <inheritdoc />
-		public void Add(string key, TProxy value) => m_value.Add(key, value.ToJson());
+		public void Add(string key, TProxy value) => m_value.Add(key, value.ToJsonValue());
 
-		public void Add(ReadOnlyMemory<char> key, TProxy value) => m_value.Add(key, value.ToJson());
+		public void Add(ReadOnlyMemory<char> key, TProxy value) => m_value.Add(key, value.ToJsonValue());
 
 		public void Add(string key, TValue value) => m_value.Add(key, Pack(value));
 
 		public void Add(ReadOnlyMemory<char> key, TValue value) => m_value.Add(key, Pack(value));
 
-		public void Set(string key, TProxy value) => m_value.Set(key, value.ToJson());
+		public void Set(string key, TProxy value) => m_value.Set(key, value.ToJsonValue());
 
-		public void Set(ReadOnlyMemory<char> key, TProxy value) => m_value.Set(key, value.ToJson());
+		public void Set(ReadOnlyMemory<char> key, TProxy value) => m_value.Set(key, value.ToJsonValue());
 
 		public void Set(string key, TValue value) => m_value.Set(key, Pack(value));
 
@@ -419,13 +419,13 @@ namespace SnowBank.Data.Json
 		public TProxy this[string key]
 		{
 			get => TProxy.Create(m_value[key]);
-			set => m_value.Set(key, value.ToJson());
+			set => m_value.Set(key, value.ToJsonValue());
 		}
 
 		public TProxy this[ReadOnlyMemory<char> key]
 		{
 			get => TProxy.Create(m_value[key]);
-			set => m_value.Set(key, value.ToJson());
+			set => m_value.Set(key, value.ToJsonValue());
 		}
 
 		/// <inheritdoc />

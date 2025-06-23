@@ -2036,7 +2036,7 @@ namespace SnowBank.Data.Json
 			/// <remarks>Note: if the JSON has to be sent over HTTP, or stored on disk, prefer <see cref="JsonValueExtensions.ToJsonSlice(JsonValue?,CrystalJsonSettings?)"/> or <see cref="JsonValueExtensions.ToJsonBytes(JsonValue)"/> that will return the same result but already utf-8 encoded</remarks>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			[EditorBrowsable(EditorBrowsableState.Never)]
-			[Obsolete("Use ToJsonText() instead!")] //TODO: phase out this overload ASAP!
+			[Obsolete("Use either ToJsonText() or ToJsonValue() instead!", error: true)] //TODO: phase out this overload ASAP!
 			public string ToJson(CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 				=> ToJsonText<TJsonSerializable>(self, settings, resolver);
 
