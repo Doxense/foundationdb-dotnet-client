@@ -176,6 +176,19 @@ namespace SnowBank.Data.Tuples
 			// => if this starts becoming a problem, then we should return a list tuple !
 		}
 
+		/// <summary>Appends two new items at the end of the current tuple.</summary>
+		/// <param name="value1">First item that will be added as an embedded item</param>
+		/// <param name="value2">Second item that will be added as an embedded item</param>
+		/// <returns>New tuple with two extra item</returns>
+		/// <remarks>If any of <paramref name="value1"/> or <paramref name="value2"/> is a tuple, and you want to append the *items*  of this tuple, and not the tuple itself, please call <see cref="Concat"/>!</remarks>
+		[Pure]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public STuple<T1, T2, T3, T4, T5> Append<T4, T5>(T4 value1, T5 value2)
+		{
+			// Here, the caller was explicitly using the STuple<T1, T2, T3> struct so probably care about memory footprint, so we keep returning a struct
+			return new STuple<T1, T2, T3, T4, T5>(this.Item1, this.Item2, this.Item3, value1, value2);
+		}
+
 		/// <summary>Copy all the items of this tuple into an array at the specified offset</summary>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -374,6 +387,24 @@ namespace SnowBank.Data.Tuples
 		public STuple<T1, T2, T3, T4, T5, T6> Concat<T4, T5, T6>((T4, T5, T6) tuple)
 		{
 			return new STuple<T1, T2, T3, T4, T5, T6>(this.Item1, this.Item2, this.Item3, tuple.Item1, tuple.Item2, tuple.Item3);
+		}
+
+		/// <summary>Appends the items of a tuple at the end of the current tuple.</summary>
+		/// <param name="tuple">Tuple whose items are to be appended at the end</param>
+		/// <returns>New tuple composed of the current tuple items, followed by <paramref name="tuple"/>'s items</returns>
+		[Pure]
+		public STuple<T1, T2, T3, T4, T5, T6, T7> Concat<T4, T5, T6, T7>((T4, T5, T6, T7) tuple)
+		{
+			return new STuple<T1, T2, T3, T4, T5, T6, T7>(this.Item1, this.Item2, this.Item3, tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
+		}
+
+		/// <summary>Appends the items of a tuple at the end of the current tuple.</summary>
+		/// <param name="tuple">Tuple whose items are to be appended at the end</param>
+		/// <returns>New tuple composed of the current tuple items, followed by <paramref name="tuple"/>'s items</returns>
+		[Pure]
+		public STuple<T1, T2, T3, T4, T5, T6, T7, T8> Concat<T4, T5, T6, T7, T8>((T4, T5, T6, T7, T8) tuple)
+		{
+			return new STuple<T1, T2, T3, T4, T5, T6, T7, T8>(this.Item1, this.Item2, this.Item3, tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
 		}
 
 		[Pure]

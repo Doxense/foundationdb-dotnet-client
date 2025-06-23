@@ -34,7 +34,7 @@ namespace SnowBank.Data.Tuples
 	using SnowBank.Data.Tuples.Binary;
 	using SnowBank.Runtime.Converters;
 
-	/// <summary>Tuple that can hold seven items</summary>
+	/// <summary>Tuple that can hold eight items</summary>
 	/// <typeparam name="T1">Type of the 1st item</typeparam>
 	/// <typeparam name="T2">Type of the 2nd item</typeparam>
 	/// <typeparam name="T3">Type of the 3rd item</typeparam>
@@ -42,9 +42,10 @@ namespace SnowBank.Data.Tuples
 	/// <typeparam name="T5">Type of the 5th item</typeparam>
 	/// <typeparam name="T6">Type of the 6th item</typeparam>
 	/// <typeparam name="T7">Type of the 7th item</typeparam>
+	/// <typeparam name="T8">Type of the 7th item</typeparam>
 	[ImmutableObject(true), DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
-	public readonly struct STuple<T1, T2, T3, T4, T5, T6, T7> : IVarTuple, IEquatable<STuple<T1, T2, T3, T4, T5, T6, T7>>, IEquatable<(T1, T2, T3, T4, T5, T6, T7)>, ITupleSerializable
+	public readonly struct STuple<T1, T2, T3, T4, T5, T6, T7, T8> : IVarTuple, IEquatable<STuple<T1, T2, T3, T4, T5, T6, T7, T8>>, IEquatable<(T1, T2, T3, T4, T5, T6, T7, T8)>, ITupleSerializable
 	{
 		// This is mostly used by code that create a lot of temporary quartets, to reduce the pressure on the Garbage Collector by allocating them on the stack.
 		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
@@ -67,12 +68,15 @@ namespace SnowBank.Data.Tuples
 		/// <summary>Sixth element of the tuple</summary>
 		public readonly T6 Item6;
 
-		/// <summary>Seventh and last element of the tuple</summary>
+		/// <summary>Seventh element of the tuple</summary>
 		public readonly T7 Item7;
+
+		/// <summary>Eighth and last element of the tuple</summary>
+		public readonly T8 Item8;
 
 		/// <summary>Create a tuple containing for items</summary>
 		[DebuggerStepThrough]
-		public STuple(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
+		public STuple(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
 		{
 			this.Item1 = item1;
 			this.Item2 = item2;
@@ -81,10 +85,11 @@ namespace SnowBank.Data.Tuples
 			this.Item5 = item5;
 			this.Item6 = item6;
 			this.Item7 = item7;
+			this.Item8 = item8;
 		}
 
 		/// <summary>Number of items in this tuple</summary>
-		public int Count => 7;
+		public int Count => 8;
 
 		object? IReadOnlyList<object?>.this[int index] => ((IVarTuple) this)[index];
 
@@ -94,20 +99,21 @@ namespace SnowBank.Data.Tuples
 			{
 				switch (index)
 				{
-					case 0: case -7: return this.Item1;
-					case 1: case -6: return this.Item2;
-					case 2: case -5: return this.Item3;
-					case 3: case -4: return this.Item4;
-					case 4: case -3: return this.Item5;
-					case 5: case -2: return this.Item6;
-					case 6: case -1: return this.Item7;
+					case 0: case -8: return this.Item1;
+					case 1: case -7: return this.Item2;
+					case 2: case -6: return this.Item3;
+					case 3: case -5: return this.Item4;
+					case 4: case -4: return this.Item5;
+					case 5: case -3: return this.Item6;
+					case 6: case -2: return this.Item7;
+					case 7: case -1: return this.Item8;
 					default:         return TupleHelpers.FailIndexOutOfRange<object>(index, 7);
 				}
 			}
 		}
 
 		/// <inheritdoc />
-		int ITuple.Length => 7;
+		int ITuple.Length => 8;
 
 		/// <inheritdoc />
 		object? ITuple.this[int index] => ((IVarTuple) this)[index];
@@ -120,7 +126,7 @@ namespace SnowBank.Data.Tuples
 		}
 
 		/// <inheritdoc />
-		object? IVarTuple.this[Index index] => index.GetOffset(7) switch
+		object? IVarTuple.this[Index index] => index.GetOffset(8) switch
 		{
 			0 => this.Item1,
 			1 => this.Item2,
@@ -129,7 +135,8 @@ namespace SnowBank.Data.Tuples
 			4 => this.Item5,
 			5 => this.Item6,
 			6 => this.Item7,
-			_ => TupleHelpers.FailIndexOutOfRange<object>(index.Value, 7)
+			7 => this.Item8,
+			_ => TupleHelpers.FailIndexOutOfRange<object>(index.Value, 8)
 		};
 
 		/// <inheritdoc />
@@ -137,7 +144,7 @@ namespace SnowBank.Data.Tuples
 		{
 			get
 			{
-				(int offset, int count) = range.GetOffsetAndLength(7);
+				(int offset, int count) = range.GetOffsetAndLength(8);
 				return count switch
 				{
 					0 => STuple.Empty,
@@ -149,7 +156,8 @@ namespace SnowBank.Data.Tuples
 						3 => STuple.Create(this.Item4),
 						4 => STuple.Create(this.Item5),
 						5 => STuple.Create(this.Item6),
-						_ => STuple.Create(this.Item7)
+						6 => STuple.Create(this.Item7),
+						_ => STuple.Create(this.Item8)
 					}),
 					2 => (offset switch
 					{
@@ -158,7 +166,8 @@ namespace SnowBank.Data.Tuples
 						2 => STuple.Create(this.Item3, this.Item4),
 						3 => STuple.Create(this.Item4, this.Item5),
 						4 => STuple.Create(this.Item5, this.Item6),
-						_ => STuple.Create(this.Item6, this.Item7)
+						5 => STuple.Create(this.Item6, this.Item7),
+						_ => STuple.Create(this.Item7, this.Item8)
 					}),
 					3 => (offset switch
 					{
@@ -166,26 +175,35 @@ namespace SnowBank.Data.Tuples
 						1 => STuple.Create(this.Item2, this.Item3, this.Item4),
 						2 => STuple.Create(this.Item3, this.Item4, this.Item5),
 						3 => STuple.Create(this.Item4, this.Item5, this.Item6),
-						_ => STuple.Create(this.Item5, this.Item6, this.Item7)
+						4 => STuple.Create(this.Item5, this.Item6, this.Item7),
+						_ => STuple.Create(this.Item6, this.Item7, this.Item8)
 					}),
 					4 => (offset switch
 					{
 						0 => STuple.Create(this.Item1, this.Item2, this.Item3, this.Item4),
 						1 => STuple.Create(this.Item2, this.Item3, this.Item4, this.Item5),
 						2 => STuple.Create(this.Item3, this.Item4, this.Item5, this.Item6),
-						_ => STuple.Create(this.Item4, this.Item5, this.Item6, this.Item7)
+						3 => STuple.Create(this.Item4, this.Item5, this.Item6, this.Item7),
+						_ => STuple.Create(this.Item5, this.Item6, this.Item7, this.Item8)
 					}),
 					5 => (offset switch
 					{
 						0 => STuple.Create(this.Item1, this.Item2, this.Item3, this.Item4, this.Item5),
 						1 => STuple.Create(this.Item2, this.Item3, this.Item4, this.Item5, this.Item6),
-						_ => STuple.Create(this.Item3, this.Item4, this.Item5, this.Item6, this.Item7)
+						2 => STuple.Create(this.Item3, this.Item4, this.Item5, this.Item6, this.Item7),
+						_ => STuple.Create(this.Item4, this.Item5, this.Item6, this.Item7, this.Item8)
 					}),
 					6 => (offset switch
 					{
 						0 => STuple.Create(this.Item1, this.Item2, this.Item3, this.Item4, this.Item5, this.Item6),
-						_ => STuple.Create(this.Item2, this.Item3, this.Item4, this.Item5, this.Item6, this.Item7)
+						1 => STuple.Create(this.Item2, this.Item3, this.Item4, this.Item5, this.Item6, this.Item7),
+						_ => STuple.Create(this.Item3, this.Item4, this.Item5, this.Item6, this.Item7, this.Item8)
 					}),
+					7 => (offset switch
+					{
+						0 => STuple.Create(this.Item1, this.Item2, this.Item3, this.Item4, this.Item5, this.Item6, this.Item7),
+						_ => STuple.Create(this.Item2, this.Item3, this.Item4, this.Item5, this.Item6, this.Item7, this.Item8)
+					}), 
 					_ => this
 				};
 			}
@@ -199,14 +217,15 @@ namespace SnowBank.Data.Tuples
 		{
 			switch(index)
 			{
-				case 0: case -7: return TypeConverters.Convert<T1, TItem?>(this.Item1);
-				case 1: case -6: return TypeConverters.Convert<T2, TItem?>(this.Item2);
-				case 2: case -5: return TypeConverters.Convert<T3, TItem?>(this.Item3);
-				case 3: case -4: return TypeConverters.Convert<T4, TItem?>(this.Item4);
-				case 4: case -3: return TypeConverters.Convert<T5, TItem?>(this.Item5);
-				case 5: case -2: return TypeConverters.Convert<T6, TItem?>(this.Item6);
-				case 6: case -1: return TypeConverters.Convert<T7, TItem?>(this.Item7);
-				default:         return TupleHelpers.FailIndexOutOfRange<TItem>(index, 7);
+				case 0: case -8: return TypeConverters.Convert<T1, TItem?>(this.Item1);
+				case 1: case -7: return TypeConverters.Convert<T2, TItem?>(this.Item2);
+				case 2: case -6: return TypeConverters.Convert<T3, TItem?>(this.Item3);
+				case 3: case -5: return TypeConverters.Convert<T4, TItem?>(this.Item4);
+				case 4: case -4: return TypeConverters.Convert<T5, TItem?>(this.Item5);
+				case 5: case -3: return TypeConverters.Convert<T6, TItem?>(this.Item6);
+				case 6: case -2: return TypeConverters.Convert<T7, TItem?>(this.Item7);
+				case 7: case -1: return TypeConverters.Convert<T8, TItem?>(this.Item8);
+				default:         return TupleHelpers.FailIndexOutOfRange<TItem>(index, 8);
 			}
 		}
 
@@ -216,21 +235,21 @@ namespace SnowBank.Data.Tuples
 
 		/// <inheritdoc />
 		TItem? IVarTuple.GetLast<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>()
-			where TItem : default => TypeConverters.Convert<T7, TItem?>(this.Item7);
+			where TItem : default => TypeConverters.Convert<T8, TItem?>(this.Item8);
 
 		/// <summary>Return the value of the last item in the tuple</summary>
-		public T7 Last
+		public T8 Last
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			[return: MaybeNull]
-			get => this.Item7;
+			get => this.Item8;
 		}
 
 		/// <summary>Return a tuple without the first item</summary>
-		public STuple<T2, T3, T4, T5, T6, T7> Tail
+		public STuple<T2, T3, T4, T5, T6, T7, T8> Tail
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => new(this.Item2, this.Item3, this.Item4, this.Item5, this.Item6, this.Item7);
+			get => new(this.Item2, this.Item3, this.Item4, this.Item5, this.Item6, this.Item7, this.Item8);
 		}
 
 		/// <summary>Appends a single new item at the end of the current tuple.</summary>
@@ -238,11 +257,11 @@ namespace SnowBank.Data.Tuples
 		/// <returns>New tuple with one extra item</returns>
 		/// <remarks>If <paramref name="value"/> is a tuple, and you want to append the *items*  of this tuple, and not the tuple itself, please call <see cref="Concat"/>!</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public IVarTuple Append<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T8>(T8 value)
+		public IVarTuple Append<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T9>(T9 value)
 		{
 			// the caller probably cares about the return type, since it is using a struct, but whatever tuple type we use will end up boxing this tuple on the heap, and we will lose type information.
-			// but, by returning a LinkedTuple<T8>, the tuple will still remember the exact type, and efficiently serializer/convert the values (without having to guess the type)
-			return new LinkedTuple<T8>(this, value);
+			// but, by returning a LinkedTuple<T9>, the tuple will still remember the exact type, and efficiently serializer/convert the values (without having to guess the type)
+			return new LinkedTuple<T9>(this, value);
 		}
 
 		/// <summary>Appends two new items at the end of the current tuple.</summary>
@@ -251,11 +270,11 @@ namespace SnowBank.Data.Tuples
 		/// <returns>New tuple with two extra item</returns>
 		/// <remarks>If any of <paramref name="value1"/> or <paramref name="value2"/> is a tuple, and you want to append the *items*  of this tuple, and not the tuple itself, please call <see cref="Concat"/>!</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public IVarTuple Append<T8, T9>(T8 value1, T9 value2)
+		public IVarTuple Append<T9, T10>(T9 value1, T10 value2)
 		{
 			// the caller probably cares about the return type, since it is using a struct, but whatever tuple type we use will end up boxing this tuple on the heap, and we will lose type information.
 			// but, by returning a LinkedTuple<T5>, the tuple will still remember the exact type, and efficiently serializer/convert the values (without having to guess the type)
-			return new JoinedTuple(this, new STuple<T8, T9>(value1, value2));
+			return new JoinedTuple(this, new STuple<T9, T10>(value1, value2));
 		}
 
 		/// <summary>Appends the items of a tuple at the end of the current tuple.</summary>
@@ -277,12 +296,13 @@ namespace SnowBank.Data.Tuples
 			array[offset + 4] = this.Item5;
 			array[offset + 5] = this.Item6;
 			array[offset + 6] = this.Item7;
+			array[offset + 7] = this.Item8;
 		}
 
 		/// <summary>Deconstructs this tuple into its individual elements</summary>
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Deconstruct(out T1 item1, out T2 item2, out T3 item3, out T4 item4, out T5 item5, out T6 item6, out T7 item7)
+		public void Deconstruct(out T1 item1, out T2 item2, out T3 item3, out T4 item4, out T5 item5, out T6 item6, out T7 item7, out T8 item8)
 		{
 			item1 = this.Item1;
 			item2 = this.Item2;
@@ -291,23 +311,24 @@ namespace SnowBank.Data.Tuples
 			item5 = this.Item5;
 			item6 = this.Item6;
 			item7 = this.Item7;
+			item8 = this.Item8;
 		}
 
 		/// <summary>Execute a lambda Action with the content of this tuple</summary>
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void With(Action<T1, T2, T3, T4, T5, T6, T7> lambda)
+		public void With(Action<T1, T2, T3, T4, T5, T6, T7, T8> lambda)
 		{
-			lambda(this.Item1, this.Item2, this.Item3, this.Item4, this.Item5, this.Item6, this.Item7);
+			lambda(this.Item1, this.Item2, this.Item3, this.Item4, this.Item5, this.Item6, this.Item7, this.Item8);
 		}
 
 		/// <summary>Execute a lambda Function with the content of this tuple</summary>
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
 		/// <returns>Result of calling <paramref name="lambda"/> with the items of this tuple</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public TItem With<TItem>(Func<T1, T2, T3, T4, T5, T6, T7, TItem> lambda)
+		public TItem With<TItem>(Func<T1, T2, T3, T4, T5, T6, T7, T8, TItem> lambda)
 		{
-			return lambda(this.Item1, this.Item2, this.Item3, this.Item4, this.Item5, this.Item6, this.Item7);
+			return lambda(this.Item1, this.Item2, this.Item3, this.Item4, this.Item5, this.Item6, this.Item7, this.Item8);
 		}
 
 		/// <inheritdoc />
@@ -320,6 +341,7 @@ namespace SnowBank.Data.Tuples
 			TuplePackers.SerializeTo(ref writer, this.Item5);
 			TuplePackers.SerializeTo(ref writer, this.Item6);
 			TuplePackers.SerializeTo(ref writer, this.Item7);
+			TuplePackers.SerializeTo(ref writer, this.Item8);
 		}
 
 		/// <inheritdoc />
@@ -332,6 +354,7 @@ namespace SnowBank.Data.Tuples
 			yield return this.Item5;
 			yield return this.Item6;
 			yield return this.Item7;
+			yield return this.Item8;
 		}
 
 		/// <inheritdoc />
@@ -351,7 +374,8 @@ namespace SnowBank.Data.Tuples
 			sb.Append(STuple.Formatter.Stringify(this.Item4)).Append(", ");
 			sb.Append(STuple.Formatter.Stringify(this.Item5)).Append(", ");
 			sb.Append(STuple.Formatter.Stringify(this.Item6)).Append(", ");
-			sb.Append(STuple.Formatter.Stringify(this.Item7));
+			sb.Append(STuple.Formatter.Stringify(this.Item7)).Append(", ");
+			sb.Append(STuple.Formatter.Stringify(this.Item8));
 			sb.Append(')');
 			return sb.ToString();
 		}
@@ -370,7 +394,7 @@ namespace SnowBank.Data.Tuples
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(STuple<T1, T2, T3, T4, T5, T6, T7> other)
+		public bool Equals(STuple<T1, T2, T3, T4, T5, T6, T7, T8> other)
 		{
 			var comparer = SimilarValueComparer.Default;
 			return comparer.Equals(this.Item1, other.Item1)
@@ -379,7 +403,8 @@ namespace SnowBank.Data.Tuples
 				&& comparer.Equals(this.Item4, other.Item4)
 				&& comparer.Equals(this.Item5, other.Item5)
 				&& comparer.Equals(this.Item6, other.Item6)
-				&& comparer.Equals(this.Item7, other.Item7);
+				&& comparer.Equals(this.Item7, other.Item7)
+				&& comparer.Equals(this.Item8, other.Item8);
 		}
 
 		/// <inheritdoc />
@@ -388,7 +413,7 @@ namespace SnowBank.Data.Tuples
 			return ((IStructuralEquatable)this).GetHashCode(SimilarValueComparer.Default);
 		}
 
-		public static bool operator ==(STuple<T1, T2, T3, T4, T5, T6, T7> left, STuple<T1, T2, T3, T4, T5, T6, T7> right)
+		public static bool operator ==(STuple<T1, T2, T3, T4, T5, T6, T7, T8> left, STuple<T1, T2, T3, T4, T5, T6, T7, T8> right)
 		{
 			var comparer = SimilarValueComparer.Default;
 			return comparer.Equals(left.Item1, right.Item1)
@@ -397,10 +422,11 @@ namespace SnowBank.Data.Tuples
 				&& comparer.Equals(left.Item4, right.Item4)
 				&& comparer.Equals(left.Item5, right.Item5)
 				&& comparer.Equals(left.Item6, right.Item6)
-				&& comparer.Equals(left.Item7, right.Item7);
+				&& comparer.Equals(left.Item7, right.Item7)
+				&& comparer.Equals(left.Item8, right.Item8);
 		}
 
-		public static bool operator !=(STuple<T1, T2, T3, T4, T5, T6, T7> left, STuple<T1, T2, T3, T4, T5, T6, T7> right)
+		public static bool operator !=(STuple<T1, T2, T3, T4, T5, T6, T7, T8> left, STuple<T1, T2, T3, T4, T5, T6, T7, T8> right)
 		{
 			var comparer = SimilarValueComparer.Default;
 			return !comparer.Equals(left.Item1, right.Item1)
@@ -409,7 +435,8 @@ namespace SnowBank.Data.Tuples
 				|| !comparer.Equals(left.Item4, right.Item4)
 				|| !comparer.Equals(left.Item5, right.Item5)
 				|| !comparer.Equals(left.Item6, right.Item6)
-				|| !comparer.Equals(left.Item7, right.Item7);
+				|| !comparer.Equals(left.Item7, right.Item7)
+				|| !comparer.Equals(left.Item8, right.Item8);
 		}
 
 		/// <inheritdoc />
@@ -417,10 +444,26 @@ namespace SnowBank.Data.Tuples
 		{
 			return other switch
 			{
-				null                                     => false,
-				STuple<T1, T2, T3, T4, T5, T6, T7> t     => comparer.Equals(this.Item1, t.Item1) && comparer.Equals(this.Item2, t.Item2) && comparer.Equals(this.Item3, t.Item3) && comparer.Equals(this.Item4, t.Item4) && comparer.Equals(this.Item5, t.Item5) && comparer.Equals(this.Item6, t.Item6) && comparer.Equals(this.Item7, t.Item7),
-				ValueTuple<T1, T2, T3, T4, T5, T6, T7> t => comparer.Equals(this.Item1, t.Item1) && comparer.Equals(this.Item2, t.Item2) && comparer.Equals(this.Item3, t.Item3) && comparer.Equals(this.Item4, t.Item4) && comparer.Equals(this.Item5, t.Item5) && comparer.Equals(this.Item6, t.Item6) && comparer.Equals(this.Item7, t.Item7),
-				_                                        => TupleHelpers.Equals(this, other, comparer)
+				null => false,
+				STuple<T1, T2, T3, T4, T5, T6, T7, T8> t
+					=> comparer.Equals(this.Item1, t.Item1)
+					&& comparer.Equals(this.Item2, t.Item2)
+					&& comparer.Equals(this.Item3, t.Item3)
+					&& comparer.Equals(this.Item4, t.Item4)
+					&& comparer.Equals(this.Item5, t.Item5)
+					&& comparer.Equals(this.Item6, t.Item6)
+					&& comparer.Equals(this.Item7, t.Item7)
+					&& comparer.Equals(this.Item8, t.Item8),
+				ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8>> t
+					=> comparer.Equals(this.Item1, t.Item1)
+					&& comparer.Equals(this.Item2, t.Item2)
+					&& comparer.Equals(this.Item3, t.Item3)
+					&& comparer.Equals(this.Item4, t.Item4)
+					&& comparer.Equals(this.Item5, t.Item5)
+					&& comparer.Equals(this.Item6, t.Item6)
+					&& comparer.Equals(this.Item7, t.Item7)
+					&& comparer.Equals(this.Item8, t.Item8),
+				_ => TupleHelpers.Equals(this, other, comparer)
 			};
 		}
 
@@ -428,10 +471,10 @@ namespace SnowBank.Data.Tuples
 		int IStructuralEquatable.GetHashCode(IEqualityComparer comparer)
 		{
 			return TupleHelpers.CombineHashCodes(
-				7,
+				8,
 				TupleHelpers.ComputeHashCode(this.Item1, comparer),
-				TupleHelpers.ComputeHashCode(this.Item6, comparer),
-				TupleHelpers.ComputeHashCode(this.Item7, comparer)
+				TupleHelpers.ComputeHashCode(this.Item7, comparer),
+				TupleHelpers.ComputeHashCode(this.Item8, comparer)
 			);
 		}
 
@@ -447,25 +490,13 @@ namespace SnowBank.Data.Tuples
 				case 4:  return TupleHelpers.ComputeHashCode(this.Item5, comparer);
 				case 5:  return TupleHelpers.ComputeHashCode(this.Item6, comparer);
 				case 6:  return TupleHelpers.ComputeHashCode(this.Item7, comparer);
+				case 7:  return TupleHelpers.ComputeHashCode(this.Item8, comparer);
 				default: throw new IndexOutOfRangeException();
 			}
 		}
 
-		[Pure]
-		public static implicit operator STuple<T1, T2, T3, T4, T5, T6, T7>(Tuple<T1, T2, T3, T4, T5, T6, T7> tuple)
-		{
-			Contract.NotNull(tuple);
-			return new STuple<T1, T2, T3, T4, T5, T6, T7>(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6, tuple.Item7);
-		}
-
-		[Pure]
-		public static explicit operator Tuple<T1, T2, T3, T4, T5, T6, T7>(STuple<T1, T2, T3, T4, T5, T6, T7> tuple)
-		{
-			return new Tuple<T1, T2, T3, T4, T5, T6, T7>(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6, tuple.Item7);
-		}
-
 		/// <summary>Copies the content of this tuple into the tuple at the specified location</summary>
-		public void Fill(ref (T1, T2, T3, T4, T5, T6, T7) t)
+		public void Fill(ref (T1, T2, T3, T4, T5, T6, T7, T8) t)
 		{
 			t.Item1 = this.Item1;
 			t.Item2 = this.Item2;
@@ -474,34 +505,35 @@ namespace SnowBank.Data.Tuples
 			t.Item5 = this.Item5;
 			t.Item6 = this.Item6;
 			t.Item7 = this.Item7;
+			t.Item8 = this.Item8;
 		}
 
 		/// <summary>Returns the equivalent <see cref="ValueTuple{T1,T2,T3,T4,T5,T6,T7}"/></summary>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public (T1, T2, T3, T4, T5, T6, T7) ToValueTuple()
+		public (T1, T2, T3, T4, T5, T6, T7, T8) ToValueTuple()
 		{
-			return (this.Item1, this.Item2, this.Item3, this.Item4, this.Item5, this.Item6, this.Item7);
+			return (this.Item1, this.Item2, this.Item3, this.Item4, this.Item5, this.Item6, this.Item7, this.Item8);
 		}
 
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator STuple<T1, T2, T3, T4, T5, T6, T7>((T1, T2, T3, T4, T5, T6, T7) t)
+		public static implicit operator STuple<T1, T2, T3, T4, T5, T6, T7, T8>((T1, T2, T3, T4, T5, T6, T7, T8) t)
 		{
-			return new STuple<T1, T2, T3, T4, T5, T6, T7>(t.Item1, t.Item2, t.Item3, t.Item4, t.Item5, t.Item6, t.Item7);
+			return new STuple<T1, T2, T3, T4, T5, T6, T7, T8>(t.Item1, t.Item2, t.Item3, t.Item4, t.Item5, t.Item6, t.Item7, t.Item8);
 		}
 
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator (T1, T2, T3, T4, T5, T6, T7) (STuple<T1, T2, T3, T4, T5, T6, T7> t)
+		public static implicit operator (T1, T2, T3, T4, T5, T6, T7, T8) (STuple<T1, T2, T3, T4, T5, T6, T7, T8> t)
 		{
-			return (t.Item1, t.Item2, t.Item3, t.Item4, t.Item5, t.Item6, t.Item7);
+			return (t.Item1, t.Item2, t.Item3, t.Item4, t.Item5, t.Item6, t.Item7, t.Item8);
 		}
 
 		/// <inheritdoc />
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		bool IEquatable<(T1, T2, T3, T4, T5, T6, T7)>.Equals((T1, T2, T3, T4, T5, T6, T7) other)
+		bool IEquatable<(T1, T2, T3, T4, T5, T6, T7, T8)>.Equals((T1, T2, T3, T4, T5, T6, T7, T8) other)
 		{
 			var comparer = SimilarValueComparer.Default;
 			return comparer.Equals(this.Item1, this.Item1)
@@ -510,10 +542,11 @@ namespace SnowBank.Data.Tuples
 				&& comparer.Equals(this.Item4, this.Item4)
 				&& comparer.Equals(this.Item5, this.Item5)
 				&& comparer.Equals(this.Item6, this.Item6)
-				&& comparer.Equals(this.Item7, this.Item7);
+				&& comparer.Equals(this.Item7, this.Item7)
+				&& comparer.Equals(this.Item8, this.Item8);
 		}
 
-		public static bool operator ==(STuple<T1, T2, T3, T4, T5, T6, T7> left, (T1, T2, T3, T4, T5, T6, T7) right)
+		public static bool operator ==(STuple<T1, T2, T3, T4, T5, T6, T7, T8> left, (T1, T2, T3, T4, T5, T6, T7, T8) right)
 		{
 			var comparer = SimilarValueComparer.Default;
 			return comparer.Equals(left.Item1, right.Item1)
@@ -522,10 +555,11 @@ namespace SnowBank.Data.Tuples
 				&& comparer.Equals(left.Item4, right.Item4)
 				&& comparer.Equals(left.Item5, right.Item5)
 				&& comparer.Equals(left.Item6, right.Item6)
-				&& comparer.Equals(left.Item7, right.Item7);
+				&& comparer.Equals(left.Item7, right.Item7)
+				&& comparer.Equals(left.Item8, right.Item8);
 		}
 
-		public static bool operator ==((T1, T2, T3, T4, T5, T6, T7) left, STuple<T1, T2, T3, T4, T5, T6, T7> right)
+		public static bool operator ==((T1, T2, T3, T4, T5, T6, T7, T8) left, STuple<T1, T2, T3, T4, T5, T6, T7, T8> right)
 		{
 			var comparer = SimilarValueComparer.Default;
 			return comparer.Equals(left.Item1, right.Item1)
@@ -534,10 +568,11 @@ namespace SnowBank.Data.Tuples
 				&& comparer.Equals(left.Item4, right.Item4)
 				&& comparer.Equals(left.Item5, right.Item5)
 				&& comparer.Equals(left.Item6, right.Item6)
-				&& comparer.Equals(left.Item7, right.Item7);
+				&& comparer.Equals(left.Item7, right.Item7)
+				&& comparer.Equals(left.Item8, right.Item8);
 		}
 
-		public static bool operator !=(STuple<T1, T2, T3, T4, T5, T6, T7> left, (T1, T2, T3, T4, T5, T6, T7) right)
+		public static bool operator !=(STuple<T1, T2, T3, T4, T5, T6, T7, T8> left, (T1, T2, T3, T4, T5, T6, T7, T8) right)
 		{
 			var comparer = SimilarValueComparer.Default;
 			return !comparer.Equals(left.Item1, right.Item1)
@@ -546,10 +581,11 @@ namespace SnowBank.Data.Tuples
 				|| !comparer.Equals(left.Item4, right.Item4)
 				|| !comparer.Equals(left.Item5, right.Item5)
 				|| !comparer.Equals(left.Item6, right.Item6)
-				|| !comparer.Equals(left.Item7, right.Item7);
+				|| !comparer.Equals(left.Item7, right.Item7)
+				|| !comparer.Equals(left.Item8, right.Item8);
 		}
 
-		public static bool operator !=((T1, T2, T3, T4, T5, T6, T7) left, STuple<T1, T2, T3, T4, T5, T6, T7> right)
+		public static bool operator !=((T1, T2, T3, T4, T5, T6, T7, T8) left, STuple<T1, T2, T3, T4, T5, T6, T7, T8> right)
 		{
 			var comparer = SimilarValueComparer.Default;
 			return !comparer.Equals(left.Item1, right.Item1)
@@ -558,11 +594,12 @@ namespace SnowBank.Data.Tuples
 				|| !comparer.Equals(left.Item4, right.Item4)
 				|| !comparer.Equals(left.Item5, right.Item5)
 				|| !comparer.Equals(left.Item6, right.Item6)
-				|| !comparer.Equals(left.Item7, right.Item7);
+				|| !comparer.Equals(left.Item7, right.Item7)
+				|| !comparer.Equals(left.Item8, right.Item8);
 		}
 
 		/// <summary>Comparer for tuples with 7 elements</summary>
-		public sealed class Comparer : IComparer<STuple<T1, T2, T3, T4, T5, T6, T7>>
+		public sealed class Comparer : IComparer<STuple<T1, T2, T3, T4, T5, T6, T7, T8>>
 		{
 
 			/// <summary>Default comparer for tuples with 7 elements</summary>
@@ -575,11 +612,12 @@ namespace SnowBank.Data.Tuples
 			private static readonly Comparer<T5> Comparer5 = Comparer<T5>.Default;
 			private static readonly Comparer<T6> Comparer6 = Comparer<T6>.Default;
 			private static readonly Comparer<T7> Comparer7 = Comparer<T7>.Default;
+			private static readonly Comparer<T8> Comparer8 = Comparer<T8>.Default;
 
 			private Comparer() { }
 
 			/// <inheritdoc />
-			public int Compare(STuple<T1, T2, T3, T4, T5, T6, T7> x, STuple<T1, T2, T3, T4, T5, T6, T7> y)
+			public int Compare(STuple<T1, T2, T3, T4, T5, T6, T7, T8> x, STuple<T1, T2, T3, T4, T5, T6, T7, T8> y)
 			{
 				int cmp = Comparer1.Compare(x.Item1, y.Item1);
 				if (cmp != 0) { goto done; }
@@ -594,6 +632,8 @@ namespace SnowBank.Data.Tuples
 				cmp = Comparer6.Compare(x.Item6, y.Item6);
 				if (cmp != 0) { goto done; }
 				cmp = Comparer7.Compare(x.Item7, y.Item7); 
+				if (cmp != 0) { goto done; }
+				cmp = Comparer8.Compare(x.Item8, y.Item8); 
 			done:
 				return cmp;
 			}
@@ -601,7 +641,7 @@ namespace SnowBank.Data.Tuples
 		}
 
 		/// <summary>Comparer for tuples with 7 elements</summary>
-		public sealed class EqualityComparer : IEqualityComparer<STuple<T1, T2, T3, T4, T5, T6, T7>>
+		public sealed class EqualityComparer : IEqualityComparer<STuple<T1, T2, T3, T4, T5, T6, T7, T8>>
 		{
 
 			/// <summary>Default comparer for tuples with 7 elements</summary>
@@ -614,11 +654,12 @@ namespace SnowBank.Data.Tuples
 			private static readonly EqualityComparer<T5> Comparer5 = EqualityComparer<T5>.Default;
 			private static readonly EqualityComparer<T6> Comparer6 = EqualityComparer<T6>.Default;
 			private static readonly EqualityComparer<T7> Comparer7 = EqualityComparer<T7>.Default;
+			private static readonly EqualityComparer<T8> Comparer8 = EqualityComparer<T8>.Default;
 
 			private EqualityComparer() { }
 
 			/// <inheritdoc />
-			public bool Equals(STuple<T1, T2, T3, T4, T5, T6, T7> x, STuple<T1, T2, T3, T4, T5, T6, T7> y)
+			public bool Equals(STuple<T1, T2, T3, T4, T5, T6, T7, T8> x, STuple<T1, T2, T3, T4, T5, T6, T7, T8> y)
 			{
 				return Comparer1.Equals(x.Item1, y.Item1)
 					&& Comparer2.Equals(x.Item2, y.Item2)
@@ -626,17 +667,18 @@ namespace SnowBank.Data.Tuples
 					&& Comparer4.Equals(x.Item4, y.Item4)
 					&& Comparer5.Equals(x.Item5, y.Item5)
 					&& Comparer6.Equals(x.Item6, y.Item6)
-					&& Comparer7.Equals(x.Item7, y.Item7);
+					&& Comparer7.Equals(x.Item7, y.Item7)
+					&& Comparer8.Equals(x.Item8, y.Item8);
 			}
 
 			/// <inheritdoc />
-			public int GetHashCode(STuple<T1, T2, T3, T4, T5, T6, T7> obj)
+			public int GetHashCode(STuple<T1, T2, T3, T4, T5, T6, T7, T8> obj)
 			{
 				return TupleHelpers.CombineHashCodes(
 					6,
 					obj.Item1 is not null ? Comparer1.GetHashCode(obj.Item1) : -1,
-					obj.Item6 is not null ? Comparer6.GetHashCode(obj.Item6) : -1,
-					obj.Item7 is not null ? Comparer7.GetHashCode(obj.Item7) : -1
+					obj.Item7 is not null ? Comparer7.GetHashCode(obj.Item7) : -1,
+					obj.Item8 is not null ? Comparer8.GetHashCode(obj.Item8) : -1
 				);
 			}
 

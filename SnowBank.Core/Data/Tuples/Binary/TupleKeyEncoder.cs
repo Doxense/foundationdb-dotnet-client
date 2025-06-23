@@ -147,6 +147,22 @@ namespace SnowBank.Data.Tuples.Binary
 		}
 
 		/// <inheritdoc />
+		public void EncodeKey<T1, T2, T3, T4, T5, T6, T7, T8, T9>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7, T8? item8, T9? item9)
+		{
+			var tw = new TupleWriter(writer);
+			TuplePacker<T1>.SerializeTo(ref tw, item1);
+			TuplePacker<T2>.SerializeTo(ref tw, item2);
+			TuplePacker<T3>.SerializeTo(ref tw, item3);
+			TuplePacker<T4>.SerializeTo(ref tw, item4);
+			TuplePacker<T5>.SerializeTo(ref tw, item5);
+			TuplePacker<T6>.SerializeTo(ref tw, item6);
+			TuplePacker<T7>.SerializeTo(ref tw, item7);
+			TuplePacker<T8>.SerializeTo(ref tw, item8);
+			TuplePacker<T9>.SerializeTo(ref tw, item9);
+			writer = tw.Output;
+		}
+
+		/// <inheritdoc />
 		public IVarTuple UnpackKey(Slice packed) => TuPack.Unpack(packed);
 
 		/// <inheritdoc />
@@ -256,6 +272,12 @@ namespace SnowBank.Data.Tuples.Binary
 		public (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(ReadOnlySpan<byte> packed) => TuPack.DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(packed);
 
 		/// <inheritdoc />
+		public (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?, T9?) DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8, T9>(Slice packed) => TuPack.DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8, T9>(packed);
+
+		/// <inheritdoc />
+		public (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?, T9?) DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8, T9>(ReadOnlySpan<byte> packed) => TuPack.DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8, T9>(packed);
+
+		/// <inheritdoc />
 		public (Slice Begin, Slice End) ToRange(Slice prefix) => TuPack.ToRange(prefix);
 
 		/// <inheritdoc />
@@ -284,6 +306,9 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <inheritdoc />
 		public (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5, T6, T7, T8>(Slice prefix, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7, T8? item8) => TuPack.ToPrefixedKeyRange(prefix, item1, item2, item3, item4, item5, item6, item7, item8);
+
+		/// <inheritdoc />
+		public (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5, T6, T7, T8, T9>(Slice prefix, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7, T8? item8, T9? item9) => TuPack.ToPrefixedKeyRange(prefix, item1, item2, item3, item4, item5, item6, item7, item8, item9);
 
 	}
 

@@ -232,6 +232,14 @@ namespace SnowBank.Data.Tuples
 			return new STuple<T1, T2, T3, T4, T5, T6, T7>(item1, item2, item3, item4, item5, item6, item7);
 		}
 
+		/// <summary>Create a new 8-tuple, holding eight items</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
+		[OverloadResolutionPriority(1)]
+		public static STuple<T1, T2, T3, T4, T5, T6, T7, T8> Create<T1, T2, T3, T4, T5, T6, T7, T8>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
+		{
+			return new STuple<T1, T2, T3, T4, T5, T6, T7, T8>(item1, item2, item3, item4, item5, item6, item7, item8);
+		}
+
 		/// <summary>Create a new N-tuple, from N items</summary>
 		/// <param name="items">Items to wrap in a tuple</param>
 		/// <remarks>If you already have an array of items, you should call <see cref="FromArray{T}(T[])"/> instead. Mutating the array, would also mutate the tuple!</remarks>
@@ -557,6 +565,18 @@ namespace SnowBank.Data.Tuples
 		[OverloadResolutionPriority(1)]
 		public static STuple<T1, T2, T3, T4, T5, T6, T7> Create<T1, T2, T3, T4, T5, T6, T7>(ref (T1, T2, T3, T4, T5, T6, T7) tuple)
 			=> new(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6, tuple.Item7);
+
+		/// <summary>Converts a <see cref="ValueTuple{T1,T2,T3,T4,T5,T6,T7,T8}"/> into the equivalent <see cref="STuple{T1,T2,T3,T4,T5,T6,T7,T8}"/> of the same size</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[OverloadResolutionPriority(1)]
+		public static STuple<T1, T2, T3, T4, T5, T6, T7, T8> Create<T1, T2, T3, T4, T5, T6, T7, T8>((T1, T2, T3, T4, T5, T6, T7, T8) tuple)
+			=> new(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6, tuple.Item7, tuple.Item8);
+
+		/// <summary>Converts a <see cref="ValueTuple{T1,T2,T3,T4,T5,T6,T7,T8}"/> into the equivalent <see cref="STuple{T1,T2,T3,T4,T5,T6,T7,T8}"/> of the same size</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[OverloadResolutionPriority(1)]
+		public static STuple<T1, T2, T3, T4, T5, T6, T7, T8> Create<T1, T2, T3, T4, T5, T6, T7, T8>(ref (T1, T2, T3, T4, T5, T6, T7, T8) tuple)
+			=> new(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6, tuple.Item7, tuple.Item8);
 
 		#endregion
 

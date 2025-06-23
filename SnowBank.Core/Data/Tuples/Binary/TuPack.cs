@@ -118,6 +118,14 @@ namespace SnowBank.Data.Tuples
 			return TupleEncoder.Pack(default, in tuple);
 		}
 
+		/// <summary>Pack an 8-tuple into a slice</summary>
+		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice Pack<T1, T2, T3, T4, T5, T6, T7, T8>(STuple<T1, T2, T3, T4, T5, T6, T7, T8> tuple)
+		{
+			return TupleEncoder.Pack(default, in tuple);
+		}
+
 		/// <summary>Pack a tuple into a slice</summary>
 		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -398,6 +406,24 @@ namespace SnowBank.Data.Tuples
 		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<T1, T2, T3, T4, T5, T6, T7>(ReadOnlySpan<byte> prefix, STuple<T1, T2, T3, T4, T5, T6, T7> tuple)
+		{
+			return TupleEncoder.Pack(prefix, in tuple);
+		}
+
+		/// <summary>Pack a tuple into a slice</summary>
+		/// <param name="prefix">Common prefix added to all the tuples</param>
+		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice Pack<T1, T2, T3, T4, T5, T6, T7, T8>(Slice prefix, STuple<T1, T2, T3, T4, T5, T6, T7, T8> tuple)
+		{
+			return TupleEncoder.Pack(prefix.Span, in tuple);
+		}
+
+		/// <summary>Pack a tuple into a slice</summary>
+		/// <param name="prefix">Common prefix added to all the tuples</param>
+		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice Pack<T1, T2, T3, T4, T5, T6, T7, T8>(ReadOnlySpan<byte> prefix, STuple<T1, T2, T3, T4, T5, T6, T7, T8> tuple)
 		{
 			return TupleEncoder.Pack(prefix, in tuple);
 		}
@@ -1293,6 +1319,20 @@ namespace SnowBank.Data.Tuples
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
 		[Pure]
+		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5, T6, T7, T8>(STuple<T1, T2, T3, T4, T5, T6, T7, T8> tuple)
+		{
+			Contract.NotNull(tuple);
+
+			// tuple => [ packed."\0", packed."\xFF" )
+			var packed = TupleEncoder.Pack(default, in tuple);
+			return (
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5, T6, T7, T8>((T1, T2, T3, T4, T5, T6, T7, T8) tuple)
 		{
 			// tuple => [ packed."\0", packed."\xFF" )
@@ -1333,6 +1373,54 @@ namespace SnowBank.Data.Tuples
 		{
 			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = TupleEncoder.EncodeKey(prefix, item1, item2, item3, item4, item5, item6, item7, item8);
+			return (
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		[Pure]
+		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5, T6, T7, T8, T9>((T1, T2, T3, T4, T5, T6, T7, T8, T9) tuple)
+		{
+			// tuple => [ packed."\0", packed."\xFF" )
+			var packed = TupleEncoder.Pack(default, in tuple);
+			return (
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		[Pure]
+		public static (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5, T6, T7, T8, T9>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8, T9 item9)
+		{
+			// tuple => [ packed."\0", packed."\xFF" )
+			var packed = TupleEncoder.EncodeKey(default, item1, item2, item3, item4, item5, item6, item7, item8, item9);
+			return (
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		[Pure]
+		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3, T4, T5, T6, T7, T8, T9>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8, T9 item9)
+		{
+			// tuple => [ packed."\0", packed."\xFF" )
+			var packed = TupleEncoder.EncodeKey(prefix.Span, item1, item2, item3, item4, item5, item6, item7, item8, item9);
+			return (
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		[Pure]
+		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3, T4, T5, T6, T7, T8, T9>(ReadOnlySpan<byte> prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8, T9 item9)
+		{
+			// tuple => [ packed."\0", packed."\xFF" )
+			var packed = TupleEncoder.EncodeKey(prefix, item1, item2, item3, item4, item5, item6, item7, item8, item9);
 			return (
 				packed + 0x00,
 				packed + 0xFF
@@ -1562,6 +1650,34 @@ namespace SnowBank.Data.Tuples
 		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5, T6, T7>(ReadOnlySpan<byte> prefix, STuple<T1, T2, T3, T4, T5, T6, T7> tuple)
+		{
+			Contract.NotNull(tuple);
+
+			// tuple => [ packed."\0", packed."\xFF" )
+			var packed = TupleEncoder.Pack(prefix, in tuple);
+			return (
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		[Pure]
+		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5, T6, T7, T8>(Slice prefix, STuple<T1, T2, T3, T4, T5, T6, T7, T8> tuple)
+		{
+			Contract.NotNull(tuple);
+
+			// tuple => [ packed."\0", packed."\xFF" )
+			var packed = TupleEncoder.Pack(prefix.Span, in tuple);
+			return (
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		[Pure]
+		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5, T6, T7, T8>(ReadOnlySpan<byte> prefix, STuple<T1, T2, T3, T4, T5, T6, T7, T8> tuple)
 		{
 			Contract.NotNull(tuple);
 
@@ -2395,6 +2511,23 @@ namespace SnowBank.Data.Tuples
 		{
 			var reader = new TupleReader(packedKey);
 			TupleEncoder.DecodeKey(ref reader, out (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) tuple);
+			return tuple;
+		}
+
+		/// <summary>Unpack a key containing nine elements</summary>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with eight elements</param>
+		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than eight elements.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?, T9?) DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8, T9>(Slice packedKey) => DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8, T9>(packedKey.Span);
+
+		/// <summary>Unpack a key containing nine elements</summary>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with eight elements</param>
+		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than eight elements.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?, T9?) DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8, T9>(ReadOnlySpan<byte> packedKey)
+		{
+			var reader = new TupleReader(packedKey);
+			TupleEncoder.DecodeKey(ref reader, out (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?, T9?) tuple);
 			return tuple;
 		}
 

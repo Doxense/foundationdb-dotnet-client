@@ -255,4 +255,45 @@ namespace SnowBank.Data.Tuples.Binary
 
 	}
 
+	/// <summary>Serializer for keys composed of 8 elements</summary>
+	public sealed class TupleSerializer<
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7,
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T8>
+		: ITupleSerializer<STuple<T1, T2, T3, T4, T5, T6, T7, T8>>
+	{
+
+		/// <summary>Gets the default instance of the <see cref="TupleSerializer{T1, T2, T3, T4, T5, T6, T7, T8}"/> class.</summary>
+		public static TupleSerializer<T1, T2, T3, T4, T5, T6, T7, T8> Default { get; } = new();
+
+		/// <summary>Packs the specified tuple into the writer.</summary>
+		/// <param name="writer">The writer to pack the tuple into.</param>
+		/// <param name="tuple">The tuple to pack.</param>
+		public void PackTo(ref TupleWriter writer, in STuple<T1, T2, T3, T4, T5, T6, T7, T8> tuple)
+		{
+			TuplePackers.SerializeTo(ref writer, tuple.Item1);
+			TuplePackers.SerializeTo(ref writer, tuple.Item2);
+			TuplePackers.SerializeTo(ref writer, tuple.Item3);
+			TuplePackers.SerializeTo(ref writer, tuple.Item4);
+			TuplePackers.SerializeTo(ref writer, tuple.Item5);
+			TuplePackers.SerializeTo(ref writer, tuple.Item6);
+			TuplePackers.SerializeTo(ref writer, tuple.Item7);
+			TuplePackers.SerializeTo(ref writer, tuple.Item8);
+		}
+
+		/// <summary>Unpacks a tuple from the specified reader.</summary>
+		/// <param name="reader">The reader to unpack the tuple from.</param>
+		/// <param name="tuple">The unpacked tuple.</param>
+		public void UnpackFrom(ref TupleReader reader, out STuple<T1, T2, T3, T4, T5, T6, T7, T8> tuple)
+		{
+			TupleEncoder.DecodeKey(ref reader, out tuple);
+		}
+
+	}
+
 }

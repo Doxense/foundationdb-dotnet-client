@@ -187,9 +187,9 @@ namespace SnowBank.Data.Tuples
 			return new LinkedTuple<T5>(this, value);
 		}
 
-		/// <summary>Appends a single new item at the end of the current tuple.</summary>
-		/// <param name="value1">Item that will be added as an embedded item</param>
-		/// <param name="value2">Item that will be added as an embedded item</param>
+		/// <summary>Appends two new items at the end of the current tuple.</summary>
+		/// <param name="value1">First item that will be added as an embedded item</param>
+		/// <param name="value2">Second item that will be added as an embedded item</param>
 		/// <returns>New tuple with two extra item</returns>
 		/// <remarks>If any of <paramref name="value1"/> or <paramref name="value2"/> is a tuple, and you want to append the *items*  of this tuple, and not the tuple itself, please call <see cref="Concat"/>!</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -391,6 +391,24 @@ namespace SnowBank.Data.Tuples
 		{
 			return new STuple<T1, T2, T3, T4, T5, T6>(this.Item1, this.Item2, this.Item3, this.Item4, tuple.Item1, tuple.Item2);
 		}
+
+		/// <summary>Appends the items of a tuple at the end of the current tuple.</summary>
+		/// <param name="tuple">Tuple whose items are to be appended at the end</param>
+		/// <returns>New tuple composed of the current tuple items, followed by <paramref name="tuple"/>'s items</returns>
+		[Pure]
+		public STuple<T1, T2, T3, T4, T5, T6, T7> Concat<T5, T6, T7>((T5, T6, T7) tuple)
+		{
+			return new STuple<T1, T2, T3, T4, T5, T6, T7>(this.Item1, this.Item2, this.Item3, this.Item4, tuple.Item1, tuple.Item2, tuple.Item3);
+		}
+
+		/// <summary>Appends the items of a tuple at the end of the current tuple.</summary>
+		/// <param name="tuple">Tuple whose items are to be appended at the end</param>
+		/// <returns>New tuple composed of the current tuple items, followed by <paramref name="tuple"/>'s items</returns>
+		[Pure]
+		public STuple<T1, T2, T3, T4, T5, T6, T7, T8> Concat<T5, T6, T7, T8>((T5, T6, T7, T8) tuple)
+		{
+			return new STuple<T1, T2, T3, T4, T5, T6, T7, T8>(this.Item1, this.Item2, this.Item3, this.Item4, tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
+			}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (T1, T2, T3, T4) ToValueTuple()

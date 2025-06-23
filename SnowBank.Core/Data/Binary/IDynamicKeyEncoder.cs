@@ -170,23 +170,23 @@ namespace SnowBank.Data.Binary
 			(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7);
 
 		/// <summary>Encodes a key composed of 8 elements into a binary slice</summary>
-		/// <typeparam name="T1">Type of the first element</typeparam>
-		/// <typeparam name="T2">Type of the second element</typeparam>
-		/// <typeparam name="T3">Type of the third element</typeparam>
-		/// <typeparam name="T4">Type of the fourth element</typeparam>
-		/// <typeparam name="T5">Type of the fifth element</typeparam>
-		/// <typeparam name="T6">Type of the sixth element</typeparam>
-		/// <typeparam name="T7">Type of the seventh element</typeparam>
-		/// <typeparam name="T8">Type of the eighth element</typeparam>
+		/// <typeparam name="T1">Type of the 1st element</typeparam>
+		/// <typeparam name="T2">Type of the 2nd element</typeparam>
+		/// <typeparam name="T3">Type of the 3rd element</typeparam>
+		/// <typeparam name="T4">Type of the 4th element</typeparam>
+		/// <typeparam name="T5">Type of the 5th element</typeparam>
+		/// <typeparam name="T6">Type of the 6th element</typeparam>
+		/// <typeparam name="T7">Type of the 7th element</typeparam>
+		/// <typeparam name="T8">Type of the 8th element</typeparam>
 		/// <param name="writer">Buffer where to append the binary representation</param>
-		/// <param name="item1">First element to encode</param>
-		/// <param name="item2">Second element to encode</param>
-		/// <param name="item3">Third element to encode</param>
-		/// <param name="item4">Fourth element to encode</param>
-		/// <param name="item5">Fifth element to encode</param>
-		/// <param name="item6">Sixth element to encode</param>
-		/// <param name="item7">Seventh element to encode</param>
-		/// <param name="item8">Eighth element to encode</param>
+		/// <param name="item1">1st element to encode</param>
+		/// <param name="item2">2nd element to encode</param>
+		/// <param name="item3">3rd element to encode</param>
+		/// <param name="item4">4th element to encode</param>
+		/// <param name="item5">5th element to encode</param>
+		/// <param name="item6">6th element to encode</param>
+		/// <param name="item7">7th element to encode</param>
+		/// <param name="item8">8th element to encode</param>
 		void EncodeKey<
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
@@ -197,6 +197,38 @@ namespace SnowBank.Data.Binary
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7,
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T8
 		>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7, T8? item8);
+
+		/// <summary>Encodes a key composed of 9 elements into a binary slice</summary>
+		/// <typeparam name="T1">Type of the 1st element</typeparam>
+		/// <typeparam name="T2">Type of the 2nd element</typeparam>
+		/// <typeparam name="T3">Type of the 3rd element</typeparam>
+		/// <typeparam name="T4">Type of the 4th element</typeparam>
+		/// <typeparam name="T5">Type of the 5th element</typeparam>
+		/// <typeparam name="T6">Type of the 6th element</typeparam>
+		/// <typeparam name="T7">Type of the 7th element</typeparam>
+		/// <typeparam name="T8">Type of the 8th element</typeparam>
+		/// <typeparam name="T9">Type of the 9th element</typeparam>
+		/// <param name="writer">Buffer where to append the binary representation</param>
+		/// <param name="item1">1st element to encode</param>
+		/// <param name="item2">2nd element to encode</param>
+		/// <param name="item3">3rd element to encode</param>
+		/// <param name="item4">4th element to encode</param>
+		/// <param name="item5">5th element to encode</param>
+		/// <param name="item6">6th element to encode</param>
+		/// <param name="item7">7th element to encode</param>
+		/// <param name="item8">8th element to encode</param>
+		/// <param name="item9">9th element to encode</param>
+		void EncodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T8,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T9
+		>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7, T8? item8, T9? item9);
 
 		#endregion
 
@@ -237,8 +269,8 @@ namespace SnowBank.Data.Binary
 		T? DecodeKey<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(ReadOnlySpan<byte> packed);
 
 		/// <summary>Decodes a binary slice containing exactly two elements</summary>
-		/// <typeparam name="T1">Expected type of the first element</typeparam>
-		/// <typeparam name="T2">Expected type of the second element</typeparam>
+		/// <typeparam name="T1">Expected type of the 1st element</typeparam>
+		/// <typeparam name="T2">Expected type of the 2nd element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2}"/> or <see cref="EncodeKey{T1, T2}"/></param>
 		/// <returns>Tuple containing two elements, or an exception if the data is invalid, or the tuples has less or more than two elements</returns>
 		(T1?, T2?) DecodeKey<
@@ -247,8 +279,8 @@ namespace SnowBank.Data.Binary
 			(Slice packed);
 
 		/// <summary>Decodes a binary slice containing exactly two elements</summary>
-		/// <typeparam name="T1">Expected type of the first element</typeparam>
-		/// <typeparam name="T2">Expected type of the second element</typeparam>
+		/// <typeparam name="T1">Expected type of the 1st element</typeparam>
+		/// <typeparam name="T2">Expected type of the 2nd element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2}"/> or <see cref="EncodeKey{T1, T2}"/></param>
 		/// <returns>Tuple containing two elements, or an exception if the data is invalid, or the tuples has less or more than two elements</returns>
 		(T1?, T2?) DecodeKey<
@@ -257,9 +289,9 @@ namespace SnowBank.Data.Binary
 			(ReadOnlySpan<byte> packed);
 
 		/// <summary>Decodes a binary slice containing exactly three elements</summary>
-		/// <typeparam name="T1">Expected type of the first element</typeparam>
-		/// <typeparam name="T2">Expected type of the second element</typeparam>
-		/// <typeparam name="T3">Expected type of the third element</typeparam>
+		/// <typeparam name="T1">Expected type of the 1st element</typeparam>
+		/// <typeparam name="T2">Expected type of the 2nd element</typeparam>
+		/// <typeparam name="T3">Expected type of the 3rd element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2, T3}"/> or <see cref="EncodeKey{T1, T2, T3}"/></param>
 		/// <returns>Tuple containing three elements, or an exception if the data is invalid, or the tuples has less or more than three elements</returns>
 		(T1?, T2?, T3?) DecodeKey<
@@ -269,9 +301,9 @@ namespace SnowBank.Data.Binary
 			(Slice packed);
 
 		/// <summary>Decodes a binary slice containing exactly three elements</summary>
-		/// <typeparam name="T1">Expected type of the first element</typeparam>
-		/// <typeparam name="T2">Expected type of the second element</typeparam>
-		/// <typeparam name="T3">Expected type of the third element</typeparam>
+		/// <typeparam name="T1">Expected type of the 1st element</typeparam>
+		/// <typeparam name="T2">Expected type of the 2nd element</typeparam>
+		/// <typeparam name="T3">Expected type of the 3rd element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2, T3}"/> or <see cref="EncodeKey{T1, T2, T3}"/></param>
 		/// <returns>Tuple containing three elements, or an exception if the data is invalid, or the tuples has less or more than three elements</returns>
 		(T1?, T2?, T3?) DecodeKey<
@@ -281,10 +313,10 @@ namespace SnowBank.Data.Binary
 			(ReadOnlySpan<byte> packed);
 
 		/// <summary>Decodes a binary slice containing exactly four elements</summary>
-		/// <typeparam name="T1">Expected type of the first element</typeparam>
-		/// <typeparam name="T2">Expected type of the second element</typeparam>
-		/// <typeparam name="T3">Expected type of the third element</typeparam>
-		/// <typeparam name="T4">Expected type of the fourth element</typeparam>
+		/// <typeparam name="T1">Expected type of the 1st element</typeparam>
+		/// <typeparam name="T2">Expected type of the 2nd element</typeparam>
+		/// <typeparam name="T3">Expected type of the 3rd element</typeparam>
+		/// <typeparam name="T4">Expected type of the 4th element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2, T3, T4}"/> or <see cref="EncodeKey{T1, T2, T3, T4}"/></param>
 		/// <returns>Tuple containing four elements, or an exception if the data is invalid, or the tuples has less or more than four elements</returns>
 		(T1?, T2?, T3?, T4?) DecodeKey<
@@ -295,10 +327,10 @@ namespace SnowBank.Data.Binary
 			(Slice packed);
 
 		/// <summary>Decodes a binary slice containing exactly four elements</summary>
-		/// <typeparam name="T1">Expected type of the first element</typeparam>
-		/// <typeparam name="T2">Expected type of the second element</typeparam>
-		/// <typeparam name="T3">Expected type of the third element</typeparam>
-		/// <typeparam name="T4">Expected type of the fourth element</typeparam>
+		/// <typeparam name="T1">Expected type of the 1st element</typeparam>
+		/// <typeparam name="T2">Expected type of the 2nd element</typeparam>
+		/// <typeparam name="T3">Expected type of the 3rd element</typeparam>
+		/// <typeparam name="T4">Expected type of the 4th element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2, T3, T4}"/> or <see cref="EncodeKey{T1, T2, T3, T4}"/></param>
 		/// <returns>Tuple containing four elements, or an exception if the data is invalid, or the tuples has less or more than four elements</returns>
 		(T1?, T2?, T3?, T4?) DecodeKey<
@@ -309,11 +341,11 @@ namespace SnowBank.Data.Binary
 			(ReadOnlySpan<byte> packed);
 
 		/// <summary>Decodes a binary slice containing exactly five elements</summary>
-		/// <typeparam name="T1">Expected type of the first element</typeparam>
-		/// <typeparam name="T2">Expected type of the second element</typeparam>
-		/// <typeparam name="T3">Expected type of the third element</typeparam>
-		/// <typeparam name="T4">Expected type of the fourth element</typeparam>
-		/// <typeparam name="T5">Expected type of the fifth element</typeparam>
+		/// <typeparam name="T1">Expected type of the 1st element</typeparam>
+		/// <typeparam name="T2">Expected type of the 2nd element</typeparam>
+		/// <typeparam name="T3">Expected type of the 3rd element</typeparam>
+		/// <typeparam name="T4">Expected type of the 4th element</typeparam>
+		/// <typeparam name="T5">Expected type of the 5th element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2, T3, T4, T5}"/> or <see cref="EncodeKey{T1, T2, T3, T4, T5}"/></param>
 		/// <returns>Tuple containing five elements, or an exception if the data is invalid, or the tuples has less or more than five elements</returns>
 		(T1?, T2?, T3?, T4?, T5?) DecodeKey<
@@ -325,11 +357,11 @@ namespace SnowBank.Data.Binary
 			(Slice packed);
 
 		/// <summary>Decodes a binary slice containing exactly five elements</summary>
-		/// <typeparam name="T1">Expected type of the first element</typeparam>
-		/// <typeparam name="T2">Expected type of the second element</typeparam>
-		/// <typeparam name="T3">Expected type of the third element</typeparam>
-		/// <typeparam name="T4">Expected type of the fourth element</typeparam>
-		/// <typeparam name="T5">Expected type of the fifth element</typeparam>
+		/// <typeparam name="T1">Expected type of the 1st element</typeparam>
+		/// <typeparam name="T2">Expected type of the 2nd element</typeparam>
+		/// <typeparam name="T3">Expected type of the 3rd element</typeparam>
+		/// <typeparam name="T4">Expected type of the 4th element</typeparam>
+		/// <typeparam name="T5">Expected type of the 5th element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2, T3, T4, T5}"/> or <see cref="EncodeKey{T1, T2, T3, T4, T5}"/></param>
 		/// <returns>Tuple containing five elements, or an exception if the data is invalid, or the tuples has less or more than five elements</returns>
 		(T1?, T2?, T3?, T4?, T5?) DecodeKey<
@@ -341,12 +373,12 @@ namespace SnowBank.Data.Binary
 			(ReadOnlySpan<byte> packed);
 
 		/// <summary>Decodes a binary slice containing exactly six elements</summary>
-		/// <typeparam name="T1">Expected type of the first element</typeparam>
-		/// <typeparam name="T2">Expected type of the second element</typeparam>
-		/// <typeparam name="T3">Expected type of the third element</typeparam>
-		/// <typeparam name="T4">Expected type of the fourth element</typeparam>
-		/// <typeparam name="T5">Expected type of the fifth element</typeparam>
-		/// <typeparam name="T6">Expected type of the sixth element</typeparam>
+		/// <typeparam name="T1">Expected type of the 1st element</typeparam>
+		/// <typeparam name="T2">Expected type of the 2nd element</typeparam>
+		/// <typeparam name="T3">Expected type of the 3rd element</typeparam>
+		/// <typeparam name="T4">Expected type of the 4th element</typeparam>
+		/// <typeparam name="T5">Expected type of the 5th element</typeparam>
+		/// <typeparam name="T6">Expected type of the 6th element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2, T3, T4, T5, T6}"/> or <see cref="EncodeKey{T1, T2, T3, T4, T5, T6}"/></param>
 		/// <returns>Tuple containing six elements, or an exception if the data is invalid, or the tuples has less or more than six elements</returns>
 		(T1?, T2?, T3?, T4?, T5?, T6?) DecodeKey<
@@ -359,12 +391,12 @@ namespace SnowBank.Data.Binary
 			(Slice packed);
 
 		/// <summary>Decodes a binary slice containing exactly six elements</summary>
-		/// <typeparam name="T1">Expected type of the first element</typeparam>
-		/// <typeparam name="T2">Expected type of the second element</typeparam>
-		/// <typeparam name="T3">Expected type of the third element</typeparam>
-		/// <typeparam name="T4">Expected type of the fourth element</typeparam>
-		/// <typeparam name="T5">Expected type of the fifth element</typeparam>
-		/// <typeparam name="T6">Expected type of the sixth element</typeparam>
+		/// <typeparam name="T1">Expected type of the 1st element</typeparam>
+		/// <typeparam name="T2">Expected type of the 2nd element</typeparam>
+		/// <typeparam name="T3">Expected type of the 3rd element</typeparam>
+		/// <typeparam name="T4">Expected type of the 4th element</typeparam>
+		/// <typeparam name="T5">Expected type of the 5th element</typeparam>
+		/// <typeparam name="T6">Expected type of the 6th element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2, T3, T4, T5, T6}"/> or <see cref="EncodeKey{T1, T2, T3, T4, T5, T6}"/></param>
 		/// <returns>Tuple containing six elements, or an exception if the data is invalid, or the tuples has less or more than six elements</returns>
 		(T1?, T2?, T3?, T4?, T5?, T6?) DecodeKey<
@@ -377,13 +409,13 @@ namespace SnowBank.Data.Binary
 			(ReadOnlySpan<byte> packed);
 
 		/// <summary>Decodes a binary slice containing exactly seven elements</summary>
-		/// <typeparam name="T1">Expected type of the first element</typeparam>
-		/// <typeparam name="T2">Expected type of the second element</typeparam>
-		/// <typeparam name="T3">Expected type of the third element</typeparam>
-		/// <typeparam name="T4">Expected type of the fourth element</typeparam>
-		/// <typeparam name="T5">Expected type of the fifth element</typeparam>
-		/// <typeparam name="T6">Expected type of the sixth element</typeparam>
-		/// <typeparam name="T7">Expected type of the seventh element</typeparam>
+		/// <typeparam name="T1">Expected type of the 1st element</typeparam>
+		/// <typeparam name="T2">Expected type of the 2nd element</typeparam>
+		/// <typeparam name="T3">Expected type of the 3rd element</typeparam>
+		/// <typeparam name="T4">Expected type of the 4th element</typeparam>
+		/// <typeparam name="T5">Expected type of the 5th element</typeparam>
+		/// <typeparam name="T6">Expected type of the 6th element</typeparam>
+		/// <typeparam name="T7">Expected type of the 7th element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2, T3, T4, T5, T6, T7}"/> or <see cref="EncodeKey{T1, T2, T3, T4, T5, T6, T7}"/></param>
 		/// <returns>Tuple containing seven elements, or an exception if the data is invalid, or the tuples has less or more than seven elements</returns>
 		(T1?, T2?, T3?, T4?, T5?, T6?, T7?) DecodeKey<
@@ -397,13 +429,13 @@ namespace SnowBank.Data.Binary
 			(Slice packed);
 
 		/// <summary>Decodes a binary slice containing exactly seven elements</summary>
-		/// <typeparam name="T1">Expected type of the first element</typeparam>
-		/// <typeparam name="T2">Expected type of the second element</typeparam>
-		/// <typeparam name="T3">Expected type of the third element</typeparam>
-		/// <typeparam name="T4">Expected type of the fourth element</typeparam>
-		/// <typeparam name="T5">Expected type of the fifth element</typeparam>
-		/// <typeparam name="T6">Expected type of the sixth element</typeparam>
-		/// <typeparam name="T7">Expected type of the seventh element</typeparam>
+		/// <typeparam name="T1">Expected type of the 1st element</typeparam>
+		/// <typeparam name="T2">Expected type of the 2nd element</typeparam>
+		/// <typeparam name="T3">Expected type of the 3rd element</typeparam>
+		/// <typeparam name="T4">Expected type of the 4th element</typeparam>
+		/// <typeparam name="T5">Expected type of the 5th element</typeparam>
+		/// <typeparam name="T6">Expected type of the 6th element</typeparam>
+		/// <typeparam name="T7">Expected type of the 7th element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2, T3, T4, T5, T6, T7}"/> or <see cref="EncodeKey{T1, T2, T3, T4, T5, T6, T7}"/></param>
 		/// <returns>Tuple containing seven elements, or an exception if the data is invalid, or the tuples has less or more than seven elements</returns>
 		(T1?, T2?, T3?, T4?, T5?, T6?, T7?) DecodeKey<
@@ -416,15 +448,15 @@ namespace SnowBank.Data.Binary
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7>
 			(ReadOnlySpan<byte> packed);
 
-		/// <summary>Decodes a binary slice containing exactly seven elements</summary>
-		/// <typeparam name="T1">Expected type of the first element</typeparam>
-		/// <typeparam name="T2">Expected type of the second element</typeparam>
-		/// <typeparam name="T3">Expected type of the third element</typeparam>
-		/// <typeparam name="T4">Expected type of the fourth element</typeparam>
-		/// <typeparam name="T5">Expected type of the fifth element</typeparam>
-		/// <typeparam name="T6">Expected type of the sixth element</typeparam>
-		/// <typeparam name="T7">Expected type of the seventh element</typeparam>
-		/// <typeparam name="T8">Expected type of the eight element</typeparam>
+		/// <summary>Decodes a binary slice containing exactly eight elements</summary>
+		/// <typeparam name="T1">Expected type of the 1st element</typeparam>
+		/// <typeparam name="T2">Expected type of the 2nd element</typeparam>
+		/// <typeparam name="T3">Expected type of the 3rd element</typeparam>
+		/// <typeparam name="T4">Expected type of the 4th element</typeparam>
+		/// <typeparam name="T5">Expected type of the 5th element</typeparam>
+		/// <typeparam name="T6">Expected type of the 6th element</typeparam>
+		/// <typeparam name="T7">Expected type of the 7th element</typeparam>
+		/// <typeparam name="T8">Expected type of the 8th element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2, T3, T4, T5, T6, T7, T8}"/> or <see cref="EncodeKey{T1, T2, T3, T4, T5, T6, T7, T8}"/></param>
 		/// <returns>Tuple containing eight elements, or an exception if the data is invalid, or the tuples has less or more than eight elements</returns>
 		(T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) DecodeKey<
@@ -438,15 +470,15 @@ namespace SnowBank.Data.Binary
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T8>
 			(Slice packed);
 
-		/// <summary>Decodes a binary slice containing exactly seven elements</summary>
-		/// <typeparam name="T1">Expected type of the first element</typeparam>
-		/// <typeparam name="T2">Expected type of the second element</typeparam>
-		/// <typeparam name="T3">Expected type of the third element</typeparam>
-		/// <typeparam name="T4">Expected type of the fourth element</typeparam>
-		/// <typeparam name="T5">Expected type of the fifth element</typeparam>
-		/// <typeparam name="T6">Expected type of the sixth element</typeparam>
-		/// <typeparam name="T7">Expected type of the seventh element</typeparam>
-		/// <typeparam name="T8">Expected type of the eight element</typeparam>
+		/// <summary>Decodes a binary slice containing exactly eight elements</summary>
+		/// <typeparam name="T1">Expected type of the 1st element</typeparam>
+		/// <typeparam name="T2">Expected type of the 2nd element</typeparam>
+		/// <typeparam name="T3">Expected type of the 3rd element</typeparam>
+		/// <typeparam name="T4">Expected type of the 4th element</typeparam>
+		/// <typeparam name="T5">Expected type of the 5th element</typeparam>
+		/// <typeparam name="T6">Expected type of the 6th element</typeparam>
+		/// <typeparam name="T7">Expected type of the 7th element</typeparam>
+		/// <typeparam name="T8">Expected type of the 8th element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2, T3, T4, T5, T6, T7, T8}"/> or <see cref="EncodeKey{T1, T2, T3, T4, T5, T6, T7, T8}"/></param>
 		/// <returns>Tuple containing eight elements, or an exception if the data is invalid, or the tuples has less or more than eight elements</returns>
 		(T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) DecodeKey<
@@ -459,6 +491,54 @@ namespace SnowBank.Data.Binary
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7,
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T8>
 			(ReadOnlySpan<byte> packed);
+
+		/// <summary>Decodes a binary slice containing exactly nine elements</summary>
+		/// <typeparam name="T1">Expected type of the 1st element</typeparam>
+		/// <typeparam name="T2">Expected type of the 2nd element</typeparam>
+		/// <typeparam name="T3">Expected type of the 3rd element</typeparam>
+		/// <typeparam name="T4">Expected type of the 4th element</typeparam>
+		/// <typeparam name="T5">Expected type of the 5th element</typeparam>
+		/// <typeparam name="T6">Expected type of the 6th element</typeparam>
+		/// <typeparam name="T7">Expected type of the 7th element</typeparam>
+		/// <typeparam name="T8">Expected type of the 8th element</typeparam>
+		/// <typeparam name="T9">Expected type of the 9th element</typeparam>
+		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2, T3, T4, T5, T6, T7, T8, T9}"/> or <see cref="EncodeKey{T1, T2, T3, T4, T5, T6, T7, T8, T9}"/></param>
+		/// <returns>Tuple containing eight elements, or an exception if the data is invalid, or the tuples has less or more than eight elements</returns>
+		(T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?, T9?) DecodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T8,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T9>
+		(Slice packed);
+
+		/// <summary>Decodes a binary slice containing exactly nine elements</summary>
+		/// <typeparam name="T1">Expected type of the 1st element</typeparam>
+		/// <typeparam name="T2">Expected type of the 2nd element</typeparam>
+		/// <typeparam name="T3">Expected type of the 3rd element</typeparam>
+		/// <typeparam name="T4">Expected type of the 4th element</typeparam>
+		/// <typeparam name="T5">Expected type of the 5th element</typeparam>
+		/// <typeparam name="T6">Expected type of the 6th element</typeparam>
+		/// <typeparam name="T7">Expected type of the 7th element</typeparam>
+		/// <typeparam name="T8">Expected type of the 8th element</typeparam>
+		/// <typeparam name="T9">Expected type of the 9th element</typeparam>
+		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2, T3, T4, T5, T6, T7, T8, T9}"/> or <see cref="EncodeKey{T1, T2, T3, T4, T5, T6, T7, T8, T9}"/></param>
+		/// <returns>Tuple containing eight elements, or an exception if the data is invalid, or the tuples has less or more than eight elements</returns>
+		(T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?, T9?) DecodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T8,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T9>
+		(ReadOnlySpan<byte> packed);
 
 		/// <summary>Decodes the first element of a binary slice containing at least 1 element</summary>
 		/// <typeparam name="T1">Expected type of the first element</typeparam>
@@ -734,23 +814,23 @@ namespace SnowBank.Data.Binary
 			(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7);
 
 		/// <summary>Returns a key range using 8 elements as a prefix</summary>
-		/// <typeparam name="T1">Type of the first element</typeparam>
-		/// <typeparam name="T2">Type of the second element</typeparam>
-		/// <typeparam name="T3">Type of the third element</typeparam>
-		/// <typeparam name="T4">Type of the fourth element</typeparam>
-		/// <typeparam name="T5">Type of the fifth element</typeparam>
-		/// <typeparam name="T6">Type of the sixth element</typeparam>
-		/// <typeparam name="T7">Type of the seventh element</typeparam>
-		/// <typeparam name="T8">Type of the eighth element</typeparam>
+		/// <typeparam name="T1">Type of the 1st element</typeparam>
+		/// <typeparam name="T2">Type of the 2nd element</typeparam>
+		/// <typeparam name="T3">Type of the 3rd element</typeparam>
+		/// <typeparam name="T4">Type of the 4th element</typeparam>
+		/// <typeparam name="T5">Type of the 5th element</typeparam>
+		/// <typeparam name="T6">Type of the 6th element</typeparam>
+		/// <typeparam name="T7">Type of the 7th element</typeparam>
+		/// <typeparam name="T8">Type of the 8th element</typeparam>
 		/// <param name="prefix">Optional binary prefix that should be added before encoding the key</param>
-		/// <param name="item1">First element to encode</param>
-		/// <param name="item2">Second element to encode</param>
-		/// <param name="item3">Third element to encode</param>
-		/// <param name="item4">Fourth element to encode</param>
-		/// <param name="item5">Fifth element to encode</param>
-		/// <param name="item6">Sixth element to encode</param>
-		/// <param name="item7">Seventh element to encode</param>
-		/// <param name="item8">Eighth element to encode</param>
+		/// <param name="item1">1st element to encode</param>
+		/// <param name="item2">2nd element to encode</param>
+		/// <param name="item3">3rd element to encode</param>
+		/// <param name="item4">4th element to encode</param>
+		/// <param name="item5">5th element to encode</param>
+		/// <param name="item6">6th element to encode</param>
+		/// <param name="item7">7th element to encode</param>
+		/// <param name="item8">8th element to encode</param>
 		(Slice Begin, Slice End) ToKeyRange<
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
@@ -761,6 +841,38 @@ namespace SnowBank.Data.Binary
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7,
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T8>
 			(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8);
+
+		/// <summary>Returns a key range using 9 elements as a prefix</summary>
+		/// <typeparam name="T1">Type of the 1st element</typeparam>
+		/// <typeparam name="T2">Type of the 2nd element</typeparam>
+		/// <typeparam name="T3">Type of the 3rd element</typeparam>
+		/// <typeparam name="T4">Type of the 4th element</typeparam>
+		/// <typeparam name="T5">Type of the 5th element</typeparam>
+		/// <typeparam name="T6">Type of the 6th element</typeparam>
+		/// <typeparam name="T7">Type of the 7th element</typeparam>
+		/// <typeparam name="T8">Type of the 8th element</typeparam>
+		/// <typeparam name="T9">Type of the 9th element</typeparam>
+		/// <param name="prefix">Optional binary prefix that should be added before encoding the key</param>
+		/// <param name="item1">1st element to encode</param>
+		/// <param name="item2">2nd element to encode</param>
+		/// <param name="item3">3rd element to encode</param>
+		/// <param name="item4">4th element to encode</param>
+		/// <param name="item5">5th element to encode</param>
+		/// <param name="item6">6th element to encode</param>
+		/// <param name="item7">7th element to encode</param>
+		/// <param name="item8">8th element to encode</param>
+		/// <param name="item9">8th element to encode</param>
+		(Slice Begin, Slice End) ToKeyRange<
+				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
+				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
+				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7,
+				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T8,
+				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T9>
+			(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8, T9 item9);
 
 		//note: I will be billing $999.99 to anyone who wants up to T11 !!! :(
 

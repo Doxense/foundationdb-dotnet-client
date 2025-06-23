@@ -211,6 +211,19 @@ namespace SnowBank.Data.Tuples
 			return new LinkedTuple<T6>(this, value);
 		}
 
+		/// <summary>Appends two new items at the end of the current tuple.</summary>
+		/// <param name="value1">First item that will be added as an embedded item</param>
+		/// <param name="value2">Second item that will be added as an embedded item</param>
+		/// <returns>New tuple with two extra item</returns>
+		/// <remarks>If any of <paramref name="value1"/> or <paramref name="value2"/> is a tuple, and you want to append the *items*  of this tuple, and not the tuple itself, please call <see cref="Concat"/>!</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public IVarTuple Append<T6, T7>(T6 value1, T7 value2)
+		{
+			// the caller probably cares about the return type, since it is using a struct, but whatever tuple type we use will end up boxing this tuple on the heap, and we will lose type information.
+			// but, by returning a LinkedTuple<T5>, the tuple will still remember the exact type, and efficiently serializer/convert the values (without having to guess the type)
+			return new JoinedTuple(this, new STuple<T6, T7>(value1, value2));
+		}
+
 		/// <summary>Appends the items of a tuple at the end of the current tuple.</summary>
 		/// <param name="tuple">Tuple whose items are to be appended at the end</param>
 		/// <returns>New tuple composed of the current tuple items, followed by <paramref name="tuple"/>'s items</returns>
@@ -421,6 +434,24 @@ namespace SnowBank.Data.Tuples
 		public STuple<T1, T2, T3, T4, T5, T6> Concat<T6>(ValueTuple<T6> tuple)
 		{
 			return new STuple<T1, T2, T3, T4, T5, T6>(this.Item1, this.Item2, this.Item3, this.Item4, this.Item5, tuple.Item1);
+		}
+
+		/// <summary>Appends the items of a tuple at the end of the current tuple.</summary>
+		/// <param name="tuple">Tuple whose items are to be appended at the end</param>
+		/// <returns>New tuple composed of the current tuple items, followed by <paramref name="tuple"/>'s items</returns>
+		[Pure]
+		public STuple<T1, T2, T3, T4, T5, T6, T7> Concat<T6, T7>(ValueTuple<T6, T7> tuple)
+		{
+			return new STuple<T1, T2, T3, T4, T5, T6, T7>(this.Item1, this.Item2, this.Item3, this.Item4, this.Item5, tuple.Item1, tuple.Item2);
+		}
+
+		/// <summary>Appends the items of a tuple at the end of the current tuple.</summary>
+		/// <param name="tuple">Tuple whose items are to be appended at the end</param>
+		/// <returns>New tuple composed of the current tuple items, followed by <paramref name="tuple"/>'s items</returns>
+		[Pure]
+		public STuple<T1, T2, T3, T4, T5, T6, T7, T8> Concat<T6, T7, T8>(ValueTuple<T6, T7, T8> tuple)
+		{
+			return new STuple<T1, T2, T3, T4, T5, T6, T7, T8>(this.Item1, this.Item2, this.Item3, this.Item4, this.Item5, tuple.Item1, tuple.Item2, tuple.Item3);
 		}
 
 		[Pure]

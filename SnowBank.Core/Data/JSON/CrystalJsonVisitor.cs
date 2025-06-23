@@ -1824,6 +1824,7 @@ namespace SnowBank.Data.Json
 						5 => typeof(CrystalJsonVisitor).GetMethod(nameof(VisitSTuple5))!,
 						6 => typeof(CrystalJsonVisitor).GetMethod(nameof(VisitSTuple6))!,
 						7 => typeof(CrystalJsonVisitor).GetMethod(nameof(VisitSTuple7))!,
+						8 => typeof(CrystalJsonVisitor).GetMethod(nameof(VisitSTuple8))!,
 						_ => throw new InvalidOperationException()
 					};
 					Contract.Debug.Assert(m != null, "Missing method to serialize generic tuple");
@@ -1999,6 +2000,32 @@ namespace SnowBank.Data.Json
 			writer.EndArray(state);
 		}
 
+		/// <summary>Visit a tuple of length 8</summary>
+		public static void VisitSTuple8<T1, T2, T3, T4, T5, T6, T7, T8>(object? tuple, Type declaredType, Type? runtimeType, CrystalJsonWriter writer)
+		{
+			if (tuple == null) { writer.WriteNull(); return; }
+
+			var t = (STuple<T1, T2, T3, T4, T5, T6, T7, T8>) tuple;
+			var state = writer.BeginArray();
+			writer.WriteHeadSeparator();
+			writer.VisitValue(t.Item1);
+			writer.WriteTailSeparator();
+			writer.VisitValue(t.Item2);
+			writer.WriteTailSeparator();
+			writer.VisitValue(t.Item3);
+			writer.WriteTailSeparator();
+			writer.VisitValue(t.Item4);
+			writer.WriteTailSeparator();
+			writer.VisitValue(t.Item5);
+			writer.WriteTailSeparator();
+			writer.VisitValue(t.Item6);
+			writer.WriteTailSeparator();
+			writer.VisitValue(t.Item7);
+			writer.WriteTailSeparator();
+			writer.VisitValue(t.Item8);
+			writer.EndArray(state);
+		}
+
 		#endregion
 
 		#region ValueTuples...
@@ -2013,7 +2040,7 @@ namespace SnowBank.Data.Json
 			if (type.IsValueType && type.IsGenericType && type.Name.StartsWith(nameof(ValueTuple) + "`", StringComparison.Ordinal))
 			{
 				var args = type.GetGenericArguments();
-				if (args.Length <= 6)
+				if (args.Length <= 8)
 				{
 					// lookup the corresponding VisitValueTuple#N# method
 					MethodInfo m;
@@ -2026,7 +2053,7 @@ namespace SnowBank.Data.Json
 						case 5: m = typeof(CrystalJsonVisitor).GetMethod(nameof(VisitValueTuple5))!; break;
 						case 6: m = typeof(CrystalJsonVisitor).GetMethod(nameof(VisitValueTuple6))!; break;
 						case 7: m = typeof(CrystalJsonVisitor).GetMethod(nameof(VisitValueTuple7))!; break;
-						//TODO: ValueTuple<...., TRest> ?
+						case 8: m = typeof(CrystalJsonVisitor).GetMethod(nameof(VisitValueTuple8))!; break;
 						default: throw new InvalidOperationException();
 					}
 					Contract.Debug.Assert(m != null, "Missing method to serialize generic tuple");
@@ -2183,6 +2210,31 @@ namespace SnowBank.Data.Json
 			writer.VisitValue(t.Item6);
 			writer.WriteTailSeparator();
 			writer.VisitValue(t.Item7);
+			writer.EndArray(state);
+		}
+
+		/// <summary>Visit a boxed ValueTuple of length 7</summary>
+		public static void VisitValueTuple8<T1, T2, T3, T4, T5, T6, T7, T8>(object? tuple, Type declaredType, Type? runtimeType, CrystalJsonWriter writer)
+		{
+			if (tuple == null) { writer.WriteNull(); return; }
+			var t = (ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8>>) tuple;
+			var state = writer.BeginArray();
+			writer.WriteHeadSeparator();
+			writer.VisitValue(t.Item1);
+			writer.WriteTailSeparator();
+			writer.VisitValue(t.Item2);
+			writer.WriteTailSeparator();
+			writer.VisitValue(t.Item3);
+			writer.WriteTailSeparator();
+			writer.VisitValue(t.Item4);
+			writer.WriteTailSeparator();
+			writer.VisitValue(t.Item5);
+			writer.WriteTailSeparator();
+			writer.VisitValue(t.Item6);
+			writer.WriteTailSeparator();
+			writer.VisitValue(t.Item7);
+			writer.WriteTailSeparator();
+			writer.VisitValue(t.Item8);
 			writer.EndArray(state);
 		}
 

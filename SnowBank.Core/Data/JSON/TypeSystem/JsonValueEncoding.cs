@@ -410,6 +410,18 @@ namespace SnowBank.Data.Binary
 			where T8 : default
 			=> throw new NotSupportedException();
 
+		void IDynamicKeyEncoder.EncodeKey<T1, T2, T3, T4, T5, T6, T7, T8, T9>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7, T8? item8, T9? item9)
+			where T1 : default
+			where T2 : default
+			where T3 : default
+			where T4 : default
+			where T5 : default
+			where T6 : default
+			where T7 : default
+			where T8 : default
+			where T9 : default
+			=> throw new NotSupportedException();
+
 		IVarTuple IDynamicKeyEncoder.UnpackKey(Slice packed) => throw new NotSupportedException();
 
 		SpanTuple IDynamicKeyEncoder.UnpackKey(ReadOnlySpan<byte> packed) => throw new NotSupportedException();
@@ -540,6 +552,18 @@ namespace SnowBank.Data.Binary
 			where T8 : default
 			=> throw new NotSupportedException();
 
+		(T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?, T9?) IDynamicKeyEncoder.DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8, T9>(Slice packed)
+			where T1 : default
+			where T2 : default
+			where T3 : default
+			where T4 : default
+			where T5 : default
+			where T6 : default
+			where T7 : default
+			where T8 : default
+			where T9 : default
+			=> throw new NotSupportedException();
+
 		(T1?, T2?) IDynamicKeyEncoder.DecodeKey<T1, T2>(ReadOnlySpan<byte> packed)
 			where T1 : default
 			where T2 : default
@@ -594,6 +618,18 @@ namespace SnowBank.Data.Binary
 			where T6 : default
 			where T7 : default
 			where T8 : default
+			=> throw new NotSupportedException();
+
+		(T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?, T9?) IDynamicKeyEncoder.DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8, T9>(ReadOnlySpan<byte> packed)
+			where T1 : default
+			where T2 : default
+			where T3 : default
+			where T4 : default
+			where T5 : default
+			where T6 : default
+			where T7 : default
+			where T8 : default
+			where T9 : default
 			=> throw new NotSupportedException();
 
 		(Slice Begin, Slice End) IDynamicKeyEncoder.ToRange(Slice prefix)
@@ -660,6 +696,18 @@ namespace SnowBank.Data.Binary
 			where T6 : default
 			where T7 : default
 			where T8 : default
+			=> throw new NotSupportedException();
+
+		(Slice Begin, Slice End) IDynamicKeyEncoder.ToKeyRange<T1, T2, T3, T4, T5, T6, T7, T8, T9>(Slice prefix, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7, T8? item8, T9? item9)
+			where T1 : default
+			where T2 : default
+			where T3 : default
+			where T4 : default
+			where T5 : default
+			where T6 : default
+			where T7 : default
+			where T8 : default
+			where T9 : default
 			=> throw new NotSupportedException();
 
 #pragma warning restore IL2095
