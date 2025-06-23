@@ -32,11 +32,14 @@ namespace SnowBank.Data.Json
 	using System.Collections.Generic;
 	using System.Globalization;
 	using System.IO;
+	using System.Net;
 	using System.Runtime.InteropServices;
 	using System.Text;
 	using System.Threading;
+
 	using NodaTime;
 	using NodaTime.Text;
+
 	using SnowBank.Buffers;
 	using SnowBank.Buffers.Text;
 	using SnowBank.IO;
@@ -4435,6 +4438,72 @@ namespace SnowBank.Data.Json
 		}
 
 		public void WriteField(JsonEncodedPropertyName name, NodaTime.DateTimeZone? value)
+		{
+			if (value != null || !m_discardNulls)
+			{
+				WriteName(name);
+				WriteValue(value);
+			}
+		}
+
+		#endregion
+
+		#region WriteField(..., Version)
+
+		public void WriteField(string name, Version? value)
+		{
+			if (value != null || !m_discardNulls)
+			{
+				WriteName(name);
+				WriteValue(value);
+			}
+		}
+
+		public void WriteField(JsonEncodedPropertyName name, Version? value)
+		{
+			if (value != null || !m_discardNulls)
+			{
+				WriteName(name);
+				WriteValue(value);
+			}
+		}
+
+		#endregion
+
+		#region WriteField(..., IPAddress)
+
+		public void WriteField(string name, IPAddress? value)
+		{
+			if (value != null || !m_discardNulls)
+			{
+				WriteName(name);
+				WriteValue(value);
+			}
+		}
+
+		public void WriteField(JsonEncodedPropertyName name, IPAddress? value)
+		{
+			if (value != null || !m_discardNulls)
+			{
+				WriteName(name);
+				WriteValue(value);
+			}
+		}
+
+		#endregion
+
+		#region WriteField(..., Uri)
+
+		public void WriteField(string name, Uri? value)
+		{
+			if (value != null || !m_discardNulls)
+			{
+				WriteName(name);
+				WriteValue(value);
+			}
+		}
+
+		public void WriteField(JsonEncodedPropertyName name, Uri? value)
 		{
 			if (value != null || !m_discardNulls)
 			{

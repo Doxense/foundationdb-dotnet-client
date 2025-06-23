@@ -1197,7 +1197,7 @@ namespace SnowBank.Data.Json.Tests
 				writer.WriteField("HasBitrate", true);
 				writer.WriteField("Bitrate", this.Bitrate);
 			}
-			if (this.Persons != null) writer.WriteField("Persons", this.Persons);
+			if (this.Persons != null) writer.WriteFieldArray("Persons", this.Persons);
 			writer.WriteField("Player", this.Player);
 			if (this.Copyright != null) writer.WriteField("Copyright", this.Copyright);
 			writer.EndObject(state);
