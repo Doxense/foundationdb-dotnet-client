@@ -53,7 +53,7 @@ namespace SnowBank.Data.Tuples
 			return TupleEncoder.Pack(tuple);
 		}
 
-		/// <summary>Pack a tuple into a slice</summary>
+		/// <summary>Pack a empty tuple into a slice</summary>
 		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<TTuple>(in TTuple? tuple)
@@ -62,7 +62,7 @@ namespace SnowBank.Data.Tuples
 			return TupleEncoder.Pack(in tuple);
 		}
 
-		/// <summary>Pack a tuple into a slice</summary>
+		/// <summary>Pack a 1-tuple into a slice</summary>
 		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<T1>(STuple<T1> tuple)
@@ -70,7 +70,7 @@ namespace SnowBank.Data.Tuples
 			return TupleEncoder.Pack(default, in tuple);
 		}
 
-		/// <summary>Pack a tuple into a slice</summary>
+		/// <summary>Pack a 2-tuple into a slice</summary>
 		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<T1, T2>(STuple<T1, T2> tuple)
@@ -78,7 +78,7 @@ namespace SnowBank.Data.Tuples
 			return TupleEncoder.Pack(default, in tuple);
 		}
 
-		/// <summary>Pack a tuple into a slice</summary>
+		/// <summary>Pack a 3-tuple into a slice</summary>
 		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<T1, T2, T3>(STuple<T1, T2, T3> tuple)
@@ -86,7 +86,7 @@ namespace SnowBank.Data.Tuples
 			return TupleEncoder.Pack(default, in tuple);
 		}
 
-		/// <summary>Pack a tuple into a slice</summary>
+		/// <summary>Pack a 4-tuple into a slice</summary>
 		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<T1, T2, T3, T4>(STuple<T1, T2, T3, T4> tuple)
@@ -94,7 +94,7 @@ namespace SnowBank.Data.Tuples
 			return TupleEncoder.Pack(default, in tuple);
 		}
 
-		/// <summary>Pack a tuple into a slice</summary>
+		/// <summary>Pack a 5-tuple into a slice</summary>
 		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<T1, T2, T3, T4, T5>(STuple<T1, T2, T3, T4, T5> tuple)
@@ -102,7 +102,7 @@ namespace SnowBank.Data.Tuples
 			return TupleEncoder.Pack(default, in tuple);
 		}
 
-		/// <summary>Pack a tuple into a slice</summary>
+		/// <summary>Pack a 6-tuple into a slice</summary>
 		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<T1, T2, T3, T4, T5, T6>(STuple<T1, T2, T3, T4, T5, T6> tuple)
@@ -110,7 +110,7 @@ namespace SnowBank.Data.Tuples
 			return TupleEncoder.Pack(default, in tuple);
 		}
 
-		/// <summary>Pack a tuple into a slice</summary>
+		/// <summary>Pack a 7-tuple into a slice</summary>
 		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<T1, T2, T3, T4, T5, T6, T7>(STuple<T1, T2, T3, T4, T5, T6, T7> tuple)
@@ -552,14 +552,14 @@ namespace SnowBank.Data.Tuples
 			return TupleEncoder.EncodeKey(prefix: default, item1, item2, item3, item4, item5, item6);
 		}
 
-		/// <summary>Pack a 6-tuple directly into a slice</summary>
+		/// <summary>Pack a 7-tuple directly into a slice</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice EncodeKey<T1, T2, T3, T4, T5, T6, T7>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
 		{
 			return TupleEncoder.EncodeKey(prefix: default, item1, item2, item3, item4, item5, item6, item7);
 		}
 
-		/// <summary>Pack a 6-tuple directly into a slice</summary>
+		/// <summary>Pack an 8-tuple directly into a slice</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice EncodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
 		{

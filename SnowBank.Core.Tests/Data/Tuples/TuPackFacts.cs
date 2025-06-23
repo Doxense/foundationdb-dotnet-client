@@ -2786,41 +2786,36 @@ namespace SnowBank.Data.Tuples.Tests
 			);
 			Assert.That(
 				TuPack.DecodeKey<string, string>(Slice.Unescape("<02>hello<00><02>world<00>")),
-				Is.EqualTo(STuple.Create("hello", "world"))
+				Is.EqualTo(("hello", "world"))
 			);
 			Assert.That(
 				TuPack.DecodeKey<string, int>(Slice.Unescape("<02>hello world<00><15>{")),
-				Is.EqualTo(STuple.Create("hello world", 123))
+				Is.EqualTo(("hello world", 123))
 			);
 			Assert.That(
 				TuPack.DecodeKey<string, int, long>(Slice.Unescape("<02>hello world<00><16><04><D2><12><FB>-")),
-				Is.EqualTo(STuple.Create("hello world", 1234, -1234L))
+				Is.EqualTo(("hello world", 1234, -1234L))
 			);
 			Assert.That(
 				TuPack.DecodeKey<string, int, bool>(Slice.Unescape("<02>hello world<00><15>{&")),
-				Is.EqualTo(STuple.Create("hello world", 123, false))
+				Is.EqualTo(("hello world", 123, false))
 			);
 			Assert.That(
 				TuPack.DecodeKey<string, int, bool, Slice>(Slice.Unescape("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>")),
-				Is.EqualTo(STuple.Create("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }.AsSlice()))
+				Is.EqualTo(("hello world", 123, false, Slice.FromBytes([ 123, 1, 66, 0, 42 ])))
 			);
 			Assert.That(
 				TuPack.DecodeKey<string, int, bool, Slice, double>(Slice.Unescape("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18>")),
-				Is.EqualTo(STuple.Create("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }.AsSlice(), Math.PI))
+				Is.EqualTo(("hello world", 123, false, Slice.FromBytes([ 123, 1, 66, 0, 42 ]), Math.PI))
 			);
 			Assert.That(
 				TuPack.DecodeKey<string, int, bool, Slice, double, long>(Slice.Unescape("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-")),
-				Is.EqualTo(STuple.Create("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }.AsSlice(), Math.PI, -1234L))
+				Is.EqualTo(("hello world", 123, false, Slice.FromBytes([ 123, 1, 66, 0, 42 ]), Math.PI, -1234L))
 			);
-			//TODO: if/when we have tuples with 7 or 8 items...
-			//Assert.That(
-			//	TuPack.DecodeKey<string, int, bool, Slice, double, long, string>(Slice.Unescape("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>")),
-			//	Is.EqualTo(STuple.Create("hello world", 123, false, Slice.Create(new byte[] { 123, 1, 66, 0, 42 }), Math.PI, -1234L, "こんにちは世界"))
-			//);
-			//Assert.That(
-			//	TuPack.DecodeKey<string, int, bool, Slice, double, long, string, bool>(Slice.Unescape("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00><15><01>")),
-			//	Is.EqualTo(STuple.Create("hello world", 123, false, Slice.Create(new byte[] { 123, 1, 66, 0, 42 }), Math.PI, -1234L, "こんにちは世界", true))
-			//);
+			Assert.That(
+				TuPack.DecodeKey<string, int, bool, Slice, double, long, string>(Slice.Unescape("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>")),
+				Is.EqualTo(("hello world", 123, false, Slice.FromBytes([ 123, 1, 66, 0, 42 ]), Math.PI, -1234L, "こんにちは世界"))
+			);
 		}
 
 		[Test]
@@ -3372,6 +3367,10 @@ namespace SnowBank.Data.Tuples.Tests
 			Assert.That(
 				TuPack.Pack(ValueTuple.Create("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }, Math.PI, -1234L)).ToString(),
 				Is.EqualTo("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-")
+			);
+			Assert.That(
+				TuPack.Pack(ValueTuple.Create("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }, Math.PI, -1234L, false)).ToString(),
+				Is.EqualTo("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-&")
 			);
 
 			{ // Embedded Tuples

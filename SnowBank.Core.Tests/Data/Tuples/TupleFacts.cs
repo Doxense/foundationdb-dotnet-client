@@ -443,6 +443,7 @@ namespace SnowBank.Data.Tuples.Tests
 			Assert.That(t6.Item3, Is.False);
 			Assert.That(t6.Item4, Is.EqualTo(1234L));
 			Assert.That(t6.Item5, Is.EqualTo(-1234));
+			Assert.That(t6.Item6, Is.EqualTo("six"));
 			Assert.That(t6.Get<string>(0), Is.EqualTo("hello world"));
 			Assert.That(t6.Get<int>(1), Is.EqualTo(123));
 			Assert.That(t6.Get<bool>(2), Is.False);
@@ -494,7 +495,7 @@ namespace SnowBank.Data.Tuples.Tests
 			Assert.That(STuple.Create(123, true, "foo", 666, false, "bar").GetHashCode(), Is.EqualTo(STuple.Create(123, true, "foo", 666).Append(false, "bar").GetHashCode()), "Hashcode should be stable");
 			Assert.That(STuple.Create(123, true, "foo", 666, false, "bar").GetHashCode(), Is.EqualTo(STuple.Create(123, true, "foo").Concat(STuple.Create(666, false, "bar")).GetHashCode()), "Hashcode should be stable");
 			Assert.That(STuple.Create(123, true, "foo", 666, false, "bar").GetHashCode(), Is.EqualTo(STuple.Create(123, true).Concat(STuple.Create("foo", 666, false, "bar")).GetHashCode()), "Hashcode should be stable");
-			Assert.That(STuple.Create(123, true, "foo", 666, false, "bar").GetHashCode(), Is.EqualTo(STuple.Create(123).Concat(STuple.Create(123, "foo", 666, false, "bar")).GetHashCode()), "Hashcode should be stable");
+			Assert.That(STuple.Create(123, true, "foo", 666, false, "bar").GetHashCode(), Is.EqualTo(STuple.Create(123).Concat(STuple.Create(true, "foo", 666, false, "bar")).GetHashCode()), "Hashcode should be stable");
 			Assert.That(STuple.Create(123, true, "foo", 666, false, "bar").GetHashCode(), Is.EqualTo(STuple.Create(123L, 1, "foo", 666UL, 0, "bar").GetHashCode()), "Hashcode should be stable");
 
 			{ // Deconstruct
@@ -514,6 +515,102 @@ namespace SnowBank.Data.Tuples.Tests
 				Assert.That(item4, Is.EqualTo(1234L));
 				Assert.That(item5, Is.EqualTo(-1234L));
 				Assert.That(item6, Is.EqualTo("six"));
+			}
+		}
+
+		[Test]
+		public void Test_Tuple_7()
+		{
+			var t7 = STuple.Create("hello world", 123, false, 1234L, -1234, "six", 777);
+			Log(t7);
+			Assert.That(t7.Count, Is.EqualTo(7));
+			Assert.That(t7.Item1, Is.EqualTo("hello world"));
+			Assert.That(t7.Item2, Is.EqualTo(123));
+			Assert.That(t7.Item3, Is.False);
+			Assert.That(t7.Item4, Is.EqualTo(1234L));
+			Assert.That(t7.Item5, Is.EqualTo(-1234));
+			Assert.That(t7.Item6, Is.EqualTo("six"));
+			Assert.That(t7.Item7, Is.EqualTo(777));
+			Assert.That(t7.Get<string>(0), Is.EqualTo("hello world"));
+			Assert.That(t7.Get<int>(1), Is.EqualTo(123));
+			Assert.That(t7.Get<bool>(2), Is.False);
+			Assert.That(t7.Get<long>(3), Is.EqualTo(1234L));
+			Assert.That(t7.Get<int>(4), Is.EqualTo(-1234));
+			Assert.That(t7.Get<string>(5), Is.EqualTo("six"));
+			Assert.That(t7.Get<int>(6), Is.EqualTo(777));
+			Assert.That(((IVarTuple) t7)[0], Is.EqualTo("hello world"));
+			Assert.That(((IVarTuple) t7)[1], Is.EqualTo(123));
+			Assert.That(((IVarTuple) t7)[2], Is.False);
+			Assert.That(((IVarTuple) t7)[3], Is.EqualTo(1234L));
+			Assert.That(((IVarTuple) t7)[4], Is.EqualTo(-1234));
+			Assert.That(((IVarTuple) t7)[5], Is.EqualTo("six"));
+			Assert.That(((IVarTuple) t7)[6], Is.EqualTo(777));
+			Assert.That(t7.ToArray(), Is.EqualTo(new object[] { "hello world", 123, false, 1234L, -1234, "six", 777 }));
+			Assert.That(t7.ToString(), Is.EqualTo(@"(""hello world"", 123, false, 1234, -1234, ""six"", 777)"));
+			Assert.That(t7, Is.InstanceOf<STuple<string, int, bool, long, int, string, int>>());
+
+			Assert.That(((IVarTuple) t7)[^1], Is.EqualTo(777));
+			Assert.That(((IVarTuple) t7)[^2], Is.EqualTo("six"));
+			Assert.That(((IVarTuple) t7)[^3], Is.EqualTo(-1234));
+			Assert.That(((IVarTuple) t7)[^4], Is.EqualTo(1234L));
+			Assert.That(((IVarTuple) t7)[^5], Is.EqualTo(false));
+			Assert.That(((IVarTuple) t7)[^6], Is.EqualTo(123));
+			Assert.That(((IVarTuple) t7)[^7], Is.EqualTo("hello world"));
+			Assert.That(() => ((IVarTuple) t7)[^8], Throws.Exception);
+
+			Assert.That(t7[..], Is.EqualTo(t7));
+			Assert.That(t7[1..], Is.EqualTo(STuple.Create(123, false, 1234L, -1234, "six", 777)));
+			Assert.That(t7[2..], Is.EqualTo(STuple.Create(false, 1234L, -1234, "six", 777)));
+			Assert.That(t7[3..], Is.EqualTo(STuple.Create(1234L, -1234, "six", 777)));
+			Assert.That(t7[4..], Is.EqualTo(STuple.Create(-1234, "six", 777)));
+			Assert.That(t7[5..], Is.EqualTo(STuple.Create("six", 777)));
+			Assert.That(t7[6..], Is.EqualTo(STuple.Create(777)));
+			Assert.That(t7[..6], Is.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234, "six")));
+			Assert.That(t7[..5], Is.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234)));
+			Assert.That(t7[..4], Is.EqualTo(STuple.Create("hello world", 123, false, 1234L)));
+			Assert.That(t7[..3], Is.EqualTo(STuple.Create("hello world", 123, false)));
+			Assert.That(t7[..2], Is.EqualTo(STuple.Create("hello world", 123)));
+			Assert.That(t7[..1], Is.EqualTo(STuple.Create("hello world")));
+			Assert.That(t7[1..6], Is.EqualTo(STuple.Create(123, false, 1234L, -1234, "six")));
+			Assert.That(t7[1..5], Is.EqualTo(STuple.Create(123, false, 1234L, -1234)));
+			Assert.That(t7[1..4], Is.EqualTo(STuple.Create(123, false, 1234L)));
+			Assert.That(t7[2..4], Is.EqualTo(STuple.Create(false, 1234L)));
+			Assert.That(t7[2..3], Is.EqualTo(STuple.Create(false)));
+
+			Assert.That(t7.Tail.Count, Is.EqualTo(6));
+			Assert.That(t7.Tail.Item1, Is.EqualTo(123));
+			Assert.That(t7.Tail.Item2, Is.False);
+			Assert.That(t7.Tail.Item3, Is.EqualTo(1234L));
+			Assert.That(t7.Tail.Item4, Is.EqualTo(-1234L));
+			Assert.That(t7.Tail.Item5, Is.EqualTo("six"));
+			Assert.That(t7.Tail.Item6, Is.EqualTo(777));
+
+			Assert.That(STuple.Create(123, true, "foo", 666, false, "bar", 777).GetHashCode(), Is.EqualTo(STuple.Create(123, true, "foo", 666, false, "bar").Append(777).GetHashCode()), "Hashcode should be stable");
+			Assert.That(STuple.Create(123, true, "foo", 666, false, "bar", 777).GetHashCode(), Is.EqualTo(STuple.Create(123, true, "foo", 666, false).Append("bar", 777).GetHashCode()), "Hashcode should be stable");
+			Assert.That(STuple.Create(123, true, "foo", 666, false, "bar", 777).GetHashCode(), Is.EqualTo(STuple.Create(123, true, "foo", 666).Concat(STuple.Create(false, "bar", 777)).GetHashCode()), "Hashcode should be stable");
+			Assert.That(STuple.Create(123, true, "foo", 666, false, "bar", 777).GetHashCode(), Is.EqualTo(STuple.Create(123, true, "foo").Concat(STuple.Create(666, false, "bar", 777)).GetHashCode()), "Hashcode should be stable");
+			Assert.That(STuple.Create(123, true, "foo", 666, false, "bar", 777).GetHashCode(), Is.EqualTo(STuple.Create(123).Concat(STuple.Create(true, "foo", 666, false, "bar", 777)).GetHashCode()), "Hashcode should be stable");
+			Assert.That(STuple.Create(123, true, "foo", 666, false, "bar", 777).GetHashCode(), Is.EqualTo(STuple.Create(123L, 1, "foo", 666UL, 0, "bar", 777U).GetHashCode()), "Hashcode should be stable");
+
+			{ // Deconstruct
+				t7.Deconstruct(out string item1, out int item2, out bool item3, out long item4, out long item5, out string item6, out int item7);
+				Assert.That(item1, Is.EqualTo("hello world"));
+				Assert.That(item2, Is.EqualTo(123));
+				Assert.That(item3, Is.False);
+				Assert.That(item4, Is.EqualTo(1234L));
+				Assert.That(item5, Is.EqualTo(-1234L));
+				Assert.That(item6, Is.EqualTo("six"));
+				Assert.That(item7, Is.EqualTo(777));
+			}
+			{ // Deconstruct
+				(string item1, int item2, bool item3, long item4, int item5, string item6, int item7) = t7;
+				Assert.That(item1, Is.EqualTo("hello world"));
+				Assert.That(item2, Is.EqualTo(123));
+				Assert.That(item3, Is.False);
+				Assert.That(item4, Is.EqualTo(1234L));
+				Assert.That(item5, Is.EqualTo(-1234L));
+				Assert.That(item6, Is.EqualTo("six"));
+				Assert.That(item7, Is.EqualTo(777));
 			}
 		}
 
@@ -759,11 +856,11 @@ namespace SnowBank.Data.Tuples.Tests
 				Assert.That(t4.Get<long>(-1), Is.EqualTo(1234L));
 				Assert.That(t4.Get<bool>(-2), Is.False);
 				Assert.That(t4.Get<int>(-3), Is.EqualTo(123));
-				Assert.That(t4.Get<String>(-4), Is.EqualTo("hello world"));
+				Assert.That(t4.Get<string>(-4), Is.EqualTo("hello world"));
 				Assert.That(t4.Get<long>(^1), Is.EqualTo(1234L));
 				Assert.That(t4.Get<bool>(^2), Is.False);
 				Assert.That(t4.Get<int>(^3), Is.EqualTo(123));
-				Assert.That(t4.Get<String>(^4), Is.EqualTo("hello world"));
+				Assert.That(t4.Get<string>(^4), Is.EqualTo("hello world"));
 				Assert.That(((IVarTuple) t4)[-1], Is.EqualTo(1234L));
 				Assert.That(((IVarTuple) t4)[-2], Is.False);
 				Assert.That(((IVarTuple) t4)[-3], Is.EqualTo(123));
@@ -781,12 +878,12 @@ namespace SnowBank.Data.Tuples.Tests
 				Assert.That(t5.Get<long>(-2), Is.EqualTo(1234L));
 				Assert.That(t5.Get<bool>(-3), Is.False);
 				Assert.That(t5.Get<int>(-4), Is.EqualTo(123));
-				Assert.That(t5.Get<String>(-5), Is.EqualTo("hello world"));
+				Assert.That(t5.Get<string>(-5), Is.EqualTo("hello world"));
 				Assert.That(t5.Get<long>(^1), Is.EqualTo(-1234));
 				Assert.That(t5.Get<long>(^2), Is.EqualTo(1234L));
 				Assert.That(t5.Get<bool>(^3), Is.False);
 				Assert.That(t5.Get<int>(^4), Is.EqualTo(123));
-				Assert.That(t5.Get<String>(^5), Is.EqualTo("hello world"));
+				Assert.That(t5.Get<string>(^5), Is.EqualTo("hello world"));
 				Assert.That(((IVarTuple) t5)[-1], Is.EqualTo(-1234));
 				Assert.That(((IVarTuple) t5)[-2], Is.EqualTo(1234L));
 				Assert.That(((IVarTuple) t5)[-3], Is.False);
@@ -797,6 +894,35 @@ namespace SnowBank.Data.Tuples.Tests
 				Assert.That(((IVarTuple) t5)[^3], Is.False);
 				Assert.That(((IVarTuple) t5)[^4], Is.EqualTo(123));
 				Assert.That(((IVarTuple) t5)[^5], Is.EqualTo("hello world"));
+			}
+
+			{
+				var t6 = STuple.Create("hello world", 123, false, 1234L, -1234, "six");
+				Log(t6);
+				Assert.That(t6.Get<string>(-1), Is.EqualTo("six"));
+				Assert.That(t6.Get<long>(-2), Is.EqualTo(-1234));
+				Assert.That(t6.Get<long>(-3), Is.EqualTo(1234L));
+				Assert.That(t6.Get<bool>(-4), Is.False);
+				Assert.That(t6.Get<int>(-5), Is.EqualTo(123));
+				Assert.That(t6.Get<string>(-6), Is.EqualTo("hello world"));
+				Assert.That(t6.Get<string>(^1), Is.EqualTo("six"));
+				Assert.That(t6.Get<long>(^2), Is.EqualTo(-1234));
+				Assert.That(t6.Get<long>(^3), Is.EqualTo(1234L));
+				Assert.That(t6.Get<bool>(^4), Is.False);
+				Assert.That(t6.Get<int>(^5), Is.EqualTo(123));
+				Assert.That(t6.Get<string>(^6), Is.EqualTo("hello world"));
+				Assert.That(((IVarTuple) t6)[-1], Is.EqualTo("six"));
+				Assert.That(((IVarTuple) t6)[-2], Is.EqualTo(-1234));
+				Assert.That(((IVarTuple) t6)[-3], Is.EqualTo(1234L));
+				Assert.That(((IVarTuple) t6)[-4], Is.False);
+				Assert.That(((IVarTuple) t6)[-5], Is.EqualTo(123));
+				Assert.That(((IVarTuple) t6)[-6], Is.EqualTo("hello world"));
+				Assert.That(((IVarTuple) t6)[^1], Is.EqualTo("six"));
+				Assert.That(((IVarTuple) t6)[^2], Is.EqualTo(-1234));
+				Assert.That(((IVarTuple) t6)[^3], Is.EqualTo(1234L));
+				Assert.That(((IVarTuple) t6)[^4], Is.False);
+				Assert.That(((IVarTuple) t6)[^5], Is.EqualTo(123));
+				Assert.That(((IVarTuple) t6)[^6], Is.EqualTo("hello world"));
 			}
 
 			{
@@ -1856,9 +1982,9 @@ namespace SnowBank.Data.Tuples.Tests
 		public void Test_Tuple_Similar()
 		{
 			var t1 = STuple.Create(1, 2);
-			var t2 = STuple.Create((long)1, (short)2);
+			var t2 = STuple.Create((long) 1, (short) 2);
 			var t3 = STuple.Create("1", "2");
-			var t4 = STuple.Create(new object[] { 1, 2L });
+			var t4 = STuple.Create([ 1, 2L ]);
 			//var t5 = STuple.Unpack(Slice.Unescape("<02>1<00><15><02>"));
 
 			AssertEquality(t1, t1);
