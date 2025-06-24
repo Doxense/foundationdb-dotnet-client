@@ -3,7 +3,11 @@ FoundationDB .NET Client
 
 C#/.NET binding for the [FoundationDB](https://www.foundationdb.org/) client library.
 
-[![.NET Build](https://github.com/Doxense/foundationdb-dotnet-client/actions/workflows/dotnetcore.yml/badge.svg)](https://github.com/Doxense/foundationdb-dotnet-client/actions/workflows/dotnetcore.yml)
+![License](https://img.shields.io/github/license/Doxense/foundationdb-dotnet-client)
+[![NuGet version](https://img.shields.io/nuget/v/FoundationDB.Client.svg)](https://www.nuget.org/packages/FoundationDB.Client/)
+![Platform](https://img.shields.io/badge/platform-windows%20%7C%20linux%20%7C%20macos-blue)
+![Build](https://img.shields.io/github/actions/workflow/status/Doxense/foundationdb-dotnet-client/dotnetcore.yml)
+![GitHub last commit](https://img.shields.io/github/last-commit/doxense/foundationdb-dotnet-client)
 
 # How to use
 
