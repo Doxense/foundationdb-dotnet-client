@@ -28,6 +28,8 @@
 // ReSharper disable StringLiteralTypo
 // ReSharper disable SuspiciousTypeConversion.Global
 // ReSharper disable RedundantCast
+#pragma warning disable NUnit2010
+
 namespace SnowBank.Core.Tests
 {
 
@@ -56,6 +58,11 @@ namespace SnowBank.Core.Tests
 				Assert.That(Uuid48.Empty.Lower32, Is.EqualTo(0));
 				Assert.That(Uuid48.Empty.Upper16, Is.EqualTo(0));
 				Assert.That(Uuid48.Empty.Upper32, Is.EqualTo(0));
+
+				var (a, b, c) = Uuid48.Empty;
+				Assert.That(a, Is.Zero);
+				Assert.That(b, Is.Zero);
+				Assert.That(c, Is.Zero);
 			});
 		}
 
@@ -77,6 +84,11 @@ namespace SnowBank.Core.Tests
 				Assert.That(Uuid48.MaxValue.Lower32, Is.EqualTo(0xFFFFFFFF));
 				Assert.That(Uuid48.MaxValue.Upper16, Is.EqualTo(0xFFFF));
 				Assert.That(Uuid48.MaxValue.Upper32, Is.EqualTo(0xFFFFFFFF));
+
+				var (a, b, c) = Uuid48.MaxValue;
+				Assert.That(a, Is.EqualTo(0xFFFF));
+				Assert.That(b, Is.EqualTo(0xFFFF));
+				Assert.That(c, Is.EqualTo(0xFFFF));
 			});
 		}
 
@@ -100,8 +112,12 @@ namespace SnowBank.Core.Tests
 				Assert.That(guid.Lower32, Is.EqualTo(0x56789ABC));
 				Assert.That(guid.Upper16, Is.EqualTo(0x1234));
 				Assert.That(guid.Upper32, Is.EqualTo(0x12345678));
-			});
 
+				var (a, b, c) = guid;
+				Assert.That(a, Is.EqualTo(0x1234));
+				Assert.That(b, Is.EqualTo(0x5678));
+				Assert.That(c, Is.EqualTo(0x9ABC));
+			});
 		}
 
 		[Test]
@@ -157,11 +173,24 @@ namespace SnowBank.Core.Tests
 				var guid = new Uuid48(0x1234_56789ABC);
 				Assert.That(guid.ToUInt64(), Is.EqualTo(0x1234_56789ABC));
 				Assert.That(guid.ToString(), Is.EqualTo("1234-56789ABC"));
+				Assert.That(guid.ToString("D"), Is.EqualTo("1234-56789ABC"));
+				Assert.That(guid.ToString("d"), Is.EqualTo("1234-56789abc"));
+				Assert.That(guid.ToString("N"), Is.EqualTo("123456789ABC"));
+				Assert.That(guid.ToString("n"), Is.EqualTo("123456789abc"));
 				Assert.That(guid.ToString("X"), Is.EqualTo("123456789ABC"));
 				Assert.That(guid.ToString("x"), Is.EqualTo("123456789abc"));
 				Assert.That(guid.ToString("B"), Is.EqualTo("{1234-56789ABC}"));
 				Assert.That(guid.ToString("b"), Is.EqualTo("{1234-56789abc}"));
+				Assert.That(guid.ToString("V"), Is.EqualTo("12-34-56-78-9A-BC"));
+				Assert.That(guid.ToString("v"), Is.EqualTo("12-34-56-78-9a-bc"));
+				Assert.That(guid.ToString("M"), Is.EqualTo("12:34:56:78:9A:BC"));
+				Assert.That(guid.ToString("m"), Is.EqualTo("12:34:56:78:9a:bc"));
 				Assert.That(guid.ToString("C"), Is.EqualTo("5gOMDDhc"));
+				Assert.That(guid.ToString("c"), Is.EqualTo("5gOMDDhc"));
+				Assert.That(guid.ToString("Z"), Is.EqualTo("05gOMDDhc"));
+				Assert.That(guid.ToString("z"), Is.EqualTo("05gOMDDhc"));
+				Assert.That(guid.ToString("R"), Is.EqualTo("20015998343868")); // 20015998343868 = 0x123456789ABC
+				Assert.That(guid.ToString("r"), Is.EqualTo("20015998343868"));
 			});
 
 			Assert.Multiple(() =>
@@ -169,6 +198,8 @@ namespace SnowBank.Core.Tests
 				var guid = new Uuid48(0x0000, 0x12345678);
 				Assert.That(guid.ToUInt64(), Is.EqualTo(0x12345678));
 				Assert.That(guid.ToString(), Is.EqualTo("0000-12345678"));
+				Assert.That(guid.ToString("D"), Is.EqualTo("0000-12345678"));
+				Assert.That(guid.ToString("d"), Is.EqualTo("0000-12345678"));
 				Assert.That(guid.ToString("X"), Is.EqualTo("000012345678"));
 				Assert.That(guid.ToString("x"), Is.EqualTo("000012345678"));
 				Assert.That(guid.ToString("B"), Is.EqualTo("{0000-12345678}"));
@@ -187,7 +218,34 @@ namespace SnowBank.Core.Tests
 				Assert.That(guid.ToString("b"), Is.EqualTo("{ffff-ffffffff}"));
 				Assert.That(guid.ToString("C"), Is.EqualTo("1HvWXNAa7"));
 			});
+		}
 
+		[Test]
+		public void Test_Uuid48_TryFormat()
+		{
+			Assert.Multiple(() =>
+			{
+				var guid = new Uuid48(0x1234_56789ABC);
+				Assert.That($"value: `{guid}`", Is.EqualTo("value: `1234-56789ABC`"));
+				Assert.That($"value: `{guid:D}`", Is.EqualTo("value: `1234-56789ABC`"));
+				Assert.That($"value: `{guid:d}`", Is.EqualTo("value: `1234-56789abc`"));
+				Assert.That($"value: `{guid:N}`", Is.EqualTo("value: `123456789ABC`"));
+				Assert.That($"value: `{guid:n}`", Is.EqualTo("value: `123456789abc`"));
+				Assert.That($"value: `{guid:X}`", Is.EqualTo("value: `123456789ABC`"));
+				Assert.That($"value: `{guid:x}`", Is.EqualTo("value: `123456789abc`"));
+				Assert.That($"value: `{guid:B}`", Is.EqualTo("value: `{1234-56789ABC}`"));
+				Assert.That($"value: `{guid:b}`", Is.EqualTo("value: `{1234-56789abc}`"));
+				Assert.That($"value: `{guid:V}`", Is.EqualTo("value: `12-34-56-78-9A-BC`"));
+				Assert.That($"value: `{guid:v}`", Is.EqualTo("value: `12-34-56-78-9a-bc`"));
+				Assert.That($"value: `{guid:M}`", Is.EqualTo("value: `12:34:56:78:9A:BC`"));
+				Assert.That($"value: `{guid:m}`", Is.EqualTo("value: `12:34:56:78:9a:bc`"));
+				Assert.That($"value: `{guid:C}`", Is.EqualTo("value: `5gOMDDhc`"));
+				Assert.That($"value: `{guid:c}`", Is.EqualTo("value: `5gOMDDhc`"));
+				Assert.That($"value: `{guid:Z}`", Is.EqualTo("value: `05gOMDDhc`"));
+				Assert.That($"value: `{guid:z}`", Is.EqualTo("value: `05gOMDDhc`"));
+				Assert.That($"value: `{guid:R}`", Is.EqualTo("value: `20015998343868`")); // 20015998343868 = 0x123456789ABC
+				Assert.That($"value: `{guid:r}`", Is.EqualTo("value: `20015998343868`"));
+			});
 		}
 
 		[Test]
@@ -481,49 +539,83 @@ namespace SnowBank.Core.Tests
 		[Test]
 		public void Test_Uuid48_Equality_Check()
 		{
-			var a = new Uuid48(42);
-			var b = new Uuid48(42);
-			var c = new Uuid48(40) + 2;
-			var d = new Uuid48(0xDEADBEEF);
+			Assert.Multiple(() =>
+			{
+				var a = new Uuid48(42);
+				var b = new Uuid48(42);
+				var c = new Uuid48(40) + 2;
+				var d = new Uuid48(0xDEADBEEF);
 
-			// Equals(Uuid48)
-			Assert.That(a.Equals(a), Is.True, "a == a");
-			Assert.That(a.Equals(b), Is.True, "a == b");
-			Assert.That(a.Equals(c), Is.True, "a == c");
-			Assert.That(a.Equals(d), Is.False, "a != d");
+				// Equals(Uuid48)
+				Assert.That(a.Equals(a), Is.True, "a == a");
+				Assert.That(a.Equals(b), Is.True, "a == b");
+				Assert.That(a.Equals(c), Is.True, "a == c");
+				Assert.That(a.Equals(d), Is.False, "a != d");
 
-			// == Uuid48
-			Assert.That(a == b, Is.True, "a == b");
-			Assert.That(a == c, Is.True, "a == c");
-			Assert.That(a == d, Is.False, "a != d");
+				// == Uuid48
+				Assert.That(a == b, Is.True, "a == b");
+				Assert.That(a == c, Is.True, "a == c");
+				Assert.That(a == d, Is.False, "a != d");
 
-			// != Uuid48
-			Assert.That(a != b, Is.False, "a == b");
-			Assert.That(a != c, Is.False, "a == c");
-			Assert.That(a != d, Is.True, "a != d");
+				// != Uuid48
+				Assert.That(a != b, Is.False, "a == b");
+				Assert.That(a != c, Is.False, "a == c");
+				Assert.That(a != d, Is.True, "a != d");
 
-			// == numbers
-			Assert.That(a == 42L, Is.True, "a == 42");
-			Assert.That(a == 42UL, Is.True, "a == 42");
-			Assert.That(d == 42L, Is.False, "d != 42");
-			Assert.That(d == 42UL, Is.False, "d != 42");
+				// Equals(numbers)
+				Assert.That(a.Equals(42), Is.True, "a == 42");
+				Assert.That(a.Equals(42U), Is.True, "a == 42");
+				Assert.That(a.Equals(42L), Is.True, "a == 42");
+				Assert.That(a.Equals(42UL), Is.True, "a == 42");
+				Assert.That(d.Equals(42), Is.False, "d != 42");
+				Assert.That(d.Equals(42U), Is.False, "d != 42");
+				Assert.That(d.Equals(42L), Is.False, "d != 42");
+				Assert.That(d.Equals(42UL), Is.False, "d != 42");
 
-			// != numbers
-			Assert.That(a != 42L, Is.False, "a == 42");
-			Assert.That(a != 42UL, Is.False, "a == 42");
-			Assert.That(d != 42L, Is.True, "d != 42");
-			Assert.That(d != 42UL, Is.True, "d != 42");
+				// == numbers
+				Assert.That(a == 42, Is.True, "a == 42");
+				Assert.That(a == 42U, Is.True, "a == 42");
+				Assert.That(a == 42L, Is.True, "a == 42");
+				Assert.That(a == 42UL, Is.True, "a == 42");
+				Assert.That(d == 42, Is.False, "d != 42");
+				Assert.That(d == 42U, Is.False, "d != 42");
+				Assert.That(d == 42L, Is.False, "d != 42");
+				Assert.That(d == 42UL, Is.False, "d != 42");
 
-			// Equals(objecct)
-			Assert.That(a.Equals((object?) a), Is.True, "a == a");
-			Assert.That(a.Equals((object?) b), Is.True, "a == b");
-			Assert.That(a.Equals((object?) c), Is.True, "a == c");
-			Assert.That(a.Equals((object?) d), Is.False, "a != d");
-			Assert.That(a.Equals((object?) 42L), Is.True, "a == 42");
-			Assert.That(a.Equals((object?) 42UL), Is.True, "a == 42");
-			Assert.That(d.Equals((object?) 42L), Is.False, "d != 42");
-			Assert.That(d.Equals((object?) 42UL), Is.False, "d != 42");
+				// != numbers
+				Assert.That(a != 42, Is.False, "a == 42");
+				Assert.That(a != 42U, Is.False, "a == 42");
+				Assert.That(a != 42L, Is.False, "a == 42");
+				Assert.That(a != 42UL, Is.False, "a == 42");
+				Assert.That(d != 42, Is.True, "d != 42");
+				Assert.That(d != 42U, Is.True, "d != 42");
+				Assert.That(d != 42L, Is.True, "d != 42");
+				Assert.That(d != 42UL, Is.True, "d != 42");
 
+				// Equals(Slice)
+				Assert.That(a.Equals(a.ToSlice()), Is.True);
+				Assert.That(d.Equals(a.ToSlice()), Is.False);
+				Assert.That(d.Equals(d.ToSlice()), Is.True);
+
+				// Equals(ReadOnlySpan<byte>)
+				Assert.That(a.Equals(a.ToSlice().Span), Is.True);
+				Assert.That(d.Equals(a.ToSlice().Span), Is.False);
+				Assert.That(d.Equals(d.ToSlice().Span), Is.True);
+
+				// Equals(object)
+				Assert.That(a.Equals((object?) a), Is.True, "a == a");
+				Assert.That(a.Equals((object?) b), Is.True, "a == b");
+				Assert.That(a.Equals((object?) c), Is.True, "a == c");
+				Assert.That(a.Equals((object?) d), Is.False, "a != d");
+				Assert.That(a.Equals((object?) 42), Is.True, "a == 42");
+				Assert.That(a.Equals((object?) 42U), Is.True, "a == 42");
+				Assert.That(a.Equals((object?) 42L), Is.True, "a == 42");
+				Assert.That(a.Equals((object?) 42UL), Is.True, "a == 42");
+				Assert.That(d.Equals((object?) 42), Is.False, "d != 42");
+				Assert.That(d.Equals((object?) 42U), Is.False, "d != 42");
+				Assert.That(d.Equals((object?) 42L), Is.False, "d != 42");
+				Assert.That(d.Equals((object?) 42UL), Is.False, "d != 42");
+			});
 		}
 
 		[Test]
@@ -609,26 +701,59 @@ namespace SnowBank.Core.Tests
 		public void Test_Uuid48_Read_From_Bytes()
 		{
 			// test buffer with included padding
-			byte[] buf = { 0x55, 0x55, 0x55, 0x55, /* start */ 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, /* stop */ 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA };
-			var original = Uuid48.Parse("0123-456789AB");
+			byte[] buf = [ 0x55, 0x55, 0x55, 0x55, /* start */ 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, /* stop */ 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA ];
+			Uuid48 original = Uuid48.Parse("0123-456789AB");
 			Assume.That(original.ToUInt64(), Is.EqualTo(0x0123456789AB));
+			Uuid48 res;
 
-			// ReadOnlySpan<byte>
-			Assert.That(Uuid48.Read(buf.AsSpan(4, 6)), Is.EqualTo(original));
-
-			// Slice
-			Assert.That(Uuid48.Read(buf.AsSlice(4, 6)), Is.EqualTo(original));
-
-			// byte[]
-			Assert.That(Uuid48.Read(buf.AsSlice(4, 6).ToArray()), Is.EqualTo(original));
-
-			unsafe
+			Assert.Multiple(() =>
 			{
-				fixed (byte* ptr = &buf[4])
-				{
-					Assert.That(Uuid48.Read(new ReadOnlySpan<byte>(ptr, 6)), Is.EqualTo(original));
-				}
-			}
+				// ReadOnlySpan<byte>
+				Assert.That(Uuid48.Read(buf.AsSpan(4, 6)), Is.EqualTo(original));
+				Assert.That(() => Uuid48.Read(buf.AsSpan(4, 5)), Throws.Exception);
+				Assert.That(() => Uuid48.Read(buf.AsSpan(4, 4)), Throws.Exception);
+				Assert.That(() => Uuid48.Read(buf.AsSpan(4, 3)), Throws.Exception);
+				Assert.That(() => Uuid48.Read(buf.AsSpan(4, 2)), Throws.Exception);
+				Assert.That(() => Uuid48.Read(buf.AsSpan(4, 1)), Throws.Exception);
+				Assert.That(Uuid48.Read(buf.AsSpan(4, 0)), Is.EqualTo(Uuid48.Empty));
+
+				Assert.That(Uuid48.TryRead(buf.AsSpan(4, 6), out res), Is.True.WithOutput(res).EqualTo(original));
+				Assert.That(() => Uuid48.TryRead(buf.AsSpan(4, 5), out res), Is.False);
+				Assert.That(() => Uuid48.TryRead(buf.AsSpan(4, 4), out res), Is.False);
+				Assert.That(() => Uuid48.TryRead(buf.AsSpan(4, 3), out res), Is.False);
+				Assert.That(() => Uuid48.TryRead(buf.AsSpan(4, 2), out res), Is.False);
+				Assert.That(() => Uuid48.TryRead(buf.AsSpan(4, 1), out res), Is.False);
+				Assert.That(Uuid48.TryRead(buf.AsSpan(4, 0), out res), Is.True.WithOutput(res).EqualTo(Uuid48.Empty));
+
+				// Slice
+				Assert.That(Uuid48.Read(buf.AsSlice(4, 6)), Is.EqualTo(original));
+				Assert.That(() => Uuid48.Read(buf.AsSlice(4, 5)), Throws.Exception);
+				Assert.That(() => Uuid48.Read(buf.AsSlice(4, 4)), Throws.Exception);
+				Assert.That(() => Uuid48.Read(buf.AsSlice(4, 3)), Throws.Exception);
+				Assert.That(() => Uuid48.Read(buf.AsSlice(4, 2)), Throws.Exception);
+				Assert.That(() => Uuid48.Read(buf.AsSlice(4, 1)), Throws.Exception);
+				Assert.That(Uuid48.Read(buf.AsSlice(4, 0)), Is.EqualTo(Uuid48.Empty));
+
+				Assert.That(Uuid48.TryRead(buf.AsSlice(4, 6), out res), Is.True.WithOutput(res).EqualTo(original));
+				Assert.That(() => Uuid48.TryRead(buf.AsSlice(4, 5), out res), Is.False);
+				Assert.That(() => Uuid48.TryRead(buf.AsSlice(4, 4), out res), Is.False);
+				Assert.That(() => Uuid48.TryRead(buf.AsSlice(4, 3), out res), Is.False);
+				Assert.That(() => Uuid48.TryRead(buf.AsSlice(4, 2), out res), Is.False);
+				Assert.That(() => Uuid48.TryRead(buf.AsSlice(4, 1), out res), Is.False);
+				Assert.That(Uuid48.TryRead(buf.AsSlice(4, 0), out res), Is.True.WithOutput(res).EqualTo(Uuid48.Empty));
+
+				// byte[]
+				Assert.That(Uuid48.Read(buf.AsSpan(4, 6).ToArray()), Is.EqualTo(original));
+				Assert.That(() => Uuid48.Read(buf.AsSpan(4, 5).ToArray()), Throws.Exception);
+				Assert.That(() => Uuid48.Read(buf.AsSpan(4, 4).ToArray()), Throws.Exception);
+				Assert.That(() => Uuid48.Read(buf.AsSpan(4, 3).ToArray()), Throws.Exception);
+				Assert.That(() => Uuid48.Read(buf.AsSpan(4, 2).ToArray()), Throws.Exception);
+				Assert.That(() => Uuid48.Read(buf.AsSpan(4, 1).ToArray()), Throws.Exception);
+				Assert.That(Uuid48.Read(buf.AsSpan(4, 0).ToArray()), Is.EqualTo(Uuid48.Empty));
+
+				Assert.That(Uuid48.TryRead(buf.AsSpan(4, 6).ToArray(), out res), Is.True.WithOutput(res).EqualTo(original));
+			});
+
 		}
 
 		[Test]
@@ -714,7 +839,6 @@ namespace SnowBank.Core.Tests
 			scratch = Repeat(0xAA, 16);
 			Assert.That(original.TryWriteTo(scratch.AsSpan(0, 5)), Is.False, "Target buffer is too small");
 			Assert.That(scratch.AsSlice().ToString("X"), Is.EqualTo("AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA"), "Buffer should not have been overwritten!");
-
 		}
 
 	}

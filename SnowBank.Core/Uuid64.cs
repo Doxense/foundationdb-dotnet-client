@@ -35,9 +35,12 @@ namespace System
 	/// <summary>Represents a 64-bit UUID that is stored in high-endian format on the wire</summary>
 	[DebuggerDisplay("[{ToString(),nq}]")]
 	[ImmutableObject(true), PublicAPI, Serializable]
-	public readonly struct Uuid64 : IEquatable<Uuid64>, IComparable<Uuid64>, ISpanFormattable
+	public readonly struct Uuid64 : IEquatable<Uuid64>, IComparable<Uuid64>, IEquatable<ulong>, IComparable<ulong>, IEquatable<long>, IComparable<long>, IEquatable<Slice>, ISpanFormattable
 #if NET8_0_OR_GREATER
 		, ISpanParsable<Uuid64>
+#endif
+#if NET9_0_OR_GREATER
+		, IEquatable<ReadOnlySpan<byte>>
 #endif
 	{
 
@@ -52,7 +55,12 @@ namespace System
 
 		//note: this will be in host order (so probably Little-Endian) in order to simplify parsing and ordering
 
+		/// <summary>Value (with only the 48 lower bits used)</summary>
 		private readonly ulong Value;
+
+		private const ulong MASK_48 = (1UL << 48) - 1;
+		private const ulong MASK_32 = (1UL << 32) - 1;
+		private const ulong MASK_16 = (1UL << 16) - 1;
 
 		/// <summary>Returns the 48 upper bits <c>xxxx....-........</c></summary>
 		/// <seealso cref="Lower48"/>
@@ -67,7 +75,7 @@ namespace System
 		/// <summary>Returns the 48 upper bits <c>xxxxxxxx-xxxx....</c></summary>
 		/// <seealso cref="Lower16"/>
 		[Pure]
-		public Uuid48 Upper48 => new Uuid48(this.Value >> 16);
+		public Uuid48 Upper48 => new(this.Value >> 16);
 
 		/// <summary>Returns the 16 lower bits <c>........-....xxxx</c></summary>
 		/// <seealso cref="Upper48"/>
@@ -82,7 +90,7 @@ namespace System
 		/// <summary>Returns the 48 lower bits <c>....xxxx-xxxxxxxx</c></summary>
 		/// <seealso cref="Upper16"/>
 		[Pure]
-		public Uuid48 Lower48 => new Uuid48(this.Value & ((1UL << 48) - 1));
+		public Uuid48 Lower48 => new(this.Value & ((1UL << 48) - 1));
 
 		#region Constructors...
 
@@ -139,7 +147,7 @@ namespace System
 			// and we fold both 64-bits parts into a single value
 			ref ulong p = ref Unsafe.As<Guid, ulong>(ref x);
 			ref ulong q = ref Unsafe.Add(ref p, 1);
-			return new Uuid64(p ^ q);
+			return new(p ^ q);
 		}
 
 		/// <summary>Generates a new random 64-bit UUID, using the specified random number generator</summary>
@@ -167,7 +175,7 @@ namespace System
 			{
 				ulong x = (ulong) rng.NextInt64(0, (long) range);
 				x += minValue;
-				return new Uuid64(x);
+				return new(x);
 			}
 			else
 			{
@@ -192,8 +200,8 @@ namespace System
 		{
 			return maxValue switch
 			{
-				<= long.MaxValue => new Uuid64(rng.NextInt64(0, (long) maxValue)),
-				ulong.MaxValue => new Uuid64(rng.NextInt64(long.MinValue, long.MaxValue)),
+				<= long.MaxValue => new(rng.NextInt64(0, (long) maxValue)),
+				ulong.MaxValue => new(rng.NextInt64(long.MinValue, long.MaxValue)),
 				_ => RandomLargeRange(rng, maxValue)
 			};
 
@@ -204,11 +212,11 @@ namespace System
 				long x = rng.NextInt64(long.MinValue, upper);
 				if (x <= 0)
 				{
-					return new Uuid64(-x);
+					return new(-x);
 				}
 
 				ulong shifted = 9223372036854775807UL + (ulong) x;
-				return new Uuid64(shifted);
+				return new(shifted);
 			}
 		}
 
@@ -217,8 +225,8 @@ namespace System
 		#region Decomposition...
 
 		/// <summary>Split into two 32-bit halves</summary>
-		/// <param name="a">xxxxxxxx-........</param>
-		/// <param name="b">........-xxxxxxxx</param>
+		/// <param name="a"><c>xxxxxxxx-........</c></param>
+		/// <param name="b"><c>........-xxxxxxxx</c></param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Deconstruct(out uint a, out uint b)
 		{
@@ -228,10 +236,10 @@ namespace System
 		}
 
 		/// <summary>Split into two halves</summary>
-		/// <param name="a">xxxx....-........</param>
-		/// <param name="b">....xxxx-........</param>
-		/// <param name="c">........-xxxx....</param>
-		/// <param name="d">........-....xxxx</param>
+		/// <param name="a"><c>xxxx....-........</c></param>
+		/// <param name="b"><c>....xxxx-........</c></param>
+		/// <param name="c"><c>........-xxxx....</c></param>
+		/// <param name="d"><c>........-....xxxx</c></param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Deconstruct(out ushort a, out ushort b, out ushort c, out ushort d)
 		{
@@ -242,34 +250,128 @@ namespace System
 			d = (ushort) value;
 		}
 
+		/// <summary>Creates a <see cref="Uuid64"/> from the upper 16-bit and lower 48-bit parts</summary>
+		/// <param name="hi">16 upper bits (<c>xxxx....-........</c>)</param>
+		/// <param name="low">48 lower bits (<c>....xxxx-xxxxxxxx</c>)</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Uuid64 FromUpper16Lower48(ushort hi, Uuid48 low) => new(((ulong) hi << 48) | low.ToUInt64());
+
+		/// <summary>Creates a <see cref="Uuid64"/> from the upper 16-bit and lower 48-bit parts</summary>
+		/// <param name="hi">16 upper bits (<c>xxxx....-........</c>)</param>
+		/// <param name="low">48 lower bits (<c>....xxxx-xxxxxxxx</c>)</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Uuid64 FromUpper16Lower48(ushort hi, ulong low) => new(((ulong) hi << 48) | (low & MASK_48));
+
+		/// <summary>Creates a <see cref="Uuid64"/> from the upper 32-bit and lower 32-bit parts</summary>
+		/// <param name="hi">32 upper bits (<c>xxxxxxxx-........</c>)</param>
+		/// <param name="low">32 lower bits (<c>........-xxxxxxxx</c>)</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Uuid64 FromUpper32Lower32(uint hi, uint low) => new(((ulong) hi << 32) | low);
+
+		/// <summary>Creates a <see cref="Uuid64"/> from the upper 48-bit and lower 16-bit parts</summary>
+		/// <param name="hi">48 upper bits (<c>xxxxxxxx-xxxx....</c>)</param>
+		/// <param name="low">16 lower bits (<c>........-....xxxx</c>)</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Uuid64 FromUpper48Lower16(ulong hi, ushort low) => new((hi << 16) | low);
+
+		/// <summary>Creates a <see cref="Uuid64"/> from the upper 48-bit and lower 16-bit parts</summary>
+		/// <param name="hi">48 upper bits (<c>xxxxxxxx-xxxx....</c>)</param>
+		/// <param name="low">16 lower bits (<c>........-....xxxx</c>)</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Uuid64 FromUpper48Lower16(Uuid48 hi, ushort low) => new((hi.ToUInt64() << 16) | low);
+
 		#endregion
 
 		#region Reading...
 
-		/// <summary>Read a 64-bit UUID from a byte array</summary>
-		/// <param name="value">Array of exactly 0 or 8 bytes</param>
+		/// <summary>Reads a 64-bit UUID from a byte array</summary>
+		/// <param name="value">Array of bytes that is either empty, or holds at least 8 bytes</param>
+		/// <returns>Corresponding <see cref="Uuid64"/> if the read is successful</returns>
+		/// <exception cref="ArgumentException">If <paramref name="value"/> has an invalid length</exception>
+		/// <remarks>
+		/// <para>If <paramref name="value"/> is larger than 8 bytes, the additional bytes will be ignored.</para>
+		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Uuid64 Read(byte[] value)
-		{
-			return Read(value.AsSpan());
-		}
+		public static Uuid64 Read(byte[]? value) => Read(value.AsSpan());
 
-		/// <summary>Read a 64-bit UUID from slice of memory</summary>
-		/// <param name="value">slice of exactly 0 or 8 bytes</param>
+		/// <summary>Reads a 64-bit UUID from slice of memory</summary>
+		/// <param name="value">Slice of bytes that is either empty, or holds at least 8 bytes</param>
+		/// <returns>Corresponding <see cref="Uuid64"/> if the read is successful</returns>
+		/// <exception cref="ArgumentException">If <paramref name="value"/> has an invalid length</exception>
+		/// <remarks>
+		/// <para>If <paramref name="value"/> is larger than 8 bytes, the additional bytes will be ignored.</para>
+		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Uuid64 Read(Slice value)
-		{
-			return Read(value.Span);
-		}
+		public static Uuid64 Read(Slice value) => Read(value.Span);
 
-		/// <summary>Read a 64-bit UUID from slice of memory</summary>
-		/// <param name="value">Span of exactly 0 or 8 bytes</param>
+		/// <summary>Reads a 64-bit UUID from slice of memory</summary>
+		/// <param name="value">Span of bytes that is either empty, or holds at least 8 bytes</param>
+		/// <returns>Corresponding <see cref="Uuid64"/> if the read is successful</returns>
+		/// <exception cref="ArgumentException">If <paramref name="value"/> has an invalid length</exception>
+		/// <remarks>
+		/// <para>If <paramref name="value"/> is larger than 8 bytes, the additional bytes will be ignored.</para>
+		/// </remarks>
 		[Pure]
 		public static Uuid64 Read(ReadOnlySpan<byte> value)
+			=> value.Length == 0 ? default
+			 : value.Length >= SizeOf ? new(BinaryPrimitives.ReadInt64BigEndian(value))
+			 : throw FailInvalidBufferSize(nameof(value));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private static Uuid64 ReadUnsafe(ReadOnlySpan<byte> value)
 		{
-			if (value.Length == 0) return default;
-			if (value.Length == 8) return new Uuid64(BinaryPrimitives.ReadInt64BigEndian(value));
-			throw FailInvalidBufferSize(nameof(value));
+			Contract.Debug.Requires(value.Length >= SizeOf);
+			return new(BinaryPrimitives.ReadInt64BigEndian(value));
+		}
+
+		/// <summary>Reads a 64-bit UUID from slice of memory</summary>
+		/// <param name="value">Array of bytes that is either empty, or holds at least 8 bytes</param>
+		/// <param name="result">Corresponding <see cref="Uuid64"/>, if the read is successful</param>
+		/// <returns><c>true</c> if <paramref name="value"/> has length <c>0</c> or at least <c>8</c>; otherwise, <c>false</c>.</returns>
+		/// <remarks>
+		/// <para>If <paramref name="value"/> is larger than 8 bytes, the additional bytes will be ignored.</para>
+		/// </remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryRead(byte[]? value, out Uuid64 result) => TryRead(new ReadOnlySpan<byte>(value), out result);
+
+		/// <summary>Reads a 64-bit UUID from slice of memory</summary>
+		/// <param name="value">Slice of bytes that is either empty, or holds at least 8 bytes</param>
+		/// <param name="result">Corresponding <see cref="Uuid64"/>, if the read is successful</param>
+		/// <returns><c>true</c> if <paramref name="value"/> has length <c>0</c> or at least <c>8</c>; otherwise, <c>false</c>.</returns>
+		/// <remarks>
+		/// <para>If <paramref name="value"/> is larger than 8 bytes, the additional bytes will be ignored.</para>
+		/// </remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryRead(Slice value, out Uuid64 result) => TryRead(value.Span, out result);
+
+		/// <summary>Reads a 64-bit UUID from slice of memory</summary>
+		/// <param name="value">Span of bytes that is either empty, or holds at least 8 bytes</param>
+		/// <param name="result">Corresponding <see cref="Uuid64"/>, if the read is successful</param>
+		/// <returns><c>true</c> if <paramref name="value"/> has length <c>0</c> or at least <c>8</c>; otherwise, <c>false</c>.</returns>
+		/// <remarks>
+		/// <para>If <paramref name="value"/> is larger than 8 bytes, the additional bytes will be ignored.</para>
+		/// </remarks>
+		[Pure]
+		public static bool TryRead(ReadOnlySpan<byte> value, out Uuid64 result)
+		{
+			switch (value.Length)
+			{
+				case 0:
+				{
+					result = default;
+					return true;
+				}
+				case >= SizeOf:
+				{
+					result = ReadUnsafe(value);
+					return true;
+				}
+				default:
+				{
+					result = default;
+					return false;
+				}
+			}
 		}
 
 		#endregion
@@ -454,7 +556,7 @@ namespace System
 
 			if (input.Length <= 11 && Base62Encoding.TryDecodeUInt64(input, out ulong x, Base62FormattingOptions.Lexicographic))
 			{
-				result = new Uuid64(x);
+				result = new(x);
 				return true;
 			}
 
@@ -471,7 +573,7 @@ namespace System
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static explicit operator Uuid64(ulong value)
 		{
-			return new Uuid64(value);
+			return new(value);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -483,7 +585,7 @@ namespace System
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static explicit operator Uuid64(long value)
 		{
-			return new Uuid64(value);
+			return new(value);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -754,7 +856,7 @@ namespace System
 				case Uuid64 u64: return Equals(u64);
 				case ulong ul: return this.Value == ul;
 				case long l: return this.Value == (ulong) l;
-				//TODO: string format ? Slice ?
+				case Slice bytes: return Equals(bytes);
 			}
 			return false;
 		}
@@ -762,20 +864,47 @@ namespace System
 		/// <inheritdoc />
 		public override int GetHashCode()
 		{
-			return ((int) this.Value) ^ (int) (this.Value >> 32);
+			// fold the upper and lower 32 bits
+			return unchecked((int) this.Value) ^ unchecked((int) (this.Value >> 32));
 		}
 
 		/// <inheritdoc />
-		public bool Equals(Uuid64 other)
-		{
-			return this.Value == other.Value;
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(Uuid64 other) => this.Value == other.Value;
 
 		/// <inheritdoc />
-		public int CompareTo(Uuid64 other)
-		{
-			return this.Value.CompareTo(other.Value);
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(Uuid64 other) => this.Value < other.Value ? -1 : this.Value > other.Value ? +1 : 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(ulong other) => this.Value == other;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(ulong other) => this.Value < other ? -1 : this.Value > other ? +1 : 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(long other) => other >= 0 && this.Value == (ulong) other;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(long other) => other >= 0 ? this.Value.CompareTo((ulong) other) : +1;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(Slice other) => TryRead(other.Span, out var res) && res == this;
+
+#if NET9_0_OR_GREATER
+		/// <inheritdoc />
+#else
+		/// <summary>Indicates whether the current object is equal to another object of the same type.</summary>
+		/// <param name="other">An object to compare with this object.</param>
+		/// <returns><c>true</c> if the current object is equal to the <paramref name="other" /> parameter; otherwise, <c>false</c>.</returns>
+#endif
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(ReadOnlySpan<byte> other) => TryRead(other, out var res) && res == this;
 
 		#endregion
 
@@ -850,17 +979,17 @@ namespace System
 			if (upper)
 			{
 				ptr = Hex32ToUpperChars(ptr, (int) (value >> 32));
-				ptr = Hex32ToUpperChars(ptr, (int) (value & 0xFFFFFFFF));
+				ptr = Hex32ToUpperChars(ptr, unchecked((int) value));
 			}
 			else
 			{
 				ptr = Hex32ToLowerChars(ptr, (int) (value >> 32));
-				ptr = Hex32ToLowerChars(ptr, (int) (value & 0xFFFFFFFF));
+				ptr = Hex32ToLowerChars(ptr, unchecked((int) value));
 			}
 			if (quotes) *ptr++ = '}';
 
 			Contract.Debug.Ensures(ptr == buffer + size);
-			return new string(buffer, 0, size);
+			return new(buffer, 0, size);
 		}
 
 		[Pure]
@@ -875,18 +1004,18 @@ namespace System
 			{
 				ptr = Hex32ToUpperChars(ptr, (int) (value >> 32));
 				*ptr++ = separator;
-				ptr = Hex32ToUpperChars(ptr, (int) (value & 0xFFFFFFFF));
+				ptr = Hex32ToUpperChars(ptr, unchecked((int) value));
 			}
 			else
 			{
 				ptr = Hex32ToLowerChars(ptr, (int) (value >> 32));
 				*ptr++ = separator;
-				ptr = Hex32ToLowerChars(ptr, (int) (value & 0xFFFFFFFF));
+				ptr = Hex32ToLowerChars(ptr, unchecked((int) value));
 			}
 			if (quotes) *ptr++ = '}';
 
 			Contract.Debug.Ensures(ptr == buffer + size);
-			return new string(buffer, 0, size);
+			return new(buffer, 0, size);
 		}
 
 		[Pure]
@@ -936,7 +1065,7 @@ namespace System
 			if (quotes) *ptr++ = '}';
 
 			Contract.Debug.Ensures(ptr == buffer + size);
-			return new string(buffer, 0, size);
+			return new(buffer, 0, size);
 		}
 
 		private const int INVALID_CHAR = -1;
@@ -982,7 +1111,7 @@ namespace System
 			 && TryCharsToHexUnsafe(chars, out uint hi)
 			 && TryCharsToHexUnsafe(chars.Slice(separator ? 9 : 8), out uint lo))
 			{
-				result = new Uuid64(((ulong)hi << 32) | lo);
+				result = new(((ulong)hi << 32) | lo);
 				return true;
 			}
 			result = default(Uuid64);
@@ -1145,13 +1274,13 @@ namespace System
 		{
 			//TODO: how to handle overflow ? negative values ?
 			ulong v = (ulong)right;
-			return new Uuid64(checked(left.Value + v));
+			return new(checked(left.Value + v));
 		}
 
 		/// <summary>Add a value from this instance</summary>
 		public static Uuid64 operator +(Uuid64 left, ulong right)
 		{
-			return new Uuid64(checked(left.Value + right));
+			return new(checked(left.Value + right));
 		}
 
 		/// <summary>Subtract a value from this instance</summary>
@@ -1159,25 +1288,25 @@ namespace System
 		{
 			//TODO: how to handle overflow ? negative values ?
 			ulong v = (ulong)right;
-			return new Uuid64(checked(left.Value - v));
+			return new(checked(left.Value - v));
 		}
 
 		/// <summary>Subtract a value from this instance</summary>
 		public static Uuid64 operator -(Uuid64 left, ulong right)
 		{
-			return new Uuid64(checked(left.Value - right));
+			return new(checked(left.Value - right));
 		}
 
 		/// <summary>Increments the value of this instance</summary>
 		public static Uuid64 operator ++(Uuid64 value)
 		{
-			return new Uuid64(checked(value.Value + 1));
+			return new(checked(value.Value + 1));
 		}
 
 		/// <summary>Decrements the value of this instance</summary>
 		public static Uuid64 operator --(Uuid64 value)
 		{
-			return new Uuid64(checked(value.Value - 1));
+			return new(checked(value.Value - 1));
 		}
 
 		#endregion
@@ -1224,8 +1353,6 @@ namespace System
 
 			private RandomNumberGenerator Rng { get; }
 
-			private readonly byte[] Scratch = new byte[SizeOf];
-
 			/// <summary>Create a new instance of a random UUID generator</summary>
 			public RandomGenerator()
 				: this(null)
@@ -1247,19 +1374,18 @@ namespace System
 			// ReSharper disable once MemberHidesStaticFromOuterClass
 			public Uuid64 NewUuid()
 			{
-				//REVIEW: OPTIMIZE: use a per-thread instance of the rng and scratch buffer?
-				// => right now, NewUuid() is a Global Lock for the whole process!
 				lock (this.Rng)
 				{
-					// get 8 bytes of randomness (0 allowed)
-					this.Rng.GetBytes(this.Scratch);
-					//note: do *NOT* call GetBytes(byte[], int, int) because it creates a temp buffer, calls GetBytes(byte[]) and copy the result back! (as of .NET 4.7.1)
-					//TODO: PERF: use Span<byte> APIs once (if?) they become available!
-					return Uuid64.Read(this.Scratch);
+					Span<byte> scratch = stackalloc byte[SizeOf];
+					// get 10 bytes of randomness (0x00 is allowed)
+					this.Rng.GetBytes(scratch);
+					// read back
+					return ReadUnsafe(scratch);
 				}
 			}
 
 		}
+
 	}
 
 }

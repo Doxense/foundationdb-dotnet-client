@@ -2049,7 +2049,7 @@ namespace SnowBank.Buffers.Tests
 			Assert.That(slice.ToHexString(), Is.EqualTo("00000000000000000000000000000000"));
 
 			// UUIDs should be stored using RFC 4122 (big endian)
-			var uuid = new Uuid128("00112233-4455-6677-8899-aabbccddeeff");
+			var uuid = Uuid128.Parse("00112233-4455-6677-8899-aabbccddeeff");
 
 			// byte order should follow the string!
 			slice = Slice.FromUuid128(uuid);

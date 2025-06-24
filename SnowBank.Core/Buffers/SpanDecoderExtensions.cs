@@ -1194,7 +1194,7 @@ namespace System
 			{
 				case 0:
 				{
-					return default;
+					return Guid.Empty;
 				}
 				case 16:
 				{ // direct byte array
@@ -1202,7 +1202,7 @@ namespace System
 					// UUID are stored using the RFC4122 format (Big Endian), while .NET's System.GUID use Little Endian
 					// we need to swap the byte order of the Data1, Data2 and Data3 chunks, to ensure that Guid.ToString() will return the proper value.
 
-					return new Uuid128(span).ToGuid();
+					return Uuid128.ReadUnsafe(span);
 				}
 				case 36:
 				{ // string representation (ex: "da846709-616d-4e82-bf55-d1d3e9cde9b1")
@@ -1231,7 +1231,7 @@ namespace System
 			return span.Length switch
 			{
 				0 => default,
-				16 => new Uuid128(span),
+				16 => new(Uuid128.ReadUnsafe(span)),
 				36 => Uuid128.Parse(ToByteString(span)),
 				_ => throw new FormatException("Cannot convert span into an Uuid128 because it has an incorrect size.")
 			};
@@ -1243,7 +1243,7 @@ namespace System
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid128 ToUuid128(this Span<byte> span) => ToUuid128((ReadOnlySpan<byte>) span);
 
-#if NET8_0_OR_GREATER // System.Int128 and System.UInt128 are only usable starting from .NET 8.0 (technically 7.0 but we don't support it)
+#if NET8_0_OR_GREATER // System.Int128 and System.UInt128 are only usable starting from .NET 8.0 (technically 7.0, but we don't support it)
 
 		/// <summary>Converts a span into a little-endian encoded, signed 128-bit integer.</summary>
 		/// <returns>0 of the span is empty, a signed integer, or an error if the span has more than 16 bytes</returns>

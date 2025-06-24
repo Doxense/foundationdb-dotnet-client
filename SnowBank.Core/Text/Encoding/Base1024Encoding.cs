@@ -340,10 +340,10 @@ namespace SnowBank.Text
 			=> Decode<ulong>(source, (buffer) => BinaryPrimitives.ReadUInt64BigEndian(buffer));
 
 		public static Guid DecodeGuidValue(ReadOnlySpan<char> source)
-			=> Decode<Guid>(source, (buffer) => Uuid128.Read(buffer));
+			=> Decode<Guid>(source, (buffer) => (Guid) Uuid128.Read(buffer));
 
 		public static Uuid128 DecodeUuid128Value(ReadOnlySpan<char> source)
-			=> Decode<Uuid128>(source, (buffer) => (Uuid128) Uuid128.Read(buffer));
+			=> Decode<Uuid128>(source, (buffer) => Uuid128.Read(buffer));
 
 		public static Uuid96 DecodeUuid96Value(ReadOnlySpan<char> source)
 			=> Decode<Uuid96>(source, (buffer) => Uuid96.Read(buffer));

@@ -2429,9 +2429,8 @@ namespace System
 					// UUID are stored using the RFC4122 format (Big Endian), while .NET's System.GUID use Little Endian
 					// we need to swap the byte order of the Data1, Data2 and Data3 chunks, to ensure that Guid.ToString() will return the proper value.
 
-					return new Uuid128(this).ToGuid();
+					return Uuid128.ReadUnsafe(this.Span);
 				}
-
 				case 36:
 				{ // string representation (ex: "da846709-616d-4e82-bf55-d1d3e9cde9b1")
 
@@ -2455,7 +2454,7 @@ namespace System
 			return this.Count switch
 			{
 				0 => default,
-				16 => new Uuid128(this),
+				16 => Uuid128.Read(this),
 				36 => Uuid128.Parse(ToByteString()!),
 				_ => throw ThrowHelper.FormatException("Cannot convert slice into an Uuid128 because it has an incorrect size.")
 			};

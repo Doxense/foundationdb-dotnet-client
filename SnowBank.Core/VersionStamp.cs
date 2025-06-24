@@ -672,8 +672,7 @@ namespace System
 			if (this.HasUserVersion) throw new InvalidOperationException("Cannot convert 96-bit VersionStamp into a 80-bit UUID.");
 			Span<byte> ptr = stackalloc byte[Uuid80.SizeOf];
 			WriteUnsafe(ptr, in this);
-			Uuid80.ReadUnsafe(ptr, out var res);
-			return res;
+			return Uuid80.ReadUnsafe(ptr);
 		}
 
 		/// <summary>Converts this 96-bits VersionStamp into a 96-bits UUID</summary>
@@ -682,8 +681,7 @@ namespace System
 			if (!this.HasUserVersion) throw new InvalidOperationException("Cannot convert 80-bit VersionStamp into a 96-bit UUID.");
 			Span<byte> ptr = stackalloc byte[Uuid96.SizeOf];
 			WriteUnsafe(ptr, in this);
-			Uuid96.ReadUnsafe(ptr, out var res);
-			return res;
+			return Uuid96.ReadUnsafe(ptr);
 		}
 
 		/// <summary>Writes this VersionStamp to the specified buffer, if it is large enough.</summary>

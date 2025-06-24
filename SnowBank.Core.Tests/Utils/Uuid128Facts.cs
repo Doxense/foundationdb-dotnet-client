@@ -44,7 +44,7 @@ namespace SnowBank.Core.Tests
 			Log(Uuid128.Empty);
 			Assert.That(Uuid128.Empty.ToString(), Is.EqualTo("00000000-0000-0000-0000-000000000000"));
 			Assert.That(Uuid128.Empty, Is.EqualTo(default(Uuid128)));
-			Assert.That(Uuid128.Empty, Is.EqualTo(new Uuid128(new byte[16])));
+			Assert.That(Uuid128.Empty, Is.EqualTo(Uuid128.Read(new byte[16])));
 			Assert.That(Uuid128.Empty, Is.EqualTo(Guid.Empty));
 
 			Uuid128.Empty.Deconstruct(out Uuid64 hi, out Uuid64 lo);
@@ -355,19 +355,21 @@ namespace SnowBank.Core.Tests
 		public void Test_Uuid_From_Bytes()
 		{
 			{
-				var uuid = new Uuid128(new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 });
+				var uuid = Uuid128.ReadExact([ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 ]);
 				Assert.That(uuid.ToString(), Is.EqualTo("00010203-0405-0607-0809-0a0b0c0d0e0f"));
 				Assert.That(uuid.ToByteArray(), Is.EqualTo(new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}));
 			}
 			{
-				var uuid = new Uuid128(new byte[16]);
+				var uuid = Uuid128.ReadExact(new byte[16]);
 				Assert.That(uuid, Is.EqualTo(Uuid128.Empty));
 				Assert.That(uuid.ToString(), Is.EqualTo("00000000-0000-0000-0000-000000000000"));
+				Assert.That(uuid.ToByteArray(), Is.EqualTo(new byte[16]));
 			}
 			{
-				var uuid = new Uuid128(new byte[] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff });
+				var uuid = Uuid128.ReadExact([ 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff ]);
 				Assert.That(uuid, Is.EqualTo(Uuid128.MaxValue));
 				Assert.That(uuid.ToString(), Is.EqualTo("ffffffff-ffff-ffff-ffff-ffffffffffff"));
+				Assert.That(uuid.ToByteArray(), Is.EqualTo(new byte[] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }));
 			}
 		}
 
@@ -398,7 +400,7 @@ namespace SnowBank.Core.Tests
 		[Test]
 		public void Test_Uuid_Equality()
 		{
-			Assert.That(Uuid128.Empty.Equals(new Uuid128(new byte[16])), Is.True);
+			Assert.That(Uuid128.Empty.Equals(Uuid128.Read(new byte[16])), Is.True);
 			Assert.That(Uuid128.Empty.Equals(Uuid128.NewUuid()), Is.False);
 
 			var uuid1 = Uuid128.NewUuid();

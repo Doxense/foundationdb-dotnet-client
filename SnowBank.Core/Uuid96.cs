@@ -29,8 +29,6 @@ namespace System
 	using System.ComponentModel;
 	using System.Runtime.InteropServices;
 	using System.Security.Cryptography;
-	using System.Text;
-
 	using SnowBank.Buffers;
 	using SnowBank.Buffers.Binary;
 	using SnowBank.Text;
@@ -38,9 +36,12 @@ namespace System
 	/// <summary>Represents a 96-bit UUID that is stored in high-endian format on the wire</summary>
 	[DebuggerDisplay("[{ToString(),nq}]")]
 	[ImmutableObject(true), PublicAPI, Serializable]
-	public readonly struct Uuid96 : IFormattable, IEquatable<Uuid96>, IComparable<Uuid96>
+	public readonly struct Uuid96 : IFormattable, IEquatable<Uuid96>, IComparable<Uuid96>, IEquatable<Slice>
 #if NET8_0_OR_GREATER
 		, ISpanParsable<Uuid96>
+#endif
+#if NET9_0_OR_GREATER
+		, IEquatable<ReadOnlySpan<byte>>
 #endif
 	{
 
@@ -48,7 +49,7 @@ namespace System
 		public static readonly Uuid96 Empty;
 
 		/// <summary>Uuid with all bits set to 1</summary>
-		public static readonly Uuid96 MaxValue = new Uuid96(uint.MaxValue, ulong.MaxValue);
+		public static readonly Uuid96 MaxValue = new(uint.MaxValue, ulong.MaxValue);
 
 		/// <summary>Size is 12 bytes</summary>
 		public const int SizeOf = 12;
@@ -75,7 +76,7 @@ namespace System
 
 		/// <summary>Returns the 48 upper bits (<c>xxxxxxxx-xxxx....-........</c>)</summary>
 		/// <seealso cref="Lower48"/>
-		public Uuid48 Upper48 => new Uuid48(((ulong) this.High << 16) | (this.Low >> 48));
+		public Uuid48 Upper48 => new(((ulong) this.High << 16) | (this.Low >> 48));
 
 		/// <summary>Returns the 64 upper bits (<c>xxxxxxxx-xxxxxxxx-........</c>)</summary>
 		/// <seealso cref="Lower32"/>
@@ -83,7 +84,7 @@ namespace System
 
 		/// <summary>Returns the 80 upper bits (<c>xxxxxxxx-xxxxxxxx-xxxx....</c>)</summary>
 		/// <seealso cref="Lower16"/>
-		public Uuid80 Upper80 => new(unchecked((ushort) (this.High >> 16)), unchecked((uint) ((this.High & MASK_16) << 16 | (this.Low >> 48))), unchecked((uint) (this.Low >> 16)));
+		public Uuid80 Upper80 => new(unchecked((ushort) (this.High >> 16)), unchecked((uint) (((this.High & MASK_16) << 16) | (this.Low >> 48))), unchecked((uint) (this.Low >> 16)));
 
 		/// <summary>Returns the 16 lower bits (<c>........-........-....xxxx</c>)</summary>
 		/// <seealso cref="Upper80"/>
@@ -95,7 +96,7 @@ namespace System
 
 		/// <summary>Returns the 48 lower bits (<c>........-....xxxx-xxxxxxxx</c>)</summary>
 		/// <seealso cref="Upper48"/>
-		public Uuid48 Lower48 => new Uuid48(this.Low & MASK_48);
+		public Uuid48 Lower48 => new(this.Low & MASK_48);
 
 		/// <summary>Returns the 64 lower bits (<c>........-xxxxxxxx-xxxxxxxx</c>)</summary>
 		/// <seealso cref="Upper32"/>
@@ -325,7 +326,7 @@ namespace System
 		[Pure]
 		public static Uuid96 FromUpper48Lower48(ulong hi, ulong low)
 		{
-			return new(unchecked((uint) (hi >> 16)), (hi & MASK_16) << 48 | (low & MASK_48));
+			return new(unchecked((uint) (hi >> 16)), (hi << 48) | (low & MASK_48));
 		}
 
 		/// <summary>Creates a <see cref="Uuid96"/> from the upper 48-bit and lower 48-bit parts</summary>
@@ -382,37 +383,94 @@ namespace System
 		[Pure]
 		public static Uuid96 FromUpper32Middle32Lower32(uint hi, uint middle, uint low)
 		{
-			return new(hi, (ulong) middle << 32 | low);
+			return new(hi, ((ulong) middle << 32) | low);
 		}
 
 		#endregion
 
 		#region Reading...
 
-		/// <summary>Read a 96-bit UUID from a byte array</summary>
-		/// <param name="value">Array of exactly 0 or 12 bytes</param>
+		/// <summary>Reads a 96-bit UUID from slice of memory</summary>
+		/// <param name="value">Array of bytes that is either empty, or holds at least 12 bytes</param>
+		/// <returns>Corresponding <see cref="Uuid80"/> if the read is successful</returns>
+		/// <exception cref="ArgumentException">If <paramref name="value"/> has an invalid length</exception>
+		/// <remarks>
+		/// <para>If <paramref name="value"/> is larger than 12 bytes, the additional bytes will be ignored.</para>
+		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Uuid96 Read(byte[] value)
-		{
-			return Read(value.AsSpan());
-		}
+		public static Uuid96 Read(byte[]? value) => Read(value.AsSpan());
 
-		/// <summary>Read a 96-bit UUID from slice of memory</summary>
-		/// <param name="value">slice of exactly 0 or 12 bytes</param>
+		/// <summary>Reads a 96-bit UUID from slice of memory</summary>
+		/// <param name="value">Slice of bytes that is either empty, or holds at least 12 bytes</param>
+		/// <returns>Corresponding <see cref="Uuid80"/> if the read is successful</returns>
+		/// <exception cref="ArgumentException">If <paramref name="value"/> has an invalid length</exception>
+		/// <remarks>
+		/// <para>If <paramref name="value"/> is larger than 12 bytes, the additional bytes will be ignored.</para>
+		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Uuid96 Read(Slice value)
-		{
-			return Read(value.Span);
-		}
+		public static Uuid96 Read(Slice value) => Read(value.Span);
 
-		/// <summary>Read a 96-bit UUID from slice of memory</summary>
-		/// <param name="value">Span of exactly 0 or 12 bytes</param>
+		/// <summary>Reads a 96-bit UUID from slice of memory</summary>
+		/// <param name="value">Span of bytes that is either empty, or holds at least 12 bytes</param>
+		/// <returns>Corresponding <see cref="Uuid80"/> if the read is successful</returns>
+		/// <exception cref="ArgumentException">If <paramref name="value"/> has an invalid length</exception>
+		/// <remarks>
+		/// <para>If <paramref name="value"/> is larger than 12 bytes, the additional bytes will be ignored.</para>
+		/// </remarks>
 		[Pure]
 		public static Uuid96 Read(ReadOnlySpan<byte> value)
+			=> value.Length == 0 ? default
+			 : value.Length >= SizeOf ? ReadUnsafe(value)
+			 : throw FailInvalidBufferSize(nameof(value));
+
+		/// <summary>Reads an 96-bit UUID from slice of memory</summary>
+		/// <param name="value">Array of bytes that is either empty, or holds at least 12 bytes</param>
+		/// <param name="result">Corresponding <see cref="Uuid96"/>, if the read is successful</param>
+		/// <returns><c>true</c> if <paramref name="value"/> has length <c>0</c> or at least <c>12</c>; otherwise, <c>false</c>.</returns>
+		/// <remarks>
+		/// <para>If <paramref name="value"/> is larger than 12 bytes, the additional bytes will be ignored.</para>
+		/// </remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryRead(byte[]? value, out Uuid96 result) => TryRead(new ReadOnlySpan<byte>(value), out result);
+
+		/// <summary>Reads an 96-bit UUID from slice of memory</summary>
+		/// <param name="value">Slice of bytes that is either empty, or holds at least 12 bytes</param>
+		/// <param name="result">Corresponding <see cref="Uuid96"/>, if the read is successful</param>
+		/// <returns><c>true</c> if <paramref name="value"/> has length <c>0</c> or at least <c>12</c>; otherwise, <c>false</c>.</returns>
+		/// <remarks>
+		/// <para>If <paramref name="value"/> is larger than 12 bytes, the additional bytes will be ignored.</para>
+		/// </remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryRead(Slice value, out Uuid96 result) => TryRead(value.Span, out result);
+
+		/// <summary>Reads an 96-bit UUID from slice of memory</summary>
+		/// <param name="value">Span of bytes that is either empty, or holds at least 12 bytes</param>
+		/// <param name="result">Corresponding <see cref="Uuid96"/>, if the read is successful</param>
+		/// <returns><c>true</c> if <paramref name="value"/> has length <c>0</c> or at least <c>12</c>; otherwise, <c>false</c>.</returns>
+		/// <remarks>
+		/// <para>If <paramref name="value"/> is larger than 12 bytes, the additional bytes will be ignored.</para>
+		/// </remarks>
+		[Pure]
+		public static bool TryRead(ReadOnlySpan<byte> value, out Uuid96 result)
 		{
-			if (value.Length == 0) return default;
-			if (value.Length == SizeOf) { ReadUnsafe(value, out var res); return res; }
-			throw FailInvalidBufferSize(nameof(value));
+			switch (value.Length)
+			{
+				case 0:
+				{
+					result = default;
+					return true;
+				}
+				case >= SizeOf:
+				{
+					result = ReadUnsafe(value);
+					return true;
+				}
+				default:
+				{
+					result = default;
+					return false;
+				}
+			}
 		}
 
 		#endregion
@@ -573,9 +631,9 @@ namespace System
 		/// <param name="formatProvider">An object that supplies culture-specific formatting information. Only used for the "R" format.</param>
 		/// <returns>The value of this <see cref="Uuid96"/>, using the specified format.</returns>
 		/// <example>
-		/// <p>The <b>D</b> format encodes the value as three groups of hexadecimal digits, separated by an hyphen: "aaaaaaaa-bbbbbbbb-cccccccc" (26 characters).</p>
-		/// <p>The <b>X</b> and <b>N</b> format encodes the value as a single group of 24 hexadecimal digits: "aaaaaaaabbbbbbbbcccccccc" (24 characters).</p>
-		/// <p>The <b>B</b> format is equivalent to the <b>D</b> format, but surrounded with '{' and '}': "{aaaaaaaa-bbbbbbbb-cccccccc}" (28 characters).</p>
+		/// <p>The <b>D</b> format encodes the value as three groups of hexadecimal digits, separated by a hyphen: <c>"aaaaaaaa-bbbbbbbb-cccccccc"</c> (26 characters).</p>
+		/// <p>The <b>X</b> and <b>N</b> format encodes the value as a single group of 24 hexadecimal digits: <c>"aaaaaaaabbbbbbbbcccccccc"</c> (24 characters).</p>
+		/// <p>The <b>B</b> format is equivalent to the <b>D</b> format, but surrounded with <c>'{'</c> and <c>'}'</c>: <c>"{aaaaaaaa-bbbbbbbb-cccccccc}"</c> (28 characters).</p>
 		/// </example>
 		public string ToString(string? format, IFormatProvider? formatProvider)
 		{
@@ -591,12 +649,12 @@ namespace System
 				{ // Default format is "xxxxxxxx-xxxxxxxx-xxxxxxxx"
 					return Encode16(this.High, this.Low, separator: true, quotes: false, upper: false);
 				}
-				case "X": //TODO: Guid.ToString("X") returns "{0x.....,0x.....,...}"
+				case "X": //note: Guid.ToString("X") returns "{0x.....,0x.....,...}" but we prefer the "N" format
 				case "N":
 				{ // "XXXXXXXXXXXXXXXXXXXXXXXX"
 					return Encode16(this.High, this.Low, separator: false, quotes: false, upper: true);
 				}
-				case "x": //TODO: Guid.ToString("X") returns "{0x.....,0x.....,...}"
+				case "x":
 				case "n":
 				{ // "xxxxxxxxxxxxxxxxxxxxxxxx"
 					return Encode16(this.High, this.Low, separator: false, quotes: false, upper: false);
@@ -621,35 +679,47 @@ namespace System
 
 		#region IEquatable / IComparable...
 
+		/// <inheritdoc />
 		public override bool Equals(object? obj)
 		{
 			switch (obj)
 			{
 				case Uuid96 uuid: return Equals(uuid);
-				//TODO: string format ? Slice ?
+				case Slice bytes: return Equals(bytes);
 			}
 			return false;
 		}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public override int GetHashCode()
-		{
-			return this.High.GetHashCode() ^ this.Low.GetHashCode();
-		}
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public override int GetHashCode() => this.High.GetHashCode() ^ this.Low.GetHashCode();
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(Uuid96 other)
-		{
-			return this.High == other.High & this.Low == other.Low;
-		}
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(Uuid96 other) => this.High == other.High && this.Low == other.Low;
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo(Uuid96 other)
 		{
 			int cmp = this.High.CompareTo(other.High);
 			if (cmp == 0) cmp = this.Low.CompareTo(other.Low);
 			return cmp;
 		}
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(Slice other) => TryRead(other.Span, out var res) && res == this;
+
+#if NET9_0_OR_GREATER
+		/// <inheritdoc />
+#else
+		/// <summary>Indicates whether the current object is equal to another object of the same type.</summary>
+		/// <param name="other">An object to compare with this object.</param>
+		/// <returns><c>true</c> if the current object is equal to the <paramref name="other" /> parameter; otherwise, <c>false</c>.</returns>
+#endif
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(ReadOnlySpan<byte> other) => TryRead(other, out var res) && res == this;
 
 		#endregion
 
@@ -784,21 +854,21 @@ namespace System
 
 		#region Unsafe I/O...
 
-		internal static void ReadUnsafe(ReadOnlySpan<byte> source, out Uuid96 result)
+		internal static Uuid96 ReadUnsafe(ReadOnlySpan<byte> source)
 		{
-			//Paranoid.Requires(source.Length >= SizeOf);
+			Contract.Debug.Requires(source.Length >= SizeOf);
 			unsafe
 			{
 				fixed (byte* ptr = &MemoryMarshal.GetReference(source))
 				{
-					result = new Uuid96(UnsafeHelpers.LoadUInt32BE(ptr), UnsafeHelpers.LoadUInt64BE(ptr + 4));
+					return new Uuid96(UnsafeHelpers.LoadUInt32BE(ptr), UnsafeHelpers.LoadUInt64BE(ptr + 4));
 				}
 			}
 		}
 
 		internal static void WriteUnsafe(uint hi, ulong lo, Span<byte> destination)
 		{
-			//Paranoid.Requires(destination.Length >= SizeOf);
+			Contract.Debug.Requires(destination.Length >= SizeOf);
 			unsafe
 			{
 				fixed (byte* ptr = &MemoryMarshal.GetReference(destination))
@@ -944,7 +1014,7 @@ namespace System
 		public sealed class Comparer : IEqualityComparer<Uuid96>, IComparer<Uuid96>
 		{
 
-			public static readonly Comparer Default = new Comparer();
+			public static readonly Comparer Default = new();
 
 			private Comparer()
 			{ }
@@ -976,11 +1046,9 @@ namespace System
 
 			/// <summary>Default instance of a random generator</summary>
 			/// <remarks>Using this instance will introduce a global lock in your application. You can create specific instances for worker threads, if you require concurrency.</remarks>
-			public static readonly Uuid96.RandomGenerator Default = new Uuid96.RandomGenerator();
+			public static readonly Uuid96.RandomGenerator Default = new();
 
 			private RandomNumberGenerator Rng { get; }
-
-			private readonly byte[] Scratch = new byte[SizeOf];
 
 			/// <summary>Create a new instance of a random UUID generator</summary>
 			public RandomGenerator()
@@ -1003,15 +1071,13 @@ namespace System
 			// ReSharper disable once MemberHidesStaticFromOuterClass
 			public Uuid96 NewUuid()
 			{
-				//REVIEW: OPTIMIZE: use a per-thread instance of the rng and scratch buffer?
-				// => right now, NewUuid() is a Global Lock for the whole process!
 				lock (this.Rng)
 				{
-					// get 10 bytes of randomness (0 allowed)
-					this.Rng.GetBytes(this.Scratch);
-					//note: do *NOT* call GetBytes(byte[], int, int) because it creates a temp buffer, calls GetBytes(byte[]) and copy the result back! (as of .NET 4.7.1)
-					//TODO: PERF: use Span<byte> APIs once (if?) they become available!
-					return Uuid96.Read(this.Scratch);
+					Span<byte> scratch = stackalloc byte[SizeOf];
+					// get 12 bytes of randomness (0x00 is allowed)
+					this.Rng.GetBytes(scratch);
+					// read back
+					return ReadUnsafe(scratch);
 				}
 			}
 

@@ -1100,7 +1100,6 @@ namespace SnowBank.Data.Tuples.Binary
 			{ // the value is encoded as the one's complement of the absolute value
 				value = (-(~value));
 				if (bytes < 8) value |= (-1L << (bytes << 3));
-				return value;
 			}
 
 			return value;
@@ -1127,7 +1126,6 @@ namespace SnowBank.Data.Tuples.Binary
 			{ // the value is encoded as the one's complement of the absolute value
 				value = (-(~value));
 				if (bytes < 8) value |= (-1L << (bytes << 3));
-				return value;
 			}
 
 			return value;
@@ -1342,7 +1340,7 @@ namespace SnowBank.Data.Tuples.Binary
 		{
 			Contract.Debug.Requires(slice.Length > 2 && slice[0] == TupleTypes.NegativeBigInteger);
 
-			if (slice.Length is < 3)
+			if (slice.Length < 3)
 			{
 				throw new FormatException("Slice has invalid size for a Big Integer containing a UInt128");
 			}
@@ -1364,7 +1362,7 @@ namespace SnowBank.Data.Tuples.Binary
 		{
 			Contract.Debug.Requires(slice.Length > 1 && slice[0] == TupleTypes.PositiveBigInteger);
 
-			if (slice.Length is < 2)
+			if (slice.Length < 2)
 			{
 				throw new FormatException("Slice has invalid size for a Big Integer containing a UInt128");
 			}
@@ -1620,7 +1618,7 @@ namespace SnowBank.Data.Tuples.Binary
 			}
 
 			// We store them in RFC 4122 under the hood, so we need to reverse them to the MS format
-			return Uuid128.Convert(slice.Substring(1));
+			return Uuid128.ReadUnsafe(slice.Span[1..]);
 		}
 
 		/// <summary>Parse a tuple segment containing a 128-bit GUID</summary>
@@ -1635,21 +1633,7 @@ namespace SnowBank.Data.Tuples.Binary
 			}
 
 			// We store them in RFC 4122 under the hood, so we need to reverse them to the MS format
-			return Uuid128.Convert(slice.Slice(1));
-		}
-
-		/// <summary>Parse a tuple segment containing a 128-bit UUID</summary>
-		[Pure]
-		public static Uuid128 ParseUuid128(Slice slice)
-		{
-			Contract.Debug.Requires(slice.HasValue && slice[0] == TupleTypes.Uuid128);
-
-			if (slice.Count != 17)
-			{
-				throw new FormatException("Slice has invalid size for a 128-bit UUID");
-			}
-
-			return new Uuid128(slice.Substring(1));
+			return Uuid128.ReadUnsafe(slice[1..]);
 		}
 
 		/// <summary>Parse a tuple segment containing a 128-bit UUID</summary>
@@ -1663,7 +1647,7 @@ namespace SnowBank.Data.Tuples.Binary
 				throw new FormatException("Slice has invalid size for a 128-bit UUID");
 			}
 
-			return new Uuid128(slice.Slice(1));
+			return Uuid128.Read(slice[1..]);
 		}
 
 		/// <summary>Parse a tuple segment containing a 64-bit UUID</summary>

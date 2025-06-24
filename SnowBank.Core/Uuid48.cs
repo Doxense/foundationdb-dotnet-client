@@ -35,9 +35,12 @@ namespace System
 	/// <summary>Represents a 48-bit UUID that is stored in high-endian format on the wire</summary>
 	[DebuggerDisplay("[{ToString(),nq}]")]
 	[ImmutableObject(true), PublicAPI, Serializable]
-	public readonly struct Uuid48 : IEquatable<Uuid48>, IComparable<Uuid48>, IEquatable<ulong>, IComparable<ulong>, IEquatable<long>, IComparable<long>, IEquatable<uint>, IComparable<uint>, IEquatable<int>, IComparable<int>,ISpanFormattable
+	public readonly struct Uuid48 : IEquatable<Uuid48>, IComparable<Uuid48>, IEquatable<ulong>, IComparable<ulong>, IEquatable<long>, IComparable<long>, IEquatable<uint>, IComparable<uint>, IEquatable<int>, IComparable<int>, IEquatable<Slice>, ISpanFormattable
 #if NET8_0_OR_GREATER
 		, ISpanParsable<Uuid48>
+#endif
+#if NET9_0_OR_GREATER
+		, IEquatable<ReadOnlySpan<byte>>
 #endif
 	{
 
@@ -180,30 +183,17 @@ namespace System
 
 		#region Decomposition...
 
-		/// <summary>Split into two 32-bit halves</summary>
-		/// <param name="a">xxxxxxxx-........</param>
-		/// <param name="b">........-xxxxxxxx</param>
+		/// <summary>Split into three 16-bits parts</summary>
+		/// <param name="a">xxxx-........</param>
+		/// <param name="b">....-xxxx....</param>
+		/// <param name="c">....-....xxxx</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Deconstruct(out uint a, out uint b)
+		public void Deconstruct(out ushort a, out ushort b, out ushort c)
 		{
 			ulong value = this.Value;
-			a = (uint) (value >> 32);
-			b = (uint) value;
-		}
-
-		/// <summary>Split into two halves</summary>
-		/// <param name="a">xxxx....-........</param>
-		/// <param name="b">....xxxx-........</param>
-		/// <param name="c">........-xxxx....</param>
-		/// <param name="d">........-....xxxx</param>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Deconstruct(out ushort a, out ushort b, out ushort c, out ushort d)
-		{
-			ulong value = this.Value;
-			a = (ushort) (value >> 48);
-			b = (ushort) (value >> 32);
-			c = (ushort) (value >> 16);
-			d = (ushort) value;
+			a = unchecked((ushort) (value >> 32));
+			b = unchecked((ushort) (value >> 16));
+			c = unchecked((ushort) value);
 		}
 
 		#endregion
@@ -211,29 +201,93 @@ namespace System
 		#region Reading...
 
 		/// <summary>Read a 48-bit UUID from a byte array</summary>
-		/// <param name="value">Array of exactly 0 or 6 bytes</param>
+		/// <param name="value">Array of bytes that is either empty, or holds at least 6 bytes</param>
+		/// <returns>Corresponding <see cref="Uuid48"/> if the read is successful</returns>
+		/// <exception cref="ArgumentException">If <paramref name="value"/> has an invalid length</exception>
+		/// <remarks>
+		/// <para>If <paramref name="value"/> is larger than 6 bytes, the additional bytes will be ignored.</para>
+		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Uuid48 Read(byte[] value)
-		{
-			return Read(value.AsSpan());
-		}
+		public static Uuid48 Read(byte[] value) => Read(value.AsSpan());
 
 		/// <summary>Read a 48-bit UUID from slice of memory</summary>
-		/// <param name="value"><see cref="Slice"/> of exactly 0 or 6 bytes</param>
+		/// <param name="value">Slice of bytes that is either empty, or holds at least 6 bytes</param>
+		/// <returns>Corresponding <see cref="Uuid48"/> if the read is successful</returns>
+		/// <exception cref="ArgumentException">If <paramref name="value"/> has an invalid length</exception>
+		/// <remarks>
+		/// <para>If <paramref name="value"/> is larger than 6 bytes, the additional bytes will be ignored.</para>
+		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Uuid48 Read(Slice value)
-		{
-			return Read(value.Span);
-		}
+		public static Uuid48 Read(Slice value) => Read(value.Span);
 
 		/// <summary>Read a 48-bit UUID from slice of memory</summary>
-		/// <param name="value">Span of exactly 0 or 6 bytes</param>
+		/// <param name="value">Span of bytes that is either empty, or holds at least 6 bytes</param>
+		/// <returns>Corresponding <see cref="Uuid48"/> if the read is successful</returns>
+		/// <exception cref="ArgumentException">If <paramref name="value"/> has an invalid length</exception>
+		/// <remarks>
+		/// <para>If <paramref name="value"/> is larger than 6 bytes, the additional bytes will be ignored.</para>
+		/// </remarks>
 		[Pure]
 		public static Uuid48 Read(ReadOnlySpan<byte> value)
+			=> value.Length == 0 ? default
+			 : value.Length >= SizeOf ? new Uuid48(BinaryPrimitives.ReadUInt16BigEndian(value), BinaryPrimitives.ReadUInt32BigEndian(value[2..]))
+			 : throw FailInvalidBufferSize(nameof(value));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private static void ReadUnsafe(ReadOnlySpan<byte> value, out Uuid48 result)
 		{
-			if (value.Length == 0) return default;
-			if (value.Length == 6) return new Uuid48(BinaryPrimitives.ReadUInt16BigEndian(value), BinaryPrimitives.ReadUInt32BigEndian(value[2..]));
-			throw FailInvalidBufferSize(nameof(value));
+			Contract.Debug.Requires(value.Length == SizeOf);
+			result = new(BinaryPrimitives.ReadUInt16BigEndian(value), BinaryPrimitives.ReadUInt32BigEndian(value[2..]));
+		}
+
+		/// <summary>Reads a 48-bit UUID from slice of memory</summary>
+		/// <param name="value">Array of bytes that is either empty, or holds at least 6 bytes</param>
+		/// <param name="result">Corresponding <see cref="Uuid48"/>, if the read is successful</param>
+		/// <returns><c>true</c> if <paramref name="value"/> has length <c>0</c> or at least <c>6</c>; otherwise, <c>false</c>.</returns>
+		/// <remarks>
+		/// <para>If <paramref name="value"/> is larger than 6 bytes, the additional bytes will be ignored.</para>
+		/// </remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryRead(byte[]? value, out Uuid48 result) => TryRead(new ReadOnlySpan<byte>(value), out result);
+
+		/// <summary>Reads a 48-bit UUID from slice of memory</summary>
+		/// <param name="value">Slice of bytes that is either empty, or holds at least 6 bytes</param>
+		/// <param name="result">Corresponding <see cref="Uuid48"/>, if the read is successful</param>
+		/// <returns><c>true</c> if <paramref name="value"/> has length <c>0</c> or at least <c>6</c>; otherwise, <c>false</c>.</returns>
+		/// <remarks>
+		/// <para>If <paramref name="value"/> is larger than 6 bytes, the additional bytes will be ignored.</para>
+		/// </remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryRead(Slice value, out Uuid48 result) => TryRead(value.Span, out result);
+
+		/// <summary>Reads a 48-bit UUID from slice of memory</summary>
+		/// <param name="value">Span of bytes that is either empty, or holds at least 6 bytes</param>
+		/// <param name="result">Corresponding <see cref="Uuid48"/>, if the read is successful</param>
+		/// <returns><c>true</c> if <paramref name="value"/> has length <c>0</c> or at least <c>6</c>; otherwise, <c>false</c>.</returns>
+		/// <remarks>
+		/// <para>If <paramref name="value"/> is larger than 6 bytes, the additional bytes will be ignored.</para>
+		/// </remarks>
+		[Pure]
+		public static bool TryRead(ReadOnlySpan<byte> value, out Uuid48 result)
+		{
+			switch (value.Length)
+			{
+				case 0:
+				{
+					result = default;
+					return true;
+				}
+				case >= SizeOf:
+				{
+					ReadUnsafe(value, out result);
+					return true;
+				}
+				default:
+				{
+					result = default;
+					return false;
+				}
+			}
 		}
 
 		#endregion
@@ -548,24 +602,30 @@ namespace System
 		#region IFormattable...
 
 		/// <summary>Returns the equivalent 64-bit signed integer</summary>
+		/// <remarks>The 16 upper bits will be set to <c>0</c></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public long ToInt64() => unchecked((long) this.Value);
 
 		/// <summary>Returns the equivalent 64-bit unsigned integer</summary>
+		/// <remarks>The 16 upper bits will be set to <c>0</c></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public ulong ToUInt64() => this.Value;
 
-		/// <summary>Converts this instance into a <see cref="Slice"/></summary>
+		/// <summary>Converts this instance into a <see cref="Slice"/> of <c>6</c> bytes</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Slice ToSlice() => ToByteArray().AsSlice();
+		public Slice ToSlice()
+		{
+			var buffer = new byte[6];
+			WriteToUnsafe(buffer.AsSpan());
+			return new Slice(buffer);
+		}
 
 		/// <summary>Converts this instance into a byte array</summary>
 		[Pure]
 		public byte[] ToByteArray()
 		{
 			var buffer = new byte[6];
-			var span = buffer.AsSpan();
-			WriteToUnsafe(span);
+			WriteToUnsafe(buffer.AsSpan());
 			return buffer;
 		}
 
@@ -619,12 +679,12 @@ namespace System
 					return this.Value.ToString(null, formatProvider ?? CultureInfo.InvariantCulture);
 				}
 
-				case "X": //TODO: Guid.ToString("X") returns "{0x.....,0x.....,...}"
+				case "X": //note: Guid.ToString("X") returns "{0x.....,0x.....,...}" but we prefer the "N" format
 				case "N":
 				{ // "XXXXXXXXXXXX"
 					return EncodeOnePart(this.Value, quotes: false, upper: true);
 				}
-				case "x": //TODO: Guid.ToString("X") returns "{0x.....,0x.....,...}"
+				case "x":
 				case "n":
 				{ // "xxxxxxxxxxxx"
 					return EncodeOnePart(this.Value, quotes: false, upper: false);
@@ -796,74 +856,70 @@ namespace System
 			long l => l >= 0 && this.Value == (ulong) l,
 			uint ui => this.Value == ui,
 			int i => i >= 0 && this.Value == (ulong) i,
+			Slice bytes => Equals(bytes),
 			_ => false
 		};
 
 		/// <inheritdoc />
 		public override int GetHashCode()
 		{
-			return ((int) this.Value) ^ (int) (this.Value >> 32);
+			// fold the 16 upper bits
+			return unchecked((int) this.Value) ^ unchecked((int) (this.Value >> 32));
 		}
 
 		/// <inheritdoc />
-		public bool Equals(Uuid48 other)
-		{
-			return this.Value == other.Value;
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(Uuid48 other) => this.Value == other.Value;
 
 		/// <inheritdoc />
-		public int CompareTo(Uuid48 other)
-		{
-			return this.Value.CompareTo(other.Value);
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(Uuid48 other) => this.Value < other.Value ? -1 : this.Value > other.Value ? +1 : 0;
 
 		/// <inheritdoc />
-		public bool Equals(ulong other)
-		{
-			return this.Value == other;
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(ulong other) => this.Value == other;
 
 		/// <inheritdoc />
-		public int CompareTo(ulong other)
-		{
-			return this.Value.CompareTo(other);
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(ulong other) => this.Value < other ? -1 : this.Value > other ? +1 : 0;
 
 		/// <inheritdoc />
-		public bool Equals(long other)
-		{
-			return other >= 0 && this.Value == (ulong) other;
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(long other) => other >= 0 && this.Value == (ulong) other;
 
 		/// <inheritdoc />
-		public int CompareTo(long other)
-		{
-			return other >= 0 ? this.Value.CompareTo((ulong) other) : +1;
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(long other) => other >= 0 ? CompareTo((ulong) other) : +1;
 
 		/// <inheritdoc />
-		public bool Equals(uint other)
-		{
-			return this.Value == other;
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(uint other) => this.Value == other;
 
 		/// <inheritdoc />
-		public int CompareTo(uint other)
-		{
-			return this.Value.CompareTo(other);
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(uint other) => CompareTo((ulong) other);
 
 		/// <inheritdoc />
-		public bool Equals(int other)
-		{
-			return other >= 0 && this.Value == (ulong) other;
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(int other) => other >= 0 && this.Value == (ulong) other;
 
 		/// <inheritdoc />
-		public int CompareTo(int other)
-		{
-			return other >= 0 ? this.Value.CompareTo((ulong) other) : +1;
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(int other) => other >= 0 ? CompareTo((ulong) other) : +1;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(Slice other) => TryRead(other.Span, out var res) && res == this;
+
+#if NET9_0_OR_GREATER
+		/// <inheritdoc />
+#else
+		/// <summary>Indicates whether the current object is equal to another object of the same type.</summary>
+		/// <param name="other">An object to compare with this object.</param>
+		/// <returns><c>true</c> if the current object is equal to the <paramref name="other" /> parameter; otherwise, <c>false</c>.</returns>
+#endif
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(ReadOnlySpan<byte> other) => TryRead(other, out var res) && res == this;
 
 		#endregion
 
@@ -974,13 +1030,13 @@ namespace System
 			return (quotes, upper, separator) switch
 			{
 				(true, true, ':') => $"{{{a:X02}:{b:X02}:{c:X02}:{d:X02}:{e:X02}:{f:X02}}}",
-				(true, true, _) => $"{{{a:X02}-{b:X02}-{c:X02}-{d:X02}-{e:X02}:{f:X02}}}",
+				(true, true, _) => $"{{{a:X02}-{b:X02}-{c:X02}-{d:X02}-{e:X02}-{f:X02}}}",
 				(true, false, ':') => $"{{{a:x02}:{b:x02}:{c:x02}:{d:x02}:{e:x02}:{f:x02}}}",
-				(true, false, _) => $"{{{a:x02}-{b:x02}-{c:x02}-{d:x02}-{e:x02}:{f:x02}}}",
+				(true, false, _) => $"{{{a:x02}-{b:x02}-{c:x02}-{d:x02}-{e:x02}-{f:x02}}}",
 				(false, true, ':') => $"{a:X02}:{b:X02}:{c:X02}:{d:X02}:{e:X02}:{f:X02}",
-				(false, true, _) => $"{a:X02}-{b:X02}-{c:X02}-{d:X02}-{e:X02}:{f:X02}",
+				(false, true, _) => $"{a:X02}-{b:X02}-{c:X02}-{d:X02}-{e:X02}-{f:X02}",
 				(false, false, ':') => $"{a:x02}:{b:x02}:{c:x02}:{d:x02}:{e:x02}:{f:x02}",
-				_ => $"{a:x02}-{b:x02}-{c:x02}-{d:x02}-{e:x02}:{f:x02}",
+				_ => $"{a:x02}-{b:x02}-{c:x02}-{d:x02}-{e:x02}-{f:x02}",
 			};
 		}
 
@@ -1014,7 +1070,7 @@ namespace System
 			/// </sample>
 			public static string Encode(ulong value, bool padded)
 			{
-				return Base62Encoding.Encode(value, padded ? Base62FormattingOptions.Lexicographic | Base62FormattingOptions.Padded : Base62FormattingOptions.Lexicographic | Base62FormattingOptions.None);
+				return Base62Encoding.Encode64(value, 48, padded ? Base62FormattingOptions.Lexicographic | Base62FormattingOptions.Padded : Base62FormattingOptions.Lexicographic | Base62FormattingOptions.None);
 			}
 
 			public static bool TryDecode(ReadOnlySpan<char> s, out ulong value)

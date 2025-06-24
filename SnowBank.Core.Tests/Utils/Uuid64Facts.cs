@@ -96,19 +96,38 @@ namespace SnowBank.Core.Tests
 		[Test]
 		public void Test_Uuid64_ToString()
 		{
-			var guid = new Uuid64(0xBADC0FFEE0DDF00DUL);
-			Assert.That(guid.ToUInt64(), Is.EqualTo(0xBADC0FFEE0DDF00DUL));
-			Assert.That(guid.ToString(), Is.EqualTo("BADC0FFE-E0DDF00D"));
-			Assert.That(guid.ToString("X"), Is.EqualTo("BADC0FFEE0DDF00D"));
-			Assert.That(guid.ToString("B"), Is.EqualTo("{BADC0FFE-E0DDF00D}"));
-			Assert.That(guid.ToString("C"), Is.EqualTo("G2eGAUq82Hd"));
+			Assert.Multiple(() =>
+			{
+				var guid = new Uuid64(0xBADC0FFEE0DDF00DUL);
+				Assert.That(guid.ToUInt64(), Is.EqualTo(0xBADC0FFEE0DDF00DUL));
+				Assert.That(guid.ToString(), Is.EqualTo("BADC0FFE-E0DDF00D"));
+				Assert.That(guid.ToString("X"), Is.EqualTo("BADC0FFEE0DDF00D"));
+				Assert.That(guid.ToString("B"), Is.EqualTo("{BADC0FFE-E0DDF00D}"));
+				Assert.That(guid.ToString("C"), Is.EqualTo("G2eGAUq82Hd"));
+			});
 
-			guid = new Uuid64(0xDEADBEEFUL);
-			Assert.That(guid.ToUInt64(), Is.EqualTo(0xDEADBEEFUL));
-			Assert.That(guid.ToString(), Is.EqualTo("00000000-DEADBEEF"));
-			Assert.That(guid.ToString("X"), Is.EqualTo("00000000DEADBEEF"));
-			Assert.That(guid.ToString("B"), Is.EqualTo("{00000000-DEADBEEF}"));
-			Assert.That(guid.ToString("C"), Is.EqualTo("44pZgF"));
+			Assert.Multiple(() =>
+			{
+				var guid = new Uuid64(0xDEADBEEFUL);
+				Assert.That(guid.ToUInt64(), Is.EqualTo(0xDEADBEEFUL));
+				Assert.That(guid.ToString(), Is.EqualTo("00000000-DEADBEEF"));
+				Assert.That(guid.ToString("X"), Is.EqualTo("00000000DEADBEEF"));
+				Assert.That(guid.ToString("B"), Is.EqualTo("{00000000-DEADBEEF}"));
+				Assert.That(guid.ToString("C"), Is.EqualTo("44pZgF"));
+			});
+		}
+
+		[Test]
+		public void Test_From_Upper_And_Lower_Parts()
+		{
+			Assert.Multiple(() =>
+			{
+				var guid = new Uuid64(0xBADC0FFEE0DDF00DUL);
+
+				Assert.That(Uuid64.FromUpper16Lower48(0xBADC, 0x0FFEE0DDF00D), Is.EqualTo(guid));
+				Assert.That(Uuid64.FromUpper32Lower32(0xBADC0FFE, 0xE0DDF00D), Is.EqualTo(guid));
+				Assert.That(Uuid64.FromUpper48Lower16(0xBADC0FFEE0DD, 0xF00D), Is.EqualTo(guid));
+			});
 		}
 
 		[Test]
@@ -545,23 +564,27 @@ namespace SnowBank.Core.Tests
 			byte[] buf = { 0x55, 0x55, 0x55, 0x55, /* start */ 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF, /* stop */ 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA };
 			var original = Uuid64.Parse("01234567-89ABCDEF");
 			Assume.That(original.ToUInt64(), Is.EqualTo(0x0123456789ABCDEF));
+			Uuid64 res;
 
 			// ReadOnlySpan<byte>
 			Assert.That(Uuid64.Read(buf.AsSpan(4, 8)), Is.EqualTo(original));
+			Assert.That(() => Uuid64.Read(buf.AsSpan(4, 7)), Throws.ArgumentException);
+			Assert.That(() => Uuid64.Read(buf.AsSpan(4, 1)), Throws.ArgumentException);
+			Assert.That(Uuid64.Read(buf.AsSpan(4, 0)), Is.EqualTo(Uuid64.Empty));
+			Assert.That(Uuid64.TryRead(buf.AsSpan(4, 8), out res), Is.True.WithOutput(res).EqualTo(original));
+			Assert.That(Uuid64.TryRead(buf.AsSpan(4, 7), out res), Is.False);
+			Assert.That(Uuid64.TryRead(buf.AsSpan(4, 1), out res), Is.False);
+			Assert.That(Uuid64.TryRead(buf.AsSpan(4, 0), out res), Is.True.WithOutput(res).EqualTo(Uuid64.Empty));
 
 			// Slice
 			Assert.That(Uuid64.Read(buf.AsSlice(4, 8)), Is.EqualTo(original));
+			Assert.That(Uuid64.TryRead(buf.AsSlice(4, 8), out res), Is.True.WithOutput(res).EqualTo(original));
 
 			// byte[]
 			Assert.That(Uuid64.Read(buf.AsSlice(4, 8).ToArray()), Is.EqualTo(original));
-
-			unsafe
-			{
-				fixed (byte* ptr = &buf[4])
-				{
-					Assert.That(Uuid64.Read(new ReadOnlySpan<byte>(ptr, 8)), Is.EqualTo(original));
-				}
-			}
+			Assert.That(Uuid64.Read(Array.Empty<byte>()), Is.EqualTo(Uuid64.Empty));
+			Assert.That(Uuid64.Read(null), Is.EqualTo(Uuid64.Empty));
+			Assert.That(Uuid64.TryRead(buf.AsSlice(4, 8).ToArray(), out res), Is.True.WithOutput(res).EqualTo(original));
 		}
 
 		[Test]

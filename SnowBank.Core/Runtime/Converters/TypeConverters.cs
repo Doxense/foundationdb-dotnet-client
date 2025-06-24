@@ -218,6 +218,7 @@ namespace SnowBank.Runtime.Converters
 			RegisterUnsafe<long, float>((value) => value); // possible loss of precision
 			RegisterUnsafe<long, TimeSpan>(TimeSpan.FromTicks);
 			RegisterUnsafe<long, Uuid64>((value) => new Uuid64(value));
+			RegisterUnsafe<long, Uuid48>((value) => Uuid48.FromInt64(value));
 			RegisterUnsafe<long, System.Net.IPAddress>((value) => new System.Net.IPAddress(value));
 			RegisterUnsafe<long, decimal>((value) => value);
 #if NET8_0_OR_GREATER
@@ -240,6 +241,7 @@ namespace SnowBank.Runtime.Converters
 			RegisterUnsafe<ulong, double>((value) => value); // possible loss of precision
 			RegisterUnsafe<ulong, float>((value) => value); // possible loss of precision
 			RegisterUnsafe<ulong, Uuid64>((value) => new Uuid64(value));
+			RegisterUnsafe<ulong, Uuid48>((value) => Uuid48.FromUInt64(value));
 			RegisterUnsafe<ulong, TimeSpan>((value) => TimeSpan.FromTicks(checked((long) value)));
 			RegisterUnsafe<ulong, decimal>((value) => value);
 #if NET8_0_OR_GREATER
@@ -452,18 +454,19 @@ namespace SnowBank.Runtime.Converters
 			RegisterUnsafe<string?, byte>((value) => string.IsNullOrEmpty(value) ? default(byte) : byte.Parse(value, CultureInfo.InvariantCulture));
 			RegisterUnsafe<string?, short>((value) => string.IsNullOrEmpty(value) ? default(short) : short.Parse(value, CultureInfo.InvariantCulture));
 			RegisterUnsafe<string?, ushort>((value) => string.IsNullOrEmpty(value) ? default(ushort) : ushort.Parse(value, CultureInfo.InvariantCulture));
-			RegisterUnsafe<string?, int>((value) => string.IsNullOrEmpty(value) ? default(int) : int.Parse(value, CultureInfo.InvariantCulture));
-			RegisterUnsafe<string?, uint>((value) => string.IsNullOrEmpty(value) ? default(uint) : uint.Parse(value, CultureInfo.InvariantCulture));
-			RegisterUnsafe<string?, long>((value) => string.IsNullOrEmpty(value) ? default(long) : long.Parse(value, CultureInfo.InvariantCulture));
-			RegisterUnsafe<string?, ulong>((value) => string.IsNullOrEmpty(value) ? default(ulong) : ulong.Parse(value, CultureInfo.InvariantCulture));
-			RegisterUnsafe<string?, float>((value) => string.IsNullOrEmpty(value) ? default(float) : float.Parse(value, NumberStyles.Float, CultureInfo.InvariantCulture));
-			RegisterUnsafe<string?, double>((value) => string.IsNullOrEmpty(value) ? default(double) : double.Parse(value, NumberStyles.Float, CultureInfo.InvariantCulture));
-			RegisterUnsafe<string?, decimal>((value) => string.IsNullOrEmpty(value) ? default(decimal) : decimal.Parse(value, NumberStyles.Float, CultureInfo.InvariantCulture));
-			RegisterUnsafe<string?, Guid>((value) => string.IsNullOrEmpty(value) ? default(Guid) : Guid.Parse(value));
+			RegisterUnsafe<string?, int>((value) => string.IsNullOrEmpty(value) ? 0 : int.Parse(value, CultureInfo.InvariantCulture));
+			RegisterUnsafe<string?, uint>((value) => string.IsNullOrEmpty(value) ? 0U : uint.Parse(value, CultureInfo.InvariantCulture));
+			RegisterUnsafe<string?, long>((value) => string.IsNullOrEmpty(value) ? 0L : long.Parse(value, CultureInfo.InvariantCulture));
+			RegisterUnsafe<string?, ulong>((value) => string.IsNullOrEmpty(value) ? 0UL : ulong.Parse(value, CultureInfo.InvariantCulture));
+			RegisterUnsafe<string?, float>((value) => string.IsNullOrEmpty(value) ? 0f : float.Parse(value, NumberStyles.Float, CultureInfo.InvariantCulture));
+			RegisterUnsafe<string?, double>((value) => string.IsNullOrEmpty(value) ? 0d : double.Parse(value, NumberStyles.Float, CultureInfo.InvariantCulture));
+			RegisterUnsafe<string?, decimal>((value) => string.IsNullOrEmpty(value) ? 0m : decimal.Parse(value, NumberStyles.Float, CultureInfo.InvariantCulture));
+			RegisterUnsafe<string?, Guid>((value) => string.IsNullOrEmpty(value) ? Guid.Empty : Guid.Parse(value));
 			RegisterUnsafe<string?, Uuid128>((value) => string.IsNullOrEmpty(value) ? default(Uuid128) : Uuid128.Parse(value));
 			RegisterUnsafe<string?, Uuid96>((value) => string.IsNullOrEmpty(value) ? default(Uuid96) : Uuid96.Parse(value));
 			RegisterUnsafe<string?, Uuid80>((value) => string.IsNullOrEmpty(value) ? default(Uuid80) : Uuid80.Parse(value));
 			RegisterUnsafe<string?, Uuid64>((value) => string.IsNullOrEmpty(value) ? default(Uuid64) : Uuid64.Parse(value));
+			RegisterUnsafe<string?, Uuid48>((value) => string.IsNullOrEmpty(value) ? default(Uuid48) : Uuid48.Parse(value));
 			RegisterUnsafe<string?, System.Net.IPAddress?>((value) => string.IsNullOrEmpty(value) ? default(System.Net.IPAddress) : System.Net.IPAddress.Parse(value));
 #if NET8_0_OR_GREATER
 			RegisterUnsafe<string?, Half>((value) => string.IsNullOrEmpty(value) ? default(Half) : Half.Parse(value, NumberStyles.Float, CultureInfo.InvariantCulture));
@@ -485,11 +488,12 @@ namespace SnowBank.Runtime.Converters
 			RegisterUnsafe<byte[]?, float>((value) => value?.AsSlice().ToSingle() ?? 0f);
 			RegisterUnsafe<byte[]?, double>((value) => value?.AsSlice().ToDouble() ?? 0d);
 			RegisterUnsafe<byte[]?, decimal>((value) => value?.AsSlice().ToDecimal() ?? 0m);
-			RegisterUnsafe<byte[]?, Guid>((value) => value == null || value.Length == 0 ? default(Guid) : new Uuid128(value).ToGuid());
-			RegisterUnsafe<byte[]?, Uuid128>((value) => value == null || value.Length == 0 ? default(Uuid128) : new Uuid128(value));
-			RegisterUnsafe<byte[]?, Uuid96>((value) => value != null ? Uuid96.Read(value) : default(Uuid96));
-			RegisterUnsafe<byte[]?, Uuid80>((value) => value != null ? Uuid80.Read(value) : default(Uuid80));
-			RegisterUnsafe<byte[]?, Uuid64>((value) => value != null ? Uuid64.Read(value) : default(Uuid64));
+			RegisterUnsafe<byte[]?, Guid>((value) => value == null || value.Length == 0 ? Guid.Empty : Uuid128.ReadGuidExact(value));
+			RegisterUnsafe<byte[]?, Uuid128>((value) => value == null || value.Length == 0 ? Uuid128.Empty : Uuid128.ReadExact(value));
+			RegisterUnsafe<byte[]?, Uuid96>((value) => value != null ? Uuid96.Read(value) : Uuid96.Empty);
+			RegisterUnsafe<byte[]?, Uuid80>((value) => value != null ? Uuid80.Read(value) : Uuid80.Empty);
+			RegisterUnsafe<byte[]?, Uuid64>((value) => value != null ? Uuid64.Read(value) : Uuid64.Empty);
+			RegisterUnsafe<byte[]?, Uuid48>((value) => value != null ? Uuid48.Read(value) : Uuid48.Empty);
 			RegisterUnsafe<byte[]?, TimeSpan>((value) => value == null ? TimeSpan.Zero : TimeSpan.FromTicks(value.AsSlice().ToInt64()));
 			RegisterUnsafe<byte[]?, System.Net.IPAddress?>((value) => value == null || value.Length == 0 ? default(System.Net.IPAddress) : new System.Net.IPAddress(value));
 #if NET8_0_OR_GREATER
@@ -528,6 +532,12 @@ namespace SnowBank.Runtime.Converters
 			RegisterUnsafe<Uuid64, long>((value) => value.ToInt64());
 			RegisterUnsafe<Uuid64, ulong>((value) => value.ToUInt64());
 
+			RegisterUnsafe<Uuid48, Slice>((value) => value.ToSlice());
+			RegisterUnsafe<Uuid48, byte[]?>((value) => value.ToByteArray());
+			RegisterUnsafe<Uuid48, string?>((value) => value.ToString("D", null));
+			RegisterUnsafe<Uuid48, long>((value) => value.ToInt64());
+			RegisterUnsafe<Uuid48, ulong>((value) => value.ToUInt64());
+
 			RegisterUnsafe<TimeSpan, Slice>((value) => Slice.FromInt64(value.Ticks));
 			RegisterUnsafe<TimeSpan, byte[]?>((value) => Slice.FromInt64(value.Ticks).GetBytes());
 			RegisterUnsafe<TimeSpan, long>((value) => value.Ticks);
@@ -560,6 +570,7 @@ namespace SnowBank.Runtime.Converters
 			RegisterUnsafe<Slice, Uuid96>((value) => value.ToUuid96());
 			RegisterUnsafe<Slice, Uuid80>((value) => value.ToUuid80());
 			RegisterUnsafe<Slice, Uuid64>((value) => value.ToUuid64());
+			RegisterUnsafe<Slice, Uuid48>((value) => value.ToUuid48());
 			RegisterUnsafe<Slice, TimeSpan>((value) => TimeSpan.FromTicks(value.ToInt64()));
 			RegisterUnsafe<Slice, System.Net.IPAddress?>((value) => !value.IsNullOrEmpty ? new System.Net.IPAddress(value.ToArray()) : null);
 #if NET8_0_OR_GREATER

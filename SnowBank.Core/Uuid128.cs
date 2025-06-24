@@ -70,6 +70,11 @@ namespace System
 		//    |                         node (2-5)                            |
 		//    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
+		// packed "view"
+
+		[FieldOffset(0)]
+		private readonly Guid m_packed;
+
 		// UUID "view"
 
 		[FieldOffset(0)]
@@ -94,13 +99,6 @@ namespace System
 		private readonly byte m_node4;
 		[FieldOffset(15)]
 		private readonly byte m_node5;
-
-		// packed "view"
-
-		[FieldOffset(0)]
-		private readonly Guid m_packed;
-
-		// xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 
 		/// <summary>Returns the 16 upper bits <c>xxxx....-....-....-....-............</c></summary>
 		public ushort Upper16 => (ushort) (m_timeLow >> 16);
@@ -156,52 +154,91 @@ namespace System
 
 		/// <summary>Constructs a <see cref="Uuid128"/> from a <see cref="Guid"/> value</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Uuid128(Guid guid) : this() => m_packed = guid;
+		[SkipLocalsInit]
+		public Uuid128(Guid guid)
+		{
+			m_packed = guid;
+		}
 
 		/// <summary>Constructs a <see cref="Uuid128"/> from a string literal</summary>
-		public Uuid128(string value) : this(new Guid(value)) { }
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[SkipLocalsInit]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Prefer using Uuid128.Parse() or Uuid128.TryParse()")]
+		public Uuid128(string value)
+		{
+			m_packed = new Guid(value);
+		}
 
 		/// <summary>Constructs a <see cref="Uuid128"/> from a <see cref="Slice"/></summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Uuid128(Slice slice) : this() => m_packed = Convert(slice.Span);
+		[SkipLocalsInit]
+		[Obsolete("Prefer using Uuid128.Read() or Uuid128.TryRead()")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public Uuid128(Slice slice)
+		{
+			m_packed = ReadGuidExact(slice.Span);
+		}
 
 		/// <summary>Constructs a <see cref="Uuid128"/> from a byte array</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Uuid128(byte[] bytes) : this() => m_packed = Convert(bytes.AsSpan());
+		[SkipLocalsInit]
+		[Obsolete("Prefer using Uuid128.Read() or Uuid128.TryRead()")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public Uuid128(byte[] bytes)
+		{
+			m_packed = ReadGuidExact(bytes.AsSpan());
+		}
 
 		/// <summary>Constructs a <see cref="Uuid128"/> from a span of bytes</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Uuid128(ReadOnlySpan<byte> bytes) : this() => m_packed = Convert(bytes);
+		[SkipLocalsInit]
+		[Obsolete("Prefer using Uuid128.Read() or Uuid128.TryRead()")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public Uuid128(ReadOnlySpan<byte> bytes)
+		{
+			m_packed = ReadGuidExact(bytes);
+		}
 
 		/// <summary>Constructs a <see cref="Uuid128"/> from its constituent parts</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[SkipLocalsInit]
 		public Uuid128(int a, short b, short c, byte[] d)
-			: this(new Guid(a, b, c, d))
-		{ }
+		{
+			m_packed = new Guid(a, b, c, d);
+		}
 
 		/// <summary>Constructs a <see cref="Uuid128"/> from its constituent parts</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[SkipLocalsInit]
 		public Uuid128(int a, short b, short c, byte d, byte e, byte f, byte g, byte h, byte i, byte j, byte k)
-			: this(new Guid(a, b, c, d, e, f, g, h, i, j, k))
-		{ }
+		{
+			m_packed = new Guid(a, b, c, d, e, f, g, h, i, j, k);
+		}
 
 		/// <summary>Constructs a <see cref="Uuid128"/> from its constituent parts</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[SkipLocalsInit]
 		public Uuid128(uint a, ushort b, ushort c, byte d, byte e, byte f, byte g, byte h, byte i, byte j, byte k)
-			: this(new Guid(a, b, c, d, e, f, g, h, i, j, k))
-		{ }
+		{
+			m_packed = new Guid(a, b, c, d, e, f, g, h, i, j, k);
+		}
 
 		/// <summary>Constructs a <see cref="Uuid128"/> from its constituent parts</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Uuid128(Uuid64 a, Uuid64 b) : this() => m_packed = Convert(a, b);
+		[SkipLocalsInit]
+		public Uuid128(Uuid64 a, Uuid64 b)
+		{
+			m_packed = Convert(a, b);
+		}
 
 		/// <summary>Constructs a <see cref="Uuid128"/> from its constituent parts</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Uuid128(Uuid64 a, uint b, uint c) : this() => m_packed = Convert(a, b, c);
-
-		/// <summary>Constructs a <see cref="Uuid128"/> from its constituent parts</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Uuid128(ulong a, ulong b) : this() => m_packed = Convert(a, b);
+		[SkipLocalsInit]
+		public Uuid128(ulong a, ulong b)
+		{
+			m_packed = Convert(a, b);
+		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static explicit operator Guid(Uuid128 uuid) => uuid.m_packed;
@@ -265,84 +302,62 @@ namespace System
 		public const int SizeOf = 16;
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		private static Exception FailInvalidFormat() => ThrowHelper.FormatException($"Invalid {nameof(Uuid128)} format");
-
+		private static FormatException FailInvalidFormat() => ThrowHelper.FormatException($"Invalid {nameof(Uuid128)} format");
 
 		/// <summary>Generate a new random 128-bit UUID.</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid128 NewUuid()
 		{
-			return new Uuid128(Guid.NewGuid());
+			return new(Guid.NewGuid());
 		}
 
-		public static Guid Convert(Slice input)
-		{
-			if (input.Count == 0) return default;
-			if (input.Count != 16) throw ThrowHelper.ArgumentException(nameof(input), "Slice for UUID must be exactly 16 bytes long");
-			return Read(input.Span);
-		}
+		/// <summary>Returns a <see cref="Guid"/> created from the contents of a <see cref="Slice"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("Use either Read() or ReadExact() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		internal static Guid Convert(Slice source) => ReadGuid(source.Span);
 
-		public static Guid Convert(ReadOnlySpan<byte> input)
-		{
-			if (input.Length == 0) return default;
-			if (input.Length != 16) throw new ArgumentException("Slice for UUID must be exactly 16 bytes long");
-			return Read(input);
-		}
+		/// <summary>Returns a <see cref="Guid"/> created from the contents of a span of bytes</summary>
+		[Pure]
+		[Obsolete("Use either Read() or ReadExact() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public static Guid Convert(ReadOnlySpan<byte> source)
+			=> source.Length == 0 ? Guid.Empty
+			 : source.Length >= 16 ? ReadUnsafe(source)
+			 : throw ErrorSourceBufferTooSmall();
 
 		/// <summary>Returns a <see cref="Guid"/> created from two smaller <see cref="Uuid64"/></summary>
-		public static Guid Convert(Uuid64 a, Uuid64 b)
+		internal static Guid Convert(Uuid64 a, Uuid64 b)
 		{
 			unsafe
 			{
 				Span<byte> buf = stackalloc byte[SizeOf];
 				BinaryPrimitives.WriteUInt64BigEndian(buf, a.ToUInt64());
 				BinaryPrimitives.WriteUInt64BigEndian(buf[8..], b.ToUInt64());
-				return Read(buf);
+				return ReadUnsafe(buf);
 			}
 		}
 
 		/// <summary>Returns a <see cref="Guid"/> created from two smaller 64-bit integers</summary>
-		public static Guid Convert(ulong a, ulong b)
+		internal static Guid Convert(ulong a, ulong b)
 		{
 			unsafe
 			{
 				Span<byte> buf = stackalloc byte[SizeOf];
 				BinaryPrimitives.WriteUInt64BigEndian(buf, a);
 				BinaryPrimitives.WriteUInt64BigEndian(buf[8..], b);
-				return Read(buf);
-			}
-		}
-
-		/// <summary>Returns a <see cref="Guid"/> created from an <see cref="Uuid64"/> and two 32-bit integers</summary>
-		public static Guid Convert(Uuid64 a, uint b, uint c)
-		{
-			unsafe
-			{
-				Span<byte> buf = stackalloc byte[16];
-				a.WriteToUnsafe(buf);
-
-				buf[8] = (byte) b;
-				buf[9] = (byte)(b >> 8);
-				buf[10] = (byte)(b >> 16);
-				buf[11] = (byte)(b >> 24);
-
-				buf[12] = (byte) c;
-				buf[13] = (byte)(c >> 8);
-				buf[14] = (byte)(c >> 16);
-				buf[15] = (byte)(c >> 24);
-
-				return Read(buf);
+				return ReadUnsafe(buf);
 			}
 		}
 
 #if NET8_0_OR_GREATER
 
 		/// <summary>Returns a <see cref="Guid"/> created from an <see cref="Uuid128"/></summary>
-		public static Guid Convert(UInt128 a)
+		internal static Guid Convert(UInt128 a)
 		{
 			Span<byte> tmp = stackalloc byte[16];
 			BinaryPrimitives.WriteUInt128BigEndian(tmp, a);
-			return Convert(tmp);
+			return ReadUnsafe(tmp);
 		}
 
 #endif
@@ -689,35 +704,113 @@ namespace System
 
 		#region Unsafe I/O...
 
-		/// <summary>Reads a 128-bit <see cref="Guid"/> from a byte buffer, if it is large enough.</summary>
+		/// <summary>Reads a <see cref="Uuid128"/> from a byte buffer, if it is large enough.</summary>
 		/// <param name="source">Source buffer, that should have at least 16 bytes.</param>
 		/// <param name="result">Value stored in the buffer</param>
 		/// <returns><c>true</c> if the buffer was large enough; otherwise, <c>false</c></returns>
 		[Pure]
-		public static bool TryRead(ReadOnlySpan<byte> source, out Guid result)
+		public static bool TryRead(ReadOnlySpan<byte> source, out Uuid128 result)
 		{
-			if (source.Length < 16)
+			switch (source.Length)
 			{
-				result = Guid.Empty;
+				case 0:
+				{
+					result = Empty;
+					return true;
+				}
+				case >= SizeOf:
+				{
+					result = Read(source);
+					return true;
+				}
+				default:
+				{
+					result = Empty;
+					return false;
+				}
+			}
+		}
+
+		/// <summary>Reads a <see cref="Uuid128"/> from a byte buffer that must contain exactly 16 bytes.</summary>
+		/// <param name="source">Source buffer of length 16.</param>
+		/// <param name="result">Value stored in the buffer</param>
+		/// <returns><c>true</c> if the buffer has a length of 16; otherwise, <c>false</c></returns>
+		[Pure]
+		public static bool TryReadExact(ReadOnlySpan<byte> source, out Uuid128 result)
+		{
+			if (source.Length != 16)
+			{
+				result = default;
 				return false;
 			}
-			result = Read(source);
+			result = new(ReadUnsafe(source));
 			return true;
 		}
 
 		// ReSharper disable once NotResolvedInText
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		private static ArgumentException ErrorInputBufferTooSmall() => new("The source buffer is too small", "source");
+		private static ArgumentException ErrorSourceBufferTooSmall() => new("The source buffer must be at least 16 bytes long", "source");
+
+		// ReSharper disable once NotResolvedInText
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		private static ArgumentException ErrorSourceBufferInvalidSize() => new("The source buffer must be have a length of 16 bytes", "source");
+
+		/// <summary>Reads a 128-bit <see cref="Guid"/> from a byte array.</summary>
+		/// <param name="source">Source buffer, that should either be empty, or hold at least 16 bytes.</param>
+		/// <returns>Value stored in the buffer</returns>
+		/// <exception cref="ArgumentException"> if the buffer is too small.</exception>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Uuid128 Read(byte[]? source) => Read(new ReadOnlySpan<byte>(source));
 
 		/// <summary>Reads a 128-bit <see cref="Guid"/> from a byte buffer.</summary>
-		/// <param name="source">Source buffer, that should have at least 16 bytes.</param>
+		/// <param name="source">Source buffer, that should either be empty, or hold at least 16 bytes.</param>
+		/// <returns>Value stored in the buffer</returns>
+		/// <exception cref="ArgumentException"> if the buffer is too small.</exception>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Uuid128 Read(Slice source) => Read(source.Span);
+
+		/// <summary>Reads a <see cref="Uuid128"/> from a byte buffer.</summary>
+		/// <param name="source">Source buffer, that should either be empty, or hold at least 16 bytes.</param>
 		/// <returns>Value stored in the buffer</returns>
 		/// <exception cref="ArgumentException"> if the buffer is too small.</exception>
 		[Pure]
-		public static unsafe Guid Read(ReadOnlySpan<byte> source)
+		public static Uuid128 Read(ReadOnlySpan<byte> source)
 		{
-			if (source.Length < 16) throw ErrorInputBufferTooSmall();
+			return source.Length == 0 ? Empty
+				 : source.Length >= 16 ? new(ReadUnsafe(source))
+				 : throw ErrorSourceBufferTooSmall();
+		}
 
+		/// <summary>Reads a <see cref="Uuid128"/> from a byte buffer that must contain exactly 16 bytes.</summary>
+		/// <param name="source">Source buffer of length 16.</param>
+		/// <returns>Value stored in the buffer</returns>
+		/// <exception cref="ArgumentException"> if the buffer does not have a length of 16 bytes.</exception>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Uuid128 ReadExact(ReadOnlySpan<byte> source)
+			=> source.Length == 16 ? new(ReadUnsafe(source)) : throw ErrorSourceBufferInvalidSize();
+
+		/// <summary>Reads a 128-bit <see cref="Guid"/> from a byte buffer.</summary>
+		/// <param name="source">Source buffer, that should either be empty, or hold at least 16 bytes.</param>
+		/// <returns>Value stored in the buffer</returns>
+		/// <exception cref="ArgumentException"> if the buffer is too small.</exception>
+		[Pure]
+		public static Guid ReadGuid(ReadOnlySpan<byte> source)
+		{
+			return source.Length == 0 ? Guid.Empty
+				: source.Length >= 16 ? ReadUnsafe(source)
+				: throw ErrorSourceBufferTooSmall();
+		}
+
+		/// <summary>Reads a 128-bit <see cref="Guid"/> from a byte buffer that must contain exactly 16 bytes.</summary>
+		/// <param name="source">Source buffer of length 16.</param>
+		/// <returns>Value stored in the buffer</returns>
+		/// <exception cref="ArgumentException"> if the buffer does not have a length of 16 bytes.</exception>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Guid ReadGuidExact(ReadOnlySpan<byte> source)
+			=> source.Length == 16 ? ReadUnsafe(source) : throw ErrorSourceBufferInvalidSize();
+
+		internal static unsafe Guid ReadUnsafe(ReadOnlySpan<byte> source)
+		{
 			Guid tmp;
 			fixed (byte* src = &MemoryMarshal.GetReference(source))
 			{
@@ -930,106 +1023,103 @@ namespace System
 		/// <summary>Creates a <see cref="Uuid128"/> from the upper 96-bit and lower 32-bit parts</summary>
 		/// <param name="hi">96 upper bits  (<c>xxxxxxxx-xxxx-xxxx-xxxx-xxxx........</c>)</param>
 		/// <param name="low">32 lower bits (<c>........-....-....-....-....xxxxxxxx</c>)</param>
+		[Pure]
 		public static Uuid128 FromUpper96Lower32(Uuid96 hi, uint low)
 		{
 			Span<byte> buf = stackalloc byte[SizeOf];
 			hi.WriteToUnsafe(buf);
 			BinaryPrimitives.WriteUInt32BigEndian(buf[12..], low);
-			return new Uuid128(Read(buf));
+			return Read(buf);
 		}
 
 		/// <summary>Creates a <see cref="Uuid128"/> from the upper 80-bit and lower 48-bit parts</summary>
 		/// <param name="hi">80 upper bits  (<c>xxxxxxxx-xxxx-xxxx-xxxx-............</c>)</param>
 		/// <param name="low">48 lower bits (<c>........-....-....-....-xxxxxxxxxxxx</c>)</param>
+		[Pure]
 		public static Uuid128 FromUpper80Lower48(Uuid80 hi, Uuid48 low)
 		{
 			Span<byte> buf = stackalloc byte[SizeOf];
 			hi.WriteToUnsafe(buf);
 			low.WriteToUnsafe(buf[10..]);
-			return new Uuid128(Read(buf));
+			return Read(buf);
 		}
 
 		/// <summary>Creates a <see cref="Uuid128"/> from the upper 64-bit and lower 64-bit parts</summary>
 		/// <param name="hi">64 upper bits  (<c>xxxxxxxx-xxxx-xxxx-....-............</c>)</param>
 		/// <param name="low">64 lower bits (<c>........-....-....-xxxx-xxxxxxxxxxxx</c>)</param>
-		public static Uuid128 FromUpper64Lower64(ulong hi, ulong low)
-		{
-			Span<byte> buf = stackalloc byte[SizeOf];
-			BinaryPrimitives.WriteUInt64BigEndian(buf, hi);
-			BinaryPrimitives.WriteUInt64BigEndian(buf[8..], low);
-			return new Uuid128(Read(buf));
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Uuid128 FromUpper64Lower64(ulong hi, ulong low) => new(hi, low);
 
 		/// <summary>Creates a <see cref="Uuid128"/> from the upper 64-bit and lower 64-bit parts</summary>
 		/// <param name="hi">64 upper bits  (<c>xxxxxxxx-xxxx-xxxx-....-............</c>)</param>
 		/// <param name="low">64 lower bits (<c>........-....-....-xxxx-xxxxxxxxxxxx</c>)</param>
-		public static Uuid128 FromUpper64Lower64(Uuid64 hi, Uuid64 low)
-		{
-			Span<byte> buf = stackalloc byte[SizeOf];
-			BinaryPrimitives.WriteUInt64BigEndian(buf, hi.ToUInt64());
-			BinaryPrimitives.WriteUInt64BigEndian(buf[8..], low.ToUInt64());
-			return new Uuid128(Read(buf));
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Uuid128 FromUpper64Lower64(Uuid64 hi, Uuid64 low) => new(hi, low);
 
 		/// <summary>Creates a <see cref="Uuid128"/> from the upper 48-bit and lower 80-bit parts</summary>
 		/// <param name="hi">48 upper bits  (<c>xxxxxxxx-xxxx-....-....-............</c>)</param>
 		/// <param name="low">80 lower bits (<c>........-....-xxxx-xxxx-xxxxxxxxxxxx</c>)</param>
+		[Pure]
 		public static Uuid128 FromUpper48Lower80(Uuid48 hi, Uuid80 low)
 		{
 			Span<byte> buf = stackalloc byte[SizeOf];
 			hi.WriteToUnsafe(buf);
 			low.WriteToUnsafe(buf[6..]);
-			return new Uuid128(Read(buf));
+			return Read(buf);
 		}
 
 		/// <summary>Creates a <see cref="Uuid128"/> from the upper 32-bit and lower 96-bit parts</summary>
 		/// <param name="hi">32 upper bits  (<c>xxxxxxxx-....-....-....-............</c>)</param>
 		/// <param name="low">96 lower bits (<c>........-xxxx-xxxx-xxxx-xxxxxxxxxxxx</c>)</param>
+		[Pure]
 		public static Uuid128 FromUpper32Lower96(uint hi, Uuid96 low)
 		{
 			Span<byte> buf = stackalloc byte[SizeOf];
 			BinaryPrimitives.WriteUInt32BigEndian(buf, hi);
 			low.WriteToUnsafe(buf[4..]);
-			return new Uuid128(Read(buf));
+			return Read(buf);
 		}
 
 		/// <summary>Creates a <see cref="Uuid128"/> from the upper 32-bit, middle 32-bit and lower 64-bit parts</summary>
 		/// <param name="hi">32 upper bits (<c>xxxxxxxx-....-....-....-............</c>)</param>
 		/// <param name="middle">32 middle bits (<c>........-xxxx-xxxx-....-............</c>)</param>
 		/// <param name="low">64 lower bits (<c>........-....-....-xxxx-xxxxxxxxxxxx</c>)</param>
+		[Pure]
 		public static Uuid128 FromUpper32Middle32Lower64(uint hi, uint middle, ulong low)
 		{
 			Span<byte> buf = stackalloc byte[SizeOf];
 			BinaryPrimitives.WriteUInt32BigEndian(buf, hi);
 			BinaryPrimitives.WriteUInt32BigEndian(buf[4..], middle);
 			BinaryPrimitives.WriteUInt64BigEndian(buf[8..], low);
-			return new Uuid128(Read(buf));
+			return Read(buf);
 		}
 
 		/// <summary>Creates a <see cref="Uuid128"/> from the upper 32-bit, middle 64-bit and lower 32-bit parts</summary>
 		/// <param name="hi">32 upper bits (<c>xxxxxxxx-....-....-....-............</c>)</param>
 		/// <param name="middle">64 middle bits (<c>........-xxxx-xxxx-xxxx-xxxx........</c>)</param>
 		/// <param name="low">32 lower bits (<c>........-....-....-....-....xxxxxxxx</c>)</param>
+		[Pure]
 		public static Uuid128 FromUpper32Middle64Lower32(uint hi, ulong middle, uint low)
 		{
 			Span<byte> buf = stackalloc byte[SizeOf];
 			BinaryPrimitives.WriteUInt32BigEndian(buf, hi);
 			BinaryPrimitives.WriteUInt64BigEndian(buf[4..], middle);
 			BinaryPrimitives.WriteUInt32BigEndian(buf[12..], low);
-			return new Uuid128(Read(buf));
+			return Read(buf);
 		}
 
 		/// <summary>Creates a <see cref="Uuid128"/> from the upper 64-bit, middle 32-bit and lower 32-bit parts</summary>
 		/// <param name="hi">64 upper bits (<c>xxxxxxxx-xxxx-xxxx-....-............</c>)</param>
 		/// <param name="middle">32 middle bits (<c>........-....-....-xxxx-xxxx........</c>)</param>
 		/// <param name="low">32 lower bits (<c>........-....-....-....-....xxxxxxxx</c>)</param>
+		[Pure]
 		public static Uuid128 FromUpper64Middle32Lower32(ulong hi, uint middle, uint low)
 		{
 			Span<byte> buf = stackalloc byte[SizeOf];
 			BinaryPrimitives.WriteUInt64BigEndian(buf, hi);
 			BinaryPrimitives.WriteUInt32BigEndian(buf[8..], middle);
 			BinaryPrimitives.WriteUInt32BigEndian(buf[12..], low);
-			return new Uuid128(Read(buf));
+			return Read(buf);
 		}
 
 		#endregion
@@ -1231,7 +1321,7 @@ namespace System
 				}
 				UnsafeHelpers.StoreUInt64BE(buf + 8, sum);
 				// deserialize back to GUID
-				return new Uuid128(Read(new ReadOnlySpan<byte>(buf, SizeOf)));
+				return new(ReadUnsafe(new ReadOnlySpan<byte>(buf, SizeOf)));
 			}
 		}
 

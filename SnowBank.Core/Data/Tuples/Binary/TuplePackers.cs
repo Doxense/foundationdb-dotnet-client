@@ -2714,11 +2714,11 @@ namespace SnowBank.Data.Tuples.Binary
 				}
 				case TupleTypes.Bytes:
 				{ // expect binary representation as a 16-byte array
-					return new Uuid128(TupleParser.ParseBytes(slice));
+					return Uuid128.Read(TupleParser.ParseBytes(slice));
 				}
 				case TupleTypes.Utf8:
 				{ // expect text representation
-					return new Uuid128(TupleParser.ParseUnicode(slice));
+					return Uuid128.Parse(TupleParser.ParseUnicode(slice));
 				}
 				case TupleTypes.Uuid128:
 				{
