@@ -32,57 +32,57 @@ namespace SnowBank.Testing
 	public static class TestConstraintsExtensions
 	{
 
-		/// <summary>Permet de capturer l'exception interceptée et de l'exposer a la méthode de test</summary>
-		/// <param name="constraint">Containte de type <c>Throws.InstanceOf</c></param>
-		/// <param name="capture">Boite qui recevra l'exception capturée, après l'execution de l'assertion</param>
+		/// <summary>Captures any exception thrown during the assertion, and exposes it so that it can be inspected by the test method</summary>
+		/// <param name="constraint">Constraint similar to <c>Throws.InstanceOf</c></param>
+		/// <param name="capture">Box that will receive the exception, after this assertion completes</param>
 		public static Constraint Catch(this InstanceOfTypeConstraint constraint, out Pokeball<Exception> capture)
 		{
-			capture = new Pokeball<Exception>();
+			capture = new();
 			var x = new CatchExceptionConstraint<Exception>(capture);
 			constraint.Builder?.Append(x);
 			return x;
 		}
 
-		/// <summary>Permet de capturer l'exception interceptée et de l'exposer a la méthode de test</summary>
-		/// <param name="constraint">Containte de type <c>Throws.InstanceOf</c></param>
-		/// <param name="capture">Boite qui recevra l'exception capturée, après l'execution de l'assertion</param>
+		/// <summary>Captures any exception thrown during the assertion, and exposes it so that it can be inspected by the test method</summary>
+		/// <param name="constraint">Constraint similar to <c>Throws.InstanceOf</c></param>
+		/// <param name="capture">Box that will receive the exception, after this assertion completes</param>
 		public static Constraint Catch<TException>(this InstanceOfTypeConstraint constraint, out Pokeball<TException> capture)
 			where TException : Exception
 		{
-			capture = new Pokeball<TException>();
+			capture = new();
 			var x = new CatchExceptionConstraint<TException>(capture);
 			constraint.Builder?.Append(x);
 			return x;
 		}
 
-		/// <summary>Permet de capturer l'exception interceptée et de l'exposer a la méthode de test</summary>
-		/// <param name="expr">Containte de type <c>Throws.Exception</c></param>
-		/// <param name="capture">Boite qui recevra l'exception capturée, après l'execution de l'assertion</param>
+		/// <summary>Captures any exception thrown during the assertion, and exposes it so that it can be inspected by the test method</summary>
+		/// <param name="expr">Constraint expression similar to <c>Throws.InstanceOf</c></param>
+		/// <param name="capture">Box that will receive the exception, after this assertion completes</param>
 		public static ResolvableConstraintExpression Catch(this ResolvableConstraintExpression expr, out Pokeball<Exception> capture)
 		{
-			capture = new Pokeball<Exception>();
+			capture = new();
 			expr.Append(new CatchExceptionConstraint<Exception>(capture));
 			return expr;
 		}
 
-		/// <summary>Permet de capturer l'exception interceptée et de l'exposer a la méthode de test</summary>
-		/// <param name="expr">Containte de type <c>Throws.Exception</c></param>
-		/// <param name="capture">Boite qui recevra l'exception capturée, après l'execution de l'assertion</param>
+		/// <summary>Captures any exception thrown during the assertion, and exposes it so that it can be inspected by the test method</summary>
+		/// <param name="expr">Constraint expression similar to <c>Throws.InstanceOf</c></param>
+		/// <param name="capture">Box that will receive the exception, after this assertion completes</param>
 		public static ResolvableConstraintExpression Catch<TException>(this ResolvableConstraintExpression expr, out Pokeball<TException> capture)
 			where TException : Exception
 		{
-			capture = new Pokeball<TException>();
+			capture = new();
 			expr.Append(new CatchExceptionConstraint<TException>(capture));
 			return expr;
 		}
 
-		/// <summary>Continue an assertion using the result of a capture <see langword="out"/> argument of a method call, instead of the original actual value</summary>
+		/// <summary>Continues an assertion using the result of a capture <see langword="out"/> argument of a method call, instead of the original actual value</summary>
 		/// <remarks>This is equivalent to a logical <c>AND</c> but with both sides testing a different value.</remarks>
 		/// <example>
 		/// Assert.That(dict.TryGetValue("hello", out var value), Is.True.WithOutput(value).EqualTo("world"));
 		/// Assert.That(dict.TryGetValue("not_found", out var value), Is.False.WithOutput(value).Default);
 		/// </example>
-		public static ConstraintExpression WithOutput(this Constraint self, object? actual, [CallerArgumentExpression(nameof(actual))] string literal = "")
+		public static ConstraintExpression WithOutput<T>(this Constraint self, T? actual, [CallerArgumentExpression(nameof(actual))] string literal = "")
 		{
 			var builder = self.Builder;
 			if (builder == null)
@@ -90,7 +90,7 @@ namespace SnowBank.Testing
 				builder = new ConstraintBuilder();
 				builder.Append(self);
 			}
-			builder.Append(new WithOutputOperator(actual, literal));
+			builder.Append(new WithOutputOperator<T>(actual, literal));
 			return new ConstraintExpression(builder);
 		}
 

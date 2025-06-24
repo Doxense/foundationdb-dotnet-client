@@ -29,10 +29,18 @@ namespace SnowBank.Testing
 	using NUnit.Framework.Constraints;
 	using NUnit.Framework.Internal;
 
-	internal class WithOutputConstraint : Constraint
+	/// <summary>Assertion Constraint that captures an external variable and re-injects it as the Actual value for the following constraints</summary>
+	/// <typeparam name="TValue">Type of the injected value</typeparam>
+	/// <example><code>
+	/// // asserts that the method returns true, and that result is set to 123
+	/// Assert.That(int.TryParse("123", out int result), Is.True.WithOutput(result).EqualTo(123));
+	/// // asserts that the method returns false, and that result is set to the expected value
+	/// Assert.That(dict.TryGetValue("hello", out var value), Is.True.WithOutput(value).EqualTo("world"));
+	/// </code></example>
+	internal sealed class WithOutputConstraint<TValue> : Constraint
 	{
 
-		public object? Actual { get; }
+		public TValue? Actual { get; }
 
 		public string Literal { get; }
 
@@ -40,7 +48,7 @@ namespace SnowBank.Testing
 
 		public IConstraint Right { get; }
 
-		public WithOutputConstraint(object? actual, string literal, IConstraint left, IConstraint right)
+		public WithOutputConstraint(TValue? actual, string literal, IConstraint left, IConstraint right)
 		{
 			Contract.NotNull(left);
 			Contract.NotNull(right);
@@ -96,75 +104,76 @@ namespace SnowBank.Testing
 			return new WithOutputConstraintResult(this, actual, this.Actual, leftResult, rightResult);
 		}
 
+		private class WithOutputConstraintResult : ConstraintResult
+		{
+
+			private ConstraintResult LeftResult { get; }
+
+			private ConstraintResult RightResult { get; }
+
+			public WithOutputConstraintResult(
+				WithOutputConstraint<TValue> constraint,
+				object? leftActual,
+				object? rightActual,
+				ConstraintResult leftResult,
+				ConstraintResult rightResult
+			) : base(constraint, leftResult.IsSuccess ? rightActual : leftActual, leftResult.IsSuccess && rightResult.IsSuccess)
+			{
+				this.LeftResult = leftResult;
+				this.RightResult = rightResult;
+			}
+
+			/// <summary>
+			/// Write the actual value for a failing constraint test to a
+			/// MessageWriter. The default implementation simply writes
+			/// the raw value of actual, leaving it to the writer to
+			/// perform any formatting.
+			/// </summary>
+			/// <param name="writer">The writer on which the actual value is displayed</param>
+			public override void WriteActualValueTo(MessageWriter writer)
+			{
+				if (this.IsSuccess)
+				{
+					base.WriteActualValueTo(writer);
+				}
+				else if (!this.LeftResult.IsSuccess)
+				{
+					this.LeftResult.WriteActualValueTo(writer);
+				}
+				else
+				{
+					this.RightResult.WriteActualValueTo(writer);
+				}
+			}
+
+			public override void WriteAdditionalLinesTo(MessageWriter writer)
+			{
+				if (this.IsSuccess)
+				{
+					base.WriteAdditionalLinesTo(writer);
+				}
+				else if (!this.LeftResult.IsSuccess)
+				{
+					this.LeftResult.WriteAdditionalLinesTo(writer);
+				}
+				else
+				{
+					this.RightResult.WriteAdditionalLinesTo(writer);
+				}
+			}
+
+		}
+
 	}
 
-	internal class WithOutputConstraintResult : ConstraintResult
-	{
-		private ConstraintResult LeftResult { get; }
-		private ConstraintResult RightResult { get; }
-
-
-		public WithOutputConstraintResult(
-			WithOutputConstraint constraint,
-			object? leftActual,
-			object? rightActual,
-			ConstraintResult leftResult,
-			ConstraintResult rightResult)
-			: base(constraint, leftResult.IsSuccess ? rightActual : leftActual, leftResult.IsSuccess && rightResult.IsSuccess)
-		{
-			this.LeftResult = leftResult;
-			this.RightResult = rightResult;
-		}
-
-		/// <summary>
-		/// Write the actual value for a failing constraint test to a
-		/// MessageWriter. The default implementation simply writes
-		/// the raw value of actual, leaving it to the writer to
-		/// perform any formatting.
-		/// </summary>
-		/// <param name="writer">The writer on which the actual value is displayed</param>
-		public override void WriteActualValueTo(MessageWriter writer)
-		{
-			if (this.IsSuccess)
-			{
-				base.WriteActualValueTo(writer);
-			}
-			else if (!this.LeftResult.IsSuccess)
-			{
-				this.LeftResult.WriteActualValueTo(writer);
-			}
-			else
-			{
-				this.RightResult.WriteActualValueTo(writer);
-			}
-		}
-
-		public override void WriteAdditionalLinesTo(MessageWriter writer)
-		{
-			if (this.IsSuccess)
-			{
-				base.WriteAdditionalLinesTo(writer);
-			}
-			else if (!this.LeftResult.IsSuccess)
-			{
-				this.LeftResult.WriteAdditionalLinesTo(writer);
-			}
-			else
-			{
-				this.RightResult.WriteAdditionalLinesTo(writer);
-			}
-		}
-
-	}
-
-	internal class WithOutputOperator : BinaryOperator
+	internal sealed class WithOutputOperator<TValue> : BinaryOperator
 	{
 
-		public object? Actual { get; }
+		public TValue? Actual { get; }
 
 		public string Literal { get; }
 
-		public WithOutputOperator(object? actual, string literal)
+		public WithOutputOperator(TValue? actual, string literal)
 		{
 			this.Actual = actual;
 			this.Literal = literal;
@@ -172,7 +181,7 @@ namespace SnowBank.Testing
 
 		public override IConstraint ApplyOperator(IConstraint left, IConstraint right)
 		{
-			return new WithOutputConstraint(this.Actual, this.Literal, left, right);
+			return new WithOutputConstraint<TValue>(this.Actual, this.Literal, left, right);
 		}
 
 	}
