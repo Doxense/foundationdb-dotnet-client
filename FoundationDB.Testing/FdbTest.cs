@@ -26,6 +26,7 @@
 
 namespace FoundationDB.Client.Tests
 {
+	using Docker.DotNet.Models;
 	using DotNet.Testcontainers.Builders;
 	using DotNet.Testcontainers.Configurations;
 	using DotNet.Testcontainers.Containers;
@@ -36,13 +37,9 @@ namespace FoundationDB.Client.Tests
 	public sealed class FdbServerTestContainer : IAsyncDisposable
 	{
 
-		public static FdbServerTestContainer? Global;
+		private IContainer? Container { get; set; }
 
-		public IContainer Container { get; }
-
-		private TaskCompletionSource? ReadyCts { get; set; }
-
-		public Task ReadyTask { get; private set; } = Task.FromException(new InvalidOperationException("Test container not started"));
+		public string Name { get; }
 
 		public string Tag { get; }
 
@@ -56,6 +53,8 @@ namespace FoundationDB.Client.Tests
 
 		public int Port { get; }
 
+		public string PortName { get; }
+
 		public string ConnectionString { get; }
 
 		public FdbServerTestContainer(string name, string tag, int port, string volumeName)
@@ -64,14 +63,32 @@ namespace FoundationDB.Client.Tests
 			Contract.GreaterOrEqual(port, 0);
 			Contract.NotNullOrEmpty(volumeName);
 
+			this.Name = name;
 			this.Description = "docker";
 			this.Id = "docker";
 			this.Port = port;
-			this.Tag = tag!;
+			this.PortName = string.Create(CultureInfo.InvariantCulture, $"{port}/tcp");
+			this.Tag = tag;
 			this.Image = "foundationdb/foundationdb:" + tag;
 			this.VolumeName = volumeName;
 
 			this.ConnectionString = $"{this.Id}:{this.Description}@127.0.0.1:{this.Port}";
+		}
+
+		/// <summary>Start the container</summary>
+		/// <param name="startTimeout">Maximum startup delay allowed</param>
+		/// <param name="ct">Cancellation token for the current test</param>
+		/// <returns>Task that is either immediately completed, completes when the container becomes ready, or fails if the container failed to start.</returns>
+		/// <remarks>Only one thread per process must call this method.</remarks>
+		public async Task StartContainer(TimeSpan startTimeout, CancellationToken ct)
+		{
+			// Start the container.
+			SimpleTest.Log($"Starting FdbServer test container for {this.ConnectionString}...");
+
+			var name = this.Name; // "fdb-test-net10.0"
+			var port = this.Port; // ex: 4530
+			var portLiteral = port.ToString(CultureInfo.InvariantCulture); // ex: "4530"
+			string portBindingName = this.PortName; // ex: "4530/tcp"
 
 			// Create a new instance of a container.
 			var container = new ContainerBuilder()
@@ -81,40 +98,66 @@ namespace FoundationDB.Client.Tests
 				.WithPortBinding(port, port)
 				.WithVolumeMount(this.VolumeName, "/var/fdb/data", AccessMode.ReadWrite)
 				.WithEnvironment("FDB_NETWORKING_MODE", "host")
-				.WithEnvironment("FDB_PORT", port.ToString(CultureInfo.InvariantCulture))
-				.WithEnvironment("FDB_COORDINATOR_PORT", port.ToString(CultureInfo.InvariantCulture))
-				//.WithWaitStrategy(Wait.ForUnixContainer().UntilPortIsAvailable(port))
+				.WithEnvironment("FDB_PORT", portLiteral)
+				.WithEnvironment("FDB_COORDINATOR_PORT", portLiteral)
+				.WithWaitStrategy(Wait.ForUnixContainer().UntilMessageIsLogged("FDBD joined cluster."))
+				.WithCreateParameterModifier(config =>
+				{
+					// this is probably not needed, but just to be safe, force the config to something that is known to work
+					config.HostConfig.CgroupnsMode = "host";
+					config.ExposedPorts = new Dictionary<string, EmptyStruct>()
+					{
+						[portBindingName] = default,
+					};
+					config.HostConfig.PortBindings = new Dictionary<string, IList<PortBinding>>()
+					{
+						// fdb does not use IPv6, force to IPv4 only
+						[portBindingName] = [ new() { HostIP = "127.0.0.1", HostPort = port.ToString(null, CultureInfo.InvariantCulture) }, ],
+					};
+				})
+				.WithStartupCallback((c, _) =>
+				{
+					switch (c.State)
+					{
+						case TestcontainersStates.Running:
+						{
+							SimpleTest.Log($"Docker container '{c.Name}' ({c.Id}) using image {c.Image.FullName} is {c.State} on port {c.Hostname}:{port}");
+							break;
+						}
+						default:
+						{
+							SimpleTest.LogError($"Docker container '{c.Name}' ({c.Id}) using image {c.Image.FullName} is {c.State} ({c.Health})");
+							break;
+						}
+					}
+					return Task.CompletedTask;
+				})
 				.Build();
 
 			this.Container = container;
+
+			using (var cts = CancellationTokenSource.CreateLinkedTokenSource(ct))
+			{
+				cts.CancelAfter(startTimeout);
+				try
+				{
+					await container.StartAsync(cts.Token).ConfigureAwait(false);
+				}
+				catch (Exception e)
+				{
+					SimpleTest.LogError($"FdbServer test container '{this.Container.Name}' failed to start", e);
+					throw;
+				}
+			}
+
+			SimpleTest.Log($"FdbServer test container '{this.Container.Name}' ready");
 		}
 
-		public async Task StartContainer(CancellationToken ct)
+		public ValueTask DisposeAsync()
 		{
-			var cts = new TaskCompletionSource();
-			this.ReadyCts = cts;
-			this.ReadyTask = cts.Task;
-
-			// Start the container.
-			try
-			{
-				SimpleTest.Log($"Starting FdbServer test container for {this.ConnectionString}...");
-				await this.Container.StartAsync(ct).ConfigureAwait(false);
-				SimpleTest.Log($"FdbServer test container '{this.Container.Name}' ready");
-				cts.TrySetResult();
-			}
-			catch (Exception e)
-			{
-				cts.TrySetException(e);
-				throw;
-			}
-		}
-
-		public async ValueTask DisposeAsync()
-		{
-			this.ReadyCts?.TrySetCanceled();
-			this.ReadyTask = Task.FromException(new ObjectDisposedException(this.GetType().Name));
-			await this.Container.DisposeAsync();
+			var container = this.Container;
+			this.Container = null;
+			return container?.DisposeAsync() ?? default;
 		}
 
 	}
@@ -129,6 +172,24 @@ namespace FoundationDB.Client.Tests
 		internal const string DockerImageTag73 = "7.3.54";
 
 		protected int OverrideApiVersion;
+
+		#region Singleton Management...
+
+		/// <summary>Container instance for this process</summary>
+		/// <remarks>The first thread will create the instance. The other threads will synchronize with it.</remarks>
+		private static FdbServerTestContainer? ServerContainer;
+
+		/// <summary>Signal used to synchronize all the threads</summary>
+		private static readonly TaskCompletionSource ServerReadySignal = new();
+
+		/// <summary>Lock used to ensure only one thread starts the container</summary>
+#if NET9_0_OR_GREATER
+		private static readonly System.Threading.Lock Lock = new();
+#else
+		private static readonly object Lock = new();
+#endif
+
+		#endregion
 
 		protected virtual Task OnBeforeAllTests() => Task.CompletedTask;
 
@@ -145,9 +206,10 @@ namespace FoundationDB.Client.Tests
 			// => for now, we only need to switch on different versions of dotnet, so we use the major version to build a port number
 
 			int port = 4520 + Environment.Version.Major;
-			// - net6.0 -> 4526
-			// - net8.0 -> 4528
-			// - net9.0 -> 4529
+			// - net6.0  -> 4526
+			// - net8.0  -> 4528
+			// - net9.0  -> 4529
+			// - net10.0 -> 4530
 
 			var name = "fdb-test-" + target;
 			var volumeName = "fdb-test-" + target;
@@ -155,47 +217,69 @@ namespace FoundationDB.Client.Tests
 			var tag = Environment.GetEnvironmentVariable("FDB_TEST_DOCKER_TAG");
 			if (string.IsNullOrEmpty(tag)) tag = DockerImageTag73;
 
-			this.Server = FdbServerTestContainer.Global;
-			if (this.Server == null)
-			{
-				var container = new FdbServerTestContainer(name, tag, port, volumeName);
+			bool mustStartServer = false;
+			var container = FdbTest.ServerContainer;
 
-				// only allow ~20 seconds for the container to start
-				// => most common failure is when Docker Desktop has not started yet on the local machine!
-				using var timeout = new CancellationTokenSource();
+			if (container is null)
+			{
+				// lock this, in case the RunSettings are ignored, and multiple threads start at the same time
+				lock (Lock)
 				{
-					timeout.CancelAfter(TimeSpan.FromSeconds(20));
-					await container.StartContainer(timeout.Token);
+					container = FdbTest.ServerContainer;
+					if (container == null)
+					{
+						container = new(name, tag, port, volumeName);
+						FdbTest.ServerContainer = container;
+						mustStartServer = true;
+					}
 				}
-
-				this.Server = container;
-				FdbServerTestContainer.Global = container;
 			}
 
-			var probe = FdbClientNativeExtensions.ProbeNativeLibraryPaths();
-			if (probe.Path == null)
-			{
-				Assert.Fail($"Could not located the native client library for platform '{probe.Rid}'. Looked in the following places: {string.Join(", ", probe.ProbedPaths)}");
-				return;
-			}
-			Fdb.Options.NativeLibPath = probe.Path;
+			if (mustStartServer)
+			{ // we won the race, we are responsible for starting the Docker Container and setting up FoundationDB in this process
 
-			// We must ensure that FDB is running before executing the tests
-			// => By default, we always use 
-			if (Fdb.ApiVersion == 0)
-			{
-				int version = OverrideApiVersion;
-				if (version == 0) version = Fdb.GetDefaultApiVersion();
-				if (version > Fdb.GetMaxApiVersion())
+				try
 				{
-					Assume.That(version, Is.LessThanOrEqualTo(Fdb.GetMaxApiVersion()), "Unit tests require that the native fdb client version be at least equal to the current binding version!");
+					// only allow ~20 seconds for the container to start
+					// => most common failure is when Docker Desktop has not started yet on the local machine!
+					await container.StartContainer(TimeSpan.FromSeconds(20), this.Cancellation).ConfigureAwait(false);
+
+					var probe = FdbClientNativeExtensions.ProbeNativeLibraryPaths();
+					if (probe.Path == null)
+					{
+						Assert.Fail($"Could not located the native client library for platform '{probe.Rid}'. Looked in the following places: {string.Join(", ", probe.ProbedPaths)}");
+						return;
+					}
+
+					Fdb.Options.NativeLibPath = probe.Path;
+
+					// We must ensure that FDB is running before executing the tests
+					// => By default, we always use 
+					if (Fdb.ApiVersion == 0)
+					{
+						int version = OverrideApiVersion;
+						if (version == 0) version = Fdb.GetDefaultApiVersion();
+						if (version > Fdb.GetMaxApiVersion())
+						{
+							Assume.That(version, Is.LessThanOrEqualTo(Fdb.GetMaxApiVersion()), "Unit tests require that the native fdb client version be at least equal to the current binding version!");
+						}
+
+						Fdb.Start(version);
+					}
+					else if (OverrideApiVersion != 0 && OverrideApiVersion != Fdb.ApiVersion)
+					{
+						//note: cannot change API version on the fly! :(
+						Assume.That(Fdb.ApiVersion, Is.EqualTo(OverrideApiVersion), "The API version selected is not what this test is expecting!");
+					}
+
+					Log("FDB Test Server is ready!");
+					FdbTest.ServerReadySignal.TrySetResult();
 				}
-				Fdb.Start(version);
-			}
-			else if (OverrideApiVersion != 0 && OverrideApiVersion != Fdb.ApiVersion)
-			{
-				//note: cannot change API version on the fly! :(
-				Assume.That(Fdb.ApiVersion, Is.EqualTo(OverrideApiVersion), "The API version selected is not what this test is expecting!");
+				catch (Exception e)
+				{
+					LogError("FDB Test Server failed to start!", e);
+					FdbTest.ServerReadySignal.TrySetException(e);
+				}
 			}
 
 			// call the hook if defined on the derived test class
@@ -211,11 +295,9 @@ namespace FoundationDB.Client.Tests
 
 		protected virtual Task OnAfterAllTests() => Task.CompletedTask;
 
-		private FdbServerTestContainer? Server { get; set; }
-
 		protected FdbServerTestContainer GetLocalServer()
 		{
-			var server = this.Server;
+			var server = FdbTest.ServerContainer;
 			Assume.That(server, Is.Not.Null, "Local test server container was not started!?");
 			return server!;
 		}
@@ -231,10 +313,9 @@ namespace FoundationDB.Client.Tests
 		{
 			this.Cancellation.ThrowIfCancellationRequested();
 
-			var server = FdbServerTestContainer.Global!;
-			await server.ReadyTask.WaitAsync(this.Cancellation);
+			await FdbTest.ServerReadySignal.Task.WaitAsync(TimeSpan.FromSeconds(20), this.Cancellation);
 
-			return server;
+			return FdbTest.ServerContainer ?? throw new InvalidOperationException("FDB Test Server was not started properly?");
 		}
 
 		/// <summary>Connect to the local test database</summary>
@@ -273,11 +354,11 @@ namespace FoundationDB.Client.Tests
 
 			var path = FdbPath.Root[FdbPathSegment.Partition("Tests")][testSuite][testMethod, "test"];
 
-			await FdbServerTestContainer.Global!.ReadyTask;
+			var container = await WaitForTestServerToBecomeReady().ConfigureAwait(false);
 
 			var options = new FdbConnectionOptions
 			{
-				ConnectionString = FdbServerTestContainer.Global.ConnectionString,
+				ConnectionString = container.ConnectionString,
 				Root = path,
 				DefaultTimeout = TimeSpan.FromSeconds(15),
 			};
@@ -537,8 +618,8 @@ namespace FoundationDB.Client.Tests
 		protected void ConfigureCommonServices(Action<IServiceCollection>? configure = null)
 		{
 			Assume.That(this.SharedServices, Is.Null, "Common services can only be configured once per test class!");
-			var server = this.Server!;
-			Assume.That(server, Is.Not.Null);
+			var server = FdbTest.ServerContainer!;
+			Assume.That(server, Is.Not.Null, "FDB Test Server was not started properly");
 
 			var services = new ServiceCollection();
 			services.AddOptions().AddLogging();
@@ -556,8 +637,8 @@ namespace FoundationDB.Client.Tests
 		protected IServiceProvider ConfigureServices(Action<IServiceCollection>? configure = null)
 		{
 			Assume.That(this.LocalServices, Is.Null, "Local services can only be configured once per test method!");
-			var server = this.Server!;
-			Assume.That(server, Is.Not.Null);
+			var server = FdbTest.ServerContainer!;
+			Assume.That(server, Is.Not.Null, "FDB Test Server was not started properly");
 
 			var services = new ServiceCollection();
 			if (this.SharedServices is null)
