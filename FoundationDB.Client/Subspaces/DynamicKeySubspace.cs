@@ -1274,6 +1274,28 @@ namespace FoundationDB.Client
 			(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey, int? expectedSize = null)
 			=> self.KeyEncoder.DecodeKeyLast<T1, T2, T3>(self.ExtractKey(packedKey), expectedSize);
 
+		/// <summary>Decode a key of this subspace, and return only the last three elements without decoding the rest.</summary>
+		/// <remarks>This method is faster than unpacking the complete key and reading only the last elements.</remarks>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static (T1?, T2?, T3?, T4?) DecodeLast<
+				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4>
+			(this IDynamicKeySubspace self, Slice packedKey, int? expectedSize = null)
+			=> self.KeyEncoder.DecodeKeyLast<T1, T2, T3, T4>(self.ExtractKey(packedKey), expectedSize);
+
+		/// <summary>Decode a key of this subspace, and return only the last three elements without decoding the rest.</summary>
+		/// <remarks>This method is faster than unpacking the complete key and reading only the last elements.</remarks>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static (T1?, T2?, T3?, T4?) DecodeLast<
+				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4>
+			(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey, int? expectedSize = null)
+			=> self.KeyEncoder.DecodeKeyLast<T1, T2, T3, T4>(self.ExtractKey(packedKey), expectedSize);
+
 		#endregion
 
 	}

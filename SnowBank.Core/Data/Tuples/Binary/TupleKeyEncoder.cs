@@ -230,6 +230,12 @@ namespace SnowBank.Data.Tuples.Binary
 		public (T1?, T2?, T3?) DecodeKeyLast<T1, T2, T3>(ReadOnlySpan<byte> packed, int? expectedSize = null) => TuPack.DecodeLast<T1, T2, T3>(packed, expectedSize);
 
 		/// <inheritdoc />
+		public (T1?, T2?, T3?, T4?) DecodeKeyLast<T1, T2, T3, T4>(Slice packed, int? expectedSize = null) => TuPack.DecodeLast<T1, T2, T3, T4>(packed, expectedSize);
+
+		/// <inheritdoc />
+		public (T1?, T2?, T3?, T4?) DecodeKeyLast<T1, T2, T3, T4>(ReadOnlySpan<byte> packed, int? expectedSize = null) => TuPack.DecodeLast<T1, T2, T3, T4>(packed, expectedSize);
+
+		/// <inheritdoc />
 		public (T1?, T2?) DecodeKey<T1, T2>(Slice packed) => TuPack.DecodeKey<T1, T2>(packed);
 
 		/// <inheritdoc />

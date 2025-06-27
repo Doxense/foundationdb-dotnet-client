@@ -679,6 +679,38 @@ namespace SnowBank.Data.Binary
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3>
 			(ReadOnlySpan<byte> packed, int? expectedSize = null);
 
+		/// <summary>Decodes the last 4 elements of a binary slice containing at least 4 elements</summary>
+		/// <typeparam name="T1">Expected type of the fourth to last element</typeparam>
+		/// <typeparam name="T2">Expected type of the third to last element</typeparam>
+		/// <typeparam name="T3">Expected type of the second to last element</typeparam>
+		/// <typeparam name="T4">Expected type of the last element</typeparam>
+		/// <param name="packed">Binary slice that contains one or more elements.</param>
+		/// <param name="expectedSize">If non-null, checks that the decoded tuple has the given size</param>
+		/// <returns>Decoded values of the last 4 elements.</returns>
+		/// <exception cref="InvalidOperationException"> the decoded tuple does not have the expected size</exception>
+		(T1?, T2?, T3?, T4?) DecodeKeyLast<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4>
+			(Slice packed, int? expectedSize = null);
+
+		/// <summary>Decodes the last 4 elements of a binary slice containing at least 4 elements</summary>
+		/// <typeparam name="T1">Expected type of the fourth to last element</typeparam>
+		/// <typeparam name="T2">Expected type of the third to last element</typeparam>
+		/// <typeparam name="T3">Expected type of the second to last element</typeparam>
+		/// <typeparam name="T4">Expected type of the last element</typeparam>
+		/// <param name="packed">Binary slice that contains one or more elements.</param>
+		/// <param name="expectedSize">If non-null, checks that the decoded tuple has the given size</param>
+		/// <returns>Decoded values of the last 4 elements.</returns>
+		/// <exception cref="InvalidOperationException"> the decoded tuple does not have the expected size</exception>
+		(T1?, T2?, T3?, T4?) DecodeKeyLast<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4>
+			(ReadOnlySpan<byte> packed, int? expectedSize = null);
+
 		#endregion
 
 		#region Ranges...

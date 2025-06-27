@@ -496,6 +496,20 @@ namespace SnowBank.Data.Binary
 			where T3 : default
 			=> throw new NotSupportedException();
 
+		(T1?, T2?, T3?, T4?) IDynamicKeyEncoder.DecodeKeyLast<T1, T2, T3, T4>(Slice packed, int? expectedSize)
+			where T1 : default
+			where T2 : default
+			where T3 : default
+			where T4 : default
+			=> throw new NotSupportedException();
+
+		(T1?, T2?, T3?, T4?) IDynamicKeyEncoder.DecodeKeyLast<T1, T2, T3, T4>(ReadOnlySpan<byte> packed, int? expectedSize)
+			where T1 : default
+			where T2 : default
+			where T3 : default
+			where T4 : default
+			=> throw new NotSupportedException();
+
 		(T1?, T2?) IDynamicKeyEncoder.DecodeKey<T1, T2>(Slice packed)
 			where T1 : default
 			where T2 : default
