@@ -1673,6 +1673,28 @@ namespace SnowBank.Data.Tuples.Binary
 
 		#endregion
 
+		/// <summary>Skips the next item in the tuple, and advance the cursor</summary>
+		/// <param name="reader">Reader positioned at the start of the item to skip</param>
+		/// <param name="error"></param>
+		/// <returns><c>true</c> if an item was successfully skipped; otherwise, <c>false</c> if the tuple has reached the end or the next item is malformed.</returns>
+		public static bool TrySkipNext(ref TupleReader reader, out Exception? error)
+		{
+			if (!reader.HasMore)
+			{
+				error = null;
+				return false;
+			}
+
+			if (!TupleParser.TryParseNext(ref reader, out var token, out error))
+			{
+				if (error != null)
+				{
+					return false;
+				}
+			}
+			return true;
+		}
+
 		/// <summary>Unpacks the next item in the tuple, and advance the cursor</summary>
 		/// <typeparam name="T">Type of the next value in the tuple</typeparam>
 		/// <param name="reader">Reader positioned at the start of the next item to read</param>

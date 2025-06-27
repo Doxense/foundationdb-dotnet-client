@@ -268,6 +268,20 @@ namespace SnowBank.Data.Binary
 		/// <returns>Value of the decoded element, or an exception if the data is invalid or the encoded tuple is empty or has more than one element</returns>
 		T? DecodeKey<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(ReadOnlySpan<byte> packed);
 
+		/// <summary>Decodes a binary slice and returns the element at the specified index</summary>
+		/// <typeparam name="T">Expected type of the element</typeparam>
+		/// <param name="packed">Binary slice that contains one or more elements.</param>
+		/// <param name="index">Index of the element to decode.</param>
+		/// <returns>Value of the decoded element, or an exception if the data is invalid or the encoded tuple is empty, or does not have enough elements.</returns>
+		T? DecodeKeyAt<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(Slice packed, int index);
+
+		/// <summary>Decodes a binary slice and returns the element at the specified index</summary>
+		/// <typeparam name="T">Expected type of the element</typeparam>
+		/// <param name="packed">Binary slice that contains one or more elements.</param>
+		/// <param name="index">Index of the element to decode.</param>
+		/// <returns>Value of the decoded element, or an exception if the data is invalid or the encoded tuple is empty, or does not have enough elements.</returns>
+		T? DecodeKeyAt<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(ReadOnlySpan<byte> packed, int index);
+
 		/// <summary>Decodes a binary slice containing exactly two elements</summary>
 		/// <typeparam name="T1">Expected type of the 1st element</typeparam>
 		/// <typeparam name="T2">Expected type of the 2nd element</typeparam>

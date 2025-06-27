@@ -1166,6 +1166,20 @@ namespace FoundationDB.Client
 			(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey)
 			=> self.KeyEncoder.DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(self.ExtractKey(packedKey));
 
+		/// <summary>Decode a key of this subspace, and return the element at the given index</summary>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static T1? DecodeAt<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			T1>(this IDynamicKeySubspace self, Slice packedKey, int index)
+			=> self.KeyEncoder.DecodeKeyAt<T1>(self.ExtractKey(packedKey), index);
+
+		/// <summary>Decode a key of this subspace, and return the element at the given index</summary>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static T1? DecodeAt<
+				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1>
+			(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey, int index)
+			=> self.KeyEncoder.DecodeKeyAt<T1>(self.ExtractKey(packedKey), index);
+
 		/// <summary>Decode a key of this subspace, and return only the first element without decoding the rest the key.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only the first element.</remarks>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]

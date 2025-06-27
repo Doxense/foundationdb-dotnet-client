@@ -194,6 +194,12 @@ namespace SnowBank.Data.Tuples.Binary
 		public T? DecodeKey<T>(ReadOnlySpan<byte> packed) => TuPack.DecodeKey<T>(packed);
 
 		/// <inheritdoc />
+		public T? DecodeKeyAt<T>(Slice packed, int index) => TuPack.DecodeKeyAt<T>(packed, index);
+
+		/// <inheritdoc />
+		public T? DecodeKeyAt<T>(ReadOnlySpan<byte> packed, int index) => TuPack.DecodeKeyAt<T>(packed, index);
+
+		/// <inheritdoc />
 		public T1? DecodeKeyFirst<T1>(Slice packed, int? expectedSize = null) => TuPack.DecodeFirst<T1>(packed, expectedSize);
 
 		/// <inheritdoc />

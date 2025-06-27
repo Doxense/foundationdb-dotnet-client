@@ -438,6 +438,14 @@ namespace SnowBank.Data.Binary
 			where T1 : default
 			=> throw new NotSupportedException();
 
+		T1 IDynamicKeyEncoder.DecodeKeyAt<T1>(Slice packed, int index)
+			where T1 : default
+			=> throw new NotSupportedException();
+
+		T1 IDynamicKeyEncoder.DecodeKeyAt<T1>(ReadOnlySpan<byte> packed, int index)
+			where T1 : default
+			=> throw new NotSupportedException();
+
 		T1 IDynamicKeyEncoder.DecodeKeyFirst<T1>(Slice packed, int? expectedSize)
 			where T1 : default
 			=> throw new NotSupportedException();

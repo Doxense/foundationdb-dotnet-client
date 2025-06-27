@@ -1762,6 +1762,75 @@ namespace SnowBank.Data.Tuples
 			return TuplePackers.Unpack(packedKey, embedded: false);
 		}
 
+		#region DecodeAt...
+
+
+		/// <summary>Unpack the value of the element at the given position in a tuple</summary>
+		/// <typeparam name="T1">Type of the element to decode</typeparam>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple</param>
+		/// <param name="index">Index of the item to decode, from the start of the tuple</param>
+		/// <returns>Decoded value of the item at this position in the tuple. Throws an exception if the tuple is empty, or does not have enough elements.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static T1? DecodeKeyAt<T1>(Slice packedKey, int index) => DecodeKeyAt<T1>(packedKey.Span, index);
+
+		/// <summary>Unpack the value of the element at the given position in a tuple</summary>
+		/// <typeparam name="T1">Type of the element to decode</typeparam>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple</param>
+		/// <param name="index">Index of the item to decode, from the start of the tuple</param>
+		/// <param name="item1">Receives the decoded value, if successful</param>
+		/// <returns><c>true</c> if the packed key was successfully unpacked.</returns>
+		public static bool TryDecodeKeyAt<T1>(Slice packedKey, int index, out T1? item1) => TryDecodeKeyAt(packedKey.Span, index, out item1);
+
+		/// <summary>Unpack the value of the element at the given position in a tuple</summary>
+		/// <typeparam name="T1">Type of the element to decode</typeparam>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple</param>
+		/// <param name="index">Index of the item to decode, from the start of the tuple</param>
+		/// <returns>Decoded value of the item at this position in the tuple. Throws an exception if the tuple is empty, or does not have enough elements.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static T1? DecodeKeyAt<T1>(ReadOnlySpan<byte> packedKey, int index)
+		{
+			var reader = new TupleReader(packedKey);
+			// skip previous items
+			for (int i = 0; i < index; i++)
+			{
+				if (!TupleEncoder.TrySkipNext(ref reader, out var error))
+				{
+					throw new FormatException($"Failed to skip item at offset {i}.", error); 
+				}
+			}
+
+			// now decode the wanted item
+			TupleEncoder.DecodeKey(ref reader, out T1? item1);
+			return item1;
+		}
+
+		/// <summary>Unpack the value of the element at the given position in a tuple</summary>
+		/// <typeparam name="T1">Type of the element to decode</typeparam>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple</param>
+		/// <param name="index">Index of the item to decode, from the start of the tuple</param>
+		/// <param name="item1">Receives the decoded value, if successful</param>
+		/// <returns><c>true</c> if the packed key was successfully unpacked.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryDecodeKeyAt<T1>(ReadOnlySpan<byte> packedKey, int index, out T1? item1)
+		{
+			var reader = new TupleReader(packedKey);
+			// skip previous items
+			for (int i = 0; i < index; i++)
+			{
+				if (!TupleEncoder.TrySkipNext(ref reader, out _))
+				{
+					item1 = default;
+					return false;
+				}
+			}
+
+			// now decode the wanted item
+			return TupleEncoder.TryDecodeKey(ref reader, out item1, out _);
+		}
+
+
+		#endregion
+
 		#region DecodeFirst...
 
 		/// <summary>Unpack a tuple and only return its first element</summary>
