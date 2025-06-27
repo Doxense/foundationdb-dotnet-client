@@ -1952,7 +1952,7 @@ namespace SnowBank.Data.Tuples
 		/// <typeparam name="T1">Type of the last value of the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
 		/// <param name="item1">Last decoded element</param>
-		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		/// <returns><see langword="true"/> if the tuple was decoded successfully, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryDecodeFirst<T1>(Slice packedKey, out T1? item1)
 			=> TupleEncoder.TryDecodeFirst(packedKey.Span, null, out item1);
@@ -1961,7 +1961,7 @@ namespace SnowBank.Data.Tuples
 		/// <typeparam name="T1">Type of the last value of the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
 		/// <param name="item1">Last decoded element</param>
-		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		/// <returns><see langword="true"/> if the tuple was decoded successfully, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryDecodeFirst<T1>(ReadOnlySpan<byte> packedKey, out T1? item1)
 			=> TupleEncoder.TryDecodeFirst(packedKey, null, out item1);
@@ -1971,7 +1971,7 @@ namespace SnowBank.Data.Tuples
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
 		/// <param name="expectedSize">Expected size of the decoded tuple</param>
 		/// <param name="item1">Last decoded element</param>
-		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		/// <returns><see langword="true"/> if the tuple was decoded successfully, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryDecodeFirst<T1>(Slice packedKey, int expectedSize, out T1? item1)
 			=> TupleEncoder.TryDecodeFirst(packedKey.Span, expectedSize, out item1);
@@ -1981,7 +1981,7 @@ namespace SnowBank.Data.Tuples
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
 		/// <param name="expectedSize">Expected size of the decoded tuple</param>
 		/// <param name="item1">Last decoded element</param>
-		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		/// <returns><see langword="true"/> if the tuple was decoded successfully, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryDecodeFirst<T1>(ReadOnlySpan<byte> packedKey, int expectedSize, out T1? item1)
 			=> TupleEncoder.TryDecodeFirst(packedKey, expectedSize, out item1);
@@ -1992,7 +1992,7 @@ namespace SnowBank.Data.Tuples
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
 		/// <param name="item1">First decoded element</param>
 		/// <param name="item2">Second decoded element</param>
-		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		/// <returns><see langword="true"/> if the tuple was decoded successfully, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryDecodeFirst<T1, T2>(Slice packedKey, out T1? item1, out T2? item2)
 			=> TupleEncoder.TryDecodeFirst(packedKey.Span, null, out item1, out item2);
@@ -2003,7 +2003,7 @@ namespace SnowBank.Data.Tuples
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
 		/// <param name="item1">First decoded element</param>
 		/// <param name="item2">Second decoded element</param>
-		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		/// <returns><see langword="true"/> if the tuple was decoded successfully, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryDecodeFirst<T1, T2>(ReadOnlySpan<byte> packedKey, out T1? item1, out T2? item2)
 			=> TupleEncoder.TryDecodeFirst(packedKey, null, out item1, out item2);
@@ -2015,7 +2015,7 @@ namespace SnowBank.Data.Tuples
 		/// <param name="item1">First decoded element</param>
 		/// <param name="item2">Second decoded element</param>
 		/// <param name="expectedSize">Expected size of the decoded tuple</param>
-		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		/// <returns><see langword="true"/> if the tuple was decoded successfully, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryDecodeFirst<T1, T2>(Slice packedKey, int expectedSize, out T1? item1, out T2? item2)
 			=> TupleEncoder.TryDecodeFirst(packedKey.Span, expectedSize, out item1, out item2);
@@ -2027,7 +2027,7 @@ namespace SnowBank.Data.Tuples
 		/// <param name="item1">First decoded element</param>
 		/// <param name="item2">Second decoded element</param>
 		/// <param name="expectedSize">Expected size of the decoded tuple</param>
-		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		/// <returns><see langword="true"/> if the tuple was decoded successfully, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryDecodeFirst<T1, T2>(ReadOnlySpan<byte> packedKey, int expectedSize, out T1? item1, out T2? item2)
 			=> TupleEncoder.TryDecodeFirst(packedKey, expectedSize, out item1, out item2);
@@ -2040,7 +2040,7 @@ namespace SnowBank.Data.Tuples
 		/// <param name="item1">First decoded element</param>
 		/// <param name="item2">Second decoded element</param>
 		/// <param name="item3">Third decoded element</param>
-		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		/// <returns><see langword="true"/> if the tuple was decoded successfully, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryDecodeFirst<T1, T2, T3>(Slice packedKey, out T1? item1, out T2? item2, out T3? item3)
 			=> TupleEncoder.TryDecodeFirst(packedKey.Span, null, out item1, out item2, out item3);
@@ -2053,7 +2053,7 @@ namespace SnowBank.Data.Tuples
 		/// <param name="item1">First decoded element</param>
 		/// <param name="item2">Second decoded element</param>
 		/// <param name="item3">Third decoded element</param>
-		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		/// <returns><see langword="true"/> if the tuple was decoded successfully, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryDecodeFirst<T1, T2, T3>(ReadOnlySpan<byte> packedKey, out T1? item1, out T2? item2, out T3? item3)
 			=> TupleEncoder.TryDecodeFirst(packedKey, null, out item1, out item2, out item3);
@@ -2067,7 +2067,7 @@ namespace SnowBank.Data.Tuples
 		/// <param name="item2">Second decoded element</param>
 		/// <param name="item3">Third decoded element</param>
 		/// <param name="expectedSize">Expected size of the decoded tuple</param>
-		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		/// <returns><see langword="true"/> if the tuple was decoded successfully, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryDecodeFirst<T1, T2, T3>(Slice packedKey, int expectedSize, out T1? item1, out T2? item2, out T3? item3)
 			=> TupleEncoder.TryDecodeFirst(packedKey.Span, expectedSize, out item1, out item2, out item3);
@@ -2081,7 +2081,7 @@ namespace SnowBank.Data.Tuples
 		/// <param name="item2">Second decoded element</param>
 		/// <param name="item3">Third decoded element</param>
 		/// <param name="expectedSize">Expected size of the decoded tuple</param>
-		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		/// <returns><see langword="true"/> if the tuple was decoded successfully, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryDecodeFirst<T1, T2, T3>(ReadOnlySpan<byte> packedKey, int expectedSize, out T1? item1, out T2? item2, out T3? item3)
 			=> TupleEncoder.TryDecodeFirst(packedKey, expectedSize, out item1, out item2, out item3);
@@ -2096,7 +2096,7 @@ namespace SnowBank.Data.Tuples
 		/// <param name="item2">Second decoded element</param>
 		/// <param name="item3">Third decoded element</param>
 		/// <param name="item4">Fourth decoded element</param>
-		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		/// <returns><see langword="true"/> if the tuple was decoded successfully, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryDecodeFirst<T1, T2, T3, T4>(Slice packedKey, out T1? item1, out T2? item2, out T3? item3, out T4? item4)
 			=> TupleEncoder.TryDecodeFirst(packedKey.Span, null, out item1, out item2, out item3, out item4);
@@ -2111,7 +2111,7 @@ namespace SnowBank.Data.Tuples
 		/// <param name="item2">Second decoded element</param>
 		/// <param name="item3">Third decoded element</param>
 		/// <param name="item4">Fourth decoded element</param>
-		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		/// <returns><see langword="true"/> if the tuple was decoded successfully, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryDecodeFirst<T1, T2, T3, T4>(ReadOnlySpan<byte> packedKey, out T1? item1, out T2? item2, out T3? item3, out T4? item4)
 			=> TupleEncoder.TryDecodeFirst(packedKey, null, out item1, out item2, out item3, out item4);
@@ -2127,7 +2127,7 @@ namespace SnowBank.Data.Tuples
 		/// <param name="item3">Third decoded element</param>
 		/// <param name="item4">Fourth decoded element</param>
 		/// <param name="expectedSize">Expected size of the decoded tuple</param>
-		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		/// <returns><see langword="true"/> if the tuple was decoded successfully, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryDecodeFirst<T1, T2, T3, T4>(Slice packedKey, int expectedSize, out T1? item1, out T2? item2, out T3? item3, out T4? item4)
 			=> TupleEncoder.TryDecodeFirst(packedKey.Span, expectedSize, out item1, out item2, out item3, out item4);
@@ -2143,7 +2143,7 @@ namespace SnowBank.Data.Tuples
 		/// <param name="item3">Third decoded element</param>
 		/// <param name="item4">Fourth decoded element</param>
 		/// <param name="expectedSize">Expected size of the decoded tuple</param>
-		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		/// <returns><see langword="true"/> if the tuple was decoded successfully, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryDecodeFirst<T1, T2, T3, T4>(ReadOnlySpan<byte> packedKey, int expectedSize, out T1? item1, out T2? item2, out T3? item3, out T4? item4)
 			=> TupleEncoder.TryDecodeFirst(packedKey, expectedSize, out item1, out item2, out item3, out item4);
@@ -2156,7 +2156,7 @@ namespace SnowBank.Data.Tuples
 		/// <typeparam name="T1">Type of the last value of the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
 		/// <param name="item1">Last decoded element</param>
-		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		/// <returns><see langword="true"/> if the tuple was decoded successfully, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryDecodeLast<T1>(Slice packedKey, out T1? item1)
 			=> TupleEncoder.TryDecodeLast(packedKey.Span, null, out item1);
@@ -2165,7 +2165,7 @@ namespace SnowBank.Data.Tuples
 		/// <typeparam name="T1">Type of the last value of the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
 		/// <param name="item1">Last decoded element</param>
-		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		/// <returns><see langword="true"/> if the tuple was decoded successfully, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryDecodeLast<T1>(ReadOnlySpan<byte> packedKey, out T1? item1)
 			=> TupleEncoder.TryDecodeLast(packedKey, null, out item1);
@@ -2175,7 +2175,7 @@ namespace SnowBank.Data.Tuples
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
 		/// <param name="expectedSize">Expected size of the decoded tuple</param>
 		/// <param name="item1">Last decoded element</param>
-		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		/// <returns><see langword="true"/> if the tuple was decoded successfully, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryDecodeLast<T1>(Slice packedKey, int expectedSize, out T1? item1)
 			=> TupleEncoder.TryDecodeLast(packedKey.Span, expectedSize, out item1);
@@ -2185,7 +2185,7 @@ namespace SnowBank.Data.Tuples
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
 		/// <param name="expectedSize">Expected size of the decoded tuple</param>
 		/// <param name="item1">Last decoded element</param>
-		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		/// <returns><see langword="true"/> if the tuple was decoded successfully, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryDecodeLast<T1>(ReadOnlySpan<byte> packedKey, int expectedSize, out T1? item1)
 			=> TupleEncoder.TryDecodeLast(packedKey, expectedSize, out item1);
@@ -2196,7 +2196,7 @@ namespace SnowBank.Data.Tuples
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
 		/// <param name="item1">First decoded element</param>
 		/// <param name="item2">Second decoded element</param>
-		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		/// <returns><see langword="true"/> if the tuple was decoded successfully, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryDecodeLast<T1, T2>(Slice packedKey, out T1? item1, out T2? item2)
 			=> TupleEncoder.TryDecodeLast(packedKey.Span, null, out item1, out item2);
@@ -2207,7 +2207,7 @@ namespace SnowBank.Data.Tuples
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple of at least 2 elements</param>
 		/// <param name="item1">First decoded element</param>
 		/// <param name="item2">Second decoded element</param>
-		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		/// <returns><see langword="true"/> if the tuple was decoded successfully, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryDecodeLast<T1, T2>(ReadOnlySpan<byte> packedKey, out T1? item1, out T2? item2)
 			=> TupleEncoder.TryDecodeLast(packedKey, null, out item1, out item2);
@@ -2219,7 +2219,7 @@ namespace SnowBank.Data.Tuples
 		/// <param name="item1">First decoded element</param>
 		/// <param name="item2">Second decoded element</param>
 		/// <param name="expectedSize">Expected size of the decoded tuple</param>
-		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		/// <returns><see langword="true"/> if the tuple was decoded successfully, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryDecodeLast<T1, T2>(Slice packedKey, int expectedSize, out T1? item1, out T2? item2)
 			=> TupleEncoder.TryDecodeLast(packedKey.Span, expectedSize, out item1, out item2);
@@ -2231,7 +2231,7 @@ namespace SnowBank.Data.Tuples
 		/// <param name="item1">First decoded element</param>
 		/// <param name="item2">Second decoded element</param>
 		/// <param name="expectedSize">Expected size of the decoded tuple</param>
-		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		/// <returns><see langword="true"/> if the tuple was decoded successfully, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryDecodeLast<T1, T2>(ReadOnlySpan<byte> packedKey, int expectedSize, out T1? item1, out T2? item2)
 			=> TupleEncoder.TryDecodeLast(packedKey, expectedSize, out item1, out item2);
@@ -2244,7 +2244,7 @@ namespace SnowBank.Data.Tuples
 		/// <param name="item1">First decoded element</param>
 		/// <param name="item2">Second decoded element</param>
 		/// <param name="item3">Third decoded element</param>
-		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		/// <returns><see langword="true"/> if the tuple was decoded successfully, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryDecodeLast<T1, T2, T3>(Slice packedKey, out T1? item1, out T2? item2, out T3? item3)
 			=> TupleEncoder.TryDecodeLast(packedKey.Span, null, out item1, out item2, out item3);
@@ -2257,7 +2257,7 @@ namespace SnowBank.Data.Tuples
 		/// <param name="item1">First decoded element</param>
 		/// <param name="item2">Second decoded element</param>
 		/// <param name="item3">Third decoded element</param>
-		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		/// <returns><see langword="true"/> if the tuple was decoded successfully, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryDecodeLast<T1, T2, T3>(ReadOnlySpan<byte> packedKey, out T1? item1, out T2? item2, out T3? item3)
 			=> TupleEncoder.TryDecodeLast(packedKey, null, out item1, out item2, out item3);
@@ -2271,7 +2271,7 @@ namespace SnowBank.Data.Tuples
 		/// <param name="item2">Second decoded element</param>
 		/// <param name="item3">Third decoded element</param>
 		/// <param name="expectedSize">Expected size of the decoded tuple</param>
-		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		/// <returns><see langword="true"/> if the tuple was decoded successfully, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryDecodeLast<T1, T2, T3>(Slice packedKey, int expectedSize, out T1? item1, out T2? item2, out T3? item3)
 			=> TupleEncoder.TryDecodeLast(packedKey.Span, expectedSize, out item1, out item2, out item3);
@@ -2285,7 +2285,7 @@ namespace SnowBank.Data.Tuples
 		/// <param name="item2">Second decoded element</param>
 		/// <param name="item3">Third decoded element</param>
 		/// <param name="expectedSize">Expected size of the decoded tuple</param>
-		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		/// <returns><see langword="true"/> if the tuple was decoded successfully, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryDecodeLast<T1, T2, T3>(ReadOnlySpan<byte> packedKey, int expectedSize, out T1? item1, out T2? item2, out T3? item3)
 			=> TupleEncoder.TryDecodeLast(packedKey, expectedSize, out item1, out item2, out item3);
@@ -2300,7 +2300,7 @@ namespace SnowBank.Data.Tuples
 		/// <param name="item2">Second decoded element</param>
 		/// <param name="item3">Third decoded element</param>
 		/// <param name="item4">Fourth decoded element</param>
-		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		/// <returns><see langword="true"/> if the tuple was decoded successfully, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryDecodeLast<T1, T2, T3, T4>(Slice packedKey, out T1? item1, out T2? item2, out T3? item3, out T4? item4)
 			=> TupleEncoder.TryDecodeLast(packedKey.Span, null, out item1, out item2, out item3, out item4);
@@ -2315,7 +2315,7 @@ namespace SnowBank.Data.Tuples
 		/// <param name="item2">Second decoded element</param>
 		/// <param name="item3">Third decoded element</param>
 		/// <param name="item4">Fourth decoded element</param>
-		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		/// <returns><see langword="true"/> if the tuple was decoded successfully, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryDecodeLast<T1, T2, T3, T4>(ReadOnlySpan<byte> packedKey, out T1? item1, out T2? item2, out T3? item3, out T4? item4)
 			=> TupleEncoder.TryDecodeLast(packedKey, null, out item1, out item2, out item3, out item4);
@@ -2331,7 +2331,7 @@ namespace SnowBank.Data.Tuples
 		/// <param name="item3">Third decoded element</param>
 		/// <param name="item4">Fourth decoded element</param>
 		/// <param name="expectedSize">Expected size of the decoded tuple</param>
-		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		/// <returns><see langword="true"/> if the tuple was decoded successfully, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryDecodeLast<T1, T2, T3, T4>(Slice packedKey, int expectedSize, out T1? item1, out T2? item2, out T3? item3, out T4? item4)
 			=> TupleEncoder.TryDecodeLast(packedKey.Span, expectedSize, out item1, out item2, out item3, out item4);
@@ -2347,7 +2347,7 @@ namespace SnowBank.Data.Tuples
 		/// <param name="item3">Third decoded element</param>
 		/// <param name="item4">Fourth decoded element</param>
 		/// <param name="expectedSize">Expected size of the decoded tuple</param>
-		/// <returns><see langword="true"/> if the tuple was decoded successfuly, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
+		/// <returns><see langword="true"/> if the tuple was decoded successfully, or <see langword="false"/> if the tuple is too small, or if there was an error while decoding</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryDecodeLast<T1, T2, T3, T4>(ReadOnlySpan<byte> packedKey, int expectedSize, out T1? item1, out T2? item2, out T3? item3, out T4? item4)
 			=> TupleEncoder.TryDecodeLast(packedKey, expectedSize, out item1, out item2, out item3, out item4);
@@ -2359,14 +2359,14 @@ namespace SnowBank.Data.Tuples
 		/// <summary>Unpack the value of a singleton tuple</summary>
 		/// <typeparam name="T1">Type of the single value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with a single element</param>
-		/// <returns>Decoded value of the only item in the tuple. Throws an exception if the tuple is empty of has more than one element.</returns>
+		/// <returns>Decoded value of the only item in the tuple. Throws an exception if the tuple is empty, or has more than one element.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static T1? DecodeKey<T1>(Slice packedKey) => DecodeKey<T1>(packedKey.Span);
 
 		/// <summary>Unpack the value of a singleton tuple</summary>
 		/// <typeparam name="T1">Type of the single value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with a single element</param>
-		/// <returns>Decoded value of the only item in the tuple. Throws an exception if the tuple is empty of has more than one element.</returns>
+		/// <returns>Decoded value of the only item in the tuple. Throws an exception if the tuple is empty, or has more than one element.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static T1? DecodeKey<T1>(ReadOnlySpan<byte> packedKey)
 		{
@@ -2386,7 +2386,7 @@ namespace SnowBank.Data.Tuples
 		/// <summary>Unpack the value of a singleton tuple</summary>
 		/// <typeparam name="T1">Type of the single value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with a single element</param>
-		/// <param name="item1">Decoded value of the only item in the tuple. Throws an exception if the tuple is empty of has more than one element.</param>
+		/// <param name="item1">Decoded value of the only item in the tuple. Throws an exception if the tuple is empty, or has more than one element.</param>
 		/// <returns><c>true</c> if the packed key was successfully unpacked.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryDecodeKey<T1>(ReadOnlySpan<byte> packedKey, out T1? item1)
@@ -2397,13 +2397,13 @@ namespace SnowBank.Data.Tuples
 
 		/// <summary>Unpack a key containing two elements</summary>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with two elements</param>
-		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than two elements.</returns>
+		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty, or has more than two elements.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?) DecodeKey<T1, T2>(Slice packedKey) => DecodeKey<T1, T2>(packedKey.Span);
 
 		/// <summary>Unpack a key containing two elements</summary>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with two elements</param>
-		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than two elements.</returns>
+		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty, or has more than two elements.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?) DecodeKey<T1, T2>(ReadOnlySpan<byte> packedKey)
 		{
@@ -2414,13 +2414,13 @@ namespace SnowBank.Data.Tuples
 
 		/// <summary>Unpack a key containing three elements</summary>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with three elements</param>
-		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than three elements.</returns>
+		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty, or has more than three elements.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?, T3?) DecodeKey<T1, T2, T3>(Slice packedKey) => DecodeKey<T1, T2, T3>(packedKey.Span);
 
 		/// <summary>Unpack a key containing three elements</summary>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with three elements</param>
-		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than three elements.</returns>
+		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty, or has more than three elements.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?, T3?) DecodeKey<T1, T2, T3>(ReadOnlySpan<byte> packedKey)
 		{
@@ -2431,13 +2431,13 @@ namespace SnowBank.Data.Tuples
 
 		/// <summary>Unpack a key containing four elements</summary>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with four elements</param>
-		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than four elements.</returns>
+		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty, or has more than four elements.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?, T3?, T4?) DecodeKey<T1, T2, T3, T4>(Slice packedKey) => DecodeKey<T1, T2, T3, T4>(packedKey.Span);
 
 		/// <summary>Unpack a key containing four elements</summary>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with four elements</param>
-		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than four elements.</returns>
+		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty, or has more than four elements.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?, T3?, T4?) DecodeKey<T1, T2, T3, T4>(ReadOnlySpan<byte> packedKey)
 		{
@@ -2448,13 +2448,13 @@ namespace SnowBank.Data.Tuples
 
 		/// <summary>Unpack a key containing five elements</summary>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with five elements</param>
-		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than five elements.</returns>
+		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty, or has more than five elements.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?, T3?, T4?, T5?) DecodeKey<T1, T2, T3, T4, T5>(Slice packedKey) => DecodeKey<T1, T2, T3, T4, T5>(packedKey.Span);
 
 		/// <summary>Unpack a key containing five elements</summary>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with five elements</param>
-		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than five elements.</returns>
+		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty, or has more than five elements.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?, T3?, T4?, T5?) DecodeKey<T1, T2, T3, T4, T5>(ReadOnlySpan<byte> packedKey)
 		{
@@ -2465,13 +2465,13 @@ namespace SnowBank.Data.Tuples
 
 		/// <summary>Unpack a key containing six elements</summary>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with six elements</param>
-		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than six elements.</returns>
+		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty, or has more than six elements.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?, T3?, T4?, T5?, T6?) DecodeKey<T1, T2, T3, T4, T5, T6>(Slice packedKey) => DecodeKey<T1, T2, T3, T4, T5, T6>(packedKey.Span);
 
 		/// <summary>Unpack a key containing six elements</summary>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with six elements</param>
-		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than six elements.</returns>
+		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty, or has more than six elements.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?, T3?, T4?, T5?, T6?) DecodeKey<T1, T2, T3, T4, T5, T6>(ReadOnlySpan<byte> packedKey)
 		{
@@ -2482,13 +2482,13 @@ namespace SnowBank.Data.Tuples
 
 		/// <summary>Unpack a key containing seven elements</summary>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with seven elements</param>
-		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than seven elements.</returns>
+		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty, or has more than seven elements.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?, T3?, T4?, T5?, T6?, T7?) DecodeKey<T1, T2, T3, T4, T5, T6, T7>(Slice packedKey) => DecodeKey<T1, T2, T3, T4, T5, T6, T7>(packedKey.Span);
 
 		/// <summary>Unpack a key containing seven elements</summary>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with seven elements</param>
-		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than seven elements.</returns>
+		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty, or has more than seven elements.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?, T3?, T4?, T5?, T6?, T7?) DecodeKey<T1, T2, T3, T4, T5, T6, T7>(ReadOnlySpan<byte> packedKey)
 		{
@@ -2499,13 +2499,13 @@ namespace SnowBank.Data.Tuples
 
 		/// <summary>Unpack a key containing eight elements</summary>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with eight elements</param>
-		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than eight elements.</returns>
+		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty, or has more than eight elements.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(Slice packedKey) => DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(packedKey.Span);
 
 		/// <summary>Unpack a key containing eight elements</summary>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with eight elements</param>
-		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than eight elements.</returns>
+		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty, or has more than eight elements.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(ReadOnlySpan<byte> packedKey)
 		{
@@ -2516,13 +2516,13 @@ namespace SnowBank.Data.Tuples
 
 		/// <summary>Unpack a key containing nine elements</summary>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with eight elements</param>
-		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than eight elements.</returns>
+		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty, or has more than eight elements.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?, T9?) DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8, T9>(Slice packedKey) => DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8, T9>(packedKey.Span);
 
 		/// <summary>Unpack a key containing nine elements</summary>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with eight elements</param>
-		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than eight elements.</returns>
+		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty, or has more than eight elements.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?, T9?) DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8, T9>(ReadOnlySpan<byte> packedKey)
 		{

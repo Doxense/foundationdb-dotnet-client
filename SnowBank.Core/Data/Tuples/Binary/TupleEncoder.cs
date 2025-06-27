@@ -1677,8 +1677,8 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <typeparam name="T">Type of the next value in the tuple</typeparam>
 		/// <param name="reader">Reader positioned at the start of the next item to read</param>
 		/// <param name="value">If decoding succeeded, receives the decoded value.</param>
-		/// <param name="error"></param>
-		/// <returns>True if the decoded succeeded (and <paramref name="value"/> receives the decoded value). False if the tuple has reached the end.</returns>
+		/// <param name="error">If non-null, error that describes why the decoding failed</param>
+		/// <returns><c>true</c> if the decoded succeeded (and <paramref name="value"/> receives the decoded value); otherwise, <c>false</c> if the tuple has reached the end or the next item is malformed.</returns>
 		public static bool TryDecodeNext<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>
 			(ref TupleReader reader, out T? value, out Exception? error)
 		{
