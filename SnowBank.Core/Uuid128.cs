@@ -282,21 +282,31 @@ namespace System
 
 #endif
 
-		/// <summary><see cref="Uuid128"/> with all bits set to zero: <c>"00000000-0000-0000-0000-000000000000"</c></summary>
+		/// <summary><see cref="Uuid128"/> with all bits set to <c>0</c> (<c>"00000000-0000-0000-0000-000000000000"</c>)</summary>
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public static readonly Uuid128 Empty;
 
-		/// <summary><see cref="Uuid128"/> with all bits set to one: <c>"FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF"</c></summary>
+		/// <summary><see cref="Uuid128"/> with all bits set to <c>1</c> (<c>"FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF"</c>)</summary>
 		[EditorBrowsable(EditorBrowsableState.Always)]
-		public static readonly Uuid128 AllBitsSet = new(new Guid(-1, -1, -1, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue));
+		public static readonly Uuid128 AllBitsSet
+#if NET9_0_OR_GREATER
+			= new(Guid.AllBitsSet);
+#else
+			= new(new Guid(-1, -1, -1, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue));
+#endif
 
-		/// <summary><see cref="Uuid128"/> with all bits set to one: <c>"FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF"</c></summary>
+		/// <summary><see cref="Uuid128"/> with all bits set to <c>0</c> (<c>"00000000-0000-0000-0000-000000000000"</c>)</summary>
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static readonly Uuid128 MinValue;
 
-		/// <summary><see cref="Uuid128"/> with all bits set to one: <c>"FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF"</c></summary>
+		/// <summary><see cref="Uuid128"/> with all bits set to <c>0</c> (<c>"00000000-0000-0000-0000-000000000000"</c>)</summary>
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static readonly Uuid128 MaxValue = new(new Guid(-1, -1, -1, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue));
+		public static readonly Uuid128 MaxValue
+#if NET9_0_OR_GREATER
+			= new(Guid.AllBitsSet);
+#else
+			= new(new Guid(-1, -1, -1, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue));
+#endif
 
 		/// <summary>Size is 16 bytes</summary>
 		public const int SizeOf = 16;

@@ -132,7 +132,7 @@ namespace System
 
 		/// <summary>Creates an incomplete 96-bit <see cref="VersionStamp"/> with the given user version.</summary>
 		/// <param name="userVersion">Value between 0 and 65535 that will be appended at the end of the VersionStamp, making it unique <i>within</i> the transaction.</param>
-		/// <returns>Placeholder that will be serialized as <code>FF FF FF FF FF FF FF FF FF FF vv vv</code> (12 bytes) where 'vv vv' is the user version encoded in little-endian.</returns>
+		/// <returns>Placeholder that will be serialized as <c>FF FF FF FF FF FF FF FF FF FF vv vv</c> (12 bytes) where <c>'vv vv'</c> is the user version encoded in little-endian.</returns>
 		/// <remarks>
 		/// <para>This stamp contains a temporary marker that will be later filled by the database with the actual VersionStamp at transaction commit time.</para>
 		/// </remarks>
@@ -146,7 +146,7 @@ namespace System
 
 		/// <summary>Creates an incomplete 96-bit <see cref="VersionStamp"/> with the given user version.</summary>
 		/// <param name="userVersion">Value between 0 and 65535 that will be appended at the end of the VersionStamp, making it unique <i>within</i> the transaction.</param>
-		/// <returns>Placeholder that will be serialized as <code>FF FF FF FF FF FF FF FF FF FF vv vv</code> (12 bytes) where 'vv vv' is the user version encoded in little-endian.</returns>
+		/// <returns>Placeholder that will be serialized as <c>FF FF FF FF FF FF FF FF FF FF vv vv</c> (12 bytes) where <c>'vv vv'</c> is the user version encoded in little-endian.</returns>
 		/// <exception cref="ArgumentException">If <paramref name="userVersion"/> is less than <c>0</c>, or greater than <c>65534</c> (0xFFFE).</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static VersionStamp Incomplete(ushort userVersion)

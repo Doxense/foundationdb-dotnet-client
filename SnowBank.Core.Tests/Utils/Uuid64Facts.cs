@@ -47,17 +47,32 @@ namespace SnowBank.Core.Tests
 			Assert.That(Uuid64.Empty.ToInt64(), Is.EqualTo(0));
 			Assert.That(Uuid64.Empty.ToByteArray(), Is.EqualTo(new byte[8]));
 			Assert.That(Uuid64.Empty.ToSlice(), Is.EqualTo(Slice.Zero(8)));
+			Assert.That(Uuid64.Empty, Is.EqualTo(Uuid64.MinValue));
 		}
 
 		[Test]
-		public void Test_Uuid64_MaxValue()
+		public void Test_Uuid64_AllBitsSet()
 		{
-			Assert.That(Uuid64.MaxValue.ToString(), Is.EqualTo("FFFFFFFF-FFFFFFFF"));
-			Assert.That(Uuid64.MaxValue, Is.EqualTo(new Uuid64(ulong.MaxValue)));
-			Assert.That(Uuid64.MaxValue.ToUInt64(), Is.EqualTo(ulong.MaxValue));
-			Assert.That(Uuid64.MaxValue.ToInt64(), Is.EqualTo(-1));
-			Assert.That(Uuid64.MaxValue.ToByteArray(), Is.EqualTo(new byte[] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }));
-			Assert.That(Uuid64.MaxValue.ToSlice(), Is.EqualTo(Slice.Repeat(0xFF, 8)));
+			Assert.That(Uuid64.AllBitsSet.ToString(), Is.EqualTo("FFFFFFFF-FFFFFFFF"));
+			Assert.That(Uuid64.AllBitsSet, Is.EqualTo(new Uuid64(ulong.MaxValue)));
+			Assert.That(Uuid64.AllBitsSet.ToUInt64(), Is.EqualTo(ulong.MaxValue));
+			Assert.That(Uuid64.AllBitsSet.ToInt64(), Is.EqualTo(-1));
+			Assert.That(Uuid64.AllBitsSet.ToByteArray(), Is.EqualTo(new byte[] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }));
+			Assert.That(Uuid64.AllBitsSet.ToSlice(), Is.EqualTo(Slice.Repeat(0xFF, 8)));
+			Assert.That(Uuid64.AllBitsSet, Is.EqualTo(Uuid64.MaxValue));
+		}
+
+		[Test]
+		public void Test_Uuid64_One()
+		{
+			Assert.That(Uuid64.One, Is.EqualTo(new Uuid64(1)));
+			Assert.That(Uuid64.One.ToString(), Is.EqualTo("00000000-00000001"));
+			Assert.That(Uuid64.One.ToUInt64(), Is.EqualTo(1));
+			Assert.That(Uuid64.One.ToInt64(), Is.EqualTo(1));
+			Assert.That(Uuid64.One.ToByteArray(), Is.EqualTo(new byte[] { 0, 0, 0, 0, 0, 0, 0, 1 }));
+
+			Assert.That(Uuid64.One, Is.GreaterThan(Uuid64.MinValue));
+			Assert.That(Uuid64.One, Is.LessThan(new Uuid64(2)));
 		}
 
 		[Test]

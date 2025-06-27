@@ -44,10 +44,21 @@ namespace System
 #endif
 	{
 
-		/// <summary>Uuid with all bits set to 0</summary>
+		/// <summary><see cref="Uuid80"/> with all bits set to <c>0</c> (<c>"0000-00000000-00000000"</c>)</summary>
 		public static readonly Uuid80 Empty;
 
-		/// <summary>Uuid with all bits set to 1</summary>
+		/// <summary><see cref="Uuid80"/> with only bit 0 set to <c>1</c> (<c>"0000-00000000-00000001"</c>)</summary>
+		public static readonly Uuid80 One = new(0, 1);
+
+		/// <summary><see cref="Uuid80"/> with all bits set to <c>1</c> (<c>"FFFF-FFFFFFFF-FFFFFFFF"</c>)</summary>
+		public static readonly Uuid80 AllBitsSet = new(ushort.MaxValue, ulong.MaxValue);
+
+		/// <summary><see cref="Uuid80"/> with all bits set to <c>0</c> (<c>"0000-00000000-00000000"</c>)</summary>
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public static readonly Uuid80 MinValue;
+
+		/// <summary><see cref="Uuid80"/> with all bits set to <c>1</c> (<c>"FFFF-FFFFFFFF-FFFFFFFF"</c>)</summary>
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static readonly Uuid80 MaxValue = new(ushort.MaxValue, ulong.MaxValue);
 
 		/// <summary>Size is 10 bytes</summary>

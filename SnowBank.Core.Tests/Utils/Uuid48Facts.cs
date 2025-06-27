@@ -93,6 +93,19 @@ namespace SnowBank.Core.Tests
 		}
 
 		[Test]
+		public void Test_Uuid48_One()
+		{
+			Assert.That(Uuid48.One, Is.EqualTo(new Uuid48(1)));
+			Assert.That(Uuid48.One.ToString(), Is.EqualTo("0000-00000001"));
+			Assert.That(Uuid48.One.ToUInt64(), Is.EqualTo(1));
+			Assert.That(Uuid48.One.ToInt64(), Is.EqualTo(1));
+			Assert.That(Uuid48.One.ToByteArray(), Is.EqualTo(new byte[] { 0, 0, 0, 0, 0, 1 }));
+
+			Assert.That(Uuid48.One, Is.GreaterThan(Uuid48.MinValue));
+			Assert.That(Uuid48.One, Is.LessThan(new Uuid48(2)));
+		}
+
+		[Test]
 		public void Test_Uuid48_NonZero()
 		{
 			Assert.Multiple(() =>

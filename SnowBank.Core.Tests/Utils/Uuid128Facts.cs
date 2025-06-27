@@ -46,6 +46,7 @@ namespace SnowBank.Core.Tests
 			Assert.That(Uuid128.Empty, Is.EqualTo(default(Uuid128)));
 			Assert.That(Uuid128.Empty, Is.EqualTo(Uuid128.Read(new byte[16])));
 			Assert.That(Uuid128.Empty, Is.EqualTo(Guid.Empty));
+			Assert.That(Uuid128.Empty, Is.EqualTo(Uuid128.MinValue));
 
 			Uuid128.Empty.Deconstruct(out Uuid64 hi, out Uuid64 lo);
 			Assert.That(hi, Is.EqualTo(Uuid64.Empty));
@@ -73,35 +74,36 @@ namespace SnowBank.Core.Tests
 		}
 
 		[Test]
-		public void Test_Uuid_MaxValue()
+		public void Test_Uuid_AllBitsSet()
 		{
-			Log(Uuid128.MaxValue);
-			Assert.That(Uuid128.MaxValue.ToString(), Is.EqualTo("ffffffff-ffff-ffff-ffff-ffffffffffff"));
-			Assert.That(Uuid128.MaxValue.ToByteArray(), Is.EqualTo(new byte[] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }));
-			Assert.That(Uuid128.MaxValue, Is.EqualTo((Uuid128) Guid.Parse("ffffffff-ffff-ffff-ffff-ffffffffffff")));
-			Assert.That(Uuid128.MaxValue, Is.EqualTo(Guid.Parse("ffffffff-ffff-ffff-ffff-ffffffffffff")));
+			Log(Uuid128.AllBitsSet);
+			Assert.That(Uuid128.AllBitsSet.ToString(), Is.EqualTo("ffffffff-ffff-ffff-ffff-ffffffffffff"));
+			Assert.That(Uuid128.AllBitsSet.ToByteArray(), Is.EqualTo(new byte[] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }));
+			Assert.That(Uuid128.AllBitsSet, Is.EqualTo((Uuid128) Guid.Parse("ffffffff-ffff-ffff-ffff-ffffffffffff")));
+			Assert.That(Uuid128.AllBitsSet, Is.EqualTo(Guid.Parse("ffffffff-ffff-ffff-ffff-ffffffffffff")));
+			Assert.That(Uuid128.AllBitsSet, Is.EqualTo(Uuid128.MaxValue));
 
-			Uuid128.MaxValue.Deconstruct(out Uuid64 hi, out Uuid64 lo);
-			Assert.That(hi, Is.EqualTo(Uuid64.MaxValue));
-			Assert.That(lo, Is.EqualTo(Uuid64.MaxValue));
+			Uuid128.AllBitsSet.Deconstruct(out Uuid64 hi, out Uuid64 lo);
+			Assert.That(hi, Is.EqualTo(Uuid64.AllBitsSet));
+			Assert.That(lo, Is.EqualTo(Uuid64.AllBitsSet));
 
-			Assert.That(Uuid128.MaxValue.Lower16, Is.EqualTo(0xFFFF));
-			Assert.That(Uuid128.MaxValue.Lower32, Is.EqualTo(0xFFFFFFFF));
-			Assert.That(Uuid128.MaxValue.Lower48, Is.EqualTo(0xFFFFFFFFFFFF));
-			Assert.That(Uuid128.MaxValue.Lower64, Is.EqualTo(0xFFFFFFFFFFFFFFFF));
-			Assert.That(Uuid128.MaxValue.Lower80, Is.EqualTo(Uuid80.MaxValue));
-			Assert.That(Uuid128.MaxValue.Lower96, Is.EqualTo(Uuid96.MaxValue));
+			Assert.That(Uuid128.AllBitsSet.Lower16, Is.EqualTo(0xFFFF));
+			Assert.That(Uuid128.AllBitsSet.Lower32, Is.EqualTo(0xFFFFFFFF));
+			Assert.That(Uuid128.AllBitsSet.Lower48, Is.EqualTo(0xFFFFFFFFFFFF));
+			Assert.That(Uuid128.AllBitsSet.Lower64, Is.EqualTo(0xFFFFFFFFFFFFFFFF));
+			Assert.That(Uuid128.AllBitsSet.Lower80, Is.EqualTo(Uuid80.AllBitsSet));
+			Assert.That(Uuid128.AllBitsSet.Lower96, Is.EqualTo(Uuid96.AllBitsSet));
 
-			Assert.That(Uuid128.MaxValue.Upper16, Is.EqualTo(0xFFFF));
-			Assert.That(Uuid128.MaxValue.Upper32, Is.EqualTo(0xFFFFFFFF));
-			Assert.That(Uuid128.MaxValue.Upper48, Is.EqualTo(0xFFFFFFFFFFFF));
-			Assert.That(Uuid128.MaxValue.Upper64, Is.EqualTo(0xFFFFFFFFFFFFFFFF));
-			Assert.That(Uuid128.MaxValue.Upper80, Is.EqualTo(Uuid80.MaxValue));
-			Assert.That(Uuid128.MaxValue.Upper96, Is.EqualTo(Uuid96.MaxValue));
+			Assert.That(Uuid128.AllBitsSet.Upper16, Is.EqualTo(0xFFFF));
+			Assert.That(Uuid128.AllBitsSet.Upper32, Is.EqualTo(0xFFFFFFFF));
+			Assert.That(Uuid128.AllBitsSet.Upper48, Is.EqualTo(0xFFFFFFFFFFFF));
+			Assert.That(Uuid128.AllBitsSet.Upper64, Is.EqualTo(0xFFFFFFFFFFFFFFFF));
+			Assert.That(Uuid128.AllBitsSet.Upper80, Is.EqualTo(Uuid80.AllBitsSet));
+			Assert.That(Uuid128.AllBitsSet.Upper96, Is.EqualTo(Uuid96.AllBitsSet));
 
 			var tmp = new byte[16];
 			tmp.AsSpan().Fill(0xAA);
-			Assert.That(Uuid128.MaxValue.TryWriteTo(tmp), Is.True);
+			Assert.That(Uuid128.AllBitsSet.TryWriteTo(tmp), Is.True);
 			Assert.That(tmp, Is.EqualTo(new byte[] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }));
 		}
 

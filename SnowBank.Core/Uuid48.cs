@@ -46,10 +46,21 @@ namespace System
 
 		private const ulong MASK_48 = 0xFFFFFFFFFFFFul;
 
-		/// <summary><see cref="Uuid48"/> with all bits set to zero: <c>0000-00000000</c></summary>
+		/// <summary><see cref="Uuid48"/> with all bits set to <c>0</c> (<c>"0000-00000000"</c>)</summary>
 		public static readonly Uuid48 Empty;
 
-		/// <summary><see cref="Uuid48"/> with all bits set to one: <c>FFFF-FFFFFFFF</c></summary>
+		/// <summary><see cref="Uuid48"/> with only bit 0 set to <c>1</c> (<c>"0000-00000001"</c>)</summary>
+		public static readonly Uuid48 One = new(1);
+
+		/// <summary><see cref="Uuid48"/> with all bits set to <c>1</c> (<c>"FFFF-FFFFFFFF"</c>)</summary>
+		public static readonly Uuid48 AllBitsSet = new(MASK_48);
+
+		/// <summary><see cref="Uuid48"/> with all bits set to <c>0</c> (<c>"0000-00000000"</c>)</summary>
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public static readonly Uuid48 MinValue;
+
+		/// <summary><see cref="Uuid48"/> with all bits set to <c>1</c> (<c>"FFFF-FFFFFFFF"</c>)</summary>
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static readonly Uuid48 MaxValue = new(MASK_48);
 
 		/// <summary>Maximum integer value that can be represented by a <see cref="Uuid48"/> (2^48 - 1)</summary>
@@ -360,7 +371,7 @@ namespace System
 		/// <returns>Equivalent <see cref="Uuid48"/></returns>
 		/// <exception cref="OverflowException">If <paramref name="value"/> is negative, or greater than <see cref="MaxRawValue"/></exception>
 		[Pure]
-		public static Uuid48 FromInt64(long value) => (value >= 0 && value <= (long) MaxRawValue) ? new(value) : throw new OverflowException();
+		public static Uuid48 FromInt64(long value) => value is >= 0 and <= (long) MaxRawValue ? new(value) : throw new OverflowException();
 
 		/// <summary>Returns a <see cref="Uuid48"/> from a <see cref="long"/></summary>
 		/// <param name="value">Value that must not be greater than <see cref="MaxRawValue"/></param>
@@ -374,7 +385,7 @@ namespace System
 		/// <returns>Equivalent <see cref="Uuid48"/></returns>
 		/// <remarks>The upper 16-bits are set to <c>0</c></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Uuid48 FromLower32(int value) => new(((ulong) value) & MASK_48);
+		public static Uuid48 FromLower32(int value) => new(((uint) value) & MASK_48);
 
 		/// <summary>Returns a <see cref="Uuid48"/> from a <see cref="int"/></summary>
 		/// <param name="value">Value to convert</param>
