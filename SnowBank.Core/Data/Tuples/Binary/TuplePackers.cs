@@ -1183,8 +1183,8 @@ namespace SnowBank.Data.Tuples.Binary
 					case TupleTypes.True: return TrueSingleton;
 					case TupleTypes.Uuid128: return TupleParser.ParseGuid(slice);
 					case TupleTypes.Uuid64: return TupleParser.ParseUuid64(slice);
-					case TupleTypes.VersionStamp80: return TupleParser.ParseVersionStamp(slice);
-					case TupleTypes.VersionStamp96: return TupleParser.ParseVersionStamp(slice);
+					case TupleTypes.Uuid80: return TupleParser.ParseVersionStamp(slice);
+					case TupleTypes.Uuid96: return TupleParser.ParseVersionStamp(slice);
 
 					case TupleTypes.Directory:
 					{
@@ -2767,9 +2767,9 @@ namespace SnowBank.Data.Tuples.Binary
 				{ // expect text representation
 					return Uuid96.Parse(TupleParser.ParseUnicode(slice));
 				}
-				case TupleTypes.VersionStamp96:
+				case TupleTypes.Uuid96:
 				{
-					return TupleParser.ParseVersionStamp(slice).ToUuid96();
+					return TupleParser.ParseUuid96(slice);
 				}
 				default:
 				{
@@ -2814,9 +2814,9 @@ namespace SnowBank.Data.Tuples.Binary
 				{ // expect text representation
 					return Uuid80.Parse(TupleParser.ParseUnicode(slice));
 				}
-				case TupleTypes.VersionStamp80:
+				case TupleTypes.Uuid80:
 				{
-					return TupleParser.ParseVersionStamp(slice).ToUuid80();
+					return TupleParser.ParseUuid80(slice);
 				}
 				default:
 				{
@@ -2901,7 +2901,7 @@ namespace SnowBank.Data.Tuples.Binary
 			return type switch
 			{
 				TupleTypes.Nil => default,
-				TupleTypes.VersionStamp80 or TupleTypes.VersionStamp96 => VersionStamp.TryReadFrom(slice.Slice(1), out var stamp) ? stamp : throw new FormatException("Cannot convert malformed tuple segment into a VersionStamp"),
+				TupleTypes.Uuid80 or TupleTypes.Uuid96 => VersionStamp.TryReadFrom(slice.Slice(1), out var stamp) ? stamp : throw new FormatException("Cannot convert malformed tuple segment into a VersionStamp"),
 				_ => throw new FormatException($"Cannot convert tuple segment of type 0x{type:X} into a VersionStamp")
 			};
 		}

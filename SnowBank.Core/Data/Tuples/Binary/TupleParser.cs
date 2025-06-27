@@ -952,7 +952,7 @@ namespace SnowBank.Data.Tuples.Binary
 		public static void WriteUuid96(ref TupleWriter writer, Uuid96 value)
 		{
 			var span = writer.Output.AllocateSpan(13);
-			span[0] = TupleTypes.VersionStamp96;
+			span[0] = TupleTypes.Uuid96;
 			value.WriteTo(span.Slice(1));
 		}
 
@@ -973,7 +973,7 @@ namespace SnowBank.Data.Tuples.Binary
 		public static void WriteUuid80(ref TupleWriter writer, Uuid80 value)
 		{
 			var span = writer.Output.AllocateSpan(11);
-			span[0] = TupleTypes.VersionStamp80;
+			span[0] = TupleTypes.Uuid80;
 			value.WriteToUnsafe(span.Slice(1));
 		}
 
@@ -1016,13 +1016,13 @@ namespace SnowBank.Data.Tuples.Binary
 			if (value.HasUserVersion)
 			{ // 96-bits VersionStamp
 				var span = writer.Output.AllocateSpan(13);
-				span[0] = TupleTypes.VersionStamp96;
+				span[0] = TupleTypes.Uuid96;
 				VersionStamp.WriteUnsafe(span.Slice(1), in value);
 			}
 			else
 			{ // 80-bits VersionStamp
 				var span = writer.Output.AllocateSpan(11);
-				span[0] = TupleTypes.VersionStamp80;
+				span[0] = TupleTypes.Uuid80;
 				VersionStamp.WriteUnsafe(span.Slice(1), in value);
 			}
 		}
@@ -1678,25 +1678,11 @@ namespace SnowBank.Data.Tuples.Binary
 			return Uuid64.Read(slice.Slice(1, 8));
 		}
 
-		/// <summary>Parse a tuple segment containing an 80-bit or 96-bit VersionStamp</summary>
-		[Pure]
-		public static VersionStamp ParseVersionStamp(Slice slice)
-		{
-			Contract.Debug.Requires(slice.HasValue && (slice[0] == TupleTypes.VersionStamp80 || slice[0] == TupleTypes.VersionStamp96));
-
-			if (slice.Count != 11 && slice.Count != 13)
-			{
-				throw new FormatException("Slice has invalid size for a VersionStamp");
-			}
-
-			return VersionStamp.ReadFrom(slice.Substring(1));
-		}
-
-		/// <summary>Parse a tuple segment containing an 80-bit or 96-bit VersionStamp</summary>
+		/// <summary>Parses a tuple segment containing either an 80-bit or 96-bit VersionStamp</summary>
 		[Pure]
 		public static VersionStamp ParseVersionStamp(ReadOnlySpan<byte> slice)
 		{
-			Contract.Debug.Requires(slice.Length > 0 && (slice[0] is TupleTypes.VersionStamp80 or TupleTypes.VersionStamp96));
+			Contract.Debug.Requires(slice.Length > 0 && (slice[0] is TupleTypes.Uuid80 or TupleTypes.Uuid96));
 
 			if (slice.Length != 11 && slice.Length != 13)
 			{
@@ -1704,6 +1690,34 @@ namespace SnowBank.Data.Tuples.Binary
 			}
 
 			return VersionStamp.ReadFrom(slice[1..]);
+		}
+
+		/// <summary>Parses a tuple segment containing an 80-bit UUID</summary>
+		[Pure]
+		public static Uuid80 ParseUuid80(ReadOnlySpan<byte> slice)
+		{
+			Contract.Debug.Requires(slice.Length > 0 && slice[0] is TupleTypes.Uuid80);
+
+			if (slice.Length != 11)
+			{
+				throw new FormatException("Slice has invalid size for a Uuid80");
+			}
+
+			return Uuid80.Read(slice[1..]);
+		}
+
+		/// <summary>Parses a tuple segment containing an 96-bit UUID</summary>
+		[Pure]
+		public static Uuid96 ParseUuid96(ReadOnlySpan<byte> slice)
+		{
+			Contract.Debug.Requires(slice.Length > 0 && slice[0] is TupleTypes.Uuid96);
+
+			if (slice.Length != 13)
+			{
+				throw new FormatException("Slice has invalid size for a Uuid96");
+			}
+
+			return Uuid96.Read(slice[1..]);
 		}
 
 		#endregion
@@ -1827,12 +1841,12 @@ namespace SnowBank.Data.Tuples.Binary
 					return reader.TryReadBytes(9, out token, out error);
 				}
 
-				case TupleTypes.VersionStamp80:
+				case TupleTypes.Uuid80:
 				{ // <32>(10 bytes)
 					return reader.TryReadBytes(11, out token, out error);
 				}
 
-				case TupleTypes.VersionStamp96:
+				case TupleTypes.Uuid96:
 				{ // <33>(12 bytes)
 					return reader.TryReadBytes(13, out token, out error);
 				}

@@ -165,13 +165,13 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <remarks><c>31 xx xx xx xx xx xx xx xx</c></remarks>
 		public const byte Uuid64 = 0x31;
 
-		/// <summary>80-bit VersionStamp</summary>
+		/// <summary>UUID (80 bits) / VersionStamp</summary>
 		/// <remarks><c>32 xx xx xx xx xx xx xx xx xx xx</c></remarks>
-		public const byte VersionStamp80 = 0x32;
+		public const byte Uuid80 = 0x32;
 
-		/// <summary>96-bit VersionStamp</summary>
+		/// <summary>UUID (96 bits) / VersionStamp</summary>
 		/// <remarks><c>33 xx xx xx xx xx xx xx xx xx xx xx xx</c></remarks>
-		public const byte VersionStamp96 = 0x33;
+		public const byte Uuid96 = 0x33;
 
 		/// <summary>Reserved Type 0 (application specific)</summary>
 		/// <remarks><c>40 ?? ...</c></remarks>
@@ -270,8 +270,8 @@ namespace SnowBank.Data.Tuples.Binary
 				False or True  => TupleSegmentType.Boolean,
 				Uuid128 => TupleSegmentType.Uuid128,
 				Uuid64 => TupleSegmentType.Uuid64,
-				VersionStamp80 => TupleSegmentType.VersionStamp80,
-				VersionStamp96 => TupleSegmentType.VersionStamp96,
+				Uuid80 => TupleSegmentType.VersionStamp80,
+				Uuid96 => TupleSegmentType.VersionStamp96,
 				>= UserType0 and <= UserTypeF => TupleSegmentType.UserType,
 				_ => TupleSegmentType.Invalid,
 			};
