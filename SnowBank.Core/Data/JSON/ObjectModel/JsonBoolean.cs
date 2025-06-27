@@ -26,6 +26,7 @@
 
 namespace SnowBank.Data.Json
 {
+	using System.ComponentModel;
 	using SnowBank.Buffers;
 
 	/// <summary>JSON Boolean (<see langword="true"/> or <see langword="false"/>)</summary>
@@ -225,51 +226,65 @@ namespace SnowBank.Data.Json
 		public override bool ToBoolean(bool _ = false) => m_value;
 
 		/// <inheritdoc />
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public override byte ToByte(byte _ = 0) => m_value ? (byte) 1 : default(byte);
 
 		/// <inheritdoc />
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public override sbyte ToSByte(sbyte _ = 0) => m_value ? (sbyte)1 : default(sbyte);
 
 		/// <inheritdoc />
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public override char ToChar(char _ = '\0') => m_value ? 'Y' : 'N';
 
 		/// <inheritdoc />
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public override short ToInt16(short _ = 0) => m_value ? (short) 1 : default(short);
 
 		/// <inheritdoc />
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public override ushort ToUInt16(ushort _ = 0) => m_value ? (ushort) 1 : default(ushort);
 
 		/// <inheritdoc />
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public override int ToInt32(int _ = 0) => m_value ? 1 : 0;
 
 		/// <inheritdoc />
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public override uint ToUInt32(uint _ = 0) => m_value ? 1U : 0U;
 
 		/// <inheritdoc />
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public override long ToInt64(long _ = 0) => m_value ? 1L : 0L;
 
 		/// <inheritdoc />
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public override ulong ToUInt64(ulong _ = 0) => m_value ? 1UL : 0UL;
 
 #if NET8_0_OR_GREATER
 
 		/// <inheritdoc />
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public override Int128 ToInt128(Int128 _ = default) => m_value ? Int128.One : Int128.Zero;
 
 		/// <inheritdoc />
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public override UInt128 ToUInt128(UInt128 _ = default) => m_value ? UInt128.One : UInt128.Zero;
 
 #endif
 
 		/// <inheritdoc />
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public override float ToSingle(float _ = 0f) => m_value ? 1f : 0f;
 
 		/// <inheritdoc />
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public override double ToDouble(double _ = 0d) => m_value ? 1d : 0d;
 
 
 #if NET8_0_OR_GREATER
 		/// <inheritdoc />
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public override Half ToHalf(Half _ = default) => m_value ? Half.One : Half.Zero;
 #else
 		private static readonly Half HalfZero = (Half) 0;
@@ -278,15 +293,34 @@ namespace SnowBank.Data.Json
 #endif
 
 		/// <inheritdoc />
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public override decimal ToDecimal(decimal _ = 0m) => m_value ? 1m : 0m;
 
-		private static readonly Guid AllF = new(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 });
 
 		/// <inheritdoc />
-		public override Guid ToGuid(Guid _ = default) => m_value ? AllF : Guid.Empty;
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public override Guid ToGuid(Guid _ = default)
+#if NET9_0_OR_GREATER
+			=> m_value ? Guid.AllBitsSet : Guid.Empty;
+#else
+			=> m_value ? new(-1, -1, -1, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue) : Guid.Empty;
+#endif
 
 		/// <inheritdoc />
-		public override Uuid64 ToUuid64(Uuid64 _ = default) => m_value ? new Uuid64(-1) : default(Uuid64);
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public override Uuid96 ToUuid96(Uuid96 _ = default) => m_value ? Uuid96.AllBitsSet : Uuid96.Empty;
+
+		/// <inheritdoc />
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public override Uuid80 ToUuid80(Uuid80 _ = default) => m_value ? Uuid80.AllBitsSet : Uuid80.Empty;
+
+		/// <inheritdoc />
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public override Uuid64 ToUuid64(Uuid64 _ = default) => m_value ? Uuid64.AllBitsSet : Uuid64.Empty;
+
+		/// <inheritdoc />
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public override Uuid48 ToUuid48(Uuid48 _ = default) => m_value ? Uuid48.AllBitsSet : Uuid48.Empty;
 
 		#endregion
 

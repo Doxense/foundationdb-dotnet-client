@@ -1047,7 +1047,7 @@ namespace System
 		}
 
 		/// <summary>Converts a span into a 64-bit UUID.</summary>
-		/// <returns>Uuid decoded from the span.</returns>
+		/// <returns><see cref="Uuid64"/> decoded from the span.</returns>
 		/// <remarks>The span can either be an 8-byte array, or an ASCII string of 16, 17 or 19 chars</remarks>
 		[Pure]
 		public static Uuid64 ToUuid64(this ReadOnlySpan<byte> span)
@@ -1074,10 +1074,43 @@ namespace System
 		}
 
 		/// <summary>Converts a span into a 64-bit UUID.</summary>
-		/// <returns>Uuid decoded from the span.</returns>
+		/// <returns><see cref="Uuid64"/> decoded from the span.</returns>
 		/// <remarks>The span can either be an 8-byte array, or an ASCII string of 16, 17 or 19 chars</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid64 ToUuid64(this Span<byte> span) => ToUuid64((ReadOnlySpan<byte>) span);
+
+		/// <summary>Converts a span into a 48-bit UUID.</summary>
+		/// <returns><see cref="Uuid48"/> decoded from the span.</returns>
+		/// <remarks>The span can either be an 6-byte array, or an ASCII string of 12, 13 or 15 chars</remarks>
+		[Pure]
+		public static Uuid48 ToUuid48(this ReadOnlySpan<byte> span)
+		{
+			if (span.Length == 0) return default;
+
+			switch (span.Length)
+			{
+				case 6:
+				{ // binary (6 bytes)
+					return Uuid48.Read(span);
+				}
+
+				case 12: // hex
+				case 13: // hex-hex
+				case 15: // {hex-hex}
+				{
+					// ReSharper disable once AssignNullToNotNullAttribute
+					return Uuid48.Parse(ToByteString(span));
+				}
+			}
+
+			throw new FormatException("Cannot convert span into an Uuid48 because it has an incorrect size.");
+		}
+
+		/// <summary>Converts a span into a 48-bit UUID.</summary>
+		/// <returns><see cref="Uuid48"/> decoded from the span.</returns>
+		/// <remarks>The span can either be an 8-byte array, or an ASCII string of 16, 17 or 19 chars</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Uuid48 ToUuid48(this Span<byte> span) => ToUuid48((ReadOnlySpan<byte>) span);
 
 		#endregion
 
@@ -1395,8 +1428,8 @@ namespace System
 
 		#region 80 bits...
 
-		/// <summary>Converts a span into a 64-bit UUID.</summary>
-		/// <returns>Uuid decoded from the span.</returns>
+		/// <summary>Converts a span into an 80-bit UUID.</summary>
+		/// <returns><see cref="Uuid80"/> decoded from the span.</returns>
 		/// <remarks>The span can either be an 10-byte array, or an ASCII string of 20, 22 or 24 chars</remarks>
 		[Pure]
 		public static Uuid80 ToUuid80(this ReadOnlySpan<byte> span)
@@ -1418,8 +1451,8 @@ namespace System
 			};
 		}
 
-		/// <summary>Converts a span into a 64-bit UUID.</summary>
-		/// <returns>Uuid decoded from the span.</returns>
+		/// <summary>Converts a span into an 80-bit UUID.</summary>
+		/// <returns><see cref="Uuid80"/> decoded from the span.</returns>
 		/// <remarks>The span can either be an 10-byte array, or an ASCII string of 20, 22 or 24 chars</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid80 ToUuid80(this Span<byte> span) => ToUuid80((ReadOnlySpan<byte>) span);
@@ -1428,8 +1461,8 @@ namespace System
 
 		#region 96 bits...
 
-		/// <summary>Converts a span into a 64-bit UUID.</summary>
-		/// <returns>Uuid decoded from the span.</returns>
+		/// <summary>Converts a span into a 96-bit UUID.</summary>
+		/// <returns><see cref="Uuid96"/> decoded from the span.</returns>
 		/// <remarks>The span can either be an 12-byte array, or an ASCII string of 24, 26 or 28 chars</remarks>
 		[Pure]
 		public static Uuid96 ToUuid96(this ReadOnlySpan<byte> span)
@@ -1455,8 +1488,8 @@ namespace System
 			throw new FormatException("Cannot convert span into an Uuid96 because it has an incorrect size.");
 		}
 
-		/// <summary>Converts a span into a 64-bit UUID.</summary>
-		/// <returns>Uuid decoded from the span.</returns>
+		/// <summary>Converts a span into a 96-bit UUID.</summary>
+		/// <returns><see cref="Uuid96"/> decoded from the span.</returns>
 		/// <remarks>The span can either be an 12-byte array, or an ASCII string of 24, 26 or 28 chars</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid96 ToUuid96(this Span<byte> span) => ToUuid96((ReadOnlySpan<byte>) span);

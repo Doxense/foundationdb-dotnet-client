@@ -1750,25 +1750,31 @@ namespace SnowBank.Buffers
 		/// <summary>Writes a 128-bit UUID, and advances the cursor</summary>
 		public void WriteUuid128(in Uuid128 value)
 		{
-			value.WriteTo(AllocateSpan(Unsafe.SizeOf<Uuid128>()));
+			value.WriteTo(AllocateSpan(Uuid128.SizeOf));
 		}
 
 		/// <summary>Writes a 96-bit UUID, and advances the cursor</summary>
 		public void WriteUuid96(in Uuid96 value)
 		{
-			value.WriteToUnsafe(AllocateSpan(Unsafe.SizeOf<Uuid96>()));
+			value.WriteToUnsafe(AllocateSpan(Uuid96.SizeOf));
 		}
 
 		/// <summary>Writes an 80-bit UUID, and advances the cursor</summary>
 		public void WriteUuid80(in Uuid80 value)
 		{
-			value.WriteToUnsafe(AllocateSpan(Unsafe.SizeOf<Uuid80>()));
+			value.WriteToUnsafe(AllocateSpan(Uuid80.SizeOf));
 		}
 
-		/// <summary>Writes a 128-bit UUID, and advances the cursor</summary>
+		/// <summary>Writes a 64-bit UUID, and advances the cursor</summary>
 		public void WriteUuid64(Uuid64 value)
 		{
-			value.WriteToUnsafe(AllocateSpan(Unsafe.SizeOf<Uuid64>()));
+			value.WriteToUnsafe(AllocateSpan(Uuid64.SizeOf));
+		}
+
+		/// <summary>Writes a 48-bit UUID, and advances the cursor</summary>
+		public void WriteUuid48(Uuid48 value)
+		{
+			value.WriteToUnsafe(AllocateSpan(Uuid48.SizeOf));
 		}
 
 		#endregion

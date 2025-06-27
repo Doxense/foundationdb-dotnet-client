@@ -62,6 +62,7 @@ namespace SnowBank.Data.Json
 		, IEquatable<ushort>
 		, IEquatable<TimeSpan>
 		, IEquatable<Half>
+		, IEquatable<Uuid48>
 #if NET8_0_OR_GREATER
 		, IEquatable<Int128>
 		, IEquatable<UInt128>
@@ -1443,6 +1444,10 @@ namespace SnowBank.Data.Json
 
 #endif
 
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
+		[Pure]
+		public static JsonNumber Create(Uuid48 value) => new(new Number(value.ToUInt64()), Kind.Unsigned, StringConverters.ToString(value.ToUInt64()));
+
 		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds in the interval</summary>
 		/// <param name="value">Interval (in seconds)</param>
 		/// <returns>JSON value that will be serialized as a decimal value.</returns>
@@ -1672,6 +1677,15 @@ namespace SnowBank.Data.Json
 		public static JsonValue Return(UInt128? value) => value.HasValue ? Create(value.Value) : JsonNull.Null;
 
 #endif
+
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(Uuid48 value) => Create(value);
+
+		/// <summary>Returns the equivalent <see cref="JsonNumber"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static JsonValue Return(Uuid48? value) => value.HasValue ? Create(value.Value) : JsonNull.Null;
+
 
 		/// <summary>Returns a <see cref="JsonNumber"/> corresponding to the number of seconds in the interval</summary>
 		/// <param name="value">Interval (in seconds)</param>
@@ -2334,8 +2348,11 @@ namespace SnowBank.Data.Json
 		/// <inheritdoc />
 		public override decimal ToDecimal(decimal _ = 0) => m_value.ToDecimal(m_kind);
 
-		/// <summary>Converts a JSON Number, as the number of seconds since Unix Epoch, into a DateTime (UTC)</summary>
-		/// <returns>DateTime (UTC) equal to epoch(1970-1-1Z) + seconds(value)</returns>
+		/// <inheritdoc />
+		public override Uuid48 ToUuid48(Uuid48 _ = default) => !IsNaN(this) ? Uuid48.FromUInt64(m_value.ToUInt64(m_kind)) : Uuid48.MaxValue;
+
+		/// <summary>Converts this <see cref="JsonNumber"/>, interpreted as the number of seconds since Unix Epoch, into a <see cref="DateTime"/> (UTC)</summary>
+		/// <returns><see cref="DateTime"/> (in UTC) equal to epoch(1970-1-1Z) + seconds(value)</returns>
 		public override DateTime ToDateTime(DateTime _ = default)
 		{
 			// By convention, NaN is mapped to DateTime.MaxValue
@@ -2353,8 +2370,8 @@ namespace SnowBank.Data.Json
 			return new DateTime((long) ticks, DateTimeKind.Utc);
 		}
 
-		/// <summary>Converts a JSON Number, as the number of seconds since Unix Epoch, into a DateTimeOffset</summary>
-		/// <returns>DateTimeOffset (UTC) equal to epoch(1970-1-1Z) + seconds(value)</returns>
+		/// <summary>Converts this <see cref="JsonNumber"/>, interpreted as the number of seconds since Unix Epoch, into a <see cref="DateTimeOffset"/></summary>
+		/// <returns><see cref="DateTimeOffset"/> (UTC) equal to epoch(1970-1-1Z) + seconds(value)</returns>
 		/// <remarks>Since the original TimeZone information is lost, the result with have a time offset of <see langword="0"/>.</remarks>.
 		public override DateTimeOffset ToDateTimeOffset(DateTimeOffset _ = default)
 		{
@@ -2374,12 +2391,14 @@ namespace SnowBank.Data.Json
 			return new DateTimeOffset((long) ticks, TimeSpan.Zero);
 		}
 
-		/// <inheritdoc />
+		/// <summary>Converts this <see cref="JsonNumber"/>, interpreted as the number of days since Unix Epoch, into a <see cref="DateOnly"/></summary>
+		/// <returns><see cref="DateOnly"/> equal to epoch(1970-1-1Z) + days(value)</returns>
 		[Pure]
 		public override DateOnly ToDateOnly(DateOnly _ = default)
 			=> !IsNaN(this) ? new DateOnly(1970, 1, 1).AddDays(ToInt32()) : DateOnly.MaxValue;
 
-		/// <inheritdoc />
+		/// <summary>Converts this <see cref="JsonNumber"/>, interpreted as the number of seconds since midnight, into a <see cref="DateOnly"/></summary>
+		/// <returns><see cref="TimeOnly"/> (UTC) equal to <see cref="TimeOnly.MinValue"/> + seconds(value)</returns>
 		[Pure]
 		public override TimeOnly ToTimeOnly(TimeOnly _ = default)
 			=> !IsNaN(this) ? TimeOnly.FromTimeSpan(ToTimeSpan()) : TimeOnly.MaxValue;
@@ -2684,6 +2703,16 @@ namespace SnowBank.Data.Json
 		};
 
 #endif
+
+		/// <inheritdoc />
+		public bool Equals(Uuid48 value) => m_kind switch
+		{
+			Kind.Decimal => m_value.Decimal == (decimal) value.ToUInt64(),
+			Kind.Double => m_value.Double == (double) value.ToUInt64(),
+			Kind.Signed => m_value.Signed == value.ToInt64(),
+			Kind.Unsigned => m_value.Unsigned == value.ToUInt64(),
+			_ => false
+		};
 
 		/// <inheritdoc />
 		public bool Equals(float value) => m_kind switch

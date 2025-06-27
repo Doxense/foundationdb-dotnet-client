@@ -600,7 +600,29 @@ namespace FoundationDB.Client
 		/// <summary>Sets the value of a key in the database as a 128-bits UUID</summary>
 		public static void SetValueUuid128(this IFdbTransaction trans, ReadOnlySpan<byte> key, Uuid128 value)
 		{
-			Span<byte> scratch = stackalloc byte[16];
+			Span<byte> scratch = stackalloc byte[Uuid128.SizeOf];
+			value.WriteTo(scratch);
+			trans.Set(key, scratch);
+		}
+
+		/// <summary>Sets the value of a key in the database as a 96-bits UUID</summary>
+		public static void SetValueUuid96(this IFdbTransaction trans, Slice key, Uuid96 value) => SetValueUuid96(trans, ToSpanKey(key), value);
+
+		/// <summary>Sets the value of a key in the database as a 96-bits UUID</summary>
+		public static void SetValueUuid96(this IFdbTransaction trans, ReadOnlySpan<byte> key, Uuid96 value)
+		{
+			Span<byte> scratch = stackalloc byte[Uuid96.SizeOf];
+			value.WriteTo(scratch);
+			trans.Set(key, scratch);
+		}
+
+		/// <summary>Sets the value of a key in the database as a 96-bits UUID</summary>
+		public static void SetValueUuid80(this IFdbTransaction trans, Slice key, Uuid80 value) => SetValueUuid80(trans, ToSpanKey(key), value);
+
+		/// <summary>Sets the value of a key in the database as a 96-bits UUID</summary>
+		public static void SetValueUuid80(this IFdbTransaction trans, ReadOnlySpan<byte> key, Uuid80 value)
+		{
+			Span<byte> scratch = stackalloc byte[Uuid96.SizeOf];
 			value.WriteTo(scratch);
 			trans.Set(key, scratch);
 		}
@@ -611,7 +633,18 @@ namespace FoundationDB.Client
 		/// <summary>Sets the value of a key in the database as a 64-bits UUID</summary>
 		public static void SetValueUuid64(this IFdbTransaction trans, ReadOnlySpan<byte> key, Uuid64 value)
 		{
-			Span<byte> scratch = stackalloc byte[8];
+			Span<byte> scratch = stackalloc byte[Uuid64.SizeOf];
+			value.WriteTo(scratch);
+			trans.Set(key, scratch);
+		}
+
+		/// <summary>Sets the value of a key in the database as a 48-bits UUID</summary>
+		public static void SetValueUuid48(this IFdbTransaction trans, Slice key, Uuid48 value) => SetValueUuid48(trans, ToSpanKey(key), value);
+
+		/// <summary>Sets the value of a key in the database as a 48-bits UUID</summary>
+		public static void SetValueUuid48(this IFdbTransaction trans, ReadOnlySpan<byte> key, Uuid48 value)
+		{
+			Span<byte> scratch = stackalloc byte[Uuid48.SizeOf];
 			value.WriteTo(scratch);
 			trans.Set(key, scratch);
 		}

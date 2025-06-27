@@ -529,6 +529,12 @@ namespace SnowBank.Data.Json
 		public override Uuid64? ToUuid64OrDefault(Uuid64? defaultValue = null) => defaultValue;
 
 		/// <inheritdoc />
+		public override Uuid48 ToUuid48(Uuid48 defaultValue = default) => defaultValue;
+
+		/// <inheritdoc />
+		public override Uuid48? ToUuid48OrDefault(Uuid48? defaultValue = null) => defaultValue;
+
+		/// <inheritdoc />
 		public override DateTime ToDateTime(DateTime defaultValue = default) => defaultValue;
 
 		/// <inheritdoc />
