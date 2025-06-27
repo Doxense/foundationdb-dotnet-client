@@ -2118,14 +2118,12 @@ namespace SnowBank.Data.Json
 
 		#region Add(...)
 
-		/// <summary>Adds a new value to the parent object or array</summary>
-		/// <param name="value">Value of the new field or item</param>
+		/// <summary>Appends a new value at the end of this array</summary>
+		/// <param name="value">Value of the new item</param>
 		/// <remarks>
 		/// <para>If the current element is null or missing, it will automatically be promoted to an array with <paramref name="value"/> as its single element.</para>
-		/// <para>If the current element is a field of an object, then it will be created in the parent object, unless it already has a non-null value, in which case an exception will be thrown.</para>
-		/// <para>If the current element is an index in an array, then it will be filled with <paramref name="value"/>, unless it previously had a non-null value, in which case an exception will be thrown.</para>
 		/// </remarks>
-		/// <exception cref="ArgumentException">If the current element already exists.</exception>
+		/// <exception cref="ArgumentException">If the current element has a value that is not an array.</exception>
 		public void Add(JsonValue? value) => InsertOrAdd(^0, value);
 
 		/// <inheritdoc cref="Add(JsonValue?)"/>
