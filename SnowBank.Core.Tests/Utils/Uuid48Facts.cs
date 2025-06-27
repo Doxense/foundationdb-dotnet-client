@@ -688,26 +688,92 @@ namespace SnowBank.Core.Tests
 		[Test]
 		public void Test_Uuid48_Arithmetic()
 		{
-			var uid = Uuid48.Empty;
+			{
+				var uid = Uuid48.Empty;
 
-			Assert.That(uid + 42L, Is.EqualTo(new Uuid48(42)));
-			Assert.That(uid + 42UL, Is.EqualTo(new Uuid48(42)));
-			uid++;
-			Assert.That(uid.ToInt64(), Is.EqualTo(1));
-			uid++;
-			Assert.That(uid.ToInt64(), Is.EqualTo(2));
-			uid--;
-			Assert.That(uid.ToInt64(), Is.EqualTo(1));
-			uid--;
-			Assert.That(uid.ToInt64(), Is.EqualTo(0));
+				Assert.That(uid + 42L, Is.EqualTo(new Uuid48(42)));
+				Assert.That(uid + 42UL, Is.EqualTo(new Uuid48(42)));
+				uid++;
+				Assert.That(uid.ToInt64(), Is.EqualTo(1));
+				uid++;
+				Assert.That(uid.ToInt64(), Is.EqualTo(2));
+				uid--;
+				Assert.That(uid.ToInt64(), Is.EqualTo(1));
+				uid--;
+				Assert.That(uid.ToInt64(), Is.Zero);
+			}
 
-			uid = Uuid48.NewUuid();
+			Assert.Multiple(() =>
+			{
+				var uid = Uuid48.NewUuid();
+				Assert.That(uid + 123, Is.EqualTo(new Uuid48(uid.ToInt64() + 123)));
+				Assert.That(uid + 123U, Is.EqualTo(new Uuid48(uid.ToUInt64() + 123)));
+				Assert.That(uid + 123L, Is.EqualTo(new Uuid48(uid.ToInt64() + 123)));
+				Assert.That(uid + 123UL, Is.EqualTo(new Uuid48(uid.ToUInt64() + 123)));
 
-			Assert.That(uid + 123L, Is.EqualTo(new Uuid48(uid.ToInt64() + 123)));
-			Assert.That(uid + 123UL, Is.EqualTo(new Uuid48(uid.ToUInt64() + 123)));
+				Assert.That(uid - 123, Is.EqualTo(new Uuid48(uid.ToInt64() - 123)));
+				Assert.That(uid - 123U, Is.EqualTo(new Uuid48(uid.ToUInt64() - 123)));
+				Assert.That(uid - 123L, Is.EqualTo(new Uuid48(uid.ToInt64() - 123)));
+				Assert.That(uid - 123UL, Is.EqualTo(new Uuid48(uid.ToUInt64() - 123)));
+			});
 
-			Assert.That(uid - 123L, Is.EqualTo(new Uuid48(uid.ToInt64() - 123)));
-			Assert.That(uid - 123UL, Is.EqualTo(new Uuid48(uid.ToUInt64() - 123)));
+			Assert.Multiple(() =>
+			{ // checked vs unchecked
+
+				Assert.That(unchecked(Uuid48.MaxValue + 1), Is.EqualTo(Uuid48.MinValue));
+				Assert.That(unchecked(Uuid48.MaxValue + 1U), Is.EqualTo(Uuid48.MinValue));
+				Assert.That(unchecked(Uuid48.MaxValue + 1L), Is.EqualTo(Uuid48.MinValue));
+				Assert.That(unchecked(Uuid48.MaxValue + 1UL), Is.EqualTo(Uuid48.MinValue));
+				Assert.That(() => checked(Uuid48.MaxValue + 1), Throws.InstanceOf<OverflowException>());
+				Assert.That(() => checked(Uuid48.MaxValue + 1U), Throws.InstanceOf<OverflowException>());
+				Assert.That(() => checked(Uuid48.MaxValue + 1L), Throws.InstanceOf<OverflowException>());
+				Assert.That(() => checked(Uuid48.MaxValue + 1UL), Throws.InstanceOf<OverflowException>());
+
+				Assert.That(unchecked(Uuid48.MinValue - 1), Is.EqualTo(Uuid48.AllBitsSet));
+				Assert.That(unchecked(Uuid48.MinValue - 1U), Is.EqualTo(Uuid48.AllBitsSet));
+				Assert.That(unchecked(Uuid48.MinValue - 1L), Is.EqualTo(Uuid48.AllBitsSet));
+				Assert.That(unchecked(Uuid48.MinValue - 1UL), Is.EqualTo(Uuid48.AllBitsSet));
+				Assert.That(() => checked(Uuid48.MinValue - 1), Throws.InstanceOf<OverflowException>());
+				Assert.That(() => checked(Uuid48.MinValue - 1U), Throws.InstanceOf<OverflowException>());
+				Assert.That(() => checked(Uuid48.MinValue - 1L), Throws.InstanceOf<OverflowException>());
+				Assert.That(() => checked(Uuid48.MinValue - 1UL), Throws.InstanceOf<OverflowException>());
+			});
+
+			Assert.Multiple(() =>
+			{
+				var uid = Uuid48.NewUuid();
+				Assert.That(Uuid48.Empty & Uuid48.Empty, Is.EqualTo(Uuid48.Empty));
+				Assert.That(Uuid48.Empty & Uuid48.AllBitsSet, Is.EqualTo(Uuid48.Empty));
+				Assert.That(Uuid48.AllBitsSet & Uuid48.Empty, Is.EqualTo(Uuid48.Empty));
+				Assert.That(Uuid48.AllBitsSet & Uuid48.AllBitsSet, Is.EqualTo(Uuid48.AllBitsSet));
+
+				Assert.That(Uuid48.Empty | Uuid48.Empty, Is.EqualTo(Uuid48.Empty));
+				Assert.That(Uuid48.Empty | Uuid48.AllBitsSet, Is.EqualTo(Uuid48.AllBitsSet));
+				Assert.That(Uuid48.AllBitsSet | Uuid48.Empty, Is.EqualTo(Uuid48.AllBitsSet));
+				Assert.That(Uuid48.AllBitsSet | Uuid48.AllBitsSet, Is.EqualTo(Uuid48.AllBitsSet));
+
+				Assert.That(Uuid48.Empty ^ Uuid48.Empty, Is.EqualTo(Uuid48.Empty));
+				Assert.That(Uuid48.Empty ^ Uuid48.AllBitsSet, Is.EqualTo(Uuid48.AllBitsSet));
+				Assert.That(Uuid48.AllBitsSet ^ Uuid48.Empty, Is.EqualTo(Uuid48.AllBitsSet));
+				Assert.That(Uuid48.AllBitsSet ^ Uuid48.AllBitsSet, Is.EqualTo(Uuid48.Empty));
+
+				Assert.That(uid & Uuid48.Empty, Is.EqualTo(Uuid48.Empty));
+				Assert.That(uid & uid, Is.EqualTo(uid));
+				Assert.That(uid & Uuid48.AllBitsSet, Is.EqualTo(uid));
+
+				Assert.That(uid | Uuid48.Empty, Is.EqualTo(uid));
+				Assert.That(uid | uid, Is.EqualTo(uid));
+				Assert.That(uid | Uuid48.AllBitsSet, Is.EqualTo(Uuid48.AllBitsSet));
+
+				Assert.That(uid ^ Uuid48.Empty, Is.EqualTo(uid));
+				Assert.That(uid ^ uid, Is.EqualTo(Uuid48.Empty));
+				Assert.That(uid ^ Uuid48.AllBitsSet, Is.EqualTo(Uuid48.FromLower48(~uid.ToUInt64())));
+
+				Assert.That(uid & Uuid48.FromInt64(0xFFFF), Is.EqualTo(Uuid48.FromUpper32Lower16(0, uid.Lower16)));
+				Assert.That(uid & Uuid48.FromInt64(0xFFFFFFFF), Is.EqualTo(Uuid48.FromUpper16Lower32(0, uid.Lower32)));
+				Assert.That(uid | Uuid48.FromInt64(0xFFFF), Is.EqualTo(Uuid48.FromUpper32Lower16(uid.Upper32, ushort.MaxValue)));
+				Assert.That(uid | Uuid48.FromInt64(0xFFFFFFFF), Is.EqualTo(Uuid48.FromUpper16Lower32(uid.Upper16, uint.MaxValue)));
+			});
 		}
 
 		[Test]

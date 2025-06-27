@@ -29,13 +29,31 @@ namespace System
 	using System.Buffers.Binary;
 	using System.ComponentModel;
 	using System.Globalization;
+	using System.Numerics;
 	using System.Security.Cryptography;
+
 	using SnowBank.Text;
 
 	/// <summary>Represents a 48-bit UUID that is stored in high-endian format on the wire</summary>
 	[DebuggerDisplay("[{ToString(),nq}]")]
 	[ImmutableObject(true), PublicAPI, Serializable]
 	public readonly struct Uuid48 : IEquatable<Uuid48>, IComparable<Uuid48>, IEquatable<ulong>, IComparable<ulong>, IEquatable<long>, IComparable<long>, IEquatable<uint>, IComparable<uint>, IEquatable<int>, IComparable<int>, IEquatable<Slice>, ISpanFormattable
+		, IComparisonOperators<Uuid48, Uuid48, bool>
+		, IAdditiveIdentity<Uuid48, int>
+		, IAdditiveIdentity<Uuid48, uint>
+		, IAdditiveIdentity<Uuid48, long>
+		, IAdditiveIdentity<Uuid48, ulong>
+		, IIncrementOperators<Uuid48>
+		, IAdditionOperators<Uuid48, int, Uuid48>
+		, IAdditionOperators<Uuid48, long, Uuid48>
+		, IAdditionOperators<Uuid48, uint, Uuid48>
+		, IAdditionOperators<Uuid48, ulong, Uuid48>
+		, IDecrementOperators<Uuid48>
+		, ISubtractionOperators<Uuid48, int, Uuid48>
+		, ISubtractionOperators<Uuid48, long, Uuid48>
+		, ISubtractionOperators<Uuid48, uint, Uuid48>
+		, ISubtractionOperators<Uuid48, ulong, Uuid48>
+		, IBitwiseOperators<Uuid48, Uuid48, Uuid48>
 #if NET8_0_OR_GREATER
 		, ISpanParsable<Uuid48>
 #endif
@@ -1157,6 +1175,8 @@ namespace System
 
 		#region Operators...
 
+		#region Equality...
+
 		public static bool operator ==(Uuid48 left, Uuid48 right)
 		{
 			return left.Value == right.Value;
@@ -1227,45 +1247,95 @@ namespace System
 			return left.Value != right;
 		}
 
-		/// <summary>Add a value from this instance</summary>
-		public static Uuid48 operator +(Uuid48 left, long right)
-		{
-			//TODO: how to handle overflow ? negative values ?
-			ulong v = (ulong)right;
-			return new Uuid48(checked(left.Value + v));
-		}
+		#endregion
 
-		/// <summary>Add a value from this instance</summary>
-		public static Uuid48 operator +(Uuid48 left, ulong right)
-		{
-			return new Uuid48(checked(left.Value + right));
-		}
+		#region Artithmetic...
 
-		/// <summary>Subtract a value from this instance</summary>
-		public static Uuid48 operator -(Uuid48 left, long right)
-		{
-			//TODO: how to handle overflow ? negative values ?
-			ulong v = (ulong)right;
-			return new Uuid48(checked(left.Value - v));
-		}
+		/// <inheritdoc />
+		static int IAdditiveIdentity<Uuid48, int>.AdditiveIdentity => 0;
 
-		/// <summary>Subtract a value from this instance</summary>
-		public static Uuid48 operator -(Uuid48 left, ulong right)
-		{
-			return new Uuid48(checked(left.Value - right));
-		}
+		/// <inheritdoc />
+		static uint IAdditiveIdentity<Uuid48, uint>.AdditiveIdentity => 0;
+
+		/// <inheritdoc />
+		static long IAdditiveIdentity<Uuid48, long>.AdditiveIdentity => 0;
+
+		/// <inheritdoc />
+		static ulong IAdditiveIdentity<Uuid48, ulong>.AdditiveIdentity => 0;
+
+		/// <summary>Adds a value from this instance</summary>
+		public static Uuid48 operator +(Uuid48 left, int right) => FromLower48(unchecked((long) left.Value + right));
+
+		/// <summary>Adds a value from this instance</summary>
+		public static Uuid48 operator checked +(Uuid48 left, int right) => FromInt64(checked((long) left.Value + right));
+
+		/// <summary>Adds a value from this instance</summary>
+		public static Uuid48 operator +(Uuid48 left, long right) => FromLower48(unchecked((long) left.Value + right));
+
+		/// <summary>Adds a value from this instance</summary>
+		public static Uuid48 operator checked +(Uuid48 left, long right) => FromInt64(checked((long) left.Value + right));
+
+		/// <summary>Adds a value from this instance</summary>
+		public static Uuid48 operator +(Uuid48 left, ulong right) => FromLower48(unchecked(left.Value + right));
+
+		/// <summary>Adds a value from this instance</summary>
+		public static Uuid48 operator checked +(Uuid48 left, ulong right) => FromUInt64(checked(left.Value + right));
+
+		/// <summary>Adds a value from this instance</summary>
+		public static Uuid48 operator +(Uuid48 left, uint right) => FromLower48(unchecked(left.Value + right));
+
+		/// <summary>Adds a value from this instance</summary>
+		public static Uuid48 operator checked +(Uuid48 left, uint right) => FromUInt64(checked(left.Value + right));
+
+		/// <summary>Subtracts a value from this instance</summary>
+		public static Uuid48 operator -(Uuid48 left, int right) => FromLower48(unchecked((long) left.Value - right));
+
+		/// <summary>Subtracts a value from this instance</summary>
+		public static Uuid48 operator checked -(Uuid48 left, int right) => FromInt64(checked((long) left.Value - right));
+
+		/// <summary>Subtracts a value from this instance</summary>
+		public static Uuid48 operator -(Uuid48 left, long right) => FromLower48(unchecked((long) left.Value - right));
+
+		/// <summary>Subtracts a value from this instance</summary>
+		public static Uuid48 operator checked -(Uuid48 left, long right) => FromInt64(checked((long) left.Value - right));
+
+		/// <summary>Subtracts a value from this instance</summary>
+		public static Uuid48 operator -(Uuid48 left, uint right) => FromLower48(unchecked(left.Value - right));
+
+		/// <summary>Subtracts a value from this instance</summary>
+		public static Uuid48 operator checked -(Uuid48 left, uint right) => FromUInt64(checked(left.Value - right));
+
+		/// <summary>Subtracts a value from this instance</summary>
+		public static Uuid48 operator -(Uuid48 left, ulong right) => FromLower48(unchecked(left.Value - right));
+
+		/// <summary>Subtracts a value from this instance</summary>
+		public static Uuid48 operator checked -(Uuid48 left, ulong right) => FromUInt64(checked(left.Value - right));
 
 		/// <summary>Increments the value of this instance</summary>
-		public static Uuid48 operator ++(Uuid48 value)
-		{
-			return new Uuid48(checked(value.Value + 1));
-		}
+		public static Uuid48 operator ++(Uuid48 value) => FromLower48(unchecked(value.Value + 1));
+
+		/// <summary>Increments the value of this instance</summary>
+		public static Uuid48 operator checked ++(Uuid48 value) => FromUInt64(checked(value.Value + 1));
 
 		/// <summary>Decrements the value of this instance</summary>
-		public static Uuid48 operator --(Uuid48 value)
-		{
-			return new Uuid48(checked(value.Value - 1));
-		}
+		public static Uuid48 operator --(Uuid48 value) => FromLower48(unchecked(value.Value - 1));
+
+		/// <summary>Decrements the value of this instance</summary>
+		public static Uuid48 operator checked --(Uuid48 value) => FromUInt64(checked(value.Value - 1));
+
+		/// <inheritdoc />
+		public static Uuid48 operator &(Uuid48 value, Uuid48 mask) => new(value.Value & mask.Value);
+
+		/// <inheritdoc />
+		public static Uuid48 operator |(Uuid48 value, Uuid48 mask) => new(value.Value | mask.Value);
+
+		/// <inheritdoc />
+		public static Uuid48 operator ^(Uuid48 value, Uuid48 mask) => new(value.Value ^ mask.Value);
+
+		/// <inheritdoc />
+		public static Uuid48 operator ~(Uuid48 value) => new((~value.Value) & MASK_48);
+
+		#endregion
 
 		#endregion
 
