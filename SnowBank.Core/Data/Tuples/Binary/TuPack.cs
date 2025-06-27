@@ -2447,7 +2447,27 @@ namespace SnowBank.Data.Tuples
 		/// <summary>Unpack the value of a singleton tuple</summary>
 		/// <typeparam name="T1">Type of the single value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with a single element</param>
-		/// <param name="item1">Decoded value of the only item in the tuple. Throws an exception if the tuple is empty of has more than one element.</param>
+		/// <param name="item1">Decoded value of the only item in the tuple.</param>
+		/// <exception cref="FormatException"> if the tuple is empty, or has more than one element</exception>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void DecodeKey<T1>(Slice packedKey, out T1? item1) => DecodeKey(packedKey.Span, out item1);
+
+		/// <summary>Unpack the value of a singleton tuple</summary>
+		/// <typeparam name="T1">Type of the single value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with a single element</param>
+		/// <param name="item1">Decoded value of the only item in the tuple.</param>
+		/// <exception cref="FormatException"> if the tuple is empty, or has more than one element</exception>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void DecodeKey<T1>(ReadOnlySpan<byte> packedKey, out T1? item1)
+		{
+			var reader = new TupleReader(packedKey);
+			TupleEncoder.DecodeKey(ref reader, out item1);
+		}
+
+		/// <summary>Unpack the value of a singleton tuple</summary>
+		/// <typeparam name="T1">Type of the single value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with a single element</param>
+		/// <param name="item1">Decoded value of the only item in the tuple. Throws an exception if the tuple is empty, or has more than one element.</param>
 		/// <returns><c>true</c> if the packed key was successfully unpacked.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryDecodeKey<T1>(Slice packedKey, out T1? item1) => TryDecodeKey<T1>(packedKey.Span, out item1);
@@ -2481,6 +2501,25 @@ namespace SnowBank.Data.Tuples
 			return tuple;
 		}
 
+		/// <summary>Unpack a key containing two elements</summary>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with two elements</param>
+		/// <param name="item1">Decoded value of the 1st element in the tuple.</param>
+		/// <param name="item2">Decoded value of the 2nd element in the tuple.</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void DecodeKey<T1, T2>(Slice packedKey, out T1? item1, out T2? item2)
+			=> DecodeKey(packedKey.Span, out item1, out item2);
+
+		/// <summary>Unpack a key containing two elements</summary>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with two elements</param>
+		/// <param name="item1">Decoded value of the 1st element in the tuple.</param>
+		/// <param name="item2">Decoded value of the 2nd element in the tuple.</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void DecodeKey<T1, T2>(ReadOnlySpan<byte> packedKey, out T1? item1, out T2? item2)
+		{
+			var reader = new TupleReader(packedKey);
+			TupleEncoder.DecodeKey(ref reader, out item1, out item2);
+		}
+
 		/// <summary>Unpack a key containing three elements</summary>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with three elements</param>
 		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty, or has more than three elements.</returns>
@@ -2496,6 +2535,27 @@ namespace SnowBank.Data.Tuples
 			var reader = new TupleReader(packedKey);
 			TupleEncoder.DecodeKey(ref reader, out (T1?, T2?, T3?) tuple);
 			return tuple;
+		}
+
+		/// <summary>Unpack a key containing three elements</summary>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with three elements</param>
+		/// <param name="item1">Decoded value of the 1st element in the tuple.</param>
+		/// <param name="item2">Decoded value of the 2nd element in the tuple.</param>
+		/// <param name="item3">Decoded value of the 3rd element in the tuple.</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void DecodeKey<T1, T2, T3>(Slice packedKey, out T1? item1, out T2? item2, out T3? item3)
+			=> DecodeKey(packedKey.Span, out item1, out item2, out item3);
+
+		/// <summary>Unpack a key containing three elements</summary>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with three elements</param>
+		/// <param name="item1">Decoded value of the 1st element in the tuple.</param>
+		/// <param name="item2">Decoded value of the 2nd element in the tuple.</param>
+		/// <param name="item3">Decoded value of the 3rd element in the tuple.</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void DecodeKey<T1, T2, T3>(ReadOnlySpan<byte> packedKey, out T1? item1, out T2? item2, out T3? item3)
+		{
+			var reader = new TupleReader(packedKey);
+			TupleEncoder.DecodeKey(ref reader, out item1, out item2, out item3);
 		}
 
 		/// <summary>Unpack a key containing four elements</summary>
@@ -2515,6 +2575,29 @@ namespace SnowBank.Data.Tuples
 			return tuple;
 		}
 
+		/// <summary>Unpack a key containing four elements</summary>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with four elements</param>
+		/// <param name="item1">Decoded value of the 1st element in the tuple.</param>
+		/// <param name="item2">Decoded value of the 2nd element in the tuple.</param>
+		/// <param name="item3">Decoded value of the 3rd element in the tuple.</param>
+		/// <param name="item4">Decoded value of the 4th element in the tuple.</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void DecodeKey<T1, T2, T3, T4>(Slice packedKey, out T1? item1, out T2? item2, out T3? item3, out T4? item4)
+			=> DecodeKey(packedKey.Span, out item1, out item2, out item3, out item4);
+
+		/// <summary>Unpack a key containing four elements</summary>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with four elements</param>
+		/// <param name="item1">Decoded value of the 1st element in the tuple.</param>
+		/// <param name="item2">Decoded value of the 2nd element in the tuple.</param>
+		/// <param name="item3">Decoded value of the 3rd element in the tuple.</param>
+		/// <param name="item4">Decoded value of the 4th element in the tuple.</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void DecodeKey<T1, T2, T3, T4>(ReadOnlySpan<byte> packedKey, out T1? item1, out T2? item2, out T3? item3, out T4? item4)
+		{
+			var reader = new TupleReader(packedKey);
+			TupleEncoder.DecodeKey(ref reader, out item1, out item2, out item3, out item4);
+		}
+
 		/// <summary>Unpack a key containing five elements</summary>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with five elements</param>
 		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty, or has more than five elements.</returns>
@@ -2530,6 +2613,31 @@ namespace SnowBank.Data.Tuples
 			var reader = new TupleReader(packedKey);
 			TupleEncoder.DecodeKey(ref reader, out (T1?, T2?, T3?, T4?, T5?) tuple);
 			return tuple;
+		}
+
+		/// <summary>Unpack a key containing five elements</summary>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with five elements</param>
+		/// <param name="item1">Decoded value of the 1st element in the tuple.</param>
+		/// <param name="item2">Decoded value of the 2nd element in the tuple.</param>
+		/// <param name="item3">Decoded value of the 3rd element in the tuple.</param>
+		/// <param name="item4">Decoded value of the 4th element in the tuple.</param>
+		/// <param name="item5">Decoded value of the 5th element in the tuple.</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void DecodeKey<T1, T2, T3, T4, T5>(Slice packedKey, out T1? item1, out T2? item2, out T3? item3, out T4? item4, out T5? item5)
+			=> DecodeKey(packedKey.Span, out item1, out item2, out item3, out item4, out item5);
+
+		/// <summary>Unpack a key containing five elements</summary>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with five elements</param>
+		/// <param name="item1">Decoded value of the 1st element in the tuple.</param>
+		/// <param name="item2">Decoded value of the 2nd element in the tuple.</param>
+		/// <param name="item3">Decoded value of the 3rd element in the tuple.</param>
+		/// <param name="item4">Decoded value of the 4th element in the tuple.</param>
+		/// <param name="item5">Decoded value of the 5th element in the tuple.</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void DecodeKey<T1, T2, T3, T4, T5>(ReadOnlySpan<byte> packedKey, out T1? item1, out T2? item2, out T3? item3, out T4? item4, out T5? item5)
+		{
+			var reader = new TupleReader(packedKey);
+			TupleEncoder.DecodeKey(ref reader, out item1, out item2, out item3, out item4, out item5);
 		}
 
 		/// <summary>Unpack a key containing six elements</summary>
@@ -2549,6 +2657,33 @@ namespace SnowBank.Data.Tuples
 			return tuple;
 		}
 
+		/// <summary>Unpack a key containing six elements</summary>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with six elements</param>
+		/// <param name="item1">Decoded value of the 1st element in the tuple.</param>
+		/// <param name="item2">Decoded value of the 2nd element in the tuple.</param>
+		/// <param name="item3">Decoded value of the 3rd element in the tuple.</param>
+		/// <param name="item4">Decoded value of the 4th element in the tuple.</param>
+		/// <param name="item5">Decoded value of the 5th element in the tuple.</param>
+		/// <param name="item6">Decoded value of the 6th element in the tuple.</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void DecodeKey<T1, T2, T3, T4, T5, T6>(Slice packedKey, out T1? item1, out T2? item2, out T3? item3, out T4? item4, out T5? item5, out T6? item6)
+			=> DecodeKey(packedKey.Span, out item1, out item2, out item3, out item4, out item5, out item6);
+
+		/// <summary>Unpack a key containing six elements</summary>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with six elements</param>
+		/// <param name="item1">Decoded value of the 1st element in the tuple.</param>
+		/// <param name="item2">Decoded value of the 2nd element in the tuple.</param>
+		/// <param name="item3">Decoded value of the 3rd element in the tuple.</param>
+		/// <param name="item4">Decoded value of the 4th element in the tuple.</param>
+		/// <param name="item5">Decoded value of the 5th element in the tuple.</param>
+		/// <param name="item6">Decoded value of the 6th element in the tuple.</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void DecodeKey<T1, T2, T3, T4, T5, T6>(ReadOnlySpan<byte> packedKey, out T1? item1, out T2? item2, out T3? item3, out T4? item4, out T5? item5, out T6? item6)
+		{
+			var reader = new TupleReader(packedKey);
+			TupleEncoder.DecodeKey(ref reader, out item1, out item2, out item3, out item4, out item5, out item6);
+		}
+
 		/// <summary>Unpack a key containing seven elements</summary>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with seven elements</param>
 		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty, or has more than seven elements.</returns>
@@ -2564,6 +2699,35 @@ namespace SnowBank.Data.Tuples
 			var reader = new TupleReader(packedKey);
 			TupleEncoder.DecodeKey(ref reader, out (T1?, T2?, T3?, T4?, T5?, T6?, T7?) tuple);
 			return tuple;
+		}
+
+		/// <summary>Unpack a key containing seven elements</summary>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with seven elements</param>
+		/// <param name="item1">Decoded value of the 1st element in the tuple.</param>
+		/// <param name="item2">Decoded value of the 2nd element in the tuple.</param>
+		/// <param name="item3">Decoded value of the 3rd element in the tuple.</param>
+		/// <param name="item4">Decoded value of the 4th element in the tuple.</param>
+		/// <param name="item5">Decoded value of the 5th element in the tuple.</param>
+		/// <param name="item6">Decoded value of the 6th element in the tuple.</param>
+		/// <param name="item7">Decoded value of the 7th element in the tuple.</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void DecodeKey<T1, T2, T3, T4, T5, T6, T7>(Slice packedKey, out T1? item1, out T2? item2, out T3? item3, out T4? item4, out T5? item5, out T6? item6, out T7? item7)
+			=> DecodeKey(packedKey.Span, out item1, out item2, out item3, out item4, out item5, out item6, out item7);
+
+		/// <summary>Unpack a key containing seven elements</summary>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with seven elements</param>
+		/// <param name="item1">Decoded value of the 1st element in the tuple.</param>
+		/// <param name="item2">Decoded value of the 2nd element in the tuple.</param>
+		/// <param name="item3">Decoded value of the 3rd element in the tuple.</param>
+		/// <param name="item4">Decoded value of the 4th element in the tuple.</param>
+		/// <param name="item5">Decoded value of the 5th element in the tuple.</param>
+		/// <param name="item6">Decoded value of the 6th element in the tuple.</param>
+		/// <param name="item7">Decoded value of the 7th element in the tuple.</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void DecodeKey<T1, T2, T3, T4, T5, T6, T7>(ReadOnlySpan<byte> packedKey, out T1? item1, out T2? item2, out T3? item3, out T4? item4, out T5? item5, out T6? item6, out T7? item7)
+		{
+			var reader = new TupleReader(packedKey);
+			TupleEncoder.DecodeKey(ref reader, out item1, out item2, out item3, out item4, out item5, out item6, out item7);
 		}
 
 		/// <summary>Unpack a key containing eight elements</summary>
@@ -2583,6 +2747,37 @@ namespace SnowBank.Data.Tuples
 			return tuple;
 		}
 
+		/// <summary>Unpack a key containing eight elements</summary>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with eight elements</param>
+		/// <param name="item1">Decoded value of the 1st element in the tuple.</param>
+		/// <param name="item2">Decoded value of the 2nd element in the tuple.</param>
+		/// <param name="item3">Decoded value of the 3rd element in the tuple.</param>
+		/// <param name="item4">Decoded value of the 4th element in the tuple.</param>
+		/// <param name="item5">Decoded value of the 5th element in the tuple.</param>
+		/// <param name="item6">Decoded value of the 6th element in the tuple.</param>
+		/// <param name="item7">Decoded value of the 7th element in the tuple.</param>
+		/// <param name="item8">Decoded value of the 8th element in the tuple.</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(Slice packedKey, out T1? item1, out T2? item2, out T3? item3, out T4? item4, out T5? item5, out T6? item6, out T7? item7, out T8? item8)
+			=> DecodeKey(packedKey.Span, out item1, out item2, out item3, out item4, out item5, out item6, out item7, out item8);
+
+		/// <summary>Unpack a key containing eight elements</summary>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with eight elements</param>
+		/// <param name="item1">Decoded value of the 1st element in the tuple.</param>
+		/// <param name="item2">Decoded value of the 2nd element in the tuple.</param>
+		/// <param name="item3">Decoded value of the 3rd element in the tuple.</param>
+		/// <param name="item4">Decoded value of the 4th element in the tuple.</param>
+		/// <param name="item5">Decoded value of the 5th element in the tuple.</param>
+		/// <param name="item6">Decoded value of the 6th element in the tuple.</param>
+		/// <param name="item7">Decoded value of the 7th element in the tuple.</param>
+		/// <param name="item8">Decoded value of the 8th element in the tuple.</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(ReadOnlySpan<byte> packedKey, out T1? item1, out T2? item2, out T3? item3, out T4? item4, out T5? item5, out T6? item6, out T7? item7, out T8? item8)
+		{
+			var reader = new TupleReader(packedKey);
+			TupleEncoder.DecodeKey(ref reader, out item1, out item2, out item3, out item4, out item5, out item6, out item7, out item8);
+		}
+
 		/// <summary>Unpack a key containing nine elements</summary>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with eight elements</param>
 		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty, or has more than eight elements.</returns>
@@ -2598,6 +2793,39 @@ namespace SnowBank.Data.Tuples
 			var reader = new TupleReader(packedKey);
 			TupleEncoder.DecodeKey(ref reader, out (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?, T9?) tuple);
 			return tuple;
+		}
+
+		/// <summary>Unpack a key containing eight elements</summary>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with eight elements</param>
+		/// <param name="item1">Decoded value of the 1st element in the tuple.</param>
+		/// <param name="item2">Decoded value of the 2nd element in the tuple.</param>
+		/// <param name="item3">Decoded value of the 3rd element in the tuple.</param>
+		/// <param name="item4">Decoded value of the 4th element in the tuple.</param>
+		/// <param name="item5">Decoded value of the 5th element in the tuple.</param>
+		/// <param name="item6">Decoded value of the 6th element in the tuple.</param>
+		/// <param name="item7">Decoded value of the 7th element in the tuple.</param>
+		/// <param name="item8">Decoded value of the 8th element in the tuple.</param>
+		/// <param name="item9">Decoded value of the 9th element in the tuple.</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8, T9>(Slice packedKey, out T1? item1, out T2? item2, out T3? item3, out T4? item4, out T5? item5, out T6? item6, out T7? item7, out T8? item8, out T9? item9)
+			=> DecodeKey(packedKey.Span, out item1, out item2, out item3, out item4, out item5, out item6, out item7, out item8, out item9);
+
+		/// <summary>Unpack a key containing eight elements</summary>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with eight elements</param>
+		/// <param name="item1">Decoded value of the 1st element in the tuple.</param>
+		/// <param name="item2">Decoded value of the 2nd element in the tuple.</param>
+		/// <param name="item3">Decoded value of the 3rd element in the tuple.</param>
+		/// <param name="item4">Decoded value of the 4th element in the tuple.</param>
+		/// <param name="item5">Decoded value of the 5th element in the tuple.</param>
+		/// <param name="item6">Decoded value of the 6th element in the tuple.</param>
+		/// <param name="item7">Decoded value of the 7th element in the tuple.</param>
+		/// <param name="item8">Decoded value of the 8th element in the tuple.</param>
+		/// <param name="item9">Decoded value of the 9th element in the tuple.</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8, T9>(ReadOnlySpan<byte> packedKey, out T1? item1, out T2? item2, out T3? item3, out T4? item4, out T5? item5, out T6? item6, out T7? item7, out T8? item8, out T9? item9)
+		{
+			var reader = new TupleReader(packedKey);
+			TupleEncoder.DecodeKey(ref reader, out item1, out item2, out item3, out item4, out item5, out item6, out item7, out item8, out item9);
 		}
 
 		#endregion

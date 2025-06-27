@@ -1671,6 +1671,59 @@ namespace SnowBank.Data.Tuples.Binary
 			if (reader.HasMore) throw new FormatException("The key contains more than eight items");
 		}
 
+		/// <summary>Unpacks a key containing eight elements</summary>
+		/// <param name="reader">Slice that should contain the packed representation of a tuple with six elements</param>
+		/// <param name="tuple">Receives the decoded tuple</param>
+		/// <remarks>Throws an exception if the tuple is empty of has more than six elements.</remarks>
+		public static void DecodeKey<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T8,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T9
+		>(ref TupleReader reader, out (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?, T9?) tuple)
+		{
+			if (!TryDecodeNext(ref reader, out tuple.Item1, out var error)) throw new FormatException("Failed to decode first item", error);
+			if (!TryDecodeNext(ref reader, out tuple.Item2, out error)) throw new FormatException("Failed to decode second item", error);
+			if (!TryDecodeNext(ref reader, out tuple.Item3, out error)) throw new FormatException("Failed to decode third item", error);
+			if (!TryDecodeNext(ref reader, out tuple.Item4, out error)) throw new FormatException("Failed to decode fourth item", error);
+			if (!TryDecodeNext(ref reader, out tuple.Item5, out error)) throw new FormatException("Failed to decode fifth item", error);
+			if (!TryDecodeNext(ref reader, out tuple.Item6, out error)) throw new FormatException("Failed to decode sixth item", error);
+			if (!TryDecodeNext(ref reader, out tuple.Item7, out error)) throw new FormatException("Failed to decode seventh item", error);
+			if (!TryDecodeNext(ref reader, out tuple.Item8, out error)) throw new FormatException("Failed to decode eight item", error);
+			if (!TryDecodeNext(ref reader, out tuple.Item9, out error)) throw new FormatException("Failed to decode ninth item", error);
+			if (reader.HasMore) throw new FormatException("The key contains more than nine items");
+		}
+
+		public static void DecodeKey<
+				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
+				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
+				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7,
+				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T8,
+				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T9
+			>
+			(ref TupleReader reader, out T1? item1, out T2? item2, out T3? item3, out T4? item4, out T5? item5, out T6? item6, out T7? item7, out T8? item8, out T9? item9)
+		{
+			if (!TryDecodeNext(ref reader, out item1, out var error)) throw new FormatException("Failed to decode first item", error);
+			if (!TryDecodeNext(ref reader, out item2, out error)) throw new FormatException("Failed to decode second item", error);
+			if (!TryDecodeNext(ref reader, out item3, out error)) throw new FormatException("Failed to decode third item", error);
+			if (!TryDecodeNext(ref reader, out item4, out error)) throw new FormatException("Failed to decode fourth item", error);
+			if (!TryDecodeNext(ref reader, out item5, out error)) throw new FormatException("Failed to decode fifth item", error);
+			if (!TryDecodeNext(ref reader, out item6, out error)) throw new FormatException("Failed to decode sixth item", error);
+			if (!TryDecodeNext(ref reader, out item7, out error)) throw new FormatException("Failed to decode seventh item", error);
+			if (!TryDecodeNext(ref reader, out item8, out error)) throw new FormatException("Failed to decode eight item", error);
+			if (!TryDecodeNext(ref reader, out item9, out error)) throw new FormatException("Failed to decode ninth item", error);
+			if (reader.HasMore) throw new FormatException("The key contains more than nine items");
+		}
+
 		#endregion
 
 		/// <summary>Skips the next item in the tuple, and advance the cursor</summary>
