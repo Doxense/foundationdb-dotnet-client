@@ -781,6 +781,114 @@ namespace SnowBank.Data.Json
 			return value;
 		}
 
+		/// <summary>Returns the underlying <see cref="JsonArray"/> of the field with the specified name</summary>
+		/// <param name="name">Name of the field to return</param>
+		/// <returns>Corresponding array</returns>
+		/// <remarks>This operation will be record as a <see cref="ObservableJsonAccess.Value"/> access.</remarks>
+		/// <exception cref="JsonBindingException">If the field is either null-or-missing, or not an array.</exception>
+		[Pure, MustUseReturnValue]
+		public JsonArray GetArray(string name)
+		{
+			var value = this.Json.GetValue(name);
+			if (value is not JsonArray array)
+			{
+				RecordChildAccess(name.AsMemory(), value, ObservableJsonAccess.Type);
+				throw CrystalJson.Errors.Parsing_CannotCastToJsonArray(value);
+			}
+			RecordChildAccess(name.AsMemory(), array, ObservableJsonAccess.Value);
+			return array;
+		}
+
+		/// <summary>Returns the underlying <see cref="JsonValue"/> of the field with the specified name</summary>
+		/// <param name="name">Name of the field to return</param>
+		/// <returns>Corresponding field</returns>
+		/// <remarks>This operation will be record as a <see cref="ObservableJsonAccess.Value"/> access.</remarks>
+		/// <exception cref="JsonBindingException">If the field is neither null-or-missing, nor an array.</exception>
+		[Pure, MustUseReturnValue]
+		public JsonArray? GetArrayOrDefault(string name)
+		{
+			var value = this.Json.GetValue(name);
+			if (value is not JsonArray array)
+			{
+				RecordChildAccess(name.AsMemory(), value, ObservableJsonAccess.Type);
+				return value is JsonNull ? null : throw CrystalJson.Errors.Parsing_CannotCastToJsonArray(value);
+			}
+			RecordChildAccess(name.AsMemory(), array, ObservableJsonAccess.Value);
+			return array;
+		}
+
+		/// <summary>Returns the underlying <see cref="JsonValue"/> of the field with the specified name</summary>
+		/// <param name="name">Name of the field to return</param>
+		/// <returns>Corresponding field</returns>
+		/// <remarks>This operation will be record as a <see cref="ObservableJsonAccess.Value"/> access.</remarks>
+		/// <exception cref="JsonBindingException">If the field is neither null-or-missing, nor an array.</exception>
+		[Pure, MustUseReturnValue]
+		public JsonArray GetArrayOrEmpty(string name)
+		{
+			var value = this.Json.GetValue(name);
+			if (value is not JsonArray array)
+			{
+				RecordChildAccess(name.AsMemory(), value, ObservableJsonAccess.Type);
+				return value is JsonNull ? JsonArray.ReadOnly.Empty : throw CrystalJson.Errors.Parsing_CannotCastToJsonArray(value);
+			}
+			RecordChildAccess(name.AsMemory(), array, ObservableJsonAccess.Value);
+			return array;
+		}
+
+		/// <summary>Returns the underlying <see cref="JsonArray"/> of the field with the specified name</summary>
+		/// <param name="name">Name of the field to return</param>
+		/// <returns>Corresponding array</returns>
+		/// <remarks>This operation will be record as a <see cref="ObservableJsonAccess.Value"/> access.</remarks>
+		/// <exception cref="JsonBindingException">If the field is either null-or-missing, or not an array.</exception>
+		[Pure, MustUseReturnValue]
+		public JsonObject GetObject(string name)
+		{
+			var value = this.Json.GetValue(name);
+			if (value is not JsonObject obj)
+			{
+				RecordChildAccess(name.AsMemory(), value, ObservableJsonAccess.Type);
+				throw CrystalJson.Errors.Parsing_CannotCastToJsonObject(value);
+			}
+			RecordChildAccess(name.AsMemory(), obj, ObservableJsonAccess.Value);
+			return obj;
+		}
+
+		/// <summary>Returns the underlying <see cref="JsonValue"/> of the field with the specified name</summary>
+		/// <param name="name">Name of the field to return</param>
+		/// <returns>Corresponding field</returns>
+		/// <remarks>This operation will be record as a <see cref="ObservableJsonAccess.Value"/> access.</remarks>
+		/// <exception cref="JsonBindingException">If the field is neither null-or-missing, nor an array.</exception>
+		[Pure, MustUseReturnValue]
+		public JsonObject? GetObjectOrDefault(string name)
+		{
+			var value = this.Json.GetValue(name);
+			if (value is not JsonObject obj)
+			{
+				RecordChildAccess(name.AsMemory(), value, ObservableJsonAccess.Type);
+				return value is JsonNull ? null : throw CrystalJson.Errors.Parsing_CannotCastToJsonObject(value);
+			}
+			RecordChildAccess(name.AsMemory(), obj, ObservableJsonAccess.Value);
+			return obj;
+		}
+
+		/// <summary>Returns the underlying <see cref="JsonValue"/> of the field with the specified name</summary>
+		/// <param name="name">Name of the field to return</param>
+		/// <returns>Corresponding field</returns>
+		/// <remarks>This operation will be record as a <see cref="ObservableJsonAccess.Value"/> access.</remarks>
+		/// <exception cref="JsonBindingException">If the field is neither null-or-missing, nor an array.</exception>
+		[Pure, MustUseReturnValue]
+		public JsonObject GetObjectOrEmpty(string name)
+		{
+			var value = this.Json.GetValue(name);
+			if (value is not JsonObject obj)
+			{
+				RecordChildAccess(name.AsMemory(), value, ObservableJsonAccess.Type);
+				return value is JsonNull ? JsonObject.ReadOnly.Empty : throw CrystalJson.Errors.Parsing_CannotCastToJsonObject(value);
+			}
+			RecordChildAccess(name.AsMemory(), obj, ObservableJsonAccess.Value);
+			return obj;
+		}
+
 		/// <summary>Reads the value of the <b>required</b> field with the specified name</summary>
 		/// <param name="name">Name of the field</param>
 		/// <returns>Corresponding value.</returns>
