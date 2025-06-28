@@ -207,6 +207,34 @@ namespace SnowBank.Data.Json
 			return this.Json.Type == type || this.Json.Type == JsonType.Null;
 		}
 
+		/// <summary>Tests if the wrapped JSON is either an empty <see cref="JsonArray"/> (<c>[ ]</c>), an empty <see cref="JsonObject"/> (<c>{ }</c>), or an empty <see cref="JsonString"/> (<c>" "</c>).</summary>
+		public bool IsEmpty()
+		{
+			switch (this.Json)
+			{
+				case JsonObject obj:
+				{
+					RecordSelfAccess(ObservableJsonAccess.Length, obj);
+					return obj.Count == 0;
+				}
+				case JsonArray arr:
+				{
+					RecordSelfAccess(ObservableJsonAccess.Length, arr);
+					return arr.Count == 0;
+				}
+				case JsonString str:
+				{
+					RecordSelfAccess(ObservableJsonAccess.Length, str);
+					return str.Value.Length == 0;
+				}
+				default:
+				{
+					RecordSelfAccess(ObservableJsonAccess.Type, this.Json);
+					return false;
+				}
+			}
+		}
+
 		/// <summary>Tests if the wrapped JSON value is a non-null array.</summary>
 		/// <returns><c>true</c> if the value is an array; otherwise, <c>false</c></returns>
 		/// <remarks>This method will record a <see cref="ObservableJsonAccess.Type"/> access.</remarks>

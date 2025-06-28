@@ -31,11 +31,13 @@ namespace SnowBank.Data.Json
 		/// </remarks>
 		Value,
 
-		/// <summary>Only the length of the array was used.</summary>
+		/// <summary>Only the length of the array, number of field in the object, or length of the string was used.</summary>
 		/// <remarks>
 		/// <para>The outcome would only change if the length of the array would change (added/removed).</para>
 		/// <para>The associated argument must be the length of array in the original document, or <see cref="JsonNull.Missing"/> if the node was missing, or not an array.</para>
 		/// <para>Example: <c>{ xs: [ 1, 2, 3 ] } => { xs: [ 4, 5, 6 ] }</c> will not change the outcome, but <c>{ xs: [ 1, 2, 3 ] } => { xs: [ 1, 2, 3, 4 ] }</c> or { xs: [ 1, 2, 3 ] } => { xs: null } will.</para>
+		/// <para>Example: <c>{ xs: { "hello": "world" } } => { xs: { "hello": "there" } }</c> will not change the outcome, but <c>{ xs: { "hello": "world" } } => { xs: { "hello": "world", "foo": "bar" } }</c> or <c>{ xs: { "hello": "world" } } => { xs: null } will.</c></para>
+		/// <para>Example: <c>{ xs: { "hello": "world" } } => { xs: { "hello": "there" } }</c> will not change the outcome, but <c>{ xs: { "hello": "world" } } => { xs: { "hello": "world!" } }</c> or <c>{ xs: { "hello": "world" } } => { xs: { "hello": null } } will.</c></para>
 		/// </remarks>
 		Length,
 
@@ -215,7 +217,13 @@ namespace SnowBank.Data.Json
 					if (leaf.Access is ObservableJsonAccess.None or ObservableJsonAccess.Exists or ObservableJsonAccess.Type)
 					{
 						leaf.Access = ObservableJsonAccess.Length;
-						leaf.Value = value is JsonArray arr ? JsonNumber.Return(arr.Count) : JsonNull.Missing;
+						leaf.Value = value switch
+						{
+							JsonArray arr  => JsonNumber.Return(arr.Count), // number of items in the array
+							JsonObject obj => JsonNumber.Return(obj.Count), // number of fields in the object
+							JsonString str => JsonNumber.Return(str.Value.Length), // length of the string
+							_              => JsonNull.Missing,
+						};
 					}
 					break;
 				}
