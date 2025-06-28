@@ -15,7 +15,15 @@ namespace SnowBank.Data.Json
 	/// <summary>Observable JSON Object that will capture all reads</summary>
 	[DebuggerDisplay("{ToStringUntracked(),nq}")]
 	[PublicAPI]
-	public sealed class ObservableJsonValue : IJsonProxyNode, IJsonSerializable, IJsonPackable, IEquatable<ObservableJsonValue>, IEquatable<JsonValue>, IComparable<ObservableJsonValue>, IComparable<JsonValue>, IEnumerable<ObservableJsonValue>
+	public sealed class ObservableJsonValue : IJsonProxyNode, IJsonSerializable, IJsonPackable
+		, IEnumerable<ObservableJsonValue>
+		, IEquatable<ObservableJsonValue>, IComparable<ObservableJsonValue>
+		, IEquatable<JsonValue>, IComparable<JsonValue>
+		, IFormattable
+#if NET8_0_OR_GREATER
+		, ISpanFormattable
+		, IUtf8SpanFormattable
+#endif
 	{
 
 		/// <summary>Constructs a <see cref="ObservableJsonValue"/></summary>
@@ -1319,6 +1327,31 @@ namespace SnowBank.Data.Json
 			RecordSelfAccess(ObservableJsonAccess.Value, this.Json);
 			return this.Json.ToString();
 		}
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? provider = null)
+		{
+			RecordSelfAccess(ObservableJsonAccess.Value, this.Json);
+			return this.Json.ToString(format, provider);
+		}
+
+#if NET8_0_OR_GREATER
+
+		/// <inheritdoc />
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+		{
+			RecordSelfAccess(ObservableJsonAccess.Value, this.Json);
+			return this.Json.TryFormat(destination, out charsWritten, format, provider);
+		}
+
+		/// <inheritdoc />
+		public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+		{
+			RecordSelfAccess(ObservableJsonAccess.Value, this.Json);
+			return this.Json.TryFormat(destination, out bytesWritten, format, provider);
+		}
+
+#endif
 
 		/// <summary>Generate a string representation of this object for debugging purpose</summary>
 		private string ToStringUntracked() => this.Segment.IsEmpty() ? this.Json.ToString("Q") : $"{this.GetPath()}: {this.Json.ToString("Q")}";

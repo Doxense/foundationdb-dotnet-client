@@ -16,7 +16,14 @@ namespace SnowBank.Data.Json
 	/// <summary>Mutable JSON Object</summary>
 	[DebuggerDisplay("Count={Count}, Path={ToString(),nq}")]
 	[PublicAPI]
-	public sealed class MutableJsonValue : IJsonProxyNode, IJsonSerializable, IJsonPackable, IEquatable<JsonValue>, IEquatable<MutableJsonValue>, IEquatable<ObservableJsonValue>, IEnumerable<MutableJsonValue>
+	public sealed class MutableJsonValue : IJsonProxyNode, IJsonSerializable, IJsonPackable
+		, IEnumerable<MutableJsonValue>
+		, IEquatable<JsonValue>, IEquatable<MutableJsonValue>, IEquatable<ObservableJsonValue>
+		, IFormattable
+#if NET8_0_OR_GREATER
+		, ISpanFormattable
+		, IUtf8SpanFormattable
+#endif
 	{
 
 		/// <summary>Constructs a <see cref="MutableJsonValue"/></summary>
@@ -65,7 +72,26 @@ namespace SnowBank.Data.Json
 		public bool Equals(JsonValue? other) => this.Json.StrictEquals(other);
 
 		/// <inheritdoc />
-		public override string ToString() => this.Segment.IsEmpty() ? this.Json.ToString("Q") : $"{this.GetPath()}: {this.Json.ToString("Q")}";
+		public override string ToString() => this.Json.ToString();
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? provider = null) => this.Json.ToString(format, provider);
+
+#if NET8_0_OR_GREATER
+
+		/// <inheritdoc />
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+		{
+			return this.Json.TryFormat(destination, out charsWritten, format, provider);
+		}
+
+		/// <inheritdoc />
+		public bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+		{
+			return this.Json.TryFormat(destination, out bytesWritten, format, provider);
+		}
+
+#endif
 
 		/// <summary>Contains the read-only version of this JSON object</summary>
 		internal JsonValue Json { get; private set; }
