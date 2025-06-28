@@ -16,7 +16,7 @@ namespace SnowBank.Data.Json
 	/// <summary>Mutable JSON Object</summary>
 	[DebuggerDisplay("Count={Count}, Path={ToString(),nq}")]
 	[PublicAPI]
-	public sealed class MutableJsonValue : IJsonProxyNode, IJsonSerializable, IJsonPackable, IEquatable<JsonValue>, IEquatable<MutableJsonValue>, IEnumerable<MutableJsonValue>
+	public sealed class MutableJsonValue : IJsonProxyNode, IJsonSerializable, IJsonPackable, IEquatable<JsonValue>, IEquatable<MutableJsonValue>, IEquatable<ObservableJsonValue>, IEnumerable<MutableJsonValue>
 	{
 
 		/// <summary>Constructs a <see cref="MutableJsonValue"/></summary>
@@ -44,10 +44,11 @@ namespace SnowBank.Data.Json
 		/// <inheritdoc />
 		public override bool Equals(object? obj) => obj switch
 		{
-			MutableJsonValue value => ReferenceEquals(obj, this) || this.Json.StrictEquals(value.Json),
-			JsonValue value => this.Json.StrictEquals(value),
-			null => this.IsNullOrMissing(),
-			_ => false,
+			MutableJsonValue value    => ReferenceEquals(obj, this) || this.Json.StrictEquals(value.Json),
+			JsonValue value           => this.Json.StrictEquals(value),
+			ObservableJsonValue value => this.Json.StrictEquals(value.ToJsonValue()),
+			null                      => this.IsNullOrMissing(),
+			_                         => false,
 		};
 
 		/// <inheritdoc />
@@ -56,6 +57,9 @@ namespace SnowBank.Data.Json
 
 		/// <inheritdoc />
 		public bool Equals(MutableJsonValue? other) => ReferenceEquals(this, other) || this.Json.StrictEquals(other?.Json);
+
+		/// <inheritdoc />
+		public bool Equals(ObservableJsonValue? other) => this.Json.StrictEquals(other?.ToJsonValue());
 
 		/// <inheritdoc />
 		public bool Equals(JsonValue? other) => this.Json.StrictEquals(other);
@@ -1545,6 +1549,11 @@ namespace SnowBank.Data.Json
 
 		/// <summary>Changes the value of the current instance in its parent</summary>
 		/// <param name="value">New value for this element</param>
+		/// <remarks>This will we recorded as a full use of <paramref name="value"/></remarks>
+		public void Set(ObservableJsonValue? value) => InsertOrUpdate(value?.ToJsonValue());
+
+		/// <summary>Changes the value of the current instance in its parent</summary>
+		/// <param name="value">New value for this element</param>
 		public void Set<TValue>(TValue? value) => InsertOrUpdate(Convert<TValue>(value));
 
 		/// <summary>Changes the value of the current instance in its parent</summary>
@@ -1639,6 +1648,9 @@ namespace SnowBank.Data.Json
 		public void Set(string name, MutableJsonValue? value) => InsertOrUpdate(name.AsMemory(), value?.Json);
 
 		/// <inheritdoc cref="Set(string,JsonValue?)"/>
+		public void Set(string name, ObservableJsonValue? value) => InsertOrUpdate(name.AsMemory(), value?.ToJsonValue());
+
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set<TValue>(string name, TValue? value) => InsertOrUpdate(name.AsMemory(), Convert<TValue>(value));
 
 		/// <inheritdoc cref="Set(string,JsonValue?)"/>
@@ -1730,6 +1742,9 @@ namespace SnowBank.Data.Json
 
 		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set(ReadOnlyMemory<char> name, MutableJsonValue? value) => InsertOrUpdate(name, value?.Json);
+
+		/// <inheritdoc cref="Set(string,JsonValue?)"/>
+		public void Set(ReadOnlyMemory<char> name, ObservableJsonValue? value) => InsertOrUpdate(name, value?.ToJsonValue());
 
 		/// <inheritdoc cref="Set(string,JsonValue?)"/>
 		public void Set<TValue>(ReadOnlyMemory<char> name, TValue? value) => InsertOrUpdate(name, Convert<TValue>(value));
@@ -1851,6 +1866,10 @@ namespace SnowBank.Data.Json
 		/// <inheritdoc cref="Set(JsonPath,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Set(JsonPath path, MutableJsonValue? value) => Set(path, value?.Json);
+
+		/// <inheritdoc cref="Set(JsonPath,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(JsonPath path, ObservableJsonValue? value) => Set(path, value?.ToJsonValue());
 
 		/// <inheritdoc cref="Set(JsonPath,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2020,6 +2039,10 @@ namespace SnowBank.Data.Json
 
 		/// <inheritdoc cref="Set(int,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(int index, ObservableJsonValue? value) => SetOrAdd(index, value?.ToJsonValue());
+
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Set<TValue>(int index, TValue? value) => SetOrAdd(index, Convert<TValue>(value));
 
 		/// <inheritdoc cref="Set(int,JsonValue?)"/>
@@ -2105,6 +2128,10 @@ namespace SnowBank.Data.Json
 		/// <inheritdoc cref="Set(int,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Set(Index index, MutableJsonValue? value) => SetOrAdd(index, value?.Json);
+
+		/// <inheritdoc cref="Set(int,JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Set(Index index, ObservableJsonValue? value) => SetOrAdd(index, value?.ToJsonValue());
 
 		/// <inheritdoc cref="Set(int,JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2201,6 +2228,10 @@ namespace SnowBank.Data.Json
 		/// <inheritdoc cref="Add(JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Add(MutableJsonValue? value) => Add(value?.Json);
+
+		/// <inheritdoc cref="Add(JsonValue?)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Add(ObservableJsonValue? value) => Add(value?.ToJsonValue());
 
 		/// <inheritdoc cref="Add(JsonValue?)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2309,6 +2340,22 @@ namespace SnowBank.Data.Json
 		/// <param name="name">Name of the field</param>
 		/// <param name="value">Value to add.</param>
 		/// <returns><c>true</c> if the field was added, or <c>false</c> if there was already a field with this name (the object will not be modified)</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryAdd(string name, ObservableJsonValue? value)
+		{
+			//REVIEW: TODO: should we _copy_ the wrapped value? what if the original is mutated after ?
+			if (ContainsKey(name))
+			{
+				return false;
+			}
+			InsertOrUpdate(name.AsMemory(), value?.ToJsonValue());
+			return true;
+		}
+
+		/// <summary>Adds a new field to this object, if it does not already exist</summary>
+		/// <param name="name">Name of the field</param>
+		/// <param name="value">Value to add.</param>
+		/// <returns><c>true</c> if the field was added, or <c>false</c> if there was already a field with this name (the object will not be modified)</returns>
 		public bool TryAdd<TValue>(string name, TValue? value)
 		{
 			// check before packing
@@ -2373,6 +2420,22 @@ namespace SnowBank.Data.Json
 		/// <param name="name">Name of the field</param>
 		/// <param name="value">Value to add.</param>
 		/// <returns><c>true</c> if the field was added, or <c>false</c> if there was already a field with this name (the object will not be modified)</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryAdd(ReadOnlyMemory<char> name, ObservableJsonValue? value)
+		{
+			//REVIEW: TODO: should we _copy_ the wrapped value? what if the original is mutated after ?
+			if (ContainsKey(name))
+			{
+				return false;
+			}
+			InsertOrUpdate(name, value?.ToJsonValue());
+			return true;
+		}
+
+		/// <summary>Adds a new field to this object, if it does not already exist</summary>
+		/// <param name="name">Name of the field</param>
+		/// <param name="value">Value to add.</param>
+		/// <returns><c>true</c> if the field was added, or <c>false</c> if there was already a field with this name (the object will not be modified)</returns>
 		public bool TryAdd<TValue>(ReadOnlyMemory<char> name, TValue? value)
 		{
 			// check before packing
@@ -2415,6 +2478,13 @@ namespace SnowBank.Data.Json
 		/// <returns><c>true</c> if the node was added, or <c>false</c> if there was already a node at this location (the document will not be modified)</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryAdd(JsonPath path, MutableJsonValue? value) => Get(path).InsertOrUpdate(value?.Json, InsertionBehavior.None);
+
+		/// <summary>Adds a new node to this document, if it does not already exist</summary>
+		/// <param name="path">Path to the node</param>
+		/// <param name="value">Value to add.</param>
+		/// <returns><c>true</c> if the node was added, or <c>false</c> if there was already a node at this location (the document will not be modified)</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryAdd(JsonPath path, ObservableJsonValue? value) => Get(path).InsertOrUpdate(value?.ToJsonValue(), InsertionBehavior.None); //BUGBUG: TODO: should not consume the value if the field already exist!
 
 		/// <summary>Adds a new node to this document, if it does not already exist</summary>
 		/// <param name="path">Path to the node</param>
@@ -2610,6 +2680,12 @@ namespace SnowBank.Data.Json
 		/// <param name="index">Index where the value should be inserted</param>
 		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Insert(int index, ObservableJsonValue? value) => InsertOrAdd(index, value?.ToJsonValue());
+
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert<TValue>(int index, TValue value) => InsertOrAdd(index, Convert<TValue>(value));
 
 		/// <summary>Inserts a new value at the specified index of this array</summary>
@@ -2738,6 +2814,12 @@ namespace SnowBank.Data.Json
 		/// <param name="value">Value to insert</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Insert(Index index, MutableJsonValue? value) => InsertOrAdd(index, value?.Json);
+
+		/// <summary>Inserts a new value at the specified index of this array</summary>
+		/// <param name="index">Index where the value should be inserted</param>
+		/// <param name="value">Value to insert</param>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Insert(Index index, ObservableJsonValue? value) => InsertOrAdd(index, value?.ToJsonValue());
 
 		/// <summary>Inserts a new value at the specified index of this array</summary>
 		/// <param name="index">Index where the value should be inserted</param>
