@@ -2289,9 +2289,10 @@ namespace SnowBank.Buffers.Tests
 			Assert.That(default(byte[]).AsSlice() == Slice.Nil, Is.True, "null == Nil");
 			Assert.That(default(byte[]).AsSlice() == Slice.Empty, Is.False, "null != Empty");
 			Assert.That(new byte[0].AsSlice() == Slice.Empty, Is.True, "[0] == Empty");
-			Assert.That(new byte[0].AsSlice() == Slice.Nil, Is.False, "[0] != Nill");
+			Assert.That(new byte[0].AsSlice() == Slice.Nil, Is.False, "[0] != Nil");
 
 			// "slice == null" should be the equivalent to "slice.IsNull" so only true for Slice.Nil
+#pragma warning disable CS0618 // Type or member is obsolete
 			Assert.That(Slice.Nil == null, Is.True, "'Slice.Nil == null' is true");
 			Assert.That(Slice.Empty == null, Is.False, "'Slice.Empty == null' is false");
 			Assert.That(Slice.FromByte(1) == null, Is.False, "'[1] == null' is false");
@@ -2306,6 +2307,7 @@ namespace SnowBank.Buffers.Tests
 			Assert.That(null != Slice.Nil, Is.False, "'Slice.Nil != null' is false");
 			Assert.That(null != Slice.Empty, Is.True, "'Slice.Empty != null' is true");
 			Assert.That(null != Slice.FromByte(1), Is.True, "'[1] != null' is true");
+#pragma warning restore CS0618 // Type or member is obsolete
 		}
 
 		[Test]

@@ -2345,30 +2345,37 @@ namespace System
 
 		/// <summary>Determines whether two specified instances of <see cref="Slice"/> are equal</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("This is dangerous! Please use `value.IsNil` or `value == Slice.Nil` instead.")]
 		public static bool operator ==(Slice? a, Slice? b) => a.GetValueOrDefault().Equals(b.GetValueOrDefault());
 
 		/// <summary>Determines whether two specified instances of <see cref="Slice"/> are not equal</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("This is dangerous! Please use `!value.IsNil` or `value != Slice.Nil` instead.")]
 		public static bool operator !=(Slice? a, Slice? b) => !a.GetValueOrDefault().Equals(b.GetValueOrDefault());
 
 		/// <summary>Determines whether one specified <see cref="Slice"/> is less than another specified <see cref="Slice"/>.</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("This is dangerous! Please use `value < Slice.Nil` instead.")]
 		public static bool operator <(Slice? a, Slice? b) => a.GetValueOrDefault() < b.GetValueOrDefault();
 
 		/// <summary>Determines whether one specified <see cref="Slice"/> is less than or equal to another specified <see cref="Slice"/>.</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("This is dangerous! Please use `value <= Slice.Nil` instead.")]
 		public static bool operator <=(Slice? a, Slice? b) => a.GetValueOrDefault() <= b.GetValueOrDefault();
 
 		/// <summary>Determines whether one specified <see cref="Slice"/> is greater than another specified <see cref="Slice"/>.</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("This is dangerous! Please use `value > Slice.Nil` instead.")]
 		public static bool operator >(Slice? a, Slice? b) => a.GetValueOrDefault() > b.GetValueOrDefault();
 
 		/// <summary>Determines whether one specified <see cref="Slice"/> is greater than or equal to another specified <see cref="Slice"/>.</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("This is dangerous! Please use `value >= Slice.Nil` instead.")]
 		public static bool operator >=(Slice? a, Slice? b) => a.GetValueOrDefault() >= b.GetValueOrDefault();
 
 		/// <summary>Concatenates two <see cref="Slice"/> together.</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("This is dangerous! Please use `value + Slice.Nil` instead.")]
 		public static Slice operator +(Slice? a, Slice? b)
 		{
 			// note: makes "slice + null" work!
@@ -2378,31 +2385,37 @@ namespace System
 		/// <summary>Compare two slices for equality</summary>
 		/// <returns>True if the slices contains the same bytes</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[OverloadResolutionPriority(-1)]
 		public static bool operator ==(Slice a, ReadOnlySpan<byte> b) => a.Equals(b);
 		
 		/// <summary>Compare two slices for inequality</summary>
 		/// <returns>True if the slices do not contain the same bytes</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[OverloadResolutionPriority(-1)]
 		public static bool operator !=(Slice a, ReadOnlySpan<byte> b) => !a.Equals(b);
 
 		/// <summary>Compare two slices</summary>
 		/// <returns>True if <paramref name="a"/> is lexicographically less than <paramref name="a"/>; otherwise, false.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[OverloadResolutionPriority(-1)]
 		public static bool operator <(Slice a, ReadOnlySpan<byte> b) => a.CompareTo(b) < 0;
 
 		/// <summary>Compare two slices</summary>
 		/// <returns>True if <paramref name="a"/> is lexicographically less than or equal to <paramref name="a"/>; otherwise, false.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[OverloadResolutionPriority(-1)]
 		public static bool operator <=(Slice a, ReadOnlySpan<byte> b) => a.CompareTo(b) <= 0;
 
 		/// <summary>Compare two slices</summary>
 		/// <returns>True if <paramref name="a"/> is lexicographically greater than <paramref name="a"/>; otherwise, false.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[OverloadResolutionPriority(-1)]
 		public static bool operator >(Slice a, ReadOnlySpan<byte> b) => a.CompareTo(b) > 0;
 
 		/// <summary>Compare two slices</summary>
 		/// <returns>True if <paramref name="a"/> is lexicographically greater than or equal to <paramref name="a"/>; otherwise, false.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[OverloadResolutionPriority(-1)]
 		public static bool operator >=(Slice a, ReadOnlySpan<byte> b) => a.CompareTo(b) >= 0;
 
 		#endregion
@@ -2788,6 +2801,7 @@ namespace System
 		/// <summary>Checks if another slice is equal to the current slice.</summary>
 		/// <param name="other">Slice compared with the current instance</param>
 		/// <returns>true if both slices have the same size and contain the same sequence of bytes; otherwise, false.</returns>
+		[Pure]
 		public bool Equals(Slice other)
 		{
 			other.EnsureSliceIsValid();

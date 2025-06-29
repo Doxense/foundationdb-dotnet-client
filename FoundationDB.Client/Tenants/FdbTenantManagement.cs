@@ -144,12 +144,12 @@ namespace FoundationDB.Client
 				tr.Clear(TenantMapPrefix + name.Value);
 			}
 
-			public static IAsyncQuery<FdbTenantMetadata> QueryTenants(IFdbReadOnlyTransaction tr, Slice? prefix = null, Func<Slice, bool>? filter = null)
+			public static IAsyncQuery<FdbTenantMetadata> QueryTenants(IFdbReadOnlyTransaction tr, Slice prefix = default, Func<Slice, bool>? filter = null)
 			{
 				Contract.NotNull(tr);
 				return tr
 					// get all keys in the "/management/tenant/map/...." table
-					.GetRange(prefix == null ? TenantMapRange : KeyRange.StartsWith(TenantMapPrefix + prefix.Value))
+					.GetRange(prefix.IsNullOrEmpty ? TenantMapRange : KeyRange.StartsWith(TenantMapPrefix + prefix))
 					// remove the table prefix to get only the name
 					.Select(kv => (Name: kv.Key.Substring(TenantMapPrefix.Count), Data: kv.Value))
 					// optional filtering on the names

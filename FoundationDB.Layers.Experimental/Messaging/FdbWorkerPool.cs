@@ -204,7 +204,7 @@ namespace FoundationDB.Layers.Messaging
 				// find a random worker from the idle ring
 				var randomWorkerKey = await FindRandomItem(tr, this.IdleRing).ConfigureAwait(false);
 
-				if (randomWorkerKey.Key != null)
+				if (!randomWorkerKey.Key.IsNull)
 				{
 					Slice workerId = this.IdleRing.Decode<Slice>(randomWorkerKey.Key);
 
@@ -265,7 +265,7 @@ namespace FoundationDB.Layers.Messaging
 							watch = null;
 							msg = new FdbWorkerMessage();
 
-							if (previousTaskId != null)
+							if (!previousTaskId.IsNull)
 							{ // we need to clean up the previous task
 								ClearTask(tr, previousTaskId);
 							}
@@ -283,7 +283,7 @@ namespace FoundationDB.Layers.Messaging
 								// Find the next task on the queue
 								var item = await tr.GetRange(this.UnassignedTaskRing.ToRange()).FirstOrDefaultAsync().ConfigureAwait(false);
 
-								if (item.Key != null)
+								if (!item.Key.IsNull)
 								{ // pop the Task from the queue
 									msg.Id = item.Value;
 									tr.Clear(item.Key);
