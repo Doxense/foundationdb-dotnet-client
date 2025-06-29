@@ -53,7 +53,7 @@ namespace SnowBank.Collections.CacheOblivious
 				get
 				{
 					var tmp = new KeyValuePair<TKey, TValue>[m_dictionary.Count];
-					m_dictionary.CopyTo(tmp, 0);
+					m_dictionary.CopyTo(tmp);
 					return tmp;
 				}
 			}
@@ -365,6 +365,37 @@ namespace SnowBank.Collections.CacheOblivious
 			while (true);
 		}
 
+		public int RemoveRange(TKey begin, bool beginEqual, TKey end, bool endEqual)
+		{
+			// This is the worst case scenario for COLA: this operation is VERY SLOW!
+			// => It should be optimized, but for this it would need to modify the levels directly
+
+			var kvNext = new KeyValuePair<TKey, TValue>(begin, default!);
+			var cmp = m_keyComparer;
+
+			int removed = 0;
+			do
+			{
+				int level = m_items.FindNext(kvNext, beginEqual, out var offset, out var candidate);
+				int p = cmp.Compare(candidate.Key, end);
+				if (level < 0 || endEqual ? (p > 0) : (p >= 0))
+				{
+					break;
+				}
+
+				m_items.RemoveAt(level, offset);
+				++removed;
+
+				if (!endEqual && p == 0)
+				{ // prevent one extra search operation!
+					break;
+				}
+			}
+			while (true);
+
+			return removed;
+		}
+
 		public bool Lookup(TKey key, bool orEqual, out KeyValuePair<TKey, TValue> item)
 		{
 			return -1 != m_items.FindNext(new(key, default!), orEqual, out _, out item);
@@ -459,9 +490,9 @@ namespace SnowBank.Collections.CacheOblivious
 			=> this.GetEnumerator();
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal void CopyTo(KeyValuePair<TKey, TValue>[] array, int index)
+		internal void CopyTo(Span<KeyValuePair<TKey, TValue>> destination)
 		{
-			m_items.CopyTo(array, index, m_items.Count);
+			m_items.CopyTo(destination);
 		}
 
 		[MethodImpl(MethodImplOptions.NoInlining)]

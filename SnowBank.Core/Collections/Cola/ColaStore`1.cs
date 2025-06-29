@@ -31,6 +31,7 @@ namespace SnowBank.Collections.CacheOblivious
 {
 	using System.Buffers;
 	using System.Runtime.InteropServices;
+	using SnowBank.Buffers;
 
 	/// <summary>Store elements in a list of ordered levels</summary>
 	/// <typeparam name="T">Type of elements stored in the set</typeparam>
@@ -466,7 +467,7 @@ namespace SnowBank.Collections.CacheOblivious
 			return ref Unsafe.NullRef<T>();
 		}
 
-		/// <summary>Search for the smallest element that is larger than a reference element</summary>
+		/// <summary>Searches for the smallest element that is larger than a reference element</summary>
 		/// <param name="value">Reference element</param>
 		/// <param name="orEqual">If true, return the position of the value itself if it is found. If false, return the position of the closest value that is smaller.</param>
 		/// <param name="offset">Receive the offset within the level of the next element, or 0 if not found</param>
@@ -478,7 +479,7 @@ namespace SnowBank.Collections.CacheOblivious
 			return ColaStore.FindNext(this, m_count, value, orEqual, m_comparer, out offset, out result);
 		}
 		
-		/// <summary>Search for the smallest element that is larger than a reference element</summary>
+		/// <summary>Searches for the smallest element that is larger than a reference element</summary>
 		/// <param name="value">Reference element</param>
 		/// <param name="orEqual">If true, return the position of the value itself if it is found. If false, return the position of the closest value that is smaller.</param>
 		/// <param name="comparer"></param>
@@ -491,7 +492,7 @@ namespace SnowBank.Collections.CacheOblivious
 			return ColaStore.FindNext(this, m_count, value, orEqual, comparer ?? m_comparer, out offset, out result);
 		}
 
-		/// <summary>Search for the largest element that is smaller than a reference element</summary>
+		/// <summary>Searches for the largest element that is smaller than a reference element</summary>
 		/// <param name="value">Reference element</param>
 		/// <param name="orEqual">If true, return the position of the value itself if it is found. If false, return the position of the closest value that is smaller.</param>
 		/// <param name="offset">Receive the offset within the level of the previous element, or 0 if not found</param>
@@ -503,7 +504,7 @@ namespace SnowBank.Collections.CacheOblivious
 			return ColaStore.FindPrevious(this, m_count, value, orEqual, m_comparer, out offset, out result);
 		}
 
-		/// <summary>Search for the largest element that is smaller than a reference element</summary>
+		/// <summary>Searches for the largest element that is smaller than a reference element</summary>
 		/// <param name="value">Reference element</param>
 		/// <param name="orEqual">If true, return the position of the value itself if it is found. If false, return the position of the closest value that is smaller.</param>
 		/// <param name="comparer"></param>
@@ -528,7 +529,7 @@ namespace SnowBank.Collections.CacheOblivious
 			return ColaStore.FindBetween<T>(this, m_count, begin, beginOrEqual, end, endOrEqual, limit, comparer ?? m_comparer);
 		}
 
-		/// <summary>Return the value stored at a specific location in the array</summary>
+		/// <summary>Returns the value stored at a specific location in the array</summary>
 		/// <param name="arrayIndex">Absolute index in the vector-array</param>
 		/// <returns>Value stored at this location, or default(T) if the level is not allocated</returns>
 		public ref T GetReference(int arrayIndex)
@@ -551,7 +552,7 @@ namespace SnowBank.Collections.CacheOblivious
 			return ref (IsFree(level) ? ref Unsafe.NullRef<T>() : ref GetLevel(level)[offset]);
 		}
 
-		/// <summary>Clear the array</summary>
+		/// <summary>Clears the array</summary>
 		public void Clear()
 		{
 			for (int i = 0; i < m_allocatedLevels; i++)
@@ -583,7 +584,7 @@ namespace SnowBank.Collections.CacheOblivious
 			CheckInvariants();
 		}
 
-		/// <summary>Add a value to the array</summary>
+		/// <summary>Adds a value to the array</summary>
 		/// <param name="value">Value to add to the array</param>
 		/// <param name="overwriteExistingValue">If <paramref name="value"/> already exists in the array and <paramref name="overwriteExistingValue"/> is true, it will be overwritten with <paramref name="value"/>.</param>
 		/// <returns><c>true</c>if the value was added to the array, or <c>false</c> if it was already there.</returns>
@@ -606,7 +607,7 @@ namespace SnowBank.Collections.CacheOblivious
 			return true;
 		}
 
-		/// <summary>Insert a new element in the set, and returns its index.</summary>
+		/// <summary>Inserts a new element in the set, and returns its index.</summary>
 		/// <param name="value">Value to insert. Warning: if the value already exists, the store will be corrupted !</param>
 		/// <remarks>The index is the absolute index, as if all the levels where a single, contiguous, array (0 = root, 7 = first element of level 3)</remarks>
 		public void Insert(T value)
@@ -632,7 +633,7 @@ namespace SnowBank.Collections.CacheOblivious
 			CheckInvariants();
 		}
 
-		/// <summary>Insert two elements in the set.</summary>
+		/// <summary>Inserts two elements in the set.</summary>
 		public void InsertItems(T first, T second)
 		{
 			Contract.Debug.Requires(m_comparer.Compare(first, second) != 0, "Cannot insert the same value twice");
@@ -661,7 +662,7 @@ namespace SnowBank.Collections.CacheOblivious
 			CheckInvariants();
 		}
 
-		/// <summary>Insert one or more new elements in the set.</summary>
+		/// <summary>Inserts one or more new elements in the set.</summary>
 		/// <param name="values">Array of elements to insert. Warning: if a value already exist, the store will be corrupted !</param>
 		/// <param name="ordered">If true, the entries in <paramref name="values"/> are guaranteed to already be sorted (using the store default comparer).</param>
 		/// <remarks>The best performances are achieved when inserting a number of items that is a power of 2. The worst performances are when doubling the size of a store that is full.
@@ -736,12 +737,10 @@ namespace SnowBank.Collections.CacheOblivious
 					{ // the target level is free, we can copy and sort in place
 
 						CollectionsMarshal.AsSpan(values).Slice(p).CopyTo(segment);
-						//values.CopyTo(p, segment, 0, segment.Length);
 
 						if (!ordered)
 						{
 							segment.Sort(m_comparer);
-							//Array.Sort(segment, 0, segment.Length, m_comparer);
 						}
 
 						p += segment.Length;
@@ -753,12 +752,10 @@ namespace SnowBank.Collections.CacheOblivious
 						var (array, size) = RentLevel(i);
 						var spare = array.AsSpan(0, size);
 						CollectionsMarshal.AsSpan(values).Slice(p).CopyTo(spare);
-						//values.CopyTo(p, spare, 0, spare.Length);
 
 						if (!ordered)
 						{
 							spare.Sort(m_comparer);
-							//Array.Sort(spare, 0, spare.Length, m_comparer);
 						}
 
 						p += segment.Length;
@@ -778,7 +775,7 @@ namespace SnowBank.Collections.CacheOblivious
 			CheckInvariants();
 		}
 
-		/// <summary>Remove the value at the specified location</summary>
+		/// <summary>Removes the value at the specified location</summary>
 		/// <param name="arrayIndex">Absolute index in the vector-array</param>
 		/// <returns>Value that was removed</returns>
 		public T RemoveAt(int arrayIndex)
@@ -788,7 +785,7 @@ namespace SnowBank.Collections.CacheOblivious
 			return RemoveAt(level, offset);
 		}
 
-		/// <summary>Remove the value at the specified location</summary>
+		/// <summary>Removes the value at the specified location</summary>
 		/// <param name="level">Index of the level (0-based)</param>
 		/// <param name="offset">Offset in the level (0-based)</param>
 		/// <returns>Value that was removed</returns>
@@ -890,6 +887,7 @@ namespace SnowBank.Collections.CacheOblivious
 			return removed;
 		}
 
+		/// <summary>Removes the specified item</summary>
 		public bool RemoveItem(T item)
 		{
 			if (Unsafe.IsNullRef(ref Find(item, out int level, out int offset)))
@@ -902,10 +900,9 @@ namespace SnowBank.Collections.CacheOblivious
 			return true;
 		}
 
-		public int RemoveItems(IEnumerable<T> items)
+		/// <summary>Removes one or more items</summary>
+		public int RemoveItems(ReadOnlySpan<T> items)
 		{
-			Contract.NotNull(items);
-
 			int count = 0;
 
 			foreach (var item in items)
@@ -915,25 +912,68 @@ namespace SnowBank.Collections.CacheOblivious
 					RemoveAt(level, offset);
 					++count;
 				}
-
 			}
 			CheckInvariants();
 			return count;
 		}
 
-		public void CopyTo(T[] array, int arrayIndex, int count)
+		/// <summary>Removes one or more items</summary>
+		public int RemoveItems(IEnumerable<T> items)
 		{
-			Contract.NotNull(array);
-			if (arrayIndex < 0) throw new ArgumentOutOfRangeException(nameof(arrayIndex), "Index cannot be less than zero.");
-			if (count < 0) throw new ArgumentOutOfRangeException(nameof(count), "Count cannot be less than zero.");
-			if (arrayIndex > array.Length || count > (array.Length - arrayIndex)) throw new ArgumentException("Destination array is too small");
+			Contract.NotNull(items);
 
-			int p = arrayIndex;
+			if (items.TryGetSpan(out var span))
+			{
+				return RemoveItems(span);
+			}
+
+			return RemoveItemsEnumerable(items);
+
+			int RemoveItemsEnumerable(IEnumerable<T> xs)
+			{
+				int count = 0;
+
+				foreach (var item in xs)
+				{
+					if (!Unsafe.IsNullRef(ref Find(item, out int level, out int offset)))
+					{
+						RemoveAt(level, offset);
+						++count;
+					}
+				}
+				CheckInvariants();
+				return count;
+			}
+		}
+
+		/// <summary>Copies the contents of this store into destination span.</summary>
+		/// <param name="destination">The span to copy items into.</param>
+		/// <exception cref="ArgumentException">Thrown when the destination Span is too small to receive all the items.</exception>
+		public void CopyTo(Span<T> destination)
+		{
+			if (!TryCopyTo(destination))
+			{
+				throw new ArgumentException("Destination buffer is too short", nameof(destination));
+			}
+		}
+
+		/// <summary>Copies the contents of this store into destination span.</summary>
+		/// <param name="destination">The span to copy items into.</param>
+		/// <returns><c>true</c> if the buffer was large enough; otherwise, <c>false</c>.</returns>
+		public bool TryCopyTo(Span<T> destination)
+		{
+			if (destination.Length < m_count)
+			{
+				return false;
+			}
+
+			int p = 0;
 			foreach (var item in ColaStore.IterateOrdered(this, reverse: false))
 			{
-				array[p++] = item;
+				destination[p++] = item;
 			}
-			Contract.Debug.Ensures(p == arrayIndex + Math.Min(count, m_count));
+			Contract.Debug.Ensures(p == m_count);
+			return true;
 		}
 
 		/// <summary>Checks if a level is currently not allocated</summary>
@@ -1444,10 +1484,18 @@ namespace SnowBank.Collections.CacheOblivious
 			}
 
 			/// <summary>Move the cursor the smallest value that is greater than the current value</summary>
-			public bool Next()
+			public bool Next() => Next(out _);
+
+			/// <summary>Move the cursor the smallest value that is greater than the current value</summary>
+			/// <param name="value">Receives the next value</param>
+			public bool Next([MaybeNullWhen(false)] out T value)
 			{
 				// invalid position, or no more values
-				if (m_currentLevel < 0) return false;
+				if (m_currentLevel < 0)
+				{
+					value = default;
+					return false;
+				}
 
 				var cursors = m_cursors;
 				var count = m_count;
@@ -1502,7 +1550,16 @@ namespace SnowBank.Collections.CacheOblivious
 				m_current = min;
 				m_currentLevel = minLevel;
 				m_direction = DIRECTION_NEXT;
-				return minLevel >= 0;
+				if (minLevel >= 0)
+				{
+					value = min;
+					return true;
+				}
+				else
+				{
+					value = default;
+					return false;
+				}
 			}
 
 			/// <summary>Move the cursor the largest value that is smaller than the current value</summary>

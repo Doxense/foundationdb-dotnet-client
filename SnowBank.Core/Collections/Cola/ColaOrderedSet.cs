@@ -203,26 +203,28 @@ namespace SnowBank.Collections.CacheOblivious
 		}
 
 		/// <summary>Copy the ordered elements of the set to an array</summary>
-		/// <param name="array">The one-dimensional array that is the destination of the elements copied from collection. The array must have zero-based indexing.</param>
-		public void CopyTo(T[] array)
+		/// <param name="destination">The one-dimensional array that is the destination of the elements copied from collection. The array must have zero-based indexing.</param>
+		/// <exception cref="ArgumentException">Thrown when the destination Span is too small to receive all the items.</exception>
+		public void CopyTo(Span<T> destination)
 		{
-			Contract.Debug.Requires(array != null);
-			m_items.CopyTo(array, 0, array.Length);
+			m_items.CopyTo(destination);
 		}
 
-		/// <summary>Copies the ordered elements of the set to an array, starting at a particular array index.</summary>
-		/// <param name="array">The one-dimensional array that is the destination of the elements copied from collection. The array must have zero-based indexing.</param>
-		/// <param name="arrayIndex">The zero-based index in array at which copying begins.</param>
-		public void CopyTo(T[] array, int arrayIndex)
+		/// <summary>Copy the ordered elements of the set to an array</summary>
+		/// <param name="destination">The one-dimensional array that is the destination of the elements copied from collection. The array must have zero-based indexing.</param>
+		/// <returns><c>true</c> if the buffer was large enough; otherwise, <c>false</c>.</returns>
+		public bool TryCopyTo(Span<T> destination)
 		{
-			Contract.Debug.Requires(array != null && arrayIndex >= 0);
-			m_items.CopyTo(array, arrayIndex, m_items.Count);
+			return m_items.TryCopyTo(destination);
 		}
 
-		public void CopyTo(T[] array, int arrayIndex, int count)
+		/// <summary>Copy the ordered elements of the set to an array</summary>
+		/// <param name="destination">The one-dimensional array that is the destination of the elements copied from collection. The array must have zero-based indexing.</param>
+		/// <exception cref="ArgumentException">Thrown when the destination Span is too small to receive all the items.</exception>
+		public void CopyTo(T[] destination)
 		{
-			Contract.Debug.Requires(array != null && arrayIndex >= 0 && count >= 0);
-			m_items.CopyTo(array, arrayIndex, count);
+			Contract.Debug.Requires(destination != null);
+			m_items.CopyTo(destination);
 		}
 
 		public ColaStore.Enumerator<T> GetEnumerator() => new(m_items, reverse: false);
@@ -258,7 +260,7 @@ namespace SnowBank.Collections.CacheOblivious
 				get
 				{
 					var tmp = new T[m_set.Count];
-					m_set.CopyTo(tmp, 0);
+					m_set.CopyTo(tmp);
 					return tmp;
 				}
 			}

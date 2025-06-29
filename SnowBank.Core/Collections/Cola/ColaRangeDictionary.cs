@@ -307,7 +307,8 @@ namespace SnowBank.Collections.CacheOblivious
 				var cursor = iterator.Current!;
 				var c1 = comparer.Compare(beginInclusive, cursor.Begin);
 				var c2 = comparer.Compare(endExclusive, cursor.End);
-				List<Entry>? toRemove = null;
+				List<Entry>? toRemove = null; //PERF: TODO: use a stackalloc'ed buffer?
+
 				//begin < cursor.Begin
 				if (c1 < 0)
 				{
@@ -346,9 +347,8 @@ namespace SnowBank.Collections.CacheOblivious
 					//      [+++++++++[
 					//-------------------...
 					toRemove = [ cursor ];
-					while (iterator.Next())
+					while (iterator.Next(out cursor))
 					{
-						cursor = iterator.Current!;
 						c2 = comparer.Compare(endExclusive, cursor.End);
 						c3 = comparer.Compare(endExclusive, cursor.Begin);
 						//end <= cursor.Begin
@@ -410,9 +410,8 @@ namespace SnowBank.Collections.CacheOblivious
 					else
 					{
 						toRemove = [ cursor ];
-						while (iterator.Next())
+						while (iterator.Next(out cursor))
 						{
-							cursor = iterator.Current!;
 							var c3 = comparer.Compare(endExclusive, cursor.Begin);
 							c2 = comparer.Compare(endExclusive, cursor.End);
 							//end < cursor.Begin
@@ -480,9 +479,8 @@ namespace SnowBank.Collections.CacheOblivious
 					else
 					{
 						cursor.End = beginInclusive;
-						while (iterator.Next())
+						while (iterator.Next(out cursor))
 						{
-							cursor = iterator.Current!;
 							var c3 = comparer.Compare(endExclusive, cursor.Begin);
 							c2 = comparer.Compare(endExclusive, cursor.End);
 							//end <= cursor.Begin
@@ -565,16 +563,18 @@ namespace SnowBank.Collections.CacheOblivious
 					iterator.Next();
 				}
 			}
+
+			var cursor = iterator.Current;
 			do
 			{
-				var cursor = iterator.Current;
 				// in the case where everything has been deleted after lastOK, the iterator is already passed the end when we reach here
 				if (cursor == null) break;
 
 				cursor.Begin = applyKeyOffset(cursor.Begin, offset);
 				cursor.End = applyKeyOffset(cursor.End, offset);
 			}
-			while (iterator.Next());
+			while (iterator.Next(out cursor));
+
 			// shift the bounds if required
 			if (iterator.SeekFirst()) m_bounds.Begin = iterator.Current!.Begin;
 			if (iterator.SeekLast()) m_bounds.End = iterator.Current!.End;
@@ -1098,10 +1098,9 @@ namespace SnowBank.Collections.CacheOblivious
 				iterator.SeekFirst();
 			}
 
+			var cursor = iterator.Current!;
 			do
 			{
-				var cursor = iterator.Current!;
-				
 				// key is in internal if CMP(key, A.begin) >= 0 .AND. CMP(key, B.end) <= 0
 
 				if (cmp.Compare(key, cursor.Begin) < 0)
@@ -1115,7 +1114,7 @@ namespace SnowBank.Collections.CacheOblivious
 					return true;
 				}
 			}
-			while(iterator.Next());
+			while(iterator.Next(out cursor));
 
 			return false;
 		}
@@ -1150,10 +1149,9 @@ namespace SnowBank.Collections.CacheOblivious
 				iterator.SeekFirst();
 			}
 
+			var cursor = iterator.Current!;
 			do
 			{
-				var cursor = iterator.Current!;
-				
 				// A and B intersects if: CMP(B.end, A.begin) <= 0 .OR. CMP(A.end, B.begin) <= 0
 
 				if (cmp.Compare(end, cursor.Begin) <= 0)
@@ -1167,7 +1165,7 @@ namespace SnowBank.Collections.CacheOblivious
 					return true;
 				}
 			}
-			while(iterator.Next());
+			while(iterator.Next(out cursor));
 
 			return false;
 		}
@@ -1195,10 +1193,9 @@ namespace SnowBank.Collections.CacheOblivious
 				iterator.SeekFirst();
 			}
 
+			var cursor = iterator.Current!;
 			do
 			{
-				var cursor = iterator.Current!;
-				
 				// A and B intersects if: CMP(B.end, A.begin) <= 0 .OR. CMP(A.end, B.begin) <= 0
 
 				if (cmp.Compare(end, cursor.Begin) <= 0)
@@ -1212,7 +1209,7 @@ namespace SnowBank.Collections.CacheOblivious
 					return true;
 				}
 			}
-			while(iterator.Next());
+			while(iterator.Next(out cursor));
 
 			return false;
 		}
@@ -1241,10 +1238,9 @@ namespace SnowBank.Collections.CacheOblivious
 				iterator.SeekFirst();
 			}
 
+			var cursor = iterator.Current!;
 			do
 			{
-				var cursor = iterator.Current!;
-				
 				// A and B intersects if: CMP(B.end, A.begin) <= 0 .OR. CMP(A.end, B.begin) <= 0
 
 				if (cmp.Compare(end, cursor.Begin) <= 0)
@@ -1258,7 +1254,7 @@ namespace SnowBank.Collections.CacheOblivious
 					return true;
 				}
 			}
-			while(iterator.Next());
+			while(iterator.Next(out cursor));
 
 			return false;
 		}
@@ -1288,9 +1284,9 @@ namespace SnowBank.Collections.CacheOblivious
 				iterator.SeekFirst();
 			}
 
+			var cursor = iterator.Current!;
 			do
 			{
-				var cursor = iterator.Current!;
 				
 				// A and B intersects if: CMP(B.end, A.begin) <= 0 .OR. CMP(A.end, B.begin) <= 0
 
@@ -1305,7 +1301,7 @@ namespace SnowBank.Collections.CacheOblivious
 					return true;
 				}
 			}
-			while(iterator.Next());
+			while(iterator.Next(out cursor));
 
 			return false;
 		}
@@ -1329,9 +1325,9 @@ namespace SnowBank.Collections.CacheOblivious
 					iter.SeekFirst();
 				}
 
+				var cursor = iter.Current!;
 				do
 				{
-					var cursor = iter.Current!;
 					if (m_keyComparer.Compare(cursor.End, begin) <= 0)
 					{ // ends before the end of the range
 						yield break;
@@ -1343,7 +1339,7 @@ namespace SnowBank.Collections.CacheOblivious
 
 					yield return (cursor.Begin!, cursor.End!, cursor.Value!);
 				}
-				while (iter.Next());
+				while (iter.Next(out cursor));
 			}
 		}
 

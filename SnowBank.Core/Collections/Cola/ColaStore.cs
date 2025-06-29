@@ -266,10 +266,9 @@ namespace SnowBank.Collections.CacheOblivious
 			}
 
 			int end = array.Length - 1;
-			int c;
 
 			// compare with the last item
-			c = comparer.Compare(array[end], value);
+			int c = comparer.Compare(array[end], value);
 			if (c == 0) return end;
 			if (array.Length == 1)
 			{
@@ -352,6 +351,7 @@ namespace SnowBank.Collections.CacheOblivious
 				segment[index] = value;
 				return;
 			}
+
 			if (index < offset)
 			{ // shift right
 
@@ -362,7 +362,6 @@ namespace SnowBank.Collections.CacheOblivious
 				// after:  [...] O # # # [...]
 
 				segment.Slice(index, offset - index).CopyTo(segment.Slice(index + 1));
-				//Array.Copy(segment, index, segment, index + 1, offset - index);
 				segment[index] = value;
 			}
 			else
@@ -377,7 +376,6 @@ namespace SnowBank.Collections.CacheOblivious
 				// after:  [...] # # # O [...]
 
 				segment.Slice(offset + 1, index - offset).CopyTo(segment.Slice(offset));
-				//Array.Copy(segment, offset + 1, segment, offset, index - offset);
 				segment[index] = value;
 			}
 		}
@@ -400,20 +398,18 @@ namespace SnowBank.Collections.CacheOblivious
 			{
 				var segment = store.GetLevel(i);
 				source.Slice(p, segment.Length).CopyTo(segment);
-				//Array.Copy(source, p, segment, 0, n);
 				p += segment.Length;
 			}
 			Contract.Debug.Assert(p == source.Length);
 			T res = source[0];
 			source.Clear();
-			//Array.Clear(source, 0, source.Length);
 			return res;
 		}
 
 		/// <summary>Merge two ordered segments of level N into an ordered segment of level N + 1</summary>
 		/// <param name="output">Destination, level N + 1 (size 2^(N+1))</param>
 		/// <param name="left">First level N segment (size 2^N)</param>
-		/// <param name="right">Second level N segment (taille 2^N)</param>
+		/// <param name="right">Second level N segment (size 2^N)</param>
 		/// <param name="comparer">Comparer used for the merge</param>
 		internal static void MergeSort<T>(Span<T> output, Span<T> left, Span<T> right, IComparer<T> comparer)
 		{
@@ -484,7 +480,6 @@ namespace SnowBank.Collections.CacheOblivious
 						if (pRight < n)
 						{
 							right.Slice(pRight, n - pRight).CopyTo(output.Slice(pOutput));
-							//Array.Copy(right, pRight, output, pOutput, n - pRight);
 						}
 
 						return;
@@ -501,7 +496,6 @@ namespace SnowBank.Collections.CacheOblivious
 						if (pLeft < n)
 						{
 							left.Slice(pLeft, n - pLeft).CopyTo(output.Slice(pOutput));
-							//Array.Copy(left, pLeft, output, pOutput, n - pLeft);
 						}
 
 						return;
