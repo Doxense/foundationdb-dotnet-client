@@ -2012,16 +2012,43 @@ namespace SnowBank.Data.Json
 			{
 				Contract.NotNull(values);
 
-				if (values.Count == 0) return [ ];
+				var items = values.GetSpan();
+				if (items.Length == 0) return [ ];
 
-				var tmp = new TJsonDeserializable?[values.Count];
+				var tmp = new TJsonDeserializable?[items.Length];
 				resolver ??= CrystalJson.DefaultResolver;
-				for (int i = 0; i < tmp.Length; i++)
+				for (int i = 0; i < items.Length; i++)
 				{
 					var value = values[i];
 					tmp[i] = value is not JsonNull ? TJsonDeserializable.JsonDeserialize(value, resolver) : default;
 				}
 				return tmp;
+			}
+
+			[Pure]
+			public static List<TJsonDeserializable?> JsonUnpackList(JsonArray values, ICrystalJsonTypeResolver? resolver = null)
+			{
+				Contract.NotNull(values);
+
+				var items = values.GetSpan();
+				if (items.Length == 0) return [ ];
+
+				var res = new List<TJsonDeserializable?>();
+				CollectionsMarshal.SetCount(res, items.Length);
+				var tmp = CollectionsMarshal.AsSpan(res);
+				resolver ??= CrystalJson.DefaultResolver;
+				for (int i = 0; i < items.Length; i++)
+				{
+					var value = values[i];
+					tmp[i] = value is not JsonNull ? TJsonDeserializable.JsonDeserialize(value, resolver) : default;
+				}
+				return res;
+			}
+
+			[Pure]
+			public static ImmutableArray<TJsonDeserializable?> JsonUnpackImmutableArray(JsonArray values, ICrystalJsonTypeResolver? resolver = null)
+			{
+				return ImmutableCollectionsMarshal.AsImmutableArray(JsonUnpackArray<TJsonDeserializable>(values, resolver));
 			}
 
 			#endregion
