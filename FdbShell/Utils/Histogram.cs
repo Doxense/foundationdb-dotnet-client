@@ -46,9 +46,9 @@ namespace FdbShell
 		private static readonly double SUM_RATIO = (1d / BucketLimits[0]);
 		private static readonly double SUM_SQUARES_RATIO = SUM_RATIO * SUM_RATIO;
 
-		private static readonly string BarTicksChars = "<[[((|))]]>";
-		private static readonly string BarChartChars = " .:;+=xX$&#";
-		private static readonly string VerticalChartChars = " _.-:=xX&#@";
+		private const string BarTicksChars = "<[[((|))]]>";
+		private const string BarChartChars = " .:;+=xX$&#";
+		private const string VerticalChartChars = " _.-:=xX&#@";
 
 		public RobustHistogram()
 			: this(TimeScale.Microseconds)

@@ -28,6 +28,7 @@
 
 namespace SnowBank.Text
 {
+	using System.Globalization;
 	using SnowBank.IO.Hashing;
 	using SnowBank.Buffers.Text;
 
@@ -60,6 +61,8 @@ namespace SnowBank.Text
 			/// <summary>Do not include the last <c>\r\n</c> for the last line</summary>
 			/// <remarks>Allows <c>WriteLine(HexaDump.Format(...))</c> to dump to the console or log, without adding an extra new line</remarks>
 			OmitLastNewLine = 32,
+
+			IdentWithSpaces = 64,
 		}
 
 		private static void DumpHexaLine(ref FastStringBuilder sb, ReadOnlySpan<byte> bytes)
@@ -101,7 +104,10 @@ namespace SnowBank.Text
 					else sb.Append((char) b); // Latin-1
 				}
 			}
-			if (bytes.Length < 16) sb.Append(' ', (16 - bytes.Length));
+			if (bytes.Length < 16)
+			{
+				sb.Append(' ', (16 - bytes.Length));
+			}
 		}
 
 		private static void DumpTextLine(ref FastStringBuilder sb, ReadOnlySpan<byte> bytes)
@@ -146,13 +152,13 @@ namespace SnowBank.Text
 			var sb = new FastStringBuilder();
 			bool preview = (options & Options.NoPreview) == 0;
 
-			string prefix = indent == 0 ? string.Empty : new string('\t', indent); // tabs ftw
+			string prefix = indent == 0 ? string.Empty : new string(options.HasFlag(Options.IdentWithSpaces) ? ' ' : '\t', indent);
 
-			if ((options & Options.NoHeader) == 0)
+			if (!options.HasFlag(Options.NoHeader))
 			{
 				sb.Append(prefix);
-				sb.Append("HEXA : -0 -1 -2 -3 -4 -5 -6 -7 -8 -9 -A -B -C -D -E -F");
-				if (preview) sb.Append(" : <---<---<---<--- :");
+				sb.Append("     : -0 -1 -2 -3 -4 -5 -6 -7 -8 -9 -A -B -C -D -E -F");
+				if (preview) sb.Append(" : 0123456789ABCDEF :");
 				sb.AppendLine();
 			}
 
@@ -170,10 +176,14 @@ namespace SnowBank.Text
 				if (preview)
 				{
 					sb.Append(" | ");
-					if ((options & Options.Text) == 0)
+					if (!options.HasFlag(Options.Text))
+					{
 						DumpRawLine(ref sb, chunk);
+					}
 					else
+					{
 						DumpTextLine(ref sb, chunk);
+					}
 					sb.Append(" |");
 				}
 				sb.AppendLine();
@@ -182,7 +192,7 @@ namespace SnowBank.Text
 				offset += n;
 			}
 
-			if ((options & Options.NoFooter) == 0)
+			if (!options.HasFlag(Options.NoFooter))
 			{
 				sb.Append(prefix);
 				sb.AppendFormat(
@@ -192,14 +202,14 @@ namespace SnowBank.Text
 				);
 				sb.AppendLine();
 			}
-			if ((options & Options.ShowBytesDistribution) != 0)
+			if (options.HasFlag(Options.ShowBytesDistribution))
 			{
 				sb.Append(prefix);
 				sb.AppendFormat("---- [{0}]", ComputeBytesDistribution(bytes, 2));
 				sb.AppendLine();
 			}
 
-			if ((options & Options.OmitLastNewLine) != 0)
+			if (options.HasFlag(Options.OmitLastNewLine))
 			{
 				switch (Environment.NewLine)
 				{
@@ -242,16 +252,19 @@ namespace SnowBank.Text
 		}
 
 		/// <summary>Dump two byte spans, side-by-side, formatted as 16 bytes per line</summary>
-		public static string Versus(ReadOnlySpan<byte> left, ReadOnlySpan<byte> right, Options options = Options.Default)
+		public static string Versus(ReadOnlySpan<byte> left, ReadOnlySpan<byte> right, Options options = Options.Default, int indent = 0)
 		{
 			var sb = new FastStringBuilder();
+
+			string prefix = indent == 0 ? string.Empty : new string(options.HasFlag(Options.IdentWithSpaces) ? ' ' : '\t', indent);
 
 			bool preview = (options & Options.NoPreview) == 0;
 
 			if ((options & Options.NoHeader) == 0)
 			{
-				sb.Append("HEXA : x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 xA xB xC xD xE xF : x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 xA xB xC xD xE xF");
-				if (preview) sb.Append(" :      : 0123456789ABCDEF : 0123456789ABCDEF");
+				sb.Append(prefix);
+				sb.Append("     : x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 xA xB xC xD xE xF : x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 xA xB xC xD xE xF");
+				if (preview) sb.Append(" :      : 0123456789ABCDEF : 0123456789ABCDEF : 0123456789ABCDEF");
 				sb.AppendLine();
 			}
 
@@ -261,8 +274,7 @@ namespace SnowBank.Text
 			int count = Math.Max(lr, rr);
 			while (count > 0)
 			{
-				sb.AppendHex(p >> 4, 3);
-				sb.Append("x |");
+				sb.Append($"{prefix}{p >> 4:x03}x |");
 
 				int ln = Math.Min(lr, 16);
 				int rn = Math.Min(rr, 16);
@@ -272,18 +284,28 @@ namespace SnowBank.Text
 
 				bool same = !preview || lChunk.SequenceEqual(rChunk);
 				DumpHexaLine(ref sb, lChunk);
-				sb.Append(" |");
+				sb.Append(" │");
 				DumpHexaLine(ref sb, rChunk);
 
 				if (preview)
 				{
-					sb.Append(" ║ ");
-					sb.AppendHex(p >> 4, 3);
-					sb.Append("x | ");
+					sb.Append($" ║ {p >> 4:x03}x | ");
 					DumpRawLine(ref sb, lChunk);
-					sb.Append(" | ");
+					sb.Append(" │ ");
 					DumpRawLine(ref sb, rChunk);
-					if (!same) sb.Append(" *");
+					if (!same)
+					{
+						sb.Append(" │ ");
+						int mn = Math.Max(ln, rn);
+						for (int i = 0; i < mn; i++)
+						{
+							sb.Append(i >= ln || i >= rn ? '+' : lChunk[i] == rChunk[i] ? '·' : lChunk[i] == 0 ? '@' : rChunk[i] == 0 ? 'x':  '#');
+						}
+					}
+					else
+					{
+						sb.Append(" │ ················");
+					}
 				}
 
 				sb.AppendLine();
@@ -293,38 +315,24 @@ namespace SnowBank.Text
 				p += 16;
 			}
 
-			if ((options & Options.NoHeader) == 0)
+			if (!options.HasFlag(Options.NoHeader))
 			{
-				if ((options & Options.ShowBytesDistribution) == 0)
+				if (!options.HasFlag(Options.ShowBytesDistribution))
 				{
-					sb.AppendFormat(
-						"<<<< {0:N0} bytes; 0x{1:X8}",
-						left.Length,
-						XxHash32.Compute(left)
-					);
+					sb.Append(prefix);
+					sb.Append(CultureInfo.InvariantCulture, $"<<<< {left.Length:N0} bytes; 0x{XxHash32.Compute(left):X8}");
 					sb.AppendLine();
-					sb.AppendFormat(
-						">>>> {0:N0} bytes; 0x{1:X8}",
-						right.Length,
-						XxHash32.Compute(right)
-					);
+					sb.Append(prefix);
+					sb.Append(CultureInfo.InvariantCulture, $">>>> {right.Length:N0} bytes; 0x{XxHash32.Compute(right):X8}");
 					sb.AppendLine();
 				}
 				else
 				{
-					sb.AppendFormat(
-						"<<<< [{2}] {0:N0} bytes; 0x{1:X8}",
-						left.Length,
-						XxHash32.Compute(left),
-						ComputeBytesDistribution(left, 1)
-					);
+					sb.Append(prefix);
+					sb.Append(CultureInfo.InvariantCulture, $"<<<< [{ComputeBytesDistribution(left, 1)}] {left.Length:N0} bytes; 0x{XxHash32.Compute(left):X8}");
 					sb.AppendLine();
-					sb.AppendFormat(
-						">>>> [{2}] {0:N0} bytes; 0x{1:X8}",
-						right.Length,
-						XxHash32.Compute(right),
-						ComputeBytesDistribution(left, 1)
-					);
+					sb.Append(prefix);
+					sb.Append(CultureInfo.InvariantCulture, $">>>> [{ComputeBytesDistribution(left, 1)}] {right.Length:N0} bytes; 0x{XxHash32.Compute(right):X8}");
 					sb.AppendLine();
 				}
 			}
