@@ -260,6 +260,46 @@ namespace SnowBank.Buffers.Text
 			this.Position += s.Length;
 		}
 
+		public void Append(ref DefaultInterpolatedStringHandler handler)
+		{
+#if NET10_0_OR_GREATER
+			Append(handler.Text);
+			handler.Clear();
+#else
+			Append(handler.ToStringAndClear());
+#endif
+		}
+
+		public void Append(IFormatProvider? provider, [InterpolatedStringHandlerArgument(nameof(provider))] ref DefaultInterpolatedStringHandler handler)
+		{
+#if NET10_0_OR_GREATER
+			Append(handler.Text);
+			handler.Clear();
+#else
+			Append(handler.ToStringAndClear());
+#endif
+		}
+
+		public void AppendLine(ref DefaultInterpolatedStringHandler handler)
+		{
+#if NET10_0_OR_GREATER
+			AppendLine(handler.Text);
+			handler.Clear();
+#else
+			AppendLine(handler.ToStringAndClear());
+#endif
+		}
+
+		public void AppendLine(IFormatProvider? provider, [InterpolatedStringHandlerArgument(nameof(provider))] ref DefaultInterpolatedStringHandler handler)
+		{
+#if NET10_0_OR_GREATER
+			AppendLine(handler.Text);
+			handler.Clear();
+#else
+			AppendLine(handler.ToStringAndClear());
+#endif
+		}
+
 #if NET9_0_OR_GREATER
 
 		/// <summary>Appends a formatting string at the end of the buffer</summary>
