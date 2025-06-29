@@ -1613,6 +1613,12 @@ namespace System
 						}
 					}
 				}
+
+				// is it all zeroes?
+				if (!buffer.ContainsAnyExcept((byte) 0))
+				{
+					return DumpLower(buffer, maxLen);
+				}
 			}
 
 			// do a first pass on the slice to look for non-printable characters
