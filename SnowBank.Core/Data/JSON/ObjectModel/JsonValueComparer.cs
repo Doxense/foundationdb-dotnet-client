@@ -29,15 +29,21 @@ namespace SnowBank.Data.Json
 
 	/// <summary>Comparer for <see cref="JsonValue"/> instances</summary>
 	/// <remarks>This comparer uses the "equivalent values" semantic</remarks>
-	public sealed class JsonValueComparer : IEqualityComparer<JsonValue>, IComparer<JsonValue>, System.Collections.IEqualityComparer, System.Collections.IComparer
+	public static class JsonValueComparer
 	{
 
 		/// <summary>Comparer that checks if two <see cref="JsonValue"/> instances are <i>equivalent</i>, meaning that they would both deserialize to the same or equivalent value</summary>
 		/// <remarks>For example, the JSON string <c>"123"</c> is equivalent to the JSON number <c>123</c> since both would return "123" when converted to string, or 123 when converted to Int32.</remarks>
-		public static readonly JsonValueComparer Default = new();
+		public static readonly JsonValueDefaultComparer Default = new();
 
-		private JsonValueComparer()
-		{ }
+		/// <summary>Comparer that checks if two <see cref="JsonValue"/> instances are <i>equivalent</i>, meaning that they would both deserialize to the same or equivalent value</summary>
+		/// <remarks>For example, the JSON string <c>"123"</c> is equivalent to the JSON number <c>123</c> since both would return "123" when converted to string, or 123 when converted to Int32.</remarks>
+		public static readonly JsonValueStrictComparer Strict = new();
+
+	}
+
+	public sealed class JsonValueDefaultComparer : IEqualityComparer<JsonValue>, IComparer<JsonValue>, System.Collections.IEqualityComparer, System.Collections.IComparer
+	{
 
 		public bool Equals(JsonValue? x, JsonValue? y) => ReferenceEquals(x, y) || (x?.Equals(y) ?? y!.IsNull);
 
@@ -50,6 +56,43 @@ namespace SnowBank.Data.Json
 			var jy = (y as JsonValue) ?? JsonValue.FromValue(y);
 			Contract.Debug.Assert(jx is not null && jy is not null);
 			return jx.Equals(jy);
+		}
+
+		int System.Collections.IEqualityComparer.GetHashCode(object? obj)
+		{
+			return (obj ?? JsonNull.Null).GetHashCode();
+		}
+
+		public int Compare(JsonValue? x, JsonValue? y)
+		{
+			return ReferenceEquals(x, y) ? 0 : (x ?? JsonNull.Null).CompareTo(y);
+		}
+
+		int System.Collections.IComparer.Compare(object? x, object? y)
+		{
+			if (ReferenceEquals(x, y)) return 0;
+			var jx = (x as JsonValue) ?? JsonValue.FromValue(x);
+			var jy = (y as JsonValue) ?? JsonValue.FromValue(y);
+			Contract.Debug.Assert(jx is not null && jy is not null);
+			return jx.CompareTo(jy);
+		}
+
+	}
+
+	public sealed class JsonValueStrictComparer : IEqualityComparer<JsonValue>, IComparer<JsonValue>, System.Collections.IEqualityComparer, System.Collections.IComparer
+	{
+
+		public bool Equals(JsonValue? x, JsonValue? y) => ReferenceEquals(x, y) || (x?.StrictEquals(y) ?? y!.IsNull);
+
+		public int GetHashCode(JsonValue? obj) => (obj ?? JsonNull.Null).GetHashCode();
+
+		bool System.Collections.IEqualityComparer.Equals(object? x, object? y)
+		{
+			if (ReferenceEquals(x, y)) return true;
+			var jx = (x as JsonValue) ?? JsonValue.FromValue(x);
+			var jy = (y as JsonValue) ?? JsonValue.FromValue(y);
+			Contract.Debug.Assert(jx is not null && jy is not null);
+			return jx.StrictEquals(jy);
 		}
 
 		int System.Collections.IEqualityComparer.GetHashCode(object? obj)
