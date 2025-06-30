@@ -1579,7 +1579,7 @@ namespace SnowBank.Data.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteValue(JsonValue? value)
 		{
-			if (value is not null)
+			if (value is not (null or JsonNull))
 			{
 				value.JsonSerialize(this);
 			}
