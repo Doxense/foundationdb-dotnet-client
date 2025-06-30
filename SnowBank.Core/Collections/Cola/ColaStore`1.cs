@@ -1552,7 +1552,7 @@ namespace SnowBank.Collections.CacheOblivious
 				m_direction = DIRECTION_NEXT;
 				if (minLevel >= 0)
 				{
-					value = min;
+					value = min!;
 					return true;
 				}
 				else
