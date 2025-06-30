@@ -70,7 +70,7 @@ namespace SnowBank.Data.Json.Tests
 			}
 
 			/// <inheritdoc />
-			public void RecordAdd(IJsonProxyNode instance, JsonPathSegment child, JsonValue argument) => RecordMutation(("add", instance.GetPath(child), argument));
+			public void RecordInsertAt(IJsonProxyNode instance, Index offset, JsonValue argument) => RecordMutation(("insert", instance.GetPath(JsonPathSegment.Create(offset)), argument));
 
 			/// <inheritdoc />
 			public void RecordUpdate(IJsonProxyNode instance, JsonPathSegment child, JsonValue argument) => RecordMutation(("update", instance.GetPath(child), argument));

@@ -2578,7 +2578,7 @@ namespace SnowBank.Data.Json
 				this.NotifyParent(this);
 			}
 
-			this.Context?.RecordAdd(this, offset, value);
+			this.Context?.RecordInsertAt(this, offset, value);
 			return true;
 		}
 

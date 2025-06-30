@@ -43,14 +43,14 @@ namespace SnowBank.Data.Json
 		/// <summary>Creates a new empty array, using the transactions default settings</summary>
 		JsonArray NewArray();
 
-		/// <summary>Records the addition of a new field on an object, or item to an array</summary>
+		/// <summary>Records the insertion of an item in an array</summary>
 		/// <param name="instance">Parent instance (expected to be an object)</param>
-		/// <param name="child">Path of the child (name of field for objects, index of item for arrays)</param>
+		/// <param name="offset">Index where to insert the child, or <c>^0</c> to append at the end of the array.</param>
 		/// <param name="argument">Value of the new child</param>
 		/// <remarks>
-		/// <para>This records the facts that a new field is added to an object, OR that an object field previously set to <c>null</c> now has a non-null value.</para>
+		/// <para>This records the facts that a new item is inserted to an array.</para>
 		/// </remarks>
-		void RecordAdd(IJsonProxyNode instance, JsonPathSegment child, JsonValue argument);
+		void RecordInsertAt(IJsonProxyNode instance, Index offset, JsonValue argument);
 
 		/// <summary>Truncate an array to the specified length</summary>
 		/// <param name="instance">Parent instance (expected to be an array)</param>
@@ -61,7 +61,7 @@ namespace SnowBank.Data.Json
 		/// </remarks>
 		void RecordTruncate(IJsonProxyNode instance, int length);
 
-		/// <summary>Records the update of an existing field of an object or item of an array, with a new value</summary>
+		/// <summary>Records the update of a field of an object or item of an array, with a new explicit value</summary>
 		/// <param name="instance">Parent instance (expected to be an object)</param>
 		/// <param name="child">Path of the child (name of field for objects, index of item for arrays)</param>
 		/// <param name="argument">Updated value of the field</param>
