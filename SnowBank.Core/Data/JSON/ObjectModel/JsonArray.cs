@@ -3727,6 +3727,54 @@ namespace SnowBank.Data.Json
 			return result;
 		}
 
+		/// <summary>Returns a <see cref="HashSet{JsonValue}"/> with the same elements as this array</summary>
+		/// <param name="comparer">Comparer used by the set. If <c>null</c>, uses the <see cref="JsonValueComparer.Strict"/> value comparer.</param>
+		/// <returns>A shallow copy of the original items</returns>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		public HashSet<JsonValue> ToHashSet(IEqualityComparer<JsonValue>? comparer = null)
+		{
+			var items = this.AsSpan();
+			var res = new HashSet<JsonValue>(items.Length, comparer ?? JsonValueComparer.Strict);
+			foreach(var item in items)
+			{
+				res.Add(item);
+			}
+			return res;
+		}
+
+		/// <summary>Returns a <see cref="HashSet{TValue}"/> with the same elements as this array</summary>
+		/// <param name="defaultValue">Default value of <c>null</c> items</param>
+		/// <param name="comparer">Comparer used by the set</param>
+		/// <param name="resolver">Optional type resolver</param>
+		[Pure, CollectionAccess(CollectionAccessType.Read)]
+		public HashSet<TValue?> ToHashSet<TValue>(TValue? defaultValue = default, IEqualityComparer<TValue?>? comparer = null, ICrystalJsonTypeResolver? resolver = null)
+		{
+			var items = this.AsSpan();
+			var res = new HashSet<TValue?>(items.Length, comparer);
+			foreach(var item in items)
+			{
+				res.Add(item.As(defaultValue, resolver));
+			}
+			return res;
+		}
+
+		/// <summary>Returns a <see cref="HashSet{TValue}"/> with the transformed elements of this array</summary>
+		/// <param name="decoder">Func that is called do decode each element of this array</param>
+		/// <param name="comparer">Comparer used by the set</param>
+		/// <returns>A list of all elements that have been converted <paramref name="decoder"/></returns>
+		[Pure]
+		public HashSet<TValue> ToHashSet<TValue>([InstantHandle] Func<JsonValue, TValue> decoder, IEqualityComparer<TValue>? comparer = null)
+		{
+			Contract.NotNull(decoder);
+			var items = this.AsSpan();
+			var result = new HashSet<TValue>(items.Length, comparer);
+			foreach(var item in items)
+			{
+				result.Add(decoder(item));
+			}
+			return result;
+		}
+
 		/// <summary>Converts this <see cref="JsonArray">JSON Array</see> so that it, or any of its children that were previously read-only, can be mutated.</summary>
 		/// <returns>The same instance if it is already fully mutable, OR a copy where any read-only Object or Array has been converted to allow mutations.</returns>
 		/// <remarks>
