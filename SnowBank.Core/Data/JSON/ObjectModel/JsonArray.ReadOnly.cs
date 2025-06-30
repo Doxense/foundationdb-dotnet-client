@@ -155,8 +155,6 @@ namespace SnowBank.Data.Json
 				return new JsonArray(buf, buf.Length, readOnly: true);
 			}
 
-#if NET9_0_OR_GREATER
-
 			//note: we only add this for .NET9+ because we require overload resolution priority to be able to fix ambiguous calls between IEnumerable<> en ReadOnlySpan<>
 
 			/// <summary>Create a new <b>read-only</b> <see cref="JsonArray">JSON Array</see> from a sequence of elements</summary>
@@ -171,8 +169,6 @@ namespace SnowBank.Data.Json
 					? JsonArray.ReadOnly.Empty
 					: new JsonArray().AddRangeReadOnly(values).FreezeUnsafe();
 			}
-
-#endif
 
 			#endregion
 
