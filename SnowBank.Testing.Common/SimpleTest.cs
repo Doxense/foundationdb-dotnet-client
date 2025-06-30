@@ -1115,15 +1115,18 @@ namespace SnowBank.Testing
 		/// <remarks>Writes a message to the error log.</remarks>
 		/// <remarks>Please note that some test runner do not distinguish without regular output and error output.</remarks>
 		[DebuggerNonUserCode]
-		public static void LogError(string? text, Exception e) => WriteToErrorLog(text + Environment.NewLine + e);
+		public static void LogError(string? text, Exception? e) => WriteToErrorLog(e is not null ? (text + Environment.NewLine + e.ToString()) : text);
 
 		/// <remarks>Writes a message to the error log.</remarks>
 		/// <remarks>Please note that some test runner do not distinguish without regular output and error output.</remarks>
 		[DebuggerNonUserCode]
-		public static void LogError(ref DefaultInterpolatedStringHandler handler, Exception e)
+		public static void LogError(ref DefaultInterpolatedStringHandler handler, Exception? e)
 		{
-			handler.AppendLiteral(Environment.NewLine);
-			handler.AppendLiteral(e.ToString());
+			if (e is not null)
+			{
+				handler.AppendLiteral(Environment.NewLine);
+				handler.AppendLiteral(e.ToString());
+			}
 			WriteToErrorLog(handler.ToStringAndClear());
 		}
 
@@ -1277,7 +1280,7 @@ namespace SnowBank.Testing
 					case LogLevel.Error:
 					case LogLevel.Critical:
 					{
-						SimpleTest.LogError(msg);
+						SimpleTest.LogError(msg, exception);
 						break;
 					}
 				}
