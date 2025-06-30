@@ -3243,7 +3243,7 @@ namespace SnowBank.Data.Json
 			}
 			this.Json = newJson;
 			this.NotifyParent(this);
-			this.Context?.RecordClear(this);
+			this.Context?.RecordUpdate(this, JsonPathSegment.Empty, newJson);
 		}
 
 		#endregion

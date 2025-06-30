@@ -63,7 +63,7 @@ namespace SnowBank.Data.Json
 
 		/// <summary>Records the update of a field of an object or item of an array, with a new explicit value</summary>
 		/// <param name="instance">Parent instance (expected to be an object)</param>
-		/// <param name="child">Path of the child (name of field for objects, index of item for arrays)</param>
+		/// <param name="child">Path of the child (name of field for objects, index of item for arrays), or <see cref="JsonPathSegment.Empty"/> for the document itself</param>
 		/// <param name="argument">Updated value of the field</param>
 		/// <remarks>
 		/// <para>This records the fact that the value of a field of the object as been replaced by another value.</para>
@@ -73,7 +73,7 @@ namespace SnowBank.Data.Json
 
 		/// <summary>Records the update of an existing field of an object or item of an array, using a patch definition</summary>
 		/// <param name="instance">Parent instance (expected to be an object)</param>
-		/// <param name="child">Path of the child (name of field for objects, index of item for arrays)</param>
+		/// <param name="child">Path of the child (name of field for objects, index of item for arrays), or <see cref="JsonPathSegment.Empty"/> for the document itself</param>
 		/// <param name="argument">Patch that describes the changes to this field</param>
 		/// <remarks>
 		/// <para>This records the fact that the value of a field of the object as been patched.</para>
@@ -90,13 +90,6 @@ namespace SnowBank.Data.Json
 		/// <para>Any previous mutation on this item, or any child, should be superseded by this record.</para>
 		/// </remarks>
 		void RecordDelete(IJsonProxyNode instance, JsonPathSegment child);
-
-		/// <summary>Records the removal of all fields in object, or items in an array</summary>
-		/// <param name="instance">Parent instance (expected to be an either an object or array)</param>
-		/// <remarks>
-		/// <para>The object or array instance will we cleared of any content.</para>
-		/// </remarks>
-		void RecordClear(IJsonProxyNode instance);
 
 	}
 

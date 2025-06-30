@@ -85,9 +85,6 @@ namespace SnowBank.Data.Json.Tests
 			public void RecordTruncate(IJsonProxyNode instance, int length) => RecordMutation(("truncate", instance.GetPath(), length));
 
 			/// <inheritdoc />
-			public void RecordClear(IJsonProxyNode instance) => RecordMutation(("delete", instance.GetPath(), null));
-
-			/// <inheritdoc />
 			public void Reset() => this.Changes.Clear();
 
 		}
