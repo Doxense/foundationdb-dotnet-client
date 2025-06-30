@@ -1618,9 +1618,6 @@ namespace SnowBank.Testing
 		protected TItem Choose<TItem>(TItem[] items) => items[NextInt32(items.Length)];
 		
 		/// <summary>Pick a random element in a set</summary>
-		protected TItem Choose<TItem>(List<TItem> items) => items[NextInt32(items.Count)];
-
-		/// <summary>Pick a random element in a set</summary>
 		protected TItem Choose<TItem>(ICollection<TItem> items)
 		{
 			if (items.TryGetSpan(out var span))
