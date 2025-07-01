@@ -411,7 +411,7 @@ namespace SnowBank.Buffers.Text
 		[CollectionAccess(CollectionAccessType.Read)]
 		public readonly int CopyTo(Span<char> destination)
 		{
-			if (this.Count < destination.Length)
+			if (this.Count > destination.Length)
 			{
 				throw new ArgumentException("Destination buffer is too small", nameof(destination));
 			}
@@ -426,7 +426,7 @@ namespace SnowBank.Buffers.Text
 		public readonly bool TryCopyTo(Span<char> destination, out int written)
 		{
 			int count = this.Count;
-			if (count < destination.Length)
+			if (count > destination.Length)
 			{
 				written = 0;
 				return false;
