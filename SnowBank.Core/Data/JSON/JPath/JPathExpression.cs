@@ -695,7 +695,7 @@ namespace SnowBank.Data.Json.JPath
 				{
 					foreach (var x in this.Left.Iterate(root, current))
 					{
-						if (x is JsonString s && string.Compare(s.Value, literal, StringComparison.Ordinal) < 0)
+						if (x is JsonString s && string.CompareOrdinal(s.Value, literal) < 0)
 						{
 							return True();
 						}
@@ -706,7 +706,7 @@ namespace SnowBank.Data.Json.JPath
 				{
 					foreach (var x in this.Left.Iterate(root, current))
 					{
-						if (x is JsonString s && string.Compare(s.Value, literal, StringComparison.Ordinal) <= 0)
+						if (x is JsonString s && string.CompareOrdinal(s.Value, literal) <= 0)
 						{
 							return True();
 						}
@@ -717,7 +717,7 @@ namespace SnowBank.Data.Json.JPath
 				{
 					foreach (var x in this.Left.Iterate(root, current))
 					{
-						if (x is JsonString s && string.Compare(s.Value, literal, StringComparison.Ordinal) > 0)
+						if (x is JsonString s && string.CompareOrdinal(s.Value, literal) > 0)
 						{
 							return True();
 						}
@@ -728,7 +728,7 @@ namespace SnowBank.Data.Json.JPath
 				{
 					foreach (var x in this.Left.Iterate(root, current))
 					{
-						if (x is JsonString s && string.Compare(s.Value, literal, StringComparison.Ordinal) >= 0)
+						if (x is JsonString s && string.CompareOrdinal(s.Value, literal) >= 0)
 						{
 							return True();
 						}

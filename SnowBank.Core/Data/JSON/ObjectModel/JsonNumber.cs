@@ -2889,7 +2889,7 @@ namespace SnowBank.Data.Json
 			}
 
 			// compare using string representation
-			return string.Compare(this.ToString(), other.Value, StringComparison.Ordinal);
+			return string.CompareOrdinal(this.ToString(), other.Value);
 		}
 
 		#endregion

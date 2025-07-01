@@ -1025,7 +1025,7 @@ namespace SnowBank.Core.Tests
 				Assert.That(val2, Has.Length.EqualTo(vs2.HasUserVersion ? 10 : 8));
 
 				var cmpStamps = vs1.CompareTo(vs2);
-				var cmpValues = val1.CompareTo(val2, StringComparison.Ordinal);
+				var cmpValues = string.CompareOrdinal(val1, val2);
 
 				if (i % 100 == 0)
 				{

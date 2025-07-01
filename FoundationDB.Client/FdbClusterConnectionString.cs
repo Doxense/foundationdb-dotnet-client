@@ -119,7 +119,7 @@ namespace FoundationDB.Client
 		/// <summary>Check if this cluster file is equal to another object</summary>
 		public override bool Equals(object? obj)
 		{
-			return obj is FdbClusterConnectionString cf && string.Equals(this.RawValue, cf.RawValue, StringComparison.Ordinal);
+			return obj is FdbClusterConnectionString cf && string.Equals(this.RawValue, cf.RawValue);
 		}
 
 	}

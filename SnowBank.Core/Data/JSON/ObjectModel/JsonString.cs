@@ -1215,7 +1215,7 @@ namespace SnowBank.Data.Json
 		/// <inheritdoc />
 		public bool Equals(string? other)
 		{
-			return other is not null && string.Equals(m_value, other, StringComparison.Ordinal);
+			return string.Equals(m_value, other);
 		}
 
 #if NET9_0_OR_GREATER

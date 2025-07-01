@@ -145,8 +145,8 @@ namespace FoundationDB.Client.Status
 		/// <inheritdoc />
 		public bool Equals(Message other)
 		{
-			return string.Equals(this.Name, other.Name, StringComparison.Ordinal)
-				&& string.Equals(this.Description, other.Description, StringComparison.Ordinal);
+			return string.Equals(this.Name, other.Name)
+				&& string.Equals(this.Description, other.Description);
 		}
 	}
 
