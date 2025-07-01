@@ -29,6 +29,7 @@
 
 namespace SnowBank.Data.Json
 {
+	using System.ComponentModel;
 	using System.Globalization;
 	using System.Runtime.InteropServices;
 	using NodaTime;
@@ -2212,39 +2213,57 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		/// <inheritdoc cref="TryFormat(System.Span{char},out int,System.ReadOnlySpan{char},System.IFormatProvider?)" />
+		public bool TryFormat(Span<char> destination, out int charsWritten)
+		{
+			return TryFormat(destination, out charsWritten, "", null);
+		}
+
 		/// <inheritdoc />
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public override bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
 		{
+			// we have to special case for NaN and +/-Infinity!
+			if (m_kind == Kind.Double)
+			{
+				if (double.IsNaN(m_value.Double))
+				{
+					return TryAppendLiteral(format is "J" or "j" ? JsonTokens.JavaScriptNaN : JsonTokens.SymbolNaN, destination, out charsWritten);
+				}
+				if (double.IsPositiveInfinity(m_value.Double))
+				{
+					return TryAppendLiteral(format is "J" or "j" ? JsonTokens.JavaScriptInfinityPos : JsonTokens.SymbolInfinityPos, destination, out charsWritten);
+				}
+				if (double.IsNegativeInfinity(m_value.Double))
+				{
+					return TryAppendLiteral(format is "J" or "j" ? JsonTokens.JavaScriptInfinityNeg : JsonTokens.SymbolInfinityNeg, destination, out charsWritten);
+				}
+			}
+
 			var literal = m_literal;
 			if (literal is not null)
 			{ // we will output the original literal unless we need to do some special formatting...
 
-				if (!literal.TryCopyTo(destination))
-				{
-					charsWritten = 0;
-					return false;
-				}
-				charsWritten = literal.Length;
-				return true;
+				return TryAppendLiteral(literal, destination, out charsWritten);
 			}
 
 			switch (m_kind)
 			{
 				case Kind.Signed:
 				{
-					return m_value.Signed.TryFormat(destination, out charsWritten, format, provider);
+					return m_value.Signed.TryFormat(destination, out charsWritten, default, CultureInfo.InvariantCulture);
 				}
 				case Kind.Unsigned:
 				{
-					return m_value.Unsigned.TryFormat(destination, out charsWritten, format, provider);
+					return m_value.Unsigned.TryFormat(destination, out charsWritten, default, null);
 				}
 				case Kind.Double:
 				{
-					return m_value.Double.TryFormat(destination, out charsWritten, format, provider);
+					return m_value.Double.TryFormat(destination, out charsWritten, "R", CultureInfo.InvariantCulture);
 				}
 				case Kind.Decimal:
 				{
-					return m_value.Decimal.TryFormat(destination, out charsWritten, format, provider);
+					return m_value.Decimal.TryFormat(destination, out charsWritten, "R", CultureInfo.InvariantCulture);
 				}
 				default:
 				{
@@ -2258,6 +2277,23 @@ namespace SnowBank.Data.Json
 		/// <inheritdoc />
 		public override bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
 		{
+			// we have to special case for NaN and +/-Infinity!
+			if (m_kind == Kind.Double)
+			{
+				if (double.IsNaN(m_value.Double))
+				{
+					return TryAppendLiteral(format is "J" or "j" ? "Number.NaN"u8 : "NaN"u8, destination, out bytesWritten);
+				}
+				if (double.IsPositiveInfinity(m_value.Double))
+				{
+					return TryAppendLiteral(format is "J" or "j" ? "Number.POSITIVE_INFINITY"u8 : "Infinity"u8, destination, out bytesWritten);
+				}
+				if (double.IsNegativeInfinity(m_value.Double))
+				{
+					return TryAppendLiteral(format is "J" or "j" ? "Number.NEGATIVE_INFINITY"u8 : "-Infinity"u8, destination, out bytesWritten);
+				}
+			}
+
 			var literal = m_literal;
 			if (literal is not null)
 			{ // we will output the original literal unless we need to do some special formatting...
@@ -2269,19 +2305,19 @@ namespace SnowBank.Data.Json
 			{
 				case Kind.Signed:
 				{
-					return m_value.Signed.TryFormat(destination, out bytesWritten, format, provider);
+					return m_value.Signed.TryFormat(destination, out bytesWritten, default, CultureInfo.InvariantCulture);
 				}
 				case Kind.Unsigned:
 				{
-					return m_value.Unsigned.TryFormat(destination, out bytesWritten, format, provider);
+					return m_value.Unsigned.TryFormat(destination, out bytesWritten, default, null);
 				}
 				case Kind.Double:
 				{
-					return m_value.Double.TryFormat(destination, out bytesWritten, format, provider);
+					return m_value.Double.TryFormat(destination, out bytesWritten, "R", CultureInfo.InvariantCulture);
 				}
 				case Kind.Decimal:
 				{
-					return m_value.Decimal.TryFormat(destination, out bytesWritten, format, provider);
+					return m_value.Decimal.TryFormat(destination, out bytesWritten, "R", CultureInfo.InvariantCulture);
 				}
 				default:
 				{

@@ -331,20 +331,18 @@ namespace SnowBank.Data.Json
 			writer.WriteValue(m_value);
 		}
 
+		/// <inheritdoc cref="TryFormat(System.Span{char},out int,System.ReadOnlySpan{char},System.IFormatProvider?)" />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryFormat(Span<char> destination, out int charsWritten)
+		{
+			return TryAppendLiteral(m_value ? JsonTokens.True : JsonTokens.False, destination, out charsWritten);
+		}
+
 		/// <inheritdoc />
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public override bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
 		{
-			var literal = m_value ? JsonTokens.True : JsonTokens.False;
-
-			if (destination.Length < literal.Length)
-			{
-				charsWritten = 0;
-				return false;
-			}
-
-			literal.CopyTo(destination);
-			charsWritten = literal.Length;
-			return true;
+			return TryAppendLiteral(m_value ? JsonTokens.True : JsonTokens.False, destination, out charsWritten);
 		}
 
 #if NET8_0_OR_GREATER

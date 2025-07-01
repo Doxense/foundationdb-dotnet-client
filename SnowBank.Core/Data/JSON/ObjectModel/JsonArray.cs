@@ -4714,10 +4714,49 @@ namespace SnowBank.Data.Json
 		/// <inheritdoc />
 		public override bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
 		{
-			//TODO: maybe attempt to do it without allocating?
-			// => for the moment, we will serialize the object into memory, and copy the result
+			string? literal;
 
-			var literal = this.ToJsonText();
+			switch (format)
+			{
+				case "" or "D" or "d":
+				{
+					return TryFormatDefault(GetSpan(), destination, out charsWritten);
+				}
+				case "C" or "c":
+				{
+					return TryFormatCompact(GetSpan(), destination, out charsWritten);
+				}
+				case "P" or "p":
+				{
+					//TODO: maybe attempt to do it without allocating?
+					// => for the moment, we will serialize the object into memory, and copy the result
+					literal = ToJsonText(CrystalJsonSettings.JsonIndented);
+					break;
+				}
+				case "Q" or "q":
+				{
+					literal = ToString("Q", provider);
+					break;
+				}
+				case "J" or "j":
+				{
+					//TODO: maybe attempt to do it without allocating?
+					// => for the moment, we will serialize the object into memory, and copy the result
+					literal = ToJsonText(CrystalJsonSettings.JavaScript);
+					break;
+				}
+				case "B" or "b":
+				{
+					literal = ToString("B", provider);
+					break;
+				}
+				default:
+				{
+					// we MUST throw here; otherwise, the caller will infinitely call use back with a larger and larger buffer!
+					throw new NotSupportedException($"Invalid JSON format '{format}' specification");
+				}
+			}
+
 			if (literal.Length > destination.Length)
 			{
 				charsWritten = 0;

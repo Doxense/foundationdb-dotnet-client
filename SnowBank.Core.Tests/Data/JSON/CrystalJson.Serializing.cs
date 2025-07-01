@@ -54,6 +54,7 @@ namespace SnowBank.Data.Json.Tests
 			return writer.ToSlice();
 		}
 
+
 		[Test]
 		public void Test_CrystalJsonWriter_WriteValue()
 		{
@@ -2899,45 +2900,45 @@ namespace SnowBank.Data.Json.Tests
 
 		private static void Verify_TryFormat(JsonValue literal)
 		{
-			string expected = literal.ToJsonText();
-			Log($"# `{literal:P}` => `{expected}`");
+			Log($"# {literal:Q}");
+			foreach (var (format, settings) in new [] { ("", CrystalJsonSettings.Json), ("D", CrystalJsonSettings.Json), ("C", CrystalJsonSettings.JsonCompact), ("P", CrystalJsonSettings.JsonIndented), ("J", CrystalJsonSettings.JavaScript) })
+			{
 
-			{ // with more space than required
-				Span<char> buf = new char[expected.Length + 10];
-				buf.Fill('無');
-				Assert.That(literal.TryFormat(buf, out int charsWritten, default, null), Is.True, $"{literal}.TryFormat([{buf.Length}])");
-				Assert.That(buf.Slice(0, charsWritten).ToString(), Is.EqualTo(expected), $"{literal}.TryFormat([{buf.Length}])");
-				Assert.That(charsWritten, Is.EqualTo(expected.Length), $"{literal}.TryFormat([{buf.Length}])");
-				Assert.That(buf.Slice(charsWritten).ToString(), Is.EqualTo(new string('無', buf.Length - charsWritten)), $"{literal}.TryFormat([{buf.Length}])");
-			}
+				string expected = CrystalJson.ToJsonSlice(literal, settings).ToStringUtf8()!;
+				Log($"# - \"{format}\" => `{expected}`");
 
-			{ // with exactly enough space
-				Span<char> buf = new char[expected.Length + 10];
-				buf.Fill('無');
-				var exactSize = buf.Slice(0, expected.Length);
-				Assert.That(literal.TryFormat(exactSize, out int charsWritten, default, null), Is.True, $"{literal}.TryFormat([{exactSize.Length}])");
-				Assert.That(charsWritten, Is.EqualTo(expected.Length), $"{literal}.TryFormat([{exactSize.Length}])");
-				Assert.That(exactSize.ToString(), Is.EqualTo(expected), $"{literal}.TryFormat([{exactSize.Length}])");
-				Assert.That(buf.Slice(exactSize.Length).ToString(), Is.EqualTo(new string('無', buf.Length - exactSize.Length)), $"{literal}.TryFormat([{exactSize.Length}])");
-			}
+				// DEFAULT
 
-			{ // with empty buffer
-				Span<char> buf = new char[expected.Length];
-				buf.Fill('無');
-				var empty = Span<char>.Empty;
-				Assert.That(literal.TryFormat(empty, out int charsWritten, default, null), Is.False, $"{literal}.TryFormat([0])");
-				Assert.That(charsWritten, Is.Zero, $"{literal}.TryFormat([0])");
-				Assert.That(buf.ToString(), Is.EqualTo(new string('無', buf.Length)), $"{literal}.TryFormat([0])");
-			}
+				{
+					// with more space than required
+					Span<char> buf = new char[expected.Length + 10];
+					buf.Fill('無');
+					Assert.That(literal.TryFormat(buf, out int charsWritten, format, null), Is.True, $"{literal}.TryFormat([{buf.Length}], \"{format}\")");
+					Assert.That(buf.Slice(0, charsWritten).ToString(), Is.EqualTo(expected), $"{literal}.TryFormat([{buf.Length}], \"{format}\")");
+					Assert.That(charsWritten, Is.EqualTo(expected.Length), $"{literal}.TryFormat([{buf.Length}], \"{format}\")");
+					Assert.That(buf.Slice(charsWritten).ToString(), Is.EqualTo(new string('無', buf.Length - charsWritten)), $"{literal}.TryFormat([{buf.Length}], \"{format}\")");
+				}
 
-			{ // with not enough space
-				Span<char> buf = new char[expected.Length];
-				buf.Fill('無');
-				// buffer is too short by 3 characters
-				var tooShort = buf.Slice(0, Math.Max(expected.Length - 3, 0));
-				Assert.That(literal.TryFormat(tooShort, out int charsWritten, default, null), Is.False, $"{literal}.TryFormat([{tooShort.Length}])");
-				Assert.That(charsWritten, Is.Zero, $"{literal}.TryFormat([{tooShort.Length}])");
-				Assert.That(buf.Slice(tooShort.Length).ToString(), Is.EqualTo(new string('無', buf.Length - tooShort.Length)), $"{literal}.TryFormat([{tooShort.Length}])");
+				{
+					// with exactly enough space
+					Span<char> buf = new char[expected.Length + 10];
+					buf.Fill('無');
+					var exactSize = buf.Slice(0, expected.Length);
+					Assert.That(literal.TryFormat(exactSize, out int charsWritten, format, null), Is.True, $"{literal}.TryFormat([{exactSize.Length}], \"{format}\")");
+					Assert.That(charsWritten, Is.EqualTo(expected.Length), $"{literal}.TryFormat([{exactSize.Length}], \"{format}\")");
+					Assert.That(exactSize.ToString(), Is.EqualTo(expected), $"{literal}.TryFormat([{exactSize.Length}], \"{format}\")");
+					Assert.That(buf.Slice(exactSize.Length).ToString(), Is.EqualTo(new string('無', buf.Length - exactSize.Length)), $"{literal}.TryFormat([{exactSize.Length}], \"{format}\")");
+				}
+
+				{
+					// with empty buffer
+					Span<char> buf = new char[expected.Length];
+					buf.Fill('無');
+					var empty = Span<char>.Empty;
+					Assert.That(literal.TryFormat(empty, out int charsWritten, format, null), Is.False, $"{literal}.TryFormat([0], \"{format}\")");
+					Assert.That(charsWritten, Is.Zero, $"{literal}.TryFormat([0], \"{format}\")");
+					Assert.That(buf.ToString(), Is.EqualTo(new string('無', buf.Length)), $"{literal}.TryFormat([0], \"{format}\")");
+				}
 			}
 		}
 
@@ -3009,6 +3010,27 @@ namespace SnowBank.Data.Json.Tests
 			Verify_TryFormat(DateOnly.MinValue);
 			Verify_TryFormat(DateOnly.MaxValue);
 			Verify_TryFormat(DateOnly.FromDateTime(DateTime.Now));
+		}
+
+		[Test]
+		public void Test_JsonArray_TryFormat()
+		{
+			Verify_TryFormat(JsonArray.ReadOnly.Empty);
+			Verify_TryFormat(JsonArray.Create("Hello"));
+			Verify_TryFormat(JsonArray.Create("Hello", "World"));
+			Verify_TryFormat(JsonArray.Create(123));
+			Verify_TryFormat(JsonArray.Create(true));
+			Verify_TryFormat(JsonArray.Create("Hello", 123, true, "World"));
+		}
+
+		[Test]
+		public void Test_JsonObject_TryFormat()
+		{
+			Verify_TryFormat(JsonObject.ReadOnly.Empty);
+			Verify_TryFormat(JsonObject.Create(("Hello", "World")));
+			Verify_TryFormat(JsonObject.Create(("Hello", 123)));
+			Verify_TryFormat(JsonObject.Create(("Hello", true)));
+			Verify_TryFormat(JsonObject.Create([ ("Hello", "World"), ("Foo", 123), ("Bar", true) ]));
 		}
 
 		[Test]

@@ -29,6 +29,7 @@ namespace SnowBank.Data.Json
 	using System.ComponentModel;
 	using System.Globalization;
 	using SnowBank.Runtime;
+	using SnowBank.Text;
 
 	public abstract partial class JsonValue
 	{
@@ -886,6 +887,248 @@ namespace SnowBank.Data.Json
 		public static JsonValue FromValue<T1, T2, T3, T4, T5, T6, T7>(in ValueTuple<T1, T2, T3, T4, T5, T6, T7> tuple) => JsonArray.Return(in tuple);
 
 		#endregion
+
+		#endregion
+
+		#region TryFormat Helpers...
+
+		internal static bool TryAppendLiteral(ReadOnlySpan<char> literal, Span<char> destination, out int charsWritten)
+		{
+			if (!literal.TryCopyTo(destination))
+			{
+				charsWritten = 0;
+				return false;
+			}
+			charsWritten = literal.Length;
+			return true;
+		}
+
+		internal static bool TryAppendLiteral(ReadOnlySpan<byte> literal, Span<byte> destination, out int bytesWritten)
+		{
+			if (!literal.TryCopyTo(destination))
+			{
+				bytesWritten = 0;
+				return false;
+			}
+			bytesWritten = literal.Length;
+			return true;
+		}
+
+		public static bool TryFormatCompact(JsonValue value, Span<char> destination, out int charsWritten) => value switch
+		{
+			JsonNull n => n.TryFormat(destination, out charsWritten),
+			JsonBoolean b => b.TryFormat(destination, out charsWritten),
+			JsonString str => str.TryFormat(destination, out charsWritten),
+			JsonNumber num => num.TryFormat(destination, out charsWritten),
+			JsonDateTime dt => dt.TryFormat(destination, out charsWritten),
+			JsonArray arr => TryFormatCompact(arr.GetSpan(), destination, out charsWritten),
+			JsonObject obj => TryFormatCompact(obj.GetItems(), destination, out charsWritten),
+			_ => throw new NotSupportedException("Unexpected JsonValue type!")
+		};
+
+		internal static bool TryFormatCompact(ReadOnlySpan<JsonValue> items, Span<char> destination, out int charsWritten)
+		{
+			if (destination.Length < 2) goto too_small;
+
+			if (items.Length == 0)
+			{
+				destination[0] = '[';
+				destination[1] = ']';
+				charsWritten = 2;
+				return true;
+			}
+
+			destination[0] = '[';
+			int pos = 1;
+			foreach (var item in items)
+			{
+				if (pos > 1)
+				{
+					if (pos >= destination.Length) goto too_small;
+					destination[pos++] = ',';
+				}
+
+				if (!TryFormatCompact(item, destination[pos..], out int len))
+				{
+					goto too_small;
+				}
+				pos += len;
+			}
+
+			if (pos >= destination.Length) goto too_small;
+			destination[pos++] = ']';
+
+			charsWritten = pos;
+			return true;
+
+		too_small:
+			charsWritten = 0;
+			return false;
+		}
+
+		internal static bool TryFormatCompact(Dictionary<string, JsonValue> items, Span<char> destination, out int charsWritten)
+		{
+			if (destination.Length < 2) goto too_small;
+
+			if (items.Count == 0)
+			{
+				destination[0] = '{';
+				destination[1] = '}';
+				charsWritten = 2;
+				return true;
+			}
+
+			destination[0] = '{';
+			int pos = 1;
+			foreach (var kv in items)
+			{
+				if (pos > 1)
+				{
+					if (pos >= destination.Length) goto too_small;
+					destination[pos++] = ',';
+				}
+
+				// encode the property name
+				if (!JsonEncoding.TryEncodeTo(destination[pos..], kv.Key, out int len, withQuotes: true))
+				{
+					goto too_small;
+				}
+				pos += len;
+
+				if (pos >= destination.Length) goto too_small;
+				destination[pos++] = ':';
+
+				// encode the value
+				if (!TryFormatCompact(kv.Value, destination[pos..], out len))
+				{
+					goto too_small;
+				}
+				pos += len;
+			}
+
+			if (pos >= destination.Length) goto too_small;
+			destination[pos++] = '}';
+
+			charsWritten = pos;
+			return true;
+
+		too_small:
+			charsWritten = 0;
+			return false;
+		}
+
+		public static bool TryFormatDefault(JsonValue value, Span<char> destination, out int charsWritten) => value switch
+		{
+			JsonNull n => n.TryFormat(destination, out charsWritten),
+			JsonBoolean b => b.TryFormat(destination, out charsWritten),
+			JsonString str => str.TryFormat(destination, out charsWritten),
+			JsonNumber num => num.TryFormat(destination, out charsWritten),
+			JsonDateTime dt => dt.TryFormat(destination, out charsWritten),
+			JsonArray arr => TryFormatDefault(arr.GetSpan(), destination, out charsWritten),
+			JsonObject obj => obj.TryFormat(destination, out charsWritten, "C", null),
+			_ => throw new NotSupportedException("Unexpected JsonValue type!")
+		};
+
+		internal static bool TryFormatDefault(ReadOnlySpan<JsonValue> items, Span<char> destination, out int charsWritten)
+		{
+			var buffer = destination;
+			if (buffer.Length < 3) goto too_small;
+
+			if (items.Length == 0)
+			{
+				buffer[0] = '[';
+				buffer[1] = ' ';
+				buffer[2] = ']';
+				charsWritten = 3;
+				return true;
+			}
+
+			buffer[0] = '[';
+			buffer[1] = ' ';
+			int pos = 2;
+			foreach (var item in items)
+			{
+				if (pos > 2)
+				{
+					if (pos + 2 > buffer.Length) goto too_small;
+					buffer[pos] = ',';
+					buffer[pos + 1] = ' ';
+					pos += 2;
+				}
+
+				if (!item.TryFormat(buffer[pos..], out int len, default, null))
+				{
+					goto too_small;
+				}
+
+				pos += len;
+			}
+
+			if (pos + 2 > buffer.Length) goto too_small;
+			buffer[pos] = ' ';
+			buffer[pos + 1] = ']';
+			pos += 2;
+
+			charsWritten = pos;
+			return true;
+
+		too_small:
+			charsWritten = 0;
+			return false;
+		}
+
+		internal static bool TryFormatDefault(Dictionary<string, JsonValue> items, Span<char> destination, out int charsWritten)
+		{
+			if (destination.Length < 3) goto too_small;
+
+			if (items.Count == 0)
+			{
+				destination[0] = '{';
+				destination[1] = ' ';
+				destination[2] = '}';
+				charsWritten = 3;
+				return true;
+			}
+
+			destination[0] = '{';
+			destination[1] = ' ';
+			int pos = 2;
+			foreach (var kv in items)
+			{
+				if (pos > 2)
+				{
+					if (!", ".TryCopyTo(destination[pos..])) goto too_small;
+					pos += 2;
+				}
+
+				// encode the property name
+				if (!JsonEncoding.TryEncodeTo(destination[pos..], kv.Key, out int len, withQuotes: true))
+				{
+					goto too_small;
+				}
+				pos += len;
+
+				if (!": ".TryCopyTo(destination[pos..])) goto too_small;
+				pos += 2;
+
+				// encode the value
+				if (!TryFormatCompact(kv.Value, destination[pos..], out len))
+				{
+					goto too_small;
+				}
+				pos += len;
+			}
+
+			if (!" }".TryCopyTo(destination[pos..])) goto too_small;
+			pos += 2;
+
+			charsWritten = pos;
+			return true;
+
+		too_small:
+			charsWritten = 0;
+			return false;
+		}
 
 		#endregion
 

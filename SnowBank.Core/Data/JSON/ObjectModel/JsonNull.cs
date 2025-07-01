@@ -281,17 +281,17 @@ namespace SnowBank.Data.Json
 			writer.WriteNull(); // "null"
 		}
 
+		/// <inheritdoc cref="TryFormat(System.Span{char},out int,System.ReadOnlySpan{char},System.IFormatProvider?)" />
+		public bool TryFormat(Span<char> destination, out int charsWritten)
+		{
+			return TryAppendLiteral("null", destination, out charsWritten);
+		}
+
 		/// <inheritdoc />
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public override bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
 		{
-			if (!"null".TryCopyTo(destination))
-			{
-				charsWritten = 0;
-				return false;
-			}
-
-			charsWritten = 4;
-			return true;
+			return TryAppendLiteral("null", destination, out charsWritten);
 		}
 
 #if NET8_0_OR_GREATER

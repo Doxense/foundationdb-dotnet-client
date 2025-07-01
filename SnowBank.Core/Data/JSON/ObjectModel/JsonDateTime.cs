@@ -30,6 +30,8 @@ namespace SnowBank.Data.Json
 	using System.Globalization;
 
 	using SnowBank.Buffers;
+	using SnowBank.Buffers.Text;
+	using SnowBank.IO;
 	using SnowBank.Text;
 
 	/// <summary>JSON DateTime</summary>
@@ -459,9 +461,52 @@ namespace SnowBank.Data.Json
 		/// <inheritdoc />
 		public override bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
 		{
+			//BUGBUG: TODO: need to validate the format!
+			if (format is "J" or "j")
+			{
+				return TryFormatJavaScript(destination, out charsWritten);
+			}
+			//BUGBUG: TODO: need to support "J"/"j" format for javascript!
+			return TryFormat(destination, out charsWritten);
+
+		}
+
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		private bool TryFormatJavaScript(Span<char> destination, out int charsWritten)
+		{
+			if (destination.Length < 11)
+			{ // "new Date(0)"
+				goto too_small;
+			}
+
+			Span<char> buffer = stackalloc char[32]; // 10 + 20, rounded up
+			JsonTokens.DateBeginJavaScript.CopyTo(buffer);
+			int pos = JsonTokens.DateBeginJavaScript.Length;
+
+			long ticks = m_offset == JsonDateTime.NO_TIMEZONE
+				? CrystalJson.DateToJavaScriptTicks(m_value)
+				: CrystalJson.DateToJavaScriptTicks(this.DateWithOffset);
+			if (!ticks.TryFormat(buffer[pos..], out int len, null, null))
+			{
+				goto too_small;
+			}
+			pos += len;
+			buffer[pos++] = ')';
+			if (pos > destination.Length) goto too_small;
+
+			buffer[..pos].CopyTo(destination);
+			charsWritten = pos;
+			return true;
+
+		too_small:
+			charsWritten = 0;
+			return false;
+		}
+
+		public bool TryFormat(Span<char> destination, out int charsWritten)
+		{
 			if (m_offset == NO_TIMEZONE)
 			{ // DateTime
-
 
 				if (m_value == DateTime.MinValue)
 				{
@@ -513,7 +558,7 @@ namespace SnowBank.Data.Json
 
 				if (dto == DateTime.MinValue)
 				{
-					return JsonString.Empty.TryFormat(destination, out charsWritten, format, provider);
+					return JsonString.EmptyString.TryFormat(destination, out charsWritten);
 				}
 
 				if (destination.Length < 2)

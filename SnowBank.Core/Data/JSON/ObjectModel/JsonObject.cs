@@ -186,6 +186,10 @@ namespace SnowBank.Data.Json
 #endif
 		}
 
+		/// <summary>Exposes the internal items dictionary used by this object</summary>
+		/// <remarks>Should only be used by custom serialization or formatting methods!</remarks>
+		internal Dictionary<string, JsonValue> GetItems() => m_items;
+
 		internal static JsonObject CreateEmptyWithComparer(IEqualityComparer<string>? comparer) => new(new(comparer ?? StringComparer.Ordinal), readOnly: false);
 
 		internal static JsonObject CreateEmptyWithComparer<TValue>(IEqualityComparer<string>? comparer, [NoEnumeration] IEnumerable<KeyValuePair<string, TValue>>? items) => new(new(comparer ?? items switch
@@ -4183,8 +4187,15 @@ namespace SnowBank.Data.Json
 		/// <inheritdoc />
 		public override void JsonSerialize(CrystalJsonWriter writer)
 		{
+			var items = m_items;
+			if (items.Count == 0)
+			{
+				writer.WriteEmptyObject();
+				return;
+			}
+
 			var state = writer.BeginObject();
-			foreach (var item in this)
+			foreach (var item in items)
 			{
 				// first check if the value is not a discarded null or default
 				if (!writer.WillBeDiscarded(item.Value))
@@ -4200,10 +4211,49 @@ namespace SnowBank.Data.Json
 		/// <inheritdoc />
 		public override bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
 		{
-			//TODO: maybe attempt to do it without allocating?
-			// => for the moment, we will serialize the object into memory, and copy the result
+			string? literal;
 
-			var literal = this.ToJsonText();
+			switch (format)
+			{
+				case "" or "D" or "d":
+				{
+					return TryFormatDefault(m_items, destination, out charsWritten);
+				}
+				case "C" or "c":
+				{
+					return TryFormatCompact(m_items, destination, out charsWritten);
+				}
+				case "P" or "p":
+				{
+					//TODO: maybe attempt to do it without allocating?
+					// => for the moment, we will serialize the object into memory, and copy the result
+					literal = ToJsonText(CrystalJsonSettings.JsonIndented);
+					break;
+				}
+				case "Q" or "q":
+				{
+					literal = ToString("Q", provider);
+					break;
+				}
+				case "J" or "j":
+				{
+					//TODO: maybe attempt to do it without allocating?
+					// => for the moment, we will serialize the object into memory, and copy the result
+					literal = ToJsonText(CrystalJsonSettings.JavaScript);
+					break;
+				}
+				case "B" or "b":
+				{
+					literal = ToString("B", provider);
+					break;
+				}
+				default:
+				{
+					// we MUST throw here; otherwise, the caller will infinitely call use back with a larger and larger buffer!
+					throw new NotSupportedException($"Invalid JSON format '{format}' specification");
+				}
+			}
+
 			if (literal.Length > destination.Length)
 			{
 				charsWritten = 0;

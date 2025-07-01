@@ -26,11 +26,15 @@
 
 namespace SnowBank.Data.Json
 {
+	using System;
 	using System.Collections.Frozen;
 	using System.Globalization;
 	using System.Net;
+	using System.Runtime;
 	using SnowBank.Buffers;
+	using SnowBank.Buffers.Text;
 	using SnowBank.Collections.Caching;
+	using SnowBank.IO;
 	using SnowBank.Runtime;
 	using SnowBank.Runtime.Converters;
 	using SnowBank.Text;
@@ -1097,10 +1101,33 @@ namespace SnowBank.Data.Json
 			writer.WriteValue(m_value);
 		}
 
+		/// <inheritdoc cref="TryFormat(System.Span{char},out int,System.ReadOnlySpan{char},System.IFormatProvider?)" />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryFormat(Span<char> destination, out int charsWritten)
+		{
+			return JsonEncoding.TryEncodeTo(destination, m_value, out charsWritten);
+		}
+
 		/// <inheritdoc />
 		public override bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
 		{
+			//BUGBUG: TODO: need to validate the format!
+			if (format is "J" or "j")
+			{
+				return TryFormatJavaScript(m_value, destination, out charsWritten);
+			}
 			return JsonEncoding.TryEncodeTo(destination, m_value, out charsWritten);
+
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			static bool TryFormatJavaScript(string value, Span<char> destination, out int charsWritten)
+			{
+				// we don't have a JavaScriptEncoding.TryEncodeTo(...) so we have to use a temp buffer :/
+				var sw = new ValueStringWriter(destination.Length + 8);
+				JavaScriptEncoding.EncodeTo(ref sw, value, includeQuotes: true);
+				sw.TryCopyTo(destination, out charsWritten);
+				sw.Dispose();
+				return charsWritten != 0;
+			}
 		}
 
 #if NET8_0_OR_GREATER
@@ -1108,6 +1135,14 @@ namespace SnowBank.Data.Json
 		/// <inheritdoc />
 		public override bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
 		{
+			//BUGBUG: TODO: need to validate the format!
+
+			if (format is "J" or "j")
+			{
+				//BUGBUG: TODO: need to handle "J"/"j" for JavaScript strings!
+				throw new NotImplementedException();
+			}
+
 			return JsonEncoding.TryEncodeTo(destination, m_value, out bytesWritten);
 		}
 
