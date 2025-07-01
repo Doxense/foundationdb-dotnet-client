@@ -163,6 +163,7 @@ namespace SnowBank.Text
 				{
 					output.Write(text);
 				}
+				return;
 			}
 
 			// second pass to escape all non-printable characters
