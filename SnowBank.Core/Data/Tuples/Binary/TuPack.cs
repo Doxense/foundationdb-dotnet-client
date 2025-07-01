@@ -1789,18 +1789,25 @@ namespace SnowBank.Data.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static T1? DecodeKeyAt<T1>(ReadOnlySpan<byte> packedKey, int index)
 		{
+			Exception? error;
+
 			var reader = new TupleReader(packedKey);
+
 			// skip previous items
 			for (int i = 0; i < index; i++)
 			{
-				if (!TupleEncoder.TrySkipNext(ref reader, out var error))
+				if (!TupleEncoder.TrySkipNext(ref reader, out error))
 				{
 					throw new FormatException($"Failed to skip item at offset {i}.", error); 
 				}
 			}
 
 			// now decode the wanted item
-			TupleEncoder.DecodeKey(ref reader, out T1? item1);
+			if (!TupleEncoder.TryDecodeNext(ref reader, out T1? item1, out error))
+			{
+				throw new FormatException($"Failed to decode item at offset {index}", error);
+			}
+
 			return item1;
 		}
 
