@@ -1279,11 +1279,14 @@ namespace SnowBank.Data.Json
 		/// <inheritdoc />
 		public override int CompareTo(JsonValue? other)
 		{
+			if (ReferenceEquals(other, this)) return 0;
 			if (other is null) return +1;
-			return other.Type switch
+
+			return other switch
 			{
-				JsonType.String => CompareTo(other as JsonString),
-				JsonType.Number => -((JsonNumber) other).CompareTo(this),
+				JsonString str => CompareTo(str),
+				JsonNumber num => -num.CompareTo(this), // use the JsonNumber.CompareTo(JsonString) implementation
+				JsonNull => +1,
 				_ => base.CompareTo(other)
 			};
 		}
@@ -1305,7 +1308,7 @@ namespace SnowBank.Data.Json
 #endif
 		public int CompareTo(ReadOnlySpan<char> other)
 		{
-			return m_value.AsSpan().CompareTo(other, StringComparison.Ordinal);
+			return m_value.AsSpan().SequenceCompareTo(other);
 		}
 
 #if NET9_0_OR_GREATER
@@ -1313,7 +1316,7 @@ namespace SnowBank.Data.Json
 #endif
 		public int CompareTo(ReadOnlyMemory<char> other)
 		{
-			return m_value.AsSpan().CompareTo(other.Span, StringComparison.Ordinal);
+			return m_value.AsSpan().SequenceCompareTo(other.Span);
 		}
 
 		#endregion

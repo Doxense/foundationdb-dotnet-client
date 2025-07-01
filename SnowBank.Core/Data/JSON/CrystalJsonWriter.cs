@@ -36,10 +36,8 @@ namespace SnowBank.Data.Json
 	using System.Runtime.InteropServices;
 	using System.Text;
 	using System.Threading;
-
 	using NodaTime;
 	using NodaTime.Text;
-
 	using SnowBank.Buffers;
 	using SnowBank.Buffers.Text;
 	using SnowBank.IO;

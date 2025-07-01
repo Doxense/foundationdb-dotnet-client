@@ -767,14 +767,14 @@ namespace SnowBank.Data.Json
 		/// <remarks>The new array contains a copy of the items of the two input arrays</remarks>
 		public static JsonArray Combine(JsonArray arr1, JsonArray arr2)
 		{
-			// combine the items
-			int size1 = arr1.m_size;
-			int size2 = arr2.m_size;
-			var newSize = checked(size1 + size2);
+			var items1 = arr1.AsSpan();
+			var items2 = arr2.AsSpan();
+
+			var newSize = checked(items1.Length + items2.Length);
 
 			var tmp = new JsonValue[newSize];
-			arr1.AsSpan().CopyTo(tmp);
-			arr2.AsSpan().CopyTo(tmp.AsSpan(size1));
+			items1.CopyTo(tmp);
+			items2.CopyTo(tmp.AsSpan(items1.Length));
 
 			return new(tmp, newSize, readOnly: false);
 		}
@@ -783,16 +783,16 @@ namespace SnowBank.Data.Json
 		/// <remarks>The new array contains a copy of the items of the three input arrays</remarks>
 		public static JsonArray Combine(JsonArray arr1, JsonArray arr2, JsonArray arr3)
 		{
-			// combine the items
-			int size1 = arr1.m_size;
-			int size2 = arr2.m_size;
-			int size3 = arr3.m_size;
-			var newSize = checked(size1 + size2 + size3);
+			var items1 = arr1.AsSpan();
+			var items2 = arr2.AsSpan();
+			var items3 = arr3.AsSpan();
+
+			var newSize = checked(items1.Length + items2.Length + items3.Length);
 
 			var tmp = new JsonValue[newSize];
-			arr1.CopyTo(tmp);
-			arr2.CopyTo(tmp.AsSpan(size1));
-			arr3.CopyTo(tmp.AsSpan(size1 + size2));
+			items1.CopyTo(tmp);
+			items2.CopyTo(tmp.AsSpan(items1.Length));
+			items3.CopyTo(tmp.AsSpan(items1.Length + items2.Length));
 
 			return new(tmp, newSize, readOnly: false);
 		}
@@ -843,18 +843,17 @@ namespace SnowBank.Data.Json
 		/// <summary>Ensures that the buffer is large enough, and resize it if that is not the case</summary>
 		/// <param name="requiredCapacity">Minimum capacity requested</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private void EnsureCapacity(int requiredCapacity)
+		private JsonValue[] EnsureCapacity(int requiredCapacity)
 		{
-			if (m_items.Length < requiredCapacity)
-			{
-				GrowBuffer(requiredCapacity);
-			}
+			var items = m_items;
+			return items.Length < requiredCapacity ? GrowBuffer(requiredCapacity) : items;
 		}
 
 		/// <summary>Resizes the buffer so that it can hold at least the specified number of items</summary>
 		/// <param name="requiredCapacity">Minimum capacity requested</param>
 		/// <remarks>Doubles the size of the buffer, until it can fit the requested number of items</remarks>
-		private void GrowBuffer(int requiredCapacity)
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		private JsonValue[] GrowBuffer(int requiredCapacity)
 		{
 			// Double the array size until it fits the expected capacity
 			long newCapacity = Math.Max(m_items.Length, DEFAULT_CAPACITY);
@@ -873,26 +872,29 @@ namespace SnowBank.Data.Json
 				}
 			}
 
-			ResizeBuffer((int) newCapacity);
+			return ResizeBuffer((int) newCapacity);
 		}
 
 		/// <summary>Replace the internal buffer with a larger buffer</summary>
 		/// <param name="size">New buffer size</param>
-		private void ResizeBuffer(int size)
+		private JsonValue[] ResizeBuffer(int size)
 		{
+			JsonValue[] tmp;
 			if (size > 0)
 			{
-				var tmp = new JsonValue[size];
-				if (m_size > 0)
+				tmp = new JsonValue[size];
+				int currentSize = m_size;
+				if (currentSize > 0)
 				{ // copy existing items
-					m_items.AsSpan(0, m_size).CopyTo(tmp);
+					m_items.AsSpan(0, currentSize).CopyTo(tmp);
 				}
-				m_items = tmp;
 			}
 			else
 			{
-				m_items = [ ];
+				tmp = [ ];
 			}
+			m_items = tmp;
+			return tmp;
 		}
 
 		/// <summary>Returns a span of all items in this array</summary>
@@ -911,7 +913,8 @@ namespace SnowBank.Data.Json
 		{
 			Contract.Positive(count);
 
-			if (count < m_size)
+			int size = m_size;
+			if (count < size)
 			{
 				throw new InvalidOperationException("Cannot reduce the size of an array");
 			}
@@ -921,9 +924,9 @@ namespace SnowBank.Data.Json
 				ResizeBuffer(count);
 			}
 
-			if (!skipInit && count > m_size)
+			if (!skipInit && count > size)
 			{ // fill the items 
-				m_items.AsSpan(m_size, count - m_size).Fill(JsonNull.Null);
+				m_items.AsSpan(size, count - size).Fill(JsonNull.Null);
 			}
 
 			m_size = count;
@@ -993,11 +996,12 @@ namespace SnowBank.Data.Json
 			Contract.Debug.Requires(!ReferenceEquals(this, value));
 			// invariant: adding 'null' will add JsonNull.Null
 			int size = m_size;
-			if (size == m_items.Length)
+			var items = m_items;
+			if ((uint) size >= (uint) items.Length)
 			{
-				EnsureCapacity(size + 1);
+				items = GrowBuffer(size + 1);
 			}
-			m_items[size] = value ?? JsonNull.Null;
+			items[size] = value ?? JsonNull.Null;
 			m_size = size + 1;
 		}
 
@@ -1029,15 +1033,12 @@ namespace SnowBank.Data.Json
 			if (values.Length > 0)
 			{
 				int size = m_size;
-				EnsureCapacity(size + values.Length);
+				int newSize = checked(size + values.Length);
+				var tail = EnsureCapacity(newSize).AsSpan(size, values.Length);
 
-				var items = m_items;
-				Contract.Debug.Assert(items is not null && size + values.Length <= items.Length);
-
-				var tail = items.AsSpan(size, values.Length);
 				values.CopyTo(tail!);
 				FillNullValues(tail!);
-				m_size = size + values.Length;
+				m_size = newSize;
 			}
 			return this;
 		}
@@ -1050,17 +1051,14 @@ namespace SnowBank.Data.Json
 			if (values.Length > 0)
 			{
 				int size = m_size;
-				EnsureCapacity(size + values.Length);
+				int newSize = checked(size + values.Length);
+				var tail = EnsureCapacity(newSize).AsSpan(size, values.Length);
 
-				var items = m_items;
-				Contract.Debug.Assert(items is not null && size + values.Length <= items.Length);
-
-				var tail = items.AsSpan(size, values.Length);
 				for (int i = 0; i < values.Length; i++)
 				{
 					tail[i] = selector(values[i]) ?? JsonNull.Null;
 				}
-				m_size = size + values.Length;
+				m_size = newSize;
 			}
 			return this;
 		}
@@ -1073,19 +1071,17 @@ namespace SnowBank.Data.Json
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 			if (values.Length > 0)
 			{
-				// resize
+				// resize if needed
 				int size = m_size;
-				EnsureCapacity(size + values.Length);
-				var items = m_items;
-				Contract.Debug.Assert(items is not null && size + values.Length <= items.Length);
+				int newSize = checked(size + values.Length);
+				var tail = EnsureCapacity(newSize).AsSpan(size, values.Length);
 
 				// append
-				var tail = items.AsSpan(size, values.Length);
 				for (int i = 0; i < tail.Length; i++)
 				{
 					tail[i] = (values[i] ?? JsonNull.Null).ToReadOnly();
 				}
-				m_size = size + values.Length;
+				m_size = newSize;
 			}
 			return this;
 		}
@@ -1098,19 +1094,17 @@ namespace SnowBank.Data.Json
 			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
 			if (values.Length > 0)
 			{
-				// resize
+				// resize if needed
 				int size = m_size;
-				EnsureCapacity(size + values.Length);
-				var items = m_items;
-				Contract.Debug.Assert(items is not null && size + values.Length <= items.Length);
+				int newSize = checked(size + values.Length);
+				var tail = EnsureCapacity(newSize).AsSpan(size, values.Length);
 
 				// append
-				var tail = items.AsSpan(size, values.Length);
 				for (int i = 0; i < tail.Length; i++)
 				{
 					tail[i] = (selector(values[i]) ?? JsonNull.Null).ToReadOnly();
 				}
-				m_size = size + values.Length;
+				m_size = newSize;
 			}
 			return this;
 		}
@@ -1176,10 +1170,9 @@ namespace SnowBank.Data.Json
 			{ // we can pre-allocate to the new size and copy into tail of the buffer
 
 				int newSize = checked(m_size + count);
-				EnsureCapacity(newSize);
+				var tail = EnsureCapacity(newSize).AsSpan(m_size, count);
 
 				// append to the tail
-				var tail = m_items.AsSpan(m_size, count);
 				int i = 0;
 				foreach (var item in values)
 				{
@@ -1216,10 +1209,9 @@ namespace SnowBank.Data.Json
 			{ // we can pre-allocate to the new size and copy into tail of the buffer
 
 				int newSize = checked(m_size + count);
-				EnsureCapacity(newSize);
+				var tail = EnsureCapacity(newSize).AsSpan(m_size, count);
 
 				// append to the tail
-				var tail = m_items.AsSpan(m_size, count);
 				int i = 0;
 				foreach (var item in values)
 				{
@@ -1249,10 +1241,9 @@ namespace SnowBank.Data.Json
 
 			int count = values.Count;
 			int newSize = checked(m_size + count);
-			EnsureCapacity(newSize);
+			var tail = EnsureCapacity(newSize).AsSpan(m_size, count);
 
 			// append to the tail
-			var tail = m_items.AsSpan(m_size, count);
 			int i = 0;
 			foreach (var item in values)
 			{
@@ -1288,10 +1279,9 @@ namespace SnowBank.Data.Json
 			{
 				// pre-resize to the new capacity
 				int newSize = checked(m_size + count);
-				EnsureCapacity(newSize);
+				var tail = EnsureCapacity(newSize).AsSpan(m_size, count);
 
 				// append to the tail
-				var tail = m_items.AsSpan(m_size, count);
 				int i = 0;
 				foreach (var item in values)
 				{
@@ -1327,8 +1317,7 @@ namespace SnowBank.Data.Json
 
 			// pre-allocate the backing array
 			int newSize = checked(this.Count + items.Length);
-			EnsureCapacity(newSize);
-			var tail = m_items.AsSpan(m_size, items.Length);
+			var tail = EnsureCapacity(newSize).AsSpan(m_size, items.Length);
 
 			#region <JIT_HACK>
 			// pattern recognized and optimized by the JIT, only in Release build
@@ -1512,9 +1501,8 @@ namespace SnowBank.Data.Json
 			if (items.Length == 0) return this;
 
 			// pre-allocate the backing array
-			int newSize = checked(this.Count + items.Length);
-			EnsureCapacity(newSize);
-			var tail = m_items.AsSpan(m_size, items.Length);
+			int newSize = checked(m_size + items.Length);
+			var tail = EnsureCapacity(newSize).AsSpan(m_size, items.Length);
 
 			#region <JIT_HACK>
 			// pattern recognized and optimized by the JIT, only in Release build
@@ -1693,9 +1681,8 @@ namespace SnowBank.Data.Json
 			if (items.Length == 0) return this;
 
 			// pre-allocate the backing array
-			int newSize = checked(this.Count + items.Length);
-			EnsureCapacity(newSize);
-			var tail = m_items.AsSpan(m_size, items.Length);
+			int newSize = checked(m_size + items.Length);
+			var tail = EnsureCapacity(newSize).AsSpan(m_size, items.Length);
 
 			for(int i = 0; i < items.Length; i++)
 			{
@@ -1713,9 +1700,8 @@ namespace SnowBank.Data.Json
 			if (items.Length == 0) return this;
 
 			// pre-allocate the backing array
-			int newSize = checked(this.Count + items.Length);
-			EnsureCapacity(newSize);
-			var tail = m_items.AsSpan(m_size, items.Length);
+			int newSize = checked(m_size + items.Length);
+			var tail = EnsureCapacity(newSize).AsSpan(m_size, items.Length);
 
 			for(int i = 0; i < items.Length; i++)
 			{
@@ -1733,9 +1719,8 @@ namespace SnowBank.Data.Json
 			if (items.Length == 0) return this;
 
 			// pre-allocate the backing array
-			int newSize = checked(this.Count + items.Length);
-			EnsureCapacity(newSize);
-			var tail = m_items.AsSpan(m_size, items.Length);
+			int newSize = checked(m_size + items.Length);
+			var tail = EnsureCapacity(newSize).AsSpan(m_size, items.Length);
 
 			for(int i = 0; i < items.Length; i++)
 			{
@@ -1753,9 +1738,8 @@ namespace SnowBank.Data.Json
 			if (items.Length == 0) return this;
 
 			// pre-allocate the backing array
-			int newSize = checked(this.Count + items.Length);
-			EnsureCapacity(newSize);
-			var tail = m_items.AsSpan(m_size, items.Length);
+			int newSize = checked(m_size + items.Length);
+			var tail = EnsureCapacity(newSize).AsSpan(m_size, items.Length);
 
 			for(int i = 0; i < items.Length; i++)
 			{
@@ -1773,9 +1757,8 @@ namespace SnowBank.Data.Json
 			if (items.Length == 0) return this;
 
 			// pre-allocate the backing array
-			int newSize = checked(this.Count + items.Length);
-			EnsureCapacity(newSize);
-			var tail = m_items.AsSpan(m_size, items.Length);
+			int newSize = checked(m_size + items.Length);
+			var tail = EnsureCapacity(newSize).AsSpan(m_size, items.Length);
 
 			for(int i = 0; i < items.Length; i++)
 			{
@@ -1793,9 +1776,8 @@ namespace SnowBank.Data.Json
 			if (items.Length == 0) return this;
 
 			// pre-allocate the backing array
-			int newSize = checked(this.Count + items.Length);
-			EnsureCapacity(newSize);
-			var tail = m_items.AsSpan(m_size, items.Length);
+			int newSize = checked(m_size + items.Length);
+			var tail = EnsureCapacity(newSize).AsSpan(m_size, items.Length);
 
 			for(int i = 0; i < items.Length; i++)
 			{
@@ -1813,9 +1795,8 @@ namespace SnowBank.Data.Json
 			if (items.Length == 0) return this;
 
 			// pre-allocate the backing array
-			int newSize = checked(this.Count + items.Length);
-			EnsureCapacity(newSize);
-			var tail = m_items.AsSpan(m_size, items.Length);
+			int newSize = checked(m_size + items.Length);
+			var tail = EnsureCapacity(newSize).AsSpan(m_size, items.Length);
 
 			for(int i = 0; i < items.Length; i++)
 			{
@@ -1838,8 +1819,7 @@ namespace SnowBank.Data.Json
 
 			// pre-allocate the backing array
 			int newSize = checked(this.Count + items.Length);
-			EnsureCapacity(newSize);
-			var tail = m_items.AsSpan(m_size, items.Length);
+			var tail = EnsureCapacity(newSize).AsSpan(m_size, items.Length);
 
 			#region <JIT_HACK>
 			// pattern recognized and optimized by the JIT, only in Release build
@@ -2024,8 +2004,7 @@ namespace SnowBank.Data.Json
 			if (items.Length == 0) return this;
 
 			int newSize = checked(this.Count + items.Length);
-			EnsureCapacity(newSize);
-			var tail = m_items.AsSpan(m_size, items.Length);
+			var tail = EnsureCapacity(newSize).AsSpan(m_size, items.Length);
 
 			#region <JIT_HACK>
 			// pattern recognized and optimized by the JIT, only in Release build
@@ -2385,8 +2364,7 @@ namespace SnowBank.Data.Json
 		{
 			var size = m_size;
 			Contract.Debug.Requires(index >= size);
-			EnsureCapacity(index + 1);
-			var items = m_items;
+			var items = EnsureCapacity(checked(index + 1));
 			int gap = index - size;
 			if (gap > 0) m_items.AsSpan(size, gap).Fill(JsonNull.Null);
 			items[index] = item ?? JsonNull.Null;
@@ -2406,12 +2384,12 @@ namespace SnowBank.Data.Json
 			var size = m_size;
 			if ((uint) index > size) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(index));
 
-			if (m_size == m_items.Length)
+			var items = m_items;
+			if (m_size >= items.Length)
 			{
-				EnsureCapacity(size + 1);
+				items = GrowBuffer(checked(size + 1));
 			}
 
-			var items = m_items;
 			if (index < size)
 			{
 				items.AsSpan(index, size - index).CopyTo(items.AsSpan(index + 1));
@@ -5125,16 +5103,17 @@ namespace SnowBank.Data.Json
 		public int CompareTo(JsonArray? other)
 		{
 			if (other is null) return +1;
-			
-			int n = Math.Min(m_size, other.m_size);
-			var l = m_items;
-			var r = other.m_items;
+
+			var selfItems = AsSpan();
+			var otherItems = other.AsSpan();
+
+			int n = Math.Min(selfItems.Length, otherItems.Length);
 			for (int i = 0; i < n;i++)
 			{
-				int c = l[i].CompareTo(r[i]);
-				if (c != 0) return c;
+				int cmp = selfItems[i].CompareTo(otherItems[i]);
+				if (cmp != 0) return cmp;
 			}
-			return m_size - other.m_size;
+			return selfItems.Length - otherItems.Length;
 		}
 
 		#endregion
