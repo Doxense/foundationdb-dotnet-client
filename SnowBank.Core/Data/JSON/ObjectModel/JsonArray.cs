@@ -5127,8 +5127,26 @@ namespace SnowBank.Data.Json
 		/// <inheritdoc />
 		public override int GetHashCode()
 		{
-			// the hash code of the array should never change, even if the _content_ of the array can change
-			return RuntimeHelpers.GetHashCode(this);
+			if (!this.IsReadOnly)
+			{
+				// the hash code of the array should never change, even if the _content_ of the array can change
+				return RuntimeHelpers.GetHashCode(this);
+			}
+			else
+			{
+				return ComputeReadOnlyHashCode(GetSpan());
+			}
+
+			static int ComputeReadOnlyHashCode(ReadOnlySpan<JsonValue> items)
+			{
+				HashCode h = new();
+				h.Add(items.Length);
+				foreach (var item in items)
+				{
+					h.Add(item.GetHashCode());
+				}
+				return h.ToHashCode();
+			}
 		}
 
 		/// <inheritdoc />

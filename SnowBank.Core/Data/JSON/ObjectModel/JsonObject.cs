@@ -4391,8 +4391,32 @@ namespace SnowBank.Data.Json
 		/// <inheritdoc />
 		public override int GetHashCode()
 		{
-			// the hash code must NEVER change, even if the object is mutated!
-			return RuntimeHelpers.GetHashCode(this);
+			if (!this.IsReadOnly)
+			{
+				// the hash code must NEVER change, even if the object is mutated!
+				return RuntimeHelpers.GetHashCode(this);
+			}
+			else
+			{
+				return ComputeReadOnlyHashCode(m_items);
+			}
+
+			static int ComputeReadOnlyHashCode(Dictionary<string, JsonValue> items)
+			{
+				//note: the order of the keys is not significant, but it would be too costly to order them
+				// => we take the middle road of XORing all the hashcodes for the keys together (same for the values), since XOR is commutative
+				// => this means the hashcode will be of a lesser quality!
+
+				int keyHash = 0;
+				int valueHash = 0;
+				foreach (var kv in items)
+				{
+					keyHash ^= kv.Key.GetHashCode();
+					valueHash ^= kv.Value.GetHashCode();
+				}
+
+				return HashCode.Combine(items.Count, keyHash, valueHash);
+			}
 		}
 
 		/// <inheritdoc />
