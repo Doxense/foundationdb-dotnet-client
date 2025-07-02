@@ -143,6 +143,30 @@ namespace SnowBank.Testing
 		protected virtual void OnBeforeEachTest()
 		{ }
 
+		private List<Action<TestContext>> FailedCallbacks { get; } = [ ];
+
+		/// <summary>Code that should be executed whenever the test fails, in order to dump additional state that would be helpful for troubleshooting</summary>
+		/// <param name="callback">Callback invoked if the test does not pass.</param>
+		/// <returns>Token that can be disposed early to remove this callback before the end of the test.</returns>
+		/// <remarks>
+		/// <para>The callback will be invoked before the test <see cref="Cancellation"/> token fires</para>
+		/// <para>If the token is not disposed, the callback will remain until the end of the method.</para>
+		/// </remarks>
+		protected IDisposable DumpStateOnFailure(Action<TestContext> callback)
+		{
+			lock (this.FailedCallbacks)
+			{
+				this.FailedCallbacks.Add(callback);
+			}
+			return Disposable.Create(() =>
+			{
+				lock (this.FailedCallbacks)
+				{
+					this.FailedCallbacks.Remove(callback);
+				}
+			});
+		}
+
 		/// <summary>Code that will run after each test method in this test suite.</summary>
 		/// <remarks>You can insert your own cleanup logic by overriding <see cref="OnAfterEachTest"/></remarks>
 		[TearDown]
@@ -152,6 +176,36 @@ namespace SnowBank.Testing
 			try
 			{
 				m_testEndTimestamp = GetTimestamp();
+
+				// handle failure callbacks here
+				if (currentContext.Result.FailCount > 0)
+				{
+					Action<TestContext>[]? callbacks = null;
+					lock (this.FailedCallbacks)
+					{
+						if (this.FailedCallbacks.Count > 0)
+						{
+							callbacks = this.FailedCallbacks.ToArray();
+							this.FailedCallbacks.Clear();
+						}
+					}
+
+					if (callbacks is not null)
+					{
+						foreach (var callback in callbacks)
+						{
+							callback(currentContext);
+						}
+					}
+				}
+				else
+				{
+					lock (this.FailedCallbacks)
+					{
+						this.FailedCallbacks.Clear();
+					}
+				}
+
 				m_cts?.Cancel();
 
 				// dispose any IDisposable services that were used during the execution
