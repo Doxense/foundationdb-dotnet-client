@@ -701,7 +701,7 @@ namespace SnowBank.Data.Json.Tests
 		private static string Truncate(string json)
 		{
 			if (json.Length < 100) return json;
-			return json.Substring(0, 70) + "\u2026" + json.Substring(json.Length - 30);
+			return $"{json.AsSpan(0, 70)}\u2026{json.AsSpan(json.Length - 30)}";
 		}
 
 		[Test]

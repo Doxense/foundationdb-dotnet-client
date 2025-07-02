@@ -1085,10 +1085,17 @@ namespace SnowBank.Data.Json
 			var value = m_value;
 			if (value.Length == 0) return "''";
 			if (depth > 3) return "'\u2026'";
-			int allowance = depth == 0 ? 128 : depth == 1 ? 64 : depth == 2 ? 36 : 16;
+			int allowance = depth switch
+			{
+				0 => 128,
+				1 => 64,
+				2 => 48,
+				3 => 36, // size for a guid/uuid128
+				_ => 16
+			};
 			return value.Length <= allowance
 				? "'" + value + "'"
-				: "'" + value.Substring(0, (allowance / 2) - 1) + "[\u2026]" + value.Substring(value.Length - (allowance / 2) + 1) + "'";
+				: $"'{value.AsSpan(0, (allowance / 2) - 1)}[\u2026]{value.AsSpan(value.Length - (allowance / 2) + 1)}'";
 		}
 
 		#endregion
