@@ -1351,7 +1351,7 @@ namespace SnowBank.Data.Tuples.Binary
 							? TuPackUserType.System
 							: TuPackUserType.SystemKey(slice[1..].ToSlice());
 						sb.Append(t.ToString()); //PERF: TODO: reduce allocations!
-						break;
+						return;
 					}
 				}
 			}
