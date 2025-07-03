@@ -31,6 +31,7 @@ namespace SnowBank.Data.Tuples.Binary
 	using System.Linq.Expressions;
 	using System.Numerics;
 	using System.Reflection;
+	using SnowBank.Buffers.Text;
 	using SnowBank.Data.Tuples;
 	using SnowBank.Runtime.Converters;
 	using SnowBank.Runtime;
@@ -235,6 +236,7 @@ namespace SnowBank.Data.Tuples.Binary
 			if (typeof(T) == typeof(Uuid96)) { TupleParser.WriteUuid96(ref writer, (Uuid96) (object) value!); return; }
 			if (typeof(T) == typeof(Uuid80)) { TupleParser.WriteUuid80(ref writer, (Uuid80) (object) value!); return; }
 			if (typeof(T) == typeof(Uuid64)) { TupleParser.WriteUuid64(ref writer, (Uuid64) (object) value!); return; }
+			if (typeof(T) == typeof(Uuid48)) { TupleParser.WriteUuid48(ref writer, (Uuid48) (object) value!); return; }
 			if (typeof(T) == typeof(VersionStamp)) { TupleParser.WriteVersionStamp(ref writer, (VersionStamp) (object) value!); return; }
 			if (typeof(T) == typeof(Slice)) { TupleParser.WriteBytes(ref writer, (Slice) (object) value!); return; }
 			if (typeof(T) == typeof(ArraySegment<byte>)) { TupleParser.WriteBytes(ref writer, (ArraySegment<byte>) (object) value!); return; }
@@ -260,6 +262,7 @@ namespace SnowBank.Data.Tuples.Binary
 			if (typeof(T) == typeof(Uuid96?)) { TupleParser.WriteUuid96(ref writer, (Uuid96?) (object) value!); return; }
 			if (typeof(T) == typeof(Uuid80?)) { TupleParser.WriteUuid80(ref writer, (Uuid80?) (object) value!); return; }
 			if (typeof(T) == typeof(Uuid64?)) { TupleParser.WriteUuid64(ref writer, (Uuid64?) (object) value!); return; }
+			if (typeof(T) == typeof(Uuid48?)) { TupleParser.WriteUuid64(ref writer, (Uuid48?) (object) value!); return; }
 			if (typeof(T) == typeof(VersionStamp?)) { TupleParser.WriteVersionStamp(ref writer, (VersionStamp?) (object) value!); return; }
 #endif
 			//</JIT_HACK>
@@ -628,6 +631,14 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <summary>Writes a 64-bit <see cref="Uuid64"/> to the tuple</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(ref TupleWriter writer, Uuid64? value) => TupleParser.WriteUuid64(ref writer, value);
+
+		/// <summary>Writes a 48-bit <see cref="Uuid48"/> to the tuple</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SerializeTo(ref TupleWriter writer, Uuid48 value) => TupleParser.WriteUuid48(ref writer, value);
+
+		/// <summary>Writes a 64-bit <see cref="Uuid48"/> to the tuple</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SerializeTo(ref TupleWriter writer, Uuid48? value) => TupleParser.WriteUuid48(ref writer, value);
 
 		/// <summary>Writes an 80-bit or 96-bit <see cref="VersionStamp"/> to the tuple</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1196,6 +1207,151 @@ namespace SnowBank.Data.Tuples.Binary
 						return slice.Length == 1
 							? TuPackUserType.System
 							: TuPackUserType.SystemKey(slice[1..].ToSlice());
+					}
+				}
+			}
+
+			throw new FormatException($"Cannot convert tuple segment with unknown type code 0x{type:X}");
+		}
+
+		/// <summary>Deserializes a packed element into an object by choosing the most appropriate type at runtime</summary>
+		/// <param name="slice">Slice that contains a single packed element</param>
+		/// <returns>Decoded element, in the type that is the best fit.</returns>
+		/// <remarks>You should avoid working with untyped values as much as possible! Blindly casting the returned object may be problematic because this method may need to return very large integers as Int64 or even UInt64.</remarks>
+		public static void StringifyBoxedTo(ref FastStringBuilder sb, ReadOnlySpan<byte> slice)
+		{
+			if (slice.Length == 0)
+			{
+				sb.Append("null"); // or is it?
+				return;
+			}
+
+			int type = slice[0];
+			if (type <= TupleTypes.IntPos8)
+			{
+				if (type >= TupleTypes.IntNeg8)
+				{
+					STuple.Formatter.StringifyTo(ref sb, TupleParser.ParseInt64(type, slice));
+					return;
+				}
+
+				switch (type)
+				{
+					case TupleTypes.Nil:
+					{
+						sb.Append("null"); // or is it?
+						return;
+					}
+					case TupleTypes.Bytes:
+					{
+						STuple.Formatter.StringifyTo(ref sb, TupleParser.ParseBytes(slice));
+						return;
+					}
+					case TupleTypes.Utf8:
+					{
+						STuple.Formatter.StringifyTo(ref sb, TupleParser.ParseUnicode(slice)!); //TODO: use a stackalloc'ed buffer?
+						return;
+					}
+					case TupleTypes.LegacyTupleStart:
+					{
+						throw TupleParser.FailLegacyTupleNotSupported();
+					}
+					case TupleTypes.EmbeddedTuple:
+					{
+						var t = TupleParser.ParseEmbeddedTuple(slice); //.ToTuple();
+						if (t.Count == 0)
+						{
+							sb.Append("()");
+						}
+						else if (t.AppendItemsTo(ref sb) == 1)
+						{
+							sb.Append(",)");
+						}
+						else
+						{
+							sb.Append(')');
+						}
+						return;
+					}
+					case TupleTypes.NegativeBigInteger:
+					{
+						STuple.Formatter.StringifyTo(ref sb, TupleParser.ParseNegativeBigInteger(slice));
+						return;
+					}
+				}
+			}
+			else
+			{
+				switch (type)
+				{
+					case TupleTypes.PositiveBigInteger:
+					{
+						STuple.Formatter.StringifyTo(ref sb, TupleParser.ParsePositiveBigInteger(slice));
+						return;
+					}
+					case TupleTypes.Single:
+					{
+						STuple.Formatter.StringifyTo(ref sb, TupleParser.ParseSingle(slice));
+						return;
+					}
+					case TupleTypes.Double:
+					{
+						STuple.Formatter.StringifyTo(ref sb, TupleParser.ParseDouble(slice));
+						return;
+					}
+					//TODO: Triple
+					case TupleTypes.Decimal:
+					{
+						STuple.Formatter.StringifyTo(ref sb, TupleParser.ParseDecimal(slice));
+						return;
+					}
+					case TupleTypes.False:
+					{
+						sb.Append("false");
+						return;
+					}
+					case TupleTypes.True:
+					{
+						sb.Append("true");
+						return;
+					}
+					case TupleTypes.Uuid128:
+					{
+						STuple.Formatter.StringifyTo(ref sb, TupleParser.ParseGuid(slice));
+						return;
+					}
+					case TupleTypes.Uuid64:
+					{
+						STuple.Formatter.StringifyTo(ref sb, TupleParser.ParseUuid64(slice));
+						return;
+					}
+					case TupleTypes.Uuid80:
+					{
+						STuple.Formatter.StringifyTo(ref sb, TupleParser.ParseVersionStamp(slice));
+						return;
+					}
+					case TupleTypes.Uuid96:
+					{
+						STuple.Formatter.StringifyTo(ref sb, TupleParser.ParseVersionStamp(slice));
+						return;
+					}
+
+					case TupleTypes.Directory:
+					{
+						if (slice.Length == 1)
+						{
+							sb.Append("|Directory|");
+							return;
+						}
+						break;
+					}
+					case TupleTypes.Escape:
+					{
+						var t = slice.Length == 1
+							? TuPackUserType.System
+							: TuPackUserType.SystemKey(slice[1..].ToSlice());
+						sb.Append(t.ToString()); //PERF: TODO: reduce allocations!
+						break;
 					}
 				}
 			}

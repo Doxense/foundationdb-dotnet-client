@@ -28,7 +28,8 @@ namespace SnowBank.Data.Tuples
 {
 	using System.Collections;
 	using System.Globalization;
-	using System.Text;
+	using SnowBank.Buffers;
+	using SnowBank.Buffers.Text;
 	using SnowBank.Data.Tuples.Binary;
 	using SnowBank.Runtime.Converters;
 	using SnowBank.Text;
@@ -162,6 +163,11 @@ namespace SnowBank.Data.Tuples
 		void ITupleSerializable.PackTo(ref TupleWriter writer)
 		{
 			//NOP
+		}
+
+		int ITupleSerializable.AppendItemsTo(ref FastStringBuilder sb)
+		{
+			return 0;
 		}
 
 		#endregion
@@ -642,14 +648,19 @@ namespace SnowBank.Data.Tuples
 					if (typeof(T) == typeof(Slice)) return Stringify((Slice) (object) item);
 					if (typeof(T) == typeof(double)) return Stringify((double) (object) item);
 					if (typeof(T) == typeof(float)) return Stringify((float) (object) item);
+					if (typeof(T) == typeof(decimal)) return Stringify((decimal) (object) item);
 					if (typeof(T) == typeof(Guid)) return Stringify((Guid) (object) item);
 					if (typeof(T) == typeof(Uuid128)) return Stringify((Uuid128) (object) item);
 					if (typeof(T) == typeof(Uuid96)) return Stringify((Uuid96) (object) item);
 					if (typeof(T) == typeof(Uuid80)) return Stringify((Uuid80) (object) item);
 					if (typeof(T) == typeof(Uuid64)) return Stringify((Uuid64) (object) item);
+					if (typeof(T) == typeof(Uuid48)) return Stringify((Uuid48) (object) item);
 					if (typeof(T) == typeof(DateTime)) return Stringify((DateTime) (object) item);
 					if (typeof(T) == typeof(DateTimeOffset)) return Stringify((DateTimeOffset) (object) item);
 					if (typeof(T) == typeof(NodaTime.Instant)) return Stringify((NodaTime.Instant) (object) item);
+					if (typeof(T) == typeof(VersionStamp)) return Stringify((VersionStamp) (object) item);
+					if (typeof(T) == typeof(ArraySegment<byte>)) return Stringify(((ArraySegment<byte>) (object) item).AsSlice());
+					if (typeof(T) == typeof(ReadOnlyMemory<byte>)) return Stringify(((ReadOnlyMemory<byte>) (object) item).Span);
 					// </JIT_HACK>
 				}
 				else
@@ -666,19 +677,101 @@ namespace SnowBank.Data.Tuples
 					if (typeof(T) == typeof(Slice?)) return Stringify((Slice) (object) item);
 					if (typeof(T) == typeof(double?)) return Stringify((double) (object) item);
 					if (typeof(T) == typeof(float?)) return Stringify((float) (object) item);
+					if (typeof(T) == typeof(decimal?)) return Stringify((decimal) (object) item);
 					if (typeof(T) == typeof(Guid?)) return Stringify((Guid) (object) item);
 					if (typeof(T) == typeof(Uuid128?)) return Stringify((Uuid128) (object) item);
 					if (typeof(T) == typeof(Uuid96?)) return Stringify((Uuid96) (object) item);
 					if (typeof(T) == typeof(Uuid80?)) return Stringify((Uuid80) (object) item);
 					if (typeof(T) == typeof(Uuid64?)) return Stringify((Uuid64) (object) item);
+					if (typeof(T) == typeof(Uuid48?)) return Stringify((Uuid48) (object) item);
 					if (typeof(T) == typeof(DateTime?)) return Stringify((DateTime) (object) item);
 					if (typeof(T) == typeof(DateTimeOffset?)) return Stringify((DateTimeOffset) (object) item);
 					if (typeof(T) == typeof(NodaTime.Instant?)) return Stringify((NodaTime.Instant) (object) item);
+					if (typeof(T) == typeof(VersionStamp?)) return Stringify((VersionStamp) (object) item);
 					// </JIT_HACK>
 				}
 
-				// some other type
-				return StringifyInternal(item);
+				return typeof(T) == typeof(object)
+					? StringifyBoxed(item) // probably a List<object?> or ReadOnlySpan<object?> that was misrouted here instead of StringifyBoxed!
+					: StringifyInternal(item);
+			}
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static void StringifyTo<T>(ref FastStringBuilder sb, T? item)
+			{
+				if (item is null)
+				{
+					sb.Append(TokenNull);
+					return;
+				}
+
+				if (default(T) is not null)
+				{
+					// <JIT_HACK>!
+					if (typeof(T) == typeof(int)) { StringifyTo(ref sb, (int) (object) item); return; }
+					if (typeof(T) == typeof(uint)) { StringifyTo(ref sb, (uint) (object) item); return; }
+					if (typeof(T) == typeof(long)) { StringifyTo(ref sb, (long) (object) item); return; }
+					if (typeof(T) == typeof(ulong)) { StringifyTo(ref sb, (ulong) (object) item); return; }
+					if (typeof(T) == typeof(bool)) { StringifyTo(ref sb, (bool) (object) item); return; }
+					if (typeof(T) == typeof(char)) { StringifyTo(ref sb, (char) (object) item); return; }
+					if (typeof(T) == typeof(Slice)) { StringifyTo(ref sb, (Slice) (object) item); return; }
+					if (typeof(T) == typeof(double)) { StringifyTo(ref sb, (double) (object) item); return; }
+					if (typeof(T) == typeof(float)) { StringifyTo(ref sb, (float) (object) item); return; }
+					if (typeof(T) == typeof(decimal)) { StringifyTo(ref sb, (decimal) (object) item); return; }
+					if (typeof(T) == typeof(Guid)) { StringifyTo(ref sb, (Guid) (object) item); return; }
+					if (typeof(T) == typeof(Uuid128)) { StringifyTo(ref sb, (Uuid128) (object) item); return; }
+					if (typeof(T) == typeof(Uuid96)) { StringifyTo(ref sb, (Uuid96) (object) item); return; }
+					if (typeof(T) == typeof(Uuid80)) { StringifyTo(ref sb, (Uuid80) (object) item); return; }
+					if (typeof(T) == typeof(Uuid64)) { StringifyTo(ref sb, (Uuid64) (object) item); return; }
+					if (typeof(T) == typeof(Uuid48)) { StringifyTo(ref sb, (Uuid48) (object) item); return; }
+					if (typeof(T) == typeof(DateTime)) { StringifyTo(ref sb, (DateTime) (object) item); return; }
+					if (typeof(T) == typeof(DateTimeOffset)) { StringifyTo(ref sb, (DateTimeOffset) (object) item); return; }
+					if (typeof(T) == typeof(NodaTime.Instant)) { StringifyTo(ref sb, (NodaTime.Instant) (object) item); return; }
+					if (typeof(T) == typeof(VersionStamp)) { StringifyTo(ref sb, (VersionStamp) (object) item); return; }
+					if (typeof(T) == typeof(ArraySegment<byte>)) { StringifyTo(ref sb, ((ArraySegment<byte>) (object) item).AsSlice()); return; }
+					if (typeof(T) == typeof(ReadOnlyMemory<byte>)) { StringifyTo(ref sb, ((ReadOnlyMemory<byte>) (object) item).Span); return; }
+					// </JIT_HACK>
+				}
+				else
+				{
+					// <JIT_HACK>!
+					if (typeof(T) == typeof(int?)) { StringifyTo(ref sb, (int) (object) item); return; }
+					if (typeof(T) == typeof(uint?)) { StringifyTo(ref sb, (uint) (object) item); return; }
+					if (typeof(T) == typeof(long?)) { StringifyTo(ref sb, (long) (object) item); return; }
+					if (typeof(T) == typeof(ulong?)) { StringifyTo(ref sb, (ulong) (object) item); return; }
+					if (typeof(T) == typeof(bool?)) { StringifyTo(ref sb, (bool) (object) item); return; }
+					if (typeof(T) == typeof(char?)) { StringifyTo(ref sb, (char) (object) item); return; }
+					if (typeof(T) == typeof(Slice?)) { StringifyTo(ref sb, (Slice) (object) item); return; }
+					if (typeof(T) == typeof(double?)) { StringifyTo(ref sb, (double) (object) item); return; }
+					if (typeof(T) == typeof(float?)) { StringifyTo(ref sb, (float) (object) item); return; }
+					if (typeof(T) == typeof(decimal?)) { StringifyTo(ref sb, (decimal) (object) item); return; }
+					if (typeof(T) == typeof(Guid?)) { StringifyTo(ref sb, (Guid) (object) item); return; }
+					if (typeof(T) == typeof(Uuid128?)) { StringifyTo(ref sb, (Uuid128) (object) item); return; }
+					if (typeof(T) == typeof(Uuid96?)) { StringifyTo(ref sb, (Uuid96) (object) item); return; }
+					if (typeof(T) == typeof(Uuid80?)) { StringifyTo(ref sb, (Uuid80) (object) item); return; }
+					if (typeof(T) == typeof(Uuid64?)) { StringifyTo(ref sb, (Uuid64) (object) item); return; }
+					if (typeof(T) == typeof(Uuid48?)) { StringifyTo(ref sb, (Uuid48) (object) item); return; }
+					if (typeof(T) == typeof(DateTime?)) { StringifyTo(ref sb, (DateTime) (object) item); return; }
+					if (typeof(T) == typeof(DateTimeOffset?)) { StringifyTo(ref sb, (DateTimeOffset) (object) item); return; }
+					if (typeof(T) == typeof(NodaTime.Instant?)) { StringifyTo(ref sb, (NodaTime.Instant) (object) item); return; }
+					if (typeof(T) == typeof(VersionStamp?)) { StringifyTo(ref sb, (VersionStamp) (object) item); return; }
+					// </JIT_HACK>
+
+					if (item is string s)
+					{
+						StringifyTo(ref sb, s); 
+						return;
+					}
+				}
+
+				if (typeof(T) == typeof(object))
+				{
+					StringifyBoxedTo(ref sb, item); // probably a List<object?> or ReadOnlySpan<object?> that was misrouted here instead of StringifyBoxed!
+				}
+				else
+				{
+					StringifyInternalTo(ref sb, item);
+				}
 			}
 
 			/// <summary>Converts any object into a displayable string, for logging/debugging purpose</summary>
@@ -697,29 +790,74 @@ namespace SnowBank.Data.Tuples
 			{
 				switch (item)
 				{
-					case null:         return TokenNull;
-					case string s:     return Stringify(s);
-					case int i:        return Stringify(i);
-					case long l:       return Stringify(l);
-					case uint u:       return Stringify(u);
-					case ulong ul:     return Stringify(ul);
-					case bool b:       return Stringify(b);
-					case char c:       return Stringify(c);
-					case Slice sl:     return Stringify(sl);
-					case double d:     return Stringify(d);
-					case float f:      return Stringify(f);
-					case Guid guid:    return Stringify(guid);
-					case Uuid128 u128: return Stringify(u128);
-					case Uuid96 u96:   return Stringify(u96);
-					case Uuid80 u80:   return Stringify(u80);
-					case Uuid64 u64:   return Stringify(u64);
-					case DateTime dt:  return Stringify(dt);
+					case null:               return TokenNull;
+					case string s:           return Stringify(s);
+					case int i:              return Stringify(i);
+					case long l:             return Stringify(l);
+					case uint u:             return Stringify(u);
+					case ulong ul:           return Stringify(ul);
+					case bool b:             return Stringify(b);
+					case char c:             return Stringify(c);
+					case Slice sl:           return Stringify(sl);
+					case double d:           return Stringify(d);
+					case float f:            return Stringify(f);
+					case Guid guid:          return Stringify(guid);
+					case Uuid128 u128:       return Stringify(u128);
+					case Uuid96 u96:         return Stringify(u96);
+					case Uuid80 u80:         return Stringify(u80);
+					case Uuid64 u64:         return Stringify(u64);
+					case Uuid48 u48:         return Stringify(u48);
+					case DateTime dt:        return Stringify(dt);
 					case DateTimeOffset dto: return Stringify(dto);
 					case NodaTime.Instant t: return Stringify(t);
+					case VersionStamp vs:    return Stringify(vs);
 				}
 
 				// some other type
 				return StringifyInternal(item);
+			}
+
+			/// <summary>Converts any object into a displayable string, for logging/debugging purpose</summary>
+			/// <param name="item">Object to stringify</param>
+			/// <returns>String representation of the object</returns>
+			/// <example>
+			/// Stringify(null) => "nil"
+			/// Stringify("hello") => "\"hello\""
+			/// Stringify(123) => "123"
+			/// Stringify(123.4d) => "123.4"
+			/// Stringify(true) => "true"
+			/// Stringify('Z') => "'Z'"
+			/// Stringify((Slice)...) => hexadecimal string ("01 23 45 67 89 AB CD EF")
+			/// </example>
+			internal static void StringifyBoxedTo(ref FastStringBuilder sb, object? item)
+			{
+				switch (item)
+				{
+					case null:               { sb.Append(TokenNull); return; }
+					case string s:           { StringifyTo(ref sb, s); return; }
+					case int i:              { StringifyTo(ref sb, i); return; }
+					case long l:             { StringifyTo(ref sb, l); return; }
+					case uint u:             { StringifyTo(ref sb, u); return; }
+					case ulong ul:           { StringifyTo(ref sb, ul); return; }
+					case bool b:             { StringifyTo(ref sb, b); return; }
+					case char c:             { StringifyTo(ref sb, c); return; }
+					case Slice sl:           { StringifyTo(ref sb, sl); return; }
+					case double d:           { StringifyTo(ref sb, d); return; }
+					case float f:            { StringifyTo(ref sb, f); return; }
+					case Guid guid:          { StringifyTo(ref sb, guid); return; }
+					case Uuid128 u128:       { StringifyTo(ref sb, u128); return; }
+					case Uuid96 u96:         { StringifyTo(ref sb, u96); return; }
+					case Uuid80 u80:         { StringifyTo(ref sb, u80); return; }
+					case Uuid64 u64:         { StringifyTo(ref sb, u64); return; }
+					case Uuid48 u48:         { StringifyTo(ref sb, u48); return; }
+					case DateTime dt:        { StringifyTo(ref sb, dt); return; }
+					case DateTimeOffset dto: { StringifyTo(ref sb, dto); return; }
+					case NodaTime.Instant t: { StringifyTo(ref sb, t); return; }
+					case VersionStamp vs:    { StringifyTo(ref sb, vs); return; }
+				}
+
+				// some other type
+				StringifyInternalTo(ref sb, item);
 			}
 
 			[MethodImpl(MethodImplOptions.NoInlining)]
@@ -735,209 +873,546 @@ namespace SnowBank.Data.Tuples
 				_ => item.ToString() ?? TokenNull
 			};
 
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			private static void StringifyInternalTo(ref FastStringBuilder sb, object? item)
+			{
+				switch (item)
+				{
+					case null:                      { sb.Append(TokenNull); break; }
+					case string s:                  { StringifyTo(ref sb, s); break; }
+					case byte[] bytes:              { StringifyTo(ref sb, bytes.AsSlice()); break; }
+					case Slice slice:               { StringifyTo(ref sb, slice); break; }
+					case ArraySegment<byte> buffer: { StringifyTo(ref sb, buffer.AsSlice()); break; }
+					case ISpanFormattable sf:       { sb.Append(sf); break; }
+					case IFormattable f:            { sb.Append(f.ToString(null, CultureInfo.InvariantCulture)); break; }
+					default:                        { sb.Append(item.ToString() ?? TokenNull); break; }
+				}
+			}
+
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			//TODO: escape the string? If it contains \0 or control chars, it can cause problems in the console or debugger output
 			public static string Stringify(string? item) => string.IsNullOrEmpty(item) ? "\"\"" : string.Concat("\"", item, "\""); /* "hello" */
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			//TODO: escape the string? If it contains \0 or control chars, it can cause problems in the console or debugger output
+			public static void StringifyTo(ref FastStringBuilder sb, string? item)
+			{
+				if (string.IsNullOrEmpty(item))
+				{
+					sb.Append("\"\""); //BUGBUG: maybe output 'null' ?
+				}
+				else
+				{
+					sb.Append('"');
+					//BUGBUG: TODO: escape the string? If it contains \0 or control chars, it can cause problems in the console or debugger output
+					sb.Append(item); /* "hello" */
+					sb.Append('"');
+				}
+			}
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(bool item) => item ? TokenTrue : TokenFalse;
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static void StringifyTo(ref FastStringBuilder sb, bool item) => sb.Append(item ? TokenTrue : TokenFalse);
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(int item) => StringConverters.ToString(item);
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static void StringifyTo(ref FastStringBuilder sb, int item) => sb.Append(item);
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(uint item) => StringConverters.ToString(item);
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static void StringifyTo(ref FastStringBuilder sb, uint item) => sb.Append(item);
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(long item) => StringConverters.ToString(item);
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static void StringifyTo(ref FastStringBuilder sb, long item) => sb.Append(item);
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(ulong item) => StringConverters.ToString(item);
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static void StringifyTo(ref FastStringBuilder sb, ulong item) => sb.Append(item);
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(double item) => item.ToString("R", CultureInfo.InvariantCulture);
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static void StringifyTo(ref FastStringBuilder sb, double item) => sb.Append(item);
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(float item) => item.ToString("R", CultureInfo.InvariantCulture);
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static void StringifyTo(ref FastStringBuilder sb, float item) => sb.Append(item);
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static string Stringify(decimal item)
+#if NET8_0_OR_GREATER
+				=> item.ToString("R", NumberFormatInfo.InvariantInfo);
+#else
+				=> item.ToString("G", NumberFormatInfo.InvariantInfo);
+#endif
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static void StringifyTo(ref FastStringBuilder sb, decimal item) => sb.Append(item);
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static string Stringify(System.Numerics.BigInteger item) => item.ToString("D", NumberFormatInfo.InvariantInfo);
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static void StringifyTo(ref FastStringBuilder sb, System.Numerics.BigInteger item) => sb.Append(item, "D");
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(char item) => new([ '\'', item, '\'']); /* 'X' */
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static void StringifyTo(ref FastStringBuilder sb, char item)
+			{
+				sb.Append('\'');
+				sb.Append(item); //BUGBUG: TODO: escape !
+				sb.Append('\'');
+			}
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(ReadOnlySpan<byte> item) => item.Length == 0 ? "``" : ('`' + Slice.Dump(item, item.Length) + '`');
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static void StringifyTo(ref FastStringBuilder sb, ReadOnlySpan<byte> item)
+			{
+				if (item.Length == 0)
+				{
+					sb.Append("``");
+				}
+				else
+				{
+					sb.Append('`');
+					sb.Append(Slice.Dump(item, item.Length)); //TODO: version that does not allocate?
+					sb.Append('`');
+				}
+				;
+			}
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(Slice item) => item.IsNull ? "null" : item.Count == 0 ? "``" : ('`' + Slice.Dump(item, item.Count) + '`');
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static void StringifyTo(ref FastStringBuilder sb, Slice item)
+			{
+				if (item.IsNull)
+				{
+					sb.Append("null");
+				}
+				else if (item.Count == 0)
+				{
+					sb.Append("``");
+				}
+				else
+				{
+					sb.Append('`');
+					sb.Append(Slice.Dump(item, item.Count)); //TODO: version that does not allocate?
+					sb.Append('`');
+				}
+			}
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(byte[]? item) => item == null ? "null" : item.Length == 0 ? "``" : ('`' + Slice.Dump(item, item.Length) + '`');
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static void StringifyTo(ref FastStringBuilder sb, byte[]? item)
+			{
+				if (item is null)
+				{
+					sb.Append("null");
+				}
+				else if (item.Length == 0)
+				{
+					sb.Append("``");
+				}
+				else
+				{
+					sb.Append('`');
+					sb.Append(Slice.Dump(item, item.Length)); //TODO: version that does not allocate?
+					sb.Append('`');
+				}
+			}
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(ArraySegment<byte> item) => Stringify(item.AsSlice());
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static void StringifyTo(ref FastStringBuilder sb, ArraySegment<byte> item) => StringifyTo(ref sb, item.AsSlice());
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(Guid item) => item.ToString("B", CultureInfo.InstalledUICulture); /* {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx} */
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static void StringifyTo(ref FastStringBuilder sb, Guid item) => sb.Append(item, "B"); /* {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx} */
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(Uuid128 item) => item.ToString("B", CultureInfo.InstalledUICulture); /* {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx} */
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static void StringifyTo(ref FastStringBuilder sb, Uuid128 item) => sb.Append(item, "B"); /* {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx} */
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(Uuid96 item) => item.ToString("B", CultureInfo.InstalledUICulture); /* {XXXXXXXX-XXXXXXXX-XXXXXXXX} */
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static void StringifyTo(ref FastStringBuilder sb, Uuid96 item) => sb.Append(item, "B"); /* {XXXXXXXX-XXXXXXXX-XXXXXXXX} */
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(Uuid80 item) => item.ToString("B", CultureInfo.InstalledUICulture); /* {XXXX-XXXXXXXX-XXXXXXXX} */
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static void StringifyTo(ref FastStringBuilder sb, Uuid80 item) => sb.Append(item, "B"); /* {XXXX-XXXXXXXX-XXXXXXXX} */
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(Uuid64 item) => item.ToString("B", CultureInfo.InstalledUICulture); /* {XXXXXXXX-XXXXXXXX} */
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
-			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string Stringify(DateTime item) => "\"" + item.ToString("O", CultureInfo.InstalledUICulture) + "\""; /* "yyyy-mm-ddThh:mm:ss.ffffff" */
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static void StringifyTo(ref FastStringBuilder sb, Uuid64 item) => sb.Append(item, "B"); /* {XXXXXXXX-XXXXXXXX} */
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string Stringify(DateTimeOffset item) => "\"" + item.ToString("O", CultureInfo.InstalledUICulture) + "\""; /* "yyyy-mm-ddThh:mm:ss.ffffff+hh:mm" */
+			public static string Stringify(Uuid48 item) => item.ToString("B", CultureInfo.InstalledUICulture); /* {XXXX-XXXXXXXX} */
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static void StringifyTo(ref FastStringBuilder sb, Uuid48 item) => sb.Append(item, "B"); /* {XXXX-XXXXXXXX} */
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string Stringify(NodaTime.Instant item) => "\"" + item.ToDateTimeUtc().ToString("O", CultureInfo.InstalledUICulture) + "\""; /* "yyyy-mm-ddThh:mm:ss.ffffff" */
+			public static string Stringify(VersionStamp item) => item.ToString(); /* @xxxxx-xx#xx */
 
-			/// <summary>Converts a list of object into a displaying string, for loggin/debugging purpose</summary>
-			/// <param name="items">Array containing items to stringify</param>
-			/// <param name="offset">Start offset of the items to convert</param>
-			/// <param name="count">Number of items to convert</param>
-			/// <returns>String representation of the tuple in the form "(item1, item2, ... itemN,)"</returns>
-			/// <example>ToString(STuple.Create("hello", 123, true, "world")) => "(\"hello\", 123, true, \"world\",)</example>
-			public static string ToString(object?[]? items, int offset, int count)
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static void StringifyTo(ref FastStringBuilder sb, VersionStamp item) => sb.Append(item); /* @xxxxx-xx#xx */
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static string Stringify(DateTime item) => "\"" + item.ToString("O", CultureInfo.InvariantCulture) + "\""; /* "yyyy-mm-ddThh:mm:ss.ffffff" */
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static void StringifyTo(ref FastStringBuilder sb, DateTime item)
 			{
-				Contract.Debug.Requires(offset >= 0 && count >= 0);
-				if (items == null) return string.Empty;
-				return ToString(items.AsSpan(offset, count));
+				sb.Append('"');
+				sb.Append(item, "O"); /* "yyyy-mm-ddThh:mm:ss.ffffff" */
+				sb.Append('"');
 			}
 
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static string Stringify(DateTimeOffset item) => "\"" + item.ToString("O", CultureInfo.InvariantCulture) + "\""; /* "yyyy-mm-ddThh:mm:ss.ffffff+hh:mm" */
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static void StringifyTo(ref FastStringBuilder sb, DateTimeOffset item)
+			{
+				sb.Append('"');
+				sb.Append(item, "O"); /* "yyyy-mm-ddThh:mm:ss.ffffff+hh:mm" */
+				sb.Append('"');
+			}
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static string Stringify(NodaTime.Instant item) => Stringify(item.ToDateTimeUtc()); /* "yyyy-mm-ddThh:mm:ss.ffffff" */
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static void StringifyTo(ref FastStringBuilder sb, NodaTime.Instant item) => StringifyTo(ref sb, item.ToDateTimeUtc()); /* "yyyy-mm-ddThh:mm:ss.ffffff" */
+
+			/// <summary>Converts a list of object into a displaying string, for logging/debugging purpose</summary>
+			/// <param name="items">Span of items to stringify</param>
+			/// <returns>String representation of the tuple in the form "(item1, item2, ...)"</returns>
+			/// <example><c>STuple.Formatter.ToString([ 1, 2, 3 ])</c> => <c>"(1, 2, 3)"</c></example>
+			public static void ToString<T>(ref FastStringBuilder sb, ReadOnlySpan<T> items)
+			{
+				sb.Append('(');
+				if (AppendItemsTo<T>(ref sb, items) == 1)
+				{
+					sb.Append(",)");
+				}
+				else
+				{
+					sb.Append(')');
+				}
+			}
+
+			/// <summary>Converts a sequence of object into a displaying string, for logging/debugging purpose</summary>
+			/// <param name="items">Span of items to stringify</param>
+			/// <returns>String representation of the tuple in the form "(item1, item2, ...)"</returns>
+			/// <example><c>STuple.Formatter.ToString([ 1, 2, 3 ])</c> => <c>"(1, 2, 3)"</c></example>
 			public static string ToString<T>(ReadOnlySpan<T> items)
 			{
-				if (items.Length == 0)
-				{ // empty tuple: "()"
-					return TokenTupleEmpty;
-				}
+				if (items.Length == 0) return TokenTupleEmpty;
 
-				bool boxed = typeof(T) == typeof(object);
-
-				int offset = 0;
-
-				var sb = new StringBuilder();
-				sb.Append('(');
-				sb.Append(boxed ? StringifyBoxed(items[offset++]) : Stringify<T>(items[offset++]));
-
-				if (items.Length == 1)
-				{ // singleton tuple : "(X,)"
-					return sb.Append(",)").ToString();
-				}
-
-				while (offset < items.Length)
-				{
-					sb.Append(", ").Append(boxed ? StringifyBoxed(items[offset++]) : Stringify<T>(items[offset++]));
-				}
-				return sb.Append(')').ToString();
+				var sb = new FastStringBuilder(stackalloc char[128]);
+				ToString(ref sb, items);
+				return sb.ToString();
 			}
 
+			public static int AppendItemsTo<T>(ref FastStringBuilder sb, ReadOnlySpan<T> items)
+			{
+				if (items.Length == 0)
+				{ // empty tuple: "()"
+					return 0;
+				}
+
+				if (typeof(T) == typeof(object))
+				{
+					sb.Append(StringifyBoxed(items[0]));
+					for(int i = 1; i < items.Length; i++)
+					{
+						sb.Append(", ");
+						sb.Append(StringifyBoxed(items[i]));
+					}
+				}
+				else
+				{
+					sb.Append(Stringify<T>(items[0]));
+					for(int i = 1; i < items.Length; i++)
+					{
+						sb.Append(", ");
+						sb.Append(Stringify<T>(items[i]));
+					}
+				}
+
+				return items.Length;
+			}
+
+			/// <summary>Converts a sequence of object into a displaying string, for logging/debugging purpose</summary>
+			/// <param name="items">Span of items to stringify</param>
+			/// <returns>String representation of the tuple in the form "(item1, item2, ...)"</returns>
+			/// <example><c>STuple.Formatter.ToString([ "hello", 123, true, "world" ])</c> => <c>"(\"hello\", 123, true, \"world\")"</c></example>
+			public static void ToString(ref FastStringBuilder sb, ReadOnlySpan<object?> items)
+			{
+				sb.Append('(');
+				if (AppendItemsTo(ref sb, items) == 1)
+				{
+					sb.Append(",)");
+				}
+				else
+				{
+					sb.Append(')');
+				}
+			}
+
+			/// <summary>Converts a sequence of object into a displaying string, for logging/debugging purpose</summary>
+			/// <param name="items">Span of items to stringify</param>
+			/// <returns>String representation of the tuple in the form "(item1, item2, ...)"</returns>
+			/// <example><c>STuple.Formatter.ToString([ "hello", 123, true, "world" ])</c> => <c>"(\"hello\", 123, true, \"world\")"</c></example>
 			public static string ToString(ReadOnlySpan<object?> items)
 			{
+				if (items.Length == 0) return TokenTupleEmpty;
+
+				var sb = new FastStringBuilder(stackalloc char[128]);
+				ToString(ref sb, items);
+				return sb.ToString();
+			}
+
+			public static int AppendItemsTo(ref FastStringBuilder sb, ReadOnlySpan<object?> items)
+			{
 				if (items.Length == 0)
 				{ // empty tuple: "()"
-					return TokenTupleEmpty;
+					return 0;
 				}
 
-				int offset = 0;
-
-				var sb = new StringBuilder();
-				sb.Append('(');
-				sb.Append(StringifyBoxed(items[offset++]));
-
-				if (items.Length == 1)
-				{ // singleton tuple : "(X,)"
-					return sb.Append(",)").ToString();
-				}
-
-				while (offset < items.Length)
+				sb.Append(StringifyBoxed(items[0]));
+				for(int i = 1; i < items.Length; i++)
 				{
-					sb.Append(", ").Append(StringifyBoxed(items[offset++]));
+					sb.Append(", ");
+					sb.Append(StringifyBoxed(items[i]));
 				}
-				return sb.Append(')').ToString();
+
+				return items.Length;
 			}
 
-			/// <summary>Converts a sequence of object into a displaying string, for loggin/debugging purpose</summary>
+			/// <summary>Converts a sequence of object into a displaying string, for logging/debugging purpose</summary>
 			/// <param name="items">Sequence of items to stringify</param>
-			/// <returns>String representation of the tuple in the form "(item1, item2, ... itemN,)"</returns>
-			/// <example>ToString(STuple.Create("hello", 123, true, "world")) => "(\"hello\", 123, true, \"world\")</example>
+			/// <returns>String representation of the tuple in the form "(item1, item2, ...)"</returns>
+			/// <example><c>STuple.Formatter.ToString([ "hello", 123, true, "world" ])</c> => <c>"(\"hello\", 123, true, \"world\")"</c></example>
+			public static void ToString(ref FastStringBuilder sb, IEnumerable<object?>? items)
+			{
+				if (items == null)
+				{
+					return;
+				}
+
+				sb.Append('(');
+				if (AppendItemsTo(ref sb, items) == 1)
+				{
+					sb.Append(",)");
+				}
+				else
+				{
+					sb.Append(')');
+				}
+			}
+
+			/// <summary>Converts a sequence of object into a displaying string, for logging/debugging purpose</summary>
+			/// <param name="items">Sequence of items to stringify</param>
+			/// <returns>String representation of the tuple in the form "(item1, item2, ...)"</returns>
+			/// <example><c>STuple.Formatter.ToString([ "hello", 123, true, "world" ])</c> => <c>"(\"hello\", 123, true, \"world\")"</c></example>
 			public static string ToString(IEnumerable<object?>? items)
 			{
-				if (items == null) return string.Empty;
+				var sb = new FastStringBuilder(stackalloc char[128]);
+				ToString(ref sb, items);
+				return sb.ToString();
+			}
 
-				if (items is object[] arr) return ToString(arr, 0, arr.Length);
+			/// <summary>Appends the string representation of the items in a <see cref="ListTuple{T}"/></summary>
+			/// <param name="sb">Output buffer</param>
+			/// <param name="items">Items to append</param>
+			/// <returns>Number of items added</returns>
+			public static int AppendItemsTo(ref FastStringBuilder sb, IEnumerable<object?>? items)
+			{
+				if (items == null) return 0;
+
+				if (items.TryGetSpan(out var span))
+				{
+					return AppendItemsTo(ref sb, span);
+				}
 
 				using (var enumerator = items.GetEnumerator())
 				{
 					if (!enumerator.MoveNext())
 					{ // empty tuple : "()"
-						return TokenTupleEmpty;
+						return 0;
 					}
 
-					var sb = new StringBuilder();
-					sb.Append('(').Append(StringifyBoxed(enumerator.Current));
-					bool singleton = true;
+					sb.Append(StringifyBoxed(enumerator.Current));
+					int n = 1;
 					while (enumerator.MoveNext())
 					{
-						singleton = false;
-						sb.Append(", ").Append(StringifyBoxed(enumerator.Current));
+						sb.Append(", ");
+						sb.Append(StringifyBoxed(enumerator.Current));
+						++n;
 					}
-					// add a trailing ',' for singletons
-					return (singleton ? sb.Append(",)") : sb.Append(')')).ToString();
+
+					return n;
+				}
+			}
+
+			/// <summary>Converts a sequence of object into a displaying string, for logging/debugging purpose</summary>
+			/// <param name="items">Tuple to stringify</param>
+			/// <returns>String representation of the tuple in the form "(item1, item2, ...)"</returns>
+			/// <example><c>STuple.Formatter.ToString(TuPack.Unpack(/* ... "hello", 123, true, "world" ... */))</c> => <c>"(\"hello\", 123, true, \"world\")"</c></example>
+			public static void ToString<TTuple>(ref FastStringBuilder sb, TTuple items)
+#if NET9_0_OR_GREATER
+				where TTuple : IVarTuple, allows ref struct
+#else
+				where TTuple : IVarTuple
+#endif
+			{
+				sb.Append('(');
+				if (AppendItemsTo<TTuple>(ref sb, items) == 1)
+				{
+					sb.Append(",)");
+				}
+				else
+				{
+					sb.Append(')');
 				}
 			}
 
 			/// <summary>Converts a sequence of object into a displaying string, for loggin/debugging purpose</summary>
 			/// <param name="items">Sequence of items to stringify</param>
-			/// <returns>String representation of the tuple in the form "(item1, item2, ... itemN,)"</returns>
-			/// <example>ToString(STuple.Create("hello", 123, true, "world")) => "(\"hello\", 123, true, \"world\")</example>
-			internal static string ToString(SpanTuple items)
+			/// <returns>String representation of the tuple in the form "(item1, item2, ...)"</returns>
+			/// <example><c>STuple.Formatter.ToString(STuple.Create("hello", 123, true, "world"))</c> => <c>"(\"hello\", 123, true, \"world\")"</c></example>
+			public static string ToString<TTuple>(TTuple items)
+#if NET9_0_OR_GREATER
+				where TTuple : IVarTuple, allows ref struct
+#else
+				where TTuple : IVarTuple
+#endif
 			{
+				if (items.Count == 0) return TokenTupleEmpty;
+
+				var sb = new FastStringBuilder(stackalloc char[128]);
+				ToString(ref sb, items);
+				return sb.ToString();
+			}
+
+			/// <summary>Appends the string representation of the items in a <see cref="SpanTuple"/></summary>
+			/// <param name="sb">Output buffer</param>
+			/// <param name="items">Items to append</param>
+			/// <returns>Number of items added</returns>
+			public static int AppendItemsTo<TTuple>(ref FastStringBuilder sb, TTuple items)
+#if NET9_0_OR_GREATER
+				where TTuple : IVarTuple, allows ref struct
+#else
+				where TTuple : IVarTuple
+#endif
+			{
+				if (items.Count == 0)
+				{ // empty tuple : "()"
+					return 0;
+				}
+
 				using (var enumerator = items.GetEnumerator())
 				{
 					if (!enumerator.MoveNext())
-					{ // empty tuple : "()"
-						return TokenTupleEmpty;
+					{ // mismatch between Count and the enumerator implementation???
+						return 0;
 					}
 
-					var sb = new StringBuilder();
-					sb.Append('(').Append(StringifyBoxed(enumerator.Current));
-					bool singleton = true;
+					sb.Append(StringifyBoxed(enumerator.Current));
+					int n = 1;
 					while (enumerator.MoveNext())
 					{
-						singleton = false;
-						sb.Append(", ").Append(StringifyBoxed(enumerator.Current));
+						sb.Append(", ");
+						sb.Append(StringifyBoxed(enumerator.Current));
+						++n;
 					}
-					// add a trailing ',' for singletons
-					return (singleton ? sb.Append(",)") : sb.Append(')')).ToString();
+					return n;
 				}
 			}
 

@@ -30,6 +30,7 @@ namespace SnowBank.Data.Tuples.Binary
 	using System.ComponentModel;
 	using SnowBank.Runtime.Converters;
 	using SnowBank.Buffers;
+	using SnowBank.Buffers.Text;
 
 	/// <summary>Lazily-evaluated tuple that was unpacked from a key</summary>
 	public readonly ref struct SpanTuple
@@ -56,7 +57,7 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <param name="packedKey">Binary key containing a previously packed tuple</param>
 		/// <returns>Unpacked tuple, or the empty tuple if the key is <see cref="Slice.Empty"/></returns>
 		/// <remarks>
-		/// <para>This is the same as <see cref="TuPack.Unpack(System.Slice)"/>, except that it will expose the concrete type <see cref="SlicedTuple"/> instead of the <see cref="IVarTuple"/> interface.</para>
+		/// <para>This is the same as <see cref="TuPack.Unpack(System.Slice)"/>, except that it will expose the concrete type <see cref="SpanTuple"/> instead of the <see cref="IVarTuple"/> interface.</para>
 		/// </remarks>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="packedKey"/> is equal to <see cref="Slice.Nil"/></exception>
 		[Pure]
@@ -70,7 +71,7 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <param name="packedKey">Binary key containing a previously packed tuple</param>
 		/// <returns>Unpacked tuple, or the empty tuple if the key is <see cref="Slice.Empty"/></returns>
 		/// <remarks>
-		/// <para>This is the same as <see cref="TuPack.Unpack(System.Slice)"/>, except that it will expose the concrete type <see cref="SlicedTuple"/> instead of the <see cref="IVarTuple"/> interface.</para>
+		/// <para>This is the same as <see cref="TuPack.Unpack(System.Slice)"/>, except that it will expose the concrete type <see cref="SpanTuple"/> instead of the <see cref="IVarTuple"/> interface.</para>
 		/// </remarks>
 		[Pure]
 		public static SpanTuple Unpack(ReadOnlySpan<byte> packedKey)
@@ -79,7 +80,7 @@ namespace SnowBank.Data.Tuples.Binary
 			return TuplePackers.Unpack(ref reader);
 		}
 
-		/// <summary>Transcode a tuple into the equivalent tuple, but backed by a <see cref="SlicedTuple"/></summary>
+		/// <summary>Transcode a tuple into the equivalent tuple, but backed by a <see cref="SpanTuple"/></summary>
 		/// <remarks>This methods can be useful to examine what the result of packing a tuple would be, after a round-trip to the database.</remarks>
 		public static SpanTuple Repack<TTuple>(in TTuple? tuple) where TTuple : IVarTuple?
 		{
@@ -88,7 +89,7 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Return the original serialized key blob that is equivalent to this tuple</summary>
 		/// <returns>Packed tuple</returns>
-		/// <remarks><c>SlicedTuple.Unpack(bytes).ToSlice() == bytes</c></remarks>
+		/// <remarks><c>SpanTuple.Unpack(bytes).ToSlice() == bytes</c></remarks>
 		public Slice ToSlice()
 		{
 			// pre-compute the capacity required
@@ -111,6 +112,7 @@ namespace SnowBank.Data.Tuples.Binary
 			return writer.ToSlice();
 		}
 
+		/// <inheritdoc />
 		public void WriteTo(ref SliceWriter writer)
 		{
 			var buffer = m_buffer;
@@ -120,22 +122,34 @@ namespace SnowBank.Data.Tuples.Binary
 			}
 		}
 
-#if NET9_0_OR_GREATER
-
-		void ITupleSerializable.PackTo(ref TupleWriter writer)
-		{
-			PackTo(ref writer);
-		}
-
-#endif
-
-		internal void PackTo(ref TupleWriter writer)
+		/// <inheritdoc />
+		public void PackTo(ref TupleWriter writer)
 		{
 			var buffer = m_buffer;
 			foreach(var slice in m_slices)
 			{
 				writer.Output.WriteBytes(buffer[slice]);
 			}
+		}
+
+		/// <inheritdoc />
+		public int AppendItemsTo(ref FastStringBuilder sb)
+		{
+			var length = this.Count;
+			if (length == 0)
+			{
+				return 0;
+			}
+
+			TuplePackers.StringifyBoxedTo(ref sb, this.GetSpan(0));
+
+			for (int i = 1; i < length; i++)
+			{
+				sb.Append(", ");
+				TuplePackers.StringifyBoxedTo(ref sb, this.GetSpan(i));
+			}
+
+			return length;
 		}
 
 		/// <inheritdoc />
@@ -434,10 +448,32 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <summary>Returns a human-readable representation of this tuple</summary>
 		public override string ToString()
 		{
-			//TODO: PERF: this could be optimized, because it may be called a lot when logging is enabled on keys parsed from range reads
-			// => each slice has a type prefix that could be used to format it to a StringBuilder faster, maybe?
-			return STuple.Formatter.ToString(this);
+			if (this.Count == 0) return "()";
+
+			var sb = new FastStringBuilder(stackalloc char[128]);
+			ToString(ref sb);
+			return sb.ToString();
 		}
+
+		public void ToString(ref FastStringBuilder sb)
+		{
+			if (this.Count == 0)
+			{
+				sb.Append("()");
+				return;
+			}
+
+			sb.Append('(');
+			if (AppendItemsTo(ref sb) == 1)
+			{
+				sb.Append(",)");
+			}
+			else
+			{
+				sb.Append(')');
+			}
+		}
+
 
 		public override bool Equals(object? obj) => obj is not null && Equals(obj, SimilarValueComparer.Default);
 

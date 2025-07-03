@@ -31,6 +31,7 @@ namespace SnowBank.Data.Tuples
 	using System.Collections;
 	using System.ComponentModel;
 	using System.Text;
+	using SnowBank.Buffers.Text;
 	using SnowBank.Data.Tuples.Binary;
 	using SnowBank.Runtime.Converters;
 
@@ -345,6 +346,27 @@ namespace SnowBank.Data.Tuples
 		}
 
 		/// <inheritdoc />
+		int ITupleSerializable.AppendItemsTo(ref FastStringBuilder sb)
+		{
+			STuple.Formatter.StringifyTo(ref sb, this.Item1);
+			sb.Append(", ");
+			STuple.Formatter.StringifyTo(ref sb, this.Item2);
+			sb.Append(", ");
+			STuple.Formatter.StringifyTo(ref sb, this.Item3);
+			sb.Append(", ");
+			STuple.Formatter.StringifyTo(ref sb, this.Item4);
+			sb.Append(", ");
+			STuple.Formatter.StringifyTo(ref sb, this.Item5);
+			sb.Append(", ");
+			STuple.Formatter.StringifyTo(ref sb, this.Item6);
+			sb.Append(", ");
+			STuple.Formatter.StringifyTo(ref sb, this.Item7);
+			sb.Append(", ");
+			STuple.Formatter.StringifyTo(ref sb, this.Item8);
+			return 8;
+		}
+
+		/// <inheritdoc />
 		public IEnumerator<object?> GetEnumerator()
 		{
 			yield return this.Item1;
@@ -366,16 +388,23 @@ namespace SnowBank.Data.Tuples
 		/// <inheritdoc />
 		public override string ToString()
 		{
-			var sb = new StringBuilder();
+			var sb = new FastStringBuilder(stackalloc char[128]);
 			sb.Append('(');
-			sb.Append(STuple.Formatter.Stringify(this.Item1)).Append(", ");
-			sb.Append(STuple.Formatter.Stringify(this.Item2)).Append(", ");
-			sb.Append(STuple.Formatter.Stringify(this.Item3)).Append(", ");
-			sb.Append(STuple.Formatter.Stringify(this.Item4)).Append(", ");
-			sb.Append(STuple.Formatter.Stringify(this.Item5)).Append(", ");
-			sb.Append(STuple.Formatter.Stringify(this.Item6)).Append(", ");
-			sb.Append(STuple.Formatter.Stringify(this.Item7)).Append(", ");
-			sb.Append(STuple.Formatter.Stringify(this.Item8));
+			STuple.Formatter.StringifyTo(ref sb, this.Item1);
+			sb.Append(", ");
+			STuple.Formatter.StringifyTo(ref sb, this.Item2);
+			sb.Append(", ");
+			STuple.Formatter.StringifyTo(ref sb, this.Item3);
+			sb.Append(", ");
+			STuple.Formatter.StringifyTo(ref sb, this.Item4);
+			sb.Append(", ");
+			STuple.Formatter.StringifyTo(ref sb, this.Item5);
+			sb.Append(", ");
+			STuple.Formatter.StringifyTo(ref sb, this.Item6);
+			sb.Append(", ");
+			STuple.Formatter.StringifyTo(ref sb, this.Item7);
+			sb.Append(", ");
+			STuple.Formatter.StringifyTo(ref sb, this.Item8);
 			sb.Append(')');
 			return sb.ToString();
 		}

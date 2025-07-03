@@ -34,7 +34,9 @@
 namespace SnowBank.Data.Tuples.Tests
 {
 	using System.Net;
+	using SnowBank.Buffers.Text;
 	using SnowBank.Data.Tuples.Binary;
+	using SnowBank.Runtime;
 	using SnowBank.Runtime.Converters;
 
 	[TestFixture]
@@ -1809,6 +1811,166 @@ namespace SnowBank.Data.Tuples.Tests
 			Assert.That(STuple.Create<Slice>(Slice.FromBytes([ 0x02, 0x41, 0x42, 0x43, 0x00 ])).ToString(), Is.EqualTo("(`<02>ABC<00>`,)"));
 
 			Assert.That(STuple.Create("Hello", 123, "World", '!', false).ToString(), Is.EqualTo("""("Hello", 123, "World", '!', false)"""));
+		}
+
+		[Test]
+		public void Test_Tuple_Formatter_ToString()
+		{
+
+			static void Verify<TTuple>(TTuple t, string expected, string? expectedParsed = null)
+				where TTuple : IVarTuple
+			{
+				if (expectedParsed != null)
+				{
+					Log($"# ({typeof(TTuple).GetFriendlyName()}) `{expected}` => `{expectedParsed}`");
+				}
+				else
+				{
+					Log($"# ({typeof(TTuple).GetFriendlyName()}) `{expected}`");
+					expectedParsed = expected;
+				}
+
+				Assert.That(t.ToString(), Is.EqualTo(expected));
+
+				var sb = new FastStringBuilder(new char[100]);
+
+				STuple.Formatter.ToString(ref sb, t);
+				Assert.That(sb.ToString(), Is.EqualTo(expected));
+
+				sb.Append("*prefix*");
+				STuple.Formatter.ToString(ref sb, t);
+				Assert.That(sb.ToString(), Is.EqualTo("*prefix*" + expected));
+
+				sb.Append("*prefix*");
+				STuple.Formatter.ToString(ref sb, new ListTuple<object?>(t.ToArray()));
+				Assert.That(sb.ToString(), Is.EqualTo("*prefix*" + expected));
+
+				sb.Append("*prefix*");
+				STuple.Formatter.ToString(ref sb, t.ToArray().AsSpan());
+				Assert.That(sb.ToString(), Is.EqualTo("*prefix*" + expected));
+
+				sb.Append("*prefix*");
+				STuple.Formatter.ToString(ref sb, (IEnumerable<object?>) t.ToArray());
+				Assert.That(sb.ToString(), Is.EqualTo("*prefix*" + expected));
+
+				sb.Append("*prefix*");
+				STuple.Formatter.ToString(ref sb, t.ToList());
+				Assert.That(sb.ToString(), Is.EqualTo("*prefix*" + expected));
+
+				sb.Append("*prefix*");
+				STuple.Formatter.ToString(ref sb, t.Select(x => x));
+				Assert.That(sb.ToString(), Is.EqualTo("*prefix*" + expected));
+
+				// for SlicedTuple and SpanTuple, we have to serialize and parse back
+
+				var packed = TuPack.Pack(t);
+
+				SpanTuple st = SpanTuple.Unpack(packed);
+				sb.Append("*prefix*");
+				st.ToString(ref sb);
+				Assert.That(sb.ToString(), Is.EqualTo("*prefix*" + expectedParsed));
+
+				SlicedTuple sliced = SlicedTuple.Unpack(packed);
+				sb.Append("*prefix*");
+				sliced.ToString(ref sb);
+				Assert.That(sb.ToString(), Is.EqualTo("*prefix*" + expectedParsed));
+			}
+
+			Verify(STuple.Empty, "()");
+			Verify(new STuple(), "()");
+			Verify(STuple.Create("hello"), "(\"hello\",)");
+			Verify(STuple.Create(123), "(123,)");
+			Verify(STuple.Create(true), "(true,)");
+			Verify(STuple.Create(false), "(false,)");
+			Verify(STuple.Create("hello", 123), "(\"hello\", 123)");
+			Verify(STuple.Create("hello", 123, true), "(\"hello\", 123, true)");
+			Verify(STuple.Create("hello", 123, true, "world"), "(\"hello\", 123, true, \"world\")");
+			Verify(STuple.Create("hello", 123, true, "world", Math.PI), "(\"hello\", 123, true, \"world\", 3.141592653589793)");
+			Verify(STuple.Create("hello", 123, true, "world", Math.PI, false), "(\"hello\", 123, true, \"world\", 3.141592653589793, false)");
+			Verify(STuple.Create("hello", 123, true, "world", Math.PI, false, 1.23d), "(\"hello\", 123, true, \"world\", 3.141592653589793, false, 1.23)");
+			Verify(STuple.Create("hello", 123, true, "world", Math.PI, false, 1.23d, 4.56f), "(\"hello\", 123, true, \"world\", 3.141592653589793, false, 1.23, 4.56)");
+
+			var dt = DateTime.Now;
+			Verify(STuple.Create(dt), $"(\"{dt:O}\",)", $"({(dt.ToUniversalTime() - new DateTime(1970,1,1, 0, 0, 0, DateTimeKind.Utc)).TotalDays:R},)");
+
+			var dto = DateTimeOffset.Now;
+			Verify(STuple.Create(dto), $"(\"{dto:O}\",)", $"({(dto - new DateTime(1970,1,1, 0, 0, 0, DateTimeKind.Utc)).TotalDays:R},)");
+
+			var g = Guid.NewGuid();
+			Verify(STuple.Create(g), $"({g:B},)");
+
+			var u128 = Uuid128.NewUuid();
+			Verify(STuple.Create(u128), $"({u128:B},)");
+
+			var u96 = Uuid96.NewUuid();
+			Verify(STuple.Create(u96), $"({u96:B},)", $"({VersionStamp.FromUuid96(u96)},)");
+
+			var u80 = Uuid80.NewUuid();
+			Verify(STuple.Create(u80), $"({u80:B},)", $"({VersionStamp.FromUuid80(u80)},)");
+
+			var u64 = Uuid64.NewUuid();
+			Verify(STuple.Create(u64), $"({u64:B},)");
+
+			var u48 = Uuid48.NewUuid();
+			Verify(STuple.Create(u48), $"({u48:B},)", $"({u48.ToUInt64()},)");
+
+			var vs = VersionStamp.FromUuid96(u96);
+			Verify(STuple.Create(vs), $"({vs},)");
+
+		}
+
+		[Test]
+		public void Test_Tuple_Formatter_AppendTokens()
+		{
+
+			static void Verify<TTuple>(TTuple t, string expected)
+				where TTuple : IVarTuple
+			{
+				var sb = new FastStringBuilder(new char[100]);
+
+				sb.Append("*prefix*");
+				Assert.That(STuple.Formatter.AppendItemsTo(ref sb, t), Is.EqualTo(t.Count));
+				Assert.That(sb.ToString(), Is.EqualTo("*prefix*" + expected));
+
+				sb.Append("*prefix*");
+				Assert.That(STuple.Formatter.AppendItemsTo(ref sb, new ListTuple<object?>(t.ToArray())), Is.EqualTo(t.Count));
+				Assert.That(sb.ToString(), Is.EqualTo("*prefix*" + expected));
+
+				sb.Append("*prefix*");
+				Assert.That(STuple.Formatter.AppendItemsTo(ref sb, t.ToArray().AsSpan()), Is.EqualTo(t.Count));
+				Assert.That(sb.ToString(), Is.EqualTo("*prefix*" + expected));
+
+				sb.Append("*prefix*");
+				Assert.That(STuple.Formatter.AppendItemsTo(ref sb, (IEnumerable<object?>) t.ToArray()), Is.EqualTo(t.Count));
+				Assert.That(sb.ToString(), Is.EqualTo("*prefix*" + expected));
+
+				sb.Append("*prefix*");
+				Assert.That(STuple.Formatter.AppendItemsTo(ref sb, t.ToList()), Is.EqualTo(t.Count));
+				Assert.That(sb.ToString(), Is.EqualTo("*prefix*" + expected));
+
+				sb.Append("*prefix*");
+				Assert.That(STuple.Formatter.AppendItemsTo(ref sb, t.Select(x => x)), Is.EqualTo(t.Count));
+				Assert.That(sb.ToString(), Is.EqualTo("*prefix*" + expected));
+
+				// for SpanTuple, we have to serialize and parse back
+				SpanTuple st = TuPack.Unpack(TuPack.Pack(t).Span);
+				sb.Append("*prefix*");
+				Assert.That(st.AppendItemsTo(ref sb), Is.EqualTo(t.Count));
+				Assert.That(sb.ToString(), Is.EqualTo("*prefix*" + expected));
+			}
+
+			Verify(STuple.Empty, "");
+			Verify(new STuple(), "");
+			Verify(STuple.Create("hello"), "\"hello\"");
+			Verify(STuple.Create(123), "123");
+			Verify(STuple.Create(true), "true");
+			Verify(STuple.Create("hello", 123), "\"hello\", 123");
+			Verify(STuple.Create("hello", 123, true), "\"hello\", 123, true");
+			Verify(STuple.Create("hello", 123, true, "world"), "\"hello\", 123, true, \"world\"");
+			Verify(STuple.Create("hello", 123, true, "world", Math.PI), "\"hello\", 123, true, \"world\", 3.141592653589793");
+			Verify(STuple.Create("hello", 123, true, "world", Math.PI, false), "\"hello\", 123, true, \"world\", 3.141592653589793, false");
+			Verify(STuple.Create("hello", 123, true, "world", Math.PI, false, 1.23d), "\"hello\", 123, true, \"world\", 3.141592653589793, false, 1.23");
+			Verify(STuple.Create("hello", 123, true, "world", Math.PI, false, 1.23d, 4.56f), "\"hello\", 123, true, \"world\", 3.141592653589793, false, 1.23, 4.56");
 		}
 
 		#endregion

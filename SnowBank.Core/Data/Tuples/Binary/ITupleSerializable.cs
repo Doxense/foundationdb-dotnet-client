@@ -26,6 +26,7 @@
 
 namespace SnowBank.Data.Tuples.Binary
 {
+	using SnowBank.Buffers.Text;
 
 	/// <summary>Represents an object that can serialize itself using the Tuple Binary Encoding format</summary>
 	[PublicAPI]
@@ -37,6 +38,13 @@ namespace SnowBank.Data.Tuples.Binary
 
 		//note: there is not UnpackFrom, because it does not play way with constructors and readonly fields!
 		// => use ITupleSerializer<T> for this!
+
+		/// <summary>Writes the string representation of the items of this tuple</summary>
+		/// <param name="sb">Output buffer</param>
+		/// <returns>Number of items written</returns>
+		/// <remarks>This method should not emit any <c>'('</c> or <c>')'</c> delimiters, and only adds <c>", "</c> internal separators</remarks>
+		int AppendItemsTo(ref FastStringBuilder sb);
+
 	}
 
 	/// <summary>Represents an object that can serialize or deserialize tuples of type <typeparamref name="TTuple"/>, using the Tuple Binary Encoding format</summary>

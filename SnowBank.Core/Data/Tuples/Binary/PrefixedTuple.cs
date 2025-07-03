@@ -27,6 +27,7 @@
 namespace SnowBank.Data.Tuples.Binary
 {
 	using System.Collections;
+	using SnowBank.Buffers.Text;
 	using SnowBank.Runtime.Converters;
 
 	/// <summary>Tuple that has a fixed arbitrary binary prefix</summary>
@@ -55,6 +56,12 @@ namespace SnowBank.Data.Tuples.Binary
 		{
 			PackTo(ref writer);
 		}
+
+		int ITupleSerializable.AppendItemsTo(ref FastStringBuilder sb)
+		{
+			return STuple.Formatter.AppendItemsTo(ref sb, this);
+		}
+
 		internal void PackTo(ref TupleWriter writer)
 		{
 			writer.Output.WriteBytes(m_prefix);

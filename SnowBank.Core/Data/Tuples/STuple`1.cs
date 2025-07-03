@@ -28,6 +28,7 @@ namespace SnowBank.Data.Tuples
 {
 	using System.Collections;
 	using System.ComponentModel;
+	using SnowBank.Buffers.Text;
 	using SnowBank.Data.Tuples.Binary;
 	using SnowBank.Runtime.Converters;
 
@@ -189,6 +190,13 @@ namespace SnowBank.Data.Tuples
 			TuplePackers.SerializeTo<T1>(ref writer, this.Item1);
 		}
 
+		/// <inheritdoc />
+		int ITupleSerializable.AppendItemsTo(ref FastStringBuilder sb)
+		{
+			STuple.Formatter.StringifyTo(ref sb, this.Item1);
+			return 1;
+		}
+
 		public IEnumerator<object?> GetEnumerator()
 		{
 			yield return this.Item1;
@@ -202,7 +210,11 @@ namespace SnowBank.Data.Tuples
 		public override string ToString()
 		{
 			// singleton tuples end with a trailing ','
-			return "(" + STuple.Formatter.Stringify(this.Item1) + ",)";
+			var sb = new FastStringBuilder(stackalloc char[128]);
+			sb.Append('(');
+			STuple.Formatter.StringifyTo(ref sb, this.Item1);
+			sb.Append(",)");
+			return sb.ToString();
 		}
 
 		public override bool Equals(object? obj)

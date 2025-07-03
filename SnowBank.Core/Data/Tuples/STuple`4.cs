@@ -28,6 +28,7 @@ namespace SnowBank.Data.Tuples
 {
 	using System.Collections;
 	using System.ComponentModel;
+	using SnowBank.Buffers.Text;
 	using SnowBank.Data.Tuples.Binary;
 	using SnowBank.Runtime.Converters;
 
@@ -252,6 +253,18 @@ namespace SnowBank.Data.Tuples
 			TuplePackers.SerializeTo<T4>(ref writer, this.Item4);
 		}
 
+		int ITupleSerializable.AppendItemsTo(ref FastStringBuilder sb)
+		{
+			sb.Append(STuple.Formatter.Stringify(this.Item1));
+			sb.Append(", ");
+			sb.Append(STuple.Formatter.Stringify(this.Item2));
+			sb.Append(", ");
+			sb.Append(STuple.Formatter.Stringify(this.Item3));
+			sb.Append(", ");
+			sb.Append(STuple.Formatter.Stringify(this.Item4));
+			return 4;
+		}
+
 		public IEnumerator<object?> GetEnumerator()
 		{
 			yield return this.Item1;
@@ -267,14 +280,17 @@ namespace SnowBank.Data.Tuples
 
 		public override string ToString()
 		{
-			return string.Concat(
-				"(",
-				STuple.Formatter.Stringify(this.Item1), ", ",
-				STuple.Formatter.Stringify(this.Item2), ", ",
-				STuple.Formatter.Stringify(this.Item3), ", ",
-				STuple.Formatter.Stringify(this.Item4),
-				")"
-			);
+			var sb = new FastStringBuilder(stackalloc char[128]);
+			sb.Append('(');
+			STuple.Formatter.StringifyTo(ref sb, this.Item1);
+			sb.Append(", ");
+			STuple.Formatter.StringifyTo(ref sb, this.Item2);
+			sb.Append(", ");
+			STuple.Formatter.StringifyTo(ref sb, this.Item3);
+			sb.Append(", ");
+			STuple.Formatter.StringifyTo(ref sb, this.Item4);
+			sb.Append(')');
+			return sb.ToString();
 		}
 
 		public override bool Equals(object? obj)

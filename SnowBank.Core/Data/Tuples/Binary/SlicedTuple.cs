@@ -31,6 +31,7 @@ namespace SnowBank.Data.Tuples.Binary
 	using SnowBank.Data.Tuples;
 	using SnowBank.Runtime.Converters;
 	using SnowBank.Buffers;
+	using SnowBank.Buffers.Text;
 
 	/// <summary>Lazily-evaluated tuple that was unpacked from a key</summary>
 	public sealed class SlicedTuple : IVarTuple, ITupleSerializable, ISliceSerializable
@@ -107,15 +108,30 @@ namespace SnowBank.Data.Tuples.Binary
 
 		void ITupleSerializable.PackTo(ref TupleWriter writer)
 		{
-			PackTo(ref writer);
-		}
-
-		internal void PackTo(ref TupleWriter writer)
-		{
 			foreach(var slice in m_slices.Span)
 			{
 				writer.Output.WriteBytes(slice);
 			}
+		}
+
+		/// <inheritdoc />
+		public int AppendItemsTo(ref FastStringBuilder sb)
+		{
+			var length = this.Count;
+			if (length == 0)
+			{
+				return 0;
+			}
+
+			TuplePackers.StringifyBoxedTo(ref sb, GetSpan(0));
+
+			for (int i = 1; i < length; i++)
+			{
+				sb.Append(", ");
+				TuplePackers.StringifyBoxedTo(ref sb, GetSpan(i));
+			}
+
+			return length;
 		}
 
 		/// <inheritdoc />
@@ -357,9 +373,28 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <summary>Returns a human-readable representation of this tuple</summary>
 		public override string ToString()
 		{
-			//TODO: PERF: this could be optimized, because it may be called a lot when logging is enabled on keys parsed from range reads
-			// => each slice has a type prefix that could be used to format it to a StringBuilder faster, maybe?
-			return STuple.Formatter.ToString(this);
+			var sb = new FastStringBuilder(stackalloc char[128]);
+			ToString(ref sb);
+			return sb.ToString();
+		}
+
+		public void ToString(ref FastStringBuilder sb)
+		{
+			if (this.Count == 0)
+			{
+				sb.Append("()");
+				return;
+			}
+
+			sb.Append('(');
+			if (AppendItemsTo(ref sb) == 1)
+			{
+				sb.Append(",)");
+			}
+			else
+			{
+				sb.Append(')');
+			}
 		}
 
 		public override bool Equals(object? obj) => obj is not null && ((IStructuralEquatable) this).Equals(obj, SimilarValueComparer.Default);

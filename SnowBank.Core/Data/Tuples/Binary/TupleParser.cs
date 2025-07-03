@@ -1011,6 +1011,22 @@ namespace SnowBank.Data.Tuples.Binary
 			}
 		}
 
+		/// <summary>Writes a 48-bit UUID</summary>
+		public static void WriteUuid48(ref TupleWriter writer, Uuid48 value) => WriteUInt64(ref writer, value.ToUInt64());
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteUuid48(ref TupleWriter writer, Uuid48? value)
+		{
+			if (!value.HasValue)
+			{
+				WriteNil(ref writer);
+			}
+			else
+			{
+				WriteUInt64(ref writer, value.Value.ToUInt64());
+			}
+		}
+
 		public static void WriteVersionStamp(ref TupleWriter writer, VersionStamp value)
 		{
 			if (value.HasUserVersion)

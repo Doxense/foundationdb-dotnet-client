@@ -216,6 +216,10 @@ namespace SnowBank.Data.Tuples
 		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
 		public static T FailIndexOutOfRange<T>(int index, int count)
 		{
+			if (count == 0)
+			{
+				throw FailTupleIsEmpty();
+			}
 			throw new IndexOutOfRangeException($"Index {index} is outside of the tuple range (0..{count - 1})");
 		}
 
