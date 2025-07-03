@@ -35,8 +35,9 @@ namespace System
 	/// <summary>Represents an 80-bit UUID that is stored in high-endian format on the wire</summary>
 	[DebuggerDisplay("[{ToString(),nq}]")]
 	[ImmutableObject(true), PublicAPI, Serializable]
-	public readonly struct Uuid80 : IFormattable, IEquatable<Uuid80>, IComparable<Uuid80>, IEquatable<Slice>
+	public readonly struct Uuid80 : IFormattable, IEquatable<Uuid80>, IComparable<Uuid80>, IEquatable<Slice>, ISliceSerializable
 #if NET8_0_OR_GREATER
+		, ISpanFormattable
 		, ISpanParsable<Uuid80>
 #endif
 #if NET9_0_OR_GREATER
@@ -553,15 +554,22 @@ namespace System
 
 		#region IFormattable...
 
+		/// <summary>Returns a newly allocated <see cref="Slice"/> that represents this UUID</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Slice ToSlice()
 		{
 			var writer = new SliceWriter(SizeOf);
-			writer.WriteUInt16BE(this.High);
-			writer.WriteUInt64BE(this.Low);
+			WriteUnsafe(this.High, this.Low, writer.AllocateSpan(SizeOf));
 			return writer.ToSlice();
 		}
 
+		/// <summary>Writes this UUID to the specified writer</summary>
+		public void WriteTo(ref SliceWriter writer)
+		{
+			WriteUnsafe(this.High, this.Low, writer.AllocateSpan(SizeOf));
+		}
+
+		/// <summary>Returns newly allocated array of bytes that represents this UUID</summary>
 		[Pure]
 		public byte[] ToByteArray()
 		{
@@ -642,6 +650,62 @@ namespace System
 					throw new FormatException("Invalid " + nameof(Uuid80) + " format specification.");
 				}
 			}
+		}
+
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+		{
+			//PERF: TODO: implement this without memory allocations!
+			string literal;
+
+			switch(format)
+			{
+				case "D":
+				{ // Default format is "XXXX-XXXXXXXX-XXXXXXXX"
+					literal = Encode16(this.High, this.Low, separator: true, quotes: false, upper: true);
+					break;
+				}
+				case "d":
+				{ // Default format is "xxxx-xxxxxxxx-xxxxxxxx"
+					literal = Encode16(this.High, this.Low, separator: true, quotes: false, upper: false);
+					break;
+				}
+				case "X": //note: Guid.ToString("X") returns "{0x.....,0x.....,...}" but we prefer the "N" format
+				case "N":
+				{ // "XXXXXXXXXXXXXXXXXXXX"
+					literal = Encode16(this.High, this.Low, separator: false, quotes: false, upper: true);
+					break;
+				}
+				case "x":
+				case "n":
+				{ // "xxxxxxxxxxxxxxxxxxxx"
+					literal = Encode16(this.High, this.Low, separator: false, quotes: false, upper: false);
+					break;
+				}
+
+				case "B":
+				{ // "{XXXX-XXXXXXXX-XXXXXXXX}"
+					literal = Encode16(this.High, this.Low, separator: true, quotes: true, upper: true);
+					break;
+				}
+				case "b":
+				{ // "{xxxx-xxxxxxxx-xxxxxxxx}"
+					literal = Encode16(this.High, this.Low, separator: true, quotes: true, upper: false);
+					break;
+				}
+				default:
+				{
+					throw new FormatException("Invalid " + nameof(Uuid80) + " format specification.");
+				}
+			}
+
+			if (!literal.TryCopyTo(destination))
+			{
+				charsWritten = 0;
+				return false;
+			}
+
+			charsWritten = literal.Length;
+			return true;
 		}
 
 		#endregion

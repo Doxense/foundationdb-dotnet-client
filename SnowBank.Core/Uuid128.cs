@@ -40,8 +40,9 @@ namespace System
 	/// <remarks>You should use this type if you are primarily exchanging UUIDs with non-.NET platforms, that use the RFC 4122 byte ordering (big endian). The type System.Guid uses the Microsoft encoding (little endian) and is not compatible.</remarks>
 	[DebuggerDisplay("[{ToString(),nq}]")]
 	[ImmutableObject(true), StructLayout(LayoutKind.Explicit), PublicAPI, Serializable]
-	public readonly struct Uuid128 : IComparable, IEquatable<Uuid128>, IComparable<Uuid128>, IEquatable<Guid>, ISliceSerializable, ISpanFormattable
+	public readonly struct Uuid128 : IComparable, IEquatable<Uuid128>, IComparable<Uuid128>, IEquatable<Guid>, ISliceSerializable
 #if NET8_0_OR_GREATER
+		, ISpanFormattable
 		, ISpanParsable<Uuid128>
 		, IUtf8SpanFormattable
 		, IUtf8SpanParsable<Uuid128>
