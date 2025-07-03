@@ -845,6 +845,175 @@ namespace SnowBank.Data.Tuples.Tests
 		}
 
 		[Test]
+		public void Test_Tuple_Linked()
+		{
+			Assert.Multiple(() =>
+			{
+				var t = new LinkedTuple<string>(STuple.Create("Hello", 123, true), "World");
+				Assert.That(t.Count, Is.EqualTo(4));
+
+				Assert.That(t[0], Is.EqualTo("Hello"));
+				Assert.That(t[1], Is.EqualTo(123));
+				Assert.That(t[2], Is.EqualTo(true));
+				Assert.That(t[3], Is.EqualTo("World"));
+
+				Assert.That(t.Get<string>(0), Is.EqualTo("Hello"));
+				Assert.That(t.Get<int>(1), Is.EqualTo(123));
+				Assert.That(t.Get<bool>(2), Is.EqualTo(true));
+				Assert.That(t.Get<string>(3), Is.EqualTo("World"));
+
+				Assert.That(t.Last, Is.EqualTo("World"));
+				Assert.That(t.GetFirst<string>(), Is.EqualTo("Hello"));
+				Assert.That(t.GetLast<string>(), Is.EqualTo("World"));
+
+				Assert.That(t, Is.EqualTo(STuple.Create("Hello", 123, true, "World")));
+				Assert.That(t, Is.Not.EqualTo(STuple.Create("Hello", 123, true, "There")));
+				Assert.That(t, Is.Not.EqualTo(STuple.Create("Hello", 123, "World")));
+
+				Assert.That(t.ToString(), Is.EqualTo("(\"Hello\", 123, true, \"World\")"));
+
+				Assert.That(t.GetHashCode(), Is.EqualTo(STuple.Create("Hello", 123, true, "World").GetHashCode()));
+
+				Assert.That(t.ToArray(), Is.EqualTo((object?[])[ "Hello", 123, true, "World" ]));
+			});
+		}
+
+		[Test]
+		public void Test_Tuple_Joined()
+		{
+			Assert.Multiple(() =>
+			{
+				var t = new JoinedTuple(STuple.Create("Hello", 123), STuple.Create(true, "World"));
+				Assert.That(t.Count, Is.EqualTo(4));
+
+				Assert.That(t[0], Is.EqualTo("Hello"));
+				Assert.That(t[1], Is.EqualTo(123));
+				Assert.That(t[2], Is.EqualTo(true));
+				Assert.That(t[3], Is.EqualTo("World"));
+
+				Assert.That(t.Get<string>(0), Is.EqualTo("Hello"));
+				Assert.That(t.Get<int>(1), Is.EqualTo(123));
+				Assert.That(t.Get<bool>(2), Is.EqualTo(true));
+				Assert.That(t.Get<string>(3), Is.EqualTo("World"));
+
+				Assert.That(t.GetFirst<string>(), Is.EqualTo("Hello"));
+				Assert.That(t.GetLast<string>(), Is.EqualTo("World"));
+
+				Assert.That(t, Is.EqualTo(STuple.Create("Hello", 123, true, "World")));
+				Assert.That(t, Is.Not.EqualTo(STuple.Create("Hello", 123, true, "There")));
+				Assert.That(t, Is.Not.EqualTo(STuple.Create("Hello", 123, true)));
+				Assert.That(t, Is.Not.EqualTo(STuple.Create("Hello", 124, true, "World")));
+				Assert.That(t, Is.Not.EqualTo(STuple.Create("Hello", true, "World")));
+
+				Assert.That(t.ToString(), Is.EqualTo("(\"Hello\", 123, true, \"World\")"));
+
+				Assert.That(t.GetHashCode(), Is.EqualTo(STuple.Create("Hello", 123, true, "World").GetHashCode()));
+
+				Assert.That(t.ToArray(), Is.EqualTo((object?[])[ "Hello", 123, true, "World" ]));
+			});
+		}
+
+		[Test]
+		public void Test_Tuple_SpanTuple()
+		{
+			Assert.Multiple(() =>
+			{
+				var packed = TuPack.Pack(STuple.Create("Hello", 123, true, "World"));
+				
+				var t = SpanTuple.Unpack(packed);
+				Assert.That(t.Count, Is.EqualTo(4));
+
+				Assert.That(t[0], Is.EqualTo("Hello"));
+				Assert.That(t[1], Is.EqualTo(123));
+				Assert.That(t[2], Is.EqualTo(true));
+				Assert.That(t[3], Is.EqualTo("World"));
+
+				Assert.That(t.Get<string>(0), Is.EqualTo("Hello"));
+				Assert.That(t.Get<int>(1), Is.EqualTo(123));
+				Assert.That(t.Get<bool>(2), Is.EqualTo(true));
+				Assert.That(t.Get<string>(3), Is.EqualTo("World"));
+
+				Assert.That(t.GetFirst<string>(), Is.EqualTo("Hello"));
+				Assert.That(t.GetLast<string>(), Is.EqualTo("World"));
+
+				Assert.That(t.ToString(), Is.EqualTo("(\"Hello\", 123, true, \"World\")"));
+
+				Assert.That(t.Equals(STuple.Create("Hello", 123, true, "World")), Is.True);
+				Assert.That(t.Equals(STuple.Create("Hello", 123, true, "There")), Is.False);
+				Assert.That(t.Equals(STuple.Create("Hello", 123, true)), Is.False);
+				Assert.That(t.Equals(STuple.Create("Hello", 124, true, "World")), Is.False);
+				Assert.That(t.Equals(STuple.Create("Hello", true, "World")), Is.False);
+
+				Assert.That(t[..3].Equals(STuple.Create("Hello", 123, true)), Is.True);
+				Assert.That(t[..2].Equals(STuple.Create("Hello", 123)), Is.True);
+				Assert.That(t[..1].Equals(STuple.Create("Hello")), Is.True);
+				Assert.That(t[..0].Equals(STuple.Create()), Is.True);
+				Assert.That(t[1..].Equals(STuple.Create(123, true, "World")), Is.True);
+				Assert.That(t[2..].Equals(STuple.Create(true, "World")), Is.True);
+				Assert.That(t[3..].Equals(STuple.Create("World")), Is.True);
+				Assert.That(t[4..].Equals(STuple.Create()), Is.True);
+
+				Assert.That(t.GetHashCode(), Is.EqualTo(STuple.Create("Hello", 123, true, "World").GetHashCode()));
+				Assert.That(t[..3].GetHashCode(), Is.EqualTo(STuple.Create("Hello", 123, true).GetHashCode()));
+				Assert.That(t[..2].GetHashCode(), Is.EqualTo(STuple.Create("Hello", 123).GetHashCode()));
+				Assert.That(t[..1].GetHashCode(), Is.EqualTo(STuple.Create("Hello").GetHashCode()));
+				Assert.That(t[..0].GetHashCode(), Is.EqualTo(STuple.Create().GetHashCode()));
+
+				Assert.That(t.ToArray(), Is.EqualTo((object?[]) [ "Hello", 123, true, "World" ]));
+			});
+		}
+
+		[Test]
+		public void Test_Tuple_SlicedTuple()
+		{
+			Assert.Multiple(() =>
+			{
+				var packed = TuPack.Pack(STuple.Create("Hello", 123, true, "World"));
+				
+				var t = SlicedTuple.Unpack(packed);
+				Assert.That(t.Count, Is.EqualTo(4));
+
+				Assert.That(t[0], Is.EqualTo("Hello"));
+				Assert.That(t[1], Is.EqualTo(123));
+				Assert.That(t[2], Is.EqualTo(true));
+				Assert.That(t[3], Is.EqualTo("World"));
+
+				Assert.That(t.Get<string>(0), Is.EqualTo("Hello"));
+				Assert.That(t.Get<int>(1), Is.EqualTo(123));
+				Assert.That(t.Get<bool>(2), Is.EqualTo(true));
+				Assert.That(t.Get<string>(3), Is.EqualTo("World"));
+
+				Assert.That(t.GetFirst<string>(), Is.EqualTo("Hello"));
+				Assert.That(t.GetLast<string>(), Is.EqualTo("World"));
+
+				Assert.That(t.ToString(), Is.EqualTo("(\"Hello\", 123, true, \"World\")"));
+
+				Assert.That(t.Equals(STuple.Create("Hello", 123, true, "World")), Is.True);
+				Assert.That(t.Equals(STuple.Create("Hello", 123, true, "There")), Is.False);
+				Assert.That(t.Equals(STuple.Create("Hello", 123, true)), Is.False);
+				Assert.That(t.Equals(STuple.Create("Hello", 124, true, "World")), Is.False);
+				Assert.That(t.Equals(STuple.Create("Hello", true, "World")), Is.False);
+
+				Assert.That(t[..3].Equals(STuple.Create("Hello", 123, true)), Is.True);
+				Assert.That(t[..2].Equals(STuple.Create("Hello", 123)), Is.True);
+				Assert.That(t[..1].Equals(STuple.Create("Hello")), Is.True);
+				Assert.That(t[..0].Equals(STuple.Create()), Is.True);
+				Assert.That(t[1..].Equals(STuple.Create(123, true, "World")), Is.True);
+				Assert.That(t[2..].Equals(STuple.Create(true, "World")), Is.True);
+				Assert.That(t[3..].Equals(STuple.Create("World")), Is.True);
+				Assert.That(t[4..].Equals(STuple.Create()), Is.True);
+
+				Assert.That(t.GetHashCode(), Is.EqualTo(STuple.Create("Hello", 123, true, "World").GetHashCode()));
+				Assert.That(t[..3].GetHashCode(), Is.EqualTo(STuple.Create("Hello", 123, true).GetHashCode()));
+				Assert.That(t[..2].GetHashCode(), Is.EqualTo(STuple.Create("Hello", 123).GetHashCode()));
+				Assert.That(t[..1].GetHashCode(), Is.EqualTo(STuple.Create("Hello").GetHashCode()));
+				Assert.That(t[..0].GetHashCode(), Is.EqualTo(STuple.Create().GetHashCode()));
+
+				Assert.That(t.ToArray(), Is.EqualTo((object?[]) [ "Hello", 123, true, "World" ]));
+			});
+		}
+
+		[Test]
 		public void Test_Tuple_FromObjects()
 		{
 			// STuple.FromObjects(...) does a copy of the items of the array

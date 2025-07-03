@@ -27,12 +27,14 @@
 namespace SnowBank.Data.Tuples
 {
 	using System.Collections;
+	using SnowBank.Buffers.Text;
+	using SnowBank.Data.Tuples.Binary;
 	using SnowBank.Runtime.Converters;
 
 	/// <summary>Tuple that represents the concatenation of two tuples</summary>
 	[DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
-	public sealed class JoinedTuple : IVarTuple
+	public sealed class JoinedTuple : IVarTuple, ITupleFormattable
 	{
 		// Uses cases: joining a 'subspace' tuple (customerId, 'Users', ) with a 'key' tuple (userId, 'Contacts', 123, )
 
@@ -56,9 +58,67 @@ namespace SnowBank.Data.Tuples
 			this.Count = this.HeadCount + tail.Count;
 		}
 
+		int ITupleFormattable.AppendItemsTo(ref FastStringBuilder sb)
+		{
+			// cannot be empty
+
+			int n = 0;
+
+			if (this.Head is ITupleFormattable h)
+			{
+				n = h.AppendItemsTo(ref sb);
+			}
+			else
+			{
+				foreach (var item in this.Head)
+				{
+					if (n > 0)
+					{
+						sb.Append(", ");
+					}
+					STuple.Formatter.StringifyBoxedTo(ref sb, item);
+					++n;
+				}
+			}
+
+			if (n > 0 && this.Tail.Count > 0)
+			{
+				sb.Append(", ");
+			}
+
+			if (this.Tail is ITupleFormattable t)
+			{
+				n += t.AppendItemsTo(ref sb);
+			}
+			else
+			{
+				foreach (var item in this.Tail)
+				{
+					if (n > 0)
+					{
+						sb.Append(", ");
+					}
+					STuple.Formatter.StringifyBoxedTo(ref sb, item);
+					++n;
+				}
+			}
+
+			return n;
+		}
+
 		public override string ToString()
 		{
-			return STuple.Formatter.ToString(this);
+			var sb = new FastStringBuilder(stackalloc char[128]);
+			sb.Append('(');
+			if (((ITupleFormattable)this).AppendItemsTo(ref sb) == 1)
+			{
+				sb.Append(",)");
+			}
+			else
+			{
+				sb.Append(')');
+			}
+			return sb.ToString();
 		}
 
 		/// <inheritdoc />

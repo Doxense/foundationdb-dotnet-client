@@ -34,7 +34,7 @@ namespace SnowBank.Data.Tuples.Binary
 	using SnowBank.Buffers.Text;
 
 	/// <summary>Lazily-evaluated tuple that was unpacked from a key</summary>
-	public sealed class SlicedTuple : IVarTuple, ITupleSerializable, ISliceSerializable
+	public sealed class SlicedTuple : IVarTuple, ITupleSerializable, ITupleFormattable, ISliceSerializable
 	{
 
 		/// <summary>Buffer containing the original slices.</summary>
@@ -437,12 +437,29 @@ namespace SnowBank.Data.Tuples.Binary
 			}
 
 			var slices = m_slices.Span;
-			var hc = new HashCode();
-			foreach (var s in slices)
+
+			// only use up to 3 items: the first, and the last two
+			int h = slices.Length switch
 			{
-				hc.Add(comparer.GetHashCode(s));
-			}
-			int h = hc.ToHashCode();
+				0 => 0,
+				1 => TupleHelpers.ComputeHashCode(TuplePackers.DeserializeBoxed(slices[0]), comparer),
+				2 => TupleHelpers.CombineHashCodes(
+						TupleHelpers.ComputeHashCode(TuplePackers.DeserializeBoxed(slices[0]), comparer),
+						TupleHelpers.ComputeHashCode(TuplePackers.DeserializeBoxed(slices[1]), comparer)
+					),
+				3 => TupleHelpers.CombineHashCodes(
+						slices.Length,
+						TupleHelpers.ComputeHashCode(TuplePackers.DeserializeBoxed(slices[0]), comparer), TupleHelpers.ComputeHashCode(TuplePackers.DeserializeBoxed(slices[1]), comparer),
+						TupleHelpers.ComputeHashCode(TuplePackers.DeserializeBoxed(slices[2]), comparer)
+					),
+				_ => TupleHelpers.CombineHashCodes(
+					slices.Length,
+					TupleHelpers.ComputeHashCode(TuplePackers.DeserializeBoxed(slices[0]), comparer),
+					TupleHelpers.ComputeHashCode(TuplePackers.DeserializeBoxed(slices[^2]), comparer),
+					TupleHelpers.ComputeHashCode(TuplePackers.DeserializeBoxed(slices[^1]), comparer)
+					),
+			};
+
 			if (canUseCache)
 			{
 				m_hashCode = h;

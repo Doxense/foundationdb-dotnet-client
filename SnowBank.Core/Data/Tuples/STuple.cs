@@ -36,7 +36,7 @@ namespace SnowBank.Data.Tuples
 
 	/// <summary>Factory class for Tuples</summary>
 	[PublicAPI]
-	public readonly struct STuple : IVarTuple, ITupleSerializable
+	public readonly struct STuple : IVarTuple, ITupleSerializable, ITupleFormattable
 	{
 		//note: We cannot use 'Tuple' because it's already used by the BCL in the System namespace, and we cannot use 'Tuples' either because it is part of the namespace...
 
@@ -165,7 +165,7 @@ namespace SnowBank.Data.Tuples
 			//NOP
 		}
 
-		int ITupleSerializable.AppendItemsTo(ref FastStringBuilder sb)
+		int ITupleFormattable.AppendItemsTo(ref FastStringBuilder sb)
 		{
 			return 0;
 		}

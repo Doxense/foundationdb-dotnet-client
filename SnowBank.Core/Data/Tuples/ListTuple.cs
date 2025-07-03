@@ -27,11 +27,13 @@
 namespace SnowBank.Data.Tuples
 {
 	using System.Collections;
+	using SnowBank.Buffers.Text;
+	using SnowBank.Data.Tuples.Binary;
 	using SnowBank.Runtime.Converters;
 
 	/// <summary>Tuple that can hold any number of untyped items</summary>
 	[PublicAPI]
-	public sealed class ListTuple<T> : IVarTuple
+	public sealed class ListTuple<T> : IVarTuple, ITupleFormattable
 	{
 		// We could use a ListTuple<T> for tuples where all items are of type T, and ListTuple could derive from ListTuple<object>.
 		// => this could speed up a bit the use case of STuple.FromArray<T> or STuple.FromSequence<T>
@@ -205,6 +207,11 @@ namespace SnowBank.Data.Tuples
 		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
 		{
 			return this.GetEnumerator();
+		}
+
+		int ITupleFormattable.AppendItemsTo(ref FastStringBuilder sb)
+		{
+			return STuple.Formatter.AppendItemsTo(ref sb, m_items.Span);
 		}
 
 		public override string ToString()

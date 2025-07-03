@@ -35,7 +35,7 @@ namespace SnowBank.Data.Tuples.Binary
 	/// <summary>Lazily-evaluated tuple that was unpacked from a key</summary>
 	public readonly ref struct SpanTuple
 #if NET9_0_OR_GREATER
-		: IVarTuple, ITupleSerializable, ISliceSerializable
+		: IVarTuple, ITupleSerializable, ISliceSerializable, ITupleFormattable
 #endif
 	{
 
@@ -508,12 +508,29 @@ namespace SnowBank.Data.Tuples.Binary
 		{
 			var slices = m_slices;
 			var buffer = m_buffer;
-			var hc = new HashCode();
-			for (int i = 0; i < slices.Length; i++)
+
+			// only use up to 3 items: the first, and the last two
+			switch (slices.Length)
 			{
-				hc.Add(TupleHelpers.ComputeHashCode(TuplePackers.DeserializeBoxed(buffer[slices[i]]), comparer));
+				case 0: return 0;
+				case 1: return TupleHelpers.ComputeHashCode(TuplePackers.DeserializeBoxed(buffer[slices[0]]), comparer);
+				case 2: return TupleHelpers.CombineHashCodes(
+					TupleHelpers.ComputeHashCode(TuplePackers.DeserializeBoxed(buffer[slices[0]]), comparer),
+					TupleHelpers.ComputeHashCode(TuplePackers.DeserializeBoxed(buffer[slices[1]]), comparer)
+				);
+				case 3: return TupleHelpers.CombineHashCodes(
+					slices.Length,
+					TupleHelpers.ComputeHashCode(TuplePackers.DeserializeBoxed(buffer[slices[0]]), comparer),
+					TupleHelpers.ComputeHashCode(TuplePackers.DeserializeBoxed(buffer[slices[1]]), comparer),
+					TupleHelpers.ComputeHashCode(TuplePackers.DeserializeBoxed(buffer[slices[2]]), comparer)
+				);
+				default: return TupleHelpers.CombineHashCodes(
+					slices.Length,
+					TupleHelpers.ComputeHashCode(TuplePackers.DeserializeBoxed(buffer[slices[0]]), comparer),
+					TupleHelpers.ComputeHashCode(TuplePackers.DeserializeBoxed(buffer[slices[^2]]), comparer),
+					TupleHelpers.ComputeHashCode(TuplePackers.DeserializeBoxed(buffer[slices[^1]]), comparer)
+				);
 			}
-			return hc.ToHashCode();
 		}
 
 #if NET9_0_OR_GREATER

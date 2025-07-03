@@ -33,7 +33,7 @@ namespace SnowBank.Data.Tuples.Binary
 	/// <summary>Tuple that has a fixed arbitrary binary prefix</summary>
 	[DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
-	public sealed class PrefixedTuple : IVarTuple, ITupleSerializable
+	public sealed class PrefixedTuple : IVarTuple, ITupleSerializable, ITupleFormattable
 	{
 		// Used in scenario where we will append keys to a common base tuple
 		// note: linked list are not very efficient, but we do not expect a very long chain, and the head will usually be a subspace or memoized tuple
@@ -57,7 +57,7 @@ namespace SnowBank.Data.Tuples.Binary
 			PackTo(ref writer);
 		}
 
-		int ITupleSerializable.AppendItemsTo(ref FastStringBuilder sb)
+		int ITupleFormattable.AppendItemsTo(ref FastStringBuilder sb)
 		{
 			return STuple.Formatter.AppendItemsTo(ref sb, this);
 		}

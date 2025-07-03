@@ -36,7 +36,7 @@ namespace SnowBank.Data.Tuples
 	/// <typeparam name="T1">Type of the item</typeparam>
 	[ImmutableObject(true), DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
-	public readonly struct STuple<T1> : IVarTuple, IEquatable<STuple<T1>>, IEquatable<ValueTuple<T1>>, ITupleSerializable
+	public readonly struct STuple<T1> : IVarTuple, IEquatable<STuple<T1>>, IEquatable<ValueTuple<T1>>, ITupleSerializable, ITupleFormattable
 	{
 		// This is mostly used by code that create a lot of temporary singleton, to reduce the pressure on the Garbage Collector by allocating them on the stack.
 		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
@@ -191,7 +191,7 @@ namespace SnowBank.Data.Tuples
 		}
 
 		/// <inheritdoc />
-		int ITupleSerializable.AppendItemsTo(ref FastStringBuilder sb)
+		int ITupleFormattable.AppendItemsTo(ref FastStringBuilder sb)
 		{
 			STuple.Formatter.StringifyTo(ref sb, this.Item1);
 			return 1;

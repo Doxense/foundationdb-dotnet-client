@@ -27,13 +27,15 @@
 namespace SnowBank.Data.Tuples
 {
 	using System.Collections;
+	using SnowBank.Buffers.Text;
+	using SnowBank.Data.Tuples.Binary;
 	using SnowBank.Runtime.Converters;
 
 	/// <summary>Tuple that adds a value at the end of an already existing tuple</summary>
 	/// <typeparam name="T">Type of the last value of the tuple</typeparam>
 	[DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
-	public sealed class LinkedTuple<T> : IVarTuple
+	public sealed class LinkedTuple<T> : IVarTuple, ITupleFormattable
 	{
 		//TODO: consider changing this to a struct ?
 
@@ -154,9 +156,43 @@ namespace SnowBank.Data.Tuples
 			return this.GetEnumerator();
 		}
 
+		int ITupleFormattable.AppendItemsTo(ref FastStringBuilder sb)
+		{
+			// cannot be empty
+
+			int n = 0;
+			foreach (var item in this.Head)
+			{
+				if (n > 0)
+				{
+					sb.Append(", ");
+				}
+				STuple.Formatter.StringifyBoxedTo(ref sb, item);
+				++n;
+			}
+
+			if (n > 0)
+			{
+				sb.Append(", ");
+			}
+			STuple.Formatter.StringifyTo(ref sb, this.Tail);
+
+			return n + 1;
+		}
+
 		public override string ToString()
 		{
-			return STuple.Formatter.ToString(this);
+			var sb = new FastStringBuilder(stackalloc char[128]);
+			sb.Append('(');
+			if (((ITupleFormattable)this).AppendItemsTo(ref sb) == 1)
+			{
+				sb.Append(",)");
+			}
+			else
+			{
+				sb.Append(')');
+			}
+			return sb.ToString();
 		}
 
 		public override bool Equals(object? obj)

@@ -43,7 +43,7 @@ namespace SnowBank.Data.Tuples
 	/// <typeparam name="T6">Type of the 6th item</typeparam>
 	[ImmutableObject(true), DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
-	public readonly struct STuple<T1, T2, T3, T4, T5, T6> : IVarTuple, IEquatable<STuple<T1, T2, T3, T4, T5, T6>>, IEquatable<(T1, T2, T3, T4, T5, T6)>, ITupleSerializable
+	public readonly struct STuple<T1, T2, T3, T4, T5, T6> : IVarTuple, IEquatable<STuple<T1, T2, T3, T4, T5, T6>>, IEquatable<(T1, T2, T3, T4, T5, T6)>, ITupleSerializable, ITupleFormattable
 	{
 		// This is mostly used by code that create a lot of temporary quartets, to reduce the pressure on the Garbage Collector by allocating them on the stack.
 		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
@@ -304,7 +304,7 @@ namespace SnowBank.Data.Tuples
 		}
 
 		/// <inheritdoc />
-		int ITupleSerializable.AppendItemsTo(ref FastStringBuilder sb)
+		int ITupleFormattable.AppendItemsTo(ref FastStringBuilder sb)
 		{
 			sb.Append(STuple.Formatter.Stringify(this.Item1));
 			sb.Append(", ");

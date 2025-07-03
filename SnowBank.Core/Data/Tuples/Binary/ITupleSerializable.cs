@@ -38,6 +38,12 @@ namespace SnowBank.Data.Tuples.Binary
 
 		//note: there is not UnpackFrom, because it does not play way with constructors and readonly fields!
 		// => use ITupleSerializer<T> for this!
+	}
+
+	/// <summary>Represents a tuple that can formats its item into a string representation</summary>
+	[PublicAPI]
+	public interface ITupleFormattable
+	{
 
 		/// <summary>Writes the string representation of the items of this tuple</summary>
 		/// <param name="sb">Output buffer</param>
