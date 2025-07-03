@@ -588,7 +588,7 @@ namespace SnowBank.Data.Json.Tests
 					JsonArray.Create(JsonArray.Create("This is a test of the emergency broadcast system!")),
 					JsonArray.Create(JsonArray.Create(JsonArray.Create("This is a test of the emergency broadcast system!")))
 				).ToString("Q"),
-				Is.EqualTo("[ 'This is a test of the emergency broadcast system!', [ 'This is a test of[…]broadcast system!' ], [ [ 'This is[…]system!' ] ], [ [ [ '…' ] ] ] ]")
+				Is.EqualTo("[ 'This is a test of the emergency broadcast system!', [ 'This is a test of the e[…]gency broadcast system!' ], [ [ 'This is a test of[…]broadcast system!' ] ], [ [ [ '…' ] ] ] ]")
 			);
 			Assert.That(
 				JsonArray.Create(
