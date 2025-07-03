@@ -94,7 +94,7 @@
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.6" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Configuration" Version="9.0.6" />
     <PackageVersion Include="Microsoft.Extensions.Options" Version="9.0.6" />
-    <PackageVersion Include="Microsoft.Net.Http.Headers" Version="8.0.15" />
+    <PackageVersion Include="Microsoft.Net.Http.Headers" Version="8.0.17" />
     <PackageVersion Include="System.Collections.Immutable" Version="9.0.6" />
     <PackageVersion Include="System.Diagnostics.PerformanceCounter" Version="9.0.6" />
     <PackageVersion Include="System.IO.Pipelines" Version="9.0.6" />
