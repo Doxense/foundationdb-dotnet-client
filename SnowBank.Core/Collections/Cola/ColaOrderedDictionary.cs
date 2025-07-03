@@ -422,9 +422,20 @@ namespace SnowBank.Collections.CacheOblivious
 				}
 
 				var cmp = m_keyComparer;
+
+				// we may end up _before_ the begin key!
+				int p = cmp.Compare(it.Current.Key, begin);
+				if (beginOrEqual ? (p < 0) : (p <= 0))
+				{
+					if (!it.Next())
+					{
+						yield break;
+					}
+				}
+
 				do
 				{
-					int p = cmp.Compare(it.Current.Key, end);
+					p = cmp.Compare(it.Current.Key, end);
 					if (endOrEqual ? (p > 0) : (p >= 0))
 					{
 						yield break;
