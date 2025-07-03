@@ -262,7 +262,7 @@ namespace SnowBank.Data.Tuples.Binary
 			if (typeof(T) == typeof(Uuid96?)) { TupleParser.WriteUuid96(ref writer, (Uuid96?) (object) value!); return; }
 			if (typeof(T) == typeof(Uuid80?)) { TupleParser.WriteUuid80(ref writer, (Uuid80?) (object) value!); return; }
 			if (typeof(T) == typeof(Uuid64?)) { TupleParser.WriteUuid64(ref writer, (Uuid64?) (object) value!); return; }
-			if (typeof(T) == typeof(Uuid48?)) { TupleParser.WriteUuid64(ref writer, (Uuid48?) (object) value!); return; }
+			if (typeof(T) == typeof(Uuid48?)) { TupleParser.WriteUuid48(ref writer, (Uuid48?) (object) value!); return; }
 			if (typeof(T) == typeof(VersionStamp?)) { TupleParser.WriteVersionStamp(ref writer, (VersionStamp?) (object) value!); return; }
 #endif
 			//</JIT_HACK>
