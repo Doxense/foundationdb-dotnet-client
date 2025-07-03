@@ -87,6 +87,23 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <param name="name">Name of key, excluding the initial <c>\xFF</c> byte (ex: "/metadataVersion" instead of "\xFF/metadataVersion")</param>
 		public static TuPackUserType SystemKey(string name) => new(TypeSystem, Slice.FromByteString(name));
 
+		/// <summary>Returns a custom user type with a given prefix (ex: <c>40</c>)</summary>
+		/// <param name="type">Prefix for this type, which must be between <see cref="TupleTypes.UserType0"/> (0x40) and <see cref="TupleTypes.UserTypeF"/> (0x4F)</param>
+		public static TuPackUserType Custom(byte type) => type is >= TupleTypes.UserType0 and <= TupleTypes.UserTypeF ? new(type) : throw ErrorTypeOutOfRange(type);
+
+		/// <summary>Returns a custom user type with a given prefix and payload (ex: <c>40 XX YY ZZ ...</c>)</summary>
+		/// <param name="type">Prefix for this type, which must be between <see cref="TupleTypes.UserType0"/> (0x40) and <see cref="TupleTypes.UserTypeF"/> (0x4F)</param>
+		/// <param name="value">Payload for this type</param>
+		public static TuPackUserType Custom(byte type, Slice value) => type is >= TupleTypes.UserType0 and <= TupleTypes.UserTypeF ? new(type, value) : throw ErrorTypeOutOfRange(type);
+
+		/// <summary>Returns a custom user type with a given prefix and payload (ex: <c>40 XX YY ZZ ...</c>)</summary>
+		/// <param name="type">Prefix for this type, which must be between <see cref="TupleTypes.UserType0"/> (0x40) and <see cref="TupleTypes.UserTypeF"/> (0x4F)</param>
+		/// <param name="value">Payload for this type</param>
+		public static TuPackUserType Custom(byte type, ReadOnlySpan<byte> value) => type is >= TupleTypes.UserType0 and <= TupleTypes.UserTypeF ? new(type, value.ToSlice()) : throw ErrorTypeOutOfRange(type);
+
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		private static ArgumentOutOfRangeException ErrorTypeOutOfRange(byte type) => new(nameof(type), type, "Custom user types must be between 0x40 and 0x4F");
+
 		#region Equality...
 
 		public override bool Equals(object? obj) => obj is TuPackUserType ut && Equals(ut);
