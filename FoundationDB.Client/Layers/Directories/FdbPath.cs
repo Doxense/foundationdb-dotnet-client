@@ -30,7 +30,7 @@ namespace FoundationDB.Client
 	/// <summary>Represents a path in a Directory Layer</summary>
 	[DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
-	public readonly struct FdbPath : IReadOnlyList<FdbPathSegment>, IEquatable<FdbPath>, IFormattable, IJsonDeserializable<FdbPath>, IJsonSerializable, IJsonPackable
+	public readonly struct FdbPath : IReadOnlyList<FdbPathSegment>, IEquatable<FdbPath>, IComparable<FdbPath>, IFormattable, IJsonDeserializable<FdbPath>, IJsonSerializable, IJsonPackable
 	{
 		/// <summary>The "empty" path</summary>
 		/// <remarks>This path is relative</remarks>
@@ -853,6 +853,27 @@ namespace FoundationDB.Client
 		public bool Equals(FdbPath other)
 		{
 			return this.IsAbsolute == other.IsAbsolute && this.Segments.Span.SequenceEqual(other.Segments.Span);
+		}
+
+		public int CompareTo(FdbPath other)
+		{
+			// make sure that both are of the same kind
+			if (this.IsAbsolute ^ other.IsAbsolute)
+			{
+				throw new InvalidOperationException("Cannot compare absolute with relative paths");
+			}
+
+			var left = this.Segments.Span;
+			var right = other.Segments.Span;
+			int len = Math.Min(left.Length, right.Length);
+
+			for (int i = 0; i < len; i++)
+			{
+				int cmp = left[i].CompareTo(right[i]);
+				if (cmp != 0) return cmp;
+			}
+
+			return left.Length.CompareTo(right.Length);
 		}
 
 		/// <summary>Tests if two paths are equal</summary>

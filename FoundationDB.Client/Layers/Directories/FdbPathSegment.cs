@@ -28,7 +28,7 @@ namespace FoundationDB.Client
 {
 	/// <summary>Represent a segment in a <see cref="FdbPath">path</see> to a <see cref="IFdbDirectory">Directory</see>.</summary>
 	/// <remark>A path segment is composed of a <see cref="Name"/> and optional <see cref="LayerId"/> field.</remark>
-	public readonly struct FdbPathSegment : IEquatable<FdbPathSegment>
+	public readonly struct FdbPathSegment : IEquatable<FdbPathSegment>, IComparable<FdbPathSegment>
 	{
 
 		// Rules for encoding a segment into a string: '/', '\', '[' and ']' are escaped by prefixing them by another '\'
@@ -270,13 +270,26 @@ namespace FoundationDB.Client
 		public override bool Equals(object? obj)
 			=> obj is FdbPathSegment other && Equals(other);
 
+		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public override int GetHashCode()
 			=> HashCode.Combine(this.Name, this.LayerId);
 
+		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(FdbPathSegment other)
 			=> string.Equals(this.Name, other.Name) && string.Equals(this.LayerId, other.LayerId);
+
+		/// <inheritdoc />
+		public int CompareTo(FdbPathSegment other)
+		{
+			int cmp = string.CompareOrdinal(this.Name, other.Name);
+			if (cmp == 0)
+			{
+				cmp = string.CompareOrdinal(this.LayerId, other.LayerId);
+			}
+			return cmp;
+		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool operator ==(FdbPathSegment left, FdbPathSegment right)
