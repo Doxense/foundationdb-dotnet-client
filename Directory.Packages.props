@@ -24,7 +24,7 @@
     <PackageVersion Include="NodaTime" Version="3.2.2" />
     <PackageVersion Include="NodaTime.Testing" Version="3.2.2" />
     <PackageVersion Include="NUnit" Version="4.3.2" />
-    <PackageVersion Include="NUnit.Analyzers" Version="4.8.1" />
+    <PackageVersion Include="NUnit.Analyzers" Version="4.9.2" />
     <PackageVersion Include="NUnit.Console" Version="3.20.1" />
     <PackageVersion Include="NUnit.ConsoleRunner" Version="3.20.1" />
     <PackageVersion Include="NUnit3TestAdapter" Version="5.0.0" />
