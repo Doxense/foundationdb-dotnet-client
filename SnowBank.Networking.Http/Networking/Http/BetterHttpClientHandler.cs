@@ -1,4 +1,28 @@
-// copy/paste de System.Net.Http.HttpClientHandler, hackée pour être accessible publiquement
+#region Copyright (c) 2023-2025 SnowBank SAS, (c) 2005-2023 Doxense SAS
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 	* Redistributions of source code must retain the above copyright
+// 	  notice, this list of conditions and the following disclaimer.
+// 	* Redistributions in binary form must reproduce the above copyright
+// 	  notice, this list of conditions and the following disclaimer in the
+// 	  documentation and/or other materials provided with the distribution.
+// 	* Neither the name of SnowBank nor the
+// 	  names of its contributors may be used to endorse or promote products
+// 	  derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL SNOWBANK SAS BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#endregion
 
 //#define FULL_DEBUG
 
@@ -15,28 +39,28 @@ namespace SnowBank.Networking.Http
 	using System.Security.Cryptography.X509Certificates;
 	using System.Threading.Tasks;
 
-	/// <summary>Version non-"protected" de <see cref="System.Net.Http.HttpClientHandler"/></summary>
+	/// <summary>Less restrictive wrapper over <see cref="System.Net.Http.HttpClientHandler"/>, that exposes protected or internal members</summary>
 	[PublicAPI]
 	public class BetterHttpClientHandler : HttpMessageHandler
 	{
 
-		// La verison normale de HttpMessageHandler ne permet pas de lui passer un SocketsHttpHandler via ctor, ni d'accéder a celui qui a été créé.
-		// Egalement, on ne peut pas appeler les méthodes Send/SendAsync publiquement, ce qui rend l'intégration très complexe.
-		// => cette class rend les champs publique, et donc permet de customiser le SocketsHttpHandler (pour lui passer des callbacks custom, par exemple)
+		// Issues with HttpMessageHandler:
+		// - The ctor does not accept a SocketsHttpHandler directly, and we cannot access the one that it creates under the hood.
+		// - We cannot call any of the Send/SendAsync methods, since they are not public.
+		// This type's purpose is to make all these fields and methods public, as well as customize the SocketsHttpHandler
 
+		/// <summary>Underlying <see cref="SocketsHttpHandler"/> that will perform the HTTP request using sockets</summary>
 		public SocketsHttpHandler Sockets { get; }
 
+		/// <summary>Map of the network used to local the remote target</summary>
+		/// <remarks>This is used to emulate virtual hosts, and/or inject artificial errors/latency during testing.</remarks>
 		public INetworkMap Network { get; }
-
-		private ClientCertificateOption m_clientCertificateOptions;
-
-		private Func<HttpRequestMessage, X509Certificate2?, X509Chain?, SslPolicyErrors, bool>? m_serverCustomValidationCallback;
 
 		private volatile bool m_disposed;
 
 		#region Cheat Codes...
 
-		/// <summary>Helper class pour pouvoir invoquer les méthodes "protected internal" de SocketsHttpHandler</summary>
+		/// <summary>Helper class that invokes any "protected internal" methods inside <see cref="SocketsHttpHandler"/></summary>
 		private static class CheatCodes
 		{
 
@@ -149,7 +173,8 @@ namespace SnowBank.Networking.Http
 			catch (Exception)
 			{
 #if DEBUG
-				// Si vous breakez ici, on est dans la mouise! Il faut regarder ce qu'ils ont changé dans la façon dont la classe interne "ConnectHelper.CertificateCallbackMapper" a été modifiée!
+				// If you end up here, it means that the reflection logic failed, meaning that the internals of SocketsHttpHandler have changed!
+				// => inspect what changed inside "ConnectHelper.CertificateCallbackMapper" and fix things accordingly!
 				if (Debugger.IsAttached) Debugger.Break();
 #endif
 				return false;
@@ -158,9 +183,15 @@ namespace SnowBank.Networking.Http
 
 		#endregion
 
-		public BetterHttpClientHandler(INetworkMap map) : this(map, new SocketsHttpHandler())
+		/// <summary>Constructs a <see cref="BetterHttpClientHandler"/></summary>
+		/// <param name="map">Map of the network, used to locate and resolve remote host addresses</param>
+		public BetterHttpClientHandler(INetworkMap map)
+			: this(map, new SocketsHttpHandler())
 		{ }
 
+		/// <summary>Constructs a <see cref="BetterHttpClientHandler"/> with a custom handler</summary>
+		/// <param name="map">Map of the network, used to locate and resolve remote host addresses</param>
+		/// <param name="sockets">Handler that has already been constructed</param>
 		public BetterHttpClientHandler(INetworkMap map, SocketsHttpHandler sockets)
 		{
 			Contract.NotNull(map);
@@ -171,6 +202,7 @@ namespace SnowBank.Networking.Http
 			this.ClientCertificateOptions = ClientCertificateOption.Manual;
 		}
 
+		/// <inheritdoc />
 		protected override void Dispose(bool disposing)
 		{
 			if (disposing && !m_disposed)
@@ -183,18 +215,26 @@ namespace SnowBank.Networking.Http
 		}
 		
 
-		public virtual bool SupportsAutomaticDecompression { get; set; } = true; //note: internal const SocketsHttpHandler.SupportsAutomaticDecompression qui vaut "true"
+		/// <summary>Gets or sets a value that indicates whether the handler supports automatic decompression of response bodies.</summary>
+		//note: internal const SocketsHttpHandler.SupportsAutomaticDecompression is "true"
+		public virtual bool SupportsAutomaticDecompression { get; set; } = true;
 
-		public virtual bool SupportsProxy { get; set; } = true; //note: internal const SocketsHttpHandler.SupportsProxy qui vaut "true"
+		/// <summary>Gets or sets a value that indicates whether the handler supports the use proxies.</summary>
+		//note: internal const SocketsHttpHandler.SupportsProxy is "true"
+		public virtual bool SupportsProxy { get; set; } = true;
 
-		public virtual bool SupportsRedirectConfiguration { get; set; } = true; //note: internal const SocketsHttpHandler.SupportsRedirectConfiguration qui vaut "true"
+		/// <summary>Gets or sets a value that indicates whether the handler supports automatic following of redirections.</summary>
+		//note: internal const SocketsHttpHandler.SupportsRedirectConfiguration is "true"
+		public virtual bool SupportsRedirectConfiguration { get; set; } = true;
 
+		/// <inheritdoc cref="SocketsHttpHandler.UseCookies"/>
 		public bool UseCookies
 		{
 			get => this.Sockets.UseCookies;
 			set => this.Sockets.UseCookies = value;
 		}
-
+		
+		/// <inheritdoc cref="SocketsHttpHandler.CookieContainer"/>
 		public CookieContainer CookieContainer
 		{
 			get => this.Sockets.CookieContainer;
@@ -206,36 +246,42 @@ namespace SnowBank.Networking.Http
 			}
 		}
 
+		/// <inheritdoc cref="SocketsHttpHandler.AutomaticDecompression"/>
 		public DecompressionMethods AutomaticDecompression
 		{
 			get => this.Sockets.AutomaticDecompression;
 			set => this.Sockets.AutomaticDecompression = value;
 		}
 
+		/// <inheritdoc cref="SocketsHttpHandler.UseProxy"/>
 		public bool UseProxy
 		{
 			get => this.Sockets.UseProxy;
 			set => this.Sockets.UseProxy = value;
 		}
 
+		/// <inheritdoc cref="SocketsHttpHandler.Proxy"/>
 		public IWebProxy? Proxy
 		{
 			get => this.Sockets.Proxy;
 			set => this.Sockets.Proxy = value;
 		}
 
+		/// <inheritdoc cref="SocketsHttpHandler.DefaultProxyCredentials"/>
 		public ICredentials? DefaultProxyCredentials
 		{
 			get => this.Sockets.DefaultProxyCredentials;
 			set => this.Sockets.DefaultProxyCredentials = value;
 		}
 
+		/// <inheritdoc cref="SocketsHttpHandler.PreAuthenticate"/>
 		public bool PreAuthenticate
 		{
 			get => this.Sockets.PreAuthenticate;
 			set => this.Sockets.PreAuthenticate = value;
 		}
 
+		/// <summary>Gets of sets a value that indicates whether the <see cref="CredentialCache.DefaultCredentials"/> should be used by this request.</summary>
 		public bool UseDefaultCredentials
 		{
 			// SocketsHttpHandler doesn't have a separate UseDefaultCredentials property.  There
@@ -258,24 +304,28 @@ namespace SnowBank.Networking.Http
 			}
 		}
 
+		/// <inheritdoc cref="SocketsHttpHandler.Credentials"/>
 		public ICredentials? Credentials
 		{
 			get => this.Sockets.Credentials;
 			set => this.Sockets.Credentials = value;
 		}
 
+		/// <inheritdoc cref="SocketsHttpHandler.AllowAutoRedirect"/>
 		public bool AllowAutoRedirect
 		{
 			get => this.Sockets.AllowAutoRedirect;
 			set => this.Sockets.AllowAutoRedirect = value;
 		}
 
+		/// <inheritdoc cref="SocketsHttpHandler.MaxAutomaticRedirections"/>
 		public int MaxAutomaticRedirections
 		{
 			get => this.Sockets.MaxAutomaticRedirections;
 			set => this.Sockets.MaxAutomaticRedirections = value;
 		}
 
+		/// <inheritdoc cref="SocketsHttpHandler.MaxConnectionsPerServer"/>
 		public int MaxConnectionsPerServer
 		{
 			get => this.Sockets.MaxConnectionsPerServer;
@@ -312,6 +362,7 @@ namespace SnowBank.Networking.Http
 			}
 		}
 
+		/// <inheritdoc cref="SocketsHttpHandler.MaxResponseHeadersLength"/>
 		public int MaxResponseHeadersLength
 		{
 			get => this.Sockets.MaxResponseHeadersLength;
@@ -320,7 +371,7 @@ namespace SnowBank.Networking.Http
 
 		public ClientCertificateOption ClientCertificateOptions
 		{
-			get => m_clientCertificateOptions;
+			get;
 			set
 			{
 				switch (value)
@@ -328,14 +379,14 @@ namespace SnowBank.Networking.Http
 					case ClientCertificateOption.Manual:
 					{
 						ThrowForModifiedManagedSslOptionsIfStarted();
-						m_clientCertificateOptions = value;
+						field = value;
 						this.Sockets.SslOptions.LocalCertificateSelectionCallback = (_, _, _, _, _) => CertHelpers.GetEligibleClientCertificate(this.Sockets.SslOptions.ClientCertificates)!;
 						break;
 					}
 					case ClientCertificateOption.Automatic:
 					{
 						ThrowForModifiedManagedSslOptionsIfStarted();
-						m_clientCertificateOptions = value;
+						field = value;
 						this.Sockets.SslOptions.LocalCertificateSelectionCallback = (_, _, _, _, _) => CertHelpers.GetEligibleClientCertificate()!;
 						break;
 					}
@@ -347,8 +398,10 @@ namespace SnowBank.Networking.Http
 			}
 		}
 
+		/// <summary>Helper for dealing with client certificates</summary>
 		private static class CertHelpers
 		{
+
 			private const string ClientAuthenticationOid = "1.3.6.1.5.5.7.3.2";
 
 			internal static X509Certificate2? GetEligibleClientCertificate()
@@ -435,11 +488,12 @@ namespace SnowBank.Networking.Http
 			}
 		}
 
+		/// <summary>Gets the <see cref="X509CertificateCollection"/> that this client will use when asked to authenticate by the remote server</summary>
 		public X509CertificateCollection ClientCertificates
 		{
 			get
 			{
-				if (ClientCertificateOptions != ClientCertificateOption.Manual)
+				if (this.ClientCertificateOptions != ClientCertificateOption.Manual)
 				{
 					throw new InvalidOperationException($"The {nameof(ClientCertificateOptions)} property must be set to '{nameof(ClientCertificateOption.Manual)}' to use this property.");
 				}
@@ -448,17 +502,19 @@ namespace SnowBank.Networking.Http
 			}
 		}
 
+		/// <summary>Gets or sets the callback used to validate the certificate provided by the remote server</summary>
 		public Func<HttpRequestMessage, X509Certificate2?, X509Chain?, SslPolicyErrors, bool>? ServerCertificateCustomValidationCallback
 		{
-			get => m_serverCustomValidationCallback;
+			get;
 			set
 			{
 				ThrowForModifiedManagedSslOptionsIfStarted();
-				m_serverCustomValidationCallback = value;
+				field = value;
 				this.Sockets.SslOptions.RemoteCertificateValidationCallback = value != null ? CheatCodes.CallbackMapperInvoker(value) : null;
 			}
 		}
 
+		/// <summary>Gets or sets the certificate verification mode used when validating the certificate provided by the remote server</summary>
 		public bool CheckCertificateRevocationList
 		{
 			get => this.Sockets.SslOptions.CertificateRevocationCheckMode == X509RevocationMode.Online;
@@ -469,6 +525,7 @@ namespace SnowBank.Networking.Http
 			}
 		}
 
+		/// <summary>Gets or sets the value that represents the protocol versions offered by the client to the server during authentication.</summary>
 		public SslProtocols SslProtocols
 		{
 			get => this.Sockets.SslOptions.EnabledSslProtocols;
@@ -479,19 +536,23 @@ namespace SnowBank.Networking.Http
 			}
 		}
 
+		/// <inheritdoc cref="SocketsHttpHandler.Properties"/>
 		public IDictionary<string, object?> Properties => this.Sockets.Properties;
 
 		protected override HttpResponseMessage Send(HttpRequestMessage request, CancellationToken ct) => CheatCodes.SendInvoker(Sockets, request, ct);
 
 		protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) => CheatCodes.SendAsyncInvoker(Sockets, request, ct);
 
-		/// <summary>Version "publique" de <see cref="HttpMessageHandler.Send"/> qui est normalement protected internal</summary>
+		/// <summary>Invokes the <see cref="HttpMessageHandler.Send"/> internal method of the wrapped handler</summary>
+		/// <remarks>This method is marked "protected internal" and would not be accessible otherwise.</remarks>
 		public HttpResponseMessage InvokeSend(HttpRequestMessage request, CancellationToken ct) => this.Send(request, ct);
 
-		/// <summary>Version "publique" de <see cref="HttpMessageHandler.SendAsync"/> qui est normalement protected internal</summary>
+		/// <summary>Invokes the <see cref="HttpMessageHandler.SendAsync"/> intenral method of the wrapped handler</summary>
+		/// <remarks>This method is marked "protected internal" and would not be accessible otherwise.</remarks>
 		public Task<HttpResponseMessage> InvokeSendAsync(HttpRequestMessage request, CancellationToken ct) => this.SendAsync(request, ct);
 
-		// lazy-load the validator func so it can be trimmed by the ILLinker if it isn't used.
+		/// <summary>Certificate validation callback that always returns <c>true</c></summary>
+		/// <remarks>Use with caution! This is only intended for testing, or during local development with self-signed certificates.</remarks>
 		public static readonly Func<HttpRequestMessage, X509Certificate2?, X509Chain?, SslPolicyErrors, bool> DangerousAcceptAnyServerCertificateValidator = (_,_,_,_) => true;
 
 		private void ThrowForModifiedManagedSslOptionsIfStarted()
@@ -515,11 +576,11 @@ namespace SnowBank.Networking.Http
 
 		private static IPAddress? GetLocalEndpointAddress(Socket socket)
 		{
-			var ip = socket.LocalEndPoint is IPEndPoint ipep ? ipep.Address : null;
+			var ip = socket.LocalEndPoint is IPEndPoint ipEndpoint ? ipEndpoint.Address : null;
 			if (ip == null) return null;
-			//note: si on a "::ffff:192.168.1.23" on veut ressortir 192.168.1.23 directement!
 			if (ip.IsIPv4MappedToIPv6)
 			{
+				//note: if we have "::ffff:192.168.1.23", we will convert it to 192.168.1.23
 				ip = ip.MapToIPv4();
 			}
 			return ip;
@@ -533,14 +594,15 @@ namespace SnowBank.Networking.Http
 			context.InitialRequestMessage.Options.TryGetValue(BetterHttpClient.OptionKey, out var clientContext);
 
 			if (IPAddress.TryParse(context.DnsEndPoint.Host, out var address))
-			{ // c'est déja une IP!
+			{ // already an IP address, we can connect directly to the remote socket
 				return ConnectToSingleAsync(clientContext, new IPEndPoint(address, context.DnsEndPoint.Port), context.DnsEndPoint.Host, ct);
 			}
 
-			// c'est un nom DNS!
+			// we will need to resolve the hostname using DNS before connecting!
 			return ConnectToHostNameAsync(clientContext, context.DnsEndPoint, ct);
 		}
 
+		/// <summary>Connects to a remote host via a single endpoint.</summary>
 		private async ValueTask<Stream> ConnectToSingleAsync(BetterHttpClientContext? context, IPEndPoint endpoint, string? hostName, CancellationToken ct)
 		{
 			context?.SetStage(BetterHttpClientStage.Connecting);
@@ -564,6 +626,7 @@ namespace SnowBank.Networking.Http
 			}
 		}
 
+		/// <summary>Attempts a connection to the socket of the remote host</summary>
 		private async Task<Socket> AttemptConnectAsync(IPEndPoint ep, CancellationToken ct)
 		{
 			var socket = CreateSocket();
@@ -579,6 +642,7 @@ namespace SnowBank.Networking.Http
 			}
 		}
 
+		/// <summary>Resolves the host name of the remote host, then connect to any of the matching IP addresses available</summary>
 		private async ValueTask<Stream> ConnectToHostNameAsync(BetterHttpClientContext? clientContext, DnsEndPoint endpoint, CancellationToken ct)
 		{
 			var entries = await this.Network.DnsLookup(endpoint.Host, endpoint.AddressFamily, ct).ConfigureAwait(false);
@@ -590,7 +654,7 @@ namespace SnowBank.Networking.Http
 			}
 
 			if (addresses.Length == 1)
-			{ // only a single IP address, no need to perform any load balacing
+			{ // only a single IP address, no need to perform any load balancing
 				return await ConnectToSingleAsync(clientContext, new IPEndPoint(addresses[0], endpoint.Port), endpoint.Host, ct).ConfigureAwait(false);
 			}
 
@@ -615,11 +679,12 @@ namespace SnowBank.Networking.Http
 			return await ConnectToMultipleAsync(clientContext, endpoints, endpoint.Host, ct).ConfigureAwait(false);
 		}
 
+		/// <summary>Connects to a remote host using any of the multiple endpoints available.</summary>
 		private async ValueTask<Stream> ConnectToMultipleAsync(BetterHttpClientContext? clientContext, IPEndPoint[] endpoints, string? hostName, CancellationToken ct)
 		{
 			Socket? theOneTrueSocket = null;
 
-			//note: le "connection timeout" global est géré au niveau du SocketsHttpHandler et c'est 'ct' qui va trigger s'il se déclenche!
+			//note: the global "connection timeout" is handled by SocketsHttpHandler, and we will be notified if 'ct' is triggered
 			var staggerTimeout = TimeSpan.FromMilliseconds(500);
 
 			var attempts = new (IPEndPoint? Endpoint, TimeSpan Started, Task<Socket>? Task)[endpoints.Length];
@@ -628,8 +693,8 @@ namespace SnowBank.Networking.Http
 
 			var sw = Stopwatch.StartNew();
 
-			// Le but est de tester la connection 
-
+			// First we need to "test" the connection
+ 
 			bool aborted = false;
 
 			try
@@ -657,11 +722,11 @@ namespace SnowBank.Networking.Http
 							++index;
 						}
 
-						// reset la liste des tasks en attente
+						// reset the list of pending tasks
 						tasks.Clear();
 						Task? timeout = null;
 						if (index < endpoints.Length)
-						{ // il y a encore des candidats derrière...
+						{ // we still have more candidates available...
 							timeout = Task.Delay(staggerTimeout, go);
 							tasks.Add(timeout);
 						}
@@ -679,7 +744,7 @@ namespace SnowBank.Networking.Http
 							break;
 						}
 
-						{ // attente de la prochaine activité (timeout ou task socket qui se termine...)
+						{ // wait for the next event (timeout or connected socket...)
 							var t = await Task.WhenAny(tasks).ConfigureAwait(false);
 							if (t == timeout)
 							{ // not yet, start another one!
@@ -690,7 +755,7 @@ namespace SnowBank.Networking.Http
 							}
 						}
 
-						// inspect the results looking for a completed connction...
+						// inspect the results looking for a completed connection...
 						for (var i = 0; i < attempts.Length; i++)
 						{
 							var ts = attempts[i].Task;
@@ -745,7 +810,7 @@ namespace SnowBank.Networking.Http
 					theOneTrueSocket = null;
 				}
 
-				// s'il y a encore des taches pending, il faut les finir!
+				// if we still have pending tasks, we need to wait for them to complete
 				foreach (var attempt in attempts)
 				{
 					if (attempt.Endpoint == null || attempt.Task == null) continue;

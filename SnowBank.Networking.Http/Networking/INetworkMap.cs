@@ -33,7 +33,7 @@ namespace SnowBank.Networking
 
 	/// <summary>Provides services to interact with the real (or simulated) network</summary>
 	/// <remarks>
-	/// <para>This types is a wrapper that allows injecting virtual networks and hosts when the code under test and running inside a "virtual sandbox"</para>
+	/// <para>This type is a wrapper that allows injecting virtual networks and hosts when the code under test and running inside a "virtual sandbox"</para>
 	/// </remarks>
 	[PublicAPI]
 	public interface INetworkMap

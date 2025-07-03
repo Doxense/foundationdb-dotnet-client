@@ -30,6 +30,7 @@ namespace SnowBank.Networking.Http
 	using Microsoft.Extensions.Logging.Abstractions;
 	using Microsoft.Extensions.Options;
 
+	/// <summary>Factory for creating <see cref="BetterHttpClient"/> instances with the global defaults</summary>
 	public class DefaultBetterHttpClientFactory : IBetterHttpClientFactory
 	{
 
@@ -52,6 +53,7 @@ namespace SnowBank.Networking.Http
 			this.Services = services;
 		}
 
+		/// <inheritdoc />
 		public HttpMessageHandler CreateHttpHandler(Uri hostAddress, BetterHttpClientOptions options)
 		{
 			options.Filters.AddRange(this.Builder.GlobalFilters);
@@ -76,6 +78,7 @@ namespace SnowBank.Networking.Http
 			return handler;
 		}
 
+		/// <inheritdoc />
 		public BetterHttpClient CreateClient(Uri hostAddress, BetterHttpClientOptions options, HttpMessageHandler? handler = null)
 		{
 			Contract.NotNull(hostAddress);

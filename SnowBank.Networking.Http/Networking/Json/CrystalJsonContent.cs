@@ -29,7 +29,6 @@ namespace SnowBank.Data.Json
 	using System.Buffers;
 	using System.IO;
 	using System.Net.Http.Headers;
-	using System.Text;
 	using SnowBank.Runtime;
 
 	/// <summary><see cref="HttpContent"/> that uses <see cref="CrystalJson"/> to serialize JSON payloads</summary>
@@ -38,12 +37,6 @@ namespace SnowBank.Data.Json
 	{
 
 		private static readonly ActivitySource ActivitySource = new("SnowBank.Data.Json");
-
-		private static readonly MediaTypeHeaderValue DefaultMediaType = new("application/json") { CharSet = "utf-8" };
-		//REVIEW: c'est un peu dangereux d'utiliser un singleton: le type est mutable, et est exposé via le "content.Headers.ContentType"...
-		// A priori on est entre gens de culture, donc on va pas aller muter les content type, mais c'est quand meme un risque!
-		// L'implémentation de JsonHttpContent recrée une instance a chaque content par sécurité, ce qui consomme plus de mémoire.
-		// => pour l'instant on YOLO, mais a revisiter si besoin!
 
 		private CrystalJsonContent(
 			object? inputValue,
@@ -62,25 +55,46 @@ namespace SnowBank.Data.Json
 
 			this.Value = inputValue;
 			this.ObjectType = inputType;
-			this.Headers.ContentType = mediaType ?? DefaultMediaType;
+			this.Headers.ContentType = mediaType ?? new("application/json") { CharSet = "utf-8" };
 			this.JsonSettings = jsonSettings ?? CrystalJsonSettings.JsonIndented;
 			this.JsonResolver = jsonResolver ?? CrystalJson.DefaultResolver;
 		}
 
-		public  object? Value { get; }
+		/// <summary>Instance that will be returned in the body as serialized JSON</summary>
+		public object? Value { get; }
 
+		/// <summary>Type of the instance</summary>
 		public Type ObjectType { get;}
 
+		/// <summary>JSON serialization settings</summary>
 		private CrystalJsonSettings JsonSettings { get; }
 
+		/// <summary>JSON type resolver</summary>
 		private ICrystalJsonTypeResolver JsonResolver { get; }
 
+		/// <summary>Creates a <see cref="CrystalJsonContent"/> that will serialize a <see cref="JsonValue"/> into the body of the HTTP request or response</summary>
+		/// <param name="inputValue">Value to serialize</param>
+		/// <param name="mediaType">Media type reported in the <c>Content-Type</c> header. Uses <c>"application/json; charset=utf-8"</c> by default.</param>
+		/// <param name="settings">Custom JSON serialization settings. Uses <see cref="CrystalJsonSettings.Json"/> by default.</param>
+		/// <param name="resolver">Custom JSON type resolver. Uses <see cref="CrystalJson.DefaultResolver"/> by default.</param>
 		public static CrystalJsonContent Create(JsonValue? inputValue, MediaTypeHeaderValue? mediaType = null, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 			=> new CrystalJsonContent(inputValue ?? JsonNull.Null, inputValue?.GetType() ?? typeof(JsonValue), mediaType, settings, resolver);
 
+		/// <summary>Creates a <see cref="CrystalJsonContent"/> that will serialize an instance into the body of the HTTP request or response</summary>
+		/// <param name="inputValue">Instance to serialize</param>
+		/// <param name="inputType">Type of the instance. Use <c>typeof(object)</c> if unknown.</param>
+		/// <param name="mediaType">Media type reported in the <c>Content-Type</c> header. Uses <c>"application/json; charset=utf-8"</c> by default.</param>
+		/// <param name="settings">Custom JSON serialization settings. Uses <see cref="CrystalJsonSettings.Json"/> by default.</param>
+		/// <param name="resolver">Custom JSON type resolver. Uses <see cref="CrystalJson.DefaultResolver"/> by default.</param>
 		public static CrystalJsonContent Create(object? inputValue, Type inputType, MediaTypeHeaderValue? mediaType = null, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 			=> new CrystalJsonContent(inputValue, inputType, mediaType, settings, resolver);
 
+		/// <summary>Creates a <see cref="CrystalJsonContent"/> that will serialize an instance of type <typeparamref name="T"/> into the body of the HTTP request or response</summary>
+		/// <typeparam name="T">Type of the instance</typeparam>
+		/// <param name="inputValue">Instance to serialize</param>
+		/// <param name="mediaType">Media type reported in the <c>Content-Type</c> header. Uses <c>"application/json; charset=utf-8"</c> by default.</param>
+		/// <param name="settings">Custom JSON serialization settings. Uses <see cref="CrystalJsonSettings.Json"/> by default.</param>
+		/// <param name="resolver">Custom JSON type resolver. Uses <see cref="CrystalJson.DefaultResolver"/> by default.</param>
 		public static CrystalJsonContent Create<T>(T? inputValue, MediaTypeHeaderValue? mediaType = null, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 			=> new CrystalJsonContent(inputValue, typeof(T), mediaType, settings, resolver);
 
@@ -90,7 +104,7 @@ namespace SnowBank.Data.Json
 		{
 			using var activity = ActivitySource.StartActivity("JSON Serialize");
 
-			Encoding? targetEncoding = GetEncoding(Headers.ContentType?.CharSet);
+			Encoding? targetEncoding = GetEncoding(this.Headers.ContentType?.CharSet);
 
 			try
 			{
@@ -133,16 +147,17 @@ namespace SnowBank.Data.Json
 			finally
 			{
 				cached.Dispose();
-				// on part du principe qu'il va appeler SerializeToStreamAsync qu'une seule fois, donc on peut pré-emptivement retourner notre buffer!
+				// we assume that SerializeToStreamAsync will be called only once, and *after* TryComputeLength, so we can return our buffer to the pool
+				// => if we are called more than once, we may re-render the bytes several types!
 				this.CachedBytes = default;
 			}
 		}
 
 		protected override bool TryComputeLength(out long length)
 		{
-			//REVIEW: PERF: TODO: Pour optimiser les requetes, ca serait une bonne idée de connaitre la taille (en bytes) a l'avance, pour que le Content-Length soit renseigné
-			// PB: si le JSON est vraiment trop gros, ca va consommer beaucoup de mémoire localement.
-			// => idéalement tester a l'avance si le json est "petit" ou "gros" (de manière cheap), et en fonction décider si on pre-render (et on specifie le Content-Length) ou non (et c'est du chunked?)
+			//REVIEW: PERF: TODO: if we could know the size (in bytes) of the rendered JSON in advance, we could optimize the request further by setting the Content-Length header...
+			// The issue is that if the JSON payload is huge, this will use a lot of memory.
+			// => if we had a way to "guess" if the JSON will be small or not, we could decide to pre-render or not.
 
 			var cached = this.CachedBytes;
 			if (!cached.IsValid)

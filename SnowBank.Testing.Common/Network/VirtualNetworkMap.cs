@@ -28,6 +28,7 @@
 
 namespace SnowBank.Networking
 {
+	using System.ComponentModel;
 	using System.Net;
 	using System.Net.Http;
 	using System.Net.NetworkInformation;
@@ -55,6 +56,10 @@ namespace SnowBank.Networking
 
 		IVirtualNetworkHost? IVirtualNetworkMap.FindHost(string hostOrAddress) => FindHost(hostOrAddress);
 
+		/// <summary>Lookup the Virtual Host that correspond to the given hostname or IP address</summary>
+		/// <param name="hostOrAddress">Host name, or IP address of the host.</param>
+		/// <returns>Corresponding <see cref="VirtualNetworkTopology.SimulatedHost"/>, or <c>null</c> if no match was found.</returns>
+		/// <exception cref="InvalidOperationException">If there was no match for a hostname that ends with <c>".simulated"</c>, or an IP address in the range <c>83.73.77.0/24</c>.</exception>
 		public VirtualNetworkTopology.SimulatedHost? FindHost(string hostOrAddress)
 		{
 			if (IPAddress.TryParse(hostOrAddress, out var ip))
@@ -75,13 +80,12 @@ namespace SnowBank.Networking
 			if (!this.Topology.HostsByNameOrAddress.TryGetValue(hostOrAddress, out var hostId))
 			{
 #if DEBUG
-				// si ca ressemble a un host simulé et qu'il est inconnu... c'est probablement un oubli dans le setup du test!
+				// if this looks like a simulated host, and it does not match anything... it's very probable that this is either a typo, or the test setup forgot to register this host!
 				if (hostOrAddress.EndsWith(".simulated", StringComparison.OrdinalIgnoreCase) || hostOrAddress.StartsWith("83.73.77.", StringComparison.Ordinal))
 				{
 					if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
-					throw new InvalidOperationException($"You probably forget to register simulated device '{hostOrAddress}' during startup of the test!");
+					throw new InvalidOperationException($"You probably forgot to register simulated device '{hostOrAddress}' during startup of the test!");
 				}
-				// note: en release on retourne "null" donc ca sera considéré comme un "vrai" device
 #endif
 				return null;
 			}
@@ -95,6 +99,7 @@ namespace SnowBank.Networking
 		}
 
 		[Obsolete("Use CreateBetterHttpHandler instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public override HttpMessageHandler? CreateHttpHandler(string hostOrAddress, int port)
 		{
 			Contract.NotNullOrWhiteSpace(hostOrAddress);
@@ -129,7 +134,7 @@ namespace SnowBank.Networking
 					}
 				}
 
-				//TODO: check si les deux hosts veulent se parler quand meme!
+				//TODO: check if the two hosts can talk to each other!
 				var handler = host.FindHandler(remote, port);
 				if (handler != null)
 				{
@@ -137,7 +142,6 @@ namespace SnowBank.Networking
 				}
 
 				return VirtualDeadHttpClientHandler.SimulatePortNotBoundFailure($"Found no port {port} bound on location '{remote}' of target host '{host.Id}', visible from host '{this.Host.Id}'");
-				//TODO: BUGBUG: ici le failed handler doit simuler un "connection reset be remote host" (ie: il existe mais port pas bindé!)
 			}
 
 			if (IPAddress.TryParse(hostOrAddress, out var ip))
@@ -164,16 +168,16 @@ namespace SnowBank.Networking
 				}
 			}
 
-			// pour l'instant on fait du routage "direct"
+			// for now, we only support "direct" routing
 			foreach (var loc in target.Locations.Intersect(this.Host.Locations))
 			{
-				//TODO: check si les deux hosts veulent se parler quand meme!
+				//TODO: check if the two hosts can talk to each other!
 				return (loc, loc);
 			}
 
 			foreach (var loc in target.Locations)
 			{
-				// hackhack: on considère qu'un network cloud est accessible par tout le monde!
+				//HACKHACK: we assume that a "cloud" network is reachable by everyone!
 				if (loc.Type == VirtualNetworkType.Cloud) return (this.Host.Locations[0], loc);
 			}
 

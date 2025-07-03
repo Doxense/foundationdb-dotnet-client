@@ -28,6 +28,7 @@ namespace SnowBank.Networking.Http
 {
 	using Microsoft.Extensions.DependencyInjection;
 
+	/// <summary>Factory for creating <see cref="RestHttpProtocol"/> clients.</summary>
 	[PublicAPI]
 	public class RestHttpProtocolFactory : BetterHttpProtocolFactoryBase<RestHttpProtocol, RestHttpClientOptions>
 	{
@@ -40,10 +41,12 @@ namespace SnowBank.Networking.Http
 		}
 	}
 
+	/// <summary>Extension methods for registering the <see cref="RestHttpProtocol"/> with the DI</summary>
 	[PublicAPI]
 	public static class RestHttpProtocolFactoryExtensions
 	{
 
+		/// <summary>Adds supports for <see cref="RestHttpProtocolFactory"/> and <see cref="RestHttpProtocol"/> to the application</summary>
 		public static IServiceCollection AddRestHttpProtocol(this IServiceCollection services, Action<RestHttpClientOptions>? configure = null)
 		{
 			services.AddSingleton<RestHttpProtocolFactory>();

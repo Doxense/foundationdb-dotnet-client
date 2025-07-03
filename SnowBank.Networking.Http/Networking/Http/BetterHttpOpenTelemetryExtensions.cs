@@ -29,10 +29,11 @@ namespace OpenTelemetry.Trace
 	using SnowBank.Networking.Http;
 	using OpenTelemetry.Metrics;
 
+	[PublicAPI]
 	public static class BetterHttpOpenTelemetryExtensions
 	{
 
-		/// <summary>Enable instrumentation for all "core" features of the SDK</summary>
+		/// <summary>Enables instrumentation for all "core" features of the SDK</summary>
 		public static TracerProviderBuilder AddBetterHttpInstrumentation(this TracerProviderBuilder builder)
 		{
 			builder.AddSource([
@@ -42,7 +43,7 @@ namespace OpenTelemetry.Trace
 			return builder;
 		}
 
-		/// <summary>Enable instrumentation for all "core" features of the SDK</summary>
+		/// <summary>Enables instrumentation for all "core" features of the SDK</summary>
 		public static MeterProviderBuilder AddBetterHttpInstrumentation(this MeterProviderBuilder builder)
 		{
 			//TODO: add counters!

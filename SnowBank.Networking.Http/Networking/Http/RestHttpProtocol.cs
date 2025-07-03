@@ -26,9 +26,7 @@
 
 namespace SnowBank.Networking.Http
 {
-	using System.Text;
-
-	/// <summary>Generic HTTP protocol that exposes all HTTP verbes without any custom processing</summary>
+	/// <summary>Generic HTTP protocol that exposes all HTTP verbs without any custom processing</summary>
 	[PublicAPI]
 	public class RestHttpProtocol : IBetterHttpProtocol
 	{

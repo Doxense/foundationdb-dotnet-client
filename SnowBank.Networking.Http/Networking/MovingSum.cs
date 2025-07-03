@@ -26,24 +26,33 @@
 
 namespace SnowBank.Networking
 {
-	using System.Diagnostics.Contracts;
 	using System.Numerics;
 	using System.Runtime.CompilerServices;
 
+	/// <summary>Helper for computing a moving average of the last N samples for some metric</summary>
+	/// <typeparam name="T">Type of the samples</typeparam>
+	/// <remarks>This struct maintains the sum of the last N samples, which can then be used to compute the average</remarks>
 	[DebuggerDisplay("Total={Total}, Last={Last}, Count={Count}/{Data.Length}")]
 	public struct MovingSum<T> where T : IAdditionOperators<T, T, T>, ISubtractionOperators<T, T, T>
 	{
 
+		/// <summary>Constructs a <see cref="MovingSum{T}"/></summary>
+		/// <param name="length">Maximum number of samples stored</param>
 		public MovingSum(int length)
 		{
+			Contract.GreaterThan(length, 0);
 			this.Data = new T[length];
 			this.Count = 0;
 			this.Next = 0;
 			this.Total = default!;
 		}
 
+		/// <summary>Constructs a <see cref="MovingSum{T}"/> with an initial value.</summary>
+		/// <param name="length">Maximum number of samples stored</param>
+		/// <param name="initialValue">First measure value</param>
 		public MovingSum(int length, T initialValue)
 		{
+			Contract.GreaterThan(length, 0);
 			this.Data = new T[length];
 			this.Data[0] = initialValue;
 			this.Count = 1;
@@ -70,9 +79,14 @@ namespace SnowBank.Networking
 			get => this.Next != 0 ? this.Data[this.Next - 1] : this.Count != 0 ? this.Data[this.Count - 1] : default;
 		}
 
+		/// <summary>Reads the current moving sum and number of samples</summary>
+		/// <returns>Current sum and sample count</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (T? Total, int Samples) Read() => (this.Total, this.Count);
 
+		/// <summary>Adds a new sample</summary>
+		/// <param name="sample">Measured value</param>
+		/// <returns>Updated sum and sample count</returns>
 		public (T Total, int Samples) Add(T sample)
 		{
 			var data = this.Data;

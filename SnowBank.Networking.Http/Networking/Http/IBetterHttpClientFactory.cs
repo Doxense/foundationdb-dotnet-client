@@ -26,11 +26,22 @@
 
 namespace SnowBank.Networking.Http
 {
+
+	/// <summary>Type that can create <see cref="BetterHttpClient"/> instances with optional customization</summary>
 	public interface IBetterHttpClientFactory
 	{
 
+		/// <summary>Creates a new <see cref="HttpMessageHandler"/> that can be used to connect to the specified host</summary>
+		/// <param name="hostAddress">Host name or IP address of the remote target</param>
+		/// <param name="options">Custom options used to customize the handler</param>
+		/// <returns>Configured handler that will connect to the specified host</returns>
 		HttpMessageHandler CreateHttpHandler(Uri hostAddress, BetterHttpClientOptions options);
 
+		/// <summary>Creates a new <see cref="BetterHttpClient"/> that can be used to send requests to the specified host</summary>
+		/// <param name="hostAddress">Host name or IP address of the remote target</param>
+		/// <param name="options">Custom options used to customize the client</param>
+		/// <param name="handler">HTTP handler that should be used. If <c>null</c>, a new handler will be created and configured automatically.</param>
+		/// <returns>Configured client that will send requests to the specified host</returns>
 		BetterHttpClient CreateClient(Uri hostAddress, BetterHttpClientOptions options, HttpMessageHandler? handler = null);
 
 	}

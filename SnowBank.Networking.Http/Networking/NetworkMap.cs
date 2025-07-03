@@ -31,7 +31,7 @@ namespace SnowBank.Networking
 	using SnowBank.Networking.Http;
 
 	/// <summary>Implementation of an <see cref="INetworkMap"/> that interacts a real network</summary>
-	/// <remarks>This method will passthough all requests to the actual network stack of the host.</remarks>
+	/// <remarks>This method will pass-though all requests to the actual network stack of the host.</remarks>
 	[PublicAPI]
 	public class NetworkMap : INetworkMap
 	{
@@ -62,16 +62,16 @@ namespace SnowBank.Networking
 			return CreateDefaultHttpHandler(baseAddress, options);
 		}
 
-		[Obsolete("C'est charge a l'appelant de résolver l'IP")]
+		/// <inheritdoc />
 		public virtual async ValueTask<IPAddress?> GetPublicIPAddressForHost(string hostNameOrAddress)
 		{
-			//REVIEW: on a déterminé que c'est plutot a l'appelant de déterminer par lui-même l'adresse IP s'il a un hostname
-			// => le DNS peut ne pas resolver
-			// => en DHCP ca peut changer !
-			// => le device peut ne pas etre online au moment où on appele cette méthode!
-			// => le wifi peut passer sous un tunnel, etc...
+			//REVIEW: this method is somewhat problematic, because of the following reasons:
+			// => the DNS server may not be reachable, or may not be able to resolve the host name at this point in time
+			// => the remote host may have a short-lived DHCP lease, and may change IP address while the current process is running
+			// => the remote host may not be online when we call this method, and WINS or ARP-based resolution may fail
+			// => Wi-Fi/4G connection may be down (on the road/train, going through a tunnel, ...)
 
-			var hostEntry = await Dns.GetHostEntryAsync(hostNameOrAddress);
+			var hostEntry = await Dns.GetHostEntryAsync(hostNameOrAddress).ConfigureAwait(false);
 			if (hostEntry.AddressList.Length == 0)
 			{
 				return null;
@@ -125,8 +125,10 @@ namespace SnowBank.Networking
 		private readonly object Lock = new();
 #endif
 
+		/// <summary>Map that stores, for each endpoint that was recently used, the <see cref="EndPointQuality"/> metrics for the connection.</summary>
 		protected Dictionary<IPEndPoint, EndPointQuality> HeatMap { get; } = new(IPEndPointComparer.Default);
 
+		/// <summary>Map that stores, for each target host, the details about the most recent successful connection</summary>
 		protected Dictionary<string, (string HostName, IPEndPoint RemoteEndPoint, IPAddress? Local, Instant Timestamp)> LastEndPointMapping { get; } = new (StringComparer.Ordinal);
 
 		/// <inheritdoc />
@@ -168,22 +170,23 @@ namespace SnowBank.Networking
 		{
 			lock (this.Lock)
 			{
-				if (!this.LastEndPointMapping.TryGetValue(hostName, out var xx))
+				if (!this.LastEndPointMapping.TryGetValue(hostName, out var details))
 				{
 					infos = default;
 					return false;
 				}
 
-				infos = (xx.RemoteEndPoint, xx.Local, xx.Timestamp);
+				infos = (details.RemoteEndPoint, details.Local, details.Timestamp);
 				return true;
 			}
 		}
 
+		/// <summary>Tests if a <see cref="NetworkInterface"/> is operational and supports IPv4</summary>
 		public bool IsValidNetworkInterface(NetworkInterface net)
 		{
 			if (net.NetworkInterfaceType == NetworkInterfaceType.Loopback)
 			{
-				//REVIEW: on ne retourne pas localhost car en prod ca n'a pas de sens... mais en mode dev peut etre ?
+				//REVIEW: in prod we don't report loopback adapters as valid "public" networks, but this may be required in dev mode when using Aspire, where all hosts use 127.0.0.1?
 				return false;
 			}
 
@@ -202,6 +205,7 @@ namespace SnowBank.Networking
 
 	}
 
+	/// <summary>Details about the "quality" of a connection between this host, and a remote endpoint</summary>
 	[DebuggerDisplay("EndPoint={EndPoint}, Score={Score}, Total={TotalConnections}, Errors={TotalErrors}")]
 	[PublicAPI]
 	public sealed class EndPointQuality
@@ -217,6 +221,7 @@ namespace SnowBank.Networking
 			this.MovingErrors = new MovingSum<double>(historySize);
 		}
 
+		/// <summary>Remote endpoint</summary>
 		public IPEndPoint EndPoint { get; }
 
 		/// <summary>Last computed score for this endpoint (lower == better)</summary>
@@ -250,8 +255,8 @@ namespace SnowBank.Networking
 		/// <summary>Last hostname that resolved to this endpoint</summary>
 		public string? LastHostName { get; private set; }
 
-		/// <summary>Computes a score that attempts to quantify the likelyhood that is endpoint will be available and responsive, at the given time (lower == better)</summary>
-		/// <param name="now">Time of the computation (may be in the future)</param>
+		/// <summary>Computes a score that attempts to quantify the likelihood that is endpoint will be available and responsive, at the given time (lower == better)</summary>
+		/// <param name="now">Moment in time when the connection attempt will be made (which could either right now, or sometime in the future once a retry cooldown expires)</param>
 		/// <returns>Score that is lower if the host is expected to be reachable and fast, or higher if it is less likely (failed to resolve or timed out in the recent past)</returns>
 		public double ComputeScore(Instant now)
 		{
@@ -283,7 +288,7 @@ namespace SnowBank.Networking
 		public bool LastFailed => this.MovingDuration.Last > 0.0;
 
 		/// <summary>Records a new connection attempt</summary>
-		/// <param name="now">Time of the attempt (usually the when the connection was established, or the timeout expired)</param>
+		/// <param name="now">Time of the attempt (usually when the connection was established, or the timeout expired)</param>
 		/// <param name="duration">Duration of the connection attempt</param>
 		/// <param name="error">Exception recorded if the attempt failed</param>
 		/// <param name="hostName">Host name or ip address used for the connection attempt</param>
@@ -297,7 +302,7 @@ namespace SnowBank.Networking
 				this.TotalErrors++;
 			}
 
-			var deltaError = error == null ? 0.0 : 1.0; //TODO: ajouter des scores plus graves suivant le type d'erreur?
+			var deltaError = error == null ? 0.0 : 1.0; //TODO: change the malus depending on the type and gravity of errors?
 			var movingError = this.MovingErrors.Add(deltaError);
 			var deltaDuration = duration.Ticks;
 			var movingDuration = this.MovingDuration.Add(deltaDuration);
@@ -306,7 +311,7 @@ namespace SnowBank.Networking
 			if (error != null)
 			{
 				this.LastError = error;
-				this.Cooldown = now.Plus(Duration.FromMinutes(2)); //TODO: ajouter un cooldown différent suivant le type d'erreur?
+				this.Cooldown = now.Plus(Duration.FromMinutes(2)); //TODO: use a different cooldown time depending on the type and gravity of errors?
 			}
 			else
 			{

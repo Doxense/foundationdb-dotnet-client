@@ -28,8 +28,11 @@ namespace SnowBank.Networking.Http
 {
 	using Microsoft.Net.Http.Headers;
 
+	/// <summary>Custom <see cref="DelegatingHandler"/> that adds cookies to the request</summary>
 	public class CookieContainerMessageHandler : DelegatingHandler
 	{
+
+		/// <summary>Container used to store the cookies for this session</summary>
 		public CookieContainer Cookies { get; }
 
 		public CookieContainerMessageHandler(CookieContainer cookies, HttpMessageHandler next)
@@ -38,6 +41,7 @@ namespace SnowBank.Networking.Http
 			this.Cookies = cookies;
 		}
 
+		/// <inheritdoc />
 		protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
 		{
 			var value = this.Cookies.GetCookieHeader(request.RequestUri!);
@@ -46,7 +50,7 @@ namespace SnowBank.Networking.Http
 				request.Headers.Add(HeaderNames.Cookie, value);
 			}
 
-			var res = await base.SendAsync(request, cancellationToken);
+			var res = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
 			if (res.Headers.TryGetValues(HeaderNames.SetCookie, out var values))
 			{

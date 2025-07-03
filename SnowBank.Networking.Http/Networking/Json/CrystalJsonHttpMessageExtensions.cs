@@ -27,10 +27,19 @@
 namespace SnowBank.SDK.AspNetCore.Common.Json
 {
 
+	/// <summary>Extension methods for working with <see cref="HttpClient"/></summary>
 	[PublicAPI]
 	public static class CrystalJsonHttpMessageExtensions
 	{
 
+		/// <summary>Sends a POST request with a value encoded as JSON bytes</summary>
+		/// <typeparam name="TValue">Type of the value</typeparam>
+		/// <param name="client">HTTP Client</param>
+		/// <param name="requestUri">URI of the request</param>
+		/// <param name="value">Value that will be encoded as JSON</param>
+		/// <param name="options">JSON serialization settings. Uses <see cref="CrystalJsonSettings.Json"/> by default.</param>
+		/// <param name="cancellationToken">Token used to cancel the request.</param>
+		/// <returns>The task object representing the asynchronous operation.</returns>
 		public static Task<HttpResponseMessage> PostAsCrystalJsonAsync<TValue>(this HttpClient client, string? requestUri, TValue value, CrystalJsonSettings? options = null, CancellationToken cancellationToken = default)
 		{
 			Contract.NotNull(client);
@@ -39,6 +48,13 @@ namespace SnowBank.SDK.AspNetCore.Common.Json
 			return client.PostAsync(requestUri, content, cancellationToken);
 		}
 
+		/// <summary>Sends a POST request with a value encoded as JSON bytes</summary>
+		/// <param name="client">HTTP Client</param>
+		/// <param name="requestUri">URI of the request</param>
+		/// <param name="value">Value that will be encoded as JSON</param>
+		/// <param name="options">JSON serialization settings. Uses <see cref="CrystalJsonSettings.Json"/> by default.</param>
+		/// <param name="cancellationToken">Token used to cancel the request.</param>
+		/// <returns>The task object representing the asynchronous operation.</returns>
 		public static Task<HttpResponseMessage> PostAsCrystalJsonAsync(this HttpClient client, string? requestUri, JsonValue value, CrystalJsonSettings? options = null, CancellationToken cancellationToken = default)
 		{
 			Contract.NotNull(client);
@@ -47,6 +63,14 @@ namespace SnowBank.SDK.AspNetCore.Common.Json
 			return client.PostAsync(requestUri, content, cancellationToken);
 		}
 
+		/// <summary>Sends a POST request with a value encoded as JSON bytes</summary>
+		/// <typeparam name="TValue">Type of the value</typeparam>
+		/// <param name="client">HTTP Client</param>
+		/// <param name="requestUri">URI of the request</param>
+		/// <param name="value">Value that will be encoded as JSON</param>
+		/// <param name="options">JSON serialization settings. Uses <see cref="CrystalJsonSettings.Json"/> by default.</param>
+		/// <param name="cancellationToken">Token used to cancel the request.</param>
+		/// <returns>The task object representing the asynchronous operation.</returns>
 		public static Task<HttpResponseMessage> PostAsCrystalJsonAsync<TValue>(this HttpClient client, Uri? requestUri, TValue value, CrystalJsonSettings? options = null, CancellationToken cancellationToken = default)
 		{
 			Contract.NotNull(client);
@@ -55,6 +79,13 @@ namespace SnowBank.SDK.AspNetCore.Common.Json
 			return client.PostAsync(requestUri, content, cancellationToken);
 		}
 
+		/// <summary>Sends a POST request with a value encoded as JSON bytes</summary>
+		/// <param name="client">HTTP Client</param>
+		/// <param name="requestUri">URI of the request</param>
+		/// <param name="value">Value that will be encoded as JSON</param>
+		/// <param name="options">JSON serialization settings. Uses <see cref="CrystalJsonSettings.Json"/> by default.</param>
+		/// <param name="cancellationToken">Token used to cancel the request.</param>
+		/// <returns>The task object representing the asynchronous operation.</returns>
 		public static Task<HttpResponseMessage> PostAsCrystalJsonAsync(this HttpClient client, Uri? requestUri, JsonValue value, CrystalJsonSettings? options = null, CancellationToken cancellationToken = default)
 		{
 			Contract.NotNull(client);
@@ -63,15 +94,41 @@ namespace SnowBank.SDK.AspNetCore.Common.Json
 			return client.PostAsync(requestUri, content, cancellationToken);
 		}
 
+		/// <summary>Sends a POST request with a value encoded as JSON bytes</summary>
+		/// <typeparam name="TValue">Type of the value</typeparam>
+		/// <param name="client">HTTP Client</param>
+		/// <param name="requestUri">URI of the request</param>
+		/// <param name="value">Value that will be encoded as JSON</param>
+		/// <param name="cancellationToken">Token used to cancel the request.</param>
+		/// <returns>The task object representing the asynchronous operation.</returns>
 		public static Task<HttpResponseMessage> PostAsCrystalJsonAsync<TValue>(this HttpClient client, string? requestUri, TValue value, CancellationToken cancellationToken)
 			=> client.PostAsCrystalJsonAsync(requestUri, value, options: null, cancellationToken);
 
+		/// <summary>Sends a POST request with a value encoded as JSON bytes</summary>
+		/// <param name="client">HTTP Client</param>
+		/// <param name="requestUri">URI of the request</param>
+		/// <param name="value">Value that will be encoded as JSON</param>
+		/// <param name="cancellationToken">Token used to cancel the request.</param>
+		/// <returns>The task object representing the asynchronous operation.</returns>
 		public static Task<HttpResponseMessage> PostAsCrystalJsonAsync(this HttpClient client, string? requestUri, JsonValue value, CancellationToken cancellationToken)
 			=> client.PostAsCrystalJsonAsync(requestUri, value, options: null, cancellationToken);
 
+		/// <summary>Sends a POST request with a value encoded as JSON bytes</summary>
+		/// <typeparam name="TValue">Type of the value</typeparam>
+		/// <param name="client">HTTP Client</param>
+		/// <param name="requestUri">URI of the request</param>
+		/// <param name="value">Value that will be encoded as JSON</param>
+		/// <param name="cancellationToken">Token used to cancel the request.</param>
+		/// <returns>The task object representing the asynchronous operation.</returns>
 		public static Task<HttpResponseMessage> PostAsCrystalJsonAsync<TValue>(this HttpClient client, Uri? requestUri, TValue value, CancellationToken cancellationToken)
 			=> client.PostAsCrystalJsonAsync(requestUri, value, options: null, cancellationToken);
 
+		/// <summary>Sends a POST request with a value encoded as JSON bytes</summary>
+		/// <param name="client">HTTP Client</param>
+		/// <param name="requestUri">URI of the request</param>
+		/// <param name="value">Value that will be encoded as JSON</param>
+		/// <param name="cancellationToken">Token used to cancel the request.</param>
+		/// <returns>The task object representing the asynchronous operation.</returns>
 		public static Task<HttpResponseMessage> PostAsCrystalJsonAsync(this HttpClient client, Uri? requestUri, JsonValue value, CancellationToken cancellationToken)
 			=> client.PostAsCrystalJsonAsync(requestUri, value, options: null, cancellationToken);
 

@@ -28,45 +28,69 @@ namespace SnowBank.Networking.Http
 {
 	using System.Net.Sockets;
 
+	/// <summary>Set of hooks that can be called during the execution of an HTTP request</summary>
 	public interface IBetterHttpHooks
 	{
 
+		/// <summary>The stage in the processing pipeline has changed</summary>
 		void OnStageChanged(BetterHttpClientContext context, BetterHttpClientStage stage);
 
+		/// <summary>An error occurred during the execution of the query</summary>
 		void OnError(BetterHttpClientContext context, Exception error);
 
+		/// <summary>A filter failed during the execution of the query</summary>
 		bool OnFilterError(BetterHttpClientContext context, Exception error);
 
+		/// <summary>The query has been configured</summary>
 		void OnConfigured(BetterHttpClientContext context);
 
+		/// <summary>The request message has been prepared</summary>
 		void OnRequestPrepared(BetterHttpClientContext context);
 
+		/// <summary>The request message has been sent to the server</summary>
 		void OnRequestCompleted(BetterHttpClientContext context);
 
+		/// <summary>The response message has been received, but not yet processed</summary>
 		void OnPrepareResponse(BetterHttpClientContext context);
 
+		/// <summary>The response message has been processed</summary>
 		void OnCompleteResponse(BetterHttpClientContext context);
 
+		/// <summary>The execution of the query has completed</summary>
 		void OnFinalizeQuery(BetterHttpClientContext context);
 
+		/// <summary>A socket connection was established with the remote server</summary>
 		void OnSocketConnected(BetterHttpClientContext context, Socket socket);
 
+		/// <summary>A socket connection attempt has failed</summary>
 		void OnSocketFailed(BetterHttpClientContext context, Socket socket, Exception error);
 
 	}
 
+	/// <summary>Stage in the execution of the query pipeline.</summary>
 	public enum BetterHttpClientStage
 	{
+		/// <summary>The query has completed</summary>
 		Completed = -1,
+		/// <summary>The query is being prepared</summary>
 		Prepare = 0,
+		/// <summary>The query is being configured.</summary>
 		Configure,
+		/// <summary>The query is being sent.</summary>
 		Send,
+		/// <summary>The client is connecting to the remote server.</summary>
 		Connecting,
+		/// <summary>The Request message is being prepared for sending</summary>
 		PrepareRequest,
+		/// <summary>The Request message has been sent</summary>
 		CompleteRequest,
+		/// <summary>The Response message is being prepared for processing.</summary>
 		PrepareResponse,
+		/// <summary>The Response message is being processed.</summary>
 		HandleResponse,
+		/// <summary>The Response message has been processed.</summary>
 		CompleteResponse,
+		/// <summary>The Query is being finalized.</summary>
 		Finalize,
 	}
 

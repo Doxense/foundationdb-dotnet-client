@@ -27,8 +27,6 @@
 namespace SnowBank.Networking.Http
 {
 	using System.Net.Http.Headers;
-	using SnowBank.Buffers;
-	using SnowBank.Linq;
 
 	/// <summary>Helper to configure default headers for <see cref="BetterHttpClient">HTTP clients</see></summary>
 	[PublicAPI]
@@ -141,30 +139,41 @@ namespace SnowBank.Networking.Http
 
 		public string this[string name]
 		{
-			set { Add(name, value); }
+			// not getter!
+			set => Add(name, value);
 		}
 
+		/// <summary>Value of the <c>Accept</c> HTTP header</summary>
 		public IList<MediaTypeWithQualityHeaderValue>? Accept { get; set; }
 
+		/// <summary>Value of the <c>Accept-Charset</c> HTTP header</summary>
 		public IList<StringWithQualityHeaderValue>? AcceptCharset { get; set; }
 
+		/// <summary>Value of the <c>Accept-Encoding</c> HTTP header</summary>
 		public IList<StringWithQualityHeaderValue>? AcceptEncoding { get; set; }
 
+		/// <summary>Value of the <c>Accept-Language</c> HTTP header</summary>
 		public IList<StringWithQualityHeaderValue>? AcceptLanguage { get; set; }
 
 		public AuthenticationHeaderValue? Authorization { get; set; }
 
+		/// <summary>Value of the <c>Cache-Control</c> HTTP header</summary>
 		public CacheControlHeaderValue? CacheControl { get; set; }
 
+		/// <summary>Value of the <c>Connection-Close</c> HTTP header</summary>
 		public bool? ConnectionClose { get; set; }
 
+		/// <summary>Value of the <c>User-Agent</c> HTTP header</summary>
 		public IList<ProductInfoHeaderValue>? UserAgent { get; set; }
 
+		/// <summary>Value of the <c>Via</c> HTTP header</summary>
 		public IList<ViaHeaderValue>? Via { get; set; }
 
-		public Dictionary<string, List<string>> Extra { get; set; } = new(StringComparer.Ordinal); //REVIEW: should this be OrdinalIgnoreCase?
-
+		/// <summary>Value of the <c>Referer</c> HTTP header</summary>
 		public Uri? Referrer { get; set; }
+
+		/// <summary>Values of the other HTTP headers that are not exposed via their own property</summary>
+		public Dictionary<string, List<string>> Extra { get; set; } = new(StringComparer.Ordinal); //REVIEW: should this be OrdinalIgnoreCase?
 
 		private static void AddRange<TValue>(IList<TValue> items, HttpHeaderValueCollection<TValue> collection)
 			where TValue : class
@@ -172,6 +181,8 @@ namespace SnowBank.Networking.Http
 			foreach(var item in items) collection.Add(item);
 		}
 
+		/// <summary>Apply the headers of a request onto this instance</summary>
+		/// <param name="headers">Headers to use as source</param>
 		public void Apply(HttpRequestHeaders headers)
 		{
 			if (this.Accept != null) AddRange(this.Accept, headers.Accept);

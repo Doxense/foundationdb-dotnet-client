@@ -72,16 +72,22 @@ namespace SnowBank.Networking.Http
 		/// <summary>Specifies the proxy information used by the client.</summary>
 		public IWebProxy? Proxy { get; set; }
 
+		/// <summary>Default credentials used to authenticate against a proxy.</summary>
 		public ICredentials? DefaultProxyCredentials { get; set; }
 
+		/// <summary>Callback used to validate the certificate presented by the remote server</summary>
 		public Func<HttpRequestMessage, X509Certificate2?, X509Chain?, SslPolicyErrors, bool>? ServerCertificateCustomValidationCallback { get; set; }
 
+		/// <summary>Options used to configure the certificate that this client will provide when asked to authenticate by the remote server</summary>
 		public ClientCertificateOption? ClientCertificateOptions { get; set; }
 
+		/// <summary>Specifies whether the remote server certificate should be checked with the local revocation list</summary>
 		public bool? CheckCertificateRevocationList { get; set; }
 
-		public SslProtocols? SslProtocols { get; set; } //REVIEW: est-ce qu'on force un meilleur défaut?
+		/// <summary>Specifies the <see cref="SslProtocols"/> supported by this client.</summary>
+		public SslProtocols? SslProtocols { get; set; }
 
+		/// <summary>Specifies a custom collection for the certificates used by this client to authenticate with the remote server</summary>
 		public X509CertificateCollection? ClientCertificates { get; set; }
 
 		[Obsolete("This is dangerous! Please acknowledge this by using a #pragma to disable this warning.")]
@@ -168,9 +174,13 @@ namespace SnowBank.Networking.Http
 			return handler;
 		}
 
+		/// <summary>Apply these options to a new <see cref="HttpMessageHandler"/></summary>
+		/// <param name="handler">Handler that will be configured</param>
+		/// <returns>Configured handler. This could be a different instance that wraps the original handler</returns>
+		[MustUseReturnValue]
 		public HttpMessageHandler Configure(HttpMessageHandler handler)
 		{
-			Contract.Debug.Requires(handler != null);
+			Contract.NotNull(handler);
 
 			if (handler is BetterHttpClientHandler betterHandler)
 			{

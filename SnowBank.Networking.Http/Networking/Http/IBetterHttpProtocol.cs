@@ -27,6 +27,7 @@
 namespace SnowBank.Networking.Http
 {
 
+	/// <summary>Type that provides an API surface that is specific to a given Protocol</summary>
 	public interface IBetterHttpProtocol : IDisposable
 	{
 

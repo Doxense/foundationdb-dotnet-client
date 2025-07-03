@@ -26,17 +26,19 @@
 
 namespace SnowBank.Networking.Http
 {
-	using System.Text;
 
+	/// <summary>Extension methods for deserializing HTTP response bodies into JSON</summary>
+	[PublicAPI]
 	public static class CrystalJsonContentExtensions
 	{
-		#region Reading...
 
+		/// <summary>Reads the body of the response as a JSON Object</summary>
 		public static Task<JsonObject?> ReadFromCrystalJsonObjectAsync(this HttpContent content, CancellationToken ct)
 		{
 			return ReadFromCrystalJsonObjectAsync(content, null, ct);
 		}
 
+		/// <summary>Reads the body of the response as a JSON Object</summary>
 		public static Task<JsonObject?> ReadFromCrystalJsonObjectAsync(this HttpContent content, CrystalJsonSettings? settings, CancellationToken ct)
 		{
 			Contract.NotNull(content);
@@ -47,6 +49,7 @@ namespace SnowBank.Networking.Http
 			return ReadFromJsonObjectAsyncCore(content, sourceEncoding, settings, ct);
 		}
 
+		/// <summary>Reads the body of the response as a JSON Object</summary>
 		private static async Task<JsonObject?> ReadFromJsonObjectAsyncCore(HttpContent content, Encoding? sourceEncoding, CrystalJsonSettings? settings, CancellationToken ct)
 		{
 			var bytes  = await content.ReadAsByteArrayAsync(ct).ConfigureAwait(false);
@@ -54,11 +57,13 @@ namespace SnowBank.Networking.Http
 			return CrystalJson.Parse(bytes.AsSlice(), settings).AsObject();
 		}
 
+		/// <summary>Reads the body of the response as a JSON value, converted into an instance of type <typeparamref name="T"/></summary>
 		public static Task<T?> ReadFromCrystalJsonAsync<T>(this HttpContent content, CancellationToken ct)
 		{
 			return ReadFromCrystalJsonAsync<T>(content, null, null, ct);
 		}
 
+		/// <summary>Reads the body of the response as a JSON value, converted into an instance of type <typeparamref name="T"/></summary>
 		public static Task<T?> ReadFromCrystalJsonAsync<T>(this HttpContent content, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, CancellationToken ct)
 		{
 			Contract.NotNull(content);
@@ -69,6 +74,7 @@ namespace SnowBank.Networking.Http
 			return ReadFromJsonAsyncCore<T>(content, sourceEncoding, settings, resolver, ct);
 		}
 
+		/// <summary>Reads the body of the response as a JSON value, converted into an instance of type <typeparamref name="T"/></summary>
 		private static async Task<T?> ReadFromJsonAsyncCore<T>(HttpContent content, Encoding? sourceEncoding, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver, CancellationToken ct)
 		{
 			var bytes  = await content.ReadAsByteArrayAsync(ct).ConfigureAwait(false);
@@ -76,7 +82,6 @@ namespace SnowBank.Networking.Http
 			return CrystalJson.Deserialize(bytes.AsSlice(), default(T), settings, resolver);
 		}
 
-		#endregion
 	}
 
 }

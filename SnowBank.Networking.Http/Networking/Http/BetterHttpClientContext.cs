@@ -27,19 +27,18 @@
 namespace SnowBank.Networking.Http
 {
 	using System.Diagnostics.CodeAnalysis;
+	using System.Globalization;
 	using System.IO;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.ExceptionServices;
 	using System.Xml.Linq;
 	using Microsoft.IO;
-	using OpenTelemetry.Trace;
 
 	/// <summary>Represents the context of an HTTP request being executed</summary>
 	[DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
 	public class BetterHttpClientContext
 	{
-
 
 		/// <summary>Instance of the <see cref="BetterHttpClient">client</see> executing this request</summary>
 		public required BetterHttpClient Client { get; init; }
@@ -50,16 +49,19 @@ namespace SnowBank.Networking.Http
 		/// <summary>Cancellation token attached to the lifetime of this request</summary>
 		public CancellationToken Cancellation { get; init; }
 
+		/// <summary>Current stage in the execution pipeline</summary>
 		public BetterHttpClientStage Stage { get; private set; }
 
+		/// <summary>If non-null, the stage at which the request failed.</summary>
 		public BetterHttpClientStage? FailedStage { get; internal set; }
 
 		/// <summary>Bag of items that will be available throughout the lifetime of the request</summary>
 		public required Dictionary<string, object?> State { get; init; }
 
-		/// <summary>Request that will be send to the remote HTTP server</summary>
+		/// <summary>Request that will be sent to the remote HTTP server</summary>
 		public required HttpRequestMessage Request { get; init; }
 
+		/// <summary>Original response object, before it was intercepted.</summary>
 		internal HttpResponseMessage? OriginalResponse { get; set; }
 
 		/// <summary>Response that was received from the remote HTTP server</summary>
@@ -70,18 +72,19 @@ namespace SnowBank.Networking.Http
 		}
 
 		[MethodImpl(MethodImplOptions.NoInlining)]
-		private HttpResponseMessage FailErrorNotAvailable() => throw new InvalidOperationException("The response message is not available.");
+		private static HttpResponseMessage FailErrorNotAvailable() => throw new InvalidOperationException("The response message is not available.");
 
 		/// <summary>Box that captured any error that happened during the processing of the request</summary>
 		public ExceptionDispatchInfo? Error { get; internal set; }
 
+		/// <summary>Changes the current stage in the execution pipeline</summary>
 		internal void SetStage(BetterHttpClientStage stage)
 		{
 			this.Stage = stage;
 			this.Client.Options.Hooks?.OnStageChanged(this, stage);
 		}
 
-		/// <summary>Set (or clear) an item in the <see cref="State"/> dictionary</summary>
+		/// <summary>Sets (or clear) an item in the <see cref="State"/> dictionary</summary>
 		/// <typeparam name="TState"></typeparam>
 		/// <param name="key">Key of the item</param>
 		/// <param name="state">New value for this item. If null, the item is removed</param>
@@ -98,7 +101,7 @@ namespace SnowBank.Networking.Http
 			}
 		}
 
-		/// <summary>Try to get back an item that was previously stored in the <see cref="State"/> dictionary</summary>
+		/// <summary>Reads an item that was previously stored in the <see cref="State"/> dictionary</summary>
 		public bool TryGetState<TState>(string key, [MaybeNullWhen(false)] out TState state)
 		{
 			Contract.Debug.Requires(key != null);
@@ -112,6 +115,7 @@ namespace SnowBank.Networking.Http
 			return true;
 		}
 
+		/// <summary>Throws an exception if the <see cref="IsSuccessStatusCode"/> property for the HTTP response is false.</summary>
 		public void EnsureSuccessStatusCode()
 		{
 			this.Response.EnsureSuccessStatusCode();
@@ -120,30 +124,35 @@ namespace SnowBank.Networking.Http
 		/// <summary>Gets a value that indicates if the response was successful</summary>
 		public bool IsSuccessStatusCode => this.OriginalResponse?.IsSuccessStatusCode ?? false;
 
-		/// <summary>Read the response body as a string</summary>
+		/// <summary>Reads the response body as a string</summary>
 		public Task<string> ReadAsStringAsync()
 		{
 			return this.Response.Content.ReadAsStringAsync(this.Cancellation);
 		}
 
-		/// <summary>Return a stream that can be used to read the response body</summary>
+		/// <summary>Returns a stream that can be used to read the response body</summary>
 		public Task<Stream> ReadAsStreamAsync()
 		{
 			return this.Response.Content.ReadAsStreamAsync(this.Cancellation);
 		}
 
-		/// <summary>Copy the response body into the provided stream</summary>
+		/// <summary>Copies the response body into the provided stream</summary>
 		public Task CopyToAsync(Stream stream)
 		{
 			return this.Response.Content.CopyToAsync(stream, this.Cancellation);
 		}
 
-		#region Helpers...
+		#region JSON Helpers...
 
-		//REVIEW: c'est trop fragile comme méthode!!
+		/// <summary>Guesses if the response body is <i>likely</i> to be a JSON document</summary>
+		/// <returns><c>true</c> if there is a high probability that the body contains a JSON document</returns>
+		/// <remarks>
+		/// <para>Since we cannot inspect the whole response BODY (which may not have been received yet), this method can only guess by looking at the <c>Content-Type</c> header, and so may return either false-positives, or false-negatives.</para>
+		/// <para>This should only be used by error handling logic that could decide whether to parse the body or not, looking for additional details.</para>
+		/// </remarks>
 		public bool IsLikelyJson()
 		{
-			//TODO: meilleur heuristique! Problème: on a pas le body en mémoire donc c'est difficile d'inspecter le body !
+			//TODO: a better heuristic? The issue is that we may not have received the whole body yet, so we can inspect it until the end to match the '}' or ']' !
 			if (this.OriginalResponse == null) return false;
 			if (this.Response.Content.Headers.ContentType?.MediaType == "application/json")
 			{
@@ -153,8 +162,9 @@ namespace SnowBank.Networking.Http
 			return false;
 		}
 
-		private static readonly RecyclableMemoryStreamManager DefaultPool = new RecyclableMemoryStreamManager();
+		private static readonly RecyclableMemoryStreamManager DefaultPool = new();
 
+		/// <summary>Reads the response body as a JSON value</summary>
 		public async Task<JsonValue> ReadAsJsonAsync(CrystalJsonSettings? settings = null)
 		{
 			this.Cancellation.ThrowIfCancellationRequested();
@@ -162,7 +172,7 @@ namespace SnowBank.Networking.Http
 
 			try
 			{
-				//BUGBUG: PERF: tant qu'on n'a pas de read async json, on est obligé de buffer dans un MemoryStream!!
+				//BUGBUG: PERF: until we have async JSON parsing, we have to buffer everything to memory
 				using (var ms = DefaultPool.GetStream())
 				{
 					await this.CopyToAsync(ms).ConfigureAwait(false);
@@ -177,6 +187,7 @@ namespace SnowBank.Networking.Http
 			}
 		}
 
+		/// <summary>Reads the response body as a JSON Object</summary>
 		public async Task<JsonObject?> ReadAsJsonObjectAsync(CrystalJsonSettings? settings = null)
 		{
 			this.Cancellation.ThrowIfCancellationRequested();
@@ -184,7 +195,7 @@ namespace SnowBank.Networking.Http
 
 			try
 			{
-				//BUGBUG: PERF: tant qu'on n'a pas de read async json, on est obligé de buffer dans un MemoryStream!!
+				//BUGBUG: PERF: until we have async JSON parsing, we have to buffer everything to memory
 				using (var ms = DefaultPool.GetStream())
 				{
 					await CopyToAsync(ms).ConfigureAwait(false);
@@ -200,6 +211,7 @@ namespace SnowBank.Networking.Http
 			}
 		}
 
+		/// <summary>Reads the response body as a JSON Array</summary>
 		public async Task<JsonArray?> ReadAsJsonArrayAsync(CrystalJsonSettings? settings = null)
 		{
 			this.Cancellation.ThrowIfCancellationRequested();
@@ -207,7 +219,7 @@ namespace SnowBank.Networking.Http
 
 			try
 			{
-				//BUGBUG: PERF: tant qu'on n'a pas de read async json, on est obligé de buffer dans un MemoryStream!!
+				//BUGBUG: PERF: until we have async JSON parsing, we have to buffer everything to memory
 				using (var ms = DefaultPool.GetStream())
 				{
 					await CopyToAsync(ms).ConfigureAwait(false);
@@ -222,6 +234,7 @@ namespace SnowBank.Networking.Http
 			}
 		}
 
+		/// <summary>Reads the response body as a JSON document, and converts the result into an instance of type <typeparamref name="TResult"/></summary>
 		public async Task<TResult?> ReadAsJsonAsync<TResult>(CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 		{
 			this.Cancellation.ThrowIfCancellationRequested();
@@ -229,7 +242,7 @@ namespace SnowBank.Networking.Http
 
 			try
 			{
-				//BUGBUG: PERF: tant qu'on n'a pas de read async json, on est obligé de buffer dans un MemoryStream!!
+				//BUGBUG: PERF: until we have async JSON parsing, we have to buffer everything to memory
 				using (var ms = DefaultPool.GetStream())
 				{
 					await CopyToAsync(ms).ConfigureAwait(false);
@@ -248,9 +261,15 @@ namespace SnowBank.Networking.Http
 
 		#region XML Helpers...
 
+		/// <summary>Guesses if the response body is <i>likely</i> to be an XML document</summary>
+		/// <returns><c>true</c> if there is a high probability that the body contains an XML document</returns>
+		/// <remarks>
+		/// <para>Since we cannot inspect the whole response BODY (which may not have been received yet), this method can only guess by looking at the <c>Content-Type</c> header, and so may return either false-positives, or false-negatives.</para>
+		/// <para>This should only be used by error handling logic that could decide whether to parse the body or not, looking for additional details.</para>
+		/// </remarks>
 		public bool IsLikelyXml()
 		{
-			//TODO: meilleur heuristique! Problème: on a pas le body en mémoire donc c'est difficile d'inspecter le body !
+			//TODO: a better heuristic? The issue is that we may not have received the whole body yet, so we can inspect it until the end to match the closing tag !
 			if (this.OriginalResponse == null) return false;
 			if (this.Response.Content.Headers.ContentType?.MediaType == "text/xml")
 			{
@@ -259,6 +278,7 @@ namespace SnowBank.Networking.Http
 			return false;
 		}
 
+		/// <summary>Reads the response body as an XML document</summary>
 		public async Task<XDocument?> ReadAsXmlAsync(LoadOptions options = LoadOptions.None)
 		{
 			this.Cancellation.ThrowIfCancellationRequested();
@@ -283,7 +303,7 @@ namespace SnowBank.Networking.Http
 
 		public override string ToString()
 		{
-			return $"{this.Request.Method} {this.Request.RequestUri} => {(this.OriginalResponse != null ? $"{(int) this.Response.StatusCode} {this.Response.ReasonPhrase}" : "<no response>")}";
+			return string.Create(CultureInfo.InvariantCulture, $"{this.Request.Method} {this.Request.RequestUri} => {(this.OriginalResponse != null ? $"{(int) this.Response.StatusCode} {this.Response.ReasonPhrase}" : "<no response>")}");
 		}
 
 	}

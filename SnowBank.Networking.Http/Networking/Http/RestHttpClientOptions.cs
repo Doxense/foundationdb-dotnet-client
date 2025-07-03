@@ -27,6 +27,7 @@
 namespace SnowBank.Networking.Http
 {
 
+	/// <summary>Options used to configure a <see cref="RestHttpProtocol"/> client</summary>
 	public record RestHttpClientOptions : BetterHttpClientOptions
 	{
 

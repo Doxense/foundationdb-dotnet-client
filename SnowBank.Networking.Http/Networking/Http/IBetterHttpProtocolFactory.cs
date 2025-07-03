@@ -26,13 +26,24 @@
 
 namespace SnowBank.Networking.Http
 {
+
+	/// <summary>Type that can create and configure <see cref="IBetterHttpProtocol"/> clients</summary>
+	/// <typeparam name="TProtocol">Type of the <see cref="IBetterHttpProtocol"/></typeparam>
+	/// <typeparam name="TOptions">Type of the options used to configure the client</typeparam>
 	public interface IBetterHttpProtocolFactory<out TProtocol, out TOptions>
 		where TProtocol : IBetterHttpProtocol
 		where TOptions : BetterHttpClientOptions
 	{
 
+		/// <summary>Creates a new client for sending requests to a remote target</summary>
+		/// <param name="baseAddress">Host name or IP address of the remote target</param>
+		/// <param name="configure">Handler used to further configure the client options</param>
 		TProtocol CreateClient(Uri baseAddress, Action<TOptions>? configure = null);
 
+		/// <summary>Creates a new client for sending requests to a remote target</summary>
+		/// <param name="baseAddress">Host name or IP address of the remote target</param>
+		/// <param name="handler">Custom HTTP handler that will be used to send queries to the target</param>
+		/// <param name="configure">Handler used to further configure the client options</param>
 		TProtocol CreateClient(Uri baseAddress, HttpMessageHandler handler, Action<TOptions>? configure = null);
 
 	}
