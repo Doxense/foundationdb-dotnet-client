@@ -499,7 +499,7 @@ namespace SnowBank.Buffers.Text
 			AppendSpanFormattable(value, StringConverters.CountDigits(value));
 		}
 
-		/// <summary>Appends a base 10 integer to the end of the buffer</summary>
+		/// <summary>Appends a base 10 floating point number to the end of the buffer</summary>
 		public void Append(double value)
 		{
 			if (value.TryFormat(this.Chars[this.Position..], out int charsWritten, "R", CultureInfo.InvariantCulture))
@@ -513,7 +513,7 @@ namespace SnowBank.Buffers.Text
 			AppendSpanFormattable(value, 18); // "3.141592653589793" + NUL
 		}
 
-		/// <summary>Appends a base 10 integer to the end of the buffer</summary>
+		/// <summary>Appends a base 10 floating point number to the end of the buffer</summary>
 		public void Append(float value)
 		{
 			if (value.TryFormat(this.Chars[this.Position..], out int charsWritten, "R", CultureInfo.InvariantCulture))
@@ -525,6 +525,22 @@ namespace SnowBank.Buffers.Text
 			// To be safe, we would need close to 32 chars (value used in the runtime internal implementation), but this is somewhat overkill!
 			// Values like ((float) Math.PI).ToString("R") use 9 characters, which would require up to 10 with a terminal zero, so we will use 12, and live with a potential double resize!
 			AppendSpanFormattable(value, 10); // "3.1415927" + NUL
+		}
+
+		/// <summary>Appends a base 10 floating point number to the end of the buffer</summary>
+		public void Append(decimal value)
+		{
+#if NET8_0_OR_GREATER
+			if (value.TryFormat(this.Chars[this.Position..], out int charsWritten, "R", NumberFormatInfo.InvariantInfo))
+#else
+			if (value.TryFormat(this.Chars[this.Position..], out int charsWritten, "G", NumberFormatInfo.InvariantInfo))
+#endif
+			{
+				this.Position += charsWritten;
+				return;
+			}
+
+			AppendSpanFormattable(value, 32);
 		}
 
 		internal void AppendSpanFormattable<T>(T value, int sizeHint) where T : ISpanFormattable
@@ -547,13 +563,26 @@ namespace SnowBank.Buffers.Text
 		/// <summary>Appends a base 10 integer to the end of the buffer</summary>
 		public void Append<T>(T value) where T : ISpanFormattable
 		{
-			if (value.TryFormat(this.Chars[this.Position..], out int charsWritten, null, CultureInfo.InvariantCulture))
+			if (value.TryFormat(this.Chars[this.Position..], out int charsWritten, default, CultureInfo.InvariantCulture))
 			{
 				this.Position += charsWritten;
 			}
 			else
 			{
 				Append(value.ToString(null, CultureInfo.InvariantCulture));
+			}
+		}
+
+		/// <summary>Appends a base 10 integer to the end of the buffer</summary>
+		public void Append<T>(T value, string? format) where T : ISpanFormattable
+		{
+			if (value.TryFormat(this.Chars[this.Position..], out int charsWritten, format, CultureInfo.InvariantCulture))
+			{
+				this.Position += charsWritten;
+			}
+			else
+			{
+				Append(value.ToString(format, CultureInfo.InvariantCulture));
 			}
 		}
 
