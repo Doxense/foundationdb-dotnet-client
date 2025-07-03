@@ -201,6 +201,169 @@ namespace SnowBank.Data.Json.Binary.Tests
 		}
 
 		[Test]
+		public void Test_Is_Json_Assertions()
+		{
+			// Basically the same as Test_IsJson_Assertions(), but using the "Is.Json" static extension property
+
+			DateTime now = DateTime.Now;
+			Guid id = Guid.NewGuid();
+			var obj = new JsonObject
+			{
+				["str"] = "world",
+				["int"] = 42,
+				["zero"] = 0,
+				["true"] = true,
+				["false"] = false,
+				["id"] = id,
+				["date"] = now,
+				["null"] = null, // explicit null
+			};
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(obj["str"], Is.Json.EqualTo("world"));
+				Assert.That(obj["str"], Is.Json.Not.EqualTo("something else"));
+				Assert.That(obj["int"], Is.Json.EqualTo(42));
+				Assert.That(obj["int"], Is.Json.Not.EqualTo(123));
+				Assert.That(obj["true"], Is.Json.True);
+				Assert.That(obj["false"], Is.Json.False);
+				Assert.That(obj["zero"], Is.Json.Zero);
+				Assert.That(obj["id"], Is.Json.EqualTo(id));
+				Assert.That(obj["id"], Is.Json.Not.EqualTo(Guid.NewGuid()));
+				Assert.That(obj["id"], Is.Json.Not.EqualTo(Guid.Empty));
+				Assert.That(obj["id"], Is.Json.EqualTo((Uuid128) id));
+				Assert.That(obj["id"], Is.Json.Not.EqualTo((Uuid128) Guid.NewGuid()));
+				Assert.That(obj["id"], Is.Json.Not.EqualTo(Uuid128.Empty));
+				Assert.That(obj["date"], Is.Json.EqualTo(now));
+				Assert.That(obj["null"], Is.Json.ExplicitNull);
+
+				Assert.That(obj["str"], Is.Json.String);
+				Assert.That(obj["false"], Is.Json.Boolean);
+				Assert.That(obj["int"], Is.Json.Number);
+			});
+
+			var top = new JsonObject
+			{
+				["foo"] = obj.Copy(),
+				["bar"] = JsonArray.Create(obj.Copy()),
+				["empty"] = JsonObject.ReadOnly.Empty,
+				["null"] = null, // explicit null
+			};
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(top["null"], Is.Json.ExplicitNull);
+				Assert.That(top["null"], Is.Json.Not.Missing);
+				Assert.That(top["null"], Is.Json.Null);
+				Assert.That(top["not_found"], Is.Json.Missing);
+				Assert.That(top["not_found"], Is.Json.Not.ExplicitNull);
+				Assert.That(top["not_found"], Is.Json.Null);
+
+				Assert.That(top["empty"], Is.Json.Empty);
+				Assert.That(top["null"], Is.Json.Not.Empty);
+			});
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(top["foo"], Is.Json.Not.Null);
+				Assert.That(top["foo"], Is.Json.Object.And.Not.Empty);
+				Assert.That(top["foo"]["str"], Is.Json.EqualTo("world"));
+				Assert.That(top["foo"]["int"], Is.Json.EqualTo(42));
+				Assert.That(top["foo"]["true"], Is.Json.True);
+				Assert.That(top["foo"]["false"], Is.Json.False);
+				Assert.That(top["foo"]["zero"], Is.Json.Zero);
+				Assert.That(top["foo"]["id"], Is.Json.EqualTo(id));
+				Assert.That(top["foo"]["date"], Is.Json.EqualTo(now));
+			});
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(top["bar"], Is.Json.Not.Null);
+				Assert.That(top["bar"], Is.Json.Array.And.Not.Empty);
+				Assert.That(top["bar"][0], Is.Json.Not.Null);
+				Assert.That(top["bar"][0], Is.Json.Object);
+				Assert.That(top["bar"][0]["str"], Is.Json.EqualTo("world"));
+				Assert.That(top["bar"][0]["int"], Is.Json.EqualTo(42));
+				Assert.That(top["bar"][0]["true"], Is.Json.True);
+				Assert.That(top["bar"][0]["false"], Is.Json.False);
+				Assert.That(top["bar"][0]["zero"], Is.Json.Zero);
+				Assert.That(top["bar"][0]["id"], Is.Json.EqualTo(id));
+				Assert.That(top["bar"][0]["date"], Is.Json.EqualTo(now));
+			});
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(top["not_found"]["str"], Is.Json.Missing);
+				Assert.That(top["not_found"]["str"], Is.Json.Not.EqualTo("world"));
+				Assert.That(top["a"]["b"]["c"]["d"], Is.Json.Null);
+				Assert.That(top["bar"][123], Is.Json.Error);
+				Assert.That(top["bar"][123]["str"], Is.Json.Error);
+				Assert.That(top["bar"][123]["str"], Is.Json.Not.EqualTo("hello"));
+				Assert.That(top["bar"][123]["int"], Is.Json.Error);
+				Assert.That(top["bar"][123]["int"], Is.Json.Not.EqualTo(42));
+			});
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(top["false"], Is.Json.Not.True);
+				Assert.That(top["true"], Is.Json.Not.False);
+			});
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(obj["str"], Is.Json.Not.EqualTo(123));
+				Assert.That(obj["str"], Is.Json.Not.Boolean.Or.Number);
+				Assert.That(obj["str"], Is.Json.GreaterThan("worlc"));
+				Assert.That(obj["str"], Is.Json.GreaterThanOrEqualTo("world"));
+				Assert.That(obj["str"], Is.Json.LessThan("worle"));
+				Assert.That(obj["str"], Is.Json.LessThanOrEqualTo("world"));
+				Assert.That(() => Assert.That(obj["str"], Is.Json.EqualTo("something_else")), Throws.InstanceOf<AssertionException>());
+				Assert.That(() => Assert.That(obj["str"], Is.Json.GreaterThan("world")), Throws.InstanceOf<AssertionException>());
+				Assert.That(() => Assert.That(obj["str"], Is.Json.LessThan("world")), Throws.InstanceOf<AssertionException>());
+			});
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(obj["int"], Is.Json.GreaterThan(41));
+				Assert.That(obj["int"], Is.Json.GreaterThanOrEqualTo(42));
+				Assert.That(obj["int"], Is.Json.LessThan(43));
+				Assert.That(obj["int"], Is.Json.LessThanOrEqualTo(42));
+				Assert.That(() => Assert.That(obj["int"], Is.Json.EqualTo(123)), Throws.InstanceOf<AssertionException>());
+				Assert.That(() => Assert.That(obj["int"], Is.Json.GreaterThan(42)), Throws.InstanceOf<AssertionException>());
+				Assert.That(() => Assert.That(obj["int"], Is.Json.LessThan(42)), Throws.InstanceOf<AssertionException>());
+			});
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(() => Assert.That(obj["true"], Is.Json.False), Throws.InstanceOf<AssertionException>());
+				Assert.That(() => Assert.That(obj["false"], Is.Json.True), Throws.InstanceOf<AssertionException>());
+			});
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(() => Assert.That(obj["str"], Is.Json.Not.String), Throws.InstanceOf<AssertionException>());
+				Assert.That(() => Assert.That(obj["str"], Is.Json.String.And.Number), Throws.InstanceOf<AssertionException>());
+				Assert.That(() => Assert.That(obj["str"], Is.Json.Boolean.Or.Number), Throws.InstanceOf<AssertionException>());
+			});
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(JsonString.Return("hello world"), Is.Json.ReadOnly);
+				Assert.That(JsonNumber.Return(42), Is.Json.ReadOnly);
+				Assert.That(JsonBoolean.True, Is.Json.ReadOnly);
+				Assert.That(JsonNull.Null, Is.Json.ReadOnly);
+				Assert.That(JsonObject.ReadOnly.Empty, Is.Json.ReadOnly);
+				Assert.That(new JsonObject(), Is.Json.Not.ReadOnly);
+				Assert.That(new JsonObject().ToReadOnly(), Is.Json.ReadOnly);
+				Assert.That(JsonArray.ReadOnly.Empty, Is.Json.ReadOnly);
+				Assert.That(new JsonArray(), Is.Json.Not.ReadOnly);
+				Assert.That(new JsonArray().ToReadOnly(), Is.Json.ReadOnly);
+				Assert.That(() => Assert.That(new JsonArray(), Is.Json.ReadOnly), Throws.InstanceOf<AssertionException>());
+				Assert.That(() => Assert.That(JsonArray.ReadOnly.Empty, Is.Json.Not.ReadOnly), Throws.InstanceOf<AssertionException>());
+			});
+		}
+
+		[Test]
 		public void Test_IsJson_Within_Tolerance()
 		{
 

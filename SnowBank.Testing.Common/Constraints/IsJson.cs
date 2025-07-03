@@ -410,10 +410,12 @@ namespace SnowBank.Testing
 
 		private static JsonValue? CoerceToJsonValue<TActual>(TActual actual) => actual switch
 		{
-			null                   => JsonNull.Null,
-			JsonValue value        => value,
-			IJsonPackable packable => packable.JsonPack(CrystalJsonSettings.Json, CrystalJson.DefaultResolver),
-			_                      => null
+			null                      => JsonNull.Null,
+			JsonValue value           => value,
+			ObservableJsonValue value => value.ToJsonValue(),
+			MutableJsonValue value    => value.ToJsonValue(),
+			IJsonPackable packable    => packable.JsonPack(CrystalJsonSettings.Json, CrystalJson.DefaultResolver),
+			_                         => null
 		};
 
 		private static string Jsonify(JsonValue value) => value switch
@@ -499,31 +501,34 @@ namespace SnowBank.Testing
 				var obj = CoerceToJsonValue(actual);
 				if (obj is null)
 				{ // the actual value is NOT a JsonValue
-					return new Result(this, actual, false);
+					return new Result<TActual>(this, actual, actual, false);
 				}
 				return this.Operator switch
 				{
-					JsonComparisonOperator.Equal => new Result(this, obj, obj.Equals(this.Expected)),
-					JsonComparisonOperator.SameAs => new Result(this, obj, ReferenceEquals(obj, this.Expected)),
-					JsonComparisonOperator.GreaterThan => new Result(this, obj, obj.CompareTo(this.Expected) > 0),
-					JsonComparisonOperator.GreaterThanOrEqual => new Result(this, obj, obj.CompareTo(this.Expected) >= 0),
-					JsonComparisonOperator.LessThan => new Result(this, obj, obj.CompareTo(this.Expected) < 0),
-					JsonComparisonOperator.LessThanOrEqual => new Result(this, obj, obj.CompareTo(this.Expected) <= 0),
+					JsonComparisonOperator.Equal => new Result<TActual>(this, actual, obj, obj.Equals(this.Expected)),
+					JsonComparisonOperator.SameAs => new Result<TActual>(this, actual, obj, ReferenceEquals(obj, this.Expected)),
+					JsonComparisonOperator.GreaterThan => new Result<TActual>(this, actual, obj, obj.CompareTo(this.Expected) > 0),
+					JsonComparisonOperator.GreaterThanOrEqual => new Result<TActual>(this, actual, obj, obj.CompareTo(this.Expected) >= 0),
+					JsonComparisonOperator.LessThan => new Result<TActual>(this, actual, obj, obj.CompareTo(this.Expected) < 0),
+					JsonComparisonOperator.LessThanOrEqual => new Result<TActual>(this, actual, obj, obj.CompareTo(this.Expected) <= 0),
 					_ => throw new NotSupportedException()
 				};
 			}
 
 			public override string Description => Jsonify(this.Expected);
 
-			internal class Result : ConstraintResult
+			internal class Result<TActual> : ConstraintResult
 			{
 				private JsonValue ExpectedValue { get; }
 
 				private JsonComparisonOperator Operator { get; }
 
-				public Result(JsonEqualConstraint constraint, object? actual, bool hasSucceeded)
+				private TActual? OriginalValue { get; }
+
+				public Result(JsonEqualConstraint constraint, TActual? original, object? actual, bool hasSucceeded)
 					: base(constraint, actual, hasSucceeded)
 				{
+					this.OriginalValue = original; // original "actual", before being coerced into a JsonValue
 					this.Operator = constraint.Operator;
 					this.ExpectedValue = constraint.Expected;
 				}
@@ -565,7 +570,7 @@ namespace SnowBank.Testing
 						writer.WriteLine(Jsonify(this.ExpectedValue));
 
 						writer.Write(TextMessageWriter.Pfx_Actual);
-						writer.Write($"<{this.ActualValue.GetType().GetFriendlyName()}> ");
+						writer.Write($"<{(this.OriginalValue ?? this.ActualValue).GetType().GetFriendlyName()}> ");
 						writer.WriteActualValue(this.ActualValue);
 					}
 				}
@@ -578,36 +583,40 @@ namespace SnowBank.Testing
 						return;
 					}
 
+					string prefix = this.OriginalValue is IJsonProxyNode node
+						? $"JSON value at `{node.GetPath()}`"
+						: "JSON value";
+
 					switch (this.Operator)
 					{
 						case JsonComparisonOperator.Equal:
 						{
-							WriteDifferences(writer, null, "JSON value does not match the expected value");
+							WriteDifferences(writer, null, $"{prefix} does not match the expected value");
 							break;
 						}
 						case JsonComparisonOperator.SameAs:
 						{
-							WriteDifferences(writer, "===", "JSON value should be the same instance as the expected value");
+							WriteDifferences(writer, "===", $"{prefix} should be the same instance as the expected value");
 							break;
 						}
 						case JsonComparisonOperator.GreaterThan:
 						{
-							WriteDifferences(writer, ">", "JSON value should be greater than the expected value");
+							WriteDifferences(writer, ">", $"{prefix} should be greater than the expected value");
 							break;
 						}
 						case JsonComparisonOperator.GreaterThanOrEqual:
 						{
-							WriteDifferences(writer, ">=", "JSON value should be greater than or equal to the expected value");
+							WriteDifferences(writer, ">=", $"{prefix} should be greater than or equal to the expected value");
 							break;
 						}
 						case JsonComparisonOperator.LessThan:
 						{
-							WriteDifferences(writer, "<", "JSON value should be less than the expected value");
+							WriteDifferences(writer, "<", $"{prefix} should be less than the expected value");
 							break;
 						}
 						case JsonComparisonOperator.LessThanOrEqual:
 						{
-							WriteDifferences(writer, "<=", "JSON value should be less than or equal to the expected value");
+							WriteDifferences(writer, "<=", $"{prefix} should be less than or equal to the expected value");
 							break;
 						}
 						default:
@@ -652,7 +661,7 @@ namespace SnowBank.Testing
 
 				if (obj is null)
 				{ // the actual value is NOT a JsonValue
-					return new Result(this, actual, false);
+					return new Result<TActual>(this, actual, actual, false);
 				}
 
 				bool isEqual;
@@ -669,19 +678,22 @@ namespace SnowBank.Testing
 					isEqual = obj.ValueEquals(this.Expected, this.Comparer);
 				}
 
-				return new Result(this, obj, isEqual);
+				return new Result<TActual>(this, actual, obj, isEqual);
 			}
 
 			public override string Description => $"<{(this.Expected?.GetType() ?? typeof(TValue)).GetFriendlyName()}> {Stringify(this.Expected)}";
 
-			internal class Result : ConstraintResult
+			internal class Result<TActual> : ConstraintResult
 			{
 
 				private TValue? ExpectedValue { get; }
 
-				public Result(JsonEqualConstraint<TValue> constraint, object? actual, bool hasSucceeded)
+				private TActual? OriginalValue { get; }
+
+				public Result(JsonEqualConstraint<TValue> constraint, TActual? original, object? actual, bool hasSucceeded)
 					: base(constraint, actual, hasSucceeded)
 				{
+					this.OriginalValue = original;
 					this.ExpectedValue = constraint.Expected;
 				}
 
@@ -733,7 +745,7 @@ namespace SnowBank.Testing
 						writer.WriteLine(Stringify(this.ExpectedValue));
 
 						writer.Write(TextMessageWriter.Pfx_Actual);
-						writer.Write($"<{this.ActualValue.GetType().GetFriendlyName()}> ");
+						writer.Write($"<{(this.OriginalValue ?? this.ActualValue).GetType().GetFriendlyName()}> ");
 						writer.WriteActualValue(this.ActualValue);
 					}
 				}
@@ -746,7 +758,11 @@ namespace SnowBank.Testing
 						return;
 					}
 
-					WriteDifferences(writer, null, "JSON value does not match the expected value");
+					string message = this.OriginalValue is IJsonProxyNode node
+						? $"JSON value at `{node.GetPath()}` does not match the expected value"
+						: "JSON value does not match the expected value";
+
+					WriteDifferences(writer, null, message);
 				}
 
 				public override void WriteActualValueTo(MessageWriter writer)
@@ -1671,4 +1687,21 @@ namespace SnowBank.Testing
 		#endregion
 
 	}
+
+	/// <summary>Extension method for extending NUnit's <see cref="NUnit.Framework.Is"/> constraint factory.</summary>
+	[PublicAPI]
+	public static class IsJsonExtensions
+	{
+
+		extension(NUnit.Framework.Is)
+		{
+
+			/// <summary>Provides assertions for testing JSON values</summary>
+			[Pure]
+			public static IsJson.JsonConstraintExpression Json => new();
+
+		}
+
+	}
+
 }
