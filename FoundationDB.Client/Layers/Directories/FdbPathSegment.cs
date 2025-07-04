@@ -26,9 +26,12 @@
 
 namespace FoundationDB.Client
 {
+	using System.ComponentModel;
+	using SnowBank.Buffers.Text;
+
 	/// <summary>Represent a segment in a <see cref="FdbPath">path</see> to a <see cref="IFdbDirectory">Directory</see>.</summary>
 	/// <remark>A path segment is composed of a <see cref="Name"/> and optional <see cref="LayerId"/> field.</remark>
-	public readonly struct FdbPathSegment : IEquatable<FdbPathSegment>, IComparable<FdbPathSegment>
+	public readonly struct FdbPathSegment : IEquatable<FdbPathSegment>, IComparable<FdbPathSegment>, IFormattable, ISpanFormattable
 	{
 
 		// Rules for encoding a segment into a string: '/', '\', '[' and ']' are escaped by prefixing them by another '\'
@@ -67,11 +70,77 @@ namespace FoundationDB.Client
 
 		private static string Escape(string value)
 		{
-			if (value.AsSpan().IndexOfAny(EscapedLiterals) >= 0)
+			if (value.IndexOfAny(EscapedLiterals) >= 0)
 			{
-				return value.Replace("\\", "\\\\").Replace("/", "\\/").Replace("[", "\\[").Replace("]", "\\]");
+				return EscapeSlow(value);
 			}
 			return value;
+
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			static string EscapeSlow(string value)
+			{
+				Span<char> tmp = value.Length <= 128 ? stackalloc char[value.Length * 2] : new char[value.Length * 2];
+				TryEscapeToSlow(tmp, out int len, value);
+				return tmp[..len].ToString();
+			}
+		}
+
+		private static void EscapeTo(ref FastStringBuilder sb, ReadOnlySpan<char> value)
+		{
+			if (value.IndexOfAny(EscapedLiterals) >= 0)
+			{
+				EscapeToSlow(ref sb, value);
+			}
+			else
+			{
+				sb.Append(value);
+			}
+
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			static void EscapeToSlow(ref FastStringBuilder sb, ReadOnlySpan<char> value)
+			{
+				var span = sb.GetSpan(value.Length * 2);
+				TryEscapeTo(span, out int len, value);
+				sb.Advance(len);
+			}
+		}
+
+		private static bool TryEscapeTo(Span<char> destination, out int charsWritten, ReadOnlySpan<char> value)
+		{
+			return value.IndexOfAny(EscapedLiterals) >= 0
+				? TryEscapeToSlow(destination, out charsWritten, value)
+				: value.TryCopyTo(destination, out charsWritten);
+		}
+
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		private static bool TryEscapeToSlow(Span<char> destination, out int charsWritten, ReadOnlySpan<char> value)
+		{
+			// we know there is at least one escaped char
+			if (value.Length + 1 > destination.Length) goto too_small;
+
+			int p = 0;
+			foreach (var c in value)
+			{
+				if (c is '\\' or '/' or '[' or ']')
+				{
+					if (p + 2 > destination.Length) goto too_small;
+					destination[p] = '\\';
+					destination[p + 1] = c;
+					p += 2;
+				}
+				else
+				{
+					if (p + 1 > destination.Length) goto too_small;
+					destination[p++] = c;
+				}
+			}
+
+			charsWritten = p;
+			return true;
+
+		too_small:
+			charsWritten = 0;
+			return false;
 		}
 
 		/// <summary>Return a path segment composed of only a name, but without any LayerId specified</summary>
@@ -96,19 +165,66 @@ namespace FoundationDB.Client
 		public static string Encode(string name, string? layerId)
 			=> string.IsNullOrEmpty(layerId)
 				? Escape(name)
-				: Escape(name) + "[" + Escape(layerId) + "]";
+				: $"{Escape(name)}[{Escape(layerId)}]";
 
-		internal static StringBuilder AppendTo(StringBuilder sb, string name)
-			=> sb.Append(Escape(name));
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal static void AppendTo(ref FastStringBuilder sb, string name)
+			=> EscapeTo(ref sb, name);
 
-		internal static StringBuilder AppendTo(StringBuilder sb, string name, string? layerId)
+		internal static void AppendTo(ref FastStringBuilder sb, string name, string? layerId)
 		{
-			sb.Append(Escape(name));
+			EscapeTo(ref sb, name);
 			if (!string.IsNullOrEmpty(layerId))
 			{
-				sb.Append('[').Append(Escape(layerId)).Append(']');
+				sb.Append('[');
+				EscapeTo(ref sb, layerId);
+				sb.Append(']');
 			}
-			return sb;
+		}
+
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal static bool TryFormatTo(Span<char> destination, out int charsWritten, string name)
+			=> TryEscapeTo(destination, out charsWritten, name);
+
+		[MustUseReturnValue]
+		internal static bool TryFormatTo(Span<char> destination, out int charsWritten, ReadOnlySpan<char> name, ReadOnlySpan<char> layerId)
+		{
+			if (!TryEscapeTo(destination, out int len, name))
+			{
+				goto too_small;
+			}
+
+			if (layerId.Length == 0)
+			{
+				charsWritten = len;
+				return true;
+			}
+
+			var buffer = destination[len..];
+
+			if (!buffer.TryAppendAndAdvance('['))
+			{
+				goto too_small;
+			}
+
+			if (!TryEscapeTo(buffer, out len, layerId))
+			{
+				goto too_small;
+			}
+			buffer = buffer[len..];
+
+			if (!buffer.TryAppendAndAdvance(']'))
+			{
+				goto too_small;
+			}
+
+			charsWritten = destination.Length - buffer.Length;
+			Contract.Debug.Ensures(charsWritten > 3);
+			return true;
+
+		too_small:
+			charsWritten = 0;
+			return false;
 		}
 
 		public static FdbPathSegment[] Parse(ReadOnlySpan<string> segments)
@@ -246,15 +362,52 @@ namespace FoundationDB.Client
 			return true;
 		}
 
-		/// <summary>Return an encoded string representation of this path segment</summary>
+		/// <summary>Returns an encoded string representation of this path segment</summary>
 		/// <returns>Encoded string, with optional LayerId</returns>
-		/// <example>FdbPathSegment.Create("Foo").ToString() == "Foo"; FdbPathSegment.Create("Foo", "SomeLayer") == "Foo[SomeLayer]"</example>
-		/// <remarks>The string retured can be parsed back into the original segment via <see cref="Parse(string)"/>.</remarks>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public override string ToString()
+		/// <example><code>
+		/// FdbPathSegment.Create("Foo").ToString()              // => "Foo";
+		/// FdbPathSegment.Create("Foo", "SomeLayer").ToString() // => "Foo[SomeLayer]"
+		/// </code></example>
+		/// <remarks>
+		/// <para>The string returned can be parsed back into the original segment via <see cref="Parse(string)"/>.</para>
+		/// </remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public override string ToString() => ToString(null, null);
+
+		/// <summary>Returns an encoded string representation of this path segment</summary>
+		///  <param name="format">Supported formats are <see langword="null"/> or <c>"D"</c> to include layer ids, and <c>"N"</c> for names only</param>
+		///  <param name="provider">The value is ignored</param>
+		/// <returns>Encoded string</returns>
+		/// <example><code>
+		/// FdbPathSegment.Create("Hello").ToString("D")               // => "Hello";
+		/// FdbPathSegment.Create("Hello", "WorldLayer").ToString("D") // => "Hello[WorldLayer]"
+		/// FdbPathSegment.Create("Hello", "WorldLayer").ToString("N") // => "Hello"
+		/// </code></example>
+		///  <remarks>
+		///  <para>Supported formats:
+		///  <list type="table">
+		///		<listheader><term>Format</term><description>Result</description></listheader>
+		///		<item><term><c>D</c></term><description><c>"ACME[partition]"</c></description></item>
+		///		<item><term><c>N</c></term><description><c>"ACME"</c></description></item>
+		///  </list></para>
+		///  <para>Any string produced by this method can be passed back to <see cref="Parse(string)"/> to get back the original path.</para>
+		///  </remarks>
+		[Pure]
+		public string ToString(string? format, IFormatProvider? provider = null) => format switch
 		{
-			return Encode(this.Name, this.LayerId);
-		}
+			null or "D" or "d" => Encode(this.Name, this.LayerId),
+			"N" or "n" => Encode(this.Name),
+			_ => throw new ArgumentException("Unsupported format", nameof(format))
+		};
+
+		/// <inheritdoc />
+		[MustUseReturnValue]
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider = null) => format switch
+		{
+			"" or "D" or "d" => TryFormatTo(destination, out charsWritten, this.Name, this.LayerId),
+			"N" or "n" => TryFormatTo(destination, out charsWritten, this.Name),
+			_ => throw new ArgumentException("Unsupported format", nameof(format))
+		};
 
 		/// <summary>Extract the pair of name and LayerId from this segment</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]

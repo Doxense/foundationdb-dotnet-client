@@ -26,11 +26,13 @@
 
 namespace FoundationDB.Client
 {
+	using System.ComponentModel;
+	using SnowBank.Buffers.Text;
 
 	/// <summary>Represents a path in a Directory Layer</summary>
 	[DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
-	public readonly struct FdbPath : IReadOnlyList<FdbPathSegment>, IEquatable<FdbPath>, IComparable<FdbPath>, IFormattable, IJsonDeserializable<FdbPath>, IJsonSerializable, IJsonPackable
+	public readonly struct FdbPath : IReadOnlyList<FdbPathSegment>, IEquatable<FdbPath>, IComparable<FdbPath>, IFormattable, ISpanFormattable, IJsonDeserializable<FdbPath>, IJsonSerializable, IJsonPackable
 	{
 		/// <summary>The "empty" path</summary>
 		/// <remarks>This path is relative</remarks>
@@ -471,40 +473,34 @@ namespace FoundationDB.Client
 
 		///  <summary>Returns a serialized string that represents this path.</summary>
 		///  <param name="format">Supported formats are <see langword="null"/> or <c>"D"</c> to include layer ids, and <c>"N"</c> for names only</param>
+		///  <param name="provider">The value is ignored</param>
 		///  <returns>All the path segments joined with a '/'. If the path is absolute, starts with a leading '/'</returns>
 		///  <remarks>
 		///  <para>Supported formats:
 		///  <list type="table">
-		/// 		<listheader><term>Format</term><description>Result</description></listheader>
-		/// 		<item><term><c>D</c></term><description><c>"/Tenants/ACME[partition]/Documents/Users"</c></description></item>
-		/// 		<item><term><c>N</c></term><description><c>"/Tenants/ACME/Documents/Users"</c></description></item>
+		/// 	<listheader><term>Format</term><description>Result</description></listheader>
+		/// 	<item><term><c>D</c></term><description><c>"/Tenants/ACME[partition]/Documents/Users"</c></description></item>
+		/// 	<item><term><c>N</c></term><description><c>"/Tenants/ACME/Documents/Users"</c></description></item>
 		///  </list></para>
 		///  <para>Any string produced by this method can be passed back to <see cref="Parse(string)"/> to get back the original path.</para>
 		///  </remarks>
-		public string ToString(string? format) => ToString(format, null);
-
-		///  <summary>Returns a serialized string that represents this path.</summary>
-		///  <param name="format">Supported formats are <see langword="null"/> or <c>"D"</c> to include layer ids, and <c>"N"</c> for names only</param>
-		///  <param name="formatProvider">The value is ignored</param>
-		///  <returns>All the path segments joined with a '/'. If the path is absolute, starts with a leading '/'</returns>
-		///  <remarks>
-		///  <para>Supported formats:
-		///  <list type="table">
-		/// 		<listheader><term>Format</term><description>Result</description></listheader>
-		/// 		<item><term><c>D</c></term><description><c>"/Tenants/ACME[partition]/Documents/Users"</c></description></item>
-		/// 		<item><term><c>N</c></term><description><c>"/Tenants/ACME/Documents/Users"</c></description></item>
-		///  </list></para>
-		///  <para>Any string produced by this method can be passed back to <see cref="Parse(string)"/> to get back the original path.</para>
-		///  </remarks>
-		public string ToString(string? format, IFormatProvider? formatProvider)
-		{
-			switch (format)
+		[Pure]
+		public string ToString(string? format, IFormatProvider? provider = null) =>
+			format switch
 			{
-				case null or "D": return FormatPath(this.Segments.Span, this.IsAbsolute, namesOnly: false);
-				case "N" or "n": return FormatPath(this.Segments.Span, this.IsAbsolute, namesOnly: true);
-				default: throw new ArgumentException("Unsupported format", nameof(format));
-			}
-		}
+				null or "D" or "d" => FormatPath(this.Segments.Span, this.IsAbsolute, namesOnly: false),
+				"N" or "n" => FormatPath(this.Segments.Span, this.IsAbsolute, namesOnly: true),
+				_ => throw new ArgumentException("Unsupported format", nameof(format))
+			};
+
+
+		/// <inheritdoc />
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider) => format switch
+		{
+			"" or "D" or "d" => TryFormatPath(destination, out charsWritten, this.Segments.Span, this.IsAbsolute, namesOnly: false),
+			"N" or "n" => TryFormatPath(destination, out charsWritten, this.Segments.Span, this.IsAbsolute, namesOnly: true),
+			_ => throw new ArgumentException("Unsupported format", nameof(format))
+		};
 
 		/// <summary>Encode a path into a string representation</summary>
 		/// <param name="path">Path to encode</param>
@@ -515,19 +511,18 @@ namespace FoundationDB.Client
 		public static string Encode(FdbPath path, bool namesOnly = false)
 			=> FormatPath(path.Segments.Span, path.IsAbsolute, namesOnly);
 
-		[Pure]
+		[MustUseReturnValue]
 		internal static string FormatPath(ReadOnlySpan<FdbPathSegment> paths, bool absolute, bool namesOnly)
 		{
 			if (paths.Length == 0) return absolute ? "/" : string.Empty;
 
-			//TODO: maybe use a Span<char> buffer instead of a string builder?
-			var sb = new StringBuilder();
+			var sb = new FastStringBuilder(stackalloc char[64]);
 			if (namesOnly)
 			{
 				foreach (var seg in paths)
 				{
 					if (absolute || sb.Length != 0) sb.Append('/');
-					FdbPathSegment.AppendTo(sb, seg.Name);
+					FdbPathSegment.AppendTo(ref sb, seg.Name);
 				}
 			}
 			else
@@ -535,11 +530,79 @@ namespace FoundationDB.Client
 				foreach (var seg in paths)
 				{
 					if (absolute || sb.Length != 0) sb.Append('/');
-					FdbPathSegment.AppendTo(sb, seg.Name, seg.LayerId);
+					FdbPathSegment.AppendTo(ref sb, seg.Name, seg.LayerId);
 				}
 			}
 
 			return sb.ToString();
+		}
+
+		[MustUseReturnValue]
+		internal static bool TryFormatPath(Span<char> destination, out int charsWritten, ReadOnlySpan<FdbPathSegment> paths, bool absolute, bool namesOnly)
+		{
+			if (paths.Length == 0)
+			{
+				if (!absolute)
+				{
+					charsWritten = 0;
+					return true;
+				}
+
+				if (destination.Length < 1) goto too_small;
+				destination[0] = '/';
+				charsWritten = 1;
+				return true;
+			}
+
+			var buffer = destination;
+
+			int len;
+			if (namesOnly)
+			{
+				for(int i = 0; i < paths.Length; i++)
+				{
+					if (absolute || i != 0)
+					{
+						if (!buffer.TryAppendAndAdvance('/'))
+						{
+							goto too_small;
+						}
+					}
+
+					if (!FdbPathSegment.TryFormatTo(buffer, out len, paths[i].Name))
+					{
+						goto too_small;
+					}
+					buffer = buffer[len..];
+				}
+			}
+			else
+			{
+				for(int i = 0; i < paths.Length; i++)
+				{
+					if (absolute || i != 0)
+					{
+						if (!buffer.TryAppendAndAdvance('/'))
+						{
+							goto too_small;
+						}
+					}
+
+					if (!FdbPathSegment.TryFormatTo(buffer, out len, paths[i].Name, paths[i].LayerId))
+					{
+						goto too_small;
+					}
+					buffer = buffer[len..];
+				}
+			}
+
+			charsWritten = destination.Length - buffer.Length;
+			Contract.Debug.Ensures(charsWritten > 0);
+			return true;
+
+		too_small:
+			charsWritten = 0;
+			return false;
 		}
 
 		/// <inheritdoc />
