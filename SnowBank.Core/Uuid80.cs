@@ -698,14 +698,7 @@ namespace System
 				}
 			}
 
-			if (!literal.TryCopyTo(destination))
-			{
-				charsWritten = 0;
-				return false;
-			}
-
-			charsWritten = literal.Length;
-			return true;
+			return literal.TryCopyTo(destination, out charsWritten);
 		}
 
 		#endregion

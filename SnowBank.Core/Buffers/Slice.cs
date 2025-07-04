@@ -595,26 +595,14 @@ namespace System
 		}
 
 		/// <summary>Copy this slice into another buffer, if it is large enough.</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryCopyTo(Span<byte> destination)
-		{
-			return this.Span.TryCopyTo(destination);
-		}
+			=> this.Span.TryCopyTo(destination);
 
 		/// <summary>Copy this slice into another buffer, if it is large enough.</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryCopyTo(Span<byte> destination, out int bytesWritten)
-		{
-			var span = this.Span;
-			if (!span.TryCopyTo(destination))
-			{
-				bytesWritten = 0;
-				return false;
-			}
-
-			bytesWritten = span.Length;
-			return true;
-		}
+			=> this.Span.TryCopyTo(destination, out bytesWritten);
 
 		/// <summary>Copy this slice into another buffer</summary>
 		/// <param name="buffer">Buffer where to copy this slice</param>

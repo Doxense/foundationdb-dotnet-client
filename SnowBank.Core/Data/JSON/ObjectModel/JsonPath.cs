@@ -347,15 +347,7 @@ namespace SnowBank.Data.Json
 		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
 		{
 			//TODO: what kind of formats should be allowed?
-			var path = this.Value.Span;
-			if (!path.TryCopyTo(destination))
-			{
-				charsWritten = 0;
-				return false;
-			}
-
-			charsWritten = path.Length;
-			return true;
+			return this.Value.Span.TryCopyTo(destination, out charsWritten);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2129,13 +2121,8 @@ namespace SnowBank.Data.Json
 				{
 					name = JsonPath.EncodeKeyName(name);
 				}
-				if (!name.Span.TryCopyTo(destination))
-				{
-					charsWritten = 0;
-					return false;
-				}
-				charsWritten = name.Length;
-				return true;
+
+				return name.Span.TryCopyTo(destination, out charsWritten);
 			}
 			
 			if (TryGetIndex(out var index))

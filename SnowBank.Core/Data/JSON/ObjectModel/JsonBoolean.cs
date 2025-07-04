@@ -335,14 +335,14 @@ namespace SnowBank.Data.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryFormat(Span<char> destination, out int charsWritten)
 		{
-			return TryAppendLiteral(m_value ? JsonTokens.True : JsonTokens.False, destination, out charsWritten);
+			return (m_value ? JsonTokens.True : JsonTokens.False).TryCopyTo(destination, out charsWritten);
 		}
 
 		/// <inheritdoc />
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public override bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
 		{
-			return TryAppendLiteral(m_value ? JsonTokens.True : JsonTokens.False, destination, out charsWritten);
+			return (m_value ? JsonTokens.True : JsonTokens.False).TryCopyTo(destination, out charsWritten);
 		}
 
 #if NET8_0_OR_GREATER
@@ -350,15 +350,7 @@ namespace SnowBank.Data.Json
 		/// <inheritdoc />
 		public override bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
 		{
-			var literal = m_value ? "true"u8 : "false"u8;
-			if (!literal.TryCopyTo(destination))
-			{
-				bytesWritten = 0;
-				return false;
-			}
-
-			bytesWritten = literal.Length;
-			return true;
+			return (m_value ? "true"u8 : "false"u8).TryCopyTo(destination, out bytesWritten);
 		}
 
 #endif

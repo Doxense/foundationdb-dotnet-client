@@ -304,22 +304,14 @@ namespace System
 
 		/// <summary>Copies the content to a destination <see cref="T:System.Span`1"/>, if it is large enough.</summary>
 		/// <exception cref="T:System.ObjectDisposedException"> the container has already been disposed</exception>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public readonly bool TryCopyTo(Span<byte> destination) => this.Span.TryCopyTo(destination);
 
 		/// <summary>Copies the content to a destination <see cref="T:System.Span`1"/>, if it is large enough.</summary>
 		/// <exception cref="T:System.ObjectDisposedException"> the container has already been disposed</exception>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public readonly bool TryCopyTo(Span<byte> destination, out int bytesWritten)
-		{
-			var span = Span;
-			if (!span.TryCopyTo(destination))
-			{
-				bytesWritten = 0;
-				return false;
-			}
-
-			bytesWritten = span.Length;
-			return true;
-		}
+			=> this.Span.TryCopyTo(destination, out bytesWritten);
 
 	}
 

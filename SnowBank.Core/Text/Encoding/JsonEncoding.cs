@@ -436,12 +436,7 @@ namespace SnowBank.Text
 					return true;
 				}
 
-				if (!text.TryCopyTo(destination))
-				{
-					goto too_small;
-				}
-				charsWritten = text.Length;
-				return true;
+				return text.TryCopyTo(destination, out charsWritten);
 			}
 
 			// open double quotes

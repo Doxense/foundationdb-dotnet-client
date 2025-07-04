@@ -759,83 +759,83 @@ namespace System
 		{
 			//TODO: BUGBUG: OPTIMIZE: this should be changed to not allocate memory!
 
-			string s;
+			string literal;
 			switch(format)
 			{
 				case "" or "D":
 				{ // Default format is "XXXXXXXX-XXXXXXXX"
-					s = EncodeTwoParts(this.Value, separator: '-', quotes: false, upper: true);
+					literal = EncodeTwoParts(this.Value, separator: '-', quotes: false, upper: true);
 					break;
 				}
 				case "d":
 				{ // Default format is "xxxxxxxx-xxxxxxxx"
-					s = EncodeTwoParts(this.Value, separator: '-', quotes: false, upper: false);
+					literal = EncodeTwoParts(this.Value, separator: '-', quotes: false, upper: false);
 					break;
 				}
 
 				case "C":
 				case "c":
 				{ // base 62, compact, no padding
-					s = Base62.Encode(this.Value, padded: false);
+					literal = Base62.Encode(this.Value, padded: false);
 					break;
 				}
 				case "Z":
 				case "z":
 				{ // base 62, padded with '0' up to 11 chars
-					s = Base62.Encode(this.Value, padded: true);
+					literal = Base62.Encode(this.Value, padded: true);
 					break;
 				}
 
 				case "R":
 				case "r":
 				{ // Integer: "1234567890"
-					s = this.Value.ToString(null, provider ?? CultureInfo.InvariantCulture);
+					literal = this.Value.ToString(null, provider ?? CultureInfo.InvariantCulture);
 					break;
 				}
 
 				case "X": //TODO: Guid.ToString("X") returns "{0x.....,0x.....,...}"
 				case "N":
 				{ // "XXXXXXXXXXXXXXXX"
-					s = EncodeOnePart(this.Value, quotes: false, upper: true);
+					literal = EncodeOnePart(this.Value, quotes: false, upper: true);
 					break;
 				}
 				case "x": //TODO: Guid.ToString("X") returns "{0x.....,0x.....,...}"
 				case "n":
 				{ // "xxxxxxxxxxxxxxxx"
-					s = EncodeOnePart(this.Value, quotes: false, upper: false);
+					literal = EncodeOnePart(this.Value, quotes: false, upper: false);
 					break;
 				}
 
 				case "B":
 				{ // "{XXXXXXXX-XXXXXXXX}"
-					s = EncodeTwoParts(this.Value, separator: '-', quotes: true, upper: true);
+					literal = EncodeTwoParts(this.Value, separator: '-', quotes: true, upper: true);
 					break;
 				}
 				case "b":
 				{ // "{xxxxxxxx-xxxxxxxx}"
-					s = EncodeTwoParts(this.Value, separator: '-', quotes: true, upper: false);
+					literal = EncodeTwoParts(this.Value, separator: '-', quotes: true, upper: false);
 					break;
 				}
 
 				case "V":
 				{ // "XX-XX-XX-XX-XX-XX-XX-XX"
-					s = EncodeEightParts(this.Value, separator: '-', quotes: false, upper: true);
+					literal = EncodeEightParts(this.Value, separator: '-', quotes: false, upper: true);
 					break;
 				}
 				case "v":
 				{ // "xx-xx-xx-xx-xx-xx-xx-xx"
-					s = EncodeEightParts(this.Value, separator: '-', quotes: false, upper: false);
+					literal = EncodeEightParts(this.Value, separator: '-', quotes: false, upper: false);
 					break;
 				}
 
 				case "M":
 				{ // "XX:XX:XX:XX:XX:XX:XX:XX"
-					s = EncodeEightParts(this.Value, separator: ':', quotes: false, upper: true);
+					literal = EncodeEightParts(this.Value, separator: ':', quotes: false, upper: true);
 					break;
 				}
 				case "m":
 				{ // "xx:xx:xx:xx:xx:xx:xx:xx"
-					s = EncodeEightParts(this.Value, separator: ':', quotes: false, upper: false);
+					literal = EncodeEightParts(this.Value, separator: ':', quotes: false, upper: false);
 					break;
 				}
 				default:
@@ -844,15 +844,7 @@ namespace System
 				}
 			}
 
-			if (s.Length > destination.Length)
-			{
-				charsWritten = 0;
-				return false;
-			}
-
-			s.CopyTo(destination);
-			charsWritten = s.Length;
-			return true;
+			return literal.TryCopyTo(destination, out charsWritten);
 		}
 
 		#endregion

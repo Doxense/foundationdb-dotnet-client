@@ -496,12 +496,11 @@ namespace System
 
 		private bool TryFormatBase16(Span<char> destination, out int charsWritten, IFormatProvider? provider, bool lowerCase)
 		{
-			charsWritten = 0;
 			if (!this.TransactionVersion.TryFormat(destination, out var len, lowerCase ? "x016" : "X016", provider))
 			{
 				goto too_small;
 			}
-			charsWritten += len;
+			charsWritten = len;
 			destination = destination[len..];
 
 			if (!this.TransactionOrder.TryFormat(destination, out len, lowerCase ? "x04" : "X04", provider))

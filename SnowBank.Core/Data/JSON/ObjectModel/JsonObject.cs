@@ -4254,15 +4254,7 @@ namespace SnowBank.Data.Json
 				}
 			}
 
-			if (literal.Length > destination.Length)
-			{
-				charsWritten = 0;
-				return false;
-			}
-
-			literal.CopyTo(destination);
-			charsWritten = literal.Length;
-			return true;
+			return literal.TryCopyTo(destination, out charsWritten);
 		}
 
 #if NET8_0_OR_GREATER

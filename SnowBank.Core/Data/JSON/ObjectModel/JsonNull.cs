@@ -284,14 +284,14 @@ namespace SnowBank.Data.Json
 		/// <inheritdoc cref="TryFormat(System.Span{char},out int,System.ReadOnlySpan{char},System.IFormatProvider?)" />
 		public bool TryFormat(Span<char> destination, out int charsWritten)
 		{
-			return TryAppendLiteral("null", destination, out charsWritten);
+			return "null".TryCopyTo(destination, out charsWritten);
 		}
 
 		/// <inheritdoc />
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public override bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
 		{
-			return TryAppendLiteral("null", destination, out charsWritten);
+			return "null".TryCopyTo(destination, out charsWritten);
 		}
 
 #if NET8_0_OR_GREATER
@@ -299,14 +299,7 @@ namespace SnowBank.Data.Json
 		/// <inheritdoc />
 		public override bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
 		{
-			if (!"null"u8.TryCopyTo(destination))
-			{
-				bytesWritten = 0;
-				return false;
-			}
-
-			bytesWritten = 4;
-			return true;
+			return "null"u8.TryCopyTo(destination, out bytesWritten);
 		}
 
 #endif

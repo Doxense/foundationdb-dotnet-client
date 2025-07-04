@@ -892,28 +892,6 @@ namespace SnowBank.Data.Json
 
 		#region TryFormat Helpers...
 
-		internal static bool TryAppendLiteral(ReadOnlySpan<char> literal, Span<char> destination, out int charsWritten)
-		{
-			if (!literal.TryCopyTo(destination))
-			{
-				charsWritten = 0;
-				return false;
-			}
-			charsWritten = literal.Length;
-			return true;
-		}
-
-		internal static bool TryAppendLiteral(ReadOnlySpan<byte> literal, Span<byte> destination, out int bytesWritten)
-		{
-			if (!literal.TryCopyTo(destination))
-			{
-				bytesWritten = 0;
-				return false;
-			}
-			bytesWritten = literal.Length;
-			return true;
-		}
-
 		public static bool TryFormatCompact(JsonValue value, Span<char> destination, out int charsWritten) => value switch
 		{
 			JsonNull n => n.TryFormat(destination, out charsWritten),

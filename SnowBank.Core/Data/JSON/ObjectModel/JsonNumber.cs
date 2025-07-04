@@ -2228,23 +2228,22 @@ namespace SnowBank.Data.Json
 			{
 				if (double.IsNaN(m_value.Double))
 				{
-					return TryAppendLiteral(format is "J" or "j" ? JsonTokens.JavaScriptNaN : JsonTokens.SymbolNaN, destination, out charsWritten);
+					return (format is "J" or "j" ? JsonTokens.JavaScriptNaN : JsonTokens.SymbolNaN).TryCopyTo(destination, out charsWritten);
 				}
 				if (double.IsPositiveInfinity(m_value.Double))
 				{
-					return TryAppendLiteral(format is "J" or "j" ? JsonTokens.JavaScriptInfinityPos : JsonTokens.SymbolInfinityPos, destination, out charsWritten);
+					return (format is "J" or "j" ? JsonTokens.JavaScriptInfinityPos : JsonTokens.SymbolInfinityPos).TryCopyTo(destination, out charsWritten);
 				}
 				if (double.IsNegativeInfinity(m_value.Double))
 				{
-					return TryAppendLiteral(format is "J" or "j" ? JsonTokens.JavaScriptInfinityNeg : JsonTokens.SymbolInfinityNeg, destination, out charsWritten);
+					return (format is "J" or "j" ? JsonTokens.JavaScriptInfinityNeg : JsonTokens.SymbolInfinityNeg).TryCopyTo(destination, out charsWritten);
 				}
 			}
 
 			var literal = m_literal;
 			if (literal is not null)
 			{ // we will output the original literal unless we need to do some special formatting...
-
-				return TryAppendLiteral(literal, destination, out charsWritten);
+				return literal.TryCopyTo(destination, out charsWritten);
 			}
 
 			switch (m_kind)
@@ -2282,15 +2281,15 @@ namespace SnowBank.Data.Json
 			{
 				if (double.IsNaN(m_value.Double))
 				{
-					return TryAppendLiteral(format is "J" or "j" ? "Number.NaN"u8 : "NaN"u8, destination, out bytesWritten);
+					return (format is "J" or "j" ? "Number.NaN"u8 : "NaN"u8).TryCopyTo(destination, out bytesWritten);
 				}
 				if (double.IsPositiveInfinity(m_value.Double))
 				{
-					return TryAppendLiteral(format is "J" or "j" ? "Number.POSITIVE_INFINITY"u8 : "Infinity"u8, destination, out bytesWritten);
+					return (format is "J" or "j" ? "Number.POSITIVE_INFINITY"u8 : "Infinity"u8).TryCopyTo(destination, out bytesWritten);
 				}
 				if (double.IsNegativeInfinity(m_value.Double))
 				{
-					return TryAppendLiteral(format is "J" or "j" ? "Number.NEGATIVE_INFINITY"u8 : "-Infinity"u8, destination, out bytesWritten);
+					return (format is "J" or "j" ? "Number.NEGATIVE_INFINITY"u8 : "-Infinity"u8).TryCopyTo(destination, out bytesWritten);
 				}
 			}
 
