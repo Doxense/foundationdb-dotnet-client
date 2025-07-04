@@ -235,9 +235,21 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[DebuggerStepThrough]
+		protected Task CleanLocation(IFdbDatabaseProvider db, FdbPath path)
+		{
+			return CleanLocation(db, db.Root[path]);
+		}
+
+		[DebuggerStepThrough]
 		protected async Task CleanLocation(IFdbDatabaseProvider db, ISubspaceLocation location)
 		{
 			await CleanLocation(await db.GetDatabase(this.Cancellation), location);
+		}
+
+		[DebuggerStepThrough]
+		protected Task CleanLocation(IFdbDatabase db, FdbPath path)
+		{
+			return CleanLocation(db, db.Root[path]);
 		}
 
 		[DebuggerStepThrough]
