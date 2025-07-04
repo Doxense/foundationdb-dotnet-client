@@ -625,7 +625,7 @@ namespace SnowBank.Data.Json
 			null => false,
 			JsonDateTime date => Equals(date),
 			JsonNumber num => num.Equals(this),
-			JsonString str => this.HasOffset ? str.TryConvertToDateTimeOffset(out var dto) && dto == this.DateWithOffset : str.TryConvertToDateTime(out var dt) && dt == this.DateWithOffset,
+			JsonString str => this.HasOffset ? str.TryConvertToDateTimeOffset(out var dto) && dto == this.DateWithOffset : str.TryConvertToDateTime(out var dt) && dt == this.Date,
 			_ => false
 		};
 

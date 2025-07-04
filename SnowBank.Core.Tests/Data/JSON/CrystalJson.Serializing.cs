@@ -304,18 +304,18 @@ namespace SnowBank.Data.Json.Tests
 
 			if (value is IFormattable fmt)
 			{
-				Log($"# <{settings}> {typeof(T).GetFriendlyName()}: {fmt}");
+				Log($"# ({settings}) {typeof(T).GetFriendlyName()}: {fmt}");
 			}
 			else
 			{
-				Log($"# <{settings}> {typeof(T).GetFriendlyName()}");
+				Log($"# ({settings}) {typeof(T).GetFriendlyName()}");
 			}
 
 			var expectedSlice = Slice.FromStringUtf8(expected);
 
 			{ // CrystalJson.Serialize<T>
 				string actual = CrystalJson.Serialize<T>(value, settings);
-				Log($"> {actual}");
+				Log($"> `{actual}`");
 				if (actual != expected)
 				{
 					Assert.That(actual, Is.EqualTo(expected), message, actualExpression: $"{nameof(CrystalJson)}.{nameof(CrystalJson.Serialize)}({expr}, {settingsExpression})", constraintExpression: "Is.EqualTo(\"\"\"" + expected + "\"\"\")");
@@ -1259,7 +1259,7 @@ namespace SnowBank.Data.Json.Tests
 			CheckSerialize(new DateTimeOffset(2013, 3, 11, 12, 34, 56, 768, TimeSpan.FromMinutes(-11 * 60 - 30)), settings, "\"2013-03-11T12:34:56.7680000-11:30\"");
 
 			// Now (UTC)
-			var utcNow = DateTimeOffset.Now.ToUniversalTime();
+			var utcNow = DateTimeOffset.UtcNow;
 			CheckSerialize(utcNow, settings, "\"" + utcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffffff") + "Z\"", "DateTime.UtcNow doit finir par Z");
 
 			// Now (local)

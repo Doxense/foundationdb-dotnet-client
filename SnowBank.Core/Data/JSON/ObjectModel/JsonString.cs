@@ -2060,7 +2060,11 @@ namespace SnowBank.Data.Json
 				dto = default;
 				return false;
 			}
-			dto = new DateTimeOffset(dt);
+			
+			// correct for MinValue/MaxValue; otherwise, the DateTimeOffset ctor will throw if the server is GMT+XX
+			dto = dt == DateTime.MinValue ? DateTimeOffset.MinValue
+				: dt == DateTime.MaxValue ? DateTimeOffset.MaxValue
+				: new DateTimeOffset(dt);
 			return true;
 		}
 

@@ -275,14 +275,13 @@ namespace SnowBank.Data.Json.Tests
 			Assert.That(obj, Has.Count.EqualTo(1));
 		}
 
-#if DISABLED
 		[Test]
-		public void TestParseDateTime()
+		public void Test_Parse_JsonDateTime()
 		{
 			// Parsing
 
 			// Unix Epoch (1970-1-1 UTC)
-			ParseAreEqual(new JsonDateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc), "\"\\/Date(0)\\/\"");
+			//ParseAreEqual(new JsonDateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc), "\"\\/Date(0)\\/\"");
 
 			// Min/Max Value
 			ParseAreEqual(JsonDateTime.MinValue, "\"\\/Date(-62135596800000)\\/\"", "DateTime.MinValue");
@@ -300,15 +299,44 @@ namespace SnowBank.Data.Json.Tests
 			DateTime utcNow = DateTime.UtcNow;
 			Assert.That(utcNow.Kind, Is.EqualTo(DateTimeKind.Utc));
 			// /!\ JSON a une résolution a la milliseconde mais UtcNow a une précision au 'tick', donc il faut tronquer la date car elle a une précision supérieure
-			var utcRoundTrip = JsonValue._Parse(CrystalJson.Serialize(utcNow));
+			var utcRoundTrip = JsonValue.Parse(CrystalJson.Serialize(utcNow));
 			Assert.That(utcRoundTrip, Is.EqualTo(new JsonDateTime(utcNow)), "RoundTrip DateTime.UtcNow");
 
 			DateTime localNow = DateTime.Now;
 			Assert.That(localNow.Kind, Is.EqualTo(DateTimeKind.Local));
-			var localRoundTrip = JsonValue._Parse(CrystalJson.Serialize(localNow));
+			var localRoundTrip = JsonValue.Parse(CrystalJson.Serialize(localNow));
 			Assert.That(localRoundTrip, Is.EqualTo(new JsonDateTime(localNow)), "RoundTrip DateTime.Now");
+
+			static void ParseAreEqual(JsonValue expected, string jsonText, string? message = null)
+			{
+				{ // JsonValue, string
+					var parsed = JsonValue.Parse(jsonText);
+					Assert.That(parsed, Is.EqualTo(expected), $"JsonValue.Parse('{jsonText}') into {expected.Type}{(message is null ? string.Empty : (": " + message))}");
+				}
+				{ // JsonValue, RoS<char>
+					var parsed = JsonValue.Parse(("$$$" + jsonText + "%%%").AsSpan()[3..^3]);
+					Assert.That(parsed, Is.EqualTo(expected), $"JsonValue.Parse('{jsonText}') into {expected.Type}{(message is null ? string.Empty : (": " + message))}");
+				}
+				{ // JsonValue, RoS<byte>
+					var parsed = JsonValue.Parse(Encoding.UTF8.GetBytes("$$$" + jsonText + "%%%").AsSpan()[3..^3]);
+					Assert.That(parsed, Is.EqualTo(expected), $"JsonValue.Parse('{jsonText}') into {expected.Type}{(message is null ? string.Empty : (": " + message))}");
+				}
+
+				{ // JsonValue, string, readonly
+					var parsed = JsonValue.ReadOnly.Parse(jsonText);
+					Assert.That(parsed, Is.EqualTo(expected), $"JsonValue.Parse('{jsonText}') into {expected.Type}{(message is null ? string.Empty : (": " + message))}");
+				}
+				{ // JsonValue, RoS<char>, readonly
+					var parsed = JsonValue.ReadOnly.Parse(("$$$" + jsonText + "%%%").AsSpan()[3..^3]);
+					Assert.That(parsed, Is.EqualTo(expected), $"JsonValue.Parse('{jsonText}') into {expected.Type}{(message is null ? string.Empty : (": " + message))}");
+				}
+				{ // JsonValue, RoS<byte>, readonly
+					var parsed = JsonValue.ReadOnly.Parse(Encoding.UTF8.GetBytes("$$$" + jsonText + "%%%").AsSpan()[3..^3]);
+					Assert.That(parsed, Is.EqualTo(expected), $"JsonValue.Parse('{jsonText}') into {expected.Type}{(message is null ? string.Empty : (": " + message))}");
+				}
+			}
+
 		}
-#endif
 
 		[Test]
 		public void Test_Parse_Array()
