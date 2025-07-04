@@ -347,16 +347,22 @@ namespace FoundationDB.Client
 		[Pure]
 		public bool IsChildOf(FdbPath prefix)
 		{
+			// we allow Absolute.EndsWith(Relative), but not Relative.EndsWith(Absolute)
 			if (this.IsAbsolute != prefix.IsAbsolute) return false;
-			//note: we have to compare only the names, ignoring the partitions
 
 			var thisSpan = this.Segments.Span;
-			var parentSpan = prefix.Segments.Span;
-			if (thisSpan.Length <= parentSpan.Length) return false;
+			var otherSpan = prefix.Segments.Span;
+			if (thisSpan.Length <= otherSpan.Length) return false;
 
-			for (int i = 0; i < parentSpan.Length; i++)
+			//note: we have to compare only the names, ignoring the partitions
+			for (int i = 0; i < otherSpan.Length; i++)
 			{
-				if (thisSpan[i].Name != parentSpan[i].Name)
+				if (thisSpan[i].Name != otherSpan[i].Name)
+				{
+					return false;
+				}
+				// if both have a LayerId, it must be identical
+				if (thisSpan[i].LayerId is not "" && otherSpan[i].LayerId is not "" && thisSpan[i].LayerId != otherSpan[i].LayerId)
 				{
 					return false;
 				}
@@ -370,17 +376,22 @@ namespace FoundationDB.Client
 		[Pure]
 		public bool StartsWith(FdbPath prefix)
 		{
+			// we allow Absolute.StartsWith(Absolute) and Relative.StartsWith(Relative), but not a mix of Absolute/Relative
 			if (this.IsAbsolute != prefix.IsAbsolute) return false;
 
-			//note: we have to compare only the names, ignoring the partitions
-
 			var thisSpan = this.Segments.Span;
-			var parentSpan = prefix.Segments.Span;
-			if (thisSpan.Length < parentSpan.Length) return false;
+			var otherSpan = prefix.Segments.Span;
+			if (thisSpan.Length < otherSpan.Length) return false;
 
-			for (int i = 0; i < parentSpan.Length; i++)
+			for (int i = 0; i < otherSpan.Length; i++)
 			{
-				if (thisSpan[i].Name != parentSpan[i].Name)
+				if (thisSpan[i].Name != otherSpan[i].Name)
+				{
+					return false;
+				}
+
+				// if both have a LayerId, it must be identical
+				if (thisSpan[i].LayerId is not "" && otherSpan[i].LayerId is not "" && thisSpan[i].LayerId != otherSpan[i].LayerId)
 				{
 					return false;
 				}
@@ -390,22 +401,39 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Tests if the current path is a parent of another path</summary>
-		/// <remarks>This differs from <see cref="EndsWith"/> in that a path is not a parent of itself</remarks>
-		[Pure]
-		public bool IsParentOf(FdbPath suffix)
-		{
-			if (this.IsAbsolute != suffix.IsAbsolute) return false;
-			return suffix.Count > this.Count && this.Segments.Span.EndsWith(suffix.Segments.Span);
-		}
+		/// <remarks>This differs from <see cref="StartsWith"/> in that a path is not a parent of itself</remarks>
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public bool IsParentOf(FdbPath suffix) => suffix.IsChildOf(this);
 
 		/// <summary>Tests if the current path is the same or a parent of another path</summary>
 		/// <remarks>This differs from <see cref="IsParentOf"/> in that a path always ends with itself</remarks>
 		[Pure]
 		public bool EndsWith(FdbPath suffix)
 		{
-			if (suffix.IsEmpty) return true; // everything ends with Empty
-			if (suffix.IsAbsolute) return suffix.Equals(this);
-			return this.Segments.Span.EndsWith(suffix.Segments.Span);
+			// we allow Absolute.EndsWith(Relative), but not Relative.EndsWith(Absolute)
+			if (!this.IsAbsolute && suffix.IsAbsolute) return false;
+
+			var thisSpan = this.Segments.Span;
+			var otherSpan = suffix.Segments.Span;
+
+			int thisOffset = thisSpan.Length - otherSpan.Length;
+			if (thisOffset < 0) return false;
+
+			for (int i = otherSpan.Length - 1; i >= 0; i--)
+			{
+				if (thisSpan[thisOffset + i].Name != otherSpan[i].Name)
+				{
+					return false;
+				}
+
+				// if both have a LayerId, it must be identical
+				if (thisSpan[thisOffset + i].LayerId is not "" && otherSpan[i].LayerId is not "" && thisSpan[thisOffset + i].LayerId != otherSpan[i].LayerId)
+				{
+					return false;
+				}
+			}
+
+			return true;
 		}
 
 		/// <summary>Returns the relative part of this path inside its <paramref name="parent"/></summary>

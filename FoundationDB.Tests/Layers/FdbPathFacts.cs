@@ -218,6 +218,130 @@ namespace FoundationDB.Client.Tests
 			Assert.That(slice[0].LayerId, Is.EqualTo(string.Empty));
 			Assert.That(slice[1].Name, Is.EqualTo("Bar"));
 			Assert.That(slice[1].LayerId, Is.EqualTo(string.Empty));
+		[Test]
+		public void Test_FdbPath_StartsWith()
+		{
+			// no layer
+			Assert.Multiple(() =>
+			{
+				Assert.That(FdbPath.Root.StartsWith(FdbPath.Root), Is.True);
+				Assert.That(FdbPath.Root["A"].StartsWith(FdbPath.Root), Is.True);
+				Assert.That(FdbPath.Root["A"]["B"].StartsWith(FdbPath.Root["A"]), Is.True);
+				Assert.That(FdbPath.Root["A"]["B"]["C"].StartsWith(FdbPath.Root["A"]), Is.True);
+				Assert.That(FdbPath.Root["A"]["B"]["C"].StartsWith(FdbPath.Root["A"]["B"]), Is.True);
+				Assert.That(FdbPath.Root.StartsWith(FdbPath.Root), Is.True);
+				Assert.That(FdbPath.Root["A"].StartsWith(FdbPath.Root["A"]), Is.True);
+				Assert.That(FdbPath.Root["A"]["B"].StartsWith(FdbPath.Root["A"]["B"]), Is.True);
+
+				Assert.That(FdbPath.Root.StartsWith(FdbPath.Root["A"]), Is.False);
+				Assert.That(FdbPath.Root["B"].StartsWith(FdbPath.Root["A"]), Is.False);
+				Assert.That(FdbPath.Root["B"].StartsWith(FdbPath.Root["A"]["B"]), Is.False);
+				Assert.That(FdbPath.Root["C"]["A"]["B"].StartsWith(FdbPath.Root["A"]["B"]), Is.False);
+				Assert.That(FdbPath.Root["ABC"].StartsWith(FdbPath.Root["A"]), Is.False);
+				Assert.That(FdbPath.Root["ABC"].StartsWith(FdbPath.Root["A"]["B"]), Is.False);
+			});
+
+			// with layer
+			Assert.Multiple(() =>
+			{
+				Assert.That(FdbPath.Root["A", "Foo"].StartsWith(FdbPath.Root), Is.True);
+				Assert.That(FdbPath.Root["A", "Foo"]["B"].StartsWith(FdbPath.Root["A", "Foo"]), Is.True);
+				Assert.That(FdbPath.Root["A", "Foo"]["B"].StartsWith(FdbPath.Root["A"]), Is.True);
+				Assert.That(FdbPath.Root["A"]["B"].StartsWith(FdbPath.Root["A", "Foo"]), Is.True);
+				Assert.That(FdbPath.Root["A"]["B"]["C"].StartsWith(FdbPath.Root["A"]), Is.True);
+				Assert.That(FdbPath.Root["A"]["B"]["C"].StartsWith(FdbPath.Root["A"]["B"]), Is.True);
+				Assert.That(FdbPath.Root["A"]["B", "Foo"]["C"].StartsWith(FdbPath.Root["A"]["B"]), Is.True);
+				Assert.That(FdbPath.Root["A"]["B"]["C"].StartsWith(FdbPath.Root["A"]["B", "Foo"]), Is.True);
+				Assert.That(FdbPath.Root["A", "Foo"]["B", "Bar"].StartsWith(FdbPath.Root["A"]["B"]), Is.True);
+
+				Assert.That(FdbPath.Root["A", "Foo"].StartsWith(FdbPath.Root["A", "Bar"]), Is.False);
+				Assert.That(FdbPath.Root["A", "Foo"]["B"].StartsWith(FdbPath.Root["A", "Bar"]), Is.False);
+				Assert.That(FdbPath.Root["A"]["B", "Foo"]["C"].StartsWith(FdbPath.Root["A", "Foo"]["B", "Bar"]), Is.False);
+			});
+
+		}
+
+		[Test]
+		public void Test_FdbPath_EndsWith()
+		{
+			// no layer
+			Assert.Multiple(() =>
+			{
+				Assert.That(FdbPath.Root.EndsWith(FdbPath.Root), Is.True);
+				Assert.That(FdbPath.Root["A"].EndsWith(FdbPath.Root), Is.True);
+				Assert.That(FdbPath.Root["A"]["B"].EndsWith(FdbPath.Root["B"]), Is.True);
+				Assert.That(FdbPath.Root["A"]["B"]["C"].EndsWith(FdbPath.Root["C"]), Is.True);
+				Assert.That(FdbPath.Root["A"]["B"]["C"].EndsWith(FdbPath.Root["B"]["C"]), Is.True);
+				Assert.That(FdbPath.Root["A"]["B"]["C"].EndsWith(FdbPath.Root["A"]["B"]["C"]), Is.True);
+				Assert.That(FdbPath.Root["A"].EndsWith(FdbPath.Root["A"]), Is.True);
+				Assert.That(FdbPath.Root["A"]["B"].EndsWith(FdbPath.Root["A"]["B"]), Is.True);
+
+				Assert.That(FdbPath.Root.EndsWith(FdbPath.Root["A"]), Is.False);
+				Assert.That(FdbPath.Root["B"].EndsWith(FdbPath.Root["A"]), Is.False);
+				Assert.That(FdbPath.Root["B"]["A"].EndsWith(FdbPath.Root["A"]["B"]), Is.False);
+				Assert.That(FdbPath.Root["A"]["B"]["C"].EndsWith(FdbPath.Root["A"]["B"]), Is.False);
+				Assert.That(FdbPath.Root["ABC"].EndsWith(FdbPath.Root["C"]), Is.False);
+				Assert.That(FdbPath.Root["ABC"].EndsWith(FdbPath.Root["BC"]), Is.False);
+			});
+
+			// with layer
+			Assert.Multiple(() =>
+			{
+				Assert.That(FdbPath.Root["A", "Foo"].EndsWith(FdbPath.Root), Is.True);
+				Assert.That(FdbPath.Root["A", "Foo"].EndsWith(FdbPath.Root["A", "Foo"]), Is.True);
+				Assert.That(FdbPath.Root["A", "Foo"].EndsWith(FdbPath.Root["A"]), Is.True);
+				Assert.That(FdbPath.Root["A"]["B"]["C", "Foo"].EndsWith(FdbPath.Root["C", "Foo"]), Is.True);
+				Assert.That(FdbPath.Root["A"]["B"]["C"].EndsWith(FdbPath.Root["C", "Foo"]), Is.True);
+				Assert.That(FdbPath.Root["A"]["B", "Foo"]["C"].EndsWith(FdbPath.Root["B"]["C"]), Is.True);
+				Assert.That(FdbPath.Root["A"]["B"]["C"].EndsWith(FdbPath.Root["B", "Foo"]["C"]), Is.True);
+				Assert.That(FdbPath.Root["A", "Foo"]["B", "Bar"].EndsWith(FdbPath.Root["A"]["B"]), Is.True);
+
+				Assert.That(FdbPath.Root["A", "Foo"].EndsWith(FdbPath.Root["A", "Bar"]), Is.False);
+				Assert.That(FdbPath.Root["A", "Foo"]["B"].EndsWith(FdbPath.Root["A", "Bar"]["B"]), Is.False);
+				Assert.That(FdbPath.Root["A"]["B", "Foo"]["C", "Bar"].EndsWith(FdbPath.Root["B", "FooZ"]["C", "Bar"]), Is.False);
+				Assert.That(FdbPath.Root["A"]["B", "Foo"]["C", "Bar"].EndsWith(FdbPath.Root["B", "Foo"]["C", "BarZ"]), Is.False);
+			});
+
+		}
+
+		[Test]
+		public void Test_FdbPath_IsParentOf()
+		{
+			Assert.Multiple(() =>
+			{
+				Assert.That(FdbPath.Root.IsParentOf(FdbPath.Root["A"]), Is.True);
+				Assert.That(FdbPath.Root["A"].IsParentOf(FdbPath.Root["A"]["B"]), Is.True);
+				Assert.That(FdbPath.Root["A"].IsParentOf(FdbPath.Root["A"]["B"]["C"]), Is.True);
+				Assert.That(FdbPath.Root["A"]["B"].IsParentOf(FdbPath.Root["A"]["B"]["C"]), Is.True);
+
+				Assert.That(FdbPath.Root.IsParentOf(FdbPath.Root), Is.False);
+				Assert.That(FdbPath.Root["A"].IsParentOf(FdbPath.Root), Is.False);
+				Assert.That(FdbPath.Root["A"].IsParentOf(FdbPath.Root["A"]), Is.False);
+				Assert.That(FdbPath.Root["A"].IsParentOf(FdbPath.Root["B"]), Is.False);
+				Assert.That(FdbPath.Root["A"]["B"].IsParentOf(FdbPath.Root["B"]), Is.False);
+				Assert.That(FdbPath.Root["A"]["B"].IsParentOf(FdbPath.Root["A"]["B"]), Is.False);
+				Assert.That(FdbPath.Root["A"]["B"].IsParentOf(FdbPath.Root["C"]["A"]["B"]), Is.False);
+			});
+		}
+
+		[Test]
+		public void Test_FdbPath_IsChildOf()
+		{
+			Assert.Multiple(() =>
+			{
+				Assert.That(FdbPath.Root["A"].IsChildOf(FdbPath.Root), Is.True);
+				Assert.That(FdbPath.Root["A"]["B"].IsChildOf(FdbPath.Root["A"]), Is.True);
+				Assert.That(FdbPath.Root["A"]["B"]["C"].IsChildOf(FdbPath.Root["A"]), Is.True);
+				Assert.That(FdbPath.Root["A"]["B"]["C"].IsChildOf(FdbPath.Root["A"]["B"]), Is.True);
+
+				Assert.That(FdbPath.Root.IsChildOf(FdbPath.Root), Is.False);
+				Assert.That(FdbPath.Root.IsChildOf(FdbPath.Root["A"]), Is.False);
+				Assert.That(FdbPath.Root["A"].IsChildOf(FdbPath.Root["A"]), Is.False);
+				Assert.That(FdbPath.Root["B"].IsChildOf(FdbPath.Root["A"]), Is.False);
+				Assert.That(FdbPath.Root["B"].IsChildOf(FdbPath.Root["A"]["B"]), Is.False);
+				Assert.That(FdbPath.Root["A"]["B"].IsChildOf(FdbPath.Root["A"]["B"]), Is.False);
+				Assert.That(FdbPath.Absolute("C", "A", "B").IsChildOf(FdbPath.Root["A"]["B"]), Is.False);
+			});
 		}
 
 		[Test]
