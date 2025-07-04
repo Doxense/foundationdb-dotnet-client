@@ -701,6 +701,86 @@ namespace SnowBank.Buffers.Tests
 
 		#endregion
 
+		#region TryAppendAndAdvance...
+
+		[Test]
+		public void Test_TryAppendAndAdvance()
+		{
+			var buffer = new char[16];
+			buffer.AsSpan().Fill('∅');
+			Span<char> source = buffer.AsSpan(0, 10);
+			source.Fill('_');
+
+			var cursor = source;
+			Assume.That(cursor.Length, Is.EqualTo(source.Length));
+
+			Assert.That(cursor.TryAppendAndAdvance('A'), Is.True);
+			Assert.That(new string(buffer), Is.EqualTo("A_________∅∅∅∅∅∅"));
+			Assert.That(cursor.Length, Is.EqualTo(source.Length - 1));
+			Assert.That(cursor[0], Is.EqualTo('_'));
+
+			Assert.That(cursor.TryAppendAndAdvance('B'), Is.True);
+			Assert.That(new string(buffer), Is.EqualTo("AB________∅∅∅∅∅∅"));
+			Assert.That(source[1], Is.EqualTo('B'));
+			Assert.That(cursor.Length, Is.EqualTo(source.Length - 2));
+			Assert.That(cursor[0], Is.EqualTo('_'));
+
+			Assert.That(cursor.TryAppendAndAdvance("CDEFGHIJ"), Is.True);
+			Assert.That(new string(buffer), Is.EqualTo("ABCDEFGHIJ∅∅∅∅∅∅"));
+			Assert.That(cursor.Length, Is.Zero);
+
+			Assert.That(cursor.TryAppendAndAdvance('K'), Is.False);
+			Assert.That(new string(buffer), Is.EqualTo("ABCDEFGHIJ∅∅∅∅∅∅"));
+			Assert.That(cursor.Length, Is.Zero);
+
+			Assert.That(cursor.TryAppendAndAdvance("KLM"), Is.False);
+			Assert.That(new string(buffer), Is.EqualTo("ABCDEFGHIJ∅∅∅∅∅∅"));
+			Assert.That(cursor.Length, Is.Zero);
+
+			Assert.That(cursor.TryAppendAndAdvance(""), Is.True);
+			Assert.That(new string(buffer), Is.EqualTo("ABCDEFGHIJ∅∅∅∅∅∅"));
+			Assert.That(cursor.Length, Is.Zero);
+		}
+
+		[Test]
+		public void Test_TryCopyTo()
+		{
+			var buffer = new char[16];
+			buffer.AsSpan().Fill('∅');
+			var source = buffer.AsSpan(0, 10);
+
+			int written;
+
+			{ // empty
+				source.Fill('_');
+				Assert.That("".TryCopyTo(source, out written), Is.True.WithOutput(written).EqualTo(0));
+				Assert.That(new string(buffer), Is.EqualTo("__________∅∅∅∅∅∅"));
+			}
+			{ // single
+				source.Fill('_');
+				Assert.That("H".TryCopyTo(source, out written), Is.True.WithOutput(written).EqualTo(1));
+				Assert.That(new string(buffer), Is.EqualTo("H_________∅∅∅∅∅∅"));
+			}
+			{ // partial
+				source.Fill('_');
+				Assert.That("Hello".TryCopyTo(source, out written), Is.True.WithOutput(written).EqualTo(5));
+				Assert.That(new string(buffer), Is.EqualTo("Hello_____∅∅∅∅∅∅"));
+			}
+			{ // exact fit
+				source.Fill('_');
+				Assert.That("HelloWorld".TryCopyTo(source, out written), Is.True.WithOutput(written).EqualTo(10));
+				Assert.That(new string(buffer), Is.EqualTo("HelloWorld∅∅∅∅∅∅"));
+			}
+			{ // destination too small
+				source.Fill('_');
+				Assert.That("HelloWorld!".TryCopyTo(source, out written), Is.False.WithOutput(written).EqualTo(0));
+				Assert.That(new string(buffer), Is.EqualTo("__________∅∅∅∅∅∅"));
+			}
+
+		}
+
+		#endregion
+
 	}
 
 }

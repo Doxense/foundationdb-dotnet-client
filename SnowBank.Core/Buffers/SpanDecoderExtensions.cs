@@ -1496,6 +1496,94 @@ namespace System
 
 		#endregion
 
+		#region Formatter...
+
+		//TODO: this is for writing, maybe we should put this in a different extension class?
+
+		/// <summary>Copies an <paramref name="item"/> at the start of <paramref name="buffer"/>, and replace the variable with the tail of the buffer</summary>
+		/// <remarks>
+		/// <para>The <paramref name="buffer"/> variable is passed <i>by reference</i> and is modified in-place!</para>
+		/// <para>Example:<code>
+		/// bool TryFormat(Span&lt;char> destination, out int charsWritten)
+		/// {
+		///     var buffer = destination;
+		///     if (!buffer.TryAppendAndAdvance('\"')) goto too_small;
+		///     if (!TryEscapeLiteral(tmp, out int len, this.SomeValue)) goto too_small;
+		///     buffer = buffer[len..];
+		///     if (!buffer.TryAppendAndAdvance('\"')) goto too_small;
+		///     charsWritten = destination.Length - buffer.Length;
+		///     return true;
+		/// too_small:
+		///     charsWritten = 0;
+		///     return false;
+		/// }
+		/// </code></para>
+		/// </remarks>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryAppendAndAdvance<T>(ref this Span<T> buffer, T item)
+		{
+			if (buffer.Length == 0)
+			{
+				return false;
+			}
+
+			buffer[0] = item;
+			buffer = buffer[1..];
+			return true;
+		}
+
+		/// <summary>Copies <paramref name="items"/> at the start of <paramref name="buffer"/>, and replace the variable with the tail of the buffer</summary>
+		/// <remarks>
+		/// <para>The <paramref name="buffer"/> variable is passed <i>by reference</i> and is modified in-place!</para>
+		/// <para>Example:<code>
+		/// bool TryFormat(Span&lt;char> destination, out int charsWritten)
+		/// {
+		///     var buffer = destination;
+		///     if (!buffer.TryAppendAndAdvance("[ ")) goto too_small;
+		///     if (!this.SomeValue.TryFormat(tmp, out int len)) goto too_small;
+		///     buffer = buffer[len..];
+		///     if (!buffer.TryAppendAndAdvance(" ]")) goto too_small;
+		///     charsWritten = destination.Length - buffer.Length;
+		///     return true;
+		/// too_small:
+		///     charsWritten = 0;
+		///     return false;
+		/// }
+		/// </code></para>
+		/// </remarks>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryAppendAndAdvance<T>(ref this Span<T> buffer, scoped ReadOnlySpan<T> items)
+		{
+			if (!items.TryCopyTo(buffer))
+			{
+				return false;
+			}
+			buffer = buffer[items.Length..];
+			return true;
+		}
+
+		/// <summary>Calls <see cref="Span{T}.TryCopyTo"/> and, if successful, sets the number of copied items in <see cref="written"/></summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="source">The span to copy items from</param>
+		/// <param name="destination">The span to copy items into</param>
+		/// <param name="written">Number of items copied, or <c>0</c> if <paramref name="destination"/> is too small</param>
+		/// <returns>If the destination span is shorter than the source span, this method return false and no data is written to the destination.</returns>
+		/// <remarks><para>This helper method is very useful when implementing <see cref="ISpanFormattable"/>.</para></remarks>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryCopyTo<T>(this ReadOnlySpan<T> source, Span<T> destination, out int written)
+		{
+			if (!source.TryCopyTo(destination))
+			{
+				written = 0;
+				return false;
+			}
+
+			written = source.Length;
+			return true;
+		}
+
+		#endregion
+
 	}
 
 }
