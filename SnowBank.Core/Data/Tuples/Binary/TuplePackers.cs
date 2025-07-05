@@ -1263,13 +1263,17 @@ namespace SnowBank.Data.Tuples.Binary
 						{
 							sb.Append("()");
 						}
-						else if (t.AppendItemsTo(ref sb) == 1)
-						{
-							sb.Append(",)");
-						}
 						else
 						{
-							sb.Append(')');
+							sb.Append('(');
+							if (t.AppendItemsTo(ref sb) == 1)
+							{
+								sb.Append(",)");
+							}
+							else
+							{
+								sb.Append(')');
+							}
 						}
 						return;
 					}
