@@ -104,7 +104,8 @@ namespace FoundationDB.Client
 		IEquatable<VersionStamp>,
 		IEquatable<FqlVariableTypes>,
 		// Formatting
-		IFormattable
+		IFormattable,
+		ISpanFormattable
 	{
 		private static readonly object s_false = true;
 
@@ -488,10 +489,13 @@ namespace FoundationDB.Client
 		}
 
 		/// <inheritdoc />
-		public override string ToString() => this.Type switch
+		public override string ToString() => ToString(null, null);
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? provider = null) => this.Type switch
 		{
 			FqlItemType.Indirection => ":" + this.Name,
-			FqlItemType.Variable => "<" + (this.Name != null ? (this.Name + ":") : "") + ToVariableTypeLiteral((FqlVariableTypes) this.Value!) + ">",
+			FqlItemType.Variable => $"<{(this.Name != null ? (this.Name + ":") : "")}{ToVariableTypeLiteral((FqlVariableTypes)this.Value!)}>",
 			FqlItemType.MaybeMore => "...",
 			FqlItemType.Nil => "nil",
 			FqlItemType.Boolean => ((bool) this.Value!) ? "true" : "false",
@@ -516,14 +520,75 @@ namespace FoundationDB.Client
 			},
 			FqlItemType.String => $"\"{((string) this.Value!).Replace("\"", "\\\"")}\"",
 			FqlItemType.Uuid => ((Uuid128) this.Value!).ToString("D"),
-			FqlItemType.Bytes => "0x" + ((Slice) this.Value!).ToString("x"),
-			FqlItemType.Tuple => ((FqlTupleExpression) this.Value!).ToString(),
+			FqlItemType.Bytes => $"0x{((Slice)this.Value!).ToString("x")}",
+			FqlItemType.Tuple => ((FqlTupleExpression) this.Value!).ToString(format, null),
 			FqlItemType.VStamp => ((VersionStamp) this.Value!).ToString(), //TODO: what format should be used for version stamps??
 			_ => $"<?{this.Type}?>",
 		};
 
 		/// <inheritdoc />
-		public string ToString(string? format, IFormatProvider? formatProvider) => ToString();
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format = default, IFormatProvider? provider = null)
+			=> this.Type switch
+			{
+				FqlItemType.Indirection => destination.TryWrite($":{this.Name}", out charsWritten),
+				FqlItemType.Variable => this.Name != null
+					? destination.TryWrite($"<{this.Name}:{ToVariableTypeLiteral((FqlVariableTypes)this.Value!)}>", out charsWritten)
+					: destination.TryWrite($"<{ToVariableTypeLiteral((FqlVariableTypes)this.Value!)}>", out charsWritten),
+				FqlItemType.MaybeMore => "...".TryCopyTo(destination, out charsWritten),
+				FqlItemType.Nil => "nil".TryCopyTo(destination, out charsWritten),
+				FqlItemType.Boolean => (((bool)this.Value!) ? "true" : "false").TryCopyTo(destination, out charsWritten),
+				FqlItemType.Integer => TryFormatInteger(destination, out charsWritten),
+				FqlItemType.Number => TryFormatNumber(destination, out charsWritten),
+
+				FqlItemType.String => destination.TryWrite($"\"{((string)this.Value!).Replace("\"", "\\\"")}\"", out charsWritten),
+				FqlItemType.Uuid => ((Uuid128)this.Value!).TryFormat(destination, out charsWritten, "D"),
+				FqlItemType.Bytes => destination.TryWrite($"0x{((Slice)this.Value!).ToString("x")}", out charsWritten),
+				FqlItemType.Tuple => ((FqlTupleExpression)this.Value!).TryFormat(destination, out charsWritten, format),
+				FqlItemType.VStamp => ((VersionStamp)this.Value!).TryFormat(destination, out charsWritten), //TODO: what format should be used for version stamps??
+				_ => destination.TryWrite($"<?{this.Type}?>", out charsWritten),
+			};
+
+		private bool TryFormatInteger(Span<char> destination, out int charsWritten) => this.Name is null
+			? this.Value switch
+			{
+				int x        => x.TryFormat(destination, out charsWritten, default, CultureInfo.InvariantCulture),
+				uint x       => x.TryFormat(destination, out charsWritten, default, CultureInfo.InvariantCulture),
+				long x       => x.TryFormat(destination, out charsWritten, default, CultureInfo.InvariantCulture),
+				ulong x      => x.TryFormat(destination, out charsWritten, default, CultureInfo.InvariantCulture),
+				Int128 x     => x.TryFormat(destination, out charsWritten, default, CultureInfo.InvariantCulture),
+				UInt128 x    => x.TryFormat(destination, out charsWritten, default, CultureInfo.InvariantCulture),
+				BigInteger x => x.TryFormat(destination, out charsWritten, default, CultureInfo.InvariantCulture),
+				_ => throw new InvalidOperationException("Invalid Int storage type"),
+			}
+			: this.Value switch
+			{
+				int x        => destination.TryWrite(CultureInfo.InvariantCulture, $"{this.Name}:{x}", out charsWritten),
+				uint x       => destination.TryWrite(CultureInfo.InvariantCulture, $"{this.Name}:{x}", out charsWritten),
+				long x       => destination.TryWrite(CultureInfo.InvariantCulture, $"{this.Name}:{x}", out charsWritten),
+				ulong x      => destination.TryWrite(CultureInfo.InvariantCulture, $"{this.Name}:{x}", out charsWritten),
+				Int128 x     => destination.TryWrite(CultureInfo.InvariantCulture, $"{this.Name}:{x}", out charsWritten),
+				UInt128 x    => destination.TryWrite(CultureInfo.InvariantCulture, $"{this.Name}:{x}", out charsWritten),
+				BigInteger x => destination.TryWrite(CultureInfo.InvariantCulture, $"{this.Name}:{x}", out charsWritten),
+				_ => throw new InvalidOperationException("Invalid Int storage type"),
+			};
+
+		private bool TryFormatNumber(Span<char> destination, out int charsWritten) => this.Name is null
+			? this.Value switch
+			{
+				Half x => x.TryFormat(destination, out charsWritten, "R", CultureInfo.InvariantCulture),
+				float x => x.TryFormat(destination, out charsWritten, "R", CultureInfo.InvariantCulture),
+				double x => x.TryFormat(destination, out charsWritten, "R", CultureInfo.InvariantCulture),
+				decimal x => x.TryFormat(destination, out charsWritten, "R", CultureInfo.InvariantCulture),
+				_ => throw new InvalidOperationException("Invalid Int storage type"),
+			}
+			: this.Value switch
+			{
+				Half x => destination.TryWrite(CultureInfo.InvariantCulture, $"{this.Name}:{x:R}", out charsWritten),
+				float x => destination.TryWrite(CultureInfo.InvariantCulture, $"{this.Name}:{x:R}", out charsWritten),
+				double x => destination.TryWrite(CultureInfo.InvariantCulture, $"{this.Name}:{x:R}", out charsWritten),
+				decimal x => destination.TryWrite(CultureInfo.InvariantCulture, $"{this.Name}:{x:R}", out charsWritten),
+				_ => throw new InvalidOperationException("Invalid Int storage type"),
+			};
 
 		public void Explain(ExplanationBuilder builder)
 		{
@@ -610,43 +675,43 @@ namespace FoundationDB.Client
 
 		public static FqlTupleItem MaybeMore() => new(FqlItemType.MaybeMore);
 
-		public static FqlTupleItem Nil() => new(FqlItemType.Nil);
+		public static FqlTupleItem Nil(string? name = null) => new(FqlItemType.Nil, null, name);
 
-		public static FqlTupleItem Boolean(bool value) => new(FqlItemType.Boolean, value ? s_true : s_false);
+		public static FqlTupleItem Boolean(bool value, string? name = null) => new(FqlItemType.Boolean, value ? s_true : s_false, name);
 
-		public static FqlTupleItem Int(int value) => new(FqlItemType.Integer, (uint) value < s_smallIntCache.Length ? s_smallIntCache[value] : (long) value);
+		public static FqlTupleItem Int(int value, string? name = null) => new(FqlItemType.Integer, (uint) value < s_smallIntCache.Length ? s_smallIntCache[value] : (long) value, name);
 
-		public static FqlTupleItem Int(long value) => new(FqlItemType.Integer, (value >= 0 && value < s_smallIntCache.Length) ? s_smallIntCache[value] : value);
+		public static FqlTupleItem Int(long value, string? name = null) => new(FqlItemType.Integer, (value >= 0 && value < s_smallIntCache.Length) ? s_smallIntCache[value] : value, name);
 
-		public static FqlTupleItem Int(uint value) => new(FqlItemType.Integer, value < s_smallUIntCache.Length ? s_smallUIntCache[value] : (ulong) value);
+		public static FqlTupleItem Int(uint value, string? name = null) => new(FqlItemType.Integer, value < s_smallUIntCache.Length ? s_smallUIntCache[value] : (ulong) value, name);
 
-		public static FqlTupleItem Int(ulong value) => new(FqlItemType.Integer, value < (ulong) s_smallUIntCache.Length ? s_smallUIntCache[value] : value);
+		public static FqlTupleItem Int(ulong value, string? name = null) => new(FqlItemType.Integer, value < (ulong) s_smallUIntCache.Length ? s_smallUIntCache[value] : value, name);
 
-		public static FqlTupleItem Int(Int128 value) => new(FqlItemType.Integer, value);
+		public static FqlTupleItem Int(Int128 value, string? name = null) => new(FqlItemType.Integer, value, name);
 
-		public static FqlTupleItem Int(UInt128 value) => new(FqlItemType.Integer, value);
+		public static FqlTupleItem Int(UInt128 value, string? name = null) => new(FqlItemType.Integer, value, name);
 
-		public static FqlTupleItem Int(BigInteger value) => new(FqlItemType.Integer, value);
+		public static FqlTupleItem Int(BigInteger value, string? name = null) => new(FqlItemType.Integer, value, name);
 
-		public static FqlTupleItem Num(float value) => new(FqlItemType.Number, value);
+		public static FqlTupleItem Num(float value, string? name = null) => new(FqlItemType.Number, value, name);
 
-		public static FqlTupleItem Num(double value) => new(FqlItemType.Number, value);
+		public static FqlTupleItem Num(double value, string? name = null) => new(FqlItemType.Number, value, name);
 
-		public static FqlTupleItem Num(Half value) => new(FqlItemType.Number, value);
+		public static FqlTupleItem Num(Half value, string? name = null) => new(FqlItemType.Number, value, name);
 
-		public static FqlTupleItem Num(decimal value) => new(FqlItemType.Number, value);
+		public static FqlTupleItem Num(decimal value, string? name = null) => new(FqlItemType.Number, value, name);
 
-		public static FqlTupleItem String(string value) => new(FqlItemType.String, value);
+		public static FqlTupleItem String(string value, string? name = null) => new(FqlItemType.String, value, name);
 
-		public static FqlTupleItem Bytes(Slice value) => new(FqlItemType.Bytes, value);
+		public static FqlTupleItem Bytes(Slice value, string? name = null) => new(FqlItemType.Bytes, value, name);
 
-		public static FqlTupleItem Uuid(Guid value) => new(FqlItemType.Uuid, (Uuid128) value);
+		public static FqlTupleItem Uuid(Guid value, string? name = null) => new(FqlItemType.Uuid, (Uuid128) value, name);
 
-		public static FqlTupleItem Uuid(Uuid128 value) => new(FqlItemType.Uuid, value);
+		public static FqlTupleItem Uuid(Uuid128 value, string? name = null) => new(FqlItemType.Uuid, value, name);
 
-		public static FqlTupleItem Tuple(FqlTupleExpression value) => new(FqlItemType.Tuple, value);
+		public static FqlTupleItem Tuple(FqlTupleExpression value, string? name = null) => new(FqlItemType.Tuple, value, name);
 
-		public static FqlTupleItem VStamp(VersionStamp value) => new(FqlItemType.VStamp, value);
+		public static FqlTupleItem VStamp(VersionStamp value, string? name = null) => new(FqlItemType.VStamp, value, name);
 
 	}
 
@@ -789,7 +854,7 @@ namespace FoundationDB.Client
 		public FqlTupleExpression Boolean(bool value) => Add(FqlTupleItem.Boolean(value));
 
 		/// <summary>Adds a constant <see cref="FqlItemType.Integer"/> literal</summary>
-		public FqlTupleExpression Integer(int value) => Add(FqlTupleItem.Int(value));
+		public FqlTupleExpression Integer(int value, string? name = null) => Add(FqlTupleItem.Int(value, name));
 
 		/// <summary>Adds a constant <see cref="FqlItemType.Integer"/> literal</summary>
 		public FqlTupleExpression Integer(long value) => Add(FqlTupleItem.Int(value));
@@ -842,7 +907,10 @@ namespace FoundationDB.Client
 		#endregion
 
 		/// <inheritdoc />
-		public override string ToString()
+		public override string ToString() => ToString(null, null);
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? formatProvider = null) 
 		{
 			var items = CollectionsMarshal.AsSpan(this.Items);
 			if (items.Length == 0)
@@ -867,8 +935,46 @@ namespace FoundationDB.Client
 			return sb.ToString();
 		}
 
-		/// <inheritdoc />
-		public string ToString(string? format, IFormatProvider? formatProvider) => ToString();
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format = default, IFormatProvider? provider = null)
+		{
+			var items = CollectionsMarshal.AsSpan(this.Items);
+			if (items.Length == 0)
+			{
+				return "()".TryCopyTo(destination, out charsWritten);
+			}
+
+			if (items.Length == 1)
+			{
+				return destination.TryWrite($"({items[0]})", out charsWritten);
+			}
+
+			if (destination.Length < 2) goto too_small;
+
+			var buffer = destination;
+			buffer[0] = '(';
+
+			if (!items[0].TryFormat(buffer[1..], out int len)) goto too_small;
+			buffer = buffer[(len + 1)..];
+
+			for(int i = 1; i < items.Length; i++)
+			{
+				if (buffer.Length == 0) goto too_small;
+				buffer[0] = ',';
+				if (!items[i].TryFormat(buffer[1..], out len)) goto too_small;
+				buffer = buffer[(len + 1)..];
+			}
+
+			if (buffer.Length == 0) goto too_small;
+			buffer[0] = ')';
+
+			charsWritten = destination.Length - buffer.Length + 1;
+			Contract.Debug.Ensures(charsWritten > 2);
+			return true;
+
+		too_small:
+			charsWritten = 0;
+			return false;
+		}
 
 		/// <inheritdoc />
 		public void Explain(ExplanationBuilder builder)
@@ -884,7 +990,6 @@ namespace FoundationDB.Client
 		}
 
 	}
-
 }
 
 #endif
