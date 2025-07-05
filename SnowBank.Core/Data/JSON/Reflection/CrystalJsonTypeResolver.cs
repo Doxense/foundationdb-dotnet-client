@@ -882,6 +882,16 @@ namespace SnowBank.Data.Json
 					return false;
 				}
 			}
+
+			{ // must not have an attribute called "Ignore" in its name
+				// we cannot "say the name" of this attribute without a ref to the Json.NET package,
+				// so we have to search using the name. This could break when using code trimming!
+				if (member.TryGetCustomAttribute("IgnoreAttribute", true, out var attr) && attr != null)
+				{ // skip!
+					return false;
+				}
+			}
+
 			// look for other legacy serialization attributes
 			// REVIEW: TODO: these are old attributes used during the era of SOAP and XML serialization, maybe we could drop support for them?
 				
