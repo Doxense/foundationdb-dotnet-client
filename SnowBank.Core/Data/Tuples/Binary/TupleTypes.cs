@@ -287,13 +287,13 @@ namespace SnowBank.Data.Tuples.Binary
 		ByteString = 0x01,
 		UnicodeString = 0x02,
 		Tuple = 0x03,
-		Boolean = 0x2,
 		Integer = 0x14, // centered on 0, but all from 0x0C to 0x1C
 		BigInteger = 0x1D,
 		Single = 0x20,
 		Double = 0x21,
 		Triple = 0x22,
 		Decimal = 0x23,
+		Boolean = 0x26, // either False or True
 		Uuid128 = 0x30,
 		Uuid64 = 0x31,
 		VersionStamp80 = 0x32,
