@@ -95,7 +95,7 @@ namespace FoundationDB.Client
 							case FqlItemType.Integer:
 							{
 								if (candidateType == TupleSegmentType.Integer
-								    && item.Matches(tuple[this.Depth])) //OPTIMIZE: PERF: TODO: !!!
+								    && item.Matches(tuple.GetSpan(this.Depth))) //OPTIMIZE: PERF: TODO: !!!
 								{
 									return next;
 								}
@@ -104,7 +104,7 @@ namespace FoundationDB.Client
 							case FqlItemType.String:
 							{
 								if (candidateType == TupleSegmentType.UnicodeString
-								    && item.Matches(tuple[this.Depth])) //OPTIMIZE: PERF: TODO: !!!
+								    && item.Matches(tuple.GetSpan(this.Depth))) //OPTIMIZE: PERF: TODO: !!!
 								{
 									return next;
 								}
@@ -113,7 +113,7 @@ namespace FoundationDB.Client
 							case FqlItemType.Tuple:
 							{
 								if (candidateType == TupleSegmentType.Tuple
-								    && item.Matches(tuple[this.Depth])) //OPTIMIZE: PERF: TODO: !!!
+								    && item.Matches(tuple.GetSpan(this.Depth))) //OPTIMIZE: PERF: TODO: !!!
 								{
 									return next;
 								}
@@ -122,7 +122,7 @@ namespace FoundationDB.Client
 							case FqlItemType.Bytes:
 							{
 								if (candidateType == TupleSegmentType.ByteString
-								    && item.Matches(tuple[this.Depth])) //OPTIMIZE: PERF: TODO: !!!
+								    && item.Matches(tuple.GetSpan(this.Depth))) //OPTIMIZE: PERF: TODO: !!!
 								{
 									return next;
 								}
@@ -131,7 +131,7 @@ namespace FoundationDB.Client
 							case FqlItemType.VStamp:
 							{
 								if (candidateType is (TupleSegmentType.VersionStamp80 or TupleSegmentType.VersionStamp96)
-								    && item.Matches(tuple[this.Depth])) //OPTIMIZE: PERF: TODO: !!!
+								    && item.Matches(tuple.GetSpan(this.Depth))) //OPTIMIZE: PERF: TODO: !!!
 								{
 									return next;
 								}

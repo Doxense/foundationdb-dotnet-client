@@ -168,54 +168,6 @@ namespace FoundationDB.Client
 			_ => HashCode.Combine(this.Type),
 		};
 
-		public bool Matches(object? value) => this.Type switch
-		{
-			FqlItemType.Indirection => throw new NotImplementedException(),
-			FqlItemType.Variable => MatchType((FqlVariableTypes) this.Value!, value),
-			FqlItemType.MaybeMore => ReferenceEquals(value, null),
-			FqlItemType.Nil => ReferenceEquals(value, null),
-			FqlItemType.Boolean => value is bool b && Equals(b),
-			FqlItemType.Integer => value switch
-			{
-				int i => Equals(i),
-				long l => Equals(l),
-				uint ui => Equals(ui),
-				ulong ul => Equals(ul),
-				Int128 i => Equals(i),
-				UInt128 ui => Equals(ui),
-				_ => false,
-			},
-			FqlItemType.Number => value switch
-			{
-				float f => Equals(f),
-				double d => Equals(d),
-				Half h => Equals(h),
-				decimal d => Equals(d),
-				_ => false,
-			},
-			FqlItemType.String => value is string str && Equals(str),
-			FqlItemType.Bytes => value is Slice s && Equals(s),
-			FqlItemType.Uuid => value switch
-			{
-				Uuid128 u => Equals(u),
-				Guid g => Equals(g),
-				_ => false,
-			},
-			FqlItemType.Tuple => value switch
-			{
-				FqlTupleExpression tup => Equals(tup),
-				IVarTuple tup => Equals(tup),
-				_ => false,
-			},
-			FqlItemType.VStamp => value switch
-			{
-				VersionStamp vs => Equals(vs),
-				//TODO: Slice? byte[]?
-				_ => false,
-			},
-			_ => throw new NotImplementedException(this.Type.ToString())
-		};
-
 		public bool Equals(FqlTupleItem other)
 		{
 			if (this.Type != other.Type) return false;
@@ -447,6 +399,11 @@ namespace FoundationDB.Client
 			return this.Type == FqlItemType.Tuple && ((FqlTupleExpression) this.Value!).Match(value);
 		}
 
+		public bool Equals(SpanTuple value)
+		{
+			return this.Type == FqlItemType.Tuple && ((FqlTupleExpression) this.Value!).Match(value);
+		}
+
 		public bool Equals(VersionStamp value)
 		{
 			return this.Type == FqlItemType.VStamp && ((VersionStamp) this.Value!).Equals(value);
@@ -460,6 +417,93 @@ namespace FoundationDB.Client
 		public bool Equals(FqlTupleExpression? value)
 		{
 			return this.Type == FqlItemType.Tuple && ((FqlTupleExpression) this.Value!).Equals(value);
+		}
+
+		public bool Matches(object? value) => this.Type switch
+		{
+			FqlItemType.Indirection => throw new NotImplementedException(),
+			FqlItemType.Variable => MatchType((FqlVariableTypes) this.Value!, value),
+			FqlItemType.MaybeMore => ReferenceEquals(value, null),
+			FqlItemType.Nil => ReferenceEquals(value, null),
+			FqlItemType.Boolean => value is bool b && Equals(b),
+			FqlItemType.Integer => value switch
+			{
+				int i => Equals(i),
+				long l => Equals(l),
+				uint ui => Equals(ui),
+				ulong ul => Equals(ul),
+				Int128 i => Equals(i),
+				UInt128 ui => Equals(ui),
+				_ => false,
+			},
+			FqlItemType.Number => value switch
+			{
+				float f => Equals(f),
+				double d => Equals(d),
+				Half h => Equals(h),
+				decimal d => Equals(d),
+				_ => false,
+			},
+			FqlItemType.String => value is string str && Equals(str),
+			FqlItemType.Bytes => value is Slice s && Equals(s),
+			FqlItemType.Uuid => value switch
+			{
+				Uuid128 u => Equals(u),
+				Guid g => Equals(g),
+				_ => false,
+			},
+			FqlItemType.Tuple => value switch
+			{
+				FqlTupleExpression tup => Equals(tup),
+				IVarTuple tup => Equals(tup),
+				_ => false,
+			},
+			FqlItemType.VStamp => value switch
+			{
+				VersionStamp vs => Equals(vs),
+				//TODO: Slice? byte[]?
+				_ => false,
+			},
+			_ => throw new NotImplementedException(this.Type.ToString())
+		};
+
+		public bool Matches(ReadOnlySpan<byte> value)
+		{
+			var valueType = TupleTypes.DecodeSegmentType(value);
+			return this.Type switch
+			{
+				FqlItemType.Indirection => throw new NotImplementedException(),
+				FqlItemType.Variable => MatchTupleType((FqlVariableTypes) this.Value!, valueType),
+				FqlItemType.MaybeMore => true,
+				FqlItemType.Nil => valueType == TupleSegmentType.Nil,
+				FqlItemType.Boolean => valueType == TupleSegmentType.Boolean && Equals(TuplePackers.DeserializeBoolean(value)),
+				FqlItemType.Integer => valueType switch
+				{
+					TupleSegmentType.Integer => TuplePackers.IsNegativeInteger(value)
+						? TuplePackers.TryDeserializeInt64(value, out var l) && Equals(l)
+						: TuplePackers.TryDeserializeUInt64(value, out var ul) && Equals(ul),
+					TupleSegmentType.Uuid64 => TuplePackers.TryDeserializeUuid64(value, out var uuid) && Equals(uuid.ToUInt64()),
+					TupleSegmentType.BigInteger => TuplePackers.TryDeserializeBigInteger(value, out var big) && Equals(big),
+					_ => false,
+				},
+				FqlItemType.Number => valueType switch
+				{
+					TupleSegmentType.Single => TuplePackers.TryDeserializeSingle(value, out var f) && Equals(f),
+					TupleSegmentType.Double => TuplePackers.TryDeserializeDouble(value, out var d) && Equals(d),
+					TupleSegmentType.Decimal => false, //TODO: implement decimal support in TuplePackers!
+					_ => false,
+				},
+				FqlItemType.String => valueType is TupleSegmentType.UnicodeString && TuplePackers.TryDeserializeString(value, out var str) && Equals(str),
+				FqlItemType.Bytes => valueType is TupleSegmentType.ByteString && TuplePackers.TryDeserializeSlice(value, out var bytes) && Equals(bytes),
+				FqlItemType.Uuid => valueType switch
+				{
+					TupleSegmentType.Uuid128 => TuplePackers.TryDeserializeGuid(value, out var g) && Equals(g),
+					_ => false,
+				},
+				FqlItemType.Tuple => valueType is TupleSegmentType.Tuple && TuplePackers.TryDeserializeTuple(value, out var tup) && Equals(tup),
+				FqlItemType.VStamp => valueType is TupleSegmentType.VersionStamp80 or TupleSegmentType.VersionStamp96 && TuplePackers.DeserializeVersionStamp(value, out var vs) && Equals(vs),
+				_ => throw new NotImplementedException(this.Type.ToString())
+			};
 		}
 
 		public static bool MatchType(FqlVariableTypes types, object? value)
@@ -484,6 +528,23 @@ namespace FoundationDB.Client
 				Uuid128 => types.HasFlag(FqlVariableTypes.Uuid),
 				IVarTuple => types.HasFlag(FqlVariableTypes.Tuple),
 				VersionStamp => types.HasFlag(FqlVariableTypes.VStamp),
+				_ => false,
+			};
+		}
+
+		public static bool MatchTupleType(FqlVariableTypes types, TupleSegmentType type)
+		{
+			return type switch
+			{
+				TupleSegmentType.Nil => types.HasFlag(FqlVariableTypes.Nil),
+				TupleSegmentType.ByteString => types.HasFlag(FqlVariableTypes.Bytes),
+				TupleSegmentType.UnicodeString => types.HasFlag(FqlVariableTypes.String),
+				TupleSegmentType.Integer or TupleSegmentType.Uuid64 or TupleSegmentType.BigInteger => types.HasFlag(FqlVariableTypes.Int),
+				TupleSegmentType.Single or TupleSegmentType.Double or TupleSegmentType.Triple or TupleSegmentType.Decimal => types.HasFlag(FqlVariableTypes.Num),
+				TupleSegmentType.Boolean => types.HasFlag(FqlVariableTypes.Bool),
+				TupleSegmentType.Uuid128 => types.HasFlag(FqlVariableTypes.Uuid),
+				TupleSegmentType.Tuple => types.HasFlag(FqlVariableTypes.Tuple),
+				TupleSegmentType.VersionStamp80 or TupleSegmentType.VersionStamp96 => types.HasFlag(FqlVariableTypes.VStamp),
 				_ => false,
 			};
 		}
@@ -723,6 +784,38 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		public bool IsPattern => this.Items.Any(x => x.IsPattern);
+
+		public bool Match(SpanTuple tuple)
+		{
+			var items = CollectionsMarshal.AsSpan(this.Items);
+
+			// if the last is MaybeMore, we don't need to check
+			bool exactSize = true;
+			while(items.Length > 0 && items[^1].Type == FqlItemType.MaybeMore)
+			{
+				exactSize = false;
+				items = items[..^1];
+			}
+
+			// if the tuple is smaller, it will not match
+			if (exactSize)
+			{
+				if (tuple.Count != items.Length) return false;
+			}
+			else
+			{
+				if (tuple.Count < items.Length) return false;
+			}
+
+			for (int i = 0; i < items.Length; i++)
+			{
+				if (!items[i].Matches(tuple[i]))
+				{
+					return false;
+				}
+			}
+			return true;
+		}
 
 		public bool Match(IVarTuple? tuple)
 		{
