@@ -1376,22 +1376,124 @@ namespace SnowBank.Data.Tuples.Binary
 			{
 				case TupleTypes.Nil: return Slice.Nil;
 				case TupleTypes.Bytes: return TupleParser.ParseBytes(slice);
-				case TupleTypes.Utf8: return Slice.FromString(TupleParser.ParseUnicode(slice));
+				case TupleTypes.Utf8: return Slice.FromString(TupleParser.ParseUnicode(slice.Span));
 
-				case TupleTypes.Single: return Slice.FromSingle(TupleParser.ParseSingle(slice));
-				case TupleTypes.Double: return Slice.FromDouble(TupleParser.ParseDouble(slice));
+				case TupleTypes.Single: return Slice.FromSingle(TupleParser.ParseSingle(slice.Span));
+				case TupleTypes.Double: return Slice.FromDouble(TupleParser.ParseDouble(slice.Span));
 				//TODO: triple
-				case TupleTypes.Decimal: return Slice.FromDecimal(TupleParser.ParseDecimal(slice));
+				case TupleTypes.Decimal: return Slice.FromDecimal(TupleParser.ParseDecimal(slice.Span));
 
-				case TupleTypes.Uuid128: return Slice.FromGuid(TupleParser.ParseGuid(slice));
-				case TupleTypes.Uuid64: return Slice.FromUuid64(TupleParser.ParseUuid64(slice));
+				case TupleTypes.Uuid128: return Slice.FromGuid(TupleParser.ParseGuid(slice.Span));
+				case TupleTypes.Uuid64: return Slice.FromUuid64(TupleParser.ParseUuid64(slice.Span));
 					
 				case <= TupleTypes.IntPos8 and >= TupleTypes.IntNeg8: return type >= TupleTypes.IntZero
-					? Slice.FromInt64(DeserializeInt64(slice))
-					: Slice.FromUInt64(DeserializeUInt64(slice));
+					? Slice.FromInt64(DeserializeInt64(slice.Span))
+					: Slice.FromUInt64(DeserializeUInt64(slice.Span));
 
 				default: throw new FormatException($"Cannot convert tuple segment of type 0x{type:X} into a Slice");
 			}
+		}
+
+		/// <summary>Deserializes a tuple segment into a Slice</summary>
+		public static bool TryDeserializeSlice(ReadOnlySpan<byte> slice, out Slice value)
+		{
+			// Convert the tuple value into a sensible Slice representation.
+			// The behavior should be equivalent to calling the corresponding Slice.From{TYPE}(TYPE value)
+
+			if (slice.Length == 0)
+			{
+				value = default; //TODO: fail ?
+				return true;
+			}
+
+			byte type = slice[0];
+			switch(type)
+			{
+				case TupleTypes.Nil:
+				{
+					value = Slice.Nil;
+					return true;
+				}
+				case TupleTypes.Bytes:
+				{
+					return TupleParser.TryParseBytes(slice, out value);
+				}
+				case TupleTypes.Utf8:
+				{
+					if (TupleParser.TryParseUnicode(slice, out var str))
+					{
+						//PERF: TODO: if the string is "clean" we could simply copy the UTF-8 bytes as-is ?
+						value = Slice.FromString(str);
+						return true;
+					}
+					break;
+				}
+				case TupleTypes.Single:
+				{
+					if (TupleParser.TryParseSingle(slice, out var f))
+					{
+						value = Slice.FromSingle(f);
+						return true;
+					}
+					break;
+				}
+				case TupleTypes.Double:
+				{
+					if (TupleParser.TryParseDouble(slice, out var d))
+					{
+						value = Slice.FromDouble(d);
+						return true;
+					}
+					break;
+				}
+				//TODO: triple
+				case TupleTypes.Decimal:
+				{
+					if (TupleParser.TryParseDecimal(slice, out var d))
+					{
+						value = Slice.FromDecimal(d);
+						return true;
+					}
+					break;
+				}
+				case TupleTypes.Uuid128:
+				{
+					if (TupleParser.TryParseGuid(slice, out var g))
+					{
+						value = Slice.FromGuid(g);
+						return true;
+					}
+					break;
+				}
+				case TupleTypes.Uuid64:
+				{
+					if (TupleParser.TryParseUuid64(slice, out var g))
+					{
+						value = Slice.FromUuid64(g);
+						return true;
+					}
+					break;
+				}
+				case >= TupleTypes.IntZero and <= TupleTypes.IntPos8:
+				{
+					if (TryDeserializeUInt64(slice, out var ul))
+					{
+						value = Slice.FromUInt64(ul);
+					}
+					break;
+				}
+				case >= TupleTypes.IntNeg8:
+				{
+					if (TryDeserializeInt64(slice, out var l))
+					{
+						value = Slice.FromInt64(l);
+					}
+					break;
+				}
+			}
+
+			value = default;
+			return false;
 		}
 
 		/// <summary>Deserializes a tuple segment into a Slice</summary>
@@ -1419,7 +1521,7 @@ namespace SnowBank.Data.Tuples.Binary
 				
 				case <= TupleTypes.IntPos8 and >= TupleTypes.IntNeg8:
 				{
-					return type >= TupleTypes.IntZero
+					return type < TupleTypes.IntZero
 						? Slice.FromInt64(DeserializeInt64(slice))
 						: Slice.FromUInt64(DeserializeUInt64(slice));
 				}
@@ -1511,6 +1613,46 @@ namespace SnowBank.Data.Tuples.Binary
 					throw new FormatException("Cannot convert tuple segment into a Tuple");
 				}
 			}
+		}
+
+		/// <summary>Deserializes a tuple segment into a tuple</summary>
+		public static bool TryDeserializeTuple(ReadOnlySpan<byte> slice, out SpanTuple value)
+		{
+			if (slice.Length == 0)
+			{
+				value = SpanTuple.Empty;
+				return true;
+			}
+
+			byte type = slice[0];
+			switch(type)
+			{
+				case TupleTypes.Nil:
+				{
+					value = SpanTuple.Empty;
+					return true;
+				}
+				case TupleTypes.Bytes:
+				{
+					if (TupleParser.TryParseBytes(slice, out var bytes))
+					{
+						return TuPack.TryUnpack(bytes.Span, out value);
+					}
+					break;
+				}
+				case TupleTypes.LegacyTupleStart:
+				{
+					value = default; // not supported anymore
+					return false;
+				}
+				case TupleTypes.EmbeddedTuple:
+				{
+					return TupleParser.TryParseEmbeddedTuple(slice, out value);
+				}
+			}
+
+			value = default;
+			return false;
 		}
 
 		/// <summary>Deserializes a tuple segment into a tuple</summary>
@@ -2082,6 +2224,12 @@ namespace SnowBank.Data.Tuples.Binary
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int? DeserializeInt32Nullable(ReadOnlySpan<byte> slice) => !IsNilSegment(slice) ? DeserializeInt32(slice) : null;
 
+		/// <summary>Tests if the slice corresponding to the encoding of a negative integer</summary>
+		public static bool IsNegativeInteger(ReadOnlySpan<byte> slice) => slice.Length != 0 && (slice[0] is >= TupleTypes.IntNeg8 and <= TupleTypes.IntNeg1);
+
+		/// <summary>Tests if the slice corresponding to the encoding of a positive integer (including 0)</summary>
+		public static bool IsPositiveInteger(ReadOnlySpan<byte> slice) => slice.Length != 0 && (slice[0] is >= TupleTypes.IntZero and <= TupleTypes.IntPos8);
+
 		/// <summary>Deserializes a tuple segment into an <see cref="Int64"/></summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
 		public static long DeserializeInt64(Slice slice) => DeserializeInt64(slice.Span);
@@ -2090,6 +2238,46 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <param name="slice">Slice that contains a single packed element</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static long? DeserializeInt64Nullable(Slice slice) => !IsNilSegment(slice) ? DeserializeInt64(slice.Span) : null;
+
+		/// <summary>Deserializes a tuple segment into an Int64, if possible</summary>
+		/// <param name="slice">Slice that contains a single packed element</param>
+		/// <param name="value">Corresponding value</param>
+		public static bool TryDeserializeInt64(ReadOnlySpan<byte> slice, out long value)
+		{
+			value = 0;
+
+			if (slice.Length == 0)
+			{
+				return true; //TODO: fail ?
+			}
+
+			int type = slice[0];
+			if (type <= TupleTypes.IntPos8)
+			{
+				if (type >= TupleTypes.IntNeg8)
+				{
+					return TupleParser.TryParseInt64(type, slice, out value);
+				}
+
+				switch (type)
+				{
+					case TupleTypes.Nil:
+					{
+						return true;
+					}
+					case TupleTypes.Bytes:
+					{
+						return TupleParser.TryParseAscii(slice, out var str) && long.TryParse(str, CultureInfo.InvariantCulture, out value);
+					}
+					case TupleTypes.Utf8:
+					{
+						return TupleParser.TryParseUnicode(slice, out var str) && long.TryParse(str, CultureInfo.InvariantCulture, out value);
+					}
+				}
+			}
+
+			return false;
+		}
 
 		/// <summary>Deserializes a tuple segment into an Int64</summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
@@ -2209,6 +2397,50 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Deserializes a tuple segment into an <see cref="UInt64"/></summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
+		/// <param name="value">Corresponding value</param>
+		public static bool TryDeserializeUInt64(ReadOnlySpan<byte> slice, out ulong value)
+		{
+			value = 0;
+
+			if (slice.Length == 0)
+			{
+				return true; //TODO: fail ?
+			}
+
+			int type = slice[0];
+			if (type <= TupleTypes.IntPos8)
+			{
+				if (type >= TupleTypes.IntZero)
+				{
+					return TupleParser.TryParseUInt64(type, slice, out value);
+				}
+				if (type >= TupleTypes.IntNeg8)
+				{
+					return false; // overflow!
+				}
+
+				switch (type)
+				{
+					case TupleTypes.Nil:
+					{
+						return true;
+					}
+					case TupleTypes.Bytes:
+					{
+						return TupleParser.TryParseAscii(slice, out var str) && ulong.TryParse(str, CultureInfo.InvariantCulture, out value);
+					}
+					case TupleTypes.Utf8:
+					{
+						return TupleParser.TryParseUnicode(slice, out var str) && ulong.TryParse(str, CultureInfo.InvariantCulture, out value);
+					}
+				}
+			}
+
+			return false;
+		}
+
+		/// <summary>Deserializes a tuple segment into an <see cref="UInt64"/></summary>
+		/// <param name="slice">Slice that contains a single packed element</param>
 		public static ulong DeserializeUInt64(ReadOnlySpan<byte> slice)
 		{
 			if (slice.Length == 0) return 0UL; //TODO: fail ?
@@ -2244,6 +2476,73 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <param name="slice">Slice that contains a single packed element</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static float? DeserializeSingleNullable(Slice slice) => !IsNilSegment(slice) ? DeserializeSingle(slice.Span) : null;
+
+		/// <summary>Deserializes a tuple segment into a <see cref="Single"/></summary>
+		/// <param name="slice">Slice that contains a single packed element</param>
+		public static bool TryDeserializeSingle(ReadOnlySpan<byte> slice, out float value)
+		{
+			if (slice.Length == 0)
+			{
+				value = 0;
+				return true;
+			}
+
+			byte type = slice[0];
+			switch (type)
+			{
+				case TupleTypes.Nil:
+				{
+					//REVIEW: or should we return NaN?
+					value = 0;
+					return true;
+				}
+				case TupleTypes.Utf8:
+				{
+					if (TupleParser.TryParseUnicode(slice, out var str))
+					{
+						return float.TryParse(TupleParser.ParseUnicode(slice), CultureInfo.InvariantCulture, out value);
+
+					}
+					break;
+				}
+				case TupleTypes.Single:
+				{
+					return TupleParser.TryParseSingle(slice, out value);
+				}
+				case TupleTypes.Double:
+				{
+					if (TupleParser.TryParseDouble(slice, out var d))
+					{
+						value = (float) d;
+						return true;
+					}
+
+					break;
+				}
+				case TupleTypes.Decimal:
+				{
+					if (TupleParser.TryParseDecimal(slice, out var d))
+					{
+						value = (float) d;
+						return true;
+					}
+					break;
+				}
+				case <= TupleTypes.IntPos8 and >= TupleTypes.IntNeg8:
+				{
+					if (TryDeserializeInt64(slice, out var l))
+					{
+						value = l;
+						return true;
+					}
+
+					break;
+				}
+			}
+
+			value = float.NaN;
+			return false;
+		}
 
 		/// <summary>Deserializes a tuple segment into a <see cref="Single"/></summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
@@ -2307,6 +2606,67 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <param name="slice">Slice that contains a single packed element</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static double? DeserializeDoubleNullable(Slice slice) => !IsNilSegment(slice) ? DeserializeDouble(slice.Span) : null;
+
+		/// <summary>Deserialize a tuple segment into a <see cref="Double"/></summary>
+		/// <param name="slice">Slice that contains a single packed element</param>
+		/// <param name="value">Corresponding value</param>
+		public static bool TryDeserializeDouble(ReadOnlySpan<byte> slice, out double value)
+		{
+			if (slice.Length == 0)
+			{
+				value = 0;
+				return true;
+			}
+
+			byte type = slice[0];
+			switch(type)
+			{
+				case TupleTypes.Nil:
+				{
+					//REVIEW: or should we return NaN?
+					value = 0;
+					return true;
+				}
+				case TupleTypes.Utf8:
+				{
+					if (TupleParser.TryParseUnicode(slice, out var str))
+					{
+						return double.TryParse(str, CultureInfo.InvariantCulture, out value);
+					}
+					break;
+				}
+				case TupleTypes.Single:
+				{
+					if (TupleParser.TryParseSingle(slice, out var s))
+					{
+						value = s;
+						return true;
+					}
+					break;
+				}
+				case TupleTypes.Double:
+				{
+					return TupleParser.TryParseDouble(slice, out value);
+				}
+				case TupleTypes.Decimal:
+				{
+					if (TupleParser.TryParseDecimal(slice, out var d))
+					{
+						value = (double) d;
+						return true;
+					}
+					break;
+				}
+				case <= TupleTypes.IntPos8 and >= TupleTypes.IntNeg8:
+				{
+					value = DeserializeInt64(slice);
+					return true;
+				}
+			}
+
+			value = double.NaN;
+			return false;
+		}
 
 		/// <summary>Deserialize a tuple segment into a <see cref="Double"/></summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
@@ -2455,6 +2815,72 @@ namespace SnowBank.Data.Tuples.Binary
 		public static UInt128? DeserializeUInt128Nullable(ReadOnlySpan<byte> slice) => !IsNilSegment(slice) ? DeserializeUInt128(slice) : null;
 
 #endif
+
+		/// <summary>Deserialize a tuple segment into a <see cref="BigInteger"/></summary>
+		/// <param name="slice">Slice that contains a single packed element</param>
+		/// <param name="value">Corresponding value</param>
+		public static bool TryDeserializeBigInteger(ReadOnlySpan<byte> slice, out BigInteger value)
+		{
+			if (slice.Length == 0)
+			{
+				value = 0;
+				return true;
+			}
+
+			byte type = slice[0];
+			switch(type)
+			{
+				case TupleTypes.Nil:
+				{
+					//REVIEW: or should we return NaN?
+					value = 0;
+					return true;
+				}
+				case TupleTypes.Utf8:
+				{ // encoded as a base-10 number?
+					if (TupleParser.TryParseUnicode(slice, out var str))
+					{
+						return BigInteger.TryParse(str, CultureInfo.InvariantCulture, out value);
+					}
+					break;
+				}
+				case TupleTypes.NegativeBigInteger:
+				{
+					return TupleParser.TryParseNegativeBigInteger(slice, out value);
+				}
+				case TupleTypes.PositiveBigInteger:
+				{
+					return TupleParser.TryParsePositiveBigInteger(slice, out value);
+				}
+				case >= TupleTypes.IntNeg8 and < TupleTypes.IntZero:
+				{
+					if (TryDeserializeInt64(slice, out var l))
+					{
+						value = l;
+						return true;
+					}
+					break;
+				}
+				case TupleTypes.IntZero:
+				{
+					value = 0;
+					return true;
+				}
+				case > TupleTypes.IntZero and <= TupleTypes.IntPos8:
+				{
+					if (TryDeserializeUInt64(slice, out var ul))
+					{
+						value = ul;
+						return true;
+					}
+					break;
+				}
+			}
+
+			value = default;
+			return false;
+		}
+
 		/// <summary>Deserialize a tuple segment into a <see cref="BigInteger"/></summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
 		public static BigInteger DeserializeBigInteger(ReadOnlySpan<byte> slice)
@@ -2769,6 +3195,92 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Deserializes a tuple segment into a Unicode string</summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
+		public static bool TryDeserializeString(ReadOnlySpan<byte> slice, out string? value)
+		{
+			if (slice.Length == 0)
+			{
+				value = null;
+				return true;
+			}
+
+			byte type = slice[0];
+			switch (type)
+			{
+				case TupleTypes.Nil:
+				{
+					value = null;
+					return true;
+				}
+				case TupleTypes.Bytes:
+				{
+					return TupleParser.TryParseAscii(slice, out value);
+				}
+				case TupleTypes.Utf8:
+				{
+					return TupleParser.TryParseUnicode(slice, out value);
+				}
+				case TupleTypes.Single:
+				{
+					if (TupleParser.TryParseSingle(slice, out var f))
+					{
+						value = f.ToString("R", CultureInfo.InvariantCulture);
+						return true;
+					}
+					break;
+				}
+				case TupleTypes.Double:
+				{
+					if (TupleParser.TryParseDouble(slice, out var d))
+					{
+						value = d.ToString("R", CultureInfo.InvariantCulture);
+						return true;
+					}
+					break;
+				}
+				case TupleTypes.Decimal:
+				{
+					if (TupleParser.TryParseDecimal(slice, out var d))
+					{
+						value = d.ToString("R", CultureInfo.InvariantCulture);
+						return true;
+					}
+					break;
+				}
+				case TupleTypes.Uuid128:
+				{
+					if (TupleParser.TryParseGuid(slice, out var uuid))
+					{
+						value = uuid.ToString();
+						return true;
+					}
+					break;
+				}
+				case TupleTypes.Uuid64:
+				{
+					if (TupleParser.TryParseUuid64(slice, out var uuid))
+					{
+						value = uuid.ToString();
+						return true;
+					}
+					break;
+				}
+				case <= TupleTypes.IntPos8 and >= TupleTypes.IntNeg8:
+				{
+					if (TupleParser.TryParseInt64(type, slice, out var l))
+					{
+						value = l.ToString(null, CultureInfo.InvariantCulture);
+						return true;
+					}
+					break;
+				}
+			}
+
+			value = null;
+			return false;
+		}
+
+		/// <summary>Deserializes a tuple segment into a Unicode string</summary>
+		/// <param name="slice">Slice that contains a single packed element</param>
 		public static string? DeserializeString(ReadOnlySpan<byte> slice)
 		{
 			if (slice.Length == 0) return null;
@@ -2827,6 +3339,50 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <param name="slice">Slice that contains a single packed element</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Guid? DeserializeGuidNullable(Slice slice) => !IsNilSegment(slice) ? DeserializeGuid(slice.Span) : null;
+
+		/// <summary>Deserializes a tuple segment into a <see cref="Guid"/></summary>
+		/// <param name="slice">Slice that contains a single packed element</param>
+		public static bool TryDeserializeGuid(ReadOnlySpan<byte> slice, out Guid value)
+		{
+			if (slice.Length == 0)
+			{
+				value = Guid.Empty;
+				return true;
+			}
+
+			switch(slice[0])
+			{
+				case TupleTypes.Nil:
+				{
+					value = Guid.Empty;
+					return true;
+				}
+				case TupleTypes.Bytes:
+				{
+					if (TupleParser.TryParseAscii(slice, out var str))
+					{
+						return Guid.TryParse(str, out value);
+					}
+					break;
+				}
+				case TupleTypes.Utf8:
+				{
+					if (TupleParser.TryParseUnicode(slice, out var str))
+					{
+						return Guid.TryParse(str, out value);
+					}
+					break;
+				}
+				case TupleTypes.Uuid128:
+				{
+					return TupleParser.TryParseGuid(slice, out value);
+				}
+				//REVIEW: should we allow converting an Uuid64 into a Guid? This looks more like a bug than an expected behavior...
+			}
+
+			value = Guid.Empty;
+			return false;
+		}
 
 		/// <summary>Deserializes a tuple segment into a <see cref="Guid"/></summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
@@ -3001,6 +3557,62 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Deserializes a tuple segment into 64-bit UUID</summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
+		/// <param name="value">Corresponding value</param>
+		public static bool TryDeserializeUuid64(ReadOnlySpan<byte> slice, out Uuid64 value)
+		{
+			if (slice.Length == 0)
+			{
+				value = Uuid64.Empty;
+				return true;
+			}
+
+			int type = slice[0];
+
+			switch (type)
+			{
+				case TupleTypes.Nil:
+				{
+					value = Uuid64.Empty;
+					return true;
+				}
+				case TupleTypes.Bytes:
+				{ // expect binary representation as a 16-byte array
+					if (TupleParser.TryParseBytes(slice, out var bytes))
+					{
+						return Uuid64.TryRead(slice, out value);
+					}
+					break;
+				}
+				case TupleTypes.Utf8:
+				{ // expect text representation
+					if (TupleParser.TryParseUnicode(slice, out var str))
+					{
+						return Uuid64.TryParse(str, out value);
+					}
+					break;
+				}
+				case TupleTypes.Uuid64:
+				{
+					return TupleParser.TryParseUuid64(slice, out value);
+				}
+				case >= TupleTypes.IntZero and <= TupleTypes.IntPos8:
+				{ // expect 64-bit number
+					if (TupleParser.TryParseInt64(type, slice, out var l))
+					{
+						value = new Uuid64(l);
+						return true;
+					}
+					break;
+				}
+			}
+
+			// we don't support negative numbers!
+			value = default;
+			return false;
+		}
+
+		/// <summary>Deserializes a tuple segment into 64-bit UUID</summary>
+		/// <param name="slice">Slice that contains a single packed element</param>
 		public static Uuid64 DeserializeUuid64(ReadOnlySpan<byte> slice)
 		{
 			if (slice.Length == 0) return Uuid64.Empty;
@@ -3050,6 +3662,35 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <param name="slice">Slice that contains a single packed element</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static VersionStamp? DeserializeVersionStampNullable(Slice slice) => !IsNilSegment(slice) ? DeserializeVersionStamp(slice.Span) : null;
+
+		/// <summary>Deserializes a tuple segment into a <see cref="VersionStamp"/></summary>
+		/// <param name="slice">Slice that contains a single packed element</param>
+		/// <param name="value">Corresponding value</param>
+		public static bool DeserializeVersionStamp(ReadOnlySpan<byte> slice, out VersionStamp value)
+		{
+			if (slice.Length == 0)
+			{
+				value = default;
+				return true;
+			}
+
+			int type = slice[0];
+			switch(type)
+			{
+				case TupleTypes.Nil:
+				{
+					value = default;
+					return true;
+				}
+				case TupleTypes.Uuid80 or TupleTypes.Uuid96:
+				{
+					return VersionStamp.TryReadFrom(slice[1..], out value);
+				}
+			}
+
+			value = default;
+			return false;
+		}
 
 		/// <summary>Deserializes a tuple segment into a <see cref="VersionStamp"/></summary>
 		/// <param name="slice">Slice that contains a single packed element</param>

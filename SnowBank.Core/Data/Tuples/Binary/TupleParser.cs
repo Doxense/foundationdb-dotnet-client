@@ -1123,6 +1123,49 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Parse a tuple segment containing a signed 64-bit integer</summary>
 		/// <remarks>This method should only be used by custom decoders.</remarks>
+		public static bool TryParseInt64(int type, ReadOnlySpan<byte> slice, out long value)
+		{
+			value = 0L;
+
+			int bytes = type - TupleTypes.IntZero;
+			if (bytes == 0)
+			{
+				return true;
+			}
+
+			bool neg = false;
+			if (bytes < 0)
+			{
+				bytes = -bytes;
+				neg = true;
+			}
+
+			if (bytes > 8)
+			{
+				return false;
+			}
+
+			ulong v = slice.Slice(1, bytes).ToUInt64BE();
+
+			if (neg)
+			{ // the value is encoded as the one's complement of the absolute value
+				value = (-(~(unchecked((long) v))));
+				if (bytes < 8) value |= (-1L << (bytes << 3));
+			}
+			else
+			{
+				if (v > long.MaxValue)
+				{
+					return false;
+				}
+				value = unchecked((long) v);
+			}
+
+			return true;
+		}
+
+		/// <summary>Parse a tuple segment containing a signed 64-bit integer</summary>
+		/// <remarks>This method should only be used by custom decoders.</remarks>
 		public static long ParseInt64(int type, ReadOnlySpan<byte> slice)
 		{
 			int bytes = type - TupleTypes.IntZero;
@@ -1134,8 +1177,11 @@ namespace SnowBank.Data.Tuples.Binary
 				bytes = -bytes;
 				neg = true;
 			}
+			if (bytes > 8)
+			{
+				throw new FormatException("Invalid size for tuple integer");
+			}
 
-			if (bytes > 8) throw new FormatException("Invalid size for tuple integer");
 			long value = (long) slice.Slice(1, bytes).ToUInt64BE();
 
 			if (neg)
@@ -1146,6 +1192,41 @@ namespace SnowBank.Data.Tuples.Binary
 
 			return value;
 		}
+
+		/// <summary>Parse a tuple segment containing an unsigned 64-bit integer</summary>
+		/// <remarks>This method should only be used by custom decoders.</remarks>
+		public static bool TryParseUInt64(int type, ReadOnlySpan<byte> slice, out ulong value)
+		{
+			value = 0L;
+
+			int bytes = type - TupleTypes.IntZero;
+			if (bytes == 0)
+			{
+				return true;
+			}
+			if (bytes is < 0 or > 8)
+			{
+				return false;
+			}
+
+			value = slice.Slice(1, bytes).ToUInt64BE();
+
+			return true;
+		}
+
+		/// <summary>Parse a tuple segment containing an unsigned 64-bit integer</summary>
+		/// <remarks>This method should only be used by custom decoders.</remarks>
+		public static ulong ParseUInt64(int type, ReadOnlySpan<byte> slice)
+		{
+			int bytes = type - TupleTypes.IntZero;
+			return bytes switch
+			{
+				0 => 0L,
+				< 0 or > 8 => throw new FormatException("Invalid size for tuple integer"),
+				_ => slice.Slice(1, bytes).ToUInt64BE()
+			};
+		}
+
 
 		private static bool ShouldUnescapeByteString(ReadOnlySpan<byte> buffer)
 		{
@@ -1211,6 +1292,36 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Parse a tuple segment containing a byte array</summary>
 		[Pure]
+		public static bool TryParseBytes(ReadOnlySpan<byte> slice, out Slice value)
+		{
+			Contract.Debug.Requires(slice.Length > 1 && slice[0] == TupleTypes.Bytes && slice[^1] == 0);
+			if (slice.Length <= 2)
+			{
+				value = Slice.Empty;
+				return true;
+			}
+
+			var chunk = slice.Slice(1, slice.Length - 2);
+			if (!ShouldUnescapeByteString(chunk))
+			{
+				value = Slice.FromBytes(chunk);
+				return true;
+			}
+
+			var span = new byte[chunk.Length];
+			if (!TryUnescapeByteString(chunk, span, out int written))
+			{ // should never happen since decoding can only reduce the size!?
+				value = default;
+				return false;
+			}
+			Contract.Debug.Requires(written <= span.Length);
+
+			value = new Slice(span, 0, written);
+			return true;
+		}
+
+		/// <summary>Parse a tuple segment containing a byte array</summary>
+		[Pure]
 		public static Slice ParseBytes(ReadOnlySpan<byte> slice)
 		{
 			Contract.Debug.Requires(slice.Length > 1 && slice[0] == TupleTypes.Bytes && slice[^1] == 0);
@@ -1234,26 +1345,40 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Parse a tuple segment containing an ASCII string stored as a byte array</summary>
 		[Pure]
-		public static string ParseAscii(Slice slice)
+		public static bool TryParseAscii(ReadOnlySpan<byte> slice, [MaybeNullWhen(false)] out string value)
 		{
-			Contract.Debug.Requires(slice.HasValue && slice[0] == TupleTypes.Bytes && slice[-1] == 0);
+			Contract.Debug.Requires(slice.Length > 0 && slice[0] == TupleTypes.Bytes && slice[^1] == 0);
 
-			if (slice.Count <= 2) return string.Empty;
+			if (slice.Length <= 2)
+			{
+				value = string.Empty;
+				return true;
+			}
 
-			var chunk = slice.Substring(1, slice.Count - 2).Span;
+			var chunk = slice.Slice(1, slice.Length - 2);
 			if (!ShouldUnescapeByteString(chunk))
 			{
-				return Encoding.Default.GetString(chunk);
-			}
-			var buffer = ArrayPool<byte>.Shared.Rent(chunk.Length);
-			if (!TryUnescapeByteString(chunk, buffer, out int written))
-			{ // should never happen since decoding can only reduce the size!?
-				throw new InvalidOperationException();
+				value = Encoding.Default.GetString(chunk);
+				return true;
 			}
 
-			string s = Encoding.Default.GetString(buffer, 0, written);
-			ArrayPool<byte>.Shared.Return(buffer);
-			return s;
+			var buffer = ArrayPool<byte>.Shared.Rent(chunk.Length);
+			try
+			{
+				if (!TryUnescapeByteString(chunk, buffer, out int written))
+				{
+					// should never happen since decoding can only reduce the size!?
+					value = null;
+					return false;
+				}
+
+				value = Encoding.Default.GetString(buffer, 0, written);
+				return true;
+			}
+			finally
+			{
+				ArrayPool<byte>.Shared.Return(buffer);
+			}
 		}
 
 		/// <summary>Parse a tuple segment containing an ASCII string stored as a byte array</summary>
@@ -1269,39 +1394,60 @@ namespace SnowBank.Data.Tuples.Binary
 			{
 				return Encoding.Default.GetString(chunk);
 			}
-			var buffer = ArrayPool<byte>.Shared.Rent(chunk.Length);
-			if (!TryUnescapeByteString(chunk, buffer, out int written))
-			{ // should never happen since decoding can only reduce the size!?
-				throw new InvalidOperationException();
-			}
 
-			string s = Encoding.Default.GetString(buffer, 0, written);
-			ArrayPool<byte>.Shared.Return(buffer);
-			return s;
+			var buffer = ArrayPool<byte>.Shared.Rent(chunk.Length);
+			try
+			{
+				if (!TryUnescapeByteString(chunk, buffer, out int written))
+				{
+					// should never happen since decoding can only reduce the size!?
+					throw new InvalidOperationException();
+				}
+
+				return Encoding.Default.GetString(buffer, 0, written);
+			}
+			finally
+			{
+				ArrayPool<byte>.Shared.Return(buffer);
+			}
 		}
 
 		/// <summary>Parse a tuple segment containing a unicode string</summary>
 		[Pure]
-		public static string ParseUnicode(Slice slice)
+		public static bool TryParseUnicode(ReadOnlySpan<byte> slice, [MaybeNullWhen(false)] out string? value)
 		{
-			Contract.Debug.Requires(slice.HasValue && slice[0] == TupleTypes.Utf8 && slice[-1] == 0);
+			Contract.Debug.Requires(slice.Length > 1 && slice[0] == TupleTypes.Utf8 && slice[^1] == 0);
 
-			if (slice.Count <= 2) return string.Empty;
+			if (slice.Length <= 2)
+			{
+				value = string.Empty;
+				return true;
+			}
 
-			var chunk = slice.Substring(1, slice.Count - 2).Span;
+			var chunk = slice.Slice(1, slice.Length - 2);
 			if (!ShouldUnescapeByteString(chunk))
 			{
-				return Encoding.UTF8.GetString(chunk);
-			}
-			var buffer = ArrayPool<byte>.Shared.Rent(chunk.Length);
-			if (!TryUnescapeByteString(chunk, buffer, out int written))
-			{ // should never happen since decoding can only reduce the size!?
-				throw new InvalidOperationException();
+				value = Encoding.UTF8.GetString(chunk); //TODO: "Try" decoding?
+				return true;
 			}
 
-			var s = Encoding.UTF8.GetString(buffer, 0, written);
-			ArrayPool<byte>.Shared.Return(buffer);
-			return s;
+			var buffer = ArrayPool<byte>.Shared.Rent(chunk.Length);
+			try
+			{
+				if (!TryUnescapeByteString(chunk, buffer, out int written))
+				{
+					// should never happen since decoding can only reduce the size!?
+					value = null;
+					return false;
+				}
+
+				value = Encoding.UTF8.GetString(buffer, 0, written); //TODO: "Try" decoding?
+				return true;
+			}
+			finally
+			{
+				ArrayPool<byte>.Shared.Return(buffer);
+			}
 		}
 
 		/// <summary>Parse a tuple segment containing a unicode string</summary>
@@ -1342,6 +1488,21 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Parse a tuple segment containing an embedded tuple</summary>
 		[Pure]
+		public static bool TryParseEmbeddedTuple(ReadOnlySpan<byte> slice, out SpanTuple value)
+		{
+			Contract.Debug.Requires(slice.Length > 0 && slice[0] == TupleTypes.EmbeddedTuple && slice[^1] == 0);
+			if (slice.Length <= 2)
+			{
+				value = SpanTuple.Empty;
+				return true;
+			}
+
+			var reader = new TupleReader(slice.Slice(1, slice.Length - 2), depth: 1);
+			return TuplePackers.TryUnpack(ref reader, out value, out _);
+		}
+
+		/// <summary>Parse a tuple segment containing an embedded tuple</summary>
+		[Pure]
 		public static SpanTuple ParseEmbeddedTuple(ReadOnlySpan<byte> slice)
 		{
 			Contract.Debug.Requires(slice.Length > 0 && slice[0] == TupleTypes.EmbeddedTuple && slice[^1] == 0);
@@ -1349,6 +1510,31 @@ namespace SnowBank.Data.Tuples.Binary
 
 			var reader = new TupleReader(slice.Slice(1, slice.Length - 2), depth: 1);
 			return TuplePackers.Unpack(ref reader);
+		}
+
+		/// <summary>Parse a tuple segment containing a negative big integer</summary>
+		public static bool TryParseNegativeBigInteger(ReadOnlySpan<byte> slice, out BigInteger value)
+		{
+			Contract.Debug.Requires(slice.Length > 2 && slice[0] == TupleTypes.NegativeBigInteger);
+
+			if (slice.Length < 3)
+			{
+				value = default;
+				return false;
+			}
+
+			int len = slice[1];
+			len ^= 0xFF;
+			if (slice.Length != len + 2)
+			{
+				value = default;
+				return false;
+			}
+
+			value = new BigInteger(slice[2..], isUnsigned: false, isBigEndian: true);
+			value++;
+
+			return true;
 		}
 
 		/// <summary>Parse a tuple segment containing a negative big integer</summary>
@@ -1374,6 +1560,28 @@ namespace SnowBank.Data.Tuples.Binary
 		}
 
 		/// <summary>Parse a tuple segment containing a positive big integer</summary>
+		public static bool TryParsePositiveBigInteger(ReadOnlySpan<byte> slice, out BigInteger value)
+		{
+			Contract.Debug.Requires(slice.Length > 1 && slice[0] == TupleTypes.PositiveBigInteger);
+
+			if (slice.Length < 2)
+			{
+				value = default;
+				return false;
+			}
+
+			int len = slice[1];
+			if (slice.Length != len + 2)
+			{
+				value = default;
+				return false;
+			}
+
+			value = new BigInteger(slice[2..], isUnsigned: true, isBigEndian: true);
+			return true;
+		}
+
+		/// <summary>Parse a tuple segment containing a positive big integer</summary>
 		public static BigInteger ParsePositiveBigInteger(ReadOnlySpan<byte> slice)
 		{
 			Contract.Debug.Requires(slice.Length > 1 && slice[0] == TupleTypes.PositiveBigInteger);
@@ -1394,19 +1602,20 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Parse a tuple segment containing a single precision number (float32)</summary>
 		[Pure]
-		public static float ParseSingle(Slice slice)
+		public static bool TryParseSingle(ReadOnlySpan<byte> slice, out float value)
 		{
-			Contract.Debug.Requires(slice.HasValue && slice[0] == TupleTypes.Single);
+			Contract.Debug.Requires(slice.Length > 0 && slice[0] == TupleTypes.Single);
 
-			if (slice.Count != 5)
+			if (slice.Length != 5)
 			{
-				throw new FormatException("Slice has invalid size for a Single");
+				value = float.NaN;
+				return false;
 			}
 
 			// We need to reverse encoding process: if first byte < 0x80 then it is negative (bits need to be flipped), else it is positive (highest bit must be set to 0)
 
 			// read the raw bits
-			uint bits = slice.ReadUInt32BE(1, 4); //OPTIMIZE: inline version?
+			uint bits = BinaryPrimitives.ReadUInt32BigEndian(slice.Slice(1, 4));
 
 			if ((bits & 0x80000000U) == 0)
 			{ // negative
@@ -1417,10 +1626,8 @@ namespace SnowBank.Data.Tuples.Binary
 				bits ^= 0x80000000U;
 			}
 
-			float value;
 			unsafe { value = *((float*)&bits); }
-
-			return value;
+			return true;
 		}
 
 		/// <summary>Parse a tuple segment containing a single precision number (float32)</summary>
@@ -1456,19 +1663,20 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Parse a tuple segment containing a double precision number (float64)</summary>
 		[Pure]
-		public static double ParseDouble(Slice slice)
+		public static bool TryParseDouble(ReadOnlySpan<byte> slice, out double value)
 		{
-			Contract.Debug.Requires(slice.HasValue && slice[0] == TupleTypes.Double);
+			Contract.Debug.Requires(slice.Length > 0 && slice[0] == TupleTypes.Double);
 
-			if (slice.Count != 9)
+			if (slice.Length != 9)
 			{
-				throw new FormatException("Slice has invalid size for a Double");
+				value = double.NaN;
+				return false;
 			}
 
 			// We need to reverse encoding process: if first byte < 0x80 then it is negative (bits need to be flipped), else it is positive (highest bit must be set to 0)
 
 			// read the raw bits
-			ulong bits = slice.ReadUInt64BE(1, 8); //OPTIMIZE: inline version?
+			ulong bits = BinaryPrimitives.ReadUInt64BigEndian(slice.Slice(1, 8));
 
 			if ((bits & 0x8000000000000000UL) == 0)
 			{ // negative
@@ -1480,10 +1688,9 @@ namespace SnowBank.Data.Tuples.Binary
 			}
 
 			// note: we could use BitConverter.Int64BitsToDouble(...), but it does the same thing, and also it does not exist for floats...
-			double value;
 			unsafe { value = *((double*)&bits); }
 
-			return value;
+			return true;
 		}
 
 		/// <summary>Parse a tuple segment containing a double precision number (float64)</summary>
@@ -1520,16 +1727,20 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Parse a tuple segment containing a quadruple precision number (float128)</summary>
 		[Pure]
-		public static decimal ParseDecimal(Slice slice)
+		public static bool TryParseDecimal(ReadOnlySpan<byte> slice, out decimal value)
 		{
-			Contract.Debug.Requires(slice.HasValue && slice[0] == TupleTypes.Decimal);
+			Contract.Debug.Requires(slice.Length > 0 && slice[0] == TupleTypes.Decimal);
 
-			if (slice.Count != 17)
+			if (slice.Length != 17)
 			{
-				throw new FormatException("Slice has invalid size for a Decimal");
+				value = 0;
+				return false;
 			}
 
-			throw new NotImplementedException();
+			//BUGBUG: TODO: implement this!
+
+			value = 0;
+			return false;
 		}
 
 		/// <summary>Parse a tuple segment containing a quadruple precision number (float128)</summary>
@@ -1543,6 +1754,7 @@ namespace SnowBank.Data.Tuples.Binary
 				throw new FormatException("Slice has invalid size for a Decimal");
 			}
 
+			//BUGBUG: TODO: implement this!
 			throw new NotImplementedException();
 		}
 
@@ -1624,17 +1836,19 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Parse a tuple segment containing a 128-bit GUID</summary>
 		[Pure]
-		public static Guid ParseGuid(Slice slice)
+		public static bool TryParseGuid(ReadOnlySpan<byte> slice, out Guid value)
 		{
-			Contract.Debug.Requires(slice.HasValue && slice[0] == TupleTypes.Uuid128);
+			Contract.Debug.Requires(slice.Length > 0 && slice[0] == TupleTypes.Uuid128);
 
-			if (slice.Count != 17)
+			if (slice.Length != 17)
 			{
-				throw new FormatException("Slice has invalid size for a GUID");
+				value = Guid.Empty;
+				return false;
 			}
 
 			// We store them in RFC 4122 under the hood, so we need to reverse them to the MS format
-			return Uuid128.ReadUnsafe(slice.Span[1..]);
+			value = Uuid128.ReadUnsafe(slice[1..]);
+			return true;
 		}
 
 		/// <summary>Parse a tuple segment containing a 128-bit GUID</summary>
@@ -1668,16 +1882,18 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Parse a tuple segment containing a 64-bit UUID</summary>
 		[Pure]
-		public static Uuid64 ParseUuid64(Slice slice)
+		public static bool TryParseUuid64(ReadOnlySpan<byte> slice, out Uuid64 value)
 		{
-			Contract.Debug.Requires(slice.HasValue && slice[0] == TupleTypes.Uuid64);
+			Contract.Debug.Requires(slice.Length > 0 && slice[0] == TupleTypes.Uuid64);
 
-			if (slice.Count != 9)
+			if (slice.Length != 9)
 			{
-				throw new FormatException("Slice has invalid size for a 64-bit UUID");
+				value = default;
+				return false;
 			}
 
-			return Uuid64.Read(slice.Substring(1, 8));
+			value = Uuid64.Read(slice.Slice(1, 8));
+			return true;
 		}
 
 		/// <summary>Parse a tuple segment containing a 64-bit UUID</summary>
