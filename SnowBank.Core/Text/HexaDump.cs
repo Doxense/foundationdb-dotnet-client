@@ -63,11 +63,13 @@ namespace SnowBank.Text
 			OmitLastNewLine = 32,
 
 			IdentWithSpaces = 64,
+
+			DoubleWidth = 128,
 		}
 
-		private static void DumpHexaLine(ref FastStringBuilder sb, ReadOnlySpan<byte> bytes)
+		private static void DumpHexaLine(ref FastStringBuilder sb, ReadOnlySpan<byte> bytes, int pad)
 		{
-			Contract.Debug.Requires(bytes.Length <= 16);
+			Contract.Debug.Requires(bytes.Length <= pad);
 
 			foreach (byte b in bytes)
 			{
@@ -75,15 +77,15 @@ namespace SnowBank.Text
 				sb.AppendHex(b, 2);
 			}
 
-			if (bytes.Length < 16)
+			if (bytes.Length < pad)
 			{
-				sb.Append(' ', (16 - bytes.Length) * 3);
+				sb.Append(' ', (pad - bytes.Length) * 3);
 			}
 		}
 
-		private static void DumpRawLine(ref FastStringBuilder sb, ReadOnlySpan<byte> bytes)
+		private static void DumpRawLine(ref FastStringBuilder sb, ReadOnlySpan<byte> bytes, int pad)
 		{
-			Contract.Debug.Requires(bytes.Length <= 16);
+			Contract.Debug.Requires(bytes.Length <= pad);
 
 			foreach (byte b in bytes)
 			{
@@ -104,15 +106,15 @@ namespace SnowBank.Text
 					else sb.Append((char) b); // Latin-1
 				}
 			}
-			if (bytes.Length < 16)
+			if (bytes.Length < pad)
 			{
-				sb.Append(' ', (16 - bytes.Length));
+				sb.Append(' ', (pad - bytes.Length));
 			}
 		}
 
-		private static void DumpTextLine(ref FastStringBuilder sb, ReadOnlySpan<byte> bytes)
+		private static void DumpTextLine(ref FastStringBuilder sb, ReadOnlySpan<byte> bytes, int pad)
 		{
-			Contract.Debug.Requires(bytes.Length <= 16);
+			Contract.Debug.Requires(bytes.Length <= pad);
 
 			foreach (byte b in bytes)
 			{
@@ -129,7 +131,7 @@ namespace SnowBank.Text
 					else sb.Append((char)b); // Latin-1
 				}
 			}
-			if (bytes.Length < 16) sb.Append(' ', (16 - bytes.Length));
+			if (bytes.Length < pad) sb.Append(' ', (pad - bytes.Length));
 		}
 
 		/// <summary>Dumps a byte array into hexadecimal, formatted as 16 bytes per lines</summary>
@@ -150,39 +152,49 @@ namespace SnowBank.Text
 		public static string Format(ReadOnlySpan<byte> bytes, Options options = Options.Default, int indent = 0)
 		{
 			var sb = new FastStringBuilder();
-			bool preview = (options & Options.NoPreview) == 0;
+			bool preview = !options.HasFlag(Options.NoPreview);
+			bool doubleWidth = options.HasFlag(Options.DoubleWidth);
 
 			string prefix = indent == 0 ? string.Empty : new string(options.HasFlag(Options.IdentWithSpaces) ? ' ' : '\t', indent);
 
 			if (!options.HasFlag(Options.NoHeader))
 			{
 				sb.Append(prefix);
-				sb.Append("     : -0 -1 -2 -3 -4 -5 -6 -7 -8 -9 -A -B -C -D -E -F");
-				if (preview) sb.Append(" : 0123456789ABCDEF :");
+				if (doubleWidth)
+				{
+					sb.Append("     : -0 -1 -2 -3 -4 -5 -6 -7 -8 -9 -A -B -C -D -E -F 10 11 12 13 14 15 16 17 18 19 1A 1B 1C 1D 1E 1F");
+					if (preview) sb.Append(" : 0123456789ABCDEF0123456789ABCDEF :");
+				}
+				else
+				{
+					sb.Append("     : -0 -1 -2 -3 -4 -5 -6 -7 -8 -9 -A -B -C -D -E -F");
+					if (preview) sb.Append(" : 0123456789ABCDEF :");
+				}
 				sb.AppendLine();
 			}
 
 			int p = 0;
 			int offset = 0;
 			int count = bytes.Length;
+			int w = doubleWidth ? 32 : 16;
 			while (count > 0)
 			{
-				int n = Math.Min(count, 16);
+				int n = Math.Min(count, w);
 				sb.Append(prefix);
-				sb.AppendHex(p, 4);
-				sb.Append(" |");
+				sb.AppendHex(p >> 4, 3);
+				sb.Append("x |");
 				var chunk = bytes.Slice(offset, n);
-				DumpHexaLine(ref sb, chunk);
+				DumpHexaLine(ref sb, chunk, w);
 				if (preview)
 				{
 					sb.Append(" | ");
 					if (!options.HasFlag(Options.Text))
 					{
-						DumpRawLine(ref sb, chunk);
+						DumpRawLine(ref sb, chunk, w);
 					}
 					else
 					{
-						DumpTextLine(ref sb, chunk);
+						DumpTextLine(ref sb, chunk, w);
 					}
 					sb.Append(" |");
 				}
@@ -258,12 +270,16 @@ namespace SnowBank.Text
 
 			string prefix = indent == 0 ? string.Empty : new string(options.HasFlag(Options.IdentWithSpaces) ? ' ' : '\t', indent);
 
-			bool preview = (options & Options.NoPreview) == 0;
+			bool preview = !options.HasFlag(Options.NoPreview);
+			if (options.HasFlag(Options.DoubleWidth))
+			{
+				throw new ArgumentException("Double Width mode is not supported in Versus mode.");
+			}
 
 			if ((options & Options.NoHeader) == 0)
 			{
 				sb.Append(prefix);
-				sb.Append("     : x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 xA xB xC xD xE xF : x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 xA xB xC xD xE xF");
+				sb.Append("     : -0 -1 -2 -3 -4 -5 -6 -7 -8 -9 -A -B -C -D -E -F : -0 -1 -2 -3 -4 -5 -6 -7 -8 -9 -A -B -C -D -E -F");
 				if (preview) sb.Append(" :      : 0123456789ABCDEF : 0123456789ABCDEF : 0123456789ABCDEF");
 				sb.AppendLine();
 			}
@@ -283,16 +299,16 @@ namespace SnowBank.Text
 				var rChunk = rn > 0 ? right.Slice(p, rn) : Span<byte>.Empty;
 
 				bool same = !preview || lChunk.SequenceEqual(rChunk);
-				DumpHexaLine(ref sb, lChunk);
+				DumpHexaLine(ref sb, lChunk, 16);
 				sb.Append(" │");
-				DumpHexaLine(ref sb, rChunk);
+				DumpHexaLine(ref sb, rChunk, 16);
 
 				if (preview)
 				{
 					sb.Append($" ║ {p >> 4:x03}x | ");
-					DumpRawLine(ref sb, lChunk);
+					DumpRawLine(ref sb, lChunk, 16);
 					sb.Append(" │ ");
-					DumpRawLine(ref sb, rChunk);
+					DumpRawLine(ref sb, rChunk, 16);
 					if (!same)
 					{
 						sb.Append(" │ ");
