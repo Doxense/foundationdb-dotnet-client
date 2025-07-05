@@ -67,6 +67,39 @@ namespace SnowBank.Data.Tuples.Binary
 			return st.ToTuple(packedKey);
 		}
 
+		/// <summary>Unpack a tuple from a serialized key blob</summary>
+		/// <param name="packedKey">Binary key containing a previously packed tuple</param>
+		/// <returns>Unpacked tuple, or the empty tuple if the key is <see cref="Slice.Empty"/></returns>
+		/// <remarks>
+		/// <para>This is the same as <see cref="TuPack.Unpack(System.Slice)"/>, except that it will expose the concrete type <see cref="SlicedTuple"/> instead of the <see cref="IVarTuple"/> interface.</para>
+		/// </remarks>
+		/// <exception cref="System.ArgumentNullException">If <paramref name="packedKey"/> is equal to <see cref="Slice.Nil"/></exception>
+		[Pure]
+		public static bool TryUnpack(Slice packedKey, [MaybeNullWhen(false)] out SlicedTuple tuple)
+		{
+			if (packedKey.IsNull)
+			{
+				tuple = null;
+				return false;
+			}
+
+			if (packedKey.Count == 0)
+			{
+				tuple = SlicedTuple.Empty;
+				return true;
+			}
+
+			var reader = new TupleReader(packedKey.Span);
+			if (!TuplePackers.TryUnpack(ref reader, out var st, out _))
+			{
+				tuple = null;
+				return false;
+			}
+
+			tuple = st.ToTuple(packedKey);
+			return true;
+		}
+
 		/// <summary>Transcode a tuple into the equivalent tuple, but backed by a <see cref="SlicedTuple"/></summary>
 		/// <remarks>This methods can be useful to examine what the result of packing a tuple would be, after a round-trip to the database.</remarks>
 		public static SlicedTuple Repack<TTuple>(in TTuple? tuple) where TTuple : IVarTuple?
