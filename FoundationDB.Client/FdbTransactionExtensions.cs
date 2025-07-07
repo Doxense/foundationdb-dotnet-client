@@ -1272,6 +1272,8 @@ namespace FoundationDB.Client
 		public static void AtomicMin(this IFdbTransaction trans, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value)
 			=> trans.Atomic(key, value, FdbMutationType.Min);
 
+		private static readonly Slice IncompleteToken = Slice.Repeat(0xFF, 10);
+
 		/// <summary>Find the location of the VersionStamp in a key or value</summary>
 		/// <param name="buffer">Buffer that must contains <paramref name="token"/> once and only once</param>
 		/// <param name="token">Token that represents the VersionStamp</param>
@@ -1299,7 +1301,7 @@ namespace FoundationDB.Client
 			}
 			else
 			{ // not found, maybe it is using the default incomplete stamp (all FF) ?
-				p = buffer.IndexOf(VersionStamp.IncompleteToken.Span);
+				p = buffer.IndexOf(IncompleteToken.Span);
 				if (p < 0)
 				{
 					throw argName == "key"

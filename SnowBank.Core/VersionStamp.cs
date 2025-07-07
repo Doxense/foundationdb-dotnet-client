@@ -72,11 +72,10 @@ namespace System
 		/// <para>This value will never be observed in the database, and can be used to represent the concept of <c>null</c>, <c>none</c> or <c>empty</c></para>
 		/// <para>Please note that this is different from the <see cref="Incomplete()"/> stamp, which corresponds to a stamp whose value is not yet known, but will be replaced by concrete value in the near future (usually when the transaction commits).</para>
 		/// </remarks>
-		public static readonly VersionStamp None = default;
+		public static readonly VersionStamp None;
 
 		/// <summary>Serialized bytes of the default incomplete stamp (composed of only 0xFF)</summary>
-		public static readonly Slice IncompleteToken = Slice.Repeat(0xFF, 10);
-		//BUGBUG: fdb client only needs 'internal' but with shared framework it must be 'public'... which can be dangerous if the buffer is exposed to anyone!
+		internal static readonly Slice IncompleteToken = Slice.Repeat(0xFF, 10);
 
 		/// <summary>Commit version of the transaction</summary>
 		/// <remarks>This value is determined by the database at commit time.</remarks>
