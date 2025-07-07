@@ -35,6 +35,7 @@ namespace System
 	using Globalization;
 	using SnowBank.Buffers;
 	using SnowBank.Buffers.Binary;
+	using SnowBank.Runtime;
 	using SnowBank.Text;
 
 	/// <summary>VersionStamp</summary>
@@ -45,7 +46,9 @@ namespace System
 	/// </remarks>
 	[DebuggerDisplay("{ToString(),nq}")]
 	[ImmutableObject(true), PublicAPI, Serializable]
-	public readonly struct VersionStamp : IEquatable<VersionStamp>, IComparable<VersionStamp>, IJsonSerializable, IJsonPackable, IJsonDeserializable<VersionStamp>
+	public readonly struct VersionStamp : IEquatable<VersionStamp>, IComparable<VersionStamp>, IComparable, IJsonSerializable, IJsonPackable, IJsonDeserializable<VersionStamp>
+		, IEquatable<Uuid80>, IComparable<Uuid80>
+		, IEquatable<Uuid96>, IComparable<Uuid96>
 #if NET8_0_OR_GREATER
 		, ISpanFormattable
 		, ISpanParsable<VersionStamp>
@@ -1041,10 +1044,13 @@ namespace System
 		#region Equality, Comparision, ...
 
 		/// <inheritdoc />
-		public override bool Equals(object? obj)
+		public override bool Equals(object? obj) => obj switch
 		{
-			return obj is VersionStamp vs && Equals(vs);
-		}
+			VersionStamp vs => Equals(vs),
+			Uuid80 u80 => Equals(u80),
+			Uuid96 u96 => Equals(u96),
+			_ => false
+		};
 
 		/// <inheritdoc />
 		public override int GetHashCode()
@@ -1062,6 +1068,62 @@ namespace System
 			   && (this.UserVersion == other.UserVersion)
 			   && (this.Flags == other.Flags);
 		}
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(Uuid80 other)
+		{
+			return !this.HasUserVersion && ToUuid80().Equals(other);
+		}
+
+		/// <inheritdoc />
+		public int CompareTo(Uuid80 other)
+		{
+			if (!this.HasUserVersion)
+			{
+				return this.ToUuid80().CompareTo(other);
+			}
+
+			int cmp = ToUuid96().Upper80.CompareTo(other);
+			if (cmp == 0)
+			{
+				cmp = this.UserVersion > 0 ? +1 : 0;
+			}
+			return cmp;
+		}
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(Uuid96 other)
+		{
+			return this.HasUserVersion && ToUuid96().Equals(other);
+		}
+
+		/// <inheritdoc />
+		public int CompareTo(Uuid96 other)
+		{
+			if (this.HasUserVersion)
+			{
+				return ToUuid96().CompareTo(other);
+			}
+
+			int cmp = ToUuid80().CompareTo(other.Upper80);
+			if (cmp == 0)
+			{
+				cmp = other.Lower16 > 0 ? -1 : 0;
+			}
+			return cmp;
+		}
+
+		/// <inheritdoc />
+		public int CompareTo(object? other) => other switch
+		{
+			VersionStamp vs => this.CompareTo(vs),
+			Uuid80 u80 => this.CompareTo(u80),
+			Uuid96 u96 => this.CompareTo(u96),
+			null => +1,
+			_ => throw new ArgumentException($"Cannot compare a VersionStamp with an instance of {other.GetType().GetFriendlyName()}"),
+		};
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool operator ==(VersionStamp left, VersionStamp right)

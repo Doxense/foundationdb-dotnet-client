@@ -925,6 +925,106 @@ namespace SnowBank.Core.Tests
 		}
 
 		[Test]
+		public void Test_VersionStamp_CompareTo()
+		{
+			// CompareTo(VersionStamp)
+			Assert.Multiple(() =>
+			{
+				Assert.That(VersionStamp.Incomplete().CompareTo(VersionStamp.Incomplete()), Is.Zero);
+				Assert.That(VersionStamp.Incomplete().CompareTo(VersionStamp.Incomplete(0x1234)), Is.LessThan(0));
+				Assert.That(VersionStamp.Incomplete(0x1234).CompareTo(VersionStamp.Incomplete()), Is.GreaterThan(0));
+				Assert.That(VersionStamp.Incomplete(0x1234).CompareTo(VersionStamp.Incomplete(0x1234)), Is.Zero);
+				Assert.That(VersionStamp.Incomplete(0x1234).CompareTo(VersionStamp.Incomplete(0x4321)), Is.LessThan(0));
+
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA).CompareTo(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA)), Is.Zero);
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA).CompareTo(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55BB)), Is.LessThan(0));
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55BB).CompareTo(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA)), Is.GreaterThan(0));
+				Assert.That(VersionStamp.Complete(0x0FEDCBA987654321UL, 0x55AA).CompareTo(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA)), Is.GreaterThan(0));
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA).CompareTo(VersionStamp.Complete(0x0FEDCBA987654321UL, 0x55AA)), Is.LessThan(0));
+
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA).CompareTo(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC)), Is.LessThan(0));
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC).CompareTo(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA)), Is.GreaterThan(0));
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC).CompareTo(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC)), Is.Zero);
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC).CompareTo(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x3C3C)), Is.LessThan(0));
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x3C3C).CompareTo(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC)), Is.GreaterThan(0));
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC).CompareTo(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x5A5A, 0x33CC)), Is.LessThan(0));
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x5A5A, 0x33CC).CompareTo(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC)), Is.GreaterThan(0));
+			});
+
+			// CompareTo(Uuid80)
+			Assert.Multiple(() =>
+			{
+				Assert.That(VersionStamp.Incomplete().CompareTo(Uuid80.Empty), Is.GreaterThan(0));
+
+				Assert.That(VersionStamp.Incomplete().CompareTo(Uuid80.AllBitsSet), Is.Zero);
+				Assert.That(VersionStamp.Incomplete(0x1234).CompareTo(Uuid80.AllBitsSet), Is.GreaterThan(0));
+				Assert.That(VersionStamp.Incomplete(0).CompareTo(Uuid80.AllBitsSet), Is.Zero);
+
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA).CompareTo(Uuid80.Empty), Is.GreaterThan(0));
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA).CompareTo(Uuid80.AllBitsSet), Is.LessThan(0));
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA).CompareTo(Uuid80.FromUpper64Lower16(0x0123456789ABCDEFUL, 0x55AA)), Is.Zero);
+				Assert.That(VersionStamp.Complete(0x0FEDCBA987654321UL, 0x55AA).CompareTo(Uuid80.FromUpper64Lower16(0x0123456789ABCDEFUL, 0x55AA)), Is.GreaterThan(0));
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA).CompareTo(Uuid80.FromUpper64Lower16(0x0FEDCBA987654321UL, 0x55AA)), Is.LessThan(0));
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA).CompareTo(Uuid80.FromUpper64Lower16(0x0123456789ABCDEFUL, 0xAA55)), Is.LessThan(0));
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0xAA55).CompareTo(Uuid80.FromUpper64Lower16(0x0123456789ABCDEFUL, 0x55AA)), Is.GreaterThan(0));
+
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0).CompareTo(Uuid80.FromUpper64Lower16(0x0123456789ABCDEFUL, 0x55AA)), Is.Zero);
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 1).CompareTo(Uuid80.FromUpper64Lower16(0x0123456789ABCDEFUL, 0x55AA)), Is.GreaterThan(0));
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0xFFFF).CompareTo(Uuid80.FromUpper64Lower16(0x0123456789ABCDEFUL, 0x55AB)), Is.LessThan(0));
+			});
+
+			// CompareTo(Uuid96)
+			Assert.Multiple(() =>
+			{
+				Assert.That(VersionStamp.Incomplete().CompareTo(Uuid96.Empty), Is.GreaterThan(0));
+
+				Assert.That(VersionStamp.Incomplete().CompareTo(Uuid96.AllBitsSet), Is.LessThan(0)); // last 16 bits are 0 !
+				Assert.That(VersionStamp.Incomplete(0x1234).CompareTo(Uuid96.AllBitsSet), Is.LessThan(0));
+				Assert.That(VersionStamp.Incomplete(0xFFFF).CompareTo(Uuid96.AllBitsSet), Is.Zero);
+
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC).CompareTo(Uuid96.Empty), Is.GreaterThan(0));
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC).CompareTo(Uuid96.AllBitsSet), Is.LessThan(0));
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC).CompareTo(Uuid96.FromUpper64Middle16Lower16(0x0123456789ABCDEFUL, 0x55AA, 0x33CC)), Is.Zero);
+				Assert.That(VersionStamp.Complete(0x0FEDCBA987654321UL, 0x55AA, 0x33CC).CompareTo(Uuid96.FromUpper64Middle16Lower16(0x0123456789ABCDEFUL, 0x55AA, 0x33CC)), Is.GreaterThan(0));
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC).CompareTo(Uuid96.FromUpper64Middle16Lower16(0x0FEDCBA987654321UL, 0x55AA, 0x33CC)), Is.LessThan(0));
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC).CompareTo(Uuid96.FromUpper64Middle16Lower16(0x0123456789ABCDEFUL, 0xAA55, 0x33CC)), Is.LessThan(0));
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0xAA55, 0x33CC).CompareTo(Uuid96.FromUpper64Middle16Lower16(0x0123456789ABCDEFUL, 0x55AA, 0x33CC)), Is.GreaterThan(0));
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC).CompareTo(Uuid96.FromUpper64Middle16Lower16(0x0123456789ABCDEFUL, 0x55AA, 0xCC33)), Is.LessThan(0));
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0xCC33).CompareTo(Uuid96.FromUpper64Middle16Lower16(0x0123456789ABCDEFUL, 0x55AA, 0x33CC)), Is.GreaterThan(0));
+			});
+
+			// CompareTo(object)
+			Assert.Multiple(() =>
+			{
+				Assert.That(VersionStamp.Incomplete().CompareTo((object) VersionStamp.Incomplete()), Is.Zero);
+				Assert.That(VersionStamp.Incomplete().CompareTo((object) VersionStamp.Incomplete(0x1234)), Is.LessThan(0));
+				Assert.That(VersionStamp.Incomplete(0x1234).CompareTo((object) VersionStamp.Incomplete()), Is.GreaterThan(0));
+				Assert.That(VersionStamp.Incomplete(0x1234).CompareTo((object) VersionStamp.Incomplete(0x1234)), Is.Zero);
+				Assert.That(VersionStamp.Incomplete(0x1234).CompareTo((object) VersionStamp.Incomplete(0x4321)), Is.LessThan(0));
+
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA).CompareTo((object) VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA)), Is.Zero);
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA).CompareTo((object) VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55BB)), Is.LessThan(0));
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55BB).CompareTo((object) VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA)), Is.GreaterThan(0));
+				Assert.That(VersionStamp.Complete(0x0FEDCBA987654321UL, 0x55AA).CompareTo((object) VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA)), Is.GreaterThan(0));
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA).CompareTo((object) VersionStamp.Complete(0x0FEDCBA987654321UL, 0x55AA)), Is.LessThan(0));
+
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA).CompareTo((object) VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC)), Is.LessThan(0));
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC).CompareTo((object) VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA)), Is.GreaterThan(0));
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC).CompareTo((object) VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC)), Is.Zero);
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC).CompareTo((object) VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x3C3C)), Is.LessThan(0));
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x3C3C).CompareTo((object) VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC)), Is.GreaterThan(0));
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC).CompareTo((object) VersionStamp.Complete(0x0123456789ABCDEFUL, 0x5A5A, 0x33CC)), Is.LessThan(0));
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x5A5A, 0x33CC).CompareTo((object) VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC)), Is.GreaterThan(0));
+
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA).CompareTo((object) Uuid80.Empty), Is.GreaterThan(0));
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA).CompareTo((object) Uuid80.FromUpper64Lower16(0x0123456789ABCDEFUL, 0x55AA)), Is.Zero);
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA).CompareTo((object) Uuid80.MaxValue), Is.LessThan(0));
+
+				Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC).CompareTo((object) Uuid96.FromUpper64Middle16Lower16(0x0123456789ABCDEFUL, 0x55AA, 0x33CC)), Is.Zero);
+			});
+		}
+
+		[Test]
 		public void Test_VersionStamp_To_Uuid80()
 		{
 			// To
