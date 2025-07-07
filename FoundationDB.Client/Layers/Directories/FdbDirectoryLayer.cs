@@ -1648,4 +1648,27 @@ namespace FoundationDB.Client
 
 	}
 
+	/// <summary>Helper interface that can map keys to their corresponding directories</summary>
+	[PublicAPI]
+	public interface IFdbDirectoryLayerMapper
+	{
+
+		/// <summary>Returns the map of all known directories</summary>
+		IReadOnlyDictionary<FdbPath, Slice> GetPaths();
+
+		/// <summary>Returns the prefix that corresponds to a given path, if it is known</summary>
+		/// <param name="path">Path to map</param>
+		/// <param name="prefix">Receives the key prefix for this path</param>
+		/// <returns><c>true</c> if the path is known by this mapper; otherwise, <c>false</c></returns>
+		bool TryMapPath(FdbPath path, out Slice prefix);
+
+		/// <summary>Finds the path that contains a given key in the database</summary>
+		/// <param name="key">Key in the database snapshot</param>
+		/// <param name="path">Receives the path to the directory subspace that contains this key</param>
+		/// <param name="mappedKey">Receives the tail of the key, minus the path prefix.</param>
+		/// <returns><c>true</c> if key belongs to a known path; otherwise, <c>false</c></returns>
+		bool TryMapKey(Slice key, out FdbPath path, out Slice mappedKey);
+
+	}
+
 }
