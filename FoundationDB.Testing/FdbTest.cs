@@ -26,6 +26,7 @@
 
 namespace FoundationDB.Client.Tests
 {
+	using System.Text;
 	using FoundationDB.DependencyInjection;
 	using Microsoft.Extensions.DependencyInjection;
 	using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -358,7 +359,10 @@ namespace FoundationDB.Client.Tests
 			Assert.That(tr, Is.Not.Null);
 			Assert.That(subspace, Is.Not.Null);
 
-			Log($"Dumping content of {subspace} at {subspace.GetPrefix():K}:");
+			var sb = new StringBuilder();
+
+			sb.AppendLine($"Dumping content of {subspace} at {subspace.GetPrefix():K}:");
+
 			int count = 0;
 			await tr
 				.GetRange(KeyRange.StartsWith(subspace.GetPrefix()))
@@ -375,20 +379,21 @@ namespace FoundationDB.Client.Tests
 					catch (Exception)
 					{
 						// not a tuple, dump as bytes
-						keyDump = "'" + key.ToString() + "'";
+						keyDump = $"'{key}'";
 					}
 						
-					Log($"- {keyDump} = {kvp.Value}");
+					sb.AppendLine($"- {keyDump} = {kvp.Value}");
 				});
 
 			if (count == 0)
 			{
-				Log("> empty !");
+				sb.AppendLine("> empty !");
 			}
 			else
 			{
-				Log("> Found " + count + " values");
+				sb.AppendLine($"> Found {count:N0} values");
 			}
+			Log(sb.ToString());
 		}
 
 		[DebuggerStepThrough]
