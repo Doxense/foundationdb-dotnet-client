@@ -79,7 +79,7 @@ namespace FoundationDB.Client
 	[PublicAPI]
 	public readonly struct FqlTupleItem : IFqlExpression,
 		// Equality
-		IEquatable<FqlTupleItem>,
+		IEquatable<FqlTupleItem>, IComparable<FqlTupleItem>, IComparable,
 		IEquatable<FqlTupleExpression>,
 		IEquatable<bool>,
 		IEquatable<string>,
@@ -234,6 +234,172 @@ namespace FoundationDB.Client
 				_ => false
 			};
 		}
+
+		public int CompareTo(FqlTupleItem other)
+		{
+			int cmp = this.Type.CompareTo(other.Type);
+			if (cmp == 0)
+			{
+				if (this.Value is not IComparable l || other.Value is not IComparable r)
+				{
+					throw new InvalidOperationException("Both values must implement IComparable");
+				}
+				cmp = l.CompareTo(r);
+			}
+			return cmp;
+		}
+
+		private static FqlItemType MapType(object? value) => value switch
+		{
+			null => FqlItemType.Nil,
+			bool => FqlItemType.Boolean,
+			int or uint or long or ulong => FqlItemType.Integer,
+			double or float or decimal => FqlItemType.Number,
+			string => FqlItemType.String,
+			Slice or byte[] => FqlItemType.Bytes,
+			Guid or Uuid128 => FqlItemType.Uuid,
+			IVarTuple or ITuple => FqlItemType.Tuple,
+			VersionStamp or Uuid80 or Uuid96 => FqlItemType.VStamp,
+			_ => FqlItemType.Invalid,
+		};
+
+		private static bool TryCoerceToSignedInteger(object? value, out long result)
+		{
+			switch (value)
+			{
+				case int i:
+				{
+					result = i;
+					return true;
+				}
+				case long l:
+				{
+					result = l;
+					return true;
+				}
+				case uint ui:
+				{
+					result = ui;
+					return true;
+				}
+				case ulong ul:
+				{
+					if (ul <= long.MaxValue)
+					{
+						result = unchecked((long)ul);
+						return true;
+					}
+					break;
+				}
+			}
+			result = 0;
+			return false;
+		}
+
+		private static bool TryCoerceToUnsignedInteger(object? value, out ulong result)
+		{
+			switch (value)
+			{
+				case int i:
+				{
+					if (i >= 0)
+					{
+						result = unchecked((ulong) i);
+						return true;
+					}
+
+					break;
+				}
+				case long l:
+				{
+					if (l >= 0)
+					{
+						result = unchecked((ulong) l);
+						return true;
+					}
+					break;
+				}
+				case uint ui:
+				{
+					result = ui;
+					return true;
+				}
+				case ulong ul:
+				{
+					result = ul;
+					return true;
+				}
+			}
+			result = 0;
+			return false;
+		}
+
+		public int CompareTo(object? other) => this.Type switch
+		{
+			FqlItemType.Nil => other is null ? 0 : -1,
+			FqlItemType.Boolean => other switch
+			{
+				bool b => ((bool) this.Value!).CompareTo(b),
+				null => +1,
+				_ => 0
+			},
+			FqlItemType.Integer => this.Value switch
+			{
+				long ll => TryCoerceToSignedInteger(other, out var rl) ? ll.CompareTo(rl) 
+				         : TryCoerceToUnsignedInteger(other, out var rul) ? (ll < 0 ? -1 : ((ulong) ll).CompareTo(rul))
+				         : FqlItemType.Integer.CompareTo(MapType(other)),
+				ulong lul => TryCoerceToUnsignedInteger(other, out var rul) ? lul.CompareTo(rul)
+				         : TryCoerceToSignedInteger(other, out var rl) ? (rl < 0 ? +1 : lul.CompareTo((ulong)rl))
+				         : FqlItemType.Integer.CompareTo(MapType(other)),
+				_ => throw new NotImplementedException(),
+			},
+			FqlItemType.Number => this.Value switch
+			{
+				float lf => other switch
+				{
+					float rf => lf.CompareTo(rf),
+					double rd => ((double) lf).CompareTo(rd),
+					_ => FqlItemType.Number.CompareTo(MapType(other))
+				},
+				double ld => other switch
+				{
+					double rd => ld.CompareTo(rd),
+					float rf => ld.CompareTo((double) rf),
+					_ => FqlItemType.Number.CompareTo(MapType(other))
+				},
+				_ => throw new NotImplementedException(),
+			},
+			FqlItemType.String => other switch
+			{
+				string s => string.CompareOrdinal((string) Value!, s),
+				_ => FqlItemType.String.CompareTo(MapType(other))
+			},
+			FqlItemType.Bytes => other switch
+			{
+				Slice s => ((Slice) this.Value!).CompareTo(s),
+				byte[] bs => ((Slice) this.Value!).CompareTo(bs),
+				_ => FqlItemType.Bytes.CompareTo(MapType(other))
+			},
+			FqlItemType.Uuid => other switch
+			{
+				Uuid128 u => ((Uuid128) this.Value!).CompareTo(u),
+				Guid g => ((Uuid128) this.Value!).CompareTo(g),
+				_ => FqlItemType.Uuid.CompareTo(MapType(other))
+			},
+			FqlItemType.Tuple => other switch
+			{
+				IVarTuple t => throw new NotImplementedException(), /*((IVarTuple) this.Value!).CompareTo(t)*/
+				_ => FqlItemType.Tuple.CompareTo(MapType(other))
+			},
+			FqlItemType.VStamp => other switch
+			{
+				VersionStamp vs => ((VersionStamp) this.Value!).CompareTo(vs),
+				Uuid80 u80 => ((VersionStamp) this.Value!).CompareTo(u80),
+				Uuid96 u96 => ((VersionStamp) Value!).CompareTo(u96),
+				_ => FqlItemType.Bytes.CompareTo(MapType(other))
+			},
+			_ => throw new NotSupportedException(),
+		};
 
 		public bool Equals(bool value) => this.Type == FqlItemType.Boolean && this.Value switch
 		{
@@ -778,7 +944,7 @@ namespace FoundationDB.Client
 
 	[DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
-	public sealed class FqlTupleExpression : IEquatable<FqlTupleExpression>, IFqlExpression, IFormattable
+	public sealed class FqlTupleExpression : IEquatable<FqlTupleExpression>, IComparable<FqlTupleExpression>, IComparable, IFqlExpression, IFormattable
 	{
 		public List<FqlTupleItem> Items { get; } = [];
 
@@ -865,22 +1031,50 @@ namespace FoundationDB.Client
 			return hc.ToHashCode();
 		}
 
+		/// <inheritdoc />
 		public bool Equals(FqlTupleExpression? other)
 		{
 			if (other is null) return false;
 			if (ReferenceEquals(other, this)) return true;
 
-			var items = this.Items;
-			var otherItems = other.Items;
-			if (items.Count != otherItems.Count) return false;
+			var items = CollectionsMarshal.AsSpan(this.Items);
+			var otherItems = CollectionsMarshal.AsSpan(other.Items);
+			if (items.Length != otherItems.Length) return false;
 
-			for (int i = 0; i < items.Count; i++)
+			for (int i = 0; i < items.Length; i++)
 			{
 				if (!items[i].Equals(otherItems[i])) return false;
 			}
 
 			return true;
 		}
+
+		/// <inheritdoc />
+		public int CompareTo(FqlTupleExpression? other)
+		{
+			if (other is null) return +1;
+			if (ReferenceEquals(other, this)) return 0;
+
+			var items = CollectionsMarshal.AsSpan(this.Items);
+			var otherItems = CollectionsMarshal.AsSpan(other.Items);
+			int len = Math.Min(items.Length, otherItems.Length);
+
+			for (int i = 0; i < len; i++)
+			{
+				int cmp = items[i].CompareTo(otherItems[i]);
+				if (cmp != 0) return cmp;
+			}
+
+			return items.Length.CompareTo(otherItems.Length);
+		}
+
+		/// <inheritdoc />
+		public int CompareTo(object? other) => other switch
+		{
+			FqlTupleExpression expr => CompareTo(expr),
+			null => +1,
+			_ => throw new ArgumentException($"Cannot compare {nameof(FqlTupleExpression)} with instance of type {other.GetType().GetFriendlyName()}"),
+		};
 
 		#region Builder Pattern...
 
